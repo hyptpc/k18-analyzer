@@ -1,0 +1,14 @@
+#gitignore
+
+*.[doa]
+*~
+*.root
+*.so
+*.pcm
+Makefile
+bin
+data*
+lib
+macro
+fieldmap
+rootfile*
