@@ -1,0 +1,60 @@
+#
+# RUN LIST (YAML format)
+#
+# The allowed keys are
+#   unit   <- dividing event unit
+#   bin    <- path to executable binary
+#   conf   <- path to conf file from the work directory
+#   data   <- path to data directory/file
+#   root   <- path to the output root file directory/file
+#
+# Be careful of the indent rule because YAML format is sensitive to it.
+# Some problems will happen if there is no default setting declaration.
+#
+
+#____________________________________________________
+# work directory path
+# The following paths must be relative to this path
+
+WORKDIR: ~/work/miwalove/analyzer
+
+#____________________________________________________
+# default setting
+# default setting MUST have all items.
+# This setting will be inherited unless you explicitly set values for the individual cases.
+
+DEFAULT:
+  unit: 100000
+  bin:  ./bin/Hodoscope
+  conf: ./param/conf/analyzer_default.conf
+  data: ../data
+  root: ../rootfile
+
+#____________________________________________________
+# Individual settings
+# If you want to adapt the default setting to some runs,
+# you only have to list keys.
+
+RUN:
+
+  test: # Any keys are OK unless it overlaps.
+  - 
+    bin:  ./bin/Hodoscope
+    conf: ./param/conf/analyzer_default.conf
+    data: ./test.dat.gz
+    root: ./test.root
+
+  3838: # The default setting will be adapted.
+
+  3800: # Three independent process will run
+  - 
+    bin:  ./bin/KuramaTracking
+    conf: ./param/conf/analyzer_1.conf
+    data: ./tmp_data
+    root: ./test.root
+  - 
+    bin:  ./bin/KuramaTracking
+    conf: ./param/conf/analyzer_2.conf
+  - 
+    unit: 1000
+    conf: ./param/conf/miwalove.conf
