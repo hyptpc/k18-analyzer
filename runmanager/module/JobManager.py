@@ -1,10 +1,10 @@
-#!/opt/python-3.5/bin/python
+#!/usr/bin/env python3.5
 
 #____________________________________________________
 
 __author__  = 'Y.Nakada <nakada@km.phys.sci.osaka-u.ac.jp>'
-__version__ = '2.0'
-__date__    = '15 April 2018'
+__version__ = '2.1'
+__date__    = '12 May 2018'
 
 #____________________________________________________
 
@@ -13,6 +13,7 @@ import sys
 import shutil
 import time
 import copy
+import shlex
 import subprocess
 
 import xml.etree.ElementTree
@@ -48,18 +49,19 @@ class JobManager :
         self.__baseName = self.__tag + '_' \
                           + os.path.splitext( os.path.basename( fout_path ) )[0]
 
-        self.__fExecPath   = fexec_path
-        self.__fConfPath   = fconf_path
-        self.__fDataPath   = fdata_path
-        self.__fOutPath    = fout_path
-        self.__fUnpackPath = None 
-        self.__fSchemaPath = None
-        self.__fLogPath    = None
+        self.__fExecPath     = fexec_path
+        self.__fConfPath     = fconf_path
+        self.__fDataPath     = fdata_path
+        self.__fOutPath      = fout_path
+        self.__fPreFetchPath = None
+        self.__fUnpackPath   = None 
+        self.__fSchemaPath   = None
+        self.__fLogPath      = None
 
         self.__nEvents = nevents
         self.__divUnit = div_unit
 
-        self.__option = '-q s '    # for short que
+        self.__option = '-q s'    # for short que
 
         self.__elemList    = list()
         self.__jobIdList   = list()
@@ -73,6 +75,7 @@ class JobManager :
         self.__procMerge = None
 
         self.__makeFLog()
+        self.__makeFPreFetch()
 
         self.__dumpInitInfo()
 
@@ -110,23 +113,31 @@ class JobManager :
     def killBjob( self, jid = None ) :
 
         if jid is None :
-            self.updateJobStat()
+            self.__updateJobStat()
+            fl = False
             for key, stat in self.__jobStat.items() :
                 if stat in [ 0, 1 ] :
-                    print( 'Killing job #%d' % key )
+                    sys.stdout.write( 'Killing job #%d\n' % key )
                     tmp = subprocess.run( [ 'bkill', str( key ) ],
                                           stdout = subprocess.DEVNULL,
                                           stderr = subprocess.DEVNULL )
+                    fl = True
+                    buff = 'bsub process was killed [JID: %d]' % key
+                    self.__dumpLog( 'killBjob', buff )
+            if fl :
+                self.__dumpLog( None,  64 * '_' )
 
         else :
             if jid in self.__jobIdList :
-                self.updateJobStat( jid )
+                self.__updateJobStat( jid )
                 if self.__jobStat[jid] in [ 0, 1 ] :
-                    print( 'Killing job #%d' % jid )
+                    sys.stdout.write( 'Killing job #%d\n' % jid )
                     tmp = subprocess.run( [ 'bkill', str( jid ) ],
                                           stdout = subprocess.DEVNULL,
                                           stderr = subprocess.DEVNULL )
-
+            buff = 'bsub process was killed [JID: %d]' % jid
+            self.__dumpLog( 'killBjob', buff )
+            self.__dumpLog( None,  64 * '_' )
 
     #__________________________________________________
     def killMerge( self ) :
@@ -135,8 +146,11 @@ class JobManager :
         if not self.__procMerge is None \
            and self.__procMerge.poll() is None :
             
-            print( 'Killing merging process' )
+            sys.stdout.write( 'Killing merging process\n' )
             self.__procMerge.kill()
+            buff = 'merging process was killed'
+            self.__dumpLog( 'killMerge', buff )
+            self.__dumpLog( None,  64 * '_' )
 
 
     #__________________________________________________
@@ -144,6 +158,12 @@ class JobManager :
 
         self.killBjob()
         self.killMerge()
+
+
+    #__________________________________________________
+    def getStartTime( self ) :
+
+        return time.ctime( self.__stime )
 
 
     #__________________________________________________
@@ -170,8 +190,11 @@ class JobManager :
             if os.path.exists( item[3] ):
                 os.remove( item[3] )
 
-            bsub = 'bsub ' + self.__option + '-o ' + item[3]
-            command =  bsub.split()
+            bsubcomm = 'bsub' + ' ' \
+                       + self.__option + ' ' + \
+                       '-o' + ' ' + item[3] + ' ' \
+                       '-a \"prefetch (' + self.__fPreFetchPath + ')\"'
+            command =  shlex.split( bsubcomm )
 
             target = [ self.__fExecPath,
                        item[1],
@@ -212,41 +235,38 @@ class JobManager :
                     flog.write( str( key ) + ':\n' )
                 elif isinstance( buff, list ) or isinstance( buff, tuple ) :
                     for i, item in enumerate( buff ) :
-                        flog.write( '%s(%d):'.ljust( 16 ) % ( key, i ) )
+                        flog.write( ('%s(%d):' % ( key, i )).ljust(16) )
                         flog.write( str( item ) + '\n' )
                 else :
-                    flog.write( '%s:'.ljust( 16 ) % key )
+                    flog.write( ('%s:' % key).ljust( 16 ) )
                     flog.write( str( buff ) + '\n' )
 
 
     #__________________________________________________
     def __dumpInitInfo( self ) :
 
-        self.__dumpLog( 'key',    self.__key )
-        self.__dumpLog( None,     64 * '_' )
-        self.__dumpLog( 'bin',    self.__fExecPath )
-        self.__dumpLog( 'conf',   self.__fConfPath )
-        self.__dumpLog( 'data',   self.__fDataPath )
-        self.__dumpLog( 'unit',   self.__divUnit )
-        self.__dumpLog( 'nevent', self.__nEvents )
-        self.__dumpLog( 'out',    self.__fOutPath )
-        self.__dumpLog( None,     64 * '_' )
+        self.__dumpLog( 'start',    time.ctime( self.__stime ) )
+        self.__dumpLog( None,       64 * '_' )
+        self.__dumpLog( 'key',      self.__key )
+        self.__dumpLog( None,       64 * '_' )
+        self.__dumpLog( 'bin',      self.__fExecPath )
+        self.__dumpLog( 'conf',     self.__fConfPath )
+        self.__dumpLog( 'data',     self.__fDataPath )
+        self.__dumpLog( 'unit',     self.__divUnit )
+        self.__dumpLog( 'nevent',   self.__nEvents )
+        self.__dumpLog( 'prefetch', self.__fPreFetchPath )
+        self.__dumpLog( 'out',      self.__fOutPath )
+        self.__dumpLog( None,       64 * '_' )
 
 
     #__________________________________________________
     def setOption( self, option ) :
 
-        self.__option = option + ' '
+        self.__option = option
 
 
     #__________________________________________________
-    def getStartTime( self ) :
-
-        return self.__stime
-
-
-    #__________________________________________________
-    def updateJobStat( self, jid = None ) :
+    def __updateJobStat( self, jid = None ) :
 
         if jid is None :
 
@@ -254,11 +274,10 @@ class JobManager :
 
                 command = 'bjobs %d' % key
                 try :
-                    proc = subprocess.run( command.split(),
+                    proc = subprocess.run( shlex.split( command ),
                                            stdout = subprocess.PIPE,
                                            stderr = subprocess.PIPE,
                                            check = True )
-                    # lines = subprocess.check_output( command.split() ).splitlines()
                 except subprocess.CalledProcessError as e :
                     sys.stderr.write( 'ERROR: command \'%s\' returned error code (%d)\n' \
                                       % ( ' '.join( e.cmd ), e.returncode ) )
@@ -273,11 +292,10 @@ class JobManager :
 
                 command = 'bjobs %d' % jid
                 try :
-                    proc = subprocess.run( command.split(),
+                    proc = subprocess.run( shlex.split( command ),
                                            stdout = subprocess.PIPE,
                                            stderr = subprocess.PIPE,
                                            check = True )
-                    # lines = subprocess.check_output( command.split() ).splitlines()
                 except subprocess.CalledProcessError as e :
                     sys.stderr.write( 'ERROR: command \'%s\' returned error code (%d)'\
                                       % ( ' '.join( e.cmd ), e.returncode ) )
@@ -288,18 +306,27 @@ class JobManager :
 
 
     #__________________________________________________
-    def isExecuted( self, jid = None ) :
+    def getJobResult( self, jid = None ) :
 
-        fl = False
+        fl = None
 
         if jid is None :
-            if 0 < len( self.__jobStat ) and\
-               len( self.__jobStat ) ==\
-               sum( [ 1 if val in [ 2, 3 ] else 0 for val in self.__jobStat.values() ] ) :
-                fl = True
+            self.__updateJobStat()
+            if 0 < len( self.__jobStat ) :
+                if 3 in self.__jobStat.values() : # in the case of 'EXIT'
+                    for key, value in self.__jobStat.items() :
+                        if value == 3 :
+                            sys.stderr.write( 'ERROR: Process has unexpectedly exited [JID: %d]\n' \
+                                              % key )
+                    fl = False
+                elif len( self.__jobStat ) == list( self.__jobStat.values() ).count( 2 ) : # in the case of 'DONE'
+                    fl = True
         else :
+            self.__updateJobStat( jid )
             if jid in self.__jobStat.keys() :
-                if self.__jobStat[jid] in [ 2, 3 ] :
+                if 3 == self.__jobStat[jid] : # in the case of 'EXIT'
+                     fl = False
+                elif 2 == self.__jobStat[jid] == 2 : # in the case of 'DONE'
                     fl = True
 
         return fl
@@ -351,6 +378,19 @@ class JobManager :
 
         if os.path.exists( self.__fLogPath ) :
             os.remove( self.__fLogPath )
+
+
+    #__________________________________________________
+    def __makeFPreFetch( self ) :
+
+        dPreFetch = SCRIPT_DIR + '/prefetch'
+        if not os.path.exists( dPreFetch ) :
+            os.mkdir( dPreFetch )
+
+        self.__fPreFetchPath = dPreFetch + '/' + self.__baseName + '.pf'
+
+        with open( self.__fPreFetchPath, 'w' ) as f :
+            f.write( self.__fDataPath )
 
 
     #__________________________________________________
@@ -470,7 +510,7 @@ class JobManager :
     #__________________________________________________
     def mergeFOut( self ) :
 
-        command = 'hadd -ff'.split()
+        command = shlex.split( 'hadd -ff' )
         command.append( self.__fOutPath )
         command.extend( self.__fOutList )
 
@@ -530,6 +570,13 @@ class JobManager :
             if os.path.exists( item ) :
                 os.remove( item )
 
+    #__________________________________________________
+    def clearFPreFetch( self ) :
+
+        if not self.__fLogPath is None :
+            if os.path.exists( self.__fPreFetchPath ) :
+                os.remove( item )
+
 
     #__________________________________________________
     def clearAllLog( self ) :
@@ -549,8 +596,9 @@ class JobManager :
     #__________________________________________________
     def clearMainLog( self ) :
 
-        if os.path.exists( self.__fLogPath ) :
-            os.remove( self.__fLogPath )
+        if not self.__fLogPath is None :
+            if os.path.exists( self.__fLogPath ) :
+                os.remove( self.__fLogPath )
 
 
     #__________________________________________________

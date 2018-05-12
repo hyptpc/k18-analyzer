@@ -1,10 +1,10 @@
-#!/opt/python-3.5/bin/python
+#!/usr/bin/env python3.5
 
 #____________________________________________________
 
 __author__  = 'Y.Nakada <nakada@km.phys.sci.osaka-u.ac.jp>'
-__version__ = '2.0'
-__date__    = '15 April 2018'
+__version__ = '2.1'
+__date__    = '12 May 2018'
 
 #____________________________________________________
 
@@ -135,12 +135,13 @@ class RunlistManager :
             utility.ExitFailure( 'Cannot find file: ' + path )
         else :
             if os.path.isfile( path ) :
-                data_path = path
+                data_path = os.path.realpath( path )
             elif os.path.isdir( path ) \
-                    and not runno is None \
-                    and isinstance( runno, int ) :
+                 and not runno is None \
+                 and isinstance( runno, int ) :
                 tmp = path + '/run' + '%05d' % runno + '.dat.gz'
-                data_path = tmp if os.path.exists( tmp ) and os.path.isfile( tmp ) \
+                data_path = os.path.realpath( tmp ) \
+                            if os.path.exists( tmp ) and os.path.isfile( tmp ) \
                     else utility.ExitFailure( 'Cannot find file: ' + tmp )
             else :
                 utility.ExitFailure( 'Cannot decide deta file path' )
@@ -157,13 +158,13 @@ class RunlistManager :
             dir_path = os.path.dirname( path )
             if os.path.exists( dir_path )\
                     and os.path.isdir( dir_path ):
-                root_path = path
+                root_path = os.path.realpath( path )
             else :
                 utility.ExitFailure( 'Cannot find directory: ' + dir_path )
         elif os.path.isfile( path ) :
-            root_path = path
+            root_path = os.path.realpath( path )
         elif os.path.isdir( path ) and not base is None :
-            root_path = path + '/' + base + '.root'
+            root_path = os.path.realpath( path + '/' + base + '.root' )
         else :
             utility.ExitFailure( 'Cannot decide root file path' )
     

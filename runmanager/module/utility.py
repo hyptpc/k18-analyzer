@@ -1,10 +1,10 @@
-#!/opt/python-3.5/bin/python
+#!/usr/bin/env python3.5
 
 #____________________________________________________
 
 __author__  = 'Y.Nakada <nakada@km.phys.sci.osaka-u.ac.jp>'
-__version__ = '2.0'
-__date__    = '15 April 2018'
+__version__ = '2.1'
+__date__    = '12 May 2018'
 
 #____________________________________________________
 

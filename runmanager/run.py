@@ -1,10 +1,10 @@
-#!/opt/python-3.5/bin/python
+#!/usr/bin/env python3.5
 
 #____________________________________________________
 
 __author__  = 'Y.Nakada <nakada@km.phys.sci.osaka-u.ac.jp>'
-__version__ = '2.0'
-__date__    = '15 April 2018'
+__version__ = '2.1'
+__date__    = '12 May 2018'
 
 #____________________________________________________
 
@@ -39,10 +39,15 @@ def handler( num, frame ) :
 
     time.sleep( 1 )             # waiting for bsub log files are generated
 
-    print( 'Deleting files...' )
-    for item in joblist :
-        # item[0].clear()
-        item[0].clearAll()
+    tmp = input( 'Keep log files? [y/-] >> ' )
+    if 'y' == tmp :
+        print( 'Deleting intermediate files...' )
+        for item in joblist :
+            item[0].clear()
+    else :
+        print( 'Deleting files...' )
+        for item in joblist :
+            item[0].clearAll()
 
     sys.exit( 0 )
 
@@ -109,14 +114,21 @@ while not fl_done  == njobs :
             joblist[index][1] = 'running(0/%d)' % job.getNSegs()
             joblist[index][2] = decodeTime( job.getDiffTime() )
         elif stat[:7] == 'running' :
-            job.updateJobStat()
-            if job.isExecuted() :
-                job.mergeFOut()
-                joblist[index][1] = 'merging'
-            else :
+            result = job.getJobResult()
+            if result is None :
                 numer = job.getProgress()
                 denom = job.getNSegs()
                 joblist[index][1] = 'running(%d/%d)' % ( numer, denom )
+            elif result is True :
+                job.mergeFOut()
+                joblist[index][1] = 'merging'
+            elif result is False :
+                job.killBjob()
+                job.clear()
+                joblist[index][1] = 'error'
+                fl_done += 1
+            else :
+                joblist[index][1] = 'unknown'
             joblist[index][2] = decodeTime( job.getDiffTime() )
         elif stat == 'merging' :
             fstat = job.getFinalStatus()
@@ -126,13 +138,13 @@ while not fl_done  == njobs :
                 # job.clear()
                 job.clearAll()
                 joblist[index][1] = 'done'
+                fl_done += 1
             elif fstat is False :
                 job.clear()
                 joblist[index][1] = 'error'
+                fl_done += 1
             else :
-                job.clear()
                 joblist[index][1] = 'unknown'
-            fl_done += 1
             joblist[index][2] = decodeTime( job.getDiffTime() )
         elif stat == 'done' :
             continue
