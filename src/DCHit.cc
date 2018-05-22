@@ -57,7 +57,8 @@ DCHit::DCHit( void )
     m_de(-999.),
     m_rms(-999.),
     m_chisqr(9999.),
-    m_belong_kaon(false)
+    m_belong_kaon(false),
+    m_ofs_dt(0.)
 {
   debug::ObjectCounter::increase(class_name);
 }
@@ -82,7 +83,8 @@ DCHit::DCHit( int layer )
     m_de(-999.),
     m_rms(-999.),
     m_chisqr(-999.),
-    m_belong_kaon(false)
+    m_belong_kaon(false),
+    m_ofs_dt(0.)
 {
   debug::ObjectCounter::increase(class_name);
 }
@@ -107,7 +109,8 @@ DCHit::DCHit( int layer, double wire )
     m_de(-999.),
     m_rms(-999.),
     m_chisqr(-999.),
-    m_belong_kaon(false)
+    m_belong_kaon(false),
+    m_ofs_dt(0.)
 {
   debug::ObjectCounter::increase(class_name);
 }
@@ -223,7 +226,8 @@ DCHit::CalcDCObservables( void )
     } 
 
     double dtime, dlength;
-    if( !gDrift.CalcDrift( m_layer, m_wire, ctime, dtime, dlength ) ){
+    double corrected_ctime = ctime + m_ofs_dt;
+    if( !gDrift.CalcDrift( m_layer, m_wire, corrected_ctime, dtime, dlength ) ){
       status = false;
     } 
 
@@ -254,9 +258,10 @@ DCHit::CalcDCObservables( void )
     case 1: case 2: case 3: case 4: case 5: case 6:
     case 31: case 32: case 33: case 34:
     case 35: case 36: case 37: case 38:
+      //      m_pair_cont.at(i).dl_range = true;
       if( MinDLSdc[m_layer] < m_pair_cont.at(i).drift_length && m_pair_cont.at(i).drift_length < MaxDLSdc[m_layer] ){
-	m_pair_cont.at(i).dl_range = true;
-      } 
+      	m_pair_cont.at(i).dl_range = true;
+      }
       break;
     default:
       hddaq::cout << "#E " << func_name << " "

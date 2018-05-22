@@ -93,6 +93,9 @@ protected:
   ///// for TOF
   double    m_z;
 
+  ///// For E40 Acrylic TOF
+  double    m_ofs_dt;
+
   mutable std::vector <DCLTrackHit *> m_register_container;
 
 public:
@@ -136,6 +139,9 @@ public:
 
   ///// for TOF
   void SetZ( double z ) { m_z = z; }
+
+  ///// For E40 Acrylic TOF
+  void SetOfsdT( double ofs) { m_ofs_dt = ofs;}
 
   int GetLayer( void ) const { return m_layer; }
   double GetWire( void )  const {
@@ -193,6 +199,8 @@ public:
 
   ///// for TOF
   double GetZ( void ) const { return m_z; }
+
+
 
   void JoinTrack( int nh=0 ) { m_pair_cont.at(nh).belong_track = true; }
   void QuitTrack( int nh=0 ) { m_pair_cont.at(nh).belong_track = false; }

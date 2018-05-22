@@ -409,7 +409,7 @@ DCAnalyzer::DecodeSdcInHits( RawData *rawData )
 
 //______________________________________________________________________________
 bool
-DCAnalyzer::DecodeSdcOutHits( RawData *rawData )
+DCAnalyzer::DecodeSdcOutHits( RawData *rawData , double ofs_dt)
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
@@ -430,6 +430,8 @@ DCAnalyzer::DecodeSdcOutHits( RawData *rawData )
       int       nhtdc      = rhit->GetTdcSize();
       int       nhtrailing = rhit->GetTrailingSize();
       if(!hit) continue;
+      
+      hit->SetOfsdT(ofs_dt);
       for( int j=0; j<nhtdc; ++j ){
 	hit->SetTdcVal( rhit->GetTdc(j) );
       }

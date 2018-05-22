@@ -98,7 +98,7 @@ public:
   bool DecodeBcInHits( RawData* rawData );
   bool DecodeBcOutHits( RawData* rawData );
   bool DecodeSdcInHits( RawData* rawData );
-  bool DecodeSdcOutHits( RawData* rawData );
+  bool DecodeSdcOutHits( RawData* rawData, double ofs_dt=0. );
   bool DecodeSsdInHits( RawData* rawData );
   bool DecodeSsdOutHits( RawData* rawData );
   bool DecodeTOFHits( const Hodo2HitContainer& HitCont );
