@@ -744,7 +744,6 @@ KuramaTrack::SaveCalcPosition( const RKHitPointContainer &hpCont )
     thp->SetCalGPos( calhp.PositionInGlobal() );
     thp->SetCalGMom( calhp.MomentumInGlobal() );
     thp->SetCalLPos( calhp.PositionInLocal() );
-    thp->SetKaonFlag();
   }
   return true;
 }

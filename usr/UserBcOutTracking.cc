@@ -317,8 +317,7 @@ EventBcOutTracking::ProcessingNormal( void )
   // Bc Out
   //  std::cout << "==========TrackSearch BcOut============" << std::endl;
   DCAna->TrackSearchBcOut( );
-  //  DCAna->ChiSqrCutBcOut(10);
-  //DCAna->TrackSearchBcOut();
+  DCAna->ChiSqrCutBcOut(10);
 
   int nt=DCAna->GetNtracksBcOut();
   event.ntrack=nt;

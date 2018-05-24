@@ -54,7 +54,7 @@ const int NumOfSegTrig    = 32;
 const int NumOfSegScaler  = 96;
 const int NumOfSegEMC     =  1;
 const int NumOfSegSSDT    = 16;
-const int SpillEndFlag    = 20; // 0-based
+const int SpillEndFlag    = 27; // 0-based
 const int NumOfPlaneVmeRm = 2;
 
 #if RunE07

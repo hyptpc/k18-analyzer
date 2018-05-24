@@ -30,7 +30,6 @@
 #include "K18TransMatrix.hh"
 #include "MatrixParamMan.hh"
 #include "MsTParamMan.hh"
-#include "SsdParamMan.hh"
 #include "UnpackerManager.hh"
 #include "UserParamMan.hh"
 

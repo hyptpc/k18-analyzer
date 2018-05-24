@@ -22,8 +22,6 @@
 #include "UserParamMan.hh"
 
 #define OscillationCut 0
-#define E07CntIs 0
-#define E07SsdIs 0
 
 namespace
 {
@@ -175,8 +173,6 @@ RawData::RawData( void )
     m_BcOutRawHC(NumOfLayersBcOut+1),
     m_SdcInRawHC(NumOfLayersSdcIn+1),
     m_SdcOutRawHC(NumOfLayersSdcOut+1),
-    m_SsdInRawHC(NumOfLayersSsdIn+1),
-    m_SsdOutRawHC(NumOfLayersSsdOut+1),
     m_ScalerRawHC(),
     m_TrigRawHC(),
     m_VmeCalibRawHC(),
@@ -221,8 +217,6 @@ RawData::ClearAll( void )
   del::ClearContainerAll( m_BcOutRawHC );
   del::ClearContainerAll( m_SdcInRawHC );
   del::ClearContainerAll( m_SdcOutRawHC );
-  del::ClearContainerAll( m_SsdInRawHC );
-  del::ClearContainerAll( m_SsdOutRawHC );
 
   del::ClearContainer( m_ScalerRawHC );
   del::ClearContainer( m_TrigRawHC );
@@ -268,15 +262,6 @@ RawData::DecodeHits( void )
   DecodeHodo( DetIdTOF, NumOfSegTOF, kBothSide, m_TOFRawHC );
   // LC
   DecodeHodo( DetIdLC,  NumOfSegLC,  kOneSide,  m_LCRawHC );
-
-#if E07CntIs
-  // BAC
-  DecodeHodo( DetIdBAC, NumOfSegBAC, kOneSide, m_BACRawHC );
-  // PVAC
-  DecodeHodo( DetIdPVAC, NumOfSegPVAC, kOneSide, m_PVACRawHC );
-  // FAC
-  DecodeHodo( DetIdFAC, NumOfSegFAC, kOneSide, m_FACRawHC );
-#endif
 
   //BFT
   for( int plane=0; plane<NumOfPlaneBFT; ++plane ){
@@ -393,45 +378,6 @@ RawData::DecodeHits( void )
       }
     }
   }
-
-#if E07SsdIs
-  //SSDT
-  DecodeHodo( DetIdSSDT, NumOfSegSSDT, kOneSide, m_SSDTRawHC );
-  for( int seg=0; seg<NumOfSegSSDT; ++seg ){
-    int nhit = gUnpacker.get_entries( DetIdSSDT, 0, seg*2, 0, 1 );
-    if( nhit<=0 ) continue;
-    int data = gUnpacker.get( DetIdSSDT, 0, seg*2, 0, 1 );
-    AddHodoRawHit( m_SSDTRawHC, DetIdSSDT, 0, seg, 0, 1, data );
-  }
-
-  // SsdIn (SSD1)
-  for( int plane=0; plane<NumOfLayersSsdIn; ++plane ){
-  //   for( int type=0; type<kDcNDataType; ++type ){
-    for( int type=0; type<kDcNDataType - 1; ++type ){
-      for( int seg=0; seg<NumOfSegSSD1; ++seg ){
-  	int nhit = gUnpacker.get_entries( DetIdSSD1, plane, seg, 0, type );
-  	for( int i=0; i<nhit; ++i ){
-  	  int data = gUnpacker.get( DetIdSSD1, plane, seg, 0, type, i );
-  	  AddDCRawHit( m_SsdInRawHC[plane+1], plane+PlMinSsdIn, seg+1, data, type );
-  	}//for(i)
-      }//for(seg)
-    }//for(type)
-  }//for(plane)
-
-  // SsdOut (SSD2)
-  for( int plane=0; plane<NumOfLayersSsdOut; ++plane ){
-  //   for( int type=0; type<kDcNDataType; ++type ){
-    for( int type=0; type<kDcNDataType - 1; ++type ){
-      for( int seg=0; seg<NumOfSegSSD2; ++seg ){
-  	int nhit = gUnpacker.get_entries( DetIdSSD2, plane, seg, 0, type );
-  	for(int i=0; i<nhit; ++i){
-  	  int data = gUnpacker.get( DetIdSSD2, plane, seg, 0, type, i );
-  	  AddDCRawHit( m_SsdOutRawHC[plane+1], plane+PlMinSsdOut, seg+1, data, type );
-  	}//for(i)
-      }//for(seg)
-    }//for(type)
-  }//for(plane)
-#endif
 
   // SdcIn (SDC1)
   for( int plane=0; plane<NumOfLayersSDC1; ++plane ){

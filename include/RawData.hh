@@ -48,8 +48,6 @@ private:
   std::vector<DCRHitContainer> m_BcOutRawHC;
   std::vector<DCRHitContainer> m_SdcInRawHC;
   std::vector<DCRHitContainer> m_SdcOutRawHC;
-  std::vector<DCRHitContainer> m_SsdInRawHC;
-  std::vector<DCRHitContainer> m_SsdOutRawHC;
 
   HodoRHitContainer m_ScalerRawHC;
   HodoRHitContainer m_TrigRawHC;
@@ -85,9 +83,6 @@ public:
   const DCRHitContainer&   GetBcOutRawHC( int layer ) const;
   const DCRHitContainer&   GetSdcInRawHC( int layer ) const;
   const DCRHitContainer&   GetSdcOutRawHC( int layer ) const;
-  const DCRHitContainer&   GetSsdInRawHC( int layer ) const;
-  const DCRHitContainer&   GetSsdOutRawHC( int layer ) const;
-  const DCRHitContainer&   GetSsdOutSdcInRawHC( int layer ) const;
 
   const HodoRHitContainer& GetScalerRawHC( void ) const;
   const HodoRHitContainer& GetTrigRawHC( void ) const;
@@ -212,22 +207,6 @@ RawData::GetBcOutRawHC( int layer ) const
 {
   if( layer<0 || layer>NumOfLayersBcOut ) layer = 0;
   return m_BcOutRawHC[layer];
-}
-
-//______________________________________________________________________________
-inline const DCRHitContainer&
-RawData::GetSsdInRawHC( int layer ) const
-{
-  if( layer<0 || layer>NumOfLayersSsdIn ) layer = 0;
-  return m_SsdInRawHC[layer];
-}
-
-//______________________________________________________________________________
-inline const DCRHitContainer&
-RawData::GetSsdOutRawHC( int layer ) const
-{
-  if( layer<0 || layer>NumOfLayersSsdOut ) layer = 0;
-  return m_SsdOutRawHC[layer];
 }
 
 //______________________________________________________________________________

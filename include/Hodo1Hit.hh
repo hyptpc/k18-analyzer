@@ -30,6 +30,7 @@ protected:
   std::vector<double>  m_a;
   std::vector<double>  m_t;
   std::vector<double>  m_ct;
+  std::vector<bool>    m_flag_join;
   int                  m_index;
 
 public:
@@ -66,6 +67,9 @@ public:
   int DetectorId( void ) const { return m_raw->DetectorId(); }
   int PlaneId( void )    const { return m_raw->PlaneId(); }
   int SegmentId( void )  const { return m_raw->SegmentId(); }
+
+  void   SetJoined( int m )           { m_flag_join.at(m) = true;         }
+  bool   Joined( int m )        const { return m_flag_join.at(m);         }
 
   virtual bool ReCalc( bool applyRecursively=false )
   { return Calculate(); }

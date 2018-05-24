@@ -34,7 +34,6 @@ protected:
   double      m_offset;
   int         m_pair_id;
   bool        m_status;
-  std::vector<bool>   m_flag_join;
   std::vector<FLHit*> m_hit_container;
 
   struct data_pair{
@@ -68,8 +67,7 @@ public:
   double GetPosition( void )  const { return m_position + m_offset;       }
   int    PairId( void )       const { return m_pair_id;                   }
   double SegmentId( void )    const { return m_segment;                   }
-  void   SetJoined( int m )           { m_flag_join.at(m) = true;         }
-  bool   Joined( int m )        const { return m_flag_join.at(m);         }
+
   void   Print( const std::string& arg="", std::ostream& ost=hddaq::cout ) const;
   void   RegisterHits( FLHit* hit )   { m_hit_container.push_back(hit);   }
 

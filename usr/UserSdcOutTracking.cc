@@ -31,6 +31,8 @@ namespace
   const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
   RMAnalyzer&         gRM   = RMAnalyzer::GetInstance();
   const UserParamMan& gUser = UserParamMan::GetInstance();
+  const hddaq::unpacker::UnpackerManager& gUnpacker
+  = hddaq::unpacker::GUnpacker::get_instance();
   const double& zTOF = gGeom.LocalZ("TOF");
 }
 
@@ -118,6 +120,7 @@ struct Event
   int nhit[NumOfLayersSdcOut];
   int nlayer;
   double wpos[NumOfLayersSdcOut][MaxHits];
+  double pos[NumOfLayersSdcOut][MaxHits];
 
   int ntrack;
   double chisqr[MaxHits];
@@ -279,6 +282,21 @@ EventSdcOutTracking::ProcessingNormal( void )
 
   HF1( 1, 3. );
 
+  // MsT HR-TDC (TOF)
+  bool flag_tof_stop = false;
+  {
+    static const int device_id = gUnpacker.get_device_id("MsT");
+    static const int tof_id    = gUnpacker.get_plane_id("MsT", "TOF");
+
+    for(int seg = 0; seg<NumOfSegTOF; ++seg){
+      int mhit = gUnpacker.get_entries(device_id, tof_id, seg, 0, 0);
+      for(int m = 0; m<mhit; ++m){
+	int tof_tdc = gUnpacker.get(device_id, tof_id, seg, 0, 0, m);
+	if(165000 < tof_tdc && tof_tdc < 175000) flag_tof_stop = true;
+      }// for(m)
+    }// for(seg)
+  }
+
   HF1( 1, 4. );
 
   HF1( 1, 5. );
@@ -302,9 +320,10 @@ EventSdcOutTracking::ProcessingNormal( void )
 
   HF1( 1, 10. );
 
-  DCAna->DecodeSdcOutHits( rawData );
-  DCAna->TotCutSDC2( 10. );
-  DCAna->TotCutSDC3( 10. );
+  double offset = flag_tof_stop ? +161.85 : 0.;
+  DCAna->DecodeSdcOutHits( rawData, offset );
+  DCAna->TotCutSDC2( 30. );
+  DCAna->TotCutSDC3( 60. );
   double multi_SdcOut = 0.;
   {
     for( int layer=1; layer<=NumOfLayersSdcOut; ++layer ){
@@ -330,6 +349,7 @@ EventSdcOutTracking::ProcessingNormal( void )
 	}// else { std::cout << "discrepancy..." << std::endl; }
 
 	for( int k=0; k<nhtdc; k++ ){
+	  //	for( int k=0; k<1; k++ ){
 	  int tdc = hit->GetTdcVal(k);
 	  HF1( 100*layer+2, tdc );
 	  HF1( 10000*layer+int(wire), tdc );
@@ -338,7 +358,8 @@ EventSdcOutTracking::ProcessingNormal( void )
 	int nhdt = hit->GetDriftTimeSize();
 	for( int k=0; k<nhdt; k++ ){
 	  double dt = hit->GetDriftTime(k);
-	  HF1( 100*layer+3, dt );
+	  if(flag_tof_stop) HF1( 100*layer+3, dt );
+	  else              HF1( 100*layer+6, dt );
 	  HF1( 10000*layer+1000+int(wire), dt );
 
 	  double tot = hit->GetTot(k);
@@ -366,6 +387,7 @@ EventSdcOutTracking::ProcessingNormal( void )
 #else
   DCAna->TrackSearchSdcOut();
 #endif
+  DCAna->ChiSqrCutSdcOut(50.);
   int nt=DCAna->GetNtracksSdcOut();
   if( MaxHits<nt ){
     std::cout << "#W " << func_name << " "
@@ -506,6 +528,7 @@ EventSdcOutTracking::InitializeEvent( void )
     event.nhit[it] = 0;
     for( int that=0; that<MaxHits; ++that ){
       event.wpos[it][that] = -9999.;
+      event.pos[it][that] = -9999.;
     }
   }
   for( int it=0; it<MaxHits; ++it ){
@@ -546,14 +569,14 @@ namespace
   const double MinSdcOutTdc  =    0.;
   const double MaxSdcOutTdc  = 2000.;
 
-  const int    NbinSDC2DT = 200;
+  const int    NbinSDC2DT = 240;
   const double MinSDC2DT  = -50.;
   const double MaxSDC2DT  = 150.;
   const int    NbinSDC2DL =  90;
   const double MinSDC2DL  =  -2.;
   const double MaxSDC2DL  =   7.;
 
-  const int    NbinSDC3DT = 400;
+  const int    NbinSDC3DT = 480;
   const double MinSDC3DT  = -50.;
   const double MaxSDC3DT  = 350.;
   const int    NbinSDC3DL = 180;
@@ -575,12 +598,14 @@ ConfMan::InitializeHistograms( void )
     TString title3 = Form("Drift Time SDC2#%2d", i);
     TString title4 = Form("Drift Length SDC2#%2d", i);
     TString title5 = Form("TOT SDC2#%2d", i);
+    TString title6 = Form("Drift Time SDC2#%2d (BH2 timing)", i);
     HB1( 100*i+0, title0, MaxWireSDC2+1, 0., double(MaxWireSDC2+1) );
     HB1( 100*i+1, title1, MaxWireSDC2+1, 0., double(MaxWireSDC2+1) );
     HB1( 100*i+2, title2, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc );
     HB1( 100*i+3, title3, NbinSDC2DT, MinSDC2DT, MaxSDC2DT );
     HB1( 100*i+4, title4, NbinSDC2DL, MinSDC2DL, MaxSDC2DL );
-    HB1( 100*i+5, title5, 300,        0,         300);
+    HB1( 100*i+5, title5, 360,        0,         300);
+    HB1( 100*i+6, title6, NbinSDC2DT, MinSDC2DT, MaxSDC2DT );
     for ( int wire=1; wire<=MaxWireSDC2; wire++ ) {
       TString title11 = Form("Tdc SDC2#%2d Wire#%d", i, wire);
       TString title12 = Form("Drift Time SDC2#%2d Wire#%d", i, wire);
@@ -600,12 +625,14 @@ ConfMan::InitializeHistograms( void )
     TString title3 = Form("Drift Time SDC3#%2d", i);
     TString title4 = Form("Drift Length SDC3#%2d", i);
     TString title5 = Form("TOT SDC2#%2d", i);
+    TString title6 = Form("Drift Time SDC3#%2d (BH2 timing)", i);
     HB1( 100*(i+NumOfLayersSDC3)+0, title0, MaxWire+1, 0., double(MaxWire+1) );
     HB1( 100*(i+NumOfLayersSDC3)+1, title1, MaxWire+1, 0., double(MaxWire+1) );
     HB1( 100*(i+NumOfLayersSDC3)+2, title2, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc );
     HB1( 100*(i+NumOfLayersSDC3)+3, title3, NbinSDC3DT, MinSDC3DT, MaxSDC3DT );
     HB1( 100*(i+NumOfLayersSDC3)+4, title4, NbinSDC3DL, MinSDC3DL, MaxSDC3DL );
-    HB1( 100*(i+NumOfLayersSDC3)+5, title5, 300,        0,         300);
+    HB1( 100*(i+NumOfLayersSDC3)+5, title5, 360,        0,         300);
+    HB1( 100*(i+NumOfLayersSDC3)+6, title6, NbinSDC3DT, MinSDC3DT, MaxSDC3DT );
     for ( int wire=1; wire<=MaxWire; wire++ ) {
       TString title11 = Form("Tdc SDC3#%2d Wire#%d", i, wire);
       TString title12 = Form("Drift Time SDC3#%2d Wire#%d", i, wire);
@@ -689,7 +716,7 @@ ConfMan::InitializeHistograms( void )
     TString title73 = Form("Residual SdcOut%2d (30<theta<45)", i);
     TString title74 = Form("Residual SdcOut%2d (45<theta)", i);
     HB1( 100*i+11, title11, 120, 0., 120. );
-    HB1( 100*i+12, title12, 500, -100, 400 );
+    HB1( 100*i+12, title12, 600, -100, 400 );
     HB1( 100*i+13, title13, 100, -5, MaxDL );
     HB1( 100*i+14, title14, 100, -1000., 1000. );
     if( i<=NumOfLayersSdcOut )
@@ -713,7 +740,7 @@ ConfMan::InitializeHistograms( void )
     HB2( 100*i+32, Form("Resid%%Y SdcOut %d", i), 100, -1000., 1000., 100, -2., 2. );
     HB2( 100*i+33, Form("Resid%%U SdcOut %d", i), 100, -0.5, 0.5, 100, -2., 2. );
     HB2( 100*i+34, Form("Resid%%V SdcOut %d", i), 100, -0.5, 0.5, 100, -2., 2. );
-    HB1( 100*i+40, title40, 300,    0, 300 );
+    HB1( 100*i+40, title40, 360,    0, 300 );
     HB1( 100*i+71, title71, 200, -5.0, 5.0 );
     HB1( 100*i+72, title72, 200, -5.0, 5.0 );
     HB1( 100*i+73, title73, 200, -5.0, 5.0 );
@@ -757,6 +784,8 @@ ConfMan::InitializeHistograms( void )
 						 NumOfLayersSdcOut));
   tree->Branch("nlayer",   &event.nlayer,   "nlayer/I");
   tree->Branch("wpos",     &event.wpos,     Form("wpos[%d][%d]/D",
+						 NumOfLayersSdcOut, MaxHits));
+  tree->Branch(" pos",     &event.pos,     Form("wpos[%d][%d]/D",
 						 NumOfLayersSdcOut, MaxHits));
   tree->Branch("ntrack",   &event.ntrack,   "ntrack/I");
   tree->Branch("chisqr",    event.chisqr,   "chisqr[ntrack]/D");

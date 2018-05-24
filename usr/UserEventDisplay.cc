@@ -101,12 +101,6 @@ UserEventDisplay::ProcessingNormal( void )
   static const double MaxTdcFBH  = gUser.GetParameter("TdcFBH", 1);
   static const double MinTdcSCH  = gUser.GetParameter("TdcSCH", 0);
   static const double MaxTdcSCH  = gUser.GetParameter("TdcSCH", 1);
-  static const double MinDeSSDKaon = gUser.GetParameter("DeSSDKaon", 0);
-  static const double MaxDeSSDKaon = gUser.GetParameter("DeSSDKaon", 1);
-  static const double MinTimeSSD = gUser.GetParameter("TimeSSD", 0);
-  static const double MaxTimeSSD = gUser.GetParameter("TimeSSD", 1);
-
-  static const double MaxChisqrSSD = gUser.GetParameter("MaxChisqrSSD", 0);
 
   static const double OffsetToF  = gUser.GetParameter("OffsetToF");
 
@@ -136,20 +130,6 @@ UserEventDisplay::ProcessingNormal( void )
       trigflag[seg-1] = tdc;
     }
     if( trigflag[SpillEndFlag]>0 ) return true;
-  }
-
-  //SSDT
-  std::vector<double> t0Ssd( NumOfSegSSDT, 0. );
-  {
-    hodoAna->DecodeSSDTHits( rawData );
-    int nh = hodoAna->GetNHitsSSDT();
-    for( int i=0; i<nh; ++i ){
-      Hodo1Hit *hit = hodoAna->GetHitSSDT(i);
-      if(!hit) continue;
-      int    seg  = hit->SegmentId()+1;
-      double time = hit->Time();
-      t0Ssd[seg-1] = time;
-    }
   }
 
   // BH2
@@ -321,41 +301,6 @@ UserEventDisplay::ProcessingNormal( void )
   }
   if( ntBcOut==0 ) return true;
 
-  // SsdAnalysis
-  DCAna->DoTimeCorrectionSsd( t0Ssd );
-  DCAna->ChisqrFilterSsd( MaxChisqrSSD );
-  DCAna->ClusterizeSsd();
-  // for SsdCluster
-  DCAna->DeltaEFilterSsd( MinDeSSDKaon, MaxDeSSDKaon, true );
-  DCAna->TimeFilterSsd( MinTimeSSD, MaxTimeSSD, true );
-  // SsdIn
-  for( int l=1; l<=NumOfLayersSsdIn; ++l ){
-    const SsdClusterContainer &cont = DCAna->GetClusterSsdIn(l);
-    const std::size_t nh = cont.size();
-    for( std::size_t i=0; i<nh; ++i ){
-      SsdCluster *cluster = cont[i];
-      if(!cluster) continue;
-      int    layer = cluster->LayerId();
-      double seg   = cluster->MeanSeg();
-      double de    = cluster->DeltaE();
-      gEvDisp.DrawSsdHit( layer, seg, de );
-    }
-  }
-
-  // SsdOut
-  for( int l=1; l<=NumOfLayersSsdOut; ++l ){
-    const SsdClusterContainer &cont = DCAna->GetClusterSsdOut(l);
-    const std::size_t nh = cont.size();
-    for( std::size_t i=0; i<nh; ++i ){
-      SsdCluster *cluster = cont[i];
-      if(!cluster) continue;
-      int    layer = cluster->LayerId();
-      double seg   = cluster->MeanSeg();
-      double de    = cluster->DeltaE();
-      gEvDisp.DrawSsdHit( layer, seg, de );
-    }
-  }
-
   int ntSdcIn = 0;
   if( multi_SdcIn<MaxMultiHitSdcIn ){
     DCAna->TrackSearchSdcIn();
@@ -510,7 +455,6 @@ ConfMan::InitializeParameterFiles( void )
       InitializeParameter<HodoPHCMan>("HDPHC")       &&
       InitializeParameter<FieldMan>("FLDMAP")        &&
       InitializeParameter<K18TransMatrix>("K18TM")   &&
-      InitializeParameter<SsdParamMan>("SSDPRM")     &&
       InitializeParameter<UserParamMan>("USER")      &&
       InitializeParameter<EventDisplay>()            );
 }

@@ -1846,7 +1846,6 @@ ConfMan::InitializeParameterFiles( void )
       InitializeParameter<MatrixParamMan>("MATRIX2D",
 					  "MATRIX3D") &&
       InitializeParameter<MsTParamMan>("MASS")        &&
-      InitializeParameter<SsdParamMan>("SSDPRM")      &&
       InitializeParameter<UserParamMan>("USER")       );
 }
 

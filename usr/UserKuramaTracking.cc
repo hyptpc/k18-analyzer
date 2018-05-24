@@ -24,7 +24,6 @@
 #include "VEvent.hh"
 
 #define HodoCut 0
-#define XiTrack 1
 
 namespace
 {
@@ -158,17 +157,6 @@ struct Event
   std::vector< std::vector<double> > resL;
   std::vector< std::vector<double> > resG;
 
-  // Xi
-  int    ntXi;
-  double chisqrXi[MaxHits];
-  double x0Xi[MaxHits];
-  double y0Xi[MaxHits];
-  double u0Xi[MaxHits];
-  double v0Xi[MaxHits];
-  double thetaXi[MaxHits];
-  double deKaon[NumOfLayersSsdIn][MaxHits];
-  double deXi[NumOfLayersSsdIn][MaxHits];
-
   // Calib
   enum eParticle { Pion, Kaon, Proton, nParticle };
   double tTofCalc[nParticle];
@@ -219,14 +207,6 @@ EventKuramaTracking::ProcessingNormal( void )
 
   static const double MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
   static const double MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
-
-  static const double MinDeSSDKaon = gUser.GetParameter("DeSSDKaon", 0);
-  static const double MaxDeSSDKaon = gUser.GetParameter("DeSSDKaon", 1);
-  static const double MinDeSSDXi   = gUser.GetParameter("DeSSDXi",   0);
-  static const double MaxDeSSDXi   = gUser.GetParameter("DeSSDXi",   1);
-  static const double MinTimeSSD   = gUser.GetParameter("TimeSSD", 0);
-  static const double MaxTimeSSD   = gUser.GetParameter("TimeSSD", 1);
-  static const double MaxChisqrSSD = gUser.GetParameter("MaxChisqrSSD", 0);
 
   static const double OffsetToF = gUser.GetParameter("OffsetToF");
 
@@ -367,29 +347,12 @@ EventKuramaTracking::ProcessingNormal( void )
 
   HF1( 1, 4. );
 
-  //SSDT
-  std::vector<double> t0Ssd( NumOfSegSSDT, 0. );
-  {
-    hodoAna->DecodeSSDTHits( rawData );
-    int nh = hodoAna->GetNHitsSSDT();
-    for( int i=0; i<nh; ++i ){
-      Hodo1Hit *hit = hodoAna->GetHitSSDT(i);
-      if(!hit) continue;
-      int    seg   = hit->SegmentId()+1;
-      double time  = hit->Time();
-      t0Ssd[seg-1] = time;
-      // event.ssdtime[seg-1] = time;
-    }
-  }
-
   HF1( 1, 6. );
 
   HF1( 1, 10. );
 
   DCAna->DecodeSdcInHits( rawData );
   DCAna->DecodeSdcOutHits( rawData );
-  DCAna->DecodeSsdInHits( rawData );
-  DCAna->DecodeSsdOutHits( rawData );
 
   double multi_SdcIn  = 0.;
   ////////////// SdcIn number of hit layer
@@ -437,30 +400,6 @@ EventKuramaTracking::ProcessingNormal( void )
 
   HF1( 1, 11. );
 
-  //////////////SdcIn tracking
-  // for DCHit
-  DCAna->DoTimeCorrectionSsd( t0Ssd );
-  DCAna->ChisqrFilterSsd( MaxChisqrSSD );
-  DCAna->ClusterizeSsd();
-  // for SsdCluster
-  DCAna->DeltaEFilterSsd( MinDeSSDKaon, MaxDeSSDKaon, true );
-  DCAna->TimeFilterSsd( MinTimeSSD, MaxTimeSSD, true );
-
-  ////////////// SsdIn/Out number of hit layer
-  {
-    int nlSsdIn = 0;
-    for( int layer=1; layer<=NumOfLayersSsdIn; ++layer ){
-      const DCHitContainer &contSsdIn =DCAna->GetSsdInHC(layer);
-      if( contSsdIn.size()>0 ) nlSsdIn++;
-    }
-    int nlSsdOut = 0;
-    for( int layer=1; layer<=NumOfLayersSsdOut; ++layer ){
-      const DCHitContainer &contSsdOut =DCAna->GetSsdOutHC(layer);
-      if( contSsdOut.size()>0 ) nlSsdOut++;
-    }
-    event.nlSdcIn  += nlSsdIn + nlSsdOut;
-    event.nlKurama += nlSsdIn + nlSsdOut;
-  }
 
   // std::cout << "==========TrackSearch SdcIn============" << std::endl;
   DCAna->TrackSearchSdcIn();
@@ -784,10 +723,6 @@ EventKuramaTracking::ProcessingNormal( void )
 	if( l==layerId-1-NumOfLayersSdcIn )
 	  event.resG[l+NumOfLayersSdcIn].push_back(res);
       }
-      if( lhit->IsSsd() && layerId>=7 && layerId<=10 ){
-	double de  = lhit->GetDe();
-	event.deKaon[layerId-7][i]  = de;
-      }
     }
 
     DCLocalTrack *trSdcIn  = tp->GetLocalTrackIn();
@@ -831,41 +766,6 @@ EventKuramaTracking::ProcessingNormal( void )
     HF2( 20021, yin, yout ); HF2( 20022, vin, vout );
     HF2( 20023, vin, yout ); HF2( 20024, vout, yin );
   }
-
-#if XiTrack
-  /***** Filtering again for Xi *****/
-  DCAna->ResetStatusSsd();
-  DCAna->DeltaEFilterSsd( MinDeSSDXi, MaxDeSSDXi, true );
-  DCAna->TimeFilterSsd( MinTimeSSD, MaxTimeSSD, true );
-  // std::cout << "==========TrackSearch SsdIn============" << std::endl;
-  DCAna->TrackSearchSsdIn();
-  int ntXi = DCAna->GetNtracksSsdIn();
-  if( ntXi>MaxHits ) ntXi = MaxHits;
-  event.ntXi = ntXi;
-  for( int it=0; it<ntXi; ++it ){
-    DCLocalTrack *tp = DCAna->GetTrackSsdIn(it);
-    int nh = tp->GetNHit();
-    double chisqr = tp->GetChiSquare();
-    double x0 = tp->GetX0(), y0 = tp->GetY0();
-    double u0 = tp->GetU0(), v0 = tp->GetV0();
-    event.chisqrXi[it] = chisqr;
-    event.x0Xi[it]     = x0;
-    event.y0Xi[it]     = y0;
-    event.u0Xi[it]     = u0;
-    event.v0Xi[it]     = v0;
-    double cost  = 1./std::sqrt(1.+u0*u0+v0*v0);
-    double theta = std::acos(cost)*math::Rad2Deg();
-    event.thetaXi[it] = theta;
-    for( int ih=0; ih<nh; ++ih ){
-      DCLTrackHit *hit = tp->GetHit(ih);
-      int  layerId = hit->GetLayer();
-      if( hit->IsSsd() && layerId>=7 && layerId<=10 ){
-	double de  = hit->GetDe();
-	event.deXi[layerId-7][it] = de;
-      }
-    }
-  }
-#endif
 
   if( ntKurama==0 ) return true;
   KuramaTrack *track = DCAna->GetKuramaTrack(0);
@@ -933,7 +833,6 @@ EventKuramaTracking::InitializeEvent( void )
   event.nlSdcOut = 0;
   event.ntKurama = 0;
   event.nlKurama = 0;
-  event.ntXi     = 0;
   event.nhBh2    = 0;
   event.nhBh1    = 0;
   event.nhTof    = 0;
@@ -1030,19 +929,6 @@ EventKuramaTracking::InitializeEvent( void )
     // event.deTofSeg[i]  = -9999.;
     event.tofua[i]     = -9999.;
     event.tofda[i]     = -9999.;
-  }
-
-  for( int it=0; it<MaxHits; it++){
-    event.chisqrXi[it] = -1.0;
-    event.x0Xi[it] = -9999.;
-    event.y0Xi[it] = -9999.;
-    event.u0Xi[it] = -9999.;
-    event.v0Xi[it] = -9999.;
-    event.thetaXi[it] = -9999.;
-    for( int ih=0; ih<NumOfLayersSsdIn; ih++){
-      event.deKaon[ih][it] = -9999.;
-      event.deXi[ih][it]   = -9999.;
-    }
   }
 }
 
@@ -1413,18 +1299,6 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch( "ResG41", &event.resG[22] );
   tree->Branch( "ResG42", &event.resG[23] );
 
-  tree->Branch("ntXi",     &event.ntXi,     "ntXi/I");
-  tree->Branch("chisqrXi",  event.chisqrXi, "chisqrXi[ntXi]/D");
-  tree->Branch("x0Xi",      event.x0Xi,     "x0Xi[ntXi]/D");
-  tree->Branch("y0Xi",      event.y0Xi,     "y0Xi[ntXi]/D");
-  tree->Branch("u0Xi",      event.u0Xi,     "u0Xi[ntXi]/D");
-  tree->Branch("v0Xi",      event.v0Xi,     "v0Xi[ntXi]/D");
-  tree->Branch("thetaXi",   event.thetaXi,  "thetaXi[ntXi]/D");
-  tree->Branch("deKaon",    event.deKaon,   Form("deKaon[%d][%d]/D",
-						 NumOfLayersSsdIn, MaxHits ) );
-  tree->Branch("deXi",      event.deXi,     Form("deXi[%d][%d]/D",
-						 NumOfLayersSsdIn, MaxHits ) );
-
   tree->Branch("tTofCalc",  event.tTofCalc,  "tTofCalc[3]/D");
   tree->Branch("utTofSeg",  event.utTofSeg,  Form( "utTofSeg[%d]/D", NumOfSegTOF ) );
   tree->Branch("dtTofSeg",  event.dtTofSeg,  Form( "dtTofSeg[%d]/D", NumOfSegTOF ) );
@@ -1448,7 +1322,6 @@ ConfMan::InitializeParameterFiles( void )
       InitializeParameter<HodoParamMan>("HDPRM")     &&
       InitializeParameter<HodoPHCMan>("HDPHC")       &&
       InitializeParameter<FieldMan>("FLDMAP")        &&
-      InitializeParameter<SsdParamMan>("SSDPRM")     &&
       InitializeParameter<UserParamMan>("USER")      );
 }
 

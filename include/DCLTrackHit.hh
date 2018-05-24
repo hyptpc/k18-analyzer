@@ -69,15 +69,7 @@ public:
   void   SetLocalCalPosVXU( double xcl ) { m_cal_pos=xcl; }
   double GetLocalCalPosVXU( void ) const { return m_cal_pos; }
   double GetResidualVXU( void )    const { return m_local_hit_pos-m_cal_pos; }
-  ///// for SSD
-  bool   IsSsd( void )            const { return m_hit->IsSsd(); }
-  double GetAdcPeakHeight( void ) const { return m_hit->GetAdcPeakHeight(); }
-  double GetAmplitude( void ) const { return m_hit->GetAmplitude(); }
-  double GetDe( void )        const { return m_hit->GetDe();        }
-  double GetChisquare( void ) const { return m_hit->GetChisquare(); }
-  void   JoinKaonTrack( void ) { m_hit->JoinKaonTrack(); }
-  void   QuitKaonTrack( void ) { m_hit->QuitKaonTrack(); }
-  bool   BelongToKaonTrack( void ) const { return m_hit->BelongToKaonTrack(); }
+
   ///// for TOF
   double GetZ( void ) const { return m_hit->GetZ(); }
 
