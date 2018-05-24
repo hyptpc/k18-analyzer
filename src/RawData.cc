@@ -136,8 +136,10 @@ namespace
 	for( int AorT=0; AorT<2; ++AorT ){
 	  int nhit = gUnpacker.get_entries( id, plane, seg, UorD, AorT );
 	  if( nhit<=0 ) continue;
-	  int data = gUnpacker.get( id, plane, seg, UorD, AorT );
-	  AddHodoRawHit( cont, id, plane, seg, UorD, AorT, data );
+	  for(int m = 0; m<nhit; ++m){
+	    int data = gUnpacker.get( id, plane, seg, UorD, AorT, m );
+	    AddHodoRawHit( cont, id, plane, seg, UorD, AorT, data );
+	  }
 	}
       }
     }
@@ -500,30 +502,6 @@ RawData::DecodeHits( void )
   // trigger Flag ---------------------------------------------------------------
   DecodeHodo( DetIdTrig, NumOfSegTrig, kOneSide, m_TrigRawHC );
 
-  // FPGA HR-TDC ----------------------------------------------------------------
-  // BH1
-  for(int seg = 0; seg<NumOfSegBH1; ++seg){
-    for(int ud = 0; ud<2; ++ud){
-      int mhit = gUnpacker.get_entries( DetIdBH1, 0, seg, ud, 2 );
-      for(int m = 0; m<mhit; ++m){
-	int data = gUnpacker.get( DetIdBH1, 0, seg, ud, 2 , m);
-	AddHodoRawHit( m_FpgaBH1RawHC, DetIdFpgaBH1, 0, seg, ud, kHodoLeading, data );
-      }// for(m)
-    }// for(ud)
-  }// for(seg)
-
-  // BH2
-  for(int seg = 0; seg<NumOfSegBH2; ++seg){
-    for(int ud = 0; ud<2; ++ud){
-      int mhit = gUnpacker.get_entries( DetIdBH2, 0, seg, ud, 2 );
-      for(int m = 0; m<mhit; ++m){
-	int data = gUnpacker.get( DetIdBH2, 0, seg, ud, 2 , m);
-	AddHodoRawHit( m_FpgaBH2RawHC, DetIdFpgaBH2, 0, seg, ud, kHodoLeading, data );
-      }// for(m)
-    }// for(ud)
-  }// for(seg)
-
-#if 1
   // BH2Mt
   for(int seg = 0; seg<NumOfSegBH2; ++seg){
     int mhit = gUnpacker.get_entries( DetIdBH2, 0, seg, 0, 6 );
@@ -532,7 +510,6 @@ RawData::DecodeHits( void )
       AddHodoRawHit( m_FpgaBH2MtRawHC, DetIdFpgaBH2Mt, 0, seg, 0, kHodoLeading, data );
     }// for(m)
   }// for(seg)
-#endif
 
   m_is_decoded = true;
   return true;

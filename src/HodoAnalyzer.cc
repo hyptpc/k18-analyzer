@@ -30,7 +30,7 @@ namespace
   const std::string& class_name("HodoAnalyzer");
   const double MaxTimeDifBH1 =  2.0;
   const double MaxTimeDifBH2 =  2.0;
-  const double MaxTimeDifTOF =  3.5;
+  const double MaxTimeDifTOF = -1.0;
   const double MaxTimeDifLC  =  3.5;
   const double MaxTimeDifBFT =  8.0;
   const double MaxTimeDifSFT =  8.0;
@@ -565,51 +565,81 @@ HodoAnalyzer::MakeUpClusters( const Hodo2HitContainer& HitCont,
 
   int nh = HitCont.size();
 
-  std::vector <int> flag( nh, 0 );
+  //  std::vector <int> flag( nh, 0 );
 
   for(int i=0; i<nh; ++i){
-    if( flag[i] ) continue;
     Hodo2Hit *hitA = HitCont[i];
     int       segA = hitA->SegmentId();
-    double    cmtA = hitA->CMeanTime();
     Hodo2Hit *hitB = 0;
     int         iB = -1;
-    double    cmtB;
-    int       segB;
-    for( int j=i+1; j<nh; ++j ){
-      Hodo2Hit *hit = HitCont[j];
-      int    seg = hit->SegmentId();
-      double cmt = hit->CMeanTime();
-      if( std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif ){
-	hitB = hit; ++flag[j]; iB = j; segB = seg; cmtB = cmt; break;
-      }
-    }
-    if( hitB ){
-      Hodo2Hit *hitC = 0;
+    int         mB = -1;
+    int         mC = -1;
+    int       segB = -1;
+    if(hitA->JoinedAllMhit()) continue;
+    
+    int n_mhitA = hitA->GetNumOfHit();
+    for(int ma = 0; ma<n_mhitA; ++ma){
+      if(hitA->Joined(ma)) continue;
+      double    cmtA = hitA->CMeanTime(ma);
+      double    cmtB = -9999;
+      
       for( int j=i+1; j<nh; ++j ){
-	if( j==iB ) continue;
 	Hodo2Hit *hit = HitCont[j];
-	int    seg = hit->SegmentId();
-	double cmt = hit->CMeanTime();
-	if( (std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif) ||
-	    (std::abs(seg-segB)==1 && std::abs(cmt-cmtB)<maxTimeDif) ){
-	  hitC=hit; ++flag[j]; break;
+	int    seg  = hit->SegmentId();
+
+	int n_mhitB = hit->GetNumOfHit();
+	for(int mb = 0; mb<n_mhitB; ++mb){
+	  if(hit->Joined(mb)) continue;
+	  double cmt = hit->CMeanTime(mb);
+	  if( std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif ){
+	    hitB = hit; iB = j; mB = mb; segB = seg; cmtB = cmt; break;
+	  }
+	}// for(mb:hitB)
+      }// for(j:hitB)
+      if( hitB ){
+	Hodo2Hit *hitC = 0;
+	for( int j=i+1; j<nh; ++j ){
+	  if( j==iB ) continue;
+	  Hodo2Hit *hit = HitCont[j];
+	  int    seg  = hit->SegmentId();
+	  
+	  int n_mhitC = hit->GetNumOfHit();
+	  for(int mc = 0; mc<n_mhitC; ++mc){
+	    if(hit->Joined(mc)) continue;
+	    double cmt = hit->CMeanTime(mc);
+	    if( (std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif) ||
+		(std::abs(seg-segB)==1 && std::abs(cmt-cmtB)<maxTimeDif) ){
+	      hitC=hit; mC=mc; break;
+	    }
+	  }
+	}
+	if( hitC ){
+	  hitA->SetJoined(ma);
+	  hitB->SetJoined(mB);
+	  hitC->SetJoined(mC);
+	  HodoCluster *cluster = new HodoCluster( hitA, hitB, hitC );
+	  cluster->SetIndex(ma, mB, mC);
+	  cluster->Calculate();
+	  if( cluster ) ClusterCont.push_back( cluster );
+	}
+	else{
+	  hitA->SetJoined(ma);
+	  hitB->SetJoined(mB);
+	  HodoCluster *cluster = new HodoCluster( hitA, hitB );
+	  cluster->SetIndex(ma, mB);
+	  cluster->Calculate();
+	  if( cluster ) ClusterCont.push_back( cluster );
 	}
       }
-      if( hitC ){
-	HodoCluster *cluster = new HodoCluster( hitA, hitB, hitC );
-	if( cluster ) ClusterCont.push_back( cluster );
-      }
       else{
-	HodoCluster *cluster = new HodoCluster( hitA, hitB );
+	hitA->SetJoined(ma);
+	HodoCluster *cluster = new HodoCluster( hitA );
+	cluster->SetIndex(ma);
+	cluster->Calculate();
 	if( cluster ) ClusterCont.push_back( cluster );
       }
-    }
-    else{
-      HodoCluster *cluster = new HodoCluster( hitA );
-      if( cluster ) ClusterCont.push_back( cluster );
-    }
-  }
+    }// for(ma:hitA)
+  }// for(i:hitA)
 
   return ClusterCont.size();
 }
@@ -626,51 +656,79 @@ HodoAnalyzer::MakeUpClusters( const BH2HitContainer& HitCont,
 
   int nh = HitCont.size();
 
-  std::vector <int> flag(nh,0);
-
   for(int i=0; i<nh; ++i ){
-    if( flag[i] ) continue;
     BH2Hit *hitA = HitCont[i];
     int     segA = hitA->SegmentId();
-    double  cmtA = hitA->CMeanTime();
     BH2Hit *hitB = 0;
     int       iB = -1;
-    double  cmtB;
-    int     segB;
-    for( int j=i+1; j<nh; ++j ){
-      BH2Hit *hit = HitCont[j];
-      int     seg = hit->SegmentId();
-      double  cmt = hit->CMeanTime();
-      if( std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif ){
-	hitB = hit; ++flag[j]; iB = j; segB = seg; cmtB = cmt; break;
-      }
-    }
-    if(hitB){
-      BH2Hit *hitC = 0;
+    int       mB = -1;
+    int       mC = -1;
+    int     segB = -1;
+    if(hitA->JoinedAllMhit()) continue;
+
+    int n_mhitA = hitA->GetNumOfHit();    
+    for(int ma = 0; ma<n_mhitA; ++ma){
+      if(hitA->Joined(ma)) continue;
+      double    cmtA = hitA->CMeanTime(ma);
+      double    cmtB = -9999;    
+
       for( int j=i+1; j<nh; ++j ){
-        if( j==iB ) continue;
-        BH2Hit *hit = HitCont[j];
-        int     seg = hit->SegmentId();
-        double  cmt = hit->CMeanTime();
-        if( (std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif) ||
-            (std::abs(seg-segB)==1 && std::abs(cmt-cmtB)<maxTimeDif) ){
-          hitC = hit; ++flag[j]; break;
-        }
-      }
-      if( hitC ){
-        BH2Cluster *cluster = new BH2Cluster( hitA, hitB, hitC );
-        if( cluster ) ClusterCont.push_back( cluster );
+	BH2Hit *hit = HitCont[j];
+	int     seg = hit->SegmentId();
+	
+	int n_mhitB = hit->GetNumOfHit();
+	for(int mb = 0; mb<n_mhitB; ++mb){
+	  if(hit->Joined(mb)) continue;
+	  double  cmt = hit->CMeanTime(mb);
+	  if( std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif ){
+	    hitB = hit; iB = j; mB = mb; segB = seg; cmtB = cmt; break;
+	  }
+	}// for(mb:hitB)
+      }// for(j:hitB)
+      if(hitB){
+	BH2Hit *hitC = 0;
+	for( int j=i+1; j<nh; ++j ){
+	  if( j==iB ) continue;
+	  BH2Hit *hit = HitCont[j];
+	  int     seg = hit->SegmentId();
+
+	  int n_mhitC = hit->GetNumOfHit();
+	  for(int mc = 0; mc<n_mhitC; ++mc){
+	    if(hit->Joined(mc)) continue;
+	    double  cmt = hit->CMeanTime(mc);
+	    if( (std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif) ||
+		(std::abs(seg-segB)==1 && std::abs(cmt-cmtB)<maxTimeDif) ){
+	      hitC = hit; mC=mc; break;
+	    }
+	  }
+	}
+	if( hitC ){
+	  hitA->SetJoined(ma);
+	  hitB->SetJoined(mB);
+	  hitC->SetJoined(mC);
+	  BH2Cluster *cluster = new BH2Cluster( hitA, hitB, hitC );
+	  cluster->SetIndex(ma, mB, mC);
+	  cluster->Calculate();
+	  if( cluster ) ClusterCont.push_back( cluster );
+	}
+	else{
+	  hitA->SetJoined(ma);
+	  hitB->SetJoined(mB);
+	  BH2Cluster *cluster = new BH2Cluster( hitA, hitB );
+	  cluster->SetIndex(ma, mB);
+	  cluster->Calculate();
+	  if( cluster ) ClusterCont.push_back( cluster );
+	}
       }
       else{
-	BH2Cluster *cluster = new BH2Cluster( hitA, hitB );
+	hitA->SetJoined(ma);
+	BH2Cluster *cluster = new BH2Cluster( hitA );
+	cluster->SetIndex(ma);
+	cluster->Calculate();
 	if( cluster ) ClusterCont.push_back( cluster );
       }
-    }
-    else{
-      BH2Cluster *cluster = new BH2Cluster( hitA );
-      if( cluster ) ClusterCont.push_back( cluster );
-    }
-  }
+    }// for(ma:hitA)
+  }// for(i:hitA)
 
   return ClusterCont.size();
 }

@@ -27,8 +27,12 @@ private:
   Hodo2Hit *m_hitA;
   Hodo2Hit *m_hitB;
   Hodo2Hit *m_hitC;
+  int       m_indexA;
+  int       m_indexB;
+  int       m_indexC;
   int       m_cluster_size;
   double    m_mean_time;
+  double    m_cmean_time;
   double    m_de;
   double    m_mean_seg;
   double    m_time_diff;
@@ -37,9 +41,11 @@ private:
   bool      m_good_for_analysis;
 
 public:
+  void Calculate( void );
   Hodo2Hit* GetHit( int i )         const;
   int       ClusterSize( void )     const { return m_cluster_size; }
-  double    CMeanTime( void )       const { return m_mean_time;    }
+  double    MeanTime( void )        const { return m_mean_time;    }
+  double    CMeanTime( void )       const { return m_cmean_time;    }
   double    DeltaE( void )          const { return m_de;           }
   double    MeanSeg( void )         const { return m_mean_seg;     }
   double    TimeDif( void )         const { return m_time_diff;    }
@@ -53,9 +59,14 @@ public:
     return pre_status;
   }
 
+  void      SetIndex(int iA, int iB=0, int iC=0)
+  {
+    m_indexA = iA; m_indexB = iB; m_indexC = iC;
+  }
+
   bool ReCalc( bool applyRecusively=false );
 
 private:
-  void Calculate( void );
+
 };
 #endif
