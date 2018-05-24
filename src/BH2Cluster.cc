@@ -62,10 +62,11 @@ BH2Cluster::Calculate( void )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
-  double ms=0., mt=0., de=0., t0=0., ct0=0., dt=0;
+  double ms=0., mt=0., cmt=0., de=0., t0=0., ct0=0., dt=0;
   if( m_hitA ){
     ms += m_hitA->SegmentId();
-    mt += m_hitA->CMeanTime(m_indexA);
+    mt += m_hitA->MeanTime(m_indexA);
+    cmt+= m_hitA->CMeanTime(m_indexA);
     de += m_hitA->DeltaE();
     t0 += m_hitA->Time0(m_indexA);
     ct0+= m_hitA->CTime0(m_indexA);
@@ -73,7 +74,8 @@ BH2Cluster::Calculate( void )
   }
   if( m_hitB ){
     ms += m_hitB->SegmentId();
-    mt += m_hitB->CMeanTime(m_indexB);
+    mt += m_hitB->MeanTime(m_indexB);
+    cmt+= m_hitB->CMeanTime(m_indexB);
     de += m_hitB->DeltaE();
     t0 += m_hitB->Time0(m_indexB);
     ct0+= m_hitB->CTime0(m_indexB);
@@ -81,7 +83,8 @@ BH2Cluster::Calculate( void )
   }
   if( m_hitC ){
     ms += m_hitC->SegmentId();
-    mt += m_hitC->CMeanTime(m_indexC);
+    mt += m_hitC->MeanTime(m_indexC);
+    cmt+= m_hitC->CMeanTime(m_indexC);
     de += m_hitC->DeltaE();
     t0 += m_hitA->Time0(m_indexC);
     ct0+= m_hitA->CTime0(m_indexC);
@@ -90,12 +93,14 @@ BH2Cluster::Calculate( void )
 
   ms /= double(m_cluster_size);
   mt /= double(m_cluster_size);
+  cmt/= double(m_cluster_size);
   t0 /= double(m_cluster_size);
   ct0/= double(m_cluster_size);
   dt /= double(m_cluster_size);
 
   m_mean_seg  = ms;
   m_mean_time = mt;
+  m_cmean_time= cmt;
   m_de        = de;
   m_time0     = t0;
   m_ctime0    = ct0;

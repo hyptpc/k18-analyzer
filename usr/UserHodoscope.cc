@@ -127,9 +127,7 @@ struct Event
   double bh2mt[NumOfSegBH2][MaxDepth];
   double bh2cmt[NumOfSegBH2][MaxDepth];
   double bh2de[NumOfSegBH2];
-  double time0;
-  double ctime0;
-
+  
   double sacmt[NumOfSegSAC][MaxDepth];
   double sacde[NumOfSegSAC];
 
@@ -142,6 +140,12 @@ struct Event
   double tofde[NumOfSegTOF];
 
   double lcmt[NumOfSegLC][MaxDepth];
+
+  // Time0
+  double Time0Seg;
+  double deTime0;
+  double Time0;
+  double CTime0;
 };
 
 //______________________________________________________________________________
@@ -167,8 +171,12 @@ struct Dst
   double t0Bh2[NumOfSegBH2*MaxDepth];
   double dtBh2[NumOfSegBH2*MaxDepth];
   double deBh2[NumOfSegBH2*MaxDepth];
-  double time0;
-  double ctime0;
+
+  // Time0
+  double Time0Seg;
+  double deTime0;
+  double Time0;
+  double CTime0;
 
   int    nhTof;
   int    csTof[NumOfSegTOF];
@@ -713,13 +721,16 @@ EventHodoscope::ProcessingNormal( void )
     int nc=hodoAna->GetNClustersBH2();
     HF1( BH2Hid+30, double(nc) );
     int nc2=0;
-    double time0=-9999, ctime0=-9999;
+    double min_mt =-9999;
+    int i_time0   = -1;
     for( int i=0; i<nc; ++i ){
       BH2Cluster *cluster=hodoAna->GetClusterBH2(i);
       if(!cluster) continue;
       int cs=cluster->ClusterSize();
-      double ms=cluster->MeanSeg()+1,
-	cmt=cluster->CMeanTime(), de=cluster->DeltaE();
+      double ms = cluster->MeanSeg()+1;
+      double cmt= cluster->CMeanTime();
+      double de = cluster->DeltaE();
+      double mt = cluster->MeanTime();
       HF1( BH2Hid+31, double(cs) );
       HF1( BH2Hid+32, ms-0.5 );
       HF1( BH2Hid+33, cmt ); HF1( BH2Hid+34, de );
@@ -727,10 +738,10 @@ EventHodoscope::ProcessingNormal( void )
 	++nc2; HF1( BH2Hid+36, cmt );
       }
 
-      double t0  = cluster->Time0();
-      double ct0 = cluster->CTime0();
-      if(std::abs(t0)  < std::abs(time0))   time0 =  t0;
-      if(std::abs(ct0) < std::abs(ctime0)) ctime0 = ct0;
+      if(std::abs(mt)  < std::abs(min_mt)){
+	min_mt  = mt;
+	i_time0 = i;
+      }   
 
       for( int i2=0; i2<nc; ++i2 ){
 	if( i2==i ) continue;
@@ -748,11 +759,19 @@ EventHodoscope::ProcessingNormal( void )
       }//for(i2)
     }//for(i)
     HF1( BH2Hid+35, double(nc2) );
-
-    event.time0  = time0;
-    event.ctime0 = ctime0;
-    dst.time0    = time0;
-    dst.ctime0   = ctime0;
+    
+    if(i_time0 != -1){
+      BH2Cluster *cl_time0 = hodoAna->GetClusterBH2(i_time0);
+      event.Time0Seg = cl_time0->MeanSeg()+1;
+      event.deTime0  = cl_time0->DeltaE();
+      event.Time0    = cl_time0->Time0();
+      event.CTime0   = cl_time0->CTime0();
+    
+      dst.Time0Seg = cl_time0->MeanSeg()+1;
+      dst.deTime0  = cl_time0->DeltaE();
+      dst.Time0    = cl_time0->Time0();
+      dst.CTime0   = cl_time0->CTime0();
+    }
   }
 
   // BH1 with BH2 gate
@@ -1082,8 +1101,8 @@ EventHodoscope::ProcessingNormal( void )
       for( int i2=0; i2<nc2; ++i2 ){
 	BH2Cluster *cl2 = hodoAna->GetClusterBH2(i2);
 	if( !cl2 ) continue;
-	double btof  = cl->MeanTime()  - dst.time0;
-	double cbtof = cl->CMeanTime() - dst.ctime0;
+	double btof  = cl->MeanTime()  - dst.Time0;
+	double cbtof = cl->CMeanTime() - dst.CTime0;
 
 	dst.btof[i]  = btof;
 	dst.cbtof[i] = cbtof;
@@ -1161,6 +1180,16 @@ EventHodoscope::InitializeEvent( void )
   dst.nhSac  = 0;
   dst.nhTof  = 0;
   dst.nhLc  = 0;
+
+  event.Time0Seg = -999;
+  event.deTime0  = -999;
+  event.Time0    = -999;
+  event.CTime0   = -999;
+
+  dst.Time0Seg = -999;
+  dst.deTime0  = -999;
+  dst.Time0    = -999;
+  dst.CTime0   = -999;
 
   for( int it=0; it<NumOfSegTrig; ++it ){
     event.trigpat[it]  = -1;
@@ -1806,6 +1835,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("btof",      event.btof,      Form("btof[%d][%d]/D",  NumOfSegBH1, NumOfSegBH2));
   tree->Branch("cbtof",     event.cbtof,     Form("cbtof[%d][%d]/D", NumOfSegBH1, NumOfSegBH2));
 
+  tree->Branch("Time0Seg", &event.Time0Seg,  "Time0Seg/D");
+  tree->Branch("deTime0",  &event.deTime0,   "deTime0/D");
+  tree->Branch("Time0",    &event.Time0,     "Time0/D");
+  tree->Branch("CTime0",   &event.CTime0,    "CTime0/D");
+
   ////////////////////////////////////////////
   //Dst
   hodo = new TTree( "hodo","Data Summary Table of Hodoscope" );
@@ -1829,6 +1863,11 @@ ConfMan::InitializeHistograms( void )
 
   hodo->Branch("btof",       dst.btof,      "btof[nhBh1]/D");
   hodo->Branch("cbtof",      dst.cbtof,     "cbtof[nhBh1]/D");
+
+  hodo->Branch("Time0Seg",  &dst.Time0Seg,  "Time0Seg/D");
+  hodo->Branch("deTime0",   &dst.deTime0,   "deTime0/D");
+  hodo->Branch("Time0",     &dst.Time0,     "Time0/D");
+  hodo->Branch("CTime0",    &dst.CTime0,    "CTime0/D");
 
   hodo->Branch("nhSac",     &dst.nhSac,     "nhSac/I");
   hodo->Branch("SacSeg",     dst.SacSeg,    "SacSeg[nhSac]/D");

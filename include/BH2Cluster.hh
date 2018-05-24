@@ -32,6 +32,7 @@ private:
   int     m_indexC;
   int     m_cluster_size;
   double  m_mean_time;
+  double  m_cmean_time;
   double  m_de;
   double  m_mean_seg;
   double  m_time_diff;
@@ -42,7 +43,8 @@ private:
 public:
   void    Calculate( void );
   int     ClusterSize( void )     const { return m_cluster_size; }
-  double  CMeanTime( void )       const { return m_mean_time;    }
+  double  MeanTime( void )        const { return m_mean_time;    }
+  double  CMeanTime( void )       const { return m_cmean_time;    }
   double  DeltaE( void )          const { return m_de;           }
   double  MeanSeg( void )         const { return m_mean_seg;     }
   double  Time0( void )           const { return m_time0;        }
