@@ -5,6 +5,8 @@
 *.root
 *.so
 *.pcm
+*.pyc
+\#*
 Makefile
 bin
 data*
