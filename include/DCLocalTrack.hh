@@ -233,11 +233,11 @@ struct DCLTrackCompSdcInFiber
     int NofFiberHit2 = 0;
     for(int ii=0;ii<n1;ii++){
       int layer = p1->GetHit(ii)->GetLayer();
-      if( layer <= 4 ) NofFiberHit1++;
+      if( layer > 6 ) NofFiberHit1++;
     }
     for(int ii=0;ii<n2;ii++){
       int layer = p2->GetHit(ii)->GetLayer();
-      if( layer <= 4 ) NofFiberHit2++;
+      if( layer > 6 ) NofFiberHit2++;
     }
 
     if( (n1>n2+1) ){
