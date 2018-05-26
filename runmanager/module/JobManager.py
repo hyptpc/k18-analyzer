@@ -54,7 +54,7 @@ class JobManager :
         self.__fDataPath     = fdata_path
         self.__fOutPath      = fout_path
         self.__fPreFetchPath = None
-        self.__fUnpackPath   = None 
+        self.__fUnpackPath   = None
         self.__fSchemaPath   = None
         self.__fLogPath      = None
 
@@ -106,7 +106,7 @@ class JobManager :
         tag_out  = os.path.basename( self.__fOutPath )
 
         return self.__key, self.__nEvents, self.__divUnit,\
-               tag_exec, tag_conf, tag_data, tag_out 
+               tag_exec, tag_conf, tag_data, tag_out
 
 
     #__________________________________________________
@@ -145,7 +145,7 @@ class JobManager :
         self.checkMerged()
         if not self.__procMerge is None \
            and self.__procMerge.poll() is None :
-            
+
             sys.stdout.write( 'Killing merging process\n' )
             self.__procMerge.kill()
             buff = 'merging process was killed'
@@ -352,7 +352,7 @@ class JobManager :
     #__________________________________________________
     def __makeElem( self ) :
 
-        if self.__divUnit == 0 :
+        if self.__divUnit <= 0 :
             nsegs = 1
         else :
             nsegs = 10 if self.__nEvents is None else\
@@ -647,5 +647,5 @@ def readBsubStatus( jid, buff ) :
             status = 2
         elif words[2] == 'EXIT' :
             status = 3
-        
+
     return status

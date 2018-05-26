@@ -62,7 +62,7 @@ class RunlistManager :
 
         cdir = os.getcwd()
         raw_runlist = self.decodeRunlist( path )
-        os.chdir( self.__workdir ) 
+        os.chdir( self.__workdir )
 
         runlist = list()
         for item in raw_runlist :
@@ -90,9 +90,9 @@ class RunlistManager :
 
             unit = item[1]['unit'] if isinstance( item[1]['unit'], int ) else 0
 
-            runlist.append( [ item[0], pbin, pconf, pdata, proot, unit, nevents ] ) 
+            runlist.append( [ item[0], pbin, pconf, pdata, proot, unit, nevents ] )
 
-        os.chdir( self.__workdir ) 
+        os.chdir( self.__workdir )
 
         return runlist
 
@@ -128,9 +128,9 @@ class RunlistManager :
 
     #____________________________________________________
     def makeDataPath( self, path, runno = None ) :
-    
+
         data_path = None
-    
+
         if not os.path.exists( path ) :
             utility.ExitFailure( 'Cannot find file: ' + path )
         else :
@@ -145,29 +145,29 @@ class RunlistManager :
                     else utility.ExitFailure( 'Cannot find file: ' + tmp )
             else :
                 utility.ExitFailure( 'Cannot decide deta file path' )
-    
+
         return data_path
-    
+
 
     #____________________________________________________
     def makeRootPath( self, path, base = None ) :
-    
+
         root_path = None
-    
+
         if not os.path.exists( path ) :
             dir_path = os.path.dirname( path )
             if os.path.exists( dir_path )\
                     and os.path.isdir( dir_path ):
                 root_path = os.path.realpath( path )
             else :
-                utility.ExitFailure( 'Cannot find directory: ' + dir_path )
+                utility.ExitFailure( 'Cannot decide root file path' )
         elif os.path.isfile( path ) :
             root_path = os.path.realpath( path )
         elif os.path.isdir( path ) and not base is None :
             root_path = os.path.realpath( path + '/' + base + '.root' )
         else :
             utility.ExitFailure( 'Cannot decide root file path' )
-    
+
         return root_path
 
 
@@ -176,7 +176,7 @@ class RunlistManager :
 
         nevents = None
 
-        if os.path.exists( path ) and os.path.isdir( path ) : 
+        if os.path.exists( path ) and os.path.isdir( path ) :
             reclog_path = path + '/recorder.log'
             if os.path.exists( reclog_path ) and os.path.isfile( reclog_path ) :
                 cand = list()
@@ -186,7 +186,7 @@ class RunlistManager :
                         words = line.split()
                         cand.append( words[15] )
                 freclog.close()
-                
+
                 nevents = int( cand[0] ) if len( cand ) == 1 else None
 
         return nevents

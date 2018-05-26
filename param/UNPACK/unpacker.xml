@@ -3,13 +3,13 @@
 	  xsi:noNamespaceSchemaLocation="schema/unpacker.xsd">
 
   <control>
-    <skip>        0        </skip>
-    <max_loop>    100000      </max_loop>
+    <skip>        0         </skip>
+    <max_loop>    -1        </max_loop>
     <cout>        std::cout </cout>
     <cerr>        std::cerr </cerr>
     <tout>        std::cerr </tout>
     <esc>         off       </esc>
-    <print_cycle> 10000       </print_cycle>
+    <print_cycle> 10000     </print_cycle>
 
     <error_check>
       <format check="true"/>
