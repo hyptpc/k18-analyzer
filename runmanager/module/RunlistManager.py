@@ -136,16 +136,19 @@ class RunlistManager :
         else :
             if os.path.isfile( path ) :
                 data_path = os.path.realpath( path )
-            elif os.path.isdir( path ) \
-                 and not runno is None \
-                 and isinstance( runno, int ) :
-                tmp = path + '/run' + '%05d' % runno + '.dat.gz'
-                data_path = os.path.realpath( tmp ) \
-                            if os.path.exists( tmp ) and os.path.isfile( tmp ) \
-                    else utility.ExitFailure( 'Cannot find file: ' + tmp )
+            elif ( os.path.isdir( path )
+                   and not runno is None
+                   and isinstance( runno, int ) ) :
+                tmp = path + '/run{0:05d}.dat'.format( runno )
+                if not os.path.isfile( tmp ) :
+                  tmp += '.gz'
+                data_path = ( os.path.realpath( tmp )
+                              if os.path.isfile( tmp )
+                              else utility.ExitFailure( 'Cannot find file: ' + tmp ) )
             else :
                 utility.ExitFailure( 'Cannot decide deta file path' )
 
+        print(data_path)
         return data_path
 
 
@@ -184,7 +187,7 @@ class RunlistManager :
                 for line in freclog :
                     if 5 == line.find( str( runno ) ) :
                         words = line.split()
-                        cand.append( words[15] )
+                        cand.append( words[15] ) if len( words ) > 15 else -1
                 freclog.close()
 
                 nevents = int( cand[0] ) if len( cand ) == 1 else None
