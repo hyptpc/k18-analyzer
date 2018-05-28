@@ -328,7 +328,7 @@ EventHodoscope::ProcessingNormal( void )
       }
 
       //HitPat
-      if( Tu>0 || Td>0 ){
+      if( Tu>0 && Td>0 ){
 	event.bh1hitpat[bh1_nhits] = seg;
 	bh1_nhits++;
       }
@@ -398,14 +398,14 @@ EventHodoscope::ProcessingNormal( void )
 
 
       //HitPat
-      if( Tu>0 || Td>0 ){
+      if( Tu>0 && Td>0 ){
 	event.bh2hitpat[bh2_nhits] = seg;
 	bh2_nhits++;
       }
       if( Tu>0 || Td>0 ){
 	++nh1; HF1( BH2Hid +3, seg-0.5 );
       }
-      if( Tu>0 || Td>0 ){
+      if( Tu>0 && Td>0 ){
 	++nh2; HF1( BH2Hid +5, seg-0.5 );
       }
     }
