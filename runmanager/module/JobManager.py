@@ -459,11 +459,11 @@ class JobManager :
 
             root = tmp.getroot()
             key = '{%s}%s' % ( XML_NAMESPACE, SCHEMA_LOC_ATTRIB )
-            root.attrib[ key ] = self.__fSchemaPath
+            root.set( key, self.__fSchemaPath )
 
-            for node in tmp.findall( './/skip' ) :
+            for node in tmp.findall( 'control/skip' ) :
                 node.text = str( i * self.__divUnit )
-            for node in tmp.findall( './/max_loop' ) :
+            for node in tmp.findall( 'control/max_loop' ) :
                 node.text = str( -1 if i == len( self.__fUnpackList ) - 1 \
                                  else self.__divUnit )
 
