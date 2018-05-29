@@ -38,7 +38,6 @@ namespace
   const std::string& class_name("EventBFT");
   RMAnalyzer&         gRM   = RMAnalyzer::GetInstance();
   const UserParamMan& gUser = UserParamMan::GetInstance();
-  const int MaxDepth = 16;
 }
 
 //______________________________________________________________________________

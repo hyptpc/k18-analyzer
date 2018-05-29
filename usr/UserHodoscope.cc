@@ -31,7 +31,6 @@ namespace
   using namespace root;
   const std::string& class_name("EventHodoscope");
   RMAnalyzer& gRM = RMAnalyzer::GetInstance();
-  const int MaxDepth = 16;
 }
 
 //______________________________________________________________________________

@@ -38,7 +38,6 @@ namespace
   const std::string& classname("EventEasiroc");
   RMAnalyzer&         gRM   = RMAnalyzer::GetInstance();
   const UserParamMan& gUser = UserParamMan::GetInstance();
-  const int MaxDepth = 16;
 }
 
 //______________________________________________________________________________
