@@ -66,7 +66,7 @@ public:
 
   double GetPosition( void )  const { return m_position + m_offset;       }
   int    PairId( void )       const { return m_pair_id;                   }
-  double SegmentId( void )    const { return m_segment;                   }
+  //  virtual double SegmentId( void )    const { return m_segment;                   }
 
   void   Print( const std::string& arg="", std::ostream& ost=hddaq::cout ) const;
   void   RegisterHits( FLHit* hit )   { m_hit_container.push_back(hit);   }

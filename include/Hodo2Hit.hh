@@ -11,12 +11,13 @@
 #include <cstddef>
 
 #include "HodoRawHit.hh"
+#include "HodoHit.hh"
 #include "ThreeVector.hh"
 
 class RawData;
 
 //______________________________________________________________________________
-class Hodo2Hit
+class Hodo2Hit : public HodoHit
 {
 public:
   explicit Hodo2Hit( HodoRawHit *rhit, double max_time_diff=10.);
@@ -46,8 +47,11 @@ protected:
 
 public:
   HodoRawHit* GetRawHit( void )           { return m_raw; }
+  virtual
   int         DetectorId( void )    const { return m_raw->DetectorId(); }
+  virtual
   int         PlaneId( void )       const { return m_raw->PlaneId(); }
+  virtual
   int         SegmentId( void )     const { return m_raw->SegmentId(); }
 
   bool        Calculate( void );
@@ -59,8 +63,10 @@ public:
   double      GetALeft( int n=0 )   const { return m_a1.at(n); }
   double      GetADown( int n=0 )   const { return m_a2.at(n); }
   double      GetARight( int n=0 )  const { return m_a2.at(n); }
+  virtual
   double      GetTUp( int n=0 )     const { return m_pair_cont[n].time1; }
   double      GetTLeft( int n=0 )   const { return m_pair_cont[n].time1; }
+  virtual
   double      GetTDown( int n=0 )   const { return m_pair_cont[n].time2; }
   double      GetTRight( int n=0 )  const { return m_pair_cont[n].time2; }
   double      GetCTUp( int n=0 )    const { return m_pair_cont[n].ctime1; }
@@ -68,8 +74,11 @@ public:
   double      GetCTDown( int n=0 )  const { return m_pair_cont[n].ctime2; }
   double      GetCTRight( int n=0 ) const { return m_pair_cont[n].ctime2; }
 
+  virtual
   double      MeanTime( int n=0 )   const { return 0.5*(m_pair_cont[n].time1 + m_pair_cont[n].time2); }
+  virtual
   double      CMeanTime( int n=0 )  const { return 0.5*(m_pair_cont[n].ctime1 + m_pair_cont[n].ctime2); }
+  virtual
   double      DeltaE( int n=0 )     const { return std::sqrt(std::abs(m_a1.at(n)*m_a2.at(n))); }
   double      TimeDiff( int n=0 )   const { return m_pair_cont[n].ctime2 - m_pair_cont[n].ctime1; }
 

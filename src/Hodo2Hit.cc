@@ -29,7 +29,7 @@ namespace
 
 //______________________________________________________________________________
 Hodo2Hit::Hodo2Hit( HodoRawHit *rhit, double max_time_diff)
-  : m_raw(rhit),
+  : HodoHit(), m_raw(rhit),
     m_is_calculated(false),
     m_is_tof(false),
     m_max_time_diff(max_time_diff)
@@ -72,6 +72,12 @@ Hodo2Hit::Calculate( void )
   int plid = m_raw->PlaneId();
   int seg  = m_raw->SegmentId();
   int adc1 = m_raw->GetAdc1(), adc2=m_raw->GetAdc2();
+
+  double offset_vtof = 0;
+  if(m_is_tof){
+    gHodo.GetTime( cid, plid, seg, 2, 0, offset_vtof );
+    offset_vtof = offset_vtof;
+  }// offset vtof
 
   double dE1 = 0., dE2 = 0.;
   if( adc1>=0 ){
@@ -159,10 +165,10 @@ Hodo2Hit::Calculate( void )
       if(abs(time1[i]-time2[i_d]) < m_max_time_diff){
 	// Coincidence
 	data_pair a_pair;
-	a_pair.time1   = time1[i];
-	a_pair.time2   = time2[i_d];
-	a_pair.ctime1  = ctime1[i];
-	a_pair.ctime2  = ctime2[i_d];
+	a_pair.time1   = time1[i]     + offset_vtof;
+	a_pair.time2   = time2[i_d]   + offset_vtof;
+	a_pair.ctime1  = ctime1[i]    + offset_vtof;
+	a_pair.ctime2  = ctime2[i_d]  + offset_vtof;
 	m_pair_cont.push_back(a_pair);
 	last_d         = i_d+1;
 	++i_d;

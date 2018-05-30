@@ -13,6 +13,8 @@
 #include <sstream>
 
 #include "DebugCounter.hh"
+#include "HodoHit.hh"
+#include "Hodo1Hit.hh"
 #include "Hodo2Hit.hh"
 #include "HodoAnalyzer.hh"
 
@@ -22,7 +24,7 @@ namespace
 }
 
 //______________________________________________________________________________
-HodoCluster::HodoCluster( Hodo2Hit *hitA, Hodo2Hit *hitB, Hodo2Hit *hitC )
+HodoCluster::HodoCluster( HodoHit *hitA, HodoHit *hitB, HodoHit *hitC )
   : m_hitA(hitA),
     m_hitB(hitB),
     m_hitC(hitC),
@@ -46,7 +48,7 @@ HodoCluster::~HodoCluster( void )
 }
 
 //______________________________________________________________________________
-Hodo2Hit*
+HodoHit*
 HodoCluster::GetHit( int i ) const
 {
   if(i==0) return m_hitA;

@@ -97,15 +97,12 @@ UserEventDisplay::ProcessingNormal( void )
 
   static const double MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
   static const double MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
-  static const double MinTdcFBH  = gUser.GetParameter("TdcFBH", 0);
-  static const double MaxTdcFBH  = gUser.GetParameter("TdcFBH", 1);
   static const double MinTdcSCH  = gUser.GetParameter("TdcSCH", 0);
   static const double MaxTdcSCH  = gUser.GetParameter("TdcSCH", 1);
 
   static const double OffsetToF  = gUser.GetParameter("OffsetToF");
 
   // static const int IdBH2 = gGeom.GetDetectorId("BH2");
-  static const int IdFBH = gGeom.GetDetectorId("FBH");
   static const int IdSCH = gGeom.GetDetectorId("SCH");
   static const int IdTOF = gGeom.GetDetectorId("TOF");
 
@@ -173,25 +170,6 @@ UserEventDisplay::ProcessingNormal( void )
     TOFCont.push_back( hit );
   }
   if( nhTof==0 ) return true;
-
-  // FBH
-  {
-    hodoAna->DecodeFBHHits(rawData);
-    int nhFbh = hodoAna->GetNHitsFBHCoin();
-    for( int i=0; i<nhFbh; ++i ){
-      FLHit *hit = hodoAna->GetHitFBHCoin(i);
-      if( !hit ) continue;
-      double seg = hit->SegmentId();
-      bool   hit_flag = false;
-      double leading = hit->GetLeading();
-      if( MinTdcFBH<leading && leading<MaxTdcFBH ){
-	hit_flag = true;
-      }
-      if( hit_flag ){
-  	gEvDisp.DrawHitHodoscope( IdFBH, seg );
-      }
-    }
-  }
 
   // SCH
   {

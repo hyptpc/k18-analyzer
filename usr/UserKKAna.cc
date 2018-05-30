@@ -502,60 +502,6 @@ EventKKAna::ProcessingNormal( void )
 
   HF1( 1, 4. );
 
-  ////////////// BAC
-  {
-    hodoAna->DecodeBACHits( rawData );
-    int nh = hodoAna->GetNHitsBAC();
-    event.nhBac = nh;
-    for( int i=0; i<nh; ++i ){
-      Hodo1Hit *hit = hodoAna->GetHitBAC(i);
-      if( !hit ) continue;
-      int seg = hit->SegmentId()+1;
-      double de = hit->DeltaE();
-      double t  = hit->Time();
-      // double ct = hit->CTime();
-      event.BacSeg[i] = seg;
-      event.tBac[i]   = t;
-      event.deBac[i]  = de;
-    }
-  }
-
-  ////////////// PVAC
-  {
-    hodoAna->DecodePVACHits( rawData );
-    int nh = hodoAna->GetNHitsPVAC();
-    event.nhPvac = nh;
-    for( int i=0; i<nh; ++i ){
-      Hodo1Hit *hit = hodoAna->GetHitPVAC(i);
-      if( !hit ) continue;
-      int seg = hit->SegmentId()+1;
-      double de = hit->DeltaE();
-      double t  = hit->Time();
-      // double ct = hit->CTime();
-      event.PvacSeg[i] = seg;
-      event.tPvac[i]   = t;
-      event.dePvac[i]  = de;
-    }
-  }
-
-  ////////////// FAC
-  {
-    hodoAna->DecodeFACHits( rawData );
-    int nh = hodoAna->GetNHitsFAC();
-    event.nhFac = nh;
-    for( int i=0; i<nh; ++i ){
-      Hodo1Hit *hit = hodoAna->GetHitFAC(i);
-      if( !hit ) continue;
-      int seg = hit->SegmentId()+1;
-      double de = hit->DeltaE();
-      double t  = hit->Time();
-      // double ct = hit->CTime();
-      event.FacSeg[i] = seg;
-      event.tFac[i]   = t;
-      event.deFac[i]  = de;
-    }
-  }
-
   ////////// SCH
   {
     hodoAna->DecodeSCHHits(rawData);
@@ -577,26 +523,6 @@ EventKKAna::ProcessingNormal( void )
   }
 
   HF1( 1, 5. );
-
-  ////////// FBH
-  {
-    hodoAna->DecodeFBHHits(rawData);
-    hodoAna->TimeCutFBH( MinTimeFBH, MaxTimeFBH );
-    int ncl = hodoAna->GetNClustersFBH();
-    event.fbh_ncl = ncl;
-    for( int i=0; i<ncl; ++i ){
-      FiberCluster *cl = hodoAna->GetClusterFBH(i);
-      if( !cl ) continue;
-      double clsize = cl->ClusterSize();
-      double ctime  = cl->CMeanTime();
-      double ctot   = cl->Width();
-      double pos    = cl->MeanPosition();
-      event.fbh_clsize[i] = clsize;
-      event.fbh_ctime[i]  = ctime;
-      event.fbh_ctot[i]   = ctot;
-      event.fbh_clpos[i]  = pos;
-    }
-  }
 
   HF1( 1, 6. );
 

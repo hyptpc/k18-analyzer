@@ -260,6 +260,8 @@ RawData::DecodeHits( void )
   DecodeHodo( DetIdSAC, NumOfSegSAC, kOneSide,  m_SACRawHC );
   // TOF
   DecodeHodo( DetIdTOF, NumOfSegTOF, kBothSide, m_TOFRawHC );
+  // TOF-HT
+  DecodeHodo( DetIdHtTOF,NumOfSegTOF,kOneSide,  m_HtTOFRawHC );
   // LC
   DecodeHodo( DetIdLC,  NumOfSegLC,  kOneSide,  m_LCRawHC );
 
@@ -407,6 +409,8 @@ RawData::DecodeHits( void )
 	  for(int i=0; i<nhit; i++ ){
 	    int data = gUnpacker.get( DetIdSDC2, plane, 0, wire, lt, i );
 	    if( data<MinTdcSDC2 || MaxTdcSDC2<data ) continue;
+	    //	    if((plane == 0 || plane == 1) && 53 < wire && wire < 65) continue;
+	    //	    if((plane == 2 || plane == 3) && 61 < wire && wire < 68) continue;
 	    AddDCRawHit( m_SdcOutRawHC[plane+1], plane+PlMinSdcOut, wire+1, data , lt);
 	  }// for(i)
 	}// for(lt)
@@ -427,6 +431,8 @@ RawData::DecodeHits( void )
 	  for(int i=0; i<nhit; i++ ){
 	    int data = gUnpacker.get( DetIdSDC3, plane-NumOfLayersSDC2, 0, wire, lt ,i );
 	    if( data<MinTdcSDC3 || MaxTdcSDC3<data ) continue;
+	    //	    if((plane == 4 || plane == 5) && 30 < wire && wire < 38) continue;
+	    //	    if((plane == 6 || plane == 7) && 44 < wire && wire < 54) continue;
 	    AddDCRawHit( m_SdcOutRawHC[plane+1],  plane+PlMinSdcOut, wire+1, data , lt);
 	  }// for(i)
 	}// for(lt)

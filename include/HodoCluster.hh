@@ -9,14 +9,14 @@
 
 #include <cstddef>
 
-class Hodo2Hit;
+class HodoHit;
 class HodoAnalyzer;
 
 //______________________________________________________________________________
 class HodoCluster
 {
 public:
-  HodoCluster( Hodo2Hit *hitA, Hodo2Hit *hitB=0, Hodo2Hit *hitC=0 );
+  HodoCluster( HodoHit *hitA, HodoHit *hitB=0, HodoHit *hitC=0 );
   virtual ~HodoCluster( void );
 
 private:
@@ -24,9 +24,9 @@ private:
   HodoCluster & operator = ( const HodoCluster & );
 
 private:
-  Hodo2Hit *m_hitA;
-  Hodo2Hit *m_hitB;
-  Hodo2Hit *m_hitC;
+  HodoHit *m_hitA;
+  HodoHit *m_hitB;
+  HodoHit *m_hitC;
   int       m_indexA;
   int       m_indexB;
   int       m_indexC;
@@ -42,7 +42,7 @@ private:
 
 public:
   void Calculate( void );
-  Hodo2Hit* GetHit( int i )         const;
+  HodoHit*  GetHit( int i )         const;
   int       ClusterSize( void )     const { return m_cluster_size; }
   double    MeanTime( void )        const { return m_mean_time;    }
   double    CMeanTime( void )       const { return m_cmean_time;    }

@@ -8,11 +8,12 @@
 #define HODO1_HIT_HH
 
 #include "HodoRawHit.hh"
+#include "HodoHit.hh"
 
 class RawData;
 
 //______________________________________________________________________________
-class Hodo1Hit
+class Hodo1Hit : public HodoHit
 {
 public:
   explicit Hodo1Hit( HodoRawHit *rhit, int index=0 );
@@ -44,6 +45,7 @@ public:
 
   double Time( int n=0 )   const { return GetT(n); }
   double CTime( int n=0 )  const { return GetCT(n); }
+  virtual
   double DeltaE( int n=0 ) const { return GetA(n); }
 
   double GetAUp( int n=0 )     const { return m_a.at(n); }
@@ -51,8 +53,10 @@ public:
   double GetADown( int n=0 )   const { return m_a.at(n); }
   double GetARight( int n=0 )  const { return m_a.at(n); }
 
+  virtual
   double GetTUp( int n=0 )     const { return m_t.at(n); }
   double GetTLeft( int n=0 )   const { return m_t.at(n); }
+  virtual
   double GetTDown( int n=0 )   const { return m_t.at(n); }
   double GetTRight( int n=0 )  const { return m_t.at(n); }
 
@@ -61,15 +65,21 @@ public:
   double GetCTDown( int n=0 )  const { return m_ct.at(n); }
   double GetCTRight( int n=0 ) const { return m_ct.at(n); }
 
+  virtual
   double MeanTime( int n=0 )  const { return GetT(n); }
+  virtual
   double CMeanTime( int n=0 ) const { return GetCT(n); }
 
+  virtual
   int DetectorId( void ) const { return m_raw->DetectorId(); }
+  virtual 
   int PlaneId( void )    const { return m_raw->PlaneId(); }
+  virtual
   int SegmentId( void )  const { return m_raw->SegmentId(); }
 
   void   SetJoined( int m )           { m_flag_join.at(m) = true;         }
   bool   Joined( int m )        const { return m_flag_join.at(m);         }
+  bool   JoinedAllMhit();
 
   virtual bool ReCalc( bool applyRecursively=false )
   { return Calculate(); }
