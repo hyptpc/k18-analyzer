@@ -36,6 +36,7 @@ public:
 #else
   double Time0( int n=0 )   const { return 0.5*(m_pair_cont[n].time1 + m_pair_cont[n].time2) +m_time_offset; }
   double CTime0( int n=0 )  const { return 0.5*(m_pair_cont[n].ctime1 + m_pair_cont[n].ctime2) +m_time_offset; }
+#endif
 
   virtual bool ReCalc( bool applyRecursively=false )
   { return Calculate(); };
