@@ -29,14 +29,11 @@ private:
 protected:
   HodoRawHit          *m_raw;
   bool                 m_is_calculated;
+  bool                 m_is_tof;
   double               m_max_time_diff; // unit:ns
-  //  int                  m_multi_hit;
   std::vector<double>  m_a1;
   std::vector<double>  m_a2;
-  // std::vector<double>  m_t1;
-  // std::vector<double>  m_t2;
-  // std::vector<double>  m_ct1;
-  // std::vector<double>  m_ct2;
+
   struct data_pair{
     double time1;
     double time2;
@@ -55,6 +52,7 @@ public:
 
   bool        Calculate( void );
   bool        IsCalculated( void )  const { return m_is_calculated; }
+  void        MakeAsTof( void )           { m_is_tof = true;}
 
   int         GetNumOfHit( void )   const { return m_pair_cont.size(); }
   double      GetAUp( int n=0 )     const { return m_a1.at(n); }
@@ -73,7 +71,7 @@ public:
   double      MeanTime( int n=0 )   const { return 0.5*(m_pair_cont[n].time1 + m_pair_cont[n].time2); }
   double      CMeanTime( int n=0 )  const { return 0.5*(m_pair_cont[n].ctime1 + m_pair_cont[n].ctime2); }
   double      DeltaE( int n=0 )     const { return std::sqrt(std::abs(m_a1.at(n)*m_a2.at(n))); }
-  double      TimeDiff( int n=0 )   const { return m_pair_cont[n].ctime1 - m_pair_cont[n].ctime2; }
+  double      TimeDiff( int n=0 )   const { return m_pair_cont[n].ctime2 - m_pair_cont[n].ctime1; }
 
   void        SetJoined( int m )          { m_flag_join.at(m) = true;         }
   bool        Joined( int m )       const { return m_flag_join.at(m);         }

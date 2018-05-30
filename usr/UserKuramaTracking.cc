@@ -24,6 +24,7 @@
 #include "VEvent.hh"
 
 #define HodoCut 0
+#define UseTOF  1
 
 namespace
 {
@@ -32,6 +33,8 @@ namespace
   const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
   RMAnalyzer&         gRM   = RMAnalyzer::GetInstance();
   const UserParamMan& gUser = UserParamMan::GetInstance();
+  const hddaq::unpacker::UnpackerManager& gUnpacker
+  = hddaq::unpacker::GUnpacker::get_instance();
   const double& zTOF = gGeom.LocalZ("TOF");
 }
 
@@ -199,11 +202,15 @@ EventKuramaTracking::ProcessingNormal( void )
   static const double MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
   static const double MinBeamToF = gUser.GetParameter("BTOF",  1);
   static const double MaxBeamToF = gUser.GetParameter("BTOF",  1);
-  static const double MinDeTOF      = gUser.GetParameter("DeTOF",      0);
-  static const double MaxDeTOF      = gUser.GetParameter("DeTOF",      1);
-  static const double MinTimeTOF    = gUser.GetParameter("TimeTOF",    0);
-  static const double MaxTimeTOF    = gUser.GetParameter("TimeTOF",    1);
+  static const double MinDeTOF   = gUser.GetParameter("DeTOF",      0);
+  static const double MaxDeTOF   = gUser.GetParameter("DeTOF",      1);
+  static const double MinTimeTOF = gUser.GetParameter("TimeTOF",    0);
+  static const double MaxTimeTOF = gUser.GetParameter("TimeTOF",    1);
 #endif
+
+  static const double dTOfs      = gUser.GetParameter("dTOfs",      0);
+  static const double MinTotSDC2 = gUser.GetParameter("MinTotSDC2", 0);
+  static const double MinTotSDC3 = gUser.GetParameter("MinTotSDC3", 0);
 
   static const double MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
   static const double MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
@@ -254,6 +261,7 @@ EventKuramaTracking::ProcessingNormal( void )
     BH2Hit *hit = hodoAna->GetHitBH2(i);
     if(!hit) continue;
     double seg = hit->SegmentId()+1;
+    double mt  = hit->MeanTime();
     double cmt = hit->CMeanTime();
     double ct0 = hit->CTime0();
     double de  = hit->DeltaE();
@@ -264,8 +272,8 @@ EventKuramaTracking::ProcessingNormal( void )
     event.t0Bh2[i]  = ct0;
     event.deBh2[i]  = de;
     event.Bh2Seg[i] = seg;
-    if( std::abs(cmt)<std::abs(min_time) ){
-      min_time = cmt;
+    if( std::abs(mt)<std::abs(min_time) ){
+      min_time = mt;
       time0    = ct0;
     }
   }
@@ -347,12 +355,31 @@ EventKuramaTracking::ProcessingNormal( void )
 
   HF1( 1, 4. );
 
+  // MsT HR-TDC (TOF)
+  bool flag_tof_stop = false;
+  {
+    static const int device_id = gUnpacker.get_device_id("MsT");
+    static const int tof_id    = gUnpacker.get_plane_id("MsT", "TOF");
+
+    for(int seg = 0; seg<NumOfSegTOF; ++seg){
+      int mhit = gUnpacker.get_entries(device_id, tof_id, seg, 0, 0);
+      for(int m = 0; m<mhit; ++m){
+	int tof_tdc = gUnpacker.get(device_id, tof_id, seg, 0, 0, m);
+	if(165000 < tof_tdc && tof_tdc < 175000) flag_tof_stop = true;
+      }// for(m)
+    }// for(seg)
+  }
+
   HF1( 1, 6. );
 
   HF1( 1, 10. );
 
   DCAna->DecodeSdcInHits( rawData );
-  DCAna->DecodeSdcOutHits( rawData );
+
+  double offset = flag_tof_stop ? 0 : dTOfs;
+  DCAna->DecodeSdcOutHits( rawData, offset );
+  DCAna->TotCutSDC2( MinTotSDC2 );
+  DCAna->TotCutSDC3( MinTotSDC3 );
 
   double multi_SdcIn  = 0.;
   ////////////// SdcIn number of hit layer
@@ -403,6 +430,7 @@ EventKuramaTracking::ProcessingNormal( void )
 
   // std::cout << "==========TrackSearch SdcIn============" << std::endl;
   DCAna->TrackSearchSdcIn();
+  DCAna->ChiSqrCutSdcIn(50.);  
   int ntSdcIn = DCAna->GetNtracksSdcIn();
   if( MaxHits<ntSdcIn ){
     std::cout << "#W " << func_name << " "
@@ -451,7 +479,7 @@ EventKuramaTracking::ProcessingNormal( void )
       }
     }
   }
-  // if( ntSdcIn<1 ) return true;
+  if( ntSdcIn<1 ) return true;
   //  if( !(ntSdcIn==1) ) return true;
 
   HF1( 1, 12. );
@@ -499,8 +527,18 @@ EventKuramaTracking::ProcessingNormal( void )
 
   //////////////SdcOut tracking
   // std::cout << "==========TrackSearch SdcOut============" << std::endl;
-  // DCAna->TrackSearchSdcOut(); // w/o TOF
-  DCAna->TrackSearchSdcOut( TOFCont ); // w/ TOF
+
+  if(flag_tof_stop){
+#if UseTOF
+    DCAna->TrackSearchSdcOut( TOFCont );
+#else
+    DCAna->TrackSearchSdcOut();
+#endif
+  }else{
+    DCAna->TrackSearchSdcOut();
+  }
+
+  DCAna->ChiSqrCutSdcOut(50.);  
   int ntSdcOut = DCAna->GetNtracksSdcOut();
   if( MaxHits<ntSdcOut ){
     std::cout << "#W " << func_name << " "
@@ -552,7 +590,7 @@ EventKuramaTracking::ProcessingNormal( void )
     }
   }
 
-  // if( ntSdcOut<1 ) return true;
+  if( ntSdcOut<1 ) return true;
 
   HF1( 1, 14. );
 
@@ -571,7 +609,7 @@ EventKuramaTracking::ProcessingNormal( void )
 
   HF1( 1, 20. );
 
-  // if( !(ntSdcIn==1 && ntSdcOut ==1) ) return true;
+  if( ntSdcIn*ntSdcOut > 4 ) return true;
 
   HF1( 1, 21. );
 
@@ -1283,21 +1321,27 @@ ConfMan:: InitializeHistograms( void )
   event.resG.resize(NumOfLayersSdcIn+NumOfLayersSdcOut+2);
   // tree->Branch( "resL", &event.resL );
   // tree->Branch( "resG", &event.resG );
-  for( int i=0; i<NumOfLayersSdcIn; ++i )
+  for( int i=0; i<NumOfLayersSdcIn; ++i ){
     tree->Branch( Form("ResL%d",i+ 1), &event.resL[i] );
-  for( int i=0; i<NumOfLayersSdcOut; ++i )
+  }
+
+  for( int i=0; i<NumOfLayersSdcOut; ++i ){
     tree->Branch( Form("ResL%d",i+31), &event.resL[i+NumOfLayersSdcIn] );
+  }
 
-  tree->Branch( "ResL41", &event.resL[22] );
-  tree->Branch( "ResL42", &event.resL[23] );
+  tree->Branch( "ResL41", &event.resL[NumOfLayersSdcIn+NumOfLayersSdcOut] );
+  tree->Branch( "ResL42", &event.resL[NumOfLayersSdcIn+NumOfLayersSdcOut+1] );
 
-  for( int i=0; i<NumOfLayersSdcIn; ++i )
+  for( int i=0; i<NumOfLayersSdcIn; ++i ){
     tree->Branch( Form("ResG%d",i+ 1), &event.resG[i] );
-  for( int i=0; i<NumOfLayersSdcOut; ++i )
-    tree->Branch( Form("ResG%d",i+31), &event.resG[i+NumOfLayersSdcIn] );
+  }
 
-  tree->Branch( "ResG41", &event.resG[22] );
-  tree->Branch( "ResG42", &event.resG[23] );
+  for( int i=0; i<NumOfLayersSdcOut; ++i ){
+    tree->Branch( Form("ResG%d",i+31), &event.resG[i+NumOfLayersSdcIn] );
+  }
+
+  tree->Branch( "ResG41", &event.resG[NumOfLayersSdcIn+NumOfLayersSdcOut] );
+  tree->Branch( "ResG42", &event.resG[NumOfLayersSdcIn+NumOfLayersSdcOut+1] );
 
   tree->Branch("tTofCalc",  event.tTofCalc,  "tTofCalc[3]/D");
   tree->Branch("utTofSeg",  event.utTofSeg,  Form( "utTofSeg[%d]/D", NumOfSegTOF ) );

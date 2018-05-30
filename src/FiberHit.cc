@@ -193,7 +193,7 @@ FiberHit::Calculate( void )
       return false;
     }
 
-    double tot           = time_leading - time_trailing;
+    double tot           = time_trailing - time_leading;
     double ctime_leading = time_leading;
     gPHC.DoCorrection( cid, plid, seg, UorD, time_leading, tot, ctime_leading );
 

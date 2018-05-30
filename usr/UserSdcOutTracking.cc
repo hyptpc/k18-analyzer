@@ -22,7 +22,7 @@
 
 #define HodoCut     0
 #define MaxMultiCut 0
-#define UseTOF      0 // use TOF for SdcOutTracking
+#define UseTOF      1 // use TOF for SdcOutTracking
 
 namespace
 {
@@ -154,6 +154,9 @@ EventSdcOutTracking::ProcessingNormal( void )
   static const double MaxDeTOF   = gUser.GetParameter("DeTOF",   1);
   static const double MinTimeTOF = gUser.GetParameter("TimeTOF", 0);
   static const double MaxTimeTOF = gUser.GetParameter("TimeTOF", 1);
+  static const double dTOfs      = gUser.GetParameter("dTOfs",   0);
+  static const double MinTotSDC2 = gUser.GetParameter("MinTotSDC2", 0);
+  static const double MinTotSDC3 = gUser.GetParameter("MinTotSDC3", 0);
 #if MaxMultiCut
   static const double MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
 #endif
@@ -203,7 +206,7 @@ EventSdcOutTracking::ProcessingNormal( void )
       double ct0 = hit->CTime0();
       double de  = hit->DeltaE();
       double cmt = hit->CMeanTime();
-      time0 = ct0;
+      if( ct0 < time0 ) time0 = ct0;
       event.Bh2Seg[i] = hit->SegmentId()+1;
       event.tBh2[i]   = cmt;
       event.deBh2[i]  = de;
@@ -320,10 +323,10 @@ EventSdcOutTracking::ProcessingNormal( void )
 
   HF1( 1, 10. );
 
-  double offset = flag_tof_stop ? +161.85 : 0.;
+  double offset = flag_tof_stop ? 0 : dTOfs;
   DCAna->DecodeSdcOutHits( rawData, offset );
-  DCAna->TotCutSDC2( 30. );
-  DCAna->TotCutSDC3( 60. );
+  DCAna->TotCutSDC2( MinTotSDC2 );
+  DCAna->TotCutSDC3( MinTotSDC3 );
   double multi_SdcOut = 0.;
   {
     for( int layer=1; layer<=NumOfLayersSdcOut; ++layer ){
@@ -382,12 +385,18 @@ EventSdcOutTracking::ProcessingNormal( void )
   HF1( 1, 11. );
 
   // std::cout << "==========TrackSearch SdcOut============" << std::endl;
+  if(flag_tof_stop){
 #if UseTOF
-  DCAna->TrackSearchSdcOut( TOFCont );
+    DCAna->TrackSearchSdcOut( TOFCont );
 #else
-  DCAna->TrackSearchSdcOut();
+    DCAna->TrackSearchSdcOut();
 #endif
-  DCAna->ChiSqrCutSdcOut(50.);
+  }else{
+    DCAna->TrackSearchSdcOut();
+  }
+
+#if 1
+  DCAna->ChiSqrCutSdcOut(30.);
   int nt=DCAna->GetNtracksSdcOut();
   if( MaxHits<nt ){
     std::cout << "#W " << func_name << " "
@@ -489,6 +498,7 @@ EventSdcOutTracking::ProcessingNormal( void )
       }
     }
   }
+#endif
 
   HF1( 1, 12. );
 

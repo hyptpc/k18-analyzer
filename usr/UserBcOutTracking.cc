@@ -21,6 +21,7 @@
 #include "RawData.hh"
 #include "UnpackerManager.hh"
 #include "VEvent.hh"
+#include "BH2Filter.hh"
 
 #define HodoCut 0
 
@@ -28,8 +29,9 @@ namespace
 {
   using namespace root;
   const std::string& classname("BcOutTracking");
-  RMAnalyzer&         gRM   = RMAnalyzer::GetInstance();
-  const UserParamMan& gUser = UserParamMan::GetInstance();
+  RMAnalyzer&         gRM     = RMAnalyzer::GetInstance();
+  const UserParamMan& gUser   = UserParamMan::GetInstance();
+  BH2Filter&          gFilter = BH2Filter::GetInstance();
 }
 
 //______________________________________________________________________________
@@ -98,11 +100,18 @@ struct Event
   double tBh1[NumOfSegBH1];
   double deBh1[NumOfSegBH1];
   double Bh1Seg[NumOfSegBH1];
+
   //BH2
   int nhBh2;
   double tBh2[NumOfSegBH2];
   double deBh2[NumOfSegBH2];
   double Bh2Seg[NumOfSegBH2];
+
+  // Time0
+  double Time0Seg;
+  double deTime0;
+  double Time0;
+  double CTime0;
 
   //Beam
   int pid;
@@ -190,26 +199,40 @@ EventBcOutTracking::ProcessingNormal( void )
 #endif
   HF1( 1, 2 );
 
-  double time0 = -999.;
+  double time0    = -999.;
+  double min_time = -999.;
+  int    i_time0  = -1;
   //////////////BH2 Analysis
   for( int i=0; i<nhBh2; ++i ){
     BH2Hit *hit = hodoAna->GetHitBH2(i);
     if(!hit) continue;
     double seg = hit->SegmentId()+1;
+    double  mt = hit->MeanTime();
     double cmt = hit->CMeanTime();
     double ct0 = hit->CTime0();
     double dE  = hit->DeltaE();
-    double min_time = -999.;
+
 #if HodoCut
     if( dE<MinDeBH2 || MaxDeBH2<dE ) continue;
 #endif
     event.tBh2[i]   = cmt;
     event.deBh2[i]  = dE;
     event.Bh2Seg[i] = seg;
-    if( std::abs(cmt)<std::abs(min_time) ){
-      min_time = cmt;
+    if( std::abs(mt)<std::abs(min_time) ){
+      min_time = mt;
       time0    = ct0;
+      i_time0  = i;
     }
+  }
+
+  if(i_time0 != -1){
+    BH2Hit *hit = hodoAna->GetHitBH2(i_time0);
+    event.Time0Seg = hit->SegmentId()+1;
+    event.deTime0  = hit->DeltaE();
+    event.Time0    = hit->Time0();
+    event.CTime0   = hit->CTime0();
+  }else{
+    return true;
   }
 
   HF1( 1, 3. );
@@ -280,7 +303,7 @@ EventBcOutTracking::ProcessingNormal( void )
 	}
 
 	if( i<MaxHits )
-	  event.pos[layer-1][i] = hit->GetWire();
+	  event.pos[layer-1][i] = hit->GetWirePosition();
 
 	HF1( 100*layer+2, tdc1st );
 	HF1( 10000*layer+int(wire), tdc1st );
@@ -316,7 +339,10 @@ EventBcOutTracking::ProcessingNormal( void )
 #if 1
   // Bc Out
   //  std::cout << "==========TrackSearch BcOut============" << std::endl;
-  DCAna->TrackSearchBcOut( );
+  BH2Filter::FilterList cands;
+  gFilter.Apply((Int_t)event.Time0Seg-1, *DCAna, cands);
+  DCAna->TrackSearchBcOut( cands );
+  //  DCAna->TrackSearchBcOut( );
   DCAna->ChiSqrCutBcOut(10);
 
   int nt=DCAna->GetNtracksBcOut();
@@ -442,6 +468,11 @@ EventBcOutTracking::InitializeEvent( void )
   event.trignhits = 0;
   event.pid       = -1;
   event.btof      = -999.;
+
+  event.Time0Seg  = -1;
+  event.deTime0   = -1;
+  event.Time0     = -999;
+  event.CTime0    = -999;
 
   for( int it=0; it<MaxHits; it++){
     event.chisqr[it] = -1.0;
@@ -659,6 +690,11 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("deBh2",     event.deBh2,   Form("deBh2[%d]/I",  NumOfSegBH2));
   tree->Branch("Bh2Seg",    event.Bh2Seg,  Form("Bh2Seg[%d]/I", NumOfSegBH2));
 
+  tree->Branch("Time0Seg", &event.Time0Seg,  "Time0Seg/D");
+  tree->Branch("deTime0",  &event.deTime0,   "deTime0/D");
+  tree->Branch("Time0",    &event.Time0,     "Time0/D");
+  tree->Branch("CTime0",   &event.CTime0,    "CTime0/D");
+
   tree->Branch("pid",      &event.pid,      "pid/I");
   tree->Branch("btof",     &event.btof,     "btof/D");
 
@@ -694,6 +730,7 @@ ConfMan::InitializeParameterFiles( void )
       InitializeParameter<DCTdcCalibMan>("DCTDC")    &&
       InitializeParameter<HodoParamMan>("HDPRM")     &&
       InitializeParameter<HodoPHCMan>("HDPHC")       &&
+      InitializeParameter<BH2Filter>("BH2FLT")       &&
       InitializeParameter<UserParamMan>("USER")      );
 }
 

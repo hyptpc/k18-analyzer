@@ -26,6 +26,7 @@
 #include "HodoPHCMan.hh"
 #include "HodoRawHit.hh"
 #include "K18TrackD2U.hh"
+#include "BH2Filter.hh"
 #include "KuramaLib.hh"
 #include "MathTools.hh"
 #include "RawData.hh"
@@ -43,6 +44,7 @@ namespace
   RMAnalyzer&         gRM   = RMAnalyzer::GetInstance();
   const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
   const UserParamMan& gUser = UserParamMan::GetInstance();
+  BH2Filter&          gFilter = BH2Filter::GetInstance();
 }
 
 //______________________________________________________________________________
@@ -98,6 +100,12 @@ struct Event
   int trignhits;
   int trigpat[NumOfSegTrig];
   int trigflag[NumOfSegTrig];
+
+  // Time0
+  double Time0Seg;
+  double deTime0;
+  double Time0;
+  double CTime0;
 
   // BFT
   int    bft_ncl;
@@ -202,8 +210,8 @@ EventK18Tracking::ProcessingNormal( void )
       if( tdc ){
 	event.trigpat[trignhits++] = seg;
 	event.trigflag[seg-1]      = tdc;
-	HF1( 10, seg-1 );
-	HF1( 10+seg, tdc );
+	HF1( 100, seg-1 );
+	HF1( 100+seg, tdc );
       }
     }
     event.trignhits = trignhits;
@@ -211,19 +219,6 @@ EventK18Tracking::ProcessingNormal( void )
 
   // if( event.trigflag[SpillEndFlag] ) return true;
 
-  // BAC
-  {
-    int bacnhits = 0;
-    const HodoRHitContainer &cont = rawData->GetBACRawHC();
-    int nh = cont.size();
-    for( int i=0; i<nh; ++i ){
-      HodoRawHit *hit = cont[i];
-      int T = hit->GetTdcUp();
-      if(T>0) bacnhits++;
-    }
-    if( bacnhits>0 && event.trigflag[17]>0 )  event.pid = kPion;
-    if( bacnhits==0 && event.trigflag[16]>0 ) event.pid = kKaon;
-  }
 
   HF1(1, 1);
 
@@ -235,22 +230,35 @@ EventK18Tracking::ProcessingNormal( void )
 #endif
   HF1(1, 2);
 
-  double time0    = -9999.;
-  double min_time = -9999.;
-  ////////// BH2 Analysis
-  for(int i=0; i<nhBh2; ++i){
+
+  double time0    = -999.;
+  double min_time = -999.;
+  int    i_time0  = -1;
+  //////////////BH2 Analysis
+  for( int i=0; i<nhBh2; ++i ){
     BH2Hit *hit = hodoAna->GetHitBH2(i);
     if(!hit) continue;
-    double cmt = hit->CMeanTime();
+    double  mt = hit->MeanTime();
     double ct0 = hit->CTime0();
+
 #if HodoCut
-    double dE  = hit->DeltaE();
     if( dE<MinDeBH2 || MaxDeBH2<dE ) continue;
 #endif
-    if( std::abs(cmt)<std::abs(min_time) ){
-      min_time = cmt;
+    if( std::abs(mt)<std::abs(min_time) ){
+      min_time = mt;
       time0    = ct0;
+      i_time0  = i;
     }
+  }
+
+  if(i_time0 != -1){
+    BH2Hit *hit = hodoAna->GetHitBH2(i_time0);
+    event.Time0Seg = hit->SegmentId()+1;
+    event.deTime0  = hit->DeltaE();
+    event.Time0    = hit->Time0();
+    event.CTime0   = hit->CTime0();
+  }else{
+    return true;
   }
 
   HF1(1, 3);
@@ -314,7 +322,7 @@ EventK18Tracking::ProcessingNormal( void )
   }
 
   HF1( 1, 7.);
-  // if(xCand.size()!=1) return true;
+  if(xCand.size()!=1) return true;
   HF1( 1, 10. );
 
   DCAna->DecodeRawHits( rawData );
@@ -336,7 +344,11 @@ EventK18Tracking::ProcessingNormal( void )
   HF1( 1, 11. );
 
   //////////////BCOut tracking
-  DCAna->TrackSearchBcOut();
+  BH2Filter::FilterList cands;
+  gFilter.Apply((Int_t)event.Time0Seg-1, *DCAna, cands);
+  DCAna->TrackSearchBcOut( cands );
+  DCAna->ChiSqrCutBcOut(10);
+
   int ntBcOut = DCAna->GetNtracksBcOut();
   event.ntBcOut = ntBcOut;
   if(ntBcOut > MaxHits){
@@ -456,6 +468,11 @@ EventK18Tracking::InitializeEvent( void )
   event.nlBcOut   =  0;
   event.ntBcOut   =  0;
   event.ntK18     =  0;
+
+  event.Time0Seg  = -1;
+  event.deTime0   = -1;
+  event.Time0     = -999;
+  event.CTime0    = -999;
 
   for( int it=0; it<NumOfSegTrig; it++){
     event.trigpat[it]  = -1;
@@ -583,6 +600,11 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("trigpat",    event.trigpat,   "trigpat[trignhits]/I");
   tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I",NumOfSegTrig));
 
+  tree->Branch("Time0Seg", &event.Time0Seg,  "Time0Seg/D");
+  tree->Branch("deTime0",  &event.deTime0,   "deTime0/D");
+  tree->Branch("Time0",    &event.Time0,     "Time0/D");
+  tree->Branch("CTime0",   &event.CTime0,    "CTime0/D");
+
   tree->Branch("pid",       &event.pid,       "pid/I");
 
   //BFT
@@ -637,6 +659,7 @@ ConfMan::InitializeParameterFiles( void )
       InitializeParameter<DCTdcCalibMan>("DCTDC")    &&
       InitializeParameter<HodoParamMan>("HDPRM")     &&
       InitializeParameter<HodoPHCMan>("HDPHC")       &&
+      InitializeParameter<BH2Filter>("BH2FLT")   &&
       InitializeParameter<K18TransMatrix>("K18TM")   &&
       InitializeParameter<UserParamMan>("USER")      );
 }
