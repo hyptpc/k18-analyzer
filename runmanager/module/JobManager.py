@@ -576,7 +576,7 @@ class JobManager :
 
         if not self.__fLogPath is None :
             if os.path.exists( self.__fPreFetchPath ) :
-                os.remove( item )
+                os.remove( self.__fPreFetchPath )
 
 
     #__________________________________________________
