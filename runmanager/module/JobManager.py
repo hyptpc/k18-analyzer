@@ -551,7 +551,7 @@ class JobManager :
         self.clearFOut()
         self.clearFConf()
         self.clearFUnpack()
-
+        self.clearFPreFetch()
 
     #__________________________________________________
     def clearAll( self ) :
@@ -559,6 +559,7 @@ class JobManager :
         self.clearFOut()
         self.clearFConf()
         self.clearFUnpack()
+        self.clearFPreFetch()
 
         self.clearAllLog()
 
@@ -575,7 +576,7 @@ class JobManager :
 
         if not self.__fLogPath is None :
             if os.path.exists( self.__fPreFetchPath ) :
-                os.remove( item )
+                os.remove( self.__fPreFetchPath )
 
 
     #__________________________________________________
