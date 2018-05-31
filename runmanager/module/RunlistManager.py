@@ -148,7 +148,6 @@ class RunlistManager :
             else :
                 utility.ExitFailure( 'Cannot decide deta file path' )
 
-        print(data_path)
         return data_path
 
 
