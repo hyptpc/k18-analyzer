@@ -135,9 +135,11 @@ while not fl_done  == njobs :
             if fstat is None :
                 continue
             elif fstat is True :
-                # job.clear()
-                job.clearAll()
-                joblist[index][1] = 'done'
+                numer = job.getProgress()
+                denom = job.getNSegs()
+                job.clear()
+                # job.clearAll()
+                joblist[index][1] = 'done(%d/%d)' % ( numer, denom )
                 fl_done += 1
             elif fstat is False :
                 job.clear()
@@ -146,7 +148,7 @@ while not fl_done  == njobs :
             else :
                 joblist[index][1] = 'unknown'
             joblist[index][2] = decodeTime( job.getDiffTime() )
-        elif stat == 'done' :
+        elif stat[:4] == 'done' :
             continue
         elif stat == 'error' :
             continue
