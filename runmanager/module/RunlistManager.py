@@ -9,6 +9,7 @@ __date__    = '12 May 2018'
 #____________________________________________________
 
 import os
+import copy
 
 import yaml
 
@@ -107,20 +108,17 @@ class RunlistManager :
         with open( path, 'r' ) as f :
             data = yaml.load( f.read() )
 
-        def_set = data['DEFAULT']
+        defset = data['DEFAULT']
 
         runlist = list()
         for key, parsets in data['RUN'].items() :
 
             if parsets is None :
-                runlist.append( [ key, def_set ] )
-            else :
+                runlist.append( [ key, defset ] )
+            else:
                 for par in parsets :
-                    tmp = dict()
-                    for item in par :
-                        tmp =  { def_key: par[def_key] \
-                                if def_key in par else def_set[def_key] \
-                                for def_key, def_val, in def_set.items() }
+                    tmp = copy.deepcopy( defset )
+                    tmp.update( par )
                     runlist.append( [ key, tmp ] )
 
         return runlist
