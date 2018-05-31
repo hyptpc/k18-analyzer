@@ -551,7 +551,7 @@ class JobManager :
         self.clearFOut()
         self.clearFConf()
         self.clearFUnpack()
-
+        self.clearFPreFetch()
 
     #__________________________________________________
     def clearAll( self ) :
@@ -559,6 +559,7 @@ class JobManager :
         self.clearFOut()
         self.clearFConf()
         self.clearFUnpack()
+        self.clearFPreFetch()
 
         self.clearAllLog()
 
