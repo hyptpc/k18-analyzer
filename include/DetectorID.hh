@@ -157,7 +157,7 @@ const int PlOffsBc         = 100;
 const int PlOffsSdcIn      =   0;
 const int PlOffsSft        =   6;
 const int PlOffsSdcOut     =  30;
-const int PlOffsSsd        =   6;
+const int PlOffsVP         =  20;
 
 const int NumOfLayersBc     = 6;
 const int NumOfLayersSSD1   = 4;
@@ -172,6 +172,7 @@ const int NumOfLayersSsdIn  = PlMaxSsdIn  - PlMinSsdIn  + 1;
 const int NumOfLayersSsdOut = PlMaxSsdOut - PlMinSsdOut + 1;
 const int NumOfLayersSdcIn  = PlMaxSdcIn  - PlMinSdcIn  + 1;
 const int NumOfLayersSdcOut = PlMaxSdcOut - PlMinSdcOut + 1;
+const int NumOfLayersVP     = 5;
 
 const int MaxWireBC1      = 256;
 const int MaxWireBC2      = 256;
