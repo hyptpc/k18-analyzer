@@ -535,7 +535,12 @@ EventKuramaTracking::ProcessingNormal( void )
     DCAna->TrackSearchSdcOut();
 #endif
   }else{
+#if UseTOF
+    DCAna->TrackSearchSdcOut( TOFCont );
+#else
     DCAna->TrackSearchSdcOut();
+#endif
+    //    DCAna->TrackSearchSdcOut();
   }
 
   DCAna->ChiSqrCutSdcOut(50.);  
