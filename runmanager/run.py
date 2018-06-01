@@ -109,19 +109,19 @@ fl_done = 0
 
 while not fl_done  == njobs :
     for index, ( job, stat, ptime ) in enumerate( joblist ) :
+        nsegs = job.getNSegs()
         if stat == 'init' :
             job.execute()
-            joblist[index][1] = 'running(0/%d)' % job.getNSegs()
+            joblist[index][1] = 'running(0/%d)' % nsegs
             joblist[index][2] = decodeTime( job.getDiffTime() )
         elif stat[:7] == 'running' :
             result = job.getJobResult()
             if result is None :
                 numer = job.getProgress()
-                denom = job.getNSegs()
-                joblist[index][1] = 'running(%d/%d)' % ( numer, denom )
+                joblist[index][1] = 'running(%d/%d)' % ( numer, nsegs )
             elif result is True :
                 job.mergeFOut()
-                joblist[index][1] = 'merging'
+                joblist[index][1] = 'merging(%d)' % nsegs
             elif result is False :
                 job.killBjob()
                 job.clear()
@@ -130,14 +130,14 @@ while not fl_done  == njobs :
             else :
                 joblist[index][1] = 'unknown'
             joblist[index][2] = decodeTime( job.getDiffTime() )
-        elif stat == 'merging' :
+        elif stat[:7] == 'merging' :
             fstat = job.getFinalStatus()
             if fstat is None :
                 continue
             elif fstat is True :
                 # job.clear()
                 job.clearAll()
-                joblist[index][1] = 'done'
+                joblist[index][1] = 'done(%d)' % nsegs
                 fl_done += 1
             elif fstat is False :
                 job.clear()
@@ -146,7 +146,7 @@ while not fl_done  == njobs :
             else :
                 joblist[index][1] = 'unknown'
             joblist[index][2] = decodeTime( job.getDiffTime() )
-        elif stat == 'done' :
+        elif stat[:4] == 'done' :
             continue
         elif stat == 'error' :
             continue
