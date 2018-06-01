@@ -58,10 +58,8 @@
 #define BH2        1
 #define BcOut      1
 #define KURAMA     1
-#define Collimator 1
 #define SdcIn      1
 #define SdcOut     1
-#define FBH        1
 #define SCH        1
 #define TOF        1
 #define Vertex     1
@@ -72,11 +70,9 @@ namespace
   const std::string& class_name("EventDisplay");
   const DCGeomMan& gGeom = DCGeomMan::GetInstance();
   const int& IdBH2 = gGeom.DetectorId("BH2");
-  const int& IdFBH = gGeom.DetectorId("FBH");
   const int& IdSCH = gGeom.DetectorId("SCH");
   const int& IdTOF = gGeom.DetectorId("TOF");
   const int& IdTarget    = gGeom.DetectorId("Target");
-  const double& zEmulsion  = gGeom.LocalZ("Emulsion");
   const double& zTarget    = gGeom.LocalZ("Target");
   const double& zK18Target = gGeom.LocalZ("K18Target");
 
@@ -108,17 +104,12 @@ EventDisplay::EventDisplay( void )
     m_kurama_inner_node(0),
     m_kurama_outer_node(0),
     m_BH2wall_node(0),
-    m_FBHwall_node(0),
     m_SCHwall_node(0),
     m_TOFwall_node(0),
     m_init_step_mark(0),
     m_kurama_step_mark(0),
     m_TargetXZ_box(0),
     m_TargetYZ_box(0),
-    m_EmulsionXZ_box(0),
-    m_EmulsionYZ_box(0),
-    m_SSD_x_hist(0),
-    m_SSD_y_hist(0),
     m_VertexPointXZ(0),
     m_VertexPointYZ(0),
     m_KuramaMarkVertexX(0),
@@ -185,10 +176,6 @@ EventDisplay::Initialize( void )
   ConstructKURAMA();
 #endif
 
-#if Collimator
-  ConstructCollimator();
-#endif
-
 #if BcOut
   ConstructBcOut();
 #endif
@@ -199,10 +186,6 @@ EventDisplay::Initialize( void )
 
 #if SdcOut
   ConstructSdcOut();
-#endif
-
-#if FBH
-  ConstructFBH();
 #endif
 
 #if SCH
@@ -229,27 +212,20 @@ EventDisplay::Initialize( void )
   m_canvas->Update();
 
 #if Vertex
-  ConstructEmulsion();
-  ConstructSSD();
 
   m_canvas_vertex = new TCanvas( "canvas_vertex", "K1.8 Event Display (Vertex)",
 				 1000, 800 );
   m_canvas_vertex->Divide(1,2);
   m_canvas_vertex->cd(1);
   gPad->DrawFrame( MinZ, MinX, MaxZ, MaxX, "Vertex XZ projection" );
-  m_EmulsionXZ_box->Draw("L");
+
   m_TargetXZ_box->Draw("L");
-  for( int i=0; i<NumOfSegFBH; ++i ){
-    m_FBHseg_box[i]->Draw("L");
-  }
-  m_SSD_x_hist->Draw("colz same");
+
   gPad->Update();
 
   m_canvas_vertex->cd(2);
   gPad->DrawFrame( MinZ, MinY, MaxZ, MaxY, "Vertex YZ projection" );
-  m_EmulsionYZ_box->Draw("L");
   m_TargetYZ_box->Draw("L");
-  m_SSD_y_hist->Draw("colz same");
   gPad->Update();
 #endif
 
@@ -414,53 +390,6 @@ EventDisplay::ConstructKURAMA( void )
   uguard_outer->SetLineColor( color );
   dguard_inner->SetLineColor( color );
   dguard_outer->SetLineColor( color );
-
-  m_node->cd();
-  ConstructionDone(__func__);
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-EventDisplay::ConstructCollimator( void )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  double Matrix[9] = {};
-
-  double offsetZ = -2714.4;
-
-  double inner_x = 115.0/2.; // X
-  double inner_y = 400.0/2.; // Z
-  double inner_z =  30.0/2.; // Y
-
-  double outer_x = 400.0/2.; // X
-  double outer_y = 400.0/2.; // Z
-  double outer_z = 400.0/2.; // Y
-
-  CalcRotMatrix( 0., 0., 0., Matrix );
-
-  new TRotMatrix( "rotCol", "rotCol", Matrix );
-
-  new TBRIK( "col_inner_brik", "col_inner_brik",
-	     "void", inner_x, inner_y, inner_z );
-
-  new TBRIK( "col_outer_brik", "col_outer_brik",
-	     "void", outer_x, outer_y, outer_z );
-
-  TNode *col_inner = new TNode( "col_inner_node",
-				"col_inner_node",
-				"col_inner_brik",
-				BeamAxis, 0., offsetZ, "rotCol", "void" );
-  TNode *col_outer = new TNode( "col_outer_node",
-				"col_outer_node",
-				"col_outer_brik",
-				BeamAxis, 0., offsetZ, "rotCol", "void" );
-
-  const Color_t color = kBlack;
-
-  col_inner->SetLineColor( color );
-  col_outer->SetLineColor( color );
 
   m_node->cd();
   ConstructionDone(__func__);
@@ -1192,39 +1121,6 @@ EventDisplay::ConstructSdcOut( void )
 
 //______________________________________________________________________________
 bool
-EventDisplay::ConstructEmulsion( void )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  double EmulsionX = 100.0/2.0;
-  double EmulsionY =  12.0/2.0; // Z
-  double EmulsionZ = 100.0/2.0; // Y
-  double rotMatEmulsion[9];
-
-  new TBRIK( "target_brik", "target_brik", "void",
-	     EmulsionX, EmulsionY, EmulsionZ );
-
-  CalcRotMatrix( 0., 0., 0., rotMatEmulsion );
-  new TRotMatrix( "rotEmulsion", "rotEmulsion", rotMatEmulsion );
-
-  const int lid = gGeom.GetDetectorId("Emulsion");
-  ThreeVector GlobalPos = gGeom.GetGlobalPosition( lid );
-#if Vertex
-  const double z = zEmulsion - zTarget;
-  m_EmulsionXZ_box = new TBox( z, -EmulsionX, z+EmulsionY*2., EmulsionX );
-  m_EmulsionXZ_box->SetFillColor(kWhite);
-  m_EmulsionXZ_box->SetLineColor(kBlack);
-  m_EmulsionYZ_box = new TBox( z, -EmulsionZ, z+EmulsionY*2., EmulsionZ );
-  m_EmulsionYZ_box->SetFillColor(kWhite);
-  m_EmulsionYZ_box->SetLineColor(kBlack);
-#endif
-
-  ConstructionDone(__func__);
-  return true;
-}
-
-//______________________________________________________________________________
-bool
 EventDisplay::ConstructTarget( void )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
@@ -1255,92 +1151,6 @@ EventDisplay::ConstructTarget( void )
   m_TargetYZ_box->SetLineColor(kBlack);
 #endif
 
-  ConstructionDone(__func__);
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-EventDisplay::ConstructSSD( void )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-#if Vertex
-  const int NBinX = (int)( (MaxY-MinY)/0.5 );
-  const int NBinY = (int)( (MaxY-MinY)/0.5 );
-  const int NBinZ = (int)( (MaxZ-MinZ)/0.5 );
-  m_SSD_y_hist = new TH2F( "SSD_y_hist", "SSD-Y DeltaE", NBinZ, MinZ, MaxZ, NBinY, MinY, MaxY );
-  m_SSD_x_hist = new TH2F( "SSD_x_hist", "SSD-X DeltaE", NBinZ, MinZ, MaxZ, NBinX, MinX, MaxX );
-  m_SSD_y_hist->SetMaximum(20000.);
-  m_SSD_x_hist->SetMaximum(20000.);
-#endif
-
-  ConstructionDone(__func__);
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-EventDisplay::ConstructFBH( void )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  const int lid = gGeom.GetDetectorId("FBH");
-
-  double rotMatFBH[9] = {};
-  double FBHwallX =  7.5/2.0*NumOfSegFBH; // X
-  double FBHwallY =  2.0/2.0*2.0; // Z
-  double FBHwallZ = 35.0/2.0; // Y
-
-  double FBHSegX =  7.5/2.0; // X
-  double FBHSegY =  2.0/2.0; // Z
-  double FBHSegZ = 35.0/2.0; // Y
-
-  double overlap = 2.5;
-
-  CalcRotMatrix( gGeom.GetTiltAngle( lid ),
-		 gGeom.GetRotAngle1( lid ),
-		 gGeom.GetRotAngle2( lid ),
-		 rotMatFBH );
-
-  new TRotMatrix( "rotFBH", "rotFBH", rotMatFBH );
-  ThreeVector  FBHwallPos = gGeom.GetGlobalPosition( lid );
-  new TBRIK( "FBHwall_brik", "FBHwall_brik", "void",
-	     FBHwallX, FBHwallY, FBHwallZ);
-  m_FBHwall_node = new TNode( "FBHwall_node", "FBHwall_node", "FBHwall_brik",
-			      FBHwallPos.x(),
-			      FBHwallPos.y(),
-			      FBHwallPos.z(),
-			      "rotFBH", "void");
-
-  m_FBHwall_node->SetVisibility(0);
-  m_FBHwall_node->cd();
-
-  new TBRIK( "FBHseg_brik", "FBHseg_brik", "void",
-	     FBHSegX, FBHSegY, FBHSegZ );
-  for( int i=0; i<NumOfSegFBH; i++ ){
-    ThreeVector fbhSegLocalPos( (-NumOfSegFBH/2.+i)*(FBHSegX*2.-overlap)+5.0/2.,
-				(-(i%2)*2+1)*(FBHSegY-1.),
-				0. );
-    m_FBHseg_node.push_back( new TNode( Form( "FBHseg_node_%d", i ),
-					Form( "FBHseg_node_%d", i ),
-					"FBHseg_brik",
-					fbhSegLocalPos.x(),
-					fbhSegLocalPos.y(),
-					fbhSegLocalPos.z() ) );
-  }
-
-#if Vertex
-  for( int i=0; i<NumOfSegFBH; i++ ){
-    Double_t x = (-NumOfSegFBH/2.+i)*(FBHSegX*2.-overlap)+5.0/2.;
-    Double_t z = -(i%2)*2+1 + FBHwallPos.z() - zTarget;
-    m_FBHseg_box.push_back( new TBox( z-1., x-FBHSegX, z+1., x+FBHSegX ) );
-    m_FBHseg_box[i]->SetFillColor(kWhite);
-    m_FBHseg_box[i]->SetLineColor(kBlack);
-  }
-#endif
-
-  m_node->cd();
   ConstructionDone(__func__);
   return true;
 }
@@ -1590,9 +1400,6 @@ EventDisplay::DrawHitHodoscope( int lid, int seg, int Tu, int Td )
   if( lid == IdBH2 ){
     if( seg>=NumOfSegBH2 ) return;
     node_name = Form( "BH2seg_node_%d", seg );
-  } else if( lid == IdFBH ){
-    if( seg>=NumOfSegFBH ) return;
-    node_name = Form( "FBHseg_node_%d", seg );
   } else if( lid == IdSCH ){
     if( seg>=NumOfSegSCH ) return;
     node_name = Form( "SCHseg_node_%d", seg );
@@ -1624,14 +1431,6 @@ EventDisplay::DrawHitHodoscope( int lid, int seg, int Tu, int Td )
   m_canvas->cd(2);
   m_geometry->Draw();
   m_canvas->Update();
-
-#if Vertex
-  if( lid == IdFBH ){
-    m_canvas_vertex->cd(1);
-    m_FBHseg_box[seg]->SetFillColor( kBlue );
-    m_canvas_vertex->Update();
-  }
-#endif
 }
 
 //______________________________________________________________________________
@@ -1836,57 +1635,6 @@ EventDisplay::DrawSdcOutLocalTrack( DCLocalTrack *tp )
   m_canvas->cd(2);
   p->Draw();
   gPad->Update();
-#endif
-}
-
-//______________________________________________________________________________
-void
-EventDisplay::DrawSsdHit( int lid, int seg, double de )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-#if Vertex
-  if( seg<0 ) return;
-
-  const double localPos = gGeom.CalcWirePosition( lid, seg );
-  ThreeVector wireLocalPos( localPos, 0., 0. );
-  const ThreeVector& wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
-
-  double x = wireGlobalPos.x() - BeamAxis;
-  double y = wireGlobalPos.y();
-  double z = wireGlobalPos.z() - zTarget;
-  if( lid == gGeom.GetDetectorId("SSD1-Y1") ){
-    if( m_SSD_y_hist )
-      ((TH2F*)m_SSD_y_hist)->Fill( z, y, de );
-  }
-  if( lid == gGeom.GetDetectorId("SSD1-X1") ){
-    if( m_SSD_x_hist )
-      ((TH2F*)m_SSD_x_hist)->Fill( z, x, de );
-  }
-  if( lid == gGeom.GetDetectorId("SSD1-Y2") ){
-    if( m_SSD_y_hist )
-      ((TH2F*)m_SSD_y_hist)->Fill( z, y, de );
-  }
-  if( lid == gGeom.GetDetectorId("SSD1-X2") ){
-    if( m_SSD_x_hist )
-      ((TH2F*)m_SSD_x_hist)->Fill( z, x, de );
-  }
-  if( lid == gGeom.GetDetectorId("SSD2-X1") ){
-    if( m_SSD_x_hist )
-      ((TH2F*)m_SSD_x_hist)->Fill( z, x, de );
-  }
-  if( lid == gGeom.GetDetectorId("SSD2-Y1") ){
-    if( m_SSD_y_hist )
-      ((TH2F*)m_SSD_y_hist)->Fill( z, y, de );
-  }
-  if( lid == gGeom.GetDetectorId("SSD2-X2") ){
-    if( m_SSD_x_hist )
-      ((TH2F*)m_SSD_x_hist)->Fill( z, x, de );
-  }
-  if( lid == gGeom.GetDetectorId("SSD2-Y2") ){
-    if( m_SSD_y_hist )
-      ((TH2F*)m_SSD_y_hist)->Fill( z, y, de );
-  }
 #endif
 }
 
@@ -2130,25 +1878,9 @@ EventDisplay::ResetVisibility( void )
   ResetVisibility( m_SDC3x1_node );
   ResetVisibility( m_SDC3x2_node );
   ResetVisibility( m_BH2seg_node, kBlack );
-  ResetVisibility( m_FBHseg_node );
   ResetVisibility( m_SCHseg_node );
   ResetVisibility( m_TOFseg_node, kBlack );
   ResetVisibility( m_target_node, kBlack );
-
-#if Vertex
-  if( m_SSD_y_hist ){
-    m_SSD_y_hist->Reset();
-    ((TH2F*)m_SSD_y_hist)->Fill( -9999., -9999., 0.1 );
-  }
-  if( m_SSD_x_hist ){
-    m_SSD_x_hist->Reset();
-    ((TH2F*)m_SSD_x_hist)->Fill( -9999., -9999., 0.1 );
-  }
-  for( int i=0; i<NumOfSegFBH; i++ ){
-    if( m_FBHseg_box[i] )
-      m_FBHseg_box[i]->SetFillColor( kWhite );
-  }
-#endif
 
 }
 

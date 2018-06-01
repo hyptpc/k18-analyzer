@@ -30,6 +30,7 @@ private:
 protected:
   std::string m_detector_name;
   int         m_segment;
+  int         m_ud;
   double      m_position;
   double      m_offset;
   int         m_pair_id;
@@ -53,8 +54,8 @@ public:
   // Call super class method
   int    GetNLeading( void )  const { return Hodo1Hit::GetNumOfHit(0);    }
   int    GetNTrailing( void ) const { return Hodo1Hit::GetNumOfHit(1);    }
-  double GetLeading( int n=0 )  const { return m_raw->GetTdc1(n);         }
-  double GetTrailing( int n=0 ) const { return m_raw->GetTdcT1(n);        }
+  double GetLeading( int n=0 )  const { return m_ud==0? m_raw->GetTdc1(n)  : m_raw->GetTdc2(n);}
+  double GetTrailing( int n=0 ) const { return m_ud==0? m_raw->GetTdcT1(n) : m_raw->GetTdcT2(n);}
 
   // Call member in this class
   int    GetNPair( void )       const { return m_pair_cont.size();        }

@@ -115,12 +115,6 @@ struct Event
   double wSch[NumOfSegSCH];
   double SchPos[NumOfSegSCH];
   double SchSeg[NumOfSegSCH];
-  int    nhFbh;
-  int    csFbh[NumOfSegCFBH];
-  double tFbh[NumOfSegCFBH];
-  double wFbh[NumOfSegCFBH];
-  double FbhPos[NumOfSegCFBH];
-  double FbhSeg[NumOfSegCFBH];
 
   //DC Beam
   int ntBcOut;
@@ -1356,6 +1350,34 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("pCorrDE",    event.pCorrDE,   "pCorrDE[nPiK]/D");
 
   ////////// Bring Address From Dst
+  TTreeCont[kHodoscope]->SetBranchStatus("*", 0);
+  TTreeCont[kHodoscope]->SetBranchStatus("trigflag", 1);
+  TTreeCont[kHodoscope]->SetBranchStatus("trigpat",  1);
+  TTreeCont[kHodoscope]->SetBranchStatus("nhBh1",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("csBh1",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("Bh1Seg",   1);
+  TTreeCont[kHodoscope]->SetBranchStatus("tBh1",     1);
+  TTreeCont[kHodoscope]->SetBranchStatus("dtBh1",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("deBh1",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("btof",     1);
+  TTreeCont[kHodoscope]->SetBranchStatus("nhBh2",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("csBh2",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("Bh2Seg",   1);
+  TTreeCont[kHodoscope]->SetBranchStatus("t0Bh2",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("tBh2",     1);
+  TTreeCont[kHodoscope]->SetBranchStatus("dtBh2",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("deBh2",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("Time0",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("CTime0",   1);
+  TTreeCont[kHodoscope]->SetBranchStatus("Time0Seg", 1);
+  TTreeCont[kHodoscope]->SetBranchStatus("deTime0",  1);
+  TTreeCont[kHodoscope]->SetBranchStatus("nhTof",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("csTof",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("TofSeg",   1);
+  TTreeCont[kHodoscope]->SetBranchStatus("tTof",     1);
+  TTreeCont[kHodoscope]->SetBranchStatus("dtTof",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("deTof",    1);
+
   TTreeCont[kHodoscope]->SetBranchAddress("trigflag",  src.trigflag);
   TTreeCont[kHodoscope]->SetBranchAddress("trigpat",   src.trigpat);
   TTreeCont[kHodoscope]->SetBranchAddress("nhBh1",    &src.nhBh1);
@@ -1382,6 +1404,41 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kHodoscope]->SetBranchAddress("tTof",      src.tTof);
   TTreeCont[kHodoscope]->SetBranchAddress("dtTof",     src.dtTof);
   TTreeCont[kHodoscope]->SetBranchAddress("deTof",     src.deTof);
+
+  TTreeCont[kKuramaTracking]->SetBranchStatus("*", 0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("ntSdcIn",      0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("nlSdcIn",      0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("nhSdcIn",      0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("chisqrSdcIn",  0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("x0SdcIn",      0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("y0SdcIn",      0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("u0SdcIn",      0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("v0SdcIn",      0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("ntSdcOut",     0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("nhSdcOut",     0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("chisqrSdcOut", 0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("x0SdcOut",     0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("y0SdcOut",     0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("u0SdcOut",     0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("v0SdcOut",     0);
+
+  TTreeCont[kKuramaTracking]->SetBranchStatus("ntKurama",    0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("nhKurama",    0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("stof",        0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("path",        0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("pKurama",     0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("qKurama",     0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("chisqrKurama",0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("xtgtKurama",  0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("ytgtKurama",  0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("utgtKurama",  0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("vtgtKurama",  0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("thetaKurama", 0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("xtofKurama",  0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("ytofKurama",  0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("utofKurama",  0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("vtofKurama",  0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("tofsegKurama",0);
 
   TTreeCont[kKuramaTracking]->SetBranchAddress("ntSdcIn",      &src.ntSdcIn      );
   TTreeCont[kKuramaTracking]->SetBranchAddress("nlSdcIn",      &src.nlSdcIn      );
@@ -1417,6 +1474,25 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKuramaTracking]->SetBranchAddress("vtofKurama",   src.vtofKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("tofsegKurama", src.tofsegKurama);
 
+  TTreeCont[kK18Tracking]->SetBranchStatus("*", 0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("ntBcOut",     0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("nlBcOut",     0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("nhBcOut",     0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("chisqrBcOut", 0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("x0BcOut",     0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("y0BcOut",     0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("u0BcOut",     0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("v0BcOut",     0);
+
+  TTreeCont[kK18Tracking]->SetBranchStatus("ntK18",       0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("nhK18",       0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("chisqrK18",   0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("p_3rd",       0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("xtgtK18",     0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("ytgtK18",     0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("utgtK18",     0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("vtgtK18",     0);
+
   TTreeCont[kK18Tracking]->SetBranchAddress("ntBcOut",     &src.ntBcOut     );
   TTreeCont[kK18Tracking]->SetBranchAddress("nlBcOut",     &src.nlBcOut     );
   TTreeCont[kK18Tracking]->SetBranchAddress("nhBcOut",      src.nhBcOut     );
@@ -1434,6 +1510,18 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kK18Tracking]->SetBranchAddress("ytgtK18", &src.ytgtK18);
   TTreeCont[kK18Tracking]->SetBranchAddress("utgtK18", &src.utgtK18);
   TTreeCont[kK18Tracking]->SetBranchAddress("vtgtK18", &src.vtgtK18);
+
+  TTreeCont[kEasiroc]->SetBranchStatus("*",    0);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_ncl",    0);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_clsize", 0);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_ctime",  0);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_ctot",   0);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_clpos",  0);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_ncl",    0);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_clsize", 0);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_ctime",  0);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_ctot",   0);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_clpos",  0);
 
   TTreeCont[kEasiroc]->SetBranchAddress("bft_ncl",    &src.nhBft);
   TTreeCont[kEasiroc]->SetBranchAddress("bft_clsize", &src.csBft);
