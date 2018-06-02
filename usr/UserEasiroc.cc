@@ -1010,8 +1010,8 @@ EventEasiroc::ProcessingNormal( void )
 	  int mhit_l  = hit->GetNLeading();
 	  int mhit_t  = hit->GetNTrailing();
 	  int seg   = hit->SegmentId();
-	  if(layer==U) layer==0? event.fbt1_u1depth[seg] : event.fbt1_u2depth[seg] = mhit_l;
-	  if(layer==D) layer==1? event.fbt1_d1depth[seg] : event.fbt1_d2depth[seg] = mhit_l;
+	  if(UorD==U) (layer==0? event.fbt1_u1depth[seg] : event.fbt1_u2depth[seg]) = mhit_l;
+	  if(UorD==D) (layer==1? event.fbt1_d1depth[seg] : event.fbt1_d2depth[seg]) = mhit_l;
 
 	  int  prev = 0;
 	  bool hit_flag = false;
@@ -1027,11 +1027,11 @@ EventEasiroc::ProcessingNormal( void )
 	    HF2( FBT1U1Hid + 10000*(2*layer+UorD) +10, seg, leading );
 	    HF1( FBT1U1Hid + 10000*(2*layer+UorD) +1000*(1)+seg+1, leading );
 
-	    if(layer==U){
-	      layer==0? event.fbt1_u1tdc[seg][m] : event.fbt1_u2tdc[seg][m] = leading;
+	    if(UorD==U){
+	      (layer==0? event.fbt1_u1tdc[seg][m] : event.fbt1_u2tdc[seg][m]) = leading;
 	    }
-	    if(layer==D){
-	      layer==0? event.fbt1_d1tdc[seg][m] : event.fbt1_d2tdc[seg][m] = leading;
+	    if(UorD==D){
+	      (layer==0? event.fbt1_d1tdc[seg][m] : event.fbt1_d2tdc[seg][m]) = leading;
 	    }
 
 	    if( MinTdcFBT1<leading && leading<MaxTdcFBT1 ){
@@ -1044,11 +1044,11 @@ EventEasiroc::ProcessingNormal( void )
 	    if(mhit_t > MaxDepth) break;
 	    double trailing = hit->GetTrailing(m);
 
-	    if(layer==U){
-	      layer==0? event.fbt1_u1trailing[seg][m] : event.fbt1_u2trailing[seg][m] = trailing;
+	    if(UorD==U){
+	      (layer==0? event.fbt1_u1trailing[seg][m] : event.fbt1_u2trailing[seg][m]) = trailing;
 	    }
-	    if(layer==D){
-	      layer==0? event.fbt1_d1trailing[seg][m] : event.fbt1_d2trailing[seg][m] = trailing;
+	    if(UorD==D){
+	      (layer==0? event.fbt1_d1trailing[seg][m] : event.fbt1_d2trailing[seg][m]) = trailing;
 	    }
 	  }// for(m)
 
@@ -1071,17 +1071,17 @@ EventEasiroc::ProcessingNormal( void )
 	      HF2( FBT1U1Hid + 10000*(2*layer+UorD) +1000*(5)+seg+1, width, time );
 	      HF2( FBT1U1Hid + 10000*(2*layer+UorD) +1000*(7)+seg+1, width, ctime );
 	    }
-	    if(layer==U){
-	      layer==0? event.fbt1_u1tot[seg][m] : event.fbt1_u2tot[seg][m] = width;
+	    if(UorD==U){
+	      (layer==0? event.fbt1_u1tot[seg][m] : event.fbt1_u2tot[seg][m]) = width;
 	    }
-	    if(layer==D){
-	      layer==0? event.fbt1_d1tot[seg][m] : event.fbt1_d2tot[seg][m] = width;
+	    if(UorD==D){
+	      (layer==0? event.fbt1_d1tot[seg][m] : event.fbt1_d2tot[seg][m]) = width;
 	    }
 	  }
 	  if(hit_flag){
 	    HF1( FBT1U1Hid + 10000*(2*layer+UorD) +4, seg+0.5);
-	    if(layer==U) layer==0? event.fbt1_u1hitpat[nhits[0]++] : event.fbt1_u2hitpat[nhits[2]++] = seg;
-	    if(layer==U) layer==0? event.fbt1_d1hitpat[nhits[1]++] : event.fbt1_d2hitpat[nhits[3]++] = seg;
+	    if(UorD==U) (layer==0? event.fbt1_u1hitpat[nhits[0]++] : event.fbt1_u2hitpat[nhits[2]++]) = seg;
+	    if(UorD==D) (layer==0? event.fbt1_d1hitpat[nhits[1]++] : event.fbt1_d2hitpat[nhits[3]++]) = seg;
 	  }
 	}// for(m)
 	HF1( FBT1U1Hid + 10000*(2*layer+UorD) +3, nhits[2*layer+UorD]);
@@ -1100,8 +1100,8 @@ EventEasiroc::ProcessingNormal( void )
 	hodoAna->TimeCutFBT1(layer, UorD, MinTimeFBT1, MaxTimeFBT1);
 #endif
 	int ncl = hodoAna->GetNClustersFBT1(layer, UorD);
-	if(UorD == U) layer==0? event.fbt1_u1ncl : event.fbt1_u2ncl = ncl;
-	if(UorD == D) layer==0? event.fbt1_d1ncl : event.fbt1_d2ncl = ncl;
+	if(UorD == U) (layer==0? event.fbt1_u1ncl : event.fbt1_u2ncl) = ncl;
+	if(UorD == D) (layer==0? event.fbt1_d1ncl : event.fbt1_d2ncl) = ncl;
 	HF1( FBT1U1Hid + 10000*(2*layer+UorD) +101, ncl );
 	for(int i=0; i<ncl; ++i){
 	  FiberCluster *cl = hodoAna->GetClusterFBT1(layer, UorD, i);
@@ -1110,14 +1110,14 @@ EventEasiroc::ProcessingNormal( void )
 	  double ctime  = cl->CMeanTime();
 	  double ctot   = cl->Width();
 	  double pos    = cl->MeanPosition();
-	  if(UorD == U) layer==0? event.fbt1_u1clsize[i] : event.fbt1_u2clsize[i] = clsize;
-	  if(UorD == D) layer==0? event.fbt1_d1clsize[i] : event.fbt1_d2clsize[i] = clsize;
-	  if(UorD == U) layer==0? event.fbt1_u1ctime[i]  : event.fbt1_u2ctime[i]  = ctime;
-	  if(UorD == D) layer==0? event.fbt1_d1ctime[i]  : event.fbt1_d2ctime[i]  = ctime;
-	  if(UorD == U) layer==0? event.fbt1_u1ctot[i]   : event.fbt1_u2ctot[i]   = ctot;
-	  if(UorD == D) layer==0? event.fbt1_d1ctot[i]   : event.fbt1_d2ctot[i]   = ctot;
-	  if(UorD == U)	layer==0? event.fbt1_u1clpos[i]  : event.fbt1_u2clpos[i]  = pos;
-	  if(UorD == D)	layer==0? event.fbt1_d1clpos[i]  : event.fbt1_d2clpos[i]  = pos;
+	  if(UorD == U) (layer==0? event.fbt1_u1clsize[i] : event.fbt1_u2clsize[i]) = clsize;
+	  if(UorD == D) (layer==0? event.fbt1_d1clsize[i] : event.fbt1_d2clsize[i]) = clsize;
+	  if(UorD == U) (layer==0? event.fbt1_u1ctime[i]  : event.fbt1_u2ctime[i] ) = ctime;
+	  if(UorD == D) (layer==0? event.fbt1_d1ctime[i]  : event.fbt1_d2ctime[i] ) = ctime;
+	  if(UorD == U) (layer==0? event.fbt1_u1ctot[i]   : event.fbt1_u2ctot[i]  ) = ctot;
+	  if(UorD == D) (layer==0? event.fbt1_d1ctot[i]   : event.fbt1_d2ctot[i]  ) = ctot;
+	  if(UorD == U)	(layer==0? event.fbt1_u1clpos[i]  : event.fbt1_u2clpos[i] ) = pos;
+	  if(UorD == D)	(layer==0? event.fbt1_d1clpos[i]  : event.fbt1_d2clpos[i] ) = pos;
 	  
 	  HF1( FBT1U1Hid + 10000*(2*layer+UorD) +102, clsize );
 	  HF1( FBT1U1Hid + 10000*(2*layer+UorD) +103, ctime );
@@ -1145,8 +1145,8 @@ EventEasiroc::ProcessingNormal( void )
 	  int mhit_l  = hit->GetNLeading();
 	  int mhit_t  = hit->GetNTrailing();
 	  int seg   = hit->SegmentId();
-	  if(layer==U) layer==0? event.fbt2_u1depth[seg] : event.fbt2_u2depth[seg] = mhit_l;
-	  if(layer==D) layer==1? event.fbt2_d1depth[seg] : event.fbt2_d2depth[seg] = mhit_l;
+	  if(UorD==U) (layer==0? event.fbt2_u1depth[seg] : event.fbt2_u2depth[seg]) = mhit_l;
+	  if(UorD==D) (layer==1? event.fbt2_d1depth[seg] : event.fbt2_d2depth[seg]) = mhit_l;
 
 	  int  prev = 0;
 	  bool hit_flag = false;
@@ -1162,11 +1162,11 @@ EventEasiroc::ProcessingNormal( void )
 	    HF2( FBT2U1Hid + 10000*(2*layer+UorD) +10, seg, leading );
 	    HF1( FBT2U1Hid + 10000*(2*layer+UorD) +1000*(1)+seg+1, leading );
 
-	    if(layer==U){
-	      layer==0? event.fbt2_u1tdc[seg][m] : event.fbt2_u2tdc[seg][m] = leading;
+	    if(UorD==U){
+	      (layer==0? event.fbt2_u1tdc[seg][m] : event.fbt2_u2tdc[seg][m]) = leading;
 	    }
-	    if(layer==D){
-	      layer==0? event.fbt2_d1tdc[seg][m] : event.fbt2_d2tdc[seg][m] = leading;
+	    if(UorD==D){
+	      (layer==0? event.fbt2_d1tdc[seg][m] : event.fbt2_d2tdc[seg][m]) = leading;
 	    }
 
 	    if( MinTdcFBT2<leading && leading<MaxTdcFBT2 ){
@@ -1179,11 +1179,11 @@ EventEasiroc::ProcessingNormal( void )
 	    if(mhit_t > MaxDepth) break;
 	    double trailing = hit->GetTrailing(m);
 
-	    if(layer==U){
-	      layer==0? event.fbt2_u1trailing[seg][m] : event.fbt2_u2trailing[seg][m] = trailing;
+	    if(UorD==U){
+	      (layer==0? event.fbt2_u1trailing[seg][m] : event.fbt2_u2trailing[seg][m]) = trailing;
 	    }
-	    if(layer==D){
-	      layer==0? event.fbt2_d1trailing[seg][m] : event.fbt2_d2trailing[seg][m] = trailing;
+	    if(UorD==D){
+	      (layer==0? event.fbt2_d1trailing[seg][m] : event.fbt2_d2trailing[seg][m]) = trailing;
 	    }
 	  }// for(m)
 
@@ -1206,17 +1206,17 @@ EventEasiroc::ProcessingNormal( void )
 	      HF2( FBT2U1Hid + 10000*(2*layer+UorD) +1000*(5)+seg+1, width, time );
 	      HF2( FBT2U1Hid + 10000*(2*layer+UorD) +1000*(7)+seg+1, width, ctime );
 	    }
-	    if(layer==U){
-	      layer==0? event.fbt2_u1tot[seg][m] : event.fbt2_u2tot[seg][m] = width;
+	    if(UorD==U){
+	      (layer==0? event.fbt2_u1tot[seg][m] : event.fbt2_u2tot[seg][m]) = width;
 	    }
-	    if(layer==D){
-	      layer==0? event.fbt2_d1tot[seg][m] : event.fbt2_d2tot[seg][m] = width;
+	    if(UorD==D){
+	      (layer==0? event.fbt2_d1tot[seg][m] : event.fbt2_d2tot[seg][m]) = width;
 	    }
 	  }
 	  if(hit_flag){
 	    HF1( FBT2U1Hid + 10000*(2*layer+UorD) +4, seg+0.5);
-	    if(layer==U) layer==0? event.fbt2_u1hitpat[nhits[0]++] : event.fbt2_u2hitpat[nhits[2]++] = seg;
-	    if(layer==U) layer==0? event.fbt2_d1hitpat[nhits[1]++] : event.fbt2_d2hitpat[nhits[3]++] = seg;
+	    if(UorD==U) (layer==0? event.fbt2_u1hitpat[nhits[0]++] : event.fbt2_u2hitpat[nhits[2]++]) = seg;
+	    if(UorD==U) (layer==0? event.fbt2_d1hitpat[nhits[1]++] : event.fbt2_d2hitpat[nhits[3]++]) = seg;
 	  }
 	}// for(m)
 	HF1( FBT2U1Hid + 10000*(2*layer+UorD) +3, nhits[2*layer+UorD]);
@@ -1235,8 +1235,8 @@ EventEasiroc::ProcessingNormal( void )
 	hodoAna->TimeCutFBT2(layer, UorD, MinTimeFBT2, MaxTimeFBT2);
 #endif
 	int ncl = hodoAna->GetNClustersFBT2(layer, UorD);
-	if(UorD == U) layer==0? event.fbt2_u1ncl : event.fbt2_u2ncl = ncl;
-	if(UorD == D) layer==0? event.fbt2_d1ncl : event.fbt2_d2ncl = ncl;
+	if(UorD == U) (layer==0? event.fbt2_u1ncl : event.fbt2_u2ncl) = ncl;
+	if(UorD == D) (layer==0? event.fbt2_d1ncl : event.fbt2_d2ncl) = ncl;
 	HF1( FBT2U1Hid + 10000*(2*layer+UorD) +101, ncl );
 	for(int i=0; i<ncl; ++i){
 	  FiberCluster *cl = hodoAna->GetClusterFBT2(layer, UorD, i);
@@ -1245,14 +1245,14 @@ EventEasiroc::ProcessingNormal( void )
 	  double ctime  = cl->CMeanTime();
 	  double ctot   = cl->Width();
 	  double pos    = cl->MeanPosition();
-	  if(UorD == U) layer==0? event.fbt2_u1clsize[i] : event.fbt2_u2clsize[i] = clsize;
-	  if(UorD == D) layer==0? event.fbt2_d1clsize[i] : event.fbt2_d2clsize[i] = clsize;
-	  if(UorD == U) layer==0? event.fbt2_u1ctime[i]  : event.fbt2_u2ctime[i]  = ctime;
-	  if(UorD == D) layer==0? event.fbt2_d1ctime[i]  : event.fbt2_d2ctime[i]  = ctime;
-	  if(UorD == U) layer==0? event.fbt2_u1ctot[i]   : event.fbt2_u2ctot[i]   = ctot;
-	  if(UorD == D) layer==0? event.fbt2_d1ctot[i]   : event.fbt2_d2ctot[i]   = ctot;
-	  if(UorD == U)	layer==0? event.fbt2_u1clpos[i]  : event.fbt2_u2clpos[i]  = pos;
-	  if(UorD == D)	layer==0? event.fbt2_d1clpos[i]  : event.fbt2_d2clpos[i]  = pos;
+	  if(UorD == U) (layer==0? event.fbt2_u1clsize[i] : event.fbt2_u2clsize[i]) = clsize;
+	  if(UorD == D) (layer==0? event.fbt2_d1clsize[i] : event.fbt2_d2clsize[i]) = clsize;
+	  if(UorD == U) (layer==0? event.fbt2_u1ctime[i]  : event.fbt2_u2ctime[i] ) = ctime;
+	  if(UorD == D) (layer==0? event.fbt2_d1ctime[i]  : event.fbt2_d2ctime[i] ) = ctime;
+	  if(UorD == U) (layer==0? event.fbt2_u1ctot[i]   : event.fbt2_u2ctot[i]  ) = ctot;
+	  if(UorD == D) (layer==0? event.fbt2_d1ctot[i]   : event.fbt2_d2ctot[i]  ) = ctot;
+	  if(UorD == U)	(layer==0? event.fbt2_u1clpos[i]  : event.fbt2_u2clpos[i] ) = pos;
+	  if(UorD == D)	(layer==0? event.fbt2_d1clpos[i]  : event.fbt2_d2clpos[i] ) = pos;
 	  
 	  HF1( FBT2U1Hid + 10000*(2*layer+UorD) +102, clsize );
 	  HF1( FBT2U1Hid + 10000*(2*layer+UorD) +103, ctime );

@@ -251,7 +251,7 @@ RawData::DecodeHits( void )
   // TOF
   DecodeHodo( DetIdTOF, NumOfSegTOF, kBothSide, m_TOFRawHC );
   // TOF-HT
-  DecodeHodo( DetIdHtTOF,NumOfSegTOF,kOneSide,  m_HtTOFRawHC );
+  DecodeHodo( DetIdHtTOF,NumOfSegHtTOF,kOneSide,  m_HtTOFRawHC );
   // LC
   DecodeHodo( DetIdLC,  NumOfSegLC,  kOneSide,  m_LCRawHC );
 
