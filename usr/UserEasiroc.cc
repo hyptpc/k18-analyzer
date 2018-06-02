@@ -187,12 +187,12 @@ struct Event
   int    fbt1_d1nhits;
   int    fbt1_u2nhits;
   int    fbt1_d2nhits;
-  
+
   int    fbt1_u1hitpat[MaxSegFBT1];
   int    fbt1_d1hitpat[MaxSegFBT1];
   int    fbt1_u2hitpat[MaxSegFBT1];
   int    fbt1_d2hitpat[MaxSegFBT1];
-  
+
   double fbt1_u1tdc[MaxSegFBT1][MaxDepth];
   double fbt1_d1tdc[MaxSegFBT1][MaxDepth];
   double fbt1_u2tdc[MaxSegFBT1][MaxDepth];
@@ -230,7 +230,7 @@ struct Event
   double fbt1_u2ctime[MaxSegFBT1];
   double fbt1_u2ctot[MaxSegFBT1];
   double fbt1_u2clpos[MaxSegFBT1];
-	       
+
   int    fbt1_d2ncl;
   int    fbt1_d2clsize[MaxSegFBT1];
   double fbt1_d2ctime[MaxSegFBT1];
@@ -242,12 +242,12 @@ struct Event
   int    fbt2_d1nhits;
   int    fbt2_u2nhits;
   int    fbt2_d2nhits;
-  
+
   int    fbt2_u1hitpat[MaxSegFBT2];
   int    fbt2_d1hitpat[MaxSegFBT2];
   int    fbt2_u2hitpat[MaxSegFBT2];
   int    fbt2_d2hitpat[MaxSegFBT2];
-  
+
   double fbt2_u1tdc[MaxSegFBT2][MaxDepth];
   double fbt2_d1tdc[MaxSegFBT2][MaxDepth];
   double fbt2_u2tdc[MaxSegFBT2][MaxDepth];
@@ -285,7 +285,7 @@ struct Event
   double fbt2_u2ctime[MaxSegFBT2];
   double fbt2_u2ctot[MaxSegFBT2];
   double fbt2_u2clpos[MaxSegFBT2];
-	       
+
   int    fbt2_d2ncl;
   int    fbt2_d2clsize[MaxSegFBT2];
   double fbt2_d2ctime[MaxSegFBT2];
@@ -502,7 +502,7 @@ EventEasiroc::ProcessingNormal( void )
 
 	}// for(m)
 
-	int mhit_pair  = hit->GetNPair();	
+	int mhit_pair  = hit->GetNPair();
 	// pair data
 	for( int m=0; m<mhit_pair; ++m ){
 	  if(mhit_pair > MaxDepth) break;
@@ -548,6 +548,10 @@ EventEasiroc::ProcessingNormal( void )
     hodoAna->TimeCutBFT(MinTimeBFT, MaxTimeBFT);
 #endif
     int ncl = hodoAna->GetNClustersBFT();
+    if( ncl > NumOfSegBFT ){
+      // std::cout << "#W BFT too much number of clusters" << std::endl;
+      ncl = NumOfSegBFT;
+    }
     event.bft_ncl = ncl;
     HF1( BFTHid +101, ncl );
     for(int i=0; i<ncl; ++i){
@@ -642,6 +646,10 @@ EventEasiroc::ProcessingNormal( void )
     hodoAna->TimeCutSCH( MinTimeSCH, MaxTimeSCH );
 #endif
     int ncl = hodoAna->GetNClustersSCH();
+    if( ncl > NumOfSegSCH ){
+      // std::cout << "#W SCH too much number of clusters" << std::endl;
+      ncl = NumOfSegSCH;
+    }
     event.sch_ncl = ncl;
     HF1( SCHHid +101, ncl );
     for(int i=0; i<ncl; ++i){
@@ -748,6 +756,10 @@ EventEasiroc::ProcessingNormal( void )
 #endif
 
     int ncl = hodoAna->GetNClustersSFT(0);
+    if( ncl > NumOfSegSFT_UV ){
+      // std::cout << "#W SFT-V too much number of clusters" << std::endl;
+      ncl = NumOfSegSFT_UV;
+    }
     event.sftv_ncl = ncl;
     HF1( SFTVHid +101, ncl );
     for(int i=0; i<ncl; ++i){
@@ -849,6 +861,10 @@ EventEasiroc::ProcessingNormal( void )
     hodoAna->TimeCutSFT(1, MinTimeSFT, MaxTimeSFT);
 #endif
     int ncl = hodoAna->GetNClustersSFT(1);
+    if( ncl > NumOfSegSFT_UV ){
+      // std::cout << "#W SFT-U too much number of clusters" << std::endl;
+      ncl = NumOfSegSFT_UV;
+    }
     event.sftu_ncl = ncl;
     HF1( SFTUHid +101, ncl );
     for(int i=0; i<ncl; ++i){
@@ -954,7 +970,7 @@ EventEasiroc::ProcessingNormal( void )
 	    event.sftx_dtot[seg][m]      = width;
 	  }
 	}// for(m)
-	
+
 	if(hit_flag){
 	  HF1( SFTXHid +plane+4, seg+0.5);
 	  if(plane==U) event.sftx_uhitpat[unhits++] = seg;
@@ -974,6 +990,10 @@ EventEasiroc::ProcessingNormal( void )
     hodoAna->TimeCutSFT(2, MinTimeSFT, MaxTimeSFT);
 #endif
     int ncl = hodoAna->GetNClustersSFT(2);
+    if( ncl > NumOfSegSFT_X ){
+      // std::cout << "#W SFT-X too much number of clusters" << std::endl;
+      ncl = NumOfSegSFT_X;
+    }
     event.sftx_ncl = ncl;
     HF1( SFTXHid +101, ncl );
     for(int i=0; i<ncl; ++i){
@@ -1052,7 +1072,7 @@ EventEasiroc::ProcessingNormal( void )
 	    }
 	  }// for(m)
 
-	  int mhit_pair  = hit->GetNPair();	
+	  int mhit_pair  = hit->GetNPair();
 	  // pair data
 	  for( int m=0; m<mhit_pair; ++m ){
 	    if(mhit_pair > MaxDepth) break;
@@ -1100,6 +1120,11 @@ EventEasiroc::ProcessingNormal( void )
 	hodoAna->TimeCutFBT1(layer, UorD, MinTimeFBT1, MaxTimeFBT1);
 #endif
 	int ncl = hodoAna->GetNClustersFBT1(layer, UorD);
+	if( ncl > MaxSegFBT1 ){
+	  // std::cout << "#W FBT1 L:" << layer << " UD:" << UorD
+	  // 	      << " too much number of clusters " << std::endl;
+	  ncl = MaxSegFBT1;
+	}
 	if(UorD == U) (layer==0? event.fbt1_u1ncl : event.fbt1_u2ncl) = ncl;
 	if(UorD == D) (layer==0? event.fbt1_d1ncl : event.fbt1_d2ncl) = ncl;
 	HF1( FBT1U1Hid + 10000*(2*layer+UorD) +101, ncl );
@@ -1118,7 +1143,7 @@ EventEasiroc::ProcessingNormal( void )
 	  if(UorD == D) (layer==0? event.fbt1_d1ctot[i]   : event.fbt1_d2ctot[i]  ) = ctot;
 	  if(UorD == U)	(layer==0? event.fbt1_u1clpos[i]  : event.fbt1_u2clpos[i] ) = pos;
 	  if(UorD == D)	(layer==0? event.fbt1_d1clpos[i]  : event.fbt1_d2clpos[i] ) = pos;
-	  
+
 	  HF1( FBT1U1Hid + 10000*(2*layer+UorD) +102, clsize );
 	  HF1( FBT1U1Hid + 10000*(2*layer+UorD) +103, ctime );
 	  HF1( FBT1U1Hid + 10000*(2*layer+UorD) +104, ctot );
@@ -1126,9 +1151,8 @@ EventEasiroc::ProcessingNormal( void )
 	  HF1( FBT1U1Hid + 10000*(2*layer+UorD) +106, pos );
 	}// for(ncl)
       }// for(UorD)
-    }// for(layer)
+   }// for(layer)
   }
-
 
   ////////// FBT2
   hodoAna->DecodeFBT2Hits( rawData );
@@ -1187,7 +1211,7 @@ EventEasiroc::ProcessingNormal( void )
 	    }
 	  }// for(m)
 
-	  int mhit_pair  = hit->GetNPair();	
+	  int mhit_pair  = hit->GetNPair();
 	  // pair data
 	  for( int m=0; m<mhit_pair; ++m ){
 	    if(mhit_pair > MaxDepth) break;
@@ -1235,6 +1259,11 @@ EventEasiroc::ProcessingNormal( void )
 	hodoAna->TimeCutFBT2(layer, UorD, MinTimeFBT2, MaxTimeFBT2);
 #endif
 	int ncl = hodoAna->GetNClustersFBT2(layer, UorD);
+	if( ncl > MaxSegFBT2 ){
+	  // std::cout << "#W FBT2 L:" << layer << " UD:" << UorD
+	  // 	      << " too much number of clusters " << std::endl;
+	  ncl = MaxSegFBT2;
+	}
 	if(UorD == U) (layer==0? event.fbt2_u1ncl : event.fbt2_u2ncl) = ncl;
 	if(UorD == D) (layer==0? event.fbt2_d1ncl : event.fbt2_d2ncl) = ncl;
 	HF1( FBT2U1Hid + 10000*(2*layer+UorD) +101, ncl );
@@ -1253,7 +1282,7 @@ EventEasiroc::ProcessingNormal( void )
 	  if(UorD == D) (layer==0? event.fbt2_d1ctot[i]   : event.fbt2_d2ctot[i]  ) = ctot;
 	  if(UorD == U)	(layer==0? event.fbt2_u1clpos[i]  : event.fbt2_u2clpos[i] ) = pos;
 	  if(UorD == D)	(layer==0? event.fbt2_d1clpos[i]  : event.fbt2_d2clpos[i] ) = pos;
-	  
+
 	  HF1( FBT2U1Hid + 10000*(2*layer+UorD) +102, clsize );
 	  HF1( FBT2U1Hid + 10000*(2*layer+UorD) +103, ctime );
 	  HF1( FBT2U1Hid + 10000*(2*layer+UorD) +104, ctot );
@@ -1263,7 +1292,6 @@ EventEasiroc::ProcessingNormal( void )
       }// for(UorD)
     }// for(layer)
   }
-
 
   return true;
 }
@@ -1440,7 +1468,7 @@ EventEasiroc::InitializeEvent( void )
     event.fbt1_d1ctot[it]   = -999.;
     event.fbt1_u2ctot[it]   = -999.;
     event.fbt1_d2ctot[it]   = -999.;
-    
+
     event.fbt1_u1clpos[it]  = -999.;
     event.fbt1_d1clpos[it]  = -999.;
     event.fbt1_u2clpos[it]  = -999.;
@@ -1487,7 +1515,7 @@ EventEasiroc::InitializeEvent( void )
     event.fbt2_d1ctot[it]   = -999.;
     event.fbt2_u2ctot[it]   = -999.;
     event.fbt2_d2ctot[it]   = -999.;
-    
+
     event.fbt2_u1clpos[it]  = -999.;
     event.fbt2_d1clpos[it]  = -999.;
     event.fbt2_u2clpos[it]  = -999.;
@@ -2109,7 +2137,7 @@ ConfMan:: InitializeHistograms( void )
 								MaxSegFBT1, MaxDepth));
   tree->Branch("fbt1_d2trailing",  event.fbt1_d2trailing,  Form("fbt1_d2trailing[%d][%d]/D",
 								MaxSegFBT1, MaxDepth));
-  
+
   tree->Branch("fbt1_u1tot",       event.fbt1_u1tot,       Form("fbt1_u1tot[%d][%d]/D",
 								MaxSegFBT1, MaxDepth));
   tree->Branch("fbt1_d1tot",       event.fbt1_d1tot,       Form("fbt1_d1tot[%d][%d]/D",
@@ -2177,7 +2205,7 @@ ConfMan:: InitializeHistograms( void )
 								MaxSegFBT2, MaxDepth));
   tree->Branch("fbt2_d2trailing",  event.fbt2_d2trailing,  Form("fbt2_d2trailing[%d][%d]/D",
 								MaxSegFBT2, MaxDepth));
-  
+
   tree->Branch("fbt2_u1tot",       event.fbt2_u1tot,       Form("fbt2_u1tot[%d][%d]/D",
 								MaxSegFBT2, MaxDepth));
   tree->Branch("fbt2_d1tot",       event.fbt2_d1tot,       Form("fbt2_d1tot[%d][%d]/D",
