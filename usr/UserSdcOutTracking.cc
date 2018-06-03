@@ -122,6 +122,8 @@ struct Event
   double wpos[NumOfLayersSdcOut][MaxHits];
   double pos[NumOfLayersSdcOut][MaxHits];
 
+  int tdc[MaxHits];
+
   int ntrack;
   double chisqr[MaxHits];
   double x0[MaxHits];
@@ -155,6 +157,8 @@ EventSdcOutTracking::ProcessingNormal( void )
   static const double MinTimeTOF = gUser.GetParameter("TimeTOF", 0);
   static const double MaxTimeTOF = gUser.GetParameter("TimeTOF", 1);
   static const double dTOfs      = gUser.GetParameter("dTOfs",   0);
+  static const double MinTimeL1  = gUser.GetParameter("TimeL1",  0);
+  static const double MaxTimeL1  = gUser.GetParameter("TimeL1",  1);
   static const double MinTotSDC2 = gUser.GetParameter("MinTotSDC2", 0);
   static const double MinTotSDC3 = gUser.GetParameter("MinTotSDC3", 0);
 #if MaxMultiCut
@@ -250,24 +254,25 @@ EventSdcOutTracking::ProcessingNormal( void )
 
   HF1( 1, 2. );
 
-  Hodo2HitContainer TOFCont;
+  HodoClusterContainer TOFCont;
   //////////////Tof Analysis
   hodoAna->DecodeTOFHits( rawData );
-  int nhTof = hodoAna->GetNHitsTOF();
-  event.nhTof = nhTof;
+  //  hodoAna->TimeCutTOF(7, 25);
+  int nhTof = hodoAna->GetNClustersTOF();
 #if HodoCut
-  if( nhTof==0 ) return true;
+  if( nhTof!=0 ) return true;
 #endif
+  event.nhTof = nhTof;
   {
     int nhOk = 0;
     for( int i=0; i<nhTof; ++i ){
-      Hodo2Hit *hit = hodoAna->GetHitTOF(i);
+      HodoCluster *hit = hodoAna->GetClusterTOF(i);
       if( !hit ) continue;
       double cmt  = hit->CMeanTime();
-      double dt   = hit->TimeDiff();
+      double dt   = hit->TimeDif();
       double de   = hit->DeltaE();
       double stof = cmt-time0;
-      event.TofSeg[i] = hit->SegmentId()+1;
+      event.TofSeg[i] = hit->MeanSeg()+1;
       event.tTof[i]   = cmt;
       event.dtTof[i]  = dt;
       event.deTof[i]  = de;
@@ -285,19 +290,17 @@ EventSdcOutTracking::ProcessingNormal( void )
 
   HF1( 1, 3. );
 
-  // MsT HR-TDC (TOF)
+  // Trigger flag
   bool flag_tof_stop = false;
   {
-    static const int device_id = gUnpacker.get_device_id("MsT");
-    static const int tof_id    = gUnpacker.get_plane_id("MsT", "TOF");
+    static const int device_id    = gUnpacker.get_device_id("TFlag");
+    static const int data_type_id = gUnpacker.get_data_id("TFlag", "tdc");
 
-    for(int seg = 0; seg<NumOfSegTOF; ++seg){
-      int mhit = gUnpacker.get_entries(device_id, tof_id, seg, 0, 0);
-      for(int m = 0; m<mhit; ++m){
-	int tof_tdc = gUnpacker.get(device_id, tof_id, seg, 0, 0, m);
-	if(165000 < tof_tdc && tof_tdc < 175000) flag_tof_stop = true;
-      }// for(m)
-    }// for(seg)
+    int mhit = gUnpacker.get_entries(device_id, 0, kTofTiming, 0, data_type_id);
+    for(int m = 0; m<mhit; ++m){
+      int tof_timing = gUnpacker.get(device_id, 0, kTofTiming, 0, data_type_id, m);
+      if(!(MinTimeL1 < tof_timing && tof_timing < MaxTimeL1)) flag_tof_stop = true;
+    }// for(m)
   }
 
   HF1( 1, 4. );
@@ -357,6 +360,7 @@ EventSdcOutTracking::ProcessingNormal( void )
 	  HF1( 100*layer+2, tdc );
 	  HF1( 10000*layer+int(wire), tdc );
 	  HF2( 1000*layer, tdc, wire-0.5 );
+	  if( layer == 1) event.tdc[k] = tdc;
 	}
 	int nhdt = hit->GetDriftTimeSize();
 	for( int k=0; k<nhdt; k++ ){
@@ -392,12 +396,7 @@ EventSdcOutTracking::ProcessingNormal( void )
     DCAna->TrackSearchSdcOut();
 #endif
   }else{
-#if UseTOF
-    DCAna->TrackSearchSdcOut( TOFCont );
-#else
     DCAna->TrackSearchSdcOut();
-#endif
-    //    DCAna->TrackSearchSdcOut();
   }
 
 #if 1
@@ -517,11 +516,11 @@ EventSdcOutTracking::InitializeEvent( void )
   event.evnum     = 0;
   event.trignhits = 0;
 
-  event.nlayer  = 0;
-  event.ntrack  = 0;
-  event.nhBh2   = 0;
-  event.nhBh1   = 0;
-  event.nhTof   = 0;
+  event.nlayer  = -1;
+  event.ntrack  = -1;
+  event.nhBh2   = -1;
+  event.nhBh1   = -1;
+  event.nhTof   = -1;
 
   for( int it=0; it<MaxHits; it++){
     event.Bh2Seg[it] = -1;
@@ -547,6 +546,8 @@ EventSdcOutTracking::InitializeEvent( void )
     }
   }
   for( int it=0; it<MaxHits; ++it ){
+    event.tdc[it]    = -1;
+
     event.chisqr[it] = -1.;
     event.x0[it] = -9999.;
     event.y0[it] = -9999.;
@@ -773,7 +774,7 @@ ConfMan::InitializeHistograms( void )
   HBTree("sdcout","tree of SdcOutTracking");
   tree->Branch("evnum",     &event.evnum,     "evnum/I");
   tree->Branch("trignhits", &event.trignhits, "trignhits/I");
-  tree->Branch("trigpat",    event.trigpat,   "trigpat[20]/I");
+  tree->Branch("trigpat",    event.trigpat,   Form("trigpat[%d]/I", NumOfSegTrig));
   tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
 
   tree->Branch("nhBh2",   &event.nhBh2,   "nhBh2/I");
@@ -808,6 +809,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("y0",        event.y0,       "y0[ntrack]/D");
   tree->Branch("u0",        event.u0,       "u0[ntrack]/D");
   tree->Branch("v0",        event.v0,       "v0[ntrack]/D");
+
+  tree->Branch("tdc",    event.tdc,   Form("tdc[%d]/I", MaxHits));
 
   HPrint();
   return true;
