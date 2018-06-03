@@ -29,8 +29,9 @@
 #include "UnpackerManager.hh"
 #include "VEvent.hh"
 
-#define HodoCut 0 // with BH1/BH2
-#define TimeCut 0 // in cluster analysis
+#define HodoCut    0 // with BH1/BH2
+#define TimeCut    0 // in cluster analysis
+#define FHitBranch 0 // make FiberHit branches (becomes heavy)
 
 namespace
 {
@@ -2010,6 +2011,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
 
   //BFT
+#if FHitBranch
   tree->Branch("bft_nhits",     &event.bft_nhits,        "bft_nhits/I");
   tree->Branch("bft_unhits",    &event.bft_unhits,       "bft_unhits/I");
   tree->Branch("bft_dnhits",    &event.bft_dnhits,       "bft_dnhits/I");
@@ -2029,6 +2031,7 @@ ConfMan:: InitializeHistograms( void )
 						      NumOfSegBFT, MaxDepth));
   tree->Branch("bft_udepth",     event.bft_udepth,       Form("bft_udepth[%d]/I", NumOfSegBFT));
   tree->Branch("bft_ddepth",     event.bft_ddepth,       Form("bft_ddepth[%d]/I", NumOfSegBFT));
+#endif
   tree->Branch("bft_ncl",       &event.bft_ncl,          "bft_ncl/I");
   tree->Branch("bft_clsize",     event.bft_clsize,       "bft_clsize[bft_ncl]/I");
   tree->Branch("bft_ctime",      event.bft_ctime,        "bft_ctime[bft_ncl]/D");
@@ -2036,6 +2039,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("bft_clpos",      event.bft_clpos,        "bft_clpos[bft_ncl]/D");
 
   //SCH
+#if FHitBranch
   tree->Branch("sch_nhits",     &event.sch_nhits,        "sch_nhits/I");
   tree->Branch("sch_hitpat",     event.sch_hitpat,       "sch_hitpat[sch_nhits]/I");
   tree->Branch("sch_tdc",        event.sch_tdc,          Form("sch_tdc[%d][%d]/D",
@@ -2045,6 +2049,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("sch_tot",        event.sch_tot,          Form("sch_tot[%d][%d]/D",
 							      NumOfSegSCH, MaxDepth));
   tree->Branch("sch_depth",      event.sch_depth,        Form("sch_depth[%d]/I", NumOfSegSCH));
+#endif
   tree->Branch("sch_ncl",       &event.sch_ncl,          "sch_ncl/I");
   tree->Branch("sch_clsize",     event.sch_clsize,       "sch_clsize[sch_ncl]/I");
   tree->Branch("sch_ctime",      event.sch_ctime,        "sch_ctime[sch_ncl]/D");
@@ -2052,6 +2057,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("sch_clpos",      event.sch_clpos,        "sch_clpos[sch_ncl]/D");
 
   //SFT-V
+#if FHitBranch
   tree->Branch("sftv_nhits",     &event.sftv_nhits,        "sftv_nhits/I");
   tree->Branch("sftv_hitpat",     event.sftv_hitpat,       "sftv_hitpat[sftv_nhits]/I");
   tree->Branch("sftv_tdc",        event.sftv_tdc,          Form("sftv_tdc[%d][%d]/D",
@@ -2061,6 +2067,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("sftv_tot",        event.sftv_tot,          Form("sftv_tot[%d][%d]/D",
 						      NumOfSegSFT_UV, MaxDepth));
   tree->Branch("sftv_depth",      event.sftv_depth,        Form("sftv_depth[%d]/I", NumOfSegSFT_UV));
+#endif
   tree->Branch("sftv_ncl",       &event.sftv_ncl,          "sftv_ncl/I");
   tree->Branch("sftv_clsize",     event.sftv_clsize,       "sftv_clsize[sftv_ncl]/I");
   tree->Branch("sftv_ctime",      event.sftv_ctime,        "sftv_ctime[sftv_ncl]/D");
@@ -2068,6 +2075,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("sftv_clpos",      event.sftv_clpos,        "sftv_clpos[sftv_ncl]/D");
 
   //SFT-U
+#if FHitBranch
   tree->Branch("sftu_nhits",     &event.sftu_nhits,        "sftu_nhits/I");
   tree->Branch("sftu_hitpat",     event.sftu_hitpat,       "sftu_hitpat[sftu_nhits]/I");
   tree->Branch("sftu_tdc",        event.sftu_tdc,          Form("sftu_tdc[%d][%d]/D",
@@ -2077,6 +2085,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("sftu_tot",        event.sftu_tot,          Form("sftu_tot[%d][%d]/D",
 						      NumOfSegSFT_UV, MaxDepth));
   tree->Branch("sftu_depth",      event.sftu_depth,        Form("sftu_depth[%d]/I", NumOfSegSFT_UV));
+#endif
   tree->Branch("sftu_ncl",       &event.sftu_ncl,          "sftu_ncl/I");
   tree->Branch("sftu_clsize",     event.sftu_clsize,       "sftu_clsize[sftu_ncl]/I");
   tree->Branch("sftu_ctime",      event.sftu_ctime,        "sftu_ctime[sftu_ncl]/D");
@@ -2084,6 +2093,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("sftu_clpos",      event.sftu_clpos,        "sftu_clpos[sftu_ncl]/D");
 
   //SFT-X
+#if FHitBranch
   tree->Branch("sftx_nhits",     &event.sftx_nhits,        "sftx_nhits/I");
   tree->Branch("sftx_unhits",    &event.sftx_unhits,       "sftx_unhits/I");
   tree->Branch("sftx_dnhits",    &event.sftx_dnhits,       "sftx_dnhits/I");
@@ -2103,6 +2113,7 @@ ConfMan:: InitializeHistograms( void )
 						      NumOfSegSFT_X, MaxDepth));
   tree->Branch("sftx_udepth",     event.sftx_udepth,       Form("sftx_udepth[%d]/I", NumOfSegSFT_X));
   tree->Branch("sftx_ddepth",     event.sftx_ddepth,       Form("sftx_ddepth[%d]/I", NumOfSegSFT_X));
+#endif
   tree->Branch("sftx_ncl",       &event.sftx_ncl,          "sftx_ncl/I");
   tree->Branch("sftx_clsize",     event.sftx_clsize,       "sftx_clsize[sftx_ncl]/I");
   tree->Branch("sftx_ctime",      event.sftx_ctime,        "sftx_ctime[sftx_ncl]/D");
@@ -2110,6 +2121,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("sftx_clpos",      event.sftx_clpos,        "sftx_clpos[sftx_ncl]/D");
 
   //FBT1
+#if FHitBranch
   tree->Branch("fbt1_u1nhits",    &event.fbt1_u1nhits,     "fbt1_u1nhits/I");
   tree->Branch("fbt1_d1nhits",    &event.fbt1_d1nhits,     "fbt1_d1nhits/I");
   tree->Branch("fbt1_u2nhits",    &event.fbt1_u2nhits,     "fbt1_u2nhits/I");
@@ -2151,7 +2163,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("fbt1_d1depth",     event.fbt1_d1depth,     Form("fbt1_d1depth[%d]/I", MaxSegFBT1));
   tree->Branch("fbt1_u2depth",     event.fbt1_u2depth,     Form("fbt1_u2depth[%d]/I", MaxSegFBT1));
   tree->Branch("fbt1_d2depth",     event.fbt1_d2depth,     Form("fbt1_d2depth[%d]/I", MaxSegFBT1));
-
+#endif
   tree->Branch("fbt1_u1ncl",       &event.fbt1_u1ncl,          "fbt1_u1ncl/I");
   tree->Branch("fbt1_d1ncl",       &event.fbt1_d1ncl,          "fbt1_d1ncl/I");
   tree->Branch("fbt1_u2ncl",       &event.fbt1_u2ncl,          "fbt1_u2ncl/I");
@@ -2178,6 +2190,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("fbt1_d2clpos",      event.fbt1_d2clpos,        "fbt1_d2clpos[fbt1_d2ncl]/D");
 
   //FBT2
+#if FHitBranch
   tree->Branch("fbt2_u1nhits",    &event.fbt2_u1nhits,     "fbt2_u1nhits/I");
   tree->Branch("fbt2_d1nhits",    &event.fbt2_d1nhits,     "fbt2_d1nhits/I");
   tree->Branch("fbt2_u2nhits",    &event.fbt2_u2nhits,     "fbt2_u2nhits/I");
@@ -2219,7 +2232,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("fbt2_d1depth",     event.fbt2_d1depth,     Form("fbt2_d1depth[%d]/I", MaxSegFBT2));
   tree->Branch("fbt2_u2depth",     event.fbt2_u2depth,     Form("fbt2_u2depth[%d]/I", MaxSegFBT2));
   tree->Branch("fbt2_d2depth",     event.fbt2_d2depth,     Form("fbt2_d2depth[%d]/I", MaxSegFBT2));
-
+#endif
   tree->Branch("fbt2_u1ncl",       &event.fbt2_u1ncl,          "fbt2_u1ncl/I");
   tree->Branch("fbt2_d1ncl",       &event.fbt2_d1ncl,          "fbt2_d1ncl/I");
   tree->Branch("fbt2_u2ncl",       &event.fbt2_u2ncl,          "fbt2_u2ncl/I");
@@ -2244,7 +2257,6 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("fbt2_d1clpos",      event.fbt2_d1clpos,        "fbt2_d1clpos[fbt2_d1ncl]/D");
   tree->Branch("fbt2_u2clpos",      event.fbt2_u2clpos,        "fbt2_u2clpos[fbt2_u2ncl]/D");
   tree->Branch("fbt2_d2clpos",      event.fbt2_d2clpos,        "fbt2_d2clpos[fbt2_d2ncl]/D");
-
 
   HPrint();
   return true;
