@@ -72,10 +72,7 @@ class RunlistManager :
                     and os.path.isfile( item[1]['bin'] ) \
                     else utility.ExitFailure( 'Cannot find file: ' + item[1]['bin'] )
 
-            pconf = item[1]['conf'] if os.path.exists( item[1]['conf'] ) \
-                     and os.path.isfile( item[1]['conf'] ) \
-                     else utility.ExitFailure( 'Cannot find file: ' + item[1]['conf'])
-
+            runno = None
             if os.path.exists( item[1]['data'] ) and os.path.isfile( item[1]['data'] ) :
                 tmp = os.path.splitext( os.path.basename( item[1]['data'] ) )[0]
                 runno = int( tmp[3:8] ) if tmp[3:8].isdigit() else None
@@ -85,8 +82,17 @@ class RunlistManager :
             pdata = self.makeDataPath( item[1]['data'], runno )
             nevents = self.getNEvents( os.path.dirname( os.path.abspath( pdata ) ), runno )
 
+            pconf = None
+            if  os.path.exists( item[1]['conf'] ) :
+                if os.path.isfile( item[1]['conf'] ) :
+                    pconf = item[1]['conf']
+                elif os.path.isdir( item[1]['conf'] ) and not runno is None :
+                    pconf = item[1]['conf'] + '/analyzer_%05d.conf' % runno
+            if pconf is None :
+                utility.ExitFailure( 'Cannot decide conf file path' )
+
             base = item[0] + os.path.basename( pbin ) if runno is None \
-                    else 'run' + '%05d' % runno + os.path.basename( pbin )
+                    else 'run' + '%05d_' % runno + os.path.basename( pbin )
             proot = self.makeRootPath( item[1]['root'], base )
 
             unit = item[1]['unit'] if isinstance( item[1]['unit'], int ) else 0

@@ -47,14 +47,14 @@ RUN:
   3838: # The default setting will be adapted.
 
   3800: # Three independent process will run
-  - 
+  -
     bin:  ./bin/KuramaTracking
     conf: ./param/conf/analyzer_1.conf
     data: ./tmp_data
     root: ./test.root
-  - 
+  - 				# ../data/run03800.dat.gz will be loaded.
     bin:  ./bin/KuramaTracking
-    conf: ./param/conf/analyzer_2.conf
+    conf: ./param/conf		# ./param/conf/analyzer_03800.conf will be loaded.
   - 
     unit: 1000
     conf: ./param/conf/miwalove.conf
