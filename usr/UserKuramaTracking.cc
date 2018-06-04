@@ -106,6 +106,11 @@ struct Event
   double tBh1[MaxHits];
   double deBh1[MaxHits];
 
+  int nhSac;
+  double SacSeg[MaxHits];
+  double tSac[MaxHits];
+  double deSac[MaxHits];
+
   int nhTof;
   double TofSeg[MaxHits];
   double tTof[MaxHits];
@@ -159,6 +164,9 @@ struct Event
 
   std::vector< std::vector<double> > resL;
   std::vector< std::vector<double> > resG;
+
+  double xsacKurama[MaxHits];
+  double ysacKurama[MaxHits];
 
   // Calib
   enum eParticle { Pion, Kaon, Proton, nParticle };
@@ -310,6 +318,21 @@ EventKuramaTracking::ProcessingNormal( void )
   }
 
   event.btof = btof0;
+
+  //////////////SAC
+  hodoAna->DecodeSACHits(rawData);
+  int nhSac = hodoAna->GetNHitsSAC();
+  event.nhSac = nhSac;
+  for(int i=0; i<nhSac; ++i){
+    Hodo1Hit *hit = hodoAna->GetHitSAC(i);
+    if(!hit) continue;
+    int    seg  = hit->SegmentId()+1;
+    double cmt  = hit->CTime();
+    double dE   = hit->DeltaE();
+    event.SacSeg[i] = seg;
+    event.tSac[i]   = cmt;
+    event.deSac[i]  = dE;
+  }
 
   HF1( 1, 3. );
 
@@ -801,6 +824,17 @@ EventKuramaTracking::ProcessingNormal( void )
   for( int i=0; i<ntKurama; ++i ){
     KuramaTrack *tp=DCAna->GetKuramaTrack(i);
     if(!tp) continue;
+    double x = 0;
+    double y = 0;
+    if ( tp->GetTrajectoryLocalPosition( 21, x, y ) ) {
+      event.xsacKurama[i] = x;
+      event.ysacKurama[i] = y;
+    }
+  }
+
+  for( int i=0; i<ntKurama; ++i ){
+    KuramaTrack *tp=DCAna->GetKuramaTrack(i);
+    if(!tp) continue;
     DCLocalTrack *trSdcIn =tp->GetLocalTrackIn();
     DCLocalTrack *trSdcOut=tp->GetLocalTrackOut();
     if( !trSdcIn || !trSdcOut ) continue;
@@ -878,6 +912,7 @@ EventKuramaTracking::InitializeEvent( void )
   event.nlKurama = 0;
   event.nhBh2    = 0;
   event.nhBh1    = 0;
+  event.nhSac    = 0;
   event.nhTof    = 0;
   event.much     = -1;
 
@@ -897,6 +932,10 @@ EventKuramaTracking::InitializeEvent( void )
     event.Bh1Seg[it] = -1;
     event.tBh1[it] = -9999.;
     event.deBh1[it] = -9999.;
+
+    event.SacSeg[it] = -1;
+    event.tSac[it] = -9999.;
+    event.deSac[it] = -9999.;
 
     event.TofSeg[it] = -1;
     event.tTof[it] = -9999.;
@@ -944,6 +983,8 @@ EventKuramaTracking::InitializeEvent( void )
     event.thetaKurama[it] = -9999.;
     event.phiKurama[it]   = -9999.;
     event.resP[it]        = -9999.;
+    event.xsacKurama[it]  = -9999.;
+    event.ysacKurama[it]  = -9999.;
     event.xtofKurama[it]  = -9999.;
     event.ytofKurama[it]  = -9999.;
     event.utofKurama[it]  = -9999.;
@@ -1267,6 +1308,11 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("deBh1",    event.deBh1,   "deBh1[nhBh1]/D");
   tree->Branch("btof",    &event.btof,    "btof/D");
 
+  tree->Branch("nhSac",   &event.nhSac,   "nhSac/I");
+  tree->Branch("SacSeg",   event.SacSeg,  "SacSeg[nhSac]/D");
+  tree->Branch("tSac",     event.tSac,    "tSac[nhSac]/D");
+  tree->Branch("deSac",    event.deSac,   "deSac[nhSac]/D");
+
   tree->Branch("nhTof",   &event.nhTof,   "nhTof/I");
   tree->Branch("TofSeg",   event.TofSeg,  "TofSeg[nhTof]/D");
   tree->Branch("tTof",     event.tTof,    "tTof[nhTof]/D");
@@ -1315,6 +1361,9 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("thetaKurama",  event.thetaKurama,  "thetaKurama[ntKurama]/D");
   tree->Branch("phiKurama",    event.phiKurama,    "phiKurama[ntKurama]/D");
   tree->Branch("resP",    event.resP,   "resP[ntKurama]/D");
+
+  tree->Branch("xsacKurama",   event.xsacKurama,   "xsacKurama[ntKurama]/D");
+  tree->Branch("ysacKurama",   event.ysacKurama,   "ysacKurama[ntKurama]/D");
 
   tree->Branch("xtofKurama",   event.xtofKurama,   "xtofKurama[ntKurama]/D");
   tree->Branch("ytofKurama",   event.ytofKurama,   "ytofKurama[ntKurama]/D");
