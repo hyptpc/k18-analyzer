@@ -78,6 +78,8 @@ if not os.path.exists( argvs[1] ) :
 
 frunlist = argvs[1]
 
+print( 'Press \'Ctrl-C\' to terminate processes.' )
+
 #____________________________________________________
 
 djobstat = os.path.dirname( os.path.abspath( sys.argv[0] ) ) + '/stat'
@@ -133,7 +135,7 @@ while not fl_done  == njobs :
         elif stat[:7] == 'merging' :
             fstat = job.getFinalStatus()
             if fstat is None :
-                continue
+                pass
             elif fstat is True :
                 # job.clear()
                 job.clearAll()
