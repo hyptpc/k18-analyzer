@@ -505,7 +505,7 @@ HodoAnalyzer::DecodeFBT1Hits( RawData* rawData )
 	  hp = NULL;
 	}
       }
-      
+
       if(UorD==0) std::sort(m_FBT1UCont.at(l).begin(), m_FBT1UCont.at(l).end(), FiberHit::CompFiberHit);
       else        std::sort(m_FBT1DCont.at(l).begin(), m_FBT1DCont.at(l).end(), FiberHit::CompFiberHit);
     }
@@ -514,8 +514,8 @@ HodoAnalyzer::DecodeFBT1Hits( RawData* rawData )
 
 #if Cluster
   for(int l = 0; l<NumOfLayersFBT1; ++l){
-    MakeUpClusters( m_FBT1UCont.at(l), m_FBT1UClCont.at(l), MaxTimeDifFBT1, 1 );
-    MakeUpClusters( m_FBT1DCont.at(l), m_FBT1DClCont.at(l), MaxTimeDifFBT1, 1 );
+    MakeUpClusters( m_FBT1UCont.at(l), m_FBT1UClCont.at(l), MaxTimeDifFBT1, 2 );
+    MakeUpClusters( m_FBT1DCont.at(l), m_FBT1DClCont.at(l), MaxTimeDifFBT1, 2 );
   }
 #endif
 
@@ -557,7 +557,7 @@ HodoAnalyzer::DecodeFBT2Hits( RawData* rawData )
 	  hp = NULL;
 	}
       }
-      
+
       if(UorD==0) std::sort(m_FBT2UCont.at(l).begin(), m_FBT2UCont.at(l).end(), FiberHit::CompFiberHit);
       else        std::sort(m_FBT2DCont.at(l).begin(), m_FBT2DCont.at(l).end(), FiberHit::CompFiberHit);
     }
@@ -566,8 +566,8 @@ HodoAnalyzer::DecodeFBT2Hits( RawData* rawData )
 
 #if Cluster
   for(int l = 0; l<NumOfLayersFBT2; ++l){
-    MakeUpClusters( m_FBT2UCont.at(l), m_FBT2UClCont.at(l), MaxTimeDifFBT2, 1 );
-    MakeUpClusters( m_FBT2DCont.at(l), m_FBT2DClCont.at(l), MaxTimeDifFBT2, 1 );
+    MakeUpClusters( m_FBT2UCont.at(l), m_FBT2UClCont.at(l), MaxTimeDifFBT2, 2 );
+    MakeUpClusters( m_FBT2DCont.at(l), m_FBT2DClCont.at(l), MaxTimeDifFBT2, 2 );
   }
 #endif
 
@@ -596,13 +596,13 @@ HodoAnalyzer::MakeUpClusters( const Hodo1HitContainer& HitCont,
     int         mC = -1;
     int       segB = -1;
     if(hitA->JoinedAllMhit()) continue;
-    
+
     int n_mhitA = hitA->GetNumOfHit();
     for(int ma = 0; ma<n_mhitA; ++ma){
       if(hitA->Joined(ma)) continue;
       double    cmtA = hitA->CMeanTime(ma);
       double    cmtB = -9999;
-      
+
       for( int j=i+1; j<nh; ++j ){
 	Hodo1Hit *hit = HitCont[j];
 	int    seg  = hit->SegmentId();
@@ -622,7 +622,7 @@ HodoAnalyzer::MakeUpClusters( const Hodo1HitContainer& HitCont,
 	  if( j==iB ) continue;
 	  Hodo1Hit *hit = HitCont[j];
 	  int    seg  = hit->SegmentId();
-	  
+
 	  int n_mhitC = hit->GetNumOfHit();
 	  for(int mc = 0; mc<n_mhitC; ++mc){
 	    if(hit->Joined(mc)) continue;
@@ -688,13 +688,13 @@ HodoAnalyzer::MakeUpClusters( const Hodo2HitContainer& HitCont,
     int         mC = -1;
     int       segB = -1;
     if(hitA->JoinedAllMhit()) continue;
-    
+
     int n_mhitA = hitA->GetNumOfHit();
     for(int ma = 0; ma<n_mhitA; ++ma){
       if(hitA->Joined(ma)) continue;
       double    cmtA = hitA->CMeanTime(ma);
       double    cmtB = -9999;
-      
+
       for( int j=i+1; j<nh; ++j ){
 	Hodo2Hit *hit = HitCont[j];
 	int    seg  = hit->SegmentId();
@@ -714,7 +714,7 @@ HodoAnalyzer::MakeUpClusters( const Hodo2HitContainer& HitCont,
 	  if( j==iB ) continue;
 	  Hodo2Hit *hit = HitCont[j];
 	  int    seg  = hit->SegmentId();
-	  
+
 	  int n_mhitC = hit->GetNumOfHit();
 	  for(int mc = 0; mc<n_mhitC; ++mc){
 	    if(hit->Joined(mc)) continue;
@@ -778,16 +778,16 @@ HodoAnalyzer::MakeUpClusters( const BH2HitContainer& HitCont,
     int     segB = -1;
     if(hitA->JoinedAllMhit()) continue;
 
-    int n_mhitA = hitA->GetNumOfHit();    
+    int n_mhitA = hitA->GetNumOfHit();
     for(int ma = 0; ma<n_mhitA; ++ma){
       if(hitA->Joined(ma)) continue;
       double    cmtA = hitA->CMeanTime(ma);
-      double    cmtB = -9999;    
+      double    cmtB = -9999;
 
       for( int j=i+1; j<nh; ++j ){
 	BH2Hit *hit = HitCont[j];
 	int     seg = hit->SegmentId();
-	
+
 	int n_mhitB = hit->GetNumOfHit();
 	for(int mb = 0; mb<n_mhitB; ++mb){
 	  if(hit->Joined(mb)) continue;
@@ -869,7 +869,6 @@ HodoAnalyzer::MakeUpClusters( const FiberHitContainer& cont,
     int NofHitA = HitA->GetNumOfHit();
     for(int mhitA = 0; mhitA<NofHitA; ++mhitA){
       if(HitA->Joined(mhitA)) continue;
-
       FiberCluster *cluster = new FiberCluster();
       cluster->push_back( new FLHit(HitA, mhitA) );
 
@@ -915,7 +914,7 @@ HodoAnalyzer::MakeUpClusters( const FiberHitContainer& cont,
 	// there is no more candidates
 	if(cluster->Calculate()){
 	  ClusterCont.push_back(cluster);
-	}else{
+	} else {
 	  delete cluster;
 	  cluster = NULL;
 	}
@@ -990,6 +989,9 @@ HodoAnalyzer::MakeUpClusters( const FiberHitContainer& cont,
     }
   }
 
+  for( const auto& c : ClusterCont ){
+    std::cout << __func__ << " clsize : " << c->ClusterSize() << std::endl;
+  }
   return ClusterCont.size();
 }
 
@@ -1051,7 +1053,6 @@ HodoAnalyzer::MakeUpClusters( const FLHitContainer& cont,
   }
 
   del::ClearContainer( DeleteCand );
-
   return ClusterCont.size();
 }
 
