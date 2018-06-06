@@ -100,7 +100,8 @@ joblist = list()
 
 for run in runlist :
     jobMan = JobManager.JobManager( runtag, *run )
-    joblist.append( [ jobMan, 'init', decodeTime( jobMan.getDiffTime() ) ] )
+    nsegs = jobMan.getNSegs()
+    joblist.append( [ jobMan, 'init(%d)' % nsegs, decodeTime( jobMan.getDiffTime() ) ] )
 
 signal.signal( signal.SIGINT, handler )
 
@@ -112,7 +113,7 @@ fl_done = 0
 while not fl_done  == njobs :
     for index, ( job, stat, ptime ) in enumerate( joblist ) :
         nsegs = job.getNSegs()
-        if stat == 'init' :
+        if stat[:4] == 'init' :
             job.execute()
             joblist[index][1] = 'running(0/%d)' % nsegs
             joblist[index][2] = decodeTime( job.getDiffTime() )
