@@ -33,7 +33,7 @@ class JobManager :
                   tag,
                   key,
                   fexec_path, fconf_path, fdata_path, fout_path,
-                  div_unit = -1, nevents = None ) :
+                  queue = 's', div_unit = -1, nevents = None ) :
 
         self.__flDone  = False
         self.__finStat = None
@@ -61,7 +61,8 @@ class JobManager :
         self.__nEvents = nevents
         self.__divUnit = div_unit
 
-        self.__option = '-q s'    # for short que
+        self.__queue  = queue
+        self.__option = ''
 
         self.__elemList    = list()
         self.__jobIdList   = list()
@@ -191,9 +192,10 @@ class JobManager :
                 os.remove( item[3] )
 
             bsubcomm = 'bsub' + ' ' \
-                       + self.__option + ' ' + \
-                       '-o' + ' ' + item[3] + ' ' \
-                       '-a \"prefetch (' + self.__fPreFetchPath + ')\"'
+                       + '-q' + self.__queue + ' ' \
+                       + self.__option + ' ' \
+                       + '-o' + ' ' + item[3] + ' ' \
+                       + '-a \"prefetch (' + self.__fPreFetchPath + ')\"'
             command =  shlex.split( bsubcomm )
 
             target = [ self.__fExecPath,
@@ -334,6 +336,7 @@ class JobManager :
 
     #__________________________________________________
     def getNSegs( self ) :
+
         return len( self.__elemList )
 
 

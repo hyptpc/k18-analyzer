@@ -2,6 +2,7 @@
 # RUN LIST (YAML format)
 #
 # The allowed keys are
+#   queue  <- bsub queue (eg. s, l, etc...)
 #   unit   <- dividing event unit
 #   bin    <- path to executable binary
 #   conf   <- path to conf file from the work directory
@@ -24,11 +25,12 @@ WORKDIR: ~/work/miwalove/analyzer
 # This setting will be inherited unless you explicitly set values for the individual cases.
 
 DEFAULT:
-  unit: 100000
-  bin:  ./bin/Hodoscope
-  conf: ./param/conf/analyzer_default.conf
-  data: ../data
-  root: ../rootfile
+  queue: s
+  unit:  100000
+  bin:   ./bin/Hodoscope
+  conf:  ./param/conf/analyzer_default.conf
+  data:  ../data
+  root:  ../rootfile
 
 #____________________________________________________
 # Individual settings

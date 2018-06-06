@@ -95,9 +95,10 @@ class RunlistManager :
                     else 'run' + '%05d_' % runno + os.path.basename( pbin )
             proot = self.makeRootPath( item[1]['root'], base )
 
-            unit = item[1]['unit'] if isinstance( item[1]['unit'], int ) else 0
+            unit  = item[1]['unit'] if isinstance( item[1]['unit'], int ) else 0
+            queue = '%s' % item[1]['queue'] if isinstance( item[1]['queue'], str ) else 's'
 
-            runlist.append( [ item[0], pbin, pconf, pdata, proot, unit, nevents ] )
+            runlist.append( [ item[0], pbin, pconf, pdata, proot, queue, unit, nevents ] )
 
         os.chdir( self.__workdir )
 
