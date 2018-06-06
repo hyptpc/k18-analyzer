@@ -388,11 +388,27 @@ DCHit::GetResolution( void ) const
 void
 DCHit::TotCut(double min_tot, bool adopt_nan)
 {
-  auto itr_new_end = std::remove_if(m_pair_cont.begin(), m_pair_cont.end(),
-				    [min_tot, adopt_nan](data_pair a_pair)->bool 
-				    {return (isnan(a_pair.tot) && adopt_nan) ? false : !(a_pair.tot > min_tot);}
-				    );
+  auto itr_new_end = 
+    std::remove_if(m_pair_cont.begin(), m_pair_cont.end(),
+		   [min_tot, adopt_nan](data_pair a_pair)->bool 
+		   {return (isnan(a_pair.tot) && adopt_nan) ? false : !(a_pair.tot > min_tot);}
+		   );
   m_pair_cont.erase(itr_new_end, m_pair_cont.end());
+}
+
+//______________________________________________________________________________
+void
+DCHit::GateDriftTime(double min, double max, bool select_1st)
+{
+  auto itr_new_end = 
+    std::remove_if(m_pair_cont.begin(), m_pair_cont.end(),
+		   [min, max](data_pair a_pair)->bool
+		   {return !(min < a_pair.drift_time && a_pair.drift_time < max);}
+		   );
+  m_pair_cont.erase(itr_new_end, m_pair_cont.end());
+  if(0 == m_pair_cont.size()) return;
+  
+  if(select_1st) m_pair_cont.erase(m_pair_cont.begin()+1, m_pair_cont.end());
 }
 
 //______________________________________________________________________________

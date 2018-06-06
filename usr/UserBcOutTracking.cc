@@ -272,6 +272,7 @@ EventBcOutTracking::ProcessingNormal( void )
 
   //////////////BC3&4 number of hit layer
   DCAna->DecodeRawHits( rawData );
+  DCAna->DriftTimeCutBC34(-10, 50);
 
   //BC3&BC4
   double multi_BcOut=0.;
