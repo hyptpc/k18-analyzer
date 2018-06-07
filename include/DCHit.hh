@@ -108,6 +108,8 @@ public:
   ///// For E40 Acrylic TOF
   void SetOfsdT( double ofs) { m_ofs_dt = ofs;}
 
+  void GateDriftTime(double min, double max, bool select_1st);
+
   int GetLayer( void ) const { return m_layer; }
   double GetWire( void )  const {
     if( m_mwpc_flag ) return m_mwpc_wire;
