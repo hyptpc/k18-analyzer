@@ -1872,10 +1872,10 @@ ConfMan::InitializeHistograms( void )
     HB1( TOFHid +100*i +2, title2, NbinTdcHr, MinTdcHr, MaxTdcHr );
     HB1( TOFHid +100*i +3, title3, NbinTdcHr, MinTdcHr, MaxTdcHr );
     HB1( TOFHid +100*i +4, title4, NbinTdcHr, MinTdcHr, MaxTdcHr );
-    HB1( TOFHid +100*i +5, title5, NbinAdcHr, MinAdcHr, MaxAdcHr );
-    HB1( TOFHid +100*i +6, title6, NbinAdcHr, MinAdcHr, MaxAdcHr );
-    HB1( TOFHid +100*i +7, title7, NbinAdcHr, MinAdcHr, MaxAdcHr );
-    HB1( TOFHid +100*i +8, title8, NbinAdcHr, MinAdcHr, MaxAdcHr );
+    HB1( TOFHid +100*i +5, title5, NbinAdc, MinAdc, MaxAdc );
+    HB1( TOFHid +100*i +6, title6, NbinAdc, MinAdc, MaxAdc );
+    HB1( TOFHid +100*i +7, title7, NbinAdc, MinAdc, MaxAdc );
+    HB1( TOFHid +100*i +8, title8, NbinAdc, MinAdc, MaxAdc );
   }
 
   HB1( TOFHid +10, "#Hits Tof[Hodo]",  NumOfSegTOF+1, 0., double(NumOfSegTOF+1) );
