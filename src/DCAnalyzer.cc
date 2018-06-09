@@ -312,10 +312,9 @@ DCAnalyzer::DecodeSdcInHits( RawData *rawData )
     HodoAnalyzer hodoAna;
     hodoAna.DecodeSFTHits( rawData );
     for ( int l = 0; l < NumOfLayersSFT; ++l ) {
-
       int layerId = l + PlMinSdcIn + NumOfLayersSDC1;
 
-      //      hodoAna.TimeCutSFT( l, -15, 5 );
+      hodoAna.TimeCutSFT( l, -10, 5 );
       int ncl = hodoAna.GetNClustersSFT( l );
 
       for ( int j = 0; j < ncl; ++j ) {
@@ -331,7 +330,7 @@ DCAnalyzer::DecodeSdcInHits( RawData *rawData )
 
   	if ( hit->CalcFiberObservables() ) {
   	  hit->SetWirePosition( pos );
-  	  m_SdcInHC[layerId].push_back( hit );
+	  m_SdcInHC[layerId].push_back( hit );
 	  // m_SdcInHC[layer - 1].push_back(hit);
   	} else {
   	  delete hit;
@@ -878,14 +877,13 @@ DCAnalyzer::TrackSearchKurama( void )
       if( bending>0. && initial_momentum>0. ) {
 	trKurama->SetInitialMomentum( initial_momentum );
       } else {
-	// trKurama->SetInitialMomentum( 1.8 );
 	trKurama->SetInitialMomentum( 1. );
       }
       if( trKurama->DoFit() && trKurama->chisqr()<MaxChiSqrKuramaTrack ){
 	m_KuramaTC.push_back( trKurama );
       }
       else{
-	// trKurama->Print( "in "+func_name );
+	//	trKurama->Print( "in "+func_name );
 	delete trKurama;
       }
     }// for( iOut )
@@ -1431,6 +1429,57 @@ DCAnalyzer::TotCut( DCHitContainer& HitCont,
   DCHitContainer DeleteCand;
   for(auto *ptr : HitCont){
     ptr->TotCut(min_tot, adopt_nan);
+    if(0 == ptr->GetDriftTimeSize()){
+      DeleteCand.push_back(ptr);
+    }else{
+      ValidCand.push_back(ptr);
+    }
+  }
+
+  del::ClearContainer( DeleteCand );
+
+  HitCont.clear();
+  HitCont.resize( ValidCand.size() );
+  std::copy( ValidCand.begin(), ValidCand.end(), HitCont.begin() );
+  ValidCand.clear();
+}
+
+//______________________________________________________________________________
+void
+DCAnalyzer::DriftTimeCutBC34(double min_dt, double max_dt)
+{
+  for(int i = 0; i<NumOfLayersBcOut; ++i){
+    DriftTimeCut(m_BcOutHC[i + 1], min_dt, max_dt, true);
+  }// for(i)
+}
+
+//______________________________________________________________________________
+void
+DCAnalyzer::DriftTimeCutSDC2(double min_dt, double max_dt)
+{
+  for(int i = 0; i<NumOfLayersSDC2; ++i){
+    DriftTimeCut(m_SdcOutHC[i + 1], min_dt, max_dt, true);
+  }// for(i)
+}
+
+//______________________________________________________________________________
+void
+DCAnalyzer::DriftTimeCutSDC3(double min_dt, double max_dt)
+{
+  for(int i = 0; i<NumOfLayersSDC3; ++i){
+    DriftTimeCut(m_SdcOutHC[i + NumOfLayersSDC2 + 1], min_dt, max_dt, true);
+  }// for(i)
+}
+
+//______________________________________________________________________________
+void
+DCAnalyzer::DriftTimeCut( DCHitContainer& HitCont,
+			  double min_dt, double max_dt, bool select_1st )
+{
+  DCHitContainer ValidCand;
+  DCHitContainer DeleteCand;
+  for(auto *ptr : HitCont){
+    ptr->GateDriftTime(min_dt, max_dt, select_1st);
     if(0 == ptr->GetDriftTimeSize()){
       DeleteCand.push_back(ptr);
     }else{
