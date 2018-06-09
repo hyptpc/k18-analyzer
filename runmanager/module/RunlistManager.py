@@ -9,6 +9,7 @@ __date__    = '12 May 2018'
 #____________________________________________________
 
 import os
+import copy
 
 import yaml
 
@@ -62,7 +63,7 @@ class RunlistManager :
 
         cdir = os.getcwd()
         raw_runlist = self.decodeRunlist( path )
-        os.chdir( self.__workdir ) 
+        os.chdir( self.__workdir )
 
         runlist = list()
         for item in raw_runlist :
@@ -71,10 +72,7 @@ class RunlistManager :
                     and os.path.isfile( item[1]['bin'] ) \
                     else utility.ExitFailure( 'Cannot find file: ' + item[1]['bin'] )
 
-            pconf = item[1]['conf'] if os.path.exists( item[1]['conf'] ) \
-                     and os.path.isfile( item[1]['conf'] ) \
-                     else utility.ExitFailure( 'Cannot find file: ' + item[1]['conf'])
-
+            runno = None
             if os.path.exists( item[1]['data'] ) and os.path.isfile( item[1]['data'] ) :
                 tmp = os.path.splitext( os.path.basename( item[1]['data'] ) )[0]
                 runno = int( tmp[3:8] ) if tmp[3:8].isdigit() else None
@@ -84,15 +82,26 @@ class RunlistManager :
             pdata = self.makeDataPath( item[1]['data'], runno )
             nevents = self.getNEvents( os.path.dirname( os.path.abspath( pdata ) ), runno )
 
+            pconf = None
+            if  os.path.exists( item[1]['conf'] ) :
+                if os.path.isfile( item[1]['conf'] ) :
+                    pconf = item[1]['conf']
+                elif os.path.isdir( item[1]['conf'] ) and not runno is None :
+                    pconf = item[1]['conf'] + '/analyzer_%05d.conf' % runno
+            if pconf is None :
+                utility.ExitFailure( 'Cannot decide conf file path' )
+
             base = item[0] + os.path.basename( pbin ) if runno is None \
-                    else 'run' + '%05d' % runno + os.path.basename( pbin )
+                    else 'run' + '%05d_' % runno + os.path.basename( pbin )
             proot = self.makeRootPath( item[1]['root'], base )
 
-            unit = item[1]['unit'] if isinstance( item[1]['unit'], int ) else 0
+            unit  = item[1]['unit'] if isinstance( item[1]['unit'], int ) else 0
 
-            runlist.append( [ item[0], pbin, pconf, pdata, proot, unit, nevents ] ) 
+            queue = '%s' % item[1]['queue'] if isinstance( item[1]['queue'], str ) else 's'
 
-        os.chdir( self.__workdir ) 
+            runlist.append( [ item[0], pbin, pconf, pdata, proot, queue, unit, nevents ] )
+
+        os.chdir( self.__workdir )
 
         return runlist
 
@@ -107,20 +116,17 @@ class RunlistManager :
         with open( path, 'r' ) as f :
             data = yaml.load( f.read() )
 
-        def_set = data['DEFAULT']
+        defset = data['DEFAULT']
 
         runlist = list()
         for key, parsets in data['RUN'].items() :
 
             if parsets is None :
-                runlist.append( [ key, def_set ] )
-            else :
+                runlist.append( [ key, defset ] )
+            else:
                 for par in parsets :
-                    tmp = dict()
-                    for item in par :
-                        tmp =  { def_key: par[def_key] \
-                                if def_key in par else def_set[def_key] \
-                                for def_key, def_val, in def_set.items() }
+                    tmp = copy.deepcopy( defset )
+                    tmp.update( par )
                     runlist.append( [ key, tmp ] )
 
         return runlist
@@ -128,46 +134,48 @@ class RunlistManager :
 
     #____________________________________________________
     def makeDataPath( self, path, runno = None ) :
-    
+
         data_path = None
-    
+
         if not os.path.exists( path ) :
             utility.ExitFailure( 'Cannot find file: ' + path )
         else :
             if os.path.isfile( path ) :
                 data_path = os.path.realpath( path )
-            elif os.path.isdir( path ) \
-                 and not runno is None \
-                 and isinstance( runno, int ) :
-                tmp = path + '/run' + '%05d' % runno + '.dat.gz'
-                data_path = os.path.realpath( tmp ) \
-                            if os.path.exists( tmp ) and os.path.isfile( tmp ) \
-                    else utility.ExitFailure( 'Cannot find file: ' + tmp )
+            elif ( os.path.isdir( path )
+                   and not runno is None
+                   and isinstance( runno, int ) ) :
+                tmp = path + '/run{0:05d}.dat'.format( runno )
+                if not os.path.isfile( tmp ) :
+                  tmp += '.gz'
+                data_path = ( os.path.realpath( tmp )
+                              if os.path.isfile( tmp )
+                              else utility.ExitFailure( 'Cannot find file: ' + tmp ) )
             else :
                 utility.ExitFailure( 'Cannot decide deta file path' )
-    
+
         return data_path
-    
+
 
     #____________________________________________________
     def makeRootPath( self, path, base = None ) :
-    
+
         root_path = None
-    
+
         if not os.path.exists( path ) :
             dir_path = os.path.dirname( path )
             if os.path.exists( dir_path )\
                     and os.path.isdir( dir_path ):
                 root_path = os.path.realpath( path )
             else :
-                utility.ExitFailure( 'Cannot find directory: ' + dir_path )
+                utility.ExitFailure( 'Cannot decide root file path' )
         elif os.path.isfile( path ) :
             root_path = os.path.realpath( path )
         elif os.path.isdir( path ) and not base is None :
             root_path = os.path.realpath( path + '/' + base + '.root' )
         else :
             utility.ExitFailure( 'Cannot decide root file path' )
-    
+
         return root_path
 
 
@@ -176,7 +184,7 @@ class RunlistManager :
 
         nevents = None
 
-        if os.path.exists( path ) and os.path.isdir( path ) : 
+        if os.path.exists( path ) and os.path.isdir( path ) :
             reclog_path = path + '/recorder.log'
             if os.path.exists( reclog_path ) and os.path.isfile( reclog_path ) :
                 cand = list()
@@ -184,9 +192,9 @@ class RunlistManager :
                 for line in freclog :
                     if 5 == line.find( str( runno ) ) :
                         words = line.split()
-                        cand.append( words[15] )
+                        cand.append( words[15] ) if len( words ) > 15 else -1
                 freclog.close()
-                
+
                 nevents = int( cand[0] ) if len( cand ) == 1 else None
 
         return nevents

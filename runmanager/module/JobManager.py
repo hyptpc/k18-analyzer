@@ -33,7 +33,7 @@ class JobManager :
                   tag,
                   key,
                   fexec_path, fconf_path, fdata_path, fout_path,
-                  div_unit = -1, nevents = None ) :
+                  queue = 's', div_unit = -1, nevents = None ) :
 
         self.__flDone  = False
         self.__finStat = None
@@ -54,14 +54,15 @@ class JobManager :
         self.__fDataPath     = fdata_path
         self.__fOutPath      = fout_path
         self.__fPreFetchPath = None
-        self.__fUnpackPath   = None 
+        self.__fUnpackPath   = None
         self.__fSchemaPath   = None
         self.__fLogPath      = None
 
         self.__nEvents = nevents
         self.__divUnit = div_unit
 
-        self.__option = '-q s'    # for short que
+        self.__queue  = queue
+        self.__option = ''
 
         self.__elemList    = list()
         self.__jobIdList   = list()
@@ -106,7 +107,7 @@ class JobManager :
         tag_out  = os.path.basename( self.__fOutPath )
 
         return self.__key, self.__nEvents, self.__divUnit,\
-               tag_exec, tag_conf, tag_data, tag_out 
+               tag_exec, tag_conf, tag_data, tag_out
 
 
     #__________________________________________________
@@ -145,7 +146,7 @@ class JobManager :
         self.checkMerged()
         if not self.__procMerge is None \
            and self.__procMerge.poll() is None :
-            
+
             sys.stdout.write( 'Killing merging process\n' )
             self.__procMerge.kill()
             buff = 'merging process was killed'
@@ -191,9 +192,10 @@ class JobManager :
                 os.remove( item[3] )
 
             bsubcomm = 'bsub' + ' ' \
-                       + self.__option + ' ' + \
-                       '-o' + ' ' + item[3] + ' ' \
-                       '-a \"prefetch (' + self.__fPreFetchPath + ')\"'
+                       + '-q' + self.__queue + ' ' \
+                       + self.__option + ' ' \
+                       + '-o' + ' ' + item[3] + ' ' \
+                       + '-a \"prefetch (' + self.__fPreFetchPath + ')\"'
             command =  shlex.split( bsubcomm )
 
             target = [ self.__fExecPath,
@@ -334,6 +336,7 @@ class JobManager :
 
     #__________________________________________________
     def getNSegs( self ) :
+
         return len( self.__elemList )
 
 
@@ -352,7 +355,7 @@ class JobManager :
     #__________________________________________________
     def __makeElem( self ) :
 
-        if self.__divUnit == 0 :
+        if self.__divUnit <= 0 :
             nsegs = 1
         else :
             nsegs = 10 if self.__nEvents is None else\
@@ -459,11 +462,11 @@ class JobManager :
 
             root = tmp.getroot()
             key = '{%s}%s' % ( XML_NAMESPACE, SCHEMA_LOC_ATTRIB )
-            root.attrib[ key ] = self.__fSchemaPath
+            root.set( key, self.__fSchemaPath )
 
-            for node in tmp.findall( './/skip' ) :
+            for node in tmp.findall( 'control/skip' ) :
                 node.text = str( i * self.__divUnit )
-            for node in tmp.findall( './/max_loop' ) :
+            for node in tmp.findall( 'control/max_loop' ) :
                 node.text = str( -1 if i == len( self.__fUnpackList ) - 1 \
                                  else self.__divUnit )
 
@@ -551,7 +554,7 @@ class JobManager :
         self.clearFOut()
         self.clearFConf()
         self.clearFUnpack()
-
+        self.clearFPreFetch()
 
     #__________________________________________________
     def clearAll( self ) :
@@ -559,6 +562,7 @@ class JobManager :
         self.clearFOut()
         self.clearFConf()
         self.clearFUnpack()
+        self.clearFPreFetch()
 
         self.clearAllLog()
 
@@ -575,7 +579,7 @@ class JobManager :
 
         if not self.__fLogPath is None :
             if os.path.exists( self.__fPreFetchPath ) :
-                os.remove( item )
+                os.remove( self.__fPreFetchPath )
 
 
     #__________________________________________________
@@ -647,5 +651,5 @@ def readBsubStatus( jid, buff ) :
             status = 2
         elif words[2] == 'EXIT' :
             status = 3
-        
+
     return status
