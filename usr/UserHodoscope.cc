@@ -1868,8 +1868,8 @@ ConfMan::InitializeHistograms( void )
     TString title7 = Form("TOF-%d UpAdc(w/o Tdc)", i);
     TString title8 = Form("TOF-%d DownAdc(w/o Tdc)", i);
 
-    HB1( TOFHid +100*i +1, title1, NbinTdcHr, MinTdcHr, MaxTdcHr );
-    HB1( TOFHid +100*i +2, title2, NbinTdcHr, MinTdcHr, MaxTdcHr );
+    HB1( TOFHid +100*i +1, title1, NbinAdc, MinAdc, MaxAdc );
+    HB1( TOFHid +100*i +2, title2, NbinAdc, MinAdc, MaxAdc );
     HB1( TOFHid +100*i +3, title3, NbinTdcHr, MinTdcHr, MaxTdcHr );
     HB1( TOFHid +100*i +4, title4, NbinTdcHr, MinTdcHr, MaxTdcHr );
     HB1( TOFHid +100*i +5, title5, NbinAdc, MinAdc, MaxAdc );
