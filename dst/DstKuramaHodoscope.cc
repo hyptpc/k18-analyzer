@@ -399,7 +399,7 @@ dst::DstRead( int ievent )
       event.dtTof[itof]  = src.dtTof[itof];
       event.deTof[itof]  = src.deTof[itof];
       int tofseg = (int)src.TofSeg[itof];
-      // HF1( 20000+(tofseg+1)*100, src.dtTof[itof] );
+      HF1( 20000+tofseg*100, src.dtTof[itof] );
 
       ////////// TimeCut
       double stof = event.tTof[itof] - time0 + OffsetToF;
@@ -416,8 +416,8 @@ dst::DstRead( int ievent )
 #endif
 
       for( int ip=0; ip<Event::nParticle; ++ip ){
-	HF2( 10000+ip+1, tofseg+1, stof-event.tTofCalc[ip] );
-	HF1( 10000+(tofseg+1)*100+ip+1, stof-event.tTofCalc[ip] );
+	HF2( 10000+ip+1, tofseg, stof-event.tTofCalc[ip] );
+	HF1( 10000+tofseg*100+ip+1, stof-event.tTofCalc[ip] );
       }
 
       HF1( 11, event.m2[mm] );
@@ -468,8 +468,8 @@ ConfMan::InitializeHistograms( void )
 	   500, -25., 25. );
     }
 
-    // HB1( 20000+(i+1)*100, Form("Tof TimeDiff U-D %d", i+1 ),
-    // 	 500, -25., 25. );
+    HB1( 20000+(i+1)*100, Form("Tof TimeDiff U-D %d", i+1 ),
+    	 500, -25., 25. );
 
   }
   HB1( 10, "pKurama",    280,  0.0, 2.8 );
