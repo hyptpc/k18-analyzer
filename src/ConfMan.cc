@@ -148,6 +148,12 @@ ConfMan::FilePath( const std::string& src ) const
   std::ifstream tmp( src.c_str() );
   if ( tmp.good() )
     return src;
-  else
-    return sConfDir + "+" + src;
+  else {
+    std::string path = sConfDir + '/' + src;
+    tmp = std::ifstream( path.c_str() ); 
+    if ( tmp.good() )
+      return path;
+    else
+      return sConfDir + "+" + src;
+  }
 }
