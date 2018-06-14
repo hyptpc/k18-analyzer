@@ -33,6 +33,19 @@ def updateJobStat( joblist, path ) :
 
 #____________________________________________________
 
+def decodeTime( second ) :
+
+    second = int( second )
+
+    hour    = second // 3600
+    second -= hour    * 3600
+    minute  = second // 60
+    second -= minute  * 60
+
+    return hour, minute, second
+
+#____________________________________________________
+
 class pycolor :
 
     black  = '\033[30m'

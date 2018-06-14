@@ -37,7 +37,7 @@ def handler( num, frame ) :
 
     utility.updateJobStat( joblist, fjobstat )
 
-    time.sleep( 1 )             # waiting for bsub log files are generated
+    time.sleep( 1 )             # waiting until bsub log files are generated
 
     tmp = input( 'Keep log files? [y/-] >> ' )
     if 'y' == tmp :
@@ -50,19 +50,6 @@ def handler( num, frame ) :
             item[0].clearAll()
 
     sys.exit( 0 )
-
-#____________________________________________________
-
-def decodeTime( second ) :
-
-    second = int( second )
-
-    hour    = second // 3600
-    second -= hour * 3600
-    minute  = second // 60
-    second -= minute * 60
-
-    return hour, minute, second
 
 #____________________________________________________
 
@@ -101,7 +88,8 @@ joblist = list()
 for run in runlist :
     jobMan = JobManager.JobManager( runtag, *run )
     nsegs = jobMan.getNSegs()
-    joblist.append( [ jobMan, 'init(%d)' % nsegs, decodeTime( jobMan.getDiffTime() ) ] )
+    joblist.append( [ jobMan, 'init(%d)' % nsegs,
+                      utility.decodeTime( jobMan.getDiffTime() ) ] )
 
 signal.signal( signal.SIGINT, handler )
 
@@ -116,7 +104,7 @@ while not fl_done  == njobs :
         if stat[:4] == 'init' :
             job.execute()
             joblist[index][1] = 'running(0/%d)' % nsegs
-            joblist[index][2] = decodeTime( job.getDiffTime() )
+            joblist[index][2] = utility.decodeTime( job.getDiffTime() )
         elif stat[:7] == 'running' :
             result = job.getJobResult()
             if result is None :
@@ -132,7 +120,7 @@ while not fl_done  == njobs :
                 fl_done += 1
             else :
                 joblist[index][1] = 'unknown'
-            joblist[index][2] = decodeTime( job.getDiffTime() )
+            joblist[index][2] = utility.decodeTime( job.getDiffTime() )
         elif stat[:7] == 'merging' :
             fstat = job.getFinalStatus()
             if fstat is None :
@@ -148,14 +136,14 @@ while not fl_done  == njobs :
                 fl_done += 1
             else :
                 joblist[index][1] = 'unknown'
-            joblist[index][2] = decodeTime( job.getDiffTime() )
+            joblist[index][2] = utility.decodeTime( job.getDiffTime() )
         elif stat[:4] == 'done' :
             continue
         elif stat == 'error' :
             continue
         else :
             joblist[index][1] = 'unknown'
-            joblist[index][2] = decodeTime( job.getDiffTime() )
+            joblist[index][2] = utility.decodeTime( job.getDiffTime() )
 
     utility.updateJobStat( joblist, fjobstat )
     time.sleep( SLEEP_TIME )
