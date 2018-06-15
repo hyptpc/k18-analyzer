@@ -419,15 +419,12 @@ class JobManager :
                 buff.append( line )
 
         if 1 == len( buff_unpack ) :
-            cdir = os.getcwd()
-            os.chdir( os.path.dirname( self.__fConfPath ) )
             if os.path.exists( buff_unpack[0] ) :
                 self.__fUnpackPath = os.path.abspath( buff_unpack[0] )
             else :
                 sys.stderr.write( 'ERROR: Cannot find file: %s' \
                                   % buff_unpack[0] )
                 sys.exit( 1 )
-            os.chdir( cdir )
                 
         else :
             sys.stderr.write( 'ERROR: Invalid unpacker declaration was found in %s' \
