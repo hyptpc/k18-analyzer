@@ -22,8 +22,6 @@
 #include "VEvent.hh"
 
 #define HodoCut   0
-#define BcOutCut  0
-#define SdcOutCut 0
 #define MaxMultiCut 0
 
 // SSD Filter
@@ -97,10 +95,60 @@ EventHimac::ProcessingBegin( void )
 struct Event
 {
   int evnum;
+  
+  unsigned long unixtime;
 
   int trignhits;
   int trigpat[NumOfSegTrig];
   int trigflag[NumOfSegTrig];
+
+  // T1
+  int t1nhits;
+  int t1hitpat[MaxHits];
+  double t1ua[NumOfSegT1];
+  double t1ut[NumOfSegT1];
+  double t1da[NumOfSegT1];
+  double t1dt[NumOfSegT1];
+
+  // T2
+  int t2nhits;
+  int t2hitpat[MaxHits];
+  double t2ua[NumOfSegT2];
+  double t2ut[NumOfSegT2];
+  double t2da[NumOfSegT2];
+  double t2dt[NumOfSegT2];
+
+  // T3
+  int t3nhits;
+  int t3hitpat[MaxHits];
+  double t3ua[NumOfSegT3];
+  double t3ut[NumOfSegT3];
+  double t3da[NumOfSegT3];
+  double t3dt[NumOfSegT3];
+
+  // T4
+  int t4nhits;
+  int t4hitpat[MaxHits];
+  double t4ua[NumOfSegT4];
+  double t4ut[NumOfSegT4];
+  double t4da[NumOfSegT4];
+  double t4dt[NumOfSegT4];
+
+  // S1
+  int s1nhits;
+  int s1hitpat[MaxHits];
+  double s1ua[NumOfSegS1];
+  double s1ut[NumOfSegS1];
+  double s1da[NumOfSegS1];
+  double s1dt[NumOfSegS1];
+
+  // S2
+  int s2nhits;
+  int s2hitpat[MaxHits];
+  double s2ua[NumOfSegS2];
+  double s2ut[NumOfSegS2];
+  double s2da[NumOfSegS2];
+  double s2dt[NumOfSegS2];
 
   // SsdHit
   int    ssd1y0nhits;
@@ -126,28 +174,6 @@ struct Event
   double ssd1x0waveform[NumOfSegSSD1][NumOfSampleSSD];
   double ssd1x0chisqr[NumOfSegSSD1];
 
-  int    ssd1y1nhits;
-  double ssd1y1hitpat[NumOfSegSSD1];
-  double ssd1y1pos[NumOfSegSSD1];
-  double ssd1y1ped[NumOfSegSSD1];
-  double ssd1y1adc[NumOfSegSSD1];
-  double ssd1y1tdc[NumOfSegSSD1];
-  double ssd1y1de[NumOfSegSSD1];
-  double ssd1y1time[NumOfSegSSD1];
-  double ssd1y1waveform[NumOfSegSSD1][NumOfSampleSSD];
-  double ssd1y1chisqr[NumOfSegSSD1];
-
-  int    ssd1x1nhits;
-  double ssd1x1hitpat[NumOfSegSSD1];
-  double ssd1x1pos[NumOfSegSSD1];
-  double ssd1x1ped[NumOfSegSSD1];
-  double ssd1x1adc[NumOfSegSSD1];
-  double ssd1x1tdc[NumOfSegSSD1];
-  double ssd1x1de[NumOfSegSSD1];
-  double ssd1x1time[NumOfSegSSD1];
-  double ssd1x1waveform[NumOfSegSSD1][NumOfSampleSSD];
-  double ssd1x1chisqr[NumOfSegSSD1];
-
   int    ssd2x0nhits;
   double ssd2x0hitpat[NumOfSegSSD2];
   double ssd2x0pos[NumOfSegSSD2];
@@ -170,28 +196,6 @@ struct Event
   double ssd2y0waveform[NumOfSegSSD2][NumOfSampleSSD];
   double ssd2y0chisqr[NumOfSegSSD2];
 
-  int    ssd2x1nhits;
-  double ssd2x1hitpat[NumOfSegSSD2];
-  double ssd2x1pos[NumOfSegSSD2];
-  double ssd2x1ped[NumOfSegSSD2];
-  double ssd2x1adc[NumOfSegSSD2];
-  double ssd2x1tdc[NumOfSegSSD2];
-  double ssd2x1de[NumOfSegSSD2];
-  double ssd2x1time[NumOfSegSSD2];
-  double ssd2x1waveform[NumOfSegSSD2][NumOfSampleSSD];
-  double ssd2x1chisqr[NumOfSegSSD2];
-
-  int    ssd2y1nhits;
-  double ssd2y1hitpat[NumOfSegSSD2];
-  double ssd2y1pos[NumOfSegSSD2];
-  double ssd2y1ped[NumOfSegSSD2];
-  double ssd2y1adc[NumOfSegSSD2];
-  double ssd2y1tdc[NumOfSegSSD2];
-  double ssd2y1de[NumOfSegSSD2];
-  double ssd2y1time[NumOfSegSSD2];
-  double ssd2y1waveform[NumOfSegSSD2][NumOfSampleSSD];
-  double ssd2y1chisqr[NumOfSegSSD2];
-
   // SsdCluster
   int    ssd1y0ncl;
   int    ssd1y0clsize[NumOfSegSSD1];
@@ -205,18 +209,6 @@ struct Event
   double ssd1x0clde[NumOfSegSSD1];
   double ssd1x0cltime[NumOfSegSSD1];
   double ssd1x0cltd[NumOfSegSSD1];
-  int    ssd1y1ncl;
-  int    ssd1y1clsize[NumOfSegSSD1];
-  double ssd1y1clpos[NumOfSegSSD1];
-  double ssd1y1clde[NumOfSegSSD1];
-  double ssd1y1cltime[NumOfSegSSD1];
-  double ssd1y1cltd[NumOfSegSSD1];
-  int    ssd1x1ncl;
-  int    ssd1x1clsize[NumOfSegSSD1];
-  double ssd1x1clpos[NumOfSegSSD1];
-  double ssd1x1clde[NumOfSegSSD1];
-  double ssd1x1cltime[NumOfSegSSD1];
-  double ssd1x1cltd[NumOfSegSSD1];
 
   int    ssd2x0ncl;
   int    ssd2x0clsize[NumOfSegSSD2];
@@ -230,29 +222,12 @@ struct Event
   double ssd2y0clde[NumOfSegSSD2];
   double ssd2y0cltime[NumOfSegSSD2];
   double ssd2y0cltd[NumOfSegSSD2];
-  int    ssd2x1ncl;
-  int    ssd2x1clsize[NumOfSegSSD2];
-  double ssd2x1clpos[NumOfSegSSD2];
-  double ssd2x1clde[NumOfSegSSD2];
-  double ssd2x1cltime[NumOfSegSSD2];
-  double ssd2x1cltd[NumOfSegSSD2];
-  int    ssd2y1ncl;
-  int    ssd2y1clsize[NumOfSegSSD2];
-  double ssd2y1clpos[NumOfSegSSD2];
-  double ssd2y1clde[NumOfSegSSD2];
-  double ssd2y1cltime[NumOfSegSSD2];
-  double ssd2y1cltd[NumOfSegSSD2];
 
   // SSDT
   int    ssdtnhits;
   double ssdthitpat[NumOfSegSSDT];
   double ssdtdc[NumOfSegSSDT];
   double ssdtime[NumOfSegSSDT];
-
-  // Tracking
-  int ntBcOut;
-  int ntSdcIn;
-  int ntSdcOut;
 
 };
 
@@ -264,7 +239,14 @@ namespace root
   TTree *tree;
   enum eDetHid  { SSD1Hid=10000, SSD2Hid=20000,
 		  SSD1ClHid=30000, SSD2ClHid=40000,
-		  SSDTHid=50000, nDetHid };
+		  SSDTHid=50000, 
+		  T1Hid  =  60000,
+		  T2Hid  =  70000,
+		  T3Hid  =  80000,
+		  T4Hid  =  90000,
+		  S1Hid  = 100000,
+		  S2Hid  = 110000,
+		  nDetHid };
   enum eStatus  { All, Good, nStatus };
 }
 
@@ -287,10 +269,6 @@ EventHimac::ProcessingNormal( void )
   static const double MinTimeSSD   = gUser.GetParameter("TimeSSD",   0);
   static const double MaxTimeSSD   = gUser.GetParameter("TimeSSD",   1);
   static const double MaxChisqrSSD = gUser.GetParameter("MaxChisqrSSD", 0);
-#if MaxMultiCut
-  static const double MaxMultiHitBcOut  = gUser.GetParameter("MaxMultiHitBcOut");
-  static const double MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
-#endif
 
   rawData = new RawData;
   rawData->DecodeHits();
@@ -323,132 +301,331 @@ EventHimac::ProcessingNormal( void )
   // if( event.trigflag[SpillEndFlag] ) return true;
 
   HF1( 1, 1. );
+  
+  // T1
+  {
+    int t1_nhits = 0;
+    const HodoRHitContainer &cont = rawData->GetT1RawHC();
+    int nh = cont.size();
+    HF1( T1Hid +0, double(nh) );
+    int nh1 = 0, nh2 = 0;
+    for( int i=0; i<nh; ++i ){
+      HodoRawHit *hit = cont[i];
+      int seg = hit->SegmentId()+1;
+      HF1( T1Hid +1, seg-0.5 );
+      int Au = hit->GetAdcUp(), Ad = hit->GetAdcDown();
+      int Tu = hit->GetTdcUp(), Td = hit->GetTdcDown();
 
-  ////////// BH2 time 0
-  hodoAna->DecodeBH2Hits(rawData);
-  int nhBh2 = hodoAna->GetNHitsBH2();
-#if HodoCut
-  if( nhBh2==0 ) return true;
-#endif
-  HF1( 1, 2 );
-  double time0 = -999.;
-  ////////// BH2 Analysis
-  for( int i=0; i<nhBh2; ++i ){
-    BH2Hit *hit = hodoAna->GetHitBH2(i);
-    if(!hit) continue;
-    double cmt = hit->CMeanTime();
-    double ct0 = hit->CTime0();
-    double min_time = -999;
-#if HodoCut
-    double dE  = hit->DeltaE();
-    if( dE<MinDeBH2 || MaxDeBH2<dE ) continue;
-#endif
-    if( std::abs(cmt)<std::abs(min_time) ){
-      min_time = cmt;
-      time0    = ct0;
+      //Tree
+      event.t1ua[seg-1] = Au;
+      event.t1ut[seg-1] = Tu;
+      event.t1da[seg-1] = Ad;
+      event.t1dt[seg-1] = Td;
+      if( Tu>0 && Td>0 ){
+	event.t1hitpat[t1_nhits] = seg;
+	t1_nhits++;
+      }
+      //Up
+      HF1( T1Hid +100*seg +1, double(Au) );
+      if( Tu>0 ){
+	HF1( T1Hid +100*seg +3, double(Tu) );
+	HF1( T1Hid +100*seg +5, double(Au) );
+      }
+      else{
+	HF1( T1Hid +100*seg +7, double(Au) );
+      }
+      //Down
+      HF1( T1Hid +100*seg +2, double(Ad) );
+      if( Td>0 ){
+	HF1( T1Hid +100*seg +4, double(Td) );
+	HF1( T1Hid +100*seg +6, double(Ad) );
+      }
+      else{
+	HF1( T1Hid +100*seg +8, double(Ad) );
+      }
+      //HitPat
+      if( Tu>0 || Td>0 ){
+	++nh1; HF1( T1Hid +3, seg-0.5 );
+      }
+      if( Tu>0 && Td>0 ){
+	++nh2; HF1( T1Hid +5, seg-0.5 );
+      }
     }
+    HF1( T1Hid +2, double(nh1) ); HF1( T1Hid +4, double(nh2) );
+    event.t1nhits = t1_nhits;
   }
+  
+  HF1( 1, 2. );
+  
+  // T2
+  {
+    int t2_nhits = 0;
+    const HodoRHitContainer &cont = rawData->GetT2RawHC();
+    int nh = cont.size();
+    HF1( T2Hid +0, double(nh) );
+    int nh1 = 0, nh2 = 0;
+    for( int i=0; i<nh; ++i ){
+      HodoRawHit *hit = cont[i];
+      int seg = hit->SegmentId()+1;
+      HF1( T2Hid +1, seg-0.5 );
+      int Au = hit->GetAdcUp(), Ad = hit->GetAdcDown();
+      int Tu = hit->GetTdcUp(), Td = hit->GetTdcDown();
 
-  HF1(1, 3);
-
-  ////////// BH1 Analysis
-  hodoAna->DecodeBH1Hits(rawData);
-  int nhBh1 = hodoAna->GetNHitsBH1();
-#if HodoCut
-  if( nhBh1==0 ) return true;
-#endif
-  HF1(1, 4);
-
-  double btof0 = -999;
-  for(int i=0; i<nhBh1; ++i){
-    Hodo2Hit* hit = hodoAna->GetHitBH1(i);
-    if(!hit) continue;
-    double btof = hit->CMeanTime() - time0;
-#if HodoCut
-    double dE   = hit->DeltaE();
-    if( dE<MinDeBH1 || MaxDeBH1<dE ) continue;
-#endif
-    if( std::abs(btof)<std::abs(btof0) ){
-      btof0 = btof;
+      //Tree
+      event.t2ua[seg-1] = Au;
+      event.t2ut[seg-1] = Tu;
+      event.t2da[seg-1] = Ad;
+      event.t2dt[seg-1] = Td;
+      if( Tu>0 && Td>0 ){
+	event.t2hitpat[t2_nhits] = seg;
+	t2_nhits++;
+      }
+      //Up
+      HF1( T2Hid +100*seg +1, double(Au) );
+      if( Tu>0 ){
+	HF1( T2Hid +100*seg +3, double(Tu) );
+	HF1( T2Hid +100*seg +5, double(Au) );
+      }
+      else{
+	HF1( T2Hid +100*seg +7, double(Au) );
+      }
+      //Down
+      HF1( T2Hid +100*seg +2, double(Ad) );
+      if( Td>0 ){
+	HF1( T2Hid +100*seg +4, double(Td) );
+	HF1( T2Hid +100*seg +6, double(Ad) );
+      }
+      else{
+	HF1( T2Hid +100*seg +8, double(Ad) );
+      }
+      //HitPat
+      if( Tu>0 || Td>0 ){
+	++nh1; HF1( T2Hid +3, seg-0.5 );
+      }
+      if( Tu>0 && Td>0 ){
+	++nh2; HF1( T2Hid +5, seg-0.5 );
+      }
     }
+    HF1( T2Hid +2, double(nh1) ); HF1( T2Hid +4, double(nh2) );
+    event.t2nhits = t2_nhits;
   }
-  HF1( 100, btof0 );
+  
+  HF1( 1, 3. );
+  // T3
+  {
+    int t3_nhits = 0;
+    const HodoRHitContainer &cont = rawData->GetT3RawHC();
+    int nh = cont.size();
+    HF1( T3Hid +0, double(nh) );
+    int nh1 = 0, nh2 = 0;
+    for( int i=0; i<nh; ++i ){
+      HodoRawHit *hit = cont[i];
+      int seg = hit->SegmentId()+1;
+      HF1( T3Hid +1, seg-0.5 );
+      int Au = hit->GetAdcUp(), Ad = hit->GetAdcDown();
+      int Tu = hit->GetTdcUp(), Td = hit->GetTdcDown();
 
+      //Tree
+      event.t3ua[seg-1] = Au;
+      event.t3ut[seg-1] = Tu;
+      event.t3da[seg-1] = Ad;
+      event.t3dt[seg-1] = Td;
+      if( Tu>0 && Td>0 ){
+	event.t3hitpat[t3_nhits] = seg;
+	t3_nhits++;
+      }
+      //Up
+      HF1( T3Hid +100*seg +1, double(Au) );
+      if( Tu>0 ){
+	HF1( T3Hid +100*seg +3, double(Tu) );
+	HF1( T3Hid +100*seg +5, double(Au) );
+      }
+      else{
+	HF1( T3Hid +100*seg +7, double(Au) );
+      }
+      //Down
+      HF1( T3Hid +100*seg +2, double(Ad) );
+      if( Td>0 ){
+	HF1( T3Hid +100*seg +4, double(Td) );
+	HF1( T3Hid +100*seg +6, double(Ad) );
+      }
+      else{
+	HF1( T3Hid +100*seg +8, double(Ad) );
+      }
+      //HitPat
+      if( Tu>0 || Td>0 ){
+	++nh1; HF1( T3Hid +3, seg-0.5 );
+      }
+      if( Tu>0 && Td>0 ){
+	++nh2; HF1( T3Hid +5, seg-0.5 );
+      }
+    }
+    HF1( T3Hid +2, double(nh1) ); HF1( T3Hid +4, double(nh2) );
+    event.t3nhits = t3_nhits;
+  }
+  
+  HF1( 1, 4. );
+  // T4
+  {
+    int t4_nhits = 0;
+    const HodoRHitContainer &cont = rawData->GetT4RawHC();
+    int nh = cont.size();
+    HF1( T4Hid +0, double(nh) );
+    int nh1 = 0, nh2 = 0;
+    for( int i=0; i<nh; ++i ){
+      HodoRawHit *hit = cont[i];
+      int seg = hit->SegmentId()+1;
+      HF1( T4Hid +1, seg-0.5 );
+      int Au = hit->GetAdcUp(), Ad = hit->GetAdcDown();
+      int Tu = hit->GetTdcUp(), Td = hit->GetTdcDown();
+
+      //Tree
+      event.t4ua[seg-1] = Au;
+      event.t4ut[seg-1] = Tu;
+      event.t4da[seg-1] = Ad;
+      event.t4dt[seg-1] = Td;
+      if( Tu>0 && Td>0 ){
+	event.t4hitpat[t4_nhits] = seg;
+	t4_nhits++;
+      }
+      //Up
+      HF1( T4Hid +100*seg +1, double(Au) );
+      if( Tu>0 ){
+	HF1( T4Hid +100*seg +3, double(Tu) );
+	HF1( T4Hid +100*seg +5, double(Au) );
+      }
+      else{
+	HF1( T4Hid +100*seg +7, double(Au) );
+      }
+      //Down
+      HF1( T4Hid +100*seg +2, double(Ad) );
+      if( Td>0 ){
+	HF1( T4Hid +100*seg +4, double(Td) );
+	HF1( T4Hid +100*seg +6, double(Ad) );
+      }
+      else{
+	HF1( T4Hid +100*seg +8, double(Ad) );
+      }
+      //HitPat
+      if( Tu>0 || Td>0 ){
+	++nh1; HF1( T4Hid +3, seg-0.5 );
+      }
+      if( Tu>0 && Td>0 ){
+	++nh2; HF1( T4Hid +5, seg-0.5 );
+      }
+    }
+    HF1( T4Hid +2, double(nh1) ); HF1( T4Hid +4, double(nh2) );
+    event.t4nhits = t4_nhits;
+  }
+  
   HF1( 1, 5. );
+  // S1
+  {
+    int s1_nhits = 0;
+    const HodoRHitContainer &cont = rawData->GetS1RawHC();
+    int nh = cont.size();
+    HF1( S1Hid +0, double(nh) );
+    int nh1 = 0, nh2 = 0;
+    for( int i=0; i<nh; ++i ){
+      HodoRawHit *hit = cont[i];
+      int seg = hit->SegmentId()+1;
+      HF1( S1Hid +1, seg-0.5 );
+      int Au = hit->GetAdcUp(), Ad = hit->GetAdcDown();
+      int Tu = hit->GetTdcUp(), Td = hit->GetTdcDown();
 
-#if HodoCut
-  if( MinBeamToF<btof && btof<MaxBeamToF )
-    return true;
-#endif
-
+      //Tree
+      event.s1ua[seg-1] = Au;
+      event.s1ut[seg-1] = Tu;
+      event.s1da[seg-1] = Ad;
+      event.s1dt[seg-1] = Td;
+      if( Tu>0 && Td>0 ){
+	event.s1hitpat[s1_nhits] = seg;
+	s1_nhits++;
+      }
+      //Up
+      HF1( S1Hid +100*seg +1, double(Au) );
+      if( Tu>0 ){
+	HF1( S1Hid +100*seg +3, double(Tu) );
+	HF1( S1Hid +100*seg +5, double(Au) );
+      }
+      else{
+	HF1( S1Hid +100*seg +7, double(Au) );
+      }
+      //Down
+      HF1( S1Hid +100*seg +2, double(Ad) );
+      if( Td>0 ){
+	HF1( S1Hid +100*seg +4, double(Td) );
+	HF1( S1Hid +100*seg +6, double(Ad) );
+      }
+      else{
+	HF1( S1Hid +100*seg +8, double(Ad) );
+      }
+      //HitPat
+      if( Tu>0 || Td>0 ){
+	++nh1; HF1( S1Hid +3, seg-0.5 );
+      }
+      if( Tu>0 && Td>0 ){
+	++nh2; HF1( S1Hid +5, seg-0.5 );
+      }
+    }
+    HF1( S1Hid +2, double(nh1) ); HF1( S1Hid +4, double(nh2) );
+    event.s1nhits = s1_nhits;
+  }
+  
   HF1( 1, 6. );
-
-  DCAna->DecodeBcOutHits( rawData );
-  double multiBcOut = 0.;
+  // S2
   {
-    for( int layer=1; layer<=NumOfLayersBcOut; ++layer ){
-      const DCHitContainer &cont = DCAna->GetBcOutHC(layer);
-      multiBcOut += double( cont.size() );
+    int s2_nhits = 0;
+    const HodoRHitContainer &cont = rawData->GetS2RawHC();
+    int nh = cont.size();
+    HF1( S2Hid +0, double(nh) );
+    int nh1 = 0, nh2 = 0;
+    for( int i=0; i<nh; ++i ){
+      HodoRawHit *hit = cont[i];
+      int seg = hit->SegmentId()+1;
+      HF1( S2Hid +1, seg-0.5 );
+      int Au = hit->GetAdcUp(), Ad = hit->GetAdcDown();
+      int Tu = hit->GetTdcUp(), Td = hit->GetTdcDown();
+
+      //Tree
+      event.s2ua[seg-1] = Au;
+      event.s2ut[seg-1] = Tu;
+      event.s2da[seg-1] = Ad;
+      event.s2dt[seg-1] = Td;
+      if( Tu>0 && Td>0 ){
+	event.s2hitpat[s2_nhits] = seg;
+	s2_nhits++;
+      }
+      //Up
+      HF1( S2Hid +100*seg +1, double(Au) );
+      if( Tu>0 ){
+	HF1( S2Hid +100*seg +3, double(Tu) );
+	HF1( S2Hid +100*seg +5, double(Au) );
+      }
+      else{
+	HF1( S2Hid +100*seg +7, double(Au) );
+      }
+      //Down
+      HF1( S2Hid +100*seg +2, double(Ad) );
+      if( Td>0 ){
+	HF1( S2Hid +100*seg +4, double(Td) );
+	HF1( S2Hid +100*seg +6, double(Ad) );
+      }
+      else{
+	HF1( S2Hid +100*seg +8, double(Ad) );
+      }
+      //HitPat
+      if( Tu>0 || Td>0 ){
+	++nh1; HF1( S2Hid +3, seg-0.5 );
+      }
+      if( Tu>0 && Td>0 ){
+	++nh2; HF1( S2Hid +5, seg-0.5 );
+      }
     }
+    HF1( S2Hid +2, double(nh1) ); HF1( S2Hid +4, double(nh2) );
+    event.s2nhits = s2_nhits;
   }
-
-#if MaxMultiCut
-  if( multiBcOut/double(NumOfLayersBcOut) > MaxMultiHitBcOut )
-    return true;
-#endif
-
-  HF1( 1, 7. );
-
-  DCAna->TrackSearchBcOut();
-  {
-    int ntBcOut = DCAna->GetNtracksBcOut();
-    event.ntBcOut = ntBcOut;
-    int ntValid = 0;
-    for( int it=0; it<ntBcOut; ++it ){
-      DCLocalTrack *tp = DCAna->GetTrackBcOut(it);
-      double chisqr = tp->GetChiSquare();
-      if( chisqr<10. ) ++ntValid;
-    }
-    // if( ntValid==0 ) return true;
-#if BcOutCut
-    if( ntValid!=1 ) return true;
-#endif
-  }
-
-  DCAna->DecodeSdcOutHits( rawData );
-  double multiSdcOut = 0.;
-  {
-    for( int layer=1; layer<=NumOfLayersSdcOut; ++layer ){
-      const DCHitContainer &cont = DCAna->GetSdcOutHC(layer);
-      multiSdcOut += double( cont.size() );
-    }
-  }
-
-#if MaxMultiCut
-  if( multiSdcOut/double(NumOfLayersSdcOut) > MaxMultiHitSdcOut )
-    return true;
-#endif
-
-  HF1( 1, 8. );
-
-  DCAna->TrackSearchSdcOut();
-  {
-    int ntSdcOut = DCAna->GetNtracksSdcOut();
-    event.ntSdcOut = ntSdcOut;
-    int ntValid = 0;
-    for( int it=0; it<ntSdcOut; ++it ){
-      DCLocalTrack *tp = DCAna->GetTrackSdcOut(it);
-      double chisqr = tp->GetChiSquare();
-      if( chisqr<20. ) ++ntValid;
-    }
-    // if( ntValid==0 ) return true;
-#if SdcOutCut
-    if( ntValid!=1 ) return true;
-#endif
-  }
-
-  HF1( 1, 10. );
-
+  
   //SSDT
   {
     const HodoRHitContainer &cont = rawData->GetSSDTRawHC();
@@ -514,14 +691,14 @@ EventHimac::ProcessingNormal( void )
 
   ///// SsdIn
   double multiSsdIn[nStatus]  = {};
-  int nhSsdIn[NumOfLayersSsdIn][nStatus];
-  for( int l=0; l<NumOfLayersSsdIn; ++l ){
+  int nhSsdIn[NumOfLayersSSD1][nStatus];
+  for( int l=0; l<NumOfLayersSSD1; ++l ){
     for( int s=0; s<nStatus; ++s ){
       nhSsdIn[l][s] = 0;
     }
   }
 
-  for( int layer=1; layer<=NumOfLayersSsdIn; ++layer ){
+  for( int layer=1; layer<=NumOfLayersSSD1; ++layer ){
     const DCHitContainer &contIn = DCAna->GetSsdInHC(layer);
     int nhIn = contIn.size();
     multiSsdIn[All] += double(nhIn);
@@ -581,22 +758,6 @@ EventHimac::ProcessingNormal( void )
 	event.ssd1x0time[nh]   = peaktime;
 	event.ssd1x0chisqr[nh] = chisqr;
 	break;
-      case 3:
-	event.ssd1y1ped[nh] = ped; event.ssd1y1hitpat[nh] = seg;
-	event.ssd1y1pos[nh] = pos; event.ssd1y1adc[nh]    = adc;
-	event.ssd1y1tdc[nh] = tdc;
-	event.ssd1y1de[nh]  = de;
-	event.ssd1y1time[nh]   = peaktime;
-	event.ssd1y1chisqr[nh] = chisqr;
-	break;
-      case 4:
-	event.ssd1x1ped[nh] = ped; event.ssd1x1hitpat[nh] = seg;
-	event.ssd1x1pos[nh] = pos; event.ssd1x1adc[nh]    = adc;
-	event.ssd1x1tdc[nh] = tdc;
-	event.ssd1x1de[nh]  = de;
-	event.ssd1x1time[nh]   = peaktime;
-	event.ssd1x1chisqr[nh] = chisqr;
-	break;
       default:
 	break;
       }
@@ -606,10 +767,8 @@ EventHimac::ProcessingNormal( void )
 
   event.ssd1y0nhits = nhSsdIn[0][Good];
   event.ssd1x0nhits = nhSsdIn[1][Good];
-  event.ssd1y1nhits = nhSsdIn[2][Good];
-  event.ssd1x1nhits = nhSsdIn[3][Good];
 
-  for( int l=0; l<NumOfLayersSsdIn; ++l ){
+  for( int l=0; l<NumOfLayersSSD1; ++l ){
     for( int s=0; s<nStatus; ++s ){
       HF1( SSD1Hid +1000*(l+1) +s*100 +0, nhSsdIn[l][s] );
     }
@@ -618,14 +777,12 @@ EventHimac::ProcessingNormal( void )
   HF1( 1, 12. );
 
   ///// SsdInCluster
-  for( int layer=1; layer<=NumOfLayersSsdIn; ++layer ){
+  for( int layer=1; layer<=NumOfLayersSSD1; ++layer ){
     const SsdClusterContainer &ClCont = DCAna->GetClusterSsdIn(layer);
     int ncl = DCAna->GetNClustersSsdIn(layer);
     switch(layer){
     case 1: event.ssd1y0ncl = ncl; break;
     case 2: event.ssd1x0ncl = ncl; break;
-    case 3: event.ssd1y1ncl = ncl; break;
-    case 4: event.ssd1x1ncl = ncl; break;
     default: break;
     }
     int offset = SSD1ClHid + layer*1000;
@@ -660,18 +817,6 @@ EventHimac::ProcessingNormal( void )
 	event.ssd1x0clde[i]   = de;
 	event.ssd1x0cltime[i] = time;
 	break;
-      case 3:
-	event.ssd1y1clsize[i] = clsize;
-	event.ssd1y1clpos[i]  = pos;
-	event.ssd1y1clde[i]   = de;
-	event.ssd1y1cltime[i] = time;
-	break;
-      case 4:
-	event.ssd1x1clsize[i] = clsize;
-	event.ssd1x1clpos[i]  = pos;
-	event.ssd1x1clde[i]   = de;
-	event.ssd1x1cltime[i] = time;
-	break;
       default:
 	break;
       }
@@ -680,14 +825,14 @@ EventHimac::ProcessingNormal( void )
 
   ///// SsdOut
   double multiSsdOut[nStatus] = {};
-  int nhSsdOut[NumOfLayersSsdOut][nStatus];
-  for( int l=0; l<NumOfLayersSsdOut; ++l ){
+  int nhSsdOut[NumOfLayersSSD2][nStatus];
+  for( int l=0; l<NumOfLayersSSD2; ++l ){
     for( int s=0; s<nStatus; ++s ){
       nhSsdOut[l][s] = 0;
     }
   }
 
-  for( int layer=1; layer<=NumOfLayersSsdOut; ++layer ){
+  for( int layer=1; layer<=NumOfLayersSSD2; ++layer ){
     const DCHitContainer &contOut = DCAna->GetSsdOutHC(layer);
     int nhOut = contOut.size();
     multiSsdOut[All] += double(nhOut);
@@ -745,22 +890,6 @@ EventHimac::ProcessingNormal( void )
 	event.ssd2y0time[nh]   = peaktime;
 	event.ssd2y0chisqr[nh] = chisqr;
 	break;
-      case 3:
-	event.ssd2x1ped[nh] = ped; event.ssd2x1hitpat[nh] = seg;
-	event.ssd2x1pos[nh] = pos; event.ssd2x1adc[nh]    = adc;
-	event.ssd2x1tdc[nh] = tdc;
-	event.ssd2x1de[nh]  = de;
-	event.ssd2x1time[nh]   = peaktime;
-	event.ssd2x1chisqr[nh] = chisqr;
-	break;
-      case 4:
-	event.ssd2y1ped[nh] = ped; event.ssd2y1hitpat[nh] = seg;
-	event.ssd2y1pos[nh] = pos; event.ssd2y1adc[nh]    = adc;
-	event.ssd2y1tdc[nh] = tdc;
-	event.ssd2y1de[nh]  = de;
-	event.ssd2y1time[nh]   = peaktime;
-	event.ssd2y1chisqr[nh] = chisqr;
-	break;
       }
       nhSsdOut[layer-1][Good]++;
     }
@@ -768,10 +897,8 @@ EventHimac::ProcessingNormal( void )
 
   event.ssd2x0nhits = nhSsdOut[0][Good];
   event.ssd2y0nhits = nhSsdOut[1][Good];
-  event.ssd2x1nhits = nhSsdOut[2][Good];
-  event.ssd2y1nhits = nhSsdOut[3][Good];
 
-  for( int l=0; l<NumOfLayersSsdOut; ++l ){
+  for( int l=0; l<NumOfLayersSSD2; ++l ){
     for( int s=0; s<nStatus; ++s ){
       HF1( SSD2Hid +1000*(l+1) +s*100 +0, nhSsdOut[l][s] );
     }
@@ -780,14 +907,12 @@ EventHimac::ProcessingNormal( void )
   HF1( 1, 13. );
 
   ///// SsdOutCluster
-  for( int layer=1; layer<=NumOfLayersSsdOut; ++layer ){
+  for( int layer=1; layer<=NumOfLayersSSD2; ++layer ){
     const SsdClusterContainer &ClCont = DCAna->GetClusterSsdOut(layer);
     int ncl = DCAna->GetNClustersSsdOut(layer);
     switch(layer){
     case 1: event.ssd2x0ncl = ncl; break;
     case 2: event.ssd2y0ncl = ncl; break;
-    case 3: event.ssd2x1ncl = ncl; break;
-    case 4: event.ssd2y1ncl = ncl; break;
     default: break;
     }
     int offset = SSD2ClHid + layer*1000;
@@ -822,18 +947,6 @@ EventHimac::ProcessingNormal( void )
 	event.ssd2y0clde[i]   = de;
 	event.ssd2y0cltime[i] = time;
 	break;
-      case 3:
-	event.ssd2x1clsize[i] = clsize;
-	event.ssd2x1clpos[i]  = pos;
-	event.ssd2x1clde[i]   = de;
-	event.ssd2x1cltime[i] = time;
-	break;
-      case 4:
-	event.ssd2y1clsize[i] = clsize;
-	event.ssd2y1clpos[i]  = pos;
-	event.ssd2y1clde[i]   = de;
-	event.ssd2y1cltime[i] = time;
-	break;
       default:
 	break;
       }
@@ -846,11 +959,9 @@ EventHimac::ProcessingNormal( void )
     HF1( 1000 + s*100 +0, multiSsdIn[s] );
     HF1( 2000 + s*100 +0, multiSsdOut[s] );
     ssd1nlayers[s]
-      = (nhSsdIn[0][s]>0) + (nhSsdIn[1][s]>0) +
-      (nhSsdIn[2][s]>0) + (nhSsdIn[3][s]>0);
+      = (nhSsdIn[0][s]>0) + (nhSsdIn[1][s]>0);
     ssd2nlayers[s]
-      = (nhSsdOut[0][s]>0) + (nhSsdOut[1][s]>0) +
-      (nhSsdOut[2][s]>0) + (nhSsdOut[3][s]>0);
+      = (nhSsdOut[0][s]>0) + (nhSsdOut[1][s]>0);
     HF1( 3000 +s*100 +0, ssd1nlayers[s] );
     HF1( 4000 +s*100 +0, ssd2nlayers[s] );
   }
@@ -866,31 +977,69 @@ EventHimac::InitializeEvent( void )
 {
   event.evnum       = 0;
   event.trignhits   = 0;
+
+  event.t1nhits	    = 0;
+  for(int it=0; it<NumOfSegT1; it++){
+    event.t1hitpat[it]    = 0;
+    event.t1ua[it]    = -9999;
+    event.t1ut[it]    = -9999;
+    event.t1da[it]    = -9999;
+    event.t1dt[it]    = -9999;
+  }
+  event.t2nhits	    = 0;
+  for(int it=0; it<NumOfSegT2; it++){
+    event.t2hitpat[it]    = 0;
+    event.t2ua[it]    = -9999;
+    event.t2ut[it]    = -9999;
+    event.t2da[it]    = -9999;
+    event.t2dt[it]    = -9999;
+  }
+  event.t3nhits	    = 0;
+  for(int it=0; it<NumOfSegT3; it++){
+    event.t3hitpat[it]    = 0;
+    event.t3ua[it]    = -9999;
+    event.t3ut[it]    = -9999;
+    event.t3da[it]    = -9999;
+    event.t3dt[it]    = -9999;
+  }
+  event.t4nhits	    = 0;
+  for(int it=0; it<NumOfSegT4; it++){
+    event.t4hitpat[it]    = 0;
+    event.t4ua[it]    = -9999;
+    event.t4ut[it]    = -9999;
+    event.t4da[it]    = -9999;
+    event.t4dt[it]    = -9999;
+  }
+  event.s1nhits	    = 0;
+  for(int it=0; it<NumOfSegS1; it++){
+    event.s1hitpat[it]    = 0;
+    event.s1ua[it]    = -9999;
+    event.s1ut[it]    = -9999;
+    event.s1da[it]    = -9999;
+    event.s1dt[it]    = -9999;
+  }
+  event.s2nhits	    = 0;
+  for(int it=0; it<NumOfSegS2; it++){
+    event.s2hitpat[it]    = 0;
+    event.s2ua[it]    = -9999;
+    event.s2ut[it]    = -9999;
+    event.s2da[it]    = -9999;
+    event.s2dt[it]    = -9999;
+  }
+
   event.ssdtnhits   = 0;
 
   event.ssd1y0nhits = 0;
   event.ssd1x0nhits = 0;
-  event.ssd1y1nhits = 0;
-  event.ssd1x1nhits = 0;
 
   event.ssd2x0nhits = 0;
   event.ssd2y0nhits = 0;
-  event.ssd2x1nhits = 0;
-  event.ssd2y1nhits = 0;
 
   event.ssd1y0ncl = 0;
   event.ssd1x0ncl = 0;
-  event.ssd1y1ncl = 0;
-  event.ssd1x1ncl = 0;
 
   event.ssd2x0ncl = 0;
   event.ssd2y0ncl = 0;
-  event.ssd2x1ncl = 0;
-  event.ssd2y1ncl = 0;
-
-  event.ntBcOut  = 0;
-  event.ntSdcIn  = 0;
-  event.ntSdcOut = 0;
 
   for(int it=0; it<NumOfSegTrig; it++){
     event.trigpat[it]  = -1;
@@ -923,24 +1072,6 @@ EventHimac::InitializeEvent( void )
     event.ssd1x0time[it] = -9999;
     event.ssd1x0chisqr[it] = -1.;
 
-    event.ssd1y1hitpat[it] = -1;
-    event.ssd1y1pos[it]  = -9999;
-    event.ssd1y1ped[it]  = -9999;
-    event.ssd1y1adc[it]  = -9999;
-    event.ssd1y1tdc[it]  = -9999;
-    event.ssd1y1de[it]   = -9999;
-    event.ssd1y1time[it] = -9999;
-    event.ssd1y1chisqr[it] = -1.;
-
-    event.ssd1x1hitpat[it] = -1;
-    event.ssd1y1pos[it]  = -9999;
-    event.ssd1x1ped[it]  = -9999;
-    event.ssd1x1adc[it]  = -9999;
-    event.ssd1x1tdc[it]  = -9999;
-    event.ssd1y1de[it]   = -9999;
-    event.ssd1y1time[it] = -9999;
-    event.ssd1y1chisqr[it] = -1.;
-
     event.ssd1y0clsize[it] = 0;
     event.ssd1y0clpos[it]  = -9999;
     event.ssd1y0clde[it]   = -9999;
@@ -951,16 +1082,6 @@ EventHimac::InitializeEvent( void )
     event.ssd1x0clde[it]   = -9999;
     event.ssd1x0cltime[it] = -9999;
     event.ssd1x0cltd[it]   = -9999;
-    event.ssd1y1clsize[it] = 0;
-    event.ssd1y1clpos[it]  = -9999;
-    event.ssd1y1clde[it]   = -9999;
-    event.ssd1y1cltime[it] = -9999;
-    event.ssd1y1cltd[it]   = -9999;
-    event.ssd1x1clsize[it] = 0;
-    event.ssd1x1clpos[it]  = -9999;
-    event.ssd1x1clde[it]   = -9999;
-    event.ssd1x1cltime[it] = -9999;
-    event.ssd1x1cltd[it]   = -9999;
   }
 
   for(int it=0; it<NumOfSegSSD2; it++){
@@ -982,24 +1103,6 @@ EventHimac::InitializeEvent( void )
     event.ssd2y0time[it] = -9999;
     event.ssd2y0chisqr[it] = -1.;
 
-    event.ssd2x1hitpat[it] = -1;
-    event.ssd2x1pos[it]  = -9999;
-    event.ssd2x1ped[it]  = -9999;
-    event.ssd2x1adc[it]  = -9999;
-    event.ssd2x1tdc[it]  = -9999;
-    event.ssd2x1de[it]   = -9999;
-    event.ssd2x1time[it] = -9999;
-    event.ssd2x1chisqr[it] = -1.;
-
-    event.ssd2y1hitpat[it] = -1;
-    event.ssd2y1pos[it]  = -9999;
-    event.ssd2y1ped[it]  = -9999;
-    event.ssd2y1adc[it]  = -9999;
-    event.ssd2y1tdc[it]  = -9999;
-    event.ssd2y1de[it]   = -9999;
-    event.ssd2y1time[it] = -9999;
-    event.ssd2y1chisqr[it] = -1.;
-
     event.ssd2x0clsize[it] = 0;
     event.ssd2x0clpos[it]  = -9999;
     event.ssd2x0clde[it]   = -9999;
@@ -1010,16 +1113,6 @@ EventHimac::InitializeEvent( void )
     event.ssd2y0clde[it]   = -9999;
     event.ssd2y0cltime[it] = -9999;
     event.ssd2y0cltd[it]   = -9999;
-    event.ssd2x1clsize[it] = 0;
-    event.ssd2x1clpos[it]  = -9999;
-    event.ssd2x1clde[it]   = -9999;
-    event.ssd2x1cltime[it] = -9999;
-    event.ssd2x1cltd[it]   = -9999;
-    event.ssd2y1clsize[it] = 0;
-    event.ssd2y1clpos[it]  = -9999;
-    event.ssd2y1clde[it]   = -9999;
-    event.ssd2y1cltime[it] = -9999;
-    event.ssd2y1cltd[it]   = -9999;
   }
 }
 
@@ -1073,10 +1166,10 @@ namespace
   const double MinClsize =   0.;
   const double MaxClsize =  40.;
 
-  const std::string SsdInDetName[NumOfLayersSsdIn] =
-    { "SSD1-Y0", "SSD1-X0", "SSD1-Y1", "SSD1-X1" };
-  const std::string SsdOutDetName[NumOfLayersSsdOut] =
-    { "SSD2-X0", "SSD2-Y0", "SSD2-X1", "SSD2-Y1" };
+  const std::string SsdInDetName[NumOfLayersSSD1] =
+    { "SSD1-X0", "SSD1-Y0" };
+  const std::string SsdOutDetName[NumOfLayersSSD2] =
+    { "SSD2-Y0", "SSD2-X0" };
   const std::string GoodInfo[nStatus] = { "", "[Good]" };
 }
 
@@ -1090,8 +1183,6 @@ ConfMan::InitializeHistograms( void )
   for( int i=0; i<NumOfSegTrig; ++i ){
     HB1( 10 +i+1, Form("Trigger Flag %d", i+1), 0x1000, 0, 0x1000 );
   }
-
-  HB1( 100, "Beam ToF", 200,  -10., 5. );
 
   //////////////////// SSD-T
   HB1( SSDTHid +0, "#Hits SSDT",  NumOfSegSSDT, 0., (double)NumOfSegSSDT );
@@ -1109,13 +1200,13 @@ ConfMan::InitializeHistograms( void )
     HB1( 1000 +g*100 +0, Form("SSD1 NHits %s", GoodInfo[g].c_str()), 50,  0., 50. );
     HB1( 2000 +g*100 +0, Form("SSD2 NHits %s", GoodInfo[g].c_str()), 50,  0., 50. );
     HB1( 3000 +g*100 +0, Form("SSD1 NLayers %s", GoodInfo[g].c_str()),
-  	 NumOfLayersSsdIn+1,  0., double(NumOfLayersSsdIn+1)  );
+  	 NumOfLayersSSD1+1,  0., double(NumOfLayersSSD1+1)  );
     HB1( 4000 +g*100 +0, Form("SSD2 NLayers %s", GoodInfo[g].c_str()),
-  	 NumOfLayersSsdOut+1, 0., double(NumOfLayersSsdOut+1) );
+  	 NumOfLayersSSD2+1, 0., double(NumOfLayersSSD2+1) );
   }
 
   //////////////////// SsdIn
-  for( int l=0; l<NumOfLayersSsdIn; ++l ){
+  for( int l=0; l<NumOfLayersSSD1; ++l ){
     const char* dname  = SsdInDetName[l].c_str();
     for( int g=0; g<nStatus; ++g ){
       int offset = SSD1Hid +(l+1)*1000 +g*100;
@@ -1174,7 +1265,7 @@ ConfMan::InitializeHistograms( void )
   }
 
   //////////////////// SsdOut
-  for( int l=0; l<NumOfLayersSsdOut; ++l ){
+  for( int l=0; l<NumOfLayersSSD2; ++l ){
     const char* dname  = SsdOutDetName[l].c_str();
     for( int g=0; g<nStatus; ++g ){
       int offset = SSD2Hid +(l+1)*1000 +g*100;
@@ -1233,11 +1324,61 @@ ConfMan::InitializeHistograms( void )
 
   ////////////////////////////////////////////
   //Tree
-  HBTree( "ssd", "tree of Himac" );
+  HBTree( "tree", "tree of Himac" );
   tree->Branch("evnum",     &event.evnum,     "evnum/I");
   tree->Branch("trignhits", &event.trignhits, "trignhits/I");
   tree->Branch("trigpat",    event.trigpat,   "trigpat[trignhits]/I");
   tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
+  
+  tree->Branch("unixtime",  &event.unixtime,  "unixtime/l");
+
+  // T1
+  tree->Branch("t1nhits",   &event.t1nhits,  "t1nhits/I");
+  tree->Branch("t1hitpat",   event.t1hitpat,  Form("t1hitpat[%d]/I", NumOfSegT1));
+  tree->Branch("t1ua", 	     event.t1ua,      Form("t1ua[%d]/D", NumOfSegT1));
+  tree->Branch("t1ut",       event.t1ut,      Form("t1ut[%d]/D", NumOfSegT1));
+  tree->Branch("t1da",       event.t1da,      Form("t1da[%d]/D", NumOfSegT1));
+  tree->Branch("t1dt",       event.t1dt,      Form("t1dt[%d]/D", NumOfSegT1));
+
+  // T2
+  tree->Branch("t2nhits",   &event.t2nhits,  "t2nhits/I");
+  tree->Branch("t2hitpat",   event.t2hitpat,  Form("t2hitpat[%d]/I", NumOfSegT2));
+  tree->Branch("t2ua", 	     event.t2ua,      Form("t2ua[%d]/D", NumOfSegT2));
+  tree->Branch("t2ut",       event.t2ut,      Form("t2ut[%d]/D", NumOfSegT2));
+  tree->Branch("t2da",       event.t2da,      Form("t2da[%d]/D", NumOfSegT2));
+  tree->Branch("t2dt",       event.t2dt,      Form("t2dt[%d]/D", NumOfSegT2));
+
+  // T3
+  tree->Branch("t3nhits",   &event.t3nhits,  "t3nhits/I");
+  tree->Branch("t3hitpat",   event.t3hitpat,  Form("t3hitpat[%d]/I", NumOfSegT3));
+  tree->Branch("t3ua", 	     event.t3ua,      Form("t3ua[%d]/D", NumOfSegT3));
+  tree->Branch("t3ut",       event.t3ut,      Form("t3ut[%d]/D", NumOfSegT3));
+  tree->Branch("t3da",       event.t3da,      Form("t3da[%d]/D", NumOfSegT3));
+  tree->Branch("t3dt",       event.t3dt,      Form("t3dt[%d]/D", NumOfSegT3));
+
+  // T4
+  tree->Branch("t4nhits",   &event.t4nhits,  "t4nhits/I");
+  tree->Branch("t4hitpat",   event.t4hitpat,  Form("t4hitpat[%d]/I", NumOfSegT4));
+  tree->Branch("t4ua", 	     event.t4ua,      Form("t4ua[%d]/D", NumOfSegT4));
+  tree->Branch("t4ut",       event.t4ut,      Form("t4ut[%d]/D", NumOfSegT4));
+  tree->Branch("t4da",       event.t4da,      Form("t4da[%d]/D", NumOfSegT4));
+  tree->Branch("t4dt",       event.t4dt,      Form("t4dt[%d]/D", NumOfSegT4));
+
+  // S1
+  tree->Branch("s1nhits",   &event.s1nhits,  "s1nhits/I");
+  tree->Branch("s1hitpat",   event.s1hitpat,  Form("s1hitpat[%d]/I", NumOfSegS1));
+  tree->Branch("s1ua", 	     event.s1ua,      Form("s1ua[%d]/D", NumOfSegS1));
+  tree->Branch("s1ut",       event.s1ut,      Form("s1ut[%d]/D", NumOfSegS1));
+  tree->Branch("s1da",       event.s1da,      Form("s1da[%d]/D", NumOfSegS1));
+  tree->Branch("s1dt",       event.s1dt,      Form("s1dt[%d]/D", NumOfSegS1));
+
+  // S2
+  tree->Branch("s2nhits",   &event.s2nhits,  "s2nhits/I");
+  tree->Branch("s2hitpat",   event.s2hitpat,  Form("s2hitpat[%d]/I", NumOfSegS2));
+  tree->Branch("s2ua", 	     event.s2ua,      Form("s2ua[%d]/D", NumOfSegS2));
+  tree->Branch("s2ut",       event.s2ut,      Form("s2ut[%d]/D", NumOfSegS2));
+  tree->Branch("s2da",       event.s2da,      Form("s2da[%d]/D", NumOfSegS2));
+  tree->Branch("s2dt",       event.s2dt,      Form("s2dt[%d]/D", NumOfSegS2));
 
   // SSD1-Y0
   tree->Branch("ssd1y0nhits",  &event.ssd1y0nhits,  "ssd1y0nhits/I");
@@ -1260,26 +1401,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("ssd1x0de",      event.ssd1x0de,     "ssd1x0de[ssd1x0nhits]/D");
   tree->Branch("ssd1x0time",    event.ssd1x0time,   "ssd1x0time[ssd1x0nhits]/D");
   tree->Branch("ssd1x0chisqr",  event.ssd1x0chisqr, "ssd1x0chisqr[ssd1x0nhits]/D");
-  // SSD1-Y1
-  tree->Branch("ssd1y1nhits",  &event.ssd1y1nhits,  "ssd1y1nhits/I");
-  tree->Branch("ssd1y1hitpat",  event.ssd1y1hitpat, "ssd1y1hitpat[ssd1y1nhits]/D");
-  tree->Branch("ssd1y1pos",     event.ssd1y1pos,    "ssd1y1pos[ssd1y1nhits]/D");
-  tree->Branch("ssd1y1ped",     event.ssd1y1ped,    "ssd1y1ped[ssd1y1nhits]/D");
-  tree->Branch("ssd1y1adc",     event.ssd1y1adc,    "ssd1y1adc[ssd1y1nhits]/D");
-  tree->Branch("ssd1y1tdc",     event.ssd1y1tdc,    "ssd1y1tdc[ssd1y1nhits]/D");
-  tree->Branch("ssd1y1de",      event.ssd1y1de,     "ssd1y1de[ssd1y1nhits]/D");
-  tree->Branch("ssd1y1time",    event.ssd1y1time,   "ssd1y1time[ssd1y1nhits]/D");
-  tree->Branch("ssd1y1chisqr",  event.ssd1y1chisqr, "ssd1y1chisqr[ssd1y1nhits]/D");
-  // SSD1-X1
-  tree->Branch("ssd1x1nhits",  &event.ssd1x1nhits,  "ssd1x1nhits/I");
-  tree->Branch("ssd1x1hitpat",  event.ssd1x1hitpat, "ssd1x1hitpat[ssd1x1nhits]/D");
-  tree->Branch("ssd1x1pos",     event.ssd1x1pos,    "ssd1x1pos[ssd1x1nhits]/D");
-  tree->Branch("ssd1x1ped",     event.ssd1x1ped,    "ssd1x1ped[ssd1x1nhits]/D");
-  tree->Branch("ssd1x1adc",     event.ssd1x1adc,    "ssd1x1adc[ssd1x1nhits]/D");
-  tree->Branch("ssd1x1tdc",     event.ssd1x1tdc,    "ssd1x1tdc[ssd1x1nhits]/D");
-  tree->Branch("ssd1x1de",      event.ssd1x1de,     "ssd1x1de[ssd1x1nhits]/D");
-  tree->Branch("ssd1x1time",    event.ssd1x1time,   "ssd1x1time[ssd1x1nhits]/D");
-  tree->Branch("ssd1x1chisqr",  event.ssd1x1chisqr, "ssd1x1chisqr[ssd1x1nhits]/D");
 
   // SSD2-X0
   tree->Branch("ssd2x0nhits",  &event.ssd2x0nhits,  "ssd2x0nhits/I");
@@ -1301,26 +1422,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("ssd2y0de",      event.ssd2y0de,     "ssd2y0de[ssd2y0nhits]/D");
   tree->Branch("ssd2y0time",    event.ssd2y0time,   "ssd2y0time[ssd2y0nhits]/D");
   tree->Branch("ssd2y0chisqr",  event.ssd2y0chisqr, "ssd2y0chisqr[ssd2y0nhits]/D");
-  // SSD2-X1
-  tree->Branch("ssd2x1nhits",  &event.ssd2x1nhits,  "ssd2x1nhits/I");
-  tree->Branch("ssd2x1hitpat",  event.ssd2x1hitpat, "ssd2x1hitpat[ssd2x1nhits]/D");
-  tree->Branch("ssd2x1pos",     event.ssd2x1pos,    "ssd2x1pos[ssd2x1nhits]/D");
-  tree->Branch("ssd2x1ped",     event.ssd2x1ped,    "ssd2x1ped[ssd2x1nhits]/D");
-  tree->Branch("ssd2x1adc",     event.ssd2x1adc,    "ssd2x1adc[ssd2x1nhits]/D");
-  tree->Branch("ssd2x1tdc",     event.ssd2x1tdc,    "ssd2x1tdc[ssd2x1nhits]/D");
-  tree->Branch("ssd2x1de",      event.ssd2x1de,     "ssd2x1de[ssd2x1nhits]/D");
-  tree->Branch("ssd2x1time",    event.ssd2x1time,   "ssd2x1time[ssd2x1nhits]/D");
-  tree->Branch("ssd2x1chisqr",  event.ssd2x1chisqr, "ssd2x1chisqr[ssd2x1nhits]/D");
-  // SSD2-Y1
-  tree->Branch("ssd2y1nhits",  &event.ssd2y1nhits,  "ssd2y1nhits/I");
-  tree->Branch("ssd2y1hitpat",  event.ssd2y1hitpat, "ssd2y1hitpat[ssd2y1nhits]/D");
-  tree->Branch("ssd2y1pos",     event.ssd2y1pos,    "ssd2y1pos[ssd2y1nhits]/D");
-  tree->Branch("ssd2y1ped",     event.ssd2y1ped,    "ssd2y1ped[ssd2y1nhits]/D");
-  tree->Branch("ssd2y1adc",     event.ssd2y1adc,    "ssd2y1adc[ssd2y1nhits]/D");
-  tree->Branch("ssd2y1tdc",     event.ssd2y1tdc,    "ssd2y1tdc[ssd2y1nhits]/D");
-  tree->Branch("ssd2y1de",      event.ssd2y1de,     "ssd2y1de[ssd2y1nhits]/D");
-  tree->Branch("ssd2y1time",    event.ssd2y1time,   "ssd2y1time[ssd2y1nhits]/D");
-  tree->Branch("ssd2y1chisqr",  event.ssd2y1chisqr, "ssd2y1chisqr[ssd2y1nhits]/D");
 
   // SSD1-Y0 Cluster
   tree->Branch("ssd1y0ncl",    &event.ssd1y0ncl,    "ssd1y0ncl/I");
@@ -1336,20 +1437,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("ssd1x0clde",    event.ssd1x0clde,   "ssd1x0clde[ssd1x0ncl]/D");
   tree->Branch("ssd1x0cltime",  event.ssd1x0cltime, "ssd1x0cltime[ssd1x0ncl]/D");
   tree->Branch("ssd1x0cltd",    event.ssd1x0cltd,   "ssd1x0cltd[ssd1x0ncl]/D");
-  // SSD1-Y1 Cluster
-  tree->Branch("ssd1y1ncl",    &event.ssd1y1ncl,    "ssd1y1ncl/I");
-  tree->Branch("ssd1y1clsize",  event.ssd1y1clsize, "ssd1y1clsize[ssd1y1ncl]/I");
-  tree->Branch("ssd1y1clpos",   event.ssd1y1clpos,  "ssd1y1clpos[ssd1y1ncl]/D");
-  tree->Branch("ssd1y1clde",    event.ssd1y1clde,   "ssd1y1clde[ssd1y1ncl]/D");
-  tree->Branch("ssd1y1cltime",  event.ssd1y1cltime, "ssd1y1cltime[ssd1y1ncl]/D");
-  tree->Branch("ssd1y1cltd",    event.ssd1y1cltd,   "ssd1y1cltd[ssd1y1ncl]/D");
-  // SSD1-X1 Cluster
-  tree->Branch("ssd1x1ncl",    &event.ssd1x1ncl,    "ssd1x1ncl/I");
-  tree->Branch("ssd1x1clsize",  event.ssd1x1clsize, "ssd1x1clsize[ssd1x1ncl]/I");
-  tree->Branch("ssd1x1clpos",   event.ssd1x1clpos,  "ssd1x1clpos[ssd1x1ncl]/D");
-  tree->Branch("ssd1x1clde",    event.ssd1x1clde,   "ssd1x1clde[ssd1x1ncl]/D");
-  tree->Branch("ssd1x1cltime",  event.ssd1x1cltime, "ssd1x1cltime[ssd1x1ncl]/D");
-  tree->Branch("ssd1x1cltd",    event.ssd1x1cltd,   "ssd1x1cltd[ssd1x1ncl]/D");
 
   // SSD2-X0 Cluster
   tree->Branch("ssd2x0ncl",    &event.ssd2x0ncl,    "ssd2x0ncl/I");
@@ -1365,29 +1452,12 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("ssd2y0clde",    event.ssd2y0clde,   "ssd2y0clde[ssd2y0ncl]/D");
   tree->Branch("ssd2y0cltime",  event.ssd2y0cltime, "ssd2y0cltime[ssd2y0ncl]/D");
   tree->Branch("ssd2y0cltd",    event.ssd2y0cltd,   "ssd2y0cltd[ssd1y0ncl]/D");
-  // SSD2-X1 Cluster
-  tree->Branch("ssd2x1ncl",    &event.ssd2x1ncl,    "ssd2x1ncl/I");
-  tree->Branch("ssd2x1clsize",  event.ssd2x1clsize, "ssd2x1clsize[ssd2x1ncl]/I");
-  tree->Branch("ssd2x1clpos",   event.ssd2x1clpos,  "ssd2x1clpos[ssd2x1ncl]/D");
-  tree->Branch("ssd2x1clde",    event.ssd2x1clde,   "ssd2x1clde[ssd2x1ncl]/D");
-  tree->Branch("ssd2x1cltime",  event.ssd2x1cltime, "ssd2x1cltime[ssd2x1ncl]/D");
-  tree->Branch("ssd2x1cltd",    event.ssd2x1cltd,   "ssd2x1cltd[ssd2x1ncl]/D");
-  // SSD2-Y1 Cluster
-  tree->Branch("ssd2y1ncl",    &event.ssd2y1ncl,    "ssd2y1ncl/I");
-  tree->Branch("ssd2y1clsize",  event.ssd2y1clsize, "ssd2y1clsize[ssd2y1ncl]/I");
-  tree->Branch("ssd2y1clpos",   event.ssd2y1clpos,  "ssd2y1clpos[ssd2y1ncl]/D");
-  tree->Branch("ssd2y1clde",    event.ssd2y1clde,   "ssd2y1clde[ssd2y1ncl]/D");
-  tree->Branch("ssd2y1cltime",  event.ssd2y1cltime, "ssd2y1cltime[ssd2y1ncl]/D");
-  tree->Branch("ssd2y1cltd",    event.ssd2y1cltd,   "ssd2y1cltd[ssd2y1ncl]/D");
 
   // SSDT
   tree->Branch("ssdtnhits",    &event.ssdtnhits,    "ssdtnhits/I");
   tree->Branch("ssdthitpat",    event.ssdthitpat,   "ssdthitpat[ssdtnhits]/D");
   tree->Branch("ssdtdc",        event.ssdtdc,       "ssdtdc[ssdtnhits]/D");
   tree->Branch("ssdtime",       event.ssdtime,      "ssdtime[ssdtnhits]/D");
-  tree->Branch("ntBcOut",       event.ntBcOut,      "ntBcOut/I");
-  tree->Branch("ntSdcIn",       event.ntSdcIn,      "ntSdcIn/I");
-  tree->Branch("ntSdcOut",      event.ntSdcOut,     "ntSdcOut/I");
 
   HPrint();
 
@@ -1400,11 +1470,9 @@ ConfMan::InitializeParameterFiles( void )
 {
   return
     ( InitializeParameter<DCGeomMan>("DCGEO")        &&
-      InitializeParameter<DCDriftParamMan>("DCDRFT") &&
-      InitializeParameter<DCTdcCalibMan>("DCTDC")    &&
       InitializeParameter<HodoParamMan>("HDPRM")     &&
       InitializeParameter<HodoPHCMan>("HDPHC")       &&
-      InitializeParameter<SsdParamMan>("SSDPRM")     &&
+      //InitializeParameter<SsdParamMan>("SSDPRM")     &&
       InitializeParameter<UserParamMan>("USER")      );
 }
 

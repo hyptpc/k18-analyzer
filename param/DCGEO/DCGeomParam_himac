@@ -1,0 +1,68 @@
+##
+#  file: DCGeomParam_E07_20170213
+#  date: 2017.04.11
+#  note:
+#    the origin of KURAMA coordinate is the center of KURAMA.
+#    KURAMA-X is +150.0mm from beam axis.
+#    KURAMA-Z is +1738.4mm from FF.
+#    FF is +1200.0mm from VO.
+#    VI is -170.0mm from a surface of Q10
+#    VO is +170.0mm from a surface of Q13
+#    L is defined as follows
+#    BH1, BFT  -> from VI
+#    Target    -> KURAMA coordinate
+#    K18Target -> from VO
+#    BC34, BH2 -> from VO
+#    BAC, FBH  -> from VO
+#    Others    -> KURAMA coordinate
+#
+#    2017.04.10 first version for E07 Phase2
+#    2017.01.10 apply resolutions
+#    2016.10.05 reflect measured value again
+#    2016.08.20 reflect measured value again
+#    2016.07.29 modify SSD offset
+#    2016.06.30 modify SDC2,3 Z position
+#    2016.06.15 modify offset of BC3,4 SDC1,2,3
+#               roughly calculate SSD12 position
+#    2016.06.07 modify a mistake (SDC2-Z)
+#    2016.06.01 modify a mistake
+#    2016.05.25 reflect measured value
+#    2015.12.22 first made for simulation data
+#
+#######################################################################
+#  KURAMA part  #######################################################
+#######################################################################
+# Name Explanation (use DCGeomRecord as refference):
+#	Xk   :	x on KURAMA coordinate [mm]
+#	Yk   :	y on KURAMA coordinate [mm]
+#	Zk   :	z on KURAMA coordinate [mm]
+#	TA   :	tilt angle [deg]
+#	RA1  :	rotation angle along x-axis [deg]
+#	RA2  :	rotation angle aling y-axis [deg]
+#	L    :	local length from target or TOF [mm]
+#	Res  :	resolution [mm]
+#	W0   :	central wire # (1-origin)
+#	dXdW :	sense wire pitch [mm]
+#	Ofs  :	offset [mm] (to be tuned by analysis)
+#
+#######################################################################
+#
+# Id	Name	Xk	Yk	Zk	TA	RA1	RA2	L	Res	W0	dXdW	Ofs
+#
+### Target
+0	Target	-150.674 0.11	-1064.2	0.0	0.0	0.0	-1064.2	0.00	1.0	1.0	0.0
+#0	Diamond	-150.674 0.11	-1064.2	0.0	0.0	0.0	-1064.2	0.00	1.0	1.0	0.0
+#0	CH2	-151.27	 -0.83	-1064.6	0.0	0.0	0.0	-1064.6	0.00	1.0	1.0	0.0
+#
+### SSD1
+7	SSD1-Y1	-150.00	0.00	-1044.04 -90.0	0.0	0.0	-1044.04 0.080	768.5	0.05	0.243
+8	SSD1-X1	-150.00	0.00	-1043.54 0.0	0.0	0.0	-1043.54 0.080	768.5	0.05	0.390
+9	SSD1-Y2	-150.00	0.00	-1043.04 90.0	0.0	0.0	-1043.04 0.080	768.5	0.05	0.243
+10	SSD1-X2	-150.00	0.00	-1042.54 180.0	0.0	0.0	-1042.54 0.080	768.5	0.05	0.390
+### SSD2
+11	SSD2-X1	-150.00	0.00	-1020.06 0.0	0.0	0.0	-1020.06 0.080	768.5	0.05	0.456
+12	SSD2-Y1	-150.00	0.00	-1019.56 90.0	0.0	0.0	-1019.56 0.080	768.5	0.05	0.533
+13	SSD2-X2	-150.00	0.00	-1018.56 180.0	0.0	0.0	-1018.56 0.080	768.5	0.05	0.139
+14	SSD2-Y2	-150.00	0.00	-1018.06 -90.0	0.0	0.0	-1018.06 0.080	768.5	0.05	0.145
+#
+#

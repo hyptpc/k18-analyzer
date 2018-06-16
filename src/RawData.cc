@@ -281,7 +281,7 @@ RawData::DecodeHits( void )
   }
 
   // SsdIn (SSD1)
-  for( int plane=0; plane<NumOfLayersSsdIn; ++plane ){
+  for( int plane=0; plane<NumOfLayersSSD1; ++plane ){
   //   for( int type=0; type<kDcNDataType; ++type ){
     for( int type=0; type<kDcNDataType - 1; ++type ){
       for( int seg=0; seg<NumOfSegSSD1; ++seg ){
@@ -295,7 +295,7 @@ RawData::DecodeHits( void )
   }//for(plane)
 
   // SsdOut (SSD2)
-  for( int plane=0; plane<NumOfLayersSsdOut; ++plane ){
+  for( int plane=0; plane<NumOfLayersSSD2; ++plane ){
   //   for( int type=0; type<kDcNDataType; ++type ){
     for( int type=0; type<kDcNDataType - 1; ++type ){
       for( int seg=0; seg<NumOfSegSSD2; ++seg ){
@@ -307,7 +307,7 @@ RawData::DecodeHits( void )
       }//for(seg)
     }//for(type)
   }//for(plane)
-
+#if 0
   // Scaler
   for( int l = 0; l<NumOfScaler; ++l){
     for( int seg=0; seg<NumOfSegScaler; ++seg ){
@@ -318,6 +318,7 @@ RawData::DecodeHits( void )
       }
     }
   }// for(l)
+#endif
 
   // trigger Flag ---------------------------------------------------------------
   DecodeHodo( DetIdTrig, NumOfSegTrig, kOneSide, m_TrigRawHC );
