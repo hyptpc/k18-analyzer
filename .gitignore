@@ -8,6 +8,7 @@
 *.pf
 *.pyc
 *.stat
+*.swp
 \#*
 Makefile
 bin

@@ -29,6 +29,12 @@ private:
 
 private:
   bool              m_is_decoded;
+  HodoRHitContainer m_T1RawHC;
+  HodoRHitContainer m_T2RawHC;
+  HodoRHitContainer m_T3RawHC;
+  HodoRHitContainer m_T4RawHC;
+  HodoRHitContainer m_S1RawHC;
+  HodoRHitContainer m_S2RawHC;
   HodoRHitContainer m_BH1RawHC;
   HodoRHitContainer m_BH2RawHC;
   HodoRHitContainer m_BACRawHC;
@@ -64,6 +70,12 @@ public:
   bool                     DecodeHits( void );
   bool                     DecodeCalibHits( void );
 
+  const HodoRHitContainer& GetT1RawHC( void ) const;
+  const HodoRHitContainer& GetT2RawHC( void ) const;
+  const HodoRHitContainer& GetT3RawHC( void ) const;
+  const HodoRHitContainer& GetT4RawHC( void ) const;
+  const HodoRHitContainer& GetS1RawHC( void ) const;
+  const HodoRHitContainer& GetS2RawHC( void ) const;
   const HodoRHitContainer& GetBH1RawHC( void ) const;
   const HodoRHitContainer& GetBH2RawHC( void ) const;
   const HodoRHitContainer& GetBACRawHC( void ) const;
@@ -97,6 +109,48 @@ public:
   const HodoRHitContainer& GetFpgaBH2RawHC( void ) const;
   const HodoRHitContainer& GetFpgaBH2MtRawHC( void ) const;
 };
+
+//______________________________________________________________________________
+inline const HodoRHitContainer&
+RawData::GetT1RawHC( void ) const
+{
+  return m_T1RawHC;
+}
+
+//______________________________________________________________________________
+inline const HodoRHitContainer&
+RawData::GetT2RawHC( void ) const
+{
+  return m_T2RawHC;
+}
+
+//______________________________________________________________________________
+inline const HodoRHitContainer&
+RawData::GetT3RawHC( void ) const
+{
+  return m_T3RawHC;
+}
+
+//______________________________________________________________________________
+inline const HodoRHitContainer&
+RawData::GetT4RawHC( void ) const
+{
+  return m_T4RawHC;
+}
+
+//______________________________________________________________________________
+inline const HodoRHitContainer&
+RawData::GetS1RawHC( void ) const
+{
+  return m_S1RawHC;
+}
+
+//______________________________________________________________________________
+inline const HodoRHitContainer&
+RawData::GetS2RawHC( void ) const
+{
+  return m_S2RawHC;
+}
 
 //______________________________________________________________________________
 inline const HodoRHitContainer&

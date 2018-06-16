@@ -28,6 +28,12 @@
 namespace
 {
   const std::string& class_name("HodoAnalyzer");
+  const double MaxTimeDifT1  =  2.0;
+  const double MaxTimeDifT2  =  2.0;
+  const double MaxTimeDifT3  =  2.0;
+  const double MaxTimeDifT4  =  2.0;
+  const double MaxTimeDifS1  =  2.0;
+  const double MaxTimeDifS2  =  2.0;
   const double MaxTimeDifBH1 =  2.0;
   const double MaxTimeDifBH2 =  2.0;
   const double MaxTimeDifTOF =  3.5;
@@ -49,6 +55,12 @@ HodoAnalyzer::HodoAnalyzer( void )
 //______________________________________________________________________________
 HodoAnalyzer::~HodoAnalyzer( void )
 {
+  ClearT1Hits();
+  ClearT2Hits();
+  ClearT3Hits();
+  ClearT4Hits();
+  ClearS1Hits();
+  ClearS2Hits();
   ClearBH1Hits();
   ClearBH2Hits();
   ClearBACHits();
@@ -63,6 +75,54 @@ HodoAnalyzer::~HodoAnalyzer( void )
   ClearSCHHits();
   ClearFBHHits();
   debug::ObjectCounter::decrease(class_name);
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::ClearT1Hits( void )
+{
+  del::ClearContainer( m_T1Cont );
+  del::ClearContainer( m_T1ClCont );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::ClearT2Hits( void )
+{
+  del::ClearContainer( m_T2Cont );
+  del::ClearContainer( m_T2ClCont );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::ClearT3Hits( void )
+{
+  del::ClearContainer( m_T3Cont );
+  del::ClearContainer( m_T3ClCont );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::ClearT4Hits( void )
+{
+  del::ClearContainer( m_T4Cont );
+  del::ClearContainer( m_T4ClCont );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::ClearS1Hits( void )
+{
+  del::ClearContainer( m_S1Cont );
+  del::ClearContainer( m_S1ClCont );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::ClearS2Hits( void )
+{
+  del::ClearContainer( m_S2Cont );
+  del::ClearContainer( m_S2ClCont );
 }
 
 //______________________________________________________________________________
@@ -179,6 +239,12 @@ HodoAnalyzer::ClearFBHHits( void )
 bool
 HodoAnalyzer::DecodeRawHits( RawData *rawData )
 {
+  DecodeT1Hits( rawData );
+  DecodeT2Hits( rawData );
+  DecodeT3Hits( rawData );
+  DecodeT4Hits( rawData );
+  DecodeS1Hits( rawData );
+  DecodeS2Hits( rawData );
   DecodeBH1Hits( rawData );
   DecodeBH2Hits( rawData );
   DecodeBACHits( rawData );
@@ -192,6 +258,162 @@ HodoAnalyzer::DecodeRawHits( RawData *rawData )
   DecodeSFTHits( rawData );
   DecodeSCHHits( rawData );
   DecodeFBHHits( rawData );
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::DecodeT1Hits( RawData *rawData )
+{
+  ClearT1Hits();
+  const HodoRHitContainer &cont = rawData->GetT1RawHC();
+  int nh = cont.size();
+  for( int i=0; i<nh; ++i ){
+    HodoRawHit *hit = cont[i];
+    if( !hit ) continue;
+    if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
+    Hodo2Hit *hp = new Hodo2Hit( hit );
+    if( !hp ) continue;
+    if( hp->Calculate() )
+      m_T1Cont.push_back(hp);
+    else
+      delete hp;
+  }//for(i)
+
+#if Cluster
+  MakeUpClusters( m_T1Cont, m_T1ClCont, MaxTimeDifT1 );
+#endif
+
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::DecodeT2Hits( RawData *rawData )
+{
+  ClearT2Hits();
+  const HodoRHitContainer &cont = rawData->GetT2RawHC();
+  int nh = cont.size();
+  for( int i=0; i<nh; ++i ){
+    HodoRawHit *hit = cont[i];
+    if( !hit ) continue;
+    if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
+    Hodo2Hit *hp = new Hodo2Hit( hit );
+    if( !hp ) continue;
+    if( hp->Calculate() )
+      m_T2Cont.push_back(hp);
+    else
+      delete hp;
+  }//for(i)
+
+#if Cluster
+  MakeUpClusters( m_T2Cont, m_T2ClCont, MaxTimeDifT2 );
+#endif
+
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::DecodeT3Hits( RawData *rawData )
+{
+  ClearT3Hits();
+  const HodoRHitContainer &cont = rawData->GetT3RawHC();
+  int nh = cont.size();
+  for( int i=0; i<nh; ++i ){
+    HodoRawHit *hit = cont[i];
+    if( !hit ) continue;
+    if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
+    Hodo2Hit *hp = new Hodo2Hit( hit );
+    if( !hp ) continue;
+    if( hp->Calculate() )
+      m_T3Cont.push_back(hp);
+    else
+      delete hp;
+  }//for(i)
+
+#if Cluster
+  MakeUpClusters( m_T3Cont, m_T3ClCont, MaxTimeDifT3 );
+#endif
+
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::DecodeT4Hits( RawData *rawData )
+{
+  ClearT4Hits();
+  const HodoRHitContainer &cont = rawData->GetT4RawHC();
+  int nh = cont.size();
+  for( int i=0; i<nh; ++i ){
+    HodoRawHit *hit = cont[i];
+    if( !hit ) continue;
+    if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
+    Hodo2Hit *hp = new Hodo2Hit( hit );
+    if( !hp ) continue;
+    if( hp->Calculate() )
+      m_T4Cont.push_back(hp);
+    else
+      delete hp;
+  }//for(i)
+
+#if Cluster
+  MakeUpClusters( m_T4Cont, m_T4ClCont, MaxTimeDifT4 );
+#endif
+
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::DecodeS1Hits( RawData *rawData )
+{
+  ClearS1Hits();
+  const HodoRHitContainer &cont = rawData->GetS1RawHC();
+  int nh = cont.size();
+  for( int i=0; i<nh; ++i ){
+    HodoRawHit *hit = cont[i];
+    if( !hit ) continue;
+    if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
+    Hodo2Hit *hp = new Hodo2Hit( hit );
+    if( !hp ) continue;
+    if( hp->Calculate() )
+      m_S1Cont.push_back(hp);
+    else
+      delete hp;
+  }//for(i)
+
+#if Cluster
+  MakeUpClusters( m_S1Cont, m_S1ClCont, MaxTimeDifS1 );
+#endif
+
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::DecodeS2Hits( RawData *rawData )
+{
+  ClearS2Hits();
+  const HodoRHitContainer &cont = rawData->GetS2RawHC();
+  int nh = cont.size();
+  for( int i=0; i<nh; ++i ){
+    HodoRawHit *hit = cont[i];
+    if( !hit ) continue;
+    if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
+    Hodo2Hit *hp = new Hodo2Hit( hit );
+    if( !hp ) continue;
+    if( hp->Calculate() )
+      m_S2Cont.push_back(hp);
+    else
+      delete hp;
+  }//for(i)
+
+#if Cluster
+  MakeUpClusters( m_S2Cont, m_S2ClCont, MaxTimeDifS2 );
+#endif
+
   return true;
 }
 
@@ -934,6 +1156,78 @@ HodoAnalyzer::MakeUpCoincidence( const FiberHitContainer& cont,
 
 //______________________________________________________________________________
 bool
+HodoAnalyzer::ReCalcT1Hits( bool applyRecursively )
+{
+  int n = m_T1Cont.size();
+  for( int i=0; i<n; ++i ){
+    Hodo2Hit *hit = m_T1Cont[i];
+    if(hit) hit->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::ReCalcT2Hits( bool applyRecursively )
+{
+  int n = m_T2Cont.size();
+  for( int i=0; i<n; ++i ){
+    Hodo2Hit *hit = m_T2Cont[i];
+    if(hit) hit->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::ReCalcT3Hits( bool applyRecursively )
+{
+  int n = m_T3Cont.size();
+  for( int i=0; i<n; ++i ){
+    Hodo2Hit *hit = m_T3Cont[i];
+    if(hit) hit->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::ReCalcT4Hits( bool applyRecursively )
+{
+  int n = m_T4Cont.size();
+  for( int i=0; i<n; ++i ){
+    Hodo2Hit *hit = m_T4Cont[i];
+    if(hit) hit->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::ReCalcS1Hits( bool applyRecursively )
+{
+  int n = m_S1Cont.size();
+  for( int i=0; i<n; ++i ){
+    Hodo2Hit *hit = m_S1Cont[i];
+    if(hit) hit->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::ReCalcS2Hits( bool applyRecursively )
+{
+  int n = m_S2Cont.size();
+  for( int i=0; i<n; ++i ){
+    Hodo2Hit *hit = m_S2Cont[i];
+    if(hit) hit->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
 HodoAnalyzer::ReCalcBH1Hits( bool applyRecursively )
 {
   int n = m_BH1Cont.size();
@@ -1032,6 +1326,78 @@ HodoAnalyzer::ReCalcLCHits( bool applyRecursively )
 
 //______________________________________________________________________________
 bool
+HodoAnalyzer::ReCalcT1Clusters( bool applyRecursively )
+{
+  int n = m_T1ClCont.size();
+  for( int i=0; i<n; ++i ){
+    HodoCluster *cl = m_T1ClCont[i];
+    if(cl) cl->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::ReCalcT2Clusters( bool applyRecursively )
+{
+  int n = m_T2ClCont.size();
+  for( int i=0; i<n; ++i ){
+    HodoCluster *cl = m_T2ClCont[i];
+    if(cl) cl->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::ReCalcT3Clusters( bool applyRecursively )
+{
+  int n = m_T3ClCont.size();
+  for( int i=0; i<n; ++i ){
+    HodoCluster *cl = m_T3ClCont[i];
+    if(cl) cl->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::ReCalcT4Clusters( bool applyRecursively )
+{
+  int n = m_T4ClCont.size();
+  for( int i=0; i<n; ++i ){
+    HodoCluster *cl = m_T4ClCont[i];
+    if(cl) cl->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::ReCalcS1Clusters( bool applyRecursively )
+{
+  int n = m_S1ClCont.size();
+  for( int i=0; i<n; ++i ){
+    HodoCluster *cl = m_S1ClCont[i];
+    if(cl) cl->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::ReCalcS2Clusters( bool applyRecursively )
+{
+  int n = m_S2ClCont.size();
+  for( int i=0; i<n; ++i ){
+    HodoCluster *cl = m_S2ClCont[i];
+    if(cl) cl->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
 HodoAnalyzer::ReCalcBH1Clusters( bool applyRecursively )
 {
   int n = m_BH1ClCont.size();
@@ -1082,6 +1448,12 @@ HodoAnalyzer::ReCalcLCClusters( bool applyRecursively )
 bool
 HodoAnalyzer::ReCalcAll( void )
 {
+  ReCalcT1Hits();
+  ReCalcT2Hits();
+  ReCalcT3Hits();
+  ReCalcT4Hits();
+  ReCalcS1Hits();
+  ReCalcS2Hits();
   ReCalcBH1Hits();
   ReCalcBH2Hits();
   ReCalcBACHits();
@@ -1090,11 +1462,59 @@ HodoAnalyzer::ReCalcAll( void )
   ReCalcFACHits();
   ReCalcTOFHits();
   ReCalcLCHits();
+  ReCalcT1Clusters();
+  ReCalcT2Clusters();
+  ReCalcT3Clusters();
+  ReCalcT4Clusters();
+  ReCalcS1Clusters();
+  ReCalcS2Clusters();
   ReCalcBH1Clusters();
   ReCalcBH2Clusters();
   ReCalcTOFClusters();
   ReCalcLCClusters();
   return true;
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::TimeCutT1( double tmin, double tmax )
+{
+  TimeCut( m_T1ClCont, tmin, tmax );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::TimeCutT2( double tmin, double tmax )
+{
+  TimeCut( m_T2ClCont, tmin, tmax );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::TimeCutT3( double tmin, double tmax )
+{
+  TimeCut( m_T3ClCont, tmin, tmax );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::TimeCutT4( double tmin, double tmax )
+{
+  TimeCut( m_T4ClCont, tmin, tmax );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::TimeCutS1( double tmin, double tmax )
+{
+  TimeCut( m_S1ClCont, tmin, tmax );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::TimeCutS2( double tmin, double tmax )
+{
+  TimeCut( m_S2ClCont, tmin, tmax );
 }
 
 //______________________________________________________________________________

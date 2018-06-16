@@ -13,6 +13,12 @@
 #define RunE40 1
 
 // Counters ___________________________________________________________
+const int DetIdT1       =  201;
+const int DetIdT2       =  202;
+const int DetIdT3       =  203;
+const int DetIdT4       =  204;
+const int DetIdS1       =  211;
+const int DetIdS2       =  212;
 const int DetIdBH1      =  1;
 const int DetIdBH2      =  2;
 const int DetIdBAC      =  3;
@@ -24,6 +30,12 @@ const int DetIdTOF      =  8;
 const int DetIdSAC      =  9;
 const int DetIdLC       = 10;
 const int DetIdHtTOF    = 11; // high threshold TOF
+const int NumOfSegT1    = 1;
+const int NumOfSegT2    = 2;
+const int NumOfSegT3    = 1;
+const int NumOfSegT4    = 2;
+const int NumOfSegS1    = 3;
+const int NumOfSegS2    = 3;
 const int NumOfSegBH1   = 11;
 const int NumOfSegBH2   =  8;
 const int NumOfSegBAC   =  2;
@@ -160,8 +172,8 @@ const int PlOffsSdcOut     =  30;
 const int PlOffsSsd        =   6;
 
 const int NumOfLayersBc     = 6;
-const int NumOfLayersSSD1   = 4;
-const int NumOfLayersSSD2   = 4;
+const int NumOfLayersSSD1   = 2;
+const int NumOfLayersSSD2   = 2;
 const int NumOfLayersSFT    = 3;
 const int NumOfLayersSDC1   = 6;
 const int NumOfLayersSDC2   = 4;
@@ -186,8 +198,8 @@ const int MaxWireSDC3Y    =  64;
 const int    NumOfSampleSSD      =    8;
 const double SamplingIntervalSSD =  25.; //[ns]
 const int    NumOfSegSSD0        = 1536;
-const int    NumOfSegSSD1        = 1536;
-const int    NumOfSegSSD2        = 1536;
+const int    NumOfSegSSD1        = 384;
+const int    NumOfSegSSD2        = 384;
 
 const int NumOfPlaneBFT   =   2;
 const int NumOfSegBFT     = 160;
