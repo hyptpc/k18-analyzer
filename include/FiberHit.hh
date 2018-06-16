@@ -30,11 +30,11 @@ private:
 protected:
   std::string m_detector_name;
   int         m_segment;
-  int         m_ud;
   double      m_position;
   double      m_offset;
   int         m_pair_id;
   bool        m_status;
+  std::vector<bool>   m_flag_join;
   std::vector<FLHit*> m_hit_container;
 
   struct data_pair{
@@ -54,8 +54,8 @@ public:
   // Call super class method
   int    GetNLeading( void )  const { return Hodo1Hit::GetNumOfHit(0);    }
   int    GetNTrailing( void ) const { return Hodo1Hit::GetNumOfHit(1);    }
-  double GetLeading( int n=0 )  const { return m_ud==0? m_raw->GetTdc1(n)  : m_raw->GetTdc2(n);}
-  double GetTrailing( int n=0 ) const { return m_ud==0? m_raw->GetTdcT1(n) : m_raw->GetTdcT2(n);}
+  double GetLeading( int n=0 )  const { return m_raw->GetTdc1(n);         }
+  double GetTrailing( int n=0 ) const { return m_raw->GetTdcT1(n);        }
 
   // Call member in this class
   int    GetNPair( void )       const { return m_pair_cont.size();        }
@@ -67,8 +67,9 @@ public:
 
   double GetPosition( void )  const { return m_position + m_offset;       }
   int    PairId( void )       const { return m_pair_id;                   }
-  //  virtual double SegmentId( void )    const { return m_segment;                   }
-
+  double SegmentId( void )    const { return m_segment;                   }
+  void   SetJoined( int m )           { m_flag_join.at(m) = true;         }
+  bool   Joined( int m )        const { return m_flag_join.at(m);         }
   void   Print( const std::string& arg="", std::ostream& ost=hddaq::cout ) const;
   void   RegisterHits( FLHit* hit )   { m_hit_container.push_back(hit);   }
 

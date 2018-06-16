@@ -6,7 +6,7 @@
 
 #include "CatchSignal.hh"
 
-#include <csignal>
+#include <signal.h>
 
 #include <Unpacker.hh>
 #include <UnpackerManager.hh>
@@ -36,7 +36,6 @@ namespace CatchSignal
   Catch( int sig )
   {
     static const std::string func_name("["+name+"::"+__func__+"()]");
-    std::signal( SIGINT, SIG_IGN );
     user_stop = true;
     if ( gUnpacker.get_root()->is_esc_on() )
       hddaq::cout << esc::k_yellow
@@ -51,6 +50,6 @@ namespace CatchSignal
   void
   Set( int sig )
   {
-    std::signal( sig, Catch );
+    ::signal( sig, Catch );
   }
 }

@@ -37,7 +37,7 @@ MatrixParamMan::MatrixParamMan( void )
   for( int i=0; i<NumOfSegTOF; ++i ){
     m_enable_3d[i].resize( NumOfSegSCH );
     for( int j=0; j<NumOfSegSCH; ++j ){
-      m_enable_3d[i][j].resize( NumOfSegSFT_Mtx );
+      m_enable_3d[i][j].resize( NumOfSegCFBH );
     }
   }
 }
@@ -118,8 +118,8 @@ MatrixParamMan::Initialize( const std::string& filename_2d,
 	param[0] = param[0].substr(2);
 
       int channel = std::strtol( param[0].c_str(), NULL, 0 );
-      int enable[NumOfSegSFT_Mtx] = {};
-      for( int i=0; i<NumOfSegSFT_Mtx; ++i ){
+      int enable[NumOfSegCFBH] = {};
+      for( int i=0; i<NumOfSegCFBH; ++i ){
 	enable[i] = std::strtol( param[1].substr(i,1).c_str(), NULL, 0 );
 	m_enable_3d[tofseg][channel][i] = enable[i];
       }
@@ -203,7 +203,7 @@ MatrixParamMan::Print3D( const std::string& arg ) const
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
   hddaq::cout << "#D " << func_name << " " << arg << std::endl;
-  for( int k=0; k<NumOfSegSFT_Mtx; ++k ){
+  for( int k=0; k<NumOfSegCFBH; ++k ){
     hddaq::cout << " detC = " << std::setw(2)
 		<< std::right << k << std::endl;
     for( int i=NumOfSegTOF-1; i>=0; --i ){

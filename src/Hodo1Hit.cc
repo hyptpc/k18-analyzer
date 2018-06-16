@@ -28,12 +28,8 @@ namespace
 }
 
 //______________________________________________________________________________
-HodoHit::HodoHit(){};
-HodoHit::~HodoHit(){};
-
-//______________________________________________________________________________
 Hodo1Hit::Hodo1Hit( HodoRawHit *rhit, int index )
-  : HodoHit(), m_raw(rhit), m_is_calculated(false), m_index(index)
+  : m_raw(rhit), m_is_calculated(false), m_index(index)
 {
   debug::ObjectCounter::increase(class_name);
 }
@@ -119,21 +115,8 @@ Hodo1Hit::Calculate( void )
     double ctime = time;
     gPHC.DoCorrection(cid, plid, seg, UorD, time, dE, ctime );
     m_ct.push_back(ctime);
-
-    m_flag_join.push_back(false);
   }
 
   m_is_calculated = true;
   return true;
-}
-
-// ____________________________________________________________
-bool
-Hodo1Hit::JoinedAllMhit()
-{
-  bool ret = true;
-  for(int i = 0; i<m_flag_join.size(); ++i){
-    ret = ret & m_flag_join[i];
-  }// for(i)
-  return ret;
 }

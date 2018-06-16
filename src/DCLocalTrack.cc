@@ -231,7 +231,20 @@ DCLocalTrack::DoFit( void )
     }
     chisqr /= GetNDF();
 
-    if( iItr==0 ) m_chisqr1st = chisqr;
+    /* for SSD */
+    if( n==4 ){
+      chisqr = 0.;
+      for( std::size_t i=0; i<n; ++i ){
+	DCLTrackHit *hitp = m_hit_array[i];
+	if( !hitp ) continue;
+	chisqr += hitp->GetChisquare();
+	de     += hitp->GetDe();
+      }
+      chisqr /= 4;
+    }
+
+    if( iItr==0 )
+      m_chisqr1st = chisqr;
 
     // if worse, not update
     if( prev_chisqr-chisqr>0. ){

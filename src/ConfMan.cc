@@ -30,6 +30,7 @@
 #include "K18TransMatrix.hh"
 #include "MatrixParamMan.hh"
 #include "MsTParamMan.hh"
+#include "SsdParamMan.hh"
 #include "UnpackerManager.hh"
 #include "UserParamMan.hh"
 
@@ -148,12 +149,6 @@ ConfMan::FilePath( const std::string& src ) const
   std::ifstream tmp( src.c_str() );
   if ( tmp.good() )
     return src;
-  else {
-    std::string path = sConfDir + '/' + src;
-    tmp = std::ifstream( path.c_str() ); 
-    if ( tmp.good() )
-      return path;
-    else
-      return sConfDir + "+" + src;
-  }
+  else
+    return sConfDir + "+" + src;
 }

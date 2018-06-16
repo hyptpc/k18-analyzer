@@ -651,7 +651,7 @@ RK::Trace( const RKCordParameter &initial, RKHitPointContainer &hitContainer )
   int iStep = 0;
 
   while( ++iStep < MaxStep ){
-    //    std::cout << "step#: " << iStep << std::endl;
+    // std::cout << "step#: " << iStep << std::endl;
     double StepSize = gField.StepSize( prevPoint.PositionInGlobal(),
 				       NormalStepSize, MinStepSize );
     RKTrajectoryPoint nextPoint = RK::TraceOneStep( StepSize, prevPoint );
@@ -803,16 +803,20 @@ RK::MakeHPContainer( void )
   /*** From Upstream ***/
   container.push_back( std::make_pair( IdTarget, RKcalcHitPoint() ) );
 
+  // for( std::size_t i=0; i<NumOfLayersSsdIn; ++i ){
+  //   std::size_t plid = i +PlOffsSsd +1;
+  //   container.push_back( std::make_pair( plid, RKcalcHitPoint() ) );
+  // }
+  // for( std::size_t i=0; i<NumOfLayersSsdOut; ++i ){
+  //   std::size_t plid = i +PlOffsSsd +NumOfLayersSsdIn +1;
+  //   container.push_back( std::make_pair( plid, RKcalcHitPoint() ) );
+  // }
   for( std::size_t i=0; i<NumOfLayersSFT; ++i ){
     std::size_t plid = i +PlOffsSft +1;
     container.push_back( std::make_pair( plid, RKcalcHitPoint() ) );
   }
   for( std::size_t i=0; i<NumOfLayersSDC1; ++i ){
     std::size_t plid = i +PlOffsSdcIn +1;
-    container.push_back( std::make_pair( plid, RKcalcHitPoint() ) );
-  }
-  for( std::size_t i=0; i<NumOfLayersVP; ++i ){
-    std::size_t plid = i +PlOffsVP +1;
     container.push_back( std::make_pair( plid, RKcalcHitPoint() ) );
   }
   for( std::size_t i=0; i<NumOfLayersSdcOut; ++i ){

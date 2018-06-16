@@ -97,12 +97,21 @@ UserEventDisplay::ProcessingNormal( void )
 
   static const double MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
   static const double MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
+  static const double MinTdcFBH  = gUser.GetParameter("TdcFBH", 0);
+  static const double MaxTdcFBH  = gUser.GetParameter("TdcFBH", 1);
   static const double MinTdcSCH  = gUser.GetParameter("TdcSCH", 0);
   static const double MaxTdcSCH  = gUser.GetParameter("TdcSCH", 1);
+  static const double MinDeSSDKaon = gUser.GetParameter("DeSSDKaon", 0);
+  static const double MaxDeSSDKaon = gUser.GetParameter("DeSSDKaon", 1);
+  static const double MinTimeSSD = gUser.GetParameter("TimeSSD", 0);
+  static const double MaxTimeSSD = gUser.GetParameter("TimeSSD", 1);
+
+  static const double MaxChisqrSSD = gUser.GetParameter("MaxChisqrSSD", 0);
 
   static const double OffsetToF  = gUser.GetParameter("OffsetToF");
 
   // static const int IdBH2 = gGeom.GetDetectorId("BH2");
+  static const int IdFBH = gGeom.GetDetectorId("FBH");
   static const int IdSCH = gGeom.GetDetectorId("SCH");
   static const int IdTOF = gGeom.GetDetectorId("TOF");
 
@@ -127,6 +136,20 @@ UserEventDisplay::ProcessingNormal( void )
       trigflag[seg-1] = tdc;
     }
     if( trigflag[SpillEndFlag]>0 ) return true;
+  }
+
+  //SSDT
+  std::vector<double> t0Ssd( NumOfSegSSDT, 0. );
+  {
+    hodoAna->DecodeSSDTHits( rawData );
+    int nh = hodoAna->GetNHitsSSDT();
+    for( int i=0; i<nh; ++i ){
+      Hodo1Hit *hit = hodoAna->GetHitSSDT(i);
+      if(!hit) continue;
+      int    seg  = hit->SegmentId()+1;
+      double time = hit->Time();
+      t0Ssd[seg-1] = time;
+    }
   }
 
   // BH2
@@ -170,6 +193,25 @@ UserEventDisplay::ProcessingNormal( void )
     TOFCont.push_back( hit );
   }
   if( nhTof==0 ) return true;
+
+  // FBH
+  {
+    hodoAna->DecodeFBHHits(rawData);
+    int nhFbh = hodoAna->GetNHitsFBHCoin();
+    for( int i=0; i<nhFbh; ++i ){
+      FLHit *hit = hodoAna->GetHitFBHCoin(i);
+      if( !hit ) continue;
+      double seg = hit->SegmentId();
+      bool   hit_flag = false;
+      double leading = hit->GetLeading();
+      if( MinTdcFBH<leading && leading<MaxTdcFBH ){
+	hit_flag = true;
+      }
+      if( hit_flag ){
+  	gEvDisp.DrawHitHodoscope( IdFBH, seg );
+      }
+    }
+  }
 
   // SCH
   {
@@ -278,6 +320,41 @@ UserEventDisplay::ProcessingNormal( void )
     }
   }
   if( ntBcOut==0 ) return true;
+
+  // SsdAnalysis
+  DCAna->DoTimeCorrectionSsd( t0Ssd );
+  DCAna->ChisqrFilterSsd( MaxChisqrSSD );
+  DCAna->ClusterizeSsd();
+  // for SsdCluster
+  DCAna->DeltaEFilterSsd( MinDeSSDKaon, MaxDeSSDKaon, true );
+  DCAna->TimeFilterSsd( MinTimeSSD, MaxTimeSSD, true );
+  // SsdIn
+  for( int l=1; l<=NumOfLayersSsdIn; ++l ){
+    const SsdClusterContainer &cont = DCAna->GetClusterSsdIn(l);
+    const std::size_t nh = cont.size();
+    for( std::size_t i=0; i<nh; ++i ){
+      SsdCluster *cluster = cont[i];
+      if(!cluster) continue;
+      int    layer = cluster->LayerId();
+      double seg   = cluster->MeanSeg();
+      double de    = cluster->DeltaE();
+      gEvDisp.DrawSsdHit( layer, seg, de );
+    }
+  }
+
+  // SsdOut
+  for( int l=1; l<=NumOfLayersSsdOut; ++l ){
+    const SsdClusterContainer &cont = DCAna->GetClusterSsdOut(l);
+    const std::size_t nh = cont.size();
+    for( std::size_t i=0; i<nh; ++i ){
+      SsdCluster *cluster = cont[i];
+      if(!cluster) continue;
+      int    layer = cluster->LayerId();
+      double seg   = cluster->MeanSeg();
+      double de    = cluster->DeltaE();
+      gEvDisp.DrawSsdHit( layer, seg, de );
+    }
+  }
 
   int ntSdcIn = 0;
   if( multi_SdcIn<MaxMultiHitSdcIn ){
@@ -433,6 +510,7 @@ ConfMan::InitializeParameterFiles( void )
       InitializeParameter<HodoPHCMan>("HDPHC")       &&
       InitializeParameter<FieldMan>("FLDMAP")        &&
       InitializeParameter<K18TransMatrix>("K18TM")   &&
+      InitializeParameter<SsdParamMan>("SSDPRM")     &&
       InitializeParameter<UserParamMan>("USER")      &&
       InitializeParameter<EventDisplay>()            );
 }

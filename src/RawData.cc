@@ -22,6 +22,8 @@
 #include "UserParamMan.hh"
 
 #define OscillationCut 0
+#define E07CntIs 0
+#define E07SsdIs 0
 
 namespace
 {
@@ -134,10 +136,8 @@ namespace
 	for( int AorT=0; AorT<2; ++AorT ){
 	  int nhit = gUnpacker.get_entries( id, plane, seg, UorD, AorT );
 	  if( nhit<=0 ) continue;
-	  for(int m = 0; m<nhit; ++m){
-	    int data = gUnpacker.get( id, plane, seg, UorD, AorT, m );
-	    AddHodoRawHit( cont, id, plane, seg, UorD, AorT, data );
-	  }
+	  int data = gUnpacker.get( id, plane, seg, UorD, AorT );
+	  AddHodoRawHit( cont, id, plane, seg, UorD, AorT, data );
 	}
       }
     }
@@ -157,6 +157,9 @@ RawData::RawData( void )
   : m_is_decoded(false),
     m_BH1RawHC(),
     m_BH2RawHC(),
+    m_BACRawHC(),
+    m_PVACRawHC(),
+    m_FACRawHC(),
     m_SACRawHC(),
     m_TOFRawHC(),
     m_HtTOFRawHC(),
@@ -164,15 +167,19 @@ RawData::RawData( void )
     m_BFTRawHC(NumOfPlaneBFT),
     m_SFTRawHC(NumOfPlaneSFT),
     m_SCHRawHC(),
-    m_FBT1RawHC(2*NumOfLayersFBT1),
-    m_FBT2RawHC(2*NumOfLayersFBT2),
-    m_BcInRawHC(NumOfLayersBcIn+1),
+    m_FBHRawHC(),
+    m_SSDTRawHC(),
+    m_BcInRawHC(),
     m_BcOutRawHC(NumOfLayersBcOut+1),
     m_SdcInRawHC(NumOfLayersSdcIn+1),
     m_SdcOutRawHC(NumOfLayersSdcOut+1),
+    m_SsdInRawHC(NumOfLayersSsdIn+1),
+    m_SsdOutRawHC(NumOfLayersSsdOut+1),
     m_ScalerRawHC(),
     m_TrigRawHC(),
     m_VmeCalibRawHC(),
+    m_FpgaBH1RawHC(),
+    m_FpgaBH2RawHC(),
     m_FpgaBH2MtRawHC()
 {
   debug::ObjectCounter::increase(class_name);
@@ -193,6 +200,9 @@ RawData::ClearAll( void )
 
   del::ClearContainer( m_BH1RawHC );
   del::ClearContainer( m_BH2RawHC );
+  del::ClearContainer( m_BACRawHC );
+  del::ClearContainer( m_PVACRawHC );
+  del::ClearContainer( m_FACRawHC );
   del::ClearContainer( m_SACRawHC );
   del::ClearContainer( m_TOFRawHC );
   del::ClearContainer( m_HtTOFRawHC );
@@ -200,20 +210,24 @@ RawData::ClearAll( void )
 
   del::ClearContainerAll( m_BFTRawHC );
   del::ClearContainerAll( m_SFTRawHC );
-  del::ClearContainerAll( m_FBT1RawHC );
-  del::ClearContainerAll( m_FBT2RawHC );
 
   del::ClearContainer( m_SCHRawHC );
+  del::ClearContainer( m_FBHRawHC );
+  del::ClearContainer( m_SSDTRawHC );
 
-  del::ClearContainerAll( m_BcInRawHC );
+  // del::ClearContainerAll( m_BcInRawHC );
   del::ClearContainerAll( m_BcOutRawHC );
   del::ClearContainerAll( m_SdcInRawHC );
   del::ClearContainerAll( m_SdcOutRawHC );
+  del::ClearContainerAll( m_SsdInRawHC );
+  del::ClearContainerAll( m_SsdOutRawHC );
 
   del::ClearContainer( m_ScalerRawHC );
   del::ClearContainer( m_TrigRawHC );
   del::ClearContainer( m_VmeCalibRawHC );
 
+  del::ClearContainer( m_FpgaBH1RawHC );
+  del::ClearContainer( m_FpgaBH2RawHC );
   del::ClearContainer( m_FpgaBH2MtRawHC );
 }
 
@@ -250,10 +264,17 @@ RawData::DecodeHits( void )
   DecodeHodo( DetIdSAC, NumOfSegSAC, kOneSide,  m_SACRawHC );
   // TOF
   DecodeHodo( DetIdTOF, NumOfSegTOF, kBothSide, m_TOFRawHC );
-  // TOF-HT
-  DecodeHodo( DetIdHtTOF,NumOfSegHtTOF,kOneSide,  m_HtTOFRawHC );
   // LC
   DecodeHodo( DetIdLC,  NumOfSegLC,  kOneSide,  m_LCRawHC );
+
+#if E07CntIs
+  // BAC
+  DecodeHodo( DetIdBAC, NumOfSegBAC, kOneSide, m_BACRawHC );
+  // PVAC
+  DecodeHodo( DetIdPVAC, NumOfSegPVAC, kOneSide, m_PVACRawHC );
+  // FAC
+  DecodeHodo( DetIdFAC, NumOfSegFAC, kOneSide, m_FACRawHC );
+#endif
 
   //BFT
   for( int plane=0; plane<NumOfPlaneBFT; ++plane ){
@@ -306,35 +327,40 @@ RawData::DecodeHits( void )
     }
   }
 
-  //FBT1
-  for( int layer=0; layer<NumOfLayersFBT1; ++layer ){
-    for(int seg = 0; seg<MaxSegFBT1; ++seg){
-      for(int UorD = 0; UorD<2; ++UorD){
-	for(int LorT = 0; LorT<2; ++LorT){
-	  int nhit = gUnpacker.get_entries( DetIdFBT1, layer, seg, UorD, LorT);
-	  for(int i = 0; i<nhit; ++i){
-	    int time  = gUnpacker.get( DetIdFBT1, layer, seg, UorD, LorT, i )  ;
-	    AddHodoRawHit( m_FBT1RawHC[2*layer + UorD], DetIdFBT1, layer, seg , UorD, kHodoLeading+LorT, time );
-	  }// multihit
-	}// LorT
-      }// UorD
-    }// seg
-  }// layer
-
-  //FBT2
-  for( int layer=0; layer<NumOfLayersFBT2; ++layer ){
-    for(int seg = 0; seg<MaxSegFBT2; ++seg){
-      for(int UorD = 0; UorD<2; ++UorD){
-	for(int LorT = 0; LorT<2; ++LorT){
-	  int nhit = gUnpacker.get_entries( DetIdFBT2, layer, seg, UorD, LorT);
-	  for(int i = 0; i<nhit; ++i){
-	    int time  = gUnpacker.get( DetIdFBT2, layer, seg, UorD, LorT, i )  ;
-	    AddHodoRawHit( m_FBT2RawHC[2*layer + UorD], DetIdFBT2, layer, seg , UorD, kHodoLeading+LorT, time );
-	  }// multihit
-	}// LorT
-      }// UorD
-    }// seg
-  }// layer
+#if 0
+  // BC1&BC2 MWPC
+  for(int plane=0; plane<NumOfLayersBcIn; ++plane ){
+    if( plane<NumOfLayersBc ){
+      for(int wire=0; wire<MaxWireBC1; ++wire){
+  	int nhit = gUnpacker.get_entries( DetIdBC1, plane, 0, wire, 0 );
+  	if( nhit>0 ){
+  	  for(int i=0; i<nhit; i++ ){
+  	    int leading = gUnpacker.get( DetIdBC1, plane, 0, wire, 0, i );
+  	    int trailing = gUnpacker.get( DetIdBC1, plane, 0, wire, 1, i );
+  	    AddDCRawHit( m_BcInRawHC[plane+1], plane+PlMinBcIn, wire+1,
+  			 leading, kLeading );
+  	    AddDCRawHit( m_BcInRawHC[plane+1], plane+PlMinBcIn, wire+1,
+			 trailing, kTrailing );
+  	  }
+  	}
+      }
+    }else{
+      for(int wire=0; wire<MaxWireBC2; ++wire){
+      	int nhit = gUnpacker.get_entries( DetIdBC2, plane-NumOfLayersBc, 0, wire, 0 );
+      	if( nhit>0 ){
+  	  for(int i=0; i<nhit; i++ ){
+  	    int leading = gUnpacker.get( DetIdBC2, plane-NumOfLayersBc, 0, wire, 0, i );
+  	    int trailing = gUnpacker.get( DetIdBC2, plane-NumOfLayersBc, 0, wire, 1, i );
+  	    AddDCRawHit( m_BcInRawHC[plane+1], plane+PlMinBcIn, wire+1,
+  			 leading, kLeading);
+  	    AddDCRawHit( m_BcInRawHC[plane+1], plane+PlMinBcIn, wire+1,
+  			 trailing, kTrailing);
+  	  }
+  	}
+      }
+    }
+  }
+#endif
 
   // BC3&BC4 MWDC
   for(int plane=0; plane<NumOfLayersBcOut; ++plane ){
@@ -366,6 +392,45 @@ RawData::DecodeHits( void )
     }
   }
 
+#if E07SsdIs
+  //SSDT
+  DecodeHodo( DetIdSSDT, NumOfSegSSDT, kOneSide, m_SSDTRawHC );
+  for( int seg=0; seg<NumOfSegSSDT; ++seg ){
+    int nhit = gUnpacker.get_entries( DetIdSSDT, 0, seg*2, 0, 1 );
+    if( nhit<=0 ) continue;
+    int data = gUnpacker.get( DetIdSSDT, 0, seg*2, 0, 1 );
+    AddHodoRawHit( m_SSDTRawHC, DetIdSSDT, 0, seg, 0, 1, data );
+  }
+
+  // SsdIn (SSD1)
+  for( int plane=0; plane<NumOfLayersSsdIn; ++plane ){
+  //   for( int type=0; type<kDcNDataType; ++type ){
+    for( int type=0; type<kDcNDataType - 1; ++type ){
+      for( int seg=0; seg<NumOfSegSSD1; ++seg ){
+  	int nhit = gUnpacker.get_entries( DetIdSSD1, plane, seg, 0, type );
+  	for( int i=0; i<nhit; ++i ){
+  	  int data = gUnpacker.get( DetIdSSD1, plane, seg, 0, type, i );
+  	  AddDCRawHit( m_SsdInRawHC[plane+1], plane+PlMinSsdIn, seg+1, data, type );
+  	}//for(i)
+      }//for(seg)
+    }//for(type)
+  }//for(plane)
+
+  // SsdOut (SSD2)
+  for( int plane=0; plane<NumOfLayersSsdOut; ++plane ){
+  //   for( int type=0; type<kDcNDataType; ++type ){
+    for( int type=0; type<kDcNDataType - 1; ++type ){
+      for( int seg=0; seg<NumOfSegSSD2; ++seg ){
+  	int nhit = gUnpacker.get_entries( DetIdSSD2, plane, seg, 0, type );
+  	for(int i=0; i<nhit; ++i){
+  	  int data = gUnpacker.get( DetIdSSD2, plane, seg, 0, type, i );
+  	  AddDCRawHit( m_SsdOutRawHC[plane+1], plane+PlMinSsdOut, seg+1, data, type );
+  	}//for(i)
+      }//for(seg)
+    }//for(type)
+  }//for(plane)
+#endif
+
   // SdcIn (SDC1)
   for( int plane=0; plane<NumOfLayersSDC1; ++plane ){
     for( int wire=0; wire<MaxWireSDC1; ++wire ){
@@ -394,8 +459,6 @@ RawData::DecodeHits( void )
 	  for(int i=0; i<nhit; i++ ){
 	    int data = gUnpacker.get( DetIdSDC2, plane, 0, wire, lt, i );
 	    if( data<MinTdcSDC2 || MaxTdcSDC2<data ) continue;
-	    //	    if((plane == 0 || plane == 1) && 53 < wire && wire < 65) continue;
-	    //	    if((plane == 2 || plane == 3) && 61 < wire && wire < 68) continue;
 	    AddDCRawHit( m_SdcOutRawHC[plane+1], plane+PlMinSdcOut, wire+1, data , lt);
 	  }// for(i)
 	}// for(lt)
@@ -416,8 +479,6 @@ RawData::DecodeHits( void )
 	  for(int i=0; i<nhit; i++ ){
 	    int data = gUnpacker.get( DetIdSDC3, plane-NumOfLayersSDC2, 0, wire, lt ,i );
 	    if( data<MinTdcSDC3 || MaxTdcSDC3<data ) continue;
-	    //	    if((plane == 4 || plane == 5) && 30 < wire && wire < 38) continue;
-	    //	    if((plane == 6 || plane == 7) && 44 < wire && wire < 54) continue;
 	    AddDCRawHit( m_SdcOutRawHC[plane+1],  plane+PlMinSdcOut, wire+1, data , lt);
 	  }// for(i)
 	}// for(lt)
@@ -439,17 +500,39 @@ RawData::DecodeHits( void )
   // trigger Flag ---------------------------------------------------------------
   DecodeHodo( DetIdTrig, NumOfSegTrig, kOneSide, m_TrigRawHC );
 
-  {
-    // BH2Mt
-    static const int type_mt = gUnpacker.get_data_id("BH2", "fpga_meantime");
-    for(int seg = 0; seg<NumOfSegBH2; ++seg){
-      int mhit = gUnpacker.get_entries( DetIdBH2, 0, seg, 0, type_mt );
+  // FPGA HR-TDC ----------------------------------------------------------------
+  // BH1
+  for(int seg = 0; seg<NumOfSegBH1; ++seg){
+    for(int ud = 0; ud<2; ++ud){
+      int mhit = gUnpacker.get_entries( DetIdBH1, 0, seg, ud, 2 );
       for(int m = 0; m<mhit; ++m){
-	int data = gUnpacker.get( DetIdBH2, 0, seg, 0, type_mt , m);
-	AddHodoRawHit( m_FpgaBH2MtRawHC, DetIdFpgaBH2Mt, 0, seg, 0, kHodoLeading, data );
+	int data = gUnpacker.get( DetIdBH1, 0, seg, ud, 2 , m);
+	AddHodoRawHit( m_FpgaBH1RawHC, DetIdFpgaBH1, 0, seg, ud, kHodoLeading, data );
       }// for(m)
-    }// for(seg)
-  }
+    }// for(ud)
+  }// for(seg)
+
+  // BH2
+  for(int seg = 0; seg<NumOfSegBH2; ++seg){
+    for(int ud = 0; ud<2; ++ud){
+      int mhit = gUnpacker.get_entries( DetIdBH2, 0, seg, ud, 2 );
+      for(int m = 0; m<mhit; ++m){
+	int data = gUnpacker.get( DetIdBH2, 0, seg, ud, 2 , m);
+	AddHodoRawHit( m_FpgaBH2RawHC, DetIdFpgaBH2, 0, seg, ud, kHodoLeading, data );
+      }// for(m)
+    }// for(ud)
+  }// for(seg)
+
+#if 1
+  // BH2Mt
+  for(int seg = 0; seg<NumOfSegBH2; ++seg){
+    int mhit = gUnpacker.get_entries( DetIdBH2, 0, seg, 0, 6 );
+    for(int m = 0; m<mhit; ++m){
+      int data = gUnpacker.get( DetIdBH2, 0, seg, 0, 6 , m);
+      AddHodoRawHit( m_FpgaBH2MtRawHC, DetIdFpgaBH2Mt, 0, seg, 0, kHodoLeading, data );
+    }// for(m)
+  }// for(seg)
+#endif
 
   m_is_decoded = true;
   return true;

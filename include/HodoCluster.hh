@@ -9,14 +9,14 @@
 
 #include <cstddef>
 
-class HodoHit;
+class Hodo2Hit;
 class HodoAnalyzer;
 
 //______________________________________________________________________________
 class HodoCluster
 {
 public:
-  HodoCluster( HodoHit *hitA, HodoHit *hitB=0, HodoHit *hitC=0 );
+  HodoCluster( Hodo2Hit *hitA, Hodo2Hit *hitB=0, Hodo2Hit *hitC=0 );
   virtual ~HodoCluster( void );
 
 private:
@@ -24,15 +24,11 @@ private:
   HodoCluster & operator = ( const HodoCluster & );
 
 private:
-  HodoHit *m_hitA;
-  HodoHit *m_hitB;
-  HodoHit *m_hitC;
-  int       m_indexA;
-  int       m_indexB;
-  int       m_indexC;
+  Hodo2Hit *m_hitA;
+  Hodo2Hit *m_hitB;
+  Hodo2Hit *m_hitC;
   int       m_cluster_size;
   double    m_mean_time;
-  double    m_cmean_time;
   double    m_de;
   double    m_mean_seg;
   double    m_time_diff;
@@ -41,11 +37,9 @@ private:
   bool      m_good_for_analysis;
 
 public:
-  void Calculate( void );
-  HodoHit*  GetHit( int i )         const;
+  Hodo2Hit* GetHit( int i )         const;
   int       ClusterSize( void )     const { return m_cluster_size; }
-  double    MeanTime( void )        const { return m_mean_time;    }
-  double    CMeanTime( void )       const { return m_cmean_time;    }
+  double    CMeanTime( void )       const { return m_mean_time;    }
   double    DeltaE( void )          const { return m_de;           }
   double    MeanSeg( void )         const { return m_mean_seg;     }
   double    TimeDif( void )         const { return m_time_diff;    }
@@ -59,14 +53,9 @@ public:
     return pre_status;
   }
 
-  void      SetIndex(int iA, int iB=0, int iC=0)
-  {
-    m_indexA = iA; m_indexB = iB; m_indexC = iC;
-  }
-
   bool ReCalc( bool applyRecusively=false );
 
 private:
-
+  void Calculate( void );
 };
 #endif

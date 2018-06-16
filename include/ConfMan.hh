@@ -12,8 +12,6 @@
 #include <string>
 #include <vector>
 
-#include <TString.h>
-
 #include <std_ostream.hh>
 
 class VEvent;
@@ -22,7 +20,6 @@ class VEvent;
 class ConfMan
 {
 public:
-  static TString  ClassName( void );
   static ConfMan& GetInstance( void );
   ~ConfMan( void );
 
@@ -72,14 +69,6 @@ private:
   std::string FilePath( const std::string& src ) const;
   bool        ShowResult( bool s, const std::string& name ) const;
 };
-
-//______________________________________________________________________________
-inline TString
-ConfMan::ClassName( void )
-{
-  static TString g_name("ConfMan");
-  return g_name;
-}
 
 //______________________________________________________________________________
 inline ConfMan&

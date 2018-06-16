@@ -61,6 +61,42 @@ namespace track
 			      int MinNumOfHits=6 );
 
   //______________________________________________________________________________
+  int LocalTrackSearchSsdIn( const std::vector<DCHitContainer>& HC,
+			     std::vector<DCLocalTrack*>& TrackCont,
+			     int MinNumOfHits=4 );
+
+  //______________________________________________________________________________
+  int LocalTrackSearchSsdIn( const std::vector<SsdClusterContainer>& SsdInClCont,
+			     std::vector<DCLocalTrack*>& TrackCont,
+			     int MinNumOfHits=4 );
+
+  //______________________________________________________________________________
+  int LocalTrackSearchSsdOut( const std::vector<DCHitContainer>& HC,
+			      std::vector<DCLocalTrack*>& TrackCont,
+			      int MinNumOfHits=4 );
+
+  //______________________________________________________________________________
+  int LocalTrackSearchSsdOut( const std::vector<SsdClusterContainer>& SsdOutClCont,
+			      std::vector<DCLocalTrack*>& TrackCont,
+			      int MinNumOfHits=4 );
+
+  //______________________________________________________________________________
+  int LocalTrackSearchSsdInXY( const std::vector<DCHitContainer>& HC,
+			       std::vector<DCLocalTrack*>& TrackContX,
+			       std::vector<DCLocalTrack*>& TrackContY );
+
+  //______________________________________________________________________________
+  int LocalTrackSearchSsdInXY( const std::vector<SsdClusterContainer>& SsdInClCont,
+			       std::vector<DCLocalTrack*>& TrackContX,
+			       std::vector<DCLocalTrack*>& TrackContY );
+
+  //______________________________________________________________________________
+  int PreTrackSearchSsdXY( const std::vector<SsdClusterContainer>& SsdInClCont,
+			   const std::vector<SsdClusterContainer>& SsdOutClCont,
+			   std::vector<DCLocalTrack*>& TrackContX,
+			   std::vector<DCLocalTrack*>& TrackContY );
+
+  //______________________________________________________________________________
   int LocalTrackSearchBcOutSdcIn( const std::vector<DCHitContainer>& BcHC,
 				  const DCPairPlaneInfo *BcPpInfo,
 				  const std::vector<DCHitContainer>& SdcHC,
@@ -68,6 +104,50 @@ namespace track
 				  int BcNpp, int SdcNpp,
 				  std::vector<DCLocalTrack*>& TrackCont,
 				  int MinNumOfHits=18 );
+
+  //______________________________________________________________________________
+  int LocalTrackSearchBcOutSsdIn( const std::vector<DCHitContainer>& BcHC,
+				  const DCPairPlaneInfo *BcPpInfo,
+				  int BcNpp,
+				  const std::vector<DCHitContainer>& SsdHC,
+				  std::vector<DCLocalTrack*>& TrackCont,
+				  int MinNumOfHits=14 );
+
+  //______________________________________________________________________________
+  int LocalTrackSearchSsdInSsdOut( const std::vector<DCHitContainer>& SsdInHC,
+				   const std::vector<DCHitContainer>& SsdOutHC,
+				   std::vector<DCLocalTrack*>& TrackCont,
+				   int MinNumOfHits=6 );
+
+  //______________________________________________________________________________
+  int LocalTrackSearchSsdOutSdcIn( const std::vector<DCHitContainer>& SsdInHC,
+				   const std::vector<DCHitContainer>& SsdOutHC,
+				   const std::vector<DCHitContainer>& SdcHC,
+				   const DCPairPlaneInfo *SdcPpInfo,
+				   int SdcNpp,
+				   std::vector<DCLocalTrack*>& TrackCont,
+				   int MinNumOfHits=10 );
+
+  //______________________________________________________________________________
+  int LocalTrackSearchSsdOutSdcIn( const std::vector<SsdClusterContainer>& SsdInClCont,
+				   const std::vector<SsdClusterContainer>& SsdOutClCont,
+				   const std::vector<DCHitContainer>& SdcHC,
+				   const DCPairPlaneInfo *SdcPpInfo,
+				   int SdcNpp,
+				   std::vector<DCLocalTrack*>& TrackCont,
+				   int MinNumOfHits=10,
+				   // Delete layers having many hits
+				   bool DeleteFlag=false );
+
+  //______________________________________________________________________________
+  // w/SsdPreTracking
+  int LocalTrackSearchSsdOutSdcIn( const std::vector<DCHitContainer>& SdcInHC,
+				   const DCPairPlaneInfo *PpInfo,
+				   int SdcInNpp,
+				   std::vector<DCLocalTrack*>& SsdXTC,
+				   std::vector<DCLocalTrack*>& SsdYTC,
+				   std::vector<DCLocalTrack*>& TrackCont,
+				   int MinNumOfHits=10 );
 
   //______________________________________________________________________________
   int LocalTrackSearchSdcInSdcOut( const std::vector<DCHitContainer>& SdcInHC,

@@ -24,6 +24,7 @@
 #include "Hodo2Hit.hh"
 #include "MathTools.hh"
 #include "MWPCCluster.hh"
+#include "SsdCluster.hh"
 #include "TrackMaker.hh"
 #include "UserParamMan.hh"
 #include "DeleteUtility.hh"
@@ -42,6 +43,7 @@ namespace
   // SdcIn & BcOut for XUV Tracking routine
   const double MaxChisquareVXU = 50.;//
   const double ChisquareCutVXU = 50.;//
+  const double MaxChisquarePreSsdXY = 1.0e5;
 
   //_____________________________________________________________________
   // Local Functions ____________________________________________________
@@ -63,6 +65,19 @@ namespace
       if (!tp) continue;
       int nh = tp->GetNHit();
       for( int j=0; j<nh; ++j ) tp->GetHit(j)->QuitTrack();
+    }
+  }
+
+  //_____________________________________________________________________
+  inline void
+  SetKaonFlags( std::vector<DCLocalTrack*>& TrackCont )
+  {
+    for( std::size_t i=0, n=TrackCont.size(); i<n; ++i){
+      const DCLocalTrack* const tp = TrackCont[i];
+      if (!tp) continue;
+      for( std::size_t ii=0, nn=tp->GetNHit(); ii<nn; ++ii ){
+	tp->GetHit(ii)->JoinKaonTrack();
+      }
     }
   }
 
@@ -256,7 +271,8 @@ namespace
     DebugPrint( trackCont, arg+" After Sorting " );
 #endif
 
-    if( delete_flag ) DeleteDuplicatedTracks( trackCont );
+    if( delete_flag )
+      DeleteDuplicatedTracks( trackCont );
 
 #if 0
     DebugPrint( trackCont, arg+" After Deleting " );
@@ -402,6 +418,41 @@ namespace
 	  Cont.push_back( new DCPairHitCluster( new DCLTrackHit( hit, wp, m ) ) );
 	}
       }
+    }
+    return true;
+  }
+
+  //______________________________________________________________________________
+  bool
+  MakeSsdHitCluster( const DCHitContainer& HC,
+		     ClusterList& Cont )
+  {
+    int nh = HC.size();
+    for( int i=0; i<nh; ++i ){
+      DCHit *hit = HC[i];
+      if( !hit ) continue;
+      if( !hit->IsGoodWaveForm() ) continue;
+      if( hit->BelongToKaonTrack() ) continue;
+      double wp = hit->GetWirePosition();
+      Cont.push_back( new DCPairHitCluster( new DCLTrackHit( hit, wp, 0 ) ) );
+    }
+    return true;
+  }
+
+  //______________________________________________________________________________
+  bool
+  MakeSsdHitCluster( const SsdClusterContainer& ClCont,
+		     ClusterList& Cont )
+  {
+    int ncl = ClCont.size();
+    for( int i=0; i<ncl; ++i ){
+      SsdCluster *cluster = ClCont[i];
+      if( !cluster ) continue;
+      if( !cluster->GoodForAnalysis() )  continue;
+      if( cluster->BelongToKaonTrack() ) continue;
+      DCHit  *hit = cluster->GetHit();
+      double  wp  = hit->GetWirePosition();
+      Cont.push_back( new DCPairHitCluster( new DCLTrackHit( hit, wp, 0 ) ) );
     }
     return true;
   }
@@ -710,9 +761,117 @@ namespace track
     ClearFlags(trackCont);
     std::stable_sort( trackCont.begin(), trackCont.end(), DCLTrackComp() );
     DeleteDuplicatedTracks( trackCont );
-    //    CalcTracks( trackCont );
+    CalcTracks( trackCont );
 
     return trackCont.size();
+  }
+
+  //______________________________________________________________________________
+  int
+  LocalTrackSearchSsdOutSdcIn( const std::vector<DCHitContainer>& SdcInHC,
+			       const DCPairPlaneInfo *PpInfo,
+			       int SdcInNpp,
+			       std::vector<DCLocalTrack*>& SsdXTC,
+			       std::vector<DCLocalTrack*>& SsdYTC,
+			       std::vector<DCLocalTrack*>& TrackCont,
+			       int MinNumOfHits /*=10*/ )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"(SsdPreTrack)]");
+
+    DeleteWideTracks( SsdXTC, SsdYTC );
+    DeleteWideTracks( SsdXTC, SdcInHC );
+
+    const int nSsdXTC = SsdXTC.size();
+    const int nSsdYTC = SsdYTC.size();
+
+    std::vector< std::vector<DCPairHitCluster*> > CandCont(SdcInNpp);
+    for( int i=0; i<SdcInNpp; ++i ){
+      bool ppFlag    = PpInfo[i].pair;
+      bool honeycomb = PpInfo[i].honeycomb;
+      bool fiber     = PpInfo[i].fiber;
+      int  layer1    = PpInfo[i].id1;
+      int  layer2    = PpInfo[i].id2;
+      if( ppFlag && !fiber ){
+	MakePairPlaneHitCluster( SdcInHC[layer1], SdcInHC[layer2],
+				 PpInfo[i].CellSize, CandCont[i], honeycomb );
+      }else if( !ppFlag && fiber ){
+	PpInfo[i].Print( func_name+" invalid paramter", hddaq::cerr );
+      }else{
+	MakeUnPairPlaneHitCluster( SdcInHC[layer1], CandCont[i], honeycomb );
+      }
+    }
+
+    IndexList nCombi(SdcInNpp);
+    for( int i=0; i<SdcInNpp; ++i ){
+      int n = CandCont[i].size();
+      nCombi[i] = n>MaxNumOfCluster ? 0 : n;
+    }
+
+#if 0
+    DebugPrint( nCombi, CandCont, func_name );
+#endif
+
+    std::vector<IndexList> CombiIndex = MakeIndex( SdcInNpp, nCombi );
+    int nnCombi = CombiIndex.size();
+    if( nnCombi==0 ){
+      del::ClearContainerAll( CandCont );
+      return -1;
+    }
+
+    if( nnCombi > 1.0e5 ){
+      del::ClearContainerAll( CandCont );
+      // hddaq::cout << func_name << " too much SdcIn combinations... "
+      // 	      << nnCombi << std::endl;
+      return -1;
+    }
+
+    int nnn = nnCombi * nSsdXTC * nSsdYTC;
+    if( nnn > 1.0e6 || nnn < 0 ){
+      del::ClearContainerAll( CandCont );
+      // hddaq::cout << func_name << " too much combinations... "
+      // 	      << nnn << std::endl;
+      return -1;
+    }
+
+    for( int iX=0; iX<nSsdXTC; ++iX ){
+      const DCLocalTrack * const tpX = SsdXTC[iX];
+      if( !tpX ) continue;
+      const int nhX = tpX->GetNHit();
+      for( int iY=0; iY<nSsdYTC; ++iY ){
+	const DCLocalTrack * const tpY = SsdYTC[iY];
+	if( !tpY ) continue;
+	const int nhY = tpY->GetNHit();
+
+#if 0
+	hddaq::cout << " iX : " << std::setw(3) << iX+1 << "/" << std::setw(3) << nSsdXTC << " "
+		    << " iY : " << std::setw(3) << iY+1 << "/" << std::setw(3) << nSsdYTC << " "
+		    << " nhX : " << nhX << " " << " nhY : " << nhY
+		    << " nSdcIn : " << nnCombi << " " << " NNN : " << nnn << std::endl << "\x1b[1A";
+#endif
+
+	for( int i=0; i<nnCombi; ++i ){
+	  DCLocalTrack *track = MakeTrack( CandCont, CombiIndex[i] );
+	  if( !track ) continue;
+
+	  for( int j=0; j<nhX; ++j )
+	    track->AddHit( tpX->GetHit(j) );
+	  for( int j=0; j<nhY; ++j )
+	    track->AddHit( tpY->GetHit(j) );
+
+	  if( track->GetNHit()>=MinNumOfHits
+	      && track->DoFit()
+	      && track->GetChiSquare()<MaxChisquare
+	      ){
+	    TrackCont.push_back( track );
+	  }
+	  else
+	    delete track;
+	}
+      }// for(iY)
+    }// for(iX)
+
+    FinalizeTrack( func_name, TrackCont, DCLTrackComp(), CandCont );
+    return TrackCont.size();
   }
 
   //______________________________________________________________________________
@@ -731,12 +890,11 @@ namespace track
       bool honeycomb = PpInfo[i].honeycomb;
       int  layer1    = PpInfo[i].id1;
       int  layer2    = PpInfo[i].id2;
-      if( ppFlag  ){
+      if( ppFlag  )
 	MakePairPlaneHitCluster( SdcOutHC[layer1], SdcOutHC[layer2],
 				 PpInfo[i].CellSize, CandCont[i], honeycomb );
-      }else{
+      else
 	MakeUnPairPlaneHitCluster( SdcOutHC[layer1], CandCont[i], honeycomb );
-      }
     }
 
     IndexList nCombi(npp);
@@ -761,9 +919,7 @@ namespace track
 	  TrackCont.push_back( track );
 	}
       else
-	{
-	  delete track;
-	}
+	delete track;
     }
 
     FinalizeTrack( func_name, TrackCont, DCLTrackComp(), CandCont );
@@ -788,12 +944,11 @@ namespace track
       bool honeycomb = PpInfo[i].honeycomb;
       int  layer1    = PpInfo[i].id1;
       int  layer2    = PpInfo[i].id2;
-      if( ppFlag  ){
+      if( ppFlag  )
 	MakePairPlaneHitCluster( SdcOutHC[layer1], SdcOutHC[layer2],
 				 PpInfo[i].CellSize, CandCont[i], honeycomb );
-      }else{
+      else
 	MakeUnPairPlaneHitCluster( SdcOutHC[layer1], CandCont[i], honeycomb );
-      }
     }
 
     MakeTOFHitCluster( TOFHC, CandCont[npp-2], 0 );
@@ -825,14 +980,11 @@ namespace track
       if( TOFSegXYMatching &&
 	  track->GetNHit()>=MinNumOfHits+2   &&
 	  track->DoFit()                     &&
-	  track->GetChiSquare()<MaxChisquare )
-	{
-	  TrackCont.push_back( track );
-	}
+	  track->GetChiSquare()<MaxChisquare ){
+	TrackCont.push_back( track );
+      }
       else
-	{
-	  delete track;
-	}
+	delete track;
     }
 
     FinalizeTrack( func_name, TrackCont, DCLTrackComp(), CandCont );
@@ -1475,6 +1627,324 @@ namespace track
 
   //______________________________________________________________________________
   int
+  LocalTrackSearchSsdIn( const std::vector<DCHitContainer>& HC,
+			 std::vector<DCLocalTrack*>& TrackCont,
+			 int MinNumOfHits /*=4*/ )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+    std::vector<ClusterList> CandCont(NumOfLayersSsdIn);
+
+    for( int i=0; i<NumOfLayersSsdIn; ++i ){
+      MakeSsdHitCluster( HC[i+1], CandCont[i] );
+    }
+
+    IndexList nCombi(NumOfLayersSsdIn);
+    for( int i=0; i<NumOfLayersSsdIn; ++i ){
+      nCombi[i]=(CandCont[i]).size();
+    }
+
+    std::vector<IndexList>
+      CombiIndex = MakeIndex( NumOfLayersSsdIn, nCombi );
+    int nnCombi=CombiIndex.size();
+
+    for( int i=0; i<nnCombi; ++i ){
+      DCLocalTrack *track = MakeTrack( CandCont, CombiIndex[i] );
+      if( !track ) continue;
+      if( track->GetNHit()>=MinNumOfHits && track->DoFit()
+	  ){
+	TrackCont.push_back(track);
+      }
+      else
+	delete track;
+    }
+
+    if( TrackCont.empty() ) {
+      del::ClearContainerAll( CandCont );
+      return 0;
+    }
+
+    FinalizeTrack( func_name, TrackCont, DCLTrackCompSsd(), CandCont, false );
+    return TrackCont.size();
+  }
+
+  //______________________________________________________________________________
+  int
+  LocalTrackSearchSsdIn( const std::vector<SsdClusterContainer>& SsdInClCont,
+			 std::vector<DCLocalTrack*>& TrackCont,
+			 int MinNumOfHits /*=4*/ )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+    int npp = NumOfLayersSsdIn;
+    std::vector< std::vector<DCPairHitCluster*> > CandCont( npp );
+
+    for( int i=0; i<NumOfLayersSsdIn; ++i ){
+      MakeSsdHitCluster( SsdInClCont[i+1], CandCont[i] );
+    }
+
+    IndexList nCombi(npp);
+
+    for( int i=0; i<npp; ++i ){
+      nCombi[i]=(CandCont[i]).size();
+    }
+
+    std::vector<IndexList> CombiIndex = MakeIndex( npp, nCombi );
+
+    int nnCombi = CombiIndex.size();
+    for( int i=0; i<nnCombi; ++i ){
+      DCLocalTrack *track = MakeTrack( CandCont, CombiIndex[i] );
+      if( !track ) continue;
+      if( track->GetNHit()>=MinNumOfHits && track->DoFit() ){
+	TrackCont.push_back( track );
+      } else {
+	delete track;
+      }
+    }
+
+    FinalizeTrack( func_name, TrackCont, DCLTrackCompSsd(), CandCont, false );
+    return TrackCont.size();
+  }
+
+  //______________________________________________________________________________
+  int
+  LocalTrackSearchSsdOut( const std::vector<DCHitContainer>& HC,
+			  std::vector<DCLocalTrack*>& TrackCont,
+			  int MinNumOfHits /*=4*/ )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+    std::vector<ClusterList> CandCont(NumOfLayersSsdOut);
+
+    for( int i=0; i<NumOfLayersSsdOut; ++i ){
+      MakeSsdHitCluster( HC[i+1], CandCont[i] );
+    }
+
+    IndexList nCombi(NumOfLayersSsdOut);
+    for( int i=0; i<NumOfLayersSsdOut; ++i ){
+      nCombi[i]=(CandCont[i]).size();
+    }
+
+    std::vector<IndexList> CombiIndex = MakeIndex( NumOfLayersSsdOut, nCombi );
+    int nnCombi=CombiIndex.size();
+    for( int i=0; i<nnCombi; ++i ){
+      DCLocalTrack *track = MakeTrack( CandCont, CombiIndex[i] );
+      if( !track ) continue;
+      if( track->GetNHit()>=MinNumOfHits && track->DoFit() ){
+	TrackCont.push_back( track );
+      } else {
+	delete track;
+      }
+    }
+
+    FinalizeTrack( func_name, TrackCont, DCLTrackCompSsd(), CandCont, false );
+    return TrackCont.size();
+  }
+
+  //______________________________________________________________________________
+  int
+  LocalTrackSearchSsdOut( const std::vector<SsdClusterContainer>& SsdOutClCont,
+			  std::vector<DCLocalTrack*>& TrackCont,
+			  int MinNumOfHits /*=4*/ )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+    int npp = NumOfLayersSsdOut;
+    std::vector< std::vector<DCPairHitCluster*> > CandCont( npp );
+    for( int i=0; i<NumOfLayersSsdOut; ++i ){
+      MakeSsdHitCluster( SsdOutClCont[i+1], CandCont[i] );
+    }
+
+    IndexList nCombi(npp);
+    for( int i=0; i<npp; ++i ){
+      nCombi[i]=(CandCont[i]).size();
+    }
+
+    std::vector<IndexList> CombiIndex = MakeIndex( npp, nCombi );
+
+    int nnCombi = CombiIndex.size();
+    for( int i=0; i<nnCombi; ++i ){
+      DCLocalTrack *track = MakeTrack( CandCont, CombiIndex[i] );
+      if( !track ) continue;
+      if( track->GetNHit()>=MinNumOfHits && track->DoFit() ){
+	TrackCont.push_back( track );
+      } else {
+	delete track;
+      }
+    }
+
+    FinalizeTrack( func_name, TrackCont, DCLTrackCompSsd(), CandCont, false );
+    return TrackCont.size();
+  }
+
+  //______________________________________________________________________________
+  int
+  LocalTrackSearchSsdInXY( const std::vector<SsdClusterContainer>& SsdInClCont,
+			   std::vector<DCLocalTrack*>& TrackContX,
+			   std::vector<DCLocalTrack*>& TrackContY )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+    int npp = 2;
+    std::vector< std::vector<DCPairHitCluster*> > CandContX(npp);
+    std::vector< std::vector<DCPairHitCluster*> > CandContY(npp);
+
+    for( int i=0; i<NumOfLayersSsdIn; ++i ){
+      if( SsdInClCont[i+1].size()==0 ) continue;
+      SsdCluster *cluster = SsdInClCont[i+1][0];
+      if( !cluster ) continue;
+      int    layer = cluster->LayerId() - PlOffsSsd;
+      double tilt  = cluster->TiltAngle();
+      if( tilt==0. || tilt==180. ){
+	MakeSsdHitCluster( SsdInClCont[layer], CandContX[layer-1] );
+      }
+      else{
+	MakeSsdHitCluster( SsdInClCont[layer], CandContY[layer-1] );
+      }
+    }
+
+    IndexList nCombiX(npp);
+    IndexList nCombiY(npp);
+
+    for( int i=0; i<npp; ++i ){
+      nCombiX[i]=(CandContX[i]).size();
+      nCombiY[i]=(CandContY[i]).size();
+    }
+
+    std::vector<IndexList> CombiIndexX = MakeIndex( npp, nCombiX );
+    std::vector<IndexList> CombiIndexY = MakeIndex( npp, nCombiY );
+    int nnCombiX = CombiIndexX.size();
+    int nnCombiY = CombiIndexY.size();
+
+    for( int i=0; i<nnCombiX; ++i ){
+      DCLocalTrack *track = MakeTrack( CandContX, CombiIndexX[i] );
+      if( !track ) continue;
+      if( track->DoFitVXU() ){
+	TrackContX.push_back( track );
+      } else {
+	delete track;
+      }
+    }
+    for( int i=0; i<nnCombiY; ++i ){
+      DCLocalTrack *track = MakeTrack( CandContY, CombiIndexY[i] );
+      if( !track ) continue;
+      if( track->DoFitVXU() ){
+	TrackContY.push_back( track );
+      } else {
+	delete track;
+      }
+    }
+
+    FinalizeTrack( func_name, TrackContX, DCLTrackCompSsd(), CandContX, false );
+    FinalizeTrack( func_name, TrackContY, DCLTrackCompSsd(), CandContY, false );
+    return TrackContX.size()*TrackContY.size();
+  }
+
+  //______________________________________________________________________________
+  int
+  PreTrackSearchSsdXY( const std::vector<SsdClusterContainer>& SsdInClCont,
+		       const std::vector<SsdClusterContainer>& SsdOutClCont,
+		       std::vector<DCLocalTrack*>& TrackContX,
+		       std::vector<DCLocalTrack*>& TrackContY )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+    static const int npp = NumOfLayersSsdIn + NumOfLayersSsdOut;
+
+    std::vector<ClusterList> CandContX(npp);
+    std::vector<ClusterList> CandContY(npp);
+
+    int nX=0, nY=0;
+    for( int i=0; i<NumOfLayersSsdIn; ++i ){
+      if( SsdInClCont[i+1].size()==0 ) continue;
+      DCHit *hit   = SsdInClCont[i+1][0]->GetHit(0);
+      if( !hit ) continue;
+      int    layer = hit->GetLayer() - PlOffsSsd;
+      double tilt  = hit->GetTiltAngle();
+      if( tilt==0. || tilt==180. ){
+	MakeSsdHitCluster( SsdInClCont[layer], CandContX[layer-1] );
+	++nX;
+      }
+      else{
+	MakeSsdHitCluster( SsdInClCont[layer], CandContY[layer-1] );
+	++nY;
+      }
+    }
+
+    for( int i=0; i<NumOfLayersSsdOut; ++i ){
+      if( SsdOutClCont[i+1].size()==0 ) continue;
+      DCHit *hit = SsdOutClCont[i+1][0]->GetHit(0);
+      if( !hit ) continue;
+      int    layer = hit->GetLayer() - PlOffsSsd;
+      double tilt  = hit->GetTiltAngle();
+      if( tilt==0. || tilt==180. ){
+	MakeSsdHitCluster( SsdOutClCont[layer-NumOfLayersSsdIn], CandContX[layer-1] );
+	++nX;
+      }
+      else{
+	MakeSsdHitCluster( SsdOutClCont[layer-NumOfLayersSsdIn], CandContY[layer-1] );
+	++nY;
+      }
+    }
+
+    IndexList nCombiX(npp);
+    IndexList nCombiY(npp);
+
+    for( int i=0; i<npp; ++i ){
+      int n = CandContX[i].size();
+      int m = CandContY[i].size();
+      nCombiX[i] = n>MaxNumOfCluster ? 0 : n;
+      nCombiY[i] = m>MaxNumOfCluster ? 0 : m;
+    }
+
+#if 0
+    DebugPrint( nCombiX, CandContX, func_name+" X " );
+    DebugPrint( nCombiY, CandContY, func_name+" Y " );
+#endif
+
+    std::vector<IndexList> CombiIndexX = MakeIndex( npp, nCombiX );
+    std::vector<IndexList> CombiIndexY = MakeIndex( npp, nCombiY );
+    int nnCombiX=CombiIndexX.size();
+    int nnCombiY=CombiIndexY.size();
+
+#if 0
+    hddaq::cout << "X Plane [" << nX << "] " << nnCombiX
+		<< " combinations will be checked..." << std::endl;
+    hddaq::cout << "Y Plane [" << nY << "] " << nnCombiY
+		<< " combinations will be checked..." << std::endl;
+#endif
+
+    for( int i=0; i<nnCombiX; ++i ){
+      DCLocalTrack *track = MakeTrack( CandContX, CombiIndexX[i] );
+      if( !track ) continue;
+      if( track->GetNHit()>=2 && track->DoFitVXU()
+	  && track->GetChiSquare()<MaxChisquarePreSsdXY
+	  ){
+	TrackContX.push_back(track);
+      }else{
+	delete track;
+      }
+    }
+
+    for( int i=0; i<nnCombiY; ++i ){
+      DCLocalTrack *track = MakeTrack( CandContY, CombiIndexY[i] );
+      if( !track ) continue;
+      if( track->GetNHit()>=2 && track->DoFitVXU()
+	  && track->GetChiSquare()<MaxChisquarePreSsdXY
+	  ){
+	TrackContY.push_back(track);
+      }else{
+	delete track;
+      }
+    }
+
+    FinalizeTrack( func_name, TrackContX, DCLTrackComp1(), CandContX, false );
+    FinalizeTrack( func_name, TrackContY, DCLTrackComp1(), CandContY, false );
+    return 0;
+  }
+
+  //______________________________________________________________________________
+  int
   LocalTrackSearchBcOutSdcIn( const std::vector<DCHitContainer>& BcHC,
 			      const DCPairPlaneInfo *BcPpInfo,
 			      const std::vector<DCHitContainer>& SdcHC,
@@ -1564,6 +2034,179 @@ namespace track
   }
 
   //______________________________________________________________________________
+  int
+  LocalTrackSearchBcOutSsdIn( const std::vector<DCHitContainer>& BcHC,
+			      const DCPairPlaneInfo *BcPpInfo,
+			      int BcNpp,
+			      const std::vector<DCHitContainer>& SsdHC,
+			      std::vector<DCLocalTrack*>& TrackCont,
+			      int MinNumOfHits )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+    const int npp = BcNpp+NumOfLayersSsdIn;
+
+    std::vector<ClusterList> CandCont(npp);
+
+    for( int i=0; i<BcNpp; ++i ){
+      bool ppFlag=BcPpInfo[i].pair;
+      int layer1=BcPpInfo[i].id1, layer2=BcPpInfo[i].id2;
+      if(ppFlag)
+	MakePairPlaneHitCluster( BcHC[layer1], BcHC[layer2],
+				 BcPpInfo[i].CellSize, CandCont[i] );
+      else
+	MakeUnPairPlaneHitCluster( BcHC[layer1], CandCont[i] );
+    }
+
+    for( int i=0; i<NumOfLayersSsdIn; ++i ){
+      MakeSsdHitCluster( SsdHC[i+1], CandCont[i+BcNpp] );
+    }
+
+    IndexList nCombi(npp);
+
+    for( int i=0; i<npp; ++i ){
+      int n = CandCont[i].size();
+      nCombi[i] = n>MaxNumOfCluster ? 0 : n;
+    }
+
+#if 0
+    DebugPrint(nCombi, CandCont, func_name);
+#endif
+
+    std::vector<IndexList> CombiIndex = MakeIndex( npp, nCombi );
+    int nnCombi=CombiIndex.size();
+
+    for( int i=0; i<nnCombi; ++i ){
+      DCLocalTrack *track = MakeTrack( CandCont, CombiIndex[i] );
+      if( !track ) continue;
+      if( track->GetNHit()>=MinNumOfHits && track->DoFit()
+	  && track->GetChiSquare()<MaxChisquare
+	  )
+	TrackCont.push_back(track);
+      else
+	delete track;
+    }
+
+    FinalizeTrack( func_name, TrackCont, DCLTrackComp(), CandCont );
+    return TrackCont.size();
+  }
+
+  //______________________________________________________________________________
+  int
+  LocalTrackSearchSsdInSsdOut( const std::vector<DCHitContainer>& SsdInHC,
+			       const std::vector<DCHitContainer>& SsdOutHC,
+			       std::vector<DCLocalTrack*>& TrackCont,
+			       int MinNumOfHits )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+    const int npp = NumOfLayersSsdIn + NumOfLayersSsdIn;
+
+    std::vector<ClusterList> CandCont(npp);
+
+    for( int i=0; i<NumOfLayersSsdIn; ++i ){
+      MakeSsdHitCluster( SsdInHC[i+1], CandCont[i] );
+    }
+    for( int i=0; i<NumOfLayersSsdOut; ++i ){
+      MakeSsdHitCluster( SsdOutHC[i+1], CandCont[i+NumOfLayersSsdIn] );
+    }
+
+    IndexList nCombi(npp);
+    for( int i=0; i<npp; ++i ){
+      int n = CandCont[i].size();
+      nCombi[i] = n>MaxNumOfCluster ? 0 : n;
+    }
+
+#if 0
+    DebugPrint( nCombi, CandCont, func_name );
+#endif
+
+    std::vector<IndexList> CombiIndex = MakeIndex( npp, nCombi );
+    int nnCombi=CombiIndex.size();
+
+    for( int i=0; i<nnCombi; ++i ){
+      DCLocalTrack *track = MakeTrack( CandCont, CombiIndex[i] );
+      if( !track ) continue;
+      if( track->GetNHit()>=MinNumOfHits && track->DoFit()
+	  //&& track->GetChiSquare()<MaxChisquare
+	  ){
+	TrackCont.push_back(track);
+      }
+      else
+	delete track;
+    }
+
+    FinalizeTrack( func_name, TrackCont, DCLTrackCompSsd(), CandCont );
+    return TrackCont.size();
+  }
+
+  //______________________________________________________________________________
+  int
+  LocalTrackSearchSsdOutSdcIn( const std::vector<DCHitContainer>& SsdInHC,
+			       const std::vector<DCHitContainer>& SsdOutHC,
+			       const std::vector<DCHitContainer>& SdcHC,
+			       const DCPairPlaneInfo *SdcPpInfo,
+			       int SdcNpp,
+			       std::vector<DCLocalTrack*>& TrackCont,
+			       int MinNumOfHits )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"(DCHit)]");
+
+    const int npp = NumOfLayersSsdIn + NumOfLayersSsdOut + SdcNpp;
+    std::vector<ClusterList> CandCont(npp);
+
+    for( int i=0; i<NumOfLayersSsdIn; ++i )
+      MakeSsdHitCluster( SsdInHC[i+1], CandCont[i] );
+    for( int i=0; i<NumOfLayersSsdOut; ++i )
+      MakeSsdHitCluster( SsdOutHC[i+1], CandCont[i+NumOfLayersSsdIn] );
+
+    for( int i=0; i<SdcNpp; ++i ){
+      bool ppFlag    = SdcPpInfo[i].pair;
+      bool honeycomb = SdcPpInfo[i].honeycomb;
+      int  layer1    = SdcPpInfo[i].id1;
+      int  layer2    = SdcPpInfo[i].id2;
+      if(ppFlag)
+	MakePairPlaneHitCluster( SdcHC[layer1], SdcHC[layer2],
+				 SdcPpInfo[i].CellSize, CandCont[i+NumOfLayersSsdIn+NumOfLayersSsdOut], honeycomb );
+      else
+	MakeUnPairPlaneHitCluster( SdcHC[layer1], CandCont[i+NumOfLayersSsdIn+NumOfLayersSsdOut], honeycomb );
+    }
+
+    IndexList nCombi(npp);
+    for( int i=0; i<npp; ++i ){
+      int n = CandCont[i].size();
+      nCombi[i] = n>MaxNumOfCluster ? 0 : n;
+    }
+
+#if 0
+    DebugPrint( nCombi, CandCont, func_name );
+#endif
+
+    std::vector<IndexList> CombiIndex = MakeIndex( npp, nCombi );
+
+    int nnCombi = CombiIndex.size();
+    if( nnCombi==0 ){
+      del::ClearContainerAll( CandCont );
+      return -1;
+    }
+
+    for( int i=0; i<nnCombi; ++i ){
+      DCLocalTrack *track = MakeTrack( CandCont, CombiIndex[i] );
+      if( !track ) continue;
+      if( track->GetNHit()>=MinNumOfHits && track->DoFit()
+	  && track->GetChiSquare()<MaxChisquare
+	  ){
+	TrackCont.push_back(track);
+      } else {
+	delete track;
+      }
+    }
+
+    FinalizeTrack( func_name, TrackCont, DCLTrackComp(), CandCont );
+    return TrackCont.size();
+  }
+
+  //______________________________________________________________________________
   inline bool
   IsDeletionTarget( const std::vector< std::pair<int,int> >& nh,
 		    std::size_t NDelete, int layer )
@@ -1580,6 +2223,122 @@ namespace track
       return true;
 
     return false;
+  }
+
+  //______________________________________________________________________________
+  int
+  LocalTrackSearchSsdOutSdcIn( const std::vector<SsdClusterContainer>& SsdInClCont,
+			       const std::vector<SsdClusterContainer>& SsdOutClCont,
+			       const std::vector<DCHitContainer>& SdcHC,
+			       const DCPairPlaneInfo *SdcPpInfo,
+			       int SdcNpp,
+			       std::vector<DCLocalTrack*>& TrackCont,
+			       int MinNumOfHits, bool DeleteFlag /* =false */ )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"(Cluster)]");
+
+    const int npp = NumOfLayersSsdIn + NumOfLayersSsdOut + SdcNpp;
+    std::vector<ClusterList> CandCont(npp);
+
+    std::vector<IndexList> CombiIndex;
+    std::size_t nnCombi = 0;
+
+    // first: NHits, second: LayerId
+    std::vector< std::pair<int,int> >  NhitsInfo(npp);
+
+    std::size_t NDelete = 0;
+    while( nnCombi==0 ){
+      del::ClearContainerAll( CandCont );
+
+      for( int i=0; i<NumOfLayersSsdIn; ++i ){
+	if( !IsDeletionTarget( NhitsInfo, NDelete, i ) ){
+	  MakeSsdHitCluster( SsdInClCont[i+1], CandCont[i] );
+	}
+      }
+
+      for( int i=0; i<NumOfLayersSsdOut; ++i ){
+	int n = NumOfLayersSsdIn;
+	if( !IsDeletionTarget( NhitsInfo, NDelete, i+n ) ){
+	  MakeSsdHitCluster( SsdOutClCont[i+1], CandCont[i+n] );
+	}
+      }
+
+      for( int i=0; i<SdcNpp; ++i ){
+	int n = NumOfLayersSsdIn + NumOfLayersSsdOut;
+	bool ppFlag    = SdcPpInfo[i].pair;
+	bool honeycomb = SdcPpInfo[i].honeycomb;
+	int  layer1    = SdcPpInfo[i].id1;
+	int  layer2    = SdcPpInfo[i].id2;
+	DCHitContainer tempHC1(0), tempHC2(0);
+	if( ppFlag ){
+	  if( !IsDeletionTarget( NhitsInfo, NDelete, i+n ) ){
+	    MakePairPlaneHitCluster( SdcHC[layer1], SdcHC[layer2],
+				     SdcPpInfo[i].CellSize, CandCont[i+n], honeycomb );
+	  }
+	}else{
+	  if( !IsDeletionTarget( NhitsInfo, NDelete, i+n ) ){
+	    MakeUnPairPlaneHitCluster( SdcHC[layer1], CandCont[i+n], honeycomb );
+	  }
+	}
+      }
+
+      IndexList nCombi(npp);
+      for( int i=0; i<npp; ++i ){
+	int n = CandCont[i].size();
+	nCombi[i] = n>MaxNumOfCluster ? 0 : n;
+	NhitsInfo[i] = std::make_pair( nCombi[i], i );
+      }
+
+#if 0
+      if( DeleteFlag ){
+	hddaq::cout << "NDelete=" << NDelete << " ===> ";
+	for( std::size_t i=0, n=NhitsInfo.size(); i<n; ++i ){
+	  hddaq::cout << std::setw(4) << std::right << NhitsInfo[i].first << " ";
+	}
+	hddaq::cout <<std::endl;
+      }
+#endif
+
+      std::stable_sort( NhitsInfo.begin(), NhitsInfo.end(),
+			std::greater< std::pair<int,int> >() );
+
+#if 0
+      DebugPrint( nCombi, CandCont, func_name );
+#endif
+
+      CombiIndex = MakeIndex( npp, nCombi );
+
+      nnCombi = CombiIndex.size();
+
+      if( nnCombi==0 && !DeleteFlag ){
+	  del::ClearContainerAll( CandCont );
+	  return -1;
+      }
+
+      if( !DeleteFlag ) break;
+      NDelete++;
+    }// while()
+
+#if 0
+    hddaq::cout << " ===> " << std::setw(7) << nnCombi
+		<< " combinations will be checked..." << std::endl;
+#endif
+
+    for( std::size_t i=0; i<nnCombi; ++i ){
+      DCLocalTrack *track = MakeTrack( CandCont, CombiIndex[i] );
+      if( !track ) continue;
+      if( track->GetNHit()>=MinNumOfHits && track->DoFit()
+	  && track->GetChiSquare()<MaxChisquare
+	  ){
+	TrackCont.push_back(track);
+      }
+      else {
+	delete track;
+      }
+    }
+
+    FinalizeTrack( func_name, TrackCont, DCLTrackComp(), CandCont );
+    return TrackCont.size();
   }
 
   //______________________________________________________________________________

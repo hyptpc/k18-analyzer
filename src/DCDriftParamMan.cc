@@ -270,7 +270,7 @@ DCDriftParamMan::DriftLength6( int PlaneId, double dt,
   case 35: case 36: case 37: case 38:
     if( dt<-20. || dt>300. )
       return 999.9;
-    if( dl>10. || dt>250. )
+    if( dl>10. || dt>260. )
       return 10.0;
     if( dl<0. )
       return 0.;

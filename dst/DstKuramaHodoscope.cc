@@ -71,19 +71,19 @@ struct Event
   int trigpat[NumOfSegTrig];
 
   int nhBh1;
-  int csBh1[NumOfSegBH1*MaxDepth];
-  double Bh1Seg[NumOfSegBH1*MaxDepth];
-  double tBh1[NumOfSegBH1*MaxDepth];
-  double dtBh1[NumOfSegBH1*MaxDepth];
-  double deBh1[NumOfSegBH1*MaxDepth];
+  int csBh1[NumOfSegBH1];
+  double Bh1Seg[NumOfSegBH1];
+  double tBh1[NumOfSegBH1];
+  double dtBh1[NumOfSegBH1];
+  double deBh1[NumOfSegBH1];
 
   int nhBh2;
-  int csBh2[NumOfSegBH2*MaxDepth];
-  double Bh2Seg[NumOfSegBH2*MaxDepth];
-  double tBh2[NumOfSegBH2*MaxDepth];
-  double dtBh2[NumOfSegBH2*MaxDepth];
-  double t0Bh2[NumOfSegBH2*MaxDepth];
-  double deBh2[NumOfSegBH2*MaxDepth];
+  int csBh2[NumOfSegBH2];
+  double Bh2Seg[NumOfSegBH2];
+  double tBh2[NumOfSegBH2];
+  double dtBh2[NumOfSegBH2];
+  double t0Bh2[NumOfSegBH2];
+  double deBh2[NumOfSegBH2];
 
   int nhTof;
   int csTof[NumOfSegTOF];
@@ -92,7 +92,7 @@ struct Event
   double dtTof[NumOfSegTOF];
   double deTof[NumOfSegTOF];
 
-  double btof[NumOfSegBH1*MaxDepth];
+  double btof[NumOfSegBH1];
 
   // KuramaHodoscope
   int    m2Combi;
@@ -129,24 +129,19 @@ struct Src
   double thetaKurama[MaxHits];
 
   int    nhBh1;
-  int    csBh1[NumOfSegBH1*MaxDepth];
-  double Bh1Seg[NumOfSegBH1*MaxDepth];
-  double tBh1[NumOfSegBH1*MaxDepth];
-  double dtBh1[NumOfSegBH1*MaxDepth];
-  double deBh1[NumOfSegBH1*MaxDepth];
+  int    csBh1[NumOfSegBH1];
+  double Bh1Seg[NumOfSegBH1];
+  double tBh1[NumOfSegBH1];
+  double dtBh1[NumOfSegBH1];
+  double deBh1[NumOfSegBH1];
 
   int    nhBh2;
-  int    csBh2[NumOfSegBH2*MaxDepth];
-  double Bh2Seg[NumOfSegBH2*MaxDepth];
-  double tBh2[NumOfSegBH2*MaxDepth];
-  double dtBh2[NumOfSegBH2*MaxDepth];
-  double t0Bh2[NumOfSegBH2*MaxDepth];
-  double deBh2[NumOfSegBH2*MaxDepth];
-  
-  double Time0Seg;
-  double deTime0;
-  double Time0;
-  double CTime0;
+  int    csBh2[NumOfSegBH2];
+  double Bh2Seg[NumOfSegBH2];
+  double tBh2[NumOfSegBH2];
+  double dtBh2[NumOfSegBH2];
+  double t0Bh2[NumOfSegBH2];
+  double deBh2[NumOfSegBH2];
 
   int    nhTof;
   int    csTof[NumOfSegTOF];
@@ -234,7 +229,7 @@ dst::InitializeEvent( void )
     event.thetaKurama[i] = -9999.;
   }
 
-  for(int i=0;i<NumOfSegBH1*MaxDepth;++i){
+  for(int i=0;i<NumOfSegBH1;++i){
     event.Bh1Seg[i] = -1;
     event.csBh1[i]  = 0;
     event.tBh1[i]   = -9999.;
@@ -243,7 +238,7 @@ dst::InitializeEvent( void )
     event.btof[i]   = -9999.;
   }
 
-  for(int i=0;i<NumOfSegBH2*MaxDepth;++i){
+  for(int i=0;i<NumOfSegBH2;++i){
     event.Bh2Seg[i] = -1;
     event.csBh2[i]  = 0;
     event.tBh2[i]   = -9999.;
@@ -343,12 +338,15 @@ dst::DstRead( int ievent )
 
   HF1( 1, event.status++ );
 
-  double time0 = src.CTime0;
+  double time0 = -9999.;
   for( int i=0; i<src.nhBh2; ++i ){
     event.Bh2Seg[i] = src.Bh2Seg[i];
     event.tBh2[i]   = src.tBh2[i];
     event.t0Bh2[i]  = src.t0Bh2[i];
     event.deBh2[i]  = src.deBh2[i];
+    if( std::abs( event.t0Bh2[i] )< std::abs( time0 ) ){
+      time0 = event.t0Bh2[i];
+    }
   }
 
   ////////// for BeamTof
@@ -356,10 +354,10 @@ dst::DstRead( int ievent )
     event.Bh1Seg[i] = src.Bh1Seg[i];
     event.tBh1[i]   = src.tBh1[i];
     event.deBh1[i]  = src.deBh1[i];
-    event.btof[i]   = src.tBh1[i] - time0;
+    event.btof[i]   = event.tBh1[i] - time0;
   }
 
-  int m2Combi = event.nhTof*event.ntKurama;
+  int m2Combi = event.nhTof*event.nhBh2*event.ntKurama;
   if( m2Combi>MaxHits || m2Combi<0 ){
     std::cout << func_name << " too much m2Combi : " << m2Combi << std::endl;
     return false;
@@ -399,7 +397,7 @@ dst::DstRead( int ievent )
       event.dtTof[itof]  = src.dtTof[itof];
       event.deTof[itof]  = src.deTof[itof];
       int tofseg = (int)src.TofSeg[itof];
-      HF1( 20000+tofseg*100, src.dtTof[itof] );
+      // HF1( 20000+(tofseg+1)*100, src.dtTof[itof] );
 
       ////////// TimeCut
       double stof = event.tTof[itof] - time0 + OffsetToF;
@@ -416,8 +414,8 @@ dst::DstRead( int ievent )
 #endif
 
       for( int ip=0; ip<Event::nParticle; ++ip ){
-	HF2( 10000+ip+1, tofseg, stof-event.tTofCalc[ip] );
-	HF1( 10000+tofseg*100+ip+1, stof-event.tTofCalc[ip] );
+	HF2( 10000+ip+1, tofseg+1, stof-event.tTofCalc[ip] );
+	HF1( 10000+(tofseg+1)*100+ip+1, stof-event.tTofCalc[ip] );
       }
 
       HF1( 11, event.m2[mm] );
@@ -468,8 +466,8 @@ ConfMan::InitializeHistograms( void )
 	   500, -25., 25. );
     }
 
-    HB1( 20000+(i+1)*100, Form("Tof TimeDiff U-D %d", i+1 ),
-    	 500, -25., 25. );
+    // HB1( 20000+(i+1)*100, Form("Tof TimeDiff U-D %d", i+1 ),
+    // 	 500, -25., 25. );
 
   }
   HB1( 10, "pKurama",    280,  0.0, 2.8 );
@@ -526,37 +524,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("m2",       event.m2,      "m2[m2Combi]/D");
 
   ////////// Bring Address From Dst
-  TTreeCont[kHodoscope]->SetBranchStatus("*", 0);
-  TTreeCont[kHodoscope]->SetBranchStatus("trigflag",  1);
-  TTreeCont[kHodoscope]->SetBranchStatus("trigpat",   1);
-  TTreeCont[kHodoscope]->SetBranchStatus("nhBh1",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("csBh1",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("Bh1Seg",    1);
-  TTreeCont[kHodoscope]->SetBranchStatus("tBh1",      1);
-  TTreeCont[kHodoscope]->SetBranchStatus("dtBh1",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("deBh1",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("nhBh2",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("csBh2",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("Bh2Seg",    1);
-  TTreeCont[kHodoscope]->SetBranchStatus("tBh2",      1);
-  TTreeCont[kHodoscope]->SetBranchStatus("dtBh2",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("t0Bh2",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("deBh2",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("nhTof",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("csTof",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("TofSeg",    1);
-  TTreeCont[kHodoscope]->SetBranchStatus("tTof",      1);
-  TTreeCont[kHodoscope]->SetBranchStatus("dtTof",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("deTof",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("utTofSeg",  1);
-  TTreeCont[kHodoscope]->SetBranchStatus("dtTofSeg",  1);
-  TTreeCont[kHodoscope]->SetBranchStatus("udeTofSeg", 1);
-  TTreeCont[kHodoscope]->SetBranchStatus("ddeTofSeg", 1);
-  TTreeCont[kHodoscope]->SetBranchStatus("Time0",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("CTime0",    1);
-  TTreeCont[kHodoscope]->SetBranchStatus("Time0Seg",  1);
-  TTreeCont[kHodoscope]->SetBranchStatus("deTime0",   1);
-
   TTreeCont[kHodoscope]->SetBranchAddress("trigflag", src.trigflag);
   TTreeCont[kHodoscope]->SetBranchAddress("trigpat",  src.trigpat);
   TTreeCont[kHodoscope]->SetBranchAddress("nhBh1",  &src.nhBh1);
@@ -582,29 +549,11 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kHodoscope]->SetBranchAddress("dtTofSeg",  src.dtTofSeg);
   TTreeCont[kHodoscope]->SetBranchAddress("udeTofSeg", src.udeTofSeg);
   TTreeCont[kHodoscope]->SetBranchAddress("ddeTofSeg", src.ddeTofSeg);
-  TTreeCont[kHodoscope]->SetBranchAddress("Time0",    &src.Time0);
-  TTreeCont[kHodoscope]->SetBranchAddress("CTime0",   &src.CTime0);
-  TTreeCont[kHodoscope]->SetBranchAddress("Time0Seg", &src.Time0Seg);
-  TTreeCont[kHodoscope]->SetBranchAddress("deTime0",  &src.deTime0);
-
-  TTreeCont[kKuramaTracking]->SetBranchStatus("*",      0);
-  TTreeCont[kKuramaTracking]->SetBranchStatus("ntKurama",     1);
-  TTreeCont[kKuramaTracking]->SetBranchStatus("path",         1);
-  TTreeCont[kKuramaTracking]->SetBranchStatus("pKurama",      1);
-  TTreeCont[kKuramaTracking]->SetBranchStatus("qKurama",      1);
-  TTreeCont[kKuramaTracking]->SetBranchStatus("chisqrKurama", 1);
-  TTreeCont[kKuramaTracking]->SetBranchStatus("thetaKurama",  1);
-  TTreeCont[kKuramaTracking]->SetBranchStatus("xtgtKurama",   1);
-  TTreeCont[kKuramaTracking]->SetBranchStatus("ytgtKurama",   1);
-  TTreeCont[kKuramaTracking]->SetBranchStatus("utgtKurama",   1);
-  TTreeCont[kKuramaTracking]->SetBranchStatus("vtgtKurama",   1);
-
   TTreeCont[kKuramaTracking]->SetBranchAddress("ntKurama", &src.ntKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("path",     src.path);
   TTreeCont[kKuramaTracking]->SetBranchAddress("pKurama",  src.pKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("qKurama",  src.qKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("chisqrKurama", src.chisqrKurama);
-  TTreeCont[kKuramaTracking]->SetBranchAddress("thetaKurama", src.thetaKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("xtgtKurama", src.xtgtKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("ytgtKurama", src.ytgtKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("utgtKurama", src.utgtKurama);

@@ -29,9 +29,8 @@
 #include "UnpackerManager.hh"
 #include "VEvent.hh"
 
-#define HodoCut    0 // with BH1/BH2
-#define TimeCut    0 // in cluster analysis
-#define FHitBranch 0 // make FiberHit branches (becomes heavy)
+#define HodoCut 0 // with BH1/BH2
+#define TimeCut 1 // in cluster analysis
 
 namespace
 {
@@ -39,6 +38,7 @@ namespace
   const std::string& classname("EventEasiroc");
   RMAnalyzer&         gRM   = RMAnalyzer::GetInstance();
   const UserParamMan& gUser = UserParamMan::GetInstance();
+  const int MaxDepth = 16;
 }
 
 //______________________________________________________________________________
@@ -182,117 +182,6 @@ struct Event
   double sftx_ctime[NumOfSegSFT_X];
   double sftx_ctot[NumOfSegSFT_X];
   double sftx_clpos[NumOfSegSFT_X];
-
-  // FBT1
-  int    fbt1_u1nhits;
-  int    fbt1_d1nhits;
-  int    fbt1_u2nhits;
-  int    fbt1_d2nhits;
-
-  int    fbt1_u1hitpat[MaxSegFBT1];
-  int    fbt1_d1hitpat[MaxSegFBT1];
-  int    fbt1_u2hitpat[MaxSegFBT1];
-  int    fbt1_d2hitpat[MaxSegFBT1];
-
-  double fbt1_u1tdc[MaxSegFBT1][MaxDepth];
-  double fbt1_d1tdc[MaxSegFBT1][MaxDepth];
-  double fbt1_u2tdc[MaxSegFBT1][MaxDepth];
-  double fbt1_d2tdc[MaxSegFBT1][MaxDepth];
-
-  double fbt1_u1trailing[MaxSegFBT1][MaxDepth];
-  double fbt1_d1trailing[MaxSegFBT1][MaxDepth];
-  double fbt1_u2trailing[MaxSegFBT1][MaxDepth];
-  double fbt1_d2trailing[MaxSegFBT1][MaxDepth];
-
-  double fbt1_u1tot[MaxSegFBT1][MaxDepth];
-  double fbt1_d1tot[MaxSegFBT1][MaxDepth];
-  double fbt1_u2tot[MaxSegFBT1][MaxDepth];
-  double fbt1_d2tot[MaxSegFBT1][MaxDepth];
-
-  int    fbt1_u1depth[MaxSegFBT1];
-  int    fbt1_d1depth[MaxSegFBT1];
-  int    fbt1_u2depth[MaxSegFBT1];
-  int    fbt1_d2depth[MaxSegFBT1];
-
-  int    fbt1_u1ncl;
-  int    fbt1_u1clsize[MaxSegFBT1];
-  double fbt1_u1ctime[MaxSegFBT1];
-  double fbt1_u1ctot[MaxSegFBT1];
-  double fbt1_u1clpos[MaxSegFBT1];
-
-  int    fbt1_d1ncl;
-  int    fbt1_d1clsize[MaxSegFBT1];
-  double fbt1_d1ctime[MaxSegFBT1];
-  double fbt1_d1ctot[MaxSegFBT1];
-  double fbt1_d1clpos[MaxSegFBT1];
-
-  int    fbt1_u2ncl;
-  int    fbt1_u2clsize[MaxSegFBT1];
-  double fbt1_u2ctime[MaxSegFBT1];
-  double fbt1_u2ctot[MaxSegFBT1];
-  double fbt1_u2clpos[MaxSegFBT1];
-
-  int    fbt1_d2ncl;
-  int    fbt1_d2clsize[MaxSegFBT1];
-  double fbt1_d2ctime[MaxSegFBT1];
-  double fbt1_d2ctot[MaxSegFBT1];
-  double fbt1_d2clpos[MaxSegFBT1];
-
-  // FBT2
-  int    fbt2_u1nhits;
-  int    fbt2_d1nhits;
-  int    fbt2_u2nhits;
-  int    fbt2_d2nhits;
-
-  int    fbt2_u1hitpat[MaxSegFBT2];
-  int    fbt2_d1hitpat[MaxSegFBT2];
-  int    fbt2_u2hitpat[MaxSegFBT2];
-  int    fbt2_d2hitpat[MaxSegFBT2];
-
-  double fbt2_u1tdc[MaxSegFBT2][MaxDepth];
-  double fbt2_d1tdc[MaxSegFBT2][MaxDepth];
-  double fbt2_u2tdc[MaxSegFBT2][MaxDepth];
-  double fbt2_d2tdc[MaxSegFBT2][MaxDepth];
-
-  double fbt2_u1trailing[MaxSegFBT2][MaxDepth];
-  double fbt2_d1trailing[MaxSegFBT2][MaxDepth];
-  double fbt2_u2trailing[MaxSegFBT2][MaxDepth];
-  double fbt2_d2trailing[MaxSegFBT2][MaxDepth];
-
-  double fbt2_u1tot[MaxSegFBT2][MaxDepth];
-  double fbt2_d1tot[MaxSegFBT2][MaxDepth];
-  double fbt2_u2tot[MaxSegFBT2][MaxDepth];
-  double fbt2_d2tot[MaxSegFBT2][MaxDepth];
-
-  int    fbt2_u1depth[MaxSegFBT2];
-  int    fbt2_d1depth[MaxSegFBT2];
-  int    fbt2_u2depth[MaxSegFBT2];
-  int    fbt2_d2depth[MaxSegFBT2];
-
-  int    fbt2_u1ncl;
-  int    fbt2_u1clsize[MaxSegFBT2];
-  double fbt2_u1ctime[MaxSegFBT2];
-  double fbt2_u1ctot[MaxSegFBT2];
-  double fbt2_u1clpos[MaxSegFBT2];
-
-  int    fbt2_d1ncl;
-  int    fbt2_d1clsize[MaxSegFBT2];
-  double fbt2_d1ctime[MaxSegFBT2];
-  double fbt2_d1ctot[MaxSegFBT2];
-  double fbt2_d1clpos[MaxSegFBT2];
-
-  int    fbt2_u2ncl;
-  int    fbt2_u2clsize[MaxSegFBT2];
-  double fbt2_u2ctime[MaxSegFBT2];
-  double fbt2_u2ctot[MaxSegFBT2];
-  double fbt2_u2clpos[MaxSegFBT2];
-
-  int    fbt2_d2ncl;
-  int    fbt2_d2clsize[MaxSegFBT2];
-  double fbt2_d2ctime[MaxSegFBT2];
-  double fbt2_d2ctot[MaxSegFBT2];
-  double fbt2_d2clpos[MaxSegFBT2];
-
 };
 
 //______________________________________________________________________________
@@ -305,11 +194,7 @@ namespace root
     {
       BFTHid  = 10000,
       SCHHid  = 20000,
-      SFTVHid = 30000, SFTUHid = 40000, SFTXHid = 50000,
-      FBT1U1Hid = 60000,  FBT1D1Hid = 70000,
-      FBT1U2Hid = 80000,  FBT1D2Hid = 90000,
-      FBT2U1Hid = 100000, FBT2D1Hid = 110000,
-      FBT2U2Hid = 120000, FBT2D2Hid = 130000
+      SFTVHid = 30000, SFTUHid = 40000, SFTXHid = 50000
     };
 }
 
@@ -341,10 +226,6 @@ EventEasiroc::ProcessingNormal( void )
   static const double MaxTdcSCH  = gUser.GetParameter("TdcSCH",  1);
   static const double MinTdcSFT  = gUser.GetParameter("TdcSFT",  0);
   static const double MaxTdcSFT  = gUser.GetParameter("TdcSFT",  1);
-  static const double MinTdcFBT1 = gUser.GetParameter("TdcFBT1", 0);
-  static const double MaxTdcFBT1 = gUser.GetParameter("TdcFBT1", 1);
-  static const double MinTdcFBT2 = gUser.GetParameter("TdcFBT2", 0);
-  static const double MaxTdcFBT2 = gUser.GetParameter("TdcFBT2", 1);
 #if TimeCut
   static const double MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
   static const double MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
@@ -352,10 +233,6 @@ EventEasiroc::ProcessingNormal( void )
   static const double MaxTimeSCH = gUser.GetParameter("TimeSCH", 1);
   static const double MinTimeSFT = gUser.GetParameter("TimeSFT", 0);
   static const double MaxTimeSFT = gUser.GetParameter("TimeSFT", 1);
-  static const double MinTimeFBT1= gUser.GetParameter("TimeFBT1", 0);
-  static const double MaxTimeFBT1= gUser.GetParameter("TimeFBT1", 1);
-  static const double MinTimeFBT2= gUser.GetParameter("TimeFBT2", 0);
-  static const double MaxTimeFBT2= gUser.GetParameter("TimeFBT2", 1);
 #endif
 
   rawData = new RawData;
@@ -503,7 +380,7 @@ EventEasiroc::ProcessingNormal( void )
 
 	}// for(m)
 
-	int mhit_pair  = hit->GetNPair();
+	int mhit_pair  = hit->GetNPair();	
 	// pair data
 	for( int m=0; m<mhit_pair; ++m ){
 	  if(mhit_pair > MaxDepth) break;
@@ -549,10 +426,6 @@ EventEasiroc::ProcessingNormal( void )
     hodoAna->TimeCutBFT(MinTimeBFT, MaxTimeBFT);
 #endif
     int ncl = hodoAna->GetNClustersBFT();
-    if( ncl > NumOfSegBFT ){
-      // std::cout << "#W BFT too much number of clusters" << std::endl;
-      ncl = NumOfSegBFT;
-    }
     event.bft_ncl = ncl;
     HF1( BFTHid +101, ncl );
     for(int i=0; i<ncl; ++i){
@@ -647,10 +520,6 @@ EventEasiroc::ProcessingNormal( void )
     hodoAna->TimeCutSCH( MinTimeSCH, MaxTimeSCH );
 #endif
     int ncl = hodoAna->GetNClustersSCH();
-    if( ncl > NumOfSegSCH ){
-      // std::cout << "#W SCH too much number of clusters" << std::endl;
-      ncl = NumOfSegSCH;
-    }
     event.sch_ncl = ncl;
     HF1( SCHHid +101, ncl );
     for(int i=0; i<ncl; ++i){
@@ -757,10 +626,6 @@ EventEasiroc::ProcessingNormal( void )
 #endif
 
     int ncl = hodoAna->GetNClustersSFT(0);
-    if( ncl > NumOfSegSFT_UV ){
-      // std::cout << "#W SFT-V too much number of clusters" << std::endl;
-      ncl = NumOfSegSFT_UV;
-    }
     event.sftv_ncl = ncl;
     HF1( SFTVHid +101, ncl );
     for(int i=0; i<ncl; ++i){
@@ -862,10 +727,6 @@ EventEasiroc::ProcessingNormal( void )
     hodoAna->TimeCutSFT(1, MinTimeSFT, MaxTimeSFT);
 #endif
     int ncl = hodoAna->GetNClustersSFT(1);
-    if( ncl > NumOfSegSFT_UV ){
-      // std::cout << "#W SFT-U too much number of clusters" << std::endl;
-      ncl = NumOfSegSFT_UV;
-    }
     event.sftu_ncl = ncl;
     HF1( SFTUHid +101, ncl );
     for(int i=0; i<ncl; ++i){
@@ -971,7 +832,7 @@ EventEasiroc::ProcessingNormal( void )
 	    event.sftx_dtot[seg][m]      = width;
 	  }
 	}// for(m)
-
+	
 	if(hit_flag){
 	  HF1( SFTXHid +plane+4, seg+0.5);
 	  if(plane==U) event.sftx_uhitpat[unhits++] = seg;
@@ -991,10 +852,6 @@ EventEasiroc::ProcessingNormal( void )
     hodoAna->TimeCutSFT(2, MinTimeSFT, MaxTimeSFT);
 #endif
     int ncl = hodoAna->GetNClustersSFT(2);
-    if( ncl > NumOfSegSFT_X ){
-      // std::cout << "#W SFT-X too much number of clusters" << std::endl;
-      ncl = NumOfSegSFT_X;
-    }
     event.sftx_ncl = ncl;
     HF1( SFTXHid +101, ncl );
     for(int i=0; i<ncl; ++i){
@@ -1014,284 +871,6 @@ EventEasiroc::ProcessingNormal( void )
       HF2( SFTXHid +105, ctot, ctime );
       HF1( SFTXHid +106, pos );
     }
-  }
-
-  hodoAna->DecodeFBT1Hits( rawData );
-  ////////// FBT1
-  {
-    // Fiber Hit
-    int nhits[] = {0, 0, 0, 0};
-    enum { U, D };
-    for(int layer = 0; layer<NumOfLayersFBT1; ++layer){
-      for(int UorD = 0; UorD<2; ++UorD){
-	int nh = hodoAna->GetNHitsFBT1(layer, UorD);
-	for( int i=0; i<nh; ++i ){
-	  const FiberHit* hit = hodoAna->GetHitFBT1(layer, UorD, i);
-	  if(!hit) continue;
-	  int mhit_l  = hit->GetNLeading();
-	  int mhit_t  = hit->GetNTrailing();
-	  int seg   = hit->SegmentId();
-	  if(UorD==U) (layer==0? event.fbt1_u1depth[seg] : event.fbt1_u2depth[seg]) = mhit_l;
-	  if(UorD==D) (layer==1? event.fbt1_d1depth[seg] : event.fbt1_d2depth[seg]) = mhit_l;
-
-	  int  prev = 0;
-	  bool hit_flag = false;
-
-	  // raw leading data
-	  for( int m=0; m<mhit_l; ++m ){
-	    if(mhit_l > MaxDepth) break;
-	    double leading  = hit->GetLeading(m);
-
-	    if(leading==prev) continue;
-	    prev = leading;
-	    HF1( FBT1U1Hid + 10000*(2*layer+UorD) +6, leading );
-	    HF2( FBT1U1Hid + 10000*(2*layer+UorD) +10, seg, leading );
-	    HF1( FBT1U1Hid + 10000*(2*layer+UorD) +1000*(1)+seg+1, leading );
-
-	    if(UorD==U){
-	      (layer==0? event.fbt1_u1tdc[seg][m] : event.fbt1_u2tdc[seg][m]) = leading;
-	    }
-	    if(UorD==D){
-	      (layer==0? event.fbt1_d1tdc[seg][m] : event.fbt1_d2tdc[seg][m]) = leading;
-	    }
-
-	    if( MinTdcFBT1<leading && leading<MaxTdcFBT1 ){
-	      hit_flag = true;
-	    }
-	  }// for(m)
-
-	  // raw leading data
-	  for( int m=0; m<mhit_t; ++m ){
-	    if(mhit_t > MaxDepth) break;
-	    double trailing = hit->GetTrailing(m);
-
-	    if(UorD==U){
-	      (layer==0? event.fbt1_u1trailing[seg][m] : event.fbt1_u2trailing[seg][m]) = trailing;
-	    }
-	    if(UorD==D){
-	      (layer==0? event.fbt1_d1trailing[seg][m] : event.fbt1_d2trailing[seg][m]) = trailing;
-	    }
-	  }// for(m)
-
-	  int mhit_pair  = hit->GetNPair();
-	  // pair data
-	  for( int m=0; m<mhit_pair; ++m ){
-	    if(mhit_pair > MaxDepth) break;
-	    double time     = hit->GetTime(m);
-	    double ctime    = hit->GetCTime(m);
-	    double width    = hit->GetWidth(m);
-
-	    HF1( FBT1U1Hid + 10000*(2*layer+UorD) +8, width );
-	    HF2( FBT1U1Hid + 10000*(2*layer+UorD) +12, seg, width );
-	    HF1( FBT1U1Hid + 10000*(2*layer+UorD) +21, time );
-	    HF2( FBT1U1Hid + 10000*(2*layer+UorD) +23, width, time );
-	    HF1( FBT1U1Hid + 10000*(2*layer+UorD) +31, ctime );
-	    HF2( FBT1U1Hid + 10000*(2*layer+UorD) +33, width, ctime );
-	    HF1( FBT1U1Hid + 10000*(2*layer+UorD) +1000*(3)+seg+1, width );
-	    if( -10.<time && time<10. ){
-	      HF2( FBT1U1Hid + 10000*(2*layer+UorD) +1000*(5)+seg+1, width, time );
-	      HF2( FBT1U1Hid + 10000*(2*layer+UorD) +1000*(7)+seg+1, width, ctime );
-	    }
-	    if(UorD==U){
-	      (layer==0? event.fbt1_u1tot[seg][m] : event.fbt1_u2tot[seg][m]) = width;
-	    }
-	    if(UorD==D){
-	      (layer==0? event.fbt1_d1tot[seg][m] : event.fbt1_d2tot[seg][m]) = width;
-	    }
-	  }
-	  if(hit_flag){
-	    HF1( FBT1U1Hid + 10000*(2*layer+UorD) +4, seg+0.5);
-	    if(UorD==U) (layer==0? event.fbt1_u1hitpat[nhits[0]++] : event.fbt1_u2hitpat[nhits[2]++]) = seg;
-	    if(UorD==D) (layer==0? event.fbt1_d1hitpat[nhits[1]++] : event.fbt1_d2hitpat[nhits[3]++]) = seg;
-	  }
-	}// for(m)
-	HF1( FBT1U1Hid + 10000*(2*layer+UorD) +3, nhits[2*layer+UorD]);
-      }// for(UorD)
-    }// for(layer)
-
-    event.fbt1_u1nhits = nhits[0];
-    event.fbt1_d1nhits = nhits[1];
-    event.fbt1_u2nhits = nhits[2];
-    event.fbt1_d2nhits = nhits[3];
-
-    // Fiber Cluster
-    for(int layer = 0; layer<NumOfLayersFBT1; ++layer){
-      for(int UorD = 0; UorD<2; ++UorD){
-#if TimeCut
-	hodoAna->TimeCutFBT1(layer, UorD, MinTimeFBT1, MaxTimeFBT1);
-#endif
-	int ncl = hodoAna->GetNClustersFBT1(layer, UorD);
-	if( ncl > MaxSegFBT1 ){
-	  // std::cout << "#W FBT1 L:" << layer << " UD:" << UorD
-	  // 	      << " too much number of clusters " << std::endl;
-	  ncl = MaxSegFBT1;
-	}
-	if(UorD == U) (layer==0? event.fbt1_u1ncl : event.fbt1_u2ncl) = ncl;
-	if(UorD == D) (layer==0? event.fbt1_d1ncl : event.fbt1_d2ncl) = ncl;
-	HF1( FBT1U1Hid + 10000*(2*layer+UorD) +101, ncl );
-	for(int i=0; i<ncl; ++i){
-	  FiberCluster *cl = hodoAna->GetClusterFBT1(layer, UorD, i);
-	  if(!cl) continue;
-	  double clsize = cl->ClusterSize();
-	  double ctime  = cl->CMeanTime();
-	  double ctot   = cl->Width();
-	  double pos    = cl->MeanPosition();
-	  if(UorD == U) (layer==0? event.fbt1_u1clsize[i] : event.fbt1_u2clsize[i]) = clsize;
-	  if(UorD == D) (layer==0? event.fbt1_d1clsize[i] : event.fbt1_d2clsize[i]) = clsize;
-	  if(UorD == U) (layer==0? event.fbt1_u1ctime[i]  : event.fbt1_u2ctime[i] ) = ctime;
-	  if(UorD == D) (layer==0? event.fbt1_d1ctime[i]  : event.fbt1_d2ctime[i] ) = ctime;
-	  if(UorD == U) (layer==0? event.fbt1_u1ctot[i]   : event.fbt1_u2ctot[i]  ) = ctot;
-	  if(UorD == D) (layer==0? event.fbt1_d1ctot[i]   : event.fbt1_d2ctot[i]  ) = ctot;
-	  if(UorD == U)	(layer==0? event.fbt1_u1clpos[i]  : event.fbt1_u2clpos[i] ) = pos;
-	  if(UorD == D)	(layer==0? event.fbt1_d1clpos[i]  : event.fbt1_d2clpos[i] ) = pos;
-
-	  HF1( FBT1U1Hid + 10000*(2*layer+UorD) +102, clsize );
-	  HF1( FBT1U1Hid + 10000*(2*layer+UorD) +103, ctime );
-	  HF1( FBT1U1Hid + 10000*(2*layer+UorD) +104, ctot );
-	  HF2( FBT1U1Hid + 10000*(2*layer+UorD) +105, ctot, ctime );
-	  HF1( FBT1U1Hid + 10000*(2*layer+UorD) +106, pos );
-	}// for(ncl)
-      }// for(UorD)
-   }// for(layer)
-  }
-
-  ////////// FBT2
-  hodoAna->DecodeFBT2Hits( rawData );
-  {
-    // Fiber Hit
-    int nhits[] = {0, 0, 0, 0};
-    enum { U, D };
-    for(int layer = 0; layer<NumOfLayersFBT2; ++layer){
-      for(int UorD = 0; UorD<2; ++UorD){
-	int nh = hodoAna->GetNHitsFBT2(layer, UorD);
-	for( int i=0; i<nh; ++i ){
-	  const FiberHit* hit = hodoAna->GetHitFBT2(layer, UorD, i);
-	  if(!hit) continue;
-	  int mhit_l  = hit->GetNLeading();
-	  int mhit_t  = hit->GetNTrailing();
-	  int seg   = hit->SegmentId();
-	  if(UorD==U) (layer==0? event.fbt2_u1depth[seg] : event.fbt2_u2depth[seg]) = mhit_l;
-	  if(UorD==D) (layer==1? event.fbt2_d1depth[seg] : event.fbt2_d2depth[seg]) = mhit_l;
-
-	  int  prev = 0;
-	  bool hit_flag = false;
-
-	  // raw leading data
-	  for( int m=0; m<mhit_l; ++m ){
-	    if(mhit_l > MaxDepth) break;
-	    double leading  = hit->GetLeading(m);
-
-	    if(leading==prev) continue;
-	    prev = leading;
-	    HF1( FBT2U1Hid + 10000*(2*layer+UorD) +6, leading );
-	    HF2( FBT2U1Hid + 10000*(2*layer+UorD) +10, seg, leading );
-	    HF1( FBT2U1Hid + 10000*(2*layer+UorD) +1000*(1)+seg+1, leading );
-
-	    if(UorD==U){
-	      (layer==0? event.fbt2_u1tdc[seg][m] : event.fbt2_u2tdc[seg][m]) = leading;
-	    }
-	    if(UorD==D){
-	      (layer==0? event.fbt2_d1tdc[seg][m] : event.fbt2_d2tdc[seg][m]) = leading;
-	    }
-
-	    if( MinTdcFBT2<leading && leading<MaxTdcFBT2 ){
-	      hit_flag = true;
-	    }
-	  }// for(m)
-
-	  // raw leading data
-	  for( int m=0; m<mhit_t; ++m ){
-	    if(mhit_t > MaxDepth) break;
-	    double trailing = hit->GetTrailing(m);
-
-	    if(UorD==U){
-	      (layer==0? event.fbt2_u1trailing[seg][m] : event.fbt2_u2trailing[seg][m]) = trailing;
-	    }
-	    if(UorD==D){
-	      (layer==0? event.fbt2_d1trailing[seg][m] : event.fbt2_d2trailing[seg][m]) = trailing;
-	    }
-	  }// for(m)
-
-	  int mhit_pair  = hit->GetNPair();
-	  // pair data
-	  for( int m=0; m<mhit_pair; ++m ){
-	    if(mhit_pair > MaxDepth) break;
-	    double time     = hit->GetTime(m);
-	    double ctime    = hit->GetCTime(m);
-	    double width    = hit->GetWidth(m);
-
-	    HF1( FBT2U1Hid + 10000*(2*layer+UorD) +8, width );
-	    HF2( FBT2U1Hid + 10000*(2*layer+UorD) +12, seg, width );
-	    HF1( FBT2U1Hid + 10000*(2*layer+UorD) +21, time );
-	    HF2( FBT2U1Hid + 10000*(2*layer+UorD) +23, width, time );
-	    HF1( FBT2U1Hid + 10000*(2*layer+UorD) +31, ctime );
-	    HF2( FBT2U1Hid + 10000*(2*layer+UorD) +33, width, ctime );
-	    HF1( FBT2U1Hid + 10000*(2*layer+UorD) +1000*(3)+seg+1, width );
-	    if( -10.<time && time<10. ){
-	      HF2( FBT2U1Hid + 10000*(2*layer+UorD) +1000*(5)+seg+1, width, time );
-	      HF2( FBT2U1Hid + 10000*(2*layer+UorD) +1000*(7)+seg+1, width, ctime );
-	    }
-	    if(UorD==U){
-	      (layer==0? event.fbt2_u1tot[seg][m] : event.fbt2_u2tot[seg][m]) = width;
-	    }
-	    if(UorD==D){
-	      (layer==0? event.fbt2_d1tot[seg][m] : event.fbt2_d2tot[seg][m]) = width;
-	    }
-	  }
-	  if(hit_flag){
-	    HF1( FBT2U1Hid + 10000*(2*layer+UorD) +4, seg+0.5);
-	    if(UorD==U) (layer==0? event.fbt2_u1hitpat[nhits[0]++] : event.fbt2_u2hitpat[nhits[2]++]) = seg;
-	    if(UorD==U) (layer==0? event.fbt2_d1hitpat[nhits[1]++] : event.fbt2_d2hitpat[nhits[3]++]) = seg;
-	  }
-	}// for(m)
-	HF1( FBT2U1Hid + 10000*(2*layer+UorD) +3, nhits[2*layer+UorD]);
-      }// for(UorD)
-    }// for(layer)
-
-    event.fbt2_u1nhits = nhits[0];
-    event.fbt2_d1nhits = nhits[1];
-    event.fbt2_u2nhits = nhits[2];
-    event.fbt2_d2nhits = nhits[3];
-
-    // Fiber Cluster
-    for(int layer = 0; layer<NumOfLayersFBT2; ++layer){
-      for(int UorD = 0; UorD<2; ++UorD){
-#if TimeCut
-	hodoAna->TimeCutFBT2(layer, UorD, MinTimeFBT2, MaxTimeFBT2);
-#endif
-	int ncl = hodoAna->GetNClustersFBT2(layer, UorD);
-	if( ncl > MaxSegFBT2 ){
-	  // std::cout << "#W FBT2 L:" << layer << " UD:" << UorD
-	  // 	      << " too much number of clusters " << std::endl;
-	  ncl = MaxSegFBT2;
-	}
-	if(UorD == U) (layer==0? event.fbt2_u1ncl : event.fbt2_u2ncl) = ncl;
-	if(UorD == D) (layer==0? event.fbt2_d1ncl : event.fbt2_d2ncl) = ncl;
-	HF1( FBT2U1Hid + 10000*(2*layer+UorD) +101, ncl );
-	for(int i=0; i<ncl; ++i){
-	  FiberCluster *cl = hodoAna->GetClusterFBT2(layer, UorD, i);
-	  if(!cl) continue;
-	  double clsize = cl->ClusterSize();
-	  double ctime  = cl->CMeanTime();
-	  double ctot   = cl->Width();
-	  double pos    = cl->MeanPosition();
-	  if(UorD == U) (layer==0? event.fbt2_u1clsize[i] : event.fbt2_u2clsize[i]) = clsize;
-	  if(UorD == D) (layer==0? event.fbt2_d1clsize[i] : event.fbt2_d2clsize[i]) = clsize;
-	  if(UorD == U) (layer==0? event.fbt2_u1ctime[i]  : event.fbt2_u2ctime[i] ) = ctime;
-	  if(UorD == D) (layer==0? event.fbt2_d1ctime[i]  : event.fbt2_d2ctime[i] ) = ctime;
-	  if(UorD == U) (layer==0? event.fbt2_u1ctot[i]   : event.fbt2_u2ctot[i]  ) = ctot;
-	  if(UorD == D) (layer==0? event.fbt2_d1ctot[i]   : event.fbt2_d2ctot[i]  ) = ctot;
-	  if(UorD == U)	(layer==0? event.fbt2_u1clpos[i]  : event.fbt2_u2clpos[i] ) = pos;
-	  if(UorD == D)	(layer==0? event.fbt2_d1clpos[i]  : event.fbt2_d2clpos[i] ) = pos;
-
-	  HF1( FBT2U1Hid + 10000*(2*layer+UorD) +102, clsize );
-	  HF1( FBT2U1Hid + 10000*(2*layer+UorD) +103, ctime );
-	  HF1( FBT2U1Hid + 10000*(2*layer+UorD) +104, ctot );
-	  HF2( FBT2U1Hid + 10000*(2*layer+UorD) +105, ctot, ctime );
-	  HF1( FBT2U1Hid + 10000*(2*layer+UorD) +106, pos );
-	}// for(ncl)
-      }// for(UorD)
-    }// for(layer)
   }
 
   return true;
@@ -1316,23 +895,6 @@ EventEasiroc::InitializeEvent( void )
   event.bft_ncl    = 0;
   event.sch_nhits  = 0;
   event.sch_ncl    = 0;
-  event.fbt1_u1nhits  = 0;
-  event.fbt1_d1nhits  = 0;
-  event.fbt1_u2nhits  = 0;
-  event.fbt1_d2nhits  = 0;
-  event.fbt1_u1ncl    = 0;
-  event.fbt1_d1ncl    = 0;
-  event.fbt1_u2ncl    = 0;
-  event.fbt1_d2ncl    = 0;
-
-  event.fbt2_u1nhits  = 0;
-  event.fbt2_d1nhits  = 0;
-  event.fbt2_u2nhits  = 0;
-  event.fbt2_d2nhits  = 0;
-  event.fbt2_u1ncl    = 0;
-  event.fbt2_d1ncl    = 0;
-  event.fbt2_u2ncl    = 0;
-  event.fbt2_d2ncl    = 0;
 
   event.sftv_nhits  = 0;
   event.sftv_nhits  = 0;
@@ -1427,100 +989,6 @@ EventEasiroc::InitializeEvent( void )
     event.sftx_ctime[it]  = -999.;
     event.sftx_ctot[it]   = -999.;
     event.sftx_clpos[it]  = -999.;
-  }
-
-  for( int it=0; it<MaxSegFBT1; it++){
-    event.fbt1_u1hitpat[it] = -999;
-    event.fbt1_d1hitpat[it] = -999;
-    event.fbt1_u2hitpat[it] = -999;
-    event.fbt1_d2hitpat[it] = -999;
-
-    event.fbt1_u1depth[it]  = 0;
-    event.fbt1_d1depth[it]  = 0;
-    event.fbt1_u2depth[it]  = 0;
-    event.fbt1_d2depth[it]  = 0;
-    for( int that=0; that<MaxDepth; that++){
-      event.fbt1_u1tdc[it][that] = -999.;
-      event.fbt1_d1tdc[it][that] = -999.;
-      event.fbt1_u2tdc[it][that] = -999.;
-      event.fbt1_d2tdc[it][that] = -999.;
-
-      event.fbt1_u1trailing[it][that] = -999.;
-      event.fbt1_d1trailing[it][that] = -999.;
-      event.fbt1_u2trailing[it][that] = -999.;
-      event.fbt1_d2trailing[it][that] = -999.;
-
-      event.fbt1_u1tot[it][that] = -999.;
-      event.fbt1_d1tot[it][that] = -999.;
-      event.fbt1_u2tot[it][that] = -999.;
-      event.fbt1_d2tot[it][that] = -999.;
-    }
-    event.fbt1_u1clsize[it] = -999;
-    event.fbt1_d1clsize[it] = -999;
-    event.fbt1_u2clsize[it] = -999;
-    event.fbt1_d2clsize[it] = -999;
-
-    event.fbt1_u1ctime[it]  = -999.;
-    event.fbt1_d1ctime[it]  = -999.;
-    event.fbt1_u2ctime[it]  = -999.;
-    event.fbt1_d2ctime[it]  = -999.;
-
-    event.fbt1_u1ctot[it]   = -999.;
-    event.fbt1_d1ctot[it]   = -999.;
-    event.fbt1_u2ctot[it]   = -999.;
-    event.fbt1_d2ctot[it]   = -999.;
-
-    event.fbt1_u1clpos[it]  = -999.;
-    event.fbt1_d1clpos[it]  = -999.;
-    event.fbt1_u2clpos[it]  = -999.;
-    event.fbt1_d2clpos[it]  = -999.;
-  }
-
-  for( int it=0; it<MaxSegFBT2; it++){
-    event.fbt2_u1hitpat[it] = -999;
-    event.fbt2_d1hitpat[it] = -999;
-    event.fbt2_u2hitpat[it] = -999;
-    event.fbt2_d2hitpat[it] = -999;
-
-    event.fbt2_u1depth[it]  = 0;
-    event.fbt2_d1depth[it]  = 0;
-    event.fbt2_u2depth[it]  = 0;
-    event.fbt2_d2depth[it]  = 0;
-    for( int that=0; that<MaxDepth; that++){
-      event.fbt2_u1tdc[it][that] = -999.;
-      event.fbt2_d1tdc[it][that] = -999.;
-      event.fbt2_u2tdc[it][that] = -999.;
-      event.fbt2_d2tdc[it][that] = -999.;
-
-      event.fbt2_u1trailing[it][that] = -999.;
-      event.fbt2_d1trailing[it][that] = -999.;
-      event.fbt2_u2trailing[it][that] = -999.;
-      event.fbt2_d2trailing[it][that] = -999.;
-
-      event.fbt2_u1tot[it][that] = -999.;
-      event.fbt2_d1tot[it][that] = -999.;
-      event.fbt2_u2tot[it][that] = -999.;
-      event.fbt2_d2tot[it][that] = -999.;
-    }
-    event.fbt2_u1clsize[it] = -999;
-    event.fbt2_d1clsize[it] = -999;
-    event.fbt2_u2clsize[it] = -999;
-    event.fbt2_d2clsize[it] = -999;
-
-    event.fbt2_u1ctime[it]  = -999.;
-    event.fbt2_d1ctime[it]  = -999.;
-    event.fbt2_u2ctime[it]  = -999.;
-    event.fbt2_d2ctime[it]  = -999.;
-
-    event.fbt2_u1ctot[it]   = -999.;
-    event.fbt2_d1ctot[it]   = -999.;
-    event.fbt2_u2ctot[it]   = -999.;
-    event.fbt2_d2ctot[it]   = -999.;
-
-    event.fbt2_u1clpos[it]  = -999.;
-    event.fbt2_d1clpos[it]  = -999.;
-    event.fbt2_u2clpos[it]  = -999.;
-    event.fbt2_d2clpos[it]  = -999.;
   }
 
 }
@@ -1753,255 +1221,6 @@ ConfMan:: InitializeHistograms( void )
   HB1( SFTXHid +106, "SFTX Cluster Position",
        NumOfSegSFT_X, -0.5*(double)NumOfSegSFT_X, 0.5*(double)NumOfSegSFT_X);
 
-  //FBT1-U1
-  HB1( FBT1U1Hid + 3, "FBT1U1 Nhits",     MaxSegFBT1, 0., (double)MaxSegFBT1 );
-  HB1( FBT1U1Hid + 4, "FBT1U1 Hitpat",    MaxSegFBT1, 0., (double)MaxSegFBT1 );
-  HB1( FBT1U1Hid + 6, "FBT1U1 Tdc",       NbinTdc, MinTdc, MaxTdc );
-  HB1( FBT1U1Hid + 8, "FBT1U1 Tot",       NbinTot, MinTot, MaxTot );
-  HB2( FBT1U1Hid +10, "FBT1U1 Tdc%Seg",
-       MaxSegFBT1, 0., (double)MaxSegFBT1, NbinTdc, MinTdc, MaxTdc );
-  HB2( FBT1U1Hid +12, "FBT1U1 Tot%Seg",
-       MaxSegFBT1, 0., (double)MaxSegFBT1, NbinTot, MinTot, MaxTot );
-  for(int i=0; i<MaxSegFBT1; i++){
-    HB1( FBT1U1Hid +1000+i+1, Form("FBT1U1 Tdc-%d",   i+1), NbinTdc, MinTdc, MaxTdc );
-    HB1( FBT1U1Hid +3000+i+1, Form("FBT1U1 Tot%d",    i+1), NbinTot, MinTot, MaxTot );
-    HB2( FBT1U1Hid +5000+i+1, Form("FBT1U1 Time/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-    HB2( FBT1U1Hid +7000+i+1, Form("FBT1U1 CTime/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  }
-  HB1( FBT1U1Hid +21, "FBT1U1 Time",       NbinTime, MinTime, MaxTime );
-  HB2( FBT1U1Hid +23, "FBT1U1 Time/Tot",   NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT1U1Hid +31, "FBT1U1 CTime",      NbinTime, MinTime, MaxTime );
-  HB2( FBT1U1Hid +33, "FBT1U1 CTime/Tot",  NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-
-  HB1( FBT1U1Hid +101, "FBT1U1 NCluster", 100, 0, 100);
-  HB1( FBT1U1Hid +102, "FBT1U1 Cluster Size", 5, 0, 5);
-  HB1( FBT1U1Hid +103, "FBT1U1 CTime (Cluster)", NbinTime, MinTime, MaxTime );
-  HB1( FBT1U1Hid +104, "FBT1U1 Tot (Cluster)", NbinTot, MinTot, MaxTot );
-  HB2( FBT1U1Hid +105, "FBT1U1 CTime%Tot (Cluster)",
-       NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT1U1Hid +106, "FBT1U1 Cluster Position",
-       MaxSegFBT1, -0.5*(double)MaxSegFBT1, 0.5*(double)MaxSegFBT1);
-
-  //FBT1-D1
-  HB1( FBT1D1Hid + 3, "FBT1D1 Nhits",     MaxSegFBT1, 0., (double)MaxSegFBT1 );
-  HB1( FBT1D1Hid + 4, "FBT1D1 Hitpat",    MaxSegFBT1, 0., (double)MaxSegFBT1 );
-  HB1( FBT1D1Hid + 6, "FBT1D1 Tdc",       NbinTdc, MinTdc, MaxTdc );
-  HB1( FBT1D1Hid + 8, "FBT1D1 Tot",       NbinTot, MinTot, MaxTot );
-  HB2( FBT1D1Hid +10, "FBT1D1 Tdc%Seg",
-       MaxSegFBT1, 0., (double)MaxSegFBT1, NbinTdc, MinTdc, MaxTdc );
-  HB2( FBT1D1Hid +12, "FBT1D1 Tot%Seg",
-       MaxSegFBT1, 0., (double)MaxSegFBT1, NbinTot, MinTot, MaxTot );
-  for(int i=0; i<MaxSegFBT1; i++){
-    HB1( FBT1D1Hid +1000+i+1, Form("FBT1D1 Tdc-%d",   i+1), NbinTdc, MinTdc, MaxTdc );
-    HB1( FBT1D1Hid +3000+i+1, Form("FBT1D1 Tot%d",    i+1), NbinTot, MinTot, MaxTot );
-    HB2( FBT1D1Hid +5000+i+1, Form("FBT1D1 Time/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-    HB2( FBT1D1Hid +7000+i+1, Form("FBT1D1 CTime/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  }
-  HB1( FBT1D1Hid +21, "FBT1D1 Time",       NbinTime, MinTime, MaxTime );
-  HB2( FBT1D1Hid +23, "FBT1D1 Time/Tot",   NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT1D1Hid +31, "FBT1D1 CTime",      NbinTime, MinTime, MaxTime );
-  HB2( FBT1D1Hid +33, "FBT1D1 CTime/Tot",  NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-
-  HB1( FBT1D1Hid +101, "FBT1D1 NCluster", 100, 0, 100);
-  HB1( FBT1D1Hid +102, "FBT1D1 Cluster Size", 5, 0, 5);
-  HB1( FBT1D1Hid +103, "FBT1D1 CTime (Cluster)", NbinTime, MinTime, MaxTime );
-  HB1( FBT1D1Hid +104, "FBT1D1 Tot (Cluster)", NbinTot, MinTot, MaxTot );
-  HB2( FBT1D1Hid +105, "FBT1D1 CTime%Tot (Cluster)",
-       NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT1D1Hid +106, "FBT1D1 Cluster Position",
-       MaxSegFBT1, -0.5*(double)MaxSegFBT1, 0.5*(double)MaxSegFBT1);
-
-  //FBT1-U2
-  HB1( FBT1U2Hid + 3, "FBT1U2 Nhits",     MaxSegFBT1, 0., (double)MaxSegFBT1 );
-  HB1( FBT1U2Hid + 4, "FBT1U2 Hitpat",    MaxSegFBT1, 0., (double)MaxSegFBT1 );
-  HB1( FBT1U2Hid + 6, "FBT1U2 Tdc",       NbinTdc, MinTdc, MaxTdc );
-  HB1( FBT1U2Hid + 8, "FBT1U2 Tot",       NbinTot, MinTot, MaxTot );
-  HB2( FBT1U2Hid +10, "FBT1U2 Tdc%Seg",
-       MaxSegFBT1, 0., (double)MaxSegFBT1, NbinTdc, MinTdc, MaxTdc );
-  HB2( FBT1U2Hid +12, "FBT1U2 Tot%Seg",
-       MaxSegFBT1, 0., (double)MaxSegFBT1, NbinTot, MinTot, MaxTot );
-  for(int i=0; i<MaxSegFBT1; i++){
-    HB1( FBT1U2Hid +1000+i+1, Form("FBT1U2 Tdc-%d",   i+1), NbinTdc, MinTdc, MaxTdc );
-    HB1( FBT1U2Hid +3000+i+1, Form("FBT1U2 Tot%d",    i+1), NbinTot, MinTot, MaxTot );
-    HB2( FBT1U2Hid +5000+i+1, Form("FBT1U2 Time/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-    HB2( FBT1U2Hid +7000+i+1, Form("FBT1U2 CTime/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  }
-  HB1( FBT1U2Hid +21, "FBT1U2 Time",       NbinTime, MinTime, MaxTime );
-  HB2( FBT1U2Hid +23, "FBT1U2 Time/Tot",   NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT1U2Hid +31, "FBT1U2 CTime",      NbinTime, MinTime, MaxTime );
-  HB2( FBT1U2Hid +33, "FBT1U2 CTime/Tot",  NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-
-  HB1( FBT1U2Hid +101, "FBT1U2 NCluster", 100, 0, 100);
-  HB1( FBT1U2Hid +102, "FBT1U2 Cluster Size", 5, 0, 5);
-  HB1( FBT1U2Hid +103, "FBT1U2 CTime (Cluster)", NbinTime, MinTime, MaxTime );
-  HB1( FBT1U2Hid +104, "FBT1U2 Tot (Cluster)", NbinTot, MinTot, MaxTot );
-  HB2( FBT1U2Hid +105, "FBT1U2 CTime%Tot (Cluster)",
-       NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT1U2Hid +106, "FBT1U2 Cluster Position",
-       MaxSegFBT1, -0.5*(double)MaxSegFBT1, 0.5*(double)MaxSegFBT1);
-
-  //FBT1-D2
-  HB1( FBT1D2Hid + 3, "FBT1D2 Nhits",     MaxSegFBT1, 0., (double)MaxSegFBT1 );
-  HB1( FBT1D2Hid + 4, "FBT1D2 Hitpat",    MaxSegFBT1, 0., (double)MaxSegFBT1 );
-  HB1( FBT1D2Hid + 6, "FBT1D2 Tdc",       NbinTdc, MinTdc, MaxTdc );
-  HB1( FBT1D2Hid + 8, "FBT1D2 Tot",       NbinTot, MinTot, MaxTot );
-  HB2( FBT1D2Hid +10, "FBT1D2 Tdc%Seg",
-       MaxSegFBT1, 0., (double)MaxSegFBT1, NbinTdc, MinTdc, MaxTdc );
-  HB2( FBT1D2Hid +12, "FBT1D2 Tot%Seg",
-       MaxSegFBT1, 0., (double)MaxSegFBT1, NbinTot, MinTot, MaxTot );
-  for(int i=0; i<MaxSegFBT1; i++){
-    HB1( FBT1D2Hid +1000+i+1, Form("FBT1D2 Tdc-%d",   i+1), NbinTdc, MinTdc, MaxTdc );
-    HB1( FBT1D2Hid +3000+i+1, Form("FBT1D2 Tot%d",    i+1), NbinTot, MinTot, MaxTot );
-    HB2( FBT1D2Hid +5000+i+1, Form("FBT1D2 Time/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-    HB2( FBT1D2Hid +7000+i+1, Form("FBT1D2 CTime/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  }
-  HB1( FBT1D2Hid +21, "FBT1D2 Time",       NbinTime, MinTime, MaxTime );
-  HB2( FBT1D2Hid +23, "FBT1D2 Time/Tot",   NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT1D2Hid +31, "FBT1D2 CTime",      NbinTime, MinTime, MaxTime );
-  HB2( FBT1D2Hid +33, "FBT1D2 CTime/Tot",  NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-
-  HB1( FBT1D2Hid +101, "FBT1D2 NCluster", 100, 0, 100);
-  HB1( FBT1D2Hid +102, "FBT1D2 Cluster Size", 5, 0, 5);
-  HB1( FBT1D2Hid +103, "FBT1D2 CTime (Cluster)", NbinTime, MinTime, MaxTime );
-  HB1( FBT1D2Hid +104, "FBT1D2 Tot (Cluster)", NbinTot, MinTot, MaxTot );
-  HB2( FBT1D2Hid +105, "FBT1D2 CTime%Tot (Cluster)",
-       NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT1D2Hid +106, "FBT1D2 Cluster Position",
-       MaxSegFBT1, -0.5*(double)MaxSegFBT1, 0.5*(double)MaxSegFBT1);
-
-  //FBT2-U1
-  HB1( FBT2U1Hid + 3, "FBT2U1 Nhits",     MaxSegFBT2, 0., (double)MaxSegFBT2 );
-  HB1( FBT2U1Hid + 4, "FBT2U1 Hitpat",    MaxSegFBT2, 0., (double)MaxSegFBT2 );
-  HB1( FBT2U1Hid + 6, "FBT2U1 Tdc",       NbinTdc, MinTdc, MaxTdc );
-  HB1( FBT2U1Hid + 8, "FBT2U1 Tot",       NbinTot, MinTot, MaxTot );
-  HB2( FBT2U1Hid +10, "FBT2U1 Tdc%Seg",
-       MaxSegFBT2, 0., (double)MaxSegFBT2, NbinTdc, MinTdc, MaxTdc );
-  HB2( FBT2U1Hid +12, "FBT2U1 Tot%Seg",
-       MaxSegFBT2, 0., (double)MaxSegFBT2, NbinTot, MinTot, MaxTot );
-  for(int i=0; i<MaxSegFBT2; i++){
-    HB1( FBT2U1Hid +1000+i+1, Form("FBT2U1 Tdc-%d",   i+1), NbinTdc, MinTdc, MaxTdc );
-    HB1( FBT2U1Hid +3000+i+1, Form("FBT2U1 Tot%d",    i+1), NbinTot, MinTot, MaxTot );
-    HB2( FBT2U1Hid +5000+i+1, Form("FBT2U1 Time/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-    HB2( FBT2U1Hid +7000+i+1, Form("FBT2U1 CTime/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  }
-  HB1( FBT2U1Hid +21, "FBT2U1 Time",       NbinTime, MinTime, MaxTime );
-  HB2( FBT2U1Hid +23, "FBT2U1 Time/Tot",   NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT2U1Hid +31, "FBT2U1 CTime",      NbinTime, MinTime, MaxTime );
-  HB2( FBT2U1Hid +33, "FBT2U1 CTime/Tot",  NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-
-  HB1( FBT2U1Hid +101, "FBT2U1 NCluster", 100, 0, 100);
-  HB1( FBT2U1Hid +102, "FBT2U1 Cluster Size", 5, 0, 5);
-  HB1( FBT2U1Hid +103, "FBT2U1 CTime (Cluster)", NbinTime, MinTime, MaxTime );
-  HB1( FBT2U1Hid +104, "FBT2U1 Tot (Cluster)", NbinTot, MinTot, MaxTot );
-  HB2( FBT2U1Hid +105, "FBT2U1 CTime%Tot (Cluster)",
-       NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT2U1Hid +106, "FBT2U1 Cluster Position",
-       MaxSegFBT2, -0.5*(double)MaxSegFBT2, 0.5*(double)MaxSegFBT2);
-
-  //FBT2-D1
-  HB1( FBT2D1Hid + 3, "FBT2D1 Nhits",     MaxSegFBT2, 0., (double)MaxSegFBT2 );
-  HB1( FBT2D1Hid + 4, "FBT2D1 Hitpat",    MaxSegFBT2, 0., (double)MaxSegFBT2 );
-  HB1( FBT2D1Hid + 6, "FBT2D1 Tdc",       NbinTdc, MinTdc, MaxTdc );
-  HB1( FBT2D1Hid + 8, "FBT2D1 Tot",       NbinTot, MinTot, MaxTot );
-  HB2( FBT2D1Hid +10, "FBT2D1 Tdc%Seg",
-       MaxSegFBT2, 0., (double)MaxSegFBT2, NbinTdc, MinTdc, MaxTdc );
-  HB2( FBT2D1Hid +12, "FBT2D1 Tot%Seg",
-       MaxSegFBT2, 0., (double)MaxSegFBT2, NbinTot, MinTot, MaxTot );
-  for(int i=0; i<MaxSegFBT2; i++){
-    HB1( FBT2D1Hid +1000+i+1, Form("FBT2D1 Tdc-%d",   i+1), NbinTdc, MinTdc, MaxTdc );
-    HB1( FBT2D1Hid +3000+i+1, Form("FBT2D1 Tot%d",    i+1), NbinTot, MinTot, MaxTot );
-    HB2( FBT2D1Hid +5000+i+1, Form("FBT2D1 Time/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-    HB2( FBT2D1Hid +7000+i+1, Form("FBT2D1 CTime/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  }
-  HB1( FBT2D1Hid +21, "FBT2D1 Time",       NbinTime, MinTime, MaxTime );
-  HB2( FBT2D1Hid +23, "FBT2D1 Time/Tot",   NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT2D1Hid +31, "FBT2D1 CTime",      NbinTime, MinTime, MaxTime );
-  HB2( FBT2D1Hid +33, "FBT2D1 CTime/Tot",  NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-
-  HB1( FBT2D1Hid +101, "FBT2D1 NCluster", 100, 0, 100);
-  HB1( FBT2D1Hid +102, "FBT2D1 Cluster Size", 5, 0, 5);
-  HB1( FBT2D1Hid +103, "FBT2D1 CTime (Cluster)", NbinTime, MinTime, MaxTime );
-  HB1( FBT2D1Hid +104, "FBT2D1 Tot (Cluster)", NbinTot, MinTot, MaxTot );
-  HB2( FBT2D1Hid +105, "FBT2D1 CTime%Tot (Cluster)",
-       NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT2D1Hid +106, "FBT2D1 Cluster Position",
-       MaxSegFBT2, -0.5*(double)MaxSegFBT2, 0.5*(double)MaxSegFBT2);
-
-  //FBT2-U2
-  HB1( FBT2U2Hid + 3, "FBT2U2 Nhits",     MaxSegFBT2, 0., (double)MaxSegFBT2 );
-  HB1( FBT2U2Hid + 4, "FBT2U2 Hitpat",    MaxSegFBT2, 0., (double)MaxSegFBT2 );
-  HB1( FBT2U2Hid + 6, "FBT2U2 Tdc",       NbinTdc, MinTdc, MaxTdc );
-  HB1( FBT2U2Hid + 8, "FBT2U2 Tot",       NbinTot, MinTot, MaxTot );
-  HB2( FBT2U2Hid +10, "FBT2U2 Tdc%Seg",
-       MaxSegFBT2, 0., (double)MaxSegFBT2, NbinTdc, MinTdc, MaxTdc );
-  HB2( FBT2U2Hid +12, "FBT2U2 Tot%Seg",
-       MaxSegFBT2, 0., (double)MaxSegFBT2, NbinTot, MinTot, MaxTot );
-  for(int i=0; i<MaxSegFBT2; i++){
-    HB1( FBT2U2Hid +1000+i+1, Form("FBT2U2 Tdc-%d",   i+1), NbinTdc, MinTdc, MaxTdc );
-    HB1( FBT2U2Hid +3000+i+1, Form("FBT2U2 Tot%d",    i+1), NbinTot, MinTot, MaxTot );
-    HB2( FBT2U2Hid +5000+i+1, Form("FBT2U2 Time/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-    HB2( FBT2U2Hid +7000+i+1, Form("FBT2U2 CTime/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  }
-  HB1( FBT2U2Hid +21, "FBT2U2 Time",       NbinTime, MinTime, MaxTime );
-  HB2( FBT2U2Hid +23, "FBT2U2 Time/Tot",   NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT2U2Hid +31, "FBT2U2 CTime",      NbinTime, MinTime, MaxTime );
-  HB2( FBT2U2Hid +33, "FBT2U2 CTime/Tot",  NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-
-  HB1( FBT2U2Hid +101, "FBT2U2 NCluster", 100, 0, 100);
-  HB1( FBT2U2Hid +102, "FBT2U2 Cluster Size", 5, 0, 5);
-  HB1( FBT2U2Hid +103, "FBT2U2 CTime (Cluster)", NbinTime, MinTime, MaxTime );
-  HB1( FBT2U2Hid +104, "FBT2U2 Tot (Cluster)", NbinTot, MinTot, MaxTot );
-  HB2( FBT2U2Hid +105, "FBT2U2 CTime%Tot (Cluster)",
-       NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT2U2Hid +106, "FBT2U2 Cluster Position",
-       MaxSegFBT2, -0.5*(double)MaxSegFBT2, 0.5*(double)MaxSegFBT2);
-
-  //FBT2-D2
-  HB1( FBT2D2Hid + 3, "FBT2D2 Nhits",     MaxSegFBT2, 0., (double)MaxSegFBT2 );
-  HB1( FBT2D2Hid + 4, "FBT2D2 Hitpat",    MaxSegFBT2, 0., (double)MaxSegFBT2 );
-  HB1( FBT2D2Hid + 6, "FBT2D2 Tdc",       NbinTdc, MinTdc, MaxTdc );
-  HB1( FBT2D2Hid + 8, "FBT2D2 Tot",       NbinTot, MinTot, MaxTot );
-  HB2( FBT2D2Hid +10, "FBT2D2 Tdc%Seg",
-       MaxSegFBT2, 0., (double)MaxSegFBT2, NbinTdc, MinTdc, MaxTdc );
-  HB2( FBT2D2Hid +12, "FBT2D2 Tot%Seg",
-       MaxSegFBT2, 0., (double)MaxSegFBT2, NbinTot, MinTot, MaxTot );
-  for(int i=0; i<MaxSegFBT2; i++){
-    HB1( FBT2D2Hid +1000+i+1, Form("FBT2D2 Tdc-%d",   i+1), NbinTdc, MinTdc, MaxTdc );
-    HB1( FBT2D2Hid +3000+i+1, Form("FBT2D2 Tot%d",    i+1), NbinTot, MinTot, MaxTot );
-    HB2( FBT2D2Hid +5000+i+1, Form("FBT2D2 Time/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-    HB2( FBT2D2Hid +7000+i+1, Form("FBT2D2 CTime/Tot-%d", i+1),
-	 NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  }
-  HB1( FBT2D2Hid +21, "FBT2D2 Time",       NbinTime, MinTime, MaxTime );
-  HB2( FBT2D2Hid +23, "FBT2D2 Time/Tot",   NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT2D2Hid +31, "FBT2D2 CTime",      NbinTime, MinTime, MaxTime );
-  HB2( FBT2D2Hid +33, "FBT2D2 CTime/Tot",  NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-
-  HB1( FBT2D2Hid +101, "FBT2D2 NCluster", 100, 0, 100);
-  HB1( FBT2D2Hid +102, "FBT2D2 Cluster Size", 5, 0, 5);
-  HB1( FBT2D2Hid +103, "FBT2D2 CTime (Cluster)", NbinTime, MinTime, MaxTime );
-  HB1( FBT2D2Hid +104, "FBT2D2 Tot (Cluster)", NbinTot, MinTot, MaxTot );
-  HB2( FBT2D2Hid +105, "FBT2D2 CTime%Tot (Cluster)",
-       NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB1( FBT2D2Hid +106, "FBT2D2 Cluster Position",
-       MaxSegFBT2, -0.5*(double)MaxSegFBT2, 0.5*(double)MaxSegFBT2);
-
-
   //Tree
   HBTree( "ea0c", "tree of Easiroc" );
   //Trig
@@ -2011,7 +1230,6 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
 
   //BFT
-#if FHitBranch
   tree->Branch("bft_nhits",     &event.bft_nhits,        "bft_nhits/I");
   tree->Branch("bft_unhits",    &event.bft_unhits,       "bft_unhits/I");
   tree->Branch("bft_dnhits",    &event.bft_dnhits,       "bft_dnhits/I");
@@ -2031,7 +1249,6 @@ ConfMan:: InitializeHistograms( void )
 						      NumOfSegBFT, MaxDepth));
   tree->Branch("bft_udepth",     event.bft_udepth,       Form("bft_udepth[%d]/I", NumOfSegBFT));
   tree->Branch("bft_ddepth",     event.bft_ddepth,       Form("bft_ddepth[%d]/I", NumOfSegBFT));
-#endif
   tree->Branch("bft_ncl",       &event.bft_ncl,          "bft_ncl/I");
   tree->Branch("bft_clsize",     event.bft_clsize,       "bft_clsize[bft_ncl]/I");
   tree->Branch("bft_ctime",      event.bft_ctime,        "bft_ctime[bft_ncl]/D");
@@ -2039,7 +1256,6 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("bft_clpos",      event.bft_clpos,        "bft_clpos[bft_ncl]/D");
 
   //SCH
-#if FHitBranch
   tree->Branch("sch_nhits",     &event.sch_nhits,        "sch_nhits/I");
   tree->Branch("sch_hitpat",     event.sch_hitpat,       "sch_hitpat[sch_nhits]/I");
   tree->Branch("sch_tdc",        event.sch_tdc,          Form("sch_tdc[%d][%d]/D",
@@ -2049,7 +1265,6 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("sch_tot",        event.sch_tot,          Form("sch_tot[%d][%d]/D",
 							      NumOfSegSCH, MaxDepth));
   tree->Branch("sch_depth",      event.sch_depth,        Form("sch_depth[%d]/I", NumOfSegSCH));
-#endif
   tree->Branch("sch_ncl",       &event.sch_ncl,          "sch_ncl/I");
   tree->Branch("sch_clsize",     event.sch_clsize,       "sch_clsize[sch_ncl]/I");
   tree->Branch("sch_ctime",      event.sch_ctime,        "sch_ctime[sch_ncl]/D");
@@ -2057,7 +1272,6 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("sch_clpos",      event.sch_clpos,        "sch_clpos[sch_ncl]/D");
 
   //SFT-V
-#if FHitBranch
   tree->Branch("sftv_nhits",     &event.sftv_nhits,        "sftv_nhits/I");
   tree->Branch("sftv_hitpat",     event.sftv_hitpat,       "sftv_hitpat[sftv_nhits]/I");
   tree->Branch("sftv_tdc",        event.sftv_tdc,          Form("sftv_tdc[%d][%d]/D",
@@ -2067,7 +1281,6 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("sftv_tot",        event.sftv_tot,          Form("sftv_tot[%d][%d]/D",
 						      NumOfSegSFT_UV, MaxDepth));
   tree->Branch("sftv_depth",      event.sftv_depth,        Form("sftv_depth[%d]/I", NumOfSegSFT_UV));
-#endif
   tree->Branch("sftv_ncl",       &event.sftv_ncl,          "sftv_ncl/I");
   tree->Branch("sftv_clsize",     event.sftv_clsize,       "sftv_clsize[sftv_ncl]/I");
   tree->Branch("sftv_ctime",      event.sftv_ctime,        "sftv_ctime[sftv_ncl]/D");
@@ -2075,7 +1288,6 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("sftv_clpos",      event.sftv_clpos,        "sftv_clpos[sftv_ncl]/D");
 
   //SFT-U
-#if FHitBranch
   tree->Branch("sftu_nhits",     &event.sftu_nhits,        "sftu_nhits/I");
   tree->Branch("sftu_hitpat",     event.sftu_hitpat,       "sftu_hitpat[sftu_nhits]/I");
   tree->Branch("sftu_tdc",        event.sftu_tdc,          Form("sftu_tdc[%d][%d]/D",
@@ -2085,7 +1297,6 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("sftu_tot",        event.sftu_tot,          Form("sftu_tot[%d][%d]/D",
 						      NumOfSegSFT_UV, MaxDepth));
   tree->Branch("sftu_depth",      event.sftu_depth,        Form("sftu_depth[%d]/I", NumOfSegSFT_UV));
-#endif
   tree->Branch("sftu_ncl",       &event.sftu_ncl,          "sftu_ncl/I");
   tree->Branch("sftu_clsize",     event.sftu_clsize,       "sftu_clsize[sftu_ncl]/I");
   tree->Branch("sftu_ctime",      event.sftu_ctime,        "sftu_ctime[sftu_ncl]/D");
@@ -2093,7 +1304,6 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("sftu_clpos",      event.sftu_clpos,        "sftu_clpos[sftu_ncl]/D");
 
   //SFT-X
-#if FHitBranch
   tree->Branch("sftx_nhits",     &event.sftx_nhits,        "sftx_nhits/I");
   tree->Branch("sftx_unhits",    &event.sftx_unhits,       "sftx_unhits/I");
   tree->Branch("sftx_dnhits",    &event.sftx_dnhits,       "sftx_dnhits/I");
@@ -2113,150 +1323,12 @@ ConfMan:: InitializeHistograms( void )
 						      NumOfSegSFT_X, MaxDepth));
   tree->Branch("sftx_udepth",     event.sftx_udepth,       Form("sftx_udepth[%d]/I", NumOfSegSFT_X));
   tree->Branch("sftx_ddepth",     event.sftx_ddepth,       Form("sftx_ddepth[%d]/I", NumOfSegSFT_X));
-#endif
   tree->Branch("sftx_ncl",       &event.sftx_ncl,          "sftx_ncl/I");
   tree->Branch("sftx_clsize",     event.sftx_clsize,       "sftx_clsize[sftx_ncl]/I");
   tree->Branch("sftx_ctime",      event.sftx_ctime,        "sftx_ctime[sftx_ncl]/D");
   tree->Branch("sftx_ctot",       event.sftx_ctot,         "sftx_ctot[sftx_ncl]/D");
   tree->Branch("sftx_clpos",      event.sftx_clpos,        "sftx_clpos[sftx_ncl]/D");
 
-  //FBT1
-#if FHitBranch
-  tree->Branch("fbt1_u1nhits",    &event.fbt1_u1nhits,     "fbt1_u1nhits/I");
-  tree->Branch("fbt1_d1nhits",    &event.fbt1_d1nhits,     "fbt1_d1nhits/I");
-  tree->Branch("fbt1_u2nhits",    &event.fbt1_u2nhits,     "fbt1_u2nhits/I");
-  tree->Branch("fbt1_d2nhits",    &event.fbt1_d2nhits,     "fbt1_d2nhits/I");
-
-  tree->Branch("fbt1_u1hitpat",    event.fbt1_u1hitpat,    "fbt1_u1hitpat[fbt1_u1nhits]/I");
-  tree->Branch("fbt1_d1hitpat",    event.fbt1_d1hitpat,    "fbt1_d1hitpat[fbt1_d1nhits]/I");
-  tree->Branch("fbt1_u2hitpat",    event.fbt1_u2hitpat,    "fbt1_u2hitpat[fbt1_u2nhits]/I");
-  tree->Branch("fbt1_d2hitpat",    event.fbt1_d2hitpat,    "fbt1_d2hitpat[fbt1_d2nhits]/I");
-
-  tree->Branch("fbt1_u1tdc",       event.fbt1_u1tdc,       Form("fbt1_u1tdc[%d][%d]/D",
-								MaxSegFBT1, MaxDepth));
-  tree->Branch("fbt1_d1tdc",       event.fbt1_d1tdc,       Form("fbt1_d1tdc[%d][%d]/D",
-								MaxSegFBT1, MaxDepth));
-  tree->Branch("fbt1_u2tdc",       event.fbt1_u2tdc,       Form("fbt1_u2tdc[%d][%d]/D",
-								MaxSegFBT1, MaxDepth));
-  tree->Branch("fbt1_d2tdc",       event.fbt1_d2tdc,       Form("fbt1_d2tdc[%d][%d]/D",
-								MaxSegFBT1, MaxDepth));
-
-  tree->Branch("fbt1_u1trailing",  event.fbt1_u1trailing,  Form("fbt1_u1trailing[%d][%d]/D",
-								MaxSegFBT1, MaxDepth));
-  tree->Branch("fbt1_d1trailing",  event.fbt1_d1trailing,  Form("fbt1_d1trailing[%d][%d]/D",
-								MaxSegFBT1, MaxDepth));
-  tree->Branch("fbt1_u2trailing",  event.fbt1_u2trailing,  Form("fbt1_u2trailing[%d][%d]/D",
-								MaxSegFBT1, MaxDepth));
-  tree->Branch("fbt1_d2trailing",  event.fbt1_d2trailing,  Form("fbt1_d2trailing[%d][%d]/D",
-								MaxSegFBT1, MaxDepth));
-
-  tree->Branch("fbt1_u1tot",       event.fbt1_u1tot,       Form("fbt1_u1tot[%d][%d]/D",
-								MaxSegFBT1, MaxDepth));
-  tree->Branch("fbt1_d1tot",       event.fbt1_d1tot,       Form("fbt1_d1tot[%d][%d]/D",
-								MaxSegFBT1, MaxDepth));
-  tree->Branch("fbt1_u2tot",       event.fbt1_u2tot,       Form("fbt1_u2tot[%d][%d]/D",
-								MaxSegFBT1, MaxDepth));
-  tree->Branch("fbt1_d2tot",       event.fbt1_d2tot,       Form("fbt1_d2tot[%d][%d]/D",
-								MaxSegFBT1, MaxDepth));
-
-  tree->Branch("fbt1_u1depth",     event.fbt1_u1depth,     Form("fbt1_u1depth[%d]/I", MaxSegFBT1));
-  tree->Branch("fbt1_d1depth",     event.fbt1_d1depth,     Form("fbt1_d1depth[%d]/I", MaxSegFBT1));
-  tree->Branch("fbt1_u2depth",     event.fbt1_u2depth,     Form("fbt1_u2depth[%d]/I", MaxSegFBT1));
-  tree->Branch("fbt1_d2depth",     event.fbt1_d2depth,     Form("fbt1_d2depth[%d]/I", MaxSegFBT1));
-#endif
-  tree->Branch("fbt1_u1ncl",       &event.fbt1_u1ncl,          "fbt1_u1ncl/I");
-  tree->Branch("fbt1_d1ncl",       &event.fbt1_d1ncl,          "fbt1_d1ncl/I");
-  tree->Branch("fbt1_u2ncl",       &event.fbt1_u2ncl,          "fbt1_u2ncl/I");
-  tree->Branch("fbt1_d2ncl",       &event.fbt1_d2ncl,          "fbt1_d2ncl/I");
-
-  tree->Branch("fbt1_u1clsize",     event.fbt1_u1clsize,       "fbt1_u1clsize[fbt1_u1ncl]/I");
-  tree->Branch("fbt1_d1clsize",     event.fbt1_d1clsize,       "fbt1_d1clsize[fbt1_d1ncl]/I");
-  tree->Branch("fbt1_u2clsize",     event.fbt1_u2clsize,       "fbt1_u2clsize[fbt1_u2ncl]/I");
-  tree->Branch("fbt1_d2clsize",     event.fbt1_d2clsize,       "fbt1_d2clsize[fbt1_d2ncl]/I");
-
-  tree->Branch("fbt1_u1ctime",      event.fbt1_u1ctime,        "fbt1_u1ctime[fbt1_u1ncl]/D");
-  tree->Branch("fbt1_d1ctime",      event.fbt1_d1ctime,        "fbt1_d1ctime[fbt1_d1ncl]/D");
-  tree->Branch("fbt1_u2ctime",      event.fbt1_u2ctime,        "fbt1_u2ctime[fbt1_u2ncl]/D");
-  tree->Branch("fbt1_d2ctime",      event.fbt1_d2ctime,        "fbt1_d2ctime[fbt1_d2ncl]/D");
-
-  tree->Branch("fbt1_u1ctot",       event.fbt1_u1ctot,         "fbt1_u1ctot[fbt1_u1ncl]/D");
-  tree->Branch("fbt1_d1ctot",       event.fbt1_d1ctot,         "fbt1_d1ctot[fbt1_d1ncl]/D");
-  tree->Branch("fbt1_u2ctot",       event.fbt1_u2ctot,         "fbt1_u2ctot[fbt1_u2ncl]/D");
-  tree->Branch("fbt1_d2ctot",       event.fbt1_d2ctot,         "fbt1_d2ctot[fbt1_d2ncl]/D");
-
-  tree->Branch("fbt1_u1clpos",      event.fbt1_u1clpos,        "fbt1_u1clpos[fbt1_u1ncl]/D");
-  tree->Branch("fbt1_d1clpos",      event.fbt1_d1clpos,        "fbt1_d1clpos[fbt1_d1ncl]/D");
-  tree->Branch("fbt1_u2clpos",      event.fbt1_u2clpos,        "fbt1_u2clpos[fbt1_u2ncl]/D");
-  tree->Branch("fbt1_d2clpos",      event.fbt1_d2clpos,        "fbt1_d2clpos[fbt1_d2ncl]/D");
-
-  //FBT2
-#if FHitBranch
-  tree->Branch("fbt2_u1nhits",    &event.fbt2_u1nhits,     "fbt2_u1nhits/I");
-  tree->Branch("fbt2_d1nhits",    &event.fbt2_d1nhits,     "fbt2_d1nhits/I");
-  tree->Branch("fbt2_u2nhits",    &event.fbt2_u2nhits,     "fbt2_u2nhits/I");
-  tree->Branch("fbt2_d2nhits",    &event.fbt2_d2nhits,     "fbt2_d2nhits/I");
-
-  tree->Branch("fbt2_u1hitpat",    event.fbt2_u1hitpat,    "fbt2_u1hitpat[fbt2_u1nhits]/I");
-  tree->Branch("fbt2_d1hitpat",    event.fbt2_d1hitpat,    "fbt2_d1hitpat[fbt2_d1nhits]/I");
-  tree->Branch("fbt2_u2hitpat",    event.fbt2_u2hitpat,    "fbt2_u2hitpat[fbt2_u2nhits]/I");
-  tree->Branch("fbt2_d2hitpat",    event.fbt2_d2hitpat,    "fbt2_d2hitpat[fbt2_d2nhits]/I");
-
-  tree->Branch("fbt2_u1tdc",       event.fbt2_u1tdc,       Form("fbt2_u1tdc[%d][%d]/D",
-								MaxSegFBT2, MaxDepth));
-  tree->Branch("fbt2_d1tdc",       event.fbt2_d1tdc,       Form("fbt2_d1tdc[%d][%d]/D",
-								MaxSegFBT2, MaxDepth));
-  tree->Branch("fbt2_u2tdc",       event.fbt2_u2tdc,       Form("fbt2_u2tdc[%d][%d]/D",
-								MaxSegFBT2, MaxDepth));
-  tree->Branch("fbt2_d2tdc",       event.fbt2_d2tdc,       Form("fbt2_d2tdc[%d][%d]/D",
-								MaxSegFBT2, MaxDepth));
-
-  tree->Branch("fbt2_u1trailing",  event.fbt2_u1trailing,  Form("fbt2_u1trailing[%d][%d]/D",
-								MaxSegFBT2, MaxDepth));
-  tree->Branch("fbt2_d1trailing",  event.fbt2_d1trailing,  Form("fbt2_d1trailing[%d][%d]/D",
-								MaxSegFBT2, MaxDepth));
-  tree->Branch("fbt2_u2trailing",  event.fbt2_u2trailing,  Form("fbt2_u2trailing[%d][%d]/D",
-								MaxSegFBT2, MaxDepth));
-  tree->Branch("fbt2_d2trailing",  event.fbt2_d2trailing,  Form("fbt2_d2trailing[%d][%d]/D",
-								MaxSegFBT2, MaxDepth));
-
-  tree->Branch("fbt2_u1tot",       event.fbt2_u1tot,       Form("fbt2_u1tot[%d][%d]/D",
-								MaxSegFBT2, MaxDepth));
-  tree->Branch("fbt2_d1tot",       event.fbt2_d1tot,       Form("fbt2_d1tot[%d][%d]/D",
-								MaxSegFBT2, MaxDepth));
-  tree->Branch("fbt2_u2tot",       event.fbt2_u2tot,       Form("fbt2_u2tot[%d][%d]/D",
-								MaxSegFBT2, MaxDepth));
-  tree->Branch("fbt2_d2tot",       event.fbt2_d2tot,       Form("fbt2_d2tot[%d][%d]/D",
-								MaxSegFBT2, MaxDepth));
-
-  tree->Branch("fbt2_u1depth",     event.fbt2_u1depth,     Form("fbt2_u1depth[%d]/I", MaxSegFBT2));
-  tree->Branch("fbt2_d1depth",     event.fbt2_d1depth,     Form("fbt2_d1depth[%d]/I", MaxSegFBT2));
-  tree->Branch("fbt2_u2depth",     event.fbt2_u2depth,     Form("fbt2_u2depth[%d]/I", MaxSegFBT2));
-  tree->Branch("fbt2_d2depth",     event.fbt2_d2depth,     Form("fbt2_d2depth[%d]/I", MaxSegFBT2));
-#endif
-  tree->Branch("fbt2_u1ncl",       &event.fbt2_u1ncl,          "fbt2_u1ncl/I");
-  tree->Branch("fbt2_d1ncl",       &event.fbt2_d1ncl,          "fbt2_d1ncl/I");
-  tree->Branch("fbt2_u2ncl",       &event.fbt2_u2ncl,          "fbt2_u2ncl/I");
-  tree->Branch("fbt2_d2ncl",       &event.fbt2_d2ncl,          "fbt2_d2ncl/I");
-
-  tree->Branch("fbt2_u1clsize",     event.fbt2_u1clsize,       "fbt2_u1clsize[fbt2_u1ncl]/I");
-  tree->Branch("fbt2_d1clsize",     event.fbt2_d1clsize,       "fbt2_d1clsize[fbt2_d1ncl]/I");
-  tree->Branch("fbt2_u2clsize",     event.fbt2_u2clsize,       "fbt2_u2clsize[fbt2_u2ncl]/I");
-  tree->Branch("fbt2_d2clsize",     event.fbt2_d2clsize,       "fbt2_d2clsize[fbt2_d2ncl]/I");
-
-  tree->Branch("fbt2_u1ctime",      event.fbt2_u1ctime,        "fbt2_u1ctime[fbt2_u1ncl]/D");
-  tree->Branch("fbt2_d1ctime",      event.fbt2_d1ctime,        "fbt2_d1ctime[fbt2_d1ncl]/D");
-  tree->Branch("fbt2_u2ctime",      event.fbt2_u2ctime,        "fbt2_u2ctime[fbt2_u2ncl]/D");
-  tree->Branch("fbt2_d2ctime",      event.fbt2_d2ctime,        "fbt2_d2ctime[fbt2_d2ncl]/D");
-
-  tree->Branch("fbt2_u1ctot",       event.fbt2_u1ctot,         "fbt2_u1ctot[fbt2_u1ncl]/D");
-  tree->Branch("fbt2_d1ctot",       event.fbt2_d1ctot,         "fbt2_d1ctot[fbt2_d1ncl]/D");
-  tree->Branch("fbt2_u2ctot",       event.fbt2_u2ctot,         "fbt2_u2ctot[fbt2_u2ncl]/D");
-  tree->Branch("fbt2_d2ctot",       event.fbt2_d2ctot,         "fbt2_d2ctot[fbt2_d2ncl]/D");
-
-  tree->Branch("fbt2_u1clpos",      event.fbt2_u1clpos,        "fbt2_u1clpos[fbt2_u1ncl]/D");
-  tree->Branch("fbt2_d1clpos",      event.fbt2_d1clpos,        "fbt2_d1clpos[fbt2_d1ncl]/D");
-  tree->Branch("fbt2_u2clpos",      event.fbt2_u2clpos,        "fbt2_u2clpos[fbt2_u2ncl]/D");
-  tree->Branch("fbt2_d2clpos",      event.fbt2_d2clpos,        "fbt2_d2clpos[fbt2_d2ncl]/D");
 
   HPrint();
   return true;
