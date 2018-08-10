@@ -37,14 +37,9 @@ FiberHit::FiberHit( HodoRawHit *object, const char* name )
   : Hodo1Hit(object),
     m_detector_name(name),
     m_segment(-1),
-    m_ud(0),
     m_position(-999.),
     m_offset(0),
     m_pair_id(0),
-    m_adc_hi(0.),
-    m_adc_low(0.),
-    m_r(0.),
-    m_phi(0.),
     m_status(false)
 {
   debug::ObjectCounter::increase(class_name);
@@ -85,7 +80,7 @@ FiberHit::Calculate( void )
   m_segment = seg;
 
   // Geometry calibration
-  m_ud = 0; // BFT is allways U
+  int UorD = 0; // BFT is allways U
   if( "BFT" == m_detector_name || "SFT-X" == m_detector_name ){
     // case of BFT and SFT X layers
     // They have up and down planes in 1 layer.
@@ -97,45 +92,33 @@ FiberHit::Calculate( void )
       m_pair_id  = 1;
     }
     m_pair_id += 2*m_raw->SegmentId();
-  }else if(false 
-	   || "FBT1-UX1" == m_detector_name 
-	   || "FBT1-UX2" == m_detector_name
-	   || "FBT2-UX1" == m_detector_name 
-	   || "FBT2-UX2" == m_detector_name
-	   ){
-    m_ud = 0;
-    m_pair_id = seg;
-  }else if(false
-	   || "FBT1-DX1" == m_detector_name 
-	   || "FBT1-DX2" == m_detector_name
-	   || "FBT2-DX1" == m_detector_name 
-	   || "FBT2-DX2" == m_detector_name
-	   ){
-    m_ud = 1;
-    m_pair_id = seg;
+  }else if("FBH" == m_detector_name){
+    // SegId 0-15  : U
+    // SegId 16-31 : D
+    m_pair_id = (seg < 16) ? seg : seg-16;
+    UorD      = (seg < 16) ? 0   : 1; // FBH has D
+    seg = m_pair_id;
   }else{
-    // case of SFT UV layers & CFT
+    // case of SFT UV layers
     // They have only 1 plane in 1 layer.
     m_pair_id = m_raw->SegmentId();
   }
 
   int DetectorId = gGeom.GetDetectorId( m_detector_name );
   m_position     = gGeom.CalcWirePosition( DetectorId, seg );
-  // for CFT
-  m_r      = gGeom.CalcCFTPositionR(DetectorId, seg);
-  m_phi    = gGeom.CalcCFTPositionPhi(DetectorId, seg);
 
   // hit information
-  m_multi_hit_l = m_ud==0? m_raw->SizeTdc1()  : m_raw->SizeTdc2();
-  m_multi_hit_t = m_ud==0? m_raw->SizeTdcT1() : m_raw->SizeTdcT2();
+
+  m_multi_hit_l = m_raw->SizeTdc1();
+  m_multi_hit_t = m_raw->SizeTdcT1();
 
   std::vector<int> leading_cont, trailing_cont;
   {
     for ( int m = 0; m < m_multi_hit_l; ++m ) {
-      leading_cont.push_back( m_ud==0? m_raw->GetTdc1( m ) : m_raw->GetTdc2(m));
+      leading_cont.push_back( m_raw->GetTdc1( m ) );
     }
     for ( int m = 0; m < m_multi_hit_t; ++m ) {
-      trailing_cont.push_back( m_ud==0? m_raw->GetTdcT1( m ): m_raw->GetTdcT2(m));
+      trailing_cont.push_back( m_raw->GetTdcT1( m ) );
     }
 
     std::sort(leading_cont.begin(),  leading_cont.end(),  std::greater<int>());
@@ -180,11 +163,11 @@ FiberHit::Calculate( void )
     // leading
     int leading = leading_cont.at(i);
     double time_leading = -999.;
-    if( !gHodo.GetTime(cid, plid, seg, m_ud, leading, time_leading) ){
+    if( !gHodo.GetTime(cid, plid, seg, UorD, leading, time_leading) ){
       hddaq::cerr << "#E " << func_name
 		  << " something is wrong at GetTime("
 		  << cid  << ", " << plid          << ", " << seg  << ", "
-		  << m_ud << ", " << leading  << ", " << time_leading << ")" << std::endl;
+		  << UorD << ", " << leading  << ", " << time_leading << ")" << std::endl;
       return false;
     }
     m_t.push_back( time_leading );
@@ -202,17 +185,17 @@ FiberHit::Calculate( void )
     // trailing
     int trailing = trailing_cont.at(m_pair_cont.at(i).index_t);
     double time_trailing = -999.;
-    if( !gHodo.GetTime(cid, plid, seg, m_ud, trailing, time_trailing) ){
+    if( !gHodo.GetTime(cid, plid, seg, UorD, trailing, time_trailing) ){
       hddaq::cerr << "#E " << func_name
 		  << " something is wrong at GetTime("
 		  << cid  << ", " << plid          << ", " << seg  << ", "
-		  << m_ud << ", " << trailing  << ", " << time_trailing << ")" << std::endl;
+		  << UorD << ", " << trailing  << ", " << time_trailing << ")" << std::endl;
       return false;
     }
 
-    double tot           = time_trailing - time_leading;
+    double tot           = time_leading - time_trailing;
     double ctime_leading = time_leading;
-    gPHC.DoCorrection( cid, plid, seg, m_ud, time_leading, tot, ctime_leading );
+    gPHC.DoCorrection( cid, plid, seg, UorD, time_leading, tot, ctime_leading );
 
     m_a.push_back( tot );
     m_ct.push_back( ctime_leading );
@@ -222,21 +205,8 @@ FiberHit::Calculate( void )
     m_pair_cont.at(i).ctime_l = ctime_leading;
     m_pair_cont.at(i).tot     = tot;
 
+
   }// for(i)
-
-  // CFT ADC
-  if(cid==113){ 
-    double nhit_adc = m_raw->SizeAdc1();
-    if(nhit_adc>0){
-      double hi  =  m_raw->GetAdc1();
-      double low =  m_raw->GetAdc2();
-      double pedeHi  = gHodo.GetP0(cid, plid, seg, 0);
-      double pedeLow = gHodo.GetP0(cid, plid, seg, 1);
-      m_adc_hi  = hi  - pedeHi;
-      m_adc_low = low - pedeLow;
-
-    }
-  }
 
   m_status = true;
   return true;

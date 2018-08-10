@@ -30,18 +30,12 @@ private:
 protected:
   std::string m_detector_name;
   int         m_segment;
-  int         m_ud;
   double      m_position;
   double      m_offset;
   int         m_pair_id;
   bool        m_status;
+  std::vector<bool>   m_flag_join;
   std::vector<FLHit*> m_hit_container;
-
-  // for CFT
-  double         m_adc_hi; 
-  double         m_adc_low; 
-  double         m_r; 
-  double         m_phi; 
 
   struct data_pair{
     double time_l;
@@ -60,8 +54,8 @@ public:
   // Call super class method
   int    GetNLeading( void )  const { return Hodo1Hit::GetNumOfHit(0);    }
   int    GetNTrailing( void ) const { return Hodo1Hit::GetNumOfHit(1);    }
-  double GetLeading( int n=0 )  const { return m_ud==0? m_raw->GetTdc1(n)  : m_raw->GetTdc2(n);}
-  double GetTrailing( int n=0 ) const { return m_ud==0? m_raw->GetTdcT1(n) : m_raw->GetTdcT2(n);}
+  double GetLeading( int n=0 )  const { return m_raw->GetTdc1(n);         }
+  double GetTrailing( int n=0 ) const { return m_raw->GetTdcT1(n);        }
 
   // Call member in this class
   int    GetNPair( void )       const { return m_pair_cont.size();        }
@@ -72,16 +66,10 @@ public:
   double GetTot( int n=0 )      const { return m_pair_cont.at(n).tot;     }
 
   double GetPosition( void )  const { return m_position + m_offset;       }
-
   int    PairId( void )       const { return m_pair_id;                   }
-  //  virtual double SegmentId( void )    const { return m_segment;                   }
-
-  // for CFT
-  double GetAdcHi( void ) const { return m_adc_hi;       }
-  double GetAdcLow( void )  const { return m_adc_low;    }
-  double GetPositionR( void )  const { return m_r;       }
-  double GetPositionPhi( void )  const { return m_phi;   }
-
+  double SegmentId( void )    const { return m_segment;                   }
+  void   SetJoined( int m )           { m_flag_join.at(m) = true;         }
+  bool   Joined( int m )        const { return m_flag_join.at(m);         }
   void   Print( const std::string& arg="", std::ostream& ost=hddaq::cout ) const;
   void   RegisterHits( FLHit* hit )   { m_hit_container.push_back(hit);   }
 

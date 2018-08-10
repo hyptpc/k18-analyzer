@@ -50,162 +50,138 @@ private:
 private:
   Hodo2HitContainer     m_BH1Cont;
   BH2HitContainer       m_BH2Cont;
+  Hodo1HitContainer     m_BACCont;
+  Hodo1HitContainer     m_PVACCont;
   Hodo1HitContainer     m_SACCont;
+  Hodo1HitContainer     m_FACCont;
+  Hodo1HitContainer     m_SSDTCont;
   Hodo2HitContainer     m_TOFCont;
-  Hodo1HitContainer     m_HtTOFCont;
   Hodo1HitContainer     m_LCCont;
   MultiPlaneFiberHitContainer m_BFTCont;
   FiberHitContainer     m_SCHCont;
+  FiberHitContainer     m_FBHCont;
   MultiPlaneFiberHitContainer m_SFTCont;
-  MultiPlaneFiberHitContainer m_CFTCont;
-  MultiPlaneFiberHitContainer m_FBT1UCont;
-  MultiPlaneFiberHitContainer m_FBT1DCont;
-  MultiPlaneFiberHitContainer m_FBT2UCont;
-  MultiPlaneFiberHitContainer m_FBT2DCont;
-
+  FLHitContainer        m_FBHCoinCont;
   HodoClusterContainer  m_BH1ClCont;
   BH2ClusterContainer   m_BH2ClCont;
-  HodoClusterContainer  m_SACClCont;
   HodoClusterContainer  m_TOFClCont;
-  HodoClusterContainer  m_HtTOFClCont;
   HodoClusterContainer  m_LCClCont;
   FiberClusterContainer m_BFTClCont;
   FiberClusterContainer m_SCHClCont;
-  MultiPlaneFiberClusterContainer m_CFTClCont;
+  FiberClusterContainer m_FBHClCont;
   MultiPlaneFiberClusterContainer m_SFTClCont;
-  MultiPlaneFiberClusterContainer m_FBT1UClCont;
-  MultiPlaneFiberClusterContainer m_FBT1DClCont;
-  MultiPlaneFiberClusterContainer m_FBT2UClCont;
-  MultiPlaneFiberClusterContainer m_FBT2DClCont;
 
 public:
   bool DecodeRawHits( RawData* rawData );
   bool DecodeBH1Hits( RawData* rawData );
   bool DecodeBH2Hits( RawData* rawData );
+  bool DecodeBACHits( RawData* rawData );
+  bool DecodePVACHits( RawData* rawData );
   bool DecodeSACHits( RawData* rawData );
+  bool DecodeFACHits( RawData* rawData );
+  bool DecodeSSDTHits( RawData* rawData );
   bool DecodeTOFHits( RawData* rawData );
-  bool DecodeHtTOFHits( RawData* rawData );
   bool DecodeLCHits( RawData* rawData );
   bool DecodeBFTHits( RawData* rawData );
   bool DecodeSFTHits( RawData* rawData );
-  bool DecodeCFTHits( RawData* rawData );
   bool DecodeSCHHits( RawData* rawData );
-  bool DecodeFBT1Hits( RawData* rawData );
-  bool DecodeFBT2Hits( RawData* rawData );
+  bool DecodeFBHHits( RawData* rawData );
   int  GetNHitsBH1( void )  const { return m_BH1Cont.size();  };
   int  GetNHitsBH2( void )  const { return m_BH2Cont.size();  };
+  int  GetNHitsBAC( void )  const { return m_BACCont.size();  };
+  int  GetNHitsPVAC( void ) const { return m_PVACCont.size(); };
   int  GetNHitsSAC( void )  const { return m_SACCont.size();  };
+  int  GetNHitsFAC( void )  const { return m_FACCont.size();  };
+  int  GetNHitsSSDT( void ) const { return m_SSDTCont.size(); };
   int  GetNHitsTOF( void )  const { return m_TOFCont.size();  };
-  int  GetNHitsHtTOF( void )const { return m_HtTOFCont.size();  };
   int  GetNHitsLC( void )   const { return m_LCCont.size();  };
   int  GetNHitsBFT( int plane)  const { return m_BFTCont.at( plane ).size(); };
   int  GetNHitsSFT( int plane ) const { return m_SFTCont.at( plane ).size(); };
-  int  GetNHitsCFT( int plane ) const { return m_CFTCont.at( plane ).size(); };
   int  GetNHitsSCH( void )  const { return m_SCHCont.size();  };
-  int  GetNHitsFBT1( int layer, int UorD)  const 
-  { return UorD==0? m_FBT1UCont.size() : m_FBT1DCont.size();}
-  int  GetNHitsFBT2( int layer, int UorD)  const
-  { return UorD==0? m_FBT2UCont.size() : m_FBT2DCont.size();}
+  int  GetNHitsFBH( void )  const { return m_FBHCont.size();  };
+  int  GetNHitsFBHCoin( void ) const { return m_FBHCoinCont.size();  };
 
   inline Hodo2Hit * GetHitBH1( std::size_t i )  const;
   inline BH2Hit   * GetHitBH2( std::size_t i )  const;
+  inline Hodo1Hit * GetHitBAC( std::size_t i )  const;
+  inline Hodo1Hit * GetHitPVAC( std::size_t i ) const;
+  inline Hodo1Hit * GetHitFAC( std::size_t i )  const;
   inline Hodo1Hit * GetHitSAC( std::size_t i )  const;
+  inline Hodo1Hit * GetHitSSDT( std::size_t i )  const;
   inline Hodo2Hit * GetHitTOF( std::size_t i )  const;
-  inline Hodo1Hit * GetHitHtTOF( std::size_t i )const;
-  inline Hodo1Hit * GetHitLC( std::size_t i )   const;
+  inline Hodo1Hit * GetHitLC( std::size_t i )  const;
   inline FiberHit * GetHitBFT( int plane, std::size_t seg ) const;
   inline FiberHit * GetHitSFT( int plane, std::size_t seg ) const;
-  inline FiberHit * GetHitCFT( int plane, std::size_t seg ) const;
   inline FiberHit * GetHitSCH( std::size_t seg ) const;
-  inline FiberHit * GetHitFBT1( int layer, int UorD, std::size_t seg ) const;
-  inline FiberHit * GetHitFBT2( int layer, int UorD, std::size_t seg ) const;
+  inline FiberHit * GetHitFBH( std::size_t seg ) const;
+  inline FLHit    * GetHitFBHCoin( std::size_t seg ) const;
 
   int GetNClustersBH1( void ) const { return m_BH1ClCont.size(); };
   int GetNClustersBH2( void ) const { return m_BH2ClCont.size(); };
   int GetNClustersTOF( void ) const { return m_TOFClCont.size(); }
-  int GetNClustersHtTOF( void )const{ return m_HtTOFClCont.size(); }
   int GetNClustersLC( void )  const { return m_LCClCont.size(); }
-  int GetNClustersSAC( void ) const { return m_SACClCont.size(); }
+  int GetNClustersSAC( void ) const { return m_TOFClCont.size(); }
   int GetNClustersBFT( void ) const { return m_BFTClCont.size(); };
   int GetNClustersSFT( int layer ) const { return m_SFTClCont.at( layer ).size(); };
-  int GetNClustersCFT( int layer ) const { return m_CFTClCont.at( layer ).size(); };
   int GetNClustersSCH( void ) const { return m_SCHClCont.size(); };
-  int  GetNClustersFBT1( int layer, int UorD)  const 
-  { return UorD==0? m_FBT1UClCont.at(layer).size() : m_FBT1DClCont.at(layer).size();}
-  int  GetNClustersFBT2( int layer, int UorD)  const
-  { return UorD==0? m_FBT2UClCont.at(layer).size() : m_FBT2DClCont.at(layer).size();}
+  int GetNClustersFBH( void ) const { return m_FBHClCont.size(); };
 
   inline HodoCluster  * GetClusterBH1( std::size_t i ) const;
   inline BH2Cluster   * GetClusterBH2( std::size_t i ) const;
   inline HodoCluster  * GetClusterTOF( std::size_t i ) const;
-  inline HodoCluster  * GetClusterHtTOF( std::size_t i ) const;
   inline HodoCluster  * GetClusterLC( std::size_t i ) const;
   inline HodoCluster  * GetClusterSAC( std::size_t i ) const;
   inline FiberCluster * GetClusterBFT( std::size_t i ) const;
   inline FiberCluster * GetClusterSFT( int layer, std::size_t i ) const;
-  inline FiberCluster * GetClusterCFT( int layer, std::size_t i ) const;
   inline FiberCluster * GetClusterSCH( std::size_t i ) const;
-  inline FiberCluster * GetClusterFBT1( int layer, int UorD, std::size_t i ) const;
-  inline FiberCluster * GetClusterFBT2( int layer, int UorD, std::size_t i ) const;
+  inline FiberCluster * GetClusterFBH( std::size_t i ) const;
 
   bool ReCalcBH1Hits( bool applyRecursively=false );
   bool ReCalcBH2Hits( bool applyRecursively=false );
+  bool ReCalcBACHits( bool applyRecursively=false );
+  bool ReCalcPVACHits( bool applyRecursively=false );
+  bool ReCalcFACHits( bool applyRecursively=false );
   bool ReCalcSACHits( bool applyRecursively=false );
+  bool ReCalcSSDTHits( bool applyRecursively=false );
   bool ReCalcTOFHits( bool applyRecursively=false );
-  bool ReCalcHtTOFHits( bool applyRecursively=false );
   bool ReCalcLCHits( bool applyRecursively=false );
   bool ReCalcBH1Clusters( bool applyRecursively=false );
   bool ReCalcBH2Clusters( bool applyRecursively=false );
   bool ReCalcTOFClusters( bool applyRecursively=false );
-  bool ReCalcHtTOFClusters( bool applyRecursively=false );
   bool ReCalcLCClusters( bool applyRecursively=false );
-  bool ReCalcFBT1Clusters( bool applyRecursively=false );
-  bool ReCalcFBT2Clusters( bool applyRecursively=false );
   bool ReCalcAll( void );
 
   void TimeCutBH1(double tmin, double tmax);
   void TimeCutBH2(double tmin, double tmax);
-  void TimeCutTOF(double tmin, double tmax);
   void TimeCutBFT(double tmin, double tmax);
   void TimeCutSFT( int layer, double tmin, double tmax );
-  void TimeCutCFT( int layer, double tmin, double tmax );
   void TimeCutSCH(double tmin, double tmax);
-  void TimeCutFBT1( int layer, int UorD, double tmin, double tmax );
-  void TimeCutFBT2( int layer, int UorD, double tmin, double tmax );
+  void TimeCutFBH(double tmin, double tmax);
 
   void WidthCutBFT(double min_width, double max_width);
   void WidthCutSFT( int layer, double min_width, double max_width);
-  void WidthCutCFT( int layer, double min_width, double max_width);
   void WidthCutSCH(double min_width, double max_width);
-  void WidthCutFBT1( int layer, int UorD, double min_width, double max_width);
-  void WidthCutFBT2( int layer, int UorD, double min_width, double max_width);
-
-  BH2Cluster*  GetTime0BH2Cluster();
-  HodoCluster* GetBtof0BH1Cluster(double time0);
 
 private:
   void ClearBH1Hits( void );
   void ClearBH2Hits( void );
+  void ClearBACHits( void );
+  void ClearPVACHits( void );
+  void ClearFACHits( void );
   void ClearSACHits( void );
+  void ClearSSDTHits( void );
   void ClearTOFHits( void );
-  void ClearHtTOFHits( void );
   void ClearLCHits( void );
   void ClearBFTHits();
   void ClearSFTHits();
-  void ClearCFTHits();
   void ClearSCHHits();
-  void ClearFBT1Hits();
-  void ClearFBT2Hits();
+  void ClearFBHHits();
 
   template<typename TypeCluster>
   void TimeCut(std::vector<TypeCluster>& cont, double tmin, double tmax);
 
   template<typename TypeCluster>
   void WidthCut(std::vector<TypeCluster>& cont, double min_width, double max_width, bool adopt_nan);
-
-  static int MakeUpClusters( const Hodo1HitContainer& HitCont,
-			     HodoClusterContainer& ClusterCont,
-			     double maxTimeDif );
 
   static int MakeUpClusters( const Hodo2HitContainer& HitCont,
 			     HodoClusterContainer& ClusterCont,
@@ -228,12 +204,6 @@ private:
   static int MakeUpCoincidence( const FiberHitContainer& cont,
 				FLHitContainer& CoinCont,
 				double maxTimeDif);
-
-  static int MakeUpClustersCFT( const FiberHitContainer& cont,
-			     FiberClusterContainer& ClusterCont,
-			     double maxTimeDif,
-			     int DifPairId);
-
 };
 
 //______________________________________________________________________________
@@ -258,30 +228,10 @@ HodoAnalyzer::GetClusterBH2( std::size_t i ) const
 
 //______________________________________________________________________________
 inline HodoCluster*
-HodoAnalyzer::GetClusterSAC( std::size_t i ) const
-{
-  if( i<m_SACClCont.size() )
-    return m_SACClCont[i];
-  else
-    return 0;
-}
-
-//______________________________________________________________________________
-inline HodoCluster*
 HodoAnalyzer::GetClusterTOF( std::size_t i ) const
 {
   if( i<m_TOFClCont.size() )
     return m_TOFClCont[i];
-  else
-    return 0;
-}
-
-//______________________________________________________________________________
-inline HodoCluster*
-HodoAnalyzer::GetClusterHtTOF( std::size_t i ) const
-{
-  if( i<m_HtTOFClCont.size() )
-    return m_HtTOFClCont[i];
   else
     return 0;
 }
@@ -318,16 +268,6 @@ HodoAnalyzer::GetClusterSFT( int layer, std::size_t i ) const
 
 //______________________________________________________________________________
 inline FiberCluster*
-HodoAnalyzer::GetClusterCFT( int layer, std::size_t i ) const
-{
-  if( i<m_CFTClCont.at( layer ).size() )
-    return m_CFTClCont.at( layer ).at( i );
-  else
-    return 0;
-}
-
-//______________________________________________________________________________
-inline FiberCluster*
 HodoAnalyzer::GetClusterSCH( std::size_t i ) const
 {
   if( i<m_SCHClCont.size() )
@@ -338,32 +278,12 @@ HodoAnalyzer::GetClusterSCH( std::size_t i ) const
 
 //______________________________________________________________________________
 inline FiberCluster*
-HodoAnalyzer::GetClusterFBT1( int layer, int UorD, std::size_t seg ) const
+HodoAnalyzer::GetClusterFBH( std::size_t i ) const
 {
-  if(!(0 <= UorD && UorD <=1)) return NULL;
-
-  if(UorD==0){
-    if( seg<m_FBT1UClCont.at( layer ).size() ) return m_FBT1UClCont.at( layer ).at( seg );
-    else return NULL;    
-  }else{
-    if( seg<m_FBT1DClCont.at( layer ).size() ) return m_FBT1DClCont.at( layer ).at( seg );
-    else return NULL;    
-  }
-}
-
-//______________________________________________________________________________
-inline FiberCluster*
-HodoAnalyzer::GetClusterFBT2( int layer, int UorD, std::size_t seg ) const
-{
-  if(!(0 <= UorD && UorD <=1)) return NULL;
-
-  if(UorD==0){
-    if( seg<m_FBT2UClCont.at( layer ).size() ) return m_FBT2UClCont.at( layer ).at( seg );
-    else return NULL;    
-  }else{
-    if( seg<m_FBT2DClCont.at( layer ).size() ) return m_FBT2DClCont.at( layer ).at( seg );
-    else return NULL;    
-  }
+  if( i<m_FBHClCont.size() )
+    return m_FBHClCont[i];
+  else
+    return 0;
 }
 
 //______________________________________________________________________________
@@ -388,10 +308,50 @@ HodoAnalyzer::GetHitBH2( std::size_t i ) const
 
 //______________________________________________________________________________
 inline Hodo1Hit*
+HodoAnalyzer::GetHitBAC( std::size_t i ) const
+{
+  if( i<m_BACCont.size() )
+    return m_BACCont[i];
+  else
+    return 0;
+}
+
+//______________________________________________________________________________
+inline Hodo1Hit*
+HodoAnalyzer::GetHitPVAC( std::size_t i ) const
+{
+  if( i<m_PVACCont.size() )
+    return m_PVACCont[i];
+  else
+    return 0;
+}
+
+//______________________________________________________________________________
+inline Hodo1Hit*
 HodoAnalyzer::GetHitSAC( std::size_t i ) const
 {
   if( i<m_SACCont.size() )
     return m_SACCont[i];
+  else
+    return 0;
+}
+
+//______________________________________________________________________________
+inline Hodo1Hit*
+HodoAnalyzer::GetHitFAC( std::size_t i ) const
+{
+  if( i<m_FACCont.size() )
+    return m_FACCont[i];
+  else
+    return 0;
+}
+
+//______________________________________________________________________________
+inline Hodo1Hit*
+HodoAnalyzer::GetHitSSDT( std::size_t i ) const
+{
+  if( i<m_SSDTCont.size() )
+    return m_SSDTCont[i];
   else
     return 0;
 }
@@ -402,16 +362,6 @@ HodoAnalyzer::GetHitTOF( std::size_t i ) const
 {
   if( i<m_TOFCont.size() )
     return m_TOFCont[i];
-  else
-    return 0;
-}
-
-//______________________________________________________________________________
-inline Hodo1Hit*
-HodoAnalyzer::GetHitHtTOF( std::size_t i ) const
-{
-  if( i<m_HtTOFCont.size() )
-    return m_HtTOFCont[i];
   else
     return 0;
 }
@@ -448,16 +398,6 @@ HodoAnalyzer::GetHitSFT( int plane, std::size_t seg ) const
 
 //______________________________________________________________________________
 inline FiberHit*
-HodoAnalyzer::GetHitCFT( int plane, std::size_t seg ) const
-{
-  if( seg<m_CFTCont.at( plane ).size() )
-    return m_CFTCont.at( plane ).at( seg );
-  else
-    return NULL;
-}
-
-//______________________________________________________________________________
-inline FiberHit*
 HodoAnalyzer::GetHitSCH( std::size_t seg ) const
 {
   if( seg<m_SCHCont.size() )
@@ -468,32 +408,22 @@ HodoAnalyzer::GetHitSCH( std::size_t seg ) const
 
 //______________________________________________________________________________
 inline FiberHit*
-HodoAnalyzer::GetHitFBT1( int layer, int UorD, std::size_t seg ) const
+HodoAnalyzer::GetHitFBH( std::size_t seg ) const
 {
-  if(!(0 <= UorD && UorD <=1)) return NULL;
-
-  if(UorD==0){
-    if( seg<m_FBT1UCont.at( layer ).size() ) return m_FBT1UCont.at( layer ).at( seg );
-    else return NULL;    
-  }else{
-    if( seg<m_FBT1DCont.at( layer ).size() ) return m_FBT1DCont.at( layer ).at( seg );
-    else return NULL;    
-  }
+  if( seg<m_FBHCont.size() )
+    return m_FBHCont[seg];
+  else
+    return NULL;
 }
 
 //______________________________________________________________________________
-inline FiberHit*
-HodoAnalyzer::GetHitFBT2( int layer, int UorD, std::size_t seg ) const
+inline FLHit*
+HodoAnalyzer::GetHitFBHCoin( std::size_t seg ) const
 {
-  if(!(0 <= UorD && UorD <=1)) return NULL;
-
-  if(UorD==0){
-    if( seg<m_FBT2UCont.at( layer ).size() ) return m_FBT2UCont.at( layer ).at( seg );
-    else return NULL;    
-  }else{
-    if( seg<m_FBT2DCont.at( layer ).size() ) return m_FBT2DCont.at( layer ).at( seg );
-    else return NULL;    
-  }
+  if( seg<m_FBHCoinCont.size() )
+    return m_FBHCoinCont[seg];
+  else
+    return NULL;
 }
 
 inline HodoAnalyzer&
