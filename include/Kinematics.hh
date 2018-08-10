@@ -23,6 +23,9 @@ namespace Kinematics
   ThreeVector VertexPoint( const ThreeVector & Xin, const ThreeVector & Xout,
 			   const ThreeVector & Pin, const ThreeVector & Pout,
 			   double & dist );
+  ThreeVector VertexPoint3D( const ThreeVector & Xin, const ThreeVector & Xout,
+			     const ThreeVector & Pin, const ThreeVector & Pout,
+			     double & dist );
   ThreeVector VertexPointReal( const ThreeVector & Xin, const ThreeVector & Xout,
 			       const ThreeVector & Pin, const ThreeVector & Pout,
 			       double & dist );

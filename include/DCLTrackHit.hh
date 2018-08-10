@@ -41,6 +41,7 @@ public:
   void   SetHoneycomb( bool flag=true )              { m_honeycomb = flag;     }
   bool   IsHoneycomb( void )                   const { return m_honeycomb; }
   int    GetLayer( void )                      const { return m_hit->GetLayer(); }
+  int    GetMeanSeg( void )                    const { return m_hit->GetMeanSeg(); }
   double GetWire( void )                       const { return m_hit->GetWire(); }
   int    GetTdcVal( void )                     const { return m_hit->GetTdcVal(m_nth_hit); }
   int    GetTdcSize( void )                    const { return m_hit->GetTdcSize(); }
@@ -69,21 +70,21 @@ public:
   void   SetLocalCalPosVXU( double xcl ) { m_cal_pos=xcl; }
   double GetLocalCalPosVXU( void ) const { return m_cal_pos; }
   double GetResidualVXU( void )    const { return m_local_hit_pos-m_cal_pos; }
-  ///// for SSD
-  bool   IsSsd( void )            const { return m_hit->IsSsd(); }
-  double GetAdcPeakHeight( void ) const { return m_hit->GetAdcPeakHeight(); }
-  double GetAmplitude( void ) const { return m_hit->GetAmplitude(); }
-  double GetDe( void )        const { return m_hit->GetDe();        }
-  double GetChisquare( void ) const { return m_hit->GetChisquare(); }
-  void   JoinKaonTrack( void ) { m_hit->JoinKaonTrack(); }
-  void   QuitKaonTrack( void ) { m_hit->QuitKaonTrack(); }
-  bool   BelongToKaonTrack( void ) const { return m_hit->BelongToKaonTrack(); }
+
   ///// for TOF
   double GetZ( void ) const { return m_hit->GetZ(); }
+
+  ///// for CFT
+  double GetPositionR( void )   const { return m_hit->GetPositionR();  }
+  double GetPositionPhi( void ) const { return m_hit->GetPositionPhi();}
 
   void JoinTrack( void ) { m_hit->JoinTrack(m_nth_hit); }
   void QuitTrack( void ) { m_hit->QuitTrack(m_nth_hit); }
   bool BelongToTrack( void ) const { return m_hit->BelongToTrack(m_nth_hit); }
+
+  void JoinTrackCFT( void ) { m_hit->JoinTrackCFT(m_nth_hit); }
+  void QuitTrackCFT( void ) { m_hit->QuitTrackCFT(m_nth_hit); }
+  bool BelongToTrackCFT( void ) const { return m_hit->BelongToTrackCFT(m_nth_hit); }
 
   void Print( const std::string& arg="" ) const;
 

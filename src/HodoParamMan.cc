@@ -95,6 +95,7 @@ HodoParamMan::Initialize( void )
     std::istringstream input_line( line );
     int cid=-1, plid=-1, seg=-1, at=-1, ud=-1;
     double p0=-9999., p1=-9999.;
+    double p2=-9999., p3=-9999., p4=-9999., p5=-9999.;
     if( input_line >> cid >> plid >> seg >> at >> ud >> p0 >> p1 ){
       int key = KEY( cid, plid, seg, ud );
       if( at == kAdc ){
@@ -117,6 +118,18 @@ HodoParamMan::Initialize( void )
 		      << " following record is deleted." << std::endl
 		      << " key = " << key << std::endl;
 	  delete pre_param;
+	}
+      }else if(at == 3){// for fiber position correction
+	if(input_line  >> p2 >> p3>> p4 >> p5 ){
+	  HodoFParam *pre_param = m_FPContainer[key];
+	  HodoFParam *param = new HodoFParam(p0,p1,p2,p3,p4,p5);
+	  m_FPContainer[key] = param;
+	  if( pre_param ){
+	    hddaq::cerr << func_name << ": duplicated key "
+			<< " following record is deleted." << std::endl
+			<< " key = " << key << std::endl;
+	    delete pre_param;
+	  }
 	}
       }else{
 	hddaq::cerr << func_name << ": Invalid Input" << std::endl
@@ -161,6 +174,31 @@ HodoParamMan::GetDe( int cid, int plid, int seg, int ud, int adc, double &de ) c
   return true;
 }
 
+double HodoParamMan::GetP0( int cid, int plid, int seg, int ud ) const
+{
+  HodoAParam* map=GetAmap(  cid, plid, seg, ud);
+  if(!map) return -1;
+
+  double p0=map->Pedestal();
+  return p0;
+}
+double HodoParamMan::GetPar( int cid, int plid, int seg, int ud, int i ) const
+{
+  HodoFParam *map=GetFmap(cid,plid,seg,ud);
+  if(!map) return -1;
+  
+  double par=0;
+  if(i==0)par=map->par0();
+  else if(i==1)par=map->par1();
+  else if(i==2)par=map->par2();
+  else if(i==3)par=map->par3();
+  else if(i==4)par=map->par4();
+  else if(i==5)par=map->par5();
+
+  return par;
+}
+
+
 //______________________________________________________________________________
 HodoTParam*
 HodoParamMan::GetTmap( int cid, int plid, int seg, int ud ) const
@@ -181,6 +219,18 @@ HodoParamMan::GetAmap( int cid, int plid, int seg, int ud ) const
   HodoAParam* map     = 0;
   AIterator   itr     = m_APContainer.find(key);
   AIterator   itr_end = m_APContainer.end();
+  if( itr!=itr_end ) map = itr->second;
+  return map;
+}
+
+//______________________________________________________________________________
+HodoFParam*
+HodoParamMan::GetFmap( int cid, int plid, int seg, int ud ) const
+{
+  int key = KEY(cid,plid,seg,ud);
+  HodoFParam* map     = 0;
+  FIterator   itr     = m_FPContainer.find(key);
+  FIterator   itr_end = m_FPContainer.end();
   if( itr!=itr_end ) map = itr->second;
   return map;
 }

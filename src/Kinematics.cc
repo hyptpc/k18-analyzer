@@ -106,6 +106,30 @@ namespace Kinematics
   }
 
   //______________________________________________________________________________
+  ThreeVector VertexPoint3D( const ThreeVector & Xin, const ThreeVector & Xout,
+			     const ThreeVector & Pin, const ThreeVector & Pout,
+			     double & dist )
+  {
+    // Beam Xin+Pin*s, Scat Xout+Pout*t 
+    double s, t;
+    ThreeVector a  = Pin;
+    ThreeVector A0 = Xin;
+    ThreeVector b  = Pout;
+    ThreeVector B0 = Xout;
+    ThreeVector AB = A0-B0;
+    
+    s = (-(a*b)*(b*AB)+(b.Mag2())*(a*AB))/((a*b)*(a*b)-(a.Mag2())*(b.Mag2()));
+    t = ((a*b)*(a*AB)-(a.Mag2())*(b*AB))/((a*b)*(a*b)-(a.Mag2())*(b.Mag2()));
+    
+    ThreeVector pos1 = A0+a*s;
+    ThreeVector pos2 = B0+b*t;
+    
+    dist = (pos1-pos2).Mag();
+    
+    return (pos1+pos2)*0.5;    
+  }
+    
+  //______________________________________________________________________________
   ThreeVector
   VertexPointReal( const ThreeVector & Xin, const ThreeVector & Xout,
 		   const ThreeVector & Pin, const ThreeVector & Pout,

@@ -82,6 +82,9 @@ public:
   void                SetResolution( int lnum, double res );
   void                SetResolution( const std::string& key, double res );
 
+  double              CalcCFTPositionR(  int lnum, int seg ) const;
+  double              CalcCFTPositionPhi(int lnum, int seg ) const;
+
   // Static method
   static const int&    DetectorId( const std::string& key );
   static const double& GlobalZ( const std::string& key );

@@ -33,19 +33,25 @@ protected:
   double       m_max_width;
   double       m_mean_seg;
   double       m_mean_pos;
+  double       m_mean_r;
+  double       m_mean_phi;
+  double       m_sum_adcLow;
   bool         m_flag[sizeFlagsFiber];
 
 public:
   bool   Calculate( void );
   void   push_back( FLHit* hit ) { m_hit_container.push_back(hit); };
   int    VectorSize( void )      const { return m_hit_container.size();    }
-  int    ClusterId( void )       const { return m_cluster_id;    }
+  int    ClusterId( void )       const { return m_cluster_id;      }
   int    ClusterSize( void )     const { return m_cluster_size;    }
   double CMeanTime( void )       const { return m_mean_time;       }
   double RCMeanTime( void )      const { return m_real_mean_time;  }
   double Width( void )           const { return m_max_width;       }
   double Tot( void )             const { return Width();           }
   double MeanPosition( void )    const { return m_mean_pos;        }
+  double MeanPositionR( void )   const { return m_mean_r;          }
+  double MeanPositionPhi( void ) const { return m_mean_phi;        }
+  double SumAdcLow( void )       const { return m_sum_adcLow;      }
   double MeanSeg( void )         const { return m_mean_seg;        }
   FLHit* GetHit( int i )     const;
   bool   GoodForAnalysis( void ) const { return m_flag[gfastatus]; }

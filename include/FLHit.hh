@@ -40,6 +40,9 @@ public:
   double GetCTime( void )    const { return m_ctime;    }
   double GetWidth( void )    const { return m_width;    }
   double GetPosition( void ) const { return m_hit_u->GetPosition(); }
+  double GetPositionR( void ) const { return m_hit_u->GetPositionR(); }
+  double GetPositionPhi( void ) const { return m_hit_u->GetPositionPhi(); }
+  double GetAdcLow( void )   const { return m_hit_u->GetAdcLow(); }
   int    PairId( void )      const { return m_hit_u->PairId();      }
   double SegmentId( void )   const { return m_hit_u->SegmentId();   }
   void   SetJoined( void )         { m_flag_fljoin = true;          }

@@ -95,6 +95,9 @@ FiberCluster::calc( void )
 {
   double mean_seg       = 0.;
   double mean_pos       = 0.;
+  double mean_r         = 0.;
+  double mean_phi       = 0.;
+  double sum_adcLow     = 0.;
   double mean_time      = std::numeric_limits<double>::quiet_NaN();
   double max_width      = 0.;
   double real_mean_time = 0.;
@@ -108,6 +111,9 @@ FiberCluster::calc( void )
     
     mean_seg       += m_hit_container.at(i)->SegmentId();
     mean_pos       += m_hit_container.at(i)->GetPosition();
+    mean_r         += m_hit_container.at(i)->GetPositionR();
+    mean_phi       += m_hit_container.at(i)->GetPositionPhi();
+    sum_adcLow     += m_hit_container.at(i)->GetAdcLow();
     real_mean_time += m_hit_container.at(i)->GetCTime();
     double time = m_hit_container.at(i)->GetCTime();
     if(isnan(mean_time)){
@@ -123,12 +129,17 @@ FiberCluster::calc( void )
 
   mean_seg       /= double(m_cluster_size);
   mean_pos       /= double(m_cluster_size);
+  mean_r         /= double(m_cluster_size);
+  mean_phi       /= double(m_cluster_size);
   real_mean_time /= double(m_cluster_size);
 
   m_mean_time      = mean_time;
   m_max_width      = max_width;
   m_mean_seg       = mean_seg;
   m_mean_pos       = mean_pos;
+  m_mean_r         = mean_r;
+  m_mean_phi       = mean_phi;
+  m_sum_adcLow     = sum_adcLow;
   m_real_mean_time = real_mean_time;
   m_cluster_id     = (m_cluster_size == 1) ? 2*cluster_id : cluster_id;
 }
