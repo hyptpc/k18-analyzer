@@ -19,5 +19,6 @@ fieldmap
 rootfile*
 runmanager/conf
 runmanager/log
+runmanager/stat
 runmanager/unpack
 scaler

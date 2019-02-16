@@ -155,6 +155,7 @@ namespace
 //______________________________________________________________________________
 RawData::RawData( void )
   : m_is_decoded(false),
+    m_UnixtimeRawHC(),
     m_T1RawHC(),
     m_T2RawHC(),
     m_T3RawHC(),
@@ -204,6 +205,7 @@ RawData::ClearAll( void )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
+  del::ClearContainer( m_UnixtimeRawHC );
   del::ClearContainer( m_T1RawHC );
   del::ClearContainer( m_T2RawHC );
   del::ClearContainer( m_T3RawHC );
@@ -258,6 +260,8 @@ RawData::DecodeHits( void )
 
   ClearAll();
 
+  // Unixtime
+  DecodeHodo( DetIdUnixtime, NumOfSegUnixtime, kOneSide, m_UnixtimeRawHC );
   // T1
   DecodeHodo( DetIdT1, NumOfSegT1, kBothSide, m_T1RawHC );
   // T2
@@ -273,12 +277,6 @@ RawData::DecodeHits( void )
 
   //SSDT
   DecodeHodo( DetIdSSDT, NumOfSegSSDT, kOneSide, m_SSDTRawHC );
-  for( int seg=0; seg<NumOfSegSSDT; ++seg ){
-    int nhit = gUnpacker.get_entries( DetIdSSDT, 0, seg*2, 0, 1 );
-    if( nhit<=0 ) continue;
-    int data = gUnpacker.get( DetIdSSDT, 0, seg*2, 0, 1 );
-    AddHodoRawHit( m_SSDTRawHC, DetIdSSDT, 0, seg, 0, 1, data );
-  }
 
   // SsdIn (SSD1)
   for( int plane=0; plane<NumOfLayersSSD1; ++plane ){

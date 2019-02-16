@@ -277,7 +277,7 @@ namespace
 #if 0
     DebugPrint( trackCont, arg+" After Deleting " );
 #endif
-    
+
     CalcTracks( trackCont );
     del::ClearContainerAll( candCont );
   }
@@ -1008,7 +1008,7 @@ namespace track
       bool honeycomb = PpInfo[i].honeycomb;
       int  layer1    = PpInfo[i].id1;
       int  layer2    = PpInfo[i].id2;
-      
+
       if(ppFlag) {
 	MakePairPlaneHitCluster( HC[layer1], HC[layer2],
 				 PpInfo[i].CellSize, CandCont[i], honeycomb );
@@ -2109,6 +2109,55 @@ namespace track
     }
     for( int i=0; i<NumOfLayersSsdOut; ++i ){
       MakeSsdHitCluster( SsdOutHC[i+1], CandCont[i+NumOfLayersSsdIn] );
+    }
+
+    IndexList nCombi(npp);
+    for( int i=0; i<npp; ++i ){
+      int n = CandCont[i].size();
+      nCombi[i] = n>MaxNumOfCluster ? 0 : n;
+    }
+
+#if 1
+    DebugPrint( nCombi, CandCont, func_name );
+#endif
+
+    std::vector<IndexList> CombiIndex = MakeIndex( npp, nCombi );
+    int nnCombi=CombiIndex.size();
+
+    for( int i=0; i<nnCombi; ++i ){
+      DCLocalTrack *track = MakeTrack( CandCont, CombiIndex[i] );
+      if( !track ) continue;
+      if( track->GetNHit()>=MinNumOfHits && track->DoFit()
+	  //&& track->GetChiSquare()<MaxChisquare
+	  ){
+	TrackCont.push_back(track);
+      }
+      else
+	delete track;
+    }
+
+    FinalizeTrack( func_name, TrackCont, DCLTrackCompSsd(), CandCont );
+    return TrackCont.size();
+  }
+
+  //______________________________________________________________________________
+  int
+  LocalTrackSearchSsdInSsdOut( const std::vector<SsdClusterContainer>& SsdInClCont,
+			       const std::vector<SsdClusterContainer>& SsdOutClCont,
+			       std::vector<DCLocalTrack*>& TrackCont,
+			       int MinNumOfHits )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+    const int npp = NumOfLayersSsdIn + NumOfLayersSsdIn;
+
+    std::vector<ClusterList> CandCont(npp);
+
+    for( int i=0; i<NumOfLayersSsdIn; ++i ){
+      MakeSsdHitCluster( SsdInClCont[i+1], CandCont[i] );
+    }
+    for( int i=0; i<NumOfLayersSsdOut; ++i ){
+      MakeSsdHitCluster( SsdOutClCont[i+1], CandCont[i+NumOfLayersSsdIn] );
     }
 
     IndexList nCombi(npp);

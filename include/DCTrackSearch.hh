@@ -129,6 +129,13 @@ namespace track
 				   int MinNumOfHits=10 );
 
   //______________________________________________________________________________
+  int
+  LocalTrackSearchSsdInSsdOut( const std::vector<SsdClusterContainer>& SsdInClCont,
+			       const std::vector<SsdClusterContainer>& SsdOutClCont,
+			       std::vector<DCLocalTrack*>& TrackCont,
+			       int MinNumOfHits=4 );
+
+  //______________________________________________________________________________
   int LocalTrackSearchSsdOutSdcIn( const std::vector<SsdClusterContainer>& SsdInClCont,
 				   const std::vector<SsdClusterContainer>& SsdOutClCont,
 				   const std::vector<DCHitContainer>& SdcHC,

@@ -3,8 +3,8 @@
 #____________________________________________________
 
 __author__  = 'Y.Nakada <nakada@km.phys.sci.osaka-u.ac.jp>'
-__version__ = '2.1'
-__date__    = '12 May 2018'
+__version__ = '3.2'
+__date__    = '24 July 2018'
 
 #____________________________________________________
 
@@ -20,29 +20,45 @@ def ExitFailure( message ):
 
 #____________________________________________________
 
-def updateJobStat( joblist, path ) :
+def decodeTime( info ) :
 
-    f = open( path, 'w' )
-    for job, stat, time in joblist :
-        info = map( str, job.getInfo() )
-        for item in info :
-            f.write( item + '\t' )
-        f.write( stat + '\t' )
-        f.write( '{:}:{:02d}:{:02d}'.format( *time ) + '\n' )
-    f.close()
-
-#____________________________________________________
-
-def decodeTime( second ) :
-
-    second = int( second )
+    second = int( info['time'] )
 
     hour    = second // 3600
     second -= hour    * 3600
     minute  = second // 60
     second -= minute  * 60
 
-    return hour, minute, second
+    return '{}:{:02d}:{:02d}'.format( hour, minute, second )
+
+#____________________________________________________
+
+def decodeStatus( info ) :
+
+    buff = ''
+
+    stat = info['stat']
+    nseg = info['nseg']
+    prog = info['prog']
+
+    if stat is None :
+        buff = 'init({})'.format( nseg )
+    elif stat is 0 :
+        buff = 'running({}/{})'.format( prog, nseg )
+    elif stat is 1 :
+        buff = 'running({}/{})'.format( prog, nseg )
+    elif stat is 2 :
+        buff = 'merging({})'.format( nseg )
+    elif stat is 3 :
+        buff = 'terminated({})'.format( nseg )
+    elif stat is True :
+        buff = 'done({})'.format( nseg )
+    elif stat is False :
+        buff = 'error({})'.format( nseg )
+    else :
+        buff = 'unknown({})'.format( nseg )
+
+    return buff
 
 #____________________________________________________
 

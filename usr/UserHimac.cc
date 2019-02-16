@@ -95,12 +95,13 @@ EventHimac::ProcessingBegin( void )
 struct Event
 {
   int evnum;
-  
-  unsigned long unixtime;
 
   int trignhits;
   int trigpat[NumOfSegTrig];
   int trigflag[NumOfSegTrig];
+
+  double unixtime_sec;
+  double unixtime_nsec;
 
   // T1
   int t1nhits;
@@ -229,6 +230,14 @@ struct Event
   double ssdtdc[NumOfSegSSDT];
   double ssdtime[NumOfSegSSDT];
 
+  // Tracking
+  int    ntSsdIn;
+  double chisqrSsdIn[MaxHits];
+  double x0SsdIn[MaxHits];
+  double y0SsdIn[MaxHits];
+  double u0SsdIn[MaxHits];
+  double v0SsdIn[MaxHits];
+  double deSsdIn[NumOfLayersSsdIn][MaxHits];
 };
 
 //______________________________________________________________________________
@@ -239,13 +248,14 @@ namespace root
   TTree *tree;
   enum eDetHid  { SSD1Hid=10000, SSD2Hid=20000,
 		  SSD1ClHid=30000, SSD2ClHid=40000,
-		  SSDTHid=50000, 
+		  SSDTHid=50000,
 		  T1Hid  =  60000,
 		  T2Hid  =  70000,
 		  T3Hid  =  80000,
 		  T4Hid  =  90000,
 		  S1Hid  = 100000,
 		  S2Hid  = 110000,
+		  UnixtimeHid  = 120000,
 		  nDetHid };
   enum eStatus  { All, Good, nStatus };
 }
@@ -256,16 +266,8 @@ EventHimac::ProcessingNormal( void )
 {
   const std::string funcname("["+class_name+"::"+__func__+"]");
 
-#if HodoCut
-  static const double MinDeBH2   = gUser.GetParameter("DeBH2", 0);
-  static const double MaxDeBH2   = gUser.GetParameter("DeBH2", 1);
-  static const double MinDeBH1   = gUser.GetParameter("DeBH1", 0);
-  static const double MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
-  static const double MinBeamToF = gUser.GetParameter("BTOF",  1);
-  static const double MaxBeamToF = gUser.GetParameter("BTOF",  1);
-#endif
-  static const double MinDeSSDKaon = gUser.GetParameter("DeSSDKaon", 0);
-  static const double MaxDeSSDKaon = gUser.GetParameter("DeSSDKaon", 1);
+  static const double MinDeSSD = gUser.GetParameter("DeSSD", 0);
+  static const double MaxDeSSD = gUser.GetParameter("DeSSD", 1);
   static const double MinTimeSSD   = gUser.GetParameter("TimeSSD",   0);
   static const double MaxTimeSSD   = gUser.GetParameter("TimeSSD",   1);
   static const double MaxChisqrSSD = gUser.GetParameter("MaxChisqrSSD", 0);
@@ -301,7 +303,30 @@ EventHimac::ProcessingNormal( void )
   // if( event.trigflag[SpillEndFlag] ) return true;
 
   HF1( 1, 1. );
-  
+
+  // Unixtime
+  {
+    const HodoRHitContainer &cont = rawData->GetUnixtimeRawHC();
+    int nh = cont.size();
+    HF1( UnixtimeHid +0, double(nh) );
+    for( int i=0; i<nh; ++i ){
+      HodoRawHit *hit = cont[i];
+      int seg = hit->SegmentId()+1;
+      HF1( UnixtimeHid +1, seg-0.5 );
+      int Au = hit->GetAdcUp();
+      int Tu = hit->GetTdcUp();
+
+      //Tree
+      event.unixtime_sec  = Au;
+      event.unixtime_nsec = Tu;
+
+      //Up
+      HF1( UnixtimeHid +100*seg +1, double(Au) );
+      HF1( UnixtimeHid +100*seg +2, double(Tu) );
+    }
+  }
+
+
   // T1
   {
     int t1_nhits = 0;
@@ -354,9 +379,9 @@ EventHimac::ProcessingNormal( void )
     HF1( T1Hid +2, double(nh1) ); HF1( T1Hid +4, double(nh2) );
     event.t1nhits = t1_nhits;
   }
-  
+
   HF1( 1, 2. );
-  
+
   // T2
   {
     int t2_nhits = 0;
@@ -409,7 +434,7 @@ EventHimac::ProcessingNormal( void )
     HF1( T2Hid +2, double(nh1) ); HF1( T2Hid +4, double(nh2) );
     event.t2nhits = t2_nhits;
   }
-  
+
   HF1( 1, 3. );
   // T3
   {
@@ -463,7 +488,7 @@ EventHimac::ProcessingNormal( void )
     HF1( T3Hid +2, double(nh1) ); HF1( T3Hid +4, double(nh2) );
     event.t3nhits = t3_nhits;
   }
-  
+
   HF1( 1, 4. );
   // T4
   {
@@ -517,7 +542,7 @@ EventHimac::ProcessingNormal( void )
     HF1( T4Hid +2, double(nh1) ); HF1( T4Hid +4, double(nh2) );
     event.t4nhits = t4_nhits;
   }
-  
+
   HF1( 1, 5. );
   // S1
   {
@@ -571,7 +596,7 @@ EventHimac::ProcessingNormal( void )
     HF1( S1Hid +2, double(nh1) ); HF1( S1Hid +4, double(nh2) );
     event.s1nhits = s1_nhits;
   }
-  
+
   HF1( 1, 6. );
   // S2
   {
@@ -625,7 +650,7 @@ EventHimac::ProcessingNormal( void )
     HF1( S2Hid +2, double(nh1) ); HF1( S2Hid +4, double(nh2) );
     event.s2nhits = s2_nhits;
   }
-  
+
   //SSDT
   {
     const HodoRHitContainer &cont = rawData->GetSSDTRawHC();
@@ -667,7 +692,7 @@ EventHimac::ProcessingNormal( void )
   DCAna->DecodeSsdOutHits( rawData );
 
   //////////////////// Filtering
-  DCAna->DoTimeCorrectionSsd( t0Ssd );
+  // DCAna->DoTimeCorrectionSsd( t0Ssd );
   HF1( 1, 11. );
 
 #if SlopeFilter
@@ -682,7 +707,7 @@ EventHimac::ProcessingNormal( void )
   DCAna->ClusterizeSsd();
 
 #if DeltaEFilter
-  DCAna->DeltaEFilterSsd( MinDeSSDKaon, MaxDeSSDKaon, true );
+  DCAna->DeltaEFilterSsd( MinDeSSD, MaxDeSSD, true );
 #endif
 
 #if TimeFilter
@@ -968,6 +993,61 @@ EventHimac::ProcessingNormal( void )
 
   HF1( 1, 19. );
 
+  int    ntSsdIn    = 0;
+  double xtgt_ssdin = -9999.;
+  double ytgt_ssdin = -9999.;
+  double utgt_ssdin = -9999.;
+  double vtgt_ssdin = -9999.;
+  //std::cout << "==========TrackSearch SsdIn============" << std::endl;
+  DCAna->TrackSearchSsdInSsdOut();
+  {
+    int nt = DCAna->GetNtracksSsdInSsdOut();
+    // std::cout << " nt : " << nt << std::endl;
+    HF1( 10000 +0, double(nt) );
+    //HF1( 10000 +0, ntracks );
+    if( nt > MaxHits ){
+      nt = MaxHits;
+    }
+    ntSsdIn = nt;
+    event.ntSsdIn = nt;
+    for( int it=0; it<nt; ++it ){
+      DCLocalTrack *tp = DCAna->GetTrackSsdInSsdOut(it);
+      if( !tp ) continue;
+      int nh=tp->GetNHit();
+      double chisqr=tp->GetChiSquare();
+      double x0=tp->GetX0(), y0=tp->GetY0();
+      double u0=tp->GetU0(), v0=tp->GetV0();
+      // double cost  = 1./std::sqrt(1.+u0*u0+v0*v0);
+      // double theta = std::acos(cost)*math::Rad2Deg();
+      HF1( 10000 +1, double(nh) );
+      HF1( 10000 +5, chisqr );
+      HF1( 10000 +10, x0 ); HF1( 10000 +11, y0 );
+      HF1( 10000 +12, u0 ); HF1( 10000 +13, v0 );
+      HF2( 10000 +14, x0, u0 );
+      HF2( 10000 +15, y0, v0 );
+      HF2( 10000 +16, x0, y0 );
+      event.chisqrSsdIn[it] = chisqr;
+      event.x0SsdIn[it]     = x0;
+      event.y0SsdIn[it]     = y0;
+      event.u0SsdIn[it]     = u0;
+      event.v0SsdIn[it]     = v0;
+
+      for( int ih=0; ih<nh; ++ih ){
+	DCLTrackHit *hit = tp->GetHit(ih);
+	double de  = hit->GetDe();
+	event.deSsdIn[ih][it]  = de;
+
+	int layerId = hit->GetLayer();
+	if( layerId>140 ) layerId = layerId - PlOffsSsd;
+	HF1( 10000 +6, layerId );
+	double wire = hit->GetWire();
+	HF1( 10000 +layerId*1000 +2, wire-0.5 );
+	double pos = hit->GetLocalHitPos();
+	HF1( 10000 +layerId*1000 +3, pos );
+      }
+    }
+  }
+
   return true;
 }
 
@@ -977,6 +1057,9 @@ EventHimac::InitializeEvent( void )
 {
   event.evnum       = 0;
   event.trignhits   = 0;
+
+  event.unixtime_sec    = 0;
+  event.unixtime_nsec   = 0;
 
   event.t1nhits	    = 0;
   for(int it=0; it<NumOfSegT1; it++){
@@ -1329,8 +1412,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("trignhits", &event.trignhits, "trignhits/I");
   tree->Branch("trigpat",    event.trigpat,   "trigpat[trignhits]/I");
   tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
-  
-  tree->Branch("unixtime",  &event.unixtime,  "unixtime/l");
+
+  tree->Branch("unixtime_sec",   &event.unixtime_sec,   "unixtime_sec/D");
+  tree->Branch("unixtime_nsec",  &event.unixtime_nsec,  "unixtime_nsec/D");
 
   // T1
   tree->Branch("t1nhits",   &event.t1nhits,  "t1nhits/I");
@@ -1458,6 +1542,15 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("ssdthitpat",    event.ssdthitpat,   "ssdthitpat[ssdtnhits]/D");
   tree->Branch("ssdtdc",        event.ssdtdc,       "ssdtdc[ssdtnhits]/D");
   tree->Branch("ssdtime",       event.ssdtime,      "ssdtime[ssdtnhits]/D");
+
+  tree->Branch("ntSsdIn",     &event.ntSsdIn,     "ntSsdIn/I");
+  tree->Branch("chisqrSsdIn",  event.chisqrSsdIn, "chisqrSsdIn[ntSsdIn]/D");
+  tree->Branch("x0SsdIn",      event.x0SsdIn,     "x0SsdIn[ntSsdIn]/D");
+  tree->Branch("y0SsdIn",      event.y0SsdIn,     "y0SsdIn[ntSsdIn]/D");
+  tree->Branch("u0SsdIn",      event.u0SsdIn,     "u0SsdIn[ntSsdIn]/D");
+  tree->Branch("v0SsdIn",      event.v0SsdIn,     "v0SsdIn[ntSsdIn]/D");
+  tree->Branch("deSsdIn",      event.deSsdIn,     Form("deSsdIn[%d][%d]/D",
+						       NumOfLayersSsdIn, MaxHits));
 
   HPrint();
 

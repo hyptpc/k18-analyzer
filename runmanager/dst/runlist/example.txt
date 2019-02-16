@@ -4,14 +4,14 @@
 # The allowed keys are
 #   work      <- path to work directory
 #   bin       <- path to DST binary
-#   conf      <- path to conf file
-#   rootin    <- path to input ROOT file
-#   rootout   <- path to output ROOT file
+#   conf      <- path to conf directory/file
+#   rootin    <- path to input ROOT directory
+#   rootout   <- path to output ROOT directory
 #
 #   note that those paths should be relative from work directory
 #
 
-work:    ~work/miwalove/analyzer
+work:    ~/work/miwalove/analyzer
 bin:     bin/DstPiKAna
 conf:    param/conf/analyzer_miwa.conf
 rootin:  rootfile

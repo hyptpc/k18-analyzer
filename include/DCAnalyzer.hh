@@ -86,6 +86,7 @@ private:
   DCLocalTrackContainer m_BcOutSsdInTC;
   DCLocalTrackContainer m_SsdOutSdcInTC;
   DCLocalTrackContainer m_SdcInSdcOutTC;
+  DCLocalTrackContainer m_SsdInSsdOutTC;
   // Exclusive Tracks
   std::vector<DCLocalTrackContainer> m_SdcInExTC;
   std::vector<DCLocalTrackContainer> m_SdcOutExTC;
@@ -255,14 +256,17 @@ public:
   bool TrackSearchBcOutSsdIn( void );
   bool TrackSearchSsdOutSdcIn( void );
   bool TrackSearchSdcInSdcOut( void );
+  bool TrackSearchSsdInSsdOut( void );
   int GetNtracksBcOutSdcIn( void ) const { return m_BcOutSdcInTC.size(); }
   int GetNtracksBcOutSsdIn( void ) const { return m_BcOutSsdInTC.size(); }
   int GetNtracksSsdOutSdcIn( void ) const { return m_SsdOutSdcInTC.size(); }
   int GetNtracksSdcInSdcOut( void ) const { return m_SdcInSdcOutTC.size(); }
+  int GetNtracksSsdInSsdOut( void ) const { return m_SsdInSsdOutTC.size(); }
   inline DCLocalTrack * GetTrackBcOutSdcIn( int i ) const;
   inline DCLocalTrack * GetTrackBcOutSsdIn( int i ) const;
   inline DCLocalTrack * GetTrackSsdOutSdcIn( int i ) const;
   inline DCLocalTrack * GetTrackSdcInSdcOut( int i ) const;
+  inline DCLocalTrack * GetTrackSsdInSsdOut( int i ) const;
 
 protected:
   void ClearDCHits( void );
@@ -286,6 +290,7 @@ protected:
   void ClearTracksBcOutSsdIn( void );
   void ClearTracksSsdOutSdcIn( void );
   void ClearTracksSdcInSdcOut( void );
+  void ClearTracksSsdInSsdOut( void );
   void ClearK18TracksU2D( void );
   void ClearK18TracksD2U( void );
   void ClearKuramaTracks( void );
@@ -562,6 +567,16 @@ DCAnalyzer::GetTrackSdcInSdcOut( int i ) const
 {
   if( i<m_SdcInSdcOutTC.size() )
     return m_SdcInSdcOutTC[i];
+  else
+    return 0;
+}
+
+//______________________________________________________________________________
+inline DCLocalTrack*
+DCAnalyzer::GetTrackSsdInSsdOut( int i ) const
+{
+  if( i<m_SsdInSsdOutTC.size() )
+    return m_SsdInSsdOutTC[i];
   else
     return 0;
 }

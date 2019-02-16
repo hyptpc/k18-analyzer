@@ -3,8 +3,8 @@
 #____________________________________________________
 
 __author__  = 'Y.Nakada <nakada@km.phys.sci.osaka-u.ac.jp>'
-__version__ = '2.1'
-__date__    = '12 May 2018'
+__version__ = '3.2'
+__date__    = '24 July 2018'
 
 #____________________________________________________
 
@@ -12,6 +12,9 @@ import os
 import sys
 import time
 import signal
+import fcntl
+
+import json
 
 sys.path.append( os.path.dirname( os.path.abspath( sys.argv[0] ) )
                  + '/module' )
@@ -22,7 +25,7 @@ import JobManager
 
 #____________________________________________________
 
-SLEEP_TIME = 3
+SLEEP_TIME = 0
 
 #____________________________________________________
 
@@ -31,23 +34,26 @@ def handler( num, frame ) :
     print( 'KeyboardInterrupt' )
 
     print( 'Terminating processes...' )
-    for index, item in enumerate( joblist ) :
-        item[0].killAll()
-        joblist[index][1] = 'terminated'
 
-    utility.updateJobStat( joblist, fjobstat )
+    info = dict()
+    for job in joblist :
+        job.killAll()
+        info.update( job.getInfo() )
+    with open( fJobInfo, 'w' ) as f :
+        json.dump( info, f, indent=4 )
 
     time.sleep( 1 )             # waiting until bsub log files are generated
 
+    fl = False
     tmp = input( 'Keep log files? [y/-] >> ' )
     if 'y' == tmp :
         print( 'Deleting intermediate files...' )
-        for item in joblist :
-            item[0].clear()
+        fl = True
     else :
         print( 'Deleting files...' )
-        for item in joblist :
-            item[0].clearAll()
+
+    for item in joblist :
+        item.finalize( fl )
 
     sys.exit( 0 )
 
@@ -57,11 +63,11 @@ argvs = sys.argv
 argc = len( argvs )
 
 if argc != 2 :
-    print( 'USAGE: %s [ file ]' % argvs[0] )
+    print( 'USAGE: {} [ file ]'.format( argvs[0] ) )
     sys.exit( 0 )
 
 if not os.path.exists( argvs[1] ) :
-    utility.ExitFailure( 'No such file: %s' % argvs[1] )
+    utility.ExitFailure( 'No such file: {}'.format( argvs[1] ) )
 
 frunlist = argvs[1]
 
@@ -69,13 +75,13 @@ print( 'Press \'Ctrl-C\' to terminate processes.' )
 
 #____________________________________________________
 
-djobstat = os.path.dirname( os.path.abspath( sys.argv[0] ) ) + '/stat'
-if not os.path.exists( djobstat ) :
-    os.mkdir( djobstat )
+dJobInfo = os.path.dirname( os.path.abspath( sys.argv[0] ) ) + '/stat'
+if not os.path.exists( dJobInfo ) :
+    os.mkdir( dJobInfo )
 
-fjobstat = djobstat + '/'\
+fJobInfo = dJobInfo + '/'\
            + os.path.splitext( os.path.basename( frunlist ) )[0]\
-           + '.stat'
+           + '.json'
 
 #____________________________________________________
 
@@ -85,65 +91,65 @@ runlist = runMan.getRunlist()
 
 joblist = list()
 
+info = dict()
 for run in runlist :
     jobMan = JobManager.JobManager( runtag, *run )
-    nsegs = jobMan.getNSegs()
-    joblist.append( [ jobMan, 'init(%d)' % nsegs,
-                      utility.decodeTime( jobMan.getDiffTime() ) ] )
+    nsegs  = jobMan.getNSegs()
+    joblist.append( jobMan )
+    info.update( jobMan.getInfo() )
+
+buff = json.dumps( info, indent=4 )
+with open( fJobInfo, 'w+' ) as f :
+    try :
+        fcntl.flock( f.fileno(), fcntl.LOCK_EX )
+        f.write( buff )
+        f.truncate()
+    except IOError :
+        sys.stderr.write( 'ERROR: I/O error was detected.\n' )
+    finally :
+        fcntl.flock( f.fileno(), fcntl.LOCK_UN )
 
 signal.signal( signal.SIGINT, handler )
 
-utility.updateJobStat( joblist, fjobstat )
-
 njobs = len( joblist )
-fl_done = 0
+fl_done = [ 0 for i in range( njobs ) ]
 
-while not fl_done  == njobs :
-    for index, ( job, stat, ptime ) in enumerate( joblist ) :
-        nsegs = job.getNSegs()
-        if stat[:4] == 'init' :
+while sum( fl_done ) != njobs :
+
+    info = dict()
+
+    for i, job in enumerate( joblist ) :
+        status = job.getStatus()
+        if status is None :
             job.execute()
-            joblist[index][1] = 'running(0/%d)' % nsegs
-            joblist[index][2] = utility.decodeTime( job.getDiffTime() )
-        elif stat[:7] == 'running' :
-            result = job.getJobResult()
-            if result is None :
-                numer = job.getProgress()
-                joblist[index][1] = 'running(%d/%d)' % ( numer, nsegs )
-            elif result is True :
-                job.mergeFOut()
-                joblist[index][1] = 'merging(%d)' % nsegs
-            elif result is False :
-                job.killBjob()
-                job.clear()
-                joblist[index][1] = 'error'
-                fl_done += 1
-            else :
-                joblist[index][1] = 'unknown'
-            joblist[index][2] = utility.decodeTime( job.getDiffTime() )
-        elif stat[:7] == 'merging' :
-            fstat = job.getFinalStatus()
-            if fstat is None :
-                pass
-            elif fstat is True :
-                # job.clear()
-                job.clearAll()
-                joblist[index][1] = 'done(%d)' % nsegs
-                fl_done += 1
-            elif fstat is False :
-                job.clear()
-                joblist[index][1] = 'error'
-                fl_done += 1
-            else :
-                joblist[index][1] = 'unknown'
-            joblist[index][2] = utility.decodeTime( job.getDiffTime() )
-        elif stat[:4] == 'done' :
-            continue
-        elif stat == 'error' :
-            continue
+        elif status is 0 :
+            pass
+        elif status is 1 :
+            job.mergeFOut()
+        elif status is 2 :
+            pass
+        elif status is True :
+            if fl_done[i] == 0 :
+                job.finalize()
+                fl_done[i] = 1
+        elif status is False :
+            if fl_done[i] == 0 :
+                job.finalize()
+                fl_done[i] = 1
         else :
-            joblist[index][1] = 'unknown'
-            joblist[index][2] = utility.decodeTime( job.getDiffTime() )
+            sys.stderr.write( 'ERROR: unknown status was detected.\n' )
+            
+        info.update( job.getInfo() )
 
-    utility.updateJobStat( joblist, fjobstat )
+    buff = json.dumps( info, indent=4 )
+    with open( fJobInfo, 'w+' ) as f :
+        try :
+            fcntl.flock( f.fileno(), fcntl.LOCK_EX )
+            f.write( buff )
+            f.truncate()
+        except IOError :
+            sys.stderr.write( 'ERROR: I/O error was detected.\n' )
+        finally :
+            fcntl.flock( f.fileno(), fcntl.LOCK_UN )
+
     time.sleep( SLEEP_TIME )

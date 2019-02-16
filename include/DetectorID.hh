@@ -8,11 +8,12 @@
 #define DETECTOR_ID_HH
 
 #include <iostream>
+#include <vector>
 
-#define RunE07 0
-#define RunE40 1
+#include <TString.h>
 
 // Counters ___________________________________________________________
+const int DetIdUnixtime =  7777;
 const int DetIdT1       =  201;
 const int DetIdT2       =  202;
 const int DetIdT3       =  203;
@@ -30,10 +31,11 @@ const int DetIdTOF      =  8;
 const int DetIdSAC      =  9;
 const int DetIdLC       = 10;
 const int DetIdHtTOF    = 11; // high threshold TOF
+const int NumOfSegUnixtime = 1;
 const int NumOfSegT1    = 1;
 const int NumOfSegT2    = 2;
-const int NumOfSegT3    = 1;
-const int NumOfSegT4    = 2;
+const int NumOfSegT3    = 2;
+const int NumOfSegT4    = 1;
 const int NumOfSegS1    = 3;
 const int NumOfSegS2    = 3;
 const int NumOfSegBH1   = 11;
@@ -65,72 +67,26 @@ const int DetIdHulRM      = 83;
 const int NumOfSegTrig    = 32;
 const int NumOfSegScaler  = 96;
 const int NumOfSegEMC     =  1;
-const int NumOfSegSSDT    = 16;
+const int NumOfSegSSDT    =  4;
 const int SpillEndFlag    = 20; // 0-based
 const int NumOfPlaneVmeRm = 2;
 
-#if RunE07
 enum eTriggerFlag
   {
-    kUB       =  0,
-    kUBUB     =  1,
-    kKPI      =  2,
-    kKK       =  3,
-    kUBPS     =  4,
-    kUBUBPS   =  5,
-    kKPIPS    =  6,
-    kKKPS     =  7,
-    kMtx1     =  8,
-    kMtx2     =  9,
-    kMtx3     = 10,
-    kMtx4     = 11,
-    kKIn      = 12,
-    kPiIn     = 13,
-    kKOut     = 14,
-    kPiOut    = 15,
-    kKBeam    = 16,
-    kPiBeam   = 17,
-    kPBeam    = 18,
-    kClock    = 19,
-    kSpillEnd = 20
+    kSpillEnd,
+    kBeam,
+    kScat,
+    kClock,
+    NTriggerFlag
   };
-#endif
 
-#if RunE40
-enum eTriggerFlag
+const std::vector<TString> STriggerFlag =
   {
-    kBh21K     =  0,
-    kBh22K     =  1,
-    kBh23K     =  2,
-    kBh24K     =  3,
-    kBh25K     =  4,
-    kBh26K     =  5,
-    kBh27K     =  6,
-    kBh28K     =  7,
-    kBh2K      =  8,
-    kElseOr    =  9,
-    kBeam      = 10,
-    kBeamTof   = 11,
-    kBeamPi    = 12,
-    kBeamP     = 13,
-    kCoin1     = 14,
-    kCoin2     = 15,
-    kE03       = 16,
-    // kBh2KPs    =
-    kBeamPs    = 17,
-    kBeamTofPs = 18,
-    kBeamPiPs  = 19,
-    kBeamPPs   = 10,
-    kCoin1Ps   = 21,
-    kCoin2Ps   = 22,
-    kE03Ps     = 23,
-    kClk       = 24,
-    kRsv2      = 25,
-    kMtx       = 26,
-    kSclrTrg   = 27
-    // kClkGe   =
+    "SpillEnd",
+    "Beam",
+    "Scat",
+    "Clock"
   };
-#endif
 
 const int DetIdVmeCalib      = 999;
 const int NumOfPlaneVmeCalib =   5;

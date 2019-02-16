@@ -3,8 +3,8 @@
 #____________________________________________________
 
 __author__  = 'Y.Nakada <nakada@km.phys.sci.osaka-u.ac.jp>'
-__version__ = '2.1'
-__date__    = '12 May 2018'
+__version__ = '3.2'
+__date__    = '24 July 2018'
 
 #____________________________________________________
 
@@ -96,9 +96,17 @@ class RunlistManager :
             proot = self.makeRootPath( item[1]['root'], base )
 
             unit  = item[1]['unit'] if isinstance( item[1]['unit'], int ) else 0
-            queue = '%s' % item[1]['queue'] if isinstance( item[1]['queue'], str ) else 's'
+            queue = item[1]['queue'] if isinstance( item[1]['queue'], str ) else 's'
+            nproc = item[1]['nproc'] if isinstance( item[1]['nproc'], int ) else 1
 
-            runlist.append( [ item[0], pbin, pconf, pdata, proot, queue, unit, nevents ] )
+            if item[1]['buff'] is None :
+                buff = None
+            elif os.path.exists( item[1]['buff'] ) and os.path.isdir( item[1]['buff'] ) :
+                buff = item[1]['buff']
+            else :
+                utility.ExitFailure( 'Cannot decide buffer file path' )
+
+            runlist.append( [ item[0], pbin, pconf, pdata, proot, nproc, buff, queue, unit, nevents ] )
 
         os.chdir( self.__workdir )
 
@@ -123,10 +131,13 @@ class RunlistManager :
             if parsets is None :
                 runlist.append( [ key, defset ] )
             else:
-                for par in parsets :
-                    tmp = copy.deepcopy( defset )
-                    tmp.update( par )
-                    runlist.append( [ key, tmp ] )
+                tmp = copy.deepcopy( defset )
+                tmp.update( parsets )
+                runlist.append( [ key, tmp ] )
+                # for par in parsets :
+                #     tmp = copy.deepcopy( defset )
+                #     tmp.update( par )
+                #     runlist.append( [ key, tmp ] )
 
         return runlist
 
@@ -144,9 +155,9 @@ class RunlistManager :
             elif ( os.path.isdir( path )
                    and not runno is None
                    and isinstance( runno, int ) ) :
-                tmp = path + '/run{0:05d}.dat'.format( runno )
-                if not os.path.isfile( tmp ) :
-                  tmp += '.gz'
+                tmp = path + '/run{0:05d}.dat.gz'.format( runno )
+                # if not os.path.isfile( tmp ) :
+                #   tmp += '.gz'
                 data_path = ( os.path.realpath( tmp )
                               if os.path.isfile( tmp )
                               else utility.ExitFailure( 'Cannot find file: ' + tmp ) )
@@ -189,8 +200,8 @@ class RunlistManager :
                 cand = list()
                 freclog = open( reclog_path, 'r' )
                 for line in freclog :
-                    if 5 == line.find( str( runno ) ) :
-                        words = line.split()
+                    words = line.split()
+                    if len( words ) > 2 and runno == int( words[1] ) :
                         cand.append( words[15] ) if len( words ) > 15 else -1
                 freclog.close()
 

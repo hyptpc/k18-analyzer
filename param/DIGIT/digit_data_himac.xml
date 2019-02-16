@@ -5,11 +5,11 @@
 
   <device id="0xff" name="null"/>
   <!--________________________________________________________________-->
-  <device id="1" name="VME"><for var="seg" from="0" to="31">
-    <segment id="seg"><for var="UorD" from="0" to="1">
+  <device id="7777" name="Unixtime"><for var="seg" from="0" to="0">
+    <segment id="seg"><for var="UorD" from="0" to="0">
       <ch id="UorD">
-        <data id="0" name="adc"/>
-        <data id="1" name="tdc"/>
+        <data id="0" name="sec"/>
+        <data id="1" name="nsec"/>
       </ch></for>
     </segment></for>
   </device>
@@ -30,7 +30,7 @@
       </ch></for>
     </segment></for>
   </device>
-  <device id="203" name="T3"><for var="seg" from="0" to="0">
+  <device id="203" name="T3"><for var="seg" from="0" to="1">
     <segment id="seg"><for var="UorD" from="0" to="1">
       <ch id="UorD">
         <data id="0" name="adc"/>
@@ -38,7 +38,7 @@
       </ch></for>
     </segment></for>
   </device>
-  <device id="204" name="T4"><for var="seg" from="0" to="1">
+  <device id="204" name="T4"><for var="seg" from="0" to="0">
     <segment id="seg"><for var="UorD" from="0" to="1">
       <ch id="UorD">
         <data id="0" name="adc"/>

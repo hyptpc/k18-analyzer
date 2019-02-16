@@ -29,6 +29,7 @@ private:
 
 private:
   bool              m_is_decoded;
+  HodoRHitContainer m_UnixtimeRawHC;
   HodoRHitContainer m_T1RawHC;
   HodoRHitContainer m_T2RawHC;
   HodoRHitContainer m_T3RawHC;
@@ -70,6 +71,7 @@ public:
   bool                     DecodeHits( void );
   bool                     DecodeCalibHits( void );
 
+  const HodoRHitContainer& GetUnixtimeRawHC( void ) const;
   const HodoRHitContainer& GetT1RawHC( void ) const;
   const HodoRHitContainer& GetT2RawHC( void ) const;
   const HodoRHitContainer& GetT3RawHC( void ) const;
@@ -109,6 +111,13 @@ public:
   const HodoRHitContainer& GetFpgaBH2RawHC( void ) const;
   const HodoRHitContainer& GetFpgaBH2MtRawHC( void ) const;
 };
+
+//______________________________________________________________________________
+inline const HodoRHitContainer&
+RawData::GetUnixtimeRawHC( void ) const
+{
+  return m_UnixtimeRawHC;
+}
 
 //______________________________________________________________________________
 inline const HodoRHitContainer&

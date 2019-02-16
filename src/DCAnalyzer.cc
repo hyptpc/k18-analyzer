@@ -197,6 +197,7 @@ DCAnalyzer::~DCAnalyzer( void )
   ClearTracksBcOutSsdIn();
   ClearTracksSsdOutSdcIn();
   ClearTracksSdcInSdcOut();
+  ClearTracksSsdInSsdOut();
   ClearDCHits();
   ClearVtxHits();
   debug::ObjectCounter::decrease(class_name);
@@ -922,6 +923,18 @@ DCAnalyzer::TrackSearchSsdOutSdcIn( void )
 }
 
 //______________________________________________________________________________
+bool
+DCAnalyzer::TrackSearchSsdInSsdOut( void )
+{
+  static const int MinLayer = gUser.GetParameter("MinLayerSsdInSsdOut");
+
+  track::LocalTrackSearchSsdInSsdOut( m_SsdInClCont, m_SsdOutClCont,
+				      m_SsdInSsdOutTC, MinLayer );
+
+  return true;
+}
+
+//______________________________________________________________________________
 #if UseBcIn
 bool
 DCAnalyzer::TrackSearchK18U2D( void )
@@ -1382,6 +1395,13 @@ DCAnalyzer::ClearTracksSdcInSdcOut( void )
 }
 
 //______________________________________________________________________________
+void
+DCAnalyzer::ClearTracksSsdInSsdOut( void )
+{
+  del::ClearContainer( m_SsdInSsdOutTC );
+}
+
+//______________________________________________________________________________
 bool
 DCAnalyzer::ReCalcMWPCHits( std::vector<DCHitContainer>& cont,
 			    bool applyRecursively )
@@ -1765,12 +1785,7 @@ DCAnalyzer::DoTimeCorrectionSsdIn( const std::vector<double>& t0 )
     for( std::size_t i=0; i<nh; ++i ){
       DCHit *hit = HitCont[i];
       if( !hit ) continue;
-      double offset = 0.;
-      switch( layer ){
-      case 1: case 2: offset = t0[1]; break;
-      case 3: case 4: offset = t0[1]; break;
-      }
-      hit->DoTimeCorrection( offset );
+      hit->DoTimeCorrection( t0[layer-1] );
     }
   }
 }
@@ -1787,12 +1802,7 @@ DCAnalyzer::DoTimeCorrectionSsdOut( const std::vector<double>& t0 )
     for( std::size_t i=0; i<nh; ++i ){
       DCHit *hit = HitCont[i];
       if( !hit ) continue;
-      double offset = 0.;
-      switch(layer){
-      case 1: case 2: offset = t0[1]; break;
-      case 3: case 4: offset = t0[1]; break;
-      }
-      hit->DoTimeCorrection( offset );
+      hit->DoTimeCorrection( t0[layer-1+NumOfLayersSSD1] );
     }
   }
 }

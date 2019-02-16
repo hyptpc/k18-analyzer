@@ -33,7 +33,7 @@ namespace
   const DCGeomMan&       gGeom  = DCGeomMan::GetInstance();
   const DCTdcCalibMan&   gTdc   = DCTdcCalibMan::GetInstance();
   const DCDriftParamMan& gDrift = DCDriftParamMan::GetInstance();
-  const SsdParamMan&     gSsd   = SsdParamMan::GetInstance();
+  // const SsdParamMan&     gSsd   = SsdParamMan::GetInstance();
   const bool SelectTDC1st  = false;
 }
 
@@ -124,9 +124,9 @@ void
 DCHit::SetDummyPair()
 {
   data_pair a_pair = {0.,
-		      0., 
-		      std::numeric_limits<double>::quiet_NaN(), 
-		      std::numeric_limits<double>::quiet_NaN(), 
+		      0.,
+		      std::numeric_limits<double>::quiet_NaN(),
+		      std::numeric_limits<double>::quiet_NaN(),
 		      -1,
 		      false,
 		      true};
@@ -165,7 +165,7 @@ DCHit::CalcDCObservables( void )
 
   IntVec leading_cont, trailing_cont;
 
-  // Prepare 
+  // Prepare
   {
     for ( int m = 0; m < nh_tdc; ++m ) {
       leading_cont.push_back( m_tdc.at( m ) );
@@ -179,9 +179,9 @@ DCHit::CalcDCObservables( void )
 
     int i_t = 0;
     for(int i = 0; i<nh_tdc; ++i){
-      data_pair a_pair = {0., 0., 
-			  std::numeric_limits<double>::quiet_NaN(), 
-			  std::numeric_limits<double>::quiet_NaN(), 
+      data_pair a_pair = {0., 0.,
+			  std::numeric_limits<double>::quiet_NaN(),
+			  std::numeric_limits<double>::quiet_NaN(),
 			  -1, false, false};
 
       int leading  = leading_cont.at(i);
@@ -220,12 +220,12 @@ DCHit::CalcDCObservables( void )
     double ctime;
     if( !gTdc.GetTime( m_layer, m_wire, leading_cont.at(i), ctime ) ){
       return false;
-    } 
+    }
 
     double dtime, dlength;
     if( !gDrift.CalcDrift( m_layer, m_wire, ctime, dtime, dlength ) ){
       status = false;
-    } 
+    }
 
     m_pair_cont.at(i).drift_time   = dtime;
     m_pair_cont.at(i).drift_length = dlength;
@@ -247,7 +247,7 @@ DCHit::CalcDCObservables( void )
     case 119: case 120: case 121: case 122: case 123: case 124:
       if( MinDLBc[m_layer-100] < m_pair_cont.at(i).drift_length && m_pair_cont.at(i).drift_length < MaxDLBc[m_layer-100] ){
 	m_pair_cont.at(i).dl_range = true;
-      } 
+      }
       break;
 
       // SDC1,2,3
@@ -256,7 +256,7 @@ DCHit::CalcDCObservables( void )
     case 35: case 36: case 37: case 38:
       if( MinDLSdc[m_layer] < m_pair_cont.at(i).drift_length && m_pair_cont.at(i).drift_length < MaxDLSdc[m_layer] ){
 	m_pair_cont.at(i).dl_range = true;
-      } 
+      }
       break;
     default:
       hddaq::cout << "#E " << func_name << " "
@@ -309,7 +309,7 @@ DCHit::CalcMWPCObservables( void )
 
   IntVec leading_cont, trailing_cont;
 
-  // Prepare 
+  // Prepare
   {
     for ( int m = 0; m < nh_tdc; ++m ) {
       leading_cont.push_back( m_tdc.at( m ) );
@@ -324,8 +324,8 @@ DCHit::CalcMWPCObservables( void )
     int i_t = 0;
     for(int i = 0; i<nh_tdc; ++i){
       data_pair a_pair = {0., 0.,
-			  std::numeric_limits<double>::quiet_NaN(), 
-			  std::numeric_limits<double>::quiet_NaN(), 
+			  std::numeric_limits<double>::quiet_NaN(),
+			  std::numeric_limits<double>::quiet_NaN(),
 			  -1, false, false};
 
       int leading  = leading_cont.at(i);
@@ -364,12 +364,12 @@ DCHit::CalcMWPCObservables( void )
     double ctime;
     if( !gTdc.GetTime( m_layer, m_wire, leading_cont.at(i), ctime ) ){
       return false;
-    } 
+    }
 
     double dtime, dlength;
     if( !gDrift.CalcDrift( m_layer, m_wire, ctime, dtime, dlength ) ){
       status = false;
-    } 
+    }
 
     m_pair_cont.at(i).drift_time   = dtime;
     m_pair_cont.at(i).drift_length = dlength;
@@ -388,7 +388,7 @@ DCHit::CalcMWPCObservables( void )
       m_pair_cont.at(i).dl_range = true;
     }else{
       status = false;
-    } 
+    }
   }
 
   return status;
@@ -409,9 +409,9 @@ DCHit::CalcFiberObservables( void )
   std::size_t nh_tdc = m_tdc.size();
 
   for( std::size_t i=0; i<nh_tdc; i++ ){
-    data_pair a_pair = {(double)m_tdc[i], 0., 
-			std::numeric_limits<double>::quiet_NaN(), 
-			std::numeric_limits<double>::quiet_NaN(), 
+    data_pair a_pair = {(double)m_tdc[i], 0.,
+			std::numeric_limits<double>::quiet_NaN(),
+			std::numeric_limits<double>::quiet_NaN(),
 			-1, false, true};
     m_pair_cont.push_back( a_pair );
   }
@@ -425,7 +425,7 @@ DCHit::CalcSsdObservables( void )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
-  if( !gGeom.IsReady() || !gSsd.IsReady() ) return false;
+  // if( !gGeom.IsReady() || !gSsd.IsReady() ) return false;
 
   m_angle = gGeom.GetTiltAngle( m_layer );
   m_wpos  = gGeom.CalcWirePosition( m_layer, m_wire );
@@ -445,32 +445,32 @@ DCHit::CalcSsdObservables( void )
   std::vector<double> dE(nhadc);
   std::vector<double> rms(nhadc);
   for( std::size_t i=0; i<nhadc; ++i ){
-    data_pair a_pair = {(double)m_tdc[i], 0., 
-			std::numeric_limits<double>::quiet_NaN(), 
-			std::numeric_limits<double>::quiet_NaN(), 
+    data_pair a_pair = {(double)m_tdc[i], 0.,
+			std::numeric_limits<double>::quiet_NaN(),
+			std::numeric_limits<double>::quiet_NaN(),
 			-1, false, true};
     m_pair_cont.push_back( a_pair );
 
     // if( m_adc[i]<pedestal )
     //   pedestal = m_adc[i];
 
-    if( !gSsd.GetDe( m_layer, m_wire, i, m_adc[i], dE[i] ) ){
-      hddaq::cerr << func_name << " : something is wrong at GetDe("
-		  << m_layer   << ", " << m_wire << ", " << i << ", "
-		  << m_adc[i]  << ", " << dE[i] << ")"
-		  << std::endl;
-      return false;
-    }
+    // if( !gSsd.GetDe( m_layer, m_wire, i, m_adc[i], dE[i] ) ){
+    //   hddaq::cerr << func_name << " : something is wrong at GetDe("
+    // 		  << m_layer   << ", " << m_wire << ", " << i << ", "
+    // 		  << m_adc[i]  << ", " << dE[i] << ")"
+    // 		  << std::endl;
+    //   return false;
+    // }
 
-    if( !gSsd.GetRms( m_layer,m_wire, i, rms[i] ) ){
-      hddaq::cerr << func_name << " : something is wrong at GetRms("
-		  << m_layer   << ", " << m_wire << ", " << i << ", "
-		  << rms[i]   << ")"
-		  <<std::endl;
-      return false;
-    }
+    // if( !gSsd.GetRms( m_layer,m_wire, i, rms[i] ) ){
+    //   hddaq::cerr << func_name << " : something is wrong at GetRms("
+    // 		  << m_layer   << ", " << m_wire << ", " << i << ", "
+    // 		  << rms[i]   << ")"
+    // 		  <<std::endl;
+    //   return false;
+    // }
 
-    dE[i] -= pedestal;
+    dE[i] = m_adc[i] - pedestal;
     m_waveform.push_back( dE[i] );
     m_time.push_back( m_tdc[i]*SamplingIntervalSSD );
 
@@ -617,7 +617,7 @@ void
 DCHit::TotCut(double min_tot, bool adopt_nan)
 {
   auto itr_new_end = std::remove_if(m_pair_cont.begin(), m_pair_cont.end(),
-				    [min_tot, adopt_nan](data_pair a_pair)->bool 
+				    [min_tot, adopt_nan](data_pair a_pair)->bool
 				    {return (isnan(a_pair.tot) && adopt_nan) ? false : !(a_pair.tot > min_tot);}
 				    );
   m_pair_cont.erase(itr_new_end, m_pair_cont.end());

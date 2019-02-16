@@ -32,11 +32,10 @@ TimeFBH		-10	10
 ### SSD Filter #########################
 # SSD		min	max
 AmpSSD		0	1000
-DeSSDKaon	2500	100000
-DeSSDXi		5000	200000
+DeSSD		10000	1000000
 RmsSSD		10	1000
 DevSSD		10	1000
-TimeSSD		60	120
+TimeSSD		80	120
 MaxChisqrSSD		300
 
 ### Drift Chamber ######################
@@ -66,6 +65,7 @@ MinLayerBcOutSdcIn	18
 MinLayerBcOutSsdIn	12
 MinLayerSsdOutSdcIn	10
 MinLayerSdcInSdcOut	14
+MinLayerSsdInSsdOut	4
 
 ### Misc ###############################
 # Time Offset between BH2 and Target

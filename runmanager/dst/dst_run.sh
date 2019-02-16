@@ -3,14 +3,12 @@
 #_____________________________
 #    RUN MANAGER for DST
 #  AUTHOR: Yoshiyuki NAKADA
-#      June 15, 2028
+#      July 24, 2028
 #_____________________________
 
 
 APP_PATH=$(readlink -f $0)
 APP_DIR=$(dirname $APP_PATH)
-LOG_DIR=$APP_DIR/log
-PREFETCH_DIR=$APP_DIR/prefetch
 
 #__________________________________________________
 
@@ -31,17 +29,27 @@ if [ $# -ne 1 ]; then
     exit 0
 fi
 
-runlist=$1
-
-if ! [ -e "$runlist" ]; then
-    echo "ERROR: No such file > $runlist"
+if ! [ -e "$1" ]; then
+    echo "ERROR: No such file > $1"
     exit 1
 fi
+
+runlist=$1
 
 tmp=$(basename $runlist)
 label=${tmp%.*}
 
 #__________________________________________________
+
+LOG_DIR=$APP_DIR/log
+if ! [ -e $LOG_DIR ]; then
+    mkdir $LOG_DIR
+fi
+
+PREFETCH_DIR=$APP_DIR/prefetch
+if ! [ -e $PREFETCH_DIR ]; then
+    mkdir $PREFETCH_DIR
+fi
 
 mainlog=$LOG_DIR/$label.log
 if [ -e $mainlog ]; then
@@ -56,6 +64,7 @@ conf=""
 rootin=""
 rootout=""
 runid=()
+conff=()			# conf file array
 
 #__________________________________________________
 
@@ -103,8 +112,8 @@ done < $runlist
 
 #__________________________________________________
 
-if [ -z "$work" -o -f "$work" ]; then
-    echo "ERROR: Invalid file declaration [work]" | tee $mainlog
+if [ -z "$work" ] || ! [ -d "$work" ]; then
+    echo "ERROR: Invalid file declaration [work: $work]" | tee $mainlog
     exit 1
 fi
 
@@ -112,6 +121,9 @@ fi
 
 echo "> cd $work" >> $mainlog
 cd $work
+if [ $? -eq 1 ]; then
+    exit 1
+fi
 
 if ! [ -x "$bin" ]; then
     if [ -z "$bin" ]; then bin="null"; fi
@@ -119,7 +131,20 @@ if ! [ -x "$bin" ]; then
     exit 1
 fi
 
-if ! [ -r "$conf" ]; then
+if [ -d "$conf" ]; then
+    for id in ${runid[@]}; do
+	tmpconf="$conf/analyzer_${id}.conf"
+	if ! [ -r "$tmpconf" ]; then
+	    echo "ERROR: Cannot access file >> $tmpconf" | tee $mainlog
+	    exit 1
+	fi
+	conff+=( "$tmpconf" )
+    done
+elif [ -r "$conf" ]; then
+    for id in ${runid[@]}; do
+	conff+=( "$conf" )
+    done
+else
     if [ -z "$conf" ]; then conf="null"; fi
     echo "ERROR: Invalid file declaration [conf: $conf]" | tee $mainlog
     exit 1
@@ -127,13 +152,13 @@ fi
 
 if ! [ -d "$rootin" ]; then
     if [ -z "$rootin" ]; then rootin="null"; fi
-    echo "ERROR: Invalid file declaration [rootin $rootin]" | tee $mainlog
+    echo "ERROR: Invalid file declaration [rootin: $rootin]" | tee $mainlog
     exit 1
 fi
 
 if ! [ -d "$rootout" ]; then
     if [ -z "$rootout" ]; then rootout="null"; fi
-    echo "ERROR: Invalid file declaration [rootout $rootout]" | tee $mainlog
+    echo "ERROR: Invalid file declaration [rootout: $rootout]" | tee $mainlog
     exit 1
 fi
 
@@ -154,6 +179,9 @@ fi
 
 echo "> cd $work/$rootin" >> $mainlog
 cd $work/$rootin
+if [ $? -eq 1 ]; then
+    exit 1
+fi
 
 fl_exit=0
 for id in ${runid[@]}; do
@@ -174,6 +202,9 @@ fi
 
 echo "> cd $APP_DIR" >> $mainlog
 cd $APP_DIR
+if [ $? -eq 1 ]; then
+    exit 1
+fi
 
 if ! [ -e $LOGDIR ]; then
     echo "> mkdir $LOG_DIR" >> $mainlog
@@ -204,6 +235,9 @@ fi
 
 echo "> cd $work" >> $mainlog
 cd $work
+if [ $? -eq 1 ]; then
+    exit 1
+fi
 
 log=()
 out=()
@@ -228,21 +262,21 @@ for id in ${runid[@]}; do
     done
     outpath=$(readlink -f $work/$rootout/run${id}_${basebin}.root)
     start=$( date )
-    bsub -q s -o $tmplog -a "$command_prefetch" $work/$bin $work/$conf ${inpath[@]} $outpath > $tmpout &
+    bsub -q s -o $tmplog -a "$command_prefetch" $work/$bin $work/${conff[$index]} ${inpath[@]} $outpath > $tmpout &
     pid+=( $! )
     log+=( $tmplog )
     out+=( $tmpout )
-    echo "> bsub -q s -o $tmplog -a $command_prefetch $work/$bin $work/$conf ${inpath[@]} $outpath > $tmpout &" >> $mainlog
-    echo "key: $id"                         >> $mainlog
-    echo "-- log:      $tmplog"             >> $mainlog
-    echo "-- out:      $tmpout"             >> $mainlog
-    echo "-- prefetch: ${prefetch[$index]}" >> $mainlog
-    echo "-- bin:      $work/$bin"          >> $mainlog
-    echo "-- conf:     $work/$conf"         >> $mainlog
-    echo "-- rootin:   ${inpath[@]}"        >> $mainlog
-    echo "-- rootout:  $outpath"            >> $mainlog
-    echo "-- start:    $start"              >> $mainlog
-    echo "-- pid:      ${pid[$index]}"      >> $mainlog
+    echo "> bsub -q s -o $tmplog -a $command_prefetch $work/$bin $work/${conff[$index]} ${inpath[@]} $outpath > $tmpout &" >> $mainlog
+    echo "key: $id"                            >> $mainlog
+    echo "-- log:      $tmplog"                >> $mainlog
+    echo "-- out:      $tmpout"                >> $mainlog
+    echo "-- prefetch: ${prefetch[$index]}"    >> $mainlog
+    echo "-- bin:      $work/$bin"             >> $mainlog
+    echo "-- conf:     $work/${conff[$index]}" >> $mainlog
+    echo "-- rootin:   ${inpath[@]}"           >> $mainlog
+    echo "-- rootout:  $outpath"               >> $mainlog
+    echo "-- start:    $start"                 >> $mainlog
+    echo "-- pid:      ${pid[$index]}"         >> $mainlog
     index=$(( $index + 1 ))
 done
 
@@ -292,16 +326,18 @@ while : ; do
 			    if [ ${stat[$index]} -lt 2 ]; then
 				fl_done=$(($fl_done + 1))
 				success=$(($success + 1))
+				finish=$( date )
+				echo "done [$id]: $finish" >> $mainlog
 			    fi
 			    stat[$index]=2
-			    finish=$( date )
-			    echo "done [$id]: $finish" >> $mainlog
 			    ;;
 			"EXIT" )
-			    if [ ${stat[$index]} -lt 2 ]; then fl_done=$(($fl_done + 1)); fi
+			    if [ ${stat[$index]} -lt 2 ]; then
+				fl_done=$(($fl_done + 1));
+				finish=$( date )
+				echo "exit [$id]: $finish" >> $mainlog
+			    fi
 			    stat[$index]=3
-			    finish=$( date )
-			    echo "exit [$id]: $finish" >> $mainlog
 			    ;;
 			* )
 			    echo "ERROR: Unknow status was detected [key: $id]" | tee $mainlog
