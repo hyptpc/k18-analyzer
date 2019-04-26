@@ -2,25 +2,35 @@
 
 #____________________________________________________
 
-__author__  = 'Y.Nakada <nakada@km.phys.sci.osaka-u.ac.jp>'
-__version__ = '3.2'
-__date__    = '24 July 2018'
+__author__  = 'Y.Nakada <nakada@ne.phys.sci.osaka-u.ac.jp>'
+__version__ = '4.0'
+__date__    = '2 April 2019'
 
 #____________________________________________________
 
 import os
 import sys
+import fcntl
 import resource
 import psutil
 import shutil
-import time
-import copy
-import shlex
 import subprocess
+
+import time
+import datetime
+import copy
+
+import shlex
+
 import tempfile
 
+import json
 import configparser
 import xml.etree.ElementTree
+
+#____________________________________________________
+
+import Singleton
 
 #____________________________________________________
 
@@ -43,19 +53,26 @@ BSUB_RESPONCE = 'Job <JobID> is submitted to queue <queue>'
 
 #____________________________________________________
 
+HSTAGE_PATH = '/ghi/fs02/hstage/requests'
+
+#____________________________________________________
+
+RUN_PERIOD = 5 # unit: second
+
+#____________________________________________________
 
 #__________________________________________________
 #
 # BJob Class
 #__________________________________________________
 
-class BJob :
+class BJob( object ) :
 
     #__________________________________________________
     def __init__( self, jid ) :
 
         self.__jid = jid
-        # 0: PEND, 1: RUN, 2: DONE, 3: EXIT, 4: killed, -1: unknown
+        # 0: STAGE, 1: PEND, 2: RUN, 3: DONE, 4: EXIT, 4: killed, -1: unknown
         self.__status = None
         self.getStatus()
 
@@ -143,7 +160,7 @@ class BJob :
 # Analysis Job Class
 #__________________________________________________
 
-class AnalysisJob :
+class AnalysisJob( object ) :
 
     #__________________________________________________
     def __init__( self,
@@ -165,12 +182,16 @@ class AnalysisJob :
         self.__jid  = None
         self.__bjob = None
 
+        self.__stime = None
+        self.__rtime = None
+
         # True: success, False: failure,
-        #  0: process thrown, 1: process return and bsub running, 2: killed, -1: unknown
+        # 0: process thrown, 1: process return and bsub running, 2: killed, -1: unknown
         self.__status   = None 
 
-        self.__statProc = None # UNIX process. True: success, False: failure, 0: processing
-        self.__statBjob = None # bsub process. True: success, False: failure, 0: processing, 1: killed
+        # True: success, False: failure, 0: processing, 1: killed, -1: unknown
+        self.__statProc = None # UNIX process.
+        self.__statBjob = None # bsub process. 
 
 
     #__________________________________________________
@@ -188,27 +209,68 @@ class AnalysisJob :
     #__________________________________________________
     def getJobId( self ) :
 
+        self.__updateProcessStatus()
+
         return self.__jid
+
+
+    #__________________________________________________
+    def getRunTime( self ) :
+
+        self.__updateJobStatus()
+
+        if self.__rtime is None :
+            return 0
+        else :
+            return self.__rtime
 
 
     #__________________________________________________
     def getStatus( self ) :
 
         if self.__status is True \
-           or self.__status is False \
-           or self.__status is 2 :
+            or self.__status is False \
+            or self.__status is 2 :
             return self.__status
-        elif self.__status is 0 :
-            self.__updateProcessStatus()
-            if self.__status is 1 :
-                self.__updateJobStatus()
-        elif self.__status is 1 :
-            self.__updateJobStatus()
-        else :                  # unknown case
-            self.__updateProcessStatus()
-            self.__updateJobStatus()
+
+        self.__updateStatus()
 
         return self.__status
+
+    #__________________________________________________
+    def __updateStatus( self ) :
+
+        if self.__status is True \
+            or self.__status is False \
+            or self.__status is 2 :
+            return
+
+        self.__updateProcessStatus()
+        self.__updateJobStatus()
+
+        if self.__statProc is None :
+            pass
+        elif self.__statProc is True :
+            self.__status = 0
+        elif self.__statProc is False :
+            self.__status = False
+        elif self.__statProc is 1 :
+            self.__status = 2
+        else :
+            self.__status = -1
+
+        if self.__statBjob is None :
+            pass
+        elif self.__statBjob is True :
+            self.__status = True
+        elif self.__statBjob is False :
+            self.__status = False
+        elif self.__statBjob is 0 :
+            self.__status = 1
+        elif self.__statBjob is 1 :
+            self.__status = 2
+        else :
+            self.__status = -1
 
 
     #__________________________________________________
@@ -223,13 +285,16 @@ class AnalysisJob :
             self.__statProc = True
             if self.__bjob is None :
                 self.__registerJob()
+                self.__stime = time.time()
+                self.__rtime = self.__stime
         elif self.__proc.poll() == 1 :
             sys.stderr.write( 'ERROR: bsub command failed at {}\n'\
                               .format( self.__tag ) )
             outs, errs = proc.communicate()
+            self.__statProc = False
         else :
             self.__statProc = -1
-            self.__status   = -1
+            # self.__status   = -1
 
 
     #__________________________________________________
@@ -244,33 +309,38 @@ class AnalysisJob :
         elif status is 0 :      # PEND
             pass
         elif status is 1 :      # RUN
+            self.__rtime = time.time() - self.__stime
             pass
         elif status is 2 :      # DONE
             self.__statBjob = True
-            self.__status   = True
+            # self.__status   = True
         elif status is 3 :      # EXIT
             self.__statBjob = False
-            self.__status   = False
+            # self.__status   = False
         elif status is 4 :      # killed
             pass
         else :                  # unknow case
             self.__statBjob = -1
-            self.__status   = -1
+            # self.__status   = -1
 
 
     #__________________________________________________
     def __registerJob( self ) :
+
+        self.__updateStatus()
 
         if self.__jid is None and self.__statProc is True :
             buff  = self.__proc.communicate()[0]
             self.__jid = BJob.readJobId( buff.decode() )
             self.__bjob = BJob( self.__jid )
             self.__statBjob = 0
-            self.__status   = 1
+            # self.__status   = 1
 
 
     #__________________________________________________
     def execute( self ) :
+
+        self.__updateStatus()
 
         if not self.__statProc is None :
             return
@@ -281,13 +351,14 @@ class AnalysisJob :
             if nfds < MAX_NOFILE and nproc < MAX_NPROC :
                 break
 
-        pf = self.__manager.getPreFetchPath()
+        # pf = self.__manager.getPreFetchPath()
 
         cmd = shlex.split( 'bsub' + ' ' \
                            + '-q' + ' ' + self.__manager.getQueue() + ' ' \
                            + self.__manager.getOption() + ' ' \
                            + '-o' + ' ' + self.__log + ' ' \
-                           + '-a \"prefetch (' + pf + ')\"' )
+                           # + '-a \"prefetch (' + pf + ')\"' \
+                           )
 
         cmd.extend( [ self.__manager.getExecutingPath(),
                       self.__conf,
@@ -301,85 +372,87 @@ class AnalysisJob :
         self.__pid = self.__proc.pid
 
         self.__statProc = 0
-        self.__status   = 0
+        # self.__status   = 0
 
 
     #__________________________________________________
     def kill( self ) :
 
         self.__updateProcessStatus()
-        if self.__statProc == 0 \
-           or self.__statProc == -1 :
+        if self.__statProc is 0 \
+           or self.__statProc is -1 :
             sys.stdout.write( 'Killing process [pid: {}]\n'.format( self.__pid ) )
             self.__proc.kill()
-            self.__status = 2
+            self.__statProc = 1
 
         self.__updateJobStatus()
-        if self.__statBjob == 0 \
-           or self.__statBjob == -1 :
+        if self.__statBjob is 0 \
+           or self.__statBjob is -1 :
             sys.stdout.write( 'Killing job [jid: {}]\n'.format( self.__pid ) )
             self.__bjob.kill()
-            self.__status = 2
+            self.__statBjob = 1
 
 
 
 #__________________________________________________
 #
-# Job Manager Class
+# Single Run Manager Class
 #__________________________________________________
 
-class JobManager :
+class SingleRunManager( object ) :
 
     #__________________________________________________
     def __init__( self,
                   tag,
-                  key,
-                  fexec_path, fconf_path, fdata_path, fout_path,
-                  nproc = 1, buff_path = None,
-                  queue = 's', div_unit = 0, nevents = None ) :
+                  runinfo ) :
 
-        # true: success, false: failure,
-        # 0: bjob running, 1: bjob complete, 2: merging, 3: killed
+        # None: initial
+        # True: success,      False: failure,
+        #   10: unstaged,        11: staged, 
+        #   20: bjob running,    21: bjob complete
+        #   30: merging,      
+        #   99: killed,          -1: unknown
         self.__status = None 
 
+        # true: staged, false: unstaged
+        self.__statStage = None
         # true: success, false: failure, 0: running, 1: killed
         self.__statBjob  = None
         self.__statMerge = None
 
         self.__tag = tag
 
-        self.__key = key
+        self.__key           = runinfo['key']
+        self.__fExecPath     = runinfo['bin']
+        self.__fConfPath     = runinfo['conf']
+        self.__fDataPath     = runinfo['data']
+        self.__fOutPath      = runinfo['root']
 
-        self.__stime = time.time()
-        self.__ctime = self.__stime
-        self.__diffTime = 0
-
-        self.__baseName = self.__tag + '_' \
-                          + os.path.splitext( os.path.basename( fout_path ) )[0]
-
-        dtmp_path = '{}/tmp'.format( SCRIPT_DIR )
-        if not os.path.exists( dtmp_path ) :
-            os.mkdir( dtmp_path )
-        self.__dDummy = tempfile.TemporaryDirectory( dir=dtmp_path )
-
-        self.__fExecPath     = fexec_path
-        self.__fConfPath     = fconf_path
-        self.__fDataPath     = fdata_path
-        self.__fOutPath      = fout_path
-        self.__fPreFetchPath = None
+        # self.__fPreFetchPath = None
         self.__fUnpackPath   = None
         self.__fSchemaPath   = None
         self.__fLogPath      = None
         self.__fMergeLogPath = None
 
-        self.__nProc = nproc
-        self.__buffPath = buff_path
+        self.__nProc    = runinfo['nproc']
+        self.__buffPath = runinfo['buff']
 
-        self.__nEvents = nevents
-        self.__divUnit = div_unit
+        self.__nEvents = runinfo['nevents']
+        self.__divUnit = runinfo['unit']
 
-        self.__queue  = queue
+        self.__queue  = runinfo['queue']
         self.__option = ''
+
+        self.__stime = time.time()
+        self.__diffTime = 0
+
+        self.__baseName = self.__tag + '_' \
+                          + os.path.splitext( os.path.basename( self.__fOutPath ) )[0]
+
+        dtmp_path = '{}/tmp'.format( SCRIPT_DIR )
+        if not os.path.exists( dtmp_path ) :
+            os.mkdir( dtmp_path )
+        self.__dDummy = tempfile.TemporaryDirectory( dir=dtmp_path )
 
         self.__elemList    = list()
         self.__fConfList   = list()
@@ -387,12 +460,15 @@ class JobManager :
         self.__fOutList    = list()
         self.__fLogList    = list()
         self.__bjobList    = list()
+        self.__jidList     = list()
+        self.__jstatList   = list()
 
+        self.__procStage = None
         self.__procMerge = None
         self.__jobMerge  = None
 
         self.__makeFLog()
-        self.__makeFPreFetch()
+        # self.__makeFPreFetch()
 
         self.__dumpInitInfo()
 
@@ -420,9 +496,9 @@ class JobManager :
 
 
     #__________________________________________________
-    def getPreFetchPath( self ) :
+    # def getPreFetchPath( self ) :
 
-        return self.__fPreFetchPath
+    #     return self.__fPreFetchPath
 
 
     #__________________________________________________
@@ -464,16 +540,20 @@ class JobManager :
     #__________________________________________________
     def getDiffTime( self ) :
 
+        self.__updateStatus()
+
         if not self.__status is True \
-           and not self.__status is False :
-            self.__ctime = time.time()
-            self.__diffTime = self.__ctime - self.__stime
+           and not self.__status is False \
+           and not self.__status is 99 :
+            self.__diffTime = time.time() - self.__stime
 
         return self.__diffTime
 
 
     #__________________________________________________
     def getInfo( self ) :
+
+        self.__updateStatus()
 
         info = dict()
         info['queue'] = self.__queue
@@ -495,24 +575,122 @@ class JobManager :
     #__________________________________________________
     def getStatus( self ) :
 
-        if self.__status is None \
+        if self.__status is 99 \
            or self.__status is True \
            or self.__status is False :
             return self.__status
 
-        if self.__status is 0 :
-            self.__updateJobStatus()
-        elif self.__status is 1 :
-            pass
-        elif self.__status is 2 :
-            self.__updateMergingStatus()
-        elif self.__status is 3 :
-            pass
-        else :
-            self.__updateJobStatus()
-            self.__updateMergingStatus()
+        self.__updateStatus()
 
         return self.__status
+
+
+    #__________________________________________________
+    def __updateStatus( self ) :
+
+        self.__updateStagingStatus()
+        self.__updateJobStatus()
+        self.__updateMergingStatus()
+
+        if self.__statStage is None : # initial
+            pass
+        elif self.__statStage is False : # unstaged
+            self.__status = 10
+        elif self.__statStage is True : # staged
+            self.__status = 11
+        elif self.__statStage is 1 : # killed
+            pass
+        else :  # unknown
+            self.__status = -1
+
+        if self.__statBjob is None : # initial
+            pass
+        elif self.__statBjob is 0 : # running
+            self.__status = 20
+        elif self.__statBjob is True : # complete
+            self.__status = 21
+        elif self.__statBjob is False : # failure
+            self.__status = False
+            return
+        elif self.__statBjob is 1 : # killed
+            self.__status = 99
+            return
+        else : # unknown
+            self.__status = -1
+
+        if self.__statMerge is None : # initial
+            pass
+        elif self.__statMerge is 0 : # merging
+            self.__status = 30
+        elif self.__statMerge is True : # complete
+            self.__status = True
+            return
+        elif self.__statMerge is False : # failure
+            self.__status = False
+            return
+        elif self.__statMerge is 1 : # killed
+            self.__status = 99
+            return
+        else : # unknown
+            self.__status = -1
+
+
+    #__________________________________________________
+    def __updateStagingStatus( self ) :
+
+        if not self.__statStage is True :
+            if self.isStaged() :
+                self.__statStage = True
+            else :
+                self.__statStage = False
+
+
+    #__________________________________________________
+    def isStaged( self ) :
+
+        if self.__statStage is True :
+            return True
+
+        cmd = 'ghils {}'.format( self.__fDataPath )
+        try :
+            proc = subprocess.run( shlex.split( cmd ),
+                                   stdout = subprocess.PIPE,
+                                   stderr = subprocess.PIPE,
+                                   check = True )
+        except subprocess.CalledProcessError as e :
+            sys.stderr.write( 'ERROR: command \'{}\' returned error code ({})'\
+                              .format( ' '.join( e.cmd ), e.returncode ) )
+            sys.stderr.write( proc.stderr )
+
+        buff = proc.stdout.decode().split()[0]
+    
+        if buff == 'G' or buff == 'B' :
+            return True
+        else :
+            return False
+
+
+    #__________________________________________________
+    def accessDataStream( self ) :
+
+        if self.__statStage is True :
+            return
+
+        if not self.__procStage is None :
+            return
+
+        cmd = 'od {}'.format( self.__fDataPath )
+        try :
+            self.__procStage = subprocess.Popen( shlex.split( cmd ),
+                                                 stdout = subprocess.DEVNULL,
+                                                 stderr = subprocess.DEVNULL )
+                                                 # check = True )
+            self.__dumpLog( 'pid[stage]', self.__procStage.pid )
+            self.__dumpLog( None,  64 * '_' )
+        except subprocess.CalledProcessError as e :
+            sys.stderr.write( 'ERROR: command \'{}\' returned error code ({})'\
+                              .format( ' '.join( e.cmd ), e.returncode ) )
+            sys.stderr.write( proc.stderr )
 
 
     #__________________________________________________
@@ -522,20 +700,30 @@ class JobManager :
             return
 
         n_complete = 0
-        for job in self.__bjobList :
+        for i, job in enumerate( self.__bjobList ) :
 
             stat = job.getStatus()
             if stat is True :
                 n_complete += 1
+                if self.__jstatList[i] is 1 :
+                    self.__dumpLog( 'time[bjob({})]'.format( i ), \
+                        self.decodeTime( job.getRunTime() ) )
+                    self.__dumpLog( None,  64 * '_' )
             elif stat is False :
                 self.__statBjob = False
-                self.__status   = False
                 self.__dumpLog( 'error', 'error at {}'.format( job.getTag() ) )
                 self.__dumpLog( None,  64 * '_' )
+            elif stat is 1 :
+                if self.__jidList[i] is None :
+                    jid = job.getJobId()
+                    self.__jidList[i] = jid
+                    self.__dumpLog( 'jid[bjob({})]'.format( i ), jid )
+                    self.__dumpLog( None,  64 * '_' )
+
+            self.__jstatList[i] = stat
 
         if len( self.__elemList ) == n_complete :
             self.__statBjob = True
-            self.__status   = 1
 
         self.__nComplete = n_complete
 
@@ -546,11 +734,17 @@ class JobManager :
         if not self.__statMerge is None :
             return
 
+        if 1 == len( self.__elemList ) :
+            os.rename( self.__fOutList[0], self.__fOutPath )
+            self.__statMerge = True
+            return
+
         size = 0
         for item in self.__fOutList :
             size += os.path.getsize( item )
 
-        qOpt = '-q sx' if size > 2 * 1024**3 + 5 * 1024**2 else '-q s'
+        # qOpt = '-q sx' if size > 2 * 1024**3 + 5 * 1024**2 else '-q s'
+        qOpt = '-q s'
         pOpt = '-j {}'.format( self.__nProc ) if self.__nProc > 1 else ''
         bOpt = '-d {}'.format( self.__buffPath ) if not self.__buffPath is None else ''
 
@@ -570,32 +764,26 @@ class JobManager :
         self.__dumpLog( None,  64 * '_' )
 
         self.__statMerge = 0
-        self.__status    = 2
 
 
     #__________________________________________________
     def __updateMergingStatus( self ) :
 
-        if self.__statMerge is True \
-           or self.__statMerge is False :
+        if not self.__statMerge is 0 :
             return
 
-        if self.__statMerge is 0 :
-            stat = self.__jobMerge.getStatus()
-            if stat == 0 or stat == 1 : # PEND or RUN
-                return
-            elif stat == 2 :    # DONE
-                self.__statMerge = True
-                self.__status    = True
-            elif stat == 3 :    # EXIT
-                self.__statMerge = False
-                self.__status    = False
-                self.__dumpLog( 'error', 'merging error' )
-                self.__dumpLog( None,  64 * '_' )
-            else :              # unknown
-                self.__statMerge = -1
-                self.__status    = -1
-                
+        stat = self.__jobMerge.getStatus()
+        if stat == 0 or stat == 1 : # PEND or RUN
+            return
+        elif stat == 2 :    # DONE
+            self.__statMerge = True
+        elif stat == 3 :    # EXIT
+            self.__statMerge = False
+            self.__dumpLog( 'error', 'merging error' )
+            self.__dumpLog( None,  64 * '_' )
+        else :              # unknown
+            self.__statMerge = -1
+
 
     #__________________________________________________
     def execute( self ) :
@@ -606,6 +794,8 @@ class JobManager :
         self.__makeFConflist()
         self.__makeFOutlist()
         self.__makeFLoglist()
+        if self.__statBjob is False :
+            return
 
         for i, elem in enumerate( self.__elemList ) :
 
@@ -619,13 +809,30 @@ class JobManager :
             job.execute()
 
             self.__bjobList.append( job )
+            self.__jidList.append( None )
+            self.__jstatList.append( job.getStatus() )
 
         for i, item in enumerate( self.__bjobList ) :
-            self.__dumpLog( 'pid[bsub({})]'.format( i ), item.getProcessId() )
+            self.__dumpLog( 'pid[bjob({})]'.format( i ), item.getProcessId() )
         self.__dumpLog( None,  64 * '_' )
 
         self.__statBjob = 0
-        self.__status   = 0
+        # self.__status   = 0
+
+    #__________________________________________________
+    def killStaging( self ) :
+
+        if self.__procStage is None :
+            return
+
+        if self.__procStage.poll() is None :
+            pid = procStage.pid()
+            self.__procStage.kill()
+            buff = 'Process was killed [pid: {}]'\
+                   .format( pid )
+            self.__dumpLog( 'killStage', buff )
+            self.__dumpLog( None,  64 * '_' )
+            self.__statStage = 1
 
 
     #__________________________________________________
@@ -676,15 +883,15 @@ class JobManager :
     #__________________________________________________
     def killAll( self ) :
 
+        self.__updateStatus()
+
         if self.__status is True :
             return
-        elif self.__status is 0 \
-             or self.__status is 1 \
-             or self.__status is 2 :
-            self.__status = 3
 
+        self.killStaging()
         self.killBjob()
         self.killMerge()
+        self.__updateStatus()
 
 
     #__________________________________________________
@@ -719,12 +926,12 @@ class JobManager :
 
 
     #__________________________________________________
-    def __makeFPreFetch( self ) :
+    # def __makeFPreFetch( self ) :
 
-        self.__fPreFetchPath = self.__dDummy.name + '/' + self.__baseName + '.pf'
+    #     self.__fPreFetchPath = self.__dDummy.name + '/' + self.__baseName + '.pf'
 
-        with open( self.__fPreFetchPath, 'w' ) as f :
-            f.write( self.__fDataPath )
+    #     with open( self.__fPreFetchPath, 'w' ) as f :
+    #         f.write( self.__fDataPath )
 
 
     #__________________________________________________
@@ -741,7 +948,7 @@ class JobManager :
         except configparser.Error as e :
             sys.stderr.write( 'ERROR: Invalid format in {}\n'\
                               .format( self.__fConfPath ) )
-            self.__status = False
+            self.__statBjob = False
             return
 
         if os.path.exists( tmp_unpack ) :
@@ -749,7 +956,7 @@ class JobManager :
         else :
             sys.stderr.write( 'ERROR: Cannot find file > {}'\
                               .format( tmp_unpack ) )
-            self.__status = False
+            self.__statBjob = False
             return
 
         for item in self.__elemList :
@@ -802,7 +1009,7 @@ class JobManager :
         root = tree.getroot()
         fsrc = root.get( '{{{}}}{}'.format( XML_NAMESPACE, SCHEMA_LOC_ATTRIB ) )
         src = path + '/' + fsrc
-        
+
         self.__fSchemaPath = self.__dDummy.name + '/' + self.__baseName + '.xsd'
         shutil.copyfile( src, self.__fSchemaPath )
 
@@ -827,11 +1034,14 @@ class JobManager :
 
         for item in self.__elemList :
             path = dlog + '/' + item + '.log'
+            if os.path.exists( path ) :
+                os.remove( path )
             self.__fLogList.append( path )
 
-        self.__fMergeLogPath = dlog + '/' + self.__baseName + '_merge.log'
-        if os.path.exists( self.__fMergeLogPath ) :
-            os.remove( self.__fMergeLogPath )
+        if 1 < len( self.__elemList ) :
+            self.__fMergeLogPath = dlog + '/' + self.__baseName + '_merge.log'
+            if os.path.exists( self.__fMergeLogPath ) :
+                os.remove( self.__fMergeLogPath )
 
         self.__dumpLog( 'log', self.__fLogList )
         self.__dumpLog( 'mergelog', self.__fMergeLogPath )
@@ -841,11 +1051,12 @@ class JobManager :
     #__________________________________________________
     def finalize( self, flag = False ) :
 
+        self.__updateStatus()
         self.__dumpLog( 'end', time.ctime( time.time() ) )
 
         if self.__status is True :
             self.clearAll()
-        elif 3 == self.__status :
+        elif 99 == self.__status :
             if flag is True :
                 self.clear()
             else :
@@ -908,25 +1119,29 @@ class JobManager :
 
 
     #__________________________________________________
-    def __dumpLog( self, key = None, buff = None ) :
+    def __dumpLog( self, key = None, msg = None ) :
+
+        buff = str()
+
+        if key is None :
+            if not msg is None :
+                buff = str( msg )
+        else :
+            if msg is None :
+                buff = str( key ) + ':'
+            elif isinstance( msg, list ) or isinstance( msg, tuple ) :
+                for i, item in enumerate( msg ) :
+                    buff += '{}({}):'.format( key, i ).ljust(16) \
+                            + str( item )
+                    if i < len( msg ) - 1 :
+                        buff += '\n'
+            else :
+                buff = '{}:'.format( key ).ljust( 16 ) \
+                        + str( msg )
 
         with open( self.__fLogPath, 'a' ) as flog :
+            flog.write( buff + '\n' )
 
-            if key is None :
-                if buff is None :
-                    flog.write( '\n' )
-                else :
-                    flog.write( str( buff ) + '\n' )
-            else :
-                if buff is None :
-                    flog.write( str( key ) + ':\n' )
-                elif isinstance( buff, list ) or isinstance( buff, tuple ) :
-                    for i, item in enumerate( buff ) :
-                        flog.write( '{}({}):'.format( key, i ).ljust(16) )
-                        flog.write( str( item ) + '\n' )
-                else :
-                    flog.write( '{}:'.format( key ).ljust( 16 ) )
-                    flog.write( str( buff ) + '\n' )
 
 
     #__________________________________________________
@@ -945,6 +1160,241 @@ class JobManager :
         self.__dumpLog( 'nproc',    self.__nProc )
         self.__dumpLog( 'buffPath', self.__buffPath )
         self.__dumpLog( 'queue',    self.__queue )
-        self.__dumpLog( 'prefetch', self.__fPreFetchPath )
+        # self.__dumpLog( 'prefetch', self.__fPreFetchPath )
         self.__dumpLog( 'dirdummy', self.__dDummy.name )
         self.__dumpLog( None,       64 * '_' )
+
+
+    #__________________________________________________
+    @staticmethod
+    def decodeStatus( data ) :
+
+        buff = ''
+
+        stat = data['stat']
+        nseg = data['nseg']
+        prog = data['prog']
+
+        if stat is None :
+            buff = 'init'
+        elif stat is 10 :
+            buff = 'unstaged'
+        elif stat is 11 :
+            buff = 'staged'
+        elif stat is 20 :
+            buff = 'running({}/{})'.format( prog, nseg )
+        elif stat is 21 :
+            buff = 'running({}/{})'.format( prog, nseg )
+        elif stat is 30 :
+            buff = 'merging({})'.format( nseg )
+        elif stat is 99 :
+            buff = 'terminated'.format( nseg )
+        elif stat is True :
+            buff = 'done({})'.format( nseg )
+        elif stat is False :
+            buff = 'error'.format( nseg )
+        else :
+            buff = 'unknown'.format( nseg )
+
+        return buff
+
+
+    #____________________________________________________
+    @staticmethod
+    def decodeTime( data ) :
+
+        second = 0
+        if isinstance( data, dict ) :
+            second = int( data['time'] )
+        elif isinstance( data, float ) :
+            second = int( data )
+        elif isinstance( data, int ) :
+            second = int( data )
+    
+        hour    = second // 3600
+        second -= hour    * 3600
+        minute  = second // 60
+        second -= minute  * 60
+    
+        return '{}:{:02d}:{:02d}'.format( hour, minute, second )
+
+
+#__________________________________________________
+#
+# Run Manager Class
+#__________________________________________________
+
+class RunManager( metaclass = Singleton.Singleton ) :
+
+    #__________________________________________________
+    def __init__( self ) :
+
+        self.stime = None
+
+        self.__runlistMan = None
+        self.__fStatPath  = None
+
+        self.__tag   = None
+        self.__nruns = None
+
+        self.__fStageList = None
+
+        self.__flReady    = False
+
+        self.__flDone     = list()
+
+        self.__runJobList = list()
+
+        self.__stageList  = list()
+
+
+    #__________________________________________________
+    def setRunlistManager( self, runlistman ) :
+
+        self.__runlistMan = runlistman
+        self.__tag   = self.__runlistMan.getTag()
+        self.__nruns = self.__runlistMan.getNRuns()
+
+
+    #__________________________________________________
+    def setStatusOutputPath( self, fstat_path ) :
+
+        self.__fStatPath  = fstat_path
+
+
+    #__________________________________________________
+    def initialize( self ) :
+
+        if self.__runlistMan is None \
+            or self.__fStatPath is None :
+            return
+
+        self.stime = time.time()
+        self.__fStageList = HSTAGE_PATH + '/' \
+                            + self.__tag + '.lst.'\
+                            + datetime.datetime.now().strftime( '%Y%m%d%H%M%S' )
+
+        for i in range( self.__nruns ) :
+            run = self.__runlistMan.getRunInfo( i )
+            runJob = SingleRunManager( self.__tag, run )
+            self.__runJobList.append( runJob )
+
+        self.__stageList = list()
+        for runJob in self.__runJobList :
+            self.__flDone.append( 0 )
+            if not runJob.isStaged() :
+                self.__stageList.append( runJob.getDataPath() )
+
+        self.__flReady = True
+
+
+    #__________________________________________________
+    def registerStaging( self ) :
+
+        if self.__flReady is False :
+            return
+
+        self.__fStageList = HSTAGE_PATH + '/' \
+                            + self.__tag + '.lst.'\
+                            + datetime.datetime.now().strftime( '%Y%m%d%H%M%S' )
+
+        with open( self.__fStageList, 'w' ) as f :
+            for item in self.__stageList :
+                f.write( item + '\n' )
+
+
+    #__________________________________________________
+    def __runSingleCycle( self ) :
+
+        for i, runJob in enumerate( self.__runJobList ) :
+
+            status = runJob.getStatus()
+            if status is None :
+                pass
+            elif status is 10 :
+                # runJob.accessDataStream()
+                pass
+            elif status is 11 :
+                runJob.execute()
+            elif status is 20 :
+                pass
+            elif status is 21 :
+                runJob.mergeFOut()
+            elif status is 30 :
+                pass
+            elif status is True :
+                if self.__flDone[i] == 0 :
+                    runJob.finalize()
+                    self.__flDone[i] = 1
+            elif status is False :
+                if self.__flDone[i] == 0 :
+                    runJob.finalize()
+                    self.__flDone[i] = 1
+            else :
+                sys.stderr.write( 'ERROR: unknown status was detected.\n' )
+
+
+    #__________________________________________________
+    def run( self ) :
+
+        if self.__flReady is False :
+            return
+
+        ptime = time.time()
+        while sum( self.__flDone ) != self.__nruns :
+            self.__runSingleCycle()
+            self.dumpStatus()
+            dtime = RUN_PERIOD - ( time.time() - ptime )
+            if dtime > 0 : 
+                time.sleep( dtime )
+            ptime = time.time()
+
+
+    #__________________________________________________
+    def dumpStatus( self ) :
+
+        if self.__flReady is False :
+            return
+
+        info = dict()
+        for runJob in self.__runJobList :
+            info.update( runJob.getInfo() )
+        buff = json.dumps( info, indent=4 )
+        # with open( self.__fStatPath, 'w+' ) as f :
+        with open( self.__fStatPath, 'r+' ) as f :
+            try :
+                fcntl.flock( f.fileno(), fcntl.LOCK_EX )
+            except IOError :
+                # sys.stderr.write( 'ERROR: I/O error was detected.\n' )
+                pass
+            else :
+                f.write( buff )
+                f.truncate()
+                f.flush()
+            finally :
+                fcntl.flock( f.fileno(), fcntl.LOCK_UN )
+
+
+    #__________________________________________________
+    def finalize( self, flag = False ) :
+
+        if self.__flReady is False :
+            return
+
+        for runJob in self.__runJobList :
+            runJob.finalize( flag )
+        self.dumpStatus()
+
+
+    #__________________________________________________
+    def kill( self ) :
+
+        if self.__flReady is False :
+            return
+
+        for runJob in self.__runJobList :
+            status = runJob.getStatus()
+            if not status is True \
+                or not status is False :
+                runJob.killAll()
+        self.dumpStatus()

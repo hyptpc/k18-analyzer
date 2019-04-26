@@ -3,8 +3,8 @@
 #____________________________________________________
 
 __author__  = 'Y.Nakada <nakada@km.phys.sci.osaka-u.ac.jp>'
-__version__ = '2.1'
-__date__    = '12 May 2018'
+__version__ = '4.0'
+__date__    = '2 April 2019'
 
 #____________________________________________________
 
@@ -17,19 +17,6 @@ def ExitFailure( message ):
     sys.exit( 1 )
     return None
 
-
-#____________________________________________________
-
-def updateJobStat( joblist, path ) :
-
-    f = open( path, 'w' )
-    for job, stat, time in joblist :
-        info = map( str, job.getInfo() )
-        for item in info :
-            f.write( item + '\t' )
-        f.write( stat + '\t' )
-        f.write( '{:}:{:02d}:{:02d}'.format( *time ) + '\n' )
-    f.close()
 
 #____________________________________________________
 

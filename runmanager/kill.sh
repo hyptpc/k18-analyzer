@@ -12,3 +12,4 @@ done
 
 killall hadd
 killall run.py
+killall dst_run.sh

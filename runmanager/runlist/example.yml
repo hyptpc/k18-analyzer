@@ -4,10 +4,12 @@
 # The allowed keys are
 #   queue  <- bsub queue (eg. s, l, etc...)
 #   unit   <- dividing event unit
+#   nporc  <- number of process for merging (must be less than 20)
+#   buff   <- intermediate root files will be placed here if nproc is more than 2
 #   bin    <- path to executable binary
-#   conf   <- path to conf file from the work directory
+#   conf   <- path to conf directory/file from the work directory
 #   data   <- path to data directory/file
-#   root   <- path to the output root file directory/file
+#   root   <- path to the output ROOT output directory/file
 #
 # Be careful of the indent rule because YAML format is sensitive to it.
 # Some problems will happen if there is no default setting declaration.
@@ -27,6 +29,8 @@ WORKDIR: ~/work/miwalove/analyzer
 DEFAULT:
   queue: s
   unit:  100000
+  nproc: 1
+  buff:  /group/had/sks/Users/user/buffer
   bin:   ./bin/Hodoscope
   conf:  ./param/conf/analyzer_default.conf
   data:  ../data
@@ -40,23 +44,32 @@ DEFAULT:
 RUN:
 
   test: # Any keys are OK unless it overlaps.
-  - 
     bin:  ./bin/Hodoscope
     conf: ./param/conf/analyzer_default.conf
     data: ./test.dat.gz
     root: ./test.root
 
-  3838: # The default setting will be adapted.
+  3838: # The default setting will be adapted. In this case run03838.dat.gz/.dat will be loaded.
 
-  3800: # Three independent process will run
-  -
-    bin:  ./bin/KuramaTracking
-    conf: ./param/conf/analyzer_1.conf
-    data: ./tmp_data
-    root: ./test.root
-  - 				# ../data/run03800.dat.gz will be loaded.
+  3800:
     bin:  ./bin/KuramaTracking
     conf: ./param/conf		# ./param/conf/analyzer_03800.conf will be loaded.
-  - 
-    unit: 1000
-    conf: ./param/conf/miwalove.conf
+    data: ./tmp_data
+
+  hodo:
+    data: ../data/run03800.dat.gz
+
+  ea0c:
+    nproc: 20
+    bin:   ./bin/Easiroc
+    data:  ../data/run03800.dat.gz
+
+  k18track:
+    unit:  50000
+    bin:   ./bin/K18Tracking
+    data:  ../data/run03800.dat.gz
+
+  kurama:
+    unit:  50000
+    bin:   ./bin/KuramaTracking
+    data:  ../data/run03800.dat.gz
