@@ -8,8 +8,8 @@
     <cout>        std::cout </cout>
     <cerr>        std::cerr </cerr>
     <tout>        std::cerr </tout>
-    <esc>         on       </esc>
-    <print_cycle> 500     </print_cycle>
+    <esc>         off       </esc>
+    <print_cycle> 10000     </print_cycle>
 
     <error_check>
       <format check="true"/>

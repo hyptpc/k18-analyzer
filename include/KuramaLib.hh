@@ -30,8 +30,6 @@
 #include "DCGeomMan.hh"
 #include "DCTdcCalibMan.hh"
 #include "DCDriftParamMan.hh"
-#include "SsdParamMan.hh"
-#include "SsdCluster.hh"
 
 #include "DCLocalTrack.hh"
 #include "TrackHit.hh"

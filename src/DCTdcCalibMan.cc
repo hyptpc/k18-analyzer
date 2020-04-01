@@ -159,3 +159,24 @@ DCTdcCalibMan::GetTdc( int plane_id, double wire_id,
     return false;
   }
 }
+
+//______________________________________________________________________________                                             
+bool
+DCTdcCalibMan::GetParameter( int plane_id, double wire_id,
+			     double &p0, double &p1 ) const
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  DCTdcCalMap *tdc_calib = GetMap( plane_id, wire_id );
+  if( tdc_calib ){
+    p0 = tdc_calib->p0;
+    p1 = tdc_calib->p1;
+    return true;
+  }
+  else{
+    hddaq::cerr << func_name << ": No record. "
+                << " PlaneId=" << std::setw(3) << std::dec << plane_id
+                << " WireId="  << std::setw(3) << std::dec << wire_id
+                << std::endl;
+    return false;
+  }
+}

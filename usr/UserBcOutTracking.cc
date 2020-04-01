@@ -21,6 +21,7 @@
 #include "RawData.hh"
 #include "UnpackerManager.hh"
 #include "VEvent.hh"
+#include "BH2Filter.hh"
 
 #define HodoCut 0
 
@@ -28,8 +29,9 @@ namespace
 {
   using namespace root;
   const std::string& classname("BcOutTracking");
-  RMAnalyzer&         gRM   = RMAnalyzer::GetInstance();
-  const UserParamMan& gUser = UserParamMan::GetInstance();
+  RMAnalyzer&         gRM     = RMAnalyzer::GetInstance();
+  const UserParamMan& gUser   = UserParamMan::GetInstance();
+  BH2Filter&          gFilter = BH2Filter::GetInstance();
 }
 
 //______________________________________________________________________________
@@ -98,11 +100,18 @@ struct Event
   double tBh1[NumOfSegBH1];
   double deBh1[NumOfSegBH1];
   double Bh1Seg[NumOfSegBH1];
+
   //BH2
   int nhBh2;
   double tBh2[NumOfSegBH2];
   double deBh2[NumOfSegBH2];
   double Bh2Seg[NumOfSegBH2];
+
+  // Time0
+  double Time0Seg;
+  double deTime0;
+  double Time0;
+  double CTime0;
 
   //Beam
   int pid;
@@ -150,6 +159,7 @@ EventBcOutTracking::ProcessingNormal( void )
   static const double MaxBeamToF = gUser.GetParameter("BTOF",  1);
 #endif
   static const double MaxMultiHitBcOut = gUser.GetParameter("MaxMultiHitBcOut");
+  static const double MinTotBcOut = gUser.GetParameter("MinTotBcOut", 0);
 
   rawData = new RawData;
   rawData->DecodeHits();
@@ -190,26 +200,34 @@ EventBcOutTracking::ProcessingNormal( void )
 #endif
   HF1( 1, 2 );
 
-  double time0 = -999.;
+  double time0    = -999.;
   //////////////BH2 Analysis
   for( int i=0; i<nhBh2; ++i ){
     BH2Hit *hit = hodoAna->GetHitBH2(i);
     if(!hit) continue;
     double seg = hit->SegmentId()+1;
+    double  mt = hit->MeanTime();
     double cmt = hit->CMeanTime();
     double ct0 = hit->CTime0();
     double dE  = hit->DeltaE();
-    double min_time = -999.;
+
 #if HodoCut
     if( dE<MinDeBH2 || MaxDeBH2<dE ) continue;
 #endif
     event.tBh2[i]   = cmt;
     event.deBh2[i]  = dE;
     event.Bh2Seg[i] = seg;
-    if( std::abs(cmt)<std::abs(min_time) ){
-      min_time = cmt;
-      time0    = ct0;
-    }
+  }
+
+  BH2Cluster *cl_time0 = hodoAna->GetTime0BH2Cluster();
+  if(cl_time0){
+    event.Time0Seg = cl_time0->MeanSeg()+1;
+    event.deTime0  = cl_time0->DeltaE();
+    event.Time0    = cl_time0->Time0();
+    event.CTime0   = cl_time0->CTime0();
+    time0          = cl_time0->CTime0();
+  }else{
+    return true;
   }
 
   HF1( 1, 3. );
@@ -223,24 +241,22 @@ EventBcOutTracking::ProcessingNormal( void )
 #endif
   HF1( 1, 4 );
 
-  double btof0 = -999.;
   for(int i=0; i<nhBh1; ++i){
     Hodo2Hit *hit = hodoAna->GetHitBH1(i);
     if(!hit) continue;
     double cmt  = hit->CMeanTime();
     double dE   = hit->DeltaE();
-    double btof = cmt - time0;
 #if HodoCut
     if( dE<MinDeBH1 || MaxDeBH1<dE ) continue;
     if( btof<MinBeamToF || MaxBeamToF<btof ) continue;
 #endif
     event.tBh1[i]  = cmt;
     event.deBh1[i] = dE;
-    if( std::abs(btof)<std::abs(btof0) ){
-      btof0 = btof;
-    }
   }
 
+  double btof0 = -999.;
+  HodoCluster* cl_btof0 = event.Time0Seg > 0? hodoAna->GetBtof0BH1Cluster(event.CTime0) : NULL;
+  if(cl_btof0) btof0 = cl_btof0->CMeanTime() - time0;
   event.btof = btof0;
 
   HF1( 1, 5. );
@@ -249,20 +265,34 @@ EventBcOutTracking::ProcessingNormal( void )
 
   //////////////BC3&4 number of hit layer
   DCAna->DecodeRawHits( rawData );
+  DCAna->TotCutBCOut( MinTotBcOut );
+  // DCAna->DriftTimeCutBC34(-10, 50);
+  // DCAna->MakeBH2DCHit(event.Time0Seg-1);
 
   //BC3&BC4
   double multi_BcOut=0.;
+  double multiplicity[] = {0, 0};
+
+  struct hit_info{
+    double dt;
+    double pos;
+  };
+  
   {
     for( int layer=1; layer<=NumOfLayersBcOut; ++layer ){
       const DCHitContainer &contOut =DCAna->GetBcOutHC(layer);
       int nhOut=contOut.size();
       event.nhit[layer-1] = nhOut;
+      if(layer == 1)  multiplicity[0] = nhOut;
+      if(layer == 12) multiplicity[1] = nhOut;
       multi_BcOut += double(nhOut);
 
       HF1( 100*layer, nhOut );
 
       int plane_eff = (layer-1)*3;
       bool fl_valid_sig = false;
+
+      std::vector<hit_info> hit_cont;
       for( int i=0; i<nhOut; ++i ){
 	DCHit *hit=contOut[i];
 	double wire=hit->GetWire();
@@ -280,7 +310,7 @@ EventBcOutTracking::ProcessingNormal( void )
 	}
 
 	if( i<MaxHits )
-	  event.pos[layer-1][i] = hit->GetWire();
+	  event.pos[layer-1][i] = hit->GetWirePosition();
 
 	HF1( 100*layer+2, tdc1st );
 	HF1( 10000*layer+int(wire), tdc1st );
@@ -293,6 +323,12 @@ EventBcOutTracking::ProcessingNormal( void )
 
 	  double tot = hit->GetTot(k);
 	  HF1( 100*layer+5, tot);
+	  
+	  hit_info one_hit;
+	  one_hit.dt  = dt;
+	  one_hit.pos = wire;
+	  
+	  hit_cont.push_back(one_hit);
 	}
 	int nhdl = hit->GetDriftTimeSize();
 	for( int k=0; k<nhdl; k++ ){
@@ -305,8 +341,18 @@ EventBcOutTracking::ProcessingNormal( void )
       }else{
       }
       HF1(38, plane_eff);
-    }
+
+      std::sort(hit_cont.begin(), hit_cont.end(),
+		[](const hit_info& a_info, const hit_info& b_info)->bool
+		{return (a_info.dt < b_info.dt);});
+      
+      for(int i = 1; i<hit_cont.size(); ++i){
+	HF1( 100*layer+6, hit_cont.at(i).dt -hit_cont.at(0).dt );
+	HF1( 100*layer+7, hit_cont.at(i).pos-hit_cont.at(0).pos );
+      }
+    }// for(layer)
   }
+  HF2(41, multiplicity[0], multiplicity[1]);
 
   if( multi_BcOut/double(NumOfLayersBcOut) > MaxMultiHitBcOut )
     return true;
@@ -316,14 +362,17 @@ EventBcOutTracking::ProcessingNormal( void )
 #if 1
   // Bc Out
   //  std::cout << "==========TrackSearch BcOut============" << std::endl;
-  DCAna->TrackSearchBcOut( );
-  //  DCAna->ChiSqrCutBcOut(10);
-  //DCAna->TrackSearchBcOut();
+  BH2Filter::FilterList cands;
+  gFilter.Apply((Int_t)event.Time0Seg-1, *DCAna, cands);
+  bool status_tracking = DCAna->TrackSearchBcOut( cands, event.Time0Seg-1 );
+  //  bool status_tracking = DCAna->TrackSearchBcOut( cands, -1 );
+  //  bool status_tracking = DCAna->TrackSearchBcOut(-1);
+  DCAna->ChiSqrCutBcOut(10);
 
   int nt=DCAna->GetNtracksBcOut();
   event.ntrack=nt;
   HF1( 10, double(nt) );
-  int valid_nt = 0;
+  HF1( 40, status_tracking? double(nt) : -1);
   for( int it=0; it<nt; ++it ){
     DCLocalTrack *tp=DCAna->GetTrackBcOut(it);
 
@@ -335,16 +384,11 @@ EventBcOutTracking::ProcessingNormal( void )
     double cost = 1./sqrt(1.+u0*u0+v0*v0);
     double theta = acos(cost)*math::Rad2Deg();
 
-    if(chisqr < 10){++valid_nt;}
-
     event.chisqr[it]=chisqr;
     event.x0[it]=x0;
     event.y0[it]=y0;
     event.u0[it]=u0;
     event.v0[it]=v0;
-
-    //    double x_bh2 = tp->GetX(603.63);
-    //event.x_Bh2[it] = x_bh2;
 
     HF1( 11, double(nh) );
     HF1( 12, chisqr );
@@ -423,9 +467,6 @@ EventBcOutTracking::ProcessingNormal( void )
       }
     }
   }
-  //  if(event.multip_bh2 == 0){
-  //  HF1(40, valid_nt);
-  //}
 
 #endif
 
@@ -439,10 +480,15 @@ void
 EventBcOutTracking::InitializeEvent( void )
 {
   event.evnum     = 0;
-  event.ntrack    = 0;
+  event.ntrack    = -999;
   event.trignhits = 0;
   event.pid       = -1;
   event.btof      = -999.;
+
+  event.Time0Seg  = -1;
+  event.deTime0   = -1;
+  event.Time0     = -999;
+  event.CTime0    = -999;
 
   for( int it=0; it<MaxHits; it++){
     event.chisqr[it] = -1.0;
@@ -510,12 +556,16 @@ ConfMan:: InitializeHistograms( void )
     TString title3 = Form("Drift Time BC3#%2d", i);
     TString title4 = Form("Drift Length BC3#%2d", i);
     TString title5 = Form("TOT BC3#%2d", i);
+    TString title6 = Form("Time interval from 1st hit BC3#%2d", i);
+    TString title7 = Form("Position interval from 1st hit BC3#%2d", i);
     HB1( 100*i+0, title0, MaxWireBC3+1, 0., double(MaxWireBC3+1) );
     HB1( 100*i+1, title1, MaxWireBC3+1, 0., double(MaxWireBC3+1) );
     HB1( 100*i+2, title2, NbinBcOutTdc, MinBcOutTdc, MaxBcOutTdc );
     HB1( 100*i+3, title3, NbinBcOutDT, MinBcOutDT, MaxBcOutDT );
     HB1( 100*i+4, title4, NbinBcOutDL, MinBcOutDL, MaxBcOutDL );
     HB1( 100*i+5, title5, 300,    0, 300 );
+    HB1( 100*i+6, title6, 60,     0, 60 );
+    HB1( 100*i+7, title7, 64,   -32, 32 );
     for (int wire=1; wire<=MaxWireBC3; wire++) {
       TString title10 = Form("Tdc BC3#%2d Wire#%d", i, wire);
       TString title11 = Form("Drift Time BC3#%2d Wire#%d", i, wire);
@@ -529,19 +579,23 @@ ConfMan:: InitializeHistograms( void )
   }
 
   // BC4
-  for( int i=1; i<=NumOfLayersBc; ++i ){
+  for( int i=1; i<=NumOfLayersBc+1; ++i ){
     TString title0 = Form("#Hits BC4#%2d", i);
     TString title1 = Form("Hitpat BC4#%2d", i);
     TString title2 = Form("Tdc BC4#%2d", i);
     TString title3 = Form("Drift Time BC4#%2d", i);
     TString title4 = Form("Drift Length BC4#%2d", i);
     TString title5 = Form("TOT BC4#%2d", i);
+    TString title6 = Form("Time interval from 1st hit BC4#%2d", i);
+    TString title7 = Form("Position interval from 1st hit BC4#%2d", i);
     HB1( 100*(i+6)+0, title0, MaxWireBC4+1, 0., double(MaxWireBC4+1) );
     HB1( 100*(i+6)+1, title1, MaxWireBC4+1, 0., double(MaxWireBC4+1) );
     HB1( 100*(i+6)+2, title2, NbinBcOutTdc, MinBcOutTdc, MaxBcOutTdc );
     HB1( 100*(i+6)+3, title3, NbinBcOutDT, MinBcOutDT, MaxBcOutDT );
     HB1( 100*(i+6)+4, title4, NbinBcOutDL, MinBcOutDL, MaxBcOutDL );
     HB1( 100*(i+6)+5, title5, 300,    0, 300 );
+    HB1( 100*(i+6)+6, title6, 60,     0, 60 );
+    HB1( 100*(i+6)+7, title7, 64,   -32, 32 );
     for (int wire=1; wire<=MaxWireBC4; wire++) {
       TString title10 = Form("Tdc BC4#%2d Wire#%d", i, wire);
       TString title11 = Form("Drift Time BC4#%2d Wire#%d", i, wire);
@@ -582,6 +636,7 @@ ConfMan:: InitializeHistograms( void )
   HB2( 35, "Ubac%Xbac BcOut", 100, -100., 100., 100, -0.20, 0.20 );
   HB2( 36, "Vbac%Ybac BcOut", 100, -100., 100., 100, -0.20, 0.20 );
   HB2( 37, "Xbac%Ybac BcOut", 100, -100., 100., 100, -100, 100 );
+  HB1( 38, "Plane Eff", 36, 0, 36);
 
   HB2( 51, "X-X' 245 BcOut", 400, -100., 100., 120, -60, 60);
   HB2( 52, "X-X' 600 BcOut", 400, -100., 100., 120, -60, 60);
@@ -592,9 +647,9 @@ ConfMan:: InitializeHistograms( void )
   HB2( 62, "X-X 1200 BcOut", 400, -100., 100., 400, -100, 100);
   HB2( 63, "X-X 1600 BcOut", 400, -100., 100., 400, -100, 100);
 
-  // Plane eff
-  HB1( 38, "Plane Eff", 36, 0, 36);
-  HB1( 40, "#Tracks BcOut w/ chisqr cut", 10, 0., 10. );
+  // Analysis status
+  HB1( 40, "Tacking status", 11, -1., 10. );
+  HB2( 41, "BC3X0/BC4X1", 20, 0, 20, 20, 0, 20);
 
   for( int i=1; i<=NumOfLayersBcOut; ++i ){
     TString title11 = Form("HitPat BcOut%2d [Track]", i);
@@ -660,6 +715,11 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("deBh2",     event.deBh2,   Form("deBh2[%d]/I",  NumOfSegBH2));
   tree->Branch("Bh2Seg",    event.Bh2Seg,  Form("Bh2Seg[%d]/I", NumOfSegBH2));
 
+  tree->Branch("Time0Seg", &event.Time0Seg,  "Time0Seg/D");
+  tree->Branch("deTime0",  &event.deTime0,   "deTime0/D");
+  tree->Branch("Time0",    &event.Time0,     "Time0/D");
+  tree->Branch("CTime0",   &event.CTime0,    "CTime0/D");
+
   tree->Branch("pid",      &event.pid,      "pid/I");
   tree->Branch("btof",     &event.btof,     "btof/D");
 
@@ -695,6 +755,7 @@ ConfMan::InitializeParameterFiles( void )
       InitializeParameter<DCTdcCalibMan>("DCTDC")    &&
       InitializeParameter<HodoParamMan>("HDPRM")     &&
       InitializeParameter<HodoPHCMan>("HDPHC")       &&
+      InitializeParameter<BH2Filter>("BH2FLT")       &&
       InitializeParameter<UserParamMan>("USER")      );
 }
 

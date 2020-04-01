@@ -7,14 +7,17 @@ DeBH1 0.3 4
 ### BH2 dE gate
 DeBH2 0.3 4
 
+### BH2 Mt gate (for Time0)
+MtBH2 -2 2
+
 ### BTOF gate
-BTOF -5 5
+BTOF -2 2
 
 ### TOF dE gate
 DeTOF 0.3 4
 
 ### TOF time range
-TimeTOF -5 5
+TimeTOF 7 25
 
 ### TOF offset
 OffsetToF 0
@@ -62,10 +65,10 @@ TdcBC4 250 400
 TdcSDC1 0 400
 
 ### SDC2 TDC gate range
-TdcSDC2 700 1150
+TdcSDC2 600 1150
 
 ### SDC3 TDC gate range
-TdcSDC3 500 1200
+TdcSDC3 400 1200
 
 ### BCOUT multiplicity gate
 MaxMultiHitBcOut 16
@@ -86,9 +89,13 @@ MaxMultiHitSdcOut 16
 ### SDCOUT plane multiplicity gate
 MinLayerSdcOut 6
 
+### L1 timing of TOF stop
+TimeL1 230 260
+
 ### SdcOut dT offset for L1 stop timing
-dTOfs -161.85
+dTOfs 150.
 
 ### SdcOut TOT cut
 MinTotSDC2 30.
 MinTotSDC3 60.
+

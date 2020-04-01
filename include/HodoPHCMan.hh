@@ -30,11 +30,13 @@ private:
 public:
   double DoPHC( double time, double de ) const;
   double DoRPHC( double time, double de ) const;
+  double DoSTC( double stof, double btof ) const;//for stof correction 
 
 private:
   double type1Correction( double time, double de ) const;
   double type2Correction( double time, double de ) const; // For fiber
   double type1RCorrection( double time, double de ) const;
+  double type1STCorrection( double stof, double btof ) const;//for stof correction 
 };
 
 //______________________________________________________________________________
@@ -65,6 +67,8 @@ public:
                      double de, double& ctime ) const;
   bool DoRCorrection( int cid, int plid, int seg, int ud, double time,
                       double de, double& ctime ) const;
+  bool DoStofCorrection( int cid, int plid, int seg, int ud, double stof,
+                         double btof, double& cstof ) const;//for stof correction 
   void SetFileName( const std::string& file_name ) { m_file_name = file_name; }
 
 private:

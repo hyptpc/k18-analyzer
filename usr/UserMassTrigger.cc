@@ -39,7 +39,6 @@ namespace
   const UserParamMan& gUser        = UserParamMan::GetInstance();
   const hddaq::unpacker::UnpackerManager& gUnpacker
   = hddaq::unpacker::GUnpacker::get_instance();
-  static const int MaxDepth = 16;
 }
 
 //______________________________________________________________________________

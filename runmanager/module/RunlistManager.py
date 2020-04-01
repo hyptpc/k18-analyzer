@@ -2,9 +2,9 @@
 
 #____________________________________________________
 
-__author__  = 'Y.Nakada <nakada@km.phys.sci.osaka-u.ac.jp>'
-__version__ = '3.2'
-__date__    = '24 July 2018'
+__author__  = 'Y.Nakada <nakada@ne.phys.sci.osaka-u.ac.jp>'
+__version__ = '4.0'
+__date__    = '2 April 2019'
 
 #____________________________________________________
 
@@ -13,18 +13,38 @@ import copy
 
 import yaml
 
+#____________________________________________________
+
 import utility
+import Singleton
 
 #____________________________________________________
 
-class RunlistManager :
+#____________________________________________________
+#
+# Runlist Manager Class
+#____________________________________________________
+
+class RunlistManager( metaclass = Singleton.Singleton ) :
 
     #____________________________________________________
-    def __init__( self, path ) :
+    def __init__( self ) :
+
+        self.__baseName = None
+        self.__workdir  = None
+        self.__keys     = list()
+        self.__runlist  = list()
+        self.__flReady  = None
+
+
+    #____________________________________________________
+    def setRunlistPath( self, path ) :
 
         self.__baseName = os.path.splitext( os.path.basename( path ) )[0]
         self.__workdir  = self.getWorkDir( path )
-        self.__runlist  = self.makeRunlist( path )
+        self.__keys     = list()
+        self.__runlist  = list()
+        self.makeRunlist( path )
 
 
     #____________________________________________________
@@ -34,18 +54,144 @@ class RunlistManager :
 
 
     #____________________________________________________
-    def getRunlist( self, index = None ) :
+    def getNRuns( self ) :
 
-        if index is None :
-            return self.__runlist
-        elif len( self.__runlist ) > index :
-            return self.__runlist[index]
+        return len( self.__keys )
+
+
+    #____________________________________________________
+    def getKeys( self ) :
+
+        return list( self.__keys )
+
+    #____________________________________________________
+    def getRunInfo( self, index ) :
+
+        index = self.__getIndex( index )
+        if not index is None :
+            return dict( self.__runlist[index] )
+        else :
+            return None
+
+
+    #____________________________________________________
+    def getKey( self, index ) :
+
+        index = self.__getIndex( index )
+        if not index is None :
+            return str( self.__runlist[index]['key'] )
+        else :
+            return None
+
+
+    #____________________________________________________
+    def getExecPath( self, index ) :
+
+        index = self.__getIndex( index )
+        if not index is None :
+            return str( self.__runlist[index]['bin'] )
+        else :
+            return None
+
+
+    #____________________________________________________
+    def getDataPath( self, index ) :
+
+        index = self.__getIndex( index )
+        if not index is None :
+            return str( self.__runlist[index]['data'] )
+        else :
+            return None
+
+
+    #____________________________________________________
+    def getConfPath( self, index ) :
+
+        index = self.__getIndex( index )
+        if not index is None :
+            return str( self.__runlist[index]['conf'] )
+        else :
+            return None
+
+
+    #____________________________________________________
+    def getOutPath( self, index ) :
+
+        index = self.__getIndex( index )
+        if not index is None :
+            return str( self.__runlist[index]['root'] )
+        else :
+            return None
+
+
+    #____________________________________________________
+    def getNProc( self, index ) :
+
+        index = self.__getIndex( index )
+        if not index is None :
+            return int( self.__runlist[index]['nproc'] )
+        else :
+            return None
+
+
+
+    #____________________________________________________
+    def getBuffPath( self, index ) :
+
+        index = self.__getIndex( index )
+        if not index is None :
+            return str( self.__runlist[index]['buff'] )
+        else :
+            return None
+
+
+    #____________________________________________________
+    def getQueue( self, index ) :
+
+        index = self.__getIndex( index )
+        if not index is None :
+            return str( self.__runlist[index]['queue'] )
+        else :
+            return None
+
+
+    #____________________________________________________
+    def getDivUnit( self, index ) :
+
+        index = self.__getIndex( index )
+        if not index is None :
+            return int( self.__runlist[index]['unit'] )
+        else :
+            return None
+
+
+    #____________________________________________________
+    def getNEvents( self, index ) :
+
+        index = self.__getIndex( index )
+        if not index is None :
+            return int( self.__runlist[index]['nevents'] )
+        else :
+            return None
+
+
+    #____________________________________________________
+    def __getIndex( self, index ) :
+
+        if index in self.__keys :
+            return self.__keys.index( index )
+        elif isinstance( index, int ) \
+            and len( self.__runlist ) > index :
+            return index
         else :
             return None
 
 
     #____________________________________________________
     def getWorkDir( self, path ) :
+
+        if self.__flReady is False :
+            return None
 
         data = dict()
         with open( path, 'r' ) as f :
@@ -61,6 +207,9 @@ class RunlistManager :
     #____________________________________________________
     def makeRunlist( self, path ) :
 
+        if self.__flReady is False :
+            return
+
         cdir = os.getcwd()
         raw_runlist = self.decodeRunlist( path )
         os.chdir( self.__workdir )
@@ -68,9 +217,17 @@ class RunlistManager :
         runlist = list()
         for item in raw_runlist :
 
-            pbin = item[1]['bin'] if os.path.exists( item[1]['bin'] ) \
-                    and os.path.isfile( item[1]['bin'] ) \
-                    else utility.ExitFailure( 'Cannot find file: ' + item[1]['bin'] )
+            run = dict()
+
+            run['key'] = item[0]
+
+            pbin = None
+            if os.path.exists( item[1]['bin'] ) \
+                and os.path.isfile( item[1]['bin'] ) :
+                pbin = item[1]['bin']
+            else :
+                utility.ExitFailure( 'Cannot find file: ' + item[1]['bin'] )
+            run['bin'] = pbin
 
             runno = None
             if os.path.exists( item[1]['data'] ) and os.path.isfile( item[1]['data'] ) :
@@ -80,7 +237,8 @@ class RunlistManager :
                 runno = item[0] if isinstance( item[0], int ) else None
 
             pdata = self.makeDataPath( item[1]['data'], runno )
-            nevents = self.getNEvents( os.path.dirname( os.path.abspath( pdata ) ), runno )
+            run['data']    = pdata
+            run['nevents'] = self.getNEvents( os.path.dirname( os.path.abspath( pdata ) ), runno )
 
             pconf = None
             if  os.path.exists( item[1]['conf'] ) :
@@ -90,23 +248,26 @@ class RunlistManager :
                     pconf = item[1]['conf'] + '/analyzer_%05d.conf' % runno
             if pconf is None :
                 utility.ExitFailure( 'Cannot decide conf file path' )
+            run['conf'] = pconf
 
             base = item[0] + os.path.basename( pbin ) if runno is None \
                     else 'run' + '%05d_' % runno + os.path.basename( pbin )
-            proot = self.makeRootPath( item[1]['root'], base )
+            run['root'] = self.makeRootPath( item[1]['root'], base )
 
-            unit  = item[1]['unit'] if isinstance( item[1]['unit'], int ) else 0
-            queue = item[1]['queue'] if isinstance( item[1]['queue'], str ) else 's'
-            nproc = item[1]['nproc'] if isinstance( item[1]['nproc'], int ) else 1
+            run['unit']  = item[1]['unit']  if isinstance( item[1]['unit'], int )  else 0
+            run['queue'] = item[1]['queue'] if isinstance( item[1]['queue'], str ) else 's'
+            run['nproc'] = item[1]['nproc'] if isinstance( item[1]['nproc'], int ) else 1
 
             if item[1]['buff'] is None :
-                buff = None
+                pbuff = None
             elif os.path.exists( item[1]['buff'] ) and os.path.isdir( item[1]['buff'] ) :
-                buff = item[1]['buff']
+                pbuff = item[1]['buff']
             else :
                 utility.ExitFailure( 'Cannot decide buffer file path' )
+            run['buff'] = pbuff
 
-            runlist.append( [ item[0], pbin, pconf, pdata, proot, nproc, buff, queue, unit, nevents ] )
+            self.__runlist.append( run )
+            self.__keys.append( run['key'] )
 
         os.chdir( self.__workdir )
 
@@ -115,6 +276,9 @@ class RunlistManager :
 
     #____________________________________________________
     def decodeRunlist( self, path ) :
+
+        if self.__flReady is False :
+            return None
 
         if self.__workdir is None :
             self.__workdir = self.getWorkdir( path )
@@ -134,16 +298,15 @@ class RunlistManager :
                 tmp = copy.deepcopy( defset )
                 tmp.update( parsets )
                 runlist.append( [ key, tmp ] )
-                # for par in parsets :
-                #     tmp = copy.deepcopy( defset )
-                #     tmp.update( par )
-                #     runlist.append( [ key, tmp ] )
 
         return runlist
 
 
     #____________________________________________________
     def makeDataPath( self, path, runno = None ) :
+
+        if self.__flReady is False :
+            return None
 
         data_path = None
 
@@ -155,9 +318,10 @@ class RunlistManager :
             elif ( os.path.isdir( path )
                    and not runno is None
                    and isinstance( runno, int ) ) :
-                tmp = path + '/run{0:05d}.dat.gz'.format( runno )
-                # if not os.path.isfile( tmp ) :
-                #   tmp += '.gz'
+                base = path + '/run{0:05d}'.format( runno )
+                tmp = base + '.dat.gz'
+                if not os.path.isfile( tmp ) :
+                  tmp = base + '.dat'
                 data_path = ( os.path.realpath( tmp )
                               if os.path.isfile( tmp )
                               else utility.ExitFailure( 'Cannot find file: ' + tmp ) )
@@ -169,6 +333,9 @@ class RunlistManager :
 
     #____________________________________________________
     def makeRootPath( self, path, base = None ) :
+
+        if self.__flReady is False :
+            return None
 
         root_path = None
 
@@ -191,6 +358,9 @@ class RunlistManager :
 
     #__________________________________________________
     def getNEvents( self, path, runno = None ) :
+
+        if self.__flReady is False :
+            return None
 
         nevents = None
 

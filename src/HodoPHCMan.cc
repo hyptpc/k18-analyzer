@@ -102,6 +102,26 @@ HodoPHCParam::DoRPHC( double time, double de ) const
 
 //______________________________________________________________________________
 double
+HodoPHCParam::DoSTC( double stof, double btof ) const
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+  double cstof = stof;
+
+  switch(m_type){
+  case 0:
+    cstof = stof; break;
+  case 1:
+    cstof = type1STCorrection(stof,btof); break;
+  default:
+    hddaq::cerr << func_name << ": No Correction Method. type="
+		<< m_type << std::endl;
+  }
+  return cstof;
+}
+
+//______________________________________________________________________________
+double
 HodoPHCParam::type1Correction( double time, double de ) const
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
@@ -140,6 +160,19 @@ HodoPHCParam::type1RCorrection( double time, double de ) const
     de = m_param_list[1] + math::Epsilon();
 
   return time+m_param_list[0]/sqrt( std::abs(de-m_param_list[1]) )-m_param_list[2];
+}
+
+//______________________________________________________________________________
+double
+HodoPHCParam::type1STCorrection( double stof, double btof ) const
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+  if( m_param_list.size()<2 )
+    throw std::out_of_range(func_name+" invalid parameter");
+
+  //Correction function to eliminate the correlation between stof and btof
+  return stof-( m_param_list[0]*btof + m_param_list[1]);
 }
 
 //______________________________________________________________________________
@@ -240,6 +273,18 @@ HodoPHCMan::DoRCorrection( int cid, int plid, int seg, int ud,
   HodoPHCParam* map = GetMap(cid,plid,seg,ud);
   if(!map) return false;
   ctime = map->DoRPHC(time,de);
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoPHCMan::DoStofCorrection( int cid, int plid, int seg, int ud,
+			   double stof, double btof, double & cstof ) const
+{
+  cstof = stof;
+  HodoPHCParam* map = GetMap(cid,plid,seg,ud);
+  if(!map) return false;
+  cstof = map->DoSTC(stof,btof);
   return true;
 }
 

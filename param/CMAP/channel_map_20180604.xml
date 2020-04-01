@@ -2147,7 +2147,7 @@
       <D Device="VMEEASIROCdummy" plane="69" segment="ch" data="data"/>
         </FE></for></for>
     </VmeEasiroc>
-    <!-- .71  PHI3-25[768~799] & V2-15[446~471] -->
+    <!-- .71  PHI3-25[768~799] & V2-15[448~471] -->
     <VmeEasiroc node_id="0x0817" name="Veasiroc71">
       <!-- upper half  PHI3 768~799 -->
       <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
@@ -2158,15 +2158,15 @@
         <FE ch="2*ch +1" data="data">
       <D Device="CFT" plane="5" segment="2*ch + 768" data="data"/>
        </FE></for></for>
-      <!-- lower half  V2 446~471 -->
+      <!-- lower half  V2 448~471 -->
       <!-- mada -->
       <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
         <FE ch="2*ch +32" data="data">
-      <D Device="CFT" plane="2" segment="30 - (2*ch) + 446" data="data"/>
+      <D Device="CFT" plane="2" segment="30 - (2*ch) + 448" data="data"/>
         </FE></for></for>
       <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
         <FE ch="2*ch +1 +32" data="data">
-      <D Device="CFT" plane="2" segment="31 - (2*ch) + 446" data="data"/>
+      <D Device="CFT" plane="2" segment="31 - (2*ch) + 448" data="data"/>
        </FE></for></for>
     </VmeEasiroc>
     <!-- CFT 3rd layer end -->

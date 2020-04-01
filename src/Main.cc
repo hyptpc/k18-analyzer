@@ -24,6 +24,8 @@
 #include "UnpackerManager.hh"
 #include "VEvent.hh"
 
+#include "EventDisplayCFT.hh"
+
 namespace
 {
   using namespace hddaq::unpacker;
@@ -72,6 +74,20 @@ main( int argc, char **argv )
 
   if( !gConf.Initialize( conf_file ) || !gConf.InitializeUnpacker() )
     return EXIT_FAILURE;
+
+  // for Event Display
+  if (ConfMan::Get<bool>("EVDISP_CFT")) {
+    char RunNum_char[10];
+    unsigned int loc = in_file.find("0");
+    in_file.copy(RunNum_char, 5, loc);
+    int RunNum=atoi(RunNum_char);
+    std::cout << "RunNumber : " << RunNum << std::endl;
+    std::cout << "Create Event Display" << std::endl;
+    //gconfManager->InitializeEvDispCFT(RunNum);
+    EvDispCFT *evDispCFT;
+    evDispCFT = & EvDispCFT::GetInstance();
+    evDispCFT->Initialize(RunNum);
+  }
 
   gUnpacker.set_istream( in_file );
   gUnpacker.initialize();

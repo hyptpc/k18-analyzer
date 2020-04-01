@@ -47,8 +47,6 @@ public:
   double             GetTiltAngle( void )   const;
   DCLTrackHit*       GetDCLTrack( void ){ return m_dcltrack_hit; }
   bool               ReCalc( bool applyRecursively=false );
-  // for SSD
-  void               SetKaonFlag( void ){ m_dcltrack_hit->JoinKaonTrack(); }
 };
 
 #endif

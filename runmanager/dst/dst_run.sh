@@ -3,12 +3,15 @@
 #_____________________________
 #    RUN MANAGER for DST
 #  AUTHOR: Yoshiyuki NAKADA
-#      July 24, 2028
+#      April 2, 2019
 #_____________________________
-
 
 APP_PATH=$(readlink -f $0)
 APP_DIR=$(dirname $APP_PATH)
+
+#__________________________________________________
+
+flExit=0
 
 #__________________________________________________
 
@@ -46,10 +49,10 @@ if ! [ -e $LOG_DIR ]; then
     mkdir $LOG_DIR
 fi
 
-PREFETCH_DIR=$APP_DIR/prefetch
-if ! [ -e $PREFETCH_DIR ]; then
-    mkdir $PREFETCH_DIR
-fi
+# PREFETCH_DIR=$APP_DIR/prefetch
+# if ! [ -e $PREFETCH_DIR ]; then
+#     mkdir $PREFETCH_DIR
+# fi
 
 mainlog=$LOG_DIR/$label.log
 if [ -e $mainlog ]; then
@@ -63,6 +66,7 @@ bin=""
 conf=""
 rootin=""
 rootout=""
+queue=""
 runid=()
 conff=()			# conf file array
 
@@ -71,43 +75,47 @@ conff=()			# conf file array
 while read line; do
 
     if [ -z "$line" -o "${line:0:1}" = '#' ]; then
-	continue
+        continue
     elif [ "${line:0:5}" = 'work:' ]; then
-	tmp=( $line )
-	work=${tmp[1]}
-	continue
+        tmp=( $line )
+        work=${tmp[1]}
+        continue
     elif [ "${line:0:4}" = 'bin:' ]; then
-	tmp=( $line )
-	bin=${tmp[1]}
-	continue
+        tmp=( $line )
+        bin=${tmp[1]}
+        continue
     elif [ "${line:0:5}" = 'conf:' ]; then
-	tmp=( $line )
-	conf=${tmp[1]}
-	continue
+        tmp=( $line )
+        conf=${tmp[1]}
+        continue
     elif [ "${line:0:7}" = 'rootin:' ]; then
-	tmp=( $line )
-	rootin=${tmp[1]}
-	continue
+        tmp=( $line )
+        rootin=${tmp[1]}
+        continue
     elif [ "${line:0:8}" = 'rootout:' ]; then
-	tmp=( $line )
-	rootout=${tmp[1]}
-	continue
+        tmp=( $line )
+        rootout=${tmp[1]}
+        continue
+    elif [ "${line:0:6}" = 'queue:' ]; then
+        tmp=( $line )
+        queue=${tmp[1]}
+        continue
     fi
 
     words=( $line )
     for item in ${words[@]}; do
 
-	if [ "${item:0:1}" == '#' ]; then
-	    break
-	fi
+        if [ "${item:0:1}" == '#' ]; then
+            break
+        fi
 
-	expr $item + 1 >/dev/null 2>&1
-	if [ $? -lt 2 ]; then
-	    tmp=$(( 10#$item ))
-	    runid+=( $(printf %05d $tmp) )
-	fi
+        expr $item + 1 >/dev/null 2>&1
+        if [ $? -lt 2 ]; then
+            tmp=$(( 10#$item ))
+            runid+=( $(printf %05d $tmp) )
+        fi
     done
-    
+
 done < $runlist
 
 #__________________________________________________
@@ -133,20 +141,20 @@ fi
 
 if [ -d "$conf" ]; then
     for id in ${runid[@]}; do
-	tmpconf="$conf/analyzer_${id}.conf"
-	if ! [ -r "$tmpconf" ]; then
-	    echo "ERROR: Cannot access file >> $tmpconf" | tee $mainlog
-	    exit 1
-	fi
-	conff+=( "$tmpconf" )
+        tmpconf="$conf/analyzer_${id}.conf"
+        if ! [ -r "$tmpconf" ]; then
+            echo "ERROR: Cannot access file >> $tmpconf" | tee $mainlog
+            exit 1
+        fi
+        conff+=( "$tmpconf" )
     done
 elif [ -r "$conf" ]; then
-    for id in ${runid[@]}; do
-	conff+=( "$conf" )
-    done
+        for id in ${runid[@]}; do
+            conff+=( "$conf" )
+        done
 else
     if [ -z "$conf" ]; then conf="null"; fi
-    echo "ERROR: Invalid file declaration [conf: $conf]" | tee $mainlog
+        echo "ERROR: Invalid file declaration [conf: $conf]" | tee $mainlog
     exit 1
 fi
 
@@ -162,12 +170,21 @@ if ! [ -d "$rootout" ]; then
     exit 1
 fi
 
+case "$queue" in
+    's' ) ;;
+    'l' ) ;;
+    * ) queue='s';;
+esac
+echo "queue: $queue" >> $mainlog
+
 #__________________________________________________
 
 element=()
 basebin=$(basename $bin)
 if [ "$basebin" = "DstPiKAna" ]; then
     element=( "KuramaTracking" "K18Tracking" "Hodoscope" "Easiroc" )
+elif [ "$basebin" = "DstPiKCatch" ]; then
+    element=( "CatchTracking" "KuramaTracking" "K18Tracking" "Hodoscope" "Easiroc" )
 elif [ "$basebin" = "DstKuramaHodoscope" ]; then
     element=( "KuramaTracking" "Hodoscope" )
 else
@@ -211,25 +228,25 @@ if ! [ -e $LOGDIR ]; then
     mkdir $LOG_DIR
 fi
 
-prefetch=()
-
-if ! [ -e $PREFETCH_DIR ]; then
-    echo "> mkdir $PREFETCH_DIR"
-    mkdir $PREFETCH_DIR
-else
-    for id in ${runid[@]}; do
-	path=$(readlink -f $PREFETCH_DIR/${label}_run${id}_${basebin}.pf)
-	if [ -e $path ]; then
-	    echo "> rm -f $path" >> $mainlog
-	    rm -f $path
-	fi
-	for item in ${element[@]}; do
-	    dir="${work}/${rootin}"
-	    echo $(readlink -f ${dir}/run${id}_${item}.root) >> $path
-	done
-	prefetch+=( $path )
-    done
-fi
+# prefetch=()
+# 
+# if ! [ -e $PREFETCH_DIR ]; then
+#     echo "> mkdir $PREFETCH_DIR"
+#     mkdir $PREFETCH_DIR
+# else
+#     for id in ${runid[@]}; do
+#         path=$(readlink -f $PREFETCH_DIR/${label}_run${id}_${basebin}.pf)
+#         if [ -e $path ]; then
+#             echo "> rm -f $path" >> $mainlog
+#             rm -f $path
+#         fi
+#         for item in ${element[@]}; do
+#             dir="${work}/${rootin}"
+#             echo $(readlink -f ${dir}/run${id}_${item}.root) >> $path
+#         done
+#         prefetch+=( $path )
+#     done
+# fi
 
 #__________________________________________________
 
@@ -248,32 +265,35 @@ for id in ${runid[@]}; do
     tmplog="$LOG_DIR/${label}_run${id}_${basebin}.log"
     tmpout="$LOG_DIR/${label}_run${id}_${basebin}.out"
     if [ -e $tmplog ]; then
-	echo "> rm -f $tmplog" >> $mainlog
-	rm -f $tmplog
+        echo "> rm -f $tmplog" >> $mainlog
+        rm -f $tmplog
     fi
     if [ -e $tmpout ]; then
-	echo "> rm -f $tmpout" >> $mainlog
-	rm -f $tmpout
+        echo "> rm -f $tmpout" >> $mainlog
+        rm -f $tmpout
     fi
-    command_prefetch="prefetch (${prefetch[$index]})"
+    # command_prefetch="prefetch (${prefetch[$index]})"
     inpath=()
     for item in ${element[@]}; do
-	inpath+=( $(readlink -f $work/$rootin/run${id}_${item}.root) )
+        inpath+=( $(readlink -f $work/$rootin/run${id}_${item}.root) )
     done
     outpath=$(readlink -f $work/$rootout/run${id}_${basebin}.root)
     start=$( date )
-    bsub -q s -o $tmplog -a "$command_prefetch" $work/$bin $work/${conff[$index]} ${inpath[@]} $outpath > $tmpout &
+    # bsub -q $queue -o $tmplog -a "$command_prefetch" $work/$bin $work/${conff[$index]} ${inpath[@]} $outpath > $tmpout &
+    bsub -q $queue -o $tmplog $work/$bin $work/${conff[$index]} ${inpath[@]} $outpath > $tmpout &
     pid+=( $! )
     log+=( $tmplog )
     out+=( $tmpout )
-    echo "> bsub -q s -o $tmplog -a $command_prefetch $work/$bin $work/${conff[$index]} ${inpath[@]} $outpath > $tmpout &" >> $mainlog
+    # echo "> bsub -q $queue -o $tmplog -a $command_prefetch $work/$bin $work/${conff[$index]} ${inpath[@]} $outpath > $tmpout &" >> $mainlog
+    echo "> bsub -q $queue -o $tmplog $work/$bin $work/${conff[$index]} ${inpath[@]} $outpath > $tmpout &" >> $mainlog
     echo "key: $id"                            >> $mainlog
     echo "-- log:      $tmplog"                >> $mainlog
     echo "-- out:      $tmpout"                >> $mainlog
-    echo "-- prefetch: ${prefetch[$index]}"    >> $mainlog
+    # echo "-- prefetch: ${prefetch[$index]}"    >> $mainlog
     echo "-- bin:      $work/$bin"             >> $mainlog
     echo "-- conf:     $work/${conff[$index]}" >> $mainlog
     echo "-- rootin:   ${inpath[@]}"           >> $mainlog
+    echo "-- rootout:  $outpath"               >> $mainlog
     echo "-- rootout:  $outpath"               >> $mainlog
     echo "-- start:    $start"                 >> $mainlog
     echo "-- pid:      ${pid[$index]}"         >> $mainlog
@@ -282,24 +302,58 @@ done
 
 #__________________________________________________
 
+jid=()
+stat=()
+
+killJobs () {
+
+    flExit=1
+
+    index=0
+    for id in ${jid[@]}; do
+        if [ ${stat[$index]} -eq 2 -o ${stat[$index]} -eq 3 ]; then continue; fi
+        bkill $id
+        echo "job id [${runid[$index]}]: ${jid[$index]}" >> $mainlog
+        index=$(( $index + 1 ))
+    done
+
+    echo Deleting files...
+    index=0
+    for dummy in ${runid[@]}; do
+        if [ ${stat[$index]} -ne 2 ]; then
+            echo "> rm -f ${out[$index]}" >> $mainlog
+            rm -f ${out[$index]}
+        fi
+        # echo "> rm -f ${prefetch[$index]}" >> $mainlog
+        # rm -f ${prefetch[$index]}
+        echo "> rm -f ${log[$index]}" >> $mainlog
+        rm -f ${log[$index]}
+        index=$(($index + 1))
+    done
+    rm -f $mainlog
+
+    exit
+}
+trap killJobs 1 2 3 15
+
 index=0
 for item in ${pid[@]}; do
     wait $item
     if [ $? -ne 0 ]; then
-	echo "ERROR: bsub returned false [key: ${runid[index]}]" | tee $mainlog
+        echo "ERROR: bsub returned false [key: ${runid[index]}]" | tee $mainlog
     else
-	while read line; do
-	      words=( $line )
-	      if [ "${words[0]}" = "Job" \
-				 -a "${words[2]}" = "is" \
-				 -a "${words[3]}" = "submitted" \
-				 -a "${words[4]}" = "to" \
-				 -a "${words[5]}" = "queue" ]; then
-		  buff=${words[1]##<}
-		  jid[$index]=${buff%%>}
-		  echo "job id [${runid[$index]}]: ${jid[$index]}" >> $mainlog
-	      fi
-	done < ${out[index]}
+        while read line; do
+              words=( $line )
+              if [ "${words[0]}" = "Job" \
+                     -a "${words[2]}" = "is" \
+                     -a "${words[3]}" = "submitted" \
+                     -a "${words[4]}" = "to" \
+                     -a "${words[5]}" = "queue" ]; then
+                  buff=${words[1]##<}
+                  jid[$index]=${buff%%>}
+                  echo "jid(${runid[$index]}): ${jid[$index]}" >> $mainlog
+              fi
+        done < ${out[index]}
     fi
     index=$(( $index + 1 ))
 done
@@ -309,58 +363,63 @@ done
 fl_done=0
 success=0
 
-stat=()
+stime=$( date +%s )
 
-while : ; do
+while [ $flExit -ne 1 ]; do
     index=0
     for id in ${runid[@]}; do
-	if [ ${#jid[$index]} -ne 0 ]; then
-	    while read tmpjid tmpuid tmpstat \
-		       tmpqueue tmphost1 tmphost2 tmpjname \
-		       tmptime; do
-		if [ "$tmpjid" = "${jid[$index]}" ]; then
-		    case "$tmpstat" in
-			"PEND" ) stat[$index]=0 ;;
-			"RUN"  ) stat[$index]=1 ;;
-			"DONE" )
-			    if [ ${stat[$index]} -lt 2 ]; then
-				fl_done=$(($fl_done + 1))
-				success=$(($success + 1))
-				finish=$( date )
-				echo "done [$id]: $finish" >> $mainlog
-			    fi
-			    stat[$index]=2
-			    ;;
-			"EXIT" )
-			    if [ ${stat[$index]} -lt 2 ]; then
-				fl_done=$(($fl_done + 1));
-				finish=$( date )
-				echo "exit [$id]: $finish" >> $mainlog
-			    fi
-			    stat[$index]=3
-			    ;;
-			* )
-			    echo "ERROR: Unknow status was detected [key: $id]" | tee $mainlog
-			    stat[$index]=-1 ;;
-		    esac
-		fi
-	    done < <(bjobs ${jid[$index]})
-	fi
-	index=$(($index + 1))
+        if [ ${#jid[$index]} -ne 0 ]; then
+            while read tmpjid tmpuid tmpstat \
+                   tmpqueue tmphost1 tmphost2 tmpjname \
+                   tmptime; do
+                if [ "$tmpjid" = "${jid[$index]}" ]; then
+                    case "$tmpstat" in
+                        "PEND" ) stat[$index]=0 ;;
+                        "RUN"  ) stat[$index]=1 ;;
+                        "DONE" )
+                            if [ ${stat[$index]} -lt 2 ]; then
+                                fl_done=$(($fl_done + 1))
+                                success=$(($success + 1))
+                                finish=$( date )
+                                echo "done [$id]: $finish" | tee $mainlog
+                            fi
+                            stat[$index]=2
+                            ;;
+                        "EXIT" )
+                            if [ ${stat[$index]} -lt 2 ]; then
+                                fl_done=$(($fl_done + 1));
+                                finish=$( date )
+                                echo "exit [$id]: $finish" >> $mainlog
+                            fi
+                            stat[$index]=3
+                            ;;
+                        * )
+                            echo "ERROR: Unknow status was detected [key: $id]" | tee $mainlog
+                            stat[$index]=-1 ;;
+                    esac
+                fi
+            done < <(bjobs ${jid[$index]})
+        fi
+        index=$(($index + 1))
     done
+    index=0
     if [ $QUIET -eq 0 ]; then
-	prog=""
-	for item in ${stat[@]}; do
-	    case $item in
-		0 ) prog="${prog}." ;;
-		1 ) prog="${prog}:" ;;
-		2 ) prog="${prog}!" ;;
-		3 ) prog="${prog}x" ;;
-		4 ) prog="${prog}?" ;;
-		* ) prog="${prog}?" ;;
-	    esac
-	done
-	echo -en "executing... [$prog] $fl_done/${#jid[@]}\r"
+        prog=""
+        for item in ${stat[@]}; do
+            case $item in
+                0 ) prog="${prog}." ;;
+                1 ) prog="${prog}:" ;;
+                2 ) prog="${prog}!" ;;
+                3 ) prog="${prog}x" ;;
+                4 ) prog="${prog}?" ;;
+                * ) prog="${prog}?" ;;
+            esac
+        done
+        dtime=$(( $( date +%s ) - $stime ))
+        hour=$(( $dtime / 3600 ));
+        minute=$(( ( $dtime - 3600*$hour ) / 60 ))
+        second=$(( $dtime - 3600*$hour - 60*$minute ))
+        echo -en " executing... [$prog] $fl_done/${#jid[@]} $(printf %d:%02d:%02d $hour $minute $second)\r"
     fi
     if [ ${#jid[@]} -eq $fl_done ]; then break; fi
 done
@@ -371,11 +430,11 @@ index=0
 for dummy in ${runid[@]}; do
     echo "> rm -f ${out[$index]}" >> $mainlog
     rm -f ${out[$index]}
-    echo "> rm -f ${prefetch[$index]}" >> $mainlog
-    rm -f ${prefetch[$index]}
+    # echo "> rm -f ${prefetch[$index]}" >> $mainlog
+    # rm -f ${prefetch[$index]}
     if [ ${stat[$index]} -eq 2 ]; then
-	echo "> rm -f ${log[$index]}" >> $mainlog
-	rm -f ${log[$index]}
+        echo "> rm -f ${log[$index]}" >> $mainlog
+        rm -f ${log[$index]}
     fi
     index=$(($index + 1))
 done

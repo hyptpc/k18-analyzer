@@ -3,8 +3,8 @@
 #____________________________________________________
 
 __author__  = 'Y.Nakada <nakada@km.phys.sci.osaka-u.ac.jp>'
-__version__ = '3.2'
-__date__    = '24 July 2018'
+__version__ = '4.0'
+__date__    = '2 April 2019'
 
 #____________________________________________________
 
@@ -17,48 +17,6 @@ def ExitFailure( message ):
     sys.exit( 1 )
     return None
 
-
-#____________________________________________________
-
-def decodeTime( info ) :
-
-    second = int( info['time'] )
-
-    hour    = second // 3600
-    second -= hour    * 3600
-    minute  = second // 60
-    second -= minute  * 60
-
-    return '{}:{:02d}:{:02d}'.format( hour, minute, second )
-
-#____________________________________________________
-
-def decodeStatus( info ) :
-
-    buff = ''
-
-    stat = info['stat']
-    nseg = info['nseg']
-    prog = info['prog']
-
-    if stat is None :
-        buff = 'init({})'.format( nseg )
-    elif stat is 0 :
-        buff = 'running({}/{})'.format( prog, nseg )
-    elif stat is 1 :
-        buff = 'running({}/{})'.format( prog, nseg )
-    elif stat is 2 :
-        buff = 'merging({})'.format( nseg )
-    elif stat is 3 :
-        buff = 'terminated({})'.format( nseg )
-    elif stat is True :
-        buff = 'done({})'.format( nseg )
-    elif stat is False :
-        buff = 'error({})'.format( nseg )
-    else :
-        buff = 'unknown({})'.format( nseg )
-
-    return buff
 
 #____________________________________________________
 

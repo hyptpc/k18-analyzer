@@ -16,6 +16,7 @@
 #include <std_ostream.hh>
 
 #include "DebugCounter.hh"
+#include "ThreeVector.hh"
 
 //typedef std::vector<bool>   BoolVec;
 typedef std::deque<bool>    BoolVec;
@@ -72,26 +73,29 @@ protected:
   double m_mwpc_wire;
   double m_mwpc_wpos;
 
-  ///// for SSD
-  bool      m_is_ssd;
-  bool      m_zero_suppressed;
-  bool      m_time_corrected;
-  bool      m_good_waveform;
-  int       m_pedestal;
-  int       m_peak_height;
-  int       m_peak_position;
-  double    m_deviation;
-  double    m_amplitude;
-  double    m_peak_time;
-  double    m_adc_sum;
-  double    m_de;
-  double    m_rms;
-  double    m_chisqr;
-  DoubleVec m_time;
-  DoubleVec m_waveform;
-  bool      m_belong_kaon;
   ///// for TOF
   double    m_z;
+
+  ///// For E40 Acrylic TOF
+  double    m_ofs_dt;
+
+  ///// for CFT
+  double m_meanseg;
+  double m_maxseg;
+  double m_adc_low;
+  double m_mip_low;
+  double m_dE_low;
+  double max_adc_low;
+  double max_mip_low;
+  double max_dE_low;
+  double m_r;
+  double m_phi;
+  BoolVec m_belong_track;
+  ThreeVector m_vtx;
+  double m_pos_phi;
+  double m_pos_z;
+  double m_pos_r;
+  double m_time;
 
   mutable std::vector <DCLTrackHit *> m_register_container;
 
@@ -99,7 +103,7 @@ public:
   bool CalcDCObservables( void );
   bool CalcMWPCObservables( void );
   bool CalcFiberObservables( void );
-  bool CalcSsdObservables( void );
+  bool CalcCFTObservables( void );
   //  bool CalcObservablesSimulation( double dlength);
 
   void SetLayer( int layer )              { m_layer = layer;                    }
@@ -118,24 +122,32 @@ public:
   void SetMeanWirePosition( double mwpos ) { m_mwpc_wpos = mwpos;               }
   void SetWirePosition( double wpos )      { m_wpos      = wpos;                }
 
-  ///// for SSD
-  void SetSsdFlag( bool flag=true )          { m_is_ssd        = flag;          }
-  void SetGoodWaveForm( bool good=true )     { m_good_waveform = good;          }
-  void SetPedestal( int pedestal )           { m_pedestal      = pedestal;      }
-  void SetRms( double rms )                  { m_rms           = rms;           }
-  void SetAdcSum( double sum )               { m_adc_sum       = sum;           }
-  void SetDe( double de )                    { m_de            = de;            }
-  void SetDeviation( double deviation )      { m_deviation     = deviation;     }
-  void SetTime( DoubleVec time )             { m_time          = time;          }
-  void SetWaveform( DoubleVec waveform )     { m_waveform      = waveform;      }
-  void SetAmplitude( double amplitude )      { m_amplitude     = amplitude;     }
-  void SetPeakTime( double peaktime )        { m_peak_time     = peaktime;      }
-  void SetPeakHeight( int height )           { m_peak_height   = height;        }
-  void SetPeakPosition( int position )       { m_peak_position = position;      }
-  void SetChisquare( double chisqr )         { m_chisqr        = chisqr;        }
-
   ///// for TOF
   void SetZ( double z ) { m_z = z; }
+
+  ///// For E40 Acrylic TOF
+  void SetOfsdT( double ofs) { m_ofs_dt = ofs;}
+
+  ///// for CFT
+  void SetMeanSeg    ( double seg ) { m_meanseg    = seg;   }
+  void SetMaxSeg     ( double seg ) { m_maxseg     = seg;   }
+  void SetAdcLow     ( double adc ) { m_adc_low    = adc;   }
+  void SetMIPLow     ( double mip ) { m_mip_low    = mip;   }
+  void SetdELow      ( double dE  ) { m_dE_low     = dE;   }
+  void SetMaxAdcLow  ( double adc ) { max_adc_low    = adc;   }
+  void SetMaxMIPLow  ( double mip ) { max_mip_low    = mip;   }
+  void SetMaxdELow   ( double dE  ) { max_dE_low     = dE;   }
+  void SetPositionR  ( double r   ) { m_r    = r;   }
+  void SetPositionPhi( double phi ) { m_phi  = phi; }
+  void SetPosPhi     ( double phi ) { m_pos_phi  = phi; }
+  void SetPosZ       ( double z   ) { m_pos_z    = z;   }
+  void SetPosR       ( double r   ) { m_pos_r    = r;   }
+  void SetTdcCFT     ( int tdc    ); // not used
+  void SetTime       ( double time) { m_time     = time;   }
+  void SetVtx( ThreeVector vtx ) { m_vtx  = vtx; }
+
+
+  void GateDriftTime(double min, double max, bool select_1st);
 
   int GetLayer( void ) const { return m_layer; }
   double GetWire( void )  const {
@@ -169,35 +181,36 @@ public:
   double GetMeamWire( void ) const { return m_mwpc_wire; }
   double GetMeamWirePosition( void ) const { return m_mwpc_wpos; }
 
-  ///// for SSD
-  bool      IsSsd( void )              const { return m_is_ssd;          }
-  bool      IsTimeCorrected( void )    const { return m_time_corrected;  }
-  bool      IsGoodWaveForm( void )     const { return m_good_waveform;   }
-  bool      IsZeroSuppressed( void )   const { return m_zero_suppressed; }
-  int       GetPedestal( void )        const { return m_pedestal;        }
-  DoubleVec GetTime( void )            const { return m_time;            }
-  DoubleVec GetWaveform( void )        const { return m_waveform;        }
-  double    GetAmplitude( void )       const { return m_amplitude;       }
-  double    GetDeviation( void )       const { return m_deviation;       }
-  double    GetAdcSum( void )          const { return m_adc_sum;         }
-  double    GetDe( void )              const { return m_de;              }
-  double    GetPeakTime( void )        const { return m_peak_time;       }
-  double    GetRms( void )             const { return m_rms;             }
-  double    GetAdcPeakHeight( void )   const { return m_peak_height;     }
-  double    GetAdcPeakPosition( void ) const { return m_peak_position;   }
-  double    GetChisquare( void )       const { return m_chisqr;          }
-  bool      DoTimeCorrection( double offset );
-  void      JoinKaonTrack( void ) { m_belong_kaon = true; }
-  void      QuitKaonTrack( void ) { m_belong_kaon = false; }
-  bool      BelongToKaonTrack( void ) const { return m_belong_kaon; }
-
   ///// for TOF
   double GetZ( void ) const { return m_z; }
 
+  ///// for CFT
+  double GetMeanSeg    ( void ) const { return m_meanseg; } 
+  double GetMaxSeg     ( void ) const { return m_maxseg;  } 
+  double SetMaxSeg     ( void ) const { return m_maxseg;  }
+  double GetAdcLow     ( void ) const { return m_adc_low; }
+  double GetMIPLow     ( void ) const { return m_mip_low; }
+  double GetdELow      ( void ) const { return m_dE_low ; }
+  double GetMaxAdcLow  ( void ) const { return max_adc_low; }
+  double GetMaxMIPLow  ( void ) const { return max_mip_low; }
+  double GetMaxdELow   ( void ) const { return max_dE_low ; }
+
+  double GetPositionR  ( void ) const { return m_r;        } 
+  double GetPositionPhi( void ) const { return m_phi;      } 
+  double GetPosPhi     ( void ) const { return m_pos_phi;  } 
+  double GetPosZ       ( void ) const { return m_pos_z;    } 
+  double GetPosR       ( void ) const { return m_pos_r;    } 
+  double GetTime       ( void ) const { return m_time;     } 
+  ThreeVector GetVtx   ( void ) const { return m_vtx;      } 
+
   void JoinTrack( int nh=0 ) { m_pair_cont.at(nh).belong_track = true; }
-  void QuitTrack( int nh=0 ) { m_pair_cont.at(nh).belong_track = false; }
+  void QuitTrack( int nh=0 ) { m_pair_cont.at(nh).belong_track = false;}
   bool BelongToTrack( int nh=0 ) const { return m_pair_cont.at(nh).belong_track; }
   bool IsWithinRange( int nh=0 ) const { return m_pair_cont.at(nh).dl_range; }
+
+  void JoinTrackCFT( int nh=0 ) {m_belong_track[nh] = true; }
+  void QuitTrackCFT( int nh=0 ) {m_belong_track[nh] = false; }
+  bool BelongToTrackCFT( int nh=0 ) const { return m_belong_track[nh]; }
 
   void RegisterHits( DCLTrackHit *hit ) const
   { m_register_container.push_back(hit); }

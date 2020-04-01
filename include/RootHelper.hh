@@ -47,8 +47,9 @@
 
 namespace root
 {
-  const  int    MaxHits = 500;
-  const  int    MaxHist = 100000000;
+  const  int    MaxHits  = 500;
+  const  int    MaxDepth = 16;
+  const  int    MaxHist  = 100000000;
   extern TH1   *h[MaxHist];
   extern TTree *tree;
 

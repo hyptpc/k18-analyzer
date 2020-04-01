@@ -41,6 +41,9 @@ public:
   bool GetTdc( int plane_id, double wire_id, double time, int& tdc ) const;
   void SetFileName( const std::string& file_name ) { m_file_name = file_name; }
 
+  bool GetParameter( int plane_id, double wire_id,
+                     double &p0, double &p1 ) const;
+
 private:
   DCTdcCalMap* GetMap( int plane_id, double wire_id ) const;
   void         ClearElements( void );

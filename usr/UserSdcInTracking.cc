@@ -327,6 +327,7 @@ EventSdcInTracking::ProcessingNormal( void )
   }
 #endif
 
+#if 0
   {
     // Bc Out
     //  std::cout << "==========TrackSearch BcOut============" << std::endl;
@@ -348,6 +349,7 @@ EventSdcInTracking::ProcessingNormal( void )
     if( ntOk==0 ) return true;
 #endif
   }
+#endif
 
   //////////////SdcIn number of hit layer
   HF1( 1, 10. );
@@ -417,39 +419,7 @@ EventSdcInTracking::ProcessingNormal( void )
 
   HF1( 1, 11. );
 
-  // DCAna->DoTimeCorrectionSsd( t0Ssd );
-  // DCAna->ChisqrFilterSsd( MaxChisqrSSD );
-  // DCAna->ClusterizeSsd();
-  // DCAna->DeltaEFilterSsd( MinDeSSDKaon, MaxDeSSDKaon, true );
-  // DCAna->TimeFilterSsd( MinTimeSSD, MaxTimeSSD, true );
-
-  // ///// SsdIn
-  // for( int layer=1; layer<=NumOfLayersSsdIn; ++layer ){
-  //   const DCHitContainer &contSsdIn = DCAna->GetSsdInHC(layer);
-  //   int nhSsdIn = 0;
-  //   int n = contSsdIn.size();
-  //   for( int i=0; i<n; ++i ){
-  //     DCHit *hit = contSsdIn[i];
-  //     if( !hit ) continue;
-  //     if( hit->IsGoodWaveForm() ) nhSsdIn++;
-  //   }
-  //   if( nhSsdIn>0 ) ++event.nlayer;
-  //   HF1( 100*(layer+NumOfLayersSDC1), nhSsdIn );
-  // }
-  // ///// SsdOut
-  // for( int layer=1; layer<=NumOfLayersSsdOut; ++layer ){
-  //   const DCHitContainer &contSsdOut = DCAna->GetSsdOutHC(layer);
-  //   int nhSsdOut = 0;
-  //   int n = contSsdOut.size();
-  //   for( int i=0; i<n; ++i ){
-  //     DCHit *hit = contSsdOut[i];
-  //     if( !hit ) continue;
-  //     if( hit->IsGoodWaveForm() ) nhSsdOut++;
-  //   }
-  //   if( nhSsdOut>0 ) ++event.nlayer;
-  //   HF1( 100*(layer+NumOfLayersSsdIn+NumOfLayersSDC1), nhSsdOut );
-  // }
-
+#if 1
   // std::cout << "==========TrackSearch SdcIn============" << std::endl;
   DCAna->TrackSearchSdcIn();
   int ntSdcIn = DCAna->GetNtracksSdcIn();
@@ -548,79 +518,7 @@ EventSdcInTracking::ProcessingNormal( void )
   }
 
   HF1( 1, 12. );
-
-  // int ntSsdX = DCAna->GetNtracksSsdX();
-  // if( MaxHits<ntSsdX ){
-  //   std::cout << "#W " << func_name << " "
-  // 	      << "too many ntSsdX " << ntSsdX << "/" << MaxHits << std::endl;
-  //   ntSsdX = MaxHits;
-  // }
-  // event.ntSsdX = ntSsdX;
-  // for( int it=0; it<ntSsdX; ++it ){
-  //   DCLocalTrack *tp = DCAna->GetTrackSsdX(it);
-  //   double chisqr = tp->GetChiSquare();
-  //   int nh = tp->GetNHit();
-  //   event.nhSsdX[it] = nh;
-  //   if( nh>2 ) event.chisqrSsdX[it] = chisqr;
-  //   double b = tp->GetVXU_B();
-  //   double a = tp->GetVXU_A();
-  //   event.x0SsdX[it] = b;
-  //   event.u0SsdX[it] = a;
-  // }
-  // int ntSsdY = DCAna->GetNtracksSsdY();
-  // if( MaxHits<ntSsdY ){
-  //   std::cout << "#W " << func_name << " "
-  // 	      << "too many ntSsdY " << ntSsdY << "/" << MaxHits << std::endl;
-  //   ntSsdY = MaxHits;
-  // }
-  // event.ntSsdY = ntSsdY;
-  // for( int it=0; it<ntSsdY; ++it ){
-  //   DCLocalTrack *tp = DCAna->GetTrackSsdY(it);
-  //   double chisqr = tp->GetChiSquare();
-  //   int nh = tp->GetNHit();
-  //   event.nhSsdY[it] = nh;
-  //   if( nh>2 ) event.chisqrSsdY[it] = chisqr;
-  //   event.y0SsdY[it] = tp->GetVXU_B();
-  //   event.v0SsdY[it] = tp->GetVXU_A();
-  // }
-
-  // HF1( 1, 13. );
-
-  // /***** Filtering again for Xi *****/
-  // DCAna->ResetStatusSsd();
-  // DCAna->DeltaEFilterSsd( MinDeSSDXi, MaxDeSSDXi, true );
-  // DCAna->TimeFilterSsd( MinTimeSSD, MaxTimeSSD, true );
-
-  // HF1( 1, 14. );
-
-  // // std::cout << "==========TrackSearch SsdIn============" << std::endl;
-  // // DCAna->TrackSearchSsdIn();
-  // // int ntSsdIn = DCAna->GetNtracksSsdIn();
-  // // if( ntSsdIn>MaxHits ) ntSsdIn = MaxHits;
-  // // event.ntSsdIn = ntSsdIn;
-  // // for( int it=0; it<ntSsdIn; ++it ){
-  // //   DCLocalTrack *tp = DCAna->GetTrackSsdIn(it);
-  // //   int nh = tp->GetNHit();
-  // //   double chisqr = tp->GetChiSquare();
-  // //   double x0 = tp->GetX0(), y0 = tp->GetY0();
-  // //   double u0 = tp->GetU0(), v0 = tp->GetV0();
-  // //   event.chisqrSsdIn[it] = chisqr;
-  // //   event.x0SsdIn[it]     = x0;
-  // //   event.y0SsdIn[it]     = y0;
-  // //   event.u0SsdIn[it]     = u0;
-  // //   event.v0SsdIn[it]     = v0;
-  // //   for( int ih=0; ih<nh; ++ih ){
-  // //     DCLTrackHit *hit = tp->GetHit(ih);
-  // //     int  layerId = hit->GetLayer();
-  // //     bool ssd_flag = hit->GetSsdFlag();
-  // //     if( ssd_flag && layerId>=7 && layerId<=10 ){
-  // // 	double de  = hit->GetDe();
-  // // 	event.deXi[layerId-7][it] = de;
-  // //     }
-  // //   }
-  // // }
-
-  // HF1( 1, 19. );
+#endif
 
   return true;
 }
@@ -752,23 +650,23 @@ ConfMan:: InitializeHistograms( void )
     int nwire = 0;
     double mintdc = 0., maxtdc = 0.;
     switch ( i ) {
-    case 1:
+    case 7:
       tag = "SFT-V";
       nwire = NumOfSegSFT_UV;
-      mintdc = -500.;
-      maxtdc = 500.;
+      mintdc = -10.;
+      maxtdc = 10.;
       break;
-    case 2:
+    case 8:
       tag = "SFT-U";
       nwire = NumOfSegSFT_UV;
-      mintdc = -500.;
-      maxtdc = 500.;
+      mintdc = -10.;
+      maxtdc = 10.;
       break;
-    case 3:
+    case 9:
       tag = "SFT-X";
       nwire = 2*NumOfSegSFT_X;
-      mintdc = -500.;
-      maxtdc = 500.;
+      mintdc = -10.;
+      maxtdc = 10.;
       break;
     default:
       tag = "SDC1";
@@ -839,15 +737,15 @@ ConfMan:: InitializeHistograms( void )
     std::string tag;
     int nwire = 0;
     switch ( i ) {
-    case 1:
+    case 7:
       tag = "SFT-U";
       nwire = NumOfSegSFT_UV;
       break;
-    case 2:
+    case 8:
       tag = "SFT-V";
       nwire = NumOfSegSFT_UV;
       break;
-    case 3:
+    case 9:
       tag = "SFT-X";
       nwire = 2*NumOfSegSFT_X;
       break;

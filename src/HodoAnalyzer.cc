@@ -24,24 +24,29 @@
 #include "Hodo2Hit.hh"
 #include "HodoCluster.hh"
 #include "RawData.hh"
+#include "UserParamMan.hh"
+#include "CFTPedCorMan.hh"
+#include "BGOAnalyzer.hh"
 
 namespace
 {
   const std::string& class_name("HodoAnalyzer");
-  const double MaxTimeDifT1  =  2.0;
-  const double MaxTimeDifT2  =  2.0;
-  const double MaxTimeDifT3  =  2.0;
-  const double MaxTimeDifT4  =  2.0;
-  const double MaxTimeDifS1  =  2.0;
-  const double MaxTimeDifS2  =  2.0;
   const double MaxTimeDifBH1 =  2.0;
   const double MaxTimeDifBH2 =  2.0;
-  const double MaxTimeDifTOF =  3.5;
-  const double MaxTimeDifLC  =  3.5;
+  const double MaxTimeDifSAC = -1.0;
+  const double MaxTimeDifTOF = -1.0;
+  const double MaxTimeDifLAC = -1.0;
+  const double MaxTimeDifLC  = -1.0;
   const double MaxTimeDifBFT =  8.0;
   const double MaxTimeDifSFT =  8.0;
+  const double MaxTimeDifCFT =  30.0;
   const double MaxTimeDifSCH = 10.0;
-  const double MaxTimeDifFBH = 20.0;
+  const double MaxTimeDifFBT1= 10.0;
+  const double MaxTimeDifFBT2= 10.0;
+
+  const int MaxSizeCl =  8;
+
+  const CFTPedCorMan& gPed = CFTPedCorMan::GetInstance();
 }
 
 #define Cluster 1
@@ -55,74 +60,22 @@ HodoAnalyzer::HodoAnalyzer( void )
 //______________________________________________________________________________
 HodoAnalyzer::~HodoAnalyzer( void )
 {
-  ClearT1Hits();
-  ClearT2Hits();
-  ClearT3Hits();
-  ClearT4Hits();
-  ClearS1Hits();
-  ClearS2Hits();
   ClearBH1Hits();
   ClearBH2Hits();
-  ClearBACHits();
   ClearSACHits();
-  ClearPVACHits();
-  ClearFACHits();
-  ClearSSDTHits();
   ClearTOFHits();
+  ClearHtTOFHits();
   ClearLCHits();
+  ClearLACHits();
   ClearBFTHits();
   ClearSFTHits();
+  ClearCFTHits();
+  ClearBGOHits();
+  ClearPiIDHits();
   ClearSCHHits();
-  ClearFBHHits();
+  ClearFBT1Hits();
+  ClearFBT2Hits();
   debug::ObjectCounter::decrease(class_name);
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::ClearT1Hits( void )
-{
-  del::ClearContainer( m_T1Cont );
-  del::ClearContainer( m_T1ClCont );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::ClearT2Hits( void )
-{
-  del::ClearContainer( m_T2Cont );
-  del::ClearContainer( m_T2ClCont );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::ClearT3Hits( void )
-{
-  del::ClearContainer( m_T3Cont );
-  del::ClearContainer( m_T3ClCont );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::ClearT4Hits( void )
-{
-  del::ClearContainer( m_T4Cont );
-  del::ClearContainer( m_T4ClCont );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::ClearS1Hits( void )
-{
-  del::ClearContainer( m_S1Cont );
-  del::ClearContainer( m_S1ClCont );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::ClearS2Hits( void )
-{
-  del::ClearContainer( m_S2Cont );
-  del::ClearContainer( m_S2ClCont );
 }
 
 //______________________________________________________________________________
@@ -143,37 +96,10 @@ HodoAnalyzer::ClearBH2Hits( void )
 
 //______________________________________________________________________________
 void
-HodoAnalyzer::ClearBACHits( void )
-{
-  del::ClearContainer( m_BACCont );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::ClearPVACHits( void )
-{
-  del::ClearContainer( m_PVACCont );
-}
-
-//______________________________________________________________________________
-void
 HodoAnalyzer::ClearSACHits( void )
 {
   del::ClearContainer( m_SACCont );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::ClearFACHits( void )
-{
-  del::ClearContainer( m_FACCont );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::ClearSSDTHits( void )
-{
-  del::ClearContainer( m_SSDTCont );
+  del::ClearContainer( m_SACClCont );
 }
 
 //______________________________________________________________________________
@@ -182,6 +108,22 @@ HodoAnalyzer::ClearTOFHits( void )
 {
   del::ClearContainer( m_TOFCont );
   del::ClearContainer( m_TOFClCont );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::ClearHtTOFHits( void )
+{
+  del::ClearContainer( m_HtTOFCont );
+  del::ClearContainer( m_HtTOFClCont );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::ClearLACHits( void )
+{
+  del::ClearContainer( m_LACCont );
+  del::ClearContainer( m_LACClCont );
 }
 
 //______________________________________________________________________________
@@ -219,6 +161,34 @@ HodoAnalyzer::ClearSFTHits( void )
 
 //______________________________________________________________________________
 void
+HodoAnalyzer::ClearCFTHits( void )
+{
+  for ( MultiPlaneFiberHitContainer::iterator itr = m_CFTCont.begin();
+  	itr != m_CFTCont.end(); ++itr ) {
+    del::ClearContainer( *itr );
+  }
+  for ( MultiPlaneFiberClusterContainer::iterator itr = m_CFTClCont.begin();
+  	itr != m_CFTClCont.end(); ++itr ) {
+    del::ClearContainer( *itr );
+  }
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::ClearBGOHits( void )
+{
+  del::ClearContainer( m_BGOCont );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::ClearPiIDHits( void )
+{
+  del::ClearContainer( m_PiIDCont );
+}
+
+//______________________________________________________________________________
+void
 HodoAnalyzer::ClearSCHHits( void )
 {
   del::ClearContainer( m_SCHCont );
@@ -227,193 +197,43 @@ HodoAnalyzer::ClearSCHHits( void )
 
 //______________________________________________________________________________
 void
-HodoAnalyzer::ClearFBHHits( void )
+HodoAnalyzer::ClearFBT1Hits( void )
 {
-  del::ClearContainer( m_FBHCont );
-  // FLHit should be deleted by FiberHit
-  del::ClearContainer( m_FBHCoinCont, false );
-  del::ClearContainer( m_FBHClCont );
+  for ( auto& itr : m_FBT1UCont)   del::ClearContainer( itr );
+  for ( auto& itr : m_FBT1DCont)   del::ClearContainer( itr );
+  for ( auto& itr : m_FBT1UClCont) del::ClearContainer( itr );
+  for ( auto& itr : m_FBT1DClCont) del::ClearContainer( itr );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::ClearFBT2Hits( void )
+{
+  for ( auto& itr : m_FBT2UCont)   del::ClearContainer( itr );
+  for ( auto& itr : m_FBT2DCont)   del::ClearContainer( itr );
+  for ( auto& itr : m_FBT2UClCont) del::ClearContainer( itr );
+  for ( auto& itr : m_FBT2DClCont) del::ClearContainer( itr );
 }
 
 //______________________________________________________________________________
 bool
 HodoAnalyzer::DecodeRawHits( RawData *rawData )
 {
-  DecodeT1Hits( rawData );
-  DecodeT2Hits( rawData );
-  DecodeT3Hits( rawData );
-  DecodeT4Hits( rawData );
-  DecodeS1Hits( rawData );
-  DecodeS2Hits( rawData );
   DecodeBH1Hits( rawData );
   DecodeBH2Hits( rawData );
-  DecodeBACHits( rawData );
-  DecodePVACHits( rawData );
   DecodeSACHits( rawData );
-  DecodeFACHits( rawData );
-  DecodeSSDTHits( rawData );
   DecodeTOFHits( rawData );
+  DecodeHtTOFHits( rawData );
+  DecodeLACHits( rawData );
   DecodeLCHits( rawData );
   DecodeBFTHits( rawData );
   DecodeSFTHits( rawData );
+  DecodeCFTHits( rawData );
+  DecodeBGOHits( rawData );
+  DecodePiIDHits( rawData );
   DecodeSCHHits( rawData );
-  DecodeFBHHits( rawData );
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::DecodeT1Hits( RawData *rawData )
-{
-  ClearT1Hits();
-  const HodoRHitContainer &cont = rawData->GetT1RawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
-    Hodo2Hit *hp = new Hodo2Hit( hit );
-    if( !hp ) continue;
-    if( hp->Calculate() )
-      m_T1Cont.push_back(hp);
-    else
-      delete hp;
-  }//for(i)
-
-#if Cluster
-  MakeUpClusters( m_T1Cont, m_T1ClCont, MaxTimeDifT1 );
-#endif
-
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::DecodeT2Hits( RawData *rawData )
-{
-  ClearT2Hits();
-  const HodoRHitContainer &cont = rawData->GetT2RawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
-    Hodo2Hit *hp = new Hodo2Hit( hit );
-    if( !hp ) continue;
-    if( hp->Calculate() )
-      m_T2Cont.push_back(hp);
-    else
-      delete hp;
-  }//for(i)
-
-#if Cluster
-  MakeUpClusters( m_T2Cont, m_T2ClCont, MaxTimeDifT2 );
-#endif
-
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::DecodeT3Hits( RawData *rawData )
-{
-  ClearT3Hits();
-  const HodoRHitContainer &cont = rawData->GetT3RawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
-    Hodo2Hit *hp = new Hodo2Hit( hit );
-    if( !hp ) continue;
-    if( hp->Calculate() )
-      m_T3Cont.push_back(hp);
-    else
-      delete hp;
-  }//for(i)
-
-#if Cluster
-  MakeUpClusters( m_T3Cont, m_T3ClCont, MaxTimeDifT3 );
-#endif
-
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::DecodeT4Hits( RawData *rawData )
-{
-  ClearT4Hits();
-  const HodoRHitContainer &cont = rawData->GetT4RawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
-    Hodo2Hit *hp = new Hodo2Hit( hit );
-    if( !hp ) continue;
-    if( hp->Calculate() )
-      m_T4Cont.push_back(hp);
-    else
-      delete hp;
-  }//for(i)
-
-#if Cluster
-  MakeUpClusters( m_T4Cont, m_T4ClCont, MaxTimeDifT4 );
-#endif
-
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::DecodeS1Hits( RawData *rawData )
-{
-  ClearS1Hits();
-  const HodoRHitContainer &cont = rawData->GetS1RawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
-    Hodo2Hit *hp = new Hodo2Hit( hit );
-    if( !hp ) continue;
-    if( hp->Calculate() )
-      m_S1Cont.push_back(hp);
-    else
-      delete hp;
-  }//for(i)
-
-#if Cluster
-  MakeUpClusters( m_S1Cont, m_S1ClCont, MaxTimeDifS1 );
-#endif
-
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::DecodeS2Hits( RawData *rawData )
-{
-  ClearS2Hits();
-  const HodoRHitContainer &cont = rawData->GetS2RawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
-    Hodo2Hit *hp = new Hodo2Hit( hit );
-    if( !hp ) continue;
-    if( hp->Calculate() )
-      m_S2Cont.push_back(hp);
-    else
-      delete hp;
-  }//for(i)
-
-#if Cluster
-  MakeUpClusters( m_S2Cont, m_S2ClCont, MaxTimeDifS2 );
-#endif
-
+  DecodeFBT1Hits( rawData );
+  DecodeFBT2Hits( rawData );
   return true;
 }
 
@@ -471,46 +291,6 @@ HodoAnalyzer::DecodeBH2Hits( RawData *rawData )
 
 //______________________________________________________________________________
 bool
-HodoAnalyzer::DecodeBACHits( RawData *rawData )
-{
-  ClearBACHits();
-  const HodoRHitContainer &cont = rawData->GetBACRawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    Hodo1Hit *hp = new Hodo1Hit( hit );
-    if( !hp ) continue;
-    if( hp->Calculate() )
-      m_BACCont.push_back(hp);
-    else
-      delete hp;
-  }//for(i)
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::DecodePVACHits( RawData *rawData )
-{
-  ClearPVACHits();
-  const HodoRHitContainer &cont = rawData->GetPVACRawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    Hodo1Hit *hp = new Hodo1Hit( hit );
-    if( !hp ) continue;
-    if( hp->Calculate() )
-      m_PVACCont.push_back(hp);
-    else
-      delete hp;
-  }//for(i)
-  return true;
-}
-
-//______________________________________________________________________________
-bool
 HodoAnalyzer::DecodeSACHits( RawData *rawData )
 {
   ClearSACHits();
@@ -526,46 +306,11 @@ HodoAnalyzer::DecodeSACHits( RawData *rawData )
     else
       delete hp;
   }//for(i)
-  return true;
-}
 
-//______________________________________________________________________________
-bool
-HodoAnalyzer::DecodeFACHits( RawData *rawData )
-{
-  ClearFACHits();
-  const HodoRHitContainer &cont = rawData->GetFACRawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    Hodo1Hit *hp = new Hodo1Hit( hit );
-    if( !hp ) continue;
-    if( hp->Calculate() )
-      m_FACCont.push_back(hp);
-    else
-      delete hp;
-  }//for(i)
-  return true;
-}
+#if Cluster
+  MakeUpClusters( m_SACCont, m_SACClCont, MaxTimeDifSAC );
+#endif
 
-//______________________________________________________________________________
-bool
-HodoAnalyzer::DecodeSSDTHits( RawData *rawData )
-{
-  ClearSSDTHits();
-  const HodoRHitContainer &cont = rawData->GetSSDTRawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    Hodo1Hit *hp = new Hodo1Hit( hit );
-    if( !hp ) continue;
-    if( hp->Calculate() )
-      m_SSDTCont.push_back(hp);
-    else
-      delete hp;
-  }//for(i)
   return true;
 }
 
@@ -582,6 +327,7 @@ HodoAnalyzer::DecodeTOFHits( RawData *rawData )
     if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
     Hodo2Hit *hp = new Hodo2Hit( hit );
     if( !hp ) continue;
+    hp->MakeAsTof();
     if( hp->Calculate() )
       m_TOFCont.push_back(hp);
     else
@@ -590,6 +336,56 @@ HodoAnalyzer::DecodeTOFHits( RawData *rawData )
 
 #if Cluster
   MakeUpClusters( m_TOFCont, m_TOFClCont, MaxTimeDifTOF );
+#endif
+
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::DecodeHtTOFHits( RawData *rawData )
+{
+  ClearHtTOFHits();
+  const HodoRHitContainer &cont = rawData->GetHtTOFRawHC();
+  int nh = cont.size();
+  for( int i=0; i<nh; ++i ){
+    HodoRawHit *hit = cont[i];
+    if( !hit ) continue;
+    Hodo1Hit *hp = new Hodo1Hit( hit );
+    if( !hp ) continue;
+    if( hp->Calculate() )
+      m_HtTOFCont.push_back(hp);
+    else
+      delete hp;
+  }//for(i)
+
+#if 1
+  MakeUpClusters( m_HtTOFCont, m_HtTOFClCont, MaxTimeDifTOF );
+#endif
+
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::DecodeLACHits( RawData *rawData )
+{
+  ClearLACHits();
+  const HodoRHitContainer &cont = rawData->GetLACRawHC();
+  int nh = cont.size();
+  for( int i=0; i<nh; ++i ){
+    HodoRawHit *hit = cont[i];
+    if( !hit ) continue;
+    Hodo1Hit *hp = new Hodo1Hit( hit );
+    if( !hp ) continue;
+    if( hp->Calculate() )
+      m_LACCont.push_back(hp);
+    else
+      delete hp;
+  }//for(i)
+
+#if Cluster
+  MakeUpClusters( m_LACCont, m_LACClCont, MaxTimeDifLAC );
 #endif
 
   return true;
@@ -612,6 +408,10 @@ HodoAnalyzer::DecodeLCHits( RawData *rawData )
     else
       delete hp;
   }//for(i)
+
+#if 1
+  MakeUpClusters( m_LCCont, m_LCClCont, MaxTimeDifLC );
+#endif
 
   return true;
 }
@@ -721,6 +521,155 @@ HodoAnalyzer::DecodeSFTHits( RawData* rawData )
 
 //______________________________________________________________________________
 bool
+HodoAnalyzer::DecodeCFTHits( RawData* rawData )
+{
+  ClearCFTHits();
+  m_CFTCont.resize( NumOfPlaneCFT );
+  m_CFTClCont.resize( NumOfPlaneCFT );
+
+  for(int p = 0; p<NumOfPlaneCFT; ++p){
+    const HodoRHitContainer &cont = rawData->GetCFTRawHC(p);
+    int nh=cont.size();
+    for( int i=0; i<nh; ++i ){
+      HodoRawHit *hit=cont[i];
+      if( !hit ) continue;
+
+      char pname[8];
+      switch ( p ) {
+      case 0:
+	strcpy( pname, "CFT-UV1" ); break;
+      case 2:
+	strcpy( pname, "CFT-UV2" ); break;
+      case 4:
+	strcpy( pname, "CFT-UV3" ); break;
+      case 6:
+	strcpy( pname, "CFT-UV4" ); break;
+      case 1:
+	strcpy( pname, "CFT-PHI1" ); break;
+      case 3:
+	strcpy( pname, "CFT-PHI2" ); break;
+      case 5:
+	strcpy( pname, "CFT-PHI3" ); break;
+      case 7:
+	strcpy( pname, "CFT-PHI4" ); break;
+      default: break;
+      }
+
+      FiberHit *hp = new FiberHit(hit, pname);
+      if(!hp) continue;
+
+      /*Pedestal Correction value for High and Low*/
+      double deltaHG, deltaLG;
+      int seg = hit->SegmentId();
+      gPed.PedestalCorrection(p, seg, deltaHG, deltaLG, rawData);
+      hp->SetPedestalCor(deltaHG, deltaLG);
+
+      //std::cout << "layer " << p << ", seg " << seg << ", deltaHG " << deltaHG << ", deltaLG " <<  deltaLG << std::endl;
+      if(hp->Calculate() && hp->GetAdcHi()>10){
+	m_CFTCont.at(p).push_back(hp);
+      }
+      else{
+	delete hp;
+	hp = NULL;
+      }
+    }
+
+    std::sort(m_CFTCont.at(p).begin(), m_CFTCont.at(p).end(), FiberHit::CompFiberHit);
+
+
+#if Cluster
+    MakeUpClustersCFT( m_CFTCont.at(p), m_CFTClCont.at(p), MaxTimeDifCFT, 8 );
+#endif
+
+  }
+
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::DecodeBGOHits( RawData *rawData )
+{
+  ClearBGOHits();
+  const HodoRHitContainer &cont = rawData->GetBGORawHC();
+  int nh = cont.size();
+  for( int i=0; i<nh; ++i ){
+    HodoRawHit *hit = cont[i];
+    if( !hit ) continue;
+    Hodo1Hit *hp = new Hodo1Hit( hit );
+    //Hodo2Hit *hp = new Hodo2Hit( hit );
+    if( !hp ) continue;
+    if( hp->Calculate() )
+      m_BGOCont.push_back(hp);
+    else
+      delete hp;
+  }//for(i)
+
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::DecodeBGOHits( RawData *rawData, BGOAnalyzer *bgoAna )
+{
+  ClearBGOHits();
+  const HodoRHitContainer &cont = rawData->GetBGORawHC();
+  int nh = cont.size();
+  for( int i=0; i<nh; ++i ){
+    HodoRawHit *hit = cont[i];
+    if( !hit ) continue;
+    Hodo1Hit *hp = new Hodo1Hit( hit );
+    //Hodo2Hit *hp = new Hodo2Hit( hit );
+    if( !hp ) continue;
+    bool tdc_flag = false;
+    if( hp->Calculate(tdc_flag) ) {
+      int seg = hp->SegmentId();
+
+      hp->ClearACont();
+      if (bgoAna->GetNPulse(seg)>0) {
+	BGOData bgoData;
+	if (bgoAna->GetBGOData0(seg, bgoData)) {
+	  if (bgoData.time> -0.05 && bgoData.time < 0.1) {
+	    hp->SetE(bgoData.energy);
+	    hp->GetRawHit()->SetAdc2(bgoData.pulse_height);
+	  }
+	}
+      }
+
+      m_BGOCont.push_back(hp);
+    }
+    else
+      delete hp;
+  }//for(i)
+
+  return true;
+}
+
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::DecodePiIDHits( RawData* rawData )
+{
+  ClearPiIDHits();
+  const HodoRHitContainer &cont = rawData->GetPiIDRawHC();
+  int nh = cont.size();
+  for( int i=0; i<nh; ++i ){
+    HodoRawHit *hit = cont[i];
+    if( !hit ) continue;
+    FiberHit *hp = new FiberHit( hit, "PiID" );
+    if( !hp ) continue;
+    if( hp->Calculate() ){
+      m_PiIDCont.push_back( hp );
+    }else{
+      delete hp;
+    }
+  }
+
+  return true;
+}
+
+//______________________________________________________________________________
+bool
 HodoAnalyzer::DecodeSCHHits( RawData* rawData )
 {
   ClearSCHHits();
@@ -749,31 +698,199 @@ HodoAnalyzer::DecodeSCHHits( RawData* rawData )
 
 //______________________________________________________________________________
 bool
-HodoAnalyzer::DecodeFBHHits( RawData* rawData )
+HodoAnalyzer::DecodeFBT1Hits( RawData* rawData )
 {
-  ClearFBHHits();
-  const HodoRHitContainer &cont = rawData->GetFBHRawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    FiberHit *hp = new FiberHit( hit, "FBH" );
-    if( !hp ) continue;
-    if( hp->Calculate() )
-      m_FBHCont.push_back( hp );
-    else
-      delete hp;
-  }///for(i)
+  ClearFBT1Hits();
 
-  std::sort( m_FBHCont.begin(), m_FBHCont.end(), FiberHit::CompFiberHit );
+  static const std::string name[NumOfLayersFBT1][2] =
+    {
+      {"FBT1-UX1", "FBT1-DX1"},
+      {"FBT1-UX2", "FBT1-DX2"}
+    };
+
+  m_FBT1UCont.resize( NumOfLayersFBT1 );
+  m_FBT1DCont.resize( NumOfLayersFBT1 );
+
+  m_FBT1UClCont.resize( NumOfLayersFBT1 );
+  m_FBT1DClCont.resize( NumOfLayersFBT1 );
+  for(int l = 0; l<NumOfLayersFBT1; ++l){
+    for(int UorD = 0; UorD<2; ++UorD){
+      const HodoRHitContainer &cont = rawData->GetFBT1RawHC(l, UorD);
+      int nh=cont.size();
+      for( int i=0; i<nh; ++i ){
+	HodoRawHit *hit=cont[i];
+	if( !hit ) continue;
+	FiberHit *hp = new FiberHit(hit, name[l][UorD].c_str());
+	if(!hp) continue;
+	if(hp->Calculate()){
+	  if(UorD==0) m_FBT1UCont.at(l).push_back(hp);
+	  else        m_FBT1DCont.at(l).push_back(hp);
+	}
+	else{
+	  delete hp;
+	  hp = NULL;
+	}
+      }
+
+      if(UorD==0) std::sort(m_FBT1UCont.at(l).begin(), m_FBT1UCont.at(l).end(), FiberHit::CompFiberHit);
+      else        std::sort(m_FBT1DCont.at(l).begin(), m_FBT1DCont.at(l).end(), FiberHit::CompFiberHit);
+    }
+  }
+
 
 #if Cluster
-    MakeUpCoincidence( m_FBHCont, m_FBHCoinCont, 15 );
-    MakeUpClusters( m_FBHCoinCont, m_FBHClCont, MaxTimeDifFBH, 1);
+  for(int l = 0; l<NumOfLayersFBT1; ++l){
+    MakeUpClusters( m_FBT1UCont.at(l), m_FBT1UClCont.at(l), MaxTimeDifFBT1, 2 );
+    MakeUpClusters( m_FBT1DCont.at(l), m_FBT1DClCont.at(l), MaxTimeDifFBT1, 2 );
+  }
 #endif
 
   return true;
 }
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::DecodeFBT2Hits( RawData* rawData )
+{
+  ClearFBT2Hits();
+
+  static const std::string name[NumOfLayersFBT2][2] =
+    {
+      {"FBT2-UX1", "FBT2-DX1"},
+      {"FBT2-UX2", "FBT2-DX2"}
+    };
+
+
+  m_FBT2UCont.resize( NumOfLayersFBT2 );
+  m_FBT2DCont.resize( NumOfLayersFBT2 );
+
+  m_FBT2UClCont.resize( NumOfLayersFBT2 );
+  m_FBT2DClCont.resize( NumOfLayersFBT2 );
+  for(int l = 0; l<NumOfLayersFBT2; ++l){
+    for(int UorD = 0; UorD<2; ++UorD){
+      const HodoRHitContainer &cont = rawData->GetFBT2RawHC(l, UorD);
+      int nh=cont.size();
+      for( int i=0; i<nh; ++i ){
+	HodoRawHit *hit=cont[i];
+	if( !hit ) continue;
+	FiberHit *hp = new FiberHit(hit, name[l][UorD].c_str());
+	if(!hp) continue;
+	if(hp->Calculate()){
+	  if(UorD==0) m_FBT2UCont.at(l).push_back(hp);
+	  else        m_FBT2DCont.at(l).push_back(hp);
+	}
+	else{
+	  delete hp;
+	  hp = NULL;
+	}
+      }
+
+      if(UorD==0) std::sort(m_FBT2UCont.at(l).begin(), m_FBT2UCont.at(l).end(), FiberHit::CompFiberHit);
+      else        std::sort(m_FBT2DCont.at(l).begin(), m_FBT2DCont.at(l).end(), FiberHit::CompFiberHit);
+    }
+  }
+
+
+#if Cluster
+  for(int l = 0; l<NumOfLayersFBT2; ++l){
+    MakeUpClusters( m_FBT2UCont.at(l), m_FBT2UClCont.at(l), MaxTimeDifFBT2, 2 );
+    MakeUpClusters( m_FBT2DCont.at(l), m_FBT2DClCont.at(l), MaxTimeDifFBT2, 2 );
+  }
+#endif
+
+  return true;
+}
+
+//______________________________________________________________________________
+int
+HodoAnalyzer::MakeUpClusters( const Hodo1HitContainer& HitCont,
+			      HodoClusterContainer& ClusterCont,
+			      double maxTimeDif )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+  del::ClearContainer( ClusterCont );
+
+  int nh = HitCont.size();
+  //  std::vector <int> flag( nh, 0 );
+
+  for(int i=0; i<nh; ++i){
+    Hodo1Hit *hitA = HitCont[i];
+    int       segA = hitA->SegmentId();
+    Hodo1Hit *hitB = 0;
+    int         iB = -1;
+    int         mB = -1;
+    int         mC = -1;
+    int       segB = -1;
+    if(hitA->JoinedAllMhit()) continue;
+
+    int n_mhitA = hitA->GetNumOfHit();
+    for(int ma = 0; ma<n_mhitA; ++ma){
+      if(hitA->Joined(ma)) continue;
+      double    cmtA = hitA->CMeanTime(ma);
+      double    cmtB = -9999;
+
+      for( int j=i+1; j<nh; ++j ){
+	Hodo1Hit *hit = HitCont[j];
+	int    seg  = hit->SegmentId();
+
+	int n_mhitB = hit->GetNumOfHit();
+	for(int mb = 0; mb<n_mhitB; ++mb){
+	  if(hit->Joined(mb)) continue;
+	  double cmt = hit->CMeanTime(mb);
+	  if( std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif ){
+	    hitB = hit; iB = j; mB = mb; segB = seg; cmtB = cmt; break;
+	  }
+	}// for(mb:hitB)
+      }// for(j:hitB)
+      if( hitB ){
+	Hodo1Hit *hitC = 0;
+	for( int j=i+1; j<nh; ++j ){
+	  if( j==iB ) continue;
+	  Hodo1Hit *hit = HitCont[j];
+	  int    seg  = hit->SegmentId();
+
+	  int n_mhitC = hit->GetNumOfHit();
+	  for(int mc = 0; mc<n_mhitC; ++mc){
+	    if(hit->Joined(mc)) continue;
+	    double cmt = hit->CMeanTime(mc);
+	    if( (std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif) ||
+		(std::abs(seg-segB)==1 && std::abs(cmt-cmtB)<maxTimeDif) ){
+	      hitC=hit; mC=mc; break;
+	    }
+	  }
+	}
+	if( hitC ){
+	  hitA->SetJoined(ma);
+	  hitB->SetJoined(mB);
+	  hitC->SetJoined(mC);
+	  HodoCluster *cluster = new HodoCluster( hitA, hitB, hitC );
+	  cluster->SetIndex(ma, mB, mC);
+	  cluster->Calculate();
+	  if( cluster ) ClusterCont.push_back( cluster );
+	}
+	else{
+	  hitA->SetJoined(ma);
+	  hitB->SetJoined(mB);
+	  HodoCluster *cluster = new HodoCluster( hitA, hitB );
+	  cluster->SetIndex(ma, mB);
+	  cluster->Calculate();
+	  if( cluster ) ClusterCont.push_back( cluster );
+	}
+      }
+      else{
+	hitA->SetJoined(ma);
+	HodoCluster *cluster = new HodoCluster( hitA );
+	cluster->SetIndex(ma);
+	cluster->Calculate();
+	if( cluster ) ClusterCont.push_back( cluster );
+      }
+    }// for(ma:hitA)
+  }// for(i:hitA)
+
+  return ClusterCont.size();
+}
+
 
 //______________________________________________________________________________
 int
@@ -787,51 +904,81 @@ HodoAnalyzer::MakeUpClusters( const Hodo2HitContainer& HitCont,
 
   int nh = HitCont.size();
 
-  std::vector <int> flag( nh, 0 );
+  //  std::vector <int> flag( nh, 0 );
 
   for(int i=0; i<nh; ++i){
-    if( flag[i] ) continue;
     Hodo2Hit *hitA = HitCont[i];
     int       segA = hitA->SegmentId();
-    double    cmtA = hitA->CMeanTime();
     Hodo2Hit *hitB = 0;
     int         iB = -1;
-    double    cmtB;
-    int       segB;
-    for( int j=i+1; j<nh; ++j ){
-      Hodo2Hit *hit = HitCont[j];
-      int    seg = hit->SegmentId();
-      double cmt = hit->CMeanTime();
-      if( std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif ){
-	hitB = hit; ++flag[j]; iB = j; segB = seg; cmtB = cmt; break;
-      }
-    }
-    if( hitB ){
-      Hodo2Hit *hitC = 0;
+    int         mB = -1;
+    int         mC = -1;
+    int       segB = -1;
+    if(hitA->JoinedAllMhit()) continue;
+
+    int n_mhitA = hitA->GetNumOfHit();
+    for(int ma = 0; ma<n_mhitA; ++ma){
+      if(hitA->Joined(ma)) continue;
+      double    cmtA = hitA->CMeanTime(ma);
+      double    cmtB = -9999;
+
       for( int j=i+1; j<nh; ++j ){
-	if( j==iB ) continue;
 	Hodo2Hit *hit = HitCont[j];
-	int    seg = hit->SegmentId();
-	double cmt = hit->CMeanTime();
-	if( (std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif) ||
-	    (std::abs(seg-segB)==1 && std::abs(cmt-cmtB)<maxTimeDif) ){
-	  hitC=hit; ++flag[j]; break;
+	int    seg  = hit->SegmentId();
+
+	int n_mhitB = hit->GetNumOfHit();
+	for(int mb = 0; mb<n_mhitB; ++mb){
+	  if(hit->Joined(mb)) continue;
+	  double cmt = hit->CMeanTime(mb);
+	  if( std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif ){
+	    hitB = hit; iB = j; mB = mb; segB = seg; cmtB = cmt; break;
+	  }
+	}// for(mb:hitB)
+      }// for(j:hitB)
+      if( hitB ){
+	Hodo2Hit *hitC = 0;
+	for( int j=i+1; j<nh; ++j ){
+	  if( j==iB ) continue;
+	  Hodo2Hit *hit = HitCont[j];
+	  int    seg  = hit->SegmentId();
+
+	  int n_mhitC = hit->GetNumOfHit();
+	  for(int mc = 0; mc<n_mhitC; ++mc){
+	    if(hit->Joined(mc)) continue;
+	    double cmt = hit->CMeanTime(mc);
+	    if( (std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif) ||
+		(std::abs(seg-segB)==1 && std::abs(cmt-cmtB)<maxTimeDif) ){
+	      hitC=hit; mC=mc; break;
+	    }
+	  }
+	}
+	if( hitC ){
+	  hitA->SetJoined(ma);
+	  hitB->SetJoined(mB);
+	  hitC->SetJoined(mC);
+	  HodoCluster *cluster = new HodoCluster( hitA, hitB, hitC );
+	  cluster->SetIndex(ma, mB, mC);
+	  cluster->Calculate();
+	  if( cluster ) ClusterCont.push_back( cluster );
+	}
+	else{
+	  hitA->SetJoined(ma);
+	  hitB->SetJoined(mB);
+	  HodoCluster *cluster = new HodoCluster( hitA, hitB );
+	  cluster->SetIndex(ma, mB);
+	  cluster->Calculate();
+	  if( cluster ) ClusterCont.push_back( cluster );
 	}
       }
-      if( hitC ){
-	HodoCluster *cluster = new HodoCluster( hitA, hitB, hitC );
-	if( cluster ) ClusterCont.push_back( cluster );
-      }
       else{
-	HodoCluster *cluster = new HodoCluster( hitA, hitB );
+	hitA->SetJoined(ma);
+	HodoCluster *cluster = new HodoCluster( hitA );
+	cluster->SetIndex(ma);
+	cluster->Calculate();
 	if( cluster ) ClusterCont.push_back( cluster );
       }
-    }
-    else{
-      HodoCluster *cluster = new HodoCluster( hitA );
-      if( cluster ) ClusterCont.push_back( cluster );
-    }
-  }
+    }// for(ma:hitA)
+  }// for(i:hitA)
 
   return ClusterCont.size();
 }
@@ -848,51 +995,79 @@ HodoAnalyzer::MakeUpClusters( const BH2HitContainer& HitCont,
 
   int nh = HitCont.size();
 
-  std::vector <int> flag(nh,0);
-
   for(int i=0; i<nh; ++i ){
-    if( flag[i] ) continue;
     BH2Hit *hitA = HitCont[i];
     int     segA = hitA->SegmentId();
-    double  cmtA = hitA->CMeanTime();
     BH2Hit *hitB = 0;
     int       iB = -1;
-    double  cmtB;
-    int     segB;
-    for( int j=i+1; j<nh; ++j ){
-      BH2Hit *hit = HitCont[j];
-      int     seg = hit->SegmentId();
-      double  cmt = hit->CMeanTime();
-      if( std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif ){
-	hitB = hit; ++flag[j]; iB = j; segB = seg; cmtB = cmt; break;
-      }
-    }
-    if(hitB){
-      BH2Hit *hitC = 0;
+    int       mB = -1;
+    int       mC = -1;
+    int     segB = -1;
+    if(hitA->JoinedAllMhit()) continue;
+
+    int n_mhitA = hitA->GetNumOfHit();
+    for(int ma = 0; ma<n_mhitA; ++ma){
+      if(hitA->Joined(ma)) continue;
+      double    cmtA = hitA->CMeanTime(ma);
+      double    cmtB = -9999;
+
       for( int j=i+1; j<nh; ++j ){
-        if( j==iB ) continue;
-        BH2Hit *hit = HitCont[j];
-        int     seg = hit->SegmentId();
-        double  cmt = hit->CMeanTime();
-        if( (std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif) ||
-            (std::abs(seg-segB)==1 && std::abs(cmt-cmtB)<maxTimeDif) ){
-          hitC = hit; ++flag[j]; break;
-        }
-      }
-      if( hitC ){
-        BH2Cluster *cluster = new BH2Cluster( hitA, hitB, hitC );
-        if( cluster ) ClusterCont.push_back( cluster );
+	BH2Hit *hit = HitCont[j];
+	int     seg = hit->SegmentId();
+
+	int n_mhitB = hit->GetNumOfHit();
+	for(int mb = 0; mb<n_mhitB; ++mb){
+	  if(hit->Joined(mb)) continue;
+	  double  cmt = hit->CMeanTime(mb);
+	  if( std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif ){
+	    hitB = hit; iB = j; mB = mb; segB = seg; cmtB = cmt; break;
+	  }
+	}// for(mb:hitB)
+      }// for(j:hitB)
+      if(hitB){
+	BH2Hit *hitC = 0;
+	for( int j=i+1; j<nh; ++j ){
+	  if( j==iB ) continue;
+	  BH2Hit *hit = HitCont[j];
+	  int     seg = hit->SegmentId();
+
+	  int n_mhitC = hit->GetNumOfHit();
+	  for(int mc = 0; mc<n_mhitC; ++mc){
+	    if(hit->Joined(mc)) continue;
+	    double  cmt = hit->CMeanTime(mc);
+	    if( (std::abs(seg-segA)==1 && std::abs(cmt-cmtA)<maxTimeDif) ||
+		(std::abs(seg-segB)==1 && std::abs(cmt-cmtB)<maxTimeDif) ){
+	      hitC = hit; mC=mc; break;
+	    }
+	  }
+	}
+	if( hitC ){
+	  hitA->SetJoined(ma);
+	  hitB->SetJoined(mB);
+	  hitC->SetJoined(mC);
+	  BH2Cluster *cluster = new BH2Cluster( hitA, hitB, hitC );
+	  cluster->SetIndex(ma, mB, mC);
+	  cluster->Calculate();
+	  if( cluster ) ClusterCont.push_back( cluster );
+	}
+	else{
+	  hitA->SetJoined(ma);
+	  hitB->SetJoined(mB);
+	  BH2Cluster *cluster = new BH2Cluster( hitA, hitB );
+	  cluster->SetIndex(ma, mB);
+	  cluster->Calculate();
+	  if( cluster ) ClusterCont.push_back( cluster );
+	}
       }
       else{
-	BH2Cluster *cluster = new BH2Cluster( hitA, hitB );
+	hitA->SetJoined(ma);
+	BH2Cluster *cluster = new BH2Cluster( hitA );
+	cluster->SetIndex(ma);
+	cluster->Calculate();
 	if( cluster ) ClusterCont.push_back( cluster );
       }
-    }
-    else{
-      BH2Cluster *cluster = new BH2Cluster( hitA );
-      if( cluster ) ClusterCont.push_back( cluster );
-    }
-  }
+    }// for(ma:hitA)
+  }// for(i:hitA)
 
   return ClusterCont.size();
 }
@@ -1047,6 +1222,107 @@ HodoAnalyzer::MakeUpClusters( const FiberHitContainer& cont,
 
 //______________________________________________________________________________
 int
+HodoAnalyzer::MakeUpClustersCFT( const FiberHitContainer& cont,
+			      FiberClusterContainer& ClusterCont,
+			      double maxTimeDif,
+			      int DifPairId )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+  del::ClearContainer( ClusterCont );
+
+  int NofSeg = cont.size();
+  for( int seg=0; seg<NofSeg; ++seg ){
+    FiberHit* HitA = cont.at(seg);
+    double adcLowA    =  HitA->GetAdcLow();
+    bool fl_ClCandA = false;
+
+    if( seg != (NofSeg -1) ){
+      if( DifPairId > (cont.at(seg+1)->PairId() - HitA->PairId()) && adcLowA>=0){
+	fl_ClCandA = true;
+      }
+    }
+
+    int NofHitA = HitA->GetNumOfHit();
+    for(int mhitA = 0; mhitA<NofHitA; ++mhitA){
+      if(HitA->Joined(mhitA)) continue;
+      FiberCluster *cluster = new FiberCluster();
+      cluster->push_back( new FLHit(HitA, mhitA) );
+      if(!fl_ClCandA){
+	// there is no more candidates
+	if(cluster->Calculate()){
+	  ClusterCont.push_back(cluster);
+	  continue;
+	}else{
+	  //delete cluster;
+	  //cluster = NULL;
+	}
+	//continue;
+      }
+
+#if 1 // new ver.
+      double cmtA    = (double)HitA->GetCTime(mhitA);
+      int    CurrentPair = HitA->PairId();
+
+      bool   fl_Hit[MaxSizeCl];
+      bool fl_ClCand[MaxSizeCl];
+      double cmt[MaxSizeCl]; double mt[MaxSizeCl];
+      int seg_[MaxSizeCl];
+      double peLow[MaxSizeCl];
+      FiberHit* Hit[MaxSizeCl];
+
+      for(int ic=0;ic<MaxSizeCl-1;ic++){
+
+	// Next Hit Search
+	int    NofHit = cont.at(seg+1+ic)->GetNumOfHit();
+	fl_Hit[ic] = false;
+	Hit[ic] = cont.at(seg+1+ic);
+	cmt[ic]    = -1;
+	seg_[ic]   =  Hit[ic]->PairId();
+	for(int mhit = 0; mhit<NofHit; ++mhit){
+
+	  if(cont.at(seg+1+ic)->Joined(mhit)){continue;}
+	  double adcLow = Hit[ic]->GetAdcLow();
+	  cmt[ic] = (double)Hit[ic]->GetCTime(mhit);
+
+	  if(std::abs(cmt[ic]-cmtA)<maxTimeDif && adcLow>=0){
+	    cluster->push_back(new FLHit(Hit[ic], mhit));
+	    fl_Hit[ic] = true;
+	    break;
+	  }
+	}
+
+        fl_ClCand[ic]  = false;
+
+	if((seg+1+ic) != (NofSeg -1)){
+	  if( DifPairId > (cont.at(seg+2+ic)->PairId() - CurrentPair) ){
+	    fl_ClCand[ic] = true;
+	  }
+	}
+	if(!fl_ClCand[ic]){
+	  // there is no more candidates
+	  if(cluster->Calculate()){
+	    ClusterCont.push_back(cluster);
+	    break;
+	  }else{
+	    //delete cluster;
+	    //cluster = NULL;
+	  }
+	  //continue;
+	}else{}
+
+      }
+#endif
+
+    }
+  }
+
+  return ClusterCont.size();
+}
+
+
+//______________________________________________________________________________
+int
 HodoAnalyzer::MakeUpClusters( const FLHitContainer& cont,
 			      FiberClusterContainer& ClusterCont,
 			      double maxTimeDif,
@@ -1156,78 +1432,6 @@ HodoAnalyzer::MakeUpCoincidence( const FiberHitContainer& cont,
 
 //______________________________________________________________________________
 bool
-HodoAnalyzer::ReCalcT1Hits( bool applyRecursively )
-{
-  int n = m_T1Cont.size();
-  for( int i=0; i<n; ++i ){
-    Hodo2Hit *hit = m_T1Cont[i];
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcT2Hits( bool applyRecursively )
-{
-  int n = m_T2Cont.size();
-  for( int i=0; i<n; ++i ){
-    Hodo2Hit *hit = m_T2Cont[i];
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcT3Hits( bool applyRecursively )
-{
-  int n = m_T3Cont.size();
-  for( int i=0; i<n; ++i ){
-    Hodo2Hit *hit = m_T3Cont[i];
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcT4Hits( bool applyRecursively )
-{
-  int n = m_T4Cont.size();
-  for( int i=0; i<n; ++i ){
-    Hodo2Hit *hit = m_T4Cont[i];
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcS1Hits( bool applyRecursively )
-{
-  int n = m_S1Cont.size();
-  for( int i=0; i<n; ++i ){
-    Hodo2Hit *hit = m_S1Cont[i];
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcS2Hits( bool applyRecursively )
-{
-  int n = m_S2Cont.size();
-  for( int i=0; i<n; ++i ){
-    Hodo2Hit *hit = m_S2Cont[i];
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
 HodoAnalyzer::ReCalcBH1Hits( bool applyRecursively )
 {
   int n = m_BH1Cont.size();
@@ -1245,42 +1449,6 @@ HodoAnalyzer::ReCalcBH2Hits( bool applyRecursively )
   int n = m_BH2Cont.size();
   for( int i=0; i<n; ++i ){
     BH2Hit *hit = m_BH2Cont[i];
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcBACHits( bool applyRecursively )
-{
-  int n = m_BACCont.size();
-  for( int i=0; i<n; ++i ){
-    Hodo1Hit *hit = m_BACCont[i];
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcPVACHits( bool applyRecursively )
-{
-  int n = m_PVACCont.size();
-  for( int i=0; i<n; ++i ){
-    Hodo1Hit *hit = m_PVACCont[i];
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcFACHits( bool applyRecursively )
-{
-  int n = m_FACCont.size();
-  for( int i=0; i<n; ++i ){
-    Hodo1Hit *hit = m_FACCont[i];
     if(hit) hit->ReCalc(applyRecursively);
   }
   return true;
@@ -1313,6 +1481,31 @@ HodoAnalyzer::ReCalcTOFHits( bool applyRecursively )
 
 //______________________________________________________________________________
 bool
+HodoAnalyzer::ReCalcHtTOFHits( bool applyRecursively )
+{
+  int n = m_HtTOFCont.size();
+  for( int i=0; i<n; ++i ){
+    Hodo1Hit *hit = m_HtTOFCont[i];
+    if(hit) hit->ReCalc(applyRecursively);
+  }
+  return true;
+
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::ReCalcLACHits( bool applyRecursively )
+{
+  int n = m_LACCont.size();
+  for( int i=0; i<n; ++i ){
+    Hodo1Hit *hit = m_LACCont[i];
+    if(hit) hit->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
 HodoAnalyzer::ReCalcLCHits( bool applyRecursively )
 {
   int n = m_LCCont.size();
@@ -1322,78 +1515,6 @@ HodoAnalyzer::ReCalcLCHits( bool applyRecursively )
   }
   return true;
 
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcT1Clusters( bool applyRecursively )
-{
-  int n = m_T1ClCont.size();
-  for( int i=0; i<n; ++i ){
-    HodoCluster *cl = m_T1ClCont[i];
-    if(cl) cl->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcT2Clusters( bool applyRecursively )
-{
-  int n = m_T2ClCont.size();
-  for( int i=0; i<n; ++i ){
-    HodoCluster *cl = m_T2ClCont[i];
-    if(cl) cl->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcT3Clusters( bool applyRecursively )
-{
-  int n = m_T3ClCont.size();
-  for( int i=0; i<n; ++i ){
-    HodoCluster *cl = m_T3ClCont[i];
-    if(cl) cl->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcT4Clusters( bool applyRecursively )
-{
-  int n = m_T4ClCont.size();
-  for( int i=0; i<n; ++i ){
-    HodoCluster *cl = m_T4ClCont[i];
-    if(cl) cl->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcS1Clusters( bool applyRecursively )
-{
-  int n = m_S1ClCont.size();
-  for( int i=0; i<n; ++i ){
-    HodoCluster *cl = m_S1ClCont[i];
-    if(cl) cl->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::ReCalcS2Clusters( bool applyRecursively )
-{
-  int n = m_S2ClCont.size();
-  for( int i=0; i<n; ++i ){
-    HodoCluster *cl = m_S2ClCont[i];
-    if(cl) cl->ReCalc(applyRecursively);
-  }
-  return true;
 }
 
 //______________________________________________________________________________
@@ -1422,11 +1543,47 @@ HodoAnalyzer::ReCalcBH2Clusters( bool applyRecursively )
 
 //______________________________________________________________________________
 bool
+HodoAnalyzer::ReCalcSACClusters( bool applyRecursively )
+{
+  int n = m_SACClCont.size();
+  for( int i=0; i<n; ++i ){
+    HodoCluster *cl = m_SACClCont[i];
+    if(cl) cl->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
 HodoAnalyzer::ReCalcTOFClusters( bool applyRecursively )
 {
   int n = m_TOFClCont.size();
   for( int i=0; i<n; ++i ){
     HodoCluster *cl = m_TOFClCont[i];
+    if(cl) cl->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::ReCalcHtTOFClusters( bool applyRecursively )
+{
+  int n = m_HtTOFClCont.size();
+  for( int i=0; i<n; ++i ){
+    HodoCluster *cl = m_HtTOFClCont[i];
+    if(cl) cl->ReCalc(applyRecursively);
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+HodoAnalyzer::ReCalcLACClusters( bool applyRecursively )
+{
+  int n = m_LACClCont.size();
+  for( int i=0; i<n; ++i ){
+    HodoCluster *cl = m_LACClCont[i];
     if(cl) cl->ReCalc(applyRecursively);
   }
   return true;
@@ -1448,73 +1605,21 @@ HodoAnalyzer::ReCalcLCClusters( bool applyRecursively )
 bool
 HodoAnalyzer::ReCalcAll( void )
 {
-  ReCalcT1Hits();
-  ReCalcT2Hits();
-  ReCalcT3Hits();
-  ReCalcT4Hits();
-  ReCalcS1Hits();
-  ReCalcS2Hits();
   ReCalcBH1Hits();
   ReCalcBH2Hits();
-  ReCalcBACHits();
-  ReCalcPVACHits();
   ReCalcSACHits();
-  ReCalcFACHits();
   ReCalcTOFHits();
+  ReCalcHtTOFHits();
+  ReCalcLACHits();
   ReCalcLCHits();
-  ReCalcT1Clusters();
-  ReCalcT2Clusters();
-  ReCalcT3Clusters();
-  ReCalcT4Clusters();
-  ReCalcS1Clusters();
-  ReCalcS2Clusters();
   ReCalcBH1Clusters();
   ReCalcBH2Clusters();
+  ReCalcSACClusters();
   ReCalcTOFClusters();
+  ReCalcHtTOFClusters();
+  ReCalcLACClusters();
   ReCalcLCClusters();
   return true;
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::TimeCutT1( double tmin, double tmax )
-{
-  TimeCut( m_T1ClCont, tmin, tmax );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::TimeCutT2( double tmin, double tmax )
-{
-  TimeCut( m_T2ClCont, tmin, tmax );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::TimeCutT3( double tmin, double tmax )
-{
-  TimeCut( m_T3ClCont, tmin, tmax );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::TimeCutT4( double tmin, double tmax )
-{
-  TimeCut( m_T4ClCont, tmin, tmax );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::TimeCutS1( double tmin, double tmax )
-{
-  TimeCut( m_S1ClCont, tmin, tmax );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::TimeCutS2( double tmin, double tmax )
-{
-  TimeCut( m_S2ClCont, tmin, tmax );
 }
 
 //______________________________________________________________________________
@@ -1533,6 +1638,13 @@ HodoAnalyzer::TimeCutBH2( double tmin, double tmax )
 
 //______________________________________________________________________________
 void
+HodoAnalyzer::TimeCutTOF( double tmin, double tmax )
+{
+  TimeCut( m_TOFClCont, tmin, tmax );
+}
+
+//______________________________________________________________________________
+void
 HodoAnalyzer::TimeCutBFT( double tmin, double tmax )
 {
   TimeCut( m_BFTClCont, tmin, tmax );
@@ -1547,6 +1659,13 @@ HodoAnalyzer::TimeCutSFT( int layer, double tmin, double tmax )
 
 //______________________________________________________________________________
 void
+HodoAnalyzer::TimeCutCFT( int layer, double tmin, double tmax )
+{
+  TimeCut( m_CFTClCont.at( layer ), tmin, tmax );
+}
+
+//______________________________________________________________________________
+void
 HodoAnalyzer::TimeCutSCH( double tmin, double tmax )
 {
   TimeCut( m_SCHClCont, tmin, tmax );
@@ -1554,9 +1673,18 @@ HodoAnalyzer::TimeCutSCH( double tmin, double tmax )
 
 //______________________________________________________________________________
 void
-HodoAnalyzer::TimeCutFBH( double tmin, double tmax )
+HodoAnalyzer::TimeCutFBT1( int layer, int UorD, double tmin, double tmax )
 {
-  TimeCut( m_FBHClCont, tmin, tmax );
+  if(UorD == 0) TimeCut( m_FBT1UClCont.at( layer ), tmin, tmax );
+  else          TimeCut( m_FBT1DClCont.at( layer ), tmin, tmax );
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::TimeCutFBT2( int layer, int UorD, double tmin, double tmax )
+{
+  if(UorD == 0) TimeCut( m_FBT2UClCont.at( layer ), tmin, tmax );
+  else          TimeCut( m_FBT2DClCont.at( layer ), tmin, tmax );
 }
 
 //______________________________________________________________________________
@@ -1608,6 +1736,30 @@ HodoAnalyzer::WidthCutSFT( int layer, double min_width, double max_width)
 }
 
 //______________________________________________________________________________
+void
+HodoAnalyzer::WidthCutCFT( int layer, double min_width, double max_width)
+{
+  //WidthCut( m_CFTClCont.at( layer ), min_width, max_width , true);
+  WidthCutR( m_CFTClCont.at( layer ), min_width, max_width , true);
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::WidthCutFBT1( int layer, int UorD, double min_width, double max_width)
+{
+  if(UorD==0) WidthCut( m_FBT1UClCont.at( layer ), min_width, max_width , true);
+  else        WidthCut( m_FBT1DClCont.at( layer ), min_width, max_width , true);
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::WidthCutFBT2( int layer, int UorD, double min_width, double max_width)
+{
+  if(UorD==0) WidthCut( m_FBT2UClCont.at( layer ), min_width, max_width , true);
+  else        WidthCut( m_FBT2DClCont.at( layer ), min_width, max_width , true);
+}
+
+//______________________________________________________________________________
 //Implementation of width cut for the cluster container
 template <typename TypeCluster>
 void
@@ -1635,4 +1787,138 @@ HodoAnalyzer::WidthCut( std::vector<TypeCluster>& cont,
   cont.resize(ValidCand.size());
   std::copy(ValidCand.begin(), ValidCand.end(), cont.begin());
   ValidCand.clear();
+}
+
+//______________________________________________________________________________
+//Implementation of width cut for the cluster container
+template <typename TypeCluster>
+void
+HodoAnalyzer::WidthCutR( std::vector<TypeCluster>& cont,
+			double min_width, double max_width,
+			bool adopt_nan)
+{
+  std::vector<TypeCluster> DeleteCand;
+  std::vector<TypeCluster> ValidCand;
+  std::size_t size = cont.size();
+  for( std::size_t i=0; i<size; ++i ){
+    double width = cont.at(i)->Width();
+    //double width = -cont.at(i)->minWidth();//reverse
+
+    if(isnan(width) && adopt_nan){
+      ValidCand.push_back(cont.at(i));
+    }else if(min_width < width && width < max_width){
+      ValidCand.push_back(cont.at(i));
+    }else{
+      DeleteCand.push_back(cont.at(i));
+    }
+  }
+
+  del::ClearContainer( DeleteCand );
+
+  cont.clear();
+  cont.resize(ValidCand.size());
+  std::copy(ValidCand.begin(), ValidCand.end(), cont.begin());
+  ValidCand.clear();
+}
+
+//______________________________________________________________________________
+void
+HodoAnalyzer::AdcCutCFT( int layer, double amin, double amax )
+{
+  AdcCut( m_CFTClCont.at( layer ), amin, amax );
+}
+
+//______________________________________________________________________________
+//Implementation of ADC cut for the cluster container
+template <typename TypeCluster>
+void
+HodoAnalyzer::AdcCut( std::vector<TypeCluster>& cont,
+		      double amin, double amax )
+{
+  std::vector<TypeCluster> DeleteCand;
+  std::vector<TypeCluster> ValidCand;
+  std::size_t size = cont.size();
+  for( std::size_t i=0; i<size; ++i ){
+    double adc = cont.at(i)->MaxAdcLow();
+    if(amin < adc && adc < amax){
+      ValidCand.push_back(cont.at(i));
+    }else{
+      DeleteCand.push_back(cont.at(i));
+    }
+  }
+
+  del::ClearContainer( DeleteCand );
+
+  cont.clear();
+  cont.resize(ValidCand.size());
+  std::copy(ValidCand.begin(), ValidCand.end(), cont.begin());
+  ValidCand.clear();
+}
+
+//______________________________________________________________________________
+namespace{
+  const UserParamMan& gUser = UserParamMan::GetInstance();
+};
+
+#define REQDE 0
+
+//______________________________________________________________________________
+BH2Cluster*
+HodoAnalyzer::GetTime0BH2Cluster()
+{
+  static const double MinDe = gUser.GetParameter("DeBH2", 0);
+  static const double MaxDe = gUser.GetParameter("DeBH2", 1);
+  static const double MinMt = gUser.GetParameter("MtBH2", 0);
+  static const double MaxMt = gUser.GetParameter("MtBH2", 1);
+
+  BH2Cluster* time0_cluster = NULL;
+  double min_mt = -9999;
+  for(const auto& cluster : m_BH2ClCont){
+    double mt = cluster->MeanTime();
+    double de = cluster->DeltaE();
+
+    if(true
+       && std::abs(mt) < std::abs(min_mt)
+       && MinMt < mt && mt < MaxMt
+#if REQDE
+       && (MinDe < de && de < MaxDe)
+#endif
+       ){
+      min_mt        = mt;
+      time0_cluster = cluster;
+    }// T0 selection
+  }// for
+
+  return time0_cluster;
+}
+
+//______________________________________________________________________________
+HodoCluster*
+HodoAnalyzer::GetBtof0BH1Cluster(double time0)
+{
+  static const double MinDe   = gUser.GetParameter("DeBH1", 0);
+  static const double MaxDe   = gUser.GetParameter("DeBH1", 1);
+  static const double MinBtof = gUser.GetParameter("BTOF",  0);
+  static const double MaxBtof = gUser.GetParameter("BTOF",  1);
+
+  HodoCluster* time0_cluster = NULL;
+  double min_btof            = -9999;
+  for(const auto& cluster : m_BH1ClCont){
+    double cmt  = cluster->CMeanTime();
+    double de   = cluster->DeltaE();
+    double btof = cmt - time0;
+
+    if(true
+       && std::abs(btof) < std::abs(min_btof)
+       && MinBtof < btof && btof < MaxBtof
+#if REQDE
+       && (MinDe < de && de < MaxDe)
+#endif
+       ){
+      min_btof      = btof;
+      time0_cluster = cluster;
+    }// T0 selection
+  }// for
+
+  return time0_cluster;
 }

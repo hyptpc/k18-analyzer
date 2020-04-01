@@ -19,7 +19,8 @@
 #include <std_ostream.hh>
 
 // #include "BH1Filter.hh"
-// #include "BH2Filter.hh"
+#include "BH1Match.hh"
+#include "BH2Filter.hh"
 #include "DCGeomMan.hh"
 #include "DCTdcCalibMan.hh"
 #include "DCDriftParamMan.hh"
@@ -30,7 +31,6 @@
 #include "K18TransMatrix.hh"
 #include "MatrixParamMan.hh"
 #include "MsTParamMan.hh"
-#include "SsdParamMan.hh"
 #include "UnpackerManager.hh"
 #include "UserParamMan.hh"
 
@@ -152,3 +152,4 @@ ConfMan::FilePath( const std::string& src ) const
   else
     return sConfDir + "+" + src;
 }
+

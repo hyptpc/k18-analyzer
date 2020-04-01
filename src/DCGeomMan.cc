@@ -290,6 +290,36 @@ DCGeomMan::CalcWirePosition( const std::string& key, double wire ) const
 }
 
 //______________________________________________________________________________
+double
+DCGeomMan::CalcCFTPositionR( int lnum, int seg ) const
+{
+  static const std::string funcname = "[DCGeomMan::CalcCFTPositionR()]";
+  //DCGeomRecord *pGeo = geomRecord_[lnum];
+  const DCGeomRecord *record = GetRecord(lnum);
+  if( record ){
+    return record->FiberPosR(seg);
+  }
+  else{
+    throw std::out_of_range(funcname+": No record" );
+  }
+}
+
+//______________________________________________________________________________
+double
+DCGeomMan::CalcCFTPositionPhi( int lnum, int seg ) const
+{
+  static const std::string funcname = "[DCGeomMan::calcCFTPositionPhi()]";
+  //DCGeomRecord *pGeo = geomRecord_[lnum];
+  const DCGeomRecord *record = GetRecord(lnum);
+  if( record ){
+    return record->FiberPosPhi(seg);
+  }
+  else{
+    throw std::out_of_range(funcname+": No record" );
+  }
+}
+
+//______________________________________________________________________________
 int
 DCGeomMan::CalcWireNumber( int lnum, double pos ) const
 {

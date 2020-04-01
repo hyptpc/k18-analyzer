@@ -744,7 +744,6 @@ KuramaTrack::SaveCalcPosition( const RKHitPointContainer &hpCont )
     thp->SetCalGPos( calhp.PositionInGlobal() );
     thp->SetCalGMom( calhp.MomentumInGlobal() );
     thp->SetCalLPos( calhp.PositionInLocal() );
-    thp->SetKaonFlag();
   }
   return true;
 }
@@ -883,7 +882,7 @@ KuramaTrack::GetTrajectoryLocalPosition( int layer, double & x, double & y ) con
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
-  try {
+   try {
     const RKcalcHitPoint& HP   = m_HitPointCont.HitPointOfLayer( layer );
     const ThreeVector&    gpos = HP.PositionInGlobal();
     ThreeVector lpos = gGeom.Global2LocalPos( layer,gpos );
