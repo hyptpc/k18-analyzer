@@ -68,12 +68,12 @@ struct Src
 
   int ititpc[MaxHits];
   int idtpc[MaxHits];
-  double xtpc[MaxHits];
-  double ytpc[MaxHits];
-  double ztpc[MaxHits];
-  double x0tpc[MaxHits];
-  double y0tpc[MaxHits];
-  double z0tpc[MaxHits];
+  double xtpc[MaxHits];//with resolution
+  double ytpc[MaxHits];//with resolution
+  double ztpc[MaxHits];//with resolution
+  double x0tpc[MaxHits];//w/o resolution
+  double y0tpc[MaxHits];//w/o resolution
+  double z0tpc[MaxHits];//w/o resolution
   double resoX[MaxHits];
   double pxtpc[MaxHits];
   double pytpc[MaxHits];
@@ -87,7 +87,17 @@ struct Src
   int laytpc[MaxHits];
   int rowtpc[MaxHits];
   int parentID[MaxHits];
+  int iPadtpc[MaxHits];//Pad number (0 origin)
 
+  double xtpc_pad[MaxHits];//pad center
+  double ytpc_pad[MaxHits];//pad center(dummy)
+  double ztpc_pad[MaxHits];//pad center
+
+  double dxtpc_pad[MaxHits];//x0tpc - xtpc
+  double dytpc_pad[MaxHits];//y0tpc - ytpc = 0 (dummy)
+  double dztpc_pad[MaxHits];//z0tpc - ztpc
+
+ 
 };
 
 namespace root
@@ -268,7 +278,13 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchStatus("laytpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("rowtpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("parentID", 1);
-
+  TTreeCont[kTPCGeant]->SetBranchStatus("iPadtpc", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("xtpc_pad", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("ytpc_pad", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("ztpc_pad", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("dxtpc_pad", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("dytpc_pad", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("dztpc_pad", 1);
 
 
   TTreeCont[kTPCGeant]->SetBranchAddress("evnum", &src.evnum);
@@ -295,6 +311,13 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchAddress("laytpc", src.laytpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("rowtpc", src.rowtpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("parentID", src.parentID);
+  TTreeCont[kTPCGeant]->SetBranchAddress("iPadtpc", src.iPadtpc);
+  TTreeCont[kTPCGeant]->SetBranchAddress("xtpc_pad", src.xtpc_pad);
+  TTreeCont[kTPCGeant]->SetBranchAddress("ytpc_pad", src.ytpc_pad);
+  TTreeCont[kTPCGeant]->SetBranchAddress("ztpc_pad", src.ztpc_pad); 
+  TTreeCont[kTPCGeant]->SetBranchAddress("dxtpc_pad", src.dxtpc_pad);
+  TTreeCont[kTPCGeant]->SetBranchAddress("dytpc_pad", src.dytpc_pad);
+  TTreeCont[kTPCGeant]->SetBranchAddress("dztpc_pad", src.dztpc_pad); 
 
 
   return true;
