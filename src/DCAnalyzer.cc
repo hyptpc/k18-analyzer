@@ -138,7 +138,8 @@ DCAnalyzer::DCAnalyzer( void )
     m_SdcInHC(NumOfLayersSdcIn+1),
     m_SdcOutHC(NumOfLayersSdcOut+1),
     m_SdcInExTC(NumOfLayersSdcIn+1),
-    m_SdcOutExTC(NumOfLayersSdcOut+1)
+    m_SdcOutExTC(NumOfLayersSdcOut+1),
+    m_TPCHC(NumOfLayersTPC+1)
 {
   for( int i=0; i<n_type; ++i ){
     m_is_decoded[i] = false;
@@ -290,10 +291,10 @@ DCAnalyzer::DecodeBcOutHits( RawData *rawData )
       for( int j=0; j<nhtdc; ++j ){
 	hit->SetTdcVal( rhit->GetTdc(j) );
       }
-	  for( int j=0; j<nhtrailing; ++j ){
-	    hit->SetTdcTrailing( rhit->GetTrailing(j) );
-	  }
-
+      for( int j=0; j<nhtrailing; ++j ){
+	hit->SetTdcTrailing( rhit->GetTrailing(j) );
+      }
+      
       if( hit->CalcDCObservables() )
 	m_BcOutHC[layer].push_back(hit);
       else
@@ -304,6 +305,61 @@ DCAnalyzer::DecodeBcOutHits( RawData *rawData )
   m_is_decoded[k_BcOut] = true;
   return true;
 }
+
+
+//______________________________________________________________________________
+bool
+DCAnalyzer::DecodeTPCHits(const int nhits, const int *iPad, const double *dx, const double *dz )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+  if( m_is_decoded[k_TPC] ){
+    hddaq::cout << "#D " << func_name << " "
+		<< "already decoded" << std::endl;
+    return true;
+  }
+
+  std::cout<<"DecodeTPCHits:: nhits="<<nhits<<std::endl;
+  for(int ihit=0; ihit<nhits; ++ihit){
+    std::cout<<"DecodeTPCHits:: ihits="<<ihit
+	     <<", iPad="<<iPad[ihit]
+	     <<", dx="<<dx[ihit]
+	     <<", dz="<<dz[ihit]<<std::endl;
+
+  }
+
+
+  ClearTPCHits();
+  /*
+  for( int layer=1; layer<=NumOfLayersBcOut; ++layer ){
+    const DCRHitContainer &RHitCont=rawData->GetBcOutRawHC(layer);
+    int nh = RHitCont.size();
+    for( int i=0; i<nh; ++i ){
+      DCRawHit *rhit  = RHitCont[i];
+      DCHit    *hit   = new DCHit( rhit->PlaneId()+PlOffsBc, rhit->WireId() );
+      int       nhtdc      = rhit->GetTdcSize();
+      int       nhtrailing = rhit->GetTrailingSize();
+      if(!hit) continue;
+      for( int j=0; j<nhtdc; ++j ){
+	hit->SetTdcVal( rhit->GetTdc(j) );
+      }
+      for( int j=0; j<nhtrailing; ++j ){
+	hit->SetTdcTrailing( rhit->GetTrailing(j) );
+      }
+      
+      if( hit->CalcDCObservables() )
+	m_BcOutHC[layer].push_back(hit);
+      else
+	delete hit;
+    }
+  }
+
+  m_is_decoded[k_BcOut] = true;
+
+  */
+  return true;
+}
+
 
 //______________________________________________________________________________
 bool
@@ -1411,6 +1467,13 @@ void
 DCAnalyzer::ClearBcOutHits( void )
 {
   del::ClearContainerAll( m_BcOutHC );
+}
+
+//______________________________________________________________________________
+void
+DCAnalyzer::ClearTPCHits( void )
+{
+  del::ClearContainerAll( m_TPCHC );
 }
 
 //______________________________________________________________________________

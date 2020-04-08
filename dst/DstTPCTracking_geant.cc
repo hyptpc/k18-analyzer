@@ -21,6 +21,8 @@
 #include "RootHelper.hh"
 #include "UserParamMan.hh"
 #include "HodoPHCMan.hh" 
+#include "DCAnalyzer.hh"
+#include "DCHit.hh"
 
 #include "DstHelper.hh"
 
@@ -195,6 +197,21 @@ dst::DstRead( int ievent )
   event.evnum = src.evnum;
   event.nttpc = src.nttpc;
   
+
+  
+
+  
+  
+
+
+  
+  
+
+  DCAnalyzer DCAna;
+  DCAna.DecodeTPCHits(src.nttpc, src.iPadtpc, src.dxtpc_pad, src.dztpc_pad);
+
+
+
 #if 0
   std::cout<<"[event]: "<<std::setw(6)<<ievent<<" ";
   std::cout<<"[nttpc]: "<<std::setw(2)<<src.nttpc<<" "<<std::endl;

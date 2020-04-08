@@ -56,6 +56,7 @@ private:
 		k_CFT,   k_CFT16_1st, k_CFT16_2nd,
 		k_CFT16pp_1st, k_CFT16pp_2nd,
 		// k_SftIn, k_SftOut,
+		k_TPC,
 		k_TOF, n_type };
   std::vector<bool>     m_is_decoded;
   std::vector<int>      m_much_combi;
@@ -68,6 +69,7 @@ private:
   std::vector<DCHitContainer>       m_CFTHC;
   std::vector<DCHitContainer>       m_CFT16HC;
   std::vector<DCHitContainer>       m_CFT16ppHC;
+  std::vector<DCHitContainer>       m_TPCHC;
 
   DCHitContainer        m_TOFHC;
   DCHitContainer        m_VtxPoint;
@@ -96,6 +98,7 @@ public:
   bool DecodeFiberHits( RawData* rawData );
   bool DecodeBcInHits( RawData* rawData );
   bool DecodeBcOutHits( RawData* rawData );
+  bool DecodeTPCHits( const int nhits, const int *iPad, const double *dx, const double *dz);
   bool DecodeSdcInHits( RawData* rawData );
   bool DecodeSdcOutHits( RawData* rawData, double ofs_dt=0.);
   bool DecodeTOFHits( const Hodo2HitContainer& HitCont );
@@ -221,6 +224,7 @@ protected:
   void ClearDCHits( void );
   void ClearBcInHits( void );
   void ClearBcOutHits( void );
+  void ClearTPCHits( void );
   void ClearSdcInHits( void );
   void ClearSdcOutHits( void );
 
