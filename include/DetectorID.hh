@@ -113,6 +113,8 @@ const int PlOffsSft        =   6;
 const int PlOffsSdcOut     =  30;
 const int PlOffsVP         =  20;
 const int PlOffsFht        =  80;
+const int PlOffsTPCX      = 600;
+const int PlOffsTPCY      = 650;
 
 const int NumOfLayersBc     = 6;
 const int NumOfLayersSFT    = 3;

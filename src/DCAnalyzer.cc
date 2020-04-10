@@ -37,6 +37,7 @@
 #include "RawData.hh"
 #include "UserParamMan.hh"
 #include "DeleteUtility.hh"
+#include "padHelper.hh"
 
 #define DefStatic
 #include "DCParameters.hh"
@@ -139,7 +140,7 @@ DCAnalyzer::DCAnalyzer( void )
     m_SdcOutHC(NumOfLayersSdcOut+1),
     m_SdcInExTC(NumOfLayersSdcIn+1),
     m_SdcOutExTC(NumOfLayersSdcOut+1),
-    m_TPCHC(NumOfLayersTPC+1)
+    m_TPCHC(NumOfLayersTPC*2+1)
 {
   for( int i=0; i<n_type; ++i ){
     m_is_decoded[i] = false;
@@ -309,7 +310,7 @@ DCAnalyzer::DecodeBcOutHits( RawData *rawData )
 
 //______________________________________________________________________________
 bool
-DCAnalyzer::DecodeTPCHits(const int nhits, const int *iPad, const double *dx, const double *dz )
+DCAnalyzer::DecodeTPCHits(const int nhits, const int *iPad, const double *dx, const double *dz, const double *y)
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
@@ -318,18 +319,40 @@ DCAnalyzer::DecodeTPCHits(const int nhits, const int *iPad, const double *dx, co
 		<< "already decoded" << std::endl;
     return true;
   }
+  ClearTPCHits();
 
   std::cout<<"DecodeTPCHits:: nhits="<<nhits<<std::endl;
   for(int ihit=0; ihit<nhits; ++ihit){
+    TVector3 Point = padHelper::getPoint(iPad[ihit]);
+    int laytpc = padHelper::getLayerID(iPad[ihit]);
+    int rowtpc = padHelper::getRowID(iPad[ihit]);
     std::cout<<"DecodeTPCHits:: ihits="<<ihit
 	     <<", iPad="<<iPad[ihit]
+	     <<", layer="<<laytpc
+	     <<", x="<<Point.x()
+	     <<", z="<<Point.z()
 	     <<", dx="<<dx[ihit]
-	     <<", dz="<<dz[ihit]<<std::endl;
+	     <<", dz="<<dz[ihit]
+	     <<", y="<<y[ihit]<<std::endl;
 
+    DCHit *hit_x   = new DCHit( laytpc+PlOffsTPCX, rowtpc);
+    hit_x->SetWirePosition(Point.x());
+    hit_x->SetZ(Point.z());
+    hit_x->SetTiltAngle(0.);
+    hit_x->SetDummyPair();
+    hit_x->SetHitNum(ihit);
+    m_TPCHC[laytpc].push_back(hit_x);
+
+    DCHit *hit_y   = new DCHit( laytpc+PlOffsTPCY, rowtpc);
+    hit_y->SetWirePosition(y[ihit]);
+    hit_y->SetZ(Point.z());
+    hit_y->SetTiltAngle(90.);
+    hit_y->SetDummyPair();
+    hit_y->SetHitNum(ihit);
+    m_TPCHC[laytpc].push_back(hit_y);
   }
+  m_is_decoded[k_TPC] = true;
 
-
-  ClearTPCHits();
   /*
   for( int layer=1; layer<=NumOfLayersBcOut; ++layer ){
     const DCRHitContainer &RHitCont=rawData->GetBcOutRawHC(layer);
@@ -1433,6 +1456,19 @@ DCAnalyzer::TrackSearchCFT16pp( void )
   return true;
 }
 
+//______________________________________________________________________________
+bool
+DCAnalyzer::TrackSearchTPC_straight( void )
+{
+  static const int MinLayer = gUser.GetParameter("MinLayerTPC");
+
+  track::LocalTrackSearchTPC_straight(m_TPCHC, m_TPCTC, MinLayer );
+
+  return true;
+}
+
+
+
 
 
 //______________________________________________________________________________
@@ -1449,6 +1485,7 @@ DCAnalyzer::ClearDCHits( void )
   ClearCFTHits();
   ClearCFT16Hits();
   ClearCFT16ppHits();
+  ClearTPCHits();
 }
 
 //______________________________________________________________________________
@@ -1469,12 +1506,6 @@ DCAnalyzer::ClearBcOutHits( void )
   del::ClearContainerAll( m_BcOutHC );
 }
 
-//______________________________________________________________________________
-void
-DCAnalyzer::ClearTPCHits( void )
-{
-  del::ClearContainerAll( m_TPCHC );
-}
 
 //______________________________________________________________________________
 void
@@ -1524,6 +1555,15 @@ DCAnalyzer::ClearCFT16ppHits( void )
 {
   del::ClearContainerAll( m_CFT16ppHC );
 }
+
+//______________________________________________________________________________
+void
+DCAnalyzer::ClearTPCHits( void )
+{
+  del::ClearContainerAll( m_TPCHC );
+}
+
+
 
 //______________________________________________________________________________
 #if UseBcIn
@@ -1613,6 +1653,13 @@ void
 DCAnalyzer::ClearTracksCFT16pp( void )
 {
   del::ClearContainer( m_CFT16ppTC );
+}
+
+//______________________________________________________________________________
+void
+DCAnalyzer::ClearTracksTPC( void )
+{
+  del::ClearContainer( m_TPCTC );
 }
 
 //______________________________________________________________________________

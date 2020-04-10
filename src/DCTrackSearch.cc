@@ -601,6 +601,25 @@ namespace
     return true;
   }
 
+  //______________________________________________________________________________
+  bool
+  MakeTPCHitCluster( const DCHitContainer& HitCont,
+		     ClusterList& Cont,
+		     int xy )
+  {
+    int nh = HitCont.size();
+    for( int i=0; i<nh; ++i ){
+      if( i%2!=xy ) continue;
+      DCHit *hit = HitCont[i];
+      if( !hit ) continue;
+      double wp = hit->GetWirePosition();
+      Cont.push_back( new DCPairHitCluster( new DCLTrackHit( hit, wp, 0 ) ) );
+    }
+    return true;
+  }
+
+
+
   bool MakeCFTHitCluster( const DCHitContainer & HC,
 			  std::vector <DCPairHitCluster *> & Cont,
 			  bool honeycomb=false )
@@ -1947,8 +1966,8 @@ namespace track
 
     IndexList nCombi( npp );
     for( int i=0; i<npp; ++i ){
-	int n = CandCont[i].size();
-	nCombi[i] = n>MaxNumOfCluster ? 0 : n;
+      int n = CandCont[i].size();
+      nCombi[i] = n>MaxNumOfCluster ? 0 : n;
     }
 
     bool status = true;
@@ -2135,9 +2154,9 @@ namespace track
   //______________________________________________________________________________
   int /* Local Track Search CFT */
   LocalTrackSearchCFTppPhi( const std::vector<DCHitContainer>& HC,
-		       const DCPairPlaneInfo *PpInfo,
-		       int npp, std::vector<DCLocalTrack*>& TrackCont,
-		       int MinNumOfHits )
+			    const DCPairPlaneInfo *PpInfo,
+			    int npp, std::vector<DCLocalTrack*>& TrackCont,
+			    int MinNumOfHits )
   {
     static const std::string func_name("["+class_name+"::"+__func__+"()]");
     const double MaxChi2CFT1st = gUser.GetParameter("MaxChi2CFT1st");
@@ -2263,6 +2282,107 @@ namespace track
  
     return status? TrackCont.size() : -1;      
   }
+
+
+
+  //______________________________________________________________________________
+  int
+  LocalTrackSearchTPC_straight( const std::vector<DCHitContainer>& TPCHC,
+				std::vector<DCLocalTrack*>& TrackCont,
+				int MinNumOfHits /*=4*/ )
+  {
+
+   
+    //     static const std::string func_name("["+class_name+"::"+__func__+"(TOF)]");
+    
+    //     std::vector<ClusterList> CandCont(npp);
+
+    //     for( int i=0; i<npp-2; ++i ){
+    //       bool ppFlag    = PpInfo[i].pair;
+    //       bool honeycomb = PpInfo[i].honeycomb;
+    //       int  layer1    = PpInfo[i].id1;
+    //       int  layer2    = PpInfo[i].id2;
+    //       if( ppFlag  ){ //DC2, 3
+    // 	MakePairPlaneHitCluster( SdcOutHC[layer1], SdcOutHC[layer2],
+    // 				 PpInfo[i].CellSize, CandCont[i], honeycomb );
+    //       }else{ //FBT
+    // 	MakeMWPCPairPlaneHitCluster( SdcOutHC[layer1], CandCont[i] );
+    // 	MakeMWPCPairPlaneHitCluster( SdcOutHC[layer2], CandCont[i] );
+    //       }
+    //     }
+
+    //     // TOF
+    //     MakeTOFHitCluster( TOFHC, CandCont[npp-2], 0 );
+    //     MakeTOFHitCluster( TOFHC, CandCont[npp-1], 1 );
+
+    //     IndexList nCombi(npp);
+    //     for( int i=0; i<npp; ++i ){
+    //       int n = CandCont[i].size();
+    //       nCombi[i] = n>MaxNumOfCluster ? 0 : n;
+    //     }
+
+    //     bool status = true;
+    //     std::vector<IndexList> CombiIndex = MakeIndex( npp, nCombi, status );
+
+    // #if 0
+    //     DebugPrint( nCombi, CandCont, func_name );
+    // #endif
+
+    //     for( int i=0, n=CombiIndex.size(); i<n; ++i ){
+    //       DCLocalTrack *track = MakeTrack( CandCont, CombiIndex[i] );
+    //       if( !track ) continue;
+
+    //       static const int IdTOF_UX = gGeom.GetDetectorId("TOF-UX");
+    //       static const int IdTOF_UY = gGeom.GetDetectorId("TOF-UY");
+    //       static const int IdTOF_DX = gGeom.GetDetectorId("TOF-DX");
+    //       static const int IdTOF_DY = gGeom.GetDetectorId("TOF-DY");
+     
+    //       bool TOFSegXYMatching =
+    // 	( track->GetWire(IdTOF_UX)==track->GetWire(IdTOF_UY) ) ||
+    // 	( track->GetWire(IdTOF_DX)==track->GetWire(IdTOF_DY) );
+      
+    //       int Track[20]={0};
+    //       int layer;
+    //       for( int i=0; i<(track->GetNHit()); ++i){
+    // 	layer=track->GetHit(i)->GetLayer();
+    // 	Track[layer]=1;
+    //       }
+
+    //       bool FBT = 
+    // 	( Track[80]==1 && Track[82]==1 ) || ( Track[81]==1 && Track[83]==1 ) ||
+    // 	( Track[84]==1 && Track[86]==1 ) || ( Track[85]==1 && Track[87]==1 ) ;
+      
+    //       bool DC23x_off =
+    // 	( Track[31]==0 && Track[32]==0 && Track[37]==0 && Track[38]==0 );
+      
+
+    //       if( TOFSegXYMatching &&
+    // 	  //FBT&&
+    // 	  track->GetNHit()>=MinNumOfHits+2   &&
+    // 	  track->GetNHitY() >= 2             &&
+    // 	  track->DoFit()                     &&
+    // 	  track->GetChiSquare()<MaxChisquare )
+    // 	{
+    // 	  TrackCont.push_back( track );
+    // 	}
+    //       else
+    // 	{
+    // 	  delete track;
+    // 	}
+    //     }
+
+    //     FinalizeTrack( func_name, TrackCont, DCLTrackComp(), CandCont );
+    //     return status? TrackCont.size() : -1;
+
+    return 0;
+  }
+
+
+
+
+
+
+
 
   //For MWPC
   //_____________________________________________________________________________

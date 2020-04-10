@@ -96,6 +96,11 @@ protected:
   double m_pos_z;
   double m_pos_r;
   double m_time;
+  
+  ///// for TPC
+  int    m_hitnum;
+  
+
 
   mutable std::vector <DCLTrackHit *> m_register_container;
 
@@ -124,6 +129,10 @@ public:
 
   ///// for TOF
   void SetZ( double z ) { m_z = z; }
+
+  ///// for TPC
+  void SetHitNum( int hitnum ) { m_hitnum = hitnum; }
+ 
 
   ///// For E40 Acrylic TOF
   void SetOfsdT( double ofs) { m_ofs_dt = ofs;}

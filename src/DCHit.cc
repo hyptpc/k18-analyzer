@@ -63,7 +63,8 @@ DCHit::DCHit( int layer, double wire )
     m_wpos(-9999.), m_angle(0.),
     m_cluster_size(0.),
     m_mwpc_flag(false),
-    m_ofs_dt(0.)
+    m_ofs_dt(0.),
+    m_hitnum(0)
 {
   debug::ObjectCounter::increase(class_name);
 }

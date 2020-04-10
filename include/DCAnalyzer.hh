@@ -81,6 +81,9 @@ private:
   DCLocalTrackContainer m_CFTTC;
   DCLocalTrackContainer m_CFT16TC;
   DCLocalTrackContainer m_CFT16ppTC;
+  
+  DCLocalTrackContainer m_TPCTC;
+
 
   K18TrackU2DContainer  m_K18U2DTC;
   K18TrackD2UContainer  m_K18D2UTC;
@@ -98,7 +101,7 @@ public:
   bool DecodeFiberHits( RawData* rawData );
   bool DecodeBcInHits( RawData* rawData );
   bool DecodeBcOutHits( RawData* rawData );
-  bool DecodeTPCHits( const int nhits, const int *iPad, const double *dx, const double *dz);
+  bool DecodeTPCHits( const int nhits, const int *iPad, const double *dx, const double *dz, const double *y);
   bool DecodeSdcInHits( RawData* rawData );
   bool DecodeSdcOutHits( RawData* rawData, double ofs_dt=0.);
   bool DecodeTOFHits( const Hodo2HitContainer& HitCont );
@@ -132,6 +135,7 @@ public:
   bool TrackSearchCFT( void );
   bool TrackSearchCFT16( void );
   bool TrackSearchCFT16pp( void );
+  bool TrackSearchTPC_straight( void );
 
   int GetNtracksBcIn( void )   const { return m_BcInTC.size(); }
   int GetNtracksBcOut( void )  const { return m_BcOutTC.size(); }
@@ -224,7 +228,6 @@ protected:
   void ClearDCHits( void );
   void ClearBcInHits( void );
   void ClearBcOutHits( void );
-  void ClearTPCHits( void );
   void ClearSdcInHits( void );
   void ClearSdcOutHits( void );
 
@@ -235,6 +238,9 @@ protected:
   void ClearTOFHits( void );
   void ClearVtxHits( void );
 
+  void ClearTPCHits( void );
+
+
   void ClearTracksBcIn( void );
   void ClearTracksBcOut( void );
   void ClearTracksSdcIn( void );
@@ -242,6 +248,7 @@ protected:
   void ClearTracksCFT( void );
   void ClearTracksCFT16( void );
   void ClearTracksCFT16pp( void );
+  void ClearTracksTPC( void );
   void ClearTracksBcOutSdcIn( void );
   void ClearTracksSdcInSdcOut( void );
   void ClearK18TracksU2D( void );

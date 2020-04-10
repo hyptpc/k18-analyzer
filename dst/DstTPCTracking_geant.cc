@@ -196,19 +196,12 @@ dst::DstRead( int ievent )
   
   event.evnum = src.evnum;
   event.nttpc = src.nttpc;
-  
-
-  
-
-  
-  
-
-
-  
+   
   
 
   DCAnalyzer DCAna;
-  DCAna.DecodeTPCHits(src.nttpc, src.iPadtpc, src.dxtpc_pad, src.dztpc_pad);
+  DCAna.DecodeTPCHits(src.nttpc, src.iPadtpc, src.dxtpc_pad, src.dztpc_pad, src.y0tpc);
+  DCAna.TrackSearchTPC_straight();
 
 
 

@@ -97,6 +97,13 @@ namespace track
 			   int npp, std::vector<DCLocalTrack*>& trackCont,
 			   int MinNumOfHits=3 );  
 
+  //______________________________________________________________________________
+  int LocalTrackSearchTPC_straight( const std::vector<DCHitContainer>& TPCHC,
+				    std::vector<DCLocalTrack*>& TrackCont,
+				    int MinNumOfHits=4 );
+
+
+
 
 }
 
