@@ -200,8 +200,8 @@ dst::DstRead( int ievent )
   
 
   DCAnalyzer DCAna;
-  DCAna.DecodeTPCHits(src.nttpc, src.iPadtpc, src.dxtpc_pad, src.dztpc_pad, src.y0tpc);
-  DCAna.TrackSearchTPC_straight();
+  DCAna.DecodeTPCHits_geant(src.nttpc, src.iPadtpc, src.dxtpc_pad, src.dztpc_pad, src.y0tpc);
+  DCAna.TrackSearchTPC();
 
 
 

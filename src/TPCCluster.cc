@@ -1,0 +1,121 @@
+/**
+ *  file: TPCCluster.cc
+ *  date: 2020.04.11
+ *
+ */
+
+#include "TPCCluster.hh"
+
+#include <iostream>
+#include <iterator>
+
+#include "std_ostream.hh"
+
+#include "DebugCounter.hh"
+#include "TPCPadHelper.hh"
+
+namespace
+{
+  const std::string& class_name("TPCCluster");
+}
+
+//______________________________________________________________________________
+TPCCluster::TPCCluster( int layer, TPCHitContainer& HitCont )
+  : m_layer_id( layer ),
+    m_pos_calculated( false )
+{
+  std::copy( HitCont.begin(), HitCont.end(), m_tpchits.begin() );
+  debug::ObjectCounter::increase(class_name);
+}
+
+//______________________________________________________________________________
+TPCCluster::~TPCCluster( void )
+{
+  ClearTPCHits();
+  debug::ObjectCounter::decrease(class_name);
+}
+
+//______________________________________________________________________________
+void 
+TPCCluster::ClearTPCHits( void )
+{
+  m_tpchits.clear();
+  m_charge=0;
+}
+
+//______________________________________________________________________________
+void 
+TPCCluster::AddTPCHit( TPCHit* hit )
+{
+  if( hit ){
+    m_tpchits.push_back(hit);
+    m_charge+=hit->Charge();
+    m_pos_calculated = false;
+  }
+}
+
+//______________________________________________________________________________
+void
+TPCCluster::CalculateWeightedMean( void )
+{
+  if( m_pos_calculated ) return;
+  double x=0, y=0, z=0, charge=0;
+  for(int hiti=0; hiti<m_tpchits.size(); hiti++) {
+    x+=m_tpchits[hiti]->X()*m_tpchits[hiti]->Charge();
+    y+=m_tpchits[hiti]->Y()*m_tpchits[hiti]->Charge();
+    z+=m_tpchits[hiti]->Z()*m_tpchits[hiti]->Charge();
+    charge+=m_tpchits[hiti]->Charge();
+  }
+  if( charge )
+    m_pos.SetXYZ( x/charge, y/charge, z/charge );
+  else 
+    m_pos.SetXYZ( 0, 0, 0 ); 
+  m_pos_calculated = true;
+}
+
+//______________________________________________________________________________
+TVector3 
+TPCCluster::Position( void )
+{
+  if(!m_pos_calculated) CalculateWeightedMean();
+  return m_pos;
+}
+
+//______________________________________________________________________________
+double 
+TPCCluster::X( void )
+{
+  if(!m_pos_calculated) CalculateWeightedMean();
+  return m_pos.X();
+}
+
+//______________________________________________________________________________
+double 
+TPCCluster::Y( void )
+{
+  if(!m_pos_calculated) CalculateWeightedMean();
+  return m_pos.Y();
+}
+
+//______________________________________________________________________________
+double 
+TPCCluster::Z( void )
+{
+  if(!m_pos_calculated) CalculateWeightedMean();
+  return m_pos.Z();
+}
+
+//______________________________________________________________________________
+void
+TPCCluster::Print( const std::string& arg ) const
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  std::cerr << func_name << " " << arg << std::endl
+	      << "layerID= "  << m_layer_id  << std::endl
+	      << "(x,y,z)= (" << m_pos.X() <<
+	      		   ","<< m_pos.Y() <<
+			   ","<< m_pos.Z()<<")" << std::endl
+	      << "charge = "  << m_charge  << std::endl;
+  std::cerr << std::endl;
+}
+

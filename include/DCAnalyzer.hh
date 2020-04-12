@@ -21,6 +21,10 @@ class MWPCCluster;
 class FiberCluster;
 class HodoCluster;
 
+class TPCHit;
+class TPCCluster;
+class TPCLocalTrack;
+
 class Hodo1Hit;
 class Hodo2Hit;
 class HodoAnalyzer;
@@ -31,6 +35,10 @@ typedef std::vector<DCLocalTrack*> DCLocalTrackContainer;
 typedef std::vector<K18TrackU2D*>  K18TrackU2DContainer;
 typedef std::vector<K18TrackD2U*>  K18TrackD2UContainer;
 typedef std::vector<KuramaTrack*>  KuramaTrackContainer;
+
+typedef std::vector<TPCHit*>        TPCHitContainer;
+typedef std::vector<TPCCluster*>    TPCClusterContainer;
+typedef std::vector<TPCLocalTrack*> TPCLocalTrackContainer;
 
 typedef std::vector<Hodo1Hit*> Hodo1HitContainer;
 typedef std::vector<Hodo2Hit*> Hodo2HitContainer;
@@ -70,6 +78,8 @@ private:
   std::vector<DCHitContainer>       m_CFT16HC;
   std::vector<DCHitContainer>       m_CFT16ppHC;
   std::vector<DCHitContainer>       m_TPCHC;
+  std::vector<TPCHitContainer>      m_TPCHC_;
+  std::vector<TPCClusterContainer>  m_TPCClCont;
 
   DCHitContainer        m_TOFHC;
   DCHitContainer        m_VtxPoint;
@@ -83,6 +93,7 @@ private:
   DCLocalTrackContainer m_CFT16ppTC;
   
   DCLocalTrackContainer m_TPCTC;
+  TPCLocalTrackContainer m_TPCTC_;
 
 
   K18TrackU2DContainer  m_K18U2DTC;
@@ -101,7 +112,8 @@ public:
   bool DecodeFiberHits( RawData* rawData );
   bool DecodeBcInHits( RawData* rawData );
   bool DecodeBcOutHits( RawData* rawData );
-  bool DecodeTPCHits( const int nhits, const int *iPad, const double *dx, const double *dz, const double *y);
+  bool DecodeTPCHits_geant( const int nhits, const int *iPad, const double *dx, const double *dz, const double *y);
+  bool DecodeTPCHits( RawData* rawData );
   bool DecodeSdcInHits( RawData* rawData );
   bool DecodeSdcOutHits( RawData* rawData, double ofs_dt=0.);
   bool DecodeTOFHits( const Hodo2HitContainer& HitCont );
@@ -112,6 +124,8 @@ public:
   bool DecodeCFT16ppHits( RawData* rawData , DCLocalTrack* tp , int i );
   int  ClusterizeMWPCHit( const DCHitContainer& hits,
 			  MWPCClusterContainer& clusters );
+  bool  ClusterizeTPC( int layerID, const TPCHitContainer& HitCont,
+			  TPCClusterContainer& ClCont );
 
   inline const DCHitContainer& GetTempBcInHC( int layer ) const;
   inline const DCHitContainer& GetBcInHC( int layer ) const;
@@ -122,6 +136,9 @@ public:
   inline const DCHitContainer& GetCFTHC( int layer ) const;
   inline const DCHitContainer& GetCFT16HC( int layer ) const;
   inline const DCHitContainer& GetCFT16ppHC( int layer ) const;
+  
+  inline const TPCHitContainer& GetTPCHC( int layer ) const;
+  inline const TPCClusterContainer& GetTPCClCont( int layer ) const;
 
   bool TrackSearchBcIn( void );
   bool TrackSearchBcIn( const std::vector< std::vector<DCHitContainer> >& hc );
@@ -135,7 +152,7 @@ public:
   bool TrackSearchCFT( void );
   bool TrackSearchCFT16( void );
   bool TrackSearchCFT16pp( void );
-  bool TrackSearchTPC_straight( void );
+  bool TrackSearchTPC( void );
 
   int GetNtracksBcIn( void )   const { return m_BcInTC.size(); }
   int GetNtracksBcOut( void )  const { return m_BcOutTC.size(); }
@@ -239,7 +256,7 @@ protected:
   void ClearVtxHits( void );
 
   void ClearTPCHits( void );
-
+  void ClearTPCClusters( void );
 
   void ClearTracksBcIn( void );
   void ClearTracksBcOut( void );
@@ -297,6 +314,14 @@ DCAnalyzer::GetBcOutHC( int layer ) const
 {
   if( layer>NumOfLayersBcOut+1 ) layer=0;
   return m_BcOutHC[layer];
+}
+
+//______________________________________________________________________________
+inline const TPCHitContainer&
+DCAnalyzer::GetTPCHC( int layer ) const
+{
+  if( layer>NumOfLayersTPC ) layer=NumOfLayersTPC;
+  return m_TPCHC_[layer];
 }
 
 //______________________________________________________________________________
@@ -492,6 +517,14 @@ DCAnalyzer::GetClusterMWPC( int layer ) const
 {
   if( layer>NumOfLayersBcIn ) layer=0;
   return m_MWPCClCont[layer];
+}
+
+//______________________________________________________________________________
+inline const TPCClusterContainer&
+DCAnalyzer::GetTPCClCont( int layer ) const
+{
+  if( layer>NumOfLayersTPC ) layer=NumOfLayersTPC;
+  return m_TPCClCont[layer];
 }
 
 #endif
