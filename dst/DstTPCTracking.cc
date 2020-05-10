@@ -125,7 +125,6 @@ main( int argc, char **argv )
 bool
 dst::InitializeEvent( void )
 {
-  RawData *rawData;
   event.status   = 0;
   event.evnum = 0;
   event.nhittpc = 0; 
@@ -189,7 +188,7 @@ dst::DstRead( int ievent )
 
     for(int hiti=0; hiti<src[coboi].nhittpc; hiti++) 
     {
-      rawData->AddTPCHits( src[coboi].padidtpc[hiti], 
+      rawData->DecodeTPCHits( src[coboi].padidtpc[hiti], 
 	  		   src[coboi].ytpc[hiti], 
 			   src[coboi].chargetpc[hiti] );
     }

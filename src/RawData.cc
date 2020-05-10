@@ -251,7 +251,6 @@ RawData::ClearAll( void )
 
   del::ClearContainerAll( m_BcInRawHC );
   del::ClearContainerAll( m_BcOutRawHC );
-  del::ClearContainerAll( m_TPCRawHC );
   del::ClearContainerAll( m_SdcInRawHC );
   del::ClearContainerAll( m_SdcOutRawHC );
 
@@ -621,7 +620,7 @@ RawData::DecodeHits( void )
 
 //______________________________________________________________________________
 bool
-RawData::AddTPCHits( int padid, double y, double charge )
+RawData::DecodeTPCHits( int padid, double y, double charge )
 {
   del::ClearContainerAll( m_TPCRawHC );
   int layer = tpc::getLayerID(padid);

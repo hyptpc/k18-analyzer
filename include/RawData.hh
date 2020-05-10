@@ -48,11 +48,11 @@ private:
   std::vector<HodoRHitContainer> m_FBT1RawHC;
   std::vector<HodoRHitContainer> m_FBT2RawHC;
 
-  std::vector<DCRHitContainer> m_BcInRawHC;
-  std::vector<DCRHitContainer> m_BcOutRawHC;
-  std::vector<TPCRHitContainer>m_TPCRawHC;
-  std::vector<DCRHitContainer> m_SdcInRawHC;
-  std::vector<DCRHitContainer> m_SdcOutRawHC;
+  std::vector<DCRHitContainer>  m_BcInRawHC;
+  std::vector<DCRHitContainer>  m_BcOutRawHC;
+  std::vector<TPCRHitContainer> m_TPCRawHC;
+  std::vector<DCRHitContainer>  m_SdcInRawHC;
+  std::vector<DCRHitContainer>  m_SdcOutRawHC;
   
 
   HodoRHitContainer m_ScalerRawHC;
@@ -65,7 +65,7 @@ public:
   void                     ClearAll( void );
   bool                     DecodeHits( void );
   bool                     DecodeCalibHits( void );
-  bool                     AddTPCHits( int padid, double y, double charge );
+  bool                     DecodeTPCHits( int padid, double y, double charge );
 
   const HodoRHitContainer& GetBH1RawHC( void ) const;
   const HodoRHitContainer& GetBH2RawHC( void ) const;

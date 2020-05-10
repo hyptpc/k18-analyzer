@@ -21,6 +21,7 @@ typedef std::vector<TPCHit*>       TPCHitContainer;
 class TPCCluster
 {
 public:
+  TPCCluster( double x, double y, double z, double de ); // for MC data
   TPCCluster( int layer, TPCHitContainer& HitCont );
   ~TPCCluster( void );
 

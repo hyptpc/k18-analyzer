@@ -29,6 +29,15 @@ TPCCluster::TPCCluster( int layer, TPCHitContainer& HitCont )
 }
 
 //______________________________________________________________________________
+TPCCluster::TPCCluster( double x, double y, double z, double de )
+  : m_pos_calculated( true ) // for MC data
+{
+  m_pos.SetXYZ(x,y,z);
+  m_charge = de;
+  m_layer_id = tpc::getLayerID( tpc::findPadID(z,x) );
+}
+
+//______________________________________________________________________________
 TPCCluster::~TPCCluster( void )
 {
   ClearTPCHits();

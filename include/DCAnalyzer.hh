@@ -112,7 +112,10 @@ public:
   bool DecodeFiberHits( RawData* rawData );
   bool DecodeBcInHits( RawData* rawData );
   bool DecodeBcOutHits( RawData* rawData );
-  bool DecodeTPCHits_geant( const int nhits, const int *iPad, const double *dx, const double *dz, const double *y);
+  bool DecodeTPCHits_geant( const int nhits, 
+     			    const double *x, const double *y, const double *z, const double *de );
+  bool DecodeTPCHits_geant( const int nhits, 
+   			    const int *iPad, const double *dx, const double *dz, const double *y);
   bool DecodeTPCHits( RawData* rawData );
   bool DecodeSdcInHits( RawData* rawData );
   bool DecodeSdcOutHits( RawData* rawData, double ofs_dt=0.);
@@ -197,6 +200,7 @@ public:
   int GetNTracksK18U2D( void ) const { return m_K18U2DTC.size(); }
   int GetNTracksK18D2U( void ) const { return m_K18D2UTC.size(); }
   int GetNTracksKurama( void ) const { return m_KuramaTC.size(); }
+  int GetNTracksTPC( void ) const { return m_TPCTC_.size(); }
 
   inline K18TrackU2D  * GetK18TrackU2D( int i ) const;
   inline K18TrackD2U  * GetK18TrackD2U( int i ) const;

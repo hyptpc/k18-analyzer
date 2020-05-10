@@ -19,7 +19,7 @@ class  MWPCCluster;
 class  TPCCluster;
 class  TPCLocalTrack;
 
-typedef std::vector<TPCCluster*>       TPCClusterList;
+//typedef std::vector<TPCCluster*>       TPCClusterList;
 typedef std::vector<DCPairHitCluster*> ClusterList;
 typedef std::vector<int>               IndexList;
 
@@ -102,6 +102,10 @@ namespace track
 
   //______________________________________________________________________________
   int LocalTrackSearchTPC( const std::vector<TPCHitContainer>& TPCHC,
+			   std::vector<TPCLocalTrack*>& TrackCont,
+			   int MinNumOfHits=8 );
+  //______________________________________________________________________________
+  int LocalTrackSearchTPC( const std::vector<TPCClusterContainer>& TPCClCont,
 			   std::vector<TPCLocalTrack*>& TrackCont,
 			   int MinNumOfHits=8 );
 
