@@ -12,6 +12,7 @@
 // Counters ___________________________________________________________
 const int DetIdBH1      =  1;
 const int DetIdBH2      =  2;
+const int DetIdE42BH2      =  4;
 const int DetIdSCH      =  7;
 const int DetIdTOF      =  8;
 const int DetIdSAC      =  9;
@@ -20,6 +21,7 @@ const int DetIdHtTOF    = 11; // high threshold TOF
 const int DetIdLAC      = 12;
 const int NumOfSegBH1   = 11;
 const int NumOfSegBH2   =  8;
+const int NumOfSegE42BH2   =  15;
 const int NumOfSegSCH   = 64;
 const int NumOfSegTOF   = 24;
 const int NumOfSegSAC   = 4;

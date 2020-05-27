@@ -158,6 +158,7 @@ RawData::RawData( void )
   : m_is_decoded(false),
     m_BH1RawHC(),
     m_BH2RawHC(),
+    m_E42BH2RawHC(),
     m_SACRawHC(),
     m_TOFRawHC(),
     m_HtTOFRawHC(),
@@ -199,6 +200,7 @@ RawData::ClearAll( void )
 
   del::ClearContainer( m_BH1RawHC );
   del::ClearContainer( m_BH2RawHC );
+  del::ClearContainer( m_E42BH2RawHC );
   del::ClearContainer( m_SACRawHC );
   del::ClearContainer( m_TOFRawHC );
   del::ClearContainer( m_HtTOFRawHC );
@@ -264,6 +266,8 @@ RawData::DecodeHits( void )
   DecodeHodo( DetIdBH1, NumOfSegBH1, kBothSide, m_BH1RawHC );
   // BH2
   DecodeHodo( DetIdBH2, NumOfSegBH2, kBothSide, m_BH2RawHC );
+  // BH2
+  DecodeHodo( DetIdE42BH2, NumOfSegE42BH2, kBothSide, m_E42BH2RawHC );
   // SAC
   DecodeHodo( DetIdSAC, NumOfSegSAC, kOneSide,  m_SACRawHC );
   // TOF

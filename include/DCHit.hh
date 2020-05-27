@@ -193,6 +193,9 @@ public:
   ///// for TOF
   double GetZ( void ) const { return m_z; }
 
+  ///// for TPC
+  double GetHitNum( void ) { return m_hitnum; }
+
   ///// for CFT
   double GetMeanSeg    ( void ) const { return m_meanseg; } 
   double GetMaxSeg     ( void ) const { return m_maxseg;  } 

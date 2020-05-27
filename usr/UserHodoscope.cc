@@ -106,6 +106,14 @@ struct Event
   double bh2da[NumOfSegBH2];
   double bh2dt[NumOfSegBH2][MaxDepth];
 
+  int e42bh2nhits;
+  int e42bh2hitpat[MaxHits];
+  double e42bh2ua[NumOfSegBH2];
+  double e42bh2ut[NumOfSegBH2][MaxDepth];
+  double e42bh2da[NumOfSegBH2];
+  double e42bh2dt[NumOfSegBH2][MaxDepth];
+
+
   int fpga_bh2mtnhits;
   int fpga_bh2mthitpat[MaxHits];
   double fpga_bh2mt[NumOfSegBH2][MaxDepth];
@@ -252,7 +260,8 @@ namespace root
     SACHid  = 30000,
     TOFHid  = 40000,
     LCHid   = 50000,
-    HtTOFHid= 60000
+    HtTOFHid= 60000, 
+    E42BH2Hid  = 70000,
   };
 }
 
@@ -450,6 +459,78 @@ EventHodoscope::ProcessingNormal( void )
     HF1( BH2Hid +2, double(nh1) ); HF1( BH2Hid +4, double(nh2) );
     event.bh2nhits = bh2_nhits;
   }
+
+
+  // E42 BH2
+  {
+    int e42bh2_nhits = 0;
+    const HodoRHitContainer &cont = rawData->GetE42BH2RawHC();
+    int nh = cont.size();
+    HF1( E42BH2Hid, double(nh) );
+    int nh1 = 0, nh2 = 0;
+    for( int i=0; i<nh; ++i ){
+      HodoRawHit *hit = cont[i];
+      int seg = hit->SegmentId()+1;
+      HF1( E42BH2Hid +1, seg-0.5 );
+      int Au = hit->GetAdcUp(), Ad = hit->GetAdcDown();
+      int Tu = hit->GetTdcUp(), Td = hit->GetTdcDown();
+      event.e42bh2ua[seg-1] = Au;
+      event.e42bh2da[seg-1] = Ad;
+
+      //Up
+      {
+	HF1( E42BH2Hid +100*seg +1, double(Au) );
+	if( Tu>0 ){
+
+	  HF1( E42BH2Hid +100*seg +5, double(Au) );
+	}
+	else{
+	  HF1( E42BH2Hid +100*seg +7, double(Au) );
+	}
+	
+	int n_mhit = hit->GetSizeTdcUp();
+	for(int m = 0; m<n_mhit; ++m){
+	  int T = hit->GetTdcUp(m);
+	  if(T > 0) HF1( E42BH2Hid +100*seg +3, double(T) );
+	  event.e42bh2ut[seg-1][m] = T;
+	}// for(m)
+      }
+
+      //Down
+      {
+	HF1( E42BH2Hid +100*seg +2, double(Ad) );
+	if( Td>0 ){
+	  HF1( E42BH2Hid +100*seg +6, double(Ad) );
+	}
+	else{
+	  HF1( E42BH2Hid +100*seg +8, double(Ad) );
+	}
+
+	int n_mhit = hit->GetSizeTdcDown();
+	for(int m = 0; m<n_mhit; ++m){
+	  int T = hit->GetTdcDown(m);
+	  if(T > 0) HF1( E42BH2Hid +100*seg +4, double(T) );
+	  event.e42bh2dt[seg-1][m] = T;
+	}// for(m)
+      }
+
+
+      //HitPat
+      if( Tu>0 && Td>0 ){
+	event.e42bh2hitpat[e42bh2_nhits] = seg;
+	e42bh2_nhits++;
+      }
+      if( Tu>0 || Td>0 ){
+	++nh1; HF1( E42BH2Hid +3, seg-0.5 );
+      }
+      if( Tu>0 && Td>0 ){
+	++nh2; HF1( E42BH2Hid +5, seg-0.5 );
+      }
+    }
+    HF1( E42BH2Hid +2, double(nh1) ); HF1( E42BH2Hid +4, double(nh2) );
+    event.e42bh2nhits = e42bh2_nhits;
+  }
+
 
 #if 1
   // FPGA BH2MT
@@ -1442,6 +1523,7 @@ EventHodoscope::InitializeEvent( void )
   event.trignhits = 0;
   event.bh1nhits  = 0;
   event.bh2nhits  = 0;
+  event.e42bh2nhits  = 0;
   event.fpga_bh2mtnhits  = 0;
   event.sacnhits  = 0;
   event.tofnhits  = 0;
@@ -1489,6 +1571,7 @@ EventHodoscope::InitializeEvent( void )
   for( int it=0; it<MaxHits; ++it ){
     event.bh1hitpat[it]  = -1;
     event.bh2hitpat[it]  = -1;
+    event.e42bh2hitpat[it]  = -1;
     event.fpga_bh2mthitpat[it]  = -1;
     event.sachitpat[it]  = -1;
     event.tofhitpat[it]  = -1;
@@ -1543,6 +1626,16 @@ EventHodoscope::InitializeEvent( void )
       dst.t0Bh2[MaxDepth*it + m]  = -9999.;
       dst.dtBh2[MaxDepth*it + m]  = -9999.;
       dst.deBh2[MaxDepth*it + m]  = -9999.;
+    }
+  }
+
+  for( int it=0; it<NumOfSegE42BH2; ++it ){
+    event.e42bh2ua[it] = -9999.;
+    event.e42bh2da[it] = -9999.;
+
+    for(int m = 0; m<MaxDepth; ++m){
+      event.e42bh2ut[it][m] = -9999.;
+      event.e42bh2dt[it][m] = -9999.;
     }
   }
 
@@ -1913,6 +2006,36 @@ ConfMan::InitializeHistograms( void )
     HB2( BH2Hid +100*i +84, title4, 100, -0.5, 4.5, 100, -10., 10. );
   }
 
+
+  //E42 BH2
+  HB1( E42BH2Hid +0, "#Hits E42BH2",        NumOfSegE42BH2+1, 0., double(NumOfSegE42BH2+1) );
+  HB1( E42BH2Hid +1, "Hitpat E42BH2",       NumOfSegE42BH2,   0., double(NumOfSegE42BH2)   );
+  HB1( E42BH2Hid +2, "#Hits E42BH2(Tor)",   NumOfSegE42BH2+1, 0., double(NumOfSegE42BH2+1) );
+  HB1( E42BH2Hid +3, "Hitpat E42BH2(Tor)",  NumOfSegE42BH2,   0., double(NumOfSegE42BH2)   );
+  HB1( E42BH2Hid +4, "#Hits E42BH2(Tand)",  NumOfSegE42BH2+1, 0., double(NumOfSegE42BH2+1) );
+  HB1( E42BH2Hid +5, "Hitpat E42BH2(Tand)", NumOfSegE42BH2,   0., double(NumOfSegE42BH2)   );
+
+  for( int i=1; i<=NumOfSegBH2; ++i ){
+    TString title1 = Form("E42BH2-%d UpAdc", i);
+    TString title2 = Form("E42BH2-%d DownAdc", i);
+    TString title3 = Form("E42BH2-%d UpTdc", i);
+    TString title4 = Form("E42BH2-%d DownTdc", i);
+    TString title5 = Form("E42BH2-%d UpAdc(w Tdc)", i);
+    TString title6 = Form("E42BH2-%d DownAdc(w Tdc)", i);
+    TString title7 = Form("E42BH2-%d UpAdc(w/o Tdc)", i);
+    TString title8 = Form("E42BH2-%d DownAdc(w/o Tdc)", i);
+    HB1( E42BH2Hid +100*i +1, title1, NbinAdc,   MinAdc,   MaxAdc );
+    HB1( E42BH2Hid +100*i +2, title2, NbinAdc,   MinAdc,   MaxAdc );
+    HB1( E42BH2Hid +100*i +3, title3, NbinTdcHr, MinTdcHr, MaxTdcHr );
+    HB1( E42BH2Hid +100*i +4, title4, NbinTdcHr, MinTdcHr, MaxTdcHr );
+    HB1( E42BH2Hid +100*i +5, title5, NbinAdc,   MinAdc,   MaxAdc );
+    HB1( E42BH2Hid +100*i +6, title6, NbinAdc,   MinAdc,   MaxAdc );
+    HB1( E42BH2Hid +100*i +7, title7, NbinAdc,   MinAdc,   MaxAdc );
+    HB1( E42BH2Hid +100*i +8, title8, NbinAdc,   MinAdc,   MaxAdc );
+  }
+
+
+
   // SAC
   HB1( SACHid +0, "#Hits SAC",        NumOfSegSAC+1, 0., double(NumOfSegSAC+1) );
   HB1( SACHid +1, "Hitpat SAC",       NumOfSegSAC,   0., double(NumOfSegSAC)   );
@@ -2182,6 +2305,16 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("bh2ut",       event.bh2ut,       Form("bh2ut[%d][%d]/D", NumOfSegBH2, MaxDepth));
   tree->Branch("bh2da",       event.bh2da,       Form("bh2da[%d]/D", NumOfSegBH2));
   tree->Branch("bh2dt",       event.bh2dt,       Form("bh2dt[%d][%d]/D", NumOfSegBH2, MaxDepth));
+
+
+  //E42 BH2
+  tree->Branch("e42bh2nhits",   &event.e42bh2nhits,    "e42bh2nhits/I");
+  tree->Branch("e42bh2hitpat",   event.e42bh2hitpat,   Form("e42bh2hitpat[%d]/I", NumOfSegE42BH2));
+  tree->Branch("e42bh2ua",       event.e42bh2ua,       Form("e42bh2ua[%d]/D", NumOfSegE42BH2));
+  tree->Branch("e42bh2ut",       event.e42bh2ut,       Form("e42bh2ut[%d][%d]/D", NumOfSegE42BH2, MaxDepth));
+  tree->Branch("e42bh2da",       event.e42bh2da,       Form("e42bh2da[%d]/D", NumOfSegE42BH2));
+  tree->Branch("e42bh2dt",       event.e42bh2dt,       Form("e42bh2dt[%d][%d]/D", NumOfSegE42BH2, MaxDepth));
+
 
   //FPGA BH2MT
   tree->Branch("fpga_bh2mtnhits",   &event.fpga_bh2mtnhits,    "fpga_bh2mtnhits/I");

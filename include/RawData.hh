@@ -31,6 +31,7 @@ private:
   bool              m_is_decoded;
   HodoRHitContainer m_BH1RawHC;
   HodoRHitContainer m_BH2RawHC;
+  HodoRHitContainer m_E42BH2RawHC;
   HodoRHitContainer m_SACRawHC;
   HodoRHitContainer m_TOFRawHC;
   HodoRHitContainer m_HtTOFRawHC;
@@ -64,6 +65,7 @@ public:
 
   const HodoRHitContainer& GetBH1RawHC( void ) const;
   const HodoRHitContainer& GetBH2RawHC( void ) const;
+  const HodoRHitContainer& GetE42BH2RawHC( void ) const;
   const HodoRHitContainer& GetSACRawHC( void ) const;
   const HodoRHitContainer& GetTOFRawHC( void ) const;
   const HodoRHitContainer& GetHtTOFRawHC( void ) const;
@@ -106,6 +108,13 @@ inline const HodoRHitContainer&
 RawData::GetBH2RawHC( void ) const
 {
   return m_BH2RawHC;
+}
+
+//______________________________________________________________________________
+inline const HodoRHitContainer&
+RawData::GetE42BH2RawHC( void ) const
+{
+  return m_E42BH2RawHC;
 }
 
 //______________________________________________________________________________
