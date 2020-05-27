@@ -37,7 +37,11 @@
 #include "RawData.hh"
 #include "UserParamMan.hh"
 #include "DeleteUtility.hh"
-#include "padHelper.hh"
+#include "TPCPadHelper.hh"
+#include "TPCRawHit.hh"
+#include "TPCHit.hh"
+#include "TPCCluster.hh"
+#include "TPCLocalTrack.hh"
 
 #define DefStatic
 #include "DCParameters.hh"
@@ -53,6 +57,8 @@
 #define SdcIn_XUV         0 // XUV Tracking (not used in KURAMA)
 #define SdcIn_Pair        1 // Pair plane Tracking (fast but bad for large angle track)
 #define SdcIn_Deletion    1 // Deletion method for too many combinations
+/* TPCTracking */
+#define UseTpcCluster	1
 
 namespace
 {
@@ -136,11 +142,13 @@ DCAnalyzer::DCAnalyzer( void )
     m_CFT16ppHC(NumOfPlaneCFT*2+1),
     m_BcInHC(NumOfLayersBcIn+1),
     m_BcOutHC(NumOfLayersBcOut+2),
+    m_TPCHC_(NumOfLayersTPC+1),
+    m_TPCHC(NumOfLayersTPC*2+1),
+    m_TPCClCont(NumOfLayersTPC+1),
     m_SdcInHC(NumOfLayersSdcIn+1),
     m_SdcOutHC(NumOfLayersSdcOut+1),
     m_SdcInExTC(NumOfLayersSdcIn+1),
-    m_SdcOutExTC(NumOfLayersSdcOut+1),
-    m_TPCHC(NumOfLayersTPC*2+1)
+    m_SdcOutExTC(NumOfLayersSdcOut+1)
 {
   for( int i=0; i<n_type; ++i ){
     m_is_decoded[i] = false;
@@ -307,10 +315,116 @@ DCAnalyzer::DecodeBcOutHits( RawData *rawData )
   return true;
 }
 
+//______________________________________________________________________________
+bool
+DCAnalyzer::ClusterizeTPC( int layerID, const TPCHitContainer& HitCont, TPCClusterContainer& ClCont )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+  static const double ClusterYCut = gUser.GetParameter("ClusterYCut");
+
+  del::ClearContainer( ClCont );
+
+  const std::size_t nh = HitCont.size();
+  if( nh==0 ) return false;
+
+  std::vector<int> flag( nh, 0 );
+
+  for( std::size_t hiti=0; hiti < nh; hiti++ ) {
+    if( flag[hiti] > 0 ) continue;
+    TPCHitContainer CandCont;
+    TPCHit* hit = HitCont[hiti];
+    if( !hit || !hit->IsGoodHit() ) continue;
+    CandCont.push_back(hit);
+    flag[hiti]++;
+
+    for( std::size_t hitj=0; hitj < nh; hitj++ ) {
+      if( hiti==hitj || flag[hitj]>0 ) continue;
+      TPCHit* thit = HitCont[hitj];
+      if( !thit || !thit->IsGoodHit() ) continue;
+      for( int ci=0; ci < CandCont.size(); ci++ ) {
+	TPCHit* c_hit = CandCont[ci];
+	int rowID = thit->RowId();
+	int c_rowID = c_hit->RowId();
+	if( (abs(rowID - c_rowID) <= 2 || 
+	      (layerID<10 && abs(rowID - c_rowID)>=tpc::padParameter[layerID][1]-2) )
+	    && fabs( thit->Y() - c_hit->Y() ) < ClusterYCut )
+	{
+	  CandCont.push_back(thit);
+	  flag[hitj]++;
+	  break;
+	}
+      }
+    }
+    TPCCluster* cluster = new TPCCluster( layerID, CandCont );
+    if( cluster ) ClCont.push_back( cluster );
+  }
+
+  return true;
+}
 
 //______________________________________________________________________________
 bool
-DCAnalyzer::DecodeTPCHits(const int nhits, const int *iPad, const double *dx, const double *dz, const double *y)
+DCAnalyzer::DecodeTPCHits( RawData *rawData )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+  if( m_is_decoded[k_TPC] ){
+    hddaq::cout << "#D " << func_name << " "
+		<< "already decoded" << std::endl;
+    return true;
+  }
+
+  ClearTPCHits();
+
+  for( int layer=0; layer<=NumOfLayersTPC; ++layer ){
+    const TPCRHitContainer &RHitCont=rawData->GetTPCRawHC(layer);
+    int nh = RHitCont.size();
+    for( int i=0; i<nh; ++i ){
+      TPCRawHit *rhit  = RHitCont[i];
+      TPCHit    *hit   = new TPCHit( rhit->PadId(), rhit->Y(), rhit->Charge() );
+      
+      if( hit->CalcTPCObservables() )
+	m_TPCHC_[layer].push_back(hit);
+      else
+	delete hit;
+    }
+#if UseTpcCluster
+    ClusterizeTPC( layer, m_TPCHC_[layer], m_TPCClCont[layer] );
+#endif
+  }
+
+  m_is_decoded[k_TPC] = true;
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+DCAnalyzer::DecodeTPCHits_geant( const int nhits, 
+			         const double *x, const double *y, const double *z, const double *de )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+  if( m_is_decoded[k_TPC] ){
+    hddaq::cout << "#D " << func_name << " "
+		<< "already decoded" << std::endl;
+    return true;
+  }
+  ClearTPCClusters();
+
+  for( int hiti=0; hiti<nhits; hiti++ ){
+    TPCCluster* cluster = new TPCCluster( x[hiti], y[hiti], z[hiti], de[hiti] );
+    int layer = tpc::getLayerID( tpc::findPadID( z[hiti], x[hiti] ) );
+    if( cluster ) m_TPCClCont[layer].push_back( cluster );
+  }
+
+  m_is_decoded[k_TPC] = true;
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+DCAnalyzer::DecodeTPCHits_geant(const int nhits, const int *iPad, const double *dx, const double *dz, const double *y)
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
@@ -323,9 +437,9 @@ DCAnalyzer::DecodeTPCHits(const int nhits, const int *iPad, const double *dx, co
 
   std::cout<<"DecodeTPCHits:: nhits="<<nhits<<std::endl;
   for(int ihit=0; ihit<nhits; ++ihit){
-    TVector3 Point = padHelper::getPoint(iPad[ihit]);
-    int laytpc = padHelper::getLayerID(iPad[ihit]);
-    int rowtpc = padHelper::getRowID(iPad[ihit]);
+    TVector3 Point = tpc::getPosition(iPad[ihit]);
+    int laytpc = tpc::getLayerID(iPad[ihit]);
+    int rowtpc = tpc::getRowID(iPad[ihit]);
     std::cout<<"DecodeTPCHits:: ihits="<<ihit
 	     <<", iPad="<<iPad[ihit]
 	     <<", layer="<<laytpc
@@ -382,7 +496,6 @@ DCAnalyzer::DecodeTPCHits(const int nhits, const int *iPad, const double *dx, co
   */
   return true;
 }
-
 
 //______________________________________________________________________________
 bool
@@ -1458,18 +1571,18 @@ DCAnalyzer::TrackSearchCFT16pp( void )
 
 //______________________________________________________________________________
 bool
-DCAnalyzer::TrackSearchTPC_straight( void )
+DCAnalyzer::TrackSearchTPC( void )
 {
   static const int MinLayer = gUser.GetParameter("MinLayerTPC");
 
-  track::LocalTrackSearchTPC_straight(m_TPCHC, m_TPCTC, MinLayer );
+#if UseTpcCluster
+  track::LocalTrackSearchTPC(m_TPCClCont, m_TPCTC_, MinLayer );
+#else
+  track::LocalTrackSearchTPC(m_TPCHC_, m_TPCTC_, MinLayer );
+#endif
 
   return true;
 }
-
-
-
-
 
 //______________________________________________________________________________
 void
@@ -1485,7 +1598,7 @@ DCAnalyzer::ClearDCHits( void )
   ClearCFTHits();
   ClearCFT16Hits();
   ClearCFT16ppHits();
-  ClearTPCHits();
+  //ClearTPCHits();
 }
 
 //______________________________________________________________________________
@@ -1561,9 +1674,15 @@ void
 DCAnalyzer::ClearTPCHits( void )
 {
   del::ClearContainerAll( m_TPCHC );
+  del::ClearContainerAll( m_TPCHC_ );
 }
 
-
+//______________________________________________________________________________
+void
+DCAnalyzer::ClearTPCClusters( void )
+{
+  del::ClearContainerAll( m_TPCClCont );
+}
 
 //______________________________________________________________________________
 #if UseBcIn
@@ -1660,6 +1779,7 @@ void
 DCAnalyzer::ClearTracksTPC( void )
 {
   del::ClearContainer( m_TPCTC );
+  del::ClearContainer( m_TPCTC_ );
 }
 
 //______________________________________________________________________________

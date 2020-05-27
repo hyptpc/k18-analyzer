@@ -12,9 +12,11 @@
 
 class HodoRawHit;
 class DCRawHit;
+class TPCRawHit;
 
 typedef std::vector<HodoRawHit*> HodoRHitContainer;
 typedef std::vector<DCRawHit*>   DCRHitContainer;
+typedef std::vector<TPCRawHit*>  TPCRHitContainer;
 typedef std::vector <int>        FADCRHitContainer;
 //______________________________________________________________________________
 class RawData
@@ -47,10 +49,12 @@ private:
   std::vector<HodoRHitContainer> m_FBT1RawHC;
   std::vector<HodoRHitContainer> m_FBT2RawHC;
 
-  std::vector<DCRHitContainer> m_BcInRawHC;
-  std::vector<DCRHitContainer> m_BcOutRawHC;
-  std::vector<DCRHitContainer> m_SdcInRawHC;
-  std::vector<DCRHitContainer> m_SdcOutRawHC;
+  std::vector<DCRHitContainer>  m_BcInRawHC;
+  std::vector<DCRHitContainer>  m_BcOutRawHC;
+  std::vector<TPCRHitContainer> m_TPCRawHC;
+  std::vector<DCRHitContainer>  m_SdcInRawHC;
+  std::vector<DCRHitContainer>  m_SdcOutRawHC;
+  
 
   HodoRHitContainer m_ScalerRawHC;
   HodoRHitContainer m_TrigRawHC;
@@ -62,6 +66,7 @@ public:
   void                     ClearAll( void );
   bool                     DecodeHits( void );
   bool                     DecodeCalibHits( void );
+  bool                     DecodeTPCHits( int padid, double y, double charge );
 
   const HodoRHitContainer& GetBH1RawHC( void ) const;
   const HodoRHitContainer& GetBH2RawHC( void ) const;
@@ -88,6 +93,8 @@ public:
   const DCRHitContainer&   GetBcOutRawHC( int layer ) const;
   const DCRHitContainer&   GetSdcInRawHC( int layer ) const;
   const DCRHitContainer&   GetSdcOutRawHC( int layer ) const;
+  
+  const TPCRHitContainer&  GetTPCRawHC( int layer ) const;
 
   const HodoRHitContainer& GetScalerRawHC( void ) const;
   const HodoRHitContainer& GetTrigRawHC( void ) const;
@@ -236,6 +243,14 @@ RawData::GetBcOutRawHC( int layer ) const
 {
   if( layer<0 || layer>NumOfLayersBcOut ) layer = 0;
   return m_BcOutRawHC[layer];
+}
+
+//______________________________________________________________________________
+inline const TPCRHitContainer&
+RawData::GetTPCRawHC( int layer ) const
+{
+  if( layer<0 || layer>NumOfLayersTPC ) layer = 0;
+  return m_TPCRawHC[layer];
 }
 
 //______________________________________________________________________________

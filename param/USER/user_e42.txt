@@ -80,6 +80,18 @@ MinLayerBcOut 10
 MinTotBcOut 15
 MinTotSDC1 25
 
+<<<<<<< HEAD
+=======
+### TPC Cluster Y cut
+ClusterYCut 10
+
+### TPC Hough Window cut
+HoughWindowCut 10
+
+### TPC layer multiplicity gate
+MinLayerTPC 8
+
+>>>>>>> a049adeedec2a3948f7dc046c588529b8f719fac
 ### SDCIN multiplicity gate
 MaxMultiHitSdcIn 16
 
@@ -128,6 +140,9 @@ CatchPID 0.1346 114.068
 
 ### TOF KID
 TOFKID 2.1 300 840
+<<<<<<< HEAD
 
 ### TPC 
 MinLayerTPC 4
+=======
+>>>>>>> a049adeedec2a3948f7dc046c588529b8f719fac

@@ -35,6 +35,8 @@ namespace
   const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
   const UserParamMan& gUser = UserParamMan::GetInstance();
   const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance(); 
+
+  const int MaxTPCHits = 10000;
 }
 
 namespace dst
@@ -59,45 +61,47 @@ struct Event
   
   int evnum;
   int status;
-  int nttpc;                 // Number of Hit in Pads
+  int nhittpc;                 // Number of Hits
+  int nttpc;                   // Number of Tracks
 };
 
 //_____________________________________________________________________
 struct Src
 {
   int evnum;
-  int nttpc;                 // Number of Hit in Pads
+  int nhittpc;                 // Number of Hits
+  int nttpc;                   // Number of Tracks
 
-  int ititpc[MaxHits];
-  int idtpc[MaxHits];
-  double xtpc[MaxHits];//with resolution
-  double ytpc[MaxHits];//with resolution
-  double ztpc[MaxHits];//with resolution
-  double x0tpc[MaxHits];//w/o resolution
-  double y0tpc[MaxHits];//w/o resolution
-  double z0tpc[MaxHits];//w/o resolution
-  double resoX[MaxHits];
-  double pxtpc[MaxHits];
-  double pytpc[MaxHits];
-  double pztpc[MaxHits];
-  double pptpc[MaxHits];   // total mometum
-  double masstpc[MaxHits];   // mass TPC
-  double betatpc[MaxHits];
-  double edeptpc[MaxHits];
-  double dedxtpc[MaxHits];
-  double slengthtpc[MaxHits];
-  int laytpc[MaxHits];
-  int rowtpc[MaxHits];
-  int parentID[MaxHits];
-  int iPadtpc[MaxHits];//Pad number (0 origin)
+  int ititpc[MaxTPCHits];
+  int idtpc[MaxTPCHits];
+  double xtpc[MaxTPCHits];//with resolution
+  double ytpc[MaxTPCHits];//with resolution
+  double ztpc[MaxTPCHits];//with resolution
+  double x0tpc[MaxTPCHits];//w/o resolution
+  double y0tpc[MaxTPCHits];//w/o resolution
+  double z0tpc[MaxTPCHits];//w/o resolution
+  double resoX[MaxTPCHits];
+  double pxtpc[MaxTPCHits];
+  double pytpc[MaxTPCHits];
+  double pztpc[MaxTPCHits];
+  double pptpc[MaxTPCHits];   // total mometum
+  double masstpc[MaxTPCHits];   // mass TPC
+  double betatpc[MaxTPCHits];
+  double edeptpc[MaxTPCHits];
+  double dedxtpc[MaxTPCHits];
+  double slengthtpc[MaxTPCHits];
+  int laytpc[MaxTPCHits];
+  int rowtpc[MaxTPCHits];
+  int parentID[MaxTPCHits];
+  int iPadtpc[MaxTPCHits];//Pad number (0 origin)
 
-  double xtpc_pad[MaxHits];//pad center
-  double ytpc_pad[MaxHits];//pad center(dummy)
-  double ztpc_pad[MaxHits];//pad center
+  double xtpc_pad[MaxTPCHits];//pad center
+  double ytpc_pad[MaxTPCHits];//pad center(dummy)
+  double ztpc_pad[MaxTPCHits];//pad center
 
-  double dxtpc_pad[MaxHits];//x0tpc - xtpc
-  double dytpc_pad[MaxHits];//y0tpc - ytpc = 0 (dummy)
-  double dztpc_pad[MaxHits];//z0tpc - ztpc
+  double dxtpc_pad[MaxTPCHits];//x0tpc - xtpc
+  double dytpc_pad[MaxTPCHits];//y0tpc - ytpc = 0 (dummy)
+  double dztpc_pad[MaxTPCHits];//z0tpc - ztpc
 
  
 };
@@ -147,10 +151,11 @@ dst::InitializeEvent( void )
 {
   event.status   = 0;
   event.evnum = 0;
+  event.nhittpc = 0; 
   event.nttpc = 0; 
 
   
-  // for( int i=0; i<MaxHits; ++i ){
+  // for( int i=0; i<MaxTPCHits; ++i ){
   //   event.trpptpc[i]=-9999.;
   // }
   return true;
@@ -195,24 +200,31 @@ dst::DstRead( int ievent )
   HF1( 1, event.status++ );
   
   event.evnum = src.evnum;
-  event.nttpc = src.nttpc;
+  event.nhittpc = src.nhittpc;
    
   
 
-  DCAnalyzer DCAna;
-  DCAna.DecodeTPCHits(src.nttpc, src.iPadtpc, src.dxtpc_pad, src.dztpc_pad, src.y0tpc);
-  DCAna.TrackSearchTPC_straight();
+  DCAnalyzer *DCAna = new DCAnalyzer();
+  //DCAna.DecodeTPCHits_geant(src.nhittpc, src.iPadtpc, src.dxtpc_pad, src.dztpc_pad, src.y0tpc);
+  DCAna->DecodeTPCHits_geant(src.nhittpc, 
+   			     src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
+  DCAna->TrackSearchTPC();
 
+  int nttpc = DCAna->GetNTracksTPC();
+  if( MaxHits<nttpc ){
+    std::cout << "#W " << func_name << " " 
+      	      << "too many nttpc " << nttpc << "/" << MaxHits << std::endl;
+    nttpc = MaxHits;
+  }
+  event.nttpc = nttpc;
+//  for( int i=0; i<nttpc; ++i ){
+//  }
 
 
 #if 0
   std::cout<<"[event]: "<<std::setw(6)<<ievent<<" ";
   std::cout<<"[nttpc]: "<<std::setw(2)<<src.nttpc<<" "<<std::endl;
 #endif
-
-  // for(int i=0;i<src.nttpc;++i){
-  //   event.ititpc[i] = src.ititpc[i];
-  // }
 
   // if( event.nhBh1<=0 ) return true;
   // HF1( 1, event.status++ );
@@ -224,11 +236,12 @@ dst::DstRead( int ievent )
   // HF1( 1, event.status++ );
 
   // if( event.ntKurama<=0 ) return true;
-  // if( event.ntKurama>MaxHits )
-  //   event.ntKurama = MaxHits;
+  // if( event.ntKurama>MaxTPCHits )
+  //   event.ntKurama = MaxTPCHits;
 
   //HF1( 1, event.status++ );
 
+  delete DCAna;
   return true;
 }
 

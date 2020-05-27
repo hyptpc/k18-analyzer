@@ -12,6 +12,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <TH2D.h>
 
 #include "DCGeomMan.hh"
 #include "DCLocalTrack.hh"
@@ -27,13 +28,18 @@
 #include "TrackMaker.hh"
 #include "UserParamMan.hh"
 #include "DeleteUtility.hh"
+#include "ConfMan.hh"
+#include "TPCPadHelper.hh"
+#include "TPCLocalTrack.hh"
+#include "TPCCluster.hh"
 
 #include "RootHelper.hh"
 
 namespace
 {
   const std::string& class_name("DCTrackSearch");
-  DCGeomMan& gGeom = DCGeomMan::GetInstance();
+  const ConfMan& gConf = ConfMan::GetInstance();
+  const DCGeomMan& gGeom = DCGeomMan::GetInstance();
   const UserParamMan& gUser = UserParamMan::GetInstance();
   const double& zTarget    = gGeom.LocalZ("Target");
   const double& zK18Target = gGeom.LocalZ("K18Target");
@@ -47,6 +53,10 @@ namespace
   // SdcIn & BcOut for XUV Tracking routine
   const double MaxChisquareVXU = 50.;//
   const double ChisquareCutVXU = 50.;//
+  
+  // TPC Tracking 
+  const int    MaxNumOfTrackTPC = 100;	   
+  const double& valueHall = ConfMan::Get<double>("HSFLDHALL");
 
   const double Bh2SegX[NumOfSegBH2]      = {35./2., 10./2., 7./2., 7./2., 7./2., 7./2., 10./2., 35./2.};
   const double Bh2SegXAcc[NumOfSegBH2]   = {20., 6.5, 5., 5., 5., 5., 6.5, 20.};
@@ -601,25 +611,55 @@ namespace
     return true;
   }
 
+//  //______________________________________________________________________________
+//  bool
+//  MakeTPCHitCluster( const TPCHitContainer& HitCont,
+//  		     TPCClusterList& ClCont,
+// 		     int layerID )
+//  {
+//    static const std::string func_name("["+class_name+"::"+__func__+"()]");
+//    static const double ClusterYCut = gUser.GetParameter("ClusterYCut");
+//
+//    //del::ClearContainer( ClCont );
+//
+//    const std::size_t nh = HitCont.size();
+//    if( nh==0 ) return false;
+//
+//    std::vector<int> flag( nh, 0 );
+//
+//    for( std::size_t hiti=0; hiti < nh; hiti++ ) {
+//      if( flag[hiti] > 0 ) continue;
+//      TPCHitContainer CandCont;
+//      TPCHit* hit = HitCont[hiti];
+//      if( !hit || !hit->IsGoodHit() ) continue;
+//      CandCont.push_back(hit);
+//      flag[hiti]++;
+//
+//      for( std::size_t hitj=0; hitj < nh; hitj++ ) {
+//        if( hiti==hitj || flag[hitj]>0 ) continue;
+//        TPCHit* thit = HitCont[hitj];
+//        if( !thit || !thit->IsGoodHit() ) continue;
+//        for( int ci=0; ci < CandCont.size(); ci++ ) {
+//          TPCHit* c_hit = CandCont[ci];
+//          int rowID = thit->RowId();
+//          int c_rowID = c_hit->RowId();
+//          if( (abs(rowID - c_rowID) <= 2 || 
+//      	  (layerID<10 && abs(rowID - c_rowID)>=tpc::padParameter[layerID][1]-2) )
+//      	&& fabs( thit->Y() - c_hit->Y() ) < ClusterYCut )
+//          {
+//            CandCont.push_back(thit);
+//            flag[hitj]++;
+//            break;
+//          }
+//        }
+//      }
+//      ClCont.push_back( new TPCCluster( layerID, CandCont ) );
+//    }
+//
+//    return true;
+//  }
+
   //______________________________________________________________________________
-  bool
-  MakeTPCHitCluster( const DCHitContainer& HitCont,
-		     ClusterList& Cont,
-		     int xy )
-  {
-    int nh = HitCont.size();
-    for( int i=0; i<nh; ++i ){
-      if( i%2!=xy ) continue;
-      DCHit *hit = HitCont[i];
-      if( !hit ) continue;
-      double wp = hit->GetWirePosition();
-      Cont.push_back( new DCPairHitCluster( new DCLTrackHit( hit, wp, 0 ) ) );
-    }
-    return true;
-  }
-
-
-
   bool MakeCFTHitCluster( const DCHitContainer & HC,
 			  std::vector <DCPairHitCluster *> & Cont,
 			  bool honeycomb=false )
@@ -2283,106 +2323,205 @@ namespace track
     return status? TrackCont.size() : -1;      
   }
 
-
-
   //______________________________________________________________________________
-  int
-  LocalTrackSearchTPC_straight( const std::vector<DCHitContainer>& TPCHC,
-				std::vector<DCLocalTrack*>& TrackCont,
-				int MinNumOfHits /*=4*/ )
+  int 
+  LocalTrackSearchTPC( const std::vector<TPCClusterContainer>& TPCClCont,
+			   std::vector<TPCLocalTrack*>& TrackCont,
+			   int MinNumOfHits /*=8*/ )
   {
-
-   
-    //     static const std::string func_name("["+class_name+"::"+__func__+"(TOF)]");
+    static const std::string func_name("["+class_name+"::"+__func__+"()]");
     
-    //     std::vector<ClusterList> CandCont(npp);
+    static const double HoughWindowCut = gUser.GetParameter("HoughWindowCut");
+    bool status = true;
 
-    //     for( int i=0; i<npp-2; ++i ){
-    //       bool ppFlag    = PpInfo[i].pair;
-    //       bool honeycomb = PpInfo[i].honeycomb;
-    //       int  layer1    = PpInfo[i].id1;
-    //       int  layer2    = PpInfo[i].id2;
-    //       if( ppFlag  ){ //DC2, 3
-    // 	MakePairPlaneHitCluster( SdcOutHC[layer1], SdcOutHC[layer2],
-    // 				 PpInfo[i].CellSize, CandCont[i], honeycomb );
-    //       }else{ //FBT
-    // 	MakeMWPCPairPlaneHitCluster( SdcOutHC[layer1], CandCont[i] );
-    // 	MakeMWPCPairPlaneHitCluster( SdcOutHC[layer2], CandCont[i] );
-    //       }
-    //     }
+//    if( valueHall ) { // TODO
+//    }
 
-    //     // TOF
-    //     MakeTOFHitCluster( TOFHC, CandCont[npp-2], 0 );
-    //     MakeTOFHitCluster( TOFHC, CandCont[npp-1], 1 );
+    // y = p0 + p1 * x
+    double p0[MaxNumOfTrackTPC];
+    double p1[MaxNumOfTrackTPC];
+    
+    // r = x * cos(theta) + y * sin(theta)
+    const int    theta_ndiv = 200;
+    const double theta_min =    0;
+    const double theta_max =  180;
+    const int    r_ndiv = 200;
+    const double r_min = -500;
+    const double r_max =  500;
+    TH2D *hist[MaxNumOfTrackTPC];
+    
+    std::vector<std::vector<int> > flag;
+    flag.resize( NumOfLayersTPC );
+    for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+	flag[layer].resize( TPCClCont[layer].size(), 0 );
+      }
 
-    //     IndexList nCombi(npp);
-    //     for( int i=0; i<npp; ++i ){
-    //       int n = CandCont[i].size();
-    //       nCombi[i] = n>MaxNumOfCluster ? 0 : n;
-    //     }
+    for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
+      hist[tracki] = new TH2D(Form("hist_%d",tracki),";theta (deg.); r (mm)", 
+	  theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
+      for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+	for( int ci=0, n=TPCClCont[layer].size(); ci<n; ci++ ){
+	  if( flag[layer][ci]>0 ) continue;
+	  TPCCluster* cluster = TPCClCont[layer][ci];
+	  TVector3 pos = cluster->Position();
+	  for( int ti=0; ti<theta_ndiv; ti++ ){
+	    double theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
+	    hist[tracki]->Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
+				    +sin(theta*acos(-1)/180.)*pos.X());
+	  }
+	} // cluster
+      } // layer
+      if( hist[tracki]->GetMaximum() < MinNumOfHits ) break;
 
-    //     bool status = true;
-    //     std::vector<IndexList> CombiIndex = MakeIndex( npp, nCombi, status );
+      TPCLocalTrack *track = new TPCLocalTrack();
 
-    // #if 0
-    //     DebugPrint( nCombi, CandCont, func_name );
-    // #endif
+      int maxbin = hist[tracki]->GetMaximumBin();
+      int mx,my,mz;
+      hist[tracki]->GetBinXYZ( maxbin, mx, my, mz );
+      double mtheta = hist[tracki]->GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
+      double mr = hist[tracki]->GetYaxis()->GetBinCenter(my);
+      p0[tracki] = mr/sin(mtheta);
+      p1[tracki] = -cos(mtheta)/sin(mtheta);
 
-    //     for( int i=0, n=CombiIndex.size(); i<n; ++i ){
-    //       DCLocalTrack *track = MakeTrack( CandCont, CombiIndex[i] );
-    //       if( !track ) continue;
+      for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+	for( int ci=0, n=TPCClCont[layer].size(); ci<n; ci++ ){
+	  if( flag[layer][ci]>0 ) continue;
+	  TPCCluster* cluster = TPCClCont[layer][ci];
+	  TVector3 pos = cluster->Position();
+	  double dist = fabs(p1[tracki]*pos.Z()-pos.X()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
+	  if( dist < HoughWindowCut ){
+	    track->AddTPCCluster(cluster);
+	    if( cluster->GetClusterSize() ){
+	      std::vector<TPCHit*> hitset = cluster->GetTPCHits();
+	      for( int hiti=0, m=cluster->GetClusterSize(); hiti<m; hiti++ ){
+		track->AddTPCHit(hitset[hiti]);
+	      }
+	    }
+	    flag[layer][ci]++;
+	  }
+	}
+      }
 
-    //       static const int IdTOF_UX = gGeom.GetDetectorId("TOF-UX");
-    //       static const int IdTOF_UY = gGeom.GetDetectorId("TOF-UY");
-    //       static const int IdTOF_DX = gGeom.GetDetectorId("TOF-DX");
-    //       static const int IdTOF_DY = gGeom.GetDetectorId("TOF-DY");
-     
-    //       bool TOFSegXYMatching =
-    // 	( track->GetWire(IdTOF_UX)==track->GetWire(IdTOF_UY) ) ||
-    // 	( track->GetWire(IdTOF_DX)==track->GetWire(IdTOF_DY) );
-      
-    //       int Track[20]={0};
-    //       int layer;
-    //       for( int i=0; i<(track->GetNHit()); ++i){
-    // 	layer=track->GetHit(i)->GetLayer();
-    // 	Track[layer]=1;
-    //       }
+      if( track ) TrackCont.push_back(track);
+      else {
+	delete track;
+      }
+      for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
+	hist[tracki]->Delete();
+      }
+    } // track
 
-    //       bool FBT = 
-    // 	( Track[80]==1 && Track[82]==1 ) || ( Track[81]==1 && Track[83]==1 ) ||
-    // 	( Track[84]==1 && Track[86]==1 ) || ( Track[85]==1 && Track[87]==1 ) ;
-      
-    //       bool DC23x_off =
-    // 	( Track[31]==0 && Track[32]==0 && Track[37]==0 && Track[38]==0 );
-      
-
-    //       if( TOFSegXYMatching &&
-    // 	  //FBT&&
-    // 	  track->GetNHit()>=MinNumOfHits+2   &&
-    // 	  track->GetNHitY() >= 2             &&
-    // 	  track->DoFit()                     &&
-    // 	  track->GetChiSquare()<MaxChisquare )
-    // 	{
-    // 	  TrackCont.push_back( track );
-    // 	}
-    //       else
-    // 	{
-    // 	  delete track;
-    // 	}
-    //     }
-
-    //     FinalizeTrack( func_name, TrackCont, DCLTrackComp(), CandCont );
-    //     return status? TrackCont.size() : -1;
+//#else
+//    // TODO
+//#endif
+    //FinalizeTrack( func_name, TrackCont, DCLTrackComp(), TPCClCont ); // TODO
+    return status? TrackCont.size() : -1;
 
     return 0;
   }
 
+  //______________________________________________________________________________
+  int
+  LocalTrackSearchTPC( const std::vector<TPCHitContainer>& TPCHC,
+				std::vector<TPCLocalTrack*>& TrackCont,
+				int MinNumOfHits /*=8*/ )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"()]");
+    static const double HoughWindowCut = gUser.GetParameter("HoughWindowCut");
+    bool status = true;
+    
+    //del::ClearContainer( TrackCont );
 
+//#if UseTpcCluster
+//    
+//    std::vector<TPCClusterList> CandCont(NumOfLayersTPC);
+//    for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+//      MakeTPCHitCluster( TPCHC[layer], CandCont[layer], layer );
+//    }
+//
+//    if( valueHall ) { // TODO
+//    }
+//
+//    // y = p0 + p1 * x
+//    double p0[MaxNumOfTrackTPC];
+//    double p1[MaxNumOfTrackTPC];
+//    
+//    // r = x * cos(theta) + y * sin(theta)
+//    const int    theta_ndiv = 200;
+//    const double theta_min =    0;
+//    const double theta_max =  180;
+//    const int    r_ndiv = 200;
+//    const double r_min = -500;
+//    const double r_max =  500;
+//    TH2D *hist[MaxNumOfTrackTPC];
+//    
+//    std::vector<std::vector<int> > flag;
+//    flag.resize( NumOfLayersTPC );
+//    for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+//	flag[layer].resize( CandCont[layer].size(), 0 );
+//      }
+//
+//    for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
+//      hist[tracki] = new TH2D(Form("hist_%d",tracki),";theta (deg.); r (mm)", 
+//	  theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
+//      for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+//	for( int ci=0, n=CandCont[layer].size(); ci<n; ci++ ){
+//	  if( flag[layer][ci]>0 ) continue;
+//	  TPCCluster* cluster = CandCont[layer][ci];
+//	  TVector3 pos = cluster->Position();
+//	  for( int ti=0; ti<theta_ndiv; ti++ ){
+//	    double theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
+//	    hist[tracki]->Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
+//				    +sin(theta*acos(-1)/180.)*pos.X());
+//	  }
+//	} // cluster
+//      } // layer
+//      if( hist[tracki]->GetMaximum() < MinNumOfHits ) break;
+//
+//      TPCLocalTrack *track = new TPCLocalTrack();
+//
+//      int maxbin = hist[tracki]->GetMaximumBin();
+//      int mx,my,mz;
+//      hist[tracki]->GetBinXYZ( maxbin, mx, my, mz );
+//      double mtheta = hist[tracki]->GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
+//      double mr = hist[tracki]->GetYaxis()->GetBinCenter(my);
+//      p0[tracki] = mr/sin(mtheta);
+//      p1[tracki] = -cos(mtheta)/sin(mtheta);
+//
+//      for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+//	for( int ci=0, n=CandCont[layer].size(); ci<n; ci++ ){
+//	  if( flag[layer][ci]>0 ) continue;
+//	  TPCCluster* cluster = CandCont[layer][ci];
+//	  TVector3 pos = cluster->Position();
+//	  double dist = fabs(p1[tracki]*pos.Z()-pos.X()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
+//	  if( dist < HoughWindowCut ){
+//	    track->AddTPCCluster(cluster);
+//	    std::vector<TPCHit*> hitset = cluster->GetTPCHits();
+//	    for( int hiti=0, m=cluster->GetClusterSize(); hiti<m; hiti++ ){
+//	      track->AddTPCHit(hitset[hiti]);
+//	    }
+//	    flag[layer][ci]++;
+//	  }
+//	}
+//      }
+//
+//      if( track ) TrackCont.push_back(track);
+//      else {
+//	delete track;
+//      }
+//      for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
+//	hist[tracki]->Delete();
+//      }
+//    } // track
 
+//#else
+//    // TODO
+//#endif
+    //FinalizeTrack( func_name, TrackCont, DCLTrackComp(), CandCont ); // TODO
+    return status? TrackCont.size() : -1;
 
-
-
-
+    return 0;
+  }
 
   //For MWPC
   //_____________________________________________________________________________

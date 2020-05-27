@@ -16,10 +16,12 @@
 #include "DebugCounter.hh"
 #include "DeleteUtility.hh"
 #include "DetectorID.hh"
+#include "TPCRawHit.hh"
 #include "DCRawHit.hh"
 #include "HodoRawHit.hh"
 #include "UnpackerManager.hh"
 #include "UserParamMan.hh"
+#include "TPCPadHelper.hh"
 
 #define OscillationCut 0
 #define Run2019 0
@@ -127,6 +129,29 @@ namespace
   }
 
   //______________________________________________________________________________
+  inline bool
+  AddTPCRawHit( TPCRHitContainer& cont,
+	       int padid, double y, double charge )
+  {
+    static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+    TPCRawHit *p = 0;
+    for( std::size_t i=0, n=cont.size(); i<n; ++i ){
+      TPCRawHit *q = cont[i];
+      if( q->PadId()==padid &&
+	  q->Y()==y ){
+	p=q; break;
+      }
+    }
+    if( !p ){
+      p = new TPCRawHit( padid, y, charge );
+      cont.push_back(p);
+    }
+
+    return true;
+  }
+
+  //______________________________________________________________________________
   inline void
   DecodeHodo( int id, int plane, int nseg, int nch, HodoRHitContainer& cont )
   {
@@ -175,6 +200,7 @@ RawData::RawData( void )
     m_FBT2RawHC(2*NumOfLayersFBT2),
     m_BcInRawHC(NumOfLayersBcIn+1),
     m_BcOutRawHC(NumOfLayersBcOut+1),
+    m_TPCRawHC(NumOfLayersTPC+1),
     m_SdcInRawHC(NumOfLayersSdcIn+1),
     m_SdcOutRawHC(NumOfLayersSdcOut+1),
     m_ScalerRawHC(),
@@ -593,6 +619,16 @@ RawData::DecodeHits( void )
   }
 
   m_is_decoded = true;
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+RawData::DecodeTPCHits( int padid, double y, double charge )
+{
+  del::ClearContainerAll( m_TPCRawHC );
+  int layer = tpc::getLayerID(padid);
+  AddTPCRawHit( m_TPCRawHC[layer], padid, y, charge );
   return true;
 }
 
