@@ -189,6 +189,7 @@ RawData::RawData( void )
     m_HtTOFRawHC(),
     m_LACRawHC(),
     m_LCRawHC(),
+    m_WCRawHC(),
     m_BFTRawHC(NumOfPlaneBFT),
     m_SFTRawHC(NumOfPlaneSFT),
     m_CFTRawHC(NumOfPlaneCFT),
@@ -232,6 +233,7 @@ RawData::ClearAll( void )
   del::ClearContainer( m_HtTOFRawHC );
   del::ClearContainer( m_LACRawHC );
   del::ClearContainer( m_LCRawHC );
+  del::ClearContainer( m_WCRawHC );
 
   del::ClearContainerAll( m_BFTRawHC );
   del::ClearContainerAll( m_SFTRawHC );
@@ -292,7 +294,7 @@ RawData::DecodeHits( void )
   DecodeHodo( DetIdBH1, NumOfSegBH1, kBothSide, m_BH1RawHC );
   // BH2
   DecodeHodo( DetIdBH2, NumOfSegBH2, kBothSide, m_BH2RawHC );
-  // BH2
+  // E42 BH2
   DecodeHodo( DetIdE42BH2, NumOfSegE42BH2, kBothSide, m_E42BH2RawHC );
   // SAC
   DecodeHodo( DetIdSAC, NumOfSegSAC, kOneSide,  m_SACRawHC );
@@ -306,6 +308,8 @@ RawData::DecodeHits( void )
 #endif
   // LC
   DecodeHodo( DetIdLC,  NumOfSegLC,  kOneSide,  m_LCRawHC );
+  // WC
+  DecodeHodo( DetIdWC, NumOfSegWC, kBothSide, m_WCRawHC );
 
   //BFT
   for( int plane=0; plane<NumOfPlaneBFT; ++plane ){

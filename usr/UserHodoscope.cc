@@ -138,6 +138,14 @@ struct Event
   int lchitpat[MaxHits];
   double lct[NumOfSegLC][MaxDepth];
 
+
+  int wcnhits;
+  int wchitpat[MaxHits];
+  double wcua[NumOfSegBH2];
+  double wcut[NumOfSegBH2][MaxDepth];
+  double wcda[NumOfSegBH2];
+  double wcdt[NumOfSegBH2][MaxDepth];
+
   ////////// Normalized
   double bh1mt[NumOfSegBH1][MaxDepth];
   double bh1cmt[NumOfSegBH1][MaxDepth];
@@ -262,6 +270,7 @@ namespace root
     LCHid   = 50000,
     HtTOFHid= 60000, 
     E42BH2Hid  = 70000,
+    WCHid  = 80000,
   };
 }
 
@@ -742,6 +751,78 @@ EventHodoscope::ProcessingNormal( void )
     HF1( LCHid+2, double(nh1) );
     event.lcnhits = lc_nhits;
   }
+
+
+  // WC
+  {
+    int wc_nhits = 0;
+    const HodoRHitContainer &cont = rawData->GetWCRawHC();
+    int nh = cont.size();
+    HF1( WCHid, double(nh) );
+    int nh1 = 0, nh2 = 0;
+    for( int i=0; i<nh; ++i ){
+      HodoRawHit *hit = cont[i];
+      int seg = hit->SegmentId()+1;
+      HF1( WCHid +1, seg-0.5 );
+      int Au = hit->GetAdcUp(), Ad = hit->GetAdcDown();
+      int Tu = hit->GetTdcUp(), Td = hit->GetTdcDown();
+      event.wcua[seg-1] = Au;
+      event.wcda[seg-1] = Ad;
+
+      //Up
+      {
+	HF1( WCHid +100*seg +1, double(Au) );
+	if( Tu>0 ){
+
+	  HF1( WCHid +100*seg +5, double(Au) );
+	}
+	else{
+	  HF1( WCHid +100*seg +7, double(Au) );
+	}
+	
+	int n_mhit = hit->GetSizeTdcUp();
+	for(int m = 0; m<n_mhit; ++m){
+	  int T = hit->GetTdcUp(m);
+	  if(T > 0) HF1( WCHid +100*seg +3, double(T) );
+	  event.wcut[seg-1][m] = T;
+	}// for(m)
+      }
+
+      //Down
+      {
+	HF1( WCHid +100*seg +2, double(Ad) );
+	if( Td>0 ){
+	  HF1( WCHid +100*seg +6, double(Ad) );
+	}
+	else{
+	  HF1( WCHid +100*seg +8, double(Ad) );
+	}
+
+	int n_mhit = hit->GetSizeTdcDown();
+	for(int m = 0; m<n_mhit; ++m){
+	  int T = hit->GetTdcDown(m);
+	  if(T > 0) HF1( WCHid +100*seg +4, double(T) );
+	  event.wcdt[seg-1][m] = T;
+	}// for(m)
+      }
+
+
+      //HitPat
+      if( Tu>0 && Td>0 ){
+	event.wchitpat[wc_nhits] = seg;
+	wc_nhits++;
+      }
+      if( Tu>0 || Td>0 ){
+	++nh1; HF1( WCHid +3, seg-0.5 );
+      }
+      if( Tu>0 && Td>0 ){
+	++nh2; HF1( WCHid +5, seg-0.5 );
+      }
+    }
+    HF1( WCHid +2, double(nh1) ); HF1( WCHid +4, double(nh2) );
+    event.wcnhits = wc_nhits;
+  }
+
 
 
   //**************************************************************************
@@ -1529,6 +1610,7 @@ EventHodoscope::InitializeEvent( void )
   event.tofnhits  = 0;
   event.tofhtnhits  = 0;
   event.lcnhits  = 0;
+  event.wcnhits  = 0;
 
   dst.nhBh1  = 0;
   dst.nhBh2  = 0;
@@ -1577,6 +1659,7 @@ EventHodoscope::InitializeEvent( void )
     event.tofhitpat[it]  = -1;
     event.tofhthitpat[it]  = -1;
     event.lchitpat[it]  = -1;
+    event.wchitpat[it]  = -1;
   }
 
   for( int it=0; it<NumOfSegBH1; ++it ){
@@ -1696,6 +1779,18 @@ EventHodoscope::InitializeEvent( void )
       dst.tLc[MaxDepth*it + m]   = -9999.;
     }
   }
+
+  for( int it=0; it<NumOfSegWC; ++it ){
+    event.wcua[it] = -9999.;
+    event.wcda[it] = -9999.;
+
+    for(int m = 0; m<MaxDepth; ++m){
+      event.wcut[it][m] = -9999.;
+      event.wcdt[it][m] = -9999.;
+    }
+  }
+
+
 }
 
 //______________________________________________________________________________
@@ -2015,7 +2110,7 @@ ConfMan::InitializeHistograms( void )
   HB1( E42BH2Hid +4, "#Hits E42BH2(Tand)",  NumOfSegE42BH2+1, 0., double(NumOfSegE42BH2+1) );
   HB1( E42BH2Hid +5, "Hitpat E42BH2(Tand)", NumOfSegE42BH2,   0., double(NumOfSegE42BH2)   );
 
-  for( int i=1; i<=NumOfSegBH2; ++i ){
+  for( int i=1; i<=NumOfSegE42BH2; ++i ){
     TString title1 = Form("E42BH2-%d UpAdc", i);
     TString title2 = Form("E42BH2-%d DownAdc", i);
     TString title3 = Form("E42BH2-%d UpTdc", i);
@@ -2280,6 +2375,38 @@ ConfMan::InitializeHistograms( void )
   HB1( LCHid +33, "CMeamTime Cluster Lc", 500, -5., 45. );
   HB1( LCHid +34, "DeltaE Cluster Lc", 100, -0.5, 4.5 );
 
+
+
+  //WC
+  HB1( WCHid +0, "#Hits WC",        NumOfSegWC+1, 0., double(NumOfSegWC+1) );
+  HB1( WCHid +1, "Hitpat WC",       NumOfSegWC,   0., double(NumOfSegWC)   );
+  HB1( WCHid +2, "#Hits WC(Tor)",   NumOfSegWC+1, 0., double(NumOfSegWC+1) );
+  HB1( WCHid +3, "Hitpat WC(Tor)",  NumOfSegWC,   0., double(NumOfSegWC)   );
+  HB1( WCHid +4, "#Hits WC(Tand)",  NumOfSegWC+1, 0., double(NumOfSegWC+1) );
+  HB1( WCHid +5, "Hitpat WC(Tand)", NumOfSegWC,   0., double(NumOfSegWC)   );
+
+  for( int i=1; i<=NumOfSegWC; ++i ){
+    TString title1 = Form("WC-%d UpAdc", i);
+    TString title2 = Form("WC-%d DownAdc", i);
+    TString title3 = Form("WC-%d UpTdc", i);
+    TString title4 = Form("WC-%d DownTdc", i);
+    TString title5 = Form("WC-%d UpAdc(w Tdc)", i);
+    TString title6 = Form("WC-%d DownAdc(w Tdc)", i);
+    TString title7 = Form("WC-%d UpAdc(w/o Tdc)", i);
+    TString title8 = Form("WC-%d DownAdc(w/o Tdc)", i);
+    HB1( WCHid +100*i +1, title1, NbinAdc,   MinAdc,   MaxAdc );
+    HB1( WCHid +100*i +2, title2, NbinAdc,   MinAdc,   MaxAdc );
+    HB1( WCHid +100*i +3, title3, NbinTdcHr, MinTdcHr, MaxTdcHr );
+    HB1( WCHid +100*i +4, title4, NbinTdcHr, MinTdcHr, MaxTdcHr );
+    HB1( WCHid +100*i +5, title5, NbinAdc,   MinAdc,   MaxAdc );
+    HB1( WCHid +100*i +6, title6, NbinAdc,   MinAdc,   MaxAdc );
+    HB1( WCHid +100*i +7, title7, NbinAdc,   MinAdc,   MaxAdc );
+    HB1( WCHid +100*i +8, title8, NbinAdc,   MinAdc,   MaxAdc );
+  }
+
+
+
+
   ////////////////////////////////////////////
   //Tree
   HBTree( "tree","tree of Counter" );
@@ -2341,6 +2468,16 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("lcnhits",   &event.lcnhits,   "lcnhits/I");
   tree->Branch("lchitpat",   event.lchitpat,  Form("lchitpat[%d]/I", NumOfSegLC));
   tree->Branch("lct" ,       event.lct,       Form("lct[%d][%d]/D", NumOfSegLC, MaxDepth));
+
+  //WC
+  tree->Branch("wcnhits",   &event.wcnhits,    "wcnhits/I");
+  tree->Branch("wchitpat",   event.wchitpat,   Form("wchitpat[%d]/I", NumOfSegWC));
+  tree->Branch("wcua",       event.wcua,       Form("wcua[%d]/D", NumOfSegWC));
+  tree->Branch("wcut",       event.wcut,       Form("wcut[%d][%d]/D", NumOfSegWC, MaxDepth));
+  tree->Branch("wcda",       event.wcda,       Form("wcda[%d]/D", NumOfSegWC));
+  tree->Branch("wcdt",       event.wcdt,       Form("wcdt[%d][%d]/D", NumOfSegWC, MaxDepth));
+
+
 
   //Normalized data
   tree->Branch("bh1mt",     event.bh1mt,     Form("bh1mt[%d][%d]/D", NumOfSegBH1, MaxDepth));

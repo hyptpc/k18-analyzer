@@ -19,6 +19,7 @@ const int DetIdSAC      =  9;
 const int DetIdLC       = 10;
 const int DetIdHtTOF    = 11; // high threshold TOF
 const int DetIdLAC      = 12;
+const int DetIdWC      = 13;
 const int NumOfSegBH1   = 11;
 const int NumOfSegBH2   =  8;
 const int NumOfSegE42BH2   =  15;
@@ -28,6 +29,7 @@ const int NumOfSegSAC   = 4;
 const int NumOfSegLC    = 28;
 const int NumOfSegLAC   = 15;
 const int NumOfSegHtTOF = 16;
+const int NumOfSegWC   =  2;//for E40 data analysis
 
 // Misc _______________________________________________________________
 const int DetIdTrig       = 21;

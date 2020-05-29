@@ -39,6 +39,7 @@ private:
   HodoRHitContainer m_HtTOFRawHC;
   HodoRHitContainer m_LACRawHC;
   HodoRHitContainer m_LCRawHC;
+  HodoRHitContainer m_WCRawHC;
   std::vector<HodoRHitContainer> m_BFTRawHC;
   std::vector<HodoRHitContainer> m_SFTRawHC;
   std::vector<HodoRHitContainer> m_CFTRawHC;
@@ -76,6 +77,7 @@ public:
   const HodoRHitContainer& GetHtTOFRawHC( void ) const;
   const HodoRHitContainer& GetLACRawHC( void ) const;
   const HodoRHitContainer& GetLCRawHC( void ) const;
+  const HodoRHitContainer& GetWCRawHC( void ) const;
 
   const HodoRHitContainer& GetBFTRawHC( int plane ) const;
   const HodoRHitContainer& GetSFTRawHC( int plane ) const;
@@ -158,6 +160,14 @@ RawData::GetLCRawHC( void ) const
 {
   return m_LCRawHC;
 }
+
+//______________________________________________________________________________
+inline const HodoRHitContainer&
+RawData::GetWCRawHC( void ) const
+{
+  return m_WCRawHC;
+}
+
 
 //______________________________________________________________________________
 inline const HodoRHitContainer&
