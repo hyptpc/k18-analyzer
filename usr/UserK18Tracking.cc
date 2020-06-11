@@ -139,11 +139,21 @@ struct Event
   double uin[MaxHits];
   double vin[MaxHits];
 
+  double xout[MaxHits];
+  double yout[MaxHits];
+  double uout[MaxHits];
+  double vout[MaxHits];
+
+
   double chisqrK18[MaxHits];
   double xtgtK18[MaxHits];
   double ytgtK18[MaxHits];
   double utgtK18[MaxHits];
   double vtgtK18[MaxHits];
+
+
+
+
 
   double theta[MaxHits];
   double phi[MaxHits];
@@ -329,7 +339,8 @@ EventK18Tracking::ProcessingNormal( void )
   //////////////BCOut tracking
   BH2Filter::FilterList cands;
   gFilter.Apply((Int_t)event.Time0Seg-1, *DCAna, cands);
-  DCAna->TrackSearchBcOut( cands, event.Time0Seg-1 );
+  //DCAna->TrackSearchBcOut( cands, event.Time0Seg-1 );
+  DCAna->TrackSearchBcOut(-1);
   DCAna->ChiSqrCutBcOut(10);
 
   int ntBcOut = DCAna->GetNtracksBcOut();
@@ -395,6 +406,11 @@ EventK18Tracking::ProcessingNormal( void )
 
     double xt=tp->Xtgt(), yt=tp->Ytgt();
     double ut=tp->Utgt(), vt=tp->Vtgt();
+
+    double xout=tp->Xout(), yout=tp->Yout();
+    double uout=tp->Uout(), vout=tp->Vout();
+
+
     double p_2nd=tp->P();
     double p_3rd=tp->P3rd();
     double delta_2nd=tp->Delta();
@@ -416,6 +432,12 @@ EventK18Tracking::ProcessingNormal( void )
     event.yin[i] = yin;
     event.uin[i] = uin;
     event.vin[i] = vin;
+
+    event.xout[i] = xout;
+    event.yout[i] = yout;
+    event.uout[i] = uout;
+    event.vout[i] = vout;
+
 
     event.nhK18[i]     = nh;
     event.chisqrK18[i] = chisqr;
@@ -486,6 +508,11 @@ EventK18Tracking::InitializeEvent( void )
     event.yin[i] = -999.;
     event.uin[i] = -999.;
     event.vin[i] = -999.;
+
+    event.xout[i] = -999.;
+    event.yout[i] = -999.;
+    event.uout[i] = -999.;
+    event.vout[i] = -999.;
 
     event.nhK18[i]   = 0;
     event.chisqrK18[i] = -999.;
@@ -621,6 +648,13 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("yin",    event.yin,   "yin[ntK18]/D");
   tree->Branch("uin",    event.uin,   "uin[ntK18]/D");
   tree->Branch("vin",    event.vin,   "vin[ntK18]/D");
+
+
+  tree->Branch("xout",    event.xout,   "xout[ntK18]/D");
+  tree->Branch("yout",    event.yout,   "yout[ntK18]/D");
+  tree->Branch("uout",    event.uout,   "uout[ntK18]/D");
+  tree->Branch("vout",    event.vout,   "vout[ntK18]/D");
+
 
   tree->Branch("xtgtK18",    event.xtgtK18,   "xtgtK18[ntK18]/D");
   tree->Branch("ytgtK18",    event.ytgtK18,   "ytgtK18[ntK18]/D");

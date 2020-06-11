@@ -24,7 +24,7 @@
 #include "TPCPadHelper.hh"
 
 #define OscillationCut 0
-#define Run2019 0
+#define Run2019 1
 
 namespace
 {

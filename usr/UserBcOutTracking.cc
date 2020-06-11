@@ -161,6 +161,7 @@ EventBcOutTracking::ProcessingNormal( void )
   static const double MaxMultiHitBcOut = gUser.GetParameter("MaxMultiHitBcOut");
   static const double MinTotBcOut = gUser.GetParameter("MinTotBcOut", 0);
 
+
   rawData = new RawData;
   rawData->DecodeHits();
 
@@ -282,6 +283,7 @@ EventBcOutTracking::ProcessingNormal( void )
     for( int layer=1; layer<=NumOfLayersBcOut; ++layer ){
       const DCHitContainer &contOut =DCAna->GetBcOutHC(layer);
       int nhOut=contOut.size();
+
       event.nhit[layer-1] = nhOut;
       if(layer == 1)  multiplicity[0] = nhOut;
       if(layer == 12) multiplicity[1] = nhOut;
@@ -364,9 +366,9 @@ EventBcOutTracking::ProcessingNormal( void )
   //  std::cout << "==========TrackSearch BcOut============" << std::endl;
   BH2Filter::FilterList cands;
   gFilter.Apply((Int_t)event.Time0Seg-1, *DCAna, cands);
-  bool status_tracking = DCAna->TrackSearchBcOut( cands, event.Time0Seg-1 );
+  //bool status_tracking = DCAna->TrackSearchBcOut( cands, event.Time0Seg-1 );
   //  bool status_tracking = DCAna->TrackSearchBcOut( cands, -1 );
-  //  bool status_tracking = DCAna->TrackSearchBcOut(-1);
+  bool status_tracking = DCAna->TrackSearchBcOut(-1);
   DCAna->ChiSqrCutBcOut(10);
 
   int nt=DCAna->GetNtracksBcOut();
