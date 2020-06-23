@@ -28,6 +28,8 @@ import json
 import configparser
 import xml.etree.ElementTree
 
+import utility
+
 #____________________________________________________
 
 import Singleton
@@ -54,6 +56,8 @@ BSUB_RESPONCE = 'Job <JobID> is submitted to queue <queue>'
 #____________________________________________________
 
 HSTAGE_PATH = '/ghi/fs02/hstage/requests'
+HSTAGE_NMIN = 20
+HSTAGE_NMAX = 10000
 
 #____________________________________________________
 
@@ -102,7 +106,7 @@ class BJob( object ) :
             sys.stderr.write( proc.stderr )
 
         buff = proc.stdout.splitlines()[1].decode().split()
-    
+
         status = None
         if int( buff[0] ) == self.__jid :
             if buff[2] ==   'PEND' :
@@ -137,7 +141,7 @@ class BJob( object ) :
     #__________________________________________________
     @staticmethod
     def readJobId( buff ) :
-    
+
         jid = None
         fl = True
 
@@ -150,7 +154,7 @@ class BJob( object ) :
 
         if fl is True :
             jid = int( words[1][1:-1] )
-    
+
         return jid
 
 
@@ -187,11 +191,11 @@ class AnalysisJob( object ) :
 
         # True: success, False: failure,
         # 0: process thrown, 1: process return and bsub running, 2: killed, -1: unknown
-        self.__status   = None 
+        self.__status   = None
 
         # True: success, False: failure, 0: processing, 1: killed, -1: unknown
         self.__statProc = None # UNIX process.
-        self.__statBjob = None # bsub process. 
+        self.__statBjob = None # bsub process.
 
 
     #__________________________________________________
@@ -408,11 +412,11 @@ class SingleRunManager( object ) :
 
         # None: initial
         # True: success,      False: failure,
-        #   10: unstaged,        11: staged, 
+        #   10: unstaged,        11: staged,
         #   20: bjob running,    21: bjob complete
-        #   30: merging,      
+        #   30: merging,
         #   99: killed,          -1: unknown
-        self.__status = None 
+        self.__status = None
 
         # true: staged, false: unstaged
         self.__statStage = None
@@ -598,7 +602,7 @@ class SingleRunManager( object ) :
             self.__status = 10
         elif self.__statStage is True : # staged
             self.__status = 11
-        elif self.__statStage is 1 : # killed
+        elif self.__statStage is -1 : # killed
             pass
         else :  # unknown
             self.__status = -1
@@ -638,7 +642,7 @@ class SingleRunManager( object ) :
     #__________________________________________________
     def __updateStagingStatus( self ) :
 
-        if not self.__statStage is True :
+        if self.__statStage is not True :
             if self.isStaged() :
                 self.__statStage = True
             else :
@@ -663,7 +667,7 @@ class SingleRunManager( object ) :
             sys.stderr.write( proc.stderr )
 
         buff = proc.stdout.decode().split()[0]
-    
+
         if buff == 'G' or buff == 'B' :
             return True
         else :
@@ -676,10 +680,11 @@ class SingleRunManager( object ) :
         if self.__statStage is True :
             return
 
-        if not self.__procStage is None :
+        if self.__procStage is not None :
             return
 
-        cmd = 'od {}'.format( self.__fDataPath )
+        cmd = 'head {}'.format( self.__fDataPath )
+        print(cmd)
         try :
             self.__procStage = subprocess.Popen( shlex.split( cmd ),
                                                  stdout = subprocess.DEVNULL,
@@ -826,13 +831,13 @@ class SingleRunManager( object ) :
             return
 
         if self.__procStage.poll() is None :
-            pid = procStage.pid()
+            pid = self.__procStage.pid
             self.__procStage.kill()
             buff = 'Process was killed [pid: {}]'\
                    .format( pid )
             self.__dumpLog( 'killStage', buff )
             self.__dumpLog( None,  64 * '_' )
-            self.__statStage = 1
+            self.__statStage = -1
 
 
     #__________________________________________________
@@ -968,7 +973,7 @@ class SingleRunManager( object ) :
             with open( path_conf, 'w' ) as f :
                 for option in config.options( 'dummy' ) :
                     f.write( option + ':\t' + config.get( 'dummy', option ) + '\n' )
-            
+
             self.__fConfList.append( path_conf )
             self.__fUnpackList.append( path_unpack )
 
@@ -1210,12 +1215,12 @@ class SingleRunManager( object ) :
             second = int( data )
         elif isinstance( data, int ) :
             second = int( data )
-    
+
         hour    = second // 3600
         second -= hour    * 3600
         minute  = second // 60
         second -= minute  * 60
-    
+
         return '{}:{:02d}:{:02d}'.format( hour, minute, second )
 
 
@@ -1246,7 +1251,6 @@ class RunManager( metaclass = Singleton.Singleton ) :
         self.__runJobList = list()
 
         self.__stageList  = list()
-
 
     #__________________________________________________
     def setRunlistManager( self, runlistman ) :
@@ -1298,9 +1302,15 @@ class RunManager( metaclass = Singleton.Singleton ) :
                             + self.__tag + '.lst.'\
                             + datetime.datetime.now().strftime( '%Y%m%d%H%M%S' )
 
-        with open( self.__fStageList, 'w' ) as f :
-            for item in self.__stageList :
-                f.write( item + '\n' )
+        if len( self.__stageList ) > HSTAGE_NMAX:
+            self.__flReady = False
+            utility.ExitFailure('too much runlist!!!')
+            return
+        if len( self.__stageList ) > HSTAGE_NMIN:
+            print('put {}'.format(self.__fStageList))
+            with open( self.__fStageList, 'w' ) as f :
+                for item in self.__stageList :
+                    f.write( item + '\n' )
 
 
     #__________________________________________________
@@ -1312,8 +1322,8 @@ class RunManager( metaclass = Singleton.Singleton ) :
             if status is None :
                 pass
             elif status is 10 :
-                # runJob.accessDataStream()
-                pass
+                if len( self.__stageList ) <= HSTAGE_NMIN:
+                    runJob.accessDataStream()
             elif status is 11 :
                 runJob.execute()
             elif status is 20 :
@@ -1345,7 +1355,7 @@ class RunManager( metaclass = Singleton.Singleton ) :
             self.__runSingleCycle()
             self.dumpStatus()
             dtime = RUN_PERIOD - ( time.time() - ptime )
-            if dtime > 0 : 
+            if dtime > 0 :
                 time.sleep( dtime )
             ptime = time.time()
 
