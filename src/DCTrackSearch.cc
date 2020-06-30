@@ -1,8 +1,4 @@
-/**
- *  file: DCTrackSearch.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "DCTrackSearch.hh"
 
@@ -48,14 +44,13 @@ namespace
   const double MaxChisquareSdcIn  = 5000.; // Set to be More than 30
   const double MaxChisquareSdcOut = 50.;   // Set to be More than 30
   const double MaxNumOfCluster = 20.;	   // Set to be Less than 30
-  const double MaxNumOfClusterCFT = 10.;   // Set to be Less than 30
   const double MaxCombi = 1.0e6;	   // Set to be Less than 10^6
   // SdcIn & BcOut for XUV Tracking routine
   const double MaxChisquareVXU = 50.;//
   const double ChisquareCutVXU = 50.;//
-  
-  // TPC Tracking 
-  const int    MaxNumOfTrackTPC = 100;	   
+
+  // TPC Tracking
+  const int    MaxNumOfTrackTPC = 100;
   const double& valueHall = ConfMan::Get<double>("HSFLDHALL");
 
   const double Bh2SegX[NumOfSegBH2]      = {35./2., 10./2., 7./2., 7./2., 7./2., 7./2., 10./2., 35./2.};
@@ -70,15 +65,6 @@ namespace
 					    19.0  + localPosBh2X_dX,
 					    41.5  + localPosBh2X_dX};
 
-  // for CFT --> go to USER param 
-  //const double MaxChi2CFT1st  = 150.; 
-  //const double MaxChi2CFT2nd  =  30.; 
-  //const double MaxChi2CFTcosmic     = 300.; 
-  //const double MaxChi2CFTcosmic2nd  = 100.;   
-  // for vertex cut  
-  //const double MinCFTz  = -150.; 
-  //const double MaxCFTz  =  450.;   
-
   //_____________________________________________________________________
   // Local Functions ____________________________________________________
 
@@ -92,14 +78,6 @@ namespace
 
   //_____________________________________________________________________
   inline void
-  CalcTracksCFT( std::vector<DCLocalTrack*>& trackCont )
-  {
-    for( std::size_t i=0, n=trackCont.size(); i<n; ++i )
-      trackCont[i]->CalculateCFT();
-  }
-
-  //_____________________________________________________________________
-  inline void
   ClearFlags( std::vector<DCLocalTrack*>& trackCont )
   {
     for( std::size_t i=0, n=trackCont.size(); i<n; ++i){
@@ -107,23 +85,6 @@ namespace
       if (!tp) continue;
       int nh = tp->GetNHit();
       for( int j=0; j<nh; ++j ) tp->GetHit(j)->QuitTrack();
-    }
-  }
-
-  //_____________________________________________________________________
-  inline void
-  ClearFlagsCFT( std::vector<DCLocalTrack*>& trackCont )
-  {
-    for( std::size_t i=0, n=trackCont.size(); i<n; ++i){
-      const DCLocalTrack* const tp = trackCont[i];
-      if (!tp) continue;
-      
-      int nh = tp->GetNHit();
-      for( int j=0; j<nh; ++j ) tp->GetHit(j)->QuitTrackCFT();
-            
-      int nhUV = tp->GetNHitUV();
-      for( int j=0; j<nhUV; ++j ) tp->GetHitUV(j)->QuitTrackCFT();
-      
     }
   }
 
@@ -153,12 +114,12 @@ namespace
     }
   }
 
-  //_____________________________________________________________________                                                    
+  //_____________________________________________________________________
   inline void
   DeleteDuplicatedTracks( std::vector<DCLocalTrack*>& trackCont, int first, int second, double ChisqrCut=0. )
   {
     std::vector <int> delete_index;
-    // evaluate container size in every iteration                                                                            
+    // evaluate container size in every iteration
     for( std::size_t i=first; i<=second; ++i ){
 
       auto itr = std::find(delete_index.begin(), delete_index.end(), i);
@@ -190,13 +151,13 @@ namespace
       }
     }
 
-    // sort from bigger order                                                                                                
+    // sort from bigger order
     std::sort(delete_index.begin(), delete_index.end(), std::greater<int>());
     for (int i=0; i<delete_index.size(); i++) {
       trackCont.erase(trackCont.begin()+delete_index[i]);
     }
 
-    // reset hit record of DCHit                                                                                             
+    // reset hit record of DCHit
     for( std::size_t i=0; i<trackCont.size(); ++i ){
       const DCLocalTrack* const tp = trackCont[i];
       if (!tp) continue;
@@ -344,8 +305,8 @@ namespace
       hddaq::cout << "[" << std::setw(3) << i << "]: "
 		  << std::setw(3) << n << " ";
       for( int j=0; j<n; ++j ){
-	hddaq::cout << ((DCLTrackHit *)CandCont[i][j]->GetHit(0))->GetWire() 
-		    << "( " << CandCont[i][j]->NumberOfHits() << " )" 
+	hddaq::cout << ((DCLTrackHit *)CandCont[i][j]->GetHit(0))->GetWire()
+		    << "( " << CandCont[i][j]->NumberOfHits() << " )"
 		    << " ";
       }
       hddaq::cout << std::endl;
@@ -376,14 +337,14 @@ namespace
 
     typedef std::pair <int, int> index_pair;
     std::vector <index_pair> index_pair_vec;
-    
+
     std::vector <int> nhit_vec;
-    
+
     for (int i=0; i<trackCont.size(); i++) {
       int nhit = trackCont[i]->GetNHit();
       nhit_vec.push_back(nhit);
     }
-    
+
     if (!nhit_vec.empty()) {
       int max_nhit = nhit_vec.front();
       int min_nhit = nhit_vec.back();
@@ -391,21 +352,21 @@ namespace
 	auto itr1 = std::find(nhit_vec.begin(), nhit_vec.end(), nhit);
 	if (itr1 == nhit_vec.end())
 	  continue;
-	
+
 	size_t index1 = std::distance(nhit_vec.begin(), itr1);
-	
+
 	auto itr2 = std::find(nhit_vec.rbegin(), nhit_vec.rend(), nhit);
 	size_t index2 = nhit_vec.size() - std::distance(nhit_vec.rbegin(), itr2) - 1;
-	
+
 	index_pair_vec.push_back(index_pair(index1, index2));
       }
     }
-    
+
     for (int i=0; i<index_pair_vec.size(); i++) {
       std::stable_sort( trackCont.begin() + index_pair_vec[i].first,
 			trackCont.begin() +  index_pair_vec[i].second + 1, DCLTrackComp_Chisqr() );
     }
-    
+
 #if 0
       DebugPrint( trackCont, arg+" After Sorting (chisqr)" );
 #endif
@@ -432,25 +393,8 @@ namespace
 #if 0
     DebugPrint( trackCont, arg+" After Deleting " );
 #endif
-    
+
     CalcTracks( trackCont );
-    del::ClearContainerAll( candCont );
-  }
-
-  //______________________________________________________________________________
-  template <class Functor>
-  inline void
-  FinalizeTrackCFT( const std::string& arg,
-		 std::vector<DCLocalTrack*>& trackCont,
-		 Functor comp,
-		 std::vector<ClusterList>& candCont,
-		 bool delete_flag=true )
-  {
-
-    std::stable_sort( trackCont.begin(), trackCont.end(), comp );
-
-    CalcTracksCFT( trackCont );
-
     del::ClearContainerAll( candCont );
   }
 
@@ -643,7 +587,7 @@ namespace
 //          TPCHit* c_hit = CandCont[ci];
 //          int rowID = thit->RowId();
 //          int c_rowID = c_hit->RowId();
-//          if( (abs(rowID - c_rowID) <= 2 || 
+//          if( (abs(rowID - c_rowID) <= 2 ||
 //      	  (layerID<10 && abs(rowID - c_rowID)>=tpc::padParameter[layerID][1]-2) )
 //      	&& fabs( thit->Y() - c_hit->Y() ) < ClusterYCut )
 //          {
@@ -658,51 +602,6 @@ namespace
 //
 //    return true;
 //  }
-
-  //______________________________________________________________________________
-  bool MakeCFTHitCluster( const DCHitContainer & HC,
-			  std::vector <DCPairHitCluster *> & Cont,
-			  bool honeycomb=false )
-  {
-    int nh=HC.size();    
-    for( int i=0; i<nh; ++i ){
-      DCHit *hit=HC[i];
-      if( hit ){
-
-	DCPairHitCluster *cluster =
-	  new DCPairHitCluster( new DCLTrackHit(hit,0.,i) );
-	cluster->SetHoneycomb( honeycomb );
-	Cont.push_back( cluster );
-
-      }
-    }  
-
-    /*
-    //ref
-    const std::size_t nh = HC.size();
-    for( std::size_t i=0; i<nh; ++i ){
-      DCHit *hit = HC[i];
-      if( !hit ) continue;
-      std::size_t mh = hit->GetDriftLengthSize();
-      for ( std::size_t m=0; m<mh; ++m ) {
-	if( !hit->IsWithinRange(m) ) continue;
-	double wp = hit->GetWirePosition();
-	double dl = hit->GetDriftLength(m);
-	DCPairHitCluster *cluster1 =
-	  new DCPairHitCluster( new DCLTrackHit(hit,wp+dl,m) );
-	DCPairHitCluster *cluster2 =
-	  new DCPairHitCluster( new DCLTrackHit(hit,wp-dl,m) );
-	cluster1->SetHoneycomb( honeycomb );
-	cluster2->SetHoneycomb( honeycomb );
-	Cont.push_back( cluster1 );
-	Cont.push_back( cluster2 );
-      }
-    }
-    */
-
-    return true;
-  }
-  
 
   //______________________________________________________________________________
   bool
@@ -910,44 +809,6 @@ namespace
     }
     return tp;
   }
-
-
-  //______________________________________________________________________________
-  DCLocalTrack*
-  MakeTrackCFT( const std::vector<ClusterList>& CandCont,
-		const IndexList& combination )
-  {
-    static const std::string func_name("["+class_name+"::"+__func__+"()]");
-    
-    DCLocalTrack *tp = new DCLocalTrack;
-    for( std::size_t i=0, n=CandCont.size(); i<n; ++i ){
-      int m = combination[i];
-      if( m<0 ) continue;
-      DCPairHitCluster *cluster = CandCont[i][m];
-      if( !cluster ) continue;
-      int mm = cluster->NumberOfHits();
-      int Layer[mm];
-
-      for( int j=0; j<mm; ++j ){
-	DCLTrackHit *hitp = cluster->GetHit(j);
-	Layer[j] = hitp->GetLayer();
-	if( !hitp ) continue;
-	
-	if(Layer[j]%2==0){
-	  tp->AddHitUV( hitp ); // spiral layer
-	}else if(Layer[j]%2==1){
-	  tp->AddHit( hitp ); // straight layer
-	}
-      }
-#if 0
-      hddaq::cout << func_name << ":" << std::setw(3)
-		  << i << std::setw(3) << m  << " "
-		  << CandCont[i][m] << " " << mm << std::endl;
-#endif
-    }
-    return tp;
-  }
-
 }
 
 
@@ -1001,16 +862,16 @@ namespace track
       if( track->GetNHit()>=MinNumOfHits
     	  && track->DoFit()
     	  && track->GetChiSquare()<MaxChisquare ){
-	
+
 	if (T0Seg>=0 && T0Seg<NumOfSegBH2) {
 	  double xbh2=track->GetX(zBH2), ybh2=track->GetY(zBH2);
 	  double difPosBh2 = localPosBh2X[T0Seg] - xbh2;
 
 	  //	  double xtgt=track->GetX(zTarget), ytgt=track->GetY(zTarget);
 	  //	  double ytgt=track->GetY(zTarget);
-	  
+
 	  if (true
-	      && fabs(difPosBh2)<Bh2SegXAcc[T0Seg] 
+	      && fabs(difPosBh2)<Bh2SegXAcc[T0Seg]
 	      && (-10 < ybh2 && ybh2 < 40)
 	      //	      && fabs(ytgt)<21.
 	      ){
@@ -1170,25 +1031,24 @@ namespace track
       static const int IdTOF_UY = gGeom.GetDetectorId("TOF-UY");
       static const int IdTOF_DX = gGeom.GetDetectorId("TOF-DX");
       static const int IdTOF_DY = gGeom.GetDetectorId("TOF-DY");
-     
+
       bool TOFSegXYMatching =
 	( track->GetWire(IdTOF_UX)==track->GetWire(IdTOF_UY) ) ||
 	( track->GetWire(IdTOF_DX)==track->GetWire(IdTOF_DY) );
-      
-      int Track[20]={0};
-      int layer;
-      for( int i=0; i<(track->GetNHit()); ++i){
-	layer=track->GetHit(i)->GetLayer();
-	Track[layer]=1;
-      }
 
-      bool FBT = 
-	( Track[80]==1 && Track[82]==1 ) || ( Track[81]==1 && Track[83]==1 ) ||
-	( Track[84]==1 && Track[86]==1 ) || ( Track[85]==1 && Track[87]==1 ) ;
-      
-      bool DC23x_off =
-	( Track[31]==0 && Track[32]==0 && Track[37]==0 && Track[38]==0 );
-      
+      // int Track[20]={0};
+      // int layer;
+      // for( int i=0; i<(track->GetNHit()); ++i){
+      // 	layer=track->GetHit(i)->GetLayer();
+      // 	Track[layer]=1;
+      // }
+
+      // bool FBT =
+      // 	( Track[80]==1 && Track[82]==1 ) || ( Track[81]==1 && Track[83]==1 ) ||
+      // 	( Track[84]==1 && Track[86]==1 ) || ( Track[85]==1 && Track[87]==1 ) ;
+      // bool DC23x_off =
+      // 	( Track[31]==0 && Track[32]==0 && Track[37]==0 && Track[38]==0 );
+
 
       if( TOFSegXYMatching &&
 	  //FBT&&
@@ -1226,7 +1086,7 @@ namespace track
       bool honeycomb = PpInfo[i].honeycomb;
       int  layer1    = PpInfo[i].id1;
       int  layer2    = PpInfo[i].id2;
-      
+
       if(ppFlag) {
 	MakePairPlaneHitCluster( HC[layer1], HC[layer2],
 				 PpInfo[i].CellSize, CandCont[i], honeycomb );
@@ -1249,10 +1109,10 @@ namespace track
     for( int i=0, n=CombiIndex.size(); i<n; ++i ){
       DCLocalTrack *track = MakeTrack( CandCont, CombiIndex[i] );
       if( !track ) continue;
-      if(true 
+      if(true
 	 && track->GetNHitSFT() > 1
-	 && track->GetNHit()>=MinNumOfHits 
-	 && track->DoFit() 
+	 && track->GetNHit()>=MinNumOfHits
+	 && track->DoFit()
 	 && track->GetChiSquare()<MaxChisquare
 	 ){
      	TrackCont.push_back(track);
@@ -1845,7 +1705,7 @@ namespace track
     del::ClearContainerAll( CandContV );
     del::ClearContainerAll( CandContX );
     del::ClearContainerAll( CandContU );
-    
+
     bool status_all = true;
     status_all = status_all && status[0];
     status_all = status_all && status[1];
@@ -2030,307 +1890,13 @@ namespace track
   }
 
   //______________________________________________________________________________
-  int /* Local Track Search CFT */
-  LocalTrackSearchCFT( const std::vector<DCHitContainer>& HC,
-		       const DCPairPlaneInfo *PpInfo,
-		       int npp, std::vector<DCLocalTrack*>& TrackCont,
-		       int MinNumOfHits )
-  {
-    static const std::string func_name("["+class_name+"::"+__func__+"()]");
-    const double MaxChi2CFT1st = gUser.GetParameter("MaxChi2CFT1st");
-    const double MaxChi2CFT2nd = gUser.GetParameter("MaxChi2CFT2nd");
-    const double MaxChi2CFTcosmic    = gUser.GetParameter("MaxChi2CFTcosmic");
-    const double MaxChi2CFTcosmic2nd = gUser.GetParameter("MaxChi2CFTcosmic2nd");
-    const double MinCFTz = gUser.GetParameter("MinCFTz");
-    const double MaxCFTz = gUser.GetParameter("MaxCFTz");
-
-    std::vector<ClusterList> CandCont(npp);
-
-    for( int i=0; i<npp; ++i ){
-      bool ppFlag    = PpInfo[i].pair;
-      bool honeycomb = PpInfo[i].honeycomb;
-      int  layer1    = PpInfo[i].id1;
-      int  layer2    = PpInfo[i].id2;
-
-      MakeCFTHitCluster( HC[layer1], CandCont[i],  honeycomb);
-    }
-
-    IndexList nCombi(npp);
-    for ( int i=0; i<npp; ++i ) {
-      int n = CandCont[i].size();
-      nCombi[i] = n>MaxNumOfClusterCFT ? 0 : n;
-    }
-
-    bool status = true;
-    std::vector<IndexList> CombiIndex = MakeIndex( npp, nCombi, status );
-
-    double Chi1st = MaxChi2CFT1st;
-    double Chi2nd = MaxChi2CFT2nd;
-    if(MinNumOfHits>4){// 16 layer tracking
-      Chi1st = MaxChi2CFTcosmic;
-      Chi2nd = MaxChi2CFTcosmic2nd;
-    }
-
-    if(MinNumOfHits<=4){// 16 layer tracking
-
-      for( int i=0, n=CombiIndex.size(); i<n; ++i ){
-	DCLocalTrack *track = MakeTrackCFT( CandCont, CombiIndex[i] );
-	if( !track ) continue;
-	if(true 
-	   && track->GetNHit()>=MinNumOfHits 
-	   && track->GetNHitUV()>=MinNumOfHits 
-	   && track->DoFitPhi() 
-	   && track->GetChiSquareXY()<Chi1st
-	   && track->DoFitUV() 
-	   && track->GetChiSquareZ ()<Chi1st
-	   && track->GetVtxZ()>MinCFTz && track->GetVtxZ()<MaxCFTz // vtx cut
-	   // CFT 2nd tracking (position correction)
-	   && track->DoFitPhi2nd() 
-	   && track->GetChiSquareXY ()<Chi2nd
-	   && track->DoFitUV2nd(1) //0:w/o, 1:w/ UV calib.
-	   && track->GetChiSquareZ ()<Chi2nd
-	   && track->GetVtxZ()>MinCFTz && track->GetVtxZ()<MaxCFTz // vtx cut
-	   ){
-	  
-	  TrackCont.push_back(track);
-	  
-	}else{delete track;}
-      }
-
-    }else{ //
-
-      for( int i=0, n=CombiIndex.size(); i<n; ++i ){
-	DCLocalTrack *track = MakeTrackCFT( CandCont, CombiIndex[i] );
-	if( !track ) continue;
-	if(true 
-	   && track->GetNHit()>=MinNumOfHits 
-	   && track->GetNHitUV()>=MinNumOfHits 
-	   && track->DoFitPhi() 
-	   && track->GetChiSquareXY()<Chi1st
-	   && track->DoFitUV() 
-	   && track->GetChiSquareZ ()<Chi1st
-	   && track->GetVtxZ()>MinCFTz && track->GetVtxZ()<MaxCFTz // vtx cut
-	   // CFT 2nd tracking (position correction)
-	   && track->DoFitPhi2nd() 
-	   && track->GetChiSquareXY ()<Chi2nd
-	   && track->DoFitUV2nd(1) //0:w/o, 1:w/ UV calib.
-	   && track->GetChiSquareZ ()<Chi2nd
-	   && track->GetVtxZ()>MinCFTz && track->GetVtxZ()<MaxCFTz // vtx cut
-	   ){
-	  
-	  TrackCont.push_back(track);
-	  
-	}else{delete track;}
-      }
-
-    }
-
-
-
-    // Clear Flags        
-    ClearFlagsCFT(TrackCont);
-
-    partial_sort( TrackCont.begin(), TrackCont.end(), 
-		  TrackCont.end(), DCLTrackCompCFT() );
-
-    // Delete Duplicated Tracks
-    for( int i=0; i<int(TrackCont.size()); ++i ){
-      DCLocalTrack *tp=TrackCont[i];
-      
-      int nh=tp->GetNHit();
-      for( int j=0; j<nh; ++j ){
-	tp->GetHit(j)->JoinTrackCFT();
-      }      
-      int nhUV=tp->GetNHitUV();
-      for( int j=0; j<nhUV; ++j ){
-	tp->GetHitUV(j)->JoinTrackCFT();
-      }      
-      
-      for( int i2=TrackCont.size()-1; i2>i; --i2 ){
-	int flag1=0, flag2=0, flag=0;     
-
-	DCLocalTrack *tp2=TrackCont[i2];
-	int nh2=tp2->GetNHit();
-	
-	for( int j=0; j<nh2; ++j ){
-	  if( tp2->GetHit(j)->BelongToTrackCFT() ==true ){++flag1; ++flag;}
-	}
-
-	int nhUV2=tp2->GetNHitUV();
-	for( int j=0; j<nhUV2; ++j ){
-	  if( tp2->GetHitUV(j)->BelongToTrackCFT() ==true ){ ++flag2; ++flag;}
-	}
-
-	if(flag>0){
-	  delete tp2;
-	  TrackCont.erase(TrackCont.begin()+i2);
-	}
-	
-      }
-    } 
-    
-    
-    int nn=TrackCont.size();
-    for(int i=0; i<nn; ++i ){
-      DCLocalTrack *tp=TrackCont[i];
-      tp->SetCalculatedValueCFT();
-    }
-    
-    for(int i=0; i<nn; ++i ){
-      DCLocalTrack *tp=TrackCont[i];
-      int nh=tp->GetNHit();
-      for( int j=0; j<nh; ++j ){
-	int lnum = tp->GetHit(j)->GetLayer();
-	int ll = lnum;
-	if(lnum>7){ll -= 8;}
-      }                    
-    }
-
-    FinalizeTrackCFT( func_name, TrackCont, DCLTrackCompCFT(), CandCont );
- 
-    return status? TrackCont.size() : -1;      
-  }
-
-  //______________________________________________________________________________
-  int /* Local Track Search CFT */
-  LocalTrackSearchCFTppPhi( const std::vector<DCHitContainer>& HC,
-			    const DCPairPlaneInfo *PpInfo,
-			    int npp, std::vector<DCLocalTrack*>& TrackCont,
-			    int MinNumOfHits )
-  {
-    static const std::string func_name("["+class_name+"::"+__func__+"()]");
-    const double MaxChi2CFT1st = gUser.GetParameter("MaxChi2CFT1st");
-    const double MaxChi2CFT2nd = gUser.GetParameter("MaxChi2CFT2nd");
-    const double MaxChi2CFTcosmic    = gUser.GetParameter("MaxChi2CFTcosmic");
-    const double MaxChi2CFTcosmic2nd = gUser.GetParameter("MaxChi2CFTcosmic2nd");
-    const double MinCFTz = gUser.GetParameter("MinCFTz");
-    const double MaxCFTz = gUser.GetParameter("MaxCFTz");
-
-    std::vector<ClusterList> CandCont(npp);
-
-    for( int i=0; i<npp; ++i ){
-      bool ppFlag    = PpInfo[i].pair;
-      bool honeycomb = PpInfo[i].honeycomb;
-      int  layer1    = PpInfo[i].id1;
-      int  layer2    = PpInfo[i].id2;
-
-      MakeCFTHitCluster( HC[layer1], CandCont[i],  honeycomb);
-    }
-
-    IndexList nCombi(npp);
-    for ( int i=0; i<npp; ++i ) {
-      int n = CandCont[i].size();
-      nCombi[i] = n>MaxNumOfClusterCFT ? 0 : n;
-    }
-
-    bool status = true;
-    std::vector<IndexList> CombiIndex = MakeIndex( npp, nCombi, status );
-
-    //double Chi1st = MaxChi2CFT1st;
-    //double Chi2nd = MaxChi2CFT2nd;
-    double Chi1st = MaxChi2CFTcosmic;
-    double Chi2nd = MaxChi2CFTcosmic;
-    if(MinNumOfHits>4){// 16 layer tracking
-      Chi1st = MaxChi2CFTcosmic;
-      Chi2nd = MaxChi2CFTcosmic;
-    }
-
-    if(MinNumOfHits<=4){// normal 8 layer tracking
-    }else{ // 16 layer tracking for cosmic ray
-
-      for( int i=0, n=CombiIndex.size(); i<n; ++i ){
-	DCLocalTrack *track = MakeTrackCFT( CandCont, CombiIndex[i] );
-	if( !track ) continue;
-	if(true 
-	   && track->GetNHit()>=MinNumOfHits 
-	   && track->GetNHitUV()>=MinNumOfHits 
-	   //&& track->DoFitPhi() 
-	   //&& track->GetChiSquareXY()<Chi1st
-	   && track->DoFitPhi16pp() 
-	   && track->GetChiSquareXY()<Chi1st
-	   ){
-	  
-	  TrackCont.push_back(track);
-	  
-	}else{delete track;}
-      }
-
-    }
-
-    // Clear Flags        
-    ClearFlagsCFT(TrackCont);
-
-    partial_sort( TrackCont.begin(), TrackCont.end(), 
-		  TrackCont.end(), DCLTrackCompCFT16pp() );
-
-    // Delete Duplicated Tracks
-    for( int i=0; i<int(TrackCont.size()); ++i ){
-      DCLocalTrack *tp=TrackCont[i];
-      
-      int nh=tp->GetNHit();
-      for( int j=0; j<nh; ++j ){
-	tp->GetHit(j)->JoinTrackCFT();
-      }      
-            
-      int nhUV=tp->GetNHitUV();
-      for( int j=0; j<nhUV; ++j ){
-	tp->GetHitUV(j)->JoinTrackCFT();
-      }            
-
-      for( int i2=TrackCont.size()-1; i2>i; --i2 ){
-	int flag1=0, flag2=0, flag=0;     
-
-	DCLocalTrack *tp2=TrackCont[i2];
-	int nh2=tp2->GetNHit();
-	
-	for( int j=0; j<nh2; ++j ){
-	  if( tp2->GetHit(j)->BelongToTrackCFT() ==true ){++flag1; ++flag;}
-	}
-		
-	int nhUV2=tp2->GetNHitUV();
-	for( int j=0; j<nhUV2; ++j ){
-	  if( tp2->GetHitUV(j)->BelongToTrackCFT() ==true ){ ++flag2; ++flag;}
-	}
-	
-	if(flag>0){
-	  delete tp2;
-	  TrackCont.erase(TrackCont.begin()+i2);
-	}
-	
-      }
-    } 
-    
-    
-    int nn=TrackCont.size();
-    for(int i=0; i<nn; ++i ){
-      DCLocalTrack *tp=TrackCont[i];
-      tp->SetCalculatedValueCFT();
-    }
-    
-    for(int i=0; i<nn; ++i ){
-      DCLocalTrack *tp=TrackCont[i];
-      int nh=tp->GetNHit();
-      for( int j=0; j<nh; ++j ){
-	int lnum = tp->GetHit(j)->GetLayer();
-	int ll = lnum;
-	if(lnum>7){ll -= 8;}
-      }                    
-    }
-
-    //FinalizeTrackCFT( func_name, TrackCont, DCLTrackCompCFT(), CandCont );
-    FinalizeTrackCFT( func_name, TrackCont, DCLTrackCompCFT16pp(), CandCont );
- 
-    return status? TrackCont.size() : -1;      
-  }
-
-  //______________________________________________________________________________
-  int 
+  int
   LocalTrackSearchTPC( const std::vector<TPCClusterContainer>& TPCClCont,
 			   std::vector<TPCLocalTrack*>& TrackCont,
 			   int MinNumOfHits /*=8*/ )
   {
     static const std::string func_name("["+class_name+"::"+__func__+"()]");
-    
+
     static const double HoughWindowCut = gUser.GetParameter("HoughWindowCut");
     bool status = true;
 
@@ -2340,7 +1906,7 @@ namespace track
     // y = p0 + p1 * x
     double p0[MaxNumOfTrackTPC];
     double p1[MaxNumOfTrackTPC];
-    
+
     // r = x * cos(theta) + y * sin(theta)
     const int    theta_ndiv = 200;
     const double theta_min =    0;
@@ -2349,7 +1915,7 @@ namespace track
     const double r_min = -500;
     const double r_max =  500;
     TH2D *hist[MaxNumOfTrackTPC];
-    
+
     std::vector<std::vector<int> > flag;
     flag.resize( NumOfLayersTPC );
     for( int layer=0; layer<NumOfLayersTPC; layer++ ){
@@ -2357,7 +1923,7 @@ namespace track
       }
 
     for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
-      hist[tracki] = new TH2D(Form("hist_%d",tracki),";theta (deg.); r (mm)", 
+      hist[tracki] = new TH2D(Form("hist_%d",tracki),";theta (deg.); r (mm)",
 	  theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
       for( int layer=0; layer<NumOfLayersTPC; layer++ ){
 	for( int ci=0, n=TPCClCont[layer].size(); ci<n; ci++ ){
@@ -2427,13 +1993,13 @@ namespace track
 				int MinNumOfHits /*=8*/ )
   {
     static const std::string func_name("["+class_name+"::"+__func__+"()]");
-    static const double HoughWindowCut = gUser.GetParameter("HoughWindowCut");
+    // static const double HoughWindowCut = gUser.GetParameter("HoughWindowCut");
     bool status = true;
-    
+
     //del::ClearContainer( TrackCont );
 
 //#if UseTpcCluster
-//    
+//
 //    std::vector<TPCClusterList> CandCont(NumOfLayersTPC);
 //    for( int layer=0; layer<NumOfLayersTPC; layer++ ){
 //      MakeTPCHitCluster( TPCHC[layer], CandCont[layer], layer );
@@ -2445,7 +2011,7 @@ namespace track
 //    // y = p0 + p1 * x
 //    double p0[MaxNumOfTrackTPC];
 //    double p1[MaxNumOfTrackTPC];
-//    
+//
 //    // r = x * cos(theta) + y * sin(theta)
 //    const int    theta_ndiv = 200;
 //    const double theta_min =    0;
@@ -2454,7 +2020,7 @@ namespace track
 //    const double r_min = -500;
 //    const double r_max =  500;
 //    TH2D *hist[MaxNumOfTrackTPC];
-//    
+//
 //    std::vector<std::vector<int> > flag;
 //    flag.resize( NumOfLayersTPC );
 //    for( int layer=0; layer<NumOfLayersTPC; layer++ ){
@@ -2462,7 +2028,7 @@ namespace track
 //      }
 //
 //    for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
-//      hist[tracki] = new TH2D(Form("hist_%d",tracki),";theta (deg.); r (mm)", 
+//      hist[tracki] = new TH2D(Form("hist_%d",tracki),";theta (deg.); r (mm)",
 //	  theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
 //      for( int layer=0; layer<NumOfLayersTPC; layer++ ){
 //	for( int ci=0, n=CandCont[layer].size(); ci<n; ci++ ){

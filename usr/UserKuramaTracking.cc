@@ -1,8 +1,4 @@
-/**
- *  file: UserKuramaTracking.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include <iostream>
 #include <sstream>
@@ -347,7 +343,9 @@ EventKuramaTracking::ProcessingNormal( void )
   int nhTof = hodoAna->GetNClustersTOF();
   event.nhTof = nhTof;
   {
+#if HodoCut
     int nhOk = 0;
+#endif
     for( int i=0; i<nhTof; ++i ){
       HodoCluster *hit = hodoAna->GetClusterTOF(i);
       double seg = hit->MeanSeg()+1;
@@ -452,7 +450,7 @@ EventKuramaTracking::ProcessingNormal( void )
 
   // std::cout << "==========TrackSearch SdcIn============" << std::endl;
   DCAna->TrackSearchSdcIn();
-  DCAna->ChiSqrCutSdcIn(50.);  
+  DCAna->ChiSqrCutSdcIn(50.);
   int ntSdcIn = DCAna->GetNtracksSdcIn();
   if( MaxHits<ntSdcIn ){
     std::cout << "#W " << func_name << " "
@@ -550,7 +548,7 @@ EventKuramaTracking::ProcessingNormal( void )
 
   //////////////SdcOut tracking
   //std::cout << "==========TrackSearch SdcOut============" << std::endl;
-  
+
   if(flag_tof_stop){
 #if UseTOF
     DCAna->TrackSearchSdcOut( TOFCont );
@@ -561,8 +559,8 @@ EventKuramaTracking::ProcessingNormal( void )
     DCAna->TrackSearchSdcOut();
   }
 
-  DCAna->ChiSqrCutSdcOut(50.);  
-  int ntSdcOut = DCAna->GetNtracksSdcOut();  
+  DCAna->ChiSqrCutSdcOut(50.);
+  int ntSdcOut = DCAna->GetNtracksSdcOut();
 
   if( MaxHits<ntSdcOut ){
     std::cout << "#W " << func_name << " "
@@ -597,7 +595,7 @@ EventKuramaTracking::ProcessingNormal( void )
       if( hit->GetLayer()>79 ) layerId -= 62;
       else if( hit->GetLayer()>40 ) layerId -= 15;
       else if( hit->GetLayer()>30 ) layerId -= 21;
-      //std::cout << "layerId :" << layerId << std::endl; 
+      //std::cout << "layerId :" << layerId << std::endl;
 
       HF1( 33, hit->GetLayer() );
       double wire=hit->GetWire();
@@ -772,7 +770,7 @@ EventKuramaTracking::ProcessingNormal( void )
       if( hit->GetLayer()>79 ) layerId -= 62;
       else if( hit->GetLayer()>40 ) layerId -= 15;
       else if( hit->GetLayer()>30 ) layerId -= 21;
-      
+
       HF1( 53, hit->GetLayer() );
       double wire = hit->GetHit()->GetWire();
       double dt   = hit->GetHit()->GetDriftTime();
@@ -1175,7 +1173,7 @@ ConfMan:: InitializeHistograms( void )
     HB2( 100*i+17, title7, 100, -100., 100., 100, -50., 50. );
     HB2( 100*i+22, title22, NBinDTSDC1, MinDTSDC1, MaxDTSDC1, NBinDLSDC1, MinDLSDC1, MaxDLSDC1 );
   }
-  
+
   //SFT
   for( int i=NumOfLayersSDC1+1; i<=NumOfLayersSdcIn; ++i ){
     TString title1 = Form("HitPat Sft%d", i-NumOfLayersSDC1);

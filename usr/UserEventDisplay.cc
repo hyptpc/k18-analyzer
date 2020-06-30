@@ -1,8 +1,6 @@
-/**
- *  file: UserEventDisplay.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
+
+#include "VEvent.hh"
 
 #include <cmath>
 #include <iomanip>
@@ -23,10 +21,7 @@
 #include "RawData.hh"
 //#include "RootHelper.hh"
 #include "UnpackerManager.hh"
-#include "VEvent.hh"
 #include "BH2Filter.hh"
-#include "CFTPedCorMan.hh"
-#include "BGOAnalyzer.hh"
 
 namespace
 {
@@ -35,7 +30,7 @@ namespace
   EventDisplay&        gEvDisp = EventDisplay::GetInstance();
   RMAnalyzer&          gRM     = RMAnalyzer::GetInstance();
   const UserParamMan&  gUser   = UserParamMan::GetInstance();
-BH2Filter&          gFilter = BH2Filter::GetInstance();
+  BH2Filter&          gFilter = BH2Filter::GetInstance();
   const hddaq::unpacker::UnpackerManager& gUnpacker
   = hddaq::unpacker::GUnpacker::get_instance();
   const double KaonMass   = pdg::KaonMass();
@@ -59,7 +54,6 @@ private:
   RawData      *rawData;
   DCAnalyzer   *DCAna;
   HodoAnalyzer *hodoAna;
-  BGOAnalyzer  *bgoAna;
 public:
         UserEventDisplay( void );
        ~UserEventDisplay( void );
@@ -74,8 +68,7 @@ UserEventDisplay::UserEventDisplay( void )
   : VEvent(),
     rawData(0),
     DCAna( new DCAnalyzer ),
-    hodoAna( new HodoAnalyzer ),
-    bgoAna( new BGOAnalyzer )
+    hodoAna( new HodoAnalyzer )
 {
 }
 
@@ -84,7 +77,6 @@ UserEventDisplay::~UserEventDisplay( void )
 {
   if (DCAna)   delete DCAna;
   if (hodoAna) delete hodoAna;
-  if (bgoAna)  delete bgoAna;
   if (rawData) delete rawData;
 }
 
@@ -101,7 +93,7 @@ UserEventDisplay::ProcessingNormal( void )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"]");
 
-  static const double MaxMultiHitBcOut  = gUser.GetParameter("MaxMultiHitBcOut");
+  // static const double MaxMultiHitBcOut  = gUser.GetParameter("MaxMultiHitBcOut");
   static const double MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
   static const double MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
 
@@ -140,10 +132,9 @@ UserEventDisplay::ProcessingNormal( void )
   static const int IdSDC1 = gGeom.DetectorId("SDC1-X1");
   static const int IdSDC2 = gGeom.DetectorId("SDC2-X1");
   static const int IdSDC3 = gGeom.DetectorId("SDC3-X1");
-  static const int PlOffsBcOut =  gGeom.DetectorId("BC3-X1");
-  static const int IdBC3 = gGeom.DetectorId("BC3-X1") - PlOffsBcOut + 1;
-  static const int IdBC4 = gGeom.DetectorId("BC4-X1") - PlOffsBcOut + 1;
-  static const int kSkip = 1;
+  // static const int PlOffsBcOut =  gGeom.DetectorId("BC3-X1");
+  // static const int IdBC3 = gGeom.DetectorId("BC3-X1") - PlOffsBcOut + 1;
+  // static const int IdBC4 = gGeom.DetectorId("BC4-X1") - PlOffsBcOut + 1;
 
   rawData = new RawData;
   rawData->DecodeHits();
@@ -153,9 +144,6 @@ UserEventDisplay::ProcessingNormal( void )
   gEvDisp.DrawText( 0.1, 0.3, Form("Run# %5d%4sEvent# %6d",
 				    gRM.RunNumber(), "",
 				    gRM.EventNumber() ) );
-
-  //if ( gEvDisp.GetCommand() == kSkip)
-  //return true;
 
   // Trigger Flag
   {
@@ -231,15 +219,15 @@ UserEventDisplay::ProcessingNormal( void )
     BH2Hit *hit = hodoAna->GetHitBH2(i);
     if(!hit) continue;
     double seg = hit->SegmentId()+1;
-    double de  = hit->DeltaE();
 #if HodoCut
+    double de  = hit->DeltaE();
     if( de<MinDeBH2 || MaxDeBH2<de ) continue;
 #endif
 
     int multi = hit->GetNumOfHit();
     for (int m=0; m<multi; m++) {
       double mt  = hit->MeanTime(m);
-      double cmt = hit->CMeanTime(m);
+      // double cmt = hit->CMeanTime(m);
       double ct0 = hit->CTime0(m);
       if( std::abs(mt)<std::abs(min_time) ){
 	min_time = mt;
@@ -272,12 +260,12 @@ UserEventDisplay::ProcessingNormal( void )
 	int Tu = hit->GetTdcUp(j), Td = hit->GetTdcDown(j);
 	if( Tu>0 || Td>0 )
 	  gEvDisp.DrawHitHodoscope( IdTOF, seg, Tu, Td );
-	
+
 	//std::cout << "TOF : seg " << seg << ", " << Tu << std::endl;
-	if (Tu>0 && Td>0) 
+	if (Tu>0 && Td>0)
 	  gEvDisp.DrawTOF(seg, Tu);
       }
-      
+
     }
   }
   hodoAna->DecodeTOFHits(rawData);
@@ -752,8 +740,8 @@ UserEventDisplay::ProcessingNormal( void )
       }
     }
   }
-  
-  bool flagFBT=false;
+
+  // bool flagFBT=false;
   {
     ////////// FBT1
     hodoAna->DecodeFBT1Hits( rawData );
@@ -775,15 +763,15 @@ UserEventDisplay::ProcessingNormal( void )
 	    double leading  = hit->GetLeading(m);
 	    if( 505<leading && leading<MaxTdcFBT1 ){
 	      hit_flag = true;
-	      flagFBT = true;
+	      // flagFBT = true;
 	      //std::cout << "FBT1 : " << seg << ", " << leading<< std::endl;
 	    } else if( MinTdcFBT1 <leading && leading<MaxTdcFBT1 ){
-	      flagFBT = true;
+	      // flagFBT = true;	//
 	      hit_flag2 = true;
 	      //std::cout << "FBT1 : " << seg << ", " << leading<< std::endl;
-	    } 
+	    }
 	  }// for(m)
-	  
+
 	  int IdFBT = 0;
 	  if (layer == 0 && UorD ==D)
 	    IdFBT = IdFBT1_D1;
@@ -821,16 +809,16 @@ UserEventDisplay::ProcessingNormal( void )
 	  for( int m=0; m<mh; ++m ){
 	    double leading  = hit->GetLeading(m);
 	    if( 505<leading && leading<MaxTdcFBT2 ){
-	      flagFBT = true;
+	      // flagFBT = true;
 	      hit_flag = true;
 	      std::cout << "FBT2 : " << seg << ", " << leading<< std::endl;
 	    } else if( MinTdcFBT2 <leading && leading<MaxTdcFBT2 ){
-	      flagFBT = true;
+	      // flagFBT = true;
 	      hit_flag2 = true;
 	      std::cout << "FBT2 : " << seg << ", " << leading<< std::endl;
 	    }
 	  }// for(m)
-	  
+
 	  int IdFBT = 0;
 	  if (layer == 0 && UorD ==D)
 	    IdFBT = IdFBT2_D1;
@@ -903,170 +891,6 @@ UserEventDisplay::ProcessingNormal( void )
     }
   }
 
-  // CFT   
-  {
-    for(int layer = 0; layer<NumOfPlaneCFT; ++layer){
-      const HodoRHitContainer &cont = rawData->GetCFTRawHC(layer);
-      int nhit = cont.size();
-      
-      for(int i = 0; i<nhit; ++i){	
-	HodoRawHit *hit = cont.at(i);
-	int seg = hit->SegmentId(); 
-	int NhitT = hit->GetSizeTdcUp();
-	int NhitT_tr = hit->GetSizeTdcTUp();
-	int NhitAH = hit->GetSizeAdcUp();	  
-	int NhitAL = hit->GetSizeAdcDown();
-	
-	//TDC
-	for(int m = 0; m<NhitT; ++m){	    
-	  int bufT = hit->GetTdcUp(m);
-	  gEvDisp.DrawCFT(layer, seg, 0, bufT);
-	}	  
-	for(int m = 0; m<NhitT_tr; ++m){
-	  int bufTtr = hit->GetTdcTUp(m);
-	  gEvDisp.DrawCFT(layer, seg, 1, bufTtr);	      
-	}	    
-
-	//ADC Hi
-	for(int m = 0; m<NhitAH; ++m){
-	  int bufAH = hit->GetAdcUp();	
-	  gEvDisp.DrawCFT_Adc(layer, seg, 0, bufAH);
-	}
-	
-	//ADC Low
-	for(int m = 0; m<NhitAL; ++m){	    
-	  int bufAL = hit->GetAdcDown();	
-	  gEvDisp.DrawCFT_Adc(layer, seg, 1, bufAL);
-	}
-
-      }	
-    }
-  }
-
-  // FiberHitCFT    
-  hodoAna->DecodeCFTHits(rawData);
-  for(int p = 0; p<NumOfPlaneCFT; ++p){
-
-    int nhit = hodoAna->GetNHitsCFT(p);          
-
-    int nhit_t = 0;
-    for(int i = 0; i<nhit; ++i){
-      const FiberHit* hit = hodoAna->GetHitCFT(p, i);
-      int mhit = hit->GetNumOfHit();
-      int seg_id = hit->PairId();
-      double adcHi  = hit->GetAdcHi();
-      double adcLow = hit->GetAdcLow();  
-
-      bool fl_m = false;
-      for(int m = 0; m<mhit; ++m){
-
-	double leading = hit->GetLeading(m);	
-	//double trailing = hit->GetTrailing(m);	
-	double ctime  = hit->GetCTime(m);
-	double time   = hit->GetTime(m);
-	double width  = hit->GetWidth(m);	
-
-	if(-10 < ctime && ctime < 10){
-	  if(fl_m==false){
-	    fl_m=true;
-	    nhit_t++;
-
-	    //if( adcLow > 50)
-	    gEvDisp.ShowHitFiber(p, seg_id, adcLow);
-	    /*
-	      std::cout << "Fiber Hit : layer=" << p << ", seg=" << seg_id
-			<< ", adcLow=" << adcLow << ", tdc=" << ctime 
-			<< ", MIP=" << MIPLow << ", dE=" << dELow << ", width=" << width
-			<< std::endl;
-	    */
-	  }
-	}
-
-      }// mhit      
-    }//nhit
-  }  
-
-  // BGO
-  {
-    const HodoRHitContainer &cont = rawData->GetBGORawHC();
-    int nhit = cont.size();
-    for(int i = 0; i<nhit; ++i){	
-      HodoRawHit *hit = cont.at(i);
-      int seg = hit->SegmentId(); 
-      int NhitT = hit->GetSizeTdcUp();
-      int NhitA = hit->GetSizeAdcUp();	  
-
-      for(int m = 0; m<NhitT; ++m){
-	int tdc = hit->GetTdcUp(m);	
-	gEvDisp.DrawBGO(seg, tdc);	      
-      }
-      for(int m = 0; m<NhitA; ++m){
-	int integral = hit->GetAdcUp();	
-      }      
-    }
-  }
-
-  hodoAna->DecodeBGOHits(rawData);
-  int nhBGO = hodoAna->GetNHitsBGO();
-  for(int i=0; i<nhBGO; ++i){
-    Hodo1Hit *hit = hodoAna->GetHitBGO(i);
-    int seg = hit->SegmentId();
-    int nh = hit->GetNumOfHit();
-    double adc = hit->GetAUp();
-
-    for(int m=0; m<nh; ++m){
-      double cmt = hit->CMeanTime(m);
-      if(-50<cmt&&cmt<50){
-	if (adc>0) {
-	  //std::cout << "BGO decode : seg=" << seg << ", integral="
-	  //<< adc << ", ct=" << cmt << std::endl;	
-	  gEvDisp.ShowHitBGO(seg, adc);
-	}    
-      }
-    }
-  }
-
-  // PiID counter
-  {
-    const HodoRHitContainer &cont = rawData->GetPiIDRawHC();
-    int nhit = cont.size();
-
-    for(int i = 0; i<nhit; ++i){	
-      HodoRawHit *hit = cont.at(i);
-      int seg = hit->SegmentId(); 
-      int NhitTl = hit->GetSizeTdcUp();
-      int NhitTt = hit->GetSizeTdcTUp();
-	
-      for(int m = 0; m<NhitTl; ++m){
-	int tdc = hit->GetTdcUp(m);	
-	gEvDisp.DrawPiID(seg, 0, tdc);
-      }
-      for(int m = 0; m<NhitTt; ++m){
-	int tdc = hit->GetTdcTUp(m);
-	gEvDisp.DrawPiID(seg, 1, tdc);	
-
-      }      
-    }
-  }
-
-  hodoAna->DecodePiIDHits(rawData);
-  int nhit = hodoAna->GetNHitsPiID();          
-  for(int i = 0; i<nhit; ++i){
-    const FiberHit* hit = hodoAna->GetHitPiID(i);
-    int mhit = hit->GetNumOfHit();
-    int seg = hit->PairId();
-    for(int m = 0; m<mhit; ++m){	
-      double ctime  = hit->GetCTime(m);
-
-      if (ctime>-50 && ctime<50) {
-	//std::cout << "PiID : seg=" << seg << ", ct=" << ctime << std::endl;	
-	gEvDisp.ShowHitPiID(seg);
-      }    
-
-    }
-  }
-
-
   DCAna->DecodeRawHits( rawData );
   //DCAna->DriftTimeCutBC34(-10, 50);
   DCAna->DriftTimeCutBC34(-100, 150);
@@ -1078,9 +902,9 @@ UserEventDisplay::ProcessingNormal( void )
       int nhIn=contIn.size();
       //std::cout << "layer : " << layer << std::endl;
       for( int i=0; i<nhIn; ++i ){
-	 DCHit  *hit  = contIn[i];
-	 double  wire = hit->GetWire();
-	 int     mhit = hit->GetTdcSize();
+	 // DCHit  *hit  = contIn[i];
+	 // double  wire = hit->GetWire();
+	 // int     mhit = hit->GetTdcSize();
 	 //std::cout << "wire " << wire << " : ";
 
 	 //for (int j=0; j<mhit; j++) {
@@ -1173,7 +997,7 @@ UserEventDisplay::ProcessingNormal( void )
 	++multi_SdcOut;
 	if( goodFlag )
 	  gEvDisp.DrawHitWire( layer+30, int(wire) );
-	else 
+	else
 	  gEvDisp.DrawHitWire( layer+30, int(wire), false, false );
       }
     }
@@ -1214,13 +1038,13 @@ UserEventDisplay::ProcessingNormal( void )
 
       int nh=tp->GetNHit();
       double chisqr=tp->GetChiSquare();
-      std::cout << "SdcIn " << it << "-th track, chi2 = " << chisqr << std::endl; 
+      std::cout << "SdcIn " << it << "-th track, chi2 = " << chisqr << std::endl;
       for( int ih=0; ih<nh; ++ih ){
 	DCLTrackHit *hit=tp->GetHit(ih);
 	if( !hit ) continue;
-	int layerId = hit->GetLayer();
-	double wire=hit->GetWire();
-	double res=hit->GetResidual();
+	// int layerId = hit->GetLayer();
+	// double wire=hit->GetWire();
+	// double res=hit->GetResidual();
 	//std::cout << "layer = " << layerId << ", wire = " << wire << ", res = " << res << std::endl;
       }
       if( tp ) gEvDisp.DrawSdcInLocalTrack( tp );
@@ -1241,14 +1065,14 @@ UserEventDisplay::ProcessingNormal( void )
       DCLocalTrack *tp = DCAna->GetTrackSdcOut( it );
 
       int nh=tp->GetNHit();
-      double chisqr=tp->GetChiSquare();
-      //std::cout << "SdcOut " << it << "-th track, chi2 = " << chisqr << std::endl; 
+      // double chisqr=tp->GetChiSquare();
+      //std::cout << "SdcOut " << it << "-th track, chi2 = " << chisqr << std::endl;
       for( int ih=0; ih<nh; ++ih ){
 	DCLTrackHit *hit=tp->GetHit(ih);
 	if( !hit ) continue;
-	int layerId = hit->GetLayer();
-	double wire=hit->GetWire();
-	double res=hit->GetResidual();
+	// int layerId = hit->GetLayer();
+	// double wire=hit->GetWire();
+	// double res=hit->GetResidual();
 	//std::cout << "layer = " << layerId << ", wire = " << wire << ", res = " << res << std::endl;
       }
     }
@@ -1370,94 +1194,6 @@ UserEventDisplay::ProcessingNormal( void )
   }
 #endif
 
-
-  // Fiber Cluster
-  for(int p = 0; p<NumOfPlaneCFT; ++p){
-    //hodoAna->TimeCutCFT(p, -30, 30); // CATCH@J-PARC  
-    hodoAna->TimeCutCFT(p, -10, 10); // CATCH@J-PARC  
-    //hodoAna->AdcCutCFT(p, 0, 4000); // CATCH@J-PARC  
-    //hodoAna->AdcCutCFT(p, 50, 4000); // CATCH@J-PARC  for proton
-    hodoAna->AdcCutCFT(p, 10, 4000); // CATCH@J-PARC  for proton
-    //hodoAna->WidthCutCFT(p, 60, 300); // pp scattering
-    //hodoAna->WidthCutCFT(p, 30, 300); // cosmic ray
-  }
-
-  // CFT tracking
-
-  DCAna->DecodeCFTHits( rawData );
-  DCAna->TrackSearchCFT();
-
-  int ntCFT=DCAna->GetNtracksCFT();// vtx limit ver.
-
-  for( int i=0; i<ntCFT; ++i ){
-
-    DCLocalTrack *tp=DCAna->GetTrackCFT(i);
-
-    int nh   = tp->GetNHit();
-    int nhUV = tp->GetNHitUV();
-    double chisqrXY=tp->GetChiSquareXY();
-    double chisqrXYZ=tp->GetChiSquareZ();
-
-    gEvDisp.DrawCFTLocalTrack( tp );
-
-    // straight layer
-    for(int ip=0; ip<nh; ip++){
-      DCLTrackHit *hit = tp->GetHit(ip);
-      int layer = hit->GetLayer();
-      int seg = (int)hit->GetMeanSeg();
-
-      double phi_ini   = tp->GetPhiIni(layer);      
-      double phi_track   = tp->GetPhiTrack(layer);      
-      double z_track = tp->GetZTrack(layer);
-      double dphi  = tp->GetdPhi(layer);
-
-      std::cout << "track#" << i << ", layer=" << layer << ", seg=" << seg
-		<< ", ini_phi=" << phi_ini << std::endl;
-
-
-    }
-    for(int ip=0; ip<nhUV; ip++){
-      DCLTrackHit *hit = tp->GetHitUV(ip);
-      int layer = hit->GetLayer();
-      int seg = (int)hit->GetMeanSeg();
-      
-      double phi_track   = tp->GetPhiTrack(layer);      
-      double z_track = tp->GetZTrack(layer);
-      double z_ini   = tp->GetZIni(layer);      
-      double dz    = tp->GetdZ(layer);
-
-      std::cout << "track#" << i << ", layer=" << layer << ", seg=" << seg
-		<< ", phi=" << phi_track << ", z_ini=" << z_ini << std::endl;      	
-
-
-    }    
-  }
-
-  bgoAna->DecodeBGO(rawData);
-  bgoAna->PulseSearch();
-
-  int nhitBGO = bgoAna->GetNHitBGO();
-  gEvDisp.SetBGOWaveformCanvas(nhitBGO);
-  int nc = 1;
-  for (int seg=2; seg<NumOfSegBGO; seg++) {
-    int ngr = bgoAna->GetNGraph(seg);
-    for (int i=0; i<ngr; i++) {
-      TGraphErrors *gr = bgoAna->GetTGraph(seg, i);
-      gEvDisp.DrawBGOWaveform(nc, i, seg, gr);      
-    }
-    int nfunc = bgoAna->GetNFunc(seg);
-    for (int i=0; i<nfunc; i++) {
-      TF1 *func = bgoAna->GetTF1(seg, i);
-      gEvDisp.DrawBGOFitFunc(nc, i, seg, func);      
-    }
-
-    if (ngr>0)
-      nc++;
-  }
-
-
-
-
   gEvDisp.UpdateHist();
 
   if ( 1 )
@@ -1505,9 +1241,6 @@ ConfMan::InitializeParameterFiles( void )
       InitializeParameter<K18TransMatrix>("K18TM")   &&
       InitializeParameter<BH2Filter>("BH2FLT")       &&
       InitializeParameter<UserParamMan>("USER")      &&
-      InitializeParameter<CFTPedCorMan>("CFTPED")      &&
-      InitializeParameter<BGOTemplateManager>("BGOTEMP")      &&
-      InitializeParameter<BGOCalibMan>("BGOCALIB")      &&
       InitializeParameter<EventDisplay>()            );
 }
 

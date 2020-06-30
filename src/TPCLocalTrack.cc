@@ -1,8 +1,4 @@
-/**
- *  file: TPCLocalTrack.cc
- *  date: 2020.04.12
- *
- */
+// -*- C++ -*-
 
 #include "TPCLocalTrack.hh"
 
@@ -57,8 +53,8 @@ TPCLocalTrack::TPCLocalTrack( void )
     m_a(0.),  m_b(0.),
     m_chisqr(1.e+10),
     m_good_for_tracking(true),
-    m_de(0.),
-    m_n_iteration(0)
+    m_n_iteration(0),
+    m_de(0.)
 {
   m_hit_array.reserve( ReservedNumOfHits );
   debug::ObjectCounter::increase(class_name);
@@ -78,7 +74,7 @@ TPCLocalTrack::AddTPCHit( TPCHit *hit )
   if( hit )
     m_hit_array.push_back( hit );
 }
-  
+
 //______________________________________________________________________________
 void
 TPCLocalTrack::AddTPCCluster( TPCCluster *cluster )

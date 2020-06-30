@@ -1,8 +1,4 @@
-/**
- *  file: FiberHit.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "FiberHit.hh"
 
@@ -41,19 +37,15 @@ FiberHit::FiberHit( HodoRawHit *object, const char* name )
     m_position(-999.),
     m_offset(0),
     m_pair_id(0),
-    m_adc_hi(-1.),
-    m_adc_low(-1.),
-    //m_nphoton_hi(0.),
-    //m_nphoton_low(0.),
-    m_mip_hi(-1.),
-    m_mip_low(-1.),
-    m_dE_hi(0.),
-    m_dE_low(0.),
-    m_r(0.),
-    m_phi(0.),
-    m_pedcor_hi(-99999.),
-    m_pedcor_low(-99999.),
-    m_status(false)
+    m_status(false),
+    m_adc_hg(-1.),
+    m_adc_lg(-1.),
+    m_pedcor_hg(-99999.),
+    m_pedcor_lg(-99999.),
+    m_mip_hg(-1.),
+    m_mip_lg(-1.),
+    m_dE_hg(0.),
+    m_dE_lg(0.)
 {
   debug::ObjectCounter::increase(class_name);
 }
@@ -105,18 +97,18 @@ FiberHit::Calculate( void )
       m_pair_id  = 1;
     }
     m_pair_id += 2*m_raw->SegmentId();
-  }else if(false 
-	   || "FBT1-UX1" == m_detector_name 
+  }else if(false
+	   || "FBT1-UX1" == m_detector_name
 	   || "FBT1-UX2" == m_detector_name
-	   || "FBT2-UX1" == m_detector_name 
+	   || "FBT2-UX1" == m_detector_name
 	   || "FBT2-UX2" == m_detector_name
 	   ){
     m_ud = 0;
     m_pair_id = seg;
   }else if(false
-	   || "FBT1-DX1" == m_detector_name 
+	   || "FBT1-DX1" == m_detector_name
 	   || "FBT1-DX2" == m_detector_name
-	   || "FBT2-DX1" == m_detector_name 
+	   || "FBT2-DX1" == m_detector_name
 	   || "FBT2-DX2" == m_detector_name
 	   ){
     m_ud = 1;
@@ -129,9 +121,6 @@ FiberHit::Calculate( void )
 
   int DetectorId = gGeom.GetDetectorId( m_detector_name );
   m_position     = gGeom.CalcWirePosition( DetectorId, seg );
-  // for CFT
-  m_r      = gGeom.CalcCFTPositionR(DetectorId, seg);
-  m_phi    = gGeom.CalcCFTPositionPhi(DetectorId, seg);
 
   // hit information
   m_multi_hit_l = m_ud==0? m_raw->SizeTdc1()  : m_raw->SizeTdc2();
@@ -147,7 +136,7 @@ FiberHit::Calculate( void )
     }
 
     std::sort(leading_cont.begin(),  leading_cont.end(),  std::greater<int>());
-    std::sort(trailing_cont.begin(), trailing_cont.end(), std::greater<int>());    
+    std::sort(trailing_cont.begin(), trailing_cont.end(), std::greater<int>());
 
     int i_t = 0;
     for(int i = 0; i<m_multi_hit_l; ++i){
@@ -224,23 +213,15 @@ FiberHit::Calculate( void )
 
     m_a.push_back( tot );
     m_ct.push_back( ctime_leading );
-    
-    if(cid==113){ // CFT
-      m_pair_cont.at(m_multi_hit_l -1 -i).time_l  = time_leading;
-      m_pair_cont.at(m_multi_hit_l -1 -i).time_t  = time_trailing;
-      m_pair_cont.at(m_multi_hit_l -1 -i).ctime_l = ctime_leading;
-      m_pair_cont.at(m_multi_hit_l -1 -i).tot     = tot;
-    }else{    
-      m_pair_cont.at(i).time_l  = time_leading;
-      m_pair_cont.at(i).time_t  = time_trailing;
-      m_pair_cont.at(i).ctime_l = ctime_leading;
-      m_pair_cont.at(i).tot     = tot;
-    }
 
+    m_pair_cont.at(i).time_l  = time_leading;
+    m_pair_cont.at(i).time_t  = time_trailing;
+    m_pair_cont.at(i).ctime_l = ctime_leading;
+    m_pair_cont.at(i).tot     = tot;
   }// for(i)
 
-  // CFT ADC
-  if(cid==113){ 
+#if 0
+  if(cid==113){// CFT ADC
     double nhit_adc = m_raw->SizeAdc1();
     if(nhit_adc>0){
       double hi  =  m_raw->GetAdc1();
@@ -253,48 +234,48 @@ FiberHit::Calculate( void )
       double Blow = gHodo.GetP1(cid,plid,0/*seg*/,3);// same value for the same layer
 
       if (hi>0)
-	m_adc_hi  = hi  - pedeHi;
+	m_adc_hg  = hi  - pedeHi;
       if (low>0)
-	m_adc_low = low - pedeLow;
-      //m_mip_hi  = (hi  - pedeHi )/(gainHi  - pedeHi );
-      //m_mip_low = (low - pedeLow)/(gainLow - pedeLow);      
-      if (m_pedcor_hi>-2000 && hi >0)
-	m_adc_hi  = hi  + m_pedcor_hi;
-      if (m_pedcor_low>-2000 && low >0)
-	m_adc_low  = low  + m_pedcor_low;
+	m_adc_lg = low - pedeLow;
+      //m_mip_hg  = (hi  - pedeHi )/(gainHi  - pedeHi );
+      //m_mip_lg = (low - pedeLow)/(gainLow - pedeLow);
+      if (m_pedcor_hg>-2000 && hi >0)
+	m_adc_hg  = hi  + m_pedcor_hg;
+      if (m_pedcor_lg>-2000 && low >0)
+	m_adc_lg  = low  + m_pedcor_lg;
 
-      if (m_adc_hi>0/* && gainHi > 0*/)
-	m_mip_hi  = m_adc_hi/gainHi ;
-      if (m_adc_low>0/* && gainLow >0*/)
-	m_mip_low = m_adc_low/gainLow;      
-      
-      if(m_mip_low>0){
-	m_dE_low = -(Alow/Blow) * log(1. - m_mip_low/Alow);// [MeV]
-	if(1-m_mip_low/Alow<0){ // when pe is too big
-	  m_dE_low = -(Alow/Blow) * log(1. - (Alow-0.001)/Alow);// [MeV] almost max
+      if (m_adc_hg>0/* && gainHi > 0*/)
+	m_mip_hg  = m_adc_hg/gainHi ;
+      if (m_adc_lg>0/* && gainLow >0*/)
+	m_mip_lg = m_adc_lg/gainLow;
+
+      if(m_mip_lg>0){
+	m_dE_lg = -(Alow/Blow) * log(1. - m_mip_lg/Alow);// [MeV]
+	if(1-m_mip_lg/Alow<0){ // when pe is too big
+	  m_dE_lg = -(Alow/Blow) * log(1. - (Alow-0.001)/Alow);// [MeV] almost max
 	}
       }else{
-	m_dE_low = 0;// [MeV]
+	m_dE_lg = 0;// [MeV]
       }
 
       /*
-      if (m_dE_low>10) {
-	std::cout << "layer = " << plid << ", seg = " << seg << ", adcLow = " << m_adc_low << ", dE = " << m_dE_low << ", mip_low = " << m_mip_low << ", gainLow = " << gainLow << ", gainHi = " << gainHi << std::endl;
+      if (m_dE_lg>10) {
+	std::cout << "layer = " << plid << ", seg = " << seg << ", adcLow = " << m_adc_lg << ", dE = " << m_dE_lg << ", mip_lg = " << m_mip_lg << ", gainLow = " << gainLow << ", gainHi = " << gainHi << std::endl;
       }
       */
-      
+
       for (int j=0; j< m_pair_cont.size(); j++) {
 	double time= m_pair_cont.at(j).time_l;
 	double ctime = -100;
-	if (m_adc_hi>20) {
-	  gPHC.DoCorrection( cid, plid, seg, m_ud, time, m_adc_hi, ctime);
+	if (m_adc_hg>20) {
+	  gPHC.DoCorrection( cid, plid, seg, m_ud, time, m_adc_hg, ctime);
 	  m_pair_cont.at(j).ctime_l = ctime;
-	} else 
+	} else
 	  m_pair_cont.at(j).ctime_l = time;
       }
     }
   }
-
+#endif
   m_status = true;
   return true;
 }

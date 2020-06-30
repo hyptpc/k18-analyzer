@@ -1,8 +1,4 @@
-/**
- *  file: DCGeomRecord.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef DC_GEOM_RECORD_HH
 #define DC_GEOM_RECORD_HH
@@ -88,31 +84,6 @@ public:
   double WirePos( double wire )   const;
   int    WireNumber( double pos ) const;
   void   Print( const std::string& arg="", std::ostream& ost=hddaq::cout ) const;
-
-  //CFT Pos
-  double FiberPosR( int seg ) const 
-  {
-    if(((int)seg%2) == 0){
-      return m_pos[0];//R1(innner)     
-    }else if(((int)seg%2) == 1){
-      return m_pos[1];//R2(outer)     
-    }
-  }   
-  double FiberPosPhi( int seg ) const //  phi
-  { 
-    // look from upstream to downstream
-    double phi = 90.; // 90 degree
-    if( (int)m_id==301 || (int)m_id==305 ){  // U->opposite direction (301&305)
-      phi += -1.*(double)seg * 360./m_offset; // 360[deg]/(N of Fibers)
-    }else{ // V & PHI
-      phi += (double)seg * 360./m_offset; // 360[deg]/(N of Fibers)
-    }
-    if(phi<0){phi+=360.;}
-    else if(phi>360.){phi-=360.;}
-    
-    return phi; 
-  }   
-
 
 private:
   void CalcVectors( void );

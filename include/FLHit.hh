@@ -1,8 +1,4 @@
-/**
- *  file: FLHit.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef FL_HIT_HH
 #define FL_HIT_HH
@@ -40,12 +36,12 @@ public:
   double GetCTime( void )    const { return m_ctime;    }
   double GetWidth( void )    const { return m_width;    }
   double GetPosition( void ) const { return m_hit_u->GetPosition(); }
-  double GetPositionR( void ) const { return m_hit_u->GetPositionR(); }
-  double GetPositionPhi( void ) const { return m_hit_u->GetPositionPhi(); }
-  double GetAdcHi( void )    const { return m_hit_u->GetAdcHi(); }
-  double GetAdcLow( void )   const { return m_hit_u->GetAdcLow(); }
-  double GetMIPLow( void )   const { return m_hit_u->GetMIPLow(); }
-  double GetdELow( void )   const { return m_hit_u->GetdELow(); }
+  double GetAdcHG( void ) const { return m_hit_u->GetAdcHG(); }
+  double GetAdcLG( void ) const { return m_hit_u->GetAdcLG(); }
+  double GetMipHG( void ) const { return m_hit_u->GetMipHG(); }
+  double GetMipLG( void ) const { return m_hit_u->GetMipLG(); }
+  double GetDeHG( void ) const { return m_hit_u->GetDeHG(); }
+  double GetDeLG( void ) const { return m_hit_u->GetDeLG(); }
   int    PairId( void )      const { return m_hit_u->PairId();      }
   double SegmentId( void )   const { return m_hit_u->SegmentId();   }
   void   SetJoined( void )         { m_flag_fljoin = true;          }

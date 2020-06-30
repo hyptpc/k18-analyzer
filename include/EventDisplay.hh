@@ -1,8 +1,4 @@
-/**
- *  file: EventDisplay.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef EVENT_DISPLAY_HH
 #define EVENT_DISPLAY_HH
@@ -78,7 +74,6 @@ private:
   TCanvas                   *m_canvas_hist7;
   TCanvas                   *m_canvas_hist8;
   TCanvas                   *m_canvas_hist9;
-  TCanvas                   *m_canvas_catch;
   TH1                       *m_hist_vertex_x;
   TH1                       *m_hist_vertex_y;
   TH1                       *m_hist_p;
@@ -86,11 +81,11 @@ private:
   TH1                       *m_hist_missmass;
   TH2                       *m_hist_bh1;
   TH2                       *m_hist_bft;
+  TH2                       *m_hist_bft_p;
   TH2                       *m_hist_bcIn;
+  TH2                       *m_hist_bcOut;
   std::vector<TBox*>         m_BH1box_cont;
   std::vector<TLine*>        m_BcInTrack;
-  TH2                       *m_hist_bft_p;
-  TH2                       *m_hist_bcOut;
   std::vector<TBox*>         m_BH2box_cont;
   std::vector<TLine*>        m_BcOutTrack2;
   TH2                       *m_hist_bh2;
@@ -152,42 +147,6 @@ private:
   TH2                       *m_hist_fbt2up;
   TH2                       *m_hist_fbt2d;
   TH2                       *m_hist_fbt2dp;
-
-  TH2                       *m_hist_cft1_l;
-  TH2                       *m_hist_cft1_t;
-  TH2                       *m_hist_cft1_hi;
-  TH2                       *m_hist_cft1_lo;
-  TH2                       *m_hist_cft2_l;
-  TH2                       *m_hist_cft2_t;
-  TH2                       *m_hist_cft2_hi;
-  TH2                       *m_hist_cft2_lo;
-  TH2                       *m_hist_cft3_l;
-  TH2                       *m_hist_cft3_t;
-  TH2                       *m_hist_cft3_hi;
-  TH2                       *m_hist_cft3_lo;
-  TH2                       *m_hist_cft4_l;
-  TH2                       *m_hist_cft4_t;
-  TH2                       *m_hist_cft4_hi;
-  TH2                       *m_hist_cft4_lo;
-  TH2                       *m_hist_cft5_l;
-  TH2                       *m_hist_cft5_t;
-  TH2                       *m_hist_cft5_hi;
-  TH2                       *m_hist_cft5_lo;
-  TH2                       *m_hist_cft6_l;
-  TH2                       *m_hist_cft6_t;
-  TH2                       *m_hist_cft6_hi;
-  TH2                       *m_hist_cft6_lo;
-  TH2                       *m_hist_cft7_l;
-  TH2                       *m_hist_cft7_t;
-  TH2                       *m_hist_cft7_hi;
-  TH2                       *m_hist_cft7_lo;
-  TH2                       *m_hist_cft8_l;
-  TH2                       *m_hist_cft8_t;
-  TH2                       *m_hist_cft8_hi;
-  TH2                       *m_hist_cft8_lo;
-  TH2                       *m_hist_bgo;
-  TH2                       *m_hist_piid_l;
-  TH2                       *m_hist_piid_t;
 
   TNode                     *m_target_node;
   TNode                     *m_kurama_inner_node;
@@ -269,34 +228,7 @@ private:
   TPolyMarker               *m_KuramaMarkVertexY;
   TPolyLine                 *m_MissMomXZ_line;
   TPolyLine                 *m_MissMomYZ_line;
-  //CATCH
-  TArc                      *m_Tgt_Arc;
-  TArc                      *m_CFRP_Arc;
-  TH2                       *m_hbase_catch;
-  TH2                       *m_hbase_catch_zx;
-  TH2                       *m_hbase_catch_zy;
-  TGeometry                 *m_geometry_catch;
-  TNode                     *m_node_catch;
-  TCanvas                   *m_canvas_catch3d;
-  std::vector<TArc*>         m_CFT_Arc_cont[NumOfPlaneCFT];
-  TLineContainer             m_BGO_Line_cont[NumOfSegBGO];
-  TLineContainer             m_PiID_Line_cont[NumOfSegPiID];
-  std::vector<TNode*>        m_CFT_node_cont[NumOfPlaneCFT/2];
-  std::vector<TPolyMarker3D*> m_CFT_UV_cont;
-  std::vector<TNode*>        m_BGOseg_node_cont;
-  std::vector<TNode*>        m_PiIDseg_node_cont;
-  std::vector<TPolyLine3D*>  m_BcOutTrack_Catch_cont;
-  std::vector<TPolyLine3D*>  m_SdcInTrack_Catch_cont;
-  std::vector<TPolyLine3D*>  m_CFTTrack_cont;
-  std::vector<TPolyLine*>    m_CFTTrack_xy_cont;
-  std::vector<TPolyLine*>    m_CFTTrack_zx_cont;
-  std::vector<TPolyLine*>    m_CFTTrack_zy_cont;
-  std::vector<TPolyLine*>    m_BcOutTrack_Catch_xy_cont;
-  std::vector<TPolyLine*>    m_BcOutTrack_Catch_zx_cont;
-  std::vector<TPolyLine*>    m_BcOutTrack_Catch_zy_cont;
-  std::vector<TPolyLine*>    m_SdcInTrack_Catch_xy_cont;
-  std::vector<TPolyLine*>    m_SdcInTrack_Catch_zx_cont;
-  std::vector<TPolyLine*>    m_SdcInTrack_Catch_zy_cont;
+
 public:
   bool Initialize( void );
   bool IsReady( void ) const { return m_is_ready; }
@@ -313,11 +245,6 @@ public:
   bool ConstructSCH( void );
   bool ConstructFBT( void );
   bool ConstructTOF( void );
-  bool ConstructCATCH(void);
-  bool ConstructCFT(void);
-  bool ConstructBGO(void);
-  bool ConstructPiID(void);
-  bool ConstructCATCH3d(void);
   void DrawInitTrack( int nStep, ThreeVector *StepPoint );
   void DrawInitTrack( void );
   void DrawHitWire( int lid, int hit_wire,
@@ -356,15 +283,7 @@ public:
   void SetCorrectTimeSCH( int seg, double de );
   void SetCorrectTimeSdcIn( int layer, double pos );
   void DrawFBT( int detId, int layer, int UorD, int seg, int tdc );
-  void DrawCFT( int layer, int seg, int LorT, int tdc );
-  void DrawCFT_Adc( int layer, int seg, int HorL, int adc );
-  void DrawCFT_AdcCor( int layer, int seg, int HorL, int adc );
-  void DrawPiID(int seg, int LorT, int tdc );
-  void DrawBGO(int seg, int tdc );
-  void SetBGOWaveformCanvas(int nhit );
-  void DrawBGOWaveform(int nc, int ngraph, int seg, TGraphErrors* gr );
-  void DrawBGOFitFunc(int nc, int ngraph, int seg, TF1* func );
-  
+
   void DrawTOF( int seg, int tdc );
   void DrawBcOutHit(int layer,  int wire, int tdc );
   void DrawBC3( int wire, int tdc );
@@ -383,15 +302,9 @@ public:
   void DrawSDC3p_Leading( int wire, int tdc );
   void DrawSDC3p_Trailing( int wire, int tdc );
   void ShowHitFiber(int layer, int segment, double pe);// const;
-  void ShowHitBGO(int segment, double de) const;
-  void ShowHitPiID(int segment);
-  void DrawCFTLocalTrack( DCLocalTrack *tp );
   void UpdateHist( void );
-  void UpdateCATCH( void );
   void EndOfEvent( void );
   void ResetVisibility( void );
-  void FiberPosPhi(int layer, int seg, double *x, double *y) const;
-  void BGOPos(int seg, double *x, double *y) const;
   void CalcRotMatrix( double TA, double RA1, double RA2, double *rotMat );
   int  GetCommand( void ) const;
   void Run( bool flag=kTRUE );
@@ -400,7 +313,6 @@ private:
   void ResetVisibility( TNode *& node, Color_t c=kWhite );
   void ResetVisibility( std::vector<TNode*>& node, Color_t c=kWhite );
   void ResetHist( void );
-  void ResetCATCH( void );
 };
 
 //______________________________________________________________________________

@@ -1,8 +1,4 @@
-/**
- *  file: FiberHit.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef FIBER_HIT_HH
 #define FIBER_HIT_HH
@@ -36,22 +32,14 @@ protected:
   int         m_pair_id;
   bool        m_status;
   std::vector<FLHit*> m_hit_container;
-
-  // for CFT
-  double         m_adc_hi; 
-  double         m_adc_low; 
-
-  double         m_pedcor_hi;
-  double         m_pedcor_low;
-
-  //double         m_nphoton_hi; 
-  //double         m_nphoton_low; 
-  double         m_mip_hi; 
-  double         m_mip_low; 
-  double         m_dE_hi; 
-  double         m_dE_low; 
-  double         m_r; 
-  double         m_phi; 
+  double      m_adc_hg;
+  double      m_adc_lg;
+  double      m_pedcor_hg;
+  double      m_pedcor_lg;
+  double      m_mip_hg;
+  double      m_mip_lg;
+  double      m_dE_hg;
+  double      m_dE_lg;
 
   struct data_pair{
     double time_l;
@@ -86,19 +74,13 @@ public:
   int    PairId( void )       const { return m_pair_id;                   }
   //  virtual double SegmentId( void )    const { return m_segment;                   }
 
-  // for CFT
-  double GetAdcHi( void ) const { return m_adc_hi;  }
-  double GetAdcLow( void )const { return m_adc_low; }
-  //double GetNPhotonHi( void ) const { return m_nphoton_hi;  }
-  //double GetNPhotonLow( void )const { return m_nphoton_low; }
-  double GetMIPHi( void ) const { return m_mip_hi;  }
-  double GetMIPLow( void )const { return m_mip_low; }
-  double GetdEHi( void ) const { return m_dE_hi;  }
-  double GetdELow( void )const { return m_dE_low; }
-  double GetPositionR( void )  const { return m_r;     }
-  double GetPositionPhi( void )  const { return m_phi; }
-
-  void SetPedestalCor( double deltaHG, double deltaLG ){ m_pedcor_hi = deltaHG; m_pedcor_low = deltaLG; }
+  double GetAdcHG( void ) const { return m_adc_hg; }
+  double GetAdcLG( void ) const { return m_adc_lg; }
+  double GetMipHG( void ) const { return m_mip_hg; }
+  double GetMipLG( void ) const { return m_mip_lg; }
+  double GetDeHG( void ) const { return m_dE_hg; }
+  double GetDeLG( void ) const { return m_dE_lg; }
+  void SetPedestalCor( double deltaHG, double deltaLG ){ m_pedcor_hg = deltaHG; m_pedcor_lg = deltaLG; }
 
   void   Print( const std::string& arg="", std::ostream& ost=hddaq::cout ) const;
   void   RegisterHits( FLHit* hit )   { m_hit_container.push_back(hit);   }

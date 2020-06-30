@@ -1,8 +1,4 @@
-/**
- *  file: UserK1.8Tracking.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include <cmath>
 #include <iostream>
@@ -234,8 +230,8 @@ EventK18Tracking::ProcessingNormal( void )
 
   ////////// BH2 time 0
   hodoAna->DecodeBH2Hits(rawData);
-  int nhBh2 = hodoAna->GetNHitsBH2();
 #if HodoCut
+  int nhBh2 = hodoAna->GetNHitsBH2();
   if(nhBh2==0) return true;
 #endif
   HF1(1, 2);
@@ -255,8 +251,8 @@ EventK18Tracking::ProcessingNormal( void )
 
   ////////// BH1 Analysis
   hodoAna->DecodeBH1Hits(rawData);
-  int nhBh1 = hodoAna->GetNHitsBH1();
 #if HodoCut
+  int nhBh1 = hodoAna->GetNHitsBH1();
   if(nhBh1==0) return true;
 #endif
   HF1(1, 4);
@@ -295,7 +291,7 @@ EventK18Tracking::ProcessingNormal( void )
       event.bft_clsize[i] = clsize;
       event.bft_ctime[i]  = ctime;
       event.bft_clpos[i]  = pos;
-      
+
       if(btof0_seg > 0 && ncl != 1){
 	if(gBH1Mth.Judge(pos, btof0_seg)){
 	  event.bft_bh1mth[i] = 1;

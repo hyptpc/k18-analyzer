@@ -1,8 +1,4 @@
-/**
- *  file: DCLocalTrack.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef DC_LOCAL_TRACK_HH
 #define DC_LOCAL_TRACK_HH
@@ -18,9 +14,6 @@
 
 class DCLTrackHit;
 class DCAnalyzer;
-
-//const double MaxChi2CFT  = 300.;
-const double MaxChi2CFT  = 150.;
 
 //______________________________________________________________________________
 class DCLocalTrack
@@ -60,59 +53,11 @@ private:
   // for Honeycomb
   double m_chisqr1st; // 1st iteration for honeycomb
   double m_n_iteration;
-  // for CFT
-  int m_xyFitFlag; // 0:y=ax+b, 1:x=ay+b
-  int m_zTrackFlag;
-  double m_Axy, m_Bxy;
-  double m_Az , m_Bz ;
-  double m_chisqrXY;
-  double m_chisqrZ;
-  double m_vtx_z;
-  double m_theta;
-  ThreeVector m_Dir, m_Pos0;
-  double m_meanseg[NumOfPlaneCFT*2];
-  // phi before pos. calib.
-  double m_phi_ini_before[NumOfPlaneCFT*2];  //initial phi from segNo
-  double m_phi_track_before[NumOfPlaneCFT*2];// phi from tracking
-  double m_dphi_before[NumOfPlaneCFT*2];     // delta phi (ini - calc)
-  double m_dist_phi_before[NumOfPlaneCFT*2]; // residual of XY plane
-  // phi after 
-  double m_phi_ini[NumOfPlaneCFT*2];  //initial phi from segNo
-  double m_phi_track[NumOfPlaneCFT*2];// phi from tracking
-  double m_dphi[NumOfPlaneCFT*2];     // delta phi (ini - calc)
-  double m_dist_phi[NumOfPlaneCFT*2]; // residual of XY plane
-  // z before pos. calib.
-  double m_z_ini_before[NumOfPlaneCFT*2];    //initial z from segNo&phi
-  double m_z_track_before[NumOfPlaneCFT*2];  // z from tracking
-  double m_dz_before[NumOfPlaneCFT*2];     // delta z (ini - calc)
-  double m_dist_uv_before[NumOfPlaneCFT*2]; // residual of Z_XY plane
-  // z after 
-  double m_z_ini[NumOfPlaneCFT*2];    //initial z from segNo&phi
-  double m_z_track[NumOfPlaneCFT*2];  // z from tracking
-  double m_dz[NumOfPlaneCFT*2];     // delta z (ini - calc)
-  double m_dist_uv[NumOfPlaneCFT*2]; // residual of Z_XY plane
-  // dr
-  double m_dr[NumOfPlaneCFT*2];     // delta r (org - tracked r)
-  double m_r[NumOfPlaneCFT*2];     // cariblated r 
-
-  double m_time[NumOfPlaneCFT*2];
-
-  // dE value
-  double m_sum_adc[NumOfPlaneCFT*2]; double m_max_adc[NumOfPlaneCFT*2];
-  double m_sum_mip[NumOfPlaneCFT*2]; double m_max_mip[NumOfPlaneCFT*2];
-  double m_sum_dE[NumOfPlaneCFT*2];  double m_max_dE[NumOfPlaneCFT*2]; 
-  double m_total_adc   , m_total_max_adc;
-  double m_total_mip   , m_total_max_mip;
-  double m_total_dE    , m_total_max_dE;
-  double m_total_dE_phi, m_total_max_dE_phi; // only phi sum
-  double m_total_dE_uv , m_total_max_dE_uv;  // only uv  sum
-
 
 public:
   void         AddHit( DCLTrackHit *hitp );
   void         AddHitUV( DCLTrackHit *hitp );
   void         Calculate( void );
-  void         CalculateCFT( void );
   void         DeleteNullHit( void );
   bool         DoFit( void );
   bool         DoFitBcSdc( void );
@@ -134,8 +79,6 @@ public:
   void SetAy( double Ay ) { m_Ay = Ay; }
   void SetAu( double Au ) { m_Au = Au; }
   void SetAv( double Av ) { m_Av = Av; }
-  void SetAz( double Az ){  m_Az = Az; }
-  void SetBz( double Bz ){  m_Bz = Bz; }
   void SetChix( double Chix ) { m_Chix = Chix; }
   void SetChiy( double Chiy ) { m_Chiy = Chiy; }
   void SetChiu( double Chiu ) { m_Chiu = Chiu; }
@@ -158,9 +101,6 @@ public:
   double GetAu( void ) const { return m_Au; }
   double GetAv( void ) const { return m_Av; }
 
-  double GetAz ( void ) const { return m_Az;  }
-  double GetBz ( void ) const { return m_Bz;  }
-
   double GetDifVXU( void ) const ;
   double GetDifVXUSDC34( void ) const;
   double GetChiSquare( void ) const { return m_chisqr; }
@@ -181,66 +121,6 @@ public:
   double GetDe( void ) const { return m_de; }
   void   Print( const std::string& arg="", std::ostream& ost=hddaq::cout ) const;
   void   PrintVXU( const std::string& arg="" ) const;
-
-  // for CFT
-  bool   DoFitPhi ( void );
-  bool   DoFitPhi2nd( void );
-  bool   DoFitPhi16pp( void );
-  bool   DoFitUV ( void );
-  bool   DoFitUV2nd( int calib ); //0:w/o, 1:w/ UV calib.
-  bool   SetCalculatedValueCFT();
-  bool   GetCrossPointR(double r, double *phi, int layer);
-  void   SetAxy( double Axy){ m_Axy= Axy;}
-  void   SetBxy( double Bxy){ m_Bxy= Bxy;}
-  double GetAxy( void ) const { return m_Axy; }
-  double GetBxy( void ) const { return m_Bxy; }
-  double GetChiSquareXY( void ) const { return m_chisqrXY; }
-  double GetChiSquareZ ( void ) const { return m_chisqrZ; }
-  double calcPhi(double x, double y);
-  double CalculateZpos(double phi, DCLTrackHit *cl);
-  double GetVtxZ( void ) const { return m_vtx_z; }
-  double GetThetaCFT( void ) const { return m_theta; }
-  int    GetCFTxyFlag( void ) const { return m_xyFitFlag;  }
-  int    GetCFTzFlag ( void ) const { return m_zTrackFlag; }
-
-  double GetPhiIniBefore(  int layer) const {return m_phi_ini_before[layer]  ;}
-  double GetPhiTrackBefore(int layer) const {return m_phi_track_before[layer];}
-  double GetdPhiBefore(    int layer) const {return m_dphi_before[layer]     ;}
-  double GetPhiIni(  int layer) const {return m_phi_ini[layer]  ;}
-  double GetPhiTrack(int layer) const {return m_phi_track[layer];}
-  double GetdPhi(    int layer) const {return m_dphi[layer]     ;}
-
-  double GetZIniBefore(    int layer) const {return m_z_ini_before[layer]    ;}
-  double GetZTrackBefore(  int layer) const {return m_z_track_before[layer]  ;}
-  double GetdZBefore(      int layer) const {return m_dz_before[layer]       ;}
-  double GetZIni(    int layer) const {return m_z_ini[layer]    ;}
-  double GetZTrack(  int layer) const {return m_z_track[layer]  ;}
-  double GetdZ(      int layer) const {return m_dz[layer]       ;}
-  double GetdR(      int layer) const {return m_dr[layer]     ; }
-  double GetR(       int layer) const {return m_r[layer]     ; }
-
-  ThreeVector GetPos0( void ) const { return m_Pos0; }
-  ThreeVector GetDir( void )  const { return m_Dir; }
-  double GetSumAdc(  int layer) const {return m_sum_adc[layer];   }
-  double GetSumMIP(  int layer) const {return m_sum_mip[layer];   }
-  double GetSumdE (  int layer) const {return m_sum_dE[layer];   }
-  double GetMaxAdc(  int layer) const {return m_max_adc[layer];   }
-  double GetMaxMIP(  int layer) const {return m_max_mip[layer];   }
-  double GetMaxdE (  int layer) const {return m_max_dE[layer];   }
-
-  double GetTime  (  int layer) const {return m_time[layer];   }
-
-  double GetTotalSumAdc( void ) const {return m_total_adc;   }
-  double GetTotalSumMIP( void ) const {return m_total_mip;   }
-  double GetTotalSumdE ( void ) const {return m_total_dE ;   }
-  double GetTotalSumdEphi ( void ) const {return m_total_dE_phi ;   }
-  double GetTotalSumdEuv  ( void ) const {return m_total_dE_uv ;   }
-  double GetTotalMaxAdc( void ) const {return m_total_max_adc;   }
-  double GetTotalMaxMIP( void ) const {return m_total_max_mip;   }
-  double GetTotalMaxdE ( void ) const {return m_total_max_dE ;   }
-  double GetTotalMaxdEphi ( void ) const {return m_total_max_dE_phi ;   }
-  double GetTotalMaxdEuv  ( void ) const {return m_total_max_dE_uv ;   }
-
 };
 
 
@@ -345,14 +225,12 @@ struct DCLTrackComp4
 
 //______________________________________________________________________________
 
-struct DCLTrackComp_Nhit 
+struct DCLTrackComp_Nhit
   : public std::binary_function <DCLocalTrack *, DCLocalTrack *, bool>
 {
   bool operator()( const DCLocalTrack * const p1,
                    const DCLocalTrack * const p2 ) const
   {
-    const int minimum=8;
-
     int n1=p1->GetNHit(), n2=p2->GetNHit();
 
     if( n1>=n2 )
@@ -431,67 +309,6 @@ struct DCLTrackCompSdcOut
     if( n1 > n2 ) return true;
     if( n2 > n1 ) return false;
     return ( chi1 <= chi2 );
-  }
-};
-
-//______________________________________________________________________________
-struct DCLTrackCompCFT
-  : public std::binary_function <DCLocalTrack *, DCLocalTrack *, bool>
-{
-  bool operator()( const DCLocalTrack * const p1,
-		   const DCLocalTrack * const p2 ) const
-  {
-    /*
-    int n1=p1->GetNHit(), n2=p2->GetNHit();
-    double chi1=p1->GetChiSquare(), chi2=p2->GetChiSquare();
-    if( n1 > n2 ) return true;
-    if( n2 > n1 ) return false;
-    return ( chi1 <= chi2 );
-    */
-    int nphi1=p1->GetNHit(), nphi2=p2->GetNHit();
-    int nuv1=p1->GetNHitUV(), nuv2=p2->GetNHitUV();
-    int n1=nphi1+nuv1, n2=nphi2+nuv2;
-    
-    //double chi1=p1->GetChiSquareXY(),chi2=p2->GetChiSquareXY();// zantei
-    
-    double chiXY1=p1->GetChiSquareXY(),chiZ1=p2->GetChiSquareZ();
-    double chiXY2=p2->GetChiSquareXY(),chiZ2=p2->GetChiSquareZ();
-    double chi1=sqrt(chiXY1*chiXY1+chiZ1*chiZ1);
-    double chi2=sqrt(chiXY2*chiXY2+chiZ2*chiZ2);
-
-    /*    
-    if( (n1>n2)&&(chi1<MaxChi2CFT*sqrt(2.))){
-      return true;
-    }else if( (n2>n1)&&(chi2<MaxChi2CFT*sqrt(2.))){
-      return false;
-    }else{
-      return (chi1<=chi2);
-    }
-    */
-    
-    if( (n1==n2)&&(chi1<MaxChi2CFT)) return (chi1<=chi2);
-    if( (n1>n2) &&(chi1<MaxChi2CFT)) return true;
-    if( (n2>n1) &&(chi2<MaxChi2CFT)) return false;    
-    return (chi1<=chi2);
-
-
-  }
-};
-
-//______________________________________________________________________________
-struct DCLTrackCompCFT16pp
-  : public std::binary_function <DCLocalTrack *, DCLocalTrack *, bool>
-{
-  bool operator()( const DCLocalTrack * const p1,
-		   const DCLocalTrack * const p2 ) const
-  {
-    
-    int n1=p1->GetNHit(), n2=p2->GetNHit();
-    double chi1=p1->GetChiSquare(), chi2=p2->GetChiSquare();
-    if( n1 > n2 ) return true;
-    if( n2 > n1 ) return false;
-    return ( chi1 <= chi2 );
-    
   }
 };
 

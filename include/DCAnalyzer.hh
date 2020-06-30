@@ -1,8 +1,4 @@
-/**
- *  file: DCAnalyzer.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef DC_ANALYZER_HH
 #define DC_ANALYZER_HH
@@ -44,8 +40,6 @@ typedef std::vector<Hodo1Hit*> Hodo1HitContainer;
 typedef std::vector<Hodo2Hit*> Hodo2HitContainer;
 typedef std::vector<HodoCluster*> HodoClusterContainer;
 
-typedef std::vector<FiberCluster*> CFTFiberClusterContainer;
-
 //______________________________________________________________________________
 class DCAnalyzer
 {
@@ -61,9 +55,6 @@ private:
   enum e_type { k_BcIn,  k_BcOut,
 		k_SdcIn, k_SdcOut,
 		k_SsdIn, k_SsdOut,
-		k_CFT,   k_CFT16_1st, k_CFT16_2nd,
-		k_CFT16pp_1st, k_CFT16pp_2nd,
-		// k_SftIn, k_SftOut,
 		k_TPC,
 		k_TOF, n_type };
   std::vector<bool>     m_is_decoded;
@@ -74,11 +65,8 @@ private:
   std::vector<DCHitContainer>       m_BcOutHC;
   std::vector<DCHitContainer>       m_SdcInHC;
   std::vector<DCHitContainer>       m_SdcOutHC;
-  std::vector<DCHitContainer>       m_CFTHC;
-  std::vector<DCHitContainer>       m_CFT16HC;
-  std::vector<DCHitContainer>       m_CFT16ppHC;
-  std::vector<DCHitContainer>       m_TPCHC;
-  std::vector<TPCHitContainer>      m_TPCHC_;
+  std::vector<DCHitContainer>       m_TPCDCHitCont;
+  std::vector<TPCHitContainer>      m_TPCHitCont;
   std::vector<TPCClusterContainer>  m_TPCClCont;
 
   DCHitContainer        m_TOFHC;
@@ -88,10 +76,6 @@ private:
   DCLocalTrackContainer m_SdcInTC;
   DCLocalTrackContainer m_SdcOutTC;
 
-  DCLocalTrackContainer m_CFTTC;
-  DCLocalTrackContainer m_CFT16TC;
-  DCLocalTrackContainer m_CFT16ppTC;
-  
   DCLocalTrackContainer m_TPCTC;
   TPCLocalTrackContainer m_TPCTC_;
 
@@ -112,9 +96,9 @@ public:
   bool DecodeFiberHits( RawData* rawData );
   bool DecodeBcInHits( RawData* rawData );
   bool DecodeBcOutHits( RawData* rawData );
-  bool DecodeTPCHits_geant( const int nhits, 
+  bool DecodeTPCHits_geant( const int nhits,
      			    const double *x, const double *y, const double *z, const double *de );
-  bool DecodeTPCHits_geant( const int nhits, 
+  bool DecodeTPCHits_geant( const int nhits,
    			    const int *iPad, const double *dx, const double *dz, const double *y);
   bool DecodeTPCHits( RawData* rawData );
   bool DecodeSdcInHits( RawData* rawData );
@@ -122,9 +106,6 @@ public:
   bool DecodeTOFHits( const Hodo2HitContainer& HitCont );
   bool DecodeTOFHits( const HodoClusterContainer& ClCont );
   //bool DecodeSimuHits( SimuData *simuData );
-  bool DecodeCFTHits( RawData* rawData );
-  bool DecodeCFT16Hits( RawData* rawData , DCLocalTrack* tp , int i );
-  bool DecodeCFT16ppHits( RawData* rawData , DCLocalTrack* tp , int i );
   int  ClusterizeMWPCHit( const DCHitContainer& hits,
 			  MWPCClusterContainer& clusters );
   bool  ClusterizeTPC( int layerID, const TPCHitContainer& HitCont,
@@ -136,10 +117,6 @@ public:
   inline const DCHitContainer& GetSdcInHC( int layer ) const;
   inline const DCHitContainer& GetSdcOutHC( int layer ) const;
   inline const DCHitContainer& GetTOFHC( void ) const;
-  inline const DCHitContainer& GetCFTHC( int layer ) const;
-  inline const DCHitContainer& GetCFT16HC( int layer ) const;
-  inline const DCHitContainer& GetCFT16ppHC( int layer ) const;
-  
   inline const TPCHitContainer& GetTPCHC( int layer ) const;
   inline const TPCClusterContainer& GetTPCClCont( int layer ) const;
 
@@ -152,18 +129,12 @@ public:
   bool TrackSearchSdcOut( void );
   bool TrackSearchSdcOut( const Hodo2HitContainer& HitCont );
   bool TrackSearchSdcOut( const HodoClusterContainer& ClCont );
-  bool TrackSearchCFT( void );
-  bool TrackSearchCFT16( void );
-  bool TrackSearchCFT16pp( void );
   bool TrackSearchTPC( void );
 
   int GetNtracksBcIn( void )   const { return m_BcInTC.size(); }
   int GetNtracksBcOut( void )  const { return m_BcOutTC.size(); }
   int GetNtracksSdcIn( void )  const { return m_SdcInTC.size(); }
   int GetNtracksSdcOut( void ) const { return m_SdcOutTC.size(); }
-  int GetNtracksCFT( void )    const { return m_CFTTC.size(); }
-  int GetNtracksCFT16( void )  const { return m_CFT16TC.size(); }
-  int GetNtracksCFT16pp( void )  const { return m_CFT16ppTC.size(); }
   // Exclusive Tracks
   int GetNtracksSdcInEx( int layer ) const { return m_SdcInExTC[layer].size(); }
   int GetNtracksSdcOutEx( int layer ) const { return m_SdcOutExTC[layer].size(); }
@@ -172,9 +143,6 @@ public:
   inline DCLocalTrack* GetTrackBcOut( int i ) const;
   inline DCLocalTrack* GetTrackSdcIn( int i ) const;
   inline DCLocalTrack* GetTrackSdcOut( int i ) const;
-  inline DCLocalTrack* GetTrackCFT  ( int i ) const;
-  inline DCLocalTrack* GetTrackCFT16( int i ) const;
-  inline DCLocalTrack* GetTrackCFT16pp( int i ) const;
   // Exclusive Tracks
   inline DCLocalTrack* GetTrackSdcInEx( int layer, int i ) const;
   inline DCLocalTrack* GetTrackSdcOutEx( int layer, int i ) const;
@@ -226,9 +194,6 @@ public:
   bool ReCalcTrackBcOut( bool applyRecursively=false );
   bool ReCalcTrackSdcIn( bool applyRecursively=false );
   bool ReCalcTrackSdcOut( bool applyRecursively=false );
-  bool ReCalcTrackCFT   ( bool applyRecursively=false );
-  bool ReCalcTrackCFT16 ( bool applyRecursively=false );
-  bool ReCalcTrackCFT16pp ( bool applyRecursively=false );
 
   bool ReCalcK18TrackD2U( bool applyRecursively=false );
   // bool ReCalcK18TrackU2D( bool applyRecursively=false );
@@ -252,10 +217,6 @@ protected:
   void ClearSdcInHits( void );
   void ClearSdcOutHits( void );
 
-  void ClearCFTHits( void );
-  void ClearCFT16Hits( void );
-  void ClearCFT16ppHits( void );
-  // void ClearSftHits( void );
   void ClearTOFHits( void );
   void ClearVtxHits( void );
 
@@ -266,9 +227,6 @@ protected:
   void ClearTracksBcOut( void );
   void ClearTracksSdcIn( void );
   void ClearTracksSdcOut( void );
-  void ClearTracksCFT( void );
-  void ClearTracksCFT16( void );
-  void ClearTracksCFT16pp( void );
   void ClearTracksTPC( void );
   void ClearTracksBcOutSdcIn( void );
   void ClearTracksSdcInSdcOut( void );
@@ -286,9 +244,6 @@ public:
   void ResetTracksBcOut( void )       { ClearTracksBcOut();       }
   void ResetTracksSdcIn( void )       { ClearTracksSdcIn();       }
   void ResetTracksSdcOut( void )      { ClearTracksSdcOut();      }
-  void ResetTracksCFT( void )         { ClearTracksCFT();         }
-  void ResetTracksCFT16( void )       { ClearTracksCFT16();       }
-  void ResetTracksCFT16pp( void )       { ClearTracksCFT16pp();       }
   void ResetTracksBcOutSdcIn( void )  { ClearTracksBcOutSdcIn();  }
   void ResetTracksSdcInSdcOut( void )  { ClearTracksSdcInSdcOut();  }
   void ApplyBh1SegmentCut(const std::vector<double>& validBh1Cluster);
@@ -325,7 +280,7 @@ inline const TPCHitContainer&
 DCAnalyzer::GetTPCHC( int layer ) const
 {
   if( layer>NumOfLayersTPC ) layer=NumOfLayersTPC;
-  return m_TPCHC_[layer];
+  return m_TPCHitCont[layer];
 }
 
 //______________________________________________________________________________
@@ -342,30 +297,6 @@ DCAnalyzer::GetSdcOutHC( int layer ) const
 {
   if( layer>NumOfLayersSdcOut ) layer=0;
   return m_SdcOutHC[layer];
-}
-
-//______________________________________________________________________________
-inline const DCHitContainer&
-DCAnalyzer::GetCFTHC( int layer ) const
-{
-  if( layer>NumOfPlaneCFT ) layer=0;
-  return m_CFTHC[layer];
-}
-
-//______________________________________________________________________________
-inline const DCHitContainer&
-DCAnalyzer::GetCFT16HC( int layer ) const
-{
-  if( layer>(NumOfPlaneCFT*2) ) layer=0;
-  return m_CFT16HC[layer];
-}
-
-//______________________________________________________________________________
-inline const DCHitContainer&
-DCAnalyzer::GetCFT16ppHC( int layer ) const
-{
-  if( layer>(NumOfPlaneCFT*2) ) layer=0;
-  return m_CFT16ppHC[layer];
 }
 
 //______________________________________________________________________________
@@ -481,36 +412,6 @@ DCAnalyzer::GetTrackSdcInSdcOut( int i ) const
 {
   if( i<m_SdcInSdcOutTC.size() )
     return m_SdcInSdcOutTC[i];
-  else
-    return 0;
-}
-
-//______________________________________________________________________________
-inline DCLocalTrack*
-DCAnalyzer::GetTrackCFT( int i ) const
-{
-  if( i<m_CFTTC.size() )
-    return m_CFTTC[i];
-  else
-    return 0;
-}
-
-//______________________________________________________________________________
-inline DCLocalTrack*
-DCAnalyzer::GetTrackCFT16( int i ) const
-{
-  if( i<m_CFT16TC.size() )
-    return m_CFT16TC[i];
-  else
-    return 0;
-}
-
-//______________________________________________________________________________
-inline DCLocalTrack*
-DCAnalyzer::GetTrackCFT16pp( int i ) const
-{
-  if( i<m_CFT16ppTC.size() )
-    return m_CFT16ppTC[i];
   else
     return 0;
 }

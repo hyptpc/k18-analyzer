@@ -1,8 +1,4 @@
-/**
- *  file: DCGeomMan.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "DCGeomMan.hh"
 #include "DCGeomRecord.hh"
@@ -287,36 +283,6 @@ double
 DCGeomMan::CalcWirePosition( const std::string& key, double wire ) const
 {
   return CalcWirePosition( GetDetectorId( key ), wire );
-}
-
-//______________________________________________________________________________
-double
-DCGeomMan::CalcCFTPositionR( int lnum, int seg ) const
-{
-  static const std::string funcname = "[DCGeomMan::CalcCFTPositionR()]";
-  //DCGeomRecord *pGeo = geomRecord_[lnum];
-  const DCGeomRecord *record = GetRecord(lnum);
-  if( record ){
-    return record->FiberPosR(seg);
-  }
-  else{
-    throw std::out_of_range(funcname+": No record" );
-  }
-}
-
-//______________________________________________________________________________
-double
-DCGeomMan::CalcCFTPositionPhi( int lnum, int seg ) const
-{
-  static const std::string funcname = "[DCGeomMan::calcCFTPositionPhi()]";
-  //DCGeomRecord *pGeo = geomRecord_[lnum];
-  const DCGeomRecord *record = GetRecord(lnum);
-  if( record ){
-    return record->FiberPosPhi(seg);
-  }
-  else{
-    throw std::out_of_range(funcname+": No record" );
-  }
 }
 
 //______________________________________________________________________________

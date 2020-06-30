@@ -1,9 +1,4 @@
-/**
- *  file: EventDisplay.cc
- *  date: 2017.04.10
- *  note: Unit is mm.
- *
- */
+// -*- C++ -*-
 
 #include "EventDisplay.hh"
 
@@ -75,7 +70,6 @@
 #define Hist_Timing 1
 #define Hist_SdcOut 1
 #define Hist_BcIn   1
-#define CATCH      1
 
 namespace
 {
@@ -122,9 +116,6 @@ namespace
 //const double p1_FBT = gHodo.GetGain(DetIdFBT1, 0, 0, 0);
 //const double p0_FBT = 526.;
 //const double p1_FBT = -1;
-  //const double offsetCATCH = 180;
-  const double offsetCATCH = 155;
-  const double offsetBGO   = 60; // offset from CFT
 }
 
 //______________________________________________________________________________
@@ -144,8 +135,6 @@ EventDisplay::EventDisplay( void )
     m_canvas_hist7(0),
     m_canvas_hist8(0),
     m_canvas_hist9(0),
-    m_canvas_catch(0),
-    m_canvas_catch3d(0),
     m_hist_vertex_x(0),
     m_hist_vertex_y(0),
     m_hist_p(0),
@@ -154,10 +143,10 @@ EventDisplay::EventDisplay( void )
     m_hist_bh1(0),
     m_hist_bft(0),
     m_hist_bft_p(0),
-    m_BH1box_cont(0),
     m_hist_bcIn(0),
-    m_BH2box_cont(0),
     m_hist_bcOut(0),
+    m_BH1box_cont(0),
+    m_BH2box_cont(0),
     m_hist_bh2(0),
     m_hist_bcOut_sdcIn(0),
     m_hist_sdcIn_predict(0),
@@ -205,47 +194,12 @@ EventDisplay::EventDisplay( void )
     m_hist_bc4p_time(0),
     m_hist_fbt1u(0),
     m_hist_fbt1up(0),
-    m_hist_fbt2u(0),
-    m_hist_fbt2up(0),
     m_hist_fbt1d(0),
     m_hist_fbt1dp(0),
+    m_hist_fbt2u(0),
+    m_hist_fbt2up(0),
     m_hist_fbt2d(0),
     m_hist_fbt2dp(0),
-    m_hist_cft1_l(0),
-    m_hist_cft1_t(0),
-    m_hist_cft1_hi(0),
-    m_hist_cft1_lo(0),
-    m_hist_cft2_l(0),
-    m_hist_cft2_t(0),
-    m_hist_cft2_hi(0),
-    m_hist_cft2_lo(0),
-    m_hist_cft3_l(0),
-    m_hist_cft3_t(0),
-    m_hist_cft3_hi(0),
-    m_hist_cft3_lo(0),
-    m_hist_cft4_l(0),
-    m_hist_cft4_t(0),
-    m_hist_cft4_hi(0),
-    m_hist_cft4_lo(0),
-    m_hist_cft5_l(0),
-    m_hist_cft5_t(0),
-    m_hist_cft5_hi(0),
-    m_hist_cft5_lo(0),
-    m_hist_cft6_l(0),
-    m_hist_cft6_t(0),
-    m_hist_cft6_hi(0),
-    m_hist_cft6_lo(0),
-    m_hist_cft7_l(0),
-    m_hist_cft7_t(0),
-    m_hist_cft7_hi(0),
-    m_hist_cft7_lo(0),
-    m_hist_cft8_l(0),
-    m_hist_cft8_t(0),
-    m_hist_cft8_hi(0),
-    m_hist_cft8_lo(0),
-    m_hist_bgo(0),
-    m_hist_piid_l(0),
-    m_hist_piid_t(0),
     m_target_node(0),
     m_kurama_inner_node(0),
     m_kurama_outer_node(0),
@@ -269,12 +223,7 @@ EventDisplay::EventDisplay( void )
     m_KuramaMarkVertexX(0),
     m_KuramaMarkVertexY(0),
     m_MissMomXZ_line(0),
-    m_MissMomYZ_line(0),
-    m_geometry_catch(0),
-    m_node_catch(0),
-    m_Tgt_Arc(0),
-    m_CFRP_Arc(0),
-    m_hbase_catch(0)
+    m_MissMomYZ_line(0)
 {
 }
 
@@ -532,7 +481,7 @@ EventDisplay::Initialize( void )
 
 #if Hist_SdcOut
   m_canvas_hist4 = new TCanvas( "canvas_hist4", "EventDisplay Detector Timing (SdcOut)", 800, 800);
-  m_canvas_hist4->Divide(2,4);  
+  m_canvas_hist4->Divide(2,4);
 
   m_hist_fbt1u = new TH2F( "hist_fbt1u", "FBT1U", MaxSegFBT1, 0, MaxSegFBT1, 500, -500, 500 );
   m_hist_fbt1up = new TH2F( "hist_fbt1u", "FBT1U p", MaxSegFBT1, 0, MaxSegFBT1, 500, -500, 500 );
@@ -691,10 +640,10 @@ EventDisplay::Initialize( void )
   double localPosBh1_dZ[NumOfSegBH1] = {4.5, -4.5, 4.5, -4.5, 4.5, -4.5, 4.5, -4.5, 4.5, -4.5, 4.5};
 
   for (int i=0; i<NumOfSegBH1; i++) {
-    m_BH1box_cont.push_back( new TBox( localPosBh1X[i]-Bh1SegX[i], 
-				       localPosBh1Z+localPosBh1_dZ[i]-Bh1SegY[i], 
+    m_BH1box_cont.push_back( new TBox( localPosBh1X[i]-Bh1SegX[i],
+				       localPosBh1Z+localPosBh1_dZ[i]-Bh1SegY[i],
 				       localPosBh1X[i]+Bh1SegX[i],
-				       localPosBh1Z+localPosBh1_dZ[i]+Bh1SegY[i])); 
+				       localPosBh1Z+localPosBh1_dZ[i]+Bh1SegY[i]));
   }
   for (int i=0; i<NumOfSegBH1; i++) {
     m_BH1box_cont[i]->SetFillColor(kWhite);
@@ -713,10 +662,10 @@ EventDisplay::Initialize( void )
   double localPosBh2Z = gGeom.GetLocalZ( IdBH2 );
 
   for (int i=0; i<NumOfSegBH2; i++) {
-    m_BH2box_cont.push_back( new TBox( localPosBh2X[i]-Bh2SegX[i], 
-				       localPosBh2Z-Bh2SegY[i], 
+    m_BH2box_cont.push_back( new TBox( localPosBh2X[i]-Bh2SegX[i],
+				       localPosBh2Z-Bh2SegY[i],
 				       localPosBh2X[i]+Bh2SegX[i],
-				       localPosBh2Z+Bh2SegY[i])); 
+				       localPosBh2Z+Bh2SegY[i]));
   }
   for (int i=0; i<NumOfSegBH2; i++) {
     m_BH2box_cont[i]->SetFillColor(kWhite);
@@ -748,10 +697,10 @@ EventDisplay::Initialize( void )
   double globalPosBh2X = gGeom.GetGlobalPosition( IdBH2 ).x();
 
   for (int i=0; i<NumOfSegBH2; i++) {
-    m_BH2box_cont2.push_back( new TBox( globalPosBh2X+localPosBh2X[i]-Bh2SegX[i], 
-					globalPosBh2Z-Bh2SegY[i]-20, 
+    m_BH2box_cont2.push_back( new TBox( globalPosBh2X+localPosBh2X[i]-Bh2SegX[i],
+					globalPosBh2Z-Bh2SegY[i]-20,
 					globalPosBh2X+localPosBh2X[i]+Bh2SegX[i],
-					globalPosBh2Z+Bh2SegY[i]+20)); 
+					globalPosBh2Z+Bh2SegY[i]+20));
   }
   for (int i=0; i<NumOfSegBH2; i++) {
     m_BH2box_cont2[i]->SetFillColor(kWhite);
@@ -765,10 +714,10 @@ EventDisplay::Initialize( void )
   double SchSegY = 2.0/2.;
   for (int i=1; i<=NumOfSegSCH; i++) {
     double globalPosSchX = gGeom.CalcWirePosition( IdSCH, (double)i );
-    m_SCHbox_cont.push_back( new TBox( globalPosSchX-SchSegX, 
-				       globalPosSchZ-SchSegY-20, 
+    m_SCHbox_cont.push_back( new TBox( globalPosSchX-SchSegX,
+				       globalPosSchZ-SchSegY-20,
 				       globalPosSchX+SchSegX,
-				       globalPosSchZ+SchSegY+20)); 
+				       globalPosSchZ+SchSegY+20));
   }
   for (int i=0; i<NumOfSegSCH; i++) {
     m_SCHbox_cont[i]->SetFillColor(kWhite);
@@ -782,144 +731,25 @@ EventDisplay::Initialize( void )
   double globalPosTarget_z = gGeom.GetGlobalPosition( IdTarget ).z();
   double target_r = 20.;
   double target_z = 300./2;
-  m_TargetXZ_box2 =  new TBox( globalPosTarget_x-target_r, 
-			       globalPosTarget_z-target_z, 
-			       globalPosTarget_x+target_r, 
-			       globalPosTarget_z+target_z); 
+  m_TargetXZ_box2 =  new TBox( globalPosTarget_x-target_r,
+			       globalPosTarget_z-target_z,
+			       globalPosTarget_x+target_r,
+			       globalPosTarget_z+target_z);
 
   m_TargetXZ_box2->SetFillColor(kWhite);
   m_TargetXZ_box2->SetLineColor(kBlack);
   m_TargetXZ_box2->Draw("L");
 
-  m_TargetYZ_box2 =  new TBox( globalPosTarget_y-target_r, 
-			       globalPosTarget_z-target_z, 
-			       globalPosTarget_y+target_r, 
-			       globalPosTarget_z+target_z); 
+  m_TargetYZ_box2 =  new TBox( globalPosTarget_y-target_r,
+			       globalPosTarget_z-target_z,
+			       globalPosTarget_y+target_r,
+			       globalPosTarget_z+target_z);
 
   m_TargetYZ_box2->SetFillColor(kWhite);
   m_TargetYZ_box2->SetLineColor(kBlack);
   m_TargetYZ_box2->Draw("L");
 
 #endif
-
-#if CATCH
-  m_canvas_hist7 = new TCanvas( "canvas_hist7", "EventDisplay Detector Timing (CATCH)", 800, 1000 );
-  m_canvas_hist7->Divide(4,3);  
-
-
-  for (int layer=0; layer<8; layer++) {
-    TH2 *hp_l=0, *hp_t=0;
-    hp_l = new TH2F( Form( "hist_cft%d_l", layer+1 ),
-		      Form( "CFT layer%d (Leading)", layer+1 ),
-		      NumOfSegCFT[layer], 0, NumOfSegCFT[layer], 500, -500, 500 );
-    hp_l->GetYaxis()->SetRangeUser(-100, 100);
-    hp_t = new TH2F( Form( "hist_cft%d_t", layer+1 ),
-		      Form( "CFT layer%d (Trailing)", layer+1 ),
-		      NumOfSegCFT[layer], 0, NumOfSegCFT[layer], 500, -500, 500 );
-    hp_t->GetYaxis()->SetRangeUser(-100, 100);
-    hp_t->SetFillColor(kRed);
-
-    m_canvas_hist7->cd(layer+1)->SetGrid();
-    hp_l->Draw("box");
-    hp_t->Draw("samebox");
-
-    if (layer == 0) {
-      m_hist_cft1_l = hp_l;
-      m_hist_cft1_t = hp_t;
-    } else if (layer == 1) {
-      m_hist_cft2_l = hp_l;
-      m_hist_cft2_t = hp_t;
-    } else if (layer == 2) {
-      m_hist_cft3_l = hp_l;
-      m_hist_cft3_t = hp_t;
-    } else if (layer == 3) {
-      m_hist_cft4_l = hp_l;
-      m_hist_cft4_t = hp_t;
-    } else if (layer == 4) {
-      m_hist_cft5_l = hp_l;
-      m_hist_cft5_t = hp_t;
-    } else if (layer == 5) {
-      m_hist_cft6_l = hp_l;
-      m_hist_cft6_t = hp_t;
-    } else if (layer == 6) {
-      m_hist_cft7_l = hp_l;
-      m_hist_cft7_t = hp_t;
-    } else if (layer == 7) {
-      m_hist_cft8_l = hp_l;
-      m_hist_cft8_t = hp_t;
-    }
-
-  }
-
-  m_hist_bgo = new TH2F( "hist_bgo","BGO (Leading)",
-		   NumOfSegBGO, 0, NumOfSegBGO, 500, -500, 500 );
-  m_canvas_hist7->cd(9)->SetGrid();
-  m_hist_bgo->Draw("box");
-
-  m_hist_piid_l = new TH2F( "hist_piid_l","PiId (Leading)",
-			   NumOfSegPiID, 0, NumOfSegPiID, 500, -500, 500 );
-  m_hist_piid_t = new TH2F( "hist_piid_t","PiId (Leading)",
-			   NumOfSegPiID, 0, NumOfSegPiID, 500, -500, 500 );
-  m_canvas_hist7->cd(10)->SetGrid();
-  m_hist_piid_l->Draw("box");
-  m_hist_piid_t->Draw("samebox");
-
-
-  m_canvas_hist8 = new TCanvas( "canvas_hist8", "EventDisplay Detector ADC (CATCH)", 800, 1000 );
-  m_canvas_hist8->Divide(4,3);  
-
-  for (int layer=0; layer<8; layer++) {
-    TH2 *hp_hi=0, *hp_lo=0;
-    hp_hi = new TH2F( Form( "hist_cft%d_hi", layer+1 ),
-		      Form( "CFT layer%d (High Gain)", layer+1 ),
-		      NumOfSegCFT[layer], 0, NumOfSegCFT[layer], 500, -50, 3450 );
-    hp_lo = new TH2F( Form( "hist_cft%d_low", layer+1 ),
-		      Form( "CFT layer%d (Low Gain)", layer+1 ),
-		      NumOfSegCFT[layer], 0, NumOfSegCFT[layer], 500, -50, 3450 );
-    hp_lo->SetFillColor(kRed);
-
-    m_canvas_hist8->cd(layer+1)->SetGrid();
-    hp_hi->Draw("box");
-    hp_lo->Draw("samebox");
-
-    if (layer == 0) {
-      m_hist_cft1_hi = hp_hi;
-      m_hist_cft1_lo = hp_lo;
-    } else if (layer == 1) {
-      m_hist_cft2_hi = hp_hi;
-      m_hist_cft2_lo = hp_lo;
-    } else if (layer == 2) {
-      m_hist_cft3_hi = hp_hi;
-      m_hist_cft3_lo = hp_lo;
-    } else if (layer == 3) {
-      m_hist_cft4_hi = hp_hi;
-      m_hist_cft4_lo = hp_lo;
-    } else if (layer == 4) {
-      m_hist_cft5_hi = hp_hi;
-      m_hist_cft5_lo = hp_lo;
-    } else if (layer == 5) {
-      m_hist_cft6_hi = hp_hi;
-      m_hist_cft6_lo = hp_lo;
-    } else if (layer == 6) {
-      m_hist_cft7_hi = hp_hi;
-      m_hist_cft7_lo = hp_lo;
-    } else if (layer == 7) {
-      m_hist_cft8_hi = hp_hi;
-      m_hist_cft8_lo = hp_lo;
-    }
-
-  }
-
-  m_canvas_hist9 = new TCanvas( "canvas_hist9", "EventDisplay Detector BGO waveform (CATCH)", 1000, 1000 );
-  m_canvas_hist9->Divide(4,6);  
-  for (int npad = 0; npad<24; npad++)
-    m_canvas_hist9->cd(npad+1)->SetGrid();
-
-  ConstructCATCH();
-  ConstructCATCH3d();
-
-#endif
-
 
   ResetVisibility();
 
@@ -1562,13 +1392,13 @@ EventDisplay::ConstructSdcIn( void )
 					  wireGlobalPos.z(),
 					  "rotU2", "void" ) );
     }
-      
+
   }
 
 
   // SFT-U
   {
-    const int lid = gGeom.GetDetectorId("SFT-U");      
+    const int lid = gGeom.GetDetectorId("SFT-U");
     double Rmin = 0.0;
     double Rmax = 0.375;
     double Z    = wireL/cos(gGeom.GetTiltAngle(lid)*math::Deg2Rad())/2.;
@@ -1596,7 +1426,7 @@ EventDisplay::ConstructSdcIn( void )
 
   // SFT-V
   {
-    const int lid = gGeom.GetDetectorId("SFT-V");      
+    const int lid = gGeom.GetDetectorId("SFT-V");
     double Rmin = 0.0;
     double Rmax = 0.375;
     double Z    = wireL/cos(gGeom.GetTiltAngle(lid)*math::Deg2Rad())/2.;
@@ -1624,7 +1454,7 @@ EventDisplay::ConstructSdcIn( void )
 
   // SFT-X
   {
-    const int lid = gGeom.GetDetectorId("SFT-X");      
+    const int lid = gGeom.GetDetectorId("SFT-X");
     double Rmin = 0.0;
     double Rmax = 0.5;
     double Z    = wireL/cos(gGeom.GetTiltAngle(lid)*math::Deg2Rad())/2.;
@@ -2009,7 +1839,7 @@ EventDisplay::ConstructFBT( void )
   std::cout << "ofset1d1 = " << offset1d1 << std::endl;
   new TBRIK( "FBT1D1wall_brik", "FBT1D1wall_brik", "void",
 	     FBT1wallX, FBT1wallY, FBT1wallZ);
-  m_FBT1d1wall_node = new TNode( "FBT1D1wall_node", "FBT1D1wall_node", 
+  m_FBT1d1wall_node = new TNode( "FBT1D1wall_node", "FBT1D1wall_node",
 				 "FBT1D1wall_brik",
 				 FBT1D1wallPos.x()+offset1d1,
 				 FBT1D1wallPos.y(),
@@ -2046,7 +1876,7 @@ EventDisplay::ConstructFBT( void )
   new TBRIK( "FBT1U1wall_brik", "FBT1U1wall_brik", "void",
 	     FBT1wallX, FBT1wallY, FBT1wallZ);
   double offset1u1 =  gGeom.CalcWirePosition(lid1U1, (double)MaxSegFBT1/2.-0.5 );
-  m_FBT1u1wall_node = new TNode( "FBT1U1wall_node", "FBT1U1wall_node", 
+  m_FBT1u1wall_node = new TNode( "FBT1U1wall_node", "FBT1U1wall_node",
 				 "FBT1U1wall_brik",
 				 FBT1U1wallPos.x() + offset1u1,
 				 FBT1U1wallPos.y(),
@@ -2083,7 +1913,7 @@ EventDisplay::ConstructFBT( void )
   new TBRIK( "FBT1D2wall_brik", "FBT1D2wall_brik", "void",
 	     FBT1wallX, FBT1wallY, FBT1wallZ);
   double offset1d2 =  gGeom.CalcWirePosition(lid1D2, (double)MaxSegFBT1/2.-0.5 );
-  m_FBT1d2wall_node = new TNode( "FBT1D2wall_node", "FBT1D2wall_node", 
+  m_FBT1d2wall_node = new TNode( "FBT1D2wall_node", "FBT1D2wall_node",
 				 "FBT1D2wall_brik",
 				 FBT1D2wallPos.x() + offset1d2,
 				 FBT1D2wallPos.y(),
@@ -2121,7 +1951,7 @@ EventDisplay::ConstructFBT( void )
 	     FBT1wallX, FBT1wallY, FBT1wallZ);
   double offset1u2 =  gGeom.CalcWirePosition(lid1U2, (double)MaxSegFBT1/2.-0.5 );
 
-  m_FBT1u2wall_node = new TNode( "FBT1U2wall_node", "FBT1U2wall_node", 
+  m_FBT1u2wall_node = new TNode( "FBT1U2wall_node", "FBT1U2wall_node",
 				 "FBT1U2wall_brik",
 				 FBT1U2wallPos.x() + offset1u2,
 				 FBT1U2wallPos.y(),
@@ -2162,7 +1992,7 @@ EventDisplay::ConstructFBT( void )
   new TBRIK( "FBT2D1wall_brik", "FBT2D1wall_brik", "void",
 	     FBT2wallX, FBT2wallY, FBT2wallZ);
   double offset2d1 =  gGeom.CalcWirePosition(lid2D1, (double)MaxSegFBT2/2.-0.5 );
-  m_FBT2d1wall_node = new TNode( "FBT2D1wall_node", "FBT2D1wall_node", 
+  m_FBT2d1wall_node = new TNode( "FBT2D1wall_node", "FBT2D1wall_node",
 				 "FBT2D1wall_brik",
 				 FBT2D1wallPos.x() + offset2d1,
 				 FBT2D1wallPos.y(),
@@ -2199,7 +2029,7 @@ EventDisplay::ConstructFBT( void )
   new TBRIK( "FBT2U1wall_brik", "FBT2U1wall_brik", "void",
 	     FBT2wallX, FBT2wallY, FBT2wallZ);
   double offset2u1 =  gGeom.CalcWirePosition(lid2U1, (double)MaxSegFBT2/2.-0.5 );
-  m_FBT2u1wall_node = new TNode( "FBT2U1wall_node", "FBT2U1wall_node", 
+  m_FBT2u1wall_node = new TNode( "FBT2U1wall_node", "FBT2U1wall_node",
 				 "FBT2U1wall_brik",
 				 FBT2U1wallPos.x() + offset2u1,
 				 FBT2U1wallPos.y(),
@@ -2236,7 +2066,7 @@ EventDisplay::ConstructFBT( void )
   new TBRIK( "FBT2D2wall_brik", "FBT2D2wall_brik", "void",
 	     FBT2wallX, FBT2wallY, FBT2wallZ);
   double offset2d2 =  gGeom.CalcWirePosition(lid2D2, (double)MaxSegFBT2/2.-0.5 );
-  m_FBT2d2wall_node = new TNode( "FBT2D2wall_node", "FBT2D2wall_node", 
+  m_FBT2d2wall_node = new TNode( "FBT2D2wall_node", "FBT2D2wall_node",
 				 "FBT2D2wall_brik",
 				 FBT2D2wallPos.x() + offset2d2,
 				 FBT2D2wallPos.y(),
@@ -2273,7 +2103,7 @@ EventDisplay::ConstructFBT( void )
   new TBRIK( "FBT2U2wall_brik", "FBT2U2wall_brik", "void",
 	     FBT2wallX, FBT2wallY, FBT2wallZ);
   double offset2u2 =  gGeom.CalcWirePosition(lid2U2, (double)MaxSegFBT2/2.-0.5 );
-  m_FBT2u2wall_node = new TNode( "FBT2U2wall_node", "FBT2U2wall_node", 
+  m_FBT2u2wall_node = new TNode( "FBT2U2wall_node", "FBT2U2wall_node",
 				 "FBT2U2wall_brik",
 				 FBT2U2wallPos.x() + offset2u2,
 				 FBT2U2wallPos.y(),
@@ -2358,506 +2188,6 @@ EventDisplay::ConstructTOF( void )
 
   m_node->cd();
   ConstructionDone(__func__);
-  return true;
-}
-
-//______________________________________________________________________________
-
-bool EventDisplay::ConstructCATCH(void)
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  m_canvas_catch = new TCanvas( "canvas_catch", "CATCH Event Display",
-				1600, 800 );
-  m_canvas_catch->Divide(1,3);
-  m_canvas_catch->cd(1)->SetPad( 0.001,0.001,0.499,0.999);
-  m_canvas_catch->cd(2)->SetPad( 0.501,0.501,0.999,0.999);
-  m_canvas_catch->cd(3)->SetPad( 0.501,0.001,0.999,0.499);
-
-  m_canvas_catch->cd(1)->SetGrid(); 
-
-  m_hbase_catch = new TH2F("hbase_catch","Event Display XY plane", 180, -180, 180, 180, -180, 180);
-  m_hbase_catch->SetMaximum(200);
-  m_hbase_catch->SetMinimum(-1);
-  m_hbase_catch->Draw();
-
-  const DCGeomMan & geomMan=DCGeomMan::GetInstance();
-
-  m_Tgt_Arc = new TArc(0, 0, 40./2);
-  m_Tgt_Arc->SetLineColor(kCyan);  
-  m_Tgt_Arc->SetFillStyle(0);
-  m_Tgt_Arc->Draw("same");
-
-  m_CFRP_Arc = new TArc(0, 0, 80./2);
-  m_CFRP_Arc->SetLineColor(kBlack);  
-  m_CFRP_Arc->SetFillStyle(0);
-  m_CFRP_Arc->SetLineWidth(2);
-  m_CFRP_Arc->Draw("same");
-
-  ConstructCFT();
-  ConstructBGO();
-  ConstructPiID();
-
-  m_canvas_catch->cd(2)->SetGrid(); 
-  m_hbase_catch_zx = new TH2F("hbase_catch_zx","Event Display ZX plane", 600, -200, 400, 180, -180, 180);
-  m_hbase_catch_zx->Draw();
-
-  m_canvas_catch->cd(3)->SetGrid(); 
-  m_hbase_catch_zy = new TH2F("hbase_catch_zy","Event Display ZY plane", 600, -200, 400, 180, -180, 180);
-  m_hbase_catch_zy->Draw();
-
-
-  return true;
-}
-
-//______________________________________________________________________________
-bool EventDisplay::ConstructCFT(void)
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  m_canvas_catch->cd(1);
-
-  for (int i=0; i<NumOfPlaneCFT; i++) {
-    m_CFT_Arc_cont[i].reserve(NumOfSegCFT[i]);
-    for (int seg=0; seg<NumOfSegCFT[i]; seg++) {
-      double x, y;
-      FiberPosPhi(i, seg, &x, &y);
-      TArc *arc = new TArc(x, y, 0.75/2);	
-      arc->SetLineColor(kBlack);
-      arc->SetFillStyle(0);
-      arc->Draw("same");
-      m_CFT_Arc_cont[i].push_back(arc);
-    }
-  }
-
-  return true;
-}
-
-//______________________________________________________________________________
-bool EventDisplay::ConstructBGO(void)
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  m_canvas_catch->cd(1);
-
-  int unit=0;
-
-  for (int i=0; i<NumOfBGOUnit; i++) {
-    double theta = (double)i*45.;
-
-    for (int j=0; j<NumOfBGOInOneUnit; j++) {
-      double x0 = RadiusOfBGOSurface+BGO_Y/2;
-      double y0 = (double)(j-0.5)*BGO_X;
-
-      double x1 = x0+BGO_Y/2;
-      double y1 = y0+BGO_X/2;
-
-      double x2 = x0-BGO_Y/2;
-      double y2 = y0+BGO_X/2;
-
-      double x3 = x0-BGO_Y/2;
-      double y3 = y0-BGO_X/2;
-
-      double x4 = x0+BGO_Y/2;
-      double y4 = y0-BGO_X/2;
-
-      ThreeVector pos1((x1*cos(theta*math::Deg2Rad()) - y1*sin(theta*math::Deg2Rad())),
-		       (x1*sin(theta*math::Deg2Rad()) + y1*cos(theta*math::Deg2Rad())),
-		       0);
-      ThreeVector pos2((x2*cos(theta*math::Deg2Rad()) - y2*sin(theta*math::Deg2Rad())),
-		       (x2*sin(theta*math::Deg2Rad()) + y2*cos(theta*math::Deg2Rad())),
-		       0);
-      ThreeVector pos3((x3*cos(theta*math::Deg2Rad()) - y3*sin(theta*math::Deg2Rad())),
-		       (x3*sin(theta*math::Deg2Rad()) + y3*cos(theta*math::Deg2Rad())),
-		       0);
-      ThreeVector pos4((x4*cos(theta*math::Deg2Rad()) - y4*sin(theta*math::Deg2Rad())),
-		       (x4*sin(theta*math::Deg2Rad()) + y4*cos(theta*math::Deg2Rad())),
-		       0);
-
-      TLine *l1 = new TLine(pos1.x(), pos1.y(), pos2.x(), pos2.y());
-      TLine *l2 = new TLine(pos2.x(), pos2.y(), pos3.x(), pos3.y());
-      TLine *l3 = new TLine(pos3.x(), pos3.y(), pos4.x(), pos4.y());
-      TLine *l4 = new TLine(pos4.x(), pos4.y(), pos1.x(), pos1.y());
-      l1->Draw("same");
-      l2->Draw("same");
-      l3->Draw("same");
-      l4->Draw("same");
-
-      unit = j+3*i;
-      m_BGO_Line_cont[unit].push_back(l1);
-      m_BGO_Line_cont[unit].push_back(l2);
-      m_BGO_Line_cont[unit].push_back(l3);
-      m_BGO_Line_cont[unit].push_back(l4);
-
-      //std::cout << unit << std::endl;
-    }
-  }
-
-  for (int i=0; i<NumOfBGOUnit; i++) {
-    double theta = 22.5 + (double)i*45.;
-
-    for (int j=0; j<NumOfBGOInOneUnit2; j++) {
-      double x0 = RadiusOfBGOSurface2+BGO_Y/2;
-      double y0 = (double)(j)*BGO_X;
-
-      double x1 = x0+BGO_Y/2;
-      double y1 = y0+BGO_X/2;
-
-      double x2 = x0-BGO_Y/2;
-      double y2 = y0+BGO_X/2;
-
-      double x3 = x0-BGO_Y/2;
-      double y3 = y0-BGO_X/2;
-
-      double x4 = x0+BGO_Y/2;
-      double y4 = y0-BGO_X/2;
-
-      ThreeVector pos1((x1*cos(theta*math::Deg2Rad()) - y1*sin(theta*math::Deg2Rad())),
-		       (x1*sin(theta*math::Deg2Rad()) + y1*cos(theta*math::Deg2Rad())),
-		       0);
-      ThreeVector pos2((x2*cos(theta*math::Deg2Rad()) - y2*sin(theta*math::Deg2Rad())),
-		       (x2*sin(theta*math::Deg2Rad()) + y2*cos(theta*math::Deg2Rad())),
-		       0);
-      ThreeVector pos3((x3*cos(theta*math::Deg2Rad()) - y3*sin(theta*math::Deg2Rad())),
-		       (x3*sin(theta*math::Deg2Rad()) + y3*cos(theta*math::Deg2Rad())),
-		       0);
-      ThreeVector pos4((x4*cos(theta*math::Deg2Rad()) - y4*sin(theta*math::Deg2Rad())),
-		       (x4*sin(theta*math::Deg2Rad()) + y4*cos(theta*math::Deg2Rad())),
-		       0);
-
-      TLine *l1 = new TLine(pos1.x(), pos1.y(), pos2.x(), pos2.y());
-      TLine *l2 = new TLine(pos2.x(), pos2.y(), pos3.x(), pos3.y());
-      TLine *l3 = new TLine(pos3.x(), pos3.y(), pos4.x(), pos4.y());
-      TLine *l4 = new TLine(pos4.x(), pos4.y(), pos1.x(), pos1.y());
-      l1->Draw("same");
-      l2->Draw("same");
-      l3->Draw("same");
-      l4->Draw("same");
-
-      unit = j+NumOfBGOInOneUnit+3*i;
-      m_BGO_Line_cont[unit].push_back(l1);
-      m_BGO_Line_cont[unit].push_back(l2);
-      m_BGO_Line_cont[unit].push_back(l3);
-      m_BGO_Line_cont[unit].push_back(l4);
-
-      //std::cout << unit << std::endl;
-    }
-  }
-
-  return true;
-}
-
-//______________________________________________________________________________
-bool EventDisplay::ConstructPiID(void)
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  m_canvas_catch->cd(1);
-
-  int unit=0;
-
-  for (int i=0; i<NumOfPiIDUnit; i++) {
-    double theta = (double)i*45.;
-
-    for (int j=0; j<NumOfPiIDInOneUnit; j++) {
-      double x0 = RadiusOfPiIDSurface+PiID_Y/2;
-      double y0 = (double)(j-1)*PiID_X;
-
-      double x1 = x0+PiID_Y/2;
-      double y1 = y0+PiID_X/2;
-
-      double x2 = x0-PiID_Y/2;
-      double y2 = y0+PiID_X/2;
-
-      double x3 = x0-PiID_Y/2;
-      double y3 = y0-PiID_X/2;
-
-      double x4 = x0+PiID_Y/2;
-      double y4 = y0-PiID_X/2;
-
-      ThreeVector pos1((x1*cos(theta*math::Deg2Rad()) - y1*sin(theta*math::Deg2Rad())),
-		       (x1*sin(theta*math::Deg2Rad()) + y1*cos(theta*math::Deg2Rad())),
-		       0);
-      ThreeVector pos2((x2*cos(theta*math::Deg2Rad()) - y2*sin(theta*math::Deg2Rad())),
-		       (x2*sin(theta*math::Deg2Rad()) + y2*cos(theta*math::Deg2Rad())),
-		       0);
-      ThreeVector pos3((x3*cos(theta*math::Deg2Rad()) - y3*sin(theta*math::Deg2Rad())),
-		       (x3*sin(theta*math::Deg2Rad()) + y3*cos(theta*math::Deg2Rad())),
-		       0);
-      ThreeVector pos4((x4*cos(theta*math::Deg2Rad()) - y4*sin(theta*math::Deg2Rad())),
-		       (x4*sin(theta*math::Deg2Rad()) + y4*cos(theta*math::Deg2Rad())),
-		       0);
-
-      TLine *l1 = new TLine(pos1.x(), pos1.y(), pos2.x(), pos2.y());
-      TLine *l2 = new TLine(pos2.x(), pos2.y(), pos3.x(), pos3.y());
-      TLine *l3 = new TLine(pos3.x(), pos3.y(), pos4.x(), pos4.y());
-      TLine *l4 = new TLine(pos4.x(), pos4.y(), pos1.x(), pos1.y());
-      l1->Draw("same");
-      l2->Draw("same");
-      l3->Draw("same");
-      l4->Draw("same");
-
-      unit = i*NumOfPiIDInOneUnit + j + i;
-      m_PiID_Line_cont[unit].push_back(l1);
-      m_PiID_Line_cont[unit].push_back(l2);
-      m_PiID_Line_cont[unit].push_back(l3);
-      m_PiID_Line_cont[unit].push_back(l4);
-
-      //std::cout << unit << std::endl;
-    }
-  }
-
-  for (int i=0; i<NumOfPiIDUnit; i++) {
-    double theta = 22.5 + (double)i*45.;
-
-    for (int j=0; j<NumOfPiIDInOneUnit2; j++) {
-      double x0 = RadiusOfPiID2Surface+PiID2_Y/2;
-      double y0 = (double)(j)*PiID2_X;
-
-      double x1 = x0+PiID2_Y/2;
-      double y1 = y0+PiID2_X/2;
-
-      double x2 = x0-PiID2_Y/2;
-      double y2 = y0+PiID2_X/2;
-
-      double x3 = x0-PiID2_Y/2;
-      double y3 = y0-PiID2_X/2;
-
-      double x4 = x0+PiID2_Y/2;
-      double y4 = y0-PiID2_X/2;
-
-      ThreeVector pos1((x1*cos(theta*math::Deg2Rad()) - y1*sin(theta*math::Deg2Rad())),
-		       (x1*sin(theta*math::Deg2Rad()) + y1*cos(theta*math::Deg2Rad())),
-		       0);
-      ThreeVector pos2((x2*cos(theta*math::Deg2Rad()) - y2*sin(theta*math::Deg2Rad())),
-		       (x2*sin(theta*math::Deg2Rad()) + y2*cos(theta*math::Deg2Rad())),
-		       0);
-      ThreeVector pos3((x3*cos(theta*math::Deg2Rad()) - y3*sin(theta*math::Deg2Rad())),
-		       (x3*sin(theta*math::Deg2Rad()) + y3*cos(theta*math::Deg2Rad())),
-		       0);
-      ThreeVector pos4((x4*cos(theta*math::Deg2Rad()) - y4*sin(theta*math::Deg2Rad())),
-		       (x4*sin(theta*math::Deg2Rad()) + y4*cos(theta*math::Deg2Rad())),
-		       0);
-
-      TLine *l1 = new TLine(pos1.x(), pos1.y(), pos2.x(), pos2.y());
-      TLine *l2 = new TLine(pos2.x(), pos2.y(), pos3.x(), pos3.y());
-      TLine *l3 = new TLine(pos3.x(), pos3.y(), pos4.x(), pos4.y());
-      TLine *l4 = new TLine(pos4.x(), pos4.y(), pos1.x(), pos1.y());
-      l1->Draw("same");
-      l2->Draw("same");
-      l3->Draw("same");
-      l4->Draw("same");
-
-      unit = (i+1)*NumOfPiIDInOneUnit + i*NumOfPiIDInOneUnit2 + j;
-      m_PiID_Line_cont[unit].push_back(l1);
-      m_PiID_Line_cont[unit].push_back(l2);
-      m_PiID_Line_cont[unit].push_back(l3);
-      m_PiID_Line_cont[unit].push_back(l4);
-
-      //std::cout << unit << std::endl;
-    }
-  }
-
-  return true;
-}
-
-//______________________________________________________________________________
-
-bool EventDisplay::ConstructCATCH3d(void)
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  m_canvas_catch3d = new TCanvas( "canvas_catch3d", "CATCH Event Display",
-				800, 800 );
-
-
-  m_geometry_catch = new TGeometry( "evdisp_catch","CATCH Event Display" );
-
-  ThreeVector worldSize( 200., 200., 400. ); /*mm*/
-  new TBRIK( "world_catch", "world_catch", "void",
-	     worldSize.x(), worldSize.y(), worldSize.z() );
-
-  m_node_catch = new TNode( "node_catch", "node_catch", "world_catch", 0., 0., 0. );
-  m_geometry_catch->GetNode("node_catch")->SetVisibility(0);
-
-
-  double Rmin = 0.0;
-  double Rmax = 0.75/2;
-  double L    = 400./2.;
-
-  new TTUBE( "CFTFiberTube", "CFTFiberTube", "void", Rmin, Rmax, L );
-
-  for (int i=0; i<NumOfPlaneCFT/2; i++) {
-    int layer = 2*i+1;
-    m_CFT_node_cont[i].reserve(NumOfSegCFT[layer]);
-    for (int seg=0; seg<NumOfSegCFT[layer]; seg++) {
-      double x, y;
-      FiberPosPhi(layer, seg, &x, &y);
-
-      m_CFT_node_cont[i].push_back( new TNode( Form( "CFT%d_Node_%d", i, seg ),
-					       Form( "CFT%d_Node_%d", i, seg ),
-					       "CFTFiberTube",
-					       x, y, L));
-    }
-  }
-
-
-  new TBRIK( "BGOBrik", "BGOBrik", "void", BGO_Y/2., BGO_Z/2., BGO_X/2. );
-  for (int i=0; i<NumOfBGOUnit; i++) {
-    double theta = (double)i*45.;
-
-    double rotMat[9] = {};
-    CalcRotMatrix( theta, 0., 0., rotMat );
-
-    new TRotMatrix( Form( "rotBGO_%d", i ),
-		    Form( "rotBGO_%d", i ),
-		    rotMat);
-
-    for (int j=0; j<NumOfBGOInOneUnit; j++) {
-      double x0 = RadiusOfBGOSurface+BGO_Y/2;
-      double y0 = (double)(j-0.5)*BGO_X;
-
-      ThreeVector pos0((x0*cos(theta*math::Deg2Rad()) - y0*sin(theta*math::Deg2Rad())),
-		       (x0*sin(theta*math::Deg2Rad()) + y0*cos(theta*math::Deg2Rad())),
-		       L+offsetBGO);
-
-      m_BGOseg_node_cont.push_back( new TNode( Form( "BGOseg_node_%d", i*NumOfBGOInOneUnit + j + i ),
-					       Form( "BGOseg_node_%d", i*NumOfBGOInOneUnit + j + i ),
-					       "BGOBrik",
-					       pos0.x(),
-					       pos0.y(),
-					       pos0.z(),
-					       Form( "rotBGO_%d", i ),
-					       "void") );
-
-
-
-      //std::cout << unit << std::endl;
-    }
-  }
-
-  for (int i=0; i<NumOfBGOUnit; i++) {
-    double theta = 22.5 + (double)i*45.;
-
-    double rotMat[9] = {};
-    CalcRotMatrix( theta, 0., 0., rotMat );
-    new TRotMatrix( Form( "rotBGO2_%d", i ),
-		    Form( "rotBGO2_%d", i ),
-		    rotMat);
-
-    for (int j=0; j<NumOfBGOInOneUnit2; j++) {
-      double x0 = RadiusOfBGOSurface2+BGO_Y/2;
-      double y0 = (double)(j)*BGO_X;
-
-      ThreeVector pos0((x0*cos(theta*math::Deg2Rad()) - y0*sin(theta*math::Deg2Rad())),
-		       (x0*sin(theta*math::Deg2Rad()) + y0*cos(theta*math::Deg2Rad())),
-		       L+offsetBGO);
-
-      m_BGOseg_node_cont.push_back( new TNode( Form( "BGOseg_node_%d", (i+1)*NumOfBGOInOneUnit + i*NumOfBGOInOneUnit2 + j ),
-					       Form( "BGOseg_node_%d", (i+1)*NumOfBGOInOneUnit + i*NumOfBGOInOneUnit2 + j ),
-					       "BGOBrik",
-					       pos0.x(),
-					       pos0.y(),
-					       pos0.z(),
-					       Form( "rotBGO2_%d", i ),
-					       "void") );
-      //std::cout << unit << std::endl;
-    }
-  }
-
-  std::string node_name;
-  for (int seg=0; seg<2; seg++) {
-    node_name = Form( "BGOseg_node_%d", seg );
-    
-    TNode *node = m_geometry_catch->GetNode( node_name.c_str() );
-    if( !node ){
-      hddaq::cout << "#E " << func_name << " "
-		  << "no such node : " << node_name << std::endl;
-      return false;
-    }
-    node->SetVisibility(0);    
-  }
-
-
-  new TBRIK( "PiIDBrik", "PiIDBrik", "void", PiID_Y/2., PiID_Z/2., PiID_X/2. );
-  for (int i=0; i<NumOfPiIDUnit; i++) {
-    double theta = (double)i*45.;
-
-    double rotMat[9] = {};
-    CalcRotMatrix( theta, 0., 0., rotMat );
-
-    new TRotMatrix( Form( "rotPiID_%d", i ),
-		    Form( "rotPiID_%d", i ),
-		    rotMat);
-
-    for (int j=0; j<NumOfPiIDInOneUnit; j++) {
-      double x0 = RadiusOfPiIDSurface+PiID_Y/2;
-      double y0 = (double)(j-1)*PiID_X;
-
-      ThreeVector pos0((x0*cos(theta*math::Deg2Rad()) - y0*sin(theta*math::Deg2Rad())),
-		       (x0*sin(theta*math::Deg2Rad()) + y0*cos(theta*math::Deg2Rad())),
-		       L+offsetBGO);
-
-      m_PiIDseg_node_cont.push_back( new TNode( Form( "PiIDseg_node_%d", i*NumOfPiIDInOneUnit + j + i ),
-					       Form( "PiIDseg_node_%d", i*NumOfPiIDInOneUnit + j + i ),
-					       "PiIDBrik",
-					       pos0.x(),
-					       pos0.y(),
-					       pos0.z(),
-					       Form( "rotPiID_%d", i ),
-					       "void") );
-
-
-
-      //std::cout << unit << std::endl;
-    }
-  }
-
-  new TBRIK( "PiIDBrik2", "PiIDBrik2", "void", PiID2_Y/2., PiID2_Z/2., PiID2_X/2. );
-  for (int i=0; i<NumOfPiIDUnit; i++) {
-    double theta = 22.5 + (double)i*45.;
-
-    double rotMat[9] = {};
-    CalcRotMatrix( theta, 0., 0., rotMat );
-    new TRotMatrix( Form( "rotPiID2_%d", i ),
-		    Form( "rotPiID2_%d", i ),
-		    rotMat);
-
-    for (int j=0; j<NumOfPiIDInOneUnit2; j++) {
-      double x0 = RadiusOfPiID2Surface+PiID_Y/2;
-      double y0 = (double)(j)*PiID_X;
-
-      ThreeVector pos0((x0*cos(theta*math::Deg2Rad()) - y0*sin(theta*math::Deg2Rad())),
-		       (x0*sin(theta*math::Deg2Rad()) + y0*cos(theta*math::Deg2Rad())),
-		       L+offsetBGO);
-
-      m_PiIDseg_node_cont.push_back( new TNode( Form( "PiIDseg_node_%d", (i+1)*NumOfPiIDInOneUnit + i*NumOfPiIDInOneUnit2 + j ),
-					       Form( "PiIDseg_node_%d", (i+1)*NumOfPiIDInOneUnit + i*NumOfPiIDInOneUnit2 + j ),
-					       "PiIDBrik2",
-					       pos0.x(),
-					       pos0.y(),
-					       pos0.z(),
-					       Form( "rotPiID2_%d", i ),
-					       "void") );
-      //std::cout << unit << std::endl;
-    }
-  }
-
-  for (int seg=0; seg<3; seg++) {
-    node_name = Form( "PiIDseg_node_%d", seg );
-    
-    TNode *node = m_geometry_catch->GetNode( node_name.c_str() );
-    if( !node ){
-      hddaq::cout << "#E " << func_name << " "
-		  << "no such node : " << node_name << std::endl;
-      return false;
-    }
-    node->SetVisibility(0);    
-  }
-
-  m_geometry_catch->Draw();
-  m_canvas_catch3d->Update();
-
   return true;
 }
 
@@ -3131,46 +2461,6 @@ EventDisplay::DrawBcOutLocalTrack( DCLocalTrack *tp )
   }
 #endif
 
-#if CATCH
-  double zc0 = -500.;
-  double xc0 = tp->GetX( zc0 + zK18Target ); 
-  double yc0 = tp->GetY( zc0 + zK18Target );
-  double zc1 = 250.;
-  double xc1 = tp->GetX( zc1 + zK18Target ); 
-  double yc1 = tp->GetY( zc1 + zK18Target );
-  {
-    TPolyLine3D *p = new TPolyLine3D(2);
-    p->SetLineColor(kRed);
-    p->SetLineWidth(1);
-    p->SetPoint( 0, xc0, yc0, zc0+offsetCATCH );
-    p->SetPoint( 1, xc1, yc1, zc1+offsetCATCH );
-    m_BcOutTrack_Catch_cont.push_back(p);
-
-    TPolyLine *lxy = new TPolyLine(2);
-    lxy->SetPoint( 0, xc0, yc0 );
-    lxy->SetPoint( 1, xc1, yc1 );
-    lxy->SetLineColor(kRed);
-    lxy->SetLineWidth(1);
-    m_BcOutTrack_Catch_xy_cont.push_back(lxy);
-
-    TPolyLine *lzx = new TPolyLine(2);
-    lzx->SetPoint( 0, zc0+offsetCATCH, xc0 );
-    lzx->SetPoint( 1, zc1+offsetCATCH, xc1 );
-    lzx->SetLineColor(kRed);
-    lzx->SetLineWidth(1);
-    m_BcOutTrack_Catch_zx_cont.push_back(lzx);
-
-    TPolyLine *lzy = new TPolyLine(2);
-    lzy->SetPoint( 0, zc0+offsetCATCH, xc0 );
-    lzy->SetPoint( 1, zc1+offsetCATCH, xc1 );
-    lzy->SetLineColor(kRed);
-    lzy->SetLineWidth(1);
-    m_BcOutTrack_Catch_zy_cont.push_back(lzy);
-
-
-  }
-#endif
-
 }
 
 //______________________________________________________________________________
@@ -3289,43 +2579,6 @@ EventDisplay::DrawSdcInLocalTrack( DCLocalTrack *tp )
     m_SdcInYZ_line.push_back( line );
   }
   m_canvas_vertex->Update();
-#endif
-
-#if CATCH
-  double zc0 = -150, zc1 = 400;
-  double xc0 = tp->GetX( zc0 + gzK18Target ) - BeamAxis, yc0 = tp->GetY( zc0 + gzK18Target );
-  double xc1 = tp->GetX( zc1 + gzK18Target ) - BeamAxis, yc1 = tp->GetY( zc1 + gzK18Target );
-  {
-    TPolyLine3D *p = new TPolyLine3D(2);
-    p->SetLineColor(kRed);
-    p->SetLineWidth(1);
-    p->SetPoint( 0, xc0, yc0, zc0 + offsetCATCH );
-    p->SetPoint( 1, xc1, yc1, zc1 + offsetCATCH );
-    m_SdcInTrack_Catch_cont.push_back(p);
-
-    TPolyLine *lxy = new TPolyLine(2);
-    lxy->SetPoint( 0, xc0, yc0 );
-    lxy->SetPoint( 1, xc1, yc1 );
-    lxy->SetLineColor(kRed);
-    lxy->SetLineWidth(1);
-    m_SdcInTrack_Catch_xy_cont.push_back(lxy);
-
-    TPolyLine *lzx = new TPolyLine(2);
-    lzx->SetPoint( 0, zc0+offsetCATCH, xc0 );
-    lzx->SetPoint( 1, zc1+offsetCATCH, xc1 );
-    lzx->SetLineColor(kRed);
-    lzx->SetLineWidth(1);
-    m_SdcInTrack_Catch_zx_cont.push_back(lzx);
-
-    TPolyLine *lzy = new TPolyLine(2);
-    lzy->SetPoint( 0, zc0+offsetCATCH, yc0 );
-    lzy->SetPoint( 1, zc1+offsetCATCH, yc1 );
-    lzy->SetLineColor(kRed);
-    lzy->SetLineWidth(1);
-    m_SdcInTrack_Catch_zy_cont.push_back(lzy);
-
-
-  }
 #endif
 
 }
@@ -3546,11 +2799,8 @@ EventDisplay::EndOfEvent( void )
   del::DeleteObject( m_MissMomYZ_line );
   del::DeleteObject( m_KuramaMarkVertexX );
   del::DeleteObject( m_KuramaMarkVertexY );
-
   ResetVisibility();
-
   ResetHist();
-  ResetCATCH();
 }
 
 //______________________________________________________________________________
@@ -3621,13 +2871,6 @@ EventDisplay::ResetVisibility( void )
   ResetVisibility( m_FBT2u2seg_node);
   ResetVisibility( m_TOFseg_node, kBlack );
   ResetVisibility( m_target_node, kBlack );
-
-  for (int layer=0; layer<NumOfPlaneCFT/2; layer++)
-    ResetVisibility( m_CFT_node_cont[layer] );
-
-  ResetVisibility( m_BGOseg_node_cont );
-  ResetVisibility( m_PiIDseg_node_cont );
-
 }
 
 //______________________________________________________________________________
@@ -3665,7 +2908,7 @@ EventDisplay::ResetHist(  )
   m_hist_bc4_time->Reset();
   m_hist_bc4_time->SetMaximum(-1111);
   m_hist_bc4p_time->Reset();
-#endif 
+#endif
 
 #if Hist_SdcOut
   m_hist_fbt1u->Reset();
@@ -3717,7 +2960,7 @@ EventDisplay::ResetHist(  )
   }
 
   int ncSch=m_SCHbox_cont.size();
-  for (int i=0; i<ncSch; i++) 
+  for (int i=0; i<ncSch; i++)
     m_SCHbox_cont[i]->SetFillColor(kWhite);
 
   m_hist_bcOut_sdcIn->Reset();
@@ -3725,114 +2968,6 @@ EventDisplay::ResetHist(  )
   m_hist_sdcIn_predict2->Reset();
 #endif
 
-#if CATCH
-  TH2 *hp_l=0, *hp_t=0;
-  for (int layer=0; layer<8; layer++) {
-    if (layer == 0) {
-      hp_l = m_hist_cft1_l;
-      hp_t = m_hist_cft1_t;
-    } else if (layer == 1) {
-      hp_l = m_hist_cft2_l;
-      hp_t = m_hist_cft2_t;
-    } else if (layer == 2) {
-      hp_l = m_hist_cft3_l;
-      hp_t = m_hist_cft3_t;
-    } else if (layer == 3) {
-      hp_l = m_hist_cft4_l;
-      hp_t = m_hist_cft4_t;
-    } else if (layer == 4) {
-      hp_l = m_hist_cft5_l;
-      hp_t = m_hist_cft5_t;
-    } else if (layer == 5) {
-      hp_l = m_hist_cft6_l;
-      hp_t = m_hist_cft6_t;
-    } else if (layer == 6) {
-      hp_l = m_hist_cft7_l;
-      hp_t = m_hist_cft7_t;
-    } else if (layer == 7) {
-      hp_l = m_hist_cft8_l;
-      hp_t = m_hist_cft8_t;
-    }
-    hp_l->Reset();
-    hp_t->Reset();
-  }
-
-  m_hist_piid_l->Reset();
-  m_hist_piid_t->Reset();
-  m_hist_bgo->Reset();
-
-  TH2 *hp_hi=0, *hp_lo=0;
-  for (int layer=0; layer<8; layer++) {
-    if (layer == 0) {
-      hp_hi = m_hist_cft1_hi;
-      hp_lo = m_hist_cft1_lo;
-    } else if (layer == 1) {
-      hp_hi = m_hist_cft2_hi;
-      hp_lo = m_hist_cft2_lo;
-    } else if (layer == 2) {
-      hp_hi = m_hist_cft3_hi;
-      hp_lo = m_hist_cft3_lo;
-    } else if (layer == 3) {
-      hp_hi = m_hist_cft4_hi;
-      hp_lo = m_hist_cft4_lo;
-    } else if (layer == 4) {
-      hp_hi = m_hist_cft5_hi;
-      hp_lo = m_hist_cft5_lo;
-    } else if (layer == 5) {
-      hp_hi = m_hist_cft6_hi;
-      hp_lo = m_hist_cft6_lo;
-    } else if (layer == 6) {
-      hp_hi = m_hist_cft7_hi;
-      hp_lo = m_hist_cft7_lo;
-    } else if (layer == 7) {
-      hp_hi = m_hist_cft8_hi;
-      hp_lo = m_hist_cft8_lo;
-    }
-    hp_hi->Reset();
-    hp_lo->Reset();
-  }
-
-#endif
-
-}
-
-//______________________________________________________________________________
-
-void EventDisplay::ResetCATCH( void )
-{
-  for (int layer=0; layer<NumOfPlaneCFT; layer++) {
-    for (int seg=0; seg<NumOfSegCFT[layer]; seg++) {
-      m_CFT_Arc_cont[layer][seg]->SetLineColor(kBlack);
-    }
-  }
-
-  for (int seg=0; seg<NumOfSegBGO; seg++) {
-    int size = m_BGO_Line_cont[seg].size();
-    for (int i=0; i<size; i++)
-      m_BGO_Line_cont[seg][i]->SetLineColor(kBlack);
-  }
-
-  for (int seg=0; seg<NumOfSegPiID; seg++) {
-    int size = m_PiID_Line_cont[seg].size();
-    for (int i=0; i<size; i++)
-      m_PiID_Line_cont[seg][i]->SetLineColor(kBlack);
-  }
-
-  m_hbase_catch->Reset("ICES");
-
-  del::DeleteObject( m_CFT_UV_cont);
-  del::DeleteObject( m_BcOutTrack_Catch_cont);
-  del::DeleteObject( m_SdcInTrack_Catch_cont);
-  del::DeleteObject( m_CFTTrack_cont);
-  del::DeleteObject( m_CFTTrack_xy_cont);
-  del::DeleteObject( m_CFTTrack_zx_cont);
-  del::DeleteObject( m_CFTTrack_zy_cont);
-  del::DeleteObject( m_BcOutTrack_Catch_xy_cont);
-  del::DeleteObject( m_BcOutTrack_Catch_zx_cont);
-  del::DeleteObject( m_BcOutTrack_Catch_zy_cont);
-  del::DeleteObject( m_SdcInTrack_Catch_xy_cont);
-  del::DeleteObject( m_SdcInTrack_Catch_zx_cont);
-  del::DeleteObject( m_SdcInTrack_Catch_zy_cont);
 }
 
 //______________________________________________________________________________
@@ -3923,288 +3058,6 @@ EventDisplay::DrawBFT( int layer, int seg, int tdc )
 
 //______________________________________________________________________________
 void
-EventDisplay::DrawCFT( int layer, int seg, int LorT, int tdc )
-{
-#if CATCH
-  //std::cout << "DrawCFT , layer = " << layer << ", seg = " << seg << ", LorT = " << LorT 
-  //<< ", tdc = " << tdc << std::endl;
-
-  double p0 = gHodo.GetOffset(DetIdCFT, layer, seg, 0);
-  double p1 = gHodo.GetGain(DetIdCFT, layer, seg, 0);
-
-  //std::cout << "p0 = " << p0 << ", p1 = " << p1 << std::endl;
-  TH2 *hp=0;
-
-  if (layer == 0 && LorT == 0) {
-    hp = m_hist_cft1_l;
-  } else if (layer == 0 && LorT == 1) {
-    hp = m_hist_cft1_t;
-  } else if (layer == 1 && LorT == 0) {
-    hp = m_hist_cft2_l;
-  } else if (layer == 1 && LorT == 1) {
-    hp = m_hist_cft2_t;
-  } else if (layer == 2 && LorT == 0) {
-    hp = m_hist_cft3_l;
-  } else if (layer == 2 && LorT == 1) {
-    hp = m_hist_cft3_t;
-  } else if (layer == 3 && LorT == 0) {
-    hp = m_hist_cft4_l;
-  } else if (layer == 3 && LorT == 1) {
-    hp = m_hist_cft4_t;
-  } else if (layer == 4 && LorT == 0) {
-    hp = m_hist_cft5_l;
-  } else if (layer == 4 && LorT == 1) {
-    hp = m_hist_cft5_t;
-  } else if (layer == 5 && LorT == 0) {
-    hp = m_hist_cft6_l;
-  } else if (layer == 5 && LorT == 1) {
-    hp = m_hist_cft6_t;
-  } else if (layer == 6 && LorT == 0) {
-    hp = m_hist_cft7_l;
-  } else if (layer == 6 && LorT == 1) {
-    hp = m_hist_cft7_t;
-  } else if (layer == 7 && LorT == 0) {
-    hp = m_hist_cft8_l;
-  } else if (layer == 7 && LorT == 1) {
-    hp = m_hist_cft8_t;
-  }
-
-
-  //hp->Fill( seg, p1*((double)tdc-p0) );
-  hp->Fill( seg, (double)tdc );
-  //m_canvas_hist2->cd(1);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-//______________________________________________________________________________
-void
-EventDisplay::DrawCFT_Adc( int layer, int seg, int HorL, int adc )
-{
-#if CATCH
-  //std::cout << "DrawCFT , layer = " << layer << ", seg = " << seg << ", HorL = " << HorL 
-  //<< ", adc = " << adc << std::endl;
-
-  double p0 = gHodo.GetP0(DetIdCFT, layer, seg, 0);
-  double p1 = gHodo.GetP1(DetIdCFT, layer, seg, 0);
-
-  //std::cout << "p0 = " << p0 << ", p1 = " << p1 << std::endl;
-  TH2 *hp=0;
-
-  if (layer == 0 && HorL == 0) {
-    hp = m_hist_cft1_hi;
-  } else if (layer == 0 && HorL == 1) {
-    hp = m_hist_cft1_lo;
-  } else if (layer == 1 && HorL == 0) {
-    hp = m_hist_cft2_hi;
-  } else if (layer == 1 && HorL == 1) {
-    hp = m_hist_cft2_lo;
-  } else if (layer == 2 && HorL == 0) {
-    hp = m_hist_cft3_hi;
-  } else if (layer == 2 && HorL == 1) {
-    hp = m_hist_cft3_lo;
-  } else if (layer == 3 && HorL == 0) {
-    hp = m_hist_cft4_hi;
-  } else if (layer == 3 && HorL == 1) {
-    hp = m_hist_cft4_lo;
-  } else if (layer == 4 && HorL == 0) {
-    hp = m_hist_cft5_hi;
-  } else if (layer == 4 && HorL == 1) {
-    hp = m_hist_cft5_lo;
-  } else if (layer == 5 && HorL == 0) {
-    hp = m_hist_cft6_hi;
-  } else if (layer == 5 && HorL == 1) {
-    hp = m_hist_cft6_lo;
-  } else if (layer == 6 && HorL == 0) {
-    hp = m_hist_cft7_hi;
-  } else if (layer == 6 && HorL == 1) {
-    hp = m_hist_cft7_lo;
-  } else if (layer == 7 && HorL == 0) {
-    hp = m_hist_cft8_hi;
-  } else if (layer == 7 && HorL == 1) {
-    hp = m_hist_cft8_lo;
-  }
-
-
-  hp->Fill( seg, ((double)adc-p0) );
-  //m_canvas_hist2->cd(1);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-void
-EventDisplay::DrawCFT_AdcCor( int layer, int seg, int HorL, int adc )
-{
-#if CATCH
-  //std::cout << "DrawCFT , layer = " << layer << ", seg = " << seg << ", HorL = " << HorL 
-  //<< ", adc = " << adc << std::endl;
-
-  //std::cout << "p0 = " << p0 << ", p1 = " << p1 << std::endl;
-  TH2 *hp=0;
-
-  if (layer == 0 && HorL == 0) {
-    hp = m_hist_cft1_hi;
-  } else if (layer == 0 && HorL == 1) {
-    hp = m_hist_cft1_lo;
-  } else if (layer == 1 && HorL == 0) {
-    hp = m_hist_cft2_hi;
-  } else if (layer == 1 && HorL == 1) {
-    hp = m_hist_cft2_lo;
-  } else if (layer == 2 && HorL == 0) {
-    hp = m_hist_cft3_hi;
-  } else if (layer == 2 && HorL == 1) {
-    hp = m_hist_cft3_lo;
-  } else if (layer == 3 && HorL == 0) {
-    hp = m_hist_cft4_hi;
-  } else if (layer == 3 && HorL == 1) {
-    hp = m_hist_cft4_lo;
-  } else if (layer == 4 && HorL == 0) {
-    hp = m_hist_cft5_hi;
-  } else if (layer == 4 && HorL == 1) {
-    hp = m_hist_cft5_lo;
-  } else if (layer == 5 && HorL == 0) {
-    hp = m_hist_cft6_hi;
-  } else if (layer == 5 && HorL == 1) {
-    hp = m_hist_cft6_lo;
-  } else if (layer == 6 && HorL == 0) {
-    hp = m_hist_cft7_hi;
-  } else if (layer == 6 && HorL == 1) {
-    hp = m_hist_cft7_lo;
-  } else if (layer == 7 && HorL == 0) {
-    hp = m_hist_cft8_hi;
-  } else if (layer == 7 && HorL == 1) {
-    hp = m_hist_cft8_lo;
-  }
-
-
-  hp->Fill( seg, adc );
-  //m_canvas_hist2->cd(1);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-//______________________________________________________________________________
-void
-EventDisplay::DrawPiID(int seg, int LorT, int tdc )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-#if CATCH
-  std::cout << "DrawPiID, seg = " << seg << ", LorT = " << LorT 
-	    << ", tdc = " << tdc << std::endl;
-
-  double p0 = gHodo.GetOffset(DetIdPiID, 0, seg, 0);
-  double p1 = gHodo.GetGain(DetIdPiID, 0, seg, 0);
-
-  std::cout << "p0 = " << p0 << ", p1 = " << p1 << std::endl;
-  TH2 *hp=0;
-
-  if ( LorT == 0) {
-    hp = m_hist_piid_l;
-  } else if (LorT == 1) {
-    hp = m_hist_piid_t;
-  }
-
-  hp->Fill( seg, p1*((double)tdc-p0) );
-
-  //m_canvas_hist2->cd(1);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-//______________________________________________________________________________
-void
-EventDisplay::DrawBGO(int seg, int tdc )
-{
-#if CATCH
-  std::cout << "DrawBGO, seg = " << seg 
-	    << ", tdc = " << tdc << std::endl;
-
-  double p0 = gHodo.GetOffset(DetIdBGO, 0, seg, 0);
-  double p1 = gHodo.GetGain(DetIdBGO, 0, seg, 0);
-
-  std::cout << "p0 = " << p0 << ", p1 = " << p1 << std::endl;
-
-  m_hist_bgo->Fill( seg, p1*((double)tdc-p0) );
-
-  //m_canvas_hist2->cd(1);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-//______________________________________________________________________________
-void
-EventDisplay::SetBGOWaveformCanvas(int nhit )
-{
-#if CATCH
-  m_canvas_hist9->Clear();
-
-  if (nhit == 2)
-    m_canvas_hist9->Divide(2, 1);
-  else if (nhit>= 3 && nhit<=4)
-    m_canvas_hist9->Divide(2, 2);
-  else if (nhit>= 5 && nhit<=6)
-    m_canvas_hist9->Divide(2, 3);
-  else if (nhit>= 7 && nhit<=8)
-    m_canvas_hist9->Divide(2, 4);
-  else if (nhit>= 9 && nhit<=12)
-    m_canvas_hist9->Divide(3, 4);
-  else if (nhit>= 13 && nhit<=16)
-    m_canvas_hist9->Divide(4, 4);
-  else if (nhit>= 17 && nhit<=20)
-    m_canvas_hist9->Divide(5, 4);
-  else if (nhit>= 21 && nhit<=24)
-    m_canvas_hist9->Divide(6, 4);
-
-
-#endif
-}
-
-//______________________________________________________________________________
-void
-EventDisplay::DrawBGOWaveform(int nc, int ngraph, int seg, TGraphErrors* gr )
-{
-#if CATCH
-  m_canvas_hist9->cd(nc);
-
-  gr->SetNameTitle(Form("gra_%d_%d", seg, ngraph),
-		  Form("Segment %d", seg));
-
-  if (ngraph == 0) {
-    gr->SetMarkerSize(1.);
-    gr->SetMarkerStyle(20);
-    gr->Draw("ap");
-  } else {
-    gr->SetMarkerSize(1.);
-    gr->SetMarkerStyle(20);
-    gr->SetMarkerColor(kRed);
-    gr->Draw("p");
-
-  }
-
-#endif
-}
-
-
-//______________________________________________________________________________
-void
-EventDisplay::DrawBGOFitFunc(int nc, int ngraph, int seg, TF1* func )
-{
-#if CATCH
-  m_canvas_hist9->cd(nc);
-
-  func->Draw("same");
-
-#endif
-}
-
-//______________________________________________________________________________
-void
 EventDisplay::DrawBcInTrack( double x0, double u0 )
 {
 #if Hist_Timing
@@ -4264,7 +3117,7 @@ EventDisplay::SetCorrectTimeBcOut( int layer, double pos )
   double z = gGeom.GetLocalZ(layer);
   m_hist_bcOut->Fill(pos, z);
 
-  m_hist_bcOut_sdcIn->Fill(pos + gGeom.GetGlobalPosition(layer).x(), 
+  m_hist_bcOut_sdcIn->Fill(pos + gGeom.GetGlobalPosition(layer).x(),
 			   gGeom.GetGlobalPosition(layer).z());
 #endif
 }
@@ -4283,14 +3136,14 @@ EventDisplay::DrawBcOutTrack( double x0, double u0, double y0, double v0, bool f
   m_BcOutTrack2.push_back(l);
 
   double z3 = -50, z4 = 2950;
-  TLine *l2 = new TLine(x0+u0*z3 + gxK18Target, z3 - (zK18Target-gzK18Target), 
+  TLine *l2 = new TLine(x0+u0*z3 + gxK18Target, z3 - (zK18Target-gzK18Target),
 			x0+u0*z4 + gxK18Target, z4 - (zK18Target-gzK18Target));
   if (! flagGoodForTracking )
     l2->SetLineColor(kOrange);
 
   m_BcOutTrack3.push_back(l2);
 
-  TLine *l3 = new TLine(y0+v0*z3, z3 - (zK18Target-gzK18Target), 
+  TLine *l3 = new TLine(y0+v0*z3, z3 - (zK18Target-gzK18Target),
 			y0+v0*z4, z4 - (zK18Target-gzK18Target));
   if (! flagGoodForTracking )
     l3->SetLineColor(kOrange);
@@ -4366,7 +3219,7 @@ EventDisplay::DrawSFT( int layer, int seg, int tdc )
     hp = m_hist_sft_u;
   else if (layer == 1)
     hp = m_hist_sft_v;
-  else 
+  else
     hp = m_hist_sft_x;
 
   hp->Fill( seg, p1*((double)tdc-p0) );
@@ -4788,304 +3641,6 @@ EventDisplay::DrawSDC3p_Trailing( int wire, int tdc )
 }
 
 //______________________________________________________________________________
-
-void EventDisplay::ShowHitFiber(int layer, int segment, double pe)// const
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  //printf("ShowHitFiber : layer %d, seg %d, pe %f\n", layer, segment, pe);
-
-  Color_t colorPallet[5] = {kAzure, kTeal, kSpring, kOrange, kPink};
-  Color_t color = kBlack;
-
-  if (pe <= 0)
-    color = kGray;
-  else {
-    int color_unit = 200;
-    int color_index = ((int)pe/color_unit);
-    int sub_color = ((int)pe%color_unit)/(color_unit/10);
-    if (color_index>=5) {
-      color_index = 4;
-      sub_color = 10;
-    } 
-    color = colorPallet[color_index] + sub_color ;
-
-  }
-
-
-#if CATCH
-  if (segment>=0 && segment<NumOfSegCFT[layer]) {
-    double x, y;
-    FiberPosPhi(layer, segment, &x, &y);
-    m_hbase_catch->Fill(x, y, pe);
-
-
-
-    m_CFT_Arc_cont[layer][segment]->SetLineColor(kRed);
-
-    if (layer%2 == 1) {
-      // phi layer
-      std::string node_name;
-      node_name = Form( "CFT%d_Node_%d", layer/2, segment );
-
-      TNode *node = m_geometry_catch->GetNode( node_name.c_str() );
-      if( !node ){
-	hddaq::cout << "#E " << func_name << " "
-		    << "no such node : " << node_name << std::endl;
-	return;
-      }
-
-      node->SetVisibility(1);
-      node->SetLineColor(color);
-      
-    } else {
-      // UV layer
-      const DCGeomMan & geomMan=DCGeomMan::GetInstance();
-
-      int lnum=301+layer;
-
-      double R     = geomMan.CalcCFTPositionR(lnum, segment);
-      double Phi0 = geomMan.CalcCFTPositionPhi(lnum, segment) ;
-      double slope = 0.;
-      double d_phi = 5.0;
-      int nStep = (int)(360/d_phi);
-      if(layer==0||layer==4){
-	slope = 400. /360.;
-      }else if(layer==2||layer==6){
-	slope = -400. /360.;
-	d_phi  *= -1.;
-      }
-
-      TPolyMarker3D *uv_fiber = new TPolyMarker3D( nStep );
-      for (int i=0; i<nStep; ++i) {
-	double phi = Phi0 + d_phi*(double)i;
-	double z = slope*(phi-Phi0);
-	double x = R * cos(phi * math::Deg2Rad());
-	double y = R * sin(phi * math::Deg2Rad());
-	uv_fiber->SetPoint( i, x, y, z);
-      }
-      uv_fiber->SetMarkerSize(10);
-      uv_fiber->SetMarkerColor(color);
-      uv_fiber->SetMarkerStyle(6);
-      m_CFT_UV_cont.push_back(uv_fiber);
-    }
-  }
-#endif
-}
-
-//______________________________________________________________________________
-void EventDisplay::ShowHitBGO(int segment, double de) const
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  printf("ShowHitBGO : seg %d, de %f\n", segment, de);
-
-  Color_t colorPallet[5] = {kAzure, kTeal, kSpring, kOrange, kPink};
-  Color_t color = kBlack;
-
-  if (de <= 0)
-    color = kGray;
-  else {
-    int color_unit = 5000;
-    int color_index = ((int)de/color_unit);
-    int sub_color = ((int)de%color_unit)/(color_unit/10);
-    if (color_index>=5) {
-      color_index = 4;
-      sub_color = 10;
-    } 
-    color = colorPallet[color_index] + sub_color ;
-
-  }
-
-#if CATCH
-  int size = m_BGO_Line_cont[segment].size();
-  for (int i=0; i<size; i++)
-    m_BGO_Line_cont[segment][i]->SetLineColor(kRed);
-
-  double x, y;
-  BGOPos(segment, &x, &y);
-  m_hbase_catch->Fill(x, y, de);
-
-  std::string node_name;
-  node_name = Form( "BGOseg_node_%d", segment );
-  
-  TNode *node = m_geometry_catch->GetNode( node_name.c_str() );
-  if( !node ){
-    hddaq::cout << "#E " << func_name << " "
-		<< "no such node : " << node_name << std::endl;
-    return;
-  }
-
-  node->SetVisibility(1);
-  node->SetLineColor(color);
-
-#endif
-}
-
-//______________________________________________________________________________
-void EventDisplay::ShowHitPiID(int segment)
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-#if CATCH
-  int size = m_PiID_Line_cont[segment].size();
-  for (int i=0; i<size; i++)
-    m_PiID_Line_cont[segment][i]->SetLineColor(kRed);
-
-  std::string node_name;
-  node_name = Form( "PiIDseg_node_%d", segment );
-  
-  TNode *node = m_geometry_catch->GetNode( node_name.c_str() );
-  if( !node ){
-    hddaq::cout << "#E " << func_name << " "
-		<< "no such node : " << node_name << std::endl;
-    return;
-  }
-
-  node->SetVisibility(1);
-  node->SetLineColor(kRed);
-
-#endif
-}
-
-//______________________________________________________________________________
-void
-EventDisplay::DrawCFTLocalTrack( DCLocalTrack *tp )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-#if CATCH
-  ThreeVector Pos0 = tp->GetPos0();
-  ThreeVector Dir = tp->GetDir();
-
-  {
-    TPolyLine3D *p = new TPolyLine3D(2);
-    p->SetLineColor(kGreen);
-    p->SetLineWidth(2);
-
-    
-    ThreeVector pos1 = Pos0 - 3.0*Dir; 
-    p->SetPoint( 0, pos1.x(), pos1.y(), pos1.z() );
-    ThreeVector pos2 = Pos0 + 2.5*Dir; 
-    p->SetPoint( 1, pos2.x(), pos2.y(), pos2.z() );
-    m_CFTTrack_cont.push_back(p);
-
-    TPolyLine *lxy = new TPolyLine(2);
-    lxy->SetPoint( 0, pos1.x(), pos1.y() );
-    lxy->SetPoint( 1, pos2.x(), pos2.y() );
-    lxy->SetLineColor(kGreen);
-    lxy->SetLineWidth(1);
-    m_CFTTrack_xy_cont.push_back(lxy);
-
-    TPolyLine *lzx = new TPolyLine(2);
-    lzx->SetPoint( 0, pos1.z(), pos1.x() );
-    lzx->SetPoint( 1, pos2.z(), pos2.x() );
-    lzx->SetLineColor(kGreen);
-    lzx->SetLineWidth(1);
-    m_CFTTrack_zx_cont.push_back(lzx);
-
-    TPolyLine *lzy = new TPolyLine(2);
-    lzy->SetPoint( 0, pos1.z(), pos1.y() );
-    lzy->SetPoint( 1, pos2.z(), pos2.y() );
-    lzy->SetLineColor(kGreen);
-    lzy->SetLineWidth(1);
-    m_CFTTrack_zy_cont.push_back(lzy);
-
-  }
-#endif
-
-}
-
-
-//______________________________________________________________________________
-void EventDisplay::UpdateCATCH( void ) 
-{
-#if CATCH
-  m_canvas_catch->cd(1);
-  m_hbase_catch->Draw("colz");
-
-  for (int layer=0; layer<NumOfPlaneCFT; layer++) {
-    for (int seg=0; seg<NumOfSegCFT[layer]; seg++) {
-      m_CFT_Arc_cont[layer][seg]->Draw("same");
-    }
-  }
-
-  for (int seg=0; seg<NumOfSegBGO; seg++) {
-    int size = m_BGO_Line_cont[seg].size();
-    for (int i=0; i<size; i++)
-      m_BGO_Line_cont[seg][i]->Draw("same");
-  }
-
-  for (int seg=0; seg<NumOfSegPiID; seg++) {
-    int size = m_PiID_Line_cont[seg].size();
-    for (int i=0; i<size; i++)
-      m_PiID_Line_cont[seg][i]->Draw("same");
-  }
-
-  
-  for (int i=0; i<m_CFTTrack_xy_cont.size(); i++)
-    m_CFTTrack_xy_cont[i]->Draw();
-
-  for (int i=0; i<m_BcOutTrack_Catch_xy_cont.size(); i++)
-    m_BcOutTrack_Catch_xy_cont[i]->Draw();
-
-  for (int i=0; i<m_SdcInTrack_Catch_xy_cont.size(); i++)
-    m_SdcInTrack_Catch_xy_cont[i]->Draw();
-
-  m_canvas_catch->cd(2);
-
-  for (int i=0; i<m_CFTTrack_zx_cont.size(); i++)
-    m_CFTTrack_zx_cont[i]->Draw();
-
-  for (int i=0; i<m_BcOutTrack_Catch_zx_cont.size(); i++)
-    m_BcOutTrack_Catch_zx_cont[i]->Draw();
-
-  for (int i=0; i<m_SdcInTrack_Catch_zx_cont.size(); i++)
-    m_SdcInTrack_Catch_zx_cont[i]->Draw();
-
-  m_canvas_catch->cd(3);
-
-  for (int i=0; i<m_CFTTrack_zy_cont.size(); i++)
-    m_CFTTrack_zy_cont[i]->Draw();
-
-  for (int i=0; i<m_BcOutTrack_Catch_zy_cont.size(); i++)
-    m_BcOutTrack_Catch_zy_cont[i]->Draw();
-
-  for (int i=0; i<m_SdcInTrack_Catch_zy_cont.size(); i++)
-    m_SdcInTrack_Catch_zy_cont[i]->Draw();
-
-  m_canvas_catch->cd();
-
-  m_canvas_catch->Update();
-  m_canvas_catch->Modified();
-
-  m_canvas_catch3d->cd();
-  m_geometry_catch->Draw();
-
-  for (int i=0; i<m_CFT_UV_cont.size(); i++)
-    m_CFT_UV_cont[i]->Draw();
-
-  for (int i=0; i<m_BcOutTrack_Catch_cont.size(); i++)
-    m_BcOutTrack_Catch_cont[i]->Draw();
-
-  for (int i=0; i<m_SdcInTrack_Catch_cont.size(); i++)
-    m_SdcInTrack_Catch_cont[i]->Draw();
-
-  for (int i=0; i<m_CFTTrack_cont.size(); i++)
-    m_CFTTrack_cont[i]->Draw();
-
-  gPad->GetView()->ZoomIn();
-  gPad->GetView()->ZoomIn();
-  gPad->GetView()->ZoomIn();
-
-  m_canvas_catch3d->Update();
-  m_canvas_catch3d->Modified();
-
-
-#endif
-}
-
-//______________________________________________________________________________
 void
 EventDisplay::UpdateHist( )
 {
@@ -5098,12 +3653,12 @@ EventDisplay::UpdateHist( )
 
   int max1 = m_hist_bc3_time->GetMaximum();
   int max2 = m_hist_bc3p_time->GetMaximum();
-  if (max2 > max1) 
+  if (max2 > max1)
     m_hist_bc3_time->SetMaximum(max2*1.1);
 
   max1 = m_hist_bc4_time->GetMaximum();
   max2 = m_hist_bc4p_time->GetMaximum();
-  if (max2 > max1) 
+  if (max2 > max1)
     m_hist_bc4_time->SetMaximum(max2*1.1);
 
   for (int i=0; i<6; i++) {
@@ -5143,7 +3698,7 @@ EventDisplay::UpdateHist( )
 
   {
     m_canvas_hist6->cd();
-    
+
     int nc=m_BcOutTrack3.size();
     for (int i=0; i<nc; i++)
       m_BcOutTrack3[i]->Draw("same");
@@ -5157,79 +3712,6 @@ EventDisplay::UpdateHist( )
   }
 
 #endif
-
-#if CATCH
-  for (int i=0; i<12; i++) {
-    m_canvas_hist7->cd(i+1);
-    gPad->Modified();
-    gPad->Update();
-  }
-  for (int i=0; i<12; i++) {
-    m_canvas_hist8->cd(i+1);
-    gPad->Modified();
-    gPad->Update();
-  }
-
-  m_canvas_hist9->cd();
-  m_canvas_hist9->Update();
-  /*
-  for (int i=0; i<24; i++) {
-    m_canvas_hist9->cd(i+1);
-    gPad->Modified();
-    gPad->Update();
-  }
-  */
-
-  UpdateCATCH();
-#endif
-}
-
-//______________________________________________________________________________
-void EventDisplay::FiberPosPhi(int layer, int seg, double *x, double *y) const
-{
-  const DCGeomMan & geomMan=DCGeomMan::GetInstance();
-
-  int lnum=301+layer;
-
-  double R     = geomMan.CalcCFTPositionR(lnum, seg);
-  double Phi = geomMan.CalcCFTPositionPhi(lnum, seg) ;
-
-  *x = R * cos(Phi*math::Deg2Rad());
-  *y = R * sin(Phi*math::Deg2Rad());
-  /*
-  std::cout << "FiberPos layer" << layer << ", seg" << seg 
-	    << "(" << R * cos(Theta*Deg2Rad) 
-	    << "," << R * sin(Theta*Deg2Rad)
-	    << ")" << std::endl;
-  */
-}
-
-//______________________________________________________________________________
-
-void EventDisplay::BGOPos(int seg, double *x, double *y) const
-{
-
-  int UnitNum = seg/(NumOfBGOInOneUnit+NumOfBGOInOneUnit2);
-  int SegInUnit = seg%(NumOfBGOInOneUnit+NumOfBGOInOneUnit2);
-
-  double theta;
-  double x0;
-  double y0;
-
-  if (SegInUnit==0 || SegInUnit==1 ) {
-    theta = (double)UnitNum*45.;
-    x0 = RadiusOfBGOSurface+BGO_Y/2;
-    y0 = (double)((double)SegInUnit-0.5)*BGO_X;
-  } else {
-    theta = 22.5+(double)UnitNum*45.;
-    x0 = RadiusOfBGOSurface2+BGO_Y/2;
-    y0 = 0.;
-
-  }
-
-
-  *x = x0*cos(theta*math::Deg2Rad()) - y0*sin(theta*math::Deg2Rad());
-  *y = x0*sin(theta*math::Deg2Rad()) + y0*cos(theta*math::Deg2Rad());
 
 }
 

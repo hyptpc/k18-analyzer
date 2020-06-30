@@ -1,8 +1,4 @@
-/**
- *  file: Hodo2Hit.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "Hodo2Hit.hh"
 
@@ -111,7 +107,7 @@ Hodo2Hit::Calculate( void )
   std::vector<double> time2;
   std::vector<double> ctime1;
   std::vector<double> ctime2;
-  
+
   // Tdc1
   for(int i = 0; i<n_mhit1; ++i){
     int tdc = m_raw->GetTdc1(i);
@@ -186,8 +182,8 @@ Hodo2Hit::Calculate( void )
 #endif
 
 #if 1
-  // Make coincidence 
-  for(int i = 0, i_d = 0, last_d = 0; i<n_mhit1; ++i){
+  // Make coincidence
+  for(int i = 0; i<n_mhit1; ++i){
     for (int i_d = 0; i_d<n_mhit2; ++i_d) {
       if(abs(time1[i]-time2[i_d]) < m_max_time_diff){
         // Coincidence
@@ -206,7 +202,7 @@ Hodo2Hit::Calculate( void )
 #endif
 
   if(m_pair_cont.size() == 0) return false;
-  
+
   m_is_calculated = true;
 
   return true;

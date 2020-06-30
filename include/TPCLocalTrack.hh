@@ -1,8 +1,4 @@
-/**
- *  file: TPCLocalTrack.hh
- *  date: 2020.04.12
- *
- */
+// -*- C++ -*-
 
 #ifndef TPC_LOCAL_TRACK_HH
 #define TPC_LOCAL_TRACK_HH
@@ -46,7 +42,7 @@ private:
   double m_Chiy;
   double m_Chiu;
   double m_Chiv;
-  
+
   double m_Az;
   double m_Bz;
 
@@ -134,14 +130,12 @@ operator <<( std::ostream& ost,
 
 //______________________________________________________________________________
 
-struct TPCLTrackComp_Nhit 
+struct TPCLTrackComp_Nhit
   : public std::binary_function <TPCLocalTrack *, TPCLocalTrack *, bool>
 {
   bool operator()( const TPCLocalTrack * const p1,
                    const TPCLocalTrack * const p2 ) const
   {
-    const int minimum=8;
-
     int n1=p1->GetNHit(), n2=p2->GetNHit();
 
     if( n1>=n2 )
@@ -175,13 +169,13 @@ struct TPCLTrackComp // TODO
   bool operator()( const TPCLocalTrack * const p1,
 		   const TPCLocalTrack * const p2 ) const
   {
-    
+
     int n1=p1->GetNHit(), n2=p2->GetNHit();
     double chi1=p1->GetChiSquare(), chi2=p2->GetChiSquare();
     if( n1 > n2 ) return true;
     if( n2 > n1 ) return false;
     return ( chi1 <= chi2 );
-    
+
   }
 };
 

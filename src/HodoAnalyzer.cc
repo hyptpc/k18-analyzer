@@ -1,8 +1,4 @@
-/**
- *  file: HodoAnalyzer.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "HodoAnalyzer.hh"
 
@@ -25,8 +21,6 @@
 #include "HodoCluster.hh"
 #include "RawData.hh"
 #include "UserParamMan.hh"
-#include "CFTPedCorMan.hh"
-#include "BGOAnalyzer.hh"
 
 namespace
 {
@@ -39,14 +33,10 @@ namespace
   const double MaxTimeDifLC  = -1.0;
   const double MaxTimeDifBFT =  8.0;
   const double MaxTimeDifSFT =  8.0;
-  const double MaxTimeDifCFT =  30.0;
   const double MaxTimeDifSCH = 10.0;
   const double MaxTimeDifFBT1= 10.0;
   const double MaxTimeDifFBT2= 10.0;
-
   const int MaxSizeCl =  8;
-
-  const CFTPedCorMan& gPed = CFTPedCorMan::GetInstance();
 }
 
 #define Cluster 1
@@ -69,9 +59,6 @@ HodoAnalyzer::~HodoAnalyzer( void )
   ClearLACHits();
   ClearBFTHits();
   ClearSFTHits();
-  ClearCFTHits();
-  ClearBGOHits();
-  ClearPiIDHits();
   ClearSCHHits();
   ClearFBT1Hits();
   ClearFBT2Hits();
@@ -161,34 +148,6 @@ HodoAnalyzer::ClearSFTHits( void )
 
 //______________________________________________________________________________
 void
-HodoAnalyzer::ClearCFTHits( void )
-{
-  for ( MultiPlaneFiberHitContainer::iterator itr = m_CFTCont.begin();
-  	itr != m_CFTCont.end(); ++itr ) {
-    del::ClearContainer( *itr );
-  }
-  for ( MultiPlaneFiberClusterContainer::iterator itr = m_CFTClCont.begin();
-  	itr != m_CFTClCont.end(); ++itr ) {
-    del::ClearContainer( *itr );
-  }
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::ClearBGOHits( void )
-{
-  del::ClearContainer( m_BGOCont );
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::ClearPiIDHits( void )
-{
-  del::ClearContainer( m_PiIDCont );
-}
-
-//______________________________________________________________________________
-void
 HodoAnalyzer::ClearSCHHits( void )
 {
   del::ClearContainer( m_SCHCont );
@@ -228,9 +187,6 @@ HodoAnalyzer::DecodeRawHits( RawData *rawData )
   DecodeLCHits( rawData );
   DecodeBFTHits( rawData );
   DecodeSFTHits( rawData );
-  DecodeCFTHits( rawData );
-  DecodeBGOHits( rawData );
-  DecodePiIDHits( rawData );
   DecodeSCHHits( rawData );
   DecodeFBT1Hits( rawData );
   DecodeFBT2Hits( rawData );
@@ -516,155 +472,6 @@ HodoAnalyzer::DecodeSFTHits( RawData* rawData )
   }
 
 #endif
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::DecodeCFTHits( RawData* rawData )
-{
-  ClearCFTHits();
-  m_CFTCont.resize( NumOfPlaneCFT );
-  m_CFTClCont.resize( NumOfPlaneCFT );
-
-  for(int p = 0; p<NumOfPlaneCFT; ++p){
-    const HodoRHitContainer &cont = rawData->GetCFTRawHC(p);
-    int nh=cont.size();
-    for( int i=0; i<nh; ++i ){
-      HodoRawHit *hit=cont[i];
-      if( !hit ) continue;
-
-      char pname[8];
-      switch ( p ) {
-      case 0:
-	strcpy( pname, "CFT-UV1" ); break;
-      case 2:
-	strcpy( pname, "CFT-UV2" ); break;
-      case 4:
-	strcpy( pname, "CFT-UV3" ); break;
-      case 6:
-	strcpy( pname, "CFT-UV4" ); break;
-      case 1:
-	strcpy( pname, "CFT-PHI1" ); break;
-      case 3:
-	strcpy( pname, "CFT-PHI2" ); break;
-      case 5:
-	strcpy( pname, "CFT-PHI3" ); break;
-      case 7:
-	strcpy( pname, "CFT-PHI4" ); break;
-      default: break;
-      }
-
-      FiberHit *hp = new FiberHit(hit, pname);
-      if(!hp) continue;
-
-      /*Pedestal Correction value for High and Low*/
-      double deltaHG, deltaLG;
-      int seg = hit->SegmentId();
-      gPed.PedestalCorrection(p, seg, deltaHG, deltaLG, rawData);
-      hp->SetPedestalCor(deltaHG, deltaLG);
-
-      //std::cout << "layer " << p << ", seg " << seg << ", deltaHG " << deltaHG << ", deltaLG " <<  deltaLG << std::endl;
-      if(hp->Calculate() && hp->GetAdcHi()>10){
-	m_CFTCont.at(p).push_back(hp);
-      }
-      else{
-	delete hp;
-	hp = NULL;
-      }
-    }
-
-    std::sort(m_CFTCont.at(p).begin(), m_CFTCont.at(p).end(), FiberHit::CompFiberHit);
-
-
-#if Cluster
-    MakeUpClustersCFT( m_CFTCont.at(p), m_CFTClCont.at(p), MaxTimeDifCFT, 8 );
-#endif
-
-  }
-
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::DecodeBGOHits( RawData *rawData )
-{
-  ClearBGOHits();
-  const HodoRHitContainer &cont = rawData->GetBGORawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    Hodo1Hit *hp = new Hodo1Hit( hit );
-    //Hodo2Hit *hp = new Hodo2Hit( hit );
-    if( !hp ) continue;
-    if( hp->Calculate() )
-      m_BGOCont.push_back(hp);
-    else
-      delete hp;
-  }//for(i)
-
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::DecodeBGOHits( RawData *rawData, BGOAnalyzer *bgoAna )
-{
-  ClearBGOHits();
-  const HodoRHitContainer &cont = rawData->GetBGORawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    Hodo1Hit *hp = new Hodo1Hit( hit );
-    //Hodo2Hit *hp = new Hodo2Hit( hit );
-    if( !hp ) continue;
-    bool tdc_flag = false;
-    if( hp->Calculate(tdc_flag) ) {
-      int seg = hp->SegmentId();
-
-      hp->ClearACont();
-      if (bgoAna->GetNPulse(seg)>0) {
-	BGOData bgoData;
-	if (bgoAna->GetBGOData0(seg, bgoData)) {
-	  if (bgoData.time> -0.05 && bgoData.time < 0.1) {
-	    hp->SetE(bgoData.energy);
-	    hp->GetRawHit()->SetAdc2(bgoData.pulse_height);
-	  }
-	}
-      }
-
-      m_BGOCont.push_back(hp);
-    }
-    else
-      delete hp;
-  }//for(i)
-
-  return true;
-}
-
-
-//______________________________________________________________________________
-bool
-HodoAnalyzer::DecodePiIDHits( RawData* rawData )
-{
-  ClearPiIDHits();
-  const HodoRHitContainer &cont = rawData->GetPiIDRawHC();
-  int nh = cont.size();
-  for( int i=0; i<nh; ++i ){
-    HodoRawHit *hit = cont[i];
-    if( !hit ) continue;
-    FiberHit *hp = new FiberHit( hit, "PiID" );
-    if( !hp ) continue;
-    if( hp->Calculate() ){
-      m_PiIDCont.push_back( hp );
-    }else{
-      delete hp;
-    }
-  }
-
   return true;
 }
 
@@ -1222,107 +1029,6 @@ HodoAnalyzer::MakeUpClusters( const FiberHitContainer& cont,
 
 //______________________________________________________________________________
 int
-HodoAnalyzer::MakeUpClustersCFT( const FiberHitContainer& cont,
-			      FiberClusterContainer& ClusterCont,
-			      double maxTimeDif,
-			      int DifPairId )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  del::ClearContainer( ClusterCont );
-
-  int NofSeg = cont.size();
-  for( int seg=0; seg<NofSeg; ++seg ){
-    FiberHit* HitA = cont.at(seg);
-    double adcLowA    =  HitA->GetAdcLow();
-    bool fl_ClCandA = false;
-
-    if( seg != (NofSeg -1) ){
-      if( DifPairId > (cont.at(seg+1)->PairId() - HitA->PairId()) && adcLowA>=0){
-	fl_ClCandA = true;
-      }
-    }
-
-    int NofHitA = HitA->GetNumOfHit();
-    for(int mhitA = 0; mhitA<NofHitA; ++mhitA){
-      if(HitA->Joined(mhitA)) continue;
-      FiberCluster *cluster = new FiberCluster();
-      cluster->push_back( new FLHit(HitA, mhitA) );
-      if(!fl_ClCandA){
-	// there is no more candidates
-	if(cluster->Calculate()){
-	  ClusterCont.push_back(cluster);
-	  continue;
-	}else{
-	  //delete cluster;
-	  //cluster = NULL;
-	}
-	//continue;
-      }
-
-#if 1 // new ver.
-      double cmtA    = (double)HitA->GetCTime(mhitA);
-      int    CurrentPair = HitA->PairId();
-
-      bool   fl_Hit[MaxSizeCl];
-      bool fl_ClCand[MaxSizeCl];
-      double cmt[MaxSizeCl]; double mt[MaxSizeCl];
-      int seg_[MaxSizeCl];
-      double peLow[MaxSizeCl];
-      FiberHit* Hit[MaxSizeCl];
-
-      for(int ic=0;ic<MaxSizeCl-1;ic++){
-
-	// Next Hit Search
-	int    NofHit = cont.at(seg+1+ic)->GetNumOfHit();
-	fl_Hit[ic] = false;
-	Hit[ic] = cont.at(seg+1+ic);
-	cmt[ic]    = -1;
-	seg_[ic]   =  Hit[ic]->PairId();
-	for(int mhit = 0; mhit<NofHit; ++mhit){
-
-	  if(cont.at(seg+1+ic)->Joined(mhit)){continue;}
-	  double adcLow = Hit[ic]->GetAdcLow();
-	  cmt[ic] = (double)Hit[ic]->GetCTime(mhit);
-
-	  if(std::abs(cmt[ic]-cmtA)<maxTimeDif && adcLow>=0){
-	    cluster->push_back(new FLHit(Hit[ic], mhit));
-	    fl_Hit[ic] = true;
-	    break;
-	  }
-	}
-
-        fl_ClCand[ic]  = false;
-
-	if((seg+1+ic) != (NofSeg -1)){
-	  if( DifPairId > (cont.at(seg+2+ic)->PairId() - CurrentPair) ){
-	    fl_ClCand[ic] = true;
-	  }
-	}
-	if(!fl_ClCand[ic]){
-	  // there is no more candidates
-	  if(cluster->Calculate()){
-	    ClusterCont.push_back(cluster);
-	    break;
-	  }else{
-	    //delete cluster;
-	    //cluster = NULL;
-	  }
-	  //continue;
-	}else{}
-
-      }
-#endif
-
-    }
-  }
-
-  return ClusterCont.size();
-}
-
-
-//______________________________________________________________________________
-int
 HodoAnalyzer::MakeUpClusters( const FLHitContainer& cont,
 			      FiberClusterContainer& ClusterCont,
 			      double maxTimeDif,
@@ -1659,13 +1365,6 @@ HodoAnalyzer::TimeCutSFT( int layer, double tmin, double tmax )
 
 //______________________________________________________________________________
 void
-HodoAnalyzer::TimeCutCFT( int layer, double tmin, double tmax )
-{
-  TimeCut( m_CFTClCont.at( layer ), tmin, tmax );
-}
-
-//______________________________________________________________________________
-void
 HodoAnalyzer::TimeCutSCH( double tmin, double tmax )
 {
   TimeCut( m_SCHClCont, tmin, tmax );
@@ -1733,14 +1432,6 @@ void
 HodoAnalyzer::WidthCutSFT( int layer, double min_width, double max_width)
 {
   WidthCut( m_SFTClCont.at( layer ), min_width, max_width , true);
-}
-
-//______________________________________________________________________________
-void
-HodoAnalyzer::WidthCutCFT( int layer, double min_width, double max_width)
-{
-  //WidthCut( m_CFTClCont.at( layer ), min_width, max_width , true);
-  WidthCutR( m_CFTClCont.at( layer ), min_width, max_width , true);
 }
 
 //______________________________________________________________________________
@@ -1822,13 +1513,6 @@ HodoAnalyzer::WidthCutR( std::vector<TypeCluster>& cont,
 }
 
 //______________________________________________________________________________
-void
-HodoAnalyzer::AdcCutCFT( int layer, double amin, double amax )
-{
-  AdcCut( m_CFTClCont.at( layer ), amin, amax );
-}
-
-//______________________________________________________________________________
 //Implementation of ADC cut for the cluster container
 template <typename TypeCluster>
 void
@@ -1866,22 +1550,22 @@ namespace{
 BH2Cluster*
 HodoAnalyzer::GetTime0BH2Cluster()
 {
-  static const double MinDe = gUser.GetParameter("DeBH2", 0);
-  static const double MaxDe = gUser.GetParameter("DeBH2", 1);
   static const double MinMt = gUser.GetParameter("MtBH2", 0);
   static const double MaxMt = gUser.GetParameter("MtBH2", 1);
+#if REQDE
+  static const double MinDe = gUser.GetParameter("DeBH2", 0);
+  static const double MaxDe = gUser.GetParameter("DeBH2", 1);
+#endif
 
   BH2Cluster* time0_cluster = NULL;
   double min_mt = -9999;
   for(const auto& cluster : m_BH2ClCont){
     double mt = cluster->MeanTime();
-    double de = cluster->DeltaE();
-
     if(true
        && std::abs(mt) < std::abs(min_mt)
        && MinMt < mt && mt < MaxMt
 #if REQDE
-       && (MinDe < de && de < MaxDe)
+       && (MinDe < cluster->DeltaE() && cluster->DeltaE() < MaxDe)
 #endif
        ){
       min_mt        = mt;
@@ -1896,23 +1580,23 @@ HodoAnalyzer::GetTime0BH2Cluster()
 HodoCluster*
 HodoAnalyzer::GetBtof0BH1Cluster(double time0)
 {
-  static const double MinDe   = gUser.GetParameter("DeBH1", 0);
-  static const double MaxDe   = gUser.GetParameter("DeBH1", 1);
   static const double MinBtof = gUser.GetParameter("BTOF",  0);
   static const double MaxBtof = gUser.GetParameter("BTOF",  1);
+#if REQDE
+  static const double MinDe   = gUser.GetParameter("DeBH1", 0);
+  static const double MaxDe   = gUser.GetParameter("DeBH1", 1);
+#endif
 
   HodoCluster* time0_cluster = NULL;
   double min_btof            = -9999;
   for(const auto& cluster : m_BH1ClCont){
     double cmt  = cluster->CMeanTime();
-    double de   = cluster->DeltaE();
     double btof = cmt - time0;
-
     if(true
        && std::abs(btof) < std::abs(min_btof)
        && MinBtof < btof && btof < MaxBtof
 #if REQDE
-       && (MinDe < de && de < MaxDe)
+       && (MinDe < cluster->DeltaE() && cluster->DeltaE() < MaxDe)
 #endif
        ){
       min_btof      = btof;

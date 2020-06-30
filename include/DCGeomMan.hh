@@ -1,8 +1,4 @@
-/**
- *  file: DCGeomMan.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef DC_GEOM_MAN_HH
 #define DC_GEOM_MAN_HH
@@ -81,9 +77,6 @@ public:
   // Do not use this method except for special cases
   void                SetResolution( int lnum, double res );
   void                SetResolution( const std::string& key, double res );
-
-  double              CalcCFTPositionR(  int lnum, int seg ) const;
-  double              CalcCFTPositionPhi(int lnum, int seg ) const;
 
   // Static method
   static const int&    DetectorId( const std::string& key );

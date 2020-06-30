@@ -1,8 +1,4 @@
-/**
- *  file: UserSdcOutTracking.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include <cmath>
 #include <iomanip>
@@ -157,10 +153,10 @@ EventSdcOutTracking::ProcessingNormal( void )
   static const double MaxDeTOF   = gUser.GetParameter("DeTOF",   1);
   static const double MinTimeTOF = gUser.GetParameter("TimeTOF", 0);
   static const double MaxTimeTOF = gUser.GetParameter("TimeTOF", 1);
-  static const double MinTimeFBT1 = gUser.GetParameter("TimeFBT1", 0);
-  static const double MaxTimeFBT1 = gUser.GetParameter("TimeFBT1", 1);
-  static const double MinTimeFBT2 = gUser.GetParameter("TimeFBT2", 0);
-  static const double MaxTimeFBT2 = gUser.GetParameter("TimeFBT2", 1);
+  // static const double MinTimeFBT1 = gUser.GetParameter("TimeFBT1", 0);
+  // static const double MaxTimeFBT1 = gUser.GetParameter("TimeFBT1", 1);
+  // static const double MinTimeFBT2 = gUser.GetParameter("TimeFBT2", 0);
+  // static const double MaxTimeFBT2 = gUser.GetParameter("TimeFBT2", 1);
   static const double dTOfs      = gUser.GetParameter("dTOfs",   0);
   static const double MinTimeL1  = gUser.GetParameter("TimeL1",  0);
   static const double MaxTimeL1  = gUser.GetParameter("TimeL1",  1);
@@ -339,7 +335,7 @@ EventSdcOutTracking::ProcessingNormal( void )
   double multi_SdcOut = 0.;
   {
       for( int layer=1; layer<=NumOfLayersSdcOut; ++layer ) {
-      //std::cout << "layer : " << layer << std::endl; 
+      //std::cout << "layer : " << layer << std::endl;
 	/*	if ( layer==9 )
 	  hodoAna->TimeCutFBT1(0, 1, MinTimeFBT1, MaxTimeFBT1);
       if ( layer==10 )
@@ -357,7 +353,7 @@ EventSdcOutTracking::ProcessingNormal( void )
       if ( layer==16 )
 	hodoAna->TimeCutFBT2(1, 0, MinTimeFBT2, MaxTimeFBT2);
 	*/
-      
+
       const DCHitContainer &contOut =DCAna->GetSdcOutHC(layer);
       int nhOut=contOut.size();
       if( nhOut>0 ) event.nlayer++;
@@ -480,22 +476,22 @@ EventSdcOutTracking::ProcessingNormal( void )
     HF1( 23, utof ); HF1( 24, vtof );
     HF2( 25, xtof, utof ); HF2( 26, ytof, vtof );
     HF2( 27, xtof, ytof );
-   
+
     bool FBT_flag = false;
     int n_fbt=0;
-    
+
     for( int ih=0; ih<nh; ++ih ){
       DCLTrackHit *hit=tp->GetHit(ih);
       if(!hit) continue;
 
       int layerId = 0;
-      layerId = hit->GetLayer()-30; 
-      
+      layerId = hit->GetLayer()-30;
+
       //if( layerId>10 ) layerId -=2;
-      
+
       if( 10<layerId && layerId<20 ) layerId += 6; // 17 ~ TOF
       if( 49<layerId ) layerId -= 41; // 9 ~ FBT
-      
+
       HF1( 13, hit->GetLayer() );
 
       if( 9<=layerId && layerId<=16 )
@@ -504,7 +500,7 @@ EventSdcOutTracking::ProcessingNormal( void )
       if( n_fbt>3 )
 	FBT_flag = true;
       //      std::cout << "NumOfFBTLayers : " << n_fbt << std::endl;
-      
+
       if( !FBT_flag ){
 	HF1( 36, double(nh) );
 	HF1( 37, chisqr );
@@ -513,7 +509,7 @@ EventSdcOutTracking::ProcessingNormal( void )
 	HF1( 38, double(nh) );
 	HF1( 39, chisqr );
       }
-      
+
       double wire=hit->GetWire();
       double dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
       HF1( 100*layerId+11, wire-0.5 );
@@ -537,7 +533,7 @@ EventSdcOutTracking::ProcessingNormal( void )
       HF2( 100*layerId+32, ycal, res );
       HF2( 100*layerId+33, u0, res );
       HF2( 100*layerId+34, v0, res );
-      
+
       double tot = hit->GetTot();
       HF1( 100*layerId+40, tot);
 
@@ -761,9 +757,9 @@ ConfMan::InitializeHistograms( void )
       MaxWire = MaxSegFBT1;
     if( i==13 || i==14 || i==15 || i==16 )
       MaxWire = MaxSegFBT2;
-    if( i==17 || i==18 || i==19 || i==20 ) 
+    if( i==17 || i==18 || i==19 || i==20 )
       MaxWire = NumOfSegTOF;
-    
+
     HB2( 1000*i, Form("Wire%%Tdc for LayerId = %d", i),
 	 NbinSdcOutTdc/4, MinSdcOutTdc, MaxSdcOutTdc,
 	 MaxWire+1, 0., double(MaxWire+1) );
@@ -803,7 +799,7 @@ ConfMan::InitializeHistograms( void )
     HB1( 100*i+12, title12, 600, -100, 400 );
     HB1( 100*i+13, title13, 100, -5, MaxDL );
     HB1( 100*i+14, title14, 100, -1000., 1000. );
-    //if( i<=NumOfLayersSdcOut )  
+    //if( i<=NumOfLayersSdcOut )
     if( i<=NumOfLayersSdcOut+4 )
       HB1( 100*i+15, title15, 1000, -5.0, 5.0 );
     else

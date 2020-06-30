@@ -1,8 +1,4 @@
-/**
- *  file: UserBcOutTracking.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include <cmath>
 #include <iomanip>
@@ -207,9 +203,9 @@ EventBcOutTracking::ProcessingNormal( void )
     BH2Hit *hit = hodoAna->GetHitBH2(i);
     if(!hit) continue;
     double seg = hit->SegmentId()+1;
-    double  mt = hit->MeanTime();
+    // double mt  = hit->MeanTime();
     double cmt = hit->CMeanTime();
-    double ct0 = hit->CTime0();
+    // double ct0 = hit->CTime0();
     double dE  = hit->DeltaE();
 
 #if HodoCut
@@ -221,14 +217,16 @@ EventBcOutTracking::ProcessingNormal( void )
   }
 
   BH2Cluster *cl_time0 = hodoAna->GetTime0BH2Cluster();
-  if(cl_time0){
+  if( cl_time0 ){
     event.Time0Seg = cl_time0->MeanSeg()+1;
     event.deTime0  = cl_time0->DeltaE();
     event.Time0    = cl_time0->Time0();
     event.CTime0   = cl_time0->CTime0();
     time0          = cl_time0->CTime0();
-  }else{
+  } else {
+#if HodoCut
     return true;
+#endif
   }
 
   HF1( 1, 3. );
@@ -256,7 +254,8 @@ EventBcOutTracking::ProcessingNormal( void )
   }
 
   double btof0 = -999.;
-  HodoCluster* cl_btof0 = event.Time0Seg > 0? hodoAna->GetBtof0BH1Cluster(event.CTime0) : NULL;
+  HodoCluster* cl_btof0 = event.Time0Seg > 0 ?
+	   hodoAna->GetBtof0BH1Cluster(event.CTime0) : nullptr;
   if(cl_btof0) btof0 = cl_btof0->CMeanTime() - time0;
   event.btof = btof0;
 
@@ -278,7 +277,7 @@ EventBcOutTracking::ProcessingNormal( void )
     double dt;
     double pos;
   };
-  
+
   {
     for( int layer=1; layer<=NumOfLayersBcOut; ++layer ){
       const DCHitContainer &contOut =DCAna->GetBcOutHC(layer);
@@ -325,11 +324,11 @@ EventBcOutTracking::ProcessingNormal( void )
 
 	  double tot = hit->GetTot(k);
 	  HF1( 100*layer+5, tot);
-	  
+
 	  hit_info one_hit;
 	  one_hit.dt  = dt;
 	  one_hit.pos = wire;
-	  
+
 	  hit_cont.push_back(one_hit);
 	}
 	int nhdl = hit->GetDriftTimeSize();
@@ -347,7 +346,7 @@ EventBcOutTracking::ProcessingNormal( void )
       std::sort(hit_cont.begin(), hit_cont.end(),
 		[](const hit_info& a_info, const hit_info& b_info)->bool
 		{return (a_info.dt < b_info.dt);});
-      
+
       for(int i = 1; i<hit_cont.size(); ++i){
 	HF1( 100*layer+6, hit_cont.at(i).dt -hit_cont.at(0).dt );
 	HF1( 100*layer+7, hit_cont.at(i).pos-hit_cont.at(0).pos );
@@ -482,7 +481,7 @@ void
 EventBcOutTracking::InitializeEvent( void )
 {
   event.evnum     = 0;
-  event.ntrack    = -999;
+  event.ntrack    = 0;
   event.trignhits = 0;
   event.pid       = -1;
   event.btof      = -999.;

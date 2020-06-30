@@ -1,8 +1,4 @@
-/**
- *  file: Hodo2Hit.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef HODO2_HIT_HH
 #define HODO2_HIT_HH

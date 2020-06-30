@@ -1,8 +1,4 @@
-/**
- *  file: DCAnalyzer.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "DCAnalyzer.hh"
 
@@ -137,16 +133,13 @@ DCAnalyzer::DCAnalyzer( void )
     m_much_combi(n_type),
     m_MWPCClCont(NumOfLayersBcIn+1),
     m_TempBcInHC(NumOfLayersBcIn+1),
-    m_CFTHC(NumOfPlaneCFT),
-    m_CFT16HC(NumOfPlaneCFT*2+1),
-    m_CFT16ppHC(NumOfPlaneCFT*2+1),
     m_BcInHC(NumOfLayersBcIn+1),
     m_BcOutHC(NumOfLayersBcOut+2),
-    m_TPCHC_(NumOfLayersTPC+1),
-    m_TPCHC(NumOfLayersTPC*2+1),
-    m_TPCClCont(NumOfLayersTPC+1),
     m_SdcInHC(NumOfLayersSdcIn+1),
     m_SdcOutHC(NumOfLayersSdcOut+1),
+    m_TPCDCHitCont(NumOfLayersTPC*2+1),
+    m_TPCHitCont(NumOfLayersTPC+1),
+    m_TPCClCont(NumOfLayersTPC+1),
     m_SdcInExTC(NumOfLayersSdcIn+1),
     m_SdcOutExTC(NumOfLayersSdcOut+1)
 {
@@ -170,14 +163,8 @@ DCAnalyzer::~DCAnalyzer( void )
   ClearTracksBcOut();
   ClearTracksBcOutSdcIn();
   ClearTracksSdcInSdcOut();
-  ClearTracksCFT();
-  ClearTracksCFT16();
-  ClearTracksCFT16pp();
   ClearDCHits();
   ClearVtxHits();
-  ClearCFTHits();
-  ClearCFT16Hits();
-  ClearCFT16ppHits();
   debug::ObjectCounter::decrease(class_name);
 }
 
@@ -303,7 +290,7 @@ DCAnalyzer::DecodeBcOutHits( RawData *rawData )
       for( int j=0; j<nhtrailing; ++j ){
 	hit->SetTdcTrailing( rhit->GetTrailing(j) );
       }
-      
+
       if( hit->CalcDCObservables() )
 	m_BcOutHC[layer].push_back(hit);
       else
@@ -346,7 +333,7 @@ DCAnalyzer::ClusterizeTPC( int layerID, const TPCHitContainer& HitCont, TPCClust
 	TPCHit* c_hit = CandCont[ci];
 	int rowID = thit->RowId();
 	int c_rowID = c_hit->RowId();
-	if( (abs(rowID - c_rowID) <= 2 || 
+	if( (abs(rowID - c_rowID) <= 2 ||
 	      (layerID<10 && abs(rowID - c_rowID)>=tpc::padParameter[layerID][1]-2) )
 	    && fabs( thit->Y() - c_hit->Y() ) < ClusterYCut )
 	{
@@ -383,14 +370,14 @@ DCAnalyzer::DecodeTPCHits( RawData *rawData )
     for( int i=0; i<nh; ++i ){
       TPCRawHit *rhit  = RHitCont[i];
       TPCHit    *hit   = new TPCHit( rhit->PadId(), rhit->Y(), rhit->Charge() );
-      
+
       if( hit->CalcTPCObservables() )
-	m_TPCHC_[layer].push_back(hit);
+	m_TPCHitCont[layer].push_back(hit);
       else
 	delete hit;
     }
 #if UseTpcCluster
-    ClusterizeTPC( layer, m_TPCHC_[layer], m_TPCClCont[layer] );
+    ClusterizeTPC( layer, m_TPCHitCont[layer], m_TPCClCont[layer] );
 #endif
   }
 
@@ -400,7 +387,7 @@ DCAnalyzer::DecodeTPCHits( RawData *rawData )
 
 //______________________________________________________________________________
 bool
-DCAnalyzer::DecodeTPCHits_geant( const int nhits, 
+DCAnalyzer::DecodeTPCHits_geant( const int nhits,
 			         const double *x, const double *y, const double *z, const double *de )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
@@ -455,7 +442,7 @@ DCAnalyzer::DecodeTPCHits_geant(const int nhits, const int *iPad, const double *
     hit_x->SetTiltAngle(0.);
     hit_x->SetDummyPair();
     hit_x->SetHitNum(ihit);
-    m_TPCHC[laytpc].push_back(hit_x);
+    m_TPCDCHitCont[laytpc].push_back(hit_x);
 
     DCHit *hit_y   = new DCHit( laytpc+PlOffsTPCY, rowtpc);
     hit_y->SetWirePosition(y[ihit]);
@@ -463,7 +450,7 @@ DCAnalyzer::DecodeTPCHits_geant(const int nhits, const int *iPad, const double *
     hit_y->SetTiltAngle(90.);
     hit_y->SetDummyPair();
     hit_y->SetHitNum(ihit);
-    m_TPCHC[laytpc].push_back(hit_y);
+    m_TPCDCHitCont[laytpc].push_back(hit_y);
   }
   m_is_decoded[k_TPC] = true;
 
@@ -483,7 +470,7 @@ DCAnalyzer::DecodeTPCHits_geant(const int nhits, const int *iPad, const double *
       for( int j=0; j<nhtrailing; ++j ){
 	hit->SetTdcTrailing( rhit->GetTrailing(j) );
       }
-      
+
       if( hit->CalcDCObservables() )
 	m_BcOutHC[layer].push_back(hit);
       else
@@ -600,7 +587,7 @@ DCAnalyzer::DecodeSdcOutHits( RawData *rawData , double ofs_dt)
 	int       nhtdc      = rhit->GetTdcSize();
 	int       nhtrailing = rhit->GetTrailingSize();
 	if(!hit) continue;
-	
+
 	hit->SetOfsdT(ofs_dt);
 	for( int j=0; j<nhtdc; ++j ){
 	  hit->SetTdcVal( rhit->GetTdc(j) );
@@ -615,15 +602,15 @@ DCAnalyzer::DecodeSdcOutHits( RawData *rawData , double ofs_dt)
       }
     }
   }
- //* 
-  // FBT1                                                                  
+ //*
+  // FBT1
   {
     HodoAnalyzer hodoAna;
     hodoAna.DecodeFBT1Hits( rawData );
-    
+
     for ( int l = 0; l < 2; ++l ) {
-      hodoAna.TimeCutFBT1( l, 0, -10, 5 ); //FBT1-U                           
-      hodoAna.TimeCutFBT1( l, 1, -10, 5 ); //FBT1-D                          
+      hodoAna.TimeCutFBT1( l, 0, -10, 5 ); //FBT1-U
+      hodoAna.TimeCutFBT1( l, 1, -10, 5 ); //FBT1-D
 
       int nclU = hodoAna.GetNClustersFBT1( l, 0 );
       int nclD = hodoAna.GetNClustersFBT1( l, 1 );
@@ -645,7 +632,7 @@ DCAnalyzer::DecodeSdcOutHits( RawData *rawData , double ofs_dt)
           delete hitU;
         }
       }
-      
+
       for ( int j = 0; j < nclD; ++j ) {
         FiberCluster* clD = hodoAna.GetClusterFBT1( l, 1, j );
 	double segD  = clD->MeanSeg();
@@ -665,15 +652,15 @@ DCAnalyzer::DecodeSdcOutHits( RawData *rawData , double ofs_dt)
       }
     }
   }
-  
+
   // FBT2
   {
     HodoAnalyzer hodoAna;
     hodoAna.DecodeFBT2Hits( rawData );
-    
+
     for ( int l = 0; l < 2; ++l ) {
-      hodoAna.TimeCutFBT2( l, 0, -10, 5 ); //FBT2-U                         
-      hodoAna.TimeCutFBT2( l, 1, -10, 5 ); //FBT2-D                        
+      hodoAna.TimeCutFBT2( l, 0, -10, 5 ); //FBT2-U
+      hodoAna.TimeCutFBT2( l, 1, -10, 5 ); //FBT2-D
 
       int nclU = hodoAna.GetNClustersFBT2( l, 0 );
       int nclD = hodoAna.GetNClustersFBT2( l, 1 );
@@ -695,7 +682,7 @@ DCAnalyzer::DecodeSdcOutHits( RawData *rawData , double ofs_dt)
           delete hitU;
 	}
       }
-      
+
       for ( int j = 0; j < nclD; ++j ) {
         FiberCluster* clD = hodoAna.GetClusterFBT2( l, 1, j );
         double segD  = clD->MeanSeg();
@@ -704,7 +691,7 @@ DCAnalyzer::DecodeSdcOutHits( RawData *rawData , double ofs_dt)
 
         DCHit *hitD = new DCHit( 4+2*l+PlOffsFht, segD );
         hitD->SetTdcVal( timeD );
-        
+
 	int layer = NumOfLayersSdcOut-3 + 2*l;
         if ( hitD->CalcFiberObservables() ) {
           hitD->SetWirePosition( posD );
@@ -719,294 +706,6 @@ DCAnalyzer::DecodeSdcOutHits( RawData *rawData , double ofs_dt)
   m_is_decoded[k_SdcOut] = true;
   return true;
 }
-
-//______________________________________________________________________________
-bool
-DCAnalyzer::DecodeCFTHits( RawData *rawData )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  if( m_is_decoded[k_CFT] ){
-    hddaq::cout << "#D " << func_name << " "
-		<< "already decoded" << std::endl;
-    return true;
-  }
-
-  ClearCFTHits();
-  
-  HodoAnalyzer hodoAna;
-  hodoAna.DecodeCFTHits( rawData );
-  
-  for ( int l = 0; l < NumOfPlaneCFT; ++l ) {
-    // go to USER param
-    //hodoAna.TimeCutCFT( l, -30, 30 );
-    hodoAna.TimeCutCFT( l, -15, 15 );
-    hodoAna.AdcCutCFT( l, 0, 4000 );
-    
-    int ncl = hodoAna.GetNClustersCFT( l );    
-    for ( int j = 0; j < ncl; ++j ) {
-            
-      FiberCluster* cl = hodoAna.GetClusterCFT( l, j );
-      double mean_seg = cl->MeanSeg();
-      double max_seg     = cl->MaxSeg();
-      double size     = cl->ClusterSize();
-      double posR     = cl->MeanPositionR();
-      double posPhi   = cl->MeanPositionPhi();
-      //double time     = cl->CMeanTime();
-      double time     = cl->CMaxTime();
-
-      double adcLow   = cl->SumAdcLow(); double max_adcLow  = cl->MaxAdcLow();
-      double mipLow   = cl->SumMIPLow(); double max_mipLow  = cl->MaxMIPLow();
-      double dELow    = cl->SumdELow();	 double max_dELow   = cl->MaxdELow(); 
-
-      if (adcLow>0) {
-
-	DCHit *hit = new DCHit(l);
-
-	hit->SetTdcCFT( time );      	
-	if ( hit->CalcCFTObservables() ) {
-	  hit->SetMeanSeg    ( mean_seg);
-	  hit->SetMaxSeg     ( max_seg );
-	  hit->SetClusterSize( size    );
-
-	  hit->SetAdcLow     ( adcLow ); hit->SetMaxAdcLow  ( max_adcLow );
-	  hit->SetMIPLow     ( mipLow ); hit->SetMaxMIPLow  ( max_mipLow );
-	  hit->SetdELow      ( dELow  ); hit->SetMaxdELow   ( max_dELow  );
-
-	  hit->SetPositionR  ( posR    );
-	  hit->SetPositionPhi( posPhi  );
-	  hit->SetTime       ( time  );
-	  
-	  hit->SetWirePosition(0.);      
-	  m_CFTHC[l].push_back( hit );
-	} else {
-	  delete hit;      
-	} 	     
-      }      
-    }
-  }
-  
-  m_is_decoded[k_CFT] = true;
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-DCAnalyzer::DecodeCFT16Hits( RawData* rawData ,DCLocalTrack* tp , int i )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-  
-  if( m_is_decoded[k_CFT16_1st] && m_is_decoded[k_CFT16_2nd]  ){
-    hddaq::cout << "#D " << func_name << " "
-		<< "already decoded" 
-		<< ", i=" << i 
-		<< ", 1st = " << m_is_decoded[k_CFT16_1st]
-		<< ", 2nd = " << m_is_decoded[k_CFT16_2nd] << std::endl;
-    return true;
-  }  
-  if(i==0){ClearCFT16Hits();}
-
-  HodoAnalyzer hodoAna;
-  hodoAna.DecodeCFTHits( rawData );    
-    
-  int nh   = tp->GetNHit();
-  int nhUV = tp->GetNHitUV();
-  // straight layer
-  for ( int ip = 0; ip < nh; ++ip ) {
-    DCLTrackHit *hitp = tp->GetHit(ip);
-    int layer = hitp->GetLayer();
-    int ll = layer;
-    if(i==1)ll += 8 ;
-    int seg = (int)hitp->GetMeanSeg();
-
-    int ncl = hodoAna.GetNClustersCFT( layer );    
-    for ( int j = 0; j < ncl; ++j ) {      
-      FiberCluster* cl = hodoAna.GetClusterCFT( layer, j );
-      int    segCl  = (int)cl->MeanSeg();
-      double size  = cl->ClusterSize();
-      double posR   = cl->MeanPositionR();
-      double posPhi = cl->MeanPositionPhi();
-      double time   = cl->CMeanTime();
-      double adcLow   = cl->SumAdcLow();
-      if(seg == segCl){
-	DCHit *hit = new DCHit(ll);
-	hit->SetTdcCFT( static_cast<int>( 0 ) );
-	if ( hit->CalcCFTObservables() ) {
-	  hit->SetLayer      (ll);      
-	  hit->SetMeanSeg    (seg);      
-	  hit->SetWirePosition(0.);            
-	  hit->SetPositionR  ( posR   );
-	  hit->SetPositionPhi( posPhi );
-	  m_CFT16HC[ll].push_back( hit );
-	}else {
-	  delete hit;      
-	}  
-      }      
-    }   
-  }
-  // spiral layer
-  for ( int ip = 0; ip < nhUV; ++ip ) {
-    DCLTrackHit *hitp = tp->GetHitUV(ip);
-    int layer = hitp->GetLayer();
-    int ll = layer;
-    if(i==1)ll += 8 ;
-    int seg = (int)hitp->GetMeanSeg();
-    
-    int ncl = hodoAna.GetNClustersCFT( layer );    
-    for ( int j = 0; j < ncl; ++j ) {      
-      FiberCluster* cl = hodoAna.GetClusterCFT( layer, j );
-      int    segCl  = (int)cl->MeanSeg();
-      double size  = cl->ClusterSize();
-      double posR   = cl->MeanPositionR();
-      double posPhi = cl->MeanPositionPhi();
-      double time   = cl->CMeanTime();
-      double adcLow   = cl->SumAdcLow();
-      if(seg == segCl){	
-	DCHit *hit = new DCHit(ll);
-	hit->SetTdcCFT( static_cast<int>( 0 ) ); 
-	
-	if ( hit->CalcCFTObservables() ) {
-	  hit->SetLayer      (ll);      
-	  hit->SetMeanSeg    ( seg    );      
-	  hit->SetWirePosition(0.);            
-	  hit->SetPositionR  ( posR   );
-	  hit->SetPositionPhi( posPhi );
-	  m_CFT16HC[ll].push_back( hit );	  
-	}else {
-	  delete hit;      
-	}  
-      }
-    }
-  }
-
-  if(i==0){m_is_decoded[k_CFT16_1st] = true;}
-  else if(i==1){m_is_decoded[k_CFT16_2nd] = true;}
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-DCAnalyzer::DecodeCFT16ppHits( RawData* rawData ,DCLocalTrack* tp , int i )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-  
-  if( m_is_decoded[k_CFT16pp_1st] && m_is_decoded[k_CFT16pp_2nd]  ){
-    hddaq::cout << "#D " << func_name << " "
-		<< "already decoded" 
-		<< ", i=" << i 
-		<< ", 1st = " << m_is_decoded[k_CFT16pp_1st]
-		<< ", 2nd = " << m_is_decoded[k_CFT16pp_2nd] << std::endl;
-    return true;
-  }  
-  if(i==0){ClearCFT16ppHits();}
-
-  HodoAnalyzer hodoAna;
-  hodoAna.DecodeCFTHits( rawData );    
-    
-  int nh   = tp->GetNHit();
-  int nhUV = tp->GetNHitUV();
-  // straight layer
-  for ( int ip = 0; ip < nh; ++ip ) {
-    DCLTrackHit *hitp = tp->GetHit(ip);
-    int layer = hitp->GetLayer();
-    int ll = layer;
-    if(i==1)ll += 8 ;
-    int seg = (int)hitp->GetMeanSeg();
-
-    //double phi_ini   = tp->GetPhiIni(ll);      
-    //double z_track   = tp->GetZTrack(ll);
-    double phi_ini   = tp->GetPhiIni(layer);      
-    double z_track   = tp->GetZTrack(layer);
-    double r         = tp->GetR(layer);
-
-    //std::cout << "Decode" << i << ": layer" << ll <<  ",seg" << seg
-    //	      <<  ", z=" << z_track <<  ", phi_ini = " << phi_ini  << std::endl;
-
-    int ncl = hodoAna.GetNClustersCFT( layer );    
-    for ( int j = 0; j < ncl; ++j ) {
-      FiberCluster* cl = hodoAna.GetClusterCFT( layer, j );
-      int    segCl  = (int)cl->MeanSeg();
-      double size  = cl->ClusterSize();
-      double posR   = cl->MeanPositionR();
-      double posPhi = cl->MeanPositionPhi();
-      double time   = cl->CMeanTime();
-      double adcLow   = cl->SumAdcLow();
-      if(seg == segCl){
-	DCHit *hit = new DCHit(ll);
-	hit->SetTdcCFT( static_cast<int>( 0 ) );
-	if ( hit->CalcCFTObservables() ) {
-	  hit->SetLayer      (ll);
-	  hit->SetMeanSeg    (seg);
-	  hit->SetWirePosition(0.);
-	  hit->SetPositionR  ( posR   );
-	  hit->SetPositionPhi( posPhi );
-
-	  hit->SetPosPhi  ( phi_ini );
-	  hit->SetPosZ    ( z_track );
-	  hit->SetPosR    ( r );
-
-	  m_CFT16ppHC[ll].push_back( hit );
-	}else {
-	  delete hit;      
-	}  
-      }      
-    }   
-  }
-  // spiral layer
-  
-  for ( int ip = 0; ip < nhUV; ++ip ) {
-    DCLTrackHit *hitp = tp->GetHitUV(ip);
-    int layer = hitp->GetLayer();
-    int ll = layer;
-    if(i==1)ll += 8 ;
-    int seg = (int)hitp->GetMeanSeg();
-
-    //double phi_track = tp->GetPhiTrack(ll);      
-    //double z_ini     = tp->GetZIni(ll);      
-    double phi_track = tp->GetPhiTrack(layer);      
-    double z_ini     = tp->GetZIni(layer);      
-    double r     = tp->GetR(layer);      
-
-    int ncl = hodoAna.GetNClustersCFT( layer );    
-    for ( int j = 0; j < ncl; ++j ) {      
-      FiberCluster* cl = hodoAna.GetClusterCFT( layer, j );
-      int    segCl  = (int)cl->MeanSeg();
-      double size  = cl->ClusterSize();
-      double posR   = cl->MeanPositionR();
-      double posPhi = cl->MeanPositionPhi();
-      double time   = cl->CMeanTime();
-      double adcLow   = cl->SumAdcLow();
-      if(seg == segCl){	
-	DCHit *hit = new DCHit(ll);
-	hit->SetTdcCFT( static_cast<int>( 0 ) ); 
-	
-	if ( hit->CalcCFTObservables() ) {
-	  hit->SetLayer      (ll);      
-	  hit->SetMeanSeg    ( seg    );      
-	  hit->SetWirePosition(0.);            
-	  hit->SetPositionR  ( posR   );
-	  hit->SetPositionPhi( posPhi );
-
-	  hit->SetPosPhi  ( phi_track );
-	  hit->SetPosZ    ( z_ini );
-	  hit->SetPosR    ( r );
-
-	  m_CFT16ppHC[ll].push_back( hit );	  
-	}else {
-	  delete hit;      
-	}  
-	}
-      
-    }
-      
-  }
-  
-
-  if(i==0){m_is_decoded[k_CFT16pp_1st] = true;}
-  else if(i==1){m_is_decoded[k_CFT16pp_2nd] = true;}
-  return true;
-}
-
 
 //______________________________________________________________________________
 bool
@@ -1541,36 +1240,6 @@ DCAnalyzer::TrackSearchKurama( double initial_momentum )
 
 //______________________________________________________________________________
 bool
-DCAnalyzer::TrackSearchCFT( void )
-{
-  static const int MinLayer = gUser.GetParameter("MinLayerCFT");
-
-  track::LocalTrackSearchCFT( m_CFTHC, PPInfoCFT, NPPInfoCFT, m_CFTTC, MinLayer );
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchCFT16( void )
-{
-  static const int MinLayer = gUser.GetParameter("MinLayerCFT16");
-
-  track::LocalTrackSearchCFT( m_CFT16HC, PPInfoCFT16, NPPInfoCFT16, m_CFT16TC, MinLayer );//same with normal tracking
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchCFT16pp( void )
-{
-  static const int MinLayer = gUser.GetParameter("MinLayerCFT16");
-
-  track::LocalTrackSearchCFTppPhi( m_CFT16ppHC, PPInfoCFT16, NPPInfoCFT16, m_CFT16ppTC, MinLayer );
-  return true;
-}
-
-//______________________________________________________________________________
-bool
 DCAnalyzer::TrackSearchTPC( void )
 {
   static const int MinLayer = gUser.GetParameter("MinLayerTPC");
@@ -1578,7 +1247,7 @@ DCAnalyzer::TrackSearchTPC( void )
 #if UseTpcCluster
   track::LocalTrackSearchTPC(m_TPCClCont, m_TPCTC_, MinLayer );
 #else
-  track::LocalTrackSearchTPC(m_TPCHC_, m_TPCTC_, MinLayer );
+  track::LocalTrackSearchTPC(m_TPCHitCont, m_TPCTC_, MinLayer );
 #endif
 
   return true;
@@ -1595,9 +1264,6 @@ DCAnalyzer::ClearDCHits( void )
   ClearSdcInHits();
   ClearSdcOutHits();
   ClearTOFHits();
-  ClearCFTHits();
-  ClearCFT16Hits();
-  ClearCFT16ppHits();
   //ClearTPCHits();
 }
 
@@ -1650,31 +1316,10 @@ DCAnalyzer::ClearTOFHits( void )
 
 //______________________________________________________________________________
 void
-DCAnalyzer::ClearCFTHits( void )
-{
-  del::ClearContainerAll( m_CFTHC );
-}
-
-//______________________________________________________________________________
-void
-DCAnalyzer::ClearCFT16Hits( void )
-{
-  del::ClearContainerAll( m_CFT16HC );
-}
-
-//______________________________________________________________________________
-void
-DCAnalyzer::ClearCFT16ppHits( void )
-{
-  del::ClearContainerAll( m_CFT16ppHC );
-}
-
-//______________________________________________________________________________
-void
 DCAnalyzer::ClearTPCHits( void )
 {
-  del::ClearContainerAll( m_TPCHC );
-  del::ClearContainerAll( m_TPCHC_ );
+  del::ClearContainerAll( m_TPCDCHitCont );
+  del::ClearContainerAll( m_TPCHitCont );
 }
 
 //______________________________________________________________________________
@@ -1751,27 +1396,6 @@ void
 DCAnalyzer::ClearTracksSdcInSdcOut( void )
 {
   del::ClearContainer( m_SdcInSdcOutTC );
-}
-
-//______________________________________________________________________________
-void
-DCAnalyzer::ClearTracksCFT( void )
-{
-  del::ClearContainer( m_CFTTC );
-}
-
-//______________________________________________________________________________
-void
-DCAnalyzer::ClearTracksCFT16( void )
-{
-  del::ClearContainer( m_CFT16TC );
-}
-
-//______________________________________________________________________________
-void
-DCAnalyzer::ClearTracksCFT16pp( void )
-{
-  del::ClearContainer( m_CFT16ppTC );
 }
 
 //______________________________________________________________________________
