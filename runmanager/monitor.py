@@ -36,7 +36,7 @@ def display( filename ) :
             fcntl.flock( f.fileno(), fcntl.LOCK_SH )
         except IOError :
             # sys.stderr.write( 'ERROR: I/O error was detected.\n' )
-            return
+            return False
         else :
             buff = f.read()
         finally :
@@ -45,7 +45,7 @@ def display( filename ) :
     try :
         info = json.loads( buff )
     except ValueError :
-        return
+        return False
 
     os.system( 'clear' )
 
@@ -60,10 +60,13 @@ def display( filename ) :
             + cl.end
     print( buff )
 
-
-    for key, item in info.items() :
+    n_unfinished = 0
+    for key, item in sorted(info.items(), key=lambda x:x[0]) :
 
         status = RunManager.SingleRunManager.decodeStatus( item )
+        if 'done' in status:
+          continue
+        n_unfinished += 1
         ptime  = RunManager.SingleRunManager.decodeTime( item )
 
         buff = cl.bold + key[:8].ljust(8) + cl.end + '  ' \
@@ -74,34 +77,35 @@ def display( filename ) :
                + os.path.basename( item['root'] )[-16:].ljust(16) + '  '\
                + ptime.rjust(8)
         print( buff )
+    if n_unfinished == 0:
+      print('finished')
+      return False
+    else:
+      return True
+    # buff = cl.reverce + cl.bold + 'Press \'Ctrl-C\' to exit' + cl.end
+    # print( buff )
 
-    buff = cl.reverce + cl.bold + 'Press \'Ctrl-C\' to exit' + cl.end
-    print( buff )
-    
 #____________________________________________________
 
 def main( path ) :
 
     ptime = time.time()
-    while True :
-    
-        try :
-            display( path )
-            dtime = DISPLAY_PERIOD - ( time.time() - ptime )
-            if dtime > 0 :
-                time.sleep( dtime )
-            ptime = time.time()
-    
-        except KeyboardInterrupt :
-    
-            print( 'KeyboardInterrupt' )
-            print( 'Exiting the process...' )
-            break
-    
-        except FileNotFoundError :
-    
-            sys.stderr.write( 'Cannot find file > ' + fJobInfo + '\n' )
-            sys.exit( 1 )
+    try :
+      while display( path ):
+        dtime = DISPLAY_PERIOD - ( time.time() - ptime )
+        if dtime > 0 :
+            time.sleep( dtime )
+        ptime = time.time()
+
+    except KeyboardInterrupt :
+
+        print( 'KeyboardInterrupt' )
+        print( 'Exiting the process...' )
+
+    except FileNotFoundError :
+
+        sys.stderr.write( 'Cannot find file > ' + fJobInfo + '\n' )
+        sys.exit( 1 )
 
 #____________________________________________________
 
@@ -109,13 +113,13 @@ if __name__ == "__main__" :
 
     argvs = sys.argv
     argc = len( argvs )
-    
+
     if argc != 2 :
         print( 'USAGE: %s [ file ]' % argvs[0] )
         sys.exit( 0 )
-    
+
     if not os.path.exists( argvs[1] ) :
         utility.ExitFailure( 'No such file > ' + argvs[1] )
-    
-    main( argvs[1] )
 
+    main( argvs[1] )
+    sys.exit(0)
