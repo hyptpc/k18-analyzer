@@ -1,8 +1,4 @@
-/**
- *  file: DetectorID.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef DETECTOR_ID_HH
 #define DETECTOR_ID_HH
@@ -12,24 +8,26 @@
 // Counters ___________________________________________________________
 const int DetIdBH1      =  1;
 const int DetIdBH2      =  2;
-const int DetIdE42BH2      =  4;
+const int DetIdBAC      =  3;
+const int DetIdE42BH2   =  4;
 const int DetIdSCH      =  7;
 const int DetIdTOF      =  8;
 const int DetIdSAC      =  9;
 const int DetIdLC       = 10;
 const int DetIdHtTOF    = 11; // high threshold TOF
 const int DetIdLAC      = 12;
-const int DetIdWC      = 13;
+const int DetIdWC       = 13;
 const int NumOfSegBH1   = 11;
 const int NumOfSegBH2   =  8;
-const int NumOfSegE42BH2   =  15;
+const int NumOfSegBAC   =  2;
+const int NumOfSegE42BH2 = 15;
 const int NumOfSegSCH   = 64;
 const int NumOfSegTOF   = 24;
 const int NumOfSegSAC   = 4;
 const int NumOfSegLC    = 28;
 const int NumOfSegLAC   = 15;
 const int NumOfSegHtTOF = 16;
-const int NumOfSegWC   =  2;//for E40 data analysis
+const int NumOfSegWC    =  2; //for E40 data analysis
 
 // Misc _______________________________________________________________
 const int DetIdTrig       = 21;
@@ -132,7 +130,7 @@ const int NumOfLayersBcOut  = PlMaxBcOut  - PlMinBcOut  + 1;
 const int NumOfLayersSdcIn  = PlMaxSdcIn  - PlMinSdcIn  + 1;
 const int NumOfLayersFBT    = PlMaxFBT2   - PlMinFBT1   + 1;
 //const int NumOfLayersSdcOut = PlMaxSdcOut - PlMinSdcOut + 1; w/o FBT
-const int NumOfLayersSdcOut = PlMaxSdcOut - PlMinSdcOut + 1 + (PlMaxFBT2 - PlMinFBT1 + 1); // including FBT 
+const int NumOfLayersSdcOut = PlMaxSdcOut - PlMinSdcOut + 1 + (PlMaxFBT2 - PlMinFBT1 + 1); // including FBT
 const int NumOfLayersVP     = 5;
 const int NumOfLayersTPC    = 32;
 
