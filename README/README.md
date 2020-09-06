@@ -3,7 +3,7 @@ stylesheet: https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/2.10.0/gi
 body_class: markdown-body
 pdf_options:
   format: A4
-  margin: 30mm 20mm
+  margin: 24mm 16mm
   displayHeaderFooter: true
   headerTemplate: |-
     <style>
@@ -27,31 +27,26 @@ pdf_options:
 K1.8 analyzer README
 ====================
 
-2020.06.27 Add runmanager  
-2020.03.12 First made
+<div style="text-align: right;">
+2020.09.06
+</div><br>
 
-It is assumed to work on KEKCC, Scientific Linux release 6.10 (Carbon).
+It is assumed to work on KEKCC, CentOS 7.7.1908 (Core).
+Use gcc 8.3.0 and root 6.22.02.
 
-## Environment variables
+## Environment setting
 
-Add the following lines to your .bashrc.
-
-```a
-module load git/2171
-module load gcc/485
-module load python/2.7
-module load python/3.5
-. /sw/packages/root/6.14.06/bin/thisroot.sh
-export PATH=$PATH:$HOME/unpacker/bin # Set as appropriate
-```
+See KEKCC.pdf and set environment variables.
+Anaconda/Python environment is needed to use runmanager.
 
 ## Unpacker
 
-Install the Unpacker.
+The unpacker compiled with gcc 8.3.0 is placed in the group directory, /group/had/sks/software/unpacker/unpacker.gcc830. This is updated constantly.
 
-```a
-$ git clone \
-ssh://sks@www-online.kek.jp:8022/~/public_html/git/unpacker.git
+If you want to install in local, install as follows.
+
+```sh
+$ git clone ssh://sks@www-online.kek.jp:8022/~/public_html/git/unpacker.git
 $ cd unpacker/src
 $ cp Makefile.org Makefile
 $ make
@@ -59,7 +54,7 @@ $ make
 
 Check if the "unpacker-config" command is available.
 
-```a
+```sh
 $ unpacker-config --version
 2020-01-21
 ```
@@ -68,11 +63,11 @@ $ unpacker-config --version
 
 Install the K1.8 analyzer.
 
-```a
+```sh
 $ git clone \
 ssh://sks@www-online.kek.jp:8022/~/public_html/git/k18-analyzer.git
 $ cd k18-analyzer
-$ git checkout e42
+$ git checkout e40 # choose branch as you like
 $ cp Makefile.org Makefile
 $ make
 ```
@@ -80,7 +75,7 @@ $ make
 e.g.) Hodoscope,
 Usage: Hodoscope [analyzer config file] [data input stream] [output root file]
 
-```a
+```sh
 $ ./bin/Hodoscope param/conf/analyzer_2019apr_0.conf \
 /group/had/sks/E40/JPARC2019Feb/e40_2019feb/run07334.dat.gz hoge.root
 ```
@@ -164,14 +159,14 @@ Run run.py.
 Note that the process runs until all jobs have finished.
 Ctrl-C kills all jobs and terminates the process.
 
-```a
+```sh
 $ ./runmanager/run.py runmanager/runlist/foo.yml
 ```
 
 Run monitor.py on another tty to see the progress of the jobs.
 The job status is updated in the "stat" directory, using the same name as the runlist in json format.
 
-```a
+```sh
 $ ./runmanager/monitor.py runmanager/stat/foo.json
 ```
 
