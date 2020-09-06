@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
 
 #____________________________________________________
 
@@ -666,12 +666,11 @@ class SingleRunManager( object ) :
                               .format( ' '.join( e.cmd ), e.returncode ) )
             sys.stderr.write( proc.stderr )
 
-        buff = proc.stdout.decode().split()[0]
-
-        if buff == 'G' or buff == 'B' :
-            return True
-        else :
-            return False
+        buf = proc.stdout.decode().split()[0]
+        if buf == 'G' or buf == 'B':
+          return True
+        else:
+          return False
 
 
     #__________________________________________________

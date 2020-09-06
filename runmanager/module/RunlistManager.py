@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
 
 #____________________________________________________
 
@@ -195,7 +195,7 @@ class RunlistManager( metaclass = Singleton.Singleton ) :
 
         data = dict()
         with open( path, 'r' ) as f :
-            data = yaml.load( f.read() )
+            data = yaml.load( f.read(), Loader=yaml.SafeLoader )
 
         tmp = os.path.expanduser( data['WORKDIR'] )
         workdir = tmp if os.path.exists( tmp ) and os.path.isdir( tmp ) \
@@ -285,7 +285,7 @@ class RunlistManager( metaclass = Singleton.Singleton ) :
 
         data = dict()
         with open( path, 'r' ) as f :
-            data = yaml.load( f.read() )
+            data = yaml.load( f.read(), Loader=yaml.SafeLoader )
 
         defset = data['DEFAULT']
 
