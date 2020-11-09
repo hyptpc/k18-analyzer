@@ -58,6 +58,7 @@ private:
 
 public:
   void                     ClearAll( void );
+  void                     ClearTPC( void );
   Bool_t                   DecodeHits( void );
   Bool_t                   DecodeCalibHits( void );
   Bool_t                   DecodeTPCHits( Int_t padid, Double_t y,

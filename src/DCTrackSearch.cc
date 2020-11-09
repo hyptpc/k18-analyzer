@@ -1909,18 +1909,18 @@ namespace track
 
     // r = x * cos(theta) + y * sin(theta)
     const int    theta_ndiv = 200;
-    const double theta_min =    0;
-    const double theta_max =  180;
-    const int    r_ndiv = 200;
-    const double r_min = -500;
-    const double r_max =  500;
+    const double theta_min  =   0;
+    const double theta_max  = 180;
+    const int    r_ndiv =  200;
+    const double r_min  = -500;
+    const double r_max  =  500;
     TH2D *hist[MaxNumOfTrackTPC];
 
     std::vector<std::vector<int> > flag;
     flag.resize( NumOfLayersTPC );
     for( int layer=0; layer<NumOfLayersTPC; layer++ ){
 	flag[layer].resize( TPCClCont[layer].size(), 0 );
-      }
+    }
 
     for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
       hist[tracki] = new TH2D(Form("hist_%d",tracki),";theta (deg.); r (mm)",
@@ -1937,7 +1937,10 @@ namespace track
 	  }
 	} // cluster
       } // layer
-      if( hist[tracki]->GetMaximum() < MinNumOfHits ) break;
+      if( hist[tracki]->GetMaximum() < MinNumOfHits ){
+	hist[tracki]->Delete();
+       	break;
+      }
 
       TPCLocalTrack *track = new TPCLocalTrack();
 
@@ -1972,10 +1975,9 @@ namespace track
       else {
 	delete track;
       }
-      for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
-	hist[tracki]->Delete();
-      }
+      hist[tracki]->Delete();
     } // track
+    
 
 //#else
 //    // TODO

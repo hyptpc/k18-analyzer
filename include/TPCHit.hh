@@ -28,6 +28,7 @@ private:
   double   m_charge;
   TVector3 m_pos;
   int      m_is_good;
+  int      m_is_calculated;
 
 public:
   int  PadId( void )		const { return m_pad_id; }

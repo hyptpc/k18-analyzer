@@ -387,7 +387,7 @@ DCAnalyzer::DecodeTPCHits( RawData *rawData )
 
 //______________________________________________________________________________
 bool
-DCAnalyzer::DecodeTPCHits_geant( const int nhits,
+DCAnalyzer::DecodeTPCHitsGeant4( const int nhits,
 			         const double *x, const double *y, const double *z, const double *de )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
@@ -411,7 +411,7 @@ DCAnalyzer::DecodeTPCHits_geant( const int nhits,
 
 //______________________________________________________________________________
 bool
-DCAnalyzer::DecodeTPCHits_geant(const int nhits, const int *iPad, const double *dx, const double *dz, const double *y)
+DCAnalyzer::DecodeTPCHitsGeant4(const int nhits, const int *iPad, const double *dx, const double *dz, const double *y)
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 

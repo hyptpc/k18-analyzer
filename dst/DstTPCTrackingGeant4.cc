@@ -1,5 +1,5 @@
 /**
- *  file: DstTPCTracking_geant.cc
+ *  file: DstTPCTrackingGeant4.cc
  *  date: 2020.04.02
  *
  */
@@ -36,7 +36,7 @@ namespace
   const UserParamMan& gUser = UserParamMan::GetInstance();
   const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance(); 
 
-  const int MaxTPCHits = 10000;
+  const Int_t MaxTPCHits = 10000;
 }
 
 namespace dst
@@ -59,49 +59,49 @@ namespace dst
 struct Event
 {
   
-  int evnum;
-  int status;
-  int nhittpc;                 // Number of Hits
-  int nttpc;                   // Number of Tracks
+  Int_t evnum;
+  Int_t status;
+  Int_t nhittpc;                 // Number of Hits
+  Int_t nttpc;                   // Number of Tracks
 };
 
 //_____________________________________________________________________
 struct Src
 {
-  int evnum;
-  int nhittpc;                 // Number of Hits
-  int nttpc;                   // Number of Tracks
+  Int_t evnum;
+  Int_t nhittpc;                 // Number of Hits
+  Int_t nttpc;                   // Number of Tracks
 
-  int ititpc[MaxTPCHits];
-  int idtpc[MaxTPCHits];
-  double xtpc[MaxTPCHits];//with resolution
-  double ytpc[MaxTPCHits];//with resolution
-  double ztpc[MaxTPCHits];//with resolution
-  double x0tpc[MaxTPCHits];//w/o resolution
-  double y0tpc[MaxTPCHits];//w/o resolution
-  double z0tpc[MaxTPCHits];//w/o resolution
-  double resoX[MaxTPCHits];
-  double pxtpc[MaxTPCHits];
-  double pytpc[MaxTPCHits];
-  double pztpc[MaxTPCHits];
-  double pptpc[MaxTPCHits];   // total mometum
-  double masstpc[MaxTPCHits];   // mass TPC
-  double betatpc[MaxTPCHits];
-  double edeptpc[MaxTPCHits];
-  double dedxtpc[MaxTPCHits];
-  double slengthtpc[MaxTPCHits];
-  int laytpc[MaxTPCHits];
-  int rowtpc[MaxTPCHits];
-  int parentID[MaxTPCHits];
-  int iPadtpc[MaxTPCHits];//Pad number (0 origin)
+  Int_t ititpc[MaxTPCHits];
+  Int_t idtpc[MaxTPCHits];
+  Double_t xtpc[MaxTPCHits];//with resolution
+  Double_t ytpc[MaxTPCHits];//with resolution
+  Double_t ztpc[MaxTPCHits];//with resolution
+  Double_t x0tpc[MaxTPCHits];//w/o resolution
+  Double_t y0tpc[MaxTPCHits];//w/o resolution
+  Double_t z0tpc[MaxTPCHits];//w/o resolution
+  Double_t resoX[MaxTPCHits];
+  Double_t pxtpc[MaxTPCHits];
+  Double_t pytpc[MaxTPCHits];
+  Double_t pztpc[MaxTPCHits];
+  Double_t pptpc[MaxTPCHits];   // total mometum
+  Double_t masstpc[MaxTPCHits];   // mass TPC
+  Double_t betatpc[MaxTPCHits];
+  Double_t edeptpc[MaxTPCHits];
+  Double_t dedxtpc[MaxTPCHits];
+  Double_t slengthtpc[MaxTPCHits];
+  Int_t laytpc[MaxTPCHits];
+  Int_t rowtpc[MaxTPCHits];
+  Int_t parentID[MaxTPCHits];
+  Int_t iPadtpc[MaxTPCHits];//Pad number (0 origin)
 
-  double xtpc_pad[MaxTPCHits];//pad center
-  double ytpc_pad[MaxTPCHits];//pad center(dummy)
-  double ztpc_pad[MaxTPCHits];//pad center
+  Double_t xtpc_pad[MaxTPCHits];//pad center
+  Double_t ytpc_pad[MaxTPCHits];//pad center(dummy)
+  Double_t ztpc_pad[MaxTPCHits];//pad center
 
-  double dxtpc_pad[MaxTPCHits];//x0tpc - xtpc
-  double dytpc_pad[MaxTPCHits];//y0tpc - ytpc = 0 (dummy)
-  double dztpc_pad[MaxTPCHits];//z0tpc - ztpc
+  Double_t dxtpc_pad[MaxTPCHits];//x0tpc - xtpc
+  Double_t dytpc_pad[MaxTPCHits];//y0tpc - ytpc = 0 (dummy)
+  Double_t dztpc_pad[MaxTPCHits];//z0tpc - ztpc
 
  
 };
@@ -153,11 +153,7 @@ dst::InitializeEvent( void )
   event.evnum = 0;
   event.nhittpc = 0; 
   event.nttpc = 0; 
-
   
-  // for( int i=0; i<MaxTPCHits; ++i ){
-  //   event.trpptpc[i]=-9999.;
-  // }
   return true;
 }
 
@@ -205,8 +201,7 @@ dst::DstRead( int ievent )
   
 
   DCAnalyzer *DCAna = new DCAnalyzer();
-  //DCAna.DecodeTPCHits_geant(src.nhittpc, src.iPadtpc, src.dxtpc_pad, src.dztpc_pad, src.y0tpc);
-  DCAna->DecodeTPCHits_geant(src.nhittpc, 
+  DCAna->DecodeTPCHitsGeant4(src.nhittpc, 
    			     src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
   DCAna->TrackSearchTPC();
 

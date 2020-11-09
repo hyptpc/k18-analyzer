@@ -68,6 +68,7 @@ RawData::RawData( void )
 RawData::~RawData( void )
 {
   ClearAll();
+  ClearTPC();
   debug::ObjectCounter::decrease(ClassName().Data());
 }
 
@@ -101,6 +102,12 @@ RawData::ClearAll( void )
   del::ClearContainer( m_ScalerRawHC );
   del::ClearContainer( m_TrigRawHC );
   del::ClearContainer( m_VmeCalibRawHC );
+}
+//_____________________________________________________________________________
+void
+RawData::ClearTPC( void )
+{
+  del::ClearContainerAll( m_TPCRawHC );
 }
 
 //_____________________________________________________________________________
@@ -354,7 +361,6 @@ RawData::DecodeHits( void )
 bool
 RawData::DecodeTPCHits( Int_t padid, Double_t y, Double_t charge )
 {
-  del::ClearContainerAll( m_TPCRawHC );
   Int_t layer = tpc::getLayerID(padid);
   AddTPCRawHit( m_TPCRawHC[layer], padid, y, charge );
   return true;

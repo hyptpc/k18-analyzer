@@ -96,9 +96,9 @@ public:
   bool DecodeFiberHits( RawData* rawData );
   bool DecodeBcInHits( RawData* rawData );
   bool DecodeBcOutHits( RawData* rawData );
-  bool DecodeTPCHits_geant( const int nhits,
+  bool DecodeTPCHitsGeant4( const int nhits,
      			    const double *x, const double *y, const double *z, const double *de );
-  bool DecodeTPCHits_geant( const int nhits,
+  bool DecodeTPCHitsGeant4( const int nhits,
    			    const int *iPad, const double *dx, const double *dz, const double *y);
   bool DecodeTPCHits( RawData* rawData );
   bool DecodeSdcInHits( RawData* rawData );

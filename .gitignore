@@ -17,6 +17,7 @@ lib
 macro
 fieldmap
 rootfile*
+script*
 runmanager/conf
 runmanager/log
 runmanager/stat

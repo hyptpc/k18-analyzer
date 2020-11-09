@@ -29,6 +29,7 @@ TPCHit::TPCHit( int padid, double y, double charge )
   m_layer_id = tpc::getLayerID(padid);
   m_row_id   = tpc::getRowID(padid);
   m_is_good = true;
+  m_is_calculated = false;
 
   debug::ObjectCounter::increase(class_name);
 }
@@ -58,6 +59,11 @@ bool
 TPCHit::CalcTPCObservables( void )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+  if( m_is_calculated ){
+    hddaq::cout << func_name << " already calculated" << std::endl;
+    return false;
+  }
 
   return true;
 }

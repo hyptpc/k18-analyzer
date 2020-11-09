@@ -33,7 +33,7 @@ unpacker_libs		= $(shell $(unpacker_config) --libs)
 CXX	= g++
 CFLAGS	= -g -O3 -Wall
 CFLAGS	+= -Wno-sign-compare
-CFLAGS	+= -std=c++0x
+CFLAGS	+= -std=c++17
 # CFLAGS	+= -Wno-unused-variable -Wno-unused-but-set-variable
 #DFLAGS	= -Df2cFortran -Dextname -DDEBUG -fno-inline
 DFLAGS	+= -DMemoryLeak
