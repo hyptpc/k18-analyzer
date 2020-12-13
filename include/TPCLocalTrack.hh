@@ -8,6 +8,8 @@
 
 #include <std_ostream.hh>
 
+#include "TMinuit.h"
+#include "TVector3.h"
 #include "ThreeVector.hh"
 #include "DetectorID.hh"
 #include "TPCHit.hh"
@@ -27,6 +29,7 @@ public:
 private:
   TPCLocalTrack( const TPCLocalTrack & );
   TPCLocalTrack & operator =( const TPCLocalTrack & );
+  TMinuit *minuit;
 
 private:
   bool   m_is_fitted;     // flag of DoFit()
@@ -38,10 +41,10 @@ private:
   double m_Ay;
   double m_Au;
   double m_Av;
-  double m_Chix;
-  double m_Chiy;
-  double m_Chiu;
-  double m_Chiv;
+  // double m_Chix;
+  // double m_Chiy;
+  // double m_Chiu;
+  // double m_Chiv;
 
   double m_Az;
   double m_Bz;
@@ -57,6 +60,7 @@ private:
   double m_n_iteration;
   // for SSD
   double m_de;
+  
 
 public:
   void         AddTPCHit( TPCHit *hit );
@@ -64,13 +68,15 @@ public:
   void         Calculate( void );
   void         DeleteNullHit( void );
   bool         DoLinearFit( void );
-  bool         DoHelixFit( void );
+  //  bool         DoHelixFit( void );
   bool         DoFit( void );
   int          GetNDF( void ) const;
   int          GetNHit( void ) const { return m_hit_array.size();  }
   TPCHit* GetHit( std::size_t nth ) const;
   bool         IsFitted( void ) const { return m_is_fitted; }
   bool         IsCalculated( void ) const { return m_is_calculated; }
+  void         CalcChi2( void);
+
 
   void SetAx( double Ax ) { m_Ax = Ax; }
   void SetAy( double Ay ) { m_Ay = Ay; }
@@ -78,10 +84,10 @@ public:
   void SetAv( double Av ) { m_Av = Av; }
   void SetAz( double Az ){  m_Az = Az; }
   void SetBz( double Bz ){  m_Bz = Bz; }
-  void SetChix( double Chix ) { m_Chix = Chix; }
-  void SetChiy( double Chiy ) { m_Chiy = Chiy; }
-  void SetChiu( double Chiu ) { m_Chiu = Chiu; }
-  void SetChiv( double Chiv ) { m_Chiv = Chiv; }
+  // void SetChix( double Chix ) { m_Chix = Chix; }
+  // void SetChiy( double Chiy ) { m_Chiy = Chiy; }
+  // void SetChiu( double Chiu ) { m_Chiu = Chiu; }
+  // void SetChiv( double Chiv ) { m_Chiv = Chiv; }
   void SetDe( double de ) { m_de = de; }
 
   double GetX0( void ) const { return m_x0; }
@@ -97,11 +103,12 @@ public:
   double GetAz ( void ) const { return m_Az;  }
   double GetBz ( void ) const { return m_Bz;  }
 
+
   double GetChiSquare( void ) const { return m_chisqr; }
-  double GetChiX( void ) const { return m_Chix; }
-  double GetChiY( void ) const { return m_Chiy; }
-  double GetChiU( void ) const { return m_Chiu; }
-  double GetChiV( void ) const { return m_Chiv; }
+  // double GetChiX( void ) const { return m_Chix; }
+  // double GetChiY( void ) const { return m_Chiy; }
+  // double GetChiU( void ) const { return m_Chiu; }
+  // double GetChiV( void ) const { return m_Chiv; }
   double GetX( double z ) const { return m_x0+m_u0*z; }
   double GetY( double z ) const { return m_y0+m_v0*z; }
   double GetS( double z, double tilt ) const { return GetX(z)*std::cos(tilt)+GetY(z)*std::sin(tilt); }
@@ -110,10 +117,9 @@ public:
   bool   GoodForTracking( void ) const { return m_good_for_tracking; }
   bool   GoodForTracking( bool status )
   { bool ret = m_good_for_tracking; m_good_for_tracking = status; return ret; }
-  bool   ReCalc( bool ApplyRecursively=false );
   double GetDe( void ) const { return m_de; }
   void   Print( const std::string& arg="", std::ostream& ost=hddaq::cout ) const;
-  void   PrintVXU( const std::string& arg="" ) const;
+
 
 };
 

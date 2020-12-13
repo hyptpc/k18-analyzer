@@ -46,6 +46,9 @@ public:
   double X( void );
   double Y( void );
   double Z( void );
+  double ResX( void );
+  double ResY( void );
+  double ResZ( void );
   std::vector<TPCHit*> GetTPCHits() const { return m_tpchits; }
   void ClearTPCHits();
 

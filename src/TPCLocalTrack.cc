@@ -1,5 +1,7 @@
 // -*- C++ -*-
-
+//Comment by Ichikawa
+//TPCLocalTrack.cc is for lenear fit 
+//TPCLocalTrack_Helix.cc will be prepared for Helix tracking 
 #include "TPCLocalTrack.hh"
 
 #include <string>
@@ -22,7 +24,14 @@
 #include "HodoParamMan.hh"
 #include "UserParamMan.hh"
 
-#define HSMagnetON 1
+#include "TMath.h"
+#include "TROOT.h"
+
+//#define HSMagnetON 1 
+
+static int gNumOfHits;
+static TVector3 gHitPos[300];
+static TVector3 gRes[300];
 
 namespace
 {
@@ -32,14 +41,14 @@ namespace
   const double& zK18tgt = gGeom.LocalZ("K18Target");
   const double& zTgt    = gGeom.LocalZ("Target");
 
-  const HodoParamMan& gHodo = HodoParamMan::GetInstance();
 
-  const int ReservedNumOfHits  = 16;
-  const int DCLocalMinNHits    =  4;
-  const int DCLocalMinNHitsVXU =  2;// for SSD
-  const int MaxIteration       = 100;// for Honeycomb
-  const double MaxChisqrDiff   = 1.0e-3;
-  const int CFTLocalMinNHits   =  3;
+  const int ReservedNumOfHits  = 32;
+  const HodoParamMan& gHodo = HodoParamMan::GetInstance();
+  static const double  FitStep[5] = { 1.0e-10, 1.0e-11, 1.0e-10, 1.0e-11};
+  static const double  LowLimit[5] = { -300., -100, -300, -100. };
+  static const double  UpLimit[5] = {  300., 100, 300, 100. };
+  
+
 }
 
 //______________________________________________________________________________
@@ -47,7 +56,7 @@ TPCLocalTrack::TPCLocalTrack( void )
   : m_is_fitted(false),
     m_is_calculated(false),
     m_Ax(0.), m_Ay(0.), m_Au(0.), m_Av(0.),
-    m_Chix(0.), m_Chiy(0.), m_Chiu(0.), m_Chiv(0.),
+    //m_Chix(0.), m_Chiy(0.), m_Chiu(0.), m_Chiv(0.),
     m_x0(0.), m_y0(0.),
     m_u0(0.), m_v0(0.),
     m_a(0.),  m_b(0.),
@@ -57,8 +66,10 @@ TPCLocalTrack::TPCLocalTrack( void )
     m_de(0.)
 {
   m_hit_array.reserve( ReservedNumOfHits );
+  m_cluster_array.reserve( ReservedNumOfHits );
   debug::ObjectCounter::increase(class_name);
-
+  minuit = new TMinuit(4);
+  TROOT minexam("LinearFit","linear fit using TMinuit");
 }
 
 //______________________________________________________________________________
@@ -84,36 +95,6 @@ TPCLocalTrack::AddTPCCluster( TPCCluster *cluster )
 }
 
 //______________________________________________________________________________
-void
-TPCLocalTrack::Calculate( void )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  if( IsCalculated() ){
-    hddaq::cerr << "#W " << func_name << " "
-		<< "already called" << std::endl;
-    return;
-  }
-
-//  const std::size_t n = m_hit_array.size();
-//  for( std::size_t i=0; i<n; ++i ){
-//    DCLTrackHit *hitp = m_hit_array[i];
-//    double z0 = hitp->GetZ();
-//    hitp->SetCalPosition( GetX(z0), GetY(z0) );
-//    hitp->SetCalUV( m_u0, m_v0 );
-//    // for Honeycomb
-//    if( !hitp->IsHoneycomb() )
-//      continue;
-//    double scal = hitp->GetLocalCalPos();
-//    double wp   = hitp->GetWirePosition();
-//    double dl   = hitp->GetDriftLength();
-//    double ss   = scal-wp>0 ? wp+dl : wp-dl;
-//    hitp->SetLocalHitPos( ss );
-//  }
-  m_is_calculated = true;
-}
-
-//______________________________________________________________________________
 int
 TPCLocalTrack::GetNDF( void ) const
 {
@@ -126,6 +107,33 @@ TPCLocalTrack::GetNDF( void ) const
   }
   return ndf-4;
 }
+
+
+//______________________________________________________________________________
+static void fcn2(int &npar, double *gin, double &f, double *par, int iflag)
+{
+  double chisqr=0.0;
+  int dof = 0;
+
+
+
+  for( int i=0; i<gNumOfHits; ++i ){
+    TVector3 pos = gHitPos[i];
+    TVector3 Res = gRes[i];
+ 
+    TVector3 x0(par[0], par[2], 0. );
+    TVector3 x1(par[0] + par[1], par[2] + par[3], 1. );
+    TVector3 u = (x1-x0).Unit();
+    TVector3 d = (pos-x0).Cross(u);
+    
+    chisqr += pow( d.x()/Res.x(), 2) + pow( d.y()/Res.y(), 2) + pow( d.z()/Res.z(), 2);
+    dof++;
+  }
+
+  f = chisqr/(double)(dof-4);
+}
+
+
 
 //______________________________________________________________________________
 TPCHit*
@@ -167,14 +175,14 @@ TPCLocalTrack::DoFit( void )
     return false;
   }
 
-#if HSMagnetON
-  DoHelixFit();
-#else
   DoLinearFit();
-#endif
+
   m_is_fitted = true;
   return true;
 }
+
+
+
 
 
 //______________________________________________________________________________
@@ -182,18 +190,106 @@ bool
 TPCLocalTrack::DoLinearFit( void )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  
+  double par[4]={m_Ax, m_Au, m_Ay, m_Av};
+  double err[4]={0};
 
+  const std::size_t n = m_cluster_array.size();
+  gNumOfHits = n;
+  for( std::size_t i=0; i<n; ++i ){
+    TPCCluster *hitp = m_cluster_array[i];
+    TVector3 pos = hitp->Position();
+    TVector3 Res = TVector3(hitp->ResX(), hitp->ResY(), hitp->ResZ());
+    gHitPos[i] =pos;
+    gRes[i] = Res;
+  }
+
+
+
+
+  minuit = new TMinuit(4);
+  TROOT minexam("LinearFit", "Linear fit using TMinuit");
+
+  minuit->SetPrintLevel(-1);
+  minuit->SetFCN (fcn2 );
+
+  int ierflg = 0;
+  double arglist[10];
+  arglist[0] = 1;
+  minuit->mnexcm("SET NOW", arglist,1,ierflg); // No warnings                                     
+                                                                                                     
+
+  TString name[4] = {"x0", "u0", "y0", "v0"};
+  for( int i = 0; i<4; i++ )
+    {
+      minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
+    }
+
+  minuit->Command("SET STRategy 0");
+  arglist[0] = 1000.;
+  arglist[1] = 1.0;
+  minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
+
+  double amin, edm, errdef;
+  int nvpar, nparx, icstat;
+  minuit->mnstat( amin, edm, errdef, nvpar, nparx, icstat);
+  //minuit->mnprin(4, amin);
+  int Err;
+  double bnd1, bnd2;
+  for( int i=0; i<4; i++)
+    {
+      minuit->mnpout(i, name[i], par[i], err[i], bnd1, bnd2, Err);
+      //std::cout<<Par[i]<<"  "<<std::endl;                                                          
+    }
+  
+  m_x0=par[0];
+  m_u0=par[1];
+  m_y0=par[2];
+  m_v0=par[3];
+  
+
+  //  FitStat = icstat;
+  CalcChi2();
+  
   return true;
 }
 
 //______________________________________________________________________________
-bool
-TPCLocalTrack::DoHelixFit( void )
+void
+TPCLocalTrack::CalcChi2( void )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  double chisqr=0.0;
+  int dof = 0;
 
-  return true;
+  const std::size_t n = m_cluster_array.size();
+
+  for( std::size_t i=0; i<n; ++i ){
+    TPCCluster *hitp = m_cluster_array[i];
+    TVector3 pos = hitp->Position();
+    double ResX = hitp->ResX();
+    double ResY = hitp->ResY();
+    double ResZ = hitp->ResZ();
+ 
+    TVector3 x0(m_x0, m_y0, 0. );
+    TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1. );
+    TVector3 u = (x1-x0).Unit();
+    TVector3 d = (pos-x0).Cross(u);
+    
+    chisqr += pow( d.x()/ResX, 2) + pow( d.y()/ResY, 2) + pow( d.z()/ResZ, 2);
+    dof++;
+  }
+
+  m_chisqr = chisqr;
 }
+
+//______________________________________________________________________________
+// bool
+// TPCLocalTrack::DoHelixFit( void )
+// {
+//   static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+//   return true;
+// }
 
 
 //______________________________________________________________________________
@@ -204,26 +300,6 @@ TPCLocalTrack::GetTheta( void ) const
   return std::acos(cost)*math::Rad2Deg();
 }
 
-//______________________________________________________________________________
-bool
-TPCLocalTrack::ReCalc( bool applyRecursively )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-//  std::size_t n = m_hit_array.size();
-//  for( std::size_t i=0; i<n; ++i ){
-//    TPCHit *hit = m_hit_array[i];
-//    if( hit ) hit->ReCalc( applyRecursively );
-//  }
-//
-  bool status = DoFit();
-  if( !status ){
-    hddaq::cerr << "#W " << func_name << " "
-		<< "Recalculation fails" << std::endl;
-  }
-
-  return status;
-}
 
 //______________________________________________________________________________
 void

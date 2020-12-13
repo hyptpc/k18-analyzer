@@ -115,6 +115,56 @@ TPCCluster::Z( void )
 }
 
 //______________________________________________________________________________
+double 
+TPCCluster::ResX( void )
+{
+  if(!m_pos_calculated) CalculateWeightedMean();
+  //calculated by using NIM paper
+  //To do:change the resolution by checking cluster size
+  double y_pos= m_pos.Y();
+  double s0 = 0.204;// mm HIMAC result //To do parameter
+  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
+  double L_D = 30.+(y_pos*0.1);//cm
+  double N_eff = 42.8;
+  double A = 0.0582*0.01;//m-1 -> cm-1                                                                                                                                                  
+  double e_ALD = exp(-1.*A*L_D);
+  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
+  double sT = sqrt(sT2);
+
+  return sT;
+}
+
+//______________________________________________________________________________
+double 
+TPCCluster::ResY( void )
+{
+  //Temp value (need to change)
+  double y_res = 0.5;
+  return y_res;
+}
+
+//______________________________________________________________________________
+double 
+TPCCluster::ResZ( void )
+{
+  if(!m_pos_calculated) CalculateWeightedMean();
+  //calculated by using NIM paper
+  //To do:change the resolution by checking cluster size
+  double y_pos= m_pos.Y();
+  double s0 = 0.204;// mm HIMAC result //To do parameter
+  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
+  double L_D = 30.+(y_pos*0.1);//cm
+  double N_eff = 42.8;
+  double A = 0.0582*0.01;//m-1 -> cm-1                                                                                                                                                  
+  double e_ALD = exp(-1.*A*L_D);
+  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
+  double sT = sqrt(sT2);
+
+  return sT;
+}
+
+
+//______________________________________________________________________________
 void
 TPCCluster::Print( const std::string& arg ) const
 {
