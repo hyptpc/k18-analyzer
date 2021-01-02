@@ -35,6 +35,7 @@ TPCCluster::TPCCluster( double x, double y, double z, double de )
   m_pos.SetXYZ(x,y,z);
   m_charge = de;
   m_layer_id = tpc::getLayerID( tpc::findPadID(z,x) );
+  m_pad_id = tpc::findPadID(z,x);
 }
 
 //______________________________________________________________________________
@@ -58,7 +59,7 @@ TPCCluster::AddTPCHit( TPCHit* hit )
 {
   if( hit ){
     m_tpchits.push_back(hit);
-    m_charge+=hit->Charge();
+    m_charge+=hit->GetCharge();
     m_pos_calculated = false;
   }
 }
@@ -68,17 +69,26 @@ void
 TPCCluster::CalculateWeightedMean( void )
 {
   if( m_pos_calculated ) return;
-  double x=0, y=0, z=0, charge=0;
+  double x=0, y=0, z=0, charge=0, dummy_padid=0, mrow=0;
   for(int hiti=0; hiti<m_tpchits.size(); hiti++) {
-    x+=m_tpchits[hiti]->X()*m_tpchits[hiti]->Charge();
-    y+=m_tpchits[hiti]->Y()*m_tpchits[hiti]->Charge();
-    z+=m_tpchits[hiti]->Z()*m_tpchits[hiti]->Charge();
-    charge+=m_tpchits[hiti]->Charge();
+    x+=m_tpchits[hiti]->GetX()*m_tpchits[hiti]->GetCharge();
+    y+=m_tpchits[hiti]->GetY()*m_tpchits[hiti]->GetCharge();
+    z+=m_tpchits[hiti]->GetZ()*m_tpchits[hiti]->GetCharge();
+
+    dummy_padid+=(double)(m_tpchits[hiti]->GetPad())*m_tpchits[hiti]->GetCharge();
+    mrow+=(double)(m_tpchits[hiti]->GetRow())*m_tpchits[hiti]->GetCharge();
+    charge+=m_tpchits[hiti]->GetCharge();
   }
-  if( charge )
+  if( charge ){
     m_pos.SetXYZ( x/charge, y/charge, z/charge );
-  else 
+    m_pad_id = (int)(dummy_padid/charge);
+    m_mrow = mrow/charge;
+  }
+  else {
     m_pos.SetXYZ( 0, 0, 0 ); 
+    m_pad_id = 0;
+    m_mrow = 0;
+  }
   m_pos_calculated = true;
 }
 

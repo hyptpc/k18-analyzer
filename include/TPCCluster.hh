@@ -27,10 +27,12 @@ public:
 
 private:
   int      m_layer_id;
+  int      m_pad_id;
   double   m_charge;
   TVector3 m_pos;
   std::vector<TPCHit*> m_tpchits;
   bool m_pos_calculated;
+  double   m_mrow;
 
   void CalculateWeightedMean( void );
 
@@ -38,10 +40,13 @@ public:
   int  LayerId( void )		const { return m_layer_id; }
   double Charge( void )		const { return m_charge; }
   
+  int  MeanPadId( void )        const { return m_pad_id; }
+  double MeanRow( void )        const { return m_mrow; }
   void Print( const std::string& arg="" ) const;
   
   int  GetClusterSize()		const { return m_tpchits.size(); }
   void AddTPCHit(TPCHit* hit);
+
   TVector3  Position( void );
   double X( void );
   double Y( void );

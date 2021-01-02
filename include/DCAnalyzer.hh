@@ -67,6 +67,7 @@ private:
   std::vector<DCHitContainer>       m_SdcOutHC;
   std::vector<DCHitContainer>       m_TPCDCHitCont;
   std::vector<TPCHitContainer>      m_TPCHitCont;
+  std::vector<TPCHitContainer>      m_TempTPCHitCont;
   std::vector<TPCClusterContainer>  m_TPCClCont;
 
   DCHitContainer        m_TOFHC;
