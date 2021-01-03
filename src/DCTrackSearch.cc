@@ -13,6 +13,7 @@
 #include "DCGeomMan.hh"
 #include "DCLocalTrack.hh"
 #include "DCLTrackHit.hh"
+#include "TPCLTrackHit.hh"
 #include "DCPairHitCluster.hh"
 #include "DCParameters.hh"
 #include "DebugTimer.hh"
@@ -71,6 +72,14 @@ namespace
   //_____________________________________________________________________
   inline void
   CalcTracks( std::vector<DCLocalTrack*>& trackCont )
+  {
+    for( std::size_t i=0, n=trackCont.size(); i<n; ++i )
+      trackCont[i]->Calculate();
+  }
+
+  //_____________________________________________________________________
+  inline void
+  CalcTracksTPC( std::vector<TPCLocalTrack*>& trackCont )
   {
     for( std::size_t i=0, n=trackCont.size(); i<n; ++i )
       trackCont[i]->Calculate();
@@ -1889,7 +1898,7 @@ namespace track
     return status? TrackCont.size() : -1;
   }
 
-  //______________________________________________________________________________
+  //__not supported_____________________________________________________________
   int
   LocalTrackSearchTPC( const std::vector<TPCClusterContainer>& TPCClCont,
 			   std::vector<TPCLocalTrack*>& TrackCont,
@@ -1963,7 +1972,7 @@ namespace track
 	    if( cluster->GetClusterSize() ){
 	      std::vector<TPCHit*> hitset = cluster->GetTPCHits();
 	      for( int hiti=0, m=cluster->GetClusterSize(); hiti<m; hiti++ ){
-		track->AddTPCHit(hitset[hiti]);
+		track->AddTPCHit(new TPCLTrackHit(hitset[hiti]));
 	      }
 	    }
 	    flag[layer][ci]++;
@@ -2059,7 +2068,8 @@ namespace track
 	  double dist = fabs(p1[tracki]*pos.Z()-pos.X()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
 	  if( dist < HoughWindowCut ){
 	    //track->AddTPCCluster(cluster);
-	    track->AddTPCHit(hit);
+	    //track->AddTPCHit(hit);
+	    track->AddTPCHit(new TPCLTrackHit(hit));
 	    // if( cluster->GetClusterSize() ){
 	    //   std::vector<TPCHit*> hitset = cluster->GetTPCHits();
 	    //   for( int hiti=0, m=cluster->GetClusterSize(); hiti<m; hiti++ ){
@@ -2071,14 +2081,15 @@ namespace track
 	}
       }
 
-      if( track ) TrackCont.push_back(track);
+      if( track->DoFit() ) TrackCont.push_back(track);
       else {
 	delete track;
       }
       hist[tracki]->Delete();
     } // track
     
-
+    //tmporay
+    CalcTracksTPC( TrackCont );//should be done in FinalizeTrackTPC (after chi2 sort)
 //#else
 //    // TODO
 //#endif

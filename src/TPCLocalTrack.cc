@@ -17,6 +17,7 @@
 
 #include "DCAnalyzer.hh"
 #include "DCLTrackHit.hh"
+#include "TPCLTrackHit.hh"
 #include "DCGeomMan.hh"
 #include "DetectorID.hh"
 #include "MathTools.hh"
@@ -80,7 +81,7 @@ TPCLocalTrack::~TPCLocalTrack( void )
 
 //______________________________________________________________________________
 void
-TPCLocalTrack::AddTPCHit( TPCHit *hit )
+TPCLocalTrack::AddTPCHit( TPCLTrackHit *hit )
 {
   if( hit )
     m_hit_array.push_back( hit );
@@ -90,9 +91,33 @@ TPCLocalTrack::AddTPCHit( TPCHit *hit )
 void
 TPCLocalTrack::AddTPCCluster( TPCCluster *cluster )
 {
+  //not supported
   if( cluster )
     m_cluster_array.push_back( cluster );
 }
+
+//______________________________________________________________________________
+void
+TPCLocalTrack::Calculate( void )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+  if( IsCalculated() ){
+    hddaq::cerr << "#W " << func_name << " "
+		<< "already called" << std::endl;
+    return;
+  }
+  
+  const std::size_t n = m_hit_array.size();
+  for( std::size_t i=0; i<n; ++i ){
+    TPCLTrackHit *hitp = m_hit_array[i];
+    hitp->SetCalX0Y0(m_x0, m_y0);
+    hitp->SetCalUV( m_u0, m_v0 );
+    hitp->SetCalPosition( hitp->GetLocalCalPos() );
+  }
+  m_is_calculated = true;
+}
+
 
 //______________________________________________________________________________
 int
@@ -124,8 +149,14 @@ static void fcn2(int &npar, double *gin, double &f, double *par, int iflag)
     TVector3 x0(par[0], par[2], 0. );
     TVector3 x1(par[0] + par[1], par[2] + par[3], 1. );
     TVector3 u = (x1-x0).Unit();
-    TVector3 d = (pos-x0).Cross(u);
-    
+    //    TVector3 d = (pos-x0).Cross(u);
+    TVector3 AP = pos-x0;
+    double dist_AX = u.Dot(AP);
+    TVector3 AI(x0.x()+(u.x()*dist_AX),
+		x0.y()+(u.y()*dist_AX),
+		x0.z()+(u.z()*dist_AX));
+    TVector3 d = pos-AI; 
+
     chisqr += pow( d.x()/Res.x(), 2) + pow( d.y()/Res.y(), 2) + pow( d.z()/Res.z(), 2);
     dof++;
   }
@@ -136,7 +167,7 @@ static void fcn2(int &npar, double *gin, double &f, double *par, int iflag)
 
 
 //______________________________________________________________________________
-TPCHit*
+TPCLTrackHit*
 TPCLocalTrack::GetHit( std::size_t nth ) const
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
@@ -154,7 +185,7 @@ TPCLocalTrack::DeleteNullHit( void )
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
   for( std::size_t i=0; i<m_hit_array.size(); ++i ){
-    TPCHit *hit = m_hit_array[i];
+    TPCLTrackHit *hit = m_hit_array[i];
     if( !hit ){
       hddaq::cout << func_name << " "
 		  << "null hit is deleted" << std::endl;
@@ -197,9 +228,9 @@ TPCLocalTrack::DoLinearFit( void )
   const std::size_t n = m_cluster_array.size();
   gNumOfHits = n;
   for( std::size_t i=0; i<n; ++i ){
-    TPCCluster *hitp = m_cluster_array[i];
-    TVector3 pos = hitp->Position();
-    TVector3 Res = TVector3(hitp->ResX(), hitp->ResY(), hitp->ResZ());
+    TPCLTrackHit *hitp = m_hit_array[i];
+    TVector3 pos = hitp->GetLocalHitPos();
+    TVector3 Res = hitp->GetResolutionVect();
     gHitPos[i] =pos;
     gRes[i] = Res;
   }
@@ -264,22 +295,25 @@ TPCLocalTrack::CalcChi2( void )
   const std::size_t n = m_cluster_array.size();
 
   for( std::size_t i=0; i<n; ++i ){
-    TPCCluster *hitp = m_cluster_array[i];
-    TVector3 pos = hitp->Position();
-    double ResX = hitp->ResX();
-    double ResY = hitp->ResY();
-    double ResZ = hitp->ResZ();
+    TPCLTrackHit *hitp = m_hit_array[i];
+    TVector3 pos = hitp->GetLocalHitPos();
+    TVector3 Res = hitp->GetResolutionVect();
  
     TVector3 x0(m_x0, m_y0, 0. );
     TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1. );
     TVector3 u = (x1-x0).Unit();
-    TVector3 d = (pos-x0).Cross(u);
+    TVector3 AP = pos-x0;
+    double dist_AX = u.Dot(AP);
+    TVector3 AI(x0.x()+(u.x()*dist_AX),
+		x0.y()+(u.y()*dist_AX),
+		x0.z()+(u.z()*dist_AX));
+    TVector3 d = pos-AI; 
+    //    TVector3 d = (pos-x0).Cross(u);
     
-    chisqr += pow( d.x()/ResX, 2) + pow( d.y()/ResY, 2) + pow( d.z()/ResZ, 2);
+    chisqr += pow( d.x()/Res.x(), 2) + pow( d.y()/Res.y(), 2) + pow( d.z()/Res.z(), 2);
     dof++;
   }
-
-  m_chisqr = chisqr;
+  m_chisqr = chisqr/(double)(dof-4);
 }
 
 //______________________________________________________________________________

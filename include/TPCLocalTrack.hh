@@ -13,6 +13,7 @@
 #include "ThreeVector.hh"
 #include "DetectorID.hh"
 #include "TPCHit.hh"
+#include "TPCLTrackHit.hh"
 #include "TPCCluster.hh"
 
 class TPCHit;
@@ -34,7 +35,7 @@ private:
 private:
   bool   m_is_fitted;     // flag of DoFit()
   bool   m_is_calculated; // flag of Calculate()
-  std::vector<TPCHit*> m_hit_array;
+  std::vector<TPCLTrackHit*> m_hit_array;
   std::vector<TPCCluster*> m_cluster_array;
 
   double m_Ax;
@@ -63,8 +64,8 @@ private:
   
 
 public:
-  void         AddTPCHit( TPCHit *hit );
-  void         AddTPCCluster( TPCCluster *cluster );
+  void         AddTPCHit( TPCLTrackHit *hit );
+  void         AddTPCCluster( TPCCluster *cluster );//not supported
   void         Calculate( void );
   void         DeleteNullHit( void );
   bool         DoLinearFit( void );
@@ -72,7 +73,7 @@ public:
   bool         DoFit( void );
   int          GetNDF( void ) const;
   int          GetNHit( void ) const { return m_hit_array.size();  }
-  TPCHit* GetHit( std::size_t nth ) const;
+  TPCLTrackHit* GetHit( std::size_t nth ) const;
   bool         IsFitted( void ) const { return m_is_fitted; }
   bool         IsCalculated( void ) const { return m_is_calculated; }
   void         CalcChi2( void);
