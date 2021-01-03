@@ -1995,97 +1995,94 @@ namespace track
 				int MinNumOfHits /*=8*/ )
   {
     static const std::string func_name("["+class_name+"::"+__func__+"()]");
-    // static const double HoughWindowCut = gUser.GetParameter("HoughWindowCut");
+
+    static const double HoughWindowCut = gUser.GetParameter("HoughWindowCut");
     bool status = true;
 
-    //del::ClearContainer( TrackCont );
-
-//#if UseTpcCluster
-//
-//    std::vector<TPCClusterList> CandCont(NumOfLayersTPC);
-//    for( int layer=0; layer<NumOfLayersTPC; layer++ ){
-//      MakeTPCHitCluster( TPCHC[layer], CandCont[layer], layer );
-//    }
-//
 //    if( valueHall ) { // TODO
 //    }
-//
-//    // y = p0 + p1 * x
-//    double p0[MaxNumOfTrackTPC];
-//    double p1[MaxNumOfTrackTPC];
-//
-//    // r = x * cos(theta) + y * sin(theta)
-//    const int    theta_ndiv = 200;
-//    const double theta_min =    0;
-//    const double theta_max =  180;
-//    const int    r_ndiv = 200;
-//    const double r_min = -500;
-//    const double r_max =  500;
-//    TH2D *hist[MaxNumOfTrackTPC];
-//
-//    std::vector<std::vector<int> > flag;
-//    flag.resize( NumOfLayersTPC );
-//    for( int layer=0; layer<NumOfLayersTPC; layer++ ){
-//	flag[layer].resize( CandCont[layer].size(), 0 );
-//      }
-//
-//    for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
-//      hist[tracki] = new TH2D(Form("hist_%d",tracki),";theta (deg.); r (mm)",
-//	  theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
-//      for( int layer=0; layer<NumOfLayersTPC; layer++ ){
-//	for( int ci=0, n=CandCont[layer].size(); ci<n; ci++ ){
-//	  if( flag[layer][ci]>0 ) continue;
-//	  TPCCluster* cluster = CandCont[layer][ci];
-//	  TVector3 pos = cluster->Position();
-//	  for( int ti=0; ti<theta_ndiv; ti++ ){
-//	    double theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
-//	    hist[tracki]->Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
-//				    +sin(theta*acos(-1)/180.)*pos.X());
-//	  }
-//	} // cluster
-//      } // layer
-//      if( hist[tracki]->GetMaximum() < MinNumOfHits ) break;
-//
-//      TPCLocalTrack *track = new TPCLocalTrack();
-//
-//      int maxbin = hist[tracki]->GetMaximumBin();
-//      int mx,my,mz;
-//      hist[tracki]->GetBinXYZ( maxbin, mx, my, mz );
-//      double mtheta = hist[tracki]->GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
-//      double mr = hist[tracki]->GetYaxis()->GetBinCenter(my);
-//      p0[tracki] = mr/sin(mtheta);
-//      p1[tracki] = -cos(mtheta)/sin(mtheta);
-//
-//      for( int layer=0; layer<NumOfLayersTPC; layer++ ){
-//	for( int ci=0, n=CandCont[layer].size(); ci<n; ci++ ){
-//	  if( flag[layer][ci]>0 ) continue;
-//	  TPCCluster* cluster = CandCont[layer][ci];
-//	  TVector3 pos = cluster->Position();
-//	  double dist = fabs(p1[tracki]*pos.Z()-pos.X()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
-//	  if( dist < HoughWindowCut ){
-//	    track->AddTPCCluster(cluster);
-//	    std::vector<TPCHit*> hitset = cluster->GetTPCHits();
-//	    for( int hiti=0, m=cluster->GetClusterSize(); hiti<m; hiti++ ){
-//	      track->AddTPCHit(hitset[hiti]);
-//	    }
-//	    flag[layer][ci]++;
-//	  }
-//	}
-//      }
-//
-//      if( track ) TrackCont.push_back(track);
-//      else {
-//	delete track;
-//      }
-//      for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
-//	hist[tracki]->Delete();
-//      }
-//    } // track
+
+    // y = p0 + p1 * x
+    double p0[MaxNumOfTrackTPC];
+    double p1[MaxNumOfTrackTPC];
+
+    // r = x * cos(theta) + y * sin(theta)
+    const int    theta_ndiv = 200;
+    const double theta_min  =   0;
+    const double theta_max  = 180;
+    const int    r_ndiv =  200;
+    const double r_min  = -500;
+    const double r_max  =  500;
+    TH2D *hist[MaxNumOfTrackTPC];
+
+    std::vector<std::vector<int> > flag;
+    flag.resize( NumOfLayersTPC );
+    for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+	flag[layer].resize( TPCHC[layer].size(), 0 );
+    }
+
+    for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
+      hist[tracki] = new TH2D(Form("hist_%d",tracki),";theta (deg.); r (mm)",
+	  theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
+      for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+	for( int ci=0, n=TPCHC[layer].size(); ci<n; ci++ ){
+	  if( flag[layer][ci]>0 ) continue;
+	  TPCHit* hit = TPCHC[layer][ci];
+	  TVector3 pos = hit->GetPos();
+	  for( int ti=0; ti<theta_ndiv; ti++ ){
+	    double theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
+	    hist[tracki]->Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
+				    +sin(theta*acos(-1)/180.)*pos.X());
+	  }
+	} // cluster
+      } // layer
+      if( hist[tracki]->GetMaximum() < MinNumOfHits ){
+	hist[tracki]->Delete();
+       	break;
+      }
+
+      TPCLocalTrack *track = new TPCLocalTrack();
+
+      int maxbin = hist[tracki]->GetMaximumBin();
+      int mx,my,mz;
+      hist[tracki]->GetBinXYZ( maxbin, mx, my, mz );
+      double mtheta = hist[tracki]->GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
+      double mr = hist[tracki]->GetYaxis()->GetBinCenter(my);
+      p0[tracki] = mr/sin(mtheta);
+      p1[tracki] = -cos(mtheta)/sin(mtheta);
+
+      for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+	for( int ci=0, n=TPCHC[layer].size(); ci<n; ci++ ){
+	  if( flag[layer][ci]>0 ) continue;
+	  TPCHit* hit = TPCHC[layer][ci];
+	  TVector3 pos = hit->GetPos();
+	  double dist = fabs(p1[tracki]*pos.Z()-pos.X()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
+	  if( dist < HoughWindowCut ){
+	    //track->AddTPCCluster(cluster);
+	    track->AddTPCHit(hit);
+	    // if( cluster->GetClusterSize() ){
+	    //   std::vector<TPCHit*> hitset = cluster->GetTPCHits();
+	    //   for( int hiti=0, m=cluster->GetClusterSize(); hiti<m; hiti++ ){
+	    // 	track->AddTPCHit(hitset[hiti]);
+	    //   }
+	    // }
+	    flag[layer][ci]++;
+	  }
+	}
+      }
+
+      if( track ) TrackCont.push_back(track);
+      else {
+	delete track;
+      }
+      hist[tracki]->Delete();
+    } // track
+    
 
 //#else
 //    // TODO
 //#endif
-    //FinalizeTrack( func_name, TrackCont, DCLTrackComp(), CandCont ); // TODO
+    //FinalizeTrack( func_name, TrackCont, DCLTrackComp(), TPCClCont ); // TODO
     return status? TrackCont.size() : -1;
 
     return 0;

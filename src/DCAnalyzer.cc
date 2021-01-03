@@ -1279,11 +1279,11 @@ DCAnalyzer::TrackSearchTPC( void )
   static const int MinLayer = gUser.GetParameter("MinLayerTPC");
 
 #if UseTpcCluster
-  track::LocalTrackSearchTPC(m_TPCClCont, m_TPCTC_, MinLayer );
-#else
+  //  track::LocalTrackSearchTPC(m_TPCClCont, m_TPCTC_, MinLayer );
   track::LocalTrackSearchTPC(m_TPCHitCont, m_TPCTC_, MinLayer );
+#else
+  track::LocalTrackSearchTPC(m_TempTPCHitCont, m_TPCTC_, MinLayer );
 #endif
-
   return true;
 }
 
