@@ -92,6 +92,18 @@ TPCLTrackHit::GetResidual( void ) const
 }
 
 //______________________________________________________________________________
+bool
+TPCLTrackHit::ResidualCut( void ) const
+{
+  bool status = false;
+  TVector3 Res = m_cal_pos - m_local_hit_pos;
+  double resolution = m_hit->GetResolution();
+  if(Res.Mag()<resolution*5.)
+    status = true;
+  return status;
+}
+
+//______________________________________________________________________________
 void
 TPCLTrackHit::Print( const std::string& arg ) const
 {

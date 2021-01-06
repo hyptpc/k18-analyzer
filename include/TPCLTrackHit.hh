@@ -60,6 +60,8 @@ public:
   double GetResidual( void ) const;
   double GetResolution( void ) const { return m_hit->GetResolution(); }
   TVector3 GetResolutionVect( void ) const { return m_res; }
+  bool ResidualCut( void ) const;
+
 
   void JoinTrack( void ) { m_hit->JoinTrack(); }
   void QuitTrack( void ) { m_hit->QuitTrack(); }

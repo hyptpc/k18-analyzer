@@ -43,7 +43,7 @@ namespace
   const double& zTgt    = gGeom.LocalZ("Target");
 
 
-  const int ReservedNumOfHits  = 32;
+  const int ReservedNumOfHits  = 64;
   const HodoParamMan& gHodo = HodoParamMan::GetInstance();
   static const double  FitStep[5] = { 1.0e-10, 1.0e-11, 1.0e-10, 1.0e-11};
   static const double  LowLimit[5] = { -300., -100, -300, -100. };
@@ -78,6 +78,15 @@ TPCLocalTrack::~TPCLocalTrack( void )
 {
   debug::ObjectCounter::decrease(class_name);
 }
+
+//______________________________________________________________________________
+void
+TPCLocalTrack::ClearHits( void )
+{
+  m_hit_array.clear();
+  m_cluster_array.clear();
+}
+
 
 //______________________________________________________________________________
 void
@@ -196,7 +205,7 @@ TPCLocalTrack::DeleteNullHit( void )
 }
 //______________________________________________________________________________
 bool
-TPCLocalTrack::DoFit( void )
+TPCLocalTrack::DoFit( double px0, double pu0 )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
@@ -206,7 +215,7 @@ TPCLocalTrack::DoFit( void )
     return false;
   }
 
-  DoLinearFit();
+  DoLinearFit(px0, pu0);
 
   m_is_fitted = true;
   return true;
@@ -218,9 +227,12 @@ TPCLocalTrack::DoFit( void )
 
 //______________________________________________________________________________
 bool
-TPCLocalTrack::DoLinearFit( void )
+TPCLocalTrack::DoLinearFit( double px0, double pu0 )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  
+  m_Ax = px0;
+  m_Au = pu0;
   
   double par[4]={m_Ax, m_Au, m_Ay, m_Av};
   double err[4]={0};

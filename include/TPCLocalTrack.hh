@@ -66,11 +66,12 @@ private:
 public:
   void         AddTPCHit( TPCLTrackHit *hit );
   void         AddTPCCluster( TPCCluster *cluster );//not supported
+  void         ClearHits( void );
   void         Calculate( void );
   void         DeleteNullHit( void );
-  bool         DoLinearFit( void );
+  bool         DoLinearFit( double px0, double pu0 );
   //  bool         DoHelixFit( void );
-  bool         DoFit( void );
+  bool         DoFit( double px0, double pu0 );
   int          GetNDF( void ) const;
   int          GetNHit( void ) const { return m_hit_array.size();  }
   TPCLTrackHit* GetHit( std::size_t nth ) const;

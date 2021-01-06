@@ -2045,10 +2045,12 @@ namespace track
 	  }
 	} // cluster
       } // layer
-      if( hist[tracki]->GetMaximum() < MinNumOfHits ){
+      //      if( hist[tracki]->GetMaximum() < MinNumOfHits ){
+      if( hist[tracki]->GetMaximum() < MinNumOfHits/2 ){
 	hist[tracki]->Delete();
        	break;
       }
+
 
       TPCLocalTrack *track = new TPCLocalTrack();
 
@@ -2062,26 +2064,41 @@ namespace track
 
       for( int layer=0; layer<NumOfLayersTPC; layer++ ){
 	for( int ci=0, n=TPCHC[layer].size(); ci<n; ci++ ){
-	  if( flag[layer][ci]>0 ) continue;
+	  //if( flag[layer][ci]>0 ) continue;
 	  TPCHit* hit = TPCHC[layer][ci];
 	  TVector3 pos = hit->GetPos();
 	  double dist = fabs(p1[tracki]*pos.Z()-pos.X()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
-	  if( dist < HoughWindowCut ){
-	    //track->AddTPCCluster(cluster);
-	    //track->AddTPCHit(hit);
+	  if( dist < HoughWindowCut ){	    
 	    track->AddTPCHit(new TPCLTrackHit(hit));
-	    // if( cluster->GetClusterSize() ){
-	    //   std::vector<TPCHit*> hitset = cluster->GetTPCHits();
-	    //   for( int hiti=0, m=cluster->GetClusterSize(); hiti<m; hiti++ ){
-	    // 	track->AddTPCHit(hitset[hiti]);
-	    //   }
-	    // }
 	    flag[layer][ci]++;
 	  }
 	}
       }
+      bool status2 = false;
 
-      if( track->DoFit() ) TrackCont.push_back(track);
+      while(!status2){
+	TPCLocalTrack *track_tmp = new TPCLocalTrack();
+	int false_layer = 0;	
+	int nh = track->GetNHit();
+	if(track->DoFit(p0[tracki], p1[tracki])&&nh>0){
+	  track->Calculate();
+	  for( int k=0; k<nh; ++k ){
+	    if(track->GetHit(k)->ResidualCut())
+	      track_tmp->AddTPCHit(track->GetHit(k));
+	    else
+	      ++false_layer;
+	  }
+	}
+	track->ClearHits();
+	track = new TPCLocalTrack();
+	int nh2 = track_tmp->GetNHit();
+	for( int k2=0; k2<nh2; ++k2 )
+	  track->AddTPCHit(track_tmp->GetHit(k2));
+	delete track_tmp;
+	if(false_layer==0)
+	  status2 = true;
+      }
+      if(track->DoFit(p0[tracki], p1[tracki])&& track->GetNHit()>MinNumOfHits) TrackCont.push_back(track);
       else {
 	delete track;
       }
