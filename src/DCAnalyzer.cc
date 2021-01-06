@@ -137,7 +137,6 @@ DCAnalyzer::DCAnalyzer( void )
     m_BcOutHC(NumOfLayersBcOut+2),
     m_SdcInHC(NumOfLayersSdcIn+1),
     m_SdcOutHC(NumOfLayersSdcOut+1),
-    m_TPCDCHitCont(NumOfLayersTPC*2+1),
     m_TPCHitCont(NumOfLayersTPC+1),
     m_TempTPCHitCont(NumOfLayersTPC+1),
     m_TPCClCont(NumOfLayersTPC+1),
@@ -443,80 +442,6 @@ DCAnalyzer::DecodeTPCHitsGeant4( const int nhits,
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::DecodeTPCHitsGeant4(const int nhits, const int *iPad, const double *dx, const double *dz, const double *y)
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  if( m_is_decoded[k_TPC] ){
-    hddaq::cout << "#D " << func_name << " "
-		<< "already decoded" << std::endl;
-    return true;
-  }
-  ClearTPCHits();
-
-  std::cout<<"DecodeTPCHits:: nhits="<<nhits<<std::endl;
-  for(int ihit=0; ihit<nhits; ++ihit){
-    TVector3 Point = tpc::getPosition(iPad[ihit]);
-    int laytpc = tpc::getLayerID(iPad[ihit]);
-    int rowtpc = tpc::getRowID(iPad[ihit]);
-    std::cout<<"DecodeTPCHits:: ihits="<<ihit
-	     <<", iPad="<<iPad[ihit]
-	     <<", layer="<<laytpc
-	     <<", x="<<Point.x()
-	     <<", z="<<Point.z()
-	     <<", dx="<<dx[ihit]
-	     <<", dz="<<dz[ihit]
-	     <<", y="<<y[ihit]<<std::endl;
-
-    DCHit *hit_x   = new DCHit( laytpc+PlOffsTPCX, rowtpc);
-    hit_x->SetWirePosition(Point.x());
-    hit_x->SetZ(Point.z());
-    hit_x->SetTiltAngle(0.);
-    hit_x->SetDummyPair();
-    hit_x->SetHitNum(ihit);
-    m_TPCDCHitCont[laytpc].push_back(hit_x);
-
-    DCHit *hit_y   = new DCHit( laytpc+PlOffsTPCY, rowtpc);
-    hit_y->SetWirePosition(y[ihit]);
-    hit_y->SetZ(Point.z());
-    hit_y->SetTiltAngle(90.);
-    hit_y->SetDummyPair();
-    hit_y->SetHitNum(ihit);
-    m_TPCDCHitCont[laytpc].push_back(hit_y);
-  }
-  m_is_decoded[k_TPC] = true;
-
-  /*
-  for( int layer=1; layer<=NumOfLayersBcOut; ++layer ){
-    const DCRHitContainer &RHitCont=rawData->GetBcOutRawHC(layer);
-    int nh = RHitCont.size();
-    for( int i=0; i<nh; ++i ){
-      DCRawHit *rhit  = RHitCont[i];
-      DCHit    *hit   = new DCHit( rhit->PlaneId()+PlOffsBc, rhit->WireId() );
-      int       nhtdc      = rhit->GetTdcSize();
-      int       nhtrailing = rhit->GetTrailingSize();
-      if(!hit) continue;
-      for( int j=0; j<nhtdc; ++j ){
-	hit->SetTdcVal( rhit->GetTdc(j) );
-      }
-      for( int j=0; j<nhtrailing; ++j ){
-	hit->SetTdcTrailing( rhit->GetTrailing(j) );
-      }
-
-      if( hit->CalcDCObservables() )
-	m_BcOutHC[layer].push_back(hit);
-      else
-	delete hit;
-    }
-  }
-
-  m_is_decoded[k_BcOut] = true;
-
-  */
-  return true;
-}
 
 //______________________________________________________________________________
 bool
@@ -1280,9 +1205,9 @@ DCAnalyzer::TrackSearchTPC( void )
 
 #if UseTpcCluster
   //  track::LocalTrackSearchTPC(m_TPCClCont, m_TPCTC_, MinLayer );
-  track::LocalTrackSearchTPC(m_TPCHitCont, m_TPCTC_, MinLayer );
+  track::LocalTrackSearchTPC(m_TPCHitCont, m_TPCTC, MinLayer );
 #else
-  track::LocalTrackSearchTPC(m_TempTPCHitCont, m_TPCTC_, MinLayer );
+  track::LocalTrackSearchTPC(m_TempTPCHitCont, m_TPCTC, MinLayer );
 #endif
   return true;
 }
@@ -1352,7 +1277,6 @@ DCAnalyzer::ClearTOFHits( void )
 void
 DCAnalyzer::ClearTPCHits( void )
 {
-  del::ClearContainerAll( m_TPCDCHitCont );
   del::ClearContainerAll( m_TPCHitCont );
   del::ClearContainerAll( m_TempTPCHitCont );
 }
@@ -1438,7 +1362,6 @@ void
 DCAnalyzer::ClearTracksTPC( void )
 {
   del::ClearContainer( m_TPCTC );
-  del::ClearContainer( m_TPCTC_ );
 }
 
 //______________________________________________________________________________

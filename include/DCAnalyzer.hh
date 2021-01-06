@@ -65,7 +65,6 @@ private:
   std::vector<DCHitContainer>       m_BcOutHC;
   std::vector<DCHitContainer>       m_SdcInHC;
   std::vector<DCHitContainer>       m_SdcOutHC;
-  std::vector<DCHitContainer>       m_TPCDCHitCont;
   std::vector<TPCHitContainer>      m_TPCHitCont;
   std::vector<TPCHitContainer>      m_TempTPCHitCont;
   std::vector<TPCClusterContainer>  m_TPCClCont;
@@ -77,8 +76,7 @@ private:
   DCLocalTrackContainer m_SdcInTC;
   DCLocalTrackContainer m_SdcOutTC;
 
-  DCLocalTrackContainer m_TPCTC;
-  TPCLocalTrackContainer m_TPCTC_;
+  TPCLocalTrackContainer m_TPCTC;
 
 
   K18TrackU2DContainer  m_K18U2DTC;
@@ -99,8 +97,6 @@ public:
   bool DecodeBcOutHits( RawData* rawData );
   bool DecodeTPCHitsGeant4( const int nhits,
      			    const double *x, const double *y, const double *z, const double *de );
-  bool DecodeTPCHitsGeant4( const int nhits,
-   			    const int *iPad, const double *dx, const double *dz, const double *y);
   bool DecodeTPCHits( RawData* rawData );
   bool DecodeSdcInHits( RawData* rawData );
   bool DecodeSdcOutHits( RawData* rawData, double ofs_dt=0.);
@@ -136,6 +132,7 @@ public:
   int GetNtracksBcOut( void )  const { return m_BcOutTC.size(); }
   int GetNtracksSdcIn( void )  const { return m_SdcInTC.size(); }
   int GetNtracksSdcOut( void ) const { return m_SdcOutTC.size(); }
+  int GetNTracksTPC( void ) const { return m_TPCTC.size(); }
   // Exclusive Tracks
   int GetNtracksSdcInEx( int layer ) const { return m_SdcInExTC[layer].size(); }
   int GetNtracksSdcOutEx( int layer ) const { return m_SdcOutExTC[layer].size(); }
@@ -144,6 +141,7 @@ public:
   inline DCLocalTrack* GetTrackBcOut( int i ) const;
   inline DCLocalTrack* GetTrackSdcIn( int i ) const;
   inline DCLocalTrack* GetTrackSdcOut( int i ) const;
+  inline TPCLocalTrack* GetTrackTPC( int i ) const;
   // Exclusive Tracks
   inline DCLocalTrack* GetTrackSdcInEx( int layer, int i ) const;
   inline DCLocalTrack* GetTrackSdcOutEx( int layer, int i ) const;
@@ -169,7 +167,7 @@ public:
   int GetNTracksK18U2D( void ) const { return m_K18U2DTC.size(); }
   int GetNTracksK18D2U( void ) const { return m_K18D2UTC.size(); }
   int GetNTracksKurama( void ) const { return m_KuramaTC.size(); }
-  int GetNTracksTPC( void ) const { return m_TPCTC_.size(); }
+
 
   inline K18TrackU2D  * GetK18TrackU2D( int i ) const;
   inline K18TrackD2U  * GetK18TrackD2U( int i ) const;
@@ -343,6 +341,16 @@ DCAnalyzer::GetTrackSdcOut( int i ) const
 {
   if( i<m_SdcOutTC.size() )
     return m_SdcOutTC[i];
+  else
+    return 0;
+}
+
+//______________________________________________________________________________
+inline TPCLocalTrack*
+DCAnalyzer::GetTrackTPC( int i ) const
+{
+  if( i<m_TPCTC.size() )
+    return m_TPCTC[i];
   else
     return 0;
 }

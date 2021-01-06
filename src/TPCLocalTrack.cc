@@ -42,14 +42,11 @@ namespace
   const double& zK18tgt = gGeom.LocalZ("K18Target");
   const double& zTgt    = gGeom.LocalZ("Target");
 
-
   const int ReservedNumOfHits  = 64;
   const HodoParamMan& gHodo = HodoParamMan::GetInstance();
   static const double  FitStep[5] = { 1.0e-10, 1.0e-11, 1.0e-10, 1.0e-11};
   static const double  LowLimit[5] = { -300., -100, -300, -100. };
   static const double  UpLimit[5] = {  300., 100, 300, 100. };
-  
-
 }
 
 //______________________________________________________________________________
@@ -93,7 +90,7 @@ void
 TPCLocalTrack::AddTPCHit( TPCLTrackHit *hit )
 {
   if( hit )
-    m_hit_array.push_back( hit );
+    m_hit_array.push_back( hit ); 
 }
 
 //______________________________________________________________________________
@@ -235,14 +232,15 @@ TPCLocalTrack::DoLinearFit( double px0, double pu0 )
   m_Au = pu0;
   
   double par[4]={m_Ax, m_Au, m_Ay, m_Av};
-  double err[4]={0};
+  double err[4]={-999.,-999.,-999.,-999.};
 
-  const std::size_t n = m_cluster_array.size();
+  const std::size_t n = m_hit_array.size();
   gNumOfHits = n;
   for( std::size_t i=0; i<n; ++i ){
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp->GetLocalHitPos();
     TVector3 Res = hitp->GetResolutionVect();
+
     gHitPos[i] =pos;
     gRes[i] = Res;
   }
@@ -304,7 +302,7 @@ TPCLocalTrack::CalcChi2( void )
   double chisqr=0.0;
   int dof = 0;
 
-  const std::size_t n = m_cluster_array.size();
+  const std::size_t n = m_hit_array.size();
 
   for( std::size_t i=0; i<n; ++i ){
     TPCLTrackHit *hitp = m_hit_array[i];

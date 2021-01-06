@@ -2003,6 +2003,7 @@ namespace track
 				std::vector<TPCLocalTrack*>& TrackCont,
 				int MinNumOfHits /*=8*/ )
   {
+
     static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
     static const double HoughWindowCut = gUser.GetParameter("HoughWindowCut");
@@ -2027,7 +2028,7 @@ namespace track
     std::vector<std::vector<int> > flag;
     flag.resize( NumOfLayersTPC );
     for( int layer=0; layer<NumOfLayersTPC; layer++ ){
-	flag[layer].resize( TPCHC[layer].size(), 0 );
+      flag[layer].resize( TPCHC[layer].size(), 0 );
     }
 
     for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
@@ -2074,6 +2075,8 @@ namespace track
 	  }
 	}
       }
+
+
       bool status2 = false;
 
       while(!status2){

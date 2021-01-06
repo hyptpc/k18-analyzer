@@ -23,6 +23,8 @@
 #include "HodoPHCMan.hh" 
 #include "DCAnalyzer.hh"
 #include "DCHit.hh"
+#include "TPCLocalTrack.hh"
+#include "TPCHit.hh"
 
 #include "DstHelper.hh"
 
@@ -37,6 +39,8 @@ namespace
   const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance(); 
 
   const Int_t MaxTPCHits = 10000;
+  const Int_t MaxTPCTracks = 100;
+  const Int_t MaxTPCnHits = 50;
 }
 
 namespace dst
@@ -63,6 +67,24 @@ struct Event
   Int_t status;
   Int_t nhittpc;                 // Number of Hits
   Int_t nttpc;                   // Number of Tracks
+  Int_t nhit_track[MaxTPCTracks]; // Number of Hits (in 1 tracks)
+  Double_t chisqr[MaxTPCTracks];
+  Double_t x0[MaxTPCTracks];
+  Double_t y0[MaxTPCTracks];
+  Double_t u0[MaxTPCTracks];
+  Double_t v0[MaxTPCTracks];
+  Double_t theta[MaxTPCTracks];
+  Int_t hitlayer[MaxTPCTracks][MaxTPCnHits];
+  Double_t hitpos_x[MaxTPCTracks][MaxTPCnHits];
+  Double_t hitpos_y[MaxTPCTracks][MaxTPCnHits];
+  Double_t hitpos_z[MaxTPCTracks][MaxTPCnHits];
+  Double_t calpos_x[MaxTPCTracks][MaxTPCnHits];
+  Double_t calpos_y[MaxTPCTracks][MaxTPCnHits];
+  Double_t calpos_z[MaxTPCTracks][MaxTPCnHits];
+  Double_t residual[MaxTPCTracks][MaxTPCnHits];
+  Double_t residual_x[MaxTPCTracks][MaxTPCnHits];
+  Double_t residual_y[MaxTPCTracks][MaxTPCnHits];
+  Double_t residual_z[MaxTPCTracks][MaxTPCnHits];
 };
 
 //_____________________________________________________________________
@@ -70,7 +92,7 @@ struct Src
 {
   Int_t evnum;
   Int_t nhittpc;                 // Number of Hits
-  Int_t nttpc;                   // Number of Tracks
+  
 
   Int_t ititpc[MaxTPCHits];
   Int_t idtpc[MaxTPCHits];
@@ -153,6 +175,30 @@ dst::InitializeEvent( void )
   event.evnum = 0;
   event.nhittpc = 0; 
   event.nttpc = 0; 
+
+  for(int i=0; i<MaxTPCTracks; ++i){
+    event.nhit_track[i] =0;
+    event.chisqr[i] =-9999.;
+    event.x0[i] =-9999.;
+    event.y0[i] =-9999.;
+    event.u0[i] =-9999.;
+    event.v0[i] =-9999.;
+    event.theta[i] =-9999.;
+    for(int j=0; j<MaxTPCnHits; ++j){
+      event.hitlayer[i][j] =-999;    
+      event.hitpos_x[i][j] =-9999.;    
+      event.hitpos_y[i][j] =-9999.;    
+      event.hitpos_z[i][j] =-9999.;   
+      event.calpos_x[i][j] =-9999.;    
+      event.calpos_y[i][j] =-9999.;    
+      event.calpos_z[i][j] =-9999.;    
+      event.residual[i][j] =-9999.;
+      event.residual_x[i][j] =-9999.;    
+      event.residual_y[i][j] =-9999.;    
+      event.residual_z[i][j] =-9999.; 
+    }
+  }
+
   
   return true;
 }
@@ -198,12 +244,12 @@ dst::DstRead( int ievent )
   event.evnum = src.evnum;
   event.nhittpc = src.nhittpc;
    
-  
-
   DCAnalyzer *DCAna = new DCAnalyzer();
   DCAna->DecodeTPCHitsGeant4(src.nhittpc, 
-   			     src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
+   			     //src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
+			     src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
   DCAna->TrackSearchTPC();
+ 
 
   int nttpc = DCAna->GetNTracksTPC();
   if( MaxHits<nttpc ){
@@ -212,13 +258,52 @@ dst::DstRead( int ievent )
     nttpc = MaxHits;
   }
   event.nttpc = nttpc;
-//  for( int i=0; i<nttpc; ++i ){
-//  }
+  for( int it=0; it<nttpc; ++it ){
+    TPCLocalTrack *tp= DCAna->GetTrackTPC(it); 
+    if(!tp) continue;
+    int nh=tp->GetNHit();
+    double chisqr    = tp->GetChiSquare();
+
+    double x0=tp->GetX0(), y0=tp->GetY0();
+    double u0=tp->GetU0(), v0=tp->GetV0();
+    double theta = tp->GetTheta();
+
+    event.nhit_track[it]=nh;
+    event.chisqr[it]=chisqr;
+    event.x0[it]=x0;
+    event.y0[it]=y0;
+    event.u0[it]=u0;
+    event.v0[it]=v0;
+    event.theta[it]=theta;
+    
+    for( int ih=0; ih<nh; ++ih ){
+      TPCLTrackHit *hit=tp->GetHit(ih);
+      
+      if(!hit) continue;
+      int layerId = 0;
+      layerId = hit->GetLayer();      
+      TVector3 hitpos = hit->GetLocalHitPos();
+      TVector3 calpos = hit->GetLocalCalPos();
+      double residual = hit->GetResidual();
+      TVector3 res_vect = hit->GetResidualVect();
+      event.hitlayer[it][ih] = layerId;
+      event.hitpos_x[it][ih] = hitpos.x();
+      event.hitpos_y[it][ih] = hitpos.y();
+      event.hitpos_z[it][ih] = hitpos.z();
+      event.calpos_x[it][ih] = calpos.x();
+      event.calpos_y[it][ih] = calpos.y();
+      event.calpos_z[it][ih] = calpos.z();
+      event.residual[it][ih] = residual;
+      event.residual_x[it][ih] = res_vect.x();
+      event.residual_y[it][ih] = res_vect.y();
+      event.residual_z[it][ih] = res_vect.z();
+    }
+  }
 
 
 #if 0
   std::cout<<"[event]: "<<std::setw(6)<<ievent<<" ";
-  std::cout<<"[nttpc]: "<<std::setw(2)<<src.nttpc<<" "<<std::endl;
+  std::cout<<"[nhittpc]: "<<std::setw(2)<<src.nhittpc<<" "<<std::endl;
 #endif
 
   // if( event.nhBh1<=0 ) return true;
@@ -267,13 +352,34 @@ ConfMan::InitializeHistograms( void )
   
   tree->Branch("status", &event.status, "status/I" );  
   tree->Branch("evnum", &event.evnum, "evnum/I" );  
+  tree->Branch("nhittpc",&event.nhittpc,"nhittpc/I");
   tree->Branch("nttpc",&event.nttpc,"nttpc/I");
+  
+  tree->Branch("nhit_track",event.nhit_track,"nhit_track[nttpc]/I");
+  tree->Branch("chisqr",event.chisqr,"chisqr[nttpc]/D");
+  tree->Branch("x0",event.x0,"x0[nttpc]/D");
+  tree->Branch("y0",event.y0,"y0[nttpc]/D");
+  tree->Branch("u0",event.u0,"u0[nttpc]/D");
+  tree->Branch("v0",event.v0,"v0[nttpc]/D");
+  tree->Branch("theta",event.theta,"theta[nttpc]/D");
+  
+  tree->Branch("hitlayer",event.hitlayer,"hitlayer[nttpc][32]/I");
+  tree->Branch("hitpos_x",event.hitpos_x,"hitpos_x[nttpc][32]/D");
+  tree->Branch("hitpos_y",event.hitpos_y,"hitpos_y[nttpc][32]/D");
+  tree->Branch("hitpos_z",event.hitpos_z,"hitpos_z[nttpc][32]/D");
+  tree->Branch("calpos_x",event.calpos_x,"calpos_x[nttpc][32]/D");
+  tree->Branch("calpos_y",event.calpos_y,"calpos_y[nttpc][32]/D");
+  tree->Branch("calpos_z",event.calpos_z,"calpos_z[nttpc][32]/D");
+  tree->Branch("residual",event.residual,"residual[nttpc][32]/D");
+  tree->Branch("residual_x",event.residual_x,"residual_x[nttpc][32]/D");
+  tree->Branch("residual_y",event.residual_y,"residual_y[nttpc][32]/D");
+  tree->Branch("residual_z",event.residual_z,"residual_z[nttpc][32]/D");
 
 
   ////////// Bring Address From Dst
   TTreeCont[kTPCGeant]->SetBranchStatus("*", 0);
   TTreeCont[kTPCGeant]->SetBranchStatus("evnum",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("nttpc",  1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("nhittpc",  1);
 
   TTreeCont[kTPCGeant]->SetBranchStatus("ititpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("idtpc", 1);
@@ -306,7 +412,7 @@ ConfMan::InitializeHistograms( void )
 
 
   TTreeCont[kTPCGeant]->SetBranchAddress("evnum", &src.evnum);
-  TTreeCont[kTPCGeant]->SetBranchAddress("nttpc", &src.nttpc);
+  TTreeCont[kTPCGeant]->SetBranchAddress("nhittpc", &src.nhittpc);
 
   TTreeCont[kTPCGeant]->SetBranchAddress("ititpc", src.ititpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("idtpc", src.idtpc);

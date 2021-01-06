@@ -25,7 +25,8 @@ namespace
 
 //______________________________________________________________________________
 TPCLTrackHit::TPCLTrackHit( TPCHit *hit )
-  : m_x0(-9999.),
+  : m_hit(hit),
+    m_x0(-9999.),
     m_y0(-9999.),
     m_u0(-9999.),
     m_v0(-9999.)
@@ -41,7 +42,8 @@ TPCLTrackHit::TPCLTrackHit( TPCHit *hit )
 
 //______________________________________________________________________________
 TPCLTrackHit::TPCLTrackHit( const TPCLTrackHit& right )
-  : m_x0(right.m_x0),
+  : m_hit(right.m_hit),
+    m_x0(right.m_x0),
     m_y0(right.m_y0),
     m_u0(right.m_u0),
     m_v0(right.m_v0)
