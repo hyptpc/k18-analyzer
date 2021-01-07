@@ -136,7 +136,16 @@ TPCHit::GetResolutionX( void )
   double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
   double sT = sqrt(sT2);
 
-  return sT;
+  double target_pos_z=-143.; //should be given by DCGEOM
+  double x_pos= m_pos.X();
+  double z_pos= m_pos.Z() - target_pos_z;
+  double alpha =  atan2(x_pos,z_pos);
+  double rho =  sqrt(pow(z_pos,2)+pow(x_pos,2));
+  double dalpha =sT/rho;
+  double smear_alpha = alpha + dalpha;
+  double res_x = fabs(rho*(sin(smear_alpha)-sin(alpha)));
+
+  return res_x;
 }
 
 //______________________________________________________________________________
@@ -155,7 +164,16 @@ TPCHit::GetResolutionZ( void )
   double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
   double sT = sqrt(sT2);
 
-  return sT;
+  double target_pos_z=-143.; //should be given by DCGEOM
+  double x_pos= m_pos.X();
+  double z_pos= m_pos.Z() - target_pos_z;
+  double alpha =  atan2(x_pos,z_pos);
+  double rho =  sqrt(pow(z_pos,2)+pow(x_pos,2));
+  double dalpha =sT/rho;
+  double smear_alpha = alpha + dalpha;
+  double res_z = fabs(rho*(cos(smear_alpha)-cos(alpha)));
+
+  return res_z;
 }
 
 //______________________________________________________________________________
@@ -182,7 +200,18 @@ TPCHit::GetResolution( void )
   double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
   double sT = sqrt(sT2);
 
-  double tot_res = sqrt(sT*sT + 0.5*0.5 +sT*sT);
+  double target_pos_z=-143.; //should be given by DCGEOM
+  double x_pos= m_pos.X();
+  double z_pos= m_pos.Z() - target_pos_z;
+  double alpha =  atan2(x_pos,z_pos);
+  double rho =  sqrt(pow(z_pos,2)+pow(x_pos,2));
+  double dalpha =sT/rho;
+  double smear_alpha = alpha + dalpha;
+  double res_x = fabs(rho*(sin(smear_alpha)-sin(alpha)));
+  double res_y = 0.5;
+  double res_z = fabs(rho*(cos(smear_alpha)-cos(alpha)));
+
+  double tot_res = sqrt(res_x*res_x + res_y*res_y + res_z*res_z);
 
   return tot_res;
 }
