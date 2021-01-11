@@ -66,8 +66,12 @@ TVector3
 TPCLTrackHit::GetLocalCalPos( void ) const
 {
   TVector3 pos = m_local_hit_pos;
-  TVector3 x0(m_x0, m_y0, 0. );
-  TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1. );
+  // TVector3 x0(m_x0, m_y0, 0. );
+  // TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1. );
+  //temp
+  double zTgtTPC = -143.;
+  TVector3 x0(m_x0, m_y0, zTgtTPC );
+  TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, zTgtTPC+1. );
   TVector3 u = (x1-x0).Unit();
   TVector3 AP = pos-x0;
   double dist_AX = u.Dot(AP);

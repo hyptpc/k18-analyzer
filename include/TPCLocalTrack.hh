@@ -69,14 +69,15 @@ public:
   void         ClearHits( void );
   void         Calculate( void );
   void         DeleteNullHit( void );
-  bool         DoLinearFit( double px0, double pu0 );
+  bool         DoLinearFit( int MinHits );
   //  bool         DoHelixFit( void );
-  bool         DoFit( double px0, double pu0 );
+  bool         DoFit( int MinHits );
   int          GetNDF( void ) const;
   int          GetNHit( void ) const { return m_hit_array.size();  }
   TPCLTrackHit* GetHit( std::size_t nth ) const;
   bool         IsFitted( void ) const { return m_is_fitted; }
   bool         IsCalculated( void ) const { return m_is_calculated; }
+  bool         Residual_check( TVector3 pos, TVector3 Res);
   void         CalcChi2( void);
 
 

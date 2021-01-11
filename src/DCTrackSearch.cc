@@ -2075,45 +2075,21 @@ namespace track
 	  }
 	}
       }
-
-
-      bool status2 = false;
-
-      while(!status2){
-	TPCLocalTrack *track_tmp = new TPCLocalTrack();
-	int false_layer = 0;	
-	int nh = track->GetNHit();
-	if(track->DoFit(p0[tracki], p1[tracki])&&nh>0){
-	  track->Calculate();
-	  for( int k=0; k<nh; ++k ){
-	    if(track->GetHit(k)->ResidualCut())
-	      track_tmp->AddTPCHit(track->GetHit(k));
-	    else
-	      ++false_layer;
-	  }
-	}
-	track->ClearHits();
-	track = new TPCLocalTrack();
-	int nh2 = track_tmp->GetNHit();
-	for( int k2=0; k2<nh2; ++k2 )
-	  track->AddTPCHit(track_tmp->GetHit(k2));
-	delete track_tmp;
-	if(false_layer==0)
-	  status2 = true;
+      //temporary (x0, y0) are position at Target position
+      double zTgtTPC = -143.;
+      track->SetAx(p0[tracki]+p1[tracki]*zTgtTPC);
+      track->SetAu(p1[tracki]);
+      if(track->DoFit(MinNumOfHits)){
+	TrackCont.push_back(track);
       }
-      if(track->DoFit(p0[tracki], p1[tracki])&& track->GetNHit()>MinNumOfHits) TrackCont.push_back(track);
-      else {
-	delete track;
+      else{ 
+       	delete track;
       }
+      //delete track;
       hist[tracki]->Delete();
-    } // track
-    
-    //tmporay
-    CalcTracksTPC( TrackCont );//should be done in FinalizeTrackTPC (after chi2 sort)
-//#else
-//    // TODO
-//#endif
-    //FinalizeTrack( func_name, TrackCont, DCLTrackComp(), TPCClCont ); // TODO
+    }//track
+    CalcTracksTPC( TrackCont );
+
     return status? TrackCont.size() : -1;
 
     return 0;

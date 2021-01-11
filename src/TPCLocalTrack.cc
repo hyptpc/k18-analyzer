@@ -12,6 +12,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <sstream>
+#include <TH2D.h>
 
 #include <std_ostream.hh>
 
@@ -41,12 +42,17 @@ namespace
   const DCGeomMan& gGeom = DCGeomMan::GetInstance();
   const double& zK18tgt = gGeom.LocalZ("K18Target");
   const double& zTgt    = gGeom.LocalZ("Target");
+  // Temporary
+  const double& zTgtTPC    = -143.;  
+  //  const int MaxTry    = 10;  
 
   const int ReservedNumOfHits  = 64;
   const HodoParamMan& gHodo = HodoParamMan::GetInstance();
-  static const double  FitStep[5] = { 1.0e-10, 1.0e-11, 1.0e-10, 1.0e-11};
-  static const double  LowLimit[5] = { -300., -100, -300, -100. };
-  static const double  UpLimit[5] = {  300., 100, 300, 100. };
+  static const double  FitStep[4] = { 1.0e-6, 1.0e-10, 1.0e-6, 1.0e-10};
+  //static const double  FitStep[4] = { 1.0e-2, 1.0e-6, 1.0e-2, 1.0e-6};
+  static const double  LowLimit[4] = { -200., -0.5*acos(-1.), -200, -0.5*acos(-1.) };
+  static const double  UpLimit[4] = { 200., 0.5*acos(-1.), 200, 0.5*acos(-1.) };
+  static const double  MaxChisqr = 500.;
 }
 
 //______________________________________________________________________________
@@ -152,8 +158,105 @@ static void fcn2(int &npar, double *gin, double &f, double *par, int iflag)
     TVector3 pos = gHitPos[i];
     TVector3 Res = gRes[i];
  
-    TVector3 x0(par[0], par[2], 0. );
-    TVector3 x1(par[0] + par[1], par[2] + par[3], 1. );
+    double u0 = tan(par[1]);
+    double v0 = tan(par[3]);
+      
+    TVector3 x0(par[0], par[2], zTgtTPC );
+    TVector3 x1(par[0] + u0, par[2] + v0, zTgtTPC+1. );
+
+    TVector3 u = (x1-x0).Unit();
+    //    TVector3 d = (pos-x0).Cross(u);
+    TVector3 AP = pos-x0;
+    double dist_AX = u.Dot(AP);
+    TVector3 AI(x0.x()+(u.x()*dist_AX),
+		x0.y()+(u.y()*dist_AX),
+		x0.z()+(u.z()*dist_AX));
+    TVector3 d = pos-AI; 
+
+    chisqr += pow( d.x()/Res.x(), 2) + pow( d.y()/Res.y(), 2) + pow( d.z()/Res.z(), 2);
+    dof++;
+  }
+
+  f = chisqr/(double)(dof-4);
+}
+
+
+//______________________________________________________________________________
+static void fcn2_rt(int &npar, double *gin, double &f, double *par, int iflag)
+{
+  double chisqr=0.0;
+  int dof = 0;
+
+
+
+  for( int i=0; i<gNumOfHits; ++i ){
+    TVector3 pos = gHitPos[i];
+    TVector3 Res = gRes[i];
+ 
+    double x_0 = par[0]/sin(par[1]);
+    double y_0 = par[2]/sin(par[3]);
+    double u0 = -1.*cos(par[1])/sin(par[1]);
+    double v0 = -1.*cos(par[3])/sin(par[3]);
+
+    // double m_Au_theta = atan(-1./u0);
+    // double m_Av_theta = atan(-1./v0);
+    // double m_Ax_r = x_0*sin(m_Au_theta);
+    // double m_Ay_r = y_0*sin(m_Av_theta);
+    
+    // if(fabs(m_Au_theta-par[1])>0.01){
+    //   std::cout<<"u: "<<m_Au_theta<<", "<<par[1]<<std::endl;
+    //   getchar();
+    // }
+    // if(fabs(m_Av_theta-par[3])>0.01){
+    //   std::cout<<"v: "<<m_Av_theta<<", "<<par[3]<<std::endl;
+    //   getchar();
+    // }
+    // if(fabs(m_Ax_r-par[0])>0.01){
+    //   std::cout<<"x: "<<m_Ax_r<<", "<<par[0]<<std::endl;
+    //   getchar();
+    // }
+    // if(fabs(m_Ay_r-par[2])>0.01){
+    //   std::cout<<"y: "<<m_Ay_r<<", "<<par[2]<<std::endl;
+    //   getchar();
+    // }
+     
+    TVector3 x0(x_0, y_0, zTgtTPC );
+    TVector3 x1(x_0 + u0, y_0 + v0, zTgtTPC+1. );
+
+    TVector3 u = (x1-x0).Unit();
+    //    TVector3 d = (pos-x0).Cross(u);
+    TVector3 AP = pos-x0;
+    double dist_AX = u.Dot(AP);
+    TVector3 AI(x0.x()+(u.x()*dist_AX),
+		x0.y()+(u.y()*dist_AX),
+		x0.z()+(u.z()*dist_AX));
+    TVector3 d = pos-AI; 
+
+    chisqr += pow( d.x()/Res.x(), 2) + pow( d.y()/Res.y(), 2) + pow( d.z()/Res.z(), 2);
+    dof++;
+  }
+
+  f = chisqr/(double)(dof-4);
+}
+
+//______________________________________________________________________________
+static void fcn2_rt2(int &npar, double *gin, double &f, double *par, int iflag)
+{
+  double chisqr=0.0;
+  int dof = 0;
+
+  for( int i=0; i<gNumOfHits; ++i ){
+    TVector3 pos = gHitPos[i];
+    TVector3 Res = gRes[i];
+ 
+    double x_0 = par[0]/cos(par[1]);
+    double y_0 = par[2]/cos(par[3]);
+    double u0 = tan(par[1]);
+    double v0 = tan(par[3]);
+
+    TVector3 x0(x_0, y_0, zTgtTPC );
+    TVector3 x1(x_0 + u0, y_0 + v0, zTgtTPC+1. );
+
     TVector3 u = (x1-x0).Unit();
     //    TVector3 d = (pos-x0).Cross(u);
     TVector3 AP = pos-x0;
@@ -202,8 +305,9 @@ TPCLocalTrack::DeleteNullHit( void )
 }
 //______________________________________________________________________________
 bool
-TPCLocalTrack::DoFit( double px0, double pu0 )
+TPCLocalTrack::DoFit( int MinHits)
 {
+
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
   if( IsFitted() ){
@@ -211,11 +315,12 @@ TPCLocalTrack::DoFit( double px0, double pu0 )
 		<< "already called" << std::endl;
     return false;
   }
+  
+  bool status_dofit =  DoLinearFit(MinHits);
+  m_is_fitted = status_dofit;
+  //  m_is_fitted = true;
 
-  DoLinearFit(px0, pu0);
-
-  m_is_fitted = true;
-  return true;
+  return status_dofit;
 }
 
 
@@ -224,28 +329,75 @@ TPCLocalTrack::DoFit( double px0, double pu0 )
 
 //______________________________________________________________________________
 bool
-TPCLocalTrack::DoLinearFit( double px0, double pu0 )
+TPCLocalTrack::DoLinearFit( int MinHits )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
-  
-  m_Ax = px0;
-  m_Au = pu0;
-  
-  double par[4]={m_Ax, m_Au, m_Ay, m_Av};
-  double err[4]={-999.,-999.,-999.,-999.};
+  DeleteNullHit();
 
   const std::size_t n = m_hit_array.size();
+
+  if(n<MinHits){
+    return false;
+  }
+
+  if(GetNDF()<1){
+    hddaq::cerr << "#W " << func_name << " "
+		<< "Min layer should be > NDF" << std::endl;
+    return false;
+  }
+
+  
   gNumOfHits = n;
+  // r = x * cos(theta) + y * sin(theta)
+  const int    theta_ndiv = 100;
+  const double theta_min  =   0;
+  const double theta_max  = 180;
+  const int    r_ndiv =  100;
+  const double r_min  = -500;
+  const double r_max  =  500;
+  TH2D *hist = new TH2D("hist",";theta (deg.); r (mm)",
+			theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
+  //hough translation for ini-param of Ay and Av
   for( std::size_t i=0; i<n; ++i ){
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp->GetLocalHitPos();
     TVector3 Res = hitp->GetResolutionVect();
-
     gHitPos[i] =pos;
     gRes[i] = Res;
+    for( int ti=0; ti<theta_ndiv; ti++ ){
+      double theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
+      hist->Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
+		 +sin(theta*acos(-1)/180.)*pos.Y());
+    }
   }
+  int maxbin = hist->GetMaximumBin();
+  int mx,my,mz;
+  hist->GetBinXYZ( maxbin, mx, my, mz );
+  double mtheta = hist->GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
+  double mr = hist->GetYaxis()->GetBinCenter(my);
+  double p0 = mr/sin(mtheta);
+  double p1 = -cos(mtheta)/sin(mtheta);  
+  
+  delete hist;
 
+  double m_Ay = p0+p1*zTgtTPC;
+  double m_Av = p1;
+  
+  double m_Au_atan = atan(m_Au);
+  double m_Av_atan = atan(m_Av);
 
+  double m_Ax_r = m_Ax*cos(m_Au_atan);
+  double m_Ay_r = m_Ay*cos(m_Av_atan);
+
+  double m_Au_theta = atan(-1./m_Au);
+  double m_Av_theta = atan(-1./m_Av);
+  double m_Ax_r2 = m_Ax*sin(m_Au_theta);
+  double m_Ay_r2 = m_Ay*sin(m_Av_theta);
+
+  double par[4]={m_Ax, m_Au_atan, m_Ay, m_Av_atan};
+  double par2[4]={m_Ax_r, m_Au_atan, m_Ay_r, m_Av_atan};
+  double par3[4]={m_Ax_r2, m_Au_theta, m_Ay_r2, m_Av_theta};
+  double err[4]={-999.,-999.,-999.,-999.};
 
 
   minuit = new TMinuit(4);
@@ -258,9 +410,7 @@ TPCLocalTrack::DoLinearFit( double px0, double pu0 )
   double arglist[10];
   arglist[0] = 1;
   minuit->mnexcm("SET NOW", arglist,1,ierflg); // No warnings                                     
-                                                                                                     
-
-  TString name[4] = {"x0", "u0", "y0", "v0"};
+  TString name[4] = {"x0_r", "atan_u0", "y0_r", "atan_v0"};
   for( int i = 0; i<4; i++ )
     {
       minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
@@ -270,7 +420,9 @@ TPCLocalTrack::DoLinearFit( double px0, double pu0 )
   arglist[0] = 1000.;
   arglist[1] = 1.0;
   minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
-
+  //minuit->mnexcm("MINOS", arglist, 0, ierflg);
+  //minuit->mnexcm("SET ERR", arglist, 2, ierflg);
+ 
   double amin, edm, errdef;
   int nvpar, nparx, icstat;
   minuit->mnstat( amin, edm, errdef, nvpar, nparx, icstat);
@@ -280,20 +432,124 @@ TPCLocalTrack::DoLinearFit( double px0, double pu0 )
   for( int i=0; i<4; i++)
     {
       minuit->mnpout(i, name[i], par[i], err[i], bnd1, bnd2, Err);
-      //std::cout<<Par[i]<<"  "<<std::endl;                                                          
+      //std::cout<<Par[i]<<"  "<<std::endl;
     }
-  
+
+
+  double chisqr1 = 100000., chisqr2=100000., chisqr3=100000.;
+ 
   m_x0=par[0];
-  m_u0=par[1];
+  m_u0=tan(par[1]);
   m_y0=par[2];
-  m_v0=par[3];
+  m_v0=tan(par[3]);
+  CalcChi2(); 
+  
+  chisqr1 = m_chisqr;
+
+  minuit->SetFCN (fcn2_rt2 );    
+  for( int i = 0; i<4; i++ )
+    {
+      minuit->mnparm(i, name[i], par2[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
+    }
+  minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
+  for( int i=0; i<4; i++)
+    {
+      minuit->mnpout(i, name[i], par2[i], err[i], bnd1, bnd2, Err);
+    }
+  m_x0=par2[0]/cos(par2[1]);
+  m_u0=tan(par2[1]);
+  m_y0=par2[2]/cos(par2[3]);
+  m_v0=tan(par2[3]);
+  CalcChi2();    
+  chisqr2 = m_chisqr;
+
+
+  minuit->SetFCN (fcn2_rt );    
+  for( int i = 0; i<4; i++ )
+    {
+      minuit->mnparm(i, name[i], par3[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
+    }
+  minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
+  for( int i=0; i<4; i++)
+    {
+      minuit->mnpout(i, name[i], par3[i], err[i], bnd1, bnd2, Err);
+    }
+  m_x0=par3[0]/sin(par3[1]);
+  m_u0=-cos(par3[1])/sin(par3[1]);
+  m_y0=par3[2]/sin(par3[3]);
+  m_v0=-cos(par3[3])/sin(par3[3]);
+
+  CalcChi2();    
+  chisqr3 = m_chisqr;
+
+  if(fabs(chisqr1)<fabs(chisqr3)&&chisqr1>0.){
+    m_x0=par[0];
+    m_u0=tan(par[1]);
+    m_y0=par[2];
+    m_v0=tan(par[3]);
+    CalcChi2(); 
+  }
+  if(fabs(chisqr2)<fabs(chisqr3)&&fabs(chisqr1)>fabs(chisqr2)&&chisqr2>0.){
+    m_x0=par2[0]/cos(par2[1]);
+    m_u0=tan(par2[1]);
+    m_y0=par2[2]/cos(par2[3]);
+    m_v0=tan(par2[3]);
+    CalcChi2();    
+  }
   
 
-  //  FitStat = icstat;
-  CalcChi2();
+  //  std::cout<<"m_chisqr="<<m_chisqr<<", chisqr1="<<chisqr1<<", chisqr2="<<chisqr2<<std::endl;
+  if(m_chisqr > MaxChisqr||std::isnan(m_chisqr))
+    return false;
+
+  int false_layer =0;
   
-  return true;
+  for( std::size_t i=0; i<m_hit_array.size(); ++i ){
+    TPCLTrackHit *hitp = m_hit_array[i];
+    TVector3 pos = hitp->GetLocalHitPos();
+    TVector3 Res = hitp->GetResolutionVect();
+    if(!Residual_check(pos,Res)){
+      // std::cout<<"false layer:"<<i<<", n="<<m_hit_array.size()<<std::endl;
+      // std::cout<<"m_u0:"<<m_u0<<", m_v0="<<m_v0<<", m_chisqr="<<m_chisqr<<std::endl;
+      m_hit_array.erase( m_hit_array.begin()+i );
+      ++false_layer;
+      --i;
+    }
+    if(m_hit_array.size()<MinHits)
+      return false; 
+  }
+  
+
+  if(false_layer ==0){
+    return true;
+  }
+  else
+    return DoLinearFit(MinHits);
 }
+
+//______________________________________________________________________________
+bool
+TPCLocalTrack::Residual_check(TVector3 pos, TVector3  Res)
+{
+  bool status_rescheck=false;
+  // TVector3 x0(m_x0, m_y0, 0. );
+  // TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1. );
+  TVector3 x0(m_x0, m_y0, zTgtTPC );
+  TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, zTgtTPC+1. );
+  TVector3 u = (x1-x0).Unit();
+  TVector3 AP = pos-x0;
+  double dist_AX = u.Dot(AP);
+  TVector3 AI(x0.x()+(u.x()*dist_AX),
+	      x0.y()+(u.y()*dist_AX),
+	      x0.z()+(u.z()*dist_AX));
+  TVector3 d = pos-AI; 
+  
+  if(d.Mag()<Res.Mag()*5.)
+    status_rescheck = true;
+  
+  return status_rescheck;
+}
+
 
 //______________________________________________________________________________
 void
@@ -309,8 +565,10 @@ TPCLocalTrack::CalcChi2( void )
     TVector3 pos = hitp->GetLocalHitPos();
     TVector3 Res = hitp->GetResolutionVect();
  
-    TVector3 x0(m_x0, m_y0, 0. );
-    TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1. );
+    // TVector3 x0(m_x0, m_y0, 0. );
+    // TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1. );
+    TVector3 x0(m_x0, m_y0, zTgtTPC );
+    TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, zTgtTPC+1. );
     TVector3 u = (x1-x0).Unit();
     TVector3 AP = pos-x0;
     double dist_AX = u.Dot(AP);

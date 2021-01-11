@@ -91,6 +91,14 @@ HoughWindowCut 10
 ### TPC layer multiplicity gate
 MinLayerTPC 8
 
+### TPC resolution parameter
+### at 1T
+TPC_Dt 0.18
+### at 0T
+#TPC_Dt 0.57
+### HIMAC val
+TPC_sigma0 0.204
+
 >>>>>>> a049adeedec2a3948f7dc046c588529b8f719fac
 ### SDCIN multiplicity gate
 MaxMultiHitSdcIn 16
@@ -143,6 +151,6 @@ TOFKID 2.1 300 840
 <<<<<<< HEAD
 
 ### TPC 
-MinLayerTPC 4
+MinLayerTPC 5
 =======
 >>>>>>> a049adeedec2a3948f7dc046c588529b8f719fac

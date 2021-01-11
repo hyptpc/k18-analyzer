@@ -27,6 +27,8 @@
 #include "TPCHit.hh"
 
 #include "DstHelper.hh"
+#include <TRandom.h>
+
 
 namespace
 {
@@ -93,6 +95,13 @@ struct Src
   Int_t evnum;
   Int_t nhittpc;                 // Number of Hits
   
+  Int_t nhPrm;
+  Double_t xPrm[MaxTPCTracks];
+  Double_t yPrm[MaxTPCTracks];
+  Double_t zPrm[MaxTPCTracks];
+  Double_t pxPrm[MaxTPCTracks];
+  Double_t pyPrm[MaxTPCTracks];
+  Double_t pzPrm[MaxTPCTracks];
 
   Int_t ititpc[MaxTPCHits];
   Int_t idtpc[MaxTPCHits];
@@ -243,12 +252,34 @@ dst::DstRead( int ievent )
   
   event.evnum = src.evnum;
   event.nhittpc = src.nhittpc;
-   
+ 
+  double u = src.pxPrm[0]/src.pzPrm[0];
+  double v = src.pyPrm[0]/src.pzPrm[0];
+  double cost = 1./std::sqrt(1.+u*u+v*v);
+  double theta=std::acos(cost)*math::Rad2Deg();
+  // if(theta>20.)
+  //   return true;
   DCAnalyzer *DCAna = new DCAnalyzer();
+ 
+  //with stable resolution
+  // for(int it=0; it<src.nhittpc; ++it){
+  //   src.x0tpc[it] += gRandom->Gaus(0,0.2);
+  //   src.y0tpc[it] += gRandom->Gaus(0,0.5);
+  //   src.z0tpc[it] += gRandom->Gaus(0,0.2);
+  // }
+  //for test
+   // for(int it=0; it<src.nhittpc; ++it){
+   //   src.xtpc[it] += gRandom->Gaus(0,0.1);
+   //   src.ztpc[it] += gRandom->Gaus(0,0.1);
+   // }
+
+
   DCAna->DecodeTPCHitsGeant4(src.nhittpc, 
    			     //src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
 			     src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
   DCAna->TrackSearchTPC();
+  
+
  
 
   int nttpc = DCAna->GetNTracksTPC();
@@ -375,11 +406,28 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("residual_y",event.residual_y,"residual_y[nttpc][32]/D");
   tree->Branch("residual_z",event.residual_z,"residual_z[nttpc][32]/D");
 
+  tree->Branch("nPrm",&src.nhittpc,"nPrm/I");
+  tree->Branch("xPrm",src.xPrm,"xPrm[nPrm]/D");
+  tree->Branch("yPrm",src.yPrm,"yPrm[nPrm]/D");
+  tree->Branch("zPrm",src.zPrm,"zPrm[nPrm]/D");
+  tree->Branch("pxPrm",src.pxPrm,"pxPrm[nPrm]/D");
+  tree->Branch("pyPrm",src.pyPrm,"pyPrm[nPrm]/D");
+  tree->Branch("pzPrm",src.pzPrm,"pzPrm[nPrm]/D");
+
+
 
   ////////// Bring Address From Dst
   TTreeCont[kTPCGeant]->SetBranchStatus("*", 0);
   TTreeCont[kTPCGeant]->SetBranchStatus("evnum",  1);
   TTreeCont[kTPCGeant]->SetBranchStatus("nhittpc",  1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("nhPrm",  1);
+
+  TTreeCont[kTPCGeant]->SetBranchStatus("xPrm",  1);  
+  TTreeCont[kTPCGeant]->SetBranchStatus("yPrm",  1);  
+  TTreeCont[kTPCGeant]->SetBranchStatus("zPrm",  1);  
+  TTreeCont[kTPCGeant]->SetBranchStatus("pxPrm",  1);  
+  TTreeCont[kTPCGeant]->SetBranchStatus("pyPrm",  1);  
+  TTreeCont[kTPCGeant]->SetBranchStatus("pzPrm",  1);  
 
   TTreeCont[kTPCGeant]->SetBranchStatus("ititpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("idtpc", 1);
@@ -413,6 +461,14 @@ ConfMan::InitializeHistograms( void )
 
   TTreeCont[kTPCGeant]->SetBranchAddress("evnum", &src.evnum);
   TTreeCont[kTPCGeant]->SetBranchAddress("nhittpc", &src.nhittpc);
+  TTreeCont[kTPCGeant]->SetBranchAddress("nhPrm", &src.nhPrm);
+
+  TTreeCont[kTPCGeant]->SetBranchAddress("xPrm", src.xPrm);
+  TTreeCont[kTPCGeant]->SetBranchAddress("yPrm", src.yPrm);
+  TTreeCont[kTPCGeant]->SetBranchAddress("zPrm", src.zPrm);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pxPrm", src.pxPrm);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pyPrm", src.pyPrm);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pzPrm", src.pzPrm);
 
   TTreeCont[kTPCGeant]->SetBranchAddress("ititpc", src.ititpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("idtpc", src.idtpc);
