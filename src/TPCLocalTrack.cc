@@ -53,6 +53,13 @@ namespace
   static const double  LowLimit[4] = { -200., -0.5*acos(-1.), -200, -0.5*acos(-1.) };
   static const double  UpLimit[4] = { 200., 0.5*acos(-1.), 200, 0.5*acos(-1.) };
   static const double  MaxChisqr = 500.;
+
+  const int    theta_ndiv = 100;
+  const double theta_min  =   0;
+  const double theta_max  = 180;
+  const int    r_ndiv =  100;
+  const double r_min  = -500;
+  const double r_max  =  500;
 }
 
 //______________________________________________________________________________
@@ -67,12 +74,12 @@ TPCLocalTrack::TPCLocalTrack( void )
     m_chisqr(1.e+10),
     m_good_for_tracking(true),
     m_n_iteration(0),
+    minuit(new TMinuit(4)),
     m_de(0.)
 {
   m_hit_array.reserve( ReservedNumOfHits );
   m_cluster_array.reserve( ReservedNumOfHits );
   debug::ObjectCounter::increase(class_name);
-  minuit = new TMinuit(4);
   TROOT minexam("LinearFit","linear fit using TMinuit");
 }
 
@@ -80,6 +87,7 @@ TPCLocalTrack::TPCLocalTrack( void )
 TPCLocalTrack::~TPCLocalTrack( void )
 {
   debug::ObjectCounter::decrease(class_name);
+  delete minuit;
 }
 
 //______________________________________________________________________________
@@ -349,14 +357,10 @@ TPCLocalTrack::DoLinearFit( int MinHits )
   
   gNumOfHits = n;
   // r = x * cos(theta) + y * sin(theta)
-  const int    theta_ndiv = 100;
-  const double theta_min  =   0;
-  const double theta_max  = 180;
-  const int    r_ndiv =  100;
-  const double r_min  = -500;
-  const double r_max  =  500;
-  TH2D *hist = new TH2D("hist",";theta (deg.); r (mm)",
-			theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
+  static TH2D hist("hist",";theta (deg.); r (mm)",
+		   theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
+  hist.Reset();
+  
   //hough translation for ini-param of Ay and Av
   for( std::size_t i=0; i<n; ++i ){
     TPCLTrackHit *hitp = m_hit_array[i];
@@ -366,20 +370,18 @@ TPCLocalTrack::DoLinearFit( int MinHits )
     gRes[i] = Res;
     for( int ti=0; ti<theta_ndiv; ti++ ){
       double theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
-      hist->Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
+      hist.Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
 		 +sin(theta*acos(-1)/180.)*pos.Y());
     }
   }
-  int maxbin = hist->GetMaximumBin();
+  int maxbin = hist.GetMaximumBin();
   int mx,my,mz;
-  hist->GetBinXYZ( maxbin, mx, my, mz );
-  double mtheta = hist->GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
-  double mr = hist->GetYaxis()->GetBinCenter(my);
+  hist.GetBinXYZ( maxbin, mx, my, mz );
+  double mtheta = hist.GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
+  double mr = hist.GetYaxis()->GetBinCenter(my);
   double p0 = mr/sin(mtheta);
   double p1 = -cos(mtheta)/sin(mtheta);  
   
-  delete hist;
-
   double m_Ay = p0+p1*zTgtTPC;
   double m_Av = p1;
   
@@ -400,8 +402,8 @@ TPCLocalTrack::DoLinearFit( int MinHits )
   double err[4]={-999.,-999.,-999.,-999.};
 
 
-  minuit = new TMinuit(4);
-  TROOT minexam("LinearFit", "Linear fit using TMinuit");
+  // minuit = new TMinuit(4);
+  // TROOT minexam("LinearFit", "Linear fit using TMinuit");
 
   minuit->SetPrintLevel(-1);
   minuit->SetFCN (fcn2 );

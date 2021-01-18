@@ -15,6 +15,7 @@
 #include "TPCHit.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCCluster.hh"
+#include <TH2D.h>
 
 class TPCHit;
 class TPCCluster;
@@ -37,6 +38,8 @@ private:
   bool   m_is_calculated; // flag of Calculate()
   std::vector<TPCLTrackHit*> m_hit_array;
   std::vector<TPCCluster*> m_cluster_array;
+  // TH2D *hist;
+
 
   double m_Ax;
   double m_Ay;

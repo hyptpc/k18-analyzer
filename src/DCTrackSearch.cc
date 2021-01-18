@@ -32,6 +32,7 @@
 
 #include "RootHelper.hh"
 
+
 namespace
 {
   const std::string& class_name("DCTrackSearch");
@@ -64,8 +65,17 @@ namespace
 					    3.5   + localPosBh2X_dX,
 					    10.5  + localPosBh2X_dX,
 					    19.0  + localPosBh2X_dX,
-					    41.5  + localPosBh2X_dX};
-
+					    41.5  + localPosBh2X_dX};  
+  //for TPC linear track
+  // r = x * cos(theta) + y * sin(theta)
+  const int    Li_theta_ndiv = 200;
+  const double Li_theta_min  =   0;
+  const double Li_theta_max  = 180;
+  const int    Li_r_ndiv =  200;
+  const double Li_r_min  = -500;
+  const double Li_r_max  =  500;
+  
+  
   //_____________________________________________________________________
   // Local Functions ____________________________________________________
 
@@ -824,6 +834,7 @@ namespace
 //______________________________________________________________________________
 namespace track
 {
+
   //______________________________________________________________________________
   int /* Local Track Search without BH2Filter */
   LocalTrackSearch( const std::vector<DCHitContainer>& HC,
@@ -1916,14 +1927,19 @@ namespace track
     double p0[MaxNumOfTrackTPC];
     double p1[MaxNumOfTrackTPC];
 
+
+    //for TPC linear track
     // r = x * cos(theta) + y * sin(theta)
-    const int    theta_ndiv = 200;
-    const double theta_min  =   0;
-    const double theta_max  = 180;
-    const int    r_ndiv =  200;
-    const double r_min  = -500;
-    const double r_max  =  500;
-    TH2D *hist[MaxNumOfTrackTPC];
+    // const int    Li_theta_ndiv = 200;
+    // const double Li_theta_min  =   0;
+    // const double Li_theta_max  = 180;
+    // const int    Li_r_ndiv =  200;
+    // const double Li_r_min  = -500;
+    // const double Li_r_max  =  500;
+    static TH2D Li_hist("hist_linear",";theta (deg.); r (mm)",
+			Li_theta_ndiv, Li_theta_min, Li_theta_max,
+			Li_r_ndiv, Li_r_min, Li_r_max);
+    Li_hist.Reset();
 
     std::vector<std::vector<int> > flag;
     flag.resize( NumOfLayersTPC );
@@ -1932,32 +1948,31 @@ namespace track
     }
 
     for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
-      hist[tracki] = new TH2D(Form("hist_%d",tracki),";theta (deg.); r (mm)",
-	  theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
+      Li_hist.Reset();
       for( int layer=0; layer<NumOfLayersTPC; layer++ ){
 	for( int ci=0, n=TPCClCont[layer].size(); ci<n; ci++ ){
 	  if( flag[layer][ci]>0 ) continue;
 	  TPCCluster* cluster = TPCClCont[layer][ci];
 	  TVector3 pos = cluster->Position();
-	  for( int ti=0; ti<theta_ndiv; ti++ ){
-	    double theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
-	    hist[tracki]->Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
-				    +sin(theta*acos(-1)/180.)*pos.X());
+	  for( int ti=0; ti<Li_theta_ndiv; ti++ ){
+	    double theta = Li_theta_min+ti*(Li_theta_max-Li_theta_min)/Li_theta_ndiv;
+	    Li_hist.Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
+			 +sin(theta*acos(-1)/180.)*pos.X());
 	  }
 	} // cluster
       } // layer
-      if( hist[tracki]->GetMaximum() < MinNumOfHits ){
-	hist[tracki]->Delete();
+      if( Li_hist.GetMaximum() < MinNumOfHits ){
+	Li_hist.Reset();
        	break;
       }
 
       TPCLocalTrack *track = new TPCLocalTrack();
 
-      int maxbin = hist[tracki]->GetMaximumBin();
+      int maxbin = Li_hist.GetMaximumBin();
       int mx,my,mz;
-      hist[tracki]->GetBinXYZ( maxbin, mx, my, mz );
-      double mtheta = hist[tracki]->GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
-      double mr = hist[tracki]->GetYaxis()->GetBinCenter(my);
+      Li_hist.GetBinXYZ( maxbin, mx, my, mz );
+      double mtheta = Li_hist.GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
+      double mr = Li_hist.GetYaxis()->GetBinCenter(my);
       p0[tracki] = mr/sin(mtheta);
       p1[tracki] = -cos(mtheta)/sin(mtheta);
 
@@ -1984,9 +1999,10 @@ namespace track
       else {
 	delete track;
       }
-      hist[tracki]->Delete();
+      //Li_hist.Delete();
+      Li_hist.Reset();
     } // track
-    
+    //delete Li_hist;
 
 //#else
 //    // TODO
@@ -2016,15 +2032,13 @@ namespace track
     double p0[MaxNumOfTrackTPC];
     double p1[MaxNumOfTrackTPC];
 
+ 
+    //for TPC linear track
     // r = x * cos(theta) + y * sin(theta)
-    const int    theta_ndiv = 200;
-    const double theta_min  =   0;
-    const double theta_max  = 180;
-    const int    r_ndiv =  200;
-    const double r_min  = -500;
-    const double r_max  =  500;
-    TH2D *hist[MaxNumOfTrackTPC];
-
+    static TH2D Li_hist("hist_linear",";theta (deg.); r (mm)",
+			Li_theta_ndiv, Li_theta_min, Li_theta_max,
+			Li_r_ndiv, Li_r_min, Li_r_max);    
+    
     std::vector<std::vector<int> > flag;
     flag.resize( NumOfLayersTPC );
     for( int layer=0; layer<NumOfLayersTPC; layer++ ){
@@ -2032,34 +2046,34 @@ namespace track
     }
 
     for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
-      hist[tracki] = new TH2D(Form("hist_%d",tracki),";theta (deg.); r (mm)",
-	  theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
+      Li_hist.Reset();
       for( int layer=0; layer<NumOfLayersTPC; layer++ ){
 	for( int ci=0, n=TPCHC[layer].size(); ci<n; ci++ ){
 	  if( flag[layer][ci]>0 ) continue;
 	  TPCHit* hit = TPCHC[layer][ci];
 	  TVector3 pos = hit->GetPos();
-	  for( int ti=0; ti<theta_ndiv; ti++ ){
-	    double theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
-	    hist[tracki]->Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
+	  for( int ti=0; ti<Li_theta_ndiv; ti++ ){
+	    double theta = Li_theta_min+ti*(Li_theta_max-Li_theta_min)/Li_theta_ndiv;
+	    Li_hist.Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
 				    +sin(theta*acos(-1)/180.)*pos.X());
 	  }
 	} // cluster
       } // layer
-      //      if( hist[tracki]->GetMaximum() < MinNumOfHits ){
-      if( hist[tracki]->GetMaximum() < MinNumOfHits/2 ){
-	hist[tracki]->Delete();
+      //      if( Li_hist.GetMaximum() < MinNumOfHits ){
+      if( Li_hist.GetMaximum() < MinNumOfHits/2 ){
+	//Li_hist.Delete();
+	Li_hist.Reset();
        	break;
       }
 
 
       TPCLocalTrack *track = new TPCLocalTrack();
 
-      int maxbin = hist[tracki]->GetMaximumBin();
+      int maxbin = Li_hist.GetMaximumBin();
       int mx,my,mz;
-      hist[tracki]->GetBinXYZ( maxbin, mx, my, mz );
-      double mtheta = hist[tracki]->GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
-      double mr = hist[tracki]->GetYaxis()->GetBinCenter(my);
+      Li_hist.GetBinXYZ( maxbin, mx, my, mz );
+      double mtheta = Li_hist.GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
+      double mr = Li_hist.GetYaxis()->GetBinCenter(my);
       p0[tracki] = mr/sin(mtheta);
       p1[tracki] = -cos(mtheta)/sin(mtheta);
 
@@ -2079,15 +2093,19 @@ namespace track
       double zTgtTPC = -143.;
       track->SetAx(p0[tracki]+p1[tracki]*zTgtTPC);
       track->SetAu(p1[tracki]);
+
       if(track->DoFit(MinNumOfHits)){
 	TrackCont.push_back(track);
       }
-      else{ 
-       	delete track;
-      }
+      else
+	delete track;
+	
+      Li_hist.Reset();      
       //delete track;
-      hist[tracki]->Delete();
+
     }//track
+ 
+    
     CalcTracksTPC( TrackCont );
 
     return status? TrackCont.size() : -1;

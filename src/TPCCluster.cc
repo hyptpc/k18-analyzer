@@ -36,6 +36,7 @@ TPCCluster::TPCCluster( double x, double y, double z, double de )
   m_charge = de;
   m_layer_id = tpc::getLayerID( tpc::findPadID(z,x) );
   m_pad_id = tpc::findPadID(z,x);
+  debug::ObjectCounter::increase(class_name);
 }
 
 //______________________________________________________________________________
@@ -49,7 +50,11 @@ TPCCluster::~TPCCluster( void )
 void 
 TPCCluster::ClearTPCHits( void )
 {
-  m_tpchits.clear();
+  //  m_tpchits.clear();
+  int n = m_tpchits.size();
+  for(int i=0; i<n; ++i){
+    delete m_tpchits[i];
+  }
   m_charge=0;
 }
 

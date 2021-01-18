@@ -14,6 +14,7 @@
 
 #include <TFile.h>
 #include <TTree.h>
+#include "DCAnalyzer.hh"
 
 // if event number mismatch is found, exit process.
 #define CheckEventNumberMismatch 0
@@ -30,6 +31,7 @@ namespace dst
   bool DstOpen( std::vector<std::string> arg );
   bool DstRead( void );
   bool DstRead( int ievent );
+  bool DstRead( int ievent, DCAnalyzer *DCAna );
   bool DstClose( void );
 
   //______________________________________________________________________________

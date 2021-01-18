@@ -28,7 +28,7 @@
 
 #include "DstHelper.hh"
 #include <TRandom.h>
-
+#include "DebugCounter.hh"
 
 namespace
 {
@@ -39,6 +39,7 @@ namespace
   const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
   const UserParamMan& gUser = UserParamMan::GetInstance();
   const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance(); 
+  debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
 
   const Int_t MaxTPCHits = 10000;
   const Int_t MaxTPCTracks = 100;
@@ -111,28 +112,28 @@ struct Src
   Double_t x0tpc[MaxTPCHits];//w/o resolution
   Double_t y0tpc[MaxTPCHits];//w/o resolution
   Double_t z0tpc[MaxTPCHits];//w/o resolution
-  Double_t resoX[MaxTPCHits];
-  Double_t pxtpc[MaxTPCHits];
-  Double_t pytpc[MaxTPCHits];
-  Double_t pztpc[MaxTPCHits];
-  Double_t pptpc[MaxTPCHits];   // total mometum
-  Double_t masstpc[MaxTPCHits];   // mass TPC
-  Double_t betatpc[MaxTPCHits];
+  //  Double_t resoX[MaxTPCHits];
+  // Double_t pxtpc[MaxTPCHits];
+  // Double_t pytpc[MaxTPCHits];
+  // Double_t pztpc[MaxTPCHits];
+  // Double_t pptpc[MaxTPCHits];   // total mometum
+  // Double_t masstpc[MaxTPCHits];   // mass TPC
+  // Double_t betatpc[MaxTPCHits];
   Double_t edeptpc[MaxTPCHits];
-  Double_t dedxtpc[MaxTPCHits];
-  Double_t slengthtpc[MaxTPCHits];
-  Int_t laytpc[MaxTPCHits];
-  Int_t rowtpc[MaxTPCHits];
-  Int_t parentID[MaxTPCHits];
-  Int_t iPadtpc[MaxTPCHits];//Pad number (0 origin)
+  // Double_t dedxtpc[MaxTPCHits];
+  // Double_t slengthtpc[MaxTPCHits];
+  // Int_t laytpc[MaxTPCHits];
+  // Int_t rowtpc[MaxTPCHits];
+  // Int_t parentID[MaxTPCHits];
+  // Int_t iPadtpc[MaxTPCHits];//Pad number (0 origin)
 
-  Double_t xtpc_pad[MaxTPCHits];//pad center
-  Double_t ytpc_pad[MaxTPCHits];//pad center(dummy)
-  Double_t ztpc_pad[MaxTPCHits];//pad center
+  // Double_t xtpc_pad[MaxTPCHits];//pad center
+  // Double_t ytpc_pad[MaxTPCHits];//pad center(dummy)
+  // Double_t ztpc_pad[MaxTPCHits];//pad center
 
-  Double_t dxtpc_pad[MaxTPCHits];//x0tpc - xtpc
-  Double_t dytpc_pad[MaxTPCHits];//y0tpc - ytpc = 0 (dummy)
-  Double_t dztpc_pad[MaxTPCHits];//z0tpc - ztpc
+  // Double_t dxtpc_pad[MaxTPCHits];//x0tpc - xtpc
+  // Double_t dytpc_pad[MaxTPCHits];//y0tpc - ytpc = 0 (dummy)
+  // Double_t dztpc_pad[MaxTPCHits];//z0tpc - ztpc
 
  
 };
@@ -163,13 +164,21 @@ main( int argc, char **argv )
   CatchSignal::Set();
 
   int ievent = 0;
+
+  // for(int ii=0; ii<100; ++ii){
+  //   std::cout<<"ii="<<ii<<std::endl;
+  //   ievent = 0;
   for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
+    gCounter.check();
     InitializeEvent();
     if( DstRead( ievent ) ) tree->Fill();
   }
+  //  }
+
 
   std::cout << "#D Event Number: " << std::setw(6)
 	    << ievent << std::endl;
+
 
   DstClose();
 
@@ -260,7 +269,7 @@ dst::DstRead( int ievent )
   // if(theta>20.)
   //   return true;
   DCAnalyzer *DCAna = new DCAnalyzer();
- 
+  
   //with stable resolution
   // for(int it=0; it<src.nhittpc; ++it){
   //   src.x0tpc[it] += gRandom->Gaus(0,0.2);
@@ -273,15 +282,15 @@ dst::DstRead( int ievent )
    //   src.ztpc[it] += gRandom->Gaus(0,0.1);
    // }
 
-
+  
   DCAna->DecodeTPCHitsGeant4(src.nhittpc, 
-   			     //src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
-			     src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
+  //  			     //src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
+   			     src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
   DCAna->TrackSearchTPC();
   
-
  
-
+ 
+  
   int nttpc = DCAna->GetNTracksTPC();
   if( MaxHits<nttpc ){
     std::cout << "#W " << func_name << " " 
@@ -330,7 +339,7 @@ dst::DstRead( int ievent )
       event.residual_z[it][ih] = res_vect.z();
     }
   }
-
+  
 
 #if 0
   std::cout<<"[event]: "<<std::setw(6)<<ievent<<" ";
@@ -437,26 +446,26 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchStatus("x0tpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("y0tpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("z0tpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("resoX", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pxtpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pytpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pztpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pptpc", 1);   // total mometum
-  TTreeCont[kTPCGeant]->SetBranchStatus("masstpc", 1);   // mass TPC
-  TTreeCont[kTPCGeant]->SetBranchStatus("betatpc", 1);
+  //  TTreeCont[kTPCGeant]->SetBranchStatus("resoX", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("pxtpc", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("pytpc", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("pztpc", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("pptpc", 1);   // total mometum
+  // TTreeCont[kTPCGeant]->SetBranchStatus("masstpc", 1);   // mass TPC
+  // TTreeCont[kTPCGeant]->SetBranchStatus("betatpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("edeptpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("dedxtpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("slengthtpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("laytpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("rowtpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("parentID", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("iPadtpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("xtpc_pad", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ytpc_pad", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ztpc_pad", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("dxtpc_pad", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("dytpc_pad", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("dztpc_pad", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("dedxtpc", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("slengthtpc", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("laytpc", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("rowtpc", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("parentID", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("iPadtpc", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("xtpc_pad", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("ytpc_pad", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("ztpc_pad", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("dxtpc_pad", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("dytpc_pad", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("dztpc_pad", 1);
 
 
   TTreeCont[kTPCGeant]->SetBranchAddress("evnum", &src.evnum);
@@ -478,26 +487,26 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchAddress("x0tpc", src.x0tpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("y0tpc", src.y0tpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("z0tpc", src.z0tpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("resoX", src.resoX);
-  TTreeCont[kTPCGeant]->SetBranchAddress("pxtpc", src.pxtpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("pytpc", src.pytpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("pztpc", src.pztpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("pptpc", src.pptpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("masstpc", src.masstpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("betatpc", src.betatpc);
+  //  TTreeCont[kTPCGeant]->SetBranchAddress("resoX", src.resoX);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("pxtpc", src.pxtpc);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("pytpc", src.pytpc);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("pztpc", src.pztpc);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("pptpc", src.pptpc);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("masstpc", src.masstpc);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("betatpc", src.betatpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("edeptpc", src.edeptpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("dedxtpc", src.dedxtpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("slengthtpc", src.slengthtpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("laytpc", src.laytpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("rowtpc", src.rowtpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("parentID", src.parentID);
-  TTreeCont[kTPCGeant]->SetBranchAddress("iPadtpc", src.iPadtpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("xtpc_pad", src.xtpc_pad);
-  TTreeCont[kTPCGeant]->SetBranchAddress("ytpc_pad", src.ytpc_pad);
-  TTreeCont[kTPCGeant]->SetBranchAddress("ztpc_pad", src.ztpc_pad); 
-  TTreeCont[kTPCGeant]->SetBranchAddress("dxtpc_pad", src.dxtpc_pad);
-  TTreeCont[kTPCGeant]->SetBranchAddress("dytpc_pad", src.dytpc_pad);
-  TTreeCont[kTPCGeant]->SetBranchAddress("dztpc_pad", src.dztpc_pad); 
+  // TTreeCont[kTPCGeant]->SetBranchAddress("dedxtpc", src.dedxtpc);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("slengthtpc", src.slengthtpc);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("laytpc", src.laytpc);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("rowtpc", src.rowtpc);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("parentID", src.parentID);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("iPadtpc", src.iPadtpc);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("xtpc_pad", src.xtpc_pad);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("ytpc_pad", src.ytpc_pad);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("ztpc_pad", src.ztpc_pad); 
+  // TTreeCont[kTPCGeant]->SetBranchAddress("dxtpc_pad", src.dxtpc_pad);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("dytpc_pad", src.dytpc_pad);
+  // TTreeCont[kTPCGeant]->SetBranchAddress("dztpc_pad", src.dztpc_pad); 
 
 
   return true;

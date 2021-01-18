@@ -163,6 +163,7 @@ DCAnalyzer::~DCAnalyzer( void )
   ClearTracksBcOut();
   ClearTracksBcOutSdcIn();
   ClearTracksSdcInSdcOut();
+  ClearTracksTPC();
   ClearDCHits();
   ClearVtxHits();
   debug::ObjectCounter::decrease(class_name);
@@ -414,7 +415,8 @@ DCAnalyzer::DecodeTPCHitsGeant4( const int nhits,
     return true;
   }
   ClearTPCClusters();
-
+  ClearTPCHits();
+  
   for( int hiti=0; hiti<nhits; hiti++ ){
     TPCCluster* cluster = new TPCCluster( x[hiti], y[hiti], z[hiti], de[hiti] );
     int layer = tpc::getLayerID( tpc::findPadID( z[hiti], x[hiti] ) );
@@ -433,11 +435,12 @@ DCAnalyzer::DecodeTPCHitsGeant4( const int nhits,
       hit->SetMRow((double)tpc::getRowID(MeanPad));//return row id
       
       if( hit->CalcTPCObservables() )
-	m_TPCHitCont[layer].push_back(hit);
+       	m_TPCHitCont[layer].push_back(hit);
       else
 	delete hit;
     }
   }
+  
   m_is_decoded[k_TPC] = true;
   return true;
 }
@@ -1223,7 +1226,8 @@ DCAnalyzer::ClearDCHits( void )
   ClearSdcInHits();
   ClearSdcOutHits();
   ClearTOFHits();
-  //ClearTPCHits();
+  ClearTPCHits();
+  ClearTPCClusters();
 }
 
 //______________________________________________________________________________
@@ -1279,6 +1283,7 @@ DCAnalyzer::ClearTPCHits( void )
 {
   del::ClearContainerAll( m_TPCHitCont );
   del::ClearContainerAll( m_TempTPCHitCont );
+
 }
 
 //______________________________________________________________________________

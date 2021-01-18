@@ -105,6 +105,8 @@ TPCHit::ClearRegisteredHits( void )
   for(int i=0; i<n; ++i){
     delete m_register_container[i];
   }
+  if(m_hit_xz) delete m_hit_xz;
+  if(m_hit_yz) delete m_hit_yz;
 }
 
 //______________________________________________________________________________                                                              
