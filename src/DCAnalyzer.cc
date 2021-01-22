@@ -1216,6 +1216,22 @@ DCAnalyzer::TrackSearchTPC( void )
 }
 
 //______________________________________________________________________________
+bool
+DCAnalyzer::TrackSearchTPC_Helix( void )
+{
+  static const int MinLayer = gUser.GetParameter("MinLayerTPC");
+
+#if UseTpcCluster
+  //  track::LocalTrackSearchTPC(m_TPCClCont, m_TPCTC_, MinLayer );
+  track::LocalTrackSearchTPC_Helix(m_TPCHitCont, m_TPCTC_Helix, MinLayer );
+#else
+  track::LocalTrackSearchTPC_Helix(m_TempTPCHitCont, m_TPCTC_Helix, MinLayer );
+#endif
+  return true;
+}
+
+
+//______________________________________________________________________________
 void
 DCAnalyzer::ClearDCHits( void )
 {
@@ -1367,7 +1383,9 @@ void
 DCAnalyzer::ClearTracksTPC( void )
 {
   del::ClearContainer( m_TPCTC );
+  del::ClearContainer( m_TPCTC_Helix );
 }
+
 
 //______________________________________________________________________________
 bool

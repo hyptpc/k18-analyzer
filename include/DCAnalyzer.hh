@@ -20,6 +20,7 @@ class HodoCluster;
 class TPCHit;
 class TPCCluster;
 class TPCLocalTrack;
+class TPCLocalTrack_Helix;
 
 class Hodo1Hit;
 class Hodo2Hit;
@@ -35,6 +36,7 @@ typedef std::vector<KuramaTrack*>  KuramaTrackContainer;
 typedef std::vector<TPCHit*>        TPCHitContainer;
 typedef std::vector<TPCCluster*>    TPCClusterContainer;
 typedef std::vector<TPCLocalTrack*> TPCLocalTrackContainer;
+typedef std::vector<TPCLocalTrack_Helix*> TPCLocalTrack_HelixContainer;
 
 typedef std::vector<Hodo1Hit*> Hodo1HitContainer;
 typedef std::vector<Hodo2Hit*> Hodo2HitContainer;
@@ -77,7 +79,7 @@ private:
   DCLocalTrackContainer m_SdcOutTC;
 
   TPCLocalTrackContainer m_TPCTC;
-
+  TPCLocalTrack_HelixContainer m_TPCTC_Helix;
 
   K18TrackU2DContainer  m_K18U2DTC;
   K18TrackD2UContainer  m_K18D2UTC;
@@ -127,12 +129,14 @@ public:
   bool TrackSearchSdcOut( const Hodo2HitContainer& HitCont );
   bool TrackSearchSdcOut( const HodoClusterContainer& ClCont );
   bool TrackSearchTPC( void );
+  bool TrackSearchTPC_Helix( void );
 
   int GetNtracksBcIn( void )   const { return m_BcInTC.size(); }
   int GetNtracksBcOut( void )  const { return m_BcOutTC.size(); }
   int GetNtracksSdcIn( void )  const { return m_SdcInTC.size(); }
   int GetNtracksSdcOut( void ) const { return m_SdcOutTC.size(); }
   int GetNTracksTPC( void ) const { return m_TPCTC.size(); }
+  int GetNTracksTPC_Helix( void ) const { return m_TPCTC_Helix.size(); }
   // Exclusive Tracks
   int GetNtracksSdcInEx( int layer ) const { return m_SdcInExTC[layer].size(); }
   int GetNtracksSdcOutEx( int layer ) const { return m_SdcOutExTC[layer].size(); }
@@ -142,6 +146,7 @@ public:
   inline DCLocalTrack* GetTrackSdcIn( int i ) const;
   inline DCLocalTrack* GetTrackSdcOut( int i ) const;
   inline TPCLocalTrack* GetTrackTPC( int i ) const;
+  inline TPCLocalTrack_Helix* GetTrackTPC_Helix( int i ) const;
   // Exclusive Tracks
   inline DCLocalTrack* GetTrackSdcInEx( int layer, int i ) const;
   inline DCLocalTrack* GetTrackSdcOutEx( int layer, int i ) const;
@@ -351,6 +356,16 @@ DCAnalyzer::GetTrackTPC( int i ) const
 {
   if( i<m_TPCTC.size() )
     return m_TPCTC[i];
+  else
+    return 0;
+}
+
+//______________________________________________________________________________
+inline TPCLocalTrack_Helix*
+DCAnalyzer::GetTrackTPC_Helix( int i ) const
+{
+  if( i<m_TPCTC_Helix.size() )
+    return m_TPCTC_Helix[i];
   else
     return 0;
 }

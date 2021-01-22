@@ -1,6 +1,6 @@
 /**
- *  file: DstTPCTrackingGeant4.cc
- *  date: 2020.04.02
+ *  file: DstTPCTrackingHelixGeant4.cc
+ *  date: 2021.01.22
  *
  */
 
@@ -23,7 +23,7 @@
 #include "HodoPHCMan.hh" 
 #include "DCAnalyzer.hh"
 #include "DCHit.hh"
-#include "TPCLocalTrack.hh"
+#include "TPCLocalTrack_Helix.hh"
 #include "TPCHit.hh"
 
 #include "DstHelper.hh"
@@ -34,7 +34,7 @@ namespace
 {
   using namespace root;
   using namespace dst;
-  const std::string& class_name("DstTPCTrackingGeant4");
+  const std::string& class_name("DstTPCTrackingHelixGeant4");
   ConfMan&            gConf = ConfMan::GetInstance();
   const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
   const UserParamMan& gUser = UserParamMan::GetInstance();
@@ -72,11 +72,14 @@ struct Event
   Int_t nttpc;                   // Number of Tracks
   Int_t nhit_track[MaxTPCTracks]; // Number of Hits (in 1 tracks)
   Double_t chisqr[MaxTPCTracks];
-  Double_t x0[MaxTPCTracks];
-  Double_t y0[MaxTPCTracks];
-  Double_t u0[MaxTPCTracks];
-  Double_t v0[MaxTPCTracks];
-  Double_t theta[MaxTPCTracks];
+  Double_t drho[MaxTPCTracks];
+  Double_t phi0[MaxTPCTracks];
+  Double_t rho[MaxTPCTracks];
+  Double_t dz[MaxTPCTracks];
+  Double_t tanL[MaxTPCTracks];
+  Double_t mom0_x[MaxTPCTracks];//Helix momentum at Y = 0
+  Double_t mom0_y[MaxTPCTracks];
+  Double_t mom0_z[MaxTPCTracks];
   Int_t hitlayer[MaxTPCTracks][MaxTPCnHits];
   Double_t hitpos_x[MaxTPCTracks][MaxTPCnHits];
   Double_t hitpos_y[MaxTPCTracks][MaxTPCnHits];
@@ -84,6 +87,13 @@ struct Event
   Double_t calpos_x[MaxTPCTracks][MaxTPCnHits];
   Double_t calpos_y[MaxTPCTracks][MaxTPCnHits];
   Double_t calpos_z[MaxTPCTracks][MaxTPCnHits];
+  Double_t mom_x[MaxTPCTracks][MaxTPCnHits];
+  Double_t mom_y[MaxTPCTracks][MaxTPCnHits];
+  Double_t mom_z[MaxTPCTracks][MaxTPCnHits];
+  Double_t momg_x[MaxTPCTracks][MaxTPCnHits];
+  Double_t momg_y[MaxTPCTracks][MaxTPCnHits];
+  Double_t momg_z[MaxTPCTracks][MaxTPCnHits];
+
   Double_t residual[MaxTPCTracks][MaxTPCnHits];
   Double_t residual_x[MaxTPCTracks][MaxTPCnHits];
   Double_t residual_y[MaxTPCTracks][MaxTPCnHits];
@@ -113,9 +123,9 @@ struct Src
   Double_t y0tpc[MaxTPCHits];//w/o resolution
   Double_t z0tpc[MaxTPCHits];//w/o resolution
   //  Double_t resoX[MaxTPCHits];
-  // Double_t pxtpc[MaxTPCHits];
-  // Double_t pytpc[MaxTPCHits];
-  // Double_t pztpc[MaxTPCHits];
+  Double_t pxtpc[MaxTPCHits];
+  Double_t pytpc[MaxTPCHits];
+  Double_t pztpc[MaxTPCHits];
   // Double_t pptpc[MaxTPCHits];   // total mometum
   // Double_t masstpc[MaxTPCHits];   // mass TPC
   // Double_t betatpc[MaxTPCHits];
@@ -175,11 +185,8 @@ main( int argc, char **argv )
   }
   //  }
 
-
   std::cout << "#D Event Number: " << std::setw(6)
 	    << ievent << std::endl;
-
-
   DstClose();
 
   return EXIT_SUCCESS;
@@ -197,13 +204,22 @@ dst::InitializeEvent( void )
   for(int i=0; i<MaxTPCTracks; ++i){
     event.nhit_track[i] =0;
     event.chisqr[i] =-9999.;
-    event.x0[i] =-9999.;
-    event.y0[i] =-9999.;
-    event.u0[i] =-9999.;
-    event.v0[i] =-9999.;
-    event.theta[i] =-9999.;
+    event.drho[i] =-9999.;
+    event.phi0[i] =-9999.;
+    event.rho[i] =-9999.;
+    event.dz[i] =-9999.;
+    event.tanL[i] =-9999.;
+    event.mom0_x[i] =-9999.;
+    event.mom0_y[i] =-9999.;
+    event.mom0_z[i] =-9999.;
     for(int j=0; j<MaxTPCnHits; ++j){
       event.hitlayer[i][j] =-999;    
+      event.mom_x[i][j] =-9999.;    
+      event.mom_y[i][j] =-9999.;    
+      event.mom_z[i][j] =-9999.;   
+      event.momg_x[i][j] =-9999.;    
+      event.momg_y[i][j] =-9999.;    
+      event.momg_z[i][j] =-9999.;   
       event.hitpos_x[i][j] =-9999.;    
       event.hitpos_y[i][j] =-9999.;    
       event.hitpos_z[i][j] =-9999.;   
@@ -216,7 +232,6 @@ dst::InitializeEvent( void )
       event.residual_z[i][j] =-9999.; 
     }
   }
-
   
   return true;
 }
@@ -286,12 +301,9 @@ dst::DstRead( int ievent )
   DCAna->DecodeTPCHitsGeant4(src.nhittpc, 
   //  			     //src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
    			     src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
-  DCAna->TrackSearchTPC();
+  DCAna->TrackSearchTPC_Helix();
   
- 
- 
-  
-  int nttpc = DCAna->GetNTracksTPC();
+  int nttpc = DCAna->GetNTracksTPC_Helix();
   if( MaxHits<nttpc ){
     std::cout << "#W " << func_name << " " 
       	      << "too many nttpc " << nttpc << "/" << MaxHits << std::endl;
@@ -299,33 +311,51 @@ dst::DstRead( int ievent )
   }
   event.nttpc = nttpc;
   for( int it=0; it<nttpc; ++it ){
-    TPCLocalTrack *tp= DCAna->GetTrackTPC(it); 
+    TPCLocalTrack_Helix *tp= DCAna->GetTrackTPC_Helix(it); 
     if(!tp) continue;
     int nh=tp->GetNHit();
     double chisqr    = tp->GetChiSquare();
 
-    double x0=tp->GetX0(), y0=tp->GetY0();
-    double u0=tp->GetU0(), v0=tp->GetV0();
-    double theta = tp->GetTheta();
+    double drho=tp->Getdrho(), phi0=tp->Getphi0();
+    double rho=tp->Getrho(), dz=tp->Getdz();
+    double tanL = tp->GettanL();
+    TVector3 mom0 = tp->GetMom0();
 
-    event.nhit_track[it]=nh;
-    event.chisqr[it]=chisqr;
-    event.x0[it]=x0;
-    event.y0[it]=y0;
-    event.u0[it]=u0;
-    event.v0[it]=v0;
-    event.theta[it]=theta;
+    event.nhit_track[it] = nh;
+    event.chisqr[it] = chisqr;
+    event.drho[it] = drho;
+    event.phi0[it] = phi0;
+    event.rho[it] = rho;
+    event.dz[it] = dz;
+    event.tanL[it] = tanL;
+    event.mom0_x[it] = mom0.X();
+    event.mom0_y[it] = mom0.Y();
+    event.mom0_z[it] = mom0.Z();
     
     for( int ih=0; ih<nh; ++ih ){
       TPCLTrackHit *hit=tp->GetHit(ih);
       
       if(!hit) continue;
       int layerId = 0;
-      layerId = hit->GetLayer();      
+      layerId = hit->GetLayer();
       TVector3 hitpos = hit->GetLocalHitPos();
-      TVector3 calpos = hit->GetLocalCalPos();
+      TVector3 calpos = hit->GetLocalCalPos_Helix();
       double residual = hit->GetResidual();
       TVector3 res_vect = hit->GetResidualVect();
+      TVector3 mom = hit->GetMomentum_Helix();      
+
+      for( int ih2=0; ih2<src.nhittpc; ++ih2 ){
+	TVector3 setpos(src.xtpc[ih2], src.ytpc[ih2], src.ztpc[ih2]);
+	//TVector3 setpos(src.xtpc0[ih], src.ytpc0[ih], src.ztpc0[ih]);
+	TVector3 d = setpos - hitpos;
+	if(fabs(d.Mag()<0.1)){
+	  event.momg_x[it][ih] = src.pxtpc[ih2];
+	  event.momg_y[it][ih] = src.pytpc[ih2];
+	  event.momg_z[it][ih] = src.pztpc[ih2];
+	  break;
+	}
+      }
+
       event.hitlayer[it][ih] = layerId;
       event.hitpos_x[it][ih] = hitpos.x();
       event.hitpos_y[it][ih] = hitpos.y();
@@ -333,6 +363,9 @@ dst::DstRead( int ievent )
       event.calpos_x[it][ih] = calpos.x();
       event.calpos_y[it][ih] = calpos.y();
       event.calpos_z[it][ih] = calpos.z();
+      event.mom_x[it][ih] = mom.x();
+      event.mom_y[it][ih] = mom.y();
+      event.mom_z[it][ih] = mom.z();
       event.residual[it][ih] = residual;
       event.residual_x[it][ih] = res_vect.x();
       event.residual_y[it][ih] = res_vect.y();
@@ -397,11 +430,15 @@ ConfMan::InitializeHistograms( void )
   
   tree->Branch("nhit_track",event.nhit_track,"nhit_track[nttpc]/I");
   tree->Branch("chisqr",event.chisqr,"chisqr[nttpc]/D");
-  tree->Branch("x0",event.x0,"x0[nttpc]/D");
-  tree->Branch("y0",event.y0,"y0[nttpc]/D");
-  tree->Branch("u0",event.u0,"u0[nttpc]/D");
-  tree->Branch("v0",event.v0,"v0[nttpc]/D");
-  tree->Branch("theta",event.theta,"theta[nttpc]/D");
+  tree->Branch("drho",event.drho,"drho[nttpc]/D");
+  tree->Branch("phi0",event.phi0,"phi0[nttpc]/D");
+  tree->Branch("rho",event.rho,"rho[nttpc]/D");
+  tree->Branch("dz",event.dz,"dz[nttpc]/D");
+  tree->Branch("tanL",event.tanL,"tanL[nttpc]/D");
+  // Momentum at Y = 0
+  tree->Branch("mom0_x",event.mom0_x,"mom0_x[nttpc]/D");
+  tree->Branch("mom0_y",event.mom0_y,"mom0_y[nttpc]/D");
+  tree->Branch("mom0_z",event.mom0_z,"mom0_z[nttpc]/D");
   
   tree->Branch("hitlayer",event.hitlayer,"hitlayer[nttpc][32]/I");
   tree->Branch("hitpos_x",event.hitpos_x,"hitpos_x[nttpc][32]/D");
@@ -410,6 +447,13 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("calpos_x",event.calpos_x,"calpos_x[nttpc][32]/D");
   tree->Branch("calpos_y",event.calpos_y,"calpos_y[nttpc][32]/D");
   tree->Branch("calpos_z",event.calpos_z,"calpos_z[nttpc][32]/D");
+  tree->Branch("mom_x",event.mom_x,"mom_x[nttpc][32]/D");
+  tree->Branch("mom_y",event.mom_y,"mom_y[nttpc][32]/D");
+  tree->Branch("mom_z",event.mom_z,"mom_z[nttpc][32]/D");
+  tree->Branch("momg_x",event.momg_x,"momg_x[nttpc][32]/D");
+  tree->Branch("momg_y",event.momg_y,"momg_y[nttpc][32]/D");
+  tree->Branch("momg_z",event.momg_z,"momg_z[nttpc][32]/D");
+
   tree->Branch("residual",event.residual,"residual[nttpc][32]/D");
   tree->Branch("residual_x",event.residual_x,"residual_x[nttpc][32]/D");
   tree->Branch("residual_y",event.residual_y,"residual_y[nttpc][32]/D");
@@ -447,9 +491,9 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchStatus("y0tpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("z0tpc", 1);
   //  TTreeCont[kTPCGeant]->SetBranchStatus("resoX", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("pxtpc", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("pytpc", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("pztpc", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("pxtpc", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("pytpc", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("pztpc", 1);
   // TTreeCont[kTPCGeant]->SetBranchStatus("pptpc", 1);   // total mometum
   // TTreeCont[kTPCGeant]->SetBranchStatus("masstpc", 1);   // mass TPC
   // TTreeCont[kTPCGeant]->SetBranchStatus("betatpc", 1);
@@ -488,9 +532,9 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchAddress("y0tpc", src.y0tpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("z0tpc", src.z0tpc);
   //  TTreeCont[kTPCGeant]->SetBranchAddress("resoX", src.resoX);
-  // TTreeCont[kTPCGeant]->SetBranchAddress("pxtpc", src.pxtpc);
-  // TTreeCont[kTPCGeant]->SetBranchAddress("pytpc", src.pytpc);
-  // TTreeCont[kTPCGeant]->SetBranchAddress("pztpc", src.pztpc);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pxtpc", src.pxtpc);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pytpc", src.pytpc);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pztpc", src.pztpc);
   // TTreeCont[kTPCGeant]->SetBranchAddress("pptpc", src.pptpc);
   // TTreeCont[kTPCGeant]->SetBranchAddress("masstpc", src.masstpc);
   // TTreeCont[kTPCGeant]->SetBranchAddress("betatpc", src.betatpc);
