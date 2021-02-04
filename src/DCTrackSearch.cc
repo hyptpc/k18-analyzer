@@ -2077,7 +2077,7 @@ namespace track
 
 
       TPCLocalTrack *track = new TPCLocalTrack();
-
+ 
       int maxbin = Li_hist.GetMaximumBin();
       int mx,my,mz;
       Li_hist.GetBinXYZ( maxbin, mx, my, mz );
@@ -2094,6 +2094,7 @@ namespace track
 	  double dist = fabs(p1[tracki]*pos.Z()-pos.X()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
 	  if( dist < HoughWindowCut ){    
 	    track->AddTPCHit(new TPCLTrackHit(hit));
+	    //	    track_he->AddTPCHit(new TPCLTrackHit(hit));
 	    flag[layer][ci]++;
 	  }
 	}
@@ -2129,7 +2130,7 @@ namespace track
 			     std::vector<TPCLocalTrack_Helix*>& TrackCont,
 			     int MinNumOfHits /*=8*/ )
   {
-
+    
     static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
     static const double HoughWindowCut = gUser.GetParameter("HoughWindowCut");
@@ -2158,30 +2159,37 @@ namespace track
     const double pmax = 2050.;//MeV/c
 
     //for TPC circle track
-    static TH3D Ci_hist("hist_circle",";rd (mm); theta (rad); p(MeV/c)",
-			nBin_rdiff, rdiff_min,  rdiff_max,
-			nBin_theta, theta_min, theta_max, 
-			nBin_p,pmin,pmax);
+    // static TH3D Ci_hist("hist_circle",";rd (mm); theta (rad); p(MeV/c)",
+    // 			nBin_rdiff, rdiff_min,  rdiff_max,
+    // 			nBin_theta, theta_min, theta_max, 
+    // 			nBin_p,pmin,pmax);
+
+    TH3D *Ci_hist=new TH3D("hist_circle",";rd (mm); theta (rad); p(MeV/c)",
+			   nBin_rdiff, rdiff_min,  rdiff_max,
+			   nBin_theta, theta_min, theta_max, 
+			   nBin_p,pmin,pmax);
+    
+
     
     std::vector<std::vector<int> > flag;
     flag.resize( NumOfLayersTPC );
     for( int layer=0; layer<NumOfLayersTPC; layer++ ){
       flag[layer].resize( TPCHC[layer].size(), 0 );
     }
-
+    
     for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
-      Ci_hist.Reset();
+      Ci_hist->Reset();
       for( int layer=0; layer<NumOfLayersTPC; layer++ ){
 	for( int ci=0, n=TPCHC[layer].size(); ci<n; ci++ ){
 	  if( flag[layer][ci]>0 ) continue;
 	  TPCHit* hit = TPCHC[layer][ci];
 	  TVector3 pos = hit->GetPos();
 	  for(int ird=0; ird<nBin_rdiff; ++ird){
-	    double rd = Ci_hist.GetXaxis()->GetBinCenter(ird+1); 
+	    double rd = Ci_hist->GetXaxis()->GetBinCenter(ird+1); 
 	    for(int ip=0; ip<nBin_p; ++ip){
 	      double x = -pos.x();
 	      double y = pos.z()-zTgtTPC;
-	      double p = Ci_hist.GetZaxis()->GetBinCenter(ip+1); 
+	      double p = Ci_hist->GetZaxis()->GetBinCenter(ip+1); 
 	      double r = p/(Const*1.);//1T
 
 	      //a*sin(theta) + b*cos(theta) +c = 0
@@ -2192,8 +2200,8 @@ namespace track
 	      double r0 = sqrt(a*a + b*b);
 	      if(fabs(-1.*c/r0)>1.){
 		// std::cout<<"No solution, "
-		// 	     <<"x:"<<x<<", y:"<<y
-		// 	     <<", r:"<<r<<", rd:"<<rd<<std::endl;	
+		// 	 <<"x:"<<x<<", y:"<<y
+		// 	 <<", r:"<<r<<", rd:"<<rd<<std::endl;	
 		continue;
 	      }
 	      double theta1_alpha =  asin(-1.*c/r0);
@@ -2228,27 +2236,36 @@ namespace track
 			 <<", theta1:"<<theta1<<", theta2:"<<theta2
 			 <<", theta_alpha:"<<theta_alpha<<std::endl;
 	      }
-	      Ci_hist.Fill(rd, theta1, p);
-	      Ci_hist.Fill(rd, theta2, p);
+	      Ci_hist->Fill(rd, theta1, p);
+	      Ci_hist->Fill(rd, theta2, p);
+	      // std::cout<<"rd: "<<rd<<", "
+	      // 	       <<"theta1: "<<theta1<<", "
+	      // 	       <<"theta2: "<<theta2<<", "
+	      // 	       <<"p: "<<p<<std::endl;
 	    }
-	  } // cluster
-	} // layer
-	if( Ci_hist.GetMaximum() < MinNumOfHits/2 ){
-	  Ci_hist.Reset();
-	  break;
-	}
+	  } 
+	}// cluster
+      } // layer
+
+      if( Ci_hist->GetMaximum() < MinNumOfHits/2 ){
+	Ci_hist->Reset();
+	break;
       }
-      
+      //std::cout<<"Maxbin0: "<<Ci_hist.GetMaximum()<<std::endl;      
       TPCLocalTrack_Helix *track = new TPCLocalTrack_Helix();
 
-      int maxbin = Ci_hist.GetMaximumBin();
+      int maxbin = Ci_hist->GetMaximumBin();
       int mx,my,mz;
-      Ci_hist.GetBinXYZ( maxbin, mx, my, mz );
-      hough_rd[tracki] = Ci_hist.GetXaxis()->GetBinCenter(mx);
-      hough_theta[tracki] = Ci_hist.GetYaxis()->GetBinCenter(my);
-      hough_p[tracki] = Ci_hist.GetZaxis()->GetBinCenter(mz);
+      Ci_hist->GetBinXYZ( maxbin, mx, my, mz );
+      hough_rd[tracki] = Ci_hist->GetXaxis()->GetBinCenter(mx);
+      hough_theta[tracki] = Ci_hist->GetYaxis()->GetBinCenter(my);
+      hough_p[tracki] = Ci_hist->GetZaxis()->GetBinCenter(mz);
       double hough_r = hough_p[tracki]/Const;
+      double hough_cx = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
+      double hough_cy = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);
       
+      //std::cout<<"Hough (x,z) Maxbin: "<<Ci_hist.GetMaximum()<<std::endl;
+      //     std::cout<<""<<std::endl;
       for( int layer=0; layer<NumOfLayersTPC; layer++ ){
 	for( int ci=0, n=TPCHC[layer].size(); ci<n; ci++ ){
 	  //if( flag[layer][ci]>0 ) continue;
@@ -2257,9 +2274,9 @@ namespace track
 	  double x = -pos.x();
 	  double y = pos.z()-zTgtTPC;
 	  
-	  double xcenter1 = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
-	  double ycenter1 = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);
-	  double r_cal = sqrt(pow(x-xcenter1,2) + pow(y-ycenter1,2));
+	  // double xcenter1 = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
+	  // double ycenter1 = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);
+	  double r_cal = sqrt(pow(x-hough_cx,2) + pow(y-hough_cy,2));
 
 	  double dist = fabs(r_cal - hough_r);
 	  if( dist < HoughWindowCut ){	    
@@ -2268,10 +2285,12 @@ namespace track
 	  }
 	}
       }
-
-      track->SetAdrho(hough_rd[tracki]);
-      track->SetAphi0(hough_theta[tracki]);
-      track->SetArho(1./hough_r);
+      // track->SetAdrho(hough_rd[tracki]);
+      // track->SetAphi0(hough_theta[tracki]);
+      // track->SetArho(1./hough_r);
+      track->SetAcx(hough_cx);
+      track->SetAcy(hough_cy);
+      track->SetAr(hough_r);
 
       if(track->DoFit(MinNumOfHits)){
 	TrackCont.push_back(track);
@@ -2279,16 +2298,14 @@ namespace track
       else
 	delete track;
 	
-      Ci_hist.Reset();      
+      //      Ci_hist->Reset();      
+
       //delete track;
-
     }//track
- 
-    
     CalcTracksTPC_Helix( TrackCont );
-
+    delete Ci_hist;      
     return status? TrackCont.size() : -1;
-
+    
     return 0;
   }
 

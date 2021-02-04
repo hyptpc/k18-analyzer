@@ -8,17 +8,16 @@
 
 #include <std_ostream.hh>
 
-#include "TMinuit.h"
+//#include "TMinuit.h"
 #include "TVector3.h"
 #include "ThreeVector.hh"
 #include "DetectorID.hh"
 #include "TPCHit.hh"
 #include "TPCLTrackHit.hh"
-#include "TPCCluster.hh"
-#include <TH2D.h>
+
+
 
 class TPCHit;
-class TPCCluster;
 class DCAnalyzer;
 
 //______________________________________________________________________________
@@ -31,35 +30,31 @@ public:
 private:
   TPCLocalTrack_Helix( const TPCLocalTrack_Helix & );
   TPCLocalTrack_Helix & operator =( const TPCLocalTrack_Helix & );
-  TMinuit *minuit;
+  //  TMinuit *minuit;
 
 private:
   bool   m_is_fitted;     // flag of DoFit()
   bool   m_is_calculated; // flag of Calculate()
   std::vector<TPCLTrackHit*> m_hit_array;
-  std::vector<TPCCluster*> m_cluster_array;
-  // TH2D *hist;
 
   //equation of Helix
   //x = -X;
   //y = Z - Tgtz;
   //z = Y;
-  //x = (1./rho + drho)*cos(phi0) - (1./rho)*cos(phi0 + helixphi)
-  //y = (1./rho + drho)*sin(phi0) - (1./rho)*sin(phi0 + helixphi)
-  //z = dz - (1./rho)*tanL*helixphi;
-  //helixphi = atan2(y-cy, x-cx)
-
-  double m_Adrho;
-  double m_Aphi0;
-  double m_Arho;
-  double m_Adz;
-  double m_AtanL;
-
-  double m_drho;
-  double m_phi0;
-  double m_rho;
+  //x = p[0] + p[3]*cos(t+theta0); 
+  //y = p[1] + p[3]*sin(t+theta0);
+  //z = p[2] + (p[4]*p[3]*t);
+  double m_cx;
+  double m_cy;
+  double m_z0;
+  double m_r;
   double m_dz;
-  double m_tanL;
+
+  double m_Acx;
+  double m_Acy;
+  double m_Az0;
+  double m_Ar;
+  double m_Adz;
 
   double m_chisqr;
   bool   m_good_for_tracking;
@@ -71,7 +66,6 @@ private:
 
 public:
   void         AddTPCHit( TPCLTrackHit *hit );
-  void         AddTPCCluster( TPCCluster *cluster );//not supported
   void         ClearHits( void );
   void         Calculate( void );
   void         DeleteNullHit( void );
@@ -79,6 +73,9 @@ public:
   //  bool         DoHelixFit( void );
   bool         DoFit( int MinHits );
   int          GetNDF( void ) const;
+
+  TVector3     GetPosition( double par[5], double t ) const;
+  TVector3     CalcHelixMom( double par[5], double y) const;
   int          GetNHit( void ) const { return m_hit_array.size();  }
   TPCLTrackHit* GetHit( std::size_t nth ) const;
   bool         IsFitted( void ) const { return m_is_fitted; }
@@ -86,28 +83,28 @@ public:
   bool         Residual_check( TVector3 pos, TVector3 Res);
   void         CalcChi2( void);
   
-  void SetAdrho( double Adrho ) { m_Adrho = Adrho; }
-  void SetAphi0( double Aphi0 ) { m_Aphi0 = Aphi0; }
-  void SetArho( double Arho ) { m_Arho = Arho; }
-  void SetAdz( double Adz )  { m_Adz = Adz; }
-  void SetAtanL( double AtanL ){  m_AtanL = AtanL; }
+  void SetAcx( double Acx ) { m_Acx = Acx; }
+  void SetAcy( double Acy ) { m_Acy = Acy; }
+  void SetAz0( double Az0 ) { m_Az0 = Az0; }
+  void SetAr( double Ar )  { m_Ar = Ar; }
+  void SetAdz( double Adz ){  m_Adz = Adz; }
  
   void SetDe( double de ) { m_de = de; }
 
-  double Getdrho( void ) const { return m_drho; }
-  double Getphi0( void ) const { return m_phi0; }
-  double Getrho( void ) const { return m_rho; }
+  double Getcx( void ) const { return m_cx; }
+  double Getcy( void ) const { return m_cy; }
+  double Getz0( void ) const { return m_z0; }
+  double Getr( void ) const { return m_r; }
   double Getdz( void ) const { return m_dz; }
-  double GettanL( void ) const { return m_tanL; }
  
   TVector3 GetMom0( void ) const { return mom0; }// Momentum at Y = 0
 
 
-  double GetAdrho( void ) const { return m_Adrho; }
-  double GetAphi0( void ) const { return m_Aphi0; }
-  double GetArho( void ) const { return m_Arho; }
+  double GetAcx( void ) const { return m_Acx; }
+  double GetAcy( void ) const { return m_Acy; }
+  double GetAz0( void ) const { return m_Az0; }
+  double GetAr( void ) const { return m_Ar; }
   double GetAdz( void ) const { return m_Adz; }
-  double GetAtanL( void ) const { return m_AtanL; }
 
   double GetChiSquare( void ) const { return m_chisqr; }
   // double GetChiX( void ) const { return m_Chix; }
@@ -124,7 +121,6 @@ public:
   bool   GoodForTracking( bool status )
   { bool ret = m_good_for_tracking; m_good_for_tracking = status; return ret; }
   double GetDe( void ) const { return m_de; }
-  void   Print( const std::string& arg="", std::ostream& ost=hddaq::cout ) const;
 };
 
 

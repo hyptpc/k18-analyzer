@@ -38,6 +38,7 @@
 #include "TPCHit.hh"
 #include "TPCCluster.hh"
 #include "TPCLocalTrack.hh"
+#include "TPCLocalTrack_Helix.hh"
 
 #define DefStatic
 #include "DCParameters.hh"

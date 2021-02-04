@@ -419,8 +419,8 @@ TPCLocalTrack::DoLinearFit( int MinHits )
     }
 
   minuit->Command("SET STRategy 0");
-  arglist[0] = 1000.;
-  arglist[1] = 1.0;
+  arglist[0] = 5000.;
+  arglist[1] = 0.01;
   minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
   //minuit->mnexcm("MINOS", arglist, 0, ierflg);
   //minuit->mnexcm("SET ERR", arglist, 2, ierflg);

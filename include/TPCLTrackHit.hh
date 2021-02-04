@@ -34,11 +34,11 @@ private:
   double  m_y0;
   double  m_u0;
   double  m_v0;
-  double  m_drho;
-  double  m_phi0;
-  double  m_rho;
+  double  m_cx;
+  double  m_cy;
+  double  m_z0;
+  double  m_r;
   double  m_dz;
-  double  m_tanL;
 
   TVector3  m_res;
 
@@ -47,8 +47,8 @@ public:
   void   SetCalPosition( TVector3 cal_pos )        { m_cal_pos = cal_pos; }
   void   SetCalX0Y0( double x0, double y0 )          { m_x0 = x0; m_y0 = y0; }
   void   SetCalUV( double u0, double v0 )            { m_u0 = u0; m_v0 = v0; }
-  void   SetCalHelix( double drho, double phi0, double rho, double dz, double tanL)
-  {m_drho = drho; m_phi0 = phi0; m_rho = rho; m_dz = dz, m_tanL = tanL;}
+  void   SetCalHelix( double cx, double cy, double z0, double r, double dz)
+  {m_cx = cx; m_cy = cy; m_z0 = z0; m_r = r, m_dz = dz;}
   int    GetLayer( void )                 const { return m_hit->GetLayer(); }
   void   SetResolution( TVector3 res )        { m_res = res; }
 
@@ -57,6 +57,7 @@ public:
   TVector3 GetLocalHitPos( void )  const { return m_local_hit_pos; }
   TVector3 GetLocalCalPos( void )  const;
   TVector3 GetLocalCalPos_Helix( void )  const;
+  TVector3 GetHelixPosition( double par[5], double t )  const;
   TVector3 GetMomentum_Helix( void )  const;
 
   double GetXcal( void )     const { return m_cal_pos.x(); }
@@ -66,12 +67,11 @@ public:
   double GetUcal( void )     const { return m_u0; }
   double GetVcal( void )     const { return m_v0; }
 
-  double Getdrho( void )     const { return m_drho; }
-  double Getphi0( void )     const { return m_phi0; }
-  double Getrho( void )      const { return m_rho; }
-  double Getdz( void )       const { return m_dz; }
-  double GettanL( void )     const { return m_tanL; }
-
+  double Getcx( void )     const { return m_cx; }
+  double Getcy( void )     const { return m_cy; }
+  double Getz0( void )      const { return m_z0; }
+  double Getr( void )       const { return m_r; }
+  double Getdz( void )     const { return m_dz; }
 
   TVector3 GetResidualVect( void ) const;
   double GetResidual( void ) const;

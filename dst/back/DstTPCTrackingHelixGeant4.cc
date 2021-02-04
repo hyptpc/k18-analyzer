@@ -44,9 +44,6 @@ namespace
   const Int_t MaxTPCHits = 10000;
   const Int_t MaxTPCTracks = 100;
   const Int_t MaxTPCnHits = 50;
-  
-  //  const bool IsWithRes = false;
-  const bool IsWithRes = true;
 }
 
 namespace dst
@@ -101,9 +98,6 @@ struct Event
   Double_t residual_x[MaxTPCTracks][MaxTPCnHits];
   Double_t residual_y[MaxTPCTracks][MaxTPCnHits];
   Double_t residual_z[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual_px[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual_py[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual_pz[MaxTPCTracks][MaxTPCnHits];
 };
 
 //_____________________________________________________________________
@@ -236,9 +230,6 @@ dst::InitializeEvent( void )
       event.residual_x[i][j] =-9999.;    
       event.residual_y[i][j] =-9999.;    
       event.residual_z[i][j] =-9999.; 
-      event.residual_px[i][j] =-9999.;    
-      event.residual_py[i][j] =-9999.;    
-      event.residual_pz[i][j] =-9999.; 
     }
   }
   
@@ -307,14 +298,9 @@ dst::DstRead( int ievent )
    // }
 
   //  std::cout<<"nhittpc"<<src.nhittpc<<std::endl;
-  if(IsWithRes)
-    DCAna->DecodeTPCHitsGeant4(src.nhittpc, 
-			       src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
-  else
-    DCAna->DecodeTPCHitsGeant4(src.nhittpc, 
-			       src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
-			       
-    
+  DCAna->DecodeTPCHitsGeant4(src.nhittpc, 
+			     src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
+   			     //src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
   DCAna->TrackSearchTPC_Helix();
   
   int nttpc = DCAna->GetNTracksTPC_Helix();
@@ -359,24 +345,17 @@ dst::DstRead( int ievent )
       TVector3 mom = hit->GetMomentum_Helix();      
 
       for( int ih2=0; ih2<src.nhittpc; ++ih2 ){
-	TVector3 setpos;
-	if(IsWithRes)
-	  setpos = TVector3(src.xtpc[ih2], src.ytpc[ih2], src.ztpc[ih2]);
-	else
-	  setpos = TVector3(src.x0tpc[ih2], src.y0tpc[ih2], src.z0tpc[ih2]);
-
+	TVector3 setpos(src.xtpc[ih2], src.ytpc[ih2], src.ztpc[ih2]);
+	//TVector3 setpos(src.xtpc0[ih], src.ytpc0[ih], src.ztpc0[ih]);
 	TVector3 d = setpos - hitpos;
 	if(fabs(d.Mag()<0.1)){
 	  event.momg_x[it][ih] = src.pxtpc[ih2];
 	  event.momg_y[it][ih] = src.pytpc[ih2];
 	  event.momg_z[it][ih] = src.pztpc[ih2];
-	  event.residual_px[it][ih] = mom.x() - src.pxtpc[ih2];
-	  event.residual_py[it][ih] = mom.y() - src.pytpc[ih2];
-	  event.residual_pz[it][ih] = mom.z() - src.pztpc[ih2];
 	  break;
 	}
       }
-      
+
       event.hitlayer[it][ih] = layerId;
       event.hitpos_x[it][ih] = hitpos.x();
       event.hitpos_y[it][ih] = hitpos.y();
@@ -461,28 +440,24 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("mom0_y",event.mom0_y,"mom0_y[nttpc]/D");
   tree->Branch("mom0_z",event.mom0_z,"mom0_z[nttpc]/D");
   
-  tree->Branch("hitlayer",event.hitlayer,"hitlayer[nttpc][64]/I");
-  tree->Branch("hitpos_x",event.hitpos_x,"hitpos_x[nttpc][64]/D");
-  tree->Branch("hitpos_y",event.hitpos_y,"hitpos_y[nttpc][64]/D");
-  tree->Branch("hitpos_z",event.hitpos_z,"hitpos_z[nttpc][64]/D");
-  tree->Branch("calpos_x",event.calpos_x,"calpos_x[nttpc][64]/D");
-  tree->Branch("calpos_y",event.calpos_y,"calpos_y[nttpc][64]/D");
-  tree->Branch("calpos_z",event.calpos_z,"calpos_z[nttpc][64]/D");
-  tree->Branch("mom_x",event.mom_x,"mom_x[nttpc][64]/D");
-  tree->Branch("mom_y",event.mom_y,"mom_y[nttpc][64]/D");
-  tree->Branch("mom_z",event.mom_z,"mom_z[nttpc][64]/D");
-  tree->Branch("momg_x",event.momg_x,"momg_x[nttpc][64]/D");
-  tree->Branch("momg_y",event.momg_y,"momg_y[nttpc][64]/D");
-  tree->Branch("momg_z",event.momg_z,"momg_z[nttpc][64]/D");
+  tree->Branch("hitlayer",event.hitlayer,"hitlayer[nttpc][32]/I");
+  tree->Branch("hitpos_x",event.hitpos_x,"hitpos_x[nttpc][32]/D");
+  tree->Branch("hitpos_y",event.hitpos_y,"hitpos_y[nttpc][32]/D");
+  tree->Branch("hitpos_z",event.hitpos_z,"hitpos_z[nttpc][32]/D");
+  tree->Branch("calpos_x",event.calpos_x,"calpos_x[nttpc][32]/D");
+  tree->Branch("calpos_y",event.calpos_y,"calpos_y[nttpc][32]/D");
+  tree->Branch("calpos_z",event.calpos_z,"calpos_z[nttpc][32]/D");
+  tree->Branch("mom_x",event.mom_x,"mom_x[nttpc][32]/D");
+  tree->Branch("mom_y",event.mom_y,"mom_y[nttpc][32]/D");
+  tree->Branch("mom_z",event.mom_z,"mom_z[nttpc][32]/D");
+  tree->Branch("momg_x",event.momg_x,"momg_x[nttpc][32]/D");
+  tree->Branch("momg_y",event.momg_y,"momg_y[nttpc][32]/D");
+  tree->Branch("momg_z",event.momg_z,"momg_z[nttpc][32]/D");
 
-  tree->Branch("residual",event.residual,"residual[nttpc][64]/D");
-  tree->Branch("residual_x",event.residual_x,"residual_x[nttpc][64]/D");
-  tree->Branch("residual_y",event.residual_y,"residual_y[nttpc][64]/D");
-  tree->Branch("residual_z",event.residual_z,"residual_z[nttpc][64]/D");
-  tree->Branch("residual_px",event.residual_px,"residual_px[nttpc][64]/D");
-  tree->Branch("residual_py",event.residual_py,"residual_py[nttpc][64]/D");
-  tree->Branch("residual_pz",event.residual_pz,"residual_pz[nttpc][64]/D");
-
+  tree->Branch("residual",event.residual,"residual[nttpc][32]/D");
+  tree->Branch("residual_x",event.residual_x,"residual_x[nttpc][32]/D");
+  tree->Branch("residual_y",event.residual_y,"residual_y[nttpc][32]/D");
+  tree->Branch("residual_z",event.residual_z,"residual_z[nttpc][32]/D");
 
   tree->Branch("nPrm",&src.nhittpc,"nPrm/I");
   tree->Branch("xPrm",src.xPrm,"xPrm[nPrm]/D");

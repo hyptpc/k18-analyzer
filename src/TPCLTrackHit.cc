@@ -7,23 +7,32 @@
 //#include "DCLTrackHit.hh"
 #include "TPCLTrackHit.hh"
 
+#include <string>
 #include <cmath>
 #include <cstring>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <TString.h>
+#include <TF1.h>
 
 #include <std_ostream.hh>
 
 #include "DCAnalyzer.hh"
 #include "MathTools.hh"
-#include "Utility_Helix.hh"
 
 
 namespace
 {
   const std::string& class_name("TPCLTrackHit");
   const double zTgtTPC = -143.;
+ 
+  //for Helix tracking
+  //[0]~[4] are the Helix parameters, 
+  //([5],[6],[7]) = (x, y, z)
+  std::string s_tmp="pow([5]-([0]+([3]*cos(x))),2)+pow([6]-([1]+([3]*sin(x))),2)+pow([7]-([2]+([3]*[4]*x)),2)";
+ 
+  static TF1 fint("fint",s_tmp.c_str(),-10.,10.);
 }
 
 //______________________________________________________________________________
@@ -33,11 +42,11 @@ TPCLTrackHit::TPCLTrackHit( TPCHit *hit )
     m_y0(-9999.),
     m_u0(-9999.),
     m_v0(-9999.),
-    m_drho(-9999.),
-    m_phi0(-9999.),
-    m_rho(-9999.),
-    m_dz(-9999.),
-    m_tanL(-9999.)
+    m_cx(-9999.),
+    m_cy(-9999.),
+    m_z0(-9999.),
+    m_r(-9999.),
+    m_dz(-9999.)
 {
   m_local_hit_pos = hit->GetPos();
   m_cal_pos = TVector3(0.,0.,0.);
@@ -55,11 +64,11 @@ TPCLTrackHit::TPCLTrackHit( const TPCLTrackHit& right )
     m_y0(right.m_y0),
     m_u0(right.m_u0),
     m_v0(right.m_v0),
-    m_drho(right.m_drho),
-    m_phi0(right.m_phi0),
-    m_rho(right.m_rho),
-    m_dz(right.m_dz),
-    m_tanL(right.m_tanL)
+    m_cx(right.m_cx),
+    m_cy(right.m_cy),
+    m_z0(right.m_z0),
+    m_r(right.m_r),
+    m_dz(right.m_dz)
 {
   m_local_hit_pos = right.m_local_hit_pos;
   m_cal_pos = right.m_cal_pos;
@@ -73,6 +82,24 @@ TPCLTrackHit::~TPCLTrackHit( void )
 {
   debug::ObjectCounter::decrease(class_name);
 }
+
+// For Helix fit
+//______________________________________________________________________________
+TVector3
+TPCLTrackHit::GetHelixPosition(double par[5], double t) const
+{
+  //This is the eqation of Helix
+  // double  x = p[0] + p[3]*cos(t+theta0); 
+  // double  y = p[1] + p[3]*sin(t+theta0);
+  // double  z = p[2] + (p[4]*p[3]*t);
+  double  x = par[0] + par[3]*cos(t); 
+  double  y = par[1] + par[3]*sin(t);
+  double  z = par[2] + (par[4]*par[3]*t);
+
+  return TVector3(x, y, z);
+}
+
+
 
 //______________________________________________________________________________
 TVector3
@@ -101,16 +128,22 @@ TPCLTrackHit::GetLocalCalPos_Helix( void ) const
   TVector3 pos(-m_local_hit_pos.X(),
 	       m_local_hit_pos.Z() - zTgtTPC,
 	       m_local_hit_pos.Y());
-  TVector3 fittmp;
-  double par[5]={m_drho, m_phi0, m_rho, m_dz, m_tanL};
-  if( !Utility_Helix::PointToHelix(pos, fittmp, par) )
-    {
-      fittmp = TVector3(-9999., -9999., -9999.);
-    }
+
+  double par[5]={m_cx, m_cy, m_z0, m_r, m_dz};
+  double fpar[8];
+  for(int ip=0; ip<5; ++ip){
+    fpar[ip] = par[ip];
+  }
+  fpar[5] = pos.X();
+  fpar[6] = pos.Y();
+  fpar[7] = pos.Z();
   
+  fint.SetParameters(fpar);
+  double min_t = fint.GetMinimumX();
+  TVector3 fittmp = GetHelixPosition(par, min_t);
   TVector3 calpos(-fittmp.X(),
-		  fittmp.Z(),
-		  fittmp.Y()+zTgtTPC);
+		   fittmp.Z(),
+		   fittmp.Y()+zTgtTPC);
   return calpos;
 }
 
@@ -120,16 +153,22 @@ TVector3
 TPCLTrackHit::GetMomentum_Helix( void ) const
 {
   TVector3 pos(-m_cal_pos.X(),
-	       m_cal_pos.Z() - zTgtTPC,
-	       m_cal_pos.Y());
+   	       m_cal_pos.Z() - zTgtTPC,
+   	       m_cal_pos.Y());
   
-  double par[5]={m_drho, m_phi0, m_rho, m_dz, m_tanL};
-  TVector3 mom_tmp = Utility_Helix::CalcHelixMom(par, pos.Z());
-  
-  TVector3 mom(-mom_tmp.X(),
-	       mom_tmp.Z(),
-	       mom_tmp.Y());
-  return mom;
+  const double Const = 0.299792458; // =c/10^9                          
+  const double dMagneticField = 1.; //T, "-1" is needed. // Should be given by field param
+  double t = (pos.Z()-m_z0)/(m_r*m_dz);
+  double pt = fabs(m_r)*(Const*dMagneticField); // MeV/c
+  //From here!!!!
+  double tmp_px = pt*(-1.*sin(t));
+  double tmp_py = pt*(cos(t));
+  double tmp_pz = pt*(m_dz);
+  double px = -tmp_px;
+  double py = tmp_pz;
+  double pz = tmp_py;
+
+  return TVector3(px,py,pz);
 }
 
 
