@@ -1,8 +1,4 @@
-/**
- *  file: TPCHit.cc
- *  date: 2020.12.21
- *
- */
+// -*- C++ -*-
 
 #include "DCHit.hh"
 #include "TPCHit.hh"
@@ -38,28 +34,45 @@ namespace
   const double zTgtTPC = -143.;
 }
 
-//__for single hit____________________________________________________________
-TPCHit::TPCHit( int padid, double y, double charge )
-  : m_pad(padid),
-    m_charge(charge)
+//_____________________________________________________________________________
+TPCHit::TPCHit( Int_t layer, Int_t row )
+  : m_pad(),
+    m_layer(),
+    m_row(),
+    m_charge(),
+    m_pos(),
+    m_is_good( false ),
+    m_is_calculated( false ),
+    m_wpos(),
+    m_angle(),
+    m_cluster_size(),
+    m_mrow(),
+    m_tpc_flag(),
+    m_hitnum(),
+    m_resx(),
+    m_resy(),
+    m_resz(),
+    m_belong_track( false ),
+    m_hit_xz(),
+    m_hit_yz()
 {
-  m_pos = tpc::getPosition(padid);
-  m_pos.SetY(y);
-  m_layer = tpc::getLayerID(padid);
-  m_row   = tpc::getRowID(padid);
-  m_is_good = true;
-  m_is_calculated = false;
-  m_hit_xz = new DCHit(m_layer, m_row);
-  m_hit_xz->SetWirePosition(m_pos.x());
-  m_hit_xz->SetZ(m_pos.z());
-  m_hit_xz->SetTiltAngle(0.);
-  m_hit_xz->SetDummyPair();
+  // m_pos = tpc::getPosition(padid);
+  // m_pos.SetY(y);
+  // m_layer = tpc::getLayerID(padid);
+  // m_row   = tpc::getRowID(padid);
+  // m_is_good = true;
+  // m_is_calculated = false;
+  // m_hit_xz = new DCHit(m_layer, m_row);
+  // m_hit_xz->SetWirePosition(m_pos.x());
+  // m_hit_xz->SetZ(m_pos.z());
+  // m_hit_xz->SetTiltAngle(0.);
+  // m_hit_xz->SetDummyPair();
 
-  m_hit_yz = new DCHit(m_layer, m_row);
-  m_hit_yz->SetWirePosition(m_pos.y());
-  m_hit_yz->SetZ(m_pos.z());
-  m_hit_yz->SetTiltAngle(90.);
-  m_hit_yz->SetDummyPair();
+  // m_hit_yz = new DCHit(m_layer, m_row);
+  // m_hit_yz->SetWirePosition(m_pos.y());
+  // m_hit_yz->SetZ(m_pos.z());
+  // m_hit_yz->SetTiltAngle(90.);
+  // m_hit_yz->SetDummyPair();
 
   debug::ObjectCounter::increase(class_name);
 }
@@ -109,7 +122,7 @@ TPCHit::ClearRegisteredHits( void )
   if(m_hit_yz) delete m_hit_yz;
 }
 
-//______________________________________________________________________________                                                              
+//______________________________________________________________________________
 bool
 TPCHit::CalcTPCObservables( void )
 {
@@ -125,7 +138,7 @@ TPCHit::CalcTPCObservables( void )
 
 
 //______________________________________________________________________________
-double 
+double
 TPCHit::GetResolutionX( void )
 {
   //calculated by using NIM paper
@@ -138,7 +151,7 @@ TPCHit::GetResolutionX( void )
   double Dt = gUser.GetParameter("TPC_Dt");
   double L_D = 30.+(y_pos*0.1);//cm
   double N_eff = 42.8;
-  double A = 0.0582*0.01;//m-1 -> cm-1     
+  double A = 0.0582*0.01;//m-1 -> cm-1
   double e_ALD = exp(-1.*A*L_D);
   //double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
   double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
@@ -154,13 +167,13 @@ TPCHit::GetResolutionX( void )
   double res_x = sqrt(s0*s0+res_xdiff*res_xdiff);
 
   //std::cout<<"res_x: "<<res_x<<std::endl;
-  
+
   return res_x;
   //return 0.2;
 }
 
 //______________________________________________________________________________
-double 
+double
 TPCHit::GetResolutionZ( void )
 {
   //calculated by using NIM paper
@@ -172,7 +185,7 @@ TPCHit::GetResolutionZ( void )
   double Dt = gUser.GetParameter("TPC_Dt");
   double L_D = 30.+(y_pos*0.1);//cm
   double N_eff = 42.8;
-  double A = 0.0582*0.01;//m-1 -> cm-1     
+  double A = 0.0582*0.01;//m-1 -> cm-1
   double e_ALD = exp(-1.*A*L_D);
   //  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
   double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
@@ -195,15 +208,15 @@ TPCHit::GetResolutionZ( void )
 }
 
 //______________________________________________________________________________
-double 
+double
 TPCHit::GetResolutionY( void )
 {
-  // temporary 
+  // temporary
   return 0.5;
 }
 
 //______________________________________________________________________________
-double 
+double
 TPCHit::GetResolution( void )
 {
   //calculated by using NIM paper
@@ -215,7 +228,7 @@ TPCHit::GetResolution( void )
   double Dt = gUser.GetParameter("TPC_Dt");
   double L_D = 30.+(y_pos*0.1);//cm
   double N_eff = 42.8;
-  double A = 0.0582*0.01;//m-1 -> cm-1     
+  double A = 0.0582*0.01;//m-1 -> cm-1
   double e_ALD = exp(-1.*A*L_D);
   //  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
   double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
@@ -257,5 +270,5 @@ TPCHit::Print( const std::string& arg, std::ostream& ost ) const
       << std::setw(w) << std::left << "charge" << m_charge << std::endl
       << std::setw(w) << std::left << "posx" << m_pos.x() << std::endl
       << std::setw(w) << std::left << "posy" << m_pos.y() << std::endl
-      << std::setw(w) << std::left << "posz" << m_pos.z() << std::endl;  
+      << std::setw(w) << std::left << "posz" << m_pos.z() << std::endl;
 }

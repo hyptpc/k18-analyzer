@@ -7,12 +7,12 @@
   <xs:element name="channel_map" type="channel_mapType"/>
 
 
-  <!-- ______________________________________________________________________-->
-  <!-- ______________________________________________________________________-->
-  <!-- _________________________________________________________________________
+  <!-- _____________________________________________________________________-->
+  <!-- _____________________________________________________________________-->
+  <!-- ________________________________________________________________________
        attributeGroup definition
   -->
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <unpackerAttrs>
   -->
   <xs:attributeGroup name="unpackerAttrs">
@@ -21,7 +21,7 @@
     <xs:attribute name="unpack" type="xs:string" default="y"/>
   </xs:attributeGroup>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <finesseAttrs>
   -->
   <xs:attributeGroup name="finesseAttrs">
@@ -29,7 +29,7 @@
     <xs:attributeGroup ref="unpackerAttrs"/>
   </xs:attributeGroup>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <tkoAttrs>
   -->
   <xs:attributeGroup name="tkoAttrs">
@@ -37,7 +37,7 @@
     <xs:attributeGroup ref="unpackerAttrs"/>
   </xs:attributeGroup>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <feraAttrs>
   -->
   <xs:attributeGroup name="feraAttrs">
@@ -45,7 +45,7 @@
     <xs:attributeGroup ref="unpackerAttrs"/>
   </xs:attributeGroup>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <vmeAttrs>
   -->
   <xs:attributeGroup name="vmeAttrs">
@@ -53,7 +53,15 @@
     <xs:attributeGroup ref="unpackerAttrs"/>
   </xs:attributeGroup>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
+       <asadAttrs>
+  -->
+  <xs:attributeGroup name="asadAttrs">
+    <xs:attribute name="address" type="xs:string" use="required"/>
+    <xs:attributeGroup ref="unpackerAttrs"/>
+  </xs:attributeGroup>
+
+  <!-- ________________________________________________________________________
        <nodeAttrs>
   -->
   <xs:attributeGroup name="nodeAttrs">
@@ -64,12 +72,12 @@
 
 
 
-  <!-- ______________________________________________________________________-->
-  <!-- ______________________________________________________________________-->
-  <!-- _________________________________________________________________________
+  <!-- _____________________________________________________________________-->
+  <!-- _____________________________________________________________________-->
+  <!-- ________________________________________________________________________
        group definition
   -->
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <feGroup>
   -->
   <xs:group name="feGroup">
@@ -79,7 +87,7 @@
     </xs:choice>
   </xs:group>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <finesseGroup>
   -->
   <xs:group name="finesseGroup">
@@ -91,7 +99,7 @@
     </xs:choice>
   </xs:group>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <tkoGroup>
   -->
   <xs:group name="tkoGroup">
@@ -106,7 +114,7 @@
     </xs:choice>
   </xs:group>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <feraGroup>
   -->
   <xs:group name="feraGroup">
@@ -117,7 +125,7 @@
     </xs:choice>
   </xs:group>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <vmeModuleGroup>
   -->
   <xs:group name="vmeModuleGroup">
@@ -146,7 +154,17 @@
     </xs:choice>
   </xs:group>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
+       <asadGroup>
+  -->
+  <xs:group name="asadModuleGroup">
+    <xs:choice>
+      <xs:element name="GetAsAd"     type="AsAdModuleType"/>
+      <xs:group   ref="feGroup"/>
+    </xs:choice>
+  </xs:group>
+
+  <!-- ________________________________________________________________________
        <nodeGroup>
   -->
   <xs:group name="nodeGroup">
@@ -158,7 +176,10 @@
       <xs:element name="HulHRTdc"        type="DAQNodeType"/>
       <xs:element name="HulMsT"          type="DAQNodeType"/>
       <xs:element name="HulMassTrigFera" type="DAQNodeType"/>
+      <xs:element name="HulUmem"         type="DAQNodeType"/>
+      <xs:element name="HulResetTime"    type="DAQNodeType"/>
       <xs:element name="VmeMaster"       type="VmeMasterType"/>
+      <xs:element name="GetCoBoMaster"   type="GetCoBoMasterType"/>
       <xs:element name="Copper"          type="CopperType"/>
       <xs:element name="CopperLite"      type="CopperType"/>
       <xs:element name="Easiroc"         type="DAQNodeType"/>
@@ -168,7 +189,7 @@
     </xs:choice>
   </xs:group>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <unpackerGroup>
   -->
   <xs:group name="unpackerLoopGroup">
@@ -179,6 +200,7 @@
       <xs:element name="Easiroc"            type="DAQNodeType"/>
       <xs:element name="VmeEasiroc"         type="DAQNodeType"/>
       <xs:element name="VmeMaster"          type="VmeMasterType"/>
+      <xs:element name="GetCoBoMaster"      type="GetCoBoMasterType"/>
       <xs:element name="SoyTimeStamp"       type="DAQNodeType"/>
       <xs:element name="Hul3DMtx"           type="DAQNodeType"/>
       <xs:element name="HulScaler"          type="DAQNodeType"/>
@@ -223,25 +245,26 @@
       <xs:element name="FinesseEncoderPPG"  type="FinesseType"/>
       <xs:element name="FinesseEncoderPtdc" type="FinesseType"/>
 
+      <xs:element name="GetAsAd"            type="AsAdModuleType"/>
+
       <xs:element name="FE"  type="FEType"/>
       <xs:element name="for" type="fe_forType"/>
     </xs:choice>
   </xs:group>
 
-
-  <!-- ______________________________________________________________________-->
-  <!-- ______________________________________________________________________-->
-  <!-- _________________________________________________________________________
+  <!-- _____________________________________________________________________-->
+  <!-- _____________________________________________________________________-->
+  <!-- ________________________________________________________________________
        complexType definition
   -->
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <channel_mapType>
   -->
   <xs:complexType name="channel_mapType">
     <xs:group ref="nodeGroup"/>
   </xs:complexType>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <DType>
   -->
   <xs:complexType name="DType">
@@ -257,7 +280,7 @@
     <xs:attribute name="data"    type="xs:string" default="0"/>
   </xs:complexType>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <FEType>
   -->
   <xs:complexType name="FEType">
@@ -268,7 +291,7 @@
     <xs:attribute name="data" type="xs:string" default="0"/>
   </xs:complexType>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <FinesseType>
   -->
   <xs:complexType name="FinesseType">
@@ -276,7 +299,7 @@
     <xs:attributeGroup ref="finesseAttrs"/>
   </xs:complexType>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <TkoType>
   -->
   <xs:complexType name="TkoType">
@@ -284,14 +307,14 @@
     <xs:attributeGroup ref="tkoAttrs"/>
   </xs:complexType>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <TkoRmType>
   -->
   <xs:complexType name="TkoRmType">
     <xs:group ref="feGroup" minOccurs="0" maxOccurs="4"/>
     <xs:attributeGroup ref="tkoAttrs"/>
   </xs:complexType>
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <TkoMHTdcType>
   -->
   <xs:complexType name="TkoMHTdcType">
@@ -299,7 +322,7 @@
     <xs:attributeGroup ref="tkoAttrs"/>
   </xs:complexType>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <TkoMHTdcCSdsType>
   -->
   <xs:complexType name="TkoMHTdcCSdsType">
@@ -307,7 +330,7 @@
     <xs:attributeGroup ref="tkoAttrs"/>
   </xs:complexType>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <FeraType>
   -->
   <xs:complexType name="FeraType">
@@ -316,7 +339,7 @@
   </xs:complexType>
 
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <VmeSmpType>
   -->
   <xs:complexType name="VmeSmpType">
@@ -324,7 +347,7 @@
     <xs:attributeGroup ref="vmeAttrs"/>
   </xs:complexType>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <VmeUmemType>
   -->
   <xs:complexType name="VmeUmemType">
@@ -332,7 +355,7 @@
     <xs:attributeGroup ref="vmeAttrs"/>
   </xs:complexType>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <VmeModuleType>
   -->
   <xs:complexType name="VmeModuleType">
@@ -340,14 +363,28 @@
     <xs:attributeGroup ref="vmeAttrs"/>
   </xs:complexType>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <VmeMasterType>
   -->
   <xs:complexType name="VmeMasterType">
     <xs:group ref="vmeModuleGroup" minOccurs="0" maxOccurs="unbounded"/>
     <xs:attributeGroup ref="nodeAttrs"/>
   </xs:complexType>
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
+       <AsAdModuleType>
+  -->
+  <xs:complexType name="AsAdModuleType">
+    <xs:group ref="feGroup" minOccurs="0" maxOccurs="unbounded"/>
+    <xs:attributeGroup ref="asadAttrs"/>
+  </xs:complexType>
+  <!-- ________________________________________________________________________
+       <GetCoBoMasterType>
+  -->
+  <xs:complexType name="GetCoBoMasterType">
+    <xs:group ref="asadModuleGroup" minOccurs="0" maxOccurs="unbounded"/>
+    <xs:attributeGroup ref="nodeAttrs"/>
+  </xs:complexType>
+  <!-- ________________________________________________________________________
        <CopperType>
   -->
   <xs:complexType name="CopperType">
@@ -355,7 +392,7 @@
     <xs:attributeGroup ref="nodeAttrs"/>
   </xs:complexType>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <DAQNodeType>
   -->
   <xs:complexType name="DAQNodeType">
@@ -363,7 +400,7 @@
     <xs:attributeGroup ref="nodeAttrs"/>
   </xs:complexType>
 
-  <!-- _________________________________________________________________________
+  <!-- ________________________________________________________________________
        <fe_forType>
   -->
   <xs:complexType name="fe_forType">

@@ -1,13 +1,17 @@
-#include<iostream>
-#include<fstream>
-#include<sstream>
+// -*- C++ -*-
 
-#include"BH1Match.hh"
-#include"DetectorID.hh"
-#include"FuncName.hh"
-#include"Exception.hh"
+#include <iomanip>
+#include <iostream>
+#include <iterator>
+#include <fstream>
+#include <sstream>
 
-//_______________________________________________________________________
+#include "BH1Match.hh"
+#include "DetectorID.hh"
+#include "FuncName.hh"
+#include "Exception.hh"
+
+//_____________________________________________________________________________
 BH1Match::Param::Param(void)
   : m_xmin(0),
     m_xmax(0)
@@ -15,13 +19,13 @@ BH1Match::Param::Param(void)
 
 }
 
-//_______________________________________________________________________
+//_____________________________________________________________________________
 BH1Match::Param::~Param(void)
 {
 
 }
 
-//_______________________________________________________________________
+//_____________________________________________________________________________
 void
 BH1Match::Param::Print(std::ostream& ost) const
 {
@@ -33,20 +37,20 @@ BH1Match::Param::Print(std::ostream& ost) const
   ost << std::endl;
 }
 
-//_______________________________________________________________________
+//_____________________________________________________________________________
 BH1Match::BH1Match(void)
   : m_param(2*NumOfSegBH1-1)
 {
   m_status.reset();
 }
 
-//_______________________________________________________________________
+//_____________________________________________________________________________
 BH1Match::~BH1Match(void)
 {
-  
+
 }
 
-//_______________________________________________________________________
+//_____________________________________________________________________________
 bool
 BH1Match::Initialize(const std::string& file_name)
 {
@@ -72,7 +76,7 @@ BH1Match::Initialize(const std::string& file_name)
 		<< " Required: " << kNParam << std::endl;
       throw Exception(FUNC_NAME + " invalid parameter.");
     }
-    
+
     const double bh1seg = cont[kBH1Segment];
     const int i_bh1seg  = static_cast<int>(2*cont[kBH1Segment]);
     const double xmin   = cont[kXMin];
@@ -82,14 +86,14 @@ BH1Match::Initialize(const std::string& file_name)
     m_param.at(i_bh1seg).m_xmin = xmin;
     m_param.at(i_bh1seg).m_xmax = xmax;
   }// read line
-  
+
   if( m_status[kVerbose] ) this->Print();
   m_status.set(kReady);
 
   return true;
 }
 
-//_______________________________________________________________________
+//_____________________________________________________________________________
 bool
 BH1Match::Judge(double bft_xpos, double bh1seg)
 {
@@ -118,7 +122,7 @@ BH1Match::Judge(double bft_xpos, double bh1seg)
   return (xmin < bft_xpos && bft_xpos < xmax);
 }
 
-//_______________________________________________________________________
+//_____________________________________________________________________________
 void
 BH1Match::Print(std::ostream& ost) const
 {

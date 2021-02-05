@@ -1,53 +1,44 @@
-/**
- *  file: TPCRawHit.cc
- *  date: 2020.04.11
- *
- */
+// -*- C++ -*-
 
 #include "TPCRawHit.hh"
 
 #include <iostream>
 #include <iterator>
 
-#include "std_ostream.hh"
+#include <std_ostream.hh>
 
 #include "DebugCounter.hh"
+#include "FuncName.hh"
 #include "TPCPadHelper.hh"
 
-namespace
+//_____________________________________________________________________________
+TPCRawHit::TPCRawHit( Int_t layer, Int_t row )
+  : m_pad_id(),
+    m_layer_id( layer ),
+    m_row_id( row )
 {
-  const std::string& class_name("TPCRawHit");
+  debug::ObjectCounter::increase( ClassName() );
 }
 
-//______________________________________________________________________________
-TPCRawHit::TPCRawHit( int padid, double y, double charge )
-  : m_pad_id(padid),
-    m_charge(charge)
-{
-  m_pos = tpc::getPosition(padid);
-  m_pos.SetY(y);
-  m_layer_id = tpc::getLayerID(padid);
-  m_row_id   = tpc::getRowID(padid);
-
-  debug::ObjectCounter::increase(class_name);
-}
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 TPCRawHit::~TPCRawHit( void )
 {
-  debug::ObjectCounter::decrease(class_name);
+  debug::ObjectCounter::decrease( ClassName() );
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-TPCRawHit::Print( const std::string& arg ) const
+TPCRawHit::AddFadc( Int_t adc )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-  std::cerr << func_name << " " << arg << std::endl
-	      << "padID  = "  << m_pad_id  << std::endl
-	      << "(x,y,z)= (" << m_pos.X() <<
-	      		   ","<< m_pos.Y() <<
-			   ","<< m_pos.Z()<<")" << std::endl
-	      << "charge = "  << m_charge  << std::endl;
-  std::cerr << std::endl;
+  m_fadc.push_back( adc );
+}
+
+//_____________________________________________________________________________
+void
+TPCRawHit::Print( Option_t* ) const
+{
+  hddaq::cout << FUNC_NAME << " " << std::endl
+              << "   layer = " << m_layer_id  << std::endl
+              << "   row   = " << m_row_id << std::endl
+              << std::endl;
 }

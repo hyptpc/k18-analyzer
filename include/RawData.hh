@@ -61,8 +61,7 @@ public:
   void                     ClearTPC( void );
   Bool_t                   DecodeHits( void );
   Bool_t                   DecodeCalibHits( void );
-  Bool_t                   DecodeTPCHits( Int_t padid, Double_t y,
-					  Double_t charge );
+  Bool_t                   DecodeTPCHits( void );
   const HodoRHitContainer& GetBH1RawHC( void ) const;
   const HodoRHitContainer& GetBH2RawHC( void ) const;
   const HodoRHitContainer& GetBACRawHC( void ) const;
@@ -96,7 +95,7 @@ private:
 		      Int_t plane, Int_t wire, Int_t data,
 		      Int_t type=kDcLeading );
   Bool_t AddTPCRawHit( TPCRHitContainer& cont,
-		       Int_t padid, Double_t y, Double_t charge );
+                       Int_t layer, Int_t row, Int_t adc );
   void   DecodeHodo( Int_t id, Int_t plane, Int_t nseg, Int_t nch,
 		     HodoRHitContainer& cont );
   void   DecodeHodo( Int_t id, Int_t nseg, Int_t nch,

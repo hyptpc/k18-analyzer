@@ -1,71 +1,76 @@
-/**
- *  file: DebugCounter.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef DEBUG_COUNTER_HH
 #define DEBUG_COUNTER_HH
 
 #include <map>
-#include <string>
-#include <vector>
+
+#include <TString.h>
 
 #include <std_ostream.hh>
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 namespace debug
 {
-  class ObjectCounter
-  {
-  public:
-    static ObjectCounter& GetInstance( void );
-    ~ObjectCounter( void );
+class ObjectCounter
+{
+public:
+  static TString        ClassName( void );
+  static ObjectCounter& GetInstance( void );
+  ~ObjectCounter( void );
 
-  private:
-    ObjectCounter( void );
-    ObjectCounter( const ObjectCounter& );
-    ObjectCounter& operator =( const ObjectCounter& );
+private:
+  ObjectCounter( void );
+  ObjectCounter( const ObjectCounter& );
+  ObjectCounter& operator =( const ObjectCounter& );
 
-  private:
-    typedef std::map<std::string,int> ObjectMap;
-    typedef ObjectMap::const_iterator ObjectIter;
-    ObjectMap m_map;
+private:
+  typedef std::map<TString, Int_t>  ObjectMap;
+  typedef ObjectMap::const_iterator ObjectIter;
+  ObjectMap m_map;
 
-  public:
-    void check( const std::string& arg="" ) const;
-    void print( const std::string& arg="" ) const;
+public:
+  void check( const TString& arg="" ) const;
+  void print( const TString& arg="" ) const;
 
-  public:
-    static void decrease( const std::string& key );
-    static void increase( const std::string& key );
-  };
+public:
+  static void decrease( const TString& key );
+  static void increase( const TString& key );
+};
 
-  //_____________________________________________________________________
-  inline ObjectCounter&
-  ObjectCounter::GetInstance( void )
-  {
-    static ObjectCounter g_instance;
-    return g_instance;
-  }
+//_____________________________________________________________________________
+inline TString
+ObjectCounter::ClassName( void )
+{
+  static TString s_name( "ObjectCounter" );
+  return s_name;
+}
 
-  //_____________________________________________________________________
-  inline void
-  ObjectCounter::decrease( const std::string& key )
-  {
+//_____________________________________________________________________________
+inline ObjectCounter&
+ObjectCounter::GetInstance( void )
+{
+  static ObjectCounter s_instance;
+  return s_instance;
+}
+
+//_____________________________________________________________________________
+inline void
+ObjectCounter::decrease( const TString& key )
+{
 #ifdef MemoryLeak
-    --(GetInstance().m_map[key]);
+  --(GetInstance().m_map[key]);
 #endif
-  }
+}
 
-  //_____________________________________________________________________
-  inline void
-  ObjectCounter::increase( const std::string& key )
-  {
+//_____________________________________________________________________________
+inline void
+ObjectCounter::increase( const TString& key )
+{
 #ifdef MemoryLeak
-    ++(GetInstance().m_map[key]);
+  ++(GetInstance().m_map[key]);
 #endif
-  }
+}
 
 }
 

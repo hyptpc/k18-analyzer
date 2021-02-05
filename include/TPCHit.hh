@@ -1,8 +1,4 @@
-/**
- *  file: TPCHit.hh based on DCHit.cc
- *  date: 2020.12.21
- *
- */
+// -*- C++ -*-
 
 #ifndef TPC_HIT_HH
 #define TPC_HIT_HH
@@ -28,28 +24,25 @@
 class TPCLTrackHit;
 class DCHit;
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class TPCHit
 {
 public:
-  TPCHit(int padid, double y, double charge);//for single hit
-  TPCHit(int padid, TVector3 pos, double charge);// for cluster hit
+  static TString ClassName( void );
+  TPCHit( Int_t layer, Int_t row );
+  TPCHit( int padid, TVector3 pos, double charge);// for cluster hit
   ~TPCHit( void );
-  // DCHit( void );
-  // DCHit( int layer );
-  // DCHit( int layer, double wire );
-
 
 private:
   TPCHit( const TPCHit& );
   TPCHit& operator =( const TPCHit& );
-  
+
 protected:
   int       m_pad;
   int       m_layer;
   int       m_row;
   double    m_charge;
-  TVector3  m_pos; 
+  TVector3  m_pos;
   int       m_is_good;
   int       m_is_calculated;
 
@@ -63,7 +56,7 @@ protected:
 
   ///// for TPC
   int    m_hitnum;
- 
+
   double m_resx;
   double m_resy;
   double m_resz;
@@ -93,9 +86,9 @@ public:
   void SetClusterSize( int size )          { m_cluster_size = size; }
   void SetMRow( double mrow )             { m_mrow  = mrow; }
   void SetTPCFlag( bool flag )            { m_tpc_flag = flag; }
-  
+
   void SetHitNum( int hitnum ) { m_hitnum = hitnum; }
-  
+
   void SetResX( double resx ) { m_resx = resx; }
   void SetResY( double resy ) { m_resy = resy; }
   void SetResZ( double resz ) { m_resz = resz; }
@@ -111,21 +104,18 @@ public:
   double GetY( void )		const { return m_pos.Y(); }
   double GetZ( void )		const { return m_pos.Z(); }
 
-
-
-
   int GetClusterSize ( void ) const { return m_cluster_size; }
   double GetMRow ( void ) const { return m_mrow; }
   bool GetTPCFlag ( void ) const { return m_tpc_flag; }
-  
+
   int GetHitNum ( void ) const { return m_hitnum; }
-  
+
   double GetResolutionX( void )  ;
   double GetResolutionY( void )  ;
   double GetResolutionZ( void )  ;
   double GetResolution( void )   ;
-  
-  bool IsGoodHit( void ) const { return m_is_good; } 
+
+  bool IsGoodHit( void ) const { return m_is_good; }
 
 
   double GetTiltAngle( void ) const { return m_angle; }
@@ -148,12 +138,20 @@ protected:
   void ClearRegisteredHits( void );
 };
 
-//_____________________________________________________________________
-// inline std::ostream&
-// operator <<( std::ostream& ost, const DCHit& hit )
-// {
-//   hit.Print( "", ost );
-//   return ost;
-// }
+//_____________________________________________________________________________
+inline TString
+TPCHit::ClassName( void )
+{
+  static TString s_name( "TPCHit" );
+  return s_name;
+}
+
+//_____________________________________________________________________________
+inline std::ostream&
+operator <<( std::ostream& ost, const TPCHit& hit )
+{
+  hit.Print( "", ost );
+  return ost;
+}
 
 #endif

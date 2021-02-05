@@ -359,10 +359,29 @@ RawData::DecodeHits( void )
 
 //_____________________________________________________________________________
 bool
-RawData::DecodeTPCHits( Int_t padid, Double_t y, Double_t charge )
+RawData::DecodeTPCHits( void )
 {
-  Int_t layer = tpc::getLayerID(padid);
-  AddTPCRawHit( m_TPCRawHC[layer], padid, y, charge );
+  static const auto k_tpc = gUnpacker.get_device_id( "TPC" );
+  static const auto k_adc = gUnpacker.get_data_id( "TPC", "adc" );
+
+  if( m_is_decoded ){
+    hddaq::cout << "#D " << FUNC_NAME << " "
+		<< "already decoded!" << std::endl;
+    return false;
+  }
+
+  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+    const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
+    for( Int_t r=0; r<NumOfRow; ++r ){
+      const auto nhit = gUnpacker.get_entries( k_tpc, layer, 0, r, k_adc );
+      for( Int_t i=0; i<nhit; ++i ){
+        auto adc = gUnpacker.get( k_tpc, layer, 0, r, k_adc, i );
+        AddTPCRawHit( m_TPCRawHC[layer], layer, r, adc );
+      }
+    }
+  }
+
+  m_is_decoded = true;
   return true;
 }
 
@@ -469,21 +488,20 @@ RawData::AddDCRawHit( DCRHitContainer& cont,
 //_____________________________________________________________________________
 Bool_t
 RawData::AddTPCRawHit( TPCRHitContainer& cont,
-		       Int_t padid, Double_t y, Double_t charge )
+                       Int_t layer, Int_t row, Int_t adc )
 {
   TPCRawHit* p = nullptr;
   for( Int_t i=0, n=cont.size(); i<n; ++i ){
     TPCRawHit* q = cont[i];
-    if( q->PadId() == padid &&
-	q->Y() == y ){
+    if( q->LayerId() == layer && q->RowId() == row ){
       p=q; break;
     }
   }
   if( !p ){
-    p = new TPCRawHit( padid, y, charge );
+    p = new TPCRawHit( layer, row );
     cont.push_back(p);
   }
-
+  p->AddFadc( adc );
   return true;
 }
 

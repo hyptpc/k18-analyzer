@@ -133,6 +133,8 @@ const int NumOfLayersFBT    = PlMaxFBT2   - PlMinFBT1   + 1;
 const int NumOfLayersSdcOut = PlMaxSdcOut - PlMinSdcOut + 1 + (PlMaxFBT2 - PlMinFBT1 + 1); // including FBT
 const int NumOfLayersVP     = 5;
 const int NumOfLayersTPC    = 32;
+const int NumOfPadTPC       = 5768;
+const int NumOfTimeBucket   = 200;
 
 const int MaxWireBC3      =  64;
 const int MaxWireBC4      =  64;

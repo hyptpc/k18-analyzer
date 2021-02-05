@@ -1,44 +1,43 @@
-/**
- *  file: TPCRawHit.hh
- *  date: 2020.04.11
- *
- */
+// -*- C++ -*-
 
 #ifndef TPC_RAW_HIT_HH
 #define TPC_RAW_HIT_HH
 
-#include <cstddef>
-#include <string>
 #include <vector>
 
-#include <TVector3.h>
+#include <TString.h>
 
+typedef std::vector<Int_t> FADC_t;
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class TPCRawHit
 {
 public:
-  TPCRawHit( int padid, double y, double charge );
+  static TString ClassName( void );
+  TPCRawHit( Int_t layer, Int_t row );
   ~TPCRawHit( void );
 
 private:
-  int      m_pad_id;
-  int      m_layer_id;
-  int      m_row_id;
-  double   m_charge;
-  TVector3 m_pos;
+  Int_t  m_pad_id;
+  Int_t  m_layer_id;
+  Int_t  m_row_id;
+  FADC_t m_fadc;
 
 public:
-  int  PadId( void )		const { return m_pad_id; }
-  int  LayerId( void )		const { return m_layer_id; }
-  int  RowId( void )		const { return m_row_id; }
-  TVector3  Position( void )	const { return m_pos; }
-  double X( void )		const { return m_pos.X(); }
-  double Y( void )		const { return m_pos.Y(); }
-  double Z( void )		const { return m_pos.Z(); }
-  double Charge( void )		const { return m_charge; }
-  
-  void Print( const std::string& arg="" ) const;
+  void          AddFadc( Int_t adc );
+  const FADC_t& Fadc( void ) const { return m_fadc; }
+  Int_t         LayerId( void ) const { return m_layer_id; }
+  Int_t         PadId( void ) const { return m_pad_id; }
+  void          Print( Option_t* opt="" ) const;
+  Int_t         RowId( void ) const { return m_row_id; }
 };
+
+//_____________________________________________________________________________
+inline TString
+TPCRawHit::ClassName( void )
+{
+  static TString s_name( "TPCRawHit" );
+  return s_name;
+}
 
 #endif

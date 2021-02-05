@@ -20,7 +20,7 @@
 #include "MathTools.hh"
 #include "RootHelper.hh"
 #include "UserParamMan.hh"
-#include "HodoPHCMan.hh" 
+#include "HodoPHCMan.hh"
 #include "DCAnalyzer.hh"
 #include "DCHit.hh"
 #include "RawData.hh"
@@ -35,7 +35,7 @@ namespace
   ConfMan&            gConf = ConfMan::GetInstance();
   const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
   const UserParamMan& gUser = UserParamMan::GetInstance();
-  const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance(); 
+  const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
   const int MaxTPCHits = 10000;
   const int NumOfCobos = 8;
 }
@@ -50,14 +50,14 @@ namespace dst
     kOutFile, nArgc
   };
   std::vector<TString> ArgName =
-  { "[Process]", "[ConfFile]", 
+  { "[Process]", "[ConfFile]",
     "[TPCHit_0]", "[TPCHit_1]", "[TPCHit_2]", "[TPCHit_3]",
     "[TPCHit_4]", "[TPCHit_5]", "[TPCHit_6]", "[TPCHit_7]",
     "[OutFile]" };
   std::vector<TString> TreeName =
-  { "", "", 
-    "tpchit0", "tpchit1", "tpchit2", "tpchit3", 
-    "tpchit4", "tpchit5", "tpchit6", "tpchit7", 
+  { "", "",
+    "tpchit0", "tpchit1", "tpchit2", "tpchit3",
+    "tpchit4", "tpchit5", "tpchit6", "tpchit7",
     "" };
   std::vector<TFile*> TFileCont;
   std::vector<TTree*> TTreeCont;
@@ -68,14 +68,14 @@ struct Event
 {
   int evnum;
   int status;
-  int nhittpc; 
+  int nhittpc;
 };
 
 //_____________________________________________________________________
 struct Src
 {
   int evnum;
-  int nhittpc;           
+  int nhittpc;
 
   int padidtpc[MaxTPCHits];
   double ytpc[MaxTPCHits];
@@ -127,7 +127,7 @@ dst::InitializeEvent( void )
 {
   event.status   = 0;
   event.evnum = 0;
-  event.nhittpc = 0; 
+  event.nhittpc = 0;
 
 
   // for( int i=0; i<MaxTPCHits; ++i ){
@@ -175,7 +175,7 @@ dst::DstRead( int ievent )
 
   RawData *rawData = new RawData();
   DCAnalyzer *DCAna = new DCAnalyzer();
-  for( int coboi=0; coboi < NumOfCobos; coboi++) 
+  for( int coboi=0; coboi < NumOfCobos; coboi++)
   {
     if( coboi==0 ) event.evnum = src[coboi].evnum;
     else {
@@ -186,11 +186,11 @@ dst::DstRead( int ievent )
     }
     event.nhittpc += src[coboi].nhittpc;
 
-    for(int hiti=0; hiti<src[coboi].nhittpc; hiti++) 
+    for(int hiti=0; hiti<src[coboi].nhittpc; hiti++)
     {
-      rawData->DecodeTPCHits( src[coboi].padidtpc[hiti], 
-	  		   src[coboi].ytpc[hiti], 
-			   src[coboi].chargetpc[hiti] );
+      // rawData->DecodeTPCHits( src[coboi].padidtpc[hiti],
+      //     		   src[coboi].ytpc[hiti],
+      //   		   src[coboi].chargetpc[hiti] );
     }
   }
 
@@ -248,13 +248,13 @@ ConfMan::InitializeHistograms( void )
 
   HBTree( "ktpc_g", "tree of DstTPC_g" );
 
-  tree->Branch("status", &event.status, "status/I" );  
-  tree->Branch("evnum", &event.evnum, "evnum/I" );  
+  tree->Branch("status", &event.status, "status/I" );
+  tree->Branch("evnum", &event.evnum, "evnum/I" );
   tree->Branch("nhittpc",&event.nhittpc,"nhittpc/I");
 
 
   ////////// Bring Address From Dst
-  for( int coboi=kTpcHit_0; coboi<kTpcHit_0 + NumOfCobos; coboi++ ) 
+  for( int coboi=kTpcHit_0; coboi<kTpcHit_0 + NumOfCobos; coboi++ )
   {
     TTreeCont[coboi]->SetBranchStatus("*", 0);
     TTreeCont[coboi]->SetBranchStatus("evnum",  1);
@@ -284,7 +284,7 @@ ConfMan::InitializeParameterFiles( void )
   return
     ( InitializeParameter<DCGeomMan>("DCGEO")   &&
       InitializeParameter<UserParamMan>("USER") &&
-      InitializeParameter<HodoPHCMan>("HDPHC") ); 
+      InitializeParameter<HodoPHCMan>("HDPHC") );
 }
 
 //_____________________________________________________________________

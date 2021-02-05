@@ -367,17 +367,16 @@ DCAnalyzer::DecodeTPCHits( RawData *rawData )
   ClearTPCHits();
 
   for( int layer=0; layer<=NumOfLayersTPC; ++layer ){
-    const TPCRHitContainer &RHitCont=rawData->GetTPCRawHC(layer);
-    int nh = RHitCont.size();
-    for( int i=0; i<nh; ++i ){
+    const auto& RHitCont=rawData->GetTPCRawHC( layer );
+    for( Int_t i=0, n=RHitCont.size(); i<n; ++i ){
       TPCRawHit *rhit  = RHitCont[i];
-      TPCHit    *hit   = new TPCHit( rhit->PadId(), rhit->Y(), rhit->Charge() );
-
+      TPCHit    *hit   = new TPCHit( rhit->LayerId(), rhit->RowId() );
       if( hit->CalcTPCObservables() )
-	m_TempTPCHitCont[layer].push_back(hit);
+	m_TempTPCHitCont[layer].push_back( hit );
       else
 	delete hit;
     }
+
 #if UseTpcCluster
     ClusterizeTPC( layer, m_TempTPCHitCont[layer], m_TPCClCont[layer] );
     int ncl = m_TPCClCont[layer].size();
@@ -389,13 +388,12 @@ DCAnalyzer::DecodeTPCHits( RawData *rawData )
       TPCHit  *hit  = new TPCHit( MeanPad, pos, charge);
       hit->SetClusterSize(p->GetClusterSize());
       hit->SetMRow(p->MeanRow());
-
       if( hit->CalcTPCObservables() )
 	m_TPCHitCont[layer].push_back(hit);
       else
 	delete hit;
     }
-    
+
 #endif
   }
 
@@ -417,13 +415,13 @@ DCAnalyzer::DecodeTPCHitsGeant4( const int nhits,
   }
   ClearTPCClusters();
   ClearTPCHits();
-  
+
   for( int hiti=0; hiti<nhits; hiti++ ){
     TPCCluster* cluster = new TPCCluster( x[hiti], y[hiti], z[hiti], de[hiti] );
     int layer = tpc::getLayerID( tpc::findPadID( z[hiti], x[hiti] ) );
     if( cluster ) m_TPCClCont[layer].push_back( cluster );
   }
-  
+
   for( int layer=0; layer<=NumOfLayersTPC; ++layer ){
     int ncl = m_TPCClCont[layer].size();
     for(int i=0; i<ncl; ++i){
@@ -434,14 +432,14 @@ DCAnalyzer::DecodeTPCHitsGeant4( const int nhits,
       TPCHit  *hit  = new TPCHit( MeanPad, pos, charge);
       hit->SetClusterSize(1);
       hit->SetMRow((double)tpc::getRowID(MeanPad));//return row id
-      
+
       if( hit->CalcTPCObservables() )
        	m_TPCHitCont[layer].push_back(hit);
       else
 	delete hit;
     }
   }
-  
+
   m_is_decoded[k_TPC] = true;
   return true;
 }
