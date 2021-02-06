@@ -1,9 +1,4 @@
-/**   -*- C++ -*-
- *
- *  file: Utility.hh
- *  date: 2017.06.17
- *
- */
+// -*- C++ -*-
 
 #ifndef UTILITY_HH
 #define UTILITY_HH
@@ -12,11 +7,11 @@
 
 #include "UnpackerManager.hh"
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 namespace utility
 {
-  UInt_t     EBDataSize( void );
-  TTimeStamp TimeStamp( void );
+UInt_t     EBDataSize( void );
+TTimeStamp TimeStamp( void );
 }
 
 #endif

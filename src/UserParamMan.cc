@@ -1,8 +1,4 @@
-/**
- *  file: UserParamMan.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "UserParamMan.hh"
 
@@ -16,10 +12,11 @@
 
 #include <std_ostream.hh>
 
+#include "FuncName.hh"
+
 namespace
 {
-  const std::string& class_name("UserParamMan");
-  const double default_value = -9999.;
+const Double_t default_value = -9999.;
 }
 
 // if no parameter,
@@ -42,11 +39,9 @@ UserParamMan::~UserParamMan( void )
 bool
 UserParamMan::Initialize( void )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   std::ifstream ifs( m_file_name.c_str() );
   if( !ifs.is_open() ){
-    hddaq::cerr << "#E " << func_name << " "
+    hddaq::cerr << "#E " << FUNC_NAME << " "
 		<< "No such parameter file : " << m_file_name << std::endl;
     std::exit(EXIT_FAILURE);
   }
@@ -85,12 +80,10 @@ UserParamMan::Initialize( const std::string& filename )
 int
 UserParamMan::GetSize( const std::string& key ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   PIterator itr = m_param_map.find(key);
   if( itr==m_param_map.end() ){
     Print(m_file_name);
-    hddaq::cerr << "#E " << func_name << " "
+    hddaq::cerr << "#E " << FUNC_NAME << " "
 		<< "No such key : " << key << std::endl;
     return 0;
   }
@@ -102,8 +95,6 @@ UserParamMan::GetSize( const std::string& key ) const
 double
 UserParamMan::GetParameter( const std::string& key, std::size_t i ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   std::stringstream param;
   param << key << "(" << i << ")";
 
@@ -112,24 +103,24 @@ UserParamMan::GetParameter( const std::string& key, std::size_t i ) const
   if( itr==m_param_map.end() ){
     Print( m_file_name );
 #if ReturnDefaultValue
-    hddaq::cerr << "#E " << func_name
+    hddaq::cerr << "#E " << FUNC_NAME
 		<< "set default value : "       << param.str() << " -> "
 		<< default_value << std::endl;
     return default_value;
 #else
-    throw std::out_of_range( func_name+" No such key : "+key );
+    throw std::out_of_range( FUNC_NAME+" No such key : "+key );
 #endif
   }
 
   if( i+1 > itr->second.size() ){
     Print( m_file_name );
 #if ReturnDefaultValue
-    hddaq::cerr << "#E " << func_name
+    hddaq::cerr << "#E " << FUNC_NAME
 		<< "set default value : "        << param.str() << " -> "
 		<< default_value << std::endl;
     return default_value;
 #else
-    throw std::out_of_range( func_name+" No such key : "+key );
+    throw std::out_of_range( FUNC_NAME+" No such key : "+key );
 #endif
   }
 
@@ -140,9 +131,7 @@ UserParamMan::GetParameter( const std::string& key, std::size_t i ) const
 void
 UserParamMan::Print( const std::string& arg ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  hddaq::cout << "#D " << func_name << " " << arg << std::endl;
+  hddaq::cout << "#D " << FUNC_NAME << " " << arg << std::endl;
 
   const int w = 20;
   PIterator itr, end=m_param_map.end();

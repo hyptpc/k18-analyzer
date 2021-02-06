@@ -77,11 +77,11 @@ def display( filename ) :
                + os.path.basename( item['root'] )[-16:].ljust(16) + '  '\
                + ptime.rjust(8)
         print( buff )
-    if n_unfinished == 0:
-      print('finished')
-      return False
-    else:
-      return True
+    # if n_unfinished == 0:
+    #   print('finished')
+    #   return False
+    # else:
+    return True
     # buff = cl.reverce + cl.bold + 'Press \'Ctrl-C\' to exit' + cl.end
     # print( buff )
 

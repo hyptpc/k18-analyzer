@@ -176,7 +176,9 @@ UserEvent::ProcessingNormal( void )
       Double_t rms = hit->GetRMS();
       HF1( 21, ped );
       HF1( 23, rms );
-      for( Int_t i=0, n=hit->GetNHits(); i<n; ++i ){
+      Int_t nhit = hit->GetNHits();
+      Bool_t good_for_analysis = false;
+      for( Int_t i=0; i<nhit; ++i ){
         Double_t de = hit->GetDe( i );
         Double_t time = hit->GetTime( i );
         Double_t chisqr = hit->GetChisqr( i );
@@ -191,7 +193,14 @@ UserEvent::ProcessingNormal( void )
         HF1( 22, de );
         HF1( 24, time );
         HF1( 25, chisqr );
+        good_for_analysis = true;
         ++nhTpc;
+      }
+      if( good_for_analysis ){
+        // auto fadc = hit->GetRawHit()->Fadc();
+        // for( Int_t tb=0, ntb=fadc.size(); tb<ntb; ++tb ){
+        //   HF2( 101, tb, fadc.at( tb ) );
+        // }
       }
     }
   }
@@ -253,6 +262,8 @@ ConfMan:: InitializeHistograms( void )
   HB1( 23, "TPC RMS", NbinRms, MinRms, MaxRms );
   HB1( 24, "TPC Time", NumOfTimeBucket+1, 0, NumOfTimeBucket+1 );
   HB1( 25, "TPC Chisqr", NbinChisqr, MinChisqr, MaxChisqr );
+  // HB2( 101, "TPC Waveform (good)",
+  //      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc, MaxAdc );
 
   // Tree
   HBTree( "tpc", "tree of TPCHit" );

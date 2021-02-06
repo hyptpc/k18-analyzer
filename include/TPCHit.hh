@@ -15,8 +15,6 @@
 
 #include <TVector3.h>
 
-class TSpectrum;
-
 class TPCLTrackHit;
 class TPCRawHit;
 
@@ -40,7 +38,6 @@ protected:
   Int_t                 m_pad;
   Double_t              m_pedestal;
   Double_t              m_rms;
-  TSpectrum*            m_spectrum;
   std::vector<Double_t> m_de;
   std::vector<Double_t> m_time;
   std::vector<Double_t> m_chisqr;
@@ -80,6 +77,7 @@ public:
   Int_t           GetDeSize( void ) const { return m_de.size(); }
   Int_t           GetNHits( void ) const { return m_de.size(); }
   Int_t           GetPad( void ) const { return m_pad; }
+  TPCRawHit*      GetRawHit( void ) const { return m_rhit; }
   Int_t           GetRow( void ) const { return m_row; }
   Double_t        GetPedestal( void ) const { return m_pedestal; }
   Double_t        GetRMS( void ) const { return m_rms; }

@@ -1,5 +1,5 @@
 #
-#  user_20170927.txt
+#  user_e42.txt
 #
 ### BH1 dE gate
 DeBH1 0.3 4
@@ -76,12 +76,14 @@ MaxMultiHitBcOut 16
 ### BCOUT plane multiplicity gate
 MinLayerBcOut 10
 
-###BC3,4 Sdc1 TOT cut 
+###BC3,4 Sdc1 TOT cut
 MinTotBcOut 15
 MinTotSDC1 25
 
-<<<<<<< HEAD
-=======
+### TPCHit
+MinDeTPC	   20
+MinRmsTPC	   10
+
 ### TPC Cluster Y cut
 ClusterYCut 10
 
@@ -99,7 +101,6 @@ TPC_Dt 0.18
 ### HIMAC val
 TPC_sigma0 0.204
 
->>>>>>> a049adeedec2a3948f7dc046c588529b8f719fac
 ### SDCIN multiplicity gate
 MaxMultiHitSdcIn 16
 
@@ -119,22 +120,9 @@ TimeL1 230 260
 ### SdcOut dT offset for L1 stop timing
 dTOfs 150.
 
-
 ### SdcOut TOT cut
 MinTotSDC2 50.
 MinTotSDC3 80.
-
-### CFT plane multiplicity gate
-MinLayerCFT 3
-### CFT 16 layer tracking
-MinLayerCFT16 6
-### CFT tracking
-MaxChi2CFT1st 150
-MaxChi2CFT2nd  30
-MaxChi2CFTcosmic    300
-MaxChi2CFTcosmic2nd 100
-MinCFTz -150
-MaxCFTz  450
 
 ### CFT tracking w/ time restriction
 ### ctime vs z pos. line
@@ -148,9 +136,6 @@ CatchPID 0.1346 114.068
 
 ### TOF KID
 TOFKID 2.1 300 840
-<<<<<<< HEAD
 
-### TPC 
+### TPC
 MinLayerTPC 5
-=======
->>>>>>> a049adeedec2a3948f7dc046c588529b8f719fac

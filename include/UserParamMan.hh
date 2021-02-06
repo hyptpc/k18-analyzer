@@ -1,8 +1,4 @@
-/**
- *  file: UserParamMan.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef USER_PARAM_MAN_HH
 #define USER_PARAM_MAN_HH
@@ -15,8 +11,8 @@
 class UserParamMan
 {
 public:
-  static UserParamMan&      GetInstance( void );
   static const std::string& ClassName( void );
+  static UserParamMan&      GetInstance( void );
   ~UserParamMan( void );
 
 private:

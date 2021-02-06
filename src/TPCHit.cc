@@ -63,7 +63,6 @@ TPCHit::TPCHit( TPCRawHit* rhit )
     m_pad(),
     m_pedestal( TMath::QuietNaN() ),
     m_rms( TMath::QuietNaN() ),
-    m_spectrum( new TSpectrum( MaxPeaks ) ),
     m_de(),
     m_time(),
     m_chisqr(),
@@ -149,8 +148,11 @@ TPCHit::ClearRegisteredHits( void )
 Bool_t
 TPCHit::CalcTPCObservables( void )
 {
+  static const Double_t MinDeTPC = gUser.GetParameter( "MinDeTPC" );
+  static const Double_t MinRmsTPC = gUser.GetParameter( "MinRmsTPC" );
+
   if( m_is_calculated ){
-    hddaq::cout << FUNC_NAME << " already calculated" << std::endl;
+    hddaq::cerr << FUNC_NAME << " already calculated" << std::endl;
     return false;
   }
 
@@ -203,14 +205,14 @@ TPCHit::CalcTPCObservables( void )
     Double_t chisqr = f1.GetChisquare() / f1.GetNDF();
     if( chisqr < 100. ){
       m_pedestal = mean;
-      m_rms = rms;
+      // m_rms = rms;
     } else {
       // hddaq::cerr << FUNC_NAME << " failed to fit pedestal" << std::endl;
       // Print();
     }
 #if DebugEvDisp
-    std::cout << FUNC_NAME << " (mean,rms,chisqr)=("
-	      << mean << "," << rms << "," << chisqr << ")" << std::endl;
+    hddaq::cout << FUNC_NAME << " (mean,rms,chisqr)=("
+		<< mean << "," << rms << "," << chisqr << ")" << std::endl;
     h1.GetXaxis()->SetRangeUser( mean-10*rms, mean+10*rms );
     h1.Draw();
     c1.Modified();
@@ -224,21 +226,26 @@ TPCHit::CalcTPCObservables( void )
   }
 #endif
 
+  if( m_rms < MinRmsTPC ){
+    return false;
+  }
+
 #if 1
   { //___ Peak Search
     Double_t sigma = 3;
     Double_t threshold = 0.4;
-    Int_t n_peaks = m_spectrum->Search( &h2, sigma, "", threshold );
+    TSpectrum spec( MaxPeaks );
+    Int_t n_peaks = spec.Search( &h2, sigma, "", threshold );
     if( n_peaks == 0 )
       return false;
-    Double_t* x_peaks = m_spectrum->GetPositionX();
+    Double_t* x_peaks = spec.GetPositionX();
     std::vector<Double_t> sorted_x_peaks( n_peaks );
     sorted_x_peaks.assign( x_peaks, x_peaks+n_peaks );
     std::stable_sort( sorted_x_peaks.begin(), sorted_x_peaks.end() );
     for( Int_t i=0; i<n_peaks; ++i ){
       Double_t time = sorted_x_peaks[i];
       Double_t de = h2.GetBinContent( h2.FindBin( time ) ) - m_pedestal;
-      // std::cout << FUNC_NAME << " time,de=" << time << "," << de << std::endl;
+      // hddaq::cout << FUNC_NAME << " time,de=" << time << "," << de << std::endl;
 #if UseGaussian
       TF1 f1( "f1", "gaus(0)+pol1(3)", 0, NumOfTimeBucket );
       sigma = 3.;
@@ -260,8 +267,8 @@ TPCHit::CalcTPCObservables( void )
       }
       auto p = f1.GetParameters();
       time = f1.GetMaximumX();
-      // de = f1.GetMaximum() - p[3];
-      de = p[0]*p[2]*TMath::Sqrt( 2*TMath::Pi() );
+      de = f1.GetMaximum() - p[3];
+      // de = p[0]*p[2]*TMath::Sqrt( 2*TMath::Pi() );
       Double_t chisqr = f1.GetChisquare() / f1.GetNDF();
 #elif UseLandau
       TF1 f1( "f1", "landau(0)+pol1(3)", 0, NumOfTimeBucket );
@@ -288,7 +295,7 @@ TPCHit::CalcTPCObservables( void )
       Double_t chisqr = f1.GetChisquare() / f1.GetNDF();
 #elif UseExponential
       TF1 f1( "f1", "[0]*(x-[1])*exp(-(x-[1])/[2])+[3]", 0, NumOfTimeBucket );
-      Double_t c = 3.;
+      Double_t c = 3.; // decay constant
       f1.SetParameter( 0, de*TMath::Exp(1)/c );
       f1.SetParLimits( 0, TMath::Exp(1)/c, m_rhit->MaxAdc()*TMath::Exp(1)/c );
       f1.SetParameter( 1, time+c );
@@ -298,18 +305,20 @@ TPCHit::CalcTPCObservables( void )
       f1.FixParameter( 3, m_pedestal );
       h2.Fit( "f1", option, "", time-2*c, time+4*c );
       auto p = f1.GetParameters();
-      time = p[1] + p[2];
+      time = p[1] + p[2]; // peak time
       // c = p[2];
-      de = p[0]*p[2]*p[2];
+      de = p[0]*p[2]*TMath::Exp(-1); // amplitude
+      // de = p[0]*p[2]*p[2]; // integral
       Double_t chisqr = f1.GetChisquare() / f1.GetNDF();
 #endif
-      if( chisqr > MaxChisqr )
-        continue;
+      if( chisqr > MaxChisqr ||
+	  de < MinDeTPC )
+	continue;
       m_time.push_back( time );
       m_de.push_back( de );
       m_chisqr.push_back( chisqr );
 #if DebugEvDisp
-      std::cout << FUNC_NAME << " (time,de,chisqr)=("
+      hddaq::cout << FUNC_NAME << " (time,de,chisqr)=("
                 << time << "," << de << "," << chisqr << ")" << std::endl;
 #endif
     }
@@ -361,7 +370,7 @@ TPCHit::GetResolutionX( void )
   double res_xdiff = fabs(rho*(sin(smear_alpha)-sin(alpha)));
   double res_x = sqrt(s0*s0+res_xdiff*res_xdiff);
 
-  //std::cout<<"res_x: "<<res_x<<std::endl;
+  //hddaq::cout<<"res_x: "<<res_x<<std::endl;
 
   return res_x;
   //return 0.2;
@@ -396,7 +405,7 @@ TPCHit::GetResolutionZ( void )
   double res_zdiff = fabs(rho*(cos(smear_alpha)-cos(alpha)));
   double res_z = sqrt(s0*s0 + res_zdiff*res_zdiff);
 
-  //std::cout<<"res_z: "<<res_z<<std::endl;
+  //hddaq::cout<<"res_z: "<<res_z<<std::endl;
 
   return res_z;
   //return 0.2;
