@@ -96,13 +96,11 @@ protected:
   double m_pos_z;
   double m_pos_r;
   double m_time;
-  
+
   ///// for TPC
   int    m_hitnum;
-  
 
-
-  mutable std::vector <DCLTrackHit *> m_register_container;
+  std::vector<DCLTrackHit*> m_register_container;
 
 public:
   bool CalcDCObservables( void );
@@ -132,7 +130,7 @@ public:
 
   ///// for TPC
   void SetHitNum( int hitnum ) { m_hitnum = hitnum; }
- 
+
 
   ///// For E40 Acrylic TOF
   void SetOfsdT( double ofs) { m_ofs_dt = ofs;}
@@ -197,8 +195,8 @@ public:
   double GetHitNum( void ) { return m_hitnum; }
 
   ///// for CFT
-  double GetMeanSeg    ( void ) const { return m_meanseg; } 
-  double GetMaxSeg     ( void ) const { return m_maxseg;  } 
+  double GetMeanSeg    ( void ) const { return m_meanseg; }
+  double GetMaxSeg     ( void ) const { return m_maxseg;  }
   double SetMaxSeg     ( void ) const { return m_maxseg;  }
   double GetAdcLow     ( void ) const { return m_adc_low; }
   double GetMIPLow     ( void ) const { return m_mip_low; }
@@ -207,13 +205,13 @@ public:
   double GetMaxMIPLow  ( void ) const { return max_mip_low; }
   double GetMaxdELow   ( void ) const { return max_dE_low ; }
 
-  double GetPositionR  ( void ) const { return m_r;        } 
-  double GetPositionPhi( void ) const { return m_phi;      } 
-  double GetPosPhi     ( void ) const { return m_pos_phi;  } 
-  double GetPosZ       ( void ) const { return m_pos_z;    } 
-  double GetPosR       ( void ) const { return m_pos_r;    } 
-  double GetTime       ( void ) const { return m_time;     } 
-  ThreeVector GetVtx   ( void ) const { return m_vtx;      } 
+  double GetPositionR  ( void ) const { return m_r;        }
+  double GetPositionPhi( void ) const { return m_phi;      }
+  double GetPosPhi     ( void ) const { return m_pos_phi;  }
+  double GetPosZ       ( void ) const { return m_pos_z;    }
+  double GetPosR       ( void ) const { return m_pos_r;    }
+  double GetTime       ( void ) const { return m_time;     }
+  ThreeVector GetVtx   ( void ) const { return m_vtx;      }
 
   void JoinTrack( int nh=0 ) { m_pair_cont.at(nh).belong_track = true; }
   void QuitTrack( int nh=0 ) { m_pair_cont.at(nh).belong_track = false;}
@@ -224,7 +222,7 @@ public:
   void QuitTrackCFT( int nh=0 ) {m_belong_track[nh] = false; }
   bool BelongToTrackCFT( int nh=0 ) const { return m_belong_track[nh]; }
 
-  void RegisterHits( DCLTrackHit *hit ) const
+  void RegisterHits( DCLTrackHit *hit )
   { m_register_container.push_back(hit); }
 
   bool ReCalcDC( bool applyRecursively=false ) { return CalcDCObservables(); }

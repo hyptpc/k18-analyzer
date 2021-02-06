@@ -1,7 +1,7 @@
 /**
  *  file: TPCLTrackHit.hh
  *  date: 2020.01.03
- *  based onf DCLTrackHit.hh
+ *  based on DCLTrackHit.hh
  */
 
 #ifndef TPC_LTRACK_HIT_HH
@@ -22,8 +22,6 @@ class TPCLTrackHit
 public:
   TPCLTrackHit( TPCHit *hit );
   TPCLTrackHit( const TPCLTrackHit& right );
-
-private:
   ~TPCLTrackHit( void );
 
 private:

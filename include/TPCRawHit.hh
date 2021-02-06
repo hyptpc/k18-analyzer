@@ -5,6 +5,7 @@
 
 #include <vector>
 
+#include <TMath.h>
 #include <TString.h>
 
 typedef std::vector<Int_t> FADC_t;
@@ -30,6 +31,14 @@ public:
   Int_t         PadId( void ) const { return m_pad_id; }
   void          Print( Option_t* opt="" ) const;
   Int_t         RowId( void ) const { return m_row_id; }
+  Double_t      LocMax( void ) const
+    { return TMath::LocMax( m_fadc.size(), m_fadc.data() ); }
+  Double_t      MaxAdc( void ) const
+    { return TMath::MaxElement( m_fadc.size(), m_fadc.data() ); }
+  Double_t      Mean( void ) const
+    { return TMath::Mean( m_fadc.size(), m_fadc.data() ); }
+  Double_t      RMS( void ) const
+    { return TMath::RMS( m_fadc.size(), m_fadc.data() ); }
 };
 
 //_____________________________________________________________________________

@@ -75,13 +75,14 @@ inline Double_t getsTheta(Int_t layerID)
 }
 
 //_____________________________________________________________________________
-inline Int_t getPadID(Int_t layerID, Int_t rowID)
+inline Int_t
+GetPadId( Int_t layer, Int_t row )
 {
-  Int_t padID=0;
-  for(int layi = 0 ; layi<layerID; layi++) padID += padParameter[layi][1];
-  padID+=rowID;
-  return padID;
-
+  Int_t pad = 0;
+  for( Int_t l=0; l<layer; ++l ){
+    pad += padParameter[l][kNumOfPad];
+  }
+  return pad + row;
 }
 
 //_____________________________________________________________________________
@@ -154,7 +155,7 @@ inline int findPadID(double z, double x)
               /(getDTheta(layer)*TMath::Pi()/180.));
   if (row > padParameter[layer][1]) return -1000;
 
-  return getPadID(layer, row);
+  return GetPadId( layer, row );
 }
 
 //_____________________________________________________________________________

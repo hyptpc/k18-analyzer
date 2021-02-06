@@ -20,8 +20,6 @@ class DCLTrackHit
 public:
   DCLTrackHit( DCHit *hit, double pos, int nh );
   DCLTrackHit( const DCLTrackHit& right );
-
-private:
   ~DCLTrackHit( void );
 
 private:

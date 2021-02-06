@@ -306,7 +306,8 @@ DCAnalyzer::DecodeBcOutHits( RawData *rawData )
 
 //______________________________________________________________________________
 bool
-DCAnalyzer::ClusterizeTPC( int layerID, const TPCHitContainer& HitCont, TPCClusterContainer& ClCont )
+DCAnalyzer::ClusterizeTPC( int layerID, const TPCHitContainer& HitCont,
+                           TPCClusterContainer& ClCont )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
@@ -323,14 +324,14 @@ DCAnalyzer::ClusterizeTPC( int layerID, const TPCHitContainer& HitCont, TPCClust
     if( flag[hiti] > 0 ) continue;
     TPCHitContainer CandCont;
     TPCHit* hit = HitCont[hiti];
-    if( !hit || !hit->IsGoodHit() ) continue;
+    if( !hit || !hit->IsGood() ) continue;
     CandCont.push_back(hit);
     flag[hiti]++;
 
     for( std::size_t hitj=0; hitj < nh; hitj++ ) {
       if( hiti==hitj || flag[hitj]>0 ) continue;
       TPCHit* thit = HitCont[hitj];
-      if( !thit || !thit->IsGoodHit() ) continue;
+      if( !thit || !thit->IsGood() ) continue;
       for( int ci=0; ci < CandCont.size(); ci++ ) {
 	TPCHit* c_hit = CandCont[ci];
 	int rowID = thit->GetRow();
@@ -367,34 +368,32 @@ DCAnalyzer::DecodeTPCHits( RawData *rawData )
   ClearTPCHits();
 
   for( int layer=0; layer<=NumOfLayersTPC; ++layer ){
-    const auto& RHitCont=rawData->GetTPCRawHC( layer );
-    for( Int_t i=0, n=RHitCont.size(); i<n; ++i ){
-      TPCRawHit *rhit  = RHitCont[i];
-      TPCHit    *hit   = new TPCHit( rhit->LayerId(), rhit->RowId() );
+    for( const auto& rhit : rawData->GetTPCRawHC( layer ) ){
+      auto hit = new TPCHit( rhit );
       if( hit->CalcTPCObservables() )
-	m_TempTPCHitCont[layer].push_back( hit );
+	m_TPCHitCont[layer].push_back( hit );
       else
 	delete hit;
     }
 
-#if UseTpcCluster
-    ClusterizeTPC( layer, m_TempTPCHitCont[layer], m_TPCClCont[layer] );
-    int ncl = m_TPCClCont[layer].size();
-    for(int i=0; i<ncl; ++i){
-      TPCCluster *p = m_TPCClCont[layer][i];
-      int MeanPad = p->MeanPadId();
-      TVector3 pos = p->Position();
-      double charge = p->Charge();
-      TPCHit  *hit  = new TPCHit( MeanPad, pos, charge);
-      hit->SetClusterSize(p->GetClusterSize());
-      hit->SetMRow(p->MeanRow());
-      if( hit->CalcTPCObservables() )
-	m_TPCHitCont[layer].push_back(hit);
-      else
-	delete hit;
-    }
+// #if UseTpcCluster
+//     ClusterizeTPC( layer, m_TPCHitCont[layer], m_TPCClCont[layer] );
+//     int ncl = m_TPCClCont[layer].size();
+//     for(int i=0; i<ncl; ++i){
+//       TPCCluster *p = m_TPCClCont[layer][i];
+//       int MeanPad = p->MeanPadId();
+//       TVector3 pos = p->Position();
+//       double charge = p->Charge();
+//       TPCHit  *hit  = new TPCHit( MeanPad, pos, charge);
+//       hit->SetClusterSize(p->GetClusterSize());
+//       hit->SetMRow(p->MeanRow());
+//       if( hit->CalcTPCObservables() )
+// 	m_TPCHitCont[layer].push_back(hit);
+//       else
+// 	delete hit;
+//     }
 
-#endif
+// #endif
   }
 
   m_is_decoded[k_TPC] = true;
