@@ -11,8 +11,6 @@
 #include <stdexcept>
 #include <string>
 
-#include <boost/range/adaptor/indexed.hpp>
-
 #include <TMath.h>
 #include <TSpectrum.h>
 
@@ -178,11 +176,11 @@ TPCHit::CalcTPCObservables( void )
   c1.cd();
   TH1D h1( ClassName()+"::h1", "h1", MaxADC, 0, MaxADC );
   TH1D h2( ClassName()+"::h2", "h2", NumOfTimeBucket, 0, NumOfTimeBucket );
-  for( const auto& p : m_rhit->Fadc() | boost::adaptors::indexed() ){
-    Double_t tb = p.index();
-    Double_t adc = p.value();
+  for( Int_t i=0, n=m_rhit->Fadc().size(); i<n; ++i ){
+    Double_t tb = i + 1;
+    Double_t adc = m_rhit->Fadc().at( i );
     h1.Fill( adc );
-    h2.SetBinContent( tb+1, adc );
+    h2.SetBinContent( tb, adc );
   }
 
 #if FitPedestal

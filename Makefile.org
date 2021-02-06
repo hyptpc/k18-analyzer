@@ -1,10 +1,6 @@
 #!/usr/bin/make
-##
-#  file: Makefile
-#  date: 2017.04.10
-#
 
-#_______________________________________________________________________________
+#______________________________________________________________________________
 #
 # Colorize
 color		= 1
@@ -23,7 +19,7 @@ dst_build_dir	= $(dst_dir)/build
 # ROOT
 root_config	= root-config
 root_include	= $(shell $(root_config) --cflags)
-root_libs	= $(shell $(root_config) --libs) -lMinuit -lEG
+root_libs	= $(shell $(root_config) --libs) -lMinuit -lEG -lSpectrum
 #
 # HDDAQ Unpacker
 unpacker_config		= unpacker-config
@@ -79,7 +75,7 @@ cyan		= \033[0;36;1m
 white		= \033[0;37;1m
 endif
 
-#_______________________________________________________________________________
+#______________________________________________________________________________
 .PHONY: all dst usr lib clean distclean show help
 
 all: lib usr dst
@@ -90,7 +86,7 @@ dst: $(dst_target) $(dst_objs)
 usr: $(usr_target) $(usr_objs)
 lib: $(lib_objs) $(core_objs)
 
-#_______________________________________________________________________________
+#______________________________________________________________________________
 $(bin_dir)/Dst%: $(dst_build_dir)/Dst%.o $(lib_objs)
 	@ $(echo) "$(magenta)=== Linking $@ $(default_color)"
 	@ $(mkdir) $(bin_dir)
@@ -121,7 +117,7 @@ $(dst_build_dir)/%.o: $(dst_dir)/%.cc
 	@ $(mkdir) $(dst_build_dir)
 	$(CXX) $(FLAGS) -o $@ -MMD -c $<
 
-#_______________________________________________________________________________
+#______________________________________________________________________________
 clean:
 	@ $(echo) "$(green)=== Cleaning $(default_color)"
 	@ $(rm) $(dst_objs) $(usr_objs) $(core_objs) \
@@ -134,7 +130,7 @@ distclean:
 	$(src_build_dir) $(usr_build_dir) $(dst_build_dir)
 	@ find . \( -name "*~" -o -name "\#*\#" \) -exec $(rm) \{\} \;
 
-#_______________________________________________________________________________
+#______________________________________________________________________________
 sort := tr ' ' '\n' | sort | uniq | sed -e "s:.*./::g" | pr -t -w 80 -3
 show:
 	@ $(echo) "$(yellow)=== FLAGS $(default_color)"
