@@ -41,7 +41,7 @@ private:
   //x = -X;
   //y = Z - Tgtz;
   //z = Y;
-  //x = p[0] + p[3]*cos(t+theta0); 
+  //x = p[0] + p[3]*cos(t+theta0);
   //y = p[1] + p[3]*sin(t+theta0);
   //z = p[2] + (p[4]*p[3]*t);
   double m_cx;
@@ -49,20 +49,15 @@ private:
   double m_z0;
   double m_r;
   double m_dz;
-
   double m_Acx;
   double m_Acy;
   double m_Az0;
   double m_Ar;
   double m_Adz;
-
   double m_chisqr;
   bool   m_good_for_tracking;
   double m_n_iteration;
-  // for SSD
-  double m_de; // not use now
-
-  TVector3 mom0;
+  TVector3 m_mom0;
 
 public:
   void         AddTPCHit( TPCLTrackHit *hit );
@@ -82,22 +77,19 @@ public:
   bool         IsCalculated( void ) const { return m_is_calculated; }
   bool         Residual_check( TVector3 pos, TVector3 Res);
   void         CalcChi2( void);
-  
+
   void SetAcx( double Acx ) { m_Acx = Acx; }
   void SetAcy( double Acy ) { m_Acy = Acy; }
   void SetAz0( double Az0 ) { m_Az0 = Az0; }
   void SetAr( double Ar )  { m_Ar = Ar; }
   void SetAdz( double Adz ){  m_Adz = Adz; }
- 
-  void SetDe( double de ) { m_de = de; }
-
   double Getcx( void ) const { return m_cx; }
   double Getcy( void ) const { return m_cy; }
   double Getz0( void ) const { return m_z0; }
   double Getr( void ) const { return m_r; }
   double Getdz( void ) const { return m_dz; }
- 
-  TVector3 GetMom0( void ) const { return mom0; }// Momentum at Y = 0
+
+  TVector3 GetMom0( void ) const { return m_mom0; }// Momentum at Y = 0
 
 
   double GetAcx( void ) const { return m_Acx; }
@@ -120,7 +112,6 @@ public:
   bool   GoodForTracking( void ) const { return m_good_for_tracking; }
   bool   GoodForTracking( bool status )
   { bool ret = m_good_for_tracking; m_good_for_tracking = status; return ret; }
-  double GetDe( void ) const { return m_de; }
 };
 
 

@@ -31,7 +31,6 @@ public:
 private:
   TPCLocalTrack( const TPCLocalTrack & );
   TPCLocalTrack & operator =( const TPCLocalTrack & );
-  TMinuit *minuit;
 
 private:
   bool   m_is_fitted;     // flag of DoFit()
@@ -39,7 +38,6 @@ private:
   std::vector<TPCLTrackHit*> m_hit_array;
   std::vector<TPCCluster*> m_cluster_array;
   // TH2D *hist;
-
 
   double m_Ax;
   double m_Ay;
@@ -64,7 +62,8 @@ private:
   double m_n_iteration;
   // for SSD
   double m_de;
-  
+  TMinuit *m_minuit;
+
 
 public:
   void         AddTPCHit( TPCLTrackHit *hit );

@@ -1,31 +1,30 @@
-/**
- *  file: KuramaTrack.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef KURAMA_TRACK_HH
 #define KURAMA_TRACK_HH
-
-#include "RungeKuttaUtilities.hh"
-#include "ThreeVector.hh"
 
 #include <vector>
 #include <iosfwd>
 #include <iostream>
 #include <functional>
 
+#include <TString.h>
+
 #include <std_ostream.hh>
+
+#include "RungeKuttaUtilities.hh"
+#include "ThreeVector.hh"
 
 class DCLocalTrack;
 class TrackHit;
 class DCAnalyzer;
 class Hodo2Hit;
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class KuramaTrack
 {
 public:
+  static TString ClassName( void );
   KuramaTrack( DCLocalTrack *track_in, DCLocalTrack *track_out );
   ~KuramaTrack( void );
 
@@ -112,7 +111,15 @@ private:
 
 };
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
+inline TString
+KuramaTrack::ClassName( void )
+{
+  static TString s_name( "KuramaTrack" );
+  return s_name;
+}
+
+//_____________________________________________________________________________
 struct KuramaTrackComp
   : public std::binary_function<KuramaTrack*, KuramaTrack*, bool>
 {

@@ -1,8 +1,4 @@
-/**
- *  file: KuramaTrack.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "KuramaTrack.hh"
 
@@ -19,21 +15,21 @@
 #include "DCAnalyzer.hh"
 #include "DCGeomMan.hh"
 #include "DCLocalTrack.hh"
+#include "FuncName.hh"
 #include "MathTools.hh"
 #include "PrintHelper.hh"
 #include "TrackHit.hh"
 
 namespace
 {
-  const std::string& class_name("KuramaTrack");
-  const DCGeomMan& gGeom = DCGeomMan::GetInstance();
-  // const int& IdTOF   = gGeom.DetectorId("TOF");
-  const int& IdTOFUX = gGeom.DetectorId("TOF-UX");
-  const int& IdTOFDX = gGeom.DetectorId("TOF-DX");
-  const int    MaxIteraction = 100;
-  const double InitialChiSqr = 1.e+10;
-  const double MaxChiSqr     = 1.e+2;
-  const double MinDeltaChiSqrR = 0.0002;
+const DCGeomMan& gGeom = DCGeomMan::GetInstance();
+// const int& IdTOF   = gGeom.DetectorId("TOF");
+const int& IdTOFUX = gGeom.DetectorId("TOF-UX");
+const int& IdTOFDX = gGeom.DetectorId("TOF-DX");
+const int    MaxIteraction = 100;
+const double InitialChiSqr = 1.e+10;
+const double MaxChiSqr     = 1.e+2;
+const double MinDeltaChiSqrR = 0.0002;
 }
 
 #define WARNOUT 0
@@ -64,21 +60,20 @@ KuramaTrack::KuramaTrack( DCLocalTrack *track_in, DCLocalTrack *track_out )
   s_status[kFailedSave]          = "Failed to Save";
   s_status[kFatal]               = "Fatal";
   FillHitArray();
-  debug::ObjectCounter::increase(class_name);
+  debug::ObjectCounter::increase( ClassName() );
 }
 
 //______________________________________________________________________________
 KuramaTrack::~KuramaTrack( void )
 {
   ClearHitArray();
-  debug::ObjectCounter::decrease(class_name);
+  debug::ObjectCounter::decrease( ClassName() );
 }
 
 //______________________________________________________________________________
 TrackHit*
 KuramaTrack::GetHit( std::size_t nth ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
   if( nth<m_hit_array.size() )
     return m_hit_array[nth];
   else
@@ -89,7 +84,6 @@ KuramaTrack::GetHit( std::size_t nth ) const
 TrackHit*
 KuramaTrack::GetHitOfLayerNumber( int lnum ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
   std::size_t nh = m_hit_array.size();
   for( std::size_t i=0; i<nh; ++i ){
     if( m_hit_array[i]->GetLayer()==lnum )
@@ -102,8 +96,6 @@ KuramaTrack::GetHitOfLayerNumber( int lnum ) const
 void
 KuramaTrack::FillHitArray( void )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   std::size_t nIn  = m_track_in->GetNHit();
   std::size_t nOut = m_track_out->GetNHit();
   ClearHitArray();
@@ -131,7 +123,6 @@ KuramaTrack::FillHitArray( void )
 void
 KuramaTrack::ClearHitArray( void )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
   int nh = m_hit_array.size();
   for( int i=nh-1; i>=0; --i ){
     delete m_hit_array[i];
@@ -143,8 +134,6 @@ KuramaTrack::ClearHitArray( void )
 bool
 KuramaTrack::ReCalc( bool applyRecursively )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   if( applyRecursively ){
     m_track_in->ReCalc(applyRecursively);
     m_track_out->ReCalc(applyRecursively);
@@ -162,12 +151,10 @@ KuramaTrack::ReCalc( bool applyRecursively )
 bool
 KuramaTrack::DoFit( void )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   m_status = kInit;
 
   if( m_initial_momentum<0 ){
-    hddaq::cout << "#E " << func_name << " initial momentum must be positive"
+    hddaq::cout << "#E " << FUNC_NAME << " initial momentum must be positive"
   		<< m_initial_momentum << std::endl;
     m_status = kFatal;
     return false;
@@ -201,7 +188,7 @@ KuramaTrack::DoFit( void )
     m_status = (RKstatus)RK::Trace( iniCord, m_HitPointCont );
     if( m_status != kPassed ){
 #ifdef WARNOUT
-      // hddaq::cerr << "#E " << func_name << " "
+      // hddaq::cerr << "#E " << FUNC_NAME << " "
       // 		<< "something is wrong : " << iItr << std::endl;
 #endif
       break;
@@ -214,7 +201,7 @@ KuramaTrack::DoFit( void )
 #if 0
     {
       PrintHelper helper( 3, std::ios::scientific );
-      hddaq::cout << func_name << ": #"
+      hddaq::cout << FUNC_NAME << ": #"
 		  << std::setw(3) << iItr << " ( "
 		  << std::setw(2) << iItrEf << " )"
 		  << " chi=" << std::setw(10) << chiSqr;
@@ -284,7 +271,7 @@ KuramaTrack::DoFit( void )
 
     if( !GuessNextParameters( m_HitPointCont, iniCord,
 			      estDChisqr, lambdaCri, dmp ) ){
-      hddaq::cerr << "#W " << func_name << " "
+      hddaq::cerr << "#W " << FUNC_NAME << " "
 		  << "cannot guess next paramters" << std::endl;
       m_status = kFailedGuess;
       return false;
@@ -304,7 +291,7 @@ KuramaTrack::DoFit( void )
     m_status = kFailedSave;
 
 #if 0
-  Print( "in "+func_name );
+  Print( "in "+FUNC_NAME );
 #endif
 
   if( m_status != kPassed )
@@ -317,8 +304,6 @@ KuramaTrack::DoFit( void )
 bool
 KuramaTrack::DoFit( RKCordParameter iniCord )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   //  ClearHitArray();
   //  FillHitArray();
 
@@ -341,7 +326,7 @@ KuramaTrack::DoFit( RKCordParameter iniCord )
     if( !RK::Trace( iniCord, m_HitPointCont ) ){
       // Error
 #ifdef WARNOUT
-      //hddaq::cerr << func_name << ": Error in RK::Trace. " << std::endl;
+      //hddaq::cerr << FUNC_NAME << ": Error in RK::Trace. " << std::endl;
 #endif
       break;
     }
@@ -353,7 +338,7 @@ KuramaTrack::DoFit( RKCordParameter iniCord )
 #if 0
     {
       PrintHelper helper( 3, std::ios::scientific );
-      hddaq::cout << func_name << ": #"
+      hddaq::cout << FUNC_NAME << ": #"
 		  << std::setw(3) << iItr << " ( "
 		  << std::setw(2) << iItrEf << " )"
 		  << " chi=" << std::setw(10) << chiSqr;
@@ -435,7 +420,7 @@ KuramaTrack::DoFit( RKCordParameter iniCord )
     m_status = kFailedSave;
 
 #if 0
-  Print( "in "+func_name );
+  Print( "in "+FUNC_NAME );
 #endif
 
   if( m_status != kPassed )
@@ -484,8 +469,6 @@ KuramaTrack::GuessNextParameters( const RKHitPointContainer& hpCont,
 				  RKCordParameter& Cord, double& estDeltaChisqr,
 				  double& lambdaCri, double dmp ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   double *a2[10], a2c[10*5], *v[5],  vc[5*5];
   double *a3[5],  a3c[5*5],  *v3[5], v3c[5*5], w3[5];
   double dm[5];
@@ -583,7 +566,7 @@ KuramaTrack::GuessNextParameters( const RKHitPointContainer& hpCont,
 #if 0
   {
     PrintHelper helper( 3, std::ios::scientific );
-    hddaq::cout << func_name << ": A2 and CB2 before SVDcmp"
+    hddaq::cout << FUNC_NAME << ": A2 and CB2 before SVDcmp"
 		<<  std::endl;
     for( int ii=0; ii<10; ++ii )
       hddaq::cout << std::setw(12) << a2[ii][0] << ","
@@ -602,7 +585,7 @@ KuramaTrack::GuessNextParameters( const RKHitPointContainer& hpCont,
 #if 0
   {
     PrintHelper helper( 3, std::ios::scientific );
-    hddaq::cout << func_name << ": A2 after SVDcmp"
+    hddaq::cout << FUNC_NAME << ": A2 after SVDcmp"
 		<<  std::endl;
     for( int ii=0; ii<10; ++ii )
       hddaq::cout << std::setw(12) << a2[ii][0] << ","
@@ -617,7 +600,7 @@ KuramaTrack::GuessNextParameters( const RKHitPointContainer& hpCont,
   // check orthogonality of decomposted matrics
   {
     PrintHelper helper( 5, std::ios::scientific );
-    hddaq::cout << func_name << ": Check V*~V" <<  std::endl;
+    hddaq::cout << FUNC_NAME << ": Check V*~V" <<  std::endl;
     for( int i=0; i<5; ++i ){
       for( int j=0; j<5; ++j ){
 	double f=0.0;
@@ -627,7 +610,7 @@ KuramaTrack::GuessNextParameters( const RKHitPointContainer& hpCont,
       }
       hddaq::cout << std::endl;
     }
-    hddaq::cout << func_name << ": Check U*~U" <<  std::endl;
+    hddaq::cout << FUNC_NAME << ": Check U*~U" <<  std::endl;
     for( int i=0; i<10; ++i ){
       for( int j=0; j<10; ++j ){
 	double f=0.0;
@@ -638,7 +621,7 @@ KuramaTrack::GuessNextParameters( const RKHitPointContainer& hpCont,
       hddaq::cout << std::endl;
     }
 
-    hddaq::cout << func_name << ": Check ~U*U" <<  std::endl;
+    hddaq::cout << FUNC_NAME << ": Check ~U*U" <<  std::endl;
     for( int i=0; i<5; ++i ){
       for( int j=0; j<5; ++j ){
 	double f=0.0;
@@ -662,7 +645,7 @@ KuramaTrack::GuessNextParameters( const RKHitPointContainer& hpCont,
 #if 0
   {
     PrintHelper helper( 3, std::ios::scientific );
-    hddaq::cout << func_name << ": V and Wsvd after SVDcmp"
+    hddaq::cout << FUNC_NAME << ": V and Wsvd after SVDcmp"
 		<<  std::endl;
     for( int ii=0; ii<5; ++ii )
       hddaq::cout << std::setw(12) << v[ii][0] << ","
@@ -679,7 +662,7 @@ KuramaTrack::GuessNextParameters( const RKHitPointContainer& hpCont,
 #if 0
   {
     PrintHelper helper( 5, std::ios::scientific );
-    hddaq::cout << func_name << ": "
+    hddaq::cout << FUNC_NAME << ": "
 		<< std::setw(12) << Cord.Z();
     hddaq::cout << "  Dumping Factor = " << std::setw(12) << dmp << std::endl;
     helper.setf( std::ios::fixed );
@@ -752,11 +735,9 @@ KuramaTrack::SaveCalcPosition( const RKHitPointContainer &hpCont )
 void
 KuramaTrack::Print( const std::string& arg, std::ostream& ost )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   PrintHelper helper( 5, std::ios::fixed, ost );
 
-  ost << "#D " << func_name << " " << arg << std::endl
+  ost << "#D " << FUNC_NAME << " " << arg << std::endl
       << "   status : " << s_status[m_status] << std::endl
       << " in " << std::setw(3) << m_n_iteration << " ( "
       << std::setw(2) << m_nef_iteration << " ) Iteractions "
@@ -785,8 +766,6 @@ KuramaTrack::Print( const std::string& arg, std::ostream& ost )
 void
 KuramaTrack::PrintCalcHits( const RKHitPointContainer &hpCont, std::ostream &ost ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   PrintHelper helper( 2, std::ios::fixed, ost );
 
   const std::size_t n = m_hit_array.size();
@@ -814,7 +793,7 @@ KuramaTrack::PrintCalcHits( const RKHitPointContainer &hpCont, std::ostream &ost
       ost << " "   << std::setw(7) << thp->GetLocalHitPos()
 	  << " -> " << std::setw(7)
 	  << thp->GetResidual();
-    //<< thp->GetLocalHitPos()-calhp.PositionInLocal();
+      //<< thp->GetLocalHitPos()-calhp.PositionInLocal();
     }
     ost << std::endl;
 #if 0
@@ -834,8 +813,6 @@ KuramaTrack::PrintCalcHits( const RKHitPointContainer &hpCont, std::ostream &ost
 bool
 KuramaTrack::SaveTrackParameters( const RKCordParameter &cp )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   m_cord_param = cp;
   const int TGTid = m_HitPointCont.begin()->first;
 
@@ -880,9 +857,7 @@ KuramaTrack::SaveTrackParameters( const RKCordParameter &cp )
 bool
 KuramaTrack::GetTrajectoryLocalPosition( int layer, double & x, double & y ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-   try {
+  try {
     const RKcalcHitPoint& HP   = m_HitPointCont.HitPointOfLayer( layer );
     const ThreeVector&    gpos = HP.PositionInGlobal();
     ThreeVector lpos = gGeom.Global2LocalPos( layer,gpos );
@@ -890,7 +865,7 @@ KuramaTrack::GetTrajectoryLocalPosition( int layer, double & x, double & y ) con
     y = lpos.y();
     return true;
   }
-  catch( std::out_of_range ) {
+  catch( const std::out_of_range& ) {
     return false;
   }
 }

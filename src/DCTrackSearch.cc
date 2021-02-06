@@ -67,10 +67,10 @@ namespace
 					    3.5   + localPosBh2X_dX,
 					    10.5  + localPosBh2X_dX,
 					    19.0  + localPosBh2X_dX,
-					    41.5  + localPosBh2X_dX};  
-  
+					    41.5  + localPosBh2X_dX};
+
   const double zTgtTPC = -143.;
-  
+
   //_____________________________________________________________________
   // Local Functions ____________________________________________________
 
@@ -266,7 +266,7 @@ namespace
   }
 
   //_____________________________________________________________________
-  void
+  [[maybe_unused]] void
   DebugPrint( const IndexList& nCombi,
 	      const std::string& func_name="",
 	      const std::string& msg="" )
@@ -290,7 +290,7 @@ namespace
   }
 
   //_____________________________________________________________________
-  void
+  [[maybe_unused]] void
   DebugPrint( const std::vector<DCLocalTrack*>& trackCont,
 	      const std::string& arg="" )
   {
@@ -309,7 +309,7 @@ namespace
   }
 
   //_____________________________________________________________________
-  void
+  [[maybe_unused]] void
   DebugPrint( const IndexList& nCombi,
 	      const std::vector<ClusterList>& CandCont,
 	      const std::string& arg="" )
@@ -1938,7 +1938,7 @@ namespace track
     const int    Li_r_ndiv =  200;
     const double Li_r_min  = -500;
     const double Li_r_max  =  500;
-    
+
     static TH2D Li_hist("hist_linear",";theta (deg.); r (mm)",
 			Li_theta_ndiv, Li_theta_min, Li_theta_max,
 			Li_r_ndiv, Li_r_min, Li_r_max);
@@ -2041,13 +2041,13 @@ namespace track
     const double Li_r_min  = -500;
     const double Li_r_max  =  500;
 
- 
+
     //for TPC linear track
     // r = x * cos(theta) + y * sin(theta)
     static TH2D Li_hist("hist_linear",";theta (deg.); r (mm)",
 			Li_theta_ndiv, Li_theta_min, Li_theta_max,
-			Li_r_ndiv, Li_r_min, Li_r_max);    
-    
+			Li_r_ndiv, Li_r_min, Li_r_max);
+
     std::vector<std::vector<int> > flag;
     flag.resize( NumOfLayersTPC );
     for( int layer=0; layer<NumOfLayersTPC; layer++ ){
@@ -2077,7 +2077,7 @@ namespace track
 
 
       TPCLocalTrack *track = new TPCLocalTrack();
- 
+
       int maxbin = Li_hist.GetMaximumBin();
       int mx,my,mz;
       Li_hist.GetBinXYZ( maxbin, mx, my, mz );
@@ -2092,7 +2092,7 @@ namespace track
 	  TPCHit* hit = TPCHC[layer][ci];
 	  TVector3 pos = hit->GetPos();
 	  double dist = fabs(p1[tracki]*pos.Z()-pos.X()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
-	  if( dist < HoughWindowCut ){    
+	  if( dist < HoughWindowCut ){
 	    track->AddTPCHit(new TPCLTrackHit(hit));
 	    //	    track_he->AddTPCHit(new TPCLTrackHit(hit));
 	    flag[layer][ci]++;
@@ -2109,13 +2109,13 @@ namespace track
       }
       else
 	delete track;
-      
-      Li_hist.Reset();      
+
+      Li_hist.Reset();
       //delete track;
 
     }//track
- 
-    
+
+
     CalcTracksTPC( TrackCont );
 
     return status? TrackCont.size() : -1;
@@ -2130,7 +2130,7 @@ namespace track
 			     std::vector<TPCLocalTrack_Helix*>& TrackCont,
 			     int MinNumOfHits /*=8*/ )
   {
-    
+
     static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
     static const double HoughWindowCut = gUser.GetParameter("HoughWindowCut");
@@ -2145,7 +2145,7 @@ namespace track
     double hough_p[MaxNumOfTrackTPC];
     double hough_theta[MaxNumOfTrackTPC];
     double hough_rd[MaxNumOfTrackTPC];
-    
+
     const int nBin_rdiff = 11;
     const double rdiff_min = -110.;
     const double rdiff_max = 110.;
@@ -2153,7 +2153,7 @@ namespace track
     const int nBin_theta = 180;
     const double theta_min = -1.*acos(-1);
     const double theta_max = acos(-1);
- 
+
     const int nBin_p = 300;
     const double pmin = 50.;//MeV/c
     const double pmax = 2050.;//MeV/c
@@ -2161,22 +2161,22 @@ namespace track
     //for TPC circle track
     // static TH3D Ci_hist("hist_circle",";rd (mm); theta (rad); p(MeV/c)",
     // 			nBin_rdiff, rdiff_min,  rdiff_max,
-    // 			nBin_theta, theta_min, theta_max, 
+    // 			nBin_theta, theta_min, theta_max,
     // 			nBin_p,pmin,pmax);
 
     TH3D *Ci_hist=new TH3D("hist_circle",";rd (mm); theta (rad); p(MeV/c)",
 			   nBin_rdiff, rdiff_min,  rdiff_max,
-			   nBin_theta, theta_min, theta_max, 
+			   nBin_theta, theta_min, theta_max,
 			   nBin_p,pmin,pmax);
-    
 
-    
+
+
     std::vector<std::vector<int> > flag;
     flag.resize( NumOfLayersTPC );
     for( int layer=0; layer<NumOfLayersTPC; layer++ ){
       flag[layer].resize( TPCHC[layer].size(), 0 );
     }
-    
+
     for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
       Ci_hist->Reset();
       for( int layer=0; layer<NumOfLayersTPC; layer++ ){
@@ -2185,51 +2185,51 @@ namespace track
 	  TPCHit* hit = TPCHC[layer][ci];
 	  TVector3 pos = hit->GetPos();
 	  for(int ird=0; ird<nBin_rdiff; ++ird){
-	    double rd = Ci_hist->GetXaxis()->GetBinCenter(ird+1); 
+	    double rd = Ci_hist->GetXaxis()->GetBinCenter(ird+1);
 	    for(int ip=0; ip<nBin_p; ++ip){
 	      double x = -pos.x();
 	      double y = pos.z()-zTgtTPC;
-	      double p = Ci_hist->GetZaxis()->GetBinCenter(ip+1); 
+	      double p = Ci_hist->GetZaxis()->GetBinCenter(ip+1);
 	      double r = p/(Const*1.);//1T
 
 	      //a*sin(theta) + b*cos(theta) +c = 0
 	      double a = 2.*(r+rd)*y;
 	      double b = 2.*(r+rd)*x;
 	      double c = -1.*(rd*rd + 2.*r*rd + x*x + y*y);
-	      
+
 	      double r0 = sqrt(a*a + b*b);
 	      if(fabs(-1.*c/r0)>1.){
 		// std::cout<<"No solution, "
 		// 	 <<"x:"<<x<<", y:"<<y
-		// 	 <<", r:"<<r<<", rd:"<<rd<<std::endl;	
+		// 	 <<", r:"<<r<<", rd:"<<rd<<std::endl;
 		continue;
 	      }
 	      double theta1_alpha =  asin(-1.*c/r0);
-	      double theta2_alpha; 
+	      double theta2_alpha;
 	      if(theta1_alpha>0.)
 		theta2_alpha = acos(-1.) - theta1_alpha;
 	      else
 		theta2_alpha = -1.*acos(-1.) - theta1_alpha;
-	      
+
 	      double theta_alpha = atan2(b, a);
-	  
+
 	      double xcenter1 = (r+rd)*cos(theta1_alpha - theta_alpha);
 	      double ycenter1 = (r+rd)*sin(theta1_alpha - theta_alpha);
 	      double r_re1 = sqrt(pow(x-xcenter1,2) + pow(y-ycenter1,2));
-	  
+
 	      double xcenter2 = (r+rd)*cos(theta2_alpha - theta_alpha);
 	      double ycenter2 = (r+rd)*sin(theta2_alpha - theta_alpha);
 	      double r_re2 = sqrt(pow(x-xcenter1,2) + pow(y-ycenter1,2));
-	      
+
 	      double theta1 = atan2(ycenter1, xcenter1);
 	      double theta2 = atan2(ycenter2, xcenter2);
-	  
+
 	      if(TMath::IsNaN(theta1)){
 		std::cout<<"theta1="<<theta1<<", x="<<x<<", y="<<y
 			 <<"rd="<<rd<<", r"<<r<<std::endl;
 	      }
 
-	  
+
 	      if(fabs(r-r_re1)>0.01||fabs(r-r_re2)>0.01){
 		std::cout<<"r="<<r<<", r_re1="<<r_re1<<", r_re1="<<r_re2<<std::endl;
 		std::cout<<"x:"<<x<<", y:"<<y
@@ -2243,7 +2243,7 @@ namespace track
 	      // 	       <<"theta2: "<<theta2<<", "
 	      // 	       <<"p: "<<p<<std::endl;
 	    }
-	  } 
+	  }
 	}// cluster
       } // layer
 
@@ -2251,7 +2251,7 @@ namespace track
 	Ci_hist->Reset();
 	break;
       }
-      //std::cout<<"Maxbin0: "<<Ci_hist.GetMaximum()<<std::endl;      
+      //std::cout<<"Maxbin0: "<<Ci_hist.GetMaximum()<<std::endl;
       TPCLocalTrack_Helix *track = new TPCLocalTrack_Helix();
 
       int maxbin = Ci_hist->GetMaximumBin();
@@ -2263,7 +2263,7 @@ namespace track
       double hough_r = hough_p[tracki]/Const;
       double hough_cx = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
       double hough_cy = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);
-      
+
       //std::cout<<"Hough (x,z) Maxbin: "<<Ci_hist.GetMaximum()<<std::endl;
       //     std::cout<<""<<std::endl;
       for( int layer=0; layer<NumOfLayersTPC; layer++ ){
@@ -2273,13 +2273,13 @@ namespace track
 	  TVector3 pos = hit->GetPos();
 	  double x = -pos.x();
 	  double y = pos.z()-zTgtTPC;
-	  
+
 	  // double xcenter1 = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
 	  // double ycenter1 = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);
 	  double r_cal = sqrt(pow(x-hough_cx,2) + pow(y-hough_cy,2));
 
 	  double dist = fabs(r_cal - hough_r);
-	  if( dist < HoughWindowCut ){	    
+	  if( dist < HoughWindowCut ){
 	    track->AddTPCHit(new TPCLTrackHit(hit));
 	    flag[layer][ci]++;
 	  }
@@ -2297,19 +2297,19 @@ namespace track
       }
       else
 	delete track;
-	
-      //      Ci_hist->Reset();      
+
+      //      Ci_hist->Reset();
 
       //delete track;
     }//track
     CalcTracksTPC_Helix( TrackCont );
-    delete Ci_hist;      
+    delete Ci_hist;
     return status? TrackCont.size() : -1;
-    
+
     return 0;
   }
 
-  
+
 
 
 

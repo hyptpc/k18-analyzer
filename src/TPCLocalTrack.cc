@@ -1,7 +1,9 @@
 // -*- C++ -*-
+
 //Comment by Ichikawa
-//TPCLocalTrack.cc is for lenear fit 
-//TPCLocalTrack_Helix.cc will be prepared for Helix tracking 
+//TPCLocalTrack.cc is for lenear fit
+//TPCLocalTrack_Helix.cc will be prepared for Helix tracking
+
 #include "TPCLocalTrack.hh"
 
 #include <string>
@@ -29,7 +31,7 @@
 #include "TMath.h"
 #include "TROOT.h"
 
-//#define HSMagnetON 1 
+//#define HSMagnetON 1
 
 static int gNumOfHits;
 static TVector3 gHitPos[300];
@@ -43,8 +45,8 @@ namespace
   const double& zK18tgt = gGeom.LocalZ("K18Target");
   const double& zTgt    = gGeom.LocalZ("Target");
   // Temporary
-  const double& zTgtTPC    = -143.;  
-  //  const int MaxTry    = 10;  
+  const double& zTgtTPC    = -143.;
+  //  const int MaxTry    = 10;
 
   const int ReservedNumOfHits  = 64;
   const HodoParamMan& gHodo = HodoParamMan::GetInstance();
@@ -74,8 +76,8 @@ TPCLocalTrack::TPCLocalTrack( void )
     m_chisqr(1.e+10),
     m_good_for_tracking(true),
     m_n_iteration(0),
-    minuit(new TMinuit(4)),
-    m_de(0.)
+    m_de(0.),
+    m_minuit(new TMinuit(4))
 {
   m_hit_array.reserve( ReservedNumOfHits );
   m_cluster_array.reserve( ReservedNumOfHits );
@@ -87,7 +89,7 @@ TPCLocalTrack::TPCLocalTrack( void )
 TPCLocalTrack::~TPCLocalTrack( void )
 {
   debug::ObjectCounter::decrease(class_name);
-  delete minuit;
+  delete m_minuit;
 }
 
 //______________________________________________________________________________
@@ -104,7 +106,7 @@ void
 TPCLocalTrack::AddTPCHit( TPCLTrackHit *hit )
 {
   if( hit )
-    m_hit_array.push_back( hit ); 
+    m_hit_array.push_back( hit );
 }
 
 //______________________________________________________________________________
@@ -127,7 +129,7 @@ TPCLocalTrack::Calculate( void )
 		<< "already called" << std::endl;
     return;
   }
-  
+
   const std::size_t n = m_hit_array.size();
   for( std::size_t i=0; i<n; ++i ){
     TPCLTrackHit *hitp = m_hit_array[i];
@@ -165,10 +167,10 @@ static void fcn2(int &npar, double *gin, double &f, double *par, int iflag)
   for( int i=0; i<gNumOfHits; ++i ){
     TVector3 pos = gHitPos[i];
     TVector3 Res = gRes[i];
- 
+
     double u0 = tan(par[1]);
     double v0 = tan(par[3]);
-      
+
     TVector3 x0(par[0], par[2], zTgtTPC );
     TVector3 x1(par[0] + u0, par[2] + v0, zTgtTPC+1. );
 
@@ -179,7 +181,7 @@ static void fcn2(int &npar, double *gin, double &f, double *par, int iflag)
     TVector3 AI(x0.x()+(u.x()*dist_AX),
 		x0.y()+(u.y()*dist_AX),
 		x0.z()+(u.z()*dist_AX));
-    TVector3 d = pos-AI; 
+    TVector3 d = pos-AI;
 
     chisqr += pow( d.x()/Res.x(), 2) + pow( d.y()/Res.y(), 2) + pow( d.z()/Res.z(), 2);
     dof++;
@@ -200,7 +202,7 @@ static void fcn2_rt(int &npar, double *gin, double &f, double *par, int iflag)
   for( int i=0; i<gNumOfHits; ++i ){
     TVector3 pos = gHitPos[i];
     TVector3 Res = gRes[i];
- 
+
     double x_0 = par[0]/sin(par[1]);
     double y_0 = par[2]/sin(par[3]);
     double u0 = -1.*cos(par[1])/sin(par[1]);
@@ -210,7 +212,7 @@ static void fcn2_rt(int &npar, double *gin, double &f, double *par, int iflag)
     // double m_Av_theta = atan(-1./v0);
     // double m_Ax_r = x_0*sin(m_Au_theta);
     // double m_Ay_r = y_0*sin(m_Av_theta);
-    
+
     // if(fabs(m_Au_theta-par[1])>0.01){
     //   std::cout<<"u: "<<m_Au_theta<<", "<<par[1]<<std::endl;
     //   getchar();
@@ -227,7 +229,7 @@ static void fcn2_rt(int &npar, double *gin, double &f, double *par, int iflag)
     //   std::cout<<"y: "<<m_Ay_r<<", "<<par[2]<<std::endl;
     //   getchar();
     // }
-     
+
     TVector3 x0(x_0, y_0, zTgtTPC );
     TVector3 x1(x_0 + u0, y_0 + v0, zTgtTPC+1. );
 
@@ -238,7 +240,7 @@ static void fcn2_rt(int &npar, double *gin, double &f, double *par, int iflag)
     TVector3 AI(x0.x()+(u.x()*dist_AX),
 		x0.y()+(u.y()*dist_AX),
 		x0.z()+(u.z()*dist_AX));
-    TVector3 d = pos-AI; 
+    TVector3 d = pos-AI;
 
     chisqr += pow( d.x()/Res.x(), 2) + pow( d.y()/Res.y(), 2) + pow( d.z()/Res.z(), 2);
     dof++;
@@ -256,7 +258,7 @@ static void fcn2_rt2(int &npar, double *gin, double &f, double *par, int iflag)
   for( int i=0; i<gNumOfHits; ++i ){
     TVector3 pos = gHitPos[i];
     TVector3 Res = gRes[i];
- 
+
     double x_0 = par[0]/cos(par[1]);
     double y_0 = par[2]/cos(par[3]);
     double u0 = tan(par[1]);
@@ -272,7 +274,7 @@ static void fcn2_rt2(int &npar, double *gin, double &f, double *par, int iflag)
     TVector3 AI(x0.x()+(u.x()*dist_AX),
 		x0.y()+(u.y()*dist_AX),
 		x0.z()+(u.z()*dist_AX));
-    TVector3 d = pos-AI; 
+    TVector3 d = pos-AI;
 
     chisqr += pow( d.x()/Res.x(), 2) + pow( d.y()/Res.y(), 2) + pow( d.z()/Res.z(), 2);
     dof++;
@@ -323,7 +325,7 @@ TPCLocalTrack::DoFit( int MinHits)
 		<< "already called" << std::endl;
     return false;
   }
-  
+
   bool status_dofit =  DoLinearFit(MinHits);
   m_is_fitted = status_dofit;
   //  m_is_fitted = true;
@@ -354,13 +356,13 @@ TPCLocalTrack::DoLinearFit( int MinHits )
     return false;
   }
 
-  
+
   gNumOfHits = n;
   // r = x * cos(theta) + y * sin(theta)
   static TH2D hist("hist",";theta (deg.); r (mm)",
 		   theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
   hist.Reset();
-  
+
   //hough translation for ini-param of Ay and Av
   for( std::size_t i=0; i<n; ++i ){
     TPCLTrackHit *hitp = m_hit_array[i];
@@ -380,11 +382,11 @@ TPCLocalTrack::DoLinearFit( int MinHits )
   double mtheta = hist.GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
   double mr = hist.GetYaxis()->GetBinCenter(my);
   double p0 = mr/sin(mtheta);
-  double p1 = -cos(mtheta)/sin(mtheta);  
-  
+  double p1 = -cos(mtheta)/sin(mtheta);
+
   double m_Ay = p0+p1*zTgtTPC;
   double m_Av = p1;
-  
+
   double m_Au_atan = atan(m_Au);
   double m_Av_atan = atan(m_Av);
 
@@ -402,86 +404,86 @@ TPCLocalTrack::DoLinearFit( int MinHits )
   double err[4]={-999.,-999.,-999.,-999.};
 
 
-  // minuit = new TMinuit(4);
+  // m_minuit = new TMinuit(4);
   // TROOT minexam("LinearFit", "Linear fit using TMinuit");
 
-  minuit->SetPrintLevel(-1);
-  minuit->SetFCN (fcn2 );
+  m_minuit->SetPrintLevel(-1);
+  m_minuit->SetFCN (fcn2 );
 
   int ierflg = 0;
   double arglist[10];
   arglist[0] = 1;
-  minuit->mnexcm("SET NOW", arglist,1,ierflg); // No warnings                                     
+  m_minuit->mnexcm("SET NOW", arglist,1,ierflg); // No warnings
   TString name[4] = {"x0_r", "atan_u0", "y0_r", "atan_v0"};
   for( int i = 0; i<4; i++ )
     {
-      minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
+      m_minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
     }
 
-  minuit->Command("SET STRategy 0");
+  m_minuit->Command("SET STRategy 0");
   arglist[0] = 5000.;
   arglist[1] = 0.01;
-  minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
-  //minuit->mnexcm("MINOS", arglist, 0, ierflg);
-  //minuit->mnexcm("SET ERR", arglist, 2, ierflg);
- 
+  m_minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
+  //m_minuit->mnexcm("MINOS", arglist, 0, ierflg);
+  //m_minuit->mnexcm("SET ERR", arglist, 2, ierflg);
+
   double amin, edm, errdef;
   int nvpar, nparx, icstat;
-  minuit->mnstat( amin, edm, errdef, nvpar, nparx, icstat);
-  //minuit->mnprin(4, amin);
+  m_minuit->mnstat( amin, edm, errdef, nvpar, nparx, icstat);
+  //m_minuit->mnprin(4, amin);
   int Err;
   double bnd1, bnd2;
   for( int i=0; i<4; i++)
     {
-      minuit->mnpout(i, name[i], par[i], err[i], bnd1, bnd2, Err);
+      m_minuit->mnpout(i, name[i], par[i], err[i], bnd1, bnd2, Err);
       //std::cout<<Par[i]<<"  "<<std::endl;
     }
 
 
   double chisqr1 = 100000., chisqr2=100000., chisqr3=100000.;
- 
+
   m_x0=par[0];
   m_u0=tan(par[1]);
   m_y0=par[2];
   m_v0=tan(par[3]);
-  CalcChi2(); 
-  
+  CalcChi2();
+
   chisqr1 = m_chisqr;
 
-  minuit->SetFCN (fcn2_rt2 );    
+  m_minuit->SetFCN (fcn2_rt2 );
   for( int i = 0; i<4; i++ )
     {
-      minuit->mnparm(i, name[i], par2[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
+      m_minuit->mnparm(i, name[i], par2[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
     }
-  minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
+  m_minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
   for( int i=0; i<4; i++)
     {
-      minuit->mnpout(i, name[i], par2[i], err[i], bnd1, bnd2, Err);
+      m_minuit->mnpout(i, name[i], par2[i], err[i], bnd1, bnd2, Err);
     }
   m_x0=par2[0]/cos(par2[1]);
   m_u0=tan(par2[1]);
   m_y0=par2[2]/cos(par2[3]);
   m_v0=tan(par2[3]);
-  CalcChi2();    
+  CalcChi2();
   chisqr2 = m_chisqr;
 
 
-  minuit->SetFCN (fcn2_rt );    
+  m_minuit->SetFCN (fcn2_rt );
   for( int i = 0; i<4; i++ )
     {
-      minuit->mnparm(i, name[i], par3[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
+      m_minuit->mnparm(i, name[i], par3[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
     }
-  minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
+  m_minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
   for( int i=0; i<4; i++)
     {
-      minuit->mnpout(i, name[i], par3[i], err[i], bnd1, bnd2, Err);
+      m_minuit->mnpout(i, name[i], par3[i], err[i], bnd1, bnd2, Err);
     }
   m_x0=par3[0]/sin(par3[1]);
   m_u0=-cos(par3[1])/sin(par3[1]);
   m_y0=par3[2]/sin(par3[3]);
   m_v0=-cos(par3[3])/sin(par3[3]);
 
-  CalcChi2();    
+  CalcChi2();
   chisqr3 = m_chisqr;
 
   if(fabs(chisqr1)<fabs(chisqr3)&&chisqr1>0.){
@@ -489,23 +491,23 @@ TPCLocalTrack::DoLinearFit( int MinHits )
     m_u0=tan(par[1]);
     m_y0=par[2];
     m_v0=tan(par[3]);
-    CalcChi2(); 
+    CalcChi2();
   }
   if(fabs(chisqr2)<fabs(chisqr3)&&fabs(chisqr1)>fabs(chisqr2)&&chisqr2>0.){
     m_x0=par2[0]/cos(par2[1]);
     m_u0=tan(par2[1]);
     m_y0=par2[2]/cos(par2[3]);
     m_v0=tan(par2[3]);
-    CalcChi2();    
+    CalcChi2();
   }
-  
+
 
   //  std::cout<<"m_chisqr="<<m_chisqr<<", chisqr1="<<chisqr1<<", chisqr2="<<chisqr2<<std::endl;
   if(m_chisqr > MaxChisqr||std::isnan(m_chisqr))
     return false;
 
   int false_layer =0;
-  
+
   for( std::size_t i=0; i<m_hit_array.size(); ++i ){
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp->GetLocalHitPos();
@@ -518,9 +520,9 @@ TPCLocalTrack::DoLinearFit( int MinHits )
       --i;
     }
     if(m_hit_array.size()<MinHits)
-      return false; 
+      return false;
   }
-  
+
 
   if(false_layer ==0){
     return true;
@@ -544,11 +546,11 @@ TPCLocalTrack::Residual_check(TVector3 pos, TVector3  Res)
   TVector3 AI(x0.x()+(u.x()*dist_AX),
 	      x0.y()+(u.y()*dist_AX),
 	      x0.z()+(u.z()*dist_AX));
-  TVector3 d = pos-AI; 
-  
+  TVector3 d = pos-AI;
+
   if(d.Mag()<Res.Mag()*5.)
     status_rescheck = true;
-  
+
   return status_rescheck;
 }
 
@@ -566,7 +568,7 @@ TPCLocalTrack::CalcChi2( void )
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp->GetLocalHitPos();
     TVector3 Res = hitp->GetResolutionVect();
- 
+
     // TVector3 x0(m_x0, m_y0, 0. );
     // TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1. );
     TVector3 x0(m_x0, m_y0, zTgtTPC );
@@ -577,9 +579,9 @@ TPCLocalTrack::CalcChi2( void )
     TVector3 AI(x0.x()+(u.x()*dist_AX),
 		x0.y()+(u.y()*dist_AX),
 		x0.z()+(u.z()*dist_AX));
-    TVector3 d = pos-AI; 
+    TVector3 d = pos-AI;
     //    TVector3 d = (pos-x0).Cross(u);
-    
+
     chisqr += pow( d.x()/Res.x(), 2) + pow( d.y()/Res.y(), 2) + pow( d.z()/Res.z(), 2);
     dof++;
   }
