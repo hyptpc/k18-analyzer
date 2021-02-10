@@ -45,8 +45,8 @@ namespace
   const Int_t MaxTPCTracks = 100;
   const Int_t MaxTPCnHits = 50;
 
-  //  const bool IsWithRes = false;
-  const bool IsWithRes = true;
+  const bool IsWithRes = false;
+  //const bool IsWithRes = true;
 }
 
 namespace dst
@@ -104,6 +104,7 @@ struct Event
   Double_t residual_px[MaxTPCTracks][MaxTPCnHits];
   Double_t residual_py[MaxTPCTracks][MaxTPCnHits];
   Double_t residual_pz[MaxTPCTracks][MaxTPCnHits];
+  Double_t residual_p[MaxTPCTracks][MaxTPCnHits];
 };
 
 //_____________________________________________________________________
@@ -239,6 +240,7 @@ dst::InitializeEvent( void )
       event.residual_px[i][j] =-9999.;
       event.residual_py[i][j] =-9999.;
       event.residual_pz[i][j] =-9999.;
+      event.residual_p[i][j] =-9999.;
     }
   }
 
@@ -367,12 +369,16 @@ dst::DstRead( int ievent )
 
 	TVector3 d = setpos - hitpos;
 	if(fabs(d.Mag()<0.1)){
-	  event.momg_x[it][ih] = src.pxtpc[ih2];
-	  event.momg_y[it][ih] = src.pytpc[ih2];
-	  event.momg_z[it][ih] = src.pztpc[ih2];
-	  event.residual_px[it][ih] = mom.x() - src.pxtpc[ih2];
-	  event.residual_py[it][ih] = mom.y() - src.pytpc[ih2];
-	  event.residual_pz[it][ih] = mom.z() - src.pztpc[ih2];
+	  event.momg_x[it][ih] = src.pxtpc[ih2]*1000.;
+	  event.momg_y[it][ih] = src.pytpc[ih2]*1000.;
+	  event.momg_z[it][ih] = src.pztpc[ih2]*1000.;
+	  double momg_mag = sqrt(src.pxtpc[ih2]*src.pxtpc[ih2]
+				 +src.pytpc[ih2]*src.pytpc[ih2]
+				 +src.pztpc[ih2]*src.pztpc[ih2])*1000.;
+	  event.residual_px[it][ih] = mom.x() - src.pxtpc[ih2]*1000.;//MeV/c
+	  event.residual_py[it][ih] = mom.y() - src.pytpc[ih2]*1000.;//MeV/c
+	  event.residual_pz[it][ih] = mom.z() - src.pztpc[ih2]*1000.;//MeV/c
+	  event.residual_p[it][ih] = mom.Mag() - momg_mag;//MeV/c
 	  break;
 	}
       }
@@ -482,6 +488,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("residual_px",event.residual_px,"residual_px[nttpc][64]/D");
   tree->Branch("residual_py",event.residual_py,"residual_py[nttpc][64]/D");
   tree->Branch("residual_pz",event.residual_pz,"residual_pz[nttpc][64]/D");
+  tree->Branch("residual_p",event.residual_p,"residual_p[nttpc][64]/D");
 
 
   tree->Branch("nPrm",&src.nhittpc,"nPrm/I");

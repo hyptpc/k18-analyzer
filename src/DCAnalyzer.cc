@@ -432,10 +432,11 @@ DCAnalyzer::DecodeTPCHitsGeant4( const int nhits,
       hit->SetClusterSize(1);
       hit->SetMRow((double)tpc::getRowID(MeanPad));//return row id
 
-      if( hit->CalcTPCObservables() )
-       	m_TPCHitCont[layer].push_back(hit);
-      else
-	delete hit;
+      // if( hit->CalcTPCObservables() )
+      //  	m_TPCHitCont[layer].push_back(hit);
+      // else
+      // 	delete hit;
+      m_TPCHitCont[layer].push_back(hit);
     }
   }
 
