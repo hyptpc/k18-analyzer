@@ -91,7 +91,7 @@ struct Event
   {
     runnum  = 0;
     evnum   = 0;
-    npadTpc  = 0;
+    npadTpc = 0;
     nhTpc   = 0;
     trigpat.clear();
     trigflag.clear();
@@ -278,7 +278,6 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch( "padTpc", &event.padTpc );
   tree->Branch( "pedTpc", &event.pedTpc );
   tree->Branch( "rmsTpc", &event.rmsTpc );
-  tree->Branch( "padTpc", &event.padTpc );
   tree->Branch( "tTpc", &event.tTpc );
   tree->Branch( "deTpc", &event.deTpc );
   tree->Branch( "chisqrTpc", &event.chisqrTpc );

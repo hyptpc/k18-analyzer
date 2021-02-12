@@ -13,6 +13,12 @@
     	  <D Device="VME-RM" Plane="vme08" ch="ch" data="data"/></FE>
     	</for></for>
       </VmeRm>
+      <VmeCaenV820 address="0xcd010000">
+    	<for var="ch" from="0" to="31">
+    	  <FE ch="ch" data="0">
+    	  <D Device="Scaler" plane="0" ch="ch" data="0"/></FE>
+    	</for>
+      </VmeCaenV820>
     </VmeMaster>
     <!--________________________________________________________________-->
     <GetCoBoMaster node_id="0xcb0" name="cobo0">
@@ -1100,7 +1106,7 @@
     	  <FE ch="ch+68" data="0"><D Device="TPC" plane="13" ch="195+(ch-47)*2" data="0"/></FE>
     	</for>
     	<FE ch="124" data="0"><D Device="TPCdummy" plane="13" ch="124" data="0"/></FE>
-    	<FE ch="125" data="0"><D Device="TPC" plane="13" ch="125" data="0"/></FE>
+    	<FE ch="125" data="0"><D Device="TPC" plane="13" ch="213" data="0"/></FE>
     	<for var="ch" from="58" to="67">
     	  <FE ch="ch+68" data="0"><D Device="TPCdummy" plane="13" ch="ch+68" data="0"/></FE>
     	</for>
@@ -1414,8 +1420,12 @@
     	</for>
     	<FE ch="186" data="0"><D Device="TPCdummy" plane="16" ch="186" data="0"/></FE>
     	<FE ch="187" data="0"><D Device="TPCdummy" plane="16" ch="187" data="0"/></FE>
-    	<for var="ch" from="52" to="58">
+    	<for var="ch" from="52" to="55">
     	  <FE ch="ch+68*2" data="0"><D Device="TPC" plane="16" ch="98+(ch-52)*2" data="0"/></FE>
+    	</for>
+    	<FE ch="192" data="0"><D Device="TPCdummy" plane="16" ch="192" data="0"/></FE>
+    	<for var="ch" from="57" to="58">
+    	  <FE ch="ch+68*2" data="0"><D Device="TPC" plane="16" ch="106+(ch-57)*2" data="0"/></FE>
     	</for>
     	<for var="ch" from="59" to="67">
     	  <FE ch="ch+68*2" data="0"><D Device="TPCdummy" plane="16" ch="ch+68*2" data="0"/></FE>
@@ -1442,9 +1452,10 @@
     	<for var="ch" from="52" to="55">
     	  <FE ch="ch+68*3" data="0"><D Device="TPC" plane="16" ch="99+(ch-52)*2" data="0"/></FE>
     	</for>
+    	<FE ch="260" data="0"><D Device="TPCdummy" plane="16" ch="260" data="0"/></FE>
     	<FE ch="261" data="0"><D Device="TPC" plane="16" ch="107" data="0"/></FE>
     	<FE ch="262" data="0"><D Device="TPC" plane="16" ch="109" data="0"/></FE>
-    	<for var="ch" from="58" to="67">
+    	<for var="ch" from="59" to="67">
     	  <FE ch="ch+68*3" data="0"><D Device="TPCdummy" plane="16" ch="ch+68*3" data="0"/></FE>
 	</for>
       </GetAsAd>
@@ -2243,7 +2254,7 @@
     	</for>
     	<FE ch="45" data="0"><D Device="TPCdummy" plane="25" ch="45" data="0"/></FE>
     	<for var="ch" from="46" to="52">
-    	  <FE ch="ch" data="0"><D Device="TPC" plane="25" ch="102+ch*2" data="0"/></FE>
+    	  <FE ch="ch" data="0"><D Device="TPC" plane="25" ch="188+(ch-46)*2" data="0"/></FE>
     	</for>
     	<for var="ch" from="53" to="67">
     	  <FE ch="ch" data="0"><D Device="TPCdummy" plane="25" ch="ch" data="0"/></FE>

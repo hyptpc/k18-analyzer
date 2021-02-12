@@ -152,6 +152,10 @@ TPCHit::CalcTPCObservables( void )
 {
   static const Double_t MinDeTPC = gUser.GetParameter( "MinDeTPC" );
   static const Double_t MinRmsTPC = gUser.GetParameter( "MinRmsTPC" );
+  static const Double_t MinTimeBucketTPC
+    = gUser.GetParameter( "TimeBucketTPC", 0 );
+  static const Double_t MaxTimeBucketTPC
+    = gUser.GetParameter( "TimeBucketTPC", 1 );
 
   if( m_is_calculated ){
     hddaq::cerr << FUNC_NAME << " already calculated" << std::endl;
@@ -175,14 +179,14 @@ TPCHit::CalcTPCObservables( void )
     m_pedestal = mean;
     m_rms = rms;
   }
-#if QuickAnalysis  
+#if QuickAnalysis
   {
     Double_t max_adc = m_rhit->MaxAdc();
     if(max_adc-m_pedestal<MinDeTPC)
       return false;
   }
 #endif
-  
+
   static TCanvas c1;
   c1.cd();
   TH1D h1( ClassName()+"::h1", "h1", MaxADC, 0, MaxADC );
@@ -190,6 +194,8 @@ TPCHit::CalcTPCObservables( void )
   for( Int_t i=0, n=m_rhit->Fadc().size(); i<n; ++i ){
     Double_t tb = i + 1;
     Double_t adc = m_rhit->Fadc().at( i );
+    if( i < MinTimeBucketTPC || MaxTimeBucketTPC < i )
+      continue;
     h1.Fill( adc );
     h2.SetBinContent( tb, adc );
   }
