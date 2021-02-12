@@ -402,6 +402,56 @@ DCAnalyzer::DecodeTPCHits( RawData *rawData )
 
 //______________________________________________________________________________
 bool
+DCAnalyzer::RecalcTPCHits( const int nhits,
+			   const int *padid, const double *time, const double *de )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  
+  if( m_is_decoded[k_TPC] ){
+    hddaq::cout << "#D " << func_name << " "
+		<< "already decoded" << std::endl;
+    return true;
+  }
+  ClearTPCClusters();
+  ClearTPCHits();
+  //Temporary: these parameter should be given by different param file (ch by ch)
+  static const int TPC_time0 = gUser.GetParameter("TPC_time0");
+  static const int DriftVelocity = gUser.GetParameter("DriftVelocity");
+
+  for( int hiti=0; hiti<nhits; hiti++ ){
+    TVector3 pos_tmp = tpc::getPosition(padid[hiti]);
+    double y = (time[hiti] - TPC_time0)*DriftVelocity;
+    TVector3 pos(pos_tmp.x(), y, pos_tmp.z());
+    TPCHit* hit = new TPCHit(padid[hiti],pos, de[hiti]);
+    int layer = tpc::getLayerID( padid[hiti] );
+    if( hit ) m_TPCHitCont[layer].push_back( hit );
+  }
+  
+  for( int layer=0; layer<=NumOfLayersTPC; ++layer ){
+    int ncl = m_TPCClCont[layer].size();
+    ClusterizeTPC( layer, m_TPCHitCont[layer], m_TPCClCont[layer] );
+    m_TPCHitCont[layer].clear();
+    for(int i=0; i<ncl; ++i){
+      TPCCluster *p = m_TPCClCont[layer][i];
+      int MeanPad = p->MeanPadId();
+      TVector3 pos = p->Position();
+      double charge = p->Charge();
+      TPCHit  *hit  = new TPCHit( MeanPad, pos, charge);
+      hit->SetClusterSize(p->GetClusterSize());
+      hit->SetMRow((double)tpc::getRowID(MeanPad));//return row id
+      // if( hit->CalcTPCObservables() )
+      //  	m_TPCHitCont[layer].push_back(hit);
+      // else
+      // 	delete hit;
+      m_TPCHitCont[layer].push_back(hit);
+    }
+  }
+  m_is_decoded[k_TPC] = true;
+  return true;
+}
+
+//______________________________________________________________________________
+bool
 DCAnalyzer::DecodeTPCHitsGeant4( const int nhits,
 			         const double *x, const double *y, const double *z, const double *de )
 {
@@ -431,7 +481,7 @@ DCAnalyzer::DecodeTPCHitsGeant4( const int nhits,
       TPCHit  *hit  = new TPCHit( MeanPad, pos, charge);
       hit->SetClusterSize(1);
       hit->SetMRow((double)tpc::getRowID(MeanPad));//return row id
-
+      
       // if( hit->CalcTPCObservables() )
       //  	m_TPCHitCont[layer].push_back(hit);
       // else
@@ -439,12 +489,9 @@ DCAnalyzer::DecodeTPCHitsGeant4( const int nhits,
       m_TPCHitCont[layer].push_back(hit);
     }
   }
-
   m_is_decoded[k_TPC] = true;
   return true;
 }
-
-
 //______________________________________________________________________________
 bool
 DCAnalyzer::DecodeSdcInHits( RawData *rawData )

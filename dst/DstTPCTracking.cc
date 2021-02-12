@@ -23,9 +23,10 @@
 #include "HodoPHCMan.hh"
 #include "DCAnalyzer.hh"
 #include "DCHit.hh"
-#include "RawData.hh"
+
 
 #include "DstHelper.hh"
+#include "DebugCounter.hh"
 
 namespace
 {
@@ -37,28 +38,23 @@ namespace
   const UserParamMan& gUser = UserParamMan::GetInstance();
   const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
   const int MaxTPCHits = 10000;
-  const int NumOfCobos = 8;
+  debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
+  //  const int NumOfCobos = 8;
 }
 
 namespace dst
 {
   enum kArgc
-  {
-    kProcess, kConfFile,
-    kTpcHit_0, kTpcHit_1, kTpcHit_2, kTpcHit_3,
-    kTpcHit_4, kTpcHit_5, kTpcHit_6, kTpcHit_7,
-    kOutFile, nArgc
-  };
+    {
+      kProcess, kConfFile,
+      kTpcHit,  kOutFile, nArgc
+    };
   std::vector<TString> ArgName =
   { "[Process]", "[ConfFile]",
-    "[TPCHit_0]", "[TPCHit_1]", "[TPCHit_2]", "[TPCHit_3]",
-    "[TPCHit_4]", "[TPCHit_5]", "[TPCHit_6]", "[TPCHit_7]",
-    "[OutFile]" };
+    "[TPCHit]",  "[OutFile]" };
   std::vector<TString> TreeName =
   { "", "",
-    "tpchit0", "tpchit1", "tpchit2", "tpchit3",
-    "tpchit4", "tpchit5", "tpchit6", "tpchit7",
-    "" };
+    "tpc", "" };
   std::vector<TFile*> TFileCont;
   std::vector<TTree*> TTreeCont;
 }
@@ -66,26 +62,56 @@ namespace dst
 //_____________________________________________________________________
 struct Event
 {
+  int runnum;
   int evnum;
   int status;
   int nhittpc;
+  Int_t nttpc;                   // Number of Tracks
+  std::vector<Int_t>    nhit_track; // Number of Hits (in 1 tracks)
+  std::vector<Double_t> chisqr;
+  std::vector<Double_t> x0;
+  std::vector<Double_t> y0;
+  std::vector<Double_t> u0;
+  std::vector<Double_t> v0;
+  std::vector<Double_t> theta;
+  std::vector<Int_t>    hitlayer;
+  std::vector<Double_t> hitpos_x;
+  std::vector<Double_t> hitpos_y;
+  std::vector<Double_t> hitpos_z;
+  std::vector<Double_t> calpos_x;
+  std::vector<Double_t> calpos_y;
+  std::vector<Double_t> calpos_z;
+  std::vector<Double_t> residual;
+  std::vector<Double_t> residual_x;
+  std::vector<Double_t> residual_y;
+  std::vector<Double_t> residual_z;
+
 };
 
 //_____________________________________________________________________
 struct Src
 {
-  int evnum;
-  int nhittpc;
-
-  int padidtpc[MaxTPCHits];
-  double ytpc[MaxTPCHits];
-  double chargetpc[MaxTPCHits];
+  Int_t                 runnum;
+  Int_t                 evnum;
+  std::vector<Int_t>    trigpat;
+  std::vector<Int_t>    trigflag;
+  Int_t                 npadTpc;   // number of pads
+  Int_t                 nhTpc;     // number of hits
+  // vector (size=nhTpc)
+  std::vector<Int_t>    layerTpc;  // layer id
+  std::vector<Int_t>    rowTpc;    // row id
+  std::vector<Int_t>    padTpc;    // pad id
+  std::vector<Double_t> pedTpc;    // pedestal
+  std::vector<Double_t> rmsTpc;    // rms
+  std::vector<Double_t> deTpc;     // dE
+  std::vector<Double_t> tTpc;      // time
+  std::vector<Double_t> chisqrTpc; // chi^2 of signal fitting
 };
 
 namespace root
 {
   Event  event;
-  Src    src[NumOfCobos];
+  Src    src;
   TH1   *h[MaxHist];
   TTree *tree;
 }
@@ -109,6 +135,7 @@ main( int argc, char **argv )
 
   int ievent = 0;
   for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
+    gCounter.check();
     InitializeEvent();
     if( DstRead( ievent ) ) tree->Fill();
   }
@@ -125,13 +152,29 @@ main( int argc, char **argv )
 bool
 dst::InitializeEvent( void )
 {
-  event.status   = 0;
-  event.evnum = 0;
-  event.nhittpc = 0;
-
-
-  // for( int i=0; i<MaxTPCHits; ++i ){
-  // }
+  runnum = 0;
+  evnum = 0;
+  status = 0;
+  nhittpc = 0;
+  nttpc = 0;
+  nhit_track.clear();
+  chisqr.clear();
+  x0.clear();
+  y0.clear();
+  u0.clear();
+  v0.clear();
+  theta.clear();   
+  hitlayer.clear();
+  hitpos_x.clear();
+  hitpos_y.clear();
+  hitpos_z.clear();
+  calpos_x.clear();
+  calpos_y.clear();
+  calpos_z.clear();
+  residual.clear();
+  residual_x.clear();
+  residual_y.clear();
+  residual_z.clear();
   return true;
 }
 
@@ -164,37 +207,24 @@ dst::DstRead( int ievent )
   static const std::string func_name("["+class_name+"::"+__func__+"]");
 
 
-  if( ievent%10000==0 ){
+  //  if( ievent%10000==0 ){
+  if( ievent%100==0 ){
     std::cout << "#D Event Number: "
-      << std::setw(6) << ievent << std::endl;
+	      << std::setw(6) << ievent << std::endl;
   }
-
+  event.runnum = src.runnum;
+  event.evnum = src.evnum;
+  event.nhittpc = src.nhTpc;
+  event.trigpat = src.trigpat;
+  event.trigflag = src.trigflag;
+  
   GetEntry(ievent);
 
   HF1( 1, event.status++ );
-
-  RawData *rawData = new RawData();
   DCAnalyzer *DCAna = new DCAnalyzer();
-  for( int coboi=0; coboi < NumOfCobos; coboi++)
-  {
-    if( coboi==0 ) event.evnum = src[coboi].evnum;
-    else {
-      if( src[coboi].evnum != event.evnum ) {
-	std::cerr << "#E: TpcHit_" << coboi << " event number does not match! " << std::endl;
-	return false;
-      }
-    }
-    event.nhittpc += src[coboi].nhittpc;
 
-    for(int hiti=0; hiti<src[coboi].nhittpc; hiti++)
-    {
-      // rawData->DecodeTPCHits( src[coboi].padidtpc[hiti],
-      //     		   src[coboi].ytpc[hiti],
-      //   		   src[coboi].chargetpc[hiti] );
-    }
-  }
-
-  DCAna->DecodeTPCHits( rawData );
+  DCAna->RecalcTPCHits( src.nhTpc, 
+			src.padTpc, src.tTpc, src.deTpc);
   DCAna->TrackSearchTPC();
 
 
@@ -217,7 +247,7 @@ dst::DstRead( int ievent )
 
   //HF1( 1, event.status++ );
 
-  delete rawData;
+
   delete DCAna;
 
   return true;

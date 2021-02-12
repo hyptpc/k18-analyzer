@@ -198,6 +198,7 @@ inline TVector3 getPosition(Int_t padID)
   return pos;
 }
 
+
 }
 
 #endif
