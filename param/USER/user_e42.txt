@@ -81,7 +81,7 @@ MinTotBcOut 15
 MinTotSDC1 25
 
 ### TPCHit
-MinDeTPC	   20
+MinDeTPC	   50
 MinRmsTPC	   10
 
 ### TPC Cluster Y cut

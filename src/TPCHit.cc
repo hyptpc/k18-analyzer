@@ -31,7 +31,9 @@
 #include "TPCRawHit.hh"
 #include "UserParamMan.hh"
 
-#define FitPedestal    1
+#define QuickAnalysis  1
+//#define FitPedestal    1
+#define FitPedestal    0
 #define UseGaussian    0
 #define UseLandau      0
 #define UseExponential 1
@@ -173,7 +175,14 @@ TPCHit::CalcTPCObservables( void )
     m_pedestal = mean;
     m_rms = rms;
   }
-
+#if QuickAnalysis  
+  {
+    Double_t max_adc = m_rhit->MaxAdc();
+    if(max_adc-m_pedestal<MinDeTPC)
+      return false;
+  }
+#endif
+  
   static TCanvas c1;
   c1.cd();
   TH1D h1( ClassName()+"::h1", "h1", MaxADC, 0, MaxADC );
