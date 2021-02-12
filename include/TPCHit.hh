@@ -40,6 +40,7 @@ protected:
   Double_t              m_rms;
   std::vector<Double_t> m_de;
   std::vector<Double_t> m_time;
+  std::vector<Double_t> m_drift_length; // this means Y (beam height = 0)
   std::vector<Double_t> m_chisqr;
   Double_t              m_charge;
   TVector3              m_pos;
@@ -48,7 +49,7 @@ protected:
 
   ///// for TPC(MWPC)
   Double_t m_mrow;
-  Bool_t     m_tpc_flag;
+  Bool_t   m_tpc_flag;
 
   Double_t m_resx;
   Double_t m_resy;
@@ -69,6 +70,10 @@ public:
   Int_t           GetChisqrSize( void ) const { return m_chisqr.size(); }
   Double_t        GetDe( Int_t i ) const { return m_de.at(i); }
   Int_t           GetDeSize( void ) const { return m_de.size(); }
+  Double_t        GetDriftLength( Int_t i ) const
+    { return m_drift_length.at(i); }
+  Int_t           GetDriftLengthSize( void ) const
+    { return m_drift_length.size(); }
   Int_t           GetNHits( void ) const { return m_de.size(); }
   Int_t           GetPad( void ) const { return m_pad; }
   TPCRawHit*      GetRawHit( void ) const { return m_rhit; }
@@ -97,6 +102,7 @@ public:
   void            Print( const std::string& arg="",
                          std::ostream& ost=hddaq::cout ) const;
   void            QuitTrack( void ) { m_belong_track = false;}
+  Bool_t          ReCalculate( Bool_t recursive=false );
   void            RegisterHits( TPCLTrackHit *hit )
     { m_register_container.push_back( hit ); }
   void            SetPad( Int_t pad ) { m_pad = pad; }

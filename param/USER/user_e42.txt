@@ -85,10 +85,9 @@ MinDeTPC		50
 MinRmsTPC		10
 TimeBucketTPC		25 175
 #temporary (ch) -> should be ns unit
-TPC_time0               76.75
+Time0TPC   	   	  76.75
 #HIMAC value mm/ns
-DriftVelocity           0.05
-
+DriftVelocityTPC	0.05
 
 ### TPC Cluster Y cut
 ClusterYCut 10
@@ -129,16 +128,6 @@ dTOfs 150.
 ### SdcOut TOT cut
 MinTotSDC2 50.
 MinTotSDC3 80.
-
-### CFT tracking w/ time restriction
-### ctime vs z pos. line
-a3  0.01075  ##UV3
-b3  -2.9380  ##UV3
-a4  0.01052  ##UV4
-b4  -2.4507  ##UV4
-
-### CATCH PID(nanamura)
-CatchPID 0.1346 114.068
 
 ### TOF KID
 TOFKID 2.1 300 840

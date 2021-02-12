@@ -126,14 +126,14 @@ TPCHit::TPCHit( int padid, TVector3 pos, double charge )
 }
 
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 TPCHit::~TPCHit( void )
 {
   ClearRegisteredHits();
   debug::ObjectCounter::decrease( ClassName() );
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 TPCHit::ClearRegisteredHits( void )
 {
@@ -142,16 +142,18 @@ TPCHit::ClearRegisteredHits( void )
   if( m_hit_yz ) delete m_hit_yz;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 TPCHit::CalcTPCObservables( void )
 {
-  static const Double_t MinDeTPC = gUser.GetParameter( "MinDeTPC" );
-  static const Double_t MinRmsTPC = gUser.GetParameter( "MinRmsTPC" );
-  static const Double_t MinTimeBucketTPC
+  static const Double_t MinDe = gUser.GetParameter( "MinDeTPC" );
+  static const Double_t MinRms = gUser.GetParameter( "MinRmsTPC" );
+  static const Double_t MinTimeBucket
     = gUser.GetParameter( "TimeBucketTPC", 0 );
-  static const Double_t MaxTimeBucketTPC
+  static const Double_t MaxTimeBucket
     = gUser.GetParameter( "TimeBucketTPC", 1 );
+  static const Double_t Time0 = gUser.GetParameter("Time0TPC");
+  static const Double_t DriftVelocity = gUser.GetParameter("DriftVelocityTPC");
 
   if( m_is_calculated ){
     hddaq::cerr << FUNC_NAME << " already calculated" << std::endl;
@@ -178,7 +180,7 @@ TPCHit::CalcTPCObservables( void )
 #if QuickAnalysis
   {
     Double_t max_adc = m_rhit->MaxAdc();
-    if(max_adc-m_pedestal<MinDeTPC)
+    if(max_adc-m_pedestal<MinDe)
       return false;
   }
 #endif
@@ -190,7 +192,7 @@ TPCHit::CalcTPCObservables( void )
   for( Int_t i=0, n=m_rhit->Fadc().size(); i<n; ++i ){
     Double_t tb = i + 1;
     Double_t adc = m_rhit->Fadc().at( i );
-    if( i < MinTimeBucketTPC || MaxTimeBucketTPC < i )
+    if( i < MinTimeBucket || MaxTimeBucket < i )
       continue;
     h1.Fill( adc );
     h2.SetBinContent( tb, adc );
@@ -237,7 +239,7 @@ TPCHit::CalcTPCObservables( void )
   }
 #endif
 
-  if( m_rms < MinRmsTPC ){
+  if( m_rms < MinRms ){
     return false;
   }
 
@@ -323,9 +325,11 @@ TPCHit::CalcTPCObservables( void )
       Double_t chisqr = f1.GetChisquare() / f1.GetNDF();
 #endif
       if( chisqr > MaxChisqr ||
-	  de < MinDeTPC )
+	  de < MinDe )
 	continue;
       m_time.push_back( time );
+      Double_t dl = ( time - Time0 ) * DriftVelocity;
+      m_drift_length.push_back( dl );
       m_de.push_back( de );
       m_chisqr.push_back( chisqr );
 #if DebugEvDisp
@@ -352,7 +356,7 @@ TPCHit::CalcTPCObservables( void )
 }
 
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 double
 TPCHit::GetResolutionX( void )
 {
@@ -387,7 +391,7 @@ TPCHit::GetResolutionX( void )
   //return 0.2;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 double
 TPCHit::GetResolutionZ( void )
 {
@@ -422,7 +426,7 @@ TPCHit::GetResolutionZ( void )
   //return 0.2;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 double
 TPCHit::GetResolutionY( void )
 {
@@ -430,7 +434,7 @@ TPCHit::GetResolutionY( void )
   return 0.5;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 double
 TPCHit::GetResolution( void )
 {
@@ -469,8 +473,7 @@ TPCHit::GetResolution( void )
   return tot_res;
 }
 
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 TPCHit::Print( const std::string& arg, std::ostream& ost ) const
 {
@@ -491,4 +494,12 @@ TPCHit::Print( const std::string& arg, std::ostream& ost ) const
         << std::fixed << std::setprecision(3) << std::setw(9) << m_chisqr[i]
         << ")" << std::endl;
   }
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCHit::ReCalculate( Bool_t recursive )
+{
+  static const Double_t Time0 = gUser.GetParameter("Time0TPC");
+  static const Double_t DriftVelocity = gUser.GetParameter("DriftVelocityTPC");
 }

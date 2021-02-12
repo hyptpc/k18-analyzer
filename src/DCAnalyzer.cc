@@ -408,6 +408,8 @@ DCAnalyzer::ReCalcTPCHits( const int nhits,
                            const std::vector<double>& de )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  static const Double_t Time0 = gUser.GetParameter("Time0TPC");
+  static const Double_t DriftVelocity = gUser.GetParameter("DriftVelocityTPC");
 
   if( m_is_decoded[k_TPC] ){
     hddaq::cout << "#D " << func_name << " "
@@ -417,12 +419,10 @@ DCAnalyzer::ReCalcTPCHits( const int nhits,
   ClearTPCClusters();
   ClearTPCHits();
   //Temporary: these parameter should be given by different param file (ch by ch)
-  static const int TPC_time0 = gUser.GetParameter("TPC_time0");
-  static const int DriftVelocity = gUser.GetParameter("DriftVelocity");
 
   for( int hiti=0; hiti<nhits; hiti++ ){
     TVector3 pos_tmp = tpc::getPosition(padid[hiti]);
-    double y = (time[hiti] - TPC_time0)*DriftVelocity;
+    double y = ( time[hiti] - Time0 ) * DriftVelocity;
     TVector3 pos(pos_tmp.x(), y, pos_tmp.z());
     TPCHit* hit = new TPCHit(padid[hiti],pos, de[hiti]);
     int layer = tpc::getLayerID( padid[hiti] );
