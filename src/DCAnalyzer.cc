@@ -403,7 +403,8 @@ DCAnalyzer::DecodeTPCHits( RawData *rawData )
 //______________________________________________________________________________
 bool
 DCAnalyzer::RecalcTPCHits( const int nhits,
-			   const int *padid, const double *time, const double *de )
+			   std::vector<int> padid, 
+			   std::vector<double> time, std::vector<double> de)
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
   

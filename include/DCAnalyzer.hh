@@ -99,6 +99,8 @@ public:
   bool DecodeBcOutHits( RawData* rawData );
   bool DecodeTPCHitsGeant4( const int nhits,
      			    const double *x, const double *y, const double *z, const double *de );
+  bool RecalcTPCHits(const int nhits, std::vector<int> padid, 
+		     std::vector<double> time, std::vector<double> de);
   bool DecodeTPCHits( RawData* rawData );
   bool DecodeSdcInHits( RawData* rawData );
   bool DecodeSdcOutHits( RawData* rawData, double ofs_dt=0.);
