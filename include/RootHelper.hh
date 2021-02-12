@@ -38,6 +38,9 @@
 #include <TString.h>
 #include <TStyle.h>
 #include <TTree.h>
+#include <TTreeReader.h>
+#include <TTreeReaderArray.h>
+#include <TTreeReaderValue.h>
 #include <TVector3.h>
 
 #include <std_ostream.hh>

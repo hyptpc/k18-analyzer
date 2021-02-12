@@ -48,13 +48,13 @@ namespace { TApplication app( "DebugApp", nullptr, nullptr ); }
 
 namespace
 {
-const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
-const UserParamMan& gUser = UserParamMan::GetInstance();
-const Int_t         MaxADC       = 4096;
-const Int_t         MaxIteration = 3;
-const Int_t         MaxPeaks     = 20;
-const Double_t      MaxChisqr    = 1000.;
-const Double_t      zTgtTPC      = -143.;
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
+const Int_t MaxADC = 4096;
+const Int_t MaxIteration = 3;
+const Int_t MaxPeaks = 20;
+const Double_t MaxChisqr = 1000.;
+const Double_t zTgtTPC = -143.;
 }
 
 //_____________________________________________________________________________
@@ -72,12 +72,8 @@ TPCHit::TPCHit( TPCRawHit* rhit )
     m_pos(),
     m_is_good( false ),
     m_is_calculated( false ),
-    m_wpos(),
-    m_angle(),
-    m_cluster_size(),
     m_mrow(),
     m_tpc_flag(),
-    m_hitnum(),
     m_resx(),
     m_resy(),
     m_resz(),

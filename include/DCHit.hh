@@ -1,8 +1,4 @@
-/**
- *  file: DCHit.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef DC_HIT_HH
 #define DC_HIT_HH
@@ -74,10 +70,10 @@ protected:
   double m_mwpc_wpos;
 
   ///// for TOF
-  double    m_z;
+  double m_z;
 
   ///// For E40 Acrylic TOF
-  double    m_ofs_dt;
+  double m_ofs_dt;
 
   ///// for CFT
   double m_meanseg;

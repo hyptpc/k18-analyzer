@@ -52,7 +52,7 @@ public:
 
   TPCHit* GetHit( void ) const { return m_hit; }
 
-  TVector3 GetLocalHitPos( void )  const { return m_local_hit_pos; }
+  const TVector3& GetLocalHitPos( void )  const { return m_local_hit_pos; }
   TVector3 GetLocalCalPos( void )  const;
   TVector3 GetLocalCalPos_Helix( void )  const;
   TVector3 GetHelixPosition( double par[5], double t )  const;
@@ -74,7 +74,7 @@ public:
   TVector3 GetResidualVect( void ) const;
   double GetResidual( void ) const;
   double GetResolution( void ) const { return m_hit->GetResolution(); }
-  TVector3 GetResolutionVect( void ) const { return m_res; }
+  const TVector3& GetResolutionVect( void ) const { return m_res; }
   bool ResidualCut( void ) const;
 
 

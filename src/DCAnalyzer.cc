@@ -400,14 +400,15 @@ DCAnalyzer::DecodeTPCHits( RawData *rawData )
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-DCAnalyzer::RecalcTPCHits( const int nhits,
-			   std::vector<int> padid, 
-			   std::vector<double> time, std::vector<double> de)
+DCAnalyzer::ReCalcTPCHits( const int nhits,
+			   const std::vector<int>& padid,
+			   const std::vector<double>& time,
+                           const std::vector<double>& de )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
-  
+
   if( m_is_decoded[k_TPC] ){
     hddaq::cout << "#D " << func_name << " "
 		<< "already decoded" << std::endl;
@@ -427,7 +428,7 @@ DCAnalyzer::RecalcTPCHits( const int nhits,
     int layer = tpc::getLayerID( padid[hiti] );
     if( hit ) m_TPCHitCont[layer].push_back( hit );
   }
-  
+
   for( int layer=0; layer<=NumOfLayersTPC; ++layer ){
     int ncl = m_TPCClCont[layer].size();
     ClusterizeTPC( layer, m_TPCHitCont[layer], m_TPCClCont[layer] );
@@ -482,7 +483,7 @@ DCAnalyzer::DecodeTPCHitsGeant4( const int nhits,
       TPCHit  *hit  = new TPCHit( MeanPad, pos, charge);
       hit->SetClusterSize(1);
       hit->SetMRow((double)tpc::getRowID(MeanPad));//return row id
-      
+
       // if( hit->CalcTPCObservables() )
       //  	m_TPCHitCont[layer].push_back(hit);
       // else

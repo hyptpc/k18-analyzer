@@ -26,12 +26,12 @@ namespace
 {
   const std::string& class_name("TPCLTrackHit");
   const double zTgtTPC = -143.;
- 
+
   //for Helix tracking
-  //[0]~[4] are the Helix parameters, 
+  //[0]~[4] are the Helix parameters,
   //([5],[6],[7]) = (x, y, z)
   std::string s_tmp="pow([5]-([0]+([3]*cos(x))),2)+pow([6]-([1]+([3]*sin(x))),2)+pow([7]-([2]+([3]*[4]*x)),2)";
- 
+
   static TF1 fint("fint",s_tmp.c_str(),-10.,10.);
 }
 
@@ -89,10 +89,10 @@ TVector3
 TPCLTrackHit::GetHelixPosition(double par[5], double t) const
 {
   //This is the eqation of Helix
-  // double  x = p[0] + p[3]*cos(t+theta0); 
+  // double  x = p[0] + p[3]*cos(t+theta0);
   // double  y = p[1] + p[3]*sin(t+theta0);
   // double  z = p[2] + (p[4]*p[3]*t);
-  double  x = par[0] + par[3]*cos(t); 
+  double  x = par[0] + par[3]*cos(t);
   double  y = par[1] + par[3]*sin(t);
   double  z = par[2] + (par[4]*par[3]*t);
 
@@ -137,7 +137,7 @@ TPCLTrackHit::GetLocalCalPos_Helix( void ) const
   fpar[5] = pos.X();
   fpar[6] = pos.Y();
   fpar[7] = pos.Z();
-  
+
   fint.SetParameters(fpar);
   double min_t = fint.GetMinimumX();
   TVector3 fittmp = GetHelixPosition(par, min_t);
@@ -155,8 +155,8 @@ TPCLTrackHit::GetMomentum_Helix( void ) const
   TVector3 pos(-m_cal_pos.X(),
    	       m_cal_pos.Z() - zTgtTPC,
    	       m_cal_pos.Y());
-  
-  const double Const = 0.299792458; // =c/10^9                          
+
+  const double Const = 0.299792458; // =c/10^9
   const double dMagneticField = 1.; //T, "-1" is needed. // Should be given by field param
   double t = (pos.Z()-m_z0)/(m_r*m_dz);
   double pt = fabs(m_r)*(Const*dMagneticField); // MeV/c
@@ -177,8 +177,7 @@ TPCLTrackHit::GetMomentum_Helix( void ) const
 TVector3
 TPCLTrackHit::GetResidualVect( void ) const
 {
-  TVector3 Res = m_cal_pos - m_local_hit_pos;
-  return Res;
+  return m_cal_pos - m_local_hit_pos;
 }
 
 //______________________________________________________________________________
@@ -206,9 +205,8 @@ void
 TPCLTrackHit::Print( const std::string& arg ) const
 {
   m_hit->Print( arg );
-  hddaq::cout << "local_hit_pos " << m_local_hit_pos.x() 
-	      <<", "<<m_local_hit_pos.y() 
+  hddaq::cout << "local_hit_pos " << m_local_hit_pos.x()
+	      <<", "<<m_local_hit_pos.y()
 	      <<", "<<m_local_hit_pos.z() <<std::endl
 	      << "residual " << GetResidual() << std::endl;
 }
-

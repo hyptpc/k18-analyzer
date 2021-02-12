@@ -1,143 +1,143 @@
-/**
- *  file: DstTPCTracking.cc
- *  date: 2020.04.11
- *
- */
+// -*- C++ -*-
 
+#include <cmath>
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
-#include <cstdlib>
-#include <cmath>
 
 #include <filesystem_util.hh>
 
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
-#include "Kinematics.hh"
-#include "DCGeomMan.hh"
 #include "DatabasePDG.hh"
+#include "DebugCounter.hh"
 #include "DetectorID.hh"
+#include "DCAnalyzer.hh"
+#include "DCGeomMan.hh"
+#include "DCHit.hh"
+#include "DstHelper.hh"
+#include "HodoPHCMan.hh"
+#include "Kinematics.hh"
 #include "MathTools.hh"
 #include "RootHelper.hh"
+#include "TPCLocalTrack.hh"
+#include "TPCLTrackHit.hh"
 #include "UserParamMan.hh"
-#include "HodoPHCMan.hh"
-#include "DCAnalyzer.hh"
-#include "DCHit.hh"
-
-
-#include "DstHelper.hh"
-#include "DebugCounter.hh"
 
 namespace
 {
-  using namespace root;
-  using namespace dst;
-  const std::string& class_name("DstTPCTracking");
-  ConfMan&            gConf = ConfMan::GetInstance();
-  const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
-  const UserParamMan& gUser = UserParamMan::GetInstance();
-  const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
-  debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
-  const Int_t MaxTPCHits = 10000;
-  const Int_t MaxTPCTracks = 100;
-  const Int_t MaxTPCnHits = 50;
-  //  const int NumOfCobos = 8;
+using namespace root;
+using namespace dst;
+auto&       gConf = ConfMan::GetInstance();
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
+const auto& gPHC  = HodoPHCMan::GetInstance();
+const auto& gCounter = debug::ObjectCounter::GetInstance();
 }
 
 namespace dst
 {
-  enum kArgc
-    {
-      kProcess, kConfFile,
-      kTpcHit,  kOutFile, nArgc
-    };
-  std::vector<TString> ArgName =
-  { "[Process]", "[ConfFile]",
-    "[TPCHit]",  "[OutFile]" };
-  std::vector<TString> TreeName =
-  { "", "",
-    "tpc", "" };
-  std::vector<TFile*> TFileCont;
-  std::vector<TTree*> TTreeCont;
-  TBranch *tmp_branch =0;
+enum kArgc
+{
+  kProcess, kConfFile,
+  kTpcHit,  kOutFile, nArgc
+};
+std::vector<TString> ArgName =
+{ "[Process]", "[ConfFile]", "[TPCHit]",  "[OutFile]" };
+std::vector<TString> TreeName = { "", "", "tpc", "" };
+std::vector<TFile*> TFileCont;
+std::vector<TTree*> TTreeCont;
+std::vector<TTreeReader*> TTreeReaderCont;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 struct Event
 {
-  int runnum;
-  int evnum;
-  std::vector<Int_t>    trigpat;
-  std::vector<Int_t>    trigflag;
-  int status;
-  int nhittpc;
-  Int_t nttpc;                   // Number of Tracks
-  Int_t nhit_track[MaxTPCTracks]; // Number of Hits (in 1 tracks)
-  Double_t chisqr[MaxTPCTracks];
-  Double_t x0[MaxTPCTracks];
-  Double_t y0[MaxTPCTracks];
-  Double_t u0[MaxTPCTracks];
-  Double_t v0[MaxTPCTracks];
-  Double_t theta[MaxTPCTracks];
-  Int_t hitlayer[MaxTPCTracks][MaxTPCnHits];
-  Double_t hitpos_x[MaxTPCTracks][MaxTPCnHits];
-  Double_t hitpos_y[MaxTPCTracks][MaxTPCnHits];
-  Double_t hitpos_z[MaxTPCTracks][MaxTPCnHits];
-  Double_t calpos_x[MaxTPCTracks][MaxTPCnHits];
-  Double_t calpos_y[MaxTPCTracks][MaxTPCnHits];
-  Double_t calpos_z[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual_x[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual_y[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual_z[MaxTPCTracks][MaxTPCnHits];
-};
+  Int_t status;
+  Int_t runnum;
+  Int_t evnum;
+  std::vector<Int_t> trigpat;
+  std::vector<Int_t> trigflag;
+  Int_t nhTpc;
+  Int_t ntTpc; // Number of Tracks
+  std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
+  std::vector<Double_t> chisqr;
+  std::vector<Double_t> x0;
+  std::vector<Double_t> y0;
+  std::vector<Double_t> u0;
+  std::vector<Double_t> v0;
+  std::vector<Double_t> theta;
+  std::vector<std::vector<Double_t>> hitlayer;
+  std::vector<std::vector<Double_t>> hitpos_x;
+  std::vector<std::vector<Double_t>> hitpos_y;
+  std::vector<std::vector<Double_t>> hitpos_z;
+  std::vector<std::vector<Double_t>> calpos_x;
+  std::vector<std::vector<Double_t>> calpos_y;
+  std::vector<std::vector<Double_t>> calpos_z;
+  std::vector<std::vector<Double_t>> residual;
+  std::vector<std::vector<Double_t>> residual_x;
+  std::vector<std::vector<Double_t>> residual_y;
+  std::vector<std::vector<Double_t>> residual_z;
 
-//_____________________________________________________________________
-struct Src
-{
-  Int_t                 runnum;
-  Int_t                 evnum;
-  std::vector<Int_t>    trigpat;
-  std::vector<Int_t>    trigflag;
-  Int_t                 npadTpc;   // number of pads
-  Int_t                 nhTpc;     // number of hits
-  // vector (size=nhTpc)
-  std::vector<Int_t>    layerTpc;  // layer id
-  std::vector<Int_t>    rowTpc;    // row id
-  std::vector<Int_t>    padTpc;    // pad id
-  std::vector<Double_t> pedTpc;    // pedestal
-  std::vector<Double_t> rmsTpc;    // rms
-  std::vector<Double_t> deTpc;     // dE
-  std::vector<Double_t> tTpc;      // time
-  std::vector<Double_t> chisqrTpc; // chi^2 of signal fitting
   void clear( void )
   {
-    runnum  = 0;
-    evnum   = 0;
-    npadTpc = 0;
-    nhTpc   = 0;
+    runnum = 0;
+    evnum = 0;
+    status = 0;
+    nhTpc = 0;
+    ntTpc = 0;
     trigpat.clear();
     trigflag.clear();
-    layerTpc.clear();
-    rowTpc.clear();
-    padTpc.clear();
-    pedTpc.clear();
-    rmsTpc.clear();
-    tTpc.clear();
-    deTpc.clear();
-    chisqrTpc.clear();
+    nhtrack.clear();
+    chisqr.clear();
+    x0.clear();
+    y0.clear();
+    u0.clear();
+    v0.clear();
+    theta.clear();
+    hitlayer.clear();
+    hitpos_x.clear();
+    hitpos_y.clear();
+    hitpos_z.clear();
+    calpos_x.clear();
+    calpos_y.clear();
+    calpos_z.clear();
+    residual.clear();
+    residual_x.clear();
+    residual_y.clear();
+    residual_z.clear();
   }
+};
+
+//_____________________________________________________________________________
+struct Src
+{
+  TTreeReaderValue<Int_t>* runnum;
+  TTreeReaderValue<Int_t>* evnum;
+  TTreeReaderValue<std::vector<Int_t>>* trigpat;
+  TTreeReaderValue<std::vector<Int_t>>* trigflag;
+  TTreeReaderValue<Int_t>* npadTpc;   // number of pads
+  TTreeReaderValue<Int_t>* nhTpc;     // number of hits
+  // vector (size=nhTpc)
+  TTreeReaderValue<std::vector<Int_t>>* layerTpc;     // layer id
+  TTreeReaderValue<std::vector<Int_t>>* rowTpc;       // row id
+  TTreeReaderValue<std::vector<Int_t>>* padTpc;       // pad id
+  TTreeReaderValue<std::vector<Double_t>>* pedTpc;    // pedestal
+  TTreeReaderValue<std::vector<Double_t>>* rmsTpc;    // rms
+  TTreeReaderValue<std::vector<Double_t>>* deTpc;     // dE
+  TTreeReaderValue<std::vector<Double_t>>* tTpc;      // time
+  TTreeReaderValue<std::vector<Double_t>>* chisqrTpc; // chi^2 of signal fitting
 };
 
 namespace root
 {
-  Event  event;
-  Src    src;
-  TH1   *h[MaxHist];
-  TTree *tree;
+Event  event;
+Src    src;
+TH1   *h[MaxHist];
+TTree *tree;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 int
 main( int argc, char **argv )
 {
@@ -150,11 +150,11 @@ main( int argc, char **argv )
   if( !gConf.Initialize( arg[kConfFile] ) )
     return EXIT_FAILURE;
 
-  int nevent = GetEntries( TTreeCont );
+  Int_t nevent = GetEntries( TTreeCont );
 
   CatchSignal::Set();
 
-  int ievent = 0;
+  Int_t ievent = 0;
   for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
     gCounter.check();
     InitializeEvent();
@@ -162,50 +162,22 @@ main( int argc, char **argv )
   }
 
   std::cout << "#D Event Number: " << std::setw(6)
-    << ievent << std::endl;
+            << ievent << std::endl;
 
   DstClose();
 
   return EXIT_SUCCESS;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 dst::InitializeEvent( void )
 {
-  event.runnum = 0;
-  event.evnum = 0;
-  event.status = 0;
-  event.nhittpc = 0;
-  event.nttpc = 0;
-  event.trigpat.clear();
-  event.trigflag.clear();
-  for(int i=0; i<MaxTPCTracks; ++i){
-    event.nhit_track[i] =0;
-    event.chisqr[i] =-9999.;
-    event.x0[i] =-9999.;
-    event.y0[i] =-9999.;
-    event.u0[i] =-9999.;
-    event.v0[i] =-9999.;
-    event.theta[i] =-9999.;
-    for(int j=0; j<MaxTPCnHits; ++j){
-      event.hitlayer[i][j] =-999;
-      event.hitpos_x[i][j] =-9999.;
-      event.hitpos_y[i][j] =-9999.;
-      event.hitpos_z[i][j] =-9999.;
-      event.calpos_x[i][j] =-9999.;
-      event.calpos_y[i][j] =-9999.;
-      event.calpos_z[i][j] =-9999.;
-      event.residual[i][j] =-9999.;
-      event.residual_x[i][j] =-9999.;
-      event.residual_y[i][j] =-9999.;
-      event.residual_z[i][j] =-9999.;
-    }
-  }
+  event.clear();
   return true;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 dst::DstOpen( std::vector<std::string> arg )
 {
@@ -227,45 +199,107 @@ dst::DstOpen( std::vector<std::string> arg )
   return true;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 dst::DstRead( int ievent )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"]");
-
-
-  //  if( ievent%10000==0 ){
   if( ievent%100==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
   GetEntry(ievent);
-  // Long64_t tentry = TTreeCont[kTpcHit]->LoadTree(ievent);
-  // tmp_branch->GetEntry(tentry);
-  
-  event.runnum = src.runnum;
-  event.evnum = src.evnum;
-  event.nhittpc = src.nhTpc;
-  //event.trigpat = src.trigpat;
-  //event.trigflag = src.trigflag;
-  
- 
+
+  event.runnum = **src.runnum;
+  event.evnum = **src.evnum;
+  event.trigpat = **src.trigpat;
+  event.trigflag = **src.trigflag;
+  event.nhTpc = **src.nhTpc;
 
   HF1( 1, event.status++ );
-  DCAnalyzer *DCAna = new DCAnalyzer();
-  
-  std::cout<<src.nhTpc<<", "<<src.padTpc.size()<<std::endl;
-    //DCAna->RecalcTPCHits(src.nhTpc, src.padTpc, src.tTpc, src.deTpc);
-  //DCAna->TrackSearchTPC();
 
+  if( event.nhTpc == 0 )
+    return true;
 
+  HF1( 1, event.status++ );
 
-  delete DCAna;
-  
+  // std::cout<<**src.nhTpc<<", "<<(**src.padTpc).size()<<std::endl;
+
+  DCAnalyzer DCAna;
+  DCAna.ReCalcTPCHits( **src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc );
+  DCAna.TrackSearchTPC();
+
+  Int_t ntTpc = DCAna.GetNTracksTPC();
+  event.ntTpc = ntTpc;
+  HF1( 10, ntTpc );
+  if( event.ntTpc == 0 )
+    return true;
+
+  HF1( 1, event.status++ );
+
+  event.nhtrack.resize( ntTpc );
+  event.chisqr.resize( ntTpc );
+  event.x0.resize( ntTpc );
+  event.y0.resize( ntTpc );
+  event.u0.resize( ntTpc );
+  event.v0.resize( ntTpc );
+  event.theta.resize( ntTpc );
+  event.hitlayer.resize( ntTpc );
+  event.hitpos_x.resize( ntTpc );
+  event.hitpos_y.resize( ntTpc );
+  event.hitpos_z.resize( ntTpc );
+  event.calpos_x.resize( ntTpc );
+  event.calpos_y.resize( ntTpc );
+  event.calpos_z.resize( ntTpc );
+  for( Int_t it=0; it<ntTpc; ++it ){
+    TPCLocalTrack *tp = DCAna.GetTrackTPC( it );
+    if( !tp ) continue;
+    Int_t nh = tp->GetNHit();
+    Double_t chisqr = tp->GetChiSquare();
+    Double_t x0=tp->GetX0(), y0=tp->GetY0();
+    Double_t u0=tp->GetU0(), v0=tp->GetV0();
+    Double_t theta = tp->GetTheta();
+    event.nhtrack[it] = nh;
+    event.chisqr[it] = chisqr;
+    event.x0[it] = x0;
+    event.y0[it] = y0;
+    event.u0[it] = u0;
+    event.v0[it] = v0;
+    event.theta[it] = theta;
+    event.hitlayer[it].resize( nh );
+    event.hitpos_x[it].resize( nh );
+    event.hitpos_y[it].resize( nh );
+    event.hitpos_z[it].resize( nh );
+    event.calpos_x[it].resize( nh );
+    event.calpos_y[it].resize( nh );
+    event.calpos_z[it].resize( nh );
+    for( int ih=0; ih<nh; ++ih ){
+      TPCLTrackHit *hit = tp->GetHit( ih );
+      if( !hit ) continue;
+      Int_t layer = hit->GetLayer();
+      const TVector3& hitpos = hit->GetLocalHitPos();
+      const TVector3& calpos = hit->GetLocalCalPos();
+      const TVector3& res_vect = hit->GetResidualVect();
+      Double_t residual = hit->GetResidual();
+      event.hitlayer[it][ih] = layer;
+      event.hitpos_x[it][ih] = hitpos.x();
+      event.hitpos_y[it][ih] = hitpos.y();
+      event.hitpos_z[it][ih] = hitpos.z();
+      event.calpos_x[it][ih] = calpos.x();
+      event.calpos_y[it][ih] = calpos.y();
+      event.calpos_z[it][ih] = calpos.z();
+      event.residual[it][ih] = residual;
+      event.residual_x[it][ih] = res_vect.x();
+      event.residual_y[it][ih] = res_vect.y();
+      event.residual_z[it][ih] = res_vect.z();
+    }
+  }
+
+  HF1( 1, event.status++ );
+
   return true;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 dst::DstClose( void )
 {
@@ -275,83 +309,69 @@ dst::DstClose( void )
 
   const std::size_t n = TFileCont.size();
   for( std::size_t i=0; i<n; ++i ){
+    if( TTreeReaderCont[i] ) delete TTreeReaderCont[i];
     if( TTreeCont[i] ) delete TTreeCont[i];
     if( TFileCont[i] ) delete TFileCont[i];
   }
   return true;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 ConfMan::InitializeHistograms( void )
 {
   HB1( 1, "Status", 21, 0., 21. );
+  HB1( 10, "NTrack TPC", 40, 0., 40. );
 
+  HBTree( "tpc", "tree of DstTPCTracking" );
 
-  HBTree( "tpc", "tree of DstTPC" );
+  tree->Branch( "status", &event.status );
+  tree->Branch( "runnum", &event.runnum );
+  tree->Branch( "evnum", &event.evnum );
+  tree->Branch( "trigpat", &event.trigpat );
+  tree->Branch( "trigflag", &event.trigflag );
+  tree->Branch( "nhTpc", &event.nhTpc );
+  tree->Branch( "ntTpc", &event.ntTpc );
+  tree->Branch( "nhtrack", &event.nhtrack );
+  tree->Branch( "chisqr", &event.chisqr );
+  tree->Branch( "x0", &event.x0 );
+  tree->Branch( "y0", &event.y0 );
+  tree->Branch( "u0", &event.u0 );
+  tree->Branch( "v0", &event.v0 );
+  tree->Branch( "theta", &event.theta );
+  tree->Branch( "hitlayer", &event.hitlayer );
+  tree->Branch( "hitpos_x", &event.hitpos_x );
+  tree->Branch( "hitpos_y", &event.hitpos_y );
+  tree->Branch( "hitpos_z", &event.hitpos_z );
+  tree->Branch( "calpos_x", &event.calpos_x );
+  tree->Branch( "calpos_y", &event.calpos_y );
+  tree->Branch( "calpos_z", &event.calpos_z );
+  tree->Branch( "residual", &event.residual );
+  tree->Branch( "residual_x", &event.residual_x );
+  tree->Branch( "residual_y", &event.residual_y );
+  tree->Branch( "residual_z", &event.residual_z );
 
-  tree->Branch("status", &event.status, "status/I" );
-  tree->Branch("evnum", &event.evnum, "evnum/I" );
-  //tree->Branch("trigpat", &event.trigpat);
-  //tree->Branch("trigflag", &event.trigflag);
-  tree->Branch("nhittpc",&event.nhittpc,"nhittpc/I");
-  tree->Branch("nhit_track",event.nhit_track,"nhit_track[nttpc]/I");
-  tree->Branch("chisqr",event.chisqr,"chisqr[nttpc]/D");
-  tree->Branch("x0",event.x0,"x0[nttpc]/D");
-  tree->Branch("y0",event.y0,"y0[nttpc]/D");
-  tree->Branch("u0",event.u0,"u0[nttpc]/D");
-  tree->Branch("v0",event.v0,"v0[nttpc]/D");
-  tree->Branch("theta",event.theta,"theta[nttpc]/D");
-
-  tree->Branch("hitlayer",event.hitlayer,"hitlayer[nttpc][64]/I");
-  tree->Branch("hitpos_x",event.hitpos_x,"hitpos_x[nttpc][64]/D");
-  tree->Branch("hitpos_y",event.hitpos_y,"hitpos_y[nttpc][64]/D");
-  tree->Branch("hitpos_z",event.hitpos_z,"hitpos_z[nttpc][64]/D");
-  tree->Branch("calpos_x",event.calpos_x,"calpos_x[nttpc][64]/D");
-  tree->Branch("calpos_y",event.calpos_y,"calpos_y[nttpc][64]/D");
-  tree->Branch("calpos_z",event.calpos_z,"calpos_z[nttpc][64]/D");
-  tree->Branch("residual",event.residual,"residual[nttpc][64]/D");
-  tree->Branch("residual_x",event.residual_x,"residual_x[nttpc][64]/D");
-  tree->Branch("residual_y",event.residual_y,"residual_y[nttpc][64]/D");
-  tree->Branch("residual_z",event.residual_z,"residual_z[nttpc][64]/D");
-
-  TTreeCont[kTpcHit]->SetBranchStatus("*", 0);
-  TTreeCont[kTpcHit]->SetBranchStatus("runnum",  1);
-  TTreeCont[kTpcHit]->SetBranchStatus("evnum",  1);
-  TTreeCont[kTpcHit]->SetBranchStatus("trigpat",  1);
-  TTreeCont[kTpcHit]->SetBranchStatus("trigflag",  1);
-  TTreeCont[kTpcHit]->SetBranchStatus("npadTpc",  1);
-  TTreeCont[kTpcHit]->SetBranchStatus("nhTpc",  1);
-  TTreeCont[kTpcHit]->SetBranchStatus("layerTpc",  1);
-  TTreeCont[kTpcHit]->SetBranchStatus("rowTpc",  1);
-  TTreeCont[kTpcHit]->SetBranchStatus("padTpc",  1);
-  TTreeCont[kTpcHit]->SetBranchStatus("pedTpc",  1);
-  TTreeCont[kTpcHit]->SetBranchStatus("rmsTpc",  1);
-  TTreeCont[kTpcHit]->SetBranchStatus("deTpc",  1);
-  TTreeCont[kTpcHit]->SetBranchStatus("tTpc",  1);
-  TTreeCont[kTpcHit]->SetBranchStatus("chisqrTpc",  1);
-  
-
-  TTreeCont[kTpcHit]->SetBranchAddress("runnum",  &src.runnum);
-  TTreeCont[kTpcHit]->SetBranchAddress("evnum",  &src.evnum);
-  TTreeCont[kTpcHit]->SetBranchAddress("trigpat",  &src.trigpat);
-  TTreeCont[kTpcHit]->SetBranchAddress("trigflag", &src.trigflag);
-  TTreeCont[kTpcHit]->SetBranchAddress("npadTpc",  &src.npadTpc, &tmp_branch);
-  TTreeCont[kTpcHit]->SetBranchAddress("nhTpc",  &src.nhTpc);
-  TTreeCont[kTpcHit]->SetBranchAddress("layerTpc", &src.layerTpc);
-  TTreeCont[kTpcHit]->SetBranchAddress("rowTpc",  &src.rowTpc);
-  TTreeCont[kTpcHit]->SetBranchAddress("padTpc",  &src.padTpc);
-  TTreeCont[kTpcHit]->SetBranchAddress("pedTpc",  &src.pedTpc);
-  TTreeCont[kTpcHit]->SetBranchAddress("rmsTpc",  &src.rmsTpc);
-  TTreeCont[kTpcHit]->SetBranchAddress("deTpc",  &src.deTpc);
-  TTreeCont[kTpcHit]->SetBranchAddress("tTpc",  &src.tTpc);
-  TTreeCont[kTpcHit]->SetBranchAddress("chisqrTpc",  &src.chisqrTpc);
-
+  TTreeReaderCont[kTpcHit] = new TTreeReader( "tpc", TFileCont[kTpcHit] );
+  const auto& reader = TTreeReaderCont[kTpcHit];
+  src.runnum = new TTreeReaderValue<Int_t>( *reader, "runnum" );
+  src.evnum = new TTreeReaderValue<Int_t>( *reader, "evnum" );
+  src.trigpat = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trigpat" );
+  src.trigflag = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trigflag" );
+  src.npadTpc = new TTreeReaderValue<Int_t>( *reader, "npadTpc" );
+  src.nhTpc = new TTreeReaderValue<Int_t>( *reader, "nhTpc" );
+  src.layerTpc = new TTreeReaderValue<std::vector<Int_t>>( *reader, "layerTpc" );
+  src.rowTpc = new TTreeReaderValue<std::vector<Int_t>>( *reader, "rowTpc" );
+  src.padTpc = new TTreeReaderValue<std::vector<Int_t>>( *reader, "padTpc" );
+  src.pedTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pedTpc" );
+  src.rmsTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "rmsTpc" );
+  src.deTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "deTpc" );
+  src.tTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "tTpc" );
+  src.chisqrTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqrTpc" );
 
   return true;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 ConfMan::InitializeParameterFiles( void )
 {
@@ -361,7 +381,7 @@ ConfMan::InitializeParameterFiles( void )
       InitializeParameter<HodoPHCMan>("HDPHC") );
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 ConfMan::FinalizeProcess( void )
 {

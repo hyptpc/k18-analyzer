@@ -24,6 +24,7 @@ TPCCluster::TPCCluster( int layer, TPCHitContainer& HitCont )
   : m_layer_id( layer ),
     m_pos_calculated( false )
 {
+  m_tpchits.resize( HitCont.size() );
   std::copy( HitCont.begin(), HitCont.end(), m_tpchits.begin() );
   debug::ObjectCounter::increase(class_name);
 }
@@ -47,7 +48,7 @@ TPCCluster::~TPCCluster( void )
 }
 
 //______________________________________________________________________________
-void 
+void
 TPCCluster::ClearTPCHits( void )
 {
   //  m_tpchits.clear();
@@ -59,7 +60,7 @@ TPCCluster::ClearTPCHits( void )
 }
 
 //______________________________________________________________________________
-void 
+void
 TPCCluster::AddTPCHit( TPCHit* hit )
 {
   if( hit ){
@@ -90,7 +91,7 @@ TPCCluster::CalculateWeightedMean( void )
     m_mrow = mrow/charge;
   }
   else {
-    m_pos.SetXYZ( 0, 0, 0 ); 
+    m_pos.SetXYZ( 0, 0, 0 );
     m_pad_id = 0;
     m_mrow = 0;
   }
@@ -98,7 +99,7 @@ TPCCluster::CalculateWeightedMean( void )
 }
 
 //______________________________________________________________________________
-TVector3 
+TVector3
 TPCCluster::Position( void )
 {
   if(!m_pos_calculated) CalculateWeightedMean();
@@ -106,7 +107,7 @@ TPCCluster::Position( void )
 }
 
 //______________________________________________________________________________
-double 
+double
 TPCCluster::X( void )
 {
   if(!m_pos_calculated) CalculateWeightedMean();
@@ -114,7 +115,7 @@ TPCCluster::X( void )
 }
 
 //______________________________________________________________________________
-double 
+double
 TPCCluster::Y( void )
 {
   if(!m_pos_calculated) CalculateWeightedMean();
@@ -122,7 +123,7 @@ TPCCluster::Y( void )
 }
 
 //______________________________________________________________________________
-double 
+double
 TPCCluster::Z( void )
 {
   if(!m_pos_calculated) CalculateWeightedMean();
@@ -130,7 +131,7 @@ TPCCluster::Z( void )
 }
 
 //______________________________________________________________________________
-double 
+double
 TPCCluster::ResX( void )
 {
   if(!m_pos_calculated) CalculateWeightedMean();
@@ -141,7 +142,7 @@ TPCCluster::ResX( void )
   double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
   double L_D = 30.+(y_pos*0.1);//cm
   double N_eff = 42.8;
-  double A = 0.0582*0.01;//m-1 -> cm-1                                                                                                                                                  
+  double A = 0.0582*0.01;//m-1 -> cm-1
   double e_ALD = exp(-1.*A*L_D);
   double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
   double sT = sqrt(sT2);
@@ -150,7 +151,7 @@ TPCCluster::ResX( void )
 }
 
 //______________________________________________________________________________
-double 
+double
 TPCCluster::ResY( void )
 {
   //Temp value (need to change)
@@ -159,7 +160,7 @@ TPCCluster::ResY( void )
 }
 
 //______________________________________________________________________________
-double 
+double
 TPCCluster::ResZ( void )
 {
   if(!m_pos_calculated) CalculateWeightedMean();
@@ -170,7 +171,7 @@ TPCCluster::ResZ( void )
   double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
   double L_D = 30.+(y_pos*0.1);//cm
   double N_eff = 42.8;
-  double A = 0.0582*0.01;//m-1 -> cm-1                                                                                                                                                  
+  double A = 0.0582*0.01;//m-1 -> cm-1
   double e_ALD = exp(-1.*A*L_D);
   double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
   double sT = sqrt(sT2);
@@ -192,4 +193,3 @@ TPCCluster::Print( const std::string& arg ) const
 	      << "charge = "  << m_charge  << std::endl;
   std::cerr << std::endl;
 }
-

@@ -47,6 +47,7 @@ namespace dst
     { "", "", "tree", "" };
   std::vector<TFile*> TFileCont;
   std::vector<TTree*> TTreeCont;
+  std::vector<TTreeReader*> TTreeReaderCont;
 }
 
 //_____________________________________________________________________

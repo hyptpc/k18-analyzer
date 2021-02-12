@@ -14,6 +14,7 @@
 
 #include <TFile.h>
 #include <TTree.h>
+#include <TTreeReader.h>
 #include "DCAnalyzer.hh"
 
 // if event number mismatch is found, exit process.
@@ -27,6 +28,7 @@ namespace dst
   extern std::vector<TString> TreeName;
   extern std::vector<TFile*>  TFileCont;
   extern std::vector<TTree*>  TTreeCont;
+  extern std::vector<TTreeReader*> TTreeReaderCont;
   bool InitializeEvent( void );
   bool DstOpen( std::vector<std::string> arg );
   bool DstRead( void );
@@ -43,7 +45,7 @@ namespace dst
 
     if( !status ){
       std::cout << "#D Usage : " << hddaq::basename(arg[0]);
-      for( std::size_t i=1; i<n; ++i ){
+      for( std::size_t i=1; i<ArgName.size(); ++i ){
 	std::cout << " " << ArgName[i];
       }
       std::cout << std::endl;
@@ -57,7 +59,7 @@ namespace dst
 		<< " arg[" << i << "] = " << arg[i] << std::endl;
     }
 
-    TFileCont.resize(n); TTreeCont.resize(n);
+    TFileCont.resize(n); TTreeCont.resize(n); TTreeReaderCont.resize(n);
     return ( ArgName.size()==TreeName.size() );
   }
 
@@ -145,7 +147,12 @@ namespace dst
   GetEntry( Int_t ievent )
   {
     for( std::size_t i=0, n=TTreeCont.size(); i<n; ++i ){
-      if( TTreeCont[i] ) TTreeCont[i]->GetEntry( ievent );
+      if( TTreeCont[i] ){
+        TTreeCont[i]->GetEntry( ievent );
+        if( TTreeReaderCont[i] ){
+          TTreeReaderCont[i]->Next();
+        }
+      }
     }
     return true;
   }

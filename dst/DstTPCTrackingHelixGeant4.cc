@@ -63,6 +63,7 @@ namespace dst
     { "", "", "TPC_g", "" };
   std::vector<TFile*> TFileCont;
   std::vector<TTree*> TTreeCont;
+  std::vector<TTreeReader*> TTreeReaderCont;
 }
 
 //_____________________________________________________________________

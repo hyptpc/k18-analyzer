@@ -1939,9 +1939,9 @@ namespace track
     const double Li_r_min  = -500;
     const double Li_r_max  =  500;
 
-    static TH2D Li_hist("hist_linear",";theta (deg.); r (mm)",
-			Li_theta_ndiv, Li_theta_min, Li_theta_max,
-			Li_r_ndiv, Li_r_min, Li_r_max);
+    TH2D Li_hist("hist_linear",";theta (deg.); r (mm)",
+                 Li_theta_ndiv, Li_theta_min, Li_theta_max,
+                 Li_r_ndiv, Li_r_min, Li_r_max);
     Li_hist.Reset();
 
     std::vector<std::vector<int> > flag;
@@ -2044,9 +2044,9 @@ namespace track
 
     //for TPC linear track
     // r = x * cos(theta) + y * sin(theta)
-    static TH2D Li_hist("hist_linear",";theta (deg.); r (mm)",
-			Li_theta_ndiv, Li_theta_min, Li_theta_max,
-			Li_r_ndiv, Li_r_min, Li_r_max);
+    TH2D Li_hist("hist_linear",";theta (deg.); r (mm)",
+                 Li_theta_ndiv, Li_theta_min, Li_theta_max,
+                 Li_r_ndiv, Li_r_min, Li_r_max);
 
     std::vector<std::vector<int> > flag;
     flag.resize( NumOfLayersTPC );

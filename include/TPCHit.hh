@@ -45,16 +45,10 @@ protected:
   TVector3              m_pos;
   Int_t                 m_is_good;
   Int_t                 m_is_calculated;
-  Double_t              m_wpos;
-  Double_t              m_angle;
 
   ///// for TPC(MWPC)
-  Int_t    m_cluster_size;
   Double_t m_mrow;
   Bool_t     m_tpc_flag;
-
-  ///// for TPC
-  Int_t    m_hitnum;
 
   Double_t m_resx;
   Double_t m_resy;
@@ -83,21 +77,17 @@ public:
   Double_t        GetRMS( void ) const { return m_rms; }
   Double_t        GetCharge( void ) const { return m_charge; }
   const TVector3& GetPos( void ) const { return m_pos; }
-  Double_t        GetWirePosition( void ) const { return m_wpos; }
   Double_t        GetX( void ) const { return m_pos.X(); }
   Double_t        GetY( void ) const { return m_pos.Y(); }
   Double_t        GetZ( void ) const { return m_pos.Z(); }
-  Int_t           GetClusterSize( void ) const { return m_cluster_size; }
   DCHit*          GetHitXZ( void ) const { return m_hit_xz; }
   DCHit*          GetHitYZ( void ) const { return m_hit_yz; }
   Double_t        GetMRow( void ) const { return m_mrow; }
   Bool_t          GetTPCFlag( void ) const { return m_tpc_flag; }
-  Int_t           GetHitNum( void ) const { return m_hitnum; }
   Double_t        GetResolutionX( void );
   Double_t        GetResolutionY( void );
   Double_t        GetResolutionZ( void );
   Double_t        GetResolution( void );
-  Double_t        GetTiltAngle( void ) const { return m_angle; }
   Double_t        GetTime( Int_t i ) const { return m_time.at(i); }
   Int_t           GetTimeSize( void ) const { return m_time.size(); }
   Bool_t          IsGood( void ) const { return m_is_good; }
@@ -114,11 +104,8 @@ public:
   void            SetCharge( Double_t charge ) { m_charge = charge; }
   void            SetPos( TVector3 pos ) { m_pos = pos; }
   void            SetWirePosition( Double_t wpos ) { m_wpos = wpos; }
-  void            SetAngle( Double_t angle ) { m_angle = angle; }
-  void            SetClusterSize( Int_t size ) { m_cluster_size = size; }
   void            SetMRow( Double_t mrow ) { m_mrow = mrow; }
   void            SetTPCFlag( Bool_t flag ) { m_tpc_flag = flag; }
-  void            SetHitNum( Int_t hitnum ) { m_hitnum = hitnum; }
   void            SetResX( Double_t resx ) { m_resx = resx; }
   void            SetResY( Double_t resy ) { m_resy = resy; }
   void            SetResZ( Double_t resz ) { m_resz = resz; }

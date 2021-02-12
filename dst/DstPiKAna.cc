@@ -26,7 +26,7 @@
 #include "MathTools.hh"
 #include "MsTParamMan.hh"
 #include "UserParamMan.hh"
-#include "HodoPHCMan.hh" 
+#include "HodoPHCMan.hh"
 
 #include "DstHelper.hh"
 
@@ -39,7 +39,7 @@ namespace
   const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
   // const MsTParamMan&  gMsT  = MsTParamMan::GetInstance();
   const UserParamMan& gUser = UserParamMan::GetInstance();
-  const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance(); 
+  const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
 }
 
 namespace dst
@@ -58,6 +58,7 @@ namespace dst
     { "", "", "kurama", "k18track", "hodo", "ea0c", "" };
   std::vector<TFile*> TFileCont;
   std::vector<TTree*> TTreeCont;
+  std::vector<TTreeReader*> TTreeReaderCont;
 
   const double pB_offset   = 1.000;
   const double pS_offset   = 1.000;
@@ -166,7 +167,7 @@ struct Event
   int    nhKurama[MaxHits];
   double chisqrKurama[MaxHits];
   double stof[MaxHits];
-  double cstof[MaxHits]; 
+  double cstof[MaxHits];
   double path[MaxHits];
   double pKurama[MaxHits];
   double qKurama[MaxHits];
@@ -317,7 +318,7 @@ struct Src
   int    nhKurama[MaxHits];
   double chisqrKurama[MaxHits];
   double stof[MaxHits];
-  double cstof[MaxHits]; 
+  double cstof[MaxHits];
   double path[MaxHits];
   double pKurama[MaxHits];
   double qKurama[MaxHits];
@@ -494,7 +495,7 @@ dst::InitializeEvent( void )
     event.pKurama[it]      = -9999.;
     event.qKurama[it]      = -9999.;
     event.stof[it]         = -9999.;
-    event.cstof[it]        = -9999.; 
+    event.cstof[it]        = -9999.;
     event.path[it]         = -9999.;
     event.m2[it]           = -9999.;
     event.thetaKurama[it]  = -9999.;
@@ -666,7 +667,7 @@ dst::DstRead( int ievent )
   }
 
   // BH1
-  double btof = -9999.; 
+  double btof = -9999.;
   for( int i=0; i<nhBh1; ++i ){
     event.csBh1[i]  = src.csBh1[i];
     event.Bh1Seg[i] = src.Bh1Seg[i];
@@ -674,7 +675,7 @@ dst::DstRead( int ievent )
     event.dtBh1[i]  = src.dtBh1[i];
     event.deBh1[i]  = src.deBh1[i];
     event.btof[i]   = src.btof[i];
-	if(i==0) btof = src.btof[i]; 
+	if(i==0) btof = src.btof[i];
   }
 
   // BH2
@@ -769,7 +770,7 @@ dst::DstRead( int ievent )
     // SdcOut vs TOF
     double TofSegKurama = src.tofsegKurama[itKurama];
     double stof = -9999.;
-    double cstof = -9999.; 
+    double cstof = -9999.;
     double m2   = -9999.;
     // w/  TOF
 
@@ -798,15 +799,15 @@ dst::DstRead( int ievent )
 
 	stof = event.tTof[correct_num] - time0 + OffsetToF;
 	m2 = Kinematics::MassSquare( pCorr, path, cstof );
-	if(btof==-9999.9){ 
+	if(btof==-9999.9){
 	  cstof=stof;
     }else{
 	  gPHC.DoStofCorrection( 8, 0, src.TofSeg[correct_num]-1, 2, stof, btof, cstof );
 	  m2 = Kinematics::MassSquare( pCorr, path, cstof );
-	}	
+	}
 	event.best_deTof[itKurama] = best_de;
 	event.best_TofSeg[itKurama] = src.TofSeg[correct_num];
-	
+
 	///for Kflag///
 	int Kflag=0;
 	double dEdx = Mip2MeV*best_de/sqrt(1+utof*utof+vtof*vtof);
@@ -832,7 +833,7 @@ dst::DstRead( int ievent )
     event.vtgtKurama[itKurama] = v;
     event.thetaKurama[itKurama] = theta;
     event.stof[itKurama] = stof;
-	event.cstof[itKurama] = cstof; 
+	event.cstof[itKurama] = cstof;
     event.path[itKurama] = path;
     event.m2[itKurama] = m2;
 	event.Kflag[itKurama] = Kflag;
@@ -1064,11 +1065,11 @@ dst::DstRead( int ievent )
 }
 //_____________________________________________________________________
 double calcCutLineByTOF( double M, double mom ){
-  
+
   const double K  = 0.307075;//cosfficient [MeV cm^2/g]
   const double ro = 1.032;//density of TOF [g/cm^3]
   const double ZA = 0.5862;//atomic number to mass number ratio of TOF
-  const int    z  = 1;//charge of incident particle 
+  const int    z  = 1;//charge of incident particle
   const double me = 0.511;//mass of electron [MeV/c^2]
   const double I  = 0.0000647;//mean excitaton potential [MeV]
 
@@ -1081,7 +1082,7 @@ double calcCutLineByTOF( double M, double mom ){
   double p1 = ro*K*ZA*z*z/2;
   double p2 = (2*me/I/M)*(2*me/I/M);
   double p3 = 0.2414*K*z*z/ro;
- 
+
   double y = mom/M;
   double X = log10(y);
   double delta;
@@ -1093,8 +1094,8 @@ double calcCutLineByTOF( double M, double mom ){
                   +(3.85019*pow(y,-2)-0.1667989*pow(y,-4)+0.00157955*pow(y,-6))*pow(10,-9)*pow(I,3);
 
   double x = mom;
-  double dEdx = p1*((M/x)*(M/x)+1)*log(p2*x*x*x*x/(M*M+2*me*sqrt(M*M+x*x))+me*me)-2*p1-p1*delta-p3*C;  
-  
+  double dEdx = p1*((M/x)*(M/x)+1)*log(p2*x*x*x*x/(M*M+2*me*sqrt(M*M+x*x))+me*me)-2*p1-p1*delta-p3*C;
+
   return dEdx;
 }
 
@@ -1392,7 +1393,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("nhKurama",      event.nhKurama,     "nhKurama[ntKurama]/I");
   tree->Branch("chisqrKurama",  event.chisqrKurama, "chisqrKurama[ntKurama]/D");
   tree->Branch("stof",          event.stof,         "stof[ntKurama]/D");
-  tree->Branch("cstof",         event.cstof,        "cstof[ntKurama]/D"); 
+  tree->Branch("cstof",         event.cstof,        "cstof[ntKurama]/D");
   tree->Branch("path",          event.path,         "path[ntKurama]/D");
   tree->Branch("pKurama",       event.pKurama,      "pKurama[ntKurama]/D");
   tree->Branch("qKurama",       event.qKurama,      "qKurama[ntKurama]/D");
@@ -1519,7 +1520,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKuramaTracking]->SetBranchStatus("ntKurama",    1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("nhKurama",    1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("stof",        1);
-  TTreeCont[kKuramaTracking]->SetBranchStatus("cstof",        1); 
+  TTreeCont[kKuramaTracking]->SetBranchStatus("cstof",        1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("path",        1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("pKurama",     1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("qKurama",     1);
@@ -1554,7 +1555,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKuramaTracking]->SetBranchAddress("ntKurama",    &src.ntKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("nhKurama",     src.nhKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("stof",         src.stof);
-  TTreeCont[kKuramaTracking]->SetBranchAddress("cstof",        src.cstof); 
+  TTreeCont[kKuramaTracking]->SetBranchAddress("cstof",        src.cstof);
   TTreeCont[kKuramaTracking]->SetBranchAddress("path",         src.path);
   TTreeCont[kKuramaTracking]->SetBranchAddress("pKurama",      src.pKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("qKurama",      src.qKurama);
@@ -1640,7 +1641,7 @@ ConfMan::InitializeParameterFiles( void )
   return
     ( InitializeParameter<DCGeomMan>("DCGEO")   &&
       InitializeParameter<UserParamMan>("USER") &&
-	  InitializeParameter<HodoPHCMan>("HDPHC") ); 
+	  InitializeParameter<HodoPHCMan>("HDPHC") );
 }
 
 //_____________________________________________________________________
