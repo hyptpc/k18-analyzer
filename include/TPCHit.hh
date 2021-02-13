@@ -50,6 +50,7 @@ protected:
   ///// for TPC(MWPC)
   Double_t m_mrow;
   Bool_t   m_tpc_flag;
+  Int_t m_clsize;
 
   Double_t m_resx;
   Double_t m_resy;
@@ -89,6 +90,7 @@ public:
   DCHit*          GetHitYZ( void ) const { return m_hit_yz; }
   Double_t        GetMRow( void ) const { return m_mrow; }
   Bool_t          GetTPCFlag( void ) const { return m_tpc_flag; }
+  Int_t           GetClusterSize( void ) const { return m_clsize; }
   Double_t        GetResolutionX( void );
   Double_t        GetResolutionY( void );
   Double_t        GetResolutionZ( void );
@@ -111,6 +113,7 @@ public:
   void            SetPos( TVector3 pos ) { m_pos = pos; }
   void            SetWirePosition( Double_t wpos ) { m_wpos = wpos; }
   void            SetMRow( Double_t mrow ) { m_mrow = mrow; }
+  void            SetClusterSize( Double_t clsize ) { m_clsize = clsize; }
   void            SetTPCFlag( Bool_t flag ) { m_tpc_flag = flag; }
   void            SetResX( Double_t resx ) { m_resx = resx; }
   void            SetResY( Double_t resy ) { m_resy = resy; }

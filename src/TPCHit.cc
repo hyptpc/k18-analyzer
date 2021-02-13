@@ -122,6 +122,7 @@ TPCHit::TPCHit( int padid, TVector3 pos, double charge )
   m_hit_yz->SetTiltAngle(90.);
   m_hit_yz->SetDummyPair();
 
+  m_clsize = 0;
   debug::ObjectCounter::increase( ClassName() );
 }
 

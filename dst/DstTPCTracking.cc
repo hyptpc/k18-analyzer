@@ -59,6 +59,14 @@ struct Event
   std::vector<Int_t> trigpat;
   std::vector<Int_t> trigflag;
   Int_t nhTpc;
+  Int_t nh_cluster_Tpc;
+  std::vector<Double_t> raw_hitpos_x;
+  std::vector<Double_t> raw_hitpos_y;
+  std::vector<Double_t> raw_hitpos_z;
+  std::vector<Double_t> cluster_hitpos_x;
+  std::vector<Double_t> cluster_hitpos_y;
+  std::vector<Double_t> cluster_hitpos_z;
+  std::vector<Int_t> cluster_size;
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
   std::vector<Double_t> chisqr;
@@ -85,6 +93,14 @@ struct Event
     evnum = 0;
     status = 0;
     nhTpc = 0;
+    nh_cluster_Tpc = 0;
+    raw_hitpos_x.clear();
+    raw_hitpos_y.clear();
+    raw_hitpos_z.clear();
+    cluster_hitpos_x.clear();
+    cluster_hitpos_y.clear();
+    cluster_hitpos_z.clear();
+    cluster_size.clear();
     ntTpc = 0;
     trigpat.clear();
     trigflag.clear();
@@ -213,27 +229,66 @@ dst::DstRead( int ievent )
   event.evnum = **src.evnum;
   event.trigpat = **src.trigpat;
   event.trigflag = **src.trigflag;
-  event.nhTpc = **src.nhTpc;
+  //  event.nhTpc = **src.nhTpc;
+  
 
   HF1( 1, event.status++ );
 
-  if( event.nhTpc == 0 )
+  if( **src.nhTpc == 0 )
     return true;
 
   HF1( 1, event.status++ );
 
   // std::cout<<**src.nhTpc<<", "<<(**src.padTpc).size()<<std::endl;
-
+  
   DCAnalyzer DCAna;
-  DCAna.ReCalcTPCHits( **src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc );
-  DCAna.TrackSearchTPC();
 
+  DCAna.ReCalcTPCHits_woClustering( **src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc );
+  Int_t nh_Tpc = 0;
+  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+    auto hc = DCAna.GetTPCHC( layer );
+    for( const auto& hit : hc ){
+      if( !hit || !hit->IsGood() )
+        continue;
+      Double_t x = hit->GetX();
+      Double_t y = hit->GetY();
+      Double_t z = hit->GetZ();
+      event.raw_hitpos_x.push_back(x);
+      event.raw_hitpos_y.push_back(y);
+      event.raw_hitpos_z.push_back(z);
+      ++nh_Tpc;
+    }
+  }
+  event.nhTpc = nh_Tpc;
+  
+  DCAna.ReCalcTPCHits( **src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc );
+  Int_t nh_cl_Tpc = 0;
+  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+    auto hc = DCAna.GetTPCHC( layer );
+    for( const auto& hit : hc ){
+      if( !hit || !hit->IsGood() )
+        continue;
+      Double_t x = hit->GetX();
+      Double_t y = hit->GetY();
+      Double_t z = hit->GetZ();
+      Int_t cl_size = hit->GetClusterSize();
+      event.cluster_hitpos_x.push_back(x);
+      event.cluster_hitpos_y.push_back(y);
+      event.cluster_hitpos_z.push_back(z);
+      event.cluster_size.push_back(cl_size);
+      ++nh_cl_Tpc;
+    }
+  }
+  event.nh_cluster_Tpc = nh_cl_Tpc;
+
+  DCAna.TrackSearchTPC();
+  
   Int_t ntTpc = DCAna.GetNTracksTPC();
   event.ntTpc = ntTpc;
   HF1( 10, ntTpc );
   if( event.ntTpc == 0 )
     return true;
-
+  
   HF1( 1, event.status++ );
 
   event.nhtrack.resize( ntTpc );
@@ -250,6 +305,12 @@ dst::DstRead( int ievent )
   event.calpos_x.resize( ntTpc );
   event.calpos_y.resize( ntTpc );
   event.calpos_z.resize( ntTpc );
+  event.residual.resize( ntTpc );
+  event.residual_x.resize( ntTpc );
+  event.residual_y.resize( ntTpc );
+  event.residual_z.resize( ntTpc );
+  
+
   for( Int_t it=0; it<ntTpc; ++it ){
     TPCLocalTrack *tp = DCAna.GetTrackTPC( it );
     if( !tp ) continue;
@@ -272,6 +333,12 @@ dst::DstRead( int ievent )
     event.calpos_x[it].resize( nh );
     event.calpos_y[it].resize( nh );
     event.calpos_z[it].resize( nh );
+    event.residual[it].resize( nh );
+    event.residual_x[it].resize( nh );
+    event.residual_y[it].resize( nh );
+    event.residual_z[it].resize( nh );
+    
+
     for( int ih=0; ih<nh; ++ih ){
       TPCLTrackHit *hit = tp->GetHit( ih );
       if( !hit ) continue;
@@ -292,8 +359,9 @@ dst::DstRead( int ievent )
       event.residual_y[it][ih] = res_vect.y();
       event.residual_z[it][ih] = res_vect.z();
     }
+    
   }
-
+  
   HF1( 1, event.status++ );
 
   return true;
@@ -331,6 +399,15 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "trigpat", &event.trigpat );
   tree->Branch( "trigflag", &event.trigflag );
   tree->Branch( "nhTpc", &event.nhTpc );
+  tree->Branch( "nh_cluster_Tpc", &event.nh_cluster_Tpc );
+  tree->Branch( "raw_hitpos_x", &event.raw_hitpos_x );
+  tree->Branch( "raw_hitpos_y", &event.raw_hitpos_y );
+  tree->Branch( "raw_hitpos_z", &event.raw_hitpos_z );
+  tree->Branch( "cluster_hitpos_x", &event.cluster_hitpos_x );
+  tree->Branch( "cluster_hitpos_y", &event.cluster_hitpos_y );
+  tree->Branch( "cluster_hitpos_z", &event.cluster_hitpos_z );
+  tree->Branch( "cluster_size", &event.cluster_size );
+ 
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
   tree->Branch( "chisqr", &event.chisqr );

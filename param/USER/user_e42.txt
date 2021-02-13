@@ -90,7 +90,7 @@ Time0TPC   	   	  76.75
 DriftVelocityTPC	0.05
 
 ### TPC Cluster Y cut
-ClusterYCut 10
+ClusterYCut 3
 
 ### TPC Hough Window cut
 HoughWindowCut 10

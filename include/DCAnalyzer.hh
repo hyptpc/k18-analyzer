@@ -189,6 +189,10 @@ public:
   bool ReCalcDCHits( std::vector<DCHitContainer>& cont,
 		     bool applyRecursively=false );
   bool ReCalcDCHits( bool applyRecursively=false );
+  bool ReCalcTPCHits_woClustering( const int nhits,
+				   const std::vector<int>& padid,
+				   const std::vector<double>& time,
+				   const std::vector<double>& de );
   bool ReCalcTPCHits( const int nhits,
                       const std::vector<int>& padid,
                       const std::vector<double>& time,
