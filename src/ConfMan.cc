@@ -1,8 +1,4 @@
-/**
- *  file: ConfMan.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "ConfMan.hh"
 
@@ -26,6 +22,7 @@
 #include "DCDriftParamMan.hh"
 #include "EventDisplay.hh"
 #include "FieldMan.hh"
+#include "FuncName.hh"
 #include "HodoParamMan.hh"
 #include "HodoPHCMan.hh"
 #include "K18TransMatrix.hh"
@@ -36,73 +33,69 @@
 
 namespace
 {
-  using namespace hddaq::unpacker;
-  const std::string& class_name("ConfMan");
-  const std::string& kConfFile("CONF");
-  std::string sConfDir;
-  UnpackerManager&      gUnpacker = GUnpacker::get_instance();
-  const MatrixParamMan& gMatrix   = MatrixParamMan::GetInstance();
-  const UserParamMan&   gUser     = UserParamMan::GetInstance();
+using hddaq::unpacker::GUnpacker;
+const TString kConfFile( "CONF" );
+TString       sConfDir;
+auto&       gUnpacker = GUnpacker::get_instance();
+const auto& gMatrix   = MatrixParamMan::GetInstance();
+const auto& gUser     = UserParamMan::GetInstance();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 ConfMan::ConfMan( void )
   : m_is_ready(false)
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 ConfMan::~ConfMan( void )
 {
 }
 
-//______________________________________________________________________________
-bool
+//_____________________________________________________________________________
+Bool_t
 ConfMan::Initialize( void )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   if( m_is_ready ){
-    hddaq::cerr << "#W " << func_name
-		<< " already initialied" << std::endl;
+    hddaq::cerr << FUNC_NAME << " already initialied" << std::endl;
     return false;
   }
 
-  std::ifstream ifs( m_file[kConfFile].c_str() );
+  std::ifstream ifs( m_file[kConfFile] );
   if( !ifs.is_open() ){
-    hddaq::cerr << "#E " << func_name
-		<< " cannot open file : " << m_file[kConfFile] << std::endl;
+    hddaq::cerr << FUNC_NAME << " cannot open file : "
+                << m_file[kConfFile] << std::endl;
     return false;
   }
 
-  hddaq::cout << "#D " << func_name << std::endl;
+  hddaq::cout << FUNC_NAME << " " << m_file[kConfFile] << std::endl;
+  sConfDir = hddaq::dirname( m_file[kConfFile].Data() );
 
-  sConfDir = hddaq::dirname(m_file[kConfFile]);
+  TString line;
+  while( ifs.good() && line.ReadLine( ifs ) ){
+    if( line.IsNull() || line[0]=='#' ) continue;
 
-  std::string line;
-  while( ifs.good() && std::getline( ifs, line ) ){
-    if( line.empty() || line[0]=='#' ) continue;
+    line.ReplaceAll( ",",  "" ); // remove ,
+    line.ReplaceAll( ":",  "" ); // remove :
+    line.ReplaceAll( "\"",  "" ); // remove "
 
-    hddaq::replace_all(line, ",",  ""); // remove ,
-    hddaq::replace_all(line, ":",  ""); // remove :
-    hddaq::replace_all(line, "\"", ""); // remove "
-
-    std::istringstream iss( line );
+    std::istringstream iss( line.Data() );
     std::istream_iterator<std::string> begin( iss );
     std::istream_iterator<std::string> end;
-    std::vector<std::string> v( begin, end );
+    std::vector<TString> v( begin, end );
     if( v.size()<2 ) continue;
 
-    std::string key = v[0];
+    TString key = v[0];
+    TString val = v[1];
     hddaq::cout << " key = "   << std::setw(10) << std::left << key
-		<< " value = " << std::setw(30) << std::left << v[1]
+		<< " value = " << std::setw(30) << std::left << val
 		<< std::endl;
 
-    m_file[key]   = FilePath(v[1]);
-    m_string[key] = v[1];
-    m_double[key] = hddaq::lexical_cast<double>(v[1]);
-    m_int[key]    = hddaq::lexical_cast<int>(v[1]);
-    m_bool[key]   = hddaq::lexical_cast<bool>(v[1]);
+    m_file[key]   = FilePath( val );
+    m_string[key] = val;
+    m_double[key] = val.Atof();
+    m_int[key]    = val.Atoi();
+    m_bool[key]   = ( val.Atoi() == 1 );
   }
 
   if ( !InitializeParameterFiles() || !InitializeHistograms() )
@@ -117,39 +110,38 @@ ConfMan::Initialize( void )
   return true;
 }
 
-//______________________________________________________________________________
-bool
-ConfMan::Initialize( const std::string& file_name )
+//_____________________________________________________________________________
+Bool_t
+ConfMan::Initialize( const TString& file_name )
 {
   m_file[kConfFile] = file_name;
   return Initialize();
 }
 
-//______________________________________________________________________________
-bool
+//_____________________________________________________________________________
+Bool_t
 ConfMan::InitializeUnpacker( void )
 {
-  gUnpacker.set_config_file( m_file["UNPACK"],
-			     m_file["DIGIT"],
-			     m_file["CMAP"] );
+  gUnpacker.set_config_file( m_file["UNPACK"].Data(),
+			     m_file["DIGIT"].Data(),
+			     m_file["CMAP"].Data() );
   return true;
 }
 
-//______________________________________________________________________________
-bool
+//_____________________________________________________________________________
+Bool_t
 ConfMan::Finalize( void )
 {
   return FinalizeProcess();
 }
 
-//______________________________________________________________________________
-std::string
-ConfMan::FilePath( const std::string& src ) const
+//_____________________________________________________________________________
+TString
+ConfMan::FilePath( const TString& src ) const
 {
-  std::ifstream tmp( src.c_str() );
-  if ( tmp.good() )
+  std::ifstream tmp( src );
+  if( tmp.good() )
     return src;
   else
-    return sConfDir + "+" + src;
+    return sConfDir + "/" + src;
 }
-

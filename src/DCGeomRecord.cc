@@ -1,8 +1,4 @@
-/**
- *  file: DCGeomRecord.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "DCGeomRecord.hh"
 
@@ -15,50 +11,67 @@
 
 namespace
 {
-  const std::string& class_name("DCGeomRecord");
-  enum  EDefinition { kSks, kKurama };
-  const EDefinition GlobalCoordinate = kKurama;
+enum  EDefinition { kSks, kKurama };
+const EDefinition GlobalCoordinate = kKurama;
 }
 
-//______________________________________________________________________________
-DCGeomRecord::DCGeomRecord( int id, const std::string &name,
-			    double x, double y, double z, double ta,
-			    double ra1, double ra2, double length, double resol,
-			    double w0, double dd, double ofs )
-  : m_id(id), m_name(name), m_pos(x,y,z), m_tilt_angle(ta),
-    m_rot_angle1(ra1), m_rot_angle2(ra2),
-    m_length(length), m_resolution(resol), m_w0(w0), m_dd(dd), m_offset(ofs)
+//_____________________________________________________________________________
+DCGeomRecord::DCGeomRecord( Int_t id, const TString& name,
+			    Double_t x, Double_t y, Double_t z, Double_t ta,
+			    Double_t ra1, Double_t ra2, Double_t length,
+                            Double_t resol,
+			    Double_t w0, Double_t dd, Double_t ofs )
+  : m_id( id ),
+    m_name( name ),
+    m_pos( x, y, z ),
+    m_tilt_angle( ta ),
+    m_rot_angle1( ra1 ),
+    m_rot_angle2( ra2 ),
+    m_length( length ),
+    m_resolution( resol ),
+    m_w0( w0 ),
+    m_dd( dd ),
+    m_offset( ofs )
 {
   CalcVectors();
 }
 
-//______________________________________________________________________________
-DCGeomRecord::DCGeomRecord( int id, const std::string &name,
-			    const ThreeVector pos, double ta,
-			    double ra1, double ra2, double length, double resol,
-			    double w0, double dd, double ofs )
-  : m_id(id), m_name(name), m_pos(pos),  m_tilt_angle(ta),
-    m_rot_angle1(ra1), m_rot_angle2(ra2),
-    m_length(length), m_resolution(resol), m_w0(w0), m_dd(dd), m_offset(ofs)
+//_____________________________________________________________________________
+DCGeomRecord::DCGeomRecord( Int_t id, const TString& name,
+			    const ThreeVector pos, Double_t ta,
+			    Double_t ra1, Double_t ra2, Double_t length,
+                            Double_t resol,
+			    Double_t w0, Double_t dd, Double_t ofs )
+  : m_id( id ),
+    m_name( name ),
+    m_pos( pos ),
+    m_tilt_angle( ta ),
+    m_rot_angle1( ra1 ),
+    m_rot_angle2( ra2 ),
+    m_length( length ),
+    m_resolution( resol ),
+    m_w0( w0 ),
+    m_dd( dd ),
+    m_offset( ofs )
 {
   CalcVectors();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 DCGeomRecord::~DCGeomRecord( void )
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 DCGeomRecord::CalcVectors( void )
 {
-  double ct0 = std::cos( m_tilt_angle*math::Deg2Rad() );
-  double st0 = std::sin( m_tilt_angle*math::Deg2Rad() );
-  double ct1 = std::cos( m_rot_angle1*math::Deg2Rad() );
-  double st1 = std::sin( m_rot_angle1*math::Deg2Rad() );
-  double ct2 = std::cos( m_rot_angle2*math::Deg2Rad() );
-  double st2 = std::sin( m_rot_angle2*math::Deg2Rad() );
+  Double_t ct0 = TMath::Cos( m_tilt_angle*TMath::DegToRad() );
+  Double_t st0 = TMath::Sin( m_tilt_angle*TMath::DegToRad() );
+  Double_t ct1 = TMath::Cos( m_rot_angle1*TMath::DegToRad() );
+  Double_t st1 = TMath::Sin( m_rot_angle1*TMath::DegToRad() );
+  Double_t ct2 = TMath::Cos( m_rot_angle2*TMath::DegToRad() );
+  Double_t st2 = TMath::Sin( m_rot_angle2*TMath::DegToRad() );
 
   switch( GlobalCoordinate ){
   case kSks: // SKS difinition
@@ -114,42 +127,42 @@ DCGeomRecord::CalcVectors( void )
   }
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 ThreeVector
 DCGeomRecord::NormalVector( void ) const
 {
   return ThreeVector( m_dxdu, m_dydu, m_dzdu );
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 ThreeVector
 DCGeomRecord::UnitVector( void ) const
 {
   return ThreeVector( m_dxds, m_dyds, m_dzds );
 }
 
-//______________________________________________________________________________
-double
-DCGeomRecord::WirePos( double wire ) const
+//_____________________________________________________________________________
+Double_t
+DCGeomRecord::WirePos( Double_t wire ) const
 {
   return m_dd*(wire - m_w0)+m_offset;
 }
 
-//______________________________________________________________________________
-int
-DCGeomRecord::WireNumber( double pos ) const
+//_____________________________________________________________________________
+Int_t
+DCGeomRecord::WireNumber( Double_t pos ) const
 {
-  double dw = ( (pos-m_offset)/m_dd ) + m_w0;
-  int    iw = int(dw);
-  if( (dw-double(iw))>0.5 )
+  Double_t dw = ( (pos-m_offset)/m_dd ) + m_w0;
+  Int_t    iw = Int_t(dw);
+  if( (dw-Double_t(iw))>0.5 )
     return iw+1;
   else
     return iw;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCGeomRecord::Print( const std::string& arg, std::ostream& ost ) const
+DCGeomRecord::Print( const TString& arg, std::ostream& ost ) const
 {
   PrintHelper helper( 3, std::ios::fixed, ost );
   ost << " id = "   << std::setw(3) << std::right << m_id << " "

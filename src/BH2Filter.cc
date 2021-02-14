@@ -170,9 +170,9 @@ BH2Filter::Initialize( const TString& file_name )
   while( f.good() && line.ReadLine(f) ){
     if( line[0]=='#' ) continue;
     std::istringstream iss( line.Data() );
-    std::istream_iterator<Double_t> issBegin(iss);
-    std::istream_iterator<Double_t> issEnd;
-    std::vector<Double_t> v(issBegin ,issEnd);
+    std::istream_iterator<Double_t> begin( iss );
+    std::istream_iterator<Double_t> end;
+    std::vector<Double_t> v( begin, end );
     if( v.size()<kNParam ){
       hddaq::cerr << "#W " << FUNC_NAME
 		  << " number of parameters = " << v.size()

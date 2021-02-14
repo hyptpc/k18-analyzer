@@ -1,8 +1,4 @@
-/**
- *  file: K18TransMatrix.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "K18TransMatrix.hh"
 
@@ -18,103 +14,96 @@
 #include <lexical_cast.hh>
 #include <std_ostream.hh>
 
+#include "FuncName.hh"
 #include "MathTools.hh"
 
 namespace
 {
-  const std::string& class_name("K18TransMatrix");
-  const double MMtoM = 1.E-3;
-  const double MtoMM = 1000.;
+const Double_t MMtoM = 1.E-3;
+const Double_t MtoMM = 1000.;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 K18TransMatrix::K18TransMatrix( void )
-  : m_is_ready(false),
-    m_file_name("")
+  : m_is_ready( false ),
+    m_file_name(),
+    m_X(),
+    m_Y(),
+    m_U(),
+    m_V()
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 K18TransMatrix::~K18TransMatrix( void )
 {
 }
 
-//______________________________________________________________________________
-bool
+//_____________________________________________________________________________
+Bool_t
 K18TransMatrix::Initialize( void )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  std::vector< std::vector<double> > parameters;
+  std::vector<std::vector<Double_t>> parameters;
   parameters.resize(4);
 
-  std::ifstream file( m_file_name.c_str() );
+  std::ifstream ifs( m_file_name );
 
-  if( !file.is_open() ){
-    hddaq::cerr << "#E " << func_name
+  if( !ifs.is_open() ){
+    hddaq::cerr << FUNC_NAME
 		<< " cannot open file : " << m_file_name << std::endl;
-    std::exit(EXIT_FAILURE);
+    return false;
   }
 
-  while( file.good() ){
-    std::string buf;
-    std::getline(file,buf);
-
-    std::istringstream is(buf);
-    std::istream_iterator<std::string> begin(is);
+  TString line;
+  while( ifs.good() && line.ReadLine( ifs ) ){
+    std::istringstream iss( line.Data() );
+    std::istream_iterator<std::string> begin( iss );
     std::istream_iterator<std::string> end;
-    std::vector<std::string> param( begin, end );
+    std::vector<TString> param( begin, end );
+    if( param.empty() || param[0].IsNull() ) continue;
 
-    if( param.empty() || param[0].empty() ) continue;
+    Int_t n = param.size();
 
-    std::size_t n = param.size();
-
-    if(param[0]=="X" && param[1]!="A"){
-      for( std::size_t i=1; i<n; ++i ){
-	double p = hddaq::a2d(param[i]);
-	parameters[0].push_back(p);
+    if( param[0]=="X" && param[1]!="A" ){
+      for( Int_t i=1; i<n; ++i ){
+	parameters[0].push_back( param[i].Atof() );
       }
     }
-    if(param[0]=="A"){
-      for(std::size_t i=1;i<n;++i){
-	double p = hddaq::a2d(param[i]);
-	parameters[1].push_back(p);
+    if( param[0]=="A" ){
+      for( Int_t i=1; i<n; ++i ){
+	parameters[1].push_back( param[i].Atof() );
       }
     }
-    if(param[0]=="Y" && param[1]!="B"){
-      for(std::size_t i=1;i<n;++i){
-	double p = hddaq::a2d(param[i]);
-	parameters[2].push_back(p);
+    if( param[0]=="Y" && param[1]!="B" ){
+      for( Int_t i=1; i<n; ++i ){
+	parameters[2].push_back( param[i].Atof() );
       }
     }
-    if(param[0]=="B"){
-      for(std::size_t i=1;i<n;++i){
-	double p = hddaq::a2d(param[i]);
-	parameters[3].push_back(p);
+    if( param[0]=="B" ){
+      for( Int_t i=1; i<n; ++i ){
+	parameters[3].push_back( param[i].Atof() );
       }
     }
-  }//while( file.good() )
+  }
 
-  file.close();
+  Int_t n0 = parameters[0].size();
+  Int_t n1 = parameters[1].size();
+  Int_t n2 = parameters[2].size();
+  Int_t n3 = parameters[3].size();
 
-  std::size_t n0 = parameters[0].size();
-  std::size_t n1 = parameters[1].size();
-  std::size_t n2 = parameters[2].size();
-  std::size_t n3 = parameters[3].size();
-
-  for( std::size_t i=0; i<n0; ++i ) m_X[i] = parameters[0][i];
-  for( std::size_t i=0; i<n1; ++i ) m_U[i] = parameters[1][i];
-  for( std::size_t i=0; i<n2; ++i ) m_Y[i] = parameters[2][i];
-  for( std::size_t i=0; i<n3; ++i ) m_V[i] = parameters[3][i];
+  for( Int_t i=0; i<n0; ++i ) m_X[i] = parameters[0][i];
+  for( Int_t i=0; i<n1; ++i ) m_U[i] = parameters[1][i];
+  for( Int_t i=0; i<n2; ++i ) m_Y[i] = parameters[2][i];
+  for( Int_t i=0; i<n3; ++i ) m_V[i] = parameters[3][i];
 
 #ifdef DEBUG
-  for( std::size_t i=0; i<n0; ++i ) hddaq::cout << m_X[i] << " ";
+  for( Int_t i=0; i<n0; ++i ) hddaq::cout << m_X[i] << " ";
   hddaq::cout << std::endl;
-  for( std::size_t i=0; i<n1; ++i ) hddaq::cout << m_U[i] << " ";
+  for( Int_t i=0; i<n1; ++i ) hddaq::cout << m_U[i] << " ";
   hddaq::cout << std::endl;
-  for( std::size_t i=0; i<n2; ++i ) hddaq::cout << m_Y[i] << " ";
+  for( Int_t i=0; i<n2; ++i ) hddaq::cout << m_Y[i] << " ";
   hddaq::cout << std::endl;
-  for( std::size_t i=0; i<n3; ++i ) hddaq::cout << m_V[i] << " ";
+  for( Int_t i=0; i<n3; ++i ) hddaq::cout << m_V[i] << " ";
   hddaq::cout << std::endl;
 #endif
 
@@ -122,23 +111,21 @@ K18TransMatrix::Initialize( void )
   return true;
 }
 
-//______________________________________________________________________________
-bool
-K18TransMatrix::Initialize( const std::string& file_name )
+//_____________________________________________________________________________
+Bool_t
+K18TransMatrix::Initialize( const TString& file_name )
 {
   m_file_name = file_name;
   return Initialize();
 }
 
-//______________________________________________________________________________
-bool
-K18TransMatrix::Transport( double xin, double yin,
-			   double uin, double vin, double delta,
-			   double& xout, double& yout,
-			   double& uout, double& vout ) const
+//_____________________________________________________________________________
+Bool_t
+K18TransMatrix::Transport( Double_t xin, Double_t yin,
+			   Double_t uin, Double_t vin, Double_t delta,
+			   Double_t& xout, Double_t& yout,
+			   Double_t& uout, Double_t& vout ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   xin *= -MMtoM;
   yin *= -MMtoM;
   uin  = -uin;
@@ -148,7 +135,7 @@ K18TransMatrix::Transport( double xin, double yin,
   uout = 0.;
   vout = 0.;
 
-  double bj1[31], bj2[8];
+  Double_t bj1[31], bj2[8];
   bj1[ 0] = xin;
   bj1[ 1] = uin;
   bj1[ 2] = delta;
@@ -190,12 +177,12 @@ K18TransMatrix::Transport( double xin, double yin,
   bj2[ 6] = vin*uin;
   bj2[ 7] = vin*delta;
 
-  for( int i=0; i<31; ++i ){
+  for( Int_t i=0; i<31; ++i ){
     xout += m_X[i]*bj1[i];
     uout += m_U[i]*bj1[i];
   }
 
-  for( int i=0; i<8; ++i ){
+  for( Int_t i=0; i<8; ++i ){
     yout += m_Y[i]*bj2[i];
     vout += m_V[i]*bj2[i];
   }
@@ -204,16 +191,14 @@ K18TransMatrix::Transport( double xin, double yin,
   return true;
 }
 
-//______________________________________________________________________________
-bool
-K18TransMatrix::CalcDeltaD2U( double xin, double yin,
-			      double uin, double vin,
-			      double xout, double& yout,
-			      double& uout, double& vout,
-			      double& delta1, double& delta2 ) const
+//_____________________________________________________________________________
+Bool_t
+K18TransMatrix::CalcDeltaD2U( Double_t xin, Double_t yin,
+			      Double_t uin, Double_t vin,
+			      Double_t xout, Double_t& yout,
+			      Double_t& uout, Double_t& vout,
+			      Double_t& delta1, Double_t& delta2 ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   xin  *= MMtoM;
   yin  *= MMtoM;
   uin   = uin;
@@ -221,20 +206,20 @@ K18TransMatrix::CalcDeltaD2U( double xin, double yin,
   xout *= MMtoM;
 
   // use untill 2nd order
-  double A_, B_, C_, D_;
+  Double_t A_, B_, C_, D_;
   A_ = m_X[8];
   B_ = m_X[2]+m_X[5]*xin+m_X[7]*uin;
   C_ = m_X[0]*xin+m_X[1]*uin+m_X[3]*xin*xin+m_X[4]*xin*uin+m_X[6]*uin*uin
     + m_X[9]*yin*yin+m_X[10]*yin*vin+m_X[11]*vin*vin -xout;
 
   D_ = B_*B_-4.*A_*C_;
-  if (D_<0) {
-    hddaq::cerr << "#E " << func_name
+  if( D_<0 ){
+    hddaq::cerr << FUNC_NAME
 		<< " negative Hanbetu-shiki" << std::endl;
     return false;
   }
 
-  double ans1;//, ans2;
+  Double_t ans1;//, ans2;
 
   ans1 = (-B_+std::sqrt(D_))/(2.*A_);
   // ans2 = (-B_-std::sqrt(D_))/(2.*A_);
@@ -290,8 +275,8 @@ K18TransMatrix::CalcDeltaD2U( double xin, double yin,
     y = cbrt(-q/2 + std::sqrt(-D)) + cbrt(-q/2 - std::sqrt(-D)); (x = y - alpha/3);
   */
   {
-    double alpha, beta, gamma;
-    double x, a, y, b;
+    Double_t alpha, beta, gamma;
+    Double_t x, a, y, b;
     x = xin; a = uin; y = yin; b = vin;
     alpha = m_X[TT] + m_X[XTT]*x + m_X[ATT]*a;
     beta  = m_X[T] + m_X[XT]*x + m_X[AT]*a + m_X[XXT]*x*x + m_X[XAT]*x*a
@@ -306,20 +291,20 @@ K18TransMatrix::CalcDeltaD2U( double xin, double yin,
     beta  = beta/m_X[TTT];
     gamma = gamma/m_X[TTT];
 
-    double p, q;
+    Double_t p, q;
     p = -(alpha*alpha)/3 + beta;
     q = (2*alpha*alpha*alpha)/27 - (alpha*beta)/3 + gamma;
 
-    double hanbetu = -((q/2)*(q/2) + (p/3)*(p/3)*(p/3));
+    Double_t hanbetu = -((q/2)*(q/2) + (p/3)*(p/3)*(p/3));
     if(hanbetu > 0){
-      double r = std::sqrt(-4*p/3);
-      double s1, s2, s3;
-      double theta = (1/3.)*std::acos(3*q/(r*p));
+      Double_t r = std::sqrt(-4*p/3);
+      Double_t s1, s2, s3;
+      Double_t theta = (1/3.)*std::acos(3*q/(r*p));
       s1 = r*cos(theta) -alpha/3;
       s2 = r*cos(theta + 2*math::Pi()/3.) -alpha/3;
       s3 = r*cos(theta - 2*math::Pi()/3.) -alpha/3;
 
-      double tmpans = s1;
+      Double_t tmpans = s1;
       if( std::abs(tmpans-ans1)>std::abs(s2-ans1) ){
 	tmpans = s2;
       }
@@ -330,7 +315,7 @@ K18TransMatrix::CalcDeltaD2U( double xin, double yin,
       //      hddaq::cout << "ans1 " << ans1 << std::endl;
       //      hddaq::cout << delta2 << std::endl;
     }else{
-      double s1;
+      Double_t s1;
       s1 = cbrt(-q/2 + std::sqrt(-hanbetu)) + cbrt(-q/2 - std::sqrt(-hanbetu))
 	-alpha/3;
       delta2 = s1;
@@ -339,10 +324,10 @@ K18TransMatrix::CalcDeltaD2U( double xin, double yin,
     }
 
     // Calc u0, v0, y0 at BFT position.
-    double d = delta2;
+    Double_t d = delta2;
 
     // u0
-    double Au, Bu, Cu, Du;
+    Double_t Au, Bu, Cu, Du;
     Au = m_U[TTT];
     Bu = m_U[TT] + m_U[XTT]*x + m_U[ATT]*a;
     Cu = m_U[T] + m_U[XT]*x + m_U[AT]*a + m_U[XXT]*x*x + m_U[XAT]*x*a
@@ -353,21 +338,21 @@ K18TransMatrix::CalcDeltaD2U( double xin, double yin,
       + m_U[XBB]*x*b*b + m_U[AAA]*a*a*a + m_U[AYY]*a*y*y + m_U[AYB]*a*y*b
       + m_U[ABB]*a*b*b;
 
-    double u0 = Au*d*d*d + Bu*d*d + Cu*d +Du;
+    Double_t u0 = Au*d*d*d + Bu*d*d + Cu*d +Du;
 
     // v0
-    double Av, Bv;
+    Double_t Av, Bv;
     Av = m_V[YT]*y + m_V[BT]*b;
     Bv = m_V[Y]*y + m_V[B]*b + m_V[YX]*y*x + m_V[YA]*y*a + m_V[BX]*b*x + m_V[BA]*b*a;
 
-    double v0 = Av*d + Bv;
+    Double_t v0 = Av*d + Bv;
 
     // y0
-    double Ay, By;
+    Double_t Ay, By;
     Ay = m_Y[YT]*y + m_Y[BT]*b;
     By = m_Y[Y]*y + m_Y[B]*b + m_Y[YX]*y*x + m_Y[YA]*y*a + m_Y[BX]*b*x + m_Y[BA]*b*a;
 
-    double y0 = Ay*d + By;
+    Double_t y0 = Ay*d + By;
     y0 *= MtoMM;
 
     yout = y0;
@@ -378,4 +363,3 @@ K18TransMatrix::CalcDeltaD2U( double xin, double yin,
 
   return true;
 }
-

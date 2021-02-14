@@ -28,6 +28,7 @@
 #include "RootHelper.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCPadHelper.hh"
+#include "TPCParamMan.hh"
 #include "TPCRawHit.hh"
 #include "UserParamMan.hh"
 
@@ -50,6 +51,7 @@ namespace
 {
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
+const auto& gTPC  = TPCParamMan::GetInstance();
 const Int_t MaxADC = 4096;
 const Int_t MaxIteration = 3;
 const Int_t MaxPeaks = 20;
@@ -68,6 +70,9 @@ TPCHit::TPCHit( TPCRawHit* rhit )
     m_de(),
     m_time(),
     m_chisqr(),
+    m_cde(),
+    m_ctime(),
+    m_drift_length(),
     m_charge(),
     m_pos(),
     m_is_good( false ),
@@ -136,16 +141,55 @@ TPCHit::~TPCHit( void )
 
 //_____________________________________________________________________________
 void
-TPCHit::ClearRegisteredHits( void )
+TPCHit::AddDeTime( Double_t de, Double_t time )
 {
-  del::ClearContainer( m_register_container );
-  if( m_hit_xz ) delete m_hit_xz;
-  if( m_hit_yz ) delete m_hit_yz;
+  m_de.push_back( de );
+  m_time.push_back( time );
 }
 
 //_____________________________________________________________________________
 Bool_t
-TPCHit::CalcTPCObservables( void )
+TPCHit::Calculate( void )
+{
+  if( m_de.size() != m_time.size() ){
+    hddaq::cerr << FUNC_NAME << "found size mismatch: "
+                << "m_de.size()=" << m_de.size() << ", "
+                << "m_time.size()=" << m_time.size() << std::endl;
+    return false;
+  }
+
+  if( !gTPC.IsReady() ){
+    hddaq::cerr << FUNC_NAME << " TPCParamMan must be initialized" << std::endl;
+    return false;
+  }
+
+  for( Int_t i=0, n=m_de.size(); i<n; ++i ){
+    Double_t cde, ctime, dl;
+    if( !gTPC.GetCDe( m_layer, m_row, m_de[i], cde ) ){
+      hddaq::cerr << FUNC_NAME << " something is wrong at GetCDe("
+                  << m_layer << ", " << m_row << ", " << m_de[i]
+                  << ", " << cde << ")" << std::endl;
+    }
+    if( !gTPC.GetCTime( m_layer, m_row, m_time[i], ctime ) ){
+      hddaq::cerr << FUNC_NAME << " something is wrong at GetCTime("
+                  << m_layer << ", " << m_row << ", " << m_time[i]
+                  << ", " << ctime << ")" << std::endl;
+    }
+    if( !gTPC.GetDriftLength( m_layer, m_row, ctime, dl ) ){
+      hddaq::cerr << FUNC_NAME << " something is wrong at GetDriftLength("
+                  << m_layer << ", " << m_row << ", " << ctime
+                  << ", " << dl << ")" << std::endl;
+    }
+    m_cde.push_back( cde );
+    m_ctime.push_back( ctime );
+    m_drift_length.push_back( dl );
+  }
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCHit::DoFit( void )
 {
   static const Double_t MinDe = gUser.GetParameter( "MinDeTPC" );
   static const Double_t MinRms = gUser.GetParameter( "MinRmsTPC" );
@@ -153,11 +197,14 @@ TPCHit::CalcTPCObservables( void )
     = gUser.GetParameter( "TimeBucketTPC", 0 );
   static const Double_t MaxTimeBucket
     = gUser.GetParameter( "TimeBucketTPC", 1 );
-  static const Double_t Time0 = gUser.GetParameter("Time0TPC");
-  static const Double_t DriftVelocity = gUser.GetParameter("DriftVelocityTPC");
 
   if( m_is_calculated ){
     hddaq::cerr << FUNC_NAME << " already calculated" << std::endl;
+    return false;
+  }
+
+  if( !m_rhit ){
+    hddaq::cerr << FUNC_NAME << " m_rhit is nullptr" << std::endl;
     return false;
   }
 
@@ -204,7 +251,7 @@ TPCHit::CalcTPCObservables( void )
     Double_t mean = h1.GetXaxis()->GetBinCenter( h1.GetMaximumBin() );
     Double_t rms = m_rhit->RMS();
     if( mean > 1000. ) mean = 400.;
-    TF1 f1("f1", "gaus", 0, MaxADC);
+    TF1 f1( "f1", "gaus", 0, MaxADC );
     f1.SetParameter( 0, NumOfTimeBucket/rms );
     f1.SetParLimits( 0, 1, NumOfTimeBucket );
     f1.SetParameter( 1, mean );
@@ -212,7 +259,7 @@ TPCHit::CalcTPCObservables( void )
     f1.SetParameter( 2, rms );
     f1.SetParLimits( 2, 0.2*rms, 1.*rms );
     for( UInt_t i=0; i<MaxIteration; ++i ){
-      h1.Fit("f1", option, "", mean - 2*rms, mean + 2*rms );
+      h1.Fit( "f1", option, "", mean - 2*rms, mean + 2*rms );
       mean = f1.GetParameter(1);
       rms = f1.GetParameter(2);
     }
@@ -234,7 +281,7 @@ TPCHit::CalcTPCObservables( void )
     gSystem->ProcessEvents();
     // getchar();
     Double_t max_adc = m_rhit->MaxAdc();
-    if( max_adc - mean < 40 )
+    if( max_adc - mean < MinDe )
       return false;
 #endif
   }
@@ -329,8 +376,6 @@ TPCHit::CalcTPCObservables( void )
 	  de < MinDe )
 	continue;
       m_time.push_back( time );
-      Double_t dl = ( time - Time0 ) * DriftVelocity;
-      m_drift_length.push_back( dl );
       m_de.push_back( de );
       m_chisqr.push_back( chisqr );
 #if DebugEvDisp
@@ -356,6 +401,14 @@ TPCHit::CalcTPCObservables( void )
   return true;
 }
 
+//_____________________________________________________________________________
+void
+TPCHit::ClearRegisteredHits( void )
+{
+  del::ClearContainer( m_register_container );
+  if( m_hit_xz ) delete m_hit_xz;
+  if( m_hit_yz ) delete m_hit_yz;
+}
 
 //_____________________________________________________________________________
 double
@@ -489,18 +542,13 @@ TPCHit::Print( const std::string& arg, std::ostream& ost ) const
       << std::setw(w) << std::left << "posz" << m_pos.z() << std::endl;
   for( Int_t i=0, n=GetNHits(); i<n; ++i ){
     ost << std::setw(3) << std::right << i << " "
-        << "(time,de,chisqr)=("
-        << std::fixed << std::setprecision(1) << std::setw(9) << m_time[i]
-        << std::fixed << std::setprecision(1) << std::setw(9) << m_de[i]
+        << "(time,de,chisqr,ctime,cde,dl)=("
+        << std::fixed << std::setprecision(3) << std::setw(9) << m_time[i]
+        << std::fixed << std::setprecision(3) << std::setw(9) << m_de[i]
         << std::fixed << std::setprecision(3) << std::setw(9) << m_chisqr[i]
+        << std::fixed << std::setprecision(3) << std::setw(9) << m_ctime[i]
+        << std::fixed << std::setprecision(3) << std::setw(9) << m_cde[i]
+        << std::fixed << std::setprecision(3) << std::setw(9) << m_drift_length[i]
         << ")" << std::endl;
   }
-}
-
-//_____________________________________________________________________________
-Bool_t
-TPCHit::ReCalculate( Bool_t recursive )
-{
-  static const Double_t Time0 = gUser.GetParameter("Time0TPC");
-  static const Double_t DriftVelocity = gUser.GetParameter("DriftVelocityTPC");
 }

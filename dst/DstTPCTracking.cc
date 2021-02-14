@@ -230,7 +230,7 @@ dst::DstRead( int ievent )
   event.trigpat = **src.trigpat;
   event.trigflag = **src.trigflag;
   //  event.nhTpc = **src.nhTpc;
-  
+
 
   HF1( 1, event.status++ );
 
@@ -240,10 +240,10 @@ dst::DstRead( int ievent )
   HF1( 1, event.status++ );
 
   // std::cout<<**src.nhTpc<<", "<<(**src.padTpc).size()<<std::endl;
-  
+
   DCAnalyzer DCAna;
 
-  DCAna.ReCalcTPCHits_woClustering( **src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc );
+  DCAna.ReCalcTPCHits( **src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, false );
   Int_t nh_Tpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
     auto hc = DCAna.GetTPCHC( layer );
@@ -260,7 +260,7 @@ dst::DstRead( int ievent )
     }
   }
   event.nhTpc = nh_Tpc;
-  
+
   DCAna.ReCalcTPCHits( **src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc );
   Int_t nh_cl_Tpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
@@ -282,13 +282,13 @@ dst::DstRead( int ievent )
   event.nh_cluster_Tpc = nh_cl_Tpc;
 
   DCAna.TrackSearchTPC();
-  
+
   Int_t ntTpc = DCAna.GetNTracksTPC();
   event.ntTpc = ntTpc;
   HF1( 10, ntTpc );
   if( event.ntTpc == 0 )
     return true;
-  
+
   HF1( 1, event.status++ );
 
   event.nhtrack.resize( ntTpc );
@@ -309,7 +309,7 @@ dst::DstRead( int ievent )
   event.residual_x.resize( ntTpc );
   event.residual_y.resize( ntTpc );
   event.residual_z.resize( ntTpc );
-  
+
 
   for( Int_t it=0; it<ntTpc; ++it ){
     TPCLocalTrack *tp = DCAna.GetTrackTPC( it );
@@ -337,7 +337,7 @@ dst::DstRead( int ievent )
     event.residual_x[it].resize( nh );
     event.residual_y[it].resize( nh );
     event.residual_z[it].resize( nh );
-    
+
 
     for( int ih=0; ih<nh; ++ih ){
       TPCLTrackHit *hit = tp->GetHit( ih );
@@ -359,9 +359,9 @@ dst::DstRead( int ievent )
       event.residual_y[it][ih] = res_vect.y();
       event.residual_z[it][ih] = res_vect.z();
     }
-    
+
   }
-  
+
   HF1( 1, event.status++ );
 
   return true;
@@ -407,7 +407,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "cluster_hitpos_y", &event.cluster_hitpos_y );
   tree->Branch( "cluster_hitpos_z", &event.cluster_hitpos_z );
   tree->Branch( "cluster_size", &event.cluster_size );
- 
+
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
   tree->Branch( "chisqr", &event.chisqr );

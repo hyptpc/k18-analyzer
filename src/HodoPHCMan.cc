@@ -1,8 +1,4 @@
-/**
- *  file: HodoPHCMan.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "HodoPHCMan.hh"
 
@@ -20,37 +16,38 @@
 #include <std_ostream.hh>
 
 #include "DeleteUtility.hh"
+#include "FuncName.hh"
 #include "MathTools.hh"
 
 namespace
 {
-  const std::string& class_name("HodoPHCMan");
-  const int SegMask  = 0x03FF;
-  const int CidMask  = 0x00FF;
-  const int PlidMask = 0x00FF;
-  const int UdMask   = 0x0003;
-  const int SegShift  =  0;
-  const int CidShift  = 11;
-  const int PlidShift = 19;
-  const int UdShift   = 27;
+const Int_t SegMask  = 0x03FF;
+const Int_t CidMask  = 0x00FF;
+const Int_t PlidMask = 0x00FF;
+const Int_t UdMask   = 0x0003;
+const Int_t SegShift  =  0;
+const Int_t CidShift  = 11;
+const Int_t PlidShift = 19;
+const Int_t UdShift   = 27;
 }
 
-//______________________________________________________________________________
-HodoPHCParam::HodoPHCParam( int type, int n_param, std::vector<double> parlist )
-  : m_type(type),
-    m_n_param(n_param),
-    m_param_list(parlist)
+//_____________________________________________________________________________
+HodoPHCParam::HodoPHCParam( Int_t type, Int_t n_param,
+                            const std::vector<Double_t>& parlist )
+  : m_type( type ),
+    m_n_param( n_param ),
+    m_param_list( parlist )
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 HodoPHCParam::~HodoPHCParam( void )
 {
 }
 
-//______________________________________________________________________________
-inline int
-MakeKey( int cid, int pl, int seg, int ud )
+//_____________________________________________________________________________
+inline Int_t
+MakeKey( Int_t cid, Int_t pl, Int_t seg, Int_t ud )
 {
   return ( ( (cid&CidMask) << CidShift  ) |
 	   ( (pl&PlidMask) << PlidShift ) |
@@ -58,76 +55,68 @@ MakeKey( int cid, int pl, int seg, int ud )
 	   ( (ud&UdMask)   << UdShift   ) );
 }
 
-//______________________________________________________________________________
-double
-HodoPHCParam::DoPHC( double time, double de ) const
+//_____________________________________________________________________________
+Double_t
+HodoPHCParam::DoPHC( Double_t time, Double_t de ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  Double_t ctime = time;
 
-  double ctime = time;
-
-  switch(m_type){
+  switch( m_type ){
   case 0:
     ctime = time; break;
   case 1:
-    ctime = type1Correction(time,de); break;
+    ctime = Type1Correction( time, de ); break;
   case 2:
-    ctime = type2Correction(time,de); break; // fiber
+    ctime = Type2Correction( time, de ); break; // fiber
   default:
-    hddaq::cerr << func_name << ": No Correction Method. type="
+    hddaq::cerr << FUNC_NAME << ": No Correction Method. type="
 		<< m_type << std::endl;
   }
   return ctime;
 }
 
-//______________________________________________________________________________
-double
-HodoPHCParam::DoRPHC( double time, double de ) const
+//_____________________________________________________________________________
+Double_t
+HodoPHCParam::DoRPHC( Double_t time, Double_t de ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  Double_t ctime = time;
 
-  double ctime = time;
-
-  switch(m_type){
+  switch( m_type ){
   case 0:
     ctime = time; break;
   case 1:
-    ctime = type1RCorrection(time,de); break;
+    ctime = Type1RCorrection( time, de ); break;
   default:
-    hddaq::cerr << func_name << ": No Correction Method. type="
+    hddaq::cerr << FUNC_NAME << ": No Correction Method. type="
 		<< m_type << std::endl;
   }
   return ctime;
 }
 
-//______________________________________________________________________________
-double
-HodoPHCParam::DoSTC( double stof, double btof ) const
+//_____________________________________________________________________________
+Double_t
+HodoPHCParam::DoSTC( Double_t stof, Double_t btof ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  Double_t cstof = stof;
 
-  double cstof = stof;
-
-  switch(m_type){
+  switch( m_type ){
   case 0:
     cstof = stof; break;
   case 1:
-    cstof = type1STCorrection(stof,btof); break;
+    cstof = Type1STCorrection( stof, btof ); break;
   default:
-    hddaq::cerr << func_name << ": No Correction Method. type="
+    hddaq::cerr << FUNC_NAME << ": No Correction Method. type="
 		<< m_type << std::endl;
   }
   return cstof;
 }
 
-//______________________________________________________________________________
-double
-HodoPHCParam::type1Correction( double time, double de ) const
+//_____________________________________________________________________________
+Double_t
+HodoPHCParam::Type1Correction( Double_t time, Double_t de ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   if( m_param_list.size()<3 )
-    throw std::out_of_range(func_name+" invalid parameter");
+    throw std::out_of_range( FUNC_NAME+" invalid parameter" );
 
   if( std::abs(de-m_param_list[1])<math::Epsilon() )
     de = m_param_list[1] + math::Epsilon();
@@ -135,107 +124,100 @@ HodoPHCParam::type1Correction( double time, double de ) const
   return time-m_param_list[0]/sqrt(std::abs(de-m_param_list[1]))+m_param_list[2];
 }
 
-//______________________________________________________________________________
-double
-HodoPHCParam::type2Correction( double time, double w ) const
+//_____________________________________________________________________________
+Double_t
+HodoPHCParam::Type2Correction( Double_t time, Double_t w ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   if( m_param_list.size()<3 )
-    throw std::out_of_range(func_name+" invalid parameter");
+    throw std::out_of_range( FUNC_NAME+" invalid parameter" );
 
   // Correction function for fiber is quadratic function
   return time-(m_param_list[0]*w*w + m_param_list[1]*w + m_param_list[2]);
 }
 
-//______________________________________________________________________________
-double
-HodoPHCParam::type1RCorrection( double time, double de ) const
+//_____________________________________________________________________________
+Double_t
+HodoPHCParam::Type1RCorrection( Double_t time, Double_t de ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   if( m_param_list.size()<3 )
-    throw std::out_of_range(func_name+" invalid parameter");
+    throw std::out_of_range( FUNC_NAME+" invalid parameter" );
+
   if( std::abs(de-m_param_list[1])<math::Epsilon() )
     de = m_param_list[1] + math::Epsilon();
 
   return time+m_param_list[0]/sqrt( std::abs(de-m_param_list[1]) )-m_param_list[2];
 }
 
-//______________________________________________________________________________
-double
-HodoPHCParam::type1STCorrection( double stof, double btof ) const
+//_____________________________________________________________________________
+Double_t
+HodoPHCParam::Type1STCorrection( Double_t stof, Double_t btof ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   if( m_param_list.size()<2 )
-    throw std::out_of_range(func_name+" invalid parameter");
+    throw std::out_of_range( FUNC_NAME+" invalid parameter" );
 
   //Correction function to eliminate the correlation between stof and btof
   return stof-( m_param_list[0]*btof + m_param_list[1]);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 HodoPHCMan::HodoPHCMan( void )
-  : m_is_ready(false), m_file_name("")
+  : m_is_ready(false),
+    m_file_name(),
+    m_container()
 {
 }
 
-//______________________________________________________________________________
-HodoPHCMan::~HodoPHCMan()
+//_____________________________________________________________________________
+HodoPHCMan::~HodoPHCMan( void )
 {
   ClearElements();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void HodoPHCMan::ClearElements( void )
 {
   del::ClearMap( m_container );
 }
 
-//______________________________________________________________________________
-bool
+//_____________________________________________________________________________
+Bool_t
 HodoPHCMan::Initialize( void )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   if( m_is_ready ){
-    hddaq::cerr << "#W " << func_name
-		<< " already initialied" << std::endl;
+    hddaq::cerr << FUNC_NAME << " already initialied" << std::endl;
     return false;
   }
 
-  std::ifstream ifs( m_file_name.c_str() );
+  std::ifstream ifs( m_file_name );
   if( !ifs.is_open() ){
-    hddaq::cerr << "#E " << func_name << " file open fail : "
+    hddaq::cerr << FUNC_NAME << " file open fail : "
 		<< m_file_name << std::endl;
     return false;
   }
 
   ClearElements();
 
-  std::string line;
-  while( ifs.good() && std::getline(ifs,line) ){
-    if( line.empty() || line[0]=='#' ) continue;
-    std::istringstream input_line( line );
-    int cid=-1, plid=-1, seg=-1, ud=-1, type=-1, np=-1;
-    std::vector<double> par;
+  TString line;
+  while( ifs.good() && line.ReadLine( ifs ) ){
+    if( line.IsNull() || line[0]=='#' ) continue;
+    std::istringstream input_line( line.Data() );
+    Int_t cid=-1, plid=-1, seg=-1, ud=-1, type=-1, np=-1;
+    std::vector<Double_t> par;
     if( input_line >> cid >> plid >> seg >> ud >> type >> np ){
-      double p = 0.;
-      while( input_line >> p ) par.push_back(p);
-      int key = MakeKey(cid,plid,seg,ud);
-      HodoPHCParam *param = new HodoPHCParam(type,np,par);
-      HodoPHCParam *pre_param = m_container[key];
+      Double_t p = 0.;
+      while( input_line >> p ) par.push_back( p );
+      Int_t key = MakeKey( cid, plid, seg, ud );
+      HodoPHCParam* param = new HodoPHCParam( type, np, par );
+      HodoPHCParam* pre_param = m_container[key];
       m_container[key] = param;
       if( pre_param ){
-	hddaq::cerr << func_name << ": duplicated key "
+	hddaq::cerr << FUNC_NAME << ": duplicated key "
 		    << " following record is deleted." << std::endl
 		    << " key = " << key << std::endl;
 	delete pre_param;
       }
-    }
-    else{
-      hddaq::cerr << func_name << ": Invalid format" << std::endl
+    } else {
+      hddaq::cerr << FUNC_NAME << ": Invalid format" << std::endl
 		  << " ===> " << line << std::endl;
     }
   }
@@ -244,57 +226,58 @@ HodoPHCMan::Initialize( void )
   return true;
 }
 
-//______________________________________________________________________________
-bool
-HodoPHCMan::Initialize( const std::string& file_name )
+//_____________________________________________________________________________
+Bool_t
+HodoPHCMan::Initialize( const TString& file_name )
 {
   m_file_name = file_name;
   return Initialize();
 }
 
-//______________________________________________________________________________
-bool
-HodoPHCMan::DoCorrection( int cid, int plid, int seg, int ud,
-			  double time, double de, double & ctime ) const
+//_____________________________________________________________________________
+Bool_t
+HodoPHCMan::DoCorrection( Int_t cid, Int_t plid, Int_t seg, Int_t ud,
+			  Double_t time, Double_t de, Double_t & ctime ) const
 {
   ctime = time;
-  HodoPHCParam* map = GetMap(cid,plid,seg,ud);
-  if(!map) return false;
-  ctime = map->DoPHC(time,de);
+  HodoPHCParam* map = GetMap( cid, plid, seg, ud );
+  if( !map ) return false;
+  ctime = map->DoPHC( time, de );
   return true;
 }
 
-//______________________________________________________________________________
-bool
-HodoPHCMan::DoRCorrection( int cid, int plid, int seg, int ud,
-			   double time, double de, double & ctime ) const
+//_____________________________________________________________________________
+Bool_t
+HodoPHCMan::DoRCorrection( Int_t cid, Int_t plid, Int_t seg, Int_t ud,
+			   Double_t time, Double_t de, Double_t & ctime ) const
 {
   ctime = time;
-  HodoPHCParam* map = GetMap(cid,plid,seg,ud);
-  if(!map) return false;
-  ctime = map->DoRPHC(time,de);
+  HodoPHCParam* map = GetMap( cid, plid, seg, ud );
+  if( !map ) return false;
+  ctime = map->DoRPHC( time, de );
   return true;
 }
 
-//______________________________________________________________________________
-bool
-HodoPHCMan::DoStofCorrection( int cid, int plid, int seg, int ud,
-			   double stof, double btof, double & cstof ) const
+//_____________________________________________________________________________
+Bool_t
+HodoPHCMan::DoStofCorrection( Int_t cid, Int_t plid, Int_t seg, Int_t ud,
+                              Double_t stof, Double_t btof, Double_t & cstof ) const
 {
   cstof = stof;
-  HodoPHCParam* map = GetMap(cid,plid,seg,ud);
-  if(!map) return false;
-  cstof = map->DoSTC(stof,btof);
+  HodoPHCParam* map = GetMap( cid, plid, seg, ud );
+  if( !map ) return false;
+  cstof = map->DoSTC( stof, btof );
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 HodoPHCParam*
-HodoPHCMan::GetMap( int cid, int plid, int seg, int ud ) const
+HodoPHCMan::GetMap( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const
 {
-  int key = MakeKey(cid,plid,seg,ud);
-  HodoPHCParam* map = 0;
+  Int_t key = MakeKey( cid, plid, seg, ud );
   PhcPIterator  itr = m_container.find(key);
-  if( itr != m_container.end() ) map = itr->second;
-  return map;
+  if( itr != m_container.end() )
+    return itr->second;
+  else
+    return nullptr;
 }

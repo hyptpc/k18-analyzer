@@ -1,8 +1,4 @@
-/**
- *  file: MstParamMan.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "MsTParamMan.hh"
 
@@ -18,136 +14,132 @@
 
 #include "ConfMan.hh"
 #include "DetectorID.hh"
+#include "Exception.hh"
+#include "FuncName.hh"
 
 namespace
 {
-  const std::string& class_name("MsTParamMan");
-  const int NumOfSegDetA = NumOfSegTOF;
-  const int NumOfSegDetB = NumOfSegSCH;
+const Int_t NumOfSegDetA = NumOfSegTOF;
+const Int_t NumOfSegDetB = NumOfSegSCH;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 MsTParamMan::MsTParamMan( void )
   : m_is_ready(false),
     m_nA(NumOfSegDetA),
-    m_nB(NumOfSegDetB)
+    m_nB(NumOfSegDetB),
+    m_low_threshold(),
+    m_high_threshold()
 {
   m_low_threshold.resize( NumOfSegDetA );
   m_high_threshold.resize( NumOfSegDetA );
-  for( int i=0; i<NumOfSegDetA; ++i ){
+  for( Int_t i=0; i<NumOfSegDetA; ++i ){
     m_low_threshold[i].resize( NumOfSegDetB );
     m_high_threshold[i].resize( NumOfSegDetB );
   }
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 MsTParamMan::~MsTParamMan( void )
 {
 }
 
-//______________________________________________________________________________
-double
-MsTParamMan::GetLowThreshold( std::size_t detA, std::size_t detB ) const
+//_____________________________________________________________________________
+Double_t
+MsTParamMan::GetLowThreshold( Int_t detA, Int_t detB ) const
 {
   if( detA<0 || m_nA<=detA ) return false;
   if( detB<0 || m_nB<=detB ) return false;
   return m_low_threshold[detA][detB];
 }
 
-//______________________________________________________________________________
-double
-MsTParamMan::GetHighThreshold( std::size_t detA, std::size_t detB ) const
+//_____________________________________________________________________________
+Double_t
+MsTParamMan::GetHighThreshold( Int_t detA, Int_t detB ) const
 {
   if( detA<0 || m_nA<=detA ) return false;
   if( detB<0 || m_nB<=detB ) return false;
   return m_high_threshold[detA][detB];
 }
 
-//______________________________________________________________________________
-bool
-MsTParamMan::Initialize( const std::string& filename )
+//_____________________________________________________________________________
+Bool_t
+MsTParamMan::Initialize( const TString& filename )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  std::ifstream ifs( filename );
+  if( !ifs.is_open() ){
+    hddaq::cerr << FUNC_NAME << " "
+                << "No such parameter file : " << filename << std::endl;
+    std::exit( EXIT_FAILURE );
+  }
 
-  {
-    std::ifstream ifs( filename.c_str() );
-    if( !ifs.is_open() ){
-      hddaq::cerr << "#E " << func_name << " "
-		<< "No such parameter file : " << filename << std::endl;
-      std::exit( EXIT_FAILURE );
+  TString line;
+  Int_t tofseg = 0;
+  Int_t LorH   = 0;
+  while( ifs.good() && line.ReadLine( ifs ) ){
+    if( line.IsNull() || line[0] == '#' ) continue;
+    TString param[NumOfSegDetB];
+    std::istringstream iss( line.Data() );
+
+    for( Int_t i=0; i<NumOfSegDetB; ++i ){
+      iss >> param[i];
+    }
+    if( param[0][0] == '#' ) continue;
+    if( param[1] == "Mem_Thr_Low" ){
+      tofseg =  0;
+      LorH   = -1;
+      continue;
+    }
+    if( param[1] == "Mem_Thr_Hi" ){
+      tofseg =  0;
+      LorH   =  1;
+      continue;
     }
 
-    std::string line;
-    int tofseg = 0;
-    int LorH   = 0;
-    while( !ifs.eof() && std::getline( ifs, line ) ){
-      if( line.empty() ) continue;
-
-      std::string param[NumOfSegDetB];
-      std::istringstream iss( line );
-
-      for( int i=0; i<NumOfSegDetB; ++i ){
-	iss >> param[i];
-      }
-      if( param[0].at(0) == '#' ) continue;
-      if( param[1] == "Mem_Thr_Low" ){
-	tofseg =  0;
-	LorH   = -1;
-	continue;
-      }
-      if( param[1] == "Mem_Thr_Hi" ){
-	tofseg =  0;
-	LorH   =  1;
-	continue;
-      }
-
-      if( param[NumOfSegDetB-1].empty() ) continue;
-      for( int i=0; i<NumOfSegDetB; ++i ){
-	std::replace( param[i].begin(), param[i].end(), '(', ' ');
-	std::replace( param[i].begin(), param[i].end(), ')', ' ');
-	std::replace( param[i].begin(), param[i].end(), ',', ' ');
-	if( LorH == -1 )
-	  m_low_threshold[tofseg][i] = std::strtol( param[i].c_str(), NULL, 0 );
-	if( LorH ==  1 )
-	  m_high_threshold[tofseg][i] = std::strtol( param[i].c_str(), NULL, 0 );
-      }
-      ++tofseg;
+    if( param[NumOfSegDetB-1].IsNull() ) continue;
+    for( Int_t i=0; i<NumOfSegDetB; ++i ){
+      param[i].ReplaceAll( "(", " " );
+      param[i].ReplaceAll( ")", " " );
+      param[i].ReplaceAll( ",", " " );
+      if( LorH == -1 )
+        m_low_threshold[tofseg][i] = param[i].Atof();
+      if( LorH ==  1 )
+        m_high_threshold[tofseg][i] = param[i].Atof();
     }
+    ++tofseg;
+  }
 
 #if 0
-    // Low
-    hddaq::cout << "Low Threshold" << std::endl;
-    for( int i=0; i<NumOfSegDetA; ++i ){
-      hddaq::cout << i << "\t:";
-      for( int j=0; j<NumOfSegDetB; ++j ){
-	hddaq::cout << " " << m_low_threshold[i][j];
-      }
-      hddaq::cout << std::endl;
+  // Low
+  hddaq::cout << "Low Threshold" << std::endl;
+  for( Int_t i=0; i<NumOfSegDetA; ++i ){
+    hddaq::cout << i << "\t:";
+    for( Int_t j=0; j<NumOfSegDetB; ++j ){
+      hddaq::cout << " " << m_low_threshold[i][j];
     }
-    // High
-    hddaq::cout << "High Threshold" << std::endl;
-    for( int i=0; i<NumOfSegDetA; ++i ){
-      hddaq::cout << i << "\t:";
-      for( int j=0; j<NumOfSegDetB; ++j ){
-	hddaq::cout << " " << m_high_threshold[i][j];
-      }
-      hddaq::cout << std::endl;
-    }
-#endif
+    hddaq::cout << std::endl;
   }
+  // High
+  hddaq::cout << "High Threshold" << std::endl;
+  for( Int_t i=0; i<NumOfSegDetA; ++i ){
+    hddaq::cout << i << "\t:";
+    for( Int_t j=0; j<NumOfSegDetB; ++j ){
+      hddaq::cout << " " << m_high_threshold[i][j];
+    }
+    hddaq::cout << std::endl;
+  }
+#endif
 
   m_is_ready = true;
   return true;
 }
 
-//______________________________________________________________________________
-bool
-MsTParamMan::IsAccept( std::size_t detA, std::size_t detB, int tdc ) const
+//_____________________________________________________________________________
+Bool_t
+MsTParamMan::IsAccept( Int_t detA, Int_t detB, Int_t tdc ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   if( !m_is_ready ){
-    throw std::runtime_error(func_name+" "+ClassName()+" is not initialized");
+    throw Exception( FUNC_NAME+" "+ClassName()+" is not initialized" );
     // return false;
   }
   if( m_nA<=detA || m_nB<=detB ){
@@ -155,34 +147,31 @@ MsTParamMan::IsAccept( std::size_t detA, std::size_t detB, int tdc ) const
     oss << " detA/detB is out of range : "
 	<< std::setw(2) << detA << " "
 	<< std::setw(2) << detB;
-    throw std::out_of_range(func_name+oss.str());
+    throw std::out_of_range(FUNC_NAME+oss.str());
     // return false;
   }
 
-  int low  = (int)m_low_threshold[detA][detB];
-  int high = (int)m_high_threshold[detA][detB];
+  Int_t low  = (Int_t)m_low_threshold[detA][detB];
+  Int_t high = (Int_t)m_high_threshold[detA][detB];
   return ( low < tdc && tdc < high );
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-MsTParamMan::Print( const std::string& arg ) const
+MsTParamMan::Print( const TString& arg ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  hddaq::cout << FUNC_NAME << " " << arg << std::endl;
 
-  hddaq::cout << "#D " << func_name << " " << arg << std::endl;
-
-  for( std::size_t iA=0; iA<m_nA; ++iA ){
+  for( Int_t iA=0; iA<m_nA; ++iA ){
     hddaq::cout << std::setw(2) << iA << ": ";
-    int iBok = 0;
-    for( std::size_t iB=0; iB<m_nB; ++iB ){
+    Int_t iBok = 0;
+    for( Int_t iB=0; iB<m_nB; ++iB ){
       // ofs << iA << "\t" << iB << "\t"
       // 	  << m_low_threshold[iA][iB] << "\t"
       // 	  << m_high_threshold[iA][iB] << std::endl;
       if( m_low_threshold[iA][iB]==0 &&
 	  m_high_threshold[iA][iB]==0 )
 	continue;
-
 
       iBok++;
       hddaq::cout << std::setw(2) << iB << " "
@@ -196,17 +185,13 @@ MsTParamMan::Print( const std::string& arg ) const
   }
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-MsTParamMan::Print( std::size_t detA, std::size_t detB, int tdc ) const
+MsTParamMan::Print( Int_t detA, Int_t detB, Int_t tdc ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   if( detA<0 || m_nA<=detA ) return;
   if( detB<0 || m_nB<=detB ) return;
-
   hddaq::cout << " detA " << std::setw(2) << detA
 	      << " detB " << std::setw(2) << detB
 	      << " : " << IsAccept( detA, detB, tdc ) << std::endl;
-
 }

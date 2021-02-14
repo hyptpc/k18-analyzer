@@ -1,82 +1,80 @@
+// -*- C++ -*-
+
 #ifndef BH1_MATHC_HH
 #define BH1_MATHC_HH
 
-#include<string>
-#include<vector>
-#include<bitset>
+#include <vector>
+#include <bitset>
+#include <TString.h>
 
-#include<std_ostream.hh>
+#include <std_ostream.hh>
 
+//_____________________________________________________________________________
 class BH1Match
 {
 public:
-  virtual           ~BH1Match(void);
-  static
-  const std::string& ClassName();
-  static
-  BH1Match&          GetInstance(void);
-  bool               Initialize(const std::string& file_name);
-  bool               Judge(double bft_xpos, double bh1seg);
-  void               Print(std::ostream& ost=hddaq::cout) const;
-  void               SetVerbose();
+  static const TString& ClassName( void );
+  static BH1Match&      GetInstance( void );
+  virtual              ~BH1Match( void );
 
-  struct Param{
-    double m_seg;
-    double m_xmin;
-    double m_xmax;
+private:
+  BH1Match( void );
+  BH1Match( const BH1Match& );
+  BH1Match& operator =( const BH1Match& );
 
-    Param(void);
-    ~Param(void);
-    void Print(std::ostream& ost=hddaq::cout) const;
+private:
+  struct Param {
+    Double_t m_seg;
+    Double_t m_xmin;
+    Double_t m_xmax;
+    Param( void );
+    ~Param( void );
+    void Print( std::ostream& ost=hddaq::cout ) const;
   };
 
-  enum EParam{
+  enum EStatus {
+    kReady,
+    kVerbose,
+    kNStatus
+  };
+
+  std::bitset<kNStatus> m_status;
+  std::vector<Param>    m_param;
+
+public:
+  enum EParam {
     kBH1Segment,
     kXMin,
     kXMax,
     kNParam
   };
-
-private:
-  BH1Match(void);
-  BH1Match(const BH1Match& );
-  BH1Match& operator =(const BH1Match& );
-
-  enum EStatus{
-    kReady,
-    kVerbose,
-    kNStatus
-  };
-  
-  std::bitset<kNStatus> m_status;
-  std::vector<Param>    m_param;
-    
+  Bool_t             Initialize( const TString& file_name );
+  Bool_t             Judge( Double_t bft_xpos, Double_t bh1seg );
+  void               Print( std::ostream& ost=hddaq::cout ) const;
+  void               SetVerbose( void );
 };
 
 //_____________________________________________________________________________
-inline
-BH1Match&
-BH1Match::GetInstance(void)
-{
-  static BH1Match g_instance;
-  return g_instance;
-}
-
-//_____________________________________________________________________________
-inline
-const std::string&
+inline const TString&
 BH1Match::ClassName(void)
 {
-  static std::string g_name("BH1Match");
-  return g_name;
+  static TString s_name( "BH1Match" );
+  return s_name;
 }
 
 //_____________________________________________________________________________
-inline
-void
-BH1Match::SetVerbose(void)
+inline BH1Match&
+BH1Match::GetInstance( void )
 {
-  m_status.set(kVerbose);
+  static BH1Match s_instance;
+  return s_instance;
+}
+
+//_____________________________________________________________________________
+inline void
+BH1Match::SetVerbose( void )
+{
+  m_status.set( kVerbose );
 }
 
 #endif

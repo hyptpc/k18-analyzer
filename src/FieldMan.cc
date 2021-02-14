@@ -1,45 +1,41 @@
-/**
- *  file: FieldMan.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "FieldMan.hh"
 
 #include <cmath>
 
+#include <std_ostream.hh>
+
 #include "FieldElements.hh"
+#include "FuncName.hh"
 #include "KuramaFieldMap.hh"
 
-#include "std_ostream.hh"
 
 namespace
 {
-  const std::string class_name("FieldMan");
-  const double Delta = 0.1;
+const Double_t Delta = 0.1;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 FieldMan::FieldMan( void )
-  : m_is_ready(false), m_kurama_map(0)
+  : m_is_ready( false ),
+    m_kurama_map( nullptr )
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 FieldMan::~FieldMan( void )
 {
-  delete m_kurama_map;
+  if( m_kurama_map )
+    delete m_kurama_map;
 }
 
-//______________________________________________________________________________
-bool
+//_____________________________________________________________________________
+Bool_t
 FieldMan::Initialize( void )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   if( m_is_ready ){
-    hddaq::cerr << "#W " << func_name
-		<< " already initialied" << std::endl;
+    hddaq::cerr << FUNC_NAME << " already initialied" << std::endl;
     return false;
   }
 
@@ -55,21 +51,21 @@ FieldMan::Initialize( void )
   return m_is_ready;
 }
 
-//______________________________________________________________________________
-bool
-FieldMan::Initialize( const std::string &file_name )
+//_____________________________________________________________________________
+Bool_t
+FieldMan::Initialize( const TString& file_name )
 {
   m_file_name = file_name;
   return Initialize();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 ThreeVector
 FieldMan::GetField( const ThreeVector& position ) const
 {
   ThreeVector field( 0., 0., 0. );
   if( m_kurama_map ){
-    double p[3], b[3];
+    Double_t p[3], b[3];
     p[0] = position.x()*0.1;
     p[1] = position.y()*0.1;
     p[2] = position.z()*0.1;
@@ -91,7 +87,7 @@ FieldMan::GetField( const ThreeVector& position ) const
   return field;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 ThreeVector
 FieldMan::GetdBdX( const ThreeVector& position ) const
 {
@@ -102,7 +98,7 @@ FieldMan::GetdBdX( const ThreeVector& position ) const
   return 0.5/Delta*(B1-B2);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 ThreeVector
 FieldMan::GetdBdY( const ThreeVector& position ) const
 {
@@ -113,7 +109,7 @@ FieldMan::GetdBdY( const ThreeVector& position ) const
   return 0.5/Delta*(B1-B2);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 ThreeVector
 FieldMan::GetdBdZ( const ThreeVector& position ) const
 {
@@ -124,30 +120,30 @@ FieldMan::GetdBdZ( const ThreeVector& position ) const
   return 0.5/Delta*(B1-B2);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 FieldMan::ClearElementsList( void )
 {
   m_element_list.clear();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 FieldMan::AddElement( FieldElements *element )
 {
   m_element_list.push_back( element );
 }
 
-//______________________________________________________________________________
-double
+//_____________________________________________________________________________
+Double_t
 FieldMan::StepSize( const ThreeVector &position,
-		    double def_step_size, double min_step_size ) const
+		    Double_t def_step_size, Double_t min_step_size ) const
 {
-  double d = std::abs( def_step_size );
-  double s = def_step_size/d;
+  Double_t d = std::abs( def_step_size );
+  Double_t s = def_step_size/d;
   min_step_size = std::abs( min_step_size );
 
-  bool flag = true;
+  Bool_t flag = true;
   FEIterator itr, itr_end = m_element_list.end();
   while ( flag && d>min_step_size ){
     for( itr=m_element_list.begin(); itr!=itr_end; ++itr ){
@@ -158,6 +154,8 @@ FieldMan::StepSize( const ThreeVector &position,
     }
     d *= 0.5;
   }
-  if( flag ) return s*min_step_size;
-  else       return s*d;
+  if( flag )
+    return s*min_step_size;
+  else
+    return s*d;
 }

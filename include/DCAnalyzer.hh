@@ -189,14 +189,11 @@ public:
   bool ReCalcDCHits( std::vector<DCHitContainer>& cont,
 		     bool applyRecursively=false );
   bool ReCalcDCHits( bool applyRecursively=false );
-  bool ReCalcTPCHits_woClustering( const int nhits,
-				   const std::vector<int>& padid,
-				   const std::vector<double>& time,
-				   const std::vector<double>& de );
   bool ReCalcTPCHits( const int nhits,
                       const std::vector<int>& padid,
                       const std::vector<double>& time,
-                      const std::vector<double>& de );
+                      const std::vector<double>& de,
+                      Bool_t do_clusterize=true );
   bool ReCalcTrack( DCLocalTrackContainer& cont, bool applyRecursively=false );
   bool ReCalcTrack( K18TrackD2UContainer& cont, bool applyRecursively=false );
   bool ReCalcTrack( KuramaTrackContainer& cont, bool applyRecursively=false );

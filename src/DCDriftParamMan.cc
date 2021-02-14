@@ -1,8 +1,4 @@
-/**
- *  file: DCDriftParamMan.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "DCDriftParamMan.hh"
 
@@ -20,89 +16,85 @@
 #include <std_ostream.hh>
 
 #include "DeleteUtility.hh"
+#include "Exception.hh"
+#include "FuncName.hh"
 
 namespace
 {
-  const std::string& class_name("DCDriftParamMan");
+inline void
+DecodeKey( Int_t key, Int_t& plane, Int_t& wire )
+{
+  wire  = key & 0x3ff;
+  plane = key >> 10;
 }
 
-//______________________________________________________________________________
+inline Int_t
+MakeKey( Int_t plane, Double_t wire )
+{
+  return (plane<<10) | Int_t(wire);
+}
+}
+
+//_____________________________________________________________________________
 DCDriftParamMan::DCDriftParamMan( void )
   : m_is_ready(false),
-    m_file_name("")
+    m_file_name(),
+    m_container()
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 DCDriftParamMan::~DCDriftParamMan( void )
 {
   ClearElements();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 DCDriftParamMan::ClearElements( void )
 {
   del::ClearMap( m_container );
 }
 
-//______________________________________________________________________________
-inline unsigned int
-MakeKey( int plane, double wire )
-{
-  return (plane<<10) | int(wire);
-}
-
-//______________________________________________________________________________
-inline void
-DecodeKey( unsigned int key, int& plane, int& wire )
-{
-  wire  = key & 0x3ff;
-  plane = key >> 10;
-}
-
-//______________________________________________________________________________
-bool
+//_____________________________________________________________________________
+Bool_t
 DCDriftParamMan::Initialize( void )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   if( m_is_ready ){
-    hddaq::cerr << "#W " << func_name
-		<< " already initialied" << std::endl;
+    hddaq::cerr << FUNC_NAME << " already initialied" << std::endl;
     return false;
   }
 
-  std::ifstream f( m_file_name.c_str() );
-  if( !f.is_open() ){
-    hddaq::cerr << "#E " << func_name
-		<< " file open fail : " << m_file_name << std::endl;
+  std::ifstream ifs( m_file_name );
+  if( !ifs.is_open() ){
+    hddaq::cerr << FUNC_NAME
+                << " file open fail : " << m_file_name << std::endl;
     return false;
   }
 
   ClearElements();
 
-  std::string line;
-  while( std::getline( f, line ) ){
-    if( line.empty() || line[0]=='#' ) continue;
-    std::istringstream iss( line );
+  TString line;
+  while( ifs.good() && line.ReadLine( ifs ) ){
+    if( line.IsNull() || line[0]=='#' ) continue;
+    std::istringstream iss( line.Data() );
     // wid is not used at present
     // reserved for future updates
-    int pid, wid, type, np;
-    double param;
-    std::vector<double> q;
+    Int_t pid, wid, type, np;
+    Double_t param;
+    std::vector<Double_t> q;
     if( iss >> pid >> wid >> type >> np ){
       while( iss >> param )
 	q.push_back( param );
     }
     if( q.size() < 2 ){
-      hddaq::cerr << func_name << " format is wrong : " << line << std::endl;
+      hddaq::cerr << FUNC_NAME << " format is wrong : " << line << std::endl;
       continue;
     }
-    unsigned int key = MakeKey( pid, 0 );
+    Int_t key = MakeKey( pid, 0 );
     DCDriftParamRecord *record = new DCDriftParamRecord( type, np, q );
     if( m_container[key] ){
-      hddaq::cerr << "#W " << func_name << " "
+      hddaq::cerr << FUNC_NAME << " "
 		  << "duplicated key is deleted : " << key << std::endl;
       delete m_container[key];
     }
@@ -113,41 +105,43 @@ DCDriftParamMan::Initialize( void )
   return m_is_ready;
 }
 
-//______________________________________________________________________________
-bool
-DCDriftParamMan::Initialize( const std::string& file_name )
+//_____________________________________________________________________________
+Bool_t
+DCDriftParamMan::Initialize( const TString& file_name )
 {
   m_file_name = file_name;
   return Initialize();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 DCDriftParamRecord*
-DCDriftParamMan::GetParameter( int PlaneId, double WireId ) const
+DCDriftParamMan::GetParameter( Int_t PlaneId, Double_t WireId ) const
 {
   WireId = 0;
-  unsigned int key = MakeKey( PlaneId, WireId );
-  DCDriftParamRecord *record = 0;
-  DCDriftIterator itr = m_container.find(key);
-  if( itr!=m_container.end() ) record = itr->second;
-  return record;
+  Int_t key = MakeKey( PlaneId, WireId );
+  DCDriftIterator itr = m_container.find( key );
+  if( itr != m_container.end() )
+    return itr->second;
+  else
+    return nullptr;
 }
 
-//______________________________________________________________________________
-double
-DCDriftParamMan::DriftLength1( double dt, double vel )
+//_____________________________________________________________________________
+Double_t
+DCDriftParamMan::DriftLength1( Double_t dt, Double_t vel )
 {
   return dt*vel;
 }
 
-//______________________________________________________________________________
-double
-DCDriftParamMan::DriftLength2( double dt, double p1, double p2, double p3,
-			       double st, double p5, double p6 )
+//_____________________________________________________________________________
+Double_t
+DCDriftParamMan::DriftLength2( Double_t dt,
+                               Double_t p1, Double_t p2, Double_t p3,
+			       Double_t st, Double_t p5, Double_t p6 )
 {
-  double dtmax=10.+p2+1./p6;
-  double dl;
-  double alph=-0.5*p5*st+0.5*st*p3*p5*(p1-st)
+  Double_t dtmax=10.+p2+1./p6;
+  Double_t dl;
+  Double_t alph=-0.5*p5*st+0.5*st*p3*p5*(p1-st)
     +0.5*p3*p5*(p1-st)*(p1-st);
   if( dt<-10. || dt>dtmax+10. )
     dl = -500.;
@@ -162,13 +156,14 @@ DCDriftParamMan::DriftLength2( double dt, double p1, double p2, double p3,
   return dl;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 //DL = a0 + a1*Dt + a2*Dt^2
-double
-DCDriftParamMan::DriftLength3( double dt, double p1, double p2 ,int PlaneId )
+Double_t
+DCDriftParamMan::DriftLength3( Double_t dt, Double_t p1, Double_t p2,
+                               Int_t PlaneId )
 {
-  if (PlaneId>=1 && PlaneId <=4) {
-    if (dt > 130.)
+  if ( PlaneId>=1 && PlaneId <=4 ) {
+    if( dt > 130. )
       return 999.9;
   } else if (PlaneId == 5) {
     if (dt > 500.)
@@ -184,9 +179,10 @@ DCDriftParamMan::DriftLength3( double dt, double p1, double p2 ,int PlaneId )
   return dt*p1+dt*dt*p2;
 }
 
-//______________________________________________________________________________
-double
-DCDriftParamMan::DriftLength4( double dt, double p1, double p2 ,double p3 )
+//_____________________________________________________________________________
+Double_t
+DCDriftParamMan::DriftLength4( Double_t dt,
+                               Double_t p1, Double_t p2, Double_t p3 )
 {
   if (dt < p2)
     return dt*p1;
@@ -194,10 +190,10 @@ DCDriftParamMan::DriftLength4( double dt, double p1, double p2 ,double p3 )
     return p3*(dt-p2) + p1*p2;
 }
 
-//______________________________________________________________________________
-double
-DCDriftParamMan::DriftLength5( double dt, double p1, double p2,
-			       double p3, double p4, double p5 )
+//_____________________________________________________________________________
+Double_t
+DCDriftParamMan::DriftLength5( Double_t dt, Double_t p1, Double_t p2,
+			       Double_t p3, Double_t p4, Double_t p5 )
 {
   if (dt < p2)
     return dt*p1;
@@ -207,16 +203,15 @@ DCDriftParamMan::DriftLength5( double dt, double p1, double p2,
     return p5*(dt-p4) + p3*(p4-p2) + p1*p2;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 ////////////////Now using
 // DL = a0 + a1*Dt + a2*Dt^2 + a3*Dt^3 + a4*Dt^4 + a5*Dt^5
-double
-DCDriftParamMan::DriftLength6( int PlaneId, double dt,
-			       double p1, double p2 ,double p3, double p4, double p5 )
+Double_t
+DCDriftParamMan::DriftLength6( Int_t PlaneId, Double_t dt,
+			       Double_t p1, Double_t p2, Double_t p3,
+                               Double_t p4, Double_t p5 )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  double dl = dt*p1+dt*dt*p2+p3*pow(dt, 3.0)+p4*pow(dt, 4.0)+p5*pow(dt, 5.0);
+  Double_t dl = dt*p1+dt*dt*p2+p3*pow(dt, 3.0)+p4*pow(dt, 4.0)+p5*pow(dt, 5.0);
 
   switch( PlaneId ){
     // BC3&4
@@ -278,29 +273,27 @@ DCDriftParamMan::DriftLength6( int PlaneId, double dt,
       return dl;
     break;
   default:
-    hddaq::cerr << "#E " << func_name << " "
-		<< "invalid plane id : " << PlaneId << std::endl;
-    std::exit( EXIT_FAILURE );
+    throw Exception( FUNC_NAME+" invalid plane id : "
+                     +TString::Itoa(PlaneId, 10) );
   }
 }
 
-//______________________________________________________________________________
-bool
-DCDriftParamMan::CalcDrift( int PlaneId, double WireId, double ctime,
-			    double & dt, double & dl ) const
+//_____________________________________________________________________________
+Bool_t
+DCDriftParamMan::CalcDrift( Int_t PlaneId, Double_t WireId, Double_t ctime,
+			    Double_t & dt, Double_t & dl ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-  DCDriftParamRecord *record = GetParameter(PlaneId,WireId);
+  DCDriftParamRecord *record = GetParameter( PlaneId, WireId );
   if( !record ){
-    hddaq::cerr << "#E " << func_name << " No record. "
+    hddaq::cerr << FUNC_NAME << " No record. "
 		<< " PlaneId=" << std::setw(3) << PlaneId
 		<< " WireId="  << std::setw(3) << WireId << std::endl;
     return false;
   }
 
-  int type = record->type;
-  // int np   = record->np;
-  std::vector<double> p = record->param;
+  Int_t type = record->type;
+  // Int_t np   = record->np;
+  std::vector<Double_t> p = record->param;
 
   dt = p[0]-ctime;
 
@@ -325,7 +318,7 @@ DCDriftParamMan::CalcDrift( int PlaneId, double WireId, double ctime,
     dl=DriftLength6( PlaneId, dt, p[1], p[2], p[3], p[4], p[5] );
     return true;
   default:
-    hddaq::cerr << "#E " << func_name << " invalid type : " << type << std::endl;
+    hddaq::cerr << FUNC_NAME << " invalid type : " << type << std::endl;
     return false;
   }
 }

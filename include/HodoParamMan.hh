@@ -1,25 +1,21 @@
-/**
- *  file: HodoParamMan.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef HODO_PARAM_MAN_HH
 #define HODO_PARAM_MAN_HH
 
-#include <string>
 #include <map>
+#include <TString.h>
 
 //______________________________________________________________________________
 //Hodo TDC to Time
 class HodoTParam
 {
 public:
-  inline HodoTParam( double offset, double gain )
-    : m_offset(offset), m_gain(gain)
-  {}
+  HodoTParam( Double_t offset, Double_t gain )
+    : m_offset( offset ), m_gain( gain )
+    {}
   ~HodoTParam( void )
-  {}
+    {}
 
 private:
   HodoTParam( void );
@@ -27,16 +23,16 @@ private:
   HodoTParam& operator =( const HodoTParam& );
 
 private:
-  double m_offset;
-  double m_gain;
+  Double_t m_offset;
+  Double_t m_gain;
 
 public:
-  double Offset( void )  const { return m_offset; }
-  double Gain( void )    const { return m_gain; }
-  double Time( int tdc ) const
-  { return ( (double)tdc - m_offset ) * m_gain; }
-  int    Tdc( double time ) const
-  { return (int)( time/m_gain + m_offset ); }
+  Double_t Offset( void )  const { return m_offset; }
+  Double_t Gain( void )    const { return m_gain; }
+  Double_t Time( Int_t tdc ) const
+    { return ( (Double_t)tdc - m_offset ) * m_gain; }
+  Int_t    Tdc( Double_t time ) const
+    { return (Int_t)( time/m_gain + m_offset ); }
 };
 
 //______________________________________________________________________________
@@ -44,11 +40,11 @@ public:
 class HodoAParam
 {
 public:
-  inline HodoAParam( double pedestal, double gain )
-    : m_pedestal(pedestal), m_gain(gain)
-  {}
+  HodoAParam( Double_t pedestal, Double_t gain )
+    : m_pedestal( pedestal ), m_gain( gain )
+    {}
   ~HodoAParam( void )
-  {}
+    {}
 
 private:
   HodoAParam( void );
@@ -56,16 +52,16 @@ private:
   HodoAParam& operator =( const HodoAParam& );
 
 private:
-  double m_pedestal;
-  double m_gain;
+  Double_t m_pedestal;
+  Double_t m_gain;
 
 public:
-  double Pedestal( void )  const { return m_pedestal; }
-  double Gain( void )      const { return m_gain; }
-  double DeltaE( int adc ) const
-  { return ( (double)adc - m_pedestal ) / (m_gain - m_pedestal ); }
-  int    Adc( double de ) const
-  { return (int)( m_gain * de + m_pedestal * ( 1. - de ) ); }
+  Double_t Pedestal( void )  const { return m_pedestal; }
+  Double_t Gain( void )      const { return m_gain; }
+  Double_t DeltaE( Int_t adc ) const
+    { return ( (Double_t)adc - m_pedestal ) / (m_gain - m_pedestal ); }
+  Int_t    Adc( Double_t de ) const
+    { return (Int_t)( m_gain * de + m_pedestal * ( 1. - de ) ); }
 };
 
 //______________________________________________________________________________
@@ -73,23 +69,29 @@ public:
 class HodoFParam
 {
 public:
-  inline HodoFParam( double par0, double par1, double par2, double par3, double par4, double par5 )
-    : Par0(par0), Par1(par1), Par2(par2), Par3(par3), Par4(par4), Par5(par5)
-  {}
-  ~HodoFParam() {}
+  HodoFParam( Double_t par0, Double_t par1, Double_t par2,
+              Double_t par3, Double_t par4, Double_t par5 )
+    : Par0( par0 ), Par1( par1 ), Par2( par2 ),
+      Par3( par3 ), Par4( par4 ), Par5( par5 )
+    {}
+  ~HodoFParam( void )
+    {}
+
 private:
-  HodoFParam();
-  HodoFParam( const HodoFParam & );
-  HodoFParam & operator = ( const HodoFParam & );
+  HodoFParam( void );
+  HodoFParam( const HodoFParam& );
+  HodoFParam& operator =( const HodoFParam& );
+
 private:
-  double Par0, Par1, Par2, Par3, Par4, Par5;
+  Double_t Par0, Par1, Par2, Par3, Par4, Par5;
+
 public:
-  double par0( void ) const { return Par0; }
-  double par1( void ) const { return Par1; }
-  double par2( void ) const { return Par2; }
-  double par3( void ) const { return Par3; }
-  double par4( void ) const { return Par4; }
-  double par5( void ) const { return Par5; }
+  Double_t par0( void ) const { return Par0; }
+  Double_t par1( void ) const { return Par1; }
+  Double_t par2( void ) const { return Par2; }
+  Double_t par3( void ) const { return Par3; }
+  Double_t par4( void ) const { return Par4; }
+  Double_t par5( void ) const { return Par5; }
 };
 
 //______________________________________________________________________________
@@ -97,8 +99,8 @@ public:
 class HodoParamMan
 {
 public:
-  static HodoParamMan&      GetInstance( void );
-  static const std::string& ClassName( void );
+  static const TString& ClassName( void );
+  static HodoParamMan&  GetInstance( void );
   ~HodoParamMan( void );
 
 private:
@@ -108,58 +110,56 @@ private:
 
 private:
   enum eAorT { kAdc, kTdc, kAorT };
-  typedef std::map<int, HodoTParam*> TContainer;
-  typedef std::map<int, HodoAParam*> AContainer;
-  typedef std::map<int, HodoFParam*> FContainer;
+  typedef std::map<Int_t, HodoTParam*> TContainer;
+  typedef std::map<Int_t, HodoAParam*> AContainer;
+  typedef std::map<Int_t, HodoFParam*> FContainer;
   typedef TContainer::const_iterator TIterator;
   typedef AContainer::const_iterator AIterator;
   typedef FContainer::const_iterator FIterator;
-  bool        m_is_ready;
-  std::string m_file_name;
-  TContainer  m_TPContainer;
-  AContainer  m_APContainer;
-  FContainer  m_FPContainer;
+  Bool_t     m_is_ready;
+  TString    m_file_name;
+  TContainer m_TPContainer;
+  AContainer m_APContainer;
+  FContainer m_FPContainer;
 
 public:
-  bool Initialize( void );
-  bool Initialize( const std::string& file_name );
-  bool IsReady( void ) const { return m_is_ready; }
-  bool GetTime( int cid, int plid, int seg, int ud, int tdc, double &time ) const;
-  bool GetDe( int cid, int plid, int seg, int ud, int adc, double &de ) const;
-  bool GetTdc( int cid, int plid, int seg, int ud, double time, int &tdc ) const;
-  bool GetAdc( int cid, int plid, int seg, int ud, double de, int &adc ) const;
-  void SetFileName( const std::string& file_name ) { m_file_name = file_name; }
-
-  double GetP0( int cid, int plid, int seg, int ud) const;
-  double GetP1( int cid, int plid, int seg, int ud) const;
-  double GetPar( int cid, int plid, int seg, int ud ,int i) const; // i=0~5
-
-  double  GetOffset(int cid, int plid, int seg, int ud) const;
-  double  GetGain(int cid, int plid, int seg, int ud) const;
+  Bool_t   Initialize( void );
+  Bool_t   Initialize( const TString& file_name );
+  Bool_t   IsReady( void ) const { return m_is_ready; }
+  Bool_t   GetTime( Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t tdc, Double_t &time ) const;
+  Bool_t   GetDe( Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t adc, Double_t &de ) const;
+  Bool_t   GetTdc( Int_t cid, Int_t plid, Int_t seg, Int_t ud, Double_t time, Int_t &tdc ) const;
+  Bool_t   GetAdc( Int_t cid, Int_t plid, Int_t seg, Int_t ud, Double_t de, Int_t &adc ) const;
+  Double_t GetP0( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
+  Double_t GetP1( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
+  Double_t GetPar( Int_t cid, Int_t plid, Int_t seg, Int_t ud ,Int_t i ) const; // i=0~5
+  Double_t GetOffset( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
+  Double_t GetGain( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
+  void     SetFileName( const TString& file_name ) { m_file_name = file_name; }
 
 private:
-  HodoTParam *GetTmap( int cid, int plid, int seg, int ud ) const;
-  HodoAParam *GetAmap( int cid, int plid, int seg, int ud ) const;
-  HodoFParam *GetFmap( int cid, int plid, int seg, int ud ) const;
-  void ClearACont( void );
-  void ClearTCont( void );
-  void ClearFCont( void );
+  void        ClearACont( void );
+  void        ClearTCont( void );
+  void        ClearFCont( void );
+  HodoTParam* GetTmap( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
+  HodoAParam* GetAmap( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
+  HodoFParam* GetFmap( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
 };
+
+//______________________________________________________________________________
+inline const TString&
+HodoParamMan::ClassName( void )
+{
+  static TString s_name( "HodoParamMan" );
+  return s_name;
+}
 
 //______________________________________________________________________________
 inline HodoParamMan&
 HodoParamMan::GetInstance( void )
 {
-  static HodoParamMan g_instance;
-  return g_instance;
-}
-
-//______________________________________________________________________________
-inline const std::string&
-HodoParamMan::ClassName( void )
-{
-  static std::string g_name("HodoParamMan");
-  return g_name;
+  static HodoParamMan s_instance;
+  return s_instance;
 }
 
 #endif

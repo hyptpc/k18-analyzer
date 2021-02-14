@@ -24,7 +24,7 @@ class TPCHit : public DCHit
 public:
   static TString ClassName( void );
   TPCHit( TPCRawHit* rhit );
-  TPCHit( Int_t padid, TVector3 pos, Double_t charge); // for cluster hit
+  TPCHit( Int_t padid, TVector3 pos, Double_t charge ); // for cluster hit
   ~TPCHit( void );
 
 private:
@@ -40,8 +40,10 @@ protected:
   Double_t              m_rms;
   std::vector<Double_t> m_de;
   std::vector<Double_t> m_time;
-  std::vector<Double_t> m_drift_length; // this means Y (beam height = 0)
   std::vector<Double_t> m_chisqr;
+  std::vector<Double_t> m_cde;
+  std::vector<Double_t> m_ctime;
+  std::vector<Double_t> m_drift_length; // this means Y (beam height = 0)
   Double_t              m_charge;
   TVector3              m_pos;
   Int_t                 m_is_good;
@@ -65,8 +67,10 @@ protected:
   std::vector<TPCLTrackHit*> m_register_container;
 
 public:
+  void            AddDeTime( Double_t de, Double_t time );
   Bool_t          BelongToTrack( void ) const { return m_belong_track; }
-  Bool_t          CalcTPCObservables( void );
+  Bool_t          Calculate( void );
+  Bool_t          DoFit( void );
   Double_t        GetChisqr( Int_t i ) const { return m_chisqr.at(i); }
   Int_t           GetChisqrSize( void ) const { return m_chisqr.size(); }
   Double_t        GetDe( Int_t i ) const { return m_de.at(i); }
@@ -104,7 +108,6 @@ public:
   void            Print( const std::string& arg="",
                          std::ostream& ost=hddaq::cout ) const;
   void            QuitTrack( void ) { m_belong_track = false;}
-  Bool_t          ReCalculate( Bool_t recursive=false );
   void            RegisterHits( TPCLTrackHit *hit )
     { m_register_container.push_back( hit ); }
   void            SetPad( Int_t pad ) { m_pad = pad; }

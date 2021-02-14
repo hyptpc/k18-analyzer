@@ -10,9 +10,10 @@
 #include "DetectorID.hh"
 #include "RawData.hh"
 #include "RootHelper.hh"
-#include "TPCPadHelper.hh"
-#include "TPCRawHit.hh"
 #include "TPCHit.hh"
+#include "TPCPadHelper.hh"
+#include "TPCParamMan.hh"
+#include "TPCRawHit.hh"
 #include "Unpacker.hh"
 #include "UnpackerManager.hh"
 #include "UserParamMan.hh"
@@ -169,6 +170,7 @@ UserEvent::ProcessingNormal( void )
     for( const auto& hit : hc ){
       if( !hit || !hit->IsGood() )
         continue;
+      hit->Print();
       Int_t layer = hit->GetLayer();
       Int_t row = hit->GetWire();
       Int_t pad = tpc::GetPadId( layer, row );
@@ -291,8 +293,9 @@ Bool_t
 ConfMan::InitializeParameterFiles( void )
 {
   return
-    ( InitializeParameter<DCGeomMan>("DCGEO")    &&
-      InitializeParameter<UserParamMan>("USER")  );
+    ( InitializeParameter<DCGeomMan>("DCGEO") &&
+      InitializeParameter<TPCParamMan>("TPCPRM") &&
+      InitializeParameter<UserParamMan>("USER") );
 }
 
 //_____________________________________________________________________________
