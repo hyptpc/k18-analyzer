@@ -71,8 +71,12 @@ public:
   Bool_t          BelongToTrack( void ) const { return m_belong_track; }
   Bool_t          Calculate( void );
   Bool_t          DoFit( void );
+  Double_t        GetCDe( Int_t i ) const { return m_cde.at(i); }
+  Int_t           GetCDeSize( void ) const { return m_cde.size(); }
   Double_t        GetChisqr( Int_t i ) const { return m_chisqr.at(i); }
   Int_t           GetChisqrSize( void ) const { return m_chisqr.size(); }
+  Double_t        GetCTime( Int_t i ) const { return m_ctime.at(i); }
+  Int_t           GetCTimeSize( void ) const { return m_ctime.size(); }
   Double_t        GetDe( Int_t i ) const { return m_de.at(i); }
   Int_t           GetDeSize( void ) const { return m_de.size(); }
   Double_t        GetDriftLength( Int_t i ) const

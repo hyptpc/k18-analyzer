@@ -87,6 +87,9 @@ struct Event
   std::vector<Double_t> deTpc;     // dE
   std::vector<Double_t> tTpc;      // time
   std::vector<Double_t> chisqrTpc; // chi^2 of signal fitting
+  std::vector<Double_t> cdeTpc;    // dE
+  std::vector<Double_t> ctTpc;     // time
+  std::vector<Double_t> dlTpc;     // time
 
   void clear( void )
   {
@@ -101,9 +104,12 @@ struct Event
     padTpc.clear();
     pedTpc.clear();
     rmsTpc.clear();
-    tTpc.clear();
     deTpc.clear();
+    tTpc.clear();
     chisqrTpc.clear();
+    cdeTpc.clear();
+    ctTpc.clear();
+    dlTpc.clear();
   }
 };
 
@@ -170,7 +176,7 @@ UserEvent::ProcessingNormal( void )
     for( const auto& hit : hc ){
       if( !hit || !hit->IsGood() )
         continue;
-      hit->Print();
+      // hit->Print();
       Int_t layer = hit->GetLayer();
       Int_t row = hit->GetWire();
       Int_t pad = tpc::GetPadId( layer, row );
@@ -184,6 +190,9 @@ UserEvent::ProcessingNormal( void )
         Double_t de = hit->GetDe( i );
         Double_t time = hit->GetTime( i );
         Double_t chisqr = hit->GetChisqr( i );
+        Double_t cde = hit->GetCDe( i );
+        Double_t ctime = hit->GetCTime( i );
+        Double_t dl = hit->GetDriftLength( i );
         event.layerTpc.push_back( layer );
         event.rowTpc.push_back( row );
         event.padTpc.push_back( pad );
@@ -192,9 +201,15 @@ UserEvent::ProcessingNormal( void )
         event.deTpc.push_back( de );
         event.tTpc.push_back( time );
         event.chisqrTpc.push_back( chisqr );
+        event.cdeTpc.push_back( cde );
+        event.ctTpc.push_back( ctime );
+        event.dlTpc.push_back( dl );
         HF1( 22, de );
         HF1( 24, time );
         HF1( 25, chisqr );
+        HF1( 26, cde );
+        HF1( 27, ctime );
+        HF1( 28, dl );
         good_for_analysis = true;
         ++nhTpc;
       }
@@ -251,6 +266,12 @@ ConfMan:: InitializeHistograms( void )
   const Int_t    NbinChisqr = 1000;
   const Double_t MinChisqr  =    0.;
   const Double_t MaxChisqr  = 1000.;
+  const Int_t    NbinTime = 1000;
+  const Double_t MinTime  = -8000.;
+  const Double_t MaxTime  =  8000.;
+  const Int_t    NbinDL = 800;
+  const Double_t MinDL  = -400.;
+  const Double_t MaxDL  =  400.;
 
   HB1( 1, "Status", 20, 0., 20. );
   HB1( 10, "TPC Multiplicity (Raw)", NumOfPadTPC+1, 0, NumOfPadTPC+1 );
@@ -264,6 +285,9 @@ ConfMan:: InitializeHistograms( void )
   HB1( 23, "TPC RMS", NbinRms, MinRms, MaxRms );
   HB1( 24, "TPC Time", NumOfTimeBucket+1, 0, NumOfTimeBucket+1 );
   HB1( 25, "TPC Chisqr", NbinChisqr, MinChisqr, MaxChisqr );
+  HB1( 26, "TPC CDeltaE", NbinDe, MinDe, MaxDe );
+  HB1( 27, "TPC CTime", NbinTime, MinTime, MaxTime );
+  HB1( 28, "TPC DriftLength", NbinDL, MinDL, MaxDL );
   // HB2( 101, "TPC Waveform (good)",
   //      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc, MaxAdc );
 
@@ -280,9 +304,12 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch( "padTpc", &event.padTpc );
   tree->Branch( "pedTpc", &event.pedTpc );
   tree->Branch( "rmsTpc", &event.rmsTpc );
-  tree->Branch( "tTpc", &event.tTpc );
   tree->Branch( "deTpc", &event.deTpc );
+  tree->Branch( "tTpc", &event.tTpc );
   tree->Branch( "chisqrTpc", &event.chisqrTpc );
+  tree->Branch( "cdeTpc", &event.cdeTpc );
+  tree->Branch( "ctTpc", &event.ctTpc );
+  tree->Branch( "dlTpc", &event.dlTpc );
 
   HPrint();
   return true;
