@@ -309,10 +309,11 @@ bool
 DCAnalyzer::ClusterizeTPC( int layerID, const TPCHitContainer& HitCont,
                            TPCClusterContainer& ClCont )
 {
+
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
   static const double ClusterYCut = gUser.GetParameter("ClusterYCut");
-
+  
   del::ClearContainer( ClCont );
 
   const std::size_t nh = HitCont.size();
@@ -448,15 +449,21 @@ DCAnalyzer::ReCalcTPCHits( const int nhits,
     // 	     <<"pos:"<<pos<<std::endl;
     if( hit ) m_TPCHitCont[layer].push_back( hit );
   }
-
+ 
   if( do_clusterize ){
+   std::vector<TPCClusterContainer>  TPCClusterCont;
+    TPCClusterCont.resize(NumOfLayersTPC+1);
     for( int layer=0; layer<=NumOfLayersTPC; ++layer ){
-      TPCClusterContainer TPCClusterCont;
-      //ClusterizeTPC( layer, m_TPCHitCont[layer], m_TPCClCont[layer] );
-      ClusterizeTPC( layer, m_TPCHitCont[layer], TPCClusterCont);
-      int ncl = TPCClusterCont.size();
+      if(m_TPCHitCont[layer].size()==0)
+	continue;
+      // TPCCluster *p = new TPCCluster(1.,1.,1.,1.);
+      // TPCClusterCont[layer].push_back(p);
+      //std::cout<<"layer:"<<layer<<std::endl;
+      ClusterizeTPC( layer, m_TPCHitCont[layer], TPCClusterCont[layer] );
+      
+      int ncl = TPCClusterCont[layer].size();
       for(int i=0; i<ncl; ++i){
-        TPCCluster *p = TPCClusterCont[i];
+      TPCCluster *p = TPCClusterCont[layer][i];
         TVector3 pos = p->Position();
         double charge = p->Charge();
 	double mrow = p->MeanRow();
@@ -476,10 +483,14 @@ DCAnalyzer::ReCalcTPCHits( const int nhits,
         // else
         // 	delete hit;
         m_TPCClCont[layer].push_back(hit);
-      }
-      del::ClearContainer( TPCClusterCont );
+       }
     }
+    //std::cout<<"hoge1"<<std::endl;
+    //del::ClearContainerAll( TPCClusterCont );
+    //std::cout<<"hoge2"<<std::endl;
   }
+  
+
   m_is_decoded[k_TPC] = true;
   return true;
 }

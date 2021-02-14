@@ -109,7 +109,7 @@ public:
   int  ClusterizeMWPCHit( const DCHitContainer& hits,
 			  MWPCClusterContainer& clusters );
   bool  ClusterizeTPC( int layerID, const TPCHitContainer& HitCont,
-			  TPCClusterContainer& ClCont );
+		       TPCClusterContainer& ClCont );
 
   inline const DCHitContainer& GetTempBcInHC( int layer ) const;
   inline const DCHitContainer& GetBcInHC( int layer ) const;

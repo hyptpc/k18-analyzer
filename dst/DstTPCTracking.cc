@@ -230,7 +230,8 @@ dst::DstRead( int ievent )
   event.trigpat = **src.trigpat;
   event.trigflag = **src.trigflag;
   //  event.nhTpc = **src.nhTpc;
-
+  
+  //std::cout<<"Ev: "<<ievent<<std::endl;
 
   HF1( 1, event.status++ );
 
@@ -242,8 +243,10 @@ dst::DstRead( int ievent )
   // std::cout<<**src.nhTpc<<", "<<(**src.padTpc).size()<<std::endl;
 
   DCAnalyzer DCAna;
-
+  
   DCAna.ReCalcTPCHits( **src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc);
+ 
+  
   Int_t nh_Tpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
     auto hc = DCAna.GetTPCHC( layer );
@@ -260,7 +263,8 @@ dst::DstRead( int ievent )
     }
   }
   event.nhTpc = nh_Tpc;
-
+  //std::cout<<"hoge Dst"<<std::endl;
+   
   Int_t nh_cl_Tpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
     auto hc = DCAna.GetTPCClCont( layer );
@@ -280,6 +284,7 @@ dst::DstRead( int ievent )
   }
   event.nh_cluster_Tpc = nh_cl_Tpc;
 
+  
   DCAna.TrackSearchTPC();
 
   Int_t ntTpc = DCAna.GetNTracksTPC();
@@ -360,7 +365,7 @@ dst::DstRead( int ievent )
     }
 
   }
-
+  
   HF1( 1, event.status++ );
 
   return true;
