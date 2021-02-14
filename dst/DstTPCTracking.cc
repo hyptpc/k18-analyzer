@@ -243,7 +243,7 @@ dst::DstRead( int ievent )
 
   DCAnalyzer DCAna;
 
-  DCAna.ReCalcTPCHits( **src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, false );
+  DCAna.ReCalcTPCHits( **src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc);
   Int_t nh_Tpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
     auto hc = DCAna.GetTPCHC( layer );
@@ -261,10 +261,9 @@ dst::DstRead( int ievent )
   }
   event.nhTpc = nh_Tpc;
 
-  DCAna.ReCalcTPCHits( **src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc );
   Int_t nh_cl_Tpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
-    auto hc = DCAna.GetTPCHC( layer );
+    auto hc = DCAna.GetTPCClCont( layer );
     for( const auto& hit : hc ){
       if( !hit || !hit->IsGood() )
         continue;
