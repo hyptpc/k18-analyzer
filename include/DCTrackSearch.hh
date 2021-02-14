@@ -111,11 +111,6 @@ namespace track
 				 std::vector<TPCLocalTrack_Helix*>& TrackCont,
 				 int MinNumOfHits=8 );
 
-  //______________________________________________________________________________
-  int LocalTrackSearchTPC( const std::vector<TPCClusterContainer>& TPCClCont,
-			   std::vector<TPCLocalTrack*>& TrackCont,
-			   int MinNumOfHits=8 );
-
 
 
 

@@ -69,7 +69,8 @@ private:
   std::vector<DCHitContainer>       m_SdcOutHC;
   std::vector<TPCHitContainer>      m_TPCHitCont;
   std::vector<TPCHitContainer>      m_TempTPCHitCont;
-  std::vector<TPCClusterContainer>  m_TPCClCont;
+  //  std::vector<TPCClusterContainer>  m_TPCClCont;
+  std::vector<TPCHitContainer>  m_TPCClCont;
 
   DCHitContainer        m_TOFHC;
   DCHitContainer        m_VtxPoint;
@@ -117,7 +118,7 @@ public:
   inline const DCHitContainer& GetSdcOutHC( int layer ) const;
   inline const DCHitContainer& GetTOFHC( void ) const;
   inline const TPCHitContainer& GetTPCHC( int layer ) const;
-  inline const TPCClusterContainer& GetTPCClCont( int layer ) const;
+  inline const TPCHitContainer& GetTPCClCont( int layer ) const;
 
   bool TrackSearchBcIn( void );
   bool TrackSearchBcIn( const std::vector< std::vector<DCHitContainer> >& hc );
@@ -453,7 +454,7 @@ DCAnalyzer::GetClusterMWPC( int layer ) const
 }
 
 //______________________________________________________________________________
-inline const TPCClusterContainer&
+inline const TPCHitContainer&
 DCAnalyzer::GetTPCClCont( int layer ) const
 {
   if( layer>NumOfLayersTPC ) layer=NumOfLayersTPC;

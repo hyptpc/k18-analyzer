@@ -63,6 +63,7 @@ const Double_t zTgtTPC = -143.;
 TPCHit::TPCHit( TPCRawHit* rhit )
   : DCHit( rhit->LayerId(), rhit->RowId() ),
     m_rhit( rhit ),
+    m_layer(),
     m_row(),
     m_pad(),
     m_pedestal( TMath::QuietNaN() ),
@@ -106,13 +107,18 @@ TPCHit::TPCHit( TPCRawHit* rhit )
 }
 
 //_____________________________________________________________________________
-TPCHit::TPCHit( int padid, TVector3 pos, double charge )
-  : m_pad(padid),
-    m_charge(charge)
+TPCHit::TPCHit( Int_t layer, Double_t mrow )
+  : m_layer(layer),
+    m_mrow(mrow)
 {
-  m_pos=pos;
-  m_layer = tpc::getLayerID(padid);
-  m_row   = tpc::getRowID(padid);
+  if(mrow-(int)mrow<0.5)
+    m_row = (int)mrow;
+  else
+    m_row = 1+(int)mrow;
+  m_row = (int)mrow;
+  m_pad = tpc::GetPadId(layer, (int)mrow);
+  m_charge = 0.;
+  m_pos=TVector3(0.,0.,0.);
   m_is_good = true;
   m_is_calculated = false;
   m_hit_xz = new DCHit(m_layer, m_row);

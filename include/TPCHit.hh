@@ -24,7 +24,7 @@ class TPCHit : public DCHit
 public:
   static TString ClassName( void );
   TPCHit( TPCRawHit* rhit );
-  TPCHit( Int_t padid, TVector3 pos, Double_t charge ); // for cluster hit
+  TPCHit( Int_t layer, Double_t mrow ); // for cluster hit
   ~TPCHit( void );
 
 private:
@@ -34,6 +34,7 @@ private:
 
 protected:
   TPCRawHit*            m_rhit;
+  Int_t                 m_layer;
   Int_t                 m_row;
   Int_t                 m_pad;
   Double_t              m_pedestal;
@@ -86,6 +87,7 @@ public:
   Int_t           GetNHits( void ) const { return m_de.size(); }
   Int_t           GetPad( void ) const { return m_pad; }
   TPCRawHit*      GetRawHit( void ) const { return m_rhit; }
+  Int_t           GetLayer( void ) const { return m_layer; }
   Int_t           GetRow( void ) const { return m_row; }
   Double_t        GetPedestal( void ) const { return m_pedestal; }
   Double_t        GetRMS( void ) const { return m_rms; }
@@ -115,6 +117,7 @@ public:
   void            RegisterHits( TPCLTrackHit *hit )
     { m_register_container.push_back( hit ); }
   void            SetPad( Int_t pad ) { m_pad = pad; }
+  void            SetLayer( Int_t layer ) { m_layer  = layer; }
   void            SetRow( Int_t row ) { m_row  = row; }
   void            SetCharge( Double_t charge ) { m_charge = charge; }
   void            SetPos( TVector3 pos ) { m_pos = pos; }
