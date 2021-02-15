@@ -451,21 +451,19 @@ DCAnalyzer::ReCalcTPCHits( const int nhits,
   }
  
   if( do_clusterize ){
-   std::vector<TPCClusterContainer>  TPCClusterCont;
+    std::vector<TPCClusterContainer>  TPCClusterCont;
     TPCClusterCont.resize(NumOfLayersTPC+1);
     for( int layer=0; layer<=NumOfLayersTPC; ++layer ){
       if(m_TPCHitCont[layer].size()==0)
 	continue;
-      // TPCCluster *p = new TPCCluster(1.,1.,1.,1.);
-      // TPCClusterCont[layer].push_back(p);
-      //std::cout<<"layer:"<<layer<<std::endl;
+      
       ClusterizeTPC( layer, m_TPCHitCont[layer], TPCClusterCont[layer] );
       
       int ncl = TPCClusterCont[layer].size();
       for(int i=0; i<ncl; ++i){
-      TPCCluster *p = TPCClusterCont[layer][i];
-        TVector3 pos = p->Position();
-        double charge = p->Charge();
+	TPCCluster *p = TPCClusterCont[layer][i];
+	TVector3 pos = p->Position();
+	double charge = p->Charge();
 	double mrow = p->MeanRow();
 	int clusterSize = p->GetClusterSize();
 	TPCHit* hit = new TPCHit(layer, mrow);
@@ -485,9 +483,7 @@ DCAnalyzer::ReCalcTPCHits( const int nhits,
         m_TPCClCont[layer].push_back(hit);
        }
     }
-    //std::cout<<"hoge1"<<std::endl;
-    //del::ClearContainerAll( TPCClusterCont );
-    //std::cout<<"hoge2"<<std::endl;
+    del::ClearContainerAll( TPCClusterCont );
   }
   
 

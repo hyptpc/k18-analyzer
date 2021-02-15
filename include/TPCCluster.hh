@@ -22,7 +22,7 @@ class TPCCluster
 {
 public:
   TPCCluster( double x, double y, double z, double de ); // for MC data
-  TPCCluster( int layer, TPCHitContainer& HitCont );
+  TPCCluster( int layer, const TPCHitContainer& HitCont );
   ~TPCCluster( void );
 
 private:

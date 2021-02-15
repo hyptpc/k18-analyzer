@@ -5,14 +5,12 @@
  */
 
 #include "TPCCluster.hh"
-
 #include <iostream>
 #include <iterator>
-
 #include "std_ostream.hh"
-
 #include "DebugCounter.hh"
 #include "TPCPadHelper.hh"
+#include "DeleteUtility.hh"
 
 namespace
 {
@@ -20,18 +18,21 @@ namespace
 }
 
 //______________________________________________________________________________
-TPCCluster::TPCCluster( int layer, TPCHitContainer& HitCont )
-  : m_layer_id( layer ),
+TPCCluster::TPCCluster( int layer, const TPCHitContainer& HitCont )
+  : m_tpchits(0),
+    m_layer_id( layer ),
     m_pos_calculated( false )
 {
   m_tpchits.resize( HitCont.size() );
   std::copy( HitCont.begin(), HitCont.end(), m_tpchits.begin() );
+  
   debug::ObjectCounter::increase(class_name);
 }
 
 //______________________________________________________________________________
 TPCCluster::TPCCluster( double x, double y, double z, double de )
-  : m_pos_calculated( true ) // for MC data
+  : m_tpchits(0),
+    m_pos_calculated( true ) // for MC data
 {
   m_pos.SetXYZ(x,y,z);
   m_charge = de;
@@ -52,10 +53,12 @@ void
 TPCCluster::ClearTPCHits( void )
 {
   //  m_tpchits.clear();
-  int n = m_tpchits.size();
-  for(int i=0; i<n; ++i){
-    delete m_tpchits[i];
-  }
+  //del::ClearContainer( m_tpchits );
+  //del::DeleteObject( m_tpchits );
+   // int n = m_tpchits.size();
+   // for(int i=0; i<n; ++i){
+   //    delete m_tpchits[i];
+   // }
   m_charge=0;
 }
 
