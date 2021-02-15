@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<digit_data xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	    xsi:noNamespaceSchemaLocation="schema/digit.xsd">
+
+  <device id="0xff" name="null"/>
+
+  <!--________________________________________________________________-->
+  <device id="1" name="TS"><for var="seg" from="0" to="1">
+      <segment id="seg">
+	<data id="0" name="adc"/>
+	<data id="1" name="tdc"/>
+      </segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="120" name="AFT">
+    <plane id="0" name="X1"><for var="seg" from="0" to="31">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+	  </ch></for>
+      </segment></for>
+    </plane>
+    <plane id="1" name="XP1"><for var="seg" from="0" to="31">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+	  </ch></for>
+      </segment></for>
+    </plane>
+    <plane id="2" name="Y1"><for var="seg" from="0" to="15">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+	  </ch></for>
+      </segment></for>
+    </plane>
+    <plane id="3" name="YP1"><for var="seg" from="0" to="15">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+	  </ch></for>
+      </segment></for>
+    </plane>
+    <plane id="4" name="X2"><for var="seg" from="0" to="31">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+	  </ch></for>
+      </segment></for>
+    </plane>
+    <plane id="5" name="XP2"><for var="seg" from="0" to="31">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+	  </ch></for>
+      </segment></for>
+    </plane>
+    <plane id="6" name="Y2"><for var="seg" from="0" to="15">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+	  </ch></for>
+      </segment></for>
+    </plane>
+    <plane id="7" name="YP2"><for var="seg" from="0" to="15">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+	  </ch></for>
+      </segment></for>
+    </plane>
+    <plane id="8" name="X3"><for var="seg" from="0" to="31">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+	  </ch></for>
+      </segment></for>
+    </plane>
+    <plane id="9" name="XP3"><for var="seg" from="0" to="31">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+	  </ch></for>
+      </segment></for>
+    </plane>
+    <plane id="10" name="Y3"><for var="seg" from="0" to="15">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+	  </ch></for>
+      </segment></for>
+    </plane>
+    <plane id="11" name="YP3"><for var="seg" from="0" to="15">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+	  </ch></for>
+      </segment></for>
+    </plane>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="121" name="SST">
+    <plane id="0" name="X1"><for var="seg" from="0" to="31">
+      <segment id="seg">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+      </segment></for>
+    </plane>
+    <plane id="1" name="XP1"><for var="seg" from="0" to="31">
+      <segment id="seg">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+      </segment></for>
+    </plane>
+    <plane id="2" name="Y1"><for var="seg" from="0" to="31">
+      <segment id="seg">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+      </segment></for>
+    </plane>
+    <plane id="3" name="YP1"><for var="seg" from="0" to="31">
+      <segment id="seg">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+      </segment></for>
+    </plane>
+    <plane id="4" name="X2"><for var="seg" from="0" to="31">
+      <segment id="seg">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+      </segment></for>
+    </plane>
+    <plane id="5" name="XP2"><for var="seg" from="0" to="31">
+      <segment id="seg">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+      </segment></for>
+    </plane>
+    <plane id="6" name="Y2"><for var="seg" from="0" to="31">
+      <segment id="seg">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+      </segment></for>
+    </plane>
+    <plane id="7" name="YP2"><for var="seg" from="0" to="31">
+      <segment id="seg">
+            <data id="0" name="leading"/>
+            <data id="1" name="trailing"/>
+            <data id="2" name="highgain"/>
+            <data id="3" name="lowgain"/>
+      </segment></for>
+    </plane>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="11" name="v775n"><for var="plane" from="0" to="0">
+      <plane id="plane"><for var="seg" from="0" to="15">
+	  <segment id="seg">
+	    <data id="0" name="tdc"/>
+	</segment></for>
+    </plane></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="12" name="v792"><for var="plane" from="0" to="0">
+      <plane id="plane"><for var="seg" from="0" to="31">
+	  <segment id="seg">
+	    <data id="0" name="adc"/>
+	</segment></for>
+    </plane></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="20" name="VMEEASIROC"><for var="plane" from="0" to="0">
+    <plane id="plane"><for var="seg" from="0" to="63">
+      <segment id="seg">
+          <data id="0" name="leading"/>
+          <data id="1" name="trailing"/>
+          <data id="2" name="highgain"/>
+          <data id="3" name="lowgain"/>
+      </segment></for>
+    </plane></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="81" name="VME-RM">
+    <plane id="0" name="vme01">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+    <plane id="1" name="vme02">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+    <plane id="2" name="vme03">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+    <plane id="3" name="vme04">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+    <plane id="4" name="vme05">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+    <plane id="5" name="vme06">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+    <plane id="6" name="vme07">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+    <plane id="7" name="vme08">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+    <plane id="8" name="vme09">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+    <plane id="9" name="vme10">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+    <plane id="10" name="emc01">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="82" name="CAMAC-RM">
+    <plane id="0" name="ccnet01">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="2ndAcc"/>
+	<data id="3" name="FastClear"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="2ndAcc"/>
+	<data id="3" name="FastClear"/>
+      </ch>
+    </plane>
+  </device>
+  <!--________________________________________________________________-->
+
+  <!--________________________________________________________________-->
+  <device id="999" name="VMEdummy">
+    <for var="plane" from="0" to="31">
+      <plane id="plane">
+	<for var="seg" from="0" to="63">
+	  <segment id="seg">
+	    <ch id="0">
+	      <data id="0" name="adc"/>
+	      <data id="1" name="tdc"/>
+	      <data id="2" name="trailing"/>
+	</ch></segment></for>
+    </plane></for>
+  </device>
+
+  <!--________________________________________________________________-->
+
+  <!--________________________________________________________________-->
+  <device id="997" name="VMEEASIROCdummy">
+    <for var="plane" from="0" to="99">
+      <plane id="plane">
+	<for var="seg" from="0" to="63">
+	  <segment id="seg">
+	    <ch id="0">
+             <data id="0" name="leading"/>
+             <data id="1" name="trailing"/>
+             <data id="2" name="highgain"/>
+             <data id="3" name="lowgain"/>
+	</ch></segment></for>
+    </plane></for>
+  </device>
+<!--_________________________________________________________________-->
+
+</digit_data>

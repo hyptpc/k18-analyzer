@@ -1,0 +1,49 @@
+#
+# RUN LIST (YAML format)
+#
+# The allowed keys are
+#   queue  <- bsub queue (eg. s, l, etc...)
+#   unit   <- dividing event unit
+#   nporc  <- number of process for merging (must be less than 20)
+#   buff   <- intermediate root files will be placed here if nproc is more than 2
+#   bin    <- path to executable binary
+#   conf   <- path to conf directory/file from the work directory
+#   data   <- path to data directory/file
+#   root   <- path to the output ROOT output directory/file
+#
+# Be careful of the indent rule because YAML format is sensitive to it.
+# Some problems will happen if there is no default setting declaration.
+#
+
+#____________________________________________________
+# work directory path
+# The following paths must be relative to this path
+
+WORKDIR: ~/E70analyzer/offline-analyzer-191123/
+
+#____________________________________________________
+# default setting
+# default setting MUST have all items.
+# This setting will be inherited unless you explicitly set values for the individual cases.
+
+DEFAULT:
+  queue: s
+  unit:  50000
+  nproc: 1
+  buff:  ./grouproot/buffer
+  bin:   ./bin/HodoAFT
+  conf:  ./param/conf/analyzer_e70.conf
+  data:  ./data/run01037.dat.gz
+  root:  ./grouproot
+
+#____________________________________________________
+# Individual settings
+# If you want to adapt the default setting to some runs,
+# you only have to list keys.
+
+RUN:
+
+  HodoAFT: # Any keys are OK unless it overlaps.
+    bin:  ./bin/HodoAFT
+    conf: ./param/conf/analyzer_e70.conf
+#   root: ./test.root

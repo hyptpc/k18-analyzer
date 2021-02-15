@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<channel_map xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:noNamespaceSchemaLocation="schema/channel_map.xsd">
+
+  <!--________________________________________________________________-->
+  <DAQNode node_id="1" name="k18eb">
+    <!--________________________________________________________________-->
+    <VmeMaster node_id="0x201" name="vme01">
+      <VmeRm address="0xff010000">
+    	<for var="ch" from="0" to="1"><for var="data" from="0" to="3">
+    	  <FE ch="ch" data="data">
+    	  <D Device="VME-RM" Plane="vme01" ch="ch" data="data"/></FE>
+    	</for></for>
+      </VmeRm>
+      <VmeCaenV792 address="0xad010000">
+	<for var="ch" from="0" to="1">
+    	  <FE ch="ch"><D Device="TS" plane="0"  segment="ch" data="0"/></FE>
+	</for>
+	<for var="ch" from="2" to="31">
+    	  <FE ch="ch"><D Device="v792" plane="0"  segment="ch" data="0"/></FE>
+	</for>
+      </VmeCaenV792>
+
+      <VmeCaenV775 address="0xbd020000">
+    	<for var="ch" from="0" to="1">
+    	  <FE ch="ch"><D Device="TS" plane="0" segment="ch" data="1"/></FE>
+    	</for>
+    	<for var="ch" from="2" to="15">
+    	  <FE ch="ch"><D Device="v775n" plane="0" segment="ch" data="0"/></FE>
+    	</for>
+      </VmeCaenV775>
+    </VmeMaster>
+    <!-- AFT -->
+    <VmeEasiroc node_id="0x07da" name="veasiroc1">
+      <!--AFT X1 up -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1" data="data">
+	    <D Device="AFT" plane="0" segment="15 - ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 32" data="data">
+	    <D Device="AFT" plane="0" segment="16 + ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT XP1 up -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch" data="data">
+	    <D Device="AFT" plane="1" segment="15 - ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1 + 32" data="data">
+	    <D Device="AFT" plane="1" segment="16 + ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+    </VmeEasiroc>
+    <VmeEasiroc node_id="0x07db" name="veasiroc2">
+      <!--AFT Y1 up(Left) -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch " data="data">
+	    <D Device="AFT" plane="2" segment="15 - ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT Y1 down(Right) -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1 + 32" data="data">
+	    <D Device="AFT" plane="2" segment="15 - ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT YP1 up -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1" data="data">
+	    <D Device="AFT" plane="3" segment="15 - ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT YP1 down -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 32" data="data">
+	    <D Device="AFT" plane="3" segment="15 - ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+    </VmeEasiroc>
+    <VmeEasiroc node_id="0x07dc" name="veasiroc3">
+      <!--AFT X1 down -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch" data="data">
+	    <D Device="AFT" plane="0" segment="15 - ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1 + 32" data="data">
+	    <D Device="AFT" plane="0" segment="16 + ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT XP1 down -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1" data="data">
+	    <D Device="AFT" plane="1" segment="15 - ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 32" data="data">
+	    <D Device="AFT" plane="1" segment="16 + ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+    </VmeEasiroc>
+    <VmeEasiroc node_id="0x07dd" name="veasiroc4">
+      <!--AFT X1 up -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1" data="data">
+	    <D Device="AFT" plane="4" segment="15 - ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 32" data="data">
+	    <D Device="AFT" plane="4" segment="16 + ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT XP1 up -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch" data="data">
+	    <D Device="AFT" plane="5" segment="15 - ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1 + 32" data="data">
+	    <D Device="AFT" plane="5" segment="16 + ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+    </VmeEasiroc>
+    <VmeEasiroc node_id="0x07de" name="veasiroc5">
+      <!--AFT Y1 up(Left) -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch " data="data">
+	    <D Device="AFT" plane="6" segment="15 - ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT Y1 down(Right) -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1 + 32" data="data">
+	    <D Device="AFT" plane="6" segment="15 - ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT YP1 up -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1" data="data">
+	    <D Device="AFT" plane="7" segment="15 - ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT YP1 down -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 32" data="data">
+	    <D Device="AFT" plane="7" segment="15 - ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+    </VmeEasiroc>
+    <VmeEasiroc node_id="0x07df" name="veasiroc6">
+      <!--AFT X1 down -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch" data="data">
+	    <D Device="AFT" plane="4" segment="15 - ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1 + 32" data="data">
+	    <D Device="AFT" plane="4" segment="16 + ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT XP1 down -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1" data="data">
+	    <D Device="AFT" plane="5" segment="15 - ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 32" data="data">
+	    <D Device="AFT" plane="5" segment="16 + ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+    </VmeEasiroc>
+    <VmeEasiroc node_id="0x07e0" name="veasiroc7">
+      <!--AFT X1 up -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1" data="data">
+	    <D Device="AFT" plane="8" segment="15 - ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 32" data="data">
+	    <D Device="AFT" plane="8" segment="16 + ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT XP1 up -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch" data="data">
+	    <D Device="AFT" plane="9" segment="15 - ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1 + 32" data="data">
+	    <D Device="AFT" plane="9" segment="16 + ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+    </VmeEasiroc>
+    <VmeEasiroc node_id="0x07e1" name="veasiroc8">
+      <!--AFT Y1 up(Left) -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch " data="data">
+	    <D Device="AFT" plane="10" segment="15 - ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT Y1 down(Right) -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1 + 32" data="data">
+	    <D Device="AFT" plane="10" segment="15 - ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT YP1 up -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1" data="data">
+	    <D Device="AFT" plane="11" segment="15 - ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT YP1 down -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 32" data="data">
+	    <D Device="AFT" plane="11" segment="15 - ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+    </VmeEasiroc>
+    <VmeEasiroc node_id="0x07e2" name="veasiroc9">
+      <!--AFT X1 down -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch" data="data">
+	    <D Device="AFT" plane="8" segment="15 - ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1 + 32" data="data">
+	    <D Device="AFT" plane="8" segment="16 + ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+      <!--AFT XP1 down -->
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 1" data="data">
+	    <D Device="AFT" plane="9" segment="15 - ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 32" data="data">
+	    <D Device="AFT" plane="9" segment="16 + ch" ch="1" data="data"/>
+          </FE>
+      </for></for>
+    </VmeEasiroc>
+    <!-- AFT END -->
+   <!-- _________________________________-->
+   <!-- SST -->
+    <VmeEasiroc node_id="0x07e3" name="veasiroc10">
+      <!--SST X1 -->
+      <for var="ch" from="0" to="31"><for var="data" from="0" to="3">
+          <FE ch="ch" data="data">
+	    <D Device="SST" plane="0" segment="ch" data="data"/>
+          </FE>
+      </for></for>
+      <!--SST XP1  -->
+      <for var="ch" from="0" to="31"><for var="data" from="0" to="3">
+          <FE ch="ch + 32" data="data">
+	    <D Device="SST" plane="1" segment="31 - ch" data="data"/>
+          </FE>
+      </for></for>
+    </VmeEasiroc>
+    <VmeEasiroc node_id="0x07e4" name="veasiroc11">
+      <!--SST Y1 -->
+      <for var="ch" from="0" to="31"><for var="data" from="0" to="3">
+          <FE ch="ch" data="data">
+	    <D Device="SST" plane="2" segment="ch" data="data"/>
+          </FE>
+      </for></for>
+      <!--SST YP1  -->
+      <for var="ch" from="0" to="31"><for var="data" from="0" to="3">
+          <FE ch="ch + 32" data="data">
+	    <D Device="SST" plane="3" segment="31 - ch" data="data"/>
+          </FE>
+      </for></for>
+    </VmeEasiroc>
+    <VmeEasiroc node_id="0x07e5" name="veasiroc12">
+      <!--SST X2 -->
+      <for var="ch" from="0" to="31"><for var="data" from="0" to="3">
+          <FE ch="ch" data="data">
+	    <D Device="SST" plane="4" segment="ch" data="data"/>
+          </FE>
+      </for></for>
+      <!--SST XP2  -->
+      <for var="ch" from="0" to="31"><for var="data" from="0" to="3">
+          <FE ch="ch + 32" data="data">
+	    <D Device="SST" plane="5" segment="31 - ch" data="data"/>
+          </FE>
+      </for></for>
+    </VmeEasiroc>
+    <VmeEasiroc node_id="0x07e6" name="veasiroc13">
+      <!--SST Y2 -->
+      <for var="ch" from="0" to="31"><for var="data" from="0" to="3">
+          <FE ch="ch" data="data">
+	    <D Device="SST" plane="6" segment="ch" data="data"/>
+          </FE>
+      </for></for>
+      <!--SST YP2  -->
+      <for var="ch" from="0" to="31"><for var="data" from="0" to="3">
+          <FE ch="ch + 32" data="data">
+	    <D Device="SST" plane="7" segment="31 - ch" data="data"/>
+          </FE>
+      </for></for>
+    </VmeEasiroc>
+
+   <!-- _________________________________-->
+  </DAQNode>
+
+</channel_map>
