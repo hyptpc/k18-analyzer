@@ -195,7 +195,7 @@ class RunlistManager( metaclass = Singleton.Singleton ) :
 
         data = dict()
         with open( path, 'r' ) as f :
-            data = yaml.load( f.read() )
+            data = yaml.load( f.read(), Loader=yaml.SafeLoader )
 
         tmp = os.path.expanduser( data['WORKDIR'] )
         workdir = tmp if os.path.exists( tmp ) and os.path.isdir( tmp ) \
@@ -250,8 +250,8 @@ class RunlistManager( metaclass = Singleton.Singleton ) :
                 utility.ExitFailure( 'Cannot decide conf file path' )
             run['conf'] = pconf
 
-            base = item[0] + os.path.basename( pbin ) if runno is None \
-                    else 'run' + '%05d_' % runno + os.path.basename( pbin )
+            base = (item[0] + os.path.basename( pbin ) if runno is None
+                    else 'run{:05d}_{}'.format(runno, os.path.basename( pbin )))
             run['root'] = self.makeRootPath( item[1]['root'], base )
 
             run['unit']  = item[1]['unit']  if isinstance( item[1]['unit'], int )  else 0
@@ -285,7 +285,7 @@ class RunlistManager( metaclass = Singleton.Singleton ) :
 
         data = dict()
         with open( path, 'r' ) as f :
-            data = yaml.load( f.read() )
+            data = yaml.load( f.read(), Loader=yaml.SafeLoader )
 
         defset = data['DEFAULT']
 
