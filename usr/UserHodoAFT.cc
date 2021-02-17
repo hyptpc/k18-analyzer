@@ -965,40 +965,40 @@ ConfMan:: InitializeHistograms( void )
 
   // Consume too many memories 
   // use only when the each channnel study is necessary 
-  for (int l=0; l<NumOfPlaneAFT; l++) {
-    int NumOfSeg = NumOfSegAFT[l];
-    for (int seg=0; seg<NumOfSeg; seg++ ) {
-      int hid = ((l+1)*1000+seg)*10;
-      /*
-	sprintf(buf, "ADC High Gain %d-%d", l, seg);
-	HB1(hid+1, buf, 4092, 0, 4092);
-	sprintf(buf, "ADC Low Gain %d-%d", l, seg);
-	HB1(hid+2, buf, 4092, 0, 4092);
+  // for (int l=0; l<NumOfPlaneAFT; l++) {
+  //   int NumOfSeg = NumOfSegAFT[l];
+  //   for (int seg=0; seg<NumOfSeg; seg++ ) {
+  //     int hid = ((l+1)*1000+seg)*10;
+  //     /*
+  // 	sprintf(buf, "ADC High Gain %d-%d", l, seg);
+  // 	HB1(hid+1, buf, 4092, 0, 4092);
+  // 	sprintf(buf, "ADC Low Gain %d-%d", l, seg);
+  // 	HB1(hid+2, buf, 4092, 0, 4092);
 
-	sprintf(buf, "TDC Leading %d-%d", l, seg);
-	HB1(hid+3, buf, 1024, 0, 1024);
+  // 	sprintf(buf, "TDC Leading %d-%d", l, seg);
+  // 	HB1(hid+3, buf, 1024, 0, 1024);
 
-	sprintf(buf, "TDC Traiding %d-%d", l, seg);
-	HB1(hid+4, buf, 1024, 0, 1024);
-	sprintf(buf, "ADC HG % TDC Leading (1st) %d-%d", l, seg);
-	HB2(hid+5, buf, 512, 0, 4096, 200, 500, 700);
-	sprintf(buf, "TDC Leading % TOT %d-%d", l, seg);
-	HB2(hid+6, buf, 200, 500, 700, 256, 0, 256);
-	sprintf(buf, "TDC Leading %d-%d (w/ TOT cut)", l, seg);
-	HB1(hid+7, buf, 1024, 0, 1024);
-      */
-      sprintf(buf, "ADC High Gain (w/ TDC) %d-%d", l, seg);
-      HB1(hid+8, buf, 4092, 0, 4092);
+  // 	sprintf(buf, "TDC Traiding %d-%d", l, seg);
+  // 	HB1(hid+4, buf, 1024, 0, 1024);
+  // 	sprintf(buf, "ADC HG % TDC Leading (1st) %d-%d", l, seg);
+  // 	HB2(hid+5, buf, 512, 0, 4096, 200, 500, 700);
+  // 	sprintf(buf, "TDC Leading % TOT %d-%d", l, seg);
+  // 	HB2(hid+6, buf, 200, 500, 700, 256, 0, 256);
+  // 	sprintf(buf, "TDC Leading %d-%d (w/ TOT cut)", l, seg);
+  // 	HB1(hid+7, buf, 1024, 0, 1024);
+  //     */
+  //     sprintf(buf, "ADC High Gain (w/ TDC) %d-%d", l, seg);
+  //     HB1(hid+8, buf, 4092, 0, 4092);
 
 
-      sprintf(buf, "ADC High Gain % Low Gain (w/ TDC) %d-%d", l, seg);
-      HB2(hid+9, buf, 300, 0, 0.1, 100, -50, 50);
+  //     sprintf(buf, "ADC High Gain % Low Gain (w/ TDC) %d-%d", l, seg);
+  //     HB2(hid+9, buf, 300, 0, 0.1, 100, -50, 50);
 
-      sprintf(buf, "TDC (ADC Cut) %d-%d", l, seg);
-      HB1(hid+7, buf, 1024, 0, 1024);
+  //     sprintf(buf, "TDC (ADC Cut) %d-%d", l, seg);
+  //     HB1(hid+7, buf, 1024, 0, 1024);
 
-    }
-  }
+  //   }
+  // }
 
 
   //Tree
