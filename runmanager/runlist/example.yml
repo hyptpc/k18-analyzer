@@ -19,7 +19,7 @@
 # work directory path
 # The following paths must be relative to this path
 
-WORKDIR: ~/E70analyzer/offline-analyzer-191123/
+WORKDIR: ~/work/miwalove/analyzer
 
 #____________________________________________________
 # default setting
@@ -28,13 +28,13 @@ WORKDIR: ~/E70analyzer/offline-analyzer-191123/
 
 DEFAULT:
   queue: s
-  unit:  50000
+  unit:  100000
   nproc: 1
-  buff:  ./grouproot/buffer
-  bin:   ./bin/HodoAFT
-  conf:  ./param/conf/analyzer_e70.conf
-  data:  ./data/run01037.dat.gz
-  root:  ./grouproot
+  buff:  /group/had/sks/Users/user/buffer
+  bin:   ./bin/Hodoscope
+  conf:  ./param/conf/analyzer_default.conf
+  data:  ../data
+  root:  ../rootfile
 
 #____________________________________________________
 # Individual settings
@@ -43,7 +43,33 @@ DEFAULT:
 
 RUN:
 
-  HodoAFT: # Any keys are OK unless it overlaps.
-    bin:  ./bin/HodoAFT
-    conf: ./param/conf/analyzer_e70.conf
-#   root: ./test.root
+  test: # Any keys are OK unless it overlaps.
+    bin:  ./bin/Hodoscope
+    conf: ./param/conf/analyzer_default.conf
+    data: ./test.dat.gz
+    root: ./test.root
+
+  3838: # The default setting will be adapted. In this case run03838.dat.gz/.dat will be loaded.
+
+  3800:
+    bin:  ./bin/KuramaTracking
+    conf: ./param/conf		# ./param/conf/analyzer_03800.conf will be loaded.
+    data: ./tmp_data
+
+  hodo:
+    data: ../data/run03800.dat.gz
+
+  ea0c:
+    nproc: 20
+    bin:   ./bin/Easiroc
+    data:  ../data/run03800.dat.gz
+
+  k18track:
+    unit:  50000
+    bin:   ./bin/K18Tracking
+    data:  ../data/run03800.dat.gz
+
+  kurama:
+    unit:  50000
+    bin:   ./bin/KuramaTracking
+    data:  ../data/run03800.dat.gz

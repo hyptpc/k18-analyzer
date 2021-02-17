@@ -115,7 +115,7 @@
       </for></for>
       <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
           <FE ch="2*ch + 32" data="data">
-	    <D Device="AFT" plane="4" segment="16 + ch" ch="0" data="data"/>
+	    <D Device="AFT" plane="8" segment="16 + ch" ch="0" data="data"/>
           </FE>
       </for></for>
       <!--AFT XP1 up -->
@@ -126,7 +126,7 @@
       </for></for>
       <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
           <FE ch="2*ch + 1 + 32" data="data">
-	    <D Device="AFT" plane="5" segment="16 + ch" ch="0" data="data"/>
+	    <D Device="AFT" plane="9" segment="16 + ch" ch="0" data="data"/>
           </FE>
       </for></for>
     </VmeEasiroc>
@@ -189,7 +189,7 @@
       </for></for>
       <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
           <FE ch="2*ch + 32" data="data">
-	    <D Device="AFT" plane="8" segment="16 + ch" ch="0" data="data"/>
+	    <D Device="AFT" plane="4" segment="16 + ch" ch="0" data="data"/>
           </FE>
       </for></for>
       <!--AFT XP1 up -->
@@ -200,7 +200,7 @@
       </for></for>
       <for var="ch" from="0" to="15"><for var="data" from="0" to="3">
           <FE ch="2*ch + 1 + 32" data="data">
-	    <D Device="AFT" plane="9" segment="16 + ch" ch="0" data="data"/>
+	    <D Device="AFT" plane="5" segment="16 + ch" ch="0" data="data"/>
           </FE>
       </for></for>
     </VmeEasiroc>
@@ -258,17 +258,48 @@
    <!-- _________________________________-->
    <!-- SST -->
     <VmeEasiroc node_id="0x07e3" name="veasiroc10">
-      <for var="ch" from="0" to="8"><for var="data" from="0" to="3">
+      <!-- <for var="ch" from="0" to="8"><for var="data" from="0" to="3"> -->
+      <!--     <FE ch="ch" data="data"> -->
+      <!-- 	    <D Device="VMEEASIROCdummy" plane="0" segment="ch" ch="0" data="data"/> -->
+      <!--     </FE> -->
+      <!-- </for></for> -->
+      <for var="ch" from="0" to="7"><for var="data" from="0" to="3">
+          <FE ch="ch" data="data">
+	    <D Device="VMEEASIROCdummy" plane="0" segment="ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="9" to="9"><for var="data" from="0" to="3">
           <FE ch="ch" data="data">
 	    <D Device="VMEEASIROCdummy" plane="0" segment="ch" ch="0" data="data"/>
           </FE>
       </for></for>
       <!--SST X1  -->
-      <for var="ch" from="9" to="23"><for var="data" from="0" to="3">
-          <FE ch="ch" data="data">
-	    <D Device="SST" plane="0" segment="ch - 9" data="data"/>
+      <for var="ch" from="0" to="7"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 8" data="data">
+	    <D Device="SST" plane="0" segment="2*ch" data="data"/>
           </FE>
       </for></for>
+      <for var="ch" from="0" to="6"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 11" data="data">
+	    <D Device="SST" plane="0" segment="2*ch + 1" data="data"/>
+          </FE>
+      </for></for>
+      <!-- <for var="ch" from="0" to="7"><for var="data" from="0" to="3"> -->
+      <!--     <FE ch="2*ch + 9" data="data"> -->
+      <!-- 	    <D Device="SST" plane="0" segment="2*ch" data="data"/> -->
+      <!--     </FE> -->
+      <!-- </for></for> -->
+      <!-- <for var="ch" from="0" to="6"><for var="data" from="0" to="3"> -->
+      <!--     <FE ch="2*ch + 10" data="data"> -->
+      <!-- 	    <D Device="SST" plane="0" segment="2*ch + 1" data="data"/> -->
+      <!--     </FE> -->
+      <!-- </for></for> -->
+
+      <!-- <for var="ch" from="9" to="23"><for var="data" from="0" to="3"> -->
+      <!--     <FE ch="ch" data="data"> -->
+      <!-- 	    <D Device="SST" plane="0" segment="ch - 9" data="data"/> -->
+      <!--     </FE> -->
+      <!-- </for></for> -->
       <for var="ch" from="24" to="40"><for var="data" from="0" to="3">
           <FE ch="ch" data="data">
 	    <D Device="VMEEASIROCdummy" plane="0" segment="ch" ch="0" data="data"/>
@@ -298,17 +329,49 @@
 	    <D Device="SST" plane="2" segment="ch - 9" data="data"/>
           </FE>
       </for></for>
-      <for var="ch" from="24" to="40"><for var="data" from="0" to="3">
+      <!-- <for var="ch" from="24" to="40"><for var="data" from="0" to="3"> -->
+      <!--     <FE ch="ch" data="data"> -->
+      <!-- 	    <D Device="VMEEASIROCdummy" plane="1" segment="ch" ch="0" data="data"/> -->
+      <!--     </FE> -->
+      <!-- </for></for> -->
+      <for var="ch" from="24" to="39"><for var="data" from="0" to="3">
+          <FE ch="ch" data="data">
+	    <D Device="VMEEASIROCdummy" plane="1" segment="ch" ch="0" data="data"/>
+          </FE>
+      </for></for>
+      <for var="ch" from="41" to="41"><for var="data" from="0" to="3">
           <FE ch="ch" data="data">
 	    <D Device="VMEEASIROCdummy" plane="1" segment="ch" ch="0" data="data"/>
           </FE>
       </for></for>
       <!--SST YP1  -->
-      <for var="ch" from="41" to="55"><for var="data" from="0" to="3">
-          <FE ch="ch" data="data">
-	    <D Device="SST" plane="3" segment="55 - ch" data="data"/>
+      <for var="ch" from="0" to="7"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 40" data="data">
+	    <D Device="SST" plane="3" segment="54 - (2*ch + 40)" data="data"/>
           </FE>
       </for></for>
+      <for var="ch" from="0" to="6"><for var="data" from="0" to="3">
+          <FE ch="2*ch + 43" data="data">
+	    <D Device="SST" plane="3" segment="56 - (2*ch + 43)" data="data"/>
+          </FE>
+      </for></for>
+
+      <!-- <for var="ch" from="0" to="7"><for var="data" from="0" to="3"> -->
+      <!--     <FE ch="2*ch + 41" data="data"> -->
+      <!-- 	    <D Device="SST" plane="3" segment="55 - (2*ch + 41)" data="data"/> -->
+      <!--     </FE> -->
+      <!-- </for></for> -->
+      <!-- <for var="ch" from="0" to="6"><for var="data" from="0" to="3"> -->
+      <!--     <FE ch="2*ch + 42" data="data"> -->
+      <!-- 	    <D Device="SST" plane="3" segment="55 - (2*ch + 42)" data="data"/> -->
+      <!--     </FE> -->
+      <!-- </for></for> -->
+
+      <!-- <for var="ch" from="41" to="55"><for var="data" from="0" to="3"> -->
+      <!--     <FE ch="ch" data="data"> -->
+      <!-- 	    <D Device="SST" plane="3" segment="55 - ch" data="data"/> -->
+      <!--     </FE> -->
+      <!-- </for></for> -->
       <for var="ch" from="56" to="63"><for var="data" from="0" to="3">
           <FE ch="ch" data="data">
 	    <D Device="VMEEASIROCdummy" plane="1" segment="ch" ch="0" data="data"/>
