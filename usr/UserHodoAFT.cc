@@ -137,6 +137,10 @@ struct Event
   //double FiberTime[NumOfPlaneAFT][MaxHits2];
   //double FiberEdep[NumOfPlaneAFT][MaxHits2];
   int    FiberPID [NumOfPlaneAFT][MaxHits2];
+
+  int TS_Adc[NumOfSegTS];
+  int TS_Tdc[NumOfSegTS];
+
   /*
     double fClEdepForScat[NumOfPlaneAFT];
     double fClEdepNormForScat[NumOfPlaneAFT];
@@ -833,6 +837,22 @@ HF1(1, 6);
   }
   */
 
+
+  //*** TS Raw hit made by tharada 20210218***// 
+  {
+    const HodoRHitContainer &cont = rawData->GetTSRawHC();
+    int nh = cont.size();
+    for( int i = 0; i < nh; i++ ){
+      HodoRawHit *ts = cont[i];
+
+      int adc = ts->GetAdcHi1();
+      int tdc = ts->GetTdc1();
+      event.TS_Adc[i] = adc;
+      event.TS_Tdc[i] = tdc;
+    }
+  }
+
+
   return true;
 }
 
@@ -893,7 +913,10 @@ EventHodoAFT::InitializeEvent( void )
     }
   }
 
-
+  for( int i = 0; i < NumOfSegTS; i++ ){
+    event.TS_Adc[i] = -999;
+    event.TS_Tdc[i] = -999;
+  }
 
 }
 
@@ -1024,6 +1047,11 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("SST_Tdc",event.SST_Tdc, Form("SST_Tdc[%d][%d][%d]/I", NumOfPlaneSST, NumOfSegSST_MAX, MaxHits2));
   tree->Branch("SST_Hit",event.SST_Hit, Form("SST_Hit[%d][%d]/I", NumOfPlaneSST, NumOfSegSST_MAX));
   tree->Branch("SST_tot",event.SST_tot, Form("SST_tot[%d][%d][%d]/I", NumOfPlaneSST, NumOfSegSST_MAX, MaxHits2));
+
+  //** TS **//
+  tree->Branch("TS_Adc", event.TS_Adc, Form("TS_Adc[%d]/I", NumOfSegTS));
+  tree->Branch("TS_Tdc", event.TS_Tdc, Form("TS_Tdc[%d]/I", NumOfSegTS));
+
   /*		 
 		 for (int i=0; i<NumOfPlaneAFT; i++) {
 		 char buf1[100], buf2[100];

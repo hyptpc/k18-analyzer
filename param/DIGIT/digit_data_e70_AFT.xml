@@ -6,7 +6,7 @@
   <device id="0xff" name="null"/>
 
   <!--________________________________________________________________-->
-  <device id="1" name="TS"><for var="seg" from="0" to="1">
+  <device id="122" name="TS"><for var="seg" from="0" to="1">
       <segment id="seg">
 	<data id="0" name="adc"/>
 	<data id="1" name="tdc"/>

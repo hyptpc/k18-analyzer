@@ -164,6 +164,10 @@ const int NumOfSegSST_MAX =15;
 const int NumOfSegSST[NumOfPlaneSST]={15,15,15,15,15,15,15,15};
 const int NumOfSegSST_real[NumOfPlaneSST]={15,15,15,15,15,15,15,15};
 
+// TS for ELPH exp.
+const int DetIdTS = 122;
+const int NumOfSegTS = 2;
+
 // CFT
 const int NumOfPlaneCFT   =   8;
 enum CFT_PLANE{CFT_U1, CFT_PHI1, CFT_V2, CFT_PHI2, CFT_U3, CFT_PHI3, CFT_V4, CFT_PHI4};

@@ -41,6 +41,7 @@ private:
   std::vector<HodoRHitContainer> m_CFTRawHC;
   std::vector<HodoRHitContainer> m_AFTRawHC;
   std::vector<HodoRHitContainer> m_SSTRawHC;
+  HodoRHitContainer m_TSRawHC;
   HodoRHitContainer m_BGORawHC;
   std::vector<FADCRHitContainer> m_BGOFadcRawHC;
   HodoRHitContainer m_PiIDRawHC;
@@ -79,6 +80,7 @@ public:
   //  const HodoRHitContainer& GetAFTRawHC( int plane, int UorD ) const;
   const HodoRHitContainer& GetAFTRawHC( int plane ) const;
   const HodoRHitContainer& GetSSTRawHC( int plane ) const;
+  const HodoRHitContainer& GetTSRawHC( void ) const;
   const HodoRHitContainer& GetBGORawHC( void ) const;
   const FADCRHitContainer& GetBGOFAdcRawHC( int segment ) const;
   const HodoRHitContainer& GetPiIDRawHC( void ) const;
@@ -192,6 +194,13 @@ RawData::GetSSTRawHC( int plane ) const
 {
   if( plane<0 || plane>NumOfPlaneSST-1 ) plane=0;
   return m_SSTRawHC[plane];
+}
+
+//______________________________________________________________________________
+inline const HodoRHitContainer&
+RawData::GetTSRawHC( void ) const
+{
+  return m_TSRawHC;
 }
 
 //______________________________________________________________________________

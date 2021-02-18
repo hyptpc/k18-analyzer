@@ -195,6 +195,7 @@ RawData::RawData( void )
     //    m_AFTRawHC(2*NumOfPlaneAFT),
     m_AFTRawHC(NumOfPlaneAFT),
     m_SSTRawHC(NumOfPlaneSST),
+    m_TSRawHC(),
     m_BGORawHC(),
     m_BGOFadcRawHC(NumOfSegBGO),
     m_PiIDRawHC(),
@@ -553,6 +554,25 @@ RawData::DecodeHits( void )
       else continue;      
     }
   }
+
+  // TS
+  for( int seg=0; seg<NumOfSegTS; ++seg ){
+    for( int AorT=0; AorT<2; ++AorT ){
+      int nhit = gUnpacker.get_entries( DetIdTS, 0, seg, 0, AorT );
+      if( nhit<=0 ) continue;
+      for(int m = 0; m<nhit; ++m){
+	if( AorT == 0 ){ // ADC
+	  int data = gUnpacker.get( DetIdTS, 0, seg, 0, AorT, m );
+	  AddHodoRawHit( m_TSRawHC, DetIdTS, 0, seg, 0, kHodoAdcHi, data );
+	}
+	else if( AorT == 1 ){ // TDC
+	  int data = gUnpacker.get( DetIdTS, 0, seg, 0, AorT, m );
+	  AddHodoRawHit( m_TSRawHC, DetIdTS, 0, seg, 0, kHodoLeading, data );
+	}
+      }
+    }
+  }
+
   /*    
   //SCH
   for(int seg=0; seg<NumOfSegSCH; ++seg){
