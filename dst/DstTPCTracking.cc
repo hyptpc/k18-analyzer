@@ -63,9 +63,11 @@ struct Event
   std::vector<Double_t> raw_hitpos_x;
   std::vector<Double_t> raw_hitpos_y;
   std::vector<Double_t> raw_hitpos_z;
+  std::vector<Double_t> raw_de;
   std::vector<Double_t> cluster_hitpos_x;
   std::vector<Double_t> cluster_hitpos_y;
   std::vector<Double_t> cluster_hitpos_z;
+  std::vector<Double_t> cluster_de;
   std::vector<Int_t> cluster_size;
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
@@ -97,9 +99,11 @@ struct Event
     raw_hitpos_x.clear();
     raw_hitpos_y.clear();
     raw_hitpos_z.clear();
+    raw_de.clear();
     cluster_hitpos_x.clear();
     cluster_hitpos_y.clear();
     cluster_hitpos_z.clear();
+    cluster_de.clear();
     cluster_size.clear();
     ntTpc = 0;
     trigpat.clear();
@@ -254,9 +258,11 @@ dst::DstRead( int ievent )
       Double_t x = hit->GetX();
       Double_t y = hit->GetY();
       Double_t z = hit->GetZ();
+      Double_t de = hit->GetCharge();
       event.raw_hitpos_x.push_back(x);
       event.raw_hitpos_y.push_back(y);
       event.raw_hitpos_z.push_back(z);
+      event.raw_de.push_back(de);
       ++nh_Tpc;
     }
   }
@@ -272,10 +278,12 @@ dst::DstRead( int ievent )
       Double_t x = hit->GetX();
       Double_t y = hit->GetY();
       Double_t z = hit->GetZ();
+      Double_t de = hit->GetCharge();
       Int_t cl_size = hit->GetClusterSize();
       event.cluster_hitpos_x.push_back(x);
       event.cluster_hitpos_y.push_back(y);
       event.cluster_hitpos_z.push_back(z);
+      event.cluster_de.push_back(de);
       event.cluster_size.push_back(cl_size);
       ++nh_cl_Tpc;
     }
@@ -405,9 +413,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "raw_hitpos_x", &event.raw_hitpos_x );
   tree->Branch( "raw_hitpos_y", &event.raw_hitpos_y );
   tree->Branch( "raw_hitpos_z", &event.raw_hitpos_z );
+  tree->Branch( "raw_de", &event.raw_de );
   tree->Branch( "cluster_hitpos_x", &event.cluster_hitpos_x );
   tree->Branch( "cluster_hitpos_y", &event.cluster_hitpos_y );
   tree->Branch( "cluster_hitpos_z", &event.cluster_hitpos_z );
+  tree->Branch( "cluster_de", &event.cluster_de );
   tree->Branch( "cluster_size", &event.cluster_size );
 
   tree->Branch( "ntTpc", &event.ntTpc );

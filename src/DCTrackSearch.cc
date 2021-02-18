@@ -1937,7 +1937,9 @@ namespace track
     const int    Li_r_ndiv =  200;
     const double Li_r_min  = -500;
     const double Li_r_max  =  500;
+    
 
+    
 
     //for TPC linear track
     // r = x * cos(theta) + y * sin(theta)
@@ -1950,6 +1952,9 @@ namespace track
     for( int layer=0; layer<NumOfLayersTPC; layer++ ){
       flag[layer].resize( TPCHC[layer].size(), 0 );
     }
+
+    std::vector<double> hough_x;
+    std::vector<double> hough_y;
 
     for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
       Li_hist.Reset();
@@ -1973,15 +1978,30 @@ namespace track
       }
 
 
-      TPCLocalTrack *track = new TPCLocalTrack();
+
 
       int maxbin = Li_hist.GetMaximumBin();
       int mx,my,mz;
       Li_hist.GetBinXYZ( maxbin, mx, my, mz );
       double mtheta = Li_hist.GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
       double mr = Li_hist.GetYaxis()->GetBinCenter(my);
+      
+      bool hough_flag = true;
+      for(int i=0; i<hough_x.size(); ++i){
+	int bindiff = fabs(mx-hough_x[i])+fabs(my-hough_y[i]);
+	if(bindiff<=4)
+	  hough_flag = false;
+      }
+      hough_x.push_back(mx);
+      hough_y.push_back(my);
+      if(!hough_flag)
+	continue;
+	
+
+      TPCLocalTrack *track = new TPCLocalTrack();
       p0[tracki] = mr/sin(mtheta);
       p1[tracki] = -cos(mtheta)/sin(mtheta);
+
 
       for( int layer=0; layer<NumOfLayersTPC; layer++ ){
 	for( int ci=0, n=TPCHC[layer].size(); ci<n; ci++ ){
@@ -2066,13 +2086,14 @@ namespace track
 			   nBin_theta, theta_min, theta_max,
 			   nBin_p,pmin,pmax);
 
-
-
     std::vector<std::vector<int> > flag;
     flag.resize( NumOfLayersTPC );
     for( int layer=0; layer<NumOfLayersTPC; layer++ ){
       flag[layer].resize( TPCHC[layer].size(), 0 );
     }
+
+    std::vector<double> hough_x;
+    std::vector<double> hough_y;
 
     for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
       Ci_hist->Reset();
@@ -2149,11 +2170,24 @@ namespace track
 	break;
       }
       //std::cout<<"Maxbin0: "<<Ci_hist.GetMaximum()<<std::endl;
-      TPCLocalTrack_Helix *track = new TPCLocalTrack_Helix();
+      
 
       int maxbin = Ci_hist->GetMaximumBin();
       int mx,my,mz;
       Ci_hist->GetBinXYZ( maxbin, mx, my, mz );
+      
+      bool hough_flag = true;
+      for(int i=0; i<hough_x.size(); ++i){
+	int bindiff = fabs(mx-hough_x[i])+fabs(my-hough_y[i]);
+	if(bindiff<=4)
+	  hough_flag = false;
+      }
+      hough_x.push_back(mx);
+      hough_y.push_back(my);
+      if(!hough_flag)
+	continue;
+
+      TPCLocalTrack_Helix *track = new TPCLocalTrack_Helix();
       hough_rd[tracki] = Ci_hist->GetXaxis()->GetBinCenter(mx);
       hough_theta[tracki] = Ci_hist->GetYaxis()->GetBinCenter(my);
       hough_p[tracki] = Ci_hist->GetZaxis()->GetBinCenter(mz);
@@ -2161,6 +2195,7 @@ namespace track
       double hough_cx = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
       double hough_cy = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);
 
+      
       //std::cout<<"Hough (x,z) Maxbin: "<<Ci_hist.GetMaximum()<<std::endl;
       //     std::cout<<""<<std::endl;
       for( int layer=0; layer<NumOfLayersTPC; layer++ ){
