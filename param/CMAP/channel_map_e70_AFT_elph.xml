@@ -24,10 +24,10 @@
 
       <VmeCaenV775 address="0xbd020000">
     	<for var="ch" from="0" to="1">
-    	  <FE ch="ch"><D Device="TS" plane="0" segment="ch" data="1"/></FE>
+    	  <FE ch="ch*2"><D Device="TS" plane="0" segment="ch" data="1"/></FE>
     	</for>
     	<for var="ch" from="2" to="15">
-    	  <FE ch="ch"><D Device="v775n" plane="0" segment="ch" data="0"/></FE>
+    	  <FE ch="ch*2"><D Device="v775n" plane="0" segment="ch" data="0"/></FE>
     	</for>
       </VmeCaenV775>
     </VmeMaster>

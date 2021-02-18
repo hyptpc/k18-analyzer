@@ -13,11 +13,11 @@
 
     <error_check>
       <format check="true"/>
-      <slip check="false"/>
+      <slip check="true"/>
       <disagreement
-       	 local="true"
+       	 local="false"
 	 event="false"
-	 spill="true"/>
+	 spill="false"/>
       <show
 	  all="true"
 	  always="false"
