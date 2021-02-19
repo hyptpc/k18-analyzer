@@ -17,6 +17,11 @@ namespace
   const std::string& class_name("TPCCluster");
 }
 
+#define WeightedMean 0
+#define WeightedMeanTheta 1
+
+
+
 //______________________________________________________________________________
 TPCCluster::TPCCluster( int layer, const TPCHitContainer& HitCont )
   : m_tpchits(0),
@@ -73,6 +78,20 @@ TPCCluster::AddTPCHit( TPCHit* hit )
   }
 }
 
+
+
+//______________________________________________________________________________
+void
+TPCCluster::Calculate( void )
+{
+#if  WeightedMean 
+  CalculateWeightedMean();
+#endif
+#if WeightedMeanTheta
+  CalculateWeightedMeanTheta();
+#endif
+}
+
 //______________________________________________________________________________
 void
 TPCCluster::CalculateWeightedMean( void )
@@ -102,10 +121,54 @@ TPCCluster::CalculateWeightedMean( void )
 }
 
 //______________________________________________________________________________
+void
+TPCCluster::CalculateWeightedMeanTheta( void )
+{
+  if( m_pos_calculated ) return;
+  double x=0, y=0, z=0, charge=0, dummy_padid=0, mrow=0;
+  for(int hiti=0; hiti<m_tpchits.size(); hiti++) {
+    // x+=m_tpchits[hiti]->GetX()*m_tpchits[hiti]->GetCharge();
+    y+=m_tpchits[hiti]->GetY()*m_tpchits[hiti]->GetCharge();
+    // z+=m_tpchits[hiti]->GetZ()*m_tpchits[hiti]->GetCharge();
+
+    // TVector3 pos_check = tpc::getPosition(m_tpchits[hiti]->GetLayer(), (double)m_tpchits[hiti]->GetRow());
+    // std::cout<<"(x,z)=("<<m_tpchits[hiti]->GetX()
+    // 	     <<","<<m_tpchits[hiti]->GetZ()<<")"<<std::endl;
+    // std::cout<<"theta, (x,z)=("<<pos_check.x()
+    // 	     <<","<<pos_check.z()<<")"<<std::endl;
+   
+    dummy_padid+=(double)(m_tpchits[hiti]->GetPad())*m_tpchits[hiti]->GetCharge();
+    mrow+=(double)(m_tpchits[hiti]->GetRow())*m_tpchits[hiti]->GetCharge();
+    charge+=m_tpchits[hiti]->GetCharge();
+  }
+  if( charge ){
+    //m_pos.SetXYZ( x/charge, y/charge, z/charge );
+    //TVector3 m_pos_dummy( x/charge, y/charge, z/charge );
+    m_pad_id = (int)(dummy_padid/charge);
+    m_mrow = mrow/charge;
+    TVector3 pos_xz = tpc::getPosition(tpc::getLayerID(m_pad_id), m_mrow);
+    m_pos.SetXYZ( pos_xz.x(), y/charge, pos_xz.z() );
+    // std::cout<<"Weight (x,z) = ("<<m_pos_dummy.x()<<", "
+    // 	     <<m_pos_dummy.z()<<")"<<std::endl;
+    // std::cout<<"Theta (x,z) = ("<<m_pos.x()<<", "
+    // 	     <<m_pos.z()<<")"<<std::endl;
+    
+  }
+  else {
+    m_pos.SetXYZ( 0, 0, 0 );
+    m_pad_id = 0;
+    m_mrow = 0;
+  }
+  m_pos_calculated = true;
+}
+
+
+
+//______________________________________________________________________________
 TVector3
 TPCCluster::Position( void )
 {
-  if(!m_pos_calculated) CalculateWeightedMean();
+  if(!m_pos_calculated) Calculate();
   return m_pos;
 }
 
@@ -113,7 +176,7 @@ TPCCluster::Position( void )
 double
 TPCCluster::X( void )
 {
-  if(!m_pos_calculated) CalculateWeightedMean();
+  if(!m_pos_calculated) Calculate();
   return m_pos.X();
 }
 
@@ -121,7 +184,7 @@ TPCCluster::X( void )
 double
 TPCCluster::Y( void )
 {
-  if(!m_pos_calculated) CalculateWeightedMean();
+  if(!m_pos_calculated) Calculate();
   return m_pos.Y();
 }
 
@@ -129,7 +192,7 @@ TPCCluster::Y( void )
 double
 TPCCluster::Z( void )
 {
-  if(!m_pos_calculated) CalculateWeightedMean();
+  if(!m_pos_calculated) Calculate();
   return m_pos.Z();
 }
 
@@ -137,7 +200,7 @@ TPCCluster::Z( void )
 double
 TPCCluster::ResX( void )
 {
-  if(!m_pos_calculated) CalculateWeightedMean();
+  if(!m_pos_calculated) Calculate();
   //calculated by using NIM paper
   //To do:change the resolution by checking cluster size
   double y_pos= m_pos.Y();
@@ -166,7 +229,7 @@ TPCCluster::ResY( void )
 double
 TPCCluster::ResZ( void )
 {
-  if(!m_pos_calculated) CalculateWeightedMean();
+  if(!m_pos_calculated) Calculate();
   //calculated by using NIM paper
   //To do:change the resolution by checking cluster size
   double y_pos= m_pos.Y();

@@ -34,7 +34,9 @@ private:
   bool m_pos_calculated;
   double   m_mrow;
 
+  void Calculate( void );
   void CalculateWeightedMean( void );
+  void CalculateWeightedMeanTheta( void );
 
 public:
   int  LayerId( void )		const { return m_layer_id; }

@@ -123,6 +123,15 @@ namespace tpc
     return theta;
   }
 
+  inline Double_t getTheta(Int_t layer, Double_t m_row)
+  {
+    Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
+    //Double_t theta = sTheta+(row+0.5)*(360.-2*sTheta)/padParameter[layer][1];
+    Double_t theta = sTheta+(m_row+0.5)*360./padParameter[layer][3]-180;
+    return theta;
+  }
+
+
   inline Double_t getR(Int_t padID)
   {
     padID-=1;
@@ -169,6 +178,28 @@ namespace tpc
     }
     return result;
   }
+
+  inline TVector3 getPosition(int layer, double m_row)
+  {
+    TVector3 result;
+    if (m_row > padParameter[layer][1]){ // out of range
+      result.SetX(0);
+      result.SetY(-1);
+      result.SetZ(0);
+    }
+    else{
+      double x, z;
+
+      x = padParameter[layer][2] * sin(getTheta(layer, m_row)*TMath::Pi()/180.);
+      z = padParameter[layer][2] * cos(getTheta(layer, m_row)*TMath::Pi()/180.) - 143.0;
+      result.SetX(x);
+      result.SetY(0);
+      result.SetZ(z);
+    }
+    return result;
+  }
+
+
 
   inline int findPadID(double z, double x) 
   { 
