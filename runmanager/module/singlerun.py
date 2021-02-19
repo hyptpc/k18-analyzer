@@ -99,7 +99,7 @@ class SingleRun(object):
                                                 # check=True
                                           )
       self.__dump_log('pid[stage]', self.__staging_process.pid)
-      self.__dump_log(None, 64 * '_')
+      self.__dump_log(None, '_'*80)
     except subprocess.CalledProcessError as e :
       logger.error(f'command "{e.cmd}" returned error code ({e.returncode})')
       logger.error(proc.stderr)
@@ -173,7 +173,7 @@ class SingleRun(object):
       self.__jobstat_list.append(job.get_status())
     for i, item in enumerate(self.__bjob_list):
       self.__dump_log(f'pid[bjob({i})]', item.get_process_id())
-    self.__dump_log(None, 64 * '_')
+    self.__dump_log(None, '_'*80)
     self.__bjob_status = 0
     # self.__status = 0
 
@@ -319,7 +319,7 @@ class SingleRun(object):
         buff = f'Process was killed [jid/pid: {jpid}]'
         self.__dump_log('kill_bjob', buff)
     if self.__bjob_status == 1:
-      self.__dump_log(None, 64 * '_')
+      self.__dump_log(None, '_'*80)
 
   #____________________________________________________________________________
   def kill_merge(self):
@@ -333,7 +333,7 @@ class SingleRun(object):
       self.__merge_status = 'TERMINATED'
       buff = f'merging job was killed [jid: {self.__merging_job.get_job_id()}]'
       self.__dump_log('kill_merge', buff)
-      self.__dump_log(None, 64 * '_')
+      self.__dump_log(None, '_'*80)
 
   #____________________________________________________________________________
   def kill_staging(self):
@@ -345,7 +345,7 @@ class SingleRun(object):
       self.__staging_process.kill()
       buff = f'Process was killed [pid: {pid}]'
       self.__dump_log('kill_staging', buff)
-      self.__dump_log(None, 64 * '_')
+      self.__dump_log(None, '_'*80)
       self.__stage_status = 'TERMINATED'
 
   #____________________________________________________________________________
@@ -375,7 +375,7 @@ class SingleRun(object):
     buff = self.__merging_process.stdout
     self.__merging_job = bjob.BJob(bjob.BJob.read_job_id(buff.decode()))
     self.__dump_log('jid[merge]', self.__merging_job.get_job_id())
-    self.__dump_log(None, 64 * '_')
+    self.__dump_log(None, '_'*80)
     self.__merge_status = 'RUNNING'
 
   #____________________________________________________________________________
@@ -433,9 +433,9 @@ class SingleRun(object):
   def __dump_init_info(self):
     ''' Dump initial run info. '''
     self.__dump_log('start', time.ctime(self.__start_time))
-    self.__dump_log(None, 64 * '_')
+    self.__dump_log(None, '_'*80)
     self.__dump_log('key', self.__key)
-    self.__dump_log(None, 64 * '_')
+    self.__dump_log(None, '_'*80)
     self.__dump_log('bin', self.__bin_path)
     self.__dump_log('conf', self.__conf_path)
     self.__dump_log('data', self.__data_path)
@@ -447,7 +447,7 @@ class SingleRun(object):
     self.__dump_log('queue', self.__queue)
     # self.__dump_log('prefetch', self.__prefetch_path)
     self.__dump_log('dirdummy', self.__dummy_dir.name)
-    self.__dump_log(None, 64 * '_')
+    self.__dump_log(None, '_'*80)
 
   #____________________________________________________________________________
   def __dump_log(self, key=None, msg=None):
@@ -527,7 +527,7 @@ class SingleRun(object):
       self.__unpack_list.append(path_unpack)
     self.__dump_log('conf',   self.__conf_list)
     self.__dump_log('unpack', self.__unpack_list)
-    self.__dump_log(None, 64 * '_')
+    self.__dump_log(None, '_'*80)
     self.__generate_unpack_file()
 
   #____________________________________________________________________________
@@ -541,7 +541,7 @@ class SingleRun(object):
     for i in range(nsegs):
       self.__elem_list.append(f'{self.__basename}_{i}')
     self.__dump_log('elem', self.__elem_list)
-    self.__dump_log(None, 64 * '_')
+    self.__dump_log(None, '_'*80)
     return nsegs
 
   #____________________________________________________________________________
@@ -572,7 +572,7 @@ class SingleRun(object):
         os.remove(self.__merge_log_path)
     self.__dump_log('log', self.__log_list)
     self.__dump_log('mergelog', self.__merge_log_path)
-    self.__dump_log(None, 64 * '_')
+    self.__dump_log(None, '_'*80)
 
   #____________________________________________________________________________
   # def __make_prefetch(self):
@@ -589,32 +589,31 @@ class SingleRun(object):
       path = os.path.join(os.path.dirname(self.__root_path), item+'.root')
       self.__root_list.append(path)
     self.__dump_log('out', self.__root_list)
-    self.__dump_log(None, 64 * '_')
+    self.__dump_log(None, '_'*80)
 
   #____________________________________________________________________________
   def __update_job_status(self):
     ''' Update job status. '''
-    # if self.__bjob_status != 0:
-    #   return
+    if (self.__bjob_status is not None and self.__bjob_status != 0):
+      return
     n_complete = 0
     for i, job in enumerate(self.__bjob_list):
       stat = job.get_status()
       if stat is True:
         n_complete += 1
-        if self.__jobstat_list[i] == 1:
+        if self.__jobstat_list[i] is 1:
           self.__dump_log(f'time[bjob({i})]',
                          self.decode_time(job.get_run_time()))
-          self.__dump_log(None, 64 * '_')
-      elif stat is False:
+          self.__dump_log(None, '_'*80)
+      elif stat is False and self.__jobstat_list[i] != stat:
         self.__bjob_status = False
-        self.__dump_log('error', 'error at {job.get_tag()}')
-        self.__dump_log(None, 64 * '_')
-      elif stat == 1:
-        if self.__jobid_list[i] is None:
-          jid = job.get_job_id()
-          self.__jobid_list[i] = jid
-          self.__dump_log(f'jid[bjob({i})]', jid)
-          self.__dump_log(None, 64 * '_')
+        self.__dump_log('error', f'error at {job.get_tag()}')
+        self.__dump_log(None, '_'*80)
+      elif stat == 1 and self.__jobstat_list[i] != stat:
+        jid = job.get_job_id()
+        self.__jobid_list[i] = jid
+        self.__dump_log(f'jid[bjob({i})]', jid)
+        self.__dump_log(None, '_'*80)
       self.__jobstat_list[i] = stat
     if len(self.__elem_list) == n_complete:
       self.__bjob_status = True
@@ -642,7 +641,7 @@ class SingleRun(object):
     elif stat == 'EXIT':
       self.__merge_status = 'FAILED'
       self.__dump_log('error', 'merging error')
-      self.__dump_log(None, 64 * '_')
+      self.__dump_log(None, '_'*80)
     else:
       self.__merge_status = 'UNKNOWN'
 

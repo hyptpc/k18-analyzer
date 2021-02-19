@@ -45,9 +45,8 @@ class BSub(object):
     self.__rtime = None
     # True: success, False: failure,
     # 0: process thrown, 1: process return and bsub running, 2: killed, -1: unknown
-    self.__status   = None
-    # True: success, False: failure, 0: processing, 1: killed, -1: unknown
-    self.__process_status = None # UNIX process.
+    self.__status   = 'INIT'
+    self.__process_status = 'INIT' # UNIX process.
     self.__bjob_status = None # bsub process.
 
   #____________________________________________________________________________
@@ -62,7 +61,7 @@ class BSub(object):
   def execute(self):
     ''' Execute bsub job. '''
     self.__update_status()
-    if self.__process_status is not None:
+    if self.__process_status != 'INIT':
       return
     while not self.check_limits():
       logger.debug(f'Releasing fds/proc ...')
@@ -82,7 +81,7 @@ class BSub(object):
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
     self.__pid = self.__proc.pid
-    self.__process_status = 0
+    self.__process_status = 'RUNNING'
     # self.__status   = 0
 
   #____________________________________________________________________________
@@ -124,10 +123,11 @@ class BSub(object):
   def kill(self):
     ''' Kill job. '''
     self.__update_process_status()
-    if (self.__process_status == 0 or self.__process_status == -1):
+    if (self.__process_status == 'RUNNING' or
+        self.__process_status == 'UNKNOWN'):
       logger.info(f'Killing process [pid: {self.__pid}]')
       self.__proc.kill()
-      self.__process_status = 1
+      self.__process_status = 'TERMINATED'
     self.__update_job_status()
     if (self.__bjob_status == 0 or self.__bjob_status == -1):
       logger.info(f'Killing job [jid: {self.__pid}]')
@@ -138,7 +138,7 @@ class BSub(object):
   def __register_job(self):
     ''' Register job. '''
     self.__update_status()
-    if self.__jid is None and self.__process_status is True:
+    if self.__jid is None and self.__process_status == 'DONE':
       buff  = self.__proc.communicate()[0]
       self.__jid = bjob.BJob.read_job_id(buff.decode())
       self.__bjob = bjob.BJob(self.__jid)
@@ -172,12 +172,12 @@ class BSub(object):
   #____________________________________________________________________________
   def __update_process_status(self):
     ''' Update process status. '''
-    if self.__process_status != 0:
+    if self.__process_status != 'RUNNING':
       return
     if self.__proc.poll() is None:
       return
     elif self.__proc.poll() == 0:
-      self.__process_status = True
+      self.__process_status = 'DONE'
       if self.__bjob is None:
         self.__register_job()
         self.__stime = time.time()
@@ -185,9 +185,9 @@ class BSub(object):
     elif self.__proc.poll() == 1:
       logger.error(f'bsub command failed at {self.__tag}')
       outs, errs = proc.communicate()
-      self.__process_status = False
+      self.__process_status = 'FAILED'
     else:
-      self.__process_status = -1
+      self.__process_status = 'UNKNOWN'
 
   #____________________________________________________________________________
   def __update_status(self):
@@ -199,13 +199,13 @@ class BSub(object):
     self.__update_process_status()
     self.__update_job_status()
     # proc
-    if self.__process_status is None:
+    if self.__process_status == 'INIT':
       pass
-    elif self.__process_status is True:
+    elif self.__process_status == 'DONE':
       self.__status = 0
-    elif self.__process_status is False:
+    elif self.__process_status == 'FAILED':
       self.__status = False
-    elif self.__process_status is 1:
+    elif self.__process_status == 'TERMINATED':
       self.__status = 2
     else:
       self.__status = -1
