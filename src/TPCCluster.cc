@@ -131,11 +131,11 @@ TPCCluster::CalculateWeightedMeanTheta( void )
     y+=m_tpchits[hiti]->GetY()*m_tpchits[hiti]->GetCharge();
     // z+=m_tpchits[hiti]->GetZ()*m_tpchits[hiti]->GetCharge();
 
-    // TVector3 pos_check = tpc::getPosition(m_tpchits[hiti]->GetLayer(), (double)m_tpchits[hiti]->GetRow());
+    TVector3 pos_check = tpc::getPosition(m_tpchits[hiti]->GetLayer(), (double)m_tpchits[hiti]->GetRow());
     // std::cout<<"(x,z)=("<<m_tpchits[hiti]->GetX()
-    // 	     <<","<<m_tpchits[hiti]->GetZ()<<")"<<std::endl;
+    //    	     <<","<<m_tpchits[hiti]->GetZ()<<")"<<std::endl;
     // std::cout<<"theta, (x,z)=("<<pos_check.x()
-    // 	     <<","<<pos_check.z()<<")"<<std::endl;
+    //  	     <<","<<pos_check.z()<<")"<<std::endl;
    
     dummy_padid+=(double)(m_tpchits[hiti]->GetPad())*m_tpchits[hiti]->GetCharge();
     mrow+=(double)(m_tpchits[hiti]->GetRow())*m_tpchits[hiti]->GetCharge();

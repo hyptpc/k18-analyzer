@@ -177,7 +177,7 @@ UserEvent::ProcessingNormal( void )
       if( !hit || !hit->IsGood() )
         continue;
       // hit->Print();
-      Int_t layer = hit->GetLayer();
+      //Int_t layer = hit->GetLayer();
       Int_t row = hit->GetWire();
       Int_t pad = tpc::GetPadId( layer, row );
       Double_t ped = hit->GetPedestal();
