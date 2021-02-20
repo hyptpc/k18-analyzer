@@ -64,7 +64,10 @@ namespace tpc
   
   inline Int_t GetPadId(Int_t layerID, Int_t rowID)
   {
-    Int_t padID=0;
+    //Original 
+    //Int_t padID=0;
+    // Check!!!!!!!
+    Int_t padID=1;
     for(int layi = 0 ; layi<layerID; layi++) padID += padParameter[layi][1];
     padID+=rowID;
     return padID;
@@ -248,8 +251,10 @@ namespace tpc
     if (row > padParameter[layer][1]) return -1000;
 
     //cout << " row: " << row << endl;
-
-    return GetPadId(layer, row)+1;
+    //This is original one
+    //return GetPadId(layer, row)+1;
+    //Please check
+    return GetPadId(layer, row);
   }
 }
 #endif

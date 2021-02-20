@@ -442,6 +442,9 @@ DCAnalyzer::ReCalcTPCHits( const int nhits,
     TVector3 pos(pos_tmp.x(), y, pos_tmp.z());
     int layer = tpc::getLayerID( padid[hiti] );
     int row = tpc::getRowID( padid[hiti] );
+    // std::cout<<"original padid:"<<padid[hiti]
+    // 	     <<", calcpadid:"<<tpc::GetPadId(layer, row)<<std::endl;
+      
     TPCHit* hit = new TPCHit(layer, (double)row);
     hit->SetPos(pos);
     hit->SetCharge(de[hiti]);

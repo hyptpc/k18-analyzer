@@ -18,6 +18,13 @@
 #include "UnpackerManager.hh"
 #include "UserParamMan.hh"
 #include "VEvent.hh"
+#include "DetectorID.hh"
+
+//#define GateCalib 1
+#define GateCalib 0
+//#define GainCalib 1
+#define GainCalib 0
+
 
 namespace
 {
@@ -116,9 +123,12 @@ struct Event
 //_____________________________________________________________________________
 namespace root
 {
-Event event;
-TH1   *h[MaxHist];
-TTree *tree;
+  Event event;
+  TH1   *h[MaxHist];
+  TTree *tree;
+  enum eDetHid {
+    PadHid    = 100000,
+  };
 }
 
 //_____________________________________________________________________________
@@ -177,7 +187,7 @@ UserEvent::ProcessingNormal( void )
       if( !hit || !hit->IsGood() )
         continue;
       // hit->Print();
-      Int_t layer = hit->GetLayer();
+      //Int_t layer = hit->GetLayer();
       Int_t row = hit->GetWire();
       Int_t pad = tpc::GetPadId( layer, row );
       Double_t ped = hit->GetPedestal();
@@ -210,6 +220,15 @@ UserEvent::ProcessingNormal( void )
         HF1( 26, cde );
         HF1( 27, ctime );
         HF1( 28, dl );
+
+#if GateCalib
+	HF1(PadHid + layer*1000 + row, time);
+#endif
+
+#if GainCalib
+	HF1(2*PadHid + layer*1000 + row, de);
+#endif
+
         good_for_analysis = true;
         ++nhTpc;
       }
@@ -291,6 +310,24 @@ ConfMan:: InitializeHistograms( void )
   // HB2( 101, "TPC Waveform (good)",
   //      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc, MaxAdc );
 
+#if GateCalib
+  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+    const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
+    for( Int_t r=0; r<NumOfRow; ++r ){
+      HB1(PadHid + layer*1000 + r , "TPC Time", NumOfTimeBucket+1, 0, NumOfTimeBucket+1 );
+    }
+    }
+#endif
+
+#if GainCalib
+  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+    const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
+    for( Int_t r=0; r<NumOfRow; ++r ){
+      HB1(2*PadHid + layer*1000 + r , "TPC DeltaE", NbinDe, MinDe, MaxDe );
+    }
+    }
+#endif
+  
   // Tree
   HBTree( "tpc", "tree of TPCHit" );
   tree->Branch( "runnum", &event.runnum );

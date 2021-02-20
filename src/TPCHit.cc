@@ -35,7 +35,8 @@
 #define QuickAnalysis  1
 //#define FitPedestal    1
 #define FitPedestal    0
-#define UseGaussian    0
+//#define UseGaussian    1 //for gate noise fit
+#define UseGaussian    0 
 #define UseLandau      0
 #define UseExponential 1
 #define DebugEvDisp    0
