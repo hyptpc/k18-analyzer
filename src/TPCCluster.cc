@@ -24,25 +24,29 @@ namespace
 
 //______________________________________________________________________________
 TPCCluster::TPCCluster( int layer, const TPCHitContainer& HitCont )
-  : m_tpchits(0),
-    m_layer_id( layer ),
-    m_pos_calculated( false )
+  : m_layer_id( layer ),
+    m_pad_id(),
+    m_charge(),
+    m_pos(),
+    m_tpchits(),
+    m_pos_calculated(false),
+    m_mrow()
 {
-  m_tpchits.resize( HitCont.size() );
-  std::copy( HitCont.begin(), HitCont.end(), m_tpchits.begin() );
-  
+  m_tpchits.resize(HitCont.size());
+  std::copy(HitCont.begin(), HitCont.end(), m_tpchits.begin());
   debug::ObjectCounter::increase(class_name);
 }
 
 //______________________________________________________________________________
 TPCCluster::TPCCluster( double x, double y, double z, double de )
-  : m_tpchits(0),
-    m_pos_calculated( true ) // for MC data
+  : m_layer_id(tpc::getLayerID(tpc::findPadID(z, x))),
+    m_pad_id(tpc::findPadID(z, x)),
+    m_charge(de),
+    m_pos(x, y, z),
+    m_tpchits(),
+    m_pos_calculated(true), // for MC data
+    m_mrow()
 {
-  m_pos.SetXYZ(x,y,z);
-  m_charge = de;
-  m_layer_id = tpc::getLayerID( tpc::findPadID(z,x) );
-  m_pad_id = tpc::findPadID(z,x);
   debug::ObjectCounter::increase(class_name);
 }
 
@@ -84,7 +88,7 @@ TPCCluster::AddTPCHit( TPCHit* hit )
 void
 TPCCluster::Calculate( void )
 {
-#if  WeightedMean 
+#if  WeightedMean
   CalculateWeightedMean();
 #endif
 #if WeightedMeanTheta
@@ -125,7 +129,7 @@ void
 TPCCluster::CalculateWeightedMeanTheta( void )
 {
   if( m_pos_calculated ) return;
-  double x=0, y=0, z=0, charge=0, dummy_padid=0, mrow=0;
+  [[maybe_unused]] double x=0, y=0, z=0, charge=0, dummy_padid=0, mrow=0;
   for(int hiti=0; hiti<m_tpchits.size(); hiti++) {
     // x+=m_tpchits[hiti]->GetX()*m_tpchits[hiti]->GetCharge();
     y+=m_tpchits[hiti]->GetY()*m_tpchits[hiti]->GetCharge();
@@ -136,7 +140,7 @@ TPCCluster::CalculateWeightedMeanTheta( void )
     //    	     <<","<<m_tpchits[hiti]->GetZ()<<")"<<std::endl;
     // std::cout<<"theta, (x,z)=("<<pos_check.x()
     //  	     <<","<<pos_check.z()<<")"<<std::endl;
-   
+
     dummy_padid+=(double)(m_tpchits[hiti]->GetPad())*m_tpchits[hiti]->GetCharge();
     mrow+=(double)(m_tpchits[hiti]->GetRow())*m_tpchits[hiti]->GetCharge();
     charge+=m_tpchits[hiti]->GetCharge();
@@ -152,7 +156,7 @@ TPCCluster::CalculateWeightedMeanTheta( void )
     // 	     <<m_pos_dummy.z()<<")"<<std::endl;
     // std::cout<<"Theta (x,z) = ("<<m_pos.x()<<", "
     // 	     <<m_pos.z()<<")"<<std::endl;
-    
+
   }
   else {
     m_pos.SetXYZ( 0, 0, 0 );
