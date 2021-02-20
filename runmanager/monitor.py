@@ -56,7 +56,8 @@ def display(filename):
           + cl.end)
   print(buff)
   n_unfinished = 0
-  for key, item in sorted(info.items(), key=lambda x:int(x[0])):
+  for key, item in sorted(info.items(),
+                          key=lambda x:int(x[0]) if isinstance(x[0], int) else x[0]):
     status = singlerun.SingleRun.decode_status(item)
     if 'done' in status:
       continue
