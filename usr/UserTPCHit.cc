@@ -20,9 +20,10 @@
 #include "VEvent.hh"
 #include "DetectorID.hh"
 
-
 //#define GateCalib 1
 #define GateCalib 0
+//#define GainCalib 1
+#define GainCalib 0
 
 
 namespace
@@ -224,6 +225,10 @@ UserEvent::ProcessingNormal( void )
 	HF1(PadHid + layer*1000 + row, time);
 #endif
 
+#if GainCalib
+	HF1(2*PadHid + layer*1000 + row, de);
+#endif
+
         good_for_analysis = true;
         ++nhTpc;
       }
@@ -310,6 +315,15 @@ ConfMan:: InitializeHistograms( void )
     const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
     for( Int_t r=0; r<NumOfRow; ++r ){
       HB1(PadHid + layer*1000 + r , "TPC Time", NumOfTimeBucket+1, 0, NumOfTimeBucket+1 );
+    }
+    }
+#endif
+
+#if GainCalib
+  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+    const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
+    for( Int_t r=0; r<NumOfRow; ++r ){
+      HB1(2*PadHid + layer*1000 + r , "TPC DeltaE", NbinDe, MinDe, MaxDe );
     }
     }
 #endif
