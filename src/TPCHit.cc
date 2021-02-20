@@ -36,7 +36,7 @@
 //#define FitPedestal    1
 #define FitPedestal    0
 //#define UseGaussian    1 //for gate noise fit
-#define UseGaussian    0 
+#define UseGaussian    0
 #define UseLandau      0
 #define UseExponential 1
 #define DebugEvDisp    0
@@ -88,28 +88,13 @@ TPCHit::TPCHit( TPCRawHit* rhit )
     m_hit_xz(),
     m_hit_yz()
 {
-  // m_pos = tpc::getPosition(padid);
-  // m_pos.SetY(y);
-  // m_layer = tpc::getLayerID(padid);
-  // m_row   = tpc::getRowID(padid);
-  // m_hit_xz = new DCHit(m_layer, m_row);
-  // m_hit_xz->SetWirePosition(m_pos.x());
-  // m_hit_xz->SetZ(m_pos.z());
-  // m_hit_xz->SetTiltAngle(0.);
-  // m_hit_xz->SetDummyPair();
-
-  // m_hit_yz = new DCHit(m_layer, m_row);
-  // m_hit_yz->SetWirePosition(m_pos.y());
-  // m_hit_yz->SetZ(m_pos.z());
-  // m_hit_yz->SetTiltAngle(90.);
-  // m_hit_yz->SetDummyPair();
-
   debug::ObjectCounter::increase( ClassName() );
 }
 
 //_____________________________________________________________________________
 TPCHit::TPCHit( Int_t layer, Double_t mrow )
-  : m_layer(layer),
+  : DCHit( layer, mrow ),
+    m_layer(layer),
     m_mrow(mrow)
 {
   if(mrow-(int)mrow<0.5)

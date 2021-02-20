@@ -93,7 +93,7 @@ public:
   { bool ret=m_gfastatus; m_gfastatus=status; return ret; }
   double             GetInitialMomentum( void ) const { return m_initial_momentum; }
   bool               GetTrajectoryLocalPosition( int layer, double & x, double & y ) const;
-  void               Print( const std::string& arg="", std::ostream& ost=hddaq::cout );
+  void               Print( const TString& arg="", std::ostream& ost=hddaq::cout );
   bool               ReCalc( bool applyRecursively=false );
 
 private:

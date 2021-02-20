@@ -13,6 +13,7 @@
 #include "TPCHit.hh"
 #include "TPCPadHelper.hh"
 #include "TPCParamMan.hh"
+#include "TPCPositionCorrector.hh"
 #include "TPCRawHit.hh"
 #include "Unpacker.hh"
 #include "UnpackerManager.hh"
@@ -327,7 +328,7 @@ ConfMan:: InitializeHistograms( void )
     }
     }
 #endif
-  
+
   // Tree
   HBTree( "tpc", "tree of TPCHit" );
   tree->Branch( "runnum", &event.runnum );
@@ -359,6 +360,7 @@ ConfMan::InitializeParameterFiles( void )
   return
     ( InitializeParameter<DCGeomMan>("DCGEO") &&
       InitializeParameter<TPCParamMan>("TPCPRM") &&
+      InitializeParameter<TPCPositionCorrector>("TPCPOS") &&
       InitializeParameter<UserParamMan>("USER") );
 }
 

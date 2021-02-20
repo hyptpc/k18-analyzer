@@ -733,7 +733,7 @@ KuramaTrack::SaveCalcPosition( const RKHitPointContainer &hpCont )
 
 //______________________________________________________________________________
 void
-KuramaTrack::Print( const std::string& arg, std::ostream& ost )
+KuramaTrack::Print( const TString& arg, std::ostream& ost )
 {
   PrintHelper helper( 5, std::ios::fixed, ost );
 

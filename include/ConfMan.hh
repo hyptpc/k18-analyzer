@@ -122,11 +122,11 @@ inline Bool_t
 ConfMan::ShowResult( Bool_t s, const TString& name ) const
 {
   if( s )
-    hddaq::cout << std::setw(20) << std::left
+    hddaq::cout << std::setw(24) << std::left
 		<< " ["+name+"]"
 		<< "-> Initialized" << std::endl;
   else
-    hddaq::cout << std::setw(20) << std::left
+    hddaq::cout << std::setw(24) << std::left
 		<< " ["+name+"]"
 		<< "-> Failed" << std::endl;
   return s;

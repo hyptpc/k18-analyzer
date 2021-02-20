@@ -22,6 +22,8 @@
 #include "RootHelper.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLTrackHit.hh"
+#include "TPCParamMan.hh"
+#include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
 
 namespace
@@ -236,7 +238,7 @@ dst::DstRead( int ievent )
   event.trigpat = **src.trigpat;
   event.trigflag = **src.trigflag;
   //  event.nhTpc = **src.nhTpc;
-  
+
 
 
   HF1( 1, event.status++ );
@@ -248,7 +250,7 @@ dst::DstRead( int ievent )
 
 
 
-  DCAnalyzer DCAna;  
+  DCAnalyzer DCAna;
   DCAna.ReCalcTPCHits( **src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc);
 
   Int_t nh_Tpc = 0;
@@ -272,7 +274,7 @@ dst::DstRead( int ievent )
   }
   event.nhTpc = nh_Tpc;
 
-   
+
   Int_t nh_cl_Tpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
     auto hc = DCAna.GetTPCClCont( layer );
@@ -294,7 +296,7 @@ dst::DstRead( int ievent )
   }
   event.nh_cluster_Tpc = nh_cl_Tpc;
 
-  
+
   DCAna.TrackSearchTPC();
 
   Int_t ntTpc = DCAna.GetNTracksTPC();
@@ -375,7 +377,7 @@ dst::DstRead( int ievent )
     }
 
   }
-  
+
   HF1( 1, event.status++ );
 
   return true;
@@ -471,6 +473,8 @@ ConfMan::InitializeParameterFiles( void )
 {
   return
     ( InitializeParameter<DCGeomMan>("DCGEO")   &&
+      InitializeParameter<TPCParamMan>("TPCPRM") &&
+      InitializeParameter<TPCPositionCorrector>("TPCPOS") &&
       InitializeParameter<UserParamMan>("USER") &&
       InitializeParameter<HodoPHCMan>("HDPHC") );
 }
