@@ -1938,7 +1938,7 @@ namespace track
     const double Li_r_min  = -500;
     const double Li_r_max  =  500;
     
-
+    static const Int_t ClusterSizeCut = gUser.GetParameter("TPCClusterSizeCut");
     
 
     //for TPC linear track
@@ -2009,7 +2009,8 @@ namespace track
 	  TPCHit* hit = TPCHC[layer][ci];
 	  TVector3 pos = hit->GetPos();
 	  double dist = fabs(p1[tracki]*pos.Z()-pos.X()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
-	  if( dist < HoughWindowCut ){
+	  
+	  if( dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
 	    track->AddTPCHit(new TPCLTrackHit(hit));
 	    //	    track_he->AddTPCHit(new TPCLTrackHit(hit));
 	    flag[layer][ci]++;
