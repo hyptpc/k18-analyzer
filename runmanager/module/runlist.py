@@ -239,6 +239,20 @@ class RunlistManager(metaclass=classimpl.Singleton):
     exit(1)
 
   #____________________________________________________________________________
+  def __make_dstin_path(self, base, key_array):
+    ''' Make path array of input files for dst analysis. '''
+    if self.__is_ready is False:
+      return None
+    if len(key_array) == 0:
+      logger.error('Cannot decide input files for dst')
+      exit(1)
+    dstin_path = list()
+    for key in key_array:
+      split = os.path.splitext(base)
+      dstin_path.append(split[0] + key + split[1])
+    return dstin_path
+
+  #____________________________________________________________________________
   def __make_root_path(self, path, base=None):
     ''' Make output root file path. '''
     if self.__is_ready is False:
@@ -296,6 +310,13 @@ class RunlistManager(metaclass=classimpl.Singleton):
       base = (item[0] + os.path.basename(pbin) if runno is None
               else f'run{runno:05d}_{os.path.basename(pbin)}')
       run['root'] = self.__make_root_path(item[1]['root'], base)
+      if 'Dst' in run['bin']:
+        if 'dstin' in item[1]:
+          base = run['root'].replace(os.path.basename(run['bin']), '')
+          run['dstin'] = self.__make_dstin_path(base, item[1]['dstin'])
+        else:
+          logger.error(f'{run["bin"]} needs input files set as "dstin".')
+          exit(1)
       run['unit'] = (item[1]['unit'] if isinstance(item[1]['unit'], int)
                      else 0)
       run['queue'] = (item[1]['queue'] if isinstance(item[1]['queue'], str)

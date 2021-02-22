@@ -30,9 +30,9 @@ class BSub(object):
   ''' BSub class throwing subprocess of "bsub". '''
 
   #____________________________________________________________________________
-  def __init__(self, manager, tag, conf, out, log):
+  def __init__(self, run, tag, conf, out, log):
     self.__main_process = psutil.Process()
-    self.__manager = manager
+    self.__run = run
     self.__tag = tag
     self.__conf = conf
     self.__out  = out
@@ -66,16 +66,16 @@ class BSub(object):
     while not self.check_limits():
       logger.debug(f'Releasing fds/proc ...')
       time.sleep(1)
-    # pf = self.__manager.getPreFetchPath()
+    # pf = self.__run.getPreFetchPath()
     cmd = shlex.split('bsub' + ' '
-                      + '-q' + ' ' + self.__manager.get_queue() + ' '
-                      + self.__manager.get_option() + ' '
+                      + '-q' + ' ' + self.__run.get_queue() + ' '
+                      + self.__run.get_option() + ' '
                       + '-o' + ' ' + self.__log + ' '
                       # + '-a \"prefetch (' + pf + ')\"'
                       )
-    cmd.extend([self.__manager.get_bin_path(),
+    cmd.extend([self.__run.get_bin_path(),
                 self.__conf,
-                self.__manager.get_data_path(),
+                self.__run.get_data_path(),
                 self.__out])
     self.__proc = subprocess.Popen(cmd,
                                    stdout=subprocess.PIPE,
