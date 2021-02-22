@@ -338,6 +338,14 @@ class SingleRun(object):
     ''' Kill bjob. '''
     if self.__bjob_status is True:
       return
+    if self.__dst_job is not None:
+      stat = self.__dst_job.get_status()
+      self.__dst_job.kill()
+      self.__bjob_status = 1
+      job_id = self.__dst_job.get_job_id()
+      buff = f'Process was killed [jid: {job_id}]'
+      logger.info(f'Kill job [jid: {job_id}]')
+      self.__dump_log('kill_bjob', buff)
     for job in self.__bjob_list:
       stat = job.get_status()
       if stat == 0 or stat == 1:
