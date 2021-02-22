@@ -10,6 +10,8 @@
 #   conf   <- path to conf directory/file from the work directory
 #   data   <- path to data directory/file
 #   root   <- path to the output ROOT output directory/file
+#   dstin  <- list of input files for dst analysis
+#             these files are assumed to be in the same root directory of output
 #
 # Be careful of the indent rule because YAML format is sensitive to it.
 # Some problems will happen if there is no default setting declaration.
@@ -73,3 +75,11 @@ RUN:
     unit:  50000
     bin:   ./bin/KuramaTracking
     data:  ../data/run03800.dat.gz
+
+  dst:
+    unit:  50000
+    bin:   ./bin/DstKuramaHodoscope
+    data:  ../data/run03800.dat.gz
+    dstin:
+      - KuramaTracking
+      - Hodoscope
