@@ -117,6 +117,7 @@ struct Event
   //  int    AdcHiCor[NumOfPlaneAFT][NumOfSegAFT_MAX];
   //  int    AdcLowCor[NumOfPlaneAFT][NumOfSegAFT_MAX];
   int AFT_Tdc[NumOfPlaneAFT][NumOfSegAFT_MAX][2][MaxHits2];
+  int AFT_TdcT[NumOfPlaneAFT][NumOfSegAFT_MAX][2][MaxHits2];
   //  int AFT_Hit[NumOfPlaneAFT][2][NumOfSegAFT_MAX];
   //  int AFT_CHit[NumOfPlaneAFT][2][NumOfSegAFT_MAX];
   int AFT_Hit[NumOfPlaneAFT][NumOfSegAFT_MAX][2];
@@ -570,6 +571,7 @@ HF1(1, 6);
 	    int nhitTdcT1 = fiber->SizeTdcT1();
 	    for (int k=0; k<nhitTdcT1; k++) {
 	      int T_trail = fiber->GetTdcT1(k);
+	      event.AFT_TdcT[plane][seg][UorD][k] = T_trail;
 	    }
 
 	    // ToT
@@ -637,6 +639,7 @@ HF1(1, 6);
 	    int nhitTdcT2 = fiber->SizeTdcT2();
 	    for (int k=0; k<nhitTdcT2; k++) {
 	      int T_trail = fiber->GetTdcT2(k);
+	      event.AFT_TdcT[plane][seg][UorD][k] = T_trail;
 	    }
 
 	    // ToT
@@ -895,6 +898,7 @@ EventHodoAFT::InitializeEvent( void )
 	event.AFT_AdcLow[i][j][k] = -999;
 	for(int l=0; l<MaxHits2; l++){
 	  event.AFT_Tdc[i][j][k][l] = -999;
+	  event.AFT_TdcT[i][j][k][l] = -999;
 	  event.AFT_tot[i][j][k][l] = -999.;
 	}
       }
@@ -1037,6 +1041,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("AFT_AdcHi",event.AFT_AdcHi, Form("AFT_AdcHi[%d][%d][2]/I", NumOfPlaneAFT, NumOfSegAFT_MAX));
   tree->Branch("AFT_AdcLow",event.AFT_AdcLow, Form("AFT_AdcLow[%d][%d][2]/I", NumOfPlaneAFT, NumOfSegAFT_MAX));
   tree->Branch("AFT_Tdc",event.AFT_Tdc, Form("AFT_Tdc[%d][%d][2][%d]/I", NumOfPlaneAFT, NumOfSegAFT_MAX, MaxHits2));
+  tree->Branch("AFT_TdcT",event.AFT_TdcT, Form("AFT_TdcT[%d][%d][2][%d]/I", NumOfPlaneAFT, NumOfSegAFT_MAX, MaxHits2));
   tree->Branch("AFT_Hit",event.AFT_Hit, Form("AFT_Hit[%d][%d][2]/I", NumOfPlaneAFT, NumOfSegAFT_MAX));
   //  tree->Branch("AFT_CHit",event.AFT_CHit, Form("AFT_Hit[%d][2][%d]/I",NumOfPlaneAFT, NumOfSegAFT_MAX));
   tree->Branch("AFT_tot",event.AFT_tot, Form("AFT_tot[%d][%d][2][%d]/I", NumOfPlaneAFT, NumOfSegAFT_MAX, MaxHits2));
