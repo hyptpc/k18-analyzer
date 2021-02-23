@@ -28,7 +28,7 @@ WORKDIR: ~/k18analyzer/e42
 
 DEFAULT:
   queue: s
-  unit:  500
+  unit:  100
   nproc: 10
   buff:  root/buf
   bin:   bin/TPCHit
@@ -55,8 +55,8 @@ RUN:
   19:
   20:
   21:
-  22:
   23:
+  24:
   25:
   26:
   27:

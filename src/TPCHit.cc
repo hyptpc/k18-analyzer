@@ -38,8 +38,8 @@
 //#define UseGaussian    1 //for gate noise fit
 #define UseGaussian    0
 #define UseLandau      0
-#define UseExponential 1
-//#define UseExponential 0
+#define UseExponential 0
+#define UseGumbel      1
 #define DebugEvDisp    0
 
 #if DebugEvDisp
@@ -186,10 +186,8 @@ TPCHit::DoFit( void )
 {
   static const Double_t MinDe = gUser.GetParameter( "MinDeTPC" );
   static const Double_t MinRms = gUser.GetParameter( "MinRmsTPC" );
-  static const Double_t MinTimeBucket
-    = gUser.GetParameter( "TimeBucketTPC", 0 );
-  static const Double_t MaxTimeBucket
-    = gUser.GetParameter( "TimeBucketTPC", 1 );
+  static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
+  static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
 
   if( m_is_calculated ){
     hddaq::cerr << FUNC_NAME << " already calculated" << std::endl;
@@ -204,6 +202,8 @@ TPCHit::DoFit( void )
 #if DebugEvDisp
   gStyle->SetOptStat(1110);
   gStyle->SetOptFit(1);
+  gStyle->SetStatX(0.9);
+  gStyle->SetStatY(0.9);
   Option_t* option = "";
 #else
   Option_t* option = "Q";
@@ -221,15 +221,19 @@ TPCHit::DoFit( void )
 #if QuickAnalysis
   {
     Double_t max_adc = m_rhit->MaxAdc();
-    if(max_adc-m_pedestal<MinDe)
+    if (max_adc-m_pedestal < MinDe) {
       return false;
+    }
   }
 #endif
 
-  static TCanvas c1;
+  static TCanvas c1("c1", "c1", 800, 600);
   c1.cd();
-  TH1D h1( ClassName()+"::h1", "h1", MaxADC, 0, MaxADC );
-  TH1D h2( ClassName()+"::h2", "h2", NumOfTimeBucket, 0, NumOfTimeBucket );
+  TH1D h1( FUNC_NAME+" h1", FUNC_NAME+" Pedestal fitting",
+           MaxADC, 0, MaxADC );
+  static TH1D h2( FUNC_NAME+" h2", FUNC_NAME+" Waveform fitting",
+                  NumOfTimeBucket, 0, NumOfTimeBucket );
+  h2.Reset();
   for( Int_t i=0, n=m_rhit->Fadc().size(); i<n; ++i ){
     Double_t tb = i + 1;
     Double_t adc = m_rhit->Fadc().at( i );
@@ -238,6 +242,7 @@ TPCHit::DoFit( void )
     h1.Fill( adc );
     h2.SetBinContent( tb, adc );
   }
+  h2.GetXaxis()->SetRangeUser(MinTimeBucket, MaxTimeBucket);
 
 #if FitPedestal
   { //___ Pedestal Fitting
@@ -271,11 +276,11 @@ TPCHit::DoFit( void )
     h1.Draw();
     c1.Modified();
     c1.Update();
-    gSystem->ProcessEvents();
     // getchar();
     Double_t max_adc = m_rhit->MaxAdc();
-    if( max_adc - mean < MinDe )
+    if( max_adc - mean < MinDe ){
       return false;
+    }
 #endif
   }
 #endif
@@ -353,24 +358,41 @@ TPCHit::DoFit( void )
       f1.SetParameter( 0, de*TMath::Exp(1)/c );
       f1.SetParLimits( 0, TMath::Exp(1)/c, m_rhit->MaxAdc()*TMath::Exp(1)/c );
       f1.SetParameter( 1, time+c );
-      f1.SetParLimits( 1, time-2*c, time+4*c);
+      f1.SetParLimits( 1, time+c-12, time+c+12);
       f1.SetParameter( 2, c );
-      f1.SetParLimits( 2, 0.5*c, 1.5*c );
+      f1.SetParLimits( 2, 1.5, 7.5 );
       f1.FixParameter( 3, m_pedestal );
-      h2.Fit( "f1", option, "", time-2*c, time+4*c );
+      // f1.SetParameter( 3, m_pedestal );
+      // f1.SetParLimits( 3, m_pedestal - m_rms, m_pedestal + m_rms );
+      h2.Fit( "f1", option, "", time-5, time+10 );
       auto p = f1.GetParameters();
       time = p[1] + p[2]; // peak time
       // c = p[2];
       de = p[0]*p[2]*TMath::Exp(-1); // amplitude
       // de = p[0]*p[2]*p[2]; // integral
       Double_t chisqr = f1.GetChisquare() / f1.GetNDF();
+#elif UseGumbel
+      TF1 f1("f1", "[0]*exp(-(x-[1])/[2])*exp(-exp(-(x-[1])/[2]))+[3]",
+             0, NumOfTimeBucket);
+      f1.SetParameter(0, de);
+      f1.SetParLimits(0, 0, m_rhit->MaxAdc()+m_pedestal+m_rms);
+      f1.SetParameter(1, time);
+      f1.SetParLimits(1, time-10, time+10);
+      f1.SetParameter(2, 3);
+      f1.SetParLimits(2, 1., 10.);
+      f1.SetParameter(3, m_pedestal);
+      f1.SetParLimits(3, m_pedestal - 0.5*m_rms, m_pedestal + 0.5*m_rms);
+      h2.Fit("f1", option, "", time-6, time+10);
+      auto p = f1.GetParameters();
+      time = p[1]; // peak time
+      de = f1.Eval(time) - p[3]; // amplitude
+      Double_t chisqr = f1.GetChisquare()/f1.GetNDF();
 #endif
-      if( chisqr > MaxChisqr ||
-	  de < MinDe )
-	continue;
-      m_time.push_back( time );
-      m_de.push_back( de );
-      m_chisqr.push_back( chisqr );
+      if (chisqr > MaxChisqr || de < MinDe)
+        continue;
+      m_time.push_back(time);
+      m_de.push_back(de);
+      m_chisqr.push_back(chisqr);
 #if DebugEvDisp
       hddaq::cout << FUNC_NAME << " (time,de,chisqr)=("
                 << time << "," << de << "," << chisqr << ")" << std::endl;
@@ -386,6 +408,7 @@ TPCHit::DoFit( void )
   c1.Update();
   gSystem->ProcessEvents();
   Print();
+  c1.Print("c1.pdf");
   getchar();
 #endif
 
@@ -539,9 +562,9 @@ TPCHit::Print( const std::string& arg, std::ostream& ost ) const
         << std::fixed << std::setprecision(3) << std::setw(9) << m_time[i]
         << std::fixed << std::setprecision(3) << std::setw(9) << m_de[i]
         << std::fixed << std::setprecision(3) << std::setw(9) << m_chisqr[i]
-        << std::fixed << std::setprecision(3) << std::setw(9) << m_ctime[i]
-        << std::fixed << std::setprecision(3) << std::setw(9) << m_cde[i]
-        << std::fixed << std::setprecision(3) << std::setw(9) << m_drift_length[i]
+        // << std::fixed << std::setprecision(3) << std::setw(9) << m_ctime[i]
+        // << std::fixed << std::setprecision(3) << std::setw(9) << m_cde[i]
+        // << std::fixed << std::setprecision(3) << std::setw(9) << m_drift_length[i]
         << ")" << std::endl;
   }
 }
