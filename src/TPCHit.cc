@@ -231,9 +231,8 @@ TPCHit::DoFit( void )
   c1.cd();
   TH1D h1( FUNC_NAME+" h1", FUNC_NAME+" Pedestal fitting",
            MaxADC, 0, MaxADC );
-  static TH1D h2( FUNC_NAME+" h2", FUNC_NAME+" Waveform fitting",
-                  NumOfTimeBucket, 0, NumOfTimeBucket );
-  h2.Reset();
+  TH1D h2( FUNC_NAME+" h2", FUNC_NAME+" Waveform fitting",
+           NumOfTimeBucket, 0, NumOfTimeBucket );
   for( Int_t i=0, n=m_rhit->Fadc().size(); i<n; ++i ){
     Double_t tb = i + 1;
     Double_t adc = m_rhit->Fadc().at( i );
