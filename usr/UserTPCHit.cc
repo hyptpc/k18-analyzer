@@ -303,7 +303,8 @@ ConfMan:: InitializeHistograms( void )
   HB1( 21, "TPC Pedestal", NbinAdc, MinAdc, MaxAdc );
   HB1( 22, "TPC DeltaE", NbinDe, MinDe, MaxDe );
   HB1( 23, "TPC RMS", NbinRms, MinRms, MaxRms );
-  HB1( 24, "TPC Time", NumOfTimeBucket+1, 0, NumOfTimeBucket+1 );
+  //  HB1( 24, "TPC Time", NumOfTimeBucket+1, 0, NumOfTimeBucket+1 );
+  HB1( 24, "TPC Time", (NumOfTimeBucket+1)*30, 0, NumOfTimeBucket+1 );
   HB1( 25, "TPC Chisqr", NbinChisqr, MinChisqr, MaxChisqr );
   HB1( 26, "TPC CDeltaE", NbinDe, MinDe, MaxDe );
   HB1( 27, "TPC CTime", NbinTime, MinTime, MaxTime );
@@ -315,7 +316,7 @@ ConfMan:: InitializeHistograms( void )
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
     const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
     for( Int_t r=0; r<NumOfRow; ++r ){
-      HB1(PadHid + layer*1000 + r , "TPC Time", NumOfTimeBucket+1, 0, NumOfTimeBucket+1 );
+      HB1(PadHid + layer*1000 + r , "TPC Time", (NumOfTimeBucket+1)*30, 0, NumOfTimeBucket+1 );
     }
     }
 #endif

@@ -115,6 +115,7 @@ TPCCluster::CalculateWeightedMean( void )
     m_pos.SetXYZ( x/charge, y/charge, z/charge );
     m_pad_id = (int)(dummy_padid/charge);
     m_mrow = mrow/charge;
+    m_charge = charge;
   }
   else {
     m_pos.SetXYZ( 0, 0, 0 );
@@ -152,6 +153,7 @@ TPCCluster::CalculateWeightedMeanTheta( void )
     m_mrow = mrow/charge;
     TVector3 pos_xz = tpc::getPosition(tpc::getLayerID(m_pad_id), m_mrow);
     m_pos.SetXYZ( pos_xz.x(), y/charge, pos_xz.z() );
+    m_charge = charge;
     // std::cout<<"Weight (x,z) = ("<<m_pos_dummy.x()<<", "
     // 	     <<m_pos_dummy.z()<<")"<<std::endl;
     // std::cout<<"Theta (x,z) = ("<<m_pos.x()<<", "

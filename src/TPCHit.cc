@@ -39,6 +39,7 @@
 #define UseGaussian    0
 #define UseLandau      0
 #define UseExponential 1
+//#define UseExponential 0
 #define DebugEvDisp    0
 
 #if DebugEvDisp
