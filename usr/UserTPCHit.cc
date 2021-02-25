@@ -21,11 +21,8 @@
 #include "VEvent.hh"
 #include "DetectorID.hh"
 
-//#define GateCalib 1
-#define GateCalib 0
-//#define GainCalib 1
-#define GainCalib 0
-
+#define GateCalib 1
+#define GainCalib 1
 
 namespace
 {

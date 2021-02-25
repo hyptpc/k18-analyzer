@@ -229,9 +229,11 @@ TPCHit::DoFit( void )
 
   static TCanvas c1("c1", "c1", 800, 600);
   c1.cd();
-  TH1D h1( FUNC_NAME+" h1", FUNC_NAME+" Pedestal fitting",
+  TH1D h1( FUNC_NAME+"-h1", "Pedestal",
            MaxADC, 0, MaxADC );
-  TH1D h2( FUNC_NAME+" h2", FUNC_NAME+" Waveform fitting",
+  TH1D h2( FUNC_NAME+"-h2",
+           Form("Layer#%d Row#%.0lf;Time Bucket;ADC",
+                m_layer, m_wire),
            NumOfTimeBucket, 0, NumOfTimeBucket );
   for( Int_t i=0, n=m_rhit->Fadc().size(); i<n; ++i ){
     Double_t tb = i + 1;
