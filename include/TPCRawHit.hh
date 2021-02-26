@@ -19,7 +19,6 @@ public:
   ~TPCRawHit( void );
 
 private:
-  Int_t  m_pad_id;
   Int_t  m_layer_id;
   Int_t  m_row_id;
   FADC_t m_fadc;
@@ -28,7 +27,6 @@ public:
   void          AddFadc( Int_t adc );
   const FADC_t& Fadc( void ) const { return m_fadc; }
   Int_t         LayerId( void ) const { return m_layer_id; }
-  Int_t         PadId( void ) const { return m_pad_id; }
   void          Print( Option_t* opt="" ) const;
   Int_t         RowId( void ) const { return m_row_id; }
   Double_t      LocMax( void ) const

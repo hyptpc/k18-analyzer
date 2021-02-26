@@ -13,8 +13,7 @@
 
 //_____________________________________________________________________________
 TPCRawHit::TPCRawHit( Int_t layer, Int_t row )
-  : m_pad_id(),
-    m_layer_id( layer ),
+  : m_layer_id( layer ),
     m_row_id( row )
 {
   debug::ObjectCounter::increase( ClassName() );
