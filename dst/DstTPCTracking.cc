@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include <filesystem_util.hh>
+#include <UnpackerManager.hh>
 
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
@@ -30,6 +31,8 @@ namespace
 {
 using namespace root;
 using namespace dst;
+using hddaq::unpacker::GUnpacker;
+const auto& gUnpacker = GUnpacker::get_instance();
 auto&       gConf = ConfMan::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
@@ -173,12 +176,18 @@ main( int argc, char **argv )
     return EXIT_FAILURE;
   if( !gConf.Initialize( arg[kConfFile] ) )
     return EXIT_FAILURE;
+  if( !gConf.InitializeUnpacker() )
+    return EXIT_FAILURE;
 
+  Int_t skip = gUnpacker.get_skip();
+  if (skip < 0) skip = 0;
+  Int_t max_loop = gUnpacker.get_max_loop();
   Int_t nevent = GetEntries( TTreeCont );
+  if (max_loop > 0) nevent = skip + max_loop;
 
   CatchSignal::Set();
 
-  Int_t ievent = 0;
+  Int_t ievent = skip;
   for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
     gCounter.check();
     InitializeEvent();
@@ -194,7 +203,7 @@ main( int argc, char **argv )
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 dst::InitializeEvent( void )
 {
   event.clear();
@@ -202,12 +211,12 @@ dst::InitializeEvent( void )
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 dst::DstOpen( std::vector<std::string> arg )
 {
   int open_file = 0;
   int open_tree = 0;
-  for( std::size_t i=0; i<nArgc; ++i ){
+  for( Int_t i=0; i<nArgc; ++i ){
     if( i==kProcess || i==kConfFile || i==kOutFile ) continue;
     open_file += OpenFile( TFileCont[i], arg[i] );
     open_tree += OpenTree( TFileCont[i], TTreeCont[i], TreeName[i] );
@@ -224,7 +233,7 @@ dst::DstOpen( std::vector<std::string> arg )
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 dst::DstRead( int ievent )
 {
   if( ievent%100==0 ){
@@ -239,8 +248,6 @@ dst::DstRead( int ievent )
   event.trigflag = **src.trigflag;
   //  event.nhTpc = **src.nhTpc;
 
-
-
   HF1( 1, event.status++ );
 
   if( **src.nhTpc == 0 )
@@ -248,10 +255,8 @@ dst::DstRead( int ievent )
 
   HF1( 1, event.status++ );
 
-
-
   DCAnalyzer DCAna;
-  DCAna.ReCalcTPCHits( **src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc);
+  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc);
 
   Int_t nh_Tpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
@@ -326,7 +331,6 @@ dst::DstRead( int ievent )
   event.residual_y.resize( ntTpc );
   event.residual_z.resize( ntTpc );
 
-
   for( Int_t it=0; it<ntTpc; ++it ){
     TPCLocalTrack *tp = DCAna.GetTrackTPC( it );
     if( !tp ) continue;
@@ -384,15 +388,15 @@ dst::DstRead( int ievent )
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 dst::DstClose( void )
 {
   TFileCont[kOutFile]->Write();
   std::cout << "#D Close : " << TFileCont[kOutFile]->GetName() << std::endl;
   TFileCont[kOutFile]->Close();
 
-  const std::size_t n = TFileCont.size();
-  for( std::size_t i=0; i<n; ++i ){
+  const Int_t n = TFileCont.size();
+  for( Int_t i=0; i<n; ++i ){
     if( TTreeReaderCont[i] ) delete TTreeReaderCont[i];
     if( TTreeCont[i] ) delete TTreeCont[i];
     if( TFileCont[i] ) delete TFileCont[i];
@@ -401,7 +405,7 @@ dst::DstClose( void )
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan::InitializeHistograms( void )
 {
   HB1( 1, "Status", 21, 0., 21. );
@@ -468,7 +472,7 @@ ConfMan::InitializeHistograms( void )
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan::InitializeParameterFiles( void )
 {
   return
@@ -480,7 +484,7 @@ ConfMan::InitializeParameterFiles( void )
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan::FinalizeProcess( void )
 {
   return true;
