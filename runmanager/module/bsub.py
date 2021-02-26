@@ -48,6 +48,8 @@ class BSub(object):
     self.__status   = 'INIT'
     self.__process_status = 'INIT' # UNIX process.
     self.__bjob_status = None # bsub process.
+    self.__is_dst = False
+    self.__dstin_list = None
 
   #____________________________________________________________________________
   def check_limits(self):
@@ -73,10 +75,16 @@ class BSub(object):
                       + '-o' + ' ' + self.__log + ' '
                       # + '-a \"prefetch (' + pf + ')\"'
                       )
-    cmd.extend([self.__run.get_bin_path(),
-                self.__conf,
-                self.__run.get_data_path(),
-                self.__out])
+    if self.__is_dst:
+      cmd.extend([self.__run.get_bin_path(),
+                  self.__conf])
+      cmd.extend(self.__dstin_list)
+      cmd.append(self.__out)
+    else:
+      cmd.extend([self.__run.get_bin_path(),
+                  self.__conf,
+                  self.__run.get_data_path(),
+                  self.__out])
     self.__proc = subprocess.Popen(cmd,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
@@ -133,6 +141,12 @@ class BSub(object):
       logger.info(f'Killing job [jid: {self.__pid}]')
       self.__bjob.kill()
       self.__bjob_status = 1
+
+  #____________________________________________________________________________
+  def set_dstin_list(self, dstin_list):
+    ''' Set list of input files for dst analysis '''
+    self.__is_dst = True
+    self.__dstin_list = dstin_list
 
   #____________________________________________________________________________
   def __register_job(self):

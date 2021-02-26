@@ -48,7 +48,6 @@ class SingleRun(object):
       self.__dstin_path = runinfo['dstin']
     else:
       self.__dstin_path = None
-    self.__dst_job = None
     self.__conf_path = runinfo['conf']
     self.__data_path = runinfo['data']
     self.__root_path = runinfo['root']
@@ -89,8 +88,7 @@ class SingleRun(object):
     self.__make_log()
     # self.__make_prefetch()
     self.__dump_init_info()
-    if self.__is_dst is not True:
-      self.__make_element()
+    self.__make_element()
     self.__ncomplete = 0
 
   #____________________________________________________________________________
@@ -164,44 +162,29 @@ class SingleRun(object):
     ''' Execute batch job. '''
     if self.__bjob_status is not None:
       return
-    if self.__is_dst is not True: # User
-      self.__make_conf_list()
-      self.__make_root_list()
-      self.__make_log_list()
-      if self.__bjob_status is False:
-        return
-      for i, elem in enumerate(self.__elem_list):
-        if os.path.exists(self.__root_list[i]):
-          os.remove(self.__root_list[i])
-        job = bsub.BSub(self, elem,
-                        self.__conf_list[i],
-                        self.__root_list[i],
-                        self.__log_list[i])
-        job.execute()
-        self.__bjob_list.append(job)
-        self.__jobid_list.append(None)
-        self.__jobstat_list.append(job.get_status())
-      for i, item in enumerate(self.__bjob_list):
-        self.__dump_log(f'pid[bjob({i})]', item.get_process_id())
-      self.__dump_log(None, '_'*80)
-      self.__bjob_status = 0
-      # self.__status = 0
-    else: # Dst
-      command = shlex.split(f'bsub -q {self.__queue} ' +
-                            f'-o {self.__log_path} ')
-      command.extend([self.__bin_path,
-                      self.__conf_path])
-      command.extend(self.__dstin_path)
-      command.append(self.__root_path)
-      proc = subprocess.run(command,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            check=True)
-      job_id = bjob.BJob.read_job_id(proc.stdout.decode())
-      self.__dst_job = bjob.BJob(job_id)
-      self.__dump_log(f'jid[dst]', job_id)
-      self.__dump_log(None, '_'*80)
-      self.__bjob_status = 0
+    self.__make_conf_list()
+    self.__make_root_list()
+    self.__make_log_list()
+    if self.__bjob_status is False:
+      return
+    for i, elem in enumerate(self.__elem_list):
+      if os.path.exists(self.__root_list[i]):
+        os.remove(self.__root_list[i])
+      job = bsub.BSub(self, elem,
+                      self.__conf_list[i],
+                      self.__root_list[i],
+                      self.__log_list[i])
+      if self.__is_dst is True:
+        job.set_dstin_list(self.__dstin_path)
+      job.execute()
+      self.__bjob_list.append(job)
+      self.__jobid_list.append(None)
+      self.__jobstat_list.append(job.get_status())
+    for i, item in enumerate(self.__bjob_list):
+      self.__dump_log(f'pid[bjob({i})]', item.get_process_id())
+    self.__dump_log(None, '_'*80)
+    self.__bjob_status = 0
+    # self.__status = 0
 
   #____________________________________________________________________________
   def finalize(self, keep_log=False):
@@ -338,14 +321,6 @@ class SingleRun(object):
     ''' Kill bjob. '''
     if self.__bjob_status is True:
       return
-    if self.__dst_job is not None:
-      stat = self.__dst_job.get_status()
-      self.__dst_job.kill()
-      self.__bjob_status = 1
-      job_id = self.__dst_job.get_job_id()
-      buff = f'Process was killed [jid: {job_id}]'
-      logger.info(f'Kill job [jid: {job_id}]')
-      self.__dump_log('kill_bjob', buff)
     for job in self.__bjob_list:
       stat = job.get_status()
       if stat == 0 or stat == 1:
@@ -440,10 +415,7 @@ class SingleRun(object):
     elif self.__bjob_status is 0: # running
       self.__status = 'BJOB-RUNNING'
     elif self.__bjob_status is True: # complete
-      if self.__is_dst:
-        self.__status = 'DONE'
-      else:
-        self.__status = 'BJOB-DONE'
+      self.__status = 'BJOB-DONE'
     elif self.__bjob_status is False: # failure
       self.__status = 'FAILED'
       return
@@ -635,21 +607,6 @@ class SingleRun(object):
     ''' Update job status. '''
     if (self.__bjob_status is not None and self.__bjob_status != 0):
       return
-    if self.__is_dst:
-      if self.__dst_job is None:
-        return
-      stat = self.__dst_job.get_status()
-      if stat == 'PEND' or stat == 'RUN':
-        pass
-      elif stat == 'DONE':
-        self.__bjob_status = True
-      elif stat == 'EXIT':
-        self.__bjob_status = False
-        self.__dump_log('error', 'merging error')
-        self.__dump_log(None, '_'*80)
-      else:
-        self.__merge_status = 'UNKNOWN'
-      return
     n_complete = 0
     for i, job in enumerate(self.__bjob_list):
       stat = job.get_status()
@@ -714,15 +671,9 @@ class SingleRun(object):
     elif stat == 'STAGED':
       buff = 'staged'
     elif stat == 'BJOB-RUNNING':
-      if 'Dst' in data['bin']:
-        buff = 'running'
-      else:
-        buff = f'running({prog}/{nseg})'
+      buff = f'running({prog}/{nseg})'
     elif stat == 'BJOB-DONE':
-      if 'Dst' in data['bin']:
-        buff = 'running'
-      else:
-        buff = f'running({prog}/{nseg})'
+      buff = f'running({prog}/{nseg})'
     elif stat == 'MERGING':
       buff = f'merging({nseg})'
     elif stat == 'TERMINATED':
