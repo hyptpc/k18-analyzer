@@ -21,8 +21,12 @@
 #include "VEvent.hh"
 #include "DetectorID.hh"
 
+//#define GateCalib 1
 #define GateCalib 1
 #define GainCalib 1
+//#define GainCalib 0
+
+
 
 namespace
 {
@@ -90,6 +94,7 @@ struct Event
   std::vector<Double_t> pedTpc;    // pedestal
   std::vector<Double_t> rmsTpc;    // rms
   std::vector<Double_t> deTpc;     // dE
+  std::vector<Double_t> sigmaTpc;     // sigma
   std::vector<Double_t> tTpc;      // time
   std::vector<Double_t> chisqrTpc; // chi^2 of signal fitting
   std::vector<Double_t> cdeTpc;    // dE
@@ -110,6 +115,7 @@ struct Event
     pedTpc.clear();
     rmsTpc.clear();
     deTpc.clear();
+    sigmaTpc.clear();
     tTpc.clear();
     chisqrTpc.clear();
     cdeTpc.clear();
@@ -201,6 +207,7 @@ UserEvent::ProcessingNormal( void )
         Double_t cde = hit->GetCDe( i );
         Double_t ctime = hit->GetCTime( i );
         Double_t dl = hit->GetDriftLength( i );
+        Double_t sigma = hit->GetSigma( i );
         event.layerTpc.push_back( layer );
         event.rowTpc.push_back( row );
         event.padTpc.push_back( pad );
@@ -212,18 +219,22 @@ UserEvent::ProcessingNormal( void )
         event.cdeTpc.push_back( cde );
         event.ctTpc.push_back( ctime );
         event.dlTpc.push_back( dl );
-        HF1( 22, de );
+	event.sigmaTpc.push_back( sigma );
+	//if(69.<time&&time<85.)
+	HF1( 22, de );
         HF1( 24, time );
         HF1( 25, chisqr );
         HF1( 26, cde );
         HF1( 27, ctime );
         HF1( 28, dl );
+        HF1( 29, sigma);
 
 #if GateCalib
 	HF1(PadHid + layer*1000 + row, time);
 #endif
 
 #if GainCalib
+	//	if(69.<time&&time<85.)
 	HF1(2*PadHid + layer*1000 + row, de);
 #endif
 
@@ -289,6 +300,9 @@ ConfMan:: InitializeHistograms( void )
   const Int_t    NbinDL = 800;
   const Double_t MinDL  = -400.;
   const Double_t MaxDL  =  400.;
+  const Int_t    NbinSigma = 500;
+  const Double_t MinSigma  = 0.;
+  const Double_t MaxSigma  =  500.;
 
   HB1( 1, "Status", 20, 0., 20. );
   HB1( 10, "TPC Multiplicity (Raw)", NumOfPadTPC+1, 0, NumOfPadTPC+1 );
@@ -306,6 +320,7 @@ ConfMan:: InitializeHistograms( void )
   HB1( 26, "TPC CDeltaE", NbinDe, MinDe, MaxDe );
   HB1( 27, "TPC CTime", NbinTime, MinTime, MaxTime );
   HB1( 28, "TPC DriftLength", NbinDL, MinDL, MaxDL );
+  HB1( 29, "TPC sigma", NbinSigma, MinSigma, MaxSigma );
   // HB2( 101, "TPC Waveform (good)",
   //      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc, MaxAdc );
 
@@ -346,6 +361,7 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch( "cdeTpc", &event.cdeTpc );
   tree->Branch( "ctTpc", &event.ctTpc );
   tree->Branch( "dlTpc", &event.dlTpc );
+  tree->Branch( "sigmaTpc", &event.sigmaTpc );
 
   HPrint();
   return true;

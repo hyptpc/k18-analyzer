@@ -370,6 +370,7 @@ TPCHit::DoFit( void )
       time = p[1] + p[2]; // peak time
       // c = p[2];
       de = p[0]*p[2]*TMath::Exp(-1); // amplitude
+      sigma = p[2];
       // de = p[0]*p[2]*p[2]; // integral
       Double_t chisqr = f1.GetChisquare() / f1.GetNDF();
 #elif UseGumbel
@@ -387,6 +388,7 @@ TPCHit::DoFit( void )
       auto p = f1.GetParameters();
       time = p[1]; // peak time
       de = f1.Eval(time) - p[3]; // amplitude
+      sigma = p[2];
       Double_t chisqr = f1.GetChisquare()/f1.GetNDF();
 #endif
       if (chisqr > MaxChisqr || de < MinDe)
@@ -394,6 +396,7 @@ TPCHit::DoFit( void )
       m_time.push_back(time);
       m_de.push_back(de);
       m_chisqr.push_back(chisqr);
+      m_sigma.push_back(sigma);
 #if DebugEvDisp
       hddaq::cout << FUNC_NAME << " (time,de,chisqr)=("
                 << time << "," << de << "," << chisqr << ")" << std::endl;

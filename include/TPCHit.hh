@@ -40,6 +40,7 @@ protected:
   Double_t              m_pedestal;
   Double_t              m_rms;
   std::vector<Double_t> m_de;
+  std::vector<Double_t> m_sigma;
   std::vector<Double_t> m_time;
   std::vector<Double_t> m_chisqr;
   std::vector<Double_t> m_cde;
@@ -79,6 +80,7 @@ public:
   Double_t        GetCTime( Int_t i ) const { return m_ctime.at(i); }
   Int_t           GetCTimeSize( void ) const { return m_ctime.size(); }
   Double_t        GetDe( Int_t i ) const { return m_de.at(i); }
+  Double_t        GetSigma( Int_t i ) const { return m_sigma.at(i); }
   Int_t           GetDeSize( void ) const { return m_de.size(); }
   Double_t        GetDriftLength( Int_t i ) const
     { return m_drift_length.at(i); }
