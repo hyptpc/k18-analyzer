@@ -81,11 +81,14 @@ MinTotBcOut 15
 MinTotSDC1 25
 
 ### TPCHit
-#MinDeTPC		10
-MinDeTPC		40
+TPC_Subtraction		1
+MinDeTPC		10
+#MinDeTPC		40
+#MinRmsTPC		10
 MinRmsTPC		10
-TimeBucketTPC		25 160
-#TimeBucketTPC		55 100
+#TimeBucketTPC		0 200
+#TimeBucketTPC		25 160
+TimeBucketTPC		55 100
 #temporary (ch) -> should be ns unit
 Time0TPC   	   	  76.75
 #HIMAC value mm/ns

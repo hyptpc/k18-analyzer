@@ -50,6 +50,7 @@ private:
   std::vector<DCRHitContainer>   m_BcInRawHC;
   std::vector<DCRHitContainer>   m_BcOutRawHC;
   std::vector<TPCRHitContainer>  m_TPCRawHC;
+  std::vector<TPCRHitContainer>  m_TPCCorHC;
   std::vector<DCRHitContainer>   m_SdcInRawHC;
   std::vector<DCRHitContainer>   m_SdcOutRawHC;
   HodoRHitContainer              m_ScalerRawHC;
@@ -62,6 +63,7 @@ public:
   Bool_t                   DecodeHits( void );
   Bool_t                   DecodeCalibHits( void );
   Bool_t                   DecodeTPCHits( void );
+  Bool_t                   RecalcTPCHits( void );
   const HodoRHitContainer& GetBH1RawHC( void ) const;
   const HodoRHitContainer& GetBH2RawHC( void ) const;
   const HodoRHitContainer& GetBACRawHC( void ) const;
@@ -82,6 +84,7 @@ public:
   const DCRHitContainer&   GetSdcInRawHC( Int_t layer ) const;
   const DCRHitContainer&   GetSdcOutRawHC( Int_t layer ) const;
   const TPCRHitContainer&  GetTPCRawHC( Int_t layer ) const;
+  const TPCRHitContainer&  GetTPCCorHC( Int_t layer ) const;
   const HodoRHitContainer& GetScalerRawHC( void ) const;
   const HodoRHitContainer& GetTrigRawHC( void ) const;
   const HodoRHitContainer& GetVmeCalibRawHC( void ) const;
@@ -244,6 +247,14 @@ RawData::GetTPCRawHC( Int_t layer ) const
 {
   if( layer<0 || layer>NumOfLayersTPC ) layer = 0;
   return m_TPCRawHC[layer];
+}
+
+//_____________________________________________________________________________
+inline const TPCRHitContainer&
+RawData::GetTPCCorHC( Int_t layer ) const
+{
+  if( layer<0 || layer>NumOfLayersTPC ) layer = 0;
+  return m_TPCCorHC[layer];
 }
 
 //_____________________________________________________________________________

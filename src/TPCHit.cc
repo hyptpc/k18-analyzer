@@ -227,6 +227,7 @@ TPCHit::DoFit( void )
   }
 #endif
 
+  m_layer = m_rhit->LayerId();
   static TCanvas c1("c1", "c1", 800, 600);
   c1.cd();
   TH1D h1( FUNC_NAME+"-h1", "Pedestal",

@@ -363,6 +363,7 @@ DCAnalyzer::ClusterizeTPC( int layerID, const TPCHitContainer& HitCont,
 bool
 DCAnalyzer::DecodeTPCHits( RawData *rawData )
 {
+  static const Int_t TPC_Subtraction = gUser.GetParameter("TPC_Subtraction");
   if( m_is_decoded[k_TPC] ){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
@@ -372,32 +373,25 @@ DCAnalyzer::DecodeTPCHits( RawData *rawData )
   ClearTPCHits();
 
   for( int layer=0; layer<=NumOfLayersTPC; ++layer ){
-    for( const auto& rhit : rawData->GetTPCRawHC( layer ) ){
-      auto hit = new TPCHit( rhit );
-      if( hit->DoFit() && hit->Calculate() )
-	m_TPCHitCont[layer].push_back( hit );
-      else
-	delete hit;
+    if(TPC_Subtraction == 1 ){
+      for( const auto& rhit : rawData->GetTPCCorHC( layer ) ){
+	auto hit = new TPCHit( rhit );
+	if( hit->DoFit() && hit->Calculate() )
+	  m_TPCHitCont[layer].push_back( hit );
+	else
+	  delete hit;
+      }
+    }
+    else{
+     for( const auto& rhit : rawData->GetTPCRawHC( layer ) ){
+	auto hit = new TPCHit( rhit );
+	if( hit->DoFit() && hit->Calculate() )
+	  m_TPCHitCont[layer].push_back( hit );
+	else
+	  delete hit;
+      }
     }
 
-// #if UseTpcCluster
-//     ClusterizeTPC( layer, m_TPCHitCont[layer], m_TPCClCont[layer] );
-//     int ncl = m_TPCClCont[layer].size();
-//     for(int i=0; i<ncl; ++i){
-//       TPCCluster *p = m_TPCClCont[layer][i];
-//       int MeanPad = p->MeanPadId();
-//       TVector3 pos = p->Position();
-//       double charge = p->Charge();
-//       TPCHit  *hit  = new TPCHit( MeanPad, pos, charge);
-//       hit->SetClusterSize(p->GetClusterSize());
-//       hit->SetMRow(p->MeanRow());
-//       if( hit->CalcTPCObservables() )
-// 	m_TPCHitCont[layer].push_back(hit);
-//       else
-// 	delete hit;
-//     }
-
-// #endif
   }
 
   m_is_decoded[k_TPC] = true;

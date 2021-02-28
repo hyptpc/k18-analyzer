@@ -55,6 +55,7 @@ RawData::RawData( void )
     m_BcInRawHC(NumOfLayersBcIn+1),
     m_BcOutRawHC(NumOfLayersBcOut+1),
     m_TPCRawHC(NumOfLayersTPC+1),
+    m_TPCCorHC(NumOfLayersTPC+1),
     m_SdcInRawHC(NumOfLayersSdcIn+1),
     m_SdcOutRawHC(NumOfLayersSdcOut+1),
     m_ScalerRawHC(),
@@ -108,6 +109,7 @@ void
 RawData::ClearTPC( void )
 {
   del::ClearContainerAll( m_TPCRawHC );
+  del::ClearContainerAll( m_TPCCorHC );
 }
 
 //_____________________________________________________________________________
@@ -385,6 +387,61 @@ RawData::DecodeTPCHits( void )
   return true;
 }
 
+//_____________________________________________________________________________
+bool
+RawData::RecalcTPCHits( void )
+{
+  if( !m_is_decoded ){
+    hddaq::cout << "#D " << FUNC_NAME << " "
+		<< "Rawdata has not been decoded!" << std::endl;
+    return false;    
+  }
+  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){ 
+    int Min_rms_row = -1;
+    int Min_rms_hitnum = -1;
+    int Min_rms = 100000;
+    int Min_maxadc_row = -1;
+    int Min_maxadc_hitnum = -1;
+    int Min_maxadc = 100000;
+    const std::size_t nh = m_TPCRawHC[layer].size();
+    if(nh==0)
+      continue;
+    for( std::size_t hiti =0; hiti< nh; hiti++){
+      auto hit = m_TPCRawHC[layer][hiti];
+      if(hit->RMS() < Min_rms){
+	Min_rms = hit->RMS(); 
+	Min_rms_row = hit->RowId(); 
+	Min_rms_hitnum = hiti; 
+      }
+      if(hit->MaxAdc() < Min_maxadc){
+	Min_maxadc = hit->MaxAdc(); 
+	Min_maxadc_row = hit->RowId(); 
+	Min_maxadc_hitnum = hiti; 
+      }
+    }
+    // std::cout<<"Layer:"<<layer<<", Min row :"<<Min_rms_row
+    // 	     <<", Min hitnum:"<<Min_rms_hitnum
+    // 	     <<", Min rms:"<<Min_rms<<std::endl;
+
+    //    auto hit_min = m_TPCRawHC[layer][Min_rms_hitnum];
+    auto hit_min = m_TPCRawHC[layer][Min_maxadc_hitnum];
+    int mean0 = (int)hit_min->Mean();
+    for( std::size_t hiti =0; hiti< nh; hiti++){
+      auto hit = m_TPCRawHC[layer][hiti];
+      Int_t row = hit->RowId(); 
+      for( Int_t i=0, n=hit->Fadc().size(); i<n; ++i ){
+	auto adc = hit->Fadc().at( i );
+	auto adc0 = hit_min->Fadc().at( i );
+	auto cor_adc = adc + (mean0 - adc0);
+	if(nh==1)
+	  AddTPCRawHit ( m_TPCCorHC[layer], layer, row, adc);
+	else
+	  AddTPCRawHit ( m_TPCCorHC[layer], layer, row, cor_adc);
+      }
+    } 
+  }
+  return true;
+}
 //_____________________________________________________________________________
 bool
 RawData::DecodeCalibHits( void )
