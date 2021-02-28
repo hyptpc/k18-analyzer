@@ -151,7 +151,7 @@ UserEvent::ProcessingNormal( void )
   const Int_t event_number = gUnpacker.get_event_number();
 
   rawData->DecodeTPCHits();
-  rawData->RecalcTPCHits();
+  //rawData->RecalcTPCHits();
 
   HF1( 1, 0 );
 

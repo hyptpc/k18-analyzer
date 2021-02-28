@@ -81,7 +81,7 @@ MinTotBcOut 15
 MinTotSDC1 25
 
 ### TPCHit
-TPC_Subtraction		1
+TPC_Subtraction		0
 MinDeTPC		10
 #MinDeTPC		40
 #MinRmsTPC		10
