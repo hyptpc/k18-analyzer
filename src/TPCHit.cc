@@ -242,8 +242,11 @@ TPCHit::DoFit( void )
       continue;
     h1.Fill( adc );
     h2.SetBinContent( tb, adc );
+    h2.SetBinError( tb, 1.);
   }
   h2.GetXaxis()->SetRangeUser(MinTimeBucket, MaxTimeBucket);
+  h2.GetYaxis()->SetRangeUser(m_pedestal-100., m_rhit->MaxAdc()+200);
+  //std::cout<<"pedestal:"<<m_pedestal<<", max_adc:"<<m_rhit->MaxAdc()<<std::endl;
 
 #if FitPedestal
   { //___ Pedestal Fitting
@@ -377,19 +380,23 @@ TPCHit::DoFit( void )
       TF1 f1("f1", "[0]*exp(-(x-[1])/[2])*exp(-exp(-(x-[1])/[2]))+[3]",
              0, NumOfTimeBucket);
       f1.SetParameter(0, de);
-      f1.SetParLimits(0, 0, m_rhit->MaxAdc()+m_pedestal+m_rms);
+      //f1.SetParLimits(0, 0, m_rhit->MaxAdc()+m_pedestal+m_rms);
+      //f1.SetParLimits(0, 0, de+m_rms);
       f1.SetParameter(1, time);
       f1.SetParLimits(1, time-10, time+10);
       f1.SetParameter(2, 3);
       f1.SetParLimits(2, 1., 10.);
       f1.SetParameter(3, m_pedestal);
       f1.SetParLimits(3, m_pedestal - 0.5*m_rms, m_pedestal + 0.5*m_rms);
-      h2.Fit("f1", option, "", time-6, time+10);
+      //h2.Fit("f1", option, "", time-6, time+10);
+      //h2.Fit("f1", option, "",MinTimeBucket , MaxTimeBucket);
+      h2.Fit("f1", option, "", time-6.-de*0.07, time+10.+de*0.11); 
       auto p = f1.GetParameters();
       time = p[1]; // peak time
       de = f1.Eval(time) - p[3]; // amplitude
       sigma = p[2];
       Double_t chisqr = f1.GetChisquare()/f1.GetNDF();
+      //std::cout<<"chisqr:"<<chisqr<<std::endl;
 #endif
       if (chisqr > MaxChisqr || de < MinDe)
         continue;
@@ -407,7 +414,8 @@ TPCHit::DoFit( void )
 #endif
 
 #if DebugEvDisp
-  h2.Draw("L");
+  //h2.Draw("L");
+  h2.Draw("");
   c1.Modified();
   c1.Update();
   gSystem->ProcessEvents();

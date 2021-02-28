@@ -220,8 +220,8 @@ UserEvent::ProcessingNormal( void )
         event.ctTpc.push_back( ctime );
         event.dlTpc.push_back( dl );
 	event.sigmaTpc.push_back( sigma );
-	//if(69.<time&&time<85.)
-	HF1( 22, de );
+	if(69.<time&&time<85.&&nhit==1)
+	  HF1( 22, de );
         HF1( 24, time );
         HF1( 25, chisqr );
         HF1( 26, cde );
@@ -234,7 +234,7 @@ UserEvent::ProcessingNormal( void )
 #endif
 
 #if GainCalib
-	//	if(69.<time&&time<85.)
+	if(69.<time&&time<85.&&nhit==1)
 	HF1(2*PadHid + layer*1000 + row, de);
 #endif
 
@@ -302,7 +302,7 @@ ConfMan:: InitializeHistograms( void )
   const Double_t MaxDL  =  400.;
   const Int_t    NbinSigma = 500;
   const Double_t MinSigma  = 0.;
-  const Double_t MaxSigma  =  500.;
+  const Double_t MaxSigma  =  50.;
 
   HB1( 1, "Status", 20, 0., 20. );
   HB1( 10, "TPC Multiplicity (Raw)", NumOfPadTPC+1, 0, NumOfPadTPC+1 );
