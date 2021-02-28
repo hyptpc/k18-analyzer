@@ -419,17 +419,21 @@ RawData::RecalcTPCHits( void )
 	Min_maxadc_hitnum = hiti; 
       }
     }
-    // std::cout<<"Layer:"<<layer<<", Min row :"<<Min_rms_row
-    // 	     <<", Min hitnum:"<<Min_rms_hitnum
-    // 	     <<", Min rms:"<<Min_rms<<std::endl;
-
+    
+    // std::cout<<"Min_maxadc_hitnum:"<<Min_maxadc_hitnum<<std::endl;
+    // std::cout<<"Layer:"<<layer<<std::endl;
     //    auto hit_min = m_TPCRawHC[layer][Min_rms_hitnum];
     auto hit_min = m_TPCRawHC[layer][Min_maxadc_hitnum];
+    int n0 = hit_min->Fadc().size();
     int mean0 = (int)hit_min->Mean();
     for( std::size_t hiti =0; hiti< nh; hiti++){
       auto hit = m_TPCRawHC[layer][hiti];
       Int_t row = hit->RowId(); 
-      for( Int_t i=0, n=hit->Fadc().size(); i<n; ++i ){
+      //std::cout<<"row:"<<row<<std::endl;
+      int n = hit->Fadc().size();
+      if(n0<n)
+	n=n0;
+      for( Int_t i=0; i<n; ++i ){
 	auto adc = hit->Fadc().at( i );
 	auto adc0 = hit_min->Fadc().at( i );
 	auto cor_adc = adc + (mean0 - adc0);
