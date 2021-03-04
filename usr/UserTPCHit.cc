@@ -236,7 +236,7 @@ UserEvent::ProcessingNormal( void )
 
 #if GainCalib
 	if(69.<time&&time<85.&&nhit==1)
-	HF1(2*PadHid + layer*1000 + row, de);
+	  HF1(2*PadHid + layer*1000 + row, de);
 #endif
 
         good_for_analysis = true;

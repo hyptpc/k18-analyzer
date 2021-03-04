@@ -82,10 +82,9 @@ MinTotSDC1 25
 
 ### TPCHit
 TPC_Subtraction		1
-MinDeTPC		10
-#MinDeTPC		40
+MinDeTPC		40
 #MinRmsTPC		10
-MinRmsTPC		10
+MinRmsTPC		0
 #TimeBucketTPC		0 200
 #TimeBucketTPC		25 160
 TimeBucketTPC		55 100

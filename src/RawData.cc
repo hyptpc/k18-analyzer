@@ -421,7 +421,7 @@ RawData::RecalcTPCHits( void )
     }
     
     // std::cout<<"Min_maxadc_hitnum:"<<Min_maxadc_hitnum<<std::endl;
-    // std::cout<<"Layer:"<<layer<<std::endl;
+    //std::cout<<"Layer:"<<layer<<", min_row:"<<Min_maxadc_row<<std::endl;
     //    auto hit_min = m_TPCRawHC[layer][Min_rms_hitnum];
     auto hit_min = m_TPCRawHC[layer][Min_maxadc_hitnum];
     int n0 = hit_min->Fadc().size();

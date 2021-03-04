@@ -221,20 +221,22 @@ TPCHit::DoFit( void )
 #if QuickAnalysis
   {
     Double_t max_adc = m_rhit->MaxAdc();
+    //std::cout<<"max_dE = "<<max_adc - m_pedestal<<std::endl;
     if (max_adc-m_pedestal < MinDe) {
       return false;
     }
   }
 #endif
-
+  
   m_layer = m_rhit->LayerId();
+  m_row = m_rhit->RowId();
   static TCanvas c1("c1", "c1", 800, 600);
   c1.cd();
   TH1D h1( FUNC_NAME+"-h1", "Pedestal",
            MaxADC, 0, MaxADC );
   TH1D h2( FUNC_NAME+"-h2",
-           Form("Layer#%d Row#%.0lf;Time Bucket;ADC",
-                m_layer, m_wire),
+           Form("Layer#%d Row#%d;Time Bucket;ADC",
+                m_layer, m_row),
            NumOfTimeBucket, 0, NumOfTimeBucket );
   for( Int_t i=0, n=m_rhit->Fadc().size(); i<n; ++i ){
     Double_t tb = i + 1;
@@ -406,8 +408,8 @@ TPCHit::DoFit( void )
       m_chisqr.push_back(chisqr);
       m_sigma.push_back(sigma);
 #if DebugEvDisp
-      hddaq::cout << FUNC_NAME << " (time,de,chisqr)=("
-                << time << "," << de << "," << chisqr << ")" << std::endl;
+      hddaq::cout << FUNC_NAME << " (time,de,chisqr, rms)=("
+		  << time << "," << de << "," << chisqr << "," << m_rms <<")" << std::endl;
 #endif
     }
 
