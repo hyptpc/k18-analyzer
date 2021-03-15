@@ -364,6 +364,7 @@ bool
 DCAnalyzer::DecodeTPCHits( RawData *rawData )
 {
   static const Int_t TPC_Subtraction = gUser.GetParameter("TPC_Subtraction");
+  static const Int_t TPC_Multi = gUser.GetParameter("TPC_Multi");
   if( m_is_decoded[k_TPC] ){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
@@ -371,6 +372,18 @@ DCAnalyzer::DecodeTPCHits( RawData *rawData )
   }
 
   ClearTPCHits();
+  
+  int numhit =0; 
+    //multiplicity cut for partial readout mode
+  for( int layer=0; layer<=NumOfLayersTPC; ++layer ){
+    const auto& rhit =  rawData->GetTPCRawHC( layer ); 
+    const std::size_t nh = rhit.size();
+    numhit += nh;
+  }
+  if(TPC_Multi>0&&numhit>TPC_Multi){
+    m_is_decoded[k_TPC] = true;
+    return true;
+  }
 
   for( int layer=0; layer<=NumOfLayersTPC; ++layer ){
     if(TPC_Subtraction == 1 ){

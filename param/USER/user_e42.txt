@@ -82,6 +82,7 @@ MinTotSDC1 25
 
 ### TPCHit
 TPC_Subtraction		0
+TPC_Multi		-1
 MinDeTPC		50
 MinRmsTPC		10
 TimeBucketTPC		25 175

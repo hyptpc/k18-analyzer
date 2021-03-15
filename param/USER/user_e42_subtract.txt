@@ -82,6 +82,7 @@ MinTotSDC1 25
 
 ### TPCHit
 TPC_Subtraction		1
+TPC_Multi		-1
 MinDeTPC		40
 #MinRmsTPC		10
 MinRmsTPC		0
