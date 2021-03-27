@@ -57,7 +57,7 @@ class SingleRun(object):
     self.__log_path = None
     self.__merge_log_path = None
     self.__nproc = runinfo['nproc']
-    if self.__nproc >= MAX_NPROC:
+    if self.__nproc > MAX_NPROC:
       logger.warning(f'{self.__key} nproc must be {MAX_NPROC} or less'+
                      f'=> change {MAX_NPROC}')
       self.__nproc = MAX_NPROC
@@ -371,8 +371,12 @@ class SingleRun(object):
     size = 0
     for item in self.__root_list:
       size += os.path.getsize(item)
-    # qOpt = '-q sx' if size > 2 * 1024**3 + 5 * 1024**2 else '-q s'
-    qOpt = '-q s'
+    if size > 3.8*(10**9):
+      qOpt = '-q lx'
+    else:
+      qOpt = '-q s'
+    # qOpt = '-q sx' if size > 3.8*(10**9) else '-q s'
+    # qOpt = '-q s'
     pOpt = f'-j {self.__nproc}' if self.__nproc > 1 else ''
     bOpt = f'-d {self.__buff_path}' if self.__buff_path is not None else ''
     cmd = shlex.split(f'bsub {qOpt} -o {self.__merge_log_path} '+
