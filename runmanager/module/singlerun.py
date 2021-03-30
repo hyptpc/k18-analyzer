@@ -65,6 +65,7 @@ class SingleRun(object):
     self.__nevents = runinfo['nevents']
     self.__div_unit = runinfo['unit']
     self.__queue = runinfo['queue']
+    self.__qmerge = runinfo['qmerge']
     self.__option = ''
     self.__start_time = time.time()
     self.__elapsed_time = 0
@@ -227,6 +228,7 @@ class SingleRun(object):
     # self.update_status()
     info = dict()
     info['queue'] = self.__queue
+    info['qmerge'] = self.__qmerge
     info['nproc'] = self.__nproc
     info['unit'] = self.__div_unit
     info['nev'] = self.__nevents
@@ -264,6 +266,11 @@ class SingleRun(object):
   # def get_prefetch_path(self):
   #   ''' Get prefetch path. '''
   #   return self.__prefetch_path
+
+  #____________________________________________________________________________
+  def get_queue_merge(self):
+    ''' Get queue for merging job. '''
+    return self.__qmerge
 
   #____________________________________________________________________________
   def get_queue(self):
@@ -368,15 +375,15 @@ class SingleRun(object):
       os.rename(self.__root_list[0], self.__root_path)
       self.__merge_status = 'DONE'
       return
-    size = 0
-    for item in self.__root_list:
-      size += os.path.getsize(item)
+    # size = 0
+    # for item in self.__root_list:
+    #   size += os.path.getsize(item)
     # if size > 3.8*(10**9):
     #   qOpt = '-q sx'
     # else:
     #   qOpt = '-q s'
     # qOpt = '-q sx' if size > 3.8*(10**9) else '-q s'
-    qOpt = '-q s'
+    qOpt = f'-q {self.__qmerge}'
     pOpt = f'-j {self.__nproc}' if self.__nproc > 1 else ''
     bOpt = f'-d {self.__buff_path}' if self.__buff_path is not None else ''
     cmd = shlex.split(f'bsub {qOpt} -o {self.__merge_log_path} '+
@@ -468,6 +475,7 @@ class SingleRun(object):
     self.__dump_log('nproc', self.__nproc)
     self.__dump_log('buff_path', self.__buff_path)
     self.__dump_log('queue', self.__queue)
+    self.__dump_log('qmerge', self.__qmerge)
     # self.__dump_log('prefetch', self.__prefetch_path)
     self.__dump_log('dirdummy', self.__dummy_dir.name)
     self.__dump_log(None, '_'*80)
@@ -676,6 +684,8 @@ class SingleRun(object):
     stat = data['stat']
     nseg = data['nseg']
     prog = data['prog']
+    queue = data['queue']
+    qmerge = data['qmerge'] if 'qmerge' in data else '?'
     if stat == 'INIT':
       buff = 'init'
     elif stat == 'PURGED':
@@ -683,11 +693,11 @@ class SingleRun(object):
     elif stat == 'STAGED':
       buff = 'staged'
     elif stat == 'BJOB-RUNNING':
-      buff = f'running({prog}/{nseg})'
+      buff = f'running:{queue}({prog}/{nseg})'
     elif stat == 'BJOB-DONE':
-      buff = f'running({prog}/{nseg})'
+      buff = f'running:{queue}({prog}/{nseg})'
     elif stat == 'MERGING':
-      buff = f'merging({nseg})'
+      buff = f'merging:{qmerge}({nseg})'
     elif stat == 'TERMINATED':
       buff = 'terminated'
     elif stat == 'DONE':

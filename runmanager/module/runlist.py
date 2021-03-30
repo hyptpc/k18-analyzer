@@ -317,20 +317,29 @@ class RunlistManager(metaclass=classimpl.Singleton):
         else:
           logger.error(f'{run["bin"]} needs input files set as "dstin".')
           exit(1)
-      run['unit'] = (item[1]['unit'] if isinstance(item[1]['unit'], int)
-                     else 0)
-      run['queue'] = (item[1]['queue'] if isinstance(item[1]['queue'], str)
-                      else 's')
-      run['nproc'] = (item[1]['nproc'] if isinstance(item[1]['nproc'], int)
-                      else 1)
-      if item[1]['buff'] is None:
-        pbuff = None
-      elif os.path.isdir(item[1]['buff']):
-        pbuff = item[1]['buff']
+      if 'unit' in item[1] and isinstance(item[1]['unit'], int):
+        run['unit'] = item[1]['unit']
       else:
-        logger.error('Cannot decide buffer file path')
-        exit(1)
-      run['buff'] = pbuff
+        run['unit'] = 0
+      if 'queue' in item[1] and isinstance(item[1]['queue'], str):
+        run['queue'] = item[1]['queue']
+      else:
+        run['queue'] = 's'
+      if 'qmerge' in item[1] and isinstance(item[1]['qmerge'], str):
+        run['qmerge'] = item[1]['qmerge']
+      else:
+        run['qmerge'] = 's'
+      if 'nproc' in item[1] and isinstance(item[1]['nproc'], int):
+        run['nproc'] = item[1]['nproc']
+      else:
+        run['nproc'] = 1
+      if 'buff' in item[1] and os.path.isdir(item[1]['buff']):
+        run['buff'] = item[1]['buff']
+      else:
+        run['buff'] = run['root']
+      # else:
+      #   logger.error('Cannot decide buffer file path')
+      #   exit(1)
       self.__runlist.append(run)
       self.__keys.append(run['key'])
     os.chdir(self.__work_dir)

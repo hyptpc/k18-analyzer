@@ -59,8 +59,8 @@ def display(filename):
   for key, item in sorted(info.items(),
                           key=lambda x:int(x[0]) if isinstance(x[0], int) else x[0]):
     status = singlerun.SingleRun.decode_status(item)
-    if 'done' in status:
-      continue
+    # if 'done' in status:
+    #   continue
     n_unfinished += 1
     ptime = singlerun.SingleRun.decode_time(item)
     buff = (cl.bold + key[:8].ljust(8) + cl.end + '  '
