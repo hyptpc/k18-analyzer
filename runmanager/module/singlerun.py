@@ -371,12 +371,12 @@ class SingleRun(object):
     size = 0
     for item in self.__root_list:
       size += os.path.getsize(item)
-    if size > 3.8*(10**9):
-      qOpt = '-q lx'
-    else:
-      qOpt = '-q s'
+    # if size > 3.8*(10**9):
+    #   qOpt = '-q sx'
+    # else:
+    #   qOpt = '-q s'
     # qOpt = '-q sx' if size > 3.8*(10**9) else '-q s'
-    # qOpt = '-q s'
+    qOpt = '-q s'
     pOpt = f'-j {self.__nproc}' if self.__nproc > 1 else ''
     bOpt = f'-d {self.__buff_path}' if self.__buff_path is not None else ''
     cmd = shlex.split(f'bsub {qOpt} -o {self.__merge_log_path} '+
@@ -387,12 +387,20 @@ class SingleRun(object):
                                             stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE,
                                             check=True)
+    time.sleep(1)
     buff = self.__merging_process.stdout
-    self.__merging_job = bjob.BJob(bjob.BJob.read_job_id(buff.decode()))
-    self.__dump_log('jid[merge]', self.__merging_job.get_job_id())
-    self.__dump_log(None, '_'*80)
-    self.__merge_status = 'RUNNING'
-
+    job_id = bjob.BJob.read_job_id(buff.decode())
+    if job_id is not None:
+      btop_proc = subprocess.run(['btop', str(job_id)],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+      self.__merging_job = bjob.BJob(job_id)
+      self.__dump_log('jid[merge]', self.__merging_job.get_job_id())
+      self.__dump_log(None, '_'*80)
+      self.__merge_status = 'RUNNING'
+    else:
+      logger.warning(f'failed to read jobid ({cmd})')
+      self.__merge_status = 'FAILED'
   #____________________________________________________________________________
   def set_option(self, option):
     ''' Set option. '''

@@ -1,0 +1,16 @@
+WORKDIR: ~/k18analyzer/e42
+DEFAULT:
+  bin: bin/DstTPCTracking
+  buff: root/buf
+  conf: param/conf/analyzer_e42_2021feb.conf
+  data: /hsm/had/sks/E42/JPARC2021Feb/e03_2021feb
+  dstin:
+  - TPCHit
+  nproc: 18
+  queue: l
+  root: root/e42
+  unit: 1000
+RUN:
+  1:
+  2:
+  3:

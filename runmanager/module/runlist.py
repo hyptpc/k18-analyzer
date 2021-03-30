@@ -228,9 +228,9 @@ class RunlistManager(metaclass=classimpl.Singleton):
             and runno is not None
             and isinstance(runno, int)):
         base = f'{path}/run{runno:05d}'
-        data = f'{base}.dat.gz'
+        data = f'{base}.dat'
         if not os.path.isfile(data):
-          data = f'{base}.dat'
+          data = f'{base}.dat.gz'
         if os.path.isfile(data):
           return os.path.realpath(data)
         else:
