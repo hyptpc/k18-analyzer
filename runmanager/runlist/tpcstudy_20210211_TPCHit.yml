@@ -28,6 +28,7 @@ WORKDIR: ~/k18analyzer/e42
 
 DEFAULT:
   queue: s
+  qmerge: s
   unit:  100
   nproc: 10
   buff:  root/buf

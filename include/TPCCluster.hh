@@ -33,6 +33,8 @@ private:
   std::vector<TPCHit*> m_tpchits;
   bool m_pos_calculated;
   double   m_mrow;
+  int   m_mrow_int;
+  double  m_charge_center;
 
   void Calculate( void );
   void CalculateWeightedMean( void );
@@ -44,6 +46,8 @@ public:
   
   int  MeanPadId( void )        const { return m_pad_id; }
   double MeanRow( void )        const { return m_mrow; }
+  int MeanRow_int( void )        const { return m_mrow_int; }
+  double Charge_center( void )		const { return m_charge_center; }
   void Print( const std::string& arg="" ) const;
   
   int  GetClusterSize()		const { return m_tpchits.size(); }

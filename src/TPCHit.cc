@@ -102,9 +102,11 @@ TPCHit::TPCHit( Int_t layer, Double_t mrow )
     m_row = (int)mrow;
   else
     m_row = 1+(int)mrow;
-  m_row = (int)mrow;
-  m_pad = tpc::GetPadId(layer, (int)mrow);
+  //  m_row = (int)mrow;
+  //  m_pad = tpc::GetPadId(layer, (int)mrow);
+  m_pad = tpc::GetPadId(layer, m_row);
   m_charge = 0.;
+  m_charge_center = 0.;
   m_pos=TVector3(0.,0.,0.);
   m_is_good = true;
   m_is_calculated = false;

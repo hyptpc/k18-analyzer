@@ -22,8 +22,9 @@
 #include "DetectorID.hh"
 
 //#define GateCalib 1
-#define GateCalib 1
-#define GainCalib 1
+#define GateCalib 0
+#define GainCalib 0
+#define Srdata 1
 //#define GainCalib 0
 
 
@@ -235,8 +236,13 @@ UserEvent::ProcessingNormal( void )
 #endif
 
 #if GainCalib
-	if(69.<time&&time<85.&&nhit==1)
-	  HF1(2*PadHid + layer*1000 + row, de);
+	//	if(69.<time&&time<85.&&nhit==1)
+	HF1(2*PadHid + layer*1000 + row, de);
+#endif
+
+#if Srdata
+	if(69.<time&&time<85.&&nhit==1&&layer==31)
+	  HF1(3*PadHid + layer*1000 + row, de);
 #endif
 
         good_for_analysis = true;
@@ -341,6 +347,16 @@ ConfMan:: InitializeHistograms( void )
       HB1(2*PadHid + layer*1000 + r , "TPC DeltaE", NbinDe, MinDe, MaxDe );
     }
     }
+#endif
+
+#if Srdata
+  //  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+  Int_t layer= 31;
+  const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
+  for( Int_t r=0; r<NumOfRow; ++r ){
+    HB1(3*PadHid + layer*1000 + r , "TPC DeltaE", NbinDe, MinDe, MaxDe );
+  }
+  //}
 #endif
 
   // Tree

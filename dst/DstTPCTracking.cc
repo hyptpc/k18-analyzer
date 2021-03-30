@@ -21,11 +21,15 @@
 #include "Kinematics.hh"
 #include "MathTools.hh"
 #include "RootHelper.hh"
+#include "TPCPadHelper.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
+
+#define TrackSearch 0
+#define Gain_center 1
 
 namespace
 {
@@ -75,6 +79,10 @@ struct Event
   std::vector<Double_t> cluster_hitpos_z;
   std::vector<Double_t> cluster_de;
   std::vector<Int_t> cluster_size;
+  std::vector<Int_t> cluster_layer;
+  std::vector<Int_t> cluster_row;
+  std::vector<Double_t> cluster_de_center;  
+
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
   std::vector<Double_t> chisqr;
@@ -112,6 +120,9 @@ struct Event
     cluster_hitpos_z.clear();
     cluster_de.clear();
     cluster_size.clear();
+    cluster_layer.clear();
+    cluster_row.clear();
+    cluster_de_center.clear();
     ntTpc = 0;
     trigpat.clear();
     trigflag.clear();
@@ -162,6 +173,9 @@ Event  event;
 Src    src;
 TH1   *h[MaxHist];
 TTree *tree;
+  enum eDetHid {
+    PadHid    = 100000,
+  };
 }
 
 //_____________________________________________________________________________
@@ -291,18 +305,30 @@ dst::DstRead( int ievent )
       Double_t z = hit->GetZ();
       Double_t de = hit->GetCharge();
       Int_t cl_size = hit->GetClusterSize();
+      Int_t row = hit->GetRow();
+      Double_t de_center = hit->GetCharge_center();
       event.cluster_hitpos_x.push_back(x);
       event.cluster_hitpos_y.push_back(y);
       event.cluster_hitpos_z.push_back(z);
       event.cluster_de.push_back(de);
       event.cluster_size.push_back(cl_size);
+      event.cluster_layer.push_back(layer);
+      event.cluster_row.push_back(row);
+      event.cluster_de_center.push_back(de_center);
+#if Gain_center
+      //	if(69.<time&&time<85.&&nhit==1)
+      if(cl_size>1)
+	HF1(PadHid + layer*1000 + row, de_center);
+#endif
+
       ++nh_cl_Tpc;
     }
   }
   event.nh_cluster_Tpc = nh_cl_Tpc;
 
-
+#if TrackSearch
   DCAna.TrackSearchTPC();
+#endif 
 
   Int_t ntTpc = DCAna.GetNTracksTPC();
   event.ntTpc = ntTpc;
@@ -408,6 +434,9 @@ dst::DstClose( void )
 Bool_t
 ConfMan::InitializeHistograms( void )
 {
+  const Int_t    NbinDe = 1000;
+  const Double_t MinDe  =    0.;
+  const Double_t MaxDe  = 2000.;
   HB1( 1, "Status", 21, 0., 21. );
   HB1( 10, "NTrack TPC", 40, 0., 40. );
 
@@ -430,6 +459,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "cluster_hitpos_z", &event.cluster_hitpos_z );
   tree->Branch( "cluster_de", &event.cluster_de );
   tree->Branch( "cluster_size", &event.cluster_size );
+  tree->Branch( "cluster_layer", &event.cluster_layer );
+  tree->Branch( "cluster_row", &event.cluster_row );
+  tree->Branch( "cluster_de_center", &event.cluster_de_center );
 
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
@@ -450,6 +482,17 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "residual_x", &event.residual_x );
   tree->Branch( "residual_y", &event.residual_y );
   tree->Branch( "residual_z", &event.residual_z );
+
+#if Gain_center
+  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+    const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
+    for( Int_t r=0; r<NumOfRow; ++r ){
+      HB1(PadHid + layer*1000 + r , "TPC DeltaE_center", NbinDe, MinDe, MaxDe );
+    }
+  }
+#endif
+
+
 
   TTreeReaderCont[kTpcHit] = new TTreeReader( "tpc", TFileCont[kTpcHit] );
   const auto& reader = TTreeReaderCont[kTpcHit];

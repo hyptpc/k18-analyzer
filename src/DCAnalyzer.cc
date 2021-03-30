@@ -466,12 +466,14 @@ DCAnalyzer::ReCalcTPCHits( const int nhits,
 	TVector3 pos = p->Position();
         TVector3 cpos = gTPCPos.Correct(pos);
         double charge = p->Charge();
+	double charge_center = p->Charge_center();
 	double mrow = p->MeanRow();
 	int clusterSize = p->GetClusterSize();
 	TPCHit* hit = new TPCHit(layer, mrow);
 	hit->SetPos(pos);
 	hit->SetCharge(charge);
 	hit->SetClusterSize(clusterSize);
+	hit->SetCharge_center(charge_center);
         // std::cout<<"Cluster, layer:"<<layer<<", "
         //  	       <<"pos:"<<pos<<", "
         //  	       <<"mrow:"<<p->MeanRow()<<", "
