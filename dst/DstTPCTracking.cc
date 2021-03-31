@@ -31,17 +31,21 @@
 #define TrackSearch 0
 #define Gain_center 1
 
+
 namespace
 {
-using namespace root;
-using namespace dst;
-using hddaq::unpacker::GUnpacker;
-const auto& gUnpacker = GUnpacker::get_instance();
-auto&       gConf = ConfMan::GetInstance();
-const auto& gGeom = DCGeomMan::GetInstance();
-const auto& gUser = UserParamMan::GetInstance();
-const auto& gPHC  = HodoPHCMan::GetInstance();
-const auto& gCounter = debug::ObjectCounter::GetInstance();
+  using namespace root;
+  using namespace dst;
+  using hddaq::unpacker::GUnpacker;
+  const auto& gUnpacker = GUnpacker::get_instance();
+  auto&       gConf = ConfMan::GetInstance();
+  const auto& gGeom = DCGeomMan::GetInstance();
+  const auto& gUser = UserParamMan::GetInstance();
+  const auto& gPHC  = HodoPHCMan::GetInstance();
+  const auto& gCounter = debug::ObjectCounter::GetInstance();
+  //position cut for gain histogram
+  const double min_ycut = -15.;//mm
+  const double max_ycut = 15.;//mm
 }
 
 namespace dst
@@ -321,8 +325,10 @@ dst::DstRead( int ievent )
       event.cluster_de_center.push_back(de_center);
 #if Gain_center
       //	if(69.<time&&time<85.&&nhit==1)
-      if(cl_size>1)
-	HF1(PadHid + layer*1000 + row, de_center);
+      if(cl_size>1){
+	if(min_ycut<y&&y<max_ycut)
+	  HF1(PadHid + layer*1000 + row, de_center);
+      }
 #endif
 
       ++nh_cl_Tpc;

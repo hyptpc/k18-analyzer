@@ -90,7 +90,10 @@ MinRmsTPC		0
 #TimeBucketTPC		25 160
 TimeBucketTPC		55 100
 #temporary (ch) -> should be ns unit
-Time0TPC   	   	  76.75
+#Time0TPC   	   	  76.75
+#gate noise = 12.14 ch
+#(Time0TPC - 12.14)*80.*0.05 = 300.
+Time0TPC   	   	  87.14
 #HIMAC value mm/ns
 DriftVelocityTPC	0.05
 
