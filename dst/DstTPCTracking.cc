@@ -81,6 +81,7 @@ struct Event
   std::vector<Int_t> cluster_size;
   std::vector<Int_t> cluster_layer;
   std::vector<Int_t> cluster_row;
+  std::vector<Double_t> cluster_mrow;
   std::vector<Double_t> cluster_de_center;  
 
   Int_t ntTpc; // Number of Tracks
@@ -122,6 +123,7 @@ struct Event
     cluster_size.clear();
     cluster_layer.clear();
     cluster_row.clear();
+    cluster_mrow.clear();
     cluster_de_center.clear();
     ntTpc = 0;
     trigpat.clear();
@@ -306,6 +308,7 @@ dst::DstRead( int ievent )
       Double_t de = hit->GetCharge();
       Int_t cl_size = hit->GetClusterSize();
       Int_t row = hit->GetRow();
+      Double_t mrow = hit->GetMRow();
       Double_t de_center = hit->GetCharge_center();
       event.cluster_hitpos_x.push_back(x);
       event.cluster_hitpos_y.push_back(y);
@@ -314,6 +317,7 @@ dst::DstRead( int ievent )
       event.cluster_size.push_back(cl_size);
       event.cluster_layer.push_back(layer);
       event.cluster_row.push_back(row);
+      event.cluster_mrow.push_back(mrow);
       event.cluster_de_center.push_back(de_center);
 #if Gain_center
       //	if(69.<time&&time<85.&&nhit==1)
@@ -461,6 +465,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "cluster_size", &event.cluster_size );
   tree->Branch( "cluster_layer", &event.cluster_layer );
   tree->Branch( "cluster_row", &event.cluster_row );
+  tree->Branch( "cluster_mrow", &event.cluster_mrow );
   tree->Branch( "cluster_de_center", &event.cluster_de_center );
 
   tree->Branch( "ntTpc", &event.ntTpc );
