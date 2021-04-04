@@ -1935,8 +1935,8 @@ namespace track
     const double Li_theta_min  =   0;
     const double Li_theta_max  = 180;
     const int    Li_r_ndiv =  200;
-    const double Li_r_min  = -500;
-    const double Li_r_max  =  500;
+    const double Li_r_min  = -600;
+    const double Li_r_max  =  600;
     
     static const Int_t ClusterSizeCut = gUser.GetParameter("TPCClusterSizeCut");
     
@@ -1967,6 +1967,8 @@ namespace track
 	    double theta = Li_theta_min+ti*(Li_theta_max-Li_theta_min)/Li_theta_ndiv;
 	    Li_hist.Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
 			 +sin(theta*acos(-1)/180.)*pos.X());
+	    if(fabs(cos(theta*acos(-1)/180.)*pos.Z()+sin(theta*acos(-1)/180.)*pos.X())>Li_r_max)
+	      std::cout<<"Hough: out of range:"<<cos(theta*acos(-1)/180.)*pos.Z()+sin(theta*acos(-1)/180.)*pos.X()<<std::endl;
 	  }
 	} // cluster
       } // layer
@@ -2033,9 +2035,10 @@ namespace track
 
     }//track
 
-
     CalcTracksTPC( TrackCont );
-
+    // std::cout<<"event end"<<std::endl;
+    //getchar();
+    
     return status? TrackCont.size() : -1;
 
     return 0;

@@ -17,8 +17,8 @@ namespace
   const std::string& class_name("TPCCluster");
 }
 
-#define WeightedMean 0
-#define WeightedMeanTheta 1
+#define WeightedMean 1
+#define WeightedMeanTheta 0
 
 
 

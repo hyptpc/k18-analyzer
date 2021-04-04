@@ -52,16 +52,20 @@ namespace
   const HodoParamMan& gHodo = HodoParamMan::GetInstance();
   static const double  FitStep[4] = { 1.0e-6, 1.0e-10, 1.0e-6, 1.0e-10};
   //static const double  FitStep[4] = { 1.0e-2, 1.0e-6, 1.0e-2, 1.0e-6};
-  static const double  LowLimit[4] = { -200., -0.5*acos(-1.), -200, -0.5*acos(-1.) };
-  static const double  UpLimit[4] = { 200., 0.5*acos(-1.), 200, 0.5*acos(-1.) };
-  static const double  MaxChisqr = 500.;
+  static const double  LowLimit[4] = { -400., -1.0*acos(-1.), -400, -1.0*acos(-1.) };
+  static const double  UpLimit[4] = { 400., 1.0*acos(-1.), 400, 1.0*acos(-1.) };
+  //  static const double  MaxChisqr = 500.;
+  static const double  MaxChisqr = 10000.;
 
   const int    theta_ndiv = 100;
   const double theta_min  =   0;
   const double theta_max  = 180;
   const int    r_ndiv =  100;
-  const double r_min  = -500;
-  const double r_max  =  500;
+  const double r_min  = -600;
+  const double r_max  =  600;
+  
+  //  static const double  res_check_factor = 5.;
+  static const double  res_check_factor = 10.;
 }
 
 //______________________________________________________________________________
@@ -345,6 +349,8 @@ TPCLocalTrack::DoLinearFit( int MinHits )
   DeleteNullHit();
 
   const std::size_t n = m_hit_array.size();
+  //std::cout<<"num of hits= "<<n<<std::endl;
+
 
   if(n<MinHits){
     return false;
@@ -374,6 +380,8 @@ TPCLocalTrack::DoLinearFit( int MinHits )
       double theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
       hist.Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
 		 +sin(theta*acos(-1)/180.)*pos.Y());
+      if(fabs(cos(theta*acos(-1)/180.)*pos.Z()+sin(theta*acos(-1)/180.)*pos.Y())>r_max)
+	std::cout<<"HoughY: out of range:"<<cos(theta*acos(-1)/180.)*pos.Z()+sin(theta*acos(-1)/180.)*pos.Y()<<std::endl;
     }
   }
   int maxbin = hist.GetMaximumBin();
@@ -386,7 +394,9 @@ TPCLocalTrack::DoLinearFit( int MinHits )
 
   double m_Ay = p0+p1*zTgtTPC;
   double m_Av = p1;
-
+  // std::cout<<"Hough x param:"<<m_Ax<<", y param:"<<m_Ay<<std::endl;
+  // std::cout<<"Hough u param:"<<m_Au<<", v param:"<<m_Av<<std::endl;
+  
   double m_Au_atan = atan(m_Au);
   double m_Av_atan = atan(m_Av);
 
@@ -423,6 +433,8 @@ TPCLocalTrack::DoLinearFit( int MinHits )
   m_minuit->Command("SET STRategy 0");
   arglist[0] = 5000.;
   arglist[1] = 0.01;
+  // arglist[0] = 10000.;
+  // arglist[1] = 0.001;
   m_minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
   //m_minuit->mnexcm("MINOS", arglist, 0, ierflg);
   //m_minuit->mnexcm("SET ERR", arglist, 2, ierflg);
@@ -502,7 +514,10 @@ TPCLocalTrack::DoLinearFit( int MinHits )
   }
 
 
-  //  std::cout<<"m_chisqr="<<m_chisqr<<", chisqr1="<<chisqr1<<", chisqr2="<<chisqr2<<std::endl;
+  // std::cout<<"chisqr1="<<chisqr1<<", chisqr2="<<chisqr2<<", chisqr3="<<chisqr3<<std::endl;
+  // std::cout<<"m_chisqr="<<m_chisqr<<std::endl;
+
+
   if(m_chisqr > MaxChisqr||std::isnan(m_chisqr))
     return false;
 
@@ -514,6 +529,7 @@ TPCLocalTrack::DoLinearFit( int MinHits )
     TVector3 Res = hitp->GetResolutionVect();
     if(!Residual_check(pos,Res)){
       // std::cout<<"false layer:"<<i<<", n="<<m_hit_array.size()<<std::endl;
+      // std::cout<<"m_x0:"<<m_x0<<", m_y0="<<m_y0<<std::endl;
       // std::cout<<"m_u0:"<<m_u0<<", m_v0="<<m_v0<<", m_chisqr="<<m_chisqr<<std::endl;
       m_hit_array.erase( m_hit_array.begin()+i );
       ++false_layer;
@@ -525,6 +541,7 @@ TPCLocalTrack::DoLinearFit( int MinHits )
 
 
   if(false_layer ==0){
+    //std::cout<<"return true"<<std::endl;
     return true;
   }
   else
@@ -548,9 +565,14 @@ TPCLocalTrack::Residual_check(TVector3 pos, TVector3  Res)
 	      x0.z()+(u.z()*dist_AX));
   TVector3 d = pos-AI;
 
-  if(d.Mag()<Res.Mag()*5.)
+  if(d.Mag()<Res.Mag()*res_check_factor)
     status_rescheck = true;
-
+  else{
+    // std::cout<<"false hit"<<std::endl;
+    // std::cout<<"hitpos:"<<pos<<", calcpos:"<<AI<<std::endl;
+    // std::cout<<"dMag:"<<d.Mag()<<", Res:"<<Res.Mag()<<", d:"<<d<<std::endl;
+  }
+   
   return status_rescheck;
 }
 

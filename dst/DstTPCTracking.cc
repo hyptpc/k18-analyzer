@@ -28,7 +28,7 @@
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
 
-#define TrackSearch 0
+#define TrackSearch 1
 #define Gain_center 1
 
 
@@ -46,6 +46,8 @@ namespace
   //position cut for gain histogram
   const double min_ycut = -15.;//mm
   const double max_ycut = 15.;//mm
+  // const double min_ycut = -30.;//mm
+  // const double max_ycut = 30.;//mm
 }
 
 namespace dst
