@@ -1,8 +1,4 @@
-/**
- *  file: TPCCluster.cc
- *  date: 2020.04.11
- *
- */
+// -*- C++ -*-
 
 #include "TPCCluster.hh"
 #include <iostream>
@@ -20,9 +16,7 @@ namespace
 #define WeightedMean 1
 #define WeightedMeanTheta 0
 
-
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 TPCCluster::TPCCluster( int layer, const TPCHitContainer& HitCont )
   : m_layer_id( layer ),
     m_pad_id(),
@@ -30,16 +24,16 @@ TPCCluster::TPCCluster( int layer, const TPCHitContainer& HitCont )
     m_pos(),
     m_tpchits(),
     m_pos_calculated(false),
+    m_mrow(),
     m_mrow_int(),
-    m_charge_center(),
-    m_mrow()
+    m_charge_center()
 {
   m_tpchits.resize(HitCont.size());
   std::copy(HitCont.begin(), HitCont.end(), m_tpchits.begin());
   debug::ObjectCounter::increase(class_name);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 TPCCluster::TPCCluster( double x, double y, double z, double de )
   : m_layer_id(tpc::getLayerID(tpc::findPadID(z, x))),
     m_pad_id(tpc::findPadID(z, x)),
@@ -47,21 +41,21 @@ TPCCluster::TPCCluster( double x, double y, double z, double de )
     m_pos(x, y, z),
     m_tpchits(),
     m_pos_calculated(true), // for MC data
+    m_mrow(),
     m_mrow_int(tpc::getRowID(tpc::findPadID(z, x))),
-    m_charge_center(),
-    m_mrow()
+    m_charge_center()
 {
   debug::ObjectCounter::increase(class_name);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 TPCCluster::~TPCCluster( void )
 {
   ClearTPCHits();
   debug::ObjectCounter::decrease(class_name);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 TPCCluster::ClearTPCHits( void )
 {
@@ -75,7 +69,7 @@ TPCCluster::ClearTPCHits( void )
   m_charge=0;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 TPCCluster::AddTPCHit( TPCHit* hit )
 {
@@ -88,7 +82,7 @@ TPCCluster::AddTPCHit( TPCHit* hit )
 
 
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 TPCCluster::Calculate( void )
 {
@@ -100,7 +94,7 @@ TPCCluster::Calculate( void )
 #endif
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 TPCCluster::CalculateWeightedMean( void )
 {
@@ -128,7 +122,7 @@ TPCCluster::CalculateWeightedMean( void )
     for(int hiti=0; hiti<m_tpchits.size(); hiti++) {
       if(m_mrow_int==m_tpchits[hiti]->GetRow())
 	m_charge_center = m_tpchits[hiti]->GetCharge();
-    }    
+    }
   }
   else {
     m_pos.SetXYZ( 0, 0, 0 );
@@ -138,7 +132,7 @@ TPCCluster::CalculateWeightedMean( void )
   m_pos_calculated = true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 TPCCluster::CalculateWeightedMeanTheta( void )
 {
@@ -190,7 +184,7 @@ TPCCluster::CalculateWeightedMeanTheta( void )
 
 
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 TVector3
 TPCCluster::Position( void )
 {
@@ -198,7 +192,7 @@ TPCCluster::Position( void )
   return m_pos;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 double
 TPCCluster::X( void )
 {
@@ -206,7 +200,7 @@ TPCCluster::X( void )
   return m_pos.X();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 double
 TPCCluster::Y( void )
 {
@@ -214,7 +208,7 @@ TPCCluster::Y( void )
   return m_pos.Y();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 double
 TPCCluster::Z( void )
 {
@@ -222,7 +216,7 @@ TPCCluster::Z( void )
   return m_pos.Z();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 double
 TPCCluster::ResX( void )
 {
@@ -242,7 +236,7 @@ TPCCluster::ResX( void )
   return sT;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 double
 TPCCluster::ResY( void )
 {
@@ -251,7 +245,7 @@ TPCCluster::ResY( void )
   return y_res;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 double
 TPCCluster::ResZ( void )
 {
@@ -272,7 +266,7 @@ TPCCluster::ResZ( void )
 }
 
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 TPCCluster::Print( const std::string& arg ) const
 {
