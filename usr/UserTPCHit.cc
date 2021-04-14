@@ -24,7 +24,7 @@
 //#define GateCalib 1
 #define GateCalib 0
 #define GainCalib 0
-#define Srdata 1
+#define Srdata 0
 //#define GainCalib 0
 
 
@@ -169,12 +169,32 @@ UserEvent::ProcessingNormal( void )
     for( const auto& rhit : hc ){
       auto mean    = rhit->Mean();
       auto max_adc = rhit->MaxAdc();
+      auto min_adc = rhit->MinAdc();
       auto rms     = rhit->RMS();
       auto loc_max = rhit->LocMax();
       HF1( 11, mean );
       HF1( 12, max_adc );
       HF1( 13, rms );
       HF1( 14, loc_max );
+      HF1( 15, min_adc );
+    }
+  }
+
+  //________________________________________________________
+  //___ TPCRawHit after subtraction
+  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+    auto hc = rawData->GetTPCCorHC( layer );
+    for( const auto& rhit : hc ){
+      auto mean    = rhit->Mean();
+      auto max_adc = rhit->MaxAdc();
+      auto min_adc = rhit->MinAdc();
+      auto rms     = rhit->RMS();
+      auto loc_max = rhit->LocMax();
+      HF1( 31, mean );
+      HF1( 32, max_adc );
+      HF1( 33, rms );
+      HF1( 34, loc_max );
+      HF1( 35, min_adc );
     }
   }
 
@@ -317,6 +337,13 @@ ConfMan:: InitializeHistograms( void )
   HB1( 12, "TPC FADC Max", NbinAdc, MinAdc, MaxAdc );
   HB1( 13, "TPC FADC RMS", NbinRms, MinRms, MaxRms );
   HB1( 14, "TPC FADC LocMax", NumOfTimeBucket+1, 0, NumOfTimeBucket+1 );
+  HB1( 15, "TPC FADC Min", NbinAdc, MinAdc, MaxAdc );
+  HB1( 31, "TPC FADC Mean Cor", NbinAdc, MinAdc, MaxAdc );
+  HB1( 32, "TPC FADC Max Cor", NbinAdc, MinAdc, MaxAdc );
+  HB1( 33, "TPC FADC RMS Cor", NbinRms, MinRms, MaxRms );
+  HB1( 34, "TPC FADC LocMax Cor", NumOfTimeBucket+1, 0, NumOfTimeBucket+1 );
+  HB1( 35, "TPC FADC Min Cor", NbinAdc, MinAdc, MaxAdc );
+
   HB1( 20, "TPC Multiplicity (TPCHit)", NumOfPadTPC+1, 0, NumOfPadTPC+1 );
   HB1( 21, "TPC Pedestal", NbinAdc, MinAdc, MaxAdc );
   HB1( 22, "TPC DeltaE", NbinDe, MinDe, MaxDe );

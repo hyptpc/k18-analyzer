@@ -86,9 +86,9 @@ TPC_Multi		-1
 MinDeTPC		40
 #MinRmsTPC		10
 MinRmsTPC		0
-#TimeBucketTPC		0 200
+TimeBucketTPC		0 200
 #TimeBucketTPC		25 160
-TimeBucketTPC		55 100
+##TimeBucketTPC		55 100
 #temporary (ch) -> should be ns unit
 Time0TPC   	   	  76.75
 #HIMAC value mm/ns
