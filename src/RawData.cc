@@ -365,6 +365,8 @@ RawData::DecodeTPCHits( void )
 {
   static const auto k_tpc = gUnpacker.get_device_id( "TPC" );
   static const auto k_adc = gUnpacker.get_data_id( "TPC", "adc" );
+  static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
+  static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
 
   if( m_is_decoded ){
     hddaq::cout << "#D " << FUNC_NAME << " "
@@ -378,7 +380,9 @@ RawData::DecodeTPCHits( void )
       const auto nhit = gUnpacker.get_entries( k_tpc, layer, 0, r, k_adc );
       for( Int_t i=0; i<nhit; ++i ){
         auto adc = gUnpacker.get( k_tpc, layer, 0, r, k_adc, i );
-        AddTPCRawHit( m_TPCRawHC[layer], layer, r, adc );
+	//temporary 
+	//if(MinTimeBucket<i&&i<MaxTimeBucket)
+	AddTPCRawHit( m_TPCRawHC[layer], layer, r, adc );
       }
     }
   }

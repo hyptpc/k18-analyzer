@@ -242,8 +242,8 @@ UserEvent::ProcessingNormal( void )
         event.ctTpc.push_back( ctime );
         event.dlTpc.push_back( dl );
 	event.sigmaTpc.push_back( sigma );
-	if(69.<time&&time<85.&&nhit==1)
-	  HF1( 22, de );
+	//	if(69.<time&&time<85.&&nhit==1)
+	HF1( 22, de );
         HF1( 24, time );
         HF1( 25, chisqr );
         HF1( 26, cde );

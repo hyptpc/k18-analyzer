@@ -36,10 +36,13 @@
 //#define FitPedestal    1
 #define FitPedestal    0
 //#define UseGaussian    1 //for gate noise fit
+#define SingleFit      1
 #define UseGaussian    0
 #define UseLandau      0
 #define UseExponential 0
 #define UseGumbel      1
+#define MultiFit       0
+#define UseMultiGumbel 0
 #define DebugEvDisp    0
 
 #if DebugEvDisp
@@ -298,18 +301,21 @@ TPCHit::DoFit( void )
     return false;
   }
 
+
 #if 1
   { //___ Peak Search
     Double_t sigma = 3;
     Double_t threshold = 0.4;
     TSpectrum spec( MaxPeaks );
-    Int_t n_peaks = spec.Search( &h2, sigma, "", threshold );
+    const Int_t n_peaks = spec.Search( &h2, sigma, "", threshold );
     if( n_peaks == 0 )
       return false;
     Double_t* x_peaks = spec.GetPositionX();
     std::vector<Double_t> sorted_x_peaks( n_peaks );
     sorted_x_peaks.assign( x_peaks, x_peaks+n_peaks );
     std::stable_sort( sorted_x_peaks.begin(), sorted_x_peaks.end() );
+
+#if SingleFit
     for( Int_t i=0; i<n_peaks; ++i ){
       Double_t time = sorted_x_peaks[i];
       Double_t de = h2.GetBinContent( h2.FindBin( time ) ) - m_pedestal;
@@ -414,7 +420,59 @@ TPCHit::DoFit( void )
 		  << time << "," << de << "," << chisqr << "," << m_rms <<")" << std::endl;
 #endif
     }
+#endif
 
+#if MiltiFit
+#if UseMultiGumbel
+    Double_t time[n_peaks];
+    Double_t de[n_peaks];
+    TString func;
+    for( Int_t i=0; i<n_peaks; ++i ){
+      time[i] = sorted_x_peaks[i];
+      de[i] = h2.GetBinContent( h2.FindBin( time[i] ) ) - m_pedestal;
+      if(i!=0)
+	func += "+";
+      func += "["+std::to_string(i*3)+"]";
+      func += "*exp(-(x-["+std::to_string(i*3+1)+"])";
+      func += "/["+std::to_string(i*3+2)+"])";
+      func += "*exp(-exp(-(x-["+std::to_string(i*3+1)+"])/["+std::to+string(i*3+2)+"]))";
+    }
+    func += "+["+std::to_string(n_peaks*3)+"]";
+    TF1 f1("f1", func,
+	   0, NumOfTimeBucket);
+    for( Int_t i=0; i<n_peaks; ++i ){
+      f1.SetParameter(i*3, de[i]);
+      f1.SetParameter(i*3+1, time[i]);
+      f1.SetParLimits(i*3+1, time[i]-10, time[i]+10);
+      f1.SetParameter(i*3+2, 3);
+      f1.SetParLimits(i*3+2, 1., 10.);
+    }
+    f1.SetParameter(n_peaks*3, m_pedestal);
+    f1.SetParLimits(n_peaks*3, m_pedestal-0.5*m_rms, m_pedestal+0.5*m_rms);
+    double FitRangeMin = MinTimeBucket;
+    double FitRangeMax = MaxTimeBucket;
+    if(MinTimeBucket<time[0]-6.-de[0]*0.07) 
+      FitRangeMin = time[0]-6.-de[0]*0.07 ;
+    if(MaxTimeBucket>time[n_peaks-1]+10.+de[n_peaks-1]*0.11)
+      FitRangeMax = time[n_peaks-1]+10.+de[n_peaks-1]*0.11;
+    h2.Fit("f1", option, "", FitRangeMin, FitRangeMax); 
+    auto p = f1.GetParameters();
+    Double_t chisqr = f1.GetChisquare()/f1.GetNDF();
+    if(chisqr > MaxChisqr)
+      continue;
+    for( Int_t i=0; i<n_peaks; ++i ){
+      time[i] = p[i*3+1]; // peak time
+      de[i] = f1.Eval(time[i]) - p[n_peaks*3]; // amplitude
+      sigma = p[i*3+2];
+      if(de[i] > MinDe){
+	m_time.push_back(time[i]);
+	m_de.pushback(de[i]);
+	m_chisqr.push_back(chisqr);
+	m_sigma.push_back(sigma);
+      }
+    }
+#endif
+#endif
   }
 #endif
 
