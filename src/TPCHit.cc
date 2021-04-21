@@ -36,13 +36,13 @@
 //#define FitPedestal    1
 #define FitPedestal    0
 //#define UseGaussian    1 //for gate noise fit
-#define SingleFit      1
+#define SingleFit      0
 #define UseGaussian    0
 #define UseLandau      0
 #define UseExponential 0
-#define UseGumbel      1
-#define MultiFit       0
-#define UseMultiGumbel 0
+#define UseGumbel      0
+#define MultiFit       1
+#define UseMultiGumbel 1
 #define DebugEvDisp    0
 
 #if DebugEvDisp
@@ -209,6 +209,7 @@ TPCHit::DoFit( void )
   gStyle->SetOptFit(1);
   gStyle->SetStatX(0.9);
   gStyle->SetStatY(0.9);
+  //gStyle->SetOptStat(0);
   Option_t* option = "";
 #else
   Option_t* option = "Q";
@@ -422,7 +423,7 @@ TPCHit::DoFit( void )
     }
 #endif
 
-#if MiltiFit
+#if MultiFit
 #if UseMultiGumbel
     Double_t time[n_peaks];
     Double_t de[n_peaks];
@@ -435,7 +436,7 @@ TPCHit::DoFit( void )
       func += "["+std::to_string(i*3)+"]";
       func += "*exp(-(x-["+std::to_string(i*3+1)+"])";
       func += "/["+std::to_string(i*3+2)+"])";
-      func += "*exp(-exp(-(x-["+std::to_string(i*3+1)+"])/["+std::to+string(i*3+2)+"]))";
+      func += "*exp(-exp(-(x-["+std::to_string(i*3+1)+"])/["+std::to_string(i*3+2)+"]))";
     }
     func += "+["+std::to_string(n_peaks*3)+"]";
     TF1 f1("f1", func,
@@ -458,17 +459,17 @@ TPCHit::DoFit( void )
     h2.Fit("f1", option, "", FitRangeMin, FitRangeMax); 
     auto p = f1.GetParameters();
     Double_t chisqr = f1.GetChisquare()/f1.GetNDF();
-    if(chisqr > MaxChisqr)
-      continue;
-    for( Int_t i=0; i<n_peaks; ++i ){
-      time[i] = p[i*3+1]; // peak time
-      de[i] = f1.Eval(time[i]) - p[n_peaks*3]; // amplitude
-      sigma = p[i*3+2];
-      if(de[i] > MinDe){
-	m_time.push_back(time[i]);
-	m_de.pushback(de[i]);
-	m_chisqr.push_back(chisqr);
-	m_sigma.push_back(sigma);
+    if(chisqr < MaxChisqr){
+      for( Int_t i=0; i<n_peaks; ++i ){
+	time[i] = p[i*3+1]; // peak time
+	de[i] = f1.Eval(time[i]) - p[n_peaks*3]; // amplitude
+	sigma = p[i*3+2];
+	if(de[i] > MinDe){
+	  m_time.push_back(time[i]);
+	  m_de.push_back(de[i]);
+	  m_chisqr.push_back(chisqr);
+	  m_sigma.push_back(sigma);
+	}
       }
     }
 #endif
@@ -478,6 +479,10 @@ TPCHit::DoFit( void )
 
 #if DebugEvDisp
   //h2.Draw("L");
+  // double maxde = 0.;
+  // if(m_de.size()>0)
+  //   maxde = TMath::MaxElement(m_de.size(), m_de.data());
+  // if(m_time.size()>3&&maxde>150.){
   h2.Draw("");
   c1.Modified();
   c1.Update();
@@ -485,6 +490,7 @@ TPCHit::DoFit( void )
   Print();
   c1.Print("c1.pdf");
   getchar();
+  //  }
 #endif
 
   gErrorIgnoreLevel = level;
