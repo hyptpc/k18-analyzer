@@ -197,6 +197,7 @@ public:
                       const std::vector<double>& time,
                       const std::vector<double>& de,
                       Bool_t do_clusterize=true );
+  void HoughYCut(double min_y, double max_y);
   bool ReCalcTrack( DCLocalTrackContainer& cont, bool applyRecursively=false );
   bool ReCalcTrack( K18TrackD2UContainer& cont, bool applyRecursively=false );
   bool ReCalcTrack( KuramaTrackContainer& cont, bool applyRecursively=false );

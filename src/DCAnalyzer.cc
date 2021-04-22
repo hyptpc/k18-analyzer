@@ -9,6 +9,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <TH2D.h>
 
 #include "ConfMan.hh"
 #include "DCDriftParamMan.hh"
@@ -79,6 +80,9 @@ const double MaxTimeDifMWPC       =   100.;
 
 const double kMWPCClusteringWireExtension =  1.0; // [mm]
 const double kMWPCClusteringTimeExtension = 10.0; // [nsec]
+
+const int    MaxNumOfTrackTPC = 100;
+const double zTgtTPC = -143.;
 
 //_____________________________________________________________________________
 inline bool /* for MWPCCluster */
@@ -494,6 +498,140 @@ DCAnalyzer::ReCalcTPCHits( const int nhits,
   m_is_decoded[k_TPC] = true;
   return true;
 }
+
+
+//_____________________________________________________________________________
+void
+DCAnalyzer::HoughYCut( double min_y, double max_y)
+{
+
+  std::vector<TPCHitContainer>  ValidCand;
+  ValidCand.resize(NumOfLayersTPC+1);
+  std::vector<TPCHitContainer>  DeleteCand;
+  DeleteCand.resize(NumOfLayersTPC+1);
+
+  
+  static const int MinLayer = gUser.GetParameter("MinLayerTPC");
+
+  static const double HoughWindowCut = gUser.GetParameter("HoughWindowCut");
+  bool status = true;
+  
+  //    if( valueHall ) { // TODO
+  //    }
+
+  // y = p0 + p1 * x
+  double p0[MaxNumOfTrackTPC];
+  double p1[MaxNumOfTrackTPC];
+  const int    Li_theta_ndiv = 200;
+  const double Li_theta_min  =   0;
+  const double Li_theta_max  = 180;
+  const int    Li_r_ndiv =  200;
+  const double Li_r_min  = -600;
+  const double Li_r_max  =  600;
+    
+  static const Int_t ClusterSizeCut = gUser.GetParameter("TPCClusterSizeCut");
+    
+
+  //for TPC linear track
+  // r = x * cos(theta) + y * sin(theta)
+  TH2D Li_hist_y("hist_linear",";theta (deg.); r (mm)",
+		 Li_theta_ndiv, Li_theta_min, Li_theta_max,
+		 Li_r_ndiv, Li_r_min, Li_r_max);
+
+  std::vector<std::vector<int> > flag;
+  flag.resize( NumOfLayersTPC );
+  for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+    flag[layer].resize( m_TPCClCont[layer].size(), 0 );
+  }
+
+  std::vector<double> hough_x;
+  std::vector<double> hough_y;
+
+  for( int tracki=0; tracki<MaxNumOfTrackTPC; tracki++ ){
+    Li_hist_y.Reset();
+    for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+      for( int ci=0, n=m_TPCClCont[layer].size(); ci<n; ci++ ){
+	if( flag[layer][ci]>0 ) continue;
+	TPCHit* hit = m_TPCClCont[layer][ci];
+	TVector3 pos = hit->GetPos();
+	for( int ti=0; ti<Li_theta_ndiv; ti++ ){
+	  double theta = Li_theta_min+ti*(Li_theta_max-Li_theta_min)/Li_theta_ndiv;
+	  Li_hist_y.Fill(theta, cos(theta*acos(-1)/180.)*pos.Z()
+			 +sin(theta*acos(-1)/180.)*pos.Y());
+	  if(fabs(cos(theta*acos(-1)/180.)*pos.Z()+sin(theta*acos(-1)/180.)*pos.Y())>Li_r_max)
+	    std::cout<<"Hough: out of range:"<<cos(theta*acos(-1)/180.)*pos.Z()+sin(theta*acos(-1)/180.)*pos.Y()<<std::endl;
+	}
+      } // cluster
+    } // layer
+      //      if( Li_hist_y.GetMaximum() < MinNumOfHits ){
+    if( Li_hist_y.GetMaximum() < MinLayer ){
+      //Li_hist_y.Delete();
+      Li_hist_y.Reset();
+      break;
+    }
+
+    int maxbin = Li_hist_y.GetMaximumBin();
+    int mx,my,mz;
+    Li_hist_y.GetBinXYZ( maxbin, mx, my, mz );
+    double mtheta = Li_hist_y.GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
+    double mr = Li_hist_y.GetYaxis()->GetBinCenter(my);
+      
+    bool hough_flag = true;
+    for(int i=0; i<hough_x.size(); ++i){
+      int bindiff = fabs(mx-hough_x[i])+fabs(my-hough_y[i]);
+      if(bindiff<=4)
+	hough_flag = false;
+    }
+    hough_x.push_back(mx);
+    hough_y.push_back(my);
+    if(!hough_flag)
+      continue;
+	
+
+    p0[tracki] = mr/sin(mtheta);
+    p1[tracki] = -cos(mtheta)/sin(mtheta);
+
+    double y_tgt = p0[tracki]+p1[tracki]*zTgtTPC;
+
+    for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+      for( int ci=0, n=m_TPCClCont[layer].size(); ci<n; ci++ ){
+	if( flag[layer][ci]>0 ) continue;
+	TPCHit* hit = m_TPCClCont[layer][ci];
+	TVector3 pos = hit->GetPos();
+	double dist = fabs(p1[tracki]*pos.Z()-pos.Y()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
+	  
+	if( dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
+	  if(min_y<y_tgt&&y_tgt<max_y)
+	    ValidCand[layer].push_back(hit);
+	  else
+	    DeleteCand[layer].push_back(hit);
+	  flag[layer][ci]++;
+	}
+      }
+    }
+    Li_hist_y.Reset();
+  }//track
+
+  for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+    for( int ci=0, n=m_TPCClCont[layer].size(); ci<n; ci++ ){
+      if( flag[layer][ci]==0 ){
+	TPCHit* hit = m_TPCClCont[layer][ci];
+	ValidCand[layer].push_back(hit);
+      }
+    }
+  }
+
+  del::ClearContainerAll( DeleteCand );
+
+  for( int layer=0; layer<NumOfLayersTPC; layer++ ){
+    m_TPCClCont[layer].clear();
+    m_TPCClCont[layer].resize( ValidCand[layer].size() );
+    std::copy( ValidCand[layer].begin(), ValidCand[layer].end(), m_TPCClCont[layer].begin() );
+    ValidCand[layer].clear();
+  }
+}
+
+
 
 //_____________________________________________________________________________
 bool
