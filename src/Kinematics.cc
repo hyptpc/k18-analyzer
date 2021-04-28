@@ -10,7 +10,7 @@
 #include <cstdio>
 
 #include <std_ostream.hh>
-
+#include <TF2.h>
 #include "MathTools.hh"
 
 namespace
@@ -163,6 +163,94 @@ namespace Kinematics
     dist = DistanceVector.Mag();
 
     return ThreeVector( vertex[0], vertex[1], vertex[2] );
+  }
+
+  //______________________________________________________________________________
+  ThreeVector
+  VertexPointTF2( const ThreeVector & Xin, const ThreeVector & Xout,
+		  const ThreeVector & Pin, const ThreeVector & Pout,
+		  double & dist )
+  {
+    double x_in = Xin.x(), y_in = Xin.y(), z_in = Xin.z();
+    double x_out = Xout.x(), y_out = Xout.y(), z_out = Xout.z();
+    double u0in = Pin.x()/Pin.z(), v0in = Pin.y()/Pin.z();
+    double u0out = Pout.x()/Pout.z(), v0out = Pout.y()/Pout.z();
+
+    double x0in = x_in - u0in*z_in, y0in = y_in - v0in*z_in;
+    double x0out = x_out - u0out*z_out, y0out = y_out - v0out*z_out;
+    // in function
+    // x = [0] + [1]*t
+    // y = [2] + [3]*t
+    // z = t
+
+    // out function
+    // x = [4] + [5]*t
+    // y = [6] + [7]*t
+    // z = t
+    
+    static TF2 fvert("fvert",
+		     "pow(([0]+[1]*x)-([4]+[5]*y),2)+pow(([2]+[3]*x)-([6]+[7]*y),2)+pow(x-y,2)",
+		     -1000.,1000.,-1000.,1000.);
+    
+    fvert.SetParameter(0, x0in);
+    fvert.SetParameter(1, u0in);
+    fvert.SetParameter(2, y0in);
+    fvert.SetParameter(3, v0in);
+    fvert.SetParameter(4, x0out);
+    fvert.SetParameter(5, u0out);
+    fvert.SetParameter(6, y0out);
+    fvert.SetParameter(7, v0out);
+    
+    double close_zin, close_zout;
+    fvert.GetMinimumXY(close_zin, close_zout);
+    dist = sqrt(fvert.GetMinimum());
+    
+    double vertx = ((x0in+u0in*close_zin)+(x0out+u0out*close_zout))/2.;
+    double verty = ((y0in+v0in*close_zin)+(y0out+v0out*close_zout))/2.;
+    double vertz = (close_zin+close_zout)/2.;
+    return ThreeVector( vertx, verty, vertz );
+  }
+
+
+  //______________________________________________________________________________
+  ThreeVector
+  VertexPoint_Helix( const double par1[5], const double par2[5],
+		     double & dist )
+  {
+    //helix function 1
+    //x = [0] + [3]*cos(t);
+    //y = [1] + [3]*sin(t);
+    //z = [2] + [3]*[4]*t;
+
+    //helix function 2
+    //x = [5] + [8]*cos(t);
+    //y = [6] + [8]*sin(t);
+    //z = [7] + [8]*[9]*t;
+    
+    static TF2 fvert_helix("fvert_helix", 
+			   "pow(([0]+[3]*cos(x))-([5]+[8]*cos(y)),2)+pow(([1]+[3]*sin(x))-([6]+[8]*sin(y)),2)+pow(([2]+[3]*[4]*x)-([7]+[8]*[9]*y),2)",
+			   -1000.,1000.,-1000.,1000.);
+    
+    fvert_helix.SetParameter(0, par1[0]);
+    fvert_helix.SetParameter(1, par1[1]);
+    fvert_helix.SetParameter(2, par1[2]);
+    fvert_helix.SetParameter(3, par1[3]);
+    fvert_helix.SetParameter(4, par1[4]);
+    fvert_helix.SetParameter(5, par2[0]);
+    fvert_helix.SetParameter(6, par2[1]);
+    fvert_helix.SetParameter(7, par2[2]);
+    fvert_helix.SetParameter(8, par2[3]);
+    fvert_helix.SetParameter(9, par2[4]);
+    
+    double close_zin, close_zout;
+    fvert_helix.GetMinimumXY(close_zin, close_zout);
+    dist = sqrt(fvert_helix.GetMinimum());
+    
+    double vertx = (par1[0]+par1[3]*cos(close_zin) + par2[0]+par2[3]*cos(close_zout))/2.;
+    double verty = (par1[1]+par1[3]*sin(close_zin) + par2[1]+par2[3]*sin(close_zout))/2.;
+    double vertz = (par1[2]+par1[3]*par1[4]*close_zin + par2[2]+par2[3]*par2[4]*close_zout)/2.;
+    return ThreeVector( vertx, verty, vertz );
+   
   }
 
   //______________________________________________________________________________

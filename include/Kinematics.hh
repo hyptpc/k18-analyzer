@@ -29,6 +29,11 @@ namespace Kinematics
   ThreeVector VertexPointReal( const ThreeVector & Xin, const ThreeVector & Xout,
 			       const ThreeVector & Pin, const ThreeVector & Pout,
 			       double & dist );
+  ThreeVector VertexPointTF2( const ThreeVector & Xin, const ThreeVector & Xout,
+			      const ThreeVector & Pin, const ThreeVector & Pout,
+			      double & dist );
+  ThreeVector VertexPoint_Helix(const double par1[5], const double par2[5],
+				double & dist );  
   double      closeDist( const ThreeVector & Xin, const ThreeVector & Xout,
 			 const ThreeVector & Pin, const ThreeVector & Pout );
   ThreeVector CorrElossIn( const ThreeVector & Pin,
