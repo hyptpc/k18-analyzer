@@ -376,11 +376,11 @@ DCAnalyzer::DecodeTPCHits( RawData *rawData )
   }
 
   ClearTPCHits();
-  
-  int numhit =0; 
+
+  int numhit =0;
     //multiplicity cut for partial readout mode
   for( int layer=0; layer<=NumOfLayersTPC; ++layer ){
-    const auto& rhit =  rawData->GetTPCRawHC( layer ); 
+    const auto& rhit =  rawData->GetTPCRawHC( layer );
     const std::size_t nh = rhit.size();
     numhit += nh;
   }
@@ -510,12 +510,12 @@ DCAnalyzer::HoughYCut( double min_y, double max_y)
   std::vector<TPCHitContainer>  DeleteCand;
   DeleteCand.resize(NumOfLayersTPC+1);
 
-  
+
   static const int MinLayer = gUser.GetParameter("MinLayerTPC");
 
   static const double HoughWindowCut = gUser.GetParameter("HoughWindowCut");
-  bool status = true;
-  
+  // bool status = true;
+
   //    if( valueHall ) { // TODO
   //    }
 
@@ -528,9 +528,9 @@ DCAnalyzer::HoughYCut( double min_y, double max_y)
   const int    Li_r_ndiv =  200;
   const double Li_r_min  = -600;
   const double Li_r_max  =  600;
-    
+
   static const Int_t ClusterSizeCut = gUser.GetParameter("TPCClusterSizeCut");
-    
+
 
   //for TPC linear track
   // r = x * cos(theta) + y * sin(theta)
@@ -575,7 +575,7 @@ DCAnalyzer::HoughYCut( double min_y, double max_y)
     Li_hist_y.GetBinXYZ( maxbin, mx, my, mz );
     double mtheta = Li_hist_y.GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
     double mr = Li_hist_y.GetYaxis()->GetBinCenter(my);
-      
+
     bool hough_flag = true;
     for(int i=0; i<hough_x.size(); ++i){
       int bindiff = fabs(mx-hough_x[i])+fabs(my-hough_y[i]);
@@ -586,7 +586,7 @@ DCAnalyzer::HoughYCut( double min_y, double max_y)
     hough_y.push_back(my);
     if(!hough_flag)
       continue;
-	
+
 
     p0[tracki] = mr/sin(mtheta);
     p1[tracki] = -cos(mtheta)/sin(mtheta);
@@ -599,7 +599,7 @@ DCAnalyzer::HoughYCut( double min_y, double max_y)
 	TPCHit* hit = m_TPCClCont[layer][ci];
 	TVector3 pos = hit->GetPos();
 	double dist = fabs(p1[tracki]*pos.Z()-pos.Y()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
-	  
+
 	if( dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
 	  if(min_y<y_tgt&&y_tgt<max_y)
 	    ValidCand[layer].push_back(hit);
