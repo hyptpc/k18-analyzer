@@ -1,10 +1,7 @@
-/**
- *  file: RungeKuttaUtilities.cc
- *  date: 2017.04.10
- *  note: Runge-Kutta Routines
- *        Ref.) NIM 160 (1979) 43 - 48
- *
- */
+// -*- C++ -*-
+
+// Runge-Kutta Routines
+// Ref.) NIM 160 (1979) 43 - 48
 
 #include "RungeKuttaUtilities.hh"
 
@@ -47,9 +44,9 @@ namespace
 
 //______________________________________________________________________________
 void
-RKFieldIntegral::Print( std::ostream &ost ) const
+RKFieldIntegral::Print(std::ostream &ost) const
 {
-  PrintHelper helper( 3, std::ios::scientific, ost );
+  PrintHelper helper(3, std::ios::scientific, ost);
   ost << std::setw(9) << kx << " "
       << std::setw(9) << ky << std::endl;
   ost << std::setw(9) << axu << " "
@@ -64,9 +61,9 @@ RKFieldIntegral::Print( std::ostream &ost ) const
 
 //______________________________________________________________________________
 void
-RKDeltaFieldIntegral::Print( std::ostream &ost ) const
+RKDeltaFieldIntegral::Print(std::ostream &ost) const
 {
-  PrintHelper helper( 3, std::ios::scientific, ost );
+  PrintHelper helper(3, std::ios::scientific, ost);
   ost << std::setw(9) << dkxx << " "
       << std::setw(9) << dkxy << " "
       << std::setw(9) << dkxu << " "
@@ -81,16 +78,16 @@ RKDeltaFieldIntegral::Print( std::ostream &ost ) const
 
 //______________________________________________________________________________
 void
-RKCordParameter::Print( std::ostream &ost ) const
+RKCordParameter::Print(std::ostream &ost) const
 {
-  PrintHelper helper( 3, std::ios::scientific, ost );
+  PrintHelper helper(3, std::ios::scientific, ost);
 }
 
 //______________________________________________________________________________
-RKCordParameter::RKCordParameter( const ThreeVector &pos,
-                                  const ThreeVector &mom )
-  : x( pos.x() ), y( pos.y() ), z( pos.z() ),
-    u( mom.x()/mom.z() ), v( mom.y()/mom.z() )
+RKCordParameter::RKCordParameter(const ThreeVector &pos,
+                                  const ThreeVector &mom)
+  : x(pos.x()), y(pos.y()), z(pos.z()),
+    u(mom.x()/mom.z()), v(mom.y()/mom.z())
 {
   double p = mom.Mag();
   q = -Polarity/p;
@@ -98,23 +95,23 @@ RKCordParameter::RKCordParameter( const ThreeVector &pos,
 
 //______________________________________________________________________________
 ThreeVector
-RKCordParameter::MomentumInGlobal( void ) const
+RKCordParameter::MomentumInGlobal() const
 {
   double p  = -Polarity/q;
   double pz = -std::abs(p)/std::sqrt(1.+u*u+v*v);
-  return ThreeVector( pz*u, pz*v, pz );
+  return ThreeVector(pz*u, pz*v, pz);
 }
 
 //______________________________________________________________________________
 void
-RKTrajectoryPoint::Print( std::ostream &ost ) const
+RKTrajectoryPoint::Print(std::ostream &ost) const
 {
-  PrintHelper helper( 3, std::ios::scientific, ost );
+  PrintHelper helper(3, std::ios::scientific, ost);
 }
 
 //______________________________________________________________________________
 RKFieldIntegral
-RK::CalcFieldIntegral( double U, double V, double Q, const ThreeVector &B )
+RK::CalcFieldIntegral(double U, double V, double Q, const ThreeVector &B)
 {
   double fac = std::sqrt(1.+U*U+V*V);
   double f1  = U*V*B.x() - (1.+U*U)*B.y() + V*B.z();
@@ -127,15 +124,15 @@ RK::CalcFieldIntegral( double U, double V, double Q, const ThreeVector &B )
 
   double qfac = Q*CHLB;
 
-  return RKFieldIntegral( fac*f1*qfac, fac*f2*qfac,
-			  axu*qfac, axv*qfac, ayu*qfac, ayv*qfac );
+  return RKFieldIntegral(fac*f1*qfac, fac*f2*qfac,
+			  axu*qfac, axv*qfac, ayu*qfac, ayv*qfac);
 
 }
 
 //______________________________________________________________________________
 RKFieldIntegral
-RK::CalcFieldIntegral( double U, double V, double Q, const ThreeVector &B,
-		       const ThreeVector &dBdX, const ThreeVector &dBdY )
+RK::CalcFieldIntegral(double U, double V, double Q, const ThreeVector &B,
+		       const ThreeVector &dBdX, const ThreeVector &dBdY)
 {
   double fac = std::sqrt(1.+U*U+V*V);
   double f1  = U*V*(B.x()) - (1.+U*U)*(B.y()) + V*(B.z());
@@ -153,16 +150,16 @@ RK::CalcFieldIntegral( double U, double V, double Q, const ThreeVector &B,
 
   double qfac = Q*CHLB;
 
-  return RKFieldIntegral( fac*f1*qfac, fac*f2*qfac,
+  return RKFieldIntegral(fac*f1*qfac, fac*f2*qfac,
 			  axu*qfac, axv*qfac, ayu*qfac, ayv*qfac,
 			  fac*cxx*qfac, fac*cxy*qfac,
-			  fac*cyx*qfac, fac*cyy*qfac );
+			  fac*cyx*qfac, fac*cyy*qfac);
 }
 
 //______________________________________________________________________________
 RKDeltaFieldIntegral
-RK::CalcDeltaFieldIntegral( const RKTrajectoryPoint &prevPoint,
-			    const RKFieldIntegral &intg )
+RK::CalcDeltaFieldIntegral(const RKTrajectoryPoint &prevPoint,
+			    const RKFieldIntegral &intg)
 {
   double dkxx = intg.axu*prevPoint.dudx + intg.axv*prevPoint.dvdx
     + intg.cxx*prevPoint.dxdx + intg.cxy*prevPoint.dydx;
@@ -188,17 +185,17 @@ RK::CalcDeltaFieldIntegral( const RKTrajectoryPoint &prevPoint,
     + intg.ayu*prevPoint.dudq + intg.ayv*prevPoint.dvdq
     + intg.cyx*prevPoint.dxdq + intg.cyy*prevPoint.dydq;
 
-  return RKDeltaFieldIntegral( dkxx, dkxy, dkxu, dkxv, dkxq,
-			       dkyx, dkyy, dkyu, dkyv, dkyq );
+  return RKDeltaFieldIntegral(dkxx, dkxy, dkxu, dkxv, dkxq,
+			       dkyx, dkyy, dkyu, dkyv, dkyq);
 }
 
 //______________________________________________________________________________
 RKDeltaFieldIntegral
-RK::CalcDeltaFieldIntegral( const RKTrajectoryPoint    &prevPoint,
+RK::CalcDeltaFieldIntegral(const RKTrajectoryPoint    &prevPoint,
 			    const RKFieldIntegral      &intg,
 			    const RKDeltaFieldIntegral &dIntg1,
 			    const RKDeltaFieldIntegral &dIntg2,
-			    double StepSize )
+			    double StepSize)
 {
   double h  = StepSize;
   double h2 = StepSize*StepSize;
@@ -255,13 +252,13 @@ RK::CalcDeltaFieldIntegral( const RKTrajectoryPoint    &prevPoint,
     + intg.cyx*(prevPoint.dxdq + h*prevPoint.dudq + 0.5*h2*dIntg2.dkxq)
     + intg.cyy*(prevPoint.dydq + h*prevPoint.dvdq + 0.5*h2*dIntg2.dkyq);
 
-  return RKDeltaFieldIntegral( dkxx, dkxy, dkxu, dkxv, dkxq,
-			       dkyx, dkyy, dkyu, dkyv, dkyq );
+  return RKDeltaFieldIntegral(dkxx, dkxy, dkxu, dkxv, dkxq,
+			       dkyx, dkyy, dkyu, dkyv, dkyq);
 }
 
 //______________________________________________________________________________
 RKTrajectoryPoint
-RK::TraceOneStep( double StepSize, const RKTrajectoryPoint &prevPoint )
+RK::TraceOneStep(double StepSize, const RKTrajectoryPoint &prevPoint)
 {
   static const std::string func_name = "[RK::TraceOneStep()]";
 
@@ -271,78 +268,78 @@ RK::TraceOneStep( double StepSize, const RKTrajectoryPoint &prevPoint )
   double pre_u = prevPoint.r.u;
   double pre_v = prevPoint.r.v;
   double pre_q = prevPoint.r.q;
-  double dr    = StepSize/std::sqrt( 1.+pre_u*pre_u+pre_v*pre_v );
+  double dr    = StepSize/std::sqrt(1.+pre_u*pre_u+pre_v*pre_v);
 
   ThreeVector Z1 = prevPoint.PositionInGlobal();
-  ThreeVector B1 = gField.GetField( Z1 );
+  ThreeVector B1 = gField.GetField(Z1);
 #ifdef ExactFFTreat
-  ThreeVector dBdX1 = gField.GetdBdX( Z1 );
-  ThreeVector dBdY1 = gField.GetdBdY( Z1 );
+  ThreeVector dBdX1 = gField.GetdBdX(Z1);
+  ThreeVector dBdY1 = gField.GetdBdY(Z1);
   RKFieldIntegral f1 =
-    RK::CalcFieldIntegral( pre_u, pre_v, pre_q,
-			   B1, dBdX1, dBdY1 );
+    RK::CalcFieldIntegral(pre_u, pre_v, pre_q,
+			   B1, dBdX1, dBdY1);
 #else
   RKFieldIntegral f1 =
-    RK::CalcFieldIntegral( pre_u, pre_v, pre_q, B1 );
+    RK::CalcFieldIntegral(pre_u, pre_v, pre_q, B1);
 #endif
   RKDeltaFieldIntegral df1 =
-    RK::CalcDeltaFieldIntegral( prevPoint, f1 );
+    RK::CalcDeltaFieldIntegral(prevPoint, f1);
 
   ThreeVector Z2 = Z1 +
-    ThreeVector( 0.5*dr,
+    ThreeVector(0.5*dr,
                  0.5*dr*pre_u + 0.125*dr*dr*f1.kx,
-                 0.5*dr*pre_v + 0.125*dr*dr*f1.ky );
-  ThreeVector B2 = gField.GetField( Z2 );
+                 0.5*dr*pre_v + 0.125*dr*dr*f1.ky);
+  ThreeVector B2 = gField.GetField(Z2);
 #ifdef ExactFFTreat
-  ThreeVector dBdX2 = gField.GetdBdX( Z2 );
-  ThreeVector dBdY2 = gField.GetdBdY( Z2 );
+  ThreeVector dBdX2 = gField.GetdBdX(Z2);
+  ThreeVector dBdY2 = gField.GetdBdY(Z2);
   RKFieldIntegral f2 =
-    RK::CalcFieldIntegral( pre_u + 0.5*dr*f1.kx,
+    RK::CalcFieldIntegral(pre_u + 0.5*dr*f1.kx,
 			   pre_v + 0.5*dr*f1.ky,
-			   pre_q, B2, dBdX2, dBdY2 );
+			   pre_q, B2, dBdX2, dBdY2);
 #else
   RKFieldIntegral f2 =
-    RK::CalcFieldIntegral( pre_u + 0.5*dr*f1.kx,
+    RK::CalcFieldIntegral(pre_u + 0.5*dr*f1.kx,
 			   pre_v + 0.5*dr*f1.ky,
-			   pre_q, B2 );
+			   pre_q, B2);
 #endif
   RKDeltaFieldIntegral df2 =
-    RK::CalcDeltaFieldIntegral( prevPoint, f2, df1, df1, 0.5*dr );
+    RK::CalcDeltaFieldIntegral(prevPoint, f2, df1, df1, 0.5*dr);
 
 #ifdef ExactFFTreat
   RKFieldIntegral f3 =
-    RK::CalcFieldIntegral( pre_u + 0.5*dr*f2.kx,
+    RK::CalcFieldIntegral(pre_u + 0.5*dr*f2.kx,
 			   pre_v + 0.5*dr*f2.ky,
-			   pre_q, B2, dBdX2, dBdY2 );
+			   pre_q, B2, dBdX2, dBdY2);
 #else
   RKFieldIntegral f3 =
-    RK::CalcFieldIntegral( pre_u + 0.5*dr*f2.kx,
+    RK::CalcFieldIntegral(pre_u + 0.5*dr*f2.kx,
 			   pre_v + 0.5*dr*f2.ky,
-			   pre_q, B2 );
+			   pre_q, B2);
 #endif
   RKDeltaFieldIntegral df3 =
-    RK::CalcDeltaFieldIntegral( prevPoint, f3, df2, df1, 0.5*dr );
+    RK::CalcDeltaFieldIntegral(prevPoint, f3, df2, df1, 0.5*dr);
 
   ThreeVector Z4 = Z1 +
-    ThreeVector( dr,
+    ThreeVector(dr,
                  dr*pre_u + 0.5*dr*dr*f3.kx,
-                 dr*pre_v + 0.5*dr*dr*f3.ky );
-  ThreeVector B4 = gField.GetField( Z4 );
+                 dr*pre_v + 0.5*dr*dr*f3.ky);
+  ThreeVector B4 = gField.GetField(Z4);
 #ifdef ExactFFTreat
-  ThreeVector dBdX4 = gField.GetdBdX( Z4 );
-  ThreeVector dBdY4 = gField.GetdBdY( Z4 );
+  ThreeVector dBdX4 = gField.GetdBdX(Z4);
+  ThreeVector dBdY4 = gField.GetdBdY(Z4);
   RKFieldIntegral f4 =
-    RK::CalcFieldIntegral( pre_u + dr*f3.kx,
+    RK::CalcFieldIntegral(pre_u + dr*f3.kx,
 			   pre_v + dr*f3.ky,
-			   pre_q, B4, dBdX4, dBdY4 );
+			   pre_q, B4, dBdX4, dBdY4);
 #else
   RKFieldIntegral f4 =
-    RK::CalcFieldIntegral( pre_u + dr*f3.kx,
+    RK::CalcFieldIntegral(pre_u + dr*f3.kx,
                          pre_v + dr*f3.ky,
-                         pre_q, B4 );
+                         pre_q, B4);
 #endif
   RKDeltaFieldIntegral df4 =
-    RK::CalcDeltaFieldIntegral( prevPoint, f4, df3, df3, dr );
+    RK::CalcDeltaFieldIntegral(prevPoint, f4, df3, df3, dr);
 
   double z = pre_z + dr;
   double x = pre_x + dr*pre_u
@@ -400,7 +397,7 @@ RK::TraceOneStep( double StepSize, const RKTrajectoryPoint &prevPoint )
 
 #if 0
   {
-    PrintHelper helper( 2, std::ios::fixed );
+    PrintHelper helper(2, std::ios::fixed);
     hddaq::cout << func_name << ": "
 		<< std::setw(9) << x
 		<< std::setw(9) << y
@@ -416,7 +413,7 @@ RK::TraceOneStep( double StepSize, const RKTrajectoryPoint &prevPoint )
 		<< std::endl;
 
 
-    helper.set( 3, std::ios::scientific );
+    helper.set(3, std::ios::scientific);
     hddaq::cout << std::setw(10) << dxdx << " "
 		<< std::setw(10) << dxdy << " "
 		<< std::setw(10) << dxdu << " "
@@ -440,23 +437,23 @@ RK::TraceOneStep( double StepSize, const RKTrajectoryPoint &prevPoint )
   }
 #endif
 
-  return RKTrajectoryPoint( x, y, z, u, v, prevPoint.r.q,
+  return RKTrajectoryPoint(x, y, z, u, v, prevPoint.r.q,
                             dxdx, dxdy, dxdu, dxdv, dxdq,
                             dydx, dydy, dydu, dydv, dydq,
                             dudx, dudy, dudu, dudv, dudq,
                             dvdx, dvdy, dvdu, dvdv, dvdq,
-                            prevPoint.l+dl );
+                            prevPoint.l+dl);
 }
 
 //______________________________________________________________________________
 bool
-RK::CheckCrossing( int lnum, const RKTrajectoryPoint &startPoint,
+RK::CheckCrossing(int lnum, const RKTrajectoryPoint &startPoint,
 		   const RKTrajectoryPoint &endPoint,
-		   RKcalcHitPoint &crossPoint )
+		   RKcalcHitPoint &crossPoint)
 {
   static const std::string func_name = "[RK::CheckCrossing()]";
 
-  const DCGeomRecord *geom_record = gGeom.GetRecord( lnum );
+  const DCGeomRecord *geom_record = gGeom.GetRecord(lnum);
   ThreeVector posVector   = geom_record->Position();
   ThreeVector nomalVector = geom_record->NormalVector();
 
@@ -471,7 +468,7 @@ RK::CheckCrossing( int lnum, const RKTrajectoryPoint &startPoint,
   double ip2 = nomalVector * endVector;
 
   // judge whether start/end points are same side
-  if( ip1*ip2 > 0. ) return false;
+  if(ip1*ip2 > 0.) return false;
 
   double x = (ip1*endPoint.r.x - ip2*startPoint.r.x)/(ip1-ip2);
   double y = (ip1*endPoint.r.y - ip2*startPoint.r.y)/(ip1-ip2);
@@ -507,15 +504,15 @@ RK::CheckCrossing( int lnum, const RKTrajectoryPoint &startPoint,
 
   double pz = Polarity/(std::sqrt(1.+u*u+v*v)*q);
 
-  crossPoint.posG = ThreeVector( x, y, z );
-  crossPoint.momG = ThreeVector( pz*u, pz*v, pz );
+  crossPoint.posG = ThreeVector(x, y, z);
+  crossPoint.momG = ThreeVector(pz*u, pz*v, pz);
 
-  if( lnum==IdTOF_UX || lnum==IdTOF_DX )
+  if(lnum==IdTOF_UX || lnum==IdTOF_DX)
     crossPoint.s = crossPoint.posG.x();
-  else if( lnum==IdTOF_UY || lnum==IdTOF_DY )
+  else if(lnum==IdTOF_UY || lnum==IdTOF_DY)
     crossPoint.s = crossPoint.posG.y();
   else
-    crossPoint.s = gGeom.Global2LocalPos( lnum, crossPoint.posG ).x();
+    crossPoint.s = gGeom.Global2LocalPos(lnum, crossPoint.posG).x();
 
   crossPoint.l    = l;
 
@@ -526,7 +523,7 @@ RK::CheckCrossing( int lnum, const RKTrajectoryPoint &startPoint,
   double uy = geom_record->dudy();
   double uz = geom_record->dudz();
 
-  if( uz==0. ){
+  if(uz==0.){
     crossPoint.dsdx = crossPoint.dsdy =
       crossPoint.dsdu = crossPoint.dsdv = crossPoint.dsdq = 0.;
     crossPoint.dsdxx = crossPoint.dsdxy =
@@ -596,7 +593,7 @@ RK::CheckCrossing( int lnum, const RKTrajectoryPoint &startPoint,
 
 #if 0
   {
-    PrintHelper helper( 5, std::ios::fixed );
+    PrintHelper helper(5, std::ios::fixed);
     hddaq::cout << func_name << ": Layer#"
 		<< std::setw(3) << lnum << std::endl;
     hddaq::cout << " " << std::setw(12) << dxdx
@@ -627,19 +624,19 @@ RK::CheckCrossing( int lnum, const RKTrajectoryPoint &startPoint,
 
 //______________________________________________________________________________
 int
-RK::Trace( const RKCordParameter &initial, RKHitPointContainer &hitContainer )
+RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
 {
   static const std::string func_name="[RK::Trace()]";
 
   const std::size_t nPlane = hitContainer.size();
   int iPlane = nPlane-1;
 
-  RKTrajectoryPoint prevPoint( initial,
+  RKTrajectoryPoint prevPoint(initial,
                                1., 0., 0., 0., 0.,
                                0., 1., 0., 0., 0.,
                                0., 0., 1., 0., 0.,
                                0., 0., 0., 1., 0.,
-                               0.0 );
+                               0.0);
   int    MaxStep        = 40000;
   static const double MaxPathLength  = 6000.; // mm
   static const double NormalStepSize = - 10.;   // mm
@@ -650,21 +647,21 @@ RK::Trace( const RKCordParameter &initial, RKHitPointContainer &hitContainer )
 
   int iStep = 0;
 
-  while( ++iStep < MaxStep ){
+  while(++iStep < MaxStep){
     //    std::cout << "step#: " << iStep << std::endl;
-    double StepSize = gField.StepSize( prevPoint.PositionInGlobal(),
-				       NormalStepSize, MinStepSize );
-    RKTrajectoryPoint nextPoint = RK::TraceOneStep( StepSize, prevPoint );
+    double StepSize = gField.StepSize(prevPoint.PositionInGlobal(),
+				       NormalStepSize, MinStepSize);
+    RKTrajectoryPoint nextPoint = RK::TraceOneStep(StepSize, prevPoint);
 
     /*for EventDisplay*/
     StepPoint[iStep-1] = nextPoint.PositionInGlobal();
 
-    while( RK::CheckCrossing( hitContainer[iPlane].first,
+    while(RK::CheckCrossing(hitContainer[iPlane].first,
 			      prevPoint, nextPoint,
-			      hitContainer[iPlane].second ) ){
+			      hitContainer[iPlane].second)){
 #if 0
       {
-	PrintHelper helper( 1, std::ios::fixed );
+	PrintHelper helper(1, std::ios::fixed);
 
 	hddaq::cout << std::flush;
         int plnum = hitContainer[iPlane].first;
@@ -688,7 +685,7 @@ RK::Trace( const RKCordParameter &initial, RKHitPointContainer &hitContainer )
 
 	helper.precision(2);
 	hddaq::cout << "  PL=" << std::setw(10) << chp.PathLength();
-	helper.set( 3, std::ios::scientific );
+	helper.set(3, std::ios::scientific);
 	hddaq::cout << "  Coeff.s = "
 		    << std::setw(10) << chp.coefX() << " "
 		    << std::setw(10) << chp.coefY() << " "
@@ -698,16 +695,16 @@ RK::Trace( const RKCordParameter &initial, RKHitPointContainer &hitContainer )
       }
 #endif
       --iPlane;
-      if( iPlane<0 ) {
-	if( gEvDisp.IsReady() ){
+      if(iPlane<0) {
+	if(gEvDisp.IsReady()){
 	  double q = hitContainer[0].second.MomentumInGlobal().z();
-	  gEvDisp.DrawKuramaTrack( iStep, StepPoint, q );
+	  gEvDisp.DrawKuramaTrack(iStep, StepPoint, q);
         }
 	return KuramaTrack::kPassed;
       }
-    } // while( RKcheckCrossing() )
+    } // while(RKcheckCrossing())
 
-    if( nextPoint.PathLength() > MaxPathLength ){
+    if(nextPoint.PathLength() > MaxPathLength){
 #if WARNOUT
       hddaq::cerr << func_name << ": Exceed MaxPathLength. "
 		  << " PL=" << std::dec << nextPoint.PathLength()
@@ -718,7 +715,7 @@ RK::Trace( const RKCordParameter &initial, RKHitPointContainer &hitContainer )
       return KuramaTrack::kExceedMaxPathLength;
     }
     prevPoint = nextPoint;
-  }// while( ++iStep )
+  }// while(++iStep)
 
 #if WARNOUT
   hddaq::cerr << func_name << ": Exceed MaxStep. "
@@ -732,7 +729,7 @@ RK::Trace( const RKCordParameter &initial, RKHitPointContainer &hitContainer )
 
 //______________________________________________________________________________
 bool
-RK::TraceToLast( RKHitPointContainer &hitContainer )
+RK::TraceToLast(RKHitPointContainer &hitContainer)
 {
   static const std::string func_name="[RK::TraceToLast()]";
   int nPlane = (int)hitContainer.size();
@@ -742,9 +739,9 @@ RK::TraceToLast( RKHitPointContainer &hitContainer )
   // add downstream detectors from TOF
   std::vector<int> IdList = gGeom.GetDetectorIDList();
   std::size_t IdSize = IdList.size();
-  for( std::size_t i=0; i<IdSize; ++i ){
-    if( idini<IdList[i] && IdList[i]<=IdVTOF ){
-      hitContainer.push_back( std::make_pair( IdList[i], RKcalcHitPoint() ) );
+  for(std::size_t i=0; i<IdSize; ++i){
+    if(idini<IdList[i] && IdList[i]<=IdVTOF){
+      hitContainer.push_back(std::make_pair(IdList[i], RKcalcHitPoint()));
     }
   }
 
@@ -754,7 +751,7 @@ RK::TraceToLast( RKHitPointContainer &hitContainer )
   // const ThreeVector&    iniPos = hpini.PositionInGlobal();
   // const ThreeVector&    iniMom = hpini.MomentumInGlobal();
 
-  RKTrajectoryPoint prevPoint( hpini );
+  RKTrajectoryPoint prevPoint(hpini);
 
   const int    MaxStep  = 80000;
   const double StepSize =  -20.;  // mm
@@ -763,19 +760,19 @@ RK::TraceToLast( RKHitPointContainer &hitContainer )
 
   ThreeVector StepPoint[MaxStep];
   int iStep = 0;
-  while( ++iStep < MaxStep ){
+  while(++iStep < MaxStep){
     RKTrajectoryPoint
-      nextPoint = RK::TraceOneStep( -StepSize, prevPoint );
+      nextPoint = RK::TraceOneStep(-StepSize, prevPoint);
 
     StepPoint[iStep-1] = nextPoint.PositionInGlobal();
 
-    while( RK::CheckCrossing( hitContainer[iPlane].first,
+    while(RK::CheckCrossing(hitContainer[iPlane].first,
 			      prevPoint, nextPoint,
-			      hitContainer[iPlane].second ) ){
-      if( ++iPlane>=nPlane ){
-	// if( gEvDisp.IsReady() ){
+			      hitContainer[iPlane].second)){
+      if(++iPlane>=nPlane){
+	// if(gEvDisp.IsReady()){
 	//   double q = hitContainer[0].second.MomentumInGlobal().z();
-	//   gEvDisp.DrawKuramaTrack( iStep, StepPoint, q );
+	//   gEvDisp.DrawKuramaTrack(iStep, StepPoint, q);
         // }
 	return true;
       }
@@ -788,59 +785,42 @@ RK::TraceToLast( RKHitPointContainer &hitContainer )
 
 //______________________________________________________________________________
 RKHitPointContainer
-RK::MakeHPContainer( void )
+RK::MakeHPContainer()
 {
   std::vector<int> IdList   = gGeom.GetDetectorIDList();
   static const std::size_t size = IdList.size();
   RKHitPointContainer container;
-  container.reserve( size );
+  container.reserve(size);
 
-  // for( std::size_t i=0; i<size; ++i ){
-  //   if( IdList[i]<IdTOF )
-  //     container.push_back( std::make_pair( IdList[i], RKcalcHitPoint() ) );
+  // for(std::size_t i=0; i<size; ++i){
+  //   if(IdList[i]<IdTOF)
+  //     container.push_back(std::make_pair(IdList[i], RKcalcHitPoint()));
   // }
 
   /*** From Upstream ***/
-  container.push_back( std::make_pair( IdTarget, RKcalcHitPoint() ) );
+  container.push_back(std::make_pair(IdTarget, RKcalcHitPoint()));
 
-  for( std::size_t i=0; i<NumOfLayersSFT; ++i ){
-    std::size_t plid = i +PlOffsSft +1;
-    container.push_back( std::make_pair( plid, RKcalcHitPoint() ) );
+  for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
+    container.push_back(std::make_pair(i+PlOffsSdcIn+1, RKcalcHitPoint()));
   }
-  for( std::size_t i=0; i<NumOfLayersSDC1; ++i ){
-    std::size_t plid = i +PlOffsSdcIn +1;
-    container.push_back( std::make_pair( plid, RKcalcHitPoint() ) );
+  for(Int_t i=0; i<NumOfLayersVP; ++i){
+    container.push_back(std::make_pair(i+PlOffsVP+1, RKcalcHitPoint()));
   }
-  for( std::size_t i=0; i<NumOfLayersVP; ++i ){
-    std::size_t plid = i +PlOffsVP +1;
-    container.push_back( std::make_pair( plid, RKcalcHitPoint() ) );
-  }
-  for( std::size_t i=0; i<NumOfLayersSdcOut; ++i ){
-    std::size_t plid = 80;
-    if( i<4 ){
-      plid = i +PlOffsFht;
-    }
-    else if( i<12 ){
-      plid = i -3 +PlOffsSdcOut;
-    }
-    else{
-      plid = i -8 +PlOffsFht;
-    }
-
-    container.push_back( std::make_pair( plid, RKcalcHitPoint() ) );
+  for(std::size_t i=0; i<NumOfLayersSdcOut; ++i){
+    container.push_back(std::make_pair(i+PlOffsSdcOut+1, RKcalcHitPoint()));
   }
 
-  container.push_back( std::make_pair( IdTOF_UX, RKcalcHitPoint() ) );
-  container.push_back( std::make_pair( IdTOF_UY, RKcalcHitPoint() ) );
-  container.push_back( std::make_pair( IdTOF_DX, RKcalcHitPoint() ) );
-  container.push_back( std::make_pair( IdTOF_DY, RKcalcHitPoint() ) );
+  container.push_back(std::make_pair(IdTOF_UX, RKcalcHitPoint()));
+  container.push_back(std::make_pair(IdTOF_UY, RKcalcHitPoint()));
+  container.push_back(std::make_pair(IdTOF_DX, RKcalcHitPoint()));
+  container.push_back(std::make_pair(IdTOF_DY, RKcalcHitPoint()));
 
   return container;
 }
 
 //______________________________________________________________________________
 const RKcalcHitPoint&
-RKHitPointContainer::HitPointOfLayer( int lnum ) const
+RKHitPointContainer::HitPointOfLayer(int lnum) const
 {
   static const std::string func_name =
     "[RKHitPointContainer::HitPointOfLayer(int) const]";
@@ -848,18 +828,18 @@ RKHitPointContainer::HitPointOfLayer( int lnum ) const
   std::vector<std::pair<int,RKcalcHitPoint> >::const_iterator
     itr = this->begin(), end = this->end();
 
-  for( ; itr!=end; ++itr ){
-    if( lnum == itr->first )
+  for(; itr!=end; ++itr){
+    if(lnum == itr->first)
       return itr->second;
   }
   hddaq::cerr << func_name << ": No Record. #Layer="
 	      << lnum << std::endl;
-  throw std::out_of_range( func_name+": No Record" );
+  throw std::out_of_range(func_name+": No Record");
 }
 
 //______________________________________________________________________________
 RKcalcHitPoint&
-RKHitPointContainer::HitPointOfLayer( int lnum )
+RKHitPointContainer::HitPointOfLayer(int lnum)
 {
   static const std::string func_name =
     "[RKHitPointContainer::HitPointOfLayer(int)]";
@@ -867,11 +847,11 @@ RKHitPointContainer::HitPointOfLayer( int lnum )
   std::vector<std::pair<int,RKcalcHitPoint> >::iterator
     itr = this->begin(), end = this->end();
 
-  for( ; itr!=end; ++itr ){
-    if( lnum == itr->first )
+  for(; itr!=end; ++itr){
+    if(lnum == itr->first)
       return itr->second;
   }
   hddaq::cerr << func_name << ": No Record. #Layer="
 	      << lnum << std::endl;
-  throw std::out_of_range( func_name+": No Record" );
+  throw std::out_of_range(func_name+": No Record");
 }

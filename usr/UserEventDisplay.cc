@@ -25,29 +25,27 @@
 
 namespace
 {
-  const std::string& class_name("EventDisplay");
-  const DCGeomMan&     gGeom   = DCGeomMan::GetInstance();
-  EventDisplay&        gEvDisp = EventDisplay::GetInstance();
-  RMAnalyzer&          gRM     = RMAnalyzer::GetInstance();
-  const UserParamMan&  gUser   = UserParamMan::GetInstance();
-  BH2Filter&          gFilter = BH2Filter::GetInstance();
-  const hddaq::unpacker::UnpackerManager& gUnpacker
-  = hddaq::unpacker::GUnpacker::get_instance();
-  const double KaonMass   = pdg::KaonMass();
-  const double ProtonMass = pdg::ProtonMass();
+const auto& gGeom   = DCGeomMan::GetInstance();
+auto&       gEvDisp = EventDisplay::GetInstance();
+auto&       gRM     = RMAnalyzer::GetInstance();
+const auto& gUser   = UserParamMan::GetInstance();
+auto&       gFilter = BH2Filter::GetInstance();
+const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
+const double KaonMass   = pdg::KaonMass();
+const double ProtonMass = pdg::ProtonMass();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 VEvent::VEvent( void )
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 VEvent::~VEvent( void )
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class UserEventDisplay : public VEvent
 {
 private:
@@ -63,36 +61,35 @@ public:
   bool  InitializeHistograms( void );
 };
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 UserEventDisplay::UserEventDisplay( void )
   : VEvent(),
-    rawData(0),
-    DCAna( new DCAnalyzer ),
-    hodoAna( new HodoAnalyzer )
+    rawData(new RawData),
+    DCAna(new DCAnalyzer),
+    hodoAna(new HodoAnalyzer)
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 UserEventDisplay::~UserEventDisplay( void )
 {
-  if (DCAna)   delete DCAna;
-  if (hodoAna) delete hodoAna;
-  if (rawData) delete rawData;
+  if(DCAna) delete DCAna;
+  if(hodoAna) delete hodoAna;
+  if(rawData) delete rawData;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
 UserEventDisplay::ProcessingBegin( void )
 {
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
 UserEventDisplay::ProcessingNormal( void )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"]");
-
+#if 0
   // static const double MaxMultiHitBcOut  = gUser.GetParameter("MaxMultiHitBcOut");
   static const double MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
   static const double MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
@@ -136,7 +133,6 @@ UserEventDisplay::ProcessingNormal( void )
   // static const int IdBC3 = gGeom.DetectorId("BC3-X1") - PlOffsBcOut + 1;
   // static const int IdBC4 = gGeom.DetectorId("BC4-X1") - PlOffsBcOut + 1;
 
-  rawData = new RawData;
   rawData->DecodeHits();
 
   gRM.Decode();
@@ -165,9 +161,9 @@ UserEventDisplay::ProcessingNormal( void )
     static const int device_id    = gUnpacker.get_device_id("TFlag");
     static const int data_type_id = gUnpacker.get_data_id("TFlag", "tdc");
 
-    int mhit = gUnpacker.get_entries(device_id, 0, kTofTiming, 0, data_type_id);
+    int mhit = gUnpacker.get_entries(device_id, 0, trigger::kTofTiming, 0, data_type_id);
     for(int m = 0; m<mhit; ++m){
-      int tof_timing = gUnpacker.get(device_id, 0, kTofTiming, 0, data_type_id, m);
+      int tof_timing = gUnpacker.get(device_id, 0, trigger::kTofTiming, 0, data_type_id, m);
       if(!(MinTimeL1 < tof_timing && tof_timing < MaxTimeL1)) flag_tof_stop = true;
     }// for(m)
   }
@@ -1177,7 +1173,7 @@ UserEventDisplay::ProcessingNormal( void )
     KnXCont.push_back( Pos );
   }
 
-#if 1
+# if 1
   if( KnPCont.size()==1 && KpPCont.size()==1 ){
     ThreeVector pkp = KpPCont[0];
     ThreeVector pkn = KnPCont[0];
@@ -1192,18 +1188,18 @@ UserEventDisplay::ProcessingNormal( void )
     gEvDisp.DrawVertex( vertex );
     gEvDisp.DrawMissingMomentum( MissMom, vertex );
   }
-#endif
+# endif
 
   gEvDisp.UpdateHist();
 
   if ( 1 )
     gEvDisp.GetCommand();
 
-
+#endif
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
 UserEventDisplay::ProcessingEnd( void )
 {
@@ -1213,21 +1209,21 @@ UserEventDisplay::ProcessingEnd( void )
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 VEvent*
 ConfMan::EventAllocator( void )
 {
   return new UserEventDisplay;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
 ConfMan:: InitializeHistograms( void )
 {
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
 ConfMan::InitializeParameterFiles( void )
 {
@@ -1244,7 +1240,7 @@ ConfMan::InitializeParameterFiles( void )
       InitializeParameter<EventDisplay>()            );
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
 ConfMan::FinalizeProcess( void )
 {

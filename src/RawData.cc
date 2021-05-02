@@ -24,34 +24,30 @@
 
 namespace
 {
-  using namespace hddaq::unpacker;
-  const auto& gUnpacker = GUnpacker::get_instance();
-  const auto& gUser     = UserParamMan::GetInstance();
-  enum EUorD { kOneSide=1, kBothSide=2 };
-  enum EHodoDataType { kHodoAdc, kHodoLeading, kHodoTrailing,
-		       kHodoOverflow, kHodoNDataType };
+using namespace hddaq::unpacker;
+const auto& gUnpacker = GUnpacker::get_instance();
+const auto& gUser     = UserParamMan::GetInstance();
+enum EUorD { kOneSide=1, kBothSide=2 };
+enum EHodoDataType { kHodoAdc, kHodoLeading, kHodoTrailing,
+  kHodoOverflow, kHodoNDataType };
 #if OscillationCut
-  const Int_t  MaxMultiHitDC  = 16;
+const Int_t  MaxMultiHitDC  = 16;
 #endif
 }
 
 //_____________________________________________________________________________
-RawData::RawData( void )
+RawData::RawData()
   : m_is_decoded(false),
     m_BH1RawHC(),
     m_BH2RawHC(),
-    m_E42BH2RawHC(),
-    m_SACRawHC(),
+    m_BACRawHC(),
+    m_HTOFRawHC(),
+    m_SCHRawHC(),
+    m_BVHRawHC(),
     m_TOFRawHC(),
-    m_HtTOFRawHC(),
     m_LACRawHC(),
-    m_LCRawHC(),
     m_WCRawHC(),
     m_BFTRawHC(NumOfPlaneBFT),
-    m_SFTRawHC(NumOfPlaneSFT),
-    m_SCHRawHC(),
-    m_FBT1RawHC(2*NumOfLayersFBT1),
-    m_FBT2RawHC(2*NumOfLayersFBT2),
     m_BcInRawHC(NumOfLayersBcIn+1),
     m_BcOutRawHC(NumOfLayersBcOut+1),
     m_TPCRawHC(NumOfLayersTPC+1),
@@ -62,59 +58,50 @@ RawData::RawData( void )
     m_TrigRawHC(),
     m_VmeCalibRawHC()
 {
-  debug::ObjectCounter::increase(ClassName().Data());
+  debug::ObjectCounter::increase(ClassName());
 }
 
 //_____________________________________________________________________________
-RawData::~RawData( void )
+RawData::~RawData()
 {
   ClearAll();
   ClearTPC();
-  debug::ObjectCounter::decrease(ClassName().Data());
+  debug::ObjectCounter::decrease(ClassName());
 }
 
 //_____________________________________________________________________________
 void
-RawData::ClearAll( void )
+RawData::ClearAll()
 {
-  del::ClearContainer( m_BH1RawHC );
-  del::ClearContainer( m_BH2RawHC );
-  del::ClearContainer( m_BACRawHC );
-  del::ClearContainer( m_E42BH2RawHC );
-  del::ClearContainer( m_SACRawHC );
-  del::ClearContainer( m_TOFRawHC );
-  del::ClearContainer( m_HtTOFRawHC );
-  del::ClearContainer( m_LACRawHC );
-  del::ClearContainer( m_LCRawHC );
-  del::ClearContainer( m_WCRawHC );
-
-  del::ClearContainerAll( m_BFTRawHC );
-  del::ClearContainerAll( m_SFTRawHC );
-  del::ClearContainerAll( m_FBT1RawHC );
-  del::ClearContainerAll( m_FBT2RawHC );
-
-  del::ClearContainer( m_SCHRawHC );
-
-  del::ClearContainerAll( m_BcInRawHC );
-  del::ClearContainerAll( m_BcOutRawHC );
-  del::ClearContainerAll( m_SdcInRawHC );
-  del::ClearContainerAll( m_SdcOutRawHC );
-
-  del::ClearContainer( m_ScalerRawHC );
-  del::ClearContainer( m_TrigRawHC );
-  del::ClearContainer( m_VmeCalibRawHC );
+  del::ClearContainer(m_BH1RawHC);
+  del::ClearContainer(m_BACRawHC);
+  del::ClearContainer(m_BH2RawHC);
+  del::ClearContainer(m_HTOFRawHC);
+  del::ClearContainer(m_SCHRawHC);
+  del::ClearContainer(m_BVHRawHC);
+  del::ClearContainer(m_TOFRawHC);
+  del::ClearContainer(m_LACRawHC);
+  del::ClearContainer(m_WCRawHC);
+  del::ClearContainerAll(m_BFTRawHC);
+  del::ClearContainerAll(m_BcInRawHC);
+  del::ClearContainerAll(m_BcOutRawHC);
+  del::ClearContainerAll(m_SdcInRawHC);
+  del::ClearContainerAll(m_SdcOutRawHC);
+  del::ClearContainer(m_ScalerRawHC);
+  del::ClearContainer(m_TrigRawHC);
+  del::ClearContainer(m_VmeCalibRawHC);
 }
 //_____________________________________________________________________________
 void
-RawData::ClearTPC( void )
+RawData::ClearTPC()
 {
-  del::ClearContainerAll( m_TPCRawHC );
-  del::ClearContainerAll( m_TPCCorHC );
+  del::ClearContainerAll(m_TPCRawHC);
+  del::ClearContainerAll(m_TPCCorHC);
 }
 
 //_____________________________________________________________________________
 bool
-RawData::DecodeHits( void )
+RawData::DecodeHits()
 {
   static const Double_t MinTdcBC3  = gUser.GetParameter("TdcBC3", 0);
   static const Double_t MaxTdcBC3  = gUser.GetParameter("TdcBC3", 1);
@@ -126,8 +113,18 @@ RawData::DecodeHits( void )
   static const Double_t MaxTdcSDC2 = gUser.GetParameter("TdcSDC2", 1);
   static const Double_t MinTdcSDC3 = gUser.GetParameter("TdcSDC3", 0);
   static const Double_t MaxTdcSDC3 = gUser.GetParameter("TdcSDC3", 1);
+  static const Double_t MinTdcSDC4 = gUser.GetParameter("TdcSDC4", 0);
+  static const Double_t MaxTdcSDC4 = gUser.GetParameter("TdcSDC4", 1);
+  static const Double_t MinTrailingSDC1 = gUser.GetParameter("TrailingSDC1", 0);
+  static const Double_t MaxTrailingSDC1 = gUser.GetParameter("TrailingSDC1", 1);
+  static const Double_t MinTrailingSDC2 = gUser.GetParameter("TrailingSDC2", 0);
+  static const Double_t MaxTrailingSDC2 = gUser.GetParameter("TrailingSDC2", 1);
+  static const Double_t MinTrailingSDC3 = gUser.GetParameter("TrailingSDC3", 0);
+  static const Double_t MaxTrailingSDC3 = gUser.GetParameter("TrailingSDC3", 1);
+  static const Double_t MinTrailingSDC4 = gUser.GetParameter("TrailingSDC4", 0);
+  static const Double_t MaxTrailingSDC4 = gUser.GetParameter("TrailingSDC4", 1);
 
-  if( m_is_decoded ){
+  if(m_is_decoded){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded!" << std::endl;
     return false;
@@ -136,224 +133,176 @@ RawData::DecodeHits( void )
   ClearAll();
 
   // BH1
-  DecodeHodo( DetIdBH1, NumOfSegBH1, kBothSide, m_BH1RawHC );
+  DecodeHodo(DetIdBH1, NumOfSegBH1, kBothSide, m_BH1RawHC);
   // BH2
-  DecodeHodo( DetIdBH2, NumOfSegBH2, kBothSide, m_BH2RawHC );
+  DecodeHodo(DetIdBH2, NumOfSegBH2, kBothSide, m_BH2RawHC);
   // BAC
-  DecodeHodo( DetIdBAC, NumOfSegBAC, kOneSide,  m_BACRawHC );
-  // E42 BH2
-  DecodeHodo( DetIdE42BH2, NumOfSegE42BH2, kBothSide, m_E42BH2RawHC );
-  // SAC
-  DecodeHodo( DetIdSAC, NumOfSegSAC, kOneSide,  m_SACRawHC );
+  DecodeHodo(DetIdBAC, NumOfSegBAC, kOneSide,  m_BACRawHC);
+  // HTOF
+  DecodeHodo(DetIdHTOF,NumOfSegHTOF, kBothSide, m_HTOFRawHC);
+  // SCH
+  for(Int_t seg=0; seg<NumOfSegSCH; ++seg){
+    UInt_t nhit = gUnpacker.get_entries(DetIdSCH, 0, seg, 0, 0);
+    for(Int_t i=0; i<nhit; ++i){
+      UInt_t leading  = gUnpacker.get(DetIdSCH, 0, seg, 0, 0, i);
+      UInt_t trailing = gUnpacker.get(DetIdSCH, 0, seg, 0, 1, i);
+      AddHodoRawHit(m_SCHRawHC, DetIdSCH, 0, seg, 0,
+                    kHodoLeading,  leading);
+      AddHodoRawHit(m_SCHRawHC, DetIdSCH, 0, seg, 0,
+                    kHodoTrailing, trailing);
+    }
+  }
+  // BVH
+  // DecodeHodo(DetIdBVH, NumOfSegBVH, kOneSide,  m_BVHRawHC);
   // TOF
-  DecodeHodo( DetIdTOF, NumOfSegTOF, kBothSide, m_TOFRawHC );
-  // TOF-HT
-  DecodeHodo( DetIdHtTOF,NumOfSegHtTOF,kOneSide,  m_HtTOFRawHC );
+  DecodeHodo(DetIdTOF, NumOfSegTOF, kBothSide, m_TOFRawHC);
   // LAC
-  DecodeHodo( DetIdLAC,  NumOfSegLAC,  kOneSide,  m_LACRawHC );
-  // LC
-  DecodeHodo( DetIdLC,  NumOfSegLC,  kOneSide,  m_LCRawHC );
+  DecodeHodo(DetIdLAC,  NumOfSegLAC,  kOneSide,  m_LACRawHC);
   // WC
-  DecodeHodo( DetIdWC, NumOfSegWC, kBothSide, m_WCRawHC );
+  DecodeHodo(DetIdWC, NumOfSegWC, kBothSide, m_WCRawHC);
 
   //BFT
-  for( Int_t plane=0; plane<NumOfPlaneBFT; ++plane ){
-    for( Int_t seg=0; seg<NumOfSegBFT; ++seg ){
-      UInt_t nhit = gUnpacker.get_entries( DetIdBFT, plane, 0, seg, 0 );
-      for( Int_t i=0; i<nhit; ++i ){
-	UInt_t leading  = gUnpacker.get( DetIdBFT, plane, 0, seg, 0, i );
-	UInt_t trailing = gUnpacker.get( DetIdBFT, plane, 0, seg, 1, i );
-	AddHodoRawHit( m_BFTRawHC[plane], DetIdBFT, plane, seg, 0,
-		       kHodoLeading,  leading );
-	AddHodoRawHit( m_BFTRawHC[plane], DetIdBFT, plane, seg, 0,
-		       kHodoTrailing, trailing );
-      }
-    }
-  }
-
-  //SFT
-  for( Int_t plane=0; plane<NumOfPlaneSFT; ++plane ){
-    Int_t nseg = 0;
-    switch( plane ) {
-    case 0: nseg = NumOfSegSFT_UV; break;
-    case 1: nseg = NumOfSegSFT_UV; break;
-    case 2: nseg = NumOfSegSFT_X;  break;
-    case 3: nseg = NumOfSegSFT_X;  break;
-    default: break;
-    }
-    for( Int_t seg=0; seg<nseg; ++seg ) {
-      for( Int_t LorT=0; LorT<2; ++LorT ) {
-	UInt_t nhit = gUnpacker.get_entries( DetIdSFT, plane, 0, seg, LorT );
-	for( Int_t i=0; i<nhit; ++i ){
-	  UInt_t edge = gUnpacker.get( DetIdSFT, plane, 0, seg, LorT, i );
-	  AddHodoRawHit( m_SFTRawHC[plane], DetIdSFT, plane, seg, 0,
-			 kHodoLeading+LorT, edge );
-	}
-      }
-    }
-  }
-
-  //SCH
-  for( Int_t seg=0; seg<NumOfSegSCH; ++seg ){
-    UInt_t nhit = gUnpacker.get_entries( DetIdSCH, 0, seg, 0, 0 );
-    for( Int_t i=0; i<nhit; ++i ){
-      UInt_t leading  = gUnpacker.get( DetIdSCH, 0, seg, 0, 0, i );
-      UInt_t trailing = gUnpacker.get( DetIdSCH, 0, seg, 0, 1, i );
-      AddHodoRawHit( m_SCHRawHC, DetIdSCH, 0, seg, 0,
-		     kHodoLeading,  leading );
-      AddHodoRawHit( m_SCHRawHC, DetIdSCH, 0, seg, 0,
-		     kHodoTrailing, trailing );
-    }
-  }
-
-  //FBT1
-  for( Int_t layer=0; layer<NumOfLayersFBT1; ++layer ){
-    for( Int_t seg=0; seg<MaxSegFBT1; ++seg ){
-      for( Int_t UorD=0; UorD<2; ++UorD ){
-	for( Int_t LorT=0; LorT<2; ++LorT ){
-	  UInt_t nhit = gUnpacker.get_entries( DetIdFBT1, layer, seg,
-					       UorD, LorT );
-	  for( Int_t i=0; i<nhit; ++i ){
-	    UInt_t time  = gUnpacker.get( DetIdFBT1, layer, seg,
-					  UorD, LorT, i );
-	    AddHodoRawHit( m_FBT1RawHC[2*layer + UorD], DetIdFBT1, layer, seg,
-			   UorD, kHodoLeading+LorT, time );
-	  }
-	}
-      }
-    }
-  }
-
-  //FBT2
-  for( Int_t layer=0; layer<NumOfLayersFBT2; ++layer ){
-    for( Int_t seg=0; seg<MaxSegFBT2; ++seg ){
-      for( Int_t UorD=0; UorD<2; ++UorD ){
-	for( Int_t LorT=0; LorT<2; ++LorT ){
-	  UInt_t nhit = gUnpacker.get_entries( DetIdFBT2, layer, seg,
-					       UorD, LorT);
-	  for( Int_t i=0; i<nhit; ++i ){
-	    UInt_t time  = gUnpacker.get( DetIdFBT2, layer, seg,
-					  UorD, LorT, i );
-	    AddHodoRawHit( m_FBT2RawHC[2*layer + UorD], DetIdFBT2, layer, seg,
-			   UorD, kHodoLeading+LorT, time );
-	  }
-	}
+  for(Int_t plane=0; plane<NumOfPlaneBFT; ++plane){
+    for(Int_t seg=0; seg<NumOfSegBFT; ++seg){
+      UInt_t nhit = gUnpacker.get_entries(DetIdBFT, plane, 0, seg, 0);
+      for(Int_t i=0; i<nhit; ++i){
+	UInt_t leading  = gUnpacker.get(DetIdBFT, plane, 0, seg, 0, i);
+	UInt_t trailing = gUnpacker.get(DetIdBFT, plane, 0, seg, 1, i);
+	AddHodoRawHit(m_BFTRawHC[plane], DetIdBFT, plane, seg, 0,
+                      kHodoLeading,  leading);
+	AddHodoRawHit(m_BFTRawHC[plane], DetIdBFT, plane, seg, 0,
+                      kHodoTrailing, trailing);
       }
     }
   }
 
   // BC3&BC4 MWDC
-  for( Int_t plane=0; plane<NumOfLayersBcOut; ++plane ){
-    if( plane<NumOfLayersBc ){
-      for( Int_t wire=0; wire<MaxWireBC3; ++wire ){
-        for( Int_t lt=0; lt<2; ++lt ){
-	  UInt_t nhit = gUnpacker.get_entries( DetIdBC3, plane, 0, wire, lt );
+  for(Int_t plane=0; plane<NumOfLayersBcOut; ++plane){
+    if(plane<NumOfLayersBc){
+      for(Int_t wire=0; wire<MaxWireBC3; ++wire){
+        for(Int_t lt=0; lt<2; ++lt){
+	  UInt_t nhit = gUnpacker.get_entries(DetIdBC3, plane, 0, wire, lt);
 #if OscillationCut
-	  if( nhit>MaxMultiHitDC ) continue;
+	  if(nhit>MaxMultiHitDC) continue;
 #endif
-	  for( Int_t i=0; i<nhit; i++ ){
-	    UInt_t data = gUnpacker.get( DetIdBC3, plane, 0, wire, lt, i );
-	    if ( lt == 0 && ( data<MinTdcBC3 || MaxTdcBC3<data ) ) continue;
-	    if ( lt == 1 && data<MinTdcBC3 ) continue;
-	    AddDCRawHit( m_BcOutRawHC[plane+1], plane+PlMinBcOut, wire+1,
-			 data, lt );
+	  for(Int_t i=0; i<nhit; i++){
+	    UInt_t data = gUnpacker.get(DetIdBC3, plane, 0, wire, lt, i);
+	    if (lt == 0 && (data<MinTdcBC3 || MaxTdcBC3<data)) continue;
+	    if (lt == 1 && data<MinTdcBC3) continue;
+	    AddDCRawHit(m_BcOutRawHC[plane+1], plane+PlMinBcOut, wire+1,
+                        data, lt);
 	  }
 	}
       }
     } else {
-      for( Int_t wire=0; wire<MaxWireBC4; ++wire ){
-        for( Int_t lt=0; lt<2; ++lt ){
-	  UInt_t nhit = gUnpacker.get_entries( DetIdBC4, plane-NumOfLayersBc,
-					       0, wire, lt );
+      for(Int_t wire=0; wire<MaxWireBC4; ++wire){
+        for(Int_t lt=0; lt<2; ++lt){
+	  UInt_t nhit = gUnpacker.get_entries(DetIdBC4, plane-NumOfLayersBc,
+                                              0, wire, lt);
 #if OscillationCut
-	  if( nhit>MaxMultiHitDC ) continue;
+	  if(nhit>MaxMultiHitDC) continue;
 #endif
-	  for( Int_t i=0; i<nhit; i++ ){
-	    UInt_t data =  gUnpacker.get( DetIdBC4, plane-NumOfLayersBc, 0,
-					  wire, lt, i );
-	    if ( lt == 0 && ( data<MinTdcBC4 || MaxTdcBC4<data ) ) continue;
-	    if ( lt == 1 && data<MinTdcBC4 ) continue;
-	    AddDCRawHit( m_BcOutRawHC[plane+1], plane+PlMinBcOut, wire+1,
-			 data, lt );
+	  for(Int_t i=0; i<nhit; i++){
+	    UInt_t data =  gUnpacker.get(DetIdBC4, plane-NumOfLayersBc, 0,
+                                         wire, lt, i);
+	    if (lt == 0 && (data<MinTdcBC4 || MaxTdcBC4<data)) continue;
+	    if (lt == 1 && data<MinTdcBC4) continue;
+	    AddDCRawHit(m_BcOutRawHC[plane+1], plane+PlMinBcOut, wire+1,
+                        data, lt);
 	  }
         }
       }
     }
   }
 
-  // SdcIn (SDC1)
-  for( Int_t plane=0; plane<NumOfLayersSDC1; ++plane ){
-    for( Int_t wire=0; wire<MaxWireSDC1; ++wire ){
-      for( Int_t lt=0; lt<2; ++lt ){
-	UInt_t nhit = gUnpacker.get_entries( DetIdSDC1, plane, 0, wire, lt );
+  // SDC1
+  for(Int_t plane=0; plane<NumOfLayersSDC1; ++plane){
+    for(Int_t wire=0; wire<MaxWireSDC1; ++wire){
+      for(Int_t lt=0; lt<2; ++lt){
+	UInt_t nhit = gUnpacker.get_entries(DetIdSDC1, plane, 0, wire, lt);
 #if OscillationCut
-	if( nhit>MaxMultiHitDC ) continue;
+	if(nhit > MaxMultiHitDC) continue;
 #endif
-	for( Int_t i=0; i<nhit; i++ ){
-	  UInt_t data = gUnpacker.get( DetIdSDC1, plane, 0, wire, lt, i ) ;
-	  if ( lt == 0 && ( data<MinTdcSDC1 || MaxTdcSDC1<data ) ) continue;
-	  if ( lt == 1 && data<MinTdcSDC1 ) continue;
-	  AddDCRawHit( m_SdcInRawHC[plane+1], plane+PlMinSdcIn, wire+1, data );
+	for(Int_t i=0; i<nhit; ++i){
+	  UInt_t data = gUnpacker.get(DetIdSDC1, plane, 0, wire, lt, i);
+          if(lt == 0 && (data < MinTdcSDC1 || MaxTdcSDC1 < data)) continue;
+          if(lt == 1 && (data < MinTrailingSDC1 || MaxTrailingSDC1 < data)) continue;
+          AddDCRawHit(m_SdcInRawHC[plane+1], plane+PlMinSdcIn, wire+1, data , lt);
+	}
+      }
+    }
+  }
+  // SDC2
+  for(Int_t plane=0; plane<NumOfLayersSDC2; ++plane){
+    const Int_t MaxWireSDC2 = (plane < 2) ? MaxWireSDC2X : MaxWireSDC2Y;
+    for(Int_t wire=0; wire<MaxWireSDC2; ++wire){
+      for(Int_t lt=0; lt<2; ++lt){
+	UInt_t nhit = gUnpacker.get_entries(DetIdSDC2, plane, 0, wire, lt);
+#if OscillationCut
+	if(nhit > MaxMultiHitDC) continue;
+#endif
+	for(Int_t i=0; i<nhit; ++i){
+	  UInt_t data = gUnpacker.get(DetIdSDC2, plane, 0, wire, lt, i);
+	  if(lt == 0 && (data < MinTdcSDC2 || MaxTdcSDC2 < data)) continue;
+          if(lt == 1 && (data < MinTrailingSDC2 || MaxTrailingSDC2 < data)) continue;
+          AddDCRawHit(m_SdcInRawHC[plane+NumOfLayersSDC1+1],
+                      plane+NumOfLayersSDC1+PlMinSdcIn, wire+1, data , lt);
 	}
       }
     }
   }
 
-  // SdcOut (SDC2&SDC3)
-  for( Int_t plane=0; plane<NumOfLayersSDC2+NumOfLayersSDC3; ++plane ){
-    if( plane<NumOfLayersSDC2 ){
-      for( Int_t wire=0; wire<MaxWireSDC2; ++wire ){
-	for( Int_t lt=0; lt<2; ++lt ){
-	  Int_t nhit = gUnpacker.get_entries( DetIdSDC2, plane, 0, wire, lt );
+  // SDC3
+  for(Int_t plane=0; plane<NumOfLayersSDC3; ++plane){
+    for(Int_t wire=0; wire<MaxWireSDC3; ++wire){
+      for(Int_t lt=0; lt<2; ++lt){
+        auto nhit = gUnpacker.get_entries(DetIdSDC3, plane, 0, wire, lt);
 #if OscillationCut
-	  if( nhit>MaxMultiHitDC ) continue;
+        if(nhit > MaxMultiHitDC) continue;
 #endif
-	  for(Int_t i=0; i<nhit; i++ ){
-	    Int_t data = gUnpacker.get( DetIdSDC2, plane, 0, wire, lt, i );
-	    if( lt == 0 && ( data<MinTdcSDC2 || MaxTdcSDC2<data ) ) continue;
-	    if( lt == 1 && data<MinTdcSDC2 ) continue;
-	    AddDCRawHit( m_SdcOutRawHC[plane+1], plane+PlMinSdcOut, wire+1,
-			 data , lt);
-	  }
-	}
+        for(Int_t i=0; i<nhit; ++i){
+          auto data = gUnpacker.get(DetIdSDC3, plane, 0, wire, lt, i);
+          if(lt == 0 && (data < MinTdcSDC3 || MaxTdcSDC3 < data)) continue;
+          if(lt == 1 && (data < MinTrailingSDC3 || MaxTrailingSDC3 < data)) continue;
+          AddDCRawHit(m_SdcOutRawHC[plane+1], plane+PlMinSdcOut, wire+1,
+                      data , lt);
+        }
       }
-    } else {
-      Int_t MaxWireSDC3
-	= ( plane==NumOfLayersSDC2 || plane==(NumOfLayersSDC2+1) )
-	? MaxWireSDC3Y : MaxWireSDC3X;
-      for( Int_t wire=0; wire<MaxWireSDC3; ++wire ){
-	for( Int_t lt=0; lt<2; ++lt ){
-	  UInt_t nhit =
-	    gUnpacker.get_entries( DetIdSDC3, plane-NumOfLayersSDC2,
-				   0, wire, lt );
+    }
+  }
+
+  // SDC4
+  for(Int_t plane=0; plane<NumOfLayersSDC4; ++plane){
+    const Int_t MaxWireSDC4 = (plane < 2) ? MaxWireSDC4Y : MaxWireSDC4X;
+    for(Int_t wire=0; wire<MaxWireSDC4; ++wire){
+      for(Int_t lt=0; lt<2; ++lt){
+        auto nhit = gUnpacker.get_entries(DetIdSDC4, plane, 0, wire, lt);
 #if OscillationCut
-	  if( nhit>MaxMultiHitDC ) continue;
+        if(nhit > MaxMultiHitDC) continue;
 #endif
-	  for( Int_t i=0; i<nhit; ++i ){
-	    UInt_t data = gUnpacker.get( DetIdSDC3, plane-NumOfLayersSDC2,
-					 0, wire, lt ,i );
-	    if( lt == 0 && ( data<MinTdcSDC3 || MaxTdcSDC3<data ) ) continue;
-	    if( lt == 1 && data<MinTdcSDC3 ) continue;
-	    AddDCRawHit( m_SdcOutRawHC[plane+1],  plane+PlMinSdcOut, wire+1,
-			 data , lt);
-	  }
-	}
+        for(Int_t i=0; i<nhit; ++i){
+          auto data = gUnpacker.get(DetIdSDC4, plane, 0, wire, lt, i);
+          if(lt == 0 && (data < MinTdcSDC4 || MaxTdcSDC4 < data)) continue;
+          if(lt == 1 && (data < MinTrailingSDC4 || MaxTrailingSDC4 < data)) continue;
+          AddDCRawHit(m_SdcOutRawHC[plane+NumOfLayersSDC3+1],
+                      plane+NumOfLayersSDC3+PlMinSdcOut, wire+1, data , lt);
+        }
       }
     }
   }
 
   // Scaler
-  for( Int_t l = 0; l<NumOfScaler; ++l ){
-    for( Int_t seg=0; seg<NumOfSegScaler; ++seg ){
-      UInt_t nhit = gUnpacker.get_entries( DetIdScaler, l, 0, seg, 0 );
-      if( nhit == 0 ) continue;
-      UInt_t data = gUnpacker.get( DetIdScaler, l, 0, seg, 0 );
-      AddHodoRawHit( m_ScalerRawHC, DetIdScaler, l, seg, 0, 0, data );
+  for(Int_t l = 0; l<NumOfScaler; ++l){
+    for(Int_t seg=0; seg<NumOfSegScaler; ++seg){
+      UInt_t nhit = gUnpacker.get_entries(DetIdScaler, l, 0, seg, 0);
+      if(nhit == 0) continue;
+      UInt_t data = gUnpacker.get(DetIdScaler, l, 0, seg, 0);
+      AddHodoRawHit(m_ScalerRawHC, DetIdScaler, l, seg, 0, 0, data);
     }
   }
 
   // Trigger Flag
-  DecodeHodo( DetIdTrig, NumOfSegTrig, kOneSide, m_TrigRawHC );
+  DecodeHodo(DetIdTrig, NumOfSegTrig, kOneSide, m_TrigRawHC);
 
   m_is_decoded = true;
   return true;
@@ -361,28 +310,28 @@ RawData::DecodeHits( void )
 
 //_____________________________________________________________________________
 bool
-RawData::DecodeTPCHits( void )
+RawData::DecodeTPCHits()
 {
-  static const auto k_tpc = gUnpacker.get_device_id( "TPC" );
-  static const auto k_adc = gUnpacker.get_data_id( "TPC", "adc" );
+  static const auto k_tpc = gUnpacker.get_device_id("TPC");
+  static const auto k_adc = gUnpacker.get_data_id("TPC", "adc");
   // static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
   // static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
 
-  if( m_is_decoded ){
+  if(m_is_decoded){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded!" << std::endl;
     return false;
   }
 
-  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
-    for( Int_t r=0; r<NumOfRow; ++r ){
-      const auto nhit = gUnpacker.get_entries( k_tpc, layer, 0, r, k_adc );
-      for( Int_t i=0; i<nhit; ++i ){
-        auto adc = gUnpacker.get( k_tpc, layer, 0, r, k_adc, i );
+    for(Int_t r=0; r<NumOfRow; ++r){
+      const auto nhit = gUnpacker.get_entries(k_tpc, layer, 0, r, k_adc);
+      for(Int_t i=0; i<nhit; ++i){
+        auto adc = gUnpacker.get(k_tpc, layer, 0, r, k_adc, i);
 	//temporary
 	//if(MinTimeBucket<i&&i<MaxTimeBucket)
-	AddTPCRawHit( m_TPCRawHC[layer], layer, r, adc );
+	AddTPCRawHit(m_TPCRawHC[layer], layer, r, adc);
       }
     }
   }
@@ -393,14 +342,14 @@ RawData::DecodeTPCHits( void )
 
 //_____________________________________________________________________________
 bool
-RawData::RecalcTPCHits( void )
+RawData::RecalcTPCHits()
 {
-  if( !m_is_decoded ){
+  if(!m_is_decoded){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "Rawdata has not been decoded!" << std::endl;
     return false;
   }
-  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     // Int_t Min_rms_row = -1;
     // Int_t Min_rms_hitnum = -1;
     Int_t Min_rms = 100000;
@@ -410,7 +359,7 @@ RawData::RecalcTPCHits( void )
     const std::size_t nh = m_TPCRawHC[layer].size();
     if(nh==0)
       continue;
-    for( std::size_t hiti =0; hiti< nh; hiti++){
+    for(std::size_t hiti =0; hiti< nh; hiti++){
       auto hit = m_TPCRawHC[layer][hiti];
       if(hit->RMS() < Min_rms){
 	Min_rms = hit->RMS();
@@ -430,21 +379,21 @@ RawData::RecalcTPCHits( void )
     auto hit_min = m_TPCRawHC[layer][Min_maxadc_hitnum];
     Int_t n0 = hit_min->Fadc().size();
     Int_t mean0 = (Int_t)hit_min->Mean();
-    for( std::size_t hiti =0; hiti< nh; hiti++){
+    for(std::size_t hiti =0; hiti< nh; hiti++){
       auto hit = m_TPCRawHC[layer][hiti];
       Int_t row = hit->RowId();
       //std::cout<<"row:"<<row<<std::endl;
       Int_t n = hit->Fadc().size();
       if(n0<n)
 	n=n0;
-      for( Int_t i=0; i<n; ++i ){
-	auto adc = hit->Fadc().at( i );
-	auto adc0 = hit_min->Fadc().at( i );
+      for(Int_t i=0; i<n; ++i){
+	auto adc = hit->Fadc().at(i);
+	auto adc0 = hit_min->Fadc().at(i);
 	auto cor_adc = adc + (mean0 - adc0);
 	if(nh==1)
-	  AddTPCRawHit ( m_TPCCorHC[layer], layer, row, adc);
+	  AddTPCRawHit (m_TPCCorHC[layer], layer, row, adc);
 	else
-	  AddTPCRawHit ( m_TPCCorHC[layer], layer, row, cor_adc);
+	  AddTPCRawHit (m_TPCCorHC[layer], layer, row, cor_adc);
       }
     }
   }
@@ -452,13 +401,13 @@ RawData::RecalcTPCHits( void )
 }
 //_____________________________________________________________________________
 bool
-RawData::DecodeCalibHits( void )
+RawData::DecodeCalibHits()
 {
-  del::ClearContainer( m_VmeCalibRawHC );
+  del::ClearContainer(m_VmeCalibRawHC);
 
-  for( Int_t plane=0; plane<NumOfPlaneVmeCalib; ++plane ){
-    DecodeHodo( DetIdVmeCalib, plane, NumOfSegVmeCalib,
-  		kOneSide, m_VmeCalibRawHC );
+  for(Int_t plane=0; plane<NumOfPlaneVmeCalib; ++plane){
+    DecodeHodo(DetIdVmeCalib, plane, NumOfSegVmeCalib,
+               kOneSide, m_VmeCalibRawHC);
   }
 
   return true;
@@ -466,35 +415,35 @@ RawData::DecodeCalibHits( void )
 
 //_____________________________________________________________________________
 Bool_t
-RawData::AddHodoRawHit( HodoRHitContainer& cont,
-			Int_t id, Int_t plane, Int_t seg,
-			Int_t UorD, Int_t type, Int_t data )
+RawData::AddHodoRawHit(HodoRHitContainer& cont,
+                       Int_t id, Int_t plane, Int_t seg,
+                       Int_t UorD, Int_t type, Int_t data)
 {
   HodoRawHit* p = nullptr;
-  for( Int_t i=0, n=cont.size(); i<n; ++i ){
+  for(Int_t i=0, n=cont.size(); i<n; ++i){
     HodoRawHit* q = cont[i];
-    if( q->DetectorId() == id &&
-	q->PlaneId() == plane &&
-	q->SegmentId() == seg ){
+    if(q->DetectorId() == id &&
+       q->PlaneId() == plane &&
+       q->SegmentId() == seg){
       p=q; break;
     }
   }
-  if( !p ){
-    p = new HodoRawHit( id, plane, seg );
+  if(!p){
+    p = new HodoRawHit(id, plane, seg);
     cont.push_back(p);
   }
 
   switch(type){
   case kHodoAdc:
-    if( UorD==0 ) p->SetAdcUp(data);
+    if(UorD==0) p->SetAdcUp(data);
     else          p->SetAdcDown(data);
     break;
   case kHodoLeading:
-    if( UorD==0 ) p->SetTdcUp(data);
+    if(UorD==0) p->SetTdcUp(data);
     else          p->SetTdcDown(data);
     break;
   case kHodoTrailing:
-    if( UorD==0 ) p->SetTdcTUp(data);
+    if(UorD==0) p->SetTdcTUp(data);
     else          p->SetTdcTDown(data);
     break;
   case kHodoOverflow:
@@ -514,19 +463,19 @@ RawData::AddHodoRawHit( HodoRHitContainer& cont,
 
 //_____________________________________________________________________________
 Bool_t
-RawData::AddDCRawHit( DCRHitContainer& cont,
-		      Int_t plane, Int_t wire, Int_t data, Int_t type )
+RawData::AddDCRawHit(DCRHitContainer& cont,
+                     Int_t plane, Int_t wire, Int_t data, Int_t type)
 {
   DCRawHit* p = nullptr;
-  for( Int_t i=0, n=cont.size(); i<n; ++i ){
+  for(Int_t i=0, n=cont.size(); i<n; ++i){
     DCRawHit* q = cont[i];
-    if( q->PlaneId()==plane &&
-	q->WireId()==wire ){
+    if(q->PlaneId()==plane &&
+       q->WireId()==wire){
       p=q; break;
     }
   }
-  if( !p ){
-    p = new DCRawHit( plane, wire );
+  if(!p){
+    p = new DCRawHit(plane, wire);
     cont.push_back(p);
   }
 
@@ -552,37 +501,37 @@ RawData::AddDCRawHit( DCRHitContainer& cont,
 
 //_____________________________________________________________________________
 Bool_t
-RawData::AddTPCRawHit( TPCRHitContainer& cont,
-                       Int_t layer, Int_t row, Int_t adc )
+RawData::AddTPCRawHit(TPCRHitContainer& cont,
+                      Int_t layer, Int_t row, Int_t adc)
 {
   TPCRawHit* p = nullptr;
-  for( Int_t i=0, n=cont.size(); i<n; ++i ){
+  for(Int_t i=0, n=cont.size(); i<n; ++i){
     TPCRawHit* q = cont[i];
-    if( q->LayerId() == layer && q->RowId() == row ){
+    if(q->LayerId() == layer && q->RowId() == row){
       p=q; break;
     }
   }
-  if( !p ){
-    p = new TPCRawHit( layer, row );
+  if(!p){
+    p = new TPCRawHit(layer, row);
     cont.push_back(p);
   }
-  p->AddFadc( adc );
+  p->AddFadc(adc);
   return true;
 }
 
 //_____________________________________________________________________________
 void
-RawData::DecodeHodo( Int_t id, Int_t plane, Int_t nseg, Int_t nch,
-		     HodoRHitContainer& cont )
+RawData::DecodeHodo(Int_t id, Int_t plane, Int_t nseg, Int_t nch,
+                    HodoRHitContainer& cont)
 {
-  for( Int_t seg=0; seg<nseg; ++seg ){
-    for( Int_t UorD=0; UorD<nch; ++UorD ){
-      for( Int_t AorT=0; AorT<2; ++AorT ){
-	UInt_t nhit = gUnpacker.get_entries( id, plane, seg, UorD, AorT );
-	if( nhit == 0 ) continue;
-	for( Int_t m=0; m<nhit; ++m ){
-	  UInt_t data = gUnpacker.get( id, plane, seg, UorD, AorT, m );
-	  AddHodoRawHit( cont, id, plane, seg, UorD, AorT, data );
+  for(Int_t seg=0; seg<nseg; ++seg){
+    for(Int_t UorD=0; UorD<nch; ++UorD){
+      for(Int_t AorT=0; AorT<2; ++AorT){
+	UInt_t nhit = gUnpacker.get_entries(id, plane, seg, UorD, AorT);
+	if(nhit == 0) continue;
+	for(Int_t m=0; m<nhit; ++m){
+	  UInt_t data = gUnpacker.get(id, plane, seg, UorD, AorT, m);
+	  AddHodoRawHit(cont, id, plane, seg, UorD, AorT, data);
 	}
       }
     }
@@ -591,7 +540,7 @@ RawData::DecodeHodo( Int_t id, Int_t plane, Int_t nseg, Int_t nch,
 
 //_____________________________________________________________________________
 void
-RawData::DecodeHodo( Int_t id, Int_t nseg, Int_t nch, HodoRHitContainer& cont )
+RawData::DecodeHodo(Int_t id, Int_t nseg, Int_t nch, HodoRHitContainer& cont)
 {
-  DecodeHodo( id, 0, nseg, nch, cont );
+  DecodeHodo(id, 0, nseg, nch, cont);
 }

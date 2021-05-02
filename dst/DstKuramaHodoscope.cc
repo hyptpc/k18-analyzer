@@ -1,8 +1,6 @@
-/**
- *  file: DstKuramaHodoscope.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
+
+#include "DstHelper.hh"
 
 #include <iomanip>
 #include <iostream>
@@ -17,39 +15,38 @@
 #include "DCGeomMan.hh"
 #include "DatabasePDG.hh"
 #include "DetectorID.hh"
+#include "FuncName.hh"
 #include "MathTools.hh"
 #include "RootHelper.hh"
 #include "UserParamMan.hh"
 #include "HodoPHCMan.hh"
 
-#include "DstHelper.hh"
-
 namespace
 {
-  using namespace root;
-  using namespace dst;
-  const std::string& class_name("DstKuramaHodoscope");
-  ConfMan&            gConf = ConfMan::GetInstance();
-  const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
-  const UserParamMan& gUser = UserParamMan::GetInstance();
-  const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
+using namespace root;
+using namespace dst;
+auto&       gConf = ConfMan::GetInstance();
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
+const auto& gPHC  = HodoPHCMan::GetInstance();
+TString ClassName() { return TString("DstKuramaHodoscope"); }
 }
 
 namespace dst
 {
-  enum kArgc
-    {
-      kProcess, kConfFile,
-      kKuramaTracking, kHodoscope, kOutFile, nArgc
-    };
-  std::vector<TString> ArgName =
-    { "[Process]", "[ConfFile]", "[KuramaTracking]",
-      "[Hodoscope]", "[OutFile]" };
-  std::vector<TString> TreeName =
-    { "", "", "kurama", "hodo", "" };
-  std::vector<TFile*> TFileCont;
-  std::vector<TTree*> TTreeCont;
-  std::vector<TTreeReader*> TTreeReaderCont;
+enum kArgc
+{
+  kProcess, kConfFile,
+  kKuramaTracking, kHodoscope, kOutFile, nArgc
+};
+std::vector<TString> ArgName =
+{ "[Process]", "[ConfFile]", "[KuramaTracking]",
+  "[Hodoscope]", "[OutFile]" };
+std::vector<TString> TreeName =
+{ "", "", "kurama", "hodo", "" };
+std::vector<TFile*> TFileCont;
+std::vector<TTree*> TTreeCont;
+std::vector<TTreeReader*> TTreeReaderCont;
 }
 
 //_____________________________________________________________________
@@ -89,12 +86,6 @@ struct Event
   double dtBh2[NumOfSegBH2*MaxDepth];
   double t0Bh2[NumOfSegBH2*MaxDepth];
   double deBh2[NumOfSegBH2*MaxDepth];
-
-  int    nhSac;
-  int    csSac[NumOfSegSAC*MaxDepth];
-  double SacSeg[NumOfSegSAC*MaxDepth];
-  double tSac[NumOfSegSAC*MaxDepth];
-  double deSac[NumOfSegSAC*MaxDepth];
 
   int nhTof;
   int csTof[NumOfSegTOF];
@@ -162,12 +153,6 @@ struct Src
   double Time0;
   double CTime0;
 
-  int    nhSac;
-  int    csSac[NumOfSegSAC*MaxDepth];
-  double SacSeg[NumOfSegSAC*MaxDepth];
-  double tSac[NumOfSegSAC*MaxDepth];
-  double deSac[NumOfSegSAC*MaxDepth];
-
   int    nhTof;
   int    csTof[NumOfSegTOF];
   double TofSeg[NumOfSegTOF];
@@ -185,33 +170,33 @@ struct Src
 
 namespace root
 {
-  Event  event;
-  Src    src;
-  TH1   *h[MaxHist];
-  TTree *tree;
+Event  event;
+Src    src;
+TH1   *h[MaxHist];
+TTree *tree;
 }
 
 //_____________________________________________________________________
 int
-main( int argc, char **argv )
+main(int argc, char **argv)
 {
-  std::vector<std::string> arg( argv, argv+argc );
+  std::vector<std::string> arg(argv, argv+argc);
 
-  if( !CheckArg( arg ) )
+  if(!CheckArg(arg))
     return EXIT_FAILURE;
-  if( !DstOpen( arg ) )
+  if(!DstOpen(arg))
     return EXIT_FAILURE;
-  if( !gConf.Initialize( arg[kConfFile] ) )
+  if(!gConf.Initialize(arg[kConfFile]))
     return EXIT_FAILURE;
 
-  int nevent = GetEntries( TTreeCont );
+  int nevent = GetEntries(TTreeCont);
 
   CatchSignal::Set();
 
   int ievent = 0;
-  for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
+  for(; ievent<nevent && !CatchSignal::Stop(); ++ievent){
     InitializeEvent();
-    if( DstRead( ievent ) ) tree->Fill();
+    if(DstRead(ievent)) tree->Fill();
   }
 
   std::cout << "#D Event Number: " << std::setw(6)
@@ -224,22 +209,21 @@ main( int argc, char **argv )
 
 //_____________________________________________________________________
 bool
-dst::InitializeEvent( void )
+dst::InitializeEvent()
 {
   event.status   = 0;
   event.ntKurama = 0;
   event.nhBh1    = 0;
   event.nhBh2    = 0;
-  event.nhSac    = 0;
   event.nhTof    = 0;
   event.m2Combi  = 0;
 
-  for( int i=0; i<NumOfSegTrig; ++i ){
+  for(int i=0; i<NumOfSegTrig; ++i){
     event.trigflag[i] = -999;
     event.trigpat[i]  = -999;
   }
 
-  for( int i=0; i<Event::nParticle; ++i ){
+  for(int i=0; i<Event::nParticle; ++i){
     event.tTofCalc[i] = -9999.;
   }
 
@@ -255,9 +239,9 @@ dst::InitializeEvent( void )
     event.thetaKurama[i] = -9999.;
   }
 
-  for ( int l = 0; l < NumOfLayersVP; ++l ) {
-      event.vpx[l] = -9999.;
-      event.vpy[l] = -9999.;
+  for (int l = 0; l < NumOfLayersVP; ++l) {
+    event.vpx[l] = -9999.;
+    event.vpy[l] = -9999.;
   }
 
   for(int i=0;i<NumOfSegBH1*MaxDepth;++i){
@@ -278,13 +262,6 @@ dst::InitializeEvent( void )
     event.deBh2[i]  = -9999.;
   }
 
-  for(int i=0;i<NumOfSegSAC*MaxDepth;++i){
-    event.SacSeg[i] = -1;
-    event.csSac[i]  = 0;
-    event.tSac[i]   = -9999.;
-    event.deSac[i]  = -9999.;
-  }
-
   for(int i=0;i<NumOfSegTOF;++i){
     event.TofSeg[i] = -1;
     event.csTof[i]  = 0;
@@ -293,7 +270,7 @@ dst::InitializeEvent( void )
     event.deTof[i]  = -9999.;
   }
 
-  for( int i=0; i<MaxHits; ++i ){
+  for(int i=0; i<MaxHits; ++i){
     event.beta[i]  = -9999.;
     event.stof[i]  = -9999.;
     event.cstof[i] = -9999.;
@@ -304,47 +281,44 @@ dst::InitializeEvent( void )
 
 //_____________________________________________________________________
 bool
-dst::DstOpen( std::vector<std::string> arg )
+dst::DstOpen(std::vector<std::string> arg)
 {
   int open_file = 0;
   int open_tree = 0;
-  for( std::size_t i=0; i<nArgc; ++i ){
-    if( i==kProcess || i==kConfFile || i==kOutFile ) continue;
-    open_file += OpenFile( TFileCont[i], arg[i] );
-    open_tree += OpenTree( TFileCont[i], TTreeCont[i], TreeName[i] );
+  for(std::size_t i=0; i<nArgc; ++i){
+    if(i==kProcess || i==kConfFile || i==kOutFile) continue;
+    open_file += OpenFile(TFileCont[i], arg[i]);
+    open_tree += OpenTree(TFileCont[i], TTreeCont[i], TreeName[i]);
   }
 
-  if( open_file!=open_tree || open_file!=nArgc-3 )
+  if(open_file!=open_tree || open_file!=nArgc-3)
     return false;
-  if( !CheckEntries( TTreeCont ) )
+  if(!CheckEntries(TTreeCont))
     return false;
 
-  TFileCont[kOutFile] = new TFile( arg[kOutFile].c_str(), "recreate" );
+  TFileCont[kOutFile] = new TFile(arg[kOutFile].c_str(), "recreate");
 
   return true;
 }
 
 //_____________________________________________________________________
 bool
-dst::DstRead( int ievent )
+dst::DstRead(int ievent)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"]");
-
   static const double OffsetToF = gUser.GetParameter("OffsetToF");
 
-  if( ievent%10000==0 ){
+  if(ievent%10000==0){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
 
   GetEntry(ievent);
 
-  HF1( 1, event.status++ );
+  HF1(1, event.status++);
 
   event.ntKurama = src.ntKurama;
   event.nhBh1    = src.nhBh1;
   event.nhBh2    = src.nhBh2;
-  event.nhSac    = src.nhSac;
   event.nhTof    = src.nhTof;
 
 #if 0
@@ -352,34 +326,33 @@ dst::DstRead( int ievent )
   std::cout<<"[ntKurama]: "<<std::setw(2)<<src.ntKurama<<" ";
   std::cout<<"[nhBh1]: "<<std::setw(2)<<src.nhBh1<<" ";
   std::cout<<"[nhBh2]: "<<std::setw(2)<<src.nhBh2<<" ";
-  // std::cout<<"[nhSac]: "<<std::setw(2)<<src.nhSac<<" ";
   std::cout<<"[nhTof]: "<<std::setw(2)<<src.nhTof<<" "<<std::endl;
 #endif
 
   for(int i=0;i<NumOfSegTrig;++i){
     int tdc = src.trigflag[i];
-    if( tdc<=0 ) continue;
+    if(tdc<=0) continue;
     event.trigpat[i]  = i + 1;
     event.trigflag[i] = tdc;
   }
 
-  if( event.nhBh1<=0 ) return true;
-  HF1( 1, event.status++ );
+  if(event.nhBh1<=0) return true;
+  HF1(1, event.status++);
 
-  if( event.nhBh2<=0 ) return true;
-  HF1( 1, event.status++ );
+  if(event.nhBh2<=0) return true;
+  HF1(1, event.status++);
 
-  if( event.nhTof<=0 ) return true;
-  HF1( 1, event.status++ );
+  if(event.nhTof<=0) return true;
+  HF1(1, event.status++);
 
-  if( event.ntKurama<=0 ) return true;
-  if( event.ntKurama>MaxHits )
+  if(event.ntKurama<=0) return true;
+  if(event.ntKurama>MaxHits)
     event.ntKurama = MaxHits;
 
-  HF1( 1, event.status++ );
+  HF1(1, event.status++);
 
   double time0 = src.CTime0;
-  for( int i=0; i<src.nhBh2; ++i ){
+  for(int i=0; i<src.nhBh2; ++i){
     event.Bh2Seg[i] = src.Bh2Seg[i];
     event.tBh2[i]   = src.tBh2[i];
     event.t0Bh2[i]  = src.t0Bh2[i];
@@ -388,7 +361,7 @@ dst::DstRead( int ievent )
 
   ////////// for BeamTof
   double btof = -9999.;
-  for( int i=0; i<src.nhBh1; ++i ){
+  for(int i=0; i<src.nhBh1; ++i){
     event.Bh1Seg[i] = src.Bh1Seg[i];
     event.tBh1[i]   = src.tBh1[i];
     event.deBh1[i]  = src.deBh1[i];
@@ -396,22 +369,16 @@ dst::DstRead( int ievent )
     if(i==0) btof = src.tBh1[i] - time0;
   }
 
-  for( int i=0; i<src.nhSac; ++i ){
-    event.SacSeg[i] = src.SacSeg[i];
-    event.tSac[i]   = src.tSac[i];
-    event.deSac[i]  = src.deSac[i];
-  }
-
   int m2Combi = event.nhTof*event.ntKurama;
-  if( m2Combi>MaxHits || m2Combi<0 ){
-    std::cout << func_name << " too much m2Combi : " << m2Combi << std::endl;
+  if(m2Combi>MaxHits || m2Combi<0){
+    std::cout << FUNC_NAME << " too much m2Combi : " << m2Combi << std::endl;
     return false;
   }
   event.m2Combi = m2Combi;
 
-  HF1( 1, event.status++ );
+  HF1(1, event.status++);
   int mm=0;
-  for( int it=0; it<src.ntKurama; ++it ){
+  for(int it=0; it<src.ntKurama; ++it){
     event.path[it]    = src.path[it];
     event.pKurama[it] = src.pKurama[it];
     event.qKurama[it] = src.qKurama[it];
@@ -420,46 +387,46 @@ dst::DstRead( int ievent )
     event.utgtKurama[it] = src.utgtKurama[it];
     event.vtgtKurama[it] = src.vtgtKurama[it];
     event.thetaKurama[it] = src.thetaKurama[it];
-    if ( src.ntKurama == 1 ) {
-      for ( int l = 0; l < NumOfLayersVP; ++l ) {
+    if (src.ntKurama == 1) {
+      for (int l = 0; l < NumOfLayersVP; ++l) {
 	event.vpx[l] = src.vpx[l];
 	event.vpy[l] = src.vpy[l];
       }
     }
     event.tTofCalc[Event::Pion] =
-      Kinematics::CalcTimeOfFlight( event.pKurama[it],
-				    event.path[it],
-				    pdg::PionMass() );
+      Kinematics::CalcTimeOfFlight(event.pKurama[it],
+                                   event.path[it],
+                                   pdg::PionMass());
     event.tTofCalc[Event::Kaon] =
-      Kinematics::CalcTimeOfFlight( event.pKurama[it],
-				    event.path[it],
-				    pdg::KaonMass() );
+      Kinematics::CalcTimeOfFlight(event.pKurama[it],
+                                   event.path[it],
+                                   pdg::KaonMass());
     event.tTofCalc[Event::Proton] =
-      Kinematics::CalcTimeOfFlight( event.pKurama[it],
-				    event.path[it],
-				    pdg::ProtonMass() );
+      Kinematics::CalcTimeOfFlight(event.pKurama[it],
+                                   event.path[it],
+                                   pdg::ProtonMass());
     event.chisqrKurama[it] = src.chisqrKurama[it];
 
-    HF1( 10, event.pKurama[it] );
-    for( int itof=0; itof<src.nhTof; ++itof ){
+    HF1(10, event.pKurama[it]);
+    for(int itof=0; itof<src.nhTof; ++itof){
       event.csTof[itof]  = src.csTof[itof];
       event.TofSeg[itof] = src.TofSeg[itof];
       event.tTof[itof]   = src.tTof[itof];
       event.dtTof[itof]  = src.dtTof[itof];
       event.deTof[itof]  = src.deTof[itof];
       int tofseg = (int)src.TofSeg[itof];
-      HF1( 20000+tofseg*100, src.dtTof[itof] );
+      HF1(20000+tofseg*100, src.dtTof[itof]);
 
       ////////// TimeCut
       double stof = event.tTof[itof] - time0 + OffsetToF;
       double cstof = -9999.;
-      gPHC.DoStofCorrection( 8, 0, tofseg-1, 2, stof, btof, cstof );
-	  double beta = event.path[it]/cstof/math::C();
+      gPHC.DoStofCorrection(8, 0, tofseg-1, 2, stof, btof, cstof);
+      double beta = event.path[it]/cstof/math::C();
       event.beta[mm] = beta;
       event.stof[mm] = stof;// - event.tTofCalc[0];
       event.cstof[mm]= cstof;
       event.m2[mm]   =
-		Kinematics::MassSquare( event.pKurama[it], event.path[it], cstof );
+        Kinematics::MassSquare(event.pKurama[it], event.path[it], cstof);
 
 #if 0
       std::cout << "#D DebugPrint() Event : " << ievent << std::endl
@@ -467,74 +434,74 @@ dst::DstRead( int ievent )
 		<< "   pKurama : " << event.pKurama[it] << std::endl;
 #endif
 
-      for( int ip=0; ip<Event::nParticle; ++ip ){
-	HF2( 10000+ip+1, tofseg, cstof-event.tTofCalc[ip] );
-	HF1( 10000+tofseg*100+ip+1, cstof-event.tTofCalc[ip] );
+      for(int ip=0; ip<Event::nParticle; ++ip){
+	HF2(10000+ip+1, tofseg, cstof-event.tTofCalc[ip]);
+	HF1(10000+tofseg*100+ip+1, cstof-event.tTofCalc[ip]);
       }
 
-      HF1( 11, event.m2[mm] );
-      HF2( 20, event.m2[mm], event.pKurama[it] );
+      HF1(11, event.m2[mm]);
+      HF2(20, event.m2[mm], event.pKurama[it]);
 
       ++mm;
     }
   }
 
-  HF1( 1, event.status++ );
+  HF1(1, event.status++);
 
   return true;
 }
 
 //_____________________________________________________________________
 bool
-dst::DstClose( void )
+dst::DstClose()
 {
   TFileCont[kOutFile]->Write();
   std::cout << "#D Close : " << TFileCont[kOutFile]->GetName() << std::endl;
   TFileCont[kOutFile]->Close();
 
   const std::size_t n = TFileCont.size();
-  for( std::size_t i=0; i<n; ++i ){
-    if( TTreeCont[i] ) delete TTreeCont[i];
-    if( TFileCont[i] ) delete TFileCont[i];
+  for(std::size_t i=0; i<n; ++i){
+    if(TTreeCont[i]) delete TTreeCont[i];
+    if(TFileCont[i]) delete TFileCont[i];
   }
   return true;
 }
 
 //_____________________________________________________________________
 bool
-ConfMan::InitializeHistograms( void )
+ConfMan::InitializeHistograms()
 {
-  HB1( 1, "Status", 21, 0., 21. );
+  HB1(1, "Status", 21, 0., 21.);
 
   TString name[Event::nParticle] = { "Pion", "Kaon", "Proton" };
 
-  for( int ip=0; ip<Event::nParticle; ++ip ){
-    HB2( 10000+ip+1,
-	 Form("TofTime-%sTime %% TofSeg", name[ip].Data() ),
-	 NumOfSegTOF, 0., (double)NumOfSegTOF, 500, -25., 25. );
+  for(int ip=0; ip<Event::nParticle; ++ip){
+    HB2(10000+ip+1,
+        Form("TofTime-%sTime %% TofSeg", name[ip].Data()),
+        NumOfSegTOF, 0., (double)NumOfSegTOF, 500, -25., 25.);
   }
-  for( int i=0; i<NumOfSegTOF; ++i ){
-    for( int ip=0; ip<Event::nParticle; ++ip ){
-      HB1( 10000+(i+1)*100+ip+1,
-	   Form("Tof-%d TofTime-%sTime", i+1, name[ip].Data() ),
-	   500, -25., 25. );
+  for(int i=0; i<NumOfSegTOF; ++i){
+    for(int ip=0; ip<Event::nParticle; ++ip){
+      HB1(10000+(i+1)*100+ip+1,
+          Form("Tof-%d TofTime-%sTime", i+1, name[ip].Data()),
+          500, -25., 25.);
     }
 
-    HB1( 20000+(i+1)*100, Form("Tof TimeDiff U-D %d", i+1 ),
-    	 500, -25., 25. );
+    HB1(20000+(i+1)*100, Form("Tof TimeDiff U-D %d", i+1),
+        500, -25., 25.);
 
   }
-  HB1( 10, "pKurama",    280,  0.0, 2.8 );
-  HB1( 11, "MassSquare", 180, -0.4, 1.4 );
-  HB2( 20, "pKurama % MassSquare", 180, -0.4, 1.4, 280, 0.0, 2.8 );
+  HB1(10, "pKurama",    280,  0.0, 2.8);
+  HB1(11, "MassSquare", 180, -0.4, 1.4);
+  HB2(20, "pKurama % MassSquare", 180, -0.4, 1.4, 280, 0.0, 2.8);
   // for(int i=0;i<NumOfSegBH2;++i){
-  //   HB1( 100+i, Form("m2[BH2 Seg.%d]", i+1),
+  //   HB1(100+i, Form("m2[BH2 Seg.%d]", i+1),
   // 	 600, -0.2, 1.2);
   // }
 
-  HBTree( "khodo", "tree of DstKuramaHodoscope" );
-  tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig) );
-  tree->Branch("trigpat",    event.trigpat,   Form("trigpat[%d]/I", NumOfSegTrig) );
+  HBTree("khodo", "tree of DstKuramaHodoscope");
+  tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
+  tree->Branch("trigpat",    event.trigpat,   Form("trigpat[%d]/I", NumOfSegTrig));
   tree->Branch("status",     &event.status,      "status/I");
   tree->Branch("ntKurama", &event.ntKurama,  "ntKurama/I");
   tree->Branch("path",      event.path,      "path[ntKurama]/D");
@@ -546,11 +513,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("utgtKurama",    event.utgtKurama,   "utgtKurama[ntKurama]/D");
   tree->Branch("vtgtKurama",    event.vtgtKurama,   "vtgtKurama[ntKurama]/D");
   tree->Branch("thetaKurama",   event.thetaKurama,  "thetaKurama[ntKurama]/D");
-  tree->Branch("vpx", event.vpx, Form( "vpx[%d]/D", NumOfLayersVP ) );
-  tree->Branch("vpy", event.vpy, Form( "vpy[%d]/D", NumOfLayersVP ) );
+  tree->Branch("vpx", event.vpx, Form("vpx[%d]/D", NumOfLayersVP));
+  tree->Branch("vpy", event.vpy, Form("vpy[%d]/D", NumOfLayersVP));
 
   tree->Branch("tTofCalc",  event.tTofCalc,  Form("tTofCalc[%d]/D",
-  						  Event::nParticle ) );
+  						  Event::nParticle));
   tree->Branch("nhBh1", &event.nhBh1, "nhBh1/I");
   tree->Branch("csBh1",  event.csBh1, "csBh1[nhBh1]/D");
   tree->Branch("Bh1Seg", event.Bh1Seg,"Bh1Seg[nhBh1]/D");
@@ -566,12 +533,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("dtBh2",  event.dtBh2, "dtBh2[nhBh2]/D");
   tree->Branch("t0Bh2",  event.t0Bh2, "t0Bh2[nhBh2]/D");
   tree->Branch("deBh2",  event.deBh2, "deBh2[nhBh2]/D");
-
-  tree->Branch("nhSac",  &event.nhSac, "nhSac/I");
-  tree->Branch("csSac",   event.csSac, "csSac[nhSac]/D");
-  tree->Branch("SacSeg",  event.SacSeg,"SacSeg[nhSac]/D");
-  tree->Branch("tSac",    event.tSac,  "tSac[nhSac]/D");
-  tree->Branch("deSac",   event.deSac, "deSac[nhSac]/D");
 
   tree->Branch("nhTof",  &event.nhTof, "nhTof/I");
   tree->Branch("csTof",   event.csTof, "csTof[nhTof]/D");
@@ -603,11 +564,6 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kHodoscope]->SetBranchStatus("dtBh2",     1);
   TTreeCont[kHodoscope]->SetBranchStatus("t0Bh2",     1);
   TTreeCont[kHodoscope]->SetBranchStatus("deBh2",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("nhSac",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("csSac",     1);
-  TTreeCont[kHodoscope]->SetBranchStatus("SacSeg",    1);
-  TTreeCont[kHodoscope]->SetBranchStatus("tSac",      1);
-  TTreeCont[kHodoscope]->SetBranchStatus("deSac",     1);
   TTreeCont[kHodoscope]->SetBranchStatus("nhTof",     1);
   TTreeCont[kHodoscope]->SetBranchStatus("csTof",     1);
   TTreeCont[kHodoscope]->SetBranchStatus("TofSeg",    1);
@@ -638,11 +594,6 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kHodoscope]->SetBranchAddress("dtBh2", src.dtBh2);
   TTreeCont[kHodoscope]->SetBranchAddress("t0Bh2", src.t0Bh2);
   TTreeCont[kHodoscope]->SetBranchAddress("deBh2", src.deBh2);
-  TTreeCont[kHodoscope]->SetBranchAddress("nhSac", &src.nhSac);
-  TTreeCont[kHodoscope]->SetBranchAddress("csSac", src.csSac);
-  TTreeCont[kHodoscope]->SetBranchAddress("SacSeg",src.SacSeg);
-  TTreeCont[kHodoscope]->SetBranchAddress("tSac",  src.tSac);
-  TTreeCont[kHodoscope]->SetBranchAddress("deSac", src.deSac);
   TTreeCont[kHodoscope]->SetBranchAddress("nhTof", &src.nhTof);
   TTreeCont[kHodoscope]->SetBranchAddress("csTof", src.csTof);
   TTreeCont[kHodoscope]->SetBranchAddress("TofSeg",src.TofSeg);
@@ -690,17 +641,17 @@ ConfMan::InitializeHistograms( void )
 
 //_____________________________________________________________________
 bool
-ConfMan::InitializeParameterFiles( void )
+ConfMan::InitializeParameterFiles()
 {
   return
-    ( InitializeParameter<DCGeomMan>("DCGEO")   &&
-      InitializeParameter<UserParamMan>("USER") &&
-	  InitializeParameter<HodoPHCMan>("HDPHC") );
+    (InitializeParameter<DCGeomMan>("DCGEO")   &&
+     InitializeParameter<UserParamMan>("USER") &&
+     InitializeParameter<HodoPHCMan>("HDPHC"));
 }
 
 //_____________________________________________________________________
 bool
-ConfMan::FinalizeProcess( void )
+ConfMan::FinalizeProcess()
 {
   return true;
 }

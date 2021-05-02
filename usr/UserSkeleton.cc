@@ -1,12 +1,12 @@
-/**
- *  file: UserSkeleton.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
+
+#include "VEvent.hh"
 
 #include <iostream>
 #include <sstream>
 #include <cmath>
+
+#include <UnpackerManager.hh>
 
 #include "ConfMan.hh"
 #include "DetectorID.hh"
@@ -15,135 +15,127 @@
 #include "HodoRawHit.hh"
 #include "KuramaLib.hh"
 #include "RawData.hh"
-#include "UnpackerManager.hh"
-#include "VEvent.hh"
 
 namespace
 {
-  using namespace root;
-  const std::string& classname("EventSkeleton");
-  RMAnalyzer& gRM = RMAnalyzer::GetInstance();
+using namespace root;
+auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 }
 
-//______________________________________________________________________________
-VEvent::VEvent( void )
+//_____________________________________________________________________________
+VEvent::VEvent()
 {
 }
 
-//______________________________________________________________________________
-VEvent::~VEvent( void )
+//_____________________________________________________________________________
+VEvent::~VEvent()
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class EventSkeleton : public VEvent
 {
 private:
-  RawData *rawData;
 
 public:
-        EventSkeleton( void );
-       ~EventSkeleton( void );
-  bool  ProcessingBegin( void );
-  bool  ProcessingEnd( void );
-  bool  ProcessingNormal( void );
-  bool  InitializeHistograms( void );
-  void  InitializeEvent( void );
+  EventSkeleton();
+  ~EventSkeleton();
+  bool ProcessingBegin();
+  bool ProcessingEnd();
+  bool ProcessingNormal();
+  bool InitializeHistograms();
+  void InitializeEvent();
 };
 
-//______________________________________________________________________________
-EventSkeleton::EventSkeleton( void )
-  : VEvent(),
-    rawData(0)
+//_____________________________________________________________________________
+EventSkeleton::EventSkeleton()
+  : VEvent()
 {
 }
 
-//______________________________________________________________________________
-EventSkeleton::~EventSkeleton( void )
+//_____________________________________________________________________________
+EventSkeleton::~EventSkeleton()
 {
-  if (rawData) delete rawData;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 struct Event
 {
-  int runnum;
-  int evnum;
-  int spill;
+  Int_t runnum;
+  Int_t evnum;
+  Int_t spill;
+  void clear(){
+    runnum = -1;
+    evnum = -1;
+    spill = -1;
+  }
 };
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 namespace root
 {
-  Event  event;
-  TH1   *h[MaxHist];
-  TTree *tree;
+Event  event;
+TH1   *h[MaxHist];
+TTree *tree;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-EventSkeleton::ProcessingBegin( void )
+EventSkeleton::ProcessingBegin()
 {
-  InitializeEvent();
+  event.clear();
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-EventSkeleton::ProcessingNormal( void )
+EventSkeleton::ProcessingNormal()
 {
+  event.runnum = gUnpacker.get_run_number();
+  event.evnum  = gUnpacker.get_event_number();
   // rawData = new RawData;
   // rawData->DecodeHits();
 
-  gRM.Decode();
+  // gRM.Decode();
 
-  event.runnum = gRM.RunNumber();
-  event.evnum  = gRM.EventNumber();
-  event.spill  = gRM.SpillNumber();
+  // event.runnum = gRM.RunNumber();
+  // event.evnum  = gRM.EventNumber();
+  // event.spill  = gRM.SpillNumber();
 
-  for( int i=0; i<100; ++i ){
-    HF1( i, (double)i );
-  }
+  // for(Int_t i=0; i<100; ++i){
+  //   HF1(i, (double)i);
+  // }
 
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-EventSkeleton::ProcessingEnd( void )
+EventSkeleton::ProcessingEnd()
 {
   tree->Fill();
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-EventSkeleton::InitializeEvent( void )
+EventSkeleton::InitializeEvent()
 {
-  event.evnum = -1;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 VEvent*
-ConfMan::EventAllocator( void )
+ConfMan::EventAllocator()
 {
   return new EventSkeleton;
 }
 
-//______________________________________________________________________________
-namespace
-{
-  const int    NBin = 100;
-  const double Min  =   0.;
-  const double Max  = 100.;
-}
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-ConfMan::InitializeHistograms( void )
+ConfMan::InitializeHistograms()
 {
-  for( int i=0; i<100; ++i ){
-    HB1( i, Form("hist %d", i ), 100, 0., 100. );
+  for(Int_t i=0; i<100; ++i){
+    HB1(i, Form("hist %d", i), 100, 0., 100.);
   }
 
   HBTree("skeleton","tree of Skeleton");
@@ -152,21 +144,22 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("spill",  &event.spill,  "spill/I");
 
   HPrint();
+  // gUnpacker.disable_istream_bookmark();
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-ConfMan::InitializeParameterFiles( void )
+ConfMan::InitializeParameterFiles()
 {
   return
-    ( InitializeParameter<DCGeomMan>("DCGEO")    &&
-      InitializeParameter<HodoParamMan>("HDPRM") );
+    (InitializeParameter<DCGeomMan>("DCGEO")    &&
+     InitializeParameter<HodoParamMan>("HDPRM"));
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-ConfMan::FinalizeProcess( void )
+ConfMan::FinalizeProcess()
 {
   return true;
 }

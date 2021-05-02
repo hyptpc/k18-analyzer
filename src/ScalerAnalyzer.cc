@@ -86,8 +86,8 @@ ScalerAnalyzer::Decode( void )
   {
     static const Int_t device_id = gUnpacker.get_device_id("TFlag");
     static const Int_t tdc_id    = gUnpacker.get_data_id("TFlag", "tdc");
-    if( gUnpacker.get_entries( device_id, 0, SpillEndFlag, 0, tdc_id ) > 0 &&
-	gUnpacker.get( device_id, 0, SpillEndFlag, 0, tdc_id ) > 0 ){
+    if( gUnpacker.get_entries( device_id, 0, trigger::kSpillEnd, 0, tdc_id ) > 0 &&
+	gUnpacker.get( device_id, 0, trigger::kSpillEnd, 0, tdc_id ) > 0 ){
       m_is_spill_end = true;
     }
   }

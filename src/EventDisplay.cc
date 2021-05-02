@@ -63,7 +63,6 @@
 #define SdcIn      1
 #define SdcOut     1
 #define SCH        1
-#define FBT        1
 #define TOF        1
 #define Vertex     1
 #define Hist       1
@@ -77,18 +76,7 @@ namespace
   const DCGeomMan& gGeom = DCGeomMan::GetInstance();
   const int& IdBH2 = gGeom.DetectorId("BH2");
   const int& IdBH1 = gGeom.DetectorId("BH1");
-  const int& IdSFT_U = gGeom.DetectorId("SFT-U");
-  const int& IdSFT_V = gGeom.DetectorId("SFT-V");
-  const int& IdSFT_X = gGeom.DetectorId("SFT-X");
   const int& IdSCH = gGeom.DetectorId("SCH");
-  const int& IdFBT1_D1 = gGeom.DetectorId("FBT1-DX1");
-  const int& IdFBT1_U1 = gGeom.DetectorId("FBT1-UX1");
-  const int& IdFBT1_D2 = gGeom.DetectorId("FBT1-DX2");
-  const int& IdFBT1_U2 = gGeom.DetectorId("FBT1-UX2");
-  const int& IdFBT2_D1 = gGeom.DetectorId("FBT2-DX1");
-  const int& IdFBT2_U1 = gGeom.DetectorId("FBT2-UX1");
-  const int& IdFBT2_D2 = gGeom.DetectorId("FBT2-DX2");
-  const int& IdFBT2_U2 = gGeom.DetectorId("FBT2-UX2");
   const int& IdTOF = gGeom.DetectorId("TOF");
   const int& IdTarget    = gGeom.DetectorId("Target");
   const double& zTarget    = gGeom.LocalZ("Target");
@@ -111,11 +99,6 @@ namespace
 
   const HodoParamMan& gHodo = HodoParamMan::GetInstance();
   const DCTdcCalibMan& gTdc = DCTdcCalibMan::GetInstance();
-// FBT
-//const double p0_FBT = gHodo.GetOffset(DetIdFBT1, 0, 0, 0);
-//const double p1_FBT = gHodo.GetGain(DetIdFBT1, 0, 0, 0);
-//const double p0_FBT = 526.;
-//const double p1_FBT = -1;
 }
 
 //______________________________________________________________________________
@@ -153,21 +136,10 @@ EventDisplay::EventDisplay( void )
     m_hist_sdcIn_predict2(0),
     m_TargetXZ_box2(0),
     m_TargetYZ_box2(0),
-    m_hist_sft_x(0),
-    m_hist_sft_u(0),
-    m_hist_sft_v(0),
     m_hist_sch(0),
     m_hist_tof(0),
     m_hist_sdc1(0),
     m_hist_sdc1p(0),
-    m_hist_sdc2_l(0),
-    m_hist_sdc2_t(0),
-    m_hist_sdc2p_l(0),
-    m_hist_sdc2p_t(0),
-    m_hist_sdc2y_l(0),
-    m_hist_sdc2y_t(0),
-    m_hist_sdc2yp_l(0),
-    m_hist_sdc2yp_t(0),
     m_hist_sdc3_l(0),
     m_hist_sdc3_t(0),
     m_hist_sdc3p_l(0),
@@ -176,6 +148,14 @@ EventDisplay::EventDisplay( void )
     m_hist_sdc3y_t(0),
     m_hist_sdc3yp_l(0),
     m_hist_sdc3yp_t(0),
+    m_hist_sdc4_l(0),
+    m_hist_sdc4_t(0),
+    m_hist_sdc4p_l(0),
+    m_hist_sdc4p_t(0),
+    m_hist_sdc4y_l(0),
+    m_hist_sdc4y_t(0),
+    m_hist_sdc4yp_l(0),
+    m_hist_sdc4yp_t(0),
     m_hist_bc3(0),
     m_hist_bc3p(0),
     m_hist_bc3u(0),
@@ -192,27 +172,11 @@ EventDisplay::EventDisplay( void )
     m_hist_bc3p_time(0),
     m_hist_bc4_time(0),
     m_hist_bc4p_time(0),
-    m_hist_fbt1u(0),
-    m_hist_fbt1up(0),
-    m_hist_fbt1d(0),
-    m_hist_fbt1dp(0),
-    m_hist_fbt2u(0),
-    m_hist_fbt2up(0),
-    m_hist_fbt2d(0),
-    m_hist_fbt2dp(0),
     m_target_node(0),
     m_kurama_inner_node(0),
     m_kurama_outer_node(0),
     m_BH2wall_node(0),
     m_SCHwall_node(0),
-    m_FBT1d1wall_node(0),
-    m_FBT1u1wall_node(0),
-    m_FBT1d2wall_node(0),
-    m_FBT1u2wall_node(0),
-    m_FBT2d1wall_node(0),
-    m_FBT2u1wall_node(0),
-    m_FBT2d2wall_node(0),
-    m_FBT2u2wall_node(0),
     m_TOFwall_node(0),
     m_init_step_mark(0),
     m_kurama_step_mark(0),
@@ -300,10 +264,6 @@ EventDisplay::Initialize( void )
   ConstructSCH();
 #endif
 
-#if FBT
-  ConstructFBT();
-#endif
-
 #if TOF
   ConstructTOF();
 #endif
@@ -366,12 +326,6 @@ EventDisplay::Initialize( void )
   m_canvas_hist2->Divide(3,3);
   m_hist_bh2  = new TH2F( "hist_bh2", "BH2", NumOfSegBH2, 0., NumOfSegBH2, 500, -500, 500 );
   m_hist_bh2->GetYaxis()->SetRangeUser(-100, 100);
-  m_hist_sft_x  = new TH2F( "hist_sft_x", "SFT_X", NumOfSegSFT_X, 0., NumOfSegSFT_X, 500, -500, 500 );
-  m_hist_sft_x->GetYaxis()->SetRangeUser(-100, 100);
-  m_hist_sft_u  = new TH2F( "hist_sft_u", "SFT_U", NumOfSegSFT_UV, 0., NumOfSegSFT_UV, 500, -500, 500 );
-  m_hist_sft_u->GetYaxis()->SetRangeUser(-100, 100);
-  m_hist_sft_v  = new TH2F( "hist_sft_v", "SFT_V", NumOfSegSFT_UV, 0., NumOfSegSFT_UV, 500, -500, 500 );
-  m_hist_sft_v->GetYaxis()->SetRangeUser(-100, 100);
   m_hist_sch = new TH2F( "hist_sch", "SCH", NumOfSegSCH, 0, NumOfSegSCH, 500, -500, 500 );
   m_hist_sch->GetYaxis()->SetRangeUser(-100, 100);
   m_hist_tof = new TH2F( "hist_tof", "TOF", NumOfSegTOF, 0, NumOfSegTOF, 500, -500, 500 );
@@ -385,12 +339,6 @@ EventDisplay::Initialize( void )
   m_canvas_hist2->cd(1)->SetGrid();
   m_hist_bh2->Draw("box");
   m_canvas_hist2->cd(2)->SetGrid();
-  m_hist_sft_x->Draw("box");
-  m_canvas_hist2->cd(4)->SetGrid();
-  m_hist_sft_u->Draw("box");
-  m_canvas_hist2->cd(5)->SetGrid();
-  m_hist_sft_v->Draw("box");
-  m_canvas_hist2->cd(7)->SetGrid();
   m_hist_sch->Draw("box");
   m_canvas_hist2->cd(8)->SetGrid();
   m_hist_tof->Draw("box");
@@ -483,114 +431,66 @@ EventDisplay::Initialize( void )
   m_canvas_hist4 = new TCanvas( "canvas_hist4", "EventDisplay Detector Timing (SdcOut)", 800, 800);
   m_canvas_hist4->Divide(2,4);
 
-  m_hist_fbt1u = new TH2F( "hist_fbt1u", "FBT1U", MaxSegFBT1, 0, MaxSegFBT1, 500, -500, 500 );
-  m_hist_fbt1up = new TH2F( "hist_fbt1u", "FBT1U p", MaxSegFBT1, 0, MaxSegFBT1, 500, -500, 500 );
-  m_hist_fbt1up->SetFillColor(kBlack);
-
-  m_hist_fbt1u->GetYaxis()->SetRangeUser(-100, 100);
-  m_hist_fbt1up->GetYaxis()->SetRangeUser(-100, 100);
-
-  m_hist_fbt2u = new TH2F( "hist_fbt2u", "FBT2U", MaxSegFBT2, 0, MaxSegFBT2, 500, -500, 500 );
-  m_hist_fbt2up = new TH2F( "hist_fbt2u", "FBT2U p", MaxSegFBT2, 0, MaxSegFBT2, 500, -500, 500 );
-  m_hist_fbt2up->SetFillColor(kBlack);
-
-  m_hist_fbt2u->GetYaxis()->SetRangeUser(-100, 100);
-  m_hist_fbt2up->GetYaxis()->SetRangeUser(-100, 100);
-
-  m_hist_fbt1d = new TH2F( "hist_fbt1d", "FBT1D", MaxSegFBT1, 0, MaxSegFBT1, 500, -500, 500 );
-  m_hist_fbt1dp = new TH2F( "hist_fbt1d", "FBT1D p", MaxSegFBT1, 0, MaxSegFBT1, 500, -500, 500 );
-  m_hist_fbt1dp->SetFillColor(kBlack);
-
-  m_hist_fbt1d->GetYaxis()->SetRangeUser(-100, 100);
-  m_hist_fbt1dp->GetYaxis()->SetRangeUser(-100, 100);
-
-  m_hist_fbt2d = new TH2F( "hist_fbt2d", "FBT2D", MaxSegFBT2, 0, MaxSegFBT2, 500, -500, 500 );
-  m_hist_fbt2dp = new TH2F( "hist_fbt2d", "FBT2D p", MaxSegFBT2, 0, MaxSegFBT2, 500, -500, 500 );
-  m_hist_fbt2dp->SetFillColor(kBlack);
-
-  m_hist_fbt2d->GetYaxis()->SetRangeUser(-100, 100);
-  m_hist_fbt2dp->GetYaxis()->SetRangeUser(-100, 100);
-
-  m_canvas_hist4->cd(1)->SetGrid();
-  m_hist_fbt1u->Draw("box");
-  m_canvas_hist4->cd(1)->SetGrid();
-  m_hist_fbt1up->Draw("samebox");
-
-  m_canvas_hist4->cd(2)->SetGrid();
-  m_hist_fbt2u->Draw("box");
-  m_canvas_hist4->cd(2)->SetGrid();
-  m_hist_fbt2up->Draw("samebox");
-
-  m_canvas_hist4->cd(3)->SetGrid();
-  m_hist_fbt1d->Draw("box");
-  m_canvas_hist4->cd(3)->SetGrid();
-  m_hist_fbt1dp->Draw("samebox");
-
-  m_canvas_hist4->cd(4)->SetGrid();
-  m_hist_fbt2d->Draw("box");
-  m_canvas_hist4->cd(4)->SetGrid();
-  m_hist_fbt2dp->Draw("samebox");
-
-  m_hist_sdc2_l = new TH2F( "hist_sdc2_l", "SDC2 (leading)", MaxWireSDC2, 0, MaxWireSDC2, 500, -500, 500 );
-  m_hist_sdc2_t = new TH2F( "hist_sdc2_t", "SDC2 (trailing)", MaxWireSDC2, 0, MaxWireSDC2, 500, -500, 500 );
-  m_hist_sdc2_t->SetFillColor(kRed);
-
-  m_hist_sdc2p_l = new TH2F( "hist_sdc2p_l", "SDC2 Xp (leading)", MaxWireSDC2, 0, MaxWireSDC2, 500, -500, 500 );
-  m_hist_sdc2p_t = new TH2F( "hist_sdc2p_t", "SDC2 Xp(trailing)", MaxWireSDC2, 0, MaxWireSDC2, 500, -500, 500 );
-  m_hist_sdc2p_l->SetFillColor(kBlack);
-  m_hist_sdc2p_t->SetFillColor(kGreen);
-
-  m_hist_sdc2y_l = new TH2F( "hist_sdc2y_l", "SDC2 Y (leading)", MaxWireSDC2, 0, MaxWireSDC2, 500, -500, 500 );
-  m_hist_sdc2y_t = new TH2F( "hist_sdc2y_t", "SDC2 Y (trailing)", MaxWireSDC2, 0, MaxWireSDC2, 500, -500, 500 );
-  m_hist_sdc2y_t->SetFillColor(kRed);
-
-  m_hist_sdc2yp_l = new TH2F( "hist_sdc2yp_l", "SDC2 Yp (leading)", MaxWireSDC2, 0, MaxWireSDC2, 500, -500, 500 );
-  m_hist_sdc2yp_t = new TH2F( "hist_sdc2yp_t", "SDC2 Yp(trailing)", MaxWireSDC2, 0, MaxWireSDC2, 500, -500, 500 );
-  m_hist_sdc2yp_l->SetFillColor(kBlack);
-  m_hist_sdc2yp_t->SetFillColor(kGreen);
-
-
-  m_hist_sdc3_l = new TH2F( "hist_sdc3_l", "SDC3 (leading)", MaxWireSDC3X, 0, MaxWireSDC3X, 500, -500, 500 );
-  m_hist_sdc3_t = new TH2F( "hist_sdc3_t", "SDC3 (trailing)", MaxWireSDC3X, 0, MaxWireSDC3X, 500, -500, 500 );
+  m_hist_sdc3_l = new TH2F( "hist_sdc3_l", "SDC3 (leading)", MaxWireSDC3, 0, MaxWireSDC3, 500, -500, 500 );
+  m_hist_sdc3_t = new TH2F( "hist_sdc3_t", "SDC3 (trailing)", MaxWireSDC3, 0, MaxWireSDC3, 500, -500, 500 );
   m_hist_sdc3_t->SetFillColor(kRed);
 
-  m_hist_sdc3p_l = new TH2F( "hist_sdc3p_l", "SDC3 Xp(leading)", MaxWireSDC3X, 0, MaxWireSDC3X, 500, -500, 500 );
-  m_hist_sdc3p_t = new TH2F( "hist_sdc3p_t", "SDC3 Xp(trailing)", MaxWireSDC3X, 0, MaxWireSDC3X, 500, -500, 500 );
+  m_hist_sdc3p_l = new TH2F( "hist_sdc3p_l", "SDC3 Xp (leading)", MaxWireSDC3, 0, MaxWireSDC3, 500, -500, 500 );
+  m_hist_sdc3p_t = new TH2F( "hist_sdc3p_t", "SDC3 Xp(trailing)", MaxWireSDC3, 0, MaxWireSDC3, 500, -500, 500 );
   m_hist_sdc3p_l->SetFillColor(kBlack);
   m_hist_sdc3p_t->SetFillColor(kGreen);
 
-  m_hist_sdc3y_l = new TH2F( "hist_sdc3y_l", "SDC3 Y (leading)", MaxWireSDC3Y, 0, MaxWireSDC3Y, 500, -500, 500 );
-  m_hist_sdc3y_t = new TH2F( "hist_sdc3y_t", "SDC3 Y (trailing)", MaxWireSDC3Y, 0, MaxWireSDC3Y, 500, -500, 500 );
+  m_hist_sdc3y_l = new TH2F( "hist_sdc3y_l", "SDC3 Y (leading)", MaxWireSDC3, 0, MaxWireSDC3, 500, -500, 500 );
+  m_hist_sdc3y_t = new TH2F( "hist_sdc3y_t", "SDC3 Y (trailing)", MaxWireSDC3, 0, MaxWireSDC3, 500, -500, 500 );
   m_hist_sdc3y_t->SetFillColor(kRed);
 
-  m_hist_sdc3yp_l = new TH2F( "hist_sdc3yp_l", "SDC3 Yp(leading)", MaxWireSDC3Y, 0, MaxWireSDC3Y, 500, -500, 500 );
-  m_hist_sdc3yp_t = new TH2F( "hist_sdc3yp_t", "SDC3 Yp(trailing)", MaxWireSDC3Y, 0, MaxWireSDC3Y, 500, -500, 500 );
+  m_hist_sdc3yp_l = new TH2F( "hist_sdc3yp_l", "SDC3 Yp (leading)", MaxWireSDC3, 0, MaxWireSDC3, 500, -500, 500 );
+  m_hist_sdc3yp_t = new TH2F( "hist_sdc3yp_t", "SDC3 Yp(trailing)", MaxWireSDC3, 0, MaxWireSDC3, 500, -500, 500 );
   m_hist_sdc3yp_l->SetFillColor(kBlack);
   m_hist_sdc3yp_t->SetFillColor(kGreen);
 
+
+  m_hist_sdc4_l = new TH2F( "hist_sdc4_l", "SDC4 (leading)", MaxWireSDC4X, 0, MaxWireSDC4X, 500, -500, 500 );
+  m_hist_sdc4_t = new TH2F( "hist_sdc4_t", "SDC4 (trailing)", MaxWireSDC4X, 0, MaxWireSDC4X, 500, -500, 500 );
+  m_hist_sdc4_t->SetFillColor(kRed);
+
+  m_hist_sdc4p_l = new TH2F( "hist_sdc4p_l", "SDC4 Xp(leading)", MaxWireSDC4X, 0, MaxWireSDC4X, 500, -500, 500 );
+  m_hist_sdc4p_t = new TH2F( "hist_sdc4p_t", "SDC4 Xp(trailing)", MaxWireSDC4X, 0, MaxWireSDC4X, 500, -500, 500 );
+  m_hist_sdc4p_l->SetFillColor(kBlack);
+  m_hist_sdc4p_t->SetFillColor(kGreen);
+
+  m_hist_sdc4y_l = new TH2F( "hist_sdc4y_l", "SDC4 Y (leading)", MaxWireSDC4Y, 0, MaxWireSDC4Y, 500, -500, 500 );
+  m_hist_sdc4y_t = new TH2F( "hist_sdc4y_t", "SDC4 Y (trailing)", MaxWireSDC4Y, 0, MaxWireSDC4Y, 500, -500, 500 );
+  m_hist_sdc4y_t->SetFillColor(kRed);
+
+  m_hist_sdc4yp_l = new TH2F( "hist_sdc4yp_l", "SDC4 Yp(leading)", MaxWireSDC4Y, 0, MaxWireSDC4Y, 500, -500, 500 );
+  m_hist_sdc4yp_t = new TH2F( "hist_sdc4yp_t", "SDC4 Yp(trailing)", MaxWireSDC4Y, 0, MaxWireSDC4Y, 500, -500, 500 );
+  m_hist_sdc4yp_l->SetFillColor(kBlack);
+  m_hist_sdc4yp_t->SetFillColor(kGreen);
+
   m_canvas_hist4->cd(5)->SetGrid();
-  m_hist_sdc2_l->Draw("box");
-  m_hist_sdc2_t->Draw("samebox");
-  m_hist_sdc2p_l->Draw("samebox");
-  m_hist_sdc2p_t->Draw("samebox");
-
-  m_canvas_hist4->cd(6)->SetGrid();
-  m_hist_sdc2y_l->Draw("box");
-  m_hist_sdc2y_t->Draw("samebox");
-  m_hist_sdc2yp_l->Draw("samebox");
-  m_hist_sdc2yp_t->Draw("samebox");
-
-  m_canvas_hist4->cd(7)->SetGrid();
   m_hist_sdc3_l->Draw("box");
   m_hist_sdc3_t->Draw("samebox");
   m_hist_sdc3p_l->Draw("samebox");
   m_hist_sdc3p_t->Draw("samebox");
 
-  m_canvas_hist4->cd(8)->SetGrid();
+  m_canvas_hist4->cd(6)->SetGrid();
   m_hist_sdc3y_l->Draw("box");
   m_hist_sdc3y_t->Draw("samebox");
   m_hist_sdc3yp_l->Draw("samebox");
   m_hist_sdc3yp_t->Draw("samebox");
+
+  m_canvas_hist4->cd(7)->SetGrid();
+  m_hist_sdc4_l->Draw("box");
+  m_hist_sdc4_t->Draw("samebox");
+  m_hist_sdc4p_l->Draw("samebox");
+  m_hist_sdc4p_t->Draw("samebox");
+
+  m_canvas_hist4->cd(8)->SetGrid();
+  m_hist_sdc4y_l->Draw("box");
+  m_hist_sdc4y_t->Draw("samebox");
+  m_hist_sdc4yp_l->Draw("samebox");
+  m_hist_sdc4yp_t->Draw("samebox");
 
 
 #endif
@@ -1395,91 +1295,6 @@ EventDisplay::ConstructSdcIn( void )
 
   }
 
-
-  // SFT-U
-  {
-    const int lid = gGeom.GetDetectorId("SFT-U");
-    double Rmin = 0.0;
-    double Rmax = 0.375;
-    double Z    = wireL/cos(gGeom.GetTiltAngle(lid)*math::Deg2Rad())/2.;
-    double Matrix[9] = {};
-    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
-		   gGeom.GetRotAngle1( lid ),
-		   gGeom.GetRotAngle2( lid ),
-		   Matrix );
-    new TRotMatrix( "rotSFTU", "rotSFTU", Matrix );
-    new TTUBE( "SFTUTube", "SFTUTube", "void", Rmin, Rmax, Z );
-
-    for( int wire=1; wire<=NumOfSegSFT_UV; ++wire ){
-      double localPos = gGeom.CalcWirePosition( lid, wire );
-      ThreeVector wireGlobalPos = gGeom.GetGlobalPosition( lid );
-      m_SFTu_node.push_back( new TNode( Form( "SFTu_Node_%d", wire ),
-					Form( "SFTu_Node_%d", wire ),
-					"SFTUTube",
-					wireGlobalPos.x()+localPos,
-					wireGlobalPos.y(),
-					wireGlobalPos.z(),
-					"rotSFTU", "void" ) );
-    }
-
-  }
-
-  // SFT-V
-  {
-    const int lid = gGeom.GetDetectorId("SFT-V");
-    double Rmin = 0.0;
-    double Rmax = 0.375;
-    double Z    = wireL/cos(gGeom.GetTiltAngle(lid)*math::Deg2Rad())/2.;
-    double Matrix[9] = {};
-    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
-		   gGeom.GetRotAngle1( lid ),
-		   gGeom.GetRotAngle2( lid ),
-		   Matrix );
-    new TRotMatrix( "rotSFTV", "rotSFTV", Matrix );
-    new TTUBE( "SFTVTube", "SFTVTube", "void", Rmin, Rmax, Z );
-
-    for( int wire=1; wire<=NumOfSegSFT_UV; ++wire ){
-      double localPos = gGeom.CalcWirePosition( lid, wire );
-      ThreeVector wireGlobalPos = gGeom.GetGlobalPosition( lid );
-      m_SFTv_node.push_back( new TNode( Form( "SFTv_Node_%d", wire ),
-					Form( "SFTv_Node_%d", wire ),
-					"SFTVTube",
-					wireGlobalPos.x()+localPos,
-					wireGlobalPos.y(),
-					wireGlobalPos.z(),
-					"rotSFTV", "void" ) );
-    }
-
-  }
-
-  // SFT-X
-  {
-    const int lid = gGeom.GetDetectorId("SFT-X");
-    double Rmin = 0.0;
-    double Rmax = 0.5;
-    double Z    = wireL/cos(gGeom.GetTiltAngle(lid)*math::Deg2Rad())/2.;
-    double Matrix[9] = {};
-    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
-		   gGeom.GetRotAngle1( lid ),
-		   gGeom.GetRotAngle2( lid ),
-		   Matrix );
-    new TRotMatrix( "rotSFTX", "rotSFTX", Matrix );
-    new TTUBE( "SFTXTube", "SFTXTube", "void", Rmin, Rmax, Z );
-
-    for( int wire=1; wire<=NumOfSegSFT_X; ++wire ){
-      double localPos = gGeom.CalcWirePosition( lid, wire );
-      ThreeVector wireGlobalPos = gGeom.GetGlobalPosition( lid );
-      m_SFTx_node.push_back( new TNode( Form( "SFTx_Node_%d", wire ),
-					Form( "SFTx_Node_%d", wire ),
-					"SFTXTube",
-					wireGlobalPos.x()+localPos,
-					wireGlobalPos.y(),
-					wireGlobalPos.z(),
-					"rotSFTX", "void" ) );
-    }
-
-  }
-
   ConstructionDone(__func__);
   return true;
 }
@@ -1490,177 +1305,16 @@ EventDisplay::ConstructSdcOut( void )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
-  const double wireLSDC2  = 1152.0;
-  const double wireLSDC3Y = 1920.0;
-  const double wireLSDC3X = 1280.0;
-
-  // SDC2 X1
-  {
-    const int lid = gGeom.GetDetectorId("SDC2-X1");
-    double Rmin = 0.0;
-    double Rmax = 0.01;
-    double L    = wireLSDC2/2.;
-    double Matrix[9] = {};
-    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
-		   gGeom.GetRotAngle1( lid ),
-		   gGeom.GetRotAngle2( lid ),
-		   Matrix );
-    new TRotMatrix( "rotX1", "rotX1", Matrix );
-    new TTUBE( "SDC2X1Tube", "SDC2X1Tube", "void", Rmin, Rmax, L );
-    for( int wire=1; wire<= MaxWireSDC2; ++wire ){
-      double localPos = gGeom.CalcWirePosition( lid, wire );
-      ThreeVector wireLocalPos( localPos, 0., 0. );
-      ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
-      m_SDC2x1_node.push_back( new TNode( Form( "SDC2x1_Node_%d", wire ),
-					  Form( "SDC2x1_Node_%d", wire ),
-					  "SDC2X1Tube",
-					  wireGlobalPos.x(),
-					  wireGlobalPos.y(),
-					  wireGlobalPos.z(),
-					  "rotX1", "void" ) );
-    }
-  }
-
-  // SDC2 X2
-  {
-    const int lid = gGeom.GetDetectorId("SDC2-X2");
-    double Rmin = 0.0;
-    double Rmax = 0.01;
-    double L    = wireLSDC2/2.;
-    double Matrix[9] = {};
-    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
-		   gGeom.GetRotAngle1( lid ),
-		   gGeom.GetRotAngle2( lid ),
-		   Matrix );
-    new TRotMatrix( "rotX2", "rotX2", Matrix );
-    new TTUBE( "SDC2X2Tube", "SDC2X2Tube", "void", Rmin, Rmax, L );
-    for( int wire=1; wire<= MaxWireSDC2; ++wire ){
-      double localPos = gGeom.CalcWirePosition( lid, wire );
-      ThreeVector wireLocalPos( localPos, 0., 0. );
-      ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
-      m_SDC2x2_node.push_back( new TNode( Form( "SDC2x2_Node_%d", wire ),
-					  Form( "SDC2x2_Node_%d", wire ),
-					  "SDC2X2Tube",
-					  wireGlobalPos.x(),
-					  wireGlobalPos.y(),
-					  wireGlobalPos.z(),
-					  "rotX2", "void" ) );
-    }
-  }
-
-  // SDC2 Y1
-  {
-    const int lid = gGeom.GetDetectorId("SDC2-Y1");
-    double Rmin = 0.0;
-    double Rmax = 0.01;
-    double L    = wireLSDC2/2.;
-    double Matrix[9] = {};
-    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
-		   gGeom.GetRotAngle1( lid ),
-		   gGeom.GetRotAngle2( lid ),
-		   Matrix );
-    new TRotMatrix( "rotY1", "rotY1", Matrix );
-    new TTUBE( "SDC2Y1Tube", "SDC2Y1Tube", "void", Rmin, Rmax, L );
-    for( int wire=1; wire<= MaxWireSDC2; ++wire ){
-      double localPos = gGeom.CalcWirePosition( lid, wire );
-      ThreeVector wireLocalPos( localPos, 0., 0. );
-      ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
-      m_SDC2y1_node.push_back( new TNode( Form( "SDC2y1_Node_%d", wire ),
-					  Form( "SDC2y1_Node_%d", wire ),
-					  "SDC2Y1Tube",
-					  wireGlobalPos.x(),
-					  wireGlobalPos.y(),
-					  wireGlobalPos.z(),
-					  "rotY1", "void" ) );
-    }
-  }
-
-  // SDC2 Y2
-  {
-    const int lid = gGeom.GetDetectorId("SDC2-Y2");
-    double Rmin = 0.0;
-    double Rmax = 0.01;
-    double L    = wireLSDC2/2.;
-    double Matrix[9] = {};
-    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
-		   gGeom.GetRotAngle1( lid ),
-		   gGeom.GetRotAngle2( lid ),
-		   Matrix );
-    new TRotMatrix( "rotY2", "rotY2", Matrix );
-    new TTUBE( "SDC2Y2Tube", "SDC2Y2Tube", "void", Rmin, Rmax, L );
-    for( int wire=1; wire<= MaxWireSDC2; ++wire ){
-      double localPos = gGeom.CalcWirePosition( lid, wire );
-      ThreeVector wireLocalPos( localPos, 0., 0. );
-      ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
-      m_SDC2y2_node.push_back( new TNode( Form( "SDC2y2_Node_%d", wire ),
-					  Form( "SDC2y2_Node_%d", wire ),
-					  "SDC2Y2Tube",
-					  wireGlobalPos.x(),
-					  wireGlobalPos.y(),
-					  wireGlobalPos.z(),
-					  "rotY2", "void" ) );
-    }
-  }
-
-  // SDC3 Y1
-  {
-    const int lid = gGeom.GetDetectorId("SDC3-Y1");
-    double Rmin = 0.0;
-    double Rmax = 0.01;
-    double L    = wireLSDC3Y/2.;
-    double Matrix[9] = {};
-    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
-		   gGeom.GetRotAngle1( lid ),
-		   gGeom.GetRotAngle2( lid ), Matrix );
-    new TRotMatrix( "rotY1", "rotY1", Matrix );
-    new TTUBE( "SDC3Y1Tube", "SDC3Y1Tube", "void", Rmin, Rmax, L );
-    for( int wire=1; wire<= MaxWireSDC3Y; ++wire ){
-      double localPos = gGeom.CalcWirePosition( lid, wire );
-      ThreeVector wireLocalPos( localPos, 0., 0. );
-      ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
-      m_SDC3y1_node.push_back( new TNode( Form( "SDC3y1_Node_%d", wire ),
-					  Form( "SDC3y1_Node_%d", wire ),
-					  "SDC3Y1Tube",
-					  wireGlobalPos.x(),
-					  wireGlobalPos.y(),
-					  wireGlobalPos.z(),
-					  "rotY1", "void" ) );
-    }
-  }
-
-  // SDC3 Y2
-  {
-    const int lid = gGeom.GetDetectorId("SDC3-Y2");
-    double Rmin = 0.0;
-    double Rmax = 0.01;
-    double L    = wireLSDC3Y/2.;
-    double Matrix[9] = {};
-    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
-		   gGeom.GetRotAngle1( lid ),
-		   gGeom.GetRotAngle2( lid ),
-		   Matrix );
-    new TRotMatrix( "rotY2", "rotY2", Matrix );
-    new TTUBE( "SDC3Y2Tube", "SDC3Y2Tube", "void", Rmin, Rmax, L );
-    for( int wire=1; wire<= MaxWireSDC3Y; ++wire ){
-      double localPos = gGeom.CalcWirePosition( lid, wire );
-      ThreeVector wireLocalPos( localPos, 0., 0. );
-      ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
-      m_SDC3y2_node.push_back( new TNode( Form( "SDC3y2_Node_%d", wire ),
-					  Form( "SDC3y2_Node_%d", wire ),
-					  "SDC3Y2Tube",
-					  wireGlobalPos.x(),
-					  wireGlobalPos.y(),
-					  wireGlobalPos.z(),
-					  "rotY2", "void" ) );
-    }
-  }
+  const double wireLSDC3  = 1152.0;
+  const double wireLSDC4Y = 1920.0;
+  const double wireLSDC4X = 1280.0;
 
   // SDC3 X1
   {
     const int lid = gGeom.GetDetectorId("SDC3-X1");
     double Rmin = 0.0;
     double Rmax = 0.01;
-    double L    = wireLSDC3X/2.;
+    double L    = wireLSDC3/2.;
     double Matrix[9] = {};
     CalcRotMatrix( gGeom.GetTiltAngle( lid ),
 		   gGeom.GetRotAngle1( lid ),
@@ -1668,7 +1322,7 @@ EventDisplay::ConstructSdcOut( void )
 		   Matrix );
     new TRotMatrix( "rotX1", "rotX1", Matrix );
     new TTUBE( "SDC3X1Tube", "SDC3X1Tube", "void", Rmin, Rmax, L );
-    for( int wire=1; wire<= MaxWireSDC3X; ++wire ){
+    for( int wire=1; wire<= MaxWireSDC3; ++wire ){
       double localPos = gGeom.CalcWirePosition( lid, wire );
       ThreeVector wireLocalPos( localPos, 0., 0. );
       ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
@@ -1687,7 +1341,7 @@ EventDisplay::ConstructSdcOut( void )
     const int lid = gGeom.GetDetectorId("SDC3-X2");
     double Rmin = 0.0;
     double Rmax = 0.01;
-    double L    = wireLSDC3X/2.;
+    double L    = wireLSDC3/2.;
     double Matrix[9] = {};
     CalcRotMatrix( gGeom.GetTiltAngle( lid ),
 		   gGeom.GetRotAngle1( lid ),
@@ -1695,13 +1349,174 @@ EventDisplay::ConstructSdcOut( void )
 		   Matrix );
     new TRotMatrix( "rotX2", "rotX2", Matrix );
     new TTUBE( "SDC3X2Tube", "SDC3X2Tube", "void", Rmin, Rmax, L );
-    for( int wire=1; wire<= MaxWireSDC3X; ++wire ){
+    for( int wire=1; wire<= MaxWireSDC3; ++wire ){
       double localPos = gGeom.CalcWirePosition( lid, wire );
       ThreeVector wireLocalPos( localPos, 0., 0. );
       ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
       m_SDC3x2_node.push_back( new TNode( Form( "SDC3x2_Node_%d", wire ),
 					  Form( "SDC3x2_Node_%d", wire ),
 					  "SDC3X2Tube",
+					  wireGlobalPos.x(),
+					  wireGlobalPos.y(),
+					  wireGlobalPos.z(),
+					  "rotX2", "void" ) );
+    }
+  }
+
+  // SDC3 Y1
+  {
+    const int lid = gGeom.GetDetectorId("SDC3-Y1");
+    double Rmin = 0.0;
+    double Rmax = 0.01;
+    double L    = wireLSDC3/2.;
+    double Matrix[9] = {};
+    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
+		   gGeom.GetRotAngle1( lid ),
+		   gGeom.GetRotAngle2( lid ),
+		   Matrix );
+    new TRotMatrix( "rotY1", "rotY1", Matrix );
+    new TTUBE( "SDC3Y1Tube", "SDC3Y1Tube", "void", Rmin, Rmax, L );
+    for( int wire=1; wire<= MaxWireSDC3; ++wire ){
+      double localPos = gGeom.CalcWirePosition( lid, wire );
+      ThreeVector wireLocalPos( localPos, 0., 0. );
+      ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
+      m_SDC3y1_node.push_back( new TNode( Form( "SDC3y1_Node_%d", wire ),
+					  Form( "SDC3y1_Node_%d", wire ),
+					  "SDC3Y1Tube",
+					  wireGlobalPos.x(),
+					  wireGlobalPos.y(),
+					  wireGlobalPos.z(),
+					  "rotY1", "void" ) );
+    }
+  }
+
+  // SDC3 Y2
+  {
+    const int lid = gGeom.GetDetectorId("SDC3-Y2");
+    double Rmin = 0.0;
+    double Rmax = 0.01;
+    double L    = wireLSDC3/2.;
+    double Matrix[9] = {};
+    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
+		   gGeom.GetRotAngle1( lid ),
+		   gGeom.GetRotAngle2( lid ),
+		   Matrix );
+    new TRotMatrix( "rotY2", "rotY2", Matrix );
+    new TTUBE( "SDC3Y2Tube", "SDC3Y2Tube", "void", Rmin, Rmax, L );
+    for( int wire=1; wire<= MaxWireSDC3; ++wire ){
+      double localPos = gGeom.CalcWirePosition( lid, wire );
+      ThreeVector wireLocalPos( localPos, 0., 0. );
+      ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
+      m_SDC3y2_node.push_back( new TNode( Form( "SDC3y2_Node_%d", wire ),
+					  Form( "SDC3y2_Node_%d", wire ),
+					  "SDC3Y2Tube",
+					  wireGlobalPos.x(),
+					  wireGlobalPos.y(),
+					  wireGlobalPos.z(),
+					  "rotY2", "void" ) );
+    }
+  }
+
+  // SDC4 Y1
+  {
+    const int lid = gGeom.GetDetectorId("SDC4-Y1");
+    double Rmin = 0.0;
+    double Rmax = 0.01;
+    double L    = wireLSDC4Y/2.;
+    double Matrix[9] = {};
+    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
+		   gGeom.GetRotAngle1( lid ),
+		   gGeom.GetRotAngle2( lid ), Matrix );
+    new TRotMatrix( "rotY1", "rotY1", Matrix );
+    new TTUBE( "SDC4Y1Tube", "SDC4Y1Tube", "void", Rmin, Rmax, L );
+    for( int wire=1; wire<= MaxWireSDC4Y; ++wire ){
+      double localPos = gGeom.CalcWirePosition( lid, wire );
+      ThreeVector wireLocalPos( localPos, 0., 0. );
+      ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
+      m_SDC4y1_node.push_back( new TNode( Form( "SDC4y1_Node_%d", wire ),
+					  Form( "SDC4y1_Node_%d", wire ),
+					  "SDC4Y1Tube",
+					  wireGlobalPos.x(),
+					  wireGlobalPos.y(),
+					  wireGlobalPos.z(),
+					  "rotY1", "void" ) );
+    }
+  }
+
+  // SDC4 Y2
+  {
+    const int lid = gGeom.GetDetectorId("SDC4-Y2");
+    double Rmin = 0.0;
+    double Rmax = 0.01;
+    double L    = wireLSDC4Y/2.;
+    double Matrix[9] = {};
+    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
+		   gGeom.GetRotAngle1( lid ),
+		   gGeom.GetRotAngle2( lid ),
+		   Matrix );
+    new TRotMatrix( "rotY2", "rotY2", Matrix );
+    new TTUBE( "SDC4Y2Tube", "SDC4Y2Tube", "void", Rmin, Rmax, L );
+    for( int wire=1; wire<= MaxWireSDC4Y; ++wire ){
+      double localPos = gGeom.CalcWirePosition( lid, wire );
+      ThreeVector wireLocalPos( localPos, 0., 0. );
+      ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
+      m_SDC4y2_node.push_back( new TNode( Form( "SDC4y2_Node_%d", wire ),
+					  Form( "SDC4y2_Node_%d", wire ),
+					  "SDC4Y2Tube",
+					  wireGlobalPos.x(),
+					  wireGlobalPos.y(),
+					  wireGlobalPos.z(),
+					  "rotY2", "void" ) );
+    }
+  }
+
+  // SDC4 X1
+  {
+    const int lid = gGeom.GetDetectorId("SDC4-X1");
+    double Rmin = 0.0;
+    double Rmax = 0.01;
+    double L    = wireLSDC4X/2.;
+    double Matrix[9] = {};
+    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
+		   gGeom.GetRotAngle1( lid ),
+		   gGeom.GetRotAngle2( lid ),
+		   Matrix );
+    new TRotMatrix( "rotX1", "rotX1", Matrix );
+    new TTUBE( "SDC4X1Tube", "SDC4X1Tube", "void", Rmin, Rmax, L );
+    for( int wire=1; wire<= MaxWireSDC4X; ++wire ){
+      double localPos = gGeom.CalcWirePosition( lid, wire );
+      ThreeVector wireLocalPos( localPos, 0., 0. );
+      ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
+      m_SDC4x1_node.push_back( new TNode( Form( "SDC4x1_Node_%d", wire ),
+					  Form( "SDC4x1_Node_%d", wire ),
+					  "SDC4X1Tube",
+					  wireGlobalPos.x(),
+					  wireGlobalPos.y(),
+					  wireGlobalPos.z(),
+					  "rotX1", "void" ) );
+    }
+  }
+
+  // SDC4 X2
+  {
+    const int lid = gGeom.GetDetectorId("SDC4-X2");
+    double Rmin = 0.0;
+    double Rmax = 0.01;
+    double L    = wireLSDC4X/2.;
+    double Matrix[9] = {};
+    CalcRotMatrix( gGeom.GetTiltAngle( lid ),
+		   gGeom.GetRotAngle1( lid ),
+		   gGeom.GetRotAngle2( lid ),
+		   Matrix );
+    new TRotMatrix( "rotX2", "rotX2", Matrix );
+    new TTUBE( "SDC4X2Tube", "SDC4X2Tube", "void", Rmin, Rmax, L );
+    for( int wire=1; wire<= MaxWireSDC4X; ++wire ){
+      double localPos = gGeom.CalcWirePosition( lid, wire );
+      ThreeVector wireLocalPos( localPos, 0., 0. );
+      ThreeVector wireGlobalPos = gGeom.Local2GlobalPos( lid, wireLocalPos );
+      m_SDC4x2_node.push_back( new TNode( Form( "SDC4x2_Node_%d", wire ),
+					  Form( "SDC4x2_Node_%d", wire ),
+					  "SDC4X2Tube",
 					  wireGlobalPos.x(),
 					  wireGlobalPos.y(),
 					  wireGlobalPos.z(),
@@ -1809,332 +1624,6 @@ EventDisplay::ConstructSCH( void )
 
 //______________________________________________________________________________
 bool
-EventDisplay::ConstructFBT( void )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  double FBTSegX =   6.0/2.0; // X
-  double FBTSegY =    2.0/2.0; // Z
-  double FBTSegZ =  550.0/2.0; // Y
-
-  new TBRIK( "FBTseg_brik", "FBTseg_brik", "void",
-	     FBTSegX, FBTSegY, FBTSegZ );
-
-  double overlap = 2.0;
-
-  double FBT1wallX =   4.0/2.0*MaxSegFBT1 + 2.0/2.0; // X
-  double FBT1wallY =    2.0/2.0*2.0; // Z
-  double FBT1wallZ =  450.0/2.0; // Y
-
-  const int lid1D1 = gGeom.GetDetectorId("FBT1-DX1");
-  double rotMatFBT1D1[9] = {};
-  CalcRotMatrix( gGeom.GetTiltAngle( lid1D1 ),
-		 gGeom.GetRotAngle1( lid1D1 ),
-		 gGeom.GetRotAngle2( lid1D1 ),
-		 rotMatFBT1D1 );
-
-  new TRotMatrix( "rotFBT1D1", "rotFBT1D1", rotMatFBT1D1 );
-  ThreeVector  FBT1D1wallPos = gGeom.GetGlobalPosition( lid1D1 );
-  double offset1d1 =  gGeom.CalcWirePosition(lid1D1, (double)MaxSegFBT1/2.-0.5 );
-  std::cout << "ofset1d1 = " << offset1d1 << std::endl;
-  new TBRIK( "FBT1D1wall_brik", "FBT1D1wall_brik", "void",
-	     FBT1wallX, FBT1wallY, FBT1wallZ);
-  m_FBT1d1wall_node = new TNode( "FBT1D1wall_node", "FBT1D1wall_node",
-				 "FBT1D1wall_brik",
-				 FBT1D1wallPos.x()+offset1d1,
-				 FBT1D1wallPos.y(),
-				 FBT1D1wallPos.z(),
-				 "rotFBT1D1", "void");
-
-  m_FBT1d1wall_node->SetVisibility(0);
-  m_FBT1d1wall_node->cd();
-
-
-  for( int i=0; i<MaxSegFBT1; i++ ){
-    ThreeVector FBT1D1SegLocalPos( (-MaxSegFBT1/2.+i)*((FBTSegX-overlap/2.)*2)+2.0/2.,
-				    (-(i%2)*2+1)*FBTSegY-(i%2)*2+1,
-				    0. );
-    m_FBT1d1seg_node.push_back( new TNode( Form( "FBT1D1seg_node_%d", i ),
-					   Form( "FBT1D1seg_node_%d", i ),
-					   "FBTseg_brik",
-					   FBT1D1SegLocalPos.x(),
-					   FBT1D1SegLocalPos.y(),
-					   FBT1D1SegLocalPos.z() ) );
-  }
-
-  m_node->cd();
-
-  const int lid1U1 = gGeom.GetDetectorId("FBT1-UX1");
-  double rotMatFBT1U1[9] = {};
-  CalcRotMatrix( gGeom.GetTiltAngle( lid1U1 ),
-		 gGeom.GetRotAngle1( lid1U1 ),
-		 gGeom.GetRotAngle2( lid1U1 ),
-		 rotMatFBT1U1 );
-
-  new TRotMatrix( "rotFBT1U1", "rotFBT1U1", rotMatFBT1U1 );
-  ThreeVector  FBT1U1wallPos = gGeom.GetGlobalPosition( lid1U1 );
-  new TBRIK( "FBT1U1wall_brik", "FBT1U1wall_brik", "void",
-	     FBT1wallX, FBT1wallY, FBT1wallZ);
-  double offset1u1 =  gGeom.CalcWirePosition(lid1U1, (double)MaxSegFBT1/2.-0.5 );
-  m_FBT1u1wall_node = new TNode( "FBT1U1wall_node", "FBT1U1wall_node",
-				 "FBT1U1wall_brik",
-				 FBT1U1wallPos.x() + offset1u1,
-				 FBT1U1wallPos.y(),
-				 FBT1U1wallPos.z(),
-				 "rotFBT1U1", "void");
-
-  m_FBT1u1wall_node->SetVisibility(0);
-  m_FBT1u1wall_node->cd();
-
-
-  for( int i=0; i<MaxSegFBT1; i++ ){
-    ThreeVector FBT1U1SegLocalPos( (-MaxSegFBT1/2.+i)*(FBTSegX-overlap/2.)*2+2./2.,
-				   (-(i%2)*2+1)*FBTSegY-(i%2)*2+1,
-				   0. );
-    m_FBT1u1seg_node.push_back( new TNode( Form( "FBT1U1seg_node_%d", i ),
-					   Form( "FBT1U1seg_node_%d", i ),
-					   "FBTseg_brik",
-					   FBT1U1SegLocalPos.x(),
-					   FBT1U1SegLocalPos.y(),
-					   FBT1U1SegLocalPos.z() ) );
-  }
-
-  m_node->cd();
-
-  const int lid1D2 = gGeom.GetDetectorId("FBT1-DX2");
-  double rotMatFBT1D2[9] = {};
-  CalcRotMatrix( gGeom.GetTiltAngle( lid1D2 ),
-		 gGeom.GetRotAngle1( lid1D2 ),
-		 gGeom.GetRotAngle2( lid1D2 ),
-		 rotMatFBT1D2 );
-
-  new TRotMatrix( "rotFBT1D2", "rotFBT1D2", rotMatFBT1D2 );
-  ThreeVector  FBT1D2wallPos = gGeom.GetGlobalPosition( lid1D2 );
-  new TBRIK( "FBT1D2wall_brik", "FBT1D2wall_brik", "void",
-	     FBT1wallX, FBT1wallY, FBT1wallZ);
-  double offset1d2 =  gGeom.CalcWirePosition(lid1D2, (double)MaxSegFBT1/2.-0.5 );
-  m_FBT1d2wall_node = new TNode( "FBT1D2wall_node", "FBT1D2wall_node",
-				 "FBT1D2wall_brik",
-				 FBT1D2wallPos.x() + offset1d2,
-				 FBT1D2wallPos.y(),
-				 FBT1D2wallPos.z(),
-				 "rotFBT1D2", "void");
-
-  m_FBT1d2wall_node->SetVisibility(0);
-  m_FBT1d2wall_node->cd();
-
-
-  for( int i=0; i<MaxSegFBT1; i++ ){
-    ThreeVector FBT1D2SegLocalPos( (-MaxSegFBT1/2.+i)*(FBTSegX-overlap/2.)*2+2.0/2.,
-				    (-(i%2)*2+1)*FBTSegY-(i%2)*2+1,
-				    0. );
-    m_FBT1d2seg_node.push_back( new TNode( Form( "FBT1D2seg_node_%d", i ),
-					   Form( "FBT1D2seg_node_%d", i ),
-					   "FBTseg_brik",
-					   FBT1D2SegLocalPos.x(),
-					   FBT1D2SegLocalPos.y(),
-					   FBT1D2SegLocalPos.z() ) );
-  }
-
-  m_node->cd();
-
-  const int lid1U2 = gGeom.GetDetectorId("FBT1-UX2");
-  double rotMatFBT1U2[9] = {};
-  CalcRotMatrix( gGeom.GetTiltAngle( lid1U2 ),
-		 gGeom.GetRotAngle1( lid1U2 ),
-		 gGeom.GetRotAngle2( lid1U2 ),
-		 rotMatFBT1U2 );
-
-  new TRotMatrix( "rotFBT1U2", "rotFBT1U2", rotMatFBT1U2 );
-  ThreeVector  FBT1U2wallPos = gGeom.GetGlobalPosition( lid1U2 );
-  new TBRIK( "FBT1U2wall_brik", "FBT1U2wall_brik", "void",
-	     FBT1wallX, FBT1wallY, FBT1wallZ);
-  double offset1u2 =  gGeom.CalcWirePosition(lid1U2, (double)MaxSegFBT1/2.-0.5 );
-
-  m_FBT1u2wall_node = new TNode( "FBT1U2wall_node", "FBT1U2wall_node",
-				 "FBT1U2wall_brik",
-				 FBT1U2wallPos.x() + offset1u2,
-				 FBT1U2wallPos.y(),
-				 FBT1U2wallPos.z(),
-				 "rotFBT1U2", "void");
-
-  m_FBT1u2wall_node->SetVisibility(0);
-  m_FBT1u2wall_node->cd();
-
-
-  for( int i=0; i<MaxSegFBT1; i++ ){
-    ThreeVector FBT1U2SegLocalPos( (-MaxSegFBT1/2.+i)*(FBTSegX-overlap/2)*2+2.0/2.,
-				    (-(i%2)*2+1)*FBTSegY-(i%2)*2+1,
-				    0. );
-    m_FBT1u2seg_node.push_back( new TNode( Form( "FBT1U2seg_node_%d", i ),
-					   Form( "FBT1U2seg_node_%d", i ),
-					   "FBTseg_brik",
-					   FBT1U2SegLocalPos.x(),
-					   FBT1U2SegLocalPos.y(),
-					   FBT1U2SegLocalPos.z() ) );
-  }
-
-  m_node->cd();
-
-  double FBT2wallX =   11.5/2.0*MaxSegFBT2; // X
-  double FBT2wallY =    2.0/2.0*2.0; // Z
-  double FBT2wallZ =  450.0/2.0; // Y
-
-  const int lid2D1 = gGeom.GetDetectorId("FBT2-DX1");
-  double rotMatFBT2D1[9] = {};
-  CalcRotMatrix( gGeom.GetTiltAngle( lid2D1 ),
-		 gGeom.GetRotAngle1( lid2D1 ),
-		 gGeom.GetRotAngle2( lid2D1 ),
-		 rotMatFBT2D1 );
-
-  new TRotMatrix( "rotFBT2D1", "rotFBT2D1", rotMatFBT2D1 );
-  ThreeVector  FBT2D1wallPos = gGeom.GetGlobalPosition( lid2D1 );
-  new TBRIK( "FBT2D1wall_brik", "FBT2D1wall_brik", "void",
-	     FBT2wallX, FBT2wallY, FBT2wallZ);
-  double offset2d1 =  gGeom.CalcWirePosition(lid2D1, (double)MaxSegFBT2/2.-0.5 );
-  m_FBT2d1wall_node = new TNode( "FBT2D1wall_node", "FBT2D1wall_node",
-				 "FBT2D1wall_brik",
-				 FBT2D1wallPos.x() + offset2d1,
-				 FBT2D1wallPos.y(),
-				 FBT2D1wallPos.z(),
-				 "rotFBT2D1", "void");
-
-  m_FBT2d1wall_node->SetVisibility(0);
-  m_FBT2d1wall_node->cd();
-
-
-  for( int i=0; i<MaxSegFBT2; i++ ){
-    ThreeVector FBT2D1SegLocalPos( (-MaxSegFBT2/2.+i)*(FBTSegX-overlap/2)*2+2.0/2.,
-				    (-(i%2)*2+1)*FBTSegY-(i%2)*2+1,
-				    0. );
-    m_FBT2d1seg_node.push_back( new TNode( Form( "FBT2D1seg_node_%d", i ),
-					   Form( "FBT2D1seg_node_%d", i ),
-					   "FBTseg_brik",
-					   FBT2D1SegLocalPos.x(),
-					   FBT2D1SegLocalPos.y(),
-					   FBT2D1SegLocalPos.z() ) );
-  }
-
-  m_node->cd();
-
-  const int lid2U1 = gGeom.GetDetectorId("FBT2-UX1");
-  double rotMatFBT2U1[9] = {};
-  CalcRotMatrix( gGeom.GetTiltAngle( lid2U1 ),
-		 gGeom.GetRotAngle1( lid2U1 ),
-		 gGeom.GetRotAngle2( lid2U1 ),
-		 rotMatFBT2U1 );
-
-  new TRotMatrix( "rotFBT2U1", "rotFBT2U1", rotMatFBT2U1 );
-  ThreeVector  FBT2U1wallPos = gGeom.GetGlobalPosition( lid2U1 );
-  new TBRIK( "FBT2U1wall_brik", "FBT2U1wall_brik", "void",
-	     FBT2wallX, FBT2wallY, FBT2wallZ);
-  double offset2u1 =  gGeom.CalcWirePosition(lid2U1, (double)MaxSegFBT2/2.-0.5 );
-  m_FBT2u1wall_node = new TNode( "FBT2U1wall_node", "FBT2U1wall_node",
-				 "FBT2U1wall_brik",
-				 FBT2U1wallPos.x() + offset2u1,
-				 FBT2U1wallPos.y(),
-				 FBT2U1wallPos.z(),
-				 "rotFBT2U1", "void");
-
-  m_FBT2u1wall_node->SetVisibility(0);
-  m_FBT2u1wall_node->cd();
-
-
-  for( int i=0; i<MaxSegFBT2; i++ ){
-    ThreeVector FBT2U1SegLocalPos( (-MaxSegFBT2/2.+i)*(FBTSegX-overlap/2.)*2+2.0/2.,
-				    (-(i%2)*2+1)*FBTSegY-(i%2)*2+1,
-				    0. );
-    m_FBT2u1seg_node.push_back( new TNode( Form( "FBT2U1seg_node_%d", i ),
-					   Form( "FBT2U1seg_node_%d", i ),
-					   "FBTseg_brik",
-					   FBT2U1SegLocalPos.x(),
-					   FBT2U1SegLocalPos.y(),
-					   FBT2U1SegLocalPos.z() ) );
-  }
-
-  m_node->cd();
-
-  const int lid2D2 = gGeom.GetDetectorId("FBT2-DX2");
-  double rotMatFBT2D2[9] = {};
-  CalcRotMatrix( gGeom.GetTiltAngle( lid2D2 ),
-		 gGeom.GetRotAngle1( lid2D2 ),
-		 gGeom.GetRotAngle2( lid2D2 ),
-		 rotMatFBT2D2 );
-
-  new TRotMatrix( "rotFBT2D2", "rotFBT2D2", rotMatFBT2D2 );
-  ThreeVector  FBT2D2wallPos = gGeom.GetGlobalPosition( lid2D2 );
-  new TBRIK( "FBT2D2wall_brik", "FBT2D2wall_brik", "void",
-	     FBT2wallX, FBT2wallY, FBT2wallZ);
-  double offset2d2 =  gGeom.CalcWirePosition(lid2D2, (double)MaxSegFBT2/2.-0.5 );
-  m_FBT2d2wall_node = new TNode( "FBT2D2wall_node", "FBT2D2wall_node",
-				 "FBT2D2wall_brik",
-				 FBT2D2wallPos.x() + offset2d2,
-				 FBT2D2wallPos.y(),
-				 FBT2D2wallPos.z(),
-				 "rotFBT2D2", "void");
-
-  m_FBT2d2wall_node->SetVisibility(0);
-  m_FBT2d2wall_node->cd();
-
-
-  for( int i=0; i<MaxSegFBT2; i++ ){
-    ThreeVector FBT2D2SegLocalPos( (-MaxSegFBT2/2.+i)*(FBTSegX-overlap/2.)*2+2.0/2.,
-				    (-(i%2)*2+1)*FBTSegY-(i%2)*2+1,
-				    0. );
-    m_FBT2d2seg_node.push_back( new TNode( Form( "FBT2D2seg_node_%d", i ),
-					   Form( "FBT2D2seg_node_%d", i ),
-					   "FBTseg_brik",
-					   FBT2D2SegLocalPos.x(),
-					   FBT2D2SegLocalPos.y(),
-					   FBT2D2SegLocalPos.z() ) );
-  }
-
-  m_node->cd();
-
-  const int lid2U2 = gGeom.GetDetectorId("FBT2-UX2");
-  double rotMatFBT2U2[9] = {};
-  CalcRotMatrix( gGeom.GetTiltAngle( lid2U2 ),
-		 gGeom.GetRotAngle1( lid2U2 ),
-		 gGeom.GetRotAngle2( lid2U2 ),
-		 rotMatFBT2U2 );
-
-  new TRotMatrix( "rotFBT2U2", "rotFBT2U2", rotMatFBT2U2 );
-  ThreeVector  FBT2U2wallPos = gGeom.GetGlobalPosition( lid2U2 );
-  new TBRIK( "FBT2U2wall_brik", "FBT2U2wall_brik", "void",
-	     FBT2wallX, FBT2wallY, FBT2wallZ);
-  double offset2u2 =  gGeom.CalcWirePosition(lid2U2, (double)MaxSegFBT2/2.-0.5 );
-  m_FBT2u2wall_node = new TNode( "FBT2U2wall_node", "FBT2U2wall_node",
-				 "FBT2U2wall_brik",
-				 FBT2U2wallPos.x() + offset2u2,
-				 FBT2U2wallPos.y(),
-				 FBT2U2wallPos.z(),
-				 "rotFBT2U2", "void");
-
-  m_FBT2u2wall_node->SetVisibility(0);
-  m_FBT2u2wall_node->cd();
-
-
-  for( int i=0; i<MaxSegFBT2; i++ ){
-    ThreeVector FBT2U2SegLocalPos( (-MaxSegFBT2/2.+i)*(FBTSegX-overlap/2.)*2.+2.0/2.,
-				    (-(i%2)*2+1)*FBTSegY-(i%2)*2+1,
-				    0. );
-    m_FBT2u2seg_node.push_back( new TNode( Form( "FBT2U2seg_node_%d", i ),
-					   Form( "FBT2U2seg_node_%d", i ),
-					   "FBTseg_brik",
-					   FBT2U2SegLocalPos.x(),
-					   FBT2U2SegLocalPos.y(),
-					   FBT2U2SegLocalPos.z() ) );
-  }
-
-  m_node->cd();
-
-
-  ConstructionDone(__func__);
-  return true;
-}
-
-//______________________________________________________________________________
-bool
 EventDisplay::ConstructTOF( void )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
@@ -2232,20 +1721,17 @@ EventDisplay::DrawHitWire( int lid, int hit_wire, bool range_check, bool tdc_che
 	Form( "SDC1x1_Node_%d", hit_wire ),
 	Form( "SDC1x2_Node_%d", hit_wire ),
 	Form( "SDC1u1_Node_%d", hit_wire ),
-	Form( "SDC1u2_Node_%d", hit_wire ),
-	Form( "SFTu_Node_%d", hit_wire ),
-	Form( "SFTv_Node_%d", hit_wire ),
-	Form( "SFTx_Node_%d", hit_wire )};
+	Form( "SDC1u2_Node_%d", hit_wire )};
 
   const std::string sdcout_node_name[NumOfLayersSdcOut]
-    = { Form( "SDC2x1_Node_%d", hit_wire ),
-	Form( "SDC2x2_Node_%d", hit_wire ),
-	Form( "SDC2y1_Node_%d", hit_wire ),
-	Form( "SDC2y2_Node_%d", hit_wire ),
+    = { Form( "SDC3x1_Node_%d", hit_wire ),
+	Form( "SDC3x2_Node_%d", hit_wire ),
 	Form( "SDC3y1_Node_%d", hit_wire ),
 	Form( "SDC3y2_Node_%d", hit_wire ),
-	Form( "SDC3x1_Node_%d", hit_wire ),
-	Form( "SDC3x2_Node_%d", hit_wire ) };
+	Form( "SDC4y1_Node_%d", hit_wire ),
+	Form( "SDC4y2_Node_%d", hit_wire ),
+	Form( "SDC4x1_Node_%d", hit_wire ),
+	Form( "SDC4x2_Node_%d", hit_wire ) };
 
   switch ( lid ) {
 
@@ -2255,33 +1741,21 @@ EventDisplay::DrawHitWire( int lid, int hit_wire, bool range_check, bool tdc_che
     node_name = sdcin_node_name[lid-1];
     break;
 
-    // SFT-UV
-  case 7: case 8:
-    if( hit_wire>NumOfSegSFT_UV ) return;
-    node_name = sdcin_node_name[lid-1];
-    break;
-
-    // SFT-X
-  case 9:
-    if( hit_wire>NumOfSegSFT_X ) return;
-    node_name = sdcin_node_name[lid-1];
-    break;
-
-    // SDC2
+    // SDC3
   case 31: case 32: case 33: case 34:
-    if( hit_wire>MaxWireSDC2 ) return;
+    if( hit_wire>MaxWireSDC3 ) return;
     node_name = sdcout_node_name[lid-31];
     break;
 
-    // SDC3Y
+    // SDC4Y
   case 35: case 36:
-    if( hit_wire>MaxWireSDC3Y ) return;
+    if( hit_wire>MaxWireSDC4Y ) return;
     node_name = sdcout_node_name[lid-31];
     break;
 
-    // SDC3X
+    // SDC4X
   case 37: case 38:
-    if( hit_wire>MaxWireSDC3X ) return;
+    if( hit_wire>MaxWireSDC4X ) return;
     node_name = sdcout_node_name[lid-31];
     break;
 
@@ -2336,42 +1810,9 @@ EventDisplay::DrawHitHodoscope( int lid, int seg, int Tu, int Td )
   if( lid == IdBH2 ){
     if( seg>=NumOfSegBH2 ) return;
     node_name = Form( "BH2seg_node_%d", seg );
-  } else if( lid == IdSFT_U ){
-    if( seg>=NumOfSegSFT_UV ) return;
-    node_name = Form( "SFTu_Node_%d", seg );
-  } else if( lid == IdSFT_V ){
-    if( seg>=NumOfSegSFT_UV ) return;
-    node_name = Form( "SFTv_Node_%d", seg );
-  }  else if( lid == IdSFT_X ){
-    if( seg>=NumOfSegSFT_X ) return;
-    node_name = Form( "SFTx_Node_%d", seg );
   } else if( lid == IdSCH ){
     if( seg>=NumOfSegSCH ) return;
     node_name = Form( "SCHseg_node_%d", seg );
-  } else if( lid == IdFBT1_D1 ){
-    if( seg>=MaxSegFBT1 ) return;
-    node_name = Form( "FBT1D1seg_node_%d", seg );
-  } else if( lid == IdFBT1_U1 ){
-    if( seg>=MaxSegFBT1 ) return;
-    node_name = Form( "FBT1U1seg_node_%d", seg );
-  } else if( lid == IdFBT1_D2 ){
-    if( seg>=MaxSegFBT1 ) return;
-    node_name = Form( "FBT1D2seg_node_%d", seg );
-  } else if( lid == IdFBT1_U2 ){
-    if( seg>=MaxSegFBT1 ) return;
-    node_name = Form( "FBT1U2seg_node_%d", seg );
-  } else if( lid == IdFBT2_D1 ){
-    if( seg>=MaxSegFBT2 ) return;
-    node_name = Form( "FBT2D1seg_node_%d", seg );
-  } else if( lid == IdFBT2_U1 ){
-    if( seg>=MaxSegFBT2 ) return;
-    node_name = Form( "FBT2U1seg_node_%d", seg );
-  } else if( lid == IdFBT2_D2 ){
-    if( seg>=MaxSegFBT2 ) return;
-    node_name = Form( "FBT2D2seg_node_%d", seg );
-  } else if( lid == IdFBT2_U2 ){
-    if( seg>=MaxSegFBT2 ) return;
-    node_name = Form( "FBT2U2seg_node_%d", seg );
   } else if( lid == IdTOF ){
     if( seg>=NumOfSegTOF ) return;
     node_name = Form( "TOFseg_node_%d", seg );
@@ -2531,7 +1972,7 @@ EventDisplay::DrawSdcInLocalTrack( DCLocalTrack *tp )
 
 #if SdcIn
   double x0 = tp->GetX0(), y0 = tp->GetY0();
-  static const int lid = gGeom.GetDetectorId("SFT-U");
+  static const int lid = gGeom.GetDetectorId("SDC1-X0");
   static const double zSdc1x1 = gGeom.GetLocalZ( lid ) - 100.;
   double x1 = tp->GetX( zSdc1x1 ), y1 = tp->GetY( zSdc1x1 );
 
@@ -2842,33 +2283,22 @@ EventDisplay::ResetVisibility( void )
   ResetVisibility( m_BC4v2_node );
   ResetVisibility( m_BC4x1_node );
   ResetVisibility( m_BC4x2_node );
-  ResetVisibility( m_SFTu_node );
-  ResetVisibility( m_SFTv_node );
-  ResetVisibility( m_SFTx_node );
   ResetVisibility( m_SDC1v1_node );
   ResetVisibility( m_SDC1v2_node );
   ResetVisibility( m_SDC1x1_node );
   ResetVisibility( m_SDC1x2_node );
   ResetVisibility( m_SDC1u1_node );
   ResetVisibility( m_SDC1u2_node );
-  ResetVisibility( m_SDC2x1_node );
-  ResetVisibility( m_SDC2x2_node );
-  ResetVisibility( m_SDC2y1_node );
-  ResetVisibility( m_SDC2y2_node );
-  ResetVisibility( m_SDC3y1_node );
-  ResetVisibility( m_SDC3y2_node );
   ResetVisibility( m_SDC3x1_node );
   ResetVisibility( m_SDC3x2_node );
+  ResetVisibility( m_SDC3y1_node );
+  ResetVisibility( m_SDC3y2_node );
+  ResetVisibility( m_SDC4y1_node );
+  ResetVisibility( m_SDC4y2_node );
+  ResetVisibility( m_SDC4x1_node );
+  ResetVisibility( m_SDC4x2_node );
   ResetVisibility( m_BH2seg_node, kBlack );
   ResetVisibility( m_SCHseg_node, kBlack );
-  ResetVisibility( m_FBT1d1seg_node);
-  ResetVisibility( m_FBT1u1seg_node);
-  ResetVisibility( m_FBT1d2seg_node);
-  ResetVisibility( m_FBT1u2seg_node);
-  ResetVisibility( m_FBT2d1seg_node);
-  ResetVisibility( m_FBT2u1seg_node);
-  ResetVisibility( m_FBT2d2seg_node);
-  ResetVisibility( m_FBT2u2seg_node);
   ResetVisibility( m_TOFseg_node, kBlack );
   ResetVisibility( m_target_node, kBlack );
 }
@@ -2879,9 +2309,6 @@ EventDisplay::ResetHist(  )
 {
 #if Hist_Timing
   m_hist_bh2->Reset();
-  m_hist_sft_x->Reset();
-  m_hist_sft_u->Reset();
-  m_hist_sft_v->Reset();
   m_hist_sch->Reset();
   m_hist_tof->Reset();
   m_hist_sdc1->Reset();
@@ -2911,25 +2338,6 @@ EventDisplay::ResetHist(  )
 #endif
 
 #if Hist_SdcOut
-  m_hist_fbt1u->Reset();
-  m_hist_fbt1up->Reset();
-  m_hist_fbt1d->Reset();
-  m_hist_fbt1dp->Reset();
-  m_hist_fbt2u->Reset();
-  m_hist_fbt2up->Reset();
-  m_hist_fbt2d->Reset();
-  m_hist_fbt2dp->Reset();
-
-  m_hist_sdc2_l->Reset();
-  m_hist_sdc2_t->Reset();
-  m_hist_sdc2p_l->Reset();
-  m_hist_sdc2p_t->Reset();
-
-  m_hist_sdc2y_l->Reset();
-  m_hist_sdc2y_t->Reset();
-  m_hist_sdc2yp_l->Reset();
-  m_hist_sdc2yp_t->Reset();
-
   m_hist_sdc3_l->Reset();
   m_hist_sdc3_t->Reset();
   m_hist_sdc3p_l->Reset();
@@ -2939,6 +2347,16 @@ EventDisplay::ResetHist(  )
   m_hist_sdc3y_t->Reset();
   m_hist_sdc3yp_l->Reset();
   m_hist_sdc3yp_t->Reset();
+
+  m_hist_sdc4_l->Reset();
+  m_hist_sdc4_t->Reset();
+  m_hist_sdc4p_l->Reset();
+  m_hist_sdc4p_t->Reset();
+
+  m_hist_sdc4y_l->Reset();
+  m_hist_sdc4y_t->Reset();
+  m_hist_sdc4yp_l->Reset();
+  m_hist_sdc4yp_t->Reset();
 
 #endif
 
@@ -3207,75 +2625,6 @@ EventDisplay::DrawSdcInTrack( double x0, double u0, double y0, double v0, bool f
 
 //______________________________________________________________________________
 void
-EventDisplay::DrawSFT( int layer, int seg, int tdc )
-{
-#if Hist_Timing
-  double p0 = gHodo.GetOffset(DetIdSFT, layer, seg, 0);
-  double p1 = gHodo.GetGain(DetIdSFT, layer, seg, 0);
-
-  TH2 *hp=0;
-
-  if (layer == 0)
-    hp = m_hist_sft_u;
-  else if (layer == 1)
-    hp = m_hist_sft_v;
-  else
-    hp = m_hist_sft_x;
-
-  hp->Fill( seg, p1*((double)tdc-p0) );
-  //m_canvas_hist2->cd(1);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-//______________________________________________________________________________
-void
-EventDisplay::DrawSFT_X( int seg, int tdc )
-{
-#if Hist_Timing
-  double p0 = gHodo.GetOffset(DetIdSFT, 2, seg, 0);
-  double p1 = gHodo.GetGain(DetIdSFT, 2, seg, 0);
-
-  m_hist_sft_x->Fill( seg, p1*((double)tdc-p0) );
-  //m_canvas_hist2->cd(1);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-//______________________________________________________________________________
-void
-EventDisplay::DrawSFT_U( int seg, int tdc )
-{
-#if Hist_Timing
-  double p0 = gHodo.GetOffset(DetIdSFT, 1, seg, 0);
-  double p1 = gHodo.GetGain(DetIdSFT, 1, seg, 0);
-
-  m_hist_sft_u->Fill( seg, p1*((double)tdc-p0) );
-  //m_canvas_hist2->cd(1);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-//______________________________________________________________________________
-void
-EventDisplay::DrawSFT_V( int seg, int tdc )
-{
-#if Hist_Timing
-  double p0 = gHodo.GetOffset(DetIdSFT, 0, seg, 0);
-  double p1 = gHodo.GetGain(DetIdSFT, 0, seg, 0);
-
-  m_hist_sft_v->Fill( seg, p1*((double)tdc-p0) );
-  //m_canvas_hist2->cd(1);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-//______________________________________________________________________________
-void
 EventDisplay::DrawSCH( int seg, int tdc )
 {
 #if Hist_Timing
@@ -3313,45 +2662,6 @@ EventDisplay::SetCorrectTimeSdcIn( int layer, double pos )
   double z = gGeom.GetLocalZ(layer);
   m_hist_bcOut_sdcIn->Fill(pos, z);
 
-#endif
-}
-
-//______________________________________________________________________________
-void
-  EventDisplay::DrawFBT( int detId, int layer, int UorD, int seg, int tdc )
-{
-#if Hist_SdcOut
-  TH2 *hp=0;
-
-  if (detId == 0 && layer == 0 && UorD == 0)
-    hp = m_hist_fbt1u;
-  else if (detId == 0 && layer == 1 && UorD == 0)
-    hp = m_hist_fbt1up;
-  else if (detId == 0 && layer == 0 && UorD == 1)
-    hp = m_hist_fbt1d;
-  else if (detId == 0 && layer == 1 && UorD == 1)
-    hp = m_hist_fbt1dp;
-  else if (detId == 1 && layer == 0 && UorD == 0)
-    hp = m_hist_fbt2u;
-  else if (detId == 1 && layer == 1 && UorD == 0)
-    hp = m_hist_fbt2up;
-  else if (detId == 1 && layer == 0 && UorD == 1)
-    hp = m_hist_fbt2d;
-  else if (detId == 1 && layer == 1 && UorD == 1)
-    hp = m_hist_fbt2dp;
-
-  double p0_FBT = 0;
-  double p1_FBT = 0;
-  if (detId == 0) {
-    p0_FBT = gHodo.GetOffset(DetIdFBT1, layer, seg, UorD);
-    p1_FBT = gHodo.GetGain(DetIdFBT1, layer, seg, UorD);
-  } else {
-    p0_FBT = gHodo.GetOffset(DetIdFBT2, layer, seg, UorD);
-    p1_FBT = gHodo.GetGain(DetIdFBT2, layer, seg, UorD);
-  }
-  //std::cout << "p0 = " << p0_FBT << ", p1 = " << p1_FBT << std::endl;
-
-  hp->Fill( seg, p1_FBT*(tdc-p0_FBT));
 #endif
 }
 
@@ -3499,37 +2809,37 @@ EventDisplay::DrawSdcOutHit(int layer,  int wire, int LorT, int tdc )
   TH2 *hp=0;
 
   if (layer == 1 && LorT == 0)
-    hp = m_hist_sdc2_l;
-  else if (layer == 1 && LorT == 1)
-    hp = m_hist_sdc2_t;
-  else if (layer == 2 && LorT == 0)
-    hp = m_hist_sdc2p_l;
-  else if (layer == 2 && LorT == 1)
-    hp = m_hist_sdc2p_t;
-  else if (layer == 3 && LorT == 0)
-    hp = m_hist_sdc2y_l;
-  else if (layer == 3 && LorT == 1)
-    hp = m_hist_sdc2y_t;
-  else if (layer == 4 && LorT == 0)
-    hp = m_hist_sdc2yp_l;
-  else if (layer == 4 && LorT == 1)
-    hp = m_hist_sdc2yp_t;
-  else if (layer == 5 && LorT == 0)
-    hp = m_hist_sdc3y_l;
-  else if (layer == 5 && LorT == 1)
-    hp = m_hist_sdc3y_t;
-  else if (layer == 6 && LorT == 0)
-    hp = m_hist_sdc3yp_l;
-  else if (layer == 6 && LorT == 1)
-    hp = m_hist_sdc3yp_t;
-  else if (layer == 7 && LorT == 0)
     hp = m_hist_sdc3_l;
-  else if (layer == 7 && LorT == 1)
+  else if (layer == 1 && LorT == 1)
     hp = m_hist_sdc3_t;
-  else if (layer == 8 && LorT == 0)
+  else if (layer == 2 && LorT == 0)
     hp = m_hist_sdc3p_l;
-  else if (layer == 8 && LorT == 1)
+  else if (layer == 2 && LorT == 1)
     hp = m_hist_sdc3p_t;
+  else if (layer == 3 && LorT == 0)
+    hp = m_hist_sdc3y_l;
+  else if (layer == 3 && LorT == 1)
+    hp = m_hist_sdc3y_t;
+  else if (layer == 4 && LorT == 0)
+    hp = m_hist_sdc3yp_l;
+  else if (layer == 4 && LorT == 1)
+    hp = m_hist_sdc3yp_t;
+  else if (layer == 5 && LorT == 0)
+    hp = m_hist_sdc4y_l;
+  else if (layer == 5 && LorT == 1)
+    hp = m_hist_sdc4y_t;
+  else if (layer == 6 && LorT == 0)
+    hp = m_hist_sdc4yp_l;
+  else if (layer == 6 && LorT == 1)
+    hp = m_hist_sdc4yp_t;
+  else if (layer == 7 && LorT == 0)
+    hp = m_hist_sdc4_l;
+  else if (layer == 7 && LorT == 1)
+    hp = m_hist_sdc4_t;
+  else if (layer == 8 && LorT == 0)
+    hp = m_hist_sdc4p_l;
+  else if (layer == 8 && LorT == 1)
+    hp = m_hist_sdc4p_t;
 
   double p0=0.0, p1=-0.;
   gTdc.GetParameter(layer + 30, wire, p0, p1);
@@ -3544,72 +2854,23 @@ EventDisplay::DrawSdcOutHit(int layer,  int wire, int LorT, int tdc )
 
 //______________________________________________________________________________
 void
-EventDisplay::DrawSDC2_Leading( int wire, int tdc )
-{
-#if Hist_Timing
-  m_hist_sdc2_l->Fill( wire, -0.833*(tdc-890));
-  //m_canvas_hist2->cd(3);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-
-//______________________________________________________________________________
-void
-EventDisplay::DrawSDC2_Trailing( int wire, int tdc )
-{
-#if Hist_Timing
-  m_hist_sdc2_t->Fill( wire, -0.833*(tdc-890));
-  //m_canvas_hist2->cd(3);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-//______________________________________________________________________________
-void
-EventDisplay::DrawSDC2p_Leading( int wire, int tdc )
-{
-#if Hist_Timing
-  m_hist_sdc2p_l->Fill( wire, -0.833*(tdc-890));
-  //m_canvas_hist2->cd(3);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-//______________________________________________________________________________
-void
-EventDisplay::DrawSDC2p_Trailing( int wire, int tdc )
-{
-#if Hist_Timing
-  m_hist_sdc2p_t->Fill( wire, -0.833*(tdc-890));
-  //m_canvas_hist2->cd(3);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-
-//______________________________________________________________________________
-void
 EventDisplay::DrawSDC3_Leading( int wire, int tdc )
 {
 #if Hist_Timing
-  m_hist_sdc3_l->Fill( wire, -0.833*(tdc-885));
+  m_hist_sdc3_l->Fill( wire, -0.833*(tdc-890));
   //m_canvas_hist2->cd(3);
   //gPad->Modified();
   //gPad->Update();
 #endif
 }
+
 
 //______________________________________________________________________________
 void
 EventDisplay::DrawSDC3_Trailing( int wire, int tdc )
 {
 #if Hist_Timing
-  m_hist_sdc3_t->Fill( wire, -0.833*(tdc-885));
+  m_hist_sdc3_t->Fill( wire, -0.833*(tdc-890));
   //m_canvas_hist2->cd(3);
   //gPad->Modified();
   //gPad->Update();
@@ -3621,7 +2882,7 @@ void
 EventDisplay::DrawSDC3p_Leading( int wire, int tdc )
 {
 #if Hist_Timing
-  m_hist_sdc3p_l->Fill( wire, -0.833*(tdc-885));
+  m_hist_sdc3p_l->Fill( wire, -0.833*(tdc-890));
   //m_canvas_hist2->cd(3);
   //gPad->Modified();
   //gPad->Update();
@@ -3633,7 +2894,56 @@ void
 EventDisplay::DrawSDC3p_Trailing( int wire, int tdc )
 {
 #if Hist_Timing
-  m_hist_sdc3p_t->Fill( wire, -0.833*(tdc-885));
+  m_hist_sdc3p_t->Fill( wire, -0.833*(tdc-890));
+  //m_canvas_hist2->cd(3);
+  //gPad->Modified();
+  //gPad->Update();
+#endif
+}
+
+
+//______________________________________________________________________________
+void
+EventDisplay::DrawSDC4_Leading( int wire, int tdc )
+{
+#if Hist_Timing
+  m_hist_sdc4_l->Fill( wire, -0.833*(tdc-885));
+  //m_canvas_hist2->cd(3);
+  //gPad->Modified();
+  //gPad->Update();
+#endif
+}
+
+//______________________________________________________________________________
+void
+EventDisplay::DrawSDC4_Trailing( int wire, int tdc )
+{
+#if Hist_Timing
+  m_hist_sdc4_t->Fill( wire, -0.833*(tdc-885));
+  //m_canvas_hist2->cd(3);
+  //gPad->Modified();
+  //gPad->Update();
+#endif
+}
+
+//______________________________________________________________________________
+void
+EventDisplay::DrawSDC4p_Leading( int wire, int tdc )
+{
+#if Hist_Timing
+  m_hist_sdc4p_l->Fill( wire, -0.833*(tdc-885));
+  //m_canvas_hist2->cd(3);
+  //gPad->Modified();
+  //gPad->Update();
+#endif
+}
+
+//______________________________________________________________________________
+void
+EventDisplay::DrawSDC4p_Trailing( int wire, int tdc )
+{
+#if Hist_Timing
+  m_hist_sdc4p_t->Fill( wire, -0.833*(tdc-885));
   //m_canvas_hist2->cd(3);
   //gPad->Modified();
   //gPad->Update();

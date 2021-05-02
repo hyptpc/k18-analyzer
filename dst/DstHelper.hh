@@ -11,6 +11,9 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TTreeReader.h>
+
+#include <filesystem_util.hh>
+
 #include "DCAnalyzer.hh"
 
 // if event number mismatch is found, exit process.

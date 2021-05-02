@@ -48,13 +48,13 @@ typedef std::vector<HodoCluster*> HodoClusterContainer;
 class DCAnalyzer
 {
 public:
-  static TString& ClassName( void );
-  DCAnalyzer( void );
-  ~DCAnalyzer( void );
+  static TString& ClassName();
+  DCAnalyzer();
+  ~DCAnalyzer();
 
 private:
-  DCAnalyzer( const DCAnalyzer& );
-  DCAnalyzer& operator =( const DCAnalyzer& );
+  DCAnalyzer(const DCAnalyzer&);
+  DCAnalyzer& operator =(const DCAnalyzer&);
 
 private:
   enum e_type { k_BcIn,  k_BcOut,
@@ -94,170 +94,173 @@ private:
   std::vector<DCLocalTrackContainer> m_SdcOutExTC;
 
 public:
-  int  MuchCombinationSdcIn( void ) const { return m_much_combi[k_SdcIn]; }
-  bool DecodeRawHits( RawData* rawData );
-  // bool DecodeFiberHits( FiberCluster* FiberCl, int layer );
-  bool DecodeFiberHits( RawData* rawData );
-  bool DecodeBcInHits( RawData* rawData );
-  bool DecodeBcOutHits( RawData* rawData );
-  bool DecodeTPCHitsGeant4( const int nhits,
-     			    const double *x, const double *y, const double *z, const double *de );
-  bool DecodeTPCHits( RawData* rawData );
-  bool DecodeSdcInHits( RawData* rawData );
-  bool DecodeSdcOutHits( RawData* rawData, double ofs_dt=0.);
-  bool DecodeTOFHits( const Hodo2HitContainer& HitCont );
-  bool DecodeTOFHits( const HodoClusterContainer& ClCont );
-  //bool DecodeSimuHits( SimuData *simuData );
-  int  ClusterizeMWPCHit( const DCHitContainer& hits,
-			  MWPCClusterContainer& clusters );
-  bool  ClusterizeTPC( int layerID, const TPCHitContainer& HitCont,
-		       TPCClusterContainer& ClCont );
+  int  MuchCombinationSdcIn() const { return m_much_combi[k_SdcIn]; }
+  bool DecodeRawHits(RawData* rawData);
+  // bool DecodeFiberHits(FiberCluster* FiberCl, int layer);
+  bool DecodeFiberHits(RawData* rawData);
+  bool DecodeBcInHits(RawData* rawData);
+  bool DecodeBcOutHits(RawData* rawData);
+  bool DecodeTPCHitsGeant4(const int nhits,
+     			    const double *x, const double *y, const double *z, const double *de);
+  bool DecodeTPCHits(RawData* rawData);
+  bool DecodeSdcInHits(RawData* rawData);
+  bool DecodeSdcOutHits(RawData* rawData, double ofs_dt=0.);
+  bool DecodeTOFHits(const Hodo2HitContainer& HitCont);
+  bool DecodeTOFHits(const HodoClusterContainer& ClCont);
+  // bool DecodeSimuHits(SimuData *simuData);
+  int  ClusterizeMWPCHit(const DCHitContainer& hits,
+			  MWPCClusterContainer& clusters);
+  bool  ClusterizeTPC(int layerID, const TPCHitContainer& HitCont,
+		       TPCClusterContainer& ClCont);
 
-  inline const DCHitContainer& GetTempBcInHC( int layer ) const;
-  inline const DCHitContainer& GetBcInHC( int layer ) const;
-  inline const DCHitContainer& GetBcOutHC( int layer ) const;
-  inline const DCHitContainer& GetSdcInHC( int layer ) const;
-  inline const DCHitContainer& GetSdcOutHC( int layer ) const;
-  inline const DCHitContainer& GetTOFHC( void ) const;
-  inline const TPCHitContainer& GetTPCHC( int layer ) const;
-  inline const TPCHitContainer& GetTPCClCont( int layer ) const;
+  inline const DCHitContainer& GetTempBcInHC(int layer) const;
+  inline const DCHitContainer& GetBcInHC(int layer) const;
+  inline const DCHitContainer& GetBcOutHC(int layer) const;
+  inline const DCHitContainer& GetSdcInHC(int layer) const;
+  inline const DCHitContainer& GetSdcOutHC(int layer) const;
+  inline const DCHitContainer& GetTOFHC() const;
+  inline const TPCHitContainer& GetTPCHC(int layer) const;
+  inline const TPCHitContainer& GetTPCClCont(int layer) const;
 
-  bool TrackSearchBcIn( void );
-  bool TrackSearchBcIn( const std::vector< std::vector<DCHitContainer> >& hc );
-  bool TrackSearchBcOut( int T0Seg );
-  bool TrackSearchBcOut( const std::vector< std::vector<DCHitContainer> >& hc, int T0Seg );
-  bool TrackSearchSdcIn( void );
-  bool TrackSearchSdcInFiber( void );
-  bool TrackSearchSdcOut( void );
-  bool TrackSearchSdcOut( const Hodo2HitContainer& HitCont );
-  bool TrackSearchSdcOut( const HodoClusterContainer& ClCont );
-  bool TrackSearchTPC( void );
-  bool TrackSearchTPC_Helix( void );
+  bool TrackSearchBcIn();
+  bool TrackSearchBcIn(const std::vector< std::vector<DCHitContainer> >& hc);
+  bool TrackSearchBcOut(Int_t T0Seg=-1);
+  bool TrackSearchBcOut(const std::vector< std::vector<DCHitContainer> >& hc, int T0Seg);
+  bool TrackSearchSdcIn();
+  bool TrackSearchSdcInFiber();
+  bool TrackSearchSdcOut();
+  bool TrackSearchSdcOut(const Hodo2HitContainer& HitCont);
+  bool TrackSearchSdcOut(const HodoClusterContainer& ClCont);
+  bool TrackSearchTPC();
+  bool TrackSearchTPC_Helix();
 
-  int GetNtracksBcIn( void )   const { return m_BcInTC.size(); }
-  int GetNtracksBcOut( void )  const { return m_BcOutTC.size(); }
-  int GetNtracksSdcIn( void )  const { return m_SdcInTC.size(); }
-  int GetNtracksSdcOut( void ) const { return m_SdcOutTC.size(); }
-  int GetNTracksTPC( void ) const { return m_TPCTC.size(); }
-  int GetNTracksTPC_Helix( void ) const { return m_TPCTC_Helix.size(); }
+  int GetNtracksBcIn()   const { return m_BcInTC.size(); }
+  int GetNtracksBcOut()  const { return m_BcOutTC.size(); }
+  int GetNtracksSdcIn()  const { return m_SdcInTC.size(); }
+  int GetNtracksSdcOut() const { return m_SdcOutTC.size(); }
+  int GetNTracksTPC() const { return m_TPCTC.size(); }
+  int GetNTracksTPC_Helix() const { return m_TPCTC_Helix.size(); }
   // Exclusive Tracks
-  int GetNtracksSdcInEx( int layer ) const { return m_SdcInExTC[layer].size(); }
-  int GetNtracksSdcOutEx( int layer ) const { return m_SdcOutExTC[layer].size(); }
+  int GetNtracksSdcInEx(int layer) const { return m_SdcInExTC[layer].size(); }
+  int GetNtracksSdcOutEx(int layer) const { return m_SdcOutExTC[layer].size(); }
 
-  inline DCLocalTrack* GetTrackBcIn( int i ) const;
-  inline DCLocalTrack* GetTrackBcOut( int i ) const;
-  inline DCLocalTrack* GetTrackSdcIn( int i ) const;
-  inline DCLocalTrack* GetTrackSdcOut( int i ) const;
-  inline TPCLocalTrack* GetTrackTPC( int i ) const;
-  inline TPCLocalTrack_Helix* GetTrackTPC_Helix( int i ) const;
+  inline DCLocalTrack* GetTrackBcIn(int i) const;
+  inline DCLocalTrack* GetTrackBcOut(int i) const;
+  inline DCLocalTrack* GetTrackSdcIn(int i) const;
+  inline DCLocalTrack* GetTrackSdcOut(int i) const;
+  inline TPCLocalTrack* GetTrackTPC(int i) const;
+  inline TPCLocalTrack_Helix* GetTrackTPC_Helix(int i) const;
   // Exclusive Tracks
-  inline DCLocalTrack* GetTrackSdcInEx( int layer, int i ) const;
-  inline DCLocalTrack* GetTrackSdcOutEx( int layer, int i ) const;
+  inline DCLocalTrack* GetTrackSdcInEx(int layer, int i) const;
+  inline DCLocalTrack* GetTrackSdcOutEx(int layer, int i) const;
 
-  bool TrackSearchK18U2D( void );
-  bool TrackSearchK18D2U( const std::vector<double>& XinCont );
-  bool TrackSearchKurama( double initial_momentum );
-  bool TrackSearchKurama( void );
+  bool TrackSearchK18U2D();
+  bool TrackSearchK18D2U(const std::vector<double>& XinCont);
+  bool TrackSearchKurama(double initial_momentum);
+  bool TrackSearchKurama();
 
-  void ChiSqrCutBcOut( double chisqr );
-  void ChiSqrCutSdcIn( double chisqr );
-  void ChiSqrCutSdcOut( double chisqr );
+  void ChiSqrCutBcOut(double chisqr);
+  void ChiSqrCutSdcIn(double chisqr);
+  void ChiSqrCutSdcOut(double chisqr);
 
-  void TotCutBCOut( double min_tot );
-  void TotCutSDC1( double min_tot );
-  void TotCutSDC2( double min_tot );
-  void TotCutSDC3( double min_tot );
+  void TotCutBCOut(double min_tot);
+  void TotCutSDC1(double min_tot);
+  void TotCutSDC2(double min_tot);
+  void TotCutSDC3(double min_tot);
+  void TotCutSDC4(double min_tot);
 
-  void DriftTimeCutBC34( double min_dt, double max_dt);
-  void DriftTimeCutSDC2( double min_dt, double max_dt);
-  void DriftTimeCutSDC3( double min_dt, double max_dt);
+  void DriftTimeCutBC34(double min_dt, double max_dt);
+  void DriftTimeCutSDC1(double min_dt, double max_dt);
+  void DriftTimeCutSDC2(double min_dt, double max_dt);
+  void DriftTimeCutSDC3(double min_dt, double max_dt);
+  void DriftTimeCutSDC4(double min_dt, double max_dt);
 
-  int GetNTracksK18U2D( void ) const { return m_K18U2DTC.size(); }
-  int GetNTracksK18D2U( void ) const { return m_K18D2UTC.size(); }
-  int GetNTracksKurama( void ) const { return m_KuramaTC.size(); }
+  int GetNTracksK18U2D() const { return m_K18U2DTC.size(); }
+  int GetNTracksK18D2U() const { return m_K18D2UTC.size(); }
+  int GetNTracksKurama() const { return m_KuramaTC.size(); }
 
 
-  inline K18TrackU2D  * GetK18TrackU2D( int i ) const;
-  inline K18TrackD2U  * GetK18TrackD2U( int i ) const;
-  inline KuramaTrack  * GetKuramaTrack( int i )    const;
+  inline K18TrackU2D  * GetK18TrackU2D(int i) const;
+  inline K18TrackD2U  * GetK18TrackD2U(int i) const;
+  inline KuramaTrack  * GetKuramaTrack(int i)    const;
 
-  int GetNClustersMWPC( int layer ) const { return m_MWPCClCont[layer].size(); };
+  int GetNClustersMWPC(int layer) const { return m_MWPCClCont[layer].size(); };
 
-  inline const MWPCClusterContainer & GetClusterMWPC( int layer ) const;
+  inline const MWPCClusterContainer & GetClusterMWPC(int layer) const;
 
-  void PrintKurama( const std::string& arg="" ) const;
+  void PrintKurama(const std::string& arg="") const;
 
-  bool ReCalcMWPCHits( std::vector<DCHitContainer>& cont,
-		       bool applyRecursively=false );
-  bool ReCalcDCHits( std::vector<DCHitContainer>& cont,
-		     bool applyRecursively=false );
-  bool ReCalcDCHits( bool applyRecursively=false );
-  bool ReCalcTPCHits( const int nhits,
+  bool ReCalcMWPCHits(std::vector<DCHitContainer>& cont,
+		       bool applyRecursively=false);
+  bool ReCalcDCHits(std::vector<DCHitContainer>& cont,
+		     bool applyRecursively=false);
+  bool ReCalcDCHits(bool applyRecursively=false);
+  bool ReCalcTPCHits(const int nhits,
                       const std::vector<int>& padid,
                       const std::vector<double>& time,
                       const std::vector<double>& de,
-                      Bool_t do_clusterize=true );
+                      Bool_t do_clusterize=true);
   void HoughYCut(double min_y, double max_y);
-  bool ReCalcTrack( DCLocalTrackContainer& cont, bool applyRecursively=false );
-  bool ReCalcTrack( K18TrackD2UContainer& cont, bool applyRecursively=false );
-  bool ReCalcTrack( KuramaTrackContainer& cont, bool applyRecursively=false );
+  bool ReCalcTrack(DCLocalTrackContainer& cont, bool applyRecursively=false);
+  bool ReCalcTrack(K18TrackD2UContainer& cont, bool applyRecursively=false);
+  bool ReCalcTrack(KuramaTrackContainer& cont, bool applyRecursively=false);
 
-  bool ReCalcTrackBcIn( bool applyRecursively=false );
-  bool ReCalcTrackBcOut( bool applyRecursively=false );
-  bool ReCalcTrackSdcIn( bool applyRecursively=false );
-  bool ReCalcTrackSdcOut( bool applyRecursively=false );
+  bool ReCalcTrackBcIn(bool applyRecursively=false);
+  bool ReCalcTrackBcOut(bool applyRecursively=false);
+  bool ReCalcTrackSdcIn(bool applyRecursively=false);
+  bool ReCalcTrackSdcOut(bool applyRecursively=false);
 
-  bool ReCalcK18TrackD2U( bool applyRecursively=false );
-  // bool ReCalcK18TrackU2D( bool applyRecursively=false );
-  bool ReCalcKuramaTrack( bool applyRecursively=false );
+  bool ReCalcK18TrackD2U(bool applyRecursively=false);
+  // bool ReCalcK18TrackU2D(bool applyRecursively=false);
+  bool ReCalcKuramaTrack(bool applyRecursively=false);
 
-  bool ReCalcAll( void );
+  bool ReCalcAll();
 
-  bool TrackSearchBcOutSdcIn( void );
-  bool TrackSearchSdcInSdcOut( void );
-  int GetNtracksBcOutSdcIn( void ) const { return m_BcOutSdcInTC.size(); }
-  int GetNtracksSdcInSdcOut( void ) const { return m_SdcInSdcOutTC.size(); }
-  inline DCLocalTrack * GetTrackBcOutSdcIn( int i ) const;
-  inline DCLocalTrack * GetTrackSdcInSdcOut( int i ) const;
+  bool TrackSearchBcOutSdcIn();
+  bool TrackSearchSdcInSdcOut();
+  int GetNtracksBcOutSdcIn() const { return m_BcOutSdcInTC.size(); }
+  int GetNtracksSdcInSdcOut() const { return m_SdcInSdcOutTC.size(); }
+  inline DCLocalTrack * GetTrackBcOutSdcIn(int i) const;
+  inline DCLocalTrack * GetTrackSdcInSdcOut(int i) const;
 
   bool MakeBH2DCHit(int t0seg);
 
 protected:
-  void ClearDCHits( void );
-  void ClearBcInHits( void );
-  void ClearBcOutHits( void );
-  void ClearSdcInHits( void );
-  void ClearSdcOutHits( void );
+  void ClearDCHits();
+  void ClearBcInHits();
+  void ClearBcOutHits();
+  void ClearSdcInHits();
+  void ClearSdcOutHits();
 
-  void ClearTOFHits( void );
-  void ClearVtxHits( void );
+  void ClearTOFHits();
+  void ClearVtxHits();
 
-  void ClearTPCHits( void );
-  void ClearTPCClusters( void );
+  void ClearTPCHits();
+  void ClearTPCClusters();
 
-  void ClearTracksBcIn( void );
-  void ClearTracksBcOut( void );
-  void ClearTracksSdcIn( void );
-  void ClearTracksSdcOut( void );
-  void ClearTracksTPC( void );
-  void ClearTracksBcOutSdcIn( void );
-  void ClearTracksSdcInSdcOut( void );
-  void ClearK18TracksU2D( void );
-  void ClearK18TracksD2U( void );
-  void ClearKuramaTracks( void );
-  void ChiSqrCut( DCLocalTrackContainer& cont, double chisqr );
-  void TotCut( DCHitContainer& cont, double min_tot, bool adopt_nan );
-  void DriftTimeCut( DCHitContainer& cont, double min_dt, double max_dt, bool select_1st );
-  static int MakeUpMWPCClusters( const DCHitContainer& HitCont,
+  void ClearTracksBcIn();
+  void ClearTracksBcOut();
+  void ClearTracksSdcIn();
+  void ClearTracksSdcOut();
+  void ClearTracksTPC();
+  void ClearTracksBcOutSdcIn();
+  void ClearTracksSdcInSdcOut();
+  void ClearK18TracksU2D();
+  void ClearK18TracksD2U();
+  void ClearKuramaTracks();
+  void ChiSqrCut(DCLocalTrackContainer& cont, double chisqr);
+  void TotCut(DCHitContainer& cont, double min_tot, bool adopt_nan);
+  void DriftTimeCut(DCHitContainer& cont, double min_dt, double max_dt, bool select_1st);
+  static int MakeUpMWPCClusters(const DCHitContainer& HitCont,
   				 MWPCClusterContainer& ClusterCont,
-  				 double maxTimeDif );
+  				 double maxTimeDif);
 public:
-  void ResetTracksBcIn( void )        { ClearTracksBcIn();        }
-  void ResetTracksBcOut( void )       { ClearTracksBcOut();       }
-  void ResetTracksSdcIn( void )       { ClearTracksSdcIn();       }
-  void ResetTracksSdcOut( void )      { ClearTracksSdcOut();      }
-  void ResetTracksBcOutSdcIn( void )  { ClearTracksBcOutSdcIn();  }
-  void ResetTracksSdcInSdcOut( void )  { ClearTracksSdcInSdcOut();  }
+  void ResetTracksBcIn()        { ClearTracksBcIn();        }
+  void ResetTracksBcOut()       { ClearTracksBcOut();       }
+  void ResetTracksSdcIn()       { ClearTracksSdcIn();       }
+  void ResetTracksSdcOut()      { ClearTracksSdcOut();      }
+  void ResetTracksBcOutSdcIn()  { ClearTracksBcOutSdcIn();  }
+  void ResetTracksSdcInSdcOut()  { ClearTracksSdcInSdcOut();  }
   void ApplyBh1SegmentCut(const std::vector<double>& validBh1Cluster);
   void ApplyBh2SegmentCut(const double Time0_Cluster);
 
@@ -265,7 +268,7 @@ public:
 
 //_____________________________________________________________________________
 inline TString&
-DCAnalyzer::ClassName( void )
+DCAnalyzer::ClassName()
 {
   static TString s_name("DCAnalyzer");
   return s_name;
@@ -273,64 +276,64 @@ DCAnalyzer::ClassName( void )
 
 //_____________________________________________________________________________
 inline const DCHitContainer&
-DCAnalyzer::GetTempBcInHC( int layer ) const
+DCAnalyzer::GetTempBcInHC(int layer) const
 {
-  if( layer>NumOfLayersBcIn ) layer=0;
+  if(layer>NumOfLayersBcIn) layer=0;
   return m_TempBcInHC[layer];
 }
 
 //_____________________________________________________________________________
 inline const DCHitContainer&
-DCAnalyzer::GetBcInHC( int layer ) const
+DCAnalyzer::GetBcInHC(int layer) const
 {
-  if( layer>NumOfLayersBcIn ) layer=0;
+  if(layer>NumOfLayersBcIn) layer=0;
   return m_BcInHC[layer];
 }
 
 //_____________________________________________________________________________
 inline const DCHitContainer&
-DCAnalyzer::GetBcOutHC( int layer ) const
+DCAnalyzer::GetBcOutHC(int layer) const
 {
-  if( layer>NumOfLayersBcOut+1 ) layer=0;
+  if(layer>NumOfLayersBcOut+1) layer=0;
   return m_BcOutHC[layer];
 }
 
 //_____________________________________________________________________________
 inline const TPCHitContainer&
-DCAnalyzer::GetTPCHC( int layer ) const
+DCAnalyzer::GetTPCHC(int layer) const
 {
-  if( layer>NumOfLayersTPC ) layer=NumOfLayersTPC;
+  if(layer>NumOfLayersTPC) layer=NumOfLayersTPC;
   return m_TPCHitCont[layer];
 }
 
 //_____________________________________________________________________________
 inline const DCHitContainer&
-DCAnalyzer::GetSdcInHC( int layer ) const
+DCAnalyzer::GetSdcInHC(int layer) const
 {
-  if( layer>NumOfLayersSdcIn ) layer=0;
+  if(layer>NumOfLayersSdcIn) layer=0;
   return m_SdcInHC[layer];
 }
 
 //_____________________________________________________________________________
 inline const DCHitContainer&
-DCAnalyzer::GetSdcOutHC( int layer ) const
+DCAnalyzer::GetSdcOutHC(int layer) const
 {
-  if( layer>NumOfLayersSdcOut ) layer=0;
+  if(layer>NumOfLayersSdcOut) layer=0;
   return m_SdcOutHC[layer];
 }
 
 //_____________________________________________________________________________
 inline const DCHitContainer&
-DCAnalyzer::GetTOFHC( void ) const
+DCAnalyzer::GetTOFHC() const
 {
   return m_TOFHC;
 }
 
 //_____________________________________________________________________________
 inline DCLocalTrack*
-DCAnalyzer::GetTrackBcIn( int i ) const
+DCAnalyzer::GetTrackBcIn(int i) const
 {
-  if( i<m_BcInTC.size() )
+  if(i<m_BcInTC.size())
     return m_BcInTC[i];
   else
     return 0;
@@ -338,9 +341,9 @@ DCAnalyzer::GetTrackBcIn( int i ) const
 
 //_____________________________________________________________________________
 inline DCLocalTrack*
-DCAnalyzer::GetTrackBcOut( int i ) const
+DCAnalyzer::GetTrackBcOut(int i) const
 {
-  if( i<m_BcOutTC.size() )
+  if(i<m_BcOutTC.size())
     return m_BcOutTC[i];
   else
     return 0;
@@ -348,9 +351,9 @@ DCAnalyzer::GetTrackBcOut( int i ) const
 
 //_____________________________________________________________________________
 inline DCLocalTrack*
-DCAnalyzer::GetTrackSdcIn( int i ) const
+DCAnalyzer::GetTrackSdcIn(int i) const
 {
-  if( i<m_SdcInTC.size() )
+  if(i<m_SdcInTC.size())
     return m_SdcInTC[i];
   else
     return 0;
@@ -358,9 +361,9 @@ DCAnalyzer::GetTrackSdcIn( int i ) const
 
 //_____________________________________________________________________________
 inline DCLocalTrack*
-DCAnalyzer::GetTrackSdcOut( int i ) const
+DCAnalyzer::GetTrackSdcOut(int i) const
 {
-  if( i<m_SdcOutTC.size() )
+  if(i<m_SdcOutTC.size())
     return m_SdcOutTC[i];
   else
     return 0;
@@ -368,9 +371,9 @@ DCAnalyzer::GetTrackSdcOut( int i ) const
 
 //_____________________________________________________________________________
 inline TPCLocalTrack*
-DCAnalyzer::GetTrackTPC( int i ) const
+DCAnalyzer::GetTrackTPC(int i) const
 {
-  if( i<m_TPCTC.size() )
+  if(i<m_TPCTC.size())
     return m_TPCTC[i];
   else
     return 0;
@@ -378,9 +381,9 @@ DCAnalyzer::GetTrackTPC( int i ) const
 
 //_____________________________________________________________________________
 inline TPCLocalTrack_Helix*
-DCAnalyzer::GetTrackTPC_Helix( int i ) const
+DCAnalyzer::GetTrackTPC_Helix(int i) const
 {
-  if( i<m_TPCTC_Helix.size() )
+  if(i<m_TPCTC_Helix.size())
     return m_TPCTC_Helix[i];
   else
     return 0;
@@ -388,9 +391,9 @@ DCAnalyzer::GetTrackTPC_Helix( int i ) const
 
 //_____________________________________________________________________________
 inline DCLocalTrack*
-DCAnalyzer::GetTrackSdcInEx( int layer, int i ) const
+DCAnalyzer::GetTrackSdcInEx(int layer, int i) const
 {
-  if( i<m_SdcInExTC[layer].size() )
+  if(i<m_SdcInExTC[layer].size())
     return m_SdcInExTC[layer][i];
   else
     return 0;
@@ -398,9 +401,9 @@ DCAnalyzer::GetTrackSdcInEx( int layer, int i ) const
 
 //_____________________________________________________________________________
 inline DCLocalTrack*
-DCAnalyzer::GetTrackSdcOutEx( int layer, int i ) const
+DCAnalyzer::GetTrackSdcOutEx(int layer, int i) const
 {
-  if( i<m_SdcOutExTC[layer].size() )
+  if(i<m_SdcOutExTC[layer].size())
     return m_SdcOutExTC[layer][i];
   else
     return 0;
@@ -408,9 +411,9 @@ DCAnalyzer::GetTrackSdcOutEx( int layer, int i ) const
 
 //_____________________________________________________________________________
 inline K18TrackU2D*
-DCAnalyzer::GetK18TrackU2D( int i ) const
+DCAnalyzer::GetK18TrackU2D(int i) const
 {
-  if( i<m_K18U2DTC.size() )
+  if(i<m_K18U2DTC.size())
     return m_K18U2DTC[i];
   else
     return 0;
@@ -418,9 +421,9 @@ DCAnalyzer::GetK18TrackU2D( int i ) const
 
 //_____________________________________________________________________________
 inline K18TrackD2U*
-DCAnalyzer::GetK18TrackD2U( int i ) const
+DCAnalyzer::GetK18TrackD2U(int i) const
 {
-  if( i<m_K18D2UTC.size() )
+  if(i<m_K18D2UTC.size())
     return m_K18D2UTC[i];
   else
     return 0;
@@ -428,9 +431,9 @@ DCAnalyzer::GetK18TrackD2U( int i ) const
 
 //_____________________________________________________________________________
 inline KuramaTrack*
-DCAnalyzer::GetKuramaTrack( int i ) const
+DCAnalyzer::GetKuramaTrack(int i) const
 {
-  if( i<m_KuramaTC.size() )
+  if(i<m_KuramaTC.size())
     return m_KuramaTC[i];
   else
     return 0;
@@ -438,9 +441,9 @@ DCAnalyzer::GetKuramaTrack( int i ) const
 
 //_____________________________________________________________________________
 inline DCLocalTrack*
-DCAnalyzer::GetTrackBcOutSdcIn( int i ) const
+DCAnalyzer::GetTrackBcOutSdcIn(int i) const
 {
-  if( i<m_BcOutSdcInTC.size() )
+  if(i<m_BcOutSdcInTC.size())
     return m_BcOutSdcInTC[i];
   else
     return 0;
@@ -448,9 +451,9 @@ DCAnalyzer::GetTrackBcOutSdcIn( int i ) const
 
 //_____________________________________________________________________________
 inline DCLocalTrack*
-DCAnalyzer::GetTrackSdcInSdcOut( int i ) const
+DCAnalyzer::GetTrackSdcInSdcOut(int i) const
 {
-  if( i<m_SdcInSdcOutTC.size() )
+  if(i<m_SdcInSdcOutTC.size())
     return m_SdcInSdcOutTC[i];
   else
     return 0;
@@ -458,17 +461,17 @@ DCAnalyzer::GetTrackSdcInSdcOut( int i ) const
 
 //_____________________________________________________________________________
 inline const MWPCClusterContainer&
-DCAnalyzer::GetClusterMWPC( int layer ) const
+DCAnalyzer::GetClusterMWPC(int layer) const
 {
-  if( layer>NumOfLayersBcIn ) layer=0;
+  if(layer>NumOfLayersBcIn) layer=0;
   return m_MWPCClCont[layer];
 }
 
 //_____________________________________________________________________________
 inline const TPCHitContainer&
-DCAnalyzer::GetTPCClCont( int layer ) const
+DCAnalyzer::GetTPCClCont(int layer) const
 {
-  if( layer>NumOfLayersTPC ) layer=NumOfLayersTPC;
+  if(layer>NumOfLayersTPC) layer=NumOfLayersTPC;
   return m_TPCClCont[layer];
 }
 
