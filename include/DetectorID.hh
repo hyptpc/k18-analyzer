@@ -18,6 +18,7 @@ const int DetIdHTOF     =  8;
 const int DetIdBVH      =  9;
 const int DetIdLAC      = 12;
 const int DetIdWC       = 13;
+const int DetIdWCSUM    = 14; // Dummy
 const int NumOfSegBH1   = 11;
 const int NumOfSegBH2   =  8;
 const int NumOfSegBAC   =  2;

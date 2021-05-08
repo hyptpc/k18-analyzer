@@ -18,14 +18,14 @@ class VEvent;
 class ConfMan
 {
 public:
-  static const TString& ClassName( void );
-  static ConfMan&       GetInstance( void );
-  ~ConfMan( void );
+  static const TString& ClassName();
+  static ConfMan&       GetInstance();
+  ~ConfMan();
 
 private:
-  ConfMan( void );
-  ConfMan( const ConfMan& );
-  ConfMan& operator=( const ConfMan& );
+  ConfMan();
+  ConfMan(const ConfMan&);
+  ConfMan& operator=(const ConfMan&);
 
 private:
   typedef std::map<TString, TString>  StrList;
@@ -44,42 +44,42 @@ private:
   BoolList   m_bool;
 
 public:
-  VEvent* EventAllocator( void );
-  Bool_t  Initialize( void );
-  Bool_t  Initialize( const TString& file_name );
-  Bool_t  InitializeHistograms( void );
-  Bool_t  InitializeParameterFiles( void );
-  Bool_t  InitializeUnpacker( void );
-  Bool_t  IsReady( void ) const { return m_is_ready; }
-  Bool_t  Finalize( void );
-  Bool_t  FinalizeProcess( void );
+  VEvent* EventAllocator();
+  Bool_t  Finalize();
+  Bool_t  FinalizeProcess();
+  Bool_t  Initialize();
+  Bool_t  Initialize(const TString& file_name);
+  Bool_t  InitializeHistograms();
+  Bool_t  InitializeParameterFiles();
+  Bool_t  InitializeUnpacker();
+  Bool_t  IsReady() const { return m_is_ready; }
   // templates
   template <typename T>
-  static const T& Get( const TString& key ) { return T(); }
+  static const T& Get(const TString& key) { return T(); }
   template <typename T>
-  Bool_t    InitializeParameter( void );
+  Bool_t InitializeParameter();
   template <typename T>
-  Bool_t    InitializeParameter( const TString& key );
+  Bool_t InitializeParameter(const TString& key);
   template <typename T>
-  Bool_t    InitializeParameter( const TString& key1,
-                                 const TString& key2 );
+  Bool_t InitializeParameter(const TString& key1,
+                             const TString& key2);
 
 private:
-  TString FilePath( const TString& src ) const;
-  Bool_t  ShowResult( Bool_t s, const TString& name ) const;
+  TString FilePath(const TString& src) const;
+  Bool_t  ShowResult(Bool_t s, const TString& name) const;
 };
 
 //_____________________________________________________________________________
 inline const TString&
-ConfMan::ClassName( void )
+ConfMan::ClassName()
 {
-  static TString s_name( "ConfMan" );
+  static TString s_name("ConfMan");
   return s_name;
 }
 
 //_____________________________________________________________________________
 inline ConfMan&
-ConfMan::GetInstance( void )
+ConfMan::GetInstance()
 {
   static ConfMan s_instance;
   return s_instance;
@@ -88,7 +88,7 @@ ConfMan::GetInstance( void )
 //_____________________________________________________________________________
 template <>
 inline const TString&
-ConfMan::Get<TString>( const TString& key )
+ConfMan::Get<TString>(const TString& key)
 {
   return GetInstance().m_string[key];
 }
@@ -96,7 +96,7 @@ ConfMan::Get<TString>( const TString& key )
 //_____________________________________________________________________________
 template <>
 inline const Double_t&
-ConfMan::Get<Double_t>( const TString& key )
+ConfMan::Get<Double_t>(const TString& key)
 {
   return GetInstance().m_double[key];
 }
@@ -104,7 +104,7 @@ ConfMan::Get<Double_t>( const TString& key )
 //_____________________________________________________________________________
 template <>
 inline const Int_t&
-ConfMan::Get<Int_t>( const TString& key )
+ConfMan::Get<Int_t>(const TString& key)
 {
   return GetInstance().m_int[key];
 }
@@ -112,22 +112,20 @@ ConfMan::Get<Int_t>( const TString& key )
 //_____________________________________________________________________________
 template <>
 inline const Bool_t&
-ConfMan::Get<Bool_t>( const TString& key )
+ConfMan::Get<Bool_t>(const TString& key)
 {
   return GetInstance().m_bool[key];
 }
 
 //_____________________________________________________________________________
 inline Bool_t
-ConfMan::ShowResult( Bool_t s, const TString& name ) const
+ConfMan::ShowResult(Bool_t s, const TString& name) const
 {
-  if( s )
-    hddaq::cout << std::setw(24) << std::left
-		<< " ["+name+"]"
+  if(s)
+    hddaq::cout << std::setw(24) << std::left << " ["+name+"]"
 		<< "-> Initialized" << std::endl;
   else
-    hddaq::cout << std::setw(24) << std::left
-		<< " ["+name+"]"
+    hddaq::cout << std::setw(24) << std::left << " ["+name+"]"
 		<< "-> Failed" << std::endl;
   return s;
 }
@@ -135,33 +133,32 @@ ConfMan::ShowResult( Bool_t s, const TString& name ) const
 //_____________________________________________________________________________
 template <typename T>
 inline Bool_t
-ConfMan::InitializeParameter( void )
+ConfMan::InitializeParameter()
 {
   return
-    ShowResult( T::GetInstance().Initialize(),
-		T::ClassName() );
+    ShowResult(T::GetInstance().Initialize(),
+               T::ClassName());
 }
 
 //_____________________________________________________________________________
 template <typename T>
 inline Bool_t
-ConfMan::InitializeParameter( const TString& key )
+ConfMan::InitializeParameter(const TString& key)
 {
   return
-    ShowResult( T::GetInstance().Initialize(m_file[key]),
-		T::ClassName() );
+    ShowResult(T::GetInstance().Initialize(m_file[key]),
+               T::ClassName());
 }
 
 //_____________________________________________________________________________
 template <typename T>
 inline Bool_t
-ConfMan::InitializeParameter( const TString& key1,
-			      const TString& key2 )
+ConfMan::InitializeParameter(const TString& key1,
+                             const TString& key2)
 {
   return
-    ShowResult( T::GetInstance().Initialize(m_file[key1],
-					    m_file[key2]),
-		T::ClassName() );
+    ShowResult(T::GetInstance().Initialize(m_file[key1], m_file[key2]),
+               T::ClassName());
 }
 
 #endif

@@ -1,10 +1,12 @@
 #
-#  user_e42.txt
+#  UserParam_E42_2021May_default.txt
 #
-### BH1 dE gate
+### BH1
+TdcBH1 0 20000000
 DeBH1 0.3 4
 
-### BH2 dE gate
+### BH2
+TdcBH2 0 20000000
 DeBH2 0.3 4
 
 ### BH2 Mt gate (for Time0)
@@ -13,17 +15,31 @@ MtBH2 -2 2
 ### BTOF gate
 BTOF -2 2
 
-### TOF dE gate
+### BAC
+TdcBAC 0 20000000
+
+### HTOF
+TdcHTOF		0 20000000
+TimeHTOF	0 2000
+
+### BVH
+TdcBVH		0 20000000
+
+### TOF
+TdcTOF 0 20000000
 DeTOF 0.3 4
 
 ### TOF time range
 TimeTOF 7 25
 
-### TOF offset
+### ToF offset between BH2 and Target
 OffsetToF 0
 
-### BH1 TDC gate range
-BH1_TDC 0 1000
+### LAC
+TdcLAC		0 20000000
+
+### WC
+TdcWC		0 20000000
 
 ### BFT TDC gate range
 TdcBFT 620 650
@@ -31,29 +47,11 @@ TdcBFT 620 650
 ### BFT Time gate range
 TimeBFT -5 5
 
-### SFT TDC gate range
-TdcSFT 500 560
-
-### SFT Time gate range
-TimeSFT -15 5
-
 ### SCH TDC gate range
 TdcSCH 440 480
 
 ### SCH Time gate range
 TimeSCH -15 5
-
-### FBT1 TDC gate range
-TdcFBT1 0 1000
-
-### FBT1 Time gate range
-TimeFBT1 -15 5
-
-### FBT2 TDC gate range
-TdcFBT2 0 1000
-
-### FBT2 Time gate range
-TimeFBT2 -15 5
 
 ### BC3 TDC gate range
 TdcBC3 250 440
@@ -70,15 +68,55 @@ TdcSDC2 600 1150
 ### SDC3 TDC gate range
 TdcSDC3 400 1200
 
+### SDC4 TDC gate range
+TdcSDC4 400 1200
+
+### SDC1 Trailing gate range
+TrailingSDC1 200 400
+
+### SDC2 Trailing gate range
+TrailingSDC2 0 350
+
+### SDC3 Trailing gate range
+TrailingSDC3 550 770
+
+### SDC4 Trailing gate range
+TrailingSDC4 200 770
+
+### BC/SDC TOT cut
+MinTotBcOut 15
+MinTotSDC1 20
+MinTotSDC2 50
+MinTotSDC3 50
+MinTotSDC4 80
+
 ### BCOUT multiplicity gate
 MaxMultiHitBcOut 16
 
 ### BCOUT plane multiplicity gate
 MinLayerBcOut 10
 
-###BC3,4 Sdc1 TOT cut
-MinTotBcOut 15
-MinTotSDC1 25
+### SDCIN multiplicity gate
+MaxMultiHitSdcIn 16
+
+### SDCIN plane multiplicity gate
+MinLayerSdcIn 8
+
+### SDCOUT multiplicity gate
+MaxMultiHitSdcOut 16
+
+### SDCOUT plane multiplicity gate (+2 in SdcOutTracking)
+MinLayerSdcOut 6
+
+### CommonStop timing for SdcOut
+StopTimingSdcOut 230 260
+
+### SdcOut dT offset for L1 stop timing
+StopTimeDiffSdcOut 150
+
+### SdcOut TOT cut
+MinTotSDC2 50.
+MinTotSDC3 80.
 
 ### TPCHit
 TPC_Subtraction		0
@@ -108,32 +146,6 @@ MinLayerTPC 8
 TPC_Dt 0.57
 ### HIMAC val
 TPC_sigma0 0.204
-
-### SDCIN multiplicity gate
-MaxMultiHitSdcIn 16
-
-### SDCIN plane multiplicity gate
-MinLayerSdcIn 4
-#MinLayerSdcIn 7
-
-### SDCOUT multiplicity gate
-MaxMultiHitSdcOut 16
-
-### SDCOUT plane multiplicity gate (+2 in SdcOutTracking)
-MinLayerSdcOut 4
-
-### L1 timing of TOF stop
-TimeL1 230 260
-
-### SdcOut dT offset for L1 stop timing
-dTOfs 150.
-
-### SdcOut TOT cut
-MinTotSDC2 50.
-MinTotSDC3 80.
-
-### TOF KID
-TOFKID 2.1 300 840
 
 ### TPC
 MinLayerTPC 5

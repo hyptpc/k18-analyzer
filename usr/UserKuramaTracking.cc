@@ -212,9 +212,9 @@ EventKuramaTracking::ProcessingNormal()
   static const double MaxTimeTOF = gUser.GetParameter("TimeTOF",    1);
 #endif
 
-  static const double MinTimeL1  = gUser.GetParameter("TimeL1",     0);
-  static const double MaxTimeL1  = gUser.GetParameter("TimeL1",     1);
-  static const double dTOfs      = gUser.GetParameter("dTOfs",      0);
+  static const double MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
+  static const double MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
+  static const double StopTimeDiffSdcOut      = gUser.GetParameter("StopTimeDiffSdcOut",      0);
   static const double MinTotSDC2 = gUser.GetParameter("MinTotSDC2", 0);
   static const double MinTotSDC3 = gUser.GetParameter("MinTotSDC3", 0);
 
@@ -368,7 +368,7 @@ EventKuramaTracking::ProcessingNormal()
     int mhit = gUnpacker.get_entries(device_id, 0, trigger::kTofTiming, 0, data_type_id);
     for(int m = 0; m<mhit; ++m){
       int tof_timing = gUnpacker.get(device_id, 0, trigger::kTofTiming, 0, data_type_id, m);
-      if(!(MinTimeL1 < tof_timing && tof_timing < MaxTimeL1)) flag_tof_stop = true;
+      if(!(MinStopTimingSdcOut < tof_timing && tof_timing < MaxStopTimingSdcOut)) flag_tof_stop = true;
     }// for(m)
   }
 
@@ -378,7 +378,7 @@ EventKuramaTracking::ProcessingNormal()
 
   DCAna->DecodeSdcInHits(rawData);
 
-  double offset = flag_tof_stop ? 0 : dTOfs;
+  double offset = flag_tof_stop ? 0 : StopTimeDiffSdcOut;
   DCAna->DecodeSdcOutHits(rawData, offset);
   DCAna->TotCutSDC2(MinTotSDC2);
   DCAna->TotCutSDC3(MinTotSDC3);

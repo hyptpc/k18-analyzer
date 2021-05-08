@@ -47,6 +47,7 @@ RawData::RawData()
     m_TOFRawHC(),
     m_LACRawHC(),
     m_WCRawHC(),
+    m_WCSUMRawHC(),
     m_BFTRawHC(NumOfPlaneBFT),
     m_BcInRawHC(NumOfLayersBcIn+1),
     m_BcOutRawHC(NumOfLayersBcOut+1),
@@ -82,6 +83,7 @@ RawData::ClearAll()
   del::ClearContainer(m_TOFRawHC);
   del::ClearContainer(m_LACRawHC);
   del::ClearContainer(m_WCRawHC);
+  del::ClearContainer(m_WCSUMRawHC);
   del::ClearContainerAll(m_BFTRawHC);
   del::ClearContainerAll(m_BcInRawHC);
   del::ClearContainerAll(m_BcOutRawHC);
@@ -139,7 +141,7 @@ RawData::DecodeHits()
   // BAC
   DecodeHodo(DetIdBAC, NumOfSegBAC, kOneSide,  m_BACRawHC);
   // HTOF
-  DecodeHodo(DetIdHTOF,NumOfSegHTOF, kBothSide, m_HTOFRawHC);
+  DecodeHodo(DetIdHTOF, NumOfSegHTOF, kBothSide, m_HTOFRawHC);
   // SCH
   for(Int_t seg=0; seg<NumOfSegSCH; ++seg){
     UInt_t nhit = gUnpacker.get_entries(DetIdSCH, 0, seg, 0, 0);
@@ -157,9 +159,19 @@ RawData::DecodeHits()
   // TOF
   DecodeHodo(DetIdTOF, NumOfSegTOF, kBothSide, m_TOFRawHC);
   // LAC
-  DecodeHodo(DetIdLAC,  NumOfSegLAC,  kOneSide,  m_LACRawHC);
+  DecodeHodo(DetIdLAC, NumOfSegLAC, kOneSide, m_LACRawHC);
   // WC
   DecodeHodo(DetIdWC, NumOfSegWC, kBothSide, m_WCRawHC);
+  // WC SUM
+  for(Int_t seg=0; seg<NumOfSegWC; ++seg){
+    for(Int_t AorT=0; AorT<2; ++AorT){
+      for(Int_t m=0, nhit=gUnpacker.get_entries(DetIdWC, 0, seg, 2, AorT);
+          m<nhit; ++m){
+	UInt_t data = gUnpacker.get(DetIdWC, 0, seg, 2, AorT, m);
+	AddHodoRawHit(m_WCSUMRawHC, DetIdWCSUM, 0, seg, 0, AorT, data);
+      }
+    }
+  }
 
   //BFT
   for(Int_t plane=0; plane<NumOfPlaneBFT; ++plane){
@@ -436,15 +448,15 @@ RawData::AddHodoRawHit(HodoRHitContainer& cont,
   switch(type){
   case kHodoAdc:
     if(UorD==0) p->SetAdcUp(data);
-    else          p->SetAdcDown(data);
+    else        p->SetAdcDown(data);
     break;
   case kHodoLeading:
     if(UorD==0) p->SetTdcUp(data);
-    else          p->SetTdcDown(data);
+    else        p->SetTdcDown(data);
     break;
   case kHodoTrailing:
     if(UorD==0) p->SetTdcTUp(data);
-    else          p->SetTdcTDown(data);
+    else        p->SetTdcTDown(data);
     break;
   case kHodoOverflow:
     p->SetTdcOverflow(data);
@@ -527,9 +539,8 @@ RawData::DecodeHodo(Int_t id, Int_t plane, Int_t nseg, Int_t nch,
   for(Int_t seg=0; seg<nseg; ++seg){
     for(Int_t UorD=0; UorD<nch; ++UorD){
       for(Int_t AorT=0; AorT<2; ++AorT){
-	UInt_t nhit = gUnpacker.get_entries(id, plane, seg, UorD, AorT);
-	if(nhit == 0) continue;
-	for(Int_t m=0; m<nhit; ++m){
+	for(Int_t m=0, nhit=gUnpacker.get_entries(id, plane, seg, UorD, AorT);
+            m<nhit; ++m){
 	  UInt_t data = gUnpacker.get(id, plane, seg, UorD, AorT, m);
 	  AddHodoRawHit(cont, id, plane, seg, UorD, AorT, data);
 	}

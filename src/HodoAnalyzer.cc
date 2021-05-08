@@ -250,7 +250,7 @@ HodoAnalyzer::DecodeHTOFHits(RawData *rawData)
     auto hp = new Hodo2Hit(hit);
     if(!hp) continue;
     if(hp->Calculate()){
-      m_TOFCont.push_back(hp);
+      m_HTOFCont.push_back(hp);
     }else{
       delete hp;
     }

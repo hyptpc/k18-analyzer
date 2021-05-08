@@ -23,11 +23,14 @@
 #include "KuramaLib.hh"
 #include "RawData.hh"
 #include "RootHelper.hh"
+#include "UserParamMan.hh"
 
 namespace
 {
 using namespace root;
-auto & gRM = RMAnalyzer::GetInstance();
+auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
+auto& gRM = RMAnalyzer::GetInstance();
+auto& gUser = UserParamMan::GetInstance();
 }
 
 //_____________________________________________________________________________
@@ -54,7 +57,6 @@ public:
   bool  ProcessingEnd();
   bool  ProcessingNormal();
   bool  InitializeHistograms();
-  void  InitializeEvent();
 };
 
 //_____________________________________________________________________________
@@ -108,6 +110,10 @@ struct Event
   Double_t htofut[NumOfSegHTOF][MaxDepth];
   Double_t htofdt[NumOfSegHTOF][MaxDepth];
 
+  Int_t bvhnhits;
+  Int_t bvhhitpat[MaxHits];
+  Double_t bvht[NumOfSegBVH][MaxDepth];
+
   Int_t tofnhits;
   Int_t tofhitpat[MaxHits];
   Double_t tofua[NumOfSegTOF];
@@ -115,9 +121,9 @@ struct Event
   Double_t tofda[NumOfSegTOF];
   Double_t tofdt[NumOfSegTOF][MaxDepth];
 
-  Int_t bvhnhits;
-  Int_t bvhhitpat[MaxHits];
-  Double_t bvht[NumOfSegBVH][MaxDepth];
+  Int_t lacnhits;
+  Int_t lachitpat[MaxHits];
+  Double_t lact[NumOfSegLAC][MaxDepth];
 
   Int_t wcnhits;
   Int_t wchitpat[MaxHits];
@@ -125,6 +131,10 @@ struct Event
   Double_t wcut[NumOfSegWC][MaxDepth];
   Double_t wcda[NumOfSegWC];
   Double_t wcdt[NumOfSegWC][MaxDepth];
+  Int_t wcsumnhits;
+  Int_t wcsumhitpat[MaxHits];
+  Double_t wcsuma[NumOfSegWC];
+  Double_t wcsumt[NumOfSegWC][MaxDepth];
 
   ////////// Normalized
   Double_t bh1mt[NumOfSegBH1][MaxDepth];
@@ -149,8 +159,6 @@ struct Event
   Double_t htofmt[NumOfSegHTOF][MaxDepth];
   Double_t htofde[NumOfSegHTOF];
 
-  Double_t bvhmt[NumOfSegBVH][MaxDepth];
-
   // Time0
   Double_t Time0Seg;
   Double_t deTime0;
@@ -162,7 +170,131 @@ struct Event
   Double_t deBtof0;
   Double_t Btof0;
   Double_t CBtof0;
+
+  void clear();
 };
+
+//_____________________________________________________________________________
+void
+Event::clear()
+{
+  static const auto nan = TMath::QuietNaN();
+  evnum      = 0;
+  spill      = 0;
+  trignhits  = 0;
+  bh1nhits   = 0;
+  bacnhits   = 0;
+  bh2nhits   = 0;
+  bvhnhits   = 0;
+  tofnhits   = 0;
+  lacnhits   = 0;
+  wcnhits    = 0;
+  wcsumnhits = 0;
+  Time0Seg = nan;
+  deTime0  = nan;
+  Time0    = nan;
+  CTime0   = nan;
+  Btof0Seg = nan;
+  deBtof0  = nan;
+  Btof0    = nan;
+  CBtof0   = nan;
+
+  for(Int_t it=0; it<NumOfSegTrig; ++it){
+    trigpat[it]  = -1;
+    trigflag[it] = -1;
+  }
+
+  for(Int_t it=0; it<MaxHits; ++it){
+    bh1hitpat[it]   = -1;
+    bh2hitpat[it]   = -1;
+    bachitpat[it]   = -1;
+    htofhitpat[it]  = -1;
+    bvhhitpat[it]   = -1;
+    tofhitpat[it]   = -1;
+    lachitpat[it]   = -1;
+    wchitpat[it]    = -1;
+    wcsumhitpat[it] = -1;
+  }
+
+  for(Int_t it=0; it<NumOfSegBH1; ++it){
+    bh1ua[it] = nan;
+    bh1da[it] = nan;
+    bh1de[it] = nan;
+    for(Int_t that=0; that<NumOfSegBH2; ++that){
+      btof[it][that]  = nan;
+      cbtof[it][that] = nan;
+    }
+    for(Int_t m = 0; m<MaxDepth; ++m){
+      bh1ut[it][m] = nan;
+      bh1dt[it][m] = nan;
+      bh1mt[it][m] = nan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegBH2; ++it){
+    bh2ua[it] = nan;
+    bh2da[it] = nan;
+    bh2de[it] = nan;
+    for(Int_t m=0; m<MaxDepth; ++m){
+      bh2ut[it][m] = nan;
+      bh2dt[it][m] = nan;
+      bh2mt[it][m] = nan;
+      t0[it][m]    = nan;
+      ct0[it][m]   = nan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegBAC; it++){
+    baca[it] = nan;
+    for(Int_t m=0; m<MaxDepth; ++m){
+      bact[it][m] = nan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegHTOF; it++){
+    htofua[it] = nan;
+    htofda[it] = nan;
+    for(Int_t m=0; m<MaxDepth; ++m){
+      htofut[it][m] = nan;
+      htofdt[it][m] = nan;
+      htofmt[it][m] = nan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegBVH; it++){
+    for(Int_t m=0; m<MaxDepth; ++m){
+      bvht[it][m]  = nan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegTOF; it++){
+    tofua[it] = nan;
+    tofda[it] = nan;
+    tofde[it] = nan;
+    for(Int_t m=0; m<MaxDepth; ++m){
+      tofut[it][m] = nan;
+      tofdt[it][m] = nan;
+      tofmt[it][m] = nan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegLAC; it++){
+    for(Int_t m=0; m<MaxDepth; ++m){
+      lact[it][m]  = nan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegWC; ++it){
+    wcua[it]   = nan;
+    wcda[it]   = nan;
+    wcsuma[it] = nan;
+    for(Int_t m=0; m<MaxDepth; ++m){
+      wcut[it][m]   = nan;
+      wcdt[it][m]   = nan;
+      wcsumt[it][m] = nan;
+    }
+  }
+}
 
 //_____________________________________________________________________________
 struct Dst
@@ -234,34 +366,128 @@ struct Dst
   Double_t udeTofSeg[NumOfSegTOF];
   Double_t ddeTofSeg[NumOfSegTOF];
 
-
+  void clear();
 };
+
+//_____________________________________________________________________________
+void
+Dst::clear()
+{
+  static const auto nan = TMath::QuietNaN();
+  nhBh1    = 0;
+  nhBac    = 0;
+  nhBh2    = 0;
+  nhHtof   = 0;
+  nhTof    = 0;
+  nhBvh    = 0;
+  evnum    = 0;
+  spill    = 0;
+  Time0Seg = nan;
+  deTime0  = nan;
+  Time0    = nan;
+  CTime0   = nan;
+  Btof0Seg = nan;
+  deBtof0  = nan;
+  Btof0    = nan;
+  CBtof0   = nan;
+
+  for(Int_t it=0; it<NumOfSegTrig; ++it){
+    trigpat[it]  = -1;
+    trigflag[it] = -1;
+  }
+
+  for(Int_t it=0; it<NumOfSegBH1; ++it){
+    for(Int_t m=0; m<MaxDepth; ++m){
+      csBh1[MaxDepth*it + m]  = 0;
+      Bh1Seg[MaxDepth*it + m] = nan;
+      tBh1[MaxDepth*it + m]   = nan;
+      dtBh1[MaxDepth*it + m]  = nan;
+      deBh1[MaxDepth*it + m]  = nan;
+      btof[MaxDepth*it + m]   = nan;
+      cbtof[MaxDepth*it + m]  = nan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegBH2; ++it){
+    for(Int_t m=0; m<MaxDepth; ++m){
+      csBh2[MaxDepth*it + m]  = 0;
+      Bh2Seg[MaxDepth*it + m] = nan;
+      tBh2[MaxDepth*it + m]   = nan;
+      t0Bh2[MaxDepth*it + m]  = nan;
+      dtBh2[MaxDepth*it + m]  = nan;
+      deBh2[MaxDepth*it + m]  = nan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegBAC; it++){
+    BacSeg[it] = nan;
+    deBac[it]  = nan;
+    for(Int_t m=0; m<MaxDepth; ++m){
+      tBac[MaxDepth*it+m] = nan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegHTOF; it++){
+    for(Int_t m=0; m<MaxDepth; ++m){
+      csHtof[MaxDepth*it + m]  = 0;
+      HtofSeg[MaxDepth*it + m] = nan;
+      tHtof[MaxDepth*it + m]   = nan;
+      dtHtof[MaxDepth*it + m]  = nan;
+      deHtof[MaxDepth*it + m]  = nan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegBVH; it++){
+    for(Int_t m=0; m<MaxDepth; ++m){
+      csBvh[MaxDepth*it + m]  = 0;
+      BvhSeg[MaxDepth*it + m] = nan;
+      tBvh[MaxDepth*it + m]   = nan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegTOF; it++){
+    udeTofSeg[it] = nan;
+    ddeTofSeg[it] = nan;
+    for(Int_t m=0; m<MaxDepth; ++m){
+      utTofSeg[it][m]  = nan;
+      dtTofSeg[it][m]  = nan;
+      csTof[MaxDepth*it + m]  = 0;
+      TofSeg[MaxDepth*it + m] = nan;
+      tTof[MaxDepth*it + m]   = nan;
+      dtTof[MaxDepth*it + m]  = nan;
+      deTof[MaxDepth*it + m]  = nan;
+    }
+  }
+}
+
 
 //_____________________________________________________________________________
 namespace root
 {
-  Event  event;
-  Dst    dst;
-  TH1   *h[MaxHist];
-  TTree *tree;
-  TTree *hodo;
-  enum eDetHid {
-    BH1Hid    = 10000,
-    BH2Hid    = 20000,
-    BACHid    = 30000,
-    HTOFHid   = 40000,
-    BVHHid    = 50000,
-    TOFHid    = 60000,
-    LACHid    = 70000,
-    WCHid     = 80000,
-  };
+Event  event;
+Dst    dst;
+TH1*   h[MaxHist];
+TTree* tree;
+TTree* hodo;
+enum eDetHid {
+  BH1Hid    = 10000,
+  BH2Hid    = 20000,
+  BACHid    = 30000,
+  HTOFHid   = 40000,
+  BVHHid    = 50000,
+  TOFHid    = 60000,
+  LACHid    = 70000,
+  WCHid     = 80000,
+  WCSUMHid  = 90000,
+};
 }
 
 //_____________________________________________________________________________
 bool
 EventHodoscope::ProcessingBegin()
 {
-  InitializeEvent();
+  event.clear();
+  dst.clear();
   return true;
 }
 
@@ -269,12 +495,29 @@ EventHodoscope::ProcessingBegin()
 bool
 EventHodoscope::ProcessingNormal()
 {
+  static const auto MinTdcBH1 = gUser.GetParameter("TdcBH1", 0);
+  static const auto MaxTdcBH1 = gUser.GetParameter("TdcBH1", 1);
+  static const auto MinTdcBH2 = gUser.GetParameter("TdcBH2", 0);
+  static const auto MaxTdcBH2 = gUser.GetParameter("TdcBH2", 1);
+  static const auto MinTdcBAC = gUser.GetParameter("TdcBAC", 0);
+  static const auto MaxTdcBAC = gUser.GetParameter("TdcBAC", 1);
+  static const auto MinTdcHTOF = gUser.GetParameter("TdcHTOF", 0);
+  static const auto MaxTdcHTOF = gUser.GetParameter("TdcHTOF", 1);
+  static const auto MinTdcBVH = gUser.GetParameter("TdcBVH", 0);
+  static const auto MaxTdcBVH = gUser.GetParameter("TdcBVH", 1);
+  static const auto MinTdcTOF = gUser.GetParameter("TdcTOF", 0);
+  static const auto MaxTdcTOF = gUser.GetParameter("TdcTOF", 1);
+  static const auto MinTdcLAC = gUser.GetParameter("TdcLAC", 0);
+  static const auto MaxTdcLAC = gUser.GetParameter("TdcLAC", 1);
+  static const auto MinTdcWC = gUser.GetParameter("TdcWC", 0);
+  static const auto MaxTdcWC = gUser.GetParameter("TdcWC", 1);
+
   rawData->DecodeHits();
 
   gRM.Decode();
 
-  event.evnum = gRM.EventNumber();
-  event.evnum = gRM.EventNumber();
+  // event.evnum = gRM.EventNumber();
+  event.evnum = gUnpacker.get_event_number();
   event.spill = gRM.SpillNumber();
   dst.evnum   = gRM.EventNumber();
   dst.spill   = gRM.SpillNumber();
@@ -284,16 +527,18 @@ EventHodoscope::ProcessingNormal()
   //**************************************************************************
   //****************** RawData
 
-  // Trig
+  ///// Trig
+  std::bitset<NumOfSegTrig> trigger_flag;
   {
     Int_t trignhits = 0;
-    const HodoRHitContainer &cont = rawData->GetTrigRawHC();
+    const HodoRHitContainer& cont = rawData->GetTrigRawHC();
     Int_t nh = cont.size();
     for(Int_t i=0; i<nh; ++i){
       HodoRawHit *hit = cont[i];
       Int_t seg = hit->SegmentId()+1;
       Int_t tdc = hit->GetTdc1();
-      if(tdc>0){
+      if(tdc > 0){
+        trigger_flag.set(seg - 1);
 	event.trigpat[trignhits] = seg;
 	event.trigflag[seg-1]    = tdc;
 	dst.trigpat[trignhits]   = seg;
@@ -307,195 +552,225 @@ EventHodoscope::ProcessingNormal()
     dst.trignhits   = trignhits;
   }
 
-  // if(event.trigflag[SpillEndTrig]>0)  return true;
+  if(trigger_flag[trigger::kSpillEnd]) return true;
 
   HF1(1, 1);
 
-  // BH1
+  ///// BH1
   {
     Int_t bh1_nhits = 0;
-    const HodoRHitContainer &cont = rawData->GetBH1RawHC();
+    const HodoRHitContainer& cont = rawData->GetBH1RawHC();
     Int_t nh = cont.size();
-    HF1(BH1Hid +0, Double_t(nh));
+    HF1(BH1Hid, nh);
     Int_t nh1 = 0, nh2 = 0;
     for(Int_t i=0; i<nh; ++i){
       HodoRawHit *hit = cont[i];
       Int_t seg = hit->SegmentId()+1;
       HF1(BH1Hid +1, seg-0.5);
-      Int_t Au = hit->GetAdcUp(), Ad = hit->GetAdcDown();
-      Int_t Tu = hit->GetTdcUp(), Td = hit->GetTdcDown();
+      // Up
+      Int_t Au = hit->GetAdcUp();
+      HF1(BH1Hid +100*seg +1, Au);
       event.bh1ua[seg-1] = Au;
+      Bool_t is_hit_u = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcUp(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcUp(m);
+        HF1(BH1Hid +100*seg +3, T);
+        event.bh1ut[seg-1][m] = T;
+        if(MinTdcBH1 < T && T < MaxTdcBH1) is_hit_u = true;
+      }
+      if(is_hit_u) HF1(BH1Hid +100*seg +5, Au);
+      else         HF1(BH1Hid +100*seg +7, Au);
+      // Down
+      Int_t Ad = hit->GetAdcDown();
+      HF1(BH1Hid +100*seg +2, Ad);
       event.bh1da[seg-1] = Ad;
-
-      //Up
-      {
-	HF1(BH1Hid +100*seg +1, Double_t(Au));
-	if(Tu>0){
-	  HF1(BH1Hid +100*seg +5, Double_t(Au));
-	}
-	else{
-	  HF1(BH1Hid +100*seg +7, Double_t(Au));
-	}
-
-	Int_t n_mhit = hit->GetSizeTdcUp();
-	for(Int_t m = 0; m<n_mhit; ++m){
-	  Int_t T = hit->GetTdcUp(m);
-	  if(T > 0) HF1(BH1Hid +100*seg +3, Double_t(T));
-	  event.bh1ut[seg-1][m] = T;
-	}// for(m)
+      Bool_t is_hit_d = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcDown(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcDown(m);
+        HF1(BH1Hid +100*seg +4, T);
+        event.bh1dt[seg-1][m] = T;
+        if(MinTdcBH1 < T && T < MaxTdcBH1) is_hit_d = true;
       }
-
-      //Down
-      {
-	HF1(BH1Hid +100*seg +2, Double_t(Ad));
-	if(Td>0){
-	  HF1(BH1Hid +100*seg +6, Double_t(Ad));
-	}
-	else{
-	  HF1(BH1Hid +100*seg +8, Double_t(Ad));
-	}
-
-	Int_t n_mhit = hit->GetSizeTdcDown();
-	for(Int_t m = 0; m<n_mhit; ++m){
-	  Int_t T = hit->GetTdcDown(m);
-	  if(T > 0) HF1(BH1Hid +100*seg +4, Double_t(T));
-	  event.bh1dt[seg-1][m] = T;
-	}// for(m)
-      }
-
-      //HitPat
-      if(Tu>0 && Td>0){
-	event.bh1hitpat[bh1_nhits] = seg;
-	bh1_nhits++;
-      }
-      if(Tu>0 || Td>0){
+      if(is_hit_d) HF1(BH1Hid +100*seg +6, Ad);
+      else         HF1(BH1Hid +100*seg +8, Ad);
+      // HitPat
+      if(is_hit_u || is_hit_d){
 	++nh1; HF1(BH1Hid +3, seg-0.5);
       }
-      if(Tu>0 && Td>0){
+      if(is_hit_u && is_hit_d){
+	event.bh1hitpat[bh1_nhits++] = seg;
 	++nh2; HF1(BH1Hid +5, seg-0.5);
       }
     }
-    HF1(BH1Hid +2, Double_t(nh1)); HF1(BH1Hid +4, Double_t(nh2));
+    HF1(BH1Hid +2, nh1); HF1(BH1Hid +4, nh2);
     event.bh1nhits = bh1_nhits;
   }
 
-  // BH2
+  ///// BH2
   {
     Int_t bh2_nhits = 0;
-    const HodoRHitContainer &cont = rawData->GetBH2RawHC();
+    const HodoRHitContainer& cont = rawData->GetBH2RawHC();
     Int_t nh = cont.size();
-    HF1(BH2Hid, Double_t(nh));
+    HF1(BH2Hid, nh);
     Int_t nh1 = 0, nh2 = 0;
     for(Int_t i=0; i<nh; ++i){
       HodoRawHit *hit = cont[i];
       Int_t seg = hit->SegmentId()+1;
       HF1(BH2Hid +1, seg-0.5);
-      Int_t Au = hit->GetAdcUp(), Ad = hit->GetAdcDown();
-      Int_t Tu = hit->GetTdcUp(), Td = hit->GetTdcDown();
+      // Up
+      Int_t Au = hit->GetAdcUp();
+      HF1(BH2Hid +100*seg +1, Au);
       event.bh2ua[seg-1] = Au;
+      Bool_t is_hit_u = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcUp(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcUp(m);
+        HF1(BH2Hid +100*seg +3, T);
+        event.bh2ut[seg-1][m] = T;
+        if(MinTdcBH2 < T && T < MaxTdcBH2) is_hit_u = true;
+      }
+      if(is_hit_u) HF1(BH2Hid +100*seg +5, Au);
+      else         HF1(BH2Hid +100*seg +7, Au);
+      // Down
+      Int_t Ad = hit->GetAdcDown();
+      HF1(BH2Hid +100*seg +2, Double_t(Ad));
       event.bh2da[seg-1] = Ad;
-
-      //Up
-      {
-	HF1(BH2Hid +100*seg +1, Double_t(Au));
-	if(Tu>0){
-
-	  HF1(BH2Hid +100*seg +5, Double_t(Au));
-	}
-	else{
-	  HF1(BH2Hid +100*seg +7, Double_t(Au));
-	}
-
-	Int_t n_mhit = hit->GetSizeTdcUp();
-	for(Int_t m = 0; m<n_mhit; ++m){
-	  Int_t T = hit->GetTdcUp(m);
-	  if(T > 0) HF1(BH2Hid +100*seg +3, Double_t(T));
-	  event.bh2ut[seg-1][m] = T;
-	}// for(m)
+      Bool_t is_hit_d = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcDown(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcDown(m);
+        HF1(BH2Hid +100*seg +4, Double_t(T));
+        event.bh2dt[seg-1][m] = T;
+        if(MinTdcBH2 < T && T < MaxTdcBH2) is_hit_d = true;
       }
-
-      //Down
-      {
-	HF1(BH2Hid +100*seg +2, Double_t(Ad));
-	if(Td>0){
-	  HF1(BH2Hid +100*seg +6, Double_t(Ad));
-	}
-	else{
-	  HF1(BH2Hid +100*seg +8, Double_t(Ad));
-	}
-
-	Int_t n_mhit = hit->GetSizeTdcDown();
-	for(Int_t m = 0; m<n_mhit; ++m){
-	  Int_t T = hit->GetTdcDown(m);
-	  if(T > 0) HF1(BH2Hid +100*seg +4, Double_t(T));
-	  event.bh2dt[seg-1][m] = T;
-	}// for(m)
+      if(is_hit_d) HF1(BH2Hid +100*seg +6, Ad);
+      else         HF1(BH2Hid +100*seg +8, Ad);
+      // HitPat
+      if(is_hit_u || is_hit_d){
+        ++nh1; HF1(BH2Hid +3, seg-0.5);
       }
-
-
-      //HitPat
-      if(Tu>0 && Td>0){
-	event.bh2hitpat[bh2_nhits] = seg;
-	bh2_nhits++;
-      }
-      if(Tu>0 || Td>0){
-	++nh1; HF1(BH2Hid +3, seg-0.5);
-      }
-      if(Tu>0 && Td>0){
-	++nh2; HF1(BH2Hid +5, seg-0.5);
+      if(is_hit_u && is_hit_d){
+        event.bh2hitpat[bh2_nhits++] = seg;
+        ++nh2; HF1(BH2Hid +5, seg-0.5);
       }
     }
-    HF1(BH2Hid +2, Double_t(nh1)); HF1(BH2Hid +4, Double_t(nh2));
+    HF1(BH2Hid +2, nh1); HF1(BH2Hid +4, nh2);
     event.bh2nhits = bh2_nhits;
   }
 
-  // BAC
+  ///// BAC
   {
     Int_t bac_nhits = 0;
-    const HodoRHitContainer &cont = rawData->GetBACRawHC();
+    const HodoRHitContainer& cont = rawData->GetBACRawHC();
     Int_t nh = cont.size();
-    HF1(BACHid, Double_t(nh));
+    HF1(BACHid, nh);
     Int_t nh1 = 0;
     for(Int_t i=0; i<nh; ++i){
       HodoRawHit *hit = cont[i];
       Int_t seg = hit->SegmentId()+1;
       HF1(BACHid+1, seg-0.5);
       Int_t A = hit->GetAdcUp();
-      Int_t T = hit->GetTdcUp();
+      HF1(BACHid+100*seg+1, A);
       event.baca[seg-1] = A;
-
-      //Up
-      {
-	HF1(BACHid+100*seg+1, Double_t(A));
-	if(T>0){
-	  HF1(BACHid+100*seg+5, Double_t(A));
-	}
-	else{
-	  HF1(BACHid+100*seg+7, Double_t(A));
-	}
-
-	Int_t n_mhit = hit->GetSizeTdcUp();
-	for(Int_t m = 0; m<n_mhit; ++m){
-	  Int_t T = hit->GetTdcUp(m);
-	  if(T > 0) HF1(BACHid+100*seg+3, Double_t(T));
-	  event.bact[seg-1][m] = T;
-	}// for(m)
+      Bool_t is_hit = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcUp(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcUp(m);
+        HF1(BACHid+100*seg+3, T);
+        event.bact[seg-1][m] = T;
+        if(MinTdcBAC < T && T < MaxTdcBAC) is_hit = true;
       }
-
-      //hitpat
-      if(T>0) event.bachitpat[bac_nhits++]= seg;
-      if(T>0){
+      if(is_hit) HF1(BACHid+100*seg+5, A);
+      else       HF1(BACHid+100*seg+7, A);
+      // Hitpat
+      if(is_hit){
+        event.bachitpat[bac_nhits++]= seg;
   	++nh1; HF1(BACHid+3, seg-0.5);
       }
     }
-    HF1(BACHid+2, Double_t(nh1));
+    HF1(BACHid+2, nh1);
     event.bacnhits = bac_nhits;
   }
 
-  // TOF
+  ///// HTOF
+  {
+    Int_t htof_nhits = 0;
+    const HodoRHitContainer& cont = rawData->GetHTOFRawHC();
+    Int_t nh = cont.size();
+    HF1(HTOFHid, nh);
+    Int_t nh1 = 0, nh2 = 0;
+    for(Int_t i=0; i<nh; ++i){
+      HodoRawHit* hit = cont[i];
+      Int_t seg = hit->SegmentId()+1;
+      HF1(HTOFHid+1, seg-0.5);
+      // Up
+      Int_t Au = hit->GetAdcUp();
+      HF1(HTOFHid+100*seg+1, Au);
+      event.htofua[seg-1] = Au;
+      Bool_t is_hit_u = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcUp(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcUp(m);
+        HF1(HTOFHid +100*seg +3, T);
+        event.htofut[seg-1][m] = T;
+        if(MinTdcHTOF < T && T < MaxTdcHTOF) is_hit_u = true;
+      }
+      if(is_hit_u) HF1(HTOFHid+100*seg+5, Au);
+      else         HF1(HTOFHid+100*seg+7, Au);
+      // Down
+      Int_t Ad = hit->GetAdcDown();
+      HF1(HTOFHid+100*seg+2, Ad);
+      event.htofda[seg-1] = Ad;
+      Bool_t is_hit_d = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcDown(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcDown(m);
+        HF1(HTOFHid +100*seg +4, T);
+        event.htofdt[seg-1][m] = T;
+        if(MinTdcHTOF < T && T < MaxTdcHTOF) is_hit_d = true;
+      }
+      if(is_hit_d) HF1(HTOFHid+100*seg+6, Ad);
+      else         HF1(HTOFHid+100*seg+8, Ad);
+      // HitPat
+      if(is_hit_u || is_hit_d){
+        ++nh1; HF1(HTOFHid+3, seg-0.5);
+      }
+      if(is_hit_u && is_hit_d){
+        event.htofhitpat[htof_nhits++] = seg;
+        ++nh2; HF1(HTOFHid+5, seg-0.5);
+      }
+    }
+    HF1(HTOFHid+2, nh1); HF1(HTOFHid+4, nh2);
+    event.htofnhits = htof_nhits;
+  }
+
+  ///// BVH
+  {
+    Int_t bvh_nhits = 0;
+    const HodoRHitContainer& cont = rawData->GetBVHRawHC();
+    Int_t nh = cont.size();
+    HF1(BVHHid, nh);
+    Int_t nh1 = 0;
+    for(Int_t i=0; i<nh; ++i){
+      HodoRawHit *hit = cont[i];
+      Int_t seg = hit->SegmentId()+1;
+      HF1(BVHHid+1, seg-0.5);
+      Bool_t is_hit = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcUp(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcUp(m);
+        HF1(BVHHid+100*seg+3, T);
+        event.bvht[seg-1][m] = T;
+        if(MinTdcBVH < T && T < MaxTdcBVH) is_hit = true;
+      }
+      // Hitpat
+      if(is_hit){
+	event.bvhhitpat[bvh_nhits++] = seg;
+	++nh1; HF1(BVHHid+3, seg-0.5);
+      }
+    }
+    HF1(BVHHid+2, nh1);
+    event.bvhnhits = bvh_nhits;
+  }
+
+  ///// TOF
   {
     Int_t tof_nhits = 0;
-    const HodoRHitContainer &cont = rawData->GetTOFRawHC();
+    const HodoRHitContainer& cont = rawData->GetTOFRawHC();
     Int_t nh = cont.size();
     HF1(TOFHid, Double_t(nh));
     Int_t nh1 = 0, nh2 = 0;
@@ -503,105 +778,74 @@ EventHodoscope::ProcessingNormal()
       HodoRawHit *hit = cont[i];
       Int_t seg = hit->SegmentId()+1;
       HF1(TOFHid+1, seg-0.5);
-      Int_t Au = hit->GetAdcUp(), Ad = hit->GetAdcDown();
-      Int_t Tu = hit->GetTdcUp(), Td = hit->GetTdcDown();
+      // Up
+      Int_t Au = hit->GetAdcUp();
+      HF1(TOFHid+100*seg+1, Au);
       event.tofua[seg-1] = Au;
+      Bool_t is_hit_u = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcUp(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcUp(m);
+        HF1(TOFHid +100*seg +3, T);
+        event.tofut[seg-1][m] = T;
+        if(MinTdcTOF < T && T < MaxTdcTOF) is_hit_u = true;
+      }
+      if(is_hit_u) HF1(TOFHid+100*seg+5, Au);
+      else         HF1(TOFHid+100*seg+7, Au);
+      // Down
+      Int_t Ad = hit->GetAdcDown();
+      HF1(TOFHid+100*seg+2, Ad);
       event.tofda[seg-1] = Ad;
-
-      //Up
-      {
-	HF1(TOFHid+100*seg+1, Double_t(Au));
-	if(Tu>0){
-	  HF1(TOFHid+100*seg+5, Double_t(Au));
-	}
-	else{
-	  HF1(TOFHid+100*seg+7, Double_t(Au));
-	}
-
-	Int_t n_mhit = hit->GetSizeTdcUp();
-	for(Int_t m = 0; m<n_mhit; ++m){
-	  Int_t T = hit->GetTdcUp(m);
-	  if(T > 0) HF1(TOFHid +100*seg +3, Double_t(T));
-	  event.tofut[seg-1][m] = T;
-	}// for(m)
+      Bool_t is_hit_d = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcDown(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcDown(m);
+        HF1(TOFHid +100*seg +4, Double_t(T));
+        event.tofdt[seg-1][m] = T;
+        if(MinTdcTOF < T && T < MaxTdcTOF)  is_hit_d = true;
       }
-
-      //Down
-      {
-	HF1(TOFHid+100*seg+2, Double_t(Ad));
-	if(Td>0){
-	  HF1(TOFHid+100*seg+6, Double_t(Ad));
-	}
-	else{
-	  HF1(TOFHid+100*seg+8, Double_t(Ad));
-	}
-
-	Int_t n_mhit = hit->GetSizeTdcDown();
-	for(Int_t m = 0; m<n_mhit; ++m){
-	  Int_t T = hit->GetTdcDown(m);
-	  if(T > 0) HF1(TOFHid +100*seg +4, Double_t(T));
-	  event.tofdt[seg-1][m] = T;
-	}// for(m)
-      }
-
-      if(Tu >0 && Td>0){
-	event.tofhitpat[tof_nhits] = seg;
-	tof_nhits++;
-      }
-
-      //Hitpat
-      if(Tu>0 || Td>0){
+      if(is_hit_d) HF1(TOFHid+100*seg+6, Ad);
+      else         HF1(TOFHid+100*seg+8, Ad);
+      // Hitpat
+      if(is_hit_u || is_hit_d){
 	++nh1; HF1(TOFHid+3, seg-0.5);
       }
-      if(Tu>0 && Td>0){
+      if(is_hit_u && is_hit_d){
+	event.tofhitpat[tof_nhits++] = seg;
 	++nh2; HF1(TOFHid+5, seg-0.5);
       }
     }
-    HF1(TOFHid+2, Double_t(nh1)); HF1(TOFHid+4, Double_t(nh2));
+    HF1(TOFHid+2, nh1); HF1(TOFHid+4, nh2);
     event.tofnhits = tof_nhits;
   }
 
-  // BVH
+  ///// LAC
   {
-    Int_t bvh_nhits = 0;
-    const HodoRHitContainer &cont = rawData->GetBVHRawHC();
+    Int_t lac_nhits = 0;
+    const HodoRHitContainer& cont = rawData->GetLACRawHC();
     Int_t nh = cont.size();
-    HF1(BVHHid, Double_t(nh));
-    Int_t nh1 = 0;
+    HF1(LACHid, nh);
     for(Int_t i=0; i<nh; ++i){
       HodoRawHit *hit = cont[i];
       Int_t seg = hit->SegmentId()+1;
-      HF1(BVHHid+1, seg-0.5);
-      Int_t Tm = hit->GetTdcUp();
-
-      //Mt
-      {
-	Int_t n_mhit = hit->GetSizeTdcUp();
-	for(Int_t m = 0; m<n_mhit; ++m){
-	  Int_t T = hit->GetTdcUp(m);
-	  if(T > 0) HF1(BVHHid+100*seg+3, Double_t(T));
-	  event.bvht[seg-1][m] = T;
-	}// for(m)
+      HF1(LACHid +1, seg-0.5);
+      Bool_t is_hit = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcUp(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcUp(m);
+        HF1(LACHid +100*seg +3, Double_t(T));
+        event.lact[seg-1][m] = T;
+        if(MinTdcLAC < T && T < MaxTdcLAC) is_hit = true;
       }
-
-      //Hitpat
-      if(Tm >0){
-	event.bvhhitpat[bvh_nhits] = seg;
-	bvh_nhits++;
-      }
-      if(Tm>0){
-	++nh1; HF1(BVHHid+3, seg-0.5);
+      //HitPat
+      if(is_hit){
+	event.lachitpat[lac_nhits++] = seg;
       }
     }
-    HF1(BVHHid+2, Double_t(nh1));
-    event.bvhnhits = bvh_nhits;
+    event.lacnhits = lac_nhits;
   }
 
-
-  // WC
+  ///// WC
   {
     Int_t wc_nhits = 0;
-    const HodoRHitContainer &cont = rawData->GetWCRawHC();
+    const HodoRHitContainer& cont = rawData->GetWCRawHC();
     Int_t nh = cont.size();
     HF1(WCHid, Double_t(nh));
     Int_t nh1 = 0, nh2 = 0;
@@ -609,58 +853,39 @@ EventHodoscope::ProcessingNormal()
       HodoRawHit *hit = cont[i];
       Int_t seg = hit->SegmentId()+1;
       HF1(WCHid +1, seg-0.5);
-      Int_t Au = hit->GetAdcUp(), Ad = hit->GetAdcDown();
-      Int_t Tu = hit->GetTdcUp(), Td = hit->GetTdcDown();
+      // Up
+      Int_t Au = hit->GetAdcUp();
+      HF1(WCHid +100*seg +1, Au);
       event.wcua[seg-1] = Au;
+      Bool_t is_hit_u = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcUp(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcUp(m);
+        HF1(WCHid +100*seg +3, T);
+        event.wcut[seg-1][m] = T;
+        if(MinTdcWC < T && T < MaxTdcWC) is_hit_u = true;
+      }
+      if(is_hit_u) HF1(WCHid +100*seg +5, Au);
+      else         HF1(WCHid +100*seg +7, Au);
+      // Down
+      Int_t Ad = hit->GetAdcDown();
+      HF1(WCHid +100*seg +2, Ad);
       event.wcda[seg-1] = Ad;
-
-      //Up
-      {
-	HF1(WCHid +100*seg +1, Double_t(Au));
-	if(Tu>0){
-
-	  HF1(WCHid +100*seg +5, Double_t(Au));
-	}
-	else{
-	  HF1(WCHid +100*seg +7, Double_t(Au));
-	}
-
-	Int_t n_mhit = hit->GetSizeTdcUp();
-	for(Int_t m = 0; m<n_mhit; ++m){
-	  Int_t T = hit->GetTdcUp(m);
-	  if(T > 0) HF1(WCHid +100*seg +3, Double_t(T));
-	  event.wcut[seg-1][m] = T;
-	}// for(m)
+      Bool_t is_hit_d = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcDown(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcDown(m);
+        HF1(WCHid +100*seg +4, Double_t(T));
+        event.wcdt[seg-1][m] = T;
+        if(MinTdcWC < T && T < MaxTdcWC) is_hit_d = true;
       }
-
-      //Down
-      {
-	HF1(WCHid +100*seg +2, Double_t(Ad));
-	if(Td>0){
-	  HF1(WCHid +100*seg +6, Double_t(Ad));
-	}
-	else{
-	  HF1(WCHid +100*seg +8, Double_t(Ad));
-	}
-
-	Int_t n_mhit = hit->GetSizeTdcDown();
-	for(Int_t m = 0; m<n_mhit; ++m){
-	  Int_t T = hit->GetTdcDown(m);
-	  if(T > 0) HF1(WCHid +100*seg +4, Double_t(T));
-	  event.wcdt[seg-1][m] = T;
-	}// for(m)
-      }
-
-
-      //HitPat
-      if(Tu>0 && Td>0){
-	event.wchitpat[wc_nhits] = seg;
-	wc_nhits++;
-      }
-      if(Tu>0 || Td>0){
+      if(is_hit_d) HF1(WCHid +100*seg +6, Ad);
+      else         HF1(WCHid +100*seg +8, Ad);
+      // HitPat
+      if(is_hit_u || is_hit_d){
 	++nh1; HF1(WCHid +3, seg-0.5);
       }
-      if(Tu>0 && Td>0){
+      if(is_hit_u && is_hit_d){
+	event.wchitpat[wc_nhits] = seg;
+	wc_nhits++;
 	++nh2; HF1(WCHid +5, seg-0.5);
       }
     }
@@ -668,6 +893,35 @@ EventHodoscope::ProcessingNormal()
     event.wcnhits = wc_nhits;
   }
 
+  ///// WCSUM
+  {
+    Int_t wcsum_nhits = 0;
+    const auto &cont = rawData->GetWCSUMRawHC();
+    Int_t nh = cont.size();
+    for( Int_t i=0; i<nh; ++i ){
+      HodoRawHit *hit = cont[i];
+      Int_t seg = hit->SegmentId()+1;
+      Int_t A = hit->GetAdcUp();
+      HF1( WCSUMHid +100*seg +1, A);
+      event.wcsuma[seg-1] = A;
+      Bool_t is_hit = false;
+      for(Int_t m=0, mh=hit->GetSizeTdcUp(); m<mh; ++m){
+        Int_t T = hit->GetTdcUp(m);
+        HF1(WCSUMHid +100*seg +3, T);
+        event.wcsumt[seg-1][m] = T;
+        if(MinTdcWC < T && T < MaxTdcWC) is_hit = true;
+      }
+      if(is_hit) HF1(WCSUMHid +100*seg +5, A);
+      else       HF1(WCSUMHid +100*seg +7, A);
+      // HitPat
+      if(is_hit){
+        event.wcsumhitpat[wcsum_nhits++] = seg;
+        HF1(WCSUMHid +1, seg-0.5);
+      }
+    }
+    HF1(WCSUMHid, wcsum_nhits);
+    event.wcsumnhits = wcsum_nhits;
+  }
 
 
   //**************************************************************************
@@ -687,7 +941,7 @@ EventHodoscope::ProcessingNormal()
       Int_t seg = hit->SegmentId()+1;
 
       Int_t n_mhit = hit->GetNumOfHit();
-      for(Int_t m = 0; m<n_mhit; ++m){
+      for(Int_t m=0; m<n_mhit; ++m){
 	HF1(BH1Hid+11, seg-0.5);
 
 	Double_t au  = hit->GetAUp(),    ad = hit->GetADown();
@@ -743,7 +997,7 @@ EventHodoscope::ProcessingNormal()
 
   // BH2
   hodoAna->DecodeBH2Hits(rawData);
-  hodoAna->TimeCutBH2(-2, 2);
+  // hodoAna->TimeCutBH2(-2, 2);
   {
     Int_t nh = hodoAna->GetNHitsBH2();
     HF1(BH2Hid+10, Double_t(nh));
@@ -754,7 +1008,7 @@ EventHodoscope::ProcessingNormal()
       Int_t seg = hit->SegmentId()+1;
 
       Int_t n_mhit = hit->GetNumOfHit();
-      for(Int_t m = 0; m<n_mhit; ++m){
+      for(Int_t m=0; m<n_mhit; ++m){
 	HF1(BH2Hid+11, seg-0.5);
 	Double_t au  = hit->GetAUp(),   ad  = hit->GetADown();
 	Double_t tu  = hit->GetTUp(m),  td  = hit->GetTDown(m);
@@ -1042,7 +1296,7 @@ EventHodoscope::ProcessingNormal()
       Double_t a=hit->GetA();
       event.bacde[seg-1]  = a;
       Int_t n_mhit = hit->GetNumOfHit();
-      for(Int_t m = 0; m<n_mhit; ++m){
+      for(Int_t m=0; m<n_mhit; ++m){
 	Double_t t=hit->GetT(m), ct=hit->GetCT(m);
 	event.bacmt[i][m] = ct;
 	HF1(BACHid+100*seg+11, t);
@@ -1052,69 +1306,55 @@ EventHodoscope::ProcessingNormal()
     }
   }
 
-  // BVH
-  hodoAna->DecodeBVHHits(rawData);
+  // HTOF
+  hodoAna->DecodeHTOFHits(rawData);
   {
-    Int_t nh = hodoAna->GetNHitsBVH();
-    HF1(BVHHid+10, Double_t(nh));
+    Int_t nh = hodoAna->GetNHitsHTOF();
+    HF1(HTOFHid+10, Double_t(nh));
     Int_t nh2 = 0;
     for(Int_t i=0; i<nh; ++i){
-      Hodo1Hit *hit = hodoAna->GetHitBVH(i);
+      Hodo2Hit *hit = hodoAna->GetHitHTOF(i);
       if(!hit) continue;
       Int_t seg = hit->SegmentId()+1;
-      HF1(BVHHid+11, seg-0.5);
-
       Int_t n_mhit = hit->GetNumOfHit();
-      for(Int_t m = 0; m<n_mhit; ++m){
-	Double_t mt  = hit->MeanTime(m), cmt = hit->CMeanTime(m);
-	event.bvhmt[seg-1][m]  = mt;
-
-	HF1(BVHHid+100*seg+13, mt);
-	HF1(BVHHid+100*seg+19, cmt);
-	HF1(BVHHid+12, cmt);
-      }// for(m)
-
-      HF1(BVHHid+14, Double_t(nh2));
+      for(Int_t m=0; m<n_mhit; ++m){
+	HF1(HTOFHid+11, seg-0.5);
+	Double_t au = hit->GetAUp(), ad = hit->GetADown();
+	Double_t tu = hit->GetTUp(), td = hit->GetTDown();
+	Double_t ctu = hit->GetCTUp(), ctd = hit->GetCTDown();
+	Double_t mt = hit->MeanTime(), cmt = hit->CMeanTime();
+	Double_t de = hit->DeltaE();
+	event.htofmt[seg-1][m] = mt;
+	event.htofde[seg-1] = de;
+	HF1(HTOFHid+100*seg+11, tu); HF1(HTOFHid+100*seg+12, td);
+	HF1(HTOFHid+100*seg+13, mt);
+	HF1(HTOFHid+100*seg+17, ctu); HF1(HTOFHid+100*seg+18, ctd);
+	HF1(HTOFHid+100*seg+19, cmt); HF1(HTOFHid+100*seg+20, ctu-ctd);
+	HF2(HTOFHid+100*seg+21, tu, au); HF2(HTOFHid+100*seg+22, td, ad);
+	HF2(HTOFHid+100*seg+23, ctu, au); HF2(HTOFHid+100*seg+24, ctd, ad);
+	HF1(HTOFHid+12, cmt);
+	if(m == 0){
+	  HF1(HTOFHid+100*seg+14, au); HF1(HTOFHid+100*seg+15, ad);
+	  HF1(HTOFHid+100*seg+16, de); HF1(HTOFHid+13, de);
+	}
+	if(de > 0.5){
+	  HF1(HTOFHid+15, seg-0.5);
+	  ++nh2;
+	}
+      }
     }
-
-    for(Int_t i1=0; i1<nh; ++i1){
-      Hodo1Hit *hit1 = hodoAna->GetHitBVH(i1);
-      if(!hit1) continue;
-      Int_t seg1 = hit1->SegmentId()+1;
-
-      Int_t n_mhit1 = hit1->GetNumOfHit();
-      for(Int_t m1 = 0; m1<n_mhit1; ++m1){
-	for(Int_t i2=0; i2<nh; ++i2){
-	  if(i1==i2) continue;
-	  Hodo1Hit *hit2 = hodoAna->GetHitBVH(i2);
-	  if(!hit2) continue;
-
-	  Int_t seg2 = hit2->SegmentId()+1;
-	  Int_t n_mhit2 = hit2->GetNumOfHit();
-	  for(Int_t m2 = 0; m2<n_mhit2; ++m2){
-	    Double_t ct1 = hit1->CMeanTime(m1), ct2 = hit2->CMeanTime(m2);
-	    HF2(BVHHid+21, seg1-0.5, seg2-0.5);
-	    HF2(BVHHid+22, ct1, ct2);
-	    HF1(BVHHid+23, ct2-ct1);
-	    if(std::abs(ct2-ct1)<3.0){
-	      HF2(BVHHid+24, seg1-0.5, seg2-0.5);
-	    }
-	  }// for(m2)
-	}// for(seg2)
-      }// for(m1)
-    }// for(seg1)
-
-    Int_t nc = hodoAna->GetNClustersBVH();
-    HF1(BVHHid+30, Double_t(nc));
+    Int_t nc = hodoAna->GetNClustersHTOF();
+    HF1(HTOFHid+30, Double_t(nc));
     for(Int_t i=0; i<nc; ++i){
-      HodoCluster *cluster = hodoAna->GetClusterBVH(i);
+      HodoCluster *cluster = hodoAna->GetClusterHTOF(i);
       if(!cluster) continue;
       Int_t cs = cluster->ClusterSize();
-      Double_t ms  = cluster->MeanSeg()+1;
+      Double_t ms = cluster->MeanSeg()+1;
       Double_t cmt = cluster->CMeanTime();
-      HF1(BVHHid+31, Double_t(cs));
-      HF1(BVHHid+32, ms-0.5);
-      HF1(BVHHid+33, cmt);
+      Double_t de = cluster->DeltaE();
+      HF1(HTOFHid+31, Double_t(cs));
+      HF1(HTOFHid+32, ms-0.5);
+      HF1(HTOFHid+33, cmt); HF1(HTOFHid+34, de);
     }
   }
 
@@ -1130,7 +1370,7 @@ EventHodoscope::ProcessingNormal()
       Int_t seg = hit->SegmentId()+1;
 
       Int_t n_mhit = hit->GetNumOfHit();
-      for(Int_t m = 0; m<n_mhit; ++m){
+      for(Int_t m=0; m<n_mhit; ++m){
 	HF1(TOFHid+11, seg-0.5);
 
 	Double_t au  = hit->GetAUp(),   ad  = hit->GetADown();
@@ -1256,6 +1496,20 @@ EventHodoscope::ProcessingNormal()
   }
 
   {
+    Int_t nc = hodoAna->GetNClustersHTOF();
+    dst.nhHtof = nc;
+    for(Int_t i=0; i<nc; ++i){
+      HodoCluster *cl = hodoAna->GetClusterHTOF(i);
+      if(!cl) continue;
+      dst.csHtof[i] = cl->ClusterSize();
+      dst.HtofSeg[i] = cl->MeanSeg()+1;
+      dst.tHtof[i] = cl->CMeanTime();
+      dst.dtHtof[i] = cl->TimeDif();
+      dst.deHtof[i] = cl->DeltaE();
+    }
+  }
+
+  {
     Int_t nc = hodoAna->GetNClustersBVH();
     dst.nhBvh = nc;
     for(Int_t i=0; i<nc; ++i){
@@ -1284,7 +1538,7 @@ EventHodoscope::ProcessingNormal()
 #if 0
   // BH1 (for parameter tuning)
   if(dst.Time0Seg==4){
-    const HodoRHitContainer &cont = rawData->GetBH1RawHC();
+    const HodoRHitContainer& cont = rawData->GetBH1RawHC();
     Int_t nh = cont.size();
     for(Int_t i=0; i<nh; ++i){
       HodoRawHit *hit = cont[i];
@@ -1293,7 +1547,7 @@ EventHodoscope::ProcessingNormal()
       //Up
       {
 	Int_t n_mhit = hit->GetSizeTdcUp();
-	for(Int_t m = 0; m<n_mhit; ++m){
+	for(Int_t m=0; m<n_mhit; ++m){
 	  Int_t T = hit->GetTdcUp(m);
 	  if(T > 0) HF1(BH1Hid +100*seg +9, Double_t(T));
 	}// for(m)
@@ -1302,7 +1556,7 @@ EventHodoscope::ProcessingNormal()
       //Down
       {
 	Int_t n_mhit = hit->GetSizeTdcDown();
-	for(Int_t m = 0; m<n_mhit; ++m){
+	for(Int_t m=0; m<n_mhit; ++m){
 	  Int_t T = hit->GetTdcDown(m);
 	  if(T > 0) HF1(BH1Hid +100*seg +10, Double_t(T));
 	}// for(m)
@@ -1321,184 +1575,6 @@ EventHodoscope::ProcessingEnd()
   tree->Fill();
   hodo->Fill();
   return true;
-}
-
-//_____________________________________________________________________________
-void
-EventHodoscope::InitializeEvent()
-{
-  event.evnum     = 0;
-  event.spill     = 0;
-  event.trignhits = 0;
-  event.bh1nhits  = 0;
-  event.bacnhits  = 0;
-  event.bh2nhits  = 0;
-  event.tofnhits  = 0;
-  event.bvhnhits  = 0;
-  event.wcnhits  = 0;
-
-  dst.nhBh1  = 0;
-  dst.nhBac  = 0;
-  dst.nhBh2  = 0;
-  dst.nhHtof = 0;
-  dst.nhTof  = 0;
-  dst.nhBvh   = 0;
-
-  event.Time0Seg = -999;
-  event.deTime0  = -999;
-  event.Time0    = -999;
-  event.CTime0   = -999;
-
-  event.Btof0Seg = -999;
-  event.deBtof0  = -999;
-  event.Btof0    = -999;
-  event.CBtof0   = -999;
-
-  dst.evnum     = 0;
-  dst.spill     = 0;
-
-  dst.Time0Seg = -999;
-  dst.deTime0  = -999;
-  dst.Time0    = -999;
-  dst.CTime0   = -999;
-
-  dst.Btof0Seg = -999;
-  dst.deBtof0  = -999;
-  dst.Btof0    = -999;
-  dst.CBtof0   = -999;
-
-  for(Int_t it=0; it<NumOfSegTrig; ++it){
-    event.trigpat[it]  = -1;
-    event.trigflag[it] = -1;
-
-    dst.trigpat[it]  = -1;
-    dst.trigflag[it] = -1;
-  }
-
-  for(Int_t it=0; it<MaxHits; ++it){
-    event.bh1hitpat[it]  = -1;
-    event.bh2hitpat[it]  = -1;
-    event.bachitpat[it]  = -1;
-    event.htofhitpat[it]  = -1;
-    event.bvhhitpat[it]  = -1;
-    event.tofhitpat[it]  = -1;
-    event.wchitpat[it]  = -1;
-  }
-
-  for(Int_t it=0; it<NumOfSegBH1; ++it){
-    event.bh1ua[it] = -9999.;
-    event.bh1da[it] = -9999.;
-    event.bh1de[it] = -9999.;
-
-
-    for(Int_t that=0; that<NumOfSegBH2; ++that){
-      event.btof[it][that]  = -9999.;
-      event.cbtof[it][that] = -9999.;
-    }
-
-    for(Int_t m = 0; m<MaxDepth; ++m){
-      event.bh1ut[it][m] = -9999.;
-      event.bh1dt[it][m] = -9999.;
-      event.bh1mt[it][m] = -9999.;
-
-      dst.csBh1[MaxDepth*it + m]  = 0;
-      dst.Bh1Seg[MaxDepth*it + m] = -1.;
-      dst.tBh1[MaxDepth*it + m]   = -9999.;
-      dst.dtBh1[MaxDepth*it + m]  = -9999.;
-      dst.deBh1[MaxDepth*it + m]  = -9999.;
-      dst.btof[MaxDepth*it + m]   = -9999.;
-      dst.cbtof[MaxDepth*it + m]  = -9999.;
-
-    }
-  }
-
-  for(Int_t it=0; it<NumOfSegBH2; ++it){
-    event.bh2ua[it] = -9999.;
-    event.bh2da[it] = -9999.;
-    event.bh2de[it] = -9999.;
-
-
-    for(Int_t m = 0; m<MaxDepth; ++m){
-      event.bh2ut[it][m] = -9999.;
-      event.bh2dt[it][m] = -9999.;
-      event.bh2mt[it][m] = -9999.;
-
-      event.t0[it][m]    = -9999.;
-      event.ct0[it][m]   = -9999.;
-
-      dst.csBh2[MaxDepth*it + m]  = 0;
-      dst.Bh2Seg[MaxDepth*it + m] = -1.;
-      dst.tBh2[MaxDepth*it + m]   = -9999.;
-      dst.t0Bh2[MaxDepth*it + m]  = -9999.;
-      dst.dtBh2[MaxDepth*it + m]  = -9999.;
-      dst.deBh2[MaxDepth*it + m]  = -9999.;
-    }
-  }
-
-  for(Int_t it=0; it<NumOfSegBAC; it++){
-    event.baca[it] = -9999.;
-    dst.BacSeg[it] = -9999.;
-    dst.deBac[it]  = -9999.;
-
-    for(Int_t m = 0; m<MaxDepth; ++m){
-      event.bact[it][m] = -9999.;
-      dst.tBac[MaxDepth*it+m]   = -9999.;
-    }
-  }
-
-  for(Int_t it=0; it<NumOfSegHTOF; it++){
-    event.htofua[it] = -9999;
-    event.htofda[it] = -9999;
-    for(Int_t m = 0; m<MaxDepth; ++m){
-      event.htofut[it][m] = -9999;
-      event.htofdt[it][m] = -9999;
-      event.htofmt[it][m] = -9999;
-      dst.csHtof[MaxDepth*it + m]  = 0;
-      dst.HtofSeg[MaxDepth*it + m] = -1;
-      dst.tHtof[MaxDepth*it + m]   = -9999;
-      dst.dtHtof[MaxDepth*it + m]  = -9999;
-      dst.deHtof[MaxDepth*it + m]  = -9999;
-    }
-  }
-
-  for(Int_t it=0; it<NumOfSegBVH; it++){
-    for(Int_t m = 0; m<MaxDepth; ++m){
-      event.bvht[it][m]   = -9999.;
-      event.bvhmt[it][m]  = -999.0;
-      dst.csBvh[MaxDepth*it + m]  = 0;
-      dst.BvhSeg[MaxDepth*it + m] = -1;
-      dst.tBvh[MaxDepth*it + m]   = -9999.;
-    }
-  }
-
-  for(Int_t it=0; it<NumOfSegTOF; it++){
-    event.tofua[it] = -9999.;
-    event.tofda[it] = -9999.;
-    event.tofde[it]  = -999.0;
-    dst.udeTofSeg[it] = -9999.;
-    dst.ddeTofSeg[it] = -9999.;
-    for(Int_t m = 0; m<MaxDepth; ++m){
-      event.tofut[it][m] = -9999.;
-      event.tofdt[it][m] = -9999.;
-      event.tofmt[it][m] = -999.0;
-      dst.utTofSeg[it][m]  = -9999.;
-      dst.dtTofSeg[it][m]  = -9999.;
-      dst.csTof[MaxDepth*it + m]  = 0;
-      dst.TofSeg[MaxDepth*it + m] = -1;
-      dst.tTof[MaxDepth*it + m]   = -9999.;
-      dst.dtTof[MaxDepth*it + m]  = -9999.;
-      dst.deTof[MaxDepth*it + m]  = -9999.;
-    }
-  }
-
-  for(Int_t it=0; it<NumOfSegWC; ++it){
-    event.wcua[it] = -9999.;
-    event.wcda[it] = -9999.;
-    for(Int_t m = 0; m<MaxDepth; ++m){
-      event.wcut[it][m] = -9999.;
-      event.wcdt[it][m] = -9999.;
-    }
-  }
 }
 
 //_____________________________________________________________________________
@@ -2081,6 +2157,51 @@ ConfMan::InitializeHistograms()
     HB1(WCHid +100*i +8, title8, NbinAdc,   MinAdc,   MaxAdc);
   }
 
+  //WCSUM
+  HB1(WCSUMHid +0, "#Hits WC SUM", NumOfSegWC+1, 0., Double_t(NumOfSegWC+1));
+  HB1(WCSUMHid +1, "Hitpat WC SUM", NumOfSegWC, 0., Double_t(NumOfSegWC));
+  for(Int_t i=1; i<=NumOfSegWC; ++i){
+    TString title1 = Form("WCSUM-%d Adc", i);
+    TString title3 = Form("WCSUM-%d Tdc", i);
+    TString title5 = Form("WCSUM-%d Adc(w Tdc)", i);
+    TString title7 = Form("WCSUM-%d Adc(w/o Tdc)", i);
+    HB1(WCSUMHid +100*i +1, title1, NbinAdc, MinAdc, MaxAdc);
+    HB1(WCSUMHid +100*i +3, title3, NbinTdc, MinTdc, MaxTdc);
+    HB1(WCSUMHid +100*i +5, title5, NbinAdc, MinAdc, MaxAdc);
+    HB1(WCSUMHid +100*i +7, title7, NbinAdc, MinAdc, MaxAdc);
+  }
+  HB1(WCSUMHid +10, "#Hits WcSum[Hodo]",  NumOfSegWC+1, 0., Double_t(NumOfSegWC+1));
+  HB1(WCSUMHid +11, "Hitpat WcSum[Hodo]", NumOfSegWC,   0., Double_t(NumOfSegWC)  );
+  HB1(WCSUMHid +13, "dE WcSum", 200, -0.5, 4.5);
+  HB1(WCSUMHid +14, "#Hits WcSum[HodoGood]",  NumOfSegWC+1, 0., Double_t(NumOfSegWC+1));
+  HB1(WCSUMHid +15, "Hitpat WcSum[HodoGood]", NumOfSegWC,   0., Double_t(NumOfSegWC)  );
+  for(Int_t i=1; i<=NumOfSegWC; ++i){
+    TString title11 = Form("WCSUM-%d Time", i);
+    TString title14 = Form("WCSUM-%d NPE", i);
+    TString title16 = Form("WCSUM-%d NPE", i);
+    TString title17 = Form("WCSUM-%d Up CTime", i);
+    TString title21 = Form("WCSUM-%d dE (w/ WC-HT)", i);
+    HB1(WCSUMHid +100*i +11, title11, 500, -5., 45.);
+    HB1(WCSUMHid +100*i +14, title14, 110, -10., 100.);
+    HB1(WCSUMHid +100*i +16, title16, 110, -10., 100.);
+    HB1(WCSUMHid +100*i +17, title17, 500, -5., 45.);
+    HB1(WCSUMHid +100*i +21, title21, 200, -0.5, 4.5);
+  }
+  HB2(WCSUMHid +21, "WcSumHitPat%WcSumHitPat[HodoGood]",
+      NumOfSegWC, 0., Double_t(NumOfSegWC),
+      NumOfSegWC, 0., Double_t(NumOfSegWC));
+  HB2(WCSUMHid +22, "CMeanTimeWcSum%CMeanTimeWcSum[HodoGood]",
+      120, 10., 40., 120, 10., 40.);
+  HB1(WCSUMHid +23, "TDiff WcSum[HodoGood]", 200, -10., 10.);
+  HB2(WCSUMHid +24, "WcSumHitPat%WcSumHitPat[HodoGood2]",
+      NumOfSegWC, 0., Double_t(NumOfSegWC),
+      NumOfSegWC, 0., Double_t(NumOfSegWC));
+  HB1(WCSUMHid +30, "#Clusters WcSum", NumOfSegWC+1, 0., Double_t(NumOfSegWC+1));
+  HB1(WCSUMHid +31, "ClusterSize WcSum", 5, 0., 5.);
+  HB1(WCSUMHid +32, "HitPat Cluster WcSum", 2*NumOfSegWC, 0., Double_t(NumOfSegWC));
+  HB1(WCSUMHid +33, "CMeamTime Cluster WcSum", 500, -5., 45.);
+  HB1(WCSUMHid +34, "DeltaE Cluster WcSum", 100, -0.5, 4.5);
+
   ////////////////////////////////////////////
   //Tree
   HBTree("tree","tree of Counter");
@@ -2113,8 +2234,8 @@ ConfMan::InitializeHistograms()
   //HTOF
   tree->Branch("htofnhits",   &event.htofnhits,   "htofnhits/I");
   tree->Branch("htofhitpat",   event.htofhitpat,  Form("htofhitpat[%d]/I", NumOfSegHTOF));
-  tree->Branch("htofua",       event.htofua,      Form("htofut[%d]/D", NumOfSegHTOF));
-  tree->Branch("htofda",       event.htofda,      Form("htofdt[%d]/D", NumOfSegHTOF));
+  tree->Branch("htofua",       event.htofua,      Form("htofua[%d]/D", NumOfSegHTOF));
+  tree->Branch("htofda",       event.htofda,      Form("htofda[%d]/D", NumOfSegHTOF));
   tree->Branch("htofut",       event.htofut,      Form("htofut[%d][%d]/D", NumOfSegHTOF, MaxDepth));
   tree->Branch("htofdt",       event.htofdt,      Form("htofdt[%d][%d]/D", NumOfSegHTOF, MaxDepth));
   //BVH
@@ -2135,6 +2256,11 @@ ConfMan::InitializeHistograms()
   tree->Branch("wcut",       event.wcut,       Form("wcut[%d][%d]/D", NumOfSegWC, MaxDepth));
   tree->Branch("wcda",       event.wcda,       Form("wcda[%d]/D", NumOfSegWC));
   tree->Branch("wcdt",       event.wcdt,       Form("wcdt[%d][%d]/D", NumOfSegWC, MaxDepth));
+  //WCSUM
+  tree->Branch("wcsumnhits", &event.wcsumnhits, "wcsumnhits/I");
+  tree->Branch("wcsumhitpat", &event.wcsumhitpat, Form("wcsumhitpat[%d]/I", NumOfSegWC));
+  tree->Branch("wcsuma", &event.wcsuma, Form("wcsuma[%d]/I", NumOfSegWC));
+  tree->Branch("wcsumt", &event.wcsumt, Form("wcsumt[%d][%d]/D", NumOfSegWC, MaxDepth));
 
   //Normalized data
   tree->Branch("bh1mt",     event.bh1mt,     Form("bh1mt[%d][%d]/D", NumOfSegBH1, MaxDepth));
@@ -2145,7 +2271,6 @@ ConfMan::InitializeHistograms()
   tree->Branch("bacde",     event.bacde,     Form("bacde[%d]/D", NumOfSegBAC));
   tree->Branch("htofmt",   event.htofmt,   Form("htofmt[%d][%d]/D", NumOfSegHTOF, MaxDepth));
   tree->Branch("htofde",   event.htofde,   Form("htofde[%d]/D", NumOfSegHTOF));
-  tree->Branch("bvhmt",      event.bvhmt,      Form("bvhmt[%d][%d]/D", NumOfSegBVH, MaxDepth));
   tree->Branch("tofmt",     event.tofmt,     Form("tofmt[%d][%d]/D", NumOfSegTOF, MaxDepth));
   tree->Branch("tofde",     event.tofde,     Form("tofde[%d]/D", NumOfSegTOF));
 
