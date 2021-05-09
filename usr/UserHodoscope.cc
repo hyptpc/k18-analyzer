@@ -28,6 +28,7 @@
 namespace
 {
 using namespace root;
+const auto qnan = TMath::QuietNaN();
 auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 auto& gRM = RMAnalyzer::GetInstance();
 auto& gUser = UserParamMan::GetInstance();
@@ -159,6 +160,10 @@ struct Event
   Double_t htofmt[NumOfSegHTOF][MaxDepth];
   Double_t htofde[NumOfSegHTOF];
 
+  // Using WCSUM
+  Double_t wcde[NumOfSegWC];
+  Double_t wcmt[NumOfSegWC][MaxDepth];
+
   // Time0
   Double_t Time0Seg;
   Double_t deTime0;
@@ -178,7 +183,6 @@ struct Event
 void
 Event::clear()
 {
-  static const auto nan = TMath::QuietNaN();
   evnum      = 0;
   spill      = 0;
   trignhits  = 0;
@@ -190,14 +194,14 @@ Event::clear()
   lacnhits   = 0;
   wcnhits    = 0;
   wcsumnhits = 0;
-  Time0Seg = nan;
-  deTime0  = nan;
-  Time0    = nan;
-  CTime0   = nan;
-  Btof0Seg = nan;
-  deBtof0  = nan;
-  Btof0    = nan;
-  CBtof0   = nan;
+  Time0Seg = qnan;
+  deTime0  = qnan;
+  Time0    = qnan;
+  CTime0   = qnan;
+  Btof0Seg = qnan;
+  deBtof0  = qnan;
+  Btof0    = qnan;
+  CBtof0   = qnan;
 
   for(Int_t it=0; it<NumOfSegTrig; ++it){
     trigpat[it]  = -1;
@@ -217,81 +221,83 @@ Event::clear()
   }
 
   for(Int_t it=0; it<NumOfSegBH1; ++it){
-    bh1ua[it] = nan;
-    bh1da[it] = nan;
-    bh1de[it] = nan;
+    bh1ua[it] = qnan;
+    bh1da[it] = qnan;
+    bh1de[it] = qnan;
     for(Int_t that=0; that<NumOfSegBH2; ++that){
-      btof[it][that]  = nan;
-      cbtof[it][that] = nan;
+      btof[it][that]  = qnan;
+      cbtof[it][that] = qnan;
     }
     for(Int_t m = 0; m<MaxDepth; ++m){
-      bh1ut[it][m] = nan;
-      bh1dt[it][m] = nan;
-      bh1mt[it][m] = nan;
+      bh1ut[it][m] = qnan;
+      bh1dt[it][m] = qnan;
+      bh1mt[it][m] = qnan;
     }
   }
 
   for(Int_t it=0; it<NumOfSegBH2; ++it){
-    bh2ua[it] = nan;
-    bh2da[it] = nan;
-    bh2de[it] = nan;
+    bh2ua[it] = qnan;
+    bh2da[it] = qnan;
+    bh2de[it] = qnan;
     for(Int_t m=0; m<MaxDepth; ++m){
-      bh2ut[it][m] = nan;
-      bh2dt[it][m] = nan;
-      bh2mt[it][m] = nan;
-      t0[it][m]    = nan;
-      ct0[it][m]   = nan;
+      bh2ut[it][m] = qnan;
+      bh2dt[it][m] = qnan;
+      bh2mt[it][m] = qnan;
+      t0[it][m]    = qnan;
+      ct0[it][m]   = qnan;
     }
   }
 
   for(Int_t it=0; it<NumOfSegBAC; it++){
-    baca[it] = nan;
+    baca[it] = qnan;
     for(Int_t m=0; m<MaxDepth; ++m){
-      bact[it][m] = nan;
+      bact[it][m] = qnan;
     }
   }
 
   for(Int_t it=0; it<NumOfSegHTOF; it++){
-    htofua[it] = nan;
-    htofda[it] = nan;
+    htofua[it] = qnan;
+    htofda[it] = qnan;
     for(Int_t m=0; m<MaxDepth; ++m){
-      htofut[it][m] = nan;
-      htofdt[it][m] = nan;
-      htofmt[it][m] = nan;
+      htofut[it][m] = qnan;
+      htofdt[it][m] = qnan;
+      htofmt[it][m] = qnan;
     }
   }
 
   for(Int_t it=0; it<NumOfSegBVH; it++){
     for(Int_t m=0; m<MaxDepth; ++m){
-      bvht[it][m]  = nan;
+      bvht[it][m]  = qnan;
     }
   }
 
   for(Int_t it=0; it<NumOfSegTOF; it++){
-    tofua[it] = nan;
-    tofda[it] = nan;
-    tofde[it] = nan;
+    tofua[it] = qnan;
+    tofda[it] = qnan;
+    tofde[it] = qnan;
     for(Int_t m=0; m<MaxDepth; ++m){
-      tofut[it][m] = nan;
-      tofdt[it][m] = nan;
-      tofmt[it][m] = nan;
+      tofut[it][m] = qnan;
+      tofdt[it][m] = qnan;
+      tofmt[it][m] = qnan;
     }
   }
 
   for(Int_t it=0; it<NumOfSegLAC; it++){
     for(Int_t m=0; m<MaxDepth; ++m){
-      lact[it][m]  = nan;
+      lact[it][m]  = qnan;
     }
   }
 
   for(Int_t it=0; it<NumOfSegWC; ++it){
-    wcua[it]   = nan;
-    wcda[it]   = nan;
-    wcsuma[it] = nan;
+    wcua[it]   = qnan;
+    wcda[it]   = qnan;
+    wcsuma[it] = qnan;
+    wcde[it] = qnan;
     for(Int_t m=0; m<MaxDepth; ++m){
-      wcut[it][m]   = nan;
-      wcdt[it][m]   = nan;
-      wcsumt[it][m] = nan;
+      wcut[it][m]   = qnan;
+      wcdt[it][m]   = qnan;
+      wcsumt[it][m] = qnan;
+      wcmt[it][m]   = qnan;
     }
   }
 }
@@ -373,7 +379,6 @@ struct Dst
 void
 Dst::clear()
 {
-  static const auto nan = TMath::QuietNaN();
   nhBh1    = 0;
   nhBac    = 0;
   nhBh2    = 0;
@@ -382,14 +387,14 @@ Dst::clear()
   nhBvh    = 0;
   evnum    = 0;
   spill    = 0;
-  Time0Seg = nan;
-  deTime0  = nan;
-  Time0    = nan;
-  CTime0   = nan;
-  Btof0Seg = nan;
-  deBtof0  = nan;
-  Btof0    = nan;
-  CBtof0   = nan;
+  Time0Seg = qnan;
+  deTime0  = qnan;
+  Time0    = qnan;
+  CTime0   = qnan;
+  Btof0Seg = qnan;
+  deBtof0  = qnan;
+  Btof0    = qnan;
+  CBtof0   = qnan;
 
   for(Int_t it=0; it<NumOfSegTrig; ++it){
     trigpat[it]  = -1;
@@ -399,63 +404,63 @@ Dst::clear()
   for(Int_t it=0; it<NumOfSegBH1; ++it){
     for(Int_t m=0; m<MaxDepth; ++m){
       csBh1[MaxDepth*it + m]  = 0;
-      Bh1Seg[MaxDepth*it + m] = nan;
-      tBh1[MaxDepth*it + m]   = nan;
-      dtBh1[MaxDepth*it + m]  = nan;
-      deBh1[MaxDepth*it + m]  = nan;
-      btof[MaxDepth*it + m]   = nan;
-      cbtof[MaxDepth*it + m]  = nan;
+      Bh1Seg[MaxDepth*it + m] = qnan;
+      tBh1[MaxDepth*it + m]   = qnan;
+      dtBh1[MaxDepth*it + m]  = qnan;
+      deBh1[MaxDepth*it + m]  = qnan;
+      btof[MaxDepth*it + m]   = qnan;
+      cbtof[MaxDepth*it + m]  = qnan;
     }
   }
 
   for(Int_t it=0; it<NumOfSegBH2; ++it){
     for(Int_t m=0; m<MaxDepth; ++m){
       csBh2[MaxDepth*it + m]  = 0;
-      Bh2Seg[MaxDepth*it + m] = nan;
-      tBh2[MaxDepth*it + m]   = nan;
-      t0Bh2[MaxDepth*it + m]  = nan;
-      dtBh2[MaxDepth*it + m]  = nan;
-      deBh2[MaxDepth*it + m]  = nan;
+      Bh2Seg[MaxDepth*it + m] = qnan;
+      tBh2[MaxDepth*it + m]   = qnan;
+      t0Bh2[MaxDepth*it + m]  = qnan;
+      dtBh2[MaxDepth*it + m]  = qnan;
+      deBh2[MaxDepth*it + m]  = qnan;
     }
   }
 
   for(Int_t it=0; it<NumOfSegBAC; it++){
-    BacSeg[it] = nan;
-    deBac[it]  = nan;
+    BacSeg[it] = qnan;
+    deBac[it]  = qnan;
     for(Int_t m=0; m<MaxDepth; ++m){
-      tBac[MaxDepth*it+m] = nan;
+      tBac[MaxDepth*it+m] = qnan;
     }
   }
 
   for(Int_t it=0; it<NumOfSegHTOF; it++){
     for(Int_t m=0; m<MaxDepth; ++m){
       csHtof[MaxDepth*it + m]  = 0;
-      HtofSeg[MaxDepth*it + m] = nan;
-      tHtof[MaxDepth*it + m]   = nan;
-      dtHtof[MaxDepth*it + m]  = nan;
-      deHtof[MaxDepth*it + m]  = nan;
+      HtofSeg[MaxDepth*it + m] = qnan;
+      tHtof[MaxDepth*it + m]   = qnan;
+      dtHtof[MaxDepth*it + m]  = qnan;
+      deHtof[MaxDepth*it + m]  = qnan;
     }
   }
 
   for(Int_t it=0; it<NumOfSegBVH; it++){
     for(Int_t m=0; m<MaxDepth; ++m){
       csBvh[MaxDepth*it + m]  = 0;
-      BvhSeg[MaxDepth*it + m] = nan;
-      tBvh[MaxDepth*it + m]   = nan;
+      BvhSeg[MaxDepth*it + m] = qnan;
+      tBvh[MaxDepth*it + m]   = qnan;
     }
   }
 
   for(Int_t it=0; it<NumOfSegTOF; it++){
-    udeTofSeg[it] = nan;
-    ddeTofSeg[it] = nan;
+    udeTofSeg[it] = qnan;
+    ddeTofSeg[it] = qnan;
     for(Int_t m=0; m<MaxDepth; ++m){
-      utTofSeg[it][m]  = nan;
-      dtTofSeg[it][m]  = nan;
+      utTofSeg[it][m]  = qnan;
+      dtTofSeg[it][m]  = qnan;
       csTof[MaxDepth*it + m]  = 0;
-      TofSeg[MaxDepth*it + m] = nan;
-      tTof[MaxDepth*it + m]   = nan;
-      dtTof[MaxDepth*it + m]  = nan;
-      deTof[MaxDepth*it + m]  = nan;
+      TofSeg[MaxDepth*it + m] = qnan;
+      tTof[MaxDepth*it + m]   = qnan;
+      dtTof[MaxDepth*it + m]  = qnan;
+      deTof[MaxDepth*it + m]  = qnan;
     }
   }
 }
@@ -1441,6 +1446,57 @@ EventHodoscope::ProcessingNormal()
     }
   }
 
+  // WCSUM
+  hodoAna->DecodeWCSUMHits(rawData);
+  {
+    Int_t nh = hodoAna->GetNHitsWCSUM();
+    HF1(WCSUMHid+10, Double_t(nh));
+    Int_t nh2 = 0;
+    for(Int_t i=0; i<nh; ++i){
+      Hodo1Hit *hit = hodoAna->GetHitWCSUM(i);
+      if(!hit) continue;
+      Int_t seg = hit->SegmentId()+1;
+      for(Int_t m=0, n_mhit=hit->GetNumOfHit(); m<n_mhit; ++m){
+	HF1(WCSUMHid+11, seg-0.5);
+	Double_t au = hit->GetAUp();
+	Double_t tu = hit->GetTUp();
+	Double_t ctu = hit->GetCTUp();
+	Double_t mt = hit->MeanTime(), cmt = hit->CMeanTime();
+	Double_t de = hit->DeltaE();
+	event.wcmt[seg-1][m] = mt;
+	event.wcde[seg-1] = de;
+	HF1(WCSUMHid+100*seg+11, tu);
+	HF1(WCSUMHid+100*seg+13, mt);
+	HF1(WCSUMHid+100*seg+17, ctu);
+	HF1(WCSUMHid+100*seg+19, cmt);
+	HF2(WCSUMHid+100*seg+21, tu, au);
+	HF2(WCSUMHid+100*seg+23, ctu, au);
+	HF1(WCSUMHid+12, cmt);
+	if(m == 0){
+	  HF1(WCSUMHid+100*seg+14, au);
+	  HF1(WCSUMHid+100*seg+16, de); HF1(WCSUMHid+13, de);
+	}
+	if(de > 0.5){
+	  HF1(WCSUMHid+15, seg-0.5);
+	  ++nh2;
+	}
+      }
+    }
+    Int_t nc = hodoAna->GetNClustersWCSUM();
+    HF1(WCSUMHid+30, Double_t(nc));
+    for(Int_t i=0; i<nc; ++i){
+      HodoCluster *cluster = hodoAna->GetClusterWCSUM(i);
+      if(!cluster) continue;
+      Int_t cs = cluster->ClusterSize();
+      Double_t ms = cluster->MeanSeg()+1;
+      Double_t cmt = cluster->CMeanTime();
+      Double_t de = cluster->DeltaE();
+      HF1(WCSUMHid+31, Double_t(cs));
+      HF1(WCSUMHid+32, ms-0.5);
+      HF1(WCSUMHid+33, cmt); HF1(WCSUMHid+34, de);
+    }
+  }
+
   ////////// Dst
   {
     Int_t nc = hodoAna->GetNClustersBH1();
@@ -2273,6 +2329,8 @@ ConfMan::InitializeHistograms()
   tree->Branch("htofde",   event.htofde,   Form("htofde[%d]/D", NumOfSegHTOF));
   tree->Branch("tofmt",     event.tofmt,     Form("tofmt[%d][%d]/D", NumOfSegTOF, MaxDepth));
   tree->Branch("tofde",     event.tofde,     Form("tofde[%d]/D", NumOfSegTOF));
+  tree->Branch("wcmt",     event.wcmt,     Form("wcmt[%d][%d]/D", NumOfSegWC, MaxDepth));
+  tree->Branch("wcde",     event.wcde,     Form("wcde[%d]/D", NumOfSegWC));
 
   tree->Branch("t0",        event.t0,        Form("t0[%d][%d]/D",  NumOfSegBH2, MaxDepth));
   tree->Branch("ct0",       event.ct0,       Form("ct0[%d][%d]/D", NumOfSegBH2, MaxDepth));

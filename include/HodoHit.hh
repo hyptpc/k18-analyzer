@@ -1,32 +1,36 @@
+// -*- C++ -*-
+
 #ifndef HODO_HIT_HH
 #define HODO_HIT_HH
 
-#include "HodoHit.hh"
+#include <TString.h>
 
-class RawData;
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class HodoHit
 {
 public:
-  HodoHit( void );
+  HodoHit();
   virtual ~HodoHit() = 0;
+  static TString ClassName();
 
 public:
-  virtual double DeltaE( int n=0 ) const = 0;
-
-  virtual double GetTUp( int n=0 ) const = 0;
-  virtual double GetTDown( int n=0 ) const = 0;
-
-  virtual double MeanTime( int n=0 ) const = 0;
-  virtual double CMeanTime( int n=0 ) const = 0;
-
-  virtual int DetectorId( void ) const = 0;
-  virtual int PlaneId( void ) const = 0;
-  virtual int SegmentId( void ) const = 0;
-
-  virtual bool ReCalc( bool applyRecursively=false) = 0;
-
+  virtual Double_t DeltaE(Int_t n=0) const = 0;
+  virtual Double_t GetTUp(Int_t n=0) const = 0;
+  virtual Double_t GetTDown(Int_t n=0) const = 0;
+  virtual Double_t MeanTime(Int_t n=0) const = 0;
+  virtual Double_t CMeanTime(Int_t n=0) const = 0;
+  virtual Int_t    DetectorId() const = 0;
+  virtual Int_t    PlaneId() const = 0;
+  virtual Int_t    SegmentId() const = 0;
+  virtual Bool_t   ReCalc(Bool_t applyRecursively=false) = 0;
 };
+
+//_____________________________________________________________________________
+inline TString
+HodoHit::ClassName()
+{
+  static TString s_name("HodoHit");
+  return s_name;
+}
 
 #endif

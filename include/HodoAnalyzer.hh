@@ -56,6 +56,7 @@ private:
   Hodo2HitContainer           m_TOFCont;
   Hodo1HitContainer           m_LACCont;
   Hodo2HitContainer           m_WCCont;
+  Hodo1HitContainer           m_WCSUMCont;
   MultiPlaneFiberHitContainer m_BFTCont;
   FiberHitContainer           m_SCHCont;
 
@@ -67,6 +68,7 @@ private:
   HodoClusterContainer            m_TOFClCont;
   HodoClusterContainer            m_LACClCont;
   HodoClusterContainer            m_WCClCont;
+  HodoClusterContainer            m_WCSUMClCont;
   FiberClusterContainer           m_BFTClCont;
   FiberClusterContainer           m_SCHClCont;
 
@@ -80,6 +82,7 @@ public:
   Bool_t DecodeTOFHits(RawData* rawData);
   Bool_t DecodeLACHits(RawData* rawData);
   Bool_t DecodeWCHits(RawData* rawData);
+  Bool_t DecodeWCSUMHits(RawData* rawData);
   Bool_t DecodeBFTHits(RawData* rawData);
   Bool_t DecodeSCHHits(RawData* rawData);
   Int_t  GetNHitsBH1() const { return m_BH1Cont.size(); };
@@ -90,6 +93,7 @@ public:
   Int_t  GetNHitsTOF() const { return m_TOFCont.size(); };
   Int_t  GetNHitsLAC() const { return m_LACCont.size(); };
   Int_t  GetNHitsWC() const { return m_WCCont.size(); };
+  Int_t  GetNHitsWCSUM() const { return m_WCSUMCont.size(); };
   Int_t  GetNHitsBFT(Int_t plane) const
   { return m_BFTCont.at(plane).size(); };
   Int_t  GetNHitsSCH()  const { return m_SCHCont.size(); };
@@ -102,6 +106,7 @@ public:
   Hodo2Hit* GetHitTOF(UInt_t i) const { return m_TOFCont.at(i); }
   Hodo1Hit* GetHitLAC(UInt_t i) const { return m_LACCont.at(i); }
   Hodo2Hit* GetHitWC(UInt_t i) const { return m_WCCont.at(i); }
+  Hodo1Hit* GetHitWCSUM(UInt_t i) const { return m_WCSUMCont.at(i); }
   FiberHit* GetHitBFT(Int_t plane, UInt_t seg) const { return m_BFTCont.at(plane).at(seg); }
   FiberHit* GetHitSCH(UInt_t seg) const { return m_SCHCont.at(seg); }
 
@@ -113,6 +118,7 @@ public:
   Int_t GetNClustersTOF() const { return m_TOFClCont.size(); }
   Int_t GetNClustersLAC() const { return m_LACClCont.size(); }
   Int_t GetNClustersWC() const { return m_WCClCont.size(); }
+  Int_t GetNClustersWCSUM() const { return m_WCSUMClCont.size(); }
   Int_t GetNClustersBFT() const { return m_BFTClCont.size(); };
   Int_t GetNClustersSCH() const { return m_SCHClCont.size(); };
   HodoCluster*  GetClusterBH1(UInt_t i) const { return m_BH1ClCont.at(i); }
@@ -123,6 +129,7 @@ public:
   HodoCluster*  GetClusterTOF(UInt_t i) const { return m_TOFClCont.at(i); }
   HodoCluster*  GetClusterLAC(UInt_t i) const { return m_LACClCont.at(i); }
   HodoCluster*  GetClusterWC(UInt_t i) const { return m_WCClCont.at(i); }
+  HodoCluster*  GetClusterWCSUM(UInt_t i) const { return m_WCSUMClCont.at(i); }
   FiberCluster* GetClusterBFT(UInt_t i) const { return m_BFTClCont.at(i); }
   FiberCluster* GetClusterSCH(UInt_t i) const { return m_SCHClCont.at(i); }
 
@@ -134,6 +141,7 @@ public:
   Bool_t ReCalcTOFHits(Bool_t applyRecursively=false);
   Bool_t ReCalcLACHits(Bool_t applyRecursively=false);
   Bool_t ReCalcWCHits(Bool_t applyRecursively=false);
+  Bool_t ReCalcWCSUMHits(Bool_t applyRecursively=false);
   Bool_t ReCalcBH1Clusters(Bool_t applyRecursively=false);
   Bool_t ReCalcBH2Clusters(Bool_t applyRecursively=false);
   Bool_t ReCalcBACClusters(Bool_t applyRecursively=false);
@@ -142,6 +150,7 @@ public:
   Bool_t ReCalcTOFClusters(Bool_t applyRecursively=false);
   Bool_t ReCalcLACClusters(Bool_t applyRecursively=false);
   Bool_t ReCalcWCClusters(Bool_t applyRecursively=false);
+  Bool_t ReCalcWCSUMClusters(Bool_t applyRecursively=false);
   Bool_t ReCalcAll();
 
   void TimeCutBH1(Double_t tmin, Double_t tmax);
@@ -166,6 +175,7 @@ private:
   void ClearTOFHits();
   void ClearLACHits();
   void ClearWCHits();
+  void ClearWCSUMHits();
   void ClearBFTHits();
   void ClearSCHHits();
 

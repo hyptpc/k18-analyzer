@@ -1,8 +1,4 @@
-/**
- *  file: Hodo1Hit.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef HODO1_HIT_HH
 #define HODO1_HIT_HH
@@ -10,86 +6,83 @@
 #include "HodoRawHit.hh"
 #include "HodoHit.hh"
 
-class RawData;
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class Hodo1Hit : public HodoHit
 {
 public:
-  explicit Hodo1Hit( HodoRawHit *rhit, int index=0 );
+  explicit Hodo1Hit(HodoRawHit *rhit, Int_t index=0);
   virtual ~Hodo1Hit();
+  static TString ClassName();
 
 private:
-  Hodo1Hit( const Hodo1Hit& );
-  Hodo1Hit& operator =( const Hodo1Hit& );
+  Hodo1Hit(const Hodo1Hit&);
+  Hodo1Hit& operator =(const Hodo1Hit&);
 
 protected:
-  HodoRawHit          *m_raw;
-  bool                 m_is_calculated;
-  int                  m_multi_hit_l;
-  int                  m_multi_hit_t;
-  std::vector<double>  m_a;
-  std::vector<double>  m_t;
-  std::vector<double>  m_ct;
-  std::vector<bool>    m_flag_join;
-  int                  m_index;
+  HodoRawHit*           m_raw;
+  Bool_t                m_is_calculated;
+  Int_t                 m_multi_hit_l;
+  Int_t                 m_multi_hit_t;
+  std::vector<Double_t> m_a;
+  std::vector<Double_t> m_t;
+  std::vector<Double_t> m_ct;
+  std::vector<Bool_t>   m_flag_join;
+  Int_t                 m_index;
 
 public:
-  HodoRawHit* GetRawHit( void ) { return m_raw; }
-  //bool   Calculate( void );
-  bool   Calculate( bool tdc_flag = true );
-  bool   IsCalculated( void ) const { return m_is_calculated; }
-  int    GetNumOfHit(int sel=0) const { return sel==0 ? m_multi_hit_l : m_multi_hit_t; };
-  double GetA( int n=0 )   const { if (n<m_a.size()) return m_a.at(n); 
-                                   else return -9999.;}
-  double GetT( int n=0 )   const { return m_t.at(n); }
-  double GetCT( int n=0 )  const { return m_ct.at(n); }
-
-  double Time( int n=0 )   const { return GetT(n); }
-  double CTime( int n=0 )  const { return GetCT(n); }
+  HodoRawHit* GetRawHit() { return m_raw; }
+  Bool_t      Calculate(Bool_t tdc_flag = true);
+  Bool_t      IsCalculated() const { return m_is_calculated; }
+  Int_t       GetNumOfHit(Int_t sel=0) const;
+  Double_t    GetA(Int_t n=0) const { return m_a.at(n); }
+  Double_t    GetT(Int_t n=0) const { return m_t.at(n); }
+  Double_t    GetCT(Int_t n=0) const { return m_ct.at(n); }
+  Double_t    Time(Int_t n=0) const { return GetT(n); }
+  Double_t    CTime(Int_t n=0) const { return GetCT(n); }
   virtual
-  double DeltaE( int n=0 ) const { return GetA(n); }
-
-  double GetAUp( int n=0 )     const { return m_a.at(n); }
-  double GetALeft( int n=0 )   const { return m_a.at(n); }
-  double GetADown( int n=0 )   const { return m_a.at(n); }
-  double GetARight( int n=0 )  const { return m_a.at(n); }
-
+  Double_t    DeltaE(Int_t n=0) const { return GetA(n); }
+  Double_t    GetAUp(Int_t n=0) const { return m_a.at(n); }
+  Double_t    GetALeft(Int_t n=0) const { return m_a.at(n); }
+  Double_t    GetADown(Int_t n=0) const { return m_a.at(n); }
+  Double_t    GetARight(Int_t n=0) const { return m_a.at(n); }
   virtual
-  double GetTUp( int n=0 )     const { return m_t.at(n); }
-  double GetTLeft( int n=0 )   const { return m_t.at(n); }
+  Double_t    GetTUp(Int_t n=0) const { return m_t.at(n); }
+  Double_t    GetTLeft(Int_t n=0) const { return m_t.at(n); }
   virtual
-  double GetTDown( int n=0 )   const { return m_t.at(n); }
-  double GetTRight( int n=0 )  const { return m_t.at(n); }
-
-  double GetCTUp( int n=0 )    const { return m_ct.at(n); }
-  double GetCTLeft( int n=0 )  const { return m_ct.at(n); }
-  double GetCTDown( int n=0 )  const { return m_ct.at(n); }
-  double GetCTRight( int n=0 ) const { return m_ct.at(n); }
-
+  Double_t    GetTDown(Int_t n=0) const { return m_t.at(n); }
+  Double_t    GetTRight(Int_t n=0) const { return m_t.at(n); }
+  Double_t    GetCTUp(Int_t n=0) const { return m_ct.at(n); }
+  Double_t    GetCTLeft(Int_t n=0) const { return m_ct.at(n); }
+  Double_t    GetCTDown(Int_t n=0) const { return m_ct.at(n); }
+  Double_t    GetCTRight(Int_t n=0) const { return m_ct.at(n); }
   virtual
-  double MeanTime( int n=0 )  const { return GetT(n); }
+  Double_t    MeanTime(Int_t n=0) const { return GetT(n); }
   virtual
-  double CMeanTime( int n=0 ) const { return GetCT(n); }
-
+  Double_t    CMeanTime(Int_t n=0) const { return GetCT(n); }
   virtual
-  int DetectorId( void ) const { return m_raw->DetectorId(); }
-  virtual 
-  int PlaneId( void )    const { return m_raw->PlaneId(); }
+  Int_t DetectorId() const { return m_raw->DetectorId(); }
   virtual
-  int SegmentId( void )  const { return m_raw->SegmentId(); }
+  Int_t PlaneId() const { return m_raw->PlaneId(); }
+  virtual
+  Int_t SegmentId() const { return m_raw->SegmentId(); }
 
   // For BGO
-  void   ClearACont( void )  { m_a.clear(); }
-  void   SetE( double energy )  { m_a.push_back(energy); }
+  void   ClearACont()  { m_a.clear(); }
+  void   SetE(Double_t energy)  { m_a.push_back(energy); }
+  void   SetJoined(Int_t m)           { m_flag_join.at(m) = true;         }
+  Bool_t Joined(Int_t m)        const { return m_flag_join.at(m);         }
+  Bool_t JoinedAllMhit();
 
-  void   SetJoined( int m )           { m_flag_join.at(m) = true;         }
-  bool   Joined( int m )        const { return m_flag_join.at(m);         }
-  bool   JoinedAllMhit();
-
-  virtual bool ReCalc( bool applyRecursively=false )
+  virtual Bool_t ReCalc(Bool_t applyRecursively=false)
   { return Calculate(); }
-
 };
+
+//_____________________________________________________________________________
+inline TString
+Hodo1Hit::ClassName()
+{
+  static TString s_name("Hodo1Hit");
+  return s_name;
+}
 
 #endif
