@@ -22,7 +22,7 @@
 #include "MathTools.hh"
 #include "RootHelper.hh"
 #include "TPCPadHelper.hh"
-#include "TPCLocalTrack.hh"
+#include "TPCLocalTrack_Helix.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
@@ -94,11 +94,28 @@ struct Event
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
   std::vector<Double_t> chisqr;
-  std::vector<Double_t> x0;
-  std::vector<Double_t> y0;
-  std::vector<Double_t> u0;
-  std::vector<Double_t> v0;
-  std::vector<Double_t> theta;
+  std::vector<Double_t> helix_cx;
+  std::vector<Double_t> helix_cy;
+  std::vector<Double_t> helix_z0;
+  std::vector<Double_t> helix_r;
+  std::vector<Double_t> helix_dz;
+  std::vector<Double_t> mom0_x;//Helix momentum at Y = 0
+  std::vector<Double_t> mom0_y;//Helix momentum at Y = 0
+  std::vector<Double_t> mom0_z;//Helix momentum at Y = 0
+  std::vector<Double_t> mom0;//Helix momentum at Y = 0
+
+  // not yet prepared
+  std::vector<Double_t> mom_vtx;//Helix momentum at vtx
+  std::vector<Double_t> mom_vty;//Helix momentum at vtx
+  std::vector<Double_t> mom_vtz;//Helix momentum at vtx
+  std::vector<Double_t> vtx;
+  std::vector<Double_t> vty;
+  std::vector<Double_t> vtz;
+  std::vector<Double_t> closeDist;
+
+
+
+  
   std::vector<std::vector<Double_t>> hitlayer;
   std::vector<std::vector<Double_t>> hitpos_x;
   std::vector<std::vector<Double_t>> hitpos_y;
@@ -137,11 +154,23 @@ struct Event
     trigflag.clear();
     nhtrack.clear();
     chisqr.clear();
-    x0.clear();
-    y0.clear();
-    u0.clear();
-    v0.clear();
-    theta.clear();
+    helix_cx.clear();
+    helix_cy.clear();
+    helix_z0.clear();
+    helix_r.clear();
+    helix_dz.clear();
+    mom0_x.clear();
+    mom0_y.clear();
+    mom0_z.clear();
+    mom0.clear();
+    mom_vtx.clear();
+    mom_vty.clear();
+    mom_vtz.clear();
+    vtx.clear();
+    vty.clear();
+    vtz.clear();
+    closeDist.clear();
+
     hitlayer.clear();
     hitpos_x.clear();
     hitpos_y.clear();
@@ -344,10 +373,10 @@ dst::DstRead( int ievent )
   event.nh_cluster_Tpc = nh_cl_Tpc;
 
 #if TrackSearch
-  DCAna.TrackSearchTPC();
+  DCAna.TrackSearchTPC_Helix();
 #endif 
 
-  Int_t ntTpc = DCAna.GetNTracksTPC();
+  Int_t ntTpc = DCAna.GetNTracksTPC_Helix();
   event.ntTpc = ntTpc;
   HF1( 10, ntTpc );
   if( event.ntTpc == 0 )
@@ -357,11 +386,26 @@ dst::DstRead( int ievent )
 
   event.nhtrack.resize( ntTpc );
   event.chisqr.resize( ntTpc );
-  event.x0.resize( ntTpc );
-  event.y0.resize( ntTpc );
-  event.u0.resize( ntTpc );
-  event.v0.resize( ntTpc );
-  event.theta.resize( ntTpc );
+  event.helix_cx.resize( ntTpc );
+  event.helix_cy.resize( ntTpc );
+  event.helix_z0.resize( ntTpc );
+  event.helix_r.resize( ntTpc );
+  event.helix_dz.resize( ntTpc );
+  event.mom0_x.resize( ntTpc );
+  event.mom0_y.resize( ntTpc );
+  event.mom0_z.resize( ntTpc );
+  event.mom0.resize( ntTpc );
+  
+  // not yet prepared
+  event.mom_vtx.resize( ntTpc );
+  event.mom_vty.resize( ntTpc );
+  event.mom_vtz.resize( ntTpc );
+  event.vtx.resize( ntTpc );
+  event.vty.resize( ntTpc );
+  event.vtz.resize( ntTpc );
+  event.closeDist.resize( ntTpc );
+
+  
   event.hitlayer.resize( ntTpc );
   event.hitpos_x.resize( ntTpc );
   event.hitpos_y.resize( ntTpc );
@@ -375,20 +419,26 @@ dst::DstRead( int ievent )
   event.residual_z.resize( ntTpc );
 
   for( Int_t it=0; it<ntTpc; ++it ){
-    TPCLocalTrack *tp = DCAna.GetTrackTPC( it );
+    TPCLocalTrack_Helix *tp = DCAna.GetTrackTPC_Helix( it );
     if( !tp ) continue;
     Int_t nh = tp->GetNHit();
     Double_t chisqr = tp->GetChiSquare();
-    Double_t x0=tp->GetX0(), y0=tp->GetY0();
-    Double_t u0=tp->GetU0(), v0=tp->GetV0();
-    Double_t theta = tp->GetTheta();
+    Double_t helix_cx=tp->Getcx(), helix_cy=tp->Getcy();
+    Double_t helix_z0=tp->Getz0(), helix_r=tp->Getr();
+    Double_t helix_dz = tp->Getdz();
+    TVector3 Mom0 = tp->GetMom0();
     event.nhtrack[it] = nh;
     event.chisqr[it] = chisqr;
-    event.x0[it] = x0;
-    event.y0[it] = y0;
-    event.u0[it] = u0;
-    event.v0[it] = v0;
-    event.theta[it] = theta;
+    event.helix_cx[it] = helix_cx;
+    event.helix_cy[it] = helix_cy;
+    event.helix_z0[it] = helix_z0;
+    event.helix_r[it] = helix_r ;
+    event.helix_dz[it] = helix_dz; 
+    event.mom0_x[it] = Mom0.x();   
+    event.mom0_y[it] = Mom0.y();   
+    event.mom0_z[it] = Mom0.z();
+    event.mom0_z[it] = Mom0.Mag();
+    
     event.hitlayer[it].resize( nh );
     event.hitpos_x[it].resize( nh );
     event.hitpos_y[it].resize( nh );
@@ -407,7 +457,7 @@ dst::DstRead( int ievent )
       if( !hit ) continue;
       Int_t layer = hit->GetLayer();
       const TVector3& hitpos = hit->GetLocalHitPos();
-      const TVector3& calpos = hit->GetLocalCalPos();
+      const TVector3& calpos = hit->GetLocalCalPos_Helix();
       const TVector3& res_vect = hit->GetResidualVect();
       Double_t residual = hit->GetResidual();
       event.hitlayer[it][ih] = layer;
@@ -484,11 +534,15 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
   tree->Branch( "chisqr", &event.chisqr );
-  tree->Branch( "x0", &event.x0 );
-  tree->Branch( "y0", &event.y0 );
-  tree->Branch( "u0", &event.u0 );
-  tree->Branch( "v0", &event.v0 );
-  tree->Branch( "theta", &event.theta );
+  tree->Branch( "helix_cx", &event.helix_cx );
+  tree->Branch( "helix_cy", &event.helix_cy );
+  tree->Branch( "helix_z0", &event.helix_z0 );
+  tree->Branch( "helix_r", &event.helix_r );
+  tree->Branch( "helix_dz", &event.helix_dz );
+  tree->Branch( "mom0_x", &event.mom0_x );
+  tree->Branch( "mom0_y", &event.mom0_y );
+  tree->Branch( "mom0_z", &event.mom0_z );
+  tree->Branch( "mom0", &event.mom0 );
   tree->Branch( "hitlayer", &event.hitlayer );
   tree->Branch( "hitpos_x", &event.hitpos_x );
   tree->Branch( "hitpos_y", &event.hitpos_y );

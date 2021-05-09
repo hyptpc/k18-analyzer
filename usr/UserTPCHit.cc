@@ -24,7 +24,7 @@
 //#define GateCalib 1
 #define GateCalib 0
 #define GainCalib 0
-#define Srdata 0
+#define Srdata 1
 //#define GainCalib 0
 
 
