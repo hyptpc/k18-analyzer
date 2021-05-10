@@ -140,17 +140,28 @@
       </VmeRm>
       <VmeCaenV792 address="0x00110000">
 	<!-- WC-U-1~20 -->
-	<for var="ch" from="0" to="9">
+	<for var="ch" from="0" to="1">
 	  <FE ch="ch"><D Device="WC" segment="ch" ch="0" data="0"/></FE>
 	</for>
+	<for var="ch" from="3" to="7">
+	  <FE ch="ch"><D Device="WC" segment="ch" ch="0" data="0"/></FE>
+	</for>
+	<FE ch="2"><D Device="WC" segment="8" ch="0" data="0"/></FE>
+	<FE ch="8"><D Device="WC" segment="2" ch="0" data="0"/></FE>
+	<FE ch="9"><D Device="WC" segment="9" ch="0" data="0"/></FE>
 	<FE ch="10"><D Device="VMEdummy" plane="1" segment="10" data="0"/></FE>
-	<for var="ch" from="11" to="19">
+	<FE ch="11"><D Device="WC" segment="2" ch="1" data="0"/></FE>
+	<for var="ch" from="12" to="19">
 	  <FE ch="ch"><D Device="WC" segment="ch" ch="0" data="0"/></FE>
 	</for>
 	<!-- WC-D-1~12 -->
-	<for var="ch" from="0" to="11">
+	<for var="ch" from="0" to="1">
 	  <FE ch="ch+20"><D Device="WC" segment="ch" ch="1" data="0"/></FE>
 	</for>
+	<for var="ch" from="3" to="11">
+	  <FE ch="ch+20"><D Device="WC" segment="ch" ch="1" data="0"/></FE>
+	</for>
+	<FE ch="22"><D Device="WC" segment="11" ch="0" data="0"/></FE>
       </VmeCaenV792>
       <VmeCaenV792 address="0x00120000">
 	<!-- WC-D-13~20 -->
@@ -159,9 +170,17 @@
 	</for>
 	<FE ch="31"><D Device="WC" segment="19" ch="1" data="0"/></FE>
 	<!-- WC-SUM-1~20 -->
-	<for var="ch" from="0" to="15">
+	<for var="ch" from="0" to="1">
 	  <FE ch="ch+8"><D Device="WC" segment="ch" ch="2" data="0"/></FE>
 	</for>
+	<for var="ch" from="3" to="7">
+	  <FE ch="ch+8"><D Device="WC" segment="ch" ch="2" data="0"/></FE>
+	</for>
+	<for var="ch" from="9" to="15">
+	  <FE ch="ch+8"><D Device="WC" segment="ch" ch="2" data="0"/></FE>
+	</for>
+	<FE ch="10"><D Device="WC" segment="8" ch="2" data="0"/></FE>
+	<FE ch="16"><D Device="WC" segment="2" ch="2" data="0"/></FE>
 	<FE ch="24"><D Device="VMEdummy" plane="2" segment="24" data="0"/></FE>
 	<for var="ch" from="17" to="19">
 	  <FE ch="ch+8"><D Device="WC" segment="ch" ch="2" data="0"/></FE>
@@ -262,6 +281,9 @@
       <for var="data" from="0" to="2">
 	<for var="ch" from="0" to="1">
           <FE ch="ch" data="data"><D Device="BAC" segment="ch" data="data + 1"/></FE>
+	</for>
+	<for var="ch" from="0" to="3">
+          <FE ch="ch+2" data="data"><D Device="BVH" segment="ch" data="data + 1"/></FE>
 	</for>
         <FE ch="10" data="data"><D Device="TFlag" segment="31" data="data + 1"/></FE>
 	<for var="ch" from="11" to="15">
@@ -561,7 +583,9 @@
       <for var="ch" from="0" to="1"><for var="data" from="0" to="3">
 	<FE ch="ch+2" data="data"><D Device="HTOF" segment="ch+32" ch="1" data="data + 1"/>
       </FE></for></for>
-      <FE ch="4" data="data"><D Device="HTOF" segment="34" ch="0" data="data + 1"/></FE>
+      <for var="data" from="0" to="3">
+	<FE ch="4" data="data"><D Device="HTOF" segment="34" ch="0" data="data + 1"/></FE>
+      </for>
       <for var="ch" from="0" to="26"><for var="data" from="0" to="3">
 	<FE ch="ch+5" data="data"><D Device="HR-TDCdummy" plane="3" segment="ch" ch="0" data="data"/>
       </FE></for></for>
