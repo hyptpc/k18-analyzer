@@ -60,6 +60,7 @@ HodoAnalyzer::~HodoAnalyzer()
   ClearTOFHits();
   ClearLACHits();
   ClearWCHits();
+  ClearWCSUMHits();
   ClearBFTHits();
   ClearSCHHits();
   debug::ObjectCounter::decrease(ClassName());

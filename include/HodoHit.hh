@@ -11,7 +11,6 @@ class HodoHit
 public:
   HodoHit();
   virtual ~HodoHit() = 0;
-  static TString ClassName();
 
 public:
   virtual Double_t DeltaE(Int_t n=0) const = 0;
@@ -24,13 +23,5 @@ public:
   virtual Int_t    SegmentId() const = 0;
   virtual Bool_t   ReCalc(Bool_t applyRecursively=false) = 0;
 };
-
-//_____________________________________________________________________________
-inline TString
-HodoHit::ClassName()
-{
-  static TString s_name("HodoHit");
-  return s_name;
-}
 
 #endif
