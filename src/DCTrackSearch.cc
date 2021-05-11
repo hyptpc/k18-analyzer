@@ -1042,7 +1042,7 @@ namespace track
     bool status = true;
     std::vector<IndexList> CombiIndex = MakeIndex( npp, nCombi, status );
 
-#if 0
+#if 1
     DebugPrint( nCombi, CandCont, func_name );
 #endif
 
@@ -1937,9 +1937,9 @@ namespace track
     const int    Li_r_ndiv =  200;
     const double Li_r_min  = -600;
     const double Li_r_max  =  600;
-    
+
     static const Int_t ClusterSizeCut = gUser.GetParameter("TPCClusterSizeCut");
-    
+
 
     //for TPC linear track
     // r = x * cos(theta) + y * sin(theta)
@@ -1987,7 +1987,7 @@ namespace track
       Li_hist.GetBinXYZ( maxbin, mx, my, mz );
       double mtheta = Li_hist.GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
       double mr = Li_hist.GetYaxis()->GetBinCenter(my);
-      
+
       bool hough_flag = true;
       for(int i=0; i<hough_x.size(); ++i){
 	int bindiff = fabs(mx-hough_x[i])+fabs(my-hough_y[i]);
@@ -1998,7 +1998,7 @@ namespace track
       hough_y.push_back(my);
       if(!hough_flag)
 	continue;
-	
+
 
       TPCLocalTrack *track = new TPCLocalTrack();
       p0[tracki] = mr/sin(mtheta);
@@ -2011,7 +2011,7 @@ namespace track
 	  TPCHit* hit = TPCHC[layer][ci];
 	  TVector3 pos = hit->GetPos();
 	  double dist = fabs(p1[tracki]*pos.Z()-pos.X()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
-	  
+
 	  if( dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
 	    track->AddTPCHit(new TPCLTrackHit(hit));
 	    //	    track_he->AddTPCHit(new TPCLTrackHit(hit));
@@ -2038,7 +2038,7 @@ namespace track
     CalcTracksTPC( TrackCont );
     // std::cout<<"event end"<<std::endl;
     //getchar();
-    
+
     return status? TrackCont.size() : -1;
 
     return 0;
@@ -2174,12 +2174,12 @@ namespace track
 	break;
       }
       //std::cout<<"Maxbin0: "<<Ci_hist.GetMaximum()<<std::endl;
-      
+
 
       int maxbin = Ci_hist->GetMaximumBin();
       int mx,my,mz;
       Ci_hist->GetBinXYZ( maxbin, mx, my, mz );
-      
+
       bool hough_flag = true;
       for(int i=0; i<hough_x.size(); ++i){
 	int bindiff = fabs(mx-hough_x[i])+fabs(my-hough_y[i]);
@@ -2199,7 +2199,7 @@ namespace track
       double hough_cx = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
       double hough_cy = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);
 
-      
+
       //std::cout<<"Hough (x,z) Maxbin: "<<Ci_hist.GetMaximum()<<std::endl;
       //     std::cout<<""<<std::endl;
       for( int layer=0; layer<NumOfLayersTPC; layer++ ){

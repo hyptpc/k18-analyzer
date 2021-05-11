@@ -954,9 +954,7 @@ bool
 DCAnalyzer::TrackSearchSdcIn(void)
 {
   static const int MinLayer = gUser.GetParameter("MinLayerSdcIn");
-
-  // track::LocalTrackSearch(m_SdcInHC, PPInfoSdcIn, NPPInfoSdcIn, m_SdcInTC, MinLayer);
-  track::LocalTrackSearchSdcInFiber(m_SdcInHC, PPInfoSdcIn, NPPInfoSdcIn, m_SdcInTC, MinLayer);
+  track::LocalTrackSearch(m_SdcInHC, PPInfoSdcIn, NPPInfoSdcIn, m_SdcInTC, MinLayer);
   return true;
 }
 
@@ -1820,7 +1818,7 @@ void
 DCAnalyzer::TotCutSDC2(double min_tot)
 {
   for(int i = 0; i<NumOfLayersSDC2; ++i){
-    TotCut(m_SdcOutHC[i + NumOfLayersSDC1 + 1], min_tot, false);
+    TotCut(m_SdcInHC[i + NumOfLayersSDC1 + 1], min_tot, false);
   }// for(i)
 }
 

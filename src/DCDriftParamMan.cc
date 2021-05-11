@@ -248,9 +248,18 @@ DCDriftParamMan::DriftLength6( Int_t PlaneId, Double_t dt,
     else
       return dl;
     break;
-  case 7: case 8: case 9:
-    return 0.;
     // SDC2
+  case 7: case 8: case 9: case 10:
+    if( dt<-10. || dt>150. )
+      return 999.9;
+    if( dl>5.0 || dt>120. )
+      return 5.0;
+    if( dl<0. )
+      return 0.;
+    else
+      return dl;
+    break;
+    // SDC3
   case 31: case 32: case 33: case 34:
     if( dt<-20. || dt>150. )
       return 999.9;
@@ -261,7 +270,7 @@ DCDriftParamMan::DriftLength6( Int_t PlaneId, Double_t dt,
     else
       return dl;
     break;
-    //For SDC3
+    // SDC4
   case 35: case 36: case 37: case 38:
     if( dt<-20. || dt>300. )
       return 999.9;
