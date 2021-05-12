@@ -10,6 +10,8 @@
 
 #include "BH2Cluster.hh"
 #include "BH2Hit.hh"
+#include "FiberCluster.hh"
+#include "FiberHit.hh"
 #include "ConfMan.hh"
 #include "DetectorID.hh"
 #include "RMAnalyzer.hh"
@@ -24,6 +26,10 @@
 #include "RawData.hh"
 #include "RootHelper.hh"
 #include "UserParamMan.hh"
+#include "DCGeomMan.hh"
+
+#define TimeCut    1 // in cluster analysis
+#define FHitBranch 0 // make FiberHit branches (becomes heavy)
 
 namespace
 {
@@ -50,7 +56,8 @@ class EventHodoscope : public VEvent
 private:
   RawData*      rawData;
   HodoAnalyzer* hodoAna;
-
+  
+  
 public:
         EventHodoscope();
        ~EventHodoscope();
@@ -139,6 +146,20 @@ struct Event
   Double_t wcsuma[NumOfSegWC];
   Double_t wcsumt[NumOfSegWC][MaxDepth];
 
+  // SCH
+  int    sch_nhits;
+  int    sch_hitpat[NumOfSegSCH];
+  double sch_tdc[NumOfSegSCH][MaxDepth];
+  double sch_trailing[NumOfSegSCH][MaxDepth];
+  double sch_tot[NumOfSegSCH][MaxDepth];
+  int    sch_depth[NumOfSegSCH];
+  int    sch_ncl;
+  int    sch_clsize[NumOfSegSCH];
+  double sch_ctime[NumOfSegSCH];
+  double sch_ctot[NumOfSegSCH];
+  double sch_clpos[NumOfSegSCH];
+
+
   ////////// Normalized
   Double_t bh1mt[NumOfSegBH1][MaxDepth];
   Double_t bh1cmt[NumOfSegBH1][MaxDepth];
@@ -195,6 +216,8 @@ Event::clear()
   tofnhits   = 0;
   tofnhits_3dmtx   = 0;
   lacnhits   = 0;
+  sch_nhits  = 0;
+  sch_ncl  = 0;
   wcnhits    = 0;
   wcsumnhits = 0;
   Time0Seg = qnan;
@@ -304,6 +327,22 @@ Event::clear()
       wcmt[it][m]   = qnan;
     }
   }
+
+  for(Int_t it=0; it<NumOfSegSCH; ++it){
+    sch_hitpat[it]   = qnan;
+    sch_depth[it]   = qnan;
+    sch_clsize[it]   = qnan;
+    sch_ctime[it]   = qnan;
+    sch_ctot[it]   = qnan;
+    sch_clpos[it]   = qnan;
+    for(Int_t m=0; m<MaxDepth; ++m){
+      sch_tdc[it][m]   = qnan;
+      sch_trailing[it][m] = qnan;
+      sch_tot[it][m]   = qnan;
+    }
+  }
+
+
 }
 
 //_____________________________________________________________________________
@@ -467,6 +506,9 @@ Dst::clear()
       deTof[MaxDepth*it + m]  = qnan;
     }
   }
+  
+  
+
 }
 
 
@@ -487,7 +529,7 @@ enum eDetHid {
   TOFHid    = 60000,
   LACHid    = 70000,
   WCHid     = 80000,
-  WCSUMHid  = 90000,
+  WCSUMHid  = 90000
 };
 }
 
@@ -520,6 +562,11 @@ EventHodoscope::ProcessingNormal()
   static const auto MaxTdcLAC = gUser.GetParameter("TdcLAC", 1);
   static const auto MinTdcWC = gUser.GetParameter("TdcWC", 0);
   static const auto MaxTdcWC = gUser.GetParameter("TdcWC", 1);
+  static const auto MinTdcSCH  = gUser.GetParameter("TdcSCH",  0);
+  static const auto MaxTdcSCH  = gUser.GetParameter("TdcSCH",  1);
+  static const auto MinTimeSCH = gUser.GetParameter("TimeSCH", 0);
+  static const auto MaxTimeSCH = gUser.GetParameter("TimeSCH", 1);
+
 
   rawData->DecodeHits();
 
@@ -935,7 +982,7 @@ EventHodoscope::ProcessingNormal()
     event.wcsumnhits = wcsum_nhits;
   }
 
-
+  
   //**************************************************************************
   //****************** NormalizedData
 
@@ -1503,6 +1550,110 @@ EventHodoscope::ProcessingNormal()
       HF1(WCSUMHid+33, cmt); HF1(WCSUMHid+34, de);
     }
   }
+
+
+
+  ////////// SCH
+  {
+    hodoAna->DecodeSCHHits(rawData);
+    int nh = hodoAna->GetNHitsSCH();
+    int sch_nhits = 0;
+    for(int i=0; i<nh; ++i){
+      FiberHit* hit = hodoAna->GetHitSCH(i);
+      if(!hit) continue;
+      int mhit_l = hit->GetNLeading();
+      int mhit_t = hit->GetNTrailing();
+      int seg    = hit->SegmentId();
+      event.sch_depth[seg] = mhit_l;
+      int  prev     = 0;
+      bool hit_flag = false;
+
+      for(int m=0; m<mhit_l; ++m){
+    	if(mhit_l > MaxDepth) break;
+    	double leading  = hit->GetLeading(m);
+    	if(leading==prev) continue;
+    	prev = leading;
+    	// HF1(SCHHid +3, leading);
+    	// HF2(SCHHid +5, seg, leading);
+    	// HF1(SCHHid +1000+seg+1, leading);
+
+    	event.sch_tdc[seg][m]      = leading;
+
+    	if(MinTdcSCH<leading && leading<MaxTdcSCH){
+    	  hit_flag = true;
+    	}
+      }// for(m)
+
+      for(int m=0; m<mhit_t; ++m){
+    	if(mhit_t > MaxDepth) break;
+    	double trailing = hit->GetTrailing(m);
+    	event.sch_trailing[seg][m] = trailing;
+      }// for(m)
+
+      int mhit_pair = hit->GetNPair();
+      for(int m=0; m<mhit_pair; ++m){
+    	if(mhit_pair > MaxDepth) break;
+
+    	double time     = hit->GetTime(m);
+    	double ctime    = hit->GetCTime(m);
+    	double width    = hit->GetWidth(m);
+
+    	// HF1(SCHHid +4, width);
+    	// HF2(SCHHid +6, seg, width);
+    	// HF1(SCHHid +21, time);
+    	// HF2(SCHHid +22, width, time);
+    	// HF1(SCHHid +31, ctime);
+    	// HF2(SCHHid +32, width, ctime);
+    	// HF1(SCHHid +2000+seg+1, width);
+    	// if(-10.<time && time<10.){
+    	//   HF2(SCHHid +3000+seg+1, width, time);
+    	//   HF2(SCHHid +4000+seg+1, width, ctime);
+    	// }
+
+    	event.sch_tot[seg][m]      = width;
+
+      }//for(m)
+      if(hit_flag){
+    	//	HF1(SCHHid +2, seg+0.5);
+    	event.sch_hitpat[sch_nhits++] = seg;
+      }
+    }
+    //    HF1(SCHHid +1, sch_nhits);
+    event.sch_nhits = sch_nhits;
+
+    //Fiber Cluster
+#if TimeCut
+      hodoAna->TimeCutSCH(MinTimeSCH, MaxTimeSCH);
+#endif
+    int ncl = hodoAna->GetNClustersSCH();
+    if(ncl > NumOfSegSCH){
+      // std::cout << "#W SCH too much number of clusters" << std::endl;
+      ncl = NumOfSegSCH;
+    }
+    event.sch_ncl = ncl;
+    //HF1(SCHHid +101, ncl);
+    for(int i=0; i<ncl; ++i){
+      FiberCluster *cl = hodoAna->GetClusterSCH(i);
+      if(!cl) continue;
+      double clsize = cl->ClusterSize();
+      double ctime  = cl->CMeanTime();
+      double ctot   = cl->Width();
+      double pos    = cl->MeanPosition();
+      event.sch_clsize[i] = clsize;
+      event.sch_ctime[i]  = ctime;
+      event.sch_ctot[i]   = ctot;
+      event.sch_clpos[i]  = pos;
+      // HF1(SCHHid +102, clsize);
+      // HF1(SCHHid +103, ctime);
+      // HF1(SCHHid +104, ctot);
+      // HF2(SCHHid +105, ctot, ctime);
+      // HF1(SCHHid +106, pos);
+    }
+ }
+
+
+
+
 
   ////////// Dst
   {
@@ -2265,6 +2416,11 @@ ConfMan::InitializeHistograms()
   HB1(WCSUMHid +33, "CMeamTime Cluster WcSum", 500, -5., 45.);
   HB1(WCSUMHid +34, "DeltaE Cluster WcSum", 100, -0.5, 4.5);
 
+
+
+
+
+
   ////////////////////////////////////////////
   //Tree
   HBTree("tree","tree of Counter");
@@ -2327,6 +2483,28 @@ ConfMan::InitializeHistograms()
   tree->Branch("wcsuma", &event.wcsuma, Form("wcsuma[%d]/I", NumOfSegWC));
   tree->Branch("wcsumt", &event.wcsumt, Form("wcsumt[%d][%d]/D", NumOfSegWC, MaxDepth));
 
+#if FHitBranch
+  tree->Branch("sch_tdc",        event.sch_tdc,          Form("sch_tdc[%d][%d]/D",
+							      NumOfSegSCH, MaxDepth));
+  tree->Branch("sch_trailing",   event.sch_trailing,     Form("sch_trailing[%d][%d]/D",
+							      NumOfSegSCH, MaxDepth));
+  tree->Branch("sch_tot",        event.sch_tot,          Form("sch_tot[%d][%d]/D",
+							      NumOfSegSCH, MaxDepth));
+  tree->Branch("sch_depth",      event.sch_depth,        Form("sch_depth[%d]/I", NumOfSegSCH));
+#endif
+  tree->Branch("sch_nhits",     &event.sch_nhits,        "sch_nhits/I");
+  tree->Branch("sch_hitpat",     event.sch_hitpat,       "sch_hitpat[sch_nhits]/I");
+
+  tree->Branch("sch_ncl",       &event.sch_ncl,          "sch_ncl/I");
+  tree->Branch("sch_clsize",     event.sch_clsize,       "sch_clsize[sch_ncl]/I");
+  tree->Branch("sch_ctime",      event.sch_ctime,        "sch_ctime[sch_ncl]/D");
+  tree->Branch("sch_ctot",       event.sch_ctot,         "sch_ctot[sch_ncl]/D");
+  tree->Branch("sch_clpos",      event.sch_clpos,        "sch_clpos[sch_ncl]/D");
+
+
+
+
+
   //Normalized data
   tree->Branch("bh1mt",     event.bh1mt,     Form("bh1mt[%d][%d]/D", NumOfSegBH1, MaxDepth));
   tree->Branch("bh1de",     event.bh1de,     Form("bh1de[%d]/D", NumOfSegBH1));
@@ -2355,6 +2533,10 @@ ConfMan::InitializeHistograms()
   tree->Branch("deBtof0",  &event.deBtof0,   "deBtof0/D");
   tree->Branch("Btof0",    &event.Btof0,     "Btof0/D");
   tree->Branch("CBtof0",   &event.CBtof0,    "CBtof0/D");
+
+
+
+
 
   ////////////////////////////////////////////
   //Dst
@@ -2434,9 +2616,10 @@ bool
 ConfMan::InitializeParameterFiles()
 {
   return
-    (InitializeParameter<HodoParamMan>("HDPRM") &&
-      InitializeParameter<HodoPHCMan>("HDPHC")   &&
-      InitializeParameter<UserParamMan>("USER"));
+    (InitializeParameter<DCGeomMan>("DCGEO") &&
+     InitializeParameter<HodoParamMan>("HDPRM") &&
+     InitializeParameter<HodoPHCMan>("HDPHC")   &&
+     InitializeParameter<UserParamMan>("USER"));
 }
 
 //_____________________________________________________________________________

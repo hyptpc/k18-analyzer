@@ -48,7 +48,7 @@ TdcBFT 620 650
 TimeBFT -5 5
 
 ### SCH TDC gate range
-TdcSCH 440 480
+TdcSCH 470 510
 
 ### SCH Time gate range
 TimeSCH -15 5

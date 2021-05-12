@@ -412,6 +412,7 @@ Bool_t
 HodoAnalyzer::DecodeSCHHits(RawData* rawData)
 {
   ClearSCHHits();
+
   for(auto& hit: rawData->GetSCHRawHC()){
     if(!hit) continue;
     auto hp = new FiberHit(hit, "SCH");
