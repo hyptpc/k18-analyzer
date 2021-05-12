@@ -155,7 +155,7 @@ RawData::DecodeHits()
     }
   }
   // BVH
-  // DecodeHodo(DetIdBVH, NumOfSegBVH, kOneSide,  m_BVHRawHC);
+  DecodeHodo(DetIdBVH, NumOfSegBVH, kOneSide,  m_BVHRawHC);
   // TOF
   DecodeHodo(DetIdTOF, NumOfSegTOF, kBothSide, m_TOFRawHC);
   // LAC

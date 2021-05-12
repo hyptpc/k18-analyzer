@@ -117,6 +117,8 @@ struct Event
 
   Int_t tofnhits;
   Int_t tofhitpat[MaxHits];
+  Int_t tofnhits_3dmtx;
+  Int_t tofhitpat_3dmtx[MaxHits];
   Double_t tofua[NumOfSegTOF];
   Double_t tofut[NumOfSegTOF][MaxDepth];
   Double_t tofda[NumOfSegTOF];
@@ -191,6 +193,7 @@ Event::clear()
   bh2nhits   = 0;
   bvhnhits   = 0;
   tofnhits   = 0;
+  tofnhits_3dmtx   = 0;
   lacnhits   = 0;
   wcnhits    = 0;
   wcsumnhits = 0;
@@ -215,6 +218,7 @@ Event::clear()
     htofhitpat[it]  = -1;
     bvhhitpat[it]   = -1;
     tofhitpat[it]   = -1;
+    tofhitpat_3dmtx[it]   = -1;
     lachitpat[it]   = -1;
     wchitpat[it]    = -1;
     wcsumhitpat[it] = -1;
@@ -765,6 +769,7 @@ EventHodoscope::ProcessingNormal()
       // Hitpat
       if(is_hit){
 	event.bvhhitpat[bvh_nhits++] = seg;
+	event.tofhitpat_3dmtx[bvh_nhits] = seg+NumOfSegTOF;
 	++nh1; HF1(BVHHid+3, seg-0.5);
       }
     }
@@ -815,11 +820,13 @@ EventHodoscope::ProcessingNormal()
       }
       if(is_hit_u && is_hit_d){
 	event.tofhitpat[tof_nhits++] = seg;
+	event.tofhitpat_3dmtx[event.bvhnhits+tof_nhits] = seg;
 	++nh2; HF1(TOFHid+5, seg-0.5);
       }
     }
     HF1(TOFHid+2, nh1); HF1(TOFHid+4, nh2);
     event.tofnhits = tof_nhits;
+    event.tofnhits_3dmtx = event.bvhnhits+tof_nhits;
   }
 
   ///// LAC
@@ -2301,6 +2308,8 @@ ConfMan::InitializeHistograms()
   //TOF
   tree->Branch("tofnhits",   &event.tofnhits,   "tofnhits/I");
   tree->Branch("tofhitpat",   event.tofhitpat,  Form("tofhitpat[%d]/I", NumOfSegTOF));
+  tree->Branch("tofnhits_3dmtx",   &event.tofnhits_3dmtx,   "tofnhits_3dmtx/I");
+  tree->Branch("tofhitpat_3dmtx",   event.tofhitpat_3dmtx,  "tofhitpat_3dmtx[tofnhits_3dmtx]/I");  
   tree->Branch("tofua",       event.tofua,      Form("tofua[%d]/D", NumOfSegTOF));
   tree->Branch("tofut",       event.tofut,      Form("tofut[%d][%d]/D", NumOfSegTOF, MaxDepth));
   tree->Branch("tofda",       event.tofda,      Form("tofda[%d]/D", NumOfSegTOF));

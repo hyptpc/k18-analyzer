@@ -54,34 +54,34 @@ TdcSCH 440 480
 TimeSCH -15 5
 
 ### BC3 TDC gate range
-TdcBC3 250 470
+TdcBC3 250 440
 
 ### BC4 TDC gate range
-TdcBC4 250 470
+TdcBC4 250 440
 
 ### SDC1 TDC gate range
-TdcSDC1 250 470
+TdcSDC1 250 450
 
 ### SDC2 TDC gate range
-TdcSDC2 200 1000
+TdcSDC2 600 1150
 
 ### SDC3 TDC gate range
-TdcSDC3 200 920
+TdcSDC3 400 1200
 
 ### SDC4 TDC gate range
-TdcSDC4 200 920
+TdcSDC4 400 1200
 
 ### SDC1 Trailing gate range
-TrailingSDC1 200 450
+TrailingSDC1 200 400
 
 ### SDC2 Trailing gate range
-TrailingSDC2 0 1000
+TrailingSDC2 0 350
 
 ### SDC3 Trailing gate range
-TrailingSDC3 300 900
+TrailingSDC3 550 770
 
 ### SDC4 Trailing gate range
-TrailingSDC4 0 900
+TrailingSDC4 200 770
 
 ### BC/SDC TOT cut
 MinTotBcOut 15
@@ -146,4 +146,3 @@ TPC_sigma0 0.204
 
 ### TPC
 MinLayerTPC 6
-
