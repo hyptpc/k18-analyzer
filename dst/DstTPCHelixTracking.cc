@@ -437,7 +437,7 @@ dst::DstRead( int ievent )
     event.mom0_x[it] = Mom0.x();   
     event.mom0_y[it] = Mom0.y();   
     event.mom0_z[it] = Mom0.z();
-    event.mom0_z[it] = Mom0.Mag();
+    event.mom0[it] = Mom0.Mag();
     
     event.hitlayer[it].resize( nh );
     event.hitpos_x[it].resize( nh );
