@@ -28,9 +28,9 @@
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
 
-#define TrackSearch 1
+#define TrackSearch 0
 #define Gain_center 1
-#define HoughYcut 1
+#define HoughYcut 0
 
 
 namespace

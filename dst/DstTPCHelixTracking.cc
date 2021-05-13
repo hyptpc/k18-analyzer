@@ -30,7 +30,7 @@
 
 #define TrackSearch 1
 #define Gain_center 1
-#define HoughYcut 1
+#define HoughYcut 0
 
 
 namespace

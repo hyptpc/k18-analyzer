@@ -551,10 +551,10 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
     }
 
 
-    std::cout<<"while, itry: "<<itry
-	     <<", arglist0: "<<arglist[0]
-	     <<", 1: "<<arglist[1]
-	     <<", chisqr: "<<m_chisqr<<std::endl;
+    // std::cout<<"while, itry: "<<itry
+    // 	     <<", arglist0: "<<arglist[0]
+    // 	     <<", 1: "<<arglist[1]
+    // 	     <<", chisqr: "<<m_chisqr<<std::endl;
     ++itry;
     arglist[0] = arglist[0]*5;
     arglist[1] = arglist[1]/10.;
@@ -632,7 +632,7 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
 
 
   m_mom0 = CalcHelixMom(par, 0.);
-  std::cout<<"m_chisqr: "<<m_chisqr<<std::endl;
+  //std::cout<<"m_chisqr: "<<m_chisqr<<std::endl;
 
   delete  minuit;
 
@@ -646,7 +646,7 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
     TVector3 pos = hitp->GetLocalHitPos();
     TVector3 Res = hitp->GetResolutionVect();
     if(!Residual_check(pos,Res)){
-      std::cout<<"false layer:"<<i<<", n="<<m_hit_array.size()<<std::endl;
+      //std::cout<<"false layer:"<<i<<", n="<<m_hit_array.size()<<std::endl;
       m_hit_array.erase( m_hit_array.begin()+i );
       ++false_layer;
       --i;
@@ -697,8 +697,8 @@ TPCLocalTrack_Helix::Residual_check(TVector3 pos, TVector3  Res)
 
   if(d.Mag()<Res.Mag()*5.)
     status_rescheck = true;
-  else
-    std::cout<<"Residual: "<<d.Mag()<<std::endl;
+  // else
+  //   std::cout<<"Residual: "<<d.Mag()<<std::endl;
 
   return status_rescheck;
 }
