@@ -1042,7 +1042,7 @@ namespace track
     bool status = true;
     std::vector<IndexList> CombiIndex = MakeIndex( npp, nCombi, status );
 
-#if 1
+#if 0
     DebugPrint( nCombi, CandCont, func_name );
 #endif
 

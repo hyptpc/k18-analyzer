@@ -110,6 +110,9 @@ public:
   FiberHit* GetHitBFT(Int_t plane, UInt_t seg) const { return m_BFTCont.at(plane).at(seg); }
   FiberHit* GetHitSCH(UInt_t seg) const { return m_SCHCont.at(seg); }
 
+  const Hodo2HitContainer& GetHitsTOF() const { return m_TOFCont; }
+  const FiberHitContainer& GetHitsSCH() const { return m_SCHCont; }
+
   Int_t GetNClustersBH1() const { return m_BH1ClCont.size(); }
   Int_t GetNClustersBH2() const { return m_BH2ClCont.size(); }
   Int_t GetNClustersBAC() const { return m_BACClCont.size(); }

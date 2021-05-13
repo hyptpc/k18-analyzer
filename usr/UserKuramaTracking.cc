@@ -30,7 +30,7 @@ const auto& gGeom = DCGeomMan::GetInstance();
 auto& gRM = RMAnalyzer::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
-const double& zTOF = gGeom.LocalZ("TOF");
+const Double_t& zTOF = gGeom.LocalZ("TOF");
 }
 
 //_____________________________________________________________________________
@@ -90,91 +90,91 @@ EventKuramaTracking::~EventKuramaTracking()
 //_____________________________________________________________________________
 struct Event
 {
-  int evnum;
+  Int_t evnum;
 
-  int trignhits;
-  int trigpat[NumOfSegTrig];
-  int trigflag[NumOfSegTrig];
+  Int_t trignhits;
+  Int_t trigpat[NumOfSegTrig];
+  Int_t trigflag[NumOfSegTrig];
 
-  double btof;
-  double time0;
+  Double_t btof;
+  Double_t time0;
 
-  int nhBh2;
-  double Bh2Seg[MaxHits];
-  double tBh2[MaxHits];
-  double t0Bh2[MaxHits];
-  double deBh2[MaxHits];
+  Int_t nhBh2;
+  Double_t Bh2Seg[MaxHits];
+  Double_t tBh2[MaxHits];
+  Double_t t0Bh2[MaxHits];
+  Double_t deBh2[MaxHits];
 
-  int nhBh1;
-  double Bh1Seg[MaxHits];
-  double tBh1[MaxHits];
-  double deBh1[MaxHits];
+  Int_t nhBh1;
+  Double_t Bh1Seg[MaxHits];
+  Double_t tBh1[MaxHits];
+  Double_t deBh1[MaxHits];
 
-  int nhTof;
-  double TofSeg[MaxHits];
-  double tTof[MaxHits];
-  double dtTof[MaxHits];
-  double deTof[MaxHits];
+  Int_t nhTof;
+  Double_t TofSeg[MaxHits];
+  Double_t tTof[MaxHits];
+  Double_t dtTof[MaxHits];
+  Double_t deTof[MaxHits];
 
-  int ntSdcIn;
-  int much; // debug
-  int nlSdcIn;
-  int nhSdcIn[MaxHits];
-  double wposSdcIn[NumOfLayersSdcIn];
-  double chisqrSdcIn[MaxHits];
-  double u0SdcIn[MaxHits];
-  double v0SdcIn[MaxHits];
-  double x0SdcIn[MaxHits];
-  double y0SdcIn[MaxHits];
+  Int_t ntSdcIn;
+  Int_t much; // debug
+  Int_t nlSdcIn;
+  Int_t nhSdcIn[MaxHits];
+  Double_t wposSdcIn[NumOfLayersSdcIn];
+  Double_t chisqrSdcIn[MaxHits];
+  Double_t u0SdcIn[MaxHits];
+  Double_t v0SdcIn[MaxHits];
+  Double_t x0SdcIn[MaxHits];
+  Double_t y0SdcIn[MaxHits];
 
-  int ntSdcOut;
-  int nlSdcOut;
-  int nhSdcOut[MaxHits];
-  double wposSdcOut[NumOfLayersSdcOut];
-  double chisqrSdcOut[MaxHits];
-  double u0SdcOut[MaxHits];
-  double v0SdcOut[MaxHits];
-  double x0SdcOut[MaxHits];
-  double y0SdcOut[MaxHits];
+  Int_t ntSdcOut;
+  Int_t nlSdcOut;
+  Int_t nhSdcOut[MaxHits];
+  Double_t wposSdcOut[NumOfLayersSdcOut];
+  Double_t chisqrSdcOut[MaxHits];
+  Double_t u0SdcOut[MaxHits];
+  Double_t v0SdcOut[MaxHits];
+  Double_t x0SdcOut[MaxHits];
+  Double_t y0SdcOut[MaxHits];
 
-  int ntKurama;
-  int nlKurama;
-  int nhKurama[MaxHits];
-  double chisqrKurama[MaxHits];
-  double path[MaxHits];
-  double stof[MaxHits];
-  double pKurama[MaxHits];
-  double qKurama[MaxHits];
-  double m2[MaxHits];
-  double resP[MaxHits];
-  double vpx[NumOfLayersVP];
-  double vpy[NumOfLayersVP];
+  Int_t ntKurama;
+  Int_t nlKurama;
+  Int_t nhKurama[MaxHits];
+  Double_t chisqrKurama[MaxHits];
+  Double_t path[MaxHits];
+  Double_t stof[MaxHits];
+  Double_t pKurama[MaxHits];
+  Double_t qKurama[MaxHits];
+  Double_t m2[MaxHits];
+  Double_t resP[MaxHits];
+  Double_t vpx[NumOfLayersVP];
+  Double_t vpy[NumOfLayersVP];
 
-  double xtgtKurama[MaxHits];
-  double ytgtKurama[MaxHits];
-  double utgtKurama[MaxHits];
-  double vtgtKurama[MaxHits];
-  double thetaKurama[MaxHits];
-  double phiKurama[MaxHits];
+  Double_t xtgtKurama[MaxHits];
+  Double_t ytgtKurama[MaxHits];
+  Double_t utgtKurama[MaxHits];
+  Double_t vtgtKurama[MaxHits];
+  Double_t thetaKurama[MaxHits];
+  Double_t phiKurama[MaxHits];
 
-  double xtofKurama[MaxHits];
-  double ytofKurama[MaxHits];
-  double utofKurama[MaxHits];
-  double vtofKurama[MaxHits];
-  double tofsegKurama[MaxHits];
+  Double_t xtofKurama[MaxHits];
+  Double_t ytofKurama[MaxHits];
+  Double_t utofKurama[MaxHits];
+  Double_t vtofKurama[MaxHits];
+  Double_t tofsegKurama[MaxHits];
 
-  std::vector< std::vector<double> > resL;
-  std::vector< std::vector<double> > resG;
+  std::vector< std::vector<Double_t> > resL;
+  std::vector< std::vector<Double_t> > resG;
 
   // Calib
   enum eParticle { Pion, Kaon, Proton, nParticle };
-  double tTofCalc[nParticle];
-  double utTofSeg[NumOfSegTOF];
-  double dtTofSeg[NumOfSegTOF];
-  double udeTofSeg[NumOfSegTOF];
-  double ddeTofSeg[NumOfSegTOF];
-  double tofua[NumOfSegTOF];
-  double tofda[NumOfSegTOF];
+  Double_t tTofCalc[nParticle];
+  Double_t utTofSeg[NumOfSegTOF];
+  Double_t dtTofSeg[NumOfSegTOF];
+  Double_t udeTofSeg[NumOfSegTOF];
+  Double_t ddeTofSeg[NumOfSegTOF];
+  Double_t tofua[NumOfSegTOF];
+  Double_t tofda[NumOfSegTOF];
 
 };
 
@@ -200,28 +200,28 @@ bool
 EventKuramaTracking::ProcessingNormal()
 {
 #if HodoCut
-  static const double MinDeBH2   = gUser.GetParameter("DeBH2", 0);
-  static const double MaxDeBH2   = gUser.GetParameter("DeBH2", 1);
-  static const double MinDeBH1   = gUser.GetParameter("DeBH1", 0);
-  static const double MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
-  static const double MinBeamToF = gUser.GetParameter("BTOF",  1);
-  static const double MaxBeamToF = gUser.GetParameter("BTOF",  1);
-  static const double MinDeTOF   = gUser.GetParameter("DeTOF",      0);
-  static const double MaxDeTOF   = gUser.GetParameter("DeTOF",      1);
-  static const double MinTimeTOF = gUser.GetParameter("TimeTOF",    0);
-  static const double MaxTimeTOF = gUser.GetParameter("TimeTOF",    1);
+  static const Double_t MinDeBH2   = gUser.GetParameter("DeBH2", 0);
+  static const Double_t MaxDeBH2   = gUser.GetParameter("DeBH2", 1);
+  static const Double_t MinDeBH1   = gUser.GetParameter("DeBH1", 0);
+  static const Double_t MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
+  static const Double_t MinBeamToF = gUser.GetParameter("BTOF",  1);
+  static const Double_t MaxBeamToF = gUser.GetParameter("BTOF",  1);
+  static const Double_t MinDeTOF   = gUser.GetParameter("DeTOF",      0);
+  static const Double_t MaxDeTOF   = gUser.GetParameter("DeTOF",      1);
+  static const Double_t MinTimeTOF = gUser.GetParameter("TimeTOF",    0);
+  static const Double_t MaxTimeTOF = gUser.GetParameter("TimeTOF",    1);
 #endif
 
-  static const double MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
-  static const double MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
-  static const double StopTimeDiffSdcOut      = gUser.GetParameter("StopTimeDiffSdcOut",      0);
-  static const double MinTotSDC2 = gUser.GetParameter("MinTotSDC2", 0);
-  static const double MinTotSDC3 = gUser.GetParameter("MinTotSDC3", 0);
+  static const Double_t MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
+  static const Double_t MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
+  static const Double_t StopTimeDiffSdcOut      = gUser.GetParameter("StopTimeDiffSdcOut",      0);
+  static const Double_t MinTotSDC2 = gUser.GetParameter("MinTotSDC2", 0);
+  static const Double_t MinTotSDC3 = gUser.GetParameter("MinTotSDC3", 0);
 
-  static const double MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
-  static const double MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
+  static const Double_t MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
+  static const Double_t MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
 
-  static const double OffsetToF = gUser.GetParameter("OffsetToF");
+  static const Double_t OffsetToF = gUser.GetParameter("OffsetToF");
 
   rawData->DecodeHits();
 
@@ -232,12 +232,12 @@ EventKuramaTracking::ProcessingNormal()
   //TrigFlag
   {
     const HodoRHitContainer &cont=rawData->GetTrigRawHC();
-    int trignhits = 0;
-    int nh=cont.size();
-    for(int i=0; i<nh; ++i){
+    Int_t trignhits = 0;
+    Int_t nh=cont.size();
+    for(Int_t i=0; i<nh; ++i){
       HodoRawHit *hit=cont[i];
-      int seg = hit->SegmentId()+1;
-      int tdc = hit->GetTdc1();
+      Int_t seg = hit->SegmentId()+1;
+      Int_t tdc = hit->GetTdc1();
       if(tdc){
 	event.trigpat[trignhits++] = seg;
 	event.trigflag[seg-1]      = tdc;
@@ -254,22 +254,22 @@ EventKuramaTracking::ProcessingNormal()
 
   //////////////BH2 Analysis
   hodoAna->DecodeBH2Hits(rawData);
-  int nhBh2 = hodoAna->GetNHitsBH2();
+  Int_t nhBh2 = hodoAna->GetNHitsBH2();
   event.nhBh2 = nhBh2;
 #if HodoCut
   if(nhBh2==0) return true;
 #endif
-  double time0 = -999.;
+  Double_t time0 = -999.;
   //////////////BH2 Analysis
-  double min_time = -999.;
-  for(int i=0; i<nhBh2; ++i){
+  Double_t min_time = -999.;
+  for(Int_t i=0; i<nhBh2; ++i){
     BH2Hit *hit = hodoAna->GetHitBH2(i);
     if(!hit) continue;
-    double seg = hit->SegmentId()+1;
-    double mt  = hit->MeanTime();
-    double cmt = hit->CMeanTime();
-    double ct0 = hit->CTime0();
-    double de  = hit->DeltaE();
+    Double_t seg = hit->SegmentId()+1;
+    Double_t mt  = hit->MeanTime();
+    Double_t cmt = hit->CMeanTime();
+    Double_t ct0 = hit->CTime0();
+    Double_t de  = hit->DeltaE();
 #if HodoCut
     if(de<MinDeBH2 || MaxDeBH2<de) continue;
 #endif
@@ -286,7 +286,7 @@ EventKuramaTracking::ProcessingNormal()
 
   //////////////BH1 Analysis
   hodoAna->DecodeBH1Hits(rawData);
-  int nhBh1 = hodoAna->GetNHitsBH1();
+  Int_t nhBh1 = hodoAna->GetNHitsBH1();
   event.nhBh1 = nhBh1;
 #if HodoCut
   if(nhBh1==0) return true;
@@ -294,14 +294,14 @@ EventKuramaTracking::ProcessingNormal()
 
   HF1(1, 2.);
 
-  double btof0 = -999.;
-  for(int i=0; i<nhBh1; ++i){
+  Double_t btof0 = -999.;
+  for(Int_t i=0; i<nhBh1; ++i){
     Hodo2Hit *hit = hodoAna->GetHitBH1(i);
     if(!hit) continue;
-    int    seg  = hit->SegmentId()+1;
-    double cmt  = hit->CMeanTime();
-    double dE   = hit->DeltaE();
-    double btof = cmt - time0;
+    Int_t    seg  = hit->SegmentId()+1;
+    Double_t cmt  = hit->CMeanTime();
+    Double_t dE   = hit->DeltaE();
+    Double_t btof = cmt - time0;
 #if HodoCut
     if(dE<MinDeBH1 || MaxDeBH1<dE) continue;
     if(btof<MinBeamToF && MaxBeamToF<btof) continue;
@@ -322,18 +322,18 @@ EventKuramaTracking::ProcessingNormal()
   //////////////Tof Analysis
   hodoAna->DecodeTOFHits(rawData);
   //hodoAna->TimeCutTOF(7, 25);
-  int nhTof = hodoAna->GetNClustersTOF();
+  Int_t nhTof = hodoAna->GetNClustersTOF();
   event.nhTof = nhTof;
   {
 #if HodoCut
-    int nhOk = 0;
+    Int_t nhOk = 0;
 #endif
-    for(int i=0; i<nhTof; ++i){
+    for(Int_t i=0; i<nhTof; ++i){
       HodoCluster *hit = hodoAna->GetClusterTOF(i);
-      double seg = hit->MeanSeg()+1;
-      double cmt = hit->CMeanTime();
-      double dt  = hit->TimeDif();
-      double de   = hit->DeltaE();
+      Double_t seg = hit->MeanSeg()+1;
+      Double_t cmt = hit->CMeanTime();
+      Double_t dt  = hit->TimeDif();
+      Double_t de   = hit->DeltaE();
       event.TofSeg[i] = seg;
       event.tTof[i]   = cmt;//stof;
       event.dtTof[i]  = dt;
@@ -362,12 +362,12 @@ EventKuramaTracking::ProcessingNormal()
   // Trigger flag
   bool flag_tof_stop = false;
   {
-    static const int device_id    = gUnpacker.get_device_id("TFlag");
-    static const int data_type_id = gUnpacker.get_data_id("TFlag", "tdc");
+    static const Int_t device_id    = gUnpacker.get_device_id("TFlag");
+    static const Int_t data_type_id = gUnpacker.get_data_id("TFlag", "tdc");
 
-    int mhit = gUnpacker.get_entries(device_id, 0, trigger::kTofTiming, 0, data_type_id);
-    for(int m = 0; m<mhit; ++m){
-      int tof_timing = gUnpacker.get(device_id, 0, trigger::kTofTiming, 0, data_type_id, m);
+    Int_t mhit = gUnpacker.get_entries(device_id, 0, trigger::kTofTiming, 0, data_type_id);
+    for(Int_t m = 0; m<mhit; ++m){
+      Int_t tof_timing = gUnpacker.get(device_id, 0, trigger::kTofTiming, 0, data_type_id, m);
       if(!(MinStopTimingSdcOut < tof_timing && tof_timing < MaxStopTimingSdcOut)) flag_tof_stop = true;
     }// for(m)
   }
@@ -378,52 +378,52 @@ EventKuramaTracking::ProcessingNormal()
 
   DCAna->DecodeSdcInHits(rawData);
 
-  double offset = flag_tof_stop ? 0 : StopTimeDiffSdcOut;
+  Double_t offset = flag_tof_stop ? 0 : StopTimeDiffSdcOut;
   DCAna->DecodeSdcOutHits(rawData, offset);
   DCAna->TotCutSDC2(MinTotSDC2);
   DCAna->TotCutSDC3(MinTotSDC3);
 
-  double multi_SdcIn  = 0.;
+  Double_t multi_SdcIn  = 0.;
   ////////////// SdcIn number of hit layer
   {
-    int nlSdcIn = 0;
-    for(int layer=1; layer<=NumOfLayersSdcIn; ++layer){
+    Int_t nlSdcIn = 0;
+    for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
       const DCHitContainer &contSdcIn =DCAna->GetSdcInHC(layer);
-      int nhSdcIn = contSdcIn.size();
+      Int_t nhSdcIn = contSdcIn.size();
       if(nhSdcIn==1){
 	DCHit *hit = contSdcIn[0];
-	double wpos = hit->GetWirePosition();
+	Double_t wpos = hit->GetWirePosition();
 	event.wposSdcIn[layer-1] = wpos;
       }
-      multi_SdcIn += double(nhSdcIn);
+      multi_SdcIn += Double_t(nhSdcIn);
       if(nhSdcIn>0) nlSdcIn++;
     }
     event.nlSdcIn   = nlSdcIn;
     event.nlKurama += nlSdcIn;
   }
-  if(multi_SdcIn/double(NumOfLayersSdcIn) > MaxMultiHitSdcIn){
+  if(multi_SdcIn/Double_t(NumOfLayersSdcIn) > MaxMultiHitSdcIn){
     // return true;
   }
 
-  double multi_SdcOut = 0.;
+  Double_t multi_SdcOut = 0.;
   ////////////// SdcOut number of hit layer
   {
-    int nlSdcOut = 0;
-    for(int layer=1; layer<=NumOfLayersSdcOut; ++layer){
+    Int_t nlSdcOut = 0;
+    for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer){
       const DCHitContainer &contSdcOut =DCAna->GetSdcOutHC(layer);
-      int nhSdcOut=contSdcOut.size();
+      Int_t nhSdcOut=contSdcOut.size();
       if(nhSdcOut==1){
 	DCHit *hit = contSdcOut[0];
-	double wpos = hit->GetWirePosition();
+	Double_t wpos = hit->GetWirePosition();
 	event.wposSdcOut[layer-1] = wpos;
       }
-      multi_SdcOut += double(nhSdcOut);
+      multi_SdcOut += Double_t(nhSdcOut);
       if(nhSdcOut>0) nlSdcOut++;
     }
     event.nlSdcOut = nlSdcOut;
     event.nlKurama += nlSdcOut;
   }
-  if(multi_SdcOut/double(NumOfLayersSdcOut) > MaxMultiHitSdcOut){
+  if(multi_SdcOut/Double_t(NumOfLayersSdcOut) > MaxMultiHitSdcOut){
     // return true;
   }
 
@@ -433,23 +433,23 @@ EventKuramaTracking::ProcessingNormal()
   // std::cout << "==========TrackSearch SdcIn============" << std::endl;
   DCAna->TrackSearchSdcIn();
   DCAna->ChiSqrCutSdcIn(50.);
-  int ntSdcIn = DCAna->GetNtracksSdcIn();
+  Int_t ntSdcIn = DCAna->GetNtracksSdcIn();
   if(MaxHits<ntSdcIn){
     std::cout << "#W " << FUNC_NAME << " "
 	      << "too many ntSdcIn " << ntSdcIn << "/" << MaxHits << std::endl;
     ntSdcIn = MaxHits;
   }
   event.ntSdcIn = ntSdcIn;
-  HF1(10, double(ntSdcIn));
-  int much_combi = DCAna->MuchCombinationSdcIn();
+  HF1(10, Double_t(ntSdcIn));
+  Int_t much_combi = DCAna->MuchCombinationSdcIn();
   event.much = much_combi;
-  for(int it=0; it<ntSdcIn; ++it){
+  for(Int_t it=0; it<ntSdcIn; ++it){
     DCLocalTrack *tp=DCAna->GetTrackSdcIn(it);
-    int nh=tp->GetNHit();
-    double chisqr=tp->GetChiSquare();
-    double x0=tp->GetX0(), y0=tp->GetY0();
-    double u0=tp->GetU0(), v0=tp->GetV0();
-    HF1(11, double(nh));
+    Int_t nh=tp->GetNHit();
+    Double_t chisqr=tp->GetChiSquare();
+    Double_t x0=tp->GetX0(), y0=tp->GetY0();
+    Double_t u0=tp->GetU0(), v0=tp->GetV0();
+    HF1(11, Double_t(nh));
     HF1(12, chisqr);
     HF1(14, x0); HF1(15, y0);
     HF1(16, u0); HF1(17, v0);
@@ -461,23 +461,23 @@ EventKuramaTracking::ProcessingNormal()
     event.y0SdcIn[it] = y0;
     event.u0SdcIn[it] = u0;
     event.v0SdcIn[it] = v0;
-    for(int ih=0; ih<nh; ++ih){
+    for(Int_t ih=0; ih<nh; ++ih){
       DCLTrackHit *hit=tp->GetHit(ih);
 
-      int layerId = hit->GetLayer();
+      Int_t layerId = hit->GetLayer();
       HF1(13, hit->GetLayer());
-      double wire = hit->GetWire();
-      double dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
+      Double_t wire = hit->GetWire();
+      Double_t dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
       HF1(100*layerId+1, wire-0.5);
       HF1(100*layerId+2, dt);
       HF1(100*layerId+3, dl);
-      double xcal=hit->GetXcal(), ycal=hit->GetYcal();
-      double pos=hit->GetLocalHitPos(), res=hit->GetResidual();
+      Double_t xcal=hit->GetXcal(), ycal=hit->GetYcal();
+      Double_t pos=hit->GetLocalHitPos(), res=hit->GetResidual();
       HF1(100*layerId+4, pos);
       HF1(100*layerId+5, res);
       HF2(100*layerId+6, pos, res);
       HF2(100*layerId+7, xcal, ycal);
-      for(int i=0; i<NumOfLayersSdcIn; ++i){
+      for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
 	if(i==layerId-1) event.resL[i].push_back(res);
       }
     }
@@ -490,31 +490,31 @@ EventKuramaTracking::ProcessingNormal()
 #if 0
   //////////////SdcIn vs Tof cut for Proton event
   {
-    int ntOk=0;
-    for(int it=0; it<ntSdcIn; ++it){
+    Int_t ntOk=0;
+    for(Int_t it=0; it<ntSdcIn; ++it){
       DCLocalTrack *tp=DCAna->GetTrackSdcIn(it);
       if(!tp) continue;
 
-      int nh=tp->GetNHit();
-      double chisqr=tp->GetChiSquare();
-      double u0=tp->GetU0(), v0=tp->GetV0();
-      double x0=tp->GetX0(), y0=tp->GetY0();
+      Int_t nh=tp->GetNHit();
+      Double_t chisqr=tp->GetChiSquare();
+      Double_t u0=tp->GetU0(), v0=tp->GetV0();
+      Double_t x0=tp->GetX0(), y0=tp->GetY0();
 
       bool condTof=false;
-      for(int j=0; j<ncTof; ++j){
+      for(Int_t j=0; j<ncTof; ++j){
 	HodoCluster *clTof=hodoAna->GetClusterTOF(j);
 	if(!clTof || !clTof->GoodForAnalysis()) continue;
-	double ttof=clTof->CMeanTime()-time0;
+	Double_t ttof=clTof->CMeanTime()-time0;
 	//------------------------Cut
 	if(MinModTimeTof< ttof+14.0*u0 && ttof+14.0*u0 <MaxModTimeTof)
 	  condTof=true;
       }
       if(condTof){
 	++ntOk;
-	for(int j=0; j<ncTof; ++j){
+	for(Int_t j=0; j<ncTof; ++j){
 	  HodoCluster *clTof=hodoAna->GetClusterTOF(j);
 	  if(!clTof || !clTof->GoodForAnalysis()) continue;
-	  double ttof=clTof->CMeanTime()-time0;
+	  Double_t ttof=clTof->CMeanTime()-time0;
 	}
 	// if(ntOk>0) tp->GoodForTracking(false);
       }
@@ -542,7 +542,7 @@ EventKuramaTracking::ProcessingNormal()
   }
 
   DCAna->ChiSqrCutSdcOut(50.);
-  int ntSdcOut = DCAna->GetNtracksSdcOut();
+  Int_t ntSdcOut = DCAna->GetNtracksSdcOut();
 
   if(MaxHits<ntSdcOut){
     std::cout << "#W " << FUNC_NAME << " "
@@ -551,14 +551,14 @@ EventKuramaTracking::ProcessingNormal()
   }
 
   event.ntSdcOut=ntSdcOut;
-  HF1(30, double(ntSdcOut));
-  for(int it=0; it<ntSdcOut; ++it){
+  HF1(30, Double_t(ntSdcOut));
+  for(Int_t it=0; it<ntSdcOut; ++it){
     DCLocalTrack *tp=DCAna->GetTrackSdcOut(it);
-    int nh=tp->GetNHit();
-    double chisqr=tp->GetChiSquare();
-    double u0=tp->GetU0(), v0=tp->GetV0();
-    double x0=tp->GetX0(), y0=tp->GetY0();
-    HF1(31, double(nh));
+    Int_t nh=tp->GetNHit();
+    Double_t chisqr=tp->GetChiSquare();
+    Double_t u0=tp->GetU0(), v0=tp->GetV0();
+    Double_t x0=tp->GetX0(), y0=tp->GetY0();
+    HF1(31, Double_t(nh));
     HF1(32, chisqr);
     HF1(34, x0); HF1(35, y0);
     HF1(36, u0); HF1(37, v0);
@@ -570,9 +570,9 @@ EventKuramaTracking::ProcessingNormal()
     event.y0SdcOut[it] = y0;
     event.u0SdcOut[it] = u0;
     event.v0SdcOut[it] = v0;
-    for(int ih=0; ih<nh; ++ih){
+    for(Int_t ih=0; ih<nh; ++ih){
       DCLTrackHit *hit=tp->GetHit(ih);
-      int layerId = hit->GetLayer();
+      Int_t layerId = hit->GetLayer();
 
       if(hit->GetLayer()>79) layerId -= 62;
       else if(hit->GetLayer()>40) layerId -= 15;
@@ -580,18 +580,18 @@ EventKuramaTracking::ProcessingNormal()
       //std::cout << "layerId :" << layerId << std::endl;
 
       HF1(33, hit->GetLayer());
-      double wire=hit->GetWire();
-      double dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
+      Double_t wire=hit->GetWire();
+      Double_t dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
       HF1(100*layerId+1, wire-0.5);
       HF1(100*layerId+2, dt);
       HF1(100*layerId+3, dl);
-      double xcal=hit->GetXcal(), ycal=hit->GetYcal();
-      double pos=hit->GetLocalHitPos(), res=hit->GetResidual();
+      Double_t xcal=hit->GetXcal(), ycal=hit->GetYcal();
+      Double_t pos=hit->GetLocalHitPos(), res=hit->GetResidual();
       HF1(100*layerId+4, pos);
       HF1(100*layerId+5, res);
       HF2(100*layerId+6, pos, res);
       HF2(100*layerId+7, xcal, ycal);
-      for(int i=0; i<NumOfLayersSdcOut+2; ++i){
+      for(Int_t i=0; i<NumOfLayersSdcOut+2; ++i){
 	if(i==layerId-NumOfLayersSdcIn-1){
 	  event.resL[i+NumOfLayersSdcIn].push_back(res);
 	}
@@ -604,14 +604,14 @@ EventKuramaTracking::ProcessingNormal()
 
   HF1(1, 14.);
 
-  for(int i1=0; i1<ntSdcIn; ++i1){
+  for(Int_t i1=0; i1<ntSdcIn; ++i1){
     DCLocalTrack *trSdcIn=DCAna->GetTrackSdcIn(i1);
-    double xin=trSdcIn->GetX0(), yin=trSdcIn->GetY0();
-    double uin=trSdcIn->GetU0(), vin=trSdcIn->GetV0();
-    for(int i2=0; i2<ntSdcOut; ++i2){
+    Double_t xin=trSdcIn->GetX0(), yin=trSdcIn->GetY0();
+    Double_t uin=trSdcIn->GetU0(), vin=trSdcIn->GetV0();
+    for(Int_t i2=0; i2<ntSdcOut; ++i2){
       DCLocalTrack *trSdcOut=DCAna->GetTrackSdcOut(i2);
-      double xout=trSdcOut->GetX0(), yout=trSdcOut->GetY0();
-      double uout=trSdcOut->GetU0(), vout=trSdcOut->GetV0();
+      Double_t xout=trSdcOut->GetX0(), yout=trSdcOut->GetY0();
+      Double_t uout=trSdcOut->GetU0(), vout=trSdcOut->GetV0();
       HF2(20001, xin, xout); HF2(20002, yin, yout);
       HF2(20003, uin, uout); HF2(20004, vin, vout);
     }
@@ -625,36 +625,36 @@ EventKuramaTracking::ProcessingNormal()
 
   //////////////KURAMA Tracking
   DCAna->TrackSearchKurama();
-  int ntKurama = DCAna->GetNTracksKurama();
+  Int_t ntKurama = DCAna->GetNTracksKurama();
   if(MaxHits<ntKurama){
     std::cout << "#W " << FUNC_NAME << " "
 	      << "too many ntKurama " << ntKurama << "/" << MaxHits << std::endl;
     ntKurama = MaxHits;
   }
   event.ntKurama = ntKurama;
-  HF1(50, double(ntKurama));
+  HF1(50, Double_t(ntKurama));
 
-  for(int i=0; i<ntKurama; ++i){
+  for(Int_t i=0; i<ntKurama; ++i){
     KuramaTrack *tp=DCAna->GetKuramaTrack(i);
     if(!tp) continue;
-    int nh=tp->GetNHits();
-    double chisqr=tp->chisqr();
+    Int_t nh=tp->GetNHits();
+    Double_t chisqr=tp->chisqr();
     ThreeVector Pos = tp->PrimaryPosition();
     ThreeVector Mom = tp->PrimaryMomentum();
     // hddaq::cout << std::fixed
     // 		<< "Pos = " << Pos << std::endl
     // 		<< "Mom = " << Mom << std::endl;
-    double path = tp->PathLengthToTOF();
-    double xt = Pos.x(), yt = Pos.y();
-    double p = Mom.Mag();
-    double q = tp->Polarity();
-    double ut = Mom.x()/Mom.z(), vt = Mom.y()/Mom.z();
-    double cost  = 1./std::sqrt(1.+ut*ut+vt*vt);
-    double theta = std::acos(cost)*math::Rad2Deg();
-    double phi   = atan2(ut, vt);
-    double initial_momentum = tp->GetInitialMomentum();
-    double tof_seg = tp->TofSeg();
-    HF1(51, double(nh));
+    Double_t path = tp->PathLengthToTOF();
+    Double_t xt = Pos.x(), yt = Pos.y();
+    Double_t p = Mom.Mag();
+    Double_t q = tp->Polarity();
+    Double_t ut = Mom.x()/Mom.z(), vt = Mom.y()/Mom.z();
+    Double_t cost  = 1./std::sqrt(1.+ut*ut+vt*vt);
+    Double_t theta = std::acos(cost)*math::Rad2Deg();
+    Double_t phi   = atan2(ut, vt);
+    Double_t initial_momentum = tp->GetInitialMomentum();
+    Double_t tof_seg = tp->TofSeg();
+    HF1(51, Double_t(nh));
     HF1(52, chisqr);
     HF1(54, xt); HF1(55, yt); HF1(56, ut); HF1(57,vt);
     HF2(58, xt, ut); HF2(59, yt, vt); HF2(60, xt, yt);
@@ -674,8 +674,8 @@ EventKuramaTracking::ProcessingNormal()
     event.resP[i] = p - initial_momentum;
 
     if(ntKurama == 1){
-      for(int l = 0; l<NumOfLayersVP; ++l){
-	double x, y;
+      for(Int_t l = 0; l<NumOfLayersVP; ++l){
+	Double_t x, y;
 	tp->GetTrajectoryLocalPosition(21 + l, x, y);
 
 	event.vpx[l] = x;
@@ -695,8 +695,8 @@ EventKuramaTracking::ProcessingNormal()
     ///// w/o TOF
     // TVector2 vecTof(posTof.x(), posTof.z());
     // vecTof -= TVector2(250., 2015.);
-    // double sign = math::Sign(vecTof.X());
-    // double TofSegKurama = sign*vecTof.Mod()/75.+12.5;
+    // Double_t sign = math::Sign(vecTof.X());
+    // Double_t TofSegKurama = sign*vecTof.Mod()/75.+12.5;
     // event.tofsegKurama[i] = math::Round(TofSegKurama)
 #if 0
     // std::cout << "posTof " << posTof << std::endl;
@@ -706,19 +706,19 @@ EventKuramaTracking::ProcessingNormal()
 	      << std::setw(10) << sign*vecTof.Mod()
 	      << std::setw(10) << TofSegKurama << std::endl;
 #endif
-    // double minres = 1.0e10;
-    // int    TofSeg = -9999;
-    double time   = -9999.;
-    for(int j=0; j<nhTof; ++j){
+    // Double_t minres = 1.0e10;
+    // Int_t    TofSeg = -9999;
+    Double_t time   = -9999.;
+    for(Int_t j=0; j<nhTof; ++j){
       Hodo2Hit *hit = hodoAna->GetHitTOF(j);
       if(!hit) continue;
-      int seg  = hit->SegmentId()+1;
+      Int_t seg  = hit->SegmentId()+1;
       // w/  TOF
-      if((int)tof_seg == seg){
+      if((Int_t)tof_seg == seg){
 	time = hit->CMeanTime()-time0+OffsetToF;
       }
       // w/o TOF
-      // double res  = std::abs(tof_seg - seg);
+      // Double_t res  = std::abs(tof_seg - seg);
       // if(res<minres){
       // 	minres = res;
       // 	TofSeg = seg;
@@ -727,7 +727,7 @@ EventKuramaTracking::ProcessingNormal()
     }
     event.stof[i] = time;
     if(time>0.){
-      double m2 = Kinematics::MassSquare(p, path, time);
+      Double_t m2 = Kinematics::MassSquare(p, path, time);
       HF1(63, m2);
       event.m2[i] = m2;
 # if 0
@@ -745,25 +745,25 @@ EventKuramaTracking::ProcessingNormal()
 # endif
     }
 
-    for(int j=0; j<nh; ++j){
+    for(Int_t j=0; j<nh; ++j){
       TrackHit *hit=tp->GetHit(j);
       if(!hit) continue;
-      int layerId = hit->GetLayer();
+      Int_t layerId = hit->GetLayer();
       if(hit->GetLayer()>79) layerId -= 62;
       else if(hit->GetLayer()>40) layerId -= 15;
       else if(hit->GetLayer()>30) layerId -= 21;
 
       HF1(53, hit->GetLayer());
-      double wire = hit->GetHit()->GetWire();
-      double dt   = hit->GetHit()->GetDriftTime();
-      double dl   = hit->GetHit()->GetDriftLength();
-      double pos  = hit->GetCalLPos();
-      double res  = hit->GetResidual();
+      Double_t wire = hit->GetHit()->GetWire();
+      Double_t dt   = hit->GetHit()->GetDriftTime();
+      Double_t dl   = hit->GetHit()->GetDriftLength();
+      Double_t pos  = hit->GetCalLPos();
+      Double_t res  = hit->GetResidual();
       DCLTrackHit *lhit = hit->GetHit();
-      double xcal = lhit->GetXcal();
-      double ycal = lhit->GetYcal();
-      HF1(100*layerId+11, double(wire)-0.5);
-      double wp   = lhit->GetWirePosition();
+      Double_t xcal = lhit->GetXcal();
+      Double_t ycal = lhit->GetYcal();
+      HF1(100*layerId+11, Double_t(wire)-0.5);
+      Double_t wp   = lhit->GetWirePosition();
       HF1(100*layerId+12, dt);
       HF1(100*layerId+13, dl);
       HF1(100*layerId+14, pos);
@@ -776,11 +776,11 @@ EventKuramaTracking::ProcessingNormal()
       if (std::abs(dl-std::abs(xcal-wp))<2.0){
 	HF2(100*layerId+22, dt, std::abs(xcal-wp));
       }
-      for(int l=0; l<NumOfLayersSdcIn; ++l){
+      for(Int_t l=0; l<NumOfLayersSdcIn; ++l){
 	if(l==layerId-1)
 	  event.resG[l].push_back(res);
       }
-      for(int l=0; l<NumOfLayersSdcOut+2; ++l){
+      for(Int_t l=0; l<NumOfLayersSdcOut+2; ++l){
 	if(l==layerId-1-NumOfLayersSdcIn)
 	  event.resG[l+NumOfLayersSdcIn].push_back(res);
       }
@@ -789,71 +789,71 @@ EventKuramaTracking::ProcessingNormal()
     DCLocalTrack *trSdcIn  = tp->GetLocalTrackIn();
     DCLocalTrack *trSdcOut = tp->GetLocalTrackOut();
     if(trSdcIn){
-      int nhSdcIn=trSdcIn->GetNHit();
-      double x0in=trSdcIn->GetX0(), y0in=trSdcIn->GetY0();
-      double u0in=trSdcIn->GetU0(), v0in=trSdcIn->GetV0();
-      double chiin=trSdcIn->GetChiSquare();
-      HF1(21, double(nhSdcIn)); HF1(22, chiin);
+      Int_t nhSdcIn=trSdcIn->GetNHit();
+      Double_t x0in=trSdcIn->GetX0(), y0in=trSdcIn->GetY0();
+      Double_t u0in=trSdcIn->GetU0(), v0in=trSdcIn->GetV0();
+      Double_t chiin=trSdcIn->GetChiSquare();
+      HF1(21, Double_t(nhSdcIn)); HF1(22, chiin);
       HF1(24, x0in); HF1(25, y0in); HF1(26, u0in); HF1(27, v0in);
       HF2(28, x0in, u0in); HF2(29, y0in, v0in);
-      for(int jin=0; jin<nhSdcIn; ++jin){
-	int layer=trSdcIn->GetHit(jin)->GetLayer();
+      for(Int_t jin=0; jin<nhSdcIn; ++jin){
+	Int_t layer=trSdcIn->GetHit(jin)->GetLayer();
 	HF1(23, layer);
       }
     }
     if(trSdcOut){
-      int nhSdcOut=trSdcOut->GetNHit();
-      double x0out=trSdcOut->GetX(zTOF), y0out=trSdcOut->GetY(zTOF);
-      double u0out=trSdcOut->GetU0(), v0out=trSdcOut->GetV0();
-      double chiout=trSdcOut->GetChiSquare();
-      HF1(41, double(nhSdcOut)); HF1(42, chiout);
+      Int_t nhSdcOut=trSdcOut->GetNHit();
+      Double_t x0out=trSdcOut->GetX(zTOF), y0out=trSdcOut->GetY(zTOF);
+      Double_t u0out=trSdcOut->GetU0(), v0out=trSdcOut->GetV0();
+      Double_t chiout=trSdcOut->GetChiSquare();
+      HF1(41, Double_t(nhSdcOut)); HF1(42, chiout);
       HF1(44, x0out); HF1(45, y0out); HF1(46, u0out); HF1(47, v0out);
       HF2(48, x0out, u0out); HF2(49, y0out, v0out);
-      for(int jout=0; jout<nhSdcOut; ++jout){
-	int layer=trSdcOut->GetHit(jout)->GetLayer();
+      for(Int_t jout=0; jout<nhSdcOut; ++jout){
+	Int_t layer=trSdcOut->GetHit(jout)->GetLayer();
 	HF1(43, layer);
       }
     }
   }
 
-  for(int i=0; i<ntKurama; ++i){
+  for(Int_t i=0; i<ntKurama; ++i){
     KuramaTrack *tp=DCAna->GetKuramaTrack(i);
     if(!tp) continue;
     DCLocalTrack *trSdcIn =tp->GetLocalTrackIn();
     DCLocalTrack *trSdcOut=tp->GetLocalTrackOut();
     if(!trSdcIn || !trSdcOut) continue;
-    double yin=trSdcIn->GetY(500.), vin=trSdcIn->GetV0();
-    double yout=trSdcOut->GetY(3800.), vout=trSdcOut->GetV0();
+    Double_t yin=trSdcIn->GetY(500.), vin=trSdcIn->GetV0();
+    Double_t yout=trSdcOut->GetY(3800.), vout=trSdcOut->GetV0();
     HF2(20021, yin, yout); HF2(20022, vin, vout);
     HF2(20023, vin, yout); HF2(20024, vout, yin);
   }
 
   if(ntKurama==0) return true;
   KuramaTrack *track = DCAna->GetKuramaTrack(0);
-  double path = track->PathLengthToTOF();
-  double p    = track->PrimaryMomentum().Mag();
-  //double tTof[Event::nParticle];
-  double calt[Event::nParticle] = {
+  Double_t path = track->PathLengthToTOF();
+  Double_t p    = track->PrimaryMomentum().Mag();
+  //Double_t tTof[Event::nParticle];
+  Double_t calt[Event::nParticle] = {
     Kinematics::CalcTimeOfFlight(p, path, pdg::PionMass()),
     Kinematics::CalcTimeOfFlight(p, path, pdg::KaonMass()),
     Kinematics::CalcTimeOfFlight(p, path, pdg::ProtonMass())
   };
-  for(int i=0; i<Event::nParticle; ++i){
+  for(Int_t i=0; i<Event::nParticle; ++i){
     event.tTofCalc[i] = calt[i];
   }
   // TOF
   {
-    int nh = hodoAna->GetNHitsTOF();
-    for(int i=0; i<nh; ++i){
+    Int_t nh = hodoAna->GetNHitsTOF();
+    for(Int_t i=0; i<nh; ++i){
       Hodo2Hit *hit=hodoAna->GetHitTOF(i);
       if(!hit) continue;
-      int seg=hit->SegmentId()+1;
-      double tu = hit->GetTUp(), td=hit->GetTDown();
-      // double ctu=hit->GetCTUp(), ctd=hit->GetCTDown();
-      double cmt=hit->CMeanTime();//, t= cmt-time0+OffsetToF;//cmt-time0;
-      double ude=hit->GetAUp(), dde=hit->GetADown();
-      // double de=hit->DeltaE();
-      // double m2 = Kinematics::MassSquare(p, path, t);
+      Int_t seg=hit->SegmentId()+1;
+      Double_t tu = hit->GetTUp(), td=hit->GetTDown();
+      // Double_t ctu=hit->GetCTUp(), ctd=hit->GetCTDown();
+      Double_t cmt=hit->CMeanTime();//, t= cmt-time0+OffsetToF;//cmt-time0;
+      Double_t ude=hit->GetAUp(), dde=hit->GetADown();
+      // Double_t de=hit->DeltaE();
+      // Double_t m2 = Kinematics::MassSquare(p, path, t);
       // event.tofmt[seg-1] = hit->MeanTime();
       event.utTofSeg[seg-1]  =  tu - time0 + OffsetToF;
       event.dtTofSeg[seg-1]  =  td - time0 + OffsetToF;
@@ -870,10 +870,10 @@ EventKuramaTracking::ProcessingNormal()
     }
 
     const HodoRHitContainer &cont=rawData->GetTOFRawHC();
-    int NofHit = cont.size();
-    for(int i = 0; i<NofHit; ++i){
+    Int_t NofHit = cont.size();
+    for(Int_t i = 0; i<NofHit; ++i){
       HodoRawHit *hit = cont[i];
-      int seg = hit->SegmentId();
+      Int_t seg = hit->SegmentId();
       event.tofua[seg] = hit->GetAdcUp();
       event.tofda[seg] = hit->GetAdcDown();
     }
@@ -902,17 +902,17 @@ EventKuramaTracking::InitializeEvent()
   event.time0 = -9999.;
   event.btof  = -9999.;
 
-  for(int i = 0; i<NumOfLayersVP; ++i){
+  for(Int_t i = 0; i<NumOfLayersVP; ++i){
     event.vpx[i] = -9999;
     event.vpy[i] = -9999;
   }
 
-  for(int it=0; it<NumOfSegTrig; it++){
+  for(Int_t it=0; it<NumOfSegTrig; it++){
     event.trigpat[it] = -1;
     event.trigflag[it] = -1;
   }
 
-  for(int it=0; it<MaxHits; it++){
+  for(Int_t it=0; it<MaxHits; it++){
     event.Bh2Seg[it] = -1;
     event.tBh2[it] = -9999.;
     event.deBh2[it] = -9999.;
@@ -926,14 +926,14 @@ EventKuramaTracking::InitializeEvent()
     event.deTof[it] = -9999.;
   }
 
-  for(int it=0; it<NumOfLayersSdcIn; ++it){
+  for(Int_t it=0; it<NumOfLayersSdcIn; ++it){
     event.wposSdcIn[it]  = -9999.;
   }
-  for(int it=0; it<NumOfLayersSdcOut; ++it){
+  for(Int_t it=0; it<NumOfLayersSdcOut; ++it){
     event.wposSdcOut[it] = -9999.;
   }
 
-  for(int it=0; it<MaxHits; it++){
+  for(Int_t it=0; it<MaxHits; it++){
     event.nhSdcIn[it]     = 0;
     event.chisqrSdcIn[it] = -9999.;
     event.x0SdcIn[it] = -9999.;
@@ -942,7 +942,7 @@ EventKuramaTracking::InitializeEvent()
     event.v0SdcIn[it] = -9999.;
   }
 
-  for(int it=0; it<MaxHits; it++){
+  for(Int_t it=0; it<MaxHits; it++){
     event.nhSdcOut[it]     = 0;
     event.chisqrSdcOut[it] = -9999.;
     event.x0SdcOut[it] = -9999.;
@@ -951,7 +951,7 @@ EventKuramaTracking::InitializeEvent()
     event.v0SdcOut[it] = -9999.;
   }
 
-  for(int it=0; it<MaxHits; it++){
+  for(Int_t it=0; it<MaxHits; it++){
     event.nhKurama[it]     = 0;
     event.chisqrKurama[it] = -9999.;
     event.stof[it]         = -9999.;
@@ -974,16 +974,16 @@ EventKuramaTracking::InitializeEvent()
     event.tofsegKurama[it] = -9999.;
   }
 
-  for(int i=0; i<NumOfLayersSdcIn+NumOfLayersSdcOut+2; ++i){
+  for(Int_t i=0; i<NumOfLayersSdcIn+NumOfLayersSdcOut+2; ++i){
     event.resL[i].clear();
     event.resG[i].clear();
   }
 
-  for(int i=0; i<Event::nParticle; ++i){
+  for(Int_t i=0; i<Event::nParticle; ++i){
     event.tTofCalc[i] = -9999.;
   }
 
-  for(int i=0; i<NumOfSegTOF; ++i){
+  for(Int_t i=0; i<NumOfSegTOF; ++i){
     // event.tofmt[i] = -9999.;
     event.utTofSeg[i]  = -9999.;
     event.dtTofSeg[i]  = -9999.;
@@ -1016,26 +1016,26 @@ ConfMan::EventAllocator()
 //_____________________________________________________________________________
 namespace
 {
-  const int    NBinDTSDC1 =  90;
-  const double MinDTSDC1  = -10.;
-  const double MaxDTSDC1  =  80.;
-  const int    NBinDLSDC1 =  100;
-  const double MinDLSDC1  = -0.5;
-  const double MaxDLSDC1  =  3.0;
+  const Int_t    NBinDTSDC1 =  90;
+  const Double_t MinDTSDC1  = -10.;
+  const Double_t MaxDTSDC1  =  80.;
+  const Int_t    NBinDLSDC1 =  100;
+  const Double_t MinDLSDC1  = -0.5;
+  const Double_t MaxDLSDC1  =  3.0;
 
-  const int    NBinDTSDC2 =  220;
-  const double MinDTSDC2  = -20.;
-  const double MaxDTSDC2  = 200.;
-  const int    NBinDLSDC2 =  100;
-  const double MinDLSDC2  = -0.5;
-  const double MaxDLSDC2  =  4.5;
+  const Int_t    NBinDTSDC2 =  220;
+  const Double_t MinDTSDC2  = -20.;
+  const Double_t MaxDTSDC2  = 200.;
+  const Int_t    NBinDLSDC2 =  100;
+  const Double_t MinDLSDC2  = -0.5;
+  const Double_t MaxDLSDC2  =  4.5;
 
-  const int    NBinDTSDC3 =  400;
-  const double MinDTSDC3  = -100.;
-  const double MaxDTSDC3  =  300.;
-  const int    NBinDLSDC3 =  100;
-  const double MinDLSDC3  = -5.0;
-  const double MaxDLSDC3  = 15.0;
+  const Int_t    NBinDTSDC3 =  400;
+  const Double_t MinDTSDC3  = -100.;
+  const Double_t MaxDTSDC3  =  300.;
+  const Int_t    NBinDLSDC3 =  100;
+  const Double_t MinDLSDC3  = -5.0;
+  const Double_t MaxDLSDC3  = 15.0;
 }
 //_____________________________________________________________________________
 bool
@@ -1105,7 +1105,7 @@ ConfMan:: InitializeHistograms()
   HB1(63, "MassSqr", 600, -0.4, 1.4);
 
   // SDC1
-  for(int i=1; i<=NumOfLayersSDC1; ++i){
+  for(Int_t i=1; i<=NumOfLayersSDC1; ++i){
     TString title1 = Form("HitPat Sdc1_%d", i);
     TString title2 = Form("DriftTime Sdc1_%d", i);
     TString title3 = Form("DriftLength Sdc1_%d", i);
@@ -1139,7 +1139,7 @@ ConfMan:: InitializeHistograms()
   }
 
   //SFT
-  for(int i=NumOfLayersSDC1+1; i<=NumOfLayersSdcIn; ++i){
+  for(Int_t i=NumOfLayersSDC1+1; i<=NumOfLayersSdcIn; ++i){
     TString title1 = Form("HitPat Sft%d", i-NumOfLayersSDC1);
     TString title4 = Form("Position Sft%d", i-NumOfLayersSDC1);
     TString title5 = Form("Residual Sft%d", i-NumOfLayersSDC1);
@@ -1163,7 +1163,7 @@ ConfMan:: InitializeHistograms()
   }
 
   // SDC2
-  for(int i=NumOfLayersSdcIn+1; i<=(NumOfLayersSdcIn+NumOfLayersSDC2); ++i){
+  for(Int_t i=NumOfLayersSdcIn+1; i<=(NumOfLayersSdcIn+NumOfLayersSDC2); ++i){
     TString title1 = Form("HitPat Sdc2_%d", i-NumOfLayersSdcIn);
     TString title2 = Form("DriftTime Sdc2_%d", i-NumOfLayersSdcIn);
     TString title3 = Form("DriftLength Sdc2_%d", i-NumOfLayersSdcIn);
@@ -1197,7 +1197,7 @@ ConfMan:: InitializeHistograms()
   }
 
   // SDC3
-  for(int i=NumOfLayersSdcIn+NumOfLayersSDC2+1;
+  for(Int_t i=NumOfLayersSdcIn+NumOfLayersSDC2+1;
        i<=(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3) ; ++i){
     TString title1 = Form("HitPat Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
     TString title2 = Form("DriftTime Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
@@ -1233,7 +1233,7 @@ ConfMan:: InitializeHistograms()
   /////////////////////
 
   // FBT1, 2
-  for(int i=NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3+1;
+  for(Int_t i=NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3+1;
        i<=(NumOfLayersSdcIn+NumOfLayersSdcOut); ++i){
     TString title1 = Form("HitPat Fbt%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3));
     TString title4 = Form("Position Fbt%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3));
@@ -1259,7 +1259,7 @@ ConfMan:: InitializeHistograms()
 
 
   // TOF in SdcOut/KuramaTracking
-  for(int i=NumOfLayersSdcIn+NumOfLayersSdcOut+1;
+  for(Int_t i=NumOfLayersSdcIn+NumOfLayersSdcOut+1;
        i<=NumOfLayersSdcIn+NumOfLayersSdcOut+2; ++i){
     TString title1 = Form("HitPat Tof%d", i-(NumOfLayersSdcIn+NumOfLayersSdcOut));
     TString title4 = Form("Position Tof%d", i-(NumOfLayersSdcIn+NumOfLayersSdcOut));
@@ -1375,22 +1375,22 @@ ConfMan:: InitializeHistograms()
   event.resG.resize(NumOfLayersSdcIn+NumOfLayersSdcOut+2);
   // tree->Branch("resL", &event.resL);
   // tree->Branch("resG", &event.resG);
-  for(int i=0; i<NumOfLayersSdcIn; ++i){
+  for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
     tree->Branch(Form("ResL%d",i+ 1), &event.resL[i]);
   }
 
-  for(int i=0; i<NumOfLayersSdcOut; ++i){
+  for(Int_t i=0; i<NumOfLayersSdcOut; ++i){
     tree->Branch(Form("ResL%d",i+31), &event.resL[i+NumOfLayersSdcIn]);
   }
 
   tree->Branch("ResL41", &event.resL[NumOfLayersSdcIn+NumOfLayersSdcOut]);
   tree->Branch("ResL42", &event.resL[NumOfLayersSdcIn+NumOfLayersSdcOut+1]);
 
-  for(int i=0; i<NumOfLayersSdcIn; ++i){
+  for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
     tree->Branch(Form("ResG%d",i+ 1), &event.resG[i]);
   }
 
-  for(int i=0; i<NumOfLayersSdcOut; ++i){
+  for(Int_t i=0; i<NumOfLayersSdcOut; ++i){
     tree->Branch(Form("ResG%d",i+31), &event.resG[i+NumOfLayersSdcIn]);
   }
 

@@ -21,7 +21,7 @@
 #include "RootHelper.hh"
 
 #define HodoCut     0
-#define TotCut      1
+#define TotCut      0
 #define Chi2Cut     0
 #define MaxMultiCut 0
 #define BcOutCut    0
@@ -191,9 +191,7 @@ EventSdcInTracking::ProcessingNormal()
 
   HF1( 1, 0. );
 
-  if( trigger_flag[trigger::kSpillEnd] ||
-      trigger_flag[trigger::kL1SpillOff] )
-    return true;
+  if(trigger_flag[trigger::kSpillEnd]) return true;
 
   HF1( 1, 1. );
 
@@ -346,6 +344,10 @@ EventSdcInTracking::ProcessingNormal()
 	  }
 	}
 	HF1( 100*layer+6, tdc1st );
+	for(Int_t k=0, n=hit->GetTdcTrailingSize(); k<n; k++ ){
+	  Int_t trailing = hit->GetTdcTrailing(k);
+	  HF1(100*layer+10, trailing);
+	}
 
 	if( i<MaxHits )
 	  event.pos[layer-1][i] = hit->GetWirePosition();
@@ -616,6 +618,7 @@ ConfMan:: InitializeHistograms()
     TString title5 = Form("TOT %s#%2d", tag.c_str(), i);
     TString title6 = Form("Tdc 1st %s#%2d", tag.c_str(), i);
     TString title7 = Form("TOT 1st %s#%2d", tag.c_str(), i);
+    TString title10 = Form("Trailing %s#%2d", tag.c_str(), i);
     HB1( 100*i+0, title0, nwire+1, 0., double(nwire+1) );
     HB1( 100*i+1, title1, nwire, 0., double(nwire) );
     HB1( 100*i+2, title2, NbinSdcInTdc, MinSdcInTdc, MaxSdcInTdc );
@@ -624,6 +627,7 @@ ConfMan:: InitializeHistograms()
     HB1( 100*i+5, title5, 500,  0, 500 );
     HB1( 100*i+6, title6, NbinSdcInTdc, MinSdcInTdc, MaxSdcInTdc );
     HB1( 100*i+7, title7, 500,  0, 500 );
+    HB1( 100*i+10, title10, NbinSdcInTdc, MinSdcInTdc, MaxSdcInTdc );
     for ( int wire=1; wire<=nwire; wire++ ){
       TString title11 = Form("Tdc %s#%2d  Wire#%4d", tag.c_str(), i, wire);
       TString title12 = Form("DriftTime %s#%2d Wire#%4d", tag.c_str(), i, wire);

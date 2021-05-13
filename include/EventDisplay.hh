@@ -43,14 +43,14 @@ class TTUBS;
 class TView;
 class TLine;
 
-typedef std::vector <TLine *> TLineContainer;
+typedef std::vector <TLine*> TLineContainer;
 
 //_____________________________________________________________________________
 class EventDisplay //: public TObject
 {
 public:
-  static EventDisplay&  GetInstance();
-  static const TString& ClassName();
+  static EventDisplay& GetInstance();
+  static TString ClassName();
   ~EventDisplay();
 
 private:
@@ -159,6 +159,10 @@ private:
   std::vector<TNode*>        m_SDC1x2_node;
   std::vector<TNode*>        m_SDC1u1_node;
   std::vector<TNode*>        m_SDC1u2_node;
+  std::vector<TNode*>        m_SDC2x1_node;
+  std::vector<TNode*>        m_SDC2x2_node;
+  std::vector<TNode*>        m_SDC2y1_node;
+  std::vector<TNode*>        m_SDC2y2_node;
   std::vector<TNode*>        m_SDC3x1_node;
   std::vector<TNode*>        m_SDC3x2_node;
   std::vector<TNode*>        m_SDC3y1_node;
@@ -213,63 +217,63 @@ public:
   bool ConstructFBH();
   bool ConstructSCH();
   bool ConstructTOF();
-  void DrawInitTrack(int nStep, ThreeVector *StepPoint);
+  void DrawInitTrack(Int_t nStep, ThreeVector *StepPoint);
   void DrawInitTrack();
-  void DrawHitWire(int lid, int hit_wire,
+  void DrawHitWire(Int_t lid, Int_t hit_wire,
 		    bool range_check=true, bool tdc_check=true);
-  void DrawTrackWire(int lid, int hit_wire, int it);
-  void DrawText(double xpos, double ypos, const std::string& arg);
-  void DrawHitHodoscope(int lid, int seg, int Tu=1, int Td=1);
+  void DrawTrackWire(Int_t lid, Int_t hit_wire, Int_t it);
+  void DrawText(Double_t xpos, Double_t ypos, const TString& arg);
+  void DrawHitHodoscope(Int_t lid, Int_t seg, Int_t Tu=1, Int_t Td=1);
   void DrawBcOutLocalTrack(DCLocalTrack *tp);
-  void DrawBcOutLocalTrack(double x0, double y0, double u0, double v0);
+  void DrawBcOutLocalTrack(Double_t x0, Double_t y0, Double_t u0, Double_t v0);
   void DrawSdcInLocalTrack(DCLocalTrack *tp);
   void DrawSdcOutLocalTrack(DCLocalTrack *tp);
-  void DrawSsdHit(int lid, int seg, double de);
+  void DrawSsdHit(Int_t lid, Int_t seg, Double_t de);
   void DrawVertex(const ThreeVector& vertex);
-  void DrawKuramaTrack(int nStep, ThreeVector *StepPoint, int Polarity);
+  void DrawKuramaTrack(Int_t nStep, ThreeVector *StepPoint, Int_t Polarity);
   void DrawTarget();
   void DrawMissingMomentum(const ThreeVector& mom,
 			    const ThreeVector& pos);
-  void DrawMomentum(double momentum);
-  void DrawMassSquare(double mass_square);
-  void DrawMissMass(double mass_square);
-  void DrawBH1(int seg, int tdc);
-  void SetCorrectTimeBH1(int seg, double de);
-  void DrawBFT(int layer, int seg, int tdc);
-  void SetCorrectTimeBFT(double pos);
-  void DrawBcInTrack(double x0, double u0);
-  void DrawBH2(int seg, int tdc);
-  void SetCorrectTimeBH2(int seg, double de);
-  void SetCorrectTimeBcOut(int layer, double pos);
-  void DrawBcOutTrack(double x0, double u0, double y0, double v0, bool flagGoodForTracking = true);
-  void DrawSdcInTrack(double x0, double u0, double y0, double v0, bool flagKurama = false, bool flagBeam = false);
-  void DrawSCH(int seg, int tdc);
-  void SetCorrectTimeSCH(int seg, double de);
-  void SetCorrectTimeSdcIn(int layer, double pos);
+  void DrawMomentum(Double_t momentum);
+  void DrawMassSquare(Double_t mass_square);
+  void DrawMissMass(Double_t mass_square);
+  void DrawBH1(Int_t seg, Int_t tdc);
+  void SetCorrectTimeBH1(Int_t seg, Double_t de);
+  void DrawBFT(Int_t layer, Int_t seg, Int_t tdc);
+  void SetCorrectTimeBFT(Double_t pos);
+  void DrawBcInTrack(Double_t x0, Double_t u0);
+  void DrawBH2(Int_t seg, Int_t tdc);
+  void SetCorrectTimeBH2(Int_t seg, Double_t de);
+  void SetCorrectTimeBcOut(Int_t layer, Double_t pos);
+  void DrawBcOutTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, bool flagGoodForTracking = true);
+  void DrawSdcInTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, bool flagKurama = false, bool flagBeam = false);
+  void FillSCH(Int_t seg, Int_t tdc);
+  void SetCorrectTimeSCH(Int_t seg, Double_t de);
+  void SetCorrectTimeSdcIn(Int_t layer, Double_t pos);
 
-  void DrawTOF(int seg, int tdc);
-  void DrawBcOutHit(int layer,  int wire, int tdc);
-  void DrawBC3(int wire, int tdc);
-  void DrawBC3p(int wire, int tdc);
-  void DrawBC4(int wire, int tdc);
-  void DrawBC4p(int wire, int tdc);
-  void DrawSDC1(int wire, int tdc);
-  void DrawSDC1p(int wire, int tdc);
-  void DrawSdcOutHit(int layer,  int wire, int LorT, int tdc);
-  void DrawSDC3_Leading(int wire, int tdc);
-  void DrawSDC3_Trailing(int wire, int tdc);
-  void DrawSDC3p_Leading(int wire, int tdc);
-  void DrawSDC3p_Trailing(int wire, int tdc);
-  void DrawSDC4_Leading(int wire, int tdc);
-  void DrawSDC4_Trailing(int wire, int tdc);
-  void DrawSDC4p_Leading(int wire, int tdc);
-  void DrawSDC4p_Trailing(int wire, int tdc);
-  void ShowHitFiber(int layer, int segment, double pe);// const;
+  void FillTOF(Int_t seg, Int_t tdc);
+  void DrawBcOutHit(Int_t layer,  Int_t wire, Int_t tdc);
+  void DrawBC3(Int_t wire, Int_t tdc);
+  void DrawBC3p(Int_t wire, Int_t tdc);
+  void DrawBC4(Int_t wire, Int_t tdc);
+  void DrawBC4p(Int_t wire, Int_t tdc);
+  void DrawSDC1(Int_t wire, Int_t tdc);
+  void DrawSDC1p(Int_t wire, Int_t tdc);
+  void DrawSdcOutHit(Int_t layer,  Int_t wire, Int_t LorT, Int_t tdc);
+  void DrawSDC3_Leading(Int_t wire, Int_t tdc);
+  void DrawSDC3_Trailing(Int_t wire, Int_t tdc);
+  void DrawSDC3p_Leading(Int_t wire, Int_t tdc);
+  void DrawSDC3p_Trailing(Int_t wire, Int_t tdc);
+  void DrawSDC4_Leading(Int_t wire, Int_t tdc);
+  void DrawSDC4_Trailing(Int_t wire, Int_t tdc);
+  void DrawSDC4p_Leading(Int_t wire, Int_t tdc);
+  void DrawSDC4p_Trailing(Int_t wire, Int_t tdc);
+  void ShowHitFiber(Int_t layer, Int_t segment, Double_t pe);// const;
   void UpdateHist();
   void EndOfEvent();
   void ResetVisibility();
-  void CalcRotMatrix(double TA, double RA1, double RA2, double *rotMat);
-  int  GetCommand() const;
+  void CalcRotMatrix(Double_t TA, Double_t RA1, Double_t RA2, Double_t *rotMat);
+  Int_t  GetCommand() const;
   void Run(bool flag=kTRUE);
 
 private:
@@ -287,7 +291,7 @@ EventDisplay::GetInstance()
 }
 
 //_____________________________________________________________________________
-inline const TString&
+inline TString
 EventDisplay::ClassName()
 {
   static TString s_name("EventDisplay");

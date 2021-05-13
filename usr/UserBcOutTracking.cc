@@ -297,6 +297,10 @@ EventBcOutTracking::ProcessingNormal()
 	  }
 	}
 	HF1( 100*layer+6, tdc1st );
+	for(Int_t k=0, n=hit->GetTdcTrailingSize(); k<n; ++k){
+	  Int_t trailing = hit->GetTdcTrailing(k);
+	  HF1(100*layer+10, trailing);
+	}
 
 	if( i<MaxHits )
 	  event.pos[layer-1][i] = hit->GetWirePosition();
@@ -548,7 +552,7 @@ ConfMan:: InitializeHistograms()
   HB1( 1, "Status", 20, 0., 20. );
 
   //***********************Chamber
-  // BC3
+  // BC34
   for( Int_t i=1; i<=NumOfLayersBcOut; ++i ){
 
     std::string tag;
@@ -571,6 +575,7 @@ ConfMan:: InitializeHistograms()
     TString title7 = Form("TOT 1st %s#%2d", tag.c_str(), i);
     TString title8 = Form("Time interval from 1st hit %s#%2d", tag.c_str(), i);
     TString title9 = Form("Position interval from 1st hit %s#%2d", tag.c_str(), i);
+    TString title10 = Form("Trailing %s#%2d", tag.c_str(), i);
     HB1( 100*i+0, title0, nwire+1, 0., Double_t(nwire+1) );
     HB1( 100*i+1, title1, nwire+1, 0., Double_t(nwire+1) );
     HB1( 100*i+2, title2, NbinBcOutTdc, MinBcOutTdc, MaxBcOutTdc );
@@ -581,6 +586,7 @@ ConfMan:: InitializeHistograms()
     HB1( 100*i+7, title7, 500,  0, 500 );
     HB1( 100*i+8, title8, 72,     0, 60 );
     HB1( 100*i+9, title9, 64,   -32, 32 );
+    HB1( 100*i+10, title10, NbinBcOutTdc, MinBcOutTdc, MaxBcOutTdc );
     for (Int_t wire=1; wire<=nwire; wire++) {
       TString title10 = Form("Tdc %s#%2d Wire#%d", tag.c_str(), i, wire);
       TString title11 = Form("Drift Time %s#%2d Wire#%d", tag.c_str(), i, wire);

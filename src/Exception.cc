@@ -10,29 +10,30 @@
 #include "FuncName.hh"
 
 //_____________________________________________________________________________
-Exception::Exception( const TString& msg )
+Exception::Exception(const TString& msg)
   : m_msg()
 {
   m_msg = hddaq::unpacker::esc::k_yellow
-    + FUNC_NAME + " " + msg
+    // + FUNC_NAME + " "
+    + msg
     + hddaq::unpacker::esc::k_default_color;
 }
 
 //_____________________________________________________________________________
-Exception::~Exception( void ) throw()
+Exception::~Exception() throw()
 {
 }
 
 //_____________________________________________________________________________
 void
-Exception::hoge( const TString& arg ) const
+Exception::hoge(const TString& arg) const
 {
   hddaq::cout << FUNC_NAME << " " << arg << std::endl;
 }
 
 //_____________________________________________________________________________
 const Char_t*
-Exception::what( void ) const throw()
+Exception::what() const throw()
 {
   return m_msg.Data();
 }
