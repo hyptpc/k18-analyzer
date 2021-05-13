@@ -450,7 +450,7 @@ RK::CheckCrossing(Int_t lnum, const RKTrajectoryPoint &startPoint,
                   const RKTrajectoryPoint &endPoint,
                   RKcalcHitPoint &crossPoint)
 {
-  const DCGeomRecord *geom_record = gGeom.GetRecord(lnum);
+  const auto geom_record = gGeom.GetRecord(lnum);
   ThreeVector posVector   = geom_record->Position();
   ThreeVector nomalVector = geom_record->NormalVector();
 
@@ -511,7 +511,7 @@ RK::CheckCrossing(Int_t lnum, const RKTrajectoryPoint &startPoint,
   else
     crossPoint.s = gGeom.Global2LocalPos(lnum, crossPoint.posG).x();
 
-  crossPoint.l    = l;
+  crossPoint.l = l;
 
   Double_t sx = geom_record->dsdx();
   Double_t sy = geom_record->dsdy();
@@ -588,7 +588,7 @@ RK::CheckCrossing(Int_t lnum, const RKTrajectoryPoint &startPoint,
   crossPoint.dvdx=dvdx; crossPoint.dvdy=dvdy; crossPoint.dvdu=dvdu;
   crossPoint.dvdv=dvdv; crossPoint.dvdq=dvdq;
 
-#if 1
+#if 0
   {
     PrintHelper helper(5, std::ios::fixed);
     hddaq::cout << FUNC_NAME << ": Layer#"
@@ -632,7 +632,7 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
                               0., 0., 1., 0., 0.,
                               0., 0., 0., 1., 0.,
                               0.0);
-  Int_t    MaxStep        = 10000;
+  Int_t MaxStep = 10000;
   static const Double_t MaxPathLength  = 10000.; // mm
   static const Double_t NormalStepSize = -10.;   // mm
   Double_t MinStepSize = 2.;     // mm
@@ -647,23 +647,23 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
                                         NormalStepSize, MinStepSize);
     RKTrajectoryPoint nextPoint = RK::TraceOneStep(StepSize, prevPoint);
 
-    /*for EventDisplay*/
+    /* for EventDisplay */
     StepPoint[iStep-1] = nextPoint.PositionInGlobal();
 
     while(RK::CheckCrossing(hitContainer[iPlane].first,
                             prevPoint, nextPoint,
                             hitContainer[iPlane].second)){
-#if 1
+#if 0
       {
 	PrintHelper helper(1, std::ios::fixed);
 
 	hddaq::cout << std::flush;
         Int_t plnum = hitContainer[iPlane].first;
-        const RKcalcHitPoint &chp = hitContainer[iPlane].second;
-        const ThreeVector &gpos = chp.PositionInGlobal();
-        const ThreeVector &gmom = chp.MomentumInGlobal();
+        const auto& chp = hitContainer[iPlane].second;
+        const auto& gpos = chp.PositionInGlobal();
+        const auto& gmom = chp.MomentumInGlobal();
 
-	hddaq::cout << FUNC_NAME << ": PL#="
+	hddaq::cout << FUNC_NAME << " " << iPlane << " PL#="
 		    << std::setw(2) << plnum  << " X="
 		    << std::setw(7) << chp.PositionInLocal()
 		    << " ("  << std::setw(8) << gpos.x()
@@ -718,23 +718,22 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
 	      << " iPlane=" << std::dec << hitContainer[iPlane+1].first
 	      << std::endl;
 #endif
+
   return KuramaTrack::kExceedMaxStep;
 }
 
 //_____________________________________________________________________________
 Bool_t
-RK::TraceToLast(RKHitPointContainer &hitContainer)
+RK::TraceToLast(RKHitPointContainer& hitContainer)
 {
   Int_t nPlane = hitContainer.size();
   Int_t iPlane = nPlane-1;
   Int_t idini  = hitContainer[iPlane].first;
 
   // add downstream detectors from TOF
-  std::vector<Int_t> IdList = gGeom.GetDetectorIDList();
-  std::size_t IdSize = IdList.size();
-  for(std::size_t i=0; i<IdSize; ++i){
-    if(idini<IdList[i] && IdList[i]<=IdRKLAST){
-      hitContainer.push_back(std::make_pair(IdList[i], RKcalcHitPoint()));
+  for(const auto& lid: gGeom.GetDetectorIDList()){
+    if(idini < lid && lid <= IdRKLAST){
+      hitContainer.push_back(std::make_pair(lid, RKcalcHitPoint()));
     }
   }
 

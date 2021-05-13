@@ -11,14 +11,14 @@
 class UserParamMan
 {
 public:
-  static const TString& ClassName( void );
-  static UserParamMan&  GetInstance( void );
-  ~UserParamMan( void );
+  static const TString& ClassName();
+  static UserParamMan&  GetInstance();
+  ~UserParamMan();
 
 private:
-  UserParamMan( void );
-  UserParamMan( const UserParamMan&  );
-  UserParamMan& operator =( const UserParamMan& );
+  UserParamMan();
+  UserParamMan(const UserParamMan& );
+  UserParamMan& operator =(const UserParamMan&);
 
 private:
   typedef std::vector<Double_t>         ParamArray;
@@ -30,26 +30,26 @@ private:
   ParamMap m_param_map;
 
 public:
-  Bool_t   Initialize( void );
-  Bool_t   Initialize( const TString& filename );
-  Bool_t   IsReady( void ) const { return m_is_ready; }
-  Int_t    GetSize( const TString& key ) const;
-  Double_t GetParameter( const TString& key, Int_t i=0 ) const;
-  void     Print( const TString& arg="" ) const;
-  void     UseDefaultValue( Bool_t flag=true ) { m_use_default = flag; }
+  Bool_t   Initialize();
+  Bool_t   Initialize(const TString& filename);
+  Bool_t   IsReady() const { return m_is_ready; }
+  Int_t    GetSize(const TString& key) const;
+  Double_t GetParameter(const TString& key, Int_t i=0) const;
+  void     Print(const TString& arg="") const;
+  void     UseDefaultValue(Bool_t flag=true) { m_use_default = flag; }
 };
 
 //_____________________________________________________________________________
 inline const TString&
-UserParamMan::ClassName( void )
+UserParamMan::ClassName()
 {
-  static TString s_name( "UserParamMan" );
+  static TString s_name("UserParamMan");
   return s_name;
 }
 
 //_____________________________________________________________________________
 inline UserParamMan&
-UserParamMan::GetInstance( void )
+UserParamMan::GetInstance()
 {
   static UserParamMan s_instance;
   return s_instance;

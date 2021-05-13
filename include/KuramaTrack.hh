@@ -84,8 +84,8 @@ public:
   const ThreeVector& TofMom() const { return m_tof_mom; }
   Double_t           chisqr() const { return m_chisqr; }
   Double_t           Polarity() const { return m_polarity; }
-  std::size_t        GetNHits() const { return m_hit_array.size(); }
-  TrackHit*          GetHit(std::size_t nth) const;
+  Int_t              GetNHits() const { return m_hit_array.size(); }
+  TrackHit*          GetHit(Int_t nth) const { return m_hit_array.at(nth); }
   TrackHit*          GetHitOfLayerNumber(Int_t lnum) const;
   Bool_t             GoodForAnalysis() const { return m_is_good; }
   Bool_t             GoodForAnalysis(Bool_t status)

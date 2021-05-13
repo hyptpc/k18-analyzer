@@ -21,7 +21,7 @@
 #include "VEvent.hh"
 
 #define HodoCut 0
-#define UseTOF  1
+#define UseTOF  0
 
 namespace
 {

@@ -26,40 +26,40 @@ const Double_t default_value = TMath::QuietNaN();
 //   1: return default value
 
 //_____________________________________________________________________________
-UserParamMan::UserParamMan( void )
-  : m_is_ready( false ),
-    m_use_default( false ),
+UserParamMan::UserParamMan()
+  : m_is_ready(false),
+    m_use_default(false),
     m_file_name(),
     m_param_map()
 {
 }
 
 //_____________________________________________________________________________
-UserParamMan::~UserParamMan( void )
+UserParamMan::~UserParamMan()
 {
 }
 
 //_____________________________________________________________________________
 Bool_t
-UserParamMan::Initialize( void )
+UserParamMan::Initialize()
 {
-  std::ifstream ifs( m_file_name );
-  if( !ifs.is_open() ){
+  std::ifstream ifs(m_file_name);
+  if(!ifs.is_open()){
     hddaq::cerr << FUNC_NAME << " "
 		<< "No such parameter file : " << m_file_name << std::endl;
     return false;
   }
 
   TString line;
-  while( ifs.good() && line.ReadLine( ifs ) ){
-    if( line.IsNull() || line[0]=='#' ) continue;
-    std::istringstream input_line( line.Data() );
+  while(ifs.good() && line.ReadLine(ifs)){
+    if(line.IsNull() || line[0]=='#') continue;
+    std::istringstream input_line(line.Data());
     TString key;
     input_line >> key;
     ParamArray param_array;
     Double_t   param;
-    while( input_line >> param ){
-      param_array.push_back( param );
+    while(input_line >> param){
+      param_array.push_back(param);
     }
     m_param_map[key] = param_array;
   }
@@ -70,7 +70,7 @@ UserParamMan::Initialize( void )
 
 //_____________________________________________________________________________
 Bool_t
-UserParamMan::Initialize( const TString& filename )
+UserParamMan::Initialize(const TString& filename)
 {
   m_file_name = filename;
   return Initialize();
@@ -78,11 +78,11 @@ UserParamMan::Initialize( const TString& filename )
 
 //_____________________________________________________________________________
 Int_t
-UserParamMan::GetSize( const TString& key ) const
+UserParamMan::GetSize(const TString& key) const
 {
-  PIterator itr = m_param_map.find( key );
-  if( itr == m_param_map.end() ){
-    Print( m_file_name );
+  PIterator itr = m_param_map.find(key);
+  if(itr == m_param_map.end()){
+    Print(m_file_name);
     hddaq::cerr << FUNC_NAME << " "
 		<< "No such key : " << key << std::endl;
     return 0;
@@ -93,52 +93,52 @@ UserParamMan::GetSize( const TString& key ) const
 
 //_____________________________________________________________________________
 Double_t
-UserParamMan::GetParameter( const TString& key, Int_t i ) const
+UserParamMan::GetParameter(const TString& key, Int_t i) const
 {
   std::stringstream param;
   param << key << "(" << i << ")";
 
-  PIterator itr = m_param_map.find( key );
+  PIterator itr = m_param_map.find(key);
 
-  if( itr == m_param_map.end() ){
-    Print( m_file_name );
-    if( m_use_default ){
+  if(itr == m_param_map.end()){
+    Print(m_file_name);
+    if(m_use_default){
       hddaq::cerr << FUNC_NAME
                   << "set default value : " << param.str() << " -> "
                   << default_value << std::endl;
       return default_value;
     } else {
-      throw std::out_of_range( FUNC_NAME+" No such key : "+key );
+      throw std::out_of_range(FUNC_NAME+" No such key : "+key);
     }
   }
 
-  if( i+1 > itr->second.size() ){
-    Print( m_file_name );
-    if( m_use_default ){
+  if(i+1 > itr->second.size()){
+    Print(m_file_name);
+    if(m_use_default){
       hddaq::cerr << FUNC_NAME
                   << "set default value : " << param.str() << " -> "
                   << default_value << std::endl;
       return default_value;
     } else {
-      throw std::out_of_range( FUNC_NAME+" No such key : "+key );
+      throw std::out_of_range(FUNC_NAME+" No such key : "+key);
     }
   }
 
-  return itr->second.at( i );
+  return itr->second.at(i);
 }
 
 //_____________________________________________________________________________
 void
-UserParamMan::Print( const TString& arg ) const
+UserParamMan::Print(const TString& arg) const
 {
   hddaq::cout << FUNC_NAME << " " << arg << std::endl;
 
-  const int w = 20;
-  for( PIterator itr=m_param_map.begin(), end=m_param_map.end();
-       itr != end; ++itr ){
+  const Int_t w = 20;
+  for(PIterator itr=m_param_map.begin(), end=m_param_map.end();
+       itr != end; ++itr){
     hddaq::cout << " key = " << std::setw(w) << std::left
 		<< itr->first << itr->second.size() << " : ";
-    for( Int_t i=0, n=itr->second.size(); i<n; ++i ){
+    for(Int_t i=0, n=itr->second.size(); i<n; ++i){
       hddaq::cout << std::setw(5) << std::right
 		  << itr->second.at(i) << " ";
     }

@@ -72,20 +72,9 @@ KuramaTrack::~KuramaTrack()
 
 //______________________________________________________________________________
 TrackHit*
-KuramaTrack::GetHit(std::size_t nth) const
-{
-  if(nth<m_hit_array.size())
-    return m_hit_array[nth];
-  else
-    return 0;
-}
-
-//______________________________________________________________________________
-TrackHit*
 KuramaTrack::GetHitOfLayerNumber(Int_t lnum) const
 {
-  std::size_t nh = m_hit_array.size();
-  for(std::size_t i=0; i<nh; ++i){
+  for(Int_t i=0, n=m_hit_array.size(); i<n; ++i){
     if(m_hit_array[i]->GetLayer()==lnum)
       return m_hit_array[i];
   }
@@ -96,18 +85,18 @@ KuramaTrack::GetHitOfLayerNumber(Int_t lnum) const
 void
 KuramaTrack::FillHitArray()
 {
-  std::size_t nIn  = m_track_in->GetNHit();
-  std::size_t nOut = m_track_out->GetNHit();
+  Int_t nIn  = m_track_in->GetNHit();
+  Int_t nOut = m_track_out->GetNHit();
   ClearHitArray();
   m_hit_array.reserve(nIn+nOut);
 
-  for(std::size_t i=0; i<nIn; ++i){
+  for(Int_t i=0; i<nIn; ++i){
     DCLTrackHit *hit  = m_track_in->GetHit(i);
     TrackHit    *thit = new TrackHit(hit);
     m_hit_array.push_back(thit);
   }
 
-  for(std::size_t i=0; i<nOut; ++i){
+  for(Int_t i=0; i<nOut; ++i){
     DCLTrackHit *hit  = m_track_out->GetHit(i);
     TrackHit    *thit = new TrackHit(hit);
     m_hit_array.push_back(thit);
@@ -160,13 +149,13 @@ KuramaTrack::DoFit()
     return false;
   }
 
-  static const auto gTof = gGeom.GetGlobalPosition("TOF");
-  const Double_t xOut    = m_track_out->GetX(gTof.z());
-  const Double_t yOut    = m_track_out->GetY(gTof.z());
+  static const auto gposTOFDX = gGeom.GetGlobalPosition("TOF-DX");
+  const Double_t xOut    = m_track_out->GetX(gposTOFDX.z());
+  const Double_t yOut    = m_track_out->GetY(gposTOFDX.z());
   const Double_t uOut    = m_track_out->GetU0();
   const Double_t vOut    = m_track_out->GetV0();
   const Double_t pzOut   = m_initial_momentum/std::sqrt(1.+uOut*uOut+vOut*vOut);
-  const ThreeVector posOut(xOut, yOut, gTof.z());
+  const ThreeVector posOut(xOut, yOut, gposTOFDX.z());
   const ThreeVector momOut(pzOut*uOut, pzOut*vOut, pzOut);
 
   RKCordParameter     iniCord(posOut, momOut);
@@ -434,12 +423,12 @@ KuramaTrack::DoFit(RKCordParameter iniCord)
 Double_t
 KuramaTrack::CalcChiSqr(const RKHitPointContainer &hpCont) const
 {
-  std::size_t nh = m_hit_array.size();
+  Int_t nh = m_hit_array.size();
 
   Double_t chisqr=0.0;
   Int_t n=0;
 
-  for(std::size_t i=0; i<nh; ++i){
+  for(Int_t i=0; i<nh; ++i){
     TrackHit *thp = m_hit_array[i];
     if(!thp) continue;
     Int_t    lnum = thp->GetLayer();
@@ -484,7 +473,7 @@ KuramaTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
   Double_t cb2[10], wSvd[5], dcb[5];
   Double_t wv[5];   // working space for SVD functions
 
-  std::size_t nh = m_hit_array.size();
+  Int_t nh = m_hit_array.size();
 
   for(Int_t i=0; i<10; ++i){
     cb2[i]=0.0;
@@ -492,7 +481,7 @@ KuramaTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
   }
 
   Int_t nth=0;
-  for(std::size_t i=0; i<nh; ++i){
+  for(Int_t i=0; i<nh; ++i){
     TrackHit *thp = m_hit_array[i];
     if(!thp) continue;
     Int_t lnum = thp->GetLayer();
@@ -720,7 +709,7 @@ KuramaTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
 Bool_t
 KuramaTrack::SaveCalcPosition(const RKHitPointContainer &hpCont)
 {
-  for(std::size_t i=0, n=m_hit_array.size(); i<n; ++i){
+  for(Int_t i=0, n=m_hit_array.size(); i<n; ++i){
     TrackHit *thp = m_hit_array[i];
     if(!thp) continue;
     Int_t lnum = thp->GetLayer();
@@ -769,12 +758,12 @@ KuramaTrack::PrintCalcHits(const RKHitPointContainer &hpCont, std::ostream &ost)
 {
   PrintHelper helper(2, std::ios::fixed, ost);
 
-  const std::size_t n = m_hit_array.size();
+  const Int_t n = m_hit_array.size();
   RKHitPointContainer::RKHpCIterator itr, end = hpCont.end();
   for(itr=hpCont.begin(); itr!=end; ++itr){
     Int_t lnum = itr->first;
     TrackHit *thp = 0;
-    for(std::size_t i=0; i<n; ++i){
+    for(Int_t i=0; i<n; ++i){
       if(m_hit_array[i] && m_hit_array[i]->GetLayer()==lnum){
 	thp = m_hit_array[i];
 	if(thp) break;

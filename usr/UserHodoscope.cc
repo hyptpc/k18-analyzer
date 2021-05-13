@@ -56,8 +56,8 @@ class EventHodoscope : public VEvent
 private:
   RawData*      rawData;
   HodoAnalyzer* hodoAna;
-  
-  
+
+
 public:
         EventHodoscope();
        ~EventHodoscope();
@@ -506,8 +506,8 @@ Dst::clear()
       deTof[MaxDepth*it + m]  = qnan;
     }
   }
-  
-  
+
+
 
 }
 
@@ -982,7 +982,7 @@ EventHodoscope::ProcessingNormal()
     event.wcsumnhits = wcsum_nhits;
   }
 
-  
+
   //**************************************************************************
   //****************** NormalizedData
 
@@ -1594,8 +1594,8 @@ EventHodoscope::ProcessingNormal()
       for(int m=0; m<mhit_pair; ++m){
     	if(mhit_pair > MaxDepth) break;
 
-    	double time     = hit->GetTime(m);
-    	double ctime    = hit->GetCTime(m);
+    	// double time     = hit->GetTime(m);
+    	// double ctime    = hit->GetCTime(m);
     	double width    = hit->GetWidth(m);
 
     	// HF1(SCHHid +4, width);
@@ -2465,7 +2465,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("tofnhits",   &event.tofnhits,   "tofnhits/I");
   tree->Branch("tofhitpat",   event.tofhitpat,  Form("tofhitpat[%d]/I", NumOfSegTOF));
   tree->Branch("tofnhits_3dmtx",   &event.tofnhits_3dmtx,   "tofnhits_3dmtx/I");
-  tree->Branch("tofhitpat_3dmtx",   event.tofhitpat_3dmtx,  "tofhitpat_3dmtx[tofnhits_3dmtx]/I");  
+  tree->Branch("tofhitpat_3dmtx",   event.tofhitpat_3dmtx,  "tofhitpat_3dmtx[tofnhits_3dmtx]/I");
   tree->Branch("tofua",       event.tofua,      Form("tofua[%d]/D", NumOfSegTOF));
   tree->Branch("tofut",       event.tofut,      Form("tofut[%d][%d]/D", NumOfSegTOF, MaxDepth));
   tree->Branch("tofda",       event.tofda,      Form("tofda[%d]/D", NumOfSegTOF));
