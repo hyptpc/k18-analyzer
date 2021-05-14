@@ -57,7 +57,6 @@ private:
   RawData*      rawData;
   HodoAnalyzer* hodoAna;
 
-
 public:
         EventHodoscope();
        ~EventHodoscope();
@@ -506,9 +505,6 @@ Dst::clear()
       deTof[MaxDepth*it + m]  = qnan;
     }
   }
-
-
-
 }
 
 
@@ -566,7 +562,6 @@ EventHodoscope::ProcessingNormal()
   static const auto MaxTdcSCH  = gUser.GetParameter("TdcSCH",  1);
   static const auto MinTimeSCH = gUser.GetParameter("TimeSCH", 0);
   static const auto MaxTimeSCH = gUser.GetParameter("TimeSCH", 1);
-
 
   rawData->DecodeHits();
 

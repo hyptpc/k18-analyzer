@@ -28,12 +28,14 @@
 
 #define HodoCut    0 // with BH1/BH2
 #define TimeCut    1 // in cluster analysis
-#define FHitBranch 0 // make FiberHit branches (becomes heavy)
+#define FHitBranch 1 // make FiberHit branches (becomes heavy)
 
 namespace
 {
 using namespace root;
-auto& gRM = RMAnalyzer::GetInstance();
+using hddaq::unpacker::GUnpacker;
+const auto qnan = TMath::QuietNaN();
+const auto& gUnpacker = GUnpacker::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
 }
 
@@ -51,18 +53,18 @@ VEvent::~VEvent()
 class EventEasiroc : public VEvent
 {
 private:
-  RawData      *rawData;
-  DCAnalyzer   *DCAna;
-  HodoAnalyzer *hodoAna;
+  RawData*      rawData;
+  DCAnalyzer*   DCAna;
+  HodoAnalyzer* hodoAna;
 
 public:
   EventEasiroc();
   ~EventEasiroc();
-  bool  ProcessingBegin();
-  bool  ProcessingEnd();
-  bool  ProcessingNormal();
-  bool  InitializeHistograms();
-  void  InitializeEvent();
+  Bool_t ProcessingBegin();
+  Bool_t ProcessingEnd();
+  Bool_t ProcessingNormal();
+  Bool_t InitializeHistograms();
+  void   InitializeEvent();
 };
 
 //_____________________________________________________________________________
@@ -85,42 +87,95 @@ EventEasiroc::~EventEasiroc()
 //_____________________________________________________________________________
 struct Event
 {
-  int evnum;
-  int trignhits;
-  int trigpat[NumOfSegTrig];
-  int trigflag[NumOfSegTrig];
+  Int_t evnum;
+  Int_t trignhits;
+  Int_t trigpat[NumOfSegTrig];
+  Int_t trigflag[NumOfSegTrig];
   // BFT
-  int    bft_nhits;
-  int    bft_unhits;
-  int    bft_dnhits;
-  int    bft_uhitpat[NumOfSegBFT];
-  int    bft_dhitpat[NumOfSegBFT];
-  double bft_utdc[NumOfSegBFT][MaxDepth];
-  double bft_dtdc[NumOfSegBFT][MaxDepth];
-  double bft_utrailing[NumOfSegBFT][MaxDepth];
-  double bft_dtrailing[NumOfSegBFT][MaxDepth];
-  double bft_utot[NumOfSegBFT][MaxDepth];
-  double bft_dtot[NumOfSegBFT][MaxDepth];
-  int    bft_udepth[NumOfSegBFT];
-  int    bft_ddepth[NumOfSegBFT];
-  int    bft_ncl;
-  int    bft_clsize[NumOfSegBFT];
-  double bft_ctime[NumOfSegBFT];
-  double bft_ctot[NumOfSegBFT];
-  double bft_clpos[NumOfSegBFT];
+  Int_t    bft_nhits;
+  Int_t    bft_unhits;
+  Int_t    bft_dnhits;
+  Int_t    bft_uhitpat[NumOfSegBFT];
+  Int_t    bft_dhitpat[NumOfSegBFT];
+  Double_t bft_utdc[NumOfSegBFT][MaxDepth];
+  Double_t bft_dtdc[NumOfSegBFT][MaxDepth];
+  Double_t bft_utrailing[NumOfSegBFT][MaxDepth];
+  Double_t bft_dtrailing[NumOfSegBFT][MaxDepth];
+  Double_t bft_utot[NumOfSegBFT][MaxDepth];
+  Double_t bft_dtot[NumOfSegBFT][MaxDepth];
+  Int_t    bft_udepth[NumOfSegBFT];
+  Int_t    bft_ddepth[NumOfSegBFT];
+  Int_t    bft_ncl;
+  Int_t    bft_clsize[NumOfSegBFT];
+  Double_t bft_ctime[NumOfSegBFT];
+  Double_t bft_ctot[NumOfSegBFT];
+  Double_t bft_clpos[NumOfSegBFT];
   // SCH
-  int    sch_nhits;
-  int    sch_hitpat[NumOfSegSCH];
-  double sch_tdc[NumOfSegSCH][MaxDepth];
-  double sch_trailing[NumOfSegSCH][MaxDepth];
-  double sch_tot[NumOfSegSCH][MaxDepth];
-  int    sch_depth[NumOfSegSCH];
-  int    sch_ncl;
-  int    sch_clsize[NumOfSegSCH];
-  double sch_ctime[NumOfSegSCH];
-  double sch_ctot[NumOfSegSCH];
-  double sch_clpos[NumOfSegSCH];
+  Int_t    sch_nhits;
+  Int_t    sch_hitpat[NumOfSegSCH];
+  Double_t sch_tdc[NumOfSegSCH][MaxDepth];
+  Double_t sch_trailing[NumOfSegSCH][MaxDepth];
+  Double_t sch_tot[NumOfSegSCH][MaxDepth];
+  Int_t    sch_depth[NumOfSegSCH];
+  Int_t    sch_ncl;
+  Int_t    sch_clsize[NumOfSegSCH];
+  Double_t sch_ctime[NumOfSegSCH];
+  Double_t sch_ctot[NumOfSegSCH];
+  Double_t sch_clpos[NumOfSegSCH];
+
+  void clear();
 };
+
+//_____________________________________________________________________________
+void
+Event::clear()
+{
+  evnum      = 0;
+  bft_nhits  = 0;
+  bft_unhits = 0;
+  bft_dnhits = 0;
+  bft_ncl    = 0;
+  sch_nhits  = 0;
+  sch_ncl    = 0;
+
+  for(Int_t it=0; it<NumOfSegTrig; it++){
+    trigpat[it]  = -1;
+    trigflag[it] = -1;
+  }
+
+  for(Int_t it=0; it<NumOfSegBFT; it++){
+    bft_uhitpat[it] = -1;
+    bft_dhitpat[it] = -1;
+    bft_udepth[it]  = 0;
+    bft_ddepth[it]  = 0;
+    for(Int_t that=0; that<MaxDepth; that++){
+      bft_utdc[it][that] = qnan;
+      bft_dtdc[it][that] = qnan;
+      bft_utrailing[it][that] = qnan;
+      bft_dtrailing[it][that] = qnan;
+      bft_utot[it][that] = qnan;
+      bft_dtot[it][that] = qnan;
+    }
+    bft_clsize[it] = 0;
+    bft_ctime[it]  = qnan;
+    bft_ctot[it]   = qnan;
+    bft_clpos[it]  = qnan;
+  }
+
+  for(Int_t it=0; it<NumOfSegSCH; it++){
+    sch_hitpat[it] = -1;
+    sch_depth[it]  = 0;
+    for(Int_t that=0; that<MaxDepth; that++){
+      sch_tdc[it][that] = qnan;
+      sch_trailing[it][that] = qnan;
+      sch_tot[it][that] = qnan;
+    }
+    sch_clsize[it] = 0;
+    sch_ctime[it]  = qnan;
+    sch_ctot[it]   = qnan;
+    sch_clpos[it]  = qnan;
+  }
+}
 
 //_____________________________________________________________________________
 namespace root
@@ -136,7 +191,7 @@ enum eDetHid
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 EventEasiroc::ProcessingBegin()
 {
   InitializeEvent();
@@ -144,76 +199,73 @@ EventEasiroc::ProcessingBegin()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 EventEasiroc::ProcessingNormal()
 {
 #if HodoCut
-  static const double MinDeBH2   = gUser.GetParameter("DeBH2", 0);
-  static const double MaxDeBH2   = gUser.GetParameter("DeBH2", 1);
-  static const double MinDeBH1   = gUser.GetParameter("DeBH1", 0);
-  static const double MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
-  static const double MinBeamToF = gUser.GetParameter("BTOF",  0);
-  static const double MaxBeamToF = gUser.GetParameter("BTOF",  1);
+  static const Double_t MinDeBH2   = gUser.GetParameter("DeBH2", 0);
+  static const Double_t MaxDeBH2   = gUser.GetParameter("DeBH2", 1);
+  static const Double_t MinDeBH1   = gUser.GetParameter("DeBH1", 0);
+  static const Double_t MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
+  static const Double_t MinBeamToF = gUser.GetParameter("BTOF",  0);
+  static const Double_t MaxBeamToF = gUser.GetParameter("BTOF",  1);
 #endif
-  static const double MinTdcBFT  = gUser.GetParameter("TdcBFT",  0);
-  static const double MaxTdcBFT  = gUser.GetParameter("TdcBFT",  1);
-  static const double MinTdcSCH  = gUser.GetParameter("TdcSCH",  0);
-  static const double MaxTdcSCH  = gUser.GetParameter("TdcSCH",  1);
+  static const Double_t MinTdcBFT  = gUser.GetParameter("TdcBFT",  0);
+  static const Double_t MaxTdcBFT  = gUser.GetParameter("TdcBFT",  1);
+  static const Double_t MinTdcSCH  = gUser.GetParameter("TdcSCH",  0);
+  static const Double_t MaxTdcSCH  = gUser.GetParameter("TdcSCH",  1);
 #if TimeCut
-  static const double MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
-  static const double MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
-  static const double MinTimeSCH = gUser.GetParameter("TimeSCH", 0);
-  static const double MaxTimeSCH = gUser.GetParameter("TimeSCH", 1);
+  static const Double_t MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
+  static const Double_t MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
+  static const Double_t MinTimeSCH = gUser.GetParameter("TimeSCH", 0);
+  static const Double_t MaxTimeSCH = gUser.GetParameter("TimeSCH", 1);
 #endif
 
   rawData->DecodeHits();
 
-  gRM.Decode();
-
-  event.evnum = gRM.EventNumber();
+  event.evnum = gUnpacker.get_event_number();
 
   HF1(1, 0);
 
-  // Trigger Flag
+  ///// Trigger Flag
+  std::bitset<NumOfSegTrig> trigger_flag;
   {
-    const HodoRHitContainer &cont=rawData->GetTrigRawHC();
-    int trignhits = 0;
-    int nh = cont.size();
-    for(int i=0; i<nh; ++i){
-      HodoRawHit *hit = cont[i];
-      int seg = hit->SegmentId()+1;
-      int tdc = hit->GetTdc1();
-      if(tdc){
-	event.trigpat[trignhits++] = seg;
-	event.trigflag[seg-1]      = tdc;
+    Int_t nhits = 0;
+    for(const auto& hit: rawData->GetTrigRawHC()){
+      Int_t seg = hit->SegmentId()+1;
+      Int_t tdc = hit->GetTdc1();
+      if(tdc > 0){
+        trigger_flag.set(seg - 1);
+	event.trigpat[nhits++] = seg;
+	event.trigflag[seg-1]  = tdc;
 	HF1(10, seg-1);
 	HF1(10+seg, tdc);
       }
     }
-    event.trignhits = trignhits;
+    event.trignhits = nhits;
   }
 
-  // if(event.trigflag[SpillEndFlag]) return true;
+  if(trigger_flag[trigger::kSpillEnd]) return true;
 
   HF1(1, 1);
 
   ////////// BH2 time 0
   hodoAna->DecodeBH2Hits(rawData);
-  int nhBh2 = hodoAna->GetNHitsBH2();
+  Int_t nhBh2 = hodoAna->GetNHitsBH2();
 #if HodoCut
   if (nhBh2==0) return true;
 #endif
   HF1(1, 2);
-  double time0 = -999;
+  Double_t time0 = qnan;
   ////////// BH2 Analysis
-  for(int i=0; i<nhBh2; ++i){
+  for(Int_t i=0; i<nhBh2; ++i){
     BH2Hit *hit = hodoAna->GetHitBH2(i);
     if(!hit) continue;
-    double cmt = hit->CMeanTime();
-    double ct0 = hit->CTime0();
-    double min_time = -999;
+    Double_t cmt = hit->CMeanTime();
+    Double_t ct0 = hit->CTime0();
+    Double_t min_time = qnan;
 #if HodoCut
-    double dE  = hit->DeltaE();
+    Double_t dE  = hit->DeltaE();
     if(dE<MinDeBH2 || MaxDeBH2<dE)
       continue;
 #endif
@@ -227,19 +279,19 @@ EventEasiroc::ProcessingNormal()
 
   ////////// BH1 Analysis
   hodoAna->DecodeBH1Hits(rawData);
-  int nhBh1 = hodoAna->GetNHitsBH1();
+  Int_t nhBh1 = hodoAna->GetNHitsBH1();
 #if HodoCut
   if(nhBh1==0) return true;
 #endif
   HF1(1, 4);
-  double btof0 = -999;
-  for(int i=0; i<nhBh1; ++i){
+  Double_t btof0 = qnan;
+  for(Int_t i=0; i<nhBh1; ++i){
     Hodo2Hit* hit = hodoAna->GetHitBH1(i);
     if(!hit) continue;
-    double cmt  = hit->CMeanTime();
-    double btof = cmt - time0;
+    Double_t cmt  = hit->CMeanTime();
+    Double_t btof = cmt - time0;
 #if HodoCut
-    double dE   = hit->DeltaE();
+    Double_t dE   = hit->DeltaE();
     if(dE<MinDeBH1 || MaxDeBH1<dE) continue;
     if(btof<MinBeamToF || MaxBeamToF<btof) continue;
 #endif
@@ -256,27 +308,27 @@ EventEasiroc::ProcessingNormal()
   {
     hodoAna->DecodeBFTHits(rawData);
     // Fiber Hit
-    int unhits = 0;
-    int dnhits = 0;
-    for(int plane = 0; plane<NumOfPlaneBFT; ++plane){
-      int nh = hodoAna->GetNHitsBFT(plane);
+    Int_t unhits = 0;
+    Int_t dnhits = 0;
+    for(Int_t plane = 0; plane<NumOfPlaneBFT; ++plane){
+      Int_t nh = hodoAna->GetNHitsBFT(plane);
       enum { U, D };
-      for(int i=0; i<nh; ++i){
+      for(Int_t i=0; i<nh; ++i){
 	const FiberHit* hit = hodoAna->GetHitBFT(plane, i);
 	if(!hit) continue;
-	int mhit_l  = hit->GetNLeading();
-	int mhit_t  = hit->GetNTrailing();
-	int seg   = hit->SegmentId();
+	Int_t mhit_l  = hit->GetNLeading();
+	Int_t mhit_t  = hit->GetNTrailing();
+	Int_t seg   = hit->SegmentId();
 	if(plane==U) event.bft_udepth[seg] = mhit_l;
 	if(plane==D) event.bft_ddepth[seg] = mhit_l;
 
-	int  prev = 0;
-	bool hit_flag = false;
+	Int_t  prev = 0;
+	Bool_t hit_flag = false;
 
 	// raw leading data
-	for(int m=0; m<mhit_l; ++m){
+	for(Int_t m=0; m<mhit_l; ++m){
 	  if(mhit_l > MaxDepth) break;
-	  double leading  = hit->GetLeading(m);
+	  Double_t leading  = hit->GetLeading(m);
 
 	  if(leading==prev) continue;
 	  prev = leading;
@@ -297,9 +349,9 @@ EventEasiroc::ProcessingNormal()
 	}// for(m)
 
 	// raw leading data
-	for(int m=0; m<mhit_t; ++m){
+	for(Int_t m=0; m<mhit_t; ++m){
 	  if(mhit_t > MaxDepth) break;
-	  double trailing = hit->GetTrailing(m);
+	  Double_t trailing = hit->GetTrailing(m);
 
 	  if(plane==U){
 	    event.bft_utrailing[seg][m] = trailing;
@@ -310,13 +362,13 @@ EventEasiroc::ProcessingNormal()
 
 	}// for(m)
 
-	int mhit_pair  = hit->GetNPair();
+	Int_t mhit_pair  = hit->GetNPair();
 	// pair data
-	for(int m=0; m<mhit_pair; ++m){
+	for(Int_t m=0; m<mhit_pair; ++m){
 	  if(mhit_pair > MaxDepth) break;
-	  double time     = hit->GetTime(m);
-	  double ctime    = hit->GetCTime(m);
-	  double width    = hit->GetWidth(m);
+	  Double_t time     = hit->GetTime(m);
+	  Double_t ctime    = hit->GetCTime(m);
+	  Double_t width    = hit->GetWidth(m);
 
 	  HF1(BFTHid +plane+8, width);
 	  HF2(BFTHid +plane+12, seg, width);
@@ -355,20 +407,20 @@ EventEasiroc::ProcessingNormal()
 #if TimeCut
     hodoAna->TimeCutBFT(MinTimeBFT, MaxTimeBFT);
 #endif
-    int ncl = hodoAna->GetNClustersBFT();
+    Int_t ncl = hodoAna->GetNClustersBFT();
     if(ncl > NumOfSegBFT){
       // std::cout << "#W BFT too much number of clusters" << std::endl;
       ncl = NumOfSegBFT;
     }
     event.bft_ncl = ncl;
     HF1(BFTHid +101, ncl);
-    for(int i=0; i<ncl; ++i){
+    for(Int_t i=0; i<ncl; ++i){
       FiberCluster *cl = hodoAna->GetClusterBFT(i);
       if(!cl) continue;
-      double clsize = cl->ClusterSize();
-      double ctime  = cl->CMeanTime();
-      double ctot   = cl->Width();
-      double pos    = cl->MeanPosition();
+      Double_t clsize = cl->ClusterSize();
+      Double_t ctime  = cl->CMeanTime();
+      Double_t ctot   = cl->Width();
+      Double_t pos    = cl->MeanPosition();
       event.bft_clsize[i] = clsize;
       event.bft_ctime[i]  = ctime;
       event.bft_ctot[i]   = ctot;
@@ -384,21 +436,21 @@ EventEasiroc::ProcessingNormal()
   ////////// SCH
   {
     hodoAna->DecodeSCHHits(rawData);
-    int nh = hodoAna->GetNHitsSCH();
-    int sch_nhits = 0;
-    for(int i=0; i<nh; ++i){
+    Int_t nh = hodoAna->GetNHitsSCH();
+    Int_t sch_nhits = 0;
+    for(Int_t i=0; i<nh; ++i){
       FiberHit* hit = hodoAna->GetHitSCH(i);
       if(!hit) continue;
-      int mhit_l = hit->GetNLeading();
-      int mhit_t = hit->GetNTrailing();
-      int seg    = hit->SegmentId();
+      Int_t mhit_l = hit->GetNLeading();
+      Int_t mhit_t = hit->GetNTrailing();
+      Int_t seg    = hit->SegmentId();
       event.sch_depth[seg] = mhit_l;
-      int  prev     = 0;
-      bool hit_flag = false;
+      Int_t  prev     = 0;
+      Bool_t hit_flag = false;
 
-      for(int m=0; m<mhit_l; ++m){
+      for(Int_t m=0; m<mhit_l; ++m){
 	if(mhit_l > MaxDepth) break;
-	double leading  = hit->GetLeading(m);
+	Double_t leading  = hit->GetLeading(m);
 	if(leading==prev) continue;
 	prev = leading;
 	HF1(SCHHid +3, leading);
@@ -412,19 +464,19 @@ EventEasiroc::ProcessingNormal()
 	}
       }// for(m)
 
-      for(int m=0; m<mhit_t; ++m){
+      for(Int_t m=0; m<mhit_t; ++m){
 	if(mhit_t > MaxDepth) break;
-	double trailing = hit->GetTrailing(m);
+	Double_t trailing = hit->GetTrailing(m);
 	event.sch_trailing[seg][m] = trailing;
       }// for(m)
 
-      int mhit_pair = hit->GetNPair();
-      for(int m=0; m<mhit_pair; ++m){
+      Int_t mhit_pair = hit->GetNPair();
+      for(Int_t m=0; m<mhit_pair; ++m){
 	if(mhit_pair > MaxDepth) break;
 
-	double time     = hit->GetTime(m);
-	double ctime    = hit->GetCTime(m);
-	double width    = hit->GetWidth(m);
+	Double_t time     = hit->GetTime(m);
+	Double_t ctime    = hit->GetCTime(m);
+	Double_t width    = hit->GetWidth(m);
 
 	HF1(SCHHid +4, width);
 	HF2(SCHHid +6, seg, width);
@@ -453,20 +505,20 @@ EventEasiroc::ProcessingNormal()
 #if TimeCut
     hodoAna->TimeCutSCH(MinTimeSCH, MaxTimeSCH);
 #endif
-    int ncl = hodoAna->GetNClustersSCH();
+    Int_t ncl = hodoAna->GetNClustersSCH();
     if(ncl > NumOfSegSCH){
       // std::cout << "#W SCH too much number of clusters" << std::endl;
       ncl = NumOfSegSCH;
     }
     event.sch_ncl = ncl;
     HF1(SCHHid +101, ncl);
-    for(int i=0; i<ncl; ++i){
+    for(Int_t i=0; i<ncl; ++i){
       FiberCluster *cl = hodoAna->GetClusterSCH(i);
       if(!cl) continue;
-      double clsize = cl->ClusterSize();
-      double ctime  = cl->CMeanTime();
-      double ctot   = cl->Width();
-      double pos    = cl->MeanPosition();
+      Double_t clsize = cl->ClusterSize();
+      Double_t ctime  = cl->CMeanTime();
+      Double_t ctot   = cl->Width();
+      Double_t pos    = cl->MeanPosition();
       event.sch_clsize[i] = clsize;
       event.sch_ctime[i]  = ctime;
       event.sch_ctot[i]   = ctot;
@@ -483,7 +535,7 @@ EventEasiroc::ProcessingNormal()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 EventEasiroc::ProcessingEnd()
 {
   tree->Fill();
@@ -494,51 +546,6 @@ EventEasiroc::ProcessingEnd()
 void
 EventEasiroc::InitializeEvent()
 {
-  event.evnum      = 0;
-  event.bft_nhits  = 0;
-  event.bft_unhits = 0;
-  event.bft_dnhits = 0;
-  event.bft_ncl    = 0;
-  event.sch_nhits  = 0;
-  event.sch_ncl    = 0;
-
-  for(int it=0; it<NumOfSegTrig; it++){
-    event.trigpat[it]  = -1;
-    event.trigflag[it] = -1;
-  }
-
-  for(int it=0; it<NumOfSegBFT; it++){
-    event.bft_uhitpat[it] = -999;
-    event.bft_dhitpat[it] = -999;
-    event.bft_udepth[it]  = 0;
-    event.bft_ddepth[it]  = 0;
-    for(int that=0; that<MaxDepth; that++){
-      event.bft_utdc[it][that] = -999.;
-      event.bft_dtdc[it][that] = -999.;
-      event.bft_utrailing[it][that] = -999.;
-      event.bft_dtrailing[it][that] = -999.;
-      event.bft_utot[it][that] = -999.;
-      event.bft_dtot[it][that] = -999.;
-    }
-    event.bft_clsize[it] = -999;
-    event.bft_ctime[it]  = -999.;
-    event.bft_ctot[it]   = -999.;
-    event.bft_clpos[it]  = -999.;
-  }
-
-  for(int it=0; it<NumOfSegSCH; it++){
-    event.sch_hitpat[it] = -999;
-    event.sch_depth[it]  = 0;
-    for(int that=0; that<MaxDepth; that++){
-      event.sch_tdc[it][that] = -999.;
-      event.sch_trailing[it][that] = -999.;
-      event.sch_tot[it][that] = -999.;
-    }
-    event.sch_clsize[it] = -999;
-    event.sch_ctime[it]  = -999.;
-    event.sch_ctot[it]   = -999.;
-    event.sch_clpos[it]  = -999.;
-  }
 }
 
 //_____________________________________________________________________________
@@ -549,46 +556,46 @@ ConfMan::EventAllocator()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan:: InitializeHistograms()
 {
-  const int    NbinTdc = 1000;
-  const double MinTdc  =    0.;
-  const double MaxTdc  = 1000.;
+  const Int_t    NbinTdc = 1000;
+  const Double_t MinTdc  =    0.;
+  const Double_t MaxTdc  = 1000.;
 
-  const int    NbinTot =  170;
-  const double MinTot  =  -10.;
-  const double MaxTot  =  160.;
+  const Int_t    NbinTot =  170;
+  const Double_t MinTot  =  -10.;
+  const Double_t MaxTot  =  160.;
 
-  const int    NbinTime = 1000;
-  const double MinTime  = -500.;
-  const double MaxTime  =  500.;
+  const Int_t    NbinTime = 1000;
+  const Double_t MinTime  = -500.;
+  const Double_t MaxTime  =  500.;
 
   HB1( 1, "Status",  20,   0., 20.);
-  HB1(10, "Trigger HitPat", NumOfSegTrig, 0., double(NumOfSegTrig));
-  for(int i=0; i<NumOfSegTrig; ++i){
+  HB1(10, "Trigger HitPat", NumOfSegTrig, 0., Double_t(NumOfSegTrig));
+  for(Int_t i=0; i<NumOfSegTrig; ++i){
     HB1(10+i+1, Form("Trigger Flag %d", i+1), 0x1000, 0, 0x1000);
   }
 
   //BFT
-  HB1(BFTHid + 1, "BFT Nhits U",   NumOfSegBFT, 0., (double)NumOfSegBFT);
-  HB1(BFTHid + 2, "BFT Nhits D",   NumOfSegBFT, 0., (double)NumOfSegBFT);
-  HB1(BFTHid + 3, "BFT Nhits",     NumOfSegBFT, 0., (double)NumOfSegBFT);
-  HB1(BFTHid + 4, "BFT Hitpat U",  NumOfSegBFT, 0., (double)NumOfSegBFT);
-  HB1(BFTHid + 5, "BFT Hitpat D",  NumOfSegBFT, 0., (double)NumOfSegBFT);
+  HB1(BFTHid + 1, "BFT Nhits U",   NumOfSegBFT, 0., (Double_t)NumOfSegBFT);
+  HB1(BFTHid + 2, "BFT Nhits D",   NumOfSegBFT, 0., (Double_t)NumOfSegBFT);
+  HB1(BFTHid + 3, "BFT Nhits",     NumOfSegBFT, 0., (Double_t)NumOfSegBFT);
+  HB1(BFTHid + 4, "BFT Hitpat U",  NumOfSegBFT, 0., (Double_t)NumOfSegBFT);
+  HB1(BFTHid + 5, "BFT Hitpat D",  NumOfSegBFT, 0., (Double_t)NumOfSegBFT);
   HB1(BFTHid + 6, "BFT Tdc U",      NbinTdc, MinTdc, MaxTdc);
   HB1(BFTHid + 7, "BFT Tdc D",      NbinTdc, MinTdc, MaxTdc);
   HB1(BFTHid + 8, "BFT Tot U",      NbinTot, MinTot, MaxTot);
   HB1(BFTHid + 9, "BFT Tot D",      NbinTot, MinTot, MaxTot);
   HB2(BFTHid +10, "BFT Tdc U%Seg",
-      NumOfSegBFT, 0., (double)NumOfSegBFT, NbinTdc, MinTdc, MaxTdc);
+      NumOfSegBFT, 0., (Double_t)NumOfSegBFT, NbinTdc, MinTdc, MaxTdc);
   HB2(BFTHid +11, "BFT Tdc D%Seg",
-      NumOfSegBFT, 0., (double)NumOfSegBFT, NbinTdc, MinTdc, MaxTdc);
+      NumOfSegBFT, 0., (Double_t)NumOfSegBFT, NbinTdc, MinTdc, MaxTdc);
   HB2(BFTHid +12, "BFT Tot U%Seg",
-      NumOfSegBFT, 0., (double)NumOfSegBFT, NbinTot, MinTot, MaxTot);
+      NumOfSegBFT, 0., (Double_t)NumOfSegBFT, NbinTot, MinTot, MaxTot);
   HB2(BFTHid +13, "BFT Tot D%Seg",
-      NumOfSegBFT, 0., (double)NumOfSegBFT, NbinTot, MinTot, MaxTot);
-  for(int i=0; i<NumOfSegBFT; i++){
+      NumOfSegBFT, 0., (Double_t)NumOfSegBFT, NbinTot, MinTot, MaxTot);
+  for(Int_t i=0; i<NumOfSegBFT; i++){
     HB1(BFTHid +1000+i+1, Form("BFT Tdc U-%d", i+1), NbinTdc, MinTdc, MaxTdc);
     HB1(BFTHid +2000+i+1, Form("BFT Tdc D-%d", i+1), NbinTdc, MinTdc, MaxTdc);
     HB1(BFTHid +3000+i+1, Form("BFT Tot U-%d", i+1), NbinTot, MinTot, MaxTot);
@@ -618,20 +625,20 @@ ConfMan:: InitializeHistograms()
   HB2(BFTHid +105, "BFT CTime%Tot (Cluster)",
       NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
   HB1(BFTHid +106, "BFT Cluster Position",
-      NumOfSegBFT, -0.5*(double)NumOfSegBFT, 0.5*(double)NumOfSegBFT);
+      NumOfSegBFT, -0.5*(Double_t)NumOfSegBFT, 0.5*(Double_t)NumOfSegBFT);
 
   //SCH
-  HB1(SCHHid +1, "SCH Nhits",     NumOfSegSCH, 0., (double)NumOfSegSCH);
-  HB1(SCHHid +2, "SCH Hitpat",    NumOfSegSCH, 0., (double)NumOfSegSCH);
+  HB1(SCHHid +1, "SCH Nhits",     NumOfSegSCH, 0., (Double_t)NumOfSegSCH);
+  HB1(SCHHid +2, "SCH Hitpat",    NumOfSegSCH, 0., (Double_t)NumOfSegSCH);
   HB1(SCHHid +3, "SCH Tdc",      NbinTdc, MinTdc, MaxTdc);
   HB1(SCHHid +4, "SCH Tot",      NbinTot, MinTot, MaxTot);
   HB2(SCHHid +5, "SCH Tdc U%Seg",
-      NumOfSegSCH, 0., (double)NumOfSegSCH, NbinTdc, MinTdc, MaxTdc);
+      NumOfSegSCH, 0., (Double_t)NumOfSegSCH, NbinTdc, MinTdc, MaxTdc);
   HB2(SCHHid +6, "SCH Tot U%Seg",
-      NumOfSegSCH, 0., (double)NumOfSegSCH, NbinTot, MinTot, MaxTot);
+      NumOfSegSCH, 0., (Double_t)NumOfSegSCH, NbinTot, MinTot, MaxTot);
   HB2(SCHHid +13, "SCH Tot D%Seg",
-      NumOfSegSCH, 0., (double)NumOfSegSCH, NbinTot, MinTot, MaxTot);
-  for(int i=0; i<NumOfSegSCH; i++){
+      NumOfSegSCH, 0., (Double_t)NumOfSegSCH, NbinTot, MinTot, MaxTot);
+  for(Int_t i=0; i<NumOfSegSCH; i++){
     HB1(SCHHid +1000+i+1, Form("SCH Tdc %d", i+1), NbinTdc, MinTdc, MaxTdc);
     HB1(SCHHid +2000+i+1, Form("SCH Tot %d", i+1), NbinTot, MinTot, MaxTot);
     HB2(SCHHid +3000+i+1, Form("SCH Time/Tot %d", i+1),
@@ -651,7 +658,7 @@ ConfMan:: InitializeHistograms()
   HB2(SCHHid +105, "SCH CTime%Tot (Cluster)",
       NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
   HB1(SCHHid +106, "SCH Cluster Position",
-      NumOfSegSCH, -0.5*(double)NumOfSegSCH, 0.5*(double)NumOfSegSCH);
+      NumOfSegSCH, -0.5*(Double_t)NumOfSegSCH, 0.5*(Double_t)NumOfSegSCH);
 
   //Tree
   HBTree("ea0c", "tree of Easiroc");
@@ -712,7 +719,7 @@ ConfMan:: InitializeHistograms()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return
@@ -723,7 +730,7 @@ ConfMan::InitializeParameterFiles()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan::FinalizeProcess()
 {
   return true;

@@ -123,9 +123,9 @@ isConnectable(Double_t wire1, Double_t leading1, Double_t trailing1,
 inline void
 printConnectionFlag(const std::vector<std::deque<Bool_t> >& flag)
 {
-  for(std::size_t i=0, n=flag.size(); i<n; ++i){
+  for(Int_t i=0, n=flag.size(); i<n; ++i){
     hddaq::cout << std::endl;
-    for(std::size_t j=0, m=flag[i].size(); j<m; ++j){
+    for(Int_t j=0, m=flag[i].size(); j<m; ++j){
       hddaq::cout << " " << flag[i][j];
     }
   }
@@ -277,9 +277,7 @@ DCAnalyzer::DecodeBcOutHits(RawData *rawData)
   ClearBcOutHits();
 
   for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
-    const auto& RHitCont = rawData->GetBcOutRawHC(layer);
-    for(Int_t i=0, n=RHitCont.size(); i<n; ++i){
-      auto rhit = RHitCont[i];
+    for(const auto& rhit: rawData->GetBcOutRawHC(layer)){
       auto hit = new DCHit(rhit->PlaneId()+PlOffsBc, rhit->WireId());
       Int_t nhtdc = rhit->GetTdcSize();
       Int_t nhtrailing = rhit->GetTrailingSize();
@@ -307,7 +305,6 @@ Bool_t
 DCAnalyzer::ClusterizeTPC(Int_t layerID, const TPCHitContainer& HitCont,
                           TPCClusterContainer& ClCont)
 {
-
   static const Double_t ClusterYCut = gUser.GetParameter("ClusterYCut");
 
   del::ClearContainer(ClCont);
@@ -697,9 +694,7 @@ DCAnalyzer::DecodeSdcInHits(RawData *rawData)
   ClearSdcInHits();
 
   for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
-    const auto& RHitCont = rawData->GetSdcInRawHC(layer);
-    for(Int_t i=0, n=RHitCont.size(); i<n; ++i){
-      auto rhit = RHitCont[i];
+    for(const auto& rhit: rawData->GetSdcInRawHC(layer)){
       auto hit = new DCHit(rhit->PlaneId(), rhit->WireId());
       Int_t nhtdc = rhit->GetTdcSize();
       Int_t nhtrailing = rhit->GetTrailingSize();
@@ -735,9 +730,7 @@ DCAnalyzer::DecodeSdcOutHits(RawData *rawData , Double_t ofs_dt)
   ClearSdcOutHits();
 
   for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer){
-    const auto& RHitCont = rawData->GetSdcOutRawHC(layer);
-    for(Int_t i=0, n=RHitCont.size(); i<n; ++i){
-      auto rhit = RHitCont[i];
+    for(const auto& rhit: rawData->GetSdcOutRawHC(layer)){
       auto hit = new DCHit(rhit->PlaneId(), rhit->WireId());
       Int_t nhtdc = rhit->GetTdcSize();
       Int_t nhtrailing = rhit->GetTrailingSize();
@@ -786,7 +779,8 @@ DCAnalyzer::DecodeTOFHits(const Hodo2HitContainer& HitCont)
 
   ClearTOFHits();
 
-  static const Double_t RA2 = gGeom.GetRotAngle2("TOF"); // for the tilting plane case
+  // for the tilting plane case
+  static const Double_t RA2 = gGeom.GetRotAngle2("TOF");
   static const ThreeVector TOFPos[2] = {
     gGeom.GetGlobalPosition("TOF-UX"),
     gGeom.GetGlobalPosition("TOF-DX") };
@@ -1216,11 +1210,11 @@ DCAnalyzer::TrackSearchKurama(void)
 	trKurama->SetInitialMomentum(1.);
       }
       if(trKurama->DoFit() && trKurama->chisqr()<MaxChiSqrKuramaTrack){
-        trKurama->Print("in "+FUNC_NAME);
+        // trKurama->Print("in "+FUNC_NAME);
 	m_KuramaTC.push_back(trKurama);
       }
       else{
-        trKurama->Print("in "+FUNC_NAME);
+        // trKurama->Print("in "+FUNC_NAME);
 	delete trKurama;
       }
     }
