@@ -58,6 +58,8 @@ public:
   TVector3 GetHelixPosition( double par[5], double t )  const;
   TVector3 GetMomentum_Helix( void )  const;
 
+  double GetTcal(void)  const;
+
   double GetXcal( void )     const { return m_cal_pos.x(); }
   double GetYcal( void )     const { return m_cal_pos.y(); }
   double GetZcal( void )     const { return m_cal_pos.z(); }

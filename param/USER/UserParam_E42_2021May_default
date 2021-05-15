@@ -130,20 +130,22 @@ Time0TPC   	   	  79.0
 DriftVelocityTPC	0.05
 
 ### TPC Cluster Y cut
-ClusterYCut 5
+ClusterYCut 3
 
 ### TPC Hough Window cut
 HoughWindowCut 10
-TPCClusterSizeCut 3
+TPCClusterSizeCut 2
 
 ### TPC resolution parameter
 ### at 1T
-#TPC_Dt 0.18
+TPC_Dt 0.18
 ### at 0T
-TPC_Dt 0.57
+#TPC_Dt 0.57
 ### HIMAC val
-TPC_sigma0 0.204
+#TPC_sigma0 0.204
+### tmp val
+TPC_sigma0 0.7
 
 ### TPC
-MinLayerTPC 6
+MinLayerTPC 8
 

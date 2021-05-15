@@ -31,8 +31,8 @@ namespace
   //[0]~[4] are the Helix parameters,
   //([5],[6],[7]) = (x, y, z)
   std::string s_tmp="pow([5]-([0]+([3]*cos(x))),2)+pow([6]-([1]+([3]*sin(x))),2)+pow([7]-([2]+([3]*[4]*x)),2)";
-
-  static TF1 fint("fint",s_tmp.c_str(),-10.,10.);
+  //static TF1 fint("fint",s_tmp.c_str(),-10.,10.);
+  static TF1 fint("fint",s_tmp.c_str(),-4.,4.);
 }
 
 //______________________________________________________________________________
@@ -145,6 +145,30 @@ TPCLTrackHit::GetLocalCalPos_Helix( void ) const
 		   fittmp.Z(),
 		   fittmp.Y()+zTgtTPC);
   return calpos;
+}
+
+
+//______________________________________________________________________________
+double
+TPCLTrackHit::GetTcal( void ) const
+{
+  TVector3 pos(-m_local_hit_pos.X(),
+	       m_local_hit_pos.Z() - zTgtTPC,
+	       m_local_hit_pos.Y());
+
+  double par[5]={m_cx, m_cy, m_z0, m_r, m_dz};
+  double fpar[8];
+  for(int ip=0; ip<5; ++ip){
+    fpar[ip] = par[ip];
+  }
+  fpar[5] = pos.X();
+  fpar[6] = pos.Y();
+  fpar[7] = pos.Z();
+
+  fint.SetParameters(fpar);
+  double min_t = fint.GetMinimumX();
+
+  return min_t;
 }
 
 

@@ -75,7 +75,8 @@ namespace
   //[0]~[4] are the Helix parameters,
   //([5],[6],[7]) = (x, y, z)
   static std::string s_tmp="pow([5]-([0]+([3]*cos(x))),2)+pow([6]-([1]+([3]*sin(x))),2)+pow([7]-([2]+([3]*[4]*x)),2)";
-  static TF1 fint("fint",s_tmp.c_str(),-10.,10.);
+  //static TF1 fint("fint",s_tmp.c_str(),-10.,10.);
+  static TF1 fint("fint",s_tmp.c_str(),-4.,4.);
   int ii =0;
 }
 

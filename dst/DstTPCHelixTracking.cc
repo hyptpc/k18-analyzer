@@ -104,6 +104,9 @@ struct Event
   std::vector<Double_t> mom0_z;//Helix momentum at Y = 0
   std::vector<Double_t> mom0;//Helix momentum at Y = 0
 
+  std::vector<Int_t> charge;//Helix charge
+  std::vector<Double_t> path;//Helix path
+
   // not yet prepared
   std::vector<Double_t> mom_vtx;//Helix momentum at vtx
   std::vector<Double_t> mom_vty;//Helix momentum at vtx
@@ -116,7 +119,7 @@ struct Event
 
 
   
-  std::vector<std::vector<Double_t>> hitlayer;
+  std::vector<std::vector<Int_t>> hitlayer;
   std::vector<std::vector<Double_t>> hitpos_x;
   std::vector<std::vector<Double_t>> hitpos_y;
   std::vector<std::vector<Double_t>> hitpos_z;
@@ -127,7 +130,8 @@ struct Event
   std::vector<std::vector<Double_t>> residual_x;
   std::vector<std::vector<Double_t>> residual_y;
   std::vector<std::vector<Double_t>> residual_z;
-
+  std::vector<std::vector<Double_t>> helix_t;
+  
   void clear( void )
   {
     runnum = 0;
@@ -163,6 +167,10 @@ struct Event
     mom0_y.clear();
     mom0_z.clear();
     mom0.clear();
+
+    charge.clear();
+    path.clear();
+
     mom_vtx.clear();
     mom_vty.clear();
     mom_vtz.clear();
@@ -182,6 +190,7 @@ struct Event
     residual_x.clear();
     residual_y.clear();
     residual_z.clear();
+    helix_t.clear();
   }
 };
 
@@ -395,6 +404,8 @@ dst::DstRead( int ievent )
   event.mom0_y.resize( ntTpc );
   event.mom0_z.resize( ntTpc );
   event.mom0.resize( ntTpc );
+  event.charge.resize( ntTpc );
+  event.path.resize( ntTpc );
   
   // not yet prepared
   event.mom_vtx.resize( ntTpc );
@@ -417,7 +428,8 @@ dst::DstRead( int ievent )
   event.residual_x.resize( ntTpc );
   event.residual_y.resize( ntTpc );
   event.residual_z.resize( ntTpc );
-
+  event.helix_t.resize( ntTpc );
+  
   for( Int_t it=0; it<ntTpc; ++it ){
     TPCLocalTrack_Helix *tp = DCAna.GetTrackTPC_Helix( it );
     if( !tp ) continue;
@@ -450,8 +462,12 @@ dst::DstRead( int ievent )
     event.residual_x[it].resize( nh );
     event.residual_y[it].resize( nh );
     event.residual_z[it].resize( nh );
+    event.helix_t[it].resize( nh );
 
-
+    double min_t = 10000.;
+    double max_t = -10000.;
+    double min_layer_t=0., max_layer_t=0.;
+    
     for( int ih=0; ih<nh; ++ih ){
       TPCLTrackHit *hit = tp->GetHit( ih );
       if( !hit ) continue;
@@ -459,6 +475,15 @@ dst::DstRead( int ievent )
       const TVector3& hitpos = hit->GetLocalHitPos();
       const TVector3& calpos = hit->GetLocalCalPos_Helix();
       const TVector3& res_vect = hit->GetResidualVect();
+      Double_t t_cal = hit->GetTcal();
+      if(min_t>t_cal)
+	min_t = t_cal;
+      if(max_t<t_cal)
+	max_t = t_cal;
+      if(ih==0)
+	min_layer_t = t_cal;
+      if(ih==nh-1)
+	max_layer_t = t_cal;
       Double_t residual = hit->GetResidual();
       event.hitlayer[it][ih] = layer;
       event.hitpos_x[it][ih] = hitpos.x();
@@ -471,8 +496,15 @@ dst::DstRead( int ievent )
       event.residual_x[it][ih] = res_vect.x();
       event.residual_y[it][ih] = res_vect.y();
       event.residual_z[it][ih] = res_vect.z();
+      event.helix_t[it][ih] = t_cal;
     }
-
+    if(min_layer_t<max_layer_t)
+      event.charge[it] = 1;
+    else
+      event.charge[it] = -1;
+    double pathlen = (max_t - min_t)*sqrt(helix_r*helix_r + helix_dz*helix_r);
+    //std::cout<<"min_t="<<min_t<<", max_t="<<max_t<<", helix_r="<<helix_r<<", path="<<pathlen<<std::endl;
+    event.path[it] = pathlen;
   }
 
   HF1( 1, event.status++ );
@@ -543,6 +575,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "mom0_y", &event.mom0_y );
   tree->Branch( "mom0_z", &event.mom0_z );
   tree->Branch( "mom0", &event.mom0 );
+  tree->Branch( "charge", &event.charge );
+  tree->Branch( "path", &event.path );
   tree->Branch( "hitlayer", &event.hitlayer );
   tree->Branch( "hitpos_x", &event.hitpos_x );
   tree->Branch( "hitpos_y", &event.hitpos_y );
@@ -554,6 +588,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "residual_x", &event.residual_x );
   tree->Branch( "residual_y", &event.residual_y );
   tree->Branch( "residual_z", &event.residual_z );
+  tree->Branch( "helix_t", &event.helix_t );
 
 #if Gain_center
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
