@@ -109,7 +109,7 @@ MaxMultiHitSdcOut 16
 MinLayerSdcOut 6
 
 ### CommonStop timing for SdcOut
-StopTimingSdcOut 230 260
+StopTimingSdcOut 400 600
 
 ### SdcOut dT offset for L1 stop timing
 StopTimeDiffSdcOut 150

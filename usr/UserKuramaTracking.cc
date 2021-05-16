@@ -48,8 +48,8 @@ class EventKuramaTracking : public VEvent
 {
 private:
   RawData*      rawData;
-  DCAnalyzer*   DCAna;
   HodoAnalyzer* hodoAna;
+  DCAnalyzer*   DCAna;
 
 public:
   static TString ClassName();
@@ -74,17 +74,17 @@ EventKuramaTracking::ClassName()
 EventKuramaTracking::EventKuramaTracking()
   : VEvent(),
     rawData(new RawData),
-    DCAna(new DCAnalyzer),
-    hodoAna(new HodoAnalyzer)
+    hodoAna(new HodoAnalyzer),
+    DCAna(new DCAnalyzer)
 {
 }
 
 //_____________________________________________________________________________
 EventKuramaTracking::~EventKuramaTracking()
 {
-  if(DCAna) delete DCAna;
   if(hodoAna) delete hodoAna;
   if(rawData) delete rawData;
+  if(DCAna) delete DCAna;
 }
 
 //_____________________________________________________________________________
@@ -206,10 +206,10 @@ EventKuramaTracking::ProcessingNormal()
   static const Double_t MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
   static const Double_t MinBeamToF = gUser.GetParameter("BTOF",  1);
   static const Double_t MaxBeamToF = gUser.GetParameter("BTOF",  1);
-  static const Double_t MinDeTOF   = gUser.GetParameter("DeTOF",      0);
-  static const Double_t MaxDeTOF   = gUser.GetParameter("DeTOF",      1);
-  static const Double_t MinTimeTOF = gUser.GetParameter("TimeTOF",    0);
-  static const Double_t MaxTimeTOF = gUser.GetParameter("TimeTOF",    1);
+  static const Double_t MinDeTOF   = gUser.GetParameter("DeTOF",   0);
+  static const Double_t MaxDeTOF   = gUser.GetParameter("DeTOF",   1);
+  static const Double_t MinTimeTOF = gUser.GetParameter("TimeTOF", 0);
+  static const Double_t MaxTimeTOF = gUser.GetParameter("TimeTOF", 1);
 #endif
 
   static const Double_t MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);

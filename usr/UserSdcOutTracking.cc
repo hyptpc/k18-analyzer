@@ -341,7 +341,7 @@ EventSdcOutTracking::ProcessingNormal()
   //////////////Tof Analysis
   HodoClusterContainer TOFCont;
   hodoAna->DecodeTOFHits(rawData);
-  hodoAna->TimeCutTOF(7, 25);
+  // hodoAna->TimeCutTOF(7, 25);
   Int_t nhTof = hodoAna->GetNClustersTOF();
 #if HodoCut
   if(nhTof!=0) return true;
@@ -380,8 +380,11 @@ EventSdcOutTracking::ProcessingNormal()
 
     Int_t mhit = gUnpacker.get_entries(device_id, 0, trigger::kTofTiming, 0, data_type_id);
     for(Int_t m = 0; m<mhit; ++m){
-      Int_t tof_timing = gUnpacker.get(device_id, 0, trigger::kTofTiming, 0, data_type_id, m);
-      if(!(MinStopTimingSdcOut < tof_timing && tof_timing < MaxStopTimingSdcOut)) flag_tof_stop = true;
+      Int_t tdc = gUnpacker.get(device_id, 0, trigger::kTofTiming, 0, data_type_id, m);
+      HF1(41, tdc);
+      if(nhTof > 0) HF1(42, tdc);
+      if(nhTof == 0) HF1(43, tdc);
+      if(!(MinStopTimingSdcOut < tdc && tdc < MaxStopTimingSdcOut)) flag_tof_stop = true;
     }// for(m)
   }
 
@@ -725,7 +728,6 @@ ConfMan::InitializeHistograms()
       }
     }
 
-
     // Tracking Histgrams
     TString title11 = Form("HitPat SdcOut%2d [Track]", i);
     TString title12 = Form("DriftTime SdcOut%2d [Track]", i);
@@ -816,6 +818,11 @@ ConfMan::InitializeHistograms()
 
   // Plane eff
   HB1(38, "Plane Eff", 30, 0, 30);
+
+  // Common Stop Timing
+  HB1(41, "Common Stop Timing", 0x1000, 0, 0x1000);
+  HB1(42, "Common Stop Timing (w/TOF)", 0x1000, 0, 0x1000);
+  HB1(43, "Common Stop Timing (w/oTOF)", 0x1000, 0, 0x1000);
 
   ////////////////////////////////////////////
   //Tree
