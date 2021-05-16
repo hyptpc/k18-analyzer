@@ -538,7 +538,14 @@ TPCHit::GetResolutionX( void )
 
   //hddaq::cout<<"res_x: "<<res_x<<std::endl;
 
-  return res_x;
+  if(m_clsize==1){
+    double Rpad = tpc::padParameter[m_layer][2];
+    double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
+    return padsize/sqrt(12.);
+    
+  }
+  else 
+    return res_x;
   //return 0.2;
 }
 
@@ -572,8 +579,13 @@ TPCHit::GetResolutionZ( void )
   double res_z = sqrt(s0*s0 + res_zdiff*res_zdiff);
 
   //hddaq::cout<<"res_z: "<<res_z<<std::endl;
-
-  return res_z;
+  if(m_clsize==1){
+    double Rpad = tpc::padParameter[m_layer][2];
+    double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
+    return padsize/sqrt(12.);
+  }
+  else 
+    return res_z;
   //return 0.2;
 }
 
@@ -621,6 +633,13 @@ TPCHit::GetResolution( void )
   //double tot_res = sqrt(0.5*0.5 + 0.5*0.5 + 0.5*0.5);
   //double tot_res = sqrt(0.2*0.2 + 0.5*0.5 + 0.2*0.2);
 
+  if(m_clsize==1){
+    double Rpad = tpc::padParameter[m_layer][2];
+    double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
+    double xz_res =  padsize/sqrt(12.);
+    tot_res = sqrt(xz_res*xz_res + res_y*res_y + xz_res*xz_res);
+  }
+  
   return tot_res;
 }
 

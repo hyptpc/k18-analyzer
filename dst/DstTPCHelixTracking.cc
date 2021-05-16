@@ -502,7 +502,7 @@ dst::DstRead( int ievent )
       event.charge[it] = 1;
     else
       event.charge[it] = -1;
-    double pathlen = (max_t - min_t)*sqrt(helix_r*helix_r + helix_dz*helix_r);
+    double pathlen = (max_t - min_t)*sqrt(helix_r*helix_r*(1.+helix_dz*helix_dz));
     //std::cout<<"min_t="<<min_t<<", max_t="<<max_t<<", helix_r="<<helix_r<<", path="<<pathlen<<std::endl;
     event.path[it] = pathlen;
   }
