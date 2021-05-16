@@ -27,9 +27,9 @@ namespace
 {
   const std::string& class_name("TPCLTrackHit");
   const double zTgtTPC = -143.;
-  const double HS_field_0 = 0.9860;
-  const double HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
-  const double HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
+  const double& HS_field_0 = 0.9860;
+  const double& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
+  const double& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
 
   //for Helix tracking
   //[0]~[4] are the Helix parameters,

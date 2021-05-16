@@ -48,9 +48,9 @@ namespace
   const double& zTgt    = gGeom.LocalZ("Target");
   // Temporary
   const double& zTgtTPC    = -143.;
-  const double HS_field_0 = 0.9860;
-  const double HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
-  const double HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
+  const double& HS_field_0 = 0.9860;
+  const double& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
+  const double& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
 
 
   const int ReservedNumOfHits  = 64;
@@ -191,7 +191,7 @@ TPCLocalTrack_Helix::CalcHelixMom(double par[5], double y) const
   const double Const = 0.299792458; // =c/10^9
   //const double dMagneticField = 1.; //T, "-1" is needed. // Should be given by field param
   const double dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  
+
   double t = (y-par[2])/(par[3]*par[4]);
   double pt = fabs(par[3])*(Const*dMagneticField); // MeV/c
   //From here!!!!
