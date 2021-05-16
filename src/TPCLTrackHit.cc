@@ -18,6 +18,7 @@
 
 #include <std_ostream.hh>
 
+#include "ConfMan.hh"
 #include "DCAnalyzer.hh"
 #include "MathTools.hh"
 
@@ -26,6 +27,9 @@ namespace
 {
   const std::string& class_name("TPCLTrackHit");
   const double zTgtTPC = -143.;
+  const double HS_field_0 = 0.9860;
+  const double HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
+  const double HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
 
   //for Helix tracking
   //[0]~[4] are the Helix parameters,
@@ -181,7 +185,9 @@ TPCLTrackHit::GetMomentum_Helix( void ) const
    	       m_cal_pos.Y());
 
   const double Const = 0.299792458; // =c/10^9
-  const double dMagneticField = 1.; //T, "-1" is needed. // Should be given by field param
+  //const double dMagneticField = 1.; //T, "-1" is needed. // Should be given by field param
+  const double dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+
   double t = (pos.Z()-m_z0)/(m_r*m_dz);
   double pt = fabs(m_r)*(Const*dMagneticField); // MeV/c
   //From here!!!!
