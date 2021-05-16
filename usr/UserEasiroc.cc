@@ -568,8 +568,8 @@ ConfMan:: InitializeHistograms()
   const Double_t MaxTot  =  160.;
 
   const Int_t    NbinTime = 1000;
-  const Double_t MinTime  = -500.;
-  const Double_t MaxTime  =  500.;
+  const Double_t MinTime  = -50.;
+  const Double_t MaxTime  =  50.;
 
   HB1( 1, "Status",  20,   0., 20.);
   HB1(10, "Trigger HitPat", NumOfSegTrig, 0., Double_t(NumOfSegTrig));
@@ -600,23 +600,23 @@ ConfMan:: InitializeHistograms()
     HB1(BFTHid +2000+i+1, Form("BFT Tdc D-%d", i+1), NbinTdc, MinTdc, MaxTdc);
     HB1(BFTHid +3000+i+1, Form("BFT Tot U-%d", i+1), NbinTot, MinTot, MaxTot);
     HB1(BFTHid +4000+i+1, Form("BFT Tot D-%d", i+1), NbinTot, MinTot, MaxTot);
-    HB2(BFTHid +5000+i+1, Form("BFT Time/Tot U-%d", i+1),
+    HB2(BFTHid +5000+i+1, Form("BFT Time%%Tot U-%d", i+1),
         NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
-    HB2(BFTHid +6000+i+1, Form("BFT Time/Tot D-%d", i+1),
+    HB2(BFTHid +6000+i+1, Form("BFT Time%%Tot D-%d", i+1),
         NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
-    HB2(BFTHid +7000+i+1, Form("BFT CTime/Tot U-%d", i+1),
+    HB2(BFTHid +7000+i+1, Form("BFT CTime%%Tot U-%d", i+1),
         NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
-    HB2(BFTHid +8000+i+1, Form("BFT CTime/Tot D-%d", i+1),
+    HB2(BFTHid +8000+i+1, Form("BFT CTime%%Tot D-%d", i+1),
         NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
   }
   HB1(BFTHid +21, "BFT Time U",     NbinTime, MinTime, MaxTime);
   HB1(BFTHid +22, "BFT Time D",     NbinTime, MinTime, MaxTime);
-  HB2(BFTHid +23, "BFT Time/Tot U", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
-  HB2(BFTHid +24, "BFT Time/Tot D", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
+  HB2(BFTHid +23, "BFT Time%Tot U", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
+  HB2(BFTHid +24, "BFT Time%Tot D", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
   HB1(BFTHid +31, "BFT CTime U",     NbinTime, MinTime, MaxTime);
   HB1(BFTHid +32, "BFT CTime D",     NbinTime, MinTime, MaxTime);
-  HB2(BFTHid +33, "BFT CTime/Tot U", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
-  HB2(BFTHid +34, "BFT CTime/Tot D", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
+  HB2(BFTHid +33, "BFT CTime%Tot U", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
+  HB2(BFTHid +34, "BFT CTime%Tot D", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
 
   HB1(BFTHid +101, "BFT NCluster", 100, 0, 100);
   HB1(BFTHid +102, "BFT Cluster Size", 5, 0, 5);

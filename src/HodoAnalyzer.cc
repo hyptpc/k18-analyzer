@@ -28,7 +28,7 @@
 
 namespace
 {
-const auto & gUser = UserParamMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
 const Double_t MaxTimeDifBH1   =  2.0;
 const Double_t MaxTimeDifBH2   =  2.0;
 const Double_t MaxTimeDifBAC   = -1.0;
@@ -387,7 +387,7 @@ HodoAnalyzer::DecodeBFTHits(RawData* rawData)
       auto hp = new FiberHit(hit, "BFT");
       if(hp && hp->Calculate()){
 	m_BFTCont.at(p).push_back(hp);
-      } else {
+      }else{
 	delete hp;
       }
     }

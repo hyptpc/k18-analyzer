@@ -1,5 +1,7 @@
 // -*- C++ -*-
 
+#include "VEvent.hh"
+
 #include <cmath>
 #include <iostream>
 #include <sstream>
@@ -29,209 +31,258 @@
 #include "RawData.hh"
 #include "RootHelper.hh"
 #include "UnpackerManager.hh"
-#include "VEvent.hh"
 
 #define HodoCut 0 // with BH1/BH2
 #define TimeCut 1 // in cluster analysis
 
 namespace
 {
-  using namespace root;
-  const std::string& class_name("EventK18Tracking");
-  RMAnalyzer&         gRM   = RMAnalyzer::GetInstance();
-  const UserParamMan& gUser = UserParamMan::GetInstance();
-  BH2Filter&          gFilter = BH2Filter::GetInstance();
-  BH1Match&           gBH1Mth = BH1Match::GetInstance();
+using namespace root;
+using hddaq::unpacker::GUnpacker;
+const auto qnan = TMath::QuietNaN();
+const auto& gUnpacker = GUnpacker::get_instance();
+const auto& gUser = UserParamMan::GetInstance();
+auto& gFilter = BH2Filter::GetInstance();
+auto& gBH1Mth = BH1Match::GetInstance();
 }
 
-//______________________________________________________________________________
-VEvent::VEvent( void )
+//_____________________________________________________________________________
+VEvent::VEvent()
 {
 }
 
-//______________________________________________________________________________
-VEvent::~VEvent( void )
+//_____________________________________________________________________________
+VEvent::~VEvent()
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class EventK18Tracking : public VEvent
 {
 private:
-  RawData      *rawData;
-  DCAnalyzer   *DCAna;
-  HodoAnalyzer *hodoAna;
+  RawData*      rawData;
+  HodoAnalyzer* hodoAna;
+  DCAnalyzer*   DCAna;
 
 public:
-        EventK18Tracking( void );
-       ~EventK18Tracking( void );
-  bool  ProcessingBegin();
-  bool  ProcessingEnd();
-  bool  ProcessingNormal();
-  bool  InitializeHistograms();
-  void  InitializeEvent();
+  EventK18Tracking();
+  ~EventK18Tracking();
+  Bool_t ProcessingBegin();
+  Bool_t ProcessingEnd();
+  Bool_t ProcessingNormal();
+  Bool_t InitializeHistograms();
+  void   InitializeEvent();
 };
 
-//______________________________________________________________________________
-EventK18Tracking::EventK18Tracking( void )
+//_____________________________________________________________________________
+EventK18Tracking::EventK18Tracking()
   : VEvent(),
-    rawData(0),
-    DCAna( new DCAnalyzer ),
-    hodoAna( new HodoAnalyzer )
+    rawData(new RawData),
+    hodoAna(new HodoAnalyzer),
+    DCAna(new DCAnalyzer)
 {
 }
 
-//______________________________________________________________________________
-EventK18Tracking::~EventK18Tracking( void )
+//_____________________________________________________________________________
+EventK18Tracking::~EventK18Tracking()
 {
-  if( hodoAna ) delete hodoAna;
-  if( DCAna )   delete DCAna;
-  if( rawData ) delete rawData;
+  if(rawData) delete rawData;
+  if(hodoAna) delete hodoAna;
+  if(DCAna) delete DCAna;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 struct Event
 {
-  int evnum;
+  Int_t evnum;
 
-  int trignhits;
-  int trigpat[NumOfSegTrig];
-  int trigflag[NumOfSegTrig];
+  Int_t trignhits;
+  Int_t trigpat[NumOfSegTrig];
+  Int_t trigflag[NumOfSegTrig];
 
   // Time0
-  double Time0Seg;
-  double deTime0;
-  double Time0;
-  double CTime0;
+  Double_t Time0Seg;
+  Double_t deTime0;
+  Double_t Time0;
+  Double_t CTime0;
 
   // BFT
-  int    bft_ncl;
-  int    bft_ncl_bh1mth;
-  int    bft_clsize[NumOfSegBFT];
-  double bft_ctime[NumOfSegBFT];
-  double bft_clpos[NumOfSegBFT];
-  int    bft_bh1mth[NumOfSegBFT];
+  Int_t    bft_ncl;
+  Int_t    bft_ncl_bh1mth;
+  Int_t    bft_clsize[NumOfSegBFT];
+  Double_t bft_ctime[NumOfSegBFT];
+  Double_t bft_clpos[NumOfSegBFT];
+  Int_t    bft_bh1mth[NumOfSegBFT];
 
   // BcOut
-  int nlBcOut;
-  int ntBcOut;
-  int nhBcOut[MaxHits];
-  double chisqrBcOut[MaxHits];
-  double x0BcOut[MaxHits];
-  double y0BcOut[MaxHits];
-  double u0BcOut[MaxHits];
-  double v0BcOut[MaxHits];
+  Int_t nlBcOut;
+  Int_t ntBcOut;
+  Int_t nhBcOut[MaxHits];
+  Double_t chisqrBcOut[MaxHits];
+  Double_t x0BcOut[MaxHits];
+  Double_t y0BcOut[MaxHits];
+  Double_t u0BcOut[MaxHits];
+  Double_t v0BcOut[MaxHits];
 
   // K18
-  int ntK18;
-  int nhK18[MaxHits];
-  double p_2nd[MaxHits];
-  double p_3rd[MaxHits];
-  double delta_2nd[MaxHits];
-  double delta_3rd[MaxHits];
+  Int_t ntK18;
+  Int_t nhK18[MaxHits];
+  Double_t p_2nd[MaxHits];
+  Double_t p_3rd[MaxHits];
+  Double_t delta_2nd[MaxHits];
+  Double_t delta_3rd[MaxHits];
 
-  double xin[MaxHits];
-  double yin[MaxHits];
-  double uin[MaxHits];
-  double vin[MaxHits];
+  Double_t xin[MaxHits];
+  Double_t yin[MaxHits];
+  Double_t uin[MaxHits];
+  Double_t vin[MaxHits];
 
-  double xout[MaxHits];
-  double yout[MaxHits];
-  double uout[MaxHits];
-  double vout[MaxHits];
+  Double_t xout[MaxHits];
+  Double_t yout[MaxHits];
+  Double_t uout[MaxHits];
+  Double_t vout[MaxHits];
 
+  Double_t chisqrK18[MaxHits];
+  Double_t xtgtK18[MaxHits];
+  Double_t ytgtK18[MaxHits];
+  Double_t utgtK18[MaxHits];
+  Double_t vtgtK18[MaxHits];
 
-  double chisqrK18[MaxHits];
-  double xtgtK18[MaxHits];
-  double ytgtK18[MaxHits];
-  double utgtK18[MaxHits];
-  double vtgtK18[MaxHits];
+  Double_t theta[MaxHits];
+  Double_t phi[MaxHits];
 
-
-
-
-
-  double theta[MaxHits];
-  double phi[MaxHits];
+  void clear();
 };
 
-//______________________________________________________________________________
-namespace root
+//_____________________________________________________________________________
+void
+Event::clear()
 {
-  Event event;
-  TH1   *h[MaxHist];
-  TTree *tree;
-  const int BFTHid = 10000;
-  enum eParticle
-    {
-      kKaon, kPion, nParticle
-    };
+  evnum          =  0;
+  trignhits      =  0;
+  bft_ncl        =  0;
+  bft_ncl_bh1mth =  0;
+  nlBcOut        =  0;
+  ntBcOut        =  0;
+  ntK18          =  0;
+  Time0Seg       = -1;
+  deTime0        = qnan;
+  Time0          = qnan;
+  CTime0         = qnan;
+
+  for(Int_t it=0; it<NumOfSegTrig; it++){
+    trigpat[it]  = -1;
+    trigflag[it] = -1;
+  }
+
+  for(Int_t it=0; it<NumOfSegBFT; it++){
+    bft_clsize[it] = qnan;
+    bft_ctime[it]  = qnan;
+    bft_clpos[it]  = qnan;
+    bft_bh1mth[it] = -1;
+  }
+
+  for(Int_t i = 0; i<MaxHits; ++i){
+    nhBcOut[i] = 0;
+    chisqrBcOut[i] = qnan;
+    x0BcOut[i] = qnan;
+    y0BcOut[i] = qnan;
+    u0BcOut[i] = qnan;
+    v0BcOut[i] = qnan;
+    p_2nd[i] = qnan;
+    p_3rd[i] = qnan;
+    delta_2nd[i] = qnan;
+    delta_3rd[i] = qnan;
+    xin[i] = qnan;
+    yin[i] = qnan;
+    uin[i] = qnan;
+    vin[i] = qnan;
+    xout[i] = qnan;
+    yout[i] = qnan;
+    uout[i] = qnan;
+    vout[i] = qnan;
+    nhK18[i] = 0;
+    chisqrK18[i] = qnan;
+    xtgtK18[i] = qnan;
+    ytgtK18[i] = qnan;
+    utgtK18[i] = qnan;
+    vtgtK18[i] = qnan;
+    theta[i] = qnan;
+    phi[i] = qnan;
+  }
 }
 
-//______________________________________________________________________________
-bool
-EventK18Tracking::ProcessingBegin( void )
+//_____________________________________________________________________________
+namespace root
 {
-  InitializeEvent();
+Event event;
+TH1   *h[MaxHist];
+TTree *tree;
+const Int_t BFTHid = 10000;
+enum eParticle
+{
+  kKaon, kPion, nParticle
+};
+}
+
+//_____________________________________________________________________________
+Bool_t
+EventK18Tracking::ProcessingBegin()
+{
+  event.clear();
   return true;
 }
 
-//______________________________________________________________________________
-bool
-EventK18Tracking::ProcessingNormal( void )
+//_____________________________________________________________________________
+Bool_t
+EventK18Tracking::ProcessingNormal()
 {
-  const std::string funcname("["+class_name+"::"+__func__+"]");
-
 #if HodoCut
-  static const double MinDeBH2   = gUser.GetParameter("DeBH2", 0);
-  static const double MaxDeBH2   = gUser.GetParameter("DeBH2", 1);
-  static const double MinDeBH1   = gUser.GetParameter("DeBH1", 0);
-  static const double MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
-  static const double MinBeamToF = gUser.GetParameter("BTOF",  1);
-  static const double MaxBeamToF = gUser.GetParameter("BTOF",  1);
+  static const Double_t MinDeBH2   = gUser.GetParameter("DeBH2", 0);
+  static const Double_t MaxDeBH2   = gUser.GetParameter("DeBH2", 1);
+  static const Double_t MinDeBH1   = gUser.GetParameter("DeBH1", 0);
+  static const Double_t MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
+  static const Double_t MinBeamToF = gUser.GetParameter("BTOF",  1);
+  static const Double_t MaxBeamToF = gUser.GetParameter("BTOF",  1);
 #endif
 #if TimeCut
-  static const double MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
-  static const double MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
+  static const Double_t MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
+  static const Double_t MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
 #endif
-  // static const double MaxMultiHitBcOut = gUser.GetParameter("MaxMultiHitBcOut");
+  // static const Double_t MaxMultiHitBcOut = gUser.GetParameter("MaxMultiHitBcOut");
 
-  rawData = new RawData;
   rawData->DecodeHits();
 
-  gRM.Decode();
+  event.evnum = gUnpacker.get_event_number();
 
-  event.evnum = gRM.EventNumber();
+  HF1(1, 0.);
 
-  HF1( 1, 0. );
-
-  //Misc
+  ///// Trigger Flag
+  std::bitset<NumOfSegTrig> trigger_flag;
   {
-    const HodoRHitContainer &cont = rawData->GetTrigRawHC();
-    int trignhits = 0;
-    int nh = cont.size();
-    for( int i=0; i<nh; ++i ){
-      HodoRawHit *hit = cont[i];
-      int seg = hit->SegmentId()+1;
-      int tdc = hit->GetTdc1();
-      if( tdc ){
-	event.trigpat[trignhits++] = seg;
-	event.trigflag[seg-1]      = tdc;
-	HF1( 100, seg-1 );
-	HF1( 100+seg, tdc );
+    Int_t nhits = 0;
+    for(const auto& hit: rawData->GetTrigRawHC()){
+      Int_t seg = hit->SegmentId()+1;
+      Int_t tdc = hit->GetTdc1();
+      if(tdc > 0){
+        trigger_flag.set(seg - 1);
+	event.trigpat[nhits++] = seg;
+	event.trigflag[seg-1]  = tdc;
+	HF1(10, seg-1);
+	HF1(10+seg, tdc);
       }
     }
-    event.trignhits = trignhits;
+    event.trignhits = nhits;
   }
 
-  // if( event.trigflag[SpillEndFlag] ) return true;
+  if(trigger_flag[trigger::kSpillEnd]) return true;
 
   HF1(1, 1);
 
   ////////// BH2 time 0
   hodoAna->DecodeBH2Hits(rawData);
 #if HodoCut
-  int nhBh2 = hodoAna->GetNHitsBH2();
+  Int_t nhBh2 = hodoAna->GetNHitsBH2();
   if(nhBh2==0) return true;
 #endif
   HF1(1, 2);
@@ -252,12 +303,12 @@ EventK18Tracking::ProcessingNormal( void )
   ////////// BH1 Analysis
   hodoAna->DecodeBH1Hits(rawData);
 #if HodoCut
-  int nhBh1 = hodoAna->GetNHitsBH1();
+  Int_t nhBh1 = hodoAna->GetNHitsBH1();
   if(nhBh1==0) return true;
 #endif
   HF1(1, 4);
 
-  double btof0_seg = -1;
+  Double_t btof0_seg = -1;
   HodoCluster* cl_btof0 = event.Time0Seg > 0? hodoAna->GetBtof0BH1Cluster(event.CTime0) : NULL;
   if(cl_btof0){
     btof0_seg = cl_btof0->MeanSeg();
@@ -267,26 +318,26 @@ EventK18Tracking::ProcessingNormal( void )
 
   HF1(1, 6);
 
-  std::vector<double> xCand;
+  std::vector<Double_t> xCand;
   ////////// BFT
   {
     hodoAna->DecodeBFTHits(rawData);
     // Fiber Cluster
-    int ncl_raw = hodoAna->GetNClustersBFT();
+    Int_t ncl_raw = hodoAna->GetNClustersBFT();
 #if TimeCut
-    hodoAna->TimeCutBFT( MinTimeBFT, MaxTimeBFT );
+    hodoAna->TimeCutBFT(MinTimeBFT, MaxTimeBFT);
 #endif
-    int ncl = hodoAna->GetNClustersBFT();
+    Int_t ncl = hodoAna->GetNClustersBFT();
     event.bft_ncl = ncl;
-    HF1( BFTHid +100, ncl_raw );
-    HF1( BFTHid +101, ncl );
-    for(int i=0; i<ncl; ++i){
+    HF1(BFTHid +100, ncl_raw);
+    HF1(BFTHid +101, ncl);
+    for(Int_t i=0; i<ncl; ++i){
       FiberCluster *cl = hodoAna->GetClusterBFT(i);
       if(!cl) continue;
-      double clsize = cl->ClusterSize();
-      double ctime  = cl->CMeanTime();
-      double pos    = cl->MeanPosition();
-      // double width  = cl->Width();
+      Double_t clsize = cl->ClusterSize();
+      Double_t ctime  = cl->CMeanTime();
+      Double_t pos    = cl->MeanPosition();
+      // Double_t width  = cl->Width();
 
       event.bft_clsize[i] = clsize;
       event.bft_ctime[i]  = ctime;
@@ -295,72 +346,71 @@ EventK18Tracking::ProcessingNormal( void )
       if(btof0_seg > 0 && ncl != 1){
 	if(gBH1Mth.Judge(pos, btof0_seg)){
 	  event.bft_bh1mth[i] = 1;
-	  xCand.push_back( pos );
+	  xCand.push_back(pos);
 	}
       }else{
-	xCand.push_back( pos );
+	xCand.push_back(pos);
       }
 
-      HF1( BFTHid +102, clsize );
-      HF1( BFTHid +103, ctime );
-      HF1( BFTHid +104, pos );
+      HF1(BFTHid +102, clsize);
+      HF1(BFTHid +103, ctime);
+      HF1(BFTHid +104, pos);
     }
 
     event.bft_ncl_bh1mth = xCand.size();
-    HF1( BFTHid + 105, event.bft_ncl_bh1mth);
+    HF1(BFTHid + 105, event.bft_ncl_bh1mth);
   }
 
-  HF1( 1, 7.);
+  HF1(1, 7.);
   if(xCand.size()!=1) return true;
-  HF1( 1, 10. );
+  HF1(1, 10.);
 
-  DCAna->DecodeRawHits( rawData );
+  DCAna->DecodeRawHits(rawData);
   ////////////// BC3&4 number of hit in one layer not 0
-  double multi_BcOut=0.;
+  Double_t multi_BcOut=0.;
   {
-    int nlBcOut = 0;
-    for( int layer=1; layer<=NumOfLayersBcOut; ++layer ){
+    Int_t nlBcOut = 0;
+    for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
       const DCHitContainer &contBcOut = DCAna->GetBcOutHC(layer);
-      int nhBcOut = contBcOut.size();
-      multi_BcOut += double(nhBcOut);
-      if( nhBcOut>0 ) nlBcOut++;
+      Int_t nhBcOut = contBcOut.size();
+      multi_BcOut += Double_t(nhBcOut);
+      if(nhBcOut>0) nlBcOut++;
     }
     event.nlBcOut = nlBcOut;
   }
 
-  // if( multi_BcOut/double(NumOfLayersBcOut) > MaxMultiHitBcOut ) return true;
+  // if(multi_BcOut/Double_t(NumOfLayersBcOut) > MaxMultiHitBcOut) return true;
 
-  HF1( 1, 11. );
+  HF1(1, 11.);
 
   //////////////BCOut tracking
   BH2Filter::FilterList cands;
   gFilter.Apply((Int_t)event.Time0Seg-1, *DCAna, cands);
-  //DCAna->TrackSearchBcOut( cands, event.Time0Seg-1 );
+  //DCAna->TrackSearchBcOut(cands, event.Time0Seg-1);
   DCAna->TrackSearchBcOut(-1);
   DCAna->ChiSqrCutBcOut(10);
 
-  int ntBcOut = DCAna->GetNtracksBcOut();
+  Int_t ntBcOut = DCAna->GetNtracksBcOut();
   event.ntBcOut = ntBcOut;
   if(ntBcOut > MaxHits){
-    std::cout << "#W " << funcname
-	      << " Too many BcOut tracks : ntBcOut = "
+    std::cout << "#W too many BcOut tracks : ntBcOut = "
 	      << ntBcOut << std::endl;
     ntBcOut = MaxHits;
   }
-  HF1( 30, double(ntBcOut) );
-  for( int it=0; it<ntBcOut; ++it ){
+  HF1(30, Double_t(ntBcOut));
+  for(Int_t it=0; it<ntBcOut; ++it){
     DCLocalTrack *tp = DCAna->GetTrackBcOut(it);
-    int nh = tp->GetNHit();
-    double chisqr = tp->GetChiSquare();
-    double u0 = tp->GetU0(),  v0 = tp->GetV0();
-    double x0 = tp->GetX(0.), y0 = tp->GetY(0.);
+    Int_t nh = tp->GetNHit();
+    Double_t chisqr = tp->GetChiSquare();
+    Double_t u0 = tp->GetU0(),  v0 = tp->GetV0();
+    Double_t x0 = tp->GetX(0.), y0 = tp->GetY(0.);
 
-    HF1( 31, double(nh) );
-    HF1( 32, chisqr );
-    HF1( 34, x0 ); HF1( 35, y0 );
-    HF1( 36, u0 ); HF1( 37, v0 );
-    HF2( 38, x0, u0 ); HF2( 39, y0, v0 );
-    HF2( 40, x0, y0 );
+    HF1(31, Double_t(nh));
+    HF1(32, chisqr);
+    HF1(34, x0); HF1(35, y0);
+    HF1(36, u0); HF1(37, v0);
+    HF2(38, x0, u0); HF2(39, y0, v0);
+    HF2(40, x0, y0);
 
     event.nhBcOut[it] = nh;
     event.chisqrBcOut[it] = chisqr;
@@ -369,55 +419,54 @@ EventK18Tracking::ProcessingNormal( void )
     event.u0BcOut[it] = u0;
     event.v0BcOut[it] = v0;
 
-    for( int ih=0; ih<nh; ++ih ){
+    for(Int_t ih=0; ih<nh; ++ih){
       DCLTrackHit *hit=tp->GetHit(ih);
-      int layerId=hit->GetLayer()-100;
-      HF1( 33, layerId );
+      Int_t layerId=hit->GetLayer()-100;
+      HF1(33, layerId);
     }
   }
-  if( ntBcOut==0 ) return true;
+  if(ntBcOut==0) return true;
 
-  HF1( 1, 12. );
+  HF1(1, 12.);
 
-  HF1( 1, 20. );
+  HF1(1, 20.);
   ////////// K18Tracking D2U
   DCAna->TrackSearchK18D2U(xCand);
-  int ntK18 = DCAna->GetNTracksK18D2U();
+  Int_t ntK18 = DCAna->GetNTracksK18D2U();
   if(ntK18 > MaxHits){
-    std::cout << "#W " << funcname << " too many ntK18 "
+    std::cout << "#W too many ntK18 "
 	      << ntK18 << "/" << MaxHits << std::endl;
     ntK18 = MaxHits;
   }
   event.ntK18 = ntK18;
-  HF1( 50, double(ntK18) );
-  for( int i=0; i<ntK18; ++i ){
+  HF1(50, Double_t(ntK18));
+  for(Int_t i=0; i<ntK18; ++i){
     K18TrackD2U *tp=DCAna->GetK18TrackD2U(i);
     if(!tp) continue;
     DCLocalTrack *track = tp->TrackOut();
     std::size_t nh = track->GetNHit();
-    double chisqr = track->GetChiSquare();
+    Double_t chisqr = track->GetChiSquare();
 
-    double xin=tp->Xin(), yin=tp->Yin();
-    double uin=tp->Uin(), vin=tp->Vin();
+    Double_t xin=tp->Xin(), yin=tp->Yin();
+    Double_t uin=tp->Uin(), vin=tp->Vin();
 
-    double xt=tp->Xtgt(), yt=tp->Ytgt();
-    double ut=tp->Utgt(), vt=tp->Vtgt();
+    Double_t xt=tp->Xtgt(), yt=tp->Ytgt();
+    Double_t ut=tp->Utgt(), vt=tp->Vtgt();
 
-    double xout=tp->Xout(), yout=tp->Yout();
-    double uout=tp->Uout(), vout=tp->Vout();
+    Double_t xout=tp->Xout(), yout=tp->Yout();
+    Double_t uout=tp->Uout(), vout=tp->Vout();
 
+    Double_t p_2nd=tp->P();
+    Double_t p_3rd=tp->P3rd();
+    Double_t delta_2nd=tp->Delta();
+    Double_t delta_3rd=tp->Delta3rd();
+    Double_t cost = 1./std::sqrt(1.+ut*ut+vt*vt);
+    Double_t theta = std::acos(cost)*math::Rad2Deg();
+    Double_t phi   = atan2(ut, vt);
 
-    double p_2nd=tp->P();
-    double p_3rd=tp->P3rd();
-    double delta_2nd=tp->Delta();
-    double delta_3rd=tp->Delta3rd();
-    double cost = 1./std::sqrt(1.+ut*ut+vt*vt);
-    double theta = std::acos(cost)*math::Rad2Deg();
-    double phi   = atan2( ut, vt );
-
-    HF1( 54, xt ); HF1( 55, yt ); HF1( 56, ut ); HF1( 57,vt );
-    HF2( 58, xt, ut ); HF2( 59, yt, vt ); HF2( 60, xt, yt );
-    HF1( 61, p_3rd ); HF1( 62, delta_3rd );
+    HF1(54, xt); HF1(55, yt); HF1(56, ut); HF1(57,vt);
+    HF2(58, xt, ut); HF2(59, yt, vt); HF2(60, xt, yt);
+    HF1(61, p_3rd); HF1(62, delta_3rd);
 
     event.p_2nd[i] = p_2nd;
     event.p_3rd[i] = p_3rd;
@@ -434,7 +483,6 @@ EventK18Tracking::ProcessingNormal( void )
     event.uout[i] = uout;
     event.vout[i] = vout;
 
-
     event.nhK18[i]     = nh;
     event.chisqrK18[i] = chisqr;
     event.xtgtK18[i]   = xt;
@@ -445,163 +493,93 @@ EventK18Tracking::ProcessingNormal( void )
     event.phi[i]   = phi;
   }
 
-  HF1( 1, 22. );
+  HF1(1, 22.);
 
   return true;
 }
 
-//______________________________________________________________________________
-bool
-EventK18Tracking::ProcessingEnd( void )
+//_____________________________________________________________________________
+Bool_t
+EventK18Tracking::ProcessingEnd()
 {
   tree->Fill();
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-EventK18Tracking::InitializeEvent( void )
+EventK18Tracking::InitializeEvent()
 {
-  event.evnum     =  0;
-  event.trignhits =  0;
-  event.bft_ncl   =  0;
-  event.bft_ncl_bh1mth =  0;
-  event.nlBcOut   =  0;
-  event.ntBcOut   =  0;
-  event.ntK18     =  0;
-
-  event.Time0Seg  = -1;
-  event.deTime0   = -1;
-  event.Time0     = -999;
-  event.CTime0    = -999;
-
-  for( int it=0; it<NumOfSegTrig; it++){
-    event.trigpat[it]  = -1;
-    event.trigflag[it] = -1;
-  }
-
-  for( int it=0; it<NumOfSegBFT; it++){
-    event.bft_clsize[it] = -999;
-    event.bft_ctime[it]  = -999.;
-    event.bft_clpos[it]  = -999.;
-    event.bft_bh1mth[it] = 0;
-  }
-
-  for(int i = 0; i<MaxHits; ++i){
-    event.nhBcOut[i] = 0;
-    event.chisqrBcOut[i] = -999.;
-    event.x0BcOut[i] = -999.;
-    event.y0BcOut[i] = -999.;
-    event.u0BcOut[i] = -999.;
-    event.v0BcOut[i] = -999.;
-
-    event.p_2nd[i] = -999.;
-    event.p_3rd[i] = -999.;
-    event.delta_2nd[i] = -999.;
-    event.delta_3rd[i] = -999.;
-
-    event.xin[i] = -999.;
-    event.yin[i] = -999.;
-    event.uin[i] = -999.;
-    event.vin[i] = -999.;
-
-    event.xout[i] = -999.;
-    event.yout[i] = -999.;
-    event.uout[i] = -999.;
-    event.vout[i] = -999.;
-
-    event.nhK18[i]   = 0;
-    event.chisqrK18[i] = -999.;
-    event.xtgtK18[i] = -999.;
-    event.ytgtK18[i] = -999.;
-    event.utgtK18[i] = -999.;
-    event.vtgtK18[i] = -999.;
-
-    event.theta[i] = -999.;
-    event.phi[i] = -999.;
-  }
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 VEvent*
-ConfMan::EventAllocator( void )
+ConfMan::EventAllocator()
 {
   return new EventK18Tracking;
 }
 
-//______________________________________________________________________________
-namespace
+//_____________________________________________________________________________
+Bool_t
+ConfMan:: InitializeHistograms()
 {
-  // const int NbinAdc = 1024;
-  // const double MinAdc  =    0.;
-  // const double MaxAdc  = 4096.;
+  const Int_t    NbinTot =  136;
+  const Double_t MinTot  =   -8.;
+  const Double_t MaxTot  =  128.;
+  const Int_t    NbinTime = 1000;
+  const Double_t MinTime  = -500.;
+  const Double_t MaxTime  =  500.;
 
-  // const int NbinTdc = 1024;
-  // const double MinTdc  =    0.;
-  // const double MaxTdc  = 4096.;
-
-  const int    NbinTot =  136;
-  const double MinTot  =   -8.;
-  const double MaxTot  =  128.;
-
-  const int    NbinTime = 1000;
-  const double MinTime  = -500.;
-  const double MaxTime  =  500.;
-}
-//______________________________________________________________________________
-bool
-ConfMan:: InitializeHistograms( void )
-{
-  HB1(  1, "Status",  30,   0., 30. );
-  HB1( 100, "Trigger HitPat", NumOfSegTrig, 0., double(NumOfSegTrig) );
-  for(int i=0; i<NumOfSegTrig; ++i){
-    HB1( 100+i+1, Form("Trigger Flag %d", i+1), 0x1000, 0, 0x1000 );
+  HB1(1, "Status",  30,   0., 30.);
+  HB1(10, "Trigger HitPat", NumOfSegTrig, 0, NumOfSegTrig);
+  for(Int_t i=0; i<NumOfSegTrig; ++i){
+    HB1(10+i+1, Form("Trigger Flag %d", i+1), 0x1000, 0, 0x1000);
   }
 
   //BFT
-  HB1( BFTHid +21, "BFT CTime U",     NbinTime, MinTime, MaxTime );
-  HB1( BFTHid +22, "BFT CTime D",     NbinTime, MinTime, MaxTime );
-  HB2( BFTHid +23, "BFT CTime/Tot U", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
-  HB2( BFTHid +24, "BFT CTime/Tot D", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime );
+  HB1(BFTHid +21, "BFT CTime U",     NbinTime, MinTime, MaxTime);
+  HB1(BFTHid +22, "BFT CTime D",     NbinTime, MinTime, MaxTime);
+  HB2(BFTHid +23, "BFT CTime/Tot U", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
+  HB2(BFTHid +24, "BFT CTime/Tot D", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
 
-  HB1( BFTHid +100, "BFT NCluster [Raw]", 100, 0, 100 );
-  HB1( BFTHid +101, "BFT NCluster [TimeCut]", 10, 0, 10 );
-  HB1( BFTHid +102, "BFT Cluster Size", 5, 0, 5 );
-  HB1( BFTHid +103, "BFT CTime (Cluster)", NbinTime, MinTime, MaxTime );
-  HB1( BFTHid +104, "BFT Cluster Position",
-       NumOfSegBFT, -0.5*(double)NumOfSegBFT, 0.5*(double)NumOfSegBFT );
-  HB1( BFTHid +105, "BFT NCluster [TimeCut && BH1Matching]", 10, 0, 10 );
+  HB1(BFTHid +100, "BFT NCluster [Raw]", 100, 0, 100);
+  HB1(BFTHid +101, "BFT NCluster [TimeCut]", 10, 0, 10);
+  HB1(BFTHid +102, "BFT Cluster Size", 5, 0, 5);
+  HB1(BFTHid +103, "BFT CTime (Cluster)", NbinTime, MinTime, MaxTime);
+  HB1(BFTHid +104, "BFT Cluster Position",
+       NumOfSegBFT, -0.5*(Double_t)NumOfSegBFT, 0.5*(Double_t)NumOfSegBFT);
+  HB1(BFTHid +105, "BFT NCluster [TimeCut && BH1Matching]", 10, 0, 10);
 
   // BcOut
-  HB1( 30, "#Tracks BcOut", 10, 0., 10. );
-  HB1( 31, "#Hits of Track BcOut", 20, 0., 20. );
-  HB1( 32, "Chisqr BcOut", 500, 0., 50. );
-  HB1( 33, "LayerId BcOut", 15, 12., 27. );
-  HB1( 34, "X0 BcOut", 400, -100., 100. );
-  HB1( 35, "Y0 BcOut", 400, -100., 100. );
-  HB1( 36, "U0 BcOut",  200, -0.20, 0.20 );
-  HB1( 37, "V0 BcOut",  200, -0.20, 0.20 );
-  HB2( 38, "U0%X0 BcOut", 100, -100., 100., 100, -0.20, 0.20 );
-  HB2( 39, "V0%Y0 BcOut", 100, -100., 100., 100, -0.20, 0.20 );
-  HB2( 40, "X0%Y0 BcOut", 100, -100., 100., 100, -100., 100. );
+  HB1(30, "#Tracks BcOut", 10, 0., 10.);
+  HB1(31, "#Hits of Track BcOut", 20, 0., 20.);
+  HB1(32, "Chisqr BcOut", 500, 0., 50.);
+  HB1(33, "LayerId BcOut", 15, 12., 27.);
+  HB1(34, "X0 BcOut", 400, -100., 100.);
+  HB1(35, "Y0 BcOut", 400, -100., 100.);
+  HB1(36, "U0 BcOut",  200, -0.20, 0.20);
+  HB1(37, "V0 BcOut",  200, -0.20, 0.20);
+  HB2(38, "U0%X0 BcOut", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(39, "V0%Y0 BcOut", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(40, "X0%Y0 BcOut", 100, -100., 100., 100, -100., 100.);
 
   // K18
-  HB1( 50, "#Tracks K18", 20, 0., 20. );
-  HB1( 51, "#Hits of K18Track", 30, 0., 30. );
-  HB1( 52, "Chisqr K18Track", 500, 0., 100. );
-  HB1( 53, "LayerId K18Track", 50, 0., 50. );
-  HB1( 54, "Xtgt K18Track", 200, -100., 100. );
-  HB1( 55, "Ytgt K18Track", 200, -100., 100. );
-  HB1( 56, "Utgt K18Track", 300, -0.30, 0.30 );
-  HB1( 57, "Vtgt K18Track", 300, -0.20, 0.20 );
-  HB2( 58, "U%Xtgt K18Track", 100, -100., 100., 100, -0.25, 0.25 );
-  HB2( 59, "V%Ytgt K18Track", 100, -100., 100., 100, -0.10, 0.10 );
-  HB2( 60, "Y%Xtgt K18Track", 100, -100., 100., 100, -100., 100. );
-  HB1( 61, "P K18Track", 500, 0.50, 2.0 );
-  HB1( 62, "dP K18Track", 200, -0.1, 0.1 );
+  HB1(50, "#Tracks K18", 20, 0., 20.);
+  HB1(51, "#Hits of K18Track", 30, 0., 30.);
+  HB1(52, "Chisqr K18Track", 500, 0., 100.);
+  HB1(53, "LayerId K18Track", 50, 0., 50.);
+  HB1(54, "Xtgt K18Track", 200, -100., 100.);
+  HB1(55, "Ytgt K18Track", 200, -100., 100.);
+  HB1(56, "Utgt K18Track", 300, -0.30, 0.30);
+  HB1(57, "Vtgt K18Track", 300, -0.20, 0.20);
+  HB2(58, "U%Xtgt K18Track", 100, -100., 100., 100, -0.25, 0.25);
+  HB2(59, "V%Ytgt K18Track", 100, -100., 100., 100, -0.10, 0.10);
+  HB2(60, "Y%Xtgt K18Track", 100, -100., 100., 100, -100., 100.);
+  HB1(61, "P K18Track", 500, 0.50, 2.0);
+  HB1(62, "dP K18Track", 200, -0.1, 0.1);
 
   //tree
-  HBTree( "k18track","Data Summary Table of K18Tracking" );
+  HBTree("k18track","Data Summary Table of K18Tracking");
   // Trigger Flag
   tree->Branch("evnum",     &event.evnum,     "evnum/I");
   tree->Branch("trignhits", &event.trignhits, "trignhits/I");
@@ -639,24 +617,18 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch("p_3rd",       event.p_3rd,     "p_3rd[ntK18]/D");
   tree->Branch("delta_2nd",   event.delta_2nd, "delta_2nd[ntK18]/D");
   tree->Branch("delta_3rd",   event.delta_3rd, "delta_3rd[ntK18]/D");
-
   tree->Branch("xin",    event.xin,   "xin[ntK18]/D");
   tree->Branch("yin",    event.yin,   "yin[ntK18]/D");
   tree->Branch("uin",    event.uin,   "uin[ntK18]/D");
   tree->Branch("vin",    event.vin,   "vin[ntK18]/D");
-
-
   tree->Branch("xout",    event.xout,   "xout[ntK18]/D");
   tree->Branch("yout",    event.yout,   "yout[ntK18]/D");
   tree->Branch("uout",    event.uout,   "uout[ntK18]/D");
   tree->Branch("vout",    event.vout,   "vout[ntK18]/D");
-
-
   tree->Branch("xtgtK18",    event.xtgtK18,   "xtgtK18[ntK18]/D");
   tree->Branch("ytgtK18",    event.ytgtK18,   "ytgtK18[ntK18]/D");
   tree->Branch("utgtK18",    event.utgtK18,   "utgtK18[ntK18]/D");
   tree->Branch("vtgtK18",    event.vtgtK18,   "vtgtK18[ntK18]/D");
-
   tree->Branch("theta",   event.theta,  "theta[ntK18]/D");
   tree->Branch("phi",     event.phi,    "phi[ntK18]/D");
 
@@ -664,25 +636,25 @@ ConfMan:: InitializeHistograms( void )
   return true;
 }
 
-//______________________________________________________________________________
-bool
-ConfMan::InitializeParameterFiles( void )
+//_____________________________________________________________________________
+Bool_t
+ConfMan::InitializeParameterFiles()
 {
   return
-    ( InitializeParameter<DCGeomMan>("DCGEO")        &&
-      InitializeParameter<DCDriftParamMan>("DCDRFT") &&
-      InitializeParameter<DCTdcCalibMan>("DCTDC")    &&
-      InitializeParameter<HodoParamMan>("HDPRM")     &&
-      InitializeParameter<HodoPHCMan>("HDPHC")       &&
-      InitializeParameter<BH2Filter>("BH2FLT")       &&
-      InitializeParameter<BH1Match>("BH1MTH")        &&
-      InitializeParameter<K18TransMatrix>("K18TM")   &&
-      InitializeParameter<UserParamMan>("USER")      );
+    (InitializeParameter<DCGeomMan>("DCGEO")        &&
+     InitializeParameter<DCDriftParamMan>("DCDRFT") &&
+     InitializeParameter<DCTdcCalibMan>("DCTDC")    &&
+     InitializeParameter<HodoParamMan>("HDPRM")     &&
+     InitializeParameter<HodoPHCMan>("HDPHC")       &&
+     InitializeParameter<BH2Filter>("BH2FLT")       &&
+     InitializeParameter<BH1Match>("BH1MTH")        &&
+     InitializeParameter<K18TransMatrix>("K18TM")   &&
+     InitializeParameter<UserParamMan>("USER"));
 }
 
-//______________________________________________________________________________
-bool
-ConfMan::FinalizeProcess( void )
+//_____________________________________________________________________________
+Bool_t
+ConfMan::FinalizeProcess()
 {
   return true;
 }

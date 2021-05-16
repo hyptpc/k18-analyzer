@@ -147,7 +147,7 @@ def monitor():
     buf = '\n'
     buf += bjobs()
     buf += bqueues()
-    # buf += chk_runjob()
+    buf += chk_runjob()
     while buf[-1] == '\n':
       buf = buf[:-1]
     os.system('clear')

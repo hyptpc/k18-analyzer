@@ -11,28 +11,28 @@
 class HodoTParam
 {
 public:
-  HodoTParam( Double_t offset, Double_t gain )
-    : m_offset( offset ), m_gain( gain )
+  HodoTParam(Double_t offset, Double_t gain)
+    : m_offset(offset), m_gain(gain)
     {}
-  ~HodoTParam( void )
+  ~HodoTParam()
     {}
 
 private:
-  HodoTParam( void );
-  HodoTParam( const HodoTParam& );
-  HodoTParam& operator =( const HodoTParam& );
+  HodoTParam();
+  HodoTParam(const HodoTParam&);
+  HodoTParam& operator =(const HodoTParam&);
 
 private:
   Double_t m_offset;
   Double_t m_gain;
 
 public:
-  Double_t Offset( void )  const { return m_offset; }
-  Double_t Gain( void )    const { return m_gain; }
-  Double_t Time( Int_t tdc ) const
-    { return ( (Double_t)tdc - m_offset ) * m_gain; }
-  Int_t    Tdc( Double_t time ) const
-    { return (Int_t)( time/m_gain + m_offset ); }
+  Double_t Offset()  const { return m_offset; }
+  Double_t Gain()    const { return m_gain; }
+  Double_t Time(Int_t tdc) const
+    { return ((Double_t)tdc - m_offset) * m_gain; }
+  Int_t    Tdc(Double_t time) const
+    { return (Int_t)(time/m_gain + m_offset); }
 };
 
 //______________________________________________________________________________
@@ -40,28 +40,28 @@ public:
 class HodoAParam
 {
 public:
-  HodoAParam( Double_t pedestal, Double_t gain )
-    : m_pedestal( pedestal ), m_gain( gain )
+  HodoAParam(Double_t pedestal, Double_t gain)
+    : m_pedestal(pedestal), m_gain(gain)
     {}
-  ~HodoAParam( void )
+  ~HodoAParam()
     {}
 
 private:
-  HodoAParam( void );
-  HodoAParam( const HodoAParam& );
-  HodoAParam& operator =( const HodoAParam& );
+  HodoAParam();
+  HodoAParam(const HodoAParam&);
+  HodoAParam& operator =(const HodoAParam&);
 
 private:
   Double_t m_pedestal;
   Double_t m_gain;
 
 public:
-  Double_t Pedestal( void )  const { return m_pedestal; }
-  Double_t Gain( void )      const { return m_gain; }
-  Double_t DeltaE( Int_t adc ) const
-    { return ( (Double_t)adc - m_pedestal ) / (m_gain - m_pedestal ); }
-  Int_t    Adc( Double_t de ) const
-    { return (Int_t)( m_gain * de + m_pedestal * ( 1. - de ) ); }
+  Double_t Pedestal()  const { return m_pedestal; }
+  Double_t Gain()      const { return m_gain; }
+  Double_t DeltaE(Int_t adc) const
+    { return ((Double_t)adc - m_pedestal) / (m_gain - m_pedestal); }
+  Int_t    Adc(Double_t de) const
+    { return (Int_t)(m_gain * de + m_pedestal * (1. - de)); }
 };
 
 //______________________________________________________________________________
@@ -69,29 +69,29 @@ public:
 class HodoFParam
 {
 public:
-  HodoFParam( Double_t par0, Double_t par1, Double_t par2,
-              Double_t par3, Double_t par4, Double_t par5 )
-    : Par0( par0 ), Par1( par1 ), Par2( par2 ),
-      Par3( par3 ), Par4( par4 ), Par5( par5 )
+  HodoFParam(Double_t par0, Double_t par1, Double_t par2,
+              Double_t par3, Double_t par4, Double_t par5)
+    : Par0(par0), Par1(par1), Par2(par2),
+      Par3(par3), Par4(par4), Par5(par5)
     {}
-  ~HodoFParam( void )
+  ~HodoFParam()
     {}
 
 private:
-  HodoFParam( void );
-  HodoFParam( const HodoFParam& );
-  HodoFParam& operator =( const HodoFParam& );
+  HodoFParam();
+  HodoFParam(const HodoFParam&);
+  HodoFParam& operator =(const HodoFParam&);
 
 private:
   Double_t Par0, Par1, Par2, Par3, Par4, Par5;
 
 public:
-  Double_t par0( void ) const { return Par0; }
-  Double_t par1( void ) const { return Par1; }
-  Double_t par2( void ) const { return Par2; }
-  Double_t par3( void ) const { return Par3; }
-  Double_t par4( void ) const { return Par4; }
-  Double_t par5( void ) const { return Par5; }
+  Double_t par0() const { return Par0; }
+  Double_t par1() const { return Par1; }
+  Double_t par2() const { return Par2; }
+  Double_t par3() const { return Par3; }
+  Double_t par4() const { return Par4; }
+  Double_t par5() const { return Par5; }
 };
 
 //______________________________________________________________________________
@@ -99,14 +99,14 @@ public:
 class HodoParamMan
 {
 public:
-  static const TString& ClassName( void );
-  static HodoParamMan&  GetInstance( void );
-  ~HodoParamMan( void );
+  static const TString& ClassName();
+  static HodoParamMan&  GetInstance();
+  ~HodoParamMan();
 
 private:
-  HodoParamMan( void );
-  HodoParamMan( const HodoParamMan& );
-  HodoParamMan& operator =( const HodoParamMan& );
+  HodoParamMan();
+  HodoParamMan(const HodoParamMan&);
+  HodoParamMan& operator =(const HodoParamMan&);
 
 private:
   enum eAorT { kAdc, kTdc, kAorT };
@@ -123,40 +123,40 @@ private:
   FContainer m_FPContainer;
 
 public:
-  Bool_t   Initialize( void );
-  Bool_t   Initialize( const TString& file_name );
-  Bool_t   IsReady( void ) const { return m_is_ready; }
-  Bool_t   GetTime( Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t tdc, Double_t &time ) const;
-  Bool_t   GetDe( Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t adc, Double_t &de ) const;
-  Bool_t   GetTdc( Int_t cid, Int_t plid, Int_t seg, Int_t ud, Double_t time, Int_t &tdc ) const;
-  Bool_t   GetAdc( Int_t cid, Int_t plid, Int_t seg, Int_t ud, Double_t de, Int_t &adc ) const;
-  Double_t GetP0( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
-  Double_t GetP1( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
-  Double_t GetPar( Int_t cid, Int_t plid, Int_t seg, Int_t ud ,Int_t i ) const; // i=0~5
-  Double_t GetOffset( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
-  Double_t GetGain( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
-  void     SetFileName( const TString& file_name ) { m_file_name = file_name; }
+  Bool_t   Initialize();
+  Bool_t   Initialize(const TString& file_name);
+  Bool_t   IsReady() const { return m_is_ready; }
+  Bool_t   GetTime(Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t tdc, Double_t &time) const;
+  Bool_t   GetDe(Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t adc, Double_t &de) const;
+  Bool_t   GetTdc(Int_t cid, Int_t plid, Int_t seg, Int_t ud, Double_t time, Int_t &tdc) const;
+  Bool_t   GetAdc(Int_t cid, Int_t plid, Int_t seg, Int_t ud, Double_t de, Int_t &adc) const;
+  Double_t GetP0(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
+  Double_t GetP1(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
+  Double_t GetPar(Int_t cid, Int_t plid, Int_t seg, Int_t ud ,Int_t i) const; // i=0~5
+  Double_t GetOffset(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
+  Double_t GetGain(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
+  void     SetFileName(const TString& file_name) { m_file_name = file_name; }
 
 private:
-  void        ClearACont( void );
-  void        ClearTCont( void );
-  void        ClearFCont( void );
-  HodoTParam* GetTmap( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
-  HodoAParam* GetAmap( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
-  HodoFParam* GetFmap( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
+  void        ClearACont();
+  void        ClearTCont();
+  void        ClearFCont();
+  HodoTParam* GetTmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
+  HodoAParam* GetAmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
+  HodoFParam* GetFmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
 };
 
 //______________________________________________________________________________
 inline const TString&
-HodoParamMan::ClassName( void )
+HodoParamMan::ClassName()
 {
-  static TString s_name( "HodoParamMan" );
+  static TString s_name("HodoParamMan");
   return s_name;
 }
 
 //______________________________________________________________________________
 inline HodoParamMan&
-HodoParamMan::GetInstance( void )
+HodoParamMan::GetInstance()
 {
   static HodoParamMan s_instance;
   return s_instance;
