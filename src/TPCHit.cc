@@ -512,7 +512,6 @@ double
 TPCHit::GetResolutionX( void )
 {
   //calculated by using NIM paper
-  //To do:change the resolution by checking cluster size
   double y_pos= m_pos.Y();
 //double s0 = 0.204;// mm HIMAC result //To do parameter
   double s0 = gUser.GetParameter("TPC_sigma0");
@@ -523,30 +522,23 @@ TPCHit::GetResolutionX( void )
   double N_eff = 42.8;
   double A = 0.0582*0.01;//m-1 -> cm-1
   double e_ALD = exp(-1.*A*L_D);
-  //double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
-  double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
-  double sT = sqrt(sT2);
-
+  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
+  //double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
+  double sT_r = sqrt(sT2);
+  if(m_clsize ==1){
+    double Rpad = tpc::padParameter[m_layer][2];
+    double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
+    sT_r = padsize/sqrt(12.);
+  }
+  double sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
+  
   double x_pos= m_pos.X();
   double z_pos= m_pos.Z() - zTgtTPC;
   double alpha =  atan2(x_pos,z_pos);
-  double rho =  sqrt(pow(z_pos,2)+pow(x_pos,2));
-  double dalpha =sT/rho;
-  double smear_alpha = alpha + dalpha;
-  double res_xdiff = fabs(rho*(sin(smear_alpha)-sin(alpha)));
-  double res_x = sqrt(s0*s0+res_xdiff*res_xdiff);
-
-  //hddaq::cout<<"res_x: "<<res_x<<std::endl;
-
-  if(m_clsize==1){
-    double Rpad = tpc::padParameter[m_layer][2];
-    double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
-    return padsize/sqrt(12.);
-    
-  }
-  else 
-    return res_x;
-  //return 0.2;
+  
+  double res_x = sqrt(pow(sT_r*cos(alpha),2)+pow(sT_padlen*sin(alpha),2));
+ 
+  return res_x;
 }
 
 //_____________________________________________________________________________
@@ -554,8 +546,8 @@ double
 TPCHit::GetResolutionZ( void )
 {
   //calculated by using NIM paper
-  //To do:change the resolution by checking cluster size
   double y_pos= m_pos.Y();
+//double s0 = 0.204;// mm HIMAC result //To do parameter
   double s0 = gUser.GetParameter("TPC_sigma0");
   //s0 is considered for common resolution
 //  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
@@ -564,29 +556,23 @@ TPCHit::GetResolutionZ( void )
   double N_eff = 42.8;
   double A = 0.0582*0.01;//m-1 -> cm-1
   double e_ALD = exp(-1.*A*L_D);
-  //  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
-  double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
-  double sT = sqrt(sT2);
-
-
+  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
+  //double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
+  double sT_r = sqrt(sT2);
+  if(m_clsize ==1){
+    double Rpad = tpc::padParameter[m_layer][2];
+    double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
+    sT_r = padsize/sqrt(12.);
+  }
+  double sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
+  
   double x_pos= m_pos.X();
   double z_pos= m_pos.Z() - zTgtTPC;
   double alpha =  atan2(x_pos,z_pos);
-  double rho =  sqrt(pow(z_pos,2)+pow(x_pos,2));
-  double dalpha =sT/rho;
-  double smear_alpha = alpha + dalpha;
-  double res_zdiff = fabs(rho*(cos(smear_alpha)-cos(alpha)));
-  double res_z = sqrt(s0*s0 + res_zdiff*res_zdiff);
-
-  //hddaq::cout<<"res_z: "<<res_z<<std::endl;
-  if(m_clsize==1){
-    double Rpad = tpc::padParameter[m_layer][2];
-    double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
-    return padsize/sqrt(12.);
-  }
-  else 
-    return res_z;
-  //return 0.2;
+  
+  double res_z = sqrt(pow(sT_r*sin(alpha),2)+pow(sT_padlen*cos(alpha),2));
+ 
+  return res_z;
 }
 
 //_____________________________________________________________________________
@@ -601,45 +587,11 @@ TPCHit::GetResolutionY( void )
 double
 TPCHit::GetResolution( void )
 {
-  //calculated by using NIM paper
-  //To do:change the resolution by checking cluster size
-  double y_pos= m_pos.Y();
-  double s0 = gUser.GetParameter("TPC_sigma0");
-  //s0 is considered for common resolution
-//  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
-  double Dt = gUser.GetParameter("TPC_Dt");
-  double L_D = 30.+(y_pos*0.1);//cm
-  double N_eff = 42.8;
-  double A = 0.0582*0.01;//m-1 -> cm-1
-  double e_ALD = exp(-1.*A*L_D);
-  //  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
-  double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
-  double sT = sqrt(sT2);
-
-  double x_pos= m_pos.X();
-  double z_pos= m_pos.Z() - zTgtTPC;
-  double alpha =  atan2(x_pos,z_pos);
-  double rho =  sqrt(pow(z_pos,2)+pow(x_pos,2));
-  double dalpha =sT/rho;
-  double smear_alpha = alpha + dalpha;
-  double res_x_diff = fabs(rho*(sin(smear_alpha)-sin(alpha)));
-  double res_z_diff = fabs(rho*(cos(smear_alpha)-cos(alpha)));
-
-  double res_x = sqrt(s0*s0+res_x_diff*res_x_diff);
-  double res_y = 0.5;
-  double res_z = sqrt(s0*s0+res_z_diff*res_z_diff);
-
-  double tot_res = sqrt(res_x*res_x + res_y*res_y + res_z*res_z);
-  //double tot_res = sqrt(0.5*0.5 + 0.5*0.5 + 0.5*0.5);
-  //double tot_res = sqrt(0.2*0.2 + 0.5*0.5 + 0.2*0.2);
-
-  if(m_clsize==1){
-    double Rpad = tpc::padParameter[m_layer][2];
-    double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
-    double xz_res =  padsize/sqrt(12.);
-    tot_res = sqrt(xz_res*xz_res + res_y*res_y + xz_res*xz_res);
-  }
+  double res_x = GetResolutionX();
+  double res_y = GetResolutionY();
+  double res_z = GetResolutionZ();
   
+  double tot_res = sqrt(res_x*res_x + res_y*res_y + res_z*res_z);
   return tot_res;
 }
 

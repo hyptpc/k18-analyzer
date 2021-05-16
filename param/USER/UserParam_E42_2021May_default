@@ -142,9 +142,9 @@ TPC_Dt 0.18
 ### at 0T
 #TPC_Dt 0.57
 ### HIMAC val
-#TPC_sigma0 0.204
+TPC_sigma0 0.204
 ### tmp val
-TPC_sigma0 0.7
+#TPC_sigma0 0.7
 
 ### TPC
 ##for the beam through
