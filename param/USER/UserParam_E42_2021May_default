@@ -120,14 +120,14 @@ MinTotSDC3 80.
 
 ### TPCHit
 TPC_Subtraction		0
-TPC_Multi		600
+TPC_Multi		1000
 MinDeTPC		40
 MinRmsTPC		10
 TimeBucketTPC		20 120
 #temporary (ch) -> should be ns unit
-Time0TPC   	   	  79.0
+#Time0TPC   	   	  79.0
 #HIMAC value mm/ns
-DriftVelocityTPC	0.05
+#DriftVelocityTPC	0.05
 
 ### TPC Cluster Y cut
 ClusterYCut 3

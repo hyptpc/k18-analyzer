@@ -211,6 +211,7 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* rmsTpc;    // rms
   TTreeReaderValue<std::vector<Double_t>>* deTpc;     // dE
   TTreeReaderValue<std::vector<Double_t>>* tTpc;      // time
+  TTreeReaderValue<std::vector<Double_t>>* ctTpc;      // time
   TTreeReaderValue<std::vector<Double_t>>* chisqrTpc; // chi^2 of signal fitting
 };
 
@@ -317,7 +318,8 @@ dst::DstRead( int ievent )
   HF1( 1, event.status++ );
 
   DCAnalyzer DCAna;
-  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc);
+  //  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc);
+  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.ctTpc, **src.deTpc);
 #if HoughYcut
   DCAna.HoughYCut(min_ycut, max_ycut);
 #endif
@@ -616,6 +618,7 @@ ConfMan::InitializeHistograms( void )
   src.rmsTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "rmsTpc" );
   src.deTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "deTpc" );
   src.tTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "tTpc" );
+  src.ctTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "ctTpc" );
   src.chisqrTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqrTpc" );
 
   return true;

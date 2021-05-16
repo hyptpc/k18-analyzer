@@ -36,6 +36,7 @@
 #include "UserParamMan.hh"
 #include "DeleteUtility.hh"
 #include "TPCPadHelper.hh"
+#include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
 #include "TPCRawHit.hh"
 #include "TPCHit.hh"
@@ -65,6 +66,7 @@ namespace
 using namespace K18Parameter;
 const auto& gConf   = ConfMan::GetInstance();
 const auto& gGeom   = DCGeomMan::GetInstance();
+const auto& gTPC  = TPCParamMan::GetInstance();
 const auto& gTPCPos = TPCPositionCorrector::GetInstance();
 const auto& gUser   = UserParamMan::GetInstance();
 
@@ -419,8 +421,8 @@ DCAnalyzer::ReCalcTPCHits(const Int_t nhits,
                           const std::vector<Double_t>& de,
                           Bool_t do_clusterize)
 {
-  static const Double_t Time0 = gUser.GetParameter("Time0TPC");
-  static const Double_t DriftVelocity = gUser.GetParameter("DriftVelocityTPC");
+  // static const Double_t Time0 = gUser.GetParameter("Time0TPC");
+  // static const Double_t DriftVelocity = gUser.GetParameter("DriftVelocityTPC");
 
   if(m_is_decoded[k_TPC]){
     hddaq::cout << "#D " << FUNC_NAME << " "
@@ -435,11 +437,19 @@ DCAnalyzer::ReCalcTPCHits(const Int_t nhits,
     TVector3 pos_tmp = tpc::getPosition(padid[hiti]);
     //    Double_t y = (time[hiti] - Time0) * DriftVelocity;
     //Temporary: DriftVelocity (unit mm/ch)
-    Double_t y = (time[hiti] - Time0) * 80. * DriftVelocity;
-    TVector3 pos(pos_tmp.x(), y, pos_tmp.z());
-    TVector3 cpos = gTPCPos.Correct(pos);
+    //Double_t y = (time[hiti] - Time0) * 80. * DriftVelocity;
     Int_t layer = tpc::getLayerID(padid[hiti]);
     Int_t row = tpc::getRowID(padid[hiti]);
+    Double_t y = 0.;
+    if(! gTPC.GetY(layer, row, time[hiti], y)){
+      hddaq::cerr << FUNC_NAME << " something is wrong at GetY("
+                  << layer << ", " << row << ", " << time[hiti]
+                  << ", " << y << ")" << std::endl;
+    }
+      
+    TVector3 pos(pos_tmp.x(), y, pos_tmp.z());
+    TVector3 cpos = gTPCPos.Correct(pos);
+
     // std::cout<<"original padid:"<<padid[hiti]
     // 	     <<", calcpadid:"<<tpc::GetPadId(layer, row)<<std::endl;
 
