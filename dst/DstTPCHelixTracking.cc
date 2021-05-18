@@ -119,7 +119,7 @@ struct Event
 
 
   
-  std::vector<std::vector<Int_t>> hitlayer;
+  std::vector<std::vector<Double_t>> hitlayer;
   std::vector<std::vector<Double_t>> hitpos_x;
   std::vector<std::vector<Double_t>> hitpos_y;
   std::vector<std::vector<Double_t>> hitpos_z;
@@ -487,7 +487,7 @@ dst::DstRead( int ievent )
       if(ih==nh-1)
 	max_layer_t = t_cal;
       Double_t residual = hit->GetResidual();
-      event.hitlayer[it][ih] = layer;
+      event.hitlayer[it][ih] = (double)layer;
       event.hitpos_x[it][ih] = hitpos.x();
       event.hitpos_y[it][ih] = hitpos.y();
       event.hitpos_z[it][ih] = hitpos.z();

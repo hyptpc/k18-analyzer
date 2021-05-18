@@ -397,7 +397,7 @@ EventK18Tracking::ProcessingNormal()
 	      << ntBcOut << std::endl;
     ntBcOut = MaxHits;
   }
-  HF1(30, Double_t(ntBcOut));
+  HF1(50, Double_t(ntBcOut));
   for(Int_t it=0; it<ntBcOut; ++it){
     DCLocalTrack *tp = DCAna->GetTrackBcOut(it);
     Int_t nh = tp->GetNHit();
@@ -405,12 +405,12 @@ EventK18Tracking::ProcessingNormal()
     Double_t u0 = tp->GetU0(),  v0 = tp->GetV0();
     Double_t x0 = tp->GetX(0.), y0 = tp->GetY(0.);
 
-    HF1(31, Double_t(nh));
-    HF1(32, chisqr);
-    HF1(34, x0); HF1(35, y0);
-    HF1(36, u0); HF1(37, v0);
-    HF2(38, x0, u0); HF2(39, y0, v0);
-    HF2(40, x0, y0);
+    HF1(51, Double_t(nh));
+    HF1(52, chisqr);
+    HF1(54, x0); HF1(35, y0);
+    HF1(56, u0); HF1(37, v0);
+    HF2(58, x0, u0); HF2(39, y0, v0);
+    HF2(60, x0, y0);
 
     event.nhBcOut[it] = nh;
     event.chisqrBcOut[it] = chisqr;
@@ -422,7 +422,7 @@ EventK18Tracking::ProcessingNormal()
     for(Int_t ih=0; ih<nh; ++ih){
       DCLTrackHit *hit=tp->GetHit(ih);
       Int_t layerId=hit->GetLayer()-100;
-      HF1(33, layerId);
+      HF1(53, layerId);
     }
   }
   if(ntBcOut==0) return true;
@@ -439,7 +439,7 @@ EventK18Tracking::ProcessingNormal()
     ntK18 = MaxHits;
   }
   event.ntK18 = ntK18;
-  HF1(50, Double_t(ntK18));
+  HF1(70, Double_t(ntK18));
   for(Int_t i=0; i<ntK18; ++i){
     K18TrackD2U *tp=DCAna->GetK18TrackD2U(i);
     if(!tp) continue;
@@ -464,9 +464,9 @@ EventK18Tracking::ProcessingNormal()
     Double_t theta = std::acos(cost)*math::Rad2Deg();
     Double_t phi   = atan2(ut, vt);
 
-    HF1(54, xt); HF1(55, yt); HF1(56, ut); HF1(57,vt);
-    HF2(58, xt, ut); HF2(59, yt, vt); HF2(60, xt, yt);
-    HF1(61, p_3rd); HF1(62, delta_3rd);
+    HF1(74, xt); HF1(75, yt); HF1(76, ut); HF1(77,vt);
+    HF2(78, xt, ut); HF2(79, yt, vt); HF2(80, xt, yt);
+    HF1(81, p_3rd); HF1(82, delta_3rd);
 
     event.p_2nd[i] = p_2nd;
     event.p_3rd[i] = p_3rd;
@@ -551,32 +551,32 @@ ConfMan:: InitializeHistograms()
   HB1(BFTHid +105, "BFT NCluster [TimeCut && BH1Matching]", 10, 0, 10);
 
   // BcOut
-  HB1(30, "#Tracks BcOut", 10, 0., 10.);
-  HB1(31, "#Hits of Track BcOut", 20, 0., 20.);
-  HB1(32, "Chisqr BcOut", 500, 0., 50.);
-  HB1(33, "LayerId BcOut", 15, 12., 27.);
-  HB1(34, "X0 BcOut", 400, -100., 100.);
-  HB1(35, "Y0 BcOut", 400, -100., 100.);
-  HB1(36, "U0 BcOut",  200, -0.20, 0.20);
-  HB1(37, "V0 BcOut",  200, -0.20, 0.20);
-  HB2(38, "U0%X0 BcOut", 100, -100., 100., 100, -0.20, 0.20);
-  HB2(39, "V0%Y0 BcOut", 100, -100., 100., 100, -0.20, 0.20);
-  HB2(40, "X0%Y0 BcOut", 100, -100., 100., 100, -100., 100.);
+  HB1(50, "#Tracks BcOut", 10, 0., 10.);
+  HB1(51, "#Hits of Track BcOut", 20, 0., 20.);
+  HB1(52, "Chisqr BcOut", 500, 0., 50.);
+  HB1(53, "LayerId BcOut", 15, 12., 27.);
+  HB1(54, "X0 BcOut", 400, -100., 100.);
+  HB1(55, "Y0 BcOut", 400, -100., 100.);
+  HB1(56, "U0 BcOut",  200, -0.20, 0.20);
+  HB1(57, "V0 BcOut",  200, -0.20, 0.20);
+  HB2(58, "U0%X0 BcOut", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(59, "V0%Y0 BcOut", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(60, "X0%Y0 BcOut", 100, -100., 100., 100, -100., 100.);
 
   // K18
-  HB1(50, "#Tracks K18", 20, 0., 20.);
-  HB1(51, "#Hits of K18Track", 30, 0., 30.);
-  HB1(52, "Chisqr K18Track", 500, 0., 100.);
-  HB1(53, "LayerId K18Track", 50, 0., 50.);
-  HB1(54, "Xtgt K18Track", 200, -100., 100.);
-  HB1(55, "Ytgt K18Track", 200, -100., 100.);
-  HB1(56, "Utgt K18Track", 300, -0.30, 0.30);
-  HB1(57, "Vtgt K18Track", 300, -0.20, 0.20);
-  HB2(58, "U%Xtgt K18Track", 100, -100., 100., 100, -0.25, 0.25);
-  HB2(59, "V%Ytgt K18Track", 100, -100., 100., 100, -0.10, 0.10);
-  HB2(60, "Y%Xtgt K18Track", 100, -100., 100., 100, -100., 100.);
-  HB1(61, "P K18Track", 500, 0.50, 2.0);
-  HB1(62, "dP K18Track", 200, -0.1, 0.1);
+  HB1(70, "#Tracks K18", 20, 0., 20.);
+  HB1(71, "#Hits of K18Track", 30, 0., 30.);
+  HB1(72, "Chisqr K18Track", 500, 0., 100.);
+  HB1(73, "LayerId K18Track", 50, 0., 50.);
+  HB1(74, "Xtgt K18Track", 200, -100., 100.);
+  HB1(75, "Ytgt K18Track", 200, -100., 100.);
+  HB1(76, "Utgt K18Track", 300, -0.30, 0.30);
+  HB1(77, "Vtgt K18Track", 300, -0.20, 0.20);
+  HB2(78, "U%Xtgt K18Track", 100, -100., 100., 100, -0.25, 0.25);
+  HB2(79, "V%Ytgt K18Track", 100, -100., 100., 100, -0.10, 0.10);
+  HB2(80, "Y%Xtgt K18Track", 100, -100., 100., 100, -100., 100.);
+  HB1(81, "P K18Track", 500, 0.50, 2.0);
+  HB1(82, "dP K18Track", 200, -0.1, 0.1);
 
   //tree
   HBTree("k18track","Data Summary Table of K18Tracking");
