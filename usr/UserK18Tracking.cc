@@ -34,6 +34,8 @@
 
 #define HodoCut 0 // with BH1/BH2
 #define TimeCut 1 // in cluster analysis
+#define TotCut  1 //for BcOut tracking
+#define Chi2Cut  1 //for BcOut tracking
 
 namespace
 {
@@ -249,6 +251,9 @@ EventK18Tracking::ProcessingNormal()
   static const Double_t MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
   static const Double_t MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
 #endif
+#if TotCut
+  static const Double_t MinTotBcOut = gUser.GetParameter("MinTotBcOut", 0);
+#endif
   // static const Double_t MaxMultiHitBcOut = gUser.GetParameter("MaxMultiHitBcOut");
 
   rawData->DecodeHits();
@@ -366,6 +371,9 @@ EventK18Tracking::ProcessingNormal()
   HF1(1, 10.);
 
   DCAna->DecodeRawHits(rawData);
+#if TotCut
+  DCAna->TotCutBCOut( MinTotBcOut );
+#endif
   ////////////// BC3&4 number of hit in one layer not 0
   Double_t multi_BcOut=0.;
   {
@@ -384,11 +392,16 @@ EventK18Tracking::ProcessingNormal()
   HF1(1, 11.);
 
   //////////////BCOut tracking
-  BH2Filter::FilterList cands;
-  gFilter.Apply((Int_t)event.Time0Seg-1, *DCAna, cands);
+  // BH2Filter::FilterList cands;
+  // gFilter.Apply((Int_t)event.Time0Seg-1, *DCAna, cands);
   //DCAna->TrackSearchBcOut(cands, event.Time0Seg-1);
-  DCAna->TrackSearchBcOut(-1);
+  //  DCAna->TrackSearchBcOut(-1);
+  //  DCAna->ChiSqrCutBcOut(10);
+  
+  DCAna->TrackSearchBcOut();
+ #if Chi2Cut
   DCAna->ChiSqrCutBcOut(10);
+ #endif
 
   Int_t ntBcOut = DCAna->GetNtracksBcOut();
   event.ntBcOut = ntBcOut;

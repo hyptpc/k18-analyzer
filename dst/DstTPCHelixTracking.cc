@@ -29,7 +29,7 @@
 #include "UserParamMan.hh"
 
 #define TrackSearch 1
-#define Gain_center 1
+#define Gain_center 0
 #define HoughYcut 0
 
 
