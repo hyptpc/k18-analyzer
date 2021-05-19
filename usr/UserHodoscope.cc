@@ -212,6 +212,7 @@ Event::clear()
   bacnhits   = 0;
   bh2nhits   = 0;
   bvhnhits   = 0;
+  htofnhits  = 0;
   tofnhits   = 0;
   tofnhits_3dmtx   = 0;
   lacnhits   = 0;
@@ -284,6 +285,7 @@ Event::clear()
   for(Int_t it=0; it<NumOfSegHTOF; it++){
     htofua[it] = qnan;
     htofda[it] = qnan;
+    htofde[it] = qnan;
     for(Int_t m=0; m<MaxDepth; ++m){
       htofut[it][m] = qnan;
       htofdt[it][m] = qnan;

@@ -20,11 +20,16 @@
 #include "UserParamMan.hh"
 #include "VEvent.hh"
 #include "DetectorID.hh"
+#include "Hodo1Hit.hh"
+#include "Hodo2Hit.hh"
+#include "HodoAnalyzer.hh"
+#include "HodoCluster.hh"
+
 
 //#define GateCalib 1
 #define GateCalib 0
 #define GainCalib 0
-#define Srdata 1
+#define Srdata 0
 //#define GainCalib 0
 
 
@@ -32,6 +37,7 @@
 namespace
 {
 using namespace root;
+const auto qnan = TMath::QuietNaN();
 using hddaq::unpacker::GUnpacker;
 const auto& gUnpacker = GUnpacker::get_instance();
 const auto& gUser     = UserParamMan::GetInstance();
@@ -61,6 +67,7 @@ public:
 
 private:
   RawData*    rawData;
+  HodoAnalyzer* hodoAna;
   DCAnalyzer* DCAna;
 };
 
@@ -68,6 +75,7 @@ private:
 UserEvent::UserEvent( void )
   : VEvent(),
     rawData( new RawData ),
+    hodoAna(new HodoAnalyzer),
     DCAna( new DCAnalyzer )
 {
 }
@@ -76,6 +84,7 @@ UserEvent::UserEvent( void )
 UserEvent::~UserEvent( void )
 {
   if( rawData ) delete rawData;
+  if(hodoAna) delete hodoAna;
   if( DCAna ) delete DCAna;
 }
 
@@ -102,6 +111,24 @@ struct Event
   std::vector<Double_t> ctTpc;     // time
   std::vector<Double_t> dlTpc;     // time
 
+
+  Int_t htofnhits;
+  Int_t htofhitpat[MaxHits];
+  Double_t htofua[NumOfSegHTOF];
+  Double_t htofda[NumOfSegHTOF];
+  Double_t htofut[NumOfSegHTOF][MaxDepth];
+  Double_t htofdt[NumOfSegHTOF][MaxDepth];
+
+  Double_t htofmt[NumOfSegHTOF][MaxDepth];
+  Double_t htofde[NumOfSegHTOF];
+
+  Int_t    nhHtof;
+  Int_t    csHtof[NumOfSegHTOF*MaxDepth];
+  Double_t HtofSeg[NumOfSegHTOF*MaxDepth];
+  Double_t tHtof[NumOfSegHTOF*MaxDepth];
+  Double_t dtHtof[NumOfSegHTOF*MaxDepth];
+  Double_t deHtof[NumOfSegHTOF*MaxDepth];
+
   void clear( void )
   {
     runnum  = 0;
@@ -122,6 +149,29 @@ struct Event
     cdeTpc.clear();
     ctTpc.clear();
     dlTpc.clear();
+    
+    htofnhits =0;
+    nhHtof =0;
+    for(Int_t it=0; it<MaxHits; ++it){
+      htofhitpat[it]  = -1;
+    }
+    for(Int_t it=0; it<NumOfSegHTOF; it++){
+      htofua[it] = qnan;
+      htofda[it] = qnan;
+      htofde[it] = qnan;
+      for(Int_t m=0; m<MaxDepth; ++m){
+	htofut[it][m] = qnan;
+	htofdt[it][m] = qnan;
+	htofmt[it][m] = qnan;
+	
+	csHtof[MaxDepth*it + m]  = 0;
+	HtofSeg[MaxDepth*it + m] = qnan;
+	tHtof[MaxDepth*it + m]   = qnan;
+	dtHtof[MaxDepth*it + m]  = qnan;
+	deHtof[MaxDepth*it + m]  = qnan;
+      }
+    }
+
   }
 };
 
@@ -150,6 +200,129 @@ UserEvent::ProcessingNormal( void )
 {
   const Int_t run_number   = gUnpacker.get_root()->get_run_number();
   const Int_t event_number = gUnpacker.get_event_number();
+
+  static const auto MinTdcHTOF = gUser.GetParameter("TdcHTOF", 0);
+  static const auto MaxTdcHTOF = gUser.GetParameter("TdcHTOF", 1);
+
+  rawData->DecodeHits();
+  
+  ///// HTOF Raw data
+  {
+    Int_t htof_nhits = 0;
+    const HodoRHitContainer& cont = rawData->GetHTOFRawHC();
+    Int_t nh = cont.size();
+    //    HF1(HTOFHid, nh);
+    Int_t nh1 = 0, nh2 = 0;
+    for(Int_t i=0; i<nh; ++i){
+      HodoRawHit* hit = cont[i];
+      Int_t seg = hit->SegmentId()+1;
+      //HF1(HTOFHid+1, seg-0.5);
+      // Up
+      Int_t Au = hit->GetAdcUp();
+      //HF1(HTOFHid+100*seg+1, Au);
+      event.htofua[seg-1] = Au;
+      Bool_t is_hit_u = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcUp(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcUp(m);
+        //HF1(HTOFHid +100*seg +3, T);
+        event.htofut[seg-1][m] = T;
+        if(MinTdcHTOF < T && T < MaxTdcHTOF) is_hit_u = true;
+      }
+      // if(is_hit_u) HF1(HTOFHid+100*seg+5, Au);
+      // else         HF1(HTOFHid+100*seg+7, Au);
+      // Down
+      Int_t Ad = hit->GetAdcDown();
+      //      HF1(HTOFHid+100*seg+2, Ad);
+      event.htofda[seg-1] = Ad;
+      Bool_t is_hit_d = false;
+      for(Int_t m=0, n_mhit=hit->GetSizeTdcDown(); m<n_mhit; ++m){
+        Int_t T = hit->GetTdcDown(m);
+        //HF1(HTOFHid +100*seg +4, T);
+        event.htofdt[seg-1][m] = T;
+        if(MinTdcHTOF < T && T < MaxTdcHTOF) is_hit_d = true;
+      }
+      // if(is_hit_d) HF1(HTOFHid+100*seg+6, Ad);
+      // else         HF1(HTOFHid+100*seg+8, Ad);
+      // HitPat
+      if(is_hit_u || is_hit_d){
+        ++nh1; //HF1(HTOFHid+3, seg-0.5);
+      }
+      if(is_hit_u && is_hit_d){
+        event.htofhitpat[htof_nhits++] = seg;
+        ++nh2; //HF1(HTOFHid+5, seg-0.5);
+      }
+    }
+    //HF1(HTOFHid+2, nh1); HF1(HTOFHid+4, nh2);
+    event.htofnhits = htof_nhits;
+  }
+
+  ///// HTOF Normalized data
+  hodoAna->DecodeHTOFHits(rawData);
+  {
+    Int_t nh = hodoAna->GetNHitsHTOF();
+    //HF1(HTOFHid+10, Double_t(nh));
+    Int_t nh2 = 0;
+    for(Int_t i=0; i<nh; ++i){
+      Hodo2Hit *hit = hodoAna->GetHitHTOF(i);
+      if(!hit) continue;
+      Int_t seg = hit->SegmentId()+1;
+      Int_t n_mhit = hit->GetNumOfHit();
+      for(Int_t m=0; m<n_mhit; ++m){
+	//HF1(HTOFHid+11, seg-0.5);
+	Double_t au = hit->GetAUp(), ad = hit->GetADown();
+	Double_t tu = hit->GetTUp(), td = hit->GetTDown();
+	Double_t ctu = hit->GetCTUp(), ctd = hit->GetCTDown();
+	Double_t mt = hit->MeanTime(), cmt = hit->CMeanTime();
+	Double_t de = hit->DeltaE();
+	event.htofmt[seg-1][m] = mt;
+	event.htofde[seg-1] = de;
+	// HF1(HTOFHid+100*seg+11, tu); HF1(HTOFHid+100*seg+12, td);
+	// HF1(HTOFHid+100*seg+13, mt);
+	// HF1(HTOFHid+100*seg+17, ctu); HF1(HTOFHid+100*seg+18, ctd);
+	// HF1(HTOFHid+100*seg+19, cmt); HF1(HTOFHid+100*seg+20, ctu-ctd);
+	// HF2(HTOFHid+100*seg+21, tu, au); HF2(HTOFHid+100*seg+22, td, ad);
+	// HF2(HTOFHid+100*seg+23, ctu, au); HF2(HTOFHid+100*seg+24, ctd, ad);
+	// HF1(HTOFHid+12, cmt);
+	// if(m == 0){
+	//   HF1(HTOFHid+100*seg+14, au); HF1(HTOFHid+100*seg+15, ad);
+	//   HF1(HTOFHid+100*seg+16, de); HF1(HTOFHid+13, de);
+	// }
+	if(de > 0.5){
+	  //HF1(HTOFHid+15, seg-0.5);
+	  ++nh2;
+	}
+      }
+    }
+    Int_t nc = hodoAna->GetNClustersHTOF();
+    //HF1(HTOFHid+30, Double_t(nc));
+    for(Int_t i=0; i<nc; ++i){
+      HodoCluster *cluster = hodoAna->GetClusterHTOF(i);
+      if(!cluster) continue;
+      Int_t cs = cluster->ClusterSize();
+      Double_t ms = cluster->MeanSeg()+1;
+      Double_t cmt = cluster->CMeanTime();
+      Double_t de = cluster->DeltaE();
+      // HF1(HTOFHid+31, Double_t(cs));
+      // HF1(HTOFHid+32, ms-0.5);
+      // HF1(HTOFHid+33, cmt); HF1(HTOFHid+34, de);
+    }
+  }
+
+  {
+    Int_t nc = hodoAna->GetNClustersHTOF();
+    event.nhHtof = nc;
+    for(Int_t i=0; i<nc; ++i){
+      HodoCluster *cl = hodoAna->GetClusterHTOF(i);
+      if(!cl) continue;
+      event.csHtof[i] = cl->ClusterSize();
+      event.HtofSeg[i] = cl->MeanSeg()+1;
+      event.tHtof[i] = cl->CMeanTime();
+      event.dtHtof[i] = cl->TimeDif();
+      event.deHtof[i] = cl->DeltaE();
+    }
+  }
+
+
 
   rawData->DecodeTPCHits();
   rawData->RecalcTPCHits();
@@ -406,6 +579,24 @@ ConfMan:: InitializeHistograms( void )
   tree->Branch( "ctTpc", &event.ctTpc );
   tree->Branch( "dlTpc", &event.dlTpc );
   tree->Branch( "sigmaTpc", &event.sigmaTpc );
+  
+  //htof
+  tree->Branch("htofnhits",   &event.htofnhits,   "htofnhits/I");
+  tree->Branch("htofhitpat",   event.htofhitpat,  Form("htofhitpat[%d]/I", NumOfSegHTOF));
+  tree->Branch("htofua",       event.htofua,      Form("htofua[%d]/D", NumOfSegHTOF));
+  tree->Branch("htofda",       event.htofda,      Form("htofda[%d]/D", NumOfSegHTOF));
+  tree->Branch("htofut",       event.htofut,      Form("htofut[%d][%d]/D", NumOfSegHTOF, MaxDepth));
+  tree->Branch("htofdt",       event.htofdt,      Form("htofdt[%d][%d]/D", NumOfSegHTOF, MaxDepth));
+  tree->Branch("htofmt",   event.htofmt,   Form("htofmt[%d][%d]/D", NumOfSegHTOF, MaxDepth));
+  tree->Branch("htofde",   event.htofde,   Form("htofde[%d]/D", NumOfSegHTOF));
+  tree->Branch("nhHtof",  &event.nhHtof,     "nhHtof/I");
+  tree->Branch("csHtof", event.csHtof, "csHtof[nhHtof]/I");
+  tree->Branch("HtofSeg",event.HtofSeg, "HtofSeg[nhHtof]/D");
+  tree->Branch("tHtof", event.tHtof,  "tHtof[nhHtof]/D");
+  tree->Branch("dtHtof", event.dtHtof, "dtHtof[nhHtof]/D");
+  tree->Branch("deHtof", event.deHtof, "deHtof[nhHtof]/D");
+
+
 
   HPrint();
   return true;
