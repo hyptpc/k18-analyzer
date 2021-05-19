@@ -1806,9 +1806,9 @@ namespace
   const Double_t MinTdc  =    0.;
   const Double_t MaxTdc  = 4096.;
 
-  const Int_t    NbinTdcHr = 8e5/20;
+  const Int_t    NbinTdcHr = 1e6/10;
   const Double_t MinTdcHr  =  0.;
-  const Double_t MaxTdcHr  = 8e5;
+  const Double_t MaxTdcHr  = 1e6;
 }
 
 //_____________________________________________________________________________

@@ -37,7 +37,7 @@ const Int_t  MaxMultiHitDC  = 16;
 
 //_____________________________________________________________________________
 RawData::RawData()
-  : m_is_decoded(false),
+  : m_is_decoded(kNType),
     m_BH1RawHC(),
     m_BH2RawHC(),
     m_BACRawHC(),
@@ -59,6 +59,7 @@ RawData::RawData()
     m_TrigRawHC(),
     m_VmeCalibRawHC()
 {
+  for(auto& d: m_is_decoded) d = false;
   debug::ObjectCounter::increase(ClassName());
 }
 
@@ -99,6 +100,7 @@ RawData::ClearTPC()
 {
   del::ClearContainerAll(m_TPCRawHC);
   del::ClearContainerAll(m_TPCCorHC);
+  del::ClearContainer(m_TPCClockRawHC);
 }
 
 //_____________________________________________________________________________
@@ -126,7 +128,7 @@ RawData::DecodeHits()
   static const Double_t MinTrailingSDC4 = gUser.GetParameter("TrailingSDC4", 0);
   static const Double_t MaxTrailingSDC4 = gUser.GetParameter("TrailingSDC4", 1);
 
-  if(m_is_decoded){
+  if(m_is_decoded[kOthers]){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded!" << std::endl;
     return false;
@@ -316,7 +318,7 @@ RawData::DecodeHits()
   // Trigger Flag
   DecodeHodo(DetIdTrig, NumOfSegTrig, kOneSide, m_TrigRawHC);
 
-  m_is_decoded = true;
+  m_is_decoded[kOthers] = true;
   return true;
 }
 
@@ -329,7 +331,7 @@ RawData::DecodeTPCHits()
   // static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
   // static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
 
-  if(m_is_decoded){
+  if(m_is_decoded[kTPC]){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded!" << std::endl;
     return false;
@@ -348,7 +350,18 @@ RawData::DecodeTPCHits()
     }
   }
 
-  m_is_decoded = true;
+  {
+    static const auto device_id = gUnpacker.get_device_id("HTOF");
+    static const auto data_id = gUnpacker.get_data_id("HTOF", "fpga_leading");
+    static const Int_t segment = 34;
+    for(Int_t i=0, n=gUnpacker.get_entries(device_id, 0, segment, 0, data_id);
+        i<n; ++i){
+      auto tdc = gUnpacker.get(device_id, 0, segment, 0, data_id, i);
+      AddHodoRawHit(m_TPCClockRawHC, 0, 0, 0, 0, kHodoLeading, tdc);
+    }
+  }
+
+  m_is_decoded[kTPC] = true;
   return true;
 }
 
@@ -356,7 +369,7 @@ RawData::DecodeTPCHits()
 bool
 RawData::RecalcTPCHits()
 {
-  if(!m_is_decoded){
+  if(!m_is_decoded[kTPC]){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "Rawdata has not been decoded!" << std::endl;
     return false;

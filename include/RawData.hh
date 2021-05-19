@@ -3,9 +3,10 @@
 #ifndef RAW_DATA_HH
 #define RAW_DATA_HH
 
-#include <TString.h>
-
+#include <deque>
 #include <vector>
+
+#include <TString.h>
 
 #include "DetectorID.hh"
 
@@ -31,7 +32,8 @@ private:
   RawData& operator=(const RawData&);
 
 private:
-  Bool_t            	  	 m_is_decoded;
+  enum EType { kTPC, kOthers, kNType };
+  std::deque<Bool_t>             m_is_decoded;
   HodoRHitContainer              m_BH1RawHC;
   HodoRHitContainer              m_BH2RawHC;
   HodoRHitContainer              m_BACRawHC;
@@ -49,6 +51,7 @@ private:
   std::vector<TPCRHitContainer>  m_TPCCorHC;
   std::vector<DCRHitContainer>   m_SdcInRawHC;
   std::vector<DCRHitContainer>   m_SdcOutRawHC;
+  HodoRHitContainer              m_TPCClockRawHC;
   HodoRHitContainer              m_ScalerRawHC;
   HodoRHitContainer              m_TrigRawHC;
   HodoRHitContainer              m_VmeCalibRawHC;
@@ -77,6 +80,7 @@ public:
   const DCRHitContainer&   GetSdcOutRawHC(Int_t layer) const;
   const TPCRHitContainer&  GetTPCRawHC(Int_t layer) const;
   const TPCRHitContainer&  GetTPCCorHC(Int_t layer) const;
+  const HodoRHitContainer& GetTPCClockRawHC() const;
   const HodoRHitContainer& GetScalerRawHC() const;
   const HodoRHitContainer& GetTrigRawHC() const;
   const HodoRHitContainer& GetVmeCalibRawHC() const;
@@ -84,17 +88,17 @@ public:
 private:
   enum EDCDataType   { kDcLeading, kDcTrailing, kDcOverflow, kDcNDataType };
   Bool_t AddHodoRawHit(HodoRHitContainer& cont,
-			Int_t id, Int_t plane, Int_t seg,
-			Int_t UorD, Int_t type, Int_t data);
+                       Int_t id, Int_t plane, Int_t seg,
+                       Int_t UorD, Int_t type, Int_t data);
   Bool_t AddDCRawHit(DCRHitContainer& cont,
-		      Int_t plane, Int_t wire, Int_t data,
-		      Int_t type=kDcLeading);
+                     Int_t plane, Int_t wire, Int_t data,
+                     Int_t type=kDcLeading);
   Bool_t AddTPCRawHit(TPCRHitContainer& cont,
-                       Int_t layer, Int_t row, Int_t adc);
+                      Int_t layer, Int_t row, Int_t adc);
   void   DecodeHodo(Int_t id, Int_t plane, Int_t nseg, Int_t nch,
-		     HodoRHitContainer& cont);
+                    HodoRHitContainer& cont);
   void   DecodeHodo(Int_t id, Int_t nseg, Int_t nch,
-		     HodoRHitContainer& cont);
+                    HodoRHitContainer& cont);
 };
 
 //_____________________________________________________________________________
@@ -229,6 +233,13 @@ RawData::GetSdcOutRawHC(Int_t layer) const
 {
   if(layer<0 || layer>NumOfLayersSdcOut) layer = 0;
   return m_SdcOutRawHC[layer];
+}
+
+//_____________________________________________________________________________
+inline const HodoRHitContainer&
+RawData::GetTPCClockRawHC() const
+{
+  return m_TPCClockRawHC;
 }
 
 //_____________________________________________________________________________
