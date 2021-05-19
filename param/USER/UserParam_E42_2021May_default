@@ -130,11 +130,14 @@ TimeBucketTPC		20 120
 #DriftVelocityTPC	0.05
 
 ### TPC Cluster Y cut
-ClusterYCut 3
+#ClusterYCut 3
+ClusterYCut 6
 
 ### TPC Hough Window cut
-HoughWindowCut 10
+#HoughWindowCut 10
+HoughWindowCut 15
 TPCClusterSizeCut 1
+TPCMaxLayerCut 29
 
 ### TPC resolution parameter
 ### at 1T

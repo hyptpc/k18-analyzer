@@ -2055,6 +2055,7 @@ namespace track
     static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
     static const double HoughWindowCut = gUser.GetParameter("HoughWindowCut");
+    static const double MaxLayerCut = gUser.GetParameter("TPCMaxLayerCut");
     bool status = true;
 
     //    if( valueHall ) { // TODO
@@ -2215,7 +2216,7 @@ namespace track
 	  double r_cal = sqrt(pow(x-hough_cx,2) + pow(y-hough_cy,2));
 
 	  double dist = fabs(r_cal - hough_r);
-	  if( dist < HoughWindowCut ){
+	  if( dist < HoughWindowCut && layer < MaxLayerCut){
 	    track->AddTPCHit(new TPCLTrackHit(hit));
 	    flag[layer][ci]++;
 	  }
