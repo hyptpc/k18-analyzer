@@ -114,7 +114,7 @@ const Double_t u_off = 0.000;
 const Double_t v_off = 0.000;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 struct Event
 {
   Int_t runnum;
@@ -229,9 +229,9 @@ struct Event
   Double_t best_TofSeg[MaxHits];
 
   //Reaction
-  Int_t    nPi;
-  Int_t    nK;
-  Int_t    nPiK;
+  Int_t    nKm;
+  Int_t    nKp;
+  Int_t    nKK;
   Double_t vtx[MaxHits];
   Double_t vty[MaxHits];
   Double_t vtz[MaxHits];
@@ -244,14 +244,14 @@ struct Event
   Double_t costCM[MaxHits];
   Int_t Kflag[MaxHits];
 
-  Double_t xpi[MaxHits];
-  Double_t ypi[MaxHits];
-  Double_t upi[MaxHits];
-  Double_t vpi[MaxHits];
-  Double_t xk[MaxHits];
-  Double_t yk[MaxHits];
-  Double_t uk[MaxHits];
-  Double_t vk[MaxHits];
+  Double_t xkm[MaxHits];
+  Double_t ykm[MaxHits];
+  Double_t ukm[MaxHits];
+  Double_t vkm[MaxHits];
+  Double_t xkp[MaxHits];
+  Double_t ykp[MaxHits];
+  Double_t ukp[MaxHits];
+  Double_t vkp[MaxHits];
 
   Double_t pOrg[MaxHits];
   Double_t pCalc[MaxHits];
@@ -259,7 +259,7 @@ struct Event
   Double_t pCorrDE[MaxHits];
 };
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 struct Src
 {
   Int_t runnum;
@@ -378,7 +378,7 @@ struct Src
   Double_t tofsegKurama[MaxHits];
 };
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 namespace root
 {
 Event  event;
@@ -387,7 +387,7 @@ TH1   *h[MaxHist];
 TTree *tree;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 Int_t
 main(Int_t argc, char **argv)
 {
@@ -419,7 +419,7 @@ main(Int_t argc, char **argv)
   return EXIT_SUCCESS;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 dst::InitializeEvent()
 {
@@ -553,9 +553,9 @@ dst::InitializeEvent()
   }
 
   //Reaction
-  event.nPi = 0;
-  event.nK = 0;
-  event.nPiK = 0;
+  event.nKm = 0;
+  event.nKp = 0;
+  event.nKK = 0;
 
   for(Int_t it=0; it<MaxHits; ++it){
     event.vtx[it]       = -9999.;
@@ -570,14 +570,14 @@ dst::InitializeEvent()
     event.MissMassCorrDE[it]  = -9999.;
 	event.Kflag[it]     = 0;
 
-    event.xpi[it] = -9999.0;
-    event.ypi[it] = -9999.0;
-    event.upi[it] = -9999.0;
-    event.vpi[it] = -9999.0;
-    event.xk[it] = -9999.0;
-    event.yk[it] = -9999.0;
-    event.uk[it] = -9999.0;
-    event.vk[it] = -9999.0;
+    event.xkm[it] = -9999.0;
+    event.ykm[it] = -9999.0;
+    event.ukm[it] = -9999.0;
+    event.vkm[it] = -9999.0;
+    event.xkp[it] = -9999.0;
+    event.ykp[it] = -9999.0;
+    event.ukp[it] = -9999.0;
+    event.vkp[it] = -9999.0;
     event.pOrg[it] = -9999.0;
     event.pCalc[it] = -9999.0;
     event.pCorr[it] = -9999.0;
@@ -587,7 +587,7 @@ dst::InitializeEvent()
   return true;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 dst::DstOpen(std::vector<std::string> arg)
 {
@@ -609,19 +609,18 @@ dst::DstOpen(std::vector<std::string> arg)
   return true;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 dst::DstRead(Int_t ievent)
 {
-  static const Double_t OffsetToF  = gUser.GetParameter("OffsetToF");
-  static const Double_t Mip2MeV           = gUser.GetParameter("TOFKID",0);
-  static const Double_t PionCutMass       = gUser.GetParameter("TOFKID",1);
-  static const Double_t ProtonCutMass     = gUser.GetParameter("TOFKID",2);
-
-  static const Double_t KaonMass    = pdg::KaonMass();
-  static const Double_t PionMass    = pdg::PionMass();
-  static const Double_t ProtonMass  = pdg::ProtonMass();
-  static const Double_t SigmaNMass  = pdg::SigmaNMass();
+  static const auto OffsetToF  = gUser.GetParameter("OffsetToF");
+  static const auto Mip2MeV           = gUser.GetParameter("TOFKID",0);
+  static const auto PionCutMass       = gUser.GetParameter("TOFKID",1);
+  static const auto ProtonCutMass     = gUser.GetParameter("TOFKID",2);
+  static const auto KaonMass    = pdg::KaonMass();
+  // static const auto PionMass    = pdg::PionMass();
+  static const auto ProtonMass  = pdg::ProtonMass();
+  static const auto SigmaNMass  = pdg::SigmaNMass();
 
   if(ievent%10000 == 0){
     std::cout << FUNC_NAME << " Event Number: "
@@ -697,8 +696,8 @@ dst::DstRead(Int_t ievent)
   // if(event.nhFbh==0) return true;
   // HF1(1, 7.);
 
-  std::vector <ThreeVector> PiPCont, PiXCont;
-  std::vector <ThreeVector> KPCont,  KXCont;
+  std::vector<ThreeVector> KmPCont, KmXCont;
+  std::vector<ThreeVector> KpPCont, KpXCont;
 
   // BFT
   for(Int_t i=0; i<nhBft; ++i){
@@ -914,15 +913,15 @@ dst::DstRead(Int_t ievent)
     HF2(4210, xt, yt);
     HF1(4211, pCorr);
     HF1(4212, path);
-    KXCont.push_back(PosCorr);
-    KPCont.push_back(MomCorr);
+    KpXCont.push_back(PosCorr);
+    KpPCont.push_back(MomCorr);
   }
 
-  if(KPCont.size()==0) return true;
+  if(KpPCont.size()==0) return true;
 
   HF1(1, 8.);
 
-  ////////// pi
+  ////////// km
   for(Int_t itK18=0; itK18<ntK18; ++itK18){
     Int_t nh = src.nhK18[itK18];
     Double_t chisqr = src.chisqrK18[itK18];
@@ -949,46 +948,46 @@ dst::DstRead(Int_t ievent)
     HF1(4105, x); HF1(4106, y);
     //HF1(4107, xo); HF1(4108, yo); HF1(4109, u); HF1(4110, v);
 
-    PiPCont.push_back(Mom); PiXCont.push_back(Pos);
+    KmPCont.push_back(Mom); KmXCont.push_back(Pos);
   }
 
-  if(PiPCont.size()==0) return true;
+  if(KmPCont.size()==0) return true;
 
   HF1(1, 9.);
 
   //MissingMass
-  Int_t nPi = PiPCont.size();
-  Int_t nK  = KPCont.size();
-  event.nPi = nPi;
-  event.nK  = nK;
-  event.nPiK = nPi*nK;
-  HF1(4101, Double_t(nPi));
-  HF1(4201, Double_t(nK));
-  Int_t npik=0;
-  for(Int_t ikp=0; ikp<nK; ++ikp){
-    ThreeVector pkp = KPCont[ikp], xkp = KXCont[ikp];
-    for(Int_t ipi=0; ipi<nPi; ++ipi){
-      ThreeVector ppi  = PiPCont[ipi], xpi = PiXCont[ipi];
-      ThreeVector vert = Kinematics::VertexPoint(xpi, xkp, ppi, pkp);
+  Int_t nKm = KmPCont.size();
+  Int_t nKp = KpPCont.size();
+  event.nKm = nKm;
+  event.nKp = nKp;
+  event.nKK = nKm*nKp;
+  HF1(4101, Double_t(nKm));
+  HF1(4201, Double_t(nKp));
+  Int_t nkk=0;
+  for(Int_t ikp=0; ikp<nKp; ++ikp){
+    ThreeVector pkp = KpPCont[ikp], xkp = KpXCont[ikp];
+    for(Int_t ikm=0; ikm<nKm; ++ikm){
+      ThreeVector pkm  = KmPCont[ikm], xkm = KmXCont[ikm];
+      ThreeVector vert = Kinematics::VertexPoint(xkm, xkp, pkm, pkp);
       // std::cout << "vertex : " << vert << " " << vert.Mag() << std::endl;
-      Double_t closedist = Kinematics::closeDist(xpi, xkp, ppi, pkp);
+      Double_t closedist = Kinematics::closeDist(xkm, xkp, pkm, pkp);
 
       Double_t us = pkp.x()/pkp.z(), vs = pkp.y()/pkp.z();
-      Double_t ub = ppi.x()/ppi.z(), vb = ppi.y()/ppi.z();
-      Double_t cost = ppi*pkp/(ppi.Mag()*pkp.Mag());
+      Double_t ub = pkm.x()/pkm.z(), vb = pkm.y()/pkm.z();
+      Double_t cost = pkm*pkp/(pkm.Mag()*pkp.Mag());
 
       Double_t pk0   = pkp.Mag();
       Double_t pCorr = pk0;
 
       ThreeVector pkpCorr(pCorr*pkp.x()/pkp.Mag(),
-			   pCorr*pkp.y()/pkp.Mag(),
-			   pCorr*pkp.z()/pkp.Mag());
+                          pCorr*pkp.y()/pkp.Mag(),
+                          pCorr*pkp.z()/pkp.Mag());
 
-      //      ThreeVector ppiCorrDE = Kinematics::CorrElossIn(ppi, xpi, vert, PionMass);
+      //      ThreeVector pkmCorrDE = Kinematics::CorrElossIn(pkm, xkm, vert, KmonMass);
       //      ThreeVector pkpCorrDE = Kinematics::CorrElossOut(pkpCorr, xkp, vert, KaonMass);
 
-      LorentzVector LvPi(ppi, std::sqrt(PionMass*PionMass+ppi.Mag2()));
-      //      LorentzVector LvPiCorrDE(ppiCorrDE, sqrt(PionMass*PionMass+ppiCorrDE.Mag2()));
+      LorentzVector LvKm(pkm, std::sqrt(KaonMass*KaonMass+pkm.Mag2()));
+      //      LorentzVector LvKmCorrDE(pkmCorrDE, sqrt(KaonMass*KaonMass+pkmCorrDE.Mag2()));
 
       LorentzVector LvKp(pkp, std::sqrt(KaonMass*KaonMass+pkp.Mag2()));
       LorentzVector LvKpCorr(pkpCorr, std::sqrt(KaonMass*KaonMass+pkpCorr.Mag2()));
@@ -997,15 +996,15 @@ dst::DstRead(Int_t ievent)
       LorentzVector LvC(0., 0., 0., ProtonMass);
       LorentzVector LvCore(0., 0., 0., 0.);
 
-      LorentzVector LvRc       = LvPi+LvC-LvKp;
-      LorentzVector LvRcCorr   = LvPi+LvC-LvKpCorr;
-      //      LorentzVector LvRcCorrDE = LvPiCorrDE+LvC-LvKpCorrDE;
+      LorentzVector LvRc       = LvKm+LvC-LvKp;
+      LorentzVector LvRcCorr   = LvKm+LvC-LvKpCorr;
+      //      LorentzVector LvRcCorrDE = LvKmCorrDE+LvC-LvKpCorrDE;
       Double_t MisMass       = LvRc.Mag();//-LvC.Mag();
       Double_t MisMassCorr   = LvRcCorr.Mag();//-LvC.Mag();
       //      Double_t MisMassCorrDE = LvRcCorrDE.Mag();//-LvC.Mag();
 
       //Primary frame
-      LorentzVector PrimaryLv = LvPi+LvC;
+      LorentzVector PrimaryLv = LvKm+LvC;
       Double_t TotalEnergyCM = PrimaryLv.Mag();
       ThreeVector beta(1/PrimaryLv.E()*PrimaryLv.Vect());
 
@@ -1038,37 +1037,37 @@ dst::DstRead(Int_t ievent)
       Double_t sintCM  = std::sqrt(1.-costCM*costCM);
       Double_t KaonMom = TotalMomCM*sintCM/std::sqrt(1.-costLab*costLab);
 
-      if (npik<MaxHits) {
-	event.vtx[npik]=vert.x();
-	event.vty[npik]=vert.y();
-	event.vtz[npik]=vert.z();
-	event.closeDist[npik] = closedist;
-	event.theta[npik]     = std::acos(cost)*math::Rad2Deg();
-	event.thetaCM[npik]   = std::acos(costCM)*math::Rad2Deg();
-	event.costCM[npik]    = costCM;
+      if(nkk < MaxHits){
+	event.vtx[nkk]=vert.x();
+	event.vty[nkk]=vert.y();
+	event.vtz[nkk]=vert.z();
+	event.closeDist[nkk] = closedist;
+	event.theta[nkk]     = std::acos(cost)*math::Rad2Deg();
+	event.thetaCM[nkk]   = std::acos(costCM)*math::Rad2Deg();
+	event.costCM[nkk]    = costCM;
 
-	event.MissMass[npik]       = MisMass;
-	event.MissMassCorr[npik]   = MisMassCorr;
-	//	event.MissMassCorrDE[npik] = MisMassCorrDE;
-	event.MissMassCorrDE[npik] = 0;
+	event.MissMass[nkk]       = MisMass;
+	event.MissMassCorr[nkk]   = MisMassCorr;
+	//	event.MissMassCorrDE[nkk] = MisMassCorrDE;
+	event.MissMassCorrDE[nkk] = 0;
 
-	event.xk[npik] = xkp.x();
-	event.yk[npik] = xkp.y();
-	event.uk[npik] = us;
-	event.vk[npik] = vs;
-
-	event.xpi[npik] = xpi.x();
-	event.ypi[npik] = xpi.y();
-	event.upi[npik] = ub;
-	event.vpi[npik] = vb;
-	event.pOrg[npik] = pk0;
-	event.pCalc[npik] = KaonMom;
-	event.pCorr[npik] = pCorr;
-	//	event.pCorrDE[npik] = pkpCorrDE.Mag();
-	event.pCorrDE[npik] = 0;
-	npik++;
-      } else {
-	std::cout << "#W npik: "<< npik << " exceeding MaxHits: " << MaxHits << std::endl;
+	event.xkp[nkk] = xkp.x();
+	event.ykp[nkk] = xkp.y();
+	event.ukp[nkk] = us;
+	event.vkp[nkk] = vs;
+	event.xkm[nkk] = xkm.x();
+	event.ykm[nkk] = xkm.y();
+	event.ukm[nkk] = ub;
+	event.vkm[nkk] = vb;
+	event.pOrg[nkk] = pk0;
+	event.pCalc[nkk] = KaonMom;
+	event.pCorr[nkk] = pCorr;
+	//	event.pCorrDE[nkk] = pkpCorrDE.Mag();
+	event.pCorrDE[nkk] = 0;
+	nkk++;
+      }else{
+	std::cout << FUNC_NAME << " nkk("
+                  << nkk << ") exceeding MaxHits: " << MaxHits << std::endl;
       }
 
       HF1(5001, vert.z());
@@ -1108,7 +1107,7 @@ dst::DstRead(Int_t ievent)
   return true;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 dst::DstClose()
 {
@@ -1124,7 +1123,7 @@ dst::DstClose()
   return true;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 ConfMan::InitializeHistograms()
 {
@@ -1158,11 +1157,11 @@ ConfMan::InitializeHistograms()
   HB1(205, "Delta-E BH1", 200, -0.5, 4.5);
   HB1(206, "Beam ToF", 200, -10., 10.);
 
-  HB1(211, "#Clusters BH1 [pi]",  11, 0., 11.);
-  HB1(212, "ClusterSize BH1 [pi]",11, 0., 11.);
-  HB1(213, "HitPat BH1 [pi]", 11, 0., 11.);
-  HB1(214, "MeanTime BH1 [pi]", 200, -10., 10.);
-  HB1(215, "Delta-E BH1 [pi]", 200, -0.5, 4.5);
+  HB1(211, "#Clusters BH1 [km]",  11, 0., 11.);
+  HB1(212, "ClusterSize BH1 [km]",11, 0., 11.);
+  HB1(213, "HitPat BH1 [km]", 11, 0., 11.);
+  HB1(214, "MeanTime BH1 [km]", 200, -10., 10.);
+  HB1(215, "Delta-E BH1 [km]", 200, -0.5, 4.5);
 
   HB1(252, "ClusterSize BH1 [kk]",11, 0., 11.);
   HB1(253, "HitPat BH1 [kk]", 11, 0., 11.);
@@ -1311,7 +1310,7 @@ ConfMan::InitializeHistograms()
 
   ////////////////////////////////////////////
   //Tree
-  HBTree("pik","tree of PiKAna");
+  HBTree("kk","tree of KkAna");
   tree->Branch("runnum", &event.runnum, "runnum/I");
   tree->Branch("evnum",  &event.evnum,  "evnum/I");
   tree->Branch("spill",  &event.spill,  "spill/I");
@@ -1421,33 +1420,33 @@ ConfMan::InitializeHistograms()
   tree->Branch("best_TofSeg",   event.best_TofSeg,  "best_TofSeg[ntKurama]/D");
 
   //Reaction
-  tree->Branch("nPi",           &event.nPi,            "nPi/I");
-  tree->Branch("nK",            &event.nK,             "nK/I");
-  tree->Branch("nPiK",           &event.nPiK,          "nPiK/I");
-  tree->Branch("vtx",            event.vtx,            "vtx[nPiK]/D");
-  tree->Branch("vty",            event.vty,            "vty[nPiK]/D");
-  tree->Branch("vtz",            event.vtz,            "vtz[nPiK]/D");
-  tree->Branch("closeDist",      event.closeDist,      "closeDist[nPiK]/D");
-  tree->Branch("theta",          event.theta,          "theta[nPiK]/D");
-  tree->Branch("MissMass",       event.MissMass,       "MissMass[nPiK]/D");
-  tree->Branch("MissMassCorr",   event.MissMassCorr,   "MissMassCorr[nPiK]/D");
-  tree->Branch("MissMassCorrDE", event.MissMassCorrDE, "MissMassCorrDE[nPiK]/D");
-  tree->Branch("thetaCM", event.thetaCM,  "thetaCM[nPiK]/D");
-  tree->Branch("costCM",  event.costCM,   "costCM[nPiK]/D");
-  tree->Branch("Kflag" ,  event.Kflag,    "Kflag[nPiK]/I");
+  tree->Branch("nKm",           &event.nKm,            "nKm/I");
+  tree->Branch("nKp",           &event.nKp,            "nKp/I");
+  tree->Branch("nKK",           &event.nKK,            "nKK/I");
+  tree->Branch("vtx",            event.vtx,            "vtx[nKK]/D");
+  tree->Branch("vty",            event.vty,            "vty[nKK]/D");
+  tree->Branch("vtz",            event.vtz,            "vtz[nKK]/D");
+  tree->Branch("closeDist",      event.closeDist,      "closeDist[nKK]/D");
+  tree->Branch("theta",          event.theta,          "theta[nKK]/D");
+  tree->Branch("MissMass",       event.MissMass,       "MissMass[nKK]/D");
+  tree->Branch("MissMassCorr",   event.MissMassCorr,   "MissMassCorr[nKK]/D");
+  tree->Branch("MissMassCorrDE", event.MissMassCorrDE, "MissMassCorrDE[nKK]/D");
+  tree->Branch("thetaCM", event.thetaCM,  "thetaCM[nKK]/D");
+  tree->Branch("costCM",  event.costCM,   "costCM[nKK]/D");
+  tree->Branch("Kflag" ,  event.Kflag,    "Kflag[nKK]/I");
 
-  tree->Branch("xpi",        event.xpi,      "xpi[nPiK]/D");
-  tree->Branch("ypi",        event.ypi,      "ypi[nPiK]/D");
-  tree->Branch("upi",        event.upi,      "upi[nPiK]/D");
-  tree->Branch("vpi",        event.vpi,      "vpi[nPiK]/D");
-  tree->Branch("xk",         event.xk,       "xk[nPiK]/D");
-  tree->Branch("yk",         event.yk,       "yk[nPiK]/D");
-  tree->Branch("uk",         event.uk,       "uk[nPiK]/D");
-  tree->Branch("vk",         event.vk,       "vk[nPiK]/D");
-  tree->Branch("pOrg",       event.pOrg,      "pOrg[nPiK]/D");
-  tree->Branch("pCalc",      event.pCalc,     "pCalc[nPiK]/D");
-  tree->Branch("pCorr",      event.pCorr,     "pCorr[nPiK]/D");
-  tree->Branch("pCorrDE",    event.pCorrDE,   "pCorrDE[nPiK]/D");
+  tree->Branch("xkm",        event.xkm,      "xkm[nKK]/D");
+  tree->Branch("ykm",        event.ykm,      "ykm[nKK]/D");
+  tree->Branch("ukm",        event.ukm,      "ukm[nKK]/D");
+  tree->Branch("vkm",        event.vkm,      "vkm[nKK]/D");
+  tree->Branch("xkp",        event.xkp,      "xkp[nKK]/D");
+  tree->Branch("ykp",        event.ykp,      "ykp[nKK]/D");
+  tree->Branch("ukp",        event.ukp,      "ukp[nKK]/D");
+  tree->Branch("vkp",        event.vkp,      "vkp[nKK]/D");
+  tree->Branch("pOrg",       event.pOrg,     "pOrg[nKK]/D");
+  tree->Branch("pCalc",      event.pCalc,    "pCalc[nKK]/D");
+  tree->Branch("pCorr",      event.pCorr,    "pCorr[nKK]/D");
+  tree->Branch("pCorrDE",    event.pCorrDE,  "pCorrDE[nKK]/D");
 
   ////////// Bring Address From Dst
   TTreeCont[kHodoscope]->SetBranchStatus("*", 0);
@@ -1643,17 +1642,17 @@ ConfMan::InitializeHistograms()
   return true;
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 ConfMan::InitializeParameterFiles()
 {
   return
     (InitializeParameter<DCGeomMan>("DCGEO")   &&
-      InitializeParameter<UserParamMan>("USER") &&
-	  InitializeParameter<HodoPHCMan>("HDPHC"));
+     InitializeParameter<UserParamMan>("USER") &&
+     InitializeParameter<HodoPHCMan>("HDPHC"));
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 bool
 ConfMan::FinalizeProcess()
 {
