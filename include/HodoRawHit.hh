@@ -62,8 +62,8 @@ public:
   Int_t  PlaneId()         const { return m_plane_id;    }
   Int_t  SegmentId()       const { return m_segment_id;  }
   // for Multi-hit method
-  void SetTdcOverflow(Int_t fl) { m_oftdc = static_cast<Bool_t>(fl); }
-  Int_t  GetNumOfTdcHits()   const { return m_nhtdc;       }
+  void SetTdcOverflow(Int_t flag) { m_oftdc = static_cast<Bool_t>(flag); }
+  Int_t GetNumOfTdcHits() const { return m_nhtdc; }
   const std::vector<Int_t>& GetArrayAdc1() const { return m_adc1; }
   const std::vector<Int_t>& GetArrayAdc2() const { return m_adc2; }
   Int_t  GetAdc1(Int_t i=0)        const { return m_adc1.at(i);  }

@@ -8,8 +8,9 @@
 
 #include <TROOT.h>
 #include <TFile.h>
+#include <TString.h>
+#include <TSystem.h>
 
-#include <filesystem_util.hh>
 #include <std_ostream.hh>
 
 #include "CatchSignal.hh"
@@ -22,33 +23,30 @@
 
 namespace
 {
-  using namespace hddaq::unpacker;
-  const std::string& class_name("");
-  ConfMan&              gConf     = ConfMan::GetInstance();
-  debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
-  UnpackerManager&      gUnpacker = GUnpacker::get_instance();
-  enum EArg
-    {
-      kArgProcess,
-      kArgConfFile,
-      kArgInFile,
-      kArgOutFile,
-      kArgc
-    };
+using hddaq::unpacker::GUnpacker;
+auto& gConf     = ConfMan::GetInstance();
+auto& gCounter  = debug::ObjectCounter::GetInstance();
+auto& gUnpacker = GUnpacker::get_instance();
+enum EArg
+{
+  kArgProcess,
+  kArgConfFile,
+  kArgInFile,
+  kArgOutFile,
+  kArgc
+};
 }
 
 TROOT theROOT("k18analyzer", "k18analyzer");
 
 //______________________________________________________________________________
 int
-main( int argc, char **argv )
+main(int argc, char **argv)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  std::vector<std::string> arg( argv, argv + argc );
-  const std::string& process = arg[kArgProcess];
-  if( argc!=kArgc ){
-    hddaq::cout << "#D Usage: " << hddaq::basename(process)
+  std::vector<TString> arg(argv, argv + argc);
+  const TString& process = arg[kArgProcess];
+  if(argc!=kArgc){
+    hddaq::cout << "#D Usage: " << gSystem->BaseName(process)
   		<< " [analyzer config file]"
   		<< " [data input stream]"
   		<< " [output root file]"
@@ -56,25 +54,24 @@ main( int argc, char **argv )
     return EXIT_SUCCESS;
   }
 
-  debug::Timer timer(func_name+" End of Analyzer");
+  debug::Timer timer("[::main()] End of Analyzer");
 
-  const std::string& conf_file = arg[kArgConfFile];
-  const std::string& in_file   = arg[kArgInFile];
-  const std::string& out_file  = arg[kArgOutFile];
+  const TString& conf_file = arg[kArgConfFile];
+  const TString& in_file   = arg[kArgInFile];
+  const TString& out_file  = arg[kArgOutFile];
 
-  hddaq::cout << "#D " << func_name
-	      << " recreate root file : " << out_file << std::endl;
-  new TFile( out_file.c_str(), "recreate" );
+  hddaq::cout << "[::main()] recreate root file : " << out_file << std::endl;
+  new TFile(out_file, "recreate");
 
-  if( !gConf.Initialize( conf_file ) || !gConf.InitializeUnpacker() )
+  if(!gConf.Initialize(conf_file) || !gConf.InitializeUnpacker())
     return EXIT_FAILURE;
 
-  gUnpacker.set_istream( in_file );
+  gUnpacker.set_istream(in_file.Data());
   gUnpacker.initialize();
 
   CatchSignal::Set(SIGINT);
 
-  for( ; !gUnpacker.eof() && !CatchSignal::Stop(); ++gUnpacker ){
+  for(; !gUnpacker.eof() && !CatchSignal::Stop(); ++gUnpacker){
     VEvent* event = gConf.EventAllocator();
     event->ProcessingBegin();
     event->ProcessingNormal();

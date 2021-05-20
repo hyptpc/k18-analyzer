@@ -7,6 +7,8 @@
 #include <vector>
 #include <TString.h>
 
+class TNamed;
+
 //_____________________________________________________________________________
 class UserParamMan
 {
@@ -28,8 +30,11 @@ private:
   Bool_t   m_use_default;
   TString  m_file_name;
   ParamMap m_param_map;
+  TString  m_buf;
+  TNamed*  m_object;
 
 public:
+  void     AddObject();
   Bool_t   Initialize();
   Bool_t   Initialize(const TString& filename);
   Bool_t   IsReady() const { return m_is_ready; }

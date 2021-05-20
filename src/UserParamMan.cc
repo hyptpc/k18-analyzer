@@ -10,7 +10,9 @@
 #include <sstream>
 #include <stdexcept>
 
+#include <TFile.h>
 #include <TMath.h>
+#include <TNamed.h>
 
 #include <std_ostream.hh>
 
@@ -21,22 +23,30 @@ namespace
 const Double_t default_value = TMath::QuietNaN();
 }
 
-// if no parameter,
-//   0: throw exception
-//   1: return default value
-
 //_____________________________________________________________________________
 UserParamMan::UserParamMan()
   : m_is_ready(false),
-    m_use_default(false),
+    m_use_default(false), // if no parameter, throw exception
     m_file_name(),
-    m_param_map()
+    m_param_map(),
+    m_buf(),
+    m_object()
 {
 }
 
 //_____________________________________________________________________________
 UserParamMan::~UserParamMan()
 {
+  if(m_object) delete m_object;
+}
+
+//_____________________________________________________________________________
+void
+UserParamMan::AddObject()
+{
+  if(m_object) delete m_object;
+  m_object = new TNamed("user", m_buf.Data());
+  m_object->Write();
 }
 
 //_____________________________________________________________________________
@@ -50,8 +60,11 @@ UserParamMan::Initialize()
     return false;
   }
 
+  m_buf = "\n";
+
   TString line;
   while(ifs.good() && line.ReadLine(ifs)){
+    m_buf += line + "\n";
     if(line.IsNull() || line[0]=='#') continue;
     std::istringstream input_line(line.Data());
     TString key;
@@ -63,6 +76,8 @@ UserParamMan::Initialize()
     }
     m_param_map[key] = param_array;
   }
+
+  AddObject();
 
   m_is_ready = true;
   return true;

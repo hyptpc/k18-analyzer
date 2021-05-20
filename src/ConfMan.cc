@@ -9,6 +9,8 @@
 #include <sstream>
 #include <vector>
 
+#include <TNamed.h>
+
 #include <lexical_cast.hh>
 #include <filesystem_util.hh>
 #include <replace_string.hh>
@@ -38,7 +40,7 @@ const TString kConfFile("CONF");
 TString sConfDir;
 auto& gUnpacker = GUnpacker::get_instance();
 const auto& gMatrix = MatrixParamMan::GetInstance();
-const auto& gUser = UserParamMan::GetInstance();
+auto& gUser = UserParamMan::GetInstance();
 }
 
 //_____________________________________________________________________________
@@ -48,13 +50,24 @@ ConfMan::ConfMan()
     m_string(),
     m_double(),
     m_int(),
-    m_bool()
+    m_bool(),
+    m_buf(),
+    m_object()
 {
 }
 
 //_____________________________________________________________________________
 ConfMan::~ConfMan()
 {
+}
+
+//_____________________________________________________________________________
+void
+ConfMan::AddObject()
+{
+  if(m_object) delete m_object;
+  m_object = new TNamed("conf", m_buf.Data());
+  m_object->Write();
 }
 
 //_____________________________________________________________________________
@@ -76,8 +89,11 @@ ConfMan::Initialize()
   hddaq::cout << FUNC_NAME << " " << m_file[kConfFile] << std::endl;
   sConfDir = hddaq::dirname(m_file[kConfFile].Data());
 
+  m_buf = "\n";
+
   TString line;
   while(ifs.good() && line.ReadLine(ifs)){
+    m_buf += line + "\n";
     if(line.IsNull() || line[0]=='#') continue;
 
     line.ReplaceAll(",",  ""); // remove ,
@@ -102,6 +118,8 @@ ConfMan::Initialize()
     m_int[key] = val.Atoi();
     m_bool[key] = (val.Atoi() == 1);
   }
+
+  AddObject();
 
   // For E42
   gUnpacker.enable_istream_bookmark();
