@@ -56,6 +56,7 @@ protected:
   Bool_t   m_tpc_flag;
   Int_t m_clsize;
   Double_t m_charge_center;
+  TVector3 m_pos_center;
 
   Double_t m_resx;
   Double_t m_resy;
@@ -97,6 +98,7 @@ public:
   Double_t        GetCharge( void ) const { return m_charge; }
   Double_t        GetCharge_center( void ) const { return m_charge_center; }
   const TVector3& GetPos( void ) const { return m_pos; }
+  const TVector3& GetPos_center( void ) const { return m_pos_center; }
   Double_t        GetX( void ) const { return m_pos.X(); }
   Double_t        GetY( void ) const { return m_pos.Y(); }
   Double_t        GetZ( void ) const { return m_pos.Z(); }
@@ -125,6 +127,7 @@ public:
   void            SetRow( Int_t row ) { m_row  = row; }
   void            SetCharge( Double_t charge ) { m_charge = charge; }
   void            SetCharge_center( Double_t charge_center ) { m_charge_center = charge_center; }
+  void            SetPos_center( TVector3 pos_center ) { m_pos_center = pos_center; }
   void            SetPos( TVector3 pos ) { m_pos = pos; }
   void            SetWirePosition( Double_t wpos ) { m_wpos = wpos; }
   void            SetMRow( Double_t mrow ) { m_mrow = mrow; }

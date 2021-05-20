@@ -90,6 +90,9 @@ struct Event
   std::vector<Int_t> cluster_row;
   std::vector<Double_t> cluster_mrow;
   std::vector<Double_t> cluster_de_center;  
+  std::vector<Double_t> cluster_hitpos_center_x;
+  std::vector<Double_t> cluster_hitpos_center_y;
+  std::vector<Double_t> cluster_hitpos_center_z;
 
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
@@ -132,6 +135,9 @@ struct Event
     cluster_row.clear();
     cluster_mrow.clear();
     cluster_de_center.clear();
+    cluster_hitpos_center_x.clear();
+    cluster_hitpos_center_y.clear();
+    cluster_hitpos_center_z.clear();
     ntTpc = 0;
     trigpat.clear();
     trigflag.clear();
@@ -323,6 +329,7 @@ dst::DstRead( int ievent )
       Int_t row = hit->GetRow();
       Double_t mrow = hit->GetMRow();
       Double_t de_center = hit->GetCharge_center();
+      TVector3 pos_center = hit->GetPos_center();
       event.cluster_hitpos_x.push_back(x);
       event.cluster_hitpos_y.push_back(y);
       event.cluster_hitpos_z.push_back(z);
@@ -332,6 +339,9 @@ dst::DstRead( int ievent )
       event.cluster_row.push_back(row);
       event.cluster_mrow.push_back(mrow);
       event.cluster_de_center.push_back(de_center);
+      event.cluster_hitpos_center_x.push_back(pos_center.X());
+      event.cluster_hitpos_center_y.push_back(pos_center.Y());
+      event.cluster_hitpos_center_z.push_back(pos_center.Z());
 #if Gain_center
       //	if(69.<time&&time<85.&&nhit==1)
       if(cl_size>1){
@@ -482,6 +492,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "cluster_row", &event.cluster_row );
   tree->Branch( "cluster_mrow", &event.cluster_mrow );
   tree->Branch( "cluster_de_center", &event.cluster_de_center );
+  tree->Branch( "cluster_hitpos_center_x", &event.cluster_hitpos_center_x );
+  tree->Branch( "cluster_hitpos_center_y", &event.cluster_hitpos_center_y );
+  tree->Branch( "cluster_hitpos_center_z", &event.cluster_hitpos_center_z );
+
 
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );

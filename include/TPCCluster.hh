@@ -26,6 +26,7 @@ private:
   int      m_pad_id;
   double   m_charge;
   TVector3 m_pos;
+  TVector3 m_pos_center;
   std::vector<TPCHit*> m_tpchits;
   bool m_pos_calculated;
   double   m_mrow;
@@ -50,6 +51,7 @@ public:
   void AddTPCHit(TPCHit* hit);
 
   TVector3  Position( void );
+  TVector3  Position_CLcenter( void );
   double X( void );
   double Y( void );
   double Z( void );

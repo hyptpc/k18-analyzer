@@ -22,6 +22,7 @@ TPCCluster::TPCCluster( int layer, const TPCHitContainer& HitCont )
     m_pad_id(),
     m_charge(),
     m_pos(),
+    m_pos_center(),
     m_tpchits(),
     m_pos_calculated(false),
     m_mrow(),
@@ -39,6 +40,7 @@ TPCCluster::TPCCluster( double x, double y, double z, double de )
     m_pad_id(tpc::findPadID(z, x)),
     m_charge(de),
     m_pos(x, y, z),
+    m_pos_center(x, y, z),
     m_tpchits(),
     m_pos_calculated(true), // for MC data
     m_mrow(),
@@ -120,8 +122,10 @@ TPCCluster::CalculateWeightedMean( void )
     else
       m_mrow_int = 1+(int)m_mrow;
     for(int hiti=0; hiti<m_tpchits.size(); hiti++) {
-      if(m_mrow_int==m_tpchits[hiti]->GetRow())
+      if(m_mrow_int==m_tpchits[hiti]->GetRow()){
 	m_charge_center = m_tpchits[hiti]->GetCharge();
+	m_pos_center = m_tpchits[hiti]->GetPos();
+      }
     }
   }
   else {
@@ -170,8 +174,10 @@ TPCCluster::CalculateWeightedMeanTheta( void )
     else
       m_mrow_int = 1+(int)m_mrow;
     for(int hiti=0; hiti<m_tpchits.size(); hiti++) {
-      if(m_mrow_int==m_tpchits[hiti]->GetRow())
+      if(m_mrow_int==m_tpchits[hiti]->GetRow()){
 	m_charge_center = m_tpchits[hiti]->GetCharge();
+	m_pos_center = m_tpchits[hiti]->GetPos();
+      }
     }
   }
   else {
@@ -190,6 +196,14 @@ TPCCluster::Position( void )
 {
   if(!m_pos_calculated) Calculate();
   return m_pos;
+}
+
+//_____________________________________________________________________________
+TVector3
+TPCCluster::Position_CLcenter( void )
+{
+  if(!m_pos_calculated) Calculate();
+  return m_pos_center;
 }
 
 //_____________________________________________________________________________
