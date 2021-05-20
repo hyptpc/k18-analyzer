@@ -39,8 +39,8 @@
 namespace
 {
   static int gNumOfHits;
-  static TVector3 gHitPos[300];
-  static TVector3 gRes[300];
+  static TVector3 gHitPos[1000];
+  static TVector3 gRes[1000];
   const std::string& class_name("TPCLocalTrack_Helix");
   const UserParamMan& gUser = UserParamMan::GetInstance();
   const DCGeomMan& gGeom = DCGeomMan::GetInstance();
