@@ -58,15 +58,17 @@ namespace
 
   //cx, cy, z0, r, dz
   static const double  FitStep[5] = { 1.0e-4, 1.0e-4, 1.0e-4, 1.0e-4, 1.0e-5 };
-  static const double  LowLimit[5] = { -7000., -7000., -7000., 0., -10. };
-  static const double  UpLimit[5] = { 7000., 7000., 7000., 7000., 10. };
+  // static const double  LowLimit[5] = { -7000., -7000., -7000., 0., -10. };
+  // static const double  UpLimit[5] = { 7000., 7000., 7000., 7000., 10. };
+  static const double  LowLimit[5] = { -20000., -20000., -7000., 0., -10. };
+  static const double  UpLimit[5] = { 20000., 20000., 7000., 20000., 10. };
   //rdiff, theta, z0, r, dz
   static const double  FitStep2[5] = { 1.0e-4, 1.0e-5, 1.0e-4, 1.0e-4, 1.0e-5 };
   static const double  LowLimit2[5] = { -200., -acos(-1), -7000., 0., -10. };
-  static const double  UpLimit2[5] = { 200., acos(-1), 7000., 7000., 10. };
+  static const double  UpLimit2[5] = { 200., acos(-1), 7000., 20000., 10. };
 
   static const double  MaxChisqr = 500.;
-  static const int  MaxTryMinuit = 2;
+  static const int  MaxTryMinuit = 3;
 
   const int    theta_ndiv = 360;
   const double theta_min  =   0;

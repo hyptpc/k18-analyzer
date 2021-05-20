@@ -131,11 +131,11 @@ TimeBucketTPC		20 120
 
 ### TPC Cluster Y cut
 #ClusterYCut 3
-ClusterYCut 6
+ClusterYCut 15
 
 ### TPC Hough Window cut
 #HoughWindowCut 10
-HoughWindowCut 15
+HoughWindowCut 10
 TPCClusterSizeCut 1
 TPCMaxLayerCut 29
 
