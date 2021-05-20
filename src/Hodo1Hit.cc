@@ -86,7 +86,7 @@ Hodo1Hit::Calculate(Bool_t tdc_flag)
   Double_t dE = 0.;
   if(adc>=0){
     if(!gHodo.GetDe(cid, plid, seg, UorD, adc, dE)){
-      hddaq::cerr << "#E " << FUNC_NAME
+      hddaq::cerr << FUNC_NAME
 		  << " something is wrong at GetDe("
 		  << cid  << ", " << plid << ", " << seg << ", "
 		  << UorD << ", " << adc  << ", " << dE  << ")" << std::endl;
@@ -109,7 +109,7 @@ Hodo1Hit::Calculate(Bool_t tdc_flag)
     if(tdc<0) continue;
 
     if(!gHodo.GetTime(cid, plid, seg, UorD, tdc, time)){
-      hddaq::cerr << "#E " << FUNC_NAME
+      hddaq::cerr << FUNC_NAME
 		  << " something is wrong at GetTime("
 		  << cid  << ", " << plid << ", " << seg  << ", "
 		  << UorD << ", " << tdc  << ", " << time << ")" << std::endl;

@@ -11,14 +11,14 @@
 class HodoPHCParam
 {
 public:
-  static const TString& ClassName( void );
-  HodoPHCParam( Int_t type, Int_t n_param,
-                const std::vector<Double_t>& parlist );
-  ~HodoPHCParam( void );
+  static const TString& ClassName();
+  HodoPHCParam(Int_t type, Int_t n_param,
+               const std::vector<Double_t>& parlist);
+  ~HodoPHCParam();
 
 private:
-  HodoPHCParam( const HodoPHCParam& );
-  HodoPHCParam& operator =( const HodoPHCParam& );
+  HodoPHCParam(const HodoPHCParam&);
+  HodoPHCParam& operator =(const HodoPHCParam&);
 
 private:
   Int_t                 m_type;
@@ -26,22 +26,22 @@ private:
   std::vector<Double_t> m_param_list;
 
 public:
-  Double_t DoPHC( Double_t time, Double_t de ) const;
-  Double_t DoRPHC( Double_t time, Double_t de ) const;
-  Double_t DoSTC( Double_t stof, Double_t btof ) const; //for stof correction
+  Double_t DoPHC(Double_t time, Double_t de) const;
+  Double_t DoRPHC(Double_t time, Double_t de) const;
+  Double_t DoSTC(Double_t stof, Double_t btof) const; //for stof correction
 
 private:
-  Double_t Type1Correction( Double_t time, Double_t de ) const;
-  Double_t Type2Correction( Double_t time, Double_t de ) const; // For fiber
-  Double_t Type1RCorrection( Double_t time, Double_t de ) const;
-  Double_t Type1STCorrection( Double_t stof, Double_t btof ) const;//for stof correction
+  Double_t Type1Correction(Double_t time, Double_t de) const;
+  Double_t Type2Correction(Double_t time, Double_t de) const; // For fiber
+  Double_t Type1RCorrection(Double_t time, Double_t de) const;
+  Double_t Type1STCorrection(Double_t stof, Double_t btof) const;//for stof correction
 };
 
 //_____________________________________________________________________________
 inline const TString&
-HodoPHCParam::ClassName( void )
+HodoPHCParam::ClassName()
 {
-  static TString s_name( "HodoPHCParam" );
+  static TString s_name("HodoPHCParam");
   return s_name;
 }
 
@@ -49,14 +49,14 @@ HodoPHCParam::ClassName( void )
 class HodoPHCMan
 {
 public:
-  static const TString& ClassName( void );
-  static HodoPHCMan&    GetInstance( void );
-  ~HodoPHCMan( void );
+  static const TString& ClassName();
+  static HodoPHCMan&    GetInstance();
+  ~HodoPHCMan();
 
 private:
-  HodoPHCMan( void );
-  HodoPHCMan( const HodoPHCMan& );
-  HodoPHCMan& operator =( const HodoPHCMan& );
+  HodoPHCMan();
+  HodoPHCMan(const HodoPHCMan&);
+  HodoPHCMan& operator =(const HodoPHCMan&);
 
 private:
   typedef std::map<Int_t, HodoPHCParam*> PhcPContainer;
@@ -66,33 +66,33 @@ private:
   PhcPContainer m_container;
 
 public:
-  Bool_t DoCorrection( Int_t cid, Int_t plid, Int_t seg, Int_t ud,
-                       Double_t time, Double_t de, Double_t& ctime ) const;
-  Bool_t DoRCorrection( Int_t cid, Int_t plid, Int_t seg, Int_t ud,
-                        Double_t time, Double_t de, Double_t& ctime ) const;
-  Bool_t DoStofCorrection( Int_t cid, Int_t plid, Int_t seg, Int_t ud,
-                           Double_t stof, Double_t btof, Double_t& cstof ) const;
-  Bool_t Initialize( void );
-  Bool_t Initialize( const TString& file_name );
-  Bool_t IsReady( void ) const { return m_is_ready; }
-  void SetFileName( const TString& file_name ) { m_file_name = file_name; }
+  Bool_t DoCorrection(Int_t cid, Int_t plid, Int_t seg, Int_t ud,
+                      Double_t time, Double_t de, Double_t& ctime) const;
+  Bool_t DoRCorrection(Int_t cid, Int_t plid, Int_t seg, Int_t ud,
+                       Double_t time, Double_t de, Double_t& ctime) const;
+  Bool_t DoStofCorrection(Int_t cid, Int_t plid, Int_t seg, Int_t ud,
+                          Double_t stof, Double_t btof, Double_t& cstof) const;
+  Bool_t Initialize();
+  Bool_t Initialize(const TString& file_name);
+  Bool_t IsReady() const { return m_is_ready; }
+  void   SetFileName(const TString& file_name) { m_file_name = file_name; }
 
 private:
-  void          ClearElements( void );
-  HodoPHCParam* GetMap( Int_t cid, Int_t plid, Int_t seg, Int_t ud ) const;
+  void          ClearElements();
+  HodoPHCParam* GetMap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
 };
 
 //_____________________________________________________________________________
 inline const TString&
-HodoPHCMan::ClassName( void )
+HodoPHCMan::ClassName()
 {
-  static TString s_name( "HodoPHCMan" );
+  static TString s_name("HodoPHCMan");
   return s_name;
 }
 
 //_____________________________________________________________________________
 inline HodoPHCMan&
-HodoPHCMan::GetInstance( void )
+HodoPHCMan::GetInstance()
 {
   static HodoPHCMan s_instance;
   return s_instance;

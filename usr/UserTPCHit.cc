@@ -331,10 +331,17 @@ UserEvent::ProcessingNormal()
   //___ TPC Clock
   for(const auto& hit: rawData->GetTPCClockRawHC()){
     for(const auto& tdc: hit->GetArrayTdc1()){
-      event.clkTpc.push_back(tdc);
       HF1(51, tdc);
     }
   }
+
+  Double_t clock_timing = 0.;
+  if(hodoAna->DecodeTPCClock(rawData)){
+    clock_timing = hodoAna->GetHitTPCClock()->CTime();
+  }
+
+  event.clkTpc.push_back(clock_timing);
+  HF1(52, clock_timing);
 
   rawData->RecalcTPCHits();
 
@@ -386,7 +393,8 @@ UserEvent::ProcessingNormal()
 
   //________________________________________________________
   //___ TPCHit
-  DCAna->DecodeTPCHits(rawData);
+  DCAna->DecodeTPCHits(rawData, clock_timing);
+
   Int_t nhTpc = 0;
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     auto hc = DCAna->GetTPCHC(layer);
@@ -529,7 +537,8 @@ ConfMan:: InitializeHistograms()
   HB1(27, "TPC CTime", NbinTime, MinTime, MaxTime);
   HB1(28, "TPC DriftLength", NbinDL, MinDL, MaxDL);
   HB1(29, "TPC sigma", NbinSigma, MinSigma, MaxSigma);
-  HB1(51, "TPC Clock", 100000, 0., 1000000.);
+  HB1(51, "TPC Clock TDC", 100000, 0., 1000000.);
+  HB1(52, "TPC Clock Time", 20000, -100., 100.);
   // HB2(101, "TPC Waveform (good)",
   //      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc, MaxAdc);
 

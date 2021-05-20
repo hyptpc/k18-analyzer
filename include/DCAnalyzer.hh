@@ -103,7 +103,7 @@ public:
   Bool_t DecodeTPCHitsGeant4(const Int_t nhits,
                              const Double_t *x, const Double_t *y,
                              const Double_t *z, const Double_t *de);
-  Bool_t DecodeTPCHits(RawData* rawData);
+  Bool_t DecodeTPCHits(RawData* rawData, Double_t clock=0.);
   Bool_t DecodeSdcInHits(RawData* rawData);
   Bool_t DecodeSdcOutHits(RawData* rawData, Double_t ofs_dt=0.);
   Bool_t DecodeTOFHits(const Hodo2HitContainer& HitCont);

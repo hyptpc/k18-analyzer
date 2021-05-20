@@ -77,7 +77,7 @@ Hodo2Hit::Calculate()
   Double_t dE1 = 0., dE2 = 0.;
   if(adc1>=0){
     if(!gHodo.GetDe(cid, plid, seg, 0, adc1, dE1)){
-      hddaq::cerr << "#E " << FUNC_NAME
+      hddaq::cerr << FUNC_NAME
 		  << " something is wrong at GetDe("
 		  << cid  << ", " << plid << ", " << seg  << ", "
 		  << "0, " << adc1 << ", " << dE1 << ")" << std::endl;
@@ -86,7 +86,7 @@ Hodo2Hit::Calculate()
   }
   if(adc2>=0){
     if(!gHodo.GetDe(cid, plid, seg, 1, adc2, dE2)){
-      hddaq::cerr << "#E " << FUNC_NAME
+      hddaq::cerr << FUNC_NAME
 		  << " something is wrong at GetDe("
 		  << cid  << ", " << plid << ", " << seg  << ", "
 		  << "0, " << adc2 << ", " << dE2 << ")" << std::endl;

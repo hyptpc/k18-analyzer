@@ -86,7 +86,7 @@ public:
   const HodoRHitContainer& GetVmeCalibRawHC() const;
 
 private:
-  enum EDCDataType   { kDcLeading, kDcTrailing, kDcOverflow, kDcNDataType };
+  enum EDCDataType { kDcLeading, kDcTrailing, kDcOverflow, kDcNDataType };
   Bool_t AddHodoRawHit(HodoRHitContainer& cont,
                        Int_t id, Int_t plane, Int_t seg,
                        Int_t UorD, Int_t type, Int_t data);

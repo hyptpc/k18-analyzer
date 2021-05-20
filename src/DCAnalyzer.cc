@@ -363,7 +363,7 @@ DCAnalyzer::ClusterizeTPC(Int_t layerID, const TPCHitContainer& HitCont,
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::DecodeTPCHits(RawData *rawData)
+DCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
 {
   static const Int_t TPC_Subtraction = gUser.GetParameter("TPC_Subtraction");
   static const Int_t TPC_Multi = gUser.GetParameter("TPC_Multi");
@@ -378,32 +378,32 @@ DCAnalyzer::DecodeTPCHits(RawData *rawData)
   Int_t numhit =0;
   //multiplicity cut for partial readout mode
   for(Int_t layer=0; layer<=NumOfLayersTPC; ++layer){
-    const auto& rhit =  rawData->GetTPCRawHC(layer);
-    const std::size_t nh = rhit.size();
-    numhit += nh;
+    numhit += rawData->GetTPCRawHC(layer).size();
   }
-  if(TPC_Multi>0&&numhit>TPC_Multi){
+  if(TPC_Multi>0 && numhit>TPC_Multi){
     m_is_decoded[k_TPC] = true;
     return true;
   }
 
   for(Int_t layer=0; layer<=NumOfLayersTPC; ++layer){
     if(TPC_Subtraction == 1){
-      for(const auto& rhit : rawData->GetTPCCorHC(layer)){
+      for(const auto& rhit: rawData->GetTPCCorHC(layer)){
 	auto hit = new TPCHit(rhit);
-	if(hit->DoFit() && hit->Calculate())
+	if(hit->DoFit() && hit->Calculate(clock)){
 	  m_TPCHitCont[layer].push_back(hit);
-	else
+        }else{
 	  delete hit;
+        }
       }
     }
     else{
-      for(const auto& rhit : rawData->GetTPCRawHC(layer)){
+      for(const auto& rhit: rawData->GetTPCRawHC(layer)){
 	auto hit = new TPCHit(rhit);
-	if(hit->DoFit() && hit->Calculate())
+	if(hit->DoFit() && hit->Calculate(clock)){
 	  m_TPCHitCont[layer].push_back(hit);
-	else
+        }else{
 	  delete hit;
+        }
       }
     }
 
@@ -441,12 +441,12 @@ DCAnalyzer::ReCalcTPCHits(const Int_t nhits,
     Int_t layer = tpc::getLayerID(padid[hiti]);
     Int_t row = tpc::getRowID(padid[hiti]);
     Double_t y = 0.;
-    if(! gTPC.GetY(layer, row, time[hiti], y)){
+    if(!gTPC.GetY(layer, row, time[hiti], y)){
       hddaq::cerr << FUNC_NAME << " something is wrong at GetY("
                   << layer << ", " << row << ", " << time[hiti]
                   << ", " << y << ")" << std::endl;
     }
-      
+
     TVector3 pos(pos_tmp.x(), y, pos_tmp.z());
     TVector3 cpos = gTPCPos.Correct(pos);
 

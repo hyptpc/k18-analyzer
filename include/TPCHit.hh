@@ -22,15 +22,15 @@ class TPCRawHit;
 class TPCHit : public DCHit
 {
 public:
-  static TString ClassName( void );
-  TPCHit( TPCRawHit* rhit );
-  TPCHit( Int_t layer, Double_t mrow ); // for cluster hit
-  ~TPCHit( void );
+  static TString ClassName();
+  TPCHit(TPCRawHit* rhit);
+  TPCHit(Int_t layer, Double_t mrow); // for cluster hit
+  ~TPCHit();
 
 private:
-  TPCHit( void );
-  TPCHit( const TPCHit& );
-  TPCHit& operator =( const TPCHit& );
+  TPCHit();
+  TPCHit(const TPCHit&);
+  TPCHit& operator =(const TPCHit&);
 
 protected:
   TPCRawHit*            m_rhit;
@@ -71,90 +71,90 @@ protected:
   std::vector<TPCLTrackHit*> m_register_container;
 
 public:
-  void            AddDeTime( Double_t de, Double_t time );
-  Bool_t          BelongToTrack( void ) const { return m_belong_track; }
-  Bool_t          Calculate( void );
-  Bool_t          DoFit( void );
-  Double_t        GetCDe( Int_t i ) const { return m_cde.at(i); }
-  Int_t           GetCDeSize( void ) const { return m_cde.size(); }
-  Double_t        GetChisqr( Int_t i ) const { return m_chisqr.at(i); }
-  Int_t           GetChisqrSize( void ) const { return m_chisqr.size(); }
-  Double_t        GetCTime( Int_t i ) const { return m_ctime.at(i); }
-  Int_t           GetCTimeSize( void ) const { return m_ctime.size(); }
-  Double_t        GetDe( Int_t i ) const { return m_de.at(i); }
-  Double_t        GetSigma( Int_t i ) const { return m_sigma.at(i); }
-  Int_t           GetDeSize( void ) const { return m_de.size(); }
-  Double_t        GetDriftLength( Int_t i ) const
+  void            AddDeTime(Double_t de, Double_t time);
+  Bool_t          BelongToTrack() const { return m_belong_track; }
+  Bool_t          Calculate(Double_t clock=0.);
+  Bool_t          DoFit();
+  Double_t        GetCDe(Int_t i) const { return m_cde.at(i); }
+  Int_t           GetCDeSize() const { return m_cde.size(); }
+  Double_t        GetChisqr(Int_t i) const { return m_chisqr.at(i); }
+  Int_t           GetChisqrSize() const { return m_chisqr.size(); }
+  Double_t        GetCTime(Int_t i) const { return m_ctime.at(i); }
+  Int_t           GetCTimeSize() const { return m_ctime.size(); }
+  Double_t        GetDe(Int_t i) const { return m_de.at(i); }
+  Double_t        GetSigma(Int_t i) const { return m_sigma.at(i); }
+  Int_t           GetDeSize() const { return m_de.size(); }
+  Double_t        GetDriftLength(Int_t i) const
     { return m_drift_length.at(i); }
-  Int_t           GetDriftLengthSize( void ) const
+  Int_t           GetDriftLengthSize() const
     { return m_drift_length.size(); }
-  Int_t           GetNHits( void ) const { return m_de.size(); }
-  Int_t           GetPad( void ) const { return m_pad; }
-  TPCRawHit*      GetRawHit( void ) const { return m_rhit; }
-  Int_t           GetLayer( void ) const { return m_layer; }
-  Int_t           GetRow( void ) const { return m_row; }
-  Double_t        GetPedestal( void ) const { return m_pedestal; }
-  Double_t        GetRMS( void ) const { return m_rms; }
-  Double_t        GetCharge( void ) const { return m_charge; }
-  Double_t        GetCharge_center( void ) const { return m_charge_center; }
-  const TVector3& GetPos( void ) const { return m_pos; }
-  const TVector3& GetPos_center( void ) const { return m_pos_center; }
-  Double_t        GetX( void ) const { return m_pos.X(); }
-  Double_t        GetY( void ) const { return m_pos.Y(); }
-  Double_t        GetZ( void ) const { return m_pos.Z(); }
-  DCHit*          GetHitXZ( void ) const { return m_hit_xz; }
-  DCHit*          GetHitYZ( void ) const { return m_hit_yz; }
-  Double_t        GetMRow( void ) const { return m_mrow; }
-  Bool_t          GetTPCFlag( void ) const { return m_tpc_flag; }
-  Int_t           GetClusterSize( void ) const { return m_clsize; }
-  Double_t        GetResolutionX( void );
-  Double_t        GetResolutionY( void );
-  Double_t        GetResolutionZ( void );
-  Double_t        GetResolution( void );
-  Double_t        GetTime( Int_t i ) const { return m_time.at(i); }
-  Int_t           GetTimeSize( void ) const { return m_time.size(); }
-  Bool_t          IsGood( void ) const { return m_is_good; }
-  // Bool_t          IsWithinRange( void ) const
+  Int_t           GetNHits() const { return m_de.size(); }
+  Int_t           GetPad() const { return m_pad; }
+  TPCRawHit*      GetRawHit() const { return m_rhit; }
+  Int_t           GetLayer() const { return m_layer; }
+  Int_t           GetRow() const { return m_row; }
+  Double_t        GetPedestal() const { return m_pedestal; }
+  Double_t        GetRMS() const { return m_rms; }
+  Double_t        GetCharge() const { return m_charge; }
+  Double_t        GetCharge_center() const { return m_charge_center; }
+  const TVector3& GetPos() const { return m_pos; }
+  const TVector3& GetPos_center() const { return m_pos_center; }
+  Double_t        GetX() const { return m_pos.X(); }
+  Double_t        GetY() const { return m_pos.Y(); }
+  Double_t        GetZ() const { return m_pos.Z(); }
+  DCHit*          GetHitXZ() const { return m_hit_xz; }
+  DCHit*          GetHitYZ() const { return m_hit_yz; }
+  Double_t        GetMRow() const { return m_mrow; }
+  Bool_t          GetTPCFlag() const { return m_tpc_flag; }
+  Int_t           GetClusterSize() const { return m_clsize; }
+  Double_t        GetResolutionX();
+  Double_t        GetResolutionY();
+  Double_t        GetResolutionZ();
+  Double_t        GetResolution();
+  Double_t        GetTime(Int_t i) const { return m_time.at(i); }
+  Int_t           GetTimeSize() const { return m_time.size(); }
+  Bool_t          IsGood() const { return m_is_good; }
+  // Bool_t          IsWithinRange() const
   //   { return m_pair_cont.at(nh).dl_range; }
-  void            JoinTrack( void ) { m_belong_track = true; }
-  void            Print( const std::string& arg="",
-                         std::ostream& ost=hddaq::cout ) const;
-  void            QuitTrack( void ) { m_belong_track = false;}
-  void            RegisterHits( TPCLTrackHit *hit )
-    { m_register_container.push_back( hit ); }
-  void            SetPad( Int_t pad ) { m_pad = pad; }
-  void            SetLayer( Int_t layer ) { m_layer  = layer; }
-  void            SetRow( Int_t row ) { m_row  = row; }
-  void            SetCharge( Double_t charge ) { m_charge = charge; }
-  void            SetCharge_center( Double_t charge_center ) { m_charge_center = charge_center; }
-  void            SetPos_center( TVector3 pos_center ) { m_pos_center = pos_center; }
-  void            SetPos( TVector3 pos ) { m_pos = pos; }
-  void            SetWirePosition( Double_t wpos ) { m_wpos = wpos; }
-  void            SetMRow( Double_t mrow ) { m_mrow = mrow; }
-  void            SetClusterSize( Double_t clsize ) { m_clsize = clsize; }
-  void            SetTPCFlag( Bool_t flag ) { m_tpc_flag = flag; }
-  void            SetResX( Double_t resx ) { m_resx = resx; }
-  void            SetResY( Double_t resy ) { m_resy = resy; }
-  void            SetResZ( Double_t resz ) { m_resz = resz; }
-  void            SetRes( Double_t res ) { m_res = res; }
+  void            JoinTrack() { m_belong_track = true; }
+  void            Print(const std::string& arg="",
+                         std::ostream& ost=hddaq::cout) const;
+  void            QuitTrack() { m_belong_track = false;}
+  void            RegisterHits(TPCLTrackHit *hit)
+    { m_register_container.push_back(hit); }
+  void            SetPad(Int_t pad) { m_pad = pad; }
+  void            SetLayer(Int_t layer) { m_layer  = layer; }
+  void            SetRow(Int_t row) { m_row  = row; }
+  void            SetCharge(Double_t charge) { m_charge = charge; }
+  void            SetCharge_center(Double_t charge_center) { m_charge_center = charge_center; }
+  void            SetPos_center(TVector3 pos_center) { m_pos_center = pos_center; }
+  void            SetPos(TVector3 pos) { m_pos = pos; }
+  void            SetWirePosition(Double_t wpos) { m_wpos = wpos; }
+  void            SetMRow(Double_t mrow) { m_mrow = mrow; }
+  void            SetClusterSize(Double_t clsize) { m_clsize = clsize; }
+  void            SetTPCFlag(Bool_t flag) { m_tpc_flag = flag; }
+  void            SetResX(Double_t resx) { m_resx = resx; }
+  void            SetResY(Double_t resy) { m_resy = resy; }
+  void            SetResZ(Double_t resz) { m_resz = resz; }
+  void            SetRes(Double_t res) { m_res = res; }
 
 protected:
-  void ClearRegisteredHits( void );
+  void ClearRegisteredHits();
 };
 
 //_____________________________________________________________________________
 inline TString
-TPCHit::ClassName( void )
+TPCHit::ClassName()
 {
-  static TString s_name( "TPCHit" );
+  static TString s_name("TPCHit");
   return s_name;
 }
 
 //_____________________________________________________________________________
 inline std::ostream&
-operator <<( std::ostream& ost, const TPCHit& hit )
+operator <<(std::ostream& ost, const TPCHit& hit)
 {
-  hit.Print( "", ost );
+  hit.Print("", ost);
   return ost;
 }
 
