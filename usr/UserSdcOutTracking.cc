@@ -33,7 +33,7 @@ const auto& gGeom = DCGeomMan::GetInstance();
 auto& gRM = RMAnalyzer::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
-const Double_t& zTOF = gGeom.LocalZ("TOF");
+const auto& zTOF = gGeom.LocalZ("TOF");
 }
 
 //_____________________________________________________________________________
@@ -51,8 +51,8 @@ class EventSdcOutTracking : public VEvent
 {
 private:
   RawData*      rawData;
-  DCAnalyzer*   DCAna;
   HodoAnalyzer* hodoAna;
+  DCAnalyzer*   DCAna;
 
 public:
   static TString ClassName();
@@ -76,17 +76,17 @@ EventSdcOutTracking::ClassName()
 EventSdcOutTracking::EventSdcOutTracking()
   : VEvent(),
     rawData(new RawData),
-    DCAna(new DCAnalyzer),
-    hodoAna(new HodoAnalyzer)
+    hodoAna(new HodoAnalyzer),
+    DCAna(new DCAnalyzer)
 {
 }
 
 //_____________________________________________________________________________
 EventSdcOutTracking::~EventSdcOutTracking()
 {
-  if(DCAna)   delete DCAna;
-  if(hodoAna) delete hodoAna;
   if(rawData) delete rawData;
+  if(hodoAna) delete hodoAna;
+  if(DCAna) delete DCAna;
 }
 
 //_____________________________________________________________________________
@@ -94,8 +94,7 @@ struct Event
 {
   Int_t evnum;
 
-  Int_t trignhits;
-  Int_t trigpat[MaxHits];
+  Int_t trigpat[NumOfSegTrig];
   Int_t trigflag[NumOfSegTrig];
 
   Int_t nhBh1;
@@ -144,7 +143,6 @@ void
 Event::clear()
 {
   evnum     =  0;
-  trignhits =  0;
   nlayer    =  0;
   ntrack    =  0;
   nhBh2     =  0;
@@ -213,26 +211,26 @@ Bool_t
 EventSdcOutTracking::ProcessingNormal()
 {
 #if HodoCut
-  static const Double_t MinDeBH2   = gUser.GetParameter("DeBH2", 0);
-  static const Double_t MaxDeBH2   = gUser.GetParameter("DeBH2", 1);
-  static const Double_t MinDeBH1   = gUser.GetParameter("DeBH1", 0);
-  static const Double_t MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
-  static const Double_t MinBeamToF = gUser.GetParameter("BTOF",  1);
-  static const Double_t MaxBeamToF = gUser.GetParameter("BTOF",  1);
+  static const auto MinDeBH2 = gUser.GetParameter("DeBH2", 0);
+  static const auto MaxDeBH2 = gUser.GetParameter("DeBH2", 1);
+  static const auto MinDeBH1 = gUser.GetParameter("DeBH1", 0);
+  static const auto MaxDeBH1 = gUser.GetParameter("DeBH1", 1);
+  static const auto MinBeamToF = gUser.GetParameter("BTOF", 1);
+  static const auto MaxBeamToF = gUser.GetParameter("BTOF", 1);
 #endif
-  static const Double_t MinDeTOF   = gUser.GetParameter("DeTOF",   0);
-  static const Double_t MaxDeTOF   = gUser.GetParameter("DeTOF",   1);
-  static const Double_t MinTimeTOF = gUser.GetParameter("TimeTOF", 0);
-  static const Double_t MaxTimeTOF = gUser.GetParameter("TimeTOF", 1);
-  static const Double_t StopTimeDiffSdcOut      = gUser.GetParameter("StopTimeDiffSdcOut",   0);
-  static const Double_t MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
-  static const Double_t MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
+  static const auto MinDeTOF = gUser.GetParameter("DeTOF", 0);
+  static const auto MaxDeTOF = gUser.GetParameter("DeTOF", 1);
+  static const auto MinTimeTOF = gUser.GetParameter("TimeTOF", 0);
+  static const auto MaxTimeTOF = gUser.GetParameter("TimeTOF", 1);
+  static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
+  static const auto MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
+  static const auto MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
 #if TotCut
-  static const Double_t MinTotSDC3 = gUser.GetParameter("MinTotSDC3", 0);
-  static const Double_t MinTotSDC4 = gUser.GetParameter("MinTotSDC4", 0);
+  static const auto MinTotSDC3 = gUser.GetParameter("MinTotSDC3");
+  static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
 #endif
 #if MaxMultiCut
-  static const Double_t MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
+  static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
 #endif
 
   rawData->DecodeHits();
@@ -243,21 +241,14 @@ EventSdcOutTracking::ProcessingNormal()
 
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
-  {
-    const HodoRHitContainer &cont=rawData->GetTrigRawHC();
-    Int_t trignhits = 0;
-    Int_t nh=cont.size();
-    for(Int_t i=0; i<nh; ++i){
-      HodoRawHit *hit=cont[i];
-      Int_t seg = hit->SegmentId()+1;
-      Int_t tdc = hit->GetTdc1();
-      if(tdc>0){
-        trigger_flag.set(seg-1);
-        event.trigpat[trignhits++] = seg;
-        event.trigflag[seg-1]      = tdc;
-      }
+  for(const auto& hit: rawData->GetTrigRawHC()){
+    Int_t seg = hit->SegmentId() + 1;
+    Int_t tdc = hit->GetTdc1();
+    if(tdc > 0){
+      event.trigpat[trigger_flag.count()] = seg;
+      event.trigflag[seg-1] = tdc;
+      trigger_flag.set(seg-1);
     }
-    event.trignhits = trignhits;
   }
 
   HF1(1, 0.);
@@ -662,8 +653,7 @@ ConfMan::InitializeHistograms()
   HB1(1, "Status", 20, 0., 20.);
 
   for(Int_t i=1; i<=NumOfLayersSdcOut+NumOfLayersTOF; ++i){
-
-    std::string tag;
+    TString tag;
     Int_t nwire = 0, nbindt = 1, nbindl = 1;
     Double_t mindt = 0., maxdt = 1., mindl = 0., maxdl = 1.;
     if(i<=NumOfLayersSDC3){
@@ -696,18 +686,18 @@ ConfMan::InitializeHistograms()
     }
 
     if(i<=NumOfLayersSdcOut){
-      TString title0 = Form("#Hits %s#%2d", tag.c_str(), i);
-      TString title1 = Form("Hitpat %s#%2d", tag.c_str(), i);
-      TString title2 = Form("Tdc %s#%2d", tag.c_str(), i);
-      TString title3 = Form("Drift Time %s#%2d", tag.c_str(), i);
-      TString title4 = Form("Drift Length %s#%2d", tag.c_str(), i);
-      TString title5 = Form("TOT %s#%2d", tag.c_str(), i);
-      TString title6 = Form("Tdc 1st %s#%2d", tag.c_str(), i);
-      TString title7 = Form("TOT 1st %s#%2d", tag.c_str(), i);
-      TString title8 = Form("Drift Time %s#%2d (BH2 timing)", tag.c_str(), i);
-      TString title10 = Form("Trailing %s#%2d", tag.c_str(), i);
-      HB1(100*i+0, title0, nwire+1, 0., Double_t(nwire+1));
-      HB1(100*i+1, title1, nwire, 0., Double_t(nwire));
+      TString title0 = Form("#Hits %s#%2d", tag.Data(), i);
+      TString title1 = Form("Hitpat %s#%2d", tag.Data(), i);
+      TString title2 = Form("Tdc %s#%2d", tag.Data(), i);
+      TString title3 = Form("Drift Time %s#%2d", tag.Data(), i);
+      TString title4 = Form("Drift Length %s#%2d", tag.Data(), i);
+      TString title5 = Form("TOT %s#%2d", tag.Data(), i);
+      TString title6 = Form("Tdc 1st %s#%2d", tag.Data(), i);
+      TString title7 = Form("TOT 1st %s#%2d", tag.Data(), i);
+      TString title8 = Form("Drift Time %s#%2d (BH2 timing)", tag.Data(), i);
+      TString title10 = Form("Trailing %s#%2d", tag.Data(), i);
+      HB1(100*i+0, title0, nwire+1, 0., nwire+1);
+      HB1(100*i+1, title1, nwire, 0., nwire);
       HB1(100*i+2, title2, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc);
       HB1(100*i+3, title3, nbindt, mindt, maxdt);
       HB1(100*i+4, title4, nbindl, mindl, maxdl);
@@ -717,10 +707,10 @@ ConfMan::InitializeHistograms()
       HB1(100*i+8, title8, nbindt, mindt, maxdt);
       HB1(100*i+10, title10, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc);
       for (Int_t wire=1; wire<=nwire; wire++){
-        TString title11 = Form("Tdc %s#%2d  Wire#%4d", tag.c_str(), i, wire);
-        TString title12 = Form("DriftTime %s#%2d Wire#%4d", tag.c_str(), i, wire);
-        TString title13 = Form("DriftLength %s#%2d Wire#%d", tag.c_str(), i, wire);
-        TString title14 = Form("DriftTime %s#%2d Wire#%4d [Track]", tag.c_str(), i, wire);
+        TString title11 = Form("Tdc %s#%2d  Wire#%4d", tag.Data(), i, wire);
+        TString title12 = Form("DriftTime %s#%2d Wire#%4d", tag.Data(), i, wire);
+        TString title13 = Form("DriftLength %s#%2d Wire#%d", tag.Data(), i, wire);
+        TString title14 = Form("DriftTime %s#%2d Wire#%4d [Track]", tag.Data(), i, wire);
         HB1(10000*i+wire, title11, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc);
         HB1(10000*i+1000+wire, title12, nbindt, mindt, maxdt);
         HB1(10000*i+2000+wire, title13, nbindl, mindl, maxdl);
@@ -771,7 +761,7 @@ ConfMan::InitializeHistograms()
     HB2(100*i+32, Form("Resid%%Y SdcOut %d", i), 100, -1000., 1000., 100, -2., 2.);
     HB2(100*i+33, Form("Resid%%U SdcOut %d", i), 100, -0.5, 0.5, 100, -2., 2.);
     HB2(100*i+34, Form("Resid%%V SdcOut %d", i), 100, -0.5, 0.5, 100, -2., 2.);
-    HB1(100*i+40, title40, 360,    0, 300);
+    HB1(100*i+40, title40, 500,    0, 500);
     HB1(100*i+71, title71, 200, -5.0, 5.0);
     HB1(100*i+72, title72, 200, -5.0, 5.0);
     HB1(100*i+73, title73, 200, -5.0, 5.0);
@@ -826,15 +816,14 @@ ConfMan::InitializeHistograms()
 
   ////////////////////////////////////////////
   //Tree
-  HBTree("sdcout","tree of SdcOutTracking");
-  tree->Branch("evnum",     &event.evnum,     "evnum/I");
-  tree->Branch("trignhits", &event.trignhits, "trignhits/I");
-  tree->Branch("trigpat",    event.trigpat,   Form("trigpat[%d]/I", MaxHits));
-  tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
+  HBTree("sdcout", "tree of SdcOutTracking");
+  tree->Branch("evnum", &event.evnum, "evnum/I");
+  tree->Branch("trigpat", event.trigpat, Form("trigpat[%d]/I", NumOfSegTrig));
+  tree->Branch("trigflag", event.trigflag, Form("trigflag[%d]/I", NumOfSegTrig));
 
-  tree->Branch("nhBh1",    &event.nhBh1,   "nhBh1/I");
-  tree->Branch("tBh1",      event.tBh1,    Form("tBh1[%d]/D",   MaxHits));
-  tree->Branch("deBh1",     event.deBh1,   Form("deBh1[%d]/D",  MaxHits));
+  tree->Branch("nhBh1", &event.nhBh1, "nhBh1/I");
+  tree->Branch("tBh1", event.tBh1, Form("tBh1[%d]/D", MaxHits));
+  tree->Branch("deBh1", event.deBh1, Form("deBh1[%d]/D", MaxHits));
 
   tree->Branch("nhBh2",    &event.nhBh2,   "nhBh2/I");
   tree->Branch("tBh2",      event.tBh2,    Form("tBh2[%d]/D",   MaxHits));
@@ -868,8 +857,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("yTof",      event.yTof,     "yTof[ntrack]/D");
   tree->Branch("uTof",      event.uTof,     "uTof[ntrack]/D");
   tree->Branch("vTof",      event.vTof,     "vTof[ntrack]/D");
-
-  HPrint();
+  // HPrint();
   return true;
 }
 
