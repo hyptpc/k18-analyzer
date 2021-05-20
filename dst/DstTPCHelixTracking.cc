@@ -89,7 +89,7 @@ struct Event
   std::vector<Int_t> cluster_layer;
   std::vector<Int_t> cluster_row;
   std::vector<Double_t> cluster_mrow;
-  std::vector<Double_t> cluster_de_center;  
+  std::vector<Double_t> cluster_de_center;
   std::vector<Double_t> cluster_hitpos_center_x;
   std::vector<Double_t> cluster_hitpos_center_y;
   std::vector<Double_t> cluster_hitpos_center_z;
@@ -121,7 +121,7 @@ struct Event
 
 
 
-  
+
   std::vector<std::vector<Double_t>> hitlayer;
   std::vector<std::vector<Double_t>> hitpos_x;
   std::vector<std::vector<Double_t>> hitpos_y;
@@ -134,7 +134,7 @@ struct Event
   std::vector<std::vector<Double_t>> residual_y;
   std::vector<std::vector<Double_t>> residual_z;
   std::vector<std::vector<Double_t>> helix_t;
-  
+
   void clear( void )
   {
     runnum = 0;
@@ -395,7 +395,7 @@ dst::DstRead( int ievent )
 
 #if TrackSearch
   DCAna.TrackSearchTPC_Helix();
-#endif 
+#endif
 
   Int_t ntTpc = DCAna.GetNTracksTPC_Helix();
   event.ntTpc = ntTpc;
@@ -418,7 +418,7 @@ dst::DstRead( int ievent )
   event.mom0.resize( ntTpc );
   event.charge.resize( ntTpc );
   event.path.resize( ntTpc );
-  
+
   // not yet prepared
   event.mom_vtx.resize( ntTpc );
   event.mom_vty.resize( ntTpc );
@@ -428,7 +428,7 @@ dst::DstRead( int ievent )
   event.vtz.resize( ntTpc );
   event.closeDist.resize( ntTpc );
 
-  
+
   event.hitlayer.resize( ntTpc );
   event.hitpos_x.resize( ntTpc );
   event.hitpos_y.resize( ntTpc );
@@ -441,7 +441,7 @@ dst::DstRead( int ievent )
   event.residual_y.resize( ntTpc );
   event.residual_z.resize( ntTpc );
   event.helix_t.resize( ntTpc );
-  
+
   for( Int_t it=0; it<ntTpc; ++it ){
     TPCLocalTrack_Helix *tp = DCAna.GetTrackTPC_Helix( it );
     if( !tp ) continue;
@@ -457,12 +457,12 @@ dst::DstRead( int ievent )
     event.helix_cy[it] = helix_cy;
     event.helix_z0[it] = helix_z0;
     event.helix_r[it] = helix_r ;
-    event.helix_dz[it] = helix_dz; 
-    event.mom0_x[it] = Mom0.x();   
-    event.mom0_y[it] = Mom0.y();   
+    event.helix_dz[it] = helix_dz;
+    event.mom0_x[it] = Mom0.x();
+    event.mom0_y[it] = Mom0.y();
     event.mom0_z[it] = Mom0.z();
     event.mom0[it] = Mom0.Mag();
-    
+
     event.hitlayer[it].resize( nh );
     event.hitpos_x[it].resize( nh );
     event.hitpos_y[it].resize( nh );
@@ -479,7 +479,7 @@ dst::DstRead( int ievent )
     double min_t = 10000.;
     double max_t = -10000.;
     double min_layer_t=0., max_layer_t=0.;
-    
+
     for( int ih=0; ih<nh; ++ih ){
       TPCLTrackHit *hit = tp->GetHit( ih );
       if( !hit ) continue;
@@ -545,9 +545,9 @@ dst::DstClose( void )
 Bool_t
 ConfMan::InitializeHistograms( void )
 {
-  const Int_t    NbinDe = 1000;
-  const Double_t MinDe  =    0.;
-  const Double_t MaxDe  = 2000.;
+  // const Int_t    NbinDe = 1000;
+  // const Double_t MinDe  =    0.;
+  // const Double_t MaxDe  = 2000.;
   HB1( 1, "Status", 21, 0., 21. );
   HB1( 10, "NTrack TPC", 40, 0., 40. );
 

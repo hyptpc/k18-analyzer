@@ -1,8 +1,4 @@
-/**
- *  file: BH2Cluster.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef BH2_CLUSTER_HH
 #define BH2_CLUSTER_HH
@@ -10,57 +6,60 @@
 class BH2Hit;
 class HodoAnalyzer;
 
-#include <cstddef>
+#include <TString.h>
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class BH2Cluster
 {
 public:
-  BH2Cluster( BH2Hit *hitA, BH2Hit *hitB=0, BH2Hit *hitC=0 );
-  ~BH2Cluster( void );
+  static const TString& ClassName();
+  BH2Cluster(BH2Hit *hitA, BH2Hit *hitB=nullptr, BH2Hit *hitC=nullptr);
+  ~BH2Cluster();
 
 private:
-  BH2Cluster( const BH2Cluster& );
-  BH2Cluster& operator =( const BH2Cluster& );
+  BH2Cluster(const BH2Cluster&);
+  BH2Cluster& operator =(const BH2Cluster&);
 
 private:
-  BH2Hit* m_hitA;
-  BH2Hit* m_hitB;
-  BH2Hit* m_hitC;
-  int     m_indexA;
-  int     m_indexB;
-  int     m_indexC;
-  int     m_cluster_size;
-  double  m_mean_time;
-  double  m_cmean_time;
-  double  m_de;
-  double  m_mean_seg;
-  double  m_time_diff;
-  double  m_time0;
-  double  m_ctime0;
-  bool    m_good_for_analysis;
+  BH2Hit*  m_hitA;
+  BH2Hit*  m_hitB;
+  BH2Hit*  m_hitC;
+  Int_t    m_indexA;
+  Int_t    m_indexB;
+  Int_t    m_indexC;
+  Int_t    m_cluster_size;
+  Double_t m_mean_time;
+  Double_t m_cmean_time;
+  Double_t m_de;
+  Double_t m_mean_seg;
+  Double_t m_time_diff;
+  Double_t m_time0;
+  Double_t m_ctime0;
+  Bool_t   m_good_for_analysis;
 
 public:
-  void    Calculate( void );
-  int     ClusterSize( void )     const { return m_cluster_size; }
-  double  MeanTime( void )        const { return m_mean_time;    }
-  double  CMeanTime( void )       const { return m_cmean_time;    }
-  double  DeltaE( void )          const { return m_de;           }
-  double  MeanSeg( void )         const { return m_mean_seg;     }
-  double  Time0( void )           const { return m_time0;        }
-  double  CTime0( void )          const { return m_ctime0;       }
-  double  TimeDif( void )         const { return m_time_diff;    }
-  BH2Hit* GetHit( int i )         const;
-  bool    GoodForAnalysis( void ) const { return m_good_for_analysis; }
-  bool    GoodForAnalysis( bool status );
-  bool    ReCalc( bool applyRecusively=false );
-
-  void    SetIndex(int iA, int iB=0, int iC=0)
-  {
-    m_indexA = iA; m_indexB = iB; m_indexC = iC;
-  }
-protected:
-
-
+  void     Calculate();
+  Int_t    ClusterSize() const { return m_cluster_size; }
+  Double_t CMeanTime() const { return m_cmean_time; }
+  Double_t CTime0() const { return m_ctime0; }
+  Double_t DeltaE() const { return m_de; }
+  BH2Hit*  GetHit(Int_t i) const;
+  Bool_t   GoodForAnalysis() const { return m_good_for_analysis; }
+  Bool_t   GoodForAnalysis(Bool_t status);
+  Double_t MeanSeg() const { return m_mean_seg; }
+  Double_t MeanTime() const { return m_mean_time; }
+  Double_t Time0() const { return m_time0; }
+  Double_t TimeDif() const { return m_time_diff; }
+  Bool_t   ReCalc(Bool_t applyRecusively=false);
+  void     SetIndex(Int_t iA, Int_t iB=0, Int_t iC=0);
 };
+
+//_____________________________________________________________________________
+inline const TString&
+BH2Cluster::ClassName()
+{
+  static TString s_name("BH2Cluster");
+  return s_name;
+}
+
 #endif

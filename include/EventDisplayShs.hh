@@ -30,6 +30,7 @@ class TPad;
 class TPave;
 class TPaveLabel;
 class TPaveText;
+class TPGON;
 class TPolyLine;
 class TPolyLine3D;
 class TPolyMarker;
@@ -44,7 +45,7 @@ class TTUBS;
 class TView;
 class TLine;
 
-typedef std::vector <TLine *> TLineContainer;
+typedef std::vector<TLine*> TLineContainer;
 
 //______________________________________________________________________________
 class EventDisplayShs
@@ -69,18 +70,23 @@ private:
   TH1*                       m_tpc_tdc;
   TH2Poly*                   m_tpc_adc2d;
   TH2Poly*                   m_tpc_tdc2d;
+  TPGON*                     m_tpc_pgon;
+  TNode*                     m_tpc_node;
+  TPolyMarker3D*             m_tpc_mark3d;
 
 public:
-  bool  Initialize();
-  bool  IsReady() const { return m_is_ready; }
-  void  FillTPCADC( Int_t layer, Int_t row, Double_t adc );
-  void  FillTPCTDC( Int_t layer, Int_t row, Double_t tdc );
-  void  Update();
-  void  EndOfEvent();
-  void  CalcRotMatrix(double TA, double RA1, double RA2, double *rotMat);
-  Int_t GetCommand() const;
-  void  Reset( void );
-  void  Run(Bool_t flag=true);
+  void   CalcRotMatrix(Double_t TA, Double_t RA1, Double_t RA2, Double_t *rotMat);
+  void   EndOfEvent(void);
+  void   FillTPCADC(Int_t layer, Int_t row, Double_t adc);
+  void   FillTPCTDC(Int_t layer, Int_t row, Double_t tdc);
+  Int_t  GetCommand(void) const;
+  Bool_t Initialize(void);
+  Bool_t IsReady(void) const { return m_is_ready; }
+  void   Reset(void);
+  void   Run(Bool_t flag=true);
+  void   SetTPCMarker(Double_t x, Double_t y, Double_t z);
+  void   SetTPCMarker(const TVector3& pos);
+  void   Update(void);
 };
 
 //______________________________________________________________________________

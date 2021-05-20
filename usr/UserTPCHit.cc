@@ -28,7 +28,6 @@
 #include "TPCRawHit.hh"
 #include "UserParamMan.hh"
 
-
 //#define GateCalib 1
 #define GateCalib 0
 #define GainCalib 0
@@ -45,34 +44,32 @@ const auto& gUser     = UserParamMan::GetInstance();
 }
 
 //_____________________________________________________________________________
-VEvent::VEvent()
+class UserTPCHit : public VEvent
 {
-}
-
-//_____________________________________________________________________________
-VEvent::~VEvent()
-{
-}
-
-//_____________________________________________________________________________
-class UserEvent : public VEvent
-{
-public:
-  UserEvent();
-  ~UserEvent();
-  Bool_t ProcessingBegin();
-  Bool_t ProcessingEnd();
-  Bool_t ProcessingNormal();
-  Bool_t InitializeHistograms();
-
 private:
   RawData*      rawData;
   HodoAnalyzer* hodoAna;
   DCAnalyzer*   DCAna;
+
+public:
+  UserTPCHit();
+  ~UserTPCHit();
+  virtual const TString& ClassName();
+  virtual Bool_t         ProcessingBegin();
+  virtual Bool_t         ProcessingEnd();
+  virtual Bool_t         ProcessingNormal();
 };
 
 //_____________________________________________________________________________
-UserEvent::UserEvent()
+inline const TString&
+UserTPCHit::ClassName()
+{
+  static TString s_name("UserTPCHit");
+  return s_name;
+}
+
+//_____________________________________________________________________________
+UserTPCHit::UserTPCHit()
   : VEvent(),
     rawData(new RawData),
     hodoAna(new HodoAnalyzer),
@@ -81,7 +78,7 @@ UserEvent::UserEvent()
 }
 
 //_____________________________________________________________________________
-UserEvent::~UserEvent()
+UserTPCHit::~UserTPCHit()
 {
   if(rawData) delete rawData;
   if(hodoAna) delete hodoAna;
@@ -129,52 +126,55 @@ struct Event
   Double_t dtHtof[NumOfSegHTOF*MaxDepth];
   Double_t deHtof[NumOfSegHTOF*MaxDepth];
 
-  void clear()
-    {
-      runnum  = 0;
-      evnum   = 0;
-      npadTpc = 0;
-      nhTpc   = 0;
-      trigpat.clear();
-      trigflag.clear();
-      layerTpc.clear();
-      rowTpc.clear();
-      padTpc.clear();
-      pedTpc.clear();
-      rmsTpc.clear();
-      deTpc.clear();
-      sigmaTpc.clear();
-      tTpc.clear();
-      chisqrTpc.clear();
-      cdeTpc.clear();
-      ctTpc.clear();
-      dlTpc.clear();
-      clkTpc.clear();
-
-      htofnhits =0;
-      nhHtof =0;
-      for(Int_t it=0; it<MaxHits; ++it){
-        htofhitpat[it]  = -1;
-      }
-      for(Int_t it=0; it<NumOfSegHTOF; it++){
-        htofua[it] = qnan;
-        htofda[it] = qnan;
-        htofde[it] = qnan;
-        for(Int_t m=0; m<MaxDepth; ++m){
-          htofut[it][m] = qnan;
-          htofdt[it][m] = qnan;
-          htofmt[it][m] = qnan;
-
-          csHtof[MaxDepth*it + m]  = 0;
-          HtofSeg[MaxDepth*it + m] = qnan;
-          tHtof[MaxDepth*it + m]   = qnan;
-          dtHtof[MaxDepth*it + m]  = qnan;
-          deHtof[MaxDepth*it + m]  = qnan;
-        }
-      }
-
-    }
+  void clear();
 };
+
+//_____________________________________________________________________________
+void
+Event::clear()
+{
+  runnum  = 0;
+  evnum   = 0;
+  npadTpc = 0;
+  nhTpc   = 0;
+  trigpat.clear();
+  trigflag.clear();
+  layerTpc.clear();
+  rowTpc.clear();
+  padTpc.clear();
+  pedTpc.clear();
+  rmsTpc.clear();
+  deTpc.clear();
+  sigmaTpc.clear();
+  tTpc.clear();
+  chisqrTpc.clear();
+  cdeTpc.clear();
+  ctTpc.clear();
+  dlTpc.clear();
+  clkTpc.clear();
+
+  htofnhits =0;
+  nhHtof =0;
+  for(Int_t it=0; it<MaxHits; ++it){
+    htofhitpat[it]  = -1;
+  }
+  for(Int_t it=0; it<NumOfSegHTOF; it++){
+    htofua[it] = qnan;
+    htofda[it] = qnan;
+    htofde[it] = qnan;
+    for(Int_t m=0; m<MaxDepth; ++m){
+      htofut[it][m] = qnan;
+      htofdt[it][m] = qnan;
+      htofmt[it][m] = qnan;
+
+      csHtof[MaxDepth*it + m]  = 0;
+      HtofSeg[MaxDepth*it + m] = qnan;
+      tHtof[MaxDepth*it + m]   = qnan;
+      dtHtof[MaxDepth*it + m]  = qnan;
+      deHtof[MaxDepth*it + m]  = qnan;
+    }
+  }
+}
 
 //_____________________________________________________________________________
 namespace root
@@ -189,7 +189,7 @@ enum eDetHid {
 
 //_____________________________________________________________________________
 Bool_t
-UserEvent::ProcessingBegin()
+UserTPCHit::ProcessingBegin()
 {
   event.clear();
   return true;
@@ -197,7 +197,7 @@ UserEvent::ProcessingBegin()
 
 //_____________________________________________________________________________
 Bool_t
-UserEvent::ProcessingNormal()
+UserTPCHit::ProcessingNormal()
 {
   static const auto MinTdcHTOF = gUser.GetParameter("TdcHTOF", 0);
   static const auto MaxTdcHTOF = gUser.GetParameter("TdcHTOF", 1);
@@ -474,7 +474,7 @@ UserEvent::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-UserEvent::ProcessingEnd()
+UserTPCHit::ProcessingEnd()
 {
   tree->Fill();
   return true;
@@ -484,7 +484,7 @@ UserEvent::ProcessingEnd()
 VEvent*
 ConfMan::EventAllocator()
 {
-  return new UserEvent;
+  return new UserTPCHit;
 }
 
 //_____________________________________________________________________________
@@ -607,8 +607,6 @@ ConfMan:: InitializeHistograms()
   tree->Branch("tHtof", event.tHtof, "tHtof[nhHtof]/D");
   tree->Branch("dtHtof", event.dtHtof, "dtHtof[nhHtof]/D");
   tree->Branch("deHtof", event.deHtof, "deHtof[nhHtof]/D");
-
-
 
   HPrint();
   return true;

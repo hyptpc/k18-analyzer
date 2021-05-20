@@ -1,5 +1,7 @@
 // -*- C++ -*-
 
+#include "VEvent.hh"
+
 #include <cmath>
 #include <iomanip>
 #include <iostream>
@@ -16,7 +18,6 @@
 #include "KuramaLib.hh"
 #include "RawData.hh"
 #include "UnpackerManager.hh"
-#include "VEvent.hh"
 
 #define HodoCut 0
 #define TotCut  1
@@ -32,17 +33,7 @@ const auto& gUser = UserParamMan::GetInstance();
 }
 
 //_____________________________________________________________________________
-VEvent::VEvent()
-{
-}
-
-//_____________________________________________________________________________
-VEvent::~VEvent()
-{
-}
-
-//_____________________________________________________________________________
-class EventBcOutTracking : public VEvent
+class UserBcOutTracking : public VEvent
 {
 private:
   RawData*      rawData;
@@ -50,16 +41,24 @@ private:
   HodoAnalyzer* hodoAna;
 
 public:
-  EventBcOutTracking();
-  ~EventBcOutTracking();
-  Bool_t  ProcessingBegin();
-  Bool_t  ProcessingEnd();
-  Bool_t  ProcessingNormal();
-  Bool_t  InitializeHistograms();
+  UserBcOutTracking();
+  ~UserBcOutTracking();
+  virtual const TString& ClassName();
+  virtual Bool_t         ProcessingBegin();
+  virtual Bool_t         ProcessingEnd();
+  virtual Bool_t         ProcessingNormal();
 };
 
 //_____________________________________________________________________________
-EventBcOutTracking::EventBcOutTracking()
+inline const TString&
+UserBcOutTracking::ClassName()
+{
+  static TString s_name("UserBcOutTracking");
+  return s_name;
+}
+
+//_____________________________________________________________________________
+UserBcOutTracking::UserBcOutTracking()
   : VEvent(),
     rawData(new RawData),
     DCAna(new DCAnalyzer),
@@ -68,7 +67,7 @@ EventBcOutTracking::EventBcOutTracking()
 }
 
 //_____________________________________________________________________________
-EventBcOutTracking::~EventBcOutTracking()
+UserBcOutTracking::~UserBcOutTracking()
 {
   if(rawData) delete rawData;
   if(DCAna) delete DCAna;
@@ -167,7 +166,7 @@ enum eParticle { kKaon, kPion, nParticle };
 
 //_____________________________________________________________________________
 Bool_t
-EventBcOutTracking::ProcessingBegin()
+UserBcOutTracking::ProcessingBegin()
 {
   event.clear();
   return true;
@@ -175,7 +174,7 @@ EventBcOutTracking::ProcessingBegin()
 
 //_____________________________________________________________________________
 Bool_t
-EventBcOutTracking::ProcessingNormal()
+UserBcOutTracking::ProcessingNormal()
 {
 #if HodoCut
   static const auto MinDeBH2 = gUser.GetParameter("DeBH2", 0);
@@ -503,7 +502,7 @@ EventBcOutTracking::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-EventBcOutTracking::ProcessingEnd()
+UserBcOutTracking::ProcessingEnd()
 {
   tree->Fill();
   return true;
@@ -513,7 +512,7 @@ EventBcOutTracking::ProcessingEnd()
 VEvent*
 ConfMan::EventAllocator()
 {
-  return new EventBcOutTracking;
+  return new UserBcOutTracking;
 }
 
 //_____________________________________________________________________________

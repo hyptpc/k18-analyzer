@@ -2,34 +2,32 @@
 
 #include "VEvent.hh"
 
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <cmath>
 
+#include <DAQNode.hh>
+#include <Unpacker.hh>
 #include <UnpackerManager.hh>
 
 #include "ConfMan.hh"
-#include "DetectorID.hh"
-#include "RMAnalyzer.hh"
 #include "RootHelper.hh"
-#include "HodoRawHit.hh"
-#include "KuramaLib.hh"
-#include "RawData.hh"
 
 namespace
 {
 using namespace root;
-auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
+using hddaq::unpacker::DAQNode;
+using hddaq::unpacker::GUnpacker;
+auto& gUnpacker = GUnpacker::get_instance();
 }
 
 //_____________________________________________________________________________
-class UserSkeleton : public VEvent
+class UserBookMark : public VEvent
 {
-private:
-
 public:
-  UserSkeleton();
-  ~UserSkeleton();
+  UserBookMark();
+  ~UserBookMark();
   virtual const TString& ClassName();
   virtual Bool_t         ProcessingBegin();
   virtual Bool_t         ProcessingEnd();
@@ -38,20 +36,20 @@ public:
 
 //_____________________________________________________________________________
 inline const TString&
-UserSkeleton::ClassName()
+UserBookMark::ClassName()
 {
-  static TString s_name("UserSkeleton");
+  static TString s_name("UserBookMark");
   return s_name;
 }
 
 //_____________________________________________________________________________
-UserSkeleton::UserSkeleton()
+UserBookMark::UserBookMark()
   : VEvent()
 {
 }
 
 //_____________________________________________________________________________
-UserSkeleton::~UserSkeleton()
+UserBookMark::~UserBookMark()
 {
 }
 
@@ -60,26 +58,26 @@ struct Event
 {
   Int_t runnum;
   Int_t evnum;
-  Int_t spill;
+  Int_t dsize; // [word=4Bytes]
   void clear()
     {
       runnum = -1;
       evnum = -1;
-      spill = -1;
+      dsize = -1;
     }
 };
 
 //_____________________________________________________________________________
 namespace root
 {
-Event  event;
+Event event;
 TH1   *h[MaxHist];
 TTree *tree;
 }
 
 //_____________________________________________________________________________
 Bool_t
-UserSkeleton::ProcessingBegin()
+UserBookMark::ProcessingBegin()
 {
   event.clear();
   return true;
@@ -87,23 +85,32 @@ UserSkeleton::ProcessingBegin()
 
 //_____________________________________________________________________________
 Bool_t
-UserSkeleton::ProcessingNormal()
+UserBookMark::ProcessingNormal()
 {
-  event.runnum = gUnpacker.get_run_number();
-  event.evnum  = gUnpacker.get_event_number();
-  // rawData = new RawData;
-  // rawData->DecodeHits();
+  static const TString OutputDir(
+    "/group/had/sks/E42/JPARC2021May/e42_2021may/bookmark");
+  static std::ofstream ofs(Form("%s/run%05d_bookmark.dat",
+                                OutputDir.Data(),
+                                gUnpacker.get_root()->get_run_number()),
+                           std::ios::binary);
+  static ULong64_t first_bookmark = gUnpacker.get_istream_bookmark();
+  static ULong64_t buf;
+  buf = gUnpacker.get_istream_bookmark() - first_bookmark;
+  ofs.write(reinterpret_cast<char*>(&buf), sizeof(buf));
 
-  // for(Int_t i=0; i<100; ++i){
-  //   HF1(i, (double)i);
-  // }
+  event.runnum = gUnpacker.get_run_number();
+  event.evnum = gUnpacker.get_run_number();
+  auto dsize = gUnpacker.get_node_header(gUnpacker.get_fe_id("k18eb"),
+                                         DAQNode::k_data_size);
+  event.dsize = dsize;
+  HF1(1, dsize);
 
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-UserSkeleton::ProcessingEnd()
+UserBookMark::ProcessingEnd()
 {
   tree->Fill();
   return true;
@@ -113,23 +120,22 @@ UserSkeleton::ProcessingEnd()
 VEvent*
 ConfMan::EventAllocator()
 {
-  return new UserSkeleton;
+  return new UserBookMark;
 }
 
 //_____________________________________________________________________________
 Bool_t
 ConfMan::InitializeHistograms()
 {
-  for(Int_t i=0; i<100; ++i){
-    HB1(i, Form("hist %d", i), 100, 0., 100.);
-  }
+  gUnpacker.disable_istream_bookmark();
 
-  HBTree("skeleton","tree of Skeleton");
+  HB1(1, "EB Data Size", 1000, 0, 1e6);
+
+  HBTree("bookmark","tree of BookMark");
   tree->Branch("runnum", &event.runnum, "runnum/I");
-  tree->Branch("evnum",  &event.evnum,  "evnum/I");
-  tree->Branch("spill",  &event.spill,  "spill/I");
+  tree->Branch("evnum", &event.evnum, "evnum/I");
+  tree->Branch("dsize", &event.dsize, "dsize/I");
 
-  HPrint();
   return true;
 }
 
@@ -137,9 +143,7 @@ ConfMan::InitializeHistograms()
 Bool_t
 ConfMan::InitializeParameterFiles()
 {
-  return
-    (InitializeParameter<DCGeomMan>("DCGEO") &&
-     InitializeParameter<HodoParamMan>("HDPRM"));
+  return true;
 }
 
 //_____________________________________________________________________________

@@ -3,6 +3,8 @@
 #ifndef BH2_HIT_HH
 #define BH2_HIT_HH
 
+#include <TString.h>
+
 #include "DebugCounter.hh"
 #include "Hodo2Hit.hh"
 
@@ -10,6 +12,7 @@
 class BH2Hit : public Hodo2Hit
 {
 public:
+  static const TString& ClassName();
   BH2Hit(HodoRawHit *rhit, Double_t max_time_diff=10.);
   ~BH2Hit();
 
@@ -26,5 +29,13 @@ public:
   Double_t CTime0(Int_t i=0) const;
   virtual Bool_t ReCalc(Bool_t applyRecursively=false) { return Calculate(); }
 };
+
+//_____________________________________________________________________________
+inline const TString&
+BH2Hit::ClassName()
+{
+  static TString s_name("BH2Hit");
+  return s_name;
+}
 
 #endif

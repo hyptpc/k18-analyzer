@@ -53,7 +53,7 @@ namespace
   const Int_t MinPosMapY = -30;
   const Int_t MaxPosMapY = 30;
   const Int_t Meshsize = 5;
-  
+
   const Double_t& zK18HS = gGeom.LocalZ("K18HS");
 }
 
@@ -95,7 +95,7 @@ struct Event
   std::vector<Int_t> cluster_layer;
   std::vector<Int_t> cluster_row;
   std::vector<Double_t> cluster_mrow;
-  std::vector<Double_t> cluster_de_center;  
+  std::vector<Double_t> cluster_de_center;
   std::vector<Double_t> cluster_hitpos_center_x;
   std::vector<Double_t> cluster_hitpos_center_y;
   std::vector<Double_t> cluster_hitpos_center_z;
@@ -108,7 +108,7 @@ struct Event
   std::vector<Double_t> y0_bcout;
   std::vector<Double_t> u0_bcout;
   std::vector<Double_t> v0_bcout;
- 
+
   // Int_t ntTpc; // Number of Tracks
   // std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
   // std::vector<Double_t> chisqr;
@@ -156,7 +156,7 @@ struct Event
     //ntTpc = 0;
     trigpat.clear();
     trigflag.clear();
-    
+
     ntrack_bcout = 0;
     chisqr_bcout.clear();
     x0_bcout.clear();
@@ -229,7 +229,7 @@ Int_t GetHistNum(Double_t x, Double_t y, Double_t z){
   int ix = (int)((x - MinPosMapXZ))/Meshsize;
   int iy = (int)((y - MinPosMapY))/Meshsize;
   int iz = (int)((z - MinPosMapXZ))/Meshsize;
-  
+
   Int_t NumOfDivXZ = ((MaxPosMapXZ - MinPosMapXZ)/Meshsize) + 1;
   Int_t NumOfDivY = ((MaxPosMapY - MinPosMapY)/Meshsize) + 1;
   int histnum = ix*NumOfDivY*NumOfDivXZ + iy*NumOfDivXZ + iz;
@@ -319,7 +319,7 @@ dst::DstRead( int ievent )
   event.evnum = **src.evnum;
   event.trigpat = **src.trigpat;
   event.trigflag = **src.trigflag;
-  
+
   event.ntrack_bcout = src.ntrack;
   //  event.nhTpc = **src.nhTpc;
 
@@ -410,8 +410,8 @@ dst::DstRead( int ievent )
 	Double_t u0_BC = src.u0[it];
 	Double_t y0_BC = src.y0[it];
 	Double_t v0_BC = src.v0[it];
-	
-	Double_t zTPC = zK18HS + z; 
+
+	Double_t zTPC = zK18HS + z;
 	Double_t x_BC = x0_BC + zTPC*u0_BC;
 	Double_t y_BC = y0_BC + zTPC*v0_BC;
 	if(MinPosMapXZ<x && x<MaxPosMapXZ&&
@@ -430,13 +430,13 @@ dst::DstRead( int ievent )
 
   HF1( 1, event.status++ );
 
-  
-  
+
+
 
 
 // #if TrackSearch
 //   DCAna.TrackSearchTPC();
-// #endif 
+// #endif
 
 //   Int_t ntTpc = DCAna.GetNTracksTPC();
 //   event.ntTpc = ntTpc;
@@ -542,19 +542,19 @@ dst::DstClose( void )
 Bool_t
 ConfMan::InitializeHistograms( void )
 {
-  const Int_t    NbinDe = 1000;
-  const Double_t MinDe  =    0.;
-  const Double_t MaxDe  = 2000.;
+  // const Int_t    NbinDe = 1000;
+  // const Double_t MinDe  =    0.;
+  // const Double_t MaxDe  = 2000.;
   HB1( 1, "Status", 21, 0., 21. );
   HB1( 10, "NTrack TPC", 40, 0., 40. );
-  
+
   const Int_t    NbinPos = 500;
   const Double_t MinPos  = -20.;
   const Double_t MaxPos  = 20.;
 
   Int_t NumOfDivXZ = ((MaxPosMapXZ - MinPosMapXZ)/Meshsize) + 1;
   Int_t NumOfDivY = ((MaxPosMapY - MinPosMapY)/Meshsize) + 1;
-  
+
   int histnum =0;
   for(Int_t ix=0; ix<NumOfDivXZ; ++ix){
     for(Int_t iy=0; iy<NumOfDivY; ++iy){
@@ -566,7 +566,7 @@ ConfMan::InitializeHistograms( void )
     }
   }
 
-  
+
   // for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
   //   const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
   //   for( Int_t r=0; r<NumOfRow; ++r ){
@@ -665,11 +665,11 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kBcOut]->SetBranchStatus("v0",  1);
 
   TTreeCont[kBcOut]->SetBranchAddress("ntrack",  &src.ntrack);
-  TTreeCont[kBcOut]->SetBranchAddress("chisqr",  src.chisqr); 
-  TTreeCont[kBcOut]->SetBranchAddress("x0",  src.x0); 
-  TTreeCont[kBcOut]->SetBranchAddress("y0",  src.y0); 
-  TTreeCont[kBcOut]->SetBranchAddress("u0",  src.u0); 
-  TTreeCont[kBcOut]->SetBranchAddress("v0",  src.v0); 
+  TTreeCont[kBcOut]->SetBranchAddress("chisqr",  src.chisqr);
+  TTreeCont[kBcOut]->SetBranchAddress("x0",  src.x0);
+  TTreeCont[kBcOut]->SetBranchAddress("y0",  src.y0);
+  TTreeCont[kBcOut]->SetBranchAddress("u0",  src.u0);
+  TTreeCont[kBcOut]->SetBranchAddress("v0",  src.v0);
 
 
   return true;

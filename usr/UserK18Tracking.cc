@@ -49,17 +49,7 @@ auto& gBH1Mth = BH1Match::GetInstance();
 }
 
 //_____________________________________________________________________________
-VEvent::VEvent()
-{
-}
-
-//_____________________________________________________________________________
-VEvent::~VEvent()
-{
-}
-
-//_____________________________________________________________________________
-class EventK18Tracking : public VEvent
+class UserK18Tracking : public VEvent
 {
 private:
   RawData*      rawData;
@@ -67,17 +57,24 @@ private:
   DCAnalyzer*   DCAna;
 
 public:
-  EventK18Tracking();
-  ~EventK18Tracking();
-  Bool_t ProcessingBegin();
-  Bool_t ProcessingEnd();
-  Bool_t ProcessingNormal();
-  Bool_t InitializeHistograms();
-  void   InitializeEvent();
+  UserK18Tracking();
+  ~UserK18Tracking();
+  virtual const TString& ClassName();
+  virtual Bool_t         ProcessingBegin();
+  virtual Bool_t         ProcessingEnd();
+  virtual Bool_t         ProcessingNormal();
 };
 
 //_____________________________________________________________________________
-EventK18Tracking::EventK18Tracking()
+inline const TString&
+UserK18Tracking::ClassName()
+{
+  static TString s_name("UserK18Tracking");
+  return s_name;
+}
+
+//_____________________________________________________________________________
+UserK18Tracking::UserK18Tracking()
   : VEvent(),
     rawData(new RawData),
     hodoAna(new HodoAnalyzer),
@@ -86,7 +83,7 @@ EventK18Tracking::EventK18Tracking()
 }
 
 //_____________________________________________________________________________
-EventK18Tracking::~EventK18Tracking()
+UserK18Tracking::~UserK18Tracking()
 {
   if(rawData) delete rawData;
   if(hodoAna) delete hodoAna;
@@ -229,7 +226,7 @@ enum eParticle
 
 //_____________________________________________________________________________
 Bool_t
-EventK18Tracking::ProcessingBegin()
+UserK18Tracking::ProcessingBegin()
 {
   event.clear();
   return true;
@@ -237,7 +234,7 @@ EventK18Tracking::ProcessingBegin()
 
 //_____________________________________________________________________________
 Bool_t
-EventK18Tracking::ProcessingNormal()
+UserK18Tracking::ProcessingNormal()
 {
 #if HodoCut
   static const Double_t MinDeBH2   = gUser.GetParameter("DeBH2", 0);
@@ -397,7 +394,7 @@ EventK18Tracking::ProcessingNormal()
   //DCAna->TrackSearchBcOut(cands, event.Time0Seg-1);
   //  DCAna->TrackSearchBcOut(-1);
   //  DCAna->ChiSqrCutBcOut(10);
-  
+
   DCAna->TrackSearchBcOut();
  #if Chi2Cut
   DCAna->ChiSqrCutBcOut(10);
@@ -513,23 +510,17 @@ EventK18Tracking::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-EventK18Tracking::ProcessingEnd()
+UserK18Tracking::ProcessingEnd()
 {
   tree->Fill();
   return true;
 }
 
 //_____________________________________________________________________________
-void
-EventK18Tracking::InitializeEvent()
-{
-}
-
-//_____________________________________________________________________________
 VEvent*
 ConfMan::EventAllocator()
 {
-  return new EventK18Tracking;
+  return new UserK18Tracking;
 }
 
 //_____________________________________________________________________________

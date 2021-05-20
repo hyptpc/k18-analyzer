@@ -41,33 +41,31 @@ auto& gUser = UserParamMan::GetInstance();
 }
 
 //_____________________________________________________________________________
-VEvent::VEvent()
-{
-}
-
-//_____________________________________________________________________________
-VEvent::~VEvent()
-{
-}
-
-//_____________________________________________________________________________
-class EventHodoscope : public VEvent
+class UserHodoscope : public VEvent
 {
 private:
   RawData*      rawData;
   HodoAnalyzer* hodoAna;
 
 public:
-        EventHodoscope();
-       ~EventHodoscope();
-  bool  ProcessingBegin();
-  bool  ProcessingEnd();
-  bool  ProcessingNormal();
-  bool  InitializeHistograms();
+  UserHodoscope();
+  ~UserHodoscope();
+  virtual const TString& ClassName();
+  virtual Bool_t         ProcessingBegin();
+  virtual Bool_t         ProcessingEnd();
+  virtual Bool_t         ProcessingNormal();
 };
 
 //_____________________________________________________________________________
-EventHodoscope::EventHodoscope()
+inline const TString&
+UserHodoscope::ClassName()
+{
+  static TString s_name("UserHodoscope");
+  return s_name;
+}
+
+//_____________________________________________________________________________
+UserHodoscope::UserHodoscope()
   : VEvent(),
     rawData(new RawData),
     hodoAna(new HodoAnalyzer)
@@ -75,7 +73,7 @@ EventHodoscope::EventHodoscope()
 }
 
 //_____________________________________________________________________________
-EventHodoscope::~EventHodoscope()
+UserHodoscope::~UserHodoscope()
 {
   if(hodoAna) delete hodoAna;
   if(rawData) delete rawData;
@@ -532,8 +530,8 @@ enum eDetHid {
 }
 
 //_____________________________________________________________________________
-bool
-EventHodoscope::ProcessingBegin()
+Bool_t
+UserHodoscope::ProcessingBegin()
 {
   event.clear();
   dst.clear();
@@ -541,8 +539,8 @@ EventHodoscope::ProcessingBegin()
 }
 
 //_____________________________________________________________________________
-bool
-EventHodoscope::ProcessingNormal()
+Bool_t
+UserHodoscope::ProcessingNormal()
 {
   static const auto MinTdcBH1 = gUser.GetParameter("TdcBH1", 0);
   static const auto MaxTdcBH1 = gUser.GetParameter("TdcBH1", 1);
@@ -1563,7 +1561,7 @@ EventHodoscope::ProcessingNormal()
       int seg    = hit->SegmentId();
       event.sch_depth[seg] = mhit_l;
       int  prev     = 0;
-      bool hit_flag = false;
+      Bool_t hit_flag = false;
 
       for(int m=0; m<mhit_l; ++m){
     	if(mhit_l > MaxDepth) break;
@@ -1780,8 +1778,8 @@ EventHodoscope::ProcessingNormal()
 }
 
 //_____________________________________________________________________________
-bool
-EventHodoscope::ProcessingEnd()
+Bool_t
+UserHodoscope::ProcessingEnd()
 {
   tree->Fill();
   hodo->Fill();
@@ -1792,7 +1790,7 @@ EventHodoscope::ProcessingEnd()
 VEvent*
 ConfMan::EventAllocator()
 {
-  return new EventHodoscope;
+  return new UserHodoscope;
 }
 
 //_____________________________________________________________________________
@@ -1812,7 +1810,7 @@ namespace
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan::InitializeHistograms()
 {
   HB1(1, "Status", 20, 0., 20.);
@@ -2609,7 +2607,7 @@ ConfMan::InitializeHistograms()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return
@@ -2620,7 +2618,7 @@ ConfMan::InitializeParameterFiles()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan::FinalizeProcess()
 {
   return true;

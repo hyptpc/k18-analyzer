@@ -57,11 +57,8 @@ private:
   DCAnalyzer& operator =(const DCAnalyzer&);
 
 private:
-  enum e_type { k_BcIn,  k_BcOut,
-		k_SdcIn, k_SdcOut,
-		k_SsdIn, k_SsdOut,
-		k_TPC,
-		k_TOF, n_type };
+  enum e_type
+  { kBcIn, kBcOut, kSdcIn, kSdcOut, kTPC, kTOF, n_type };
   std::vector<Bool_t>     m_is_decoded;
   std::vector<Int_t>      m_much_combi;
   std::vector<MWPCClusterContainer> m_MWPCClCont;
@@ -94,7 +91,7 @@ private:
   std::vector<DCLocalTrackContainer> m_SdcOutExTC;
 
 public:
-  Int_t  MuchCombinationSdcIn() const { return m_much_combi[k_SdcIn]; }
+  Int_t  MuchCombinationSdcIn() const { return m_much_combi[kSdcIn]; }
   Bool_t DecodeRawHits(RawData* rawData);
   // Bool_t DecodeFiberHits(FiberCluster* FiberCl, Int_t layer);
   Bool_t DecodeFiberHits(RawData* rawData);
@@ -110,9 +107,9 @@ public:
   Bool_t DecodeTOFHits(const HodoClusterContainer& ClCont);
   // Bool_t DecodeSimuHits(SimuData *simuData);
   Int_t  ClusterizeMWPCHit(const DCHitContainer& hits,
-			  MWPCClusterContainer& clusters);
+                           MWPCClusterContainer& clusters);
   Bool_t  ClusterizeTPC(Int_t layerID, const TPCHitContainer& HitCont,
-		       TPCClusterContainer& ClCont);
+                        TPCClusterContainer& ClCont);
 
   const DCHitContainer& GetTempBcInHC(Int_t l) const
     { return m_TempBcInHC.at(l); }
@@ -196,15 +193,15 @@ public:
   void PrintKurama(const TString& arg="") const;
 
   Bool_t ReCalcMWPCHits(std::vector<DCHitContainer>& cont,
-		       Bool_t applyRecursively=false);
+                        Bool_t applyRecursively=false);
   Bool_t ReCalcDCHits(std::vector<DCHitContainer>& cont,
-		     Bool_t applyRecursively=false);
+                      Bool_t applyRecursively=false);
   Bool_t ReCalcDCHits(Bool_t applyRecursively=false);
   Bool_t ReCalcTPCHits(const Int_t nhits,
-                     const std::vector<Int_t>& padid,
-                     const std::vector<Double_t>& time,
-                     const std::vector<Double_t>& de,
-                     Bool_t do_clusterize=true);
+                       const std::vector<Int_t>& padid,
+                       const std::vector<Double_t>& time,
+                       const std::vector<Double_t>& de,
+                       Bool_t do_clusterize=true);
   void HoughYCut(Double_t min_y, Double_t max_y);
   Bool_t ReCalcTrack(DCLocalTrackContainer& cont, Bool_t applyRecursively=false);
   Bool_t ReCalcTrack(K18TrackD2UContainer& cont, Bool_t applyRecursively=false);
@@ -259,8 +256,8 @@ protected:
   void TotCut(DCHitContainer& cont, Double_t min_tot, Bool_t adopt_nan);
   void DriftTimeCut(DCHitContainer& cont, Double_t min_dt, Double_t max_dt, Bool_t select_1st);
   static Int_t MakeUpMWPCClusters(const DCHitContainer& HitCont,
-  				 MWPCClusterContainer& ClusterCont,
-  				 Double_t maxTimeDif);
+                                  MWPCClusterContainer& ClusterCont,
+                                  Double_t maxTimeDif);
 public:
   void ResetTracksBcIn()        { ClearTracksBcIn();        }
   void ResetTracksBcOut()       { ClearTracksBcOut();       }

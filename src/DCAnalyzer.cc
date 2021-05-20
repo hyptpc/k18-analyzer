@@ -200,7 +200,7 @@ DCAnalyzer::PrintKurama(const TString& arg) const
 Bool_t
 DCAnalyzer::DecodeBcInHits(RawData *rawData)
 {
-  if(m_is_decoded[k_BcIn]){
+  if(m_is_decoded[kBcIn]){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
@@ -261,7 +261,7 @@ DCAnalyzer::DecodeBcInHits(RawData *rawData)
     // hddaq::cout << "nh="<< m_BcInHC[layer].size() <<std::endl;
   }
 
-  m_is_decoded[k_BcIn] = true;
+  m_is_decoded[kBcIn] = true;
   return true;
 }
 #endif
@@ -270,7 +270,7 @@ DCAnalyzer::DecodeBcInHits(RawData *rawData)
 Bool_t
 DCAnalyzer::DecodeBcOutHits(RawData *rawData)
 {
-  if(m_is_decoded[k_BcOut]){
+  if(m_is_decoded[kBcOut]){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
@@ -298,7 +298,7 @@ DCAnalyzer::DecodeBcOutHits(RawData *rawData)
     }
   }
 
-  m_is_decoded[k_BcOut] = true;
+  m_is_decoded[kBcOut] = true;
   return true;
 }
 
@@ -367,7 +367,7 @@ DCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
 {
   static const Int_t TPC_Subtraction = gUser.GetParameter("TPC_Subtraction");
   static const Int_t TPC_Multi = gUser.GetParameter("TPC_Multi");
-  if(m_is_decoded[k_TPC]){
+  if(m_is_decoded[kTPC]){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
@@ -381,7 +381,7 @@ DCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
     numhit += rawData->GetTPCRawHC(layer).size();
   }
   if(TPC_Multi>0 && numhit>TPC_Multi){
-    m_is_decoded[k_TPC] = true;
+    m_is_decoded[kTPC] = true;
     return true;
   }
 
@@ -409,7 +409,7 @@ DCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
 
   }
 
-  m_is_decoded[k_TPC] = true;
+  m_is_decoded[kTPC] = true;
   return true;
 }
 
@@ -424,7 +424,7 @@ DCAnalyzer::ReCalcTPCHits(const Int_t nhits,
   // static const Double_t Time0 = gUser.GetParameter("Time0TPC");
   // static const Double_t DriftVelocity = gUser.GetParameter("DriftVelocityTPC");
 
-  if(m_is_decoded[k_TPC]){
+  if(m_is_decoded[kTPC]){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
@@ -503,7 +503,7 @@ DCAnalyzer::ReCalcTPCHits(const Int_t nhits,
   }
 
 
-  m_is_decoded[k_TPC] = true;
+  m_is_decoded[kTPC] = true;
   return true;
 }
 
@@ -646,7 +646,7 @@ Bool_t
 DCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
                                 const Double_t *x, const Double_t *y, const Double_t *z, const Double_t *de)
 {
-  if(m_is_decoded[k_TPC]){
+  if(m_is_decoded[kTPC]){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
@@ -689,7 +689,7 @@ DCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
   //     m_TPCHitCont[layer].push_back(hit);
   //   }
   // }
-  m_is_decoded[k_TPC] = true;
+  m_is_decoded[kTPC] = true;
   return true;
 }
 
@@ -697,7 +697,7 @@ DCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
 Bool_t
 DCAnalyzer::DecodeSdcInHits(RawData *rawData)
 {
-  if(m_is_decoded[k_SdcIn]){
+  if(m_is_decoded[kSdcIn]){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
@@ -725,7 +725,7 @@ DCAnalyzer::DecodeSdcInHits(RawData *rawData)
     }
   }
 
-  m_is_decoded[k_SdcIn] = true;
+  m_is_decoded[kSdcIn] = true;
   return true;
 }
 
@@ -733,7 +733,7 @@ DCAnalyzer::DecodeSdcInHits(RawData *rawData)
 Bool_t
 DCAnalyzer::DecodeSdcOutHits(RawData *rawData , Double_t ofs_dt)
 {
-  if(m_is_decoded[k_SdcOut]){
+  if(m_is_decoded[kSdcOut]){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
@@ -761,7 +761,7 @@ DCAnalyzer::DecodeSdcOutHits(RawData *rawData , Double_t ofs_dt)
     }
   }
 
-  m_is_decoded[k_SdcOut] = true;
+  m_is_decoded[kSdcOut] = true;
   return true;
 }
 
@@ -783,7 +783,7 @@ DCAnalyzer::DecodeRawHits(RawData *rawData)
 Bool_t
 DCAnalyzer::DecodeTOFHits(const Hodo2HitContainer& HitCont)
 {
-  if(m_is_decoded[k_TOF]){
+  if(m_is_decoded[kTOF]){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
@@ -834,7 +834,7 @@ DCAnalyzer::DecodeTOFHits(const Hodo2HitContainer& HitCont)
     m_TOFHC.push_back(dc_hit_y);
   }
 
-  m_is_decoded[k_TOF] = true;
+  m_is_decoded[kTOF] = true;
   return true;
 }
 
@@ -842,7 +842,7 @@ DCAnalyzer::DecodeTOFHits(const Hodo2HitContainer& HitCont)
 Bool_t
 DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
 {
-  if(m_is_decoded[k_TOF]){
+  if(m_is_decoded[kTOF]){
     hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
@@ -892,7 +892,7 @@ DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
     m_TOFHC.push_back(dc_hit_y);
   }
 
-  m_is_decoded[k_TOF] = true;
+  m_is_decoded[kTOF] = true;
   return true;
 }
 

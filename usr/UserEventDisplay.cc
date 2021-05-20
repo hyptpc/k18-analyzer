@@ -36,16 +36,6 @@ const Double_t ProtonMass = pdg::ProtonMass();
 }
 
 //_____________________________________________________________________________
-VEvent::VEvent()
-{
-}
-
-//_____________________________________________________________________________
-VEvent::~VEvent()
-{
-}
-
-//_____________________________________________________________________________
 class UserEventDisplay : public VEvent
 {
 private:
@@ -53,15 +43,21 @@ private:
   DCAnalyzer*   DCAna;
   HodoAnalyzer* hodoAna;
 public:
-  static TString ClassName()
-    { static TString s_name("UserEventDisplay"); return s_name; }
-        UserEventDisplay();
-       ~UserEventDisplay();
-  Bool_t  ProcessingBegin();
-  Bool_t  ProcessingEnd();
-  Bool_t  ProcessingNormal();
-  Bool_t  InitializeHistograms();
+  UserEventDisplay();
+  ~UserEventDisplay();
+  virtual const TString& ClassName();
+  virtual Bool_t         ProcessingBegin();
+  virtual Bool_t         ProcessingEnd();
+  virtual Bool_t         ProcessingNormal();
 };
+
+//_____________________________________________________________________________
+inline const TString&
+UserEventDisplay::ClassName()
+{
+  static TString s_name("UserEventDisplay");
+  return s_name;
+}
 
 //_____________________________________________________________________________
 UserEventDisplay::UserEventDisplay()
@@ -92,31 +88,31 @@ Bool_t
 UserEventDisplay::ProcessingNormal()
 {
 #if 1
-  // static const Double_t MaxMultiHitBcOut  = gUser.GetParameter("MaxMultiHitBcOut");
-  static const Double_t MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
-  static const Double_t MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
+  // static const auto MaxMultiHitBcOut  = gUser.GetParameter("MaxMultiHitBcOut");
+  static const auto MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
+  static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
 
-  static const Double_t MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
-  static const Double_t MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
-  static const Double_t MinTdcSCH  = gUser.GetParameter("TdcSCH", 0);
-  static const Double_t MaxTdcSCH  = gUser.GetParameter("TdcSCH", 1);
-  static const Double_t MinTdcTOF  = gUser.GetParameter("TdcTOF", 0);
-  static const Double_t MaxTdcTOF  = gUser.GetParameter("TdcTOF", 1);
+  static const auto MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
+  static const auto MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
+  static const auto MinTdcSCH  = gUser.GetParameter("TdcSCH", 0);
+  static const auto MaxTdcSCH  = gUser.GetParameter("TdcSCH", 1);
+  static const auto MinTdcTOF  = gUser.GetParameter("TdcTOF", 0);
+  static const auto MaxTdcTOF  = gUser.GetParameter("TdcTOF", 1);
 
-  static const Double_t OffsetToF  = gUser.GetParameter("OffsetToF");
-  static const Double_t StopTimeDiffSdcOut      = gUser.GetParameter("StopTimeDiffSdcOut",   0);
-  static const Double_t MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
-  static const Double_t MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
-  static const Double_t MinTotSDC3 = gUser.GetParameter("MinTotSDC3", 0);
-  static const Double_t MinTotSDC4 = gUser.GetParameter("MinTotSDC4", 0);
+  static const auto OffsetToF  = gUser.GetParameter("OffsetToF");
+  // static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
+  // static const auto MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
+  // static const auto MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
+  static const auto MinTotSDC3 = gUser.GetParameter("MinTotSDC3");
+  static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
 
   // static const Int_t IdBH2 = gGeom.GetDetectorId("BH2");
   static const Int_t IdSCH = gGeom.GetDetectorId("SCH");
   static const Int_t IdTOF = gGeom.GetDetectorId("TOF");
   static const Int_t IdSDC1 = gGeom.DetectorId("SDC1-X1");
-  static const Int_t IdSDC2 = gGeom.DetectorId("SDC2-X1");
-  static const Int_t IdSDC3 = gGeom.DetectorId("SDC3-X1");
-  static const Int_t IdSDC4 = gGeom.DetectorId("SDC4-X1");
+  // static const Int_t IdSDC2 = gGeom.DetectorId("SDC2-X1");
+  // static const Int_t IdSDC3 = gGeom.DetectorId("SDC3-X1");
+  // static const Int_t IdSDC4 = gGeom.DetectorId("SDC4-X1");
 
   rawData->DecodeHits();
 

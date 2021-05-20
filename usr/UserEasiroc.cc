@@ -40,17 +40,7 @@ const auto& gUser = UserParamMan::GetInstance();
 }
 
 //_____________________________________________________________________________
-VEvent::VEvent()
-{
-}
-
-//_____________________________________________________________________________
-VEvent::~VEvent()
-{
-}
-
-//_____________________________________________________________________________
-class EventEasiroc : public VEvent
+class UserEasiroc : public VEvent
 {
 private:
   RawData*      rawData;
@@ -58,17 +48,24 @@ private:
   HodoAnalyzer* hodoAna;
 
 public:
-  EventEasiroc();
-  ~EventEasiroc();
-  Bool_t ProcessingBegin();
-  Bool_t ProcessingEnd();
-  Bool_t ProcessingNormal();
-  Bool_t InitializeHistograms();
-  void   InitializeEvent();
+  UserEasiroc();
+  ~UserEasiroc();
+  virtual const TString& ClassName();
+  virtual Bool_t         ProcessingBegin();
+  virtual Bool_t         ProcessingEnd();
+  virtual Bool_t         ProcessingNormal();
 };
 
 //_____________________________________________________________________________
-EventEasiroc::EventEasiroc()
+inline const TString&
+UserEasiroc::ClassName()
+{
+  static TString s_name("UserEasiroc");
+  return s_name;
+}
+
+//_____________________________________________________________________________
+UserEasiroc::UserEasiroc()
   : VEvent(),
     rawData(new RawData),
     DCAna(new DCAnalyzer),
@@ -77,11 +74,11 @@ EventEasiroc::EventEasiroc()
 }
 
 //_____________________________________________________________________________
-EventEasiroc::~EventEasiroc()
+UserEasiroc::~UserEasiroc()
 {
+  if(rawData) delete rawData;
   if(hodoAna) delete hodoAna;
   if(DCAna) delete DCAna;
-  if(rawData) delete rawData;
 }
 
 //_____________________________________________________________________________
@@ -192,15 +189,15 @@ enum eDetHid
 
 //_____________________________________________________________________________
 Bool_t
-EventEasiroc::ProcessingBegin()
+UserEasiroc::ProcessingBegin()
 {
-  InitializeEvent();
+  event.clear();
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-EventEasiroc::ProcessingNormal()
+UserEasiroc::ProcessingNormal()
 {
 #if HodoCut
   static const Double_t MinDeBH2   = gUser.GetParameter("DeBH2", 0);
@@ -536,28 +533,22 @@ EventEasiroc::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-EventEasiroc::ProcessingEnd()
+UserEasiroc::ProcessingEnd()
 {
   tree->Fill();
   return true;
 }
 
 //_____________________________________________________________________________
-void
-EventEasiroc::InitializeEvent()
-{
-}
-
-//_____________________________________________________________________________
 VEvent*
 ConfMan::EventAllocator()
 {
-  return new EventEasiroc;
+  return new UserEasiroc;
 }
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan:: InitializeHistograms()
+ConfMan::InitializeHistograms()
 {
   const Int_t    NbinTdc = 1000;
   const Double_t MinTdc  =    0.;

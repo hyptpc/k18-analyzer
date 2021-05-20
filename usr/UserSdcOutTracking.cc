@@ -28,26 +28,16 @@
 namespace
 {
 using namespace root;
+using hddaq::unpacker::GUnpacker;
 const auto qnan = TMath::QuietNaN();
+const auto& gUnpacker = GUnpacker::get_instance();
 const auto& gGeom = DCGeomMan::GetInstance();
-auto& gRM = RMAnalyzer::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
-const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& zTOF = gGeom.LocalZ("TOF");
 }
 
 //_____________________________________________________________________________
-VEvent::VEvent()
-{
-}
-
-//_____________________________________________________________________________
-VEvent::~VEvent()
-{
-}
-
-//_____________________________________________________________________________
-class EventSdcOutTracking : public VEvent
+class UserSdcOutTracking : public VEvent
 {
 private:
   RawData*      rawData;
@@ -55,25 +45,24 @@ private:
   DCAnalyzer*   DCAna;
 
 public:
-  static TString ClassName();
-  EventSdcOutTracking();
-  ~EventSdcOutTracking();
-  Bool_t  ProcessingBegin();
-  Bool_t  ProcessingEnd();
-  Bool_t  ProcessingNormal();
-  Bool_t  InitializeHistograms();
+  UserSdcOutTracking();
+  ~UserSdcOutTracking();
+  virtual const TString& ClassName();
+  virtual Bool_t         ProcessingBegin();
+  virtual Bool_t         ProcessingEnd();
+  virtual Bool_t         ProcessingNormal();
 };
 
 //_____________________________________________________________________________
-TString
-EventSdcOutTracking::ClassName()
+inline const TString&
+UserSdcOutTracking::ClassName()
 {
-  static TString s_name("EventSdcOutTracking");
+  static TString s_name("UserSdcOutTracking");
   return s_name;
 }
 
 //_____________________________________________________________________________
-EventSdcOutTracking::EventSdcOutTracking()
+UserSdcOutTracking::UserSdcOutTracking()
   : VEvent(),
     rawData(new RawData),
     hodoAna(new HodoAnalyzer),
@@ -82,7 +71,7 @@ EventSdcOutTracking::EventSdcOutTracking()
 }
 
 //_____________________________________________________________________________
-EventSdcOutTracking::~EventSdcOutTracking()
+UserSdcOutTracking::~UserSdcOutTracking()
 {
   if(rawData) delete rawData;
   if(hodoAna) delete hodoAna;
@@ -200,7 +189,7 @@ TTree *tree;
 
 //_____________________________________________________________________________
 Bool_t
-EventSdcOutTracking::ProcessingBegin()
+UserSdcOutTracking::ProcessingBegin()
 {
   event.clear();
   return true;
@@ -208,7 +197,7 @@ EventSdcOutTracking::ProcessingBegin()
 
 //_____________________________________________________________________________
 Bool_t
-EventSdcOutTracking::ProcessingNormal()
+UserSdcOutTracking::ProcessingNormal()
 {
 #if HodoCut
   static const auto MinDeBH2 = gUser.GetParameter("DeBH2", 0);
@@ -235,9 +224,7 @@ EventSdcOutTracking::ProcessingNormal()
 
   rawData->DecodeHits();
 
-  gRM.Decode();
-
-  event.evnum = gRM.EventNumber();
+  event.evnum = gUnpacker.get_event_number();
 
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
@@ -615,7 +602,7 @@ EventSdcOutTracking::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-EventSdcOutTracking::ProcessingEnd()
+UserSdcOutTracking::ProcessingEnd()
 {
   tree->Fill();
   return true;
@@ -625,7 +612,7 @@ EventSdcOutTracking::ProcessingEnd()
 VEvent*
 ConfMan::EventAllocator()
 {
-  return new EventSdcOutTracking;
+  return new UserSdcOutTracking;
 }
 
 //_____________________________________________________________________________

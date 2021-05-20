@@ -34,21 +34,11 @@ const auto qnan = TMath::QuietNaN();
 const auto& gUnpacker = GUnpacker::get_instance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
-const Double_t& zTOF = gGeom.LocalZ("TOF");
+const auto& zTOF = gGeom.LocalZ("TOF");
 }
 
 //_____________________________________________________________________________
-VEvent::VEvent()
-{
-}
-
-//_____________________________________________________________________________
-VEvent::~VEvent()
-{
-}
-
-//_____________________________________________________________________________
-class EventKuramaTracking : public VEvent
+class UserKuramaTracking : public VEvent
 {
 private:
   RawData*      rawData;
@@ -56,26 +46,24 @@ private:
   DCAnalyzer*   DCAna;
 
 public:
-  static TString ClassName();
-  EventKuramaTracking();
-  ~EventKuramaTracking();
-  bool  ProcessingBegin();
-  bool  ProcessingEnd();
-  bool  ProcessingNormal();
-  bool  InitializeHistograms();
-  void  InitializeEvent();
+  UserKuramaTracking();
+  ~UserKuramaTracking();
+  virtual const TString& ClassName();
+  virtual Bool_t         ProcessingBegin();
+  virtual Bool_t         ProcessingEnd();
+  virtual Bool_t         ProcessingNormal();
 };
 
 //_____________________________________________________________________________
-TString
-EventKuramaTracking::ClassName()
+inline const TString&
+UserKuramaTracking::ClassName()
 {
-  static TString s_name("EventKuramaTracking");
+  static TString s_name("UserKuramaTracking");
   return s_name;
 }
 
 //_____________________________________________________________________________
-EventKuramaTracking::EventKuramaTracking()
+UserKuramaTracking::UserKuramaTracking()
   : VEvent(),
     rawData(new RawData),
     hodoAna(new HodoAnalyzer),
@@ -84,7 +72,7 @@ EventKuramaTracking::EventKuramaTracking()
 }
 
 //_____________________________________________________________________________
-EventKuramaTracking::~EventKuramaTracking()
+UserKuramaTracking::~UserKuramaTracking()
 {
   if(rawData) delete rawData;
   if(hodoAna) delete hodoAna;
@@ -302,16 +290,16 @@ TTree *tree;
 
 
 //_____________________________________________________________________________
-bool
-EventKuramaTracking::ProcessingBegin()
+Bool_t
+UserKuramaTracking::ProcessingBegin()
 {
   event.clear();
   return true;
 }
 
 //_____________________________________________________________________________
-bool
-EventKuramaTracking::ProcessingNormal()
+Bool_t
+UserKuramaTracking::ProcessingNormal()
 {
 #if HodoCut
   static const auto MinDeBH2   = gUser.GetParameter("DeBH2", 0);
@@ -467,7 +455,7 @@ EventKuramaTracking::ProcessingNormal()
   HF1(1, 4.);
 
   // Trigger flag
-  bool flag_tof_stop = false;
+  Bool_t flag_tof_stop = false;
   {
     static const Int_t device_id    = gUnpacker.get_device_id("TFlag");
     static const Int_t data_type_id = gUnpacker.get_data_id("TFlag", "tdc");
@@ -607,7 +595,7 @@ EventKuramaTracking::ProcessingNormal()
       Double_t u0=tp->GetU0(), v0=tp->GetV0();
       Double_t x0=tp->GetX0(), y0=tp->GetY0();
 
-      bool condTof=false;
+      Bool_t condTof=false;
       for(Int_t j=0; j<ncTof; ++j){
 	HodoCluster *clTof=hodoAna->GetClusterTOF(j);
 	if(!clTof || !clTof->GoodForAnalysis()) continue;
@@ -988,8 +976,8 @@ EventKuramaTracking::ProcessingNormal()
 }
 
 //_____________________________________________________________________________
-bool
-EventKuramaTracking::ProcessingEnd()
+Bool_t
+UserKuramaTracking::ProcessingEnd()
 {
   tree->Fill();
   return true;
@@ -999,37 +987,34 @@ EventKuramaTracking::ProcessingEnd()
 VEvent*
 ConfMan::EventAllocator()
 {
-  return new EventKuramaTracking;
+  return new UserKuramaTracking;
 }
 
 //_____________________________________________________________________________
-namespace
-{
-const Int_t    NBinDTSDC1 =  90;
-const Double_t MinDTSDC1  = -10.;
-const Double_t MaxDTSDC1  =  80.;
-const Int_t    NBinDLSDC1 =  100;
-const Double_t MinDLSDC1  = -0.5;
-const Double_t MaxDLSDC1  =  3.0;
-
-const Int_t    NBinDTSDC2 =  220;
-const Double_t MinDTSDC2  = -20.;
-const Double_t MaxDTSDC2  = 200.;
-const Int_t    NBinDLSDC2 =  100;
-const Double_t MinDLSDC2  = -0.5;
-const Double_t MaxDLSDC2  =  4.5;
-
-const Int_t    NBinDTSDC3 =  400;
-const Double_t MinDTSDC3  = -100.;
-const Double_t MaxDTSDC3  =  300.;
-const Int_t    NBinDLSDC3 =  100;
-const Double_t MinDLSDC3  = -5.0;
-const Double_t MaxDLSDC3  = 15.0;
-}
-//_____________________________________________________________________________
-bool
+Bool_t
 ConfMan:: InitializeHistograms()
 {
+  const Int_t    NBinDTSDC1 =  90;
+  const Double_t MinDTSDC1  = -10.;
+  const Double_t MaxDTSDC1  =  80.;
+  const Int_t    NBinDLSDC1 =  100;
+  const Double_t MinDLSDC1  = -0.5;
+  const Double_t MaxDLSDC1  =  3.0;
+
+  const Int_t    NBinDTSDC2 =  220;
+  const Double_t MinDTSDC2  = -20.;
+  const Double_t MaxDTSDC2  = 200.;
+  const Int_t    NBinDLSDC2 =  100;
+  const Double_t MinDLSDC2  = -0.5;
+  const Double_t MaxDLSDC2  =  4.5;
+
+  const Int_t    NBinDTSDC3 =  400;
+  const Double_t MinDTSDC3  = -100.;
+  const Double_t MaxDTSDC3  =  300.;
+  const Int_t    NBinDLSDC3 =  100;
+  const Double_t MinDLSDC3  = -5.0;
+  const Double_t MaxDLSDC3  = 15.0;
+
   HB1(1, "Status", 30, 0., 30.);
 
   HB1(10, "#Tracks SdcIn", 10, 0., 10.);
@@ -1399,7 +1384,7 @@ ConfMan:: InitializeHistograms()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return
@@ -1413,7 +1398,7 @@ ConfMan::InitializeParameterFiles()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan::FinalizeProcess()
 {
   return true;

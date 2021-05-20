@@ -17,8 +17,10 @@
 #include <TColor.h>
 #include <TEnv.h>
 #include <TFile.h>
+#include <TF2.h>
 #include <TGeometry.h>
 #include <TGraph.h>
+#include <TGraph2D.h>
 #include <TGraphErrors.h>
 #include <TH1.h>
 #include <TH2.h>
@@ -30,8 +32,8 @@
 #include <TMixture.h>
 #include <TNode.h>
 #include <TPad.h>
-#include <TSystem.h>
 #include <TPave.h>
+#include <TRandom.h>
 #include <TPaveLabel.h>
 #include <TPaveText.h>
 #include <TPolyLine.h>
@@ -42,6 +44,8 @@
 #include <TRint.h>
 #include <TRotMatrix.h>
 #include <TStyle.h>
+#include <TSystem.h>
+#include <TPGON.h>
 #include <TTRD1.h>
 #include <TTRD2.h>
 #include <TTUBS.h>
@@ -60,76 +64,31 @@
 #include "DCTdcCalibMan.hh"
 #include "TPCPadHelper.hh"
 
-#define BH2        1
-#define BcOut      1
-#define KURAMA     1
-#define SdcIn      1
-#define SdcOut     1
-#define SCH        1
-#define FBT        1
-#define TOF        1
-#define Vertex     1
-#define Hist       1
-#define Hist_Timing 1
-#define Hist_SdcOut 1
-#define Hist_BcIn   1
-
 namespace
 {
-  const DCGeomMan& gGeom = DCGeomMan::GetInstance();
-  const int& IdBH2 = gGeom.DetectorId("BH2");
-  const int& IdBH1 = gGeom.DetectorId("BH1");
-  const int& IdSFT_U = gGeom.DetectorId("SFT-U");
-  const int& IdSFT_V = gGeom.DetectorId("SFT-V");
-  const int& IdSFT_X = gGeom.DetectorId("SFT-X");
-  const int& IdSCH = gGeom.DetectorId("SCH");
-  const int& IdFBT1_D1 = gGeom.DetectorId("FBT1-DX1");
-  const int& IdFBT1_U1 = gGeom.DetectorId("FBT1-UX1");
-  const int& IdFBT1_D2 = gGeom.DetectorId("FBT1-DX2");
-  const int& IdFBT1_U2 = gGeom.DetectorId("FBT1-UX2");
-  const int& IdFBT2_D1 = gGeom.DetectorId("FBT2-DX1");
-  const int& IdFBT2_U1 = gGeom.DetectorId("FBT2-UX1");
-  const int& IdFBT2_D2 = gGeom.DetectorId("FBT2-DX2");
-  const int& IdFBT2_U2 = gGeom.DetectorId("FBT2-UX2");
-  const int& IdTOF = gGeom.DetectorId("TOF");
-  const int& IdTarget    = gGeom.DetectorId("Target");
-  const double& zTarget    = gGeom.LocalZ("Target");
-  const double& zK18Target = gGeom.LocalZ("K18Target");
-  const double& gzK18Target = gGeom.GlobalZ("K18Target");
-  //const double& gxK18Target = gGeom.GetGlobalPosition("K18Target").x();
-  const double& gxK18Target = -240.;
-  const double& zBFT    = gGeom.LocalZ("BFT");
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& gTdc = DCTdcCalibMan::GetInstance();
+const auto& IdTarget = gGeom.DetectorId("Target");
+const auto& zTarget = gGeom.LocalZ("Target");
+const auto& zK18Target = gGeom.LocalZ("K18Target");
+const auto& gzK18Target = gGeom.GlobalZ("K18Target");
+//const Double_t BeamAxis = -150.; //E07
+const Double_t BeamAxis = -240.; //E40
 
-  //const double BeamAxis = -150.; //E07
-  const double BeamAxis = -240.; //E40
-#if Vertex
-  const double MinX = -50.;
-  const double MaxX =  50.;
-  const double MinY = -50.;
-  const double MaxY =  50.;
-  const double MinZ = -25.;
-#endif
-  const double MaxZ =  50.;
-
-  const HodoParamMan& gHodo = HodoParamMan::GetInstance();
-  const DCTdcCalibMan& gTdc = DCTdcCalibMan::GetInstance();
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 // local function
 [[maybe_unused]] void
-ConstructionDone( const char* name, std::ostream& ost=hddaq::cout )
+ConstructionDone(const TString& name, std::ostream& ost=hddaq::cout)
 {
-  const std::size_t n = 20;
-  std::size_t s = std::string(name).size();
+  const Int_t n = 20;
+  Int_t s = name.Length();
   ost << " " << name << " ";
-  for( std::size_t i=0; i<n-s; ++i )
-    ost << ".";
+  for (Int_t i=0; i<n-s; ++i) ost << ".";
   ost << " done" << std::endl;
 }
-
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 EventDisplayShs::EventDisplayShs( void )
   : m_is_ready(false),
     m_theApp(nullptr),
@@ -139,16 +98,25 @@ EventDisplayShs::EventDisplayShs( void )
     m_tpc_adc(nullptr),
     m_tpc_tdc(nullptr),
     m_tpc_adc2d(nullptr),
-    m_tpc_tdc2d(nullptr)
+    m_tpc_tdc2d(nullptr),
+    m_tpc_pgon(nullptr)
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 EventDisplayShs::~EventDisplayShs( void )
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
+void
+EventDisplayShs::EndOfEvent( void )
+{
+  m_tpc_mark3d->SetPolyMarker(0, (Double_t*)nullptr, 0);
+  // if( m_tpc_mark3d ) delete m_tpc_mark3d;
+}
+
+//_____________________________________________________________________________
 void
 EventDisplayShs::FillTPCADC(Int_t layer, Int_t row, Double_t adc)
 {
@@ -157,7 +125,7 @@ EventDisplayShs::FillTPCADC(Int_t layer, Int_t row, Double_t adc)
   m_tpc_adc2d->SetBinContent(pad + 1, adc);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 EventDisplayShs::FillTPCTDC(Int_t layer, Int_t row, Double_t tdc)
 {
@@ -166,7 +134,7 @@ EventDisplayShs::FillTPCTDC(Int_t layer, Int_t row, Double_t tdc)
   m_tpc_tdc2d->SetBinContent(pad + 1, tdc);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 EventDisplayShs::Initialize( void )
 {
@@ -182,10 +150,10 @@ EventDisplayShs::Initialize( void )
 #endif
   gStyle->SetNumberContours(255);
 
-  m_canvas = new TCanvas("Event Display", "Event Display", 800, 800);
+  m_canvas = new TCanvas("Event Display", "Event Display", 1000, 1000);
 
   m_tpc_adc = new TH1D("h_tpc_adc", "TPC ADC", 4096, 0, 4096);
-  m_tpc_tdc = new TH1D("h_tpc_adc", "TPC ADC",
+  m_tpc_tdc = new TH1D("h_tpc_adc", "TPC TDC",
                        NumOfTimeBucket, 0, NumOfTimeBucket);
   const Double_t MinX = -300.;
   const Double_t MaxX =  300.;
@@ -223,15 +191,40 @@ EventDisplayShs::Initialize( void )
 
   m_tpc_adc2d->SetStats(0);
   m_tpc_tdc2d->SetStats(0);
+
   m_canvas->Divide(2, 2);
   m_canvas->cd(1);
   m_tpc_adc2d->Draw("colz");
   m_canvas->cd(2);
   m_tpc_tdc2d->Draw("colz");
   m_canvas->cd(3);
-  m_tpc_adc->Draw("colz");
-  m_canvas->cd(4);
-  m_tpc_tdc->Draw("colz");
+
+  // m_tpc_adc->Draw("colz");
+  // m_canvas->cd(4);
+  // m_tpc_tdc->Draw("colz");
+
+  m_tpc_pgon = new TPGON("TPC_PGON", "TPC_PGON", "void",
+                         22.5, 360, 8, 2);
+  const Double_t r = 250./TMath::Cos(TMath::DegToRad()*360/8/2);
+  m_tpc_pgon->DefineSection(0, -300, r, r);
+  m_tpc_pgon->DefineSection(1,  300, r, r);
+  m_tpc_pgon->SetFillColorAlpha(kWhite, 0);
+  m_tpc_pgon->SetLineColor(kGray);
+  m_tpc_node = new TNode("NODE1", "NODE1", "TPC_PGON", 0, 500, 500);
+  m_tpc_node->cd();
+  m_tpc_node->Draw("gl");
+
+  m_tpc_node->cd();
+  m_tpc_mark3d = new TPolyMarker3D;
+  m_tpc_mark3d->SetMarkerSize(10);
+  m_tpc_mark3d->SetMarkerColor(kRed+1);
+  m_tpc_mark3d->SetMarkerStyle(6);
+  m_tpc_mark3d->Draw();
+  // gPad->GetView()->SetAutoRange();
+  // gPad->GetView()->SetRange(-250,-250,-350,250,250,350);
+  // Int_t irep = 0;
+  // gPad->GetView()->SetView(0, 0, 0, irep);
+  // gPad->GetView()->ShowAxis();
 
   m_canvas->Update();
 
@@ -239,7 +232,7 @@ EventDisplayShs::Initialize( void )
   return m_is_ready;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 EventDisplayShs::Reset( void )
 {
@@ -247,7 +240,7 @@ EventDisplayShs::Reset( void )
   m_tpc_tdc2d->Reset("");
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Int_t
 EventDisplayShs::GetCommand( void ) const
 {
@@ -303,7 +296,7 @@ EventDisplayShs::GetCommand( void ) const
   return kNormal;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 EventDisplayShs::Run(Bool_t flag)
 {
@@ -311,14 +304,29 @@ EventDisplayShs::Run(Bool_t flag)
   m_theApp->Run(flag);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
+void
+EventDisplayShs::SetTPCMarker(Double_t x, Double_t y, Double_t z)
+{
+  m_tpc_mark3d->SetNextPoint(x, z, y);
+}
+
+
+//_____________________________________________________________________________
+void
+EventDisplayShs::SetTPCMarker(const TVector3& pos)
+{
+  SetTPCMarker(pos.X(), pos.Y(), pos.Z());
+}
+
+//_____________________________________________________________________________
 void
 EventDisplayShs::Update(void)
 {
   TIter canvas_iterator(gROOT->GetListOfCanvases());
   while (true) {
     auto canvas = dynamic_cast<TCanvas*>(canvas_iterator.Next());
-    if (!canvas) { break; }
+    if (!canvas) break;
     canvas->UseCurrentStyle();
     canvas->Modified();
     canvas->Update();

@@ -1,5 +1,7 @@
 // -*- C++ -*-
 
+#include "VEvent.hh"
+
 #include <iostream>
 
 #include <TMath.h>
@@ -19,47 +21,44 @@
 #include "Unpacker.hh"
 #include "UnpackerManager.hh"
 #include "UserParamMan.hh"
-#include "VEvent.hh"
 #include "DetectorID.hh"
 
 namespace
 {
 using namespace root;
 using hddaq::unpacker::GUnpacker;
-auto& gEvDisp = EventDisplayShs::GetInstance();
 const auto& gUnpacker = GUnpacker::get_instance();
+auto& gEvDisp = EventDisplayShs::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 }
 
 //_____________________________________________________________________________
-VEvent::VEvent( void )
+class UserEventDisplayShs : public VEvent
 {
-}
-
-//_____________________________________________________________________________
-VEvent::~VEvent( void )
-{
-}
-
-//_____________________________________________________________________________
-class UserEvent : public VEvent
-{
-public:
-  UserEvent( void );
-  ~UserEvent( void );
-  Bool_t ProcessingBegin( void );
-  Bool_t ProcessingEnd( void );
-  Bool_t ProcessingNormal( void );
-  Bool_t InitializeHistograms( void );
-  void   InitializeEvent( void );
-
 private:
   RawData*    rawData;
   DCAnalyzer* DCAna;
+
+public:
+  UserEventDisplayShs();
+  ~UserEventDisplayShs();
+  virtual const TString& ClassName();
+  virtual Bool_t         ProcessingBegin();
+  virtual Bool_t         ProcessingEnd();
+  virtual Bool_t         ProcessingNormal();
 };
 
 //_____________________________________________________________________________
-UserEvent::UserEvent( void )
+inline const TString&
+UserEventDisplayShs::ClassName()
+{
+  static TString s_name("UserEventDisplayShs");
+  return s_name;
+}
+
+
+//_____________________________________________________________________________
+UserEventDisplayShs::UserEventDisplayShs()
   : VEvent(),
     rawData(new RawData),
     DCAna(new DCAnalyzer)
@@ -67,37 +66,33 @@ UserEvent::UserEvent( void )
 }
 
 //_____________________________________________________________________________
-UserEvent::~UserEvent( void )
+UserEventDisplayShs::~UserEventDisplayShs()
 {
-  if( rawData ) delete rawData;
-  if( DCAna ) delete DCAna;
+  if(rawData) delete rawData;
+  if(DCAna) delete DCAna;
 }
 
 //_____________________________________________________________________________
 namespace root
 {
-  TH1* h[MaxHist];
-  enum eDetHid
-  {
-    PadHid = 100000
-  };
+TH1* h[MaxHist];
+enum eDetHid { PadHid = 100000 };
 }
 
 //_____________________________________________________________________________
 Bool_t
-UserEvent::ProcessingBegin( void )
+UserEventDisplayShs::ProcessingBegin()
 {
   gEvDisp.Reset();
-  InitializeEvent();
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-UserEvent::ProcessingNormal( void )
+UserEventDisplayShs::ProcessingNormal()
 {
-  const Int_t run_number = gUnpacker.get_root()->get_run_number();
-  const Int_t event_number = gUnpacker.get_event_number();
+  // const Int_t run_number = gUnpacker.get_root()->get_run_number();
+  // const Int_t event_number = gUnpacker.get_event_number();
 
   rawData->DecodeTPCHits();
 
@@ -115,8 +110,13 @@ UserEvent::ProcessingNormal( void )
       auto max_adc = rhit->MaxAdc();
       // auto rms = rhit->RMS();
       auto loc_max = rhit->LocMax();
+      if(loc_max < 25 || 175 <loc_max)
+        continue;
+      TVector3 pos = tpc::getPosition(layer, row);
+      pos.SetY((loc_max - 76.75)*80.0*0.05);
       gEvDisp.FillTPCADC(layer, row, max_adc - mean);
       gEvDisp.FillTPCTDC(layer, row, loc_max);
+      gEvDisp.SetTPCMarker(pos);
     }
   }
 
@@ -126,47 +126,42 @@ UserEvent::ProcessingNormal( void )
 
 //_____________________________________________________________________________
 Bool_t
-UserEvent::ProcessingEnd( void )
+UserEventDisplayShs::ProcessingEnd()
 {
-  gEvDisp.GetCommand();
+  // gEvDisp.GetCommand();
+  gEvDisp.EndOfEvent();
   return true;
-}
-
-//_____________________________________________________________________________
-void
-UserEvent::InitializeEvent( void )
-{
 }
 
 //_____________________________________________________________________________
 VEvent*
-ConfMan::EventAllocator( void )
+ConfMan::EventAllocator()
 {
-  return new UserEvent;
+  return new UserEventDisplayShs;
 }
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan:: InitializeHistograms( void )
+ConfMan:: InitializeHistograms()
 {
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan::InitializeParameterFiles( void )
+ConfMan::InitializeParameterFiles()
 {
   return
-    ( InitializeParameter<DCGeomMan>("DCGEO") &&
+    (InitializeParameter<DCGeomMan>("DCGEO") &&
       InitializeParameter<EventDisplayShs>() &&
       InitializeParameter<TPCParamMan>("TPCPRM") &&
       InitializeParameter<TPCPositionCorrector>("TPCPOS") &&
-      InitializeParameter<UserParamMan>("USER") );
+      InitializeParameter<UserParamMan>("USER"));
 }
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan::FinalizeProcess( void )
+ConfMan::FinalizeProcess()
 {
   return true;
 }

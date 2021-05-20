@@ -1,5 +1,7 @@
 // -*- C++ -*-
 
+#include "VEvent.hh"
+
 #include <iostream>
 #include <sstream>
 #include <cmath>
@@ -9,7 +11,6 @@
 #include "RootHelper.hh"
 #include "Unpacker.hh"
 #include "UnpackerManager.hh"
-#include "VEvent.hh"
 
 namespace
 {
@@ -18,41 +19,38 @@ using hddaq::unpacker::GUnpacker;
 const auto& gUnpacker = GUnpacker::get_instance();
 }
 
-//______________________________________________________________________________
-VEvent::VEvent( void )
-{
-}
-
-//______________________________________________________________________________
-VEvent::~VEvent( void )
-{
-}
-
-//______________________________________________________________________________
-class UserEvent : public VEvent
+//_____________________________________________________________________________
+class UserTPCRM : public VEvent
 {
 public:
-        UserEvent( void );
-       ~UserEvent( void );
-  bool  ProcessingBegin( void );
-  bool  ProcessingEnd( void );
-  bool  ProcessingNormal( void );
-  bool  InitializeHistograms( void );
-  void  InitializeEvent( void );
+  UserTPCRM();
+  ~UserTPCRM();
+  virtual const TString& ClassName();
+  virtual Bool_t         ProcessingBegin();
+  virtual Bool_t         ProcessingEnd();
+  virtual Bool_t         ProcessingNormal();
 };
 
-//______________________________________________________________________________
-UserEvent::UserEvent( void )
+//_____________________________________________________________________________
+inline const TString&
+UserTPCRM::ClassName()
+{
+  static TString s_name("UserTPCRM");
+  return s_name;
+}
+
+//_____________________________________________________________________________
+UserTPCRM::UserTPCRM()
   : VEvent()
 {
 }
 
-//______________________________________________________________________________
-UserEvent::~UserEvent( void )
+//_____________________________________________________________________________
+UserTPCRM::~UserTPCRM()
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 struct Event
 {
   Int_t runnum;
@@ -61,7 +59,7 @@ struct Event
   Int_t e03_event;
   Int_t e03_spill;
 
-  void clear( void )
+  void clear()
   {
     runnum = 0;
     evnum = 0;
@@ -69,7 +67,7 @@ struct Event
     e03_event = 0;
     e03_spill = 0;
   }
-  void print( void )
+  void print()
   {
     std::cout << TString('=', 80) << std::endl
               << "runnum     = " << runnum << std::endl
@@ -81,7 +79,7 @@ struct Event
   }
 };
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 namespace root
 {
 Event  event;
@@ -89,17 +87,17 @@ TH1   *h[MaxHist];
 TTree *tree;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-UserEvent::ProcessingBegin( void )
+UserTPCRM::ProcessingBegin()
 {
-  InitializeEvent();
+  event.clear();
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-UserEvent::ProcessingNormal( void )
+UserTPCRM::ProcessingNormal()
 {
   const Int_t run_number   = gUnpacker.get_root()->get_run_number();
   const Int_t event_number = gUnpacker.get_event_number();
@@ -142,31 +140,24 @@ UserEvent::ProcessingNormal( void )
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-UserEvent::ProcessingEnd( void )
+UserTPCRM::ProcessingEnd()
 {
   tree->Fill();
   return true;
 }
 
-//______________________________________________________________________________
-void
-UserEvent::InitializeEvent( void )
-{
-  event.clear();
-}
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 VEvent*
-ConfMan::EventAllocator( void )
+ConfMan::EventAllocator()
 {
-  return new UserEvent;
+  return new UserTPCRM;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-ConfMan::InitializeHistograms( void )
+ConfMan::InitializeHistograms()
 {
   HBTree("tpcrm", "tree of TPCRM");
   tree->Branch("runnum", &event.runnum);
@@ -179,16 +170,16 @@ ConfMan::InitializeHistograms( void )
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-ConfMan::InitializeParameterFiles( void )
+ConfMan::InitializeParameterFiles()
 {
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-ConfMan::FinalizeProcess( void )
+ConfMan::FinalizeProcess()
 {
   return true;
 }

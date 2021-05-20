@@ -1,5 +1,7 @@
 // -*- C++ -*-
 
+#include "VEvent.hh"
+
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -17,7 +19,6 @@
 #include "ScalerAnalyzer.hh"
 #include "Unpacker.hh"
 #include "UnpackerManager.hh"
-#include "VEvent.hh"
 
 #define USE_COMMA   0
 #define SPILL_RESET 0
@@ -31,63 +32,70 @@ auto& gScaler = ScalerAnalyzer::GetInstance();
 auto& gUnpacker = GUnpacker::get_instance();
 }
 
-//______________________________________________________________________________
-VEvent::VEvent()
-{
-}
-
-//______________________________________________________________________________
-VEvent::~VEvent()
-{
-}
-
-//______________________________________________________________________________
-class EventScaler : public VEvent
+//_____________________________________________________________________________
+class UserScaler : public VEvent
 {
 public:
-          EventScaler();
-         ~EventScaler();
-  Bool_t  ProcessingBegin();
-  Bool_t  ProcessingEnd();
-  Bool_t  ProcessingNormal();
-  Bool_t  InitializeHistograms();
+  UserScaler();
+  ~UserScaler();
+  virtual const TString& ClassName();
+  virtual Bool_t         ProcessingBegin();
+  virtual Bool_t         ProcessingEnd();
+  virtual Bool_t         ProcessingNormal();
 };
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
+inline const TString&
+UserScaler::ClassName()
+{
+  static TString s_name("UserScaler");
+  return s_name;
+}
+
+//_____________________________________________________________________________
 struct Event
 {
   Int_t evnum;
+  // void clear();
 };
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
+// void
+// Event::clear()
+// {
+//   evnum = -1;
+// }
+
+//_____________________________________________________________________________
 namespace root
 {
-  Event  event;
-  TH1   *h[MaxHist];
-  TTree *tree;
+Event  event;
+TH1   *h[MaxHist];
+TTree *tree;
 }
 
-//______________________________________________________________________________
-EventScaler::EventScaler()
+//_____________________________________________________________________________
+UserScaler::UserScaler()
   : VEvent()
 {
 }
 
-//______________________________________________________________________________
-EventScaler::~EventScaler()
+//_____________________________________________________________________________
+UserScaler::~UserScaler()
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
-EventScaler::ProcessingBegin()
+UserScaler::ProcessingBegin()
 {
+  // event.clear();
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
-EventScaler::ProcessingNormal()
+UserScaler::ProcessingNormal()
 {
   event.evnum++;
   gScaler.Decode();
@@ -103,21 +111,21 @@ EventScaler::ProcessingNormal()
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
-EventScaler::ProcessingEnd()
+UserScaler::ProcessingEnd()
 {
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 VEvent*
 ConfMan::EventAllocator()
 {
-  return new EventScaler;
+  return new UserScaler;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 ConfMan::InitializeHistograms()
 {
@@ -236,23 +244,23 @@ ConfMan::InitializeHistograms()
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 ConfMan::FinalizeProcess()
 {
   if(event.evnum==0) return true;
 
-  const Int_t run_number = gUnpacker.get_root()->get_run_number();
   gScaler.Print();
 
 #if MAKE_LOG
+  const Int_t run_number = gUnpacker.get_root()->get_run_number();
   const TString& bin_dir(hddaq::dirname(hddaq::selfpath()));
   const TString& data_dir(hddaq::dirname(gUnpacker.get_istream()));
 
@@ -266,7 +274,7 @@ ConfMan::FinalizeProcess()
     return false;
   }
 
-  const TString& scaler_dir(bin_dir+"/../scaler");
+  const TString& scaler_dir(bin_dir+"/../auto_scaler");
   const TString& scaler_txt = Form("%s/scaler_%05d.txt",
 				    scaler_dir.Data(), run_number);
 

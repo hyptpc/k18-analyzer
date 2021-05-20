@@ -13,26 +13,28 @@
 class BH1Match
 {
 public:
-  static const TString& ClassName( void );
-  static BH1Match&      GetInstance( void );
-  virtual              ~BH1Match( void );
+  static const TString& ClassName();
+  static BH1Match&      GetInstance();
+  virtual ~BH1Match();
 
 private:
-  BH1Match( void );
-  BH1Match( const BH1Match& );
-  BH1Match& operator =( const BH1Match& );
+  BH1Match();
+  BH1Match(const BH1Match&);
+  BH1Match& operator =(const BH1Match&);
 
 private:
-  struct Param {
+  struct Param
+  {
+    Param();
+    ~Param();
     Double_t m_seg;
     Double_t m_xmin;
     Double_t m_xmax;
-    Param( void );
-    ~Param( void );
-    void Print( std::ostream& ost=hddaq::cout ) const;
+    void Print(std::ostream& ost=hddaq::cout) const;
   };
 
-  enum EStatus {
+  enum EStatus
+  {
     kReady,
     kVerbose,
     kNStatus
@@ -42,29 +44,30 @@ private:
   std::vector<Param>    m_param;
 
 public:
-  enum EParam {
+  enum EParam
+  {
     kBH1Segment,
     kXMin,
     kXMax,
     kNParam
   };
-  Bool_t             Initialize( const TString& file_name );
-  Bool_t             Judge( Double_t bft_xpos, Double_t bh1seg );
-  void               Print( std::ostream& ost=hddaq::cout ) const;
-  void               SetVerbose( void );
+  Bool_t Initialize(const TString& file_name);
+  Bool_t Judge(Double_t bft_xpos, Double_t bh1seg);
+  void   Print(std::ostream& ost=hddaq::cout) const;
+  void   SetVerbose();
 };
 
 //_____________________________________________________________________________
 inline const TString&
-BH1Match::ClassName(void)
+BH1Match::ClassName()
 {
-  static TString s_name( "BH1Match" );
+  static TString s_name("BH1Match");
   return s_name;
 }
 
 //_____________________________________________________________________________
 inline BH1Match&
-BH1Match::GetInstance( void )
+BH1Match::GetInstance()
 {
   static BH1Match s_instance;
   return s_instance;
@@ -72,9 +75,9 @@ BH1Match::GetInstance( void )
 
 //_____________________________________________________________________________
 inline void
-BH1Match::SetVerbose( void )
+BH1Match::SetVerbose()
 {
-  m_status.set( kVerbose );
+  m_status.set(kVerbose);
 }
 
 #endif
