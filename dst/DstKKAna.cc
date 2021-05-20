@@ -1,8 +1,6 @@
-/**
- *  file: DstPiKAna.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
+
+#include "DstHelper.hh"
 
 #include <cmath>
 #include <iostream>
@@ -14,357 +12,403 @@
 
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
-#include "RootHelper.hh"
 #include "DatabasePDG.hh"
-#include "DetectorID.hh"
-#include "RawData.hh"
 #include "DCRawHit.hh"
-#include "KuramaLib.hh"
-#include "K18TrackD2U.hh"
+#include "DebugCounter.hh"
+#include "DetectorID.hh"
 #include "FiberCluster.hh"
-#include "NuclearMass.hh"
-#include "MathTools.hh"
-#include "MsTParamMan.hh"
-#include "UserParamMan.hh"
+#include "FuncName.hh"
 #include "HodoPHCMan.hh"
-
-#include "DstHelper.hh"
+#include "K18TrackD2U.hh"
+#include "KuramaLib.hh"
+#include "MathTools.hh"
+#include "NuclearMass.hh"
+#include "RawData.hh"
+#include "RootHelper.hh"
+#include "UserParamMan.hh"
 
 namespace
 {
-  using namespace root;
-  using namespace dst;
-  const std::string& class_name("DstPiKAna");
-  ConfMan&            gConf = ConfMan::GetInstance();
-  const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
-  // const MsTParamMan&  gMsT  = MsTParamMan::GetInstance();
-  const UserParamMan& gUser = UserParamMan::GetInstance();
-  const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
+using namespace root;
+using namespace dst;
+auto& gConf = ConfMan::GetInstance();
+const auto& gCounter = debug::ObjectCounter::GetInstance();
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
+const auto& gPHC  = HodoPHCMan::GetInstance();
+
+//_________________________________________________________
+// local functions
+
+//_________________________________________________________
+inline const TString&
+ClassName()
+{
+  static TString s_name("DstKKAna");
+  return s_name;
+}
+
+//_________________________________________________________
+Double_t
+CalcCutLineByTOF(Double_t M, Double_t mom)
+{
+  const Double_t K  = 0.307075;//cosfficient [MeV cm^2/g]
+  const Double_t ro = 1.032;//density of TOF [g/cm^3]
+  const Double_t ZA = 0.5862;//atomic number to mass number ratio of TOF
+  const Int_t    z  = 1;//charge of incident particle
+  const Double_t me = 0.511;//mass of electron [MeV/c^2]
+  const Double_t I  = 0.0000647;//mean excitaton potential [MeV]
+
+  const Double_t C0 = -3.20;
+  const Double_t a  = 0.1610;
+  const Double_t m  = 3.24;
+  const Double_t X1 = 2.49;
+  const Double_t X0 = 0.1464;
+
+  Double_t p1 = ro*K*ZA*z*z/2;
+  Double_t p2 = (2*me/I/M)*(2*me/I/M);
+  Double_t p3 = 0.2414*K*z*z/ro;
+
+  Double_t y = mom/M;
+  Double_t X = log10(y);
+  Double_t delta;
+  if(X < X0)              delta = 0;
+  else if(X0 < X&&X < X1) delta = 4.6052*X+C0+a*pow(X1-X,m);
+  else                      delta = 4.6052*X+C0;
+
+  Double_t C = (0.422377*pow(y,-2)+0.0304043*pow(y,-4)-0.00038106*pow(y,-6))*pow(10,-6)*pow(I,2)
+                  +(3.85019*pow(y,-2)-0.1667989*pow(y,-4)+0.00157955*pow(y,-6))*pow(10,-9)*pow(I,3);
+
+  Double_t x = mom;
+  Double_t dEdx = p1*((M/x)*(M/x)+1)*log(p2*x*x*x*x/(M*M+2*me*sqrt(M*M+x*x))+me*me)-2*p1-p1*delta-p3*C;
+
+  return dEdx;
+}
 }
 
 namespace dst
 {
-  enum kArgc
-    {
-      kProcess, kConfFile,
-      kKuramaTracking, kK18Tracking, kHodoscope, kEasiroc,
-      kOutFile, nArgc
-    };
-  std::vector<TString> ArgName =
-    { "[Process]", "[ConfFile]", "[KuramaTracking]",
-      "[K18Tracking]", "[Hodoscope]", "[Easiroc]",
-      "[OutFile]" };
-  std::vector<TString> TreeName =
-    { "", "", "kurama", "k18track", "hodo", "ea0c", "" };
-  std::vector<TFile*> TFileCont;
-  std::vector<TTree*> TTreeCont;
-  std::vector<TTreeReader*> TTreeReaderCont;
+enum kArgc
+{
+  kProcess, kConfFile,
+  kKuramaTracking, kK18Tracking, kHodoscope, kEasiroc,
+  kOutFile, nArgc
+};
+std::vector<TString> ArgName =
+{ "[Process]", "[ConfFile]", "[KuramaTracking]",
+  "[K18Tracking]", "[Hodoscope]", "[Easiroc]",
+  "[OutFile]" };
+std::vector<TString> TreeName =
+{ "", "", "kurama", "k18track", "hodo", "ea0c", "" };
+std::vector<TFile*> TFileCont;
+std::vector<TTree*> TTreeCont;
+std::vector<TTreeReader*> TTreeReaderCont;
 
-  const double pB_offset   = 1.000;
-  const double pS_offset   = 1.000;
-  const double pK18_offset = 0.000;
-  const double pKURAMA_offset = 0.000;
-  const double x_off = 0.000;
-  const double y_off = 0.000;
-  const double u_off = 0.000;
-  const double v_off = 0.000;
+const Double_t pB_offset   = 1.000;
+const Double_t pS_offset   = 1.000;
+const Double_t pK18_offset = 0.000;
+const Double_t pKURAMA_offset = 0.000;
+const Double_t x_off = 0.000;
+const Double_t y_off = 0.000;
+const Double_t u_off = 0.000;
+const Double_t v_off = 0.000;
 }
-//function for Kid by TOF
-double calcCutLineByTOF( double M, double mom );
+
 //_____________________________________________________________________
 struct Event
 {
-  int runnum;
-  int evnum;
-  int spill;
+  Int_t runnum;
+  Int_t evnum;
+  Int_t spill;
 
   //Trigger
-  int trigpat[NumOfSegTrig];
-  int trigflag[NumOfSegTrig];
+  Int_t trigpat[NumOfSegTrig];
+  Int_t trigflag[NumOfSegTrig];
 
   //Hodoscope
-  int    nhBh1;
-  int    csBh1[NumOfSegBH1];
-  double Bh1Seg[NumOfSegBH1];
-  double tBh1[NumOfSegBH1];
-  double dtBh1[NumOfSegBH1];
-  double deBh1[NumOfSegBH1];
-  double btof[NumOfSegBH1];
+  Int_t    nhBh1;
+  Int_t    csBh1[NumOfSegBH1];
+  Double_t Bh1Seg[NumOfSegBH1];
+  Double_t tBh1[NumOfSegBH1];
+  Double_t dtBh1[NumOfSegBH1];
+  Double_t deBh1[NumOfSegBH1];
+  Double_t btof[NumOfSegBH1];
 
-  int    nhBh2;
-  int    csBh2[NumOfSegBH2];
-  double Bh2Seg[NumOfSegBH2];
-  double tBh2[NumOfSegBH2];
-  double t0Bh2[NumOfSegBH2];
-  double dtBh2[NumOfSegBH2];
-  double deBh2[NumOfSegBH2];
+  Int_t    nhBh2;
+  Int_t    csBh2[NumOfSegBH2];
+  Double_t Bh2Seg[NumOfSegBH2];
+  Double_t tBh2[NumOfSegBH2];
+  Double_t t0Bh2[NumOfSegBH2];
+  Double_t dtBh2[NumOfSegBH2];
+  Double_t deBh2[NumOfSegBH2];
 
-  int    nhTof;
-  int    csTof[NumOfSegTOF];
-  double TofSeg[NumOfSegTOF];
-  double tTof[NumOfSegTOF];
-  double dtTof[NumOfSegTOF];
-  double deTof[NumOfSegTOF];
+  Int_t    nhTof;
+  Int_t    csTof[NumOfSegTOF];
+  Double_t TofSeg[NumOfSegTOF];
+  Double_t tTof[NumOfSegTOF];
+  Double_t dtTof[NumOfSegTOF];
+  Double_t deTof[NumOfSegTOF];
 
   //Fiber
-  int    nhBft;
-  int    csBft[NumOfSegBFT];
-  double tBft[NumOfSegBFT];
-  double wBft[NumOfSegBFT];
-  double BftPos[NumOfSegBFT];
-  double BftSeg[NumOfSegBFT];
-  int    nhSch;
-  int    csSch[NumOfSegSCH];
-  double tSch[NumOfSegSCH];
-  double wSch[NumOfSegSCH];
-  double SchPos[NumOfSegSCH];
-  double SchSeg[NumOfSegSCH];
+  Int_t    nhBft;
+  Int_t    csBft[NumOfSegBFT];
+  Double_t tBft[NumOfSegBFT];
+  Double_t wBft[NumOfSegBFT];
+  Double_t BftPos[NumOfSegBFT];
+  Double_t BftSeg[NumOfSegBFT];
+  Int_t    nhSch;
+  Int_t    csSch[NumOfSegSCH];
+  Double_t tSch[NumOfSegSCH];
+  Double_t wSch[NumOfSegSCH];
+  Double_t SchPos[NumOfSegSCH];
+  Double_t SchSeg[NumOfSegSCH];
 
   //DC Beam
-  int ntBcOut;
-  int nlBcOut;
-  int nhBcOut[MaxHits];
-  double chisqrBcOut[MaxHits];
-  double x0BcOut[MaxHits];
-  double y0BcOut[MaxHits];
-  double u0BcOut[MaxHits];
-  double v0BcOut[MaxHits];
-  double xtgtBcOut[MaxHits];
-  double ytgtBcOut[MaxHits];
-  double xbh2BcOut[MaxHits];
-  double ybh2BcOut[MaxHits];
+  Int_t ntBcOut;
+  Int_t nlBcOut;
+  Int_t nhBcOut[MaxHits];
+  Double_t chisqrBcOut[MaxHits];
+  Double_t x0BcOut[MaxHits];
+  Double_t y0BcOut[MaxHits];
+  Double_t u0BcOut[MaxHits];
+  Double_t v0BcOut[MaxHits];
+  Double_t xtgtBcOut[MaxHits];
+  Double_t ytgtBcOut[MaxHits];
+  Double_t xbh2BcOut[MaxHits];
+  Double_t ybh2BcOut[MaxHits];
 
-  int    ntK18;
-  int    nhK18[MaxHits];
-  double chisqrK18[MaxHits];
-  double pK18[MaxHits];
-  double xtgtK18[MaxHits];
-  double ytgtK18[MaxHits];
-  double utgtK18[MaxHits];
-  double vtgtK18[MaxHits];
-  double thetaK18[MaxHits];
+  Int_t    ntK18;
+  Int_t    nhK18[MaxHits];
+  Double_t chisqrK18[MaxHits];
+  Double_t pK18[MaxHits];
+  Double_t xtgtK18[MaxHits];
+  Double_t ytgtK18[MaxHits];
+  Double_t utgtK18[MaxHits];
+  Double_t vtgtK18[MaxHits];
+  Double_t thetaK18[MaxHits];
 
   //DC KURAMA
-  int ntSdcIn;
-  int nlSdcIn;
-  int nhSdcIn[MaxHits];
-  double chisqrSdcIn[MaxHits];
-  double x0SdcIn[MaxHits];
-  double y0SdcIn[MaxHits];
-  double u0SdcIn[MaxHits];
-  double v0SdcIn[MaxHits];
+  Int_t ntSdcIn;
+  Int_t nlSdcIn;
+  Int_t nhSdcIn[MaxHits];
+  Double_t chisqrSdcIn[MaxHits];
+  Double_t x0SdcIn[MaxHits];
+  Double_t y0SdcIn[MaxHits];
+  Double_t u0SdcIn[MaxHits];
+  Double_t v0SdcIn[MaxHits];
 
-  int ntSdcOut;
-  int nlSdcOut;
-  int nhSdcOut[MaxHits];
-  double chisqrSdcOut[MaxHits];
-  double u0SdcOut[MaxHits];
-  double v0SdcOut[MaxHits];
-  double x0SdcOut[MaxHits];
-  double y0SdcOut[MaxHits];
+  Int_t ntSdcOut;
+  Int_t nlSdcOut;
+  Int_t nhSdcOut[MaxHits];
+  Double_t chisqrSdcOut[MaxHits];
+  Double_t u0SdcOut[MaxHits];
+  Double_t v0SdcOut[MaxHits];
+  Double_t x0SdcOut[MaxHits];
+  Double_t y0SdcOut[MaxHits];
 
-  int    ntKurama;
-  int    nhKurama[MaxHits];
-  double chisqrKurama[MaxHits];
-  double stof[MaxHits];
-  double cstof[MaxHits];
-  double path[MaxHits];
-  double pKurama[MaxHits];
-  double qKurama[MaxHits];
-  double m2[MaxHits];
-  double xtgtKurama[MaxHits];
-  double ytgtKurama[MaxHits];
-  double utgtKurama[MaxHits];
-  double vtgtKurama[MaxHits];
-  double thetaKurama[MaxHits];
-  double xtofKurama[MaxHits];
-  double ytofKurama[MaxHits];
-  double utofKurama[MaxHits];
-  double vtofKurama[MaxHits];
-  double tofsegKurama[MaxHits];
-  double best_deTof[MaxHits];
-  double best_TofSeg[MaxHits];
+  Int_t    ntKurama;
+  Int_t    nhKurama[MaxHits];
+  Double_t chisqrKurama[MaxHits];
+  Double_t stof[MaxHits];
+  Double_t cstof[MaxHits];
+  Double_t path[MaxHits];
+  Double_t pKurama[MaxHits];
+  Double_t qKurama[MaxHits];
+  Double_t m2[MaxHits];
+  Double_t xtgtKurama[MaxHits];
+  Double_t ytgtKurama[MaxHits];
+  Double_t utgtKurama[MaxHits];
+  Double_t vtgtKurama[MaxHits];
+  Double_t thetaKurama[MaxHits];
+  Double_t xtofKurama[MaxHits];
+  Double_t ytofKurama[MaxHits];
+  Double_t utofKurama[MaxHits];
+  Double_t vtofKurama[MaxHits];
+  Double_t tofsegKurama[MaxHits];
+  Double_t best_deTof[MaxHits];
+  Double_t best_TofSeg[MaxHits];
 
   //Reaction
-  int    nPi;
-  int    nK;
-  int    nPiK;
-  double vtx[MaxHits];
-  double vty[MaxHits];
-  double vtz[MaxHits];
-  double closeDist[MaxHits];
-  double theta[MaxHits];
-  double MissMass[MaxHits];
-  double MissMassCorr[MaxHits];
-  double MissMassCorrDE[MaxHits];
-  double thetaCM[MaxHits];
-  double costCM[MaxHits];
-  int Kflag[MaxHits];
+  Int_t    nPi;
+  Int_t    nK;
+  Int_t    nPiK;
+  Double_t vtx[MaxHits];
+  Double_t vty[MaxHits];
+  Double_t vtz[MaxHits];
+  Double_t closeDist[MaxHits];
+  Double_t theta[MaxHits];
+  Double_t MissMass[MaxHits];
+  Double_t MissMassCorr[MaxHits];
+  Double_t MissMassCorrDE[MaxHits];
+  Double_t thetaCM[MaxHits];
+  Double_t costCM[MaxHits];
+  Int_t Kflag[MaxHits];
 
-  double xpi[MaxHits];
-  double ypi[MaxHits];
-  double upi[MaxHits];
-  double vpi[MaxHits];
-  double xk[MaxHits];
-  double yk[MaxHits];
-  double uk[MaxHits];
-  double vk[MaxHits];
+  Double_t xpi[MaxHits];
+  Double_t ypi[MaxHits];
+  Double_t upi[MaxHits];
+  Double_t vpi[MaxHits];
+  Double_t xk[MaxHits];
+  Double_t yk[MaxHits];
+  Double_t uk[MaxHits];
+  Double_t vk[MaxHits];
 
-  double pOrg[MaxHits];
-  double pCalc[MaxHits];
-  double pCorr[MaxHits];
-  double pCorrDE[MaxHits];
+  Double_t pOrg[MaxHits];
+  Double_t pCalc[MaxHits];
+  Double_t pCorr[MaxHits];
+  Double_t pCorrDE[MaxHits];
 };
 
 //_____________________________________________________________________
 struct Src
 {
-  int runnum;
-  int evnum;
-  int spill;
+  Int_t runnum;
+  Int_t evnum;
+  Int_t spill;
 
   //Trigger
-  int trigpat[NumOfSegTrig];
-  int trigflag[NumOfSegTrig];
+  Int_t trigpat[NumOfSegTrig];
+  Int_t trigflag[NumOfSegTrig];
 
   //Hodoscope
-  int    nhBh1;
-  int    csBh1[NumOfSegBH1];
-  double Bh1Seg[NumOfSegBH1];
-  double tBh1[NumOfSegBH1];
-  double dtBh1[NumOfSegBH1];
-  double deBh1[NumOfSegBH1];
-  double btof[NumOfSegBH1];
+  Int_t    nhBh1;
+  Int_t    csBh1[NumOfSegBH1];
+  Double_t Bh1Seg[NumOfSegBH1];
+  Double_t tBh1[NumOfSegBH1];
+  Double_t dtBh1[NumOfSegBH1];
+  Double_t deBh1[NumOfSegBH1];
+  Double_t btof[NumOfSegBH1];
 
-  int    nhBh2;
-  int    csBh2[NumOfSegBH2];
-  double Bh2Seg[NumOfSegBH2];
-  double tBh2[NumOfSegBH2];
-  double t0Bh2[NumOfSegBH2];
-  double dtBh2[NumOfSegBH2];
-  double deBh2[NumOfSegBH2];
+  Int_t    nhBh2;
+  Int_t    csBh2[NumOfSegBH2];
+  Double_t Bh2Seg[NumOfSegBH2];
+  Double_t tBh2[NumOfSegBH2];
+  Double_t t0Bh2[NumOfSegBH2];
+  Double_t dtBh2[NumOfSegBH2];
+  Double_t deBh2[NumOfSegBH2];
 
-  double Time0Seg;
-  double deTime0;
-  double Time0;
-  double CTime0;
+  Double_t Time0Seg;
+  Double_t deTime0;
+  Double_t Time0;
+  Double_t CTime0;
 
-  int    nhTof;
-  int    csTof[NumOfSegTOF];
-  double TofSeg[NumOfSegTOF];
-  double tTof[NumOfSegTOF];
-  double dtTof[NumOfSegTOF];
-  double deTof[NumOfSegTOF];
+  Int_t    nhTof;
+  Int_t    csTof[NumOfSegTOF];
+  Double_t TofSeg[NumOfSegTOF];
+  Double_t tTof[NumOfSegTOF];
+  Double_t dtTof[NumOfSegTOF];
+  Double_t deTof[NumOfSegTOF];
 
   //Fiber
-  int    nhBft;
-  int    csBft[NumOfSegBFT];
-  double tBft[NumOfSegBFT];
-  double wBft[NumOfSegBFT];
-  double BftPos[NumOfSegBFT];
-  int    nhSch;
-  // int    sch_hitpat[NumOfSegSCH];
-  int    csSch[NumOfSegSCH];
-  double tSch[NumOfSegSCH];
-  double wSch[NumOfSegSCH];
-  double SchPos[NumOfSegSCH];
-  int    nhFbh;
+  Int_t    nhBft;
+  Int_t    csBft[NumOfSegBFT];
+  Double_t tBft[NumOfSegBFT];
+  Double_t wBft[NumOfSegBFT];
+  Double_t BftPos[NumOfSegBFT];
+  Int_t    nhSch;
+  // Int_t    sch_hitpat[NumOfSegSCH];
+  Int_t    csSch[NumOfSegSCH];
+  Double_t tSch[NumOfSegSCH];
+  Double_t wSch[NumOfSegSCH];
+  Double_t SchPos[NumOfSegSCH];
+  Int_t    nhFbh;
 
   //DC Beam
-  int ntBcOut;
-  int nlBcOut;
-  int nhBcOut[MaxHits];
-  double chisqrBcOut[MaxHits];
-  double x0BcOut[MaxHits];
-  double y0BcOut[MaxHits];
-  double u0BcOut[MaxHits];
-  double v0BcOut[MaxHits];
-  double xtgtBcOut[MaxHits];
-  double ytgtBcOut[MaxHits];
-  double xbh2BcOut[MaxHits];
-  double ybh2BcOut[MaxHits];
+  Int_t ntBcOut;
+  Int_t nlBcOut;
+  Int_t nhBcOut[MaxHits];
+  Double_t chisqrBcOut[MaxHits];
+  Double_t x0BcOut[MaxHits];
+  Double_t y0BcOut[MaxHits];
+  Double_t u0BcOut[MaxHits];
+  Double_t v0BcOut[MaxHits];
+  Double_t xtgtBcOut[MaxHits];
+  Double_t ytgtBcOut[MaxHits];
+  Double_t xbh2BcOut[MaxHits];
+  Double_t ybh2BcOut[MaxHits];
 
-  int    ntK18;
-  int    nhK18[MaxHits];
-  double chisqrK18[MaxHits];
-  double pK18[MaxHits];
-  double xtgtK18[MaxHits];
-  double ytgtK18[MaxHits];
-  double utgtK18[MaxHits];
-  double vtgtK18[MaxHits];
-  double thetaK18[MaxHits];
+  Int_t    ntK18;
+  Int_t    nhK18[MaxHits];
+  Double_t chisqrK18[MaxHits];
+  Double_t pK18[MaxHits];
+  Double_t xtgtK18[MaxHits];
+  Double_t ytgtK18[MaxHits];
+  Double_t utgtK18[MaxHits];
+  Double_t vtgtK18[MaxHits];
+  Double_t thetaK18[MaxHits];
 
   //DC KURAMA
-  int much;
-  int ntSdcIn;
-  int nlSdcIn;
-  int nhSdcIn[MaxHits];
-  double chisqrSdcIn[MaxHits];
-  double x0SdcIn[MaxHits];
-  double y0SdcIn[MaxHits];
-  double u0SdcIn[MaxHits];
-  double v0SdcIn[MaxHits];
+  Int_t much;
+  Int_t ntSdcIn;
+  Int_t nlSdcIn;
+  Int_t nhSdcIn[MaxHits];
+  Double_t chisqrSdcIn[MaxHits];
+  Double_t x0SdcIn[MaxHits];
+  Double_t y0SdcIn[MaxHits];
+  Double_t u0SdcIn[MaxHits];
+  Double_t v0SdcIn[MaxHits];
 
-  int ntSdcOut;
-  int nlSdcOut;
-  int nhSdcOut[MaxHits];
-  double chisqrSdcOut[MaxHits];
-  double u0SdcOut[MaxHits];
-  double v0SdcOut[MaxHits];
-  double x0SdcOut[MaxHits];
-  double y0SdcOut[MaxHits];
+  Int_t ntSdcOut;
+  Int_t nlSdcOut;
+  Int_t nhSdcOut[MaxHits];
+  Double_t chisqrSdcOut[MaxHits];
+  Double_t u0SdcOut[MaxHits];
+  Double_t v0SdcOut[MaxHits];
+  Double_t x0SdcOut[MaxHits];
+  Double_t y0SdcOut[MaxHits];
 
-  int    ntKurama;
-  int    nhKurama[MaxHits];
-  double chisqrKurama[MaxHits];
-  double stof[MaxHits];
-  double cstof[MaxHits];
-  double path[MaxHits];
-  double pKurama[MaxHits];
-  double qKurama[MaxHits];
-  double m2[MaxHits];
-  double xtgtKurama[MaxHits];
-  double ytgtKurama[MaxHits];
-  double utgtKurama[MaxHits];
-  double vtgtKurama[MaxHits];
-  double thetaKurama[MaxHits];
-  double xtofKurama[MaxHits];
-  double ytofKurama[MaxHits];
-  double utofKurama[MaxHits];
-  double vtofKurama[MaxHits];
-  double tofsegKurama[MaxHits];
+  Int_t    ntKurama;
+  Int_t    nhKurama[MaxHits];
+  Double_t chisqrKurama[MaxHits];
+  Double_t stof[MaxHits];
+  Double_t cstof[MaxHits];
+  Double_t path[MaxHits];
+  Double_t pKurama[MaxHits];
+  Double_t qKurama[MaxHits];
+  Double_t m2[MaxHits];
+  Double_t xtgtKurama[MaxHits];
+  Double_t ytgtKurama[MaxHits];
+  Double_t utgtKurama[MaxHits];
+  Double_t vtgtKurama[MaxHits];
+  Double_t thetaKurama[MaxHits];
+  Double_t xtofKurama[MaxHits];
+  Double_t ytofKurama[MaxHits];
+  Double_t utofKurama[MaxHits];
+  Double_t vtofKurama[MaxHits];
+  Double_t tofsegKurama[MaxHits];
 };
 
 //_____________________________________________________________________
 namespace root
 {
-  Event  event;
-  Src    src;
-  TH1   *h[MaxHist];
-  TTree *tree;
+Event  event;
+Src    src;
+TH1   *h[MaxHist];
+TTree *tree;
 }
 
 //_____________________________________________________________________
-int
-main( int argc, char **argv )
+Int_t
+main(Int_t argc, char **argv)
 {
-  std::vector<std::string> arg( argv, argv+argc );
+  std::vector<std::string> arg(argv, argv+argc);
 
-  if( !CheckArg( arg ) )
+  if(!CheckArg(arg))
     return EXIT_FAILURE;
-  if( !DstOpen( arg ) )
+  if(!DstOpen(arg))
     return EXIT_FAILURE;
-  if( !gConf.Initialize( arg[kConfFile] ) )
+  if(!gConf.Initialize(arg[kConfFile]))
     return EXIT_FAILURE;
 
-  int nevent = GetEntries( TTreeCont );
+  Int_t nevent = GetEntries(TTreeCont);
 
   CatchSignal::Set();
 
-  int ievent = 0;
-  for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
+  Int_t ievent = 0;
+  for(; ievent<nevent && !CatchSignal::Stop(); ++ievent){
+    gCounter.check();
     InitializeEvent();
-    if( DstRead( ievent ) ) tree->Fill();
+    if(DstRead(ievent)) tree->Fill();
   }
 
   std::cout << "#D Event Number: " << std::setw(6)
@@ -377,14 +421,14 @@ main( int argc, char **argv )
 
 //_____________________________________________________________________
 bool
-dst::InitializeEvent( void )
+dst::InitializeEvent()
 {
   event.runnum     = 0;
   event.evnum      = 0;
   event.spill      = 0;
 
   //Trigger
-  for( int it=0; it<NumOfSegTrig; ++it ){
+  for(Int_t it=0; it<NumOfSegTrig; ++it){
     event.trigpat[it]  = -1;
     event.trigflag[it] = -1;
   }
@@ -394,7 +438,7 @@ dst::InitializeEvent( void )
   event.nhBh1  = 0;
   event.nhTof  = 0;
 
-  for( int it=0; it<NumOfSegBH1; it++ ){
+  for(Int_t it=0; it<NumOfSegBH1; it++){
     event.csBh1[it]  = 0;
     event.Bh1Seg[it] = -1;
     event.tBh1[it]   = -9999.;
@@ -402,7 +446,7 @@ dst::InitializeEvent( void )
     event.deBh1[it]  = -9999.;
     event.btof[it]   = -9999.;
   }
-  for( int it=0; it<NumOfSegBH2; it++ ){
+  for(Int_t it=0; it<NumOfSegBH2; it++){
     event.csBh2[it]  = 0;
     event.Bh2Seg[it] = -1;
     event.tBh2[it]   = -9999.;
@@ -410,7 +454,7 @@ dst::InitializeEvent( void )
     event.dtBh2[it]  = -9999.;
     event.deBh2[it]  = -9999.;
   }
-  for( int it=0; it<NumOfSegTOF; it++ ){
+  for(Int_t it=0; it<NumOfSegTOF; it++){
     event.csTof[it]  = 0;
     event.TofSeg[it] = -1;
     event.tTof[it]   = -9999.;
@@ -421,13 +465,13 @@ dst::InitializeEvent( void )
   //Fiber
   event.nhBft = 0;
   event.nhSch = 0;
-  for( int it=0; it<NumOfSegBFT; it++ ){
+  for(Int_t it=0; it<NumOfSegBFT; it++){
     event.csBft[it] = -999;
     event.tBft[it]  = -999.;
     event.wBft[it]   = -999.;
     event.BftPos[it]  = -999.;
   }
-  for( int it=0; it<NumOfSegSCH; it++ ){
+  for(Int_t it=0; it<NumOfSegSCH; it++){
     event.csSch[it] = -999;
     event.tSch[it]  = -999.;
     event.wSch[it]   = -999.;
@@ -445,7 +489,7 @@ dst::InitializeEvent( void )
   event.ntKurama = 0;
 
   //Beam DC
-  for( int it=0; it<MaxHits; it++){
+  for(Int_t it=0; it<MaxHits; it++){
     event.nhBcOut[it]     = 0;
     event.chisqrBcOut[it] = -1.0;
     event.x0BcOut[it] = -9999.0;
@@ -459,7 +503,7 @@ dst::InitializeEvent( void )
     event.ybh2BcOut[it] = -9999.0;
   }
 
-  for( int it=0; it<MaxHits; it++){
+  for(Int_t it=0; it<MaxHits; it++){
     event.nhK18[it]     = 0;
     event.chisqrK18[it] = -1.0;
     event.xtgtK18[it] = -9999.;
@@ -471,7 +515,7 @@ dst::InitializeEvent( void )
   }
 
   //KURAMA DC
-  for( int it=0; it<MaxHits; it++){
+  for(Int_t it=0; it<MaxHits; it++){
     event.nhSdcIn[it]     = 0;
     event.chisqrSdcIn[it] = -1.;
     event.x0SdcIn[it] = -9999.;
@@ -513,7 +557,7 @@ dst::InitializeEvent( void )
   event.nK = 0;
   event.nPiK = 0;
 
-  for( int it=0; it<MaxHits; ++it ){
+  for(Int_t it=0; it<MaxHits; ++it){
     event.vtx[it]       = -9999.;
     event.vty[it]       = -9999.;
     event.vtz[it]       = -9999.;
@@ -545,44 +589,42 @@ dst::InitializeEvent( void )
 
 //_____________________________________________________________________
 bool
-dst::DstOpen( std::vector<std::string> arg )
+dst::DstOpen(std::vector<std::string> arg)
 {
-  int open_file = 0;
-  int open_tree = 0;
-  for( std::size_t i=0; i<nArgc; ++i ){
-    if( i==kProcess || i==kConfFile || i==kOutFile ) continue;
-    open_file += OpenFile( TFileCont[i], arg[i] );
-    open_tree += OpenTree( TFileCont[i], TTreeCont[i], TreeName[i] );
+  Int_t open_file = 0;
+  Int_t open_tree = 0;
+  for(std::size_t i=0; i<nArgc; ++i){
+    if(i==kProcess || i==kConfFile || i==kOutFile) continue;
+    open_file += OpenFile(TFileCont[i], arg[i]);
+    open_tree += OpenTree(TFileCont[i], TTreeCont[i], TreeName[i]);
   }
 
-  if( open_file!=open_tree || open_file!=nArgc-3 )
+  if(open_file!=open_tree || open_file!=nArgc-3)
     return false;
-  if( !CheckEntries( TTreeCont ) )
+  if(!CheckEntries(TTreeCont))
     return false;
 
-  TFileCont[kOutFile] = new TFile( arg[kOutFile].c_str(), "recreate" );
+  TFileCont[kOutFile] = new TFile(arg[kOutFile].c_str(), "recreate");
 
   return true;
 }
 
 //_____________________________________________________________________
 bool
-dst::DstRead( int ievent )
+dst::DstRead(Int_t ievent)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"]");
+  static const Double_t OffsetToF  = gUser.GetParameter("OffsetToF");
+  static const Double_t Mip2MeV           = gUser.GetParameter("TOFKID",0);
+  static const Double_t PionCutMass       = gUser.GetParameter("TOFKID",1);
+  static const Double_t ProtonCutMass     = gUser.GetParameter("TOFKID",2);
 
-  static const double OffsetToF  = gUser.GetParameter("OffsetToF");
-  static const double Mip2MeV           = gUser.GetParameter("TOFKID",0);
-  static const double PionCutMass       = gUser.GetParameter("TOFKID",1);
-  static const double ProtonCutMass     = gUser.GetParameter("TOFKID",2);
+  static const Double_t KaonMass    = pdg::KaonMass();
+  static const Double_t PionMass    = pdg::PionMass();
+  static const Double_t ProtonMass  = pdg::ProtonMass();
+  static const Double_t SigmaNMass  = pdg::SigmaNMass();
 
-  static const double KaonMass    = pdg::KaonMass();
-  static const double PionMass    = pdg::PionMass();
-  static const double ProtonMass  = pdg::ProtonMass();
-  static const double SigmaNMass  = pdg::SigmaNMass();
-
-  if( ievent%10000==0 ){
-    std::cout << "#D " << func_name << " Event Number: "
+  if(ievent%10000 == 0){
+    std::cout << FUNC_NAME << " Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
 
@@ -603,16 +645,16 @@ dst::DstRead( int ievent )
   event.nhSch    = src.nhSch;
   event.nhTof    = src.nhTof;
 
-  const int ntBcOut  = event.ntBcOut;
-  const int ntSdcIn  = event.ntSdcIn;
-  const int ntSdcOut = event.ntSdcOut;
-  const int ntKurama = event.ntKurama;
-  const int ntK18    = event.ntK18;
-  const int nhBft    = event.nhBft;
-  const int nhBh1    = event.nhBh1;
-  const int nhBh2    = event.nhBh2;
-  const int nhSch    = event.nhSch;
-  const int nhTof    = event.nhTof;
+  const Int_t ntBcOut  = event.ntBcOut;
+  const Int_t ntSdcIn  = event.ntSdcIn;
+  const Int_t ntSdcOut = event.ntSdcOut;
+  const Int_t ntKurama = event.ntKurama;
+  const Int_t ntK18    = event.ntK18;
+  const Int_t nhBft    = event.nhBft;
+  const Int_t nhBh1    = event.nhBh1;
+  const Int_t nhBh2    = event.nhBh2;
+  const Int_t nhSch    = event.nhSch;
+  const Int_t nhTof    = event.nhTof;
 
 #if 0
   std::cout << "#D DebugPrint" << std::endl
@@ -631,35 +673,35 @@ dst::DstRead( int ievent )
 #endif
 
   // TFlag
-  for(int i=0;i<NumOfSegTrig;++i){
-    int tdc = src.trigflag[i];
-    if( tdc<=0 ) continue;
+  for(Int_t i=0;i<NumOfSegTrig;++i){
+    Int_t tdc = src.trigflag[i];
+    if(tdc<=0) continue;
     event.trigpat[i]  = i + 1;
     event.trigflag[i] = tdc;
   }
 
-  HF1( 1, 0. );
+  HF1(1, 0.);
 
-  // if( event.ntKurama==0 ) return true;
-  // HF1( 1, 1. );
-  // if( event.ntK18==0 ) return true;
-  // HF1( 1, 2. );
-  // if( event.nhBh1==0 ) return true;
-  // HF1( 1, 3. );
-  // if( event.nhBh2==0 ) return true;
-  // HF1( 1, 4. );
-  // if( event.nhTof==0 ) return true;
-  // HF1( 1, 5. );
-  // if( event.nhSch==0 ) return true;
-  // HF1( 1, 6. );
-  // if( event.nhFbh==0 ) return true;
-  // HF1( 1, 7. );
+  // if(event.ntKurama==0) return true;
+  // HF1(1, 1.);
+  // if(event.ntK18==0) return true;
+  // HF1(1, 2.);
+  // if(event.nhBh1==0) return true;
+  // HF1(1, 3.);
+  // if(event.nhBh2==0) return true;
+  // HF1(1, 4.);
+  // if(event.nhTof==0) return true;
+  // HF1(1, 5.);
+  // if(event.nhSch==0) return true;
+  // HF1(1, 6.);
+  // if(event.nhFbh==0) return true;
+  // HF1(1, 7.);
 
   std::vector <ThreeVector> PiPCont, PiXCont;
   std::vector <ThreeVector> KPCont,  KXCont;
 
   // BFT
-  for( int i=0; i<nhBft; ++i ){
+  for(Int_t i=0; i<nhBft; ++i){
     event.csBft[i]  = src.csBft[i];
     event.tBft[i]   = src.tBft[i];
     event.wBft[i]   = src.wBft[i];
@@ -667,8 +709,8 @@ dst::DstRead( int ievent )
   }
 
   // BH1
-  double btof = -9999.;
-  for( int i=0; i<nhBh1; ++i ){
+  Double_t btof = -9999.;
+  for(Int_t i=0; i<nhBh1; ++i){
     event.csBh1[i]  = src.csBh1[i];
     event.Bh1Seg[i] = src.Bh1Seg[i];
     event.tBh1[i]   = src.tBh1[i];
@@ -679,8 +721,8 @@ dst::DstRead( int ievent )
   }
 
   // BH2
-  double time0 = src.Time0;
-  for( int i=0; i<nhBh2; ++i ){
+  Double_t time0 = src.Time0;
+  for(Int_t i=0; i<nhBh2; ++i){
     event.csBh2[i]  = src.csBh2[i];
     event.Bh2Seg[i] = src.Bh2Seg[i];
     event.tBh2[i]   = src.tBh2[i];
@@ -690,7 +732,7 @@ dst::DstRead( int ievent )
   }
 
   // SCH
-  for( int i=0; i<nhSch; ++i ){
+  for(Int_t i=0; i<nhSch; ++i){
     event.csSch[i]  = src.csSch[i];
     event.tSch[i]   = src.tSch[i];
     event.wSch[i]   = src.wSch[i];
@@ -698,7 +740,7 @@ dst::DstRead( int ievent )
   }
 
   // TOF
-  for( int i=0; i<nhTof; ++i ){
+  for(Int_t i=0; i<nhTof; ++i){
     event.csTof[i]  = src.csTof[i];
     event.TofSeg[i] = src.TofSeg[i];
     event.tTof[i]   = src.tTof[i];
@@ -708,7 +750,7 @@ dst::DstRead( int ievent )
 
   ////////// BcOut
   event.nlBcOut = src.nlBcOut;
-  for( int it=0; it<ntBcOut; ++it ){
+  for(Int_t it=0; it<ntBcOut; ++it){
     event.nhBcOut[it]     = src.nhBcOut[it];
     event.chisqrBcOut[it] = src.chisqrBcOut[it];
     event.x0BcOut[it]     = src.x0BcOut[it];
@@ -719,7 +761,7 @@ dst::DstRead( int ievent )
 
   ////////// SdcIn
   event.nlSdcIn = src.nlSdcIn;
-  for( int it=0; it<ntSdcIn; ++it ){
+  for(Int_t it=0; it<ntSdcIn; ++it){
     event.nhSdcIn[it]     = src.nhSdcIn[it];
     event.chisqrSdcIn[it] = src.chisqrSdcIn[it];
     event.x0SdcIn[it]     = src.x0SdcIn[it];
@@ -730,7 +772,7 @@ dst::DstRead( int ievent )
 
   ////////// SdcOut
   event.nlSdcOut = src.nlSdcOut;
-  for( int it=0; it<ntSdcOut; ++it ){
+  for(Int_t it=0; it<ntSdcOut; ++it){
     event.nhSdcOut[it]     = src.nhSdcOut[it];
     event.chisqrSdcOut[it] = src.chisqrSdcOut[it];
     event.x0SdcOut[it]     = src.x0SdcOut[it];
@@ -740,57 +782,57 @@ dst::DstRead( int ievent )
   }
 
   ////////// K+
-  for( int itKurama=0; itKurama<ntKurama; ++itKurama ){
-    int nh= src.nhKurama[itKurama];
-    double chisqr = src.chisqrKurama[itKurama];
-    double p = src.pKurama[itKurama];
-    double x = src.xtgtKurama[itKurama];
-    double y = src.ytgtKurama[itKurama];
-    double u = src.utgtKurama[itKurama];
-    double v = src.vtgtKurama[itKurama];
-	double utof =src.utofKurama[itKurama];
-	double vtof =src.vtofKurama[itKurama];
-    double theta = src.thetaKurama[itKurama];
-    double pt = p/std::sqrt(1.+u*u+v*v);
-    ThreeVector Pos( x, y, 0. );
-    ThreeVector Mom( pt*u, pt*v, pt );
-    if( std::isnan( Pos.Mag() ) ) continue;
+  for(Int_t itKurama=0; itKurama<ntKurama; ++itKurama){
+    Int_t nh= src.nhKurama[itKurama];
+    Double_t chisqr = src.chisqrKurama[itKurama];
+    Double_t p = src.pKurama[itKurama];
+    Double_t x = src.xtgtKurama[itKurama];
+    Double_t y = src.ytgtKurama[itKurama];
+    Double_t u = src.utgtKurama[itKurama];
+    Double_t v = src.vtgtKurama[itKurama];
+	Double_t utof =src.utofKurama[itKurama];
+	Double_t vtof =src.vtofKurama[itKurama];
+    Double_t theta = src.thetaKurama[itKurama];
+    Double_t pt = p/std::sqrt(1.+u*u+v*v);
+    ThreeVector Pos(x, y, 0.);
+    ThreeVector Mom(pt*u, pt*v, pt);
+    if(std::isnan(Pos.Mag())) continue;
     //Calibration
-    ThreeVector PosCorr( x+x_off, y+y_off, 0. );
-    ThreeVector MomCorr( pt*(u+u_off), pt*(v+v_off), pt );
-    double path = src.path[itKurama];
-    double xt = PosCorr.x();
-    double yt = PosCorr.y();
-    double zt = PosCorr.z();
-    double pCorr = MomCorr.Mag();
-    double q  = src.qKurama[itKurama];
-    double ut = xt/zt;
-    double vt = yt/zt;
+    ThreeVector PosCorr(x+x_off, y+y_off, 0.);
+    ThreeVector MomCorr(pt*(u+u_off), pt*(v+v_off), pt);
+    Double_t path = src.path[itKurama];
+    Double_t xt = PosCorr.x();
+    Double_t yt = PosCorr.y();
+    Double_t zt = PosCorr.z();
+    Double_t pCorr = MomCorr.Mag();
+    Double_t q  = src.qKurama[itKurama];
+    Double_t ut = xt/zt;
+    Double_t vt = yt/zt;
 
     // SdcOut vs TOF
-    double TofSegKurama = src.tofsegKurama[itKurama];
-    double stof = -9999.;
-    double cstof = -9999.;
-    double m2   = -9999.;
+    Double_t TofSegKurama = src.tofsegKurama[itKurama];
+    Double_t stof = -9999.;
+    Double_t cstof = -9999.;
+    Double_t m2   = -9999.;
     // w/  TOF
 
 	bool correct_hit[src.nhTof];
-	for(int j=0; j<src.nhTof; ++j) correct_hit[j]=true;
-	for(int j=0; j<src.nhTof; ++j){
-	  double seg1=src.TofSeg[j]; double de1=src.deTof[j];
-	  for(int k=j+1; k<src.nhTof; ++k){
-		double seg2=src.TofSeg[k]; double de2=src.deTof[k];
-		if( std::abs( seg1 - seg2 ) < 2 && de1 > de2 ) correct_hit[k]=false;
-		if( std::abs( seg1 - seg2 ) < 2 && de2 > de1 ) correct_hit[j]=false;
+	for(Int_t j=0; j<src.nhTof; ++j) correct_hit[j]=true;
+	for(Int_t j=0; j<src.nhTof; ++j){
+	  Double_t seg1=src.TofSeg[j]; Double_t de1=src.deTof[j];
+	  for(Int_t k=j+1; k<src.nhTof; ++k){
+		Double_t seg2=src.TofSeg[k]; Double_t de2=src.deTof[k];
+		if(std::abs(seg1 - seg2) < 2 && de1 > de2) correct_hit[k]=false;
+		if(std::abs(seg1 - seg2) < 2 && de2 > de1) correct_hit[j]=false;
 	  }
 	}
-	double best_de=-9999;
-	int correct_num=0;
-	int Dif=9999;
-	for(int j=0; j<src.nhTof; ++j){
+	Double_t best_de=-9999;
+	Int_t correct_num=0;
+	Int_t Dif=9999;
+	for(Int_t j=0; j<src.nhTof; ++j){
 	  if(correct_hit[j]==false) continue;
-	  int dif = std::abs( src.TofSeg[j] - TofSegKurama );
-	  if( (dif < Dif) || ( dif==Dif&&src.deTof[j]>best_de )){
+	  Int_t dif = std::abs(src.TofSeg[j] - TofSegKurama);
+	  if((dif < Dif) || (dif==Dif&&src.deTof[j]>best_de)){
 		correct_num=j;
 		best_de=src.deTof[j];
 		Dif=dif;
@@ -798,27 +840,29 @@ dst::DstRead( int ievent )
 	}
 
 	stof = event.tTof[correct_num] - time0 + OffsetToF;
-	m2 = Kinematics::MassSquare( pCorr, path, cstof );
+	m2 = Kinematics::MassSquare(pCorr, path, cstof);
 	if(btof==-9999.9){
 	  cstof=stof;
     }else{
-	  gPHC.DoStofCorrection( 8, 0, src.TofSeg[correct_num]-1, 2, stof, btof, cstof );
-	  m2 = Kinematics::MassSquare( pCorr, path, cstof );
+	  gPHC.DoStofCorrection(8, 0, src.TofSeg[correct_num]-1, 2, stof, btof, cstof);
+	  m2 = Kinematics::MassSquare(pCorr, path, cstof);
 	}
 	event.best_deTof[itKurama] = best_de;
 	event.best_TofSeg[itKurama] = src.TofSeg[correct_num];
 
 	///for Kflag///
-	int Kflag=0;
-	double dEdx = Mip2MeV*best_de/sqrt(1+utof*utof+vtof*vtof);
-	if( calcCutLineByTOF( PionCutMass, 1000*p ) <dEdx&&dEdx< calcCutLineByTOF( ProtonCutMass, 1000*p ) ) Kflag=1;
-
+	Int_t Kflag=0;
+	Double_t dEdx = Mip2MeV*best_de/sqrt(1+utof*utof+vtof*vtof);
+	if(CalcCutLineByTOF(PionCutMass, 1000*p) < dEdx &&
+           dEdx < CalcCutLineByTOF(ProtonCutMass, 1000*p)){
+          Kflag=1;
+        }
 	// w/o TOF
-    // double minres = 1.0e10;
-    // for( int j=0; j<nhTof; ++j ){
-    //   double seg = src.TofSeg[j];
-    //   double res = TofSegKurama - seg;
-    //   if( std::abs( res ) < minres && std::abs( res ) < 1. ){
+    // Double_t minres = 1.0e10;
+    // for(Int_t j=0; j<nhTof; ++j){
+    //   Double_t seg = src.TofSeg[j];
+    //   Double_t res = TofSegKurama - seg;
+    //   if(std::abs(res) < minres && std::abs(res) < 1.){
     // 	minres = res;
     // 	stof = src.tTof[j] - time0 + OffsetToF;
     //   }
@@ -837,57 +881,57 @@ dst::DstRead( int ievent )
     event.path[itKurama] = path;
     event.m2[itKurama] = m2;
 	event.Kflag[itKurama] = Kflag;
-    HF1( 3202, double(nh) );
-    HF1( 3203, chisqr );
-    HF1( 3204, xt ); HF1( 3205, yt );
-    HF1( 3206, ut ); HF1( 3207, vt );
-    HF2( 3208, xt, ut ); HF2( 3209, yt, vt );
-    HF2( 3210, xt, yt );
-    HF1( 3211, pCorr );
-    HF1( 3212, path );
+    HF1(3202, Double_t(nh));
+    HF1(3203, chisqr);
+    HF1(3204, xt); HF1(3205, yt);
+    HF1(3206, ut); HF1(3207, vt);
+    HF2(3208, xt, ut); HF2(3209, yt, vt);
+    HF2(3210, xt, yt);
+    HF1(3211, pCorr);
+    HF1(3212, path);
 
-    //HF1( 3213, m2 );
+    //HF1(3213, m2);
 
-    //     double xTof=(clTof->MeanSeg()-7.5)*70.;
-    //     double yTof=(clTof->TimeDif())*800./12.;
-    //     HF2( 4011, clTof->MeanSeg()-0.5, xtof );
-    //     HF2( 4013, clTof->TimeDif(), ytof );
-    //     HF1( 4015, xtof-xTof ); HF1( 4017, ytof-yTof );
-    //     HF2( 4019, xtof-xTof, ytof-yTof );
+    //     Double_t xTof=(clTof->MeanSeg()-7.5)*70.;
+    //     Double_t yTof=(clTof->TimeDif())*800./12.;
+    //     HF2(4011, clTof->MeanSeg()-0.5, xtof);
+    //     HF2(4013, clTof->TimeDif(), ytof);
+    //     HF1(4015, xtof-xTof); HF1(4017, ytof-yTof);
+    //     HF2(4019, xtof-xTof, ytof-yTof);
 
-    //       double ttof=clTof->CMeanTime()-time0,
-    //       HF1( 322, clTof->ClusterSize() );
-    //       HF1( 323, clTof->MeanSeg()-0.5 );
-    //       HF1( 324, ttof );
-    //       HF1( 325, clTof->DeltaE() );
-    //       double u0in=trIn->GetU0();
-    //       HF2( 4001, u0in, ttof ); HF2( 4003, u0in, ttof+12.5*u0in );
-    HF1( 4202, double(nh) );
-    HF1( 4203, chisqr );
-    HF1( 4204, xt ); HF1( 4205, yt );
-    HF1( 4206, ut ); HF1( 4207, vt );
-    HF2( 4208, xt, ut ); HF2( 4209, yt, vt );
-    HF2( 4210, xt, yt );
-    HF1( 4211, pCorr );
-    HF1( 4212, path );
-    KXCont.push_back( PosCorr );
-    KPCont.push_back( MomCorr );
+    //       Double_t ttof=clTof->CMeanTime()-time0,
+    //       HF1(322, clTof->ClusterSize());
+    //       HF1(323, clTof->MeanSeg()-0.5);
+    //       HF1(324, ttof);
+    //       HF1(325, clTof->DeltaE());
+    //       Double_t u0in=trIn->GetU0();
+    //       HF2(4001, u0in, ttof); HF2(4003, u0in, ttof+12.5*u0in);
+    HF1(4202, Double_t(nh));
+    HF1(4203, chisqr);
+    HF1(4204, xt); HF1(4205, yt);
+    HF1(4206, ut); HF1(4207, vt);
+    HF2(4208, xt, ut); HF2(4209, yt, vt);
+    HF2(4210, xt, yt);
+    HF1(4211, pCorr);
+    HF1(4212, path);
+    KXCont.push_back(PosCorr);
+    KPCont.push_back(MomCorr);
   }
 
-  if( KPCont.size()==0 ) return true;
+  if(KPCont.size()==0) return true;
 
-  HF1( 1, 8. );
+  HF1(1, 8.);
 
   ////////// pi
-  for( int itK18=0; itK18<ntK18; ++itK18 ){
-    int nh = src.nhK18[itK18];
-    double chisqr = src.chisqrK18[itK18];
+  for(Int_t itK18=0; itK18<ntK18; ++itK18){
+    Int_t nh = src.nhK18[itK18];
+    Double_t chisqr = src.chisqrK18[itK18];
     //Calibration
-    double p = src.pK18[itK18]*pB_offset+pK18_offset;
-    double x = src.xtgtK18[itK18];
-    double y = src.ytgtK18[itK18];
-    double u = src.utgtK18[itK18];
-    double v = src.vtgtK18[itK18];
+    Double_t p = src.pK18[itK18]*pB_offset+pK18_offset;
+    Double_t x = src.xtgtK18[itK18];
+    Double_t y = src.ytgtK18[itK18];
+    Double_t u = src.utgtK18[itK18];
+    Double_t v = src.vtgtK18[itK18];
     event.nhK18[itK18]     = nh;
     event.chisqrK18[itK18] = chisqr;
     event.pK18[itK18]      = p;
@@ -895,104 +939,104 @@ dst::DstRead( int ievent )
     event.ytgtK18[itK18]   = y;
     event.utgtK18[itK18]   = u;
     event.vtgtK18[itK18]   = v;
-    // double loss_bh2 = 1.09392e-3;
+    // Double_t loss_bh2 = 1.09392e-3;
     // p = p - loss_bh2;
-    double pt=p/std::sqrt(1.+u*u+v*v);
-    ThreeVector Pos( x, y, 0. );
-    ThreeVector Mom( pt*u, pt*v, pt );
-    //double xo=trOut->GetX0(), yo=trOut->GetY0();
-    HF1( 4104, p );
-    HF1( 4105, x ); HF1( 4106, y );
-    //HF1( 4107, xo ); HF1( 4108, yo ); HF1( 4109, u ); HF1( 4110, v );
+    Double_t pt=p/std::sqrt(1.+u*u+v*v);
+    ThreeVector Pos(x, y, 0.);
+    ThreeVector Mom(pt*u, pt*v, pt);
+    //Double_t xo=trOut->GetX0(), yo=trOut->GetY0();
+    HF1(4104, p);
+    HF1(4105, x); HF1(4106, y);
+    //HF1(4107, xo); HF1(4108, yo); HF1(4109, u); HF1(4110, v);
 
     PiPCont.push_back(Mom); PiXCont.push_back(Pos);
   }
 
-  if( PiPCont.size()==0 ) return true;
+  if(PiPCont.size()==0) return true;
 
-  HF1( 1, 9. );
+  HF1(1, 9.);
 
   //MissingMass
-  int nPi = PiPCont.size();
-  int nK  = KPCont.size();
+  Int_t nPi = PiPCont.size();
+  Int_t nK  = KPCont.size();
   event.nPi = nPi;
   event.nK  = nK;
   event.nPiK = nPi*nK;
-  HF1( 4101, double(nPi));
-  HF1( 4201, double(nK) );
-  int npik=0;
-  for( int ikp=0; ikp<nK; ++ikp ){
+  HF1(4101, Double_t(nPi));
+  HF1(4201, Double_t(nK));
+  Int_t npik=0;
+  for(Int_t ikp=0; ikp<nK; ++ikp){
     ThreeVector pkp = KPCont[ikp], xkp = KXCont[ikp];
-    for( int ipi=0; ipi<nPi; ++ipi ){
+    for(Int_t ipi=0; ipi<nPi; ++ipi){
       ThreeVector ppi  = PiPCont[ipi], xpi = PiXCont[ipi];
-      ThreeVector vert = Kinematics::VertexPoint( xpi, xkp, ppi, pkp );
+      ThreeVector vert = Kinematics::VertexPoint(xpi, xkp, ppi, pkp);
       // std::cout << "vertex : " << vert << " " << vert.Mag() << std::endl;
-      double closedist = Kinematics::closeDist( xpi, xkp, ppi, pkp );
+      Double_t closedist = Kinematics::closeDist(xpi, xkp, ppi, pkp);
 
-      double us = pkp.x()/pkp.z(), vs = pkp.y()/pkp.z();
-      double ub = ppi.x()/ppi.z(), vb = ppi.y()/ppi.z();
-      double cost = ppi*pkp/(ppi.Mag()*pkp.Mag());
+      Double_t us = pkp.x()/pkp.z(), vs = pkp.y()/pkp.z();
+      Double_t ub = ppi.x()/ppi.z(), vb = ppi.y()/ppi.z();
+      Double_t cost = ppi*pkp/(ppi.Mag()*pkp.Mag());
 
-      double pk0   = pkp.Mag();
-      double pCorr = pk0;
+      Double_t pk0   = pkp.Mag();
+      Double_t pCorr = pk0;
 
-      ThreeVector pkpCorr( pCorr*pkp.x()/pkp.Mag(),
+      ThreeVector pkpCorr(pCorr*pkp.x()/pkp.Mag(),
 			   pCorr*pkp.y()/pkp.Mag(),
-			   pCorr*pkp.z()/pkp.Mag() );
+			   pCorr*pkp.z()/pkp.Mag());
 
-      //      ThreeVector ppiCorrDE = Kinematics::CorrElossIn( ppi, xpi, vert, PionMass );
-      //      ThreeVector pkpCorrDE = Kinematics::CorrElossOut( pkpCorr, xkp, vert, KaonMass );
+      //      ThreeVector ppiCorrDE = Kinematics::CorrElossIn(ppi, xpi, vert, PionMass);
+      //      ThreeVector pkpCorrDE = Kinematics::CorrElossOut(pkpCorr, xkp, vert, KaonMass);
 
-      LorentzVector LvPi( ppi, std::sqrt( PionMass*PionMass+ppi.Mag2() ) );
-      //      LorentzVector LvPiCorrDE( ppiCorrDE, sqrt( PionMass*PionMass+ppiCorrDE.Mag2() ) );
+      LorentzVector LvPi(ppi, std::sqrt(PionMass*PionMass+ppi.Mag2()));
+      //      LorentzVector LvPiCorrDE(ppiCorrDE, sqrt(PionMass*PionMass+ppiCorrDE.Mag2()));
 
-      LorentzVector LvKp( pkp, std::sqrt( KaonMass*KaonMass+pkp.Mag2() ) );
-      LorentzVector LvKpCorr( pkpCorr, std::sqrt( KaonMass*KaonMass+pkpCorr.Mag2() ) );
-      //      LorentzVector LvKpCorrDE( pkpCorrDE, std::sqrt( KaonMass*KaonMass+pkpCorrDE.Mag2() ) );
+      LorentzVector LvKp(pkp, std::sqrt(KaonMass*KaonMass+pkp.Mag2()));
+      LorentzVector LvKpCorr(pkpCorr, std::sqrt(KaonMass*KaonMass+pkpCorr.Mag2()));
+      //      LorentzVector LvKpCorrDE(pkpCorrDE, std::sqrt(KaonMass*KaonMass+pkpCorrDE.Mag2()));
 
-      LorentzVector LvC( 0., 0., 0., ProtonMass );
-      LorentzVector LvCore( 0., 0., 0., 0. );
+      LorentzVector LvC(0., 0., 0., ProtonMass);
+      LorentzVector LvCore(0., 0., 0., 0.);
 
       LorentzVector LvRc       = LvPi+LvC-LvKp;
       LorentzVector LvRcCorr   = LvPi+LvC-LvKpCorr;
       //      LorentzVector LvRcCorrDE = LvPiCorrDE+LvC-LvKpCorrDE;
-      double MisMass       = LvRc.Mag();//-LvC.Mag();
-      double MisMassCorr   = LvRcCorr.Mag();//-LvC.Mag();
-      //      double MisMassCorrDE = LvRcCorrDE.Mag();//-LvC.Mag();
+      Double_t MisMass       = LvRc.Mag();//-LvC.Mag();
+      Double_t MisMassCorr   = LvRcCorr.Mag();//-LvC.Mag();
+      //      Double_t MisMassCorrDE = LvRcCorrDE.Mag();//-LvC.Mag();
 
       //Primary frame
       LorentzVector PrimaryLv = LvPi+LvC;
-      double TotalEnergyCM = PrimaryLv.Mag();
-      ThreeVector beta( 1/PrimaryLv.E()*PrimaryLv.Vect() );
+      Double_t TotalEnergyCM = PrimaryLv.Mag();
+      ThreeVector beta(1/PrimaryLv.E()*PrimaryLv.Vect());
 
       //CM
-      double TotalMomCM
-	= 0.5*std::sqrt(( TotalEnergyCM*TotalEnergyCM
-			  -( KaonMass+SigmaNMass )*( KaonMass+SigmaNMass ))
-			*( TotalEnergyCM*TotalEnergyCM
-			   -( KaonMass-SigmaNMass )*( KaonMass-SigmaNMass )))/TotalEnergyCM;
+      Double_t TotalMomCM
+	= 0.5*std::sqrt((TotalEnergyCM*TotalEnergyCM
+			  -(KaonMass+SigmaNMass)*(KaonMass+SigmaNMass))
+			*(TotalEnergyCM*TotalEnergyCM
+			   -(KaonMass-SigmaNMass)*(KaonMass-SigmaNMass)))/TotalEnergyCM;
 
-      double costLab = cost;
-      double cottLab = costLab/std::sqrt(1.-costLab*costLab);
-      double bt=beta.Mag(), gamma=1./std::sqrt(1.-bt*bt);
-      double gbep=gamma*bt*std::sqrt(TotalMomCM*TotalMomCM+KaonMass*KaonMass)/TotalMomCM;
-      double a  = gamma*gamma+cottLab*cottLab;
-      double bp = gamma*gbep;
-      double c  = gbep*gbep-cottLab*cottLab;
-      double dd = bp*bp-a*c;
+      Double_t costLab = cost;
+      Double_t cottLab = costLab/std::sqrt(1.-costLab*costLab);
+      Double_t bt=beta.Mag(), gamma=1./std::sqrt(1.-bt*bt);
+      Double_t gbep=gamma*bt*std::sqrt(TotalMomCM*TotalMomCM+KaonMass*KaonMass)/TotalMomCM;
+      Double_t a  = gamma*gamma+cottLab*cottLab;
+      Double_t bp = gamma*gbep;
+      Double_t c  = gbep*gbep-cottLab*cottLab;
+      Double_t dd = bp*bp-a*c;
 
-      if( dd<0. ){
+      if(dd<0.){
 	std::cerr << "dd<0." << std::endl;
 	dd = 0.;
       }
 
-      double costCM = (std::sqrt(dd)-bp)/a;
-      if( costCM>1. || costCM<-1. ){
+      Double_t costCM = (std::sqrt(dd)-bp)/a;
+      if(costCM>1. || costCM<-1.){
 	std::cerr << "costCM>1. || costCM<-1." << std::endl;
 	costCM=-1.;
       }
-      double sintCM  = std::sqrt(1.-costCM*costCM);
-      double KaonMom = TotalMomCM*sintCM/std::sqrt(1.-costLab*costLab);
+      Double_t sintCM  = std::sqrt(1.-costCM*costCM);
+      Double_t KaonMom = TotalMomCM*sintCM/std::sqrt(1.-costLab*costLab);
 
       if (npik<MaxHits) {
 	event.vtx[npik]=vert.x();
@@ -1027,278 +1071,243 @@ dst::DstRead( int ievent )
 	std::cout << "#W npik: "<< npik << " exceeding MaxHits: " << MaxHits << std::endl;
       }
 
-      HF1( 5001, vert.z() );
+      HF1(5001, vert.z());
 
-      HF1( 5002, MisMass );
-      HF2( 5011, MisMass, us );
-      HF2( 5012, MisMass, vs );
-      HF2( 5013, MisMass, ub );
-      HF2( 5014, MisMass, vb );
+      HF1(5002, MisMass);
+      HF2(5011, MisMass, us);
+      HF2(5012, MisMass, vs);
+      HF2(5013, MisMass, ub);
+      HF2(5014, MisMass, vb);
     }
   }
 
-  HF1( 1, 10. );
+  HF1(1, 10.);
 
   //Final Hodoscope histograms
-  for( int i=0; i<nhBh2; ++i ){
-    HF1( 152, event.csBh2[i] );
-    HF1( 153, event.Bh2Seg[i] );
-    HF1( 154, event.tBh2[i] );
-    HF1( 155, event.deBh2[i] );
+  for(Int_t i=0; i<nhBh2; ++i){
+    HF1(152, event.csBh2[i]);
+    HF1(153, event.Bh2Seg[i]);
+    HF1(154, event.tBh2[i]);
+    HF1(155, event.deBh2[i]);
   }
 
-  for( int i=0; i<nhBh1; ++i ){
-    HF1( 252, event.csBh1[i] );
-    HF1( 253, event.Bh1Seg[i] );
-    HF1( 254, event.tBh1[i] );
-    HF1( 255, event.deBh1[i] );
+  for(Int_t i=0; i<nhBh1; ++i){
+    HF1(252, event.csBh1[i]);
+    HF1(253, event.Bh1Seg[i]);
+    HF1(254, event.tBh1[i]);
+    HF1(255, event.deBh1[i]);
   }
 
-  for( int i=0; i<nhTof; ++i ){
-    HF1( 352, event.csTof[i] );
-    HF1( 353, event.TofSeg[i] );
-    HF1( 354, event.tTof[i] );
-    HF1( 355, event.deTof[i] );
+  for(Int_t i=0; i<nhTof; ++i){
+    HF1(352, event.csTof[i]);
+    HF1(353, event.TofSeg[i]);
+    HF1(354, event.tTof[i]);
+    HF1(355, event.deTof[i]);
   }
 
   return true;
 }
-//_____________________________________________________________________
-double calcCutLineByTOF( double M, double mom ){
-
-  const double K  = 0.307075;//cosfficient [MeV cm^2/g]
-  const double ro = 1.032;//density of TOF [g/cm^3]
-  const double ZA = 0.5862;//atomic number to mass number ratio of TOF
-  const int    z  = 1;//charge of incident particle
-  const double me = 0.511;//mass of electron [MeV/c^2]
-  const double I  = 0.0000647;//mean excitaton potential [MeV]
-
-  const double C0 = -3.20;
-  const double a  = 0.1610;
-  const double m  = 3.24;
-  const double X1 = 2.49;
-  const double X0 = 0.1464;
-
-  double p1 = ro*K*ZA*z*z/2;
-  double p2 = (2*me/I/M)*(2*me/I/M);
-  double p3 = 0.2414*K*z*z/ro;
-
-  double y = mom/M;
-  double X = log10(y);
-  double delta;
-  if( X < X0 )              delta = 0;
-  else if( X0 < X&&X < X1 ) delta = 4.6052*X+C0+a*pow(X1-X,m);
-  else                      delta = 4.6052*X+C0;
-
-  double C = (0.422377*pow(y,-2)+0.0304043*pow(y,-4)-0.00038106*pow(y,-6))*pow(10,-6)*pow(I,2)
-                  +(3.85019*pow(y,-2)-0.1667989*pow(y,-4)+0.00157955*pow(y,-6))*pow(10,-9)*pow(I,3);
-
-  double x = mom;
-  double dEdx = p1*((M/x)*(M/x)+1)*log(p2*x*x*x*x/(M*M+2*me*sqrt(M*M+x*x))+me*me)-2*p1-p1*delta-p3*C;
-
-  return dEdx;
-}
 
 //_____________________________________________________________________
 bool
-dst::DstClose( void )
+dst::DstClose()
 {
   TFileCont[kOutFile]->Write();
   std::cout << "#D Close : " << TFileCont[kOutFile]->GetName() << std::endl;
   TFileCont[kOutFile]->Close();
 
   const std::size_t n = TFileCont.size();
-  for( std::size_t i=0; i<n; ++i ){
-    if( TTreeCont[i] ) delete TTreeCont[i];
-    if( TFileCont[i] ) delete TFileCont[i];
+  for(std::size_t i=0; i<n; ++i){
+    if(TTreeCont[i]) delete TTreeCont[i];
+    if(TFileCont[i]) delete TFileCont[i];
   }
   return true;
 }
 
 //_____________________________________________________________________
 bool
-ConfMan::InitializeHistograms( void )
+ConfMan::InitializeHistograms()
 {
-  HB1( 1, "Status", 60, 0., 60. );
+  HB1(1, "Status", 60, 0., 60.);
 
-  HB1( 101, "#Clusters BH2",   7, 0., 7. );
-  HB1( 102, "ClusterSize BH2", 7, 0., 7. );
-  HB1( 103, "HitPat BH2", 10, 0., 10. );
-  HB1( 104, "MeanTime BH2", 200, -10., 10. );
-  HB1( 105, "Delta-E BH2", 200, -0.5, 4.5 );
+  HB1(101, "#Clusters BH2",   7, 0., 7.);
+  HB1(102, "ClusterSize BH2", 7, 0., 7.);
+  HB1(103, "HitPat BH2", 10, 0., 10.);
+  HB1(104, "MeanTime BH2", 200, -10., 10.);
+  HB1(105, "Delta-E BH2", 200, -0.5, 4.5);
 
-  HB1( 112, "ClusterSize BH2", 7, 0., 7. );
-  HB1( 113, "HitPat BH2", 10, 0., 10. );
-  HB1( 114, "MeanTime BH2", 200, -10., 10. );
-  HB1( 115, "Delta-E BH2", 200, -0.5, 4.5 );
+  HB1(112, "ClusterSize BH2", 7, 0., 7.);
+  HB1(113, "HitPat BH2", 10, 0., 10.);
+  HB1(114, "MeanTime BH2", 200, -10., 10.);
+  HB1(115, "Delta-E BH2", 200, -0.5, 4.5);
 
-  HB1( 122, "ClusterSize BH2 [T0]", 7, 0., 7. );
-  HB1( 123, "HitPat BH2 [T0]", 10, 0., 10. );
-  HB1( 124, "MeanTime BH2 [T0]", 200, -10., 10. );
-  HB1( 125, "Delta-E BH2 [T0]", 200, -0.5, 4.5 );
+  HB1(122, "ClusterSize BH2 [T0]", 7, 0., 7.);
+  HB1(123, "HitPat BH2 [T0]", 10, 0., 10.);
+  HB1(124, "MeanTime BH2 [T0]", 200, -10., 10.);
+  HB1(125, "Delta-E BH2 [T0]", 200, -0.5, 4.5);
 
-  HB1( 152, "ClusterSize BH2 [kk]", 7, 0., 7. );
-  HB1( 153, "HitPat BH2 [kk]", 10, 0., 10. );
-  HB1( 154, "MeanTime BH2 [kk]", 200, -10., 10. );
-  HB1( 155, "Delta-E BH2 [kk]", 200, -0.5, 4.5 );
+  HB1(152, "ClusterSize BH2 [kk]", 7, 0., 7.);
+  HB1(153, "HitPat BH2 [kk]", 10, 0., 10.);
+  HB1(154, "MeanTime BH2 [kk]", 200, -10., 10.);
+  HB1(155, "Delta-E BH2 [kk]", 200, -0.5, 4.5);
 
-  HB1( 201, "#Clusters BH1",  11, 0., 11. );
-  HB1( 202, "ClusterSize BH1",11, 0., 11. );
-  HB1( 203, "HitPat BH1", 11, 0., 11. );
-  HB1( 204, "MeanTime BH1", 200, -10., 10. );
-  HB1( 205, "Delta-E BH1", 200, -0.5, 4.5 );
-  HB1( 206, "Beam ToF", 200, -10., 10. );
+  HB1(201, "#Clusters BH1",  11, 0., 11.);
+  HB1(202, "ClusterSize BH1",11, 0., 11.);
+  HB1(203, "HitPat BH1", 11, 0., 11.);
+  HB1(204, "MeanTime BH1", 200, -10., 10.);
+  HB1(205, "Delta-E BH1", 200, -0.5, 4.5);
+  HB1(206, "Beam ToF", 200, -10., 10.);
 
-  HB1( 211, "#Clusters BH1 [pi]",  11, 0., 11. );
-  HB1( 212, "ClusterSize BH1 [pi]",11, 0., 11. );
-  HB1( 213, "HitPat BH1 [pi]", 11, 0., 11. );
-  HB1( 214, "MeanTime BH1 [pi]", 200, -10., 10. );
-  HB1( 215, "Delta-E BH1 [pi]", 200, -0.5, 4.5 );
+  HB1(211, "#Clusters BH1 [pi]",  11, 0., 11.);
+  HB1(212, "ClusterSize BH1 [pi]",11, 0., 11.);
+  HB1(213, "HitPat BH1 [pi]", 11, 0., 11.);
+  HB1(214, "MeanTime BH1 [pi]", 200, -10., 10.);
+  HB1(215, "Delta-E BH1 [pi]", 200, -0.5, 4.5);
 
-  HB1( 252, "ClusterSize BH1 [kk]",11, 0., 11. );
-  HB1( 253, "HitPat BH1 [kk]", 11, 0., 11. );
-  HB1( 254, "MeanTime BH1 [kk]", 200, -10., 10. );
-  HB1( 255, "Delta-E BH1 [kk]", 200, -0.5, 4.5 );
-  HB1( 256, "Beam ToF [kk]", 200, -10., 10. );
+  HB1(252, "ClusterSize BH1 [kk]",11, 0., 11.);
+  HB1(253, "HitPat BH1 [kk]", 11, 0., 11.);
+  HB1(254, "MeanTime BH1 [kk]", 200, -10., 10.);
+  HB1(255, "Delta-E BH1 [kk]", 200, -0.5, 4.5);
+  HB1(256, "Beam ToF [kk]", 200, -10., 10.);
 
-  HB1( 301, "#Clusters Tof",  32, 0., 32. );
-  HB1( 302, "ClusterSize Tof",32, 0., 32. );
-  HB1( 303, "HitPat Tof", 32, 0., 32. );
-  HB1( 304, "TimeOfFlight Tof", 500, -50., 100. );
-  HB1( 305, "Delta-E Tof", 200, -0.5, 4.5 );
+  HB1(301, "#Clusters Tof",  32, 0., 32.);
+  HB1(302, "ClusterSize Tof",32, 0., 32.);
+  HB1(303, "HitPat Tof", 32, 0., 32.);
+  HB1(304, "TimeOfFlight Tof", 500, -50., 100.);
+  HB1(305, "Delta-E Tof", 200, -0.5, 4.5);
 
-  HB1( 311, "#Clusters Tof [Good]",  32, 0., 32. );
-  HB1( 312, "ClusterSize Tof [Good]",32, 0., 32. );
-  HB1( 313, "HitPat Tof [Good]", 32, 0., 32. );
-  HB1( 314, "TimeOfFlight Tof [Good]", 500, -50., 100. );
-  HB1( 315, "Delta-E Tof [Good]", 200, -0.5, 4.5 );
+  HB1(311, "#Clusters Tof [Good]",  32, 0., 32.);
+  HB1(312, "ClusterSize Tof [Good]",32, 0., 32.);
+  HB1(313, "HitPat Tof [Good]", 32, 0., 32.);
+  HB1(314, "TimeOfFlight Tof [Good]", 500, -50., 100.);
+  HB1(315, "Delta-E Tof [Good]", 200, -0.5, 4.5);
 
-  HB1( 352, "ClusterSize Tof [kk]",32, 0., 32. );
-  HB1( 353, "HitPat Tof [kk]", 32, 0., 32. );
-  HB1( 354, "TimeOfFlight Tof [kk]", 500, -50., 100. );
-  HB1( 355, "Delta-E Tof [kk]", 200, -0.5, 4.5 );
-  HB2( 501, "SegLC%SegTOF", 32, 0., 32., 28, 0., 28. );
+  HB1(352, "ClusterSize Tof [kk]",32, 0., 32.);
+  HB1(353, "HitPat Tof [kk]", 32, 0., 32.);
+  HB1(354, "TimeOfFlight Tof [kk]", 500, -50., 100.);
+  HB1(355, "Delta-E Tof [kk]", 200, -0.5, 4.5);
+  HB2(501, "SegLC%SegTOF", 32, 0., 32., 28, 0., 28.);
 
-  HB1( 1001, "#Tracks SdcIn", 10, 0., 10. );
-  HB1( 1002, "#Hits SdcIn", 20, 0., 20. );
-  HB1( 1003, "Chisqr SdcIn", 200, 0., 100. );
-  HB1( 1004, "X0 SdcIn", 500, -200., 200. );
-  HB1( 1005, "Y0 SdcIn", 500, -200., 200. );
-  HB1( 1006, "U0 SdcIn",  700, -0.35, 0.35 );
-  HB1( 1007, "V0 SdcIn",  400, -0.20, 0.20 );
-  HB2( 1008, "X0%U0 SdcIn", 120, -200., 200., 100, -0.35, 0.35 );
-  HB2( 1009, "Y0%V0 SdcIn", 100, -200., 200., 100, -0.20, 0.20 );
-  HB2( 1010, "X0%Y0 SdcIn", 100, -200., 200., 100, -200., 200. );
+  HB1(1001, "#Tracks SdcIn", 10, 0., 10.);
+  HB1(1002, "#Hits SdcIn", 20, 0., 20.);
+  HB1(1003, "Chisqr SdcIn", 200, 0., 100.);
+  HB1(1004, "X0 SdcIn", 500, -200., 200.);
+  HB1(1005, "Y0 SdcIn", 500, -200., 200.);
+  HB1(1006, "U0 SdcIn",  700, -0.35, 0.35);
+  HB1(1007, "V0 SdcIn",  400, -0.20, 0.20);
+  HB2(1008, "X0%U0 SdcIn", 120, -200., 200., 100, -0.35, 0.35);
+  HB2(1009, "Y0%V0 SdcIn", 100, -200., 200., 100, -0.20, 0.20);
+  HB2(1010, "X0%Y0 SdcIn", 100, -200., 200., 100, -200., 200.);
 
-  HB1( 1101, "#Tracks BcOut", 10, 0., 10. );
-  HB1( 1102, "#Hits BcOut", 20, 0., 20. );
-  HB1( 1103, "Chisqr BcOut", 200, 0., 100. );
-  HB1( 1104, "X0 BcOut", 500, -200., 200. );
-  HB1( 1105, "Y0 BcOut", 500, -200., 200. );
-  HB1( 1106, "U0 BcOut",  700, -0.35, 0.35 );
-  HB1( 1107, "V0 BcOut",  400, -0.20, 0.20 );
-  HB2( 1108, "X0%U0 BcOut", 120, -200., 200., 100, -0.35, 0.35 );
-  HB2( 1109, "Y0%V0 BcOut", 100, -200., 200., 100, -0.20, 0.20 );
-  HB2( 1110, "X0%Y0 BcOut", 100, -200., 200., 100, -200., 200. );
-  HB1( 1111, "Xtgt BcOut", 500, -200., 200. );
-  HB1( 1112, "Ytgt BcOut", 500, -200., 200. );
-  HB2( 1113, "Xtgt%Ytgt BcOut", 100, -200., 200., 100, -200., 200. );
+  HB1(1101, "#Tracks BcOut", 10, 0., 10.);
+  HB1(1102, "#Hits BcOut", 20, 0., 20.);
+  HB1(1103, "Chisqr BcOut", 200, 0., 100.);
+  HB1(1104, "X0 BcOut", 500, -200., 200.);
+  HB1(1105, "Y0 BcOut", 500, -200., 200.);
+  HB1(1106, "U0 BcOut",  700, -0.35, 0.35);
+  HB1(1107, "V0 BcOut",  400, -0.20, 0.20);
+  HB2(1108, "X0%U0 BcOut", 120, -200., 200., 100, -0.35, 0.35);
+  HB2(1109, "Y0%V0 BcOut", 100, -200., 200., 100, -0.20, 0.20);
+  HB2(1110, "X0%Y0 BcOut", 100, -200., 200., 100, -200., 200.);
+  HB1(1111, "Xtgt BcOut", 500, -200., 200.);
+  HB1(1112, "Ytgt BcOut", 500, -200., 200.);
+  HB2(1113, "Xtgt%Ytgt BcOut", 100, -200., 200., 100, -200., 200.);
 
-  HB1( 1201, "#Tracks SdcOut", 10, 0., 10. );
-  HB1( 1202, "#Hits SdcOut", 20, 0., 20. );
-  HB1( 1203, "Chisqr SdcOut", 200, 0., 100. );
-  HB1( 1204, "X0 SdcOut", 600, -1200., 1200. );
-  HB1( 1205, "Y0 SdcOut", 600, -600., 600. );
-  HB1( 1206, "U0 SdcOut",  700, -0.35, 0.35 );
-  HB1( 1207, "V0 SdcOut",  400, -0.20, 0.20 );
-  HB2( 1208, "X0%U0 SdcOut", 120, -1200., 1200., 100, -0.35, 0.35 );
-  HB2( 1209, "Y0%V0 SdcOut", 100,  -600.,  600., 100, -0.20, 0.20 );
-  HB2( 1210, "X0%Y0 SdcOut", 100, -1200., 1200., 100, -600., 600. );
+  HB1(1201, "#Tracks SdcOut", 10, 0., 10.);
+  HB1(1202, "#Hits SdcOut", 20, 0., 20.);
+  HB1(1203, "Chisqr SdcOut", 200, 0., 100.);
+  HB1(1204, "X0 SdcOut", 600, -1200., 1200.);
+  HB1(1205, "Y0 SdcOut", 600, -600., 600.);
+  HB1(1206, "U0 SdcOut",  700, -0.35, 0.35);
+  HB1(1207, "V0 SdcOut",  400, -0.20, 0.20);
+  HB2(1208, "X0%U0 SdcOut", 120, -1200., 1200., 100, -0.35, 0.35);
+  HB2(1209, "Y0%V0 SdcOut", 100,  -600.,  600., 100, -0.20, 0.20);
+  HB2(1210, "X0%Y0 SdcOut", 100, -1200., 1200., 100, -600., 600.);
 
-  HB1( 2201, "#Tracks K18", 10, 0., 10. );
-  HB1( 2202, "#Hits K18", 30, 0., 30. );
-  HB1( 2203, "Chisqr K18", 500, 0., 50. );
-  HB1( 2204, "P K18", 1000, 0.5, 2.0 );
-  HB1( 2251, "#Tracks K18 [Good]", 10, 0., 10. );
+  HB1(2201, "#Tracks K18", 10, 0., 10.);
+  HB1(2202, "#Hits K18", 30, 0., 30.);
+  HB1(2203, "Chisqr K18", 500, 0., 50.);
+  HB1(2204, "P K18", 1000, 0.5, 2.0);
+  HB1(2251, "#Tracks K18 [Good]", 10, 0., 10.);
 
-  HB1( 3001, "#Tracks Kurama", 10, 0., 10. );
-  HB1( 3002, "#Hits Kurama", 30, 0., 30. );
-  HB1( 3003, "Chisqr Kurama", 500, 0., 500. );
-  HB1( 3004, "Xtgt Kurama", 500, -200., 200. );
-  HB1( 3005, "Ytgt Kurama", 500, -100., 100. );
-  HB1( 3006, "Utgt Kurama", 400, -0.35, 0.35 );
-  HB1( 3007, "Vtgt Kurama", 200, -0.20, 0.20 );
-  HB2( 3008, "Xtgt%U Kurama", 100, -200., 200., 100, -0.35, 0.35 );
-  HB2( 3009, "Ytgt%V Kurama", 100, -100., 100., 100, -0.20, 0.20 );
-  HB2( 3010, "Xtgt%Ytgt Kurama", 100, -200., 200., 100, -100., 100. );
-  HB1( 3011, "P Kurama", 200, 0.0, 1.0 );
-  HB1( 3012, "PathLength Kurama", 600, 3000., 6000. );
-  HB1( 3013, "MassSqr", 600, -1.2, 1.2 );
+  HB1(3001, "#Tracks Kurama", 10, 0., 10.);
+  HB1(3002, "#Hits Kurama", 30, 0., 30.);
+  HB1(3003, "Chisqr Kurama", 500, 0., 500.);
+  HB1(3004, "Xtgt Kurama", 500, -200., 200.);
+  HB1(3005, "Ytgt Kurama", 500, -100., 100.);
+  HB1(3006, "Utgt Kurama", 400, -0.35, 0.35);
+  HB1(3007, "Vtgt Kurama", 200, -0.20, 0.20);
+  HB2(3008, "Xtgt%U Kurama", 100, -200., 200., 100, -0.35, 0.35);
+  HB2(3009, "Ytgt%V Kurama", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(3010, "Xtgt%Ytgt Kurama", 100, -200., 200., 100, -100., 100.);
+  HB1(3011, "P Kurama", 200, 0.0, 1.0);
+  HB1(3012, "PathLength Kurama", 600, 3000., 6000.);
+  HB1(3013, "MassSqr", 600, -1.2, 1.2);
 
-  HB1( 3101, "#Tracks Kurama [Good]", 10, 0., 10. );
-  HB1( 3102, "#Hits Kurama [Good]", 30, 0., 30. );
-  HB1( 3103, "Chisqr Kurama [Good]", 500, 0., 500. );
-  HB1( 3104, "Xtgt Kurama [Good]", 500, -200., 200. );
-  HB1( 3105, "Ytgt Kurama [Good]", 500, -100., 100. );
-  HB1( 3106, "Utgt Kurama [Good]", 700, -0.35, 0.35 );
-  HB1( 3107, "Vtgt Kurama [Good]", 400, -0.20, 0.20 );
-  HB2( 3108, "Xtgt%U Kurama [Good]", 100, -200., 200., 100, -0.35, 0.35 );
-  HB2( 3109, "Ytgt%V Kurama [Good]", 100, -100., 100., 100, -0.20, 0.20 );
-  HB2( 3110, "Xtgt%Ytgt Kurama [Good]", 100, -200., 200., 100, -100., 100. );
-  HB1( 3111, "P Kurama [Good]", 200, 0.0, 1.0 );
-  HB1( 3112, "PathLength Kurama [Good]", 600, 3000., 6000. );
-  HB1( 3113, "MassSqr", 600, -1.2, 1.2 );
+  HB1(3101, "#Tracks Kurama [Good]", 10, 0., 10.);
+  HB1(3102, "#Hits Kurama [Good]", 30, 0., 30.);
+  HB1(3103, "Chisqr Kurama [Good]", 500, 0., 500.);
+  HB1(3104, "Xtgt Kurama [Good]", 500, -200., 200.);
+  HB1(3105, "Ytgt Kurama [Good]", 500, -100., 100.);
+  HB1(3106, "Utgt Kurama [Good]", 700, -0.35, 0.35);
+  HB1(3107, "Vtgt Kurama [Good]", 400, -0.20, 0.20);
+  HB2(3108, "Xtgt%U Kurama [Good]", 100, -200., 200., 100, -0.35, 0.35);
+  HB2(3109, "Ytgt%V Kurama [Good]", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(3110, "Xtgt%Ytgt Kurama [Good]", 100, -200., 200., 100, -100., 100.);
+  HB1(3111, "P Kurama [Good]", 200, 0.0, 1.0);
+  HB1(3112, "PathLength Kurama [Good]", 600, 3000., 6000.);
+  HB1(3113, "MassSqr", 600, -1.2, 1.2);
 
-  HB1( 3201, "#Tracks Kurama [Good2]", 10, 0., 10. );
-  HB1( 3202, "#Hits Kurama [Good2]", 30, 0., 30. );
-  HB1( 3203, "Chisqr Kurama [Good2]", 500, 0., 500. );
-  HB1( 3204, "Xtgt Kurama [Good2]", 500, -200., 200. );
-  HB1( 3205, "Ytgt Kurama [Good2]", 500, -100., 100. );
-  HB1( 3206, "Utgt Kurama [Good2]", 700, -0.35, 0.35 );
-  HB1( 3207, "Vtgt Kurama [Good2]", 400, -0.20, 0.20 );
-  HB2( 3208, "Xtgt%U Kurama [Good2]", 100, -200., 200., 100, -0.35, 0.35 );
-  HB2( 3209, "Ytgt%V Kurama [Good2]", 100, -100., 100., 100, -0.20, 0.20 );
-  HB2( 3210, "Xtgt%Ytgt Kurama [Good2]", 100, -200., 200., 100, -100., 100. );
-  HB1( 3211, "P Kurama [Good2]", 200, 0.0, 1.0 );
-  HB1( 3212, "PathLength Kurama [Good2]", 600, 3000., 6000. );
-  HB1( 3213, "MassSqr", 600, -1.2, 1.2 );
+  HB1(3201, "#Tracks Kurama [Good2]", 10, 0., 10.);
+  HB1(3202, "#Hits Kurama [Good2]", 30, 0., 30.);
+  HB1(3203, "Chisqr Kurama [Good2]", 500, 0., 500.);
+  HB1(3204, "Xtgt Kurama [Good2]", 500, -200., 200.);
+  HB1(3205, "Ytgt Kurama [Good2]", 500, -100., 100.);
+  HB1(3206, "Utgt Kurama [Good2]", 700, -0.35, 0.35);
+  HB1(3207, "Vtgt Kurama [Good2]", 400, -0.20, 0.20);
+  HB2(3208, "Xtgt%U Kurama [Good2]", 100, -200., 200., 100, -0.35, 0.35);
+  HB2(3209, "Ytgt%V Kurama [Good2]", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(3210, "Xtgt%Ytgt Kurama [Good2]", 100, -200., 200., 100, -100., 100.);
+  HB1(3211, "P Kurama [Good2]", 200, 0.0, 1.0);
+  HB1(3212, "PathLength Kurama [Good2]", 600, 3000., 6000.);
+  HB1(3213, "MassSqr", 600, -1.2, 1.2);
 
-  HB1( 4101, "#Tracks K18 [KuramaP]", 10, 0., 10. );
-  HB1( 4102, "#Hits K18 [KuramaP]", 30, 0., 30. );
-  HB1( 4103, "Chisqr K18 [KuramaP]", 500, 0., 50. );
-  HB1( 4104, "P K18 [KuramaP]", 500, 0.5, 2.0 );
-  HB1( 4105, "Xtgt K18 [KuramaP]", 500, -200., 200. );
-  HB1( 4106, "Ytgt K18 [KuramaP]", 500, -100., 100. );
-  HB1( 4107, "Xout K18 [KuramaP]", 500, -200., 200. );
-  HB1( 4108, "Yout K18 [KuramaP]", 500, -100., 100. );
-  HB1( 4109, "Uout K18 [KuramaP]", 400, -0.35, 0.35 );
-  HB1( 4110, "Vout K18 [KuramaP]", 200, -0.20, 0.20 );
-  HB1( 4111, "Xin  K18 [KuramaP]", 500, -100., 100. );
-  HB1( 4112, "Yin  K18 [KuramaP]", 500, -100., 100. );
-  HB1( 4113, "Uin  K18 [KuramaP]", 400, -0.35, 0.35 );
-  HB1( 4114, "Vin  K18 [KuramaP]", 200, -0.20, 0.20 );
+  HB1(4101, "#Tracks K18 [KuramaP]", 10, 0., 10.);
+  HB1(4102, "#Hits K18 [KuramaP]", 30, 0., 30.);
+  HB1(4103, "Chisqr K18 [KuramaP]", 500, 0., 50.);
+  HB1(4104, "P K18 [KuramaP]", 500, 0.5, 2.0);
+  HB1(4105, "Xtgt K18 [KuramaP]", 500, -200., 200.);
+  HB1(4106, "Ytgt K18 [KuramaP]", 500, -100., 100.);
+  HB1(4107, "Xout K18 [KuramaP]", 500, -200., 200.);
+  HB1(4108, "Yout K18 [KuramaP]", 500, -100., 100.);
+  HB1(4109, "Uout K18 [KuramaP]", 400, -0.35, 0.35);
+  HB1(4110, "Vout K18 [KuramaP]", 200, -0.20, 0.20);
+  HB1(4111, "Xin  K18 [KuramaP]", 500, -100., 100.);
+  HB1(4112, "Yin  K18 [KuramaP]", 500, -100., 100.);
+  HB1(4113, "Uin  K18 [KuramaP]", 400, -0.35, 0.35);
+  HB1(4114, "Vin  K18 [KuramaP]", 200, -0.20, 0.20);
 
-  HB1( 4201, "#Tracks Kurama [Proton]", 10, 0., 10. );
-  HB1( 4202, "#Hits Kurama [Proton]", 30, 0., 30. );
-  HB1( 4203, "Chisqr Kurama [Proton]", 500, 0., 500. );
-  HB1( 4204, "Xtgt Kurama [Proton]", 500, -200., 200. );
-  HB1( 4205, "Ytgt Kurama [Proton]", 500, -100., 100. );
-  HB1( 4206, "Utgt Kurama [Proton]", 700, -0.35, 0.35 );
-  HB1( 4207, "Vtgt Kurama [Proton]", 400, -0.20, 0.20 );
-  HB2( 4208, "Xtgt%U Kurama [Proton]", 100, -200., 200., 100, -0.35, 0.35 );
-  HB2( 4209, "Ytgt%V Kurama [Proton]", 100, -100., 100., 100, -0.20, 0.20 );
-  HB2( 4210, "Xtgt%Ytgt Kurama [Proton]", 100, -200., 200., 100, -100., 100. );
-  HB1( 4211, "P Kurama [Proton]", 200, 0.0, 1.0 );
-  HB1( 4212, "PathLength Kurama [Proton]", 600, 3000., 6000. );
-  HB1( 4213, "MassSqr", 600, -1.2, 1.2 );
+  HB1(4201, "#Tracks Kurama [Proton]", 10, 0., 10.);
+  HB1(4202, "#Hits Kurama [Proton]", 30, 0., 30.);
+  HB1(4203, "Chisqr Kurama [Proton]", 500, 0., 500.);
+  HB1(4204, "Xtgt Kurama [Proton]", 500, -200., 200.);
+  HB1(4205, "Ytgt Kurama [Proton]", 500, -100., 100.);
+  HB1(4206, "Utgt Kurama [Proton]", 700, -0.35, 0.35);
+  HB1(4207, "Vtgt Kurama [Proton]", 400, -0.20, 0.20);
+  HB2(4208, "Xtgt%U Kurama [Proton]", 100, -200., 200., 100, -0.35, 0.35);
+  HB2(4209, "Ytgt%V Kurama [Proton]", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(4210, "Xtgt%Ytgt Kurama [Proton]", 100, -200., 200., 100, -100., 100.);
+  HB1(4211, "P Kurama [Proton]", 200, 0.0, 1.0);
+  HB1(4212, "PathLength Kurama [Proton]", 600, 3000., 6000.);
+  HB1(4213, "MassSqr", 600, -1.2, 1.2);
 
-  HB1( 5001, "Zvert [KK]", 1000, -1000., 1000. );
-  HB1( 5002, "MissingMass [KK]", 1000, 0.0, 2.0 );
+  HB1(5001, "Zvert [KK]", 1000, -1000., 1000.);
+  HB1(5002, "MissingMass [KK]", 1000, 0.0, 2.0);
 
-  HB2( 5011, "MissingMass%Us", 200, 0.0, 2.50, 100, -0.40, 0.40 );
-  HB2( 5012, "MissingMass%Vs", 200, 0.0, 2.50, 100, -0.20, 0.20 );
-  HB2( 5013, "MissingMass%Ub", 200, 0.0, 2.50, 100, -0.30, 0.30 );
-  HB2( 5014, "MissingMass%Vb", 200, 0.0, 2.50, 100, -0.10, 0.10 );
+  HB2(5011, "MissingMass%Us", 200, 0.0, 2.50, 100, -0.40, 0.40);
+  HB2(5012, "MissingMass%Vs", 200, 0.0, 2.50, 100, -0.20, 0.20);
+  HB2(5013, "MissingMass%Ub", 200, 0.0, 2.50, 100, -0.30, 0.30);
+  HB2(5014, "MissingMass%Vb", 200, 0.0, 2.50, 100, -0.10, 0.10);
 
   ////////////////////////////////////////////
   //Tree
@@ -1307,8 +1316,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("evnum",  &event.evnum,  "evnum/I");
   tree->Branch("spill",  &event.spill,  "spill/I");
   //Trigger
-  tree->Branch("trigpat",   event.trigpat,  Form( "trigpat[%d]/I", NumOfSegTrig ) );
-  tree->Branch("trigflag",  event.trigflag, Form( "trigflag[%d]/I", NumOfSegTrig ) );
+  tree->Branch("trigpat",   event.trigpat,  Form("trigpat[%d]/I", NumOfSegTrig));
+  tree->Branch("trigflag",  event.trigflag, Form("trigflag[%d]/I", NumOfSegTrig));
 
   //Hodoscope
   tree->Branch("nhBh1",   &event.nhBh1,   "nhBh1/I");
@@ -1536,21 +1545,21 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKuramaTracking]->SetBranchStatus("vtofKurama",  1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("tofsegKurama",1);
 
-  TTreeCont[kKuramaTracking]->SetBranchAddress("ntSdcIn",      &src.ntSdcIn      );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("nlSdcIn",      &src.nlSdcIn      );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("nhSdcIn",       src.nhSdcIn      );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("chisqrSdcIn",   src.chisqrSdcIn  );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("x0SdcIn",       src.x0SdcIn      );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("y0SdcIn",       src.y0SdcIn      );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("u0SdcIn",       src.u0SdcIn      );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("v0SdcIn",       src.v0SdcIn      );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("ntSdcOut",     &src.ntSdcOut     );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("nhSdcOut",      src.nhSdcOut     );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("chisqrSdcOut",  src.chisqrSdcOut );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("x0SdcOut",      src.x0SdcOut     );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("y0SdcOut",      src.y0SdcOut     );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("u0SdcOut",      src.u0SdcOut     );
-  TTreeCont[kKuramaTracking]->SetBranchAddress("v0SdcOut",      src.v0SdcOut     );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("ntSdcIn",      &src.ntSdcIn     );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("nlSdcIn",      &src.nlSdcIn     );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("nhSdcIn",       src.nhSdcIn     );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("chisqrSdcIn",   src.chisqrSdcIn );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("x0SdcIn",       src.x0SdcIn     );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("y0SdcIn",       src.y0SdcIn     );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("u0SdcIn",       src.u0SdcIn     );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("v0SdcIn",       src.v0SdcIn     );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("ntSdcOut",     &src.ntSdcOut    );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("nhSdcOut",      src.nhSdcOut    );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("chisqrSdcOut",  src.chisqrSdcOut);
+  TTreeCont[kKuramaTracking]->SetBranchAddress("x0SdcOut",      src.x0SdcOut    );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("y0SdcOut",      src.y0SdcOut    );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("u0SdcOut",      src.u0SdcOut    );
+  TTreeCont[kKuramaTracking]->SetBranchAddress("v0SdcOut",      src.v0SdcOut    );
 
   TTreeCont[kKuramaTracking]->SetBranchAddress("ntKurama",    &src.ntKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("nhKurama",     src.nhKurama);
@@ -1590,14 +1599,14 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kK18Tracking]->SetBranchStatus("utgtK18",     1);
   TTreeCont[kK18Tracking]->SetBranchStatus("vtgtK18",     1);
 
-  TTreeCont[kK18Tracking]->SetBranchAddress("ntBcOut",     &src.ntBcOut     );
-  TTreeCont[kK18Tracking]->SetBranchAddress("nlBcOut",     &src.nlBcOut     );
-  TTreeCont[kK18Tracking]->SetBranchAddress("nhBcOut",      src.nhBcOut     );
-  TTreeCont[kK18Tracking]->SetBranchAddress("chisqrBcOut",  src.chisqrBcOut );
-  TTreeCont[kK18Tracking]->SetBranchAddress("x0BcOut",      src.x0BcOut     );
-  TTreeCont[kK18Tracking]->SetBranchAddress("y0BcOut",      src.y0BcOut     );
-  TTreeCont[kK18Tracking]->SetBranchAddress("u0BcOut",      src.u0BcOut     );
-  TTreeCont[kK18Tracking]->SetBranchAddress("v0BcOut",      src.v0BcOut     );
+  TTreeCont[kK18Tracking]->SetBranchAddress("ntBcOut",     &src.ntBcOut    );
+  TTreeCont[kK18Tracking]->SetBranchAddress("nlBcOut",     &src.nlBcOut    );
+  TTreeCont[kK18Tracking]->SetBranchAddress("nhBcOut",      src.nhBcOut    );
+  TTreeCont[kK18Tracking]->SetBranchAddress("chisqrBcOut",  src.chisqrBcOut);
+  TTreeCont[kK18Tracking]->SetBranchAddress("x0BcOut",      src.x0BcOut    );
+  TTreeCont[kK18Tracking]->SetBranchAddress("y0BcOut",      src.y0BcOut    );
+  TTreeCont[kK18Tracking]->SetBranchAddress("u0BcOut",      src.u0BcOut    );
+  TTreeCont[kK18Tracking]->SetBranchAddress("v0BcOut",      src.v0BcOut    );
 
   TTreeCont[kK18Tracking]->SetBranchAddress("ntK18", &src.ntK18);
   TTreeCont[kK18Tracking]->SetBranchAddress("nhK18", &src.nhK18);
@@ -1636,17 +1645,17 @@ ConfMan::InitializeHistograms( void )
 
 //_____________________________________________________________________
 bool
-ConfMan::InitializeParameterFiles( void )
+ConfMan::InitializeParameterFiles()
 {
   return
-    ( InitializeParameter<DCGeomMan>("DCGEO")   &&
+    (InitializeParameter<DCGeomMan>("DCGEO")   &&
       InitializeParameter<UserParamMan>("USER") &&
-	  InitializeParameter<HodoPHCMan>("HDPHC") );
+	  InitializeParameter<HodoPHCMan>("HDPHC"));
 }
 
 //_____________________________________________________________________
 bool
-ConfMan::FinalizeProcess( void )
+ConfMan::FinalizeProcess()
 {
   return true;
 }
