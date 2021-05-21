@@ -1,8 +1,4 @@
-/**
- *  file: DCTrackSearch.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef DC_TRACK_SEARCH_HH
 #define DC_TRACK_SEARCH_HH
@@ -11,110 +7,95 @@
 
 #include <vector>
 
-struct DCPairPlaneInfo;
-class  DCPairHitCluster;
-class  DCLocalTrack;
-class  DCLTrackHit;
-class  MWPCCluster;
-class  TPCCluster;
-class  TPCLocalTrack;
-class  TPCLocalTrack_Helix;
+#include <TString.h>
 
-//typedef std::vector<TPCCluster*>       TPCClusterList;
+struct DCPairPlaneInfo;
+class DCPairHitCluster;
+class DCLocalTrack;
+class DCLTrackHit;
+class MWPCCluster;
+class TPCCluster;
+class TPCLocalTrack;
+class TPCLocalTrack_Helix;
+
+// typedef std::vector<TPCCluster*>       TPCClusterList;
 typedef std::vector<DCPairHitCluster*> ClusterList;
 typedef std::vector<int>               IndexList;
 
 namespace track
 {
-  //______________________________________________________________________________
-  int LocalTrackSearch( const std::vector<DCHitContainer>& HC,
-			const DCPairPlaneInfo *PpInfo,
-			int npp, std::vector<DCLocalTrack*>& TrackCont,
-			int MinNumOfHits=6, int T0Seg = -1 );
-
-  //______________________________________________________________________________
-  int LocalTrackSearch( const std::vector< std::vector<DCHitContainer> >& hcAssemble,
-			const DCPairPlaneInfo *PpInfo,
-			int npp, std::vector<DCLocalTrack*>& TrackCont,
-			int MinNumOfHits=6, int T0Seg = -1 );
-
-  //______________________________________________________________________________
-  int LocalTrackSearchSdcInFiber( const std::vector<DCHitContainer>& HC,
-				  const DCPairPlaneInfo *PpInfo,
-				  int npp, std::vector<DCLocalTrack*>& trackCont,
-				  int MinNumOfHits=6 );
-
-  //______________________________________________________________________________
-  int LocalTrackSearchVUX( const std::vector<DCHitContainer>& HC,
-			   const DCPairPlaneInfo *PpInfo,
-			   int npp, std::vector<DCLocalTrack*>& TrackCont,
-			   int MinNumOfHits=6 );
-
-  //______________________________________________________________________________
-  int LocalTrackSearchSdcOut( const std::vector<DCHitContainer>& SdcOutHC,
-			      const DCPairPlaneInfo *PpInfo, int npp,
-			      std::vector<DCLocalTrack*>& TrackCont,
-			      int MinNumOfHits=6 );
-
-  //______________________________________________________________________________
-  int LocalTrackSearchSdcOut( const DCHitContainer& TOFHC,
-			      const std::vector<DCHitContainer>& SdcOutHC,
-			      const DCPairPlaneInfo *PpInfo,
-			      int npp,
-			      std::vector<DCLocalTrack*>& TrackCont,
-			      int MinNumOfHits=6 );
-
-  //______________________________________________________________________________
-  int LocalTrackSearchBcOutSdcIn( const std::vector<DCHitContainer>& BcHC,
-				  const DCPairPlaneInfo *BcPpInfo,
-				  const std::vector<DCHitContainer>& SdcHC,
-				  const DCPairPlaneInfo *SdcPpInfo,
-				  int BcNpp, int SdcNpp,
-				  std::vector<DCLocalTrack*>& TrackCont,
-				  int MinNumOfHits=18 );
-
-  //______________________________________________________________________________
-  int LocalTrackSearchSdcInSdcOut( const std::vector<DCHitContainer>& SdcInHC,
-				   const DCPairPlaneInfo *SdcInPpInfo,
-				   const std::vector<DCHitContainer>& SdcOutHC,
-				   const DCPairPlaneInfo *SdcOutPpInfo,
-				   int SdcInNpp, int SdcOutNpp,
-				   std::vector<DCLocalTrack*>& TrackCont,
-				   int MinNumOfHits=12 );
-  //______________________________________________________________________________
-  int MWPCLocalTrackSearch( const std::vector<DCHitContainer>& HC,
-			    std::vector<DCLocalTrack*>& TrackCont );
-
-  //______________________________________________________________________________
-  int MWPCLocalTrackSearch( const std::vector< std::vector<DCHitContainer> >& hcList,
-			    std::vector<DCLocalTrack*>& trackCont );
-
-  //______________________________________________________________________________
-  int LocalTrackSearchCFT( const std::vector<DCHitContainer>& HC,
-			   const DCPairPlaneInfo *PpInfo,
-			   int npp, std::vector<DCLocalTrack*>& trackCont,
-			   int MinNumOfHits=3 );
-  
-  //______________________________________________________________________________
-  int LocalTrackSearchCFTppPhi( const std::vector<DCHitContainer>& HC,
-			   const DCPairPlaneInfo *PpInfo,
-			   int npp, std::vector<DCLocalTrack*>& trackCont,
-			   int MinNumOfHits=3 );  
-
-  //______________________________________________________________________________
-  int LocalTrackSearchTPC( const std::vector<TPCHitContainer>& TPCHC,
-			   std::vector<TPCLocalTrack*>& TrackCont,
-			   int MinNumOfHits=8 );
-
-  //______________________________________________________________________________
-  int LocalTrackSearchTPC_Helix( const std::vector<TPCHitContainer>& TPCHC,
-				 std::vector<TPCLocalTrack_Helix*>& TrackCont,
-				 int MinNumOfHits=8 );
-
-
-
-
+inline const TString& ClassName()
+{
+  static TString s_name("DCTrackSearch");
+  return s_name;
 }
 
+std::vector<IndexList> MakeIndex(int ndim, const int *index1, bool& status);
+std::vector<IndexList> MakeIndex(int ndim, const IndexList& index1, bool& status);
+std::vector<IndexList> MakeIndex_VXU(int ndim,int maximumHit, const int *index1);
+std::vector<IndexList> MakeIndex_VXU(int ndim,int maximumHit, const IndexList& index1);
+DCLocalTrack*          MakeTrack(const std::vector<ClusterList>& CandCont,
+                                 const IndexList& combination);
+
+int LocalTrackSearch(const std::vector<DCHitContainer>& HC,
+                     const DCPairPlaneInfo *PpInfo,
+                     int npp, std::vector<DCLocalTrack*>& TrackCont,
+                     int MinNumOfHits=6, int T0Seg = -1);
+int LocalTrackSearch(const std::vector< std::vector<DCHitContainer> >& hcAssemble,
+                     const DCPairPlaneInfo *PpInfo,
+                     int npp, std::vector<DCLocalTrack*>& TrackCont,
+                     int MinNumOfHits=6, int T0Seg = -1);
+int LocalTrackSearchSdcInFiber(const std::vector<DCHitContainer>& HC,
+                               const DCPairPlaneInfo *PpInfo,
+                               int npp, std::vector<DCLocalTrack*>& trackCont,
+                               int MinNumOfHits=6);
+int LocalTrackSearchVUX(const std::vector<DCHitContainer>& HC,
+                        const DCPairPlaneInfo *PpInfo,
+                        int npp, std::vector<DCLocalTrack*>& TrackCont,
+                        int MinNumOfHits=6);
+int LocalTrackSearchSdcOut(const std::vector<DCHitContainer>& SdcOutHC,
+                           const DCPairPlaneInfo *PpInfo, int npp,
+                           std::vector<DCLocalTrack*>& TrackCont,
+                           int MinNumOfHits=6);
+int LocalTrackSearchSdcOut(const DCHitContainer& TOFHC,
+                           const std::vector<DCHitContainer>& SdcOutHC,
+                           const DCPairPlaneInfo *PpInfo,
+                           int npp,
+                           std::vector<DCLocalTrack*>& TrackCont,
+                           int MinNumOfHits=6);
+int LocalTrackSearchBcOutSdcIn(const std::vector<DCHitContainer>& BcHC,
+                               const DCPairPlaneInfo *BcPpInfo,
+                               const std::vector<DCHitContainer>& SdcHC,
+                               const DCPairPlaneInfo *SdcPpInfo,
+                               int BcNpp, int SdcNpp,
+                               std::vector<DCLocalTrack*>& TrackCont,
+                               int MinNumOfHits=18);
+int LocalTrackSearchSdcInSdcOut(const std::vector<DCHitContainer>& SdcInHC,
+                                const DCPairPlaneInfo *SdcInPpInfo,
+                                const std::vector<DCHitContainer>& SdcOutHC,
+                                const DCPairPlaneInfo *SdcOutPpInfo,
+                                int SdcInNpp, int SdcOutNpp,
+                                std::vector<DCLocalTrack*>& TrackCont,
+                                int MinNumOfHits=12);
+int MWPCLocalTrackSearch(const std::vector<DCHitContainer>& HC,
+                         std::vector<DCLocalTrack*>& TrackCont);
+int MWPCLocalTrackSearch(const std::vector< std::vector<DCHitContainer> >& hcList,
+                         std::vector<DCLocalTrack*>& trackCont);
+int LocalTrackSearchCFT(const std::vector<DCHitContainer>& HC,
+                        const DCPairPlaneInfo *PpInfo,
+                        int npp, std::vector<DCLocalTrack*>& trackCont,
+                        int MinNumOfHits=3);
+int LocalTrackSearchCFTppPhi(const std::vector<DCHitContainer>& HC,
+                             const DCPairPlaneInfo *PpInfo,
+                             int npp, std::vector<DCLocalTrack*>& trackCont,
+                             int MinNumOfHits=3);
+int LocalTrackSearchTPC(const std::vector<TPCHitContainer>& TPCHC,
+                        std::vector<TPCLocalTrack*>& TrackCont,
+                        int MinNumOfHits=8);
+int LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
+                              std::vector<TPCLocalTrack_Helix*>& TrackCont,
+                              int MinNumOfHits=8);
+
+}
 
 #endif

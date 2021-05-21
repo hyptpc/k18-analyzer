@@ -136,7 +136,7 @@ printConnectionFlag(const std::vector<std::deque<Bool_t> >& flag)
 }
 
 //_____________________________________________________________________________
-DCAnalyzer::DCAnalyzer(void)
+DCAnalyzer::DCAnalyzer()
   : m_is_decoded(n_type),
     m_much_combi(n_type),
     m_MWPCClCont(NumOfLayersBcIn+1),
@@ -158,7 +158,8 @@ DCAnalyzer::DCAnalyzer(void)
   debug::ObjectCounter::increase(ClassName());
 }
 
-DCAnalyzer::~DCAnalyzer(void)
+//_____________________________________________________________________________
+DCAnalyzer::~DCAnalyzer()
 {
   ClearKuramaTracks();
 #if UseBcIn
@@ -899,7 +900,7 @@ DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
 //_____________________________________________________________________________
 #if UseBcIn
 Bool_t
-DCAnalyzer::TrackSearchBcIn(void)
+DCAnalyzer::TrackSearchBcIn()
 {
   track::MWPCLocalTrackSearch(&(m_BcInHC[1]), m_BcInTC);
   return true;
@@ -957,7 +958,7 @@ DCAnalyzer::TrackSearchBcOut(const std::vector<std::vector<DCHitContainer> >& hc
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchSdcIn(void)
+DCAnalyzer::TrackSearchSdcIn()
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcIn");
   track::LocalTrackSearch(m_SdcInHC, PPInfoSdcIn, NPPInfoSdcIn, m_SdcInTC, MinLayer);
@@ -966,7 +967,7 @@ DCAnalyzer::TrackSearchSdcIn(void)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchSdcOut(void)
+DCAnalyzer::TrackSearchSdcOut()
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcOut");
 
@@ -1012,7 +1013,7 @@ DCAnalyzer::TrackSearchSdcOut(const HodoClusterContainer& TOFCont)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchBcOutSdcIn(void)
+DCAnalyzer::TrackSearchBcOutSdcIn()
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerBcOutSdcIn");
 
@@ -1027,7 +1028,7 @@ DCAnalyzer::TrackSearchBcOutSdcIn(void)
 //_____________________________________________________________________________
 #if UseBcIn
 Bool_t
-DCAnalyzer::TrackSearchK18U2D(void)
+DCAnalyzer::TrackSearchK18U2D()
 {
   ClearK18TracksU2D();
 
@@ -1196,7 +1197,7 @@ DCAnalyzer::TrackSearchK18D2U(const std::vector<Double_t>& XinCont)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchKurama(void)
+DCAnalyzer::TrackSearchKurama()
 {
   ClearKuramaTracks();
 
@@ -1282,7 +1283,7 @@ DCAnalyzer::TrackSearchKurama(Double_t initial_momentum)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchTPC(void)
+DCAnalyzer::TrackSearchTPC()
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
@@ -1296,7 +1297,7 @@ DCAnalyzer::TrackSearchTPC(void)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchTPC_Helix(void)
+DCAnalyzer::TrackSearchTPC_Helix()
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
@@ -1311,7 +1312,7 @@ DCAnalyzer::TrackSearchTPC_Helix(void)
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearDCHits(void)
+DCAnalyzer::ClearDCHits()
 {
 #if UseBcIn
   ClearBcInHits();
@@ -1327,7 +1328,7 @@ DCAnalyzer::ClearDCHits(void)
 //_____________________________________________________________________________
 #if UseBcIn
 void
-DCAnalyzer::ClearBcInHits(void)
+DCAnalyzer::ClearBcInHits()
 {
   del::ClearContainerAll(m_TempBcInHC);
   del::ClearContainerAll(m_BcInHC);
@@ -1337,7 +1338,7 @@ DCAnalyzer::ClearBcInHits(void)
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearBcOutHits(void)
+DCAnalyzer::ClearBcOutHits()
 {
   del::ClearContainerAll(m_BcOutHC);
 }
@@ -1345,35 +1346,35 @@ DCAnalyzer::ClearBcOutHits(void)
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearSdcInHits(void)
+DCAnalyzer::ClearSdcInHits()
 {
   del::ClearContainerAll(m_SdcInHC);
 }
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearSdcOutHits(void)
+DCAnalyzer::ClearSdcOutHits()
 {
   del::ClearContainerAll(m_SdcOutHC);
 }
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearVtxHits(void)
+DCAnalyzer::ClearVtxHits()
 {
   del::ClearContainer(m_VtxPoint);
 }
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearTOFHits(void)
+DCAnalyzer::ClearTOFHits()
 {
   del::ClearContainer(m_TOFHC);
 }
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearTPCHits(void)
+DCAnalyzer::ClearTPCHits()
 {
   del::ClearContainerAll(m_TPCHitCont);
   del::ClearContainerAll(m_TempTPCHitCont);
@@ -1382,7 +1383,7 @@ DCAnalyzer::ClearTPCHits(void)
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearTPCClusters(void)
+DCAnalyzer::ClearTPCClusters()
 {
   del::ClearContainerAll(m_TPCClCont);
 }
@@ -1390,7 +1391,7 @@ DCAnalyzer::ClearTPCClusters(void)
 //_____________________________________________________________________________
 #if UseBcIn
 void
-DCAnalyzer::ClearTracksBcIn(void)
+DCAnalyzer::ClearTracksBcIn()
 {
   del::ClearContainer(m_BcInTC);
 }
@@ -1398,14 +1399,14 @@ DCAnalyzer::ClearTracksBcIn(void)
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearTracksBcOut(void)
+DCAnalyzer::ClearTracksBcOut()
 {
   del::ClearContainer(m_BcOutTC);
 }
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearTracksSdcIn(void)
+DCAnalyzer::ClearTracksSdcIn()
 {
   del::ClearContainer(m_SdcInTC);
   del::ClearContainerAll(m_SdcInExTC);
@@ -1413,7 +1414,7 @@ DCAnalyzer::ClearTracksSdcIn(void)
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearTracksSdcOut(void)
+DCAnalyzer::ClearTracksSdcOut()
 {
   del::ClearContainer(m_SdcOutTC);
   del::ClearContainerAll(m_SdcOutExTC);
@@ -1422,7 +1423,7 @@ DCAnalyzer::ClearTracksSdcOut(void)
 //_____________________________________________________________________________
 #if UseBcIn
 void
-DCAnalyzer::ClearK18TracksU2D(void)
+DCAnalyzer::ClearK18TracksU2D()
 {
   del::ClearContainer(m_K18U2DTC);
 }
@@ -1430,35 +1431,35 @@ DCAnalyzer::ClearK18TracksU2D(void)
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearK18TracksD2U(void)
+DCAnalyzer::ClearK18TracksD2U()
 {
   del::ClearContainer(m_K18D2UTC);
 }
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearKuramaTracks(void)
+DCAnalyzer::ClearKuramaTracks()
 {
   del::ClearContainer(m_KuramaTC);
 }
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearTracksBcOutSdcIn(void)
+DCAnalyzer::ClearTracksBcOutSdcIn()
 {
   del::ClearContainer(m_BcOutSdcInTC);
 }
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearTracksSdcInSdcOut(void)
+DCAnalyzer::ClearTracksSdcInSdcOut()
 {
   del::ClearContainer(m_SdcInSdcOutTC);
 }
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearTracksTPC(void)
+DCAnalyzer::ClearTracksTPC()
 {
   del::ClearContainer(m_TPCTC);
   del::ClearContainer(m_TPCTC_Helix);
@@ -1614,7 +1615,7 @@ DCAnalyzer::ReCalcKuramaTrack(Bool_t applyRecursively)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::ReCalcAll(void)
+DCAnalyzer::ReCalcAll()
 {
   ReCalcDCHits();
 #if UseBcIn

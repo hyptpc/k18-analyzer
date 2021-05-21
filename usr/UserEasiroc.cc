@@ -370,11 +370,11 @@ UserEasiroc::ProcessingNormal()
 	  HF1(BFTHid +plane+8, width);
 	  HF2(BFTHid +plane+12, seg, width);
 	  HF1(BFTHid +plane+21, time);
-	  HF2(BFTHid +plane+23, width, time);
 	  HF1(BFTHid +plane+31, ctime);
-	  HF2(BFTHid +plane+33, width, ctime);
 	  HF1(BFTHid +1000*(plane+3)+seg+1, width);
 	  if(-10.<time && time<10.){
+            HF2(BFTHid +plane+23, width, time);
+            HF2(BFTHid +plane+33, width, ctime);
 	    HF2(BFTHid +1000*(plane+5)+seg+1, width, time);
 	    HF2(BFTHid +1000*(plane+7)+seg+1, width, ctime);
 	  }
@@ -558,7 +558,7 @@ ConfMan::InitializeHistograms()
   const Double_t MinTot  =  -10.;
   const Double_t MaxTot  =  160.;
 
-  const Int_t    NbinTime = 1000;
+  const Int_t    NbinTime = 100;
   const Double_t MinTime  = -50.;
   const Double_t MaxTime  =  50.;
 

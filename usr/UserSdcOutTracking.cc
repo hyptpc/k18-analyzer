@@ -23,7 +23,7 @@
 #define TotCut      0
 #define Chi2Cut     0
 #define MaxMultiCut 0
-#define UseTOF      1 // use or not TOF for tracking
+#define UseTOF      0 // use or not TOF for tracking
 
 namespace
 {

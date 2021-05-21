@@ -85,7 +85,6 @@ struct Event
   Int_t evnum;
   Int_t spill;
 
-  Int_t trignhits;
   Int_t trigpat[NumOfSegTrig];
   Int_t trigflag[NumOfSegTrig];
 
@@ -205,7 +204,6 @@ Event::clear()
 {
   evnum      = 0;
   spill      = 0;
-  trignhits  = 0;
   bh1nhits   = 0;
   bacnhits   = 0;
   bh2nhits   = 0;
@@ -350,7 +348,6 @@ struct Dst
   Int_t evnum;
   Int_t spill;
 
-  Int_t trignhits;
   Int_t trigpat[NumOfSegTrig];
   Int_t trigflag[NumOfSegTrig];
 
@@ -578,29 +575,20 @@ UserHodoscope::ProcessingNormal()
   //**************************************************************************
   //****************** RawData
 
-  ///// Trig
+  // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
-  {
-    Int_t trignhits = 0;
-    const HodoRHitContainer& cont = rawData->GetTrigRawHC();
-    Int_t nh = cont.size();
-    for(Int_t i=0; i<nh; ++i){
-      HodoRawHit *hit = cont[i];
-      Int_t seg = hit->SegmentId()+1;
-      Int_t tdc = hit->GetTdc1();
-      if(tdc > 0){
-        trigger_flag.set(seg - 1);
-	event.trigpat[trignhits] = seg;
-	event.trigflag[seg-1]    = tdc;
-	dst.trigpat[trignhits]   = seg;
-	dst.trigflag[seg-1]      = tdc;
-	HF1(10, seg-1);
-	HF1(10+seg, tdc);
-	trignhits++;
-      }
+  for(const auto& hit: rawData->GetTrigRawHC()){
+    Int_t seg = hit->SegmentId() + 1;
+    Int_t tdc = hit->GetTdc1();
+    if(tdc > 0){
+      event.trigpat[trigger_flag.count()] = seg;
+      event.trigflag[seg-1] = tdc;
+      dst.trigpat[trigger_flag.count()] = seg;
+      dst.trigflag[seg-1] = tdc;
+      trigger_flag.set(seg-1);
+      HF1(10, seg-1);
+      HF1(10+seg, tdc);
     }
-    event.trignhits = trignhits;
-    dst.trignhits   = trignhits;
   }
 
   if(trigger_flag[trigger::kSpillEnd]) return true;
@@ -732,7 +720,7 @@ UserHodoscope::ProcessingNormal()
       else       HF1(BACHid+100*seg+7, A);
       // Hitpat
       if(is_hit){
-        event.bachitpat[bac_nhits++]= seg;
+        event.bachitpat[bac_nhits++] = seg;
   	++nh1; HF1(BACHid+3, seg-0.5);
       }
     }
@@ -2422,8 +2410,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("evnum",     &event.evnum,     "evnum/I");
   tree->Branch("spill",     &event.spill,     "spill/I");
   //Trig
-  tree->Branch("trignhits", &event.trignhits, "trignhits/I");
-  tree->Branch("trigpat",    event.trigpat,   "trigpat[trignhits]/I");
+  tree->Branch("trigpat",    event.trigpat,   Form("trigpat[%d]/I", NumOfSegTrig));
   tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
 
   //BH1
@@ -2538,8 +2525,7 @@ ConfMan::InitializeHistograms()
   hodo = new TTree("hodo","Data Summary Table of Hodoscope");
   hodo->Branch("evnum",     &dst.evnum,     "evnum/I");
   hodo->Branch("spill",     &dst.spill,     "spill/I");
-  hodo->Branch("trignhits", &dst.trignhits, "trignhits/I");
-  hodo->Branch("trigpat",    dst.trigpat,   "trigpat[trignhits]/I");
+  hodo->Branch("trigpat",    dst.trigpat,   Form("trigpat[%d]/I", NumOfSegTrig));
   hodo->Branch("trigflag",   dst.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
   hodo->Branch("nhBh1",     &dst.nhBh1,     "nhBh1/I");
   hodo->Branch("csBh1",      dst.csBh1,     "csBh1[nhBh1]/I");

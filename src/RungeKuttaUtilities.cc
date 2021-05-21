@@ -34,7 +34,7 @@ const Int_t& IdTOF_UY = gGeom.DetectorId("TOF-UY");
 const Int_t& IdTOF_DX = gGeom.DetectorId("TOF-DX");
 const Int_t& IdTOF_DY = gGeom.DetectorId("TOF-DY");
 const Int_t& IdTarget = gGeom.DetectorId("Target");
-const Int_t& IdRKLAST = gGeom.DetectorId("RKLAST");
+const Int_t& IdRKINIT = gGeom.DetectorId("RKINIT");
 
 const Double_t CHLB     = 2.99792458E-4;
 const Double_t Polarity = 1.;
@@ -732,7 +732,7 @@ RK::TraceToLast(RKHitPointContainer& hitContainer)
 
   // add downstream detectors from TOF
   for(const auto& lid: gGeom.GetDetectorIDList()){
-    if(idini < lid && lid <= IdRKLAST){
+    if(idini < lid && lid <= IdRKINIT){
       hitContainer.push_back(std::make_pair(lid, RKcalcHitPoint()));
     }
   }

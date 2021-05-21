@@ -379,21 +379,25 @@ UserSdcInTracking::ProcessingNormal()
 
 	Int_t nhdt = hit->GetDriftTimeSize();
 	Int_t tot1st = -1;
+        Double_t dt1st = 1e10;
 	for(Int_t k=0; k<nhdt; k++){
 	  Double_t dt = hit->GetDriftTime(k);
+          if(dt < dt1st) dt1st = dt;
 	  HF1(100*layer+3, dt);
 	  HF1(10000*layer+1000+Int_t(wire), dt);
-
 	  Double_t tot = hit->GetTot(k);
 	  HF1(100*layer+5, tot);
 	  if(tot > tot1st){
 	    tot1st = tot;
 	  }
 	}
+        HF1(100*layer+30, dt1st);
 	HF1(100*layer+7, tot1st);
+        // Double_t dl1st = 1e10;
 	Int_t nhdl = hit->GetDriftTimeSize();
 	for(Int_t k=0; k<nhdl; k++){
 	  Double_t dl = hit->GetDriftLength(k);
+          // if(dl < dl1st) dl1st = dl;
 	  HF1(100*layer+4, dl);
 	}
       }
@@ -535,19 +539,19 @@ ConfMan:: InitializeHistograms()
   const Double_t MinSdcInTdc  =    0.;
   const Double_t MaxSdcInTdc  = 2000.;
 
-  const Int_t    NbinSDC1DT = 200   ;
-  const Double_t MinSDC1DT  = -30.  ;
-  const Double_t MaxSDC1DT  = 150.  ;
-  const Int_t    NbinSDC1DL =  45   ;
-  const Double_t MinSDC1DL  =  -0.5 ;
-  const Double_t MaxSDC1DL  =   4.0 ;
+  const Int_t    NbinSDC1DT = 240;
+  const Double_t MinSDC1DT  = -30.;
+  const Double_t MaxSDC1DT  = 170.;
+  const Int_t    NbinSDC1DL = 55;
+  const Double_t MinSDC1DL  = -0.5;
+  const Double_t MaxSDC1DL  = 5.0;
 
-  const Int_t    NbinSDC2DT = 300 ;
+  const Int_t    NbinSDC2DT = 360;
   const Double_t MinSDC2DT  = -50.;
-  const Double_t MaxSDC2DT  = 200.;
-  const Int_t    NbinSDC2DL = 100 ;
-  const Double_t MinSDC2DL  =  -3.;
-  const Double_t MaxSDC2DL  =   7.;
+  const Double_t MaxSDC2DT  = 250.;
+  const Int_t    NbinSDC2DL = 85;
+  const Double_t MinSDC2DL  =  -0.5;
+  const Double_t MaxSDC2DL  =   8.;
 
   const Int_t NbinRes   =  200;
   const Double_t MinRes = -1.;
@@ -589,6 +593,7 @@ ConfMan:: InitializeHistograms()
     TString title6 = Form("Tdc 1st %s#%2d", tag.Data(), i);
     TString title7 = Form("TOT 1st %s#%2d", tag.Data(), i);
     TString title10 = Form("Trailing %s#%2d", tag.Data(), i);
+    TString title30 = Form("Drift Time 1st %s#%2d", tag.Data(), i);
     HB1(100*i+0, title0, nwire+1, 0., nwire+1);
     HB1(100*i+1, title1, nwire, 0., nwire);
     HB1(100*i+2, title2, NbinSdcInTdc, MinSdcInTdc, MaxSdcInTdc);
@@ -598,6 +603,7 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+6, title6, NbinSdcInTdc, MinSdcInTdc, MaxSdcInTdc);
     HB1(100*i+7, title7, 500,  0, 500);
     HB1(100*i+10, title10, NbinSdcInTdc, MinSdcInTdc, MaxSdcInTdc);
+    HB1(100*i+30, title30, nbindt, mindt, maxdt);
     for (Int_t wire=1; wire<=nwire; wire++){
       TString title11 = Form("Tdc %s#%2d  Wire#%4d", tag.Data(), i, wire);
       TString title12 = Form("DriftTime %s#%2d Wire#%4d", tag.Data(), i, wire);
@@ -636,7 +642,7 @@ ConfMan:: InitializeHistograms()
     HB2(100*i+16, title16, 250, -250., 250., NbinRes, MinRes, MaxRes);
     HB2(100*i+17, title17, 100, -250., 250., 100, -250., 250.);
     HB2(100*i+18, title18, 100, -3., 3., NbinRes, MinRes, MaxRes);
-    HB2(100*i+19, title19, nbindt, mindt, maxdt, 100, -4., 4.);
+    HB2(100*i+19, title19, nbindt, mindt, maxdt, 100, -maxdl, maxdl);
     HBProf(100*i+20, title20, nbindt, mindt, maxdt, mindl, maxdl);
     HB2(100*i+22, title22, nbindt, mindt, maxdt, nbindl, mindl, maxdl);
     HB1(100*i+21, title21, 200, -5.0, 5.0);
@@ -651,8 +657,8 @@ ConfMan:: InitializeHistograms()
 
     for (Int_t j=1; j<=nwire; j++) {
       TString title = Form("XT of Layer %2d Wire #%4d", i, j);
-      HBProf(100000*i+3000+j, title, 100, -4., 4., -5, 50);
-      HB2(100000*i+4000+j, title, 100, -4., 4., 40, -5., 50.);
+      HBProf(100000*i+3000+j, title, 100, -maxdl, maxdl, -5, 50);
+      HB2(100000*i+4000+j, title, 100, -maxdl, maxdl, 40, -5., 50.);
     }
   }
 

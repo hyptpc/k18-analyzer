@@ -2116,7 +2116,7 @@ EventDisplay::DrawSdcOutLocalTrack(DCLocalTrack *tp)
 {
 #if SdcOut
   Double_t x0 = tp->GetX0(), y0 = tp->GetY0();
-  Double_t zSdcOut = gGeom.GetLocalZ("RKLAST");
+  Double_t zSdcOut = gGeom.GetLocalZ("RKINIT");
   Double_t x1 = tp->GetX(zSdcOut), y1 = tp->GetY(zSdcOut);
 
   ThreeVector gPos0(x0, y0, 0.);
