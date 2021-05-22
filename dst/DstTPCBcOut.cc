@@ -50,8 +50,8 @@ namespace
   const double max_ycut = 50.;//mm
   const Int_t MinPosMapXZ = -200;
   const Int_t MaxPosMapXZ = 200;
-  const Int_t MinPosMapY = -30;
-  const Int_t MaxPosMapY = 30;
+  const Int_t MinPosMapY = -20;
+  const Int_t MaxPosMapY = 20;
   const Int_t Meshsize = 5;
 
   const Double_t& zK18HS = gGeom.LocalZ("K18HS");
@@ -226,9 +226,9 @@ TTree *tree;
 }
 
 Int_t GetHistNum(Double_t x, Double_t y, Double_t z){
-  int ix = (int)((x - MinPosMapXZ))/Meshsize;
-  int iy = (int)((y - MinPosMapY))/Meshsize;
-  int iz = (int)((z - MinPosMapXZ))/Meshsize;
+  int ix = (int)((x - (MinPosMapXZ - Meshsize/2.)))/Meshsize;
+  int iy = (int)((y - (MinPosMapY - Meshsize/2.)))/Meshsize;
+  int iz = (int)((z - (MinPosMapXZ - Meshsize/2.)))/Meshsize;
 
   Int_t NumOfDivXZ = ((MaxPosMapXZ - MinPosMapXZ)/Meshsize) + 1;
   Int_t NumOfDivY = ((MaxPosMapY - MinPosMapY)/Meshsize) + 1;
