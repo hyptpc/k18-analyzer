@@ -114,9 +114,8 @@ StopTimingSdcOut 360 400
 ### SdcOut dT offset for L1 stop timing
 StopTimeDiffSdcOut 150
 
-### SdcOut TOT cut
-MinTotSDC2 50.
-MinTotSDC3 80.
+### BcOutSdcInTracking
+MinLayerBcOutSdcIn 22
 
 ### TPCHit
 TPC_Subtraction		0

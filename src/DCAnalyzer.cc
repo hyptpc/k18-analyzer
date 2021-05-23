@@ -1020,7 +1020,7 @@ DCAnalyzer::TrackSearchBcOutSdcIn()
 
   track::LocalTrackSearchBcOutSdcIn(m_BcOutHC, PPInfoBcOut,
                                     m_SdcInHC, PPInfoSdcIn,
-                                    NPPInfoBcOut,NPPInfoSdcIn,
+                                    NPPInfoBcOut, NPPInfoSdcIn,
                                     m_BcOutSdcInTC, MinLayer);
 
   return true;

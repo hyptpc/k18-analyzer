@@ -1772,21 +1772,6 @@ LocalTrackSearchBcOutSdcIn(const std::vector<DCHitContainer>& BcHC,
 
   FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackComp(), CandCont);
 
-  {
-    Int_t nn=TrackCont.size();
-    for(Int_t i=0; i<nn; ++i){
-      DCLocalTrack *tp = TrackCont[i];
-      Int_t nh=tp->GetNHit();
-      for(Int_t j=0; j<nh; ++j){
-        Int_t lnum = tp->GetHit(j)->GetLayer();
-        Double_t zz = gGeom.GetLocalZ(lnum);
-        if(lnum>=113 && lnum<=124)
-          zz -= (zK18Target - zTarget);
-        tp->GetHit(j)->SetCalPosition(tp->GetX(zz), tp->GetY(zz));
-      }
-    }
-  }
-
   return TrackCont.size();
 }
 

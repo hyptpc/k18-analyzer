@@ -220,6 +220,8 @@ public:
 
   Bool_t TrackSearchBcOutSdcIn();
   Bool_t TrackSearchSdcInSdcOut();
+  const DCLocalTrackContainer& GetTrackContainerBcOutSdcIn() const
+    { return m_BcOutSdcInTC; }
   Int_t GetNtracksBcOutSdcIn() const { return m_BcOutSdcInTC.size(); }
   Int_t GetNtracksSdcInSdcOut() const { return m_SdcInSdcOutTC.size(); }
   const DCLocalTrack* GetTrackBcOutSdcIn(Int_t i) const
