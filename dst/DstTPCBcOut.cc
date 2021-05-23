@@ -48,11 +48,11 @@ namespace
   //const double max_ycut = 15.;//mm
   const double min_ycut = -50.;//mm
   const double max_ycut = 50.;//mm
-  const Int_t MinPosMapXZ = -200;
-  const Int_t MaxPosMapXZ = 200;
+  const Int_t MinPosMapXZ = -270;
+  const Int_t MaxPosMapXZ = 270;
   const Int_t MinPosMapY = -20;
   const Int_t MaxPosMapY = 20;
-  const Int_t Meshsize = 5;
+  const Int_t Meshsize = 10;
 
   const Double_t& zK18HS = gGeom.LocalZ("K18HS");
 }
@@ -220,8 +220,8 @@ Src    src;
 TH1   *h[MaxHist];
 TTree *tree;
   enum eDetHid {
-    PosXHid    = 100000,
-    PosYHid    = 200000
+    PosXHid    = 1000000,
+    PosYHid    = 2000000
   };
 }
 
@@ -416,7 +416,8 @@ dst::DstRead( int ievent )
 	Double_t y_BC = y0_BC + zTPC*v0_BC;
 	if(MinPosMapXZ<x && x<MaxPosMapXZ&&
 	   MinPosMapY<y && y<MaxPosMapY&&
-	   MinPosMapXZ<z && z<MaxPosMapXZ){
+	   MinPosMapXZ<z && z<MaxPosMapXZ&&
+	   cl_size>=2){
 	  int histnum = GetHistNum(x, y, z);
 	  HF1(PosXHid + histnum, x_BC - x);
 	  HF1(PosYHid + histnum, y_BC - y);
@@ -548,9 +549,9 @@ ConfMan::InitializeHistograms( void )
   HB1( 1, "Status", 21, 0., 21. );
   HB1( 10, "NTrack TPC", 40, 0., 40. );
 
-  const Int_t    NbinPos = 500;
-  const Double_t MinPos  = -20.;
-  const Double_t MaxPos  = 20.;
+  const Int_t    NbinPos = 3200;
+  const Double_t MinPos  = -80.;
+  const Double_t MaxPos  = 80.;
 
   Int_t NumOfDivXZ = ((MaxPosMapXZ - MinPosMapXZ)/Meshsize) + 1;
   Int_t NumOfDivY = ((MaxPosMapY - MinPosMapY)/Meshsize) + 1;

@@ -136,7 +136,7 @@ ClusterYCut 15
 ### TPC Hough Window cut
 #HoughWindowCut 10
 HoughWindowCut 10
-TPCClusterSizeCut 2
+TPCClusterSizeCut 1
 TPCMaxLayerCut 29
 
 ### TPC resolution parameter

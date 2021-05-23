@@ -482,7 +482,8 @@ DCAnalyzer::ReCalcTPCHits(const Int_t nhits,
 	Double_t mrow = p->MeanRow();
 	Int_t clusterSize = p->GetClusterSize();
 	TPCHit* hit = new TPCHit(layer, mrow);
-	hit->SetPos(pos);
+	//hit->SetPos(pos);
+	hit->SetPos(cpos);
 	hit->SetCharge(charge);
 	hit->SetClusterSize(clusterSize);
 	hit->SetCharge_center(charge_center);
