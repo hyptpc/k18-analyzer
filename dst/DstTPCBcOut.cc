@@ -221,7 +221,8 @@ TH1   *h[MaxHist];
 TTree *tree;
   enum eDetHid {
     PosXHid    = 1000000,
-    PosYHid    = 2000000
+    PosYHid    = 2000000, 
+    PosYPadHid    = 3000000
   };
 }
 
@@ -365,11 +366,27 @@ dst::DstRead( int ievent )
       Double_t z = hit->GetZ();
       Double_t de = hit->GetCharge();
       Double_t pad = hit->GetPad();
+      Int_t row = hit->GetRow();
       event.raw_hitpos_x.push_back(x);
       event.raw_hitpos_y.push_back(y);
       event.raw_hitpos_z.push_back(z);
       event.raw_de.push_back(de);
       event.raw_padid.push_back(pad);
+ 
+     for(int it=0; it<src.ntrack; ++it){
+	Double_t x0_BC = src.x0[it];
+	Double_t u0_BC = src.u0[it];
+	Double_t y0_BC = src.y0[it];
+	Double_t v0_BC = src.v0[it];
+
+	Double_t zTPC = zK18HS + z;
+	Double_t x_BC = x0_BC + zTPC*u0_BC;
+	Double_t y_BC = y0_BC + zTPC*v0_BC;
+	if(fabs(x_BC - x)<60.){
+	  HF1(PosYPadHid + layer*1000+ row,  y - y_BC);
+	}
+     }
+     
       ++nh_Tpc;
     }
   }
@@ -564,6 +581,12 @@ ConfMan::InitializeHistograms( void )
 	HB1(PosYHid + histnum, "TPC Pos YCor", NbinPos, MinPos, MaxPos );
 	++histnum;
       }
+    }
+  }
+  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+    const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
+    for( Int_t r=0; r<NumOfRow; ++r ){
+      HB1(PosYPadHid + layer*1000 + r , "TPC Pad Y Cor", NbinPos, MinPos, MaxPos );
     }
   }
 
