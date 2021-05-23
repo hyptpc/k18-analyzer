@@ -211,9 +211,9 @@ UserSdcOutTracking::ProcessingNormal()
   static const auto MaxDeTOF = gUser.GetParameter("DeTOF", 1);
   static const auto MinTimeTOF = gUser.GetParameter("TimeTOF", 0);
   static const auto MaxTimeTOF = gUser.GetParameter("TimeTOF", 1);
-  static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
   static const auto MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
   static const auto MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
+  static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
 #if TotCut
   static const auto MinTotSDC3 = gUser.GetParameter("MinTotSDC3");
   static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
@@ -226,15 +226,20 @@ UserSdcOutTracking::ProcessingNormal()
 
   event.evnum = gUnpacker.get_event_number();
 
+  Double_t common_stop_tdc = qnan;
+
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
   for(const auto& hit: rawData->GetTrigRawHC()){
-    Int_t seg = hit->SegmentId() + 1;
+    Int_t seg = hit->SegmentId();
     Int_t tdc = hit->GetTdc1();
     if(tdc > 0){
       event.trigpat[trigger_flag.count()] = seg;
-      event.trigflag[seg-1] = tdc;
-      trigger_flag.set(seg-1);
+      event.trigflag[seg] = tdc;
+      trigger_flag.set(seg);
+      if(seg == trigger::kCommonStopSdcOut){
+        common_stop_tdc = tdc;
+      }
     }
   }
 
@@ -350,27 +355,21 @@ UserSdcOutTracking::ProcessingNormal()
 #endif
   }
 
-  //Tof flag
-  Bool_t flag_tof_stop = false;
-  {
-    static const Int_t device_id    = gUnpacker.get_device_id("TFlag");
-    static const Int_t data_type_id = gUnpacker.get_data_id("TFlag", "tdc");
-
-    Int_t mhit = gUnpacker.get_entries(device_id, 0, trigger::kTofTiming, 0, data_type_id);
-    for(Int_t m = 0; m<mhit; ++m){
-      Int_t tdc = gUnpacker.get(device_id, 0, trigger::kTofTiming, 0, data_type_id, m);
-      HF1(41, tdc);
-      if(nhTof > 0) HF1(42, tdc);
-      if(nhTof == 0) HF1(43, tdc);
-      if(!(MinStopTimingSdcOut < tdc && tdc < MaxStopTimingSdcOut)) flag_tof_stop = true;
-    }// for(m)
-  }
-
   HF1(1, 6.);
+
+  // Common stop timing
+  HF1(41, common_stop_tdc);
+  if(nhTof > 0) HF1(42, common_stop_tdc);
+  if(nhTof == 0) HF1(43, common_stop_tdc);
+  Bool_t common_stop_is_tof = (common_stop_tdc < MinStopTimingSdcOut
+                               || MaxStopTimingSdcOut < common_stop_tdc);
+  if(!common_stop_is_tof) return true;
+
+  HF1(1, 7);
 
   //////SdcIn
 #if 0
-  static const Double_t MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
+  static const Double_t MaxMultiHitSdcIn = gUser.GetParameter("MaxMultiHitSdcIn");
   //////////////SdcIn number of hit layer
   DCAna->DecodeSdcInHits(rawData);
   Double_t multi_SdcIn=0.;
@@ -386,7 +385,7 @@ UserSdcOutTracking::ProcessingNormal()
 
 
   HF1(1, 10.);
-  Double_t offset = flag_tof_stop ? 0 : StopTimeDiffSdcOut;
+  Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
   DCAna->DecodeSdcOutHits(rawData, offset);
 #if TotCut
   DCAna->TotCutSDC3(MinTotSDC3);
@@ -433,8 +432,8 @@ UserSdcOutTracking::ProcessingNormal()
         Int_t tot1st = -1;
         for(Int_t k=0; k<nhdt; k++){
           Double_t dt = hit->GetDriftTime(k);
-          if(flag_tof_stop) HF1(100*layer+3, dt);
-          else              HF1(100*layer+8, dt);
+          if(common_stop_is_tof) HF1(100*layer+3, dt);
+          else                   HF1(100*layer+8, dt);
           HF1(10000*layer+1000+Int_t(wire), dt);
 
           Double_t tot = hit->GetTot(k);
@@ -463,7 +462,7 @@ UserSdcOutTracking::ProcessingNormal()
   HF1(1, 11.);
 
   // std::cout << "==========TrackSearch SdcOut============" << std::endl;
-  if(flag_tof_stop){
+  if(common_stop_is_tof){
 #if UseTOF
     DCAna->TrackSearchSdcOut(TOFCont);
 #else
@@ -623,16 +622,16 @@ ConfMan::InitializeHistograms()
   const Double_t MinSdcOutTdc  =    0.;
   const Double_t MaxSdcOutTdc  = 2000.;
 
-  const Int_t    NbinSDC3DT = 240;
+  const Int_t    NbinSDC3DT = 360;
   const Double_t MinSDC3DT  = -50.;
-  const Double_t MaxSDC3DT  = 150.;
+  const Double_t MaxSDC3DT  = 250.;
   const Int_t    NbinSDC3DL =  90;
   const Double_t MinSDC3DL  =  -2.;
   const Double_t MaxSDC3DL  =   7.;
 
-  const Int_t    NbinSDC4DT = 480;
+  const Int_t    NbinSDC4DT = 720;
   const Double_t MinSDC4DT  = -50.;
-  const Double_t MaxSDC4DT  = 350.;
+  const Double_t MaxSDC4DT  = 550.;
   const Int_t    NbinSDC4DL = 180;
   const Double_t MinSDC4DL  =  -3.;
   const Double_t MaxSDC4DL  =  15.;
@@ -724,7 +723,7 @@ ConfMan::InitializeHistograms()
     TString title73 = Form("Residual SdcOut%2d (30<theta<45)", i);
     TString title74 = Form("Residual SdcOut%2d (45<theta)", i);
     HB1(100*i+11, title11, nwire, 0., nwire);
-    HB1(100*i+12, title12, 600, -100, 400);
+    HB1(100*i+12, title12, nbindt, mindt, maxdt);
     HB1(100*i+13, title13, 100, -5, maxdl);
     HB1(100*i+14, title14, 100, -1000., 1000.);
     if(i<=NumOfLayersSdcOut)
@@ -740,9 +739,9 @@ ConfMan::InitializeHistograms()
       HB2(100*i+18, title18, 110, -5.5, 5.5, 100, -1.0, 1.0);
     else
       HB2(100*i+18, title18, 110, -11., 11., 100, -1.0, 1.0);
-    HB2(100*i+19, title19, 200, -50., maxdt, 200, -maxdl, maxdl);
+    HB2(100*i+19, title19, nbindt, mindt, maxdt, Int_t(maxdl*20), -maxdl, maxdl);
     HBProf(100*i+20, title20, 100, -50, 300, 0, maxdl);
-    HB2(100*i+22, title22, 200, -50, maxdt, 100, -0.5, maxdl);
+    HB2(100*i+22, title22, nbindt, mindt, maxdt, 100, -0.5, maxdl);
     HB1(100*i+21, title21, 200, -5.0, 5.0);
     HB2(100*i+31, Form("Resid%%X SdcOut %d", i), 100, -1000., 1000., 100, -2., 2.);
     HB2(100*i+32, Form("Resid%%Y SdcOut %d", i), 100, -1000., 1000., 100, -2., 2.);
@@ -797,9 +796,9 @@ ConfMan::InitializeHistograms()
   HB1(38, "Plane Eff", 30, 0, 30);
 
   // Common Stop Timing
-  HB1(41, "Common Stop Timing", 0x1000, 0, 0x1000);
-  HB1(42, "Common Stop Timing (w/TOF)", 0x1000, 0, 0x1000);
-  HB1(43, "Common Stop Timing (w/oTOF)", 0x1000, 0, 0x1000);
+  HB1(41, "Common Stop TDC", 0x1000, 0, 0x1000);
+  HB1(42, "Common Stop TDC (w/TOF)", 0x1000, 0, 0x1000);
+  HB1(43, "Common Stop TDC (w/oTOF)", 0x1000, 0, 0x1000);
 
   ////////////////////////////////////////////
   //Tree

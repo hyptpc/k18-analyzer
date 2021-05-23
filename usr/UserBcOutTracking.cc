@@ -523,9 +523,9 @@ ConfMan:: InitializeHistograms()
   const Double_t MinBcOutTdc =  200.;
   const Double_t MaxBcOutTdc = 1200.;
 
-  const Int_t NbinBcOutDT   =  120;
+  const Int_t NbinBcOutDT   =  96;
   const Double_t MinBcOutDT =  -10.;
-  const Double_t MaxBcOutDT =   90.;
+  const Double_t MaxBcOutDT =   70.;
 
   const Int_t NbinBcOutDL   = 80;
   const Double_t MinBcOutDL =  -0.5;
@@ -597,7 +597,8 @@ ConfMan:: InitializeHistograms()
     HB2(100*i+16, title16, 250, -250., 250., 100, -1.0, 1.0);
     HB2(100*i+17, title17, 100, -250., 250., 100, -250., 250.);
     HB2(100*i+18, title18, 50, 3., 3., 100, -1.0, 1.0);
-    HB2(100*i+19, title19, 125, -5., 100., 100, -3, 3);
+    HB2(100*i+19, title19, NbinBcOutDT, MinBcOutDT, MaxBcOutDT,
+        Int_t(MaxBcOutDL*20), -MaxBcOutDL, MaxBcOutDL);
     HBProf(100*i+20, title20, 100, -5., 50., 0., 12.);
     HB2(100*i+22, title22,
         NbinBcOutDT, MinBcOutDT, MaxBcOutDT,

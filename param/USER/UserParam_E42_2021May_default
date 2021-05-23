@@ -94,22 +94,22 @@ MinTotSDC4 80
 MaxMultiHitBcOut 16
 
 ### BCOUT plane multiplicity gate
-MinLayerBcOut 10
+MinLayerBcOut 12
 
 ### SDCIN multiplicity gate
 MaxMultiHitSdcIn 16
 
 ### SDCIN plane multiplicity gate
-MinLayerSdcIn 8
+MinLayerSdcIn 10
 
 ### SDCOUT multiplicity gate
 MaxMultiHitSdcOut 16
 
 ### SDCOUT plane multiplicity gate (+2 in SdcOutTracking)
-MinLayerSdcOut 6
+MinLayerSdcOut 8
 
-### CommonStop timing for SdcOut
-StopTimingSdcOut 400 600
+### CommonStop timing of "L1" for SdcOut
+StopTimingSdcOut 360 400
 
 ### SdcOut dT offset for L1 stop timing
 StopTimeDiffSdcOut 150

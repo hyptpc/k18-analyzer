@@ -615,7 +615,6 @@ ConfMan:: InitializeHistograms()
       HB1(10000*i+5000+wire, title14, nbindt, mindt, maxdt);
     }
 
-
     // Tracking Histgrams
     TString title11 = Form("HitPat SdcIn%2d [Track]", i);
     TString title12 = Form("DriftTime SdcIn%2d [Track]", i);
@@ -642,7 +641,7 @@ ConfMan:: InitializeHistograms()
     HB2(100*i+16, title16, 250, -250., 250., NbinRes, MinRes, MaxRes);
     HB2(100*i+17, title17, 100, -250., 250., 100, -250., 250.);
     HB2(100*i+18, title18, 100, -3., 3., NbinRes, MinRes, MaxRes);
-    HB2(100*i+19, title19, nbindt, mindt, maxdt, 100, -maxdl, maxdl);
+    HB2(100*i+19, title19, nbindt, mindt, maxdt, Int_t(maxdl*20), -maxdl, maxdl);
     HBProf(100*i+20, title20, nbindt, mindt, maxdt, mindl, maxdl);
     HB2(100*i+22, title22, nbindt, mindt, maxdt, nbindl, mindl, maxdl);
     HB1(100*i+21, title21, 200, -5.0, 5.0);

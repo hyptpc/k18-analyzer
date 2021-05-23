@@ -317,8 +317,8 @@ UserKuramaTracking::ProcessingNormal()
   static const auto MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
   static const auto MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
   static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
-  static const auto MinTotSDC2 = gUser.GetParameter("MinTotSDC2");
   static const auto MinTotSDC3 = gUser.GetParameter("MinTotSDC3");
+  static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
 
   static const auto MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
   static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
@@ -329,6 +329,8 @@ UserKuramaTracking::ProcessingNormal()
 
   event.evnum = gUnpacker.get_event_number();
 
+  Double_t common_stop_tdc = qnan;
+
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
   for(const auto& hit: rawData->GetTrigRawHC()){
@@ -338,6 +340,9 @@ UserKuramaTracking::ProcessingNormal()
       event.trigpat[trigger_flag.count()] = seg;
       event.trigflag[seg-1] = tdc;
       trigger_flag.set(seg-1);
+      if(seg == trigger::kCommonStopSdcOut){
+        common_stop_tdc = tdc;
+      }
     }
   }
 
@@ -454,18 +459,10 @@ UserKuramaTracking::ProcessingNormal()
 
   HF1(1, 4.);
 
-  // Trigger flag
-  Bool_t flag_tof_stop = false;
-  {
-    static const Int_t device_id    = gUnpacker.get_device_id("TFlag");
-    static const Int_t data_type_id = gUnpacker.get_data_id("TFlag", "tdc");
-
-    Int_t mhit = gUnpacker.get_entries(device_id, 0, trigger::kTofTiming, 0, data_type_id);
-    for(Int_t m = 0; m<mhit; ++m){
-      Int_t tof_timing = gUnpacker.get(device_id, 0, trigger::kTofTiming, 0, data_type_id, m);
-      if(!(MinStopTimingSdcOut < tof_timing && tof_timing < MaxStopTimingSdcOut)) flag_tof_stop = true;
-    }// for(m)
-  }
+  // Common stop timing
+  Bool_t common_stop_is_tof = (common_stop_tdc < MinStopTimingSdcOut
+                               || MaxStopTimingSdcOut < common_stop_tdc);
+  if(!common_stop_is_tof) return true;
 
   HF1(1, 6.);
 
@@ -473,10 +470,10 @@ UserKuramaTracking::ProcessingNormal()
 
   DCAna->DecodeSdcInHits(rawData);
 
-  Double_t offset = flag_tof_stop ? 0 : StopTimeDiffSdcOut;
+  Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
   DCAna->DecodeSdcOutHits(rawData, offset);
-  DCAna->TotCutSDC2(MinTotSDC2);
   DCAna->TotCutSDC3(MinTotSDC3);
+  DCAna->TotCutSDC4(MinTotSDC4);
 
   Double_t multi_SdcIn  = 0.;
   ////////////// SdcIn number of hit layer
@@ -527,7 +524,7 @@ UserKuramaTracking::ProcessingNormal()
 
   // std::cout << "==========TrackSearch SdcIn============" << std::endl;
   DCAna->TrackSearchSdcIn();
-  DCAna->ChiSqrCutSdcIn(50.);
+  // DCAna->ChiSqrCutSdcIn(50.);
   Int_t ntSdcIn = DCAna->GetNtracksSdcIn();
   if(MaxHits<ntSdcIn){
     std::cout << "#W " << FUNC_NAME << " "
@@ -626,7 +623,7 @@ UserKuramaTracking::ProcessingNormal()
   //////////////SdcOut tracking
   //std::cout << "==========TrackSearch SdcOut============" << std::endl;
 
-  if(flag_tof_stop){
+  if(common_stop_is_tof){
 #if UseTOF
     DCAna->TrackSearchSdcOut(TOFCont);
 #else
@@ -693,7 +690,6 @@ UserKuramaTracking::ProcessingNormal()
       }
     }
   }
-
 
   if(ntSdcOut<1) return true;
 
