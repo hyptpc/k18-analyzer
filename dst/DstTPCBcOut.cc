@@ -549,9 +549,9 @@ ConfMan::InitializeHistograms( void )
   HB1( 1, "Status", 21, 0., 21. );
   HB1( 10, "NTrack TPC", 40, 0., 40. );
 
-  const Int_t    NbinPos = 3200;
-  const Double_t MinPos  = -80.;
-  const Double_t MaxPos  = 80.;
+  const Int_t    NbinPos = 1600;
+  const Double_t MinPos  = -40.;
+  const Double_t MaxPos  = 40.;
 
   Int_t NumOfDivXZ = ((MaxPosMapXZ - MinPosMapXZ)/Meshsize) + 1;
   Int_t NumOfDivY = ((MaxPosMapY - MinPosMapY)/Meshsize) + 1;

@@ -7,14 +7,16 @@
 #include "DebugCounter.hh"
 #include "TPCPadHelper.hh"
 #include "DeleteUtility.hh"
+#include "TPCPositionCorrector.hh"
 
 namespace
 {
   const std::string& class_name("TPCCluster");
+  const auto& gTPCPos = TPCPositionCorrector::GetInstance();
 }
 
-#define WeightedMean 1
-#define WeightedMeanTheta 0
+#define WeightedMean 0
+#define WeightedMeanTheta 1
 
 //_____________________________________________________________________________
 TPCCluster::TPCCluster( int layer, const TPCHitContainer& HitCont )
