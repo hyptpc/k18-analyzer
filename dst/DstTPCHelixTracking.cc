@@ -102,6 +102,8 @@ struct Event
   std::vector<Double_t> helix_z0;
   std::vector<Double_t> helix_r;
   std::vector<Double_t> helix_dz;
+  std::vector<Double_t> dE;
+  std::vector<Double_t> dEdx;
   std::vector<Double_t> mom0_x;//Helix momentum at Y = 0
   std::vector<Double_t> mom0_y;//Helix momentum at Y = 0
   std::vector<Double_t> mom0_z;//Helix momentum at Y = 0
@@ -169,6 +171,8 @@ struct Event
     helix_z0.clear();
     helix_r.clear();
     helix_dz.clear();
+    dE.clear();
+    dEdx.clear();
     mom0_x.clear();
     mom0_y.clear();
     mom0_z.clear();
@@ -416,6 +420,8 @@ dst::DstRead( int ievent )
   event.mom0_y.resize( ntTpc );
   event.mom0_z.resize( ntTpc );
   event.mom0.resize( ntTpc );
+  event.dE.resize( ntTpc );
+  event.dEdx.resize( ntTpc );
   event.charge.resize( ntTpc );
   event.path.resize( ntTpc );
 
@@ -479,6 +485,8 @@ dst::DstRead( int ievent )
     double min_t = 10000.;
     double max_t = -10000.;
     double min_layer_t=0., max_layer_t=0.;
+    double de=0., path_dEdx=0.;
+
 
     for( int ih=0; ih<nh; ++ih ){
       TPCLTrackHit *hit = tp->GetHit( ih );
@@ -487,6 +495,10 @@ dst::DstRead( int ievent )
       const TVector3& hitpos = hit->GetLocalHitPos();
       const TVector3& calpos = hit->GetLocalCalPos_Helix();
       const TVector3& res_vect = hit->GetResidualVect();
+      double de_hit = hit->GetHit()->GetCharge();
+      double path_hit = tpc::padParameter[layer][5];
+      de += de_hit;
+      path_dEdx += path_hit;
       Double_t t_cal = hit->GetTcal();
       if(min_t>t_cal)
 	min_t = t_cal;
@@ -517,6 +529,8 @@ dst::DstRead( int ievent )
     double pathlen = (max_t - min_t)*sqrt(helix_r*helix_r*(1.+helix_dz*helix_dz));
     //std::cout<<"min_t="<<min_t<<", max_t="<<max_t<<", helix_r="<<helix_r<<", path="<<pathlen<<std::endl;
     event.path[it] = pathlen;
+    event.dE[it] = de;
+    event.dEdx[it] = de/path_dEdx;
   }
 
   HF1( 1, event.status++ );
@@ -590,6 +604,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "mom0_y", &event.mom0_y );
   tree->Branch( "mom0_z", &event.mom0_z );
   tree->Branch( "mom0", &event.mom0 );
+  tree->Branch( "dE", &event.dE );
+  tree->Branch( "dEdx", &event.dEdx );
   tree->Branch( "charge", &event.charge );
   tree->Branch( "path", &event.path );
   tree->Branch( "hitlayer", &event.hitlayer );
