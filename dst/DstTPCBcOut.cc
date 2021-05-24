@@ -442,6 +442,8 @@ dst::DstRead( int ievent )
 	    HF1(PosYHid + histnum, y_BC - y);
 	    HF1(PosYPadHid + layer*1000+ row,  pos_center.Y() - y_BC);
 	  }
+	  if(fabs(y_BC - y)<60.&&fabs(x_BC - x)<60.)
+	    HF1(100 + layer, de);
 	}
       }
 
@@ -564,12 +566,14 @@ dst::DstClose( void )
 Bool_t
 ConfMan::InitializeHistograms( void )
 {
-  // const Int_t    NbinDe = 1000;
-  // const Double_t MinDe  =    0.;
-  // const Double_t MaxDe  = 2000.;
+  const Int_t    NbinDe = 1000;
+  const Double_t MinDe  =    0.;
+  const Double_t MaxDe  = 5000.;
   HB1( 1, "Status", 21, 0., 21. );
   HB1( 10, "NTrack TPC", 40, 0., 40. );
-
+  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+    HB1( 100 + layer, "dE TPC", NbinDe, MinDe, MaxDe );
+  }
   const Int_t    NbinPos = 1600;
   const Double_t MinPos  = -40.;
   const Double_t MaxPos  = 40.;
