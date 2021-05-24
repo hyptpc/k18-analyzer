@@ -3,9 +3,9 @@
 #ifndef FIELD_MAN_HH
 #define FIELD_MAN_HH
 
-#include <string>
 #include <vector>
 
+#include <TString.h>
 #include <TVector3.h>
 
 class KuramaFieldMap;

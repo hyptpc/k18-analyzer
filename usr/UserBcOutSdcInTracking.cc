@@ -10,6 +10,7 @@
 #include <string>
 
 #include "ConfMan.hh"
+#include "DCGeomMan.hh"
 #include "DCRawHit.hh"
 #include "DetectorID.hh"
 #include "RMAnalyzer.hh"
@@ -30,6 +31,8 @@ using hddaq::unpacker::GUnpacker;
 const auto qnan = TMath::QuietNaN();
 const auto& gUnpacker = GUnpacker::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& zK18Target = gGeom.LocalZ("K18Target");
 }
 
 //_____________________________________________________________________________
@@ -344,23 +347,23 @@ UserBcOutSdcInTracking::ProcessingNormal()
     HF2(18, x0, u0); HF2(19, y0, v0);
     HF2(20, x0, y0);
 
-    // Double_t xtgt=track->GetX(1800.), ytgt=track->GetY(1800.);
-    // Double_t utgt=u0, vtgt=v0;
-    // HF1(21, xtgt); HF1(22, ytgt);
-    // HF1(23, utgt); HF1(24, vtgt);
-    // HF2(25, xtgt, utgt); HF2(26, ytgt, vtgt);
-    // HF2(27, xtgt, ytgt);
+    Double_t xtgt=track->GetX(zK18Target), ytgt=track->GetY(zK18Target);
+    Double_t utgt=u0, vtgt=v0;
+    HF1(21, xtgt); HF1(22, ytgt);
+    HF1(23, utgt); HF1(24, vtgt);
+    HF2(25, xtgt, utgt); HF2(26, ytgt, vtgt);
+    HF2(27, xtgt, ytgt);
 
-  //   Double_t Xangle = -1000*std::atan(u0);
+    Double_t Xangle = -1000*TMath::ATan(u0);
 
-  //   HF2(51, -track->GetX(245.), Xangle);
-  //   HF2(52, -track->GetX(600.), Xangle);
-  //   HF2(53, -track->GetX(1200.), Xangle);
-  //   HF2(54, -track->GetX(1600.), Xangle);
+    HF2(51, -track->GetX(245.), Xangle);
+    HF2(52, -track->GetX(600.), Xangle);
+    HF2(53, -track->GetX(1200.), Xangle);
+    HF2(54, -track->GetX(1600.), Xangle);
 
-  //   HF2(61, track->GetX(600.), track->GetX(245.));
-  //   HF2(62, track->GetX(1200.), track->GetX(245.));
-  //   HF2(63, track->GetX(1600.), track->GetX(245.));
+    HF2(61, track->GetX(600.), track->GetX(245.));
+    HF2(62, track->GetX(1200.), track->GetX(245.));
+    HF2(63, track->GetX(1600.), track->GetX(245.));
 
     for(Int_t ih=0; ih<nh; ++ih){
       const auto hit = track->GetHit(ih);

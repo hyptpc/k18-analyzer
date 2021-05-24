@@ -177,7 +177,7 @@ FiberHit::Calculate()
     Int_t leading = leading_cont.at(i);
     Double_t time_leading = qnan;
     if(!gHodo.GetTime(cid, plid, seg, m_ud, leading, time_leading)){
-      hddaq::cerr << "#E " << FUNC_NAME
+      hddaq::cerr << FUNC_NAME
 		  << " something is wrong at GetTime("
 		  << cid  << ", " << plid          << ", " << seg  << ", "
 		  << m_ud << ", " << leading  << ", " << time_leading << ")" << std::endl;
@@ -199,7 +199,7 @@ FiberHit::Calculate()
     Int_t trailing = trailing_cont.at(m_pair_cont.at(i).index_t);
     Double_t time_trailing = qnan;
     if(!gHodo.GetTime(cid, plid, seg, m_ud, trailing, time_trailing)){
-      hddaq::cerr << "#E " << FUNC_NAME
+      hddaq::cerr << FUNC_NAME
 		  << " something is wrong at GetTime("
 		  << cid  << ", " << plid          << ", " << seg  << ", "
 		  << m_ud << ", " << trailing  << ", " << time_trailing << ")" << std::endl;
@@ -256,21 +256,22 @@ FiberHit::Calculate()
       }else{
 	m_dE_lg = 0;// [MeV]
       }
-
-      /*
-        if (m_dE_lg>10) {
-	std::cout << "layer = " << plid << ", seg = " << seg << ", adcLow = " << m_adc_lg << ", dE = " << m_dE_lg << ", mip_lg = " << m_mip_lg << ", gainLow = " << gainLow << ", gainHi = " << gainHi << std::endl;
-        }
-      */
-
-      for (Int_t j=0; j< m_pair_cont.size(); j++) {
-	Double_t time= m_pair_cont.at(j).time_l;
+#if 0
+      if(m_dE_lg > 10){
+        std::cout << "layer = " << plid << ", seg = " << seg << ", adcLow = "
+                  << m_adc_lg << ", dE = " << m_dE_lg << ", mip_lg = "
+                  << m_mip_lg << ", gainLow = " << gainLow << ", gainHi = "
+                  << gainHi << std::endl;
+      }
+#endif
+      for(auto& pair: m_pair_cont){
+	Double_t time= pair.time_l;
 	Double_t ctime = -100;
 	if (m_adc_hg>20) {
 	  gPHC.DoCorrection(cid, plid, seg, m_ud, time, m_adc_hg, ctime);
-	  m_pair_cont.at(j).ctime_l = ctime;
+	  pair.ctime_l = ctime;
 	} else
-	  m_pair_cont.at(j).ctime_l = time;
+	  pair.ctime_l = time;
       }
     }
   }

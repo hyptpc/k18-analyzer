@@ -10,7 +10,6 @@
 #include "FuncName.hh"
 #include "KuramaFieldMap.hh"
 
-
 namespace
 {
 const Double_t Delta = 0.1;

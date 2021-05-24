@@ -4,12 +4,16 @@
 #define FL_HIT_HH
 
 #include "FiberHit.hh"
+
 #include <vector>
+
+#include <TString.h>
 
 //_____________________________________________________________________________
 class FLHit
 {
 public:
+  static const TString& ClassName();
   // One side readout method (BFT, SFT, SCH)
   FLHit(FiberHit* ptr, Int_t index);
   // Both side readout method (FBH)
@@ -59,5 +63,13 @@ private:
   void Initialize();
 
 };
+
+//_____________________________________________________________________________
+inline const TString&
+FLHit::ClassName()
+{
+  static TString s_name("FLHit");
+  return s_name;
+}
 
 #endif
