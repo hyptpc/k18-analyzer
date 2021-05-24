@@ -37,8 +37,8 @@ private:
   DCHit& operator =(const DCHit&);
 
 protected:
-  Int_t       m_layer;
-  Double_t    m_wire;
+  Int_t     m_layer;
+  Double_t  m_wire;
   IntVec    m_tdc;
   IntVec    m_adc;
   IntVec    m_trailing;
@@ -48,7 +48,8 @@ protected:
   //  DoubleVec m_trailing_time;
 
   // For DC with HUL MH-TDC
-  struct data_pair{
+  struct data_pair
+  {
     Double_t drift_time;
     Double_t drift_length;
     Double_t trailing_time;

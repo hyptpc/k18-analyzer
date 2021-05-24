@@ -31,6 +31,7 @@ namespace
 {
 using namespace root;
 using namespace dst;
+const auto qnan = TMath::QuietNaN();
 auto& gConf = ConfMan::GetInstance();
 const auto& gCounter = debug::ObjectCounter::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
@@ -77,7 +78,7 @@ CalcCutLineByTOF(Double_t M, Double_t mom)
   else                      delta = 4.6052*X+C0;
 
   Double_t C = (0.422377*pow(y,-2)+0.0304043*pow(y,-4)-0.00038106*pow(y,-6))*pow(10,-6)*pow(I,2)
-                  +(3.85019*pow(y,-2)-0.1667989*pow(y,-4)+0.00157955*pow(y,-6))*pow(10,-9)*pow(I,3);
+    +(3.85019*pow(y,-2)-0.1667989*pow(y,-4)+0.00157955*pow(y,-6))*pow(10,-9)*pow(I,3);
 
   Double_t x = mom;
   Double_t dEdx = p1*((M/x)*(M/x)+1)*log(p2*x*x*x*x/(M*M+2*me*sqrt(M*M+x*x))+me*me)-2*p1-p1*delta-p3*C;
@@ -441,25 +442,25 @@ dst::InitializeEvent()
   for(Int_t it=0; it<NumOfSegBH1; it++){
     event.csBh1[it]  = 0;
     event.Bh1Seg[it] = -1;
-    event.tBh1[it]   = -9999.;
-    event.dtBh1[it]  = -9999.;
-    event.deBh1[it]  = -9999.;
-    event.btof[it]   = -9999.;
+    event.tBh1[it]   = qnan;
+    event.dtBh1[it]  = qnan;
+    event.deBh1[it]  = qnan;
+    event.btof[it]   = qnan;
   }
   for(Int_t it=0; it<NumOfSegBH2; it++){
     event.csBh2[it]  = 0;
     event.Bh2Seg[it] = -1;
-    event.tBh2[it]   = -9999.;
-    event.t0Bh2[it]  = -9999.;
-    event.dtBh2[it]  = -9999.;
-    event.deBh2[it]  = -9999.;
+    event.tBh2[it]   = qnan;
+    event.t0Bh2[it]  = qnan;
+    event.dtBh2[it]  = qnan;
+    event.deBh2[it]  = qnan;
   }
   for(Int_t it=0; it<NumOfSegTOF; it++){
     event.csTof[it]  = 0;
     event.TofSeg[it] = -1;
-    event.tTof[it]   = -9999.;
-    event.dtTof[it]  = -9999.;
-    event.deTof[it]  = -9999.;
+    event.tTof[it]   = qnan;
+    event.dtTof[it]  = qnan;
+    event.deTof[it]  = qnan;
   }
 
   //Fiber
@@ -492,64 +493,64 @@ dst::InitializeEvent()
   for(Int_t it=0; it<MaxHits; it++){
     event.nhBcOut[it]     = 0;
     event.chisqrBcOut[it] = -1.0;
-    event.x0BcOut[it] = -9999.0;
-    event.y0BcOut[it] = -9999.0;
-    event.u0BcOut[it] = -9999.0;
-    event.v0BcOut[it] = -9999.0;
+    event.x0BcOut[it] = qnan;
+    event.y0BcOut[it] = qnan;
+    event.u0BcOut[it] = qnan;
+    event.v0BcOut[it] = qnan;
 
-    event.xtgtBcOut[it] = -9999.0;
-    event.ytgtBcOut[it] = -9999.0;
-    event.xbh2BcOut[it] = -9999.0;
-    event.ybh2BcOut[it] = -9999.0;
+    event.xtgtBcOut[it] = qnan;
+    event.ytgtBcOut[it] = qnan;
+    event.xbh2BcOut[it] = qnan;
+    event.ybh2BcOut[it] = qnan;
   }
 
   for(Int_t it=0; it<MaxHits; it++){
     event.nhK18[it]     = 0;
     event.chisqrK18[it] = -1.0;
-    event.xtgtK18[it] = -9999.;
-    event.ytgtK18[it] = -9999.;
-    event.utgtK18[it] = -9999.;
-    event.vtgtK18[it] = -9999.;
-    event.pK18[it]    = -9999.;
-    event.thetaK18[it] = -9999.;
+    event.xtgtK18[it] = qnan;
+    event.ytgtK18[it] = qnan;
+    event.utgtK18[it] = qnan;
+    event.vtgtK18[it] = qnan;
+    event.pK18[it]    = qnan;
+    event.thetaK18[it] = qnan;
   }
 
   //KURAMA DC
   for(Int_t it=0; it<MaxHits; it++){
     event.nhSdcIn[it]     = 0;
     event.chisqrSdcIn[it] = -1.;
-    event.x0SdcIn[it] = -9999.;
-    event.y0SdcIn[it] = -9999.;
-    event.u0SdcIn[it] = -9999.;
-    event.v0SdcIn[it] = -9999.;
+    event.x0SdcIn[it] = qnan;
+    event.y0SdcIn[it] = qnan;
+    event.u0SdcIn[it] = qnan;
+    event.v0SdcIn[it] = qnan;
 
     event.nhSdcOut[it]     = 0;
     event.chisqrSdcOut[it] = -1.;
-    event.u0SdcOut[it] = -9999.;
-    event.v0SdcOut[it] = -9999.;
-    event.x0SdcOut[it] = -9999.;
-    event.y0SdcOut[it] = -9999.;
+    event.u0SdcOut[it] = qnan;
+    event.v0SdcOut[it] = qnan;
+    event.x0SdcOut[it] = qnan;
+    event.y0SdcOut[it] = qnan;
 
     event.nhKurama[it]     = 0;
     event.chisqrKurama[it] = -1.;
-    event.xtgtKurama[it]   = -9999.;
-    event.ytgtKurama[it]   = -9999.;
-    event.utgtKurama[it]   = -9999.;
-    event.vtgtKurama[it]   = -9999.;
-    event.pKurama[it]      = -9999.;
-    event.qKurama[it]      = -9999.;
-    event.stof[it]         = -9999.;
-    event.cstof[it]        = -9999.;
-    event.path[it]         = -9999.;
-    event.m2[it]           = -9999.;
-    event.thetaKurama[it]  = -9999.;
-    event.xtofKurama[it]   = -9999.;
-    event.ytofKurama[it]   = -9999.;
-    event.utofKurama[it]   = -9999.;
-    event.vtofKurama[it]   = -9999.;
-    event.tofsegKurama[it] = -9999.;
-	event.best_deTof[it]   = -9999.;
-	event.best_TofSeg[it]  = -9999.;
+    event.xtgtKurama[it]   = qnan;
+    event.ytgtKurama[it]   = qnan;
+    event.utgtKurama[it]   = qnan;
+    event.vtgtKurama[it]   = qnan;
+    event.pKurama[it]      = qnan;
+    event.qKurama[it]      = qnan;
+    event.stof[it]         = qnan;
+    event.cstof[it]        = qnan;
+    event.path[it]         = qnan;
+    event.m2[it]           = qnan;
+    event.thetaKurama[it]  = qnan;
+    event.xtofKurama[it]   = qnan;
+    event.ytofKurama[it]   = qnan;
+    event.utofKurama[it]   = qnan;
+    event.vtofKurama[it]   = qnan;
+    event.tofsegKurama[it] = qnan;
+    event.best_deTof[it]   = qnan;
+    event.best_TofSeg[it]  = qnan;
   }
 
   //Reaction
@@ -558,30 +559,30 @@ dst::InitializeEvent()
   event.nKK = 0;
 
   for(Int_t it=0; it<MaxHits; ++it){
-    event.vtx[it]       = -9999.;
-    event.vty[it]       = -9999.;
-    event.vtz[it]       = -9999.;
-    event.closeDist[it] = -9999.;
-    event.theta[it]     = -9999.;
-    event.thetaCM[it]   = -9999.;
-    event.costCM[it]    = -9999.;
-    event.MissMass[it]  = -9999.;
-    event.MissMassCorr[it]  = -9999.;
-    event.MissMassCorrDE[it]  = -9999.;
-	event.Kflag[it]     = 0;
+    event.vtx[it] = qnan;
+    event.vty[it] = qnan;
+    event.vtz[it] = qnan;
+    event.closeDist[it] = qnan;
+    event.theta[it] = qnan;
+    event.thetaCM[it] = qnan;
+    event.costCM[it] = qnan;
+    event.MissMass[it]  = qnan;
+    event.MissMassCorr[it]  = qnan;
+    event.MissMassCorrDE[it]  = qnan;
+    event.Kflag[it] = 0;
 
-    event.xkm[it] = -9999.0;
-    event.ykm[it] = -9999.0;
-    event.ukm[it] = -9999.0;
-    event.vkm[it] = -9999.0;
-    event.xkp[it] = -9999.0;
-    event.ykp[it] = -9999.0;
-    event.ukp[it] = -9999.0;
-    event.vkp[it] = -9999.0;
-    event.pOrg[it] = -9999.0;
-    event.pCalc[it] = -9999.0;
-    event.pCorr[it] = -9999.0;
-    event.pCorrDE[it] = -9999.0;
+    event.xkm[it] = qnan;
+    event.ykm[it] = qnan;
+    event.ukm[it] = qnan;
+    event.vkm[it] = qnan;
+    event.xkp[it] = qnan;
+    event.ykp[it] = qnan;
+    event.ukp[it] = qnan;
+    event.vkp[it] = qnan;
+    event.pOrg[it] = qnan;
+    event.pCalc[it] = qnan;
+    event.pCorr[it] = qnan;
+    event.pCorrDE[it] = qnan;
   }
 
   return true;
@@ -613,7 +614,10 @@ dst::DstOpen(std::vector<std::string> arg)
 bool
 dst::DstRead(Int_t ievent)
 {
-  static const auto OffsetToF  = gUser.GetParameter("OffsetToF");
+  static const auto StofOffset =
+    Kinematics::CalcTimeOfFlight(ConfMan::Get<Double_t>("PK18"),
+                                 gGeom.LocalZ("K18Target")-gGeom.LocalZ("BH2"),
+                                 pdg::KaonMass());
   static const auto Mip2MeV           = gUser.GetParameter("TOFKID",0);
   static const auto PionCutMass       = gUser.GetParameter("TOFKID",1);
   static const auto ProtonCutMass     = gUser.GetParameter("TOFKID",2);
@@ -708,7 +712,7 @@ dst::DstRead(Int_t ievent)
   }
 
   // BH1
-  Double_t btof = -9999.;
+  Double_t btof = qnan;
   for(Int_t i=0; i<nhBh1; ++i){
     event.csBh1[i]  = src.csBh1[i];
     event.Bh1Seg[i] = src.Bh1Seg[i];
@@ -716,7 +720,7 @@ dst::DstRead(Int_t ievent)
     event.dtBh1[i]  = src.dtBh1[i];
     event.deBh1[i]  = src.deBh1[i];
     event.btof[i]   = src.btof[i];
-	if(i==0) btof = src.btof[i];
+    if(i==0) btof = src.btof[i];
   }
 
   // BH2
@@ -789,13 +793,13 @@ dst::DstRead(Int_t ievent)
     Double_t y = src.ytgtKurama[itKurama];
     Double_t u = src.utgtKurama[itKurama];
     Double_t v = src.vtgtKurama[itKurama];
-	Double_t utof =src.utofKurama[itKurama];
-	Double_t vtof =src.vtofKurama[itKurama];
+    Double_t utof =src.utofKurama[itKurama];
+    Double_t vtof =src.vtofKurama[itKurama];
     Double_t theta = src.thetaKurama[itKurama];
-    Double_t pt = p/std::sqrt(1.+u*u+v*v);
+    Double_t pt = p/TMath::Sqrt(1.+u*u+v*v);
     ThreeVector Pos(x, y, 0.);
     ThreeVector Mom(pt*u, pt*v, pt);
-    if(std::isnan(Pos.Mag())) continue;
+    if(TMath::IsNaN(Pos.Mag())) continue;
     //Calibration
     ThreeVector PosCorr(x+x_off, y+y_off, 0.);
     ThreeVector MomCorr(pt*(u+u_off), pt*(v+v_off), pt);
@@ -810,53 +814,53 @@ dst::DstRead(Int_t ievent)
 
     // SdcOut vs TOF
     Double_t TofSegKurama = src.tofsegKurama[itKurama];
-    Double_t stof = -9999.;
-    Double_t cstof = -9999.;
-    Double_t m2   = -9999.;
+    Double_t stof = qnan;
+    Double_t cstof = qnan;
+    Double_t m2   = qnan;
     // w/  TOF
 
-	bool correct_hit[src.nhTof];
-	for(Int_t j=0; j<src.nhTof; ++j) correct_hit[j]=true;
-	for(Int_t j=0; j<src.nhTof; ++j){
-	  Double_t seg1=src.TofSeg[j]; Double_t de1=src.deTof[j];
-	  for(Int_t k=j+1; k<src.nhTof; ++k){
-		Double_t seg2=src.TofSeg[k]; Double_t de2=src.deTof[k];
-		if(std::abs(seg1 - seg2) < 2 && de1 > de2) correct_hit[k]=false;
-		if(std::abs(seg1 - seg2) < 2 && de2 > de1) correct_hit[j]=false;
-	  }
-	}
-	Double_t best_de=-9999;
-	Int_t correct_num=0;
-	Int_t Dif=9999;
-	for(Int_t j=0; j<src.nhTof; ++j){
-	  if(correct_hit[j]==false) continue;
-	  Int_t dif = std::abs(src.TofSeg[j] - TofSegKurama);
-	  if((dif < Dif) || (dif==Dif&&src.deTof[j]>best_de)){
-		correct_num=j;
-		best_de=src.deTof[j];
-		Dif=dif;
-	  }
-	}
+    bool correct_hit[src.nhTof];
+    for(Int_t j=0; j<src.nhTof; ++j) correct_hit[j]=true;
+    for(Int_t j=0; j<src.nhTof; ++j){
+      Double_t seg1=src.TofSeg[j]; Double_t de1=src.deTof[j];
+      for(Int_t k=j+1; k<src.nhTof; ++k){
+        Double_t seg2=src.TofSeg[k]; Double_t de2=src.deTof[k];
+        if(std::abs(seg1 - seg2) < 2 && de1 > de2) correct_hit[k]=false;
+        if(std::abs(seg1 - seg2) < 2 && de2 > de1) correct_hit[j]=false;
+      }
+    }
+    Double_t best_de=-9999;
+    Int_t correct_num=0;
+    Int_t Dif=9999;
+    for(Int_t j=0; j<src.nhTof; ++j){
+      if(correct_hit[j]==false) continue;
+      Int_t dif = std::abs(src.TofSeg[j] - TofSegKurama);
+      if((dif < Dif) || (dif==Dif&&src.deTof[j]>best_de)){
+        correct_num=j;
+        best_de=src.deTof[j];
+        Dif=dif;
+      }
+    }
 
-	stof = event.tTof[correct_num] - time0 + OffsetToF;
-	m2 = Kinematics::MassSquare(pCorr, path, cstof);
-	if(btof==-9999.9){
-	  cstof=stof;
+    stof = event.tTof[correct_num] - time0 + StofOffset;
+    m2 = Kinematics::MassSquare(pCorr, path, cstof);
+    if(TMath::IsNaN(btof)){
+      cstof=stof;
     }else{
-	  gPHC.DoStofCorrection(8, 0, src.TofSeg[correct_num]-1, 2, stof, btof, cstof);
-	  m2 = Kinematics::MassSquare(pCorr, path, cstof);
-	}
-	event.best_deTof[itKurama] = best_de;
-	event.best_TofSeg[itKurama] = src.TofSeg[correct_num];
+      gPHC.DoStofCorrection(8, 0, src.TofSeg[correct_num]-1, 2, stof, btof, cstof);
+      m2 = Kinematics::MassSquare(pCorr, path, cstof);
+    }
+    event.best_deTof[itKurama] = best_de;
+    event.best_TofSeg[itKurama] = src.TofSeg[correct_num];
 
-	///for Kflag///
-	Int_t Kflag=0;
-	Double_t dEdx = Mip2MeV*best_de/sqrt(1+utof*utof+vtof*vtof);
-	if(CalcCutLineByTOF(PionCutMass, 1000*p) < dEdx &&
-           dEdx < CalcCutLineByTOF(ProtonCutMass, 1000*p)){
-          Kflag=1;
-        }
-	// w/o TOF
+    ///for Kflag///
+    Int_t Kflag=0;
+    Double_t dEdx = Mip2MeV*best_de/sqrt(1+utof*utof+vtof*vtof);
+    if(CalcCutLineByTOF(PionCutMass, 1000*p) < dEdx &&
+       dEdx < CalcCutLineByTOF(ProtonCutMass, 1000*p)){
+      Kflag=1;
+    }
+    // w/o TOF
     // Double_t minres = 1.0e10;
     // for(Int_t j=0; j<nhTof; ++j){
     //   Double_t seg = src.TofSeg[j];
@@ -876,10 +880,10 @@ dst::DstRead(Int_t ievent)
     event.vtgtKurama[itKurama] = v;
     event.thetaKurama[itKurama] = theta;
     event.stof[itKurama] = stof;
-	event.cstof[itKurama] = cstof;
+    event.cstof[itKurama] = cstof;
     event.path[itKurama] = path;
     event.m2[itKurama] = m2;
-	event.Kflag[itKurama] = Kflag;
+    event.Kflag[itKurama] = Kflag;
     HF1(3202, Double_t(nh));
     HF1(3203, chisqr);
     HF1(3204, xt); HF1(3205, yt);
@@ -1011,9 +1015,9 @@ dst::DstRead(Int_t ievent)
       //CM
       Double_t TotalMomCM
 	= 0.5*std::sqrt((TotalEnergyCM*TotalEnergyCM
-			  -(KaonMass+SigmaNMass)*(KaonMass+SigmaNMass))
+                         -(KaonMass+SigmaNMass)*(KaonMass+SigmaNMass))
 			*(TotalEnergyCM*TotalEnergyCM
-			   -(KaonMass-SigmaNMass)*(KaonMass-SigmaNMass)))/TotalEnergyCM;
+                          -(KaonMass-SigmaNMass)*(KaonMass-SigmaNMass)))/TotalEnergyCM;
 
       Double_t costLab = cost;
       Double_t cottLab = costLab/std::sqrt(1.-costLab*costLab);

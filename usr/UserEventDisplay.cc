@@ -99,7 +99,6 @@ UserEventDisplay::ProcessingNormal()
   static const auto MinTdcTOF  = gUser.GetParameter("TdcTOF", 0);
   static const auto MaxTdcTOF  = gUser.GetParameter("TdcTOF", 1);
 
-  static const auto OffsetToF  = gUser.GetParameter("OffsetToF");
   // static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
   // static const auto MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
   // static const auto MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
@@ -615,6 +614,13 @@ UserEventDisplay::ProcessingNormal()
   return true;
   */
 
+  ///// BTOF BH2-Target
+  // static const auto StofOffset = gUser.GetParameter("StofOffset");
+  static const auto StofOffset =
+    Kinematics::CalcTimeOfFlight(ConfMan::Get<Double_t>("PK18"),
+                                 gGeom.LocalZ("K18Target")-gGeom.LocalZ("BH2"),
+                                 pdg::KaonMass());
+
   std::vector<ThreeVector> KnPCont, KnXCont;
   std::vector<ThreeVector> KpPCont, KpXCont;
 
@@ -647,7 +653,7 @@ UserEventDisplay::ProcessingNormal()
       	if(!hit) continue;
       	Double_t seg = hit->SegmentId()+1;
 	if(tofseg != seg) continue;
-      	Double_t stof = hit->CMeanTime()-time0+OffsetToF;
+      	Double_t stof = hit->CMeanTime()-time0+StofOffset;
       	if(stof<=0) continue;
       	Double_t m2 = Kinematics::MassSquare(p, path, stof);
       	gEvDisp.DrawMassSquare(m2);

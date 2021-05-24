@@ -323,8 +323,6 @@ UserKuramaTracking::ProcessingNormal()
   static const auto MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
   static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
 
-  static const auto OffsetToF = gUser.GetParameter("OffsetToF");
-
   rawData->DecodeHits();
 
   event.evnum = gUnpacker.get_event_number();
@@ -714,6 +712,13 @@ UserKuramaTracking::ProcessingNormal()
 
   HF1(1, 21.);
 
+  ///// BTOF BH2-Target
+  // static const auto StofOffset = gUser.GetParameter("StofOffset");
+  static const auto StofOffset =
+    Kinematics::CalcTimeOfFlight(ConfMan::Get<Double_t>("PK18"),
+                                 gGeom.LocalZ("K18Target")-gGeom.LocalZ("BH2"),
+                                 pdg::KaonMass());
+
   //////////////KURAMA Tracking
   DCAna->TrackSearchKurama();
   Int_t ntKurama = DCAna->GetNTracksKurama();
@@ -801,14 +806,14 @@ UserKuramaTracking::ProcessingNormal()
       if(!hit) continue;
       Int_t seg = hit->SegmentId() + 1;
       if((Int_t)tof_seg == seg){
-	time = hit->CMeanTime() - time0 + OffsetToF;
+	time = hit->CMeanTime() - time0 + StofOffset;
       }
       // w/o TOF
       // Double_t res  = std::abs(tof_seg - seg);
       // if(res<minres){
       // 	minres = res;
       // 	TofSeg = seg;
-      // 	time   = hit->CMeanTime()-time0+OffsetToF;
+      // 	time   = hit->CMeanTime()-time0+StofOffset;
       // }
     }
     event.stof[i] = time;
@@ -937,23 +942,23 @@ UserKuramaTracking::ProcessingNormal()
       Int_t seg=hit->SegmentId()+1;
       Double_t tu = hit->GetTUp(), td=hit->GetTDown();
       // Double_t ctu=hit->GetCTUp(), ctd=hit->GetCTDown();
-      Double_t cmt=hit->CMeanTime();//, t= cmt-time0+OffsetToF;//cmt-time0;
+      Double_t cmt=hit->CMeanTime();//, t= cmt-time0+StofOffset;//cmt-time0;
       Double_t ude=hit->GetAUp(), dde=hit->GetADown();
       // Double_t de=hit->DeltaE();
       // Double_t m2 = Kinematics::MassSquare(p, path, t);
       // event.tofmt[seg-1] = hit->MeanTime();
-      event.utTofSeg[seg-1]  =  tu - time0 + OffsetToF;
-      event.dtTofSeg[seg-1]  =  td - time0 + OffsetToF;
+      event.utTofSeg[seg-1]  =  tu - time0 + StofOffset;
+      event.dtTofSeg[seg-1]  =  td - time0 + StofOffset;
       // event.uctTofSeg[seg-1] = ctu - time0 + offset;
       // event.dctTofSeg[seg-1] = ctd - time0 + offset;
       event.udeTofSeg[seg-1] = ude;
       event.ddeTofSeg[seg-1] = dde;
       // event.ctTofSeg[seg-1]  = t;
       // event.deTofSeg[seg-1]  = de;
-      HF2(30000+100*seg+83, ude, calt[Event::Pion]+time0-OffsetToF-cmt);
-      HF2(30000+100*seg+84, dde, calt[Event::Pion]+time0-OffsetToF-cmt);
-      HF2(30000+100*seg+83, ude, calt[Event::Pion]+time0-OffsetToF-tu);
-      HF2(30000+100*seg+84, dde, calt[Event::Pion]+time0-OffsetToF-td);
+      HF2(30000+100*seg+83, ude, calt[Event::Pion]+time0-StofOffset-cmt);
+      HF2(30000+100*seg+84, dde, calt[Event::Pion]+time0-StofOffset-cmt);
+      HF2(30000+100*seg+83, ude, calt[Event::Pion]+time0-StofOffset-tu);
+      HF2(30000+100*seg+84, dde, calt[Event::Pion]+time0-StofOffset-td);
     }
 
     const HodoRHitContainer &cont=rawData->GetTOFRawHC();

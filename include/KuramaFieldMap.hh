@@ -10,13 +10,13 @@
 class KuramaFieldMap
 {
 public:
-  static const TString& ClassName( void );
-  KuramaFieldMap( const TString& file_name );
-  ~KuramaFieldMap( void );
+  static const TString& ClassName();
+  KuramaFieldMap(const TString& file_name);
+  ~KuramaFieldMap();
 
 private:
-  KuramaFieldMap( const KuramaFieldMap& );
-  KuramaFieldMap& operator =( const KuramaFieldMap& );
+  KuramaFieldMap(const KuramaFieldMap&);
+  KuramaFieldMap& operator =(const KuramaFieldMap&);
 
 private:
   struct XYZ { Double_t x, y, z; };
@@ -29,20 +29,19 @@ private:
   Double_t dX, dY, dZ;
 
 public:
-  Bool_t Initialize( void );
-  Bool_t IsReady( void ) const { return m_is_ready; }
-  Bool_t GetFieldValue( const Double_t pointCM[3],
-                        Double_t *BfieldTesla ) const;
+  Bool_t Initialize();
+  Bool_t IsReady() const { return m_is_ready; }
+  Bool_t GetFieldValue(const Double_t pointCM[3], Double_t *BfieldTesla) const;
 
 private:
-  void ClearField( void );
+  void ClearField();
 };
 
 //_____________________________________________________________________________
 inline const TString&
-KuramaFieldMap::ClassName( void )
+KuramaFieldMap::ClassName()
 {
-  static TString s_name( "KuramaFieldMap" );
+  static TString s_name("KuramaFieldMap");
   return s_name;
 }
 

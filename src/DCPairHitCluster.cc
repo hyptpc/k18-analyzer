@@ -1,58 +1,50 @@
-/**
- *  file: DCPairHitCluster.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "DCPairHitCluster.hh"
+
 #include "DCLTrackHit.hh"
 #include "DebugCounter.hh"
+#include "FuncName.hh"
 
-namespace
-{
-  const std::string& class_name("DCPairHitCluster");
-}
-
-//______________________________________________________________________________
-DCPairHitCluster::DCPairHitCluster( DCLTrackHit *hitA, DCLTrackHit *hitB )
+//_____________________________________________________________________________
+DCPairHitCluster::DCPairHitCluster(DCLTrackHit* hitA, DCLTrackHit* hitB)
   : m_hitA(hitA),
     m_hitB(hitB),
     m_nhits(0)
 {
   if(m_hitA) ++m_nhits;
   if(m_hitB) ++m_nhits;
-  debug::ObjectCounter::increase(class_name);
+  debug::ObjectCounter::increase(ClassName());
 }
 
-//______________________________________________________________________________
-DCPairHitCluster::~DCPairHitCluster( void )
+//_____________________________________________________________________________
+DCPairHitCluster::~DCPairHitCluster()
 {
-  debug::ObjectCounter::decrease(class_name);
+  debug::ObjectCounter::decrease(ClassName());
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 DCLTrackHit*
-DCPairHitCluster::GetHit( int i ) const
+DCPairHitCluster::GetHit(Int_t i) const
 {
   if(i==0) return m_hitA;
   if(i==1) return m_hitB;
   return 0;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-DCPairHitCluster::IsHoneycomb( void ) const
+DCPairHitCluster::IsHoneycomb() const
 {
-  if( m_hitA ) return m_hitA->IsHoneycomb();
-  if( m_hitB ) return m_hitB->IsHoneycomb();
-
+  if(m_hitA) return m_hitA->IsHoneycomb();
+  if(m_hitB) return m_hitB->IsHoneycomb();
   return false;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCPairHitCluster::SetHoneycomb( bool flag )
+DCPairHitCluster::SetHoneycomb(bool flag)
 {
-  if( m_hitA ) m_hitA->SetHoneycomb( flag );
-  if( m_hitB ) m_hitB->SetHoneycomb( flag );
+  if(m_hitA) m_hitA->SetHoneycomb(flag);
+  if(m_hitB) m_hitB->SetHoneycomb(flag);
 }

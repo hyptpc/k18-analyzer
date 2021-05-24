@@ -305,7 +305,10 @@ dst::DstOpen(std::vector<std::string> arg)
 bool
 dst::DstRead(int ievent)
 {
-  static const double OffsetToF = gUser.GetParameter("OffsetToF");
+  static const auto StofOffset =
+    Kinematics::CalcTimeOfFlight(ConfMan::Get<Double_t>("PK18"),
+                                 gGeom.LocalZ("K18Target")-gGeom.LocalZ("BH2"),
+                                 pdg::KaonMass());
 
   if(ievent%10000==0){
     std::cout << "#D Event Number: "
@@ -418,7 +421,7 @@ dst::DstRead(int ievent)
       HF1(20000+tofseg*100, src.dtTof[itof]);
 
       ////////// TimeCut
-      double stof = event.tTof[itof] - time0 + OffsetToF;
+      double stof = event.tTof[itof] - time0 + StofOffset;
       double cstof = -9999.;
       gPHC.DoStofCorrection(8, 0, tofseg-1, 2, stof, btof, cstof);
       double beta = event.path[it]/cstof/MathTools::C();

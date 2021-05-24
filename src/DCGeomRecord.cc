@@ -37,7 +37,7 @@ DCGeomRecord::DCGeomRecord(Int_t id, const TString& name,
 
 //_____________________________________________________________________________
 DCGeomRecord::DCGeomRecord(Int_t id, const TString& name,
-                           const ThreeVector pos, Double_t ta,
+                           const TVector3& pos, Double_t ta,
                            Double_t ra1, Double_t ra2, Double_t length,
                            Double_t resol,
                            Double_t w0, Double_t dd, Double_t ofs)
@@ -57,13 +57,13 @@ DCGeomRecord::DCGeomRecord(Int_t id, const TString& name,
 }
 
 //_____________________________________________________________________________
-DCGeomRecord::~DCGeomRecord(void)
+DCGeomRecord::~DCGeomRecord()
 {
 }
 
 //_____________________________________________________________________________
 void
-DCGeomRecord::CalcVectors(void)
+DCGeomRecord::CalcVectors()
 {
   Double_t ct0 = TMath::Cos(m_tilt_angle*TMath::DegToRad());
   Double_t st0 = TMath::Sin(m_tilt_angle*TMath::DegToRad());
@@ -127,17 +127,17 @@ DCGeomRecord::CalcVectors(void)
 }
 
 //_____________________________________________________________________________
-ThreeVector
-DCGeomRecord::NormalVector(void) const
+TVector3
+DCGeomRecord::NormalVector() const
 {
-  return ThreeVector(m_dxdu, m_dydu, m_dzdu);
+  return TVector3(m_dxdu, m_dydu, m_dzdu);
 }
 
 //_____________________________________________________________________________
-ThreeVector
-DCGeomRecord::UnitVector(void) const
+TVector3
+DCGeomRecord::UnitVector() const
 {
-  return ThreeVector(m_dxds, m_dyds, m_dzds);
+  return TVector3(m_dxds, m_dyds, m_dzds);
 }
 
 //_____________________________________________________________________________

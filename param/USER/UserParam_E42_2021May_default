@@ -32,9 +32,6 @@ DeTOF 0.3 4
 ### TOF time range
 TimeTOF 7 25
 
-### ToF offset between BH2 and Target
-OffsetToF 0
-
 ### LAC
 TdcLAC		170 290
 
