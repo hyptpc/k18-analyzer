@@ -30,6 +30,7 @@ private:
 private:
   Bool_t  m_is_fitted;     // flag of DoFit()
   Bool_t  m_is_calculated; // flag of Calculate()
+  Bool_t  m_is_bcsdc;
   std::vector<DCLTrackHit*> m_hit_array;
   std::vector<DCLTrackHit*> m_hit_arrayUV;
   Double_t m_Ax;

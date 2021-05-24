@@ -1,105 +1,97 @@
-/**
- *  file: DatabasePDG.cc
- *  date: 2017.04.10
- *  note: PDG code is defined in ROOT/include/TPDGCode.h
- *        Mass unit [GeV/c2]
- *
- */
+// -*- C++ -*-
+
+// PDG code is defined in ROOT/include/TPDGCode.h
+// Mass unit [GeV/c2]
 
 #include "DatabasePDG.hh"
 
 #include <string>
 
 #include <TDatabasePDG.h>
+#include <TMath.h>
 #include <TParticlePDG.h>
 
 #include <iostream>
 
-namespace
-{
-  const std::string& name("DatabasePDG");
-}
-
-//______________________________________________________________________________
 namespace pdg
 {
-  //______________________________________________________________________________
-  double
-  Mass( int pdg_code )
-  {
-    TParticlePDG *particle = TDatabasePDG::Instance()->GetParticle(pdg_code);
-    return ( particle ? particle->Mass() : -1. );
-  }
+//_____________________________________________________________________________
+Double_t
+Mass(Int_t pdg_code)
+{
+  auto particle = TDatabasePDG::Instance()->GetParticle(pdg_code);
+  return (particle ? particle->Mass() : TMath::QuietNaN());
+}
 
-  //______________________________________________________________________________
-  double
-  KaonMass( void )
-  {
-    return Mass(kKMinus);
-  }
+//_____________________________________________________________________________
+Double_t
+KaonMass()
+{
+  return Mass(kKMinus);
+}
 
-  //______________________________________________________________________________
-  double
-  PionMass( void )
-  {
-    return Mass(kPiMinus);
-  }
+//_____________________________________________________________________________
+Double_t
+PionMass()
+{
+  return Mass(kPiMinus);
+}
 
-  //______________________________________________________________________________
-  double
-  ProtonMass( void )
-  {
-    return Mass(kProton);
-  }
+//_____________________________________________________________________________
+Double_t
+ProtonMass()
+{
+  return Mass(kProton);
+}
 
-  //______________________________________________________________________________
-  double
-  NeutronMass( void )
-  {
-    return Mass(kNeutron);
-  }
+//_____________________________________________________________________________
+Double_t
+NeutronMass()
+{
+  return Mass(kNeutron);
+}
 
-  //______________________________________________________________________________
-  double
-  LambdaMass( void )
-  {
-    return Mass(kLambda0);
-  }
+//_____________________________________________________________________________
+Double_t
+LambdaMass()
+{
+  return Mass(kLambda0);
+}
 
-  //______________________________________________________________________________
-  double
-  SigmaNMass( void )
-  {
-    return Mass(kSigmaMinus);
-  }
+//_____________________________________________________________________________
+Double_t
+SigmaNMass()
+{
+  return Mass(kSigmaMinus);
+}
 
-  //______________________________________________________________________________
-  double
-  SigmaPMass( void )
-  {
-    return Mass(kSigmaPlus);
-  }
+//_____________________________________________________________________________
+Double_t
+SigmaPMass()
+{
+  return Mass(kSigmaPlus);
+}
 
-  //______________________________________________________________________________
-  double
-  XiMass( void )
-  {
-    return Mass(kXiMinus);
-  }
+//_____________________________________________________________________________
+Double_t
+XiMinusMass()
+{
+  return Mass(kXiMinus);
+}
 
-  //______________________________________________________________________________
-  void
-  Print( int pdg_code )
-  {
-    TParticlePDG *particle = TDatabasePDG::Instance()->GetParticle(pdg_code);
-    if( particle ) particle->Print();
-  }
+//_____________________________________________________________________________
+void
+Print(Int_t pdg_code)
+{
+  auto particle = TDatabasePDG::Instance()->GetParticle(pdg_code);
+  if(particle) particle->Print();
+}
 
-  //______________________________________________________________________________
-  void
-  Print( void )
-  {
-    TDatabasePDG::Instance()->Print();
-  }
+//_____________________________________________________________________________
+void
+Print()
+{
+  TDatabasePDG::Instance()->Print();
+}
 
 }

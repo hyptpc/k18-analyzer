@@ -868,9 +868,9 @@ LocalTrackSearch(const std::vector<DCHitContainer>& HC,
         //   Double_t ytgt=track->GetY(zTarget);
 
         if(true
-            && fabs(difPosBh2)<Bh2SegXAcc[T0Seg]
-            && (-10 < ybh2 && ybh2 < 40)
-            //       && fabs(ytgt)<21.
+           && fabs(difPosBh2)<Bh2SegXAcc[T0Seg]
+           && (-10 < ybh2 && ybh2 < 40)
+           //       && fabs(ytgt)<21.
           ){
           TrackCont.push_back(track);
         }else{
@@ -956,9 +956,9 @@ LocalTrackSearchSdcOut(const std::vector<DCHitContainer>& SdcOutHC,
     DCLocalTrack *track = MakeTrack(CandCont, CombiIndex[i]);
     if(!track) continue;
     if(track->GetNHit()>=MinNumOfHits     &&
-        track->GetNHitY() >= 2             &&
-        track->DoFit()                     &&
-        track->GetChiSquare()<MaxChisquare)
+       track->GetNHitY() >= 2             &&
+       track->DoFit()                     &&
+       track->GetChiSquare()<MaxChisquare)
     {
       TrackCont.push_back(track);
     }

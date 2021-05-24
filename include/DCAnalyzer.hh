@@ -47,7 +47,7 @@ typedef std::vector<HodoCluster*> HodoClusterContainer;
 class DCAnalyzer
 {
 public:
-  static TString& ClassName();
+  static const TString& ClassName();
   DCAnalyzer();
   ~DCAnalyzer();
 
@@ -272,7 +272,7 @@ public:
 };
 
 //_____________________________________________________________________________
-inline TString&
+inline const TString&
 DCAnalyzer::ClassName()
 {
   static TString s_name("DCAnalyzer");

@@ -15,14 +15,14 @@ namespace debug
 class ObjectCounter
 {
 public:
-  static TString        ClassName( void );
-  static ObjectCounter& GetInstance( void );
-  ~ObjectCounter( void );
+  static const TString& ClassName();
+  static ObjectCounter& GetInstance();
+  ~ObjectCounter();
 
 private:
-  ObjectCounter( void );
-  ObjectCounter( const ObjectCounter& );
-  ObjectCounter& operator =( const ObjectCounter& );
+  ObjectCounter();
+  ObjectCounter(const ObjectCounter&);
+  ObjectCounter& operator =(const ObjectCounter&);
 
 private:
   typedef std::map<TString, Int_t>  ObjectMap;
@@ -30,25 +30,25 @@ private:
   ObjectMap m_map;
 
 public:
-  void check( const TString& arg="" ) const;
-  void print( const TString& arg="" ) const;
+  void check(const TString& arg="") const;
+  void print(const TString& arg="") const;
 
 public:
-  static void decrease( const TString& key );
-  static void increase( const TString& key );
+  static void decrease(const TString& key);
+  static void increase(const TString& key);
 };
 
 //_____________________________________________________________________________
-inline TString
-ObjectCounter::ClassName( void )
+inline const TString&
+ObjectCounter::ClassName()
 {
-  static TString s_name( "ObjectCounter" );
+  static TString s_name("ObjectCounter");
   return s_name;
 }
 
 //_____________________________________________________________________________
 inline ObjectCounter&
-ObjectCounter::GetInstance( void )
+ObjectCounter::GetInstance()
 {
   static ObjectCounter s_instance;
   return s_instance;
@@ -56,7 +56,7 @@ ObjectCounter::GetInstance( void )
 
 //_____________________________________________________________________________
 inline void
-ObjectCounter::decrease( const TString& key )
+ObjectCounter::decrease(const TString& key)
 {
 #ifdef MemoryLeak
   --(GetInstance().m_map[key]);
@@ -65,7 +65,7 @@ ObjectCounter::decrease( const TString& key )
 
 //_____________________________________________________________________________
 inline void
-ObjectCounter::increase( const TString& key )
+ObjectCounter::increase(const TString& key)
 {
 #ifdef MemoryLeak
   ++(GetInstance().m_map[key]);

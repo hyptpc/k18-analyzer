@@ -49,8 +49,8 @@ typedef std::vector <TLine*> TLineContainer;
 class EventDisplay //: public TObject
 {
 public:
+  static const TString& ClassName();
   static EventDisplay& GetInstance();
-  static TString ClassName();
   ~EventDisplay();
 
 private:
@@ -59,7 +59,7 @@ private:
   EventDisplay& operator =(const EventDisplay&);
 
 private:
-  bool                       m_is_ready;
+  Bool_t                       m_is_ready;
   TApplication              *m_theApp;
   TGeometry                 *m_geometry;
   TNode                     *m_node;
@@ -203,24 +203,24 @@ private:
   TPolyLine                 *m_MissMomYZ_line;
 
 public:
-  bool Initialize();
-  bool IsReady() const { return m_is_ready; }
-  bool ConstructEmulsion();
-  bool ConstructTarget();
-  bool ConstructBH2();
-  bool ConstructKURAMA();
-  bool ConstructCollimator();
-  bool ConstructBcOut();
-  bool ConstructSdcIn();
-  bool ConstructSdcOut();
-  bool ConstructSSD();
-  bool ConstructFBH();
-  bool ConstructSCH();
-  bool ConstructTOF();
+  Bool_t Initialize();
+  Bool_t IsReady() const { return m_is_ready; }
+  Bool_t ConstructEmulsion();
+  Bool_t ConstructTarget();
+  Bool_t ConstructBH2();
+  Bool_t ConstructKURAMA();
+  Bool_t ConstructCollimator();
+  Bool_t ConstructBcOut();
+  Bool_t ConstructSdcIn();
+  Bool_t ConstructSdcOut();
+  Bool_t ConstructSSD();
+  Bool_t ConstructFBH();
+  Bool_t ConstructSCH();
+  Bool_t ConstructTOF();
   void DrawInitTrack(Int_t nStep, ThreeVector *StepPoint);
   void DrawInitTrack();
   void DrawHitWire(Int_t lid, Int_t hit_wire,
-		    bool range_check=true, bool tdc_check=true);
+                   Bool_t range_check=true, Bool_t tdc_check=true);
   void DrawTrackWire(Int_t lid, Int_t hit_wire, Int_t it);
   void DrawText(Double_t xpos, Double_t ypos, const TString& arg);
   void DrawHitHodoscope(Int_t lid, Int_t seg, Int_t Tu=1, Int_t Td=1);
@@ -233,7 +233,7 @@ public:
   void DrawKuramaTrack(Int_t nStep, ThreeVector *StepPoint, Int_t Polarity);
   void DrawTarget();
   void DrawMissingMomentum(const ThreeVector& mom,
-			    const ThreeVector& pos);
+                           const ThreeVector& pos);
   void DrawMomentum(Double_t momentum);
   void DrawMassSquare(Double_t mass_square);
   void DrawMissMass(Double_t mass_square);
@@ -245,8 +245,8 @@ public:
   void DrawBH2(Int_t seg, Int_t tdc);
   void SetCorrectTimeBH2(Int_t seg, Double_t de);
   void SetCorrectTimeBcOut(Int_t layer, Double_t pos);
-  void DrawBcOutTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, bool flagGoodForTracking = true);
-  void DrawSdcInTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, bool flagKurama = false, bool flagBeam = false);
+  void DrawBcOutTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, Bool_t flagGoodForTracking = true);
+  void DrawSdcInTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, Bool_t flagKurama = false, Bool_t flagBeam = false);
   void FillSCH(Int_t seg, Int_t tdc);
   void SetCorrectTimeSCH(Int_t seg, Double_t de);
   void SetCorrectTimeSdcIn(Int_t layer, Double_t pos);
@@ -274,7 +274,7 @@ public:
   void ResetVisibility();
   void CalcRotMatrix(Double_t TA, Double_t RA1, Double_t RA2, Double_t *rotMat);
   Int_t  GetCommand() const;
-  void Run(bool flag=kTRUE);
+  void Run(Bool_t flag=kTRUE);
 
 private:
   void ResetVisibility(TNode *& node, Color_t c=kWhite);
@@ -291,7 +291,7 @@ EventDisplay::GetInstance()
 }
 
 //_____________________________________________________________________________
-inline TString
+inline const TString&
 EventDisplay::ClassName()
 {
   static TString s_name("EventDisplay");

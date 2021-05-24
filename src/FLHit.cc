@@ -1,23 +1,12 @@
-/**
- *  file: FLHit.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "FLHit.hh"
 
-#include <string>
-
 #include "DebugCounter.hh"
 
-namespace
-{
-  const std::string& class_name("FLHit");
-}
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 // One side readout method (BFT, SFT, SCH)
-FLHit::FLHit( FiberHit* ptr, int index )
+FLHit::FLHit(FiberHit* ptr, Int_t index)
   : m_hit_u(ptr), m_hit_d(NULL),
     m_nth_hit_u(index), m_nth_hit_d(-1)
 {
@@ -27,12 +16,12 @@ FLHit::FLHit( FiberHit* ptr, int index )
   debug::ObjectCounter::increase(class_name);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 // Both side readout method (FBH)
-FLHit::FLHit( FiberHit* ptr1,  FiberHit* ptr2,
-	      int index1, int index2)
- : m_hit_u(ptr1), m_hit_d(ptr2),
-   m_nth_hit_u(index1), m_nth_hit_d(index2)
+FLHit::FLHit(FiberHit* ptr1,  FiberHit* ptr2,
+             Int_t index1, Int_t index2)
+  : m_hit_u(ptr1), m_hit_d(ptr2),
+    m_nth_hit_u(index1), m_nth_hit_d(index2)
 {
   m_hit_u->RegisterHits(this);
   m_hit_u->SetJoined(index1);
@@ -41,19 +30,26 @@ FLHit::FLHit( FiberHit* ptr1,  FiberHit* ptr2,
   debug::ObjectCounter::increase(class_name);
 }
 
-//______________________________________________________________________________
-FLHit::~FLHit( void )
+//_____________________________________________________________________________
+FLHit::~FLHit()
 {
   debug::ObjectCounter::decrease(class_name);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-FLHit::Initialize(void)
+FLHit::Dump()
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()");
+  std::cout << "plid " << m_hit_u->PairId() << " ";
+  std::cout << "Pos "  << GetPosition()   << " ";
+  std::cout << "Time " << GetCTime()      << std::endl;
+}
 
-  if( m_hit_d == NULL ){
+//_____________________________________________________________________________
+void
+FLHit::Initialize()
+{
+  if(m_hit_d == NULL){
     m_leading  = m_hit_u->GetLeading(m_nth_hit_u);
     // m_trailing = m_hit_u->GetTrailing(m_nth_hit_u);
     m_trailing = m_leading; 	// Temporary solution. Need to be changed some day.
@@ -72,6 +68,5 @@ FLHit::Initialize(void)
     m_width  =
       (m_hit_u->GetWidth(m_nth_hit_u) + m_hit_d->GetWidth(m_nth_hit_d))/2;
   }
-
   m_flag_fljoin = false;
 }

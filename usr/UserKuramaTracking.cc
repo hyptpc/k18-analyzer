@@ -713,7 +713,6 @@ UserKuramaTracking::ProcessingNormal()
   HF1(1, 21.);
 
   ///// BTOF BH2-Target
-  // static const auto StofOffset = gUser.GetParameter("StofOffset");
   static const auto StofOffset =
     Kinematics::CalcTimeOfFlight(ConfMan::Get<Double_t>("PK18"),
                                  gGeom.LocalZ("K18Target")-gGeom.LocalZ("BH2"),

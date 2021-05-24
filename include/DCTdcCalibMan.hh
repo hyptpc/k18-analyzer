@@ -13,14 +13,14 @@ struct DCTdcCalMap;
 class DCTdcCalibMan
 {
 public:
-  static const TString& ClassName( void );
-  static DCTdcCalibMan& GetInstance( void );
-  ~DCTdcCalibMan( void );
+  static const TString& ClassName();
+  static DCTdcCalibMan& GetInstance();
+  ~DCTdcCalibMan();
 
 private:
-  DCTdcCalibMan( void );
-  DCTdcCalibMan( const DCTdcCalibMan& );
-  DCTdcCalibMan& operator =( const DCTdcCalibMan& );
+  DCTdcCalibMan();
+  DCTdcCalibMan(const DCTdcCalibMan&);
+  DCTdcCalibMan& operator =(const DCTdcCalibMan&);
 
 private:
   typedef std::map<Int_t, DCTdcCalMap*> DCTdcContainer;
@@ -30,25 +30,25 @@ private:
   DCTdcContainer m_container;
 
 public:
-  Bool_t GetParameter( Int_t plane_id, Double_t wire_id,
-                       Double_t &p0, Double_t &p1 ) const;
-  Bool_t GetTime( Int_t plane_id, Double_t wire_id, Int_t tdc,
-                  Double_t& time ) const;
-  Bool_t GetTdc( Int_t plane_id, Double_t wire_id, Double_t time,
-                 Int_t& tdc ) const;
-  Bool_t Initialize( void );
-  Bool_t Initialize( const TString& file_name );
-  Bool_t IsReady( void ) const { return m_is_ready; }
-  void   SetFileName( const TString& file_name ) { m_file_name = file_name; }
+  Bool_t GetParameter(Int_t plane_id, Double_t wire_id,
+                      Double_t &p0, Double_t &p1) const;
+  Bool_t GetTime(Int_t plane_id, Double_t wire_id, Int_t tdc,
+                 Double_t& time) const;
+  Bool_t GetTdc(Int_t plane_id, Double_t wire_id, Double_t time,
+                Int_t& tdc) const;
+  Bool_t Initialize();
+  Bool_t Initialize(const TString& file_name);
+  Bool_t IsReady() const { return m_is_ready; }
+  void   SetFileName(const TString& file_name) { m_file_name = file_name; }
 
 private:
-  void         ClearElements( void );
-  DCTdcCalMap* GetMap( Int_t plane_id, Double_t wire_id ) const;
+  void         ClearElements();
+  DCTdcCalMap* GetMap(Int_t plane_id, Double_t wire_id) const;
 };
 
 //_____________________________________________________________________________
 inline DCTdcCalibMan&
-DCTdcCalibMan::GetInstance( void )
+DCTdcCalibMan::GetInstance()
 {
   static DCTdcCalibMan s_instance;
   return s_instance;
@@ -56,9 +56,9 @@ DCTdcCalibMan::GetInstance( void )
 
 //_____________________________________________________________________________
 inline const TString&
-DCTdcCalibMan::ClassName( void )
+DCTdcCalibMan::ClassName()
 {
-  static TString s_name( "DCTdcCalibMan" );
+  static TString s_name("DCTdcCalibMan");
   return s_name;
 }
 

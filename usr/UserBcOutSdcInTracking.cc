@@ -21,7 +21,7 @@
 
 #define HodoCut 0
 #define TotCut  1
-#define Chi2Cut  1
+#define Chi2Cut 1
 
 namespace
 {
@@ -182,6 +182,8 @@ UserBcOutSdcInTracking::ProcessingNormal()
   static const auto MaxMultiHitSdcIn = gUser.GetParameter("MaxMultiHitSdcIn");
 #if TotCut
   static const auto MinTotBcOut = gUser.GetParameter("MinTotBcOut");
+  static const auto MinTotSDC1 = gUser.GetParameter("MinTotSDC1");
+  static const auto MinTotSDC2 = gUser.GetParameter("MinTotSDC2");
 #endif
 
   rawData->DecodeHits();
@@ -298,6 +300,10 @@ UserBcOutSdcInTracking::ProcessingNormal()
   HF1(1, 11.);
 
   ///// SdcIn number of hit layer
+#if TotCut
+  DCAna->TotCutSDC1(MinTotSDC1);
+  DCAna->TotCutSDC2(MinTotSDC2);
+#endif
   Double_t multi_SdcIn = 0.;
   for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
     multi_SdcIn += DCAna->GetSdcInHC(layer).size();
@@ -318,12 +324,12 @@ UserBcOutSdcInTracking::ProcessingNormal()
   HF1(10, Double_t(nt));
   for(Int_t it=0; it<nt; ++it){
     const auto& track = track_cont.at(it);
+    // track->Print();
     Int_t nh = track->GetNHit();
     Double_t chisqr=track->GetChiSquare();
     Double_t x0=track->GetX0(), y0=track->GetY0();
     Double_t u0=track->GetU0(), v0=track->GetV0();
-    // Double_t cost = 1./std::sqrt(1.+u0*u0+v0*v0);
-    // Double_t theta = std::acos(cost)*math::Rad2Deg();
+    Double_t theta = track->GetTheta();
     event.nlayer[it] = nh;
     event.chisqr[it] = chisqr;
     event.x0[it] = x0;
@@ -331,26 +337,19 @@ UserBcOutSdcInTracking::ProcessingNormal()
     event.u0[it] = u0;
     event.v0[it] = v0;
 
-  //   HF1(11, Double_t(nh));
-  //   HF1(12, chisqr);
-  //   HF1(14, x0); HF1(15, y0);
-  //   HF1(16, u0); HF1(17, v0);
-  //   HF2(18, x0, u0); HF2(19, y0, v0);
-  //   HF2(20, x0, y0);
+    HF1(11, Double_t(nh));
+    HF1(12, chisqr);
+    HF1(14, x0); HF1(15, y0);
+    HF1(16, u0); HF1(17, v0);
+    HF2(18, x0, u0); HF2(19, y0, v0);
+    HF2(20, x0, y0);
 
-  //   Double_t xtgt=track->GetX(1800.), ytgt=track->GetY(1800.);
-  //   Double_t utgt=u0, vtgt=v0;
-  //   HF1(21, xtgt); HF1(22, ytgt);
-  //   HF1(23, utgt); HF1(24, vtgt);
-  //   HF2(25, xtgt, utgt); HF2(26, ytgt, vtgt);
-  //   HF2(27, xtgt, ytgt);
-
-  //   Double_t xbac=track->GetX(603.), ybac=track->GetY(885.);
-  //   Double_t ubac=u0, vbac=v0;
-  //   HF1(31, xbac); HF1(32, ybac);
-  //   HF1(33, ubac); HF1(34, vbac);
-  //   HF2(35, xbac, ubac); HF2(36, ybac, vbac);
-  //   HF2(37, xbac, ybac);
+    // Double_t xtgt=track->GetX(1800.), ytgt=track->GetY(1800.);
+    // Double_t utgt=u0, vtgt=v0;
+    // HF1(21, xtgt); HF1(22, ytgt);
+    // HF1(23, utgt); HF1(24, vtgt);
+    // HF2(25, xtgt, utgt); HF2(26, ytgt, vtgt);
+    // HF2(27, xtgt, ytgt);
 
   //   Double_t Xangle = -1000*std::atan(u0);
 
@@ -363,42 +362,45 @@ UserBcOutSdcInTracking::ProcessingNormal()
   //   HF2(62, track->GetX(1200.), track->GetX(245.));
   //   HF2(63, track->GetX(1600.), track->GetX(245.));
 
-    // for(Int_t ih=0; ih<nh; ++ih){
-    //   const auto hit = track->GetHit(ih);
-  //     Int_t layerId=hit->GetLayer()-112;
-
-  //     HF1(13, layerId);
-  //     Double_t wire=hit->GetWire();
-  //     Double_t dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
-  //     HF1(100*layerId+11, wire-0.5);
-  //     HF1(100*layerId+12, dt);
-  //     HF1(100*layerId+13, dl);
+    for(Int_t ih=0; ih<nh; ++ih){
+      const auto hit = track->GetHit(ih);
+      Int_t layerId = hit->GetLayer();//-112;
+      if(layerId > 112) layerId -= 112;
+      else layerId += 12;
+      HF1(13, layerId);
+      Double_t wire=hit->GetWire();
+      Double_t dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
+      HF1(100*layerId+11, wire-0.5);
+      HF1(100*layerId+12, dt);
+      HF1(100*layerId+13, dl);
   //     HF1(10000*layerId+ 5000 +(Int_t)wire, dt);
-  //     Double_t xcal=hit->GetXcal(), ycal=hit->GetYcal();
-  //     Double_t pos=hit->GetLocalHitrackos(), res=hit->GetResidual();
-  //     HF1(100*layerId+14, pos);
-  //     HF1(100*layerId+15, res);
-  //     HF2(100*layerId+16, pos, res);
-  //     HF2(100*layerId+17, xcal, ycal);
+      Double_t xcal=hit->GetXcal(), ycal=hit->GetYcal();
+      Double_t pos=hit->GetLocalHitPos(), res=hit->GetResidual();
+      if(layerId > 12){
+        res += 49.95*TMath::Cos(hit->GetTiltAngle()*TMath::DegToRad());
+      }
+      // std::cout << layerId << " " << res << std::endl;
+      HF1(100*layerId+14, pos);
+      HF1(100*layerId+15, res);
+      HF2(100*layerId+16, pos, res);
+      HF2(100*layerId+17, xcal, ycal);
   //     //      HF1(100000*layerId+50000+wire, res);
-  //     Double_t wp=hit->GetWirePosition();
-  //     Double_t sign=1.;
-  //     if(pos-wp<0.) sign=-1;
-  //     HF2(100*layerId+18, sign*dl, res);
-  //     Double_t xlcal=hit->GetLocalCalPos();
-  //     HF2(100*layerId+19, dt, xlcal-wp);
-
-  //     Double_t tot = hit->GetTot();
-  //     HF1(100*layerId+40, tot);
-
-  //     if (theta>=0 && theta<15)
-  //       HF1(100*layerId+71, res);
-  //     else if (theta>=15 && theta<30)
-  //       HF1(100*layerId+72, res);
-  //     else if (theta>=30 && theta<45)
-  //       HF1(100*layerId+73, res);
-  //     else if (theta>=45)
-  //       HF1(100*layerId+74, res);
+      Double_t wp=hit->GetWirePosition();
+      Double_t sign=1.;
+      if(pos-wp<0.) sign=-1;
+      HF2(100*layerId+18, sign*dl, res);
+      Double_t xlcal=hit->GetLocalCalPos();
+      HF2(100*layerId+19, dt, xlcal-wp);
+      Double_t tot = hit->GetTot();
+      HF1(100*layerId+40, tot);
+      if (theta>=0 && theta<15)
+        HF1(100*layerId+71, res);
+      else if (theta>=15 && theta<30)
+        HF1(100*layerId+72, res);
+      else if (theta>=30 && theta<45)
+        HF1(100*layerId+73, res);
+      else if (theta>=45)
+        HF1(100*layerId+74, res);
 
   //     if (std::abs(dl-std::abs(xlcal-wp))<2.0) {
   //       HFProf(100*layerId+20, dt, std::abs(xlcal-wp));
@@ -406,7 +408,7 @@ UserBcOutSdcInTracking::ProcessingNormal()
   //       HFProf(100000*layerId+3000+(Int_t)wire, xlcal-wp,dt);
   //       HF2(100000*layerId+4000+(Int_t)wire, xlcal-wp,dt);
   //     }
-  //   }
+    }
   }
 
   HF1(1, 15.);
@@ -435,10 +437,6 @@ ConfMan:: InitializeHistograms()
 {
   const Int_t nl = NumOfLayersBcOut+NumOfLayersSdcIn;
 
-  const Int_t NbinBcOutTdc   = 1000;
-  const Double_t MinBcOutTdc =  200.;
-  const Double_t MaxBcOutTdc = 1200.;
-
   const Int_t NbinBcOutDT   =  96;
   const Double_t MinBcOutDT =  -10.;
   const Double_t MaxBcOutDT =   70.;
@@ -447,78 +445,104 @@ ConfMan:: InitializeHistograms()
   const Double_t MinBcOutDL =  -0.5;
   const Double_t MaxBcOutDL =   3.5;
 
+  const Int_t    NbinSDC1DT = 240;
+  const Double_t MinSDC1DT  = -30.;
+  const Double_t MaxSDC1DT  = 170.;
+  const Int_t    NbinSDC1DL = 55;
+  const Double_t MinSDC1DL  = -0.5;
+  const Double_t MaxSDC1DL  = 5.0;
+
+  const Int_t    NbinSDC2DT = 360;
+  const Double_t MinSDC2DT  = -50.;
+  const Double_t MaxSDC2DT  = 250.;
+  const Int_t    NbinSDC2DL = 85;
+  const Double_t MinSDC2DL  =  -0.5;
+  const Double_t MaxSDC2DL  =   8.;
+
   HB1(1, "Status", 20, 0., 20.);
 
   //***********************Chamber
   // BC34
-  for(Int_t i=1; i<=NumOfLayersBcOut; ++i){
-    TString tag = (i <= NumOfLayersBc) ? "BC3" : "BC4";
-    Int_t nwire = (i <= NumOfLayersBc) ? MaxWireBC3 : MaxWireBC4;
-    TString title0 = Form("#Hits %s#%2d", tag.Data(), i);
-    TString title1 = Form("Hitpat %s#%2d", tag.Data(), i);
-    TString title2 = Form("Tdc %s#%2d", tag.Data(), i);
-    TString title3 = Form("Drift Time %s#%2d", tag.Data(), i);
-    TString title4 = Form("Drift Length %s#%2d", tag.Data(), i);
-    TString title5 = Form("TOT %s#%2d", tag.Data(), i);
-    TString title6 = Form("Tdc 1st %s#%2d", tag.Data(), i);
-    TString title7 = Form("TOT 1st %s#%2d", tag.Data(), i);
-    TString title8 = Form("Time interval from 1st hit %s#%2d", tag.Data(), i);
-    TString title9 = Form("Position interval from 1st hit %s#%2d", tag.Data(), i);
-    TString title10 = Form("Trailing %s#%2d", tag.Data(), i);
-    HB1(100*i+0, title0, nwire+1, 0., nwire+1);
-    HB1(100*i+1, title1, nwire, 0., nwire);
-    HB1(100*i+2, title2, NbinBcOutTdc, MinBcOutTdc, MaxBcOutTdc);
-    HB1(100*i+3, title3, NbinBcOutDT, MinBcOutDT, MaxBcOutDT);
-    HB1(100*i+4, title4, NbinBcOutDL, MinBcOutDL, MaxBcOutDL);
-    HB1(100*i+5, title5, 500,    0, 500);
-    HB1(100*i+6, title6, NbinBcOutTdc, MinBcOutTdc, MaxBcOutTdc);
-    HB1(100*i+7, title7, 500,  0, 500);
-    HB1(100*i+8, title8, 72,     0, 60);
-    HB1(100*i+9, title9, 64,   -32, 32);
-    HB1(100*i+10, title10, NbinBcOutTdc, MinBcOutTdc, MaxBcOutTdc);
-    for (Int_t wire=1; wire<=nwire; wire++) {
-      TString title10 = Form("Tdc %s#%2d Wire#%d", tag.Data(), i, wire);
-      TString title11 = Form("Drift Time %s#%2d Wire#%d", tag.Data(), i, wire);
-      TString title12 = Form("Drift Length %s#%2d Wire#%d", tag.Data(), i, wire);
-      TString title15 = Form("Drift Time %s#%2d Wire#%d [Track]", tag.Data(), i, wire);
-      HB1(10000*i+wire, title10, NbinBcOutTdc, MinBcOutTdc, MaxBcOutTdc);
-      HB1(10000*i+1000+wire, title11, NbinBcOutDT, MinBcOutDT, MaxBcOutDT);
-      HB1(10000*i+2000+wire, title12, NbinBcOutDL, MinBcOutDL, MaxBcOutDL);
-      HB1(10000*i+5000+wire, title15, NbinBcOutDT, MinBcOutDT, MaxBcOutDT);
+  for(Int_t i=1; i<=nl; ++i){
+    TString tag;
+    Int_t nwire;
+    Int_t nbindt;
+    Double_t mindt;
+    Double_t maxdt;
+    Int_t nbindl;
+    Double_t mindl;
+    Double_t maxdl;
+    if(i <= NumOfLayersBc){
+      tag = "BC3";
+      nwire = MaxWireBC3;
+      nbindt = NbinBcOutDT;
+      mindt = MinBcOutDT;
+      maxdt = MaxBcOutDT;
+      nbindl = NbinBcOutDL;
+      mindl = MinBcOutDL;
+      maxdl = MaxBcOutDL;
+    }else if(i <= NumOfLayersBcOut){
+      tag = "BC4";
+      nwire = MaxWireBC4;
+      nbindt = NbinBcOutDT;
+      mindt = MinBcOutDT;
+      maxdt = MaxBcOutDT;
+      nbindl = NbinBcOutDL;
+      mindl = MinBcOutDL;
+      maxdl = MaxBcOutDL;
+    }else if(i <= NumOfLayersBcOut+NumOfLayersSDC1){
+      tag = "SDC1";
+      nwire = MaxWireSDC1;
+      nbindt = NbinSDC1DT;
+      mindt = MinSDC1DT;
+      maxdt = MaxSDC1DT;
+      nbindl = NbinSDC1DL;
+      mindl = MinSDC1DL;
+      maxdl = MaxSDC1DL;
+    }else if(i <= NumOfLayersBcOut+NumOfLayersSDC1){
+      tag = "SDC2";
+      if(i <= NumOfLayersBcOut+NumOfLayersSDC1+2){
+        nwire = MaxWireSDC2X;
+      }else{
+        nwire = MaxWireSDC2Y;
+      }
+      nbindt = NbinSDC2DT;
+      mindt = MinSDC2DT;
+      maxdt = MaxSDC2DT;
+      nbindl = NbinSDC2DL;
+      mindl = MinSDC2DL;
+      maxdl = MaxSDC2DL;
     }
-
     // Tracking Histgrams
-    TString title11 = Form("HitPat BcOut%2d [Track]", i);
-    TString title12 = Form("DriftTime BcOut%2d [Track]", i);
-    TString title13 = Form("DriftLength BcOut%2d [Track]", i);
-    TString title14 = Form("Position BcOut%2d", i);
-    TString title15 = Form("Residual BcOut%2d", i);
-    TString title16 = Form("Resid%%Pos BcOut%2d", i);
-    TString title17 = Form("Y%%Xcal BcOut%2d", i);
-    TString title18 = Form("Res%%dl BcOut%2d", i);
-    TString title19 = Form("HitPos%%DriftTime BcOut%2d", i);
-    TString title20 = Form("DriftLength%%DriftTime BcOut%2d", i);
+    TString title11 = Form("HitPat BcOutSdcIn L%2d [Track]", i);
+    TString title12 = Form("DriftTime BcOutSdcIn L%2d [Track]", i);
+    TString title13 = Form("DriftLength BcOutSdcIn L%2d [Track]", i);
+    TString title14 = Form("Position BcOutSdcIn L%2d", i);
+    TString title15 = Form("Residual BcOutSdcIn L%2d", i);
+    TString title16 = Form("Resid%%Pos BcOutSdcIn L%2d", i);
+    TString title17 = Form("Y%%Xcal BcOutSdcIn L%2d", i);
+    TString title18 = Form("Res%%dl BcOutSdcIn L%2d", i);
+    TString title19 = Form("HitPos%%DriftTime BcOutSdcIn L%2d", i);
+    TString title20 = Form("DriftLength%%DriftTime BcOutSdcIn L%2d", i);
     TString title21 = title15 + " [w/o Self]";
     TString title22 = title20;
-    TString title40 = Form("TOT BcOut%2d [Track]", i);
-    TString title71 = Form("Residual BcOut%2d (0<theta<15)", i);
-    TString title72 = Form("Residual BcOut%2d (15<theta<30)", i);
-    TString title73 = Form("Residual BcOut%2d (30<theta<45)", i);
-    TString title74 = Form("Residual BcOut%2d (45<theta)", i);
-    HB1(100*i+11, title11, 64, 0., 64.);
-    HB1(100*i+12, title12, NbinBcOutDT, MinBcOutDT, MaxBcOutDT);
-    HB1(100*i+13, title13, NbinBcOutDL, MinBcOutDL, MaxBcOutDL);
+    TString title40 = Form("TOT BcOutSdcIn L%2d [Track]", i);
+    TString title71 = Form("Residual BcOutSdcIn L%2d (0<theta<15)", i);
+    TString title72 = Form("Residual BcOutSdcIn L%2d (15<theta<30)", i);
+    TString title73 = Form("Residual BcOutSdcIn L%2d (30<theta<45)", i);
+    TString title74 = Form("Residual BcOutSdcIn L%2d (45<theta)", i);
+    HB1(100*i+11, title11, nwire, 0., nwire);
+    HB1(100*i+12, title12, nbindt, mindt, maxdt);
+    HB1(100*i+13, title13, nbindl, mindl, maxdl);
     HB1(100*i+14, title14, 100, -250., 250.);
     HB1(100*i+15, title15, 400, -2.0, 2.0);
     HB2(100*i+16, title16, 250, -250., 250., 100, -1.0, 1.0);
     HB2(100*i+17, title17, 100, -250., 250., 100, -250., 250.);
     HB2(100*i+18, title18, 50, 3., 3., 100, -1.0, 1.0);
-    HB2(100*i+19, title19, NbinBcOutDT, MinBcOutDT, MaxBcOutDT,
-        Int_t(MaxBcOutDL*20), -MaxBcOutDL, MaxBcOutDL);
+    HB2(100*i+19, title19, nbindt, mindt, maxdt,
+        Int_t(maxdl*20), -maxdl, maxdl);
     HBProf(100*i+20, title20, 100, -5., 50., 0., 12.);
-    HB2(100*i+22, title22,
-        NbinBcOutDT, MinBcOutDT, MaxBcOutDT,
-        NbinBcOutDL, MinBcOutDL, MaxBcOutDL);
+    HB2(100*i+22, title22, nbindt, mindt, maxdt, nbindl, mindl, maxdl);
     HB1(100*i+21, title21, 200, -5.0, 5.0);
     HB1(100*i+40, title40, 300,    0, 300);
     HB1(100*i+71, title71, 200, -5.0, 5.0);
@@ -534,47 +558,36 @@ ConfMan:: InitializeHistograms()
   }
 
   // Tracking Histgrams
-  HB1(10, "#Tracks BcOut", 10, 0., 10.);
-  HB1(11, "#Hits of Track BcOut", 15, 0., 15.);
-  HB1(12, "Chisqr BcOut", 500, 0., 50.);
-  HB1(13, "LayerId BcOut", 15, 0., 15.);
-  HB1(14, "X0 BcOut", 400, -100., 100.);
-  HB1(15, "Y0 BcOut", 400, -100., 100.);
-  HB1(16, "U0 BcOut", 200, -0.20, 0.20);
-  HB1(17, "V0 BcOut", 200, -0.20, 0.20);
-  HB2(18, "U0%X0 BcOut", 100, -100., 100., 100, -0.20, 0.20);
-  HB2(19, "V0%Y0 BcOut", 100, -100., 100., 100, -0.20, 0.20);
-  HB2(20, "X0%Y0 BcOut", 100, -100., 100., 100, -100, 100);
+  HB1(10, "#Tracks BcOutSdcIn", 10, 0., 10.);
+  HB1(11, "#Hits of Track BcOutSdcIn", 24, 0., 24.);
+  HB1(12, "Chisqr BcOutSdcIn", 500, 0., 50.);
+  HB1(13, "LayerId BcOutSdcIn", 24, 0., 24);
+  HB1(14, "X0 BcOutSdcIn", 400, -100., 100.);
+  HB1(15, "Y0 BcOutSdcIn", 400, -100., 100.);
+  HB1(16, "U0 BcOutSdcIn", 200, -0.20, 0.20);
+  HB1(17, "V0 BcOutSdcIn", 200, -0.20, 0.20);
+  HB2(18, "U0%X0 BcOutSdcIn", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(19, "V0%Y0 BcOutSdcIn", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(20, "X0%Y0 BcOutSdcIn", 100, -100., 100., 100, -100, 100);
 
-  HB1(21, "Xtgt BcOut", 400, -100., 100.);
-  HB1(22, "Ytgt BcOut", 400, -100., 100.);
-  HB1(23, "Utgt BcOut", 200, -0.20, 0.20);
-  HB1(24, "Vtgt BcOut", 200, -0.20, 0.20);
-  HB2(25, "Utgt%Xtgt BcOut", 100, -100., 100., 100, -0.20, 0.20);
-  HB2(26, "Vtgt%Ytgt BcOut", 100, -100., 100., 100, -0.20, 0.20);
-  HB2(27, "Xtgt%Ytgt BcOut", 100, -100., 100., 100, -100, 100);
+  HB1(21, "Xtgt BcOutSdcIn", 400, -100., 100.);
+  HB1(22, "Ytgt BcOutSdcIn", 400, -100., 100.);
+  HB1(23, "Utgt BcOutSdcIn", 200, -0.20, 0.20);
+  HB1(24, "Vtgt BcOutSdcIn", 200, -0.20, 0.20);
+  HB2(25, "Utgt%Xtgt BcOutSdcIn", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(26, "Vtgt%Ytgt BcOutSdcIn", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(27, "Xtgt%Ytgt BcOutSdcIn", 100, -100., 100., 100, -100, 100);
 
-  HB1(31, "Xbac BcOut", 400, -100., 100.);
-  HB1(32, "Ybac BcOut", 400, -100., 100.);
-  HB1(33, "Ubac BcOut", 200, -0.20, 0.20);
-  HB1(34, "Vbac BcOut", 200, -0.20, 0.20);
-  HB2(35, "Ubac%Xbac BcOut", 100, -100., 100., 100, -0.20, 0.20);
-  HB2(36, "Vbac%Ybac BcOut", 100, -100., 100., 100, -0.20, 0.20);
-  HB2(37, "Xbac%Ybac BcOut", 100, -100., 100., 100, -100, 100);
   HB1(38, "Plane Eff", 36, 0, 36);
 
-  // HB2(1000*i, Form("Wire%%Tdc for LayerId = %d", i),
-  // 	 NbinSdcOutTdc/4, MinSdcOutTdc, MaxSdcOutTdc,
-  // 	 MaxWire+1, 0., double(MaxWire+1));
+  HB2(51, "X-X' 245 BcOutSdcIn", 400, -100., 100., 120, -60, 60);
+  HB2(52, "X-X' 600 BcOutSdcIn", 400, -100., 100., 120, -60, 60);
+  HB2(53, "X-X' 1200 BcOutSdcIn", 400, -100., 100., 120, -60, 60);
+  HB2(54, "X-X' 1600 BcOutSdcIn", 400, -100., 100., 120, -60, 60);
 
-  HB2(51, "X-X' 245 BcOut", 400, -100., 100., 120, -60, 60);
-  HB2(52, "X-X' 600 BcOut", 400, -100., 100., 120, -60, 60);
-  HB2(53, "X-X' 1200 BcOut", 400, -100., 100., 120, -60, 60);
-  HB2(54, "X-X' 1600 BcOut", 400, -100., 100., 120, -60, 60);
-
-  HB2(61, "X-X 600 BcOut", 400, -100., 100., 400, -100, 100);
-  HB2(62, "X-X 1200 BcOut", 400, -100., 100., 400, -100, 100);
-  HB2(63, "X-X 1600 BcOut", 400, -100., 100., 400, -100, 100);
+  HB2(61, "X-X 600 BcOutSdcIn", 400, -100., 100., 400, -100, 100);
+  HB2(62, "X-X 1200 BcOutSdcIn", 400, -100., 100., 400, -100, 100);
+  HB2(63, "X-X 1600 BcOutSdcIn", 400, -100., 100., 400, -100, 100);
 
   // Analysis status
   HB1(40, "Tacking status", 11, -1., 10.);
@@ -582,7 +595,7 @@ ConfMan:: InitializeHistograms()
 
   ////////////////////////////////////////////
   //Tree
-  HBTree("bcsdc", "tree of BcOutSdcInTracking");
+  HBTree("bcsdc", "tree of BcOutSdcInSdcInTracking");
   tree->Branch("evnum", &event.evnum, "evnum/I");
   tree->Branch("trigpat", event.trigpat, Form("trigpat[%d]/I", MaxHits));
   tree->Branch("trigflag", event.trigflag, Form("trigflag[%d]/I", NumOfSegTrig));

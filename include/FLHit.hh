@@ -6,63 +6,57 @@
 #include "FiberHit.hh"
 #include <vector>
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class FLHit
 {
 public:
   // One side readout method (BFT, SFT, SCH)
-  FLHit( FiberHit* ptr, int index );
+  FLHit(FiberHit* ptr, Int_t index);
   // Both side readout method (FBH)
-  FLHit( FiberHit* ptr1, FiberHit* ptr2,
-	 int index1, int index2);
-  ~FLHit( void );
+  FLHit(FiberHit* ptr1, FiberHit* ptr2,
+        Int_t index1, Int_t index2);
+  ~FLHit();
+
+private:
+  FLHit();
+  FLHit(const FLHit& object);
+  FLHit& operator =(const FLHit& object);
 
 private:
   FiberHit *m_hit_u;
   FiberHit *m_hit_d;
-  int       m_nth_hit_u;
-  int       m_nth_hit_d;
-  double    m_leading;
-  double    m_trailing;
-  double    m_time;
-  double    m_ctime;
-  double    m_width;
-  bool      m_flag_fljoin;
+  Int_t       m_nth_hit_u;
+  Int_t       m_nth_hit_d;
+  Double_t    m_leading;
+  Double_t    m_trailing;
+  Double_t    m_time;
+  Double_t    m_ctime;
+  Double_t    m_width;
+  Bool_t      m_flag_fljoin;
 
 public:
-  double GetLeading( void )  const { return m_leading;  }
-  double GetTrailing( void ) const { return m_trailing; }
-  double GetTime( void )     const { return m_time;     }
-  double GetCTime( void )    const { return m_ctime;    }
-  double GetWidth( void )    const { return m_width;    }
-  double GetPosition( void ) const { return m_hit_u->GetPosition(); }
-  double GetAdcHG( void ) const { return m_hit_u->GetAdcHG(); }
-  double GetAdcLG( void ) const { return m_hit_u->GetAdcLG(); }
-  double GetMipHG( void ) const { return m_hit_u->GetMipHG(); }
-  double GetMipLG( void ) const { return m_hit_u->GetMipLG(); }
-  double GetDeHG( void ) const { return m_hit_u->GetDeHG(); }
-  double GetDeLG( void ) const { return m_hit_u->GetDeLG(); }
-  int    PairId( void )      const { return m_hit_u->PairId();      }
-  double SegmentId( void )   const { return m_hit_u->SegmentId();   }
-  void   SetJoined( void )         { m_flag_fljoin = true;          }
-  bool   Joined( void )      const { return m_flag_fljoin;          }
-  void   Dump( void )              { Debug();                       }
+  Double_t GetLeading() const { return m_leading; }
+  Double_t GetTrailing() const { return m_trailing; }
+  Double_t GetTime() const { return m_time; }
+  Double_t GetCTime() const { return m_ctime; }
+  Double_t GetWidth() const { return m_width; }
+  Double_t GetPosition() const { return m_hit_u->GetPosition(); }
+  Double_t GetAdcHG() const { return m_hit_u->GetAdcHG(); }
+  Double_t GetAdcLG() const { return m_hit_u->GetAdcLG(); }
+  Double_t GetMipHG() const { return m_hit_u->GetMipHG(); }
+  Double_t GetMipLG() const { return m_hit_u->GetMipLG(); }
+  Double_t GetDeHG() const { return m_hit_u->GetDeHG(); }
+  Double_t GetDeLG() const { return m_hit_u->GetDeLG(); }
+  Int_t    PairId() const { return m_hit_u->PairId(); }
+  Double_t SegmentId() const { return m_hit_u->SegmentId(); }
+  void     SetJoined() { m_flag_fljoin = true; }
+  Bool_t   Joined() const { return m_flag_fljoin; }
+  void     Dump() const;
 
   friend class FiberHit;
 
 private:
-  FLHit( void );
-  FLHit(const FLHit& object);
-  FLHit& operator =(const FLHit& object);
-
-  void Initialize( void );
-
-  void Debug( void )
-  {
-    std::cout << "plid " << m_hit_u->PairId() << " ";
-    std::cout << "Pos "  << GetPosition()   << " ";
-    std::cout << "Time " << GetCTime()      << std::endl;
-  }
+  void Initialize();
 
 };
 

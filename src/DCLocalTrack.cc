@@ -41,6 +41,7 @@ const Double_t MaxChisqrDiff   = 1.0e-3;
 DCLocalTrack::DCLocalTrack()
   : m_is_fitted(false),
     m_is_calculated(false),
+    m_is_bcsdc(false),
     m_Ax(0.),
     m_Ay(0.),
     m_Au(0.),
@@ -55,10 +56,10 @@ DCLocalTrack::DCLocalTrack()
     m_v0(0.),
     m_a(0.),
     m_b(0.),
-    m_chisqr(1.e+10),
+    m_chisqr(1e+10),
     m_good_for_tracking(true),
     m_de(0.),
-    m_chisqr1st(1.e+10),
+    m_chisqr1st(1e+10),
     m_n_iteration(0)
 {
   m_hit_array.reserve(ReservedNumOfHits);
@@ -95,20 +96,21 @@ DCLocalTrack::Calculate()
     return;
   }
 
-  const Int_t n = m_hit_array.size();
-  for(Int_t i=0; i<n; ++i){
-    DCLTrackHit *hitp = m_hit_array[i];
-    Double_t z0 = hitp->GetZ();
-    hitp->SetCalPosition(GetX(z0), GetY(z0));
-    hitp->SetCalUV(m_u0, m_v0);
-    // for Honeycomb
-    if(!hitp->IsHoneycomb())
-      continue;
-    Double_t scal = hitp->GetLocalCalPos();
-    Double_t wp   = hitp->GetWirePosition();
-    Double_t dl   = hitp->GetDriftLength();
-    Double_t ss   = scal-wp>0 ? wp+dl : wp-dl;
-    hitp->SetLocalHitPos(ss);
+  for(auto& hit: m_hit_array){
+    Int_t lnum = hit->GetLayer();
+    Double_t z0 = hit->GetZ();
+    if(m_is_bcsdc && lnum >= 1 && lnum <= 10){ // SdcIn
+      z0 += zK18tgt - zTgt;
+    }
+    hit->SetCalPosition(GetX(z0), GetY(z0));
+    hit->SetCalUV(m_u0, m_v0);
+    if(hit->IsHoneycomb()){
+      Double_t scal = hit->GetLocalCalPos();
+      Double_t wp   = hit->GetWirePosition();
+      Double_t dl   = hit->GetDriftLength();
+      Double_t ss   = scal-wp>0 ? wp+dl : wp-dl;
+      hit->SetLocalHitPos(ss);
+    }
   }
   m_is_calculated = true;
 }
@@ -197,7 +199,7 @@ DCLocalTrack::DeleteNullHit()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 DCLocalTrack::DoFit()
 {
   if(m_is_fitted){
@@ -220,7 +222,7 @@ DCLocalTrack::DoFit()
   Double_t prev_chisqr = m_chisqr;
   std::vector <Double_t> z0(n), z(n), wp(n),
     w(n), s(n), ct(n), st(n), coss(n);
-  std::vector<bool> honeycomb(n);
+  std::vector<Bool_t> honeycomb(n);
   for(Int_t iItr=0; iItr<nItr; ++iItr){
     for(Int_t i=0; i<n; ++i){
       DCLTrackHit *hitp = m_hit_array[i];
@@ -305,7 +307,7 @@ DCLocalTrack::DoFit()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 DCLocalTrack::DoFitBcSdc()
 {
   if(m_is_fitted){
@@ -314,60 +316,93 @@ DCLocalTrack::DoFitBcSdc()
     return false;
   }
 
+  m_is_bcsdc = true;
   DeleteNullHit();
 
   Int_t n = m_hit_array.size();
   if(n < DCLocalMinNHits) return false;
 
-  std::vector <Double_t> z, w, s, ct, st;
-  z.reserve(n); w.reserve(n); s.reserve(n);
-  ct.reserve(n); st.reserve(n);
-
-  for(Int_t i=0; i<n; ++i){
-    DCLTrackHit *hitp = m_hit_array[i];
-    Int_t lnum = hitp->GetLayer();
-    Double_t ww = gGeom.GetResolution(lnum);
-    Double_t zz = hitp->GetZ();
-    if(lnum >= 113 && lnum <= 124){ // BcOut
-      zz -= zK18tgt - zTgt;
+  const Int_t nItr = HasHoneycomb() ? MaxIteration : 1;
+  Double_t prev_chisqr = m_chisqr;
+  std::vector <Double_t> z0(n), z(n), wp(n),
+    w(n), s(n), ct(n), st(n), coss(n);
+  std::vector<Bool_t> honeycomb(n);
+  for(Int_t iItr=0; iItr<nItr; ++iItr){
+    for(Int_t i=0; i<n; ++i){
+      DCLTrackHit *hitp = m_hit_array[i];
+      Int_t lnum = hitp->GetLayer();
+      honeycomb[i] = hitp->IsHoneycomb();
+      wp[i] = hitp->GetWirePosition();
+      z0[i] = hitp->GetZ();
+      if(lnum >= 1 && lnum <= 10){ // SdcIn
+        z0[i] += zK18tgt - zTgt;
+      }
+      // if(lnum >= 113 && lnum <= 124){ // BcOut
+      //   z0[i] -= zK18tgt - zTgt;
+      // }
+      // if(lnum >= 11 && lnum <= 18){ // SsdIn/Out
+      //   z0[i] -= zK18tgt - zTgt;
+      // }
+      Double_t ww = gGeom.GetResolution(lnum);
+      w[i] = 1./(ww*ww);
+      Double_t aa = hitp->GetTiltAngle()*TMath::DegToRad();
+      ct[i] = TMath::Cos(aa); st[i] = TMath::Sin(aa);
+      Double_t ss = hitp->GetLocalHitPos();
+      Double_t dl = hitp->GetDriftLength();
+      Double_t dsdz = m_u0*TMath::Cos(aa)+m_v0*TMath::Sin(aa);
+      Double_t dcos = TMath::Cos(TMath::ATan(dsdz));
+      coss[i] = dcos;
+      Double_t dsin = TMath::Sin(TMath::ATan(dsdz));
+      Double_t ds = dl * dcos;
+      Double_t dz = dl * dsin;
+      Double_t scal = iItr==0 ? ss : GetS(z[i],aa);
+      if(honeycomb[i]){
+	s[i] = scal-wp[i]>0 ? wp[i]+ds : wp[i]-ds;
+	z[i] = scal-wp[i]>0 ? z0[i]-dz : z0[i]+dz;
+      }else{
+	s[i] = ss;
+	z[i] = z0[i];
+      }
+      if(lnum >= 1 && lnum <= 10){ // SdcIn
+        s[i] += 49.95*TMath::Cos(aa);
+      }
     }
-    // if(lnum >= 11 && lnum <= 18){ // SsdIn/Out
-    //   zz -= zK18tgt - zTgt;
-    // }
-    Double_t aa = hitp->GetTiltAngle()*TMath::DegToRad();
-    z.push_back(zz);
-    w.push_back(1./(ww*ww));
-    s.push_back(hitp->GetLocalHitPos());
-    ct.push_back(TMath::Cos(aa));
-    st.push_back(TMath::Sin(aa));
-  }
 
-  if(!MathTools::SolveGaussJordan(z, w, s, ct, st,
-                                  m_x0, m_u0, m_y0, m_v0)){
-    hddaq::cerr << FUNC_NAME << " Fitting fails" << std::endl;
-    return false;
-  }
-
-  Double_t chisqr = 0.;
-  for(Int_t i=0; i<n; ++i){
-    Double_t ww=w[i], zz=z[i];
-    Double_t scal=GetX(zz)*ct[i]+GetY(zz)*st[i];
-    chisqr += ww*(s[i]-scal)*(s[i]-scal);
-  }
-  chisqr /= GetNDF();
-  m_chisqr = chisqr;
-
-  for(auto& hit: m_hit_array){
-    if(!hit) continue;
-    Int_t lnum = hit->GetLayer();
-    Double_t zz = hit->GetZ();
-    if(lnum >= 113 && lnum <= 124){ // BcOut
-      zz -= zK18tgt - zTgt;
+    Double_t x0, u0, y0, v0;
+    if(!MathTools::SolveGaussJordan(z, w, s, ct, st,
+                                    x0, u0, y0, v0)){
+      hddaq::cerr << FUNC_NAME << " Fitting fails" << std::endl;
+      return false;
     }
-    // if(lnum >= 11 && lnum <= 18){ // SsdIn/Out
-    //   zz -= zK18tgt - zTgt;
-    // }
-    hit->SetCalPosition(GetX(zz), GetY(zz));
+
+    Double_t chisqr = 0.;
+    Double_t de     = 0.;
+    for(Int_t i=0; i<n; ++i){
+      Double_t scal = (x0+u0*z0[i])*ct[i]+(y0+v0*z0[i])*st[i];
+      Double_t ss   = wp[i]+(s[i]-wp[i])/coss[i];
+      Double_t res  = honeycomb[i] ? (ss-scal)*coss[i] : s[i]-scal;
+      chisqr += w[i]*res*res;
+    }
+    chisqr /= GetNDF();
+
+    if(iItr==0) m_chisqr1st = chisqr;
+
+    // if worse, not update
+    if(prev_chisqr-chisqr>0.){
+      m_x0 = x0;
+      m_y0 = y0;
+      m_u0 = u0;
+      m_v0 = v0;
+      m_chisqr = chisqr;
+      m_de     = de;
+    }
+
+    // judge convergence
+    if(prev_chisqr-chisqr<MaxChisqrDiff){
+      m_n_iteration = iItr;
+      break;
+    }
+    prev_chisqr = chisqr;
   }
 
   m_is_fitted = true;
@@ -375,7 +410,7 @@ DCLocalTrack::DoFitBcSdc()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 DCLocalTrack::DoFitVXU()
 {
   if(m_is_fitted){
@@ -445,7 +480,7 @@ DCLocalTrack::DoFitVXU()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 DCLocalTrack::FindLayer(Int_t layer) const
 {
   const Int_t n = m_hit_array.size();
@@ -516,7 +551,7 @@ DCLocalTrack::GetTheta() const
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 DCLocalTrack::HasHoneycomb() const
 {
   for(Int_t i=0, n = m_hit_array.size(); i<n; ++i){
@@ -528,8 +563,8 @@ DCLocalTrack::HasHoneycomb() const
 }
 
 //_____________________________________________________________________________
-bool
-DCLocalTrack::ReCalc(bool applyRecursively)
+Bool_t
+DCLocalTrack::ReCalc(Bool_t applyRecursively)
 {
   Int_t n = m_hit_array.size();
   for(Int_t i=0; i<n; ++i){
@@ -537,7 +572,7 @@ DCLocalTrack::ReCalc(bool applyRecursively)
     if(hitp) hitp->ReCalc(applyRecursively);
   }
 
-  bool status = DoFit();
+  Bool_t status = DoFit();
   if(!status){
     hddaq::cerr << FUNC_NAME << " "
 		<< "Recalculation fails" << std::endl;
@@ -558,7 +593,7 @@ DCLocalTrack::Print(const TString& arg, std::ostream& ost) const
       << " Y0 : " << std::setw(w) << std::left << m_y0
       << " U0 : " << std::setw(w) << std::left << m_u0
       << " V0 : " << std::setw(w) << std::left << m_v0;
-  helper.setf(std::ios::scientific);
+  // helper.setf(std::ios::scientific);
   ost << " Chisqr : " << std::setw(w) << m_chisqr << std::endl;
   helper.setf(std::ios::fixed);
   const Int_t n = m_hit_array.size();
