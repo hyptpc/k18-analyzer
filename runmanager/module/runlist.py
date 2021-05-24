@@ -277,10 +277,15 @@ class RunlistManager(metaclass=classimpl.Singleton):
     cdir = os.getcwd()
     raw_runlist = self.__decode_run_list(path)
     os.chdir(self.__work_dir)
+    needed_keys = ['bin', 'data', 'conf', 'root']
     for item in raw_runlist:
       run = dict()
       run['key'] = item[0]
       pbin = None
+      for k in needed_keys:
+        if k not in item[1]:
+          logger.error(f'key "{k}" is needed in runlist')
+          exit(1)
       if os.path.isfile(item[1]['bin']):
         pbin = item[1]['bin']
       else:
@@ -320,22 +325,27 @@ class RunlistManager(metaclass=classimpl.Singleton):
       if 'unit' in item[1] and isinstance(item[1]['unit'], int):
         run['unit'] = item[1]['unit']
       else:
+        logger.warning(f'key "unit" is not found, set 0.')
         run['unit'] = 0
       if 'queue' in item[1] and isinstance(item[1]['queue'], str):
         run['queue'] = item[1]['queue']
       else:
+        logger.warning(f'key "queue" is not found, set "s".')
         run['queue'] = 's'
       if 'qmerge' in item[1] and isinstance(item[1]['qmerge'], str):
         run['qmerge'] = item[1]['qmerge']
       else:
+        logger.warning(f'key "qmerge" is not found, set "s".')
         run['qmerge'] = 's'
       if 'nproc' in item[1] and isinstance(item[1]['nproc'], int):
         run['nproc'] = item[1]['nproc']
       else:
+        logger.warning(f'key "nproc" is not found, set 1.')
         run['nproc'] = 1
       if 'buff' in item[1] and os.path.isdir(item[1]['buff']):
         run['buff'] = item[1]['buff']
       else:
+        logger.warning(f'key "buff" is not found, set {run["root"]}.')
         run['buff'] = run['root']
       # else:
       #   logger.error('Cannot decide buffer file path')
