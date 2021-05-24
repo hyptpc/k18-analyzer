@@ -230,14 +230,14 @@ DCLocalTrack::DoFit()
       z0[i] = hitp->GetZ();
       Double_t ww = gGeom.GetResolution(lnum);
       w[i] = 1./(ww*ww);
-      Double_t aa = hitp->GetTiltAngle()*math::Deg2Rad();
-      ct[i] = std::cos(aa); st[i] = std::sin(aa);
+      Double_t aa = hitp->GetTiltAngle()*TMath::DegToRad();
+      ct[i] = TMath::Cos(aa); st[i] = TMath::Sin(aa);
       Double_t ss = hitp->GetLocalHitPos();
       Double_t dl = hitp->GetDriftLength();
-      Double_t dsdz = m_u0*std::cos(aa)+m_v0*std::sin(aa);
-      Double_t dcos = std::cos(std::atan(dsdz));
+      Double_t dsdz = m_u0*TMath::Cos(aa)+m_v0*TMath::Sin(aa);
+      Double_t dcos = TMath::Cos(TMath::ATan(dsdz));
       coss[i] = dcos;
-      Double_t dsin = std::sin(std::atan(dsdz));
+      Double_t dsin = TMath::Sin(TMath::ATan(dsdz));
       Double_t ds = dl * dcos;
       Double_t dz = dl * dsin;
       Double_t scal = iItr==0 ? ss : GetS(z[i],aa);
@@ -251,8 +251,8 @@ DCLocalTrack::DoFit()
     }
 
     Double_t x0, u0, y0, v0;
-    if(!math::SolveGaussJordan(z, w, s, ct, st,
-                               x0, u0, y0, v0)){
+    if(!MathTools::SolveGaussJordan(z, w, s, ct, st,
+                                    x0, u0, y0, v0)){
       hddaq::cerr << FUNC_NAME << " Fitting failed" << std::endl;
       return false;
     }
@@ -334,16 +334,16 @@ DCLocalTrack::DoFitBcSdc()
     // if(lnum >= 11 && lnum <= 18){ // SsdIn/Out
     //   zz -= zK18tgt - zTgt;
     // }
-    Double_t aa = hitp->GetTiltAngle()*math::Deg2Rad();
+    Double_t aa = hitp->GetTiltAngle()*TMath::DegToRad();
     z.push_back(zz);
     w.push_back(1./(ww*ww));
     s.push_back(hitp->GetLocalHitPos());
-    ct.push_back(cos(aa));
-    st.push_back(sin(aa));
+    ct.push_back(TMath::Cos(aa));
+    st.push_back(TMath::Sin(aa));
   }
 
-  if(!math::SolveGaussJordan(z, w, s, ct, st,
-                             m_x0, m_u0, m_y0, m_v0)){
+  if(!MathTools::SolveGaussJordan(z, w, s, ct, st,
+                                  m_x0, m_u0, m_y0, m_v0)){
     hddaq::cerr << FUNC_NAME << " Fitting fails" << std::endl;
     return false;
   }
@@ -466,21 +466,19 @@ DCLocalTrack::GetWire(Int_t layer) const
   const Int_t n = m_hit_array.size();
   for(Int_t i=0; i<n; ++i){
     DCLTrackHit *hitp = m_hit_array[i];
-    if(!hitp)
-      continue;
-    if(layer == hitp->GetLayer())
-      return hitp->GetWire();
+    if(!hitp) continue;
+    if(layer == hitp->GetLayer()) return hitp->GetWire();
   }
-  return math::nan();
+  return TMath::QuietNaN();
 }
 
 //_____________________________________________________________________________
 Double_t
 DCLocalTrack::GetDifVXU() const
 {
-  static const Double_t Cu = cos( 15.*math::Deg2Rad());
-  static const Double_t Cv = cos(-15.*math::Deg2Rad());
-  static const Double_t Cx = cos(  0.*math::Deg2Rad());
+  static const Double_t Cu = TMath::Cos( 15.*TMath::DegToRad());
+  static const Double_t Cv = TMath::Cos(-15.*TMath::DegToRad());
+  static const Double_t Cx = TMath::Cos(  0.*TMath::DegToRad());
 
   return
     pow(m_Av/Cv - m_Ax/Cx, 2) +
@@ -492,9 +490,9 @@ DCLocalTrack::GetDifVXU() const
 Double_t
 DCLocalTrack::GetDifVXUSDC34() const
 {
-  static const Double_t Cu = cos( 30.*math::Deg2Rad());
-  static const Double_t Cv = cos(-30.*math::Deg2Rad());
-  static const Double_t Cx = cos(  0.*math::Deg2Rad());
+  static const Double_t Cu = TMath::Cos( 30.*TMath::DegToRad());
+  static const Double_t Cv = TMath::Cos(-30.*TMath::DegToRad());
+  static const Double_t Cx = TMath::Cos(  0.*TMath::DegToRad());
 
   return
     pow(m_Av/Cv - m_Ax/Cx, 2) +
@@ -504,10 +502,17 @@ DCLocalTrack::GetDifVXUSDC34() const
 
 //_____________________________________________________________________________
 Double_t
+DCLocalTrack::GetPhi() const
+{
+  return TMath::ATan2(m_u0, m_v0);
+}
+
+//_____________________________________________________________________________
+Double_t
 DCLocalTrack::GetTheta() const
 {
-  Double_t cost = 1./std::sqrt(1.+m_u0*m_u0+m_v0*m_v0);
-  return std::acos(cost)*math::Rad2Deg();
+  Double_t cost = 1./TMath::Sqrt(1.+m_u0*m_u0+m_v0*m_v0);
+  return TMath::ACos(cost)*TMath::RadToDeg();
 }
 
 //_____________________________________________________________________________
@@ -564,8 +569,8 @@ DCLocalTrack::Print(const TString& arg, std::ostream& ost) const
     Double_t zz = hitp->GetZ();
     Double_t s  = hitp->GetLocalHitPos();
     Double_t res = hitp->GetResidual();
-    // Double_t aa = hitp->GetTiltAngle()*math::Deg2Rad();
-    // Double_t scal=GetX(zz)*cos(aa)+GetY(zz)*sin(aa);
+    // Double_t aa = hitp->GetTiltAngle()*TMath::DegToRad();
+    // Double_t scal=GetX(zz)*TMath::Cos(aa)+GetY(zz)*TMath::Sin(aa);
     const TString& h = hitp->IsHoneycomb() ? "+" : "-";
     ost << "[" << std::setw(2) << i << "]"
 	<< " #"  << std::setw(2) << lnum << h

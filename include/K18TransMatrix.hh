@@ -9,14 +9,14 @@
 class K18TransMatrix
 {
 public:
-  static const TString&  ClassName( void );
-  static K18TransMatrix& GetInstance( void );
-  ~K18TransMatrix( void );
+  static const TString&  ClassName();
+  static K18TransMatrix& GetInstance();
+  ~K18TransMatrix();
 
 private:
-  K18TransMatrix( void );
-  K18TransMatrix( const K18TransMatrix& );
-  K18TransMatrix& operator=( const K18TransMatrix& );
+  K18TransMatrix();
+  K18TransMatrix(const K18TransMatrix&);
+  K18TransMatrix& operator=(const K18TransMatrix&);
 
 private:
   enum NameX {
@@ -37,31 +37,31 @@ private:
   Double_t m_V[size_NameY];
 
 public:
-  Bool_t CalcDeltaD2U( Double_t xin, Double_t yin, Double_t uin, Double_t vin,
+  Bool_t CalcDeltaD2U(Double_t xin, Double_t yin, Double_t uin, Double_t vin,
                        Double_t xout, Double_t& yout,
                        Double_t& uout, Double_t& vout,
-                       Double_t& delta1, Double_t& delta2 ) const;
-  Bool_t Initialize( void );
-  Bool_t Initialize( const TString& file_name );
-  Bool_t IsReady( void ) const { return m_is_ready; }
-  void   SetFileName( const TString& file_name ) { m_file_name = file_name; }
-  Bool_t Transport( Double_t xin, Double_t yin, Double_t uin, Double_t vin,
+                       Double_t& delta1, Double_t& delta2) const;
+  Bool_t Initialize();
+  Bool_t Initialize(const TString& file_name);
+  Bool_t IsReady() const { return m_is_ready; }
+  void   SetFileName(const TString& file_name) { m_file_name = file_name; }
+  Bool_t Transport(Double_t xin, Double_t yin, Double_t uin, Double_t vin,
                     Double_t delta,
                     Double_t& xout, Double_t& yout,
-                    Double_t& uout, Double_t& vout ) const;
+                    Double_t& uout, Double_t& vout) const;
 };
 
 //_____________________________________________________________________________
 inline const TString&
-K18TransMatrix::ClassName( void )
+K18TransMatrix::ClassName()
 {
-  static TString s_name( "K18TransMatrix" );
+  static TString s_name("K18TransMatrix");
   return s_name;
 }
 
 //_____________________________________________________________________________
 inline K18TransMatrix&
-K18TransMatrix::GetInstance( void )
+K18TransMatrix::GetInstance()
 {
   static K18TransMatrix s_instance;
   return s_instance;

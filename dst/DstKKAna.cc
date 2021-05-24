@@ -1042,8 +1042,8 @@ dst::DstRead(Int_t ievent)
 	event.vty[nkk]=vert.y();
 	event.vtz[nkk]=vert.z();
 	event.closeDist[nkk] = closedist;
-	event.theta[nkk]     = std::acos(cost)*math::Rad2Deg();
-	event.thetaCM[nkk]   = std::acos(costCM)*math::Rad2Deg();
+	event.theta[nkk]     = TMath::ACos(cost)*TMath::RadToDeg();
+	event.thetaCM[nkk]   = TMath::ACos(costCM)*TMath::RadToDeg();
 	event.costCM[nkk]    = costCM;
 
 	event.MissMass[nkk]       = MisMass;

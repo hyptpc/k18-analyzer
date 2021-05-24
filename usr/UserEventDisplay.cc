@@ -123,8 +123,7 @@ UserEventDisplay::ProcessingNormal()
   ///// Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
   for(auto& hit: rawData->GetTrigRawHC()){
-    Int_t seg = hit->SegmentId();
-    trigger_flag.set(seg);
+    if(hit->GetTdc1() > 0) trigger_flag.set(hit->SegmentId());
   }
 
   if(trigger_flag[trigger::kSpillEnd]) return true;

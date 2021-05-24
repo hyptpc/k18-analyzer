@@ -118,8 +118,8 @@ HodoPHCParam::Type1Correction(Double_t time, Double_t de) const
   if(m_param_list.size()<3)
     throw std::out_of_range(FUNC_NAME+" invalid parameter");
 
-  if(std::abs(de-m_param_list[1])<math::Epsilon())
-    de = m_param_list[1] + math::Epsilon();
+  if(std::abs(de-m_param_list[1])<MathTools::Epsilon())
+    de = m_param_list[1] + MathTools::Epsilon();
 
   return time-m_param_list[0]/sqrt(std::abs(de-m_param_list[1]))+m_param_list[2];
 }
@@ -142,8 +142,8 @@ HodoPHCParam::Type1RCorrection(Double_t time, Double_t de) const
   if(m_param_list.size()<3)
     throw std::out_of_range(FUNC_NAME+" invalid parameter");
 
-  if(std::abs(de-m_param_list[1])<math::Epsilon())
-    de = m_param_list[1] + math::Epsilon();
+  if(std::abs(de-m_param_list[1])<MathTools::Epsilon())
+    de = m_param_list[1] + MathTools::Epsilon();
 
   return time+m_param_list[0]/sqrt(std::abs(de-m_param_list[1]))-m_param_list[2];
 }

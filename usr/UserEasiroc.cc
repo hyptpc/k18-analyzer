@@ -85,7 +85,6 @@ UserEasiroc::~UserEasiroc()
 struct Event
 {
   Int_t evnum;
-  Int_t trignhits;
   Int_t trigpat[NumOfSegTrig];
   Int_t trigflag[NumOfSegTrig];
   // BFT
@@ -227,19 +226,17 @@ UserEasiroc::ProcessingNormal()
   ///// Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
   {
-    Int_t nhits = 0;
     for(const auto& hit: rawData->GetTrigRawHC()){
-      Int_t seg = hit->SegmentId()+1;
+      Int_t seg = hit->SegmentId();
       Int_t tdc = hit->GetTdc1();
       if(tdc > 0){
-        trigger_flag.set(seg - 1);
-	event.trigpat[nhits++] = seg;
-	event.trigflag[seg-1]  = tdc;
-	HF1(10, seg-1);
+	event.trigpat[trigger_flag.count()] = seg;
+	event.trigflag[seg] = tdc;
+        trigger_flag.set(seg);
+	HF1(10, seg);
 	HF1(10+seg, tdc);
       }
     }
-    event.trignhits = nhits;
   }
 
   if(trigger_flag[trigger::kSpillEnd]) return true;
@@ -655,7 +652,6 @@ ConfMan::InitializeHistograms()
   HBTree("ea0c", "tree of Easiroc");
   //Trig
   tree->Branch("evnum",     &event.evnum,     "evnum/I");
-  tree->Branch("trignhits", &event.trignhits, "trignhits/I");
   tree->Branch("trigpat",    event.trigpat,   Form("trigpat[%d]/I", NumOfSegTrig));
   tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
 

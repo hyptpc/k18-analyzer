@@ -438,11 +438,11 @@ KuramaTrack::CalcChiSqr(const RKHitPointContainer &hpCont) const
     w = 1./(w*w);
     Double_t hitpos = thp->GetLocalHitPos();
     Double_t calpos = calhp.PositionInLocal();
-    Double_t a = thp->GetTiltAngle()*math::Deg2Rad();
+    Double_t a = thp->GetTiltAngle()*TMath::DegToRad();
     Double_t u = mom.x()/mom.z();
     Double_t v = mom.y()/mom.z();
-    Double_t dsdz = u*std::cos(a)+v*std::sin(a);
-    Double_t coss = thp->IsHoneycomb() ? std::cos(std::atan(dsdz)) : 1.;
+    Double_t dsdz = u*TMath::Cos(a)+v*TMath::Sin(a);
+    Double_t coss = thp->IsHoneycomb() ? TMath::Cos(TMath::ATan(dsdz)) : 1.;
     Double_t wp   = thp->GetWirePosition();
     Double_t ss   = wp+(hitpos-wp)/coss;
     Double_t res  = (ss-calpos)*coss;
@@ -489,11 +489,11 @@ KuramaTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
     const ThreeVector&    mom   = calhp.MomentumInGlobal();
     Double_t hitpos = thp->GetLocalHitPos();
     Double_t calpos = calhp.PositionInLocal();
-    Double_t a = thp->GetTiltAngle()*math::Deg2Rad();
+    Double_t a = thp->GetTiltAngle()*TMath::DegToRad();
     Double_t u = mom.x()/mom.z();
     Double_t v = mom.y()/mom.z();
-    Double_t dsdz = u*std::cos(a)+v*std::sin(a);
-    Double_t coss = thp->IsHoneycomb() ? std::cos(std::atan(dsdz)) : 1.;
+    Double_t dsdz = u*TMath::Cos(a)+v*TMath::Sin(a);
+    Double_t coss = thp->IsHoneycomb() ? TMath::Cos(TMath::ATan(dsdz)) : 1.;
     Double_t wp   = thp->GetWirePosition();
     Double_t ss   = wp+(hitpos-wp)/coss;
     Double_t cb   = ss-calpos;
@@ -569,7 +569,7 @@ KuramaTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
 #endif
 
   // Solve the Eq. with SVD (Singular Value Decomposition) Method
-  if(!math::SVDcmp(a2, 10, 5, wSvd, v, wv))
+  if(!MathTools::SVDcmp(a2, 10, 5, wSvd, v, wv))
     return false;
 
 #if 0
@@ -647,7 +647,7 @@ KuramaTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
   }
 #endif
 
-  math::SVDksb(a2, wSvd, v, 10, 5, cb2, dcb, wv);
+  MathTools::SVDksb(a2, wSvd, v, 10, 5, cb2, dcb, wv);
 
 #if 0
   {
@@ -688,7 +688,7 @@ KuramaTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
   }
   estDeltaChisqr = (-s2-dmp*s1)/Double_t(nth-5);
 
-  if(!math::SVDcmp(a3, 5, 5, w3, v3, wv))
+  if(!MathTools::SVDcmp(a3, 5, 5, w3, v3, wv))
     return false;
 
   Double_t spur=0.;

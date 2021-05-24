@@ -817,7 +817,7 @@ DCAnalyzer::DecodeTOFHits(const Hodo2HitContainer& HitCont)
     }
     Double_t wpos = gGeom.CalcWirePosition(layer_x, seg);
     ThreeVector w(wpos, 0., 0.);
-    w.RotateY(RA2*math::Deg2Rad()); // for the tilting plane case
+    w.RotateY(RA2*TMath::DegToRad()); // for the tilting plane case
     const ThreeVector& hit_pos = TOFPos[(Int_t)seg%2] + w
       + ThreeVector(0., dt/0.01285, 0.);
     // X
@@ -875,7 +875,7 @@ DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
     }
     Double_t wpos = gGeom.CalcWirePosition(layer_x, seg);
     ThreeVector w(wpos, 0., 0.);
-    w.RotateY(RA2*math::Deg2Rad());
+    w.RotateY(RA2*TMath::DegToRad());
     const ThreeVector& hit_pos = TOFPos[(Int_t)seg%2] + w
       + ThreeVector(0., dt/0.01285, 0.);
     // X

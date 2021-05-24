@@ -114,6 +114,7 @@ public:
   Double_t GetS(Double_t z, Double_t tilt) const
   { return GetX(z)*TMath::Cos(tilt)+GetY(z)*TMath::Sin(tilt); }
   Int_t    GetNIteration() const { return m_n_iteration; }
+  Double_t GetPhi() const;
   Double_t GetTheta() const;
   Bool_t   GoodForTracking() const { return m_good_for_tracking; }
   Bool_t   GoodForTracking(Bool_t status)

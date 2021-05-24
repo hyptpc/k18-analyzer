@@ -95,7 +95,6 @@ struct Event
 {
   Int_t evnum;
 
-  Int_t trignhits;
   Int_t trigpat[NumOfSegTrig];
   Int_t trigflag[NumOfSegTrig];
 
@@ -158,7 +157,6 @@ void
 Event::clear()
 {
   evnum          =  0;
-  trignhits      =  0;
   bft_ncl        =  0;
   bft_ncl_bh1mth =  0;
   nlBcOut        =  0;
@@ -262,19 +260,17 @@ UserK18Tracking::ProcessingNormal()
   ///// Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
   {
-    Int_t nhits = 0;
     for(const auto& hit: rawData->GetTrigRawHC()){
-      Int_t seg = hit->SegmentId()+1;
+      Int_t seg = hit->SegmentId();
       Int_t tdc = hit->GetTdc1();
       if(tdc > 0){
-        trigger_flag.set(seg - 1);
-	event.trigpat[nhits++] = seg;
-	event.trigflag[seg-1]  = tdc;
-	HF1(10, seg-1);
+	event.trigpat[trigger_flag.count()] = seg;
+	event.trigflag[seg]  = tdc;
+        trigger_flag.set(seg);
+	HF1(10, seg);
 	HF1(10+seg, tdc);
       }
     }
-    event.trignhits = nhits;
   }
 
   if(trigger_flag[trigger::kSpillEnd]) return true;
@@ -470,9 +466,8 @@ UserK18Tracking::ProcessingNormal()
     Double_t p_3rd=tp->P3rd();
     Double_t delta_2nd=tp->Delta();
     Double_t delta_3rd=tp->Delta3rd();
-    Double_t cost = 1./std::sqrt(1.+ut*ut+vt*vt);
-    Double_t theta = std::acos(cost)*math::Rad2Deg();
-    Double_t phi   = atan2(ut, vt);
+    Double_t theta = track->GetTheta();
+    Double_t phi   = track->GetPhi();
 
     HF1(74, xt); HF1(75, yt); HF1(76, ut); HF1(77,vt);
     HF2(78, xt, ut); HF2(79, yt, vt); HF2(80, xt, yt);
@@ -586,9 +581,8 @@ ConfMan:: InitializeHistograms()
   HBTree("k18track","Data Summary Table of K18Tracking");
   // Trigger Flag
   tree->Branch("evnum",     &event.evnum,     "evnum/I");
-  tree->Branch("trignhits", &event.trignhits, "trignhits/I");
-  tree->Branch("trigpat",    event.trigpat,   "trigpat[trignhits]/I");
-  tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I",NumOfSegTrig));
+  tree->Branch("trigpat",    event.trigpat,   Form("trigpat[%d]/I", NumOfSegTrig));
+  tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
 
   tree->Branch("Time0Seg", &event.Time0Seg,  "Time0Seg/D");
   tree->Branch("deTime0",  &event.deTime0,   "deTime0/D");

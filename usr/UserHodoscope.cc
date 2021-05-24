@@ -578,15 +578,15 @@ UserHodoscope::ProcessingNormal()
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
   for(const auto& hit: rawData->GetTrigRawHC()){
-    Int_t seg = hit->SegmentId() + 1;
+    Int_t seg = hit->SegmentId();
     Int_t tdc = hit->GetTdc1();
     if(tdc > 0){
       event.trigpat[trigger_flag.count()] = seg;
-      event.trigflag[seg-1] = tdc;
+      event.trigflag[seg] = tdc;
       dst.trigpat[trigger_flag.count()] = seg;
-      dst.trigflag[seg-1] = tdc;
-      trigger_flag.set(seg-1);
-      HF1(10, seg-1);
+      dst.trigflag[seg] = tdc;
+      trigger_flag.set(seg);
+      HF1(10, seg);
       HF1(10+seg, tdc);
     }
   }
@@ -1209,7 +1209,7 @@ UserHodoscope::ProcessingNormal()
     }
     for(Int_t i2=0; i2<nhbh2; ++i2){
       Int_t    seg2 = hodoAna->GetHitBH2(i2)->SegmentId()+1;
-      Int_t n_mhit2 = hodoAna->GetHitBH2(0)->GetNumOfHit();
+      Int_t n_mhit2 = hodoAna->GetHitBH2(i2)->GetNumOfHit();
       for(Int_t m2 = 0; m2<n_mhit2; ++m2){
 	Double_t ct0  = hodoAna->GetHitBH2(i2)->CTime0();
 	Double_t t0   = hodoAna->GetHitBH2(i2)->Time0();

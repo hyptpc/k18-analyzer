@@ -334,12 +334,12 @@ UserKuramaTracking::ProcessingNormal()
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
   for(const auto& hit: rawData->GetTrigRawHC()){
-    Int_t seg = hit->SegmentId() + 1;
+    Int_t seg = hit->SegmentId();
     Int_t tdc = hit->GetTdc1();
     if(tdc > 0){
       event.trigpat[trigger_flag.count()] = seg;
-      event.trigflag[seg-1] = tdc;
-      trigger_flag.set(seg-1);
+      event.trigflag[seg] = tdc;
+      trigger_flag.set(seg);
       if(seg == trigger::kCommonStopSdcOut){
         common_stop_tdc = tdc;
       }

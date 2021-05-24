@@ -205,12 +205,12 @@ UserSdcInTracking::ProcessingNormal()
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
   for(const auto& hit: rawData->GetTrigRawHC()){
-    Int_t seg = hit->SegmentId() + 1;
+    Int_t seg = hit->SegmentId();
     Int_t tdc = hit->GetTdc1();
     if(tdc > 0){
       event.trigpat[trigger_flag.count()] = seg;
-      event.trigflag[seg-1] = tdc;
-      trigger_flag.set(seg-1);
+      event.trigflag[seg] = tdc;
+      trigger_flag.set(seg);
     }
   }
 
@@ -434,8 +434,7 @@ UserSdcInTracking::ProcessingNormal()
     Double_t chisqr=tp->GetChiSquare();
     Double_t x0=tp->GetX0(), y0=tp->GetY0();
     Double_t u0=tp->GetU0(), v0=tp->GetV0();
-    Double_t cost = 1./std::sqrt(1.+u0*u0+v0*v0);
-    Double_t theta = std::acos(cost)*math::Rad2Deg();
+    Double_t theta = tp->GetTheta();
     event.chisqr[it]=chisqr;
     event.x0[it]=x0;
     event.y0[it]=y0;

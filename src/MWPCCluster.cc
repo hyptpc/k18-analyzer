@@ -1,8 +1,4 @@
-/**
- *  file: MWPCCluster.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "MWPCCluster.hh"
 
@@ -15,128 +11,124 @@
 #include <std_ostream.hh>
 
 #include "DCHit.hh"
+#include "FuncName.hh"
 #include "MathTools.hh"
 #include "DeleteUtility.hh"
 
-namespace
-{
-  const std::string& class_name("MWPCCluster");
-}
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-calcFirst( const std::vector<DCHit*>& hits,
-	   MWPCCluster::Statistics& first )
+calcFirst(const std::vector<DCHit*>& hits,
+          MWPCCluster::Statistics& first)
 {
-  int nHits = hits.size();
+  Int_t nHits = hits.size();
   if (nHits==0)
     return;
 
-  for (int i=0; i<nHits; ++i)
+  for (Int_t i=0; i<nHits; ++i)
+  {
+    const DCHit* h = hits[i];
+    if (!h)
+      continue;
+    Double_t le = h->GetDriftTime(0);
+    if (i==0)
     {
-      const DCHit* h = hits[i];
-      if (!h)
-	continue;
-      double le = h->GetDriftTime(0);
-      if (i==0)
-	{
-	  first.m_wire     = h->GetWire();
-	  first.m_wpos     = h->GetWirePosition();
-	  first.m_leading  = le;
-	  first.m_trailing = h->GetTrailingTime(0);
-	  first.m_length   = first.m_trailing - le;
-	}
-      else if (le<first.m_leading) // update first hit
-	{
-	  first.m_wire     = h->GetWire();
-	  first.m_wpos     = h->GetWirePosition();
-	  first.m_leading  = le;
-	  first.m_trailing = h->GetTrailingTime(0);
-	  first.m_length   = first.m_trailing - le;
-	}
+      first.m_wire     = h->GetWire();
+      first.m_wpos     = h->GetWirePosition();
+      first.m_leading  = le;
+      first.m_trailing = h->GetTrailingTime(0);
+      first.m_length   = first.m_trailing - le;
     }
-
-  double wire     = 0;
-  double wire_pos = 0;
-  double trailing = 0;
-  double length   = 0;
-
-  std::set<int> wires;
-  for (int i=0; i<nHits; ++i)
+    else if (le<first.m_leading) // update first hit
     {
-      const DCHit* h = hits[i];
-      if (!h)
-	continue;
-      double le = h->GetDriftTime(0);
-      if ( math::Equal(le, first.m_leading) )
-	{
-	  double tr   = h->GetTrailingTime();
-	  double len  = tr - le;
-	  double w    = h->GetWire();
-	  wire       += w*len;
-	  wire_pos   += h->GetWirePosition()*len;
-	  trailing   += tr*len;
-	  length     += len;
-	  wires.insert(static_cast<int>(w));
-	}
+      first.m_wire     = h->GetWire();
+      first.m_wpos     = h->GetWirePosition();
+      first.m_leading  = le;
+      first.m_trailing = h->GetTrailingTime(0);
+      first.m_length   = first.m_trailing - le;
     }
+  }
+
+  Double_t wire     = 0;
+  Double_t wire_pos = 0;
+  Double_t trailing = 0;
+  Double_t length   = 0;
+
+  std::set<Int_t> wires;
+  for (Int_t i=0; i<nHits; ++i)
+  {
+    const DCHit* h = hits[i];
+    if (!h)
+      continue;
+    Double_t le = h->GetDriftTime(0);
+    if (MathTools::Equal(le, first.m_leading))
+    {
+      Double_t tr   = h->GetTrailingTime();
+      Double_t len  = tr - le;
+      Double_t w    = h->GetWire();
+      wire       += w*len;
+      wire_pos   += h->GetWirePosition()*len;
+      trailing   += tr*len;
+      length     += len;
+      wires.insert(static_cast<Int_t>(w));
+    }
+  }
 
   if (!wires.empty())
-    {
-      first.m_wire        = wire/length;
-      first.m_wpos        = wire_pos/length;
-      first.m_trailing    = trailing/length;
-      first.m_length      = length/wires.size();
-      first.m_totalLength = length;
-      std::set<int>::iterator imin
-	= std::min_element(wires.begin(), wires.end());
-      std::set<int>::iterator imax
-	= std::max_element(wires.begin(), wires.end());
-      first.m_clusterSize = *imax - *imin + 1;
-    }
+  {
+    first.m_wire        = wire/length;
+    first.m_wpos        = wire_pos/length;
+    first.m_trailing    = trailing/length;
+    first.m_length      = length/wires.size();
+    first.m_totalLength = length;
+    std::set<Int_t>::iterator imin
+      = std::min_element(wires.begin(), wires.end());
+    std::set<Int_t>::iterator imax
+      = std::max_element(wires.begin(), wires.end());
+    first.m_clusterSize = *imax - *imin + 1;
+  }
   else
-    {
-      first.m_totalLength = first.m_length;
-      first.m_clusterSize = 1;
-    }
+  {
+    first.m_totalLength = first.m_length;
+    first.m_clusterSize = 1;
+  }
 
   return;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-calcMean( const std::vector<DCHit*>& hits,
-	  MWPCCluster::Statistics& mean )
+calcMean(const std::vector<DCHit*>& hits,
+         MWPCCluster::Statistics& mean)
 {
-  int nHits = hits.size();
+  Int_t nHits = hits.size();
   if (nHits==0)
     return;
-  double wire     = 0;
-  double wire_pos = 0;
-  double leading  = 0;
-  double trailing = 0;
-  double length   = 0;
+  Double_t wire     = 0;
+  Double_t wire_pos = 0;
+  Double_t leading  = 0;
+  Double_t trailing = 0;
+  Double_t length   = 0;
 
-  std::set<int> wires;
+  std::set<Int_t> wires;
 
-  for (int i=0; i<nHits; ++i)
-    {
-      const DCHit* h = hits[i];
-      if (!h)
-	continue;
-      double w    = h->GetWire();
-      double wpos = h->GetWirePosition();
-      double le   = h->GetDriftTime(0);
-      double tr   = h->GetTrailingTime(0);
-      double len  = tr - le;
+  for (Int_t i=0; i<nHits; ++i)
+  {
+    const DCHit* h = hits[i];
+    if (!h)
+      continue;
+    Double_t w    = h->GetWire();
+    Double_t wpos = h->GetWirePosition();
+    Double_t le   = h->GetDriftTime(0);
+    Double_t tr   = h->GetTrailingTime(0);
+    Double_t len  = tr - le;
 
-      length   += len;
-      leading  += le*len;
-      trailing += tr*len;
-      wire     += w*len;
-      wire_pos += wpos*len;
-      wires.insert(static_cast<int>(w));
-    }
+    length   += len;
+    leading  += le*len;
+    trailing += tr*len;
+    wire     += w*len;
+    wire_pos += wpos*len;
+    wires.insert(static_cast<Int_t>(w));
+  }
 
   mean.m_wire     = wire    /length;
   mean.m_wpos     = wire_pos/length;
@@ -145,17 +137,17 @@ calcMean( const std::vector<DCHit*>& hits,
   mean.m_length   = length/wires.size();
   mean.m_totalLength = length;
 
-  std::set<int>::iterator imin = std::min_element(wires.begin(), wires.end());
-  std::set<int>::iterator imax = std::max_element(wires.begin(), wires.end());
+  std::set<Int_t>::iterator imin = std::min_element(wires.begin(), wires.end());
+  std::set<Int_t>::iterator imax = std::max_element(wires.begin(), wires.end());
   mean.m_clusterSize = *imax - *imin + 1;
   return;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 // struct MWPCCluster::Statistics
-//______________________________________________________________________________
+//_____________________________________________________________________________
 MWPCCluster::
-Statistics::Statistics( void )
+Statistics::Statistics()
   : m_wire(-0xffff),
     m_wpos(-0xffff),
     m_leading(-0xffff),
@@ -166,18 +158,18 @@ Statistics::Statistics( void )
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 MWPCCluster::
-Statistics::~Statistics( void )
+Statistics::~Statistics()
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 MWPCCluster::
-Statistics::Print( const std::string& arg ) const
+Statistics::Print(const TString& arg) const
 {
-  hddaq::cout << "[MWPCCluster::Statistics::Print] " << arg << std::endl
+  hddaq::cout << FUNC_NAME << " " << arg << std::endl
 	      << "  wire   = " << m_wire << std::endl
 	      << "  wpos   = " << m_wpos        << " [mm]" << std::endl
 	      << "  dt     = " << m_leading     << " [nsec]" << std::endl
@@ -187,36 +179,36 @@ Statistics::Print( const std::string& arg ) const
 	      << "  csize  = " << m_clusterSize << std::endl;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 // class MWPCCluster
-//______________________________________________________________________________
-MWPCCluster::MWPCCluster( void )
+//_____________________________________________________________________________
+MWPCCluster::MWPCCluster()
   : m_hits(0),
     m_mean(),
     m_first(),
     m_status(false)
 {
-  debug::ObjectCounter::increase(class_name);
+  debug::ObjectCounter::increase(ClassName());
 }
 
-//______________________________________________________________________________
-MWPCCluster::~MWPCCluster( void )
+//_____________________________________________________________________________
+MWPCCluster::~MWPCCluster()
 {
-  del::DeleteObject( m_hits );
-  debug::ObjectCounter::decrease(class_name);
+  del::DeleteObject(m_hits);
+  debug::ObjectCounter::decrease(ClassName());
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-MWPCCluster::Add( DCHit* h )
+MWPCCluster::Add(DCHit* h)
 {
   m_hits.push_back(h);
   return;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-MWPCCluster::Calculate( void )
+MWPCCluster::Calculate()
 {
   if (m_hits.empty())
     return;
@@ -227,83 +219,83 @@ MWPCCluster::Calculate( void )
   return;
 }
 
-//______________________________________________________________________________
-int
-MWPCCluster::GetClusterSize( void ) const
+//_____________________________________________________________________________
+Int_t
+MWPCCluster::GetClusterSize() const
 {
   return m_mean.m_clusterSize;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 const MWPCCluster::Statistics&
-MWPCCluster::GetFirst( void ) const
+MWPCCluster::GetFirst() const
 {
   return m_first;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 const std::vector<DCHit*>&
-MWPCCluster::GetHits( void ) const
+MWPCCluster::GetHits() const
 {
   return m_hits;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 const MWPCCluster::Statistics&
-MWPCCluster::GetMean( void ) const
+MWPCCluster::GetMean() const
 {
   return m_mean;
 }
 
-//______________________________________________________________________________
-double
-MWPCCluster::GetMeanTime( void ) const
+//_____________________________________________________________________________
+Double_t
+MWPCCluster::GetMeanTime() const
 {
   return m_mean.m_leading;
 }
 
-//______________________________________________________________________________
-double
-MWPCCluster::GetMeanWire( void ) const
+//_____________________________________________________________________________
+Double_t
+MWPCCluster::GetMeanWire() const
 {
   return m_mean.m_wire;
 }
 
-//______________________________________________________________________________
-double
-MWPCCluster::GetMeanWirePos( void ) const
+//_____________________________________________________________________________
+Double_t
+MWPCCluster::GetMeanWirePos() const
 {
   return m_mean.m_wpos;
 }
 
-//______________________________________________________________________________
-int
-MWPCCluster::GetNumOfHits( void ) const
+//_____________________________________________________________________________
+Int_t
+MWPCCluster::GetNumOfHits() const
 {
   return m_hits.size();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-MWPCCluster::Print( const std::string& arg ) const
+MWPCCluster::Print(const TString& arg) const
 {
-  hddaq::cout << "[MWPCCluster::Print] " << arg << std::endl;
+  hddaq::cout << FUNC_NAME << " " << arg << std::endl;
   hddaq::cout << " nhits = " << m_hits.size() << std::endl;
   m_mean.Print("mean");
   m_first.Print("first");
   return;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
-MWPCCluster::IsGoodForAnalysis( void ) const
+MWPCCluster::IsGoodForAnalysis() const
 {
   return m_status;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-MWPCCluster::SetStatus( bool status )
+MWPCCluster::SetStatus(bool status)
 {
   m_status = status;
   return;

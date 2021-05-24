@@ -1,107 +1,112 @@
-/**
- *  file: DCLTrackHit.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef DC_LTRACK_HIT_HH
 #define DC_LTRACK_HIT_HH
 
 #include "DCHit.hh"
 
-#include "MathTools.hh"
-#include "ThreeVector.hh"
+#include <TString.h>
 
 class DCAnalyzer;
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class DCLTrackHit
 {
 public:
-  DCLTrackHit( DCHit *hit, double pos, int nh );
-  DCLTrackHit( const DCLTrackHit& right );
-  ~DCLTrackHit( void );
+  static const TString& ClassName();
+  DCLTrackHit(DCHit* hit, Double_t pos, Int_t nh);
+  DCLTrackHit(const DCLTrackHit& right);
+  ~DCLTrackHit();
 
 private:
-  DCHit  *m_hit;
-  int     m_nth_hit;
-  double  m_local_hit_pos;
-  double  m_cal_pos;
-  double  m_xcal;
-  double  m_ycal;
-  double  m_ucal;
-  double  m_vcal;
-  bool    m_honeycomb;
+  DCHit*   m_hit;
+  Int_t    m_nth_hit;
+  Double_t m_local_hit_pos;
+  Double_t m_cal_pos;
+  Double_t m_xcal;
+  Double_t m_ycal;
+  Double_t m_ucal;
+  Double_t m_vcal;
+  Bool_t   m_honeycomb;
 
 public:
-  void   SetLocalHitPos( double xl )                 { m_local_hit_pos = xl; }
-  void   SetCalPosition( double x, double y )        { m_xcal = x; m_ycal = y; }
-  void   SetCalUV( double u, double v )              { m_ucal = u; m_vcal = v; }
-  void   SetHoneycomb( bool flag=true )              { m_honeycomb = flag;     }
-  bool   IsHoneycomb( void )                   const { return m_honeycomb; }
-  int    GetLayer( void )                      const { return m_hit->GetLayer(); }
-  int    GetMeanSeg( void )                    const { return m_hit->GetMeanSeg(); }
-  int    GetMaxSeg( void )                    const { return m_hit->GetMaxSeg(); }
-  double GetWire( void )                       const { return m_hit->GetWire(); }
-  int    GetTdcVal( void )                     const { return m_hit->GetTdcVal(m_nth_hit); }
-  int    GetTdcSize( void )                    const { return m_hit->GetTdcSize(); }
-  double GetDriftTime( void )                  const { return m_hit->GetDriftTime(m_nth_hit); }
-  void   SetDriftTime( int ith, double dt )          { m_hit->SetDriftTime(ith, dt); }
-  double GetDriftLength( void )                const { return m_hit->GetDriftLength(m_nth_hit); }
-  void   SetDriftLength( int ith, double dl )        { m_hit->SetDriftLength(ith, dl); }
-  double GetTrailingTime( void )               const { return m_hit->GetTrailingTime(m_nth_hit); }
-  double GetTot( void )                        const { return m_hit->GetTot(m_nth_hit); }
-
-  DCHit* GetHit( void ) const { return m_hit; }
-
-  double GetTiltAngle( void )    const { return m_hit->GetTiltAngle(); }
-  double GetWirePosition( void ) const { return m_hit->GetWirePosition(); }
-  double GetLocalHitPos( void )  const { return m_local_hit_pos; }
-  double GetLocalCalPos( void )  const;
-
-  double GetXcal( void )     const { return m_xcal; }
-  double GetYcal( void )     const { return m_ycal; }
-  double GetUcal( void )     const { return m_ucal; }
-  double GetVcal( void )     const { return m_vcal; }
-  double GetResidual( void ) const;
-  double GetResolution( void ) const { return m_hit->GetResolution(); }
+  void     SetLocalHitPos(Double_t xl) { m_local_hit_pos = xl; }
+  void     SetCalPosition(Double_t x, Double_t y) { m_xcal = x; m_ycal = y; }
+  void     SetCalUV(Double_t u, Double_t v) { m_ucal = u; m_vcal = v; }
+  void     SetHoneycomb(Bool_t flag=true) { m_honeycomb = flag; }
+  Bool_t   IsHoneycomb() const { return m_honeycomb; }
+  Int_t    GetLayer() const { return m_hit->GetLayer(); }
+  Int_t    GetMeanSeg() const { return m_hit->GetMeanSeg(); }
+  Int_t    GetMaxSeg() const { return m_hit->GetMaxSeg(); }
+  Double_t GetWire() const { return m_hit->GetWire(); }
+  Int_t    GetTdcVal() const { return m_hit->GetTdcVal(m_nth_hit); }
+  Int_t    GetTdcSize() const { return m_hit->GetTdcSize(); }
+  Double_t GetDriftTime() const { return m_hit->GetDriftTime(m_nth_hit); }
+  void     SetDriftTime(Int_t ith, Double_t dt)
+  { m_hit->SetDriftTime(ith, dt); }
+  Double_t GetDriftLength() const { return m_hit->GetDriftLength(m_nth_hit); }
+  void     SetDriftLength(Int_t ith, Double_t dl)
+  { m_hit->SetDriftLength(ith, dl); }
+  Double_t GetTrailingTime() const
+  { return m_hit->GetTrailingTime(m_nth_hit); }
+  Double_t GetTot() const { return m_hit->GetTot(m_nth_hit); }
+  DCHit*   GetHit() const { return m_hit; }
+  Double_t GetTiltAngle() const { return m_hit->GetTiltAngle(); }
+  Double_t GetWirePosition() const { return m_hit->GetWirePosition(); }
+  Double_t GetLocalHitPos() const { return m_local_hit_pos; }
+  Double_t GetLocalCalPos() const;
+  Double_t GetXcal() const { return m_xcal; }
+  Double_t GetYcal() const { return m_ycal; }
+  Double_t GetUcal() const { return m_ucal; }
+  Double_t GetVcal() const { return m_vcal; }
+  Double_t GetResidual() const;
+  Double_t GetResolution() const { return m_hit->GetResolution(); }
 
   ///// for XUV tracking
-  void   SetLocalCalPosVXU( double xcl ) { m_cal_pos=xcl; }
-  double GetLocalCalPosVXU( void ) const { return m_cal_pos; }
-  double GetResidualVXU( void )    const { return m_local_hit_pos-m_cal_pos; }
+  void     SetLocalCalPosVXU(Double_t xcl) { m_cal_pos=xcl; }
+  Double_t GetLocalCalPosVXU() const { return m_cal_pos; }
+  Double_t GetResidualVXU() const { return m_local_hit_pos-m_cal_pos; }
 
   ///// for TOF
-  double GetZ( void ) const { return m_hit->GetZ(); }
+  Double_t GetZ() const { return m_hit->GetZ(); }
 
   ///// for CFT
-  double GetPositionR( void )   const { return m_hit->GetPositionR();  }
-  double GetPositionPhi( void ) const { return m_hit->GetPositionPhi();}
-  double GetPosPhi( void )   const { return m_hit->GetPosPhi();  }
-  double GetPosZ  ( void )   const { return m_hit->GetPosZ();}
-  double GetPosR  ( void )   const { return m_hit->GetPosR();}
-  double GetAdcLow( void )   const { return m_hit->GetAdcLow();  }
-  double GetMIPLow( void )   const { return m_hit->GetMIPLow();  }
-  double GetdELow( void )    const { return m_hit->GetdELow();  }
-  double GetMaxAdcLow( void ) const { return m_hit->GetMaxAdcLow();}
-  double GetMaxMIPLow( void ) const { return m_hit->GetMaxMIPLow();  }
-  double GetMaxdELow ( void ) const { return m_hit->GetMaxdELow();  }
-  ThreeVector GetVtx ( void ) const { return m_hit->GetVtx();  }
-  double GetTime  ( void )   const { return m_hit->GetTime();  }
+  // Double_t GetPositionR() const { return m_hit->GetPositionR(); }
+  // Double_t GetPositionPhi() const { return m_hit->GetPositionPhi(); }
+  // Double_t GetPosPhi() const { return m_hit->GetPosPhi(); }
+  // Double_t GetPosZ() const { return m_hit->GetPosZ(); }
+  // Double_t GetPosR() const { return m_hit->GetPosR(); }
+  // Double_t GetAdcLow() const { return m_hit->GetAdcLow(); }
+  // Double_t GetMIPLow() const { return m_hit->GetMIPLow(); }
+  // Double_t GetdELow() const { return m_hit->GetdELow(); }
+  // Double_t GetMaxAdcLow() const { return m_hit->GetMaxAdcLow(); }
+  // Double_t GetMaxMIPLow() const { return m_hit->GetMaxMIPLow(); }
+  // Double_t GetMaxdELow() const { return m_hit->GetMaxdELow(); }
+  // TVector3 GetVtx() const { return m_hit->GetVtx(); }
+  // Double_t GetTime() const { return m_hit->GetTime(); }
 
-  void JoinTrack( void ) { m_hit->JoinTrack(m_nth_hit); }
-  void QuitTrack( void ) { m_hit->QuitTrack(m_nth_hit); }
-  bool BelongToTrack( void ) const { return m_hit->BelongToTrack(m_nth_hit); }
+  void   JoinTrack() { m_hit->JoinTrack(m_nth_hit); }
+  void   QuitTrack() { m_hit->QuitTrack(m_nth_hit); }
+  Bool_t BelongToTrack() const { return m_hit->BelongToTrack(m_nth_hit); }
 
-  void JoinTrackCFT( void ) { m_hit->JoinTrackCFT(m_nth_hit); }
-  void QuitTrackCFT( void ) { m_hit->QuitTrackCFT(m_nth_hit); }
-  bool BelongToTrackCFT( void ) const { return m_hit->BelongToTrackCFT(m_nth_hit); }
+  // void   JoinTrackCFT() { m_hit->JoinTrackCFT(m_nth_hit); }
+  // void   QuitTrackCFT() { m_hit->QuitTrackCFT(m_nth_hit); }
+  // Bool_t BelongToTrackCFT() const
+  // { return m_hit->BelongToTrackCFT(m_nth_hit); }
 
-  void Print( const std::string& arg="" ) const;
+  void Print(const TString& arg="") const;
 
-  bool ReCalc( bool applyRecursively=false );
+  Bool_t ReCalc(Bool_t applyRecursively=false);
 
   friend class DCHit;
 };
+
+//_____________________________________________________________________________
+inline const TString&
+DCLTrackHit::ClassName()
+{
+  static TString s_name("DCLTrackHit");
+  return s_name;
+}
 
 #endif

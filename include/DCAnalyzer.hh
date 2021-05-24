@@ -7,7 +7,6 @@
 #include <TString.h>
 
 #include "DetectorID.hh"
-#include "ThreeVector.hh"
 
 class DCHit;
 class DCLocalTrack;

@@ -421,7 +421,7 @@ dst::DstRead(int ievent)
       double stof = event.tTof[itof] - time0 + OffsetToF;
       double cstof = -9999.;
       gPHC.DoStofCorrection(8, 0, tofseg-1, 2, stof, btof, cstof);
-      double beta = event.path[it]/cstof/math::C();
+      double beta = event.path[it]/cstof/MathTools::C();
       event.beta[mm] = beta;
       event.stof[mm] = stof;// - event.tTofCalc[0];
       event.cstof[mm]= cstof;

@@ -10,7 +10,7 @@ typedef TVector3 ThreeVector;
 
 //_____________________________________________________________________________
 inline std::ostream&
-operator <<(std::ostream& ost, const ThreeVector& v)
+operator <<(std::ostream& ost, const TVector3& v)
 {
   ost << "(" << v.x() << ", " << v.y()
       << ", " << v.z() << ")";

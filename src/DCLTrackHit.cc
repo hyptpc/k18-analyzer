@@ -1,8 +1,4 @@
-/**
- *  file: DCLTrackHit.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "DCLTrackHit.hh"
 
@@ -15,31 +11,32 @@
 #include <std_ostream.hh>
 
 #include "DCAnalyzer.hh"
+#include "FuncName.hh"
 #include "MathTools.hh"
 
 namespace
 {
-  const std::string& class_name("DCLTrackHit");
+const Double_t qnan = TMath::QuietNaN();
 }
 
-//______________________________________________________________________________
-DCLTrackHit::DCLTrackHit( DCHit *hit, double pos, int nh )
+//_____________________________________________________________________________
+DCLTrackHit::DCLTrackHit(DCHit *hit, Double_t pos, Int_t nh)
   : m_hit(hit),
     m_nth_hit(nh),
     m_local_hit_pos(pos),
-    m_cal_pos(-9999.),
-    m_xcal(-9999.),
-    m_ycal(-9999.),
-    m_ucal(-9999.),
-    m_vcal(-9999.),
+    m_cal_pos(qnan),
+    m_xcal(qnan),
+    m_ycal(qnan),
+    m_ucal(qnan),
+    m_vcal(qnan),
     m_honeycomb(false)
 {
-  debug::ObjectCounter::increase(class_name);
+  debug::ObjectCounter::increase(ClassName());
   m_hit->RegisterHits(this);
 }
 
-//______________________________________________________________________________
-DCLTrackHit::DCLTrackHit( const DCLTrackHit& right )
+//_____________________________________________________________________________
+DCLTrackHit::DCLTrackHit(const DCLTrackHit& right)
   : m_hit(right.m_hit),
     m_nth_hit(right.m_nth_hit),
     m_local_hit_pos(right.m_local_hit_pos),
@@ -51,62 +48,62 @@ DCLTrackHit::DCLTrackHit( const DCLTrackHit& right )
     m_honeycomb(right.m_honeycomb)
 {
   m_hit->RegisterHits(this);
-  debug::ObjectCounter::increase(class_name);
+  debug::ObjectCounter::increase(ClassName());
 }
 
-//______________________________________________________________________________
-DCLTrackHit::~DCLTrackHit( void )
+//_____________________________________________________________________________
+DCLTrackHit::~DCLTrackHit()
 {
-  debug::ObjectCounter::decrease(class_name);
+  debug::ObjectCounter::decrease(ClassName());
 }
 
-//______________________________________________________________________________
-double
-DCLTrackHit::GetLocalCalPos( void ) const
+//_____________________________________________________________________________
+Double_t
+DCLTrackHit::GetLocalCalPos() const
 {
-  double angle = m_hit->GetTiltAngle()*math::Deg2Rad();
-  return m_xcal*std::cos(angle) + m_ycal*std::sin(angle);
+  Double_t angle = m_hit->GetTiltAngle()*TMath::DegToRad();
+  return m_xcal*TMath::Cos(angle) + m_ycal*TMath::Sin(angle);
 }
 
-//______________________________________________________________________________
-double
-DCLTrackHit::GetResidual( void ) const
+//_____________________________________________________________________________
+Double_t
+DCLTrackHit::GetResidual() const
 {
-  double a    = GetTiltAngle()*math::Deg2Rad();
-  double dsdz = m_ucal*std::cos(a)+m_vcal*std::sin(a);
-  double coss = m_honeycomb ? std::cos( std::atan(dsdz) ) : 1.;
-  double scal = GetLocalCalPos();
-  double wp   = GetWirePosition();
-  double ss   = wp+(m_local_hit_pos-wp)/coss;
+  Double_t a    = GetTiltAngle()*TMath::DegToRad();
+  Double_t dsdz = m_ucal*TMath::Cos(a)+m_vcal*TMath::Sin(a);
+  Double_t coss = m_honeycomb ? TMath::Cos(TMath::ATan(dsdz)) : 1.;
+  Double_t scal = GetLocalCalPos();
+  Double_t wp   = GetWirePosition();
+  Double_t ss   = wp+(m_local_hit_pos-wp)/coss;
   return (ss-scal)*coss;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCLTrackHit::Print( const std::string& arg ) const
+DCLTrackHit::Print(const TString& arg) const
 {
-  m_hit->Print( arg );
+  m_hit->Print(arg);
   hddaq::cout << "local_hit_pos " << m_local_hit_pos << std::endl
 	      << "residual " << GetResidual() << std::endl
 	      << "honeycomb " << m_honeycomb << std::endl;
 }
 
-//______________________________________________________________________________
-bool
-DCLTrackHit::ReCalc( bool applyRecursively )
+//_____________________________________________________________________________
+Bool_t
+DCLTrackHit::ReCalc(Bool_t applyRecursively)
 {
-  if( applyRecursively ){
-    if( !m_hit->ReCalcDC(applyRecursively) ) return false;
-    // if( !m_hit->ReCalcDC(applyRecursively)   ||
-    // 	!m_hit->ReCalcMWPC(applyRecursively) ){
+  if(applyRecursively){
+    if(!m_hit->ReCalcDC(applyRecursively)) return false;
+    // if(!m_hit->ReCalcDC(applyRecursively)   ||
+    // 	!m_hit->ReCalcMWPC(applyRecursively)){
     //   return false;
     // }
   }
 
-  double wp = GetWirePosition();
-  double dl = GetDriftLength();
+  Double_t wp = GetWirePosition();
+  Double_t dl = GetDriftLength();
 
-  if( m_local_hit_pos>wp )  m_local_hit_pos = wp+dl;
+  if(m_local_hit_pos>wp)  m_local_hit_pos = wp+dl;
   else                      m_local_hit_pos = wp-dl;
 
   return true;
