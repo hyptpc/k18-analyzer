@@ -11,15 +11,15 @@
 
 #include <std_ostream.hh>
 
-#include "ConfMan.hh"
+//#include "ConfMan.hh"
 #include "FuncName.hh"
 
-namespace
-{
-const auto& gConf = ConfMan::GetInstance();
-const auto& valueNMR  = ConfMan::Get<Double_t>("FLDNMR");
-const auto& valueCalc = ConfMan::Get<Double_t>("FLDCALC");
-}
+//namespace
+//{
+//const auto& gConf = ConfMan::GetInstance();
+//const auto& valueNMR  = ConfMan::Get<Double_t>("FLDNMR");
+//const auto& valueCalc = ConfMan::Get<Double_t>("FLDCALC");
+//}
 
 //_____________________________________________________________________________
 KuramaFieldMap::KuramaFieldMap(const TString& file_name)
@@ -37,6 +37,26 @@ KuramaFieldMap::KuramaFieldMap(const TString& file_name)
     dZ()
 {
 }
+
+//_____________________________________________________________________________
+KuramaFieldMap::KuramaFieldMap(const TString& file_name, const Double_t measure, const Double_t calc)
+  : m_is_ready(false),
+    m_file_name(file_name),
+    B(),
+    Nx(0),
+    Ny(0),
+    Nz(0),
+    X0(),
+    Y0(),
+    Z0(),
+    dX(),
+    dY(),
+    dZ(),
+    valueMeasure(measure),
+    valueCalc(calc)
+{
+}
+
 
 //_____________________________________________________________________________
 KuramaFieldMap::~KuramaFieldMap()
@@ -82,14 +102,14 @@ KuramaFieldMap::Initialize()
   }
 
   if(valueCalc==0. || !std::isfinite(valueCalc) ||
-     valueNMR==0.  || !std::isfinite(valueNMR) ){
+     valueMeasure==0.  || !std::isfinite(valueMeasure) ){
     hddaq::cout << FUNC_NAME << " KuramaField is zero : "
                 << " Calc = " << valueCalc
-                << " NMR = " << valueNMR << std::endl
+                << " Measure = " << valueMeasure << std::endl
                 << " -> skip reading fieldmap" << std::endl;
     return true;
   }
-  const Double_t factor = valueNMR/valueCalc;
+  const Double_t factor = valueMeasure/valueCalc;
 
   Double_t x, y, z, bx, by, bz;
 

@@ -763,7 +763,7 @@ ConfMan::InitializeParameterFiles()
       InitializeParameter<DCTdcCalibMan>("DCTDC")    &&
       InitializeParameter<HodoParamMan>("HDPRM")     &&
       InitializeParameter<HodoPHCMan>("HDPHC")       &&
-      InitializeParameter<FieldMan>("FLDMAP")        &&
+      InitializeParameter<FieldMan>("FLDMAP", "HSFLDMAP")        &&
       InitializeParameter<K18TransMatrix>("K18TM")   &&
       InitializeParameter<BH2Filter>("BH2FLT")       &&
       InitializeParameter<UserParamMan>("USER")      &&

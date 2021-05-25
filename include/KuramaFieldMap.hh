@@ -12,6 +12,7 @@ class KuramaFieldMap
 public:
   static const TString& ClassName();
   KuramaFieldMap(const TString& file_name);
+  KuramaFieldMap(const TString& file_name, const Double_t measure, const Double_t calc);
   ~KuramaFieldMap();
 
 private:
@@ -33,6 +34,11 @@ private:
   Double_t dX;
   Double_t dY;
   Double_t dZ;
+
+  Double_t valueMeasure;
+  Double_t valueCalc;
+  void SetValueMeasure(const Double_t val) { valueMeasure = val; }
+  void SetValueCalc(const Double_t val) { valueCalc = val; }
 
 public:
   Bool_t Initialize();

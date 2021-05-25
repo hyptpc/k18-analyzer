@@ -1393,7 +1393,7 @@ ConfMan::InitializeParameterFiles()
      InitializeParameter<DCTdcCalibMan>("DCTDC")    &&
      InitializeParameter<HodoParamMan>("HDPRM")     &&
      InitializeParameter<HodoPHCMan>("HDPHC")       &&
-     InitializeParameter<FieldMan>("FLDMAP")        &&
+     InitializeParameter<FieldMan>("FLDMAP", "HSFLDMAP")        &&
      InitializeParameter<UserParamMan>("USER"));
 }
 
