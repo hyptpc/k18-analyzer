@@ -251,7 +251,7 @@ VertexPoint_Helix(const Double_t par1[5], const Double_t par2[5],
 
 //_____________________________________________________________________________
 Double_t
-closeDist(const TVector3& Xin, const TVector3& Xout,
+CloseDist(const TVector3& Xin, const TVector3& Xout,
           const TVector3& Pin, const TVector3& Pout)
 {
   Double_t xi=Xin.x(), yi=Xin.y(), xo=Xout.x(), yo=Xout.y();
@@ -281,18 +281,18 @@ CorrElossIn(const TVector3& Pin, const TVector3& Xin,
   energy_new = TMath::Sqrt(mass*mass+mom*mom);
 
   if (std::abs(vtx.z()-TARGETcenter) <= TARGETsizeZ)
-    length = calcLengthBeam(Pin, Xin, vtx);
+    length = CalcLengthBeam(Pin, Xin, vtx);
   else if (vtx.z() > TARGETsizeZ+TARGETcenter){
     Double_t u=Pin.x()/Pin.z();
     Double_t v=Pin.y()/Pin.z();
     Double_t ztgtOut=TARGETcenter+TARGETsizeZ;
     TVector3 tgtOutPos(u*(ztgtOut)+Xin.x(), v*(ztgtOut)+Xin.y(), ztgtOut);
-    length = calcLengthBeam(Pin, Xin, tgtOutPos);
+    length = CalcLengthBeam(Pin, Xin, tgtOutPos);
   }
   else if (vtx.z() < -TARGETsizeZ+TARGETcenter)
     return CorPin;
 
-  if (caldE(mom, mass, length,&mom_new,&energy_new)) {
+  if (CalcDe(mom, mass, length,&mom_new,&energy_new)) {
     CorPin = mom_new/mom*Pin;
     // hddaq::cout << "CorrElossIn:: mom = " << mom << ", mom_new = " << mom_new
     // 	      << std::endl;
@@ -304,13 +304,13 @@ CorrElossIn(const TVector3& Pin, const TVector3& Xin,
 
 //_____________________________________________________________________________
 Double_t
-calcLengthBeam(const TVector3& Pin, const TVector3& Xin,
+CalcLengthBeam(const TVector3& Pin, const TVector3& Xin,
                const TVector3& vtx)
 {
   Double_t u=Pin.x()/Pin.z();
   Double_t v=Pin.y()/Pin.z();
 
-  // hddaq::cout << "calcLengthBeam:: vtx (x,y,z)=(" << vtx.x() << ", "
+  // hddaq::cout << "CalcLengthBeam:: vtx (x,y,z)=(" << vtx.x() << ", "
   // 	    << vtx.y() << ", " << vtx.z() << ")" << std::endl;
 
   TVector3 point1, point2;
@@ -320,7 +320,7 @@ calcLengthBeam(const TVector3& Pin, const TVector3& Xin,
   else {
     Double_t z1,z2;
     Double_t z;
-    if (calcCrossingPoint(u, v, vtx,&z1,&z2)) {
+    if (CalcCrossingPoint(u, v, vtx,&z1,&z2)) {
       if (std::abs(vtx.z()-z1)<std::abs(vtx.z()-z2))
         z=z1;
       else
@@ -331,7 +331,7 @@ calcLengthBeam(const TVector3& Pin, const TVector3& Xin,
       return 0.0;
     }
   }
-  // hddaq::cout << "calcLengthBeam:: Point1 (x,y,z)=(" << point1.x() << ", "
+  // hddaq::cout << "CalcLengthBeam:: Point1 (x,y,z)=(" << point1.x() << ", "
   // 	    << point1.y() << ", " << point1.z() << ")" << std::endl;
   /* target entrance point check */
   Double_t ztgtIn=TARGETcenter-TARGETsizeZ;
@@ -342,7 +342,7 @@ calcLengthBeam(const TVector3& Pin, const TVector3& Xin,
   else {
     Double_t z1,z2;
     Double_t z;
-    if (calcCrossingPoint(u, v, tgtInPos,&z1,&z2)) {
+    if (CalcCrossingPoint(u, v, tgtInPos,&z1,&z2)) {
       if (std::abs(tgtInPos.z()-z1)<std::abs(tgtInPos.z()-z2))
         z=z1;
       else
@@ -354,9 +354,9 @@ calcLengthBeam(const TVector3& Pin, const TVector3& Xin,
     }
   }
 
-  // hddaq::cout << "calcLengthBeam:: Point2 (x,y,z)=(" << point2.x() << ", "
+  // hddaq::cout << "CalcLengthBeam:: Point2 (x,y,z)=(" << point2.x() << ", "
   // 	    << point2.y() << ", " << point2.z() << ")" << std::endl;
-  // hddaq::cout << "calcLengthBeam:: length=" << (point1-point2).Mag() << std::endl;
+  // hddaq::cout << "CalcLengthBeam:: length=" << (point1-point2).Mag() << std::endl;
 
   return (point1-point2).Mag();
 }
@@ -377,13 +377,13 @@ CorrElossOut(const TVector3& Pout, const TVector3& Xout,
   Double_t mom = Pout.Mag();
 
   if (std::abs(vtx.z()-TARGETcenter) < TARGETsizeZ)
-    length =  calcLengthScat(Pout, Xout, vtx);
+    length =  CalcLengthScat(Pout, Xout, vtx);
   else if (vtx.z() < -TARGETsizeZ-TARGETcenter){
     Double_t u=Pout.x()/Pout.z();
     Double_t v=Pout.y()/Pout.z();
     Double_t ztgtIn=TARGETcenter-TARGETsizeZ;
     TVector3 tgtInPos(u*(ztgtIn)+Xout.x(), v*(ztgtIn)+Xout.y(), ztgtIn);
-    length = calcLengthScat(Pout, Xout, tgtInPos);
+    length = CalcLengthScat(Pout, Xout, tgtInPos);
   }
   else if (vtx.z() > TARGETsizeZ+TARGETcenter)
     return CorPout;
@@ -392,19 +392,19 @@ CorrElossOut(const TVector3& Pout, const TVector3& Xout,
   Ehigh = 10.;
   Elast = TMath::Sqrt(mass*mass+mom*mom);
   EPS = 0.001;
-  FL  = diffE(mass, Elow, length, Elast);
-  FH  = diffE(mass, Ehigh, length, Elast);
+  FL  = DiffE(mass, Elow, length, Elast);
+  FH  = DiffE(mass, Ehigh, length, Elast);
   while (std::abs((Ehigh-Elow)/Ehigh) > EPS) {
     E = Ehigh-(Ehigh-Elow)*FH/(FH-FL);
     //printf("-------E=%f, Elow=%f, Ehigh=%f, FL=%f, FH=%f----------\n",E, Elow, Ehigh, FL, FH);
-    if (std::abs(FTMP=diffE(mass, E, length, Elast)) < 0.0000001){
+    if (std::abs(FTMP=DiffE(mass, E, length, Elast)) < 0.0000001){
       Elow = E;
       Ehigh = E;
       FH = FTMP;
-    } if ((FTMP=diffE(mass, E, length, Elast)) < 0) {
+    } if ((FTMP=DiffE(mass, E, length, Elast)) < 0) {
       Elow = E;
       FL = FTMP;
-    } else if ((FTMP=diffE(mass, E, length, Elast)) > 0){
+    } else if ((FTMP=DiffE(mass, E, length, Elast)) > 0){
       Ehigh = E;
       FH = FTMP;
     }
@@ -422,13 +422,13 @@ CorrElossOut(const TVector3& Pout, const TVector3& Xout,
 
 //_____________________________________________________________________________
 Double_t
-calcLengthScat(const TVector3& Pout, const TVector3& Xout,
+CalcLengthScat(const TVector3& Pout, const TVector3& Xout,
                const TVector3& vtx)
 {
   Double_t u=Pout.x()/Pout.z();
   Double_t v=Pout.y()/Pout.z();
 
-  // hddaq::cout << "calcLengthScat:: vtx (x,y,z)=(" << vtx.x() << ", "
+  // hddaq::cout << "CalcLengthScat:: vtx (x,y,z)=(" << vtx.x() << ", "
   // 	    << vtx.y() << ", " << vtx.z() << ")" << std::endl;
 
   TVector3 point1, point2;
@@ -438,7 +438,7 @@ calcLengthScat(const TVector3& Pout, const TVector3& Xout,
   else {
     Double_t z1,z2;
     Double_t z;
-    if (calcCrossingPoint(u, v, vtx,&z1,&z2)) {
+    if (CalcCrossingPoint(u, v, vtx,&z1,&z2)) {
       if (std::abs(vtx.z()-z1)<std::abs(vtx.z()-z2))
         z=z1;
       else
@@ -449,7 +449,7 @@ calcLengthScat(const TVector3& Pout, const TVector3& Xout,
       return 0.0;
     }
   }
-  // hddaq::cout << "calcLengthScat:: Point1 (x,y,z)=(" << point1.x() << ", "
+  // hddaq::cout << "CalcLengthScat:: Point1 (x,y,z)=(" << point1.x() << ", "
   // 	    << point1.y() << ", " << point1.z() << ")" << std::endl;
 
   /* target exit point check */
@@ -461,7 +461,7 @@ calcLengthScat(const TVector3& Pout, const TVector3& Xout,
   else {
     Double_t z1,z2;
     Double_t z;
-    if (calcCrossingPoint(u, v, tgtOutPos,&z1,&z2)) {
+    if (CalcCrossingPoint(u, v, tgtOutPos,&z1,&z2)) {
       if (std::abs(tgtOutPos.z()-z1)<std::abs(tgtOutPos.z()-z2))
         z=z1;
       else
@@ -473,9 +473,9 @@ calcLengthScat(const TVector3& Pout, const TVector3& Xout,
     }
   }
 
-  // hddaq::cout << "calcLengthScat:: Point2 (x,y,z)=(" << point2.x() << ", "
+  // hddaq::cout << "CalcLengthScat:: Point2 (x,y,z)=(" << point2.x() << ", "
   // 	    << point2.y() << ", " << point2.z() << ")" << std::endl;
-  // hddaq::cout << "calcLengthScata:: length=" << (point1-point2).Mag() << std::endl;
+  // hddaq::cout << "CalcLengthScata:: length=" << (point1-point2).Mag() << std::endl;
 
   return (point1-point2).Mag();
 
@@ -497,18 +497,18 @@ CorrElossOutCheck(const TVector3& Pout, const TVector3& Xout,
   TVector3 CorPout = Pout;
 
   if (std::abs(vtx.z()-TARGETcenter) <= TARGETsizeZ)
-    length =  calcLengthBeam(Pout, Xout, vtx);
+    length =  CalcLengthBeam(Pout, Xout, vtx);
   else if (vtx.z() < -TARGETsizeZ+TARGETcenter){
     Double_t u=Pout.x()/Pout.z();
     Double_t v=Pout.y()/Pout.z();
     Double_t ztgtIn=TARGETcenter-TARGETsizeZ;
     TVector3 tgtInPos(u*(ztgtIn)+Xout.x(), v*(ztgtIn)+Xout.y(), ztgtIn);
-    length = calcLengthBeam(Pout, Xout, tgtInPos);
+    length = CalcLengthBeam(Pout, Xout, tgtInPos);
   }
   else if (vtx.z() > TARGETsizeZ+TARGETcenter)
     return CorPout;
 
-  if (caldE(mom, mass, length,&mom_new,&energy_new)) {
+  if (CalcDe(mom, mass, length,&mom_new,&energy_new)) {
     CorPout = mom_new/mom*Pout;
     return CorPout;
   } else {
@@ -533,7 +533,7 @@ IsInsideTarget(const TVector3&point)
 
 //_____________________________________________________________________________
 Bool_t
-calcCrossingPoint(Double_t u, Double_t v, const TVector3& Point,
+CalcCrossingPoint(Double_t u, Double_t v, const TVector3& Point,
                   Double_t* z1, Double_t* z2)
 {
   Double_t x0=TARGETcenterX, y0=TARGETcenterY;
@@ -557,19 +557,19 @@ calcCrossingPoint(Double_t u, Double_t v, const TVector3& Point,
 
 //_____________________________________________________________________________
 Double_t
-diffE(Double_t mass, Double_t E, Double_t length, Double_t Elast)
+DiffE(Double_t mass, Double_t E, Double_t length, Double_t Elast)
 {
   Double_t p = TMath::Sqrt(E*E-mass*mass);
   Double_t mom_new, energy_new;
-  caldE(p, mass, length, &mom_new, &energy_new);
+  CalcDe(p, mass, length, &mom_new, &energy_new);
   return (energy_new - Elast);
-  //return (TMath::Sqrt(mass*mass+p*p)-caldE(particle,p,length)-Elast);
+  //return (TMath::Sqrt(mass*mass+p*p)-CalcDe(particle,p,length)-Elast);
 }
 
 //_____________________________________________________________________________
 Int_t
-caldE(Double_t momentum, Double_t mass, Double_t distance,
-      Double_t *momentum_cor, Double_t *energy_cor)
+CalcDe(Double_t momentum, Double_t mass, Double_t distance,
+       Double_t *momentum_cor, Double_t *energy_cor)
 {
   Double_t dE_dx; /*MeV/cm*/
   Double_t eloss; /*MeV*/
@@ -587,12 +587,12 @@ caldE(Double_t momentum, Double_t mass, Double_t distance,
   Double_t length=0.0;
   Double_t total_eloss=0.0;
 
-  //E_0=mygamma(beta)*m;
-  //p=mygamma(beta)*beta*m;
+  //E_0=Gamma(beta)*m;
+  //p=Gamma(beta)*beta*m;
 
   E_0= TMath::Sqrt(m*m + p*p);
   E=E_0;
-  beta = mybeta(E,p);
+  beta = Beta(E,p);
   //printf("beta=%f, E=%f, p=%f\n",beta, E, p);
   if (beta<=0.0) {
     *momentum_cor = p/1000.0;
@@ -602,7 +602,7 @@ caldE(Double_t momentum, Double_t mass, Double_t distance,
   dE_dx=0.0;
   eloss=0.0;
   for(i=0;i<=thickness/delta;i++){
-    dE_dx=calc_dE_dx(beta);
+    dE_dx=CalcDedx(beta);
     eloss=dE_dx*delta;
     E=E-eloss;
     if(E<m){
@@ -613,7 +613,7 @@ caldE(Double_t momentum, Double_t mass, Double_t distance,
       //break;
     }
     p=TMath::Sqrt(pow(E,2.0)-pow(m,2.0));
-    beta=mybeta(E,p);
+    beta=Beta(E,p);
     length=length+delta;
     total_eloss=total_eloss+eloss;
     /*
@@ -633,7 +633,7 @@ caldE(Double_t momentum, Double_t mass, Double_t distance,
 
 //_____________________________________________________________________________
 Double_t
-calc_dE_dx(Double_t beta)
+CalcDedx(Double_t beta)
 {
   Double_t value;
   const Double_t C=0.1535; /*MeVcm^2/g*/
@@ -655,7 +655,7 @@ calc_dE_dx(Double_t beta)
   Double_t a=0.13483;
   Double_t M=5.6249;
 
-  gamma = mygamma(beta);
+  gamma = Gamma(beta);
   X = log10(beta*gamma);
   if (X<=X0)
     delta=0.0;
@@ -679,14 +679,14 @@ calc_dE_dx(Double_t beta)
 
 //_____________________________________________________________________________
 Double_t
-mygamma(Double_t beta)
+Gamma(Double_t beta)
 {
   return 1./TMath::Sqrt(1.-beta*beta);
 }
 
 //_____________________________________________________________________________
 Double_t
-mybeta(Double_t energy,Double_t mormentum)
+Beta(Double_t energy,Double_t mormentum)
 {
   return mormentum/energy;
 }

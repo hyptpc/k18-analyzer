@@ -308,8 +308,8 @@ class RunlistManager(metaclass=classimpl.Singleton):
           pconf = item[1]['conf']
         elif os.path.isdir(item[1]['conf']) and runno is not None:
           pconf = os.path.join(item[1]['conf'], f'analyzer_{runno:05d}.conf')
-      if pconf is None:
-        logger.error('Cannot decide conf file path')
+      if pconf is None or not os.path.isfile(pconf):
+        logger.error(f'Cannot find conf file: {pconf}')
         exit(1)
       run['conf'] = pconf
       base = (item[0] + os.path.basename(pbin) if runno is None

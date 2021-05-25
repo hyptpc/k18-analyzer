@@ -1,8 +1,4 @@
-/**
- *  file: KuramaLib.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef KURAMA_LIB_HH
 #define KURAMA_LIB_HH

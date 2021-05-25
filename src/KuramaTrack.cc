@@ -34,7 +34,7 @@ const Double_t MinDeltaChiSqrR = 0.0002;
 
 #define WARNOUT 0
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 KuramaTrack::KuramaTrack(DCLocalTrack *track_in, DCLocalTrack *track_out)
   : m_status(kInit),
     m_track_in(track_in),
@@ -63,14 +63,14 @@ KuramaTrack::KuramaTrack(DCLocalTrack *track_in, DCLocalTrack *track_out)
   debug::ObjectCounter::increase(ClassName());
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 KuramaTrack::~KuramaTrack()
 {
   ClearHitArray();
   debug::ObjectCounter::decrease(ClassName());
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 TrackHit*
 KuramaTrack::GetHitOfLayerNumber(Int_t lnum) const
 {
@@ -81,7 +81,7 @@ KuramaTrack::GetHitOfLayerNumber(Int_t lnum) const
   return 0;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 KuramaTrack::FillHitArray()
 {
@@ -108,7 +108,7 @@ KuramaTrack::FillHitArray()
 
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 KuramaTrack::ClearHitArray()
 {
@@ -119,7 +119,7 @@ KuramaTrack::ClearHitArray()
   m_hit_array.clear();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 KuramaTrack::ReCalc(Bool_t applyRecursively)
 {
@@ -136,7 +136,7 @@ KuramaTrack::ReCalc(Bool_t applyRecursively)
   //  return DoFit();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 KuramaTrack::DoFit()
 {
@@ -290,7 +290,7 @@ KuramaTrack::DoFit()
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 KuramaTrack::DoFit(RKCordParameter iniCord)
 {
@@ -419,7 +419,7 @@ KuramaTrack::DoFit(RKCordParameter iniCord)
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Double_t
 KuramaTrack::CalcChiSqr(const RKHitPointContainer &hpCont) const
 {
@@ -453,7 +453,7 @@ KuramaTrack::CalcChiSqr(const RKHitPointContainer &hpCont) const
   return chisqr;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 KuramaTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
                                  RKCordParameter& Cord, Double_t& estDeltaChisqr,
@@ -705,7 +705,7 @@ KuramaTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 KuramaTrack::SaveCalcPosition(const RKHitPointContainer &hpCont)
 {
@@ -721,7 +721,7 @@ KuramaTrack::SaveCalcPosition(const RKHitPointContainer &hpCont)
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 KuramaTrack::Print(const TString& arg, std::ostream& ost)
 {
@@ -752,7 +752,7 @@ KuramaTrack::Print(const TString& arg, std::ostream& ost)
   PrintCalcHits(m_HitPointCont);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 KuramaTrack::PrintCalcHits(const RKHitPointContainer &hpCont, std::ostream &ost) const
 {
@@ -799,7 +799,7 @@ KuramaTrack::PrintCalcHits(const RKHitPointContainer &hpCont, std::ostream &ost)
   }
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 KuramaTrack::SaveTrackParameters(const RKCordParameter &cp)
 {
@@ -843,7 +843,7 @@ KuramaTrack::SaveTrackParameters(const RKCordParameter &cp)
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 KuramaTrack::GetTrajectoryLocalPosition(Int_t layer,
                                         Double_t& x, Double_t& y) const

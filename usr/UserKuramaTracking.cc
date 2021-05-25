@@ -734,7 +734,7 @@ UserKuramaTracking::ProcessingNormal()
     if(!track) continue;
     // track->Print();
     Int_t nh = track->GetNHits();
-    Double_t chisqr = track->chisqr();
+    Double_t chisqr = track->ChiSquare();
     const auto& Pos = track->PrimaryPosition();
     const auto& Mom = track->PrimaryMomentum();
     // hddaq::cout << std::fixed

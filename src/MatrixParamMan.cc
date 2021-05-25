@@ -1,8 +1,6 @@
-/**
- *  file: MatrixParamMan.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
+
+#include "MatrixParamMan.hh"
 
 #include <sstream>
 #include <fstream>
@@ -11,120 +9,112 @@
 
 #include <std_ostream.hh>
 
-#include "MatrixParamMan.hh"
 #include "ConfMan.hh"
 #include "DetectorID.hh"
-#include "ThreeVector.hh"
+#include "FuncName.hh"
 
-namespace
-{
-  const std::string& class_name("MatrixParamMan");
-}
-
-//______________________________________________________________________________
-MatrixParamMan::MatrixParamMan( void )
+//_____________________________________________________________________________
+MatrixParamMan::MatrixParamMan()
   : m_is_ready(false),
-    m_file_name_2d(""),
-    m_file_name_3d("")
+    m_file_name_2d(),
+    m_file_name_3d()
 {
   // 2D
-  m_enable_2d.resize( NumOfSegTOF );
-  for( int i=0; i<NumOfSegTOF; ++i ){
-    m_enable_2d[i].resize( NumOfSegSCH );
+  m_enable_2d.resize(NumOfSegTOF);
+  for(Int_t i=0; i<NumOfSegTOF; ++i){
+    m_enable_2d[i].resize(NumOfSegSCH);
   }
   // 3D
-  m_enable_3d.resize( NumOfSegTOF );
-  for( int i=0; i<NumOfSegTOF; ++i ){
-    m_enable_3d[i].resize( NumOfSegSCH );
-    for( int j=0; j<NumOfSegSCH; ++j ){
-      m_enable_3d[i][j].resize( NumOfSegSFT_Mtx );
+  m_enable_3d.resize(NumOfSegTOF);
+  for(Int_t i=0; i<NumOfSegTOF; ++i){
+    m_enable_3d[i].resize(NumOfSegSCH);
+    for(Int_t j=0; j<NumOfSegSCH; ++j){
+      m_enable_3d[i][j].resize(NumOfSegSFT_Mtx);
     }
   }
 }
 
-//______________________________________________________________________________
-MatrixParamMan::~MatrixParamMan( void )
+//_____________________________________________________________________________
+MatrixParamMan::~MatrixParamMan()
 {
 }
 
-//______________________________________________________________________________
-bool
-MatrixParamMan::Initialize( void )
+//_____________________________________________________________________________
+Bool_t
+MatrixParamMan::Initialize()
 {
-  return Initialize( m_file_name_2d, m_file_name_3d );
+  return Initialize(m_file_name_2d, m_file_name_3d);
 }
 
-//______________________________________________________________________________
-bool
-MatrixParamMan::Initialize( const std::string& filename_2d,
-			    const std::string& filename_3d )
+//_____________________________________________________________________________
+Bool_t
+MatrixParamMan::Initialize(const TString& filename_2d,
+                           const TString& filename_3d)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   {
-    std::ifstream ifs( filename_2d.c_str() );
-    if( !ifs.is_open() ){
-      hddaq::cerr << "#E " << func_name << " "
+    std::ifstream ifs(filename_2d);
+    if(!ifs.is_open()){
+      hddaq::cerr << FUNC_NAME << " "
 		  << "No such 2D parameter file : " << filename_2d << std::endl;
-      std::exit( EXIT_FAILURE );
+      std::exit(EXIT_FAILURE);
     }
 
-    std::string line;
-    int tofseg = 0;
-    while( !ifs.eof() && std::getline( ifs, line ) ){
-      if( line.empty() ) continue;
+    TString line;
+    Int_t tofseg = 0;
+    while(!ifs.eof() && line.ReadLine(ifs)){
+      if(line.IsNull()) continue;
 
       std::string param[2];
-      std::istringstream iss( line );
+      std::istringstream iss(line.Data());
       iss >> param[0] >> param[1];
 
-      if( param[0].at(0) == '#' ) continue;
+      if(param[0].at(0) == '#') continue;
 
-      if( param[0].substr(2).at(0)=='0' )
+      if(param[0].substr(2).at(0)=='0')
 	param[0] = param[0].substr(3);
       else
 	param[0] = param[0].substr(2);
 
-      int channel = std::strtol( param[0].c_str(), NULL, 0 );
-      int enable  = std::strtol( param[1].substr(0,1).c_str(), NULL, 0 );
+      Int_t channel = std::strtol(param[0].c_str(), NULL, 0);
+      Int_t enable  = std::strtol(param[1].substr(0,1).c_str(), NULL, 0);
 
       m_enable_2d[tofseg][channel] = enable;
-      if( channel==NumOfSegSCH-1 ) ++tofseg;
+      if(channel==NumOfSegSCH-1) ++tofseg;
     }
   }
 
   {
-    std::ifstream ifs( filename_3d.c_str() );
-    if( !ifs.is_open() ){
-      hddaq::cerr << "#E " << func_name << " "
+    std::ifstream ifs(filename_3d);
+    if(!ifs.is_open()){
+      hddaq::cerr << FUNC_NAME << " "
 		  << "No such 3D parameter file : " << filename_3d << std::endl;
-      std::exit( EXIT_FAILURE );
+      std::exit(EXIT_FAILURE);
     }
 
-    std::string line;
-    int tofseg = 0;
-    while( !ifs.eof() && std::getline( ifs, line ) ){
-      if( line.empty() ) continue;
+    TString line;
+    Int_t tofseg = 0;
+    while(!ifs.eof() && line.ReadLine(ifs)){
+      if(line.IsNull()) continue;
 
       std::string param[2];
-      std::istringstream iss( line );
+      std::istringstream iss(line.Data());
       iss >> param[0] >> param[1];
 
-      if( param[0].at(0) == '#' ) continue;
+      if(param[0].at(0) == '#') continue;
 
-      if( param[0].substr(2).at(0)=='0' )
+      if(param[0].substr(2).at(0)=='0')
 	param[0] = param[0].substr(3);
       else
 	param[0] = param[0].substr(2);
 
-      int channel = std::strtol( param[0].c_str(), NULL, 0 );
-      int enable[NumOfSegSFT_Mtx] = {};
-      for( int i=0; i<NumOfSegSFT_Mtx; ++i ){
-	enable[i] = std::strtol( param[1].substr(i,1).c_str(), NULL, 0 );
+      Int_t channel = std::strtol(param[0].c_str(), NULL, 0);
+      Int_t enable[NumOfSegSFT_Mtx] = {};
+      for(Int_t i=0; i<NumOfSegSFT_Mtx; ++i){
+	enable[i] = std::strtol(param[1].substr(i,1).c_str(), NULL, 0);
 	m_enable_3d[tofseg][channel][i] = enable[i];
       }
 
-      if( channel==NumOfSegSCH-1 ) ++tofseg;
+      if(channel==NumOfSegSCH-1) ++tofseg;
     }
   }
 
@@ -132,84 +122,77 @@ MatrixParamMan::Initialize( const std::string& filename_2d,
   return true;
 }
 
-//______________________________________________________________________________
-bool
-MatrixParamMan::IsAccept( std::size_t detA, std::size_t detB ) const
+//_____________________________________________________________________________
+Bool_t
+MatrixParamMan::IsAccept(Int_t detA, Int_t detB) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-  if( m_enable_2d.size()<=detA ){
-    hddaq::cerr << "#W " << func_name << " detA is too much : "
+  if(m_enable_2d.size() <= detA){
+    hddaq::cerr << FUNC_NAME << " detA is too much : "
 		<< detA << "/" << m_enable_2d.size() << std::endl;
     return false;
   }
 
-  if( m_enable_2d[detA].size()<=detB ){
-    hddaq::cerr << "#W " << func_name << " detB is too much : "
+  if(m_enable_2d[detA].size()<=detB){
+    hddaq::cerr << FUNC_NAME << " detB is too much : "
 		<< detB << "/" << m_enable_2d[detA].size() << std::endl;
     return false;
   }
 
-  return ( m_enable_2d[detA][detB] != 0. );
+  return (m_enable_2d[detA][detB] != 0.);
 }
 
-//______________________________________________________________________________
-bool
-MatrixParamMan::IsAccept( std::size_t detA, std::size_t detB, std::size_t detC ) const
+//_____________________________________________________________________________
+Bool_t
+MatrixParamMan::IsAccept(Int_t detA, Int_t detB, Int_t detC) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  if( m_enable_3d.size()<=detA ){
-    hddaq::cerr << "#W " << func_name << " detA is too much : "
+  if(m_enable_3d.size() <= detA){
+    hddaq::cerr << FUNC_NAME << " detA is too much : "
 		<< detA << "/" << m_enable_3d.size() << std::endl;
     return false;
   }
 
-  if( m_enable_3d[detA].size()<=detB ){
-    hddaq::cerr << "#W " << func_name << " detB is too much : "
+  if(m_enable_3d[detA].size() <= detB){
+    hddaq::cerr << FUNC_NAME << " detB is too much : "
 		<< detB << "/" << m_enable_3d[detA].size() << std::endl;
     return false;
   }
 
-  if( m_enable_3d[detA][detB].size()<=detC ){
-    hddaq::cerr << "#W " << func_name << " detC is too much : "
+  if(m_enable_3d[detA][detB].size() <= detC){
+    hddaq::cerr << FUNC_NAME << " detC is too much : "
 		<< detC << "/" << m_enable_3d[detA][detB].size() << std::endl;
     return false;
   }
 
-  return ( m_enable_3d[detA][detB][detC] != 0. );
+  return (m_enable_3d[detA][detB][detC] != 0.);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-MatrixParamMan::Print2D( const std::string& arg ) const
+MatrixParamMan::Print2D(const TString& arg) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  hddaq::cout << "#D " << func_name << " " << arg << std::endl;
-  for( int i=NumOfSegTOF-1; i>=0; --i ){
+  hddaq::cout << FUNC_NAME << " " << arg << std::endl;
+  for(Int_t i=NumOfSegTOF-1; i>=0; --i){
     hddaq::cout << " detA = " << std::setw(2)
 		<< std::right << i << " : ";
-    for( int j=0; j<NumOfSegSCH; ++j ){
+    for(Int_t j=0; j<NumOfSegSCH; ++j){
       hddaq::cout << m_enable_2d[i][j];
     }
     hddaq::cout << std::endl;
   }
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-MatrixParamMan::Print3D( const std::string& arg ) const
+MatrixParamMan::Print3D(const TString& arg) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  hddaq::cout << "#D " << func_name << " " << arg << std::endl;
-  for( int k=0; k<NumOfSegSFT_Mtx; ++k ){
+  hddaq::cout << FUNC_NAME << " " << arg << std::endl;
+  for(Int_t k=0; k<NumOfSegSFT_Mtx; ++k){
     hddaq::cout << " detC = " << std::setw(2)
 		<< std::right << k << std::endl;
-    for( int i=NumOfSegTOF-1; i>=0; --i ){
+    for(Int_t i=NumOfSegTOF-1; i>=0; --i){
       hddaq::cout << " detA = " << std::setw(2)
 		  << std::right << i << " : ";
-      for( int j=0; j<NumOfSegSCH; ++j ){
+      for(Int_t j=0; j<NumOfSegSCH; ++j){
 	hddaq::cout << m_enable_3d[i][j][k];
       }
       hddaq::cout << std::endl;
@@ -217,16 +200,16 @@ MatrixParamMan::Print3D( const std::string& arg ) const
   }
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-MatrixParamMan::SetMatrix2D( const std::string& file_name )
+MatrixParamMan::SetMatrix2D(const TString& file_name)
 {
   m_file_name_2d = file_name;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-MatrixParamMan::SetMatrix3D( const std::string& file_name )
+MatrixParamMan::SetMatrix3D(const TString& file_name)
 {
   m_file_name_3d = file_name;
 }

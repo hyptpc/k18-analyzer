@@ -38,17 +38,17 @@ private:
 
 public:
   Bool_t CalcDeltaD2U(Double_t xin, Double_t yin, Double_t uin, Double_t vin,
-                       Double_t xout, Double_t& yout,
-                       Double_t& uout, Double_t& vout,
-                       Double_t& delta1, Double_t& delta2) const;
+                      Double_t xout, Double_t& yout,
+                      Double_t& uout, Double_t& vout,
+                      Double_t& delta1, Double_t& delta2) const;
   Bool_t Initialize();
   Bool_t Initialize(const TString& file_name);
   Bool_t IsReady() const { return m_is_ready; }
   void   SetFileName(const TString& file_name) { m_file_name = file_name; }
   Bool_t Transport(Double_t xin, Double_t yin, Double_t uin, Double_t vin,
-                    Double_t delta,
-                    Double_t& xout, Double_t& yout,
-                    Double_t& uout, Double_t& vout) const;
+                   Double_t delta,
+                   Double_t& xout, Double_t& yout,
+                   Double_t& uout, Double_t& vout) const;
 };
 
 //_____________________________________________________________________________

@@ -189,7 +189,7 @@ DCAnalyzer::PrintKurama(const TString& arg) const
     KuramaTrack *tp = m_KuramaTC[i];
     hddaq::cout << std::setw(3) << i
 		<< " Niter=" << std::setw(3) << tp->Niteration()
-		<< " ChiSqr=" << tp->chisqr()
+		<< " ChiSqr=" << tp->ChiSquare()
 		<< " P=" << tp->PrimaryMomentum().Mag()
 		<< " PL(TOF)=" << tp->PathLengthToTOF()
 		<< std::endl;
@@ -1223,7 +1223,7 @@ DCAnalyzer::TrackSearchKurama()
       } else {
 	trKurama->SetInitialMomentum(1.);
       }
-      if(trKurama->DoFit() && trKurama->chisqr()<MaxChiSqrKuramaTrack){
+      if(trKurama->DoFit() && trKurama->ChiSquare()<MaxChiSqrKuramaTrack){
         // trKurama->Print("in "+FUNC_NAME);
 	m_KuramaTC.push_back(trKurama);
       }
@@ -1263,7 +1263,7 @@ DCAnalyzer::TrackSearchKurama(Double_t initial_momentum)
       KuramaTrack *trKurama = new KuramaTrack(trIn, trOut);
       if(!trKurama) continue;
       trKurama->SetInitialMomentum(initial_momentum);
-      if(trKurama->DoFit() && trKurama->chisqr()<MaxChiSqrKuramaTrack){
+      if(trKurama->DoFit() && trKurama->ChiSquare()<MaxChiSqrKuramaTrack){
 	m_KuramaTC.push_back(trKurama);
       }
       else{

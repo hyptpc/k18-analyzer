@@ -26,9 +26,15 @@ KuramaFieldMap::KuramaFieldMap(const TString& file_name)
   : m_is_ready(false),
     m_file_name(file_name),
     B(),
-    Nx(0), Ny(0), Nz(0),
-    X0(), Y0(), Z0(),
-    dX(), dY(), dZ()
+    Nx(0),
+    Ny(0),
+    Nz(0),
+    X0(),
+    Y0(),
+    Z0(),
+    dX(),
+    dY(),
+    dZ()
 {
 }
 
@@ -77,9 +83,10 @@ KuramaFieldMap::Initialize()
 
   if(valueCalc==0. || !std::isfinite(valueCalc) ||
      valueNMR==0.  || !std::isfinite(valueNMR) ){
-    // hddaq::cout << FUNC_NAME << " KuramaField is zero : "
-    //             << " Calc = " << valueCalc
-    //             << " NMR = " << valueNMR << std::endl;
+    hddaq::cout << FUNC_NAME << " KuramaField is zero : "
+                << " Calc = " << valueCalc
+                << " NMR = " << valueNMR << std::endl
+                << " -> skip reading fieldmap" << std::endl;
     return true;
   }
   const Double_t factor = valueNMR/valueCalc;
@@ -111,7 +118,7 @@ KuramaFieldMap::Initialize()
 //_____________________________________________________________________________
 Bool_t
 KuramaFieldMap::GetFieldValue(const Double_t pointCM[3],
-                              Double_t *BfieldTesla) const
+                              Double_t* BfieldTesla) const
 {
   Double_t xt = pointCM[0];
   Double_t yt = pointCM[1];

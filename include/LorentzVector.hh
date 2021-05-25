@@ -1,8 +1,4 @@
-/**
- *  file: LorentzVector.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef LORENTZ_VECTOR_HH
 #define LORENTZ_VECTOR_HH
@@ -15,8 +11,8 @@ typedef TLorentzVector LorentzVector;
 //______________________________________________________________________________
 inline
 std::ostream&
-operator <<( std::ostream& ost,
-	     const LorentzVector& v )
+operator <<(std::ostream& ost,
+            const LorentzVector& v)
 {
   ost << "(" << v.Px() << ", " << v.Py()
       << ", " << v.Pz() << ", " << v.E() << " )";

@@ -24,14 +24,20 @@ private:
   Bool_t   m_is_ready;
   TString  m_file_name;
   Field    B;
-  Int_t    Nx, Ny, Nz;
-  Double_t X0, Y0, Z0;
-  Double_t dX, dY, dZ;
+  Int_t    Nx;
+  Int_t    Ny;
+  Int_t    Nz;
+  Double_t X0;
+  Double_t Y0;
+  Double_t Z0;
+  Double_t dX;
+  Double_t dY;
+  Double_t dZ;
 
 public:
   Bool_t Initialize();
   Bool_t IsReady() const { return m_is_ready; }
-  Bool_t GetFieldValue(const Double_t pointCM[3], Double_t *BfieldTesla) const;
+  Bool_t GetFieldValue(const Double_t pointCM[3], Double_t* BfieldTesla) const;
 
 private:
   void ClearField();

@@ -29,35 +29,35 @@ const Int_t UdShift   = 27;
 const auto qnan = TMath::QuietNaN();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 HodoParamMan::HodoParamMan()
   : m_is_ready(false),
     m_file_name()
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 HodoParamMan::~HodoParamMan()
 {
   ClearACont();
   ClearTCont();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 HodoParamMan::ClearACont()
 {
   del::ClearMap(m_APContainer);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 HodoParamMan::ClearTCont()
 {
   del::ClearMap(m_TPContainer);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline Int_t
 KEY(Int_t cid, Int_t pl, Int_t seg, Int_t ud)
 {
@@ -67,12 +67,12 @@ KEY(Int_t cid, Int_t pl, Int_t seg, Int_t ud)
           ((ud&UdMask)   << UdShift  ));
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 HodoParamMan::Initialize()
 {
   if(m_is_ready){
-    hddaq::cerr << "#W " << FUNC_NAME
+    hddaq::cerr << FUNC_NAME
 		<< " already initialied" << std::endl;
     return false;
   }
@@ -146,7 +146,7 @@ HodoParamMan::Initialize()
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
 HodoParamMan::Initialize(const TString& file_name)
 {
@@ -154,10 +154,10 @@ HodoParamMan::Initialize(const TString& file_name)
   return Initialize();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
-HodoParamMan::GetTime(Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t tdc,
-                      Double_t &time) const
+HodoParamMan::GetTime(Int_t cid, Int_t plid, Int_t seg,
+                      Int_t ud, Int_t tdc, Double_t& time) const
 {
   HodoTParam* map = GetTmap(cid, plid, seg, ud);
   if(!map) return false;
@@ -165,10 +165,10 @@ HodoParamMan::GetTime(Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t tdc,
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Bool_t
-HodoParamMan::GetDe(Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t adc,
-                    Double_t &de) const
+HodoParamMan::GetDe(Int_t cid, Int_t plid, Int_t seg,
+                    Int_t ud, Int_t adc, Double_t& de) const
 {
   HodoAParam* map = GetAmap(cid, plid, seg, ud);
   if(!map) return false;
@@ -176,7 +176,7 @@ HodoParamMan::GetDe(Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t adc,
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Double_t
 HodoParamMan::GetP0(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
 {
@@ -186,7 +186,7 @@ HodoParamMan::GetP0(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
   return p0;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Double_t
 HodoParamMan::GetP1(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
 {
@@ -196,7 +196,7 @@ HodoParamMan::GetP1(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
   return p1;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Double_t
 HodoParamMan::GetPar(Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t i) const
 {
@@ -212,7 +212,7 @@ HodoParamMan::GetPar(Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t i) const
   return par;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Double_t
 HodoParamMan::GetOffset(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
 {
@@ -221,7 +221,7 @@ HodoParamMan::GetOffset(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
   return map->Offset();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 Double_t
 HodoParamMan::GetGain(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
 {
@@ -230,7 +230,7 @@ HodoParamMan::GetGain(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
   return map->Gain();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 HodoTParam*
 HodoParamMan::GetTmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
 {
@@ -242,7 +242,7 @@ HodoParamMan::GetTmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
     return nullptr;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 HodoAParam*
 HodoParamMan::GetAmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
 {
@@ -254,7 +254,7 @@ HodoParamMan::GetAmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
     return nullptr;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 HodoFParam*
 HodoParamMan::GetFmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
 {

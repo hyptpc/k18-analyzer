@@ -974,7 +974,7 @@ dst::DstRead(Int_t ievent)
       ThreeVector pkm  = KmPCont[ikm], xkm = KmXCont[ikm];
       ThreeVector vert = Kinematics::VertexPoint(xkm, xkp, pkm, pkp);
       // std::cout << "vertex : " << vert << " " << vert.Mag() << std::endl;
-      Double_t closedist = Kinematics::closeDist(xkm, xkp, pkm, pkp);
+      Double_t closedist = Kinematics::CloseDist(xkm, xkp, pkm, pkp);
 
       Double_t us = pkp.x()/pkp.z(), vs = pkp.y()/pkp.z();
       Double_t ub = pkm.x()/pkm.z(), vb = pkm.y()/pkm.z();

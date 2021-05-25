@@ -16,6 +16,7 @@
 #include <std_ostream.hh>
 
 #include "DeleteUtility.hh"
+#include "Exception.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
 
@@ -33,7 +34,7 @@ const Int_t UdShift   = 27;
 
 //_____________________________________________________________________________
 HodoPHCParam::HodoPHCParam(Int_t type, Int_t n_param,
-                            const std::vector<Double_t>& parlist)
+                           const std::vector<Double_t>& parlist)
   : m_type(type),
     m_n_param(n_param),
     m_param_list(parlist)
@@ -50,9 +51,9 @@ inline Int_t
 MakeKey(Int_t cid, Int_t pl, Int_t seg, Int_t ud)
 {
   return (((cid&CidMask) << CidShift ) |
-	   ((pl&PlidMask) << PlidShift) |
-	   ((seg&SegMask) << SegShift ) |
-	   ((ud&UdMask)   << UdShift  ));
+          ((pl&PlidMask) << PlidShift) |
+          ((seg&SegMask) << SegShift ) |
+          ((ud&UdMask)   << UdShift  ));
 }
 
 //_____________________________________________________________________________
@@ -115,45 +116,45 @@ HodoPHCParam::DoSTC(Double_t stof, Double_t btof) const
 Double_t
 HodoPHCParam::Type1Correction(Double_t time, Double_t de) const
 {
-  if(m_param_list.size()<3)
-    throw std::out_of_range(FUNC_NAME+" invalid parameter");
+  if(m_param_list.size()<3) throw Exception(FUNC_NAME+" invalid parameter");
 
-  if(std::abs(de-m_param_list[1])<MathTools::Epsilon())
+  if(TMath::Abs(de-m_param_list[1])<MathTools::Epsilon())
     de = m_param_list[1] + MathTools::Epsilon();
 
-  return time-m_param_list[0]/sqrt(std::abs(de-m_param_list[1]))+m_param_list[2];
+  return (time
+          - m_param_list[0]/TMath::Sqrt(TMath::Abs(de-m_param_list[1]))
+          + m_param_list[2]);
 }
 
 //_____________________________________________________________________________
 Double_t
 HodoPHCParam::Type2Correction(Double_t time, Double_t w) const
 {
-  if(m_param_list.size()<3)
-    throw std::out_of_range(FUNC_NAME+" invalid parameter");
+  if(m_param_list.size()<3) throw Exception(FUNC_NAME+" invalid parameter");
 
   // Correction function for fiber is quadratic function
-  return time-(m_param_list[0]*w*w + m_param_list[1]*w + m_param_list[2]);
+  return time - (m_param_list[0]*w*w + m_param_list[1]*w + m_param_list[2]);
 }
 
 //_____________________________________________________________________________
 Double_t
 HodoPHCParam::Type1RCorrection(Double_t time, Double_t de) const
 {
-  if(m_param_list.size()<3)
-    throw std::out_of_range(FUNC_NAME+" invalid parameter");
+  if(m_param_list.size()<3) throw Exception(FUNC_NAME+" invalid parameter");
 
-  if(std::abs(de-m_param_list[1])<MathTools::Epsilon())
+  if(TMath::Abs(de-m_param_list[1]) < MathTools::Epsilon()){
     de = m_param_list[1] + MathTools::Epsilon();
-
-  return time+m_param_list[0]/sqrt(std::abs(de-m_param_list[1]))-m_param_list[2];
+  }
+  return (time
+          + m_param_list[0]/TMath::Sqrt(TMath::Abs(de-m_param_list[1]))
+          - m_param_list[2]);
 }
 
 //_____________________________________________________________________________
 Double_t
 HodoPHCParam::Type1STCorrection(Double_t stof, Double_t btof) const
 {
-  if(m_param_list.size()<2)
-    throw std::out_of_range(FUNC_NAME+" invalid parameter");
+  if(m_param_list.size()<2) Exception(FUNC_NAME+" invalid parameter");
 
   //Correction function to eliminate the correlation between stof and btof
   return stof-(m_param_list[0]*btof + m_param_list[1]);
@@ -237,7 +238,7 @@ HodoPHCMan::Initialize(const TString& file_name)
 //_____________________________________________________________________________
 Bool_t
 HodoPHCMan::DoCorrection(Int_t cid, Int_t plid, Int_t seg, Int_t ud,
-			  Double_t time, Double_t de, Double_t & ctime) const
+                         Double_t time, Double_t de, Double_t& ctime) const
 {
   ctime = time;
   HodoPHCParam* map = GetMap(cid, plid, seg, ud);
@@ -249,7 +250,7 @@ HodoPHCMan::DoCorrection(Int_t cid, Int_t plid, Int_t seg, Int_t ud,
 //_____________________________________________________________________________
 Bool_t
 HodoPHCMan::DoRCorrection(Int_t cid, Int_t plid, Int_t seg, Int_t ud,
-			   Double_t time, Double_t de, Double_t & ctime) const
+                          Double_t time, Double_t de, Double_t& ctime) const
 {
   ctime = time;
   HodoPHCParam* map = GetMap(cid, plid, seg, ud);
@@ -261,7 +262,7 @@ HodoPHCMan::DoRCorrection(Int_t cid, Int_t plid, Int_t seg, Int_t ud,
 //_____________________________________________________________________________
 Bool_t
 HodoPHCMan::DoStofCorrection(Int_t cid, Int_t plid, Int_t seg, Int_t ud,
-                              Double_t stof, Double_t btof, Double_t & cstof) const
+                             Double_t stof, Double_t btof, Double_t& cstof) const
 {
   cstof = stof;
   HodoPHCParam* map = GetMap(cid, plid, seg, ud);
@@ -275,7 +276,7 @@ HodoPHCParam*
 HodoPHCMan::GetMap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
 {
   Int_t key = MakeKey(cid, plid, seg, ud);
-  PhcPIterator  itr = m_container.find(key);
+  PhcPIterator itr = m_container.find(key);
   if(itr != m_container.end())
     return itr->second;
   else
