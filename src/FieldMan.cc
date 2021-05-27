@@ -16,7 +16,7 @@ namespace
 const auto& gConf = ConfMan::GetInstance();
 const auto& valueNMR  = ConfMan::Get<Double_t>("FLDNMR");
 const auto& valueCalc = ConfMan::Get<Double_t>("FLDCALC");
-const auto& valueHSHall  = ConfMan::Get<Double_t>("HSFLDHALL");
+const auto& valueHSHall = ConfMan::Get<Double_t>("HSFLDHALL");
 const auto& valueHSCalc = ConfMan::Get<Double_t>("HSFLDCALC");
 }
 
@@ -53,7 +53,7 @@ FieldMan::Initialize()
     delete m_kurama_map;
 
   m_kurama_map = new KuramaFieldMap(m_file_name_kurama, valueNMR, valueCalc);
-  
+
   if(m_shs_map)
     delete m_shs_map;
 

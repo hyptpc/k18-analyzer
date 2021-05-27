@@ -16,6 +16,7 @@
 #include "DebugTimer.hh"
 #include "DetectorID.hh"
 #include "FuncName.hh"
+#include "MathTools.hh"
 #include "RMAnalyzer.hh"
 #include "KuramaLib.hh"
 #include "MathTools.hh"
@@ -749,7 +750,6 @@ UserKuramaTracking::ProcessingNormal()
     Double_t theta = TMath::ACos(cost)*TMath::RadToDeg();
     Double_t phi = TMath::ATan2(ut, vt);
     Double_t initial_momentum = track->GetInitialMomentum();
-    Double_t tof_seg = track->TofSeg();
     HF1(51, nh);
     HF1(52, chisqr);
     HF1(54, xt); HF1(55, yt); HF1(56, ut); HF1(57,vt);
@@ -782,41 +782,41 @@ UserKuramaTracking::ProcessingNormal()
     event.utofKurama[i] = momTof.x()/momTof.z();
     event.vtofKurama[i] = momTof.y()/momTof.z();
 
-    ///// w/  TOF
+#if UseTOF
+    Double_t tof_seg = track->TofSeg();
     event.tofsegKurama[i] = tof_seg;
-    ///// w/o TOF
-    // TVector2 vecTof(posTof.x(), posTof.z());
-    // vecTof -= TVector2(250., 2015.);
-    // Double_t sign = math::Sign(vecTof.X());
-    // Double_t TofSegKurama = sign*vecTof.Mod()/75.+12.5;
-    // event.tofsegKurama[i] = math::Round(TofSegKurama)
-#if 0
-    // std::cout << "posTof " << posTof << std::endl;
-    // std::cout << "momTof " << momTof << std::endl;
+#else
+    Double_t tof_x = track->GetLocalTrackOut()->GetX(zTOF);
+    Double_t tof_seg = MathTools::Round(tof_x/75. + (NumOfSegTOF + 1)*0.5);
+    event.tofsegKurama[i] = tof_seg;
+# if 0
+    std::cout << "posTof " << posTof << std::endl;
+    std::cout << "momTof " << momTof << std::endl;
     std::cout << std::setw(10) << vecTof.X()
 	      << std::setw(10) << vecTof.Y()
 	      << std::setw(10) << sign*vecTof.Mod()
 	      << std::setw(10) << TofSegKurama << std::endl;
+# endif
+    Double_t minres = 1.0e10;
 #endif
-    // Double_t minres = 1.0e10;
-    // Int_t    TofSeg = -1;
     Double_t time = qnan;
     for(const auto& hit: hodoAna->GetHitsTOF()){
       if(!hit) continue;
       Int_t seg = hit->SegmentId() + 1;
+#if UseTOF
       if((Int_t)tof_seg == seg){
 	time = hit->CMeanTime() - time0 + StofOffset;
       }
-      // w/o TOF
-      // Double_t res  = std::abs(tof_seg - seg);
-      // if(res<minres){
-      // 	minres = res;
-      // 	TofSeg = seg;
-      // 	time   = hit->CMeanTime()-time0+StofOffset;
-      // }
+#else
+      Double_t res = TMath::Abs(tof_seg - seg);
+      if(res < minres){
+	minres = res;
+	time = hit->CMeanTime() - time0 + StofOffset;
+      }
+#endif
     }
     event.stof[i] = time;
-    if(time>0.){
+    if(time > 0.){
       Double_t m2 = Kinematics::MassSquare(p, path, time);
       HF1(63, m2);
       event.m2[i] = m2;
@@ -825,7 +825,7 @@ UserKuramaTracking::ProcessingNormal()
       std::size_t        pre_precision = std::cout.precision();
       std::cout.setf(std::ios::fixed);
       std::cout.precision(5);
-      std::cout << "#D " << FUNC_NAME << std::endl
+      std::cout << FUNC_NAME << std::endl
 		<< "   Mom  = " << p     << std::endl
 		<< "   Path = " << path << std::endl
 		<< "   Time = " << time  << std::endl
@@ -842,7 +842,6 @@ UserKuramaTracking::ProcessingNormal()
       if(hit->GetLayer()>79) layerId -= 62;
       else if(hit->GetLayer()>40) layerId -= 15;
       else if(hit->GetLayer()>30) layerId -= 21;
-
       HF1(53, hit->GetLayer());
       Double_t wire = hit->GetHit()->GetWire();
       Double_t dt   = hit->GetHit()->GetDriftTime();
@@ -946,8 +945,8 @@ UserKuramaTracking::ProcessingNormal()
       // Double_t de=hit->DeltaE();
       // Double_t m2 = Kinematics::MassSquare(p, path, t);
       // event.tofmt[seg-1] = hit->MeanTime();
-      event.utTofSeg[seg-1]  =  tu - time0 + StofOffset;
-      event.dtTofSeg[seg-1]  =  td - time0 + StofOffset;
+      event.utTofSeg[seg-1] = tu - time0 + StofOffset;
+      event.dtTofSeg[seg-1] = td - time0 + StofOffset;
       // event.uctTofSeg[seg-1] = ctu - time0 + offset;
       // event.dctTofSeg[seg-1] = ctd - time0 + offset;
       event.udeTofSeg[seg-1] = ude;
@@ -1393,7 +1392,7 @@ ConfMan::InitializeParameterFiles()
      InitializeParameter<DCTdcCalibMan>("DCTDC")    &&
      InitializeParameter<HodoParamMan>("HDPRM")     &&
      InitializeParameter<HodoPHCMan>("HDPHC")       &&
-     InitializeParameter<FieldMan>("FLDMAP", "HSFLDMAP")        &&
+     InitializeParameter<FieldMan>("FLDMAP", "HSFLDMAP") &&
      InitializeParameter<UserParamMan>("USER"));
 }
 

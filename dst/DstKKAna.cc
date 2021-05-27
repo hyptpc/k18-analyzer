@@ -618,9 +618,6 @@ dst::DstRead(Int_t ievent)
     Kinematics::CalcTimeOfFlight(ConfMan::Get<Double_t>("PK18"),
                                  gGeom.LocalZ("K18Target")-gGeom.LocalZ("BH2"),
                                  pdg::KaonMass());
-  static const auto Mip2MeV           = gUser.GetParameter("TOFKID",0);
-  static const auto PionCutMass       = gUser.GetParameter("TOFKID",1);
-  static const auto ProtonCutMass     = gUser.GetParameter("TOFKID",2);
   static const auto KaonMass    = pdg::KaonMass();
   // static const auto PionMass    = pdg::PionMass();
   static const auto ProtonMass  = pdg::ProtonMass();
@@ -855,11 +852,11 @@ dst::DstRead(Int_t ievent)
 
     ///for Kflag///
     Int_t Kflag=0;
-    Double_t dEdx = Mip2MeV*best_de/sqrt(1+utof*utof+vtof*vtof);
-    if(CalcCutLineByTOF(PionCutMass, 1000*p) < dEdx &&
-       dEdx < CalcCutLineByTOF(ProtonCutMass, 1000*p)){
-      Kflag=1;
-    }
+    // Double_t dEdx = Mip2MeV*best_de/sqrt(1+utof*utof+vtof*vtof);
+    // if(CalcCutLineByTOF(PionCutMass, 1000*p) < dEdx &&
+    //    dEdx < CalcCutLineByTOF(ProtonCutMass, 1000*p)){
+    //   Kflag=1;
+    // }
     // w/o TOF
     // Double_t minres = 1.0e10;
     // for(Int_t j=0; j<nhTof; ++j){
