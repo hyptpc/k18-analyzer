@@ -119,21 +119,20 @@ TPC_Subtraction		0
 TPC_Multi		1000
 MinDeTPC		40
 MinRmsTPC		10
-TimeBucketTPC		20 120
+TimeBucketTPC		10 140
 #temporary (ch) -> should be ns unit
 #Time0TPC   	   	  79.0
 #HIMAC value mm/ns
 #DriftVelocityTPC	0.05
 
 ### TPC Cluster Y cut
-#ClusterYCut 3
-ClusterYCut 15
+ClusterYCut 3
+#ClusterYCut 15
 
 ### TPC Hough Window cut
-#HoughWindowCut 10
 HoughWindowCut 10
 TPCClusterSizeCut 1
-TPCMaxLayerCut 29
+TPCMaxLayerCut 30
 
 ### TPC resolution parameter
 ### at 1T
@@ -147,5 +146,5 @@ TPC_sigma0 0.204
 
 ### TPC
 ##for the beam through
-MinLayerTPC 10
-#MinLayerTPC 6
+#MinLayerTPC 10
+MinLayerTPC 8
