@@ -373,19 +373,19 @@ dst::DstRead( int ievent )
       event.raw_de.push_back(de);
       event.raw_padid.push_back(pad);
  
-     // for(int it=0; it<src.ntrack; ++it){
-     // 	Double_t x0_BC = src.x0[it];
-     // 	Double_t u0_BC = src.u0[it];
-     // 	Double_t y0_BC = src.y0[it];
-     // 	Double_t v0_BC = src.v0[it];
+      for(int it=0; it<src.ntrack; ++it){
+	Double_t x0_BC = src.x0[it];
+     	Double_t u0_BC = src.u0[it];
+     	Double_t y0_BC = src.y0[it];
+     	Double_t v0_BC = src.v0[it];
 
-     // 	Double_t zTPC = zK18HS + z;
-     // 	Double_t x_BC = x0_BC + zTPC*u0_BC;
-     // 	Double_t y_BC = y0_BC + zTPC*v0_BC;
-     // 	if(fabs(x_BC - x)<60.){
-     // 	  HF1(PosYPadHid + layer*1000+ row,  y - y_BC);
-     // 	}
-     // }
+     	Double_t zTPC = zK18HS + z;
+     	Double_t x_BC = x0_BC + zTPC*u0_BC;
+     	Double_t y_BC = y0_BC + zTPC*v0_BC;
+     	if(fabs(x_BC - x)<60.&&de>300.){
+     	  HF1(PosYPadHid + layer*1000+ row,  y - y_BC);
+     	}
+     }
      
       ++nh_Tpc;
     }
@@ -440,7 +440,7 @@ dst::DstRead( int ievent )
 	    HF1(PosXHid + histnum, x_BC - x);
 	  if(fabs(x_BC - x)<60.){
 	    HF1(PosYHid + histnum, y_BC - y);
-	    HF1(PosYPadHid + layer*1000+ row,  pos_center.Y() - y_BC);
+	    //	    HF1(PosYPadHid + layer*1000+ row,  pos_center.Y() - y_BC);
 	  }
 	  if(fabs(y_BC - y)<60.&&fabs(x_BC - x)<60.)
 	    HF1(100 + layer, de);

@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
+#include <TLorentzVector.h>
 
 #include <filesystem_util.hh>
 #include <UnpackerManager.hh>
@@ -112,7 +113,8 @@ struct Event
   std::vector<Int_t> charge;//Helix charge
   std::vector<Double_t> path;//Helix path
 
-  // not yet prepared
+  // under dev
+  std::vector<Int_t> combi_id; //track number of combi
   std::vector<Double_t> mom_vtx;//Helix momentum at vtx
   std::vector<Double_t> mom_vty;//Helix momentum at vtx
   std::vector<Double_t> mom_vtz;//Helix momentum at vtx
@@ -121,7 +123,9 @@ struct Event
   std::vector<Double_t> vtz;
   std::vector<Double_t> closeDist;
 
-
+  
+  std::vector<Double_t> M_Lambda;
+  std::vector<Double_t> Mom_Lambda;
 
 
   std::vector<std::vector<Double_t>> hitlayer;
@@ -181,6 +185,7 @@ struct Event
     charge.clear();
     path.clear();
 
+    combi_id.clear();
     mom_vtx.clear();
     mom_vty.clear();
     mom_vtz.clear();
@@ -188,6 +193,9 @@ struct Event
     vty.clear();
     vtz.clear();
     closeDist.clear();
+
+    M_Lambda.clear();
+    Mom_Lambda.clear();
 
     hitlayer.clear();
     hitpos_x.clear();
@@ -314,6 +322,11 @@ dst::DstRead( int ievent )
   }
   GetEntry(ievent);
 
+  static const auto KaonMass    = pdg::KaonMass();
+  static const auto PionMass    = pdg::PionMass();
+  static const auto ProtonMass  = pdg::ProtonMass();
+
+
   event.runnum = **src.runnum;
   event.evnum = **src.evnum;
   event.trigpat = **src.trigpat;
@@ -425,7 +438,8 @@ dst::DstRead( int ievent )
   event.charge.resize( ntTpc );
   event.path.resize( ntTpc );
 
-  // not yet prepared
+  // under dev
+  event.combi_id.resize( ntTpc );
   event.mom_vtx.resize( ntTpc );
   event.mom_vty.resize( ntTpc );
   event.mom_vtz.resize( ntTpc );
@@ -464,10 +478,10 @@ dst::DstRead( int ievent )
     event.helix_z0[it] = helix_z0;
     event.helix_r[it] = helix_r ;
     event.helix_dz[it] = helix_dz;
-    event.mom0_x[it] = Mom0.x();
-    event.mom0_y[it] = Mom0.y();
-    event.mom0_z[it] = Mom0.z();
-    event.mom0[it] = Mom0.Mag();
+    event.mom0_x[it] = Mom0.x()*0.001;;
+    event.mom0_y[it] = Mom0.y()*0.001;;
+    event.mom0_z[it] = Mom0.z()*0.001;;
+    event.mom0[it] = Mom0.Mag()*0.001;;
 
     event.hitlayer[it].resize( nh );
     event.hitpos_x[it].resize( nh );
@@ -481,12 +495,42 @@ dst::DstRead( int ievent )
     event.residual_y[it].resize( nh );
     event.residual_z[it].resize( nh );
     event.helix_t[it].resize( nh );
+    
+    double min_closeDist = 1000000.;
+    for( Int_t it2=0; it2<ntTpc; ++it2 ){
+      if(it==it2)
+	continue;
+      TPCLocalTrack_Helix *tp2 = DCAna.GetTrackTPC_Helix( it2 );
+      if( !tp2 ) continue;
+      Double_t helix_cx2=tp2->Getcx(), helix_cy2=tp2->Getcy();
+      Double_t helix_z02=tp2->Getz0(), helix_r2=tp2->Getr();
+      Double_t helix_dz2 = tp2->Getdz();
 
+      double par1[5]={helix_cx, helix_cy, helix_z0, 
+		      helix_r, helix_dz};
+      double par2[5]={helix_cx2, helix_cy2, helix_z02, 
+		      helix_r2, helix_dz2};
+      double closeDist, t1, t2;
+      TVector3 vert = Kinematics::VertexPoint_Helix(par1, par2, 
+						    closeDist, t1, t2);
+      if(closeDist<min_closeDist){
+	event.combi_id[it] = it2;
+	event.vtx[it] = vert.x();
+	event.vty[it] = vert.y();
+	event.vtz[it] = vert.z();
+	event.closeDist[it] = closeDist;
+	TVector3 mom_vtx = tp->CalcHelixMom(par1, vert.y());
+	event.mom_vtx[it] = mom_vtx.x()*0.001;;
+	event.mom_vty[it] = mom_vtx.y()*0.001;;
+	event.mom_vtz[it] = mom_vtx.z()*0.001;;
+	event.closeDist[it] = closeDist;
+      }
+    }
+    
     double min_t = 10000.;
     double max_t = -10000.;
     double min_layer_t=0., max_layer_t=0.;
     double de=0., path_dEdx=0.;
-
 
     for( int ih=0; ih<nh; ++ih ){
       TPCLTrackHit *hit = tp->GetHit( ih );
@@ -533,6 +577,34 @@ dst::DstRead( int ievent )
     event.dEdx[it] = de/path_dEdx;
   }
 
+  // rough estimation for Lambda event
+  if(ntTpc>1){
+    for( Int_t it=0; it<ntTpc-1; ++it ){
+      for( Int_t it2=it+1; it2<ntTpc; ++it2 ){
+	if(event.combi_id[it]==it2&&event.combi_id[it2]==it
+	   &&event.charge[it]==-1*event.charge[it2]){
+	  if(event.charge[it]==1){
+	    TVector3 momp(event.mom_vtx[it], event.mom_vty[it], event.mom_vtz[it]);
+	    TLorentzVector Lp(momp, std::sqrt(ProtonMass*ProtonMass+momp.Mag2()));
+	    TVector3 mompi(event.mom_vtx[it2], event.mom_vty[it2], event.mom_vtz[it2]);
+	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
+	    TLorentzVector LLambda = Lp + Lpi;
+	    event.M_Lambda.push_back(LLambda.M());
+	    event.Mom_Lambda.push_back(LLambda.P());
+	  }
+	  else{
+	    TVector3 momp(event.mom_vtx[it2], event.mom_vty[it2], event.mom_vtz[it2]);
+	    TLorentzVector Lp(momp, std::sqrt(ProtonMass*ProtonMass+momp.Mag2()));
+	    TVector3 mompi(event.mom_vtx[it], event.mom_vty[it], event.mom_vtz[it]);
+	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
+	    TLorentzVector LLambda = Lp + Lpi;
+	    event.M_Lambda.push_back(LLambda.M());
+	    event.Mom_Lambda.push_back(LLambda.P());
+	  }
+	}
+      }
+    }
+  }
   HF1( 1, event.status++ );
 
   return true;
@@ -608,6 +680,18 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dEdx", &event.dEdx );
   tree->Branch( "charge", &event.charge );
   tree->Branch( "path", &event.path );
+
+  tree->Branch( "combi_id", &event.combi_id );
+  tree->Branch( "mom_vtx", &event.mom_vtx );
+  tree->Branch( "mom_vty", &event.mom_vty );
+  tree->Branch( "mom_vtz", &event.mom_vtz );
+  tree->Branch( "vtx", &event.vtx );
+  tree->Branch( "vty", &event.vty );
+  tree->Branch( "vtz", &event.vtz );
+  tree->Branch( "closeDist", &event.closeDist );
+  tree->Branch( "M_Lambda", &event.M_Lambda );
+  tree->Branch( "Mom_Lambda", &event.Mom_Lambda );
+
   tree->Branch( "hitlayer", &event.hitlayer );
   tree->Branch( "hitpos_x", &event.hitpos_x );
   tree->Branch( "hitpos_y", &event.hitpos_y );

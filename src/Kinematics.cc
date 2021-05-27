@@ -211,7 +211,7 @@ VertexPointTF2(const TVector3& Xin, const TVector3& Xout,
 //_____________________________________________________________________________
 TVector3
 VertexPoint_Helix(const Double_t par1[5], const Double_t par2[5],
-                  Double_t& dist)
+                  Double_t& dist, Double_t& t1, Double_t& t2)
 {
   //helix function 1
   //x = [0] + [3]*cos(t);
@@ -225,7 +225,7 @@ VertexPoint_Helix(const Double_t par1[5], const Double_t par2[5],
 
   static TF2 fvert_helix("fvert_helix",
                          "pow(([0]+[3]*cos(x))-([5]+[8]*cos(y)),2)+pow(([1]+[3]*sin(x))-([6]+[8]*sin(y)),2)+pow(([2]+[3]*[4]*x)-([7]+[8]*[9]*y),2)",
-                         -1000.,1000.,-1000.,1000.);
+                         -10.,10.,-10.,10.);
 
   fvert_helix.SetParameter(0, par1[0]);
   fvert_helix.SetParameter(1, par1[1]);
@@ -240,6 +240,8 @@ VertexPoint_Helix(const Double_t par1[5], const Double_t par2[5],
 
   Double_t close_zin, close_zout;
   fvert_helix.GetMinimumXY(close_zin, close_zout);
+  t1 = close_zin;
+  t2 = close_zout;
   dist = TMath::Sqrt(fvert_helix.GetMinimum());
 
   Double_t vertx = (par1[0]+par1[3]*cos(close_zin) + par2[0]+par2[3]*cos(close_zout))/2.;

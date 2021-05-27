@@ -611,7 +611,7 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
 	Double_t dist = fabs(p1[tracki]*pos.Z()-pos.Y()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
 
 	if(dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
-	  if(min_y<y_tgt&&y_tgt<max_y)
+	  if(min_y<y_tgt&&y_tgt<max_y&&fabs(p1[tracki])<0.015)
 	    ValidCand[layer].push_back(hit);
 	  else
 	    DeleteCand[layer].push_back(hit);
