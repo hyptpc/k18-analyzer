@@ -67,7 +67,7 @@ class BJobManager(metaclass=classimpl.Singleton):
   #______________________________________________________________________________
   def update_job_status(self):
     ''' Update job status. '''
-    cmd = 'bjobs'
+    cmd = 'bjobs -a'
     proc = None
     try:
       proc = subprocess.run(shlex.split(cmd),
