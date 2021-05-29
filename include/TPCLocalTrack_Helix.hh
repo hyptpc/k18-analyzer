@@ -76,6 +76,7 @@ public:
   bool         IsFitted( void ) const { return m_is_fitted; }
   bool         IsCalculated( void ) const { return m_is_calculated; }
   bool         Residual_check( TVector3 pos, TVector3 Res);
+  double       GetTcal( TVector3 pos);
   void         CalcChi2( void);
 
   void SetAcx( double Acx ) { m_Acx = Acx; }
