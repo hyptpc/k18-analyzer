@@ -70,6 +70,7 @@ private:
   TH1*                       m_tpc_tdc;
   TH2Poly*                   m_tpc_adc2d;
   TH2Poly*                   m_tpc_tdc2d;
+  TH2Poly*                   m_htof_2d;
   TPGON*                     m_tpc_pgon;
   TNode*                     m_tpc_node;
   TPolyMarker3D*             m_tpc_mark3d;
@@ -79,6 +80,7 @@ public:
   void   EndOfEvent(void);
   void   FillTPCADC(Int_t layer, Int_t row, Double_t adc);
   void   FillTPCTDC(Int_t layer, Int_t row, Double_t tdc);
+  void   FillHTOF(Int_t seg);
   Int_t  GetCommand(void) const;
   Bool_t Initialize(void);
   Bool_t IsReady(void) const { return m_is_ready; }

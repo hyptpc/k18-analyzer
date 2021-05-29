@@ -5,12 +5,14 @@
 #include <iostream>
 
 #include <TMath.h>
+#include <TSystem.h>
 
 #include "ConfMan.hh"
 #include "DCAnalyzer.hh"
 #include "DCGeomMan.hh"
 #include "DetectorID.hh"
 #include "EventDisplayShs.hh"
+#include "HodoRawHit.hh"
 #include "RawData.hh"
 #include "RootHelper.hh"
 #include "TPCHit.hh"
@@ -91,8 +93,36 @@ UserEventDisplayShs::ProcessingBegin()
 Bool_t
 UserEventDisplayShs::ProcessingNormal()
 {
+  static const auto MinTdcHTOF = gUser.GetParameter("TdcHTOF", 0);
+  static const auto MaxTdcHTOF = gUser.GetParameter("TdcHTOF", 1);
+
   // const Int_t run_number = gUnpacker.get_root()->get_run_number();
   // const Int_t event_number = gUnpacker.get_event_number();
+
+  rawData->DecodeHits();
+
+  //________________________________________________________
+  //___ HTOFRawHit
+  for(const auto& hit: rawData->GetHTOFRawHC()){
+    if(!hit) continue;
+    Int_t seg = hit->SegmentId();
+    Bool_t is_hit_u = false;
+    for(const auto& tdc: hit->GetArrayTdc1()){
+      if(MinTdcHTOF < tdc && tdc < MaxTdcHTOF) is_hit_u = true;
+    }
+    Bool_t is_hit_d = false;
+    for(const auto& tdc: hit->GetArrayTdc2()){
+      if(MinTdcHTOF < tdc && tdc < MaxTdcHTOF) is_hit_d = true;
+    }
+    if(is_hit_u && is_hit_d){
+      Int_t binid = 0;
+      if(seg == 0) binid=1;
+      else if(seg == 1 || seg == 2) binid = 2;
+      else if(seg == 3 || seg == 4) binid = 3;
+      else binid = seg-1;
+      gEvDisp.FillHTOF(binid);
+    }
+  }
 
   rawData->DecodeTPCHits();
 
@@ -116,11 +146,12 @@ UserEventDisplayShs::ProcessingNormal()
       pos.SetY((loc_max - 76.75)*80.0*0.05);
       gEvDisp.FillTPCADC(layer, row, max_adc - mean);
       gEvDisp.FillTPCTDC(layer, row, loc_max);
-      gEvDisp.SetTPCMarker(pos);
+      // gEvDisp.SetTPCMarker(pos);
     }
   }
 
   gEvDisp.Update();
+  gSystem->Sleep(3000);
   return true;
 }
 

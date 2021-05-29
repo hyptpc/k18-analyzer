@@ -99,6 +99,7 @@ EventDisplayShs::EventDisplayShs( void )
     m_tpc_tdc(nullptr),
     m_tpc_adc2d(nullptr),
     m_tpc_tdc2d(nullptr),
+    m_htof_2d(nullptr),
     m_tpc_pgon(nullptr)
 {
 }
@@ -112,7 +113,7 @@ EventDisplayShs::~EventDisplayShs( void )
 void
 EventDisplayShs::EndOfEvent( void )
 {
-  m_tpc_mark3d->SetPolyMarker(0, (Double_t*)nullptr, 0);
+  // m_tpc_mark3d->SetPolyMarker(0, (Double_t*)nullptr, 0);
   // if( m_tpc_mark3d ) delete m_tpc_mark3d;
 }
 
@@ -132,6 +133,13 @@ EventDisplayShs::FillTPCTDC(Int_t layer, Int_t row, Double_t tdc)
   Int_t pad = tpc::GetPadId(layer, row);
   m_tpc_tdc->Fill(tdc);
   m_tpc_tdc2d->SetBinContent(pad + 1, tdc);
+}
+
+//_____________________________________________________________________________
+void
+EventDisplayShs::FillHTOF(Int_t segment)
+{
+  m_htof_2d->SetBinContent(segment, 1);
 }
 
 //_____________________________________________________________________________
@@ -155,12 +163,13 @@ EventDisplayShs::Initialize( void )
   m_tpc_adc = new TH1D("h_tpc_adc", "TPC ADC", 4096, 0, 4096);
   m_tpc_tdc = new TH1D("h_tpc_adc", "TPC TDC",
                        NumOfTimeBucket, 0, NumOfTimeBucket);
-  const Double_t MinX = -300.;
-  const Double_t MaxX =  300.;
-  const Double_t MinZ = -300.;
-  const Double_t MaxZ =  300.;
+  const Double_t MinX = -400.;
+  const Double_t MaxX =  400.;
+  const Double_t MinZ = -400.;
+  const Double_t MaxZ =  400.;
   m_tpc_adc2d = new TH2Poly("h_tpc_adc2d", "TPC ADC;Z;X", MinZ, MaxZ, MinX, MaxX);
   m_tpc_tdc2d = new TH2Poly("h_tpc_tdc2d", "TPC TDC;Z;X", MinZ, MaxZ, MinX, MaxX);
+  m_htof_2d = new TH2Poly("h_htof_2d", "HTOF;Z;X", MinZ, MaxZ, MinX, MaxX);
 
   Double_t X[5];
   Double_t Y[5];
@@ -188,38 +197,72 @@ EventDisplayShs::Initialize( void )
       m_tpc_tdc2d->AddBin(5, X, Y);
     }
   }
-
+  {
+    const Double_t L = 337;
+    const Double_t t = 10;
+    const Double_t w = 68;
+    Double_t theta[8];
+    Double_t X[5];
+    Double_t Y[5];
+    Double_t seg_X[5];
+    Double_t seg_Y[5];
+    for( Int_t i=0; i<8; i++ ){
+      theta[i] = (-180+45*i)*acos(-1)/180.;
+      for( Int_t j=0; j<4; j++ ){
+	seg_X[1] = L-t/2.;
+	seg_X[2] = L+t/2.;
+	seg_X[3] = L+t/2.;
+	seg_X[4] = L-t/2.;
+	seg_X[0] = seg_X[4];
+	seg_Y[1] = w*j-2*w;
+	seg_Y[2] = w*j-2*w;
+	seg_Y[3] = w*j-1*w;
+	seg_Y[4] = w*j-1*w;
+	seg_Y[0] = seg_Y[4];
+	for( Int_t k=0; k<5; k++ ){
+	  X[k] = cos(theta[i])*seg_X[k]-sin(theta[i])*seg_Y[k];
+	  Y[k] = sin(theta[i])*seg_X[k]+cos(theta[i])*seg_Y[k];
+	}
+	m_htof_2d->AddBin(5, X, Y);
+      }
+    }
+  }
   m_tpc_adc2d->SetStats(0);
   m_tpc_tdc2d->SetStats(0);
+  m_htof_2d->SetStats(0);
+  m_tpc_adc2d->SetMaximum(4000);
+  m_tpc_tdc2d->SetMaximum(200);
 
   m_canvas->Divide(2, 2);
-  m_canvas->cd(1);
+  m_canvas->cd(1)->SetLogz();
   m_tpc_adc2d->Draw("colz");
+  m_htof_2d->Draw("same col");
   m_canvas->cd(2);
   m_tpc_tdc2d->Draw("colz");
+  m_htof_2d->Draw("same col");
   m_canvas->cd(3);
 
-  // m_tpc_adc->Draw("colz");
-  // m_canvas->cd(4);
-  // m_tpc_tdc->Draw("colz");
+  m_tpc_adc->Draw("colz");
+  m_canvas->cd(4);
+  m_tpc_tdc->Draw("colz");
 
-  m_tpc_pgon = new TPGON("TPC_PGON", "TPC_PGON", "void",
-                         22.5, 360, 8, 2);
-  const Double_t r = 250./TMath::Cos(TMath::DegToRad()*360/8/2);
-  m_tpc_pgon->DefineSection(0, -300, r, r);
-  m_tpc_pgon->DefineSection(1,  300, r, r);
-  m_tpc_pgon->SetFillColorAlpha(kWhite, 0);
-  m_tpc_pgon->SetLineColor(kGray);
-  m_tpc_node = new TNode("NODE1", "NODE1", "TPC_PGON", 0, 500, 500);
-  m_tpc_node->cd();
-  m_tpc_node->Draw("gl");
+  // m_tpc_pgon = new TPGON("TPC_PGON", "TPC_PGON", "void",
+  //                        22.5, 360, 8, 2);
+  // const Double_t r = 250./TMath::Cos(TMath::DegToRad()*360/8/2);
+  // m_tpc_pgon->DefineSection(0, -300, r, r);
+  // m_tpc_pgon->DefineSection(1,  300, r, r);
+  // m_tpc_pgon->SetFillColorAlpha(kWhite, 0);
+  // m_tpc_pgon->SetLineColor(kGray);
+  // m_tpc_node = new TNode("NODE1", "NODE1", "TPC_PGON", 0, 500, 500);
+  // m_tpc_node->cd();
+  // m_tpc_node->Draw("gl");
 
-  m_tpc_node->cd();
-  m_tpc_mark3d = new TPolyMarker3D;
-  m_tpc_mark3d->SetMarkerSize(10);
-  m_tpc_mark3d->SetMarkerColor(kRed+1);
-  m_tpc_mark3d->SetMarkerStyle(6);
-  m_tpc_mark3d->Draw();
+  // m_tpc_node->cd();
+  // m_tpc_mark3d = new TPolyMarker3D;
+  // m_tpc_mark3d->SetMarkerSize(10);
+  // m_tpc_mark3d->SetMarkerColor(kRed+1);
+  // m_tpc_mark3d->SetMarkerStyle(6);
+  // m_tpc_mark3d->Draw();
   // gPad->GetView()->SetAutoRange();
   // gPad->GetView()->SetRange(-250,-250,-350,250,250,350);
   // Int_t irep = 0;
@@ -238,6 +281,7 @@ EventDisplayShs::Reset( void )
 {
   m_tpc_adc2d->Reset("");
   m_tpc_tdc2d->Reset("");
+  m_htof_2d->Reset("");
 }
 
 //_____________________________________________________________________________
@@ -328,6 +372,7 @@ EventDisplayShs::Update(void)
     auto canvas = dynamic_cast<TCanvas*>(canvas_iterator.Next());
     if (!canvas) break;
     canvas->UseCurrentStyle();
+    canvas->cd(1)->SetLogz();
     canvas->Modified();
     canvas->Update();
   }
