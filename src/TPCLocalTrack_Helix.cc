@@ -72,7 +72,8 @@ namespace
   static const double  UpLimit2[5] = { 200., acos(-1), 7000., 20000., 10. };
 
   static const double  MaxChisqr = 500.;
-  static const int  MaxTryMinuit = 3;
+  //  static const int  MaxTryMinuit = 3;
+  static const int  MaxTryMinuit = 0;
 
   const int    theta_ndiv = 360;
   const double theta_min  =   0;
@@ -599,6 +600,9 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
 
   arglist[0] = 1000;
   arglist[1] = 0.1;
+
+  arglist[0] = arglist[0]*5*5*5;
+  arglist[1] = arglist[1]/(10.*10.*10.);
   int itry=0;
   int Err;
   double bnd1, bnd2;
