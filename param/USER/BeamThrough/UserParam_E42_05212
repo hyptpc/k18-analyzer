@@ -138,6 +138,7 @@ ClusterYCut 3
 HoughWindowCut 10
 TPCClusterSizeCut 1
 TPCMaxLayerCut 29
+DECut_TPCTrack 100
 
 ### TPC resolution parameter
 ### at 1T
