@@ -57,7 +57,7 @@ namespace
   const double& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
 
 
-  const int ReservedNumOfHits  = 64;
+  const int ReservedNumOfHits  = 32*4;
   const HodoParamMan& gHodo = HodoParamMan::GetInstance();
 
   //cx, cy, z0, r, dz
@@ -500,7 +500,9 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
     return false;
   }
 
-
+  if(n>ReservedNumOfHits)
+    return false;
+  
   gNumOfHits = n;
   // r = x * cos(theta) + y * sin(theta)
   // static TH2D hist("hist",";theta (deg.); r (mm)",
