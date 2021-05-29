@@ -665,7 +665,7 @@ class SingleRun(object):
     if self.__merge_status != 'RUNNING':
       return
     stat = self.__merging_job.get_status()
-    if stat == 'PEND' or stat == 'RUN':
+    if stat == 'INIT' or stat == 'PEND' or stat == 'RUN':
       return
     elif stat == 'DONE':
       self.__merge_status = 'DONE'

@@ -162,6 +162,7 @@ class RunManager(metaclass=classimpl.Singleton):
     bjob_man = bjobmanager.BJobManager()
     bjob_man.start()
     while sum(self.__is_done) != self.__nruns:
+      logger.debug('running')
       self.__single_cycle()
       dtime = RUN_PERIOD - (time.time() - ptime)
       if dtime > 0:

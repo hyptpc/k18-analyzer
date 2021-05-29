@@ -57,8 +57,9 @@ class BJobManager(metaclass=classimpl.Singleton):
     if (self.__updater_status == 'RUNNING'
         and job_id in self.__status_list
         and len(self.__status_list[job_id]) == 2):
+      logger.debug(f'jobid = {self.__status_list[job_id][0]}')
       return self.__status_list[job_id][0]
-    return 'UNKNOWN'
+    return 'INIT'
 
   #____________________________________________________________________________
   def isrunning(self):
@@ -88,6 +89,7 @@ class BJobManager(metaclass=classimpl.Singleton):
         continue
       job_id = int(columns[0])
       self.__status_list[job_id] = columns[2:4]
+    logger.debug('update bjob status')
 
   #____________________________________________________________________________
   def run(self):
