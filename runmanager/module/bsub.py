@@ -19,7 +19,7 @@ logger = logging.getLogger('__main__').getChild(__name__)
 rsrc = resource.RLIMIT_NPROC
 soft, hard = resource.getrlimit(rsrc)
 resource.setrlimit(rsrc, (hard, hard))
-MAX_NPROC = hard
+MAX_NPROC = 100 #hard
 rsrc = resource.RLIMIT_NOFILE
 soft, hard = resource.getrlimit(rsrc)
 resource.setrlimit(rsrc, (hard, hard))
@@ -89,6 +89,7 @@ class BSub(object):
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
     self.__pid = self.__proc.pid
+    logger.debug(f'submit <pid={self.__pid}>')
     self.__process_status = 'RUNNING'
     # self.__status   = 0
 
