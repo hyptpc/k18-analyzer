@@ -530,6 +530,7 @@ dst::DstRead( int ievent )
     double min_t = 10000.;
     double max_t = -10000.;
     double min_layer_t=0., max_layer_t=0.;
+    double max_layer_y=0.;
     double de=0., path_dEdx=0.;
 
     for( int ih=0; ih<nh; ++ih ){
@@ -570,7 +571,10 @@ dst::DstRead( int ievent )
       event.charge[it] = 1;
     else
       event.charge[it] = -1;
-    double pathlen = (max_t - min_t)*sqrt(helix_r*helix_r*(1.+helix_dz*helix_dz));
+    Double_t pathlen = (max_t - min_t)*sqrt(helix_r*helix_r*(1.+helix_dz*helix_dz));
+    Int_t htofseg = tp->GetHTOFSeg(min_layer_t, max_layer_t, max_layer_y);
+    
+    
     //std::cout<<"min_t="<<min_t<<", max_t="<<max_t<<", helix_r="<<helix_r<<", path="<<pathlen<<std::endl;
     event.path[it] = pathlen;
     event.dE[it] = de;

@@ -535,9 +535,12 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
   const Int_t    Li_theta_ndiv = 200;
   const Double_t Li_theta_min  =   0;
   const Double_t Li_theta_max  = 180;
-  const Int_t    Li_r_ndiv =  200;
-  const Double_t Li_r_min  = -600;
-  const Double_t Li_r_max  =  600;
+  // const Int_t    Li_r_ndiv =  200;
+  // const Double_t Li_r_min  = -600;
+  // const Double_t Li_r_max  =  600;
+  const Int_t    Li_r_ndiv =  400;
+  const Double_t Li_r_min  = -900;
+  const Double_t Li_r_max  =  900;
 
   static const Int_t ClusterSizeCut = gUser.GetParameter("TPCClusterSizeCut");
 

@@ -29,6 +29,7 @@
 #include "HodoParamMan.hh"
 #include "UserParamMan.hh"
 #include "TMinuit.h"
+#include "TF2.h"
 
 #include "TMath.h"
 #include "TROOT.h"
@@ -39,8 +40,10 @@
 namespace
 {
   static int gNumOfHits;
-  static TVector3 gHitPos[1000];
-  static TVector3 gRes[1000];
+  // static TVector3 gHitPos[1000];
+  // static TVector3 gRes[1000];
+  static std::vector<TVector3> gHitPos;
+  static std::vector<TVector3> gRes;
   const std::string& class_name("TPCLocalTrack_Helix");
   const UserParamMan& gUser = UserParamMan::GetInstance();
   const DCGeomMan& gGeom = DCGeomMan::GetInstance();
@@ -48,6 +51,7 @@ namespace
   const double& zTgt    = gGeom.LocalZ("Target");
   // Temporary
   const double& zTgtTPC    = -143.;
+  const double& r_HTOF    = 337.;
   const double& HS_field_0 = 0.9860;
   const double& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
   const double& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
@@ -207,6 +211,77 @@ TPCLocalTrack_Helix::CalcHelixMom(double par[5], double y) const
 
   return TVector3(px,py,pz);
 
+}
+
+
+//______________________________________________________________________________
+int
+TPCLocalTrack_Helix::GetHTOFSeg(double min_layer_t, double max_layer_t, double max_layer_y){
+
+  //circle function 1 (tracking)
+  //x = [0] + [2]*cos(t);
+  //y = [1] + [2]*sin(t);
+
+  //circle function 2 (HTOF position)
+  //x = [3] + [5]*cos(t);
+  //y = [4] + [5]*sin(t);
+  
+  double min_t=0., max_t=0.;
+  if(min_layer_t<max_layer_t){
+    min_t = min_layer_t;
+    max_t = max_layer_t + 0.5;
+  }
+
+  else{
+    min_t = max_layer_t-0.5;
+    max_t = min_layer_t;
+  }
+  
+  static TF2 fhtof("fhtof",
+		   "pow(([0]+[2]*cos(x))-([3]+[5]*cos(y)),2)+pow(([1]+[2]*sin(x))-([4]+[5]*sin(y)),2)",
+		   min_t, max_t, 0., 2.*acos(-1.));
+  fhtof.SetParameter(0, m_cx);
+  fhtof.SetParameter(1, m_cy);
+  fhtof.SetParameter(2, m_r);
+  fhtof.SetParameter(3, 0.);
+  fhtof.SetParameter(4, -1.*zTgtTPC);
+  fhtof.SetParameter(5, r_HTOF);
+  double close_t1, close_t2;
+  fhtof.GetMinimumXY(close_t1, close_t2);
+  double seg_deg = 2.*acos(-1.)/32.;
+  int htofseg =0;
+  if(close_t2<22.*seg_deg){
+    for(int ihtof =0; ihtof<22; ++ihtof){
+      if((double)ihtof*seg_deg<close_t2&&
+	 (double)(ihtof+1)*seg_deg>close_t2)
+	htofseg = ihtof+12;
+    }
+  }
+  else if(22.*seg_deg<close_t2&&
+	  23.*seg_deg>close_t2)
+    htofseg = 0;
+  else if(23.*seg_deg<close_t2&&
+	  24.*seg_deg>close_t2){
+    if(max_layer_y >0.)
+      htofseg = 1;
+    else
+      htofseg = 2;
+  }
+  else if(24.*seg_deg<close_t2&&
+	  25.*seg_deg>close_t2){
+    if(max_layer_y >0.)
+      htofseg = 3;
+    else
+      htofseg = 4;
+  }
+  else{
+    for(int ihtof =25; ihtof<32; ++ihtof){
+      if((double)ihtof*seg_deg<close_t2&&
+	 (double)(ihtof+1)*seg_deg>close_t2)
+	htofseg = ihtof-20;
+    }
+  }
+  return htofseg;
 }
 
 
@@ -441,8 +516,11 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp->GetLocalHitPos();
     TVector3 Res = hitp->GetResolutionVect();
-    gHitPos[i] =pos;
-    gRes[i] = Res;
+    // gHitPos[i] =pos;
+    // gRes[i] = Res;
+    gHitPos.push_back(pos);
+    gRes.push_back(Res);
+
 
     for( int ti=0; ti<theta_ndiv; ti++ ){
       double theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
