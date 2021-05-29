@@ -511,8 +511,9 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
 			theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
   //hist.Reset();
   //hough translation for ini-param of Adz and AtanL
-
-
+  gHitPos.clear();
+  gRes.clear();
+  
   for( std::size_t i=0; i<n; ++i ){
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp->GetLocalHitPos();
@@ -522,7 +523,7 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
     gHitPos.push_back(pos);
     gRes.push_back(Res);
 
-
+    
     for( int ti=0; ti<theta_ndiv; ti++ ){
       double theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
       double tmpx = -pos.X();
