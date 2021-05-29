@@ -1995,6 +1995,7 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
 {
   static const Double_t HoughWindowCut = gUser.GetParameter("HoughWindowCut");
   static const Double_t MaxLayerCut = gUser.GetParameter("TPCMaxLayerCut");
+  static const Double_t DECut_TPCTrack = gUser.GetParameter("DECut_TPCTrack");
   Bool_t status = true;
 
   //    if(valueHall) { // TODO
@@ -2149,13 +2150,13 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
         TVector3 pos = hit->GetPos();
         Double_t x = -pos.x();
         Double_t y = pos.z()-zTgtTPC;
-
+	Double_t de = hit->GetCharge();
         // Double_t xcenter1 = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
         // Double_t ycenter1 = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);
         Double_t r_cal = sqrt(pow(x-hough_cx,2) + pow(y-hough_cy,2));
 
         Double_t dist = fabs(r_cal - hough_r);
-        if(dist < HoughWindowCut && layer < MaxLayerCut){
+        if(dist < HoughWindowCut && layer < MaxLayerCut && de>DECut_TPCTrack){
           track->AddTPCHit(new TPCLTrackHit(hit));
           flag[layer][ci]++;
         }

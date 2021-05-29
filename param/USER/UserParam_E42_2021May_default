@@ -117,7 +117,8 @@ MinLayerBcOutSdcIn 22
 ### TPCHit
 TPC_Subtraction		0
 TPC_Multi		1000
-MinDeTPC		40
+#MinDeTPC		40
+MinDeTPC		60
 MinRmsTPC		10
 TimeBucketTPC		10 140
 #temporary (ch) -> should be ns unit
@@ -133,6 +134,7 @@ ClusterYCut 3
 HoughWindowCut 10
 TPCClusterSizeCut 1
 TPCMaxLayerCut 30
+DECut_TPCTrack 100
 
 ### TPC resolution parameter
 ### at 1T

@@ -208,11 +208,11 @@ TPCHit::DoFit()
   }
 
 #if DebugEvDisp
-  gStyle->SetOptStat(1110);
-  gStyle->SetOptFit(1);
+  //  gStyle->SetOptStat(1110);
+  //gStyle->SetOptFit(1);
   gStyle->SetStatX(0.9);
   gStyle->SetStatY(0.9);
-  //gStyle->SetOptStat(0);
+  gStyle->SetOptStat(0);
   Option_t* option = "";
 #else
   Option_t* option = "Q";
