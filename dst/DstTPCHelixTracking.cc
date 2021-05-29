@@ -478,10 +478,10 @@ dst::DstRead( int ievent )
     event.helix_z0[it] = helix_z0;
     event.helix_r[it] = helix_r ;
     event.helix_dz[it] = helix_dz;
-    event.mom0_x[it] = Mom0.x()*0.001;;
-    event.mom0_y[it] = Mom0.y()*0.001;;
-    event.mom0_z[it] = Mom0.z()*0.001;;
-    event.mom0[it] = Mom0.Mag()*0.001;;
+    event.mom0_x[it] = Mom0.x();;
+    event.mom0_y[it] = Mom0.y();;
+    event.mom0_z[it] = Mom0.z();;
+    event.mom0[it] = Mom0.Mag();;
 
     event.hitlayer[it].resize( nh );
     event.hitpos_x[it].resize( nh );
@@ -520,9 +520,9 @@ dst::DstRead( int ievent )
 	event.vtz[it] = vert.z();
 	event.closeDist[it] = closeDist;
 	TVector3 mom_vtx = tp->CalcHelixMom(par1, vert.y());
-	event.mom_vtx[it] = mom_vtx.x()*0.001;;
-	event.mom_vty[it] = mom_vtx.y()*0.001;;
-	event.mom_vtz[it] = mom_vtx.z()*0.001;;
+	event.mom_vtx[it] = mom_vtx.x();
+	event.mom_vty[it] = mom_vtx.y();
+	event.mom_vtz[it] = mom_vtx.z();
 	event.closeDist[it] = closeDist;
       }
     }

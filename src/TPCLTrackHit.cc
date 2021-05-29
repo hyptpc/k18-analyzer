@@ -194,9 +194,9 @@ TPCLTrackHit::GetMomentum_Helix( void ) const
   double tmp_px = pt*(-1.*sin(t));
   double tmp_py = pt*(cos(t));
   double tmp_pz = pt*(m_dz);
-  double px = -tmp_px;
-  double py = tmp_pz;
-  double pz = tmp_py;
+  double px = -tmp_px*0.001;
+  double py = tmp_pz*0.001;
+  double pz = tmp_py*0.001;
 
   return TVector3(px,py,pz);
 }

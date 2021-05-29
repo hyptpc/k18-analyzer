@@ -200,9 +200,9 @@ TPCLocalTrack_Helix::CalcHelixMom(double par[5], double y) const
   double tmp_px = pt*(-1.*sin(t));
   double tmp_py = pt*(cos(t));
   double tmp_pz = pt*(par[4]);
-  double px = -tmp_px;
-  double py = tmp_pz;
-  double pz = tmp_py;
+  double px = -tmp_px*0.001;
+  double py = tmp_pz*0.001;
+  double pz = tmp_py*0.001;
 
 
   return TVector3(px,py,pz);

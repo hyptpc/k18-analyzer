@@ -25,6 +25,7 @@ const Double_t TARGETsizeZ   = 15.0/2.0;
 const Double_t TARGETradius  = 67.3/2.0;
 const Double_t TARGETcenterX = 0.0;
 const Double_t TARGETcenterY = 0.0;
+const double zTgtTPC = -143.;
 }
 
 //_____________________________________________________________________________
@@ -204,6 +205,7 @@ VertexPointTF2(const TVector3& Xin, const TVector3& Xout,
   Double_t vertx = ((x0in+u0in*close_zin)+(x0out+u0out*close_zout))/2.;
   Double_t verty = ((y0in+v0in*close_zin)+(y0out+v0out*close_zout))/2.;
   Double_t vertz = (close_zin+close_zout)/2.;
+
   return TVector3(vertx, verty, vertz);
 }
 
@@ -244,9 +246,15 @@ VertexPoint_Helix(const Double_t par1[5], const Double_t par2[5],
   t2 = close_zout;
   dist = TMath::Sqrt(fvert_helix.GetMinimum());
 
-  Double_t vertx = (par1[0]+par1[3]*cos(close_zin) + par2[0]+par2[3]*cos(close_zout))/2.;
-  Double_t verty = (par1[1]+par1[3]*sin(close_zin) + par2[1]+par2[3]*sin(close_zout))/2.;
-  Double_t vertz = (par1[2]+par1[3]*par1[4]*close_zin + par2[2]+par2[3]*par2[4]*close_zout)/2.;
+  Double_t vx = (par1[0]+par1[3]*cos(close_zin) + par2[0]+par2[3]*cos(close_zout))/2.;
+  Double_t vy = (par1[1]+par1[3]*sin(close_zin) + par2[1]+par2[3]*sin(close_zout))/2.;
+  Double_t vz = (par1[2]+par1[3]*par1[4]*close_zin + par2[2]+par2[3]*par2[4]*close_zout)/2.;
+
+  Double_t vertx = -1.*vx;
+  Double_t verty = vz;
+  Double_t vertz = vy + zTgtTPC;
+  
+
   return TVector3(vertx, verty, vertz);
 
 }
