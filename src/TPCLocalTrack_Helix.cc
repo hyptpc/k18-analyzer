@@ -209,7 +209,6 @@ TPCLocalTrack_Helix::CalcHelixMom(double par[5], double y) const
 {
 
   const double Const = 0.299792458; // =c/10^9
-  //const double dMagneticField = 1.; //T, "-1" is needed. // Should be given by field param
   const double dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
 
   double t = (y-par[2])/(par[3]*par[4]);
@@ -224,7 +223,6 @@ TPCLocalTrack_Helix::CalcHelixMom(double par[5], double y) const
 
 
   return TVector3(px,py,pz);
-
 }
 
 

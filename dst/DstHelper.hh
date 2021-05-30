@@ -17,7 +17,7 @@
 #include "DCAnalyzer.hh"
 
 // if event number mismatch is found, exit process.
-#define CheckEventNumberMismatch 0
+#define CheckEventNumberMismatch 1
 
 //______________________________________________________________________________
 namespace dst
