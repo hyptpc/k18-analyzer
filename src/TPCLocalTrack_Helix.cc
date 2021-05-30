@@ -347,7 +347,7 @@ static inline void fcn2(int &npar, double *gin, double &f, double *par, int ifla
     chisqr += pow( d.x()/Res.x(), 2) + pow( d.y()/Res.y(), 2) + pow( d.z()/Res.z(), 2);
 
     dof++;
-
+    dof++;
   }
   f = chisqr/(double)(dof-5);
 }
@@ -990,6 +990,7 @@ TPCLocalTrack_Helix::CalcChi2( void )
 
     chisqr += pow( d.x()/Res.x(), 2) + pow( d.y()/Res.y(), 2) + pow( d.z()/Res.z(), 2);
     //    chisqr += pow( d.x()/Res.x(), 2) + pow( d.z()/Res.z(), 2);
+    dof++;
     dof++;
   }
   m_chisqr = chisqr/(double)(dof-5);

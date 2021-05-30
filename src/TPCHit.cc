@@ -584,8 +584,8 @@ TPCHit::GetResolutionY()
 {
   // temporary
   //  return 0.5;
-  //  return 1.5;
-  return 2.;
+  return 1.5;
+  //return 2.;
 }
 
 //_____________________________________________________________________________
