@@ -78,6 +78,7 @@ public:
   bool         Residual_check( TVector3 pos, TVector3 Res);
   double       GetTcal( TVector3 pos);
   void         CalcChi2( void);
+  double       CalcChi2_circle( double par[3]);
   int     GetHTOFSeg( double min_layer_t, double max_layer_t, double max_layer_y );
 
   void SetAcx( double Acx ) { m_Acx = Acx; }
