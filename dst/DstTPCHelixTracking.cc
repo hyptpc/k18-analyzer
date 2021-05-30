@@ -126,6 +126,8 @@ struct Event
   
   std::vector<Double_t> M_Lambda;
   std::vector<Double_t> Mom_Lambda;
+  std::vector<Double_t> M_Ks;
+  std::vector<Double_t> Mom_Ks;
 
 
   std::vector<std::vector<Double_t>> hitlayer;
@@ -196,6 +198,8 @@ struct Event
 
     M_Lambda.clear();
     Mom_Lambda.clear();
+    M_Ks.clear();
+    Mom_Ks.clear();
 
     hitlayer.clear();
     hitpos_x.clear();
@@ -581,7 +585,7 @@ dst::DstRead( int ievent )
     event.dEdx[it] = de/path_dEdx;
   }
 
-  // rough estimation for Lambda event
+  // rough estimation for Lambda and Ks event
   if(ntTpc>1){
     for( Int_t it=0; it<ntTpc-1; ++it ){
       for( Int_t it2=it+1; it2<ntTpc; ++it2 ){
@@ -590,20 +594,28 @@ dst::DstRead( int ievent )
 	  if(event.charge[it]==1){
 	    TVector3 momp(event.mom_vtx[it], event.mom_vty[it], event.mom_vtz[it]);
 	    TLorentzVector Lp(momp, std::sqrt(ProtonMass*ProtonMass+momp.Mag2()));
+	    TLorentzVector Lpip(momp, std::sqrt(PionMass*PionMass+momp.Mag2()));
 	    TVector3 mompi(event.mom_vtx[it2], event.mom_vty[it2], event.mom_vtz[it2]);
 	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
+	    TLorentzVector LKs = Lpip + Lpi;
 	    event.M_Lambda.push_back(LLambda.M());
 	    event.Mom_Lambda.push_back(LLambda.P());
+	    event.M_Ks.push_back(LKs.M());
+	    event.Mom_Ks.push_back(LKs.P());
 	  }
 	  else{
 	    TVector3 momp(event.mom_vtx[it2], event.mom_vty[it2], event.mom_vtz[it2]);
 	    TLorentzVector Lp(momp, std::sqrt(ProtonMass*ProtonMass+momp.Mag2()));
+	    TLorentzVector Lpip(momp, std::sqrt(PionMass*PionMass+momp.Mag2()));
 	    TVector3 mompi(event.mom_vtx[it], event.mom_vty[it], event.mom_vtz[it]);
 	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
+	    TLorentzVector LKs = Lpip + Lpi;
 	    event.M_Lambda.push_back(LLambda.M());
 	    event.Mom_Lambda.push_back(LLambda.P());
+	    event.M_Ks.push_back(LKs.M());
+	    event.Mom_Ks.push_back(LKs.P());
 	  }
 	}
       }
@@ -695,6 +707,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "closeDist", &event.closeDist );
   tree->Branch( "M_Lambda", &event.M_Lambda );
   tree->Branch( "Mom_Lambda", &event.Mom_Lambda );
+  tree->Branch( "M_Ks", &event.M_Ks );
+  tree->Branch( "Mom_Ks", &event.Mom_Ks );
 
   tree->Branch( "hitlayer", &event.hitlayer );
   tree->Branch( "hitpos_x", &event.hitpos_x );
