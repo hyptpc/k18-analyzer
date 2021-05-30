@@ -41,33 +41,31 @@ auto& gUser = UserParamMan::GetInstance();
 }
 
 //_____________________________________________________________________________
-VEvent::VEvent()
-{
-}
-
-//_____________________________________________________________________________
-VEvent::~VEvent()
-{
-}
-
-//_____________________________________________________________________________
-class EventHodoscope : public VEvent
+class UserHodoscope : public VEvent
 {
 private:
   RawData*      rawData;
   HodoAnalyzer* hodoAna;
 
 public:
-        EventHodoscope();
-       ~EventHodoscope();
-  bool  ProcessingBegin();
-  bool  ProcessingEnd();
-  bool  ProcessingNormal();
-  bool  InitializeHistograms();
+  UserHodoscope();
+  ~UserHodoscope();
+  virtual const TString& ClassName();
+  virtual Bool_t         ProcessingBegin();
+  virtual Bool_t         ProcessingEnd();
+  virtual Bool_t         ProcessingNormal();
 };
 
 //_____________________________________________________________________________
-EventHodoscope::EventHodoscope()
+inline const TString&
+UserHodoscope::ClassName()
+{
+  static TString s_name("UserHodoscope");
+  return s_name;
+}
+
+//_____________________________________________________________________________
+UserHodoscope::UserHodoscope()
   : VEvent(),
     rawData(new RawData),
     hodoAna(new HodoAnalyzer)
@@ -75,7 +73,7 @@ EventHodoscope::EventHodoscope()
 }
 
 //_____________________________________________________________________________
-EventHodoscope::~EventHodoscope()
+UserHodoscope::~UserHodoscope()
 {
   if(hodoAna) delete hodoAna;
   if(rawData) delete rawData;
@@ -87,7 +85,6 @@ struct Event
   Int_t evnum;
   Int_t spill;
 
-  Int_t trignhits;
   Int_t trigpat[NumOfSegTrig];
   Int_t trigflag[NumOfSegTrig];
 
@@ -163,14 +160,10 @@ struct Event
   Double_t bh1mt[NumOfSegBH1][MaxDepth];
   Double_t bh1cmt[NumOfSegBH1][MaxDepth];
   Double_t bh1de[NumOfSegBH1];
-  Double_t bh1ude[NumOfSegBH1];
-  Double_t bh1dde[NumOfSegBH1];
 
   Double_t bh2mt[NumOfSegBH2][MaxDepth];
   Double_t bh2cmt[NumOfSegBH2][MaxDepth];
   Double_t bh2de[NumOfSegBH2];
-  Double_t bh2ude[NumOfSegBH2];
-  Double_t bh2dde[NumOfSegBH2];
 
   Double_t bacmt[NumOfSegBAC][MaxDepth];
   Double_t bacde[NumOfSegBAC];
@@ -185,8 +178,6 @@ struct Event
 
   Double_t htofmt[NumOfSegHTOF][MaxDepth];
   Double_t htofde[NumOfSegHTOF];
-  Double_t htofude[NumOfSegHTOF];
-  Double_t htofdde[NumOfSegHTOF];
 
   // Using WCSUM
   Double_t wcde[NumOfSegWC];
@@ -213,11 +204,11 @@ Event::clear()
 {
   evnum      = 0;
   spill      = 0;
-  trignhits  = 0;
   bh1nhits   = 0;
   bacnhits   = 0;
   bh2nhits   = 0;
   bvhnhits   = 0;
+  htofnhits  = 0;
   tofnhits   = 0;
   tofnhits_3dmtx   = 0;
   lacnhits   = 0;
@@ -256,8 +247,6 @@ Event::clear()
     bh1ua[it] = qnan;
     bh1da[it] = qnan;
     bh1de[it] = qnan;
-    bh1ude[it] = qnan;
-    bh1dde[it] = qnan;
     for(Int_t that=0; that<NumOfSegBH2; ++that){
       btof[it][that]  = qnan;
       cbtof[it][that] = qnan;
@@ -273,8 +262,6 @@ Event::clear()
     bh2ua[it] = qnan;
     bh2da[it] = qnan;
     bh2de[it] = qnan;
-    bh2ude[it] = qnan;
-    bh2dde[it] = qnan;
     for(Int_t m=0; m<MaxDepth; ++m){
       bh2ut[it][m] = qnan;
       bh2dt[it][m] = qnan;
@@ -294,6 +281,7 @@ Event::clear()
   for(Int_t it=0; it<NumOfSegHTOF; it++){
     htofua[it] = qnan;
     htofda[it] = qnan;
+    htofde[it] = qnan;
     for(Int_t m=0; m<MaxDepth; ++m){
       htofut[it][m] = qnan;
       htofdt[it][m] = qnan;
@@ -360,7 +348,6 @@ struct Dst
   Int_t evnum;
   Int_t spill;
 
-  Int_t trignhits;
   Int_t trigpat[NumOfSegTrig];
   Int_t trigflag[NumOfSegTrig];
 
@@ -540,8 +527,8 @@ enum eDetHid {
 }
 
 //_____________________________________________________________________________
-bool
-EventHodoscope::ProcessingBegin()
+Bool_t
+UserHodoscope::ProcessingBegin()
 {
   event.clear();
   dst.clear();
@@ -549,8 +536,8 @@ EventHodoscope::ProcessingBegin()
 }
 
 //_____________________________________________________________________________
-bool
-EventHodoscope::ProcessingNormal()
+Bool_t
+UserHodoscope::ProcessingNormal()
 {
   static const auto MinTdcBH1 = gUser.GetParameter("TdcBH1", 0);
   static const auto MaxTdcBH1 = gUser.GetParameter("TdcBH1", 1);
@@ -588,29 +575,20 @@ EventHodoscope::ProcessingNormal()
   //**************************************************************************
   //****************** RawData
 
-  ///// Trig
+  // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
-  {
-    Int_t trignhits = 0;
-    const HodoRHitContainer& cont = rawData->GetTrigRawHC();
-    Int_t nh = cont.size();
-    for(Int_t i=0; i<nh; ++i){
-      HodoRawHit *hit = cont[i];
-      Int_t seg = hit->SegmentId()+1;
-      Int_t tdc = hit->GetTdc1();
-      if(tdc > 0){
-        trigger_flag.set(seg - 1);
-	event.trigpat[trignhits] = seg;
-	event.trigflag[seg-1]    = tdc;
-	dst.trigpat[trignhits]   = seg;
-	dst.trigflag[seg-1]      = tdc;
-	HF1(10, seg-1);
-	HF1(10+seg, tdc);
-	trignhits++;
-      }
+  for(const auto& hit: rawData->GetTrigRawHC()){
+    Int_t seg = hit->SegmentId();
+    Int_t tdc = hit->GetTdc1();
+    if(tdc > 0){
+      event.trigpat[trigger_flag.count()] = seg;
+      event.trigflag[seg] = tdc;
+      dst.trigpat[trigger_flag.count()] = seg;
+      dst.trigflag[seg] = tdc;
+      trigger_flag.set(seg);
+      HF1(10, seg);
+      HF1(10+seg, tdc);
     }
-    event.trignhits = trignhits;
-    dst.trignhits   = trignhits;
   }
 
   if(trigger_flag[trigger::kSpillEnd]) return true;
@@ -742,7 +720,7 @@ EventHodoscope::ProcessingNormal()
       else       HF1(BACHid+100*seg+7, A);
       // Hitpat
       if(is_hit){
-        event.bachitpat[bac_nhits++]= seg;
+        event.bachitpat[bac_nhits++] = seg;
   	++nh1; HF1(BACHid+3, seg-0.5);
       }
     }
@@ -1013,12 +991,8 @@ EventHodoscope::ProcessingNormal()
 	Double_t ctu = hit->GetCTUp(m), ctd = hit->GetCTDown(m);
 	Double_t mt  = hit->MeanTime(m),cmt = hit->CMeanTime(m);
 	Double_t de  = hit->DeltaE();
-	Double_t de1  = hit->UDeltaE();
-	Double_t de2  = hit->DDeltaE();
 	event.bh1mt[seg-1][m] = mt;
 	event.bh1de[seg-1]    = de;
-	event.bh1ude[seg-1]    = de1;
-	event.bh1dde[seg-1]    = de2;
 	HF1(BH1Hid+100*seg+11, tu);      HF1(BH1Hid+100*seg+12, td);
 	HF1(BH1Hid+100*seg+13, mt);
 	HF1(BH1Hid+100*seg+17, ctu);     HF1(BH1Hid+100*seg+18, ctd);
@@ -1083,15 +1057,11 @@ EventHodoscope::ProcessingNormal()
 	Double_t ctu = hit->GetCTUp(m), ctd = hit->GetCTDown(m);
 	Double_t mt  = hit->MeanTime(m),cmt = hit->CMeanTime(m);
 	Double_t de  = hit->DeltaE();
-	Double_t de1  = hit->UDeltaE();
-	Double_t de2  = hit->DDeltaE();
 	Double_t ut0  = hit->UTime0(m), dt0  = hit->DTime0(m);
 	Double_t uct0 = hit->UCTime0(m),dct0 = hit->DCTime0(m);
 	Double_t t0   = hit->Time0(m),  ct0  = hit->CTime0(m);
 	event.bh2mt[seg-1][m] = mt;
 	event.bh2de[seg-1]    = de;
-	event.bh2ude[seg-1]    = de1;
-	event.bh2dde[seg-1]    = de2;
 	event.t0[seg-1][m]    = t0;
 	event.ct0[seg-1][m]   = ct0;
 	HF1(BH2Hid+100*seg+11, tu);      HF1(BH2Hid+100*seg+12, td);
@@ -1239,7 +1209,7 @@ EventHodoscope::ProcessingNormal()
     }
     for(Int_t i2=0; i2<nhbh2; ++i2){
       Int_t    seg2 = hodoAna->GetHitBH2(i2)->SegmentId()+1;
-      Int_t n_mhit2 = hodoAna->GetHitBH2(0)->GetNumOfHit();
+      Int_t n_mhit2 = hodoAna->GetHitBH2(i2)->GetNumOfHit();
       for(Int_t m2 = 0; m2<n_mhit2; ++m2){
 	Double_t ct0  = hodoAna->GetHitBH2(i2)->CTime0();
 	Double_t t0   = hodoAna->GetHitBH2(i2)->Time0();
@@ -1396,12 +1366,8 @@ EventHodoscope::ProcessingNormal()
 	Double_t ctu = hit->GetCTUp(), ctd = hit->GetCTDown();
 	Double_t mt = hit->MeanTime(), cmt = hit->CMeanTime();
 	Double_t de = hit->DeltaE();
-	Double_t de1 = hit->UDeltaE();
-	Double_t de2 = hit->DDeltaE();
 	event.htofmt[seg-1][m] = mt;
 	event.htofde[seg-1] = de;
-	event.htofude[seg-1] = de1;
-	event.htofdde[seg-1] = de2;
 	HF1(HTOFHid+100*seg+11, tu); HF1(HTOFHid+100*seg+12, td);
 	HF1(HTOFHid+100*seg+13, mt);
 	HF1(HTOFHid+100*seg+17, ctu); HF1(HTOFHid+100*seg+18, ctd);
@@ -1583,7 +1549,7 @@ EventHodoscope::ProcessingNormal()
       int seg    = hit->SegmentId();
       event.sch_depth[seg] = mhit_l;
       int  prev     = 0;
-      bool hit_flag = false;
+      Bool_t hit_flag = false;
 
       for(int m=0; m<mhit_l; ++m){
     	if(mhit_l > MaxDepth) break;
@@ -1800,8 +1766,8 @@ EventHodoscope::ProcessingNormal()
 }
 
 //_____________________________________________________________________________
-bool
-EventHodoscope::ProcessingEnd()
+Bool_t
+UserHodoscope::ProcessingEnd()
 {
   tree->Fill();
   hodo->Fill();
@@ -1812,7 +1778,7 @@ EventHodoscope::ProcessingEnd()
 VEvent*
 ConfMan::EventAllocator()
 {
-  return new EventHodoscope;
+  return new UserHodoscope;
 }
 
 //_____________________________________________________________________________
@@ -1826,13 +1792,13 @@ namespace
   const Double_t MinTdc  =    0.;
   const Double_t MaxTdc  = 4096.;
 
-  const Int_t    NbinTdcHr = 8e5/20;
+  const Int_t    NbinTdcHr = 1e6/10;
   const Double_t MinTdcHr  =  0.;
-  const Double_t MaxTdcHr  = 8e5;
+  const Double_t MaxTdcHr  = 1e6;
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan::InitializeHistograms()
 {
   HB1(1, "Status", 20, 0., 20.);
@@ -2444,8 +2410,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("evnum",     &event.evnum,     "evnum/I");
   tree->Branch("spill",     &event.spill,     "spill/I");
   //Trig
-  tree->Branch("trignhits", &event.trignhits, "trignhits/I");
-  tree->Branch("trigpat",    event.trigpat,   "trigpat[trignhits]/I");
+  tree->Branch("trigpat",    event.trigpat,   Form("trigpat[%d]/I", NumOfSegTrig));
   tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
 
   //BH1
@@ -2525,18 +2490,12 @@ ConfMan::InitializeHistograms()
   //Normalized data
   tree->Branch("bh1mt",     event.bh1mt,     Form("bh1mt[%d][%d]/D", NumOfSegBH1, MaxDepth));
   tree->Branch("bh1de",     event.bh1de,     Form("bh1de[%d]/D", NumOfSegBH1));
-  tree->Branch("bh1ude",     event.bh1ude,     Form("bh1ude[%d]/D", NumOfSegBH1));
-  tree->Branch("bh1dde",     event.bh1dde,     Form("bh1dde[%d]/D", NumOfSegBH1));
   tree->Branch("bh2mt",     event.bh2mt,     Form("bh2mt[%d][%d]/D", NumOfSegBH2, MaxDepth));
   tree->Branch("bh2de",     event.bh2de,     Form("bh2de[%d]/D", NumOfSegBH2));
-  tree->Branch("bh2ude",     event.bh2ude,     Form("bh2ude[%d]/D", NumOfSegBH2));
-  tree->Branch("bh2dde",     event.bh2dde,     Form("bh2dde[%d]/D", NumOfSegBH2));
   tree->Branch("bacmt",     event.bacmt,     Form("bacmt[%d][%d]/D", NumOfSegBAC, MaxDepth));
   tree->Branch("bacde",     event.bacde,     Form("bacde[%d]/D", NumOfSegBAC));
   tree->Branch("htofmt",   event.htofmt,   Form("htofmt[%d][%d]/D", NumOfSegHTOF, MaxDepth));
   tree->Branch("htofde",   event.htofde,   Form("htofde[%d]/D", NumOfSegHTOF));
-  tree->Branch("htofude",   event.htofude,   Form("htofude[%d]/D", NumOfSegHTOF));
-  tree->Branch("htofdde",   event.htofdde,   Form("htofdde[%d]/D", NumOfSegHTOF));
   tree->Branch("tofmt",     event.tofmt,     Form("tofmt[%d][%d]/D", NumOfSegTOF, MaxDepth));
   tree->Branch("tofde",     event.tofde,     Form("tofde[%d]/D", NumOfSegTOF));
   tree->Branch("wcmt",     event.wcmt,     Form("wcmt[%d][%d]/D", NumOfSegWC, MaxDepth));
@@ -2566,8 +2525,7 @@ ConfMan::InitializeHistograms()
   hodo = new TTree("hodo","Data Summary Table of Hodoscope");
   hodo->Branch("evnum",     &dst.evnum,     "evnum/I");
   hodo->Branch("spill",     &dst.spill,     "spill/I");
-  hodo->Branch("trignhits", &dst.trignhits, "trignhits/I");
-  hodo->Branch("trigpat",    dst.trigpat,   "trigpat[trignhits]/I");
+  hodo->Branch("trigpat",    dst.trigpat,   Form("trigpat[%d]/I", NumOfSegTrig));
   hodo->Branch("trigflag",   dst.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
   hodo->Branch("nhBh1",     &dst.nhBh1,     "nhBh1/I");
   hodo->Branch("csBh1",      dst.csBh1,     "csBh1[nhBh1]/I");
@@ -2635,7 +2593,7 @@ ConfMan::InitializeHistograms()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return
@@ -2646,7 +2604,7 @@ ConfMan::InitializeParameterFiles()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 ConfMan::FinalizeProcess()
 {
   return true;

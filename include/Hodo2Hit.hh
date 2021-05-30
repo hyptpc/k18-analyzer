@@ -77,10 +77,6 @@ public:
   Double_t      CMeanTime(Int_t n=0)  const { return 0.5*(m_pair_cont[n].ctime1 + m_pair_cont[n].ctime2); }
   virtual
   Double_t      DeltaE(Int_t n=0)     const { return std::sqrt(std::abs(m_a1.at(n)*m_a2.at(n))); }
-	virtual
-	Double_t      UDeltaE(Int_t n=0)     const { return std::abs(m_a1.at(n)); }
-	virtual
-	Double_t      DDeltaE(Int_t n=0)     const { return std::abs(m_a2.at(n)); }
   Double_t      TimeDiff(Int_t n=0)   const { return m_pair_cont[n].ctime2 - m_pair_cont[n].ctime1; }
 
   void          SetJoined(Int_t m)          { m_flag_join.at(m) = true; }
