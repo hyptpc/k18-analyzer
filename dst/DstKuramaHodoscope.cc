@@ -7,15 +7,19 @@
 #include <cstdlib>
 #include <cmath>
 
+#include <TMath.h>
+
 #include <filesystem_util.hh>
+#include <UnpackerManager.hh>
 
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
-#include "Kinematics.hh"
-#include "DCGeomMan.hh"
 #include "DatabasePDG.hh"
+#include "DCGeomMan.hh"
+#include "DebugCounter.hh"
 #include "DetectorID.hh"
 #include "FuncName.hh"
+#include "Kinematics.hh"
 #include "MathTools.hh"
 #include "RootHelper.hh"
 #include "UserParamMan.hh"
@@ -25,10 +29,16 @@ namespace
 {
 using namespace root;
 using namespace dst;
+using hddaq::unpacker::GUnpacker;
+const auto qnan = TMath::QuietNaN();
+const auto& gUnpacker = GUnpacker::get_instance();
 auto&       gConf = ConfMan::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& gPHC  = HodoPHCMan::GetInstance();
+const auto& gCounter = debug::ObjectCounter::GetInstance();
+const Bool_t USE_M2 = true;
+const Bool_t USE_XYCut = true;
 TString ClassName() { return TString("DstKuramaHodoscope"); }
 }
 
@@ -52,119 +62,134 @@ std::vector<TTreeReader*> TTreeReaderCont;
 //_____________________________________________________________________
 struct Event
 {
-  int status;
+  Int_t status;
+
+  // SdcOut
+  Int_t ntSdcOut;
+  Double_t chisqrSdcOut[MaxHits];
+  Double_t x0SdcOut[MaxHits];
+  Double_t y0SdcOut[MaxHits];
+  Double_t u0SdcOut[MaxHits];
+  Double_t v0SdcOut[MaxHits];
 
   // KuramaTracking
-  int ntKurama;
-  double path[MaxHits];
-  double pKurama[MaxHits];
-  double qKurama[MaxHits];
-  double chisqrKurama[MaxHits];
-  double xtgtKurama[MaxHits];
-  double ytgtKurama[MaxHits];
-  double utgtKurama[MaxHits];
-  double vtgtKurama[MaxHits];
-  double thetaKurama[MaxHits];
-  double vpx[NumOfLayersVP*MaxHits];
-  double vpy[NumOfLayersVP*MaxHits];
+  Int_t ntKurama;
+  Double_t path[MaxHits];
+  Double_t pKurama[MaxHits];
+  Double_t qKurama[MaxHits];
+  Double_t chisqrKurama[MaxHits];
+  Double_t xtgtKurama[MaxHits];
+  Double_t ytgtKurama[MaxHits];
+  Double_t utgtKurama[MaxHits];
+  Double_t vtgtKurama[MaxHits];
+  Double_t thetaKurama[MaxHits];
+  Double_t vpx[NumOfLayersVP*MaxHits];
+  Double_t vpy[NumOfLayersVP*MaxHits];
 
   // Hodoscope
-  int trigflag[NumOfSegTrig];
-  int trigpat[NumOfSegTrig];
+  Int_t trigflag[NumOfSegTrig];
+  Int_t trigpat[NumOfSegTrig];
 
-  int nhBh1;
-  int csBh1[NumOfSegBH1*MaxDepth];
-  double Bh1Seg[NumOfSegBH1*MaxDepth];
-  double tBh1[NumOfSegBH1*MaxDepth];
-  double dtBh1[NumOfSegBH1*MaxDepth];
-  double deBh1[NumOfSegBH1*MaxDepth];
+  Int_t nhBh1;
+  Int_t csBh1[NumOfSegBH1*MaxDepth];
+  Double_t Bh1Seg[NumOfSegBH1*MaxDepth];
+  Double_t tBh1[NumOfSegBH1*MaxDepth];
+  Double_t dtBh1[NumOfSegBH1*MaxDepth];
+  Double_t deBh1[NumOfSegBH1*MaxDepth];
 
-  int nhBh2;
-  int csBh2[NumOfSegBH2*MaxDepth];
-  double Bh2Seg[NumOfSegBH2*MaxDepth];
-  double tBh2[NumOfSegBH2*MaxDepth];
-  double dtBh2[NumOfSegBH2*MaxDepth];
-  double t0Bh2[NumOfSegBH2*MaxDepth];
-  double deBh2[NumOfSegBH2*MaxDepth];
+  Int_t nhBh2;
+  Int_t csBh2[NumOfSegBH2*MaxDepth];
+  Double_t Bh2Seg[NumOfSegBH2*MaxDepth];
+  Double_t tBh2[NumOfSegBH2*MaxDepth];
+  Double_t dtBh2[NumOfSegBH2*MaxDepth];
+  Double_t t0Bh2[NumOfSegBH2*MaxDepth];
+  Double_t deBh2[NumOfSegBH2*MaxDepth];
 
-  int nhTof;
-  int csTof[NumOfSegTOF];
-  double TofSeg[NumOfSegTOF];
-  double tTof[NumOfSegTOF];
-  double dtTof[NumOfSegTOF];
-  double deTof[NumOfSegTOF];
+  Int_t nhTof;
+  Int_t csTof[NumOfSegTOF];
+  Double_t TofSeg[NumOfSegTOF];
+  Double_t tTof[NumOfSegTOF];
+  Double_t dtTof[NumOfSegTOF];
+  Double_t deTof[NumOfSegTOF];
 
-  double btof[NumOfSegBH1*MaxDepth];
+  Double_t btof[NumOfSegBH1*MaxDepth];
 
   // KuramaHodoscope
-  int    m2Combi;
-  double beta[MaxHits];
-  double stof[MaxHits];
-  double cstof[MaxHits];
-  double m2[MaxHits];
+  Int_t    m2Combi;
+  Double_t beta[MaxHits];
+  Double_t stof[MaxHits];
+  Double_t cstof[MaxHits];
+  Double_t m2[MaxHits];
 
   enum eParticle { Pion, Kaon, Proton, nParticle };
-  double tTofCalc[nParticle];
-  double utTofSeg[NumOfSegTOF];
-  double dtTofSeg[NumOfSegTOF];
-  double udeTofSeg[NumOfSegTOF];
-  double ddeTofSeg[NumOfSegTOF];
-  double tofua[NumOfSegTOF];
-  double tofda[NumOfSegTOF];
+  Double_t tTofCalc[nParticle];
+  Double_t utTofSeg[NumOfSegTOF];
+  Double_t dtTofSeg[NumOfSegTOF];
+  Double_t udeTofSeg[NumOfSegTOF];
+  Double_t ddeTofSeg[NumOfSegTOF];
+  Double_t tofua[NumOfSegTOF];
+  Double_t tofda[NumOfSegTOF];
 
 };
 
 //_____________________________________________________________________
 struct Src
 {
-  int trigflag[NumOfSegTrig];
-  int trigpat[NumOfSegTrig];
+  Int_t trigflag[NumOfSegTrig];
+  Int_t trigpat[NumOfSegTrig];
 
-  int    ntKurama;
-  double path[MaxHits];
-  double pKurama[MaxHits];
-  double qKurama[MaxHits];
-  double chisqrKurama[MaxHits];
-  double xtgtKurama[MaxHits];
-  double ytgtKurama[MaxHits];
-  double utgtKurama[MaxHits];
-  double vtgtKurama[MaxHits];
-  double thetaKurama[MaxHits];
-  double vpx[NumOfLayersVP];
-  double vpy[NumOfLayersVP];
+  Int_t ntSdcOut;
+  Double_t chisqrSdcOut[MaxHits];
+  Double_t x0SdcOut[MaxHits];
+  Double_t y0SdcOut[MaxHits];
+  Double_t u0SdcOut[MaxHits];
+  Double_t v0SdcOut[MaxHits];
 
-  int    nhBh1;
-  int    csBh1[NumOfSegBH1*MaxDepth];
-  double Bh1Seg[NumOfSegBH1*MaxDepth];
-  double tBh1[NumOfSegBH1*MaxDepth];
-  double dtBh1[NumOfSegBH1*MaxDepth];
-  double deBh1[NumOfSegBH1*MaxDepth];
+  Int_t    ntKurama;
+  Double_t path[MaxHits];
+  Double_t pKurama[MaxHits];
+  Double_t qKurama[MaxHits];
+  Double_t chisqrKurama[MaxHits];
+  Double_t xtgtKurama[MaxHits];
+  Double_t ytgtKurama[MaxHits];
+  Double_t utgtKurama[MaxHits];
+  Double_t vtgtKurama[MaxHits];
+  Double_t thetaKurama[MaxHits];
+  Double_t vpx[NumOfLayersVP];
+  Double_t vpy[NumOfLayersVP];
 
-  int    nhBh2;
-  int    csBh2[NumOfSegBH2*MaxDepth];
-  double Bh2Seg[NumOfSegBH2*MaxDepth];
-  double tBh2[NumOfSegBH2*MaxDepth];
-  double dtBh2[NumOfSegBH2*MaxDepth];
-  double t0Bh2[NumOfSegBH2*MaxDepth];
-  double deBh2[NumOfSegBH2*MaxDepth];
+  Int_t    nhBh1;
+  Int_t    csBh1[NumOfSegBH1*MaxDepth];
+  Double_t Bh1Seg[NumOfSegBH1*MaxDepth];
+  Double_t tBh1[NumOfSegBH1*MaxDepth];
+  Double_t dtBh1[NumOfSegBH1*MaxDepth];
+  Double_t deBh1[NumOfSegBH1*MaxDepth];
 
-  double Time0Seg;
-  double deTime0;
-  double Time0;
-  double CTime0;
+  Int_t    nhBh2;
+  Int_t    csBh2[NumOfSegBH2*MaxDepth];
+  Double_t Bh2Seg[NumOfSegBH2*MaxDepth];
+  Double_t tBh2[NumOfSegBH2*MaxDepth];
+  Double_t dtBh2[NumOfSegBH2*MaxDepth];
+  Double_t t0Bh2[NumOfSegBH2*MaxDepth];
+  Double_t deBh2[NumOfSegBH2*MaxDepth];
 
-  int    nhTof;
-  int    csTof[NumOfSegTOF];
-  double TofSeg[NumOfSegTOF];
-  double tTof[NumOfSegTOF];
-  double dtTof[NumOfSegTOF];
-  double deTof[NumOfSegTOF];
+  Double_t Time0Seg;
+  Double_t deTime0;
+  Double_t Time0;
+  Double_t CTime0;
+
+  Int_t    nhTof;
+  Int_t    csTof[NumOfSegTOF];
+  Double_t TofSeg[NumOfSegTOF];
+  Double_t tTof[NumOfSegTOF];
+  Double_t dtTof[NumOfSegTOF];
+  Double_t deTof[NumOfSegTOF];
 
   ////////// for HodoParam
-  double utTofSeg[NumOfSegTOF];
-  double dtTofSeg[NumOfSegTOF];
-  double udeTofSeg[NumOfSegTOF];
-  double ddeTofSeg[NumOfSegTOF];
+  Double_t utTofSeg[NumOfSegTOF];
+  Double_t dtTofSeg[NumOfSegTOF];
+  Double_t udeTofSeg[NumOfSegTOF];
+  Double_t ddeTofSeg[NumOfSegTOF];
 
 };
 
@@ -188,13 +213,20 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
   if(!gConf.Initialize(arg[kConfFile]))
     return EXIT_FAILURE;
+  if(!gConf.InitializeUnpacker())
+    return EXIT_FAILURE;
 
-  int nevent = GetEntries(TTreeCont);
+  Int_t skip = gUnpacker.get_skip();
+  if (skip < 0) skip = 0;
+  Int_t max_loop = gUnpacker.get_max_loop();
+  Int_t nevent = GetEntries( TTreeCont );
+  if (max_loop > 0) nevent = skip + max_loop;
 
   CatchSignal::Set();
 
-  int ievent = 0;
+  Int_t ievent = skip;
   for(; ievent<nevent && !CatchSignal::Stop(); ++ievent){
+    gCounter.check();
     InitializeEvent();
     if(DstRead(ievent)) tree->Fill();
   }
@@ -212,69 +244,75 @@ bool
 dst::InitializeEvent()
 {
   event.status   = 0;
+  event.ntSdcOut = 0;
   event.ntKurama = 0;
   event.nhBh1    = 0;
   event.nhBh2    = 0;
   event.nhTof    = 0;
   event.m2Combi  = 0;
 
-  for(int i=0; i<NumOfSegTrig; ++i){
-    event.trigflag[i] = -999;
-    event.trigpat[i]  = -999;
+  for(Int_t i=0; i<NumOfSegTrig; ++i){
+    event.trigflag[i] = -1;
+    event.trigpat[i]  = -1;
   }
 
-  for(int i=0; i<Event::nParticle; ++i){
-    event.tTofCalc[i] = -9999.;
+  for(Int_t i=0; i<Event::nParticle; ++i){
+    event.tTofCalc[i] = qnan;
   }
 
-  for(int i=0;i<MaxHits;++i){
-    event.path[i]         = -9999.;
-    event.pKurama[i]      = -9999.;
-    event.qKurama[i]      = -9999.;
-    event.chisqrKurama[i] = -9999.;
-    event.xtgtKurama[i]  = -9999.;
-    event.ytgtKurama[i]  = -9999.;
-    event.utgtKurama[i]  = -9999.;
-    event.vtgtKurama[i]  = -9999.;
-    event.thetaKurama[i] = -9999.;
+  for(Int_t i=0;i<MaxHits;++i){
+    event.chisqrSdcOut[i] = qnan;
+    event.x0SdcOut[i]     = qnan;
+    event.y0SdcOut[i]     = qnan;
+    event.u0SdcOut[i]     = qnan;
+    event.v0SdcOut[i]     = qnan;
+    event.path[i]         = qnan;
+    event.pKurama[i]      = qnan;
+    event.qKurama[i]      = qnan;
+    event.chisqrKurama[i] = qnan;
+    event.xtgtKurama[i]  = qnan;
+    event.ytgtKurama[i]  = qnan;
+    event.utgtKurama[i]  = qnan;
+    event.vtgtKurama[i]  = qnan;
+    event.thetaKurama[i] = qnan;
   }
 
-  for (int l = 0; l < NumOfLayersVP; ++l) {
-    event.vpx[l] = -9999.;
-    event.vpy[l] = -9999.;
+  for (Int_t l = 0; l < NumOfLayersVP; ++l) {
+    event.vpx[l] = qnan;
+    event.vpy[l] = qnan;
   }
 
-  for(int i=0;i<NumOfSegBH1*MaxDepth;++i){
+  for(Int_t i=0;i<NumOfSegBH1*MaxDepth;++i){
     event.Bh1Seg[i] = -1;
     event.csBh1[i]  = 0;
-    event.tBh1[i]   = -9999.;
-    event.dtBh1[i]  = -9999.;
-    event.deBh1[i]  = -9999.;
-    event.btof[i]   = -9999.;
+    event.tBh1[i]   = qnan;
+    event.dtBh1[i]  = qnan;
+    event.deBh1[i]  = qnan;
+    event.btof[i]   = qnan;
   }
 
-  for(int i=0;i<NumOfSegBH2*MaxDepth;++i){
+  for(Int_t i=0;i<NumOfSegBH2*MaxDepth;++i){
     event.Bh2Seg[i] = -1;
     event.csBh2[i]  = 0;
-    event.tBh2[i]   = -9999.;
-    event.dtBh2[i]  = -9999.;
-    event.t0Bh2[i]  = -9999.;
-    event.deBh2[i]  = -9999.;
+    event.tBh2[i]   = qnan;
+    event.dtBh2[i]  = qnan;
+    event.t0Bh2[i]  = qnan;
+    event.deBh2[i]  = qnan;
   }
 
-  for(int i=0;i<NumOfSegTOF;++i){
+  for(Int_t i=0;i<NumOfSegTOF;++i){
     event.TofSeg[i] = -1;
     event.csTof[i]  = 0;
-    event.tTof[i]   = -9999.;
-    event.dtTof[i]  = -9999.;
-    event.deTof[i]  = -9999.;
+    event.tTof[i]   = qnan;
+    event.dtTof[i]  = qnan;
+    event.deTof[i]  = qnan;
   }
 
-  for(int i=0; i<MaxHits; ++i){
-    event.beta[i]  = -9999.;
-    event.stof[i]  = -9999.;
-    event.cstof[i] = -9999.;
-    event.m2[i]    = -9999.;
+  for(Int_t i=0; i<MaxHits; ++i){
+    event.beta[i]  = qnan;
+    event.stof[i]  = qnan;
+    event.cstof[i] = qnan;
+    event.m2[i]    = qnan;
   }
   return true;
 }
@@ -283,8 +321,8 @@ dst::InitializeEvent()
 bool
 dst::DstOpen(std::vector<std::string> arg)
 {
-  int open_file = 0;
-  int open_tree = 0;
+  Int_t open_file = 0;
+  Int_t open_tree = 0;
   for(std::size_t i=0; i<nArgc; ++i){
     if(i==kProcess || i==kConfFile || i==kOutFile) continue;
     open_file += OpenFile(TFileCont[i], arg[i]);
@@ -303,12 +341,9 @@ dst::DstOpen(std::vector<std::string> arg)
 
 //_____________________________________________________________________
 bool
-dst::DstRead(int ievent)
+dst::DstRead(Int_t ievent)
 {
-  static const auto StofOffset =
-    Kinematics::CalcTimeOfFlight(ConfMan::Get<Double_t>("PK18"),
-                                 gGeom.LocalZ("K18Target")-gGeom.LocalZ("BH2"),
-                                 pdg::KaonMass());
+  static const auto StofOffset = gUser.GetParameter("StofOffset");
 
   if(ievent%10000==0){
     std::cout << "#D Event Number: "
@@ -319,6 +354,7 @@ dst::DstRead(int ievent)
 
   HF1(1, event.status++);
 
+  event.ntSdcOut = src.ntSdcOut;
   event.ntKurama = src.ntKurama;
   event.nhBh1    = src.nhBh1;
   event.nhBh2    = src.nhBh2;
@@ -332,30 +368,30 @@ dst::DstRead(int ievent)
   std::cout<<"[nhTof]: "<<std::setw(2)<<src.nhTof<<" "<<std::endl;
 #endif
 
-  for(int i=0;i<NumOfSegTrig;++i){
-    int tdc = src.trigflag[i];
+  for(Int_t i=0;i<NumOfSegTrig;++i){
+    Int_t tdc = src.trigflag[i];
     if(tdc<=0) continue;
     event.trigpat[i]  = i + 1;
     event.trigflag[i] = tdc;
   }
 
-  if(event.nhBh1<=0) return true;
+  // if(event.nhBh1<=0) return true;
   HF1(1, event.status++);
 
-  if(event.nhBh2<=0) return true;
+  // if(event.nhBh2<=0) return true;
   HF1(1, event.status++);
 
-  if(event.nhTof<=0) return true;
+  // if(event.nhTof<=0) return true;
   HF1(1, event.status++);
 
-  if(event.ntKurama<=0) return true;
-  if(event.ntKurama>MaxHits)
-    event.ntKurama = MaxHits;
+  // if(event.ntKurama<=0) return true;
+  // if(event.ntKurama>MaxHits)
+  //   event.ntKurama = MaxHits;
 
   HF1(1, event.status++);
 
-  double time0 = src.CTime0;
-  for(int i=0; i<src.nhBh2; ++i){
+  Double_t time0 = src.CTime0;
+  for(Int_t i=0; i<src.nhBh2; ++i){
     event.Bh2Seg[i] = src.Bh2Seg[i];
     event.tBh2[i]   = src.tBh2[i];
     event.t0Bh2[i]  = src.t0Bh2[i];
@@ -363,8 +399,8 @@ dst::DstRead(int ievent)
   }
 
   ////////// for BeamTof
-  double btof = -9999.;
-  for(int i=0; i<src.nhBh1; ++i){
+  Double_t btof = qnan;
+  for(Int_t i=0; i<src.nhBh1; ++i){
     event.Bh1Seg[i] = src.Bh1Seg[i];
     event.tBh1[i]   = src.tBh1[i];
     event.deBh1[i]  = src.deBh1[i];
@@ -372,7 +408,30 @@ dst::DstRead(int ievent)
     if(i==0) btof = src.tBh1[i] - time0;
   }
 
-  int m2Combi = event.nhTof*event.ntKurama;
+  for(Int_t it=0; it<src.ntSdcOut; ++it){
+    event.chisqrSdcOut[it] = src.chisqrSdcOut[it];
+    event.x0SdcOut[it] = src.x0SdcOut[it];
+    event.y0SdcOut[it] = src.y0SdcOut[it];
+    event.u0SdcOut[it] = src.u0SdcOut[it];
+    event.v0SdcOut[it] = src.v0SdcOut[it];
+  }
+
+  for(Int_t it=0; it<src.nhTof; ++it){
+    event.csTof[it]  = src.csTof[it];
+    event.TofSeg[it] = src.TofSeg[it];
+    event.tTof[it]   = src.tTof[it];
+    event.dtTof[it]  = src.dtTof[it];
+    event.deTof[it]  = src.deTof[it];
+    if(event.ntSdcOut == 1
+       && event.chisqrSdcOut[0] < 20.
+       && TMath::Abs(event.v0SdcOut[0]) < 0.01){
+      Int_t seg = (Int_t)event.TofSeg[it];
+      HF1(20000+seg*100+1, event.dtTof[it]);
+      HF2(20000+1, seg-1, event.dtTof[it]);
+    }
+  }
+
+  Int_t m2Combi = event.nhTof*event.ntKurama;
   if(m2Combi>MaxHits || m2Combi<0){
     std::cout << FUNC_NAME << " too much m2Combi : " << m2Combi << std::endl;
     return false;
@@ -380,8 +439,8 @@ dst::DstRead(int ievent)
   event.m2Combi = m2Combi;
 
   HF1(1, event.status++);
-  int mm=0;
-  for(int it=0; it<src.ntKurama; ++it){
+  Int_t mm=0;
+  for(Int_t it=0; it<src.ntKurama; ++it){
     event.path[it]    = src.path[it];
     event.pKurama[it] = src.pKurama[it];
     event.qKurama[it] = src.qKurama[it];
@@ -390,61 +449,77 @@ dst::DstRead(int ievent)
     event.utgtKurama[it] = src.utgtKurama[it];
     event.vtgtKurama[it] = src.vtgtKurama[it];
     event.thetaKurama[it] = src.thetaKurama[it];
-    if (src.ntKurama == 1) {
-      for (int l = 0; l < NumOfLayersVP; ++l) {
+    event.chisqrKurama[it] = src.chisqrKurama[it];
+    Double_t xtgt = event.xtgtKurama[it];
+    Double_t ytgt = event.ytgtKurama[it];
+    Double_t pKurama = event.pKurama[it];
+    if(event.chisqrKurama[it] < 200){
+      HF1(13, event.path[it]);
+    }
+    if(src.ntKurama == 1){
+      for (Int_t l = 0; l < NumOfLayersVP; ++l) {
 	event.vpx[l] = src.vpx[l];
 	event.vpy[l] = src.vpy[l];
       }
     }
-    event.tTofCalc[Event::Pion] =
-      Kinematics::CalcTimeOfFlight(event.pKurama[it],
-                                   event.path[it],
-                                   pdg::PionMass());
-    event.tTofCalc[Event::Kaon] =
-      Kinematics::CalcTimeOfFlight(event.pKurama[it],
-                                   event.path[it],
-                                   pdg::KaonMass());
-    event.tTofCalc[Event::Proton] =
-      Kinematics::CalcTimeOfFlight(event.pKurama[it],
-                                   event.path[it],
-                                   pdg::ProtonMass());
-    event.chisqrKurama[it] = src.chisqrKurama[it];
+    if(it == 0){
+      event.tTofCalc[Event::Pion] =
+        Kinematics::CalcTimeOfFlight(event.pKurama[it],
+                                     event.path[it],
+                                     pdg::PionMass());
+      event.tTofCalc[Event::Kaon] =
+        Kinematics::CalcTimeOfFlight(event.pKurama[it],
+                                     event.path[it],
+                                     pdg::KaonMass());
+      event.tTofCalc[Event::Proton] =
+        Kinematics::CalcTimeOfFlight(event.pKurama[it],
+                                     event.path[it],
+                                     pdg::ProtonMass());
+    }
 
-    HF1(10, event.pKurama[it]);
-    for(int itof=0; itof<src.nhTof; ++itof){
-      event.csTof[itof]  = src.csTof[itof];
-      event.TofSeg[itof] = src.TofSeg[itof];
-      event.tTof[itof]   = src.tTof[itof];
-      event.dtTof[itof]  = src.dtTof[itof];
-      event.deTof[itof]  = src.deTof[itof];
-      int tofseg = (int)src.TofSeg[itof];
-      HF1(20000+tofseg*100, src.dtTof[itof]);
+    HF1(10, pKurama);
+    for(Int_t itof=0; itof<src.nhTof; ++itof){
+      Int_t tofseg = (Int_t)event.TofSeg[itof];
 
       ////////// TimeCut
-      double stof = event.tTof[itof] - time0 + StofOffset;
-      double cstof = -9999.;
+      Double_t stof = event.tTof[itof] - time0 + StofOffset;
+      Double_t cstof = qnan;
       gPHC.DoStofCorrection(8, 0, tofseg-1, 2, stof, btof, cstof);
-      double beta = event.path[it]/cstof/MathTools::C();
+      Double_t beta = event.path[it]/cstof/MathTools::C();
       event.beta[mm] = beta;
       event.stof[mm] = stof;// - event.tTofCalc[0];
       event.cstof[mm]= cstof;
-      event.m2[mm]   =
-        Kinematics::MassSquare(event.pKurama[it], event.path[it], cstof);
+      Double_t m2 = Kinematics::MassSquare(pKurama, event.path[it], cstof);
+      event.m2[mm] = m2;
 
 #if 0
       std::cout << "#D DebugPrint() Event : " << ievent << std::endl
 		<< std::setprecision(3) << std::fixed
-		<< "   pKurama : " << event.pKurama[it] << std::endl;
+		<< "   time0   : " << time0 << std::endl
+		<< "   offset  : " << StofOffset << std::endl
+		<< "   tTof    : " << event.tTof[itof] << std::endl
+		<< "   stof    : " << stof << std::endl
+		<< "   pKurama : " << pKurama << std::endl
+		<< "   m2      : " << m2 << std::endl;
 #endif
 
-      for(int ip=0; ip<Event::nParticle; ++ip){
-	HF2(10000+ip+1, tofseg, cstof-event.tTofCalc[ip]);
-	HF1(10000+tofseg*100+ip+1, cstof-event.tTofCalc[ip]);
+      Bool_t xy_ok = USE_XYCut
+        ? (TMath::Abs(xtgt) < 25. && TMath::Abs(ytgt) < 20.)
+        : true;
+      if(event.chisqrKurama[it] < 200.){
+        for(Int_t ip=0; ip<Event::nParticle; ++ip){
+          if(USE_M2){
+            if(ip == Event::Pion && m2 > 0.2) continue;
+            if(ip == Event::Proton && (m2 < 0.5 || !xy_ok)) continue;
+          }
+          HF2(10000+ip+1, tofseg-1, cstof-event.tTofCalc[ip]);
+          HF1(10000+tofseg*100+ip+1, cstof-event.tTofCalc[ip]);
+        }
+        HF1(11, event.m2[mm]);
+        HF1(12, beta);
+        HF1(14, stof);
+        HF2(20, event.m2[mm], pKurama);
       }
-
-      HF1(11, event.m2[mm]);
-      HF2(20, event.m2[mm], event.pKurama[it]);
-
       ++mm;
     }
   }
@@ -462,8 +537,7 @@ dst::DstClose()
   std::cout << "#D Close : " << TFileCont[kOutFile]->GetName() << std::endl;
   TFileCont[kOutFile]->Close();
 
-  const std::size_t n = TFileCont.size();
-  for(std::size_t i=0; i<n; ++i){
+  for(Int_t i=0, n=TFileCont.size(); i<n; ++i){
     if(TTreeCont[i]) delete TTreeCont[i];
     if(TFileCont[i]) delete TFileCont[i];
   }
@@ -478,26 +552,29 @@ ConfMan::InitializeHistograms()
 
   TString name[Event::nParticle] = { "Pion", "Kaon", "Proton" };
 
-  for(int ip=0; ip<Event::nParticle; ++ip){
+  for(Int_t ip=0; ip<Event::nParticle; ++ip){
     HB2(10000+ip+1,
         Form("TofTime-%sTime %% TofSeg", name[ip].Data()),
-        NumOfSegTOF, 0., (double)NumOfSegTOF, 500, -25., 25.);
+        NumOfSegTOF, 0., (Double_t)NumOfSegTOF, 500, -25., 25.);
   }
-  for(int i=0; i<NumOfSegTOF; ++i){
-    for(int ip=0; ip<Event::nParticle; ++ip){
+  HB2(20001, "Tof TimeDiff U-D",
+      NumOfSegTOF, 0., (Double_t)NumOfSegTOF, 500, -25., 25.);
+  for(Int_t i=0; i<NumOfSegTOF; ++i){
+    for(Int_t ip=0; ip<Event::nParticle; ++ip){
       HB1(10000+(i+1)*100+ip+1,
           Form("Tof-%d TofTime-%sTime", i+1, name[ip].Data()),
           500, -25., 25.);
     }
-
-    HB1(20000+(i+1)*100, Form("Tof TimeDiff U-D %d", i+1),
+    HB1(20000+(i+1)*100+1, Form("Tof TimeDiff U-D %d", i+1),
         500, -25., 25.);
-
   }
   HB1(10, "pKurama",    280,  0.0, 2.8);
   HB1(11, "MassSquare", 180, -0.4, 1.4);
+  HB1(12, "beta", 500, 0., 1.);
+  HB1(13, "path", 500, 3000., 8000.);
+  HB1(14, "stof", 500, 0., 100.);
   HB2(20, "pKurama % MassSquare", 180, -0.4, 1.4, 280, 0.0, 2.8);
-  // for(int i=0;i<NumOfSegBH2;++i){
+  // for(Int_t i=0;i<NumOfSegBH2;++i){
   //   HB1(100+i, Form("m2[BH2 Seg.%d]", i+1),
   // 	 600, -0.2, 1.2);
   // }
@@ -506,6 +583,13 @@ ConfMan::InitializeHistograms()
   tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
   tree->Branch("trigpat",    event.trigpat,   Form("trigpat[%d]/I", NumOfSegTrig));
   tree->Branch("status",     &event.status,      "status/I");
+  tree->Branch("ntSdcOut", &event.ntSdcOut,  "ntSdcOut/I");
+  tree->Branch("chisqrSdcOut", event.chisqrSdcOut, "chisqrSdcOut[ntSdcOut]/D");
+  tree->Branch("x0SdcOut", event.x0SdcOut, "x0SdcOut[ntSdcOut]/D");
+  tree->Branch("y0SdcOut", event.y0SdcOut, "y0SdcOut[ntSdcOut]/D");
+  tree->Branch("u0SdcOut", event.u0SdcOut, "u0SdcOut[ntSdcOut]/D");
+  tree->Branch("v0SdcOut", event.v0SdcOut, "v0SdcOut[ntSdcOut]/D");
+
   tree->Branch("ntKurama", &event.ntKurama,  "ntKurama/I");
   tree->Branch("path",      event.path,      "path[ntKurama]/D");
   tree->Branch("pKurama",   event.pKurama,   "pKurama[ntKurama]/D");
@@ -613,6 +697,12 @@ ConfMan::InitializeHistograms()
   TTreeCont[kHodoscope]->SetBranchAddress("deTime0",  &src.deTime0);
 
   TTreeCont[kKuramaTracking]->SetBranchStatus("*",      0);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("ntSdcOut", 1);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("chisqrSdcOut", 1);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("x0SdcOut", 1);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("y0SdcOut", 1);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("u0SdcOut", 1);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("v0SdcOut", 1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("ntKurama",     1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("path",         1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("pKurama",      1);
@@ -626,6 +716,12 @@ ConfMan::InitializeHistograms()
   TTreeCont[kKuramaTracking]->SetBranchStatus("vpx",          1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("vpy",          1);
 
+  TTreeCont[kKuramaTracking]->SetBranchAddress("ntSdcOut", &src.ntSdcOut);
+  TTreeCont[kKuramaTracking]->SetBranchAddress("chisqrSdcOut", src.chisqrSdcOut);
+  TTreeCont[kKuramaTracking]->SetBranchAddress("x0SdcOut", src.x0SdcOut);
+  TTreeCont[kKuramaTracking]->SetBranchAddress("y0SdcOut", src.y0SdcOut);
+  TTreeCont[kKuramaTracking]->SetBranchAddress("u0SdcOut", src.u0SdcOut);
+  TTreeCont[kKuramaTracking]->SetBranchAddress("v0SdcOut", src.v0SdcOut);
   TTreeCont[kKuramaTracking]->SetBranchAddress("ntKurama", &src.ntKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("path",     src.path);
   TTreeCont[kKuramaTracking]->SetBranchAddress("pKurama",  src.pKurama);

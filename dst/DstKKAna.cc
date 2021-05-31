@@ -50,7 +50,7 @@ ClassName()
 }
 
 //_________________________________________________________
-Double_t
+[[maybe_unused]] Double_t
 CalcCutLineByTOF(Double_t M, Double_t mom)
 {
   const Double_t K  = 0.307075;//cosfficient [MeV cm^2/g]
@@ -614,10 +614,7 @@ dst::DstOpen(std::vector<std::string> arg)
 bool
 dst::DstRead(Int_t ievent)
 {
-  static const auto StofOffset =
-    Kinematics::CalcTimeOfFlight(ConfMan::Get<Double_t>("PK18"),
-                                 gGeom.LocalZ("K18Target")-gGeom.LocalZ("BH2"),
-                                 pdg::KaonMass());
+  static const auto StofOffset = gUser.GetParameter("StofOffset");
   static const auto KaonMass    = pdg::KaonMass();
   // static const auto PionMass    = pdg::PionMass();
   static const auto ProtonMass  = pdg::ProtonMass();
@@ -790,8 +787,8 @@ dst::DstRead(Int_t ievent)
     Double_t y = src.ytgtKurama[itKurama];
     Double_t u = src.utgtKurama[itKurama];
     Double_t v = src.vtgtKurama[itKurama];
-    Double_t utof =src.utofKurama[itKurama];
-    Double_t vtof =src.vtofKurama[itKurama];
+    // Double_t utof = src.utofKurama[itKurama];
+    // Double_t vtof = src.vtofKurama[itKurama];
     Double_t theta = src.thetaKurama[itKurama];
     Double_t pt = p/TMath::Sqrt(1.+u*u+v*v);
     ThreeVector Pos(x, y, 0.);

@@ -2124,8 +2124,8 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
     Bool_t hough_flag = true;
     for(Int_t i=0; i<hough_x.size(); ++i){
       Int_t bindiff = fabs(mx-hough_x[i])+fabs(my-hough_y[i]);
-      //      if(bindiff<=4)
-      if(bindiff<=8)
+      if(bindiff<=4)
+      //if(bindiff<=8)
         hough_flag = false;
     }
     hough_x.push_back(mx);

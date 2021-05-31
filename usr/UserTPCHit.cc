@@ -209,6 +209,20 @@ UserTPCHit::ProcessingNormal()
   event.evnum  = event_number;
 
   rawData->DecodeHits();
+  event.trigpat.resize(NumOfSegTrig);
+  event.trigflag.resize(NumOfSegTrig);
+  std::bitset<NumOfSegTrig> trigger_flag;
+  for(const auto& hit: rawData->GetTrigRawHC()){
+    Int_t seg = hit->SegmentId();
+    Int_t tdc = hit->GetTdc1();
+    if(tdc > 0){
+      event.trigpat[trigger_flag.count()] = seg;
+      event.trigflag[seg] = tdc;
+      trigger_flag.set(seg);
+    }
+  }
+  
+  if(trigger_flag[trigger::kSpillEnd]) return true;
 
   ///// HTOF Raw data
   {
