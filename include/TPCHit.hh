@@ -51,6 +51,7 @@ protected:
   Int_t                 m_is_good;
   Int_t                 m_is_calculated;
   Int_t                 m_hough_flag;
+  Int_t                 m_houghY_num;
 
   ///// for TPC(MWPC)
   Double_t m_mrow;
@@ -108,6 +109,7 @@ public:
   Double_t        GetMRow() const { return m_mrow; }
   Bool_t          GetTPCFlag() const { return m_tpc_flag; }
   Int_t           GetClusterSize() const { return m_clsize; }
+  Int_t           GetHoughY_num() const { return m_houghY_num; }
   Double_t        GetResolutionX();
   Double_t        GetResolutionY();
   Double_t        GetResolutionZ();
@@ -140,6 +142,7 @@ public:
   void            SetResZ(Double_t resz) { m_resz = resz; }
   void            SetRes(Double_t res) { m_res = res; }
   void            SetHoughFlag(Int_t hough_flag) { m_hough_flag = hough_flag; }
+  void            SetHoughYnum(Int_t houghY_num) { m_houghY_num = houghY_num; }
 
 protected:
   void ClearRegisteredHits();

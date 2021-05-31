@@ -532,15 +532,17 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
   // y = p0 + p1 * x
   Double_t p0[MaxNumOfTrackTPC];
   Double_t p1[MaxNumOfTrackTPC];
-  const Int_t    Li_theta_ndiv = 200;
-  //const Int_t    Li_theta_ndiv = 400;
+  //const Int_t    Li_theta_ndiv = 200;
+  //const Int_t    Li_theta_ndiv = 180;
+  const Int_t    Li_theta_ndiv = 360;
   const Double_t Li_theta_min  =   0;
   const Double_t Li_theta_max  = 180;
   // const Int_t    Li_r_ndiv =  200;
   // const Double_t Li_r_min  = -600;
   // const Double_t Li_r_max  =  600;
-  const Int_t    Li_r_ndiv =  400;
-  //const Int_t    Li_r_ndiv =  800;
+  //const Int_t    Li_r_ndiv =  400;
+  //const Int_t    Li_r_ndiv =  600;
+  const Int_t    Li_r_ndiv =  1200;
   const Double_t Li_r_min  = -900;
   const Double_t Li_r_max  =  900;
 
@@ -561,6 +563,8 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
 
   std::vector<Double_t> hough_x;
   std::vector<Double_t> hough_y;
+
+  
 
   for(Int_t tracki=0; tracki<MaxNumOfTrackTPC; tracki++){
     // std::cout<<"tracki= "<<tracki<<std::endl;
@@ -619,14 +623,16 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
 	Double_t dist = fabs(p1[tracki]*pos.Z()-pos.Y()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
 	//std::cout<<"dist= "<<dist<<", y_tgt= "<<y_tgt<<", v="<<p1[tracki]<<std::endl;
 	//	if(dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
-	if(dist < HoughWindowCut*3. && hit->GetClusterSize()>=ClusterSizeCut){
+	if(dist < HoughWindowCut*4. && hit->GetClusterSize()>=ClusterSizeCut){
 	  if(min_y<y_tgt&&y_tgt<max_y){
 	    ValidCand[layer].push_back(hit);
+	    hit->SetHoughYnum(tracki+1);
 	    //std::cout<<"surv tgt"<<std::endl;
 	  }
 	  //else if(fabs(p1[tracki])>0.015){
-	  else if(fabs(p1[tracki])>0.15){
+	  else if(fabs(p1[tracki])>0.1){
 	    ValidCand[layer].push_back(hit);
+	    hit->SetHoughYnum(tracki+1);
 	    //std::cout<<"surv v"<<std::endl;
 	  }
 	  else{

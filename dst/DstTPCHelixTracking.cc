@@ -50,8 +50,8 @@ namespace
   //const double max_ycut = 15.;//mm
   // const double min_ycut = -50.;//mm
   // const double max_ycut = 50.;//mm
-  const double min_ycut = -30.;//mm
-  const double max_ycut = 30.;//mm
+  const double min_ycut = -40.;//mm
+  const double max_ycut = 40.;//mm
 }
 
 namespace dst
@@ -325,6 +325,7 @@ Bool_t
 dst::DstRead( int ievent )
 {
   if( ievent%100==0 ){
+  //if( ievent%10==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }

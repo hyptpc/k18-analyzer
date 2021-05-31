@@ -56,15 +56,17 @@ namespace
   const double& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
   const double& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
 
-  const int ReservedNumOfHits  = 32*4;
+  const int ReservedNumOfHits  = 32*10;
   const HodoParamMan& gHodo = HodoParamMan::GetInstance();
 
   //cx, cy, z0, r, dz
   static const double  FitStep[5] = { 1.0e-4, 1.0e-4, 1.0e-4, 1.0e-4, 1.0e-5 };
   // static const double  LowLimit[5] = { -7000., -7000., -7000., 0., -10. };
   // static const double  UpLimit[5] = { 7000., 7000., 7000., 7000., 10. };
-  static const double  LowLimit[5] = { -20000., -20000., -7000., 0., -10. };
-  static const double  UpLimit[5] = { 20000., 20000., 7000., 20000., 10. };
+  // static const double  LowLimit[5] = { -20000., -20000., -7000., 0., -10. };
+  // static const double  UpLimit[5] = { 20000., 20000., 7000., 20000., 10. };
+  static const double  LowLimit[5] = { -40000., -40000., -7000., 0., -10. };
+  static const double  UpLimit[5] = { 40000., 40000., 7000., 40000., 10. };
   //rdiff, theta, z0, r, dz
   static const double  FitStep2[5] = { 1.0e-4, 1.0e-5, 1.0e-4, 1.0e-4, 1.0e-5 };
   static const double  LowLimit2[5] = { -200., -acos(-1), -7000., 0., -10. };
@@ -483,8 +485,10 @@ TPCLocalTrack_Helix::DoFit( int MinHits)
   bool status_dofit =  DoHelixFit(MinHits);
   m_is_fitted = status_dofit;
   //  m_is_fitted = true;
-
-  return status_dofit;
+  if(m_chisqr<MaxChisqr)
+    return status_dofit;
+  else
+    return false;
 }
 
 
@@ -512,9 +516,11 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
     return false;
   }
 
-  if(n>ReservedNumOfHits)
+  if(n>ReservedNumOfHits){
+    hddaq::cerr << "#W " << func_name << " "
+		<< "n > ReservedNumOfHits" << std::endl;
     return false;
-  
+  }  
   gNumOfHits = n;
   gHitPos.clear();
   gRes.clear();
