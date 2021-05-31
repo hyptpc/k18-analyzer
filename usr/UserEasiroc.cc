@@ -106,6 +106,7 @@ struct Event
   Double_t bft_ctime[NumOfSegBFT];
   Double_t bft_ctot[NumOfSegBFT];
   Double_t bft_clpos[NumOfSegBFT];
+  Double_t bft_clseg[NumOfSegBFT];
   // SCH
   Int_t    sch_nhits;
   Int_t    sch_hitpat[NumOfSegSCH];
@@ -118,6 +119,7 @@ struct Event
   Double_t sch_ctime[NumOfSegSCH];
   Double_t sch_ctot[NumOfSegSCH];
   Double_t sch_clpos[NumOfSegSCH];
+  Double_t sch_clseg[NumOfSegSCH];
 
   void clear();
 };
@@ -156,6 +158,7 @@ Event::clear()
     bft_ctime[it]  = qnan;
     bft_ctot[it]   = qnan;
     bft_clpos[it]  = qnan;
+    bft_clseg[it]  = qnan;
   }
 
   for(Int_t it=0; it<NumOfSegSCH; it++){
@@ -170,6 +173,7 @@ Event::clear()
     sch_ctime[it]  = qnan;
     sch_ctot[it]   = qnan;
     sch_clpos[it]  = qnan;
+    sch_clseg[it]  = qnan;
   }
 }
 
@@ -415,10 +419,12 @@ UserEasiroc::ProcessingNormal()
       Double_t ctime  = cl->CMeanTime();
       Double_t ctot   = cl->Width();
       Double_t pos    = cl->MeanPosition();
+      Double_t seg    = cl->MeanSeg();
       event.bft_clsize[i] = clsize;
       event.bft_ctime[i]  = ctime;
       event.bft_ctot[i]   = ctot;
       event.bft_clpos[i]  = pos;
+      event.bft_clseg[i]  = seg;
       HF1(BFTHid +102, clsize);
       HF1(BFTHid +103, ctime);
       HF1(BFTHid +104, ctot);
@@ -513,10 +519,12 @@ UserEasiroc::ProcessingNormal()
       Double_t ctime  = cl->CMeanTime();
       Double_t ctot   = cl->Width();
       Double_t pos    = cl->MeanPosition();
+      Double_t seg    = cl->MeanSeg();
       event.sch_clsize[i] = clsize;
       event.sch_ctime[i]  = ctime;
       event.sch_ctot[i]   = ctot;
       event.sch_clpos[i]  = pos;
+      event.sch_clseg[i]  = seg;
       HF1(SCHHid +102, clsize);
       HF1(SCHHid +103, ctime);
       HF1(SCHHid +104, ctot);
@@ -682,6 +690,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("bft_ctime",      event.bft_ctime,        "bft_ctime[bft_ncl]/D");
   tree->Branch("bft_ctot",       event.bft_ctot,         "bft_ctot[bft_ncl]/D");
   tree->Branch("bft_clpos",      event.bft_clpos,        "bft_clpos[bft_ncl]/D");
+  tree->Branch("bft_clseg",      event.bft_clseg,        "bft_clseg[bft_ncl]/D");
 
   //SCH
 #if FHitBranch
@@ -700,6 +709,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("sch_ctime",      event.sch_ctime,        "sch_ctime[sch_ncl]/D");
   tree->Branch("sch_ctot",       event.sch_ctot,         "sch_ctot[sch_ncl]/D");
   tree->Branch("sch_clpos",      event.sch_clpos,        "sch_clpos[sch_ncl]/D");
+  tree->Branch("sch_clseg",      event.sch_clseg,        "sch_clseg[sch_ncl]/D");
 
   HPrint();
   return true;

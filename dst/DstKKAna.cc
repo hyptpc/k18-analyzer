@@ -306,13 +306,14 @@ struct Src
   Double_t tBft[NumOfSegBFT];
   Double_t wBft[NumOfSegBFT];
   Double_t BftPos[NumOfSegBFT];
+  Double_t BftSeg[NumOfSegBFT];
   Int_t    nhSch;
   // Int_t    sch_hitpat[NumOfSegSCH];
   Int_t    csSch[NumOfSegSCH];
   Double_t tSch[NumOfSegSCH];
   Double_t wSch[NumOfSegSCH];
   Double_t SchPos[NumOfSegSCH];
-  Int_t    nhFbh;
+  Double_t SchSeg[NumOfSegSCH];
 
   //DC Beam
   Int_t ntBcOut;
@@ -467,16 +468,18 @@ dst::InitializeEvent()
   event.nhBft = 0;
   event.nhSch = 0;
   for(Int_t it=0; it<NumOfSegBFT; it++){
-    event.csBft[it] = -999;
-    event.tBft[it]  = -999.;
-    event.wBft[it]   = -999.;
-    event.BftPos[it]  = -999.;
+    event.csBft[it] = 0;
+    event.tBft[it] = qnan;
+    event.wBft[it] = qnan;
+    event.BftPos[it] = qnan;
+    event.BftSeg[it] = qnan;
   }
   for(Int_t it=0; it<NumOfSegSCH; it++){
-    event.csSch[it] = -999;
-    event.tSch[it]  = -999.;
-    event.wSch[it]   = -999.;
-    event.SchPos[it]  = -999.;
+    event.csSch[it] = 0;
+    event.tSch[it] = qnan;
+    event.wSch[it] = qnan;
+    event.SchPos[it] = qnan;
+    event.SchSeg[it] = qnan;
   }
 
   //DC
@@ -703,6 +706,7 @@ dst::DstRead(Int_t ievent)
     event.tBft[i]   = src.tBft[i];
     event.wBft[i]   = src.wBft[i];
     event.BftPos[i] = src.BftPos[i];
+    event.BftSeg[i] = src.BftSeg[i];
   }
 
   // BH1
@@ -734,6 +738,7 @@ dst::DstRead(Int_t ievent)
     event.tSch[i]   = src.tSch[i];
     event.wSch[i]   = src.wSch[i];
     event.SchPos[i] = src.SchPos[i];
+    event.SchSeg[i] = src.SchSeg[i];
   }
 
   // TOF
@@ -973,7 +978,7 @@ dst::DstRead(Int_t ievent)
       Double_t us = pkp.x()/pkp.z(), vs = pkp.y()/pkp.z();
       Double_t ub = pkm.x()/pkm.z(), vb = pkm.y()/pkm.z();
       Double_t cost = pkm*pkp/(pkm.Mag()*pkp.Mag());
-
+      Double_t theta = TMath::ACos(cost)*TMath::RadToDeg();
       Double_t pk0   = pkp.Mag();
       Double_t pCorr = pk0;
 
@@ -1040,7 +1045,7 @@ dst::DstRead(Int_t ievent)
 	event.vty[nkk]=vert.y();
 	event.vtz[nkk]=vert.z();
 	event.closeDist[nkk] = closedist;
-	event.theta[nkk]     = TMath::ACos(cost)*TMath::RadToDeg();
+	event.theta[nkk]     = theta;
 	event.thetaCM[nkk]   = TMath::ACos(costCM)*TMath::RadToDeg();
 	event.costCM[nkk]    = costCM;
 
@@ -1075,6 +1080,36 @@ dst::DstRead(Int_t ievent)
       HF2(5012, MisMass, vs);
       HF2(5013, MisMass, ub);
       HF2(5014, MisMass, vb);
+
+      ///// Matrix
+      if(event.chisqrKurama[ikp] < 200
+         && event.nhTof == 1
+         && event.nhSch == 1
+         && event.nKK == 1
+         && TMath::Abs(vert.x()) < 25
+         && TMath::Abs(vert.y()) < 20
+         && TMath::Abs(vert.z()+50) < 100){
+        for(Int_t isch=0; isch<nhSch; ++isch){
+          for(Int_t itof=0; itof<nhTof; ++itof){
+            HF2(501, event.SchSeg[isch]-1, event.TofSeg[itof]-1);
+            if(event.qKurama[ikp] > 0){
+              if(event.m2[ikp] < 0.12){
+                HF2(502, event.SchSeg[isch]-1, event.TofSeg[itof]-1);
+              }
+              if(event.pKurama[ikp] < 1.4
+                 && event.m2[ikp]*5.5 > event.pKurama[ikp]
+                 && event.m2[ikp] < 0.45){
+                HF2(503, event.SchSeg[isch]-1, event.TofSeg[itof]-1);
+              }
+              if(event.pKurama[ikp] > 1.8
+                 && event.m2[ikp] > 0.5
+                 && theta < 10.){
+                HF2(504, event.SchSeg[isch]-1, event.TofSeg[itof]-1);
+              }
+            }
+          }
+        }
+      }
     }
   }
 
@@ -1183,7 +1218,11 @@ ConfMan::InitializeHistograms()
   HB1(353, "HitPat Tof [kk]", 32, 0., 32.);
   HB1(354, "TimeOfFlight Tof [kk]", 500, -50., 100.);
   HB1(355, "Delta-E Tof [kk]", 200, -0.5, 4.5);
-  HB2(501, "SegLC%SegTOF", 32, 0., 32., 28, 0., 28.);
+
+  HB2(501, "HitPat TOF%SCH [All]", NumOfSegSCH, 0., NumOfSegSCH, NumOfSegTOF, 0., NumOfSegTOF);
+  HB2(502, "HitPat TOF%SCH [Pion]", NumOfSegSCH, 0., NumOfSegSCH, NumOfSegTOF, 0., NumOfSegTOF);
+  HB2(503, "HitPat TOF%SCH [Kaon]", NumOfSegSCH, 0., NumOfSegSCH, NumOfSegTOF, 0., NumOfSegTOF);
+  HB2(504, "HitPat TOF%SCH [Proton]", NumOfSegSCH, 0., NumOfSegSCH, NumOfSegTOF, 0., NumOfSegTOF);
 
   HB1(1001, "#Tracks SdcIn", 10, 0., 10.);
   HB1(1002, "#Hits SdcIn", 20, 0., 20.);
@@ -1346,11 +1385,13 @@ ConfMan::InitializeHistograms()
   tree->Branch("tBft",    event.tBft,   "tBft[nhBft]/D");
   tree->Branch("wBft",    event.wBft,   "wBft[nhBft]/D");
   tree->Branch("BftPos",  event.BftPos, "BftPos[nhBft]/D");
+  tree->Branch("BftSeg",  event.BftSeg, "BftSeg[nhBft]/D");
   tree->Branch("nhSch",  &event.nhSch,  "nhSch/I");
   tree->Branch("csSch",   event.csSch,  "csSch[nhSch]/I");
   tree->Branch("tSch",    event.tSch,   "tSch[nhSch]/D");
   tree->Branch("wSch",    event.wSch,   "wSch[nhSch]/D");
   tree->Branch("SchPos",  event.SchPos, "SchPos[nhSch]/D");
+  tree->Branch("SchSeg",  event.SchSeg, "SchSeg[nhSch]/D");
 
   //Beam DC
   tree->Branch("nlBcOut",   &event.nlBcOut,     "nlBcOut/I");
@@ -1614,28 +1655,31 @@ ConfMan::InitializeHistograms()
   TTreeCont[kK18Tracking]->SetBranchAddress("utgtK18", &src.utgtK18);
   TTreeCont[kK18Tracking]->SetBranchAddress("vtgtK18", &src.vtgtK18);
 
-  TTreeCont[kEasiroc]->SetBranchStatus("*",    0);
+  TTreeCont[kEasiroc]->SetBranchStatus("*", 0);
   TTreeCont[kEasiroc]->SetBranchStatus("bft_ncl",    1);
   TTreeCont[kEasiroc]->SetBranchStatus("bft_clsize", 1);
   TTreeCont[kEasiroc]->SetBranchStatus("bft_ctime",  1);
   TTreeCont[kEasiroc]->SetBranchStatus("bft_ctot",   1);
   TTreeCont[kEasiroc]->SetBranchStatus("bft_clpos",  1);
+  TTreeCont[kEasiroc]->SetBranchStatus("bft_clseg",  1);
   TTreeCont[kEasiroc]->SetBranchStatus("sch_ncl",    1);
   TTreeCont[kEasiroc]->SetBranchStatus("sch_clsize", 1);
   TTreeCont[kEasiroc]->SetBranchStatus("sch_ctime",  1);
   TTreeCont[kEasiroc]->SetBranchStatus("sch_ctot",   1);
   TTreeCont[kEasiroc]->SetBranchStatus("sch_clpos",  1);
+  TTreeCont[kEasiroc]->SetBranchStatus("sch_clseg",  1);
 
   TTreeCont[kEasiroc]->SetBranchAddress("bft_ncl",    &src.nhBft);
   TTreeCont[kEasiroc]->SetBranchAddress("bft_clsize", &src.csBft);
   TTreeCont[kEasiroc]->SetBranchAddress("bft_ctime",  &src.tBft);
   TTreeCont[kEasiroc]->SetBranchAddress("bft_ctot",   &src.wBft);
   TTreeCont[kEasiroc]->SetBranchAddress("bft_clpos",  &src.BftPos);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_clseg",  &src.BftSeg);
   TTreeCont[kEasiroc]->SetBranchAddress("sch_ncl",    &src.nhSch);
   TTreeCont[kEasiroc]->SetBranchAddress("sch_clsize", &src.csSch);
   TTreeCont[kEasiroc]->SetBranchAddress("sch_ctime",  &src.tSch);
   TTreeCont[kEasiroc]->SetBranchAddress("sch_ctot",   &src.wSch);
-  TTreeCont[kEasiroc]->SetBranchAddress("sch_clpos",  &src.SchPos);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_clseg",  &src.SchSeg);
 
   return true;
 }

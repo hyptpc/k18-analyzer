@@ -105,6 +105,8 @@ struct Event
   Double_t t0Bh2[NumOfSegBH2*MaxDepth];
   Double_t deBh2[NumOfSegBH2*MaxDepth];
 
+  Double_t Time0Seg;
+
   Int_t nhTof;
   Int_t csTof[NumOfSegTOF];
   Double_t TofSeg[NumOfSegTOF];
@@ -121,14 +123,14 @@ struct Event
   Double_t cstof[MaxHits];
   Double_t m2[MaxHits];
 
-  enum eParticle { Pion, Kaon, Proton, nParticle };
-  Double_t tTofCalc[nParticle];
-  Double_t utTofSeg[NumOfSegTOF];
-  Double_t dtTofSeg[NumOfSegTOF];
-  Double_t udeTofSeg[NumOfSegTOF];
-  Double_t ddeTofSeg[NumOfSegTOF];
   Double_t tofua[NumOfSegTOF];
   Double_t tofda[NumOfSegTOF];
+  enum eParticle { Pion, Kaon, Proton, nParticle };
+  Double_t tTofCalc[nParticle];
+  Double_t utTofSeg[NumOfSegTOF][MaxDepth];
+  Double_t dtTofSeg[NumOfSegTOF][MaxDepth];
+  Double_t udeTofSeg[NumOfSegTOF];
+  Double_t ddeTofSeg[NumOfSegTOF];
 
 };
 
@@ -186,8 +188,10 @@ struct Src
   Double_t deTof[NumOfSegTOF];
 
   ////////// for HodoParam
-  Double_t utTofSeg[NumOfSegTOF];
-  Double_t dtTofSeg[NumOfSegTOF];
+  Double_t tofua[NumOfSegTOF];
+  Double_t tofda[NumOfSegTOF];
+  Double_t utTofSeg[NumOfSegTOF][MaxDepth];
+  Double_t dtTofSeg[NumOfSegTOF][MaxDepth];
   Double_t udeTofSeg[NumOfSegTOF];
   Double_t ddeTofSeg[NumOfSegTOF];
 
@@ -250,6 +254,7 @@ dst::InitializeEvent()
   event.nhBh2    = 0;
   event.nhTof    = 0;
   event.m2Combi  = 0;
+  event.Time0Seg = qnan;
 
   for(Int_t i=0; i<NumOfSegTrig; ++i){
     event.trigflag[i] = -1;
@@ -306,6 +311,18 @@ dst::InitializeEvent()
     event.tTof[i]   = qnan;
     event.dtTof[i]  = qnan;
     event.deTof[i]  = qnan;
+    event.tofua[i] = qnan;
+    event.tofda[i] = qnan;
+    for(Int_t m=0; m<MaxDepth; ++m){
+      event.utTofSeg[i][m] = qnan;
+      event.dtTofSeg[i][m] = qnan;
+    }
+    event.udeTofSeg[i] = qnan;
+    event.ddeTofSeg[i] = qnan;
+  }
+
+  for(Int_t i=0; i<Event::nParticle; ++i){
+    event.tTofCalc[i] = qnan;
   }
 
   for(Int_t i=0; i<MaxHits; ++i){
@@ -397,15 +414,16 @@ dst::DstRead(Int_t ievent)
     event.t0Bh2[i]  = src.t0Bh2[i];
     event.deBh2[i]  = src.deBh2[i];
   }
+  event.Time0Seg = src.Time0Seg;
 
   ////////// for BeamTof
-  Double_t btof = qnan;
+  // Double_t btof = qnan;
   for(Int_t i=0; i<src.nhBh1; ++i){
     event.Bh1Seg[i] = src.Bh1Seg[i];
     event.tBh1[i]   = src.tBh1[i];
     event.deBh1[i]  = src.deBh1[i];
     event.btof[i]   = src.tBh1[i] - time0;
-    if(i==0) btof = src.tBh1[i] - time0;
+    // if(i==0) btof = src.tBh1[i] - time0;
   }
 
   for(Int_t it=0; it<src.ntSdcOut; ++it){
@@ -430,6 +448,16 @@ dst::DstRead(Int_t ievent)
       HF2(20000+1, seg-1, event.dtTof[it]);
     }
   }
+  for(Int_t it=0; it<NumOfSegTOF; ++it){
+    event.tofua[it] = src.tofua[it];
+    event.tofda[it] = src.tofda[it];
+    for(Int_t m=0; m<MaxDepth; ++m){
+      event.utTofSeg[it][m] = src.utTofSeg[it][m];
+      event.dtTofSeg[it][m] = src.dtTofSeg[it][m];
+    }
+    event.udeTofSeg[it] = src.udeTofSeg[it];
+    event.ddeTofSeg[it] = src.ddeTofSeg[it];
+  }
 
   Int_t m2Combi = event.nhTof*event.ntKurama;
   if(m2Combi>MaxHits || m2Combi<0){
@@ -453,7 +481,9 @@ dst::DstRead(Int_t ievent)
     Double_t xtgt = event.xtgtKurama[it];
     Double_t ytgt = event.ytgtKurama[it];
     Double_t pKurama = event.pKurama[it];
+    Double_t qKurama = event.qKurama[it];
     if(event.chisqrKurama[it] < 200){
+      HF1(10, pKurama);
       HF1(13, event.path[it]);
     }
     if(src.ntKurama == 1){
@@ -477,18 +507,17 @@ dst::DstRead(Int_t ievent)
                                      pdg::ProtonMass());
     }
 
-    HF1(10, pKurama);
     for(Int_t itof=0; itof<src.nhTof; ++itof){
       Int_t tofseg = (Int_t)event.TofSeg[itof];
 
       ////////// TimeCut
       Double_t stof = event.tTof[itof] - time0 + StofOffset;
-      Double_t cstof = qnan;
-      gPHC.DoStofCorrection(8, 0, tofseg-1, 2, stof, btof, cstof);
+      Double_t cstof = stof;
+      // gPHC.DoStofCorrection(8, 0, tofseg-1, 2, stof, btof, cstof);
       Double_t beta = event.path[it]/cstof/MathTools::C();
       event.beta[mm] = beta;
       event.stof[mm] = stof;// - event.tTofCalc[0];
-      event.cstof[mm]= cstof;
+      event.cstof[mm] = cstof;
       Double_t m2 = Kinematics::MassSquare(pKurama, event.path[it], cstof);
       event.m2[mm] = m2;
 
@@ -506,7 +535,7 @@ dst::DstRead(Int_t ievent)
       Bool_t xy_ok = USE_XYCut
         ? (TMath::Abs(xtgt) < 25. && TMath::Abs(ytgt) < 20.)
         : true;
-      if(event.chisqrKurama[it] < 200.){
+      if(event.chisqrKurama[it] < 200. && xy_ok){
         for(Int_t ip=0; ip<Event::nParticle; ++ip){
           if(USE_M2){
             if(ip == Event::Pion && m2 > 0.2) continue;
@@ -514,11 +543,29 @@ dst::DstRead(Int_t ievent)
           }
           HF2(10000+ip+1, tofseg-1, cstof-event.tTofCalc[ip]);
           HF1(10000+tofseg*100+ip+1, cstof-event.tTofCalc[ip]);
+          HF1(30000+tofseg*100+ip+1, event.tofua[tofseg-1]);
+          HF1(30000+tofseg*100+ip+1+Event::nParticle, event.tofda[tofseg-1]);
+          if(TMath::Abs(event.dtTof[itof] < 0.1)){
+            for(Int_t mh=0; mh<MaxDepth; ++mh){
+              HF2(40000+tofseg*100+ip+1,
+                  event.udeTofSeg[tofseg-1],
+                  event.tTofCalc[ip] - (event.utTofSeg[tofseg-1][mh] - time0 + StofOffset));
+              HF2(40000+tofseg*100+ip+1+Event::nParticle,
+                  event.ddeTofSeg[tofseg-1],
+                  event.tTofCalc[ip] - (event.dtTofSeg[tofseg-1][mh] - time0 + StofOffset));
+            }
+          }
         }
-        HF1(11, event.m2[mm]);
+        HF1(11, qKurama*m2);
         HF1(12, beta);
         HF1(14, stof);
-        HF2(20, event.m2[mm], pKurama);
+        HF2(20, qKurama*m2, pKurama);
+        if(!TMath::IsNaN(event.Time0Seg)){
+          HF1(1100+(Int_t)event.Time0Seg, qKurama*m2);
+          HF2(1200+(Int_t)event.Time0Seg, qKurama*m2, pKurama);
+        }
+        HF1(2100+tofseg, qKurama*m2);
+        HF2(2200+tofseg, qKurama*m2, pKurama);
       }
       ++mm;
     }
@@ -548,10 +595,36 @@ dst::DstClose()
 bool
 ConfMan::InitializeHistograms()
 {
+  const Int_t NBinP = 220;
+  const Double_t MinP =   0;
+  const Double_t MaxP = 2.2;
+  const Int_t NBinM2 = 340;
+  const Double_t MinM2 = -1.4;
+  const Double_t MaxM2 =  2.0;
+
   HB1(1, "Status", 21, 0., 21.);
 
   TString name[Event::nParticle] = { "Pion", "Kaon", "Proton" };
 
+  HB1(10, "pKurama",    NBinP,  MinP, MaxP);
+  HB1(11, "ChargexMassSquare", NBinM2, MinM2, MaxM2);
+  HB1(12, "beta", 500, 0., 1.);
+  HB1(13, "path", 500, 3000., 8000.);
+  HB1(14, "stof", 500, 0., 100.);
+  HB2(20, "pKurama % ChargexMassSquare", NBinM2, MinM2, MaxM2, NBinP, MinP, MaxP);
+  for(Int_t i=0;i<NumOfSegBH2;++i){
+    HB1(1100+i+1, Form("ChargexMassSquare [BH2-%d]", i+1),
+        NBinM2, MinM2, MaxM2);
+    HB2(1200+i+1, Form("pKurama %% ChargexMassSquare [BH2-%d]", i+1),
+        NBinM2, MinM2, MaxM2, NBinP, MinP, MaxP);
+  }
+  for(Int_t i=0;i<NumOfSegTOF;++i){
+    HB1(2100+i+1, Form("ChargexMassSquare [TOF-%d]", i+1),
+        NBinM2, MinM2, MaxM2);
+    HB2(2200+i+1, Form("pKurama %% ChargexMassSquare [TOF-%d]", i+1),
+        NBinM2, MinM2, MaxM2, NBinP, MinP, MaxP);
+  }
+  // for TOF Param
   for(Int_t ip=0; ip<Event::nParticle; ++ip){
     HB2(10000+ip+1,
         Form("TofTime-%sTime %% TofSeg", name[ip].Data()),
@@ -564,20 +637,22 @@ ConfMan::InitializeHistograms()
       HB1(10000+(i+1)*100+ip+1,
           Form("Tof-%d TofTime-%sTime", i+1, name[ip].Data()),
           500, -25., 25.);
+      HB1(30000+(i+1)*100+ip+1,
+          Form("TOF ADC %d-U [%s]", i+1, name[ip].Data()),
+          4000, 0., 4000.);
+      HB1(30000+(i+1)*100+ip+1+Event::nParticle,
+          Form("TOF ADC %d-D [%s]", i+1, name[ip].Data()),
+          4000, 0., 4000.);
+      HB2(40000+(i+1)*100+ip+1,
+          Form("tCalc-Time %% TOF De %d-U [%s]", i+1, name[ip].Data()),
+          100, 0., 4., 100, -3., 3.);
+      HB2(40000+(i+1)*100+ip+1+Event::nParticle,
+          Form("tCalc-Time %% TOF De %d-D [%s]", i+1, name[ip].Data()),
+          100, 0., 4., 100, -3., 3.);
     }
     HB1(20000+(i+1)*100+1, Form("Tof TimeDiff U-D %d", i+1),
         500, -25., 25.);
   }
-  HB1(10, "pKurama",    280,  0.0, 2.8);
-  HB1(11, "MassSquare", 180, -0.4, 1.4);
-  HB1(12, "beta", 500, 0., 1.);
-  HB1(13, "path", 500, 3000., 8000.);
-  HB1(14, "stof", 500, 0., 100.);
-  HB2(20, "pKurama % MassSquare", 180, -0.4, 1.4, 280, 0.0, 2.8);
-  // for(Int_t i=0;i<NumOfSegBH2;++i){
-  //   HB1(100+i, Form("m2[BH2 Seg.%d]", i+1),
-  // 	 600, -0.2, 1.2);
-  // }
 
   HBTree("khodo", "tree of DstKuramaHodoscope");
   tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
@@ -620,6 +695,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("dtBh2",  event.dtBh2, "dtBh2[nhBh2]/D");
   tree->Branch("t0Bh2",  event.t0Bh2, "t0Bh2[nhBh2]/D");
   tree->Branch("deBh2",  event.deBh2, "deBh2[nhBh2]/D");
+  tree->Branch("Time0Seg", &event.Time0Seg, "Time0Seg/D");
 
   tree->Branch("nhTof",  &event.nhTof, "nhTof/I");
   tree->Branch("csTof",   event.csTof, "csTof[nhTof]/D");
@@ -627,6 +703,12 @@ ConfMan::InitializeHistograms()
   tree->Branch("tTof",    event.tTof,  "tTof[nhTof]/D");
   tree->Branch("dtTof",   event.dtTof, "dtTof[nhTof]/D");
   tree->Branch("deTof",   event.deTof, "deTof[nhTof]/D");
+  tree->Branch("tofua", event.tofua, Form("tofua[%d]/D", NumOfSegTOF));
+  tree->Branch("tofda", event.tofda, Form("tofda[%d]/D", NumOfSegTOF));
+  tree->Branch("utTofSeg", event.utTofSeg, Form("utTofSeg[%d][%d]/D", NumOfSegTOF, MaxDepth));
+  tree->Branch("dtTofSeg", event.dtTofSeg, Form("dtTofSeg[%d][%d]/D", NumOfSegTOF, MaxDepth));
+  tree->Branch("udeTofSeg", event.udeTofSeg, Form("udeTofSeg[%d]/D", NumOfSegTOF));
+  tree->Branch("ddeTofSeg", event.ddeTofSeg, Form("ddeTofSeg[%d]/D", NumOfSegTOF));
 
   tree->Branch("m2Combi", &event.m2Combi, "m2Combi/I");
   tree->Branch("beta",     event.beta,    "beta[m2Combi]/D");
@@ -657,6 +739,8 @@ ConfMan::InitializeHistograms()
   TTreeCont[kHodoscope]->SetBranchStatus("tTof",      1);
   TTreeCont[kHodoscope]->SetBranchStatus("dtTof",     1);
   TTreeCont[kHodoscope]->SetBranchStatus("deTof",     1);
+  TTreeCont[kHodoscope]->SetBranchStatus("tofua",     1);
+  TTreeCont[kHodoscope]->SetBranchStatus("tofda",     1);
   TTreeCont[kHodoscope]->SetBranchStatus("utTofSeg",  1);
   TTreeCont[kHodoscope]->SetBranchStatus("dtTofSeg",  1);
   TTreeCont[kHodoscope]->SetBranchStatus("udeTofSeg", 1);
@@ -687,14 +771,16 @@ ConfMan::InitializeHistograms()
   TTreeCont[kHodoscope]->SetBranchAddress("tTof",  src.tTof);
   TTreeCont[kHodoscope]->SetBranchAddress("dtTof", src.dtTof);
   TTreeCont[kHodoscope]->SetBranchAddress("deTof", src.deTof);
-  TTreeCont[kHodoscope]->SetBranchAddress("utTofSeg",  src.utTofSeg);
-  TTreeCont[kHodoscope]->SetBranchAddress("dtTofSeg",  src.dtTofSeg);
+  TTreeCont[kHodoscope]->SetBranchAddress("tofua", src.tofua);
+  TTreeCont[kHodoscope]->SetBranchAddress("tofda", src.tofda);
+  TTreeCont[kHodoscope]->SetBranchAddress("utTofSeg", src.utTofSeg);
+  TTreeCont[kHodoscope]->SetBranchAddress("dtTofSeg", src.dtTofSeg);
   TTreeCont[kHodoscope]->SetBranchAddress("udeTofSeg", src.udeTofSeg);
   TTreeCont[kHodoscope]->SetBranchAddress("ddeTofSeg", src.ddeTofSeg);
-  TTreeCont[kHodoscope]->SetBranchAddress("Time0",    &src.Time0);
-  TTreeCont[kHodoscope]->SetBranchAddress("CTime0",   &src.CTime0);
+  TTreeCont[kHodoscope]->SetBranchAddress("Time0", &src.Time0);
+  TTreeCont[kHodoscope]->SetBranchAddress("CTime0", &src.CTime0);
   TTreeCont[kHodoscope]->SetBranchAddress("Time0Seg", &src.Time0Seg);
-  TTreeCont[kHodoscope]->SetBranchAddress("deTime0",  &src.deTime0);
+  TTreeCont[kHodoscope]->SetBranchAddress("deTime0", &src.deTime0);
 
   TTreeCont[kKuramaTracking]->SetBranchStatus("*",      0);
   TTreeCont[kKuramaTracking]->SetBranchStatus("ntSdcOut", 1);

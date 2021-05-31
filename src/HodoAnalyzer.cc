@@ -39,7 +39,7 @@ const Double_t MaxTimeDifLAC   = -1.0;
 const Double_t MaxTimeDifWC    = -1.0;
 const Double_t MaxTimeDifWCSUM = -1.0;
 const Double_t MaxTimeDifBFT   =  8.0;
-const Double_t MaxTimeDifSCH   = 10.0;
+const Double_t MaxTimeDifSCH   = -1.0; //10.0;
 const Int_t    MaxSizeCl       = 8;
 }
 
