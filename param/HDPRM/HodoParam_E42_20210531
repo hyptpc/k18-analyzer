@@ -5,7 +5,8 @@
 #  bft +10ns (2021.05.19)
 #  date: 2021.05.25
 #  note: BH12, after readjustment by using 2021.05.25 
-#
+#	 date: 2021.05.31
+#  note: Modified BH2/HTOF ADC Parameters to realistic value. The values were determined by eyecheck.
 #######################################################################
 # CId   PlId    SegId   AorT    UorD    p0      p1
 #
