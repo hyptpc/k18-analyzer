@@ -1104,7 +1104,7 @@ DCAnalyzer::TrackSearchK18U2D()
 		  << std::endl;
 # endif
 
-      K18TrackU2D *track=new K18TrackU2D(trIn, trOut, pK18);
+      K18TrackU2D *track=new K18TrackU2D(trIn, trOut, TMath::Abs(pK18));
       if(track && track->DoFit())
 	m_K18U2DTC.push_back(track);
       else
@@ -1182,7 +1182,7 @@ DCAnalyzer::TrackSearchK18D2U(const std::vector<Double_t>& XinCont)
 		  << std::endl;
 #endif
 
-      K18TrackD2U *track = new K18TrackD2U(LocalX, trOut, pK18);
+      K18TrackD2U *track = new K18TrackD2U(LocalX, trOut, TMath::Abs(pK18));
       if(!track) continue;
       track->CalcMomentumD2U();
       m_K18D2UTC.push_back(track);
