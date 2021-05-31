@@ -48,8 +48,10 @@ namespace
   //position cut for gain histogram
   //  const double min_ycut = -15.;//mm
   //const double max_ycut = 15.;//mm
-  const double min_ycut = -50.;//mm
-  const double max_ycut = 50.;//mm
+  // const double min_ycut = -50.;//mm
+  // const double max_ycut = 50.;//mm
+  const double min_ycut = -30.;//mm
+  const double max_ycut = 30.;//mm
 }
 
 namespace dst

@@ -861,8 +861,8 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
 
   delete  minuit;
 
-  if(m_chisqr > MaxChisqr||std::isnan(m_chisqr))
-    return false;
+  //  if(m_chisqr > MaxChisqr||std::isnan(m_chisqr))
+  //return false;
 
   int false_layer =0;
 
