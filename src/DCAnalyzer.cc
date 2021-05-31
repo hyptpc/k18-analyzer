@@ -619,7 +619,7 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
 	Double_t dist = fabs(p1[tracki]*pos.Z()-pos.Y()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
 	//std::cout<<"dist= "<<dist<<", y_tgt= "<<y_tgt<<", v="<<p1[tracki]<<std::endl;
 	//	if(dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
-	if(dist < HoughWindowCut*2. && hit->GetClusterSize()>=ClusterSizeCut){
+	if(dist < HoughWindowCut*3. && hit->GetClusterSize()>=ClusterSizeCut){
 	  if(min_y<y_tgt&&y_tgt<max_y){
 	    ValidCand[layer].push_back(hit);
 	    //std::cout<<"surv tgt"<<std::endl;

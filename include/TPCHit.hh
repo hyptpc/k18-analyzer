@@ -50,6 +50,7 @@ protected:
   TVector3              m_pos;
   Int_t                 m_is_good;
   Int_t                 m_is_calculated;
+  Int_t                 m_hough_flag;
 
   ///// for TPC(MWPC)
   Double_t m_mrow;
@@ -114,6 +115,7 @@ public:
   Double_t        GetTime(Int_t i) const { return m_time.at(i); }
   Int_t           GetTimeSize() const { return m_time.size(); }
   Bool_t          IsGood() const { return m_is_good; }
+  Int_t           GetHoughFlag() const { return m_hough_flag; }
   // Bool_t          IsWithinRange() const
   //   { return m_pair_cont.at(nh).dl_range; }
   void            JoinTrack() { m_belong_track = true; }
@@ -137,6 +139,7 @@ public:
   void            SetResY(Double_t resy) { m_resy = resy; }
   void            SetResZ(Double_t resz) { m_resz = resz; }
   void            SetRes(Double_t res) { m_res = res; }
+  void            SetHoughFlag(Int_t hough_flag) { m_hough_flag = hough_flag; }
 
 protected:
   void ClearRegisteredHits();

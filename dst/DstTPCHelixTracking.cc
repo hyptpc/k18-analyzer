@@ -144,6 +144,7 @@ struct Event
   std::vector<std::vector<Double_t>> residual_y;
   std::vector<std::vector<Double_t>> residual_z;
   std::vector<std::vector<Double_t>> helix_t;
+  std::vector<std::vector<Double_t>> hitde;
 
   void clear( void )
   {
@@ -215,6 +216,7 @@ struct Event
     residual_y.clear();
     residual_z.clear();
     helix_t.clear();
+    hitde.clear();
   }
 };
 
@@ -467,6 +469,7 @@ dst::DstRead( int ievent )
   event.residual_y.resize( ntTpc );
   event.residual_z.resize( ntTpc );
   event.helix_t.resize( ntTpc );
+  event.hitde.resize( ntTpc );
 
   for( Int_t it=0; it<ntTpc; ++it ){
     TPCLocalTrack_Helix *tp = DCAna.GetTrackTPC_Helix( it );
@@ -501,6 +504,7 @@ dst::DstRead( int ievent )
     event.residual_y[it].resize( nh );
     event.residual_z[it].resize( nh );
     event.helix_t[it].resize( nh );
+    event.hitde[it].resize( nh );
     
     double min_closeDist = 1000000.;
     for( Int_t it2=0; it2<ntTpc; ++it2 ){
@@ -572,6 +576,7 @@ dst::DstRead( int ievent )
       event.residual_y[it][ih] = res_vect.y();
       event.residual_z[it][ih] = res_vect.z();
       event.helix_t[it][ih] = t_cal;
+      event.hitde[it][ih] = de_hit;
     }
     if(min_layer_t<max_layer_t)
       event.charge[it] = 1;
@@ -724,6 +729,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "residual_y", &event.residual_y );
   tree->Branch( "residual_z", &event.residual_z );
   tree->Branch( "helix_t", &event.helix_t );
+  tree->Branch( "hitde", &event.hitde );
 
 #if Gain_center
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){

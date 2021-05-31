@@ -85,6 +85,7 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_is_calculated(false),
     m_mrow(),
     m_tpc_flag(),
+    m_hough_flag(),
     m_resx(),
     m_resy(),
     m_resz(),
@@ -113,6 +114,7 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
   m_pos=TVector3(0.,0.,0.);
   m_is_good = true;
   m_is_calculated = false;
+  m_hough_flag = 0;
   m_hit_xz = new DCHit(m_layer, m_row);
   m_hit_xz->SetWirePosition(m_pos.x());
   m_hit_xz->SetZ(m_pos.z());

@@ -2031,11 +2031,11 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
                          nBin_theta, theta_min, theta_max,
                          nBin_p,pmin,pmax);
 
-  std::vector<std::vector<Int_t>> flag;
-  flag.resize(NumOfLayersTPC);
-  for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
-    flag[layer].resize(TPCHC[layer].size(), 0);
-  }
+  // std::vector<std::vector<Int_t>> flag;
+  // flag.resize(NumOfLayersTPC);
+  // for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
+  //   flag[layer].resize(TPCHC[layer].size(), 0);
+  // }
 
   std::vector<Double_t> hough_x;
   std::vector<Double_t> hough_y;
@@ -2044,8 +2044,10 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
     Ci_hist->Reset();
     for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
       for(Int_t ci=0, n=TPCHC[layer].size(); ci<n; ci++){
-        if(flag[layer][ci]>0) continue;
+	//        if(flag[layer][ci]>0) continue;
         TPCHit* hit = TPCHC[layer][ci];
+	if(hit->GetHoughFlag()>0) continue;
+
         TVector3 pos = hit->GetPos();
         for(Int_t ird=0; ird<nBin_rdiff; ++ird){
           Double_t rd = Ci_hist->GetXaxis()->GetBinCenter(ird+1);
@@ -2159,7 +2161,7 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
         Double_t dist = fabs(r_cal - hough_r);
         if(dist < HoughWindowCut && layer < MaxLayerCut && de>DECut_TPCTrack){
           track->AddTPCHit(new TPCLTrackHit(hit));
-          flag[layer][ci]++;
+          //flag[layer][ci]++;
         }
       }
     }
@@ -2172,6 +2174,12 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
 
     if(track->DoFit(MinNumOfHits)){
       TrackCont.push_back(track);
+      Int_t nh = track->GetNHit();
+      for( int ih=0; ih<nh; ++ih ){
+	TPCHit *hit = track->GetHit( ih )->GetHit();
+	if( !hit ) continue;
+	hit->SetHoughFlag(1+hit->GetHoughFlag());
+      }
     }
     else
       delete track;
