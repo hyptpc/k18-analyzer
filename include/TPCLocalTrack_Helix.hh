@@ -58,6 +58,9 @@ private:
   bool   m_good_for_tracking;
   double m_n_iteration;
   TVector3 m_mom0;
+  double m_min_t;
+  double m_max_t;
+  double m_path;
 
 public:
   void         AddTPCHit( TPCLTrackHit *hit );
@@ -75,11 +78,19 @@ public:
   TPCLTrackHit* GetHit( std::size_t nth ) const;
   bool         IsFitted( void ) const { return m_is_fitted; }
   bool         IsCalculated( void ) const { return m_is_calculated; }
-  bool         Residual_check( TVector3 pos, TVector3 Res);
+  bool         Residual_check( TVector3 pos, TVector3 Res, double resi);
   double       GetTcal( TVector3 pos);
   void         CalcChi2( void);
   double       CalcChi2_circle( double par[3]);
   int     GetHTOFSeg( double min_layer_t, double max_layer_t, double max_layer_y );
+
+  // void SetMint( double min_t ) { m_min_t = min_t; }
+  // void SetMaxt( double max_t ) { m_max_t = max_t; }
+  // void SetPath( double path ) { m_path = path; }
+  double GetMint(void) const {return m_min_t; }
+  double GetMaxt(void) const {return m_max_t; }
+  double GetPath(void) const {return m_path; }
+ 
 
   void SetAcx( double Acx ) { m_Acx = Acx; }
   void SetAcy( double Acy ) { m_Acy = Acy; }

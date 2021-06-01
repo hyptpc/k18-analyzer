@@ -73,6 +73,7 @@ namespace
   static const double  UpLimit2[5] = { 200., acos(-1), 7000., 20000., 10. };
 
   static const double  MaxChisqr = 500.;
+  //static const double  MaxChisqr = 100.;
   //  static const int  MaxTryMinuit = 3;
   static const int  MaxTryMinuit = 0;
 
@@ -115,6 +116,7 @@ TPCLocalTrack_Helix::TPCLocalTrack_Helix( void )
     m_chisqr(1.e+10),
     m_good_for_tracking(true),
     m_n_iteration(0),
+    m_min_t(0.), m_max_t(0.), m_path(0.),
     //minuit(new TMinuit(5)),
     m_mom0(0.,0.,0.)
 {
@@ -871,24 +873,59 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
   //return false;
 
   int false_layer =0;
-
+  int delete_hit =-1;
+  double Max_residual = -100.;
+  double mint=1000., maxt=-1000.;
   for( std::size_t i=0; i<m_hit_array.size(); ++i ){
     TPCLTrackHit *hitp = m_hit_array[i];
+    double resi =0.;
     TVector3 pos = hitp->GetLocalHitPos();
+    double t = GetTcal(pos);
+    if(mint>t)
+      mint = t;
+    if(maxt<t)
+      maxt = t;
     TVector3 Res = hitp->GetResolutionVect();
-    if(!Residual_check(pos,Res)){
-      //std::cout<<"false layer:"<<i<<", n="<<m_hit_array.size()<<std::endl;
-      m_hit_array.erase( m_hit_array.begin()+i );
+    if(!Residual_check(pos,Res,resi)){
+      if(Max_residual<resi){
+	Max_residual = resi;
+	delete_hit = i;
+      }
       ++false_layer;
-      --i;
     }
-    if(m_hit_array.size()<MinHits)
-      return false;
   }
+  m_min_t = mint;
+  m_max_t = maxt;
+  m_path = (maxt-mint)*sqrt(m_r*m_r*(1.+m_dz*m_dz));
+ 
+  if(false_layer>0)
+    m_hit_array.erase( m_hit_array.begin()+delete_hit );
+  if(m_hit_array.size()<MinHits)
+    return false;
+  // for( std::size_t i=0; i<m_hit_array.size(); ++i ){
+  //   TPCLTrackHit *hitp = m_hit_array[i];
+  //   TVector3 pos = hitp->GetLocalHitPos();
+  //   TVector3 Res = hitp->GetResolutionVect();
+  //   if(!Residual_check(pos,Res)){
+  //     //std::cout<<"false layer:"<<i<<", n="<<m_hit_array.size()<<std::endl;
+  //     m_hit_array.erase( m_hit_array.begin()+i );
+  //     ++false_layer;
+  //     --i;
+  //   }
+  //   if(m_hit_array.size()<MinHits)
+  //     return false;
+  // }
+
+
   //getchar();
 
   if(false_layer ==0){
-    return true;
+    if(m_path<300.)
+      return true;
+    else if(fabs(m_min_t-m_max_t)<acos(-1))
+      return true;
+    else
+      return false;
   }
   else
     return DoHelixFit(MinHits);
@@ -899,7 +936,7 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
 
 //______________________________________________________________________________
 bool
-TPCLocalTrack_Helix::Residual_check(TVector3 pos, TVector3  Res)
+TPCLocalTrack_Helix::Residual_check(TVector3 pos, TVector3  Res, double resi)
 {
 
   bool status_rescheck=false;
@@ -925,7 +962,8 @@ TPCLocalTrack_Helix::Residual_check(TVector3 pos, TVector3  Res)
 
 
   TVector3 d = pos - fittmp_;
-
+  
+  resi = d.Mag();
   if(d.Mag()<Res.Mag()*5.)
     status_rescheck = true;
   // else

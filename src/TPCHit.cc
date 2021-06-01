@@ -86,7 +86,6 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_mrow(),
     m_tpc_flag(),
     m_hough_flag(),
-    m_houghY_num(),
     m_resx(),
     m_resy(),
     m_resz(),
@@ -94,6 +93,7 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_hit_xz(),
     m_hit_yz()
 {
+  m_houghY_num.clear();
   debug::ObjectCounter::increase(ClassName());
 }
 
@@ -116,7 +116,7 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
   m_is_good = true;
   m_is_calculated = false;
   m_hough_flag = 0;
-  m_houghY_num = 0;
+  m_houghY_num.clear();
   m_hit_xz = new DCHit(m_layer, m_row);
   m_hit_xz->SetWirePosition(m_pos.x());
   m_hit_xz->SetZ(m_pos.z());
@@ -147,6 +147,13 @@ TPCHit::AddDeTime(Double_t de, Double_t time)
 {
   m_de.push_back(de);
   m_time.push_back(time);
+}
+
+//_____________________________________________________________________________
+void
+TPCHit::SetHoughYnum(Int_t houghY_num)
+{
+  m_houghY_num.push_back(houghY_num); 
 }
 
 //_____________________________________________________________________________
@@ -587,8 +594,8 @@ double
 TPCHit::GetResolutionY()
 {
   // temporary
-  //  return 0.5;
-  return 1.5;
+  return 0.5;
+  //  return 1.5;
   //return 2.;
 }
 

@@ -54,7 +54,8 @@ const Double_t MaxChisquareVXU = 50.;//
 const Double_t ChisquareCutVXU = 50.;//
 
 // TPC Tracking
-const Int_t    MaxNumOfTrackTPC = 100;
+//const Int_t    MaxNumOfTrackTPC = 100;
+const Int_t    MaxNumOfTrackTPC = 20;
 const auto& valueHall = ConfMan::Get<Double_t>("HSFLDHALL");
 
 const Double_t Bh2SegX[NumOfSegBH2]      = {35./2., 10./2., 7./2., 7./2., 7./2., 7./2., 10./2., 35./2.};
@@ -2027,47 +2028,49 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
   const Double_t pmax = 1550.;//MeV/c
 
   //for TPC circle track
-  // static TH3D Ci_hist("hist_circle",";rd (mm); theta (rad); p(MeV/c)",
-  //    nBin_rdiff, rdiff_min,  rdiff_max,
-  //    nBin_theta, theta_min, theta_max,
-  //    nBin_p,pmin,pmax);
 
   //start from hougy by using the HoughYcut info
   int Max_tracki_houghY =0;
   for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
     for(Int_t ci=0, n=TPCHC[layer].size(); ci<n; ci++){
       TPCHit* hit = TPCHC[layer][ci];
-      int ihoughy = hit->GetHoughY_num();
-      if(ihoughy>Max_tracki_houghY)
-	Max_tracki_houghY = ihoughy;
+      int ihoughy_size = hit->GetHoughY_num_size();
+      //if(ihoughy_size>1)
+      for(int ih=0; ih<ihoughy_size; ++ih){
+	int ihoughy =  hit->GetHoughY_num(ih);
+	if(ihoughy>Max_tracki_houghY)
+	  Max_tracki_houghY = ihoughy;
+      }
     }
   }
-  
+  std::cout<<"Max_tracki="<<Max_tracki_houghY<<std::endl;
   TH3D *Ci_hist=new TH3D("hist_circle",";rd (mm); theta (rad); p(MeV/c)",
                          nBin_rdiff, rdiff_min,  rdiff_max,
                          nBin_theta, theta_min, theta_max,
                          nBin_p,pmin,pmax);
 
-  // std::vector<std::vector<Int_t>> flag;
-  // flag.resize(NumOfLayersTPC);
-  // for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
-  //   flag[layer].resize(TPCHC[layer].size(), 0);
-  // }
 
   std::vector<Double_t> hough_x;
   std::vector<Double_t> hough_y;
 
-
-  for(Int_t tracki=0; tracki<MaxNumOfTrackTPC; tracki++){
-    for(Int_t ity=0; ity<Max_tracki_houghY+1; ity++){
+  for(Int_t ity=0; ity<Max_tracki_houghY+1; ity++){
+  //for(Int_t ity=0; ity<Max_tracki_houghY; ity++){
+    for(Int_t tracki=0; tracki<MaxNumOfTrackTPC; tracki++){
+    //    for(Int_t ity=0; ity<Max_tracki_houghY+1; ity++){
       Ci_hist->Reset();
       for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
 	for(Int_t ci=0, n=TPCHC[layer].size(); ci<n; ci++){
 	  //        if(flag[layer][ci]>0) continue;
 	  TPCHit* hit = TPCHC[layer][ci];
 	  if(ity<Max_tracki_houghY){
-	    int ihoughy = hit->GetHoughY_num();
-	    if(ity!=ihoughy-1)
+	    bool status_houghy = false;
+	    int ihoughy_size = hit->GetHoughY_num_size();
+	    for(int ih=0; ih<ihoughy_size; ++ih){
+	      int ihoughy = hit->GetHoughY_num(ih);
+	      if(ity==ihoughy-1)
+		status_houghy = true;
+	    }
+	    if(!status_houghy)
 	      continue;
 	  }
 	  if(hit->GetHoughFlag()>0) continue;
@@ -2181,11 +2184,18 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
 	  // Double_t xcenter1 = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
 	  // Double_t ycenter1 = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);
 	  Double_t r_cal = sqrt(pow(x-hough_cx,2) + pow(y-hough_cy,2));
-	  int ihoughy = hit->GetHoughY_num();	  
+	 
 	  Double_t dist = fabs(r_cal - hough_r);
 	  if(dist < HoughWindowCut && layer < MaxLayerCut && de>DECut_TPCTrack){
 	    if(ity<Max_tracki_houghY){
-	      if(ity==ihoughy-1)
+	      bool status_houghy = false;
+	      int ihoughy_size = hit->GetHoughY_num_size();
+	      for(int ih=0; ih<ihoughy_size; ++ih){
+		int ihoughy = hit->GetHoughY_num(ih);
+		if(ity==ihoughy-1)
+		  status_houghy = true;
+	      }
+	      if(status_houghy)
 		track->AddTPCHit(new TPCLTrackHit(hit));
 	    }
 	    else

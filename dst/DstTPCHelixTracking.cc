@@ -48,10 +48,10 @@ namespace
   //position cut for gain histogram
   //  const double min_ycut = -15.;//mm
   //const double max_ycut = 15.;//mm
-  // const double min_ycut = -50.;//mm
-  // const double max_ycut = 50.;//mm
-  const double min_ycut = -40.;//mm
-  const double max_ycut = 40.;//mm
+  const double min_ycut = -50.;//mm
+  const double max_ycut = 50.;//mm
+  const double chisqrCut = 10.;//mm
+
 }
 
 namespace dst
@@ -123,12 +123,22 @@ struct Event
   std::vector<Double_t> vtx;
   std::vector<Double_t> vty;
   std::vector<Double_t> vtz;
+  std::vector<Int_t> chisqr_flag;
   std::vector<Double_t> closeDist;
 
   
   std::vector<Double_t> M_Lambda;
+  std::vector<Double_t> Lvtx;
+  std::vector<Double_t> Lvty;
+  std::vector<Double_t> Lvtz;
+  std::vector<Double_t> LcloseDist;
   std::vector<Double_t> Mom_Lambda;
+
   std::vector<Double_t> M_Ks;
+  std::vector<Double_t> Ksvtx;
+  std::vector<Double_t> Ksvty;
+  std::vector<Double_t> Ksvtz;
+  std::vector<Double_t> KscloseDist;
   std::vector<Double_t> Mom_Ks;
 
 
@@ -198,10 +208,20 @@ struct Event
     vty.clear();
     vtz.clear();
     closeDist.clear();
+    chisqr_flag.clear();
 
     M_Lambda.clear();
+    Lvtx.clear();
+    Lvty.clear();
+    Lvtz.clear();
+    LcloseDist.clear();
     Mom_Lambda.clear();
+    
     M_Ks.clear();
+    Ksvtx.clear();
+    Ksvty.clear();
+    Ksvtz.clear();
+    KscloseDist.clear();
     Mom_Ks.clear();
 
     hitlayer.clear();
@@ -325,7 +345,7 @@ Bool_t
 dst::DstRead( int ievent )
 {
   if( ievent%100==0 ){
-  //if( ievent%10==0 ){
+    //if( ievent%1==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
@@ -418,19 +438,21 @@ dst::DstRead( int ievent )
     }
   }
   event.nh_cluster_Tpc = nh_cl_Tpc;
-
 #if TrackSearch
   DCAna.TrackSearchTPC_Helix();
 #endif
 
   Int_t ntTpc = DCAna.GetNTracksTPC_Helix();
+ 
   event.ntTpc = ntTpc;
+
+  //std::cout<<"ntTpc:"<<ntTpc<<std::endl;
   HF1( 10, ntTpc );
   if( event.ntTpc == 0 )
     return true;
 
   HF1( 1, event.status++ );
-
+  
   event.nhtrack.resize( ntTpc );
   event.chisqr.resize( ntTpc );
   event.helix_cx.resize( ntTpc );
@@ -446,7 +468,7 @@ dst::DstRead( int ievent )
   event.dEdx.resize( ntTpc );
   event.charge.resize( ntTpc );
   event.path.resize( ntTpc );
-
+  
   // under dev
   event.combi_id.resize( ntTpc );
   event.mom_vtx.resize( ntTpc );
@@ -456,7 +478,7 @@ dst::DstRead( int ievent )
   event.vty.resize( ntTpc );
   event.vtz.resize( ntTpc );
   event.closeDist.resize( ntTpc );
-
+  event.chisqr_flag.resize( ntTpc );
 
   event.hitlayer.resize( ntTpc );
   event.hitpos_x.resize( ntTpc );
@@ -471,6 +493,7 @@ dst::DstRead( int ievent )
   event.residual_z.resize( ntTpc );
   event.helix_t.resize( ntTpc );
   event.hitde.resize( ntTpc );
+
 
   for( Int_t it=0; it<ntTpc; ++it ){
     TPCLocalTrack_Helix *tp = DCAna.GetTrackTPC_Helix( it );
@@ -516,6 +539,7 @@ dst::DstRead( int ievent )
       Double_t helix_cx2=tp2->Getcx(), helix_cy2=tp2->Getcy();
       Double_t helix_z02=tp2->Getz0(), helix_r2=tp2->Getr();
       Double_t helix_dz2 = tp2->Getdz();
+      Double_t chisqr2 = tp2->GetChiSquare();
 
       double par1[5]={helix_cx, helix_cy, helix_z0, 
 		      helix_r, helix_dz};
@@ -535,6 +559,10 @@ dst::DstRead( int ievent )
 	event.mom_vty[it] = mom_vtx.y();
 	event.mom_vtz[it] = mom_vtx.z();
 	event.closeDist[it] = closeDist;
+	if(chisqr<chisqrCut&&chisqr2<chisqrCut)
+	  event.chisqr_flag[it] = 1;
+	else
+	  event.chisqr_flag[it] = 0;
       }
     }
     
@@ -598,7 +626,8 @@ dst::DstRead( int ievent )
     for( Int_t it=0; it<ntTpc-1; ++it ){
       for( Int_t it2=it+1; it2<ntTpc; ++it2 ){
 	if(event.combi_id[it]==it2&&event.combi_id[it2]==it
-	   &&event.charge[it]==-1*event.charge[it2]){
+	   &&event.charge[it]==-1*event.charge[it2]
+	   &&event.chisqr_flag[it]==1&&event.chisqr_flag[it2]==1){
 	  if(event.charge[it]==1){
 	    TVector3 momp(event.mom_vtx[it], event.mom_vty[it], event.mom_vtz[it]);
 	    TLorentzVector Lp(momp, std::sqrt(ProtonMass*ProtonMass+momp.Mag2()));
@@ -607,10 +636,22 @@ dst::DstRead( int ievent )
 	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
-	    event.M_Lambda.push_back(LLambda.M());
-	    event.Mom_Lambda.push_back(LLambda.P());
-	    event.M_Ks.push_back(LKs.M());
-	    event.Mom_Ks.push_back(LKs.P());
+	    if(event.dEdx[it]>event.dEdx[it2]*1.5){
+	      event.M_Lambda.push_back(LLambda.M());
+	      event.Lvtx.push_back(event.mom_vtx[it]);
+	      event.Lvty.push_back(event.mom_vty[it]);
+	      event.Lvtz.push_back(event.mom_vtz[it]);
+	      event.LcloseDist.push_back(event.closeDist[it]);
+	      event.Mom_Lambda.push_back(LLambda.P());
+	    }
+	    else{
+	      event.M_Ks.push_back(LKs.M());
+	      event.Ksvtx.push_back(event.mom_vtx[it]);
+	      event.Ksvty.push_back(event.mom_vty[it]);
+	      event.Ksvtz.push_back(event.mom_vtz[it]);
+	      event.KscloseDist.push_back(event.closeDist[it]);
+	      event.Mom_Ks.push_back(LKs.P());
+	    }
 	  }
 	  else{
 	    TVector3 momp(event.mom_vtx[it2], event.mom_vty[it2], event.mom_vtz[it2]);
@@ -620,15 +661,28 @@ dst::DstRead( int ievent )
 	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
-	    event.M_Lambda.push_back(LLambda.M());
-	    event.Mom_Lambda.push_back(LLambda.P());
-	    event.M_Ks.push_back(LKs.M());
-	    event.Mom_Ks.push_back(LKs.P());
+	    if(event.dEdx[it2]>event.dEdx[it]*1.5){
+	      event.M_Lambda.push_back(LLambda.M());
+	      event.Lvtx.push_back(event.mom_vtx[it]);
+	      event.Lvty.push_back(event.mom_vty[it]);
+	      event.Lvtz.push_back(event.mom_vtz[it]);
+	      event.LcloseDist.push_back(event.closeDist[it]);
+	      event.Mom_Lambda.push_back(LLambda.P());
+	    }
+	    else{
+	      event.M_Ks.push_back(LKs.M());
+	      event.Ksvtx.push_back(event.mom_vtx[it]);
+	      event.Ksvty.push_back(event.mom_vty[it]);
+	      event.Ksvtz.push_back(event.mom_vtz[it]);
+	      event.KscloseDist.push_back(event.closeDist[it]);
+	      event.Mom_Ks.push_back(LKs.P());
+	    }
 	  }
 	}
       }
     }
   }
+
   HF1( 1, event.status++ );
 
   return true;
@@ -706,6 +760,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "path", &event.path );
 
   tree->Branch( "combi_id", &event.combi_id );
+  tree->Branch( "chisqr_flag", &event.chisqr_flag );
   tree->Branch( "mom_vtx", &event.mom_vtx );
   tree->Branch( "mom_vty", &event.mom_vty );
   tree->Branch( "mom_vtz", &event.mom_vtz );
@@ -714,8 +769,16 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "vtz", &event.vtz );
   tree->Branch( "closeDist", &event.closeDist );
   tree->Branch( "M_Lambda", &event.M_Lambda );
+  tree->Branch( "Lvtx", &event.Lvtx );
+  tree->Branch( "Lvty", &event.Lvty );
+  tree->Branch( "Lvtz", &event.Lvtz );
+  tree->Branch( "LcloseDist", &event.LcloseDist );
   tree->Branch( "Mom_Lambda", &event.Mom_Lambda );
   tree->Branch( "M_Ks", &event.M_Ks );
+  tree->Branch( "Ksvtx", &event.Ksvtx );
+  tree->Branch( "Ksvty", &event.Ksvty );
+  tree->Branch( "Ksvtz", &event.Ksvtz );
+  tree->Branch( "KscloseDist", &event.KscloseDist );
   tree->Branch( "Mom_Ks", &event.Mom_Ks );
 
   tree->Branch( "hitlayer", &event.hitlayer );

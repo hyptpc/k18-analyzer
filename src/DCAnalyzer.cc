@@ -617,26 +617,31 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
 
     for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
       for(Int_t ci=0, n=m_TPCClCont[layer].size(); ci<n; ci++){
-	if(flag[layer][ci]>0) continue;
+	//if(flag[layer][ci]>0) continue;
 	TPCHit* hit = m_TPCClCont[layer][ci];
 	TVector3 pos = hit->GetPos();
 	Double_t dist = fabs(p1[tracki]*pos.Z()-pos.Y()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
 	//std::cout<<"dist= "<<dist<<", y_tgt= "<<y_tgt<<", v="<<p1[tracki]<<std::endl;
 	//	if(dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
+	//if(hit->GetHoughY_num_size()>1)
+	
 	if(dist < HoughWindowCut*4. && hit->GetClusterSize()>=ClusterSizeCut){
 	  if(min_y<y_tgt&&y_tgt<max_y){
-	    ValidCand[layer].push_back(hit);
+	    if(flag[layer][ci]==0)
+	      ValidCand[layer].push_back(hit);
 	    hit->SetHoughYnum(tracki+1);
 	    //std::cout<<"surv tgt"<<std::endl;
 	  }
 	  //else if(fabs(p1[tracki])>0.015){
-	  else if(fabs(p1[tracki])>0.1){
-	    ValidCand[layer].push_back(hit);
+	  else if(fabs(p1[tracki])>0.1&&fabs(p1[tracki])<3.){
+	    if(flag[layer][ci]==0)
+	      ValidCand[layer].push_back(hit);
 	    hit->SetHoughYnum(tracki+1);
 	    //std::cout<<"surv v"<<std::endl;
 	  }
 	  else{
-	    DeleteCand[layer].push_back(hit);
+	    if(flag[layer][ci]==0)
+	      DeleteCand[layer].push_back(hit);
 	    //std::cout<<"delete"<<std::endl;
 	  }
 	  flag[layer][ci]++;
@@ -651,8 +656,9 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
       if(flag[layer][ci]==0){
 	TPCHit* hit = m_TPCClCont[layer][ci];
 	ValidCand[layer].push_back(hit);
-	//std::cout<<"surv none: "<<hit->GetPos()<<std::endl;
+	//DeleteCand[layer].push_back(hit);
       }
+      //std::cout<<"surv none: "<<hit->GetPos()<<std::endl;
     }
   }
 
@@ -661,7 +667,7 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
   for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
     m_TPCClCont[layer].clear();
     m_TPCClCont[layer].resize(ValidCand[layer].size());
-    std::copy(ValidCand[layer].begin(), ValidCand[layer].end(), m_TPCClCont[layer].begin());
+    std::copy(ValidCand[layer].begin(), ValidCand[layer].end(), m_TPCClCont[layer].begin());    
     ValidCand[layer].clear();
   }
 }
