@@ -554,7 +554,8 @@ dst::DstRead( int ievent )
 	event.vty[it] = vert.y();
 	event.vtz[it] = vert.z();
 	event.closeDist[it] = closeDist;
-	TVector3 mom_vtx = tp->CalcHelixMom(par1, vert.y());
+	//TVector3 mom_vtx = tp->CalcHelixMom(par1, vert.y());
+	TVector3 mom_vtx = tp->CalcHelixMom_t(par1, t1);
 	event.mom_vtx[it] = mom_vtx.x();
 	event.mom_vty[it] = mom_vtx.y();
 	event.mom_vtz[it] = mom_vtx.z();
@@ -638,17 +639,17 @@ dst::DstRead( int ievent )
 	    TLorentzVector LKs = Lpip + Lpi;
 	    if(event.dEdx[it]>event.dEdx[it2]*1.5){
 	      event.M_Lambda.push_back(LLambda.M());
-	      event.Lvtx.push_back(event.mom_vtx[it]);
-	      event.Lvty.push_back(event.mom_vty[it]);
-	      event.Lvtz.push_back(event.mom_vtz[it]);
+	      event.Lvtx.push_back(event.vtx[it]);
+	      event.Lvty.push_back(event.vty[it]);
+	      event.Lvtz.push_back(event.vtz[it]);
 	      event.LcloseDist.push_back(event.closeDist[it]);
 	      event.Mom_Lambda.push_back(LLambda.P());
 	    }
 	    else{
 	      event.M_Ks.push_back(LKs.M());
-	      event.Ksvtx.push_back(event.mom_vtx[it]);
-	      event.Ksvty.push_back(event.mom_vty[it]);
-	      event.Ksvtz.push_back(event.mom_vtz[it]);
+	      event.Ksvtx.push_back(event.vtx[it]);
+	      event.Ksvty.push_back(event.vty[it]);
+	      event.Ksvtz.push_back(event.vtz[it]);
 	      event.KscloseDist.push_back(event.closeDist[it]);
 	      event.Mom_Ks.push_back(LKs.P());
 	    }

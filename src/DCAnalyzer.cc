@@ -523,7 +523,7 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
 
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
-  static const Double_t HoughWindowCut = gUser.GetParameter("HoughWindowCut");
+  static const Double_t HoughWindowCut = 4.*gUser.GetParameter("HoughWindowCut");
   // Bool_t status = true;
 
   //    if(valueHall) { // TODO
@@ -597,6 +597,9 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
     Li_hist_y.GetBinXYZ(maxbin, mx, my, mz);
     Double_t mtheta = Li_hist_y.GetXaxis()->GetBinCenter(mx)*acos(-1)/180.;
     Double_t mr = Li_hist_y.GetYaxis()->GetBinCenter(my);
+    p0[tracki] = mr/sin(mtheta);
+    p1[tracki] = -cos(mtheta)/sin(mtheta);
+    Double_t y_tgt = p0[tracki]+p1[tracki]*zTgtTPC;
 
     Bool_t hough_flag = true;
     for(Int_t i=0; i<hough_x.size(); ++i){
@@ -604,16 +607,28 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
       if(bindiff<=4)
 	hough_flag = false;
     }
+   
+    int numhit_hough = 0;
+    for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
+      for(Int_t ci=0, n=m_TPCClCont[layer].size(); ci<n; ci++){
+	//if(flag[layer][ci]>0) continue;
+	TPCHit* hit = m_TPCClCont[layer][ci];
+	TVector3 pos = hit->GetPos();
+	Double_t dist = fabs(p1[tracki]*pos.Z()-pos.Y()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
+	if(dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
+	  ++numhit_hough;
+	}
+      }
+    }
+
+    if(numhit_hough<MinLayer)
+      hough_flag = false;
+    
     hough_x.push_back(mx);
     hough_y.push_back(my);
-    if(!hough_flag)
-      continue;
+    // if(!hough_flag)
+    //   continue;
 
-
-    p0[tracki] = mr/sin(mtheta);
-    p1[tracki] = -cos(mtheta)/sin(mtheta);
-
-    Double_t y_tgt = p0[tracki]+p1[tracki]*zTgtTPC;
 
     for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
       for(Int_t ci=0, n=m_TPCClCont[layer].size(); ci<n; ci++){
@@ -625,16 +640,16 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
 	//	if(dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
 	//if(hit->GetHoughY_num_size()>1)
 	
-	if(dist < HoughWindowCut*4. && hit->GetClusterSize()>=ClusterSizeCut){
-	  if(min_y<y_tgt&&y_tgt<max_y){
+	if(dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
+	  if(min_y<y_tgt&&y_tgt<max_y&&hough_flag){
 	    if(flag[layer][ci]==0)
 	      ValidCand[layer].push_back(hit);
 	    hit->SetHoughYnum(tracki+1);
 	    //std::cout<<"surv tgt"<<std::endl;
 	  }
 	  //else if(fabs(p1[tracki])>0.015){
-	  else if(fabs(p1[tracki])>0.1&&fabs(p1[tracki])<3.){
-	    if(flag[layer][ci]==0)
+	  else if(fabs(p1[tracki])>0.1&&fabs(p1[tracki])<3.&&hough_flag){
+	    if(flag[layer][ci]==0&&hough_flag)
 	      ValidCand[layer].push_back(hit);
 	    hit->SetHoughYnum(tracki+1);
 	    //std::cout<<"surv v"<<std::endl;

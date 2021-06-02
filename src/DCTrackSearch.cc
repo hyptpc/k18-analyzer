@@ -55,7 +55,7 @@ const Double_t ChisquareCutVXU = 50.;//
 
 // TPC Tracking
 //const Int_t    MaxNumOfTrackTPC = 100;
-const Int_t    MaxNumOfTrackTPC = 20;
+const Int_t    MaxNumOfTrackTPC = 10;
 const auto& valueHall = ConfMan::Get<Double_t>("HSFLDHALL");
 
 const Double_t Bh2SegX[NumOfSegBH2]      = {35./2., 10./2., 7./2., 7./2., 7./2., 7./2., 10./2., 35./2.};
@@ -2043,7 +2043,7 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
       }
     }
   }
-  std::cout<<"Max_tracki="<<Max_tracki_houghY<<std::endl;
+  //  std::cout<<"Max_tracki="<<Max_tracki_houghY<<std::endl;
   TH3D *Ci_hist=new TH3D("hist_circle",";rd (mm); theta (rad); p(MeV/c)",
                          nBin_rdiff, rdiff_min,  rdiff_max,
                          nBin_theta, theta_min, theta_max,
@@ -2177,6 +2177,7 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
 	for(Int_t ci=0, n=TPCHC[layer].size(); ci<n; ci++){
 	  //if(flag[layer][ci]>0) continue;
 	  TPCHit* hit = TPCHC[layer][ci];
+	  if(hit->GetHoughFlag()>0) continue;
 	  TVector3 pos = hit->GetPos();
 	  Double_t x = -pos.x();
 	  Double_t y = pos.z()-zTgtTPC;

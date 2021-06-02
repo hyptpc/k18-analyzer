@@ -74,6 +74,7 @@ public:
 
   TVector3     GetPosition( double par[5], double t ) const;
   TVector3     CalcHelixMom( double par[5], double y) const;
+  TVector3     CalcHelixMom_t( double par[5], double t) const;
   int          GetNHit( void ) const { return m_hit_array.size();  }
   TPCLTrackHit* GetHit( std::size_t nth ) const;
   bool         IsFitted( void ) const { return m_is_fitted; }

@@ -229,6 +229,30 @@ TPCLocalTrack_Helix::CalcHelixMom(double par[5], double y) const
   return TVector3(px,py,pz);
 }
 
+//______________________________________________________________________________
+TVector3
+TPCLocalTrack_Helix::CalcHelixMom_t(double par[5], double t) const
+{
+
+  const double Const = 0.299792458; // =c/10^9
+  const double dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+
+  //  double t = (y-par[2])/(par[3]*par[4]);
+  double pt = fabs(par[3])*(Const*dMagneticField); // MeV/c
+  //From here!!!!
+  double tmp_px = pt*(-1.*sin(t));
+  double tmp_py = pt*(cos(t));
+  double tmp_pz = pt*(par[4]);
+  double px = -tmp_px*0.001;
+  double py = tmp_pz*0.001;
+  double pz = tmp_py*0.001;
+
+
+  return TVector3(px,py,pz);
+}
+
+
+
 
 //______________________________________________________________________________
 int
