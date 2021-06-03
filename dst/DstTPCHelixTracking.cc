@@ -107,6 +107,8 @@ struct Event
   std::vector<Double_t> helix_dz;
   std::vector<Double_t> dE;
   std::vector<Double_t> dEdx;
+  std::vector<Double_t> dEdx_20;
+  std::vector<Double_t> dEdx_30;
   std::vector<Double_t> mom0_x;//Helix momentum at Y = 0
   std::vector<Double_t> mom0_y;//Helix momentum at Y = 0
   std::vector<Double_t> mom0_z;//Helix momentum at Y = 0
@@ -192,6 +194,8 @@ struct Event
     helix_dz.clear();
     dE.clear();
     dEdx.clear();
+    dEdx_20.clear();
+    dEdx_30.clear();
     mom0_x.clear();
     mom0_y.clear();
     mom0_z.clear();
@@ -466,6 +470,8 @@ dst::DstRead( int ievent )
   event.mom0.resize( ntTpc );
   event.dE.resize( ntTpc );
   event.dEdx.resize( ntTpc );
+  event.dEdx_20.resize( ntTpc );
+  event.dEdx_30.resize( ntTpc );
   event.charge.resize( ntTpc );
   event.path.resize( ntTpc );
   
@@ -572,6 +578,18 @@ dst::DstRead( int ievent )
     double min_layer_t=0., max_layer_t=0.;
     double max_layer_y=0.;
     double de=0., path_dEdx=0.;
+    
+    std::vector<Double_t> de_20; 
+    std::vector<Double_t> de_30; 
+    std::vector<Double_t> path_20; 
+    std::vector<Double_t> path_30; 
+    int n_20=(int)(nh*0.8);
+    int n_30=(int)(nh*0.7);
+    de_20.resize(n_20);
+    de_30.resize(n_30);
+    path_20.resize(n_20);
+    path_30.resize(n_30);
+
 
     for( int ih=0; ih<nh; ++ih ){
       TPCLTrackHit *hit = tp->GetHit( ih );
@@ -584,6 +602,30 @@ dst::DstRead( int ievent )
       double path_hit = tpc::padParameter[layer][5];
       de += de_hit;
       path_dEdx += path_hit;
+      
+      if(ih<n_20){
+	de_20[ih] = de_hit;
+	path_20[ih] = path_hit;
+      }
+      else{
+	if(de_hit<TMath::MaxElement(de_20.size(),de_20.data())){
+	  int imax = TMath::LocMax(de_20.size(),de_20.data());
+	  de_20[imax] = de_hit;
+	  path_20[imax] = path_hit;
+	}
+      }
+      if(ih<n_30){
+	de_30[ih] = de_hit;
+	path_30[ih] = path_hit;
+      }
+      else{
+	if(de_hit<TMath::MaxElement(de_30.size(),de_30.data())){
+	  int imax = TMath::LocMax(de_30.size(),de_30.data());
+	  de_30[imax] = de_hit;
+	  path_30[imax] = path_hit;
+	}
+      }
+      
       Double_t t_cal = hit->GetTcal();
       if(min_t>t_cal)
 	min_t = t_cal;
@@ -614,12 +656,25 @@ dst::DstRead( int ievent )
       event.charge[it] = -1;
     Double_t pathlen = (max_t - min_t)*sqrt(helix_r*helix_r*(1.+helix_dz*helix_dz));
     Int_t htofseg = tp->GetHTOFSeg(min_layer_t, max_layer_t, max_layer_y);
-    
-    
     //std::cout<<"min_t="<<min_t<<", max_t="<<max_t<<", helix_r="<<helix_r<<", path="<<pathlen<<std::endl;
     event.path[it] = pathlen;
     event.dE[it] = de;
     event.dEdx[it] = de/path_dEdx;
+    event.dEdx_20[it]=0.;
+    double tot_path_20 =0.;
+    for( int ih=0; ih<n_20; ++ih ){
+      event.dEdx_20[it]+=de_20[ih];
+      tot_path_20+=path_20[ih];
+    }
+    event.dEdx_20[it]/=tot_path_20;
+
+    event.dEdx_30[it]=0.;
+    double tot_path_30 =0.;
+    for( int ih=0; ih<n_30; ++ih ){
+      event.dEdx_30[it]+=de_30[ih];
+      tot_path_30+=path_30[ih];
+    }
+    event.dEdx_30[it]/=tot_path_30;
   }
 
   // rough estimation for Lambda and Ks event
@@ -637,7 +692,7 @@ dst::DstRead( int ievent )
 	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
-	    if(event.dEdx[it]>event.dEdx[it2]*1.5){
+	    if(event.dEdx_20[it]>event.dEdx_20[it2]*1.5){
 	      event.M_Lambda.push_back(LLambda.M());
 	      event.Lvtx.push_back(event.vtx[it]);
 	      event.Lvty.push_back(event.vty[it]);
@@ -662,7 +717,7 @@ dst::DstRead( int ievent )
 	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
-	    if(event.dEdx[it2]>event.dEdx[it]*1.5){
+	    if(event.dEdx_20[it2]>event.dEdx_20[it]*1.5){
 	      event.M_Lambda.push_back(LLambda.M());
 	      event.Lvtx.push_back(event.mom_vtx[it]);
 	      event.Lvty.push_back(event.mom_vty[it]);
@@ -757,6 +812,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "mom0", &event.mom0 );
   tree->Branch( "dE", &event.dE );
   tree->Branch( "dEdx", &event.dEdx );
+  tree->Branch( "dEdx_20", &event.dEdx_20 );
+  tree->Branch( "dEdx_30", &event.dEdx_30 );
   tree->Branch( "charge", &event.charge );
   tree->Branch( "path", &event.path );
 

@@ -648,7 +648,7 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
 	    //std::cout<<"surv tgt"<<std::endl;
 	  }
 	  //else if(fabs(p1[tracki])>0.015){
-	  else if(fabs(p1[tracki])>0.1&&fabs(p1[tracki])<3.&&hough_flag){
+	  else if(fabs(p1[tracki])>0.1&&hough_flag){
 	    if(flag[layer][ci]==0&&hough_flag)
 	      ValidCand[layer].push_back(hit);
 	    hit->SetHoughYnum(tracki+1);

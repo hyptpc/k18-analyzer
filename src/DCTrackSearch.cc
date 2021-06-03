@@ -55,7 +55,7 @@ const Double_t ChisquareCutVXU = 50.;//
 
 // TPC Tracking
 //const Int_t    MaxNumOfTrackTPC = 100;
-const Int_t    MaxNumOfTrackTPC = 10;
+const Int_t    MaxNumOfTrackTPC = 5;
 const auto& valueHall = ConfMan::Get<Double_t>("HSFLDHALL");
 
 const Double_t Bh2SegX[NumOfSegBH2]      = {35./2., 10./2., 7./2., 7./2., 7./2., 7./2., 10./2., 35./2.};
