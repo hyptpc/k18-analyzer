@@ -531,16 +531,21 @@ UserSdcOutTracking::ProcessingNormal()
     Double_t z_tof = qnan;
     for(Int_t itof=0; itof<event.nhTof; ++itof){
       Int_t lnum = 0;
+      TVector3 gposTof;
       if((Int_t)event.TofSeg[itof]%2 == 0){
         lnum = gGeom.GetDetectorId("TOF-UX");
+        gposTof = gGeom.GetGlobalPosition("TOF-UX");
         z_tof = zTOFU;
       }
       if((Int_t)event.TofSeg[itof]%2 == 1){
         lnum = gGeom.GetDetectorId("TOF-DX");
+        gposTof = gGeom.GetGlobalPosition("TOF-DX");
         z_tof = zTOFD;
       }
-      Double_t xposTof = gGeom.CalcWirePosition(lnum, event.TofSeg[itof]);
+      Double_t wpos = gGeom.CalcWirePosition(lnum, event.TofSeg[itof]);
+      TVector3 w(wpos, 0, 0);
       Double_t ytTof = event.dtTof[itof]*77.3511;
+      TVector3 posTof = gposTof + w + TVector3(0, ytTof, 0);
       Double_t xtof=track->GetX(z_tof), ytof=track->GetY(z_tof);
       Double_t utof=u0, vtof=v0;
       if(nhTof == 1){
@@ -549,9 +554,9 @@ UserSdcOutTracking::ProcessingNormal()
         event.uTof[it] = utof;
         event.vTof[it] = vtof;
         HF2(51, event.TofSeg[itof], xtof);
-        HF2(52, xposTof, xtof);
-        HF1(53, xposTof - xtof);
-        HF2(54, xposTof, xposTof - xtof);
+        HF2(52, posTof.X(), xtof);
+        HF1(53, posTof.X() - xtof);
+        HF2(54, posTof.X(), posTof.X() - xtof);
         HF2(55, event.dtTof[itof], ytof);
         HF1(56, ytTof - ytof);
         HF2(57, event.dtTof[itof], ytTof - ytof);

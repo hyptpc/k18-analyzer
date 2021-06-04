@@ -46,7 +46,6 @@ const auto& zK18Target = gGeom.LocalZ("K18Target");
 const auto& zBH2       = gGeom.LocalZ("BH2");
 const Double_t MaxChisquare       = 2000.; // Set to be More than 30
 const Double_t MaxChisquareSdcIn  = 5000.; // Set to be More than 30
-const Double_t MaxChisquareSdcOut = 50.;   // Set to be More than 30
 const Double_t MaxNumOfCluster = 20.;    // Set to be Less than 30
 const Double_t MaxCombi = 1.0e6;    // Set to be Less than 10^6
 // SdcIn & BcOut for XUV Tracking routine
@@ -921,7 +920,7 @@ LocalTrackSearch(const std::vector<std::vector<DCHitContainer>> &hcAssemble,
 //_____________________________________________________________________________
 Int_t
 LocalTrackSearchSdcOut(const std::vector<DCHitContainer>& SdcOutHC,
-                       const DCPairPlaneInfo *PpInfo,
+                       const DCPairPlaneInfo* PpInfo,
                        Int_t npp, std::vector<DCLocalTrack*>& TrackCont,
                        Int_t MinNumOfHits /*=6*/)
 {
@@ -932,7 +931,7 @@ LocalTrackSearchSdcOut(const std::vector<DCHitContainer>& SdcOutHC,
     Bool_t honeycomb = PpInfo[i].honeycomb;
     Int_t  layer1    = PpInfo[i].id1;
     Int_t  layer2    = PpInfo[i].id2;
-    if(ppFlag ){
+    if(ppFlag){
       MakePairPlaneHitCluster(SdcOutHC[layer1], SdcOutHC[layer2],
                               PpInfo[i].CellSize, CandCont[i], honeycomb);
     }else{
@@ -977,7 +976,7 @@ LocalTrackSearchSdcOut(const std::vector<DCHitContainer>& SdcOutHC,
 Int_t
 LocalTrackSearchSdcOut(const DCHitContainer& TOFHC,
                        const std::vector<DCHitContainer>& SdcOutHC,
-                       const DCPairPlaneInfo *PpInfo,
+                       const DCPairPlaneInfo* PpInfo,
                        Int_t npp,
                        std::vector<DCLocalTrack*>& TrackCont,
                        Int_t MinNumOfHits /*=6*/)
@@ -1064,7 +1063,7 @@ LocalTrackSearchSdcOut(const DCHitContainer& TOFHC,
 //_____________________________________________________________________________
 Int_t /* Local Track Search SdcIn w/Fiber */
 LocalTrackSearchSdcInFiber(const std::vector<DCHitContainer>& HC,
-                           const DCPairPlaneInfo *PpInfo,
+                           const DCPairPlaneInfo* PpInfo,
                            Int_t npp, std::vector<DCLocalTrack*>& TrackCont,
                            Int_t MinNumOfHits /*=6*/)
 {
@@ -1118,7 +1117,7 @@ LocalTrackSearchSdcInFiber(const std::vector<DCHitContainer>& HC,
 // BC3&4, SDC1 VUX Tracking ___________________________________________
 Int_t
 LocalTrackSearchVUX(const std::vector<DCHitContainer>& HC,
-                    const DCPairPlaneInfo *PpInfo,
+                    const DCPairPlaneInfo* PpInfo,
                     Int_t npp, std::vector<DCLocalTrack*>& TrackCont,
                     Int_t MinNumOfHits /*=6*/)
 {
@@ -2185,7 +2184,7 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
 	  // Double_t xcenter1 = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
 	  // Double_t ycenter1 = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);
 	  Double_t r_cal = sqrt(pow(x-hough_cx,2) + pow(y-hough_cy,2));
-	 
+
 	  Double_t dist = fabs(r_cal - hough_r);
 	  if(dist < HoughWindowCut && layer < MaxLayerCut && de>DECut_TPCTrack){
 	    if(ity<Max_tracki_houghY){

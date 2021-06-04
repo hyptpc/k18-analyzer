@@ -22,6 +22,7 @@
 #include <TGraphErrors.h>
 #include <TH1.h>
 #include <TH2.h>
+#include <TH2Poly.h>
 #include <TF1.h>
 #include <TLatex.h>
 #include <TMarker.h>
@@ -58,6 +59,7 @@
 #include "DeleteUtility.hh"
 #include "HodoParamMan.hh"
 #include "DCTdcCalibMan.hh"
+#include "TPCPadHelper.hh"
 
 #define BH2        0
 #define BcOut      1
@@ -67,6 +69,7 @@
 #define SCH        1
 #define TOF        1
 #define Vertex     1
+#define TPC        1
 #define Hist       0
 #define Hist_Timing 0
 #define Hist_SdcOut 0
@@ -110,6 +113,7 @@ EventDisplay::EventDisplay()
     m_geometry(),
     m_node(),
     m_canvas(),
+    m_canvas_tpc(),
     m_canvas_vertex(),
     m_canvas_hist(),
     m_canvas_hist2(),
@@ -120,6 +124,9 @@ EventDisplay::EventDisplay()
     m_canvas_hist7(),
     m_canvas_hist8(),
     m_canvas_hist9(),
+    m_tpc_adc2d(),
+    m_tpc_tdc2d(),
+    m_htof_2d(),
     m_hist_vertex_x(),
     m_hist_vertex_y(),
     m_hist_p(),
@@ -213,6 +220,31 @@ ConstructionDone(const char* name, std::ostream& ost=hddaq::cout)
 }
 
 //_____________________________________________________________________________
+void
+EventDisplay::FillTPCADC(Int_t layer, Int_t row, Double_t adc)
+{
+  Int_t pad = tpc::GetPadId(layer, row);
+  // m_tpc_adc->Fill(adc);
+  m_tpc_adc2d->SetBinContent(pad + 1, adc);
+}
+
+//_____________________________________________________________________________
+void
+EventDisplay::FillTPCTDC(Int_t layer, Int_t row, Double_t tdc)
+{
+  Int_t pad = tpc::GetPadId(layer, row);
+  // m_tpc_tdc->Fill(tdc);
+  m_tpc_tdc2d->SetBinContent(pad + 1, tdc);
+}
+
+//_____________________________________________________________________________
+void
+EventDisplay::FillHTOF(Int_t segment)
+{
+  m_htof_2d->SetBinContent(segment, 1);
+}
+
+//_____________________________________________________________________________
 Bool_t
 EventDisplay::Initialize()
 {
@@ -266,6 +298,94 @@ EventDisplay::Initialize()
 
 #if TOF
   ConstructTOF();
+#endif
+
+#if TPC
+  // m_tpc_adc = new TH1D("h_tpc_adc", "TPC ADC", 4096, 0, 4096);
+  // m_tpc_tdc = new TH1D("h_tpc_adc", "TPC TDC",
+  //                      NumOfTimeBucket, 0, NumOfTimeBucket);
+  const Double_t MinX = -400.;
+  const Double_t MaxX =  400.;
+  const Double_t MinZ = -400.;
+  const Double_t MaxZ =  400.;
+  m_tpc_adc2d = new TH2Poly("h_tpc_adc2d", "TPC ADC;Z;X", MinZ, MaxZ, MinX, MaxX);
+  m_tpc_tdc2d = new TH2Poly("h_tpc_tdc2d", "TPC TDC;Z;X", MinZ, MaxZ, MinX, MaxX);
+  Double_t X[5];
+  Double_t Y[5];
+  for (Int_t l=0; l<NumOfLayersTPC; ++l) {
+    Double_t pLength = tpc::padParameter[l][5];
+    Double_t st      = (180.-(360./tpc::padParameter[l][3]) *
+                        tpc::padParameter[l][1]/2.);
+    Double_t sTheta  = (-1+st/180.)*TMath::Pi();
+    Double_t dTheta  = (360./tpc::padParameter[l][3])/180.*TMath::Pi();
+    Double_t cRad    = tpc::padParameter[l][2];
+    Int_t    nPad    = tpc::padParameter[l][1];
+    for (Int_t j=0; j<nPad; ++j) {
+      X[1] = (cRad+(pLength/2.))*TMath::Cos(j*dTheta+sTheta);
+      X[2] = (cRad+(pLength/2.))*TMath::Cos((j+1)*dTheta+sTheta);
+      X[3] = (cRad-(pLength/2.))*TMath::Cos((j+1)*dTheta+sTheta);
+      X[4] = (cRad-(pLength/2.))*TMath::Cos(j*dTheta+sTheta);
+      X[0] = X[4];
+      Y[1] = (cRad+(pLength/2.))*TMath::Sin(j*dTheta+sTheta);
+      Y[2] = (cRad+(pLength/2.))*TMath::Sin((j+1)*dTheta+sTheta);
+      Y[3] = (cRad-(pLength/2.))*TMath::Sin((j+1)*dTheta+sTheta);
+      Y[4] = (cRad-(pLength/2.))*TMath::Sin(j*dTheta+sTheta);
+      Y[0] = Y[4];
+      for (Int_t k=0; k<5; ++k) X[k] -=143;
+      m_tpc_adc2d->AddBin(5, X, Y);
+      m_tpc_tdc2d->AddBin(5, X, Y);
+    }
+  }
+  m_tpc_adc2d->SetStats(0);
+  m_tpc_tdc2d->SetStats(0);
+  m_tpc_adc2d->SetMaximum(4000);
+  m_tpc_tdc2d->SetMaximum(200);
+
+  m_htof_2d = new TH2Poly("h_htof_2d", "HTOF;Z;X", MinZ, MaxZ, MinX, MaxX);
+  {
+    const Double_t L = 337;
+    const Double_t t = 10;
+    const Double_t w = 68;
+    Double_t theta[8];
+    Double_t X[5];
+    Double_t Y[5];
+    Double_t seg_X[5];
+    Double_t seg_Y[5];
+    for( Int_t i=0; i<8; i++ ){
+      theta[i] = (-180+45*i)*acos(-1)/180.;
+      for( Int_t j=0; j<4; j++ ){
+	seg_X[1] = L-t/2.;
+	seg_X[2] = L+t/2.;
+	seg_X[3] = L+t/2.;
+	seg_X[4] = L-t/2.;
+	seg_X[0] = seg_X[4];
+	seg_Y[1] = w*j-2*w;
+	seg_Y[2] = w*j-2*w;
+	seg_Y[3] = w*j-1*w;
+	seg_Y[4] = w*j-1*w;
+	seg_Y[0] = seg_Y[4];
+	for( Int_t k=0; k<5; k++ ){
+	  X[k] = cos(theta[i])*seg_X[k]-sin(theta[i])*seg_Y[k];
+	  Y[k] = sin(theta[i])*seg_X[k]+cos(theta[i])*seg_Y[k];
+	}
+	m_htof_2d->AddBin(5, X, Y);
+      }
+    }
+  }
+  m_htof_2d->SetStats(0);
+
+  m_canvas_tpc = new TCanvas("Event Display", "TPC Event Display", 1800, 900);
+  m_canvas_tpc->Divide(2, 1);
+  m_canvas_tpc->cd(1)->SetLogz();
+  m_tpc_adc2d->Draw("colz");
+  m_htof_2d->Draw("same col");
+  m_canvas_tpc->cd(2);
+  m_tpc_tdc2d->Draw("colz");
+  m_htof_2d->Draw("same col");
+  // m_canvas_tpc->cd(3);
+  // m_tpc_adc->Draw("colz");
+  // m_canvas_tpc->cd(4);
+  // m_tpc_tdc->Draw("colz");
 #endif
 
   m_canvas = new TCanvas("canvas", "K1.8 Event Display",
@@ -2381,6 +2501,11 @@ EventDisplay::ResetVisibility()
 void
 EventDisplay::ResetHist()
 {
+#if TPC
+  m_tpc_adc2d->Reset("");
+  m_tpc_tdc2d->Reset("");
+  m_htof_2d->Reset("");
+#endif
 #if Hist_Timing
   m_hist_bh2->Reset();
   m_hist_sch->Reset();
@@ -3026,7 +3151,7 @@ EventDisplay::DrawSDC4p_Trailing(Int_t wire, Int_t tdc)
 
 //_____________________________________________________________________________
 void
-EventDisplay::UpdateHist()
+EventDisplay::Update()
 {
 #if Hist_Timing
   for (Int_t i=0; i<9; i++) {

@@ -23,6 +23,11 @@
 //#include "RootHelper.hh"
 #include "UnpackerManager.hh"
 #include "BH2Filter.hh"
+#include "TPCHit.hh"
+#include "TPCPadHelper.hh"
+#include "TPCParamMan.hh"
+#include "TPCPositionCorrector.hh"
+#include "TPCRawHit.hh"
 
 namespace
 {
@@ -98,6 +103,8 @@ UserEventDisplay::ProcessingNormal()
   static const auto MaxTdcSCH  = gUser.GetParameter("TdcSCH", 1);
   static const auto MinTdcTOF  = gUser.GetParameter("TdcTOF", 0);
   static const auto MaxTdcTOF  = gUser.GetParameter("TdcTOF", 1);
+  static const auto MinTdcHTOF = gUser.GetParameter("TdcHTOF", 0);
+  static const auto MaxTdcHTOF = gUser.GetParameter("TdcHTOF", 1);
 
   // static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
   // static const auto MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
@@ -666,6 +673,8 @@ UserEventDisplay::ProcessingNormal()
     KuramaOk += (ntKurama>0);
   }
 
+  if(ntKurama == 0) return true;
+
   //if (ntBcOut == 0)
   //  if (1)
   //gEvDisp.GetCommand();
@@ -720,7 +729,56 @@ UserEventDisplay::ProcessingNormal()
   }
 # endif
 
-  gEvDisp.UpdateHist();
+  //________________________________________________________
+  //___ HTOFRawHit
+  for(const auto& hit: rawData->GetHTOFRawHC()){
+    if(!hit) continue;
+    Int_t seg = hit->SegmentId();
+    Bool_t is_hit_u = false;
+    for(const auto& tdc: hit->GetArrayTdc1()){
+      if(MinTdcHTOF < tdc && tdc < MaxTdcHTOF) is_hit_u = true;
+    }
+    Bool_t is_hit_d = false;
+    for(const auto& tdc: hit->GetArrayTdc2()){
+      if(MinTdcHTOF < tdc && tdc < MaxTdcHTOF) is_hit_d = true;
+    }
+    if(is_hit_u && is_hit_d){
+      Int_t binid = 0;
+      if(seg == 0) binid=1;
+      else if(seg == 1 || seg == 2) binid = 2;
+      else if(seg == 3 || seg == 4) binid = 3;
+      else binid = seg-1;
+      gEvDisp.FillHTOF(binid);
+    }
+  }
+
+  rawData->DecodeTPCHits();
+
+  //________________________________________________________
+  //___ TPCRawHit
+  Int_t npadTpc = 0;
+  for (Int_t layer=0; layer<NumOfLayersTPC; ++layer) {
+    const auto hc = rawData->GetTPCRawHC(layer);
+    const auto nhit = hc.size();
+    npadTpc += nhit;
+    for (const auto& rhit : hc) {
+      Int_t layer = rhit->LayerId();
+      Int_t row = rhit->RowId();
+      auto mean = rhit->Mean();
+      auto max_adc = rhit->MaxAdc();
+      // auto rms = rhit->RMS();
+      auto loc_max = rhit->LocMax();
+      if(loc_max < 25 || 175 <loc_max)
+        continue;
+      TVector3 pos = tpc::getPosition(layer, row);
+      pos.SetY((loc_max - 76.75)*80.0*0.05);
+      gEvDisp.FillTPCADC(layer, row, max_adc - mean);
+      gEvDisp.FillTPCTDC(layer, row, loc_max);
+      // gEvDisp.SetTPCMarker(pos);
+    }
+  }
+
+  gEvDisp.Update();
 
   // if (1)
   //   gEvDisp.GetCommand();

@@ -19,6 +19,7 @@ class TGraph;
 class TGraphErrors;
 class TH1;
 class TH2;
+class TH2Poly;
 class TF1;
 class TLatex;
 class TMarker;
@@ -64,6 +65,7 @@ private:
   TGeometry                 *m_geometry;
   TNode                     *m_node;
   TCanvas                   *m_canvas;
+  TCanvas                   *m_canvas_tpc;
   TCanvas                   *m_canvas_vertex;
   TCanvas                   *m_canvas_hist;
   TCanvas                   *m_canvas_hist2;
@@ -74,6 +76,9 @@ private:
   TCanvas                   *m_canvas_hist7;
   TCanvas                   *m_canvas_hist8;
   TCanvas                   *m_canvas_hist9;
+  TH2Poly*                   m_tpc_adc2d;
+  TH2Poly*                   m_tpc_tdc2d;
+  TH2Poly*                   m_htof_2d;
   TH1                       *m_hist_vertex_x;
   TH1                       *m_hist_vertex_y;
   TH1                       *m_hist_p;
@@ -238,6 +243,9 @@ public:
   void DrawMassSquare(Double_t mass_square);
   void DrawMissMass(Double_t mass_square);
   void DrawBH1(Int_t seg, Int_t tdc);
+  void   FillTPCADC(Int_t layer, Int_t row, Double_t adc);
+  void   FillTPCTDC(Int_t layer, Int_t row, Double_t tdc);
+  void   FillHTOF(Int_t seg);
   void SetCorrectTimeBH1(Int_t seg, Double_t de);
   void DrawBFT(Int_t layer, Int_t seg, Int_t tdc);
   void SetCorrectTimeBFT(Double_t pos);
@@ -269,7 +277,7 @@ public:
   void DrawSDC4p_Leading(Int_t wire, Int_t tdc);
   void DrawSDC4p_Trailing(Int_t wire, Int_t tdc);
   void ShowHitFiber(Int_t layer, Int_t segment, Double_t pe);// const;
-  void UpdateHist();
+  void Update();
   void EndOfEvent();
   void ResetVisibility();
   void CalcRotMatrix(Double_t TA, Double_t RA1, Double_t RA2, Double_t *rotMat);
