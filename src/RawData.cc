@@ -366,6 +366,65 @@ RawData::DecodeTPCHits()
 }
 
 //_____________________________________________________________________________
+// bool
+// RawData::RecalcTPCHits()
+// {
+//   if(!m_is_decoded[kTPC]){
+//     hddaq::cout << "#D " << FUNC_NAME << " "
+// 		<< "Rawdata has not been decoded!" << std::endl;
+//     return false;
+//   }
+//   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+//     // Int_t Min_rms_row = -1;
+//     // Int_t Min_rms_hitnum = -1;
+//     Int_t Min_rms = 100000;
+//     // Int_t Min_maxadc_row = -1;
+//     Int_t Min_maxadc_hitnum = -1;
+//     Int_t Min_maxadc = 100000;
+//     const std::size_t nh = m_TPCRawHC[layer].size();
+//     if(nh==0)
+//       continue;
+//     for(std::size_t hiti =0; hiti< nh; hiti++){
+//       auto hit = m_TPCRawHC[layer][hiti];
+//       if(hit->RMS() < Min_rms){
+// 	Min_rms = hit->RMS();
+// 	// Min_rms_row = hit->RowId();
+// 	// Min_rms_hitnum = hiti;
+//       }
+//       if(hit->MaxAdc() < Min_maxadc){
+// 	Min_maxadc = hit->MaxAdc();
+// 	// Min_maxadc_row = hit->RowId();
+// 	Min_maxadc_hitnum = hiti;
+//       }
+//     }
+
+//     // std::cout<<"Min_maxadc_hitnum:"<<Min_maxadc_hitnum<<std::endl;
+//     // std::cout<<"Layer:"<<layer<<", min_row:"<<Min_maxadc_row<<std::endl;
+//     // auto hit_min = m_TPCRawHC[layer][Min_rms_hitnum];
+//     auto hit_min = m_TPCRawHC[layer][Min_maxadc_hitnum];
+//     Int_t n0 = hit_min->Fadc().size();
+//     Int_t mean0 = (Int_t)hit_min->Mean();
+//     for(std::size_t hiti =0; hiti< nh; hiti++){
+//       auto hit = m_TPCRawHC[layer][hiti];
+//       Int_t row = hit->RowId();
+//       //std::cout<<"row:"<<row<<std::endl;
+//       Int_t n = hit->Fadc().size();
+//       if(n0<n)
+// 	n=n0;
+//       for(Int_t i=0; i<n; ++i){
+// 	auto adc = hit->Fadc().at(i);
+// 	auto adc0 = hit_min->Fadc().at(i);
+// 	auto cor_adc = adc + (mean0 - adc0);
+// 	if(nh==1)
+// 	  AddTPCRawHit (m_TPCCorHC[layer], layer, row, adc);
+// 	else
+// 	  AddTPCRawHit (m_TPCCorHC[layer], layer, row, cor_adc);
+//       }
+//     }
+//   }
+//   return true;
+// }
+
 bool
 RawData::RecalcTPCHits()
 {
@@ -374,34 +433,79 @@ RawData::RecalcTPCHits()
 		<< "Rawdata has not been decoded!" << std::endl;
     return false;
   }
+  
+  Int_t Min_rms1 = 100000;
+  Int_t Min_rms_layer1 = -1;
+  // Int_t Min_maxadc_row = -1;
+  Int_t Min_maxadc_hitnum1 = -1;
+  Int_t Min_maxadc_layer1 = -1;
+  Int_t Min_maxadc1 = 100000;
+  
+  Int_t Min_rms2 = 100000;
+  Int_t Min_rms_layer2 = -1;
+  Int_t Min_maxadc_hitnum2 = -1;
+  Int_t Min_maxadc_layer2 = -1;
+  Int_t Min_maxadc2 = 100000;
+  
+  
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     // Int_t Min_rms_row = -1;
     // Int_t Min_rms_hitnum = -1;
-    Int_t Min_rms = 100000;
-    // Int_t Min_maxadc_row = -1;
-    Int_t Min_maxadc_hitnum = -1;
-    Int_t Min_maxadc = 100000;
+
     const std::size_t nh = m_TPCRawHC[layer].size();
     if(nh==0)
       continue;
+    
     for(std::size_t hiti =0; hiti< nh; hiti++){
       auto hit = m_TPCRawHC[layer][hiti];
-      if(hit->RMS() < Min_rms){
-	Min_rms = hit->RMS();
-	// Min_rms_row = hit->RowId();
-	// Min_rms_hitnum = hiti;
+      if(layer<10){
+	if(hit->RMS() < Min_rms1){
+	  Min_rms1 = hit->RMS();
+	  Min_rms_layer1 = layer;
+	  // Min_rms_row = hit->RowId();
+	  // Min_rms_hitnum = hiti;
+	}
+	if(hit->MaxAdc() < Min_maxadc1){
+	  Min_maxadc1 = hit->MaxAdc();
+	  // Min_maxadc_row = hit->RowId();
+	  Min_maxadc_hitnum1 = hiti;
+	  Min_maxadc_layer1 = layer;
+	}
       }
-      if(hit->MaxAdc() < Min_maxadc){
-	Min_maxadc = hit->MaxAdc();
-	// Min_maxadc_row = hit->RowId();
-	Min_maxadc_hitnum = hiti;
+      else{
+	if(hit->RMS() < Min_rms2){
+	  Min_rms2 = hit->RMS();
+	  Min_rms_layer2 = layer;
+	  // Min_rms_row = hit->RowId();
+	  // Min_rms_hitnum = hiti;
+	}
+	if(hit->MaxAdc() < Min_maxadc2){
+	  Min_maxadc2 = hit->MaxAdc();
+	  // Min_maxadc_row = hit->RowId();
+	  Min_maxadc_hitnum2 = hiti;
+	  Min_maxadc_layer2 = layer;
+	}
       }
     }
-
+  }
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    const std::size_t nh = m_TPCRawHC[layer].size();
+    if(nh==0)
+      continue;
     // std::cout<<"Min_maxadc_hitnum:"<<Min_maxadc_hitnum<<std::endl;
     // std::cout<<"Layer:"<<layer<<", min_row:"<<Min_maxadc_row<<std::endl;
     // auto hit_min = m_TPCRawHC[layer][Min_rms_hitnum];
-    auto hit_min = m_TPCRawHC[layer][Min_maxadc_hitnum];
+    int Min_layer=0, Min_maxadc_hitnum=0;
+    if(layer<10){
+      Min_layer = Min_maxadc_layer1;
+      Min_maxadc_hitnum = Min_maxadc_hitnum1;
+    }
+    else{
+      Min_layer = Min_maxadc_layer2;
+      Min_maxadc_hitnum = Min_maxadc_hitnum2;
+    }
+    //auto hit_min = m_TPCRawHC[layer][Min_maxadc_hitnum];
+    auto hit_min = m_TPCRawHC[Min_layer][Min_maxadc_hitnum];
     Int_t n0 = hit_min->Fadc().size();
     Int_t mean0 = (Int_t)hit_min->Mean();
     for(std::size_t hiti =0; hiti< nh; hiti++){
@@ -415,7 +519,8 @@ RawData::RecalcTPCHits()
 	auto adc = hit->Fadc().at(i);
 	auto adc0 = hit_min->Fadc().at(i);
 	auto cor_adc = adc + (mean0 - adc0);
-	if(nh==1)
+	//if(nh==1)
+	if(layer==Min_layer&&hiti==Min_maxadc_hitnum)
 	  AddTPCRawHit (m_TPCCorHC[layer], layer, row, adc);
 	else
 	  AddTPCRawHit (m_TPCCorHC[layer], layer, row, cor_adc);
@@ -424,6 +529,7 @@ RawData::RecalcTPCHits()
   }
   return true;
 }
+
 //_____________________________________________________________________________
 bool
 RawData::DecodeCalibHits()
