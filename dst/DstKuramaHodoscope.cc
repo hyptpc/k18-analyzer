@@ -440,13 +440,6 @@ dst::DstRead(Int_t ievent)
     event.tTof[it]   = src.tTof[it];
     event.dtTof[it]  = src.dtTof[it];
     event.deTof[it]  = src.deTof[it];
-    if(event.ntSdcOut == 1
-       && event.chisqrSdcOut[0] < 20.
-       && TMath::Abs(event.v0SdcOut[0]) < 0.01){
-      Int_t seg = (Int_t)event.TofSeg[it];
-      HF1(20000+seg*100+1, event.dtTof[it]);
-      HF2(20000+1, seg-1, event.dtTof[it]);
-    }
   }
   for(Int_t it=0; it<NumOfSegTOF; ++it){
     event.tofua[it] = src.tofua[it];
@@ -532,6 +525,21 @@ dst::DstRead(Int_t ievent)
 		<< "   m2      : " << m2 << std::endl;
 #endif
 
+      if(event.chisqrKurama[it] < 500.){
+        for(Int_t ip=0; ip<Event::nParticle; ++ip){
+          if(USE_M2){
+            if(ip == Event::Pion && TMath::Abs(m2-0.0194) > 0.1) continue;
+            if(ip == Event::Proton && TMath::Abs(m2-0.88) > 0.2) continue;
+          }
+          HF1(30000+tofseg*100+ip+1, event.tofua[tofseg-1]);
+          HF1(30000+tofseg*100+ip+1+Event::nParticle, event.tofda[tofseg-1]);
+        }
+        if(TMath::Abs(event.vtgtKurama[it]) < 0.01){
+          HF1(20000+tofseg*100+1, event.dtTof[itof]);
+          HF2(20000+1, tofseg-1, event.dtTof[itof]);
+        }
+      }
+
       Bool_t xy_ok = USE_XYCut
         ? (TMath::Abs(xtgt) < 25. && TMath::Abs(ytgt) < 20.)
         : true;
@@ -539,20 +547,25 @@ dst::DstRead(Int_t ievent)
         for(Int_t ip=0; ip<Event::nParticle; ++ip){
           if(USE_M2){
             if(ip == Event::Pion && m2 > 0.2) continue;
+            if(ip == Event::Kaon) continue;
             if(ip == Event::Proton && (m2 < 0.5 || !xy_ok)) continue;
           }
           HF2(10000+ip+1, tofseg-1, cstof-event.tTofCalc[ip]);
           HF1(10000+tofseg*100+ip+1, cstof-event.tTofCalc[ip]);
-          HF1(30000+tofseg*100+ip+1, event.tofua[tofseg-1]);
-          HF1(30000+tofseg*100+ip+1+Event::nParticle, event.tofda[tofseg-1]);
           if(TMath::Abs(event.dtTof[itof] < 0.1)){
             for(Int_t mh=0; mh<MaxDepth; ++mh){
               HF2(40000+tofseg*100+ip+1,
                   event.udeTofSeg[tofseg-1],
-                  event.tTofCalc[ip] - (event.utTofSeg[tofseg-1][mh] - time0 + StofOffset));
-              HF2(40000+tofseg*100+ip+1+Event::nParticle,
+                  event.tTofCalc[ip] - stof);
+              HF2(40000+tofseg*100+ip+11,
                   event.ddeTofSeg[tofseg-1],
-                  event.tTofCalc[ip] - (event.dtTofSeg[tofseg-1][mh] - time0 + StofOffset));
+                  event.tTofCalc[ip] - stof);
+              HF2(40000+tofseg*100,
+                  event.udeTofSeg[tofseg-1],
+                  event.tTofCalc[ip] - stof);
+              HF2(40000+tofseg*100+10,
+                  event.ddeTofSeg[tofseg-1],
+                  event.tTofCalc[ip] - stof);
             }
           }
         }
@@ -646,12 +659,18 @@ ConfMan::InitializeHistograms()
       HB2(40000+(i+1)*100+ip+1,
           Form("tCalc-Time %% TOF De %d-U [%s]", i+1, name[ip].Data()),
           100, 0., 4., 100, -3., 3.);
-      HB2(40000+(i+1)*100+ip+1+Event::nParticle,
+      HB2(40000+(i+1)*100+ip+11,
           Form("tCalc-Time %% TOF De %d-D [%s]", i+1, name[ip].Data()),
           100, 0., 4., 100, -3., 3.);
     }
     HB1(20000+(i+1)*100+1, Form("Tof TimeDiff U-D %d", i+1),
         500, -25., 25.);
+    HB2(40000+(i+1)*100,
+        Form("tCalc-Time %% TOF De %d-U [All]", i+1),
+        100, 0., 4., 100, -3., 3.);
+    HB2(40000+(i+1)*100+10,
+        Form("tCalc-Time %% TOF De %d-D [All]", i+1),
+        100, 0., 4., 100, -3., 3.);
   }
 
   HBTree("khodo", "tree of DstKuramaHodoscope");

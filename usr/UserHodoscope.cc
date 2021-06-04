@@ -417,6 +417,11 @@ struct Dst
   Double_t BvhSeg[NumOfSegBVH*MaxDepth];
   Double_t tBvh[NumOfSegBVH*MaxDepth];
 
+  Int_t    nhLac;
+  Int_t    csLac[NumOfSegLAC*MaxDepth];
+  Double_t LacSeg[NumOfSegLAC*MaxDepth];
+  Double_t tLac[NumOfSegLAC*MaxDepth];
+
   // for HodoParam
   Double_t tofua[NumOfSegTOF];
   Double_t tofut[NumOfSegTOF][MaxDepth];
@@ -440,6 +445,7 @@ Dst::clear()
   nhHtof   = 0;
   nhTof    = 0;
   nhBvh    = 0;
+  nhLac    = 0;
   evnum    = 0;
   spill    = 0;
   Time0Seg = qnan;
@@ -520,6 +526,14 @@ Dst::clear()
       tTof[MaxDepth*it + m]   = qnan;
       dtTof[MaxDepth*it + m]  = qnan;
       deTof[MaxDepth*it + m]  = qnan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegLAC; it++){
+    for(Int_t m=0; m<MaxDepth; ++m){
+      csLac[MaxDepth*it + m]  = 0;
+      LacSeg[MaxDepth*it + m] = qnan;
+      tLac[MaxDepth*it + m]   = qnan;
     }
   }
 }
@@ -902,9 +916,13 @@ UserHodoscope::ProcessingNormal()
       }
       //HitPat
       if(is_hit){
+        HF1(LACHid +3, seg-0.5);
+        HF1(LACHid +5, seg-0.5);
 	event.lachitpat[lac_nhits++] = seg;
       }
     }
+    HF1(LACHid +2, lac_nhits);
+    HF1(LACHid +4, lac_nhits);
     event.lacnhits = lac_nhits;
   }
 
@@ -1462,8 +1480,10 @@ UserHodoscope::ProcessingNormal()
 	//HF2(TOFHid+100*seg+23, ctu, au); HF2(TOFHid+100*seg+24, ctd, ad);
 	HF1(TOFHid+12, cmt);
 
-	dst.utTofSeg[seg-1][m]  = tu; dst.dtTofSeg[seg-1][m]  = td;
-	dst.udeTofSeg[seg-1]    = au; dst.ddeTofSeg[seg-1]    = ad;
+	dst.utTofSeg[seg-1][m] = tu;
+        dst.dtTofSeg[seg-1][m] = td;
+	dst.udeTofSeg[seg-1] = au;
+        dst.ddeTofSeg[seg-1] = ad;
 
 	if(m == 0){
 	  HF1(TOFHid+100*seg+14, au);    HF1(TOFHid+100*seg+15, ad);
@@ -1666,9 +1686,8 @@ UserHodoscope::ProcessingNormal()
     }
  }
 
-
-
-
+  hodoAna->DecodeBVHHits(rawData);
+  hodoAna->DecodeLACHits(rawData);
 
   ////////// Dst
   {
@@ -1760,6 +1779,18 @@ UserHodoscope::ProcessingNormal()
       dst.tTof[i]   = cl->CMeanTime();
       dst.dtTof[i]  = cl->TimeDif();
       dst.deTof[i]  = cl->DeltaE();
+    }
+  }
+
+  {
+    Int_t nc = hodoAna->GetNClustersLAC();
+    dst.nhLac = nc;
+    for(Int_t i=0; i<nc; ++i){
+      HodoCluster *cl = hodoAna->GetClusterLAC(i);
+      if(!cl) continue;
+      dst.csLac[i]  = cl->ClusterSize();
+      dst.LacSeg[i] = cl->MeanSeg()+1;
+      dst.tLac[i]   = cl->CMeanTime();
     }
   }
 
@@ -2358,6 +2389,27 @@ ConfMan::InitializeHistograms()
   HB1(BVHHid +33, "CMeamTime Cluster Bvh", 500, -5., 45.);
   HB1(BVHHid +34, "DeltaE Cluster Bvh", 100, -0.5, 4.5);
 
+  // LAC
+  HB1(LACHid +0, "#Hits LAC",        NumOfSegLAC+1, 0., Double_t(NumOfSegLAC+1));
+  HB1(LACHid +1, "Hitpat LAC",       NumOfSegLAC,   0., Double_t(NumOfSegLAC));
+  HB1(LACHid +2, "#Hits LAC(Tor)",   NumOfSegLAC+1, 0., Double_t(NumOfSegLAC+1));
+  HB1(LACHid +3, "Hitpat LAC(Tor)",  NumOfSegLAC,   0., Double_t(NumOfSegLAC));
+  HB1(LACHid +4, "#Hits LAC(Tand)",  NumOfSegLAC+1, 0., Double_t(NumOfSegLAC+1));
+  HB1(LACHid +5, "Hitpat LAC(Tand)", NumOfSegLAC,   0., Double_t(NumOfSegLAC));
+  for(Int_t i=1; i<=NumOfSegLAC; ++i){
+    TString title3 = Form("LAC-%d Tdc", i);
+    HB1(LACHid +100*i +3, title3, NbinTdc, MinTdc, MaxTdc);
+  }
+  HB1(LACHid +10, "#Hits Lac[Hodo]",  NumOfSegLAC+1, 0., Double_t(NumOfSegLAC+1));
+  HB1(LACHid +11, "Hitpat Lac[Hodo]", NumOfSegLAC,   0., Double_t(NumOfSegLAC));
+  HB1(LACHid +12, "CMeanTime Lac", 500, -5., 45.);
+  HB1(LACHid +14, "#Hits Lac[HodoGood]",  NumOfSegLAC+1, 0., Double_t(NumOfSegLAC+1));
+  HB1(LACHid +15, "Hitpat Lac[HodoGood]", NumOfSegLAC,   0., Double_t(NumOfSegLAC));
+  for(Int_t i=1; i<=NumOfSegLAC; ++i){
+    TString title11 = Form("LAC-%d Time", i);
+    HB1(LACHid +100*i +11, title11, 500, -5., 45.);
+  }
+
   //WC
   HB1(WCHid +0, "#Hits WC",        NumOfSegWC+1, 0., Double_t(NumOfSegWC+1));
   HB1(WCHid +1, "Hitpat WC",       NumOfSegWC,   0., Double_t(NumOfSegWC));
@@ -2483,6 +2535,11 @@ ConfMan::InitializeHistograms()
   tree->Branch("tofut",       event.tofut,      Form("tofut[%d][%d]/D", NumOfSegTOF, MaxDepth));
   tree->Branch("tofda",       event.tofda,      Form("tofda[%d]/D", NumOfSegTOF));
   tree->Branch("tofdt",       event.tofdt,      Form("tofdt[%d][%d]/D", NumOfSegTOF, MaxDepth));
+  //LAC
+  tree->Branch("lacnhits", &event.lacnhits, "lacnhits/I");
+  tree->Branch("lachitpat", event.lachitpat, Form("lachitpat[%d]/I", NumOfSegLAC));
+  tree->Branch("lact", event.lact, Form("lact[%d][%d]/D", NumOfSegLAC, MaxDepth));
+
   //WC
   tree->Branch("wcnhits",   &event.wcnhits,    "wcnhits/I");
   tree->Branch("wchitpat",   event.wchitpat,   Form("wchitpat[%d]/I", NumOfSegWC));
@@ -2513,10 +2570,6 @@ ConfMan::InitializeHistograms()
   tree->Branch("sch_ctime",      event.sch_ctime,        "sch_ctime[sch_ncl]/D");
   tree->Branch("sch_ctot",       event.sch_ctot,         "sch_ctot[sch_ncl]/D");
   tree->Branch("sch_clpos",      event.sch_clpos,        "sch_clpos[sch_ncl]/D");
-
-
-
-
 
   //Normalized data
   tree->Branch("bh1mt",     event.bh1mt,     Form("bh1mt[%d][%d]/D", NumOfSegBH1, MaxDepth));
@@ -2552,10 +2605,6 @@ ConfMan::InitializeHistograms()
   tree->Branch("deBtof0",  &event.deBtof0,   "deBtof0/D");
   tree->Branch("Btof0",    &event.Btof0,     "Btof0/D");
   tree->Branch("CBtof0",   &event.CBtof0,    "CBtof0/D");
-
-
-
-
 
   ////////////////////////////////////////////
   //Dst
@@ -2620,14 +2669,19 @@ ConfMan::InitializeHistograms()
   hodo->Branch("tofut", event.tofut, Form("tofut[%d][%d]/D", NumOfSegTOF, MaxDepth));
   hodo->Branch("tofda", event.tofda, Form("tofda[%d]/D", NumOfSegTOF));
   hodo->Branch("tofdt", event.tofdt, Form("tofdt[%d][%d]/D", NumOfSegTOF, MaxDepth));
-  hodo->Branch("utTofSeg",   dst.utTofSeg,
+  hodo->Branch("utTofSeg", dst.utTofSeg,
 	       Form("utTofSeg[%d][%d]/D", NumOfSegTOF, MaxDepth));
-  hodo->Branch("dtTofSeg",   dst.dtTofSeg,
-	       Form("dtTofSeg[%d]/D", NumOfSegTOF));
+  hodo->Branch("dtTofSeg", dst.dtTofSeg,
+	       Form("dtTofSeg[%d][%d]/D", NumOfSegTOF, MaxDepth));
   hodo->Branch("udeTofSeg",  dst.udeTofSeg,
-	       Form("udeTofSeg[%d][%d]/D", NumOfSegTOF, MaxDepth));
+	       Form("udeTofSeg[%d]/D", NumOfSegTOF));
   hodo->Branch("ddeTofSeg",  dst.ddeTofSeg,
 	       Form("ddeTofSeg[%d]/D", NumOfSegTOF));
+
+  hodo->Branch("nhLac",     &dst.nhLac,     "nhLac/I");
+  hodo->Branch("csLac",      dst.csLac,     "csLac[nhLac]/I");
+  hodo->Branch("LacSeg",     dst.LacSeg,    "LacSeg[nhLac]/D");
+  hodo->Branch("tLac",       dst.tLac,      "tLac[nhLac]/D");
 
   // HPrint();
   return true;

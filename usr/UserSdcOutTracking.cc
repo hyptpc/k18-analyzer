@@ -34,6 +34,8 @@ const auto& gUnpacker = GUnpacker::get_instance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& zTOF = gGeom.LocalZ("TOF");
+const auto& zTOFU = gGeom.LocalZ("TOF-UX");
+const auto& zTOFD = gGeom.LocalZ("TOF-DX");
 }
 
 //_____________________________________________________________________________
@@ -487,15 +489,15 @@ UserSdcOutTracking::ProcessingNormal()
   event.ntrack=nt;
   HF1(10, Double_t(nt));
   for(Int_t it=0; it<nt; ++it){
-    DCLocalTrack *tp=DCAna->GetTrackSdcOut(it);
-    if(!tp) continue;
-    Int_t nh=tp->GetNHit();
-    Double_t chisqr    = tp->GetChiSquare();
-    Double_t chisqr1st = tp->GetChiSquare1st();
-    Double_t x0=tp->GetX0(), y0=tp->GetY0();
-    Double_t u0=tp->GetU0(), v0=tp->GetV0();
-    Double_t theta = tp->GetTheta();
-    Int_t    nitr  = tp->GetNIteration();
+    const auto track = DCAna->GetTrackSdcOut(it);
+    if(!track) continue;
+    Int_t nh=track->GetNHit();
+    Double_t chisqr    = track->GetChiSquare();
+    Double_t chisqr1st = track->GetChiSquare1st();
+    Double_t x0=track->GetX0(), y0=track->GetY0();
+    Double_t u0=track->GetU0(), v0=track->GetV0();
+    Double_t theta = track->GetTheta();
+    Int_t    nitr  = track->GetNIteration();
     event.chisqr[it]=chisqr;
     event.x0[it]=x0;
     event.y0[it]=y0;
@@ -523,19 +525,45 @@ UserSdcOutTracking::ProcessingNormal()
     if(40.<theta)
       HF1(35, chisqr1st-chisqr);
 
-    Double_t xtof=tp->GetX(zTOF), ytof=tp->GetY(zTOF);
-    Double_t utof=u0, vtof=v0;
-    event.xTof[it] = xtof;
-    event.yTof[it] = ytof;
-    event.uTof[it] = utof;
-    event.vTof[it] = vtof;
-    HF1(21, xtof); HF1(22, ytof);
-    HF1(23, utof); HF1(24, vtof);
-    HF2(25, xtof, utof); HF2(26, ytof, vtof);
-    HF2(27, xtof, ytof);
+    ///// TOF
+#if UseTOF
+#else
+    Double_t z_tof = qnan;
+    for(Int_t itof=0; itof<event.nhTof; ++itof){
+      Int_t lnum = 0;
+      if((Int_t)event.TofSeg[itof]%2 == 0){
+        lnum = gGeom.GetDetectorId("TOF-UX");
+        z_tof = zTOFU;
+      }
+      if((Int_t)event.TofSeg[itof]%2 == 1){
+        lnum = gGeom.GetDetectorId("TOF-DX");
+        z_tof = zTOFD;
+      }
+      Double_t xposTof = gGeom.CalcWirePosition(lnum, event.TofSeg[itof]);
+      Double_t ytTof = event.dtTof[itof]*77.3511;
+      Double_t xtof=track->GetX(z_tof), ytof=track->GetY(z_tof);
+      Double_t utof=u0, vtof=v0;
+      if(nhTof == 1){
+        event.xTof[it] = xtof;
+        event.yTof[it] = ytof;
+        event.uTof[it] = utof;
+        event.vTof[it] = vtof;
+        HF2(51, event.TofSeg[itof], xtof);
+        HF2(52, xposTof, xtof);
+        HF1(53, xposTof - xtof);
+        HF2(54, xposTof, xposTof - xtof);
+        HF2(55, event.dtTof[itof], ytof);
+        HF1(56, ytTof - ytof);
+        HF2(57, event.dtTof[itof], ytTof - ytof);
+      }
+      HF1(21, xtof); HF1(22, ytof);
+      HF1(23, utof); HF1(24, vtof);
+      HF2(25, xtof, utof); HF2(26, ytof, vtof);
+      HF2(27, xtof, ytof);
+    }
+#endif
 
-    for(Int_t ih=0; ih<nh; ++ih){
-      DCLTrackHit *hit=tp->GetHit(ih);
+    for(const auto& hit: track->GetHitArray()){
       if(!hit) continue;
       Int_t layerId = 0;
       layerId = hit->GetLayer();
@@ -584,7 +612,7 @@ UserSdcOutTracking::ProcessingNormal()
       else if (theta>=45)
         HF1(100*layerId+74, res);
 
-      if (std::abs(dl-std::abs(xlcal-wp))<2.0) {
+      if (std::abs(dl-std::abs(xlcal-wp))<2.0){
         HFProf(100*layerId+20, dt, std::abs(xlcal-wp));
         HF2(100*layerId+22, dt, std::abs(xlcal-wp));
         HFProf(100000*layerId+3000+Int_t(wire), xlcal-wp,dt);
@@ -799,6 +827,15 @@ ConfMan::InitializeHistograms()
   HB1(41, "Common Stop TDC", 0x1000, 0, 0x1000);
   HB1(42, "Common Stop TDC (w/TOF)", 0x1000, 0, 0x1000);
   HB1(43, "Common Stop TDC (w/oTOF)", 0x1000, 0, 0x1000);
+
+  // ySdcOut vs dtTof
+  HB2(51, "xSdcOut % TofSeg", NumOfSegTOF, 1, NumOfSegTOF+1, 300, -1500, 1500.);
+  HB2(52, "xSdcOut % TofPos", 40, -1500, 1500, 300, -1500, 1500.);
+  HB1(53, "TofPos - xSdcOut", 400, -400, 400);
+  HB2(54, "TofPos - xSdcOut % TofPos", 40, -1500, 1500., 400, -400, 400);
+  HB2(55, "ySdcOut % dtTof", 300, -15., 15., 300, -1500, 1500.);
+  HB1(56, "ytTof - ySdcOut", 300, -300., 300.);
+  HB2(57, "ytTof - ySdcOut % dtTof", 300, -15., 15., 300, -300, 300.);
 
   ////////////////////////////////////////////
   //Tree

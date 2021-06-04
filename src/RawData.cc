@@ -209,6 +209,12 @@ RawData::DecodeHits()
 	}
       }
     } else {
+      // BC3 U-U' is dead E42
+      if(gUnpacker.get_run_number() >= 5361
+         && (plane == NumOfLayersBc || plane == NumOfLayersBc+1)){
+        continue;
+      }
+      //
       for(Int_t wire=0; wire<MaxWireBC4; ++wire){
         for(Int_t lt=0; lt<2; ++lt){
 	  UInt_t nhit = gUnpacker.get_entries(DetIdBC4, plane-NumOfLayersBc,
@@ -433,21 +439,21 @@ RawData::RecalcTPCHits()
 		<< "Rawdata has not been decoded!" << std::endl;
     return false;
   }
-  
+
   Int_t Min_rms1 = 100000;
   Int_t Min_rms_layer1 = -1;
   // Int_t Min_maxadc_row = -1;
   Int_t Min_maxadc_hitnum1 = -1;
   Int_t Min_maxadc_layer1 = -1;
   Int_t Min_maxadc1 = 100000;
-  
+
   Int_t Min_rms2 = 100000;
   Int_t Min_rms_layer2 = -1;
   Int_t Min_maxadc_hitnum2 = -1;
   Int_t Min_maxadc_layer2 = -1;
   Int_t Min_maxadc2 = 100000;
-  
-  
+
+
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     // Int_t Min_rms_row = -1;
     // Int_t Min_rms_hitnum = -1;
@@ -455,7 +461,7 @@ RawData::RecalcTPCHits()
     const std::size_t nh = m_TPCRawHC[layer].size();
     if(nh==0)
       continue;
-    
+
     for(std::size_t hiti =0; hiti< nh; hiti++){
       auto hit = m_TPCRawHC[layer][hiti];
       if(layer<10){

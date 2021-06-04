@@ -1,8 +1,4 @@
-/**
- *  file: RootHelper.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef ROOT_HELPER_HH
 #define ROOT_HELPER_HH
@@ -45,157 +41,159 @@
 
 #include <std_ostream.hh>
 
+#include "Exception.hh"
+
 #define ThrowError 1 // if h[i] already exist, throw error
 #define OverWrite  0 // if h[i] already exist, delete and renew.
 
 namespace root
 {
-  const  int    MaxHits  = 500;
-  const  int    MaxDepth = 16;
-  const  int    MaxHist  = 100000000;
-  extern TH1   *h[MaxHist];
-  extern TTree *tree;
+const Int_t MaxHits  = 500;
+const Int_t MaxDepth = 16;
+const Int_t MaxHist  = 100000000;
+extern TH1   *h[MaxHist];
+extern TTree *tree;
 
-  //___________________________________________________________________
-  inline void
-  HB1( int i, const char *title,
-       int nbinx, double xlow, double xhigh )
-  {
-    if( i<0 || MaxHist<=i )
-      throw std::out_of_range( Form("HB1() invalid HistId : %d/%d", i, MaxHist) );
-    if( h[i] ){
+//_____________________________________________________________________________
+inline void
+HB1(Int_t i, const Char_t* title,
+    Int_t nbinx, Double_t xlow, Double_t xhigh)
+{
+  if(i<0 || MaxHist<=i)
+    throw Exception(Form("HB1() invalid HistId : %d/%d", i, MaxHist));
+  if(h[i]){
 #if ThrowError
-      throw std::invalid_argument( Form("h%d (%s) is already exist", i, title) );
+    throw Exception(Form("h%d (%s) is already exist", i, title));
 #endif
 #if OverWrite
-      delete h[i];
-      h[i] = 0;
+    delete h[i];
+    h[i] = nullptr;
 #endif
-    }
-    h[i] = new TH1F( Form("h%d", i), title, nbinx, xlow, xhigh );
   }
+  h[i] = new TH1F(Form("h%d", i), title, nbinx, xlow, xhigh);
+}
 
-  //___________________________________________________________________
-  inline void
-  HB1( int i, const TString& title,
-       int nbinx, double xlow, double xhigh )
-  {
-    HB1( i, title.Data(), nbinx, xlow, xhigh );
-  }
+//_____________________________________________________________________________
+inline void
+HB1(Int_t i, const TString& title,
+    Int_t nbinx, Double_t xlow, Double_t xhigh)
+{
+  HB1(i, title.Data(), nbinx, xlow, xhigh);
+}
 
-  //___________________________________________________________________
-  inline void
-  HB2( int i, const char *title,
-       int nbinx, double xlow, double xhigh,
-       int nbiny, double ylow, double yhigh )
-  {
-    if( i<0 || MaxHist<=i )
-      throw std::out_of_range( Form("HB2() invalid HistId : %d/%d", i, MaxHist) );
-    if( h[i] ){
+//_____________________________________________________________________________
+inline void
+HB2(Int_t i, const Char_t* title,
+    Int_t nbinx, Double_t xlow, Double_t xhigh,
+    Int_t nbiny, Double_t ylow, Double_t yhigh)
+{
+  if(i<0 || MaxHist<=i)
+    throw Exception(Form("HB2() invalid HistId : %d/%d", i, MaxHist));
+  if(h[i]){
 #if ThrowError
-      throw std::invalid_argument( Form("h%d (%s) is already exist", i, title) );
+    throw Exception(Form("h%d (%s) is already exist", i, title));
 #endif
 #if OverWrite
-      delete h[i];
-      h[i] = 0;
+    delete h[i];
+    h[i] = nullptr;
 #endif
-    }
-    h[i] = new TH2F( Form("h%d", i), title,
-		     nbinx, xlow, xhigh,
-		     nbiny, ylow, yhigh );
   }
+  h[i] = new TH2F(Form("h%d", i), title,
+                  nbinx, xlow, xhigh,
+                  nbiny, ylow, yhigh);
+}
 
-  //___________________________________________________________________
-  inline void
-  HB2( int i, const TString& title,
-       int nbinx, double xlow, double xhigh,
-       int nbiny, double ylow, double yhigh )
-  {
-    HB2( i, title.Data(), nbinx, xlow, xhigh, nbiny, ylow, yhigh );
-  }
+//_____________________________________________________________________________
+inline void
+HB2(Int_t i, const TString& title,
+    Int_t nbinx, Double_t xlow, Double_t xhigh,
+    Int_t nbiny, Double_t ylow, Double_t yhigh)
+{
+  HB2(i, title.Data(), nbinx, xlow, xhigh, nbiny, ylow, yhigh);
+}
 
-  //_____________________________________________________________________
-  inline void
-  HBProf( int i, const char *title,
-	  int nbinx, double xlow, double xhigh,
-	  double ylow, double yhigh )
-  {
-    if( i<0 || MaxHist<=i )
-      throw std::out_of_range( Form("HBProf() invalid HistId : %d/%d", i, MaxHist) );
-    if( h[i] ){
+//_____________________________________________________________________________
+inline void
+HBProf(Int_t i, const Char_t* title,
+       Int_t nbinx, Double_t xlow, Double_t xhigh,
+       Double_t ylow, Double_t yhigh)
+{
+  if(i<0 || MaxHist<=i)
+    throw Exception(Form("HBProf() invalid HistId : %d/%d", i, MaxHist));
+  if(h[i]){
 #if ThrowError
-      throw std::invalid_argument( Form("h%d (%s) is already exist", i, title) );
+    throw Exception(Form("h%d (%s) is already exist", i, title));
 #endif
 #if OverWrite
-      delete h[i];
-      h[i] = 0;
+    delete h[i];
+    h[i] = nullptr;
 #endif
-    }
-    h[i] = new TProfile( Form("h%d", i), title,
-			 nbinx, xlow, xhigh, ylow, yhigh );
   }
+  h[i] = new TProfile(Form("h%d", i), title,
+                      nbinx, xlow, xhigh, ylow, yhigh);
+}
 
-  //___________________________________________________________________
-  inline void
-  HF1( int i, double x )
-  {
-    if( i<0 || MaxHist<=i )
-      throw std::out_of_range( Form("HF1() invalid HistId : %d/%d", i, MaxHist) );
-    if( h[i] ) h[i]->Fill( x );
-  }
+//_____________________________________________________________________________
+inline void
+HF1(Int_t i, Double_t x)
+{
+  if(i<0 || MaxHist<=i)
+    throw Exception(Form("HF1() invalid HistId : %d/%d", i, MaxHist));
+  if(h[i]) h[i]->Fill(x);
+}
 
-  //___________________________________________________________________
-  inline void
-  HF2( int i, double x, double y )
-  {
-    if( i<0 || MaxHist<=i )
-      throw std::out_of_range( Form("HF2() invalid HistId : %d/%d", i, MaxHist) );
-    if( h[i] ) h[i]->Fill( x, y );
-  }
+//_____________________________________________________________________________
+inline void
+HF2(Int_t i, Double_t x, Double_t y)
+{
+  if(i<0 || MaxHist<=i)
+    throw Exception(Form("HF2() invalid HistId : %d/%d", i, MaxHist));
+  if(h[i]) h[i]->Fill(x, y);
+}
 
-  //___________________________________________________________________
-  inline void
-  HFProf( int i, double x, double y )
-  {
-    if( i<0 || MaxHist<=i )
-      throw std::out_of_range( Form("HFProf() invalid HistId : %d/%d", i, MaxHist) );
-    if( h[i] ) h[i]->Fill( x, y );
-  }
+//_____________________________________________________________________________
+inline void
+HFProf(Int_t i, Double_t x, Double_t y)
+{
+  if(i<0 || MaxHist<=i)
+    throw Exception(Form("HFProf() invalid HistId : %d/%d", i, MaxHist));
+  if(h[i]) h[i]->Fill(x, y);
+}
 
-  //_____________________________________________________________________
-  inline void
-  HBTree( const char *name, const char *title )
-  {
-    if( tree ){
+//_____________________________________________________________________________
+inline void
+HBTree(const Char_t* name, const Char_t* title)
+{
+  if(tree){
 #if ThrowError
-      throw std::invalid_argument( Form("%s (%s) is already exist", name, title) );
+    throw Exception(Form("%s (%s) is already exist", name, title));
 #endif
 #if OverWrite
-      delete tree;
-      tree = 0;
+    delete tree;
+    tree = nullptr;
 #endif
-    }
-    tree = new TTree( name, title );
   }
+  tree = new TTree(name, title);
+}
 
-  //_____________________________________________________________________
-  inline void
-  HPrint( const std::string& arg="" )
-  {
-    hddaq::cout << "#D [root::HPrint()] " << arg << std::endl;
-    TList* list = gDirectory->GetList();
+//_____________________________________________________________________________
+inline void
+HPrint()
+{
+  hddaq::cout << "#D HPrint() " << std::endl;
+  TList* list = gDirectory->GetList();
 #if 1
-    int count = 0;
-    TIter itr( list );
-    while( itr.Next() && ++count ){
-      const TString& name( (*itr)->GetName() );
-      hddaq::cout << " " << std::setw(8) << std::left << name;
-      if( count%10==0 ) hddaq::cout << std::endl;
-    }
-    hddaq::cout << std::endl;
-#endif
-    hddaq::cout << " NObject : " << list->GetEntries() << std::endl;
+  Int_t count = 0;
+  TIter itr(list);
+  while(itr.Next() && ++count){
+    const TString& name((*itr)->GetName());
+    hddaq::cout << " " << std::setw(8) << std::left << name;
+    if(count%10==0) hddaq::cout << std::endl;
   }
+  hddaq::cout << std::endl;
+#endif
+  hddaq::cout << " NObject : " << list->GetEntries() << std::endl;
+}
 
 }
 

@@ -77,6 +77,8 @@ const Int_t& IdTOFUY = gGeom.DetectorId("TOF-UY");
 const Int_t& IdTOFDX = gGeom.DetectorId("TOF-DX");
 const Int_t& IdTOFDY = gGeom.DetectorId("TOF-DY");
 
+const Double_t TimeDiffToYTOF = 77.3511; // [mm/ns]
+
 const Double_t MaxChiSqrKuramaTrack = 10000.;
 const Double_t MaxTimeDifMWPC       =   100.;
 
@@ -202,7 +204,7 @@ Bool_t
 DCAnalyzer::DecodeBcInHits(RawData *rawData)
 {
   if(m_is_decoded[kBcIn]){
-    hddaq::cout << "#D " << FUNC_NAME << " "
+    hddaq::cout << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
   }
@@ -272,7 +274,7 @@ Bool_t
 DCAnalyzer::DecodeBcOutHits(RawData *rawData)
 {
   if(m_is_decoded[kBcOut]){
-    hddaq::cout << "#D " << FUNC_NAME << " "
+    hddaq::cout << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
   }
@@ -369,7 +371,7 @@ DCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
   static const Int_t TPC_Subtraction = gUser.GetParameter("TPC_Subtraction");
   static const Int_t TPC_Multi = gUser.GetParameter("TPC_Multi");
   if(m_is_decoded[kTPC]){
-    hddaq::cout << "#D " << FUNC_NAME << " "
+    hddaq::cout << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
   }
@@ -426,7 +428,7 @@ DCAnalyzer::ReCalcTPCHits(const Int_t nhits,
   // static const Double_t DriftVelocity = gUser.GetParameter("DriftVelocityTPC");
 
   if(m_is_decoded[kTPC]){
-    hddaq::cout << "#D " << FUNC_NAME << " "
+    hddaq::cout << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
   }
@@ -564,7 +566,7 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
   std::vector<Double_t> hough_x;
   std::vector<Double_t> hough_y;
 
-  
+
 
   for(Int_t tracki=0; tracki<MaxNumOfTrackTPC; tracki++){
     // std::cout<<"tracki= "<<tracki<<std::endl;
@@ -607,7 +609,7 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
       if(bindiff<=4)
 	hough_flag = false;
     }
-   
+
     int numhit_hough = 0;
     for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
       for(Int_t ci=0, n=m_TPCClCont[layer].size(); ci<n; ci++){
@@ -623,7 +625,7 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
 
     if(numhit_hough<MinLayer)
       hough_flag = false;
-    
+
     hough_x.push_back(mx);
     hough_y.push_back(my);
     // if(!hough_flag)
@@ -639,7 +641,7 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
 	//std::cout<<"dist= "<<dist<<", y_tgt= "<<y_tgt<<", v="<<p1[tracki]<<std::endl;
 	//	if(dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
 	//if(hit->GetHoughY_num_size()>1)
-	
+
 	if(dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
 	  if(min_y<y_tgt&&y_tgt<max_y&&hough_flag){
 	    if(flag[layer][ci]==0)
@@ -682,7 +684,7 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
   for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
     m_TPCClCont[layer].clear();
     m_TPCClCont[layer].resize(ValidCand[layer].size());
-    std::copy(ValidCand[layer].begin(), ValidCand[layer].end(), m_TPCClCont[layer].begin());    
+    std::copy(ValidCand[layer].begin(), ValidCand[layer].end(), m_TPCClCont[layer].begin());
     ValidCand[layer].clear();
   }
 }
@@ -695,7 +697,7 @@ DCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
                                 const Double_t *x, const Double_t *y, const Double_t *z, const Double_t *de)
 {
   if(m_is_decoded[kTPC]){
-    hddaq::cout << "#D " << FUNC_NAME << " "
+    hddaq::cout << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
   }
@@ -746,7 +748,7 @@ Bool_t
 DCAnalyzer::DecodeSdcInHits(RawData *rawData)
 {
   if(m_is_decoded[kSdcIn]){
-    hddaq::cout << "#D " << FUNC_NAME << " "
+    hddaq::cout << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
   }
@@ -782,7 +784,7 @@ Bool_t
 DCAnalyzer::DecodeSdcOutHits(RawData *rawData , Double_t ofs_dt)
 {
   if(m_is_decoded[kSdcOut]){
-    hddaq::cout << "#D " << FUNC_NAME << " "
+    hddaq::cout << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
   }
@@ -832,7 +834,7 @@ Bool_t
 DCAnalyzer::DecodeTOFHits(const Hodo2HitContainer& HitCont)
 {
   if(m_is_decoded[kTOF]){
-    hddaq::cout << "#D " << FUNC_NAME << " "
+    hddaq::cout << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
   }
@@ -841,16 +843,13 @@ DCAnalyzer::DecodeTOFHits(const Hodo2HitContainer& HitCont)
 
   // for the tilting plane case
   static const Double_t RA2 = gGeom.GetRotAngle2("TOF");
-  static const ThreeVector TOFPos[2] = {
+  static const TVector3 TOFPos[2] = {
     gGeom.GetGlobalPosition("TOF-UX"),
     gGeom.GetGlobalPosition("TOF-DX") };
 
-  const std::size_t nh = HitCont.size();
-  for(std::size_t i=0; i<nh; ++i){
-    Hodo2Hit *hodo_hit = HitCont[i];
-    if(!hodo_hit) continue;
-    const Double_t seg  = hodo_hit->SegmentId()+1;
-    const Double_t dt   = hodo_hit->TimeDiff();
+  for(const auto& hodo_hit: HitCont){
+    const Double_t seg = hodo_hit->SegmentId()+1;
+    const Double_t dt  = hodo_hit->TimeDiff();
     Int_t layer_x = -1;
     Int_t layer_y = -1;
     if((Int_t)seg%2==0){
@@ -862,10 +861,10 @@ DCAnalyzer::DecodeTOFHits(const Hodo2HitContainer& HitCont)
       layer_y  = IdTOFDY;
     }
     Double_t wpos = gGeom.CalcWirePosition(layer_x, seg);
-    ThreeVector w(wpos, 0., 0.);
+    TVector3 w(wpos, 0., 0.);
     w.RotateY(RA2*TMath::DegToRad()); // for the tilting plane case
-    const ThreeVector& hit_pos = TOFPos[(Int_t)seg%2] + w
-      + ThreeVector(0., dt/0.01285, 0.);
+    const TVector3 hit_pos = TOFPos[(Int_t)seg%2] + w
+      + TVector3(0., dt*TimeDiffToYTOF, 0.);
     // X
     DCHit *dc_hit_x = new DCHit(layer_x, seg);
     dc_hit_x->SetWirePosition(hit_pos.x());
@@ -875,7 +874,7 @@ DCAnalyzer::DecodeTOFHits(const Hodo2HitContainer& HitCont)
     m_TOFHC.push_back(dc_hit_x);
     // Y
     DCHit *dc_hit_y = new DCHit(layer_y, seg);
-    dc_hit_y->SetWirePosition(hit_pos.y()); // [ns] -> [mm]
+    dc_hit_y->SetWirePosition(hit_pos.y());
     dc_hit_y->SetZ(hit_pos.z());
     dc_hit_y->SetTiltAngle(90.);
     dc_hit_y->SetDummyPair();
@@ -891,7 +890,7 @@ Bool_t
 DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
 {
   if(m_is_decoded[kTOF]){
-    hddaq::cout << "#D " << FUNC_NAME << " "
+    hddaq::cout << FUNC_NAME << " "
 		<< "already decoded" << std::endl;
     return true;
   }
@@ -899,16 +898,13 @@ DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
   ClearTOFHits();
 
   static const Double_t RA2 = gGeom.GetRotAngle2("TOF");
-  static const ThreeVector TOFPos[2] = {
+  static const TVector3 TOFPos[2] = {
     gGeom.GetGlobalPosition("TOF-UX"),
     gGeom.GetGlobalPosition("TOF-DX") };
 
-  const std::size_t nh = ClCont.size();
-  for(std::size_t i=0; i<nh; ++i){
-    HodoCluster *hodo_cluster = ClCont[i];
-    if(!hodo_cluster) continue;
-    const Double_t seg  = hodo_cluster->MeanSeg()+1;
-    const Double_t dt   = hodo_cluster->TimeDif();
+  for(const auto& hodo_cluster: ClCont){
+    const Double_t seg = hodo_cluster->MeanSeg()+1;
+    const Double_t dt  = hodo_cluster->TimeDif();
     Int_t layer_x = -1;
     Int_t layer_y = -1;
     if((Int_t)seg%2==0){
@@ -920,10 +916,10 @@ DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
       layer_y  = IdTOFDY;
     }
     Double_t wpos = gGeom.CalcWirePosition(layer_x, seg);
-    ThreeVector w(wpos, 0., 0.);
+    TVector3 w(wpos, 0., 0.);
     w.RotateY(RA2*TMath::DegToRad());
-    const ThreeVector& hit_pos = TOFPos[(Int_t)seg%2] + w
-      + ThreeVector(0., dt/0.01285, 0.);
+    const TVector3& hit_pos = TOFPos[(Int_t)seg%2] + w
+      + TVector3(0., dt*TimeDiffToYTOF, 0.);
     // X
     DCHit *dc_hit_x = new DCHit(layer_x, seg);
     dc_hit_x->SetWirePosition(hit_pos.x());
@@ -933,7 +929,7 @@ DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
     m_TOFHC.push_back(dc_hit_x);
     // Y
     DCHit *dc_hit_y = new DCHit(layer_y, seg);
-    dc_hit_y->SetWirePosition(hit_pos.y()); // [ns] -> [mm]
+    dc_hit_y->SetWirePosition(hit_pos.y());
     dc_hit_y->SetZ(hit_pos.z());
     dc_hit_y->SetTiltAngle(90.);
     dc_hit_y->SetDummyPair();
@@ -1690,7 +1686,7 @@ DCAnalyzer::ReCalcAll()
 //   }
 
 //   const Int_t nhits = hits.size();
-//   //   hddaq::cout << "#D " << __func__ << " " << nhits << std::endl;
+//   //   hddaq::cout << __func__ << " " << nhits << std::endl;
 //   if (nhits==0)
 //     return 0;
 
@@ -1748,7 +1744,7 @@ DCAnalyzer::ReCalcAll()
 //     }
 //   }
 
-//   //   hddaq::cout << "#D " << __func__ << "  before " << std::endl;
+//   //   hddaq::cout << __func__ << "  before " << std::endl;
 //   //   printConnectionFlag(flag);
 
 //   const Int_t maxLoop = static_cast<Int_t>(std::log(x)/std::log(2.))+1;
@@ -1767,7 +1763,7 @@ DCAnalyzer::ReCalcAll()
 //     //       printConnectionFlag(flag);
 //   }
 
-//   //   hddaq::cout << "#D " << __func__ << "  after " << std::endl;
+//   //   hddaq::cout << __func__ << "  after " << std::endl;
 //   //   printConnectionFlag(flag);
 
 //   std::set<Int_t> checked;

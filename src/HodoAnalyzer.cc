@@ -309,7 +309,7 @@ HodoAnalyzer::DecodeBVHHits(RawData *rawData)
     }
   }
 
-#if 0
+#if Cluster
   MakeUpClusters(m_BVHCont, m_BVHClCont, MaxTimeDifBVH);
 #endif
 
@@ -323,7 +323,7 @@ HodoAnalyzer::DecodeTOFHits(RawData *rawData)
   ClearTOFHits();
   for(auto& hit: rawData->GetTOFRawHC()){
     if(!hit) continue;
-    auto hp = new Hodo2Hit(hit);
+    auto hp = new Hodo2Hit(hit, 15.);
     if(!hp) continue;
     hp->MakeAsTof();
     if(hp->Calculate()){

@@ -69,6 +69,7 @@ public:
   Int_t        GetNHitSFT() const;
   Int_t        GetNHitY() const;
   DCLTrackHit* GetHit(Int_t nth) const;
+  const std::vector<DCLTrackHit*>& GetHitArray() const { return m_hit_array; }
   DCLTrackHit* GetHitUV(Int_t nth) const;
   DCLTrackHit* GetHitOfLayerNumber(Int_t lnum) const;
   Double_t     GetWire(Int_t layer) const;
