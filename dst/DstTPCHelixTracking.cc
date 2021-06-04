@@ -109,6 +109,10 @@ struct Event
   std::vector<Double_t> dEdx;
   std::vector<Double_t> dEdx_20;
   std::vector<Double_t> dEdx_30;
+  std::vector<Double_t> dE_cor; //corrected by helix_dz
+  std::vector<Double_t> dEdx_cor; //corrected by helix_dz
+  std::vector<Double_t> dEdx_20_cor; //corrected by helix_dz
+  std::vector<Double_t> dEdx_30_cor; //corrected by helix_dz
   std::vector<Double_t> mom0_x;//Helix momentum at Y = 0
   std::vector<Double_t> mom0_y;//Helix momentum at Y = 0
   std::vector<Double_t> mom0_z;//Helix momentum at Y = 0
@@ -135,6 +139,9 @@ struct Event
   std::vector<Double_t> Lvtz;
   std::vector<Double_t> LcloseDist;
   std::vector<Double_t> Mom_Lambda;
+  std::vector<Double_t> Mom_Lambdax;
+  std::vector<Double_t> Mom_Lambday;
+  std::vector<Double_t> Mom_Lambdaz;
 
   std::vector<Double_t> M_Ks;
   std::vector<Double_t> Ksvtx;
@@ -142,6 +149,9 @@ struct Event
   std::vector<Double_t> Ksvtz;
   std::vector<Double_t> KscloseDist;
   std::vector<Double_t> Mom_Ks;
+  std::vector<Double_t> Mom_Ksx;
+  std::vector<Double_t> Mom_Ksy;
+  std::vector<Double_t> Mom_Ksz;
 
 
   std::vector<std::vector<Double_t>> hitlayer;
@@ -196,6 +206,10 @@ struct Event
     dEdx.clear();
     dEdx_20.clear();
     dEdx_30.clear();
+    dE_cor.clear();
+    dEdx_cor.clear();
+    dEdx_20_cor.clear();
+    dEdx_30_cor.clear();
     mom0_x.clear();
     mom0_y.clear();
     mom0_z.clear();
@@ -220,6 +234,9 @@ struct Event
     Lvtz.clear();
     LcloseDist.clear();
     Mom_Lambda.clear();
+    Mom_Lambdax.clear();
+    Mom_Lambday.clear();
+    Mom_Lambdaz.clear();
     
     M_Ks.clear();
     Ksvtx.clear();
@@ -227,6 +244,9 @@ struct Event
     Ksvtz.clear();
     KscloseDist.clear();
     Mom_Ks.clear();
+    Mom_Ksx.clear();
+    Mom_Ksy.clear();
+    Mom_Ksz.clear();
 
     hitlayer.clear();
     hitpos_x.clear();
@@ -472,6 +492,10 @@ dst::DstRead( int ievent )
   event.dEdx.resize( ntTpc );
   event.dEdx_20.resize( ntTpc );
   event.dEdx_30.resize( ntTpc );
+  event.dE_cor.resize( ntTpc );
+  event.dEdx_cor.resize( ntTpc );
+  event.dEdx_20_cor.resize( ntTpc );
+  event.dEdx_30_cor.resize( ntTpc );
   event.charge.resize( ntTpc );
   event.path.resize( ntTpc );
   
@@ -665,6 +689,12 @@ dst::DstRead( int ievent )
       event.dEdx_30[it]+=de_30[ih];
     }
     event.dEdx_30[it]/=(double)n_30;
+
+    double dz_factor = sqrt(1.+(pow(helix_dz,2)));
+    event.dE_cor[it]=event.dE[it]/dz_factor;
+    event.dEdx_cor[it]=event.dEdx[it]/dz_factor;
+    event.dEdx_20_cor[it]=event.dEdx_20[it]/dz_factor;
+    event.dEdx_30_cor[it]=event.dEdx_30[it]/dz_factor;
   }
 
   // rough estimation for Lambda and Ks event
@@ -682,13 +712,16 @@ dst::DstRead( int ievent )
 	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
-	    if(event.dEdx_20[it]>event.dEdx_20[it2]*1.5){
+	    if(event.dEdx_20_cor[it]>event.dEdx_20_cor[it2]*1.5){
 	      event.M_Lambda.push_back(LLambda.M());
 	      event.Lvtx.push_back(event.vtx[it]);
 	      event.Lvty.push_back(event.vty[it]);
 	      event.Lvtz.push_back(event.vtz[it]);
 	      event.LcloseDist.push_back(event.closeDist[it]);
 	      event.Mom_Lambda.push_back(LLambda.P());
+	      event.Mom_Lambdax.push_back(LLambda.Px());
+	      event.Mom_Lambday.push_back(LLambda.Py());
+	      event.Mom_Lambdaz.push_back(LLambda.Pz());
 	    }
 	    else{
 	      event.M_Ks.push_back(LKs.M());
@@ -697,6 +730,9 @@ dst::DstRead( int ievent )
 	      event.Ksvtz.push_back(event.vtz[it]);
 	      event.KscloseDist.push_back(event.closeDist[it]);
 	      event.Mom_Ks.push_back(LKs.P());
+	      event.Mom_Ksx.push_back(LKs.Px());
+	      event.Mom_Ksx.push_back(LKs.Py());
+	      event.Mom_Ksx.push_back(LKs.Pz());
 	    }
 	  }
 	  else{
@@ -707,13 +743,16 @@ dst::DstRead( int ievent )
 	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
-	    if(event.dEdx_20[it2]>event.dEdx_20[it]*1.5){
+	    if(event.dEdx_20_cor[it2]>event.dEdx_20_cor[it]*1.5){
 	      event.M_Lambda.push_back(LLambda.M());
 	      event.Lvtx.push_back(event.mom_vtx[it]);
 	      event.Lvty.push_back(event.mom_vty[it]);
 	      event.Lvtz.push_back(event.mom_vtz[it]);
 	      event.LcloseDist.push_back(event.closeDist[it]);
 	      event.Mom_Lambda.push_back(LLambda.P());
+	      event.Mom_Lambdax.push_back(LLambda.Px());
+	      event.Mom_Lambday.push_back(LLambda.Py());
+	      event.Mom_Lambdaz.push_back(LLambda.Pz());
 	    }
 	    else{
 	      event.M_Ks.push_back(LKs.M());
@@ -722,6 +761,9 @@ dst::DstRead( int ievent )
 	      event.Ksvtz.push_back(event.mom_vtz[it]);
 	      event.KscloseDist.push_back(event.closeDist[it]);
 	      event.Mom_Ks.push_back(LKs.P());
+	      event.Mom_Ksx.push_back(LKs.Px());
+	      event.Mom_Ksy.push_back(LKs.Py());
+	      event.Mom_Ksz.push_back(LKs.Pz());
 	    }
 	  }
 	}
@@ -804,6 +846,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dEdx", &event.dEdx );
   tree->Branch( "dEdx_20", &event.dEdx_20 );
   tree->Branch( "dEdx_30", &event.dEdx_30 );
+  tree->Branch( "dE_cor", &event.dE_cor );
+  tree->Branch( "dEdx_cor", &event.dEdx_cor );
+  tree->Branch( "dEdx_20_cor", &event.dEdx_20_cor );
+  tree->Branch( "dEdx_30_cor", &event.dEdx_30_cor );
   tree->Branch( "charge", &event.charge );
   tree->Branch( "path", &event.path );
 
@@ -822,12 +868,18 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "Lvtz", &event.Lvtz );
   tree->Branch( "LcloseDist", &event.LcloseDist );
   tree->Branch( "Mom_Lambda", &event.Mom_Lambda );
+  tree->Branch( "Mom_Lambdax", &event.Mom_Lambdax );
+  tree->Branch( "Mom_Lambday", &event.Mom_Lambday );
+  tree->Branch( "Mom_Lambdaz", &event.Mom_Lambdaz );
   tree->Branch( "M_Ks", &event.M_Ks );
   tree->Branch( "Ksvtx", &event.Ksvtx );
   tree->Branch( "Ksvty", &event.Ksvty );
   tree->Branch( "Ksvtz", &event.Ksvtz );
   tree->Branch( "KscloseDist", &event.KscloseDist );
   tree->Branch( "Mom_Ks", &event.Mom_Ks );
+  tree->Branch( "Mom_Ksx", &event.Mom_Ksx );
+  tree->Branch( "Mom_Ksy", &event.Mom_Ksy );
+  tree->Branch( "Mom_Ksz", &event.Mom_Ksz );
 
   tree->Branch( "hitlayer", &event.hitlayer );
   tree->Branch( "hitpos_x", &event.hitpos_x );
