@@ -123,7 +123,10 @@ TPC_Multi		1000
 #MinDeTPC		40
 MinDeTPC		60
 MinRmsTPC		10
-TimeBucketTPC		10 140
+# before change num of tbi
+#TimeBucketTPC		10 140
+# after change num of tbi
+TimeBucketTPC		25 155
 #temporary (ch) -> should be ns unit
 #Time0TPC   	   	  79.0
 #HIMAC value mm/ns

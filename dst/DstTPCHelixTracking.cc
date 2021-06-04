@@ -581,14 +581,11 @@ dst::DstRead( int ievent )
     
     std::vector<Double_t> de_20; 
     std::vector<Double_t> de_30; 
-    std::vector<Double_t> path_20; 
-    std::vector<Double_t> path_30; 
     int n_20=(int)(nh*0.8);
     int n_30=(int)(nh*0.7);
     de_20.resize(n_20);
     de_30.resize(n_30);
-    path_20.resize(n_20);
-    path_30.resize(n_30);
+ 
 
 
     for( int ih=0; ih<nh; ++ih ){
@@ -604,25 +601,21 @@ dst::DstRead( int ievent )
       path_dEdx += path_hit;
       
       if(ih<n_20){
-	de_20[ih] = de_hit;
-	path_20[ih] = path_hit;
+	de_20[ih] = de_hit/path_hit;	
       }
       else{
-	if(de_hit<TMath::MaxElement(de_20.size(),de_20.data())){
+	if(de_hit/path_hit<TMath::MaxElement(de_20.size(),de_20.data())){
 	  int imax = TMath::LocMax(de_20.size(),de_20.data());
-	  de_20[imax] = de_hit;
-	  path_20[imax] = path_hit;
+	  de_20[imax] = de_hit/path_hit;
 	}
       }
       if(ih<n_30){
-	de_30[ih] = de_hit;
-	path_30[ih] = path_hit;
+	de_30[ih] = de_hit/path_hit;
       }
       else{
-	if(de_hit<TMath::MaxElement(de_30.size(),de_30.data())){
+	if(de_hit/path_hit<TMath::MaxElement(de_30.size(),de_30.data())){
 	  int imax = TMath::LocMax(de_30.size(),de_30.data());
-	  de_30[imax] = de_hit;
-	  path_30[imax] = path_hit;
+	  de_30[imax] = de_hit/path_hit;
 	}
       }
       
@@ -660,21 +653,18 @@ dst::DstRead( int ievent )
     event.path[it] = pathlen;
     event.dE[it] = de;
     event.dEdx[it] = de/path_dEdx;
+
     event.dEdx_20[it]=0.;
-    double tot_path_20 =0.;
     for( int ih=0; ih<n_20; ++ih ){
       event.dEdx_20[it]+=de_20[ih];
-      tot_path_20+=path_20[ih];
     }
-    event.dEdx_20[it]/=tot_path_20;
+    event.dEdx_20[it]/=(double)n_20;
 
     event.dEdx_30[it]=0.;
-    double tot_path_30 =0.;
     for( int ih=0; ih<n_30; ++ih ){
       event.dEdx_30[it]+=de_30[ih];
-      tot_path_30+=path_30[ih];
     }
-    event.dEdx_30[it]/=tot_path_30;
+    event.dEdx_30[it]/=(double)n_30;
   }
 
   // rough estimation for Lambda and Ks event
