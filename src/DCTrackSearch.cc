@@ -2042,6 +2042,7 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
       }
     }
   }
+  ++Max_tracki_houghY;
   //  std::cout<<"Max_tracki="<<Max_tracki_houghY<<std::endl;
   TH3D *Ci_hist=new TH3D("hist_circle",";rd (mm); theta (rad); p(MeV/c)",
                          nBin_rdiff, rdiff_min,  rdiff_max,
@@ -2066,7 +2067,8 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
 	    int ihoughy_size = hit->GetHoughY_num_size();
 	    for(int ih=0; ih<ihoughy_size; ++ih){
 	      int ihoughy = hit->GetHoughY_num(ih);
-	      if(ity==ihoughy-1)
+	      //if(ity==ihoughy-1)
+	      if(ity==ihoughy)
 		status_houghy = true;
 	    }
 	    if(!status_houghy)
@@ -2186,13 +2188,15 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
 	  Double_t r_cal = sqrt(pow(x-hough_cx,2) + pow(y-hough_cy,2));
 
 	  Double_t dist = fabs(r_cal - hough_r);
-	  if(dist < HoughWindowCut && layer < MaxLayerCut && de>DECut_TPCTrack){
+	  //if(dist < HoughWindowCut && layer < MaxLayerCut && de>DECut_TPCTrack){
+	  if(dist < HoughWindowCut && layer < MaxLayerCut){
 	    if(ity<Max_tracki_houghY){
 	      bool status_houghy = false;
 	      int ihoughy_size = hit->GetHoughY_num_size();
 	      for(int ih=0; ih<ihoughy_size; ++ih){
 		int ihoughy = hit->GetHoughY_num(ih);
-		if(ity==ihoughy-1)
+		//if(ity==ihoughy-1)
+		if(ity==ihoughy)
 		  status_houghy = true;
 	      }
 	      if(status_houghy)
@@ -2210,19 +2214,33 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
       track->SetAcx(hough_cx);
       track->SetAcy(hough_cy);
       track->SetAr(hough_r);
-
-      if(track->DoFit(MinNumOfHits)){
-	TrackCont.push_back(track);
-	Int_t nh = track->GetNHit();
-	for( int ih=0; ih<nh; ++ih ){
-	  TPCHit *hit = track->GetHit( ih )->GetHit();
-	  if( !hit ) continue;
-	  hit->SetHoughFlag(1+hit->GetHoughFlag());
+      
+      if(ity==0){
+	if(track->DoFit(MinNumOfHits-2)){
+	  TrackCont.push_back(track);
+	  Int_t nh = track->GetNHit();
+	  for( int ih=0; ih<nh; ++ih ){
+	    TPCHit *hit = track->GetHit( ih )->GetHit();
+	    if( !hit ) continue;
+	    hit->SetHoughFlag(1+hit->GetHoughFlag());
+	  }
 	}
+	else
+	  delete track;
       }
-      else
-	delete track;
-
+      else{
+	if(track->DoFit(MinNumOfHits)){
+	  TrackCont.push_back(track);
+	  Int_t nh = track->GetNHit();
+	  for( int ih=0; ih<nh; ++ih ){
+	    TPCHit *hit = track->GetHit( ih )->GetHit();
+	    if( !hit ) continue;
+	    hit->SetHoughFlag(1+hit->GetHoughFlag());
+	  }
+	}
+	else
+	  delete track;
+      }
       //      Ci_hist->Reset();
 
       //delete track;

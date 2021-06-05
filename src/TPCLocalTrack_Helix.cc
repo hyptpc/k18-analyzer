@@ -185,7 +185,10 @@ TPCLocalTrack_Helix::GetNDF( void ) const
   const std::size_t n = m_hit_array.size();
   int ndf = 0;
   for( std::size_t i=0; i<n; ++i ){
-    if( m_hit_array[i] ) ++ndf;
+    if( m_hit_array[i] ){
+      ++ndf;
+      ++ndf;
+    }
   }
   return ndf-5;
 }
