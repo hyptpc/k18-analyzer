@@ -23,7 +23,7 @@
 #define TotCut      0
 #define Chi2Cut     0
 #define MaxMultiCut 0
-#define UseTOF      0 // use or not TOF for tracking
+#define UseTOF      1 // use or not TOF for tracking
 
 namespace
 {
@@ -215,7 +215,7 @@ UserSdcOutTracking::ProcessingNormal()
   static const auto MaxTimeTOF = gUser.GetParameter("TimeTOF", 1);
   static const auto MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
   static const auto MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
-  static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
+  // static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
 #if TotCut
   static const auto MinTotSDC3 = gUser.GetParameter("MinTotSDC3");
   static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
@@ -357,6 +357,8 @@ UserSdcOutTracking::ProcessingNormal()
 #endif
   }
 
+  // if(event.nhTof==0) return true;
+
   HF1(1, 6.);
 
   // Common stop timing
@@ -385,75 +387,71 @@ UserSdcOutTracking::ProcessingNormal()
 # endif
 #endif
 
-
   HF1(1, 10.);
-  Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
-  DCAna->DecodeSdcOutHits(rawData, offset);
+  // Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
+  DCAna->DecodeSdcOutHits(rawData);
 #if TotCut
   DCAna->TotCutSDC3(MinTotSDC3);
   DCAna->TotCutSDC4(MinTotSDC4);
 #endif
   Double_t multi_SdcOut = 0.;
-  {
-    for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer) {
-      const DCHitContainer &contOut =DCAna->GetSdcOutHC(layer);
-      Int_t nhOut=contOut.size();
-      event.nhit[layer-1] = nhOut;
-      if(nhOut>0) event.nlayer++;
-      multi_SdcOut += Double_t(nhOut);
-      HF1(100*layer, nhOut);
-      Int_t plane_eff = (layer-1)*3;
-      Bool_t fl_valid_sig = false;
-
-      for(Int_t i=0; i<nhOut; ++i){
-        DCHit *hit=contOut[i];
-        Double_t wire=hit->GetWire();
-        HF1(100*layer+1, wire-0.5);
-        Int_t nhtdc = hit->GetTdcSize();
-        Int_t tdc1st = -1;
-        for(Int_t k=0; k<nhtdc; k++){
-          Int_t tdc = hit->GetTdcVal(k);
-          HF1(100*layer+2, tdc);
-          HF1(10000*layer+Int_t(wire), tdc);
-          //	    HF2(1000*layer, tdc, wire-0.5);
-          if(tdc > tdc1st){
-            tdc1st = tdc;
-            fl_valid_sig = true;
-          }
-        }
-        HF1(100*layer+6, tdc1st);
-        for(Int_t k=0, n=hit->GetTdcTrailingSize(); k<n; ++k){
-          Int_t trailing = hit->GetTdcTrailing(k);
-          HF1(100*layer+10, trailing);
-        }
-
-        if(i<MaxHits)
-          event.pos[layer-1][i] = hit->GetWirePosition();
-
-        Int_t nhdt = hit->GetDriftTimeSize();
-        Int_t tot1st = -1;
-        for(Int_t k=0; k<nhdt; k++){
-          Double_t dt = hit->GetDriftTime(k);
-          if(common_stop_is_tof) HF1(100*layer+3, dt);
-          else                   HF1(100*layer+8, dt);
-          HF1(10000*layer+1000+Int_t(wire), dt);
-
-          Double_t tot = hit->GetTot(k);
-          HF1(100*layer+5, tot);
-          if(tot > tot1st){
-            tot1st = tot;
-          }
-        }
-        HF1(100*layer+7, tot1st);
-        Int_t nhdl = hit->GetDriftTimeSize();
-        for(Int_t k=0; k<nhdl; k++){
-          Double_t dl = hit->GetDriftLength(k);
-          HF1(100*layer+4, dl);
+  for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer) {
+    const auto& contOut = DCAna->GetSdcOutHC(layer);
+    Int_t nhOut = contOut.size();
+    event.nhit[layer-1] = nhOut;
+    if(nhOut>0) event.nlayer++;
+    multi_SdcOut += Double_t(nhOut);
+    HF1(100*layer, nhOut);
+    Int_t plane_eff = (layer-1)*3;
+    Bool_t fl_valid_sig = false;
+    for(Int_t i=0; i<nhOut; ++i){
+      DCHit *hit=contOut[i];
+      Double_t wire=hit->GetWire();
+      HF1(100*layer+1, wire-0.5);
+      Int_t nhtdc = hit->GetTdcSize();
+      Int_t tdc1st = -1;
+      for(Int_t k=0; k<nhtdc; k++){
+        Int_t tdc = hit->GetTdcVal(k);
+        HF1(100*layer+2, tdc);
+        HF1(10000*layer+Int_t(wire), tdc);
+        //	    HF2(1000*layer, tdc, wire-0.5);
+        if(tdc > tdc1st){
+          tdc1st = tdc;
+          fl_valid_sig = true;
         }
       }
-      if(fl_valid_sig) ++plane_eff;
-      HF1(38, plane_eff);
+      HF1(100*layer+6, tdc1st);
+      for(Int_t k=0, n=hit->GetTdcTrailingSize(); k<n; ++k){
+        Int_t trailing = hit->GetTdcTrailing(k);
+        HF1(100*layer+10, trailing);
+      }
+
+      if(i<MaxHits)
+        event.pos[layer-1][i] = hit->GetWirePosition();
+
+      Int_t nhdt = hit->GetDriftTimeSize();
+      Int_t tot1st = -1;
+      for(Int_t k=0; k<nhdt; k++){
+        Double_t dt = hit->GetDriftTime(k);
+        if(common_stop_is_tof) HF1(100*layer+3, dt);
+        else                   HF1(100*layer+8, dt);
+        HF1(10000*layer+1000+Int_t(wire), dt);
+
+        Double_t tot = hit->GetTot(k);
+        HF1(100*layer+5, tot);
+        if(tot > tot1st){
+          tot1st = tot;
+        }
+      }
+      HF1(100*layer+7, tot1st);
+      Int_t nhdl = hit->GetDriftTimeSize();
+      for(Int_t k=0; k<nhdl; k++){
+        Double_t dl = hit->GetDriftLength(k);
+        HF1(100*layer+4, dl);
+      }
     }
+    if(fl_valid_sig) ++plane_eff;
+    HF1(38, plane_eff);
   }
 
 #if MaxMultiCut
@@ -464,15 +462,11 @@ UserSdcOutTracking::ProcessingNormal()
   HF1(1, 11.);
 
   // std::cout << "==========TrackSearch SdcOut============" << std::endl;
-  if(common_stop_is_tof){
 #if UseTOF
-    DCAna->TrackSearchSdcOut(TOFCont);
+  DCAna->TrackSearchSdcOut(TOFCont);
 #else
-    DCAna->TrackSearchSdcOut();
+  DCAna->TrackSearchSdcOut();
 #endif
-  }else{
-    DCAna->TrackSearchSdcOut();
-  }
 
 #if 1
 #if Chi2Cut
@@ -762,11 +756,11 @@ ConfMan::InitializeHistograms()
     if(i<=NumOfLayersSdcOut)
       HB1(100*i+15, title15, 1000, -5.0, 5.0);
     else
-      HB1(100*i+15, title15, 1000, -1000.0, 1000.0);
+      HB1(100*i+15, title15, 1000, -200.0, 200.0);
     if(i<=NumOfLayersSdcOut)
       HB2(100*i+16, title16, 400, -1000., 1000., 100, -1.0, 1.0);
     else
-      HB2(100*i+16, title16, 100, -1000., 1000., 100, -1000.0, 1000.0);
+      HB2(100*i+16, title16, 100, -1000., 1000., 100, -200.0, 200.0);
     HB2(100*i+17, title17, 100, -1000., 1000., 100, -1000., 1000.);
     if(i<=NumOfLayersSDC3)
       HB2(100*i+18, title18, 110, -5.5, 5.5, 100, -1.0, 1.0);

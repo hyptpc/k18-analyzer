@@ -130,9 +130,8 @@ public:
   ///// for TPC
   void SetHitNum(Int_t hitnum) { m_hitnum = hitnum; }
 
-
   ///// For E40 Acrylic TOF
-  void SetOfsdT(Double_t ofs) { m_ofs_dt = ofs;}
+  void SetOfsdT(Double_t ofs) { m_ofs_dt = ofs; }
 
   ///// for CFT
   void SetMeanSeg(Double_t seg) { m_meanseg = seg; }

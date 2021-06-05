@@ -25,7 +25,7 @@
 #include "UnpackerManager.hh"
 
 #define HodoCut 0
-#define UseTOF  0
+#define UseTOF  1
 
 namespace
 {
@@ -317,7 +317,7 @@ UserKuramaTracking::ProcessingNormal()
 
   static const auto MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
   static const auto MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
-  static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
+  // static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
   static const auto MinTotSDC3 = gUser.GetParameter("MinTotSDC3");
   static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
 
@@ -469,8 +469,8 @@ UserKuramaTracking::ProcessingNormal()
 
   DCAna->DecodeSdcInHits(rawData);
 
-  Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
-  DCAna->DecodeSdcOutHits(rawData, offset);
+  // Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
+  DCAna->DecodeSdcOutHits(rawData);
   DCAna->TotCutSDC3(MinTotSDC3);
   DCAna->TotCutSDC4(MinTotSDC4);
 
@@ -622,25 +622,19 @@ UserKuramaTracking::ProcessingNormal()
   //////////////SdcOut tracking
   //std::cout << "==========TrackSearch SdcOut============" << std::endl;
 
-  if(common_stop_is_tof){
 #if UseTOF
-    DCAna->TrackSearchSdcOut(TOFCont);
+  DCAna->TrackSearchSdcOut(TOFCont);
 #else
-    DCAna->TrackSearchSdcOut();
+  DCAna->TrackSearchSdcOut();
 #endif
-  }else{
-    DCAna->TrackSearchSdcOut();
-  }
 
-  DCAna->ChiSqrCutSdcOut(50.);
+  // DCAna->ChiSqrCutSdcOut(50.);
   Int_t ntSdcOut = DCAna->GetNtracksSdcOut();
-
   if(MaxHits<ntSdcOut){
     std::cout << "#W " << FUNC_NAME << " "
 	      << "too many ntSdcOut " << ntSdcOut << "/" << MaxHits << std::endl;
     ntSdcOut = MaxHits;
   }
-
   event.ntSdcOut=ntSdcOut;
   HF1(30, Double_t(ntSdcOut));
   for(Int_t it=0; it<ntSdcOut; ++it){
@@ -664,12 +658,10 @@ UserKuramaTracking::ProcessingNormal()
     for(Int_t ih=0; ih<nh; ++ih){
       DCLTrackHit *hit=tp->GetHit(ih);
       Int_t layerId = hit->GetLayer();
-
       if(hit->GetLayer()>79) layerId -= 62;
       else if(hit->GetLayer()>40) layerId -= 15;
       else if(hit->GetLayer()>30) layerId -= 21;
       //std::cout << "layerId :" << layerId << std::endl;
-
       HF1(33, hit->GetLayer());
       Double_t wire=hit->GetWire();
       Double_t dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
@@ -709,7 +701,7 @@ UserKuramaTracking::ProcessingNormal()
 
   HF1(1, 20.);
 
-  if(ntSdcIn*ntSdcOut > 4) return true;
+  // if(ntSdcIn*ntSdcOut > 4) return true;
 
   HF1(1, 21.);
 
@@ -778,7 +770,6 @@ UserKuramaTracking::ProcessingNormal()
     event.ytofKurama[i] = posTof.y();
     event.utofKurama[i] = momTof.x()/momTof.z();
     event.vtofKurama[i] = momTof.y()/momTof.z();
-
 #if UseTOF
     Double_t tof_seg = track->TofSeg();
     event.tofsegKurama[i] = tof_seg;
