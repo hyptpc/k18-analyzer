@@ -84,6 +84,7 @@ const Int_t& IdSCH = gGeom.DetectorId("SCH");
 const Int_t& IdTOF = gGeom.DetectorId("TOF");
 const Int_t& IdTarget = gGeom.DetectorId("Target");
 const Double_t& zTarget = gGeom.LocalZ("Target");
+const Double_t& zHS = gGeom.LocalZ("HS");
 const Double_t& zK18Target = gGeom.LocalZ("K18Target");
 const Double_t& gzK18Target = gGeom.GlobalZ("K18Target");
 // const Double_t& gxK18Target = gGeom.GetGlobalPosition("K18Target").x();
@@ -188,6 +189,7 @@ EventDisplay::EventDisplay()
     m_SCHwall_node(),
     m_TOFwall_node(),
     m_BcOutTrack(),
+    m_BcOutTrackShs(),
     m_SdcInTrack(),
     m_init_step_mark(),
     m_kurama_step_mark(),
@@ -195,6 +197,7 @@ EventDisplay::EventDisplay()
     m_TargetYZ_box(),
     m_VertexPointXZ(),
     m_VertexPointYZ(),
+    m_KuramaMarkVertexXShs(),
     m_KuramaMarkVertexX(),
     m_KuramaMarkVertexY(),
     m_MissMomXZ_line(),
@@ -2125,17 +2128,46 @@ EventDisplay::DrawBcOutLocalTrack(DCLocalTrack *tp)
   x1 = tp->GetX(z1); y1 = tp->GetY(z1);
   z0 -= zK18Target;
   z1 -= zK18Target;
+  static const Double_t r = 1.8e9/(0.9*TMath::C())*1e3;
+  Double_t u0 = (x1 - x0)/(z1 - z0);
+  Double_t a = x0 - r/TMath::Sqrt(1+u0*u0);
+  Double_t b = z0 + (x0 - a)*u0;
   {
-    TPolyLine *line = new TPolyLine(2);
-    line->SetPoint(0, z0, x0);
-    line->SetPoint(1, z1, x1);
-    line->SetLineColor(kRed);
-    line->SetLineWidth(1);
+    // TPolyLine *line = new TPolyLine(2);
+    // line->SetPoint(0, z0, x0);
+    // line->SetPoint(1, z1, x1);
+    // line->SetLineColor(kRed);
+    // line->SetLineWidth(1);
+    // m_canvas_tpc->cd(1);
+    // line->Draw();
+    // m_canvas_tpc->cd(2);
+    // line->Draw();
+    // m_BcOutXZ_line_tpc.push_back(line);
+
+    del::DeleteObject(m_BcOutTrackShs);
+    m_BcOutTrackShs = new TF1("bcout", "[0]+sqrt([1]-(x-[2])*(x-[2]))", z0, z1);
+    m_BcOutTrackShs->SetParameter(0, a);
+    m_BcOutTrackShs->SetParameter(1, r*r);
+    m_BcOutTrackShs->SetParameter(2, b);
+    // m_BcOutTrackShs->SetLineColor(kMagenta);
+    // static const Int_t np = 10000;
+    // m_BcOutTrackShs = new TPolyMarker(np);
+    // Int_t ip = 0;
+    // for(Int_t i=0; i<np; ++i){
+    //   Double_t theta = TMath::Pi()*(np-i)/np;
+    //   Double_t pz = b + r*TMath::Cos(theta);
+    //   Double_t px = a + r*TMath::Sin(theta);
+    //   if(-143 < pz) break;
+    //   if(pz < -400) continue;
+    //   m_BcOutTrackShs->SetPoint(ip++, pz, px);
+    // }
+    // m_BcOutTrackShs->SetMarkerSize(0.4);
+    // m_BcOutTrackShs->SetMarkerColor(kMagenta+1);
+    // m_BcOutTrackShs->SetMarkerStyle(8);
     m_canvas_tpc->cd(1);
-    line->Draw();
+    m_BcOutTrackShs->Draw("same");
     m_canvas_tpc->cd(2);
-    line->Draw();
-    m_BcOutXZ_line_tpc.push_back(line);
+    m_BcOutTrackShs->Draw("same");
   }
 #endif
 }
@@ -2392,6 +2424,22 @@ EventDisplay::DrawKuramaTrack(Int_t nStep, ThreeVector *StepPoint, Int_t Polarit
   m_kurama_step_mark->Draw();
   m_canvas->Update();
 
+#if TPC
+  del::DeleteObject(m_KuramaMarkVertexXShs);
+  m_KuramaMarkVertexXShs = new TPolyMarker(nStep);
+  for(Int_t i=0; i<nStep; ++i){
+    Double_t x = StepPoint[i].x()-BeamAxis;
+    Double_t z = StepPoint[i].z()-zHS;
+    m_KuramaMarkVertexXShs->SetPoint(i, z, x);
+  }
+  m_KuramaMarkVertexXShs->SetMarkerSize(0.4);
+  m_KuramaMarkVertexXShs->SetMarkerColor(color);
+  m_KuramaMarkVertexXShs->SetMarkerStyle(6);
+  m_canvas_tpc->cd(1);
+  m_KuramaMarkVertexXShs->Draw();
+  m_canvas_tpc->cd(2);
+  m_KuramaMarkVertexXShs->Draw();
+#endif
 #if Vertex
   del::DeleteObject(m_KuramaMarkVertexX);
   m_KuramaMarkVertexX = new TPolyMarker(nStep);

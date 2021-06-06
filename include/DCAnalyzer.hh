@@ -58,34 +58,31 @@ private:
 private:
   enum e_type
   { kBcIn, kBcOut, kSdcIn, kSdcOut, kTPC, kTOF, n_type };
-  std::vector<Bool_t>     m_is_decoded;
-  std::vector<Int_t>      m_much_combi;
-  std::vector<MWPCClusterContainer> m_MWPCClCont;
-  std::vector<DCHitContainer>       m_TempBcInHC;
-  std::vector<DCHitContainer>       m_BcInHC;
-  std::vector<DCHitContainer>       m_BcOutHC;
-  std::vector<DCHitContainer>       m_SdcInHC;
-  std::vector<DCHitContainer>       m_SdcOutHC;
-  std::vector<TPCHitContainer>      m_TPCHitCont;
-  std::vector<TPCHitContainer>      m_TempTPCHitCont;
-  std::vector<TPCHitContainer>      m_TPCClCont;
-
-  DCHitContainer        m_TOFHC;
-  DCHitContainer        m_VtxPoint;
-  DCLocalTrackContainer m_BcInTC;
-  DCLocalTrackContainer m_BcOutTC;
-  DCLocalTrackContainer m_SdcInTC;
-  DCLocalTrackContainer m_SdcOutTC;
-
-  TPCLocalTrackContainer m_TPCTC;
-  TPCLocalTrack_HelixContainer m_TPCTC_Helix;
-
-  K18TrackU2DContainer  m_K18U2DTC;
-  K18TrackD2UContainer  m_K18D2UTC;
-  KuramaTrackContainer  m_KuramaTC;
-  DCLocalTrackContainer m_BcOutSdcInTC;
-  DCLocalTrackContainer m_SdcInSdcOutTC;
-  // Exclusive Tracks
+  Double_t                           m_max_v0diff;
+  std::vector<Bool_t>                m_is_decoded;
+  std::vector<Int_t>                 m_much_combi;
+  std::vector<MWPCClusterContainer>  m_MWPCClCont;
+  std::vector<DCHitContainer>        m_TempBcInHC;
+  std::vector<DCHitContainer>        m_BcInHC;
+  std::vector<DCHitContainer>        m_BcOutHC;
+  std::vector<DCHitContainer>        m_SdcInHC;
+  std::vector<DCHitContainer>        m_SdcOutHC;
+  std::vector<TPCHitContainer>       m_TPCHitCont;
+  std::vector<TPCHitContainer>       m_TempTPCHitCont;
+  std::vector<TPCHitContainer>       m_TPCClCont;
+  DCHitContainer                     m_TOFHC;
+  DCHitContainer                     m_VtxPoint;
+  DCLocalTrackContainer              m_BcInTC;
+  DCLocalTrackContainer              m_BcOutTC;
+  DCLocalTrackContainer              m_SdcInTC;
+  DCLocalTrackContainer              m_SdcOutTC;
+  TPCLocalTrackContainer             m_TPCTC;
+  TPCLocalTrack_HelixContainer       m_TPCTC_Helix;
+  K18TrackU2DContainer               m_K18U2DTC;
+  K18TrackD2UContainer               m_K18D2UTC;
+  KuramaTrackContainer               m_KuramaTC;
+  DCLocalTrackContainer              m_BcOutSdcInTC;
+  DCLocalTrackContainer              m_SdcInSdcOutTC;
   std::vector<DCLocalTrackContainer> m_SdcInExTC;
   std::vector<DCLocalTrackContainer> m_SdcOutExTC;
 
@@ -110,6 +107,7 @@ public:
   Bool_t  ClusterizeTPC(Int_t layerID, const TPCHitContainer& HitCont,
                         TPCClusterContainer& ClCont);
 
+  Double_t GetMaxV0Diff() const { return m_max_v0diff; }
   const DCHitContainer& GetTempBcInHC(Int_t l) const
     { return m_TempBcInHC.at(l); }
   const DCHitContainer& GetBcInHC(Int_t l) const { return m_BcInHC.at(l); }
@@ -216,9 +214,8 @@ public:
   Bool_t ReCalcK18TrackD2U(Bool_t applyRecursively=false);
   // Bool_t ReCalcK18TrackU2D(Bool_t applyRecursively=false);
   Bool_t ReCalcKuramaTrack(Bool_t applyRecursively=false);
-
   Bool_t ReCalcAll();
-
+  void   SetMaxV0Diff(Double_t deg){ m_max_v0diff = deg; }
   Bool_t TrackSearchBcOutSdcIn();
   Bool_t TrackSearchSdcInSdcOut();
   const DCLocalTrackContainer& GetTrackContainerBcOutSdcIn() const

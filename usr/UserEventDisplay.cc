@@ -37,7 +37,7 @@ const auto& gGeom   = DCGeomMan::GetInstance();
 auto&       gEvDisp = EventDisplay::GetInstance();
 const auto& gUser   = UserParamMan::GetInstance();
 auto&       gFilter = BH2Filter::GetInstance();
-const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
+auto&       gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const Double_t KaonMass   = pdg::KaonMass();
 const Double_t ProtonMass = pdg::ProtonMass();
 }
@@ -570,7 +570,7 @@ UserEventDisplay::ProcessingNormal()
       auto max_adc = rhit->MaxAdc();
       // auto rms = rhit->RMS();
       auto loc_max = rhit->LocMax();
-      if(loc_max < 25 || 175 <loc_max)
+      if(loc_max < 25 || 160 <loc_max)
         continue;
       TVector3 pos = tpc::getPosition(layer, row);
       pos.SetY((loc_max - 76.75)*80.0*0.05);
@@ -592,6 +592,7 @@ UserEventDisplay::ProcessingNormal()
   //________________________________________________________
   //___ KuramaTracking
   static const auto StofOffset = gUser.GetParameter("StofOffset");
+  // DCAna->SetMaxV0Diff(10.);
   DCAna->TrackSearchKurama();
   Bool_t through_target = false;
   Int_t ntKurama = DCAna->GetNTracksKurama();
@@ -660,6 +661,8 @@ UserEventDisplay::ProcessingNormal()
     return true;
   }
 
+  //________________________________________________________
+  //___ Reaction
   if(KnPCont.size()==1 && KpPCont.size()==1){
     ThreeVector pkp = KpPCont[0];
     ThreeVector pkn = KnPCont[0];
@@ -671,6 +674,8 @@ UserEventDisplay::ProcessingNormal()
     LorentzVector LvP(0., 0., 0., ProtonMass);
     LorentzVector LvRp = LvKn+LvP-LvKp;
     ThreeVector MissMom = LvRp.Vect();
+    std::cout << "[Info] Vertex = " << vertex << std::endl;
+    std::cout << "[Info] MissingMomentum = " << MissMom << std::endl;
     gEvDisp.DrawVertex(vertex);
     gEvDisp.DrawMissingMomentum(MissMom, vertex);
   }
@@ -703,6 +708,7 @@ ConfMan::EventAllocator()
 Bool_t
 ConfMan:: InitializeHistograms()
 {
+  gUnpacker.disable_istream_bookmark();
   return true;
 }
 

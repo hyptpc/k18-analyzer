@@ -91,7 +91,7 @@ public:
   double GetMint(void) const {return m_min_t; }
   double GetMaxt(void) const {return m_max_t; }
   double GetPath(void) const {return m_path; }
- 
+
 
   void SetAcx( double Acx ) { m_Acx = Acx; }
   void SetAcy( double Acy ) { m_Acy = Acy; }

@@ -184,6 +184,8 @@ private:
   TNode                     *m_TOFwall_node;
   std::vector<TNode*>        m_TOFseg_node;
   std::vector<TPolyLine3D*>  m_BcOutTrack;
+  // TPolyMarker*               m_BcOutTrackShs;
+  TF1*                       m_BcOutTrackShs;
   std::vector<TPolyLine3D*>  m_SdcInTrack;
   std::vector<TPolyLine3D*>  m_SdcOutTrack;
   TPolyMarker3D             *m_init_step_mark;
@@ -206,6 +208,7 @@ private:
   std::vector<TPolyLine*>    m_SdcInYZ_line;
   std::vector<TPolyLine*>    m_SdcInXZ_line_tpc;
   std::vector<TPolyLine*>    m_SdcInYZ_line_tpc;
+  TPolyMarker               *m_KuramaMarkVertexXShs;
   TPolyMarker               *m_KuramaMarkVertexX;
   TPolyMarker               *m_KuramaMarkVertexY;
   TPolyLine                 *m_MissMomXZ_line;
