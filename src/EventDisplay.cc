@@ -2398,7 +2398,8 @@ EventDisplay::DrawMissingMomentum(const ThreeVector& mom, const ThreeVector& pos
 
 //_____________________________________________________________________________
 void
-EventDisplay::DrawKuramaTrack(Int_t nStep, ThreeVector *StepPoint, Int_t Polarity)
+EventDisplay::DrawKuramaTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,
+                              Double_t q)
 {
   del::DeleteObject(m_kurama_step_mark);
 
@@ -2410,11 +2411,7 @@ EventDisplay::DrawKuramaTrack(Int_t nStep, ThreeVector *StepPoint, Int_t Polarit
                                  StepPoint[i].z());
   }
 
-  Color_t color = kBlack;
-  if(Polarity>0)
-    color = kBlue;
-  else
-    color = kRed;
+  Color_t color = (q > 0) ? kRed : kBlue;
 
   m_kurama_step_mark->SetMarkerSize(10);
   m_kurama_step_mark->SetMarkerColor(color);
@@ -2512,6 +2509,7 @@ EventDisplay::EndOfEvent()
   del::DeleteObject(m_SdcInYZ_line);
   del::DeleteObject(m_BcInTrack);
   del::DeleteObject(m_BcOutTrack);
+  del::DeleteObject(m_BcOutTrackShs);
   del::DeleteObject(m_BcOutTrack2);
   del::DeleteObject(m_BcOutTrack3);
   del::DeleteObject(m_SdcInTrack);
@@ -2522,6 +2520,7 @@ EventDisplay::EndOfEvent()
   del::DeleteObject(m_VertexPointYZ);
   del::DeleteObject(m_MissMomXZ_line);
   del::DeleteObject(m_MissMomYZ_line);
+  del::DeleteObject(m_KuramaMarkVertexXShs);
   del::DeleteObject(m_KuramaMarkVertexX);
   del::DeleteObject(m_KuramaMarkVertexY);
   ResetVisibility();

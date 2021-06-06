@@ -242,7 +242,8 @@ public:
   void DrawSdcOutLocalTrack(DCLocalTrack *tp);
   void DrawSsdHit(Int_t lid, Int_t seg, Double_t de);
   void DrawVertex(const ThreeVector& vertex);
-  void DrawKuramaTrack(Int_t nStep, ThreeVector *StepPoint, Int_t Polarity);
+  void DrawKuramaTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,
+                       Double_t q);
   void DrawTarget();
   void DrawMissingMomentum(const ThreeVector& mom,
                            const ThreeVector& pos);

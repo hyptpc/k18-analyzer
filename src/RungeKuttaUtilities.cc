@@ -638,7 +638,7 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
   Double_t MinStepSize = 2.;     // mm
 
   /*for EventDisplay*/
-  ThreeVector StepPoint[MaxStep];
+  std::vector<TVector3> StepPoint(MaxStep);
 
   Int_t iStep = 0;
 
