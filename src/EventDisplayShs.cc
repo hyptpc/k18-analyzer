@@ -158,7 +158,7 @@ EventDisplayShs::Initialize( void )
 #endif
   gStyle->SetNumberContours(255);
 
-  m_canvas = new TCanvas("Event Display", "Event Display", 1000, 1000);
+  m_canvas = new TCanvas("Event Display", "Event Display", 1800, 900);
 
   m_tpc_adc = new TH1D("h_tpc_adc", "TPC ADC", 4096, 0, 4096);
   m_tpc_tdc = new TH1D("h_tpc_adc", "TPC TDC",
@@ -231,20 +231,20 @@ EventDisplayShs::Initialize( void )
   m_tpc_tdc2d->SetStats(0);
   m_htof_2d->SetStats(0);
   m_tpc_adc2d->SetMaximum(4000);
-  m_tpc_tdc2d->SetMaximum(200);
+  m_tpc_tdc2d->SetMaximum(NumOfTimeBucket);
 
-  m_canvas->Divide(2, 2);
+  m_canvas->Divide(2, 1);
   m_canvas->cd(1)->SetLogz();
   m_tpc_adc2d->Draw("colz");
   m_htof_2d->Draw("same col");
   m_canvas->cd(2);
   m_tpc_tdc2d->Draw("colz");
   m_htof_2d->Draw("same col");
-  m_canvas->cd(3);
 
-  m_tpc_adc->Draw("colz");
-  m_canvas->cd(4);
-  m_tpc_tdc->Draw("colz");
+  // m_canvas->cd(3);
+  // m_tpc_adc->Draw("colz");
+  // m_canvas->cd(4);
+  // m_tpc_tdc->Draw("colz");
 
   // m_tpc_pgon = new TPGON("TPC_PGON", "TPC_PGON", "void",
   //                        22.5, 360, 8, 2);

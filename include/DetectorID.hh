@@ -162,7 +162,7 @@ const Int_t NumOfLayersTOF    = PlMaxTOF    - PlMInTOF    + 1;
 const Int_t NumOfLayersVP     = 5;
 const Int_t NumOfLayersTPC    = 32;
 const Int_t NumOfPadTPC       = 5768;
-const Int_t NumOfTimeBucket   = 200;
+const Int_t NumOfTimeBucket   = 170;
 
 const Int_t MaxWireBC3      =  64;
 const Int_t MaxWireBC4      =  64;

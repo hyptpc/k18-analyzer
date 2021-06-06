@@ -184,6 +184,8 @@ public:
   K18TrackU2D* GetK18TrackU2D(Int_t l) const { return m_K18U2DTC.at(l); }
   K18TrackD2U* GetK18TrackD2U(Int_t l) const { return m_K18D2UTC.at(l); }
   KuramaTrack* GetKuramaTrack(Int_t l) const { return m_KuramaTC.at(l); }
+  const K18TrackD2UContainer& GetK18TracksD2U() const { return m_K18D2UTC; }
+  const KuramaTrackContainer& GetKuramaTracks() const { return m_KuramaTC; }
 
   Int_t GetNClustersMWPC(Int_t l) const { return m_MWPCClCont.at(l).size(); };
 

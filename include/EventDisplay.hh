@@ -183,10 +183,10 @@ private:
   std::vector<TNode*>        m_SCHseg_node;
   TNode                     *m_TOFwall_node;
   std::vector<TNode*>        m_TOFseg_node;
-  TPolyMarker3D             *m_init_step_mark;
   std::vector<TPolyLine3D*>  m_BcOutTrack;
   std::vector<TPolyLine3D*>  m_SdcInTrack;
   std::vector<TPolyLine3D*>  m_SdcOutTrack;
+  TPolyMarker3D             *m_init_step_mark;
   TPolyMarker3D             *m_kurama_step_mark;
   // vertex
   TBox                      *m_TargetXZ_box;
@@ -200,8 +200,12 @@ private:
   TMarker                   *m_VertexPointYZ;
   std::vector<TPolyLine*>    m_BcOutXZ_line;
   std::vector<TPolyLine*>    m_BcOutYZ_line;
+  std::vector<TPolyLine*>    m_BcOutXZ_line_tpc;
+  std::vector<TPolyLine*>    m_BcOutYZ_line_tpc;
   std::vector<TPolyLine*>    m_SdcInXZ_line;
   std::vector<TPolyLine*>    m_SdcInYZ_line;
+  std::vector<TPolyLine*>    m_SdcInXZ_line_tpc;
+  std::vector<TPolyLine*>    m_SdcInYZ_line_tpc;
   TPolyMarker               *m_KuramaMarkVertexX;
   TPolyMarker               *m_KuramaMarkVertexY;
   TPolyLine                 *m_MissMomXZ_line;
@@ -239,18 +243,18 @@ public:
   void DrawTarget();
   void DrawMissingMomentum(const ThreeVector& mom,
                            const ThreeVector& pos);
-  void DrawMomentum(Double_t momentum);
-  void DrawMassSquare(Double_t mass_square);
-  void DrawMissMass(Double_t mass_square);
-  void DrawBH1(Int_t seg, Int_t tdc);
+  void FillMomentum(Double_t momentum);
+  void FillMassSquare(Double_t mass_square);
+  void FillMissMass(Double_t mass_square);
+  void FillBH1(Int_t seg, Int_t tdc);
   void   FillTPCADC(Int_t layer, Int_t row, Double_t adc);
   void   FillTPCTDC(Int_t layer, Int_t row, Double_t tdc);
   void   FillHTOF(Int_t seg);
   void SetCorrectTimeBH1(Int_t seg, Double_t de);
-  void DrawBFT(Int_t layer, Int_t seg, Int_t tdc);
+  void FillBFT(Int_t layer, Int_t seg, Int_t tdc);
   void SetCorrectTimeBFT(Double_t pos);
   void DrawBcInTrack(Double_t x0, Double_t u0);
-  void DrawBH2(Int_t seg, Int_t tdc);
+  void FillBH2(Int_t seg, Int_t tdc);
   void SetCorrectTimeBH2(Int_t seg, Double_t de);
   void SetCorrectTimeBcOut(Int_t layer, Double_t pos);
   void DrawBcOutTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, Bool_t flagGoodForTracking = true);
@@ -260,28 +264,28 @@ public:
   void SetCorrectTimeSdcIn(Int_t layer, Double_t pos);
 
   void FillTOF(Int_t seg, Int_t tdc);
-  void DrawBcOutHit(Int_t layer,  Int_t wire, Int_t tdc);
+  void FillBcOutHit(Int_t layer,  Int_t wire, Int_t tdc);
   void DrawBC3(Int_t wire, Int_t tdc);
   void DrawBC3p(Int_t wire, Int_t tdc);
   void DrawBC4(Int_t wire, Int_t tdc);
   void DrawBC4p(Int_t wire, Int_t tdc);
-  void DrawSDC1(Int_t wire, Int_t tdc);
-  void DrawSDC1p(Int_t wire, Int_t tdc);
-  void DrawSdcOutHit(Int_t layer,  Int_t wire, Int_t LorT, Int_t tdc);
-  void DrawSDC3_Leading(Int_t wire, Int_t tdc);
-  void DrawSDC3_Trailing(Int_t wire, Int_t tdc);
-  void DrawSDC3p_Leading(Int_t wire, Int_t tdc);
-  void DrawSDC3p_Trailing(Int_t wire, Int_t tdc);
-  void DrawSDC4_Leading(Int_t wire, Int_t tdc);
-  void DrawSDC4_Trailing(Int_t wire, Int_t tdc);
-  void DrawSDC4p_Leading(Int_t wire, Int_t tdc);
-  void DrawSDC4p_Trailing(Int_t wire, Int_t tdc);
+  void FillSDC1(Int_t wire, Int_t tdc);
+  void FillSDC1p(Int_t wire, Int_t tdc);
+  void FillSdcOutHit(Int_t layer,  Int_t wire, Int_t LorT, Int_t tdc);
+  void FillSDC3_Leading(Int_t wire, Int_t tdc);
+  void FillSDC3_Trailing(Int_t wire, Int_t tdc);
+  void FillSDC3p_Leading(Int_t wire, Int_t tdc);
+  void FillSDC3p_Trailing(Int_t wire, Int_t tdc);
+  void FillSDC4_Leading(Int_t wire, Int_t tdc);
+  void FillSDC4_Trailing(Int_t wire, Int_t tdc);
+  void FillSDC4p_Leading(Int_t wire, Int_t tdc);
+  void FillSDC4p_Trailing(Int_t wire, Int_t tdc);
   void ShowHitFiber(Int_t layer, Int_t segment, Double_t pe);// const;
   void Update();
   void EndOfEvent();
   void ResetVisibility();
   void CalcRotMatrix(Double_t TA, Double_t RA1, Double_t RA2, Double_t *rotMat);
-  Int_t  GetCommand() const;
+  Int_t GetCommand();
   void Run(Bool_t flag=kTRUE);
 
 private:

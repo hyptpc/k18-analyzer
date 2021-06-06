@@ -112,6 +112,7 @@ public:
   FiberHit* GetHitSCH(UInt_t seg) const { return m_SCHCont.at(seg); }
   Hodo1Hit* GetHitTPCClock() const { return m_TPCClock; }
 
+  const BH2HitContainer& GetHitsBH2() const { return m_BH2Cont; }
   const Hodo2HitContainer& GetHitsTOF() const { return m_TOFCont; }
   const FiberHitContainer& GetHitsSCH() const { return m_SCHCont; }
 
@@ -137,6 +138,8 @@ public:
   HodoCluster*  GetClusterWCSUM(UInt_t i) const { return m_WCSUMClCont.at(i); }
   FiberCluster* GetClusterBFT(UInt_t i) const { return m_BFTClCont.at(i); }
   FiberCluster* GetClusterSCH(UInt_t i) const { return m_SCHClCont.at(i); }
+  const FiberClusterContainer& GetClustersBFT() const { return m_BFTClCont; }
+  const FiberClusterContainer& GetClustersSCH() const { return m_SCHClCont; }
 
   Bool_t ReCalcBH1Hits(Bool_t applyRecursively=false);
   Bool_t ReCalcBH2Hits(Bool_t applyRecursively=false);

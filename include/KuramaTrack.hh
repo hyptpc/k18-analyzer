@@ -70,6 +70,7 @@ public:
   Bool_t          DoFit();
   Bool_t          DoFit(RKCordParameter iniCord);
   Bool_t          DoFitMinuit();
+  Double_t        GetChiSquare() const { return m_chisqr; }
   TrackHit*       GetHit(Int_t nth) const { return m_hit_array.at(nth); }
   TrackHit*       GetHitOfLayerNumber(Int_t lnum) const;
   Double_t        GetInitialMomentum() const { return m_initial_momentum; }
