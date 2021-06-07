@@ -2216,7 +2216,7 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
       track->SetAr(hough_r);
       
       if(ity==0){
-	if(track->DoFit(MinNumOfHits-2)){
+	if(track->DoFit(3,1)){
 	  TrackCont.push_back(track);
 	  Int_t nh = track->GetNHit();
 	  for( int ih=0; ih<nh; ++ih ){
@@ -2229,7 +2229,7 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
 	  delete track;
       }
       else{
-	if(track->DoFit(MinNumOfHits)){
+	if(track->DoFit(MinNumOfHits,0)){
 	  TrackCont.push_back(track);
 	  Int_t nh = track->GetNHit();
 	  for( int ih=0; ih<nh; ++ih ){

@@ -99,6 +99,7 @@ struct Event
 
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
+  std::vector<Int_t> isBeam; // isBeam: 1 = Beam, 0 = Scat
   std::vector<Double_t> chisqr;
   std::vector<Double_t> helix_cx;
   std::vector<Double_t> helix_cy;
@@ -196,6 +197,7 @@ struct Event
     trigpat.clear();
     trigflag.clear();
     nhtrack.clear();
+    isBeam.clear();
     chisqr.clear();
     helix_cx.clear();
     helix_cy.clear();
@@ -478,6 +480,7 @@ dst::DstRead( int ievent )
   HF1( 1, event.status++ );
   
   event.nhtrack.resize( ntTpc );
+  event.isBeam.resize( ntTpc );
   event.chisqr.resize( ntTpc );
   event.helix_cx.resize( ntTpc );
   event.helix_cy.resize( ntTpc );
@@ -534,7 +537,9 @@ dst::DstRead( int ievent )
     Double_t helix_z0=tp->Getz0(), helix_r=tp->Getr();
     Double_t helix_dz = tp->Getdz();
     TVector3 Mom0 = tp->GetMom0();
+    Int_t isbeam = tp->GetIsBeam();
     event.nhtrack[it] = nh;
+    event.isBeam[it] = isbeam;
     event.chisqr[it] = chisqr;
     event.helix_cx[it] = helix_cx;
     event.helix_cy[it] = helix_cy;
@@ -832,6 +837,7 @@ ConfMan::InitializeHistograms( void )
 
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
+  tree->Branch( "isBeam", &event.isBeam );
   tree->Branch( "chisqr", &event.chisqr );
   tree->Branch( "helix_cx", &event.helix_cx );
   tree->Branch( "helix_cy", &event.helix_cy );

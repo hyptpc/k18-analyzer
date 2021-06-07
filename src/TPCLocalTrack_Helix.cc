@@ -65,6 +65,7 @@ namespace
   // static const double  UpLimit[5] = { 7000., 7000., 7000., 7000., 10. };
   // static const double  LowLimit[5] = { -20000., -20000., -7000., 0., -10. };
   // static const double  UpLimit[5] = { 20000., 20000., 7000., 20000., 10. };
+  static const double  LowLimitBeam[5] = { -40000., -40000., -7000., 5666., -10. };// about 1.7 GeV/c
   static const double  LowLimit[5] = { -40000., -40000., -7000., 0., -10. };
   static const double  UpLimit[5] = { 40000., 40000., 7000., 40000., 10. };
   //rdiff, theta, z0, r, dz
@@ -116,6 +117,7 @@ TPCLocalTrack_Helix::TPCLocalTrack_Helix( void )
     m_chisqr(1.e+10),
     m_good_for_tracking(true),
     m_n_iteration(0),
+    m_isbeam(0),
     m_min_t(0.), m_max_t(0.), m_path(0.),
     //minuit(new TMinuit(5)),
     m_mom0(0.,0.,0.)
@@ -501,9 +503,8 @@ TPCLocalTrack_Helix::DeleteNullHit( void )
 }
 //______________________________________________________________________________
 bool
-TPCLocalTrack_Helix::DoFit( int MinHits)
+TPCLocalTrack_Helix::DoFit( int MinHits, int IsBeam)
 {
-
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
   if( IsFitted() ){
@@ -511,8 +512,9 @@ TPCLocalTrack_Helix::DoFit( int MinHits)
 		<< "already called" << std::endl;
     return false;
   }
-  bool status_dofit =  DoHelixFit(MinHits);
+  bool status_dofit =  DoHelixFit(MinHits, IsBeam);
   m_is_fitted = status_dofit;
+  m_isbeam = IsBeam;
   //  m_is_fitted = true;
   if(m_chisqr<MaxChisqr)
     return status_dofit;
@@ -526,10 +528,9 @@ TPCLocalTrack_Helix::DoFit( int MinHits)
 
 //______________________________________________________________________________
 bool
-TPCLocalTrack_Helix::DoHelixFit( int MinHits )
+TPCLocalTrack_Helix::DoHelixFit( int MinHits , int IsBeam)
 {
-
-
+  
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
   DeleteNullHit();
 
@@ -581,10 +582,18 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
   TString name_circ[3] = {"cx", "cy","r"};
 
   for( int i = 0; i<3; i++ ){
-    if(i<2)
-      minuit_circ->mnparm(i, name_circ[i], par_circ[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg_circ);
-    else
-      minuit_circ->mnparm(i, name_circ[i], par_circ[i], FitStep[i+1], LowLimit[i+1], UpLimit[i+1], ierflg_circ);
+    if(IsBeam==1){
+      if(i<2)
+	minuit_circ->mnparm(i, name_circ[i], par_circ[i], FitStep[i], LowLimitBeam[i], UpLimit[i], ierflg_circ);
+      else
+	minuit_circ->mnparm(i, name_circ[i], par_circ[i], FitStep[i+1], LowLimitBeam[i+1], UpLimit[i+1], ierflg_circ);
+    }
+    else{
+      if(i<2)
+	minuit_circ->mnparm(i, name_circ[i], par_circ[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg_circ);
+      else
+	minuit_circ->mnparm(i, name_circ[i], par_circ[i], FitStep[i+1], LowLimit[i+1], UpLimit[i+1], ierflg_circ);
+    }
   }
 
 
@@ -622,10 +631,18 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
   par_circ[1] = min_par_circ[1] - 2.*(min_par_circ[1] - mid_y_circ);
 
   for( int i = 0; i<3; i++ ){
-    if(i<2)
-      minuit_circ->mnparm(i, name_circ[i], par_circ[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg_circ);
-    else
-      minuit_circ->mnparm(i, name_circ[i], par_circ[i], FitStep[i+1], LowLimit[i+1], UpLimit[i+1], ierflg_circ);
+    if(IsBeam==1){
+      if(i<2)
+	minuit_circ->mnparm(i, name_circ[i], par_circ[i], FitStep[i], LowLimitBeam[i], UpLimit[i], ierflg_circ);
+      else
+	minuit_circ->mnparm(i, name_circ[i], par_circ[i], FitStep[i+1], LowLimitBeam[i+1], UpLimit[i+1], ierflg_circ);
+    }
+    else{
+      if(i<2)
+	minuit_circ->mnparm(i, name_circ[i], par_circ[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg_circ);
+      else
+	minuit_circ->mnparm(i, name_circ[i], par_circ[i], FitStep[i+1], LowLimit[i+1], UpLimit[i+1], ierflg_circ);
+    }
   }
   minuit_circ->mnexcm("MIGRAD", arglist_circ, 2, ierflg_circ);
 
@@ -763,7 +780,10 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
   TString name[5] = {"cx", "cy", "z0", "r", "dz"};
 
   for( int i = 0; i<5; i++ ){
-    minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
+    if(IsBeam==1)
+      minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimitBeam[i], UpLimit[i], ierflg);
+    else
+      minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg); 
   }
 
   minuit->Command("SET STRategy 0");
@@ -861,7 +881,10 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
   par[4] = m_dz;
 
   for( int i = 0; i<5; i++ ){
-    minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
+    if(IsBeam==1)
+      minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimitBeam[i], UpLimit[i], ierflg);
+    else
+      minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg); 
   }
   minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
 
@@ -955,7 +978,7 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits )
       return false;
   }
   else
-    return DoHelixFit(MinHits);
+    return DoHelixFit(MinHits, IsBeam);
 
 
   return true;

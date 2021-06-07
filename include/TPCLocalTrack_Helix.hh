@@ -61,15 +61,16 @@ private:
   double m_min_t;
   double m_max_t;
   double m_path;
+  int m_isbeam;
 
 public:
   void         AddTPCHit( TPCLTrackHit *hit );
   void         ClearHits( void );
   void         Calculate( void );
   void         DeleteNullHit( void );
-  bool         DoHelixFit( int MinHits );
+  bool         DoHelixFit( int MinHits, int IsBeam );
   //  bool         DoHelixFit( void );
-  bool         DoFit( int MinHits );
+  bool         DoFit( int MinHits, int IsBeam );
   int          GetNDF( void ) const;
 
   TVector3     GetPosition( double par[5], double t ) const;
@@ -84,7 +85,7 @@ public:
   void         CalcChi2( void);
   double       CalcChi2_circle( double par[3]);
   int     GetHTOFSeg( double min_layer_t, double max_layer_t, double max_layer_y );
-
+  int     GetIsBeam(void) const {return m_isbeam;}
   // void SetMint( double min_t ) { m_min_t = min_t; }
   // void SetMaxt( double max_t ) { m_max_t = max_t; }
   // void SetPath( double path ) { m_path = path; }
