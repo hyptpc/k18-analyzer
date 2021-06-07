@@ -33,6 +33,7 @@
 #define GainCalib 0
 #define Srdata 0
 //#define GainCalib 0
+#define EventSelection 1
 
 namespace
 {
@@ -201,7 +202,7 @@ UserTPCHit::ProcessingNormal()
 {
   static const auto MinTdcHTOF = gUser.GetParameter("TdcHTOF", 0);
   static const auto MaxTdcHTOF = gUser.GetParameter("TdcHTOF", 1);
-
+  static const Int_t TPC_Subtraction = gUser.GetParameter("TPC_Subtraction");
   const Int_t run_number   = gUnpacker.get_root()->get_run_number();
   const Int_t event_number = gUnpacker.get_event_number();
 
@@ -357,7 +358,18 @@ UserTPCHit::ProcessingNormal()
   event.clkTpc.push_back(clock_timing);
   HF1(52, clock_timing);
 
-  rawData->RecalcTPCHits();
+
+  if(TPC_Subtraction == 1)
+    rawData->RecalcTPCHits();
+
+  if(EventSelection==1){
+    bool maxadccut = true; // max adccut
+    bool maxadctbcut = true; // max adccut time bucket cut
+    // bool maxadccut = false; // max adccut
+    // bool maxadctbcut = false; // max adccut time bucket cut
+    rawData->EventSelectionTPCHits(maxadccut, maxadctbcut);
+  }
+    
 
   HF1(1, 0);
 

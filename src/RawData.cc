@@ -536,6 +536,91 @@ RawData::RecalcTPCHits()
   return true;
 }
 
+bool
+RawData::EventSelectionTPCHits(bool maxadccut, bool maxadctbcut)
+{
+  if(!m_is_decoded[kTPC]){
+    hddaq::cout << "#D " << FUNC_NAME << " "
+		<< "Rawdata has not been decoded!" << std::endl;
+    return false;
+  }
+  std::vector<TPCRHitContainer>  ValidCand;
+  ValidCand.resize(NumOfLayersTPC+1);
+  std::vector<TPCRHitContainer>  DeleteCand;
+  DeleteCand.resize(NumOfLayersTPC+1);
+  
+  static const Double_t MinDe = gUser.GetParameter("MinDeTPC");
+  static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
+  static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
+  static const Int_t TPC_Subtraction = gUser.GetParameter("TPC_Subtraction");
+  
+
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    std::size_t nh;
+    if(TPC_Subtraction==1)
+      nh = m_TPCCorHC[layer].size();
+    else
+      nh = m_TPCRawHC[layer].size();
+    if(nh==0)
+      continue;
+    for(std::size_t hiti =0; hiti< nh; hiti++){
+      TPCRawHit* hit;
+      if(TPC_Subtraction==1)
+	hit = m_TPCCorHC[layer][hiti];
+      else
+	hit = m_TPCRawHC[layer][hiti];
+    
+      Double_t mean = hit->Mean();  
+      Double_t max_adc = hit->MaxAdc() - mean;
+      Int_t maxadc_tb = (Int_t)hit->LocMax();
+    
+      if(maxadccut&&maxadctbcut){
+	if(max_adc>MinDe 
+	   && (MinTimeBucket < maxadc_tb
+	       && maxadc_tb < MaxTimeBucket))
+	  ValidCand[layer].push_back(hit);
+	else
+	  DeleteCand[layer].push_back(hit);
+      }
+      if(maxadccut&&!maxadctbcut){
+	if(max_adc>MinDe)
+	  ValidCand[layer].push_back(hit);
+	else
+	  DeleteCand[layer].push_back(hit);
+      }
+      if(!maxadccut&&maxadctbcut){
+	if(MinTimeBucket < maxadc_tb 
+	   && maxadc_tb < MaxTimeBucket)
+	  ValidCand[layer].push_back(hit);
+	else
+	  DeleteCand[layer].push_back(hit);
+      }
+      if(!maxadccut&&!maxadctbcut){
+	ValidCand[layer].push_back(hit);
+      }
+    }
+  }
+  
+  del::ClearContainerAll(DeleteCand);
+
+  for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
+    if(TPC_Subtraction==1){
+      m_TPCCorHC[layer].clear();
+      m_TPCCorHC[layer].resize(ValidCand[layer].size());
+      std::copy(ValidCand[layer].begin(), ValidCand[layer].end(), m_TPCCorHC[layer].begin());
+      ValidCand[layer].clear();
+    }
+    else{
+      m_TPCRawHC[layer].clear();
+      m_TPCRawHC[layer].resize(ValidCand[layer].size());
+      std::copy(ValidCand[layer].begin(), ValidCand[layer].end(), m_TPCRawHC[layer].begin());
+      ValidCand[layer].clear();
+    }
+  }
+  return true;
+}
+
+
 //_____________________________________________________________________________
 bool
 RawData::DecodeCalibHits()

@@ -32,7 +32,7 @@
 #include "TPCRawHit.hh"
 #include "UserParamMan.hh"
 
-#define QuickAnalysis  1
+//#define QuickAnalysis  1 // User EventSelectionTPCHits in RawData.cc
 //#define FitPedestal    1
 #define FitPedestal    0
 //#define UseGaussian    1 //for gate noise fit
@@ -224,9 +224,11 @@ TPCHit::DoFit()
   gStyle->SetStatX(0.9);
   gStyle->SetStatY(0.9);
   gStyle->SetOptStat(0);
-  Option_t* option = "";
+  //  Option_t* option = "";
+  Option_t* option = "W";//to avoid overflow events
 #else
-  Option_t* option = "Q";
+  //  Option_t* option = "Q";
+  Option_t* option = "Q+W";//to avoid overflow events
 #endif
 
   const auto level = gErrorIgnoreLevel;
@@ -238,15 +240,15 @@ TPCHit::DoFit()
     m_pedestal = mean;
     m_rms = rms;
   }
-#if QuickAnalysis
-  {
-    Double_t max_adc = m_rhit->MaxAdc();
-    //std::cout<<"max_dE = "<<max_adc - m_pedestal<<std::endl;
-    if (max_adc-m_pedestal < MinDe) {
-      return false;
-    }
-  }
-#endif
+// #if QuickAnalysis
+//   {
+//     Double_t max_adc = m_rhit->MaxAdc();
+//     //std::cout<<"max_dE = "<<max_adc - m_pedestal<<std::endl;
+//     if (max_adc-m_pedestal < MinDe) {
+//       return false;
+//     }
+//   }
+// #endif
 
   m_layer = m_rhit->LayerId();
   m_row = m_rhit->RowId();
@@ -264,8 +266,11 @@ TPCHit::DoFit()
     if(i < MinTimeBucket || MaxTimeBucket < i)
       continue;
     h1.Fill(adc);
-    h2.SetBinContent(tb, adc);
-    h2.SetBinError(tb, 1.);
+    //avoid overflow
+    if(adc<4075){
+      h2.SetBinContent(tb, adc);
+      h2.SetBinError(tb, 1.);
+    }
   }
   h2.GetXaxis()->SetRangeUser(MinTimeBucket, MaxTimeBucket);
   h2.GetYaxis()->SetRangeUser(m_pedestal-100., m_rhit->MaxAdc()+200);

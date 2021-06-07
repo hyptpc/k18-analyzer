@@ -63,6 +63,7 @@ public:
   Bool_t                   DecodeCalibHits();
   Bool_t                   DecodeTPCHits();
   Bool_t                   RecalcTPCHits();
+  Bool_t                   EventSelectionTPCHits(bool maxadccut, bool maxadctbcut);
   const HodoRHitContainer& GetBH1RawHC() const;
   const HodoRHitContainer& GetBH2RawHC() const;
   const HodoRHitContainer& GetBACRawHC() const;
