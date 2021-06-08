@@ -222,7 +222,9 @@ TTree *tree;
   enum eDetHid {
     PosXHid    = 1000000,
     PosYHid    = 2000000, 
-    PosYPadHid    = 3000000
+    PosYPadHid    = 3000000,
+    HitdEHid    = 100000,
+    ClCenterdEHid    = 200000,
   };
 }
 
@@ -385,6 +387,9 @@ dst::DstRead( int ievent )
      	if(fabs(x_BC - x)<60.&&de>300.){
      	  HF1(PosYPadHid + layer*1000+ row,  y - y_BC);
      	}
+     	if(fabs(x_BC - x)<60.&& fabs(y_BC - y)< 60){
+     	  HF1(HitdEHid + layer*1000+ row,  de);
+     	}
      }
      
       ++nh_Tpc;
@@ -442,8 +447,10 @@ dst::DstRead( int ievent )
 	    HF1(PosYHid + histnum, y_BC - y);
 	    //	    HF1(PosYPadHid + layer*1000+ row,  pos_center.Y() - y_BC);
 	  }
-	  if(fabs(y_BC - y)<60.&&fabs(x_BC - x)<60.)
+	  if(fabs(y_BC - y)<60.&&fabs(x_BC - x)<60.){
 	    HF1(100 + layer, de);
+	    HF1(ClCenterdEHid + layer*1000+ row,  de_center);
+	  }
 	}
       }
 
@@ -568,11 +575,18 @@ ConfMan::InitializeHistograms( void )
 {
   const Int_t    NbinDe = 1000;
   const Double_t MinDe  =    0.;
-  const Double_t MaxDe  = 5000.;
+  const Double_t MaxDe  = 2000.;
   HB1( 1, "Status", 21, 0., 21. );
   HB1( 10, "NTrack TPC", 40, 0., 40. );
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
     HB1( 100 + layer, "dE TPC", NbinDe, MinDe, MaxDe );
+  }
+  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+    const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
+    for( Int_t r=0; r<NumOfRow; ++r ){
+      HB1(HitdEHid + layer*1000 + r , "TPC hit dE", NbinDe, MinDe, MaxDe );
+      HB1(ClCenterdEHid + layer*1000 + r , "TPC dE_center", NbinDe, MinDe, MaxDe );
+    }
   }
   const Int_t    NbinPos = 1600;
   const Double_t MinPos  = -40.;
