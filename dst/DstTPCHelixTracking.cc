@@ -706,7 +706,8 @@ dst::DstRead( int ievent )
   if(ntTpc>1){
     for( Int_t it=0; it<ntTpc-1; ++it ){
       for( Int_t it2=it+1; it2<ntTpc; ++it2 ){
-	if(event.combi_id[it]==it2&&event.combi_id[it2]==it
+	if(event.isBeam[it]==0&&event.isBeam[it2]==0
+	   &&event.combi_id[it]==it2&&event.combi_id[it2]==it
 	   &&event.charge[it]==-1*event.charge[it2]
 	   &&event.chisqr_flag[it]==1&&event.chisqr_flag[it2]==1){
 	  if(event.charge[it]==1){
@@ -717,7 +718,8 @@ dst::DstRead( int ievent )
 	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
-	    if(event.dEdx_20_cor[it]>event.dEdx_20_cor[it2]*1.5){
+	    //	    if(event.dEdx_20_cor[it]>event.dEdx_20_cor[it2]*1.5){
+	    if(event.dEdx_20[it]>event.dEdx_20[it2]*1.5){
 	      event.M_Lambda.push_back(LLambda.M());
 	      event.Lvtx.push_back(event.vtx[it]);
 	      event.Lvty.push_back(event.vty[it]);
@@ -748,7 +750,8 @@ dst::DstRead( int ievent )
 	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
-	    if(event.dEdx_20_cor[it2]>event.dEdx_20_cor[it]*1.5){
+	    //	    if(event.dEdx_20_cor[it2]>event.dEdx_20_cor[it]*1.5){
+	    if(event.dEdx_20[it2]>event.dEdx_20[it]*1.5){
 	      event.M_Lambda.push_back(LLambda.M());
 	      event.Lvtx.push_back(event.mom_vtx[it]);
 	      event.Lvty.push_back(event.mom_vty[it]);
