@@ -1074,7 +1074,7 @@ UserHodoscope::ProcessingNormal()
         HF2(BH1Hid+100*seg+21, tu, au);  HF2(BH1Hid+100*seg+22, td, ad);
         HF2(BH1Hid+100*seg+23, ctu, au); HF2(BH1Hid+100*seg+24, ctd, ad);
         HF2(BH1Hid+100*seg+31, au, tu);  HF2(BH1Hid+100*seg+32, ad, td);
-        HF2(BH1Hid+100*seg+33, au, tu);  HF2(BH1Hid+100*seg+34, ad, td);
+        HF2(BH1Hid+100*seg+33, au, ctu);  HF2(BH1Hid+100*seg+34, ad, ctd);
         HF1(BH1Hid+12, cmt);
 
         if(m == 0){
