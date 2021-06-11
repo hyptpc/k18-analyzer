@@ -1460,8 +1460,9 @@ UserHodoscope::ProcessingNormal()
         HF1(HTOFHid+100*seg+13, mt);
         HF1(HTOFHid+100*seg+17, ctu); HF1(HTOFHid+100*seg+18, ctd);
         HF1(HTOFHid+100*seg+19, cmt); HF1(HTOFHid+100*seg+20, ctu-ctd);
-        HF2(HTOFHid+100*seg+21, tu, au); HF2(HTOFHid+100*seg+22, td, ad);
-        HF2(HTOFHid+100*seg+23, ctu, au); HF2(HTOFHid+100*seg+24, ctd, ad);
+        HF2(HTOFHid+100*seg+31, au, tu);  HF2(HTOFHid+100*seg+32, ad, td);
+        HF2(HTOFHid+100*seg+33, au, ctu);  HF2(HTOFHid+100*seg+34, ad, ctd);
+        HF1(HTOFHid+12, cmt);
         HF1(HTOFHid+12, cmt);
         if(m == 0){
           HF1(HTOFHid+100*seg+14, au); HF1(HTOFHid+100*seg+15, ad);
@@ -2264,6 +2265,10 @@ ConfMan::InitializeHistograms()
     TString title19 = Form("HTOF-%d CMeanTime", i);
     TString title20 = Form("HTOF-%d Tup-Tdown", i);
     TString title21 = Form("HTOF-%d dE (w/ HTOF-HT)", i);
+    TString title31 = Form("HTOF-%d Up Time%%dE", i);
+    TString title32 = Form("HTOF-%d Down Time%%dE", i);
+    TString title33 = Form("HTOF-%d Up CTime%%dE", i);
+    TString title34 = Form("HTOF-%d Down CTIme%%dE", i);
     HB1(HTOFHid +100*i +11, title11, 500, -5., 45.);
     HB1(HTOFHid +100*i +12, title12, 500, -5., 45.);
     HB1(HTOFHid +100*i +13, title13, 500, -5., 45.);
@@ -2275,6 +2280,10 @@ ConfMan::InitializeHistograms()
     HB1(HTOFHid +100*i +19, title19, 500, -5., 45.);
     HB1(HTOFHid +100*i +20, title20, 200, -10.0, 10.0);
     HB1(HTOFHid +100*i +21, title21, 200, -0.5, 4.5);
+    HB2(HTOFHid +100*i +31, title31, 100, -0.5, 4.5,1000,-55.,-35.);
+    HB2(HTOFHid +100*i +32, title32, 100, -0.5, 4.5,1000,-55.,-35.);
+    HB2(HTOFHid +100*i +33, title33, 100, -0.5, 4.5,1000,-55,-35.);
+    HB2(HTOFHid +100*i +34, title34, 100, -0.5, 4.5,1000,-55.,-35.);
   }
 
   HB2(HTOFHid +21, "HtofHitPat%HtofHitPat[HodoGood]", NumOfSegHTOF,   0., Double_t(NumOfSegHTOF),
