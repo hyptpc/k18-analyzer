@@ -32,6 +32,7 @@
 #define TrackSearch 1
 #define Gain_center 0
 #define HoughYcut 1
+#define DE_padparam 1
 
 
 namespace
@@ -282,6 +283,7 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* pedTpc;    // pedestal
   TTreeReaderValue<std::vector<Double_t>>* rmsTpc;    // rms
   TTreeReaderValue<std::vector<Double_t>>* deTpc;     // dE
+  TTreeReaderValue<std::vector<Double_t>>* cdeTpc;     // cdE
   TTreeReaderValue<std::vector<Double_t>>* tTpc;      // time
   TTreeReaderValue<std::vector<Double_t>>* ctTpc;      // time
   TTreeReaderValue<std::vector<Double_t>>* chisqrTpc; // chi^2 of signal fitting
@@ -397,7 +399,8 @@ dst::DstRead( int ievent )
 
   DCAnalyzer DCAna;
   //  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc);
-  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.ctTpc, **src.deTpc);
+  //DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.ctTpc, **src.deTpc);
+  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.ctTpc, **src.cdeTpc);
 #if HoughYcut
   DCAna.HoughYCut(min_ycut, max_ycut);
 #endif
@@ -626,6 +629,9 @@ dst::DstRead( int ievent )
       const TVector3& res_vect = hit->GetResidualVect();
       double de_hit = hit->GetHit()->GetCharge();
       double path_hit = tpc::padParameter[layer][5];
+#if DE_padparam
+      path_hit = 1.;
+#endif
       de += de_hit;
       path_dEdx += path_hit;
       
@@ -929,6 +935,7 @@ ConfMan::InitializeHistograms( void )
   src.pedTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pedTpc" );
   src.rmsTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "rmsTpc" );
   src.deTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "deTpc" );
+  src.cdeTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cdeTpc" );
   src.tTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "tTpc" );
   src.ctTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "ctTpc" );
   src.chisqrTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqrTpc" );

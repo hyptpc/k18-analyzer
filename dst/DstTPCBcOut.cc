@@ -384,10 +384,10 @@ dst::DstRead( int ievent )
      	Double_t zTPC = zK18HS + z;
      	Double_t x_BC = x0_BC + zTPC*u0_BC;
      	Double_t y_BC = y0_BC + zTPC*v0_BC;
-     	if(fabs(x_BC - x)<60.&&de>300.){
+     	if(fabs(x_BC - x)<100.&&de>100.){
      	  HF1(PosYPadHid + layer*1000+ row,  y - y_BC);
      	}
-     	if(fabs(x_BC - x)<60.&& fabs(y_BC - y)< 60){
+     	if(fabs(x_BC - x)<100.&& fabs(y_BC - y)< 60){
      	  HF1(HitdEHid + layer*1000+ row,  de);
      	}
      }
@@ -443,11 +443,11 @@ dst::DstRead( int ievent )
 	  int histnum = GetHistNum(x, y, z);
 	  if(fabs(y_BC - y)<60.)
 	    HF1(PosXHid + histnum, x_BC - x);
-	  if(fabs(x_BC - x)<60.){
+	  if(fabs(x_BC - x)<100.){
 	    HF1(PosYHid + histnum, y_BC - y);
 	    //	    HF1(PosYPadHid + layer*1000+ row,  pos_center.Y() - y_BC);
 	  }
-	  if(fabs(y_BC - y)<60.&&fabs(x_BC - x)<60.){
+	  if(fabs(y_BC - y)<60.&&fabs(x_BC - x)<100.){
 	    HF1(100 + layer, de);
 	    HF1(ClCenterdEHid + layer*1000+ row,  de_center);
 	  }
