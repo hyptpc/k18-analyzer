@@ -1136,7 +1136,7 @@ dst::DstRead(Int_t ievent)
 
   // Good event histograms
   if(event.nKK == 1
-     && event.chisqrKurama[0] < 20.
+     && event.chisqrKurama[0] < 200.
      && TMath::Abs(event.vtx[0]-8.9) < 25.
      && TMath::Abs(event.vty[0]) < 20.
      && TMath::Abs(event.vtz[0]+70) < 100
@@ -1152,7 +1152,8 @@ dst::DstRead(Int_t ievent)
       HF1(6103, event.qKurama[0]*event.m2[0]);
       HF2(6104, event.qKurama[0]*event.m2[0], event.pKurama[0]);
       HF1(6105, event.MissMassCorr[0]);
-      if(TMath::Abs(event.m2[0]-0.25) < 0.1){
+      if(event.m2[0] > 0.15
+         && event.m2[0] < 0.40){
         HF1(6201, event.pK18[0]);
         HF1(6202, event.pKurama[0]);
         HF1(6203, event.qKurama[0]*event.m2[0]);
@@ -1392,21 +1393,21 @@ ConfMan::InitializeHistograms()
   HB2(5013, "MissingMass%Ub", 200, 0.0, 2.50, 100, -0.30, 0.30);
   HB2(5014, "MissingMass%Vb", 200, 0.0, 2.50, 100, -0.10, 0.10);
 
-  HB1(6001, "P K18 [Good]", 400, 1.4, 2.2);
-  HB1(6002, "P Kurama [Good]", 300, 0, 3);
-  HB1(6003, "Charge*MassSquared [Good]", 300, -1., 2.);
+  HB1(6001, "P K18 [Good]", 800, 1.4, 2.2);
+  HB1(6002, "P Kurama [Good]", 600, 0, 3);
+  HB1(6003, "Charge*MassSquared [Good]", 600, -1., 2.);
   HB2(6004, "P Kurama%Charge*MassSquared [Good]", 100, -1., 2., 100, 0, 2.5);
   HB1(6005, "MissingMass [Good]", 200, 1.0, 2.0);
 
-  HB1(6101, "P K18 [PCut]", 400, 1.4, 2.2);
-  HB1(6102, "P Kurama [PCut]", 300, 0, 3);
-  HB1(6103, "Charge*MassSquared [PCut]", 300, -1., 2.);
+  HB1(6101, "P K18 [PCut]", 800, 1.4, 2.2);
+  HB1(6102, "P Kurama [PCut]", 600, 0, 3);
+  HB1(6103, "Charge*MassSquared [PCut]", 600, -1., 2.);
   HB2(6104, "P Kurama%Charge*MassSquared [PCut]", 100, -1., 2., 100, 0, 2.5);
   HB1(6105, "MissingMass [PCut]", 200, 1.0, 2.0);
 
-  HB1(6201, "P K18 [M2Cut]", 400, 1.4, 2.2);
-  HB1(6202, "P Kurama [M2Cut]", 300, 0, 3);
-  HB1(6203, "Charge*MassSquared [M2Cut]", 300, -1., 2.);
+  HB1(6201, "P K18 [M2Cut]", 800, 1.4, 2.2);
+  HB1(6202, "P Kurama [M2Cut]", 600, 0, 3);
+  HB1(6203, "Charge*MassSquared [M2Cut]", 600, -1., 2.);
   HB2(6204, "P Kurama%Charge*MassSquared [M2Cut]", 100, -1., 2., 100, 0, 2.5);
   HB1(6205, "MissingMass [M2Cut]", 200, 1.0, 2.0);
 
