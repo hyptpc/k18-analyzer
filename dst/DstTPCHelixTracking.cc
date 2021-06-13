@@ -85,6 +85,8 @@ struct Event
   std::vector<Double_t> raw_hitpos_z;
   std::vector<Double_t> raw_de;
   std::vector<Int_t> raw_padid;
+  std::vector<Int_t> raw_layer;
+  std::vector<Int_t> raw_row;
   std::vector<Double_t> cluster_hitpos_x;
   std::vector<Double_t> cluster_hitpos_y;
   std::vector<Double_t> cluster_hitpos_z;
@@ -182,6 +184,8 @@ struct Event
     raw_hitpos_z.clear();
     raw_de.clear();
     raw_padid.clear();
+    raw_layer.clear();
+    raw_row.clear();
     cluster_hitpos_x.clear();
     cluster_hitpos_y.clear();
     cluster_hitpos_z.clear();
@@ -417,11 +421,14 @@ dst::DstRead( int ievent )
       Double_t z = hit->GetZ();
       Double_t de = hit->GetCharge();
       Double_t pad = hit->GetPad();
+      Int_t row = hit->GetRow();
       event.raw_hitpos_x.push_back(x);
       event.raw_hitpos_y.push_back(y);
       event.raw_hitpos_z.push_back(z);
       event.raw_de.push_back(de);
       event.raw_padid.push_back(pad);
+      event.raw_layer.push_back(layer);
+      event.raw_row.push_back(row);
       ++nh_Tpc;
     }
   }
@@ -831,6 +838,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "raw_hitpos_z", &event.raw_hitpos_z );
   tree->Branch( "raw_de", &event.raw_de );
   tree->Branch( "raw_padid", &event.raw_padid );
+  tree->Branch( "raw_layer", &event.raw_layer );
+  tree->Branch( "raw_row", &event.raw_row );
   tree->Branch( "cluster_hitpos_x", &event.cluster_hitpos_x );
   tree->Branch( "cluster_hitpos_y", &event.cluster_hitpos_y );
   tree->Branch( "cluster_hitpos_z", &event.cluster_hitpos_z );
