@@ -48,7 +48,7 @@ TimeBFT -5 5
 TdcSCH 470 510
 
 ### SCH Time gate range
-TimeSCH -15 5
+TimeSCH -5 15
 
 ### BC3 TDC gate range
 TdcBC3 250 470
@@ -91,7 +91,7 @@ MinTotSDC4 80
 MaxMultiHitBcOut 16
 
 ### BCOUT plane multiplicity gate
-MinLayerBcOut 9
+MinLayerBcOut 8
 
 ### SDCIN multiplicity gate
 MaxMultiHitSdcIn 16
