@@ -42,7 +42,9 @@ class BJobManager(metaclass=classimpl.Singleton):
     while self.__updater_status == 'RUNNING':
       logger.debug(f'updater is running')
       self.update_job_status()
-      time.sleep(self.__interval - (time.time() - ptime))
+      sleep = self.__interval - (time.time() - ptime)
+      if sleep > 0:
+        time.sleep(sleep)
       ptime = time.time()
     logger.debug('updater thread ends')
 
