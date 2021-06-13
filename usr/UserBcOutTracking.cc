@@ -21,7 +21,7 @@
 
 #define HodoCut 0
 #define TotCut  1
-#define Chi2Cut  1
+#define Chi2Cut 1
 
 namespace
 {
@@ -95,7 +95,6 @@ struct Event
   Double_t Time0;
   Double_t CTime0;
 
-  Int_t pid;
   Double_t btof;
 
   Int_t nhit[NumOfLayersBcOut];
@@ -122,7 +121,6 @@ Event::clear()
   ntrack    =  0;
   nhBh2     =  0;
   nhBh1     =  0;
-  pid       = -1;
   btof      = qnan;
   Time0Seg  = -1;
   deTime0   = -1;
@@ -685,7 +683,6 @@ ConfMan:: InitializeHistograms()
   tree->Branch("Time0",    &event.Time0,     "Time0/D");
   tree->Branch("CTime0",   &event.CTime0,    "CTime0/D");
 
-  tree->Branch("pid",      &event.pid,      "pid/I");
   tree->Branch("btof",     &event.btof,     "btof/D");
 
   tree->Branch("nhit",     &event.nhit,     Form("nhit[%d]/I", NumOfLayersBcOut));

@@ -616,7 +616,7 @@ ConfMan::InitializeHistograms()
 
   HB1(BFTHid +101, "BFT NCluster", 100, 0, 100);
   HB1(BFTHid +102, "BFT Cluster Size", 5, 0, 5);
-  HB1(BFTHid +103, "BFT CTime (Cluster)", NbinTime, MinTime, MaxTime);
+  HB1(BFTHid +103, "BFT CTime (Cluster)", 100., -20., 30.);
   HB1(BFTHid +104, "BFT Tot (Cluster)", NbinTot, MinTot, MaxTot);
   HB2(BFTHid +105, "BFT CTime%Tot (Cluster)",
       NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);

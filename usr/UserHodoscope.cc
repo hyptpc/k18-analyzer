@@ -1243,6 +1243,8 @@ UserHodoscope::ProcessingNormal()
       dst.deTime0 = cl_time0->DeltaE();
       dst.Time0 = cl_time0->Time0();
       dst.CTime0 = cl_time0->CTime0();
+      HF1(100, cl_time0->MeanTime());
+      HF1(101, cl_time0->CTime0());
     }
 
     // BTOF0 segment
@@ -1257,6 +1259,9 @@ UserHodoscope::ProcessingNormal()
       dst.deBtof0 = cl_btof0->DeltaE();
       dst.Btof0 = cl_btof0->MeanTime() - dst.Time0;
       dst.CBtof0 = cl_btof0->CMeanTime() - dst.CTime0;
+      HF1(102, dst.CBtof0);
+      HF2(103, dst.deTime0, dst.CBtof0);
+      HF2(104, dst.deBtof0, dst.CBtof0);
     }
   }
 
@@ -2191,6 +2196,13 @@ ConfMan::InitializeHistograms()
     HB2(BH2Hid +100*i +84, title4, 200, -0.5, 4.5, 200, -10., 10.);
   }
 
+  // BTOF
+  HB1(100, "BH2 MeanTime0", 400, -4, 4);
+  HB1(101, "CTime0", 400, -4, 4);
+  HB1(102, "CBtof0", 400, -4, 4);
+  HB2(103, "CBtof0%deTime0", 200, 0, 4, 200, -4, 4);
+  HB2(104, "CBtof0%deBTof0", 200, 0, 4, 200, -4, 4);
+
   // BAC
   HB1(BACHid +0, "#Hits BAC",        NumOfSegBAC+1, 0., Double_t(NumOfSegBAC+1));
   HB1(BACHid +1, "Hitpat BAC",       NumOfSegBAC,   0., Double_t(NumOfSegBAC));
@@ -2536,11 +2548,6 @@ ConfMan::InitializeHistograms()
   HB1(WCSUMHid +32, "HitPat Cluster WcSum", 2*NumOfSegWC, 0., Double_t(NumOfSegWC));
   HB1(WCSUMHid +33, "CMeamTime Cluster WcSum", 500, -5., 45.);
   HB1(WCSUMHid +34, "DeltaE Cluster WcSum", 100, -0.5, 4.5);
-
-
-
-
-
 
   ////////////////////////////////////////////
   //Tree

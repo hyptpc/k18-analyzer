@@ -150,6 +150,9 @@ struct Event
   Double_t dtTof[NumOfSegTOF];
   Double_t deTof[NumOfSegTOF];
 
+  Int_t    nhBvh;
+  Double_t BvhSeg[NumOfSegBVH];
+
   //Fiber
   Int_t    nhBft;
   Int_t    csBft[NumOfSegBFT];
@@ -300,6 +303,9 @@ struct Src
   Double_t dtTof[NumOfSegTOF];
   Double_t deTof[NumOfSegTOF];
 
+  Int_t    nhBvh;
+  Double_t BvhSeg[NumOfSegBVH];
+
   //Fiber
   Int_t    nhBft;
   Int_t    csBft[NumOfSegBFT];
@@ -439,6 +445,7 @@ dst::InitializeEvent()
   event.nhBh2  = 0;
   event.nhBh1  = 0;
   event.nhTof  = 0;
+  event.nhBvh  = 0;
 
   for(Int_t it=0; it<NumOfSegBH1; it++){
     event.csBh1[it]  = 0;
@@ -462,6 +469,10 @@ dst::InitializeEvent()
     event.tTof[it]   = qnan;
     event.dtTof[it]  = qnan;
     event.deTof[it]  = qnan;
+  }
+
+  for(Int_t it=0; it<NumOfSegBVH; it++){
+    event.BvhSeg[it] = -1;
   }
 
   //Fiber
@@ -644,6 +655,7 @@ dst::DstRead(Int_t ievent)
   event.nhBh2    = src.nhBh2;
   event.nhSch    = src.nhSch;
   event.nhTof    = src.nhTof;
+  event.nhBvh    = src.nhBvh;
 
   const Int_t ntBcOut  = event.ntBcOut;
   const Int_t ntSdcIn  = event.ntSdcIn;
@@ -655,6 +667,7 @@ dst::DstRead(Int_t ievent)
   const Int_t nhBh2    = event.nhBh2;
   const Int_t nhSch    = event.nhSch;
   const Int_t nhTof    = event.nhTof;
+  const Int_t nhBvh    = event.nhBvh;
 
 #if 0
   std::cout << "#D DebugPrint" << std::endl
@@ -710,7 +723,7 @@ dst::DstRead(Int_t ievent)
   }
 
   // BH1
-  Double_t btof = qnan;
+  // Double_t btof = qnan;
   for(Int_t i=0; i<nhBh1; ++i){
     event.csBh1[i]  = src.csBh1[i];
     event.Bh1Seg[i] = src.Bh1Seg[i];
@@ -718,7 +731,7 @@ dst::DstRead(Int_t ievent)
     event.dtBh1[i]  = src.dtBh1[i];
     event.deBh1[i]  = src.deBh1[i];
     event.btof[i]   = src.btof[i];
-    if(i==0) btof = src.btof[i];
+    // if(i==0) btof = src.btof[i];
   }
 
   // BH2
@@ -748,6 +761,11 @@ dst::DstRead(Int_t ievent)
     event.tTof[i]   = src.tTof[i];
     event.dtTof[i]  = src.dtTof[i];
     event.deTof[i]  = src.deTof[i];
+  }
+
+  // BVH
+  for(Int_t i=0; i<nhBvh; ++i){
+    event.BvhSeg[i] = src.BvhSeg[i];
   }
 
   ////////// BcOut
@@ -842,13 +860,14 @@ dst::DstRead(Int_t ievent)
     }
 
     stof = event.tTof[correct_num] - time0 + StofOffset;
-    m2 = Kinematics::MassSquare(pCorr, path, cstof);
-    if(TMath::IsNaN(btof)){
-      cstof=stof;
-    }else{
-      gPHC.DoStofCorrection(8, 0, src.TofSeg[correct_num]-1, 2, stof, btof, cstof);
-      m2 = Kinematics::MassSquare(pCorr, path, cstof);
-    }
+    m2 = Kinematics::MassSquare(pCorr, path, stof);
+    // m2 = Kinematics::MassSquare(pCorr, path, cstof);
+    // if(TMath::IsNaN(btof)){
+    //   cstof=stof;
+    // }else{
+    //   gPHC.DoStofCorrection(8, 0, src.TofSeg[correct_num]-1, 2, stof, btof, cstof);
+    //   m2 = Kinematics::MassSquare(pCorr, path, cstof);
+    // }
     event.best_deTof[itKurama] = best_de;
     event.best_TofSeg[itKurama] = src.TofSeg[correct_num];
 
@@ -1115,6 +1134,34 @@ dst::DstRead(Int_t ievent)
 
   HF1(1, 10.);
 
+  // Good event histograms
+  if(event.nKK == 1
+     && event.chisqrKurama[0] < 20.
+     && TMath::Abs(event.vtx[0]-8.9) < 25.
+     && TMath::Abs(event.vty[0]) < 20.
+     && TMath::Abs(event.vtz[0]+70) < 100
+     && event.closeDist[0] < 40.){
+    HF1(6001, event.pK18[0]);
+    HF1(6002, event.pKurama[0]);
+    HF1(6003, event.qKurama[0]*event.m2[0]);
+    HF2(6004, event.qKurama[0]*event.m2[0], event.pKurama[0]);
+    HF1(6005, event.MissMassCorr[0]);
+    if(event.pKurama[0] < 1.4 && event.qKurama[0] > 0){
+      HF1(6101, event.pK18[0]);
+      HF1(6102, event.pKurama[0]);
+      HF1(6103, event.qKurama[0]*event.m2[0]);
+      HF2(6104, event.qKurama[0]*event.m2[0], event.pKurama[0]);
+      HF1(6105, event.MissMassCorr[0]);
+      if(TMath::Abs(event.m2[0]-0.25) < 0.1){
+        HF1(6201, event.pK18[0]);
+        HF1(6202, event.pKurama[0]);
+        HF1(6203, event.qKurama[0]*event.m2[0]);
+        HF2(6204, event.qKurama[0]*event.m2[0], event.pKurama[0]);
+        HF1(6205, event.MissMassCorr[0]);
+      }
+    }
+  }
+
   //Final Hodoscope histograms
   for(Int_t i=0; i<nhBh2; ++i){
     HF1(152, event.csBh2[i]);
@@ -1345,6 +1392,24 @@ ConfMan::InitializeHistograms()
   HB2(5013, "MissingMass%Ub", 200, 0.0, 2.50, 100, -0.30, 0.30);
   HB2(5014, "MissingMass%Vb", 200, 0.0, 2.50, 100, -0.10, 0.10);
 
+  HB1(6001, "P K18 [Good]", 400, 1.4, 2.2);
+  HB1(6002, "P Kurama [Good]", 300, 0, 3);
+  HB1(6003, "Charge*MassSquared [Good]", 300, -1., 2.);
+  HB2(6004, "P Kurama%Charge*MassSquared [Good]", 100, -1., 2., 100, 0, 2.5);
+  HB1(6005, "MissingMass [Good]", 200, 1.0, 2.0);
+
+  HB1(6101, "P K18 [PCut]", 400, 1.4, 2.2);
+  HB1(6102, "P Kurama [PCut]", 300, 0, 3);
+  HB1(6103, "Charge*MassSquared [PCut]", 300, -1., 2.);
+  HB2(6104, "P Kurama%Charge*MassSquared [PCut]", 100, -1., 2., 100, 0, 2.5);
+  HB1(6105, "MissingMass [PCut]", 200, 1.0, 2.0);
+
+  HB1(6201, "P K18 [M2Cut]", 400, 1.4, 2.2);
+  HB1(6202, "P Kurama [M2Cut]", 300, 0, 3);
+  HB1(6203, "Charge*MassSquared [M2Cut]", 300, -1., 2.);
+  HB2(6204, "P Kurama%Charge*MassSquared [M2Cut]", 100, -1., 2., 100, 0, 2.5);
+  HB1(6205, "MissingMass [M2Cut]", 200, 1.0, 2.0);
+
   ////////////////////////////////////////////
   //Tree
   HBTree("kk","tree of KkAna");
@@ -1378,6 +1443,9 @@ ConfMan::InitializeHistograms()
   tree->Branch("tTof",     event.tTof,    "tTof[nhTof]/D");
   tree->Branch("dtTof",    event.dtTof,   "dtTof[nhTof]/D");
   tree->Branch("deTof",    event.deTof,   "deTof[nhTof]/D");
+
+  tree->Branch("nhBvh",   &event.nhBvh,   "nhBvh/I");
+  tree->Branch("BvhSeg",   event.BvhSeg,  "BvhSeg[nhBvh]/D");
 
   //Fiber
   tree->Branch("nhBft",  &event.nhBft,  "nhBft/I");
@@ -1517,6 +1585,8 @@ ConfMan::InitializeHistograms()
   TTreeCont[kHodoscope]->SetBranchStatus("tTof",     1);
   TTreeCont[kHodoscope]->SetBranchStatus("dtTof",    1);
   TTreeCont[kHodoscope]->SetBranchStatus("deTof",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("nhBvh",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("BvhSeg",   1);
 
   TTreeCont[kHodoscope]->SetBranchAddress("evnum",    &src.evnum);
   TTreeCont[kHodoscope]->SetBranchAddress("spill",    &src.spill);
@@ -1546,6 +1616,8 @@ ConfMan::InitializeHistograms()
   TTreeCont[kHodoscope]->SetBranchAddress("tTof",      src.tTof);
   TTreeCont[kHodoscope]->SetBranchAddress("dtTof",     src.dtTof);
   TTreeCont[kHodoscope]->SetBranchAddress("deTof",     src.deTof);
+  TTreeCont[kHodoscope]->SetBranchAddress("nhBvh",    &src.nhBvh);
+  TTreeCont[kHodoscope]->SetBranchAddress("BvhSeg",    src.BvhSeg);
 
   TTreeCont[kKuramaTracking]->SetBranchStatus("*", 0);
   TTreeCont[kKuramaTracking]->SetBranchStatus("ntSdcIn",      1);
