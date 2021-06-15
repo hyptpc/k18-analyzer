@@ -252,6 +252,7 @@ TPCHit::DoFit()
 
   m_layer = m_rhit->LayerId();
   m_row = m_rhit->RowId();
+  m_pad = tpc::GetPadId(m_layer, m_row);
   static TCanvas c1("c1", "c1", 800, 600);
   c1.cd();
   TH1D h1(FUNC_NAME+"-h1", "Pedestal",
@@ -269,7 +270,7 @@ TPCHit::DoFit()
     //avoid overflow
     if(adc<4075){
       h2.SetBinContent(tb, adc);
-      h2.SetBinError(tb, 1.);
+      //h2.SetBinError(tb, 1.);
     }
   }
   h2.GetXaxis()->SetRangeUser(MinTimeBucket, MaxTimeBucket);
@@ -466,6 +467,7 @@ TPCHit::DoFit()
       f1.SetParLimits(i*3+1, time[i]-10, time[i]+10);
       f1.SetParameter(i*3+2, 3);
       f1.SetParLimits(i*3+2, 1., 10.);
+      //f1.SetParLimits(i*3+2, 2.5, 10.);
     }
     f1.SetParameter(n_peaks*3, m_pedestal);
     f1.SetParLimits(n_peaks*3, m_pedestal-0.5*m_rms, m_pedestal+0.5*m_rms);
@@ -483,7 +485,7 @@ TPCHit::DoFit()
 	time[i] = p[i*3+1]; // peak time
 	de[i] = f1.Eval(time[i]) - p[n_peaks*3]; // amplitude
 	sigma = p[i*3+2];
-	if(de[i] > MinDe){
+	if(de[i] > MinDe && sigma > 2.5){
 	  m_time.push_back(time[i]);
 	  m_de.push_back(de[i]);
 	  m_chisqr.push_back(chisqr);
@@ -502,7 +504,7 @@ TPCHit::DoFit()
   // if(m_de.size()>0)
   //   maxde = TMath::MaxElement(m_de.size(), m_de.data());
   // if(m_time.size()>3&&maxde>150.){
-  h2.Draw("");
+  //h2.Draw("");
   c1.Modified();
   c1.Update();
   gSystem->ProcessEvents();
@@ -631,12 +633,12 @@ TPCHit::Print(const std::string& arg, std::ostream& ost) const
       << std::setw(w) << std::left << "posz" << m_pos.z() << std::endl;
   for(Int_t i=0, n=GetNHits(); i<n; ++i){
     ost << std::setw(3) << std::right << i << " "
-        << "(time,de,chisqr,ctime,cde,dl)=("
+	<< "(time,de,chisqr,ctime,cde,dl)=("
         << std::fixed << std::setprecision(3) << std::setw(9) << m_time[i]
         << std::fixed << std::setprecision(3) << std::setw(9) << m_de[i]
         << std::fixed << std::setprecision(3) << std::setw(9) << m_chisqr[i]
-        // << std::fixed << std::setprecision(3) << std::setw(9) << m_ctime[i]
-        // << std::fixed << std::setprecision(3) << std::setw(9) << m_cde[i]
+      //<< std::fixed << std::setprecision(3) << std::setw(9) << m_ctime[i]
+      //<< std::fixed << std::setprecision(3) << std::setw(9) << m_cde[i]
         // << std::fixed << std::setprecision(3) << std::setw(9) << m_drift_length[i]
         << ")" << std::endl;
   }

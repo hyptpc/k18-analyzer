@@ -442,6 +442,7 @@ RawData::RecalcTPCHits()
 
   Int_t Min_rms1 = 100000;
   Int_t Min_rms_layer1 = -1;
+  Int_t Min_rms_hitnum1 = -1;
   // Int_t Min_maxadc_row = -1;
   Int_t Min_maxadc_hitnum1 = -1;
   Int_t Min_maxadc_layer1 = -1;
@@ -449,6 +450,7 @@ RawData::RecalcTPCHits()
 
   Int_t Min_rms2 = 100000;
   Int_t Min_rms_layer2 = -1;
+  Int_t Min_rms_hitnum2 = -1;
   Int_t Min_maxadc_hitnum2 = -1;
   Int_t Min_maxadc_layer2 = -1;
   Int_t Min_maxadc2 = 100000;
@@ -464,32 +466,34 @@ RawData::RecalcTPCHits()
 
     for(std::size_t hiti =0; hiti< nh; hiti++){
       auto hit = m_TPCRawHC[layer][hiti];
-      if(layer<10){
-	if(hit->RMS() < Min_rms1){
-	  Min_rms1 = hit->RMS();
-	  Min_rms_layer1 = layer;
-	  // Min_rms_row = hit->RowId();
-	  // Min_rms_hitnum = hiti;
-	}
-	if(hit->MaxAdc() < Min_maxadc1){
-	  Min_maxadc1 = hit->MaxAdc();
-	  // Min_maxadc_row = hit->RowId();
-	  Min_maxadc_hitnum1 = hiti;
-	  Min_maxadc_layer1 = layer;
-	}
+      if(hit->RMS() < Min_rms1 && hit->RMS()>10.){
+	Min_rms1 = hit->RMS();
+	Min_rms_layer1 = layer;
+	// Min_rms_row = hit->RowId();
+	Min_rms_hitnum1 = hiti;
+	//std::cout<<"RMS1_0= "<<Min_rms1<<std::endl;
+      }
+      if(hit->MaxAdc() < Min_maxadc1 && hit->RMS()>10.){
+	Min_maxadc1 = hit->MaxAdc();
+	// Min_maxadc_row = hit->RowId();
+	Min_maxadc_hitnum1 = hiti;
+	Min_maxadc_layer1 = layer;
+	//std::cout<<"RMS1_1= "<<hit->RMS()<<std::endl;
       }
       else{
-	if(hit->RMS() < Min_rms2){
+	if(hit->RMS() < Min_rms2 && hit->RMS()>10.){
 	  Min_rms2 = hit->RMS();
 	  Min_rms_layer2 = layer;
 	  // Min_rms_row = hit->RowId();
-	  // Min_rms_hitnum = hiti;
+	  Min_rms_hitnum2 = hiti;
+	  //std::cout<<"RMS2_0= "<<Min_rms2<<std::endl;
 	}
-	if(hit->MaxAdc() < Min_maxadc2){
+	if(hit->MaxAdc() < Min_maxadc2 && hit->RMS()>10.){
 	  Min_maxadc2 = hit->MaxAdc();
 	  // Min_maxadc_row = hit->RowId();
 	  Min_maxadc_hitnum2 = hiti;
 	  Min_maxadc_layer2 = layer;
+	  //std::cout<<"RMS2_1= "<<hit->RMS()<<std::endl;
 	}
       }
     }
@@ -501,32 +505,62 @@ RawData::RecalcTPCHits()
     // std::cout<<"Min_maxadc_hitnum:"<<Min_maxadc_hitnum<<std::endl;
     // std::cout<<"Layer:"<<layer<<", min_row:"<<Min_maxadc_row<<std::endl;
     // auto hit_min = m_TPCRawHC[layer][Min_rms_hitnum];
-    int Min_layer=0, Min_maxadc_hitnum=0;
+    int Min_layer=0, Min_hitnum=0;
     if(layer<10){
-      Min_layer = Min_maxadc_layer1;
-      Min_maxadc_hitnum = Min_maxadc_hitnum1;
+      //      Min_layer = Min_maxadc_layer1;
+      Min_layer = Min_rms_layer1;
+      //Min_hitnum = Min_maxadc_hitnum1;
+      Min_hitnum = Min_rms_hitnum1;
+      //std::cout<<"Min_rms1="<<Min_rms1<<std::endl;
     }
     else{
-      Min_layer = Min_maxadc_layer2;
-      Min_maxadc_hitnum = Min_maxadc_hitnum2;
+      //      Min_layer = Min_maxadc_layer2;
+      Min_layer = Min_rms_layer2;
+      // Min_hitnum = Min_maxadc_hitnum2;
+      Min_hitnum = Min_rms_hitnum2;
+      //std::cout<<"Min_rms2="<<Min_rms2<<std::endl; 
     }
     //auto hit_min = m_TPCRawHC[layer][Min_maxadc_hitnum];
-    auto hit_min = m_TPCRawHC[Min_layer][Min_maxadc_hitnum];
+    if(Min_layer==-1||Min_hitnum==-1)
+      continue;
+    
+    auto hit_min = m_TPCRawHC[Min_layer][Min_hitnum];
     Int_t n0 = hit_min->Fadc().size();
+    if(n0<10)
+      std::cout<<"n0="<<n0<<std::endl;
     Int_t mean0 = (Int_t)hit_min->Mean();
+    Double_t rms10_0 = hit_min->RMS_10();// RMS of first 10 time bucket
+
+    // std::cout<<"min_layer="<<hit_min->LayerId()
+    // 	     <<", min_row="<<hit_min->RowId()
+    // 	     <<", padid="<<tpc::GetPadId(hit_min->LayerId(), hit_min->RowId())<<std::endl;
+   
     for(std::size_t hiti =0; hiti< nh; hiti++){
       auto hit = m_TPCRawHC[layer][hiti];
+      // std::cout<<"layer="<<hit->LayerId()
+      // 	       <<", row="<<hit->RowId()
+      // 	       <<", padid="<<tpc::GetPadId(hit->LayerId(), hit->RowId())<<std::endl;
       Int_t row = hit->RowId();
       //std::cout<<"row:"<<row<<std::endl;
       Int_t n = hit->Fadc().size();
+      if(n<10){
+	std::cout<<"n="<<n<<std::endl;
+	continue;
+      }
+      Double_t rms10 = hit->RMS_10();// RMS of first 10 time bucket
+      
       if(n0<n)
 	n=n0;
       for(Int_t i=0; i<n; ++i){
 	auto adc = hit->Fadc().at(i);
 	auto adc0 = hit_min->Fadc().at(i);
-	auto cor_adc = adc + (mean0 - adc0);
+	auto cor_adc = adc + (mean0 - adc0)*(rms10/rms10_0);
+	//auto cor_adc = adc + (mean0 - adc0);
+	// std::cout<<"adc="<<adc<<", adc0="<<adc0<<", adc-adc0="<<adc-adc0
+	// 	 <<", rms10="<<rms10<<", rms10_0="<<rms10_0
+	// 	 <<", sub="<<(mean0 - adc0)*(rms10/rms10_0)<<", cor_adc="<<cor_adc<<std::endl;
 	//if(nh==1)
-	if(layer==Min_layer&&hiti==Min_maxadc_hitnum)
+	if(layer==Min_layer&&hiti==Min_hitnum)
 	  AddTPCRawHit (m_TPCCorHC[layer], layer, row, adc);
 	else
 	  AddTPCRawHit (m_TPCCorHC[layer], layer, row, cor_adc);

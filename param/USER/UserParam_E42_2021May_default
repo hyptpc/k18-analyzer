@@ -139,9 +139,11 @@ ClusterYCut 3
 ### TPC Hough Window cut
 HoughWindowCut 10
 TPCClusterSizeCut 1
-TPCMaxLayerCut 30
+#TPCMaxLayerCut 30
+TPCMaxLayerCut 33
 #DECut_TPCTrack 100
-DECut_TPCTrack 0.5
+#DECut_TPCTrack 0.5
+DECut_TPCTrack 0.2
 
 ### TPC resolution parameter
 ### at 1T

@@ -30,15 +30,17 @@ public:
   void          Print( Option_t* opt="" ) const;
   Int_t         RowId( void ) const { return m_row_id; }
   Double_t      LocMax( void ) const
-    { return TMath::LocMax( m_fadc.size(), m_fadc.data() ); }
+  { return TMath::LocMax( m_fadc.size(), m_fadc.data() ); }
   Double_t      MaxAdc( void ) const
-    { return TMath::MaxElement( m_fadc.size(), m_fadc.data() ); }
+  { return TMath::MaxElement( m_fadc.size(), m_fadc.data() ); }
   Double_t      MinAdc( void ) const
-    { return TMath::MinElement( m_fadc.size(), m_fadc.data() ); }
+  { return TMath::MinElement( m_fadc.size(), m_fadc.data() ); }
   Double_t      Mean( void ) const
-    { return TMath::Mean( m_fadc.size(), m_fadc.data() ); }
+  { return TMath::Mean( m_fadc.size(), m_fadc.data() ); }
   Double_t      RMS( void ) const
-    { return TMath::RMS( m_fadc.size(), m_fadc.data() ); }
+  { return TMath::RMS( m_fadc.size(), m_fadc.data() ); }
+  Double_t      RMS_10( void ) const
+  { return TMath::RMS( 10, m_fadc.data() ); }
 };
 
 //_____________________________________________________________________________
