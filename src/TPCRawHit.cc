@@ -33,6 +33,20 @@ TPCRawHit::AddFadc( Int_t adc )
 }
 
 //_____________________________________________________________________________
+Double_t
+TPCRawHit::MaxAdc( Int_t min_t, Int_t max_t )
+{
+  int max_adc = 0;
+  for(int i=0; i<m_fadc.size(); ++i){
+    if(i>=min_t&&i<=max_t){
+      if(max_adc<m_fadc[i])
+	max_adc = m_fadc[i];
+    } 
+  }
+  return max_adc;
+}
+
+//_____________________________________________________________________________
 void
 TPCRawHit::Print( Option_t* ) const
 {

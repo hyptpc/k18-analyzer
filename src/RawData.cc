@@ -605,7 +605,8 @@ RawData::EventSelectionTPCHits(bool maxadccut, bool maxadctbcut)
 	hit = m_TPCRawHC[layer][hiti];
     
       Double_t mean = hit->Mean();  
-      Double_t max_adc = hit->MaxAdc() - mean;
+      //Double_t max_adc = hit->MaxAdc() - mean;
+      Double_t max_adc = hit->MaxAdc(MinTimeBucket, MaxTimeBucket) - mean;
       Int_t maxadc_tb = (Int_t)hit->LocMax();
     
       if(maxadccut&&maxadctbcut){

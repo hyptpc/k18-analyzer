@@ -33,6 +33,7 @@ public:
   { return TMath::LocMax( m_fadc.size(), m_fadc.data() ); }
   Double_t      MaxAdc( void ) const
   { return TMath::MaxElement( m_fadc.size(), m_fadc.data() ); }
+  Double_t      MaxAdc( Int_t min_t, Int_t max_t );
   Double_t      MinAdc( void ) const
   { return TMath::MinElement( m_fadc.size(), m_fadc.data() ); }
   Double_t      Mean( void ) const

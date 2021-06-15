@@ -364,9 +364,9 @@ UserTPCHit::ProcessingNormal()
 
   if(EventSelection==1){
     bool maxadccut = true; // max adccut
-    bool maxadctbcut = true; // max adccut time bucket cut
+    //bool maxadctbcut = true; // max adccut time bucket cut
     // bool maxadccut = false; // max adccut
-    // bool maxadctbcut = false; // max adccut time bucket cut
+    bool maxadctbcut = false; // max adccut time bucket cut
     rawData->EventSelectionTPCHits(maxadccut, maxadctbcut);
   }
     
