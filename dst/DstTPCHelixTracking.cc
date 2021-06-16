@@ -102,6 +102,7 @@ struct Event
 
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
+  std::vector<Int_t> nhtrack_clmulti; // Number of Hits (clsize>1)
   std::vector<Int_t> isBeam; // isBeam: 1 = Beam, 0 = Scat
   std::vector<Double_t> chisqr;
   std::vector<Double_t> helix_cx;
@@ -113,10 +114,12 @@ struct Event
   std::vector<Double_t> dEdx;
   std::vector<Double_t> dEdx_20;
   std::vector<Double_t> dEdx_30;
-  std::vector<Double_t> dE_cor; //corrected by helix_dz
-  std::vector<Double_t> dEdx_cor; //corrected by helix_dz
-  std::vector<Double_t> dEdx_20_cor; //corrected by helix_dz
-  std::vector<Double_t> dEdx_30_cor; //corrected by helix_dz
+  std::vector<Double_t> dE_clmulti;
+  std::vector<Double_t> dEdx_clmulti;
+  std::vector<Double_t> dEdx_clmulti_20;
+  std::vector<Double_t> dEdx_clmulti_30;
+
+  std::vector<Double_t> dz_factor;
   std::vector<Double_t> mom0_x;//Helix momentum at Y = 0
   std::vector<Double_t> mom0_y;//Helix momentum at Y = 0
   std::vector<Double_t> mom0_z;//Helix momentum at Y = 0
@@ -203,6 +206,7 @@ struct Event
     trigpat.clear();
     trigflag.clear();
     nhtrack.clear();
+    nhtrack_clmulti.clear();
     isBeam.clear();
     chisqr.clear();
     helix_cx.clear();
@@ -214,10 +218,12 @@ struct Event
     dEdx.clear();
     dEdx_20.clear();
     dEdx_30.clear();
-    dE_cor.clear();
-    dEdx_cor.clear();
-    dEdx_20_cor.clear();
-    dEdx_30_cor.clear();
+    dE_clmulti.clear();
+    dEdx_clmulti.clear();
+    dEdx_clmulti_20.clear();
+    dEdx_clmulti_30.clear();
+    dz_factor.clear();
+    
     mom0_x.clear();
     mom0_y.clear();
     mom0_z.clear();
@@ -492,6 +498,7 @@ dst::DstRead( int ievent )
   HF1( 1, event.status++ );
   
   event.nhtrack.resize( ntTpc );
+  event.nhtrack_clmulti.resize( ntTpc );
   event.isBeam.resize( ntTpc );
   event.chisqr.resize( ntTpc );
   event.helix_cx.resize( ntTpc );
@@ -507,10 +514,11 @@ dst::DstRead( int ievent )
   event.dEdx.resize( ntTpc );
   event.dEdx_20.resize( ntTpc );
   event.dEdx_30.resize( ntTpc );
-  event.dE_cor.resize( ntTpc );
-  event.dEdx_cor.resize( ntTpc );
-  event.dEdx_20_cor.resize( ntTpc );
-  event.dEdx_30_cor.resize( ntTpc );
+  event.dE_clmulti.resize( ntTpc );
+  event.dEdx_clmulti.resize( ntTpc );
+  event.dEdx_clmulti_20.resize( ntTpc );
+  event.dEdx_clmulti_30.resize( ntTpc );
+  event.dz_factor.resize( ntTpc );
   event.charge.resize( ntTpc );
   event.path.resize( ntTpc );
   
@@ -551,6 +559,7 @@ dst::DstRead( int ievent )
     Double_t helix_dz = tp->Getdz();
     TVector3 Mom0 = tp->GetMom0();
     Int_t isbeam = tp->GetIsBeam();
+
     event.nhtrack[it] = nh;
     event.isBeam[it] = isbeam;
     event.chisqr[it] = chisqr;
@@ -615,12 +624,22 @@ dst::DstRead( int ievent )
 	  event.chisqr_flag[it] = 0;
       }
     }
+
+    Int_t nh_clmulti =0;
+    for( int ih=0; ih<nh; ++ih ){
+      TPCLTrackHit *hit = tp->GetHit( ih );
+      if( !hit ) continue;
+      int clsize_hit = hit->GetHit()->GetClusterSize();
+      if(clsize_hit>1)
+	++nh_clmulti;
+    }
     
     double min_t = 10000.;
     double max_t = -10000.;
     double min_layer_t=0., max_layer_t=0.;
     double max_layer_y=0.;
     double de=0., path_dEdx=0.;
+    double de_clmulti=0., path_clmulti_dEdx=0.;
     
     std::vector<Double_t> de_20; 
     std::vector<Double_t> de_30; 
@@ -628,9 +647,17 @@ dst::DstRead( int ievent )
     int n_30=(int)(nh*0.7);
     de_20.resize(n_20);
     de_30.resize(n_30);
- 
 
+    std::vector<Double_t> de_clmulti_20; 
+    std::vector<Double_t> de_clmulti_30; 
+    int n_clmulti_20=(int)(nh_clmulti*0.8);
+    int n_clmulti_30=(int)(nh_clmulti*0.7);
+    if(n_clmulti_20>1)
+      de_clmulti_20.resize(n_clmulti_20);
+    if(n_clmulti_30>1)
+      de_clmulti_30.resize(n_clmulti_30);
 
+    int ih_clmulti=0; 
     for( int ih=0; ih<nh; ++ih ){
       TPCLTrackHit *hit = tp->GetHit( ih );
       if( !hit ) continue;
@@ -639,14 +666,14 @@ dst::DstRead( int ievent )
       const TVector3& calpos = hit->GetLocalCalPos_Helix();
       const TVector3& res_vect = hit->GetResidualVect();
       double de_hit = hit->GetHit()->GetCharge();
-      double clsize_hit = hit->GetHit()->GetClusterSize();
+      int clsize_hit = hit->GetHit()->GetClusterSize();
       double path_hit = tpc::padParameter[layer][5];
 #if DE_padparam
       path_hit = 1.;
 #endif
       de += de_hit;
       path_dEdx += path_hit;
-      
+            
       if(ih<n_20){
 	de_20[ih] = de_hit/path_hit;	
       }
@@ -666,6 +693,34 @@ dst::DstRead( int ievent )
 	}
       }
       
+      if(clsize_hit>1){
+       	de_clmulti += de_hit;
+	path_clmulti_dEdx += path_hit;	
+	if(n_clmulti_20>1){
+	  if(ih_clmulti<n_clmulti_20){
+       	  de_clmulti_20[ih_clmulti] = de_hit/path_hit;	
+	  }
+	  else{
+	    if(de_hit/path_hit<TMath::MaxElement(de_clmulti_20.size(),de_clmulti_20.data())){
+	      int imax = TMath::LocMax(de_clmulti_20.size(),de_clmulti_20.data());
+	      de_clmulti_20[imax] = de_hit/path_hit;
+	    }
+	  }
+	}
+	if(n_clmulti_30>1){
+	  if(ih_clmulti<n_clmulti_30){
+	    de_clmulti_30[ih_clmulti] = de_hit/path_hit;
+	  }
+	  else{
+	    if(de_hit/path_hit<TMath::MaxElement(de_clmulti_30.size(),de_clmulti_30.data())){
+       	    int imax = TMath::LocMax(de_clmulti_30.size(),de_clmulti_30.data());
+	    de_clmulti_30[imax] = de_hit/path_hit;
+	    }
+	  }
+	}
+	++ih_clmulti;
+      }
+
       Double_t t_cal = hit->GetTcal();
       if(min_t>t_cal)
 	min_t = t_cal;
@@ -689,7 +744,7 @@ dst::DstRead( int ievent )
       event.residual_z[it][ih] = res_vect.z();
       event.helix_t[it][ih] = t_cal;
       event.hitde[it][ih] = de_hit;
-      event.hitClsize[it][ih] = clsize_hit;
+      event.hitClsize[it][ih] = (double)clsize_hit;
     }
     if(min_layer_t<max_layer_t)
       event.charge[it] = 1;
@@ -701,6 +756,9 @@ dst::DstRead( int ievent )
     event.path[it] = pathlen;
     event.dE[it] = de;
     event.dEdx[it] = de/path_dEdx;
+
+    event.dE_clmulti[it] = de_clmulti;
+    event.dEdx_clmulti[it] = de_clmulti/path_clmulti_dEdx;
 
     event.dEdx_20[it]=0.;
     for( int ih=0; ih<n_20; ++ih ){
@@ -714,11 +772,28 @@ dst::DstRead( int ievent )
     }
     event.dEdx_30[it]/=(double)n_30;
 
-    double dz_factor = sqrt(1.+(pow(helix_dz,2)));
-    event.dE_cor[it]=event.dE[it]/dz_factor;
-    event.dEdx_cor[it]=event.dEdx[it]/dz_factor;
-    event.dEdx_20_cor[it]=event.dEdx_20[it]/dz_factor;
-    event.dEdx_30_cor[it]=event.dEdx_30[it]/dz_factor;
+    event.dEdx_clmulti_20[it]=0.;
+    if(n_clmulti_20>1){
+      for( int ih=0; ih<n_clmulti_20; ++ih ){
+     	event.dEdx_clmulti_20[it]+=de_clmulti_20[ih];
+      }
+      event.dEdx_clmulti_20[it]/=(double)n_clmulti_20;
+    }
+
+    event.dEdx_clmulti_30[it]=0.;
+    if(n_clmulti_30>1){
+      for( int ih=0; ih<n_clmulti_30; ++ih ){
+     	event.dEdx_clmulti_30[it]+=de_clmulti_30[ih];
+      }
+      event.dEdx_clmulti_30[it]/=(double)n_clmulti_30;
+    }
+    
+    //double dz_factor = sqrt(1.+(pow(helix_dz,2)));
+    event.dz_factor[it] = sqrt(1.+(pow(helix_dz,2)));
+    // event.dE_cor[it]=event.dE[it]/dz_factor;
+    // event.dEdx_cor[it]=event.dEdx[it]/dz_factor;
+    // event.dEdx_20_cor[it]=event.dEdx_20[it]/dz_factor;
+    // event.dEdx_30_cor[it]=event.dEdx_30[it]/dz_factor;
   }
 
   // rough estimation for Lambda and Ks event
@@ -738,7 +813,7 @@ dst::DstRead( int ievent )
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
 	    //	    if(event.dEdx_20_cor[it]>event.dEdx_20_cor[it2]*1.5){
-	    if(event.dEdx_20[it]>event.dEdx_20[it2]*1.5){
+	    if(event.dEdx_clmulti[it]>event.dEdx_clmulti[it2]*1.5){
 	      event.M_Lambda.push_back(LLambda.M());
 	      event.Lvtx.push_back(event.vtx[it]);
 	      event.Lvty.push_back(event.vty[it]);
@@ -770,7 +845,7 @@ dst::DstRead( int ievent )
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
 	    //	    if(event.dEdx_20_cor[it2]>event.dEdx_20_cor[it]*1.5){
-	    if(event.dEdx_20[it2]>event.dEdx_20[it]*1.5){
+	    if(event.dEdx_clmulti[it2]>event.dEdx_clmulti[it]*1.5){
 	      event.M_Lambda.push_back(LLambda.M());
 	      event.Lvtx.push_back(event.mom_vtx[it]);
 	      event.Lvty.push_back(event.mom_vty[it]);
@@ -876,10 +951,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dEdx", &event.dEdx );
   tree->Branch( "dEdx_20", &event.dEdx_20 );
   tree->Branch( "dEdx_30", &event.dEdx_30 );
-  tree->Branch( "dE_cor", &event.dE_cor );
-  tree->Branch( "dEdx_cor", &event.dEdx_cor );
-  tree->Branch( "dEdx_20_cor", &event.dEdx_20_cor );
-  tree->Branch( "dEdx_30_cor", &event.dEdx_30_cor );
+  tree->Branch( "dE_clmulti", &event.dE_clmulti );
+  tree->Branch( "dEdx_clmulti", &event.dEdx_clmulti );
+  tree->Branch( "dEdx_clmulti_20", &event.dEdx_clmulti_20 );
+  tree->Branch( "dEdx_clmulti_30", &event.dEdx_clmulti_30 );
+  tree->Branch( "dz_factor", &event.dz_factor );
   tree->Branch( "charge", &event.charge );
   tree->Branch( "path", &event.path );
 
