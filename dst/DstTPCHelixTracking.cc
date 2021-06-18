@@ -53,6 +53,26 @@ namespace
   const double max_ycut = 50.;//mm
   const double chisqrCut = 10.;//mm
 
+  // dE scale factor for cl>1 (pi 800 MeV/c BT) 
+  // Temporary 
+  //If it is worked well, it will be input as parameter file
+  double de_scale_clmulti[32]={2.60805, 2.55994, 2.38866, 2.38899,
+			       2.39013, 2.39301, 2.42139, 2.40094,
+			       2.56094, 2.34787, 1.87191, 2.09231,
+			       1.54783, 1.44758, 1.85832, 1.66975, 
+			       1.77801, 1.7998,  1.78998, 1.76022, 
+			       1.68841, 1.65013, 1.6025,  1.66307, 
+			       1.64762, 1.6772,  1.78183, 1.84824, 
+			       1.96622, 1.86893, 1.96118, 2.00511};
+  // dE scale factor for cl>1 (pi 800 MeV/c BT)
+  double de_scale_cl1[32]={0.903394, 0.827986, 0.770488, 0.784631,
+			   0.796613, 0.811798, 0.804216, 0.796284, 
+			   0.81952,  0.783958, 0.721293, 0.590675, 
+			   0.506612, 0.635113, 0.539947, 0.553197, 
+			   0.626253, 0.651923, 0.621886, 0.62147, 
+			   0.623018, 0.616758, 0.60026,  0.619983,
+			   0.630901, 0.642543, 0.669996, 0.702227,
+			   0.751318, 0.721415, 0.746373, 0.748167};
 }
 
 namespace dst
@@ -118,6 +138,11 @@ struct Event
   std::vector<Double_t> dEdx_clmulti;
   std::vector<Double_t> dEdx_clmulti_20;
   std::vector<Double_t> dEdx_clmulti_30;
+  std::vector<Double_t> dE_cor;
+  std::vector<Double_t> dEdx_cor;
+  std::vector<Double_t> dEdx_cor_20;
+  std::vector<Double_t> dEdx_cor_30;
+
 
   std::vector<Double_t> dz_factor;
   std::vector<Double_t> mom0_x;//Helix momentum at Y = 0
@@ -222,6 +247,11 @@ struct Event
     dEdx_clmulti.clear();
     dEdx_clmulti_20.clear();
     dEdx_clmulti_30.clear();
+    dE_cor.clear();
+    dEdx_cor.clear();
+    dEdx_cor_20.clear();
+    dEdx_cor_30.clear();
+
     dz_factor.clear();
     
     mom0_x.clear();
@@ -518,6 +548,10 @@ dst::DstRead( int ievent )
   event.dEdx_clmulti.resize( ntTpc );
   event.dEdx_clmulti_20.resize( ntTpc );
   event.dEdx_clmulti_30.resize( ntTpc );
+  event.dE_cor.resize( ntTpc );
+  event.dEdx_cor.resize( ntTpc );
+  event.dEdx_cor_20.resize( ntTpc );
+  event.dEdx_cor_30.resize( ntTpc );
   event.dz_factor.resize( ntTpc );
   event.charge.resize( ntTpc );
   event.path.resize( ntTpc );
@@ -640,13 +674,19 @@ dst::DstRead( int ievent )
     double max_layer_y=0.;
     double de=0., path_dEdx=0.;
     double de_clmulti=0., path_clmulti_dEdx=0.;
+    double de_cor=0.;
     
     std::vector<Double_t> de_20; 
     std::vector<Double_t> de_30; 
+    std::vector<Double_t> de_cor_20; 
+    std::vector<Double_t> de_cor_30; 
     int n_20=(int)(nh*0.8);
     int n_30=(int)(nh*0.7);
     de_20.resize(n_20);
     de_30.resize(n_30);
+    de_cor_20.resize(n_20);
+    de_cor_30.resize(n_30);
+
 
     std::vector<Double_t> de_clmulti_20; 
     std::vector<Double_t> de_clmulti_30; 
@@ -668,28 +708,46 @@ dst::DstRead( int ievent )
       double de_hit = hit->GetHit()->GetCharge();
       int clsize_hit = hit->GetHit()->GetClusterSize();
       double path_hit = tpc::padParameter[layer][5];
+      double de_hit_cor=0.;
+      if(clsize_hit==1)
+	de_hit_cor = de_hit/de_scale_cl1[layer];
+      else
+	de_hit_cor = de_hit/de_scale_clmulti[layer];
+      
 #if DE_padparam
       path_hit = 1.;
 #endif
       de += de_hit;
       path_dEdx += path_hit;
-            
+       
+      de_cor += de_hit_cor;
+     
       if(ih<n_20){
 	de_20[ih] = de_hit/path_hit;	
+	de_cor_20[ih] = de_hit_cor/path_hit;	
       }
       else{
 	if(de_hit/path_hit<TMath::MaxElement(de_20.size(),de_20.data())){
 	  int imax = TMath::LocMax(de_20.size(),de_20.data());
 	  de_20[imax] = de_hit/path_hit;
 	}
+	if(de_hit_cor/path_hit<TMath::MaxElement(de_cor_20.size(),de_cor_20.data())){
+	  int imax = TMath::LocMax(de_cor_20.size(),de_cor_20.data());
+	  de_cor_20[imax] = de_hit_cor/path_hit;
+	}
       }
       if(ih<n_30){
 	de_30[ih] = de_hit/path_hit;
+	de_cor_30[ih] = de_hit_cor/path_hit;
       }
       else{
 	if(de_hit/path_hit<TMath::MaxElement(de_30.size(),de_30.data())){
 	  int imax = TMath::LocMax(de_30.size(),de_30.data());
 	  de_30[imax] = de_hit/path_hit;
+	}
+	if(de_hit_cor/path_hit<TMath::MaxElement(de_cor_30.size(),de_cor_30.data())){
+	  int imax = TMath::LocMax(de_cor_30.size(),de_cor_30.data());
+	  de_cor_30[imax] = de_hit_cor/path_hit;
 	}
       }
       
@@ -756,6 +814,8 @@ dst::DstRead( int ievent )
     event.path[it] = pathlen;
     event.dE[it] = de;
     event.dEdx[it] = de/path_dEdx;
+    event.dE_cor[it] = de_cor;
+    event.dEdx_cor[it] = de_cor/path_dEdx;
 
     event.dE_clmulti[it] = de_clmulti;
     event.dEdx_clmulti[it] = de_clmulti/path_clmulti_dEdx;
@@ -771,6 +831,18 @@ dst::DstRead( int ievent )
       event.dEdx_30[it]+=de_30[ih];
     }
     event.dEdx_30[it]/=(double)n_30;
+
+    event.dEdx_cor_20[it]=0.;
+    for( int ih=0; ih<n_20; ++ih ){
+      event.dEdx_cor_20[it]+=de_cor_20[ih];
+    }
+    event.dEdx_cor_20[it]/=(double)n_20;
+
+    event.dEdx_cor_30[it]=0.;
+    for( int ih=0; ih<n_30; ++ih ){
+      event.dEdx_cor_30[it]+=de_cor_30[ih];
+    }
+    event.dEdx_cor_30[it]/=(double)n_30;
 
     event.dEdx_clmulti_20[it]=0.;
     if(n_clmulti_20>1){
@@ -813,7 +885,7 @@ dst::DstRead( int ievent )
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
 	    //	    if(event.dEdx_20_cor[it]>event.dEdx_20_cor[it2]*1.5){
-	    if(event.dEdx_clmulti[it]>event.dEdx_clmulti[it2]*1.5){
+	    if(event.dEdx_cor[it]>event.dEdx_cor[it2]*1.5){
 	      event.M_Lambda.push_back(LLambda.M());
 	      event.Lvtx.push_back(event.vtx[it]);
 	      event.Lvty.push_back(event.vty[it]);
@@ -845,7 +917,7 @@ dst::DstRead( int ievent )
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
 	    //	    if(event.dEdx_20_cor[it2]>event.dEdx_20_cor[it]*1.5){
-	    if(event.dEdx_clmulti[it2]>event.dEdx_clmulti[it]*1.5){
+	    if(event.dEdx_cor[it2]>event.dEdx_cor[it]*1.5){
 	      event.M_Lambda.push_back(LLambda.M());
 	      event.Lvtx.push_back(event.mom_vtx[it]);
 	      event.Lvty.push_back(event.mom_vty[it]);
@@ -955,6 +1027,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dEdx_clmulti", &event.dEdx_clmulti );
   tree->Branch( "dEdx_clmulti_20", &event.dEdx_clmulti_20 );
   tree->Branch( "dEdx_clmulti_30", &event.dEdx_clmulti_30 );
+  tree->Branch( "dE_cor", &event.dE_cor );
+  tree->Branch( "dEdx_cor", &event.dEdx_cor );
+  tree->Branch( "dEdx_cor_20", &event.dEdx_cor_20 );
+  tree->Branch( "dEdx_cor_30", &event.dEdx_cor_30 );
   tree->Branch( "dz_factor", &event.dz_factor );
   tree->Branch( "charge", &event.charge );
   tree->Branch( "path", &event.path );
