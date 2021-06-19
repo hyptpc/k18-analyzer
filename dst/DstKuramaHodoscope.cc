@@ -450,6 +450,15 @@ dst::DstRead(Int_t ievent)
     }
     event.udeTofSeg[it] = src.udeTofSeg[it];
     event.ddeTofSeg[it] = src.ddeTofSeg[it];
+    // TOF ADC-Pedestal
+    Bool_t is_hit = false;
+    for(Int_t i=0; i<event.nhTof; ++i){
+      if(it == event.TofSeg[i]-1) is_hit = true;
+    }
+    if(!is_hit){
+      HF1(30000+(it+1)*100+1, event.tofua[it]);
+      HF1(30000+(it+1)*100+2, event.tofda[it]);
+    }
   }
 
   Int_t m2Combi = event.nhTof*event.ntKurama;
@@ -513,7 +522,11 @@ dst::DstRead(Int_t ievent)
       event.cstof[mm] = cstof;
       Double_t m2 = Kinematics::MassSquare(pKurama, event.path[it], cstof);
       event.m2[mm] = m2;
-
+      // Bool_t is_pion = (// qKurama > 0
+      //                   // &&
+      //                   TMath::Abs(m2-pdg::PionMass()*pdg::PionMass()) < 0.1);
+      // Bool_t is_kaon = (qKurama > 0
+      //                   && TMath::Abs(m2-pdg::KaonMass()*pdg::KaonMass()) < 0.12);
 #if 0
       std::cout << "#D DebugPrint() Event : " << ievent << std::endl
 		<< std::setprecision(3) << std::fixed
@@ -525,14 +538,14 @@ dst::DstRead(Int_t ievent)
 		<< "   m2      : " << m2 << std::endl;
 #endif
 
-      if(event.chisqrKurama[it] < 500.){
+      if(event.chisqrKurama[it] < 200.){
         for(Int_t ip=0; ip<Event::nParticle; ++ip){
           if(USE_M2){
             if(ip == Event::Pion && TMath::Abs(m2-0.0194) > 0.1) continue;
             if(ip == Event::Proton && TMath::Abs(m2-0.88) > 0.2) continue;
           }
-          HF1(30000+tofseg*100+ip+1, event.tofua[tofseg-1]);
-          HF1(30000+tofseg*100+ip+1+Event::nParticle, event.tofda[tofseg-1]);
+          HF1(33000+tofseg*100+ip+1, event.tofua[tofseg-1]);
+          HF1(33000+tofseg*100+ip+1+Event::nParticle, event.tofda[tofseg-1]);
         }
         if(TMath::Abs(event.vtgtKurama[it]) < 0.01){
           HF1(20000+tofseg*100+1, event.dtTof[itof]);
@@ -646,15 +659,19 @@ ConfMan::InitializeHistograms()
   HB2(20001, "Tof TimeDiff U-D",
       NumOfSegTOF, 0., (Double_t)NumOfSegTOF, 500, -25., 25.);
   for(Int_t i=0; i<NumOfSegTOF; ++i){
+    HB1(30000+(i+1)*100+1,
+        Form("TOF ADC-Pedestal %d-U", i+1), 4000, 0., 4000.);
+    HB1(30000+(i+1)*100+2,
+        Form("TOF ADC-Pedestal %d-D", i+1), 4000, 0., 4000.);
     for(Int_t ip=0; ip<Event::nParticle; ++ip){
       HB1(10000+(i+1)*100+ip+1,
           Form("Tof-%d TofTime-%sTime", i+1, name[ip].Data()),
           500, -25., 25.);
-      HB1(30000+(i+1)*100+ip+1,
-          Form("TOF ADC %d-U [%s]", i+1, name[ip].Data()),
+      HB1(33000+(i+1)*100+ip+1,
+          Form("TOF ADC-Signal %d-U [%s]", i+1, name[ip].Data()),
           4000, 0., 4000.);
-      HB1(30000+(i+1)*100+ip+1+Event::nParticle,
-          Form("TOF ADC %d-D [%s]", i+1, name[ip].Data()),
+      HB1(33000+(i+1)*100+ip+1+Event::nParticle,
+          Form("TOF ADC-Signal %d-D [%s]", i+1, name[ip].Data()),
           4000, 0., 4000.);
       HB2(40000+(i+1)*100+ip+1,
           Form("tCalc-Time %% TOF De %d-U [%s]", i+1, name[ip].Data()),

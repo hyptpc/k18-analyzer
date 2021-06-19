@@ -353,3 +353,4 @@ class RunlistManager(metaclass=classimpl.Singleton):
       self.__runlist.append(run)
       self.__keys.append(run['key'])
     os.chdir(self.__work_dir)
+    logger.debug(f'List {len(self.__runlist)} runs')
