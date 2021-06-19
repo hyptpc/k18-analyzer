@@ -128,27 +128,35 @@ struct Event
 
   //Hodoscope
   Int_t    nhBh1;
-  Int_t    csBh1[NumOfSegBH1];
-  Double_t Bh1Seg[NumOfSegBH1];
-  Double_t tBh1[NumOfSegBH1];
-  Double_t dtBh1[NumOfSegBH1];
-  Double_t deBh1[NumOfSegBH1];
-  Double_t btof[NumOfSegBH1];
+  Int_t    csBh1[NumOfSegBH1*MaxDepth];
+  Double_t Bh1Seg[NumOfSegBH1*MaxDepth];
+  Double_t tBh1[NumOfSegBH1*MaxDepth];
+  Double_t dtBh1[NumOfSegBH1*MaxDepth];
+  Double_t deBh1[NumOfSegBH1*MaxDepth];
 
   Int_t    nhBh2;
-  Int_t    csBh2[NumOfSegBH2];
-  Double_t Bh2Seg[NumOfSegBH2];
-  Double_t tBh2[NumOfSegBH2];
-  Double_t t0Bh2[NumOfSegBH2];
-  Double_t dtBh2[NumOfSegBH2];
-  Double_t deBh2[NumOfSegBH2];
+  Int_t    csBh2[NumOfSegBH2*MaxDepth];
+  Double_t Bh2Seg[NumOfSegBH2*MaxDepth];
+  Double_t tBh2[NumOfSegBH2*MaxDepth];
+  Double_t t0Bh2[NumOfSegBH2*MaxDepth];
+  Double_t dtBh2[NumOfSegBH2*MaxDepth];
+  Double_t deBh2[NumOfSegBH2*MaxDepth];
+
+  Double_t Time0Seg;
+  Double_t deTime0;
+  Double_t Time0;
+  Double_t CTime0;
+  Double_t Btof0Seg;
+  Double_t deBtof0;
+  Double_t Btof0;
+  Double_t CBtof0;
 
   Int_t    nhTof;
-  Int_t    csTof[NumOfSegTOF];
-  Double_t TofSeg[NumOfSegTOF];
-  Double_t tTof[NumOfSegTOF];
-  Double_t dtTof[NumOfSegTOF];
-  Double_t deTof[NumOfSegTOF];
+  Int_t    csTof[NumOfSegTOF*MaxDepth];
+  Double_t TofSeg[NumOfSegTOF*MaxDepth];
+  Double_t tTof[NumOfSegTOF*MaxDepth];
+  Double_t dtTof[NumOfSegTOF*MaxDepth];
+  Double_t deTof[NumOfSegTOF*MaxDepth];
 
   Int_t    nhBvh;
   Double_t BvhSeg[NumOfSegBVH];
@@ -240,6 +248,7 @@ struct Event
   Double_t vty[MaxHits];
   Double_t vtz[MaxHits];
   Double_t closeDist[MaxHits];
+  Int_t    inside[MaxHits];
   Double_t theta[MaxHits];
   Double_t MissMass[MaxHits];
   Double_t MissMassCorr[MaxHits];
@@ -276,32 +285,35 @@ struct Src
 
   //Hodoscope
   Int_t    nhBh1;
-  Int_t    csBh1[NumOfSegBH1];
-  Double_t Bh1Seg[NumOfSegBH1];
-  Double_t tBh1[NumOfSegBH1];
-  Double_t dtBh1[NumOfSegBH1];
-  Double_t deBh1[NumOfSegBH1];
-  Double_t btof[NumOfSegBH1];
+  Int_t    csBh1[NumOfSegBH1*MaxDepth];
+  Double_t Bh1Seg[NumOfSegBH1*MaxDepth];
+  Double_t tBh1[NumOfSegBH1*MaxDepth];
+  Double_t dtBh1[NumOfSegBH1*MaxDepth];
+  Double_t deBh1[NumOfSegBH1*MaxDepth];
 
   Int_t    nhBh2;
-  Int_t    csBh2[NumOfSegBH2];
-  Double_t Bh2Seg[NumOfSegBH2];
-  Double_t tBh2[NumOfSegBH2];
-  Double_t t0Bh2[NumOfSegBH2];
-  Double_t dtBh2[NumOfSegBH2];
-  Double_t deBh2[NumOfSegBH2];
+  Int_t    csBh2[NumOfSegBH2*MaxDepth];
+  Double_t Bh2Seg[NumOfSegBH2*MaxDepth];
+  Double_t tBh2[NumOfSegBH2*MaxDepth];
+  Double_t t0Bh2[NumOfSegBH2*MaxDepth];
+  Double_t dtBh2[NumOfSegBH2*MaxDepth];
+  Double_t deBh2[NumOfSegBH2*MaxDepth];
 
   Double_t Time0Seg;
   Double_t deTime0;
   Double_t Time0;
   Double_t CTime0;
+  Double_t Btof0Seg;
+  Double_t deBtof0;
+  Double_t Btof0;
+  Double_t CBtof0;
 
   Int_t    nhTof;
-  Int_t    csTof[NumOfSegTOF];
-  Double_t TofSeg[NumOfSegTOF];
-  Double_t tTof[NumOfSegTOF];
-  Double_t dtTof[NumOfSegTOF];
-  Double_t deTof[NumOfSegTOF];
+  Int_t    csTof[NumOfSegTOF*MaxDepth];
+  Double_t TofSeg[NumOfSegTOF*MaxDepth];
+  Double_t tTof[NumOfSegTOF*MaxDepth];
+  Double_t dtTof[NumOfSegTOF*MaxDepth];
+  Double_t deTof[NumOfSegTOF*MaxDepth];
 
   Int_t    nhBvh;
   Double_t BvhSeg[NumOfSegBVH];
@@ -434,6 +446,14 @@ dst::InitializeEvent()
   event.runnum     = 0;
   event.evnum      = 0;
   event.spill      = 0;
+  event.Time0Seg = qnan;
+  event.deTime0  = qnan;
+  event.Time0    = qnan;
+  event.CTime0   = qnan;
+  event.Btof0Seg = qnan;
+  event.deBtof0  = qnan;
+  event.Btof0    = qnan;
+  event.CBtof0   = qnan;
 
   //Trigger
   for(Int_t it=0; it<NumOfSegTrig; ++it){
@@ -447,30 +467,34 @@ dst::InitializeEvent()
   event.nhTof  = 0;
   event.nhBvh  = 0;
 
-  for(Int_t it=0; it<NumOfSegBH1; it++){
-    event.csBh1[it]  = 0;
-    event.Bh1Seg[it] = -1;
-    event.tBh1[it]   = qnan;
-    event.dtBh1[it]  = qnan;
-    event.deBh1[it]  = qnan;
-    event.btof[it]   = qnan;
+  for(Int_t i=0; i<NumOfSegBH1; ++i){
+    for(Int_t j=0; j<MaxDepth; ++j){
+      event.csBh1[i*MaxDepth+j]  = 0;
+      event.Bh1Seg[i*MaxDepth+j] = -1;
+      event.tBh1[i*MaxDepth+j]   = qnan;
+      event.dtBh1[i*MaxDepth+j]  = qnan;
+      event.deBh1[i*MaxDepth+j]  = qnan;
+    }
   }
-  for(Int_t it=0; it<NumOfSegBH2; it++){
-    event.csBh2[it]  = 0;
-    event.Bh2Seg[it] = -1;
-    event.tBh2[it]   = qnan;
-    event.t0Bh2[it]  = qnan;
-    event.dtBh2[it]  = qnan;
-    event.deBh2[it]  = qnan;
+  for(Int_t i=0; i<NumOfSegBH2; ++i){
+    for(Int_t j=0; j<MaxDepth; ++j){
+      event.csBh2[i*MaxDepth+j]  = 0;
+      event.Bh2Seg[i*MaxDepth+j] = -1;
+      event.tBh2[i*MaxDepth+j]   = qnan;
+      event.t0Bh2[i*MaxDepth+j]  = qnan;
+      event.dtBh2[i*MaxDepth+j]  = qnan;
+      event.deBh2[i*MaxDepth+j]  = qnan;
+    }
   }
-  for(Int_t it=0; it<NumOfSegTOF; it++){
-    event.csTof[it]  = 0;
-    event.TofSeg[it] = -1;
-    event.tTof[it]   = qnan;
-    event.dtTof[it]  = qnan;
-    event.deTof[it]  = qnan;
+  for(Int_t i=0; i<NumOfSegTOF; ++i){
+    for(Int_t j=0; j<MaxDepth; ++j){
+      event.csTof[i*MaxDepth+j]  = 0;
+      event.TofSeg[i*MaxDepth+j] = -1;
+      event.tTof[i*MaxDepth+j]   = qnan;
+      event.dtTof[i*MaxDepth+j]  = qnan;
+      event.deTof[i*MaxDepth+j]  = qnan;
+    }
   }
-
   for(Int_t it=0; it<NumOfSegBVH; it++){
     event.BvhSeg[it] = -1;
   }
@@ -577,6 +601,7 @@ dst::InitializeEvent()
     event.vty[it] = qnan;
     event.vtz[it] = qnan;
     event.closeDist[it] = qnan;
+    event.inside[it] = 0;
     event.theta[it] = qnan;
     event.thetaCM[it] = qnan;
     event.costCM[it] = qnan;
@@ -723,19 +748,15 @@ dst::DstRead(Int_t ievent)
   }
 
   // BH1
-  // Double_t btof = qnan;
   for(Int_t i=0; i<nhBh1; ++i){
     event.csBh1[i]  = src.csBh1[i];
     event.Bh1Seg[i] = src.Bh1Seg[i];
     event.tBh1[i]   = src.tBh1[i];
     event.dtBh1[i]  = src.dtBh1[i];
     event.deBh1[i]  = src.deBh1[i];
-    event.btof[i]   = src.btof[i];
-    // if(i==0) btof = src.btof[i];
   }
 
   // BH2
-  Double_t time0 = src.Time0;
   for(Int_t i=0; i<nhBh2; ++i){
     event.csBh2[i]  = src.csBh2[i];
     event.Bh2Seg[i] = src.Bh2Seg[i];
@@ -744,6 +765,15 @@ dst::DstRead(Int_t ievent)
     event.dtBh2[i]  = src.dtBh2[i];
     event.deBh2[i]  = src.deBh2[i];
   }
+
+  event.Time0Seg = src.Time0Seg;
+  event.deTime0  = src.deTime0;
+  event.Time0 = src.Time0;
+  event.CTime0 = src.CTime0;
+  event.Btof0Seg = src.Btof0Seg;
+  event.deBtof0 = src.deBtof0;
+  event.Btof0 = src.Btof0;
+  event.CBtof0 = src.CBtof0;
 
   // SCH
   for(Int_t i=0; i<nhSch; ++i){
@@ -859,7 +889,7 @@ dst::DstRead(Int_t ievent)
       }
     }
 
-    stof = event.tTof[correct_num] - time0 + StofOffset;
+    stof = event.tTof[correct_num] - event.CTime0 + StofOffset;
     m2 = Kinematics::MassSquare(pCorr, path, stof);
     // m2 = Kinematics::MassSquare(pCorr, path, cstof);
     // if(TMath::IsNaN(btof)){
@@ -1021,9 +1051,9 @@ dst::DstRead(Int_t ievent)
       LorentzVector LvRc       = LvKm+LvC-LvKp;
       LorentzVector LvRcCorr   = LvKm+LvC-LvKpCorr;
       //      LorentzVector LvRcCorrDE = LvKmCorrDE+LvC-LvKpCorrDE;
-      Double_t MisMass       = LvRc.Mag();//-LvC.Mag();
-      Double_t MisMassCorr   = LvRcCorr.Mag();//-LvC.Mag();
-      //      Double_t MisMassCorrDE = LvRcCorrDE.Mag();//-LvC.Mag();
+      Double_t MissMass       = LvRc.Mag();//-LvC.Mag();
+      Double_t MissMassCorr   = LvRcCorr.Mag();//-LvC.Mag();
+      //      Double_t MissMassCorrDE = LvRcCorrDE.Mag();//-LvC.Mag();
 
       //Primary frame
       LorentzVector PrimaryLv = LvKm+LvC;
@@ -1059,18 +1089,29 @@ dst::DstRead(Int_t ievent)
       Double_t sintCM  = std::sqrt(1.-costCM*costCM);
       Double_t KaonMom = TotalMomCM*sintCM/std::sqrt(1.-costLab*costLab);
 
+      Int_t inside = 0;
+      if(true
+         && TMath::Abs(vert.x()-8.9) < 25.
+         && TMath::Abs(vert.y()) < 20.
+         && TMath::Abs(vert.z()+70) < 100
+         && closedist < 100.
+        ){
+        inside = 1;
+      }
+
       if(nkk < MaxHits){
 	event.vtx[nkk]=vert.x();
 	event.vty[nkk]=vert.y();
 	event.vtz[nkk]=vert.z();
 	event.closeDist[nkk] = closedist;
+        event.inside[nkk]  = inside;
 	event.theta[nkk]     = theta;
 	event.thetaCM[nkk]   = TMath::ACos(costCM)*TMath::RadToDeg();
 	event.costCM[nkk]    = costCM;
 
-	event.MissMass[nkk]       = MisMass;
-	event.MissMassCorr[nkk]   = MisMassCorr;
-	//	event.MissMassCorrDE[nkk] = MisMassCorrDE;
+	event.MissMass[nkk]       = MissMass;
+	event.MissMassCorr[nkk]   = MissMassCorr;
+	//	event.MissMassCorrDE[nkk] = MissMassCorrDE;
 	event.MissMassCorrDE[nkk] = 0;
 
 	event.xkp[nkk] = xkp.x();
@@ -1094,20 +1135,46 @@ dst::DstRead(Int_t ievent)
 
       HF1(5001, vert.z());
 
-      HF1(5002, MisMass);
-      HF2(5011, MisMass, us);
-      HF2(5012, MisMass, vs);
-      HF2(5013, MisMass, ub);
-      HF2(5014, MisMass, vb);
+      HF1(5002, MissMass);
+      HF2(5011, MissMass, us);
+      HF2(5012, MissMass, vs);
+      HF2(5013, MissMass, ub);
+      HF2(5014, MissMass, vb);
+
+      // Good event histograms
+      if(event.chisqrK18[ikm] < 20.
+         && event.chisqrKurama[ikp] < 200.
+         && inside == 1){
+        HF1(6001, event.pK18[ikm]);
+        HF1(6002, event.pKurama[ikp]);
+        HF1(6003, event.qKurama[ikp]*event.m2[ikp]);
+        HF2(6004, event.qKurama[ikp]*event.m2[ikp], event.pKurama[ikp]);
+        HF1(6005, MissMassCorr);
+        if(event.pKurama[ikp] < 1.4 && event.qKurama[ikp] > 0){
+          HF1(6101, event.pK18[ikm]);
+          HF1(6102, event.pKurama[ikp]);
+          HF1(6103, event.qKurama[ikp]*event.m2[ikp]);
+          HF2(6104, event.qKurama[ikp]*event.m2[ikp], event.pKurama[ikp]);
+          HF1(6105, MissMassCorr);
+          if(event.m2[ikp] > 0.15
+             && event.m2[ikp] < 0.40
+             // && event.trigflag[20]>0
+            ){
+            HF1(6201, event.pK18[ikm]);
+            HF1(6202, event.pKurama[ikp]);
+            HF1(6203, event.qKurama[ikp]*event.m2[ikp]);
+            HF2(6204, event.qKurama[ikp]*event.m2[ikp], event.pKurama[ikp]);
+            HF1(6205, MissMassCorr);
+          }
+        }
+      }
 
       ///// Matrix
       if(event.chisqrKurama[ikp] < 200
          && event.nhTof == 1
          && event.nhSch == 1
          && event.nKK == 1
-         && TMath::Abs(vert.x()) < 25
-         && TMath::Abs(vert.y()) < 20
-         && TMath::Abs(vert.z()+50) < 100){
+         && inside == 1){
         for(Int_t isch=0; isch<nhSch; ++isch){
           for(Int_t itof=0; itof<nhTof; ++itof){
             HF2(501, event.SchSeg[isch]-1, event.TofSeg[itof]-1);
@@ -1116,8 +1183,8 @@ dst::DstRead(Int_t ievent)
                 HF2(502, event.SchSeg[isch]-1, event.TofSeg[itof]-1);
               }
               if(event.pKurama[ikp] < 1.4
-                 && event.m2[ikp]*5.5 > event.pKurama[ikp]
-                 && event.m2[ikp] < 0.45){
+                 && event.m2[ikp] > 0.15
+                 && event.m2[ikp] < 0.4){
                 HF2(503, event.SchSeg[isch]-1, event.TofSeg[itof]-1);
               }
               if(event.pKurama[ikp] > 1.8
@@ -1133,35 +1200,6 @@ dst::DstRead(Int_t ievent)
   }
 
   HF1(1, 10.);
-
-  // Good event histograms
-  if(event.nKK == 1
-     && event.chisqrKurama[0] < 200.
-     && TMath::Abs(event.vtx[0]-8.9) < 25.
-     && TMath::Abs(event.vty[0]) < 20.
-     && TMath::Abs(event.vtz[0]+70) < 100
-     && event.closeDist[0] < 40.){
-    HF1(6001, event.pK18[0]);
-    HF1(6002, event.pKurama[0]);
-    HF1(6003, event.qKurama[0]*event.m2[0]);
-    HF2(6004, event.qKurama[0]*event.m2[0], event.pKurama[0]);
-    HF1(6005, event.MissMassCorr[0]);
-    if(event.pKurama[0] < 1.4 && event.qKurama[0] > 0){
-      HF1(6101, event.pK18[0]);
-      HF1(6102, event.pKurama[0]);
-      HF1(6103, event.qKurama[0]*event.m2[0]);
-      HF2(6104, event.qKurama[0]*event.m2[0], event.pKurama[0]);
-      HF1(6105, event.MissMassCorr[0]);
-      if(event.m2[0] > 0.15
-         && event.m2[0] < 0.40){
-        HF1(6201, event.pK18[0]);
-        HF1(6202, event.pKurama[0]);
-        HF1(6203, event.qKurama[0]*event.m2[0]);
-        HF2(6204, event.qKurama[0]*event.m2[0], event.pKurama[0]);
-        HF1(6205, event.MissMassCorr[0]);
-      }
-    }
-  }
 
   //Final Hodoscope histograms
   for(Int_t i=0; i<nhBh2; ++i){
@@ -1428,7 +1466,6 @@ ConfMan::InitializeHistograms()
   tree->Branch("tBh1",     event.tBh1,    "tBh1[nhBh1]/D");
   tree->Branch("dtBh1",    event.dtBh1,   "dtBh1[nhBh1]/D");
   tree->Branch("deBh1",    event.deBh1,   "deBh1[nhBh1]/D");
-  tree->Branch("btof",     event.btof,    "btof[nhBh1]/D");
 
   tree->Branch("nhBh2",   &event.nhBh2,   "nhBh2/I");
   tree->Branch("csBh2",    event.csBh2,   "csBh2[nhBh2]/I");
@@ -1437,6 +1474,15 @@ ConfMan::InitializeHistograms()
   tree->Branch("t0Bh2",    event.t0Bh2,   "t0Bh2[nhBh2]/D");
   tree->Branch("dtBh2",    event.dtBh2,   "dtBh2[nhBh2]/D");
   tree->Branch("deBh2",    event.deBh2,   "deBh2[nhBh2]/D");
+
+  tree->Branch("Time0Seg", &event.Time0Seg, "Time0Seg/D");
+  tree->Branch("deTime0", &event.deTime0, "deTime0/D");
+  tree->Branch("Time0", &event.Time0, "Time0/D");
+  tree->Branch("CTime0", &event.CTime0, "CTime0/D");
+  tree->Branch("Btof0Seg", &event.Btof0Seg, "Btof0Seg/D");
+  tree->Branch("deBtof0", &event.deBtof0, "deBtof0/D");
+  tree->Branch("Btof0", &event.Btof0, "Btof0/D");
+  tree->Branch("CBtof0", &event.CBtof0, "CBtof0/D");
 
   tree->Branch("nhTof",   &event.nhTof,   "nhTof/I");
   tree->Branch("csTof",    event.csTof,   "csTof[nhTof]/I");
@@ -1535,6 +1581,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("vty",            event.vty,            "vty[nKK]/D");
   tree->Branch("vtz",            event.vtz,            "vtz[nKK]/D");
   tree->Branch("closeDist",      event.closeDist,      "closeDist[nKK]/D");
+  tree->Branch("inside",         event.inside,         "inside[nKK]/I");
   tree->Branch("theta",          event.theta,          "theta[nKK]/D");
   tree->Branch("MissMass",       event.MissMass,       "MissMass[nKK]/D");
   tree->Branch("MissMassCorr",   event.MissMassCorr,   "MissMassCorr[nKK]/D");
@@ -1568,7 +1615,6 @@ ConfMan::InitializeHistograms()
   TTreeCont[kHodoscope]->SetBranchStatus("tBh1",     1);
   TTreeCont[kHodoscope]->SetBranchStatus("dtBh1",    1);
   TTreeCont[kHodoscope]->SetBranchStatus("deBh1",    1);
-  TTreeCont[kHodoscope]->SetBranchStatus("btof",     1);
   TTreeCont[kHodoscope]->SetBranchStatus("nhBh2",    1);
   TTreeCont[kHodoscope]->SetBranchStatus("csBh2",    1);
   TTreeCont[kHodoscope]->SetBranchStatus("Bh2Seg",   1);
@@ -1580,6 +1626,10 @@ ConfMan::InitializeHistograms()
   TTreeCont[kHodoscope]->SetBranchStatus("CTime0",   1);
   TTreeCont[kHodoscope]->SetBranchStatus("Time0Seg", 1);
   TTreeCont[kHodoscope]->SetBranchStatus("deTime0",  1);
+  TTreeCont[kHodoscope]->SetBranchStatus("Btof0Seg", 1);
+  TTreeCont[kHodoscope]->SetBranchStatus("deBtof0",  1);
+  TTreeCont[kHodoscope]->SetBranchStatus("Btof0",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("CBtof0",   1);
   TTreeCont[kHodoscope]->SetBranchStatus("nhTof",    1);
   TTreeCont[kHodoscope]->SetBranchStatus("csTof",    1);
   TTreeCont[kHodoscope]->SetBranchStatus("TofSeg",   1);
@@ -1599,7 +1649,6 @@ ConfMan::InitializeHistograms()
   TTreeCont[kHodoscope]->SetBranchAddress("tBh1",      src.tBh1);
   TTreeCont[kHodoscope]->SetBranchAddress("dtBh1",     src.dtBh1);
   TTreeCont[kHodoscope]->SetBranchAddress("deBh1",     src.deBh1);
-  TTreeCont[kHodoscope]->SetBranchAddress("btof",      src.btof);
   TTreeCont[kHodoscope]->SetBranchAddress("nhBh2",    &src.nhBh2);
   TTreeCont[kHodoscope]->SetBranchAddress("csBh2",     src.csBh2);
   TTreeCont[kHodoscope]->SetBranchAddress("Bh2Seg",    src.Bh2Seg);
@@ -1611,6 +1660,10 @@ ConfMan::InitializeHistograms()
   TTreeCont[kHodoscope]->SetBranchAddress("CTime0",   &src.CTime0);
   TTreeCont[kHodoscope]->SetBranchAddress("Time0Seg", &src.Time0Seg);
   TTreeCont[kHodoscope]->SetBranchAddress("deTime0",  &src.deTime0);
+  TTreeCont[kHodoscope]->SetBranchAddress("Btof0Seg", &src.Btof0Seg);
+  TTreeCont[kHodoscope]->SetBranchAddress("deBtof0",  &src.deBtof0);
+  TTreeCont[kHodoscope]->SetBranchAddress("Btof0",    &src.Btof0);
+  TTreeCont[kHodoscope]->SetBranchAddress("CBtof0",   &src.CBtof0);
   TTreeCont[kHodoscope]->SetBranchAddress("nhTof",    &src.nhTof);
   TTreeCont[kHodoscope]->SetBranchAddress("csTof",     src.csTof);
   TTreeCont[kHodoscope]->SetBranchAddress("TofSeg",    src.TofSeg);
