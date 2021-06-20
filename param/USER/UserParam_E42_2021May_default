@@ -133,8 +133,8 @@ TimeBucketTPC		25 155
 #DriftVelocityTPC	0.05
 
 ### TPC Cluster Y cut
-ClusterYCut 3
-#ClusterYCut 15
+#ClusterYCut 3
+ClusterYCut 10
 
 ### TPC Hough Window cut
 HoughWindowCut 10

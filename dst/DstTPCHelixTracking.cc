@@ -114,6 +114,13 @@ struct Event
   std::vector<Double_t> dEdx2;
   std::vector<Double_t> dEdx_20;
   std::vector<Double_t> dEdx_30;
+  std::vector<Double_t> dEdx_geo;
+  std::vector<Double_t> dEdx_geo_20;
+  std::vector<Double_t> dEdx_geo_30;
+  std::vector<Double_t> dEdx_harm;
+  std::vector<Double_t> dEdx_harm_20;
+  std::vector<Double_t> dEdx_harm_30;
+
   std::vector<Double_t> dE_clmulti;
   std::vector<Double_t> dEdx_clmulti;
   std::vector<Double_t> dEdx_clmulti_20;
@@ -168,6 +175,7 @@ struct Event
 
 
   std::vector<std::vector<Double_t>> hitlayer;
+  std::vector<std::vector<Double_t>> hitmrow;
   std::vector<std::vector<Double_t>> hitpos_x;
   std::vector<std::vector<Double_t>> hitpos_y;
   std::vector<std::vector<Double_t>> hitpos_z;
@@ -225,6 +233,12 @@ struct Event
     dEdx2.clear();
     dEdx_20.clear();
     dEdx_30.clear();
+    dEdx_geo.clear();
+    dEdx_geo_20.clear();
+    dEdx_geo_30.clear();
+    dEdx_harm.clear();
+    dEdx_harm_20.clear();
+    dEdx_harm_30.clear();
     dE_clmulti.clear();
     dEdx_clmulti.clear();
     dEdx_clmulti_20.clear();
@@ -276,6 +290,7 @@ struct Event
     Mom_Ksz.clear();
 
     hitlayer.clear();
+    hitmrow.clear();
     hitpos_x.clear();
     hitpos_y.clear();
     hitpos_z.clear();
@@ -528,6 +543,12 @@ dst::DstRead( int ievent )
   event.dEdx2.resize( ntTpc );
   event.dEdx_20.resize( ntTpc );
   event.dEdx_30.resize( ntTpc );
+  event.dEdx_geo.resize( ntTpc );
+  event.dEdx_geo_20.resize( ntTpc );
+  event.dEdx_geo_30.resize( ntTpc );
+  event.dEdx_harm.resize( ntTpc );
+  event.dEdx_harm_20.resize( ntTpc );
+  event.dEdx_harm_30.resize( ntTpc );
   event.dE_clmulti.resize( ntTpc );
   event.dEdx_clmulti.resize( ntTpc );
   event.dEdx_clmulti_20.resize( ntTpc );
@@ -553,6 +574,7 @@ dst::DstRead( int ievent )
   event.chisqr_flag.resize( ntTpc );
 
   event.hitlayer.resize( ntTpc );
+  event.hitmrow.resize( ntTpc );
   event.hitpos_x.resize( ntTpc );
   event.hitpos_y.resize( ntTpc );
   event.hitpos_z.resize( ntTpc );
@@ -593,6 +615,7 @@ dst::DstRead( int ievent )
     event.mom0[it] = Mom0.Mag();;
 
     event.hitlayer[it].resize( nh );
+    event.hitmrow[it].resize( nh );
     event.hitpos_x[it].resize( nh );
     event.hitpos_y[it].resize( nh );
     event.hitpos_z[it].resize( nh );
@@ -660,28 +683,11 @@ dst::DstRead( int ievent )
     double de=0., path_dEdx=0.;
     double de_clmulti=0., path_clmulti_dEdx=0.;
     double path_dEdx_cor=0.;
-    double dedx2=0., dedx2_cor=0.;
     
-    std::vector<Double_t> de_20; 
-    std::vector<Double_t> de_30; 
-    std::vector<Double_t> de_cor_20; 
-    std::vector<Double_t> de_cor_30; 
-    int n_20=(int)(nh*0.8);
-    int n_30=(int)(nh*0.7);
-    de_20.resize(n_20);
-    de_30.resize(n_30);
-    de_cor_20.resize(n_20);
-    de_cor_30.resize(n_30);
+    std::vector<Double_t> dEdx_vect; 
+    std::vector<Double_t> dEdx_cor_vect; 
+    std::vector<Double_t> dEdx_clmulti_vect; 
 
-
-    std::vector<Double_t> de_clmulti_20; 
-    std::vector<Double_t> de_clmulti_30; 
-    int n_clmulti_20=(int)(nh_clmulti*0.8);
-    int n_clmulti_30=(int)(nh_clmulti*0.7);
-    if(n_clmulti_20>1)
-      de_clmulti_20.resize(n_clmulti_20);
-    if(n_clmulti_30>1)
-      de_clmulti_30.resize(n_clmulti_30);
 
     int ih_clmulti=0; 
     for( int ih=0; ih<nh; ++ih ){
@@ -716,63 +722,15 @@ dst::DstRead( int ievent )
       path_dEdx += path_hit;
       path_dEdx_cor += path_hit_cor;
      
-      dedx2 += de_hit/path_hit;
-      dedx2_cor += de_hit/path_hit_cor;
-
-      if(ih<n_20){
-	de_20[ih] = de_hit/path_hit;	
-	de_cor_20[ih] = de_hit/path_hit_cor;	
-      }
-      else{
-	if(de_hit/path_hit<TMath::MaxElement(de_20.size(),de_20.data())){
-	  int imax = TMath::LocMax(de_20.size(),de_20.data());
-	  de_20[imax] = de_hit/path_hit;
-	}
-	if(de_hit/path_hit_cor<TMath::MaxElement(de_cor_20.size(),de_cor_20.data())){
-	  int imax = TMath::LocMax(de_cor_20.size(),de_cor_20.data());
-	  de_cor_20[imax] = de_hit/path_hit_cor;
-	}
-      }
-      if(ih<n_30){
-	de_30[ih] = de_hit/path_hit;
-	de_cor_30[ih] = de_hit/path_hit_cor;
-      }
-      else{
-	if(de_hit/path_hit<TMath::MaxElement(de_30.size(),de_30.data())){
-	  int imax = TMath::LocMax(de_30.size(),de_30.data());
-	  de_30[imax] = de_hit/path_hit;
-	}
-	if(de_hit/path_hit_cor<TMath::MaxElement(de_cor_30.size(),de_cor_30.data())){
-	  int imax = TMath::LocMax(de_cor_30.size(),de_cor_30.data());
-	  de_cor_30[imax] = de_hit/path_hit_cor;
-	}
-      }
+      double dEdx = de_hit/path_hit;
+      double dEdx_cor = de_hit/path_hit_cor;
+      dEdx_vect.push_back(dEdx);
+      dEdx_cor_vect.push_back(dEdx_cor);
       
       if(clsize_hit>1){
        	de_clmulti += de_hit;
 	path_clmulti_dEdx += path_hit;	
-	if(n_clmulti_20>1){
-	  if(ih_clmulti<n_clmulti_20){
-       	  de_clmulti_20[ih_clmulti] = de_hit/path_hit;	
-	  }
-	  else{
-	    if(de_hit/path_hit<TMath::MaxElement(de_clmulti_20.size(),de_clmulti_20.data())){
-	      int imax = TMath::LocMax(de_clmulti_20.size(),de_clmulti_20.data());
-	      de_clmulti_20[imax] = de_hit/path_hit;
-	    }
-	  }
-	}
-	if(n_clmulti_30>1){
-	  if(ih_clmulti<n_clmulti_30){
-	    de_clmulti_30[ih_clmulti] = de_hit/path_hit;
-	  }
-	  else{
-	    if(de_hit/path_hit<TMath::MaxElement(de_clmulti_30.size(),de_clmulti_30.data())){
-       	    int imax = TMath::LocMax(de_clmulti_30.size(),de_clmulti_30.data());
-	    de_clmulti_30[imax] = de_hit/path_hit;
-	    }
-	  }
-	}
+	dEdx_clmulti_vect.push_back(de_hit/path_hit);
 	++ih_clmulti;
       }
 
@@ -786,7 +744,20 @@ dst::DstRead( int ievent )
       if(ih==nh-1)
 	max_layer_t = t_cal;
       Double_t residual = hit->GetResidual();
+      
+      // for(int ii=0; ii<ih; ++ii){
+      // 	if((int)event.hitlayer[it][ii]==layer){
+      // 	  std::cout<<"layer="<<layer<<std::endl;
+      // 	  std::cout<<"mrow1="<<event.hitmrow[it][ii]<<
+      // 	    ", "<<mrow<<std::endl;
+      // 	  std::cout<<"hitpos1=("<<event.hitpos_x[it][ii]<<", "
+      // 		   <<event.hitpos_y[it][ii]<<", "
+      // 		   <<event.hitpos_z[it][ii]<<"), hitpos2="
+      // 		   <<hitpos<<std::endl;
+      // 	}
+      // }
       event.hitlayer[it][ih] = (double)layer;
+      event.hitmrow[it][ih] = mrow;
       event.hitpos_x[it][ih] = hitpos.x();
       event.hitpos_y[it][ih] = hitpos.y();
       event.hitpos_z[it][ih] = hitpos.z();
@@ -813,55 +784,77 @@ dst::DstRead( int ievent )
     event.dEdx[it] = de/path_dEdx;
     event.dE_cor[it] = 0.;
     event.dEdx_cor[it] = de/path_dEdx_cor;
-    event.dEdx2[it] = dedx2/(double)nh;
-    event.dEdx2_cor[it] = dedx2_cor/(double)nh;
-
+    
+    std::sort(dEdx_vect.begin(), dEdx_vect.end()); 
+    std::sort(dEdx_cor_vect.begin(), dEdx_cor_vect.end()); 
+    std::sort(dEdx_clmulti_vect.begin(), dEdx_clmulti_vect.end()); 
+    
+    event.dEdx2[it] = std::accumulate(dEdx_vect.begin(),dEdx_vect.end(),0)/(double)dEdx_vect.size();
+    event.dEdx2_cor[it] = std::accumulate(dEdx_cor_vect.begin(),dEdx_cor_vect.end(),0)/(double)dEdx_cor_vect.size();
     event.dE_clmulti[it] = de_clmulti;
     event.dEdx_clmulti[it] = de_clmulti/path_clmulti_dEdx;
 
+    event.dEdx_geo[it]=1.;
+    event.dEdx_geo_20[it]=1.;
+    event.dEdx_geo_30[it]=1.;
+    event.dEdx_harm[it]=0.;
+    event.dEdx_harm_20[it]=0.;
+    event.dEdx_harm_30[it]=0.;
+
     event.dEdx_20[it]=0.;
-    for( int ih=0; ih<n_20; ++ih ){
-      event.dEdx_20[it]+=de_20[ih];
+    event.dEdx_cor_20[it]=0.;
+    event.dEdx_30[it]=0.;
+    event.dEdx_cor_30[it]=0.;
+    
+    int n_20 = (int)(dEdx_vect.size()*0.8);
+    int n_30 = (int)(dEdx_vect.size()*0.7);
+    for( int ih=0; ih<dEdx_vect.size(); ++ih ){
+      event.dEdx_geo[it] *= dEdx_vect[it];
+      event.dEdx_harm[it] += 1./dEdx_vect[it];
+      if(ih<n_20){
+	event.dEdx_20[it]+=dEdx_vect[ih];
+	event.dEdx_cor_20[it] +=dEdx_cor_vect[ih];
+	event.dEdx_geo_20[it] *=dEdx_vect[ih];
+	event.dEdx_harm_20[it] += 1./dEdx_vect[it];
+      }
+      if(ih<n_30){
+	event.dEdx_30[it]+=dEdx_vect[ih];
+	event.dEdx_cor_30[it]+=dEdx_cor_vect[ih];
+	event.dEdx_geo_30[it] *=dEdx_vect[ih];
+	event.dEdx_harm_30[it] += 1./dEdx_vect[it];
+      }
     }
     event.dEdx_20[it]/=(double)n_20;
-
-    event.dEdx_30[it]=0.;
-    for( int ih=0; ih<n_30; ++ih ){
-      event.dEdx_30[it]+=de_30[ih];
-    }
-    event.dEdx_30[it]/=(double)n_30;
-
-    event.dEdx_cor_20[it]=0.;
-    for( int ih=0; ih<n_20; ++ih ){
-      event.dEdx_cor_20[it]+=de_cor_20[ih];
-    }
     event.dEdx_cor_20[it]/=(double)n_20;
-
-    event.dEdx_cor_30[it]=0.;
-    for( int ih=0; ih<n_30; ++ih ){
-      event.dEdx_cor_30[it]+=de_cor_30[ih];
-    }
-    event.dEdx_cor_30[it]/=(double)n_30;
-
+    event.dEdx_30[it]/=(double)n_30;
+    event.dEdx_cor_30[it]/=(double)n_30;    
+  
+    event.dEdx_geo[it] = pow(event.dEdx_geo[it], 1./(double)nh);
+    event.dEdx_geo_20[it] = pow(event.dEdx_geo_20[it], 1./(double)n_20);
+    event.dEdx_geo_30[it] = pow(event.dEdx_geo_30[it], 1./(double)n_30);
+    event.dEdx_harm[it] = ((double)nh)/event.dEdx_harm[it];
+    event.dEdx_harm_20[it] = ((double)n_20)/event.dEdx_harm_20[it];
+    event.dEdx_harm_30[it] = ((double)n_30)/event.dEdx_harm_30[it];
+ 
     // std::cout<<"dEdx="<<event.dEdx[it]<<", "
     // 	     <<"dEdx2="<<event.dEdx2[it]<<", "
     // 	     <<"dEdx_cor="<<event.dEdx_cor[it]<<", "
     // 	     <<"dEdx_20="<<event.dEdx_20[it]<<", "
     // 	     <<"dEdx_cor_20="<<event.dEdx_cor_20[it]<<std::endl;
 
-
     event.dEdx_clmulti_20[it]=0.;
-    if(n_clmulti_20>1){
-      for( int ih=0; ih<n_clmulti_20; ++ih ){
-     	event.dEdx_clmulti_20[it]+=de_clmulti_20[ih];
+    double n_clmulti_20 = dEdx_clmulti_vect.size()*0.8;
+    double n_clmulti_30 = dEdx_clmulti_vect.size()*0.7;
+    if(n_clmulti_20>1.){
+      for( int ih=0; ih<(int)n_clmulti_20; ++ih ){
+     	event.dEdx_clmulti_20[it]+=dEdx_clmulti_vect[ih];
       }
       event.dEdx_clmulti_20[it]/=(double)n_clmulti_20;
     }
-
     event.dEdx_clmulti_30[it]=0.;
-    if(n_clmulti_30>1){
-      for( int ih=0; ih<n_clmulti_30; ++ih ){
-     	event.dEdx_clmulti_30[it]+=de_clmulti_30[ih];
+    if(n_clmulti_30>1.){
+      for( int ih=0; ih<(int)n_clmulti_30; ++ih ){
+     	event.dEdx_clmulti_30[it]+=dEdx_clmulti_vect[ih];
       }
       event.dEdx_clmulti_30[it]/=(double)n_clmulti_30;
     }
@@ -1031,6 +1024,14 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dEdx2_cor", &event.dEdx2_cor );
   tree->Branch( "dEdx_20", &event.dEdx_20 );
   tree->Branch( "dEdx_30", &event.dEdx_30 );
+
+  tree->Branch( "dEdx_geo", &event.dEdx_geo );
+  tree->Branch( "dEdx_geo_20", &event.dEdx_geo_20 );
+  tree->Branch( "dEdx_geo_30", &event.dEdx_geo_30 );
+  tree->Branch( "dEdx_harm", &event.dEdx_harm );
+  tree->Branch( "dEdx_harm_20", &event.dEdx_harm_20 );
+  tree->Branch( "dEdx_harm_30", &event.dEdx_harm_30 );
+
   tree->Branch( "dE_clmulti", &event.dE_clmulti );
   tree->Branch( "dEdx_clmulti", &event.dEdx_clmulti );
   tree->Branch( "dEdx_clmulti_20", &event.dEdx_clmulti_20 );
@@ -1072,6 +1073,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "Mom_Ksz", &event.Mom_Ksz );
 
   tree->Branch( "hitlayer", &event.hitlayer );
+  tree->Branch( "hitmrow", &event.hitmrow );
   tree->Branch( "hitpos_x", &event.hitpos_x );
   tree->Branch( "hitpos_y", &event.hitpos_y );
   tree->Branch( "hitpos_z", &event.hitpos_z );
