@@ -789,7 +789,8 @@ UserEventDisplay::ProcessingNormal()
     gEvDisp.DrawMissingMomentum(MissMom, vertex);
     if(TMath::Abs(vertex.z()+70) < 100
        && through_target
-       // && TMath::Abs(m2-0.25)<0.1
+       && m2 > 0.15
+       && m2 < 0.40
        && pkp.z() > 0){
       // gEvDisp.GetCommand();
       is_good = true;

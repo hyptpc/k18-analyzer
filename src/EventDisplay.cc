@@ -265,6 +265,11 @@ EventDisplay::Initialize()
   gStyle->SetStatH(0.040);
   gStyle->SetStatX(0.900);
   gStyle->SetStatY(0.900);
+  Int_t myfont = 42;
+  gStyle->SetTextFont(myfont);
+  gStyle->SetLabelFont(myfont, "xyz");
+  gStyle->SetTitleFont(myfont, "xyz");
+
   gSystem->MakeDirectory("fig/evdisp");
 
   m_theApp = new TApplication("App", 0, 0);
@@ -327,7 +332,7 @@ EventDisplay::Initialize()
     const Double_t MinZ = -400.;
     const Double_t MaxZ =  400.;
     m_tpc_adc2d = new TH2Poly("h_tpc_adc2d", "TPC ADC;Z;X", MinZ, MaxZ, MinX, MaxX);
-    m_tpc_tdc2d = new TH2Poly("h_tpc_tdc2d", "TPC TDC;Z;X;tb#", MinZ, MaxZ, MinX, MaxX);
+    m_tpc_tdc2d = new TH2Poly("h_tpc_tdc2d", "HypTPC Event Display;Z;X;tb#", MinZ, MaxZ, MinX, MaxX);
     Double_t X[5];
     Double_t Y[5];
     for (Int_t l=0; l<NumOfLayersTPC; ++l) {
