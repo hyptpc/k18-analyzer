@@ -185,6 +185,8 @@ private:
   std::vector<TNode*>        m_SCHseg_node;
   TNode                     *m_TOFwall_node;
   std::vector<TNode*>        m_TOFseg_node;
+  TNode                     *m_WCwall_node;
+  std::vector<TNode*>        m_WCseg_node;
   std::vector<TPolyLine3D*>  m_BcOutTrack;
   // TPolyMarker*               m_BcOutTrackShs;
   TF1*                       m_BcOutTrackShs;
@@ -231,6 +233,7 @@ public:
   Bool_t ConstructFBH();
   Bool_t ConstructSCH();
   Bool_t ConstructTOF();
+  Bool_t ConstructWC();
   void DrawInitTrack(Int_t nStep, ThreeVector *StepPoint);
   void DrawInitTrack();
   void DrawHitWire(Int_t lid, Int_t hit_wire,

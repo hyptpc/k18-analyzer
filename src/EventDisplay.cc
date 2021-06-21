@@ -68,6 +68,7 @@
 #define SdcOut     1
 #define SCH        1
 #define TOF        1
+#define WC         1
 #define Vertex     0
 #define TPC        1
 #define Hist       0
@@ -82,6 +83,7 @@ const Int_t& IdBH1 = gGeom.DetectorId("BH1");
 const Int_t& IdBH2 = gGeom.DetectorId("BH2");
 const Int_t& IdSCH = gGeom.DetectorId("SCH");
 const Int_t& IdTOF = gGeom.DetectorId("TOF");
+const Int_t& IdWC = gGeom.DetectorId("WC");
 const Int_t& IdTarget = gGeom.DetectorId("Target");
 const Double_t& zTarget = gGeom.LocalZ("Target");
 const Double_t& zHS = gGeom.LocalZ("HS");
@@ -189,6 +191,7 @@ EventDisplay::EventDisplay()
     m_BH2wall_node(),
     m_SCHwall_node(),
     m_TOFwall_node(),
+    m_WCwall_node(),
     m_BcOutTrack(),
     m_BcOutTrackShs(),
     m_SdcInTrack(),
@@ -308,6 +311,10 @@ EventDisplay::Initialize()
 
 #if TOF
   ConstructTOF();
+#endif
+
+#if WC
+  ConstructWC();
 #endif
 
 #if TPC
@@ -1912,6 +1919,62 @@ EventDisplay::ConstructTOF()
 }
 
 //_____________________________________________________________________________
+Bool_t
+EventDisplay::ConstructWC()
+{
+  const Int_t lid = gGeom.GetDetectorId("WC");
+
+  Double_t rotMatWC[9] = {};
+  Double_t WCwallX =  255.0/2.0*NumOfSegWC; // X
+  Double_t WCwallY =  205.0/2.0*2.0; // Z
+  Double_t WCwallZ = 1840.0/2.0; // Y
+
+  Double_t WCSegX =  255.0/2.0; // X
+  Double_t WCSegY =  205.0/2.0; // Z
+  Double_t WCSegZ = 1840.0/2.0; // Y
+
+  Double_t overlap = 255.0/2.0;
+
+  CalcRotMatrix(gGeom.GetTiltAngle(lid),
+                gGeom.GetRotAngle1(lid),
+                gGeom.GetRotAngle2(lid),
+                rotMatWC);
+
+  new TRotMatrix("rotWC", "rotWC", rotMatWC);
+  ThreeVector  WCwallPos = gGeom.GetGlobalPosition(lid);
+  // Double_t offset = gGeom.CalcWirePosition(lid, (Double_t)NumOfSegWC/2.-0.5);
+  new TBRIK("WCwall_brik", "WCwall_brik", "void",
+            WCwallX, WCwallY, WCwallZ);
+  m_WCwall_node = new TNode("WCwall_node", "WCwall_node", "WCwall_brik",
+                             WCwallPos.x(),// + offset,
+                             WCwallPos.y(),
+                             WCwallPos.z(),
+                             "rotWC", "void");
+
+  m_WCwall_node->SetVisibility(0);
+  m_WCwall_node->cd();
+
+  new TBRIK("WCseg_brik", "WCseg_brik", "void",
+            WCSegX, WCSegY, WCSegZ);
+  for(Int_t i=0; i<NumOfSegWC; i++){
+    ThreeVector wcSegLocalPos((-NumOfSegWC/2.+i)*(WCSegX*2.-overlap)+255./4.,
+                               (-(i%2)*2+1)*WCSegY-(i%2)*2+1,
+                               0.);
+    std::cout << i << " " << wcSegLocalPos << std::endl;
+    m_WCseg_node.push_back(new TNode(Form("WCseg_node_%d", i),
+                                      Form("WCseg_node_%d", i),
+                                      "WCseg_brik",
+                                      wcSegLocalPos.x(),
+                                      -wcSegLocalPos.y(),
+                                      wcSegLocalPos.z()));
+  }
+
+  m_node->cd();
+  ConstructionDone(__func__);
+  return true;
+}
+
+//_____________________________________________________________________________
 void
 EventDisplay::DrawInitTrack()
 {
@@ -2053,6 +2116,8 @@ EventDisplay::DrawHitHodoscope(Int_t lid, Int_t seg, Int_t Tu, Int_t Td)
     node_name = Form("SCHseg_node_%d", seg);
   }else if(lid == IdTOF){
     node_name = Form("TOFseg_node_%d", seg);
+  }else if(lid == IdWC){
+    node_name = Form("WCseg_node_%d", seg);
   }else{
     throw Exception(FUNC_NAME + Form(" no such plane : %d", lid));
   }
@@ -2066,9 +2131,11 @@ EventDisplay::DrawHitHodoscope(Int_t lid, Int_t seg, Int_t Tu, Int_t Td)
   node->SetVisibility(1);
 
   if(Tu>0 && Td>0){
+    node->SetLineWidth(2);
     node->SetLineColor(kBlue);
   }
   else {
+    node->SetLineWidth(2);
     node->SetLineColor(kGreen);
   }
 
@@ -2325,8 +2392,8 @@ EventDisplay::DrawSdcOutLocalTrack(DCLocalTrack *tp)
 {
 #if SdcOut
   Double_t x0 = tp->GetX0(), y0 = tp->GetY0();
-  Double_t zSdcOut = gGeom.GetLocalZ("TOF-DX");
-  // Double_t zSdcOut = gGeom.GetLocalZ("RKINIT");
+  // Double_t zSdcOut = gGeom.GetLocalZ("TOF-DX");
+  Double_t zSdcOut = gGeom.GetLocalZ("RKINIT");
   Double_t x1 = tp->GetX(zSdcOut), y1 = tp->GetY(zSdcOut);
 
   ThreeVector gPos0(x0, y0, 0.);
@@ -2564,6 +2631,7 @@ void
 EventDisplay::ResetVisibility(TNode *& node, Color_t c)
 {
   if(!node) return;
+  node->SetLineWidth(1);
   if(c==kWhite)
     node->SetVisibility(kFALSE);
   else
@@ -2617,6 +2685,7 @@ EventDisplay::ResetVisibility()
   ResetVisibility(m_BH2seg_node, kBlack);
   ResetVisibility(m_SCHseg_node, kBlack);
   ResetVisibility(m_TOFseg_node, kBlack);
+  ResetVisibility(m_WCseg_node, kBlack);
   ResetVisibility(m_target_node, kBlack);
 }
 

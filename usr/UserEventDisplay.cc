@@ -112,6 +112,8 @@ UserEventDisplay::ProcessingNormal()
   static const auto MaxTdcTOF  = gUser.GetParameter("TdcTOF", 1);
   static const auto MinTdcHTOF = gUser.GetParameter("TdcHTOF", 0);
   static const auto MaxTdcHTOF = gUser.GetParameter("TdcHTOF", 1);
+  static const auto MinTdcWC = gUser.GetParameter("TdcWC", 0);
+  static const auto MaxTdcWC = gUser.GetParameter("TdcWC", 1);
 
   // static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
   // static const auto MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
@@ -123,6 +125,7 @@ UserEventDisplay::ProcessingNormal()
   // static const Int_t IdBH2 = gGeom.GetDetectorId("BH2");
   static const Int_t IdSCH = gGeom.GetDetectorId("SCH");
   static const Int_t IdTOF = gGeom.GetDetectorId("TOF");
+  static const Int_t IdWC = gGeom.GetDetectorId("WC");
 
   static TString evinfo;
   evinfo = Form("Run# %5d%4sEvent# %6d",
@@ -214,7 +217,9 @@ UserEventDisplay::ProcessingNormal()
   //___ BH1HodoCluster
   hodoAna->DecodeBH1Hits(rawData);
   const auto Btof0Cl = hodoAna->GetBtof0BH1Cluster(ctime0);
-  Double_t btof = Btof0Cl->CMeanTime() - ctime0;
+  Double_t btof = (Btof0Cl)
+    ? Btof0Cl->CMeanTime() - ctime0
+    : TMath::QuietNaN();
 
   //________________________________________________________
   //___ TOFRawHit
@@ -269,6 +274,25 @@ UserEventDisplay::ProcessingNormal()
       }
     }
     if(is_hit) gEvDisp.DrawHitHodoscope(IdSCH, seg);
+  }
+
+  //________________________________________________________
+  //___ WCRawHit
+  std::vector<Int_t> WCSegCont;
+  for(const auto& hit: rawData->GetWCSUMRawHC()){
+    Int_t seg = hit->SegmentId();
+    Bool_t is_hit = false;
+    for(Int_t j=0, m=hit->GetSizeTdcUp(); j<m; ++j){
+      Int_t Tu = hit->GetTdcUp(j);
+      if(MinTdcWC < Tu && Tu < MaxTdcWC){
+        is_hit = true;
+      }
+    }
+    if(is_hit){
+      gEvDisp.DrawHitHodoscope(IdWC, seg, is_hit, is_hit);
+      hddaq::cout << "[Info] WcSeg = " << seg << std::endl;
+      WCSegCont.push_back(seg);
+    }
   }
 
 #if 0
@@ -710,6 +734,11 @@ UserEventDisplay::ProcessingNormal()
     buf += Form(" %d", seg);
   }
   gEvDisp.DrawText(0.040, 0.800, buf);
+  buf = "WCSeg  ";
+  for(const auto& seg: WCSegCont){
+    buf += Form(" %d", seg);
+  }
+  gEvDisp.DrawText(0.040, 0.760, buf);
   buf = "BcOut"; gEvDisp.DrawText(0.040, 0.280, buf);
   buf= "#chi^{2} = ";
   for(Int_t i=0; i<ntBcOut; ++i){
