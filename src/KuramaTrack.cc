@@ -260,7 +260,7 @@ KuramaTrack::DoFit()
 
     if(!GuessNextParameters(m_HitPointCont, iniCord,
                             estDChisqr, lambdaCri, dmp)){
-      hddaq::cerr << "#W " << FUNC_NAME << " "
+      hddaq::cout << FUNC_NAME << " "
 		  << "cannot guess next paramters" << std::endl;
       m_status = kFailedGuess;
       return false;

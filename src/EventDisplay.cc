@@ -110,11 +110,12 @@ const DCTdcCalibMan& gTdc = DCTdcCalibMan::GetInstance();
 //_____________________________________________________________________________
 EventDisplay::EventDisplay()
   : m_is_ready(false),
+    m_is_save_mode(),
     m_theApp(),
     m_geometry(),
     m_node(),
     m_canvas(),
-    m_canvas_tpc(),
+    // m_canvas_tpc(),
     m_canvas_vertex(),
     m_canvas_hist(),
     m_canvas_hist2(),
@@ -257,6 +258,12 @@ EventDisplay::Initialize()
     return false;
   }
 
+  gStyle->SetOptStat(0);
+  gStyle->SetStatH(0.040);
+  gStyle->SetStatX(0.900);
+  gStyle->SetStatY(0.900);
+  gSystem->MakeDirectory("fig/evdisp");
+
   m_theApp = new TApplication("App", 0, 0);
 
 #if ROOT_VERSION_CODE > ROOT_VERSION(6,4,0)
@@ -264,7 +271,7 @@ EventDisplay::Initialize()
 #endif
   gStyle->SetNumberContours(255);
 
-  m_geometry = new TGeometry("evdisp","K1.8 Event Display");
+  m_geometry = new TGeometry("evdisp", "K1.8 Event Display");
 
   ThreeVector worldSize(1000., 1000., 1000.); /*mm*/
   new TBRIK("world", "world", "void",
@@ -313,7 +320,7 @@ EventDisplay::Initialize()
     const Double_t MinZ = -400.;
     const Double_t MaxZ =  400.;
     m_tpc_adc2d = new TH2Poly("h_tpc_adc2d", "TPC ADC;Z;X", MinZ, MaxZ, MinX, MaxX);
-    m_tpc_tdc2d = new TH2Poly("h_tpc_tdc2d", "TPC TDC;Z;X", MinZ, MaxZ, MinX, MaxX);
+    m_tpc_tdc2d = new TH2Poly("h_tpc_tdc2d", "TPC TDC;Z;X;tb#", MinZ, MaxZ, MinX, MaxX);
     Double_t X[5];
     Double_t Y[5];
     for (Int_t l=0; l<NumOfLayersTPC; ++l) {
@@ -340,10 +347,8 @@ EventDisplay::Initialize()
         m_tpc_tdc2d->AddBin(5, X, Y);
       }
     }
-    m_tpc_adc2d->SetStats(0);
-    m_tpc_tdc2d->SetStats(0);
-    m_tpc_adc2d->SetMaximum(4000);
-    m_tpc_tdc2d->SetMaximum(200);
+    m_tpc_adc2d->SetMaximum(0x1000);
+    m_tpc_tdc2d->SetMaximum(NumOfTimeBucket);
 
     m_htof_2d = new TH2Poly("h_htof_2d", "HTOF;Z;X", MinZ, MaxZ, MinX, MaxX);
     {
@@ -378,30 +383,31 @@ EventDisplay::Initialize()
     }
     m_htof_2d->SetStats(0);
 
-    m_canvas_tpc = new TCanvas("Event Display", "TPC Event Display", 1800, 900);
-    m_canvas_tpc->Divide(2, 1);
-    m_canvas_tpc->cd(1)->SetLogz();
-    m_tpc_adc2d->Draw("colz");
-    m_htof_2d->Draw("same col");
-    m_canvas_tpc->cd(2);
-    m_tpc_tdc2d->Draw("colz");
-    m_htof_2d->Draw("same col");
+    // m_canvas_tpc = new TCanvas("Event Display", "TPC Event Display", 1800, 900);
+    // m_canvas_tpc->Divide(2, 1);
+    // m_canvas_tpc->cd(1)->SetLogz();
+    // m_tpc_adc2d->Draw("colz");
+    // m_htof_2d->Draw("same col");
+    // m_canvas_tpc->cd(2);
+    // m_tpc_tdc2d->Draw("colz");
+    // m_htof_2d->Draw("same col");
     // m_canvas_tpc->cd(3);
     // m_tpc_adc->Draw("colz");
     // m_canvas_tpc->cd(4);
     // m_tpc_tdc->Draw("colz");
-    m_canvas_tpc->Update();
+    // m_canvas_tpc->Update();
   }
 #endif
 
   m_canvas = new TCanvas("canvas", "K1.8 Event Display",
-                         1000, 1000);
-  m_canvas->Divide(1,2);
-  m_canvas->cd(1)->SetPad(0.00, 0.92, 1.00, 1.00);
-  m_canvas->cd(2)->SetPad(0.00, 0.00, 1.00, 0.92);
+                         1800, 900);
+  m_canvas->Divide(2, 1);
+  m_canvas->cd(1)->Divide(1, 2);
+  m_canvas->cd(1)->cd(1)->SetPad(0.00, 0.92, 1.00, 1.00);
+  m_canvas->cd(1)->cd(2)->SetPad(0.00, 0.00, 1.00, 0.92);
   // m_canvas->cd(1)->SetPad(0.00, 0.72, 1.00, 1.00);
   // m_canvas->cd(2)->SetPad(0.00, 0.00, 1.00, 0.72);
-  m_canvas->cd(2);
+  m_canvas->cd(1)->cd(2);
 
   m_geometry->Draw();
 
@@ -409,6 +415,12 @@ EventDisplay::Initialize()
   gPad->SetTheta(-20.);
   gPad->GetView()->ZoomIn();
 
+  m_canvas->cd(2);
+  m_tpc_tdc2d->Draw("colz");
+  m_htof_2d->Draw("same col");
+  gPad->Update();
+
+  m_canvas->Modified();
   m_canvas->Update();
 
 #if Vertex
@@ -1903,7 +1915,7 @@ EventDisplay::ConstructTOF()
 void
 EventDisplay::DrawInitTrack()
 {
-  m_canvas->cd(2);
+  m_canvas->cd(1)->cd(2);
   if(m_init_step_mark) m_init_step_mark->Draw();
 
   m_canvas->Update();
@@ -2060,7 +2072,7 @@ EventDisplay::DrawHitHodoscope(Int_t lid, Int_t seg, Int_t Tu, Int_t Td)
     node->SetLineColor(kGreen);
   }
 
-  m_canvas->cd(2);
+  m_canvas->cd(1)->cd(2);
   m_geometry->Draw();
   m_canvas->Update();
 }
@@ -2090,7 +2102,7 @@ EventDisplay::DrawBcOutLocalTrack(DCLocalTrack *tp)
   p->SetPoint(0, gPos0.x(), gPos0.y(), gPos0.z());
   p->SetPoint(1, gPos1.x(), gPos1.y(), gPos1.z());
   m_BcOutTrack.push_back(p);
-  m_canvas->cd(2);
+  m_canvas->cd(1)->cd(2);
   p->Draw();
 
 #if Vertex
@@ -2146,6 +2158,7 @@ EventDisplay::DrawBcOutLocalTrack(DCLocalTrack *tp)
 
     del::DeleteObject(m_BcOutTrackShs);
     m_BcOutTrackShs = new TF1("bcout", "[0]+sqrt([1]-(x-[2])*(x-[2]))", z0, z1);
+    m_BcOutTrackShs->SetLineWidth(1);
     m_BcOutTrackShs->SetParameter(0, a);
     m_BcOutTrackShs->SetParameter(1, r*r);
     m_BcOutTrackShs->SetParameter(2, b);
@@ -2164,9 +2177,9 @@ EventDisplay::DrawBcOutLocalTrack(DCLocalTrack *tp)
     // m_BcOutTrackShs->SetMarkerSize(0.4);
     // m_BcOutTrackShs->SetMarkerColor(kMagenta+1);
     // m_BcOutTrackShs->SetMarkerStyle(8);
-    m_canvas_tpc->cd(1);
-    m_BcOutTrackShs->Draw("same");
-    m_canvas_tpc->cd(2);
+    // m_canvas_tpc->cd(1);
+    // m_BcOutTrackShs->Draw("same");
+    m_canvas->cd(2);
     m_BcOutTrackShs->Draw("same");
   }
 #endif
@@ -2194,7 +2207,7 @@ EventDisplay::DrawBcOutLocalTrack(DCLocalTrack *tp)
 //   p->SetPoint(0, gPos0.x(), gPos0.y(), gPos0.z());
 //   p->SetPoint(1, gPos1.x(), gPos1.y(), gPos1.z());
 //   m_BcOutTrack.push_back(p);
-//   m_canvas->cd(2);
+//   m_canvas->cd(1)->cd(2);
 //   p->Draw();
 //   gPad->Update();
 
@@ -2248,7 +2261,7 @@ EventDisplay::DrawSdcInLocalTrack(DCLocalTrack *tp)
   p->SetPoint(0, gPos0.x(), gPos0.y(), gPos0.z());
   p->SetPoint(1, gPos1.x(), gPos1.y(), gPos1.z());
   m_SdcInTrack.push_back(p);
-  m_canvas->cd(2);
+  m_canvas->cd(1)->cd(2);
   p->Draw();
   gPad->Update();
 #endif
@@ -2325,7 +2338,7 @@ EventDisplay::DrawSdcOutLocalTrack(DCLocalTrack *tp)
   p->SetPoint(0, gPos0.x(), gPos0.y(), gPos0.z());
   p->SetPoint(1, gPos1.x(), gPos1.y(), gPos1.z());
   m_SdcOutTrack.push_back(p);
-  m_canvas->cd(2);
+  m_canvas->cd(1)->cd(2);
   p->Draw();
   gPad->Update();
 #endif
@@ -2413,11 +2426,13 @@ EventDisplay::DrawKuramaTrack(Int_t nStep, const std::vector<TVector3>& StepPoin
 
   Color_t color = (q > 0) ? kRed : kBlue;
 
-  m_kurama_step_mark->SetMarkerSize(10);
+  if(!m_is_save_mode){
+    m_kurama_step_mark->SetMarkerSize(1);
+    m_kurama_step_mark->SetMarkerStyle(6);
+  }
   m_kurama_step_mark->SetMarkerColor(color);
-  m_kurama_step_mark->SetMarkerStyle(6);
 
-  m_canvas->cd(2);
+  m_canvas->cd(1)->cd(2);
   m_kurama_step_mark->Draw();
   m_canvas->Update();
 
@@ -2429,12 +2444,14 @@ EventDisplay::DrawKuramaTrack(Int_t nStep, const std::vector<TVector3>& StepPoin
     Double_t z = StepPoint[i].z()-zHS;
     m_KuramaMarkVertexXShs->SetPoint(i, z, x);
   }
-  m_KuramaMarkVertexXShs->SetMarkerSize(0.4);
+  if(!m_is_save_mode){
+    m_KuramaMarkVertexXShs->SetMarkerSize(0.4);
+    m_KuramaMarkVertexXShs->SetMarkerStyle(6);
+  }
   m_KuramaMarkVertexXShs->SetMarkerColor(color);
-  m_KuramaMarkVertexXShs->SetMarkerStyle(6);
-  m_canvas_tpc->cd(1);
-  m_KuramaMarkVertexXShs->Draw();
-  m_canvas_tpc->cd(2);
+  // m_canvas_tpc->cd(1);
+  // m_KuramaMarkVertexXShs->Draw();
+  m_canvas->cd(2);
   m_KuramaMarkVertexXShs->Draw();
 #endif
 #if Vertex
@@ -2475,7 +2492,7 @@ EventDisplay::DrawTarget()
     return;
   }
   m_target_node->SetLineColor(kMagenta);
-  m_canvas->cd(2);
+  m_canvas->cd(1)->cd(2);
   m_canvas->Update();
 }
 
@@ -2485,9 +2502,9 @@ EventDisplay::DrawText(Double_t xpos, Double_t ypos, const TString& arg)
 {
   if(arg.Contains("Run")){
     // std::cout << arg << " find " << std::endl;
-    m_canvas->cd(1)->Clear();
+    m_canvas->cd(1)->cd(1)->Clear();
   }
-  m_canvas->cd(1);
+  m_canvas->cd(1)->cd(1);
   TLatex tex;
   tex.SetTextSize(0.5);
   // tex.SetTextSize(0.15);
@@ -3446,6 +3463,21 @@ EventDisplay::GetCommand()
     return kSkip;
 
   return kNormal;
+}
+
+//_____________________________________________________________________________
+void
+EventDisplay::Print(Int_t run_number, Int_t event_number)
+{
+  static Int_t prev_run_number = 0;
+  static TString fig_dir;
+  if(run_number != prev_run_number){
+    fig_dir = Form("fig/evdisp/run%05d", run_number);
+    gSystem->MakeDirectory(fig_dir);
+  }
+  m_canvas->Print(Form("%s/evdisp_run%05d_ev%d.png",
+                       fig_dir.Data(), run_number, event_number));
+  prev_run_number = run_number;
 }
 
 //_____________________________________________________________________________

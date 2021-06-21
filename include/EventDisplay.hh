@@ -3,6 +3,8 @@
 #ifndef EVENT_DISPLAY_HH
 #define EVENT_DISPLAY_HH
 
+#include <TROOT.h>
+
 #include "ThreeVector.hh"
 #include "DetectorID.hh"
 
@@ -34,7 +36,6 @@ class TPolyLine;
 class TPolyLine3D;
 class TPolyMarker;
 class TPolyMarker3D;
-class TROOT;
 class TRint;
 class TRotMatrix;
 class TStyle;
@@ -60,12 +61,13 @@ private:
   EventDisplay& operator =(const EventDisplay&);
 
 private:
-  Bool_t                       m_is_ready;
+  Bool_t                     m_is_ready;
+  Bool_t                     m_is_save_mode;
   TApplication              *m_theApp;
   TGeometry                 *m_geometry;
   TNode                     *m_node;
   TCanvas                   *m_canvas;
-  TCanvas                   *m_canvas_tpc;
+  // TCanvas                   *m_canvas_tpc;
   TCanvas                   *m_canvas_vertex;
   TCanvas                   *m_canvas_hist;
   TCanvas                   *m_canvas_hist2;
@@ -290,7 +292,9 @@ public:
   void ResetVisibility();
   void CalcRotMatrix(Double_t TA, Double_t RA1, Double_t RA2, Double_t *rotMat);
   Int_t GetCommand();
+  void Print(Int_t run_number, Int_t event_number);
   void Run(Bool_t flag=kTRUE);
+  void SetSaveMode(){ m_is_save_mode = true; gROOT->SetBatch(); }
 
 private:
   void ResetVisibility(TNode *& node, Color_t c=kWhite);

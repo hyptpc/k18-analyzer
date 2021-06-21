@@ -31,6 +31,8 @@
 #include "TPCPositionCorrector.hh"
 #include "TPCRawHit.hh"
 
+#define SAVEPDF 0
+
 namespace
 {
 const auto& gGeom   = DCGeomMan::GetInstance();
@@ -126,8 +128,8 @@ UserEventDisplay::ProcessingNormal()
   evinfo = Form("Run# %5d%4sEvent# %6d",
                 gUnpacker.get_run_number(), "",
                 gUnpacker.get_event_number());
-  std::cout << TString('=', 80) << std::endl
-            << "[Info] " << evinfo << std::endl;
+  hddaq::cout << "\033c" << TString('=', 80) << std::endl
+              << "[Info] " << evinfo << std::endl;
   gEvDisp.DrawText(0.1, 0.3, evinfo);
 
   rawData->DecodeHits();
@@ -139,7 +141,8 @@ UserEventDisplay::ProcessingNormal()
     if(hit->GetTdc1() > 0) trigger_flag.set(hit->SegmentId());
   }
   if(trigger_flag[trigger::kSpillEnd]) return true;
-  std::cout << "[Info] TrigPat = " << trigger_flag << std::endl;
+  // if(!trigger_flag[trigger::kTrigBPS]) return true;
+  hddaq::cout << "[Info] TrigPat = " << trigger_flag << std::endl;
 
   //________________________________________________________
   //___ BH2RawHit
@@ -162,7 +165,7 @@ UserEventDisplay::ProcessingNormal()
       // gEvDisp.FillBH2(seg, Td);
     }
     if(is_hit_u && is_hit_d){
-      std::cout << "[Info] Bh2Seg = " << seg << std::endl;
+      hddaq::cout << "[Info] Bh2Seg = " << seg << std::endl;
     }
   }
 
@@ -187,7 +190,7 @@ UserEventDisplay::ProcessingNormal()
       // gEvDisp.FillBH1(seg, Td);
     }
     if(is_hit_u && is_hit_d){
-      std::cout << "[Info] Bh1Seg = " << seg << std::endl;
+      hddaq::cout << "[Info] Bh1Seg = " << seg << std::endl;
     }
   }
 
@@ -196,7 +199,7 @@ UserEventDisplay::ProcessingNormal()
   hodoAna->DecodeBH2Hits(rawData);
   const auto& BH2Cont = hodoAna->GetHitsBH2();
   if(BH2Cont.empty()){
-    std::cerr << "[Warning] BH2Cont is empty!" << std::endl;
+    hddaq::cout << "[Warning] BH2Cont is empty!" << std::endl;
     // gEvDisp.GetCommand();
     return true;
   }
@@ -239,7 +242,7 @@ UserEventDisplay::ProcessingNormal()
       gEvDisp.DrawHitHodoscope(IdTOF, seg, is_hit_u, is_hit_d);
     }
     if(is_hit_u && is_hit_d){
-      std::cout << "[Info] TofSeg = " << seg << std::endl;
+      hddaq::cout << "[Info] TofSeg = " << seg << std::endl;
     }
   }
 
@@ -248,7 +251,7 @@ UserEventDisplay::ProcessingNormal()
   hodoAna->DecodeTOFHits(rawData);
   const auto& TOFCont = hodoAna->GetHitsTOF();
   if(TOFCont.empty()){
-    std::cerr << "[Warning] TOFCont is empty!" << std::endl;
+    hddaq::cout << "[Warning] TOFCont is empty!" << std::endl;
     //gEvDisp.GetCommand();
     return true;
   }
@@ -353,7 +356,7 @@ UserEventDisplay::ProcessingNormal()
       Int_t seg = hit->SegmentId();
       for(Int_t j=0, m=hit->GetSizeTdcUp(); j<m; ++j){
         Int_t Tu = hit->GetTdcUp(j);
-        // std::cout << "[Info] BFTxSeg = " << seg << std::endl;
+        // hddaq::cout << "[Info] BFTxSeg = " << seg << std::endl;
         if(Tu>0) gEvDisp.FillBFT(layer, seg, Tu);
       }
     }
@@ -386,8 +389,8 @@ UserEventDisplay::ProcessingNormal()
   }
   multi_BcOut /= (Double_t)NumOfLayersBcOut;
   if(multi_BcOut > MaxMultiHitBcOut){
-    std::cerr << "[Warning] BcOutHits exceed MaxMultiHit "
-              << multi_BcOut << "/" << MaxMultiHitBcOut << std::endl;
+    hddaq::cout << "[Warning] BcOutHits exceed MaxMultiHit "
+                << multi_BcOut << "/" << MaxMultiHitBcOut << std::endl;
     // gEvDisp.GetCommand();
     return true;
   }
@@ -396,22 +399,63 @@ UserEventDisplay::ProcessingNormal()
   //___ BcOutTracking
   DCAna->TrackSearchBcOut();
   Int_t ntBcOut = DCAna->GetNtracksBcOut();
-  std::cout << "[Info] ntBcOut = " << ntBcOut << std::endl;
+  hddaq::cout << "[Info] ntBcOut = " << ntBcOut << std::endl;
   for(Int_t it=0; it<ntBcOut; ++it){
     auto track = DCAna->GetTrackBcOut(it);
     auto chisqr = track->GetChiSquare();
-    std::cout << "       " << it << "-th track, chi2 = "
-              << chisqr << std::endl;
+    hddaq::cout << "       " << it << "-th track, chi2 = "
+                << chisqr << std::endl;
     // auto nh = track->GetNHit();
     // for(Int_t ih=0; ih<nh; ++ih){
     //   auto hit = track->GetHit(ih);
     //   Int_t layerId = hit->GetLayer();
     //   Double_t wire = hit->GetWire();
     //   Double_t res = hit->GetResidual();
-    //   std::cout << "       layer = " << layerId << ", wire = "
+    //   hddaq::cout << "       layer = " << layerId << ", wire = "
     //             << wire << ", res = " << res << std::endl;
     // }
     gEvDisp.DrawBcOutLocalTrack(track);
+  }
+  if(ntBcOut==0) {
+    hddaq::cout << "[Warning] BcOutTrack is empty!" << std::endl;
+    return true;
+  }
+
+  //________________________________________________________
+  //___ BFTCluster
+  hodoAna->DecodeBFTHits(rawData);
+  hodoAna->TimeCutBFT(MinTimeBFT, MaxTimeBFT);
+  std::vector<Double_t> BftXCont;
+  for(const auto& cl: hodoAna->GetClustersBFT()){
+    BftXCont.push_back(cl->MeanPosition());
+  }
+  if(BftXCont.empty()){
+    hddaq::cout << "[Warning] BftXCont is empty!" << std::endl;
+    return true;
+  }
+
+  std::vector<ThreeVector> KnPCont, KnXCont;
+
+  //________________________________________________________
+  //___ K18Tracking
+  DCAna->TrackSearchK18D2U(BftXCont);
+  Int_t ntK18 = DCAna->GetNTracksK18D2U();
+  for(Int_t i=0; i<ntK18; ++i){
+    auto track = DCAna->GetK18TrackD2U(i);
+    if(!track) continue;
+    Double_t x = track->Xtgt(), y = track->Ytgt();
+    Double_t u = track->Utgt(), v = track->Vtgt();
+    Double_t p = track->P3rd();
+    Double_t pt = p/TMath::Sqrt(1.+u*u+v*v);
+    ThreeVector Pos(x, y, 0.);
+    ThreeVector Mom(pt*u, pt*v, pt);
+    KnPCont.push_back(Mom);
+    KnXCont.push_back(Pos);
+  }
+  if(ntK18 == 0){
+    hddaq::cout << "[Warning] Kn is empty!" << std::endl;
+    // gEvDisp.GetCommand();
+    return true;
   }
 
   //________________________________________________________
@@ -439,8 +483,8 @@ UserEventDisplay::ProcessingNormal()
   }
   multi_SdcIn /= (Double_t)NumOfLayersSdcIn;
   if(multi_SdcIn > MaxMultiHitSdcIn){
-    std::cerr << "[Warning] SdcInHits exceed MaxMultiHit "
-              << multi_SdcIn << "/" << MaxMultiHitSdcIn << std::endl;
+    hddaq::cout << "[Warning] SdcInHits exceed MaxMultiHit "
+                << multi_SdcIn << "/" << MaxMultiHitSdcIn << std::endl;
     // gEvDisp.GetCommand();
     return true;
   }
@@ -449,28 +493,27 @@ UserEventDisplay::ProcessingNormal()
   //___ SdcInTracking
   DCAna->TrackSearchSdcIn();
   Int_t ntSdcIn = DCAna->GetNtracksSdcIn();
-  std::cout << "[Info] ntSdcIn = " << ntSdcIn << std::endl;
+  hddaq::cout << "[Info] ntSdcIn = " << ntSdcIn << std::endl;
   for(Int_t it=0; it<ntSdcIn; ++it){
     auto track = DCAna->GetTrackSdcIn(it);
     auto chisqr = track->GetChiSquare();
-    std::cout << "       " << it << "-th track, chi2 = "
-              << chisqr << std::endl;
+    hddaq::cout << "       " << it << "-th track, chi2 = "
+                << chisqr << std::endl;
     // auto nh = track->GetNHit();
     // for(Int_t ih=0; ih<nh; ++ih){
     //   auto hit = track->GetHit(ih);
     //   Int_t layerId = hit->GetLayer();
     //   Double_t wire = hit->GetWire();
     //   Double_t res = hit->GetResidual();
-    //   std::cout << "       layer = " << layerId << ", wire = "
+    //   hddaq::cout << "       layer = " << layerId << ", wire = "
     //             << wire << ", res = " << res << std::endl;
     // }
     gEvDisp.DrawSdcInLocalTrack(track);
   }
-
-  // if(ntSdcIn==0) {
-  //   gEvDisp.GetCommand();
-  //   return true;
-  // }
+  if(ntSdcIn != 1){
+    // hddaq::cout << "[Warning] SdcInTrack is empty!" << std::endl;
+    return true;
+  }
 
   //________________________________________________________
   //___ SdcOutDCHit
@@ -496,8 +539,8 @@ UserEventDisplay::ProcessingNormal()
   }
   multi_SdcOut /= (Double_t)NumOfLayersSdcOut;
   if(multi_SdcOut > MaxMultiHitSdcOut){
-    std::cerr << "[Warning] SdcOutHits exceed MaxMultiHit "
-              << multi_SdcOut << "/" << MaxMultiHitSdcOut << std::endl;
+    hddaq::cout << "[Warning] SdcOutHits exceed MaxMultiHit "
+                << multi_SdcOut << "/" << MaxMultiHitSdcOut << std::endl;
     // gEvDisp.GetCommand();
     return true;
   }
@@ -506,28 +549,27 @@ UserEventDisplay::ProcessingNormal()
   //___ SdcOutTracking
   DCAna->TrackSearchSdcOut(TOFCont);
   Int_t ntSdcOut = DCAna->GetNtracksSdcOut();
-  std::cout << "[Info] ntSdcOut = " << ntSdcOut << std::endl;
+  hddaq::cout << "[Info] ntSdcOut = " << ntSdcOut << std::endl;
   for(Int_t it=0; it<ntSdcOut; ++it){
     auto track = DCAna->GetTrackSdcOut(it);
     auto chisqr = track->GetChiSquare();
-    std::cout << "       " << it << "-th track, chi2 = "
-              << chisqr << std::endl;
+    hddaq::cout << "       " << it << "-th track, chi2 = "
+                << chisqr << std::endl;
     // auto nh = track->GetNHit();
     // for(Int_t ih=0; ih<nh; ++ih){
     //   auto hit = track->GetHit(ih);
     //   Int_t layerId = hit->GetLayer();
     //   Double_t wire = hit->GetWire();
     //   Double_t res = hit->GetResidual();
-    //   std::cout << "       layer = " << layerId << ", wire = "
+    //   hddaq::cout << "       layer = " << layerId << ", wire = "
     //             << wire << ", res = " << res << std::endl;
     // }
     gEvDisp.DrawSdcOutLocalTrack(track);
   }
-
-  // if(ntSdcOut==0){
-  //   gEvDisp.GetCommand();
-  //   return true;
-  // }
+  if(ntSdcOut != 1){
+    // hddaq::cout << "[Warning] SdcInTrack is empty!" << std::endl;
+    return true;
+  }
 
   //________________________________________________________
   //___ HTOFRawHit
@@ -553,11 +595,14 @@ UserEventDisplay::ProcessingNormal()
       gEvDisp.FillHTOF(binid);
     }
   }
-
-  rawData->DecodeTPCHits();
+  if(nhHtof==0) {
+    hddaq::cout << "[Warning] HtofCont is empty!" << std::endl;
+    return true;
+  }
 
   //________________________________________________________
   //___ TPCRawHit
+  rawData->DecodeTPCHits();
   Int_t npadTpc = 0;
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     const auto hc = rawData->GetTPCRawHC(layer);
@@ -586,8 +631,8 @@ UserEventDisplay::ProcessingNormal()
   //   gEvDisp.GetCommand();
   // }
 
-  std::vector<ThreeVector> KnPCont, KnXCont;
   std::vector<ThreeVector> KpPCont, KpXCont;
+  std::vector<Double_t> M2Cont;
 
   //________________________________________________________
   //___ KuramaTracking
@@ -596,18 +641,19 @@ UserEventDisplay::ProcessingNormal()
   DCAna->TrackSearchKurama();
   Bool_t through_target = false;
   Int_t ntKurama = DCAna->GetNTracksKurama();
-  std::cout << "[Info] ntKurama = " << ntKurama << std::endl;
+  hddaq::cout << "[Info] ntKurama = " << ntKurama << std::endl;
   for(Int_t it=0; it<ntKurama; ++it){
     auto track = DCAna->GetKuramaTrack(it);
     // track->Print();
     auto chisqr = track->GetChiSquare();
-    std::cout << "       " << it << "-th track, chi2 = "
-              << chisqr << std::endl;
+    hddaq::cout << "       " << it << "-th track, chi2 = "
+                << chisqr << std::endl;
     const auto& postgt = track->PrimaryPosition();
     const auto& momtgt = track->PrimaryMomentum();
     Double_t path = track->PathLengthToTOF();
     Double_t p = momtgt.Mag();
     gEvDisp.FillMomentum(p);
+    if(chisqr > 20.) continue;
     if(TMath::Abs(postgt.x()) < 30.
        && TMath::Abs(postgt.y()) < 20.){
       through_target = true;
@@ -623,46 +669,19 @@ UserEventDisplay::ProcessingNormal()
       gEvDisp.FillMassSquare(m2);
       KpPCont.push_back(momtgt);
       KpXCont.push_back(postgt);
+      M2Cont.push_back(m2);
     }
   }
-  if(ntKurama == 0){
+  if(KpPCont.size() == 0){
+    hddaq::cout << "[Warning] Kp is empty!" << std::endl;
     // gEvDisp.GetCommand();
     return true;
   }
   if(through_target) gEvDisp.DrawTarget();
 
   //________________________________________________________
-  //___ BFTCluster
-  hodoAna->DecodeBFTHits(rawData);
-  hodoAna->TimeCutBFT(MinTimeBFT, MaxTimeBFT);
-  std::vector<Double_t> BftXCont;
-  for(const auto& cl: hodoAna->GetClustersBFT()){
-    BftXCont.push_back(cl->MeanPosition());
-  }
-
-  //________________________________________________________
-  //___ K18Tracking
-  DCAna->TrackSearchK18D2U(BftXCont);
-  Int_t ntK18 = DCAna->GetNTracksK18D2U();
-  for(Int_t i=0; i<ntK18; ++i){
-    auto track = DCAna->GetK18TrackD2U(i);
-    if(!track) continue;
-    Double_t x = track->Xtgt(), y = track->Ytgt();
-    Double_t u = track->Utgt(), v = track->Vtgt();
-    Double_t p = track->P3rd();
-    Double_t pt = p/TMath::Sqrt(1.+u*u+v*v);
-    ThreeVector Pos(x, y, 0.);
-    ThreeVector Mom(pt*u, pt*v, pt);
-    KnPCont.push_back(Mom);
-    KnXCont.push_back(Pos);
-  }
-  if(ntK18 == 0){
-    // gEvDisp.GetCommand();
-    return true;
-  }
-
-  //________________________________________________________
   //___ Reaction
+  Bool_t is_good = false;
   if(KnPCont.size()==1 && KpPCont.size()==1){
     ThreeVector pkp = KpPCont[0];
     ThreeVector pkn = KnPCont[0];
@@ -674,16 +693,31 @@ UserEventDisplay::ProcessingNormal()
     LorentzVector LvP(0., 0., 0., ProtonMass);
     LorentzVector LvRp = LvKn+LvP-LvKp;
     ThreeVector MissMom = LvRp.Vect();
-    std::cout << "[Info] Vertex = " << vertex << std::endl;
-    std::cout << "[Info] MissingMomentum = " << MissMom << std::endl;
+    Double_t m2 = M2Cont[0];
+    hddaq::cout << "[Info] Vertex = " << vertex << std::endl;
+    hddaq::cout << "[Info] MissingMomentum = " << MissMom << std::endl;
     gEvDisp.DrawVertex(vertex);
     gEvDisp.DrawMissingMomentum(MissMom, vertex);
+    if(TMath::Abs(vertex.z()+70) < 100
+       && through_target
+       && TMath::Abs(m2-0.25)<0.1
+       && pkp.z() > 0){
+      // gEvDisp.GetCommand();
+      is_good = true;
+    }
   }
 
   gEvDisp.Update();
   // gEvDisp.GetCommand();
-  gSystem->Sleep(3000);
-
+  hddaq::cout << "[Info] IsGood = " << is_good << std::endl;
+  if(is_good){
+#if SAVEPDF
+    gEvDisp.Print(gUnpacker.get_run_number(),
+                  gUnpacker.get_event_number());
+#else
+    gSystem->Sleep(10000);
+#endif
+  }
   return true;
 }
 
@@ -716,6 +750,9 @@ ConfMan:: InitializeHistograms()
 Bool_t
 ConfMan::InitializeParameterFiles()
 {
+#if SAVEPDF
+  gEvDisp.SetSaveMode();
+#endif
   return
     (InitializeParameter<DCGeomMan>("DCGEO")
      && InitializeParameter<DCDriftParamMan>("DCDRFT")
