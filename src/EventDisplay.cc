@@ -2498,7 +2498,7 @@ EventDisplay::DrawTarget()
 
 //_____________________________________________________________________________
 void
-EventDisplay::DrawText(Double_t xpos, Double_t ypos, const TString& arg)
+EventDisplay::DrawRunEvent(Double_t xpos, Double_t ypos, const TString& arg)
 {
   if(arg.Contains("Run")){
     // std::cout << arg << " find " << std::endl;
@@ -2506,8 +2506,23 @@ EventDisplay::DrawText(Double_t xpos, Double_t ypos, const TString& arg)
   }
   m_canvas->cd(1)->cd(1);
   TLatex tex;
+  tex.SetTextAlign(12);
   tex.SetTextSize(0.5);
   // tex.SetTextSize(0.15);
+  tex.SetNDC();
+  tex.DrawLatex(xpos, ypos, arg);
+  m_canvas->Update();
+}
+
+//_____________________________________________________________________________
+void
+EventDisplay::DrawText(Double_t xpos, Double_t ypos, const TString& arg)
+{
+  m_canvas->cd(1)->cd(2);
+  TLatex tex;
+  tex.SetTextAlign(12);
+  tex.SetTextFont(42);
+  tex.SetTextSize(0.025);
   tex.SetNDC();
   tex.DrawLatex(xpos, ypos, arg);
   m_canvas->Update();

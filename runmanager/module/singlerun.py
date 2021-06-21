@@ -687,7 +687,7 @@ class SingleRun(object):
     queue = data['queue']
     qmerge = data['qmerge'] if 'qmerge' in data else '?'
     if stat == 'INIT':
-      buff = 'init'
+      buff = 'initialized'
     elif stat == 'PURGED':
       buff = 'purged'
     elif stat == 'STAGED':

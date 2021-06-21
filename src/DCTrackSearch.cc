@@ -988,10 +988,10 @@ LocalTrackSearchSdcOut(const DCHitContainer& TOFHC,
     Bool_t honeycomb = PpInfo[i].honeycomb;
     Int_t  layer1    = PpInfo[i].id1;
     Int_t  layer2    = PpInfo[i].id2;
-    if(ppFlag ){ //DC2, 3
+    if(ppFlag){
       MakePairPlaneHitCluster(SdcOutHC[layer1], SdcOutHC[layer2],
                               PpInfo[i].CellSize, CandCont[i], honeycomb);
-    }else{ //FBT
+    }else{
       MakeMWPCPairPlaneHitCluster(SdcOutHC[layer1], CandCont[i]);
       MakeMWPCPairPlaneHitCluster(SdcOutHC[layer2], CandCont[i]);
     }
@@ -2214,7 +2214,7 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
       track->SetAcx(hough_cx);
       track->SetAcy(hough_cy);
       track->SetAr(hough_r);
-      
+
       if(ity==0){
 	if(track->DoFit(3,1)){
 	  TrackCont.push_back(track);

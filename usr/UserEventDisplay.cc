@@ -130,7 +130,7 @@ UserEventDisplay::ProcessingNormal()
                 gUnpacker.get_event_number());
   hddaq::cout << "\033c" << TString('=', 80) << std::endl
               << "[Info] " << evinfo << std::endl;
-  gEvDisp.DrawText(0.1, 0.3, evinfo);
+  gEvDisp.DrawRunEvent(0.04, 0.5, evinfo);
 
   rawData->DecodeHits();
 
@@ -146,6 +146,7 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ BH2RawHit
+  std::vector<Int_t> BH2SegCont;
   for(const auto& hit: rawData->GetBH2RawHC()){
     Int_t seg = hit->SegmentId();
     Bool_t is_hit_u = false;
@@ -166,11 +167,13 @@ UserEventDisplay::ProcessingNormal()
     }
     if(is_hit_u && is_hit_d){
       hddaq::cout << "[Info] Bh2Seg = " << seg << std::endl;
+      BH2SegCont.push_back(seg);
     }
   }
 
   //________________________________________________________
   //___ BH1RawHit
+  std::vector<Int_t> BH1SegCont;
   for(const auto& hit: rawData->GetBH1RawHC()){
     Int_t seg = hit->SegmentId();
     Bool_t is_hit_u = false;
@@ -191,35 +194,31 @@ UserEventDisplay::ProcessingNormal()
     }
     if(is_hit_u && is_hit_d){
       hddaq::cout << "[Info] Bh1Seg = " << seg << std::endl;
+      BH1SegCont.push_back(seg);
     }
   }
 
   //________________________________________________________
-  //___ BH2HodoHit
+  //___ BH2HodoCluster
   hodoAna->DecodeBH2Hits(rawData);
-  const auto& BH2Cont = hodoAna->GetHitsBH2();
-  if(BH2Cont.empty()){
-    hddaq::cout << "[Warning] BH2Cont is empty!" << std::endl;
+  const auto Time0Cl = hodoAna->GetTime0BH2Cluster();
+  if(!Time0Cl){
+    hddaq::cout << "[Warning] Time0Cl is null!" << std::endl;
     // gEvDisp.GetCommand();
     return true;
   }
-  Double_t time0 = -999.;
-  Double_t time0_seg = -1;
-  Double_t min_time = -999.;
-  for(const auto& hit: BH2Cont){
-    for(Int_t j=0, m=hit->GetNumOfHit(); j<m; j++){
-      Double_t mt = hit->MeanTime(j);
-      // Double_t cmt = hit->CMeanTime(j);
-      if(TMath::Abs(mt) < TMath::Abs(min_time)){
-        min_time = mt;
-        time0 = hit->CTime0(j);
-        time0_seg = hit->SegmentId();
-      }
-    }
-  }
+  Double_t ctime0 = Time0Cl->CTime0();
+  // Double_t t0seg = Time0Cl->MeanSeg();
+
+  //________________________________________________________
+  //___ BH1HodoCluster
+  hodoAna->DecodeBH1Hits(rawData);
+  const auto Btof0Cl = hodoAna->GetBtof0BH1Cluster(ctime0);
+  Double_t btof = Btof0Cl->CMeanTime() - ctime0;
 
   //________________________________________________________
   //___ TOFRawHit
+  std::vector<Int_t> TOFSegCont;
   for(const auto& hit: rawData->GetTOFRawHC()){
     Int_t seg = hit->SegmentId();
     Bool_t is_hit_u = false;
@@ -243,6 +242,7 @@ UserEventDisplay::ProcessingNormal()
     }
     if(is_hit_u && is_hit_d){
       hddaq::cout << "[Info] TofSeg = " << seg << std::endl;
+      TOFSegCont.push_back(seg);
     }
   }
 
@@ -434,7 +434,7 @@ UserEventDisplay::ProcessingNormal()
     return true;
   }
 
-  std::vector<ThreeVector> KnPCont, KnXCont;
+  std::vector<ThreeVector> KmPCont, KmXCont;
 
   //________________________________________________________
   //___ K18Tracking
@@ -449,11 +449,11 @@ UserEventDisplay::ProcessingNormal()
     Double_t pt = p/TMath::Sqrt(1.+u*u+v*v);
     ThreeVector Pos(x, y, 0.);
     ThreeVector Mom(pt*u, pt*v, pt);
-    KnPCont.push_back(Mom);
-    KnXCont.push_back(Pos);
+    KmPCont.push_back(Mom);
+    KmXCont.push_back(Pos);
   }
   if(ntK18 == 0){
-    hddaq::cout << "[Warning] Kn is empty!" << std::endl;
+    hddaq::cout << "[Warning] Km is empty!" << std::endl;
     // gEvDisp.GetCommand();
     return true;
   }
@@ -573,6 +573,7 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ HTOFRawHit
+  std::vector<Int_t> HTOFSegCont;
   Int_t nhHtof = 0;
   for(const auto& hit: rawData->GetHTOFRawHC()){
     if(!hit) continue;
@@ -593,6 +594,7 @@ UserEventDisplay::ProcessingNormal()
       else if(seg == 3 || seg == 4) binid = 3;
       else binid = seg-1;
       gEvDisp.FillHTOF(binid);
+      HTOFSegCont.push_back(seg);
     }
   }
   if(nhHtof==0) {
@@ -633,6 +635,7 @@ UserEventDisplay::ProcessingNormal()
 
   std::vector<ThreeVector> KpPCont, KpXCont;
   std::vector<Double_t> M2Cont;
+  std::vector<Double_t> Chi2KuramaCont;
 
   //________________________________________________________
   //___ KuramaTracking
@@ -663,13 +666,14 @@ UserEventDisplay::ProcessingNormal()
     for(const auto& hit: TOFCont){
       Double_t seg = hit->SegmentId()+1;
       if(tofseg != seg) continue;
-      Double_t stof = hit->CMeanTime()-time0+StofOffset;
+      Double_t stof = hit->CMeanTime()-ctime0+StofOffset;
       if(stof <= 0) continue;
       Double_t m2 = Kinematics::MassSquare(p, path, stof);
       gEvDisp.FillMassSquare(m2);
       KpPCont.push_back(momtgt);
       KpXCont.push_back(postgt);
       M2Cont.push_back(m2);
+      Chi2KuramaCont.push_back(chisqr);
     }
   }
   if(KpPCont.size() == 0){
@@ -680,19 +684,75 @@ UserEventDisplay::ProcessingNormal()
   if(through_target) gEvDisp.DrawTarget();
 
   //________________________________________________________
+  //___ DrawText
+  TString buf;
+  std::stringstream ss; ss << trigger_flag;
+  buf = ss.str();
+  buf.ReplaceAll("0", ".").ReplaceAll("1", "!");
+  gEvDisp.DrawText(0.040, 0.960, Form("TrigFlag   %s", buf.Data()));
+  buf = "BH1Seg  ";
+  for(const auto& seg: BH1SegCont){
+    buf += Form(" %d", seg);
+  }
+  gEvDisp.DrawText(0.040, 0.920, buf);
+  buf = "BH2Seg  ";
+  for(const auto& seg: BH2SegCont){
+    buf += Form(" %d", seg);
+  }
+  gEvDisp.DrawText(0.040, 0.880, buf);
+  buf = "HTOFSeg  ";
+  for(const auto& seg: HTOFSegCont){
+    buf += Form(" %d", seg);
+  }
+  gEvDisp.DrawText(0.040, 0.840, buf);
+  buf = "TOFSeg  ";
+  for(const auto& seg: TOFSegCont){
+    buf += Form(" %d", seg);
+  }
+  gEvDisp.DrawText(0.040, 0.800, buf);
+  buf = "BcOut"; gEvDisp.DrawText(0.040, 0.280, buf);
+  buf= "#chi^{2} = ";
+  for(Int_t i=0; i<ntBcOut; ++i){
+    buf += Form(" %.3f", DCAna->GetTrackBcOut(i)->GetChiSquare());
+  }
+  gEvDisp.DrawText(0.130, 0.280, buf);
+  buf = "SdcIn"; gEvDisp.DrawText(0.040, 0.240, buf);
+  buf = "#chi^{2} = ";
+  for(Int_t i=0; i<ntSdcIn; ++i){
+    buf += Form(" %.3f", DCAna->GetTrackSdcIn(i)->GetChiSquare());
+  }
+  gEvDisp.DrawText(0.130, 0.240, buf);
+  buf = "SdcOut"; gEvDisp.DrawText(0.040, 0.20, buf);
+  buf = "#chi^{2} = ";
+  for(Int_t i=0; i<ntSdcOut; ++i){
+    buf += Form(" %.3f", DCAna->GetTrackSdcOut(i)->GetChiSquare());
+  }
+  gEvDisp.DrawText(0.130, 0.200, buf);
+  buf = "Kurama"; gEvDisp.DrawText(0.040, 0.16, buf);
+  buf = "#chi^{2} = ";
+  for(Int_t i=0; i<ntKurama; ++i){
+    buf += Form(" %.3f", DCAna->GetKuramaTrack(i)->GetChiSquare());
+  }
+  gEvDisp.DrawText(0.130, 0.160, buf);
+  gEvDisp.DrawText(0.680, 0.960, "BTOF");
+  gEvDisp.DrawText(0.860, 0.960, Form("%.3f", btof));
+
+  //________________________________________________________
   //___ Reaction
   Bool_t is_good = false;
-  if(KnPCont.size()==1 && KpPCont.size()==1){
+  if(KmPCont.size()==1 && KpPCont.size()==1){
     ThreeVector pkp = KpPCont[0];
-    ThreeVector pkn = KnPCont[0];
+    ThreeVector pkm = KmPCont[0];
     ThreeVector xkp = KpXCont[0];
-    ThreeVector xkn = KnXCont[0];
-    ThreeVector vertex = Kinematics::VertexPoint(xkn, xkp, pkn, pkp);
-    LorentzVector LvKn(KnPCont[0], TMath::Sqrt(KaonMass*KaonMass+pkn.Mag2()));
+    ThreeVector xkm = KmXCont[0];
+    ThreeVector vertex = Kinematics::VertexPoint(xkm, xkp, pkm, pkp);
+    Double_t closedist = Kinematics::CloseDist(xkm, xkp, pkm, pkp);
+    LorentzVector LvKm(KmPCont[0], TMath::Sqrt(KaonMass*KaonMass+pkm.Mag2()));
     LorentzVector LvKp(KpPCont[0], TMath::Sqrt(KaonMass*KaonMass+pkp.Mag2()));
     LorentzVector LvP(0., 0., 0., ProtonMass);
-    LorentzVector LvRp = LvKn+LvP-LvKp;
+    LorentzVector LvRp = LvKm+LvP-LvKp;
     ThreeVector MissMom = LvRp.Vect();
+    Double_t MissMass = LvRp.Mag();
     Double_t m2 = M2Cont[0];
     hddaq::cout << "[Info] Vertex = " << vertex << std::endl;
     hddaq::cout << "[Info] MissingMomentum = " << MissMom << std::endl;
@@ -700,17 +760,31 @@ UserEventDisplay::ProcessingNormal()
     gEvDisp.DrawMissingMomentum(MissMom, vertex);
     if(TMath::Abs(vertex.z()+70) < 100
        && through_target
-       && TMath::Abs(m2-0.25)<0.1
+       // && TMath::Abs(m2-0.25)<0.1
        && pkp.z() > 0){
       // gEvDisp.GetCommand();
       is_good = true;
+      gEvDisp.DrawText(0.680, 0.920, "pK18");
+      gEvDisp.DrawText(0.860, 0.920, Form("%.3f", pkm.Mag()));
+      gEvDisp.DrawText(0.680, 0.880, "pKurama");
+      gEvDisp.DrawText(0.860, 0.880, Form("%.3f", pkp.Mag()));
+      gEvDisp.DrawText(0.680, 0.840, "MassSquared");
+      gEvDisp.DrawText(0.860, 0.840, Form("%.3f", m2));
+      gEvDisp.DrawText(0.620, 0.280, "CloseDist");
+      gEvDisp.DrawText(0.720, 0.280, Form("%.2f", closedist));
+      gEvDisp.DrawText(0.620, 0.240, Form("Vertex = (%.2f, %.2f, %.2f)",
+                                          vertex.X(), vertex.Y(), vertex.Z()));
+      gEvDisp.DrawText(0.620, 0.200, Form("MissMom = (%.4f, %.4f, %.4f)",
+                                          MissMom.X(), MissMom.Y(), MissMom.Z()));
+      gEvDisp.DrawText(0.620, 0.160, Form("MissMass = %.5f", MissMass));
     }
   }
 
   gEvDisp.Update();
   // gEvDisp.GetCommand();
   hddaq::cout << "[Info] IsGood = " << is_good << std::endl;
-  if(is_good){
+
+  if(is_good || true){
 #if SAVEPDF
     gEvDisp.Print(gUnpacker.get_run_number(),
                   gUnpacker.get_event_number());

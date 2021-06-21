@@ -112,6 +112,7 @@ public:
   FiberHit* GetHitSCH(UInt_t seg) const { return m_SCHCont.at(seg); }
   Hodo1Hit* GetHitTPCClock() const { return m_TPCClock; }
 
+  const Hodo2HitContainer& GetHitsBH1() const { return m_BH1Cont; }
   const BH2HitContainer& GetHitsBH2() const { return m_BH2Cont; }
   const Hodo2HitContainer& GetHitsTOF() const { return m_TOFCont; }
   const FiberHitContainer& GetHitsSCH() const { return m_SCHCont; }

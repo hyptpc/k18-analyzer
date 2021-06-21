@@ -143,7 +143,7 @@ KuramaTrack::DoFit()
   m_status = kInit;
 
   if(m_initial_momentum<0){
-    hddaq::cout << "#E " << FUNC_NAME << " initial momentum must be positive"
+    hddaq::cout << FUNC_NAME << " initial momentum must be positive"
   		<< m_initial_momentum << std::endl;
     m_status = kFatal;
     return false;
@@ -177,7 +177,7 @@ KuramaTrack::DoFit()
     m_status = (RKstatus)RK::Trace(iniCord, m_HitPointCont);
     if(m_status != kPassed){
 #ifdef WARNOUT
-      // hddaq::cerr << "#E " << FUNC_NAME << " "
+      // hddaq::cerr << FUNC_NAME << " "
       // 		<< "something is wrong : " << iItr << std::endl;
 #endif
       break;
@@ -727,7 +727,7 @@ KuramaTrack::Print(const TString& arg, std::ostream& ost)
 {
   PrintHelper helper(5, std::ios::fixed, ost);
 
-  ost << "#D " << FUNC_NAME << " " << arg << std::endl
+  ost << FUNC_NAME << " " << arg << std::endl
       << "   status : " << s_status[m_status] << std::endl
       << " in " << std::setw(3) << m_n_iteration << " ("
       << std::setw(2) << m_nef_iteration << ") Iteractions "

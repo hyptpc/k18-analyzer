@@ -165,8 +165,12 @@ class RunlistManager(metaclass=classimpl.Singleton):
     if self.__is_ready is False:
       return None
     data = dict()
-    with open(path, 'r') as f:
-      data = yaml.safe_load(f.read())
+    try:
+      with open(path, 'r') as f:
+        data = yaml.safe_load(f.read())
+    except yaml.parser.ParserError as e:
+      logger.error(f'runlist yaml syntax error: {e}')
+      exit(1)
     work_dir = os.path.expanduser(data['WORKDIR'])
     if os.path.isdir(work_dir):
       return work_dir
@@ -190,8 +194,18 @@ class RunlistManager(metaclass=classimpl.Singleton):
     if self.__work_dir is None:
       self.__work_dir = self.get_work_dir(path)
     data = dict()
-    with open(path, 'r') as f:
-      data = yaml.safe_load(f.read())
+    try:
+      with open(path, 'r') as f:
+        data = yaml.safe_load(f.read())
+    except yaml.parser.ParserError as e:
+      logger.error(f'runlist yaml syntax error: {e}')
+      exit(1)
+    if ('DEFAULT' not in data
+        or data['DEFAULT'] is None
+        or 'RUN' not in data
+        or data['RUN'] is None):
+      logger.error('runlist must have "DEFAULT" and "RUN" items')
+      exit(1)
     defset = data['DEFAULT']
     runlist = list()
     for key, parsets in data['RUN'].items():
