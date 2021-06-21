@@ -813,7 +813,7 @@ UserEventDisplay::ProcessingNormal()
   // gEvDisp.GetCommand();
   hddaq::cout << "[Info] IsGood = " << is_good << std::endl;
 
-  if(is_good || true){
+  if(is_good){
 #if SAVEPDF
     gEvDisp.Print(gUnpacker.get_run_number(),
                   gUnpacker.get_event_number());
