@@ -788,7 +788,10 @@ UserEventDisplay::ProcessingNormal()
     gEvDisp.DrawVertex(vertex);
     gEvDisp.DrawMissingMomentum(MissMom, vertex);
     if(TMath::Abs(vertex.z()+70) < 100
-       && through_target
+       && TMath::Abs(vertex.x()-8.9) < 25.
+       && TMath::Abs(vertex.y()) < 20.
+       && closedist < 100.
+       // && through_target
        && m2 > 0.15
        && m2 < 0.40
        && pkp.z() > 0){
