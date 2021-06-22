@@ -120,7 +120,9 @@ TPCLocalTrack_Helix::TPCLocalTrack_Helix( void )
     m_isbeam(0),
     m_min_t(0.), m_max_t(0.), m_path(0.),
     //minuit(new TMinuit(5)),
-    m_mom0(0.,0.,0.)
+    m_mom0(0.,0.,0.),
+    m_mom0_corP(0.,0.,0.),
+    m_mom0_corN(0.,0.,0.)
 {
   m_hit_array.reserve( ReservedNumOfHits );
 
@@ -255,6 +257,131 @@ TPCLocalTrack_Helix::CalcHelixMom_t(double par[5], double t) const
 
   return TVector3(px,py,pz);
 }
+
+// momentum correction for positive particle
+//______________________________________________________________________________
+TVector3
+TPCLocalTrack_Helix::CalcHelixMom_corP(double par[5], double y) const
+{
+
+  const double Const = 0.299792458; // =c/10^9
+  const double dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+
+  // obtained by Beam through analysis
+  double cor_p1 = 0.6222;
+  double cor_p0 = 0.1198;
+
+  double t = (y-par[2])/(par[3]*par[4]);
+  double pt = fabs(par[3])*(Const*dMagneticField); // MeV/c
+  pt = pt*cor_p1 + cor_p0;
+  if(pt<0.01)
+    pt =0.01;
+
+  //From here!!!!
+  double tmp_px = pt*(-1.*sin(t));
+  double tmp_py = pt*(cos(t));
+  double tmp_pz = pt*(par[4]);
+  double px = -tmp_px*0.001;
+  double py = tmp_pz*0.001;
+  double pz = tmp_py*0.001;
+
+
+  return TVector3(px,py,pz);
+}
+
+//______________________________________________________________________________
+TVector3
+TPCLocalTrack_Helix::CalcHelixMom_t_corP(double par[5], double t) const
+{
+
+  const double Const = 0.299792458; // =c/10^9
+  const double dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+
+
+  // obtained by Beam through analysis
+  double cor_p1 = 0.6222;
+  double cor_p0 = 0.1198;
+
+  //  double t = (y-par[2])/(par[3]*par[4]);
+  double pt = fabs(par[3])*(Const*dMagneticField); // MeV/c
+  pt = pt*cor_p1 + cor_p0;
+  if(pt<0.01)
+    pt =0.01;
+
+  //From here!!!!
+  double tmp_px = pt*(-1.*sin(t));
+  double tmp_py = pt*(cos(t));
+  double tmp_pz = pt*(par[4]);
+  double px = -tmp_px*0.001;
+  double py = tmp_pz*0.001;
+  double pz = tmp_py*0.001;
+
+
+  return TVector3(px,py,pz);
+}
+
+// momentum correction for negative particle
+//______________________________________________________________________________
+TVector3
+TPCLocalTrack_Helix::CalcHelixMom_corN(double par[5], double y) const
+{
+
+  const double Const = 0.299792458; // =c/10^9
+  const double dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+
+  // obtained by Beam through analysis
+  double cor_p1 = 1.07;
+  double cor_p0 = -0.0353;
+
+  double t = (y-par[2])/(par[3]*par[4]);
+  double pt = fabs(par[3])*(Const*dMagneticField); // MeV/c
+  pt = pt*cor_p1 + cor_p0;
+  if(pt<0.01)
+    pt =0.01;
+
+  //From here!!!!
+  double tmp_px = pt*(-1.*sin(t));
+  double tmp_py = pt*(cos(t));
+  double tmp_pz = pt*(par[4]);
+  double px = -tmp_px*0.001;
+  double py = tmp_pz*0.001;
+  double pz = tmp_py*0.001;
+
+
+  return TVector3(px,py,pz);
+}
+
+//______________________________________________________________________________
+TVector3
+TPCLocalTrack_Helix::CalcHelixMom_t_corN(double par[5], double t) const
+{
+
+  const double Const = 0.299792458; // =c/10^9
+  const double dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+
+
+  // obtained by Beam through analysis
+  double cor_p1 = 1.07;
+  double cor_p0 = -0.0353;
+  
+  //  double t = (y-par[2])/(par[3]*par[4]);
+  double pt = fabs(par[3])*(Const*dMagneticField); // MeV/c
+  pt = pt*cor_p1 + cor_p0;
+  if(pt<0.01)
+    pt =0.01;
+
+  //From here!!!!
+  double tmp_px = pt*(-1.*sin(t));
+  double tmp_py = pt*(cos(t));
+  double tmp_pz = pt*(par[4]);
+  double px = -tmp_px*0.001;
+  double py = tmp_pz*0.001;
+  double pz = tmp_py*0.001;
+
+
+  return TVector3(px,py,pz);
+}
+
 
 
 
@@ -915,6 +1042,8 @@ TPCLocalTrack_Helix::DoHelixFit( int MinHits , int IsBeam)
 
   //  std::cout<<"final_chisqr: "<<min_chisqr<<std::endl;
   m_mom0 = CalcHelixMom(min_par, 0.);
+  m_mom0_corP = CalcHelixMom_corP(min_par, 0.);
+  m_mom0_corN = CalcHelixMom_corN(min_par, 0.);
   //std::cout<<"m_chisqr: "<<m_chisqr<<std::endl;
 
   delete  minuit;

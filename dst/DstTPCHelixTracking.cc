@@ -142,6 +142,12 @@ struct Event
   std::vector<Double_t> mom0_z;//Helix momentum at Y = 0
   std::vector<Double_t> mom0;//Helix momentum at Y = 0
 
+  std::vector<Double_t> mom0_cor_x;//Helix momentum at Y = 0
+  std::vector<Double_t> mom0_cor_y;//Helix momentum at Y = 0
+  std::vector<Double_t> mom0_cor_z;//Helix momentum at Y = 0
+  std::vector<Double_t> mom0_cor;//Helix momentum at Y = 0
+
+
   std::vector<Int_t> charge;//Helix charge
   std::vector<Double_t> path;//Helix path
 
@@ -150,6 +156,10 @@ struct Event
   std::vector<Double_t> mom_vtx;//Helix momentum at vtx
   std::vector<Double_t> mom_vty;//Helix momentum at vtx
   std::vector<Double_t> mom_vtz;//Helix momentum at vtx
+  std::vector<Double_t> mom_cor_vtx;//Helix momentum at vtx
+  std::vector<Double_t> mom_cor_vty;//Helix momentum at vtx
+  std::vector<Double_t> mom_cor_vtz;//Helix momentum at vtx
+
   std::vector<Double_t> vtx;
   std::vector<Double_t> vty;
   std::vector<Double_t> vtz;
@@ -264,6 +274,11 @@ struct Event
     mom0_z.clear();
     mom0.clear();
 
+    mom0_cor_x.clear();
+    mom0_cor_y.clear();
+    mom0_cor_z.clear();
+    mom0_cor.clear();
+
     charge.clear();
     path.clear();
 
@@ -271,6 +286,10 @@ struct Event
     mom_vtx.clear();
     mom_vty.clear();
     mom_vtz.clear();
+    mom_cor_vtx.clear();
+    mom_cor_vty.clear();
+    mom_cor_vtz.clear();
+
     vtx.clear();
     vty.clear();
     vtz.clear();
@@ -546,6 +565,12 @@ dst::DstRead( int ievent )
   event.mom0_y.resize( ntTpc );
   event.mom0_z.resize( ntTpc );
   event.mom0.resize( ntTpc );
+  event.mom0_cor_x.resize( ntTpc );
+  event.mom0_cor_y.resize( ntTpc );
+  event.mom0_cor_z.resize( ntTpc );
+  event.mom0_cor.resize( ntTpc );
+
+
   event.dE.resize( ntTpc );
   event.dEdx.resize( ntTpc );
   event.dEdx2.resize( ntTpc );
@@ -580,6 +605,9 @@ dst::DstRead( int ievent )
   event.mom_vtx.resize( ntTpc );
   event.mom_vty.resize( ntTpc );
   event.mom_vtz.resize( ntTpc );
+  event.mom_cor_vtx.resize( ntTpc );
+  event.mom_cor_vty.resize( ntTpc );
+  event.mom_cor_vtz.resize( ntTpc );
   event.vtx.resize( ntTpc );
   event.vty.resize( ntTpc );
   event.vtz.resize( ntTpc );
@@ -644,6 +672,9 @@ dst::DstRead( int ievent )
     event.hitClsize[it].resize( nh );
     
     double min_closeDist = 1000000.;
+    double par1[5]={helix_cx, helix_cy, helix_z0, 
+		    helix_r, helix_dz};
+    
     for( Int_t it2=0; it2<ntTpc; ++it2 ){
       if(it==it2)
 	continue;
@@ -654,8 +685,6 @@ dst::DstRead( int ievent )
       Double_t helix_dz2 = tp2->Getdz();
       Double_t chisqr2 = tp2->GetChiSquare();
 
-      double par1[5]={helix_cx, helix_cy, helix_z0, 
-		      helix_r, helix_dz};
       double par2[5]={helix_cx2, helix_cy2, helix_z02, 
 		      helix_r2, helix_dz2};
       double closeDist, t1, t2;
@@ -667,8 +696,8 @@ dst::DstRead( int ievent )
 	event.vty[it] = vert.y();
 	event.vtz[it] = vert.z();
 	event.closeDist[it] = closeDist;
-	//TVector3 mom_vtx = tp->CalcHelixMom(par1, vert.y());
-	TVector3 mom_vtx = tp->CalcHelixMom_t(par1, t1);
+	TVector3 mom_vtx = tp->CalcHelixMom(par1, vert.y());
+	//TVector3 mom_vtx = tp->CalcHelixMom_t(par1, t1);
 	event.mom_vtx[it] = mom_vtx.x();
 	event.mom_vty[it] = mom_vtx.y();
 	event.mom_vtz[it] = mom_vtx.z();
@@ -789,6 +818,26 @@ dst::DstRead( int ievent )
       event.charge[it] = 1;
     else
       event.charge[it] = -1;
+
+    TVector3 Mom0_cor, mom_cor_vtx;
+    if(event.charge[it] == 1){
+      Mom0_cor = tp->GetMom0_corP();
+      mom_cor_vtx = tp->CalcHelixMom_corP(par1, event.vty[it]);
+    }
+    if(event.charge[it] == -1){
+      Mom0_cor = tp->GetMom0_corN();
+      mom_cor_vtx = tp->CalcHelixMom_corN(par1, event.vty[it]);
+    }
+    event.mom0_cor_x[it]=Mom0_cor.x();
+    event.mom0_cor_y[it]=Mom0_cor.y();
+    event.mom0_cor_z[it]=Mom0_cor.z();
+    event.mom0_cor[it]=Mom0_cor.Mag();
+
+    event.mom_cor_vtx[it]=mom_cor_vtx.x();
+    event.mom_cor_vty[it]=mom_cor_vtx.y();
+    event.mom_cor_vtz[it]=mom_cor_vtx.z();
+
+    
     Double_t pathlen = (max_t - min_t)*sqrt(helix_r*helix_r*(1.+helix_dz*helix_dz));
     Int_t htofseg = tp->GetHTOFSeg(min_layer_t, max_layer_t, max_layer_y);
     //std::cout<<"min_t="<<min_t<<", max_t="<<max_t<<", helix_r="<<helix_r<<", path="<<pathlen<<std::endl;
@@ -844,14 +893,16 @@ dst::DstRead( int ievent )
 	event.dEdx_harm_10[it] += 1./dEdx_vect[it];
       }
       //80% in gaus
-      if(event.dEdx2[it]-1.28*dEdxRMS<dEdx_vect[ih]
-	 &&dEdx_vect[ih]<event.dEdx2[it]+1.28*dEdxRMS){
+      // if(event.dEdx2[it]-1.28*dEdxRMS<dEdx_vect[ih]
+      // 	 &&dEdx_vect[ih]<event.dEdx2[it]+1.28*dEdxRMS){
+      if(dEdx_vect[ih]<event.dEdx2[it]+1.28*dEdxRMS){
 	event.dEdx_rms20[it]+=dEdx_vect[ih];
 	++n_rms20;
       }
       //90% in gaus
-      if(event.dEdx2[it]-1.64*dEdxRMS<dEdx_vect[ih]
-	 &&dEdx_vect[ih]<event.dEdx2[it]+1.64*dEdxRMS){
+      // if(event.dEdx2[it]-1.64*dEdxRMS<dEdx_vect[ih]
+      // 	 &&dEdx_vect[ih]<event.dEdx2[it]+1.64*dEdxRMS){
+      if(dEdx_vect[ih]<event.dEdx2[it]+1.64*dEdxRMS){
 	event.dEdx_rms10[it]+=dEdx_vect[ih];
 	++n_rms10;
       }
@@ -920,10 +971,10 @@ dst::DstRead( int ievent )
 	   &&event.charge[it]==-1*event.charge[it2]
 	   &&event.chisqr_flag[it]==1&&event.chisqr_flag[it2]==1){
 	  if(event.charge[it]==1){
-	    TVector3 momp(event.mom_vtx[it], event.mom_vty[it], event.mom_vtz[it]);
+	    TVector3 momp(event.mom_cor_vtx[it], event.mom_cor_vty[it], event.mom_cor_vtz[it]);
 	    TLorentzVector Lp(momp, std::sqrt(ProtonMass*ProtonMass+momp.Mag2()));
 	    TLorentzVector Lpip(momp, std::sqrt(PionMass*PionMass+momp.Mag2()));
-	    TVector3 mompi(event.mom_vtx[it2], event.mom_vty[it2], event.mom_vtz[it2]);
+	    TVector3 mompi(event.mom_cor_vtx[it2], event.mom_cor_vty[it2], event.mom_cor_vtz[it2]);
 	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
@@ -952,10 +1003,10 @@ dst::DstRead( int ievent )
 	    }
 	  }
 	  else{
-	    TVector3 momp(event.mom_vtx[it2], event.mom_vty[it2], event.mom_vtz[it2]);
+	    TVector3 momp(event.mom_cor_vtx[it2], event.mom_cor_vty[it2], event.mom_cor_vtz[it2]);
 	    TLorentzVector Lp(momp, std::sqrt(ProtonMass*ProtonMass+momp.Mag2()));
 	    TLorentzVector Lpip(momp, std::sqrt(PionMass*PionMass+momp.Mag2()));
-	    TVector3 mompi(event.mom_vtx[it], event.mom_vty[it], event.mom_vtz[it]);
+	    TVector3 mompi(event.mom_cor_vtx[it], event.mom_cor_vty[it], event.mom_cor_vtz[it]);
 	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
@@ -1062,6 +1113,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "mom0_y", &event.mom0_y );
   tree->Branch( "mom0_z", &event.mom0_z );
   tree->Branch( "mom0", &event.mom0 );
+  tree->Branch( "mom0_cor_x", &event.mom0_cor_x );
+  tree->Branch( "mom0_cor_y", &event.mom0_cor_y );
+  tree->Branch( "mom0_cor_z", &event.mom0_cor_z );
+  tree->Branch( "mom0_cor", &event.mom0_cor );
   tree->Branch( "dE", &event.dE );
   tree->Branch( "dEdx", &event.dEdx );
   tree->Branch( "dEdx2", &event.dEdx2 );
@@ -1097,6 +1152,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "mom_vtx", &event.mom_vtx );
   tree->Branch( "mom_vty", &event.mom_vty );
   tree->Branch( "mom_vtz", &event.mom_vtz );
+  tree->Branch( "mom_cor_vtx", &event.mom_cor_vtx );
+  tree->Branch( "mom_cor_vty", &event.mom_cor_vty );
+  tree->Branch( "mom_cor_vtz", &event.mom_cor_vtz );
   tree->Branch( "vtx", &event.vtx );
   tree->Branch( "vty", &event.vty );
   tree->Branch( "vtz", &event.vtz );

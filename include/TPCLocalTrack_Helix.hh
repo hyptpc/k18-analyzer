@@ -58,6 +58,8 @@ private:
   bool   m_good_for_tracking;
   double m_n_iteration;
   TVector3 m_mom0;
+  TVector3 m_mom0_corP;
+  TVector3 m_mom0_corN;
   double m_min_t;
   double m_max_t;
   double m_path;
@@ -76,6 +78,11 @@ public:
   TVector3     GetPosition( double par[5], double t ) const;
   TVector3     CalcHelixMom( double par[5], double y) const;
   TVector3     CalcHelixMom_t( double par[5], double t) const;
+  TVector3     CalcHelixMom_corP( double par[5], double y) const;
+  TVector3     CalcHelixMom_t_corP( double par[5], double t) const;
+  TVector3     CalcHelixMom_corN( double par[5], double y) const;
+  TVector3     CalcHelixMom_t_corN( double par[5], double t) const;
+
   int          GetNHit( void ) const { return m_hit_array.size();  }
   TPCLTrackHit* GetHit( std::size_t nth ) const;
   bool         IsFitted( void ) const { return m_is_fitted; }
@@ -106,6 +113,8 @@ public:
   double Getdz( void ) const { return m_dz; }
 
   TVector3 GetMom0( void ) const { return m_mom0; }// Momentum at Y = 0
+  TVector3 GetMom0_corP( void ) const { return m_mom0_corP; }// Momentum at Y = 0
+  TVector3 GetMom0_corN( void ) const { return m_mom0_corN; }// Momentum at Y = 0
 
 
   double GetAcx( void ) const { return m_Acx; }
