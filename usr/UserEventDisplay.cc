@@ -40,6 +40,7 @@ auto&       gEvDisp = EventDisplay::GetInstance();
 const auto& gUser   = UserParamMan::GetInstance();
 auto&       gFilter = BH2Filter::GetInstance();
 auto&       gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
+const Double_t PionMass   = pdg::PionMass();
 const Double_t KaonMass   = pdg::KaonMass();
 const Double_t ProtonMass = pdg::ProtonMass();
 }
@@ -535,7 +536,7 @@ UserEventDisplay::ProcessingNormal()
     gEvDisp.DrawSdcInLocalTrack(track);
   }
   if(ntSdcIn != 1){
-    // hddaq::cout << "[Warning] SdcInTrack is empty!" << std::endl;
+    hddaq::cout << "[Warning] SdcInTrack is empty!" << std::endl;
     return true;
   }
 
@@ -591,7 +592,7 @@ UserEventDisplay::ProcessingNormal()
     gEvDisp.DrawSdcOutLocalTrack(track);
   }
   if(ntSdcOut != 1){
-    // hddaq::cout << "[Warning] SdcInTrack is empty!" << std::endl;
+    hddaq::cout << "[Warning] SdcInTrack is empty!" << std::endl;
     return true;
   }
 
@@ -641,12 +642,12 @@ UserEventDisplay::ProcessingNormal()
       auto max_adc = rhit->MaxAdc();
       // auto rms = rhit->RMS();
       auto loc_max = rhit->LocMax();
-      if(loc_max < 25 || 160 <loc_max)
+      if(loc_max < 25 || 155 <loc_max)
         continue;
-      TVector3 pos = tpc::getPosition(layer, row);
-      pos.SetY((loc_max - 76.75)*80.0*0.05);
       gEvDisp.FillTPCADC(layer, row, max_adc - mean);
       gEvDisp.FillTPCTDC(layer, row, loc_max);
+      // TVector3 pos = tpc::getPosition(layer, row);
+      // pos.SetY((loc_max - 76.75)*80.0*0.05);
       // gEvDisp.SetTPCMarker(pos);
     }
   }
@@ -774,42 +775,53 @@ UserEventDisplay::ProcessingNormal()
     ThreeVector pkm = KmPCont[0];
     ThreeVector xkp = KpXCont[0];
     ThreeVector xkm = KmXCont[0];
+    Double_t m2 = M2Cont[0];
+    Double_t mass = TMath::QuietNaN();
+    if(TMath::Abs(m2) < 0.15 && pkp.Mag() < 1.5) mass = PionMass;
+    if(m2 > 0.15 && m2 < 0.35 && pkp.Mag() < 1.4) mass = KaonMass;
+    if(m2 > 0.55) mass = ProtonMass;
     ThreeVector vertex = Kinematics::VertexPoint(xkm, xkp, pkm, pkp);
     Double_t closedist = Kinematics::CloseDist(xkm, xkp, pkm, pkp);
-    LorentzVector LvKm(KmPCont[0], TMath::Sqrt(KaonMass*KaonMass+pkm.Mag2()));
-    LorentzVector LvKp(KpPCont[0], TMath::Sqrt(KaonMass*KaonMass+pkp.Mag2()));
+    LorentzVector LvKm(KmPCont[0], TMath::Sqrt(mass*mass+pkm.Mag2()));
+    LorentzVector LvKp(KpPCont[0], TMath::Sqrt(mass*mass+pkp.Mag2()));
     LorentzVector LvP(0., 0., 0., ProtonMass);
     LorentzVector LvRp = LvKm+LvP-LvKp;
     ThreeVector MissMom = LvRp.Vect();
     Double_t MissMass = LvRp.Mag();
-    Double_t m2 = M2Cont[0];
     hddaq::cout << "[Info] Vertex = " << vertex << std::endl;
     hddaq::cout << "[Info] MissingMomentum = " << MissMom << std::endl;
     gEvDisp.DrawVertex(vertex);
     gEvDisp.DrawMissingMomentum(MissMom, vertex);
-    if(TMath::Abs(vertex.z()+70) < 100
+    if(true
+       && TMath::Abs(vertex.z()+70) < 100
        && TMath::Abs(vertex.x()-8.9) < 25.
        && TMath::Abs(vertex.y()) < 20.
-       && closedist < 100.
+       && closedist < 20.
        // && through_target
-       && m2 > 0.15
-       && m2 < 0.40
-       && pkp.z() > 0){
-      // gEvDisp.GetCommand();
-      is_good = true;
+    ){
       gEvDisp.DrawText(0.680, 0.920, "pK18");
       gEvDisp.DrawText(0.860, 0.920, Form("%.3f", pkm.Mag()));
       gEvDisp.DrawText(0.680, 0.880, "pKurama");
       gEvDisp.DrawText(0.860, 0.880, Form("%.3f", pkp.Mag()));
       gEvDisp.DrawText(0.680, 0.840, "MassSquared");
       gEvDisp.DrawText(0.860, 0.840, Form("%.3f", m2));
-      gEvDisp.DrawText(0.620, 0.280, "CloseDist");
-      gEvDisp.DrawText(0.720, 0.280, Form("%.2f", closedist));
-      gEvDisp.DrawText(0.620, 0.240, Form("Vertex = (%.2f, %.2f, %.2f)",
+      gEvDisp.DrawText(0.660, 0.280, "CloseDist");
+      gEvDisp.DrawText(0.770, 0.280, Form("%.2f", closedist));
+      gEvDisp.DrawText(0.660, 0.240, "Vertex");
+      gEvDisp.DrawText(0.770, 0.240, Form("(%.2f, %.2f, %.2f)",
                                           vertex.X(), vertex.Y(), vertex.Z()));
-      gEvDisp.DrawText(0.620, 0.200, Form("MissMom = (%.4f, %.4f, %.4f)",
+      gEvDisp.DrawText(0.660, 0.200, "MissMom");
+      gEvDisp.DrawText(0.770, 0.200, Form("(%.3f, %.3f, %.3f)",
                                           MissMom.X(), MissMom.Y(), MissMom.Z()));
-      gEvDisp.DrawText(0.620, 0.160, Form("MissMass = %.5f", MissMass));
+      gEvDisp.DrawText(0.660, 0.160, "MissMass");
+      gEvDisp.DrawText(0.770, 0.160, Form("%.4f", MissMass));
+      if(true
+         && mass == KaonMass
+         && pkp.z() > 0
+      ){
+        // gEvDisp.GetCommand();
+        is_good = true;
+      }
     }
   }
 

@@ -268,7 +268,15 @@ EventDisplay::Initialize()
   Int_t myfont = 42;
   gStyle->SetTextFont(myfont);
   gStyle->SetLabelFont(myfont, "xyz");
+  gStyle->SetLabelSize(0.025, "xyz");
   gStyle->SetTitleFont(myfont, "xyz");
+  // gStyle->SetTitleFont(myfont, "p");
+  gStyle->SetTitleSize(0.025, "xy");
+  gStyle->SetTitleSize(0.016, "z");
+  // gStyle->SetTitleSize(0.036, "p");
+  gStyle->SetTitleOffset(1.5, "y");
+  gStyle->SetTitleOffset(-1.36, "z");
+  // gStyle->SetTitleOffset(-0.02, "p");
 
   gSystem->MakeDirectory("fig/evdisp");
 
@@ -332,7 +340,8 @@ EventDisplay::Initialize()
     const Double_t MinZ = -400.;
     const Double_t MaxZ =  400.;
     m_tpc_adc2d = new TH2Poly("h_tpc_adc2d", "TPC ADC;Z;X", MinZ, MaxZ, MinX, MaxX);
-    m_tpc_tdc2d = new TH2Poly("h_tpc_tdc2d", "HypTPC Event Display;Z;X;tb#", MinZ, MaxZ, MinX, MaxX);
+    m_tpc_tdc2d = new TH2Poly("h_tpc_tdc2d", "HypTPC Event Display;Z;X;TimeBucket#",
+                              MinZ, MaxZ, MinX, MaxX);
     Double_t X[5];
     Double_t Y[5];
     for (Int_t l=0; l<NumOfLayersTPC; ++l) {
