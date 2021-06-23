@@ -722,4 +722,91 @@ Beta(Double_t energy,Double_t mormentum)
   return mormentum/energy;
 }
 
+//_____________________________________________________________________________
+Int_t
+PID_HypTPC_dEdx(const Double_t dEdx, const Double_t mom, const Int_t charge)
+{
+// function for proton
+// [0]+[1]/x+[2]/(x*x) : x= mom (not p/q)
+// Low
+// [0] =0.172461, [1] =-0.12322, [2] =0.442865
+// High
+// [0] =0.51042, [1] =-0.432761, [2] =1.06032
+// Central
+// [0] =0.236399, [1] =-0.181781, [2] =0.559682
+
+// function for pi+
+//   [0]+[1]/x : x= mom (not p/q)
+// Low
+// [0] =0.343343, [1] =0.0584624
+// High
+// [0] =0.580406, [1] =0.169202
+// Central
+// [0] =0.485581, [1] =0.124906
+// function for pi-
+//   [0]+[1]/x : x= mom (not p/q)
+// Low
+// [0] =0.343343, [1] =0.0584624
+// High
+// [0] =0.770056, [1] =0.257794
+// Central
+// [0] =0.485581, [1] =0.124906
+ 
+  // return value 
+  // pi+:1, proton:2, both (inside both pi+ and proton): 3
+  // pi-:-1
+  // no identification: 0
+
+  int pid = 0;
+
+  TF1 * fpid_l = new TF1("fpid_l","[0]+[1]/x+[2]/(x*x)",0.,2.);
+  TF1 * fpid_h = new TF1("fpid_h","[0]+[1]/x+[2]/(x*x)",0.,2.);
+  Double_t para_p_l[3]={0.172461, -0.12322, 0.442865};
+  Double_t para_p_h[3]={0.51042, -0.432761, 1.06032};
+  Double_t para_pip_l[3]={0.343343, 0.0584624, 0.};
+  Double_t para_pip_h[3]={0.580406, 0.169202, 0.};
+  Double_t para_pim_l[3]={0.343343, 0.0584624, 0.};
+  Double_t para_pim_h[3]={0.770056, 0.257794, 0.};
+  
+  bool is_proton = false;
+  bool is_pip = false;
+  bool is_pim = false;
+  // pip id
+  fpid_l->SetParameters(para_pip_l);
+  fpid_h->SetParameters(para_pip_h);
+  if(fpid_l->Eval(mom)<dEdx
+     &&dEdx<fpid_h->Eval(mom)
+     &&charge==1)
+    is_pip = true;
+
+  // proton id
+  fpid_l->SetParameters(para_p_l);
+  fpid_h->SetParameters(para_p_h);
+  if(fpid_l->Eval(mom)<dEdx
+     &&dEdx<fpid_h->Eval(mom)
+     &&charge==1)
+    is_proton = true;
+
+  // pim id
+  fpid_l->SetParameters(para_pim_l);
+  fpid_h->SetParameters(para_pim_h);
+  if(fpid_l->Eval(mom)<dEdx
+     &&dEdx<fpid_h->Eval(mom)
+     &&charge==-1)
+    is_pim = true;
+
+  if(is_proton&&is_pip)
+    pid = 3;
+  else if(is_pip)
+    pid = 1;
+  else if(is_proton)
+    pid = 2;
+  if(is_pim)
+    pid = -1;
+  
+  delete fpid_l;
+  delete fpid_h;
+  
+  return pid;
+}
 }

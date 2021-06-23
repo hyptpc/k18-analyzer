@@ -160,6 +160,7 @@ struct Event
   std::vector<Double_t> mom_cor_vty;//Helix momentum at vtx
   std::vector<Double_t> mom_cor_vtz;//Helix momentum at vtx
 
+  std::vector<Int_t> pid;
   std::vector<Double_t> vtx;
   std::vector<Double_t> vty;
   std::vector<Double_t> vtz;
@@ -290,6 +291,7 @@ struct Event
     mom_cor_vty.clear();
     mom_cor_vtz.clear();
 
+    pid.clear();
     vtx.clear();
     vty.clear();
     vtz.clear();
@@ -608,6 +610,7 @@ dst::DstRead( int ievent )
   event.mom_cor_vtx.resize( ntTpc );
   event.mom_cor_vty.resize( ntTpc );
   event.mom_cor_vtz.resize( ntTpc );
+  event.pid.resize( ntTpc );
   event.vtx.resize( ntTpc );
   event.vty.resize( ntTpc );
   event.vtz.resize( ntTpc );
@@ -828,6 +831,7 @@ dst::DstRead( int ievent )
       Mom0_cor = tp->GetMom0_corN();
       mom_cor_vtx = tp->CalcHelixMom_corN(par1, event.vty[it]);
     }
+    
     event.mom0_cor_x[it]=Mom0_cor.x();
     event.mom0_cor_y[it]=Mom0_cor.y();
     event.mom0_cor_z[it]=Mom0_cor.z();
@@ -960,7 +964,12 @@ dst::DstRead( int ievent )
     // event.dEdx_cor[it]=event.dEdx[it]/dz_factor;
     // event.dEdx_20_cor[it]=event.dEdx_20[it]/dz_factor;
     // event.dEdx_10_cor[it]=event.dEdx_10[it]/dz_factor;
+    int particle= Kinematics::PID_HypTPC_dEdx(event.dEdx_rms20[it],
+					      event.mom0_cor[it],
+					      event.charge[it]);
+    event.pid[it]=particle; 
   }
+
 
   // rough estimation for Lambda and Ks event
   if(ntTpc>1){
@@ -971,15 +980,15 @@ dst::DstRead( int ievent )
 	   &&event.charge[it]==-1*event.charge[it2]
 	   &&event.chisqr_flag[it]==1&&event.chisqr_flag[it2]==1){
 	  if(event.charge[it]==1){
-	    TVector3 momp(event.mom_cor_vtx[it], event.mom_cor_vty[it], event.mom_cor_vtz[it]);
-	    TLorentzVector Lp(momp, std::sqrt(ProtonMass*ProtonMass+momp.Mag2()));
-	    TLorentzVector Lpip(momp, std::sqrt(PionMass*PionMass+momp.Mag2()));
-	    TVector3 mompi(event.mom_cor_vtx[it2], event.mom_cor_vty[it2], event.mom_cor_vtz[it2]);
-	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
+	    TVector3 mom_pos(event.mom_cor_vtx[it], event.mom_cor_vty[it], event.mom_cor_vtz[it]);
+	    TLorentzVector Lp(mom_pos, std::sqrt(ProtonMass*ProtonMass+mom_pos.Mag2()));
+	    TLorentzVector Lpip(mom_pos, std::sqrt(PionMass*PionMass+mom_pos.Mag2()));
+	    TVector3 mom_neg(event.mom_cor_vtx[it2], event.mom_cor_vty[it2], event.mom_cor_vtz[it2]);
+	    TLorentzVector Lpi(mom_neg, std::sqrt(PionMass*PionMass+mom_neg.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
 	    //	    if(event.dEdx_20_cor[it]>event.dEdx_20_cor[it2]*1.5){
-	    if(event.dEdx_cor[it]>event.dEdx_cor[it2]*1.5){
+	    if(event.pid[it]==2&&event.pid[it2]==-1){
 	      event.M_Lambda.push_back(LLambda.M());
 	      event.Lvtx.push_back(event.vtx[it]);
 	      event.Lvty.push_back(event.vty[it]);
@@ -990,7 +999,7 @@ dst::DstRead( int ievent )
 	      event.Mom_Lambday.push_back(LLambda.Py());
 	      event.Mom_Lambdaz.push_back(LLambda.Pz());
 	    }
-	    else{
+	    if(event.pid[it]==1&&event.pid[it2]==-1){
 	      event.M_Ks.push_back(LKs.M());
 	      event.Ksvtx.push_back(event.vtx[it]);
 	      event.Ksvty.push_back(event.vty[it]);
@@ -1003,15 +1012,15 @@ dst::DstRead( int ievent )
 	    }
 	  }
 	  else{
-	    TVector3 momp(event.mom_cor_vtx[it2], event.mom_cor_vty[it2], event.mom_cor_vtz[it2]);
-	    TLorentzVector Lp(momp, std::sqrt(ProtonMass*ProtonMass+momp.Mag2()));
-	    TLorentzVector Lpip(momp, std::sqrt(PionMass*PionMass+momp.Mag2()));
-	    TVector3 mompi(event.mom_cor_vtx[it], event.mom_cor_vty[it], event.mom_cor_vtz[it]);
-	    TLorentzVector Lpi(mompi, std::sqrt(PionMass*PionMass+mompi.Mag2()));
+	    TVector3 mom_pos(event.mom_cor_vtx[it2], event.mom_cor_vty[it2], event.mom_cor_vtz[it2]);
+	    TLorentzVector Lp(mom_pos, std::sqrt(ProtonMass*ProtonMass+mom_pos.Mag2()));
+	    TLorentzVector Lpip(mom_pos, std::sqrt(PionMass*PionMass+mom_pos.Mag2()));
+	    TVector3 mom_neg(event.mom_cor_vtx[it], event.mom_cor_vty[it], event.mom_cor_vtz[it]);
+	    TLorentzVector Lpi(mom_neg, std::sqrt(PionMass*PionMass+mom_neg.Mag2()));
 	    TLorentzVector LLambda = Lp + Lpi;
 	    TLorentzVector LKs = Lpip + Lpi;
 	    //	    if(event.dEdx_20_cor[it2]>event.dEdx_20_cor[it]*1.5){
-	    if(event.dEdx_cor[it2]>event.dEdx_cor[it]*1.5){
+	    if(event.pid[it2]==2&&event.pid[it]==-1){
 	      event.M_Lambda.push_back(LLambda.M());
 	      event.Lvtx.push_back(event.mom_vtx[it]);
 	      event.Lvty.push_back(event.mom_vty[it]);
@@ -1022,7 +1031,7 @@ dst::DstRead( int ievent )
 	      event.Mom_Lambday.push_back(LLambda.Py());
 	      event.Mom_Lambdaz.push_back(LLambda.Pz());
 	    }
-	    else{
+	    if(event.pid[it2]==1&&event.pid[it]==-1){
 	      event.M_Ks.push_back(LKs.M());
 	      event.Ksvtx.push_back(event.mom_vtx[it]);
 	      event.Ksvty.push_back(event.mom_vty[it]);
@@ -1147,6 +1156,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "charge", &event.charge );
   tree->Branch( "path", &event.path );
 
+  tree->Branch( "pid", &event.pid );
   tree->Branch( "combi_id", &event.combi_id );
   tree->Branch( "chisqr_flag", &event.chisqr_flag );
   tree->Branch( "mom_vtx", &event.mom_vtx );
