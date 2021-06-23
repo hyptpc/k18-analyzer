@@ -224,6 +224,7 @@ TPCLocalTrack_Helix::CalcHelixMom(double par[5], double y) const
 
   double t = (y-par[2])/(par[3]*par[4]);
   double pt = fabs(par[3])*(Const*dMagneticField); // MeV/c
+ 
   //From here!!!!
   double tmp_px = pt*(-1.*sin(t));
   double tmp_py = pt*(cos(t));
@@ -269,14 +270,17 @@ TPCLocalTrack_Helix::CalcHelixMom_corP(double par[5], double y) const
 
   // obtained by Beam through analysis
   double cor_p1 = 0.6222;
-  double cor_p0 = 0.1198;
+  double cor_p0 = 0.1198*1000.;
 
   double t = (y-par[2])/(par[3]*par[4]);
   double pt = fabs(par[3])*(Const*dMagneticField); // MeV/c
+ 
+  
   pt = pt*cor_p1 + cor_p0;
-  if(pt<0.01)
-    pt =0.01;
-
+  if(pt<10.)
+    pt =10.;
+  
+ 
   //From here!!!!
   double tmp_px = pt*(-1.*sin(t));
   double tmp_py = pt*(cos(t));
@@ -300,13 +304,13 @@ TPCLocalTrack_Helix::CalcHelixMom_t_corP(double par[5], double t) const
 
   // obtained by Beam through analysis
   double cor_p1 = 0.6222;
-  double cor_p0 = 0.1198;
+  double cor_p0 = 0.1198*1000.;
 
   //  double t = (y-par[2])/(par[3]*par[4]);
   double pt = fabs(par[3])*(Const*dMagneticField); // MeV/c
   pt = pt*cor_p1 + cor_p0;
-  if(pt<0.01)
-    pt =0.01;
+  if(pt<10.)
+    pt =10.;
 
   //From here!!!!
   double tmp_px = pt*(-1.*sin(t));
@@ -331,13 +335,13 @@ TPCLocalTrack_Helix::CalcHelixMom_corN(double par[5], double y) const
 
   // obtained by Beam through analysis
   double cor_p1 = 1.07;
-  double cor_p0 = -0.0353;
+  double cor_p0 = -0.0353*1000.;
 
   double t = (y-par[2])/(par[3]*par[4]);
   double pt = fabs(par[3])*(Const*dMagneticField); // MeV/c
   pt = pt*cor_p1 + cor_p0;
-  if(pt<0.01)
-    pt =0.01;
+  if(pt<10.)
+    pt =10.;
 
   //From here!!!!
   double tmp_px = pt*(-1.*sin(t));
@@ -362,13 +366,13 @@ TPCLocalTrack_Helix::CalcHelixMom_t_corN(double par[5], double t) const
 
   // obtained by Beam through analysis
   double cor_p1 = 1.07;
-  double cor_p0 = -0.0353;
+  double cor_p0 = -0.0353*1000.;
   
   //  double t = (y-par[2])/(par[3]*par[4]);
   double pt = fabs(par[3])*(Const*dMagneticField); // MeV/c
   pt = pt*cor_p1 + cor_p0;
-  if(pt<0.01)
-    pt =0.01;
+  if(pt<10.)
+    pt =10.;
 
   //From here!!!!
   double tmp_px = pt*(-1.*sin(t));
