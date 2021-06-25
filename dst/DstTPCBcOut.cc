@@ -326,11 +326,11 @@ dst::DstRead( int ievent )
   event.ntrack_bcout = src.ntrack;
   //  event.nhTpc = **src.nhTpc;
 
-  event.chisqr_bcout.resize( event.ntrack_bcout );
-  event.x0_bcout.resize( event.ntrack_bcout );
-  event.y0_bcout.resize( event.ntrack_bcout );
-  event.u0_bcout.resize( event.ntrack_bcout );
-  event.v0_bcout.resize( event.ntrack_bcout );
+  // event.chisqr_bcout.resize( event.ntrack_bcout );
+  // event.x0_bcout.resize( event.ntrack_bcout );
+  // event.y0_bcout.resize( event.ntrack_bcout );
+  // event.u0_bcout.resize( event.ntrack_bcout );
+  // event.v0_bcout.resize( event.ntrack_bcout );
 
   for(int it=0; it<src.ntrack; ++it){
     event.chisqr_bcout.push_back(src.chisqr[it]);
