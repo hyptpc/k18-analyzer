@@ -120,9 +120,12 @@ namespace tpc
 	sum += padParameter[layer][1];
       }
     row = padID - sum;
+    //std::cout<<"layer="<<layer<<", row="<<row<<std::endl;
     Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
     //Double_t theta = sTheta+(row+0.5)*(360.-2*sTheta)/padParameter[layer][1];
     Double_t theta = sTheta+(row+0.5)*360./padParameter[layer][3]-180;
+    //std::cout<<"theta="<<theta<<std::endl;
+
     return theta;
   }
 
@@ -131,6 +134,7 @@ namespace tpc
     Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
     //Double_t theta = sTheta+(row+0.5)*(360.-2*sTheta)/padParameter[layer][1];
     Double_t theta = sTheta+(m_row+0.5)*360./padParameter[layer][3]-180;
+    //std::cout<<"theta="<<theta<<std::endl;
     return theta;
   }
 
@@ -173,8 +177,17 @@ namespace tpc
 
       //    x = padParameter[layer][2] * -sin((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.);
       //    z = padParameter[layer][2] * -cos((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.) - 143.0;
-      x = padParameter[layer][2] * sin(getTheta(padID+1)*TMath::Pi()/180.);
-      z = padParameter[layer][2] * cos(getTheta(padID+1)*TMath::Pi()/180.) - 143.0;
+
+      // x = padParameter[layer][2] * sin(getTheta(padID+1)*TMath::Pi()/180.);
+      // z = padParameter[layer][2] * cos(getTheta(padID+1)*TMath::Pi()/180.) - 143.0;
+      //std::cout<<"layer="<<layer<<", row"<<row<<std::endl;
+      x = padParameter[layer][2] * sin(getTheta(layer,row)*TMath::Pi()/180.);
+      z = padParameter[layer][2] * cos(getTheta(layer,row)*TMath::Pi()/180.) - 143.0;
+
+      // Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
+      // double x_ = padParameter[layer][2] * -sin((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.);
+      // double z_ = padParameter[layer][2] * -cos((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.) - 143.0;
+      //std::cout<<"x="<<x<<", z="<<z<<", x_="<<x_<<", z_="<<z_<<std::endl;
       result.SetX(x);
       result.SetY(0);
       result.SetZ(z);
@@ -198,6 +211,7 @@ namespace tpc
       result.SetX(x);
       result.SetY(0);
       result.SetZ(z);
+      //std::cout<<"x="<<x<<", z="<<z<<std::endl;
     }
     return result;
   }

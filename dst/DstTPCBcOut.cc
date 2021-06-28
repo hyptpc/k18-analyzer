@@ -47,12 +47,15 @@ namespace
   //  const double min_ycut = -15.;//mm
   //const double max_ycut = 15.;//mm
   const double min_ycut = -50.;//mm
-  const double max_ycut = 50.;//mm
+  const double max_ycut = 50.;//mm 
   const Int_t MinPosMapXZ = -270;
   const Int_t MaxPosMapXZ = 270;
-  const Int_t MinPosMapY = -20;
-  const Int_t MaxPosMapY = 20;
-  const Int_t Meshsize = 10;
+  //const Int_t MinPosMapY = -45;
+  //const Int_t MaxPosMapY = 45;
+  const Int_t MinPosMapY = -60;
+  const Int_t MaxPosMapY = 60;
+
+  const Int_t Meshsize = 15;
 
   const Double_t& zK18HS = gGeom.LocalZ("K18HS");
 }
@@ -128,6 +131,12 @@ struct Event
   std::vector<std::vector<Double_t>> residual_x;
   std::vector<std::vector<Double_t>> residual_y;
   std::vector<std::vector<Double_t>> residual_z;
+  std::vector<std::vector<Double_t>> residual_wbcout_x;
+  std::vector<std::vector<Double_t>> residual_wbcout_y;
+  std::vector<std::vector<Double_t>> residual_trackwbcout_x;
+  std::vector<std::vector<Double_t>> residual_trackwbcout_y;
+
+
 
   void clear( void )
   {
@@ -180,6 +189,10 @@ struct Event
     residual.clear();
     residual_x.clear();
     residual_y.clear();
+    residual_wbcout_x.clear();
+    residual_wbcout_y.clear();
+    residual_trackwbcout_x.clear();
+    residual_trackwbcout_y.clear();
     residual_z.clear();
   }
 };
@@ -223,6 +236,7 @@ TTree *tree;
     PosXHid    = 1000000,
     PosYHid    = 2000000, 
     PosYPadHid    = 3000000,
+    PosYPadResHid    = 4000000,
     HitdEHid    = 100000,
     ClCenterdEHid    = 200000,
   };
@@ -384,13 +398,14 @@ dst::DstRead( int ievent )
      	Double_t zTPC = zK18HS + z;
      	Double_t x_BC = x0_BC + zTPC*u0_BC;
      	Double_t y_BC = y0_BC + zTPC*v0_BC;
-     	if(fabs(x_BC - x)<100.&&de>100.){
+	//    	if(fabs(x_BC - x)<100.&&de>100.){
+    	if(fabs(x_BC - x)<100.&&de>0.2){
      	  HF1(PosYPadHid + layer*1000+ row,  y - y_BC);
      	}
      	if(fabs(x_BC - x)<100.&& fabs(y_BC - y)< 60){
      	  HF1(HitdEHid + layer*1000+ row,  de);
      	}
-     }
+      }
      
       ++nh_Tpc;
     }
@@ -427,32 +442,32 @@ dst::DstRead( int ievent )
       event.cluster_hitpos_center_z.push_back(pos_center.Z());
 
       //Compared with BcOut
-      for(int it=0; it<src.ntrack; ++it){
-	Double_t x0_BC = src.x0[it];
-	Double_t u0_BC = src.u0[it];
-	Double_t y0_BC = src.y0[it];
-	Double_t v0_BC = src.v0[it];
+      // for(int it=0; it<src.ntrack; ++it){
+      // 	Double_t x0_BC = src.x0[it];
+      // 	Double_t u0_BC = src.u0[it];
+      // 	Double_t y0_BC = src.y0[it];
+      // 	Double_t v0_BC = src.v0[it];
 
-	Double_t zTPC = zK18HS + z;
-	Double_t x_BC = x0_BC + zTPC*u0_BC;
-	Double_t y_BC = y0_BC + zTPC*v0_BC;
-	if(MinPosMapXZ<x && x<MaxPosMapXZ&&
-	   MinPosMapY<y && y<MaxPosMapY&&
-	   MinPosMapXZ<z && z<MaxPosMapXZ&&
-	   cl_size>=2){
-	  int histnum = GetHistNum(x, y, z);
-	  if(fabs(y_BC - y)<60.)
-	    HF1(PosXHid + histnum, x_BC - x);
-	  if(fabs(x_BC - x)<100.){
-	    HF1(PosYHid + histnum, y_BC - y);
-	    //	    HF1(PosYPadHid + layer*1000+ row,  pos_center.Y() - y_BC);
-	  }
-	  if(fabs(y_BC - y)<60.&&fabs(x_BC - x)<100.){
-	    HF1(100 + layer, de);
-	    HF1(ClCenterdEHid + layer*1000+ row,  de_center);
-	  }
-	}
-      }
+      // 	Double_t zTPC = zK18HS + z;
+      // 	Double_t x_BC = x0_BC + zTPC*u0_BC;
+      // 	Double_t y_BC = y0_BC + zTPC*v0_BC;
+      // 	if(MinPosMapXZ<x && x<MaxPosMapXZ&&
+      // 	   MinPosMapY<y && y<MaxPosMapY&&
+      // 	   MinPosMapXZ<z && z<MaxPosMapXZ&&
+      // 	   cl_size>=2){
+      // 	  int histnum = GetHistNum(x, y, z);
+      // 	  if(fabs(y_BC - y)<60.)
+      // 	    HF1(PosXHid + histnum, x_BC - x);
+      // 	  if(fabs(x_BC - x)<100.){
+      // 	    HF1(PosYHid + histnum, y_BC - y);
+      // 	    //	    HF1(PosYPadHid + layer*1000+ row,  pos_center.Y() - y_BC);
+      // 	  }
+      // 	  if(fabs(y_BC - y)<60.&&fabs(x_BC - x)<100.){
+      // 	    HF1(100 + layer, de);
+      // 	    HF1(ClCenterdEHid + layer*1000+ row,  de_center);
+      // 	  }
+      // 	}
+      // }
 
       ++nh_cl_Tpc;
     }
@@ -494,6 +509,10 @@ dst::DstRead( int ievent )
   event.residual.resize( ntTpc );
   event.residual_x.resize( ntTpc );
   event.residual_y.resize( ntTpc );
+  event.residual_wbcout_x.resize( ntTpc );
+  event.residual_wbcout_y.resize( ntTpc );
+  event.residual_trackwbcout_x.resize( ntTpc );
+  event.residual_trackwbcout_y.resize( ntTpc );
   event.residual_z.resize( ntTpc );
 
   for( Int_t it=0; it<ntTpc; ++it ){
@@ -521,6 +540,10 @@ dst::DstRead( int ievent )
     event.residual[it].resize( nh );
     event.residual_x[it].resize( nh );
     event.residual_y[it].resize( nh );
+    event.residual_wbcout_x[it].resize( nh );
+    event.residual_wbcout_y[it].resize( nh );
+    event.residual_trackwbcout_x[it].resize( nh );
+    event.residual_trackwbcout_y[it].resize( nh );
     event.residual_z[it].resize( nh );
 
 
@@ -532,6 +555,9 @@ dst::DstRead( int ievent )
       const TVector3& calpos = hit->GetLocalCalPos();
       const TVector3& res_vect = hit->GetResidualVect();
       Double_t residual = hit->GetResidual();
+      Int_t row = hit->GetHit()->GetRow();
+      const TVector3& pos_center = hit->GetHit()->GetPos_center();
+      
       event.hitlayer[it][ih] = layer;
       event.hitpos_x[it][ih] = hitpos.x();
       event.hitpos_y[it][ih] = hitpos.y();
@@ -543,6 +569,30 @@ dst::DstRead( int ievent )
       event.residual_x[it][ih] = res_vect.x();
       event.residual_y[it][ih] = res_vect.y();
       event.residual_z[it][ih] = res_vect.z();
+      if(nh>15)
+	HF1(PosYPadResHid + layer*1000+ row,  -1.*res_vect.y());
+      
+      //      for(int it=0; it<src.ntrack; ++it){
+      if(src.ntrack==1){
+	Double_t x0_BC = src.x0[0];
+	Double_t u0_BC = src.u0[0];
+	Double_t y0_BC = src.y0[0];
+	Double_t v0_BC = src.v0[0];
+      
+	Double_t zTPC = zK18HS + pos_center.z();
+	Double_t x_BC = x0_BC + zTPC*u0_BC;
+	Double_t y_BC = y0_BC + zTPC*v0_BC;
+	//    	if(fabs(x_BC - x)<100.&&de>100.){
+	if(nh>15)
+	  HF1(PosYPadHid + layer*1000+ row,  pos_center.y() - y_BC);
+      
+	event.residual_wbcout_x[it][ih] = hitpos.x() - x_BC; 
+	event.residual_wbcout_y[it][ih] = hitpos.y() - y_BC; 
+	event.residual_trackwbcout_x[it][ih] = calpos.x() - x_BC; 
+	event.residual_trackwbcout_y[it][ih] = calpos.y() - y_BC; 
+      }      
+      
+      
     }
 
   }
@@ -609,6 +659,7 @@ ConfMan::InitializeHistograms( void )
     const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
     for( Int_t r=0; r<NumOfRow; ++r ){
       HB1(PosYPadHid + layer*1000 + r , "TPC Pad Y Cor", NbinPos, MinPos, MaxPos );
+      HB1(PosYPadResHid + layer*1000 + r , "TPC Pad Y Residual", NbinPos, MinPos, MaxPos );
     }
   }
 
@@ -673,6 +724,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "residual", &event.residual );
   tree->Branch( "residual_x", &event.residual_x );
   tree->Branch( "residual_y", &event.residual_y );
+  tree->Branch( "residual_wbcout_x", &event.residual_wbcout_x );
+  tree->Branch( "residual_wbcout_y", &event.residual_wbcout_y );
+  tree->Branch( "residual_trackwbcout_x", &event.residual_trackwbcout_x );
+  tree->Branch( "residual_trackwbcout_y", &event.residual_trackwbcout_y );
   tree->Branch( "residual_z", &event.residual_z );
 
 
