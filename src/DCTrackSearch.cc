@@ -1865,6 +1865,7 @@ LocalTrackSearchTPC(const std::vector<TPCHitContainer>& TPCHC,
                     Int_t MinNumOfHits /*=8*/)
 {
   static const Double_t HoughWindowCut = gUser.GetParameter("HoughWindowCut");
+  static const Double_t MaxLayerCut = gUser.GetParameter("TPCMaxLayerCut");
   Bool_t status = true;
 
   //    if(valueHall) { // TODO
@@ -1954,7 +1955,8 @@ LocalTrackSearchTPC(const std::vector<TPCHitContainer>& TPCHC,
         TVector3 pos = hit->GetPos();
         Double_t dist = fabs(p1[tracki]*pos.Z()-pos.X()+p0[tracki])/sqrt(pow(p1[tracki],2)+1);
 
-        if(dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
+        //if(dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut){
+	if(dist < HoughWindowCut && hit->GetClusterSize()>=ClusterSizeCut&& layer < MaxLayerCut){
           track->AddTPCHit(new TPCLTrackHit(hit));
           //     track_he->AddTPCHit(new TPCLTrackHit(hit));
           flag[layer][ci]++;
