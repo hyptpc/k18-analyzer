@@ -128,6 +128,7 @@ public:
                  Double_t &cde ) const;
   Bool_t GetCTime( Int_t layer, Int_t row, Double_t time,
                    Double_t &ctime ) const;
+  Double_t GetC_Clock( Int_t layer, Int_t row, Double_t time ) const;
   Bool_t GetDriftLength( Int_t layer, Int_t row, Double_t time,
                          Double_t& y ) const
     { return GetY( layer, row, time, y ); }

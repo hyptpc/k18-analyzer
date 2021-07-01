@@ -184,8 +184,12 @@ TPCHit::Calculate(Double_t clock)
                   << m_layer << ", " << m_row << ", " << m_time[i]
                   << ", " << ctime << ")" << std::endl;
     }
+    
     // Time Correction
-    ctime -= clock;
+    double c_clock = gTPC.GetC_Clock(m_layer, m_row, clock);
+    //    ctime -= clock;
+    //ctime -= c_clock;
+    ctime += c_clock;
     //
     if(!gTPC.GetDriftLength(m_layer, m_row, ctime, dl)){
       hddaq::cerr << FUNC_NAME << " something is wrong at GetDriftLength("

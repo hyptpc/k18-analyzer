@@ -136,7 +136,7 @@ struct Event
   std::vector<std::vector<Double_t>> residual_trackwbcout_x;
   std::vector<std::vector<Double_t>> residual_trackwbcout_y;
 
-
+  std::vector<Double_t> clkTpc;
 
   void clear( void )
   {
@@ -165,6 +165,7 @@ struct Event
     ntTpc = 0;
     trigpat.clear();
     trigflag.clear();
+    clkTpc.clear();
 
     ntrack_bcout = 0;
     chisqr_bcout.clear();
@@ -194,6 +195,8 @@ struct Event
     residual_trackwbcout_x.clear();
     residual_trackwbcout_y.clear();
     residual_z.clear();
+
+    
   }
 };
 
@@ -216,7 +219,8 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* tTpc;      // time
   TTreeReaderValue<std::vector<Double_t>>* ctTpc;      // time
   TTreeReaderValue<std::vector<Double_t>>* chisqrTpc; // chi^2 of signal fitting
-
+  TTreeReaderValue<std::vector<Double_t>>* clkTpc;      // time
+  
   //BcOut input
   Int_t ntrack;
   Double_t chisqr[MaxHits];
@@ -336,6 +340,8 @@ dst::DstRead( int ievent )
   event.evnum = **src.evnum;
   event.trigpat = **src.trigpat;
   event.trigflag = **src.trigflag;
+
+  event.clkTpc = **src.clkTpc;
 
   event.ntrack_bcout = src.ntrack;
   //  event.nhTpc = **src.nhTpc;
@@ -679,6 +685,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "evnum", &event.evnum );
   tree->Branch( "trigpat", &event.trigpat );
   tree->Branch( "trigflag", &event.trigflag );
+
+  tree->Branch( "clkTpc", &event.clkTpc );
+
   tree->Branch( "nhTpc", &event.nhTpc );
   tree->Branch( "nh_cluster_Tpc", &event.nh_cluster_Tpc );
   tree->Branch( "raw_hitpos_x", &event.raw_hitpos_x );
@@ -756,6 +765,7 @@ ConfMan::InitializeHistograms( void )
   src.tTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "tTpc" );
   src.ctTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "ctTpc" );
   src.chisqrTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqrTpc" );
+  src.clkTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "clkTpc" );
 
   TTreeCont[kBcOut]->SetBranchStatus("*", 0);
   TTreeCont[kBcOut]->SetBranchStatus("ntrack",  1);

@@ -201,6 +201,35 @@ TPCParamMan::GetCTime( Int_t layer, Int_t row, Double_t tdc,
 }
 
 //_____________________________________________________________________________
+Double_t
+TPCParamMan::GetC_Clock( Int_t layer, Int_t row, Double_t clock) const
+{
+  Int_t Cobo;
+  if(layer<4||layer>5)
+    Cobo = layer/4; 
+  else if(layer==4){
+    if(60<=row&&row<=99)
+      Cobo = 1;
+    else
+      Cobo = 0;
+  }
+  else if(layer==5){
+    if(72<=row&&row<=119)
+      Cobo = 1;
+    else
+      Cobo = 0;
+  }
+  const Double_t syn_t[8]={-36., 14., 5., 5.,
+			   4.,-16., 34., 13.};
+  
+  double clock_cor = clock;
+  if(clock > syn_t[Cobo])
+    clock_cor -= 80.;
+  
+  return clock_cor;
+}
+
+//_____________________________________________________________________________
 Bool_t
 TPCParamMan::GetY( Int_t layer, Int_t row, Double_t time, Double_t& y ) const
 {
