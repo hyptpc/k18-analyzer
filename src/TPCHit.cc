@@ -186,8 +186,13 @@ TPCHit::Calculate(Double_t clock)
     }
     
     // Time Correction
-    double c_clock = gTPC.GetC_Clock(m_layer, m_row, clock);
-    //    ctime -= clock;
+    Double_t c_clock;
+    if(!gTPC.GetC_Clock(m_layer, m_row, clock, c_clock)){
+      hddaq::cerr << FUNC_NAME << " something is wrong at GetC_Clock("
+                  << m_layer << ", " << m_row << ", " << m_time[i]
+                  << ", " << ctime << ")" << std::endl;
+    }
+    //    double c_clock = gTPC.GetC_Clock(m_layer, m_row, clock);
     //ctime -= c_clock;
     ctime += c_clock;
     //

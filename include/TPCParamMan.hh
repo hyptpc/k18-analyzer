@@ -97,6 +97,30 @@ public:
 };
 
 //_____________________________________________________________________________
+class TPCCoboParam
+{
+public:
+  TPCCoboParam( Double_t clk_param )
+    : m_clk_param( clk_param )
+    {}
+  ~TPCCoboParam( void )
+    {}
+
+private:
+  TPCCoboParam( void );
+  TPCCoboParam( const TPCCoboParam& );
+  TPCCoboParam& operator =( const TPCCoboParam& );
+
+private:
+  Double_t m_clk_param;
+
+public:
+  Double_t Clk_param( void ) const { return m_clk_param; }
+};
+
+
+
+//_____________________________________________________________________________
 class TPCParamMan
 {
 public:
@@ -110,25 +134,30 @@ private:
   TPCParamMan& operator =( const TPCParamMan& );
 
 private:
-  enum eAorT { kAdc, kTdc, kY, kATY };
+  //  enum eAorT { kAdc, kTdc, kY, kATY };
+  enum eAorT { kAdc, kTdc, kY, kCobo };
   typedef std::map<Int_t, TPCAParam*> AContainer;
   typedef std::map<Int_t, TPCTParam*> TContainer;
   typedef std::map<Int_t, TPCYParam*> YContainer;
+  typedef std::map<Int_t, TPCCoboParam*> CoboContainer;
   typedef AContainer::const_iterator AIterator;
   typedef TContainer::const_iterator TIterator;
   typedef YContainer::const_iterator YIterator;
+  typedef CoboContainer::const_iterator CoboIterator;
   Bool_t     m_is_ready;
   TString    m_file_name;
   AContainer m_APContainer;
   TContainer m_TPContainer;
   YContainer m_YPContainer;
+  CoboContainer m_CoboContainer;
 
 public:
   Bool_t GetCDe( Int_t layer, Int_t row, Double_t de,
                  Double_t &cde ) const;
   Bool_t GetCTime( Int_t layer, Int_t row, Double_t time,
                    Double_t &ctime ) const;
-  Double_t GetC_Clock( Int_t layer, Int_t row, Double_t time ) const;
+  Bool_t GetC_Clock( Int_t layer, Int_t row, Double_t time,
+		     Double_t& clock_cor ) const;
   Bool_t GetDriftLength( Int_t layer, Int_t row, Double_t time,
                          Double_t& y ) const
     { return GetY( layer, row, time, y ); }
@@ -142,9 +171,11 @@ private:
   void       ClearACont( void );
   void       ClearTCont( void );
   void       ClearYCont( void );
+  void       ClearCoboCont( void );
   TPCAParam* GetAmap( Int_t layer, Int_t row ) const;
   TPCTParam* GetTmap( Int_t layer, Int_t row ) const;
   TPCYParam* GetYmap( Int_t layer, Int_t row ) const;
+  TPCCoboParam* GetCobomap( Int_t Cobo ) const;
 };
 
 //_____________________________________________________________________________

@@ -43,6 +43,7 @@ TPCParamMan::~TPCParamMan( void )
   ClearACont();
   ClearTCont();
   ClearYCont();
+  ClearCoboCont();
 }
 
 //_____________________________________________________________________________
@@ -67,6 +68,13 @@ TPCParamMan::ClearYCont( void )
 }
 
 //_____________________________________________________________________________
+void
+TPCParamMan::ClearCoboCont( void )
+{
+  del::ClearMap( m_CoboContainer );
+}
+
+//_____________________________________________________________________________
 Bool_t
 TPCParamMan::Initialize( void )
 {
@@ -85,6 +93,7 @@ TPCParamMan::Initialize( void )
   ClearACont();
   ClearTCont();
   ClearYCont();
+  ClearCoboCont();
 
   Int_t line_number = 0;
   TString line;
@@ -131,6 +140,24 @@ TPCParamMan::Initialize( void )
         TPCYParam *pre_param = m_YPContainer[key];
         TPCYParam *param = new TPCYParam( p0, p1 );
         m_YPContainer[key] = param;
+        if( pre_param ){
+	  hddaq::cerr << FUNC_NAME << ": duplicated key "
+		      << " following record is deleted." << std::endl
+		      << " layer = " << layer << ","
+                      << " row = " << row
+                      << " aty = " << aty
+                      << std::endl;
+          delete pre_param;
+        }
+        break;
+      }
+      case kCobo: {
+	//layer is Cobo number (not real layer)
+	Int_t Cobo = layer;
+	
+        TPCCoboParam *pre_param = m_CoboContainer[Cobo];
+        TPCCoboParam *param = new TPCCoboParam( p0 );
+        m_CoboContainer[Cobo] = param;
         if( pre_param ){
 	  hddaq::cerr << FUNC_NAME << ": duplicated key "
 		      << " following record is deleted." << std::endl
@@ -201,8 +228,8 @@ TPCParamMan::GetCTime( Int_t layer, Int_t row, Double_t tdc,
 }
 
 //_____________________________________________________________________________
-Double_t
-TPCParamMan::GetC_Clock( Int_t layer, Int_t row, Double_t clock) const
+Bool_t
+TPCParamMan::GetC_Clock( Int_t layer, Int_t row, Double_t clock, Double_t& clock_cor ) const
 {
   Int_t Cobo;
   if(layer<4||layer>5)
@@ -219,14 +246,28 @@ TPCParamMan::GetC_Clock( Int_t layer, Int_t row, Double_t clock) const
     else
       Cobo = 0;
   }
-  const Double_t syn_t[8]={-36., 14., 5., 5.,
-			   4.,-16., 34., 13.};
-  
-  double clock_cor = clock;
-  if(clock > syn_t[Cobo])
-    clock_cor -= 80.;
-  
-  return clock_cor;
+  // const Double_t syn_t[8]={-36., 14., 5., 5.,
+  // 			   4.,-16., 34., 13.};
+
+  Double_t sync_t;
+  TPCCoboParam* map = GetCobomap( Cobo );
+  if( map ){
+    sync_t = map->Clk_param( );
+    
+    clock_cor = clock;
+    if(clock > sync_t)
+      clock_cor -= 80.;
+
+    //    std::cout<<"Cobo"<<Cobo<<", sync_t="<<sync_t<<std::endl;
+    return true;
+  } else {
+    hddaq::cerr << FUNC_NAME << ": No record for"
+		<< " LayerId=" << std::setw(3) << std::dec << layer
+		<< " RowId="   << std::setw(3) << std::dec << row
+		<< std::endl;
+    return false;
+  }
+
 }
 
 //_____________________________________________________________________________
@@ -277,6 +318,17 @@ TPCParamMan::GetYmap( Int_t layer, Int_t row ) const
   Int_t key = MakeKey( layer, row );
   YIterator itr = m_YPContainer.find( key );
   if( itr != m_YPContainer.end() )
+    return itr->second;
+  else
+    return nullptr;
+}
+
+//_____________________________________________________________________________
+TPCCoboParam*
+TPCParamMan::GetCobomap( Int_t Cobo ) const
+{
+  CoboIterator itr = m_CoboContainer.find( Cobo );
+  if( itr != m_CoboContainer.end() )
     return itr->second;
   else
     return nullptr;
