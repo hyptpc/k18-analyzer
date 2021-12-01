@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO,
                     format=log_format)
 
 interval = 10 # [sec]
-target_jobs = ['s', 'l', 'h', 'sx', 'lx', 'hx']
+target_jobs = ['s', 'l', 'h', 'sx', 'lx', 'hx', 'a']
 n_jobs = dict()
 
 #______________________________________________________________________________

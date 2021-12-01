@@ -83,9 +83,9 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_pos(),
     m_is_good(false),
     m_is_calculated(false),
+    m_hough_flag(),
     m_mrow(),
     m_tpc_flag(),
-    m_hough_flag(),
     m_resx(),
     m_resy(),
     m_resz(),
@@ -153,7 +153,7 @@ TPCHit::AddDeTime(Double_t de, Double_t time)
 void
 TPCHit::SetHoughYnum(Int_t houghY_num)
 {
-  m_houghY_num.push_back(houghY_num); 
+  m_houghY_num.push_back(houghY_num);
 }
 
 //_____________________________________________________________________________
@@ -184,7 +184,7 @@ TPCHit::Calculate(Double_t clock)
                   << m_layer << ", " << m_row << ", " << m_time[i]
                   << ", " << ctime << ")" << std::endl;
     }
-    
+
     // Time Correction
     Double_t c_clock;
     if(!gTPC.GetC_Clock(m_layer, m_row, clock, c_clock)){
@@ -229,7 +229,7 @@ TPCHit::DoFit()
 
 #if DebugEvDisp
   //  gStyle->SetOptStat(1110);
-  //gStyle->SetOptFit(1);
+  gStyle->SetOptFit(1);
   gStyle->SetStatX(0.9);
   gStyle->SetStatY(0.9);
   gStyle->SetOptStat(0);
@@ -250,14 +250,22 @@ TPCHit::DoFit()
     m_rms = rms;
   }
 // #if QuickAnalysis
-//   {
-//     Double_t max_adc = m_rhit->MaxAdc();
-//     //std::cout<<"max_dE = "<<max_adc - m_pedestal<<std::endl;
-//     if (max_adc-m_pedestal < MinDe) {
-//       return false;
-//     }
-//   }
+  // {
+  //   Double_t max_adc = m_rhit->MaxAdc();
+  //   //std::cout<<"max_dE = "<<max_adc - m_pedestal<<std::endl;
+  //   if(max_adc-m_pedestal < MinDe){
+  //     return false;
+  //   }
+  // }
 // #endif
+
+#if 0 // for check
+  if(m_rhit->MaxAdc()-m_pedestal < 400
+     || m_rhit->LocMax() < 40
+     || m_rhit->LocMax() > 140){
+    return false;
+  }
+#endif
 
   m_layer = m_rhit->LayerId();
   m_row = m_rhit->RowId();
@@ -276,14 +284,15 @@ TPCHit::DoFit()
     if(i < MinTimeBucket || MaxTimeBucket < i)
       continue;
     h1.Fill(adc);
-    //avoid overflow
-    if(adc<4075){
+    // if(adc < 4075){
       h2.SetBinContent(tb, adc);
-      //h2.SetBinError(tb, 1.);
-    }
+      // h2.SetBinError(tb, 1);
+    // }
   }
   h2.GetXaxis()->SetRangeUser(MinTimeBucket, MaxTimeBucket);
   h2.GetYaxis()->SetRangeUser(m_pedestal-100., m_rhit->MaxAdc()+200);
+  // h2.GetYaxis()->SetRangeUser(0, 0x1000);
+  // h2.GetYaxis()->SetRangeUser(0, TMath::Max(m_rhit->MaxAdc()+200, 2000.));
   //std::cout<<"pedestal:"<<m_pedestal<<", max_adc:"<<m_rhit->MaxAdc()<<std::endl;
 
 #if FitPedestal
@@ -483,7 +492,7 @@ TPCHit::DoFit()
     double FitRangeMin = MinTimeBucket;
     double FitRangeMax = MaxTimeBucket;
     if(MinTimeBucket<time[0]-6.-de[0]*0.07)
-      FitRangeMin = time[0]-6.-de[0]*0.07 ;
+      FitRangeMin = time[0]-6.-de[0]*0.07;
     if(MaxTimeBucket>time[n_peaks-1]+10.+de[n_peaks-1]*0.11)
       FitRangeMax = time[n_peaks-1]+10.+de[n_peaks-1]*0.11;
     h2.Fit("f1", option, "", FitRangeMin, FitRangeMax);
@@ -509,18 +518,22 @@ TPCHit::DoFit()
 
 #if DebugEvDisp
   //h2.Draw("L");
-  // double maxde = 0.;
-  // if(m_de.size()>0)
-  //   maxde = TMath::MaxElement(m_de.size(), m_de.data());
-  // if(m_time.size()>3&&maxde>150.){
-  //h2.Draw("");
-  c1.Modified();
-  c1.Update();
-  gSystem->ProcessEvents();
-  Print();
-  c1.Print("c1.pdf");
-  getchar();
-  //  }
+  {
+    Double_t maxde = 0.;
+    if(m_de.size()>0)
+      maxde = TMath::MaxElement(m_de.size(), m_de.data());
+    if(m_time.size()>0 //&& maxde>200.
+       || true
+      ){
+      //h2.Draw("");
+      c1.Modified();
+      c1.Update();
+      gSystem->ProcessEvents();
+      Print();
+      c1.Print("c1.pdf");
+      getchar();
+    }
+  }
 #endif
 
   gErrorIgnoreLevel = level;

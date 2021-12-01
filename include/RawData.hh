@@ -55,15 +55,18 @@ private:
   HodoRHitContainer              m_ScalerRawHC;
   HodoRHitContainer              m_TrigRawHC;
   HodoRHitContainer              m_VmeCalibRawHC;
+  TPCRawHit*                     m_baseline;
 
 public:
   void                     ClearAll();
   void                     ClearTPC();
+  Bool_t                   CorrectBaselineTPC();
   Bool_t                   DecodeHits();
   Bool_t                   DecodeCalibHits();
   Bool_t                   DecodeTPCHits();
-  Bool_t                   RecalcTPCHits();
-  Bool_t                   EventSelectionTPCHits(bool maxadccut, bool maxadctbcut);
+  Bool_t                   SelectTPCHits(Bool_t maxadccut,
+                                         Bool_t maxadctbcut);
+  const TPCRawHit* const   GetBaselineTPC() const { return m_baseline; }
   const HodoRHitContainer& GetBH1RawHC() const;
   const HodoRHitContainer& GetBH2RawHC() const;
   const HodoRHitContainer& GetBACRawHC() const;
@@ -95,7 +98,8 @@ private:
                      Int_t plane, Int_t wire, Int_t data,
                      Int_t type=kDcLeading);
   Bool_t AddTPCRawHit(TPCRHitContainer& cont,
-                      Int_t layer, Int_t row, Int_t adc);
+                      Int_t layer, Int_t row, Double_t adc,
+                      Double_t* pars=nullptr);
   void   DecodeHodo(Int_t id, Int_t plane, Int_t nseg, Int_t nch,
                     HodoRHitContainer& cont);
   void   DecodeHodo(Int_t id, Int_t nseg, Int_t nch,

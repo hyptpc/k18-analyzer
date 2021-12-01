@@ -181,6 +181,7 @@ DCAnalyzer::~DCAnalyzer()
   debug::ObjectCounter::decrease(ClassName());
 }
 
+
 //_____________________________________________________________________________
 void
 DCAnalyzer::PrintKurama(const TString& arg) const
@@ -367,7 +368,8 @@ DCAnalyzer::ClusterizeTPC(Int_t layerID, const TPCHitContainer& HitCont,
 Bool_t
 DCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
 {
-  static const Int_t TPC_Subtraction = gUser.GetParameter("TPC_Subtraction");
+  static const Int_t BaselineCorrectionTPC
+    = (gUser.GetParameter("BaselineCorrectionTPC") == 1);
   static const Int_t TPC_Multi = gUser.GetParameter("TPC_Multi");
   if(m_is_decoded[kTPC]){
     hddaq::cout << FUNC_NAME << " "
@@ -388,7 +390,7 @@ DCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
   }
 
   for(Int_t layer=0; layer<=NumOfLayersTPC; ++layer){
-    if(TPC_Subtraction == 1){
+    if(BaselineCorrectionTPC){
       for(const auto& rhit: rawData->GetTPCCorHC(layer)){
         auto hit = new TPCHit(rhit);
         if(hit->DoFit() && hit->Calculate(clock)){
