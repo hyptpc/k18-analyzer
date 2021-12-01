@@ -368,9 +368,6 @@ DCAnalyzer::ClusterizeTPC(Int_t layerID, const TPCHitContainer& HitCont,
 Bool_t
 DCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
 {
-  static const Int_t BaselineCorrectionTPC
-    = (gUser.GetParameter("BaselineCorrectionTPC") == 1);
-  static const Int_t TPC_Multi = gUser.GetParameter("TPC_Multi");
   if(m_is_decoded[kTPC]){
     hddaq::cout << FUNC_NAME << " "
                 << "already decoded" << std::endl;
@@ -379,38 +376,15 @@ DCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
 
   ClearTPCHits();
 
-  Int_t numhit =0;
-  //multiplicity cut for partial readout mode
   for(Int_t layer=0; layer<=NumOfLayersTPC; ++layer){
-    numhit += rawData->GetTPCRawHC(layer).size();
-  }
-  if(TPC_Multi>0 && numhit>TPC_Multi){
-    m_is_decoded[kTPC] = true;
-    return true;
-  }
-
-  for(Int_t layer=0; layer<=NumOfLayersTPC; ++layer){
-    if(BaselineCorrectionTPC){
-      for(const auto& rhit: rawData->GetTPCCorHC(layer)){
-        auto hit = new TPCHit(rhit);
-        if(hit->DoFit() && hit->Calculate(clock)){
-          m_TPCHitCont[layer].push_back(hit);
-        }else{
-          delete hit;
-        }
+    for(const auto& rhit: rawData->GetTPCCorHC(layer)){
+      auto hit = new TPCHit(rhit);
+      if(hit->DoFit() && hit->Calculate(clock)){
+        m_TPCHitCont[layer].push_back(hit);
+      }else{
+        delete hit;
       }
     }
-    else{
-      for(const auto& rhit: rawData->GetTPCRawHC(layer)){
-        auto hit = new TPCHit(rhit);
-        if(hit->DoFit() && hit->Calculate(clock)){
-          m_TPCHitCont[layer].push_back(hit);
-        }else{
-          delete hit;
-        }
-      }
-    }
-
   }
 
   m_is_decoded[kTPC] = true;

@@ -199,6 +199,7 @@ UserTPCHit::ProcessingBegin()
 Bool_t
 UserTPCHit::ProcessingNormal()
 {
+  static const Int_t MaxMultiHitTPC = gUser.GetParameter("MaxMultiHitTPC");
   static const auto MinTdcHTOF = gUser.GetParameter("TdcHTOF", 0);
   static const auto MaxTdcHTOF = gUser.GetParameter("TdcHTOF", 1);
   const Int_t run_number   = gUnpacker.get_root()->get_run_number();
@@ -368,11 +369,8 @@ UserTPCHit::ProcessingNormal()
 
   //________________________________________________________
   //___ TPCRawHit
-  Int_t npadTpc = 0;
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     auto hc = rawData->GetTPCRawHC(layer);
-    const auto nhit = hc.size();
-    npadTpc += nhit;
     for(const auto& rhit : hc){
       auto mean    = rhit->Mean();
       auto max_adc = rhit->MaxAdc();
@@ -400,8 +398,11 @@ UserTPCHit::ProcessingNormal()
       HF2(39, tb, fadc.at(tb));
     }
   }
+  Int_t npadTpc = 0;
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     auto hc = rawData->GetTPCCorHC(layer);
+    const auto nhit = hc.size();
+    npadTpc += nhit;
     for(const auto& rhit : hc){
       auto mean    = rhit->Mean();
       auto max_adc = rhit->MaxAdc();
@@ -430,6 +431,10 @@ UserTPCHit::ProcessingNormal()
 
   //________________________________________________________
   //___ TPCHit
+  if(MaxMultiHitTPC>0 && npadTpc>MaxMultiHitTPC){
+    std::cout << "#W Too many hits found, npadTpc = " << npadTpc << std::endl;
+    return true;
+  }
   DCAna->DecodeTPCHits(rawData, clock_timing);
 
   Int_t nhTpc = 0;
