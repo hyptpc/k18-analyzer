@@ -22,7 +22,7 @@
 #include "MathTools.hh"
 #include "RootHelper.hh"
 #include "TPCPadHelper.hh"
-#include "TPCLocalTrack_Helix.hh"
+#include "TPCLocalTrackHelix.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
@@ -34,42 +34,42 @@
 
 namespace
 {
-  using namespace root;
-  using namespace dst;
-  using hddaq::unpacker::GUnpacker;
-  const auto& gUnpacker = GUnpacker::get_instance();
-  auto&       gConf = ConfMan::GetInstance();
-  const auto& gGeom = DCGeomMan::GetInstance();
-  const auto& gUser = UserParamMan::GetInstance();
-  const auto& gPHC  = HodoPHCMan::GetInstance();
-  const auto& gCounter = debug::ObjectCounter::GetInstance();
-  //position cut for gain histogram
-  //  const double min_ycut = -15.;//mm
-  //const double max_ycut = 15.;//mm
-  const double min_ycut = -50.;//mm
-  const double max_ycut = 50.;//mm
-  const Int_t MinPosMapXZ = -270;
-  const Int_t MaxPosMapXZ = 270;
-  const Int_t MinPosMapY = -20;
-  const Int_t MaxPosMapY = 20;
-  const Int_t Meshsize = 10;
+using namespace root;
+using namespace dst;
+using hddaq::unpacker::GUnpacker;
+const auto& gUnpacker = GUnpacker::get_instance();
+auto&       gConf = ConfMan::GetInstance();
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
+const auto& gPHC  = HodoPHCMan::GetInstance();
+const auto& gCounter = debug::ObjectCounter::GetInstance();
+//position cut for gain histogram
+//  const double min_ycut = -15.;//mm
+//const double max_ycut = 15.;//mm
+const double min_ycut = -50.;//mm
+const double max_ycut = 50.;//mm
+const Int_t MinPosMapXZ = -270;
+const Int_t MaxPosMapXZ = 270;
+const Int_t MinPosMapY = -20;
+const Int_t MaxPosMapY = 20;
+const Int_t Meshsize = 10;
 
-  const Double_t& zK18HS = gGeom.LocalZ("K18HS");
+const Double_t& zK18HS = gGeom.LocalZ("K18HS");
 }
 
 namespace dst
 {
-  enum kArgc
-    {
-      kProcess, kConfFile,
-      kTpcHit,  kBcOut, kOutFile, nArgc
-    };
-  std::vector<TString> ArgName =
-    { "[Process]", "[ConfFile]", "[TPCHit]", "[BcOut]", "[OutFile]" };
-  std::vector<TString> TreeName = { "", "", "tpc","bcout" ,"" };
-  std::vector<TFile*> TFileCont;
-  std::vector<TTree*> TTreeCont;
-  std::vector<TTreeReader*> TTreeReaderCont;
+enum kArgc
+{
+  kProcess, kConfFile,
+  kTpcHit,  kBcOut, kOutFile, nArgc
+};
+std::vector<TString> ArgName =
+{ "[Process]", "[ConfFile]", "[TPCHit]", "[BcOut]", "[OutFile]" };
+std::vector<TString> TreeName = { "", "", "tpc","bcout" ,"" };
+std::vector<TFile*> TFileCont;
+std::vector<TTree*> TTreeCont;
+std::vector<TTreeReader*> TTreeReaderCont;
 }
 
 //_____________________________________________________________________________
@@ -191,12 +191,12 @@ struct Event
     helix_z0.clear();
     helix_r.clear();
     helix_dz.clear();
-    
+
     mom0_x.clear();
     mom0_y.clear();
     mom0_z.clear();
     mom0.clear();
-    
+
     charge.clear();
     path.clear();
 
@@ -255,7 +255,7 @@ TH1   *h[MaxHist];
 TTree *tree;
   enum eDetHid {
     PosXHid    = 1000000,
-    PosYHid    = 2000000, 
+    PosYHid    = 2000000,
     PosYPadHid    = 3000000,
     HitdEHid    = 100000,
     ClCenterdEHid    = 200000,
@@ -408,7 +408,7 @@ dst::DstRead( int ievent )
       event.raw_hitpos_z.push_back(z);
       event.raw_de.push_back(de);
       event.raw_padid.push_back(pad);
- 
+
       for(int it=0; it<src.ntrack; ++it){
 	Double_t x0_BC = src.x0[it];
      	Double_t u0_BC = src.u0[it];
@@ -425,7 +425,7 @@ dst::DstRead( int ievent )
      	  HF1(HitdEHid + layer*1000+ row,  de);
      	}
      }
-     
+
       ++nh_Tpc;
     }
   }
@@ -500,10 +500,10 @@ dst::DstRead( int ievent )
 
 
 #if TrackSearch
-  DCAna.TrackSearchTPC_Helix();
+  DCAna.TrackSearchTPCHelix();
 #endif
 
-  Int_t ntTpc = DCAna.GetNTracksTPC_Helix();
+  Int_t ntTpc = DCAna.GetNTracksTPCHelix();
   event.ntTpc = ntTpc;
   HF1( 10, ntTpc );
   if( event.ntTpc == 0 )
@@ -523,7 +523,7 @@ dst::DstRead( int ievent )
   event.mom0_y.resize( ntTpc );
   event.mom0_z.resize( ntTpc );
   event.mom0.resize( ntTpc );
-  
+
   event.charge.resize( ntTpc );
   event.path.resize( ntTpc );
 
@@ -545,7 +545,7 @@ dst::DstRead( int ievent )
 
 
   for( Int_t it=0; it<ntTpc; ++it ){
-    TPCLocalTrack_Helix *tp = DCAna.GetTrackTPC_Helix( it );
+    TPCLocalTrackHelix *tp = DCAna.GetTrackTPCHelix( it );
     if( !tp ) continue;
     Int_t nh = tp->GetNHit();
 
@@ -589,26 +589,25 @@ dst::DstRead( int ievent )
     double min_t = 10000.;
     double max_t = -10000.;
     double min_layer_t=0., max_layer_t=0.;
-    double max_layer_y=0.;
+    // double max_layer_y=0.;
 
-        int ih_clmulti=0; 
+    // int ih_clmulti=0;
     for( int ih=0; ih<nh; ++ih ){
       TPCLTrackHit *hit = tp->GetHit( ih );
       if( !hit ) continue;
       Int_t layer = hit->GetLayer();
       const TVector3& hitpos = hit->GetLocalHitPos();
-      const TVector3& calpos = hit->GetLocalCalPos_Helix();
+      const TVector3& calpos = hit->GetLocalCalPosHelix();
       const TVector3& res_vect = hit->GetResidualVect();
       double de_hit = hit->GetHit()->GetCharge();
       int clsize_hit = hit->GetHit()->GetClusterSize();
       if(clsize_hit>1)
 	++nh_clmulti;
-      double path_hit = tpc::padParameter[layer][5];
+      // double path_hit = tpc::padParameter[layer][5];
 
       double mrow = hit->GetHit()->GetMRow();
-      double pad_theta = tpc::getTheta(layer, mrow)*acos(-1)/180.;
-      double t_calc = hit->GetTcal();
-      double theta_diff = t_calc - pad_theta;
+      // double pad_theta = tpc::getTheta(layer, mrow)*acos(-1)/180.;
+      // double theta_diff = t_calc - pad_theta;
 
       Double_t t_cal = hit->GetTcal();
       if(min_t>t_cal)
@@ -620,7 +619,7 @@ dst::DstRead( int ievent )
       if(ih==nh-1)
 	max_layer_t = t_cal;
       Double_t residual = hit->GetResidual();
-      
+
       event.hitlayer[it][ih] = (double)layer;
       event.hitmrow[it][ih] = mrow;
       event.hitpos_x[it][ih] = hitpos.x();
@@ -641,7 +640,7 @@ dst::DstRead( int ievent )
       event.charge[it] = 1;
     else
       event.charge[it] = -1;
-    
+
     Double_t pathlen = (max_t - min_t)*sqrt(helix_r*helix_r*(1.+helix_dz*helix_dz));
     event.path[it] = pathlen;
   }
@@ -761,7 +760,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "helix_z0", &event.helix_z0 );
   tree->Branch( "helix_r", &event.helix_r );
   tree->Branch( "helix_dz", &event.helix_dz );
-  
+
   tree->Branch( "mom0_x", &event.mom0_x );
   tree->Branch( "mom0_y", &event.mom0_y );
   tree->Branch( "mom0_z", &event.mom0_z );

@@ -1,10 +1,5 @@
-/**
- *  file: TPCLTrackHit.cc
- *  date: 2020.01.03
- *  (ref: DCLTrackHit.cc)
- */
+// -*- C++ -*-
 
-//#include "DCLTrackHit.hh"
 #include "TPCLTrackHit.hh"
 
 #include <string>
@@ -22,25 +17,23 @@
 #include "DCAnalyzer.hh"
 #include "MathTools.hh"
 
-
 namespace
 {
-  const std::string& class_name("TPCLTrackHit");
-  const double zTgtTPC = -143.;
-  const double& HS_field_0 = 0.9860;
-  const double& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
-  const double& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
+const double zTgtTPC = -143.;
+const double& HS_field_0 = 0.9860;
+const double& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
+const double& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
 
-  //for Helix tracking
-  //[0]~[4] are the Helix parameters,
-  //([5],[6],[7]) = (x, y, z)
-  std::string s_tmp="pow([5]-([0]+([3]*cos(x))),2)+pow([6]-([1]+([3]*sin(x))),2)+pow([7]-([2]+([3]*[4]*x)),2)";
-  //static TF1 fint("fint",s_tmp.c_str(),-10.,10.);
-  static TF1 fint("fint",s_tmp.c_str(),-4.,4.);
+//for Helix tracking
+//[0]~[4] are the Helix parameters,
+//([5],[6],[7]) = (x, y, z)
+std::string s_tmp="pow([5]-([0]+([3]*cos(x))),2)+pow([6]-([1]+([3]*sin(x))),2)+pow([7]-([2]+([3]*[4]*x)),2)";
+//static TF1 fint("fint",s_tmp.c_str(),-10.,10.);
+static TF1 fint("fint",s_tmp.c_str(),-4.,4.);
 }
 
 //______________________________________________________________________________
-TPCLTrackHit::TPCLTrackHit( TPCHit *hit )
+TPCLTrackHit::TPCLTrackHit(TPCHit *hit)
   : m_hit(hit),
     m_x0(-9999.),
     m_y0(-9999.),
@@ -57,12 +50,12 @@ TPCLTrackHit::TPCLTrackHit( TPCHit *hit )
   m_res = TVector3(hit->GetResolutionX(),
 		   hit->GetResolutionY(),
 		   hit->GetResolutionZ());
-  debug::ObjectCounter::increase(class_name);
+  debug::ObjectCounter::increase(ClassName());
   m_hit->RegisterHits(this);
 }
 
 //______________________________________________________________________________
-TPCLTrackHit::TPCLTrackHit( const TPCLTrackHit& right )
+TPCLTrackHit::TPCLTrackHit(const TPCLTrackHit& right)
   : m_hit(right.m_hit),
     m_x0(right.m_x0),
     m_y0(right.m_y0),
@@ -78,13 +71,13 @@ TPCLTrackHit::TPCLTrackHit( const TPCLTrackHit& right )
   m_cal_pos = right.m_cal_pos;
   m_res = right.m_res;
   m_hit->RegisterHits(this);
-  debug::ObjectCounter::increase(class_name);
+  debug::ObjectCounter::increase(ClassName());
 }
 
 //______________________________________________________________________________
-TPCLTrackHit::~TPCLTrackHit( void )
+TPCLTrackHit::~TPCLTrackHit()
 {
-  debug::ObjectCounter::decrease(class_name);
+  debug::ObjectCounter::decrease(ClassName());
 }
 
 // For Helix fit
@@ -107,15 +100,15 @@ TPCLTrackHit::GetHelixPosition(double par[5], double t) const
 
 //______________________________________________________________________________
 TVector3
-TPCLTrackHit::GetLocalCalPos( void ) const
+TPCLTrackHit::GetLocalCalPos() const
 {
   TVector3 pos = m_local_hit_pos;
-  // TVector3 x0(m_x0, m_y0, 0. );
-  // TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1. );
+  // TVector3 x0(m_x0, m_y0, 0.);
+  // TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1.);
   //temp
 
-  TVector3 x0(m_x0, m_y0, zTgtTPC );
-  TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, zTgtTPC+1. );
+  TVector3 x0(m_x0, m_y0, zTgtTPC);
+  TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, zTgtTPC+1.);
   TVector3 u = (x1-x0).Unit();
   TVector3 AP = pos-x0;
   double dist_AX = u.Dot(AP);
@@ -127,7 +120,7 @@ TPCLTrackHit::GetLocalCalPos( void ) const
 
 //______________________________________________________________________________
 TVector3
-TPCLTrackHit::GetLocalCalPos_Helix( void ) const
+TPCLTrackHit::GetLocalCalPosHelix() const
 {
   TVector3 pos(-m_local_hit_pos.X(),
 	       m_local_hit_pos.Z() - zTgtTPC,
@@ -154,7 +147,7 @@ TPCLTrackHit::GetLocalCalPos_Helix( void ) const
 
 //______________________________________________________________________________
 double
-TPCLTrackHit::GetTcal( void ) const
+TPCLTrackHit::GetTcal() const
 {
   TVector3 pos(-m_local_hit_pos.X(),
 	       m_local_hit_pos.Z() - zTgtTPC,
@@ -178,7 +171,7 @@ TPCLTrackHit::GetTcal( void ) const
 
 //______________________________________________________________________________
 TVector3
-TPCLTrackHit::GetMomentum_Helix( void ) const
+TPCLTrackHit::GetMomentumHelix() const
 {
   TVector3 pos(-m_cal_pos.X(),
    	       m_cal_pos.Z() - zTgtTPC,
@@ -205,14 +198,14 @@ TPCLTrackHit::GetMomentum_Helix( void ) const
 
 //______________________________________________________________________________
 TVector3
-TPCLTrackHit::GetResidualVect( void ) const
+TPCLTrackHit::GetResidualVect() const
 {
   return m_cal_pos - m_local_hit_pos;
 }
 
 //______________________________________________________________________________
 double
-TPCLTrackHit::GetResidual( void ) const
+TPCLTrackHit::GetResidual() const
 {
   TVector3 Res = m_cal_pos - m_local_hit_pos;
   return Res.Mag();
@@ -220,7 +213,7 @@ TPCLTrackHit::GetResidual( void ) const
 
 //______________________________________________________________________________
 bool
-TPCLTrackHit::ResidualCut( void ) const
+TPCLTrackHit::ResidualCut() const
 {
   bool status = false;
   TVector3 Res = m_cal_pos - m_local_hit_pos;
@@ -232,9 +225,9 @@ TPCLTrackHit::ResidualCut( void ) const
 
 //______________________________________________________________________________
 void
-TPCLTrackHit::Print( const std::string& arg ) const
+TPCLTrackHit::Print(const std::string& arg) const
 {
-  m_hit->Print( arg );
+  m_hit->Print(arg);
   hddaq::cout << "local_hit_pos " << m_local_hit_pos.x()
 	      <<", "<<m_local_hit_pos.y()
 	      <<", "<<m_local_hit_pos.z() <<std::endl

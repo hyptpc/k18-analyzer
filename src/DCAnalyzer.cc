@@ -42,7 +42,7 @@
 #include "TPCHit.hh"
 #include "TPCCluster.hh"
 #include "TPCLocalTrack.hh"
-#include "TPCLocalTrack_Helix.hh"
+#include "TPCLocalTrackHelix.hh"
 
 #define DefStatic
 #include "DCParameters.hh"
@@ -1368,14 +1368,14 @@ DCAnalyzer::TrackSearchTPC()
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchTPC_Helix()
+DCAnalyzer::TrackSearchTPCHelix()
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
 #if UseTpcCluster
-  track::LocalTrackSearchTPC_Helix(m_TPCClCont, m_TPCTC_Helix, MinLayer);
+  track::LocalTrackSearchTPCHelix(m_TPCClCont, m_TPCTC_Helix, MinLayer);
 #else
-  track::LocalTrackSearchTPC_Helix(m_TPCHitCont, m_TPCTC_Helix, MinLayer);
+  track::LocalTrackSearchTPCHelix(m_TPCHitCont, m_TPCTC_Helix, MinLayer);
 #endif
   return true;
 }

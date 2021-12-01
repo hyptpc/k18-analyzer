@@ -30,7 +30,7 @@
 #include "ConfMan.hh"
 #include "TPCPadHelper.hh"
 #include "TPCLocalTrack.hh"
-#include "TPCLocalTrack_Helix.hh"
+#include "TPCLocalTrackHelix.hh"
 #include "TPCCluster.hh"
 
 #include "RootHelper.hh"
@@ -90,7 +90,7 @@ CalcTracksTPC(std::vector<TPCLocalTrack*>& trackCont)
 
 //_____________________________________________________________________________
 inline void
-CalcTracksTPC_Helix(std::vector<TPCLocalTrack_Helix*>& trackCont)
+CalcTracksTPCHelix(std::vector<TPCLocalTrackHelix*>& trackCont)
 {
   for(auto& track: trackCont) track->Calculate();
 }
@@ -1991,9 +1991,9 @@ LocalTrackSearchTPC(const std::vector<TPCHitContainer>& TPCHC,
 
 //_____________________________________________________________________________
 Int_t
-LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
-                          std::vector<TPCLocalTrack_Helix*>& TrackCont,
-                          Int_t MinNumOfHits /*=8*/)
+LocalTrackSearchTPCHelix(const std::vector<TPCHitContainer>& TPCHC,
+                         std::vector<TPCLocalTrackHelix*>& TrackCont,
+                         Int_t MinNumOfHits /*=8*/)
 {
   static const Double_t HoughWindowCut = gUser.GetParameter("HoughWindowCut");
   static const Double_t MaxLayerCut = gUser.GetParameter("TPCMaxLayerCut");
@@ -2165,7 +2165,7 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
       if(!hough_flag)
 	continue;
 
-      TPCLocalTrack_Helix *track = new TPCLocalTrack_Helix();
+      TPCLocalTrackHelix *track = new TPCLocalTrackHelix();
       hough_rd[tracki] = Ci_hist->GetXaxis()->GetBinCenter(mx);
       hough_theta[tracki] = Ci_hist->GetYaxis()->GetBinCenter(my);
       hough_p[tracki] = Ci_hist->GetZaxis()->GetBinCenter(mz);
@@ -2248,7 +2248,7 @@ LocalTrackSearchTPC_Helix(const std::vector<TPCHitContainer>& TPCHC,
       //delete track;
     }//hough y cut
   }//track
-  CalcTracksTPC_Helix(TrackCont);
+  CalcTracksTPCHelix(TrackCont);
   delete Ci_hist;
   return status? TrackCont.size() : -1;
 
