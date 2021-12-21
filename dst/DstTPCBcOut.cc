@@ -31,48 +31,47 @@
 #define TrackSearch 1
 #define HoughYcut 0
 
-
 namespace
 {
-  using namespace root;
-  using namespace dst;
-  using hddaq::unpacker::GUnpacker;
-  const auto& gUnpacker = GUnpacker::get_instance();
-  auto&       gConf = ConfMan::GetInstance();
-  const auto& gGeom = DCGeomMan::GetInstance();
-  const auto& gUser = UserParamMan::GetInstance();
-  const auto& gPHC  = HodoPHCMan::GetInstance();
-  const auto& gCounter = debug::ObjectCounter::GetInstance();
-  //position cut for gain histogram
-  //  const double min_ycut = -15.;//mm
-  //const double max_ycut = 15.;//mm
-  const double min_ycut = -50.;//mm
-  const double max_ycut = 50.;//mm 
-  const Int_t MinPosMapXZ = -270;
-  const Int_t MaxPosMapXZ = 270;
-  //const Int_t MinPosMapY = -45;
-  //const Int_t MaxPosMapY = 45;
-  const Int_t MinPosMapY = -60;
-  const Int_t MaxPosMapY = 60;
+using namespace root;
+using namespace dst;
+using hddaq::unpacker::GUnpacker;
+const auto& gUnpacker = GUnpacker::get_instance();
+auto&       gConf = ConfMan::GetInstance();
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
+const auto& gPHC  = HodoPHCMan::GetInstance();
+const auto& gCounter = debug::ObjectCounter::GetInstance();
+//position cut for gain histogram
+//  const double min_ycut = -15.;//mm
+//const double max_ycut = 15.;//mm
+const double min_ycut = -50.;//mm
+const double max_ycut = 50.;//mm
+const Int_t MinPosMapXZ = -270;
+const Int_t MaxPosMapXZ = 270;
+//const Int_t MinPosMapY = -45;
+//const Int_t MaxPosMapY = 45;
+const Int_t MinPosMapY = -60;
+const Int_t MaxPosMapY = 60;
 
-  const Int_t Meshsize = 15;
+const Int_t Meshsize = 15;
 
-  const Double_t& zK18HS = gGeom.LocalZ("K18HS");
+const Double_t& zK18HS = gGeom.LocalZ("K18HS");
 }
 
 namespace dst
 {
-  enum kArgc
-    {
-      kProcess, kConfFile,
-      kTpcHit,  kBcOut, kOutFile, nArgc
-    };
-  std::vector<TString> ArgName =
-    { "[Process]", "[ConfFile]", "[TPCHit]", "[BcOut]", "[OutFile]" };
-  std::vector<TString> TreeName = { "", "", "tpc","bcout" ,"" };
-  std::vector<TFile*> TFileCont;
-  std::vector<TTree*> TTreeCont;
-  std::vector<TTreeReader*> TTreeReaderCont;
+enum kArgc
+{
+  kProcess, kConfFile,
+  kTpcHit,  kBcOut, kOutFile, nArgc
+};
+std::vector<TString> ArgName =
+{ "[Process]", "[ConfFile]", "[TPCHit]", "[BcOut]", "[OutFile]" };
+std::vector<TString> TreeName = { "", "", "tpc","bcout" ,"" };
+std::vector<TFile*> TFileCont;
+std::vector<TTree*> TTreeCont;
+std::vector<TTreeReader*> TTreeReaderCont;
 }
 
 //_____________________________________________________________________________
@@ -138,66 +137,66 @@ struct Event
 
   std::vector<Double_t> clkTpc;
 
-  void clear( void )
-  {
-    runnum = 0;
-    evnum = 0;
-    status = 0;
-    nhTpc = 0;
-    nh_cluster_Tpc = 0;
-    raw_hitpos_x.clear();
-    raw_hitpos_y.clear();
-    raw_hitpos_z.clear();
-    raw_de.clear();
-    raw_padid.clear();
-    cluster_hitpos_x.clear();
-    cluster_hitpos_y.clear();
-    cluster_hitpos_z.clear();
-    cluster_de.clear();
-    cluster_size.clear();
-    cluster_layer.clear();
-    cluster_row.clear();
-    cluster_mrow.clear();
-    cluster_de_center.clear();
-    cluster_hitpos_center_x.clear();
-    cluster_hitpos_center_y.clear();
-    cluster_hitpos_center_z.clear();
-    ntTpc = 0;
-    trigpat.clear();
-    trigflag.clear();
-    clkTpc.clear();
+  void clear()
+    {
+      runnum = 0;
+      evnum = 0;
+      status = 0;
+      nhTpc = 0;
+      nh_cluster_Tpc = 0;
+      raw_hitpos_x.clear();
+      raw_hitpos_y.clear();
+      raw_hitpos_z.clear();
+      raw_de.clear();
+      raw_padid.clear();
+      cluster_hitpos_x.clear();
+      cluster_hitpos_y.clear();
+      cluster_hitpos_z.clear();
+      cluster_de.clear();
+      cluster_size.clear();
+      cluster_layer.clear();
+      cluster_row.clear();
+      cluster_mrow.clear();
+      cluster_de_center.clear();
+      cluster_hitpos_center_x.clear();
+      cluster_hitpos_center_y.clear();
+      cluster_hitpos_center_z.clear();
+      ntTpc = 0;
+      trigpat.clear();
+      trigflag.clear();
+      clkTpc.clear();
 
-    ntrack_bcout = 0;
-    chisqr_bcout.clear();
-    x0_bcout.clear();
-    y0_bcout.clear();
-    u0_bcout.clear();
-    v0_bcout.clear();
-    nhtrack.clear();
-    chisqr.clear();
-    x0.clear();
-    y0.clear();
-    u0.clear();
-    v0.clear();
-    theta.clear();
-    hitlayer.clear();
-    hitpos_x.clear();
-    hitpos_y.clear();
-    hitpos_z.clear();
-    calpos_x.clear();
-    calpos_y.clear();
-    calpos_z.clear();
-    residual.clear();
-    residual_x.clear();
-    residual_y.clear();
-    residual_wbcout_x.clear();
-    residual_wbcout_y.clear();
-    residual_trackwbcout_x.clear();
-    residual_trackwbcout_y.clear();
-    residual_z.clear();
+      ntrack_bcout = 0;
+      chisqr_bcout.clear();
+      x0_bcout.clear();
+      y0_bcout.clear();
+      u0_bcout.clear();
+      v0_bcout.clear();
+      nhtrack.clear();
+      chisqr.clear();
+      x0.clear();
+      y0.clear();
+      u0.clear();
+      v0.clear();
+      theta.clear();
+      hitlayer.clear();
+      hitpos_x.clear();
+      hitpos_y.clear();
+      hitpos_z.clear();
+      calpos_x.clear();
+      calpos_y.clear();
+      calpos_z.clear();
+      residual.clear();
+      residual_x.clear();
+      residual_y.clear();
+      residual_wbcout_x.clear();
+      residual_wbcout_y.clear();
+      residual_trackwbcout_x.clear();
+      residual_trackwbcout_y.clear();
+      residual_z.clear();
 
-    
-  }
+
+    }
 };
 
 //_____________________________________________________________________________
@@ -220,7 +219,7 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* ctTpc;      // time
   TTreeReaderValue<std::vector<Double_t>>* chisqrTpc; // chi^2 of signal fitting
   TTreeReaderValue<std::vector<Double_t>>* clkTpc;      // time
-  
+
   //BcOut input
   Int_t ntrack;
   Double_t chisqr[MaxHits];
@@ -236,14 +235,18 @@ Event  event;
 Src    src;
 TH1   *h[MaxHist];
 TTree *tree;
-  enum eDetHid {
-    PosXHid    = 1000000,
-    PosYHid    = 2000000, 
-    PosYPadHid    = 3000000,
-    PosYPadResHid    = 4000000,
-    HitdEHid    = 100000,
-    ClCenterdEHid    = 200000,
-  };
+enum eDetHid {
+  TPCXHid        = 1000000,
+  TPCYHid        = 2000000,
+  TPCPadYHid     = 3000000,
+  TPCResYHid     = 4000000,
+  TPCResY2DHid   = 5000000,
+  TPCResXHid     = 6000000,
+  TPCResX2DHid   = 7000000,
+  TPCResYCoBoHid = 8000000,
+  TPCDeHid   = 100000,
+  TPCClDeHid = 200000,
+};
 }
 
 Int_t GetHistNum(Double_t x, Double_t y, Double_t z){
@@ -260,32 +263,32 @@ Int_t GetHistNum(Double_t x, Double_t y, Double_t z){
 
 //_____________________________________________________________________________
 int
-main( int argc, char **argv )
+main(int argc, char **argv)
 {
-  std::vector<std::string> arg( argv, argv+argc );
+  std::vector<std::string> arg(argv, argv+argc);
 
-  if( !CheckArg( arg ) )
+  if(!CheckArg(arg))
     return EXIT_FAILURE;
-  if( !DstOpen( arg ) )
+  if(!DstOpen(arg))
     return EXIT_FAILURE;
-  if( !gConf.Initialize( arg[kConfFile] ) )
+  if(!gConf.Initialize(arg[kConfFile]))
     return EXIT_FAILURE;
-  if( !gConf.InitializeUnpacker() )
+  if(!gConf.InitializeUnpacker())
     return EXIT_FAILURE;
 
   Int_t skip = gUnpacker.get_skip();
   if (skip < 0) skip = 0;
   Int_t max_loop = gUnpacker.get_max_loop();
-  Int_t nevent = GetEntries( TTreeCont );
+  Int_t nevent = GetEntries(TTreeCont);
   if (max_loop > 0) nevent = skip + max_loop;
 
   CatchSignal::Set();
 
   Int_t ievent = skip;
-  for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
+  for(; ievent<nevent && !CatchSignal::Stop(); ++ievent){
     gCounter.check();
     InitializeEvent();
-    if( DstRead( ievent ) ) tree->Fill();
+    if(DstRead(ievent)) tree->Fill();
   }
 
   std::cout << "#D Event Number: " << std::setw(6)
@@ -298,7 +301,7 @@ main( int argc, char **argv )
 
 //_____________________________________________________________________________
 Bool_t
-dst::InitializeEvent( void )
+dst::InitializeEvent()
 {
   event.clear();
   return true;
@@ -306,31 +309,31 @@ dst::InitializeEvent( void )
 
 //_____________________________________________________________________________
 Bool_t
-dst::DstOpen( std::vector<std::string> arg )
+dst::DstOpen(std::vector<std::string> arg)
 {
   int open_file = 0;
   int open_tree = 0;
-  for( Int_t i=0; i<nArgc; ++i ){
-    if( i==kProcess || i==kConfFile || i==kOutFile ) continue;
-    open_file += OpenFile( TFileCont[i], arg[i] );
-    open_tree += OpenTree( TFileCont[i], TTreeCont[i], TreeName[i] );
+  for(Int_t i=0; i<nArgc; ++i){
+    if(i==kProcess || i==kConfFile || i==kOutFile) continue;
+    open_file += OpenFile(TFileCont[i], arg[i]);
+    open_tree += OpenTree(TFileCont[i], TTreeCont[i], TreeName[i]);
   }
 
-  if( open_file!=open_tree || open_file!=nArgc-3 )
+  if(open_file!=open_tree || open_file!=nArgc-3)
     return false;
-  if( !CheckEntries( TTreeCont ) )
+  if(!CheckEntries(TTreeCont))
     return false;
 
-  TFileCont[kOutFile] = new TFile( arg[kOutFile].c_str(), "recreate" );
+  TFileCont[kOutFile] = new TFile(arg[kOutFile].c_str(), "recreate");
 
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-dst::DstRead( int ievent )
+dst::DstRead(int ievent)
 {
-  if( ievent%100==0 ){
+  if(ievent%100==0){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
@@ -344,13 +347,6 @@ dst::DstRead( int ievent )
   event.clkTpc = **src.clkTpc;
 
   event.ntrack_bcout = src.ntrack;
-  //  event.nhTpc = **src.nhTpc;
-
-  // event.chisqr_bcout.resize( event.ntrack_bcout );
-  // event.x0_bcout.resize( event.ntrack_bcout );
-  // event.y0_bcout.resize( event.ntrack_bcout );
-  // event.u0_bcout.resize( event.ntrack_bcout );
-  // event.v0_bcout.resize( event.ntrack_bcout );
 
   for(int it=0; it<src.ntrack; ++it){
     event.chisqr_bcout.push_back(src.chisqr[it]);
@@ -360,70 +356,89 @@ dst::DstRead( int ievent )
     event.v0_bcout.push_back(src.v0[it]);
   }
 
+  HF1(1, event.status++);
 
-  HF1( 1, event.status++ );
-
-  if( **src.nhTpc == 0 )
+  if(**src.nhTpc == 0)
     return true;
 
-  HF1( 1, event.status++ );
+  HF1(1, event.status++);
+
+  if(event.clkTpc.size() != 1){
+    std::cerr << "something is wrong" << std::endl;
+    return true;
+  }
+  Double_t clock = event.clkTpc.at(0);
 
   DCAnalyzer DCAna;
-  //  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc);
-  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.ctTpc, **src.deTpc);
+  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock);
+  // DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.ctTpc, **src.deTpc);
 #if HoughYcut
   DCAna.HoughYCut(min_ycut, max_ycut);
 #endif
 
-  HF1( 1, event.status++ );
+  HF1(1, event.status++);
 
-  Int_t nh_Tpc = 0;
-  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
-    auto hc = DCAna.GetTPCHC( layer );
-    for( const auto& hit : hc ){
-      if( !hit || !hit->IsGood() )
+  Int_t nhTpc = 0;
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    auto hc = DCAna.GetTPCHC(layer);
+    for(const auto& hit : hc){
+      if(!hit || !hit->IsGood())
         continue;
-      Double_t x = hit->GetX();
-      Double_t y = hit->GetY();
-      Double_t z = hit->GetZ();
-      Double_t de = hit->GetCharge();
+      const auto& pos = hit->GetPosition();
+      Double_t x = pos.X();
+      Double_t y = pos.Y();
+      Double_t z = pos.Z();
+      Double_t zTPC = zK18HS + z;
+      Double_t de = hit->GetCDe();
       Double_t pad = hit->GetPad();
       Int_t row = hit->GetRow();
+      Int_t cobo = tpc::GetCoBoId(layer, row);
       event.raw_hitpos_x.push_back(x);
       event.raw_hitpos_y.push_back(y);
       event.raw_hitpos_z.push_back(z);
       event.raw_de.push_back(de);
       event.raw_padid.push_back(pad);
- 
       for(int it=0; it<src.ntrack; ++it){
-	Double_t x0_BC = src.x0[it];
-     	Double_t u0_BC = src.u0[it];
-     	Double_t y0_BC = src.y0[it];
-     	Double_t v0_BC = src.v0[it];
-
-     	Double_t zTPC = zK18HS + z;
-     	Double_t x_BC = x0_BC + zTPC*u0_BC;
-     	Double_t y_BC = y0_BC + zTPC*v0_BC;
-	//    	if(fabs(x_BC - x)<100.&&de>100.){
-    	if(fabs(x_BC - x)<100.&&de>0.2){
-     	  HF1(PosYPadHid + layer*1000+ row,  y - y_BC);
-     	}
-     	if(fabs(x_BC - x)<100.&& fabs(y_BC - y)< 60){
-     	  HF1(HitdEHid + layer*1000+ row,  de);
-     	}
+	Double_t x0 = src.x0[it];
+     	Double_t u0 = src.u0[it];
+     	Double_t y0 = src.y0[it];
+     	Double_t v0 = src.v0[it];
+     	Double_t xbc = x0 + zTPC*u0;
+     	Double_t ybc = y0 + zTPC*v0;
+        Double_t resx = x - xbc;
+        Double_t resy = y - ybc;
+        // std::cout << "z=" << z << ", zTPC=" << zTPC << std::endl;
+        if(src.ntrack == 1 && src.chisqr[it] < 10.){
+          HF1(TPCResYHid+layer*1000, resy);
+          HF1(TPCResYHid+layer*1000+row+1, resy);
+          HF2(TPCResY2DHid+layer*1000, clock, resy);
+          HF2(TPCResYCoBoHid+cobo*1000, clock, resy);
+          HF1(TPCResXHid+layer*1000, resx);
+          HF1(TPCResXHid+layer*1000+row+1, resx);
+          HF2(TPCResX2DHid+layer*1000, clock, resx);
+        }
+	//    	if(TMath::Abs(xbc - x)<100.&&de>100.){
+    	// if(TMath::Abs(xbc - x)<100.&&de>0.2){
+     	//   HF1(TPCPadYHid + layer*1000+ row, resy);
+     	// }
+     	// if(TMath::Abs(xbc - x)<100.&& TMath::Abs(ybc - y)< 60){
+     	//   HF1(TPCDeHid + layer*1000+ row,  de);
+     	// }
       }
-     
-      ++nh_Tpc;
+
+      ++nhTpc;
     }
   }
-  event.nhTpc = nh_Tpc;
+  event.nhTpc = nhTpc;
 
-  HF1( 1, event.status++ );
+  return true;
+
+  HF1(1, event.status++);
   Int_t nh_cl_Tpc = 0;
-  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
-    auto hc = DCAna.GetTPCClCont( layer );
-    for( const auto& hit : hc ){
-      if( !hit || !hit->IsGood() )
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    auto hc = DCAna.GetTPCClCont(layer);
+    for(const auto& hit : hc){
+      if(!hit || !hit->IsGood())
         continue;
       Double_t x = hit->GetX();
       Double_t y = hit->GetY();
@@ -449,28 +464,28 @@ dst::DstRead( int ievent )
 
       //Compared with BcOut
       // for(int it=0; it<src.ntrack; ++it){
-      // 	Double_t x0_BC = src.x0[it];
+      // 	Double_t x0 = src.x0[it];
       // 	Double_t u0_BC = src.u0[it];
       // 	Double_t y0_BC = src.y0[it];
       // 	Double_t v0_BC = src.v0[it];
 
       // 	Double_t zTPC = zK18HS + z;
-      // 	Double_t x_BC = x0_BC + zTPC*u0_BC;
-      // 	Double_t y_BC = y0_BC + zTPC*v0_BC;
+      // 	Double_t xbc = x0 + zTPC*u0_BC;
+      // 	Double_t ybc = y0_BC + zTPC*v0_BC;
       // 	if(MinPosMapXZ<x && x<MaxPosMapXZ&&
       // 	   MinPosMapY<y && y<MaxPosMapY&&
       // 	   MinPosMapXZ<z && z<MaxPosMapXZ&&
       // 	   cl_size>=2){
       // 	  int histnum = GetHistNum(x, y, z);
-      // 	  if(fabs(y_BC - y)<60.)
-      // 	    HF1(PosXHid + histnum, x_BC - x);
-      // 	  if(fabs(x_BC - x)<100.){
-      // 	    HF1(PosYHid + histnum, y_BC - y);
-      // 	    //	    HF1(PosYPadHid + layer*1000+ row,  pos_center.Y() - y_BC);
+      // 	  if(TMath::Abs(ybc - y)<60.)
+      // 	    HF1(TPCXHid + histnum, xbc - x);
+      // 	  if(TMath::Abs(xbc - x)<100.){
+      // 	    HF1(TPCYHid + histnum, ybc - y);
+      // 	    //	    HF1(TPCPadYHid + layer*1000+ row,  pos_center.Y() - ybc);
       // 	  }
-      // 	  if(fabs(y_BC - y)<60.&&fabs(x_BC - x)<100.){
+      // 	  if(TMath::Abs(ybc - y)<60.&&TMath::Abs(xbc - x)<100.){
       // 	    HF1(100 + layer, de);
-      // 	    HF1(ClCenterdEHid + layer*1000+ row,  de_center);
+      // 	    HF1(TPCClDeHid + layer*1000+ row,  de_center);
       // 	  }
       // 	}
       // }
@@ -480,10 +495,7 @@ dst::DstRead( int ievent )
   }
   event.nh_cluster_Tpc = nh_cl_Tpc;
 
-  HF1( 1, event.status++ );
-
-
-
+  HF1(1, event.status++);
 
 
 #if TrackSearch
@@ -492,38 +504,38 @@ dst::DstRead( int ievent )
 
   Int_t ntTpc = DCAna.GetNTracksTPC();
   event.ntTpc = ntTpc;
-  HF1( 10, ntTpc );
-  if( event.ntTpc == 0 )
+  HF1(10, ntTpc);
+  if(event.ntTpc == 0)
     return true;
 
-  HF1( 1, event.status++ );
+  HF1(1, event.status++);
 
-  event.nhtrack.resize( ntTpc );
-  event.chisqr.resize( ntTpc );
-  event.x0.resize( ntTpc );
-  event.y0.resize( ntTpc );
-  event.u0.resize( ntTpc );
-  event.v0.resize( ntTpc );
-  event.theta.resize( ntTpc );
-  event.hitlayer.resize( ntTpc );
-  event.hitpos_x.resize( ntTpc );
-  event.hitpos_y.resize( ntTpc );
-  event.hitpos_z.resize( ntTpc );
-  event.calpos_x.resize( ntTpc );
-  event.calpos_y.resize( ntTpc );
-  event.calpos_z.resize( ntTpc );
-  event.residual.resize( ntTpc );
-  event.residual_x.resize( ntTpc );
-  event.residual_y.resize( ntTpc );
-  event.residual_wbcout_x.resize( ntTpc );
-  event.residual_wbcout_y.resize( ntTpc );
-  event.residual_trackwbcout_x.resize( ntTpc );
-  event.residual_trackwbcout_y.resize( ntTpc );
-  event.residual_z.resize( ntTpc );
+  event.nhtrack.resize(ntTpc);
+  event.chisqr.resize(ntTpc);
+  event.x0.resize(ntTpc);
+  event.y0.resize(ntTpc);
+  event.u0.resize(ntTpc);
+  event.v0.resize(ntTpc);
+  event.theta.resize(ntTpc);
+  event.hitlayer.resize(ntTpc);
+  event.hitpos_x.resize(ntTpc);
+  event.hitpos_y.resize(ntTpc);
+  event.hitpos_z.resize(ntTpc);
+  event.calpos_x.resize(ntTpc);
+  event.calpos_y.resize(ntTpc);
+  event.calpos_z.resize(ntTpc);
+  event.residual.resize(ntTpc);
+  event.residual_x.resize(ntTpc);
+  event.residual_y.resize(ntTpc);
+  event.residual_wbcout_x.resize(ntTpc);
+  event.residual_wbcout_y.resize(ntTpc);
+  event.residual_trackwbcout_x.resize(ntTpc);
+  event.residual_trackwbcout_y.resize(ntTpc);
+  event.residual_z.resize(ntTpc);
 
-  for( Int_t it=0; it<ntTpc; ++it ){
-    TPCLocalTrack *tp = DCAna.GetTrackTPC( it );
-    if( !tp ) continue;
+  for(Int_t it=0; it<ntTpc; ++it){
+    TPCLocalTrack *tp = DCAna.GetTrackTPC(it);
+    if(!tp) continue;
     Int_t nh = tp->GetNHit();
     Double_t chisqr = tp->GetChiSquare();
     Double_t x0=tp->GetX0(), y0=tp->GetY0();
@@ -536,26 +548,26 @@ dst::DstRead( int ievent )
     event.u0[it] = u0;
     event.v0[it] = v0;
     event.theta[it] = theta;
-    event.hitlayer[it].resize( nh );
-    event.hitpos_x[it].resize( nh );
-    event.hitpos_y[it].resize( nh );
-    event.hitpos_z[it].resize( nh );
-    event.calpos_x[it].resize( nh );
-    event.calpos_y[it].resize( nh );
-    event.calpos_z[it].resize( nh );
-    event.residual[it].resize( nh );
-    event.residual_x[it].resize( nh );
-    event.residual_y[it].resize( nh );
-    event.residual_wbcout_x[it].resize( nh );
-    event.residual_wbcout_y[it].resize( nh );
-    event.residual_trackwbcout_x[it].resize( nh );
-    event.residual_trackwbcout_y[it].resize( nh );
-    event.residual_z[it].resize( nh );
+    event.hitlayer[it].resize(nh);
+    event.hitpos_x[it].resize(nh);
+    event.hitpos_y[it].resize(nh);
+    event.hitpos_z[it].resize(nh);
+    event.calpos_x[it].resize(nh);
+    event.calpos_y[it].resize(nh);
+    event.calpos_z[it].resize(nh);
+    event.residual[it].resize(nh);
+    event.residual_x[it].resize(nh);
+    event.residual_y[it].resize(nh);
+    event.residual_wbcout_x[it].resize(nh);
+    event.residual_wbcout_y[it].resize(nh);
+    event.residual_trackwbcout_x[it].resize(nh);
+    event.residual_trackwbcout_y[it].resize(nh);
+    event.residual_z[it].resize(nh);
 
 
-    for( int ih=0; ih<nh; ++ih ){
-      TPCLTrackHit *hit = tp->GetHit( ih );
-      if( !hit ) continue;
+    for(int ih=0; ih<nh; ++ih){
+      TPCLTrackHit *hit = tp->GetHit(ih);
+      if(!hit) continue;
       Int_t layer = hit->GetLayer();
       const TVector3& hitpos = hit->GetLocalHitPos();
       const TVector3& calpos = hit->GetLocalCalPos();
@@ -563,7 +575,7 @@ dst::DstRead( int ievent )
       Double_t residual = hit->GetResidual();
       Int_t row = hit->GetHit()->GetRow();
       const TVector3& pos_center = hit->GetHit()->GetPos_center();
-      
+
       event.hitlayer[it][ih] = layer;
       event.hitpos_x[it][ih] = hitpos.x();
       event.hitpos_y[it][ih] = hitpos.y();
@@ -575,30 +587,30 @@ dst::DstRead( int ievent )
       event.residual_x[it][ih] = res_vect.x();
       event.residual_y[it][ih] = res_vect.y();
       event.residual_z[it][ih] = res_vect.z();
-      if(nh>15)
-	HF1(PosYPadResHid + layer*1000+ row,  -1.*res_vect.y());
-      
+      // if(nh>15)
+      //   HF1(TPCResYHid + layer*1000+ row,  -1.*res_vect.y());
+
       //      for(int it=0; it<src.ntrack; ++it){
       if(src.ntrack==1){
-	Double_t x0_BC = src.x0[0];
+	Double_t x0 = src.x0[0];
 	Double_t u0_BC = src.u0[0];
 	Double_t y0_BC = src.y0[0];
 	Double_t v0_BC = src.v0[0];
-      
+
 	Double_t zTPC = zK18HS + pos_center.z();
-	Double_t x_BC = x0_BC + zTPC*u0_BC;
-	Double_t y_BC = y0_BC + zTPC*v0_BC;
-	//    	if(fabs(x_BC - x)<100.&&de>100.){
-	if(nh>15)
-	  HF1(PosYPadHid + layer*1000+ row,  pos_center.y() - y_BC);
-      
-	event.residual_wbcout_x[it][ih] = hitpos.x() - x_BC; 
-	event.residual_wbcout_y[it][ih] = hitpos.y() - y_BC; 
-	event.residual_trackwbcout_x[it][ih] = calpos.x() - x_BC; 
-	event.residual_trackwbcout_y[it][ih] = calpos.y() - y_BC; 
-      }      
-      
-      
+	Double_t xbc = x0 + zTPC*u0_BC;
+	Double_t ybc = y0_BC + zTPC*v0_BC;
+	//    	if(TMath::Abs(xbc - x)<100.&&de>100.){
+	// if(nh>15)
+	//   HF1(TPCPadYHid + layer*1000+ row,  pos_center.y() - ybc);
+
+	event.residual_wbcout_x[it][ih] = hitpos.x() - xbc;
+	event.residual_wbcout_y[it][ih] = hitpos.y() - ybc;
+	event.residual_trackwbcout_x[it][ih] = calpos.x() - xbc;
+	event.residual_trackwbcout_y[it][ih] = calpos.y() - ybc;
+      }
+
+
     }
 
   }
@@ -610,44 +622,50 @@ dst::DstRead( int ievent )
 
 //_____________________________________________________________________________
 Bool_t
-dst::DstClose( void )
+dst::DstClose()
 {
   TFileCont[kOutFile]->Write();
   std::cout << "#D Close : " << TFileCont[kOutFile]->GetName() << std::endl;
   TFileCont[kOutFile]->Close();
 
   const Int_t n = TFileCont.size();
-  for( Int_t i=0; i<n; ++i ){
-    if( TTreeReaderCont[i] ) delete TTreeReaderCont[i];
-    if( TTreeCont[i] ) delete TTreeCont[i];
-    if( TFileCont[i] ) delete TFileCont[i];
+  for(Int_t i=0; i<n; ++i){
+    if(TTreeReaderCont[i]) delete TTreeReaderCont[i];
+    if(TTreeCont[i]) delete TTreeCont[i];
+    if(TFileCont[i]) delete TFileCont[i];
   }
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan::InitializeHistograms( void )
+ConfMan::InitializeHistograms()
 {
   const Int_t    NbinDe = 1000;
   const Double_t MinDe  =    0.;
   const Double_t MaxDe  = 2000.;
-  HB1( 1, "Status", 21, 0., 21. );
-  HB1( 10, "NTrack TPC", 40, 0., 40. );
-  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
-    HB1( 100 + layer, "dE TPC", NbinDe, MinDe, MaxDe );
-  }
-  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
-    const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
-    for( Int_t r=0; r<NumOfRow; ++r ){
-      HB1(HitdEHid + layer*1000 + r , "TPC hit dE", NbinDe, MinDe, MaxDe );
-      HB1(ClCenterdEHid + layer*1000 + r , "TPC dE_center", NbinDe, MinDe, MaxDe );
-    }
-  }
+  const Int_t    NbinRes = 400;
+  const Double_t MinRes  = -20.;
+  const Double_t MaxRes  =  20.;
   const Int_t    NbinPos = 1600;
   const Double_t MinPos  = -40.;
   const Double_t MaxPos  = 40.;
+  const Int_t    NbinClk = 20000;
+  const Double_t MinClk  = 100.;
+  const Double_t MaxClk  = 100.;
 
+  HB1(1, "Status", 21, 0., 21.);
+  HB1(10, "NTrack TPC", 40, 0., 40.);
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    HB1(100 + layer, "dE TPC", NbinDe, MinDe, MaxDe);
+  }
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
+    for(Int_t r=0; r<NumOfRow; ++r){
+      HB1(TPCDeHid + layer*1000 + r , "TPC hit dE", NbinDe, MinDe, MaxDe);
+      HB1(TPCClDeHid + layer*1000 + r , "TPC dE_center", NbinDe, MinDe, MaxDe);
+    }
+  }
   Int_t NumOfDivXZ = ((MaxPosMapXZ - MinPosMapXZ)/Meshsize) + 1;
   Int_t NumOfDivY = ((MaxPosMapY - MinPosMapY)/Meshsize) + 1;
 
@@ -655,117 +673,138 @@ ConfMan::InitializeHistograms( void )
   for(Int_t ix=0; ix<NumOfDivXZ; ++ix){
     for(Int_t iy=0; iy<NumOfDivY; ++iy){
       for(Int_t iz=0; iz<NumOfDivXZ; ++iz){
-	HB1(PosXHid + histnum, "TPC Pos XCor", NbinPos, MinPos, MaxPos );
-	HB1(PosYHid + histnum, "TPC Pos YCor", NbinPos, MinPos, MaxPos );
+	HB1(TPCXHid + histnum, "TPC Pos XCor", NbinPos, MinPos, MaxPos);
+	HB1(TPCYHid + histnum, "TPC Pos YCor", NbinPos, MinPos, MaxPos);
 	++histnum;
       }
     }
   }
-  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
-    for( Int_t r=0; r<NumOfRow; ++r ){
-      HB1(PosYPadHid + layer*1000 + r , "TPC Pad Y Cor", NbinPos, MinPos, MaxPos );
-      HB1(PosYPadResHid + layer*1000 + r , "TPC Pad Y Residual", NbinPos, MinPos, MaxPos );
+    HB1(TPCResYHid+layer*1000,
+        Form("TPC Y Residual Layer%d (TPCHit);[mm];Counts", layer),
+        NbinRes, MinRes, MaxRes);
+    HB2(TPCResY2DHid+layer*1000,
+        Form("ResY%%ClockTime Layer%d (TPCHit);[ns];[mm];Counts", layer),
+        400, -50, 50, 400, -50, 50);
+    HB2(TPCResYCoBoHid+layer*1000,
+        Form("ResY%%ClockTime CoBo%d (TPCHit);[ns];[mm];Counts", layer),
+        400, -50, 50, 400, -50, 50);
+    HB1(TPCResXHid+layer*1000,
+        Form("TPC X Residual Layer%d (TPCHit);[mm];Counts", layer),
+        NbinRes, MinRes, MaxRes);
+    HB2(TPCResX2DHid+layer*1000,
+        Form("ResX%%ClockTime Layer%d (TPCHit);[ns];[mm];Counts", layer),
+        400, -50, 50, 400, -50, 50);
+    for(Int_t r=0; r<NumOfRow; ++r){
+      // HB1(TPCPadYHid+layer*1000+r, "TPC Pad Y Cor", NbinPos, MinPos, MaxPos);
+      HB1(TPCResYHid+layer*1000+r+1,
+          Form("TPC Y Residual L%dR%d (TPCHit);[mm];Counts", layer, r),
+          NbinRes, MinRes, MaxRes);
+      // HB1(TPCPadXHid+layer*1000+r, "TPC Pad X Cor", NbinPos, MinPos, MaxPos);
+      HB1(TPCResXHid+layer*1000+r+1,
+          Form("TPC X Residual L%dR%d (TPCHit);[mm];Counts", layer, r),
+          NbinRes, MinRes, MaxRes);
     }
   }
 
 
-  // for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+  // for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
   //   const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
-  //   for( Int_t r=0; r<NumOfRow; ++r ){
-  //     HB1(PadHid + layer*1000 + r , "TPC DeltaE_center", NbinDe, MinDe, MaxDe );
+  //   for(Int_t r=0; r<NumOfRow; ++r){
+  //     HB1(PadHid + layer*1000 + r , "TPC DeltaE_center", NbinDe, MinDe, MaxDe);
   //   }
   // }
 
 
-  HBTree( "tpc", "tree of DstTPCTracking" );
+  HBTree("tpc", "tree of DstTPCTracking");
 
-  tree->Branch( "status", &event.status );
-  tree->Branch( "runnum", &event.runnum );
-  tree->Branch( "evnum", &event.evnum );
-  tree->Branch( "trigpat", &event.trigpat );
-  tree->Branch( "trigflag", &event.trigflag );
+  tree->Branch("status", &event.status);
+  tree->Branch("runnum", &event.runnum);
+  tree->Branch("evnum", &event.evnum);
+  tree->Branch("trigpat", &event.trigpat);
+  tree->Branch("trigflag", &event.trigflag);
 
-  tree->Branch( "clkTpc", &event.clkTpc );
+  tree->Branch("clkTpc", &event.clkTpc);
 
-  tree->Branch( "nhTpc", &event.nhTpc );
-  tree->Branch( "nh_cluster_Tpc", &event.nh_cluster_Tpc );
-  tree->Branch( "raw_hitpos_x", &event.raw_hitpos_x );
-  tree->Branch( "raw_hitpos_y", &event.raw_hitpos_y );
-  tree->Branch( "raw_hitpos_z", &event.raw_hitpos_z );
-  tree->Branch( "raw_de", &event.raw_de );
-  tree->Branch( "raw_padid", &event.raw_padid );
-  tree->Branch( "cluster_hitpos_x", &event.cluster_hitpos_x );
-  tree->Branch( "cluster_hitpos_y", &event.cluster_hitpos_y );
-  tree->Branch( "cluster_hitpos_z", &event.cluster_hitpos_z );
-  tree->Branch( "cluster_de", &event.cluster_de );
-  tree->Branch( "cluster_size", &event.cluster_size );
-  tree->Branch( "cluster_layer", &event.cluster_layer );
-  tree->Branch( "cluster_row", &event.cluster_row );
-  tree->Branch( "cluster_mrow", &event.cluster_mrow );
-  tree->Branch( "cluster_de_center", &event.cluster_de_center );
-  tree->Branch( "cluster_hitpos_center_x", &event.cluster_hitpos_center_x );
-  tree->Branch( "cluster_hitpos_center_y", &event.cluster_hitpos_center_y );
-  tree->Branch( "cluster_hitpos_center_z", &event.cluster_hitpos_center_z );
+  tree->Branch("nhTpc", &event.nhTpc);
+  tree->Branch("nh_cluster_Tpc", &event.nh_cluster_Tpc);
+  tree->Branch("raw_hitpos_x", &event.raw_hitpos_x);
+  tree->Branch("raw_hitpos_y", &event.raw_hitpos_y);
+  tree->Branch("raw_hitpos_z", &event.raw_hitpos_z);
+  tree->Branch("raw_de", &event.raw_de);
+  tree->Branch("raw_padid", &event.raw_padid);
+  tree->Branch("cluster_hitpos_x", &event.cluster_hitpos_x);
+  tree->Branch("cluster_hitpos_y", &event.cluster_hitpos_y);
+  tree->Branch("cluster_hitpos_z", &event.cluster_hitpos_z);
+  tree->Branch("cluster_de", &event.cluster_de);
+  tree->Branch("cluster_size", &event.cluster_size);
+  tree->Branch("cluster_layer", &event.cluster_layer);
+  tree->Branch("cluster_row", &event.cluster_row);
+  tree->Branch("cluster_mrow", &event.cluster_mrow);
+  tree->Branch("cluster_de_center", &event.cluster_de_center);
+  tree->Branch("cluster_hitpos_center_x", &event.cluster_hitpos_center_x);
+  tree->Branch("cluster_hitpos_center_y", &event.cluster_hitpos_center_y);
+  tree->Branch("cluster_hitpos_center_z", &event.cluster_hitpos_center_z);
 
-  tree->Branch( "ntrack_bcout", &event.ntrack_bcout );
-  tree->Branch( "chisqr_bcout", &event.chisqr_bcout );
-  tree->Branch( "x0_bcout", &event.x0_bcout );
-  tree->Branch( "y0_bcout", &event.y0_bcout );
-  tree->Branch( "u0_bcout", &event.u0_bcout );
-  tree->Branch( "v0_bcout", &event.v0_bcout );
+  tree->Branch("ntrack_bcout", &event.ntrack_bcout);
+  tree->Branch("chisqr_bcout", &event.chisqr_bcout);
+  tree->Branch("x0_bcout", &event.x0_bcout);
+  tree->Branch("y0_bcout", &event.y0_bcout);
+  tree->Branch("u0_bcout", &event.u0_bcout);
+  tree->Branch("v0_bcout", &event.v0_bcout);
 
-  tree->Branch( "ntTpc", &event.ntTpc );
-  tree->Branch( "nhtrack", &event.nhtrack );
-  tree->Branch( "chisqr", &event.chisqr );
-  tree->Branch( "x0", &event.x0 );
-  tree->Branch( "y0", &event.y0 );
-  tree->Branch( "u0", &event.u0 );
-  tree->Branch( "v0", &event.v0 );
-  tree->Branch( "theta", &event.theta );
-  tree->Branch( "hitlayer", &event.hitlayer );
-  tree->Branch( "hitpos_x", &event.hitpos_x );
-  tree->Branch( "hitpos_y", &event.hitpos_y );
-  tree->Branch( "hitpos_z", &event.hitpos_z );
-  tree->Branch( "calpos_x", &event.calpos_x );
-  tree->Branch( "calpos_y", &event.calpos_y );
-  tree->Branch( "calpos_z", &event.calpos_z );
-  tree->Branch( "residual", &event.residual );
-  tree->Branch( "residual_x", &event.residual_x );
-  tree->Branch( "residual_y", &event.residual_y );
-  tree->Branch( "residual_wbcout_x", &event.residual_wbcout_x );
-  tree->Branch( "residual_wbcout_y", &event.residual_wbcout_y );
-  tree->Branch( "residual_trackwbcout_x", &event.residual_trackwbcout_x );
-  tree->Branch( "residual_trackwbcout_y", &event.residual_trackwbcout_y );
-  tree->Branch( "residual_z", &event.residual_z );
+  tree->Branch("ntTpc", &event.ntTpc);
+  tree->Branch("nhtrack", &event.nhtrack);
+  tree->Branch("chisqr", &event.chisqr);
+  tree->Branch("x0", &event.x0);
+  tree->Branch("y0", &event.y0);
+  tree->Branch("u0", &event.u0);
+  tree->Branch("v0", &event.v0);
+  tree->Branch("theta", &event.theta);
+  tree->Branch("hitlayer", &event.hitlayer);
+  tree->Branch("hitpos_x", &event.hitpos_x);
+  tree->Branch("hitpos_y", &event.hitpos_y);
+  tree->Branch("hitpos_z", &event.hitpos_z);
+  tree->Branch("calpos_x", &event.calpos_x);
+  tree->Branch("calpos_y", &event.calpos_y);
+  tree->Branch("calpos_z", &event.calpos_z);
+  tree->Branch("residual", &event.residual);
+  tree->Branch("residual_x", &event.residual_x);
+  tree->Branch("residual_y", &event.residual_y);
+  tree->Branch("residual_wbcout_x", &event.residual_wbcout_x);
+  tree->Branch("residual_wbcout_y", &event.residual_wbcout_y);
+  tree->Branch("residual_trackwbcout_x", &event.residual_trackwbcout_x);
+  tree->Branch("residual_trackwbcout_y", &event.residual_trackwbcout_y);
+  tree->Branch("residual_z", &event.residual_z);
 
 
-  // for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+  // for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
   //   const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
-  //   for( Int_t r=0; r<NumOfRow; ++r ){
-  //     HB1(PadHid + layer*1000 + r , "TPC DeltaE_center", NbinDe, MinDe, MaxDe );
+  //   for(Int_t r=0; r<NumOfRow; ++r){
+  //     HB1(PadHid + layer*1000 + r , "TPC DeltaE_center", NbinDe, MinDe, MaxDe);
   //   }
   // }
 
 
-  TTreeReaderCont[kTpcHit] = new TTreeReader( "tpc", TFileCont[kTpcHit] );
+  TTreeReaderCont[kTpcHit] = new TTreeReader("tpc", TFileCont[kTpcHit]);
   const auto& reader = TTreeReaderCont[kTpcHit];
-  src.runnum = new TTreeReaderValue<Int_t>( *reader, "runnum" );
-  src.evnum = new TTreeReaderValue<Int_t>( *reader, "evnum" );
-  src.trigpat = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trigpat" );
-  src.trigflag = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trigflag" );
-  src.npadTpc = new TTreeReaderValue<Int_t>( *reader, "npadTpc" );
-  src.nhTpc = new TTreeReaderValue<Int_t>( *reader, "nhTpc" );
-  src.layerTpc = new TTreeReaderValue<std::vector<Int_t>>( *reader, "layerTpc" );
-  src.rowTpc = new TTreeReaderValue<std::vector<Int_t>>( *reader, "rowTpc" );
-  src.padTpc = new TTreeReaderValue<std::vector<Int_t>>( *reader, "padTpc" );
-  src.pedTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pedTpc" );
-  src.rmsTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "rmsTpc" );
-  src.deTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "deTpc" );
-  src.tTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "tTpc" );
-  src.ctTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "ctTpc" );
-  src.chisqrTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqrTpc" );
-  src.clkTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "clkTpc" );
+  src.runnum = new TTreeReaderValue<Int_t>(*reader, "runnum");
+  src.evnum = new TTreeReaderValue<Int_t>(*reader, "evnum");
+  src.trigpat = new TTreeReaderValue<std::vector<Int_t>>(*reader, "trigpat");
+  src.trigflag = new TTreeReaderValue<std::vector<Int_t>>(*reader, "trigflag");
+  src.npadTpc = new TTreeReaderValue<Int_t>(*reader, "npadTpc");
+  src.nhTpc = new TTreeReaderValue<Int_t>(*reader, "nhTpc");
+  src.layerTpc = new TTreeReaderValue<std::vector<Int_t>>(*reader, "layerTpc");
+  src.rowTpc = new TTreeReaderValue<std::vector<Int_t>>(*reader, "rowTpc");
+  src.padTpc = new TTreeReaderValue<std::vector<Int_t>>(*reader, "padTpc");
+  src.pedTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "pedTpc");
+  src.rmsTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "rmsTpc");
+  src.deTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "deTpc");
+  src.tTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "tTpc");
+  src.ctTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "ctTpc");
+  src.chisqrTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "chisqrTpc");
+  src.clkTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "clkTpc");
 
   TTreeCont[kBcOut]->SetBranchStatus("*", 0);
   TTreeCont[kBcOut]->SetBranchStatus("ntrack",  1);
@@ -788,19 +827,19 @@ ConfMan::InitializeHistograms( void )
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan::InitializeParameterFiles( void )
+ConfMan::InitializeParameterFiles()
 {
   return
-    ( InitializeParameter<DCGeomMan>("DCGEO")   &&
-      InitializeParameter<TPCParamMan>("TPCPRM") &&
-      InitializeParameter<TPCPositionCorrector>("TPCPOS") &&
-      InitializeParameter<UserParamMan>("USER") &&
-      InitializeParameter<HodoPHCMan>("HDPHC") );
+    (InitializeParameter<DCGeomMan>("DCGEO")   &&
+     InitializeParameter<TPCParamMan>("TPCPRM") &&
+     InitializeParameter<TPCPositionCorrector>("TPCPOS") &&
+     InitializeParameter<UserParamMan>("USER") &&
+     InitializeParameter<HodoPHCMan>("HDPHC"));
 }
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan::FinalizeProcess( void )
+ConfMan::FinalizeProcess()
 {
   return true;
 }

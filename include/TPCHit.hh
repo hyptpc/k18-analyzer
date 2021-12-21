@@ -46,6 +46,7 @@ protected:
   std::vector<Double_t> m_cde;
   std::vector<Double_t> m_ctime;
   std::vector<Double_t> m_drift_length; // this means Y (beam height = 0)
+  std::vector<TVector3> m_position;
   Double_t              m_charge;
   TVector3              m_pos;
   Int_t                 m_is_good;
@@ -73,20 +74,21 @@ protected:
   std::vector<TPCLTrackHit*> m_register_container;
 
 public:
-  void            AddDeTime(Double_t de, Double_t time);
+  void            AddHit(Double_t de, Double_t time, Double_t sigma=0.,
+                         Double_t chisqr=0.);
   Bool_t          BelongToTrack() const { return m_belong_track; }
   Bool_t          Calculate(Double_t clock=0.);
   Bool_t          DoFit();
-  Double_t        GetCDe(Int_t i) const { return m_cde.at(i); }
+  Double_t        GetCDe(Int_t i=0) const { return m_cde.at(i); }
   Int_t           GetCDeSize() const { return m_cde.size(); }
-  Double_t        GetChisqr(Int_t i) const { return m_chisqr.at(i); }
+  Double_t        GetChisqr(Int_t i=0) const { return m_chisqr.at(i); }
   Int_t           GetChisqrSize() const { return m_chisqr.size(); }
-  Double_t        GetCTime(Int_t i) const { return m_ctime.at(i); }
+  Double_t        GetCTime(Int_t i=0) const { return m_ctime.at(i); }
   Int_t           GetCTimeSize() const { return m_ctime.size(); }
-  Double_t        GetDe(Int_t i) const { return m_de.at(i); }
-  Double_t        GetSigma(Int_t i) const { return m_sigma.at(i); }
+  Double_t        GetDe(Int_t i=0) const { return m_de.at(i); }
+  Double_t        GetSigma(Int_t i=0) const { return m_sigma.at(i); }
   Int_t           GetDeSize() const { return m_de.size(); }
-  Double_t        GetDriftLength(Int_t i) const
+  Double_t        GetDriftLength(Int_t i=0) const
     { return m_drift_length.at(i); }
   Int_t           GetDriftLengthSize() const
     { return m_drift_length.size(); }
@@ -111,11 +113,12 @@ public:
   Int_t           GetClusterSize() const { return m_clsize; }
   Int_t           GetHoughY_num(Int_t i) const { return m_houghY_num.at(i); }
   Int_t           GetHoughY_num_size() const { return m_houghY_num.size(); }
+  const TVector3& GetPosition(Int_t i=0) const { return m_position.at(i); }
   Double_t        GetResolutionX();
   Double_t        GetResolutionY();
   Double_t        GetResolutionZ();
   Double_t        GetResolution();
-  Double_t        GetTime(Int_t i) const { return m_time.at(i); }
+  Double_t        GetTime(Int_t i=0) const { return m_time.at(i); }
   Int_t           GetTimeSize() const { return m_time.size(); }
   Bool_t          IsGood() const { return m_is_good; }
   Int_t           GetHoughFlag() const { return m_hough_flag; }

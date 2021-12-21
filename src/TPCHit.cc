@@ -29,6 +29,7 @@
 #include "TPCLTrackHit.hh"
 #include "TPCPadHelper.hh"
 #include "TPCParamMan.hh"
+#include "TPCPositionCorrector.hh"
 #include "TPCRawHit.hh"
 #include "UserParamMan.hh"
 
@@ -54,9 +55,10 @@ namespace { TApplication app("DebugApp", nullptr, nullptr); }
 
 namespace
 {
-const auto& gGeom = DCGeomMan::GetInstance();
-const auto& gUser = UserParamMan::GetInstance();
-const auto& gTPC  = TPCParamMan::GetInstance();
+const auto& gGeom   = DCGeomMan::GetInstance();
+const auto& gUser   = UserParamMan::GetInstance();
+const auto& gTPC    = TPCParamMan::GetInstance();
+const auto& gTPCPos = TPCPositionCorrector::GetInstance();
 const Int_t MaxADC = 4096;
 const Int_t MaxIteration = 3;
 const Int_t MaxPeaks = 20;
@@ -74,10 +76,10 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_pedestal(TMath::QuietNaN()),
     m_rms(TMath::QuietNaN()),
     m_de(),
-    m_time(),
+    m_time(), // [time bucket]
     m_chisqr(),
     m_cde(),
-    m_ctime(),
+    m_ctime(), // [ns]
     m_drift_length(),
     m_charge(),
     m_pos(),
@@ -143,10 +145,16 @@ TPCHit::~TPCHit()
 
 //_____________________________________________________________________________
 void
-TPCHit::AddDeTime(Double_t de, Double_t time)
+TPCHit::AddHit(Double_t de, Double_t time, Double_t sigma, Double_t chisqr)
 {
-  m_de.push_back(de);
   m_time.push_back(time);
+  m_de.push_back(de);
+  m_sigma.push_back(sigma);
+  m_chisqr.push_back(chisqr);
+  m_cde.push_back(TMath::QuietNaN());
+  m_ctime.push_back(TMath::QuietNaN());
+  m_drift_length.push_back(TMath::QuietNaN());
+  m_position.push_back(TVector3());
 }
 
 //_____________________________________________________________________________
@@ -185,25 +193,26 @@ TPCHit::Calculate(Double_t clock)
                   << ", " << ctime << ")" << std::endl;
     }
 
-    // Time Correction
-    Double_t c_clock;
-    if(!gTPC.GetC_Clock(m_layer, m_row, clock, c_clock)){
-      hddaq::cerr << FUNC_NAME << " something is wrong at GetC_Clock("
+    Double_t cclk;
+    if(!gTPC.GetCClock(m_layer, m_row, clock, cclk)){
+      hddaq::cerr << FUNC_NAME << " something is wrong at GetCClock("
                   << m_layer << ", " << m_row << ", " << m_time[i]
                   << ", " << ctime << ")" << std::endl;
     }
-    //    double c_clock = gTPC.GetC_Clock(m_layer, m_row, clock);
-    //ctime -= c_clock;
-    ctime += c_clock;
-    //
+    ctime += cclk;
+
     if(!gTPC.GetDriftLength(m_layer, m_row, ctime, dl)){
       hddaq::cerr << FUNC_NAME << " something is wrong at GetDriftLength("
                   << m_layer << ", " << m_row << ", " << ctime
                   << ", " << dl << ")" << std::endl;
     }
-    m_cde.push_back(cde);
-    m_ctime.push_back(ctime);
-    m_drift_length.push_back(dl);
+    m_cde[i] = cde;
+    m_ctime[i] = ctime;
+    m_drift_length[i] = dl;
+    auto pos = tpc::getPosition(m_pad);
+    pos.SetY(dl);
+    auto cpos = gTPCPos.Correct(pos);
+    m_position[i] = cpos;
   }
   return true;
 }
@@ -450,10 +459,7 @@ TPCHit::DoFit()
 #endif
       if (chisqr > MaxChisqr || de < MinDe)
         continue;
-      m_time.push_back(time);
-      m_de.push_back(de);
-      m_chisqr.push_back(chisqr);
-      m_sigma.push_back(sigma);
+      AddHit(de, time, sigma, chisqr);
 #if DebugEvDisp
       hddaq::cout << FUNC_NAME << " (time,de,chisqr, rms)=("
 		  << time << "," << de << "," << chisqr << "," << m_rms <<")" << std::endl;
@@ -504,10 +510,7 @@ TPCHit::DoFit()
 	de[i] = f1.Eval(time[i]) - p[n_peaks*3]; // amplitude
 	sigma = p[i*3+2];
 	if(de[i] > MinDe && sigma > 2.5){
-	  m_time.push_back(time[i]);
-	  m_de.push_back(de[i]);
-	  m_chisqr.push_back(chisqr);
-	  m_sigma.push_back(sigma);
+          AddHit(de[i], time[i], sigma, chisqr);
 	}
       }
     }
@@ -648,20 +651,21 @@ TPCHit::Print(const std::string& arg, std::ostream& ost) const
   ost << "#D " << FUNC_NAME << " " << arg << std::endl
       << std::setw(w) << std::left << "layer" << m_layer << std::endl
       << std::setw(w) << std::left << "row"  << m_row  << std::endl
-      << std::setw(w) << std::left << "pad"  << m_pad  << std::endl
-      << std::setw(w) << std::left << "charge" << m_charge << std::endl
-      << std::setw(w) << std::left << "posx" << m_pos.x() << std::endl
-      << std::setw(w) << std::left << "posy" << m_pos.y() << std::endl
-      << std::setw(w) << std::left << "posz" << m_pos.z() << std::endl;
+      << std::setw(w) << std::left << "pad"  << m_pad  << std::endl;
+      // << std::setw(w) << std::left << "charge" << m_charge << std::endl
+      // << std::setw(w) << std::left << "posx" << m_pos.x() << std::endl
+      // << std::setw(w) << std::left << "posy" << m_pos.y() << std::endl
+      // << std::setw(w) << std::left << "posz" << m_pos.z() << std::endl;
   for(Int_t i=0, n=GetNHits(); i<n; ++i){
     ost << std::setw(3) << std::right << i << " "
-	<< "(time,de,chisqr,ctime,cde,dl)=("
+	<< "(time,de,chisqr,ctime,cde,dl,pos)=("
         << std::fixed << std::setprecision(3) << std::setw(9) << m_time[i]
         << std::fixed << std::setprecision(3) << std::setw(9) << m_de[i]
         << std::fixed << std::setprecision(3) << std::setw(9) << m_chisqr[i]
-      //<< std::fixed << std::setprecision(3) << std::setw(9) << m_ctime[i]
-      //<< std::fixed << std::setprecision(3) << std::setw(9) << m_cde[i]
-        // << std::fixed << std::setprecision(3) << std::setw(9) << m_drift_length[i]
+        << std::fixed << std::setprecision(3) << std::setw(9) << m_ctime[i]
+        << std::fixed << std::setprecision(3) << std::setw(9) << m_cde[i]
+        << std::fixed << std::setprecision(3) << std::setw(9) << m_drift_length[i]
+        << std::fixed << std::setprecision(3) << std::setw(9) << m_position[i]
         << ")" << std::endl;
   }
 }

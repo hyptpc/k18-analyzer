@@ -18,7 +18,8 @@
 
 namespace tpc
 {
-enum EPadParameter {
+enum EPadParameter
+{
   kLayerID,
   kNumOfPad,
   kRadius,
@@ -28,9 +29,9 @@ enum EPadParameter {
   NPadParameter
 };
 
-
+//_____________________________________________________________________________
 //#OfPad #division #radius padLength
-static const Double_t padParameter[NumOfLayersTPC][NPadParameter]=
+static const Double_t padParameter[NumOfLayersTPC][NPadParameter] =
 {{0, 48,    14.75, 48, 0,  9.},
  {1, 48,    24.25, 48, 0,  9.},
  {2, 72,    33.75, 72, 0,  9.},
@@ -64,7 +65,26 @@ static const Double_t padParameter[NumOfLayersTPC][NPadParameter]=
  {30,108,    371.5,837, 0,  12.5},
  {31,90,     384.5,867, 0, 12.5}};
 
+//_____________________________________________________________________________
+inline Int_t GetCoBoId(Int_t layer, Int_t row)
+{
+  switch(layer){
+  case 4:
+    if(60<=row && row<=99)
+      return 1;
+    else
+      return 0;
+  case 5:
+    if(72<=row && row<=119)
+      return 1;
+    else
+      return 0;
+  default:
+    return layer/4;
+  }
+}
 
+//_____________________________________________________________________________
 inline Int_t GetPadId(Int_t layerID, Int_t rowID)
 {
   //Original

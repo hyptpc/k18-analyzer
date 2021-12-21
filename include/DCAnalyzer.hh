@@ -197,10 +197,10 @@ public:
                       Bool_t applyRecursively=false);
   Bool_t ReCalcDCHits(Bool_t applyRecursively=false);
   Bool_t ReCalcTPCHits(const Int_t nhits,
-                       const std::vector<Int_t>& padid,
+                       const std::vector<Int_t>& pad,
                        const std::vector<Double_t>& time,
                        const std::vector<Double_t>& de,
-                       Bool_t do_clusterize=true);
+                       Double_t clock=0.);
   void HoughYCut(Double_t min_y, Double_t max_y);
   Bool_t ReCalcTrack(DCLocalTrackContainer& cont, Bool_t applyRecursively=false);
   Bool_t ReCalcTrack(K18TrackD2UContainer& cont, Bool_t applyRecursively=false);

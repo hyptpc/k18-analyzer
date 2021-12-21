@@ -390,7 +390,7 @@ UserTPCHit::ProcessingNormal()
   }
 
   //________________________________________________________
-  //___ TPCRawHit after subtraction
+  //___ TPCRawHit after baseline correction
   auto baseline = rawData->GetBaselineTPC();
   if(baseline){
     auto fadc = baseline->Fadc();

@@ -72,7 +72,7 @@ HB1(Int_t i, const Char_t* title,
     h[i] = nullptr;
 #endif
   }
-  h[i] = new TH1F(Form("h%d", i), title, nbinx, xlow, xhigh);
+  h[i] = new TH1D(Form("h%d", i), title, nbinx, xlow, xhigh);
 }
 
 //_____________________________________________________________________________
@@ -100,7 +100,7 @@ HB2(Int_t i, const Char_t* title,
     h[i] = nullptr;
 #endif
   }
-  h[i] = new TH2F(Form("h%d", i), title,
+  h[i] = new TH2D(Form("h%d", i), title,
                   nbinx, xlow, xhigh,
                   nbiny, ylow, yhigh);
 }
