@@ -33,7 +33,6 @@
 #define GainCalib 0
 #define Srdata 0
 //#define GainCalib 0
-#define EventSelection 1
 
 namespace
 {
@@ -200,9 +199,9 @@ UserTPCHit::ProcessingBegin()
 Bool_t
 UserTPCHit::ProcessingNormal()
 {
+  static const Int_t MaxMultiHitTPC = gUser.GetParameter("MaxMultiHitTPC");
   static const auto MinTdcHTOF = gUser.GetParameter("TdcHTOF", 0);
   static const auto MaxTdcHTOF = gUser.GetParameter("TdcHTOF", 1);
-  static const Int_t TPC_Subtraction = gUser.GetParameter("TPC_Subtraction");
   const Int_t run_number   = gUnpacker.get_root()->get_run_number();
   const Int_t event_number = gUnpacker.get_event_number();
 
@@ -222,7 +221,7 @@ UserTPCHit::ProcessingNormal()
       trigger_flag.set(seg);
     }
   }
-  
+
   if(trigger_flag[trigger::kSpillEnd]) return true;
 
   ///// HTOF Raw data
@@ -346,7 +345,7 @@ UserTPCHit::ProcessingNormal()
   //___ TPC Clock
   for(const auto& hit: rawData->GetTPCClockRawHC()){
     for(const auto& tdc: hit->GetArrayTdc1()){
-      HF1(51, tdc);
+      HF1(501, tdc);
     }
   }
 
@@ -356,30 +355,22 @@ UserTPCHit::ProcessingNormal()
   }
 
   event.clkTpc.push_back(clock_timing);
-  HF1(52, clock_timing);
+  HF1(502, clock_timing);
 
-
-  if(TPC_Subtraction == 1)
-    rawData->RecalcTPCHits();
-
-  if(EventSelection==1){
-    bool maxadccut = true; // max adccut
-    //bool maxadctbcut = true; // max adccut time bucket cut
-    // bool maxadccut = false; // max adccut
-    bool maxadctbcut = false; // max adccut time bucket cut
-    rawData->EventSelectionTPCHits(maxadccut, maxadctbcut);
-  }
-    
+  // {
+  //   bool maxadccut = true; // max adccut
+  //   //bool maxadctbcut = true; // max adccut time bucket cut
+  //   // bool maxadccut = false; // max adccut
+  //   bool maxadctbcut = false; // max adccut time bucket cut
+  //   rawData->SelectTPCHits(maxadccut, maxadctbcut);
+  // }
 
   HF1(1, 0);
 
   //________________________________________________________
   //___ TPCRawHit
-  Int_t npadTpc = 0;
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     auto hc = rawData->GetTPCRawHC(layer);
-    const auto nhit = hc.size();
-    npadTpc += nhit;
     for(const auto& rhit : hc){
       auto mean    = rhit->Mean();
       auto max_adc = rhit->MaxAdc();
@@ -391,27 +382,48 @@ UserTPCHit::ProcessingNormal()
       HF1(13, rms);
       HF1(14, loc_max);
       HF1(15, min_adc);
+      auto fadc = rhit->Fadc();
+      for(Int_t tb=0, ntb=fadc.size(); tb<ntb; ++tb){
+        HF2(121, tb, fadc.at(tb));
+      }
     }
   }
 
   //________________________________________________________
-  //___ TPCRawHit after subtraction
+  //___ TPCRawHit after baseline correction
+  auto baseline = rawData->GetBaselineTPC();
+  if(baseline){
+    auto fadc = baseline->Fadc();
+    for(Int_t tb=0, ntb=fadc.size(); tb<ntb; ++tb){
+      HF2(39, tb, fadc.at(tb));
+    }
+  }
+  Int_t npadTpc = 0;
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     auto hc = rawData->GetTPCCorHC(layer);
+    const auto nhit = hc.size();
+    npadTpc += nhit;
     for(const auto& rhit : hc){
       auto mean    = rhit->Mean();
       auto max_adc = rhit->MaxAdc();
       auto min_adc = rhit->MinAdc();
       auto rms     = rhit->RMS();
       auto loc_max = rhit->LocMax();
+      auto pars    = rhit->GetParameters();
       HF1(31, mean);
       HF1(32, max_adc);
       HF1(33, rms);
       HF1(34, loc_max);
       HF1(35, min_adc);
+      HF1(36, pars.at(0));
+      HF1(37, pars.at(1));
+      HF1(38, pars.at(2));
+      auto fadc = rhit->Fadc();
+      for(Int_t tb=0, ntb=fadc.size(); tb<ntb; ++tb){
+        HF2(122, tb, fadc.at(tb));
+      }
     }
   }
-
   event.npadTpc = npadTpc;
   HF1(10, npadTpc);
 
@@ -419,6 +431,10 @@ UserTPCHit::ProcessingNormal()
 
   //________________________________________________________
   //___ TPCHit
+  if(MaxMultiHitTPC>0 && npadTpc>MaxMultiHitTPC){
+    std::cout << "#W Too many hits found, npadTpc = " << npadTpc << std::endl;
+    return true;
+  }
   DCAna->DecodeTPCHits(rawData, clock_timing);
 
   Int_t nhTpc = 0;
@@ -433,8 +449,10 @@ UserTPCHit::ProcessingNormal()
       Int_t pad = tpc::GetPadId(layer, row);
       Double_t ped = hit->GetPedestal();
       Double_t rms = hit->GetRMS();
-      HF1(21, ped);
-      HF1(23, rms);
+      HF1(101, ped);
+      HF1(103, rms);
+      const auto& vec = tpc::getPosition(pad);
+      HF2Poly(1001, vec.Z(), vec.X());
       Int_t nhit = hit->GetNHits();
       Bool_t good_for_analysis = false;
       for(Int_t i=0; i<nhit; ++i){
@@ -457,14 +475,16 @@ UserTPCHit::ProcessingNormal()
         event.ctTpc.push_back(ctime);
         event.dlTpc.push_back(dl);
 	event.sigmaTpc.push_back(sigma);
-	//	if(69.<time&&time<85.&&nhit==1)
-	HF1(22, de);
-        HF1(24, time);
-        HF1(25, chisqr);
-        HF1(26, cde);
-        HF1(27, ctime);
-        HF1(28, dl);
-        HF1(29, sigma);
+	// if(69.<time&&time<85.&&nhit==1)
+	HF1(102, de);
+        HF1(104, time);
+        HF1(105, chisqr);
+        HF1(106, cde);
+        HF1(107, ctime);
+        HF1(108, dl);
+        HF1(109, sigma);
+        HF2(110, de, sigma);
+        HF2(111, de, time);
 
 #if GateCalib
 	HF1(PadHid + layer*1000 + row, time);
@@ -484,16 +504,16 @@ UserTPCHit::ProcessingNormal()
         ++nhTpc;
       }
       if(good_for_analysis){
-        // auto fadc = hit->GetRawHit()->Fadc();
-        // for(Int_t tb=0, ntb=fadc.size(); tb<ntb; ++tb){
-        //   HF2(101, tb, fadc.at(tb));
-        // }
+        auto fadc = hit->GetRawHit()->Fadc();
+        for(Int_t tb=0, ntb=fadc.size(); tb<ntb; ++tb){
+          HF2(123, tb, fadc.at(tb));
+        }
       }
     }
   }
 
   event.nhTpc = nhTpc;
-  HF1(20, nhTpc);
+  HF1(100, nhTpc);
 
   return true;
 }
@@ -551,22 +571,37 @@ ConfMan:: InitializeHistograms()
   HB1(33, "TPC FADC RMS Cor", NbinRms, MinRms, MaxRms);
   HB1(34, "TPC FADC LocMax Cor", NumOfTimeBucket+1, 0, NumOfTimeBucket+1);
   HB1(35, "TPC FADC Min Cor", NbinAdc, MinAdc, MaxAdc);
+  HB1(36, "TPC FADC Baseline p0", NbinAdc, MinAdc, MaxAdc);
+  HB1(37, "TPC FADC Baseline p1", 120, -6, 6);
+  HB1(38, "TPC FADC Baseline p2", 120, -12, 12);
+  HB2(39, "TPC FADC Baseline",
+      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc, MaxAdc);
 
-  HB1(20, "TPC Multiplicity (TPCHit)", NumOfPadTPC+1, 0, NumOfPadTPC+1);
-  HB1(21, "TPC Pedestal", NbinAdc, MinAdc, MaxAdc);
-  HB1(22, "TPC DeltaE", NbinDe, MinDe, MaxDe);
-  HB1(23, "TPC RMS", NbinRms, MinRms, MaxRms);
-  //  HB1(24, "TPC Time", NumOfTimeBucket+1, 0, NumOfTimeBucket+1);
-  HB1(24, "TPC Time", (NumOfTimeBucket+1)*30, 0, NumOfTimeBucket+1);
-  HB1(25, "TPC Chisqr", NbinChisqr, MinChisqr, MaxChisqr);
-  HB1(26, "TPC CDeltaE", NbinDe, MinDe, MaxDe);
-  HB1(27, "TPC CTime", NbinTime, MinTime, MaxTime);
-  HB1(28, "TPC DriftLength", NbinDL, MinDL, MaxDL);
-  HB1(29, "TPC sigma", NbinSigma, MinSigma, MaxSigma);
-  HB1(51, "TPC Clock TDC", 100000, 0., 1000000.);
-  HB1(52, "TPC Clock Time", 20000, -100., 100.);
-  // HB2(101, "TPC Waveform (good)",
-  //      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc, MaxAdc);
+  HB1(100, "TPC Multiplicity (TPCHit)", NumOfPadTPC+1, 0, NumOfPadTPC+1);
+  HB1(101, "TPC Pedestal", NbinAdc, MinAdc, MaxAdc);
+  HB1(102, "TPC DeltaE", NbinDe, MinDe, MaxDe);
+  HB1(103, "TPC RMS", NbinRms, MinRms, MaxRms);
+  HB1(104, "TPC Time", (NumOfTimeBucket+1)*30, 0, NumOfTimeBucket+1);
+  HB1(105, "TPC Chisqr", NbinChisqr, MinChisqr, MaxChisqr);
+  HB1(106, "TPC CDeltaE", NbinDe, MinDe, MaxDe);
+  HB1(107, "TPC CTime", NbinTime, MinTime, MaxTime);
+  HB1(108, "TPC DriftLength", NbinDL, MinDL, MaxDL);
+  HB1(109, "TPC sigma", NbinSigma, MinSigma, MaxSigma);
+  HB2(110, "TPC sigma%de", NbinDe, MinDe, MaxDe, NbinSigma, MinSigma, MaxSigma);
+  HB2(111, "TPC time%de", NbinDe, MinDe, MaxDe, NbinTime, MinTime, MaxTime);
+  HB2(121, "TPC FADC (Before)",
+      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc, MaxAdc);
+  HB2(122, "TPC FADC (After)",
+      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc-500, MaxAdc-500);
+  HB2(123, "TPC FADC (Good)",
+      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc, MaxAdc);
+
+  HB1(501, "TPC Clock TDC", 100000, 0., 1000000.);
+  HB1(502, "TPC Clock Time", 20000, -100., 100.);
+
+  HB2Poly(1001, "TPC HitPat");
+
+  tpc::InitializeHistograms();
 
 #if GateCalib
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
@@ -634,7 +669,7 @@ ConfMan:: InitializeHistograms()
   tree->Branch("dtHtof", event.dtHtof, "dtHtof[nhHtof]/D");
   tree->Branch("deHtof", event.deHtof, "deHtof[nhHtof]/D");
 
-  HPrint();
+  // HPrint();
   return true;
 }
 

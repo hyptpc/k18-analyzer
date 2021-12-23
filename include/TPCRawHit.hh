@@ -8,47 +8,50 @@
 #include <TMath.h>
 #include <TString.h>
 
-typedef std::vector<Int_t> FADC_t;
+#include "DetectorID.hh"
+
+typedef std::vector<Double_t> FADC_t;
+typedef FADC_t::size_type     TB_t; // ULong_t
+typedef std::vector<Double_t> PRM_t;
 
 //_____________________________________________________________________________
 class TPCRawHit
 {
 public:
-  static TString ClassName( void );
-  TPCRawHit( Int_t layer, Int_t row );
-  ~TPCRawHit( void );
+  static TString ClassName();
+  TPCRawHit(Int_t layer, Int_t row, Double_t* pars=nullptr);
+  ~TPCRawHit();
 
 private:
   Int_t  m_layer_id;
   Int_t  m_row_id;
   FADC_t m_fadc;
 
+  // baseline correction
+  PRM_t m_pars; // p0:adc_ofs, p1:scale, p2:tb_ofs
+
 public:
-  void          AddFadc( Int_t adc );
-  const FADC_t& Fadc( void ) const { return m_fadc; }
-  Int_t         LayerId( void ) const { return m_layer_id; }
-  void          Print( Option_t* opt="" ) const;
-  Int_t         RowId( void ) const { return m_row_id; }
-  Double_t      LocMax( void ) const
-  { return TMath::LocMax( m_fadc.size(), m_fadc.data() ); }
-  Double_t      MaxAdc( void ) const
-  { return TMath::MaxElement( m_fadc.size(), m_fadc.data() ); }
-  Double_t      MaxAdc( Int_t min_t, Int_t max_t );
-  Double_t      MinAdc( void ) const
-  { return TMath::MinElement( m_fadc.size(), m_fadc.data() ); }
-  Double_t      Mean( void ) const
-  { return TMath::Mean( m_fadc.size(), m_fadc.data() ); }
-  Double_t      RMS( void ) const
-  { return TMath::RMS( m_fadc.size(), m_fadc.data() ); }
-  Double_t      RMS_10( void ) const
-  { return TMath::RMS( 10, m_fadc.data() ); }
+  void          AddFadc(Double_t adc);
+  const FADC_t& Fadc() const { return m_fadc; }
+  TB_t          FadcSize() const { return m_fadc.size(); }
+  const PRM_t&  GetParameters() const { return m_pars; }
+  Int_t         LayerId() const { return m_layer_id; }
+  Double_t      LocMax(TB_t tmin=0, TB_t tmax=NumOfTimeBucket) const;
+  void          Print(Option_t* opt="") const;
+  Int_t         RowId() const { return m_row_id; }
+  Double_t      MaxAdc(TB_t tmin=0, TB_t tmax=NumOfTimeBucket) const;
+  Double_t      MinAdc(TB_t tmin=0, TB_t tmax=NumOfTimeBucket) const;
+  Double_t      Mean(TB_t tmin=0, TB_t tmax=NumOfTimeBucket) const;
+  Double_t      RMS(TB_t tmin=0, TB_t tmax=NumOfTimeBucket) const;
+  Double_t      RMS_10() const
+  { return TMath::RMS(10, m_fadc.data()); }
 };
 
 //_____________________________________________________________________________
 inline TString
-TPCRawHit::ClassName( void )
+TPCRawHit::ClassName()
 {
-  static TString s_name( "TPCRawHit" );
+  static TString s_name("TPCRawHit");
   return s_name;
 }
 

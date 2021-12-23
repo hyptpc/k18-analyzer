@@ -23,7 +23,7 @@
 #include "MathTools.hh"
 #include "RootHelper.hh"
 #include "TPCPadHelper.hh"
-#include "TPCLocalTrack_Helix.hh"
+#include "TPCLocalTrackHelix.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
@@ -37,21 +37,21 @@
 
 namespace
 {
-  using namespace root;
-  using namespace dst;
-  using hddaq::unpacker::GUnpacker;
-  const auto& gUnpacker = GUnpacker::get_instance();
-  auto&       gConf = ConfMan::GetInstance();
-  const auto& gGeom = DCGeomMan::GetInstance();
-  const auto& gUser = UserParamMan::GetInstance();
-  const auto& gPHC  = HodoPHCMan::GetInstance();
-  const auto& gCounter = debug::ObjectCounter::GetInstance();
-  //position cut for gain histogram
-  //  const double min_ycut = -15.;//mm
-  //const double max_ycut = 15.;//mm
-  const double min_ycut = -50.;//mm
-  const double max_ycut = 50.;//mm
-  const double chisqrCut = 10.;//mm
+using namespace root;
+using namespace dst;
+using hddaq::unpacker::GUnpacker;
+const auto& gUnpacker = GUnpacker::get_instance();
+auto&       gConf = ConfMan::GetInstance();
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
+const auto& gPHC  = HodoPHCMan::GetInstance();
+const auto& gCounter = debug::ObjectCounter::GetInstance();
+//position cut for gain histogram
+//  const double min_ycut = -15.;//mm
+//const double max_ycut = 15.;//mm
+const double min_ycut = -50.;//mm
+const double max_ycut = 50.;//mm
+const double chisqrCut = 10.;//mm
 }
 
 namespace dst
@@ -167,7 +167,7 @@ struct Event
   std::vector<Int_t> chisqr_flag;
   std::vector<Double_t> closeDist;
 
-  
+
   std::vector<Double_t> M_Lambda;
   std::vector<Double_t> Lvtx;
   std::vector<Double_t> Lvty;
@@ -251,7 +251,7 @@ struct Event
     dEdx_rms.clear();
     dEdx_rms20.clear();
     dEdx_rms10.clear();
-    
+
     dEdx_geo.clear();
     dEdx_geo_20.clear();
     dEdx_geo_10.clear();
@@ -269,7 +269,7 @@ struct Event
     dEdx_cor_10.clear();
 
     dz_factor.clear();
-    
+
     mom0_x.clear();
     mom0_y.clear();
     mom0_z.clear();
@@ -307,7 +307,7 @@ struct Event
     Mom_Lambdax.clear();
     Mom_Lambday.clear();
     Mom_Lambdaz.clear();
-    
+
     M_Ks.clear();
     Ksvtx.clear();
     Ksvty.clear();
@@ -448,7 +448,7 @@ dst::DstRead( int ievent )
   }
   GetEntry(ievent);
 
-  static const auto KaonMass    = pdg::KaonMass();
+  // static const auto KaonMass    = pdg::KaonMass();
   static const auto PionMass    = pdg::PionMass();
   static const auto ProtonMass  = pdg::ProtonMass();
 
@@ -540,11 +540,11 @@ dst::DstRead( int ievent )
   }
   event.nh_cluster_Tpc = nh_cl_Tpc;
 #if TrackSearch
-  DCAna.TrackSearchTPC_Helix();
+  DCAna.TrackSearchTPCHelix();
 #endif
 
-  Int_t ntTpc = DCAna.GetNTracksTPC_Helix();
- 
+  Int_t ntTpc = DCAna.GetNTracksTPCHelix();
+
   event.ntTpc = ntTpc;
 
   //std::cout<<"ntTpc:"<<ntTpc<<std::endl;
@@ -553,7 +553,7 @@ dst::DstRead( int ievent )
     return true;
 
   HF1( 1, event.status++ );
-  
+
   event.nhtrack.resize( ntTpc );
   event.nhtrack_clmulti.resize( ntTpc );
   event.isBeam.resize( ntTpc );
@@ -601,7 +601,7 @@ dst::DstRead( int ievent )
   event.dz_factor.resize( ntTpc );
   event.charge.resize( ntTpc );
   event.path.resize( ntTpc );
-  
+
   // under dev
   event.combi_id.resize( ntTpc );
   event.mom_vtx.resize( ntTpc );
@@ -635,7 +635,7 @@ dst::DstRead( int ievent )
 
 
   for( Int_t it=0; it<ntTpc; ++it ){
-    TPCLocalTrack_Helix *tp = DCAna.GetTrackTPC_Helix( it );
+    TPCLocalTrackHelix *tp = DCAna.GetTrackTPCHelix( it );
     if( !tp ) continue;
     Int_t nh = tp->GetNHit();
     Double_t chisqr = tp->GetChiSquare();
@@ -673,25 +673,25 @@ dst::DstRead( int ievent )
     event.helix_t[it].resize( nh );
     event.hitde[it].resize( nh );
     event.hitClsize[it].resize( nh );
-    
+
     double min_closeDist = 1000000.;
-    double par1[5]={helix_cx, helix_cy, helix_z0, 
+    double par1[5]={helix_cx, helix_cy, helix_z0,
 		    helix_r, helix_dz};
-    
+
     for( Int_t it2=0; it2<ntTpc; ++it2 ){
       if(it==it2)
 	continue;
-      TPCLocalTrack_Helix *tp2 = DCAna.GetTrackTPC_Helix( it2 );
+      TPCLocalTrackHelix *tp2 = DCAna.GetTrackTPCHelix( it2 );
       if( !tp2 ) continue;
       Double_t helix_cx2=tp2->Getcx(), helix_cy2=tp2->Getcy();
       Double_t helix_z02=tp2->Getz0(), helix_r2=tp2->Getr();
       Double_t helix_dz2 = tp2->Getdz();
       Double_t chisqr2 = tp2->GetChiSquare();
 
-      double par2[5]={helix_cx2, helix_cy2, helix_z02, 
+      double par2[5]={helix_cx2, helix_cy2, helix_z02,
 		      helix_r2, helix_dz2};
       double closeDist, t1, t2;
-      TVector3 vert = Kinematics::VertexPoint_Helix(par1, par2, 
+      TVector3 vert = Kinematics::VertexPointHelix(par1, par2,
 						    closeDist, t1, t2);
       if(closeDist<min_closeDist){
 	event.combi_id[it] = it2;
@@ -720,27 +720,27 @@ dst::DstRead( int ievent )
       if(clsize_hit>1)
 	++nh_clmulti;
     }
-    
+
     double min_t = 10000.;
     double max_t = -10000.;
     double min_layer_t=0., max_layer_t=0.;
-    double max_layer_y=0.;
+    // double max_layer_y=0.;
     double de=0., path_dEdx=0.;
     double de_clmulti=0., path_clmulti_dEdx=0.;
     double path_dEdx_cor=0.;
-    
-    std::vector<Double_t> dEdx_vect; 
-    std::vector<Double_t> dEdx_cor_vect; 
-    std::vector<Double_t> dEdx_clmulti_vect; 
+
+    std::vector<Double_t> dEdx_vect;
+    std::vector<Double_t> dEdx_cor_vect;
+    std::vector<Double_t> dEdx_clmulti_vect;
 
 
-    int ih_clmulti=0; 
+    int ih_clmulti=0;
     for( int ih=0; ih<nh; ++ih ){
       TPCLTrackHit *hit = tp->GetHit( ih );
       if( !hit ) continue;
       Int_t layer = hit->GetLayer();
       const TVector3& hitpos = hit->GetLocalHitPos();
-      const TVector3& calpos = hit->GetLocalCalPos_Helix();
+      const TVector3& calpos = hit->GetLocalCalPosHelix();
       const TVector3& res_vect = hit->GetResidualVect();
       double de_hit = hit->GetHit()->GetCharge();
       int clsize_hit = hit->GetHit()->GetClusterSize();
@@ -759,22 +759,22 @@ dst::DstRead( int ievent )
       // std::cout<<"path_hit="<<path_hit<<", path_hitcor="<<path_hit_cor<<std::endl;
 
       //double path_hit_cor=0.;
-      
+
 #if DE_padparam
       path_hit = 1.;
 #endif
       de += de_hit;
       path_dEdx += path_hit;
       path_dEdx_cor += path_hit_cor;
-     
+
       double dEdx = de_hit/path_hit;
       double dEdx_cor = de_hit/path_hit_cor;
       dEdx_vect.push_back(dEdx);
       dEdx_cor_vect.push_back(dEdx_cor);
-      
+
       if(clsize_hit>1){
        	de_clmulti += de_hit;
-	path_clmulti_dEdx += path_hit;	
+	path_clmulti_dEdx += path_hit;
 	dEdx_clmulti_vect.push_back(de_hit/path_hit);
 	++ih_clmulti;
       }
@@ -789,7 +789,7 @@ dst::DstRead( int ievent )
       if(ih==nh-1)
 	max_layer_t = t_cal;
       Double_t residual = hit->GetResidual();
-      
+
       // for(int ii=0; ii<ih; ++ii){
       // 	if((int)event.hitlayer[it][ii]==layer){
       // 	  std::cout<<"layer="<<layer<<std::endl;
@@ -831,7 +831,7 @@ dst::DstRead( int ievent )
       Mom0_cor = tp->GetMom0_corN();
       mom_cor_vtx = tp->CalcHelixMom_corN(par1, event.vty[it]);
     }
-    
+
     event.mom0_cor_x[it]=Mom0_cor.x();
     event.mom0_cor_y[it]=Mom0_cor.y();
     event.mom0_cor_z[it]=Mom0_cor.z();
@@ -841,20 +841,21 @@ dst::DstRead( int ievent )
     event.mom_cor_vty[it]=mom_cor_vtx.y();
     event.mom_cor_vtz[it]=mom_cor_vtx.z();
 
-    
+
     Double_t pathlen = (max_t - min_t)*sqrt(helix_r*helix_r*(1.+helix_dz*helix_dz));
-    Int_t htofseg = tp->GetHTOFSeg(min_layer_t, max_layer_t, max_layer_y);
-    //std::cout<<"min_t="<<min_t<<", max_t="<<max_t<<", helix_r="<<helix_r<<", path="<<pathlen<<std::endl;
+    // Int_t htofseg = tp->GetHTOFSeg(min_layer_t, max_layer_t, max_layer_y);
+    // std::cout<<"min_t="<<min_t<<", max_t="<<max_t<<", helix_r="<<helix_r
+    //          <<", path="<<pathlen<<std::endl;
     event.path[it] = pathlen;
     event.dE[it] = de;
     event.dEdx[it] = de/path_dEdx;
     event.dE_cor[it] = 0.;
     event.dEdx_cor[it] = de/path_dEdx_cor;
-    
-    std::sort(dEdx_vect.begin(), dEdx_vect.end()); 
-    std::sort(dEdx_cor_vect.begin(), dEdx_cor_vect.end()); 
-    std::sort(dEdx_clmulti_vect.begin(), dEdx_clmulti_vect.end()); 
-    
+
+    std::sort(dEdx_vect.begin(), dEdx_vect.end());
+    std::sort(dEdx_cor_vect.begin(), dEdx_cor_vect.end());
+    std::sort(dEdx_clmulti_vect.begin(), dEdx_clmulti_vect.end());
+
     event.dEdx2[it] = TMath::Mean(dEdx_vect.size(),dEdx_vect.data());
     event.dEdx2_cor[it] = TMath::Mean(dEdx_cor_vect.size(),dEdx_cor_vect.data());
     event.dE_clmulti[it] = de_clmulti;
@@ -871,14 +872,14 @@ dst::DstRead( int ievent )
     event.dEdx_cor_20[it]=0.;
     event.dEdx_10[it]=0.;
     event.dEdx_cor_10[it]=0.;
-    
+
     double dEdxRMS= TMath::RMS(dEdx_vect.size(),dEdx_vect.data());
     event.dEdx_rms[it]=dEdxRMS;
     int n_rms10=0;
     int n_rms20=0;
     event.dEdx_rms10[it]=0.;
     event.dEdx_rms20[it]=0.;
-    
+
     int n_20 = (int)(dEdx_vect.size()*0.8);
     int n_10 = (int)(dEdx_vect.size()*0.9);
     for( int ih=0; ih<dEdx_vect.size(); ++ih ){
@@ -910,25 +911,25 @@ dst::DstRead( int ievent )
 	event.dEdx_rms10[it]+=dEdx_vect[ih];
 	++n_rms10;
       }
-	
+
       // std::cout<<"inside for, ih="<<ih<<", geo="
       // 	       <<event.dEdx_geo[it]
       // 	       <<", harm="<<event.dEdx_harm[it]
       // 	       <<", harm_20="<<event.dEdx_harm_20[it]<<std::endl;
     }
-    
+
     event.dEdx_20[it]/=(double)n_20;
     event.dEdx_cor_20[it]/=(double)n_20;
     event.dEdx_10[it]/=(double)n_10;
-    event.dEdx_cor_10[it]/=(double)n_10;    
-  
+    event.dEdx_cor_10[it]/=(double)n_10;
+
     event.dEdx_geo[it] = pow(event.dEdx_geo[it], 1./(double)nh);
     event.dEdx_geo_20[it] = pow(event.dEdx_geo_20[it], 1./(double)n_20);
     event.dEdx_geo_10[it] = pow(event.dEdx_geo_10[it], 1./(double)n_10);
     event.dEdx_harm[it] = ((double)nh)/event.dEdx_harm[it];
     event.dEdx_harm_20[it] = ((double)n_20)/event.dEdx_harm_20[it];
     event.dEdx_harm_10[it] = ((double)n_10)/event.dEdx_harm_10[it];
- 
+
     event.dEdx_rms20[it]/=(double)n_rms20;
     event.dEdx_rms10[it]/=(double)n_rms10;
     // std::cout<<"geo="<<event.dEdx_geo[it]
@@ -957,7 +958,7 @@ dst::DstRead( int ievent )
       }
       event.dEdx_clmulti_10[it]/=(double)n_clmulti_10;
     }
-    
+
     //double dz_factor = sqrt(1.+(pow(helix_dz,2)));
     event.dz_factor[it] = sqrt(1.+(pow(helix_dz,2)));
     // event.dE_cor[it]=event.dE[it]/dz_factor;
@@ -967,7 +968,7 @@ dst::DstRead( int ievent )
     int particle= Kinematics::PID_HypTPC_dEdx(event.dEdx_rms20[it],
 					      event.mom0_cor[it],
 					      event.charge[it]);
-    event.pid[it]=particle; 
+    event.pid[it]=particle;
   }
 
 

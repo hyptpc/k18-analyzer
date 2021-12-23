@@ -16,8 +16,10 @@
 #include <TGraphErrors.h>
 #include <TH1.h>
 #include <TH2.h>
+#include <TH2Poly.h>
 #include <TList.h>
 #include <TLatex.h>
+#include <TMath.h>
 #include <TMatrix.h>
 #include <TMinuit.h>
 #include <TObject.h>
@@ -70,7 +72,7 @@ HB1(Int_t i, const Char_t* title,
     h[i] = nullptr;
 #endif
   }
-  h[i] = new TH1F(Form("h%d", i), title, nbinx, xlow, xhigh);
+  h[i] = new TH1D(Form("h%d", i), title, nbinx, xlow, xhigh);
 }
 
 //_____________________________________________________________________________
@@ -98,7 +100,7 @@ HB2(Int_t i, const Char_t* title,
     h[i] = nullptr;
 #endif
   }
-  h[i] = new TH2F(Form("h%d", i), title,
+  h[i] = new TH2D(Form("h%d", i), title,
                   nbinx, xlow, xhigh,
                   nbiny, ylow, yhigh);
 }
@@ -135,6 +137,31 @@ HBProf(Int_t i, const Char_t* title,
 
 //_____________________________________________________________________________
 inline void
+HB2Poly(Int_t i, const Char_t* title,
+        Double_t xmin=-300., Double_t xmax=300.,
+        Double_t ymin=-300., Double_t ymax=300.)
+{
+  if(i<0 || MaxHist<=i)
+    throw Exception(Form("HB2Poly() invalid HistId : %d/%d", i, MaxHist));
+  if(h[i]){
+#if ThrowError
+    throw Exception(Form("h%d (%s) is already exist", i, title));
+#endif
+#if OverWrite
+    delete h[i];
+    h[i] = nullptr;
+#endif
+  }
+  h[i] = new TH2Poly(Form("h%d", i), title,
+                     xmin, xmax, ymin, ymax);
+  gDirectory->Add(h[i]);
+  /*
+   * Bin is set by tpc::InitializeHistograms() in TPCPadHelper.hh
+   */
+}
+
+//_____________________________________________________________________________
+inline void
 HF1(Int_t i, Double_t x)
 {
   if(i<0 || MaxHist<=i)
@@ -149,6 +176,24 @@ HF2(Int_t i, Double_t x, Double_t y)
   if(i<0 || MaxHist<=i)
     throw Exception(Form("HF2() invalid HistId : %d/%d", i, MaxHist));
   if(h[i]) h[i]->Fill(x, y);
+}
+
+//_____________________________________________________________________________
+inline void
+HF2Poly(Int_t i, Double_t x, Double_t y, Double_t w=1.)
+{
+  if(i<0 || MaxHist<=i)
+    throw Exception(Form("HF2Poly() invalid HistId : %d/%d", i, MaxHist));
+  if(h[i]) dynamic_cast<TH2Poly*>(h[i])->Fill(x, y, w);
+}
+
+//_____________________________________________________________________________
+inline void
+HF2Poly(Int_t i, Int_t bin, Double_t val)
+{
+  if(i<0 || MaxHist<=i)
+    throw Exception(Form("HF2Poly() invalid HistId : %d/%d", i, MaxHist));
+  if(h[i]) dynamic_cast<TH2Poly*>(h[i])->SetBinContent(bin, val);
 }
 
 //_____________________________________________________________________________

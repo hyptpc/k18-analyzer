@@ -30,8 +30,8 @@ namespace Kinematics
   TVector3 VertexPointTF2(const TVector3& Xin, const TVector3& Xout,
 			  const TVector3& Pin, const TVector3& Pout,
 			  Double_t& dist);
-  TVector3 VertexPoint_Helix(const Double_t par1[5], const Double_t par2[5],
-			     Double_t& dist, Double_t& t1, Double_t& t2);
+  TVector3 VertexPointHelix(const Double_t par1[5], const Double_t par2[5],
+                            Double_t& dist, Double_t& t1, Double_t& t2);
   Double_t CloseDist(const TVector3& Xin, const TVector3& Xout,
 		     const TVector3& Pin, const TVector3& Pout);
   TVector3 CorrElossIn(const TVector3& Pin,

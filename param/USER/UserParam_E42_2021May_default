@@ -118,8 +118,8 @@ StofOffset	-2.0378
 MinLayerBcOutSdcIn 22
 
 ### TPCHit
-TPC_Subtraction		1
-TPC_Multi		2000
+BaselineCorrectionTPC	1
+MaxMultiHitTPC		2000
 #MinDeTPC		40
 MinDeTPC		60
 MinRmsTPC		10

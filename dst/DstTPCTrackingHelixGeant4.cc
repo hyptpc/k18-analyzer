@@ -1,8 +1,4 @@
-/**
- *  file: DstTPCTrackingHelixGeant4.cc
- *  date: 2021.01.22
- *
- */
+// -*- C++ -*-
 
 #include <iomanip>
 #include <iostream>
@@ -23,7 +19,7 @@
 #include "HodoPHCMan.hh"
 #include "DCAnalyzer.hh"
 #include "DCHit.hh"
-#include "TPCLocalTrack_Helix.hh"
+#include "TPCLocalTrackHelix.hh"
 #include "TPCHit.hh"
 
 #include "DstHelper.hh"
@@ -32,38 +28,38 @@
 
 namespace
 {
-  using namespace root;
-  using namespace dst;
-  const std::string& class_name("DstTPCTrackingHelixGeant4");
-  ConfMan&            gConf = ConfMan::GetInstance();
-  const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
-  const UserParamMan& gUser = UserParamMan::GetInstance();
-  const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
-  debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
+using namespace root;
+using namespace dst;
+const std::string& class_name("DstTPCTrackingHelixGeant4");
+ConfMan&            gConf = ConfMan::GetInstance();
+const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
+const UserParamMan& gUser = UserParamMan::GetInstance();
+const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
+debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
 
-  const Int_t MaxTPCHits = 10000;
-  const Int_t MaxTPCTracks = 100;
-  const Int_t MaxTPCnHits = 50;
+const Int_t MaxTPCHits = 10000;
+const Int_t MaxTPCTracks = 100;
+const Int_t MaxTPCnHits = 50;
 
-  const bool IsWithRes = false;
-  //const bool IsWithRes = true;
+const bool IsWithRes = false;
+//const bool IsWithRes = true;
 }
 
 namespace dst
 {
-  enum kArgc
-    {
-      kProcess, kConfFile,
-      kTPCGeant, kOutFile, nArgc
-    };
-  std::vector<TString> ArgName =
-    { "[Process]", "[ConfFile]", "[TPCGeant]",
-      "[OutFile]" };
-  std::vector<TString> TreeName =
-    { "", "", "TPC_g", "" };
-  std::vector<TFile*> TFileCont;
-  std::vector<TTree*> TTreeCont;
-  std::vector<TTreeReader*> TTreeReaderCont;
+enum kArgc
+{
+  kProcess, kConfFile,
+  kTPCGeant, kOutFile, nArgc
+};
+std::vector<TString> ArgName =
+{ "[Process]", "[ConfFile]", "[TPCGeant]",
+  "[OutFile]" };
+std::vector<TString> TreeName =
+{ "", "", "TPC_g", "" };
+std::vector<TFile*> TFileCont;
+std::vector<TTree*> TTreeCont;
+std::vector<TTreeReader*> TTreeReaderCont;
 }
 
 //_____________________________________________________________________
@@ -318,9 +314,9 @@ dst::DstRead( int ievent )
 			       src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
 
 
-  DCAna->TrackSearchTPC_Helix();
+  DCAna->TrackSearchTPCHelix();
 
-  int nttpc = DCAna->GetNTracksTPC_Helix();
+  int nttpc = DCAna->GetNTracksTPCHelix();
   if( MaxHits<nttpc ){
     std::cout << "#W " << func_name << " "
       	      << "too many nttpc " << nttpc << "/" << MaxHits << std::endl;
@@ -328,7 +324,7 @@ dst::DstRead( int ievent )
   }
   event.nttpc = nttpc;
   for( int it=0; it<nttpc; ++it ){
-    TPCLocalTrack_Helix *tp= DCAna->GetTrackTPC_Helix(it);
+    TPCLocalTrackHelix *tp= DCAna->GetTrackTPCHelix(it);
     if(!tp) continue;
     int nh=tp->GetNHit();
     double chisqr    = tp->GetChiSquare();
@@ -356,10 +352,10 @@ dst::DstRead( int ievent )
       int layerId = 0;
       layerId = hit->GetLayer();
       TVector3 hitpos = hit->GetLocalHitPos();
-      TVector3 calpos = hit->GetLocalCalPos_Helix();
+      TVector3 calpos = hit->GetLocalCalPosHelix();
       double residual = hit->GetResidual();
       TVector3 res_vect = hit->GetResidualVect();
-      TVector3 mom = hit->GetMomentum_Helix();
+      TVector3 mom = hit->GetMomentumHelix();
 
       for( int ih2=0; ih2<src.nhittpc; ++ih2 ){
 	TVector3 setpos;

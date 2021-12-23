@@ -846,7 +846,7 @@ dst::DstRead(Int_t ievent)
     Double_t pt = p/TMath::Sqrt(1.+u*u+v*v);
     ThreeVector Pos(x, y, 0.);
     ThreeVector Mom(pt*u, pt*v, pt);
-    if(TMath::IsNaN(Pos.Mag())) continue;
+    // if(TMath::IsNaN(Pos.Mag())) continue;
     //Calibration
     ThreeVector PosCorr(x+x_off, y+y_off, 0.);
     ThreeVector MomCorr(pt*(u+u_off), pt*(v+v_off), pt);
@@ -859,37 +859,40 @@ dst::DstRead(Int_t ievent)
     Double_t ut = xt/zt;
     Double_t vt = yt/zt;
 
-    // SdcOut vs TOF
-    Double_t TofSegKurama = src.tofsegKurama[itKurama];
+    Double_t tofsegKurama = src.tofsegKurama[itKurama];
     Double_t stof = qnan;
     Double_t cstof = qnan;
     Double_t m2   = qnan;
-    // w/  TOF
 
-    bool correct_hit[src.nhTof];
-    for(Int_t j=0; j<src.nhTof; ++j) correct_hit[j]=true;
+    // bool correct_hit[src.nhTof];
+    // for(Int_t j=0; j<src.nhTof; ++j) correct_hit[j]=true;
+    // for(Int_t j=0; j<src.nhTof; ++j){
+    //   Double_t seg1=src.TofSeg[j]; Double_t de1=src.deTof[j];
+    //   for(Int_t k=j+1; k<src.nhTof; ++k){
+    //     Double_t seg2=src.TofSeg[k]; Double_t de2=src.deTof[k];
+    //     if(std::abs(seg1 - seg2) < 2 && de1 > de2) correct_hit[k]=false;
+    //     if(std::abs(seg1 - seg2) < 2 && de2 > de1) correct_hit[j]=false;
+    //   }
+    // }
+    // Double_t best_de=-9999;
+    // Int_t correct_num=0;
+    // Int_t Dif=9999;
+    // for(Int_t j=0; j<src.nhTof; ++j){
+    //   if(correct_hit[j]==false) continue;
+    //   Int_t dif = std::abs(src.TofSeg[j] - tofsegKurama);
+    //   if((dif < Dif) || (dif==Dif&&src.deTof[j]>best_de)){
+    //     correct_num=j;
+    //     best_de=src.deTof[j];
+    //     Dif=dif;
+    //   }
+    // }
+
     for(Int_t j=0; j<src.nhTof; ++j){
-      Double_t seg1=src.TofSeg[j]; Double_t de1=src.deTof[j];
-      for(Int_t k=j+1; k<src.nhTof; ++k){
-        Double_t seg2=src.TofSeg[k]; Double_t de2=src.deTof[k];
-        if(std::abs(seg1 - seg2) < 2 && de1 > de2) correct_hit[k]=false;
-        if(std::abs(seg1 - seg2) < 2 && de2 > de1) correct_hit[j]=false;
+      if(tofsegKurama == src.TofSeg[j]){
+        stof = event.tTof[j] - event.CTime0 + StofOffset;
+        break;
       }
     }
-    Double_t best_de=-9999;
-    Int_t correct_num=0;
-    Int_t Dif=9999;
-    for(Int_t j=0; j<src.nhTof; ++j){
-      if(correct_hit[j]==false) continue;
-      Int_t dif = std::abs(src.TofSeg[j] - TofSegKurama);
-      if((dif < Dif) || (dif==Dif&&src.deTof[j]>best_de)){
-        correct_num=j;
-        best_de=src.deTof[j];
-        Dif=dif;
-      }
-    }
-
-    stof = event.tTof[correct_num] - event.CTime0 + StofOffset;
     m2 = Kinematics::MassSquare(pCorr, path, stof);
     // m2 = Kinematics::MassSquare(pCorr, path, cstof);
     // if(TMath::IsNaN(btof)){
@@ -898,8 +901,8 @@ dst::DstRead(Int_t ievent)
     //   gPHC.DoStofCorrection(8, 0, src.TofSeg[correct_num]-1, 2, stof, btof, cstof);
     //   m2 = Kinematics::MassSquare(pCorr, path, cstof);
     // }
-    event.best_deTof[itKurama] = best_de;
-    event.best_TofSeg[itKurama] = src.TofSeg[correct_num];
+    // event.best_deTof[itKurama] = best_de;
+    // event.best_TofSeg[itKurama] = src.TofSeg[correct_num];
 
     ///for Kflag///
     Int_t Kflag=0;
@@ -918,7 +921,7 @@ dst::DstRead(Int_t ievent)
     // 	stof = src.tTof[j] - time0 + OffsetToF;
     //   }
     // }
-    event.nhKurama[itKurama]   = nh;
+    event.nhKurama[itKurama] = nh;
     event.chisqrKurama[itKurama] = chisqr;
     event.pKurama[itKurama] = p;
     event.qKurama[itKurama] = q;
@@ -926,6 +929,7 @@ dst::DstRead(Int_t ievent)
     event.ytgtKurama[itKurama] = y;
     event.utgtKurama[itKurama] = u;
     event.vtgtKurama[itKurama] = v;
+    event.tofsegKurama[itKurama] = tofsegKurama;
     event.thetaKurama[itKurama] = theta;
     event.stof[itKurama] = stof;
     event.cstof[itKurama] = cstof;
@@ -1091,9 +1095,9 @@ dst::DstRead(Int_t ievent)
 
       Int_t inside = 0;
       if(true
-         && TMath::Abs(vert.x()-8.9) < 25.
-         && TMath::Abs(vert.y()) < 20.
-         && TMath::Abs(vert.z()+70) < 100
+         && TMath::Abs(vert.x()-9) < 30.
+         && TMath::Abs(vert.y()) < 25.
+         && TMath::Abs(vert.z()+50) < 100
          && closedist < 100.
         ){
         inside = 1;
@@ -1133,38 +1137,52 @@ dst::DstRead(Int_t ievent)
                   << nkk << ") exceeding MaxHits: " << MaxHits << std::endl;
       }
 
-      HF1(5001, vert.z());
-
-      HF1(5002, MissMass);
-      HF2(5011, MissMass, us);
-      HF2(5012, MissMass, vs);
-      HF2(5013, MissMass, ub);
-      HF2(5014, MissMass, vb);
-
       // Good event histograms
       if(event.chisqrK18[ikm] < 20.
-         && event.chisqrKurama[ikp] < 200.
-         && inside == 1){
+         && event.chisqrKurama[ikp] < 200.){
         HF1(6001, event.pK18[ikm]);
         HF1(6002, event.pKurama[ikp]);
         HF1(6003, event.qKurama[ikp]*event.m2[ikp]);
         HF2(6004, event.qKurama[ikp]*event.m2[ikp], event.pKurama[ikp]);
-        HF1(6005, MissMassCorr);
-        if(event.pKurama[ikp] < 1.4 && event.qKurama[ikp] > 0){
+        HF1(6011, closedist);
+        HF1(6012, vert.x());
+        HF1(6013, vert.y());
+        HF1(6014, vert.z());
+        HF1(6015, MissMassCorr);
+        if(inside == 1){
           HF1(6101, event.pK18[ikm]);
           HF1(6102, event.pKurama[ikp]);
           HF1(6103, event.qKurama[ikp]*event.m2[ikp]);
           HF2(6104, event.qKurama[ikp]*event.m2[ikp], event.pKurama[ikp]);
-          HF1(6105, MissMassCorr);
-          if(event.m2[ikp] > 0.15
-             && event.m2[ikp] < 0.40
-             // && event.trigflag[20]>0
-            ){
+          HF1(6111, closedist);
+          HF1(6112, vert.x());
+          HF1(6113, vert.y());
+          HF1(6114, vert.z());
+          HF1(6115, MissMassCorr);
+          if(event.pKurama[ikp] < 1.4 && event.qKurama[ikp] > 0){
             HF1(6201, event.pK18[ikm]);
             HF1(6202, event.pKurama[ikp]);
             HF1(6203, event.qKurama[ikp]*event.m2[ikp]);
             HF2(6204, event.qKurama[ikp]*event.m2[ikp], event.pKurama[ikp]);
-            HF1(6205, MissMassCorr);
+            HF1(6211, closedist);
+            HF1(6212, vert.x());
+            HF1(6213, vert.y());
+            HF1(6214, vert.z());
+            HF1(6215, MissMassCorr);
+            if(event.m2[ikp] > 0.15
+               && event.m2[ikp] < 0.40
+               // && event.trigflag[20]>0
+              ){
+              HF1(6301, event.pK18[ikm]);
+              HF1(6302, event.pKurama[ikp]);
+              HF1(6303, event.qKurama[ikp]*event.m2[ikp]);
+              HF2(6304, event.qKurama[ikp]*event.m2[ikp], event.pKurama[ikp]);
+              HF1(6311, closedist);
+              HF1(6312, vert.x());
+              HF1(6313, vert.y());
+              HF1(6314, vert.z());
+              HF1(6315, MissMassCorr);
+            }
           }
         }
       }
@@ -1423,31 +1441,22 @@ ConfMan::InitializeHistograms()
   HB1(4212, "PathLength Kurama [Proton]", 600, 3000., 6000.);
   HB1(4213, "MassSqr", 600, -1.2, 1.2);
 
-  HB1(5001, "Zvert [KK]", 1000, -1000., 1000.);
-  HB1(5002, "MissingMass [KK]", 1000, 0.0, 2.0);
-
-  HB2(5011, "MissingMass%Us", 200, 0.0, 2.50, 100, -0.40, 0.40);
-  HB2(5012, "MissingMass%Vs", 200, 0.0, 2.50, 100, -0.20, 0.20);
-  HB2(5013, "MissingMass%Ub", 200, 0.0, 2.50, 100, -0.30, 0.30);
-  HB2(5014, "MissingMass%Vb", 200, 0.0, 2.50, 100, -0.10, 0.10);
-
-  HB1(6001, "P K18 [Good]", 800, 1.4, 2.2);
-  HB1(6002, "P Kurama [Good]", 600, 0, 3);
-  HB1(6003, "Charge*MassSquared [Good]", 600, -1., 2.);
-  HB2(6004, "P Kurama%Charge*MassSquared [Good]", 100, -1., 2., 100, 0, 2.5);
-  HB1(6005, "MissingMass [Good]", 200, 1.0, 2.0);
-
-  HB1(6101, "P K18 [PCut]", 800, 1.4, 2.2);
-  HB1(6102, "P Kurama [PCut]", 600, 0, 3);
-  HB1(6103, "Charge*MassSquared [PCut]", 600, -1., 2.);
-  HB2(6104, "P Kurama%Charge*MassSquared [PCut]", 100, -1., 2., 100, 0, 2.5);
-  HB1(6105, "MissingMass [PCut]", 200, 1.0, 2.0);
-
-  HB1(6201, "P K18 [M2Cut]", 800, 1.4, 2.2);
-  HB1(6202, "P Kurama [M2Cut]", 600, 0, 3);
-  HB1(6203, "Charge*MassSquared [M2Cut]", 600, -1., 2.);
-  HB2(6204, "P Kurama%Charge*MassSquared [M2Cut]", 100, -1., 2., 100, 0, 2.5);
-  HB1(6205, "MissingMass [M2Cut]", 200, 1.0, 2.0);
+  std::vector<TString> labels = {
+    "[GoodChisqr]", "[GoodVertex]", "[GoodPKurama]", "[GoodM2]"
+  };
+  for(Int_t i=0, n=labels.size(); i<n; ++i){
+    Int_t hofs = 6000 + i*100;
+    HB1(hofs+ 1, "P K18 "+labels[i], 800, 1.4, 2.2);
+    HB1(hofs+ 2, "P Kurama "+labels[i], 600, 0, 3);
+    HB1(hofs+ 3, "Charge*MassSquared "+labels[i], 600, -1., 2.);
+    HB2(hofs+ 4, "P Kurama%Charge*MassSquared "+labels[i],
+        100, -1., 2., 100, 0, 2.5);
+    HB1(hofs+11, "Closest distance "+labels[i], 400, 0., 200.);
+    HB1(hofs+12, "Vertex X "+labels[i], 400, -200, 200);
+    HB1(hofs+13, "Vertex Y "+labels[i], 400, -200, 200);
+    HB1(hofs+14, "Vertex Z "+labels[i], 400, -1000, 1000);
+    HB1(hofs+15, "MissingMass "+labels[i], 200, 1.0, 2.0);
+  }
 
   ////////////////////////////////////////////
   //Tree

@@ -6,6 +6,8 @@
 #include <iostream>
 #include <string>
 
+#include <TF1.h>
+
 #include <std_ostream.hh>
 #include <UnpackerManager.hh>
 
@@ -14,13 +16,24 @@
 #include "DebugCounter.hh"
 #include "DeleteUtility.hh"
 #include "DetectorID.hh"
+#include "Exception.hh"
 #include "FuncName.hh"
 #include "HodoRawHit.hh"
+#include "MathTools.hh"
 #include "TPCPadHelper.hh"
 #include "TPCRawHit.hh"
 #include "UserParamMan.hh"
 
 #define OscillationCut 0
+#define DebugEvDisp    0
+
+#if DebugEvDisp
+#include <TApplication.h>
+#include <TCanvas.h>
+#include <TLatex.h>
+#include <TSystem.h>
+namespace { TApplication app("DebugApp", nullptr, nullptr); }
+#endif
 
 namespace
 {
@@ -33,6 +46,24 @@ enum EHodoDataType { kHodoAdc, kHodoLeading, kHodoTrailing,
 #if OscillationCut
 const Int_t  MaxMultiHitDC  = 16;
 #endif
+
+///// for CorrectBaselineTPC()
+TH1D* h_baseline = nullptr;
+Double_t f_baseline(Double_t* x, Double_t* par)
+{
+  // par[0]: adc offset, par[1]: scale, par[2]: time offset
+  if(!h_baseline){
+    throw Exception("something is wrong in [RawData::CorrectBaselineTPC()]");
+    // return TMath::QuietNaN();
+  }
+  Int_t floor = TMath::FloorNint(par[2]);
+  Double_t frac = par[2] - floor;
+  Int_t bin_left = h_baseline->GetXaxis()->FindBin(x[0] + floor);
+  Double_t val_left = h_baseline->GetBinContent(bin_left);
+  Double_t val_right = h_baseline->GetBinContent(bin_left+1);
+  return
+    par[0] + par[1]*((1-frac)*val_left + frac*val_right);
+}
 }
 
 //_____________________________________________________________________________
@@ -57,7 +88,8 @@ RawData::RawData()
     m_SdcOutRawHC(NumOfLayersSdcOut+1),
     m_ScalerRawHC(),
     m_TrigRawHC(),
-    m_VmeCalibRawHC()
+    m_VmeCalibRawHC(),
+    m_baseline()
 {
   for(auto& d: m_is_decoded) d = false;
   debug::ObjectCounter::increase(ClassName());
@@ -94,6 +126,7 @@ RawData::ClearAll()
   del::ClearContainer(m_TrigRawHC);
   del::ClearContainer(m_VmeCalibRawHC);
 }
+
 //_____________________________________________________________________________
 void
 RawData::ClearTPC()
@@ -104,7 +137,123 @@ RawData::ClearTPC()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
+RawData::CorrectBaselineTPC()
+{
+  static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
+  static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
+
+  if(!m_is_decoded[kTPC]){
+    hddaq::cerr << FUNC_NAME << " DecodeTPCHits() must be done!" << std::endl;
+    return false;
+  }
+
+  del::ClearContainerAll(m_TPCCorHC);
+
+  TH1D h1("baseline", "Baseline", NumOfTimeBucket, 0, NumOfTimeBucket);
+  h_baseline = &h1;
+
+#if DebugEvDisp
+  gStyle->SetOptStat(1110);
+  gStyle->SetOptFit(1);
+  static TCanvas c1("c1", "c1", 1200, 900);
+  c1.cd();
+  TH1D h2(FUNC_NAME+"-h2", "Corrected FADC",
+          NumOfTimeBucket, 0, NumOfTimeBucket);
+#endif
+
+  m_baseline = nullptr;
+  Double_t min_ref = 1e5;
+  for(const auto& hc : m_TPCRawHC){
+    for(const auto& hit : hc){
+      if(hit->FadcSize() != NumOfTimeBucket)
+        continue;
+      ///// Minimum RMS method (unused)
+      // auto ref = hit->RMS(MinTimeBucket, MaxTimeBucket);
+      ///// Minimum Amplitude method
+      auto ref = hit->MaxAdc(MinTimeBucket, MaxTimeBucket)
+        - hit->Mean(MinTimeBucket, MaxTimeBucket);
+      if(ref < min_ref){
+        min_ref = ref;
+        m_baseline = hit;
+      }
+    }
+  }
+  if(!m_baseline || !h_baseline){
+    hddaq::cerr << FUNC_NAME << " no reference was found." << std::endl;
+    return false;
+  }
+
+  const auto& base_fadc = m_baseline->Fadc();
+  const Double_t base_ped = m_baseline->Mean(0, MinTimeBucket);
+  for(Int_t i=0; i<NumOfTimeBucket; ++i){
+    h_baseline->SetBinContent(i+1, base_fadc.at(i) - base_ped);
+  }
+  h_baseline->SetTitle(Form("Baseline Layer#%d Row#%d",
+                            m_baseline->LayerId(),
+                            m_baseline->RowId()));
+
+#if DebugEvDisp
+  {
+    m_baseline->Print();
+  }
+#endif
+
+  for(const auto& hc : m_TPCRawHC){
+    for(const auto& hit : hc){
+      TH1D h_fadc("h_fadc", Form("FADC Layer#%d Row#%d",
+                                 hit->LayerId(), hit->RowId()),
+                  NumOfTimeBucket, 0, NumOfTimeBucket);
+      h_fadc.SetLineWidth(2);
+      const auto& fadc = hit->Fadc();
+      for(Int_t i=0, n=fadc.size(); i<n; ++i){
+        h_fadc.SetBinContent(i+1, fadc.at(i));
+      }
+      TF1 f1("f1", f_baseline, 0, NumOfTimeBucket, 3);
+      f1.SetParameter(0, hit->Mean(0, MinTimeBucket));
+      f1.SetParameter(1, 1.);
+      f1.SetParameter(2, 0.);
+      f1.SetParLimits(0, 0, 4000.);
+      f1.SetParLimits(1, -5, 5.);
+      f1.SetParLimits(2, -10, 10);
+      h_fadc.Fit("f1", "Q", "", 0, MinTimeBucket);
+      for(Int_t i=0, n=fadc.size(); i<n; ++i){
+        Double_t cadc = fadc.at(i) - f1.Eval(i);
+        AddTPCRawHit(m_TPCCorHC[hit->LayerId()], hit->LayerId(),
+                     hit->RowId(), cadc, f1.GetParameters());
+      }
+#if DebugEvDisp
+      {
+        h2.Reset();
+        h2.SetLineWidth(2);
+        for(Int_t i=0, n=fadc.size(); i<n; ++i){
+          h2.SetBinContent(i+1, fadc.at(i) - f1.Eval(i));
+        }
+        h_fadc.Draw();
+        h_fadc.SetMinimum(-500);
+        h_fadc.SetMaximum(1000);
+        TF1 f2("f2", f_baseline, MinTimeBucket, NumOfTimeBucket, 3);
+        f2.SetParameters(f1.GetParameters());
+        f2.Draw("same");
+        h2.SetLineColor(kGreen+1);
+        h2.SetLineWidth(2);
+        h2.Draw("same");
+        h2.SetMinimum(-500);
+        h2.SetMaximum( 500);
+        gPad->Modified();
+        gPad->Update();
+        c1.Print("c1.pdf");
+        getchar();
+      }
+#endif
+    }
+  }
+
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
 RawData::DecodeHits()
 {
   static const Double_t MinTdcBC3  = gUser.GetParameter("TdcBC3", 0);
@@ -334,12 +483,11 @@ RawData::DecodeTPCHits()
 {
   static const auto k_tpc = gUnpacker.get_device_id("TPC");
   static const auto k_adc = gUnpacker.get_data_id("TPC", "adc");
-  // static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
-  // static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
+  static const Bool_t BaselineCorrectionTPC
+    = (gUser.GetParameter("BaselineCorrectionTPC") == 1);
 
   if(m_is_decoded[kTPC]){
-    hddaq::cout << "#D " << FUNC_NAME << " "
-		<< "already decoded!" << std::endl;
+    hddaq::cout << FUNC_NAME << " " << "already decoded!" << std::endl;
     return false;
   }
 
@@ -349,8 +497,6 @@ RawData::DecodeTPCHits()
       const auto nhit = gUnpacker.get_entries(k_tpc, layer, 0, r, k_adc);
       for(Int_t i=0; i<nhit; ++i){
         auto adc = gUnpacker.get(k_tpc, layer, 0, r, k_adc, i);
-	//temporary
-	//if(MinTimeBucket<i&&i<MaxTimeBucket)
 	AddTPCRawHit(m_TPCRawHC[layer], layer, r, adc);
       }
     }
@@ -368,249 +514,72 @@ RawData::DecodeTPCHits()
   }
 
   m_is_decoded[kTPC] = true;
+
+  if(BaselineCorrectionTPC)
+    CorrectBaselineTPC();
+
+  /*
+   * if correction is skipped or null baseline is found,
+   * m_TPCCorHC is deeply copied from m_TPCRawHC.
+   * So, in any case, m_TPCCorHC will be used in DCAnalyzer too.
+   */
+  if(!m_baseline){
+    del::ClearContainerAll(m_TPCCorHC);
+    for(const auto& hc: m_TPCRawHC){
+      for(const auto& hit: hc){
+        for(const auto& adc: hit->Fadc()){
+          AddTPCRawHit(m_TPCCorHC[hit->LayerId()], hit->LayerId(),
+                       hit->RowId(), adc);
+        }
+      }
+    }
+  }
+
   return true;
 }
 
 //_____________________________________________________________________________
-// bool
-// RawData::RecalcTPCHits()
-// {
-//   if(!m_is_decoded[kTPC]){
-//     hddaq::cout << "#D " << FUNC_NAME << " "
-// 		<< "Rawdata has not been decoded!" << std::endl;
-//     return false;
-//   }
-//   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-//     // Int_t Min_rms_row = -1;
-//     // Int_t Min_rms_hitnum = -1;
-//     Int_t Min_rms = 100000;
-//     // Int_t Min_maxadc_row = -1;
-//     Int_t Min_maxadc_hitnum = -1;
-//     Int_t Min_maxadc = 100000;
-//     const std::size_t nh = m_TPCRawHC[layer].size();
-//     if(nh==0)
-//       continue;
-//     for(std::size_t hiti =0; hiti< nh; hiti++){
-//       auto hit = m_TPCRawHC[layer][hiti];
-//       if(hit->RMS() < Min_rms){
-// 	Min_rms = hit->RMS();
-// 	// Min_rms_row = hit->RowId();
-// 	// Min_rms_hitnum = hiti;
-//       }
-//       if(hit->MaxAdc() < Min_maxadc){
-// 	Min_maxadc = hit->MaxAdc();
-// 	// Min_maxadc_row = hit->RowId();
-// 	Min_maxadc_hitnum = hiti;
-//       }
-//     }
-
-//     // std::cout<<"Min_maxadc_hitnum:"<<Min_maxadc_hitnum<<std::endl;
-//     // std::cout<<"Layer:"<<layer<<", min_row:"<<Min_maxadc_row<<std::endl;
-//     // auto hit_min = m_TPCRawHC[layer][Min_rms_hitnum];
-//     auto hit_min = m_TPCRawHC[layer][Min_maxadc_hitnum];
-//     Int_t n0 = hit_min->Fadc().size();
-//     Int_t mean0 = (Int_t)hit_min->Mean();
-//     for(std::size_t hiti =0; hiti< nh; hiti++){
-//       auto hit = m_TPCRawHC[layer][hiti];
-//       Int_t row = hit->RowId();
-//       //std::cout<<"row:"<<row<<std::endl;
-//       Int_t n = hit->Fadc().size();
-//       if(n0<n)
-// 	n=n0;
-//       for(Int_t i=0; i<n; ++i){
-// 	auto adc = hit->Fadc().at(i);
-// 	auto adc0 = hit_min->Fadc().at(i);
-// 	auto cor_adc = adc + (mean0 - adc0);
-// 	if(nh==1)
-// 	  AddTPCRawHit (m_TPCCorHC[layer], layer, row, adc);
-// 	else
-// 	  AddTPCRawHit (m_TPCCorHC[layer], layer, row, cor_adc);
-//       }
-//     }
-//   }
-//   return true;
-// }
-
-bool
-RawData::RecalcTPCHits()
+Bool_t
+RawData::SelectTPCHits(Bool_t maxadccut, Bool_t maxadctbcut)
 {
   if(!m_is_decoded[kTPC]){
-    hddaq::cout << "#D " << FUNC_NAME << " "
+    hddaq::cerr << FUNC_NAME << " "
 		<< "Rawdata has not been decoded!" << std::endl;
     return false;
   }
-
-  Int_t Min_rms1 = 100000;
-  Int_t Min_rms_layer1 = -1;
-  Int_t Min_rms_hitnum1 = -1;
-  // Int_t Min_maxadc_row = -1;
-  Int_t Min_maxadc_hitnum1 = -1;
-  Int_t Min_maxadc_layer1 = -1;
-  Int_t Min_maxadc1 = 100000;
-
-  Int_t Min_rms2 = 100000;
-  Int_t Min_rms_layer2 = -1;
-  Int_t Min_rms_hitnum2 = -1;
-  Int_t Min_maxadc_hitnum2 = -1;
-  Int_t Min_maxadc_layer2 = -1;
-  Int_t Min_maxadc2 = 100000;
-
-
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    // Int_t Min_rms_row = -1;
-    // Int_t Min_rms_hitnum = -1;
-
-    const std::size_t nh = m_TPCRawHC[layer].size();
-    if(nh==0)
-      continue;
-
-    for(std::size_t hiti =0; hiti< nh; hiti++){
-      auto hit = m_TPCRawHC[layer][hiti];
-      if(hit->RMS() < Min_rms1 && hit->RMS()>10.){
-	Min_rms1 = hit->RMS();
-	Min_rms_layer1 = layer;
-	// Min_rms_row = hit->RowId();
-	Min_rms_hitnum1 = hiti;
-	//std::cout<<"RMS1_0= "<<Min_rms1<<std::endl;
-      }
-      if(hit->MaxAdc() < Min_maxadc1 && hit->RMS()>10.){
-	Min_maxadc1 = hit->MaxAdc();
-	// Min_maxadc_row = hit->RowId();
-	Min_maxadc_hitnum1 = hiti;
-	Min_maxadc_layer1 = layer;
-	//std::cout<<"RMS1_1= "<<hit->RMS()<<std::endl;
-      }
-      else{
-	if(hit->RMS() < Min_rms2 && hit->RMS()>10.){
-	  Min_rms2 = hit->RMS();
-	  Min_rms_layer2 = layer;
-	  // Min_rms_row = hit->RowId();
-	  Min_rms_hitnum2 = hiti;
-	  //std::cout<<"RMS2_0= "<<Min_rms2<<std::endl;
-	}
-	if(hit->MaxAdc() < Min_maxadc2 && hit->RMS()>10.){
-	  Min_maxadc2 = hit->MaxAdc();
-	  // Min_maxadc_row = hit->RowId();
-	  Min_maxadc_hitnum2 = hiti;
-	  Min_maxadc_layer2 = layer;
-	  //std::cout<<"RMS2_1= "<<hit->RMS()<<std::endl;
-	}
-      }
-    }
-  }
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    const std::size_t nh = m_TPCRawHC[layer].size();
-    if(nh==0)
-      continue;
-    // std::cout<<"Min_maxadc_hitnum:"<<Min_maxadc_hitnum<<std::endl;
-    // std::cout<<"Layer:"<<layer<<", min_row:"<<Min_maxadc_row<<std::endl;
-    // auto hit_min = m_TPCRawHC[layer][Min_rms_hitnum];
-    int Min_layer=0, Min_hitnum=0;
-    if(layer<10){
-      //      Min_layer = Min_maxadc_layer1;
-      Min_layer = Min_rms_layer1;
-      //Min_hitnum = Min_maxadc_hitnum1;
-      Min_hitnum = Min_rms_hitnum1;
-      //std::cout<<"Min_rms1="<<Min_rms1<<std::endl;
-    }
-    else{
-      //      Min_layer = Min_maxadc_layer2;
-      Min_layer = Min_rms_layer2;
-      // Min_hitnum = Min_maxadc_hitnum2;
-      Min_hitnum = Min_rms_hitnum2;
-      //std::cout<<"Min_rms2="<<Min_rms2<<std::endl; 
-    }
-    //auto hit_min = m_TPCRawHC[layer][Min_maxadc_hitnum];
-    if(Min_layer==-1||Min_hitnum==-1)
-      continue;
-    
-    auto hit_min = m_TPCRawHC[Min_layer][Min_hitnum];
-    Int_t n0 = hit_min->Fadc().size();
-    if(n0<10)
-      std::cout<<"n0="<<n0<<std::endl;
-    Int_t mean0 = (Int_t)hit_min->Mean();
-    Double_t rms10_0 = hit_min->RMS_10();// RMS of first 10 time bucket
-
-    // std::cout<<"min_layer="<<hit_min->LayerId()
-    // 	     <<", min_row="<<hit_min->RowId()
-    // 	     <<", padid="<<tpc::GetPadId(hit_min->LayerId(), hit_min->RowId())<<std::endl;
-   
-    for(std::size_t hiti =0; hiti< nh; hiti++){
-      auto hit = m_TPCRawHC[layer][hiti];
-      // std::cout<<"layer="<<hit->LayerId()
-      // 	       <<", row="<<hit->RowId()
-      // 	       <<", padid="<<tpc::GetPadId(hit->LayerId(), hit->RowId())<<std::endl;
-      Int_t row = hit->RowId();
-      //std::cout<<"row:"<<row<<std::endl;
-      Int_t n = hit->Fadc().size();
-      if(n<10){
-	std::cout<<"n="<<n<<std::endl;
-	continue;
-      }
-      Double_t rms10 = hit->RMS_10();// RMS of first 10 time bucket
-      
-      if(n0<n)
-	n=n0;
-      for(Int_t i=0; i<n; ++i){
-	auto adc = hit->Fadc().at(i);
-	auto adc0 = hit_min->Fadc().at(i);
-	auto cor_adc = adc + (mean0 - adc0)*(rms10/rms10_0);
-	//auto cor_adc = adc + (mean0 - adc0);
-	// std::cout<<"adc="<<adc<<", adc0="<<adc0<<", adc-adc0="<<adc-adc0
-	// 	 <<", rms10="<<rms10<<", rms10_0="<<rms10_0
-	// 	 <<", sub="<<(mean0 - adc0)*(rms10/rms10_0)<<", cor_adc="<<cor_adc<<std::endl;
-	//if(nh==1)
-	if(layer==Min_layer&&hiti==Min_hitnum)
-	  AddTPCRawHit (m_TPCCorHC[layer], layer, row, adc);
-	else
-	  AddTPCRawHit (m_TPCCorHC[layer], layer, row, cor_adc);
-      }
-    }
-  }
-  return true;
-}
-
-bool
-RawData::EventSelectionTPCHits(bool maxadccut, bool maxadctbcut)
-{
-  if(!m_is_decoded[kTPC]){
-    hddaq::cout << "#D " << FUNC_NAME << " "
-		<< "Rawdata has not been decoded!" << std::endl;
-    return false;
-  }
-  std::vector<TPCRHitContainer>  ValidCand;
+  std::vector<TPCRHitContainer> ValidCand;
   ValidCand.resize(NumOfLayersTPC+1);
-  std::vector<TPCRHitContainer>  DeleteCand;
+  std::vector<TPCRHitContainer> DeleteCand;
   DeleteCand.resize(NumOfLayersTPC+1);
-  
+
   static const Double_t MinDe = gUser.GetParameter("MinDeTPC");
   static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
   static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
-  static const Int_t TPC_Subtraction = gUser.GetParameter("TPC_Subtraction");
-  
+  static const Bool_t BaselineCorrectionTPC
+    = (gUser.GetParameter("BaselineCorrectionTPC") == 1);
 
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     std::size_t nh;
-    if(TPC_Subtraction==1)
+    if(BaselineCorrectionTPC)
       nh = m_TPCCorHC[layer].size();
     else
       nh = m_TPCRawHC[layer].size();
     if(nh==0)
       continue;
-    for(std::size_t hiti =0; hiti< nh; hiti++){
+    for(std::size_t hiti =0; hiti< nh; ++hiti){
       TPCRawHit* hit;
-      if(TPC_Subtraction==1)
+      if(BaselineCorrectionTPC)
 	hit = m_TPCCorHC[layer][hiti];
       else
 	hit = m_TPCRawHC[layer][hiti];
-    
-      Double_t mean = hit->Mean();  
+
+      Double_t mean = hit->Mean();
       //Double_t max_adc = hit->MaxAdc() - mean;
       Double_t max_adc = hit->MaxAdc(MinTimeBucket, MaxTimeBucket) - mean;
-      Int_t maxadc_tb = (Int_t)hit->LocMax();
-    
+      Int_t maxadc_tb = hit->LocMax();
+
       if(maxadccut&&maxadctbcut){
-	if(max_adc>MinDe 
+	if(max_adc>MinDe
 	   && (MinTimeBucket < maxadc_tb
 	       && maxadc_tb < MaxTimeBucket))
 	  ValidCand[layer].push_back(hit);
@@ -624,7 +593,7 @@ RawData::EventSelectionTPCHits(bool maxadccut, bool maxadctbcut)
 	  DeleteCand[layer].push_back(hit);
       }
       if(!maxadccut&&maxadctbcut){
-	if(MinTimeBucket < maxadc_tb 
+	if(MinTimeBucket < maxadc_tb
 	   && maxadc_tb < MaxTimeBucket)
 	  ValidCand[layer].push_back(hit);
 	else
@@ -635,11 +604,11 @@ RawData::EventSelectionTPCHits(bool maxadccut, bool maxadctbcut)
       }
     }
   }
-  
+
   del::ClearContainerAll(DeleteCand);
 
   for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
-    if(TPC_Subtraction==1){
+    if(BaselineCorrectionTPC){
       m_TPCCorHC[layer].clear();
       m_TPCCorHC[layer].resize(ValidCand[layer].size());
       std::copy(ValidCand[layer].begin(), ValidCand[layer].end(), m_TPCCorHC[layer].begin());
@@ -759,7 +728,8 @@ RawData::AddDCRawHit(DCRHitContainer& cont,
 //_____________________________________________________________________________
 Bool_t
 RawData::AddTPCRawHit(TPCRHitContainer& cont,
-                      Int_t layer, Int_t row, Int_t adc)
+                      Int_t layer, Int_t row, Double_t adc,
+                      Double_t* pars)
 {
   TPCRawHit* p = nullptr;
   for(Int_t i=0, n=cont.size(); i<n; ++i){
@@ -769,7 +739,7 @@ RawData::AddTPCRawHit(TPCRHitContainer& cont,
     }
   }
   if(!p){
-    p = new TPCRawHit(layer, row);
+    p = new TPCRawHit(layer, row, pars);
     cont.push_back(p);
   }
   p->AddFadc(adc);

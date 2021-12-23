@@ -42,7 +42,7 @@
 #include "TPCHit.hh"
 #include "TPCCluster.hh"
 #include "TPCLocalTrack.hh"
-#include "TPCLocalTrack_Helix.hh"
+#include "TPCLocalTrackHelix.hh"
 
 #define DefStatic
 #include "DCParameters.hh"
@@ -180,6 +180,7 @@ DCAnalyzer::~DCAnalyzer()
   ClearVtxHits();
   debug::ObjectCounter::decrease(ClassName());
 }
+
 
 //_____________________________________________________________________________
 void
@@ -367,8 +368,6 @@ DCAnalyzer::ClusterizeTPC(Int_t layerID, const TPCHitContainer& HitCont,
 Bool_t
 DCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
 {
-  static const Int_t TPC_Subtraction = gUser.GetParameter("TPC_Subtraction");
-  static const Int_t TPC_Multi = gUser.GetParameter("TPC_Multi");
   if(m_is_decoded[kTPC]){
     hddaq::cout << FUNC_NAME << " "
                 << "already decoded" << std::endl;
@@ -377,38 +376,15 @@ DCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
 
   ClearTPCHits();
 
-  Int_t numhit =0;
-  //multiplicity cut for partial readout mode
   for(Int_t layer=0; layer<=NumOfLayersTPC; ++layer){
-    numhit += rawData->GetTPCRawHC(layer).size();
-  }
-  if(TPC_Multi>0 && numhit>TPC_Multi){
-    m_is_decoded[kTPC] = true;
-    return true;
-  }
-
-  for(Int_t layer=0; layer<=NumOfLayersTPC; ++layer){
-    if(TPC_Subtraction == 1){
-      for(const auto& rhit: rawData->GetTPCCorHC(layer)){
-        auto hit = new TPCHit(rhit);
-        if(hit->DoFit() && hit->Calculate(clock)){
-          m_TPCHitCont[layer].push_back(hit);
-        }else{
-          delete hit;
-        }
+    for(const auto& rhit: rawData->GetTPCCorHC(layer)){
+      auto hit = new TPCHit(rhit);
+      if(hit->DoFit() && hit->Calculate(clock)){
+        m_TPCHitCont[layer].push_back(hit);
+      }else{
+        delete hit;
       }
     }
-    else{
-      for(const auto& rhit: rawData->GetTPCRawHC(layer)){
-        auto hit = new TPCHit(rhit);
-        if(hit->DoFit() && hit->Calculate(clock)){
-          m_TPCHitCont[layer].push_back(hit);
-        }else{
-          delete hit;
-        }
-      }
-    }
-
   }
 
   m_is_decoded[kTPC] = true;
@@ -418,52 +394,37 @@ DCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
 //_____________________________________________________________________________
 Bool_t
 DCAnalyzer::ReCalcTPCHits(const Int_t nhits,
-                          const std::vector<Int_t>& padid,
+                          const std::vector<Int_t>& pad,
                           const std::vector<Double_t>& time,
                           const std::vector<Double_t>& de,
-                          Bool_t do_clusterize)
+                          Double_t clock)
 {
-  // static const Double_t Time0 = gUser.GetParameter("Time0TPC");
-  // static const Double_t DriftVelocity = gUser.GetParameter("DriftVelocityTPC");
-
-  static const Double_t DECut_TPCTrack = gUser.GetParameter("DECut_TPCTrack");
   if(m_is_decoded[kTPC]){
-    hddaq::cout << FUNC_NAME << " "
-                << "already decoded" << std::endl;
-    return true;
+    hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;
+    return false;
   }
-  ClearTPCClusters();
+
+  // ClearTPCClusters();
   ClearTPCHits();
-  //Temporary: these parameter should be given by different param file (ch by ch)
 
-  for(Int_t hiti=0; hiti<nhits; hiti++){
-    TVector3 pos_tmp = tpc::getPosition(padid[hiti]);
-    //    Double_t y = (time[hiti] - Time0) * DriftVelocity;
-    //Temporary: DriftVelocity (unit mm/ch)
-    //Double_t y = (time[hiti] - Time0) * 80. * DriftVelocity;
-    Int_t layer = tpc::getLayerID(padid[hiti]);
-    Int_t row = tpc::getRowID(padid[hiti]);
-    Double_t y = 0.;
-    if(!gTPC.GetY(layer, row, time[hiti], y)){
-      hddaq::cerr << FUNC_NAME << " something is wrong at GetY("
-                  << layer << ", " << row << ", " << time[hiti]
-                  << ", " << y << ")" << std::endl;
-    }
-
-    TVector3 pos(pos_tmp.x(), y, pos_tmp.z());
-    TVector3 cpos = gTPCPos.Correct(pos);
-
-    // std::cout<<"original padid:"<<padid[hiti]
-    //       <<", calcpadid:"<<tpc::GetPadId(layer, row)<<std::endl;
-
-    TPCHit* hit = new TPCHit(layer, (Double_t)row);
-    hit->SetPos(pos);
-    hit->SetCharge(de[hiti]);
-    // std::cout<<"Hit, layer:"<<layer<<", "
-    //       <<"pos:"<<pos<<std::endl;
-    if(hit) m_TPCHitCont[layer].push_back(hit);
+  if(nhits != pad.size() || nhits != time.size() || nhits != de.size()){
+    hddaq::cerr << FUNC_NAME << " vector size mismatch" << std::endl;
+    return false;
   }
 
+  for(Int_t ih=0; ih<nhits; ih++){
+    const Int_t layer = tpc::getLayerID(pad[ih]);
+    const Double_t row = tpc::getRowID(pad[ih]);
+    auto hit = new TPCHit(layer, row);
+    hit->AddHit(de[ih], time[ih]);
+    if(hit->Calculate(clock)){
+      m_TPCHitCont[layer].push_back(hit);
+    }else{
+      delete hit;
+    }
+  }
+
+#if 0
   if(do_clusterize){
     std::vector<TPCClusterContainer>  TPCClusterCont;
     TPCClusterCont.resize(NumOfLayersTPC+1);
@@ -509,7 +470,7 @@ DCAnalyzer::ReCalcTPCHits(const Int_t nhits,
     }
     del::ClearContainerAll(TPCClusterCont);
   }
-
+#endif
 
   m_is_decoded[kTPC] = true;
   return true;
@@ -726,9 +687,9 @@ DCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
   ClearTPCHits();
 
   for(Int_t hiti=0; hiti<nhits; hiti++){
-    Int_t padid = tpc::findPadID(z[hiti], x[hiti]);
-    Int_t layer = tpc::getLayerID(padid);
-    Int_t row = tpc::getRowID(padid);
+    Int_t pad = tpc::findPadID(z[hiti], x[hiti]);
+    Int_t layer = tpc::getLayerID(pad);
+    Int_t row = tpc::getRowID(pad);
     TVector3 pos(x[hiti], y[hiti], z[hiti]);
     TPCHit  *hit  = new TPCHit(layer,(Double_t)row);
     hit->SetClusterSize(1);
@@ -746,7 +707,7 @@ DCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
   //   Int_t ncl = m_TPCClCont[layer].size();
   //   for(Int_t i=0; i<ncl; ++i){
   //     TPCCluster *p = m_TPCClCont[layer][i];
-  //     Int_t MeanPad = p->MeanPadId();
+  //     Int_t MeanPad = p->MeanPad();
   //     TVector3 pos = p->Position();
   //     Double_t charge = p->Charge();
   //     TPCHit  *hit  = new TPCHit(MeanPad, pos, charge);
@@ -1366,14 +1327,14 @@ DCAnalyzer::TrackSearchTPC()
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchTPC_Helix()
+DCAnalyzer::TrackSearchTPCHelix()
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
 #if UseTpcCluster
-  track::LocalTrackSearchTPC_Helix(m_TPCClCont, m_TPCTC_Helix, MinLayer);
+  track::LocalTrackSearchTPCHelix(m_TPCClCont, m_TPCTC_Helix, MinLayer);
 #else
-  track::LocalTrackSearchTPC_Helix(m_TPCHitCont, m_TPCTC_Helix, MinLayer);
+  track::LocalTrackSearchTPCHelix(m_TPCHitCont, m_TPCTC_Helix, MinLayer);
 #endif
   return true;
 }

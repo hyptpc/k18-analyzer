@@ -1,8 +1,4 @@
-/**
- *  file: DstTPCTrackingGeant4.cc
- *  date: 2020.04.02
- *
- */
+// -*- C++ -*-
 
 #include <iomanip>
 #include <iostream>
@@ -32,35 +28,35 @@
 
 namespace
 {
-  using namespace root;
-  using namespace dst;
-  const std::string& class_name("DstTPCTrackingGeant4");
-  ConfMan&            gConf = ConfMan::GetInstance();
-  const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
-  const UserParamMan& gUser = UserParamMan::GetInstance();
-  const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
-  debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
+using namespace root;
+using namespace dst;
+const std::string& class_name("DstTPCTrackingGeant4");
+ConfMan&            gConf = ConfMan::GetInstance();
+const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
+const UserParamMan& gUser = UserParamMan::GetInstance();
+const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
+debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
 
-  const Int_t MaxTPCHits = 10000;
-  const Int_t MaxTPCTracks = 100;
-  const Int_t MaxTPCnHits = 50;
+const Int_t MaxTPCHits = 10000;
+const Int_t MaxTPCTracks = 100;
+const Int_t MaxTPCnHits = 50;
 }
 
 namespace dst
 {
-  enum kArgc
-    {
-      kProcess, kConfFile,
-      kTPCGeant, kOutFile, nArgc
-    };
-  std::vector<TString> ArgName =
-    { "[Process]", "[ConfFile]", "[TPCGeant]",
-      "[OutFile]" };
-  std::vector<TString> TreeName =
-    { "", "", "TPC_g", "" };
-  std::vector<TFile*> TFileCont;
-  std::vector<TTree*> TTreeCont;
-  std::vector<TTreeReader*> TTreeReaderCont;
+enum kArgc
+{
+  kProcess, kConfFile,
+  kTPCGeant, kOutFile, nArgc
+};
+std::vector<TString> ArgName =
+{ "[Process]", "[ConfFile]", "[TPCGeant]",
+  "[OutFile]" };
+std::vector<TString> TreeName =
+{ "", "", "TPC_g", "" };
+std::vector<TFile*> TFileCont;
+std::vector<TTree*> TTreeCont;
+std::vector<TTreeReader*> TTreeReaderCont;
 }
 
 //_____________________________________________________________________

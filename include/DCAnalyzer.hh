@@ -21,7 +21,7 @@ class HodoCluster;
 class TPCHit;
 class TPCCluster;
 class TPCLocalTrack;
-class TPCLocalTrack_Helix;
+class TPCLocalTrackHelix;
 
 class Hodo1Hit;
 class Hodo2Hit;
@@ -37,7 +37,7 @@ typedef std::vector<KuramaTrack*>  KuramaTrackContainer;
 typedef std::vector<TPCHit*>        TPCHitContainer;
 typedef std::vector<TPCCluster*>    TPCClusterContainer;
 typedef std::vector<TPCLocalTrack*> TPCLocalTrackContainer;
-typedef std::vector<TPCLocalTrack_Helix*> TPCLocalTrack_HelixContainer;
+typedef std::vector<TPCLocalTrackHelix*> TPCLocalTrackHelixContainer;
 
 typedef std::vector<Hodo1Hit*> Hodo1HitContainer;
 typedef std::vector<Hodo2Hit*> Hodo2HitContainer;
@@ -77,7 +77,7 @@ private:
   DCLocalTrackContainer              m_SdcInTC;
   DCLocalTrackContainer              m_SdcOutTC;
   TPCLocalTrackContainer             m_TPCTC;
-  TPCLocalTrack_HelixContainer       m_TPCTC_Helix;
+  TPCLocalTrackHelixContainer        m_TPCTC_Helix;
   K18TrackU2DContainer               m_K18U2DTC;
   K18TrackD2UContainer               m_K18D2UTC;
   KuramaTrackContainer               m_KuramaTC;
@@ -129,14 +129,14 @@ public:
   Bool_t TrackSearchSdcOut(const Hodo2HitContainer& HitCont);
   Bool_t TrackSearchSdcOut(const HodoClusterContainer& ClCont);
   Bool_t TrackSearchTPC();
-  Bool_t TrackSearchTPC_Helix();
+  Bool_t TrackSearchTPCHelix();
 
   Int_t GetNtracksBcIn() const { return m_BcInTC.size(); }
   Int_t GetNtracksBcOut() const { return m_BcOutTC.size(); }
   Int_t GetNtracksSdcIn() const { return m_SdcInTC.size(); }
   Int_t GetNtracksSdcOut() const { return m_SdcOutTC.size(); }
   Int_t GetNTracksTPC() const { return m_TPCTC.size(); }
-  Int_t GetNTracksTPC_Helix() const { return m_TPCTC_Helix.size(); }
+  Int_t GetNTracksTPCHelix() const { return m_TPCTC_Helix.size(); }
   // Exclusive Tracks
   Int_t GetNtracksSdcInEx(Int_t l) const { return m_SdcInExTC.at(l).size(); }
   Int_t GetNtracksSdcOutEx(Int_t l) const { return m_SdcOutExTC.at(l).size(); }
@@ -146,7 +146,7 @@ public:
   DCLocalTrack* GetTrackSdcIn(Int_t l) const { return m_SdcInTC.at(l); }
   DCLocalTrack* GetTrackSdcOut(Int_t l) const { return m_SdcOutTC.at(l); }
   TPCLocalTrack* GetTrackTPC(Int_t l) const { return m_TPCTC.at(l); }
-  TPCLocalTrack_Helix* GetTrackTPC_Helix(Int_t l) const
+  TPCLocalTrackHelix* GetTrackTPCHelix(Int_t l) const
     { return m_TPCTC_Helix.at(l); }
   // Exclusive Tracks
   DCLocalTrack* GetTrackSdcInEx(Int_t l, Int_t i) const
@@ -197,10 +197,10 @@ public:
                       Bool_t applyRecursively=false);
   Bool_t ReCalcDCHits(Bool_t applyRecursively=false);
   Bool_t ReCalcTPCHits(const Int_t nhits,
-                       const std::vector<Int_t>& padid,
+                       const std::vector<Int_t>& pad,
                        const std::vector<Double_t>& time,
                        const std::vector<Double_t>& de,
-                       Bool_t do_clusterize=true);
+                       Double_t clock=0.);
   void HoughYCut(Double_t min_y, Double_t max_y);
   Bool_t ReCalcTrack(DCLocalTrackContainer& cont, Bool_t applyRecursively=false);
   Bool_t ReCalcTrack(K18TrackD2UContainer& cont, Bool_t applyRecursively=false);
