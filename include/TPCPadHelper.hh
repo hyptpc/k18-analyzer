@@ -304,7 +304,8 @@ InitializeHistograms()
   while(itr.Next()){
     const TString& name((*itr)->GetName());
     const TString& cname((*itr)->ClassName());
-    hddaq::cout << " " << std::setw(8) << std::left << name
+    //hddaq::cout << " " << std::setw(8) << std::left << name
+    std::cout << " " << std::setw(8) << std::left << name
                 << "(" << cname << ")" << std::endl;
     if(cname.EqualTo("TH2Poly")){
       target.push_back(dynamic_cast<TH2Poly*>(*itr));

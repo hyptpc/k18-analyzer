@@ -565,16 +565,22 @@ TPCHit::GetResolutionX()
 //  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
   double Dt = gUser.GetParameter("TPC_Dt");
   double L_D = 30.+(y_pos*0.1);//cm
-  double N_eff = 42.8;
-  double A = 0.0582*0.01;//m-1 -> cm-1
+  //double N_eff = 42.8;
+  double N_eff = 42.1;
+  //  double A = 0.0582*0.01;//m-1 -> cm-1
+  double A = 0.055*0.01;//m-1 -> cm-1
   double e_ALD = exp(-1.*A*L_D);
   double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
   //double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
   double sT_r = sqrt(sT2);
+ 
+
+  //Check Tmporary change
   if(m_clsize ==1){
     double Rpad = tpc::padParameter[m_layer][2];
     double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
-    sT_r = padsize/sqrt(12.);
+    //Check Tmporary change
+    //sT_r = padsize/sqrt(12.);
   }
   double sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
 
@@ -582,9 +588,12 @@ TPCHit::GetResolutionX()
   double z_pos= m_pos.Z() - zTgtTPC;
   double alpha =  atan2(x_pos,z_pos);
 
-  double res_x = sqrt(pow(sT_r*cos(alpha),2)+pow(sT_padlen*sin(alpha),2));
+  //Check Tmporary change
+  //double res_x = sqrt(pow(sT_r*cos(alpha),2)+pow(sT_padlen*sin(alpha),2));
+  double res_x = sT_r*cos(alpha);
 
   return res_x;
+  //return 0.3;
 }
 
 //_____________________________________________________________________________
@@ -599,8 +608,10 @@ TPCHit::GetResolutionZ()
 //  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
   double Dt = gUser.GetParameter("TPC_Dt");
   double L_D = 30.+(y_pos*0.1);//cm
-  double N_eff = 42.8;
-  double A = 0.0582*0.01;//m-1 -> cm-1
+  //double N_eff = 42.8;
+  double N_eff = 42.1;
+  //double A = 0.0582*0.01;//m-1 -> cm-1
+  double A = 0.055*0.01;//m-1 -> cm-1
   double e_ALD = exp(-1.*A*L_D);
   double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
   //double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
@@ -608,7 +619,8 @@ TPCHit::GetResolutionZ()
   if(m_clsize ==1){
     double Rpad = tpc::padParameter[m_layer][2];
     double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
-    sT_r = padsize/sqrt(12.);
+    //Check Tmporary change
+    //sT_r = padsize/sqrt(12.);
   }
   double sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
 
@@ -616,9 +628,12 @@ TPCHit::GetResolutionZ()
   double z_pos= m_pos.Z() - zTgtTPC;
   double alpha =  atan2(x_pos,z_pos);
 
-  double res_z = sqrt(pow(sT_r*sin(alpha),2)+pow(sT_padlen*cos(alpha),2));
+  //Check Tmporary change
+  //double res_z = sqrt(pow(sT_r*sin(alpha),2)+pow(sT_padlen*cos(alpha),2));
+  double res_z = sT_r*sin(alpha);
 
   return res_z;
+  //return 0.3;
 }
 
 //_____________________________________________________________________________
@@ -627,7 +642,7 @@ TPCHit::GetResolutionY()
 {
   // temporary
   return 0.5;
-  //  return 1.5;
+  //return 0.3;
   //return 2.;
 }
 

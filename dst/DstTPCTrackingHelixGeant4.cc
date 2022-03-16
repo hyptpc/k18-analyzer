@@ -44,8 +44,8 @@ const Int_t MaxTPCHits = 10000;
 const Int_t MaxTPCTracks = 100;
 const Int_t MaxTPCnHits = 50;
 
-const bool IsWithRes = false;
-//const bool IsWithRes = true;
+  //const bool IsWithRes = false;
+const bool IsWithRes = true;
 }
 
 namespace dst
@@ -313,28 +313,53 @@ dst::DstRead( int ievent )
   // double theta=std::acos(cost)*math::Rad2Deg();
   // if(theta>20.)
   //   return true;
+
+  if(src.nhittpc<5)
+    return true;
+    
+
   DCAnalyzer *DCAna = new DCAnalyzer();
 
   //with stable resolution
   // for(int it=0; it<src.nhittpc; ++it){
-  //   src.x0tpc[it] += gRandom->Gaus(0,0.2);
-  //   src.y0tpc[it] += gRandom->Gaus(0,0.5);
-  //   src.z0tpc[it] += gRandom->Gaus(0,0.2);
+  //   src.x0tpc[it] += gRandom->Gaus(0,0.3);
+  //   src.y0tpc[it] += gRandom->Gaus(0,0.3);
+  //   src.z0tpc[it] += gRandom->Gaus(0,0.3);
   // }
   //for test
-   // for(int it=0; it<src.nhittpc; ++it){
-   //   src.xtpc[it] += gRandom->Gaus(0,0.1);
-   //   src.ztpc[it] += gRandom->Gaus(0,0.1);
-   // }
+  // for(int it=0; it<src.nhittpc; ++it){
+  //    // src.xtpc[it] += gRandom->Gaus(0,0.1);
+  //    // src.ztpc[it] += gRandom->Gaus(0,0.1);
+  //   double xtpc_re = src.x0tpc[it] + (src.xtpc[it] - src.x0tpc[it])*4.;
+  //   double ztpc_re = src.z0tpc[it] + (src.ztpc[it] - src.z0tpc[it])*4.;
+  //   src.xtpc[it]=xtpc_re;
+  //   src.ztpc[it]=ztpc_re;
+  // }
 
   //  std::cout<<"nhittpc"<<src.nhittpc<<std::endl;
-  if(IsWithRes)
+
+  
+  if(IsWithRes){
+    
     DCAna->DecodeTPCHitsGeant4(src.nhittpc,
 			       src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
-  else
+    // if(src.nhittpc<=10)
+    //   DCAna->DecodeTPCHitsGeant4(src.nhittpc,
+    // 				 src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
+    // else
+    //   DCAna->DecodeTPCHitsGeant4(10,
+    //  				 src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
+  }
+  else{
     DCAna->DecodeTPCHitsGeant4(src.nhittpc,
 			       src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
-
+    // if(src.nhittpc<=10)
+    //   DCAna->DecodeTPCHitsGeant4(src.nhittpc,
+    // 				 src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
+    // else
+    //   DCAna->DecodeTPCHitsGeant4(10,
+    // 				 src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
+  }
 
   DCAna->TrackSearchTPCHelix();
 
