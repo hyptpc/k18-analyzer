@@ -30,6 +30,7 @@
 
 #define TimeCut    1 // in cluster analysis
 #define FHitBranch 0 // make FiberHit branches (becomes heavy)
+#define HodoHitPos 0
 
 namespace
 {
@@ -173,6 +174,7 @@ struct Event
   Double_t bh2uctime[NumOfSegBH2][MaxDepth];
   Double_t bh2dtime[NumOfSegBH2][MaxDepth];
   Double_t bh2dctime[NumOfSegBH2][MaxDepth];
+  Double_t bh2hitpos[NumOfSegBH2][MaxDepth];
   Double_t bh2de[NumOfSegBH2];
   Double_t bh2ude[NumOfSegBH2];
   Double_t bh2dde[NumOfSegBH2];
@@ -194,6 +196,7 @@ struct Event
   Double_t htofuctime[NumOfSegHTOF][MaxDepth];
   Double_t htofdtime[NumOfSegHTOF][MaxDepth];
   Double_t htofdctime[NumOfSegHTOF][MaxDepth];
+  Double_t htofhitpos[NumOfSegHTOF][MaxDepth];
   Double_t htofude[NumOfSegHTOF];
   Double_t htofdde[NumOfSegHTOF];
 
@@ -298,6 +301,7 @@ Event::clear()
       bh2dtime[it][m] = qnan;
       bh2uctime[it][m] = qnan;
       bh2dctime[it][m] = qnan;
+      bh2hitpos[it][m] = qnan;
     }
   }
 
@@ -322,6 +326,7 @@ Event::clear()
       htofdtime[it][m] = qnan;
       htofuctime[it][m] = qnan;
       htofdctime[it][m] = qnan;
+      htofhitpos[it][m] = qnan;
     }
   }
 
@@ -409,6 +414,7 @@ struct Dst
   Double_t t0Bh2[NumOfSegBH2*MaxDepth];
   Double_t dtBh2[NumOfSegBH2*MaxDepth];
   Double_t deBh2[NumOfSegBH2*MaxDepth];
+  Double_t posBh2[NumOfSegBH2*MaxDepth];
 
   Int_t    nhBac;
   Int_t    csBac[NumOfSegBAC*MaxDepth];
@@ -435,6 +441,7 @@ struct Dst
   Double_t tHtof[NumOfSegHTOF*MaxDepth];
   Double_t dtHtof[NumOfSegHTOF*MaxDepth];
   Double_t deHtof[NumOfSegHTOF*MaxDepth];
+  Double_t posHtof[NumOfSegHTOF*MaxDepth];
 
   Int_t    nhBvh;
   Int_t    csBvh[NumOfSegBVH*MaxDepth];
@@ -506,6 +513,7 @@ Dst::clear()
       t0Bh2[MaxDepth*it + m]  = qnan;
       dtBh2[MaxDepth*it + m]  = qnan;
       deBh2[MaxDepth*it + m]  = qnan;
+      posBh2[MaxDepth*it + m] = qnan;
     }
   }
 
@@ -524,6 +532,7 @@ Dst::clear()
       tHtof[MaxDepth*it + m]   = qnan;
       dtHtof[MaxDepth*it + m]  = qnan;
       deHtof[MaxDepth*it + m]  = qnan;
+      posHtof[MaxDepth*it + m] = qnan;
     }
   }
 
@@ -617,6 +626,10 @@ UserHodoscope::ProcessingNormal()
   static const auto MaxTdcSCH  = gUser.GetParameter("TdcSCH",  1);
   static const auto MinTimeSCH = gUser.GetParameter("TimeSCH", 0);
   static const auto MaxTimeSCH = gUser.GetParameter("TimeSCH", 1);
+#if HodoHitPos
+  static const auto PropVelBH2 = gUser.GetParameter("PropagationBH2");
+  static const auto PropVelHTOF = gUser.GetParameter("PropagationHTOF");
+#endif
 
   rawData->DecodeHits();
 
@@ -1138,6 +1151,10 @@ UserHodoscope::ProcessingNormal()
         Double_t ut0  = hit->UTime0(m), dt0  = hit->DTime0(m);
         Double_t uct0 = hit->UCTime0(m),dct0 = hit->DCTime0(m);
         Double_t t0   = hit->Time0(m),  ct0  = hit->CTime0(m);
+#if HodoHitPos
+	Double_t ctdiff = hit->TimeDiff(m);
+	event.bh2hitpos[seg-1][m] = 0.5*PropVelBH2*ctdiff;
+#endif
         event.bh2mt[seg-1][m] = mt;
         event.bh2utime[seg-1][m] = tu;
         event.bh2dtime[seg-1][m] = td;
@@ -1148,7 +1165,8 @@ UserHodoscope::ProcessingNormal()
         event.bh2dde[seg-1]    = dde;
         event.t0[seg-1][m]    = t0;
         event.ct0[seg-1][m]   = ct0;
-        HF1(BH2Hid+100*seg+11, tu);      HF1(BH2Hid+100*seg+12, td);
+
+	HF1(BH2Hid+100*seg+11, tu);      HF1(BH2Hid+100*seg+12, td);
         HF1(BH2Hid+100*seg+13, mt);
         HF1(BH2Hid+100*seg+17, ctu);     HF1(BH2Hid+100*seg+18, ctd);
         HF1(BH2Hid+100*seg+19, cmt);     HF1(BH2Hid+100*seg+20, ctu-ctd);
@@ -1453,7 +1471,11 @@ UserHodoscope::ProcessingNormal()
         Double_t de = hit->DeltaE();
         Double_t ude = hit->UDeltaE();
         Double_t dde = hit->DDeltaE();
-        event.htofmt[seg-1][m] = mt;
+#if HodoHitPos
+	Double_t ctdiff = hit->TimeDiff(m);
+	event.htofhitpos[seg-1][m] = 0.5*PropVelHTOF*ctdiff;
+#endif
+	event.htofmt[seg-1][m] = mt;
         event.htofutime[seg-1][m] = tu;
         event.htofdtime[seg-1][m] = td;
         event.htofuctime[seg-1][m] = ctu;
@@ -1770,6 +1792,9 @@ UserHodoscope::ProcessingNormal()
       dst.t0Bh2[i]  = cl->CTime0();
       dst.dtBh2[i]  = cl->TimeDif();
       dst.deBh2[i]  = cl->DeltaE();
+#if HodoHitPos
+      dst.posBh2[i]  = 0.5*PropVelBH2*cl->TimeDif();
+#endif
     }
   }
 
@@ -1797,6 +1822,9 @@ UserHodoscope::ProcessingNormal()
       dst.tHtof[i] = cl->CMeanTime();
       dst.dtHtof[i] = cl->TimeDif();
       dst.deHtof[i] = cl->DeltaE();
+#if HodoHitPos
+      dst.posHtof[i]  = 0.5*PropVelHTOF*cl->TimeDif();
+#endif
     }
   }
 
@@ -2650,6 +2678,9 @@ ConfMan::InitializeHistograms()
   tree->Branch("bh2de",     event.bh2de,     Form("bh2de[%d]/D", NumOfSegBH2));
   tree->Branch("bh2ude",     event.bh2ude,     Form("bh2ude[%d]/D", NumOfSegBH2));
   tree->Branch("bh2dde",     event.bh2dde,     Form("bh2dde[%d]/D", NumOfSegBH2));
+#if HodoHitPos
+  tree->Branch("bh2hitpos",     event.bh2hitpos,     Form("bh2hitpos[%d][%d]/D", NumOfSegBH2, MaxDepth));
+#endif
   tree->Branch("bacmt",     event.bacmt,     Form("bacmt[%d][%d]/D", NumOfSegBAC, MaxDepth));
   tree->Branch("bacde",     event.bacde,     Form("bacde[%d]/D", NumOfSegBAC));
   tree->Branch("htofmt",   event.htofmt,   Form("htofmt[%d][%d]/D", NumOfSegHTOF, MaxDepth));
@@ -2658,8 +2689,11 @@ ConfMan::InitializeHistograms()
   tree->Branch("htofuctime",     event.htofuctime,     Form("htofuctime[%d][%d]/D", NumOfSegHTOF, MaxDepth));
   tree->Branch("htofdctime",     event.htofdctime,     Form("htofdctime[%d][%d]/D", NumOfSegHTOF, MaxDepth));
   tree->Branch("htofde",   event.htofde,   Form("htofde[%d]/D", NumOfSegHTOF));
-  tree->Branch("htofude",   event.htofude,   Form("htofdde[%d]/D", NumOfSegHTOF));
-  tree->Branch("htofdde",   event.htofdde,   Form("htofude[%d]/D", NumOfSegHTOF));
+  tree->Branch("htofude",   event.htofude,   Form("htofude[%d]/D", NumOfSegHTOF));
+  tree->Branch("htofdde",   event.htofdde,   Form("htofdde[%d]/D", NumOfSegHTOF));
+#if HodoHitPos
+  tree->Branch("htofhitpos",     event.htofhitpos,     Form("htofhitpos[%d][%d]/D", NumOfSegHTOF, MaxDepth));
+#endif
   tree->Branch("tofmt",     event.tofmt,     Form("tofmt[%d][%d]/D", NumOfSegTOF, MaxDepth));
   tree->Branch("tofde",     event.tofde,     Form("tofde[%d]/D", NumOfSegTOF));
   tree->Branch("wcmt",     event.wcmt,     Form("wcmt[%d][%d]/D", NumOfSegWC, MaxDepth));
@@ -2701,7 +2735,9 @@ ConfMan::InitializeHistograms()
   hodo->Branch("t0Bh2",      dst.t0Bh2,     "t0Bh2[nhBh2]/D");
   hodo->Branch("dtBh2",      dst.dtBh2,     "dtBh2[nhBh2]/D");
   hodo->Branch("deBh2",      dst.deBh2,     "deBh2[nhBh2]/D");
-
+#if HodoHitPos
+  hodo->Branch("posBh2",     dst.posBh2,    "posBh2[nhBh2]/D");
+#endif
   hodo->Branch("btof",       dst.btof,      "btof[nhBh1]/D");
   hodo->Branch("cbtof",      dst.cbtof,     "cbtof[nhBh1]/D");
 
@@ -2726,7 +2762,9 @@ ConfMan::InitializeHistograms()
   hodo->Branch("tHtof",       dst.tHtof,      "tHtof[nhHtof]/D");
   hodo->Branch("dtHtof",      dst.dtHtof,     "dtHtof[nhHtof]/D");
   hodo->Branch("deHtof",      dst.deHtof,     "deHtof[nhHtof]/D");
-
+#if HodoHitPos
+  hodo->Branch("posHtof",     dst.posHtof,    "posHtof[nhHtof]/D");
+#endif
   hodo->Branch("nhBvh",     &dst.nhBvh,     "nhBvh/I");
   hodo->Branch("csBvh",      dst.csBvh,     "csBvh[nhBvh]/I");
   hodo->Branch("BvhSeg",     dst.BvhSeg,    "BvhSeg[nhBvh]/D");
