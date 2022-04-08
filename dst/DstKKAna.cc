@@ -1702,7 +1702,7 @@ ConfMan::InitializeHistograms()
   TTreeCont[kKuramaTracking]->SetBranchStatus("ntKurama",    1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("nhKurama",    1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("stof",        1);
-  TTreeCont[kKuramaTracking]->SetBranchStatus("cstof",        1);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("cstof",       1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("path",        1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("pKurama",     1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("qKurama",     1);
@@ -1782,13 +1782,13 @@ ConfMan::InitializeHistograms()
   TTreeCont[kK18Tracking]->SetBranchAddress("v0BcOut",      src.v0BcOut    );
 
   TTreeCont[kK18Tracking]->SetBranchAddress("ntK18", &src.ntK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("nhK18", &src.nhK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("chisqrK18", &src.chisqrK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("p_3rd", &src.pK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("xtgtK18", &src.xtgtK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("ytgtK18", &src.ytgtK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("utgtK18", &src.utgtK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("vtgtK18", &src.vtgtK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("nhK18", src.nhK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("chisqrK18", src.chisqrK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("p_3rd", src.pK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("xtgtK18", src.xtgtK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("ytgtK18", src.ytgtK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("utgtK18", src.utgtK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("vtgtK18", src.vtgtK18);
 
   TTreeCont[kEasiroc]->SetBranchStatus("*", 0);
   TTreeCont[kEasiroc]->SetBranchStatus("bft_ncl",    1);
@@ -1805,16 +1805,16 @@ ConfMan::InitializeHistograms()
   TTreeCont[kEasiroc]->SetBranchStatus("sch_clseg",  1);
 
   TTreeCont[kEasiroc]->SetBranchAddress("bft_ncl",    &src.nhBft);
-  TTreeCont[kEasiroc]->SetBranchAddress("bft_clsize", &src.csBft);
-  TTreeCont[kEasiroc]->SetBranchAddress("bft_ctime",  &src.tBft);
-  TTreeCont[kEasiroc]->SetBranchAddress("bft_ctot",   &src.wBft);
-  TTreeCont[kEasiroc]->SetBranchAddress("bft_clpos",  &src.BftPos);
-  TTreeCont[kEasiroc]->SetBranchAddress("bft_clseg",  &src.BftSeg);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_clsize", src.csBft);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_ctime",  src.tBft);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_ctot",   src.wBft);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_clpos",  src.BftPos);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_clseg",  src.BftSeg);
   TTreeCont[kEasiroc]->SetBranchAddress("sch_ncl",    &src.nhSch);
-  TTreeCont[kEasiroc]->SetBranchAddress("sch_clsize", &src.csSch);
-  TTreeCont[kEasiroc]->SetBranchAddress("sch_ctime",  &src.tSch);
-  TTreeCont[kEasiroc]->SetBranchAddress("sch_ctot",   &src.wSch);
-  TTreeCont[kEasiroc]->SetBranchAddress("sch_clseg",  &src.SchSeg);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_clsize", src.csSch);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_ctime",  src.tSch);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_ctot",   src.wSch);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_clseg",  src.SchSeg);
 
   return true;
 }
