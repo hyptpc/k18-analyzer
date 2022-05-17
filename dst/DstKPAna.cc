@@ -8,6 +8,8 @@
 #include <sstream>
 #include <string>
 
+#include <TGeoPhysicalConstants.h>
+
 #include <filesystem_util.hh>
 
 #include "CatchSignal.hh"
@@ -657,7 +659,10 @@ dst::DstRead(Int_t ievent)
   static const auto KaonMass    = pdg::KaonMass();
   // static const auto PionMass    = pdg::PionMass();
   static const auto ProtonMass  = pdg::ProtonMass();
-  static const auto XiMass = pdg::XiMinusMass();
+  static const auto ElectronMass = pdg::ElectronMass();
+
+  static const Double_t Carbon12Mass = 12.*TGeoUnit::amu_c2 - 6.*ElectronMass;
+  static const Double_t Boron11Mass  = 11.009305167*TGeoUnit::amu_c2 - 5.*ElectronMass;
 
   if(ievent%10000 == 0){
     std::cout << FUNC_NAME << " Event Number: "
@@ -1033,31 +1038,35 @@ dst::DstRead(Int_t ievent)
       Double_t cost = pkm*pkp/(pkm.Mag()*pkp.Mag());
       Double_t theta = TMath::ACos(cost)*TMath::RadToDeg();
       Double_t pk0   = pkp.Mag();
-      Double_t pCorr = pk0*1.01453;
+      Double_t pCorr = pk0 * 1.02419;
 
       ThreeVector pkpCorr(pCorr*pkp.x()/pkp.Mag(),
                           pCorr*pkp.y()/pkp.Mag(),
                           pCorr*pkp.z()/pkp.Mag());
 
-      //      ThreeVector pkmCorrDE = Kinematics::CorrElossIn(pkm, xkm, vert, KmonMass);
-      //      ThreeVector pkpCorrDE = Kinematics::CorrElossOut(pkpCorr, xkp, vert, KaonMass);
+      // ThreeVector pkmCorrDE = Kinematics::CorrElossIn(pkm, xkm, vert, KmonMass);
+      // ThreeVector pkpCorrDE = Kinematics::CorrElossOut(pkpCorr, xkp, vert, KaonMass);
 
       LorentzVector LvKm(pkm, std::sqrt(KaonMass*KaonMass+pkm.Mag2()));
       //      LorentzVector LvKmCorrDE(pkmCorrDE, sqrt(KaonMass*KaonMass+pkmCorrDE.Mag2()));
 
-      LorentzVector LvKp(pkp, std::sqrt(KaonMass*KaonMass+pkp.Mag2()));
-      LorentzVector LvKpCorr(pkpCorr, std::sqrt(KaonMass*KaonMass+pkpCorr.Mag2()));
+      LorentzVector LvKp(pkp, std::sqrt(ProtonMass*ProtonMass+pkp.Mag2()));
+      LorentzVector LvKpCorr(pkpCorr, std::sqrt(ProtonMass*ProtonMass+pkpCorr.Mag2()));
       //      LorentzVector LvKpCorrDE(pkpCorrDE, std::sqrt(KaonMass*KaonMass+pkpCorrDE.Mag2()));
 
-      LorentzVector LvC(0., 0., 0., ProtonMass);
-      LorentzVector LvCore(0., 0., 0., 0.);
-
+      // LorentzVector LvC(0., 0., 0., ProtonMass);
+      LorentzVector LvC(0., 0., 0., Carbon12Mass);
       LorentzVector LvRc       = LvKm+LvC-LvKp;
       LorentzVector LvRcCorr   = LvKm+LvC-LvKpCorr;
       //      LorentzVector LvRcCorrDE = LvKmCorrDE+LvC-LvKpCorrDE;
       Double_t MissMass       = LvRc.Mag();//-LvC.Mag();
       Double_t MissMassCorr   = LvRcCorr.Mag();//-LvC.Mag();
       //      Double_t MissMassCorrDE = LvRcCorrDE.Mag();//-LvC.Mag();
+
+      // Double_t BE = MissMassCorr-KaonMass;
+      Double_t BE = MissMassCorr-(Boron11Mass+KaonMass);
+
+      // LorentzVector LvC(0., 0., 0., Carbon12Mass);
 
       //Primary frame
       LorentzVector PrimaryLv = LvKm+LvC;
@@ -1067,14 +1076,14 @@ dst::DstRead(Int_t ievent)
       //CM
       Double_t TotalMomCM
 	= 0.5*std::sqrt((TotalEnergyCM*TotalEnergyCM
-                         -(KaonMass+XiMass)*(KaonMass+XiMass))
+                         -(ProtonMass+KaonMass)*(ProtonMass+KaonMass))
 			*(TotalEnergyCM*TotalEnergyCM
-                          -(KaonMass-XiMass)*(KaonMass-XiMass)))/TotalEnergyCM;
+                          -(ProtonMass-KaonMass)*(ProtonMass-KaonMass)))/TotalEnergyCM;
 
       Double_t costLab = cost;
       Double_t cottLab = costLab/std::sqrt(1.-costLab*costLab);
       Double_t bt=beta.Mag(), gamma=1./std::sqrt(1.-bt*bt);
-      Double_t gbep=gamma*bt*std::sqrt(TotalMomCM*TotalMomCM+KaonMass*KaonMass)/TotalMomCM;
+      Double_t gbep=gamma*bt*std::sqrt(TotalMomCM*TotalMomCM+ProtonMass*ProtonMass)/TotalMomCM;
       Double_t a  = gamma*gamma+cottLab*cottLab;
       Double_t bp = gamma*gbep;
       Double_t c  = gbep*gbep-cottLab*cottLab;
@@ -1149,14 +1158,8 @@ dst::DstRead(Int_t ievent)
         HF1(6013, vert.y());
         HF1(6014, vert.z());
         HF1(6015, MissMassCorr);
-        HF2(6017, us, pCorr-pCalc);
-        HF2(6018, us, MissMassCorr);
-        HF2(6019, vs, pCorr-pCalc);
-        HF2(6020, vs, MissMassCorr);
-        HFProf(6021, us, pCorr-pCalc);
-        HFProf(6022, us, MissMassCorr);
-        HFProf(6023, vs, pCorr-pCalc);
-        HFProf(6024, vs, MissMassCorr);
+        HF1(6016, BE);
+        HF2(6017, MissMassCorr, pCorr-pCalc);
         if(inside == 1){
           HF1(6101, event.pK18[ikm]);
           HF1(6102, event.pKurama[ikp]);
@@ -1167,17 +1170,9 @@ dst::DstRead(Int_t ievent)
           HF1(6113, vert.y());
           HF1(6114, vert.z());
           HF1(6115, MissMassCorr);
-          HF2(6117, us, pCorr-pCalc);
-          HF2(6118, us, MissMassCorr);
-          HF2(6119, vs, pCorr-pCalc);
-          HF2(6120, vs, MissMassCorr);
-          HFProf(6121, us, pCorr-pCalc);
-          HFProf(6122, us, MissMassCorr);
-          HFProf(6123, vs, pCorr-pCalc);
-          HFProf(6124, vs, MissMassCorr);
-          if(event.pKurama[ikp] < 1.4 && event.qKurama[ikp] > 0
-             && event.pKurama[ikp] > 1.1
-            ){
+          HF1(6116, BE);
+          HF2(6117, MissMassCorr, pCorr-pCalc);
+          if(event.pKurama[ikp] > 0.01 && event.qKurama[ikp] > 0){
             HF1(6201, event.pK18[ikm]);
             HF1(6202, event.pKurama[ikp]);
             HF1(6203, event.qKurama[ikp]*event.m2[ikp]);
@@ -1187,16 +1182,11 @@ dst::DstRead(Int_t ievent)
             HF1(6213, vert.y());
             HF1(6214, vert.z());
             HF1(6215, MissMassCorr);
-            HF2(6217, us, pCorr-pCalc);
-            HF2(6218, us, MissMassCorr);
-            HF2(6219, vs, pCorr-pCalc);
-            HF2(6220, vs, MissMassCorr);
-            HFProf(6221, us, pCorr-pCalc);
-            HFProf(6222, us, MissMassCorr);
-            HFProf(6223, vs, pCorr-pCalc);
-            HFProf(6224, vs, MissMassCorr);
-            if(event.m2[ikp] > 0.15
-               && event.m2[ikp] < 0.40
+            HF1(6216, BE);
+            HF2(6217, MissMassCorr, pCorr-pCalc);
+            if(event.m2[ikp] > 0.5
+               && event.m2[ikp] < 1.40
+               && theta < 10.
                // && event.trigflag[20]>0
               ){
               HF1(6301, event.pK18[ikm]);
@@ -1208,14 +1198,8 @@ dst::DstRead(Int_t ievent)
               HF1(6313, vert.y());
               HF1(6314, vert.z());
               HF1(6315, MissMassCorr);
-              HF2(6317, us, pCorr-pCalc);
-              HF2(6318, us, MissMassCorr);
-              HF2(6319, vs, pCorr-pCalc);
-              HF2(6320, vs, MissMassCorr);
-              HFProf(6321, us, pCorr-pCalc);
-              HFProf(6322, us, MissMassCorr);
-              HFProf(6323, vs, pCorr-pCalc);
-              HFProf(6324, vs, MissMassCorr);
+              HF1(6316, BE);
+              HF2(6317, MissMassCorr, pCorr-pCalc);
             }
           }
         }
@@ -1489,16 +1473,9 @@ ConfMan::InitializeHistograms()
     HB1(hofs+12, "Vertex X "+labels[i], 400, -200, 200);
     HB1(hofs+13, "Vertex Y "+labels[i], 400, -200, 200);
     HB1(hofs+14, "Vertex Z "+labels[i], 400, -1000, 1000);
-    HB1(hofs+15, "MissingMass "+labels[i], 200, 1.0, 2.0);
+    HB1(hofs+15, "MissingMass "+labels[i], 200, 0.0, 1.0);
     HB1(hofs+16, "BE "+labels[i], 200, -0.5, 0.5);
-    HB2(hofs+17, "#DeltaP%U "+labels[i], 200, -0.5, 0.5, 200, -1., 1.);
-    HB2(hofs+18, "MissingMass%U "+labels[i], 200, -0.5, 0.5, 200, 1., 1.8);
-    HB2(hofs+19, "#DeltaP%V "+labels[i], 200, -0.5, 0.5, 200, -1., 1.);
-    HB2(hofs+20, "MissingMass%V "+labels[i], 200, -0.5, 0.5, 200, 1., 1.8);
-    HBProf(hofs+21, "#DeltaP%U Prof "+labels[i], 200, -0.5, 0.5, -1., 1.);
-    HBProf(hofs+22, "MissingMass%U Prof "+labels[i], 200, -0.5, 0.5, 1., 1.8);
-    HBProf(hofs+23, "#DeltaP%V Prof "+labels[i], 200, -0.5, 0.5, -1., 1.);
-    HBProf(hofs+24, "MissingMass%V Prof "+labels[i], 200, -0.5, 0.5, 1., 1.8);
+    HB2(hofs+17, "#Deltap%MissMass "+labels[i], 200, 0, 1.0, 200,-0.2, 0.2);
   }
 
   ////////////////////////////////////////////
@@ -1745,7 +1722,7 @@ ConfMan::InitializeHistograms()
   TTreeCont[kKuramaTracking]->SetBranchStatus("ntKurama",    1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("nhKurama",    1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("stof",        1);
-  TTreeCont[kKuramaTracking]->SetBranchStatus("cstof",       1);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("cstof",        1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("path",        1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("pKurama",     1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("qKurama",     1);
@@ -1825,13 +1802,13 @@ ConfMan::InitializeHistograms()
   TTreeCont[kK18Tracking]->SetBranchAddress("v0BcOut",      src.v0BcOut    );
 
   TTreeCont[kK18Tracking]->SetBranchAddress("ntK18", &src.ntK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("nhK18", src.nhK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("chisqrK18", src.chisqrK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("p_3rd", src.pK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("xtgtK18", src.xtgtK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("ytgtK18", src.ytgtK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("utgtK18", src.utgtK18);
-  TTreeCont[kK18Tracking]->SetBranchAddress("vtgtK18", src.vtgtK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("nhK18", &src.nhK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("chisqrK18", &src.chisqrK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("p_3rd", &src.pK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("xtgtK18", &src.xtgtK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("ytgtK18", &src.ytgtK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("utgtK18", &src.utgtK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("vtgtK18", &src.vtgtK18);
 
   TTreeCont[kEasiroc]->SetBranchStatus("*", 0);
   TTreeCont[kEasiroc]->SetBranchStatus("bft_ncl",    1);
@@ -1848,16 +1825,16 @@ ConfMan::InitializeHistograms()
   TTreeCont[kEasiroc]->SetBranchStatus("sch_clseg",  1);
 
   TTreeCont[kEasiroc]->SetBranchAddress("bft_ncl",    &src.nhBft);
-  TTreeCont[kEasiroc]->SetBranchAddress("bft_clsize", src.csBft);
-  TTreeCont[kEasiroc]->SetBranchAddress("bft_ctime",  src.tBft);
-  TTreeCont[kEasiroc]->SetBranchAddress("bft_ctot",   src.wBft);
-  TTreeCont[kEasiroc]->SetBranchAddress("bft_clpos",  src.BftPos);
-  TTreeCont[kEasiroc]->SetBranchAddress("bft_clseg",  src.BftSeg);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_clsize", &src.csBft);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_ctime",  &src.tBft);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_ctot",   &src.wBft);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_clpos",  &src.BftPos);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_clseg",  &src.BftSeg);
   TTreeCont[kEasiroc]->SetBranchAddress("sch_ncl",    &src.nhSch);
-  TTreeCont[kEasiroc]->SetBranchAddress("sch_clsize", src.csSch);
-  TTreeCont[kEasiroc]->SetBranchAddress("sch_ctime",  src.tSch);
-  TTreeCont[kEasiroc]->SetBranchAddress("sch_ctot",   src.wSch);
-  TTreeCont[kEasiroc]->SetBranchAddress("sch_clseg",  src.SchSeg);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_clsize", &src.csSch);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_ctime",  &src.tSch);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_ctot",   &src.wSch);
+  TTreeCont[kEasiroc]->SetBranchAddress("sch_clseg",  &src.SchSeg);
 
   return true;
 }

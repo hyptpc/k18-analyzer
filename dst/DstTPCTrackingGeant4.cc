@@ -19,6 +19,7 @@
 #include "HodoPHCMan.hh"
 #include "DCAnalyzer.hh"
 #include "DCHit.hh"
+#include "TPCCluster.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCHit.hh"
 
