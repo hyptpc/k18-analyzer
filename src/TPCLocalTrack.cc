@@ -307,18 +307,17 @@ TPCLocalTrack::DeleteNullHit()
 bool
 TPCLocalTrack::DoFit(int MinHits)
 {
-
   if(IsFitted()){
     hddaq::cerr << FUNC_NAME << " "
 		<< "already called" << std::endl;
     return false;
   }
 
-  bool status_dofit =  DoLinearFit(MinHits);
-  m_is_fitted = status_dofit;
+  Bool_t status =  DoLinearFit(MinHits);
+  m_is_fitted = status;
   //  m_is_fitted = true;
 
-  return status_dofit;
+  return status;
 }
 
 
@@ -344,7 +343,6 @@ TPCLocalTrack::DoLinearFit(int MinHits)
 		<< "Min layer should be > NDF" << std::endl;
     return false;
   }
-
 
   gNumOfHits = n;
   // r = x * cos(theta) + y * sin(theta)
