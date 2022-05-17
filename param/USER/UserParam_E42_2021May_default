@@ -132,13 +132,13 @@ TimeBucketTPC		25 155
 #HIMAC value mm/ns
 #DriftVelocityTPC	0.05
 
-### TPC Cluster Y cut
-#ClusterYCut 3
-ClusterYCut 10
+### Max Y Difference for TPC Cluster
+MaxYDifClusterTPC	10
 
 ### TPC Hough Window cut
-HoughWindowCut 10
-TPCClusterSizeCut 1
+MinClusterSizeTPC 1
+MaxHoughWindow 10
+
 #TPCMaxLayerCut 28
 TPCMaxLayerCut 33
 #DECut_TPCTrack 100
