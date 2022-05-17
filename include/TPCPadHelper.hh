@@ -161,6 +161,10 @@ inline Double_t getTheta(Int_t layer, Double_t m_row)
   return theta;
 }
 
+inline Double_t GetRadius(Int_t layer)
+{
+  return padParameter[layer][2];
+}
 
 inline Double_t getR(Int_t padID)
 {
@@ -304,9 +308,8 @@ InitializeHistograms()
   while(itr.Next()){
     const TString& name((*itr)->GetName());
     const TString& cname((*itr)->ClassName());
-    //hddaq::cout << " " << std::setw(8) << std::left << name
     std::cout << " " << std::setw(8) << std::left << name
-                << "(" << cname << ")" << std::endl;
+              << "(" << cname << ")" << std::endl;
     if(cname.EqualTo("TH2Poly")){
       target.push_back(dynamic_cast<TH2Poly*>(*itr));
     }
@@ -337,6 +340,19 @@ InitializeHistograms()
       for(Int_t ii=0; ii<5; ++ii) X[ii] -=143;
       for(auto& h: target) h->AddBin(5, X, Y);
     }
+  }
+}
+
+//_____________________________________________________________________________
+inline Bool_t
+IsClusterable(Int_t layer, Int_t row_a, Int_t row_b, Int_t maxdif=1)
+{
+  if(layer < 10){
+    const Int_t npad = padParameter[layer][kNumOfPad];
+    return (TMath::Abs(row_a - row_b) <= maxdif
+            || TMath::Abs(row_a - row_b) >= npad - maxdif);
+  }else{
+    return (TMath::Abs(row_a - row_b) <= maxdif);
   }
 }
 }
