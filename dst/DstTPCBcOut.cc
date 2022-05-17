@@ -240,10 +240,11 @@ enum eDetHid {
   TPCYHid        = 2000000,
   TPCPadYHid     = 3000000,
   TPCResYHid     = 4000000,
-  TPCResY2DHid   = 5000000,
+  TPCResYClkHid  = 5000000,
   TPCResXHid     = 6000000,
-  TPCResX2DHid   = 7000000,
+  TPCResXClkHid  = 7000000,
   TPCResYCoBoHid = 8000000,
+  TPCResYPosHid  = 9000000,
   TPCDeHid   = 100000,
   TPCClDeHid = 200000,
 };
@@ -411,11 +412,12 @@ dst::DstRead(int ievent)
         if(src.ntrack == 1 && src.chisqr[it] < 10.){
           HF1(TPCResYHid+layer*1000, resy);
           HF1(TPCResYHid+layer*1000+row+1, resy);
-          HF2(TPCResY2DHid+layer*1000, clock, resy);
+          HF2(TPCResYClkHid+layer*1000, clock, resy);
           HF2(TPCResYCoBoHid+cobo*1000, clock, resy);
+          HF2(TPCResYPosHid+layer*1000, ybc, resy);
           HF1(TPCResXHid+layer*1000, resx);
           HF1(TPCResXHid+layer*1000+row+1, resx);
-          HF2(TPCResX2DHid+layer*1000, clock, resx);
+          HF2(TPCResXClkHid+layer*1000, clock, resx);
         }
 	//    	if(TMath::Abs(xbc - x)<100.&&de>100.){
     	// if(TMath::Abs(xbc - x)<100.&&de>0.2){
@@ -443,11 +445,11 @@ dst::DstRead(int ievent)
       Double_t x = hit->GetX();
       Double_t y = hit->GetY();
       Double_t z = hit->GetZ();
-      Double_t de = hit->GetCharge();
+      Double_t de = hit->GetDe();
       Int_t cl_size = hit->GetClusterSize();
       Int_t row = hit->GetRow();
       Double_t mrow = hit->GetMRow();
-      Double_t de_center = hit->GetCharge_center();
+      Double_t de_center = hit->GetDe_center();
       TVector3 pos_center = hit->GetPos_center();
       event.cluster_hitpos_x.push_back(x);
       event.cluster_hitpos_y.push_back(y);
@@ -684,16 +686,19 @@ ConfMan::InitializeHistograms()
     HB1(TPCResYHid+layer*1000,
         Form("TPC Y Residual Layer%d (TPCHit);[mm];Counts", layer),
         NbinRes, MinRes, MaxRes);
-    HB2(TPCResY2DHid+layer*1000,
+    HB2(TPCResYClkHid+layer*1000,
         Form("ResY%%ClockTime Layer%d (TPCHit);[ns];[mm];Counts", layer),
         400, -50, 50, 400, -50, 50);
     HB2(TPCResYCoBoHid+layer*1000,
         Form("ResY%%ClockTime CoBo%d (TPCHit);[ns];[mm];Counts", layer),
         400, -50, 50, 400, -50, 50);
+    HB2(TPCResYPosHid+layer*1000,
+        Form("ResY%%YBcOut Layer%d (TPCHit);[mm];[mm];Counts", layer),
+        600, -300, 300, 400, -50, 50);
     HB1(TPCResXHid+layer*1000,
         Form("TPC X Residual Layer%d (TPCHit);[mm];Counts", layer),
         NbinRes, MinRes, MaxRes);
-    HB2(TPCResX2DHid+layer*1000,
+    HB2(TPCResXClkHid+layer*1000,
         Form("ResX%%ClockTime Layer%d (TPCHit);[ns];[mm];Counts", layer),
         400, -50, 50, 400, -50, 50);
     for(Int_t r=0; r<NumOfRow; ++r){

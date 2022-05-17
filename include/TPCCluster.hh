@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include <TString.h>
 #include <TVector3.h>
 
 #include "TPCHit.hh"
@@ -17,50 +18,60 @@ typedef std::vector<TPCHit*>       TPCHitContainer;
 class TPCCluster
 {
 public:
-  TPCCluster( double x, double y, double z, double de ); // for MC data
-  TPCCluster( int layer, const TPCHitContainer& HitCont );
-  ~TPCCluster( void );
+  static const TString& ClassName();
+  TPCCluster(Int_t layer, const TPCHitContainer& HitCont);
+  TPCCluster(Double_t x, Double_t y, Double_t z, Double_t de); // for MC data
+  ~TPCCluster();
 
 private:
-  int      m_layer_id;
-  int      m_pad_id;
-  double   m_charge;
-  TVector3 m_pos;
-  TVector3 m_pos_center;
-  std::vector<TPCHit*> m_tpchits;
-  bool m_pos_calculated;
-  double   m_mrow;
-  int   m_mrow_int;
-  double  m_charge_center;
-
-  void Calculate( void );
-  void CalculateWeightedMean( void );
-  void CalculateWeightedMeanTheta( void );
+  Bool_t          m_is_good;
+  Int_t           m_layer;
+  Int_t           m_pad_id;
+  Double_t        m_cluster_de;
+  TVector3        m_cluster_position;
+  TVector3        m_pos_center;
+  TPCHitContainer m_hitcont;
+  Bool_t          m_pos_calculated;
+  Double_t        m_mrow;
+  Int_t           m_mrow_int;
+  Double_t        m_cluster_de_center;
+  TPCHit*         m_mean_hit;
 
 public:
-  int  LayerId( void )		const { return m_layer_id; }
-  double Charge( void )		const { return m_charge; }
-
-  int  MeanPadId( void )        const { return m_pad_id; }
-  double MeanRow( void )        const { return m_mrow; }
-  int MeanRow_int( void )        const { return m_mrow_int; }
-  double Charge_center( void )		const { return m_charge_center; }
-  void Print( const std::string& arg="" ) const;
-
-  int  GetClusterSize()		const { return m_tpchits.size(); }
-  void AddTPCHit(TPCHit* hit);
-
-  TVector3  Position( void );
-  TVector3  Position_CLcenter( void );
-  double X( void );
-  double Y( void );
-  double Z( void );
-  double ResX( void );
-  double ResY( void );
-  double ResZ( void );
-  std::vector<TPCHit*> GetTPCHits() const { return m_tpchits; }
-  void ClearTPCHits();
-
+  void     AddTPCHit(TPCHit* hit);
+  Bool_t   Calculate();
+  Bool_t   CalculateWeightedMean();
+  Bool_t   CalculateWeightedMeanTheta();
+  void     ClearTPCHits();
+  Int_t    GetClusterSize() const { return m_hitcont.size(); }
+  Double_t GetDe() const { return m_cluster_de; }
+  TPCHit*  GetMeanHit() const { return m_mean_hit; }
+  Bool_t   IsGood() const { return m_is_good; }
+  Int_t    MeanPadId() const { return m_pad_id; }
+  Double_t MeanRow() const { return m_mrow; }
+  Double_t GetRow() const { return MeanRow(); }
+  Double_t GetMRow() const { return MeanRow(); }
+  Int_t    MeanRow_int() const { return m_mrow_int; }
+  Double_t GetDe_center() const { return m_cluster_de_center; }
+  void     Print(Option_t* opt="") const;
+  const TVector3& GetPosition() const { return m_cluster_position; }
+  TVector3 GetPos_center() const { return Position_CLcenter(); }
+  TVector3 Position_CLcenter() const;
+  Double_t GetX() const { return m_cluster_position.X(); }
+  Double_t GetY() const { return m_cluster_position.Y(); }
+  Double_t GetZ() const { return m_cluster_position.Z(); }
+  Double_t ResX() const;
+  Double_t ResY() const;
+  Double_t ResZ() const ;
+  const TPCHitContainer& GetHitContainer() const { return m_hitcont; }
 };
+
+//_____________________________________________________________________________
+inline const TString&
+TPCCluster::ClassName()
+{
+  static TString s_name("TPCCluster");
+  return s_name;
+}
 
 #endif

@@ -89,7 +89,10 @@ Int_t LocalTrackSearchCFTppPhi(const std::vector<DCHitContainer>& HC,
                                const DCPairPlaneInfo *PpInfo,
                                Int_t npp, std::vector<DCLocalTrack*>& trackCont,
                                Int_t MinNumOfHits=3);
-Int_t LocalTrackSearchTPC(const std::vector<TPCHitContainer>& TPCHC,
+Int_t LocalTrackSearchTPC(const std::vector<TPCHitContainer>& HitCont,
+                          std::vector<TPCLocalTrack*>& TrackCont,
+                          Int_t MinNumOfHits=8);
+Int_t LocalTrackSearchTPC(const std::vector<TPCClusterContainer>& ClCont,
                           std::vector<TPCLocalTrack*>& TrackCont,
                           Int_t MinNumOfHits=8);
 Int_t LocalTrackSearchTPCHelix(const std::vector<TPCHitContainer>& TPCHC,

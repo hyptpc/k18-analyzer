@@ -21,6 +21,7 @@
 #include "Kinematics.hh"
 #include "MathTools.hh"
 #include "RootHelper.hh"
+#include "TPCCluster.hh"
 #include "TPCPadHelper.hh"
 #include "TPCLocalTrackHelix.hh"
 #include "TPCLTrackHit.hh"
@@ -400,7 +401,7 @@ dst::DstRead( int ievent )
       Double_t x = hit->GetX();
       Double_t y = hit->GetY();
       Double_t z = hit->GetZ();
-      Double_t de = hit->GetCharge();
+      Double_t de = hit->GetCDe();
       Double_t pad = hit->GetPad();
       Int_t row = hit->GetRow();
       event.raw_hitpos_x.push_back(x);
@@ -441,11 +442,11 @@ dst::DstRead( int ievent )
       Double_t x = hit->GetX();
       Double_t y = hit->GetY();
       Double_t z = hit->GetZ();
-      Double_t de = hit->GetCharge();
+      Double_t de = hit->GetDe();
       Int_t cl_size = hit->GetClusterSize();
       Int_t row = hit->GetRow();
       Double_t mrow = hit->GetMRow();
-      Double_t de_center = hit->GetCharge_center();
+      Double_t de_center = hit->GetDe_center();
       TVector3 pos_center = hit->GetPos_center();
       event.cluster_hitpos_x.push_back(x);
       event.cluster_hitpos_y.push_back(y);
@@ -599,7 +600,7 @@ dst::DstRead( int ievent )
       const TVector3& hitpos = hit->GetLocalHitPos();
       const TVector3& calpos = hit->GetLocalCalPosHelix();
       const TVector3& res_vect = hit->GetResidualVect();
-      double de_hit = hit->GetHit()->GetCharge();
+      double de_hit = hit->GetHit()->GetDe();
       int clsize_hit = hit->GetHit()->GetClusterSize();
       if(clsize_hit>1)
 	++nh_clmulti;
