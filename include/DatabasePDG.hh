@@ -16,6 +16,7 @@ inline const TString& ClassName()
 
 // Mass [GeV/c2]
 Double_t Mass(Int_t pdg_code);
+Double_t ElectronMass();
 Double_t KaonMass();
 Double_t PionMass();
 Double_t ProtonMass();

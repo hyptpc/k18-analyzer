@@ -22,27 +22,27 @@ public:
   ~TPCLTrackHit();
 
 private:
-  TPCHit  *m_hit;
-  TVector3  m_local_hit_pos;
-  TVector3  m_cal_pos;
-  double  m_x0;
-  double  m_y0;
-  double  m_u0;
-  double  m_v0;
-  double  m_cx;
-  double  m_cy;
-  double  m_z0;
-  double  m_r;
-  double  m_dz;
+  TPCHit*  m_hit;
+  TVector3 m_local_hit_pos;
+  TVector3 m_cal_pos;
+  Double_t  m_x0;
+  Double_t  m_y0;
+  Double_t  m_u0;
+  Double_t  m_v0;
+  Double_t  m_cx;
+  Double_t  m_cy;
+  Double_t  m_z0;
+  Double_t  m_r;
+  Double_t  m_dz;
 
   TVector3  m_res;
 
 public:
   void   SetLocalHitPos(TVector3 xl)        { m_local_hit_pos = xl; }
   void   SetCalPosition(TVector3 cal_pos)        { m_cal_pos = cal_pos; }
-  void   SetCalX0Y0(double x0, double y0)          { m_x0 = x0; m_y0 = y0; }
-  void   SetCalUV(double u0, double v0)            { m_u0 = u0; m_v0 = v0; }
-  void   SetCalHelix(double cx, double cy, double z0, double r, double dz)
+  void   SetCalX0Y0(Double_t x0, Double_t y0)          { m_x0 = x0; m_y0 = y0; }
+  void   SetCalUV(Double_t u0, Double_t v0)            { m_u0 = u0; m_v0 = v0; }
+  void   SetCalHelix(Double_t cx, Double_t cy, Double_t z0, Double_t r, Double_t dz)
   {m_cx = cx; m_cy = cy; m_z0 = z0; m_r = r, m_dz = dz;}
   int    GetLayer()                 const { return m_hit->GetLayer(); }
   void   SetResolution(TVector3 res)        { m_res = res; }
@@ -52,37 +52,35 @@ public:
   const TVector3& GetLocalHitPos()  const { return m_local_hit_pos; }
   TVector3 GetLocalCalPos()  const;
   TVector3 GetLocalCalPosHelix()  const;
-  TVector3 GetHelixPosition(double par[5], double t)  const;
+  TVector3 GetHelixPosition(Double_t par[5], Double_t t)  const;
   TVector3 GetMomentumHelix()  const;
 
-  double GetTcal(void)  const;
+  Double_t GetTcal(void)  const;
 
-  double GetXcal()     const { return m_cal_pos.x(); }
-  double GetYcal()     const { return m_cal_pos.y(); }
-  double GetZcal()     const { return m_cal_pos.z(); }
+  Double_t GetXcal()     const { return m_cal_pos.x(); }
+  Double_t GetYcal()     const { return m_cal_pos.y(); }
+  Double_t GetZcal()     const { return m_cal_pos.z(); }
 
-  double GetUcal()     const { return m_u0; }
-  double GetVcal()     const { return m_v0; }
+  Double_t GetUcal()     const { return m_u0; }
+  Double_t GetVcal()     const { return m_v0; }
 
-  double Getcx()     const { return m_cx; }
-  double Getcy()     const { return m_cy; }
-  double Getz0()      const { return m_z0; }
-  double Getr()       const { return m_r; }
-  double Getdz()     const { return m_dz; }
+  Double_t Getcx()     const { return m_cx; }
+  Double_t Getcy()     const { return m_cy; }
+  Double_t Getz0()      const { return m_z0; }
+  Double_t Getr()       const { return m_r; }
+  Double_t Getdz()     const { return m_dz; }
 
   TVector3 GetResidualVect() const;
-  double GetResidual() const;
-  double GetResolution() const { return m_hit->GetResolution(); }
+  Double_t GetResidual() const;
+  Double_t GetResolution() const { return m_hit->GetResolution(); }
   const TVector3& GetResolutionVect() const { return m_res; }
-  bool ResidualCut() const;
+  Bool_t ResidualCut() const;
 
-
-  void JoinTrack() { m_hit->JoinTrack(); }
-  void QuitTrack() { m_hit->QuitTrack(); }
-  bool BelongToTrack() const { return m_hit->BelongToTrack(); }
+  void   JoinTrack() { m_hit->JoinTrack(); }
+  void   QuitTrack() { m_hit->QuitTrack(); }
+  Bool_t BelongToTrack() const { return m_hit->BelongToTrack(); }
 
   void Print(const std::string& arg="") const;
-
 
   friend class TPCHit;
 };
