@@ -590,10 +590,13 @@ TPCHit::GetResolutionX()
 
   //Check Tmporary change
   //double res_x = sqrt(pow(sT_r*cos(alpha),2)+pow(sT_padlen*sin(alpha),2));
-  double res_x = sT_r*cos(alpha);
+  //double res_x = sT_r*cos(alpha);
+  //double res_x = fabs(sT_r*cos(alpha));
+  //double res_x = fabs(sT_r*cos(alpha))+0.05;
+  double res_x = fabs(sT_r);
 
   return res_x;
-  //return 0.3;
+  //return 0.5;
 }
 
 //_____________________________________________________________________________
@@ -630,10 +633,13 @@ TPCHit::GetResolutionZ()
 
   //Check Tmporary change
   //double res_z = sqrt(pow(sT_r*sin(alpha),2)+pow(sT_padlen*cos(alpha),2));
-  double res_z = sT_r*sin(alpha);
+  //  double res_z = sT_r*sin(alpha);
+  //double res_z = fabs(sT_r*sin(alpha));
+  //double res_z = fabs(sT_r*sin(alpha))+0.05;
+  double res_z = fabs(sT_r);
 
   return res_z;
-  //return 0.3;
+  //  return 0.5;
 }
 
 //_____________________________________________________________________________
@@ -642,6 +648,7 @@ TPCHit::GetResolutionY()
 {
   // temporary
   return 0.5;
+  //return 0.;
   //return 0.3;
   //return 2.;
 }
