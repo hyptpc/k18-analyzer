@@ -35,7 +35,7 @@ private:
   Double_t        m_mrow;
   Int_t           m_mrow_int;
   Double_t        m_cluster_de_center;
-  TPCHit*         m_mean_hit;
+  TPCHit*         m_mean_hit; // representative hit for tracking
 
 public:
   void     AddTPCHit(TPCHit* hit);
@@ -51,12 +51,11 @@ public:
   Double_t MeanRow() const { return m_mrow; }
   Double_t GetRow() const { return MeanRow(); }
   Double_t GetMRow() const { return MeanRow(); }
-  Int_t    MeanRow_int() const { return m_mrow_int; }
-  Double_t GetDe_center() const { return m_cluster_de_center; }
+  // Double_t GetDe_center() const { return m_cluster_de_center; }
   void     Print(Option_t* opt="") const;
   const TVector3& GetPosition() const { return m_cluster_position; }
-  TVector3 GetPos_center() const { return Position_CLcenter(); }
-  TVector3 Position_CLcenter() const;
+  // TVector3 GetPos_center() const { return Position_CLcenter(); }
+  // TVector3 Position_CLcenter() const;
   Double_t GetX() const { return m_cluster_position.X(); }
   Double_t GetY() const { return m_cluster_position.Y(); }
   Double_t GetZ() const { return m_cluster_position.Z(); }

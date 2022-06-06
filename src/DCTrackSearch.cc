@@ -35,7 +35,7 @@
 
 #include "RootHelper.hh"
 
-#define DebugEvDisp    1
+#define DebugEvDisp    0
 
 #if DebugEvDisp
 #include <TApplication.h>
@@ -1950,11 +1950,9 @@ LocalTrackSearchTPC(const std::vector<TPCHitContainer>& HitCont,
     if(!hough_flag)
       continue;
 
-
     TPCLocalTrack *track = new TPCLocalTrack();
     p0[tracki] = mr/sin(mtheta);
     p1[tracki] = -cos(mtheta)/sin(mtheta);
-
 
     for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
       for(Int_t ci=0, n=HitCont[layer].size(); ci<n; ci++){
@@ -2043,21 +2041,33 @@ LocalTrackSearchTPC(const std::vector<TPCClusterContainer>& ClCont,
 
   for(Int_t tracki=0; tracki<MaxNumOfTrackTPC; tracki++){
     h1.Reset();
+    h1.SetTitle(Form("%dth track", tracki));
     for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
       for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
         if(flag[layer][ci]>0) continue;
-        TPCHit* hit = ClCont[layer][ci]->GetMeanHit();
-        const auto& pos = hit->GetPosition();
+        const auto& pos = ClCont[layer][ci]->GetPosition();
         for(Int_t ti=0; ti<Li_theta_ndiv; ti++){
-          Double_t theta = Li_theta_min+ti*(Li_theta_max-Li_theta_min)/Li_theta_ndiv;
+          Double_t theta = Li_theta_min +
+            (ti+0.5)*(Li_theta_max-Li_theta_min)/Li_theta_ndiv;
           Double_t rho = TMath::Cos(theta*TMath::DegToRad())*pos.Z()
             + TMath::Sin(theta*TMath::DegToRad())*pos.X();
           h1.Fill(theta, rho);
-          if(TMath::Abs(rho) > Li_rho_max)
-            hddaq::cerr << FUNC_NAME << " Out of Hough range: " << rho <<std::endl;
-        }
+          if(TMath::Abs(rho) > Li_rho_max){
+            hddaq::cerr << FUNC_NAME << " Out of Hough range: "
+                        << rho <<std::endl;
+          }
+        } // theta
       } // cluster
     } // layer
+
+#if DebugEvDisp
+    h1.Draw("colz");
+    gPad->Modified();
+    gPad->Update();
+    c1.Print("c1.pdf");
+    getchar();
+#endif
+
     //      if(h1.GetMaximum() < MinNumOfHits){
     if(h1.GetMaximum() < MinNumOfHits/2){
       h1.Reset();
@@ -2081,8 +2091,8 @@ LocalTrackSearchTPC(const std::vector<TPCClusterContainer>& ClCont,
     TPCLocalTrack *track = new TPCLocalTrack;
     p0[tracki] = mr/TMath::Sin(mtheta);
     p1[tracki] = -TMath::Cos(mtheta)/TMath::Sin(mtheta);
-    hddaq::cout << FUNC_NAME << " initial parameters : "
-                << p0[tracki] << ", " << p1[tracki] << std::endl;
+    // hddaq::cout << FUNC_NAME << " initial parameters : "
+    //             << p0[tracki] << ", " << p1[tracki] << std::endl;
     for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
       for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
         const auto cl = ClCont[layer][ci];
@@ -2092,8 +2102,8 @@ LocalTrackSearchTPC(const std::vector<TPCClusterContainer>& ClCont,
         Double_t dist = TMath::Abs(p1[tracki]*pos.Z()-pos.X() +
                                    p0[tracki])/TMath::Sqrt(TMath::Sq(p1[tracki])+1);
         //if(dist < MaxHoughWindow && hit->GetClusterSize()>=MinClusterSize){
-        hddaq::cout << "dist = " << dist << ", clsize = "
-                    << cl->GetClusterSize() << std::endl;
+        // hddaq::cout << "dist = " << dist << ", clsize = "
+        //             << cl->GetClusterSize() << std::endl;
         if(dist > MaxHoughWindow) continue;
         if(cl->GetClusterSize() < MinClusterSize) continue;
 	if(layer < MaxLayerCut){
@@ -2109,20 +2119,13 @@ LocalTrackSearchTPC(const std::vector<TPCClusterContainer>& ClCont,
     //Double_t zTgtTPC = -143.;
     track->SetAx(p0[tracki]+p1[tracki]*zTgtTPC);
     track->SetAu(p1[tracki]);
-    hddaq::cout << FUNC_NAME << " TPCTrack::GetNhit() = " << track->GetNHit() << std::endl;
+    // hddaq::cout << FUNC_NAME << " TPCTrack::GetNhit() = " << track->GetNHit() << std::endl;
 
     if(track->DoFit(MinNumOfHits)){
       TrackCont.push_back(track);
     }else{
       delete track;
     }
-
-#if DebugEvDisp
-    h1.Draw("colz");
-    gPad->Modified();
-    gPad->Update();
-    getchar();
-#endif
 
     h1.Reset();
   }//track

@@ -34,9 +34,12 @@
 
 //#define HSMagnetON 1
 
-static Int_t gNumOfHits;
-static TVector3 gHitPos[300];
-static TVector3 gRes[300];
+namespace
+{
+Int_t    gNumOfHits;
+TVector3 gHitPos[300];
+TVector3 gRes[300];
+}
 
 namespace
 {
@@ -178,8 +181,9 @@ static void fcn2(int &npar, double *gin, double &f, double *par, int iflag)
 		x0.y()+(u.y()*dist_AX),
 		x0.z()+(u.z()*dist_AX));
     TVector3 d = pos-AI;
-
-    chisqr += pow(d.x()/Res.x(), 2) + pow(d.y()/Res.y(), 2) + pow(d.z()/Res.z(), 2);
+    chisqr += pow(d.x()/Res.x(), 2) +
+      pow(d.y()/Res.y(), 2) +
+      pow(d.z()/Res.z(), 2);
     dof++;
   }
 
@@ -313,6 +317,8 @@ TPCLocalTrack::DoFit(int MinHits)
     return false;
   }
 
+  hddaq::cout << FUNC_NAME << std::endl;
+
   Bool_t status =  DoLinearFit(MinHits);
   m_is_fitted = status;
   //  m_is_fitted = true;
@@ -331,8 +337,7 @@ TPCLocalTrack::DoLinearFit(int MinHits)
   DeleteNullHit();
 
   const std::size_t n = m_hit_array.size();
-  //std::cout<<"num of hits= "<<n<<std::endl;
-
+  hddaq::cout << FUNC_NAME << " start fitting, #hits=" << n << std::endl;
 
   if(n<MinHits){
     return false;
@@ -399,7 +404,7 @@ TPCLocalTrack::DoLinearFit(int MinHits)
   // TROOT minexam("LinearFit", "Linear fit using TMinuit");
 
   m_minuit->SetPrintLevel(-1);
-  m_minuit->SetFCN (fcn2);
+  m_minuit->SetFCN(fcn2);
 
   int ierflg = 0;
   double arglist[10];
@@ -494,10 +499,8 @@ TPCLocalTrack::DoLinearFit(int MinHits)
     CalcChi2();
   }
 
-
-  // std::cout<<"chisqr1="<<chisqr1<<", chisqr2="<<chisqr2<<", chisqr3="<<chisqr3<<std::endl;
-  // std::cout<<"m_chisqr="<<m_chisqr<<std::endl;
-
+  std::cout<<"chisqr1="<<chisqr1<<", chisqr2="<<chisqr2<<", chisqr3="<<chisqr3<<std::endl;
+  std::cout<<"m_chisqr="<<m_chisqr<<std::endl;
 
   if(m_chisqr > MaxChisqr||std::isnan(m_chisqr))
     return false;
@@ -565,9 +568,7 @@ TPCLocalTrack::CalcChi2()
   double chisqr=0.0;
   int dof = 0;
 
-  const std::size_t n = m_hit_array.size();
-
-  for(std::size_t i=0; i<n; ++i){
+  for(Int_t i=0, n=m_hit_array.size(); i<n; ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp->GetLocalHitPos();
     TVector3 Res = hitp->GetResolutionVect();
@@ -584,8 +585,9 @@ TPCLocalTrack::CalcChi2()
 		x0.z()+(u.z()*dist_AX));
     TVector3 d = pos-AI;
     //    TVector3 d = (pos-x0).Cross(u);
-
-    chisqr += pow(d.x()/Res.x(), 2) + pow(d.y()/Res.y(), 2) + pow(d.z()/Res.z(), 2);
+    chisqr += pow(d.x()/Res.x(), 2) +
+      pow(d.y()/Res.y(), 2) +
+      pow(d.z()/Res.z(), 2);
     dof++;
   }
   m_chisqr = chisqr/(double)(dof-4);

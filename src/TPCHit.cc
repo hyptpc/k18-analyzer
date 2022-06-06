@@ -81,8 +81,6 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_cde(),
     m_ctime(), // [ns]
     m_drift_length(),
-    m_charge(),
-    m_pos(),
     m_is_good(false),
     m_is_calculated(false),
     m_hough_flag(),
@@ -112,26 +110,22 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
   //  m_row = (int)mrow;
   //  m_pad = tpc::GetPadId(layer, (int)mrow);
   m_pad = tpc::GetPadId(layer, m_row);
-  m_charge = 0.;
-  m_charge_center = 0.;
-  m_pos=TVector3(0.,0.,0.);
   m_is_good = true;
   m_is_calculated = false;
   m_hough_flag = 0;
   m_houghY_num.clear();
   m_hit_xz = new DCHit(m_layer, m_row);
-  m_hit_xz->SetWirePosition(m_pos.x());
-  m_hit_xz->SetZ(m_pos.z());
+  // m_hit_xz->SetWirePosition(m_pos.x());
+  // m_hit_xz->SetZ(m_pos.z());
   m_hit_xz->SetTiltAngle(0.);
   m_hit_xz->SetDummyPair();
 
   m_hit_yz = new DCHit(m_layer, m_row);
-  m_hit_yz->SetWirePosition(m_pos.y());
-  m_hit_yz->SetZ(m_pos.z());
+  // m_hit_yz->SetWirePosition(m_pos.y());
+  // m_hit_yz->SetZ(m_pos.z());
   m_hit_yz->SetTiltAngle(90.);
   m_hit_yz->SetDummyPair();
 
-  m_clsize = 0;
   debug::ObjectCounter::increase(ClassName());
 }
 
@@ -558,13 +552,13 @@ double
 TPCHit::GetResolutionX()
 {
   //calculated by using NIM paper
-  double y_pos= m_pos.Y();
+  const auto& pos = GetPosition();
 //double s0 = 0.204;// mm HIMAC result //To do parameter
   double s0 = gUser.GetParameter("TPC_sigma0");
   //s0 is considered for common resolution
 //  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
   double Dt = gUser.GetParameter("TPC_Dt");
-  double L_D = 30.+(y_pos*0.1);//cm
+  double L_D = 30.+(pos.Y()*0.1);//cm
   //double N_eff = 42.8;
   double N_eff = 42.1;
   //  double A = 0.0582*0.01;//m-1 -> cm-1
@@ -585,9 +579,7 @@ TPCHit::GetResolutionX()
   return sqrt(pow(sT_r*cos(alpha),2)+pow(sT_padlen*sin(alpha),2));
 #endif
 
-  double x_pos= m_pos.X();
-  double z_pos= m_pos.Z() - zTgtTPC;
-  double alpha =  atan2(x_pos,z_pos);
+  double alpha = atan2(pos.X(), pos.Z() - zTgtTPC);
   double res_x = sT_r*cos(alpha);
 
   return res_x;
@@ -598,14 +590,14 @@ TPCHit::GetResolutionX()
 double
 TPCHit::GetResolutionZ()
 {
+  const auto& pos = GetPosition();
   //calculated by using NIM paper
-  double y_pos= m_pos.Y();
 //double s0 = 0.204;// mm HIMAC result //To do parameter
   double s0 = gUser.GetParameter("TPC_sigma0");
   //s0 is considered for common resolution
 //  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
   double Dt = gUser.GetParameter("TPC_Dt");
-  double L_D = 30.+(y_pos*0.1);//cm
+  double L_D = 30.+(pos.Y()*0.1);//cm
   //double N_eff = 42.8;
   double N_eff = 42.1;
   //double A = 0.0582*0.01;//m-1 -> cm-1
@@ -625,10 +617,7 @@ TPCHit::GetResolutionZ()
   return sqrt(pow(sT_r*sin(alpha),2)+pow(sT_padlen*cos(alpha),2));
 #endif
 
-  double x_pos= m_pos.X();
-  double z_pos= m_pos.Z() - zTgtTPC;
-  double alpha =  atan2(x_pos,z_pos);
-
+  double alpha =  atan2(pos.X(), pos.Z() - zTgtTPC);
   double res_z = sT_r*sin(alpha);
 
   return res_z;
@@ -666,10 +655,6 @@ TPCHit::Print(const std::string& arg, std::ostream& ost) const
       << std::setw(w) << std::left << "layer" << m_layer << std::endl
       << std::setw(w) << std::left << "row"  << m_row  << std::endl
       << std::setw(w) << std::left << "pad"  << m_pad  << std::endl;
-      // << std::setw(w) << std::left << "charge" << m_charge << std::endl
-      // << std::setw(w) << std::left << "posx" << m_pos.x() << std::endl
-      // << std::setw(w) << std::left << "posy" << m_pos.y() << std::endl
-      // << std::setw(w) << std::left << "posz" << m_pos.z() << std::endl;
   for(Int_t i=0, n=GetNHits(); i<n; ++i){
     ost << std::setw(3) << std::right << i << " "
 	<< "(time,de,chisqr,ctime,cde,dl,pos)=("

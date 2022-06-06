@@ -445,24 +445,24 @@ dst::DstRead(int ievent)
       Double_t x = hit->GetX();
       Double_t y = hit->GetY();
       Double_t z = hit->GetZ();
-      Double_t de = hit->GetDe();
-      Int_t cl_size = hit->GetClusterSize();
-      Int_t row = hit->GetRow();
-      Double_t mrow = hit->GetMRow();
-      Double_t de_center = hit->GetDe_center();
-      TVector3 pos_center = hit->GetPos_center();
+      Double_t clde = hit->GetDe();
+      Int_t cs = hit->GetClusterSize();
+      Double_t row = hit->GetRow();
+      Double_t mrow = hit->GetMRow(); // same
+      // Double_t de_center = hit->GetDe_center();
+      // TVector3 pos_center = hit->GetPos_center();
       event.cluster_hitpos_x.push_back(x);
       event.cluster_hitpos_y.push_back(y);
       event.cluster_hitpos_z.push_back(z);
-      event.cluster_de.push_back(de);
-      event.cluster_size.push_back(cl_size);
+      event.cluster_de.push_back(clde);
+      event.cluster_size.push_back(cs);
       event.cluster_layer.push_back(layer);
       event.cluster_row.push_back(row);
       event.cluster_mrow.push_back(mrow);
-      event.cluster_de_center.push_back(de_center);
-      event.cluster_hitpos_center_x.push_back(pos_center.X());
-      event.cluster_hitpos_center_y.push_back(pos_center.Y());
-      event.cluster_hitpos_center_z.push_back(pos_center.Z());
+      // event.cluster_de_center.push_back(de_center);
+      // event.cluster_hitpos_center_x.push_back(pos_center.X());
+      // event.cluster_hitpos_center_y.push_back(pos_center.Y());
+      // event.cluster_hitpos_center_z.push_back(pos_center.Z());
 
       //Compared with BcOut
       // for(int it=0; it<src.ntrack; ++it){
@@ -576,7 +576,7 @@ dst::DstRead(int ievent)
       const TVector3& res_vect = hit->GetResidualVect();
       Double_t residual = hit->GetResidual();
       Int_t row = hit->GetHit()->GetRow();
-      const TVector3& pos_center = hit->GetHit()->GetPos_center();
+      // const TVector3& pos_center = hit->GetHit()->GetPos_center();
 
       event.hitlayer[it][ih] = layer;
       event.hitpos_x[it][ih] = hitpos.x();
@@ -593,24 +593,24 @@ dst::DstRead(int ievent)
       //   HF1(TPCResYHid + layer*1000+ row,  -1.*res_vect.y());
 
       //      for(int it=0; it<src.ntrack; ++it){
-      if(src.ntrack==1){
-	Double_t x0 = src.x0[0];
-	Double_t u0_BC = src.u0[0];
-	Double_t y0_BC = src.y0[0];
-	Double_t v0_BC = src.v0[0];
+      // if(src.ntrack==1){
+      //   Double_t x0 = src.x0[0];
+      //   Double_t u0_BC = src.u0[0];
+      //   Double_t y0_BC = src.y0[0];
+      //   Double_t v0_BC = src.v0[0];
 
-	Double_t zTPC = zK18HS + pos_center.z();
-	Double_t xbc = x0 + zTPC*u0_BC;
-	Double_t ybc = y0_BC + zTPC*v0_BC;
+	// Double_t zTPC = zK18HS + pos_center.z();
+	// Double_t xbc = x0 + zTPC*u0_BC;
+	// Double_t ybc = y0_BC + zTPC*v0_BC;
 	//    	if(TMath::Abs(xbc - x)<100.&&de>100.){
 	// if(nh>15)
 	//   HF1(TPCPadYHid + layer*1000+ row,  pos_center.y() - ybc);
 
-	event.residual_wbcout_x[it][ih] = hitpos.x() - xbc;
-	event.residual_wbcout_y[it][ih] = hitpos.y() - ybc;
-	event.residual_trackwbcout_x[it][ih] = calpos.x() - xbc;
-	event.residual_trackwbcout_y[it][ih] = calpos.y() - ybc;
-      }
+	// event.residual_wbcout_x[it][ih] = hitpos.x() - xbc;
+	// event.residual_wbcout_y[it][ih] = hitpos.y() - ybc;
+	// event.residual_trackwbcout_x[it][ih] = calpos.x() - xbc;
+	// event.residual_trackwbcout_y[it][ih] = calpos.y() - ybc;
+      // }
 
 
     }

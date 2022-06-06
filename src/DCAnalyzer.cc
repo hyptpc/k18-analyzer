@@ -645,8 +645,8 @@ DCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     TVector3 pos(x[hiti], y[hiti], z[hiti]);
     TPCHit  *hit  = new TPCHit(layer,(Double_t)row);
     hit->SetClusterSize(1);
-    hit->SetPos(pos);
-    hit->SetCharge(de[hiti]);
+    // hit->SetPos(pos);
+    // hit->SetCharge(de[hiti]);
     // m_TPCClCont[layer].push_back(hit);
     m_TPCHitCont[layer].push_back(hit);
   }

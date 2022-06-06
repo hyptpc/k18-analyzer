@@ -50,7 +50,7 @@ TPCCluster::TPCCluster(Int_t layer, const TPCHitContainer& HitCont)
 }
 
 //_____________________________________________________________________________
-TPCCluster::TPCCluster(double x, double y, double z, double de)
+TPCCluster::TPCCluster(Double_t x, Double_t y, Double_t z, Double_t de)
   : m_layer(tpc::getLayerID(tpc::findPadID(z, x))),
     m_pad_id(tpc::findPadID(z, x)),
     m_cluster_de(de),
@@ -155,14 +155,14 @@ Bool_t
 TPCCluster::CalculateWeightedMean()
 {
   if(m_pos_calculated) return false;
-  double x=0, y=0, z=0, de=0, dummy_padid=0, mrow=0;
+  Double_t x=0, y=0, z=0, de=0, dummy_padid=0, mrow=0;
   for(Int_t hiti=0; hiti<m_hitcont.size(); hiti++) {
     x+=m_hitcont[hiti]->GetX()*m_hitcont[hiti]->GetCDe();
     y+=m_hitcont[hiti]->GetY()*m_hitcont[hiti]->GetCDe();
     z+=m_hitcont[hiti]->GetZ()*m_hitcont[hiti]->GetCDe();
 
-    dummy_padid+=(double)(m_hitcont[hiti]->GetPad())*m_hitcont[hiti]->GetCDe();
-    mrow+=(double)(m_hitcont[hiti]->GetRow())*m_hitcont[hiti]->GetCDe();
+    dummy_padid+=(Double_t)(m_hitcont[hiti]->GetPad())*m_hitcont[hiti]->GetCDe();
+    mrow+=(Double_t)(m_hitcont[hiti]->GetRow())*m_hitcont[hiti]->GetCDe();
     de+=m_hitcont[hiti]->GetCDe();
   }
   if(de){
@@ -198,19 +198,19 @@ TPCCluster::CalculateWeightedMeanTheta()
 {
   if(m_pos_calculated) return false;
   m_cluster_de = 0.;
-  [[maybe_unused]] double x=0, y=0, z=0, dummy_padid=0, mrow=0;
+  [[maybe_unused]] Double_t x=0, y=0, z=0, dummy_padid=0, mrow=0;
   for(const auto& hit: m_hitcont){
     const Double_t de = hit->GetCDe();
     y += hit->GetY()*de;
 
-    TVector3 pos_check = tpc::getPosition(hit->GetLayer(), (double)hit->GetRow());
+    TVector3 pos_check = tpc::getPosition(hit->GetLayer(), (Double_t)hit->GetRow());
     // std::cout<<"(x,z)=("<<hit->GetX()
     //    	     <<","<<hit->GetZ()<<")"<<std::endl;
     // std::cout<<"theta, (x,z)=("<<pos_check.x()
     //  	     <<","<<pos_check.z()<<")"<<std::endl;
 
-    dummy_padid+=(double)(hit->GetPad())*hit->GetCDe();
-    mrow+=(double)(hit->GetRow())*hit->GetCDe();
+    dummy_padid+=(Double_t)(hit->GetPad())*hit->GetCDe();
+    mrow+=(Double_t)(hit->GetRow())*hit->GetCDe();
     m_cluster_de += de;
   }
   if(m_cluster_de > 0.){
@@ -245,55 +245,48 @@ TPCCluster::CalculateWeightedMeanTheta()
 }
 
 //_____________________________________________________________________________
-TVector3
-TPCCluster::Position_CLcenter() const
-{
-  return m_pos_center;
-}
-
-//_____________________________________________________________________________
-double
+Double_t
 TPCCluster::ResX() const
 {
   //calculated by using NIM paper
   //To do:change the resolution by checking cluster size
-  double y_pos= m_cluster_position.Y();
-  double s0 = 0.204;// mm HIMAC result //To do parameter
-  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
-  double L_D = 30.+(y_pos*0.1);//cm
-  double N_eff = 42.8;
-  double A = 0.0582*0.01;//m-1 -> cm-1
-  double e_ALD = exp(-1.*A*L_D);
-  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
-  double sT = sqrt(sT2);
+  Double_t y_pos= m_cluster_position.Y();
+  Double_t s0 = 0.204;// mm HIMAC result //To do parameter
+  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
+  Double_t L_D = 30.+(y_pos*0.1);//cm
+  Double_t N_eff = 42.8;
+  Double_t A = 0.0582*0.01;//m-1 -> cm-1
+  Double_t e_ALD = exp(-1.*A*L_D);
+  Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
+  Double_t sT = sqrt(sT2);
 
   return sT;
 }
 
 //_____________________________________________________________________________
-double
+Double_t
 TPCCluster::ResY() const
 {
   //Temp value (need to change)
-  double y_res = 0.5;
+  Double_t y_res = 0.5;
   return y_res;
 }
 
 //_____________________________________________________________________________
-double
+Double_t
 TPCCluster::ResZ() const
 {
   //calculated by using NIM paper
   //To do:change the resolution by checking cluster size
-  double y_pos= m_cluster_position.Y();
-  double s0 = 0.204;// mm HIMAC result //To do parameter
-  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
-  double L_D = 30.+(y_pos*0.1);//cm
-  double N_eff = 42.8;
-  double A = 0.0582*0.01;//m-1 -> cm-1
-  double e_ALD = exp(-1.*A*L_D);
-  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
-  double sT = sqrt(sT2);
+  Double_t y_pos= m_cluster_position.Y();
+  Double_t s0 = 0.204;// mm HIMAC result //To do parameter
+  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
+  Double_t L_D = 30.+(y_pos*0.1);//cm
+  Double_t N_eff = 42.8;
+  Double_t A = 0.0582*0.01;//m-1 -> cm-1
+  Double_t e_ALD = exp(-1.*A*L_D);
+  Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
+  Double_t sT = sqrt(sT2);
 
   return sT;
 }
