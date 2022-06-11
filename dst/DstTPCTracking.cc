@@ -29,7 +29,6 @@
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
 
-#define TrackSearch 1
 #define Gain_center 1
 #define HoughYcut 0
 
@@ -361,9 +360,7 @@ dst::DstRead(int ievent)
 //   }
 //   event.nh_cluster_Tpc = nh_cl_Tpc;
 
-#if TrackSearch
   DCAna.TrackSearchTPC();
-#endif
 
   Int_t ntTpc = DCAna.GetNTracksTPC();
   event.ntTpc = ntTpc;
@@ -394,13 +391,13 @@ dst::DstRead(int ievent)
   event.residual_z.resize(ntTpc);
 
   for(Int_t it=0; it<ntTpc; ++it){
-    TPCLocalTrack *tp = DCAna.GetTrackTPC(it);
-    if(!tp) continue;
-    Int_t nh = tp->GetNHit();
-    Double_t chisqr = tp->GetChiSquare();
-    Double_t x0=tp->GetX0(), y0=tp->GetY0();
-    Double_t u0=tp->GetU0(), v0=tp->GetV0();
-    Double_t theta = tp->GetTheta();
+    auto track = DCAna.GetTrackTPC(it);
+    if(!track) continue;
+    Int_t nh = track->GetNHit();
+    Double_t chisqr = track->GetChiSquare();
+    Double_t x0=track->GetX0(), y0=track->GetY0();
+    Double_t u0=track->GetU0(), v0=track->GetV0();
+    Double_t theta = track->GetTheta();
     HF1(11, nh);
     HF1(12, chisqr);
     HF1(14, x0);
@@ -430,7 +427,7 @@ dst::DstRead(int ievent)
     event.residual_z[it].resize(nh);
 
     for(int ih=0; ih<nh; ++ih){
-      TPCLTrackHit *hit = tp->GetHit(ih);
+      auto hit = track->GetHit(ih);
       if(!hit) continue;
       Int_t layer = hit->GetLayer();
       const TVector3& hitpos = hit->GetLocalHitPos();

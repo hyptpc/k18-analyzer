@@ -114,11 +114,13 @@ TPCCluster::Calculate()
     const auto& pos = hit->GetPosition();
     TVector2 xz_vector(pos.X(), pos.Z());
     xz_vector -= target_center;
+#if 0
     if(TMath::Abs(xz_vector.Mod() - R) > 1e-10){
       hit->Print();
       throw Exception(FUNC_NAME + Form(" found invalid radius %lf/%lf",
                                        R, xz_vector.Mod()));
     }
+#endif
     const Double_t de = hit->GetCDe();
     Double_t phi = xz_vector.Phi();
     Double_t row = hit->GetRow();

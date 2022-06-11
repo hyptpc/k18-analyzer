@@ -30,17 +30,6 @@
 
 #include "RootHelper.hh"
 
-#define DebugEvDisp    0
-
-#if DebugEvDisp
-#include <TApplication.h>
-#include <TCanvas.h>
-#include <TLatex.h>
-#include <TStyle.h>
-#include <TSystem.h>
-namespace { TApplication app("DebugApp", nullptr, nullptr); }
-#endif
-
 namespace
 {
 const auto& gConf = ConfMan::GetInstance();

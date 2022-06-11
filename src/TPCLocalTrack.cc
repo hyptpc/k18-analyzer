@@ -45,6 +45,8 @@
 #if DebugEvDisp
 #include <TApplication.h>
 #include <TCanvas.h>
+#include <TGraphErrors.h>
+#include <TLine.h>
 #include <TSystem.h>
 namespace { TApplication app("DebugApp", nullptr, nullptr); }
 #endif
@@ -87,7 +89,7 @@ const Double_t r_max  =  600;
 static const Double_t  res_check_factor = 10.;
 
 // define the parametric line equation
-void
+[[maybe_unused]] void
 Line(Double_t t, const Double_t *p, Double_t &x, Double_t &y, Double_t &z)
 {
    x = p[0] + p[1]*t;
@@ -215,7 +217,7 @@ TPCLocalTrack::Calculate()
     hitp->SetCalUV(m_u0, m_v0);
     hitp->SetCalPosition(hitp->GetLocalCalPos());
   }
-  // Print();
+  Print();
   m_is_calculated = true;
 }
 
@@ -490,6 +492,17 @@ TPCLocalTrack::DoFit(Int_t min_hits)
 Bool_t
 TPCLocalTrack::DoFitLinear(Int_t min_hits)
 {
+#if DebugEvDisp
+  static TCanvas c1("c"+FUNC_NAME, FUNC_NAME, 400, 800);
+  c1.Clear();
+  c1.Divide(1, 2);
+  TGraphErrors gxz, gyz;
+  gxz.SetTitle(FUNC_NAME+" X%Z");
+  gyz.SetTitle(FUNC_NAME+" Y%Z");
+  // gxz.SetMarkerStyle(8);
+  // gyz.SetMarkerStyle(8);
+#endif
+
   // hddaq::cout << FUNC_NAME << std::endl;
   DeleteNullHit();
 
@@ -535,9 +548,9 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
   for(Int_t i=0; i<n; ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp->GetLocalHitPos();
-    TVector3 Res = hitp->GetResolutionVect();
+    TVector3 res = hitp->GetResolutionVect();
     gHitPos[i] = pos;
-    gRes[i] = Res;
+    gRes[i] = res;
     for(Int_t ti=0; ti<theta_ndiv; ti++){
       Double_t theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
       hist.Fill(theta, TMath::Cos(theta*TMath::ACos(-1)/180.)*pos.Z()
@@ -545,6 +558,10 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
       if(fabs(TMath::Cos(theta*TMath::ACos(-1)/180.)*pos.Z()+TMath::Sin(theta*TMath::ACos(-1)/180.)*pos.Y())>r_max)
 	std::cout<<"HoughY: out of range:"<<TMath::Cos(theta*TMath::ACos(-1)/180.)*pos.Z()+TMath::Sin(theta*TMath::ACos(-1)/180.)*pos.Y()<<std::endl;
     }
+    gxz.SetPoint(i, pos.Z(), pos.X());
+    gyz.SetPoint(i, pos.Z(), pos.Y());
+    gxz.SetPointError(i, res.Z(), res.X());
+    gyz.SetPointError(i, res.Z(), res.Y());
   }
   Int_t maxbin = hist.GetMaximumBin();
   Int_t mx,my,mz;
@@ -612,7 +629,6 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
     //std::cout<<Par[i]<<"  "<<std::endl;
   }
 
-
   Double_t chisqr1 = 100000., chisqr2=100000., chisqr3=100000.;
 
   m_x0=par[0];
@@ -674,6 +690,9 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
     CalcChi2();
   }
 
+  // m_x0 += m_u0*zTgtTPC;
+  // m_y0 += m_v0*zTgtTPC;
+
   // std::cout<<"chisqr1="<<chisqr1<<", chisqr2="<<chisqr2<<", chisqr3="<<chisqr3<<std::endl;
   // std::cout<<"m_chisqr="<<m_chisqr<<std::endl;
 
@@ -704,6 +723,29 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
     // hddaq::cout << "hough init param: u=" << m_Au << " x=" << m_Ax << " v="<< m_Av << " y=" << m_Ay << std::endl;
     // hddaq::cout << "lsm   init param: u=" << lsm_u << " x=" << lsm_x << " v="<< lsm_v << " y=" << lsm_y << std::endl;
     // hddaq::cout << "fitted param    : u0=" << m_u0 << " x0=" << m_x0 << " v="<< m_v0 << " y=" << m_y0 << std::endl;
+#if DebugEvDisp
+    {
+      TLine lxz, lyz;
+      Double_t x0 = m_x0 + -400.*m_u0;
+      Double_t x1 = m_x0 +  400.*m_u0;
+      Double_t y0 = m_y0 + -400.*m_v0;
+      Double_t y1 = m_y0 +  400.*m_v0;
+      gxz.GetXaxis()->SetLimits(-400, 400);
+      gxz.GetYaxis()->SetRangeUser(-400, 400);
+      gyz.GetXaxis()->SetLimits(-400, 400);
+      gyz.GetYaxis()->SetRangeUser(-400, 400);
+      c1.cd(1);
+      gxz.Draw("AP");
+      lxz.DrawLine(-400, x0, 400, x1);
+      c1.cd(2);
+      gyz.Draw("AP");
+      lyz.DrawLine(-400, y0, 400, y1);
+      c1.Modified();
+      c1.Update();
+      c1.Print("c1.pdf");
+      getchar();
+    }
+#endif
     return true;
   }
   else

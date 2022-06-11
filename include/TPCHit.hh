@@ -103,7 +103,6 @@ public:
   DCHit*          GetHitYZ() const { return m_hit_yz; }
   Double_t        GetMRow() const { return m_mrow; }
   Bool_t          GetTPCFlag() const { return m_tpc_flag; }
-  //Int_t           GetClusterSize() const { return m_clsize; }
   Int_t           GetHoughY_num(Int_t i) const { return m_houghY_num.at(i); }
   Int_t           GetHoughY_num_size() const { return m_houghY_num.size(); }
   const TVector3& GetPosition(Int_t i=0) const { return m_position.at(i); }
@@ -130,7 +129,6 @@ public:
   void            SetPosition(const TVector3& pos){ m_position.at(0) = pos; }
   void            SetWirePosition(Double_t wpos) { m_wpos = wpos; }
   void            SetMRow(Double_t mrow) { m_mrow = mrow; }
-  // void            SetClusterSize(Double_t clsize) { m_clsize = clsize; }
   void            SetParentCluster(TPCCluster* parent){ m_parent_cluster = parent; }
   void            SetTPCFlag(Bool_t flag) { m_tpc_flag = flag; }
   void            SetResX(Double_t resx) { m_resx = resx; }
