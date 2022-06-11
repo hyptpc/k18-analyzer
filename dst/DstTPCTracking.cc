@@ -368,7 +368,7 @@ dst::DstRead(int ievent)
   Int_t ntTpc = DCAna.GetNTracksTPC();
   event.ntTpc = ntTpc;
   HF1(10, ntTpc);
-  std::cout << "ntTpc = " << ntTpc << std::endl;
+  // std::cout << "ntTpc = " << ntTpc << std::endl;
   if(event.ntTpc == 0)
     return true;
 
@@ -401,6 +401,15 @@ dst::DstRead(int ievent)
     Double_t x0=tp->GetX0(), y0=tp->GetY0();
     Double_t u0=tp->GetU0(), v0=tp->GetV0();
     Double_t theta = tp->GetTheta();
+    HF1(11, nh);
+    HF1(12, chisqr);
+    HF1(14, x0);
+    HF1(15, y0);
+    HF1(16, u0);
+    HF1(17, v0);
+    HF2(18, x0, u0);
+    HF2(19, y0, v0);
+    HF2(20, x0, y0);
     event.nhtrack[it] = nh;
     event.chisqr[it] = chisqr;
     event.x0[it] = x0;
@@ -420,7 +429,6 @@ dst::DstRead(int ievent)
     event.residual_y[it].resize(nh);
     event.residual_z[it].resize(nh);
 
-
     for(int ih=0; ih<nh; ++ih){
       TPCLTrackHit *hit = tp->GetHit(ih);
       if(!hit) continue;
@@ -429,6 +437,11 @@ dst::DstRead(int ievent)
       const TVector3& calpos = hit->GetLocalCalPos();
       const TVector3& res_vect = hit->GetResidualVect();
       Double_t residual = hit->GetResidual();
+      HF1(13, layer);
+      HF1(100*(layer+1)+15, residual);
+      HF1(100*(layer+1)+31, res_vect.X());
+      HF1(100*(layer+1)+32, res_vect.Y());
+      HF1(100*(layer+1)+33, res_vect.Z());
       event.hitlayer[it][ih] = layer;
       event.hitpos_x[it][ih] = hitpos.x();
       event.hitpos_y[it][ih] = hitpos.y();
@@ -471,7 +484,37 @@ Bool_t
 ConfMan::InitializeHistograms()
 {
   HB1(1, "Status", 21, 0., 21.);
-  HB1(10, "NTrack TPC", 40, 0., 40.);
+  HB1(10, "#Tracks TPC", 40, 0., 40.);
+  HB1(11, "#Hits of Track TPC", 15, 0., 15.);
+  HB1(12, "Chisqr TPC", 500, 0., 500.);
+  HB1(13, "LayerId TPC", 35, 0., 35.);
+  HB1(14, "X0 TPC", 400, -100., 100.);
+  HB1(15, "Y0 TPC", 400, -100., 100.);
+  HB1(16, "U0 TPC", 200, -0.20, 0.20);
+  HB1(17, "V0 TPC", 200, -0.20, 0.20);
+  HB2(18, "U0%X0 TPC", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(19, "V0%Y0 TPC", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(20, "X0%Y0 TPC", 100, -100., 100., 100, -100, 100);
+
+  for(Int_t i=1; i<=NumOfLayersTPC; ++i){
+    // Tracking Histgrams
+    TString title11 = Form("HitPat TPC%2d [Track]", i);
+    TString title14 = Form("Position TPC%2d", i);
+    TString title15 = Form("Residual TPC%2d", i);
+    TString title16 = Form("Resid%%Pos TPC%2d", i);
+    TString title17 = Form("Y%%Xcal TPC%2d", i);
+    TString title31 = Form("ResidualX TPC%2d", i);
+    TString title32 = Form("ResidualY TPC%2d", i);
+    TString title33 = Form("ResidualZ TPC%2d", i);
+    HB1(100*i+11, title11, 400, 0., 400.);
+    HB1(100*i+14, title14, 200, -250., 250.);
+    HB1(100*i+15, title15, 200, 0.0, 10.0);
+    HB2(100*i+16, title16, 250, -250., 250., 100, -1.0, 1.0);
+    HB2(100*i+17, title17, 100, -250., 250., 100, -250., 250.);
+    HB1(100*i+31, title31, 200, -2.0, 2.0);
+    HB1(100*i+32, title32, 200, -2.0, 2.0);
+    HB1(100*i+33, title33, 200, -2.0, 2.0);
+  }
 
   HBTree("tpc", "tree of DstTPCTracking");
 

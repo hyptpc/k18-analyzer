@@ -14,11 +14,7 @@ class DCPairHitCluster;
 class DCLocalTrack;
 class DCLTrackHit;
 class MWPCCluster;
-class TPCCluster;
-class TPCLocalTrack;
-class TPCLocalTrackHelix;
 
-// typedef std::vector<TPCCluster*>       TPCClusterList;
 typedef std::vector<DCPairHitCluster*> ClusterList;
 typedef std::vector<Int_t>               IndexList;
 
@@ -89,16 +85,6 @@ Int_t LocalTrackSearchCFTppPhi(const std::vector<DCHitContainer>& HC,
                                const DCPairPlaneInfo *PpInfo,
                                Int_t npp, std::vector<DCLocalTrack*>& trackCont,
                                Int_t MinNumOfHits=3);
-Int_t LocalTrackSearchTPC(const std::vector<TPCHitContainer>& HitCont,
-                          std::vector<TPCLocalTrack*>& TrackCont,
-                          Int_t MinNumOfHits=8);
-Int_t LocalTrackSearchTPC(const std::vector<TPCClusterContainer>& ClCont,
-                          std::vector<TPCLocalTrack*>& TrackCont,
-                          Int_t MinNumOfHits=8);
-Int_t LocalTrackSearchTPCHelix(const std::vector<TPCHitContainer>& TPCHC,
-                               std::vector<TPCLocalTrackHelix*>& TrackCont,
-                               Int_t MinNumOfHits=8);
-
 }
 
 #endif
