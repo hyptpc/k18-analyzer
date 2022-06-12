@@ -41,12 +41,13 @@
 #include "TPCPadHelper.hh"
 #include "UserParamMan.hh"
 
-#define DebugEvDisp 1
+#define DebugEvDisp 0
 
 #if DebugEvDisp
 #include <TApplication.h>
 #include <TCanvas.h>
 #include <TGraphErrors.h>
+#include <TLatex.h>
 #include <TLine.h>
 #include <TSystem.h>
 namespace { TApplication app("DebugApp", nullptr, nullptr); }
@@ -71,11 +72,11 @@ const Double_t& zTgt    = gGeom.LocalZ("Target");
 //  const Int_t MaxTry    = 10;
 
 const Int_t ReservedNumOfHits  = 64;
-static const Double_t  FitStep[TPCLocalTrack::NumOfParam] = { 1.0e-6, 1.0e-10, 1.0e-6, 1.0e-10};
-//static const Double_t  FitStep[TPCLocalTrack::NumOfParam] = { 1.0e-2, 1.0e-6, 1.0e-2, 1.0e-6};
-static const Double_t  LowLimit[TPCLocalTrack::NumOfParam] = { -400., -1.0*TMath::ACos(-1.), -400, -1.0*TMath::ACos(-1.) };
-static const Double_t  UpLimit[TPCLocalTrack::NumOfParam] = { 400., 1.0*TMath::ACos(-1.), 400, 1.0*TMath::ACos(-1.) };
-//  static const Double_t  MaxChisqr = 500.;
+const Double_t  FitStep[TPCLocalTrack::NumOfParam] = { 1.0e-6, 1.0e-10, 1.0e-6, 1.0e-10};
+//const Double_t  FitStep[TPCLocalTrack::NumOfParam] = { 1.0e-2, 1.0e-6, 1.0e-2, 1.0e-6};
+const Double_t  LowLimit[TPCLocalTrack::NumOfParam] = { -400., -1.0*TMath::ACos(-1.), -400, -1.0*TMath::ACos(-1.) };
+const Double_t  UpLimit[TPCLocalTrack::NumOfParam] = { 400., 1.0*TMath::ACos(-1.), 400, 1.0*TMath::ACos(-1.) };
+// const Double_t  MaxChisqr = 500.;
 static const Double_t  MaxChisqr = 10000.;
 
 const Int_t    theta_ndiv = 100;
@@ -179,15 +180,6 @@ TPCLocalTrack::~TPCLocalTrack()
 
 //_____________________________________________________________________________
 void
-TPCLocalTrack::ClearHits()
-{
-  m_hit_array.clear();
-  // m_cluster_array.clear();
-}
-
-
-//_____________________________________________________________________________
-void
 TPCLocalTrack::AddTPCHit(TPCLTrackHit *hit)
 {
   if(hit) m_hit_array.push_back(hit);
@@ -200,6 +192,31 @@ TPCLocalTrack::AddTPCHit(TPCLTrackHit *hit)
 //   //not supported
 //   if(cluster) m_cluster_array.push_back(cluster);
 // }
+
+//_____________________________________________________________________________
+void
+TPCLocalTrack::CalcChisquare()
+{
+  Double_t chisqr = 0.;
+  for(const auto& hit: m_hit_array){
+    const auto& pos = hit->GetLocalHitPos();
+    const auto& Res = hit->GetResolutionVect();
+    // TVector3 x0(m_x0, m_y0, 0.);
+    // TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1.);
+    TVector3 x0(m_x0, m_y0, tpc::ZTarget);
+    TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, tpc::ZTarget+1.);
+    TVector3 u = (x1-x0).Unit();
+    TVector3 AP = pos-x0;
+    Double_t dist_AX = u.Dot(AP);
+    TVector3 AI(x0.x()+(u.x()*dist_AX),
+		x0.y()+(u.y()*dist_AX),
+		x0.z()+(u.z()*dist_AX));
+    TVector3 d = pos-AI;
+    //    TVector3 d = (pos-x0).Cross(u);
+    chisqr += TVector3(d.x()/Res.x(), d.y()/Res.y(), d.z()/Res.z()).Mag();
+  }
+  m_chisqr = chisqr/GetNDF();
+}
 
 //_____________________________________________________________________________
 void
@@ -216,8 +233,15 @@ TPCLocalTrack::Calculate()
     hit->SetCalUV(m_u0, m_v0);
     hit->SetCalPosition(hit->GetLocalCalPos());
   }
-  Print();
   m_is_calculated = true;
+}
+
+//_____________________________________________________________________________
+void
+TPCLocalTrack::ClearHits()
+{
+  m_hit_array.clear();
+  // m_cluster_array.clear();
 }
 
 //_____________________________________________________________________________
@@ -348,8 +372,10 @@ TPCLocalTrack::DeleteNullHit()
 Bool_t
 TPCLocalTrack::DoFit()
 {
+#if DebugEvDisp
   static TCanvas c1("c"+FUNC_NAME, FUNC_NAME, 800, 800);
   c1.cd();
+#endif
 
   for(const auto& hit: m_hit_array){
     gHitPos.push_back(hit->GetLocalHitPos());
@@ -393,7 +419,7 @@ TPCLocalTrack::DoFit()
   hddaq::cout << "Total final distance square " << result.MinFcnValue() << std::endl;
   result.Print(hddaq::cout);
 
-  chisqr.graph->Draw("p0");
+  // chisqr.graph->Draw("p0");
 
   // get fit parameters
   // const auto parFit = result.GetParams();
@@ -516,10 +542,12 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
       if(fabs(TMath::Cos(theta*TMath::ACos(-1)/180.)*pos.Z()+TMath::Sin(theta*TMath::ACos(-1)/180.)*pos.Y())>r_max)
 	std::cout<<"HoughY: out of range:"<<TMath::Cos(theta*TMath::ACos(-1)/180.)*pos.Z()+TMath::Sin(theta*TMath::ACos(-1)/180.)*pos.Y()<<std::endl;
     }
+#if DebugEvDisp
     gxz.SetPoint(i, pos.Z(), pos.X());
     gyz.SetPoint(i, pos.Z(), pos.Y());
     gxz.SetPointError(i, res.Z(), res.X());
     gyz.SetPointError(i, res.Z(), res.Y());
+#endif
   }
   Int_t maxbin = hist.GetMaximumBin();
   Int_t mx,my,mz;
@@ -593,7 +621,7 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
   m_u0=tan(par[1]);
   m_y0=par[2];
   m_v0=tan(par[3]);
-  CalcChi2();
+  CalcChisquare();
 
   chisqr1 = m_chisqr;
 
@@ -611,7 +639,7 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
   m_u0=tan(par2[1]);
   m_y0=par2[2]/TMath::Cos(par2[3]);
   m_v0=tan(par2[3]);
-  CalcChi2();
+  CalcChisquare();
   chisqr2 = m_chisqr;
 
 
@@ -630,7 +658,7 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
   m_y0=par3[2]/TMath::Sin(par3[3]);
   m_v0=-TMath::Cos(par3[3])/TMath::Sin(par3[3]);
 
-  CalcChi2();
+  CalcChisquare();
   chisqr3 = m_chisqr;
 
   if(fabs(chisqr1)<fabs(chisqr3)&&chisqr1>0.){
@@ -638,14 +666,14 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
     m_u0=tan(par[1]);
     m_y0=par[2];
     m_v0=tan(par[3]);
-    CalcChi2();
+    CalcChisquare();
   }
   if(fabs(chisqr2)<fabs(chisqr3)&&fabs(chisqr1)>fabs(chisqr2)&&chisqr2>0.){
     m_x0=par2[0]/TMath::Cos(par2[1]);
     m_u0=tan(par2[1]);
     m_y0=par2[2]/TMath::Cos(par2[3]);
     m_v0=tan(par2[3]);
-    CalcChi2();
+    CalcChisquare();
   }
 
   // m_x0 += m_u0*tpc::ZTarget;
@@ -654,15 +682,15 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
   // std::cout<<"chisqr1="<<chisqr1<<", chisqr2="<<chisqr2<<", chisqr3="<<chisqr3<<std::endl;
   // std::cout<<"m_chisqr="<<m_chisqr<<std::endl;
 
-  if(m_chisqr > MaxChisqr||std::isnan(m_chisqr))
+  if(m_chisqr > MaxChisqr || TMath::IsNaN(m_chisqr))
     return false;
 
   Int_t false_layer =0;
 
-  for(std::size_t i=0; i<m_hit_array.size(); ++i){
-    TPCLTrackHit *hitp = m_hit_array[i];
-    TVector3 pos = hitp->GetLocalHitPos();
-    TVector3 Res = hitp->GetResolutionVect();
+  for(Int_t i=0; i<m_hit_array.size(); ++i){
+    auto hit = m_hit_array[i];
+    TVector3 pos = hit->GetLocalHitPos();
+    TVector3 Res = hit->GetResolutionVect();
     if(!Residual_check(pos,Res)){
       // std::cout<<"false layer:"<<i<<", n="<<m_hit_array.size()<<std::endl;
       // std::cout<<"m_x0:"<<m_x0<<", m_y0="<<m_y0<<std::endl;
@@ -675,8 +703,7 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
       return false;
   }
 
-
-  if(false_layer ==0){
+  if(false_layer == 0){
     //std::cout<<"return true"<<std::endl;
     // hddaq::cout << "hough init param: u=" << m_Au << " x=" << m_Ax << " v="<< m_Av << " y=" << m_Ay << std::endl;
     // hddaq::cout << "lsm   init param: u=" << lsm_u << " x=" << lsm_x << " v="<< lsm_v << " y=" << lsm_y << std::endl;
@@ -684,10 +711,15 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
 #if DebugEvDisp
     {
       TLine lxz, lyz;
-      Double_t x0 = m_x0 + -400.*m_u0;
-      Double_t x1 = m_x0 +  400.*m_u0;
-      Double_t y0 = m_y0 + -400.*m_v0;
-      Double_t y1 = m_y0 +  400.*m_v0;
+      lxz.SetLineColor(kBlue+1);
+      lyz.SetLineColor(kBlue+1);
+      TLatex txz, tyz;
+      txz.SetTextSize(0.03);
+      tyz.SetTextSize(0.03);
+      Double_t x0 = m_x0 + (-400.-tpc::ZTarget)*m_u0;
+      Double_t x1 = m_x0 + ( 400.-tpc::ZTarget)*m_u0;
+      Double_t y0 = m_y0 + (-400.-tpc::ZTarget)*m_v0;
+      Double_t y1 = m_y0 + ( 400.-tpc::ZTarget)*m_v0;
       gxz.GetXaxis()->SetLimits(-400, 400);
       gxz.GetYaxis()->SetRangeUser(-400, 400);
       gyz.GetXaxis()->SetLimits(-400, 400);
@@ -695,9 +727,15 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
       c1.cd(1);
       gxz.Draw("AP");
       lxz.DrawLine(-400, x0, 400, x1);
+      txz.DrawLatex(150, 350, Form("chi2=%.2f", m_chisqr));
+      txz.DrawLatex(150, 320, Form("x0=%.2f", m_x0));
+      txz.DrawLatex(150, 290, Form("u0=%.5f", m_u0));
       c1.cd(2);
       gyz.Draw("AP");
       lyz.DrawLine(-400, y0, 400, y1);
+      tyz.DrawLatex(150, 350, Form("chi2=%.2f", m_chisqr));
+      tyz.DrawLatex(150, 320, Form("y0=%.2f", m_y0));
+      tyz.DrawLatex(150, 290, Form("v0=%.5f", m_v0));
       c1.Modified();
       c1.Update();
       c1.Print("c1.pdf");
@@ -736,32 +774,6 @@ TPCLocalTrack::Residual_check(TVector3 pos, TVector3  Res)
   }
 
   return status_rescheck;
-}
-
-
-//_____________________________________________________________________________
-void
-TPCLocalTrack::CalcChi2()
-{
-  Double_t chisqr = 0.;
-  for(const auto& hit: m_hit_array){
-    const auto& pos = hit->GetLocalHitPos();
-    const auto& Res = hit->GetResolutionVect();
-    // TVector3 x0(m_x0, m_y0, 0.);
-    // TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1.);
-    TVector3 x0(m_x0, m_y0, tpc::ZTarget);
-    TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, tpc::ZTarget+1.);
-    TVector3 u = (x1-x0).Unit();
-    TVector3 AP = pos-x0;
-    Double_t dist_AX = u.Dot(AP);
-    TVector3 AI(x0.x()+(u.x()*dist_AX),
-		x0.y()+(u.y()*dist_AX),
-		x0.z()+(u.z()*dist_AX));
-    TVector3 d = pos-AI;
-    //    TVector3 d = (pos-x0).Cross(u);
-    chisqr += TVector3(d.x()/Res.x(), d.y()/Res.y(), d.z()/Res.z()).Mag();
-  }
-  m_chisqr = chisqr/GetNDF();
 }
 
 //_____________________________________________________________________________

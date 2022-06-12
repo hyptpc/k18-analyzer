@@ -575,7 +575,7 @@ dst::DstRead(int ievent)
       const TVector3& calpos = hit->GetLocalCalPos();
       const TVector3& res_vect = hit->GetResidualVect();
       Double_t residual = hit->GetResidual();
-      Int_t row = hit->GetHit()->GetRow();
+      // Int_t row = hit->GetHit()->GetRow();
       // const TVector3& pos_center = hit->GetHit()->GetPos_center();
 
       event.hitlayer[it][ih] = layer;
@@ -652,9 +652,9 @@ ConfMan::InitializeHistograms()
   const Int_t    NbinPos = 1600;
   const Double_t MinPos  = -40.;
   const Double_t MaxPos  = 40.;
-  const Int_t    NbinClk = 20000;
-  const Double_t MinClk  = 100.;
-  const Double_t MaxClk  = 100.;
+  // const Int_t    NbinClk = 20000;
+  // const Double_t MinClk  = 100.;
+  // const Double_t MaxClk  = 100.;
 
   HB1(1, "Status", 21, 0., 21.);
   HB1(10, "NTrack TPC", 40, 0., 40.);

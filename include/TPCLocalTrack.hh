@@ -40,6 +40,7 @@ private:
   std::vector<TPCLTrackHit*> m_hit_array;
   // std::vector<TPCCluster*> m_cluster_array;
 
+  // track coordinate origin is target, ***NOT TPC center***
   Double_t m_Ax;
   Double_t m_Ay;
   Double_t m_Au;
@@ -68,6 +69,7 @@ public:
   // void          AddTPCCluster(TPCCluster *cluster);//not supported
   void          ClearHits();
   void          Calculate();
+  void          CalcChisquare();
   void          DeleteNullHit();
   Bool_t        DoFit();
   Bool_t        DoFit(Int_t min_hits); // obsolete
@@ -78,8 +80,6 @@ public:
   Bool_t        IsFitted() const { return m_is_fitted; }
   Bool_t        IsCalculated() const { return m_is_calculated; }
   Bool_t        Residual_check(TVector3 pos, TVector3 Res);
-  void          CalcChi2(void);
-
 
   void SetAx(Double_t Ax) { m_Ax = Ax; }
   void SetAy(Double_t Ay) { m_Ay = Ay; }

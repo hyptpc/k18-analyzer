@@ -616,9 +616,9 @@ dst::DstRead(int ievent)
   const Int_t    NbinPos = 1600;
   const Double_t MinPos  = -40.;
   const Double_t MaxPos  = 40.;
-  const Int_t    NbinClk = 20000;
-  const Double_t MinClk  = 100.;
-  const Double_t MaxClk  = 100.;
+  // const Int_t    NbinClk = 20000;
+  // const Double_t MinClk  = 100.;
+  // const Double_t MaxClk  = 100.;
 
   HB1(1, "Status", 21, 0., 21.);
   HB1(10, "NTrack TPC", 40, 0., 40.);
