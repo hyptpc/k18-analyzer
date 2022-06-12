@@ -273,11 +273,11 @@ TPCHit::DoFit()
   static TCanvas c1("c1", "c1", 800, 600);
   c1.cd();
   TH1D h1(FUNC_NAME+"-h1", "Pedestal",
-           MaxADC, 0, MaxADC);
+          MaxADC, 0, MaxADC);
   TH1D h2(FUNC_NAME+"-h2",
-           Form("Layer#%d Row#%d;Time Bucket;ADC",
-                m_layer, m_row),
-           NumOfTimeBucket, 0, NumOfTimeBucket);
+          Form("Layer#%d Row#%d;Time Bucket;ADC",
+               m_layer, m_row),
+          NumOfTimeBucket, 0, NumOfTimeBucket);
   for(Int_t i=0, n=m_rhit->Fadc().size(); i<n; ++i){
     Double_t tb = i + 1;
     Double_t adc = m_rhit->Fadc().at(i);
@@ -285,8 +285,8 @@ TPCHit::DoFit()
       continue;
     h1.Fill(adc);
     // if(adc < 4075){
-      h2.SetBinContent(tb, adc);
-      // h2.SetBinError(tb, 1);
+    h2.SetBinContent(tb, adc);
+    // h2.SetBinError(tb, 1);
     // }
   }
   h2.GetXaxis()->SetRangeUser(MinTimeBucket, MaxTimeBucket);
@@ -486,8 +486,8 @@ TPCHit::DoFit()
     }
     f1.SetParameter(n_peaks*3, m_pedestal);
     f1.SetParLimits(n_peaks*3, m_pedestal-0.5*m_rms, m_pedestal+0.5*m_rms);
-    double FitRangeMin = MinTimeBucket;
-    double FitRangeMax = MaxTimeBucket;
+    Double_t FitRangeMin = MinTimeBucket;
+    Double_t FitRangeMax = MaxTimeBucket;
     if(MinTimeBucket<time[0]-6.-de[0]*0.07)
       FitRangeMin = time[0]-6.-de[0]*0.07;
     if(MaxTimeBucket>time[n_peaks-1]+10.+de[n_peaks-1]*0.11)
@@ -545,41 +545,39 @@ TPCHit::ClearRegisteredHits()
 }
 
 //_____________________________________________________________________________
-double
+Double_t
 TPCHit::GetResolutionX()
 {
   //calculated by using NIM paper
   const auto& pos = GetPosition();
-//double s0 = 0.204;// mm HIMAC result //To do parameter
-  double s0 = gUser.GetParameter("TPC_sigma0");
+  // Double_t s0 = 0.204;// mm HIMAC result //To do parameter
+  Double_t s0 = gUser.GetParameter("TPC_sigma0");
   //s0 is considered for common resolution
-//  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
-  double Dt = gUser.GetParameter("TPC_Dt");
-  double L_D = 30.+(pos.Y()*0.1);//cm
-  //double N_eff = 42.8;
-  double N_eff = 42.1;
-  //  double A = 0.0582*0.01;//m-1 -> cm-1
-  double A = 0.055*0.01;//m-1 -> cm-1
-  double e_ALD = exp(-1.*A*L_D);
-  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
-  //double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
-  double sT_r = sqrt(sT2);
+//  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
+  Double_t Dt = gUser.GetParameter("TPC_Dt");
+  Double_t L_D = 30.+(pos.Y()*0.1);//cm
+  //Double_t N_eff = 42.8;
+  Double_t N_eff = 42.1;
+  //  Double_t A = 0.0582*0.01;//m-1 -> cm-1
+  Double_t A = 0.055*0.01;//m-1 -> cm-1
+  Double_t e_ALD = exp(-1.*A*L_D);
+  Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
+  //Double_t sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
+  Double_t sT_r = TMath::Sqrt(sT2);
 
 #if 0
   //Check Tmporary change
   if(m_clsize ==1){
-    double Rpad = tpc::padParameter[m_layer][2];
-    double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
+    Double_t Rpad = tpc::padParameter[m_layer][2];
+    Double_t padsize = Rpad*2.*TMath::Pi()/tpc::padParameter[m_layer-1][3];
     //sT_r = padsize/sqrt(12.);
   }
-  double sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
-  return sqrt(pow(sT_r*cos(alpha),2)+pow(sT_padlen*sin(alpha),2));
+  Double_t sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
+  return TVector2(sT_r*TMath::Cos(alpha), sT_padlen*TMath::Sin(alpha)).Mod();
 #endif
 
-  double alpha = atan2(pos.X(), pos.Z() - tpc::ZTarget);
-  double res_x = sT_r*cos(alpha);
-
-  return res_x;
+  Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
+  return TMath::Abs(sT_r*TMath::Cos(alpha));
   //return 0.3;
 }
 
@@ -589,35 +587,33 @@ TPCHit::GetResolutionZ()
 {
   const auto& pos = GetPosition();
   //calculated by using NIM paper
-//double s0 = 0.204;// mm HIMAC result //To do parameter
-  double s0 = gUser.GetParameter("TPC_sigma0");
+//Double_t s0 = 0.204;// mm HIMAC result //To do parameter
+  Double_t s0 = gUser.GetParameter("TPC_sigma0");
   //s0 is considered for common resolution
-//  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
-  double Dt = gUser.GetParameter("TPC_Dt");
-  double L_D = 30.+(pos.Y()*0.1);//cm
-  //double N_eff = 42.8;
-  double N_eff = 42.1;
-  //double A = 0.0582*0.01;//m-1 -> cm-1
-  double A = 0.055*0.01;//m-1 -> cm-1
-  double e_ALD = exp(-1.*A*L_D);
-  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
-  //double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
-  double sT_r = sqrt(sT2);
+//  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
+  Double_t Dt = gUser.GetParameter("TPC_Dt");
+  Double_t L_D = 30.+(pos.Y()*0.1);//cm
+  //Double_t N_eff = 42.8;
+  Double_t N_eff = 42.1;
+  //Double_t A = 0.0582*0.01;//m-1 -> cm-1
+  Double_t A = 0.055*0.01;//m-1 -> cm-1
+  Double_t e_ALD = exp(-1.*A*L_D);
+  Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
+  //Double_t sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
+  Double_t sT_r = TMath::Sqrt(sT2);
 
 #if 0
   if(m_clsize ==1){
-    double Rpad = tpc::padParameter[m_layer][2];
-    double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
+    Double_t Rpad = tpc::padParameter[m_layer][2];
+    Double_t padsize = Rpad*2.*TMath::Pi()/tpc::padParameter[m_layer-1][3];
     sT_r = padsize/sqrt(12.);
   }
-  double sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
-  return sqrt(pow(sT_r*sin(alpha),2)+pow(sT_padlen*cos(alpha),2));
+  Double_t sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
+  return sqrt(pow(sT_r*TMath::Sin(alpha),2)+pow(sT_padlen*TMath::Cos(alpha),2));
 #endif
 
-  double alpha =  atan2(pos.X(), pos.Z() - tpc::ZTarget);
-  double res_z = sT_r*sin(alpha);
-
-  return res_z;
+  Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
+  return TMath::Abs(sT_r*TMath::Sin(alpha));
   //return 0.3;
 }
 
@@ -635,12 +631,9 @@ TPCHit::GetResolutionY()
 double
 TPCHit::GetResolution()
 {
-  double res_x = GetResolutionX();
-  double res_y = GetResolutionY();
-  double res_z = GetResolutionZ();
-
-  double tot_res = sqrt(res_x*res_x + res_y*res_y + res_z*res_z);
-  return tot_res;
+  return TVector3(GetResolutionX(),
+                  GetResolutionY(),
+                  GetResolutionZ()).Mag();
 }
 
 //_____________________________________________________________________________

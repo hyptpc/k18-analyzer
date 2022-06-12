@@ -86,8 +86,8 @@ const Int_t    r_ndiv =  100;
 const Double_t r_min  = -600;
 const Double_t r_max  =  600;
 
-//  static const Double_t  res_check_factor = 5.;
-static const Double_t  res_check_factor = 10.;
+//  static const Double_t  MaxResidual = 5.;
+static const Double_t MaxResidual = 10.; // factor to resolution
 
 // define the parametric line equation
 [[maybe_unused]] void
@@ -274,6 +274,7 @@ static void fcn2(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par,
 
 
 //_____________________________________________________________________________
+[[maybe_unused]]
 static void fcn2_rt(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par,
                     Int_t iflag)
 {
@@ -325,6 +326,7 @@ static void fcn2_rt(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par,
 }
 
 //_____________________________________________________________________________
+[[maybe_unused]]
 static void fcn2_rt2(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par,
                      Int_t iflag)
 {
@@ -509,25 +511,6 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
 		   theta_ndiv, theta_min, theta_max, r_ndiv, r_min, r_max);
   hist.Reset();
 
-  ///// Initial parameter using least squares method
-  // Double_t lsm_x, lsm_y, lsm_u, lsm_v;
-  // Double_t szx, szy, sz, sx, sy, sz2;
-  // for(Int_t i=0; i<n; ++i){
-  //   auto hitp = m_hit_array[i];
-  //   auto pos = hitp->GetLocalHitPos();
-  //   auto Res = hitp->GetResolutionVect();
-  //   szx += pos.Z()*pos.X();
-  //   szy += pos.Z()*pos.Y();
-  //   sz  += pos.Z();
-  //   sx  += pos.X();
-  //   sy  += pos.Y();
-  //   sz2 += pos.Z()*pos.Z();
-  // }
-  // lsm_u = (n*szx - sz*sx)/(n*sz2 - sz*sz);
-  // lsm_x = (sz2*sx - sz*szx)/(n*sz2 - sz*sz);
-  // lsm_v = (n*szy - sz*sy)/(n*sz2 - sz*sz);
-  // lsm_y = (sz2*sy - sz*szy)/(n*sz2 - sz*sz);
-
   //hough translation for ini-param of Ay and Av
   for(Int_t i=0; i<n; ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
@@ -564,18 +547,7 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
 
   Double_t m_Au_atan = TMath::ATan(m_Au);
   Double_t m_Av_atan = TMath::ATan(m_Av);
-
-  Double_t m_Ax_r = m_Ax*TMath::Cos(m_Au_atan);
-  Double_t m_Ay_r = m_Ay*TMath::Cos(m_Av_atan);
-
-  Double_t m_Au_theta = TMath::ATan(-1./m_Au);
-  Double_t m_Av_theta = TMath::ATan(-1./m_Av);
-  Double_t m_Ax_r2 = m_Ax*TMath::Sin(m_Au_theta);
-  Double_t m_Ay_r2 = m_Ay*TMath::Sin(m_Av_theta);
-
   Double_t par[NumOfParam]={m_Ax, m_Au_atan, m_Ay, m_Av_atan};
-  Double_t par2[NumOfParam]={m_Ax_r, m_Au_atan, m_Ay_r, m_Av_atan};
-  Double_t par3[NumOfParam]={m_Ax_r2, m_Au_theta, m_Ay_r2, m_Av_theta};
   Double_t err[NumOfParam]={-999.,-999.,-999.,-999.};
 
   // m_minuit = new TMinuit(NumOfParam);
@@ -589,8 +561,7 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
   arglist[0] = 1;
   m_minuit->mnexcm("SET NOW", arglist,1,ierflg); // No warnings
   TString name[NumOfParam] = {"x0_r", "atan_u0", "y0_r", "atan_v0"};
-  for(Int_t i = 0; i<NumOfParam; i++)
-  {
+  for(Int_t i=0; i<NumOfParam; i++){
     m_minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
   }
 
@@ -609,13 +580,10 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
   //m_minuit->mnprin(NumOfParam, amin);
   Int_t Err;
   Double_t bnd1, bnd2;
-  for(Int_t i=0; i<NumOfParam; i++)
-  {
+  for(Int_t i=0; i<NumOfParam; i++){
     m_minuit->mnpout(i, name[i], par[i], err[i], bnd1, bnd2, Err);
     //std::cout<<Par[i]<<"  "<<std::endl;
   }
-
-  Double_t chisqr1 = 100000., chisqr2=100000., chisqr3=100000.;
 
   m_x0=par[0];
   m_u0=tan(par[1]);
@@ -623,16 +591,24 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
   m_v0=tan(par[3]);
   CalcChisquare();
 
+#if 0
+  Double_t chisqr1 = 100000., chisqr2=100000., chisqr3=100000.;
   chisqr1 = m_chisqr;
+  Double_t m_Ax_r = m_Ax*TMath::Cos(m_Au_atan);
+  Double_t m_Ay_r = m_Ay*TMath::Cos(m_Av_atan);
+  Double_t m_Au_theta = TMath::ATan(-1./m_Au);
+  Double_t m_Av_theta = TMath::ATan(-1./m_Av);
+  Double_t m_Ax_r2 = m_Ax*TMath::Sin(m_Au_theta);
+  Double_t m_Ay_r2 = m_Ay*TMath::Sin(m_Av_theta);
+  Double_t par2[NumOfParam]={m_Ax_r, m_Au_atan, m_Ay_r, m_Av_atan};
+  Double_t par3[NumOfParam]={m_Ax_r2, m_Au_theta, m_Ay_r2, m_Av_theta};
 
-  m_minuit->SetFCN (fcn2_rt2);
-  for(Int_t i = 0; i<NumOfParam; i++)
-  {
+  m_minuit->SetFCN(fcn2_rt2);
+  for(Int_t i=0; i<NumOfParam; i++){
     m_minuit->mnparm(i, name[i], par2[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
   }
   m_minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
-  for(Int_t i=0; i<NumOfParam; i++)
-  {
+  for(Int_t i=0; i<NumOfParam; i++){
     m_minuit->mnpout(i, name[i], par2[i], err[i], bnd1, bnd2, Err);
   }
   m_x0=par2[0]/TMath::Cos(par2[1]);
@@ -642,15 +618,12 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
   CalcChisquare();
   chisqr2 = m_chisqr;
 
-
-  m_minuit->SetFCN (fcn2_rt);
-  for(Int_t i = 0; i<NumOfParam; i++)
-  {
+  m_minuit->SetFCN(fcn2_rt);
+  for(Int_t i = 0; i<NumOfParam; i++){
     m_minuit->mnparm(i, name[i], par3[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
   }
   m_minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
-  for(Int_t i=0; i<NumOfParam; i++)
-  {
+  for(Int_t i=0; i<NumOfParam; i++){
     m_minuit->mnpout(i, name[i], par3[i], err[i], bnd1, bnd2, Err);
   }
   m_x0=par3[0]/TMath::Sin(par3[1]);
@@ -675,12 +648,9 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
     m_v0=tan(par2[3]);
     CalcChisquare();
   }
-
-  // m_x0 += m_u0*tpc::ZTarget;
-  // m_y0 += m_v0*tpc::ZTarget;
-
-  // std::cout<<"chisqr1="<<chisqr1<<", chisqr2="<<chisqr2<<", chisqr3="<<chisqr3<<std::endl;
-  // std::cout<<"m_chisqr="<<m_chisqr<<std::endl;
+  std::cout<<"chisqr1="<<chisqr1<<", chisqr2="<<chisqr2<<", chisqr3="<<chisqr3<<std::endl;
+  std::cout<<"m_chisqr="<<m_chisqr<<std::endl;
+#endif
 
   if(m_chisqr > MaxChisqr || TMath::IsNaN(m_chisqr))
     return false;
@@ -691,10 +661,7 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
     auto hit = m_hit_array[i];
     TVector3 pos = hit->GetLocalHitPos();
     TVector3 Res = hit->GetResolutionVect();
-    if(!Residual_check(pos,Res)){
-      // std::cout<<"false layer:"<<i<<", n="<<m_hit_array.size()<<std::endl;
-      // std::cout<<"m_x0:"<<m_x0<<", m_y0="<<m_y0<<std::endl;
-      // std::cout<<"m_u0:"<<m_u0<<", m_v0="<<m_v0<<", m_chisqr="<<m_chisqr<<std::endl;
+    if(!ResidualIsWithinResolution(pos,Res)){
       m_hit_array.erase(m_hit_array.begin()+i);
       ++false_layer;
       --i;
@@ -704,10 +671,6 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
   }
 
   if(false_layer == 0){
-    //std::cout<<"return true"<<std::endl;
-    // hddaq::cout << "hough init param: u=" << m_Au << " x=" << m_Ax << " v="<< m_Av << " y=" << m_Ay << std::endl;
-    // hddaq::cout << "lsm   init param: u=" << lsm_u << " x=" << lsm_x << " v="<< lsm_v << " y=" << lsm_y << std::endl;
-    // hddaq::cout << "fitted param    : u0=" << m_u0 << " x0=" << m_x0 << " v="<< m_v0 << " y=" << m_y0 << std::endl;
 #if DebugEvDisp
     {
       TLine lxz, lyz;
@@ -750,30 +713,30 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
 
 //_____________________________________________________________________________
 Bool_t
-TPCLocalTrack::Residual_check(TVector3 pos, TVector3  Res)
+TPCLocalTrack::ResidualIsWithinResolution(const TVector3& position,
+                                          const TVector3& resolution)
 {
-  Bool_t status_rescheck=false;
-  // TVector3 x0(m_x0, m_y0, 0.);
-  // TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1.);
   TVector3 x0(m_x0, m_y0, tpc::ZTarget);
   TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, tpc::ZTarget+1.);
   TVector3 u = (x1-x0).Unit();
-  TVector3 AP = pos-x0;
+  TVector3 AP = position-x0;
   Double_t dist_AX = u.Dot(AP);
   TVector3 AI(x0.x()+(u.x()*dist_AX),
 	      x0.y()+(u.y()*dist_AX),
 	      x0.z()+(u.z()*dist_AX));
-  TVector3 d = pos-AI;
-
-  if(d.Mag()<Res.Mag()*res_check_factor)
-    status_rescheck = true;
-  else{
-    // std::cout<<"false hit"<<std::endl;
-    // std::cout<<"hitpos:"<<pos<<", calcpos:"<<AI<<std::endl;
-    // std::cout<<"dMag:"<<d.Mag()<<", Res:"<<Res.Mag()<<", d:"<<d<<std::endl;
+  TVector3 residual = position-AI;
+  if(residual.Mag() < resolution.Mag()*MaxResidual){
+    return true;
+  }else{
+    // std::cout << "false hit" << std::endl;
+    // std::cout << "hitpos=" << position << ", calcpos=" << AI << std::endl;
+    // std::cout << "|residual|=" << residual.Mag()
+    //           << ", residual=" << residual
+    //           << ", |resolution|=" << resolution.Mag()
+    //           << ", resolution=" << resolution
+    //           << std::endl;
+    return false;
   }
-
-  return status_rescheck;
 }
 
 //_____________________________________________________________________________

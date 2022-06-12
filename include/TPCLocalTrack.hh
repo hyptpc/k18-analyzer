@@ -79,7 +79,8 @@ public:
   TPCLTrackHit* GetHit(Int_t i) const { return m_hit_array.at(i); }
   Bool_t        IsFitted() const { return m_is_fitted; }
   Bool_t        IsCalculated() const { return m_is_calculated; }
-  Bool_t        Residual_check(TVector3 pos, TVector3 Res);
+  Bool_t        ResidualIsWithinResolution(const TVector3& position,
+                                           const TVector3& resolution);
 
   void SetAx(Double_t Ax) { m_Ax = Ax; }
   void SetAy(Double_t Ay) { m_Ay = Ay; }

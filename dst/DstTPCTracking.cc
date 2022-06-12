@@ -482,7 +482,7 @@ ConfMan::InitializeHistograms()
 {
   HB1(1, "Status", 21, 0., 21.);
   HB1(10, "#Tracks TPC", 40, 0., 40.);
-  HB1(11, "#Hits of Track TPC", 15, 0., 15.);
+  HB1(11, "#Hits of Track TPC", 50, 0., 50.);
   HB1(12, "Chisqr TPC", 500, 0., 500.);
   HB1(13, "LayerId TPC", 35, 0., 35.);
   HB1(14, "X0 TPC", 400, -100., 100.);
