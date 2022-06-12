@@ -79,8 +79,6 @@ const auto& valueHall = ConfMan::Get<Double_t>("HSFLDHALL");
 //   19.0  + localPosBh2X_dX,
 //   41.5  + localPosBh2X_dX};
 
-const Double_t zTgtTPC = -143.;
-
 //_____________________________________________________________________________
 // Local Functions
 
@@ -364,8 +362,7 @@ namespace tpc
 //       }
 //     }
 //     //temporary (x0, y0) are position at Target position
-//     //Double_t zTgtTPC = -143.;
-//     track->SetAx(p0[tracki]+p1[tracki]*zTgtTPC);
+//     track->SetAx(p0[tracki]+p1[tracki]*tpc::ZTarget);
 //     track->SetAu(p1[tracki]);
 
 //     if(track->DoFit(MinNumOfHits)){
@@ -499,17 +496,13 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
         if(dist > MaxHoughWindow) continue;
         if(cl->GetClusterSize() < MinClusterSize) continue;
 	if(layer < MaxLayerCut){
-          auto lhit = new TPCLTrackHit(hit);
-          // lhit->Print();
-          track->AddTPCHit(lhit);
-          // track_he->AddTPCHit(new TPCLTrackHit(hit));
+          track->AddTPCHit(new TPCLTrackHit(hit));
           flag[layer][ci]++;
         }
       }
     }
     //temporary (x0, y0) are position at Target position
-    //Double_t zTgtTPC = -143.;
-    track->SetAx(p0[tracki]+p1[tracki]*zTgtTPC);
+    track->SetAx(p0[tracki]+p1[tracki]*tpc::ZTarget);
     track->SetAu(p1[tracki]);
     // hddaq::cout << FUNC_NAME << " TPCTrack::GetNhit() = " << track->GetNHit() << std::endl;
 
@@ -623,7 +616,7 @@ LocalTrackSearchHelix(const std::vector<TPCHitContainer>& HitCont,
 	    Double_t rd = Ci_hist->GetXaxis()->GetBinCenter(ird+1);
 	    for(Int_t ip=0; ip<nBin_p; ++ip){
 	      Double_t x = -pos.x();
-	      Double_t y = pos.z()-zTgtTPC;
+	      Double_t y = pos.z()-tpc::ZTarget;
 	      Double_t p = Ci_hist->GetZaxis()->GetBinCenter(ip+1);
 	      Double_t r = p/(Const*1.);//1T
 
@@ -723,7 +716,7 @@ LocalTrackSearchHelix(const std::vector<TPCHitContainer>& HitCont,
 	  if(hit->GetHoughFlag()>0) continue;
 	  TVector3 pos = hit->GetPosition();
 	  Double_t x = -pos.x();
-	  Double_t y = pos.z()-zTgtTPC;
+	  Double_t y = pos.z()-tpc::ZTarget;
 	  // Double_t de = hit->GetCharge();
 	  // Double_t xcenter1 = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
 	  // Double_t ycenter1 = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);

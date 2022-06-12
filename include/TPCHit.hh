@@ -37,6 +37,7 @@ protected:
   TPCRawHit*            m_rhit;
   Int_t                 m_layer;
   Int_t                 m_row;
+  Double_t              m_mrow;
   Int_t                 m_pad;
   Double_t              m_pedestal;
   Double_t              m_rms;
@@ -53,14 +54,6 @@ protected:
   Int_t                 m_hough_flag;
   std::vector<Int_t>    m_houghY_num;
   TPCCluster*           m_parent_cluster;
-
-  Double_t m_mrow;
-  Bool_t   m_tpc_flag;
-
-  Double_t m_resx;
-  Double_t m_resy;
-  Double_t m_resz;
-  Double_t m_res;
 
   Bool_t m_belong_track;
 
@@ -102,7 +95,6 @@ public:
   DCHit*          GetHitXZ() const { return m_hit_xz; }
   DCHit*          GetHitYZ() const { return m_hit_yz; }
   Double_t        GetMRow() const { return m_mrow; }
-  Bool_t          GetTPCFlag() const { return m_tpc_flag; }
   Int_t           GetHoughY_num(Int_t i) const { return m_houghY_num.at(i); }
   Int_t           GetHoughY_num_size() const { return m_houghY_num.size(); }
   const TVector3& GetPosition(Int_t i=0) const { return m_position.at(i); }
@@ -130,11 +122,6 @@ public:
   void            SetWirePosition(Double_t wpos) { m_wpos = wpos; }
   void            SetMRow(Double_t mrow) { m_mrow = mrow; }
   void            SetParentCluster(TPCCluster* parent){ m_parent_cluster = parent; }
-  void            SetTPCFlag(Bool_t flag) { m_tpc_flag = flag; }
-  void            SetResX(Double_t resx) { m_resx = resx; }
-  void            SetResY(Double_t resy) { m_resy = resy; }
-  void            SetResZ(Double_t resz) { m_resz = resz; }
-  void            SetRes(Double_t res) { m_res = res; }
   void            SetHoughFlag(Int_t hough_flag) { m_hough_flag = hough_flag; }
   void            SetHoughYnum(Int_t houghY_num);
 

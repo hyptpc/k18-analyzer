@@ -14,8 +14,14 @@
 #include <cstring>
 #include <stdexcept>
 #include <sstream>
+
 #include <TH2D.h>
 #include <TF1.h>
+#include <TF2.h>
+#include <TMinuit.h>
+#include <TMath.h>
+#include <TROOT.h>
+
 #include <std_ostream.hh>
 
 //#include "DCAnalyzer.hh"
@@ -27,12 +33,8 @@
 #include "MathTools.hh"
 #include "PrintHelper.hh"
 #include "HodoParamMan.hh"
+#include "TPCPadHelper.hh"
 #include "UserParamMan.hh"
-#include "TMinuit.h"
-#include "TF2.h"
-
-#include "TMath.h"
-#include "TROOT.h"
 
 //#define HSMagnetON 1
 
@@ -50,7 +52,6 @@ namespace
   const double& zK18tgt = gGeom.LocalZ("K18Target");
   const double& zTgt    = gGeom.LocalZ("Target");
   // Temporary
-  const double& zTgtTPC    = -143.;
   const double& r_HTOF    = 337.;
   const double& HS_field_0 = 0.9860;
   const double& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
@@ -421,7 +422,7 @@ TPCLocalTrackHelix::GetHTOFSeg(double min_layer_t, double max_layer_t, double ma
   fhtof.SetParameter(1, m_cy);
   fhtof.SetParameter(2, m_r);
   fhtof.SetParameter(3, 0.);
-  fhtof.SetParameter(4, -1.*zTgtTPC);
+  fhtof.SetParameter(4, -1.*tpc::ZTarget);
   fhtof.SetParameter(5, r_HTOF);
   double close_t1, close_t2;
   fhtof.GetMinimumXY(close_t1, close_t2);
@@ -478,7 +479,7 @@ static inline void fcn2(int &npar, double *gin, double &f, double *par, int ifla
 
   for(int i=0; i<gNumOfHits; ++i){
     TVector3 pos(-gHitPos[i].X(),
-		 gHitPos[i].Z()-zTgtTPC,
+		 gHitPos[i].Z()-tpc::ZTarget,
 		 gHitPos[i].Y());
     fpar[5] = pos.X();
     fpar[6] = pos.Y();
@@ -493,7 +494,7 @@ static inline void fcn2(int &npar, double *gin, double &f, double *par, int ifla
     TVector3 fittmp(x, y, z);
     TVector3 fittmp_(-1.*fittmp.X(),
 		     fittmp.Z(),
-		     fittmp.Y()+zTgtTPC);
+		     fittmp.Y()+tpc::ZTarget);
 
 
     double tmp_t = atan2(pos.Y()-par[1], pos.X()-par[0]);
@@ -504,7 +505,7 @@ static inline void fcn2(int &npar, double *gin, double &f, double *par, int ifla
 
     TVector3 fittmp2_(-tmpx,
     		      tmpz,
-    		      tmpy+zTgtTPC);
+    		      tmpy+tpc::ZTarget);
 
     TVector3 d = gHitPos[i] - fittmp_;
     TVector3 Res = gRes[i];
@@ -535,7 +536,7 @@ static inline void fcn2_circ(int &npar, double *gin, double &f, double *par, int
 		  gHitPos[i].Z());
 
     TVector2 pos(-gHitPos[i].X(),
-		 gHitPos[i].Z()-zTgtTPC);
+		 gHitPos[i].Z()-tpc::ZTarget);
     fpar[3] = pos.X();
     fpar[4] = pos.Y();
 
@@ -546,12 +547,12 @@ static inline void fcn2_circ(int &npar, double *gin, double &f, double *par, int
 
     TVector2 fittmp(x, y);
     TVector2 fittmp_(-1.*fittmp.X(),
-		     fittmp.Y()+zTgtTPC);
+		     fittmp.Y()+tpc::ZTarget);
     // double tmp_t = atan2(pos.Y()-par[1], pos.X()-par[0]);
     // double  tmpx = par[0] + par[3]*cos(tmp_t);
     // double  tmpy = par[1] + par[3]*sin(tmp_t);
     // TVector2 fittmp2_(-tmpx,
-    // 		      tmpy+zTgtTPC);
+    // 		      tmpy+tpc::ZTarget);
     TVector2 d = pos_ - fittmp_;
 
     chisqr += pow(d.X()/gRes[i].x(), 2) + pow(d.Y()/gRes[i].z(), 2);
@@ -577,7 +578,7 @@ static inline void fcn2_li(int &npar, double *gin, double &f, double *par, int i
 
   for(int i=0; i<gNumOfHits; ++i){
     TVector3 pos(-gHitPos[i].X(),
-		 gHitPos[i].Z()-zTgtTPC,
+		 gHitPos[i].Z()-tpc::ZTarget,
 		 gHitPos[i].Y());
     double tmpx = pos.X();
     double tmpy = pos.Y();
@@ -749,10 +750,10 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
 
   // for invert charge fit
   double tmpx_min = -gHitPos[0].X();
-  double tmpy_min = gHitPos[0].Z()-zTgtTPC;
+  double tmpy_min = gHitPos[0].Z()-tpc::ZTarget;
   double tmpt_min = atan2(tmpy_min - par_circ[1], tmpx_min - par_circ[0]);
   double tmpx_max = -gHitPos[n-1].X();
-  double tmpy_max = gHitPos[n-1].Z()-zTgtTPC;
+  double tmpy_max = gHitPos[n-1].Z()-tpc::ZTarget;
   double tmpt_max = atan2(tmpy_max - par_circ[1], tmpx_max - par_circ[0]);
 
   double mid_t_circ = (tmpt_min + tmpt_max)/2.;
@@ -815,7 +816,7 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
     for(int ti=0; ti<theta_ndiv; ti++){
       double theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
       double tmpx = -gHitPos[i].X();
-      double tmpy = gHitPos[i].Z()-zTgtTPC;
+      double tmpy = gHitPos[i].Z()-tpc::ZTarget;
       double tmpz = gHitPos[i].Y();
       //      double tmp_t = atan2(tmpy-m_Acy, tmpx-m_Acx);
       double tmp_t = atan2(tmpy - min_par_circ[1],
@@ -1127,7 +1128,7 @@ TPCLocalTrackHelix::Residual_check(TVector3 pos, TVector3  Res, double resi)
 
   double par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 pos_(-pos.X(),
-		pos.Z()-zTgtTPC,
+		pos.Z()-tpc::ZTarget,
 		pos.Y());
   double fpar[8];
   for(int ip=0; ip<5; ++ip){
@@ -1142,7 +1143,7 @@ TPCLocalTrackHelix::Residual_check(TVector3 pos, TVector3  Res, double resi)
   TVector3 fittmp = GetPosition(par, min_t);
   TVector3 fittmp_(-fittmp.X(),
 		   fittmp.Z(),
-		   fittmp.Y()+zTgtTPC);
+		   fittmp.Y()+tpc::ZTarget);
 
 
   TVector3 d = pos - fittmp_;
@@ -1163,7 +1164,7 @@ TPCLocalTrackHelix::GetTcal(TVector3 pos)
 {
   double par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 pos_(-pos.X(),
-		pos.Z()-zTgtTPC,
+		pos.Z()-tpc::ZTarget,
 		pos.Y());
   double fpar[8];
   for(int ip=0; ip<5; ++ip){
@@ -1202,7 +1203,7 @@ TPCLocalTrackHelix::CalcChi2()
     TVector3 pos = hitp->GetLocalHitPos();
     TVector3 Res = hitp->GetResolutionVect();
     TVector3 pos_(-pos.X(),
-		  pos.Z()-zTgtTPC,
+		  pos.Z()-tpc::ZTarget,
 		  pos.Y());
 
     fpar[5] = pos_.X();
@@ -1213,7 +1214,7 @@ TPCLocalTrackHelix::CalcChi2()
     TVector3 fittmp = GetPosition(par, min_t);
     TVector3 fittmp_(-fittmp.X(),
 		     fittmp.Z(),
-		     fittmp.Y()+zTgtTPC);
+		     fittmp.Y()+tpc::ZTarget);
     TVector3 d = pos - fittmp_;
 
     chisqr += pow(d.x()/Res.x(), 2) + pow(d.y()/Res.y(), 2) + pow(d.z()/Res.z(), 2);
@@ -1246,7 +1247,7 @@ TPCLocalTrackHelix::CalcChi2_circle(double par[3])
     TVector2 pos2(pos.X(), pos.Z());
     TVector3 Res = hitp->GetResolutionVect();
     TVector2 pos_(-pos.X(),
-		  pos.Z()-zTgtTPC);
+		  pos.Z()-tpc::ZTarget);
 
     fpar[3] = pos_.X();
     fpar[4] = pos_.Y();
@@ -1257,7 +1258,7 @@ TPCLocalTrackHelix::CalcChi2_circle(double par[3])
 
     TVector2 fittmp(x, y);
     TVector2 fittmp_(-1.*fittmp.X(),
-		     fittmp.Y()+zTgtTPC);
+		     fittmp.Y()+tpc::ZTarget);
 
     TVector2 d = pos2 - fittmp_;
 

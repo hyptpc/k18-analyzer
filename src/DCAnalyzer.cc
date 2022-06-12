@@ -87,7 +87,6 @@ const Double_t kMWPCClusteringWireExtension =  1.0; // [mm]
 const Double_t kMWPCClusteringTimeExtension = 10.0; // [nsec]
 
 const Int_t    MaxNumOfTrackTPC = 100;
-const Double_t zTgtTPC = -143.;
 const Int_t    MaxRowDifTPC = 2; // for cluster
 
 //_____________________________________________________________________________
@@ -494,7 +493,7 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
       TVector3 pos = hit->GetPos();
       if(fabs(pos.X())<beam_x&&
          fabs(pos.Y())<beam_y&&
-         pos.Z()<zTgtTPC){
+         pos.Z()<tpc::ZTarget){
         ValidCand[layer].push_back(hit);
         hit->SetHoughYnum(0);
         flag[layer][ci]++;
@@ -537,7 +536,7 @@ DCAnalyzer::HoughYCut(Double_t min_y, Double_t max_y)
     Double_t mr = Li_hist_y.GetYaxis()->GetBinCenter(my);
     p0[tracki] = mr/sin(mtheta);
     p1[tracki] = -cos(mtheta)/sin(mtheta);
-    Double_t y_tgt = p0[tracki]+p1[tracki]*zTgtTPC;
+    Double_t y_tgt = p0[tracki]+p1[tracki]*tpc::ZTarget;
 
     Bool_t hough_flag = true;
     for(Int_t i=0; i<hough_x.size(); ++i){

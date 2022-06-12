@@ -38,17 +38,12 @@ private:
   Bool_t   m_is_fitted;     // flag of DoFit()
   Bool_t   m_is_calculated; // flag of Calculate()
   std::vector<TPCLTrackHit*> m_hit_array;
-  std::vector<TPCCluster*> m_cluster_array;
-  // TH2D *hist;
+  // std::vector<TPCCluster*> m_cluster_array;
 
   Double_t m_Ax;
   Double_t m_Ay;
   Double_t m_Au;
   Double_t m_Av;
-  // Double_t m_Chix;
-  // Double_t m_Chiy;
-  // Double_t m_Chiu;
-  // Double_t m_Chiv;
 
   Double_t m_Az;
   Double_t m_Bz;
@@ -62,22 +57,24 @@ private:
   Double_t m_chisqr;
   Bool_t   m_good_for_tracking;
   Double_t m_n_iteration;
-  // for SSD
+
   Double_t m_de;
   TMinuit *m_minuit;
 
 public:
+  static const Int_t NumOfParam = 4;
+
   void          AddTPCHit(TPCLTrackHit *hit);
-  void          AddTPCCluster(TPCCluster *cluster);//not supported
+  // void          AddTPCCluster(TPCCluster *cluster);//not supported
   void          ClearHits();
   void          Calculate();
   void          DeleteNullHit();
   Bool_t        DoFit();
   Bool_t        DoFit(Int_t min_hits); // obsolete
   Bool_t        DoFitLinear(Int_t min_hits); // obsolete
-  Int_t         GetNDF() const;
+  Int_t         GetNDF() const { return m_hit_array.size() - NumOfParam;  }
   Int_t         GetNHit() const { return m_hit_array.size();  }
-  TPCLTrackHit* GetHit(std::size_t nth) const;
+  TPCLTrackHit* GetHit(Int_t i) const { return m_hit_array.at(i); }
   Bool_t        IsFitted() const { return m_is_fitted; }
   Bool_t        IsCalculated() const { return m_is_calculated; }
   Bool_t        Residual_check(TVector3 pos, TVector3 Res);
@@ -90,10 +87,6 @@ public:
   void SetAv(Double_t Av) { m_Av = Av; }
   void SetAz(Double_t Az){  m_Az = Az; }
   void SetBz(Double_t Bz){  m_Bz = Bz; }
-  // void SetChix(Double_t Chix) { m_Chix = Chix; }
-  // void SetChiy(Double_t Chiy) { m_Chiy = Chiy; }
-  // void SetChiu(Double_t Chiu) { m_Chiu = Chiu; }
-  // void SetChiv(Double_t Chiv) { m_Chiv = Chiv; }
   void SetDe(Double_t de) { m_de = de; }
 
   Double_t GetX0() const { return m_x0; }
@@ -124,7 +117,7 @@ public:
   Bool_t   GoodForTracking(Bool_t status)
     { Bool_t ret = m_good_for_tracking; m_good_for_tracking = status; return ret; }
   Double_t GetDe() const { return m_de; }
-  void   Print(const std::string& arg="", std::ostream& ost=hddaq::cout) const;
+  void   Print(const TString& arg="", std::ostream& ost=hddaq::cout) const;
 
 };
 

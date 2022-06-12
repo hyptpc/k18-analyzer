@@ -192,7 +192,7 @@ EventDisplayShs::Initialize( void )
       Y[3] = (cRad-(pLength/2.))*TMath::Sin((j+1)*dTheta+sTheta);
       Y[4] = (cRad-(pLength/2.))*TMath::Sin(j*dTheta+sTheta);
       Y[0] = Y[4];
-      for (Int_t k=0; k<5; ++k) X[k] -=143;
+      for (Int_t k=0; k<5; ++k) X[k] += tpc::ZTarget;
       m_tpc_adc2d->AddBin(5, X, Y);
       m_tpc_tdc2d->AddBin(5, X, Y);
     }

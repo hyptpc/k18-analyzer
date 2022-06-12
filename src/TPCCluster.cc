@@ -31,17 +31,17 @@ TPCCluster::TPCCluster(Int_t layer, const TPCHitContainer& HitCont)
     m_cluster_de(),
     m_cluster_position(),
     m_pos_center(),
-    m_hitcont(HitCont), // shallow copy
+    m_hit_array(HitCont), // shallow copy
     m_pos_calculated(false),
     m_mrow(),
     m_mrow_int(),
     m_cluster_de_center(),
     m_mean_hit(new TPCHit(layer, TMath::QuietNaN()))
 {
-  auto itr = m_hitcont.begin();
-  while(itr != m_hitcont.end()){
+  auto itr = m_hit_array.begin();
+  while(itr != m_hit_array.end()){
     if(!*itr || !(*itr)->IsGood()){
-      itr = m_hitcont.erase(itr);
+      itr = m_hit_array.erase(itr);
     }else{
       itr++;
     }
@@ -56,7 +56,7 @@ TPCCluster::TPCCluster(Double_t x, Double_t y, Double_t z, Double_t de)
     m_cluster_de(de),
     m_cluster_position(x, y, z),
     m_pos_center(x, y, z),
-    m_hitcont(),
+    m_hit_array(),
     m_pos_calculated(true), // for MC data
     m_mrow(),
     m_mrow_int(tpc::getRowID(tpc::findPadID(z, x))),
@@ -78,7 +78,7 @@ TPCCluster::~TPCCluster()
 void
 TPCCluster::ClearTPCHits()
 {
-  m_hitcont.clear();
+  m_hit_array.clear();
 }
 
 //_____________________________________________________________________________
@@ -86,7 +86,7 @@ TPCCluster::ClearTPCHits()
 // TPCCluster::AddTPCHit(TPCHit* hit)
 // {
 //   if(hit){
-//     m_hitcont.push_back(hit);
+//     m_hit_array.push_back(hit);
 //     m_cluster_de += hit->GetCDe();
 //     m_pos_calculated = false;
 //   }
@@ -96,13 +96,7 @@ TPCCluster::ClearTPCHits()
 Bool_t
 TPCCluster::Calculate()
 {
-// #if WeightedMean
-//   return CalculateWeightedMean();
-// #endif
-// #if WeightedMeanTheta
-  // CalculateWeightedMeanTheta();
-// #endif
-  static const TVector2 target_center(0., -143.);
+  static const TVector2 target_center(0., tpc::ZTarget); // (X, Z)
   m_cluster_de = 0.;
   m_cluster_position.SetXYZ(0., 0., 0.);
   m_mrow = 0.;
@@ -110,7 +104,7 @@ TPCCluster::Calculate()
   Double_t mean_y = 0.;
   const Double_t R = tpc::GetRadius(m_layer);
   Double_t max_phi=-1.;
-  for(const auto& hit: m_hitcont){
+  for(const auto& hit: m_hit_array){
     const auto& pos = hit->GetPosition();
     TVector2 xz_vector(pos.X(), pos.Z());
     xz_vector -= target_center;
@@ -158,14 +152,14 @@ TPCCluster::CalculateWeightedMean()
 {
   if(m_pos_calculated) return false;
   Double_t x=0, y=0, z=0, de=0, dummy_padid=0, mrow=0;
-  for(Int_t hiti=0; hiti<m_hitcont.size(); hiti++) {
-    x+=m_hitcont[hiti]->GetX()*m_hitcont[hiti]->GetCDe();
-    y+=m_hitcont[hiti]->GetY()*m_hitcont[hiti]->GetCDe();
-    z+=m_hitcont[hiti]->GetZ()*m_hitcont[hiti]->GetCDe();
+  for(Int_t hiti=0; hiti<m_hit_array.size(); hiti++) {
+    x+=m_hit_array[hiti]->GetX()*m_hit_array[hiti]->GetCDe();
+    y+=m_hit_array[hiti]->GetY()*m_hit_array[hiti]->GetCDe();
+    z+=m_hit_array[hiti]->GetZ()*m_hit_array[hiti]->GetCDe();
 
-    dummy_padid+=(Double_t)(m_hitcont[hiti]->GetPad())*m_hitcont[hiti]->GetCDe();
-    mrow+=(Double_t)(m_hitcont[hiti]->GetRow())*m_hitcont[hiti]->GetCDe();
-    de+=m_hitcont[hiti]->GetCDe();
+    dummy_padid+=(Double_t)(m_hit_array[hiti]->GetPad())*m_hit_array[hiti]->GetCDe();
+    mrow+=(Double_t)(m_hit_array[hiti]->GetRow())*m_hit_array[hiti]->GetCDe();
+    de+=m_hit_array[hiti]->GetCDe();
   }
   if(de){
     m_cluster_position.SetXYZ(x/de, y/de, z/de);
@@ -177,10 +171,10 @@ TPCCluster::CalculateWeightedMean()
       m_mrow_int = (Int_t)m_mrow;
     else
       m_mrow_int = 1+(Int_t)m_mrow;
-    for(Int_t hiti=0; hiti<m_hitcont.size(); hiti++) {
-      if(m_mrow_int==m_hitcont[hiti]->GetRow()){
-	m_cluster_de_center = m_hitcont[hiti]->GetCDe();
-	m_pos_center = m_hitcont[hiti]->GetPosition();
+    for(Int_t hiti=0; hiti<m_hit_array.size(); hiti++) {
+      if(m_mrow_int==m_hit_array[hiti]->GetRow()){
+	m_cluster_de_center = m_hit_array[hiti]->GetCDe();
+	m_pos_center = m_hit_array[hiti]->GetPosition();
       }
     }
   }
@@ -201,7 +195,7 @@ TPCCluster::CalculateWeightedMeanTheta()
   if(m_pos_calculated) return false;
   m_cluster_de = 0.;
   [[maybe_unused]] Double_t x=0, y=0, z=0, dummy_padid=0, mrow=0;
-  for(const auto& hit: m_hitcont){
+  for(const auto& hit: m_hit_array){
     const Double_t de = hit->GetCDe();
     y += hit->GetY()*de;
 
@@ -230,7 +224,7 @@ TPCCluster::CalculateWeightedMeanTheta()
       m_mrow_int = (Int_t)m_mrow;
     else
       m_mrow_int = 1+(Int_t)m_mrow;
-    for(const auto& hit: m_hitcont){
+    for(const auto& hit: m_hit_array){
       if(m_mrow_int==hit->GetRow()){
 	m_cluster_de_center = hit->GetCDe();
 	m_pos_center = hit->GetPosition();
@@ -304,8 +298,8 @@ TPCCluster::Print(Option_t* opt) const
               << "de = "  << m_cluster_de << std::endl
               << "position = " << m_cluster_position << std::endl;
   hddaq::cout << "L" << std::setw(2) << m_layer << " size="
-              << std::setw(3) << m_hitcont.size() << "  ";
-  for(const auto& hit: m_hitcont){
+              << std::setw(3) << m_hit_array.size() << "  ";
+  for(const auto& hit: m_hit_array){
     hddaq::cout << hit->GetRow()
                 << "(" << hddaq::unpacker::esc::k_purple
                 << hit->GetCDe() << hddaq::unpacker::esc::k_default_color
@@ -314,7 +308,7 @@ TPCCluster::Print(Option_t* opt) const
                 << ")" << " ";
     // const auto& pos = hit->GetPosition();
     // TVector2 xz_vector(pos.X(), pos.Z());
-    // TVector2 target_position(0., -143.);
+    // TVector2 target_position(0., tpc::ZTarget);
     // hddaq::cout << " R=" << (xz_vector - target_position).Mod() << std::endl;
   }
   hddaq::cout << std::endl;

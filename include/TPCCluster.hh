@@ -30,7 +30,7 @@ private:
   Double_t        m_cluster_de;
   TVector3        m_cluster_position;
   TVector3        m_pos_center;
-  TPCHitContainer m_hitcont;
+  TPCHitContainer m_hit_array;
   Bool_t          m_pos_calculated;
   Double_t        m_mrow;
   Int_t           m_mrow_int;
@@ -40,10 +40,10 @@ private:
 public:
   void     AddTPCHit(TPCHit* hit);
   Bool_t   Calculate();
-  Bool_t   CalculateWeightedMean();
-  Bool_t   CalculateWeightedMeanTheta();
+  Bool_t   CalculateWeightedMean(); // unused
+  Bool_t   CalculateWeightedMeanTheta(); // unused
   void     ClearTPCHits();
-  Int_t    GetClusterSize() const { return m_hitcont.size(); }
+  Int_t    GetClusterSize() const { return m_hit_array.size(); }
   Double_t GetDe() const { return m_cluster_de; }
   TPCHit*  GetMeanHit() const { return m_mean_hit; }
   Bool_t   IsGood() const { return m_is_good; }
@@ -62,7 +62,7 @@ public:
   Double_t ResX() const;
   Double_t ResY() const;
   Double_t ResZ() const ;
-  const TPCHitContainer& GetHitContainer() const { return m_hitcont; }
+  const TPCHitContainer& GetHitContainer() const { return m_hit_array; }
 };
 
 //_____________________________________________________________________________

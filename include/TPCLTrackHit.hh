@@ -38,6 +38,7 @@ private:
   TVector3  m_res;
 
 public:
+  Bool_t IsGood() const { return (m_hit && m_hit->IsGood()); }
   void   SetLocalHitPos(TVector3 xl)        { m_local_hit_pos = xl; }
   void   SetCalPosition(TVector3 cal_pos)        { m_cal_pos = cal_pos; }
   void   SetCalX0Y0(Double_t x0, Double_t y0)          { m_x0 = x0; m_y0 = y0; }

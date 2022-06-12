@@ -63,16 +63,16 @@ const Int_t MaxADC = 4096;
 const Int_t MaxIteration = 3;
 const Int_t MaxPeaks = 20;
 const Double_t MaxChisqr = 1000.;
-const Double_t zTgtTPC = -143.;
 }
 
 //_____________________________________________________________________________
 TPCHit::TPCHit(TPCRawHit* rhit)
   : DCHit(rhit->LayerId(), rhit->RowId()),
     m_rhit(rhit),
-    m_layer(),
-    m_row(),
-    m_pad(),
+    m_layer(rhit->LayerId()),
+    m_row(rhit->RowId()),
+    m_mrow(TMath::Nint(m_row)),
+    m_pad(tpc::GetPadId(m_layer, m_row)),
     m_pedestal(TMath::QuietNaN()),
     m_rms(TMath::QuietNaN()),
     m_de(),
@@ -84,48 +84,45 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_is_good(false),
     m_is_calculated(false),
     m_hough_flag(),
-    m_mrow(),
-    m_tpc_flag(),
-    m_resx(),
-    m_resy(),
-    m_resz(),
+    m_houghY_num(),
     m_belong_track(false),
     m_hit_xz(),
     m_hit_yz()
 {
-  m_houghY_num.clear();
   debug::ObjectCounter::increase(ClassName());
 }
 
 //_____________________________________________________________________________
 TPCHit::TPCHit(Int_t layer, Double_t mrow)
   : DCHit(layer, mrow),
+    m_rhit(),
     m_layer(layer),
-    m_mrow(mrow)
+    m_row(TMath::Nint(mrow)),
+    m_mrow(mrow),
+    m_pad(tpc::GetPadId(layer, m_row)),
+    m_pedestal(TMath::QuietNaN()),
+    m_rms(TMath::QuietNaN()),
+    m_de(),
+    m_time(), // [time bucket]
+    m_chisqr(),
+    m_cde(),
+    m_ctime(), // [ns]
+    m_drift_length(),
+    m_is_good(true),
+    m_is_calculated(false),
+    m_hough_flag(),
+    m_houghY_num(),
+    m_hit_xz(new DCHit(m_layer, m_row)),
+    m_hit_yz(new DCHit(m_layer, m_row))
 {
-  if(mrow-(int)mrow<0.5)
-    m_row = (int)mrow;
-  else
-    m_row = 1+(int)mrow;
-  //  m_row = (int)mrow;
-  //  m_pad = tpc::GetPadId(layer, (int)mrow);
-  m_pad = tpc::GetPadId(layer, m_row);
-  m_is_good = true;
-  m_is_calculated = false;
-  m_hough_flag = 0;
-  m_houghY_num.clear();
-  m_hit_xz = new DCHit(m_layer, m_row);
   // m_hit_xz->SetWirePosition(m_pos.x());
   // m_hit_xz->SetZ(m_pos.z());
   m_hit_xz->SetTiltAngle(0.);
   m_hit_xz->SetDummyPair();
-
-  m_hit_yz = new DCHit(m_layer, m_row);
   // m_hit_yz->SetWirePosition(m_pos.y());
   // m_hit_yz->SetZ(m_pos.z());
   m_hit_yz->SetTiltAngle(90.);
   m_hit_yz->SetDummyPair();
-
   debug::ObjectCounter::increase(ClassName());
 }
 
@@ -579,7 +576,7 @@ TPCHit::GetResolutionX()
   return sqrt(pow(sT_r*cos(alpha),2)+pow(sT_padlen*sin(alpha),2));
 #endif
 
-  double alpha = atan2(pos.X(), pos.Z() - zTgtTPC);
+  double alpha = atan2(pos.X(), pos.Z() - tpc::ZTarget);
   double res_x = sT_r*cos(alpha);
 
   return res_x;
@@ -617,7 +614,7 @@ TPCHit::GetResolutionZ()
   return sqrt(pow(sT_r*sin(alpha),2)+pow(sT_padlen*cos(alpha),2));
 #endif
 
-  double alpha =  atan2(pos.X(), pos.Z() - zTgtTPC);
+  double alpha =  atan2(pos.X(), pos.Z() - tpc::ZTarget);
   double res_z = sT_r*sin(alpha);
 
   return res_z;

@@ -363,7 +363,7 @@ EventDisplay::Initialize()
         Y[3] = (cRad-(pLength/2.))*TMath::Sin((j+1)*dTheta+sTheta);
         Y[4] = (cRad-(pLength/2.))*TMath::Sin(j*dTheta+sTheta);
         Y[0] = Y[4];
-        for (Int_t k=0; k<5; ++k) X[k] -=143;
+        for (Int_t k=0; k<5; ++k) X[k] += tpc::ZTarget;
         m_tpc_adc2d->AddBin(5, X, Y);
         m_tpc_tdc2d->AddBin(5, X, Y);
       }
@@ -2216,7 +2216,7 @@ EventDisplay::DrawBcOutLocalTrack(DCLocalTrack *tp)
 #endif
 #if TPC
   z0 = zK18Target - 400.;
-  z1 = zK18Target - 143.;
+  z1 = zK18Target + tpc::ZTarget;
   x0 = tp->GetX(z0); y0 = tp->GetY(z0);
   x1 = tp->GetX(z1); y1 = tp->GetY(z1);
   z0 -= zK18Target;
@@ -2251,7 +2251,7 @@ EventDisplay::DrawBcOutLocalTrack(DCLocalTrack *tp)
     //   Double_t theta = TMath::Pi()*(np-i)/np;
     //   Double_t pz = b + r*TMath::Cos(theta);
     //   Double_t px = a + r*TMath::Sin(theta);
-    //   if(-143 < pz) break;
+    //   if(tpc::ZTarget < pz) break;
     //   if(pz < -400) continue;
     //   m_BcOutTrackShs->SetPoint(ip++, pz, px);
     // }
@@ -2378,8 +2378,8 @@ EventDisplay::DrawSdcInLocalTrack(DCLocalTrack *tp)
 #endif
 
 // #if TPC
-//   Double_t z0 = zTarget - 143. - 24.1;
-//   Double_t z1 = zTarget - 143. - 24.1 + 400.;
+//   Double_t z0 = zTarget + tpc::ZTarget - 24.1;
+//   Double_t z1 = zTarget + tpc::ZTarget - 24.1 + 400.;
 //   x0 = tp->GetX(z0); y0 = tp->GetY(z0);
 //   x1 = tp->GetX(z1); y1 = tp->GetY(z1);
 //   z0 -= zTarget;

@@ -18,6 +18,8 @@
 
 namespace tpc
 {
+const Double_t ZTarget = -143.; // Target from center
+
 enum EPadParameter
 {
   kLayerID,
@@ -91,7 +93,7 @@ inline Int_t GetPadId(Int_t layerID, Int_t rowID)
   //Int_t padID=0;
   // Check!!!!!!!
   Int_t padID=1;
-  for(int layi = 0 ; layi<layerID; layi++) padID += padParameter[layi][1];
+  for(Int_t layi = 0 ; layi<layerID; layi++) padID += padParameter[layi][1];
   padID+=rowID;
   return padID;
 
@@ -100,8 +102,8 @@ inline Int_t GetPadId(Int_t layerID, Int_t rowID)
 inline Int_t getLayerID(Int_t padID)
 {
   padID-=1;
-  int layer;
-  int sum = 0;
+  Int_t layer;
+  Int_t sum = 0;
 
   for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
   {
@@ -113,8 +115,8 @@ inline Int_t getLayerID(Int_t padID)
 inline Int_t getRowID(Int_t padID)
 {
   padID-=1;
-  int layer, row;
-  int sum = 0;
+  Int_t layer, row;
+  Int_t sum = 0;
 
   for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
   {
@@ -135,8 +137,8 @@ inline Int_t getRowID(Int_t padID)
 inline Double_t getTheta(Int_t padID)
 {
   padID-=1;
-  int layer, row;
-  int sum = 0;
+  Int_t layer, row;
+  Int_t sum = 0;
 
   for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
   {
@@ -169,8 +171,8 @@ inline Double_t GetRadius(Int_t layer)
 inline Double_t getR(Int_t padID)
 {
   padID-=1;
-  int layer;
-  int sum = 0;
+  Int_t layer;
+  Int_t sum = 0;
 
   for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
   {
@@ -180,11 +182,11 @@ inline Double_t getR(Int_t padID)
   return R;
 }
 
-inline TVector3 getPosition(int padID)
+inline TVector3 getPosition(Int_t padID)
 {
   padID-=1;
-  int layer, row;
-  int sum = 0;
+  Int_t layer, row;
+  Int_t sum = 0;
 
   for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
   {
@@ -199,21 +201,21 @@ inline TVector3 getPosition(int padID)
     result.SetZ(0);
   }
   else{
-    double x, z;
+    Double_t x, z;
     //Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
 
     //    x = padParameter[layer][2] * -sin((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.);
-    //    z = padParameter[layer][2] * -cos((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.) - 143.0;
+    //    z = padParameter[layer][2] * -cos((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.) + ZTarget;
 
     // x = padParameter[layer][2] * sin(getTheta(padID+1)*TMath::Pi()/180.);
-    // z = padParameter[layer][2] * cos(getTheta(padID+1)*TMath::Pi()/180.) - 143.0;
+    // z = padParameter[layer][2] * cos(getTheta(padID+1)*TMath::Pi()/180.) + ZTarget;
     //std::cout<<"layer="<<layer<<", row"<<row<<std::endl;
     x = padParameter[layer][2] * sin(getTheta(layer,row)*TMath::Pi()/180.);
-    z = padParameter[layer][2] * cos(getTheta(layer,row)*TMath::Pi()/180.) - 143.0;
+    z = padParameter[layer][2] * cos(getTheta(layer,row)*TMath::Pi()/180.) + ZTarget;
 
     // Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
-    // double x_ = padParameter[layer][2] * -sin((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.);
-    // double z_ = padParameter[layer][2] * -cos((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.) - 143.0;
+    // Double_t x_ = padParameter[layer][2] * -sin((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.);
+    // Double_t z_ = padParameter[layer][2] * -cos((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.) + ZTarget;
     //std::cout<<"x="<<x<<", z="<<z<<", x_="<<x_<<", z_="<<z_<<std::endl;
     result.SetX(x);
     result.SetY(0);
@@ -222,34 +224,25 @@ inline TVector3 getPosition(int padID)
   return result;
 }
 
-inline TVector3 getPosition(int layer, double m_row)
+inline TVector3 getPosition(Int_t layer, Double_t m_row)
 {
   TVector3 result;
-  if (m_row > padParameter[layer][1]){ // out of range
-    result.SetX(0);
-    result.SetY(-1);
-    result.SetZ(0);
+  if(m_row > padParameter[layer][1]){ // out of range
+    return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
   }
   else{
-    double x, z;
-
-    x = padParameter[layer][2] * sin(getTheta(layer, m_row)*TMath::Pi()/180.);
-    z = padParameter[layer][2] * cos(getTheta(layer, m_row)*TMath::Pi()/180.) - 143.0;
-    result.SetX(x);
-    result.SetY(0);
-    result.SetZ(z);
-    //std::cout<<"x="<<x<<", z="<<z<<std::endl;
+    return TVector3(
+      padParameter[layer][2] * sin(getTheta(layer, m_row)*TMath::Pi()/180.),
+      0.,
+      padParameter[layer][2] * cos(getTheta(layer, m_row)*TMath::Pi()/180.) + ZTarget);
   }
-  return result;
 }
 
-
-
-inline int findPadID(double z, double x)
+inline Int_t findPadID(Double_t z, Double_t x)
 {
-  z += 143;
-  double radius = sqrt(x*x + z*z);
-  double angle;
+  z -= ZTarget;
+  Double_t radius = sqrt(x*x + z*z);
+  Double_t angle;
   if (z == 0)
   {
     if (x > 0)   angle = 1.5*TMath::Pi();
@@ -267,7 +260,7 @@ inline int findPadID(double z, double x)
   else  angle = TMath::Pi() + atan(x / z);
   //cout << " angle: " << angle*180/TMath::Pi() << endl;
 
-  int layer, row;
+  Int_t layer, row;
   // find layer_num.
   for (layer = 0; !(padParameter[layer][2]+padParameter[layer][5]*0.5 >= radius
                     && padParameter[layer][2]-padParameter[layer][5]*0.5 <= radius); layer++)
@@ -287,7 +280,7 @@ inline int findPadID(double z, double x)
   // find row_num
   if (angle - (sTheta*TMath::Pi()/180.) < 0) return -1000;
 
-  //double a, b, c;
+  //Double_t a, b, c;
   row = (int)((angle-(sTheta*TMath::Pi()/180.))/(360./padParameter[layer][3]*TMath::Pi()/180.));
   if (row > padParameter[layer][1]) return -1000;
 
@@ -337,7 +330,7 @@ InitializeHistograms()
       Y[3] = (cRad-(pLength/2.))*TMath::Sin((j+1)*dTheta+sTheta);
       Y[4] = (cRad-(pLength/2.))*TMath::Sin(j*dTheta+sTheta);
       Y[0] = Y[4];
-      for(Int_t ii=0; ii<5; ++ii) X[ii] -=143;
+      for(Int_t ii=0; ii<5; ++ii) X[ii] += ZTarget;
       for(auto& h: target) h->AddBin(5, X, Y);
     }
   }
