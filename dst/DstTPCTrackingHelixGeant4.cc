@@ -74,6 +74,9 @@ struct Event
   Int_t nhittpc;                 // Number of Hits
   Int_t nttpc;                   // Number of Tracks
   Int_t nhit_track[MaxTPCTracks]; // Number of Hits (in 1 tracks)
+  Int_t max_ititpc;
+  Int_t ititpc[MaxTPCHits];
+  Int_t nhittpc_iti[MaxTPCHits];
   Double_t chisqr[MaxTPCTracks];
   Double_t helix_cx[MaxTPCTracks];
   Double_t helix_cy[MaxTPCTracks];
@@ -96,6 +99,8 @@ struct Event
   Double_t momg_x[MaxTPCTracks][MaxTPCnHits];
   Double_t momg_y[MaxTPCTracks][MaxTPCnHits];
   Double_t momg_z[MaxTPCTracks][MaxTPCnHits];
+  
+  Int_t iti_g[MaxTPCTracks][MaxTPCnHits];
 
   Double_t residual[MaxTPCTracks][MaxTPCnHits];
   Double_t residual_x[MaxTPCTracks][MaxTPCnHits];
@@ -226,9 +231,12 @@ dst::InitializeEvent( void )
   event.evnum = 0;
   event.nhittpc = 0;
   event.nttpc = 0;
+  event.max_ititpc = 0;
 
   for(int i=0; i<MaxTPCTracks; ++i){
     event.nhit_track[i] =0;
+    event.ititpc[i] =0;
+    event.nhittpc_iti[i] =0;
     event.chisqr[i] =-9999.;
     event.helix_cx[i] =-9999.;
     event.helix_cy[i] =-9999.;
@@ -260,6 +268,7 @@ dst::InitializeEvent( void )
       event.residual_py[i][j] =-9999.;
       event.residual_pz[i][j] =-9999.;
       event.residual_p[i][j] =-9999.;
+      event.iti_g[i][j] =0;
     }
   }
 
@@ -306,7 +315,13 @@ dst::DstRead( int ievent )
 
   event.evnum = src.evnum;
   event.nhittpc = src.nhittpc;
-
+  for(int ihit=0; ihit<event.nhittpc; ++ihit){
+    event.ititpc[ihit] = src.ititpc[ihit];
+    if(event.max_ititpc<src.ititpc[ihit])
+      event.max_ititpc = src.ititpc[ihit];
+    ++event.nhittpc_iti[src.ititpc[ihit]-1];
+  }
+  
   // double u = src.pxPrm[0]/src.pzPrm[0];
   // double v = src.pyPrm[0]/src.pzPrm[0];
   // double cost = 1./std::sqrt(1.+u*u+v*v);
@@ -343,22 +358,24 @@ dst::DstRead( int ievent )
     
     DCAna->DecodeTPCHitsGeant4(src.nhittpc,
 			       src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
-    // if(src.nhittpc<=10)
+    // if(src.nhittpc<=8)
     //   DCAna->DecodeTPCHitsGeant4(src.nhittpc,
     // 				 src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
+				 //src.xtpc, src.y0tpc, src.ztpc, src.edeptpc);
     // else
-    //   DCAna->DecodeTPCHitsGeant4(10,
-    //  				 src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
+    //   DCAna->DecodeTPCHitsGeant4(8,
+    // 				 src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
+				 //src.xtpc, src.y0tpc, src.ztpc, src.edeptpc);
   }
   else{
     DCAna->DecodeTPCHitsGeant4(src.nhittpc,
-			       src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
-    // if(src.nhittpc<=10)
+      			       src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
+    // if(src.nhittpc<=8)
     //   DCAna->DecodeTPCHitsGeant4(src.nhittpc,
-    // 				 src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
+    //  				 src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
     // else
-    //   DCAna->DecodeTPCHitsGeant4(10,
-    // 				 src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
+    //   DCAna->DecodeTPCHitsGeant4(8,
+    //   				 src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
   }
 
   DCAna->TrackSearchTPCHelix();
@@ -423,6 +440,8 @@ dst::DstRead( int ievent )
 	  event.residual_py[it][ih] = mom.y() - src.pytpc[ih2]*1000.;//MeV/c
 	  event.residual_pz[it][ih] = mom.z() - src.pztpc[ih2]*1000.;//MeV/c
 	  event.residual_p[it][ih] = mom.Mag() - momg_mag;//MeV/c
+	  
+	  event.iti_g[it][ih] = src.ititpc[ih2];
 	  break;
 	}
       }
@@ -498,6 +517,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("evnum", &event.evnum, "evnum/I" );
   tree->Branch("nhittpc",&event.nhittpc,"nhittpc/I");
   tree->Branch("nttpc",&event.nttpc,"nttpc/I");
+  
+  tree->Branch("max_ititpc",&event.max_ititpc,"max_ititpc/I");  
+  tree->Branch("ititpc",event.ititpc,"ititpc[nhittpc]/I");
+  tree->Branch("nhittpc_iti",event.nhittpc_iti,"nhittpc_iti[max_ititpc]/I");
 
   tree->Branch("nhit_track",event.nhit_track,"nhit_track[nttpc]/I");
   tree->Branch("chisqr",event.chisqr,"chisqr[nttpc]/D");
@@ -524,6 +547,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("momg_x",event.momg_x,"momg_x[nttpc][64]/D");
   tree->Branch("momg_y",event.momg_y,"momg_y[nttpc][64]/D");
   tree->Branch("momg_z",event.momg_z,"momg_z[nttpc][64]/D");
+  tree->Branch("iti_g",event.iti_g,"iti_g[nttpc][64]/I");
 
   tree->Branch("residual",event.residual,"residual[nttpc][64]/D");
   tree->Branch("residual_x",event.residual_x,"residual_x[nttpc][64]/D");

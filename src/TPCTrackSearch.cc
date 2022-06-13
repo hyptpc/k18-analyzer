@@ -523,8 +523,274 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 }
 
 //_____________________________________________________________________________
+// Int_t
+// LocalTrackSearchHelix(const std::vector<TPCHitContainer>& HitCont,
+//                       std::vector<TPCLocalTrackHelix*>& TrackCont,
+//                       Int_t MinNumOfHits /*=8*/)
+// {
+//   static const Double_t MaxHoughWindow = gUser.GetParameter("MaxHoughWindow");
+//   static const Double_t MaxLayerCut = gUser.GetParameter("TPCMaxLayerCut");
+//   // static const Double_t DECut_TPCTrack = gUser.GetParameter("DECut_TPCTrack");
+//   Bool_t status = true;
+
+//   //    if(valueHall) { // TODO
+//   //    }
+//   const Double_t Const = 0.299792458;
+
+//   //(x - (r + rd)*cos(theta))^2 + (y - (r + rd)*sin(theta))^2 = r^2
+//   // p = r * Const; // 1T
+//   // Parameters
+//   Double_t hough_p[MaxNumOfTrackTPC];
+//   Double_t hough_theta[MaxNumOfTrackTPC];
+//   Double_t hough_rd[MaxNumOfTrackTPC];
+
+//   const Int_t nBin_rdiff = 11;
+//   const Double_t rdiff_min = -110.;
+//   const Double_t rdiff_max = 110.;
+
+//   const Int_t nBin_theta = 180;
+//   //const Int_t nBin_theta = 90;
+//   //const Int_t nBin_theta = 360;
+//   const Double_t theta_min = -1.*acos(-1);
+//   const Double_t theta_max = acos(-1);
+
+//   //  const Int_t nBin_p = 300;
+//   //const Int_t nBin_p = 600;
+//   const Int_t nBin_p = 300;
+//   const Double_t pmin = 50.;//MeV/c
+//   //const Double_t pmax = 2050.;//MeV/c
+//   const Double_t pmax = 1550.;//MeV/c
+
+//   //for TPC circle track
+
+//   //start from hougy by using the HoughYcut info
+//   int Max_tracki_houghY =0;
+//   for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
+//     for(Int_t ci=0, n=HitCont[layer].size(); ci<n; ci++){
+//       TPCHit* hit = HitCont[layer][ci];
+//       int ihoughy_size = hit->GetHoughY_num_size();
+//       //if(ihoughy_size>1)
+//       for(int ih=0; ih<ihoughy_size; ++ih){
+// 	int ihoughy =  hit->GetHoughY_num(ih);
+// 	if(ihoughy>Max_tracki_houghY)
+// 	  Max_tracki_houghY = ihoughy;
+//       }
+//     }
+//   }
+//   ++Max_tracki_houghY;
+//   //  std::cout<<"Max_tracki="<<Max_tracki_houghY<<std::endl;
+//   TH3D *Ci_hist=new TH3D("hist_circle",";rd (mm); theta (rad); p(MeV/c)",
+//                          nBin_rdiff, rdiff_min,  rdiff_max,
+//                          nBin_theta, theta_min, theta_max,
+//                          nBin_p,pmin,pmax);
+
+
+//   std::vector<Double_t> hough_x;
+//   std::vector<Double_t> hough_y;
+
+//   for(Int_t ity=0; ity<Max_tracki_houghY+1; ity++){
+//     //for(Int_t ity=0; ity<Max_tracki_houghY; ity++){
+//     for(Int_t tracki=0; tracki<MaxNumOfTrackTPC; tracki++){
+//       //    for(Int_t ity=0; ity<Max_tracki_houghY+1; ity++){
+//       Ci_hist->Reset();
+//       for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
+// 	for(Int_t ci=0, n=HitCont[layer].size(); ci<n; ci++){
+// 	  //        if(flag[layer][ci]>0) continue;
+// 	  TPCHit* hit = HitCont[layer][ci];
+// 	  if(ity<Max_tracki_houghY){
+// 	    bool status_houghy = false;
+// 	    int ihoughy_size = hit->GetHoughY_num_size();
+// 	    for(int ih=0; ih<ihoughy_size; ++ih){
+// 	      int ihoughy = hit->GetHoughY_num(ih);
+// 	      //if(ity==ihoughy-1)
+// 	      if(ity==ihoughy)
+// 		status_houghy = true;
+// 	    }
+// 	    if(!status_houghy)
+// 	      continue;
+// 	  }
+// 	  if(hit->GetHoughFlag()>0) continue;
+
+// 	  TVector3 pos = hit->GetPosition();
+// 	  for(Int_t ird=0; ird<nBin_rdiff; ++ird){
+// 	    Double_t rd = Ci_hist->GetXaxis()->GetBinCenter(ird+1);
+// 	    for(Int_t ip=0; ip<nBin_p; ++ip){
+// 	      Double_t x = -pos.x();
+// 	      Double_t y = pos.z()-tpc::ZTarget;
+// 	      Double_t p = Ci_hist->GetZaxis()->GetBinCenter(ip+1);
+// 	      Double_t r = p/(Const*1.);//1T
+
+// 	      //a*sin(theta) + b*cos(theta) +c = 0
+// 	      Double_t a = 2.*(r+rd)*y;
+// 	      Double_t b = 2.*(r+rd)*x;
+// 	      Double_t c = -1.*(rd*rd + 2.*r*rd + x*x + y*y);
+
+// 	      Double_t r0 = sqrt(a*a + b*b);
+// 	      if(fabs(-1.*c/r0)>1.){
+// 		// std::cout<<"No solution, "
+// 		//   <<"x:"<<x<<", y:"<<y
+// 		//   <<", r:"<<r<<", rd:"<<rd<<std::endl;
+// 		continue;
+// 	      }
+// 	      Double_t theta1_alpha =  asin(-1.*c/r0);
+// 	      Double_t theta2_alpha;
+// 	      if(theta1_alpha>0.)
+// 		theta2_alpha = acos(-1.) - theta1_alpha;
+// 	      else
+// 		theta2_alpha = -1.*acos(-1.) - theta1_alpha;
+
+// 	      Double_t theta_alpha = atan2(b, a);
+
+// 	      Double_t xcenter1 = (r+rd)*cos(theta1_alpha - theta_alpha);
+// 	      Double_t ycenter1 = (r+rd)*sin(theta1_alpha - theta_alpha);
+// 	      Double_t r_re1 = sqrt(pow(x-xcenter1,2) + pow(y-ycenter1,2));
+
+// 	      Double_t xcenter2 = (r+rd)*cos(theta2_alpha - theta_alpha);
+// 	      Double_t ycenter2 = (r+rd)*sin(theta2_alpha - theta_alpha);
+// 	      Double_t r_re2 = sqrt(pow(x-xcenter1,2) + pow(y-ycenter1,2));
+
+// 	      Double_t theta1 = atan2(ycenter1, xcenter1);
+// 	      Double_t theta2 = atan2(ycenter2, xcenter2);
+
+// 	      if(TMath::IsNaN(theta1)){
+// 		std::cout<<"theta1="<<theta1<<", x="<<x<<", y="<<y
+// 			 <<"rd="<<rd<<", r"<<r<<std::endl;
+// 	      }
+
+
+// 	      if(fabs(r-r_re1)>0.01||fabs(r-r_re2)>0.01){
+// 		std::cout<<"r="<<r<<", r_re1="<<r_re1<<", r_re1="<<r_re2<<std::endl;
+// 		std::cout<<"x:"<<x<<", y:"<<y
+// 			 <<", theta1:"<<theta1<<", theta2:"<<theta2
+// 			 <<", theta_alpha:"<<theta_alpha<<std::endl;
+// 	      }
+// 	      Ci_hist->Fill(rd, theta1, p);
+// 	      Ci_hist->Fill(rd, theta2, p);
+// 	      // std::cout<<"rd: "<<rd<<", "
+// 	      //         <<"theta1: "<<theta1<<", "
+// 	      //         <<"theta2: "<<theta2<<", "
+// 	      //         <<"p: "<<p<<std::endl;
+// 	    }
+// 	  }
+// 	}// cluster
+//       } // layer
+
+//       if(Ci_hist->GetMaximum() < MinNumOfHits/2){
+// 	Ci_hist->Reset();
+// 	break;
+//       }
+//       //std::cout<<"Maxbin0: "<<Ci_hist.GetMaximum()<<std::endl;
+
+
+//       Int_t maxbin = Ci_hist->GetMaximumBin();
+//       Int_t mx,my,mz;
+//       Ci_hist->GetBinXYZ(maxbin, mx, my, mz);
+
+//       Bool_t hough_flag = true;
+//       for(Int_t i=0; i<hough_x.size(); ++i){
+// 	Int_t bindiff = fabs(mx-hough_x[i])+fabs(my-hough_y[i]);
+// 	if(bindiff<=4)
+// 	  //if(bindiff<=8)
+// 	  hough_flag = false;
+//       }
+//       hough_x.push_back(mx);
+//       hough_y.push_back(my);
+//       if(!hough_flag)
+// 	continue;
+
+//       TPCLocalTrackHelix *track = new TPCLocalTrackHelix();
+//       hough_rd[tracki] = Ci_hist->GetXaxis()->GetBinCenter(mx);
+//       hough_theta[tracki] = Ci_hist->GetYaxis()->GetBinCenter(my);
+//       hough_p[tracki] = Ci_hist->GetZaxis()->GetBinCenter(mz);
+//       Double_t hough_r = hough_p[tracki]/Const;
+//       Double_t hough_cx = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
+//       Double_t hough_cy = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);
+
+
+//       //std::cout<<"Hough (x,z) Maxbin: "<<Ci_hist.GetMaximum()<<std::endl;
+//       //     std::cout<<""<<std::endl;
+//       for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
+// 	for(Int_t ci=0, n=HitCont[layer].size(); ci<n; ci++){
+// 	  //if(flag[layer][ci]>0) continue;
+// 	  TPCHit* hit = HitCont[layer][ci];
+// 	  if(hit->GetHoughFlag()>0) continue;
+// 	  TVector3 pos = hit->GetPosition();
+// 	  Double_t x = -pos.x();
+// 	  Double_t y = pos.z()-tpc::ZTarget;
+// 	  // Double_t de = hit->GetCharge();
+// 	  // Double_t xcenter1 = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
+// 	  // Double_t ycenter1 = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);
+// 	  Double_t r_cal = sqrt(pow(x-hough_cx,2) + pow(y-hough_cy,2));
+
+// 	  Double_t dist = fabs(r_cal - hough_r);
+// 	  //if(dist < MaxHoughWindow && layer < MaxLayerCut && de>DECut_TPCTrack){
+// 	  if(dist < MaxHoughWindow && layer < MaxLayerCut){
+// 	    if(ity<Max_tracki_houghY){
+// 	      bool status_houghy = false;
+// 	      int ihoughy_size = hit->GetHoughY_num_size();
+// 	      for(int ih=0; ih<ihoughy_size; ++ih){
+// 		int ihoughy = hit->GetHoughY_num(ih);
+// 		//if(ity==ihoughy-1)
+// 		if(ity==ihoughy)
+// 		  status_houghy = true;
+// 	      }
+// 	      if(status_houghy)
+// 		track->AddTPCHit(new TPCLTrackHit(hit));
+// 	    }
+// 	    else
+// 	      track->AddTPCHit(new TPCLTrackHit(hit));
+// 	    //flag[layer][ci]++;
+// 	  }
+// 	}
+//       }
+//       // track->SetAdrho(hough_rd[tracki]);
+//       // track->SetAphi0(hough_theta[tracki]);
+//       // track->SetArho(1./hough_r);
+//       track->SetAcx(hough_cx);
+//       track->SetAcy(hough_cy);
+//       track->SetAr(hough_r);
+
+//       if(ity==0){
+// 	if(track->DoFit(3,1)){
+// 	  TrackCont.push_back(track);
+// 	  Int_t nh = track->GetNHit();
+// 	  for( int ih=0; ih<nh; ++ih ){
+// 	    TPCHit *hit = track->GetHit( ih )->GetHit();
+// 	    if( !hit ) continue;
+// 	    hit->SetHoughFlag(1+hit->GetHoughFlag());
+// 	  }
+// 	}
+// 	else
+// 	  delete track;
+//       }
+//       else{
+// 	if(track->DoFit(MinNumOfHits,0)){
+// 	  TrackCont.push_back(track);
+// 	  Int_t nh = track->GetNHit();
+// 	  for( int ih=0; ih<nh; ++ih ){
+// 	    TPCHit *hit = track->GetHit( ih )->GetHit();
+// 	    if( !hit ) continue;
+// 	    hit->SetHoughFlag(1+hit->GetHoughFlag());
+// 	  }
+// 	}
+// 	else
+// 	  delete track;
+//       }
+//       //      Ci_hist->Reset();
+
+//       //delete track;
+//     }//hough y cut
+//   }//track
+//   CalcTracks(TrackCont);
+//   delete Ci_hist;
+//   return status? TrackCont.size() : -1;
+
+//   return 0;
+// }
+
+//_____________________________________________________________________________
 Int_t
-LocalTrackSearchHelix(const std::vector<TPCHitContainer>& HitCont,
+LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
                       std::vector<TPCLocalTrackHelix*>& TrackCont,
                       Int_t MinNumOfHits /*=8*/)
 {
@@ -566,8 +832,9 @@ LocalTrackSearchHelix(const std::vector<TPCHitContainer>& HitCont,
   //start from hougy by using the HoughYcut info
   int Max_tracki_houghY =0;
   for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
-    for(Int_t ci=0, n=HitCont[layer].size(); ci<n; ci++){
-      TPCHit* hit = HitCont[layer][ci];
+    for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
+      auto cl = ClCont[layer][ci];
+      TPCHit* hit = cl->GetMeanHit();
       int ihoughy_size = hit->GetHoughY_num_size();
       //if(ihoughy_size>1)
       for(int ih=0; ih<ihoughy_size; ++ih){
@@ -594,9 +861,10 @@ LocalTrackSearchHelix(const std::vector<TPCHitContainer>& HitCont,
       //    for(Int_t ity=0; ity<Max_tracki_houghY+1; ity++){
       Ci_hist->Reset();
       for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
-	for(Int_t ci=0, n=HitCont[layer].size(); ci<n; ci++){
+	for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
+          auto cl = ClCont[layer][ci];
 	  //        if(flag[layer][ci]>0) continue;
-	  TPCHit* hit = HitCont[layer][ci];
+	  TPCHit* hit = cl->GetMeanHit();
 	  if(ity<Max_tracki_houghY){
 	    bool status_houghy = false;
 	    int ihoughy_size = hit->GetHoughY_num_size();
@@ -611,7 +879,7 @@ LocalTrackSearchHelix(const std::vector<TPCHitContainer>& HitCont,
 	  }
 	  if(hit->GetHoughFlag()>0) continue;
 
-	  TVector3 pos = hit->GetPosition();
+	  TVector3 pos = cl->GetPosition();
 	  for(Int_t ird=0; ird<nBin_rdiff; ++ird){
 	    Double_t rd = Ci_hist->GetXaxis()->GetBinCenter(ird+1);
 	    for(Int_t ip=0; ip<nBin_p; ++ip){
@@ -710,11 +978,12 @@ LocalTrackSearchHelix(const std::vector<TPCHitContainer>& HitCont,
       //std::cout<<"Hough (x,z) Maxbin: "<<Ci_hist.GetMaximum()<<std::endl;
       //     std::cout<<""<<std::endl;
       for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
-	for(Int_t ci=0, n=HitCont[layer].size(); ci<n; ci++){
+	for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
 	  //if(flag[layer][ci]>0) continue;
-	  TPCHit* hit = HitCont[layer][ci];
+          auto cl = ClCont[layer][ci];
+	  TPCHit* hit = cl->GetMeanHit();
 	  if(hit->GetHoughFlag()>0) continue;
-	  TVector3 pos = hit->GetPosition();
+	  TVector3 pos = cl->GetPosition();
 	  Double_t x = -pos.x();
 	  Double_t y = pos.z()-tpc::ZTarget;
 	  // Double_t de = hit->GetCharge();
@@ -755,8 +1024,8 @@ LocalTrackSearchHelix(const std::vector<TPCHitContainer>& HitCont,
 	  TrackCont.push_back(track);
 	  Int_t nh = track->GetNHit();
 	  for( int ih=0; ih<nh; ++ih ){
-	    TPCHit *hit = track->GetHit( ih )->GetHit();
-	    if( !hit ) continue;
+	    TPCHit *hit = track->GetHit(ih)->GetHit();
+	    if(!hit) continue;
 	    hit->SetHoughFlag(1+hit->GetHoughFlag());
 	  }
 	}
@@ -768,8 +1037,8 @@ LocalTrackSearchHelix(const std::vector<TPCHitContainer>& HitCont,
 	  TrackCont.push_back(track);
 	  Int_t nh = track->GetNHit();
 	  for( int ih=0; ih<nh; ++ih ){
-	    TPCHit *hit = track->GetHit( ih )->GetHit();
-	    if( !hit ) continue;
+	    TPCHit *hit = track->GetHit(ih)->GetHit();
+	    if(!hit) continue;
 	    hit->SetHoughFlag(1+hit->GetHoughFlag());
 	  }
 	}

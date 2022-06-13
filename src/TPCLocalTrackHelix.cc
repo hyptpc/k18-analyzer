@@ -3,7 +3,7 @@
 //Comment by Ichikawa
 //TPCLocalTrackHelix.cc is for Helix fit
 //TPCLocalTrack.cc is for lenear fit
-
+//Pre circle fit (TMinuit -> reduced chi2 method)
 #include "TPCLocalTrackHelix.hh"
 
 #include <string>
@@ -14,14 +14,8 @@
 #include <cstring>
 #include <stdexcept>
 #include <sstream>
-
 #include <TH2D.h>
 #include <TF1.h>
-#include <TF2.h>
-#include <TMinuit.h>
-#include <TMath.h>
-#include <TROOT.h>
-
 #include <std_ostream.hh>
 
 //#include "DCAnalyzer.hh"
@@ -33,8 +27,12 @@
 #include "MathTools.hh"
 #include "PrintHelper.hh"
 #include "HodoParamMan.hh"
-#include "TPCPadHelper.hh"
 #include "UserParamMan.hh"
+#include "TMinuit.h"
+#include "TF2.h"
+
+#include "TMath.h"
+#include "TROOT.h"
 
 //#define HSMagnetON 1
 
@@ -52,6 +50,7 @@ namespace
   const double& zK18tgt = gGeom.LocalZ("K18Target");
   const double& zTgt    = gGeom.LocalZ("Target");
   // Temporary
+  const double& zTgtTPC    = -143.;
   const double& r_HTOF    = 337.;
   const double& HS_field_0 = 0.9860;
   const double& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
@@ -69,10 +68,19 @@ namespace
   static const double  LowLimitBeam[5] = { -40000., -40000., -7000., 5666., -10. };// about 1.7 GeV/c
   static const double  LowLimit[5] = { -40000., -40000., -7000., 0., -10. };
   static const double  UpLimit[5] = { 40000., 40000., 7000., 40000., 10. };
+  // static const double  LowLimit[5] = { -4000., -4000., -700., 0., -10. };
+  // static const double  UpLimit[5] = { 4000., 4000., 700., 10000., 10. };
+  //static const double  LowLimit[5] = { -100000., -100000., -30000., 0., -10. };
+  //static const double  UpLimit[5] = { 100000., 100000., 30000., 100000., 10. };
   //rdiff, theta, z0, r, dz
   static const double  FitStep2[5] = { 1.0e-4, 1.0e-5, 1.0e-4, 1.0e-4, 1.0e-5 };
+  //  static const double  FitStep2[5] = { 1.0e-5, 1.0e-5, 1.0e-5, 1.0e-5, 1.0e-6 };
   static const double  LowLimit2[5] = { -200., -acos(-1), -7000., 0., -10. };
   static const double  UpLimit2[5] = { 200., acos(-1), 7000., 20000., 10. };
+  // static const double  LowLimit2[5] = { -200., -acos(-1), -700., 0., -10. };
+  // static const double  UpLimit2[5] = { 200., acos(-1), 700., 10000., 10. };
+  //static const double  LowLimit2[5] = { -1000., -acos(-1), -7000., 0., -10. };
+  //static const double  UpLimit2[5] = { 1000., acos(-1), 7000., 100000., 10. };
 
   static const double  MaxChisqr = 500.;
   //static const double  MaxChisqr = 100.;
@@ -422,7 +430,7 @@ TPCLocalTrackHelix::GetHTOFSeg(double min_layer_t, double max_layer_t, double ma
   fhtof.SetParameter(1, m_cy);
   fhtof.SetParameter(2, m_r);
   fhtof.SetParameter(3, 0.);
-  fhtof.SetParameter(4, -1.*tpc::ZTarget);
+  fhtof.SetParameter(4, -1.*zTgtTPC);
   fhtof.SetParameter(5, r_HTOF);
   double close_t1, close_t2;
   fhtof.GetMinimumXY(close_t1, close_t2);
@@ -479,7 +487,7 @@ static inline void fcn2(int &npar, double *gin, double &f, double *par, int ifla
 
   for(int i=0; i<gNumOfHits; ++i){
     TVector3 pos(-gHitPos[i].X(),
-		 gHitPos[i].Z()-tpc::ZTarget,
+		 gHitPos[i].Z()-zTgtTPC,
 		 gHitPos[i].Y());
     fpar[5] = pos.X();
     fpar[6] = pos.Y();
@@ -494,7 +502,7 @@ static inline void fcn2(int &npar, double *gin, double &f, double *par, int ifla
     TVector3 fittmp(x, y, z);
     TVector3 fittmp_(-1.*fittmp.X(),
 		     fittmp.Z(),
-		     fittmp.Y()+tpc::ZTarget);
+		     fittmp.Y()+zTgtTPC);
 
 
     double tmp_t = atan2(pos.Y()-par[1], pos.X()-par[0]);
@@ -505,12 +513,17 @@ static inline void fcn2(int &npar, double *gin, double &f, double *par, int ifla
 
     TVector3 fittmp2_(-tmpx,
     		      tmpz,
-    		      tmpy+tpc::ZTarget);
+    		      tmpy+zTgtTPC);
 
     TVector3 d = gHitPos[i] - fittmp_;
     TVector3 Res = gRes[i];
 
+    double dxz = sqrt(d.x()*d.x()+d.z()*d.z());
+    double Resxz = sqrt(Res.x()*Res.x()+Res.z()*Res.z());
+
     chisqr += pow(d.x()/Res.x(), 2) + pow(d.y()/Res.y(), 2) + pow(d.z()/Res.z(), 2);
+    //    chisqr += pow(dxz/Resxz, 2) + pow(d.y()/Res.y(), 2);
+   
 
     dof++;
     dof++;
@@ -536,7 +549,7 @@ static inline void fcn2_circ(int &npar, double *gin, double &f, double *par, int
 		  gHitPos[i].Z());
 
     TVector2 pos(-gHitPos[i].X(),
-		 gHitPos[i].Z()-tpc::ZTarget);
+		 gHitPos[i].Z()-zTgtTPC);
     fpar[3] = pos.X();
     fpar[4] = pos.Y();
 
@@ -547,15 +560,18 @@ static inline void fcn2_circ(int &npar, double *gin, double &f, double *par, int
 
     TVector2 fittmp(x, y);
     TVector2 fittmp_(-1.*fittmp.X(),
-		     fittmp.Y()+tpc::ZTarget);
+		     fittmp.Y()+zTgtTPC);
     // double tmp_t = atan2(pos.Y()-par[1], pos.X()-par[0]);
     // double  tmpx = par[0] + par[3]*cos(tmp_t);
     // double  tmpy = par[1] + par[3]*sin(tmp_t);
     // TVector2 fittmp2_(-tmpx,
-    // 		      tmpy+tpc::ZTarget);
+    // 		      tmpy+zTgtTPC);
     TVector2 d = pos_ - fittmp_;
-
+    double dxy = d.Mod();
+    double resxy = sqrt(pow(gRes[i].x(), 2) + pow(gRes[i].z(), 2));
+    
     chisqr += pow(d.X()/gRes[i].x(), 2) + pow(d.Y()/gRes[i].z(), 2);
+    //chisqr += pow(dxy/resxy,2);
     dof++;
   }
   f = chisqr/(double)(dof-3);
@@ -578,7 +594,7 @@ static inline void fcn2_li(int &npar, double *gin, double &f, double *par, int i
 
   for(int i=0; i<gNumOfHits; ++i){
     TVector3 pos(-gHitPos[i].X(),
-		 gHitPos[i].Z()-tpc::ZTarget,
+		 gHitPos[i].Z()-zTgtTPC,
 		 gHitPos[i].Y());
     double tmpx = pos.X();
     double tmpy = pos.Y();
@@ -599,6 +615,110 @@ static inline void fcn2_li(int &npar, double *gin, double &f, double *par, int i
   }
   f = chisqr/(double)(dof-2);
   //std::cout<<"f_li:"<<f<<std::endl;
+}
+
+
+
+//______________________________________________________________________________
+static inline double circleFit(const double *mX,const double *mY, const int npoints, double* mXCenter, double* mYCenter, double* mRadius)
+{
+  double xx, yy, xx2, yy2;
+  double f, g, h, p, q, t, g0, g02, a, b, c, d;
+  double xroot, ff, fp, xd, yd, g1;
+  double dx, dy, dradius2, xnom;
+  
+  double xgravity = 0.0;
+  double ygravity = 0.0;
+  double x2 = 0.0;
+  double y2 = 0.0;
+  double xy = 0.0;
+  double xx2y2 = 0.0;
+  double yx2y2 = 0.0;
+  double x2y22 = 0.0;
+  double radius2 = 0.0;
+
+  double mVariance = 0.0;
+
+  if (npoints <= 3){
+    fprintf(stderr,"circleFit: npoints %d <= 3\n",npoints);
+    return -1;
+  }else  if (npoints > 499){
+    fprintf(stderr,"circleFit: npoints %d > 499\n",npoints);
+    return -1;
+  }
+
+  for (int i=0; i<npoints; i++) {
+    xgravity += mX[i];
+    ygravity += mY[i];
+  }
+  xgravity /= npoints;
+  ygravity /= npoints;
+    
+  for (int i=0; i<npoints; i++) {
+    xx  = mX[i]-xgravity;
+    yy  = mY[i]-ygravity;
+    xx2 = xx*xx;
+    yy2 = yy*yy;
+    x2  += xx2;
+    y2  += yy2;
+    xy  += xx*yy;
+    xx2y2 += xx*(xx2+yy2);
+    yx2y2 += yy*(xx2+yy2);
+    x2y22 += (xx2+yy2)*(xx2+yy2);
+  }
+  if (xy == 0.){
+    fprintf(stderr,"circleFit: xy = %f,    grav=%f, %f\n",xy,xgravity,ygravity);
+    return -1;
+  }
+
+  f = (3.*x2+y2)/npoints;
+  g = (x2+3.*y2)/npoints;
+  h = 2*xy/npoints;
+  p = xx2y2/npoints;
+  q = yx2y2/npoints;
+  t = x2y22/npoints;
+  g0 = (x2+y2)/npoints;
+  g02 = g0*g0;
+  a = -4.0;
+  b = (f*g-t-h*h)/g02;
+  c = (t*(f+g)-2.*(p*p+q*q))/(g02*g0);
+  d = (t*(h*h-f*g)+2.*(p*p*g+q*q*f)-4.*p*q*h)/(g02*g02);
+  xroot = 1.0;
+  for (int i=0; i<5; i++) {
+    ff = (((xroot+a)*xroot+b)*xroot+c)*xroot+d;
+    fp = ((4.*xroot+3.*a)*xroot+2.*b)*xroot+c;
+    xroot -= ff/fp;
+  }
+  g1 = xroot*g0;
+  xnom = (g-g1)*(f-g1)-h*h;
+  if (xnom == 0.){
+    fprintf(stderr,"circleFit: xnom1 = %f\n",xnom);
+    return -1;
+  }
+
+
+  yd = (q*(f-g1)-h*p)/xnom;
+  xnom = f-g1;
+  if (xnom == 0.){
+    fprintf(stderr,"circleFit: xnom2 = %f\n",xnom);
+    return -1;
+  }
+
+  xd = (p-h*yd )/xnom;
+    
+  radius2 = xd*xd+yd*yd+g1;
+  *mXCenter = xd+xgravity;
+  *mYCenter = yd+ygravity;
+  for (int i=0; i<npoints; i++) {
+    dx = mX[i]-(*mXCenter);
+    dy = mY[i]-(*mYCenter);
+    dradius2 = dx*dx+dy*dy;
+    mVariance += dradius2+radius2-2.*sqrt(dradius2*radius2);
+  }
+  
+  *mRadius  = (double) sqrt(radius2);
+
+  return  mVariance;
 }
 
 
@@ -688,17 +808,32 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   gHitPos.clear();
   gRes.clear();
 
+  //for pre circle fit
+  double xp[n];
+  double yp[n];
   for(std::size_t i=0; i<n; ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp->GetLocalHitPos();
     TVector3 Res = hitp->GetResolutionVect();
     gHitPos.push_back(pos);
     gRes.push_back(Res);
+    xp[i] = -pos.X();
+    yp[i] = pos.Z()-zTgtTPC;
   }
+  double par_circ[3]={0};
+  double chi2_circle = circleFit(xp, yp, n, &par_circ[0], &par_circ[1], &par_circ[2]);
+  m_cx = par_circ[0];
+  m_cy = par_circ[1];
+  m_r = par_circ[2];
+  min_par[0] = m_cx;
+  min_par[1] = m_cy;
+  min_par[3] = m_r;
 
-  //pre circle fit
+
+  /*
   double par_circ[3]={m_Acx, m_Acy, m_Ar};
   double err_circ[3]={-999.,-999.,-999.};
+
   TMinuit *minuit_circ = new TMinuit(3);
   minuit_circ->SetPrintLevel(-1);
   minuit_circ->SetFCN(fcn2_circ);
@@ -750,10 +885,10 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
 
   // for invert charge fit
   double tmpx_min = -gHitPos[0].X();
-  double tmpy_min = gHitPos[0].Z()-tpc::ZTarget;
+  double tmpy_min = gHitPos[0].Z()-zTgtTPC;
   double tmpt_min = atan2(tmpy_min - par_circ[1], tmpx_min - par_circ[0]);
   double tmpx_max = -gHitPos[n-1].X();
-  double tmpy_max = gHitPos[n-1].Z()-tpc::ZTarget;
+  double tmpy_max = gHitPos[n-1].Z()-zTgtTPC;
   double tmpt_max = atan2(tmpy_max - par_circ[1], tmpx_max - par_circ[0]);
 
   double mid_t_circ = (tmpt_min + tmpt_max)/2.;
@@ -796,6 +931,7 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   min_par[0] = m_cx;
   min_par[1] = m_cy;
   min_par[3] = m_r;
+  */
 
   // std::cout<<"comp circle par:"<<"{"<<m_Acx<<", "<<m_Acy<<", "<<m_Ar<<"}, "
   //  	   <<"{"<<m_cx<<", "<<m_cy<<", "<<m_r<<"}"<<std::endl;
@@ -816,13 +952,16 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
     for(int ti=0; ti<theta_ndiv; ti++){
       double theta = theta_min+ti*(theta_max-theta_min)/theta_ndiv;
       double tmpx = -gHitPos[i].X();
-      double tmpy = gHitPos[i].Z()-tpc::ZTarget;
+      double tmpy = gHitPos[i].Z()-zTgtTPC;
       double tmpz = gHitPos[i].Y();
       //      double tmp_t = atan2(tmpy-m_Acy, tmpx-m_Acx);
-      double tmp_t = atan2(tmpy - min_par_circ[1],
-			   tmpx - min_par_circ[0]);
+      // double tmp_t = atan2(tmpy - min_par_circ[1],
+      // 			   tmpx - min_par_circ[0]);
+      double tmp_t = atan2(tmpy - min_par[1],
+       			   tmpx - min_par[0]);
       //double tmp_xval = m_Ar * tmp_t;
-      double tmp_xval = min_par_circ[2] * tmp_t;
+      //      double tmp_xval = min_par_circ[2] * tmp_t;
+      double tmp_xval = min_par[3] * tmp_t;
       hist->Fill(theta, cos(theta*acos(-1.)/180.)*tmp_xval
 		 +sin(theta*acos(-1.)/180.)*tmpz);
     }
@@ -927,6 +1066,8 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   arglist[0] = 1000;
   arglist[1] = 0.1;
 
+  //  arglist[0] = arglist[0]*5*5*5;
+  //  arglist[1] = arglist[1]/(10.*10.*10.);
   arglist[0] = arglist[0]*5*5*5;
   arglist[1] = arglist[1]/(10.*10.*10.);
   int itry=0;
@@ -1128,7 +1269,7 @@ TPCLocalTrackHelix::Residual_check(TVector3 pos, TVector3  Res, double resi)
 
   double par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 pos_(-pos.X(),
-		pos.Z()-tpc::ZTarget,
+		pos.Z()-zTgtTPC,
 		pos.Y());
   double fpar[8];
   for(int ip=0; ip<5; ++ip){
@@ -1143,7 +1284,7 @@ TPCLocalTrackHelix::Residual_check(TVector3 pos, TVector3  Res, double resi)
   TVector3 fittmp = GetPosition(par, min_t);
   TVector3 fittmp_(-fittmp.X(),
 		   fittmp.Z(),
-		   fittmp.Y()+tpc::ZTarget);
+		   fittmp.Y()+zTgtTPC);
 
 
   TVector3 d = pos - fittmp_;
@@ -1164,7 +1305,7 @@ TPCLocalTrackHelix::GetTcal(TVector3 pos)
 {
   double par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 pos_(-pos.X(),
-		pos.Z()-tpc::ZTarget,
+		pos.Z()-zTgtTPC,
 		pos.Y());
   double fpar[8];
   for(int ip=0; ip<5; ++ip){
@@ -1203,7 +1344,7 @@ TPCLocalTrackHelix::CalcChi2()
     TVector3 pos = hitp->GetLocalHitPos();
     TVector3 Res = hitp->GetResolutionVect();
     TVector3 pos_(-pos.X(),
-		  pos.Z()-tpc::ZTarget,
+		  pos.Z()-zTgtTPC,
 		  pos.Y());
 
     fpar[5] = pos_.X();
@@ -1214,10 +1355,13 @@ TPCLocalTrackHelix::CalcChi2()
     TVector3 fittmp = GetPosition(par, min_t);
     TVector3 fittmp_(-fittmp.X(),
 		     fittmp.Z(),
-		     fittmp.Y()+tpc::ZTarget);
+		     fittmp.Y()+zTgtTPC);
     TVector3 d = pos - fittmp_;
+    double dxz = sqrt(d.x()*d.x()+d.z()*d.z());
+    double Resxz = sqrt(Res.x()*Res.x()+Res.z()*Res.z());
 
     chisqr += pow(d.x()/Res.x(), 2) + pow(d.y()/Res.y(), 2) + pow(d.z()/Res.z(), 2);
+    //chisqr += pow(dxz/Resxz, 2) + pow(d.y()/Res.y(), 2);
     //    chisqr += pow(d.x()/Res.x(), 2) + pow(d.z()/Res.z(), 2);
     dof++;
     dof++;
@@ -1247,7 +1391,7 @@ TPCLocalTrackHelix::CalcChi2_circle(double par[3])
     TVector2 pos2(pos.X(), pos.Z());
     TVector3 Res = hitp->GetResolutionVect();
     TVector2 pos_(-pos.X(),
-		  pos.Z()-tpc::ZTarget);
+		  pos.Z()-zTgtTPC);
 
     fpar[3] = pos_.X();
     fpar[4] = pos_.Y();
@@ -1258,11 +1402,14 @@ TPCLocalTrackHelix::CalcChi2_circle(double par[3])
 
     TVector2 fittmp(x, y);
     TVector2 fittmp_(-1.*fittmp.X(),
-		     fittmp.Y()+tpc::ZTarget);
+		     fittmp.Y()+zTgtTPC);
 
     TVector2 d = pos2 - fittmp_;
-
+    double dxy = d.Mod();
+    double resxy = sqrt(pow(Res.x(), 2) + pow(Res.z(), 2));
+    
     chisqr += pow(d.X()/Res.x(), 2) + pow(d.Y()/Res.z(), 2);
+    //chisqr += pow(dxy/resxy,2);
     dof++;
   }
   chisqr = chisqr/(double)(dof-3);

@@ -86,7 +86,7 @@ const Double_t MaxTimeDifMWPC       =   100.;
 const Double_t kMWPCClusteringWireExtension =  1.0; // [mm]
 const Double_t kMWPCClusteringTimeExtension = 10.0; // [nsec]
 
-const Int_t    MaxNumOfTrackTPC = 100;
+const Int_t    MaxNumOfTrackTPC = 20;
 const Int_t    MaxRowDifTPC = 2; // for cluster
 
 //_____________________________________________________________________________
@@ -1272,13 +1272,13 @@ DCAnalyzer::TrackSearchTPC()
 Bool_t
 DCAnalyzer::TrackSearchTPCHelix()
 {
-  // static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
-// #if UseTpcCluster
-//   tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTC_Helix, MinLayer);
-// #else
-//   tpc::LocalTrackSearchHelix(m_TPCHitCont, m_TPCTC_Helix, MinLayer);
-// #endif
+#if UseTpcCluster
+  tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTC_Helix, MinLayer);
+#else
+  tpc::LocalTrackSearchHelix(m_TPCHitCont, m_TPCTC_Helix, MinLayer);
+#endif
   return true;
 }
 
