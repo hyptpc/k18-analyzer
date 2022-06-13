@@ -887,47 +887,6 @@ inline Int_t GetCoBoId(Int_t layer, Int_t row)
 }
 
 //_____________________________________________________________________________
-inline Int_t GetASADId(Int_t layer, Int_t row) //0~30
-{
-  Int_t flag=layer/4;
-  Int_t section;
-  if(flag==0) section=0; //layer 0~3
-  else if(flag==1) section=1; //layer 4~7
-  else if(layer==30||layer==31) section=3; //layer 30~31
-  else section=2; //layer 8~29
-
-  Int_t half=padParameter[layer][1]/2;
-  Int_t division1=padParameter[layer][1]/6;
-  Int_t division2=padParameter[layer][1]*5/6;
-
-  switch(section){
-  case 0:
-    if(row<half)
-      return 0;
-    else
-      return 1;
-  case 1:
-    Int_t dummy;
-    if(layer%4<2) dummy=2;
-    if(2<=layer%4) dummy=5;
-    if(row<division1||division2<=row)
-      return dummy;
-    else if(division1<=row&&row<half)
-      return dummy+1;
-    else
-      return dummy+2;
-  case 3:
-    return 30;
-  default:
-    if(row<half)
-      return layer-layer%2;
-    else
-      return layer-layer%2+1;
-  }
-}
-
-
-//_____________________________________________________________________________
 inline Int_t GetPadId(Int_t layerID, Int_t rowID)
 {
   //Original
