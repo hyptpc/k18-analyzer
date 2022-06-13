@@ -16,10 +16,10 @@
 #include "ConfMan.hh"
 #include "DCAnalyzer.hh"
 #include "MathTools.hh"
+#include "TPCPadHelper.hh"
 
 namespace
 {
-const double zTgtTPC = -143.;
 const double& HS_field_0 = 0.9860;
 const double& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
 const double& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
@@ -35,17 +35,17 @@ static TF1 fint("fint",s_tmp.c_str(),-4.,4.);
 //______________________________________________________________________________
 TPCLTrackHit::TPCLTrackHit(TPCHit *hit)
   : m_hit(hit),
-    m_x0(-9999.),
-    m_y0(-9999.),
-    m_u0(-9999.),
-    m_v0(-9999.),
-    m_cx(-9999.),
-    m_cy(-9999.),
-    m_z0(-9999.),
-    m_r(-9999.),
-    m_dz(-9999.)
+    m_x0(TMath::QuietNaN()),
+    m_y0(TMath::QuietNaN()),
+    m_u0(TMath::QuietNaN()),
+    m_v0(TMath::QuietNaN()),
+    m_cx(TMath::QuietNaN()),
+    m_cy(TMath::QuietNaN()),
+    m_z0(TMath::QuietNaN()),
+    m_r(TMath::QuietNaN()),
+    m_dz(TMath::QuietNaN())
 {
-  m_local_hit_pos = hit->GetPos();
+  m_local_hit_pos = hit->GetPosition();
   m_cal_pos = TVector3(0.,0.,0.);
   m_res = TVector3(hit->GetResolutionX(),
 		   hit->GetResolutionY(),
@@ -107,8 +107,8 @@ TPCLTrackHit::GetLocalCalPos() const
   // TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1.);
   //temp
 
-  TVector3 x0(m_x0, m_y0, zTgtTPC);
-  TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, zTgtTPC+1.);
+  TVector3 x0(m_x0, m_y0, tpc::ZTarget);
+  TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, tpc::ZTarget+1.);
   TVector3 u = (x1-x0).Unit();
   TVector3 AP = pos-x0;
   double dist_AX = u.Dot(AP);
@@ -123,7 +123,7 @@ TVector3
 TPCLTrackHit::GetLocalCalPosHelix() const
 {
   TVector3 pos(-m_local_hit_pos.X(),
-	       m_local_hit_pos.Z() - zTgtTPC,
+	       m_local_hit_pos.Z() - tpc::ZTarget,
 	       m_local_hit_pos.Y());
 
   double par[5]={m_cx, m_cy, m_z0, m_r, m_dz};
@@ -140,7 +140,7 @@ TPCLTrackHit::GetLocalCalPosHelix() const
   TVector3 fittmp = GetHelixPosition(par, min_t);
   TVector3 calpos(-fittmp.X(),
 		   fittmp.Z(),
-		   fittmp.Y()+zTgtTPC);
+		   fittmp.Y()+tpc::ZTarget);
   return calpos;
 }
 
@@ -150,7 +150,7 @@ double
 TPCLTrackHit::GetTcal() const
 {
   TVector3 pos(-m_local_hit_pos.X(),
-	       m_local_hit_pos.Z() - zTgtTPC,
+	       m_local_hit_pos.Z() - tpc::ZTarget,
 	       m_local_hit_pos.Y());
 
   double par[5]={m_cx, m_cy, m_z0, m_r, m_dz};
@@ -174,7 +174,7 @@ TVector3
 TPCLTrackHit::GetMomentumHelix() const
 {
   TVector3 pos(-m_cal_pos.X(),
-   	       m_cal_pos.Z() - zTgtTPC,
+   	       m_cal_pos.Z() - tpc::ZTarget,
    	       m_cal_pos.Y());
 
   const double Const = 0.299792458; // =c/10^9
@@ -212,10 +212,10 @@ TPCLTrackHit::GetResidual() const
 }
 
 //______________________________________________________________________________
-bool
+Bool_t
 TPCLTrackHit::ResidualCut() const
 {
-  bool status = false;
+  Bool_t status = false;
   TVector3 Res = m_cal_pos - m_local_hit_pos;
   double resolution = m_hit->GetResolution();
   if(Res.Mag()<resolution*5.)
@@ -228,8 +228,6 @@ void
 TPCLTrackHit::Print(const std::string& arg) const
 {
   m_hit->Print(arg);
-  hddaq::cout << "local_hit_pos " << m_local_hit_pos.x()
-	      <<", "<<m_local_hit_pos.y()
-	      <<", "<<m_local_hit_pos.z() <<std::endl
+  hddaq::cout << "local_hit_pos " << m_local_hit_pos << std::endl
 	      << "residual " << GetResidual() << std::endl;
 }

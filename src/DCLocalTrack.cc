@@ -35,6 +35,7 @@ const Int_t DCLocalMinNHits    =  4;
 const Int_t DCLocalMinNHitsVXU =  2;// for SSD
 const Int_t MaxIteration       = 100;// for Honeycomb
 const Double_t MaxChisqrDiff   = 1.0e-3;
+const Double_t SdcInXoffset = 49.95; // mm
 }
 
 //_____________________________________________________________________________
@@ -364,7 +365,7 @@ DCLocalTrack::DoFitBcSdc()
 	z[i] = z0[i];
       }
       if(lnum >= 1 && lnum <= 10){ // SdcIn
-        s[i] += 49.95*TMath::Cos(aa);
+        s[i] += SdcInXoffset*TMath::Cos(aa);
       }
     }
 
@@ -604,8 +605,11 @@ DCLocalTrack::Print(const TString& arg, std::ostream& ost) const
     Double_t zz = hitp->GetZ();
     Double_t s  = hitp->GetLocalHitPos();
     Double_t res = hitp->GetResidual();
-    // Double_t aa = hitp->GetTiltAngle()*TMath::DegToRad();
+    Double_t aa = hitp->GetTiltAngle()*TMath::DegToRad();
     // Double_t scal=GetX(zz)*TMath::Cos(aa)+GetY(zz)*TMath::Sin(aa);
+    if(m_is_bcsdc && lnum >= 1 && lnum <= 10){
+      res += SdcInXoffset*TMath::Cos(aa);
+    }
     const TString& h = hitp->IsHoneycomb() ? "+" : "-";
     ost << "[" << std::setw(2) << i << "]"
 	<< " #"  << std::setw(2) << lnum << h

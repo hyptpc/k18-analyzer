@@ -12,6 +12,7 @@
 
 #include "FuncName.hh"
 #include "MathTools.hh"
+#include "TPCPadHelper.hh"
 
 namespace
 {
@@ -25,7 +26,6 @@ const Double_t TARGETsizeZ   = 15.0/2.0;
 const Double_t TARGETradius  = 67.3/2.0;
 const Double_t TARGETcenterX = 0.0;
 const Double_t TARGETcenterY = 0.0;
-const double zTgtTPC = -143.;
 }
 
 //_____________________________________________________________________________
@@ -268,17 +268,9 @@ VertexPointHelix(const Double_t par1[5], const Double_t par2[5],
   dist = dist2;
   Double_t vertx = -1.*vx;
   Double_t verty = vz;
-  Double_t vertz = vy + zTgtTPC;
-
-
+  Double_t vertz = vy + tpc::ZTarget;
   return TVector3(vertx, verty, vertz);
-
 }
-
-
-
-
-
 
 //_____________________________________________________________________________
 Double_t

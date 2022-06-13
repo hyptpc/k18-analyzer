@@ -21,6 +21,7 @@
 #include "Kinematics.hh"
 #include "MathTools.hh"
 #include "RootHelper.hh"
+#include "TPCCluster.hh"
 #include "TPCPadHelper.hh"
 #include "TPCLocalTrackHelix.hh"
 #include "TPCLTrackHit.hh"
@@ -400,7 +401,7 @@ dst::DstRead( int ievent )
       Double_t x = hit->GetX();
       Double_t y = hit->GetY();
       Double_t z = hit->GetZ();
-      Double_t de = hit->GetCharge();
+      Double_t de = hit->GetCDe();
       Double_t pad = hit->GetPad();
       Int_t row = hit->GetRow();
       event.raw_hitpos_x.push_back(x);
@@ -441,12 +442,12 @@ dst::DstRead( int ievent )
       Double_t x = hit->GetX();
       Double_t y = hit->GetY();
       Double_t z = hit->GetZ();
-      Double_t de = hit->GetCharge();
+      Double_t de = hit->GetDe();
       Int_t cl_size = hit->GetClusterSize();
       Int_t row = hit->GetRow();
       Double_t mrow = hit->GetMRow();
-      Double_t de_center = hit->GetCharge_center();
-      TVector3 pos_center = hit->GetPos_center();
+      // Double_t de_center = hit->GetDe_center();
+      // TVector3 pos_center = hit->GetPos_center();
       event.cluster_hitpos_x.push_back(x);
       event.cluster_hitpos_y.push_back(y);
       event.cluster_hitpos_z.push_back(z);
@@ -455,10 +456,10 @@ dst::DstRead( int ievent )
       event.cluster_layer.push_back(layer);
       event.cluster_row.push_back(row);
       event.cluster_mrow.push_back(mrow);
-      event.cluster_de_center.push_back(de_center);
-      event.cluster_hitpos_center_x.push_back(pos_center.X());
-      event.cluster_hitpos_center_y.push_back(pos_center.Y());
-      event.cluster_hitpos_center_z.push_back(pos_center.Z());
+      // event.cluster_de_center.push_back(de_center);
+      // event.cluster_hitpos_center_x.push_back(pos_center.X());
+      // event.cluster_hitpos_center_y.push_back(pos_center.Y());
+      // event.cluster_hitpos_center_z.push_back(pos_center.Z());
 
       //Compared with BcOut
       for(int it=0; it<src.ntrack; ++it){
@@ -483,7 +484,7 @@ dst::DstRead( int ievent )
 	  }
 	  if(fabs(y_BC - y)<60.&&fabs(x_BC - x)<100.){
 	    HF1(100 + layer, de);
-	    HF1(ClCenterdEHid + layer*1000+ row,  de_center);
+	    // HF1(ClCenterdEHid + layer*1000+ row,  de_center);
 	  }
 	}
       }
@@ -599,7 +600,7 @@ dst::DstRead( int ievent )
       const TVector3& hitpos = hit->GetLocalHitPos();
       const TVector3& calpos = hit->GetLocalCalPosHelix();
       const TVector3& res_vect = hit->GetResidualVect();
-      double de_hit = hit->GetHit()->GetCharge();
+      double de_hit = hit->GetHit()->GetDe();
       int clsize_hit = hit->GetHit()->GetClusterSize();
       if(clsize_hit>1)
 	++nh_clmulti;

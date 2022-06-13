@@ -657,7 +657,7 @@ dst::DstRead(Int_t ievent)
   static const auto KaonMass    = pdg::KaonMass();
   // static const auto PionMass    = pdg::PionMass();
   static const auto ProtonMass  = pdg::ProtonMass();
-  static const auto SigmaNMass  = pdg::SigmaNMass();
+  static const auto XiMass = pdg::XiMinusMass();
 
   if(ievent%10000 == 0){
     std::cout << FUNC_NAME << " Event Number: "
@@ -1033,7 +1033,7 @@ dst::DstRead(Int_t ievent)
       Double_t cost = pkm*pkp/(pkm.Mag()*pkp.Mag());
       Double_t theta = TMath::ACos(cost)*TMath::RadToDeg();
       Double_t pk0   = pkp.Mag();
-      Double_t pCorr = pk0;
+      Double_t pCorr = pk0*1.01453;
 
       ThreeVector pkpCorr(pCorr*pkp.x()/pkp.Mag(),
                           pCorr*pkp.y()/pkp.Mag(),
@@ -1067,9 +1067,9 @@ dst::DstRead(Int_t ievent)
       //CM
       Double_t TotalMomCM
 	= 0.5*std::sqrt((TotalEnergyCM*TotalEnergyCM
-                         -(KaonMass+SigmaNMass)*(KaonMass+SigmaNMass))
+                         -(KaonMass+XiMass)*(KaonMass+XiMass))
 			*(TotalEnergyCM*TotalEnergyCM
-                          -(KaonMass-SigmaNMass)*(KaonMass-SigmaNMass)))/TotalEnergyCM;
+                          -(KaonMass-XiMass)*(KaonMass-XiMass)))/TotalEnergyCM;
 
       Double_t costLab = cost;
       Double_t cottLab = costLab/std::sqrt(1.-costLab*costLab);
@@ -1091,7 +1091,7 @@ dst::DstRead(Int_t ievent)
 	costCM=-1.;
       }
       Double_t sintCM  = std::sqrt(1.-costCM*costCM);
-      Double_t KaonMom = TotalMomCM*sintCM/std::sqrt(1.-costLab*costLab);
+      Double_t pCalc = TotalMomCM*sintCM/std::sqrt(1.-costLab*costLab);
 
       Int_t inside = 0;
       if(true
@@ -1127,7 +1127,7 @@ dst::DstRead(Int_t ievent)
 	event.ukm[nkk] = ub;
 	event.vkm[nkk] = vb;
 	event.pOrg[nkk] = pk0;
-	event.pCalc[nkk] = KaonMom;
+	event.pCalc[nkk] = pCalc;
 	event.pCorr[nkk] = pCorr;
 	//	event.pCorrDE[nkk] = pkpCorrDE.Mag();
 	event.pCorrDE[nkk] = 0;
@@ -1149,6 +1149,14 @@ dst::DstRead(Int_t ievent)
         HF1(6013, vert.y());
         HF1(6014, vert.z());
         HF1(6015, MissMassCorr);
+        HF2(6017, us, pCorr-pCalc);
+        HF2(6018, us, MissMassCorr);
+        HF2(6019, vs, pCorr-pCalc);
+        HF2(6020, vs, MissMassCorr);
+        HFProf(6021, us, pCorr-pCalc);
+        HFProf(6022, us, MissMassCorr);
+        HFProf(6023, vs, pCorr-pCalc);
+        HFProf(6024, vs, MissMassCorr);
         if(inside == 1){
           HF1(6101, event.pK18[ikm]);
           HF1(6102, event.pKurama[ikp]);
@@ -1159,7 +1167,17 @@ dst::DstRead(Int_t ievent)
           HF1(6113, vert.y());
           HF1(6114, vert.z());
           HF1(6115, MissMassCorr);
-          if(event.pKurama[ikp] < 1.4 && event.qKurama[ikp] > 0){
+          HF2(6117, us, pCorr-pCalc);
+          HF2(6118, us, MissMassCorr);
+          HF2(6119, vs, pCorr-pCalc);
+          HF2(6120, vs, MissMassCorr);
+          HFProf(6121, us, pCorr-pCalc);
+          HFProf(6122, us, MissMassCorr);
+          HFProf(6123, vs, pCorr-pCalc);
+          HFProf(6124, vs, MissMassCorr);
+          if(event.pKurama[ikp] < 1.4 && event.qKurama[ikp] > 0
+             && event.pKurama[ikp] > 1.1
+            ){
             HF1(6201, event.pK18[ikm]);
             HF1(6202, event.pKurama[ikp]);
             HF1(6203, event.qKurama[ikp]*event.m2[ikp]);
@@ -1169,6 +1187,14 @@ dst::DstRead(Int_t ievent)
             HF1(6213, vert.y());
             HF1(6214, vert.z());
             HF1(6215, MissMassCorr);
+            HF2(6217, us, pCorr-pCalc);
+            HF2(6218, us, MissMassCorr);
+            HF2(6219, vs, pCorr-pCalc);
+            HF2(6220, vs, MissMassCorr);
+            HFProf(6221, us, pCorr-pCalc);
+            HFProf(6222, us, MissMassCorr);
+            HFProf(6223, vs, pCorr-pCalc);
+            HFProf(6224, vs, MissMassCorr);
             if(event.m2[ikp] > 0.15
                && event.m2[ikp] < 0.40
                // && event.trigflag[20]>0
@@ -1182,6 +1208,14 @@ dst::DstRead(Int_t ievent)
               HF1(6313, vert.y());
               HF1(6314, vert.z());
               HF1(6315, MissMassCorr);
+              HF2(6317, us, pCorr-pCalc);
+              HF2(6318, us, MissMassCorr);
+              HF2(6319, vs, pCorr-pCalc);
+              HF2(6320, vs, MissMassCorr);
+              HFProf(6321, us, pCorr-pCalc);
+              HFProf(6322, us, MissMassCorr);
+              HFProf(6323, vs, pCorr-pCalc);
+              HFProf(6324, vs, MissMassCorr);
             }
           }
         }
@@ -1456,6 +1490,15 @@ ConfMan::InitializeHistograms()
     HB1(hofs+13, "Vertex Y "+labels[i], 400, -200, 200);
     HB1(hofs+14, "Vertex Z "+labels[i], 400, -1000, 1000);
     HB1(hofs+15, "MissingMass "+labels[i], 200, 1.0, 2.0);
+    HB1(hofs+16, "BE "+labels[i], 200, -0.5, 0.5);
+    HB2(hofs+17, "#DeltaP%U "+labels[i], 200, -0.5, 0.5, 200, -1., 1.);
+    HB2(hofs+18, "MissingMass%U "+labels[i], 200, -0.5, 0.5, 200, 1., 1.8);
+    HB2(hofs+19, "#DeltaP%V "+labels[i], 200, -0.5, 0.5, 200, -1., 1.);
+    HB2(hofs+20, "MissingMass%V "+labels[i], 200, -0.5, 0.5, 200, 1., 1.8);
+    HBProf(hofs+21, "#DeltaP%U Prof "+labels[i], 200, -0.5, 0.5, -1., 1.);
+    HBProf(hofs+22, "MissingMass%U Prof "+labels[i], 200, -0.5, 0.5, 1., 1.8);
+    HBProf(hofs+23, "#DeltaP%V Prof "+labels[i], 200, -0.5, 0.5, -1., 1.);
+    HBProf(hofs+24, "MissingMass%V Prof "+labels[i], 200, -0.5, 0.5, 1., 1.8);
   }
 
   ////////////////////////////////////////////

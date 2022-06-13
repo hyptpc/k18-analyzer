@@ -69,7 +69,7 @@ private:
   std::vector<DCHitContainer>        m_SdcOutHC;
   std::vector<TPCHitContainer>       m_TPCHitCont;
   std::vector<TPCHitContainer>       m_TempTPCHitCont;
-  std::vector<TPCHitContainer>       m_TPCClCont;
+  std::vector<TPCClusterContainer>   m_TPCClCont;
   DCHitContainer                     m_TOFHC;
   DCHitContainer                     m_VtxPoint;
   DCLocalTrackContainer              m_BcInTC;
@@ -104,9 +104,6 @@ public:
   // Bool_t DecodeSimuHits(SimuData *simuData);
   Int_t  ClusterizeMWPCHit(const DCHitContainer& hits,
                            MWPCClusterContainer& clusters);
-  Bool_t  ClusterizeTPC(Int_t layerID, const TPCHitContainer& HitCont,
-                        TPCClusterContainer& ClCont);
-
   Double_t GetMaxV0Diff() const { return m_max_v0diff; }
   const DCHitContainer& GetTempBcInHC(Int_t l) const
     { return m_TempBcInHC.at(l); }
@@ -116,7 +113,7 @@ public:
   const DCHitContainer& GetSdcOutHC(Int_t l) const { return m_SdcOutHC.at(l); }
   const DCHitContainer& GetTOFHC() const { return m_TOFHC; }
   const TPCHitContainer& GetTPCHC(Int_t l) const { return m_TPCHitCont.at(l); }
-  const TPCHitContainer& GetTPCClCont(Int_t l) const
+  const TPCClusterContainer& GetTPCClCont(Int_t l) const
     { return m_TPCClCont.at(l); }
 
   Bool_t TrackSearchBcIn();
@@ -255,6 +252,9 @@ protected:
   void ChiSqrCut(DCLocalTrackContainer& cont, Double_t chisqr);
   void TotCut(DCHitContainer& cont, Double_t min_tot, Bool_t adopt_nan);
   void DriftTimeCut(DCHitContainer& cont, Double_t min_dt, Double_t max_dt, Bool_t select_1st);
+  static Bool_t MakeUpTPCClusters(const TPCHitContainer& HitCont,
+                                  TPCClusterContainer& ClCont,
+                                  Double_t maxdy);
   static Int_t MakeUpMWPCClusters(const DCHitContainer& HitCont,
                                   MWPCClusterContainer& ClusterCont,
                                   Double_t maxTimeDif);

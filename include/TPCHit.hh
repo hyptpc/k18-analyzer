@@ -15,6 +15,7 @@
 
 #include <TVector3.h>
 
+class TPCCluster;
 class TPCLTrackHit;
 class TPCRawHit;
 
@@ -36,6 +37,7 @@ protected:
   TPCRawHit*            m_rhit;
   Int_t                 m_layer;
   Int_t                 m_row;
+  Double_t              m_mrow;
   Int_t                 m_pad;
   Double_t              m_pedestal;
   Double_t              m_rms;
@@ -47,24 +49,11 @@ protected:
   std::vector<Double_t> m_ctime;
   std::vector<Double_t> m_drift_length; // this means Y (beam height = 0)
   std::vector<TVector3> m_position;
-  Double_t              m_charge;
-  TVector3              m_pos;
-  Int_t                 m_is_good;
+  Bool_t                m_is_good;
   Int_t                 m_is_calculated;
   Int_t                 m_hough_flag;
   std::vector<Int_t>    m_houghY_num;
-
-  ///// for TPC(MWPC)
-  Double_t m_mrow;
-  Bool_t   m_tpc_flag;
-  Int_t m_clsize;
-  Double_t m_charge_center;
-  TVector3 m_pos_center;
-
-  Double_t m_resx;
-  Double_t m_resy;
-  Double_t m_resz;
-  Double_t m_res;
+  TPCCluster*           m_parent_cluster;
 
   Bool_t m_belong_track;
 
@@ -93,24 +82,19 @@ public:
   Int_t           GetDriftLengthSize() const
     { return m_drift_length.size(); }
   Int_t           GetNHits() const { return m_de.size(); }
+  TPCCluster*     GetParentCluster() const { return m_parent_cluster; }
   Int_t           GetPad() const { return m_pad; }
   TPCRawHit*      GetRawHit() const { return m_rhit; }
   Int_t           GetLayer() const { return m_layer; }
   Int_t           GetRow() const { return m_row; }
   Double_t        GetPedestal() const { return m_pedestal; }
   Double_t        GetRMS() const { return m_rms; }
-  Double_t        GetCharge() const { return m_charge; }
-  Double_t        GetCharge_center() const { return m_charge_center; }
-  const TVector3& GetPos() const { return m_pos; }
-  const TVector3& GetPos_center() const { return m_pos_center; }
-  Double_t        GetX() const { return m_pos.X(); }
-  Double_t        GetY() const { return m_pos.Y(); }
-  Double_t        GetZ() const { return m_pos.Z(); }
+  Double_t        GetX(Int_t i=0) const { return m_position.at(i).X(); }
+  Double_t        GetY(Int_t i=0) const { return m_position.at(i).Y(); }
+  Double_t        GetZ(Int_t i=0) const { return m_position.at(i).Z(); }
   DCHit*          GetHitXZ() const { return m_hit_xz; }
   DCHit*          GetHitYZ() const { return m_hit_yz; }
   Double_t        GetMRow() const { return m_mrow; }
-  Bool_t          GetTPCFlag() const { return m_tpc_flag; }
-  Int_t           GetClusterSize() const { return m_clsize; }
   Int_t           GetHoughY_num(Int_t i) const { return m_houghY_num.at(i); }
   Int_t           GetHoughY_num_size() const { return m_houghY_num.size(); }
   const TVector3& GetPosition(Int_t i=0) const { return m_position.at(i); }
@@ -130,21 +114,14 @@ public:
   void            QuitTrack() { m_belong_track = false;}
   void            RegisterHits(TPCLTrackHit *hit)
     { m_register_container.push_back(hit); }
+  void            SetDe(Double_t de){ m_de.at(0) = de; m_cde.at(0) = de; }
   void            SetPad(Int_t pad) { m_pad = pad; }
   void            SetLayer(Int_t layer) { m_layer  = layer; }
   void            SetRow(Int_t row) { m_row  = row; }
-  void            SetCharge(Double_t charge) { m_charge = charge; }
-  void            SetCharge_center(Double_t charge_center) { m_charge_center = charge_center; }
-  void            SetPos_center(TVector3 pos_center) { m_pos_center = pos_center; }
-  void            SetPos(TVector3 pos) { m_pos = pos; }
+  void            SetPosition(const TVector3& pos){ m_position.at(0) = pos; }
   void            SetWirePosition(Double_t wpos) { m_wpos = wpos; }
   void            SetMRow(Double_t mrow) { m_mrow = mrow; }
-  void            SetClusterSize(Double_t clsize) { m_clsize = clsize; }
-  void            SetTPCFlag(Bool_t flag) { m_tpc_flag = flag; }
-  void            SetResX(Double_t resx) { m_resx = resx; }
-  void            SetResY(Double_t resy) { m_resy = resy; }
-  void            SetResZ(Double_t resz) { m_resz = resz; }
-  void            SetRes(Double_t res) { m_res = res; }
+  void            SetParentCluster(TPCCluster* parent){ m_parent_cluster = parent; }
   void            SetHoughFlag(Int_t hough_flag) { m_hough_flag = hough_flag; }
   void            SetHoughYnum(Int_t houghY_num);
 

@@ -18,6 +18,8 @@
 
 namespace tpc
 {
+const Double_t ZTarget = -143.; // Target from center
+
 enum EPadParameter
 {
   kLayerID,
@@ -66,325 +68,8 @@ static const Double_t padParameter[NumOfLayersTPC][NPadParameter] =
  {31,90,     384.5,867, 0, 12.5}};
 
 //_____________________________________________________________________________
-inline Int_t GetCoBoId(Int_t layer, Int_t row)
-{
-  switch(layer){
-  case 4:
-    if(60<=row && row<=99)
-      return 1;
-    else
-      return 0;
-  case 5:
-    if(72<=row && row<=119)
-      return 1;
-    else
-      return 0;
-  default:
-    return layer/4;
-  }
-}
-
-//_____________________________________________________________________________
-inline Int_t GetASADId(Int_t layer, Int_t row) //0~30
-{
-  Int_t flag=layer/4;
-  Int_t section;
-  if(flag==0) section=0; //layer 0~3
-  else if(flag==1) section=1; //layer 4~7
-  else if(layer==30||layer==31) section=3; //layer 30~31
-  else section=2; //layer 8~29
-
-  Int_t half=padParameter[layer][1]/2;
-  Int_t division1=padParameter[layer][1]/6;
-  Int_t division2=padParameter[layer][1]*5/6;
-
-  switch(section){
-  case 0:
-    if(row<half)
-      return 0;
-    else
-      return 1;
-  case 1:
-    Int_t dummy;
-    if(layer%4<2) dummy=2;
-    if(2<=layer%4) dummy=5;
-    if(row<division1||division2<=row)
-      return dummy;
-    else if(division1<=row&&row<half)
-      return dummy+1;
-    else
-      return dummy+2;
-  case 3:
-    return 30;
-  default:
-    if(row<half)
-      return layer-layer%2;
-    else
-      return layer-layer%2+1;
-  }
-}
-
-
-//_____________________________________________________________________________
-inline Int_t GetPadId(Int_t layerID, Int_t rowID)
-{
-  //Original
-  //Int_t padID=0;
-  // Check!!!!!!!
-  Int_t padID=1;
-  for(int layi = 0 ; layi<layerID; layi++) padID += padParameter[layi][1];
-  padID+=rowID;
-  return padID;
-
-}
-
-inline Int_t getLayerID(Int_t padID)
-{
-  padID-=1;
-  int layer;
-  int sum = 0;
-
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
-  {
-    sum += padParameter[layer][1];
-  }
-  return layer;
-}
-
-inline Int_t getRowID(Int_t padID)
-{
-  padID-=1;
-  int layer, row;
-  int sum = 0;
-
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
-  {
-    sum += padParameter[layer][1];
-  }
-  row = padID - sum;
-  return row;
-}
-/*
-  Double_t getTheta(Int_t layerID, Int_t rowID)
-  {
-  Double_t sTheta = 180.-(360./padParameter[layerID][3])*padParameter[layerID][1]/2.;
-  Double_t theta = sTheta+(rowID+0.5)*(360.-2*sTheta)/padParameter[layerID][1];
-  return theta;
-  }
-*/
-
-inline Double_t getTheta(Int_t padID)
-{
-  padID-=1;
-  int layer, row;
-  int sum = 0;
-
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
-  {
-    sum += padParameter[layer][1];
-  }
-  row = padID - sum;
-  //std::cout<<"layer="<<layer<<", row="<<row<<std::endl;
-  Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
-  //Double_t theta = sTheta+(row+0.5)*(360.-2*sTheta)/padParameter[layer][1];
-  Double_t theta = sTheta+(row+0.5)*360./padParameter[layer][3]-180;
-  //std::cout<<"theta="<<theta<<std::endl;
-
-  return theta;
-}
-
-inline Double_t getTheta(Int_t layer, Double_t m_row)
-{
-  Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
-  //Double_t theta = sTheta+(row+0.5)*(360.-2*sTheta)/padParameter[layer][1];
-  Double_t theta = sTheta+(m_row+0.5)*360./padParameter[layer][3]-180;
-  //std::cout<<"theta="<<theta<<std::endl;
-  return theta;
-}
-
-
-inline Double_t getR(Int_t padID)
-{
-  padID-=1;
-  int layer;
-  int sum = 0;
-
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
-  {
-    sum += padParameter[layer][1];
-  }
-  Double_t R = padParameter[layer][2];
-  return R;
-}
-
-inline TVector3 getPosition(int padID)
-{
-  padID-=1;
-  int layer, row;
-  int sum = 0;
-
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
-  {
-    sum += padParameter[layer][1];
-  }
-  row = padID - sum;
-
-  TVector3 result;
-  if (row > padParameter[layer][1]){ // out of range
-    result.SetX(0);
-    result.SetY(-1);
-    result.SetZ(0);
-  }
-  else{
-    double x, z;
-    //Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
-
-    //    x = padParameter[layer][2] * -sin((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.);
-    //    z = padParameter[layer][2] * -cos((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.) - 143.0;
-
-    // x = padParameter[layer][2] * sin(getTheta(padID+1)*TMath::Pi()/180.);
-    // z = padParameter[layer][2] * cos(getTheta(padID+1)*TMath::Pi()/180.) - 143.0;
-    //std::cout<<"layer="<<layer<<", row"<<row<<std::endl;
-    x = padParameter[layer][2] * sin(getTheta(layer,row)*TMath::Pi()/180.);
-    z = padParameter[layer][2] * cos(getTheta(layer,row)*TMath::Pi()/180.) - 143.0;
-
-    // Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
-    // double x_ = padParameter[layer][2] * -sin((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.);
-    // double z_ = padParameter[layer][2] * -cos((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.) - 143.0;
-    //std::cout<<"x="<<x<<", z="<<z<<", x_="<<x_<<", z_="<<z_<<std::endl;
-    result.SetX(x);
-    result.SetY(0);
-    result.SetZ(z);
-  }
-  return result;
-}
-
-inline TVector3 getPosition(int layer, double m_row)
-{
-  TVector3 result;
-  if (m_row > padParameter[layer][1]){ // out of range
-    result.SetX(0);
-    result.SetY(-1);
-    result.SetZ(0);
-  }
-  else{
-    double x, z;
-
-    x = padParameter[layer][2] * sin(getTheta(layer, m_row)*TMath::Pi()/180.);
-    z = padParameter[layer][2] * cos(getTheta(layer, m_row)*TMath::Pi()/180.) - 143.0;
-    result.SetX(x);
-    result.SetY(0);
-    result.SetZ(z);
-    //std::cout<<"x="<<x<<", z="<<z<<std::endl;
-  }
-  return result;
-}
-
-
-
-inline int findPadID(double z, double x)
-{
-  z += 143;
-  double radius = sqrt(x*x + z*z);
-  double angle;
-  if (z == 0)
-  {
-    if (x > 0)   angle = 1.5*TMath::Pi();
-    else if (x < 0)   angle = 0.5*TMath::Pi();
-    else return -1000; // no padID if (0,0)
-  }
-  //  else
-  //  {
-  //    if (z < 0 && x < 0) angle = atan(x / z);
-  //    else if (z > 0 && x < 0) angle = TMath::Pi() - atan(-x / z);
-  //    else if (z > 0 && x > 0) angle = TMath::Pi() + atan(x / z);
-  //    else if (z < 0 && x > 0) angle = 2*TMath::Pi() - atan(-x / z);
-  //  }
-  else if (z < 0) angle = atan(x / z);
-  else  angle = TMath::Pi() + atan(x / z);
-  //cout << " angle: " << angle*180/TMath::Pi() << endl;
-
-  int layer, row;
-  // find layer_num.
-  for (layer = 0; !(padParameter[layer][2]+padParameter[layer][5]*0.5 >= radius
-                    && padParameter[layer][2]-padParameter[layer][5]*0.5 <= radius); layer++)
-  {
-    if (layer >= 32) return -1000;
-    if (layer != 0)
-    {
-      if (padParameter[layer][2] - padParameter[layer][5] * 0.5 >= radius &&
-          padParameter[layer - 1][2] + padParameter[layer - 1][5] * 0.5 <= radius) return -layer;
-    }
-  }
-
-  //cout << " layer: " << layer << endl;
-
-  Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
-
-  // find row_num
-  if (angle - (sTheta*TMath::Pi()/180.) < 0) return -1000;
-
-  //double a, b, c;
-  row = (int)((angle-(sTheta*TMath::Pi()/180.))/(360./padParameter[layer][3]*TMath::Pi()/180.));
-  if (row > padParameter[layer][1]) return -1000;
-
-  //cout << " row: " << row << endl;
-  //This is original one
-  //return GetPadId(layer, row)+1;
-  //Please check
-  return GetPadId(layer, row);
-}
-
-//_____________________________________________________________________________
-inline void
-InitializeHistograms()
-{
-  std::vector<TH2Poly*> target;
-  TList* list = gDirectory->GetList();
-  TIter itr(list);
-  while(itr.Next()){
-    const TString& name((*itr)->GetName());
-    const TString& cname((*itr)->ClassName());
-    //hddaq::cout << " " << std::setw(8) << std::left << name
-    std::cout << " " << std::setw(8) << std::left << name
-                << "(" << cname << ")" << std::endl;
-    if(cname.EqualTo("TH2Poly")){
-      target.push_back(dynamic_cast<TH2Poly*>(*itr));
-    }
-  }
-
-  Double_t X[5];
-  Double_t Y[5];
-
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    Double_t pLength = tpc::padParameter[layer][5];
-    Double_t st = 180.-(360./tpc::padParameter[layer][3])
-      * tpc::padParameter[layer][1]/2.;
-    Double_t sTheta  = (-1+st/180.)*TMath::Pi();
-    Double_t dTheta  = (360./tpc::padParameter[layer][3])/180.*TMath::Pi();
-    Double_t cRad    = tpc::padParameter[layer][2];
-    Int_t    nPad    = tpc::padParameter[layer][1];
-    for(Int_t j=0; j<nPad; ++j){
-      X[1] = (cRad+(pLength/2.))*TMath::Cos(j*dTheta+sTheta);
-      X[2] = (cRad+(pLength/2.))*TMath::Cos((j+1)*dTheta+sTheta);
-      X[3] = (cRad-(pLength/2.))*TMath::Cos((j+1)*dTheta+sTheta);
-      X[4] = (cRad-(pLength/2.))*TMath::Cos(j*dTheta+sTheta);
-      X[0] = X[4];
-      Y[1] = (cRad+(pLength/2.))*TMath::Sin(j*dTheta+sTheta);
-      Y[2] = (cRad+(pLength/2.))*TMath::Sin((j+1)*dTheta+sTheta);
-      Y[3] = (cRad-(pLength/2.))*TMath::Sin((j+1)*dTheta+sTheta);
-      Y[4] = (cRad-(pLength/2.))*TMath::Sin(j*dTheta+sTheta);
-      Y[0] = Y[4];
-      for(Int_t ii=0; ii<5; ++ii) X[ii] -=143;
-      for(auto& h: target) h->AddBin(5, X, Y);
-    }
-  }
-}
-
-//_____________________________________________________________________________
 inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
 {
-
   Int_t flag=-1;
   switch(asad){
   case 0:
@@ -1142,6 +827,368 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
   }
 }
 
+//_____________________________________________________________________________
+inline Int_t GetASADId(Int_t layer, Int_t row) //0~30
+{
+  Int_t flag=layer/4;
+  Int_t section;
+  if(flag==0) section=0; //layer 0~3
+  else if(flag==1) section=1; //layer 4~7
+  else if(layer==30||layer==31) section=3; //layer 30~31
+  else section=2; //layer 8~29
+
+  Int_t half=padParameter[layer][1]/2;
+  Int_t division1=padParameter[layer][1]/6;
+  Int_t division2=padParameter[layer][1]*5/6;
+
+  switch(section){
+  case 0:
+    if(row<half)
+      return 0;
+    else
+      return 1;
+  case 1:
+    Int_t dummy;
+    if(layer%4<2) dummy=2;
+    if(2<=layer%4) dummy=5;
+    if(row<division1||division2<=row)
+      return dummy;
+    else if(division1<=row&&row<half)
+      return dummy+1;
+    else
+      return dummy+2;
+  case 3:
+    return 30;
+  default:
+    if(row<half)
+      return layer-layer%2;
+    else
+      return layer-layer%2+1;
+  }
+}
+
+//_____________________________________________________________________________
+inline Int_t GetCoBoId(Int_t layer, Int_t row)
+{
+  switch(layer){
+  case 4:
+    if(60<=row && row<=99)
+      return 1;
+    else
+      return 0;
+  case 5:
+    if(72<=row && row<=119)
+      return 1;
+    else
+      return 0;
+  default:
+    return layer/4;
+  }
+}
+
+//_____________________________________________________________________________
+inline Int_t GetASADId(Int_t layer, Int_t row) //0~30
+{
+  Int_t flag=layer/4;
+  Int_t section;
+  if(flag==0) section=0; //layer 0~3
+  else if(flag==1) section=1; //layer 4~7
+  else if(layer==30||layer==31) section=3; //layer 30~31
+  else section=2; //layer 8~29
+
+  Int_t half=padParameter[layer][1]/2;
+  Int_t division1=padParameter[layer][1]/6;
+  Int_t division2=padParameter[layer][1]*5/6;
+
+  switch(section){
+  case 0:
+    if(row<half)
+      return 0;
+    else
+      return 1;
+  case 1:
+    Int_t dummy;
+    if(layer%4<2) dummy=2;
+    if(2<=layer%4) dummy=5;
+    if(row<division1||division2<=row)
+      return dummy;
+    else if(division1<=row&&row<half)
+      return dummy+1;
+    else
+      return dummy+2;
+  case 3:
+    return 30;
+  default:
+    if(row<half)
+      return layer-layer%2;
+    else
+      return layer-layer%2+1;
+  }
+}
+
+
+//_____________________________________________________________________________
+inline Int_t GetPadId(Int_t layerID, Int_t rowID)
+{
+  //Original
+  //Int_t padID=0;
+  // Check!!!!!!!
+  Int_t padID=1;
+  for(Int_t layi = 0 ; layi<layerID; layi++) padID += padParameter[layi][1];
+  padID+=rowID;
+  return padID;
+
+}
+
+inline Int_t getLayerID(Int_t padID)
+{
+  padID-=1;
+  Int_t layer;
+  Int_t sum = 0;
+
+  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
+  {
+    sum += padParameter[layer][1];
+  }
+  return layer;
+}
+
+inline Int_t getRowID(Int_t padID)
+{
+  padID-=1;
+  Int_t layer, row;
+  Int_t sum = 0;
+
+  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
+  {
+    sum += padParameter[layer][1];
+  }
+  row = padID - sum;
+  return row;
+}
+/*
+  Double_t getTheta(Int_t layerID, Int_t rowID)
+  {
+  Double_t sTheta = 180.-(360./padParameter[layerID][3])*padParameter[layerID][1]/2.;
+  Double_t theta = sTheta+(rowID+0.5)*(360.-2*sTheta)/padParameter[layerID][1];
+  return theta;
+  }
+*/
+
+inline Double_t getTheta(Int_t padID)
+{
+  padID-=1;
+  Int_t layer, row;
+  Int_t sum = 0;
+
+  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
+  {
+    sum += padParameter[layer][1];
+  }
+  row = padID - sum;
+  //std::cout<<"layer="<<layer<<", row="<<row<<std::endl;
+  Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
+  //Double_t theta = sTheta+(row+0.5)*(360.-2*sTheta)/padParameter[layer][1];
+  Double_t theta = sTheta+(row+0.5)*360./padParameter[layer][3]-180;
+  //std::cout<<"theta="<<theta<<std::endl;
+
+  return theta;
+}
+
+inline Double_t getTheta(Int_t layer, Double_t m_row)
+{
+  Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
+  //Double_t theta = sTheta+(row+0.5)*(360.-2*sTheta)/padParameter[layer][1];
+  Double_t theta = sTheta+(m_row+0.5)*360./padParameter[layer][3]-180;
+  //std::cout<<"theta="<<theta<<std::endl;
+  return theta;
+}
+
+inline Double_t GetRadius(Int_t layer)
+{
+  return padParameter[layer][2];
+}
+
+inline Double_t getR(Int_t padID)
+{
+  padID-=1;
+  Int_t layer;
+  Int_t sum = 0;
+
+  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
+  {
+    sum += padParameter[layer][1];
+  }
+  Double_t R = padParameter[layer][2];
+  return R;
+}
+
+inline TVector3 getPosition(Int_t padID)
+{
+  padID-=1;
+  Int_t layer, row;
+  Int_t sum = 0;
+
+  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
+  {
+    sum += padParameter[layer][1];
+  }
+  row = padID - sum;
+
+  TVector3 result;
+  if (row > padParameter[layer][1]){ // out of range
+    result.SetX(0);
+    result.SetY(-1);
+    result.SetZ(0);
+  }
+  else{
+    Double_t x, z;
+    //Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
+
+    //    x = padParameter[layer][2] * -sin((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.);
+    //    z = padParameter[layer][2] * -cos((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.) + ZTarget;
+
+    // x = padParameter[layer][2] * sin(getTheta(padID+1)*TMath::Pi()/180.);
+    // z = padParameter[layer][2] * cos(getTheta(padID+1)*TMath::Pi()/180.) + ZTarget;
+    //std::cout<<"layer="<<layer<<", row"<<row<<std::endl;
+    x = padParameter[layer][2] * sin(getTheta(layer,row)*TMath::Pi()/180.);
+    z = padParameter[layer][2] * cos(getTheta(layer,row)*TMath::Pi()/180.) + ZTarget;
+
+    // Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
+    // Double_t x_ = padParameter[layer][2] * -sin((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.);
+    // Double_t z_ = padParameter[layer][2] * -cos((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.) + ZTarget;
+    //std::cout<<"x="<<x<<", z="<<z<<", x_="<<x_<<", z_="<<z_<<std::endl;
+    result.SetX(x);
+    result.SetY(0);
+    result.SetZ(z);
+  }
+  return result;
+}
+
+inline TVector3 getPosition(Int_t layer, Double_t m_row)
+{
+  TVector3 result;
+  if(m_row > padParameter[layer][1]){ // out of range
+    return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
+  }
+  else{
+    return TVector3(
+      padParameter[layer][2] * sin(getTheta(layer, m_row)*TMath::Pi()/180.),
+      0.,
+      padParameter[layer][2] * cos(getTheta(layer, m_row)*TMath::Pi()/180.) + ZTarget);
+  }
+}
+
+inline Int_t findPadID(Double_t z, Double_t x)
+{
+  z -= ZTarget;
+  Double_t radius = sqrt(x*x + z*z);
+  Double_t angle;
+  if (z == 0)
+  {
+    if (x > 0)   angle = 1.5*TMath::Pi();
+    else if (x < 0)   angle = 0.5*TMath::Pi();
+    else return -1000; // no padID if (0,0)
+  }
+  //  else
+  //  {
+  //    if (z < 0 && x < 0) angle = atan(x / z);
+  //    else if (z > 0 && x < 0) angle = TMath::Pi() - atan(-x / z);
+  //    else if (z > 0 && x > 0) angle = TMath::Pi() + atan(x / z);
+  //    else if (z < 0 && x > 0) angle = 2*TMath::Pi() - atan(-x / z);
+  //  }
+  else if (z < 0) angle = atan(x / z);
+  else  angle = TMath::Pi() + atan(x / z);
+  //cout << " angle: " << angle*180/TMath::Pi() << endl;
+
+  Int_t layer, row;
+  // find layer_num.
+  for (layer = 0; !(padParameter[layer][2]+padParameter[layer][5]*0.5 >= radius
+                    && padParameter[layer][2]-padParameter[layer][5]*0.5 <= radius); layer++)
+  {
+    if (layer >= 32) return -1000;
+    if (layer != 0)
+    {
+      if (padParameter[layer][2] - padParameter[layer][5] * 0.5 >= radius &&
+          padParameter[layer - 1][2] + padParameter[layer - 1][5] * 0.5 <= radius) return -layer;
+    }
+  }
+
+  //cout << " layer: " << layer << endl;
+
+  Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
+
+  // find row_num
+  if (angle - (sTheta*TMath::Pi()/180.) < 0) return -1000;
+
+  //Double_t a, b, c;
+  row = (int)((angle-(sTheta*TMath::Pi()/180.))/(360./padParameter[layer][3]*TMath::Pi()/180.));
+  if (row > padParameter[layer][1]) return -1000;
+
+  //cout << " row: " << row << endl;
+  //This is original one
+  //return GetPadId(layer, row)+1;
+  //Please check
+  return GetPadId(layer, row);
+}
+
+//_____________________________________________________________________________
+inline void
+InitializeHistograms()
+{
+  std::vector<TH2Poly*> target;
+  TList* list = gDirectory->GetList();
+  TIter itr(list);
+  while(itr.Next()){
+    const TString& name((*itr)->GetName());
+    const TString& cname((*itr)->ClassName());
+    std::cout << " " << std::setw(8) << std::left << name
+              << "(" << cname << ")" << std::endl;
+    if(cname.EqualTo("TH2Poly")){
+      target.push_back(dynamic_cast<TH2Poly*>(*itr));
+    }
+  }
+
+  Double_t X[5];
+  Double_t Y[5];
+
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    Double_t pLength = tpc::padParameter[layer][5];
+    Double_t st = 180.-(360./tpc::padParameter[layer][3])
+      * tpc::padParameter[layer][1]/2.;
+    Double_t sTheta  = (-1+st/180.)*TMath::Pi();
+    Double_t dTheta  = (360./tpc::padParameter[layer][3])/180.*TMath::Pi();
+    Double_t cRad    = tpc::padParameter[layer][2];
+    Int_t    nPad    = tpc::padParameter[layer][1];
+    for(Int_t j=0; j<nPad; ++j){
+      X[1] = (cRad+(pLength/2.))*TMath::Cos(j*dTheta+sTheta);
+      X[2] = (cRad+(pLength/2.))*TMath::Cos((j+1)*dTheta+sTheta);
+      X[3] = (cRad-(pLength/2.))*TMath::Cos((j+1)*dTheta+sTheta);
+      X[4] = (cRad-(pLength/2.))*TMath::Cos(j*dTheta+sTheta);
+      X[0] = X[4];
+      Y[1] = (cRad+(pLength/2.))*TMath::Sin(j*dTheta+sTheta);
+      Y[2] = (cRad+(pLength/2.))*TMath::Sin((j+1)*dTheta+sTheta);
+      Y[3] = (cRad-(pLength/2.))*TMath::Sin((j+1)*dTheta+sTheta);
+      Y[4] = (cRad-(pLength/2.))*TMath::Sin(j*dTheta+sTheta);
+      Y[0] = Y[4];
+      for(Int_t ii=0; ii<5; ++ii) X[ii] += ZTarget;
+      for(auto& h: target) h->AddBin(5, X, Y);
+    }
+  }
+}
+
+//_____________________________________________________________________________
+inline Bool_t
+IsClusterable(Int_t layer, Int_t row_a, Int_t row_b, Int_t maxdif=1)
+{
+  if(layer < 10){
+    const Int_t npad = padParameter[layer][kNumOfPad];
+    return (TMath::Abs(row_a - row_b) <= maxdif
+            || TMath::Abs(row_a - row_b) >= npad - maxdif);
+  }else{
+    return (TMath::Abs(row_a - row_b) <= maxdif);
+  }
+}
 }
 
 #endif

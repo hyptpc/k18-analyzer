@@ -31,6 +31,7 @@
 #include <TApplication.h>
 #include <TCanvas.h>
 #include <TLatex.h>
+#include <TStyle.h>
 #include <TSystem.h>
 namespace { TApplication app("DebugApp", nullptr, nullptr); }
 #endif
@@ -154,8 +155,9 @@ RawData::CorrectBaselineTPC()
   h_baseline = &h1;
 
 #if DebugEvDisp
-  gStyle->SetOptStat(1110);
-  gStyle->SetOptFit(1);
+  gStyle->SetOptStat(0);
+  // gStyle->SetOptStat(1110);
+  // gStyle->SetOptFit(1);
   static TCanvas c1("c1", "c1", 1200, 900);
   c1.cd();
   TH1D h2(FUNC_NAME+"-h2", "Corrected FADC",
@@ -170,6 +172,7 @@ RawData::CorrectBaselineTPC()
         continue;
       ///// Minimum RMS method (unused)
       // auto ref = hit->RMS(MinTimeBucket, MaxTimeBucket);
+      // if(hit->RMS(MinTimeBucket, MaxTimeBucket) < 20.) continue;
       ///// Minimum Amplitude method
       auto ref = hit->MaxAdc(MinTimeBucket, MaxTimeBucket)
         - hit->Mean(MinTimeBucket, MaxTimeBucket);
@@ -201,7 +204,7 @@ RawData::CorrectBaselineTPC()
 
   for(const auto& hc : m_TPCRawHC){
     for(const auto& hit : hc){
-      TH1D h_fadc("h_fadc", Form("FADC Layer#%d Row#%d",
+      TH1D h_fadc("h_fadc", Form("FADC Layer#%d Row#%d;sample# ;ADC ch",
                                  hit->LayerId(), hit->RowId()),
                   NumOfTimeBucket, 0, NumOfTimeBucket);
       h_fadc.SetLineWidth(2);
@@ -217,29 +220,39 @@ RawData::CorrectBaselineTPC()
       f1.SetParLimits(1, -5, 5.);
       f1.SetParLimits(2, -10, 10);
       h_fadc.Fit("f1", "Q", "", 0, MinTimeBucket);
+      Double_t max_cadc = -1e10;
       for(Int_t i=0, n=fadc.size(); i<n; ++i){
         Double_t cadc = fadc.at(i) - f1.Eval(i);
         AddTPCRawHit(m_TPCCorHC[hit->LayerId()], hit->LayerId(),
                      hit->RowId(), cadc, f1.GetParameters());
+        if(cadc > max_cadc && i > 25){
+          max_cadc = cadc;
+        }
       }
 #if DebugEvDisp
+      if(max_cadc > 100 && max_cadc<1000)
       {
         h2.Reset();
         h2.SetLineWidth(2);
+        Double_t max_adc = -1e10;
         for(Int_t i=0, n=fadc.size(); i<n; ++i){
           h2.SetBinContent(i+1, fadc.at(i) - f1.Eval(i));
+          if(fadc.at(i) > max_adc) max_adc = fadc.at(i);
         }
         h_fadc.Draw();
-        h_fadc.SetMinimum(-500);
-        h_fadc.SetMaximum(1000);
+        // h_fadc.SetMinimum(min_adc - 100);
+        h_fadc.SetMinimum(-100);
+        h_fadc.SetMaximum(max_adc + 100);
+        // h_fadc.SetMaximum(1000);
+        // h_fadc.SetMaximum(2000);
         TF1 f2("f2", f_baseline, MinTimeBucket, NumOfTimeBucket, 3);
         f2.SetParameters(f1.GetParameters());
         f2.Draw("same");
         h2.SetLineColor(kGreen+1);
         h2.SetLineWidth(2);
         h2.Draw("same");
-        h2.SetMinimum(-500);
-        h2.SetMaximum( 500);
+        // h2.SetMinimum(-500);
+        // h2.SetMaximum( 500);
         gPad->Modified();
         gPad->Update();
         c1.Print("c1.pdf");
@@ -478,7 +491,7 @@ RawData::DecodeHits()
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 RawData::DecodeTPCHits()
 {
   static const auto k_tpc = gUnpacker.get_device_id("TPC");
@@ -626,7 +639,7 @@ RawData::SelectTPCHits(Bool_t maxadccut, Bool_t maxadctbcut)
 
 
 //_____________________________________________________________________________
-bool
+Bool_t
 RawData::DecodeCalibHits()
 {
   del::ClearContainer(m_VmeCalibRawHC);

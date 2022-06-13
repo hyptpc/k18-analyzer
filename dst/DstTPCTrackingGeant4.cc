@@ -19,6 +19,7 @@
 #include "HodoPHCMan.hh"
 #include "DCAnalyzer.hh"
 #include "DCHit.hh"
+#include "TPCCluster.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCHit.hh"
 
@@ -66,7 +67,7 @@ struct Event
   Int_t evnum;
   Int_t status;
   Int_t nhittpc;                 // Number of Hits
-  Int_t nttpc;                   // Number of Tracks
+  Int_t ntTpc;                   // Number of Tracks
   Int_t nhit_track[MaxTPCTracks]; // Number of Hits (in 1 tracks)
   Double_t chisqr[MaxTPCTracks];
   Double_t x0[MaxTPCTracks];
@@ -137,38 +138,38 @@ struct Src
 
 namespace root
 {
-  Event  event;
-  Src    src;
-  TH1   *h[MaxHist];
-  TTree *tree;
+Event  event;
+Src    src;
+TH1   *h[MaxHist];
+TTree *tree;
 }
 
 //_____________________________________________________________________
 int
-main( int argc, char **argv )
+main(int argc, char **argv)
 {
-  std::vector<std::string> arg( argv, argv+argc );
+  std::vector<std::string> arg(argv, argv+argc);
 
-  if( !CheckArg( arg ) )
+  if(!CheckArg(arg))
     return EXIT_FAILURE;
-  if( !DstOpen( arg ) )
+  if(!DstOpen(arg))
     return EXIT_FAILURE;
-  if( !gConf.Initialize( arg[kConfFile] ) )
+  if(!gConf.Initialize(arg[kConfFile]))
     return EXIT_FAILURE;
 
-  int nevent = GetEntries( TTreeCont );
+  Int_t nevent = GetEntries(TTreeCont);
 
   CatchSignal::Set();
 
-  int ievent = 0;
+  Int_t ievent = 0;
 
-  // for(int ii=0; ii<100; ++ii){
+  // for(Int_t ii=0; ii<100; ++ii){
   //   std::cout<<"ii="<<ii<<std::endl;
   //   ievent = 0;
-  for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
+  for(; ievent<nevent && !CatchSignal::Stop(); ++ievent){
     gCounter.check();
     InitializeEvent();
-    if( DstRead( ievent ) ) tree->Fill();
+    if(DstRead(ievent)) tree->Fill();
   }
   //  }
 
@@ -183,15 +184,15 @@ main( int argc, char **argv )
 }
 
 //_____________________________________________________________________
-bool
-dst::InitializeEvent( void )
+Bool_t
+dst::InitializeEvent()
 {
   event.status   = 0;
   event.evnum = 0;
   event.nhittpc = 0;
-  event.nttpc = 0;
+  event.ntTpc = 0;
 
-  for(int i=0; i<MaxTPCTracks; ++i){
+  for(Int_t i=0; i<MaxTPCTracks; ++i){
     event.nhit_track[i] =0;
     event.chisqr[i] =-9999.;
     event.x0[i] =-9999.;
@@ -199,7 +200,7 @@ dst::InitializeEvent( void )
     event.u0[i] =-9999.;
     event.v0[i] =-9999.;
     event.theta[i] =-9999.;
-    for(int j=0; j<MaxTPCnHits; ++j){
+    for(Int_t j=0; j<MaxTPCnHits; ++j){
       event.hitlayer[i][j] =-999;
       event.hitpos_x[i][j] =-9999.;
       event.hitpos_y[i][j] =-9999.;
@@ -219,92 +220,96 @@ dst::InitializeEvent( void )
 }
 
 //_____________________________________________________________________
-bool
-dst::DstOpen( std::vector<std::string> arg )
+Bool_t
+dst::DstOpen(std::vector<std::string> arg)
 {
-  int open_file = 0;
-  int open_tree = 0;
-  for( std::size_t i=0; i<nArgc; ++i ){
-    if( i==kProcess || i==kConfFile || i==kOutFile ) continue;
-    open_file += OpenFile( TFileCont[i], arg[i] );
-    open_tree += OpenTree( TFileCont[i], TTreeCont[i], TreeName[i] );
+  Int_t open_file = 0;
+  Int_t open_tree = 0;
+  for(std::size_t i=0; i<nArgc; ++i){
+    if(i==kProcess || i==kConfFile || i==kOutFile) continue;
+    open_file += OpenFile(TFileCont[i], arg[i]);
+    open_tree += OpenTree(TFileCont[i], TTreeCont[i], TreeName[i]);
   }
 
-  if( open_file!=open_tree || open_file!=nArgc-3 )
+  if(open_file!=open_tree || open_file!=nArgc-3)
     return false;
-  if( !CheckEntries( TTreeCont ) )
+  if(!CheckEntries(TTreeCont))
     return false;
 
-  TFileCont[kOutFile] = new TFile( arg[kOutFile].c_str(), "recreate" );
+  TFileCont[kOutFile] = new TFile(arg[kOutFile].c_str(), "recreate");
 
   return true;
 }
 
 //_____________________________________________________________________
-bool
-dst::DstRead( int ievent )
+Bool_t
+dst::DstRead(Int_t ievent)
 {
   static const std::string func_name("["+class_name+"::"+__func__+"]");
 
 
-  if( ievent%10000==0 ){
+  if(ievent%10000==0){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
 
   GetEntry(ievent);
 
-  HF1( 1, event.status++ );
+  HF1(1, event.status++);
 
   event.evnum = src.evnum;
   event.nhittpc = src.nhittpc;
 
-  // double u = src.pxPrm[0]/src.pzPrm[0];
-  // double v = src.pyPrm[0]/src.pzPrm[0];
-  // double cost = 1./std::sqrt(1.+u*u+v*v);
-  // double theta=std::acos(cost)*math::Rad2Deg();
+  // Double_t u = src.pxPrm[0]/src.pzPrm[0];
+  // Double_t v = src.pyPrm[0]/src.pzPrm[0];
+  // Double_t cost = 1./std::sqrt(1.+u*u+v*v);
+  // Double_t theta=std::acos(cost)*math::Rad2Deg();
   // if(theta>20.)
   //   return true;
-  DCAnalyzer *DCAna = new DCAnalyzer();
+  DCAnalyzer DCAna;
 
   //with stable resolution
-  // for(int it=0; it<src.nhittpc; ++it){
+  // for(Int_t it=0; it<src.nhittpc; ++it){
   //   src.x0tpc[it] += gRandom->Gaus(0,0.2);
   //   src.y0tpc[it] += gRandom->Gaus(0,0.5);
   //   src.z0tpc[it] += gRandom->Gaus(0,0.2);
   // }
   //for test
-   // for(int it=0; it<src.nhittpc; ++it){
-   //   src.xtpc[it] += gRandom->Gaus(0,0.1);
-   //   src.ztpc[it] += gRandom->Gaus(0,0.1);
-   // }
+  // for(Int_t it=0; it<src.nhittpc; ++it){
+  //   src.xtpc[it] += gRandom->Gaus(0,0.1);
+  //   src.ztpc[it] += gRandom->Gaus(0,0.1);
+  // }
 
+  DCAna.DecodeTPCHitsGeant4(src.nhittpc,
+                            src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
+                            // src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
+  DCAna.TrackSearchTPC();
 
-  DCAna->DecodeTPCHitsGeant4(src.nhittpc,
-  //  			     //src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
-   			     src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
-  DCAna->TrackSearchTPC();
-
-
-
-
-  int nttpc = DCAna->GetNTracksTPC();
-  if( MaxHits<nttpc ){
+  Int_t ntTpc = DCAna.GetNTracksTPC();
+  HF1(10, ntTpc);
+  if(MaxHits<ntTpc){
     std::cout << "#W " << func_name << " "
-      	      << "too many nttpc " << nttpc << "/" << MaxHits << std::endl;
-    nttpc = MaxHits;
+      	      << "too many ntTpc " << ntTpc << "/" << MaxHits << std::endl;
+    ntTpc = MaxHits;
   }
-  event.nttpc = nttpc;
-  for( int it=0; it<nttpc; ++it ){
-    TPCLocalTrack *tp= DCAna->GetTrackTPC(it);
-    if(!tp) continue;
-    int nh=tp->GetNHit();
-    double chisqr    = tp->GetChiSquare();
-
-    double x0=tp->GetX0(), y0=tp->GetY0();
-    double u0=tp->GetU0(), v0=tp->GetV0();
-    double theta = tp->GetTheta();
-
+  event.ntTpc = ntTpc;
+  for(Int_t it=0; it<ntTpc; ++it){
+    auto track= DCAna.GetTrackTPC(it);
+    if(!track) continue;
+    Int_t nh=track->GetNHit();
+    Double_t chisqr    = track->GetChiSquare();
+    Double_t x0=track->GetX0(), y0=track->GetY0();
+    Double_t u0=track->GetU0(), v0=track->GetV0();
+    Double_t theta = track->GetTheta();
+    HF1(11, nh);
+    HF1(12, chisqr);
+    HF1(14, x0);
+    HF1(15, y0);
+    HF1(16, u0);
+    HF1(17, v0);
+    HF2(18, x0, u0);
+    HF2(19, y0, v0);
+    HF2(20, x0, y0);
     event.nhit_track[it]=nh;
     event.chisqr[it]=chisqr;
     event.x0[it]=x0;
@@ -313,17 +318,20 @@ dst::DstRead( int ievent )
     event.v0[it]=v0;
     event.theta[it]=theta;
 
-    for( int ih=0; ih<nh; ++ih ){
-      TPCLTrackHit *hit=tp->GetHit(ih);
-
+    for(Int_t ih=0; ih<nh; ++ih){
+      auto hit = track->GetHit(ih);
       if(!hit) continue;
-      int layerId = 0;
-      layerId = hit->GetLayer();
+      Int_t layer = hit->GetLayer();
       TVector3 hitpos = hit->GetLocalHitPos();
       TVector3 calpos = hit->GetLocalCalPos();
-      double residual = hit->GetResidual();
+      Double_t residual = hit->GetResidual();
       TVector3 res_vect = hit->GetResidualVect();
-      event.hitlayer[it][ih] = layerId;
+      HF1(13, layer);
+      HF1(100*(layer+1)+15, residual);
+      HF1(100*(layer+1)+31, res_vect.X());
+      HF1(100*(layer+1)+32, res_vect.Y());
+      HF1(100*(layer+1)+33, res_vect.Z());
+      event.hitlayer[it][ih] = layer;
       event.hitpos_x[it][ih] = hitpos.x();
       event.hitpos_y[it][ih] = hitpos.y();
       event.hitpos_z[it][ih] = hitpos.z();
@@ -343,74 +351,103 @@ dst::DstRead( int ievent )
   std::cout<<"[nhittpc]: "<<std::setw(2)<<src.nhittpc<<" "<<std::endl;
 #endif
 
-  // if( event.nhBh1<=0 ) return true;
-  // HF1( 1, event.status++ );
+  // if(event.nhBh1<=0) return true;
+  // HF1(1, event.status++);
 
-  // if( event.nhBh2<=0 ) return true;
-  // HF1( 1, event.status++ );
+  // if(event.nhBh2<=0) return true;
+  // HF1(1, event.status++);
 
-  // if( event.nhTof<=0 ) return true;
-  // HF1( 1, event.status++ );
+  // if(event.nhTof<=0) return true;
+  // HF1(1, event.status++);
 
-  // if( event.ntKurama<=0 ) return true;
-  // if( event.ntKurama>MaxTPCHits )
+  // if(event.ntKurama<=0) return true;
+  // if(event.ntKurama>MaxTPCHits)
   //   event.ntKurama = MaxTPCHits;
 
-  //HF1( 1, event.status++ );
+  //HF1(1, event.status++);
 
-  delete DCAna;
   return true;
 }
 
 //_____________________________________________________________________
-bool
-dst::DstClose( void )
+Bool_t
+dst::DstClose()
 {
   TFileCont[kOutFile]->Write();
   std::cout << "#D Close : " << TFileCont[kOutFile]->GetName() << std::endl;
   TFileCont[kOutFile]->Close();
 
   const std::size_t n = TFileCont.size();
-  for( std::size_t i=0; i<n; ++i ){
-    if( TTreeCont[i] ) delete TTreeCont[i];
-    if( TFileCont[i] ) delete TFileCont[i];
+  for(std::size_t i=0; i<n; ++i){
+    if(TTreeCont[i]) delete TTreeCont[i];
+    if(TFileCont[i]) delete TFileCont[i];
   }
   return true;
 }
 
 //_____________________________________________________________________
-bool
-ConfMan::InitializeHistograms( void )
+Bool_t
+ConfMan::InitializeHistograms()
 {
-  HB1( 1, "Status", 21, 0., 21. );
+  HB1(1, "Status", 21, 0., 21.);
+  HB1(10, "#Tracks TPC", 40, 0., 40.);
+  HB1(11, "#Hits of Track TPC", 50, 0., 50.);
+  HB1(12, "Chisqr TPC", 500, 0., 500.);
+  HB1(13, "LayerId TPC", 35, 0., 35.);
+  HB1(14, "X0 TPC", 400, -100., 100.);
+  HB1(15, "Y0 TPC", 400, -100., 100.);
+  HB1(16, "U0 TPC", 200, -0.20, 0.20);
+  HB1(17, "V0 TPC", 200, -0.20, 0.20);
+  HB2(18, "U0%X0 TPC", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(19, "V0%Y0 TPC", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(20, "X0%Y0 TPC", 100, -100., 100., 100, -100, 100);
 
+  for(Int_t i=1; i<=NumOfLayersTPC; ++i){
+    // Tracking Histgrams
+    TString title11 = Form("HitPat TPC%2d [Track]", i);
+    TString title14 = Form("Position TPC%2d", i);
+    TString title15 = Form("Residual TPC%2d", i);
+    TString title16 = Form("Resid%%Pos TPC%2d", i);
+    TString title17 = Form("Y%%Xcal TPC%2d", i);
+    TString title31 = Form("ResidualX TPC%2d", i);
+    TString title32 = Form("ResidualY TPC%2d", i);
+    TString title33 = Form("ResidualZ TPC%2d", i);
+    HB1(100*i+11, title11, 400, 0., 400.);
+    HB1(100*i+14, title14, 200, -250., 250.);
+    HB1(100*i+15, title15, 200, 0.0, 10.0);
+    HB2(100*i+16, title16, 250, -250., 250., 100, -1.0, 1.0);
+    HB2(100*i+17, title17, 100, -250., 250., 100, -250., 250.);
+    HB1(100*i+31, title31, 200, -2.0, 2.0);
+    HB1(100*i+32, title32, 200, -2.0, 2.0);
+    HB1(100*i+33, title33, 200, -2.0, 2.0);
+  }
 
-  HBTree( "ktpc_g", "tree of DstTPC_g" );
+  HBTree("g4tpc", "tree of DstTPCTracking using Geant4 input");
 
-  tree->Branch("status", &event.status, "status/I" );
-  tree->Branch("evnum", &event.evnum, "evnum/I" );
+  tree->Branch("status", &event.status, "status/I");
+  tree->Branch("evnum", &event.evnum, "evnum/I");
   tree->Branch("nhittpc",&event.nhittpc,"nhittpc/I");
-  tree->Branch("nttpc",&event.nttpc,"nttpc/I");
+  tree->Branch("ntTpc",&event.ntTpc,"ntTpc/I");
 
-  tree->Branch("nhit_track",event.nhit_track,"nhit_track[nttpc]/I");
-  tree->Branch("chisqr",event.chisqr,"chisqr[nttpc]/D");
-  tree->Branch("x0",event.x0,"x0[nttpc]/D");
-  tree->Branch("y0",event.y0,"y0[nttpc]/D");
-  tree->Branch("u0",event.u0,"u0[nttpc]/D");
-  tree->Branch("v0",event.v0,"v0[nttpc]/D");
-  tree->Branch("theta",event.theta,"theta[nttpc]/D");
+  tree->Branch("nhit_track",event.nhit_track,"nhit_track[ntTpc]/I");
+  tree->Branch("chisqr",event.chisqr,"chisqr[ntTpc]/D");
+  tree->Branch("x0",event.x0,"x0[ntTpc]/D");
+  tree->Branch("y0",event.y0,"y0[ntTpc]/D");
+  tree->Branch("u0",event.u0,"u0[ntTpc]/D");
+  tree->Branch("v0",event.v0,"v0[ntTpc]/D");
+  tree->Branch("theta",event.theta,"theta[ntTpc]/D");
 
-  tree->Branch("hitlayer",event.hitlayer,"hitlayer[nttpc][32]/I");
-  tree->Branch("hitpos_x",event.hitpos_x,"hitpos_x[nttpc][32]/D");
-  tree->Branch("hitpos_y",event.hitpos_y,"hitpos_y[nttpc][32]/D");
-  tree->Branch("hitpos_z",event.hitpos_z,"hitpos_z[nttpc][32]/D");
-  tree->Branch("calpos_x",event.calpos_x,"calpos_x[nttpc][32]/D");
-  tree->Branch("calpos_y",event.calpos_y,"calpos_y[nttpc][32]/D");
-  tree->Branch("calpos_z",event.calpos_z,"calpos_z[nttpc][32]/D");
-  tree->Branch("residual",event.residual,"residual[nttpc][32]/D");
-  tree->Branch("residual_x",event.residual_x,"residual_x[nttpc][32]/D");
-  tree->Branch("residual_y",event.residual_y,"residual_y[nttpc][32]/D");
-  tree->Branch("residual_z",event.residual_z,"residual_z[nttpc][32]/D");
+  tree->Branch("hitlayer",event.hitlayer,"hitlayer[ntTpc][32]/I");
+  tree->Branch("hitpos_x",event.hitpos_x,"hitpos_x[ntTpc][32]/D");
+  tree->Branch("hitpos_y",event.hitpos_y,"hitpos_y[ntTpc][32]/D");
+  tree->Branch("hitpos_z",event.hitpos_z,"hitpos_z[ntTpc][32]/D");
+  tree->Branch("calpos_x",event.calpos_x,"calpos_x[ntTpc][32]/D");
+  tree->Branch("calpos_y",event.calpos_y,"calpos_y[ntTpc][32]/D");
+  tree->Branch("calpos_z",event.calpos_z,"calpos_z[ntTpc][32]/D");
+  tree->Branch("residual",event.residual,"residual[ntTpc][32]/D");
+  tree->Branch("residual_x",event.residual_x,"residual_x[ntTpc][32]/D");
+  tree->Branch("residual_y",event.residual_y,"residual_y[ntTpc][32]/D");
+  tree->Branch("residual_z",event.residual_z,"residual_z[ntTpc][32]/D");
 
   tree->Branch("nPrm",&src.nhittpc,"nPrm/I");
   tree->Branch("xPrm",src.xPrm,"xPrm[nPrm]/D");
@@ -510,18 +547,18 @@ ConfMan::InitializeHistograms( void )
 }
 
 //_____________________________________________________________________
-bool
-ConfMan::InitializeParameterFiles( void )
+Bool_t
+ConfMan::InitializeParameterFiles()
 {
   return
-    ( InitializeParameter<DCGeomMan>("DCGEO")   &&
-      InitializeParameter<UserParamMan>("USER") &&
-	  InitializeParameter<HodoPHCMan>("HDPHC") );
+    (InitializeParameter<DCGeomMan>("DCGEO")   &&
+     InitializeParameter<UserParamMan>("USER") &&
+     InitializeParameter<HodoPHCMan>("HDPHC"));
 }
 
 //_____________________________________________________________________
-bool
-ConfMan::FinalizeProcess( void )
+Bool_t
+ConfMan::FinalizeProcess()
 {
   return true;
 }

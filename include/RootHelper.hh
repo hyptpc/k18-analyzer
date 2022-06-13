@@ -162,6 +162,15 @@ HB2Poly(Int_t i, const Char_t* title,
 
 //_____________________________________________________________________________
 inline void
+HC2Poly(Int_t i)
+{
+  if(i<0 || MaxHist<=i)
+    throw Exception(Form("HC2Poly() invalid HistId : %d/%d", i, MaxHist));
+  if(h[i]) dynamic_cast<TH2Poly*>(h[i])->Reset("");
+}
+
+//_____________________________________________________________________________
+inline void
 HF1(Int_t i, Double_t x)
 {
   if(i<0 || MaxHist<=i)

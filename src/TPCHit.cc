@@ -63,16 +63,16 @@ const Int_t MaxADC = 4096;
 const Int_t MaxIteration = 3;
 const Int_t MaxPeaks = 20;
 const Double_t MaxChisqr = 1000.;
-const Double_t zTgtTPC = -143.;
 }
 
 //_____________________________________________________________________________
 TPCHit::TPCHit(TPCRawHit* rhit)
   : DCHit(rhit->LayerId(), rhit->RowId()),
     m_rhit(rhit),
-    m_layer(),
-    m_row(),
-    m_pad(),
+    m_layer(rhit->LayerId()),
+    m_row(rhit->RowId()),
+    m_mrow(TMath::Nint(m_row)),
+    m_pad(tpc::GetPadId(m_layer, m_row)),
     m_pedestal(TMath::QuietNaN()),
     m_rms(TMath::QuietNaN()),
     m_de(),
@@ -81,57 +81,48 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_cde(),
     m_ctime(), // [ns]
     m_drift_length(),
-    m_charge(),
-    m_pos(),
     m_is_good(false),
     m_is_calculated(false),
     m_hough_flag(),
-    m_mrow(),
-    m_tpc_flag(),
-    m_resx(),
-    m_resy(),
-    m_resz(),
+    m_houghY_num(),
     m_belong_track(false),
     m_hit_xz(),
     m_hit_yz()
 {
-  m_houghY_num.clear();
   debug::ObjectCounter::increase(ClassName());
 }
 
 //_____________________________________________________________________________
 TPCHit::TPCHit(Int_t layer, Double_t mrow)
   : DCHit(layer, mrow),
+    m_rhit(),
     m_layer(layer),
-    m_mrow(mrow)
+    m_row(TMath::Nint(mrow)),
+    m_mrow(mrow),
+    m_pad(tpc::GetPadId(layer, m_row)),
+    m_pedestal(TMath::QuietNaN()),
+    m_rms(TMath::QuietNaN()),
+    m_de(),
+    m_time(), // [time bucket]
+    m_chisqr(),
+    m_cde(),
+    m_ctime(), // [ns]
+    m_drift_length(),
+    m_is_good(true),
+    m_is_calculated(false),
+    m_hough_flag(),
+    m_houghY_num(),
+    m_hit_xz(new DCHit(m_layer, m_row)),
+    m_hit_yz(new DCHit(m_layer, m_row))
 {
-  if(mrow-(int)mrow<0.5)
-    m_row = (int)mrow;
-  else
-    m_row = 1+(int)mrow;
-  //  m_row = (int)mrow;
-  //  m_pad = tpc::GetPadId(layer, (int)mrow);
-  m_pad = tpc::GetPadId(layer, m_row);
-  m_charge = 0.;
-  m_charge_center = 0.;
-  m_pos=TVector3(0.,0.,0.);
-  m_is_good = true;
-  m_is_calculated = false;
-  m_hough_flag = 0;
-  m_houghY_num.clear();
-  m_hit_xz = new DCHit(m_layer, m_row);
-  m_hit_xz->SetWirePosition(m_pos.x());
-  m_hit_xz->SetZ(m_pos.z());
+  // m_hit_xz->SetWirePosition(m_pos.x());
+  // m_hit_xz->SetZ(m_pos.z());
   m_hit_xz->SetTiltAngle(0.);
   m_hit_xz->SetDummyPair();
-
-  m_hit_yz = new DCHit(m_layer, m_row);
-  m_hit_yz->SetWirePosition(m_pos.y());
-  m_hit_yz->SetZ(m_pos.z());
+  // m_hit_yz->SetWirePosition(m_pos.y());
+  // m_hit_yz->SetZ(m_pos.z());
   m_hit_yz->SetTiltAngle(90.);
   m_hit_yz->SetDummyPair();
-
-  m_clsize = 0;
   debug::ObjectCounter::increase(ClassName());
 }
 
@@ -282,11 +273,11 @@ TPCHit::DoFit()
   static TCanvas c1("c1", "c1", 800, 600);
   c1.cd();
   TH1D h1(FUNC_NAME+"-h1", "Pedestal",
-           MaxADC, 0, MaxADC);
+          MaxADC, 0, MaxADC);
   TH1D h2(FUNC_NAME+"-h2",
-           Form("Layer#%d Row#%d;Time Bucket;ADC",
-                m_layer, m_row),
-           NumOfTimeBucket, 0, NumOfTimeBucket);
+          Form("Layer#%d Row#%d;Time Bucket;ADC",
+               m_layer, m_row),
+          NumOfTimeBucket, 0, NumOfTimeBucket);
   for(Int_t i=0, n=m_rhit->Fadc().size(); i<n; ++i){
     Double_t tb = i + 1;
     Double_t adc = m_rhit->Fadc().at(i);
@@ -294,8 +285,8 @@ TPCHit::DoFit()
       continue;
     h1.Fill(adc);
     // if(adc < 4075){
-      h2.SetBinContent(tb, adc);
-      // h2.SetBinError(tb, 1);
+    h2.SetBinContent(tb, adc);
+    // h2.SetBinError(tb, 1);
     // }
   }
   h2.GetXaxis()->SetRangeUser(MinTimeBucket, MaxTimeBucket);
@@ -495,8 +486,8 @@ TPCHit::DoFit()
     }
     f1.SetParameter(n_peaks*3, m_pedestal);
     f1.SetParLimits(n_peaks*3, m_pedestal-0.5*m_rms, m_pedestal+0.5*m_rms);
-    double FitRangeMin = MinTimeBucket;
-    double FitRangeMax = MaxTimeBucket;
+    Double_t FitRangeMin = MinTimeBucket;
+    Double_t FitRangeMax = MaxTimeBucket;
     if(MinTimeBucket<time[0]-6.-de[0]*0.07)
       FitRangeMin = time[0]-6.-de[0]*0.07;
     if(MaxTimeBucket>time[n_peaks-1]+10.+de[n_peaks-1]*0.11)
@@ -554,92 +545,76 @@ TPCHit::ClearRegisteredHits()
 }
 
 //_____________________________________________________________________________
-double
+Double_t
 TPCHit::GetResolutionX()
 {
   //calculated by using NIM paper
-  double y_pos= m_pos.Y();
-//double s0 = 0.204;// mm HIMAC result //To do parameter
-  double s0 = gUser.GetParameter("TPC_sigma0");
+  const auto& pos = GetPosition();
+  // Double_t s0 = 0.204;// mm HIMAC result //To do parameter
+  Double_t s0 = gUser.GetParameter("TPC_sigma0");
   //s0 is considered for common resolution
-//  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
-  double Dt = gUser.GetParameter("TPC_Dt");
-  double L_D = 30.+(y_pos*0.1);//cm
-  //double N_eff = 42.8;
-  double N_eff = 42.1;
-  //  double A = 0.0582*0.01;//m-1 -> cm-1
-  double A = 0.055*0.01;//m-1 -> cm-1
-  double e_ALD = exp(-1.*A*L_D);
-  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
-  //double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
-  double sT_r = sqrt(sT2);
- 
+//  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
+  Double_t Dt = gUser.GetParameter("TPC_Dt");
+  Double_t L_D = 30.+(pos.Y()*0.1);//cm
+  //Double_t N_eff = 42.8;
+  Double_t N_eff = 42.1;
+  //  Double_t A = 0.0582*0.01;//m-1 -> cm-1
+  Double_t A = 0.055*0.01;//m-1 -> cm-1
+  Double_t e_ALD = exp(-1.*A*L_D);
+  Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
+  //Double_t sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
+  Double_t sT_r = TMath::Sqrt(sT2);
 
+#if 0
   //Check Tmporary change
   if(m_clsize ==1){
-    double Rpad = tpc::padParameter[m_layer][2];
-    double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
-    //Check Tmporary change
+    Double_t Rpad = tpc::padParameter[m_layer][2];
+    Double_t padsize = Rpad*2.*TMath::Pi()/tpc::padParameter[m_layer-1][3];
     //sT_r = padsize/sqrt(12.);
   }
-  double sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
+  Double_t sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
+  return TVector2(sT_r*TMath::Cos(alpha), sT_padlen*TMath::Sin(alpha)).Mod();
+#endif
 
-  double x_pos= m_pos.X();
-  double z_pos= m_pos.Z() - zTgtTPC;
-  double alpha =  atan2(x_pos,z_pos);
-
-  //Check Tmporary change
-  //double res_x = sqrt(pow(sT_r*cos(alpha),2)+pow(sT_padlen*sin(alpha),2));
-  //double res_x = sT_r*cos(alpha);
-  //double res_x = fabs(sT_r*cos(alpha));
-  //double res_x = fabs(sT_r*cos(alpha))+0.05;
-  double res_x = fabs(sT_r);
-
-  return res_x;
-  //return 0.5;
+  Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
+  return TMath::Abs(sT_r*TMath::Cos(alpha));
+  //return 0.3;
 }
 
 //_____________________________________________________________________________
 double
 TPCHit::GetResolutionZ()
 {
+  const auto& pos = GetPosition();
   //calculated by using NIM paper
-  double y_pos= m_pos.Y();
-//double s0 = 0.204;// mm HIMAC result //To do parameter
-  double s0 = gUser.GetParameter("TPC_sigma0");
+//Double_t s0 = 0.204;// mm HIMAC result //To do parameter
+  Double_t s0 = gUser.GetParameter("TPC_sigma0");
   //s0 is considered for common resolution
-//  double Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
-  double Dt = gUser.GetParameter("TPC_Dt");
-  double L_D = 30.+(y_pos*0.1);//cm
-  //double N_eff = 42.8;
-  double N_eff = 42.1;
-  //double A = 0.0582*0.01;//m-1 -> cm-1
-  double A = 0.055*0.01;//m-1 -> cm-1
-  double e_ALD = exp(-1.*A*L_D);
-  double sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
-  //double sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
-  double sT_r = sqrt(sT2);
+//  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
+  Double_t Dt = gUser.GetParameter("TPC_Dt");
+  Double_t L_D = 30.+(pos.Y()*0.1);//cm
+  //Double_t N_eff = 42.8;
+  Double_t N_eff = 42.1;
+  //Double_t A = 0.0582*0.01;//m-1 -> cm-1
+  Double_t A = 0.055*0.01;//m-1 -> cm-1
+  Double_t e_ALD = exp(-1.*A*L_D);
+  Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
+  //Double_t sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
+  Double_t sT_r = TMath::Sqrt(sT2);
+
+#if 0
   if(m_clsize ==1){
-    double Rpad = tpc::padParameter[m_layer][2];
-    double padsize = Rpad*2.*acos(-1)/tpc::padParameter[m_layer-1][3];
-    //Check Tmporary change
-    //sT_r = padsize/sqrt(12.);
+    Double_t Rpad = tpc::padParameter[m_layer][2];
+    Double_t padsize = Rpad*2.*TMath::Pi()/tpc::padParameter[m_layer-1][3];
+    sT_r = padsize/sqrt(12.);
   }
-  double sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
+  Double_t sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
+  return sqrt(pow(sT_r*TMath::Sin(alpha),2)+pow(sT_padlen*TMath::Cos(alpha),2));
+#endif
 
-  double x_pos= m_pos.X();
-  double z_pos= m_pos.Z() - zTgtTPC;
-  double alpha =  atan2(x_pos,z_pos);
-
-  //Check Tmporary change
-  //double res_z = sqrt(pow(sT_r*sin(alpha),2)+pow(sT_padlen*cos(alpha),2));
-  //  double res_z = sT_r*sin(alpha);
-  //double res_z = fabs(sT_r*sin(alpha));
-  //double res_z = fabs(sT_r*sin(alpha))+0.05;
-  double res_z = fabs(sT_r);
-
-  return res_z;
-  //  return 0.5;
+  Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
+  return TMath::Abs(sT_r*TMath::Sin(alpha));
+  //return 0.3;
 }
 
 //_____________________________________________________________________________
@@ -657,12 +632,9 @@ TPCHit::GetResolutionY()
 double
 TPCHit::GetResolution()
 {
-  double res_x = GetResolutionX();
-  double res_y = GetResolutionY();
-  double res_z = GetResolutionZ();
-
-  double tot_res = sqrt(res_x*res_x + res_y*res_y + res_z*res_z);
-  return tot_res;
+  return TVector3(GetResolutionX(),
+                  GetResolutionY(),
+                  GetResolutionZ()).Mag();
 }
 
 //_____________________________________________________________________________
@@ -674,10 +646,6 @@ TPCHit::Print(const std::string& arg, std::ostream& ost) const
       << std::setw(w) << std::left << "layer" << m_layer << std::endl
       << std::setw(w) << std::left << "row"  << m_row  << std::endl
       << std::setw(w) << std::left << "pad"  << m_pad  << std::endl;
-      // << std::setw(w) << std::left << "charge" << m_charge << std::endl
-      // << std::setw(w) << std::left << "posx" << m_pos.x() << std::endl
-      // << std::setw(w) << std::left << "posy" << m_pos.y() << std::endl
-      // << std::setw(w) << std::left << "posz" << m_pos.z() << std::endl;
   for(Int_t i=0, n=GetNHits(); i<n; ++i){
     ost << std::setw(3) << std::right << i << " "
 	<< "(time,de,chisqr,ctime,cde,dl,pos)=("
