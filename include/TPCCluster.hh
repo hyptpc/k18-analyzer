@@ -59,9 +59,9 @@ public:
   Double_t GetX() const { return m_cluster_position.X(); }
   Double_t GetY() const { return m_cluster_position.Y(); }
   Double_t GetZ() const { return m_cluster_position.Z(); }
-  Double_t ResX() const;
-  Double_t ResY() const;
-  Double_t ResZ() const ;
+  // Double_t ResX() const;
+  // Double_t ResY() const;
+  // Double_t ResZ() const ;
   const TPCHitContainer& GetHitContainer() const { return m_hit_array; }
 };
 

@@ -240,53 +240,52 @@ TPCCluster::CalculateWeightedMeanTheta()
   return true;
 }
 
-//_____________________________________________________________________________
-Double_t
-TPCCluster::ResX() const
-{
-  //calculated by using NIM paper
-  //To do:change the resolution by checking cluster size
-  Double_t y_pos= m_cluster_position.Y();
-  Double_t s0 = 0.204;// mm HIMAC result //To do parameter
-  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
-  Double_t L_D = 30.+(y_pos*0.1);//cm
-  Double_t N_eff = 42.8;
-  Double_t A = 0.0582*0.01;//m-1 -> cm-1
-  Double_t e_ALD = exp(-1.*A*L_D);
-  Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
-  Double_t sT = sqrt(sT2);
+// //_____________________________________________________________________________
+// Double_t
+// TPCCluster::ResX() const
+// {
+//   //calculated by using NIM paper
+//   //To do:change the resolution by checking cluster size
+//   Double_t y_pos= m_cluster_position.Y();
+//   Double_t s0 = 0.204;// mm HIMAC result //To do parameter
+//   Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
+//   Double_t L_D = 30.+(y_pos*0.1);//cm
+//   Double_t N_eff = 42.8;
+//   Double_t A = 0.0582*0.01;//m-1 -> cm-1
+//   Double_t e_ALD = exp(-1.*A*L_D);
+//   Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
+//   Double_t sT = sqrt(sT2);
 
-  return sT;
-}
+//   return sT;
+// }
 
-//_____________________________________________________________________________
-Double_t
-TPCCluster::ResY() const
-{
-  //Temp value (need to change)
-  Double_t y_res = 0.5;
-  return y_res;
-}
+// //_____________________________________________________________________________
+// Double_t
+// TPCCluster::ResY() const
+// {
+//   //Temp value (need to change)
+//   Double_t y_res = 0.5;
+//   return y_res;
+// }
 
-//_____________________________________________________________________________
-Double_t
-TPCCluster::ResZ() const
-{
-  //calculated by using NIM paper
-  //To do:change the resolution by checking cluster size
-  Double_t y_pos= m_cluster_position.Y();
-  Double_t s0 = 0.204;// mm HIMAC result //To do parameter
-  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
-  Double_t L_D = 30.+(y_pos*0.1);//cm
-  Double_t N_eff = 42.8;
-  Double_t A = 0.0582*0.01;//m-1 -> cm-1
-  Double_t e_ALD = exp(-1.*A*L_D);
-  Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
-  Double_t sT = sqrt(sT2);
+// //_____________________________________________________________________________
+// Double_t
+// TPCCluster::ResZ() const
+// {
+//   //calculated by using NIM paper
+//   //To do:change the resolution by checking cluster size
+//   Double_t y_pos= m_cluster_position.Y();
+//   Double_t s0 = 0.204;// mm HIMAC result //To do parameter
+//   Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
+//   Double_t L_D = 30.+(y_pos*0.1);//cm
+//   Double_t N_eff = 42.8;
+//   Double_t A = 0.0582*0.01;//m-1 -> cm-1
+//   Double_t e_ALD = exp(-1.*A*L_D);
+//   Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
+//   Double_t sT = sqrt(sT2);
 
-  return sT;
-}
-
+//   return sT;
+// }
 
 //_____________________________________________________________________________
 void

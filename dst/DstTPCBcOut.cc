@@ -127,6 +127,13 @@ struct Event
   std::vector<std::vector<Double_t>> residual_trackwbcout_x;
   std::vector<std::vector<Double_t>> residual_trackwbcout_y;
 
+  std::vector<Double_t> xCorVec; // correction vector x
+  std::vector<Double_t> yCorVec; // correction vector y
+  std::vector<Double_t> zCorVec; // correction vector z
+  std::vector<Double_t> xCorPos; // position x
+  std::vector<Double_t> yCorPos; // position y
+  std::vector<Double_t> zCorPos; // position z
+
   std::vector<Double_t> clkTpc;
 
   void clear()
@@ -187,7 +194,12 @@ struct Event
       residual_trackwbcout_y.clear();
       residual_z.clear();
 
-
+      xCorVec.clear();
+      yCorVec.clear();
+      zCorVec.clear();
+      xCorPos.clear();
+      yCorPos.clear();
+      zCorPos.clear();
     }
 };
 
@@ -246,15 +258,36 @@ const Int_t MaxPosMapXZ = 300;
 const Int_t MinPosMapY = -200;
 const Int_t MaxPosMapY = 200;
 const Int_t Meshsize = 20;
+const Int_t NumOfDivXZ = ((MaxPosMapXZ - MinPosMapXZ)/Meshsize) + 1;
+const Int_t NumOfDivY = ((MaxPosMapY - MinPosMapY)/Meshsize) + 1;
 
-Int_t GetHistNum(Double_t x, Double_t y, Double_t z)
+//_____________________________________________________________________________
+Int_t
+XyzToHid(Double_t x, Double_t y, Double_t z)
 {
   Int_t ix = (Int_t)((x - (MinPosMapXZ - Meshsize/2.)))/Meshsize;
   Int_t iy = (Int_t)((y - (MinPosMapY - Meshsize/2.)))/Meshsize;
   Int_t iz = (Int_t)((z - (MinPosMapXZ - Meshsize/2.)))/Meshsize;
-  Int_t NumOfDivXZ = ((MaxPosMapXZ - MinPosMapXZ)/Meshsize) + 1;
-  Int_t NumOfDivY = ((MaxPosMapY - MinPosMapY)/Meshsize) + 1;
   return ix*NumOfDivY*NumOfDivXZ + iy*NumOfDivXZ + iz;
+}
+
+//_____________________________________________________________________________
+Int_t
+XyzToHid(const TVector3& pos)
+{
+  return XyzToHid(pos.X(), pos.Y(), pos.Z());
+}
+
+//_____________________________________________________________________________
+TVector3
+HidToXyz(Int_t hid)
+{
+  Int_t ix = (Int_t)hid/NumOfDivY*NumOfDivXZ;
+  Int_t iy = (Int_t)(hid - ix*NumOfDivY*NumOfDivXZ)/NumOfDivXZ;
+  Int_t iz = (Int_t)(hid - ix*NumOfDivY*NumOfDivXZ - iy*NumOfDivXZ);
+  return TVector3(ix*Meshsize + (MinPosMapXZ - Meshsize/2.),
+                  iy*Meshsize + (MinPosMapY - Meshsize/2.),
+                  iz*Meshsize + (MinPosMapXZ - Meshsize/2.));
 }
 }
 
@@ -433,18 +466,18 @@ dst::DstRead(int ievent)
   Int_t nclTpc = 0;
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     auto hc = DCAna.GetTPCClCont(layer);
-    for(const auto& hit : hc){
-      if(!hit || !hit->IsGood())
+    for(const auto& cl : hc){
+      if(!cl || !cl->IsGood())
         continue;
-      Double_t x = hit->GetX();
-      Double_t y = hit->GetY();
-      Double_t z = hit->GetZ();
-      Double_t clde = hit->GetDe();
-      Int_t cs = hit->GetClusterSize();
-      Double_t row = hit->GetRow();
-      Double_t mrow = hit->GetMRow(); // same
-      // Double_t de_center = hit->GetDe_center();
-      // TVector3 pos_center = hit->GetPos_center();
+      Double_t x = cl->GetX();
+      Double_t y = cl->GetY();
+      Double_t z = cl->GetZ();
+      Double_t clde = cl->GetDe();
+      Int_t cs = cl->GetClusterSize();
+      Double_t row = cl->GetRow();
+      Double_t mrow = cl->GetMRow(); // same
+      // Double_t de_center = cl->GetDe_center();
+      // TVector3 pos_center = cl->GetPos_center();
       event.cluster_hitpos_x.push_back(x);
       event.cluster_hitpos_y.push_back(y);
       event.cluster_hitpos_z.push_back(z);
@@ -471,7 +504,13 @@ dst::DstRead(int ievent)
 	//    MinPosMapY<y && y<MaxPosMapY&&
 	//    MinPosMapXZ<z && z<MaxPosMapXZ&&
 	//    cl_size>=2){
-        Int_t hid = GetHistNum(x, y, z);
+        Int_t hid = XyzToHid(x, y, z);
+        event.xCorVec.push_back(xBcOut - x);
+        event.yCorVec.push_back(yBcOut - y);
+        event.zCorVec.push_back(0.);
+        event.xCorPos.push_back(x);
+        event.yCorPos.push_back(y);
+        event.zCorPos.push_back(z);
         // if(TMath::Abs(yBcOut - y)<60.)
         HF1(XCorrectionMapHid+hid, xBcOut - x);
         // if(TMath::Abs(xBcOut - x)<100.){
@@ -703,23 +742,16 @@ ConfMan::InitializeHistograms()
   }
 
   ///// Correction Map
-  {
-    Int_t NumOfDivXZ = ((MaxPosMapXZ - MinPosMapXZ)/Meshsize) + 1;
-    Int_t NumOfDivY = ((MaxPosMapY - MinPosMapY)/Meshsize) + 1;
-    Int_t histnum =0;
-    for(Int_t ix=0; ix<NumOfDivXZ; ++ix){
-      for(Int_t iy=0; iy<NumOfDivY; ++iy){
-        for(Int_t iz=0; iz<NumOfDivXZ; ++iz){
-          TVector3 pos(MinPosMapXZ + (ix+0.5)*Meshsize,
-                       MinPosMapY + (iy+0.5)*Meshsize,
-                       MinPosMapXZ + (iz+0.5)*Meshsize);
-          std::stringstream ss; ss << pos;
-          HB1(XCorrectionMapHid+histnum,
-              "TPC XCorrection at "+ss.str(), NbinPos, MinPos, MaxPos);
-          HB1(YCorrectionMapHid+histnum,
-              "TPC YCorrection at "+ss.str(), NbinPos, MinPos, MaxPos);
-          ++histnum;
-        }
+  for(Double_t x=MinPosMapXZ; x<=MaxPosMapXZ; x+=Meshsize){
+    for(Double_t y=MinPosMapY; y<=MaxPosMapY; y+=Meshsize){
+      for(Double_t z=MinPosMapXZ; z<=MaxPosMapXZ; z+=Meshsize){
+        TVector3 pos(x, y, z);
+        Int_t hid = XyzToHid(pos);
+        std::stringstream ss; ss << pos;
+        HB1(XCorrectionMapHid+hid,
+            "TPC XCorrection at "+ss.str(), NbinPos, MinPos, MaxPos);
+        HB1(YCorrectionMapHid+hid,
+            "TPC YCorrection at "+ss.str(), NbinPos, MinPos, MaxPos);
       }
     }
   }
@@ -792,6 +824,12 @@ ConfMan::InitializeHistograms()
   tree->Branch("residual_trackwbcout_y", &event.residual_trackwbcout_y);
   tree->Branch("residual_z", &event.residual_z);
 
+  tree->Branch("xCorVec", &event.xCorVec);
+  tree->Branch("yCorVec", &event.yCorVec);
+  tree->Branch("zCorVec", &event.zCorVec);
+  tree->Branch("xCorPos", &event.xCorPos);
+  tree->Branch("yCorPos", &event.yCorPos);
+  tree->Branch("zCorPos", &event.zCorPos);
 
   // for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
   //   const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
