@@ -126,7 +126,6 @@ public:
   Bool_t TrackSearchSdcOut(const Hodo2HitContainer& HitCont);
   Bool_t TrackSearchSdcOut(const HodoClusterContainer& ClCont);
   Bool_t TrackSearchTPC();
-  Bool_t TrackSearchTPCEx();
   Bool_t TrackSearchTPCHelix();
 
   Int_t GetNtracksBcIn() const { return m_BcInTC.size(); }
