@@ -351,7 +351,7 @@ class RunlistManager(metaclass=classimpl.Singleton):
         else:
           logger.error(f'{run["bin"]} needs input files set as "dstin".')
           exit(1)
-      logger.info(f'nevents = {run["nevents"]}')
+      logger.debug(f'nevents = {run["nevents"]}')
       if 'unit' in item[1] and isinstance(item[1]['unit'], int):
         run['unit'] = item[1]['unit']
       else:
