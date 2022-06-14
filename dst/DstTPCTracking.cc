@@ -76,7 +76,7 @@ struct Event
   std::vector<Int_t> trigflag;
   std::vector<Double_t> clkTpc;
   Int_t nhTpc;
-  Int_t nh_cluster_Tpc;
+  Int_t nclTpc;
   std::vector<Double_t> raw_hitpos_x;
   std::vector<Double_t> raw_hitpos_y;
   std::vector<Double_t> raw_hitpos_z;
@@ -122,7 +122,7 @@ struct Event
       status = 0;
       clkTpc.clear();
       nhTpc = 0;
-      nh_cluster_Tpc = 0;
+      nclTpc = 0;
       raw_hitpos_x.clear();
       raw_hitpos_y.clear();
       raw_hitpos_z.clear();
@@ -279,95 +279,96 @@ dst::DstRead(int ievent)
   event.evnum = **src.evnum;
   event.trigpat = **src.trigpat;
   event.trigflag = **src.trigflag;
-  event.nhTpc = **src.nhTpc;
-  event.clkTpc = **src.clkTpc;
 
   HF1(1, event.status++);
 
   if(**src.nhTpc == 0)
     return true;
-
-  HF1(1, event.status++);
+  event.clkTpc = **src.clkTpc;
 
   Double_t clock = event.clkTpc.at(0);
 
   DCAnalyzer DCAna;
+#if 1
   DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock);
-
+#else
+  static const Int_t exclusive_layer = gUser.GetParameter("TPCExclusive");
+  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock, exclusive_layer);
+#endif
 #if 0 //HoughYcut
   DCAna.HoughYCut(min_ycut, max_ycut);
 #endif
 
-//   Int_t nhTpc = 0;
-//   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-//     auto hc = DCAna.GetTPCHC(layer);
-//     for(const auto& hit : hc){
-//       if(!hit || !hit->IsGood())
-//         continue;
-//       Double_t x = hit->GetX();
-//       Double_t y = hit->GetY();
-//       Double_t z = hit->GetZ();
-//       Double_t de = hit->GetCDe();
-//       Double_t pad = hit->GetPad();
-//       event.raw_hitpos_x.push_back(x);
-//       event.raw_hitpos_y.push_back(y);
-//       event.raw_hitpos_z.push_back(z);
-//       event.raw_de.push_back(de);
-//       event.raw_padid.push_back(pad);
-//       ++nhTpc;
-//     }
-//   }
-//   event.nhTpc = nhTpc;
+  Int_t nhTpc = 0;
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    auto hc = DCAna.GetTPCHC(layer);
+    for(const auto& hit : hc){
+      if(!hit || !hit->IsGood())
+	continue;
+      const auto& pos = hit->GetPosition();
+      Double_t x = pos.X();
+      Double_t y = pos.Y();
+      Double_t z = pos.Z();
+      Double_t de = hit->GetCDe();
+      Double_t pad = hit->GetPad();
+      event.raw_hitpos_x.push_back(x);
+      event.raw_hitpos_y.push_back(y);
+      event.raw_hitpos_z.push_back(z);
+      event.raw_de.push_back(de);
+      event.raw_padid.push_back(pad);
+      ++nhTpc;
+    }
+  }
+  event.nhTpc = nhTpc;
 
+  Int_t nclTpc = 0;
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    auto hc = DCAna.GetTPCClCont(layer);
+    for(const auto& cl : hc){
+      if(!cl || !cl->IsGood())
+	continue;
+      Double_t x = cl->GetX();
+      Double_t y = cl->GetY();
+      Double_t z = cl->GetZ();
+      Double_t clde = cl->GetDe();
+      Int_t cs = cl->GetClusterSize();
+      Double_t row = cl->GetRow();
+      Double_t mrow = cl->GetMRow(); // same
+      //       Double_t de_center = cl->GetDe_center();
+      //       TVector3 pos_center = cl->GetPos_center();
+      event.cluster_hitpos_x.push_back(x);
+      event.cluster_hitpos_y.push_back(y);
+      event.cluster_hitpos_z.push_back(z);
+      event.cluster_de.push_back(clde);
+      event.cluster_size.push_back(cs);
+      event.cluster_layer.push_back(layer);
+      event.cluster_row.push_back(row);
+      event.cluster_mrow.push_back(mrow);
+      //       event.cluster_de_center.push_back(de_center);
+      //       event.cluster_hitpos_center_x.push_back(pos_center.X());
+      //       event.cluster_hitpos_center_y.push_back(pos_center.Y());
+      //       event.cluster_hitpos_center_z.push_back(pos_center.Z());
+      // #if Gain_center
+      //       //	if(69.<time&&time<85.&&nhit==1)
+      //       if(cs>1){
+      // 	if(min_ycut<y&&y<max_ycut)
+      // 	  HF1(PadHid + layer*1000 + row, de_center);
+      //       }
+      // #endif
+      ++nclTpc;
+    }
+  }
+  event.nclTpc = nclTpc;
 
-//   Int_t nh_cl_Tpc = 0;
-//   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-//     auto hc = DCAna.GetTPCClCont(layer);
-//     for(const auto& hit : hc){
-//       if(!hit || !hit->IsGood())
-//         continue;
-//       Double_t x = hit->GetX();
-//       Double_t y = hit->GetY();
-//       Double_t z = hit->GetZ();
-//       Double_t de = hit->GetDe();
-//       Int_t cl_size = hit->GetClusterSize();
-//       Int_t row = hit->GetRow();
-//       Double_t mrow = hit->GetMRow();
-//       Double_t de_center = hit->GetDe_center();
-//       TVector3 pos_center = hit->GetPos_center();
-//       event.cluster_hitpos_x.push_back(x);
-//       event.cluster_hitpos_y.push_back(y);
-//       event.cluster_hitpos_z.push_back(z);
-//       event.cluster_de.push_back(de);
-//       event.cluster_size.push_back(cl_size);
-//       event.cluster_layer.push_back(layer);
-//       event.cluster_row.push_back(row);
-//       event.cluster_mrow.push_back(mrow);
-//       event.cluster_de_center.push_back(de_center);
-//       event.cluster_hitpos_center_x.push_back(pos_center.X());
-//       event.cluster_hitpos_center_y.push_back(pos_center.Y());
-//       event.cluster_hitpos_center_z.push_back(pos_center.Z());
-// #if Gain_center
-//       //	if(69.<time&&time<85.&&nhit==1)
-//       if(cl_size>1){
-// 	if(min_ycut<y&&y<max_ycut)
-// 	  HF1(PadHid + layer*1000 + row, de_center);
-//       }
-// #endif
-
-//       ++nh_cl_Tpc;
-//     }
-//   }
-//   event.nh_cluster_Tpc = nh_cl_Tpc;
+  HF1(1, event.status++);
 
   DCAna.TrackSearchTPC();
 
   Int_t ntTpc = DCAna.GetNTracksTPC();
   event.ntTpc = ntTpc;
   HF1(10, ntTpc);
-  // std::cout << "ntTpc = " << ntTpc << std::endl;
   if(event.ntTpc == 0)
-    return true;
+     return true;
 
   HF1(1, event.status++);
 
@@ -522,7 +523,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("trigflag", &event.trigflag);
   tree->Branch("clkTpc", &event.clkTpc);
   tree->Branch("nhTpc", &event.nhTpc);
-  tree->Branch("nh_cluster_Tpc", &event.nh_cluster_Tpc);
+  tree->Branch("nclTpc", &event.nclTpc);
   tree->Branch("raw_hitpos_x", &event.raw_hitpos_x);
   tree->Branch("raw_hitpos_y", &event.raw_hitpos_y);
   tree->Branch("raw_hitpos_z", &event.raw_hitpos_z);

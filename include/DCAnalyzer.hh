@@ -126,6 +126,7 @@ public:
   Bool_t TrackSearchSdcOut(const Hodo2HitContainer& HitCont);
   Bool_t TrackSearchSdcOut(const HodoClusterContainer& ClCont);
   Bool_t TrackSearchTPC();
+  Bool_t TrackSearchTPCEx();
   Bool_t TrackSearchTPCHelix();
 
   Int_t GetNtracksBcIn() const { return m_BcInTC.size(); }
@@ -197,7 +198,8 @@ public:
                        const std::vector<Int_t>& pad,
                        const std::vector<Double_t>& time,
                        const std::vector<Double_t>& de,
-                       Double_t clock=0.);
+                       Double_t clock=0.,
+		       Int_t ExlayerID=-1);
   void HoughYCut(Double_t min_y, Double_t max_y);
   Bool_t ReCalcTrack(DCLocalTrackContainer& cont, Bool_t applyRecursively=false);
   Bool_t ReCalcTrack(K18TrackD2UContainer& cont, Bool_t applyRecursively=false);
