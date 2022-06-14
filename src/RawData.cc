@@ -158,7 +158,7 @@ RawData::CorrectBaselineTPC()
   gStyle->SetOptStat(0);
   // gStyle->SetOptStat(1110);
   // gStyle->SetOptFit(1);
-  static TCanvas c1("c1", "c1", 1200, 900);
+  static TCanvas c1("c"+FUNC_NAME, FUNC_NAME, 1200, 900);
   c1.cd();
   TH1D h2(FUNC_NAME+"-h2", "Corrected FADC",
           NumOfTimeBucket, 0, NumOfTimeBucket);

@@ -270,7 +270,7 @@ TPCHit::DoFit()
   m_layer = m_rhit->LayerId();
   m_row = m_rhit->RowId();
   m_pad = tpc::GetPadId(m_layer, m_row);
-  static TCanvas c1("c1", "c1", 800, 600);
+  static TCanvas c1("c"+FUNC_NAME, FUNC_NAME, 800, 600);
   c1.cd();
   TH1D h1(FUNC_NAME+"-h1", "Pedestal",
           MaxADC, 0, MaxADC);

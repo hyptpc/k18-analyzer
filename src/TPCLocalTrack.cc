@@ -213,7 +213,7 @@ TPCLocalTrack::CalcChisquare()
 		x0.z()+(u.z()*dist_AX));
     TVector3 d = pos-AI;
     //    TVector3 d = (pos-x0).Cross(u);
-    chisqr += TVector3(d.x()/Res.x(), d.y()/Res.y(), d.z()/Res.z()).Mag();
+    chisqr += TVector3(d.x()/Res.x(), d.y()/Res.y(), d.z()/Res.z()).Mag2();
   }
   m_chisqr = chisqr/GetNDF();
 }
@@ -267,7 +267,7 @@ static void fcn2(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par,
 		x0.y()+(u.y()*dist_AX),
 		x0.z()+(u.z()*dist_AX));
     TVector3 d = pos-AI;
-    chisqr += TVector3(d.x()/Res.x(), d.y()/Res.y(), d.z()/Res.z()).Mag();
+    chisqr += TVector3(d.x()/Res.x(), d.y()/Res.y(), d.z()/Res.z()).Mag2();
   }
   f = chisqr/(gNumOfHits-TPCLocalTrack::NumOfParam);
 }
@@ -320,7 +320,7 @@ static void fcn2_rt(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par,
 		x0.y()+(u.y()*dist_AX),
 		x0.z()+(u.z()*dist_AX));
     TVector3 d = pos-AI;
-    chisqr += TVector3(d.x()/Res.x(), d.y()/Res.y(), d.z()/Res.z()).Mag();
+    chisqr += TVector3(d.x()/Res.x(), d.y()/Res.y(), d.z()/Res.z()).Mag2();
   }
   f = chisqr/(gNumOfHits-TPCLocalTrack::NumOfParam);
 }
@@ -351,7 +351,7 @@ static void fcn2_rt2(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par,
 		x0.y()+(u.y()*dist_AX),
 		x0.z()+(u.z()*dist_AX));
     TVector3 d = pos-AI;
-    chisqr += TVector3(d.x()/Res.x(), d.y()/Res.y(), d.z()/Res.z()).Mag();
+    chisqr += TVector3(d.x()/Res.x(), d.y()/Res.y(), d.z()/Res.z()).Mag2();
   }
   f = chisqr/(gNumOfHits-TPCLocalTrack::NumOfParam);
 }
