@@ -1,0 +1,17 @@
+WORKDIR: ~/k18analyzer/e42
+DEFAULT:
+  queue: s
+  qmerge: s
+  unit: 100
+  nproc: 18
+  buff: root/buf
+  bin: bin/DstTPCTrackingGeant4 # if this includes 'Geant4', set geant4 input flag
+  conf: param/conf/analyzer_e42_2021feb.conf
+  # data: /hsm/had/sks/E42/JPARC2021Feb/e42_2021may # unused in geant4 mode
+  root: root/geant4 # used for both input/output
+
+RUN:
+  ProtonWithoutField: # output root file label, must be different from dstin
+    nevents: 10000 # necessary to split jobs
+    dstin:
+      - Proton_FieldMap_test_noBField_newRes # .root is input in 'root' dir

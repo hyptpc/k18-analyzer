@@ -253,7 +253,7 @@ class RunlistManager(metaclass=classimpl.Singleton):
     exit(1)
 
   #____________________________________________________________________________
-  def __make_dstin_path(self, base, key_array):
+  def __make_dstin_path(self, base, key_array, is_geant4):
     ''' Make path array of input files for dst analysis. '''
     if self.__is_ready is False:
       return None
@@ -263,7 +263,10 @@ class RunlistManager(metaclass=classimpl.Singleton):
     dstin_path = list()
     for key in key_array:
       split = os.path.splitext(base)
-      dstin_path.append(split[0] + key + split[1])
+      if is_geant4:
+        dstin_path.append(os.path.join(os.path.dirname(split[0]), key + split[1]))
+      else:
+        dstin_path.append(split[0] + key + split[1])
     return dstin_path
 
   #____________________________________________________________________________
@@ -291,7 +294,7 @@ class RunlistManager(metaclass=classimpl.Singleton):
     cdir = os.getcwd()
     raw_runlist = self.__decode_run_list(path)
     os.chdir(self.__work_dir)
-    needed_keys = ['bin', 'data', 'conf', 'root']
+    needed_keys = ['bin', 'conf', 'root']
     for item in raw_runlist:
       run = dict()
       run['key'] = item[0]
@@ -306,16 +309,26 @@ class RunlistManager(metaclass=classimpl.Singleton):
         logger.error(f"Cannot find file: {item[1]['bin']}")
         exit(1)
       run['bin'] = pbin
+      is_geant4 = 'Geant4' in pbin
+      logger.debug(f'is_geant4={is_geant4}')
       runno = None
-      if os.path.isfile(item[1]['data']):
-        tmp = os.path.splitext(os.path.basename(item[1]['data']))[0]
-        runno = int(tmp[3:8]) if tmp[3:8].isdigit() else None
+      run['data'] = None
+      run['nevents'] = None
+      if is_geant4:
+        pass
       else:
-        runno = item[0] if isinstance(item[0], int) else None
-      pdata = self.__make_data_path(item[1]['data'], runno)
-      run['data'] = pdata
-      run['nevents'] = self.get_nevents_recorder(
-        os.path.dirname(os.path.abspath(pdata)), runno)
+        if 'data' not in item[1]:
+          logger.error(f'key "data" is needed in runlist')
+          exit(1)
+        if os.path.isfile(item[1]['data']):
+          tmp = os.path.splitext(os.path.basename(item[1]['data']))[0]
+          runno = int(tmp[3:8]) if tmp[3:8].isdigit() else None
+        else:
+          runno = item[0] if isinstance(item[0], int) else None
+        pdata = self.__make_data_path(item[1]['data'], runno)
+        run['data'] = pdata
+        run['nevents'] = self.get_nevents_recorder(
+          os.path.dirname(os.path.abspath(pdata)), runno)
       pconf = None
       if os.path.exists(item[1]['conf']):
         if os.path.isfile(item[1]['conf']):
@@ -326,16 +339,19 @@ class RunlistManager(metaclass=classimpl.Singleton):
         logger.error(f'Cannot find conf file: {pconf}')
         exit(1)
       run['conf'] = pconf
-      base = (item[0] + os.path.basename(pbin) if runno is None
+      base = (item[0] + '_' + os.path.basename(pbin) if runno is None
               else f'run{runno:05d}_{os.path.basename(pbin)}')
       run['root'] = self.__make_root_path(item[1]['root'], base)
       if 'Dst' in run['bin']:
         if 'dstin' in item[1]:
           base = run['root'].replace(os.path.basename(run['bin']), '')
-          run['dstin'] = self.__make_dstin_path(base, item[1]['dstin'])
+          run['dstin'] = self.__make_dstin_path(base, item[1]['dstin'], is_geant4)
+          if is_geant4 and 'nevents' in item[1]:
+            run['nevents'] = int(item[1]['nevents'])
         else:
           logger.error(f'{run["bin"]} needs input files set as "dstin".')
           exit(1)
+      logger.info(f'nevents = {run["nevents"]}')
       if 'unit' in item[1] and isinstance(item[1]['unit'], int):
         run['unit'] = item[1]['unit']
       else:

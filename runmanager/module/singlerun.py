@@ -235,6 +235,7 @@ class SingleRun(object):
     info['bin'] = self.__bin_path
     info['conf'] = self.__conf_path
     info['data'] = self.__data_path
+    info['dstin'] = self.__dstin_path
     info['root'] = self.__root_path
     info['time'] = self.get_elapsed_time()
     info['stat'] = self.get_status()
