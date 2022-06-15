@@ -99,7 +99,7 @@ struct Event
   Double_t momg_x[MaxTPCTracks][MaxTPCnHits];
   Double_t momg_y[MaxTPCTracks][MaxTPCnHits];
   Double_t momg_z[MaxTPCTracks][MaxTPCnHits];
-  
+
   Int_t iti_g[MaxTPCTracks][MaxTPCnHits];
 
   Double_t residual[MaxTPCTracks][MaxTPCnHits];
@@ -182,22 +182,6 @@ main( int argc, char **argv )
     return EXIT_FAILURE;
   if( !gConf.InitializeUnpacker() )
     return EXIT_FAILURE;
-  // int nevent = GetEntries( TTreeCont );
-
-  // CatchSignal::Set();
-
-  // int ievent = 0;
-
-  // // for(int ii=0; ii<100; ++ii){
-  // //   std::cout<<"ii="<<ii<<std::endl;
-  // //   ievent = 0;
-  // for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
-  //   gCounter.check();
-  //   InitializeEvent();
-  //   if( DstRead( ievent ) ) tree->Fill();
-  // }
-  // //  }
-
 
   Int_t skip = gUnpacker.get_skip();
   if (skip < 0) skip = 0;
@@ -213,8 +197,6 @@ main( int argc, char **argv )
     InitializeEvent();
     if( DstRead( ievent ) ) tree->Fill();
   }
-
-
 
   std::cout << "#D Event Number: " << std::setw(6)
 	    << ievent << std::endl;
@@ -321,7 +303,7 @@ dst::DstRead( int ievent )
       event.max_ititpc = src.ititpc[ihit];
     ++event.nhittpc_iti[src.ititpc[ihit]-1];
   }
-  
+
   // double u = src.pxPrm[0]/src.pzPrm[0];
   // double v = src.pyPrm[0]/src.pzPrm[0];
   // double cost = 1./std::sqrt(1.+u*u+v*v);
@@ -331,7 +313,7 @@ dst::DstRead( int ievent )
 
   if(src.nhittpc<5)
     return true;
-    
+
 
   DCAnalyzer *DCAna = new DCAnalyzer();
 
@@ -353,9 +335,9 @@ dst::DstRead( int ievent )
 
   //  std::cout<<"nhittpc"<<src.nhittpc<<std::endl;
 
-  
+
   if(IsWithRes){
-    
+
     DCAna->DecodeTPCHitsGeant4(src.nhittpc,
 			       src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
     // if(src.nhittpc<=8)
@@ -440,7 +422,7 @@ dst::DstRead( int ievent )
 	  event.residual_py[it][ih] = mom.y() - src.pytpc[ih2]*1000.;//MeV/c
 	  event.residual_pz[it][ih] = mom.z() - src.pztpc[ih2]*1000.;//MeV/c
 	  event.residual_p[it][ih] = mom.Mag() - momg_mag;//MeV/c
-	  
+
 	  event.iti_g[it][ih] = src.ititpc[ih2];
 	  break;
 	}
@@ -517,8 +499,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("evnum", &event.evnum, "evnum/I" );
   tree->Branch("nhittpc",&event.nhittpc,"nhittpc/I");
   tree->Branch("nttpc",&event.nttpc,"nttpc/I");
-  
-  tree->Branch("max_ititpc",&event.max_ititpc,"max_ititpc/I");  
+
+  tree->Branch("max_ititpc",&event.max_ititpc,"max_ititpc/I");
   tree->Branch("ititpc",event.ititpc,"ititpc[nhittpc]/I");
   tree->Branch("nhittpc_iti",event.nhittpc_iti,"nhittpc_iti[max_ititpc]/I");
 

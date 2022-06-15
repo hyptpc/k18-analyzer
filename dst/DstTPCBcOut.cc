@@ -35,8 +35,7 @@ namespace
 {
 using namespace root;
 using namespace dst;
-using hddaq::unpacker::GUnpacker;
-const auto& gUnpacker = GUnpacker::get_instance();
+const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 auto&       gConf = ConfMan::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
