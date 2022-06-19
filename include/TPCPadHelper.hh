@@ -1092,6 +1092,18 @@ inline Int_t findPadID(Double_t z, Double_t x)
 }
 
 //_____________________________________________________________________________
+inline Double_t
+ArcLength(Int_t layer, Double_t row1, Double_t row2)
+{
+  const Int_t R = padParameter[layer][2];
+  Double_t theta = getTheta(layer, row1) - getTheta(layer, row2);
+  theta = std::fmod(theta, 2*TMath::Pi());
+  if(theta < 0) theta += 2*TMath::Pi();
+  theta = TMath::Min(theta, 2*TMath::Pi() - theta);
+  return R*theta;
+}
+
+//_____________________________________________________________________________
 inline void
 InitializeHistograms()
 {
