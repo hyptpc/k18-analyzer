@@ -1,0 +1,87 @@
+<?xml version="1.0"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+  <define>
+    <position name="tpc_1inhyptpcpos" x="0" y="0" z="0" unit="mm"/>
+    <rotation name="tpc_1inhyptpcrot" x="90" y="-0" z="0" unit="deg"/>
+    <position name="target_1inhyptpcpos" x="0" y="0" z="-143" unit="mm"/>
+    <position name="fc_1inhyptpcpos" x="0" y="0" z="0" unit="mm"/>
+    <rotation name="fc_1inhyptpcrot" x="90" y="-0" z="0" unit="deg"/>
+  </define>
+  <materials>
+    <element name="ARGON_elm" formula="AR" Z="18">
+      <atom unit="g/mole" value="3.9947999999999997e-18"/>
+    </element>
+    <element name="CARBON_elm" formula="C" Z="6">
+      <atom unit="g/mole" value="1.2010699999999999e-18"/>
+    </element>
+    <element name="HYDROGEN_elm" formula="H" Z="1">
+      <atom unit="g/mole" value="1.00794e-19"/>
+    </element>
+    <material name="P10">
+      <D unit="g/cm3" value="1.5611899198362601e-19"/>
+      <fraction n="0.95720678567886353" ref="ARGON_elm"/>
+      <fraction n="0.032038692384958267" ref="CARBON_elm"/>
+      <fraction n="0.01075450237840414" ref="HYDROGEN_elm"/>
+    </material>
+    <material name="Diamond">
+      <D unit="g/cm3" value="3.34e-16"/>
+      <fraction n="1" ref="CARBON_elm"/>
+    </material>
+    <material name="P100x1">
+      <D unit="g/cm3" value="1.5611899198362601e-19"/>
+      <fraction n="0.95720678567886353" ref="ARGON_elm"/>
+      <fraction n="0.032038692384958267" ref="CARBON_elm"/>
+      <fraction n="0.01075450237840414" ref="HYDROGEN_elm"/>
+    </material>
+  </materials>
+  <solids>
+    <polyhedra name="TpcOutSolid" startphi="22.5" deltaphi="360" numsides="8" aunit="deg" lunit="mm">
+      <zplane z="-302" rmin="0" rmax="287"/>
+      <zplane z="302" rmin="0" rmax="287"/>
+    </polyhedra>
+    <box name="Target" x="30" y="20" z="20" lunit="mm"/>
+    <subtraction name="TpcSolid">
+      <first ref="TpcOutSolid"/>
+      <second ref="Target"/>
+      <position name="TpcSolidTargetpos" x="0" y="143" z="0" unit="mm"/>
+    </subtraction>
+    <box name="Target0x1" x="30" y="20" z="20" lunit="mm"/>
+    <polyhedra name="FcSolid" startphi="22.5" deltaphi="360" numsides="8" aunit="deg" lunit="mm">
+      <zplane z="-400" rmin="287" rmax="327"/>
+      <zplane z="400" rmin="287" rmax="327"/>
+    </polyhedra>
+  </solids>
+  <structure>
+    <volume name="tpc">
+      <materialref ref="P10"/>
+      <solidref ref="TpcSolid"/>
+    </volume>
+    <volume name="target">
+      <materialref ref="Diamond"/>
+      <solidref ref="Target0x1"/>
+    </volume>
+    <volume name="fc">
+      <materialref ref="P100x1"/>
+      <solidref ref="FcSolid"/>
+    </volume>
+    <assembly name="hyptpc">
+      <physvol name="tpc_1" copynumber="1">
+        <volumeref ref="tpc"/>
+        <positionref ref="tpc_1inhyptpcpos"/>
+        <rotationref ref="tpc_1inhyptpcrot"/>
+      </physvol>
+      <physvol name="target_1" copynumber="1">
+        <volumeref ref="target"/>
+        <positionref ref="target_1inhyptpcpos"/>
+      </physvol>
+      <physvol name="fc_1" copynumber="1">
+        <volumeref ref="fc"/>
+        <positionref ref="fc_1inhyptpcpos"/>
+        <rotationref ref="fc_1inhyptpcrot"/>
+      </physvol>
+    </assembly>
+  </structure>
+  <setup name="default" version="1.0">
+    <world ref="hyptpc"/>
+  </setup>
+</gdml>
