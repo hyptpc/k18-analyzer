@@ -312,6 +312,7 @@ DCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
                               TPCClusterContainer& ClCont,
                               Double_t maxdy)
 {
+  static const Double_t ClusterDeCut = gUser.GetParameter("MinClusterDeTPC");
   const auto nh = HitCont.size();
   if(nh==0) return false;
 
@@ -342,6 +343,7 @@ DCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
     TPCCluster* cluster = new TPCCluster(layer, CandCont);
     if(!cluster) continue;
     cluster->Calculate();
+    if(cluster->GetDe()<ClusterDeCut) continue;
     ClCont.push_back(cluster);
     // cluster->Print();
   }
