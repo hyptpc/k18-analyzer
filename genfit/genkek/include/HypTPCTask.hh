@@ -17,8 +17,9 @@ class HypTPCTask : public HypTPCFitProcess{
 public:
 
   HypTPCTask() : HypTPCFitProcess() {}
+  //HypTPCTask(){}
   ~HypTPCTask(){}
-  HypTPCTask* getInstance(){ return new HypTPCTask(); }
+  static HypTPCTask* GetInstance();
 
   genfit::FitStatus* GetFitStatus(int trackid) const;
   double GetChi2(int trackid) const;
@@ -30,26 +31,27 @@ public:
   double GetTrackLength(int trackid, int start=0, int end=-1) const;
   double GetTrackTOF(int trackid, int start=0, int end=-1) const;
 
-  //HypTPCFitprocess.hh
-  int Get_verbosity() const override;
-  void Set_verbosity(int v) override;
-  bool FitCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep* rep=nullptr) override;
+  /*
+  //HypTPCFitprocess
+  int GetVerbosity() const;
+  void SetVerbosity(int v);
+  bool FitCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep* rep=nullptr);
   //Process track with the all AbsTrackReps of the track.
-  bool ProcessTrack(genfit::Track* Track) override;
+  bool ProcessTrack(genfit::Track* Track);
   //Process track with one AbsTrackRep of the Track
-  bool ProcessTrack(genfit::Track* Track, genfit::AbsTrackRep* rep) override;
+  bool ProcessTrack(genfit::Track* Track, genfit::AbsTrackRep* rep);
   //Process all tracks with its all AbsTrackReps.
-  void FitTracks() override;
+  void FitTracks();
 
-  //HypTPCTrack.hh
-  void Init() override;
-  void AddHelixTrack(int pdg, TPCLocalTrackHelix *tp) override;
-  genfit::Track* GetTrack(int ith) const override;
-  int GetNTrack() const override;
-
+  //HypTPCTrack
+  void Init();
+  void AddHelixTrack(int pdg, TPCLocalTrackHelix *tp);
+  genfit::Track* GetTrack(int ith) const;
+  int GetNTrack() const;
+  */
 private:
 
-  ClassDef(HypTPCTask, 1)
+  //ClassDef(HypTPCTask, 1)
 
 };  //class HypTPCTask
 

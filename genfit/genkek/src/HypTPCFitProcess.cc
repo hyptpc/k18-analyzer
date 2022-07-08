@@ -13,10 +13,10 @@
 #define LogERROR(exp) std::cout << "ERROR: " << __FILE__ << ": " << __LINE__ << ": " << exp << std::endl
 #define LogWARNING(exp) std::cout << "WARNING: " << __FILE__ << ": " << __LINE__ << ": " << exp << std::endl
 
-ClassImp(HypTPCFitProcess)
+//ClassImp(HypTPCFitProcess)
 
 namespace{
-  genfit::AbsKalmanFitter* _fitter = HypTPCFitter::GetFitter();
+  //genfit::AbsKalmanFitter* fitter = HypTPCFitter::GetFitter();
 }
 
 bool HypTPCFitProcess::FitCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep* rep){

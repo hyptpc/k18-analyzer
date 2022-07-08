@@ -7,9 +7,10 @@
 #include <TMatrixDSymfwd.h>                // for TMatrixDSym
 #include <TVector3.h>
 
-ClassImp(HypTPCSpacepointMeasurement)
+//ClassImp(HypTPCSpacepointMeasurement)
 
-HypTPCSpacepointMeasurement::HypTPCSpacepointMeasurement(const TPCLTrackHit* dethit, const genfit::TrackCandHit* hit)
+HypTPCSpacepointMeasurement::HypTPCSpacepointMeasurement(
+const TPCLTrackHit* dethit, const genfit::TrackCandHit* hit)
 : genfit::SpacepointMeasurement()
 {
   const TVector3& res_vect = dethit -> GetResolutionVect();
@@ -30,9 +31,6 @@ HypTPCSpacepointMeasurement::HypTPCSpacepointMeasurement(const TPCLTrackHit* det
   rawHitCov_ = hitCov;
   detId_ = hit -> getDetId();
   hitId_ = hit -> getHitId();
-
-  //TPCHit *trackhit =  detHit -> GetHit();
-  //fCharge = trackhit -> GetCDe();
 
   this -> initG();
 }

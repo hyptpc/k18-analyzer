@@ -31,10 +31,10 @@
 //STL
 #include <iostream>
 
-ClassImp(HypTPCTrack)
+//ClassImp(HypTPCTrack)
 
-TClonesArray *_hitClusterArray = nullptr;;
-TClonesArray *_genfitTrackArray = nullptr;
+TClonesArray *HypTPCTrack::_hitClusterArray = nullptr;
+TClonesArray *HypTPCTrack::_genfitTrackArray = nullptr;
 
 HypTPCTrack::HypTPCTrack(){
 
@@ -44,6 +44,7 @@ HypTPCTrack::HypTPCTrack(){
   _measurementProducer = new genfit::MeasurementProducer<TPCLTrackHit, HypTPCSpacepointMeasurement>(_hitClusterArray);
   _measurementFactory = new genfit::MeasurementFactory<genfit::AbsMeasurement>();
   _measurementFactory -> addProducer(TPCDetID, _measurementProducer);
+  std::cout<<"Measurementfactory is constructed"<<std::endl;
 }
 
 void HypTPCTrack::Init(){

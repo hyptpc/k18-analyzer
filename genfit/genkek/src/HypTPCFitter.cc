@@ -27,9 +27,9 @@
 
 namespace{ const auto& gUser = UserParamMan::GetInstance(); }
 
-ClassImp(HypTPCFitter)
+//ClassImp(HypTPCFitter)
 
-genfit::AbsKalmanFitter* _fitter = nullptr;
+genfit::AbsKalmanFitter* HypTPCFitter::_fitter = nullptr;
 int HypTPCFitter::GenFitFitter = -1;
 
 HypTPCFitter::HypTPCFitter(const std::string& tgeo_file_name, const bool m_is_const)
@@ -56,8 +56,6 @@ HypTPCFitter::HypTPCFitter(const std::string& tgeo_file_name, const bool m_is_co
   genfit::Exception::quiet(true);
 }
 
-inline genfit::AbsKalmanFitter* HypTPCFitter::GetFitter(){
-
+genfit::AbsKalmanFitter* HypTPCFitter::GetFitter(){
   return _fitter;
-
 }

@@ -24,7 +24,7 @@ private:
   bool m_is_const;
   double const_field;
 
-  ClassDef(HypTPCField, 1)
+  //ClassDef(HypTPCField, 1)
 }; //class HypTPCField
 
 #endif // HypTPCField_hh

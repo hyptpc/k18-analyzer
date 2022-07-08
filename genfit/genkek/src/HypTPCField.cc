@@ -19,7 +19,7 @@ namespace{
 
 // Interface of the K18 B-field map with GenFit
 
-ClassImp(HypTPCField)
+//ClassImp(HypTPCField)
 
 HypTPCField::HypTPCField(bool is_constant_field)
 : genfit::AbsBField(),

@@ -21,10 +21,14 @@
 #include <iostream>
 #include <string>
 
-ClassImp(HypTPCTask)
+//ClassImp(HypTPCTask)
 
 namespace{
   const double qnan = TMath::QuietNaN();
+}
+
+HypTPCTask* HypTPCTask::GetInstance(){
+  return new HypTPCTask();
 }
 
 genfit::FitStatus* HypTPCTask::GetFitStatus(int trackid) const{

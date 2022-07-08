@@ -24,14 +24,13 @@ class HypTPCTrack{
 public:
 
   HypTPCTrack();
-  virtual ~HypTPCTrack();
-  virtual void Init();
-  virtual void AddHelixTrack(int pdg, TPCLocalTrackHelix *tp);
-  virtual genfit::Track* GetTrack(int ith) const { return (genfit::Track*) _genfitTrackArray -> ConstructedAt(ith); }
-  virtual int GetNTrack() const { return _genfitTrackArray -> GetEntriesFast(); }
+  virtual ~HypTPCTrack(){}
+  void Init();
+  void AddHelixTrack(int pdg, TPCLocalTrackHelix *tp);
+  genfit::Track* GetTrack(int ith) const { return (genfit::Track*) _genfitTrackArray -> ConstructedAt(ith); }
+  int GetNTrack() const { return _genfitTrackArray -> GetEntriesFast(); }
 
 protected:
-
 
 private:
 
@@ -42,7 +41,7 @@ private:
   genfit::MeasurementFactory<genfit::AbsMeasurement> *_measurementFactory;
   genfit::MeasurementProducer<TPCLTrackHit, HypTPCSpacepointMeasurement> *_measurementProducer;
 
-  ClassDef(HypTPCTrack, 1)
+  //ClassDef(HypTPCTrack, 1)
 
 }; //class HypTPCTrack.hh
 
