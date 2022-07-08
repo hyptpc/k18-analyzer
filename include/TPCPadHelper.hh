@@ -1056,9 +1056,14 @@ inline Int_t findPadID(Double_t z, Double_t x)
   //    else if (z > 0 && x > 0) angle = TMath::Pi() + atan(x / z);
   //    else if (z < 0 && x > 0) angle = 2*TMath::Pi() - atan(-x / z);
   //  }
-  else if (z < 0) angle = atan(x / z);
-  else  angle = TMath::Pi() + atan(x / z);
-  //cout << " angle: " << angle*180/TMath::Pi() << endl;
+//  else if (z < 0) angle = atan(x / z);
+//  else  angle = TMath::Pi() + atan(x / z);
+  else{
+		if (z > 0) angle = TMath::Pi()+atan(x / z);
+	  else if( z < 0&&x<0) angle = atan(x / z);
+		  else angle = 2*TMath::Pi()+ atan(x / z);//angle of z<0&&x>0 plane should be [1.5Pi,2Pi], not [-0.5Pi , 0].
+	}
+	//cout << " angle: " << angle*180/TMath::Pi() << endl;
 
   Int_t layer, row;
   // find layer_num.
