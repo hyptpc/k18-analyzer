@@ -123,17 +123,28 @@ GenFit_dst_srcs		= $(wildcard $(dst_dir)/Genfit*.cc)
 GenFit_dst_deps		= $(GenFit_dst_srcs:$(dst_dir)/Genfit%.cc=$(dst_build_dir)/Genfit%.d)
 GenFit_dst_objs		= $(GenFit_dst_srcs:$(dst_dir)/Genfit%.cc=$(dst_build_dir)/Genfit%.o)
 GenFit_target		= $(GenFit_dst_srcs:$(dst_dir)/Genfit%.cc=$(bin_dir)/Genfit%)
+#
 # GenFit to KEKCC
 GenKEK_FLAGS		= $(addprefix -I, $(GenKEK_src_dir) $(GenKEK_include_dir))
 #
 GenKEK_srcs		= $(wildcard $(GenKEK_src_dir)/*.cc)
-GenKEK_headers		= $(wildcard $(GenKEK_include_dir)/*.hh)
+GenKEK_core_srcs	:= $(notdir $(GenKEK_srcs))
+GenKEK_includes		= $(wildcard $(GenKEK_include_dir)/*.hh)
+GenKEK_headers		:= $(notdir $(GenKEK_includes))
 GenKEK_deps		= $(GenKEK_srcs:$(GenKEK_src_dir)/%.cc=$(GenKEK_build_dir)/%.d)
 GenKEK_objs		= $(GenKEK_srcs:$(GenKEK_src_dir)/%.cc=$(GenKEK_build_dir)/%.o)
 GenKEK_lib_objs		= $(lib_dir)/libGenKEK.a
 #
-GenFit_k18lib		= $(k18lib) -lGenKEK
-GenFit_k18lib		+= $(addprefix -l,$(shared_libs:$(lib_dir)/lib%.so=%))
+GenKEK_linkdefs		= $(GenKEK_src_dir)/HypTPCLinkDef.h
+GenKEK_linkdef_objs	= $(GenKEK_build_dir)/HypTPCRootDict.o
+GenKEK_linkdef_dicts	= $(lib_dir)/HypTPCRootDict.cxx
+GenKEK_linkdef_deps	= $(GenKEK_build_dir)/HypTPCRootDict.d
+GenKEK_linkdef_pcms	= $(lib_dir)/HypTPCRootDict_rdict.pcm
+GenKEK_shared_libs	= $(lib_dir)/libHypTPC.so
+#
+GenFit_k18lib		= -L$(lib_dir) -lGenKEK
+#GenFit_k18lib		+= $(addprefix -l,$(shared_libs:$(lib_dir)/lib%.so=%))
+#GenFit_k18lib		+= $(addprefix -l,$(GenKEK_shared_libs:$(lib_dir)/lib%.so=%))
 #
 ar	:= ar r
 echo	:= /bin/echo -e
@@ -154,22 +165,21 @@ cyan		= \033[0;36;1m
 white		= \033[0;37;1m
 endif
 #______________________________________________________________________________
-.PHONY: all genkek genfit_dic genfit_lib genfit_dst dst usr lib clean distclean show help
+.PHONY: all genkek genfit genfit_dst dst usr lib clean distclean show help showgenkek showgenkek
 
-all: lib usr dst genfit_dic genfit_lib genfit_genkek genfit_dst
-genfit: genfit_dic genfit_lib genfit_genkek genfit_dst
+all: k18ana genfit
 k18ana: lib usr dst
+genfit: genkek genfit_dst
 
 -include $(core_deps) $(usr_deps) $(dst_deps) \
 	$(GenFit_deps) $(GenFit_dst_deps) $(linkdef_deps) \
-	$(GenKEK_deps)
+	$(GenKEK_deps) $(GenKEK_linkdef_deps)
 
 dst: $(dst_target) $(dst_objs)
 usr: $(usr_target) $(usr_objs)
 lib: $(core_objs) $(lib_objs)
-genfit_dic: $(GenFit_objs) $(linkdef_dicts) $(linkdef_objs) $(shared_libs)
-genfit_lib: $(shared_libs)
-genfit_genkek : $(GenKEK_objs) $(GenKEK_lib_objs)
+genfit: $(GenFit_objs) $(linkdef_dicts) $(linkdef_objs)
+genkek : $(GenKEK_objs) $(GenKEK_linkdef_dicts) $(GenKEK_linkdef_objs) $(GenKEK_lib_objs)
 genfit_dst: $(GenFit_dst_objs) $(GenFit_target)
 #______________________________________________________________________________
 $(lib_objs): $(core_objs)
@@ -217,21 +227,27 @@ $(GenFit_build_dir)/%RootDict.o: $(lib_dir)/%RootDict.cxx
 	@ $(echo) "$(green)=== Compiling $@ $(default_color)"
 	@ $(mkdir) $(GenFit_build_dir)
 	$(CXX) -fPIC $(FLAGS) $(GenFit_FLAGS) -o $@ -MMD -c $<
-
-$(lib_dir)/lib%.so: $(GenFit_build_dir)/%RootDict.o $(GenFit_objs)
-	@ $(echo) "$(blue)=== Making Shared Library $@ $(default_color)"
-	@ $(mkdir) $(lib_dir)
-	$(CXX) -shared -o$@ $(FLAGS) $(GenFit_FLAGS) $^ $(root_ldflag)
 #______________________________________________________________________________
-$(GenKEK_lib_objs): $(GenKEK_objs) $(core_objs)
-	@ $(echo) "$(yellow)=== Archiving $@ $(default_color)"
-	@ $(mkdir) $(lib_dir)
-	$(ar) $@ $^
-
 $(GenKEK_build_dir)/%.o: $(GenKEK_src_dir)/%.cc
 	@ $(echo) "$(green)=== Compiling $@ $(default_color)"
 	@ $(mkdir) $(GenKEK_build_dir)
 	$(CXX) -fPIC $(FLAGS) $(GenFit_FLAGS) $(GenKEK_FLAGS) -o $@ -MMD -c $<
+
+$(lib_dir)/HypTPCRootDict.cxx: $(headers) $(GenKEK_includes) $(GenKEK_src_dir)/HypTPCLinkDef.h
+	@ $(echo) "$(red)=== Generating Dictionary $@ $(default_color)"
+	@ $(mkdir) $(lib_dir)
+	$(root_cint) -f $@ -c $(FLAGS) $(GenFit_FLAGS) $(GenKEK_FLAGS) -p $^
+
+$(GenKEK_build_dir)/HypTPCRootDict.o: $(lib_dir)/HypTPCRootDict.cxx
+	@ $(echo) "$(green)=== Compiling $@ $(default_color)"
+	@ $(mkdir) $(GenKEK_build_dir)
+	$(CXX) -fPIC $(FLAGS) $(GenFit_FLAGS) $(GenKEK_FLAGS) -o $@ -MMD -c $<
+
+#______________________________________________________________________________
+$(GenKEK_lib_objs): $(GenKEK_objs) $(GenFit_objs) $(core_objs) $(GenKEK_build_dir)/HypTPCRootDict.o $(linkdef_objs)
+	@ $(echo) "$(yellow)=== Archiving $@ $(default_color)"
+	@ $(mkdir) $(lib_dir)
+	$(ar) $@ $^
 
 #______________________________________________________________________________
 $(dst_build_dir)/Genfit%.o: $(dst_dir)/Genfit%.cc
@@ -250,14 +266,17 @@ clean:
 	@ $(rm) $(dst_objs) $(usr_objs) $(core_objs) \
 	$(lib_objs) $(dst_deps) $(usr_deps) $(core_deps) \
 	$(GenFit_objs) $(GenFit_deps) $(linkdef_dicts) \
-	$(linkdef_deps) $(linkdef_objs) $(linkdef_dicts) \
-	$(linkdef_pcms) $(GenFit_dst_objs) $(GenFit_dst_deps)
+	$(linkdef_deps) $(linkdef_objs) $(linkdef_pcms) \
+	$(GenKEK_linkdef_deps) $(GenKEK_linkdef_objs) \
+	$(GenKEK_linkdef_dicts) $(GenKEK_linkdef_pcms) \
+	$(GenFit_dst_objs) $(GenFit_dst_deps)
 	@ find . \( -name "*~" -o -name "\#*\#" \) -exec $(rm) \{\} \;
 
 distclean:
 	@ $(echo) "$(green)=== Cleaning $(default_color)"
 	@ $(rm) $(bin_dir)/* $(lib_dir)/* \
-	$(src_build_dir) $(usr_build_dir) $(dst_build_dir) $(GenFit_build_dir)
+	$(src_build_dir) $(usr_build_dir) $(dst_build_dir) \
+	$(GenFit_build_dir) $(GenKEK_build_dir)
 	@ find . \( -name "*~" -o -name "\#*\#" \) -exec $(rm) \{\} \;
 
 #______________________________________________________________________________
@@ -332,5 +351,10 @@ showgenkek:
 	@ $(echo) $(GenKEK_objs) | $(sort)
 	@ $(echo) "$(green)=== GenKEK dependencies $(dst_build_dir)/ $(default_color)"
 	@ $(echo) $(GenKEK_deps) | $(sort)
-	@ $(echo) "$(black)=== GenKEK Libraries $(lib_dir)/ $(default_color)"
-	@ $(echo) $(GenFit_k18lib)
+	@ $(echo) "$(red)=== GenKEK Dictionaries $(GenKEK_build_dir)/ $(default_color)"
+	@ $(echo) $(GenKEK_linkdef_dicts) | $(sort)
+	@ $(echo) $(GenKEK_linkdef_pcms) | $(sort)
+	@ $(echo) $(GenKEK_linkdef_objs) | $(sort)
+	@ $(echo) $(GenKEK_linkdef_deps) | $(sort)
+	@ $(echo) "$(blue)=== GenKEK Shared libs $(lib_dir)/ $(default_color)"
+	@ $(echo) $(GenKEK_shared_libs) | $(sort)
