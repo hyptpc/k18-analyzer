@@ -19,7 +19,7 @@ namespace{
 
 // Interface of the K18 B-field map with GenFit
 
-//ClassImp(HypTPCField)
+ClassImp(HypTPCField)
 
 HypTPCField::HypTPCField(bool is_constant_field)
 : genfit::AbsBField(),
@@ -27,16 +27,10 @@ HypTPCField::HypTPCField(bool is_constant_field)
   const_field(HS_field_0*valueHSHall/valueHSCalc)
 {}
 
-/* Getter for the magnetic field.
- *
- *  As Genfit uses kGauss, but we use T, we need to apply a factor 10 in the calculation.
- *  @param position   Position at which the magnetic field should be evaluated.
- */
-
 TVector3 HypTPCField::get(const TVector3& position) const{
   TVector3 B;
-  if(m_is_const) B = ThreeVector(0.,0.,const_field);
-  else B = gField.GetField(position);
-
-  return B;
+  TVector3 pos(10*position.X(),10*position.Y(),10*position.Z());  //cm -> mm
+  if(m_is_const) B = TVector3(0.,0.,const_field);
+  else B = gField.GetField(pos);
+  return 10*B; //T -> kGauss
 }
