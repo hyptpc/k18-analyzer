@@ -13,13 +13,9 @@
 #define LogERROR(exp) std::cout << "ERROR: " << __FILE__ << ": " << __LINE__ << ": " << exp << std::endl
 #define LogWARNING(exp) std::cout << "WARNING: " << __FILE__ << ": " << __LINE__ << ": " << exp << std::endl
 
-//ClassImp(HypTPCFitProcess)
+ClassImp(HypTPCFitProcess)
 
-namespace{
-  //genfit::AbsKalmanFitter* fitter = HypTPCFitter::GetFitter();
-}
-
-bool HypTPCFitProcess::FitCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep* rep){
+bool HypTPCFitProcess::FitCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep* rep) const {
 
   if(!fittedTrack->getFitStatus(rep)->isFitted()){
     if (verbosity >= 2) LogWARNING("Fitting is failed");
@@ -32,12 +28,19 @@ bool HypTPCFitProcess::FitCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep*
   try{fittedTrack->checkConsistency();}
   catch(genfit::Exception& e){
     if(verbosity >= 2){
-      std::cerr << "genfit::Track::checkConsistency() failed!" << std::endl;
+      LogWARNING("genfit::Track::checkConsistency() failed!");
       std::cerr << e.what();
     }
     return false;
   }
   return true;
+}
+
+bool HypTPCFitProcess::FitCheck(int trackid) const {
+
+  genfit::Track* fittedTrack = GetTrack(trackid);
+  genfit::AbsTrackRep* rep = fittedTrack->getCardinalRep();
+  return FitCheck(fittedTrack, rep);
 
 }
 
@@ -45,7 +48,6 @@ void HypTPCFitProcess::FitTracks(){
 
   int nTracks = GetNTrack();
   for(int i=0; i<nTracks; i++){
-    //ProcessTrack((genfit::Track*) _genfitTrackArray -> ConstructedAt(i));
     ProcessTrack(GetTrack(i));
   }
 

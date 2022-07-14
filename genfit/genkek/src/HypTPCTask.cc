@@ -15,24 +15,27 @@
 
 //ROOT
 #include <TMath.h>
+#include <TVectorD.h>
+#include <TMatrixDSym.h>
 
 //STL
 #include <cstddef>
 #include <iostream>
 #include <string>
 
-//ClassImp(HypTPCTask)
+ClassImp(HypTPCTask)
 
 namespace{
   const double qnan = TMath::QuietNaN();
 }
 
-HypTPCTask* HypTPCTask::GetInstance(){
-  return new HypTPCTask();
+HypTPCTask& HypTPCTask::GetInstance(){
+  static HypTPCTask s_instance;
+  return s_instance;
 }
 
+
 genfit::FitStatus* HypTPCTask::GetFitStatus(int trackid) const{
-  //genfit::FitStatus* HypTPCTask::GetFitStatus(int trackid){
 
   genfit::Track* fittedTrack = GetTrack(trackid);
   genfit::FitStatus *fitStatus;
@@ -115,12 +118,14 @@ TVector3 HypTPCTask::GetMom(int trackid) const
 
 }
 
+//GenFit Units : GeV/c, ns, cm, kGauss
+//K1.8Ana Units : GeV/c, ns, mm, T
 double HypTPCTask::GetTrackLength(int trackid, int start, int end) const{
 
   double length = qnan;
+  if(!FitCheck(trackid)) return length;
   genfit::Track* fittedTrack = GetTrack(trackid);
-  if (!fittedTrack) return length;
-  length = fittedTrack -> getTrackLen(nullptr,start,end);
+  length = 10*fittedTrack -> getTrackLen(nullptr,start,end); //cm -> mm
   return length;
 
 }
@@ -128,9 +133,9 @@ double HypTPCTask::GetTrackLength(int trackid, int start, int end) const{
 double HypTPCTask::GetTrackTOF(int trackid, int start, int end) const{
 
   double TOF = qnan;
+  if(!FitCheck(trackid)) return TOF;
   genfit::Track* fittedTrack = GetTrack(trackid);
-  if (!fittedTrack) return TOF;
+  if(end==-1) end =(int) fittedTrack -> getNumPoints();
   TOF = fittedTrack -> getTOF(nullptr,start,end);
   return TOF;
-
 }

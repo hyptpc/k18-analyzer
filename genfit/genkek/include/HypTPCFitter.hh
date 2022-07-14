@@ -38,9 +38,9 @@ public:
 
 private:
 
-  TGeoManager* _tgeo_manager;
+  static TGeoManager* _tgeo_manager;
 
-  //ClassDef(HypTPCFitter, 1);
+  ClassDef(HypTPCFitter, 1);
 
 };  //class HypTPCFitter
 

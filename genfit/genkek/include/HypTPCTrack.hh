@@ -5,10 +5,12 @@
 
 //GenKEK
 #include "HypTPCSpacepointMeasurement.hh"
+#include "HypTPCHit.hh"
 
 //k18-analyzer
 #include "TPCLocalTrackHelix.hh"
 #include "TPCLocalTrack.hh"
+#include "TPCLTrackHit.hh"
 
 //GenFit
 #include <AbsMeasurement.h>
@@ -19,6 +21,8 @@
 //ROOT
 #include <TClonesArray.h>
 
+//STL
+#include <vector>
 class HypTPCTrack{
 
 public:
@@ -26,22 +30,25 @@ public:
   HypTPCTrack();
   virtual ~HypTPCTrack(){}
   void Init();
+  genfit::Track* GetTrack(int ith) const;
+  void AddReps(int ith, int pdg);
   void AddHelixTrack(int pdg, TPCLocalTrackHelix *tp);
-  genfit::Track* GetTrack(int ith) const { return (genfit::Track*) _genfitTrackArray -> ConstructedAt(ith); }
+  void AddHelixTrack(std::vector<int> pdg, TPCLocalTrackHelix *tp);
   int GetNTrack() const { return _genfitTrackArray -> GetEntriesFast(); }
+  int GetNHit(int ith) const;
 
 protected:
-
-private:
 
   static TClonesArray *_hitClusterArray;
   static TClonesArray *_genfitTrackArray;
 
+private:
+
   int TPCDetID=0;
   genfit::MeasurementFactory<genfit::AbsMeasurement> *_measurementFactory;
-  genfit::MeasurementProducer<TPCLTrackHit, HypTPCSpacepointMeasurement> *_measurementProducer;
+  genfit::MeasurementProducer<HypTPCHit, genfit::HypTPCSpacepointMeasurement> *_measurementProducer;
 
-  //ClassDef(HypTPCTrack, 1)
+  ClassDef(HypTPCTrack, 1)
 
 }; //class HypTPCTrack.hh
 

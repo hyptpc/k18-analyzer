@@ -3,29 +3,31 @@
 #ifndef HYPTPCSPACEPOINTMEASUREMENT_HH
 #define HYPTPCSPACEPOINTMEASUREMENT_HH
 
-//GenFit2
+//GenFit
 #include <SpacepointMeasurement.h>
 #include <TrackCandHit.h>
 
 //k18-analyzer
 #include "TPCLTrackHit.hh"
+#include "HypTPCHit.hh"
 
-//class TVector3;
+namespace genfit {
 
-class HypTPCSpacepointMeasurement : public genfit::SpacepointMeasurement{
+  class HypTPCSpacepointMeasurement : public SpacepointMeasurement{
 
-public:
-  HypTPCSpacepointMeasurement() : genfit::SpacepointMeasurement() {}
-  HypTPCSpacepointMeasurement(const TPCLTrackHit* dethit, const genfit::TrackCandHit* hit); //TPCHit Hitpos & Resolution
-  ~HypTPCSpacepointMeasurement() override {};
+  public:
+    HypTPCSpacepointMeasurement() : SpacepointMeasurement() {}
+    HypTPCSpacepointMeasurement(const HypTPCHit* dethit, const TrackCandHit* hit); //TPCLTrackHit Hitpos & Resolution
+    ~HypTPCSpacepointMeasurement(){}
 
-  virtual HypTPCSpacepointMeasurement* clone() const { return new HypTPCSpacepointMeasurement(*this); }
-  double GetCharge() { return fCharge; }
+    virtual AbsMeasurement* clone() const { return new HypTPCSpacepointMeasurement(*this); }
+    double GetCharge() { return fCharge; }
 
-private:
-  double fCharge;
+  private:
+    double fCharge; //currently not used
 
-  //ClassDef(HypTPCSpacepointMeasurement,1)
-};
+    ClassDef(HypTPCSpacepointMeasurement,1)
+  };
 
+} /* End of namespace genfit */
 #endif // HypTPCSpacepointMeasurement_hh
