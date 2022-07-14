@@ -167,7 +167,7 @@ cyan		= \033[0;36;1m
 white		= \033[0;37;1m
 endif
 #______________________________________________________________________________
-.PHONY: all genkek genfit genfit_dst dst usr lib clean distclean show help showgenkek showgenkek
+.PHONY: all genkek genfit genfit_dst dst usr lib clean distclean show help showgenfit showgenkek
 
 all: k18ana genfit
 k18ana: lib usr dst
@@ -274,14 +274,14 @@ clean:
 	$(linkdef_deps) $(linkdef_objs) $(linkdef_pcms) \
 	$(GenKEK_linkdef_deps) $(GenKEK_linkdef_objs) \
 	$(GenKEK_linkdef_dicts) $(GenKEK_linkdef_pcms) \
-	$(GenFit_dst_objs) $(GenFit_dst_deps)
+	$(GenFit_dst_objs) $(GenFit_dst_deps) $(GenFit_pcms)
 	@ find . \( -name "*~" -o -name "\#*\#" \) -exec $(rm) \{\} \;
 
 distclean:
 	@ $(echo) "$(green)=== Cleaning $(default_color)"
 	@ $(rm) $(bin_dir)/* $(lib_dir)/* \
 	$(src_build_dir) $(usr_build_dir) $(dst_build_dir) \
-	$(GenFit_build_dir) $(GenKEK_build_dir) $(GenFit_pcms)
+	$(GenFit_build_dir) $(GenKEK_build_dir)
 	@ find . \( -name "*~" -o -name "\#*\#" \) -exec $(rm) \{\} \;
 
 #______________________________________________________________________________
