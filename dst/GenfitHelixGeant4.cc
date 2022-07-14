@@ -622,7 +622,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFstatus",&event.GFstatus,"GFstatus/I");
   tree->Branch("GFntTpc",&event.GFntTpc,"GFntTpc/I");
   tree->Branch("GFresidual_p",event.GFresidual_p,"GFresidual_p[GFntTpc]/D");
-  tree->Branch("GFchisqr",event.GFchisqr,"GFchisqr[ntTpc]/D");
+  tree->Branch("GFchisqr",event.GFchisqr,"GFchisqr[GFntTpc]/D");
   tree->Branch("GFmom",event.GFmom,"GFmom[GFntTpc]/D");
   tree->Branch("GFtracklen",event.GFtracklen,"GFtracklen[GFntTpc]/D");
   tree->Branch("GFtof",event.GFtof,"GFtof[GFntTpc]/D");
