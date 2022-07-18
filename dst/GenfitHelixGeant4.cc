@@ -133,10 +133,12 @@ struct Event
   //GenFit outputs
   Int_t GFstatus;
   Int_t GFntTpc;
+  Int_t GFinside[MaxTPCTracks];
   Double_t GFtracklen[MaxTPCTracks];
   Double_t GFchisqr[MaxTPCTracks];
   Double_t GFtof[MaxTPCTracks];
   Double_t GFmom[MaxTPCTracks];
+  Double_t GFcharge[MaxTPCTracks];
   Double_t GFresidual_p[MaxTPCTracks];
 };
 
@@ -220,7 +222,8 @@ main( Int_t argc, char **argv )
   if( !gConf.InitializeUnpacker() )
     return EXIT_FAILURE;
 
-  Int_t skip = gUnpacker.get_skip();
+  //Int_t skip = gUnpacker.get_skip();
+  Int_t skip = 4233;
   if (skip < 0) skip = 0;
   Int_t max_loop = gUnpacker.get_max_loop();
   Int_t nevent = GetEntries( TTreeCont );
@@ -263,10 +266,12 @@ dst::InitializeEvent( void )
 
   event.GFstatus = 0;
   event.GFntTpc = 0;
+
   for(Int_t i=0; i<MaxTPCTracks; ++i){
     event.g4tidTpc[i] =0;
     event.g4nhtrack[i] =0;
     event.nhtrack[i] =0;
+    event.GFinside[i] = -9999;
     event.chisqr[i] =qnan;
     event.helix_cx[i] =qnan;
     event.helix_cy[i] =qnan;
@@ -282,6 +287,7 @@ dst::InitializeEvent( void )
     event.GFtracklen[i] =qnan;
     event.GFtof[i] =qnan;
     event.GFmom[i] =qnan;
+    event.GFcharge[i] =qnan;
     event.GFresidual_p[i] =qnan;
     for(Int_t j=0; j<MaxTPCnHits; ++j){
       event.hitlayer[i][j] =-999;
@@ -485,6 +491,8 @@ dst::DstRead( Int_t ievent )
     HF1( k18Hid+2, event.mom0[it]);
     HF1( k18Hid+3, event.residual_p[it][0]);
     HF1( k18Hid+4, event.chisqr[it]);
+    HF1( k18Hid+5, event.tracklen[it][nh-1]);
+    HF1( k18Hid+6, event.tof[it][nh-1]);
 
     //Add tracks into the GenFit TrackCand
     if(event.g4pid[it][0]!=0) GFtracks.AddHelixTrack(event.g4pid[it][0], tp);
@@ -498,26 +506,38 @@ dst::DstRead( Int_t ievent )
   HF1( 2, event.GFstatus++ );
 
   GFtracks.FitTracks();
-  HF1( genfitHid, event.GFntTpc );
   for( Int_t igf=0; igf<GFtracks.GetNTrack(); ++igf ){
+    if(!GFtracks.FitCheck(igf)) continue;
+
     event.GFntTpc++;
     event.GFchisqr[igf]=GFtracks.GetChi2NDF(igf);
-    event.GFtracklen[igf]=GFtracks.GetTrackLength(igf);
-    event.GFtof[igf]=GFtracks.GetTrackTOF(igf);
+    event.GFcharge[igf]=GFtracks.GetCharge(igf);
     event.GFmom[igf]=GFtracks.GetMom(igf).Mag();
     event.GFresidual_p[igf]=event.GFmom[igf]-event.g4mom[igf][0];
-    if(TMath::IsNaN(GFtracks.GetTrackTOF(igf))) continue;
+    event.GFtof[igf]=GFtracks.GetTrackTOF(igf);
+    event.GFtracklen[igf]=GFtracks.GetTrackLength(igf);
+
+    TVector3 posv; TVector3 target(0.,0.,-143.);
+    GFtracks.ExtrapolateToPoint(igf,target,posv);
+    if(!GFtracks.IsInsideTarget(igf)) event.GFinside[igf]=1;
+    else event.GFinside[igf]=0;
 
     HF1( genfitHid+1, GFtracks.GetNHit(igf));
     HF1( genfitHid+2, event.GFmom[igf]);
     HF1( genfitHid+3, event.GFresidual_p[igf]);
     HF1( genfitHid+4, event.GFchisqr[igf]);
+    HF1( genfitHid+5, event.GFtracklen[igf]);
+    HF1( genfitHid+6, event.GFtof[igf]);
+    HF1( genfitHid+7, posv.x());
+    HF1( genfitHid+8, posv.y());
+    HF1( genfitHid+9, posv.z());
   }
+  HF1( genfitHid, event.GFntTpc );
 
   GFtracks.Init();
   HF1( 2, event.GFstatus++ );
 
-#if 0
+#if 1
   std::cout<<"[event]: "<<std::setw(6)<<ievent<<" ";
   std::cout<<"[g4nhTpc]: "<<std::setw(2)<<src.nhittpc<<" "<<std::endl;
 #endif
@@ -557,11 +577,18 @@ ConfMan::InitializeHistograms( void )
   HB1(k18Hid+2, "[K1.8] Reconstructed P; P [GeV/c]; Counts [/0.001 GeV/c]", 1500, 0., 1.5 );
   HB1(k18Hid+3, "[K1.8] Reconstructed P Residual; P Residual [GeV/c]; Counts [/0.001 GeV/c]", 400, -0.2, 0.2 );
   HB1(k18Hid+4, "[K1.8] Chisqr/ndf;", 1000, 0, 50 );
+  HB1(k18Hid+5, "[K1.8] Track Length; Length [mm]; Counts [/1 mm]", 500, 0, 500 );
+  HB1(k18Hid+6, "[K1.8] Tof; Tof [ns]; Counts [/0.01 ns]", 500, 0, 5 );
   HB1(genfitHid, "[GenFit] #Track TPC", 10, 0., 10. );
   HB1(genfitHid+1, "[GenFit] #Hits of Track TPC", 33, 0., 33. );
   HB1(genfitHid+2, "[GenFit] Reconstructed P; P [GeV/c]; Counts [/0.001 GeV/c]", 1500, 0., 1.5 );
   HB1(genfitHid+3, "[GenFit] Reconstructed P Residual; P Residual [GeV/c]; Counts [/0.001 GeV/c]", 400, -0.2, 0.2 );
   HB1(genfitHid+4, "[GenFit] Chisqr/ndf;", 1000, 0, 50 );
+  HB1(genfitHid+5, "[GenFit] Track Length; Length [mm]; Counts [/1 mm]", 500, 0, 500 );
+  HB1(genfitHid+6, "[GenFit] Tof; Tof [ns]; Counts [/0.01 ns]", 500, 0, 5 );
+  HB1(genfitHid+7, "[GenFit] Vertex X; Vertex X [mm]; Counts [/0.1 mm]", 500, -25, 25 );
+  HB1(genfitHid+8, "[GenFit] Vertex Y; Vertex Y [mm]; Counts [/0.1 mm]", 500, -25, 25 );
+  HB1(genfitHid+9, "[GenFit] Vertex Z; Vertex Z [mm]; Counts [/0.1 mm]", 500, -143-25, -143+25 );
 
   HBTree( "tpc", "tree of tpc" );
 
@@ -621,9 +648,11 @@ ConfMan::InitializeHistograms( void )
   //GenFit fit results
   tree->Branch("GFstatus",&event.GFstatus,"GFstatus/I");
   tree->Branch("GFntTpc",&event.GFntTpc,"GFntTpc/I");
+  tree->Branch("GFinside",event.GFinside,"GFinside[GFntTpc]/D");
   tree->Branch("GFresidual_p",event.GFresidual_p,"GFresidual_p[GFntTpc]/D");
   tree->Branch("GFchisqr",event.GFchisqr,"GFchisqr[GFntTpc]/D");
   tree->Branch("GFmom",event.GFmom,"GFmom[GFntTpc]/D");
+  tree->Branch("GFcharge",event.GFcharge,"GFcharge[GFntTpc]/D");
   tree->Branch("GFtracklen",event.GFtracklen,"GFtracklen[GFntTpc]/D");
   tree->Branch("GFtof",event.GFtof,"GFtof[GFntTpc]/D");
 
