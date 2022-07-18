@@ -222,8 +222,7 @@ main( Int_t argc, char **argv )
   if( !gConf.InitializeUnpacker() )
     return EXIT_FAILURE;
 
-  //Int_t skip = gUnpacker.get_skip();
-  Int_t skip = 4233;
+  Int_t skip = gUnpacker.get_skip();
   if (skip < 0) skip = 0;
   Int_t max_loop = gUnpacker.get_max_loop();
   Int_t nevent = GetEntries( TTreeCont );
