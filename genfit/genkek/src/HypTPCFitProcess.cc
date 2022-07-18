@@ -9,33 +9,29 @@
 #include <iostream>
 #include <string>
 
-#define LogDEBUG(exp) std::cout << "DEBUG: " << __FILE__ << ": " << __LINE__ << ": " << exp << std::endl
-#define LogERROR(exp) std::cout << "ERROR: " << __FILE__ << ": " << __LINE__ << ": " << exp << std::endl
-#define LogWARNING(exp) std::cout << "WARNING: " << __FILE__ << ": " << __LINE__ << ": " << exp << std::endl
+#define LogWARNING(exp) std::cout<<"WARNING: "<< __FILE__<<"::"<<__func__<<" line "<<__LINE__<<" "<<exp<<std::endl
 
 ClassImp(HypTPCFitProcess)
 
 bool HypTPCFitProcess::FitCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep* rep) const {
 
+  if(rep==nullptr) return false;
   if(!fittedTrack->getFitStatus(rep)->isFitted()){
-    if (verbosity >= 2) LogWARNING("Fitting is failed");
+    if(verbosity>=2) LogWARNING("Fitting is failed");
     return false;
   }
   if(!fittedTrack->getFitStatus(rep)->isFitConverged()){
-    if (verbosity >= 2) LogWARNING("Fit is not converged");
+    if(verbosity>=2) LogWARNING("Fit is not converged");
     return false;
   }
   try{fittedTrack->checkConsistency();}
   catch(genfit::Exception& e){
-    if(verbosity >= 2){
-      LogWARNING("genfit::Track::checkConsistency() failed!");
-      std::cerr << e.what();
-    }
+    if(verbosity>=2) LogWARNING("genfit::Track::checkConsistency() failed!");
+    if(verbosity>=1) std::cerr << e.what();
     return false;
   }
   return true;
 }
-
 bool HypTPCFitProcess::FitCheck(int trackid) const {
 
   genfit::Track* fittedTrack = GetTrack(trackid);

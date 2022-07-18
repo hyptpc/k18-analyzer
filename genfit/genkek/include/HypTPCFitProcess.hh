@@ -40,9 +40,11 @@ public:
   //Process all tracks with its all AbsTrackReps.
   void FitTracks();
 
-private:
+protected:
 
   int verbosity;
+
+private:
 
   ClassDef(HypTPCFitProcess, 1)
 
