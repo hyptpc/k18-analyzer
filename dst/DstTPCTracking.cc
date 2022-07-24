@@ -332,8 +332,8 @@ dst::DstRead(int ievent)
       Double_t z = cl->GetZ();
       Double_t clde = cl->GetDe();
       Int_t cs = cl->GetClusterSize();
-      Double_t row = cl->GetRow();
-      Double_t mrow = cl->GetMRow(); // same
+      Double_t row = cl->MeanRow();
+      Double_t mrow = cl->MeanRow(); // same
       //       Double_t de_center = cl->GetDe_center();
       //       TVector3 pos_center = cl->GetPos_center();
       event.cluster_hitpos_x.push_back(x);

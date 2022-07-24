@@ -183,22 +183,6 @@ main( int argc, char **argv )
     return EXIT_FAILURE;
   if( !gConf.InitializeUnpacker() )
     return EXIT_FAILURE;
-  // int nevent = GetEntries( TTreeCont );
-
-  // CatchSignal::Set();
-
-  // int ievent = 0;
-
-  // // for(int ii=0; ii<100; ++ii){
-  // //   std::cout<<"ii="<<ii<<std::endl;
-  // //   ievent = 0;
-  // for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
-  //   gCounter.check();
-  //   InitializeEvent();
-  //   if( DstRead( ievent ) ) tree->Fill();
-  // }
-  // //  }
-
 
   Int_t skip = gUnpacker.get_skip();
   if (skip < 0) skip = 0;
@@ -214,8 +198,6 @@ main( int argc, char **argv )
     InitializeEvent();
     if( DstRead( ievent ) ) tree->Fill();
   }
-
-
 
   std::cout << "#D Event Number: " << std::setw(6)
 	    << ievent << std::endl;

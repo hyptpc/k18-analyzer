@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include <filesystem_util.hh>
+#include <UnpackerManager.hh>
 
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
@@ -32,10 +33,11 @@ namespace
 using namespace root;
 using namespace dst;
 const std::string& class_name("DstTPCTrackingGeant4");
-ConfMan&            gConf = ConfMan::GetInstance();
-const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
-const UserParamMan& gUser = UserParamMan::GetInstance();
-const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
+const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
+auto&       gConf = ConfMan::GetInstance();
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
+const auto& gPHC  = HodoPHCMan::GetInstance();
 debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
 
 const Int_t MaxTPCHits = 10000;
@@ -156,24 +158,23 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
   if(!gConf.Initialize(arg[kConfFile]))
     return EXIT_FAILURE;
+  if(!gConf.InitializeUnpacker())
+    return EXIT_FAILURE;
 
+  Int_t skip = gUnpacker.get_skip();
+  if (skip < 0) skip = 0;
+  Int_t max_loop = gUnpacker.get_max_loop();
   Int_t nevent = GetEntries(TTreeCont);
+  if (max_loop > 0) nevent = skip + max_loop;
 
   CatchSignal::Set();
 
-  Int_t ievent = 0;
-
-  // for(Int_t ii=0; ii<100; ++ii){
-  //   std::cout<<"ii="<<ii<<std::endl;
-  //   ievent = 0;
+  Int_t ievent = skip;
   for(; ievent<nevent && !CatchSignal::Stop(); ++ievent){
     gCounter.check();
     InitializeEvent();
     if(DstRead(ievent)) tree->Fill();
   }
-  //  }
-
-
   std::cout << "#D Event Number: " << std::setw(6)
 	    << ievent << std::endl;
 

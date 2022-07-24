@@ -20,37 +20,31 @@ class TPCCluster
 public:
   static const TString& ClassName();
   TPCCluster(Int_t layer, const TPCHitContainer& HitCont);
-  TPCCluster(Double_t x, Double_t y, Double_t z, Double_t de); // for MC data
   ~TPCCluster();
 
 private:
   Bool_t          m_is_good;
   Int_t           m_layer;
-  Int_t           m_pad_id;
   Double_t        m_cluster_de;
   TVector3        m_cluster_position;
-  TVector3        m_pos_center;
   TPCHitContainer m_hit_array;
-  Bool_t          m_pos_calculated;
-  Double_t        m_mrow;
-  Int_t           m_mrow_int;
-  Double_t        m_cluster_de_center;
+  Double_t        m_mean_row;
+  Double_t        m_mean_phi; // in XZ plane
+  // TVector3        m_pos_center;
+  // Double_t        m_cluster_de_center;
   TPCHit*         m_mean_hit; // representative hit for tracking
 
 public:
   void     AddTPCHit(TPCHit* hit);
   Bool_t   Calculate();
-  Bool_t   CalculateWeightedMean(); // unused
-  Bool_t   CalculateWeightedMeanTheta(); // unused
   void     ClearTPCHits();
   Int_t    GetClusterSize() const { return m_hit_array.size(); }
   Double_t GetDe() const { return m_cluster_de; }
+  TPCHit*  GetHit(Int_t i) const { return m_hit_array.at(i); }
+  const TPCHitContainer& GetHitContainer() const { return m_hit_array; }
   TPCHit*  GetMeanHit() const { return m_mean_hit; }
   Bool_t   IsGood() const { return m_is_good; }
-  Int_t    MeanPadId() const { return m_pad_id; }
-  Double_t MeanRow() const { return m_mrow; }
-  Double_t GetRow() const { return MeanRow(); }
-  Double_t GetMRow() const { return MeanRow(); }
+  Double_t MeanRow() const { return m_mean_row; }
   // Double_t GetDe_center() const { return m_cluster_de_center; }
   void     Print(Option_t* opt="") const;
   const TVector3& GetPosition() const { return m_cluster_position; }
@@ -59,10 +53,9 @@ public:
   Double_t GetX() const { return m_cluster_position.X(); }
   Double_t GetY() const { return m_cluster_position.Y(); }
   Double_t GetZ() const { return m_cluster_position.Z(); }
-  // Double_t ResX() const;
-  // Double_t ResY() const;
-  // Double_t ResZ() const ;
-  const TPCHitContainer& GetHitContainer() const { return m_hit_array; }
+  Double_t ResolustionX() const { return m_mean_hit->GetResolutionX(); }
+  Double_t ResolustionY() const { return m_mean_hit->GetResolutionY(); }
+  Double_t ResolustionZ() const { return m_mean_hit->GetResolutionZ(); }
 };
 
 //_____________________________________________________________________________

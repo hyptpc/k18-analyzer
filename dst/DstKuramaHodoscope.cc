@@ -223,7 +223,7 @@ main(int argc, char **argv)
   Int_t skip = gUnpacker.get_skip();
   if (skip < 0) skip = 0;
   Int_t max_loop = gUnpacker.get_max_loop();
-  Int_t nevent = GetEntries( TTreeCont );
+  Int_t nevent = GetEntries(TTreeCont);
   if (max_loop > 0) nevent = skip + max_loop;
 
   CatchSignal::Set();

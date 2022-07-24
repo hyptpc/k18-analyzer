@@ -1056,9 +1056,14 @@ inline Int_t findPadID(Double_t z, Double_t x)
   //    else if (z > 0 && x > 0) angle = TMath::Pi() + atan(x / z);
   //    else if (z < 0 && x > 0) angle = 2*TMath::Pi() - atan(-x / z);
   //  }
-  else if (z < 0) angle = atan(x / z);
-  else  angle = TMath::Pi() + atan(x / z);
-  //cout << " angle: " << angle*180/TMath::Pi() << endl;
+//  else if (z < 0) angle = atan(x / z);
+//  else  angle = TMath::Pi() + atan(x / z);
+  else{
+		if (z > 0) angle = TMath::Pi()+atan(x / z);
+	  else if( z < 0&&x<0) angle = atan(x / z);
+		  else angle = 2*TMath::Pi()+ atan(x / z);//angle of z<0&&x>0 plane should be [1.5Pi,2Pi], not [-0.5Pi , 0].
+	}
+	//cout << " angle: " << angle*180/TMath::Pi() << endl;
 
   Int_t layer, row;
   // find layer_num.
@@ -1089,6 +1094,18 @@ inline Int_t findPadID(Double_t z, Double_t x)
   //return GetPadId(layer, row)+1;
   //Please check
   return GetPadId(layer, row);
+}
+
+//_____________________________________________________________________________
+inline Double_t
+ArcLength(Int_t layer, Double_t row1, Double_t row2)
+{
+  const Int_t R = padParameter[layer][2];
+  Double_t theta = getTheta(layer, row1) - getTheta(layer, row2);
+  theta = std::fmod(theta, 2*TMath::Pi());
+  if(theta < 0) theta += 2*TMath::Pi();
+  theta = TMath::Min(theta, 2*TMath::Pi() - theta);
+  return R*theta;
 }
 
 //_____________________________________________________________________________

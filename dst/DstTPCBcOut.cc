@@ -5,6 +5,8 @@
 #include <iomanip>
 #include <iostream>
 
+#include <TSystem.h>
+
 #include <filesystem_util.hh>
 #include <UnpackerManager.hh>
 
@@ -35,8 +37,7 @@ namespace
 {
 using namespace root;
 using namespace dst;
-using hddaq::unpacker::GUnpacker;
-const auto& gUnpacker = GUnpacker::get_instance();
+const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 auto&       gConf = ConfMan::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
@@ -87,7 +88,6 @@ struct Event
   std::vector<Double_t> cluster_de;
   std::vector<Int_t> cluster_size;
   std::vector<Int_t> cluster_layer;
-  std::vector<Int_t> cluster_row;
   std::vector<Double_t> cluster_mrow;
   std::vector<Double_t> cluster_de_center;
   std::vector<Double_t> cluster_hitpos_center_x;
@@ -154,7 +154,6 @@ struct Event
       cluster_de.clear();
       cluster_size.clear();
       cluster_layer.clear();
-      cluster_row.clear();
       cluster_mrow.clear();
       cluster_de_center.clear();
       cluster_hitpos_center_x.clear();
@@ -265,9 +264,9 @@ const Int_t NumOfDivY = ((MaxPosMapY - MinPosMapY)/Meshsize) + 1;
 Int_t
 XyzToHid(Double_t x, Double_t y, Double_t z)
 {
-  Int_t ix = (Int_t)((x - (MinPosMapXZ - Meshsize/2.)))/Meshsize;
-  Int_t iy = (Int_t)((y - (MinPosMapY - Meshsize/2.)))/Meshsize;
-  Int_t iz = (Int_t)((z - (MinPosMapXZ - Meshsize/2.)))/Meshsize;
+  Int_t ix = TMath::Nint((x - MinPosMapXZ)/Meshsize);
+  Int_t iy = TMath::Nint((y - MinPosMapY)/Meshsize);
+  Int_t iz = TMath::Nint((z - MinPosMapXZ)/Meshsize);
   return ix*NumOfDivY*NumOfDivXZ + iy*NumOfDivXZ + iz;
 }
 
@@ -282,12 +281,12 @@ XyzToHid(const TVector3& pos)
 TVector3
 HidToXyz(Int_t hid)
 {
-  Int_t ix = (Int_t)hid/NumOfDivY*NumOfDivXZ;
-  Int_t iy = (Int_t)(hid - ix*NumOfDivY*NumOfDivXZ)/NumOfDivXZ;
-  Int_t iz = (Int_t)(hid - ix*NumOfDivY*NumOfDivXZ - iy*NumOfDivXZ);
-  return TVector3(ix*Meshsize + (MinPosMapXZ - Meshsize/2.),
-                  iy*Meshsize + (MinPosMapY - Meshsize/2.),
-                  iz*Meshsize + (MinPosMapXZ - Meshsize/2.));
+  Int_t ix = TMath::FloorNint(hid/NumOfDivY/NumOfDivXZ);
+  Int_t iy = TMath::FloorNint((hid - ix*NumOfDivY*NumOfDivXZ)/NumOfDivXZ);
+  Int_t iz = TMath::FloorNint((hid - ix*NumOfDivY*NumOfDivXZ - iy*NumOfDivXZ));
+  return TVector3(ix*Meshsize + MinPosMapXZ,
+                  iy*Meshsize + MinPosMapY,
+                  iz*Meshsize + MinPosMapXZ);
 }
 }
 
@@ -474,8 +473,7 @@ dst::DstRead(int ievent)
       Double_t z = cl->GetZ();
       Double_t clde = cl->GetDe();
       Int_t cs = cl->GetClusterSize();
-      Double_t row = cl->GetRow();
-      Double_t mrow = cl->GetMRow(); // same
+      Double_t mrow = cl->MeanRow(); // same
       // Double_t de_center = cl->GetDe_center();
       // TVector3 pos_center = cl->GetPos_center();
       event.cluster_hitpos_x.push_back(x);
@@ -484,7 +482,6 @@ dst::DstRead(int ievent)
       event.cluster_de.push_back(clde);
       event.cluster_size.push_back(cs);
       event.cluster_layer.push_back(layer);
-      event.cluster_row.push_back(row);
       event.cluster_mrow.push_back(mrow);
       // event.cluster_de_center.push_back(de_center);
       // event.cluster_hitpos_center_x.push_back(pos_center.X());
@@ -742,19 +739,29 @@ ConfMan::InitializeHistograms()
   }
 
   ///// Correction Map
+  HB2(XCorrectionMapHid+100000, "TPC XCorrection at Y=0",
+      NumOfDivXZ, MinPosMapXZ, MaxPosMapXZ,
+      NumOfDivXZ, MinPosMapXZ, MaxPosMapXZ);
+  HB2(YCorrectionMapHid+100000, "TPC YCorrection at Y=0",
+      NumOfDivXZ, MinPosMapXZ, MaxPosMapXZ,
+      NumOfDivXZ, MinPosMapXZ, MaxPosMapXZ);
+  Int_t hid_test = 0;
   for(Double_t x=MinPosMapXZ; x<=MaxPosMapXZ; x+=Meshsize){
     for(Double_t y=MinPosMapY; y<=MaxPosMapY; y+=Meshsize){
       for(Double_t z=MinPosMapXZ; z<=MaxPosMapXZ; z+=Meshsize){
         TVector3 pos(x, y, z);
         Int_t hid = XyzToHid(pos);
+        if(pos != HidToXyz(hid)){ return false; } // check functions
         std::stringstream ss; ss << pos;
         HB1(XCorrectionMapHid+hid,
             "TPC XCorrection at "+ss.str(), NbinPos, MinPos, MaxPos);
         HB1(YCorrectionMapHid+hid,
             "TPC YCorrection at "+ss.str(), NbinPos, MinPos, MaxPos);
+        ++hid_test;
       }
     }
   }
+  std::cout << hid_test << " passed" <<  std::endl;
   // for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
   //   const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
   //   for(Int_t r=0; r<NumOfRow; ++r){
@@ -786,7 +793,6 @@ ConfMan::InitializeHistograms()
   tree->Branch("cluster_de", &event.cluster_de);
   tree->Branch("cluster_size", &event.cluster_size);
   tree->Branch("cluster_layer", &event.cluster_layer);
-  tree->Branch("cluster_row", &event.cluster_row);
   tree->Branch("cluster_mrow", &event.cluster_mrow);
   tree->Branch("cluster_de_center", &event.cluster_de_center);
   tree->Branch("cluster_hitpos_center_x", &event.cluster_hitpos_center_x);
