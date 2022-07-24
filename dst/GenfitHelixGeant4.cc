@@ -44,16 +44,15 @@ const UserParamMan& gUser = UserParamMan::GetInstance();
 const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
 debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
 
-const Int_t MaxTPCHits = 10000;
+const Int_t MaxTPCHits = 500;
 const Int_t MaxTPCTracks = 100;
-const Int_t MaxTPCnHits = 50;
 
 //const bool IsWithRes = false;
 const bool IsWithRes = true;
 
 //For GenFit Setting
 const bool Const_field = true;
-const Int_t verbosity = 3;
+const Int_t verbosity = 0;//3;
 const auto& tpcGeo = ConfMan::Get<TString>("TPCGDML");
 }
 
@@ -87,6 +86,15 @@ struct Event
   Int_t g4tidTpc[MaxTPCTracks];  // TrackId
   Int_t g4pidTpc[MaxTPCTracks];  // TrackPid
   Int_t g4nhtrack[MaxTPCHits]; // Number of Hits (in 1 tracks)
+  Int_t g4nhHtof;
+  Int_t g4tidHtof[MaxTPCHits];
+  Int_t g4pidHtof[MaxTPCHits];
+  Int_t g4didHtof[MaxTPCHits];
+  Double_t g4xHtof[MaxTPCHits];
+  Double_t g4yHtof[MaxTPCHits];
+  Double_t g4zHtof[MaxTPCHits];
+  Double_t g4lengthHtof[MaxTPCHits];
+  Double_t g4tHtof[MaxTPCHits];
 
   //TrackSearchTPCHelix()
   Int_t ntTpc;                 // Number of Tracks
@@ -101,34 +109,34 @@ struct Event
   Double_t mom0_y[MaxTPCTracks];
   Double_t mom0_z[MaxTPCTracks];
   Double_t mom0[MaxTPCTracks];
-  Int_t hitlayer[MaxTPCTracks][MaxTPCnHits];
-  Double_t hitpos_x[MaxTPCTracks][MaxTPCnHits];
-  Double_t hitpos_y[MaxTPCTracks][MaxTPCnHits];
-  Double_t hitpos_z[MaxTPCTracks][MaxTPCnHits];
-  Double_t calpos_x[MaxTPCTracks][MaxTPCnHits];
-  Double_t calpos_y[MaxTPCTracks][MaxTPCnHits];
-  Double_t calpos_z[MaxTPCTracks][MaxTPCnHits];
-  Double_t mom_x[MaxTPCTracks][MaxTPCnHits];
-  Double_t mom_y[MaxTPCTracks][MaxTPCnHits];
-  Double_t mom_z[MaxTPCTracks][MaxTPCnHits];
-  Double_t mom[MaxTPCTracks][MaxTPCnHits];
-  Double_t g4mom_x[MaxTPCTracks][MaxTPCnHits];
-  Double_t g4mom_y[MaxTPCTracks][MaxTPCnHits];
-  Double_t g4mom_z[MaxTPCTracks][MaxTPCnHits];
-  Double_t g4mom[MaxTPCTracks][MaxTPCnHits];
-  Int_t g4tid[MaxTPCTracks][MaxTPCnHits];
-  Int_t g4pid[MaxTPCTracks][MaxTPCnHits];
-  Double_t tracklen[MaxTPCTracks][MaxTPCnHits];
-  Double_t tof[MaxTPCTracks][MaxTPCnHits];
+  Int_t hitlayer[MaxTPCTracks][MaxTPCHits];
+  Double_t hitpos_x[MaxTPCTracks][MaxTPCHits];
+  Double_t hitpos_y[MaxTPCTracks][MaxTPCHits];
+  Double_t hitpos_z[MaxTPCTracks][MaxTPCHits];
+  Double_t calpos_x[MaxTPCTracks][MaxTPCHits];
+  Double_t calpos_y[MaxTPCTracks][MaxTPCHits];
+  Double_t calpos_z[MaxTPCTracks][MaxTPCHits];
+  Double_t mom_x[MaxTPCTracks][MaxTPCHits];
+  Double_t mom_y[MaxTPCTracks][MaxTPCHits];
+  Double_t mom_z[MaxTPCTracks][MaxTPCHits];
+  Double_t mom[MaxTPCTracks][MaxTPCHits];
+  Double_t g4mom_x[MaxTPCTracks][MaxTPCHits];
+  Double_t g4mom_y[MaxTPCTracks][MaxTPCHits];
+  Double_t g4mom_z[MaxTPCTracks][MaxTPCHits];
+  Double_t g4mom[MaxTPCTracks][MaxTPCHits];
+  Int_t g4tid[MaxTPCTracks][MaxTPCHits];
+  Int_t g4pid[MaxTPCTracks][MaxTPCHits];
+  Double_t tracklen[MaxTPCTracks][MaxTPCHits];
+  Double_t tof[MaxTPCTracks][MaxTPCHits];
 
-  Double_t residual[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual_x[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual_y[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual_z[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual_px[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual_py[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual_pz[MaxTPCTracks][MaxTPCnHits];
-  Double_t residual_p[MaxTPCTracks][MaxTPCnHits];
+  Double_t residual[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_x[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_y[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_z[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_px[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_py[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_pz[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_p[MaxTPCTracks][MaxTPCHits];
 
   //GenFit outputs
   Int_t GFstatus;
@@ -140,6 +148,13 @@ struct Event
   Double_t GFmom[MaxTPCTracks];
   Double_t GFcharge[MaxTPCTracks];
   Double_t GFresidual_p[MaxTPCTracks];
+  Int_t GFnhHtof;
+  Double_t GFxHtof[MaxTPCTracks];
+  Double_t GFyHtof[MaxTPCTracks];
+  Double_t GFzHtof[MaxTPCTracks];
+  Double_t GFtracklenHtof[MaxTPCTracks];
+  Double_t GFtofHtof[MaxTPCTracks];
+
 };
 
 //_____________________________________________________________________
@@ -190,6 +205,16 @@ struct Src
   // Double_t dytpc_pad[MaxTPCHits];//y0tpc - ytpc = 0 (dummy)
   // Double_t dztpc_pad[MaxTPCHits];//z0tpc - ztpc
 
+  Int_t nhHtof;
+  Int_t tidHtof[MaxTPCHits];
+  Int_t pidHtof[MaxTPCHits];
+  Int_t didHtof[MaxTPCHits];
+  Double_t xHtof[MaxTPCHits];
+  Double_t yHtof[MaxTPCHits];
+  Double_t zHtof[MaxTPCHits];
+  Double_t lengthHtof[MaxTPCHits];
+  Double_t tHtof[MaxTPCHits];
+
 };
 
 namespace root
@@ -203,7 +228,6 @@ namespace root
     k18Hid = 200,
     genfitHid = 300
   };
-
 
 }
 
@@ -265,7 +289,7 @@ dst::InitializeEvent( void )
 
   event.GFstatus = 0;
   event.GFntTpc = 0;
-
+  event.GFnhHtof = 0;
   for(Int_t i=0; i<MaxTPCTracks; ++i){
     event.g4tidTpc[i] =0;
     event.g4nhtrack[i] =0;
@@ -288,7 +312,12 @@ dst::InitializeEvent( void )
     event.GFmom[i] =qnan;
     event.GFcharge[i] =qnan;
     event.GFresidual_p[i] =qnan;
-    for(Int_t j=0; j<MaxTPCnHits; ++j){
+    event.GFxHtof[i] =qnan;
+    event.GFyHtof[i] =qnan;
+    event.GFzHtof[i] =qnan;
+    event.GFtracklenHtof[i] =qnan;
+    event.GFtofHtof[i] =qnan;
+    for(Int_t j=0; j<MaxTPCHits; ++j){
       event.hitlayer[i][j] =-999;
       event.mom_x[i][j] =qnan;
       event.mom_y[i][j] =qnan;
@@ -368,6 +397,16 @@ dst::DstRead( Int_t ievent )
     ++event.g4nhtrack[src.ititpc[ihit]-1];
   }
 
+  event.g4nhHtof = src.nhHtof;
+  for(Int_t ihit=0; ihit<event.g4nhHtof; ++ihit){
+    event.g4tidHtof[ihit] = src.tidHtof[ihit];
+    event.g4xHtof[ihit] = src.xHtof[ihit];
+    event.g4yHtof[ihit] = src.yHtof[ihit];
+    event.g4zHtof[ihit] = src.zHtof[ihit];
+    event.g4lengthHtof[ihit] = src.lengthHtof[ihit];
+    event.g4tHtof[ihit] = src.tHtof[ihit];
+  }
+
   // Double_t u = src.pxPrm[0]/src.pzPrm[0];
   // Double_t v = src.pyPrm[0]/src.pzPrm[0];
   // Double_t cost = 1./std::sqrt(1.+u*u+v*v);
@@ -395,10 +434,10 @@ dst::DstRead( Int_t ievent )
   HF1( 2, event.GFstatus++ );
 
   Int_t ntTpc = DCAna->GetNTracksTPCHelix();
-  if( MaxHits<ntTpc ){
+  if( MaxTPCHits<ntTpc ){
     std::cout << "#W " << func_name << " "
-      	      << "too many ntTpc " << ntTpc << "/" << MaxHits << std::endl;
-    ntTpc = MaxHits;
+      	      << "too many ntTpc " << ntTpc << "/" << MaxTPCHits << std::endl;
+    ntTpc = MaxTPCHits;
   }
 
   event.ntTpc = ntTpc;
@@ -515,12 +554,19 @@ dst::DstRead( Int_t ievent )
     event.GFresidual_p[igf]=event.GFmom[igf]-event.g4mom[igf][0];
     event.GFtof[igf]=GFtracks.GetTrackTOF(igf);
     event.GFtracklen[igf]=GFtracks.GetTrackLength(igf);
-
+    TVector3 htofhit; double len; double tof;
+    if(GFtracks.ExtrapolateToHTOF(igf,htofhit,len,tof)){
+      event.GFnhHtof++;
+      event.GFxHtof[igf]=htofhit.x();
+      event.GFyHtof[igf]=htofhit.y();
+      event.GFzHtof[igf]=htofhit.z();
+      event.GFtracklenHtof[igf]=len;
+      event.GFtofHtof[igf]=tof;
+    }
     TVector3 posv; TVector3 target(0.,0.,-143.);
     GFtracks.ExtrapolateToPoint(igf,target,posv);
     if(!GFtracks.IsInsideTarget(igf)) event.GFinside[igf]=1;
     else event.GFinside[igf]=0;
-
     HF1( genfitHid+1, GFtracks.GetNHit(igf));
     HF1( genfitHid+2, event.GFmom[igf]);
     HF1( genfitHid+3, event.GFresidual_p[igf]);
@@ -536,7 +582,7 @@ dst::DstRead( Int_t ievent )
   GFtracks.Init();
   HF1( 2, event.GFstatus++ );
 
-#if 1
+#if 0
   std::cout<<"[event]: "<<std::setw(6)<<ievent<<" ";
   std::cout<<"[g4nhTpc]: "<<std::setw(2)<<src.nhittpc<<" "<<std::endl;
 #endif
@@ -595,17 +641,19 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("evnum", &event.evnum, "evnum/I" );
 
   //Geant4 Generated Hits & Tracks
-  tree->Branch("g4nhTpc",&event.g4nhTpc,"g4nhTpc/I");
   tree->Branch("g4ntTpc",&event.g4ntTpc,"g4ntTpc/I");
+  tree->Branch("g4nhTpc",&event.g4nhTpc,"g4nhTpc/I");
   tree->Branch("g4tidTpc",event.g4tidTpc,"g4tidTpc[g4nhTpc]/I");
   tree->Branch("g4pidTpc",event.g4pidTpc,"g4pidTpc[g4nhTpc]/I");
   tree->Branch("g4nhtrack",event.g4nhtrack,"g4nhtrack[g4ntTpc]/I");
-  tree->Branch("g4mom_x",event.g4mom_x,Form("g4mom_x[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("g4mom_y",event.g4mom_y,Form("g4mom_y[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("g4mom_z",event.g4mom_z,Form("g4mom_z[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("g4mom",event.g4mom,Form("g4mom[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("g4tid",event.g4tid,Form("g4tid[ntTpc][%d]/I",MaxTPCnHits));
-  tree->Branch("g4pid",event.g4pid,Form("g4pid[ntTpc][%d]/I",MaxTPCnHits));
+  tree->Branch("g4nhHtof",&event.g4nhHtof,"g4nhHtof/I");
+  tree->Branch("g4tidHtof",event.g4tidHtof,"g4tidHtof[g4nhHtof]/I");
+  tree->Branch("g4pidHtof",event.g4pidHtof,"g4pidHtof[g4nhHtof]/I");
+  tree->Branch("g4xHtof",event.g4xHtof,"g4xHtof[g4ntHtof]/D");
+  tree->Branch("g4yHtof",event.g4yHtof,"g4yHtof[g4ntHtof]/D");
+  tree->Branch("g4zHtof",event.g4zHtof,"g4zHtof[g4ntHtof]/D");
+  tree->Branch("g4lengthHtof",event.g4lengthHtof,"g4lengthHtof[g4ntHtof]/D");
+  tree->Branch("g4tHtof",event.g4tHtof,"g4tHtof[g4ntHtof]/D");
 
   //TrackSearchTPCHelix()
   tree->Branch("ntTpc",&event.ntTpc,"ntTpc/I");
@@ -620,29 +668,35 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("mom0_y",event.mom0_y,"mom0_y[ntTpc]/D"); // Momentum at Y = 0
   tree->Branch("mom0_z",event.mom0_z,"mom0_z[ntTpc]/D"); // Momentum at Y = 0
   tree->Branch("mom0",event.mom0,"mom0[ntTpc]/D"); // Momentum at Y = 0
-  tree->Branch("hitlayer",event.hitlayer,Form("hitlayer[ntTpc][%d]/I",MaxTPCnHits));
-  tree->Branch("hitpos_x",event.hitpos_x,Form("hitpos_x[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("hitpos_y",event.hitpos_y,Form("hitpos_y[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("hitpos_z",event.hitpos_z,Form("hitpos_z[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("calpos_x",event.calpos_x,Form("calpos_x[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("calpos_y",event.calpos_y,Form("calpos_y[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("calpos_z",event.calpos_z,Form("calpos_z[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("mom_x",event.mom_x,Form("mom_x[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("mom_y",event.mom_y,Form("mom_y[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("mom_z",event.mom_z,Form("mom_z[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("mom",event.mom,Form("mom[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("tracklen",event.tracklen,Form("tracklen[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("tof",event.tof,Form("tof[ntTpc][%d]/D",MaxTPCnHits));
+  tree->Branch("g4mom_x",event.g4mom_x,Form("g4mom_x[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("g4mom_y",event.g4mom_y,Form("g4mom_y[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("g4mom_z",event.g4mom_z,Form("g4mom_z[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("g4mom",event.g4mom,Form("g4mom[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("g4tid",event.g4tid,Form("g4tid[ntTpc][%d]/I",MaxTPCHits));
+  tree->Branch("g4pid",event.g4pid,Form("g4pid[ntTpc][%d]/I",MaxTPCHits));
+  tree->Branch("hitlayer",event.hitlayer,Form("hitlayer[ntTpc][%d]/I",MaxTPCHits));
+  tree->Branch("hitpos_x",event.hitpos_x,Form("hitpos_x[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("hitpos_y",event.hitpos_y,Form("hitpos_y[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("hitpos_z",event.hitpos_z,Form("hitpos_z[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("calpos_x",event.calpos_x,Form("calpos_x[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("calpos_y",event.calpos_y,Form("calpos_y[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("calpos_z",event.calpos_z,Form("calpos_z[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("mom_x",event.mom_x,Form("mom_x[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("mom_y",event.mom_y,Form("mom_y[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("mom_z",event.mom_z,Form("mom_z[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("mom",event.mom,Form("mom[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("tracklen",event.tracklen,Form("tracklen[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("tof",event.tof,Form("tof[ntTpc][%d]/D",MaxTPCHits));
 
   //Residuals
-  tree->Branch("residual",event.residual,Form("residual[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("residual_x",event.residual_x,Form("residual_x[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("residual_y",event.residual_y,Form("residual_y[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("residual_z",event.residual_z,Form("residual_z[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("residual_px",event.residual_px,Form("residual_px[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("residual_py",event.residual_py,Form("residual_py[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("residual_pz",event.residual_pz,Form("residual_pz[ntTpc][%d]/D",MaxTPCnHits));
-  tree->Branch("residual_p",event.residual_p,Form("residual_p[ntTpc][%d]/D",MaxTPCnHits));
+  tree->Branch("residual",event.residual,Form("residual[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("residual_x",event.residual_x,Form("residual_x[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("residual_y",event.residual_y,Form("residual_y[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("residual_z",event.residual_z,Form("residual_z[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("residual_px",event.residual_px,Form("residual_px[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("residual_py",event.residual_py,Form("residual_py[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("residual_pz",event.residual_pz,Form("residual_pz[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("residual_p",event.residual_p,Form("residual_p[ntTpc][%d]/D",MaxTPCHits));
 
   //GenFit fit results
   tree->Branch("GFstatus",&event.GFstatus,"GFstatus/I");
@@ -655,6 +709,12 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFtracklen",event.GFtracklen,"GFtracklen[GFntTpc]/D");
   tree->Branch("GFtof",event.GFtof,"GFtof[GFntTpc]/D");
 
+  tree->Branch("GFnhHtof",&event.GFnhHtof,"GFnhHtof/I");
+  tree->Branch("GFxHtof",event.GFxHtof,"GFxHtof[GFntTpc]/D");
+  tree->Branch("GFyHtof",event.GFyHtof,"GFyHtof[GFntTpc]/D");
+  tree->Branch("GFzHtof",event.GFzHtof,"GFzHtof[GFntTpc]/D");
+  tree->Branch("GFtracklenHtof",event.GFtracklenHtof,"GFtracklenHtof[GFntTpc]/D");
+  tree->Branch("GFtofHtof",event.GFtofHtof,"GFtofHtof[GFntTpc]/D");
 
   /*
   tree->Branch("nPrm",&src.nPrm,"nPrm/I");
@@ -712,6 +772,20 @@ ConfMan::InitializeHistograms( void )
   // TTreeCont[kTPCGeant]->SetBranchStatus("dytpc_pad", 1);
   // TTreeCont[kTPCGeant]->SetBranchStatus("dztpc_pad", 1);
 
+  TTreeCont[kTPCGeant]->SetBranchStatus("nhHtof", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("tidHtof", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("pidHtof", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("didHtof", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("xHtof", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("yHtof", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("zHtof", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("lengthHtof", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("tHtof", 1);
+  //TTreeCont[kTPCGeant]->SetBranchStatus("pxHtof", 1);
+  //TTreeCont[kTPCGeant]->SetBranchStatus("pyHtof", 1);
+  //TTreeCont[kTPCGeant]->SetBranchStatus("pzHtof", 1);
+  //TTreeCont[kTPCGeant]->SetBranchStatus("ppHtof", 1);
+
   TTreeCont[kTPCGeant]->SetBranchAddress("evnum", &src.evnum);
   /*
   TTreeCont[kTPCGeant]->SetBranchAddress("nhPrm", &src.nhPrm);
@@ -755,6 +829,16 @@ ConfMan::InitializeHistograms( void )
   // TTreeCont[kTPCGeant]->SetBranchAddress("dxtpc_pad", src.dxtpc_pad);
   // TTreeCont[kTPCGeant]->SetBranchAddress("dytpc_pad", src.dytpc_pad);
   // TTreeCont[kTPCGeant]->SetBranchAddress("dztpc_pad", src.dztpc_pad);
+
+  TTreeCont[kTPCGeant]->SetBranchAddress("nhHtof", &src.nhHtof);
+  TTreeCont[kTPCGeant]->SetBranchAddress("tidHtof", src.tidHtof);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pidHtof", src.pidHtof);
+  TTreeCont[kTPCGeant]->SetBranchAddress("didHtof", src.didHtof);
+  TTreeCont[kTPCGeant]->SetBranchAddress("xHtof", src.xHtof);
+  TTreeCont[kTPCGeant]->SetBranchAddress("yHtof", src.yHtof);
+  TTreeCont[kTPCGeant]->SetBranchAddress("zHtof", src.zHtof);
+  TTreeCont[kTPCGeant]->SetBranchAddress("lengthHtof", src.lengthHtof);
+  TTreeCont[kTPCGeant]->SetBranchAddress("tHtof", src.tHtof);
 
   return true;
 }

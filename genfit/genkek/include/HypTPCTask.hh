@@ -19,8 +19,8 @@ class HypTPCTask : public HypTPCFitProcess{
 
 public:
 
-  HypTPCTask() : HypTPCFitProcess() {}
-  ~HypTPCTask(){}
+  HypTPCTask();
+  ~HypTPCTask();
   static HypTPCTask& GetInstance();
 
   genfit::Track* GetFittedTrack(int trackid) const;
@@ -41,10 +41,13 @@ public:
   //Extrapolation
   bool ExtrapolateTrack(int trackid, double distance, TVector3 &pos) const;
   bool ExtrapolateToPoint(int trackid, TVector3 point, TVector3 &pos) const;
-  bool GetPosOnPlane(int trackid, genfit::SharedPlanePtr plane, TVector3 &pos) const;
+  bool ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, TVector3 &pos, double &tracklen, double &tof) const;
   bool IsInsideTarget(int trackid) const;
+  bool ExtrapolateToHTOF(int trackid, TVector3 &pos, double &tracklen, double &tof) const;
 
 private:
+
+  genfit::SharedPlanePtr HTOFPlane[8];
 
   ClassDef(HypTPCTask, 1)
 

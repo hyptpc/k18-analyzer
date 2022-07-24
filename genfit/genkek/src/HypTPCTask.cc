@@ -31,10 +31,28 @@ namespace{
   const double qnan = TMath::QuietNaN();
   //const TVector3 targetsize(30,20,20);
   const TVector3 targetsize(35,25,25);
+  const double htof_l = 34.86; //center to HTOF downstream
 }
 
 //GenFit Units : GeV/c, ns, cm, kGauss
 //K1.8Ana Units : GeV/c, ns, mm, T
+
+HypTPCTask::HypTPCTask() : HypTPCFitProcess() {
+
+  TVector3 pointRef(0,0,htof_l);
+  TVector3 normalRef(0,0,1.);
+
+  for(int i=0; i<8; i++){
+    if(i!=0){
+      double angle = 0.25*TMath::Pi();
+      pointRef.RotateY(angle);
+      normalRef.RotateY(angle);
+    }
+    HTOFPlane[i] = genfit::SharedPlanePtr(new genfit::DetPlane(pointRef, normalRef));
+  }
+}
+
+HypTPCTask::~HypTPCTask(){}
 
 HypTPCTask& HypTPCTask::GetInstance(){
 
@@ -123,8 +141,6 @@ TVector3 HypTPCTask::GetPos0(int trackid) const{
   return pos;
 }
 
-//GenFit Units : GeV/c, ns, cm, kGauss
-//K1.8Ana Units : GeV/c, ns, mm, T
 double HypTPCTask::GetTrackLength(int trackid, int start, int end) const{
 
   double length;
@@ -181,18 +197,26 @@ bool HypTPCTask::ExtrapolateToPoint(int trackid, TVector3 point, TVector3 &pos) 
   return true;
 }
 
-bool HypTPCTask::GetPosOnPlane(int trackid, genfit::SharedPlanePtr plane, TVector3 &pos) const{
+bool HypTPCTask::ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, TVector3 &pos, double &tracklen, double &tof) const{
 
+  genfit::Track* fittedTrack = nullptr;
+  if(FitCheck(trackid)) fittedTrack = GetTrack(trackid);
+
+  tracklen = 0.1*GetTrackLength(trackid); //mm -> cm
   genfit::RKTrackRep *rep = (genfit::RKTrackRep *) GetTrackRep(trackid);
   genfit::MeasuredStateOnPlane fitState = GetFitState(trackid);
   if(!rep) return false;
-  try{rep -> extrapolateToPlane(fitState, plane);}
+
+  double time0 = fitState.getTime();
+  try{tracklen += rep -> extrapolateToPlane(fitState, plane);}
   catch(genfit::Exception &e){
     if(verbosity>=2) LogWARNING("failed!");
     if(verbosity>=1) std::cerr << e.what();
     return false;
   }
 
+  tof = fitState.getTime() - time0;
+  tracklen *= 10.; //cm -> mm
   pos = 10.*fitState.getPos(); //cm -> mm
   return true;
 }
@@ -206,4 +230,22 @@ bool HypTPCTask::IsInsideTarget(int trackid) const{
      (TMath::Abs(pos.y()) < targetsize.y()/2.0) &&
      (TMath::Abs(pos.z()-ztgt) < targetsize.z()/2.0)) return true;
   else return false;
+}
+
+bool HypTPCTask::ExtrapolateToHTOF(int trackid, TVector3 &pos, double &tracklen, double &tof) const{
+
+  bool flag = false;
+  for(int i=0;i<8;i++){
+    const TVector3 center = 10*HTOFPlane[i] -> getO(); //cm -> mm
+    if(ExtrapolateToPlane(trackid, HTOFPlane[i], pos, tracklen, tof)){
+      if(tracklen<0||tof<0) continue;
+      double xzdist = TMath::Sqrt((center.x()-pos.x())*(center.x()-pos.x()) +
+				  (center.z()-pos.z())*(center.z()-pos.z()));
+      if(TMath::Abs(pos.y()-12)>400. || xzdist>142) continue;
+      if(i==4 && TMath::Abs(pos.x())<71 && pos.y()<62 && pos.y()>-50) break; // window
+      else flag=true;
+      break;
+    }
+  }
+  return flag;
 }
