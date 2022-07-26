@@ -649,11 +649,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("g4nhHtof",&event.g4nhHtof,"g4nhHtof/I");
   tree->Branch("g4tidHtof",event.g4tidHtof,"g4tidHtof[g4nhHtof]/I");
   tree->Branch("g4pidHtof",event.g4pidHtof,"g4pidHtof[g4nhHtof]/I");
-  tree->Branch("g4xHtof",event.g4xHtof,"g4xHtof[g4ntHtof]/D");
-  tree->Branch("g4yHtof",event.g4yHtof,"g4yHtof[g4ntHtof]/D");
-  tree->Branch("g4zHtof",event.g4zHtof,"g4zHtof[g4ntHtof]/D");
-  tree->Branch("g4lengthHtof",event.g4lengthHtof,"g4lengthHtof[g4ntHtof]/D");
-  tree->Branch("g4tHtof",event.g4tHtof,"g4tHtof[g4ntHtof]/D");
+  tree->Branch("g4xHtof",event.g4xHtof,"g4xHtof[g4nhHtof]/D");
+  tree->Branch("g4yHtof",event.g4yHtof,"g4yHtof[g4nhHtof]/D");
+  tree->Branch("g4zHtof",event.g4zHtof,"g4zHtof[g4nhHtof]/D");
+  tree->Branch("g4lengthHtof",event.g4lengthHtof,"g4lengthHtof[g4nhHtof]/D");
+  tree->Branch("g4tHtof",event.g4tHtof,"g4tHtof[g4nhHtof]/D");
 
   //TrackSearchTPCHelix()
   tree->Branch("ntTpc",&event.ntTpc,"ntTpc/I");
