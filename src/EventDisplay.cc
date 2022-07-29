@@ -196,11 +196,13 @@ EventDisplay::EventDisplay()
     m_BcOutTrackShs(),
     m_SdcInTrack(),
     m_init_step_mark(),
+    m_hs_step_mark(),
     m_kurama_step_mark(),
     m_TargetXZ_box(),
     m_TargetYZ_box(),
     m_VertexPointXZ(),
     m_VertexPointYZ(),
+    m_HSMarkVertexXShs(),
     m_KuramaMarkVertexXShs(),
     m_KuramaMarkVertexX(),
     m_KuramaMarkVertexY(),
@@ -2628,11 +2630,13 @@ EventDisplay::EndOfEvent()
   del::DeleteObject(m_SdcInTrack);
   del::DeleteObject(m_SdcInTrack2);
   del::DeleteObject(m_SdcOutTrack);
+  del::DeleteObject(m_hs_step_mark);
   del::DeleteObject(m_kurama_step_mark);
   del::DeleteObject(m_VertexPointXZ);
   del::DeleteObject(m_VertexPointYZ);
   del::DeleteObject(m_MissMomXZ_line);
   del::DeleteObject(m_MissMomYZ_line);
+  del::DeleteObject(m_HSMarkVertexXShs);
   del::DeleteObject(m_KuramaMarkVertexXShs);
   del::DeleteObject(m_KuramaMarkVertexX);
   del::DeleteObject(m_KuramaMarkVertexY);
@@ -3585,4 +3589,52 @@ EventDisplay::Run(Bool_t flag)
   hddaq::cout << FUNC_NAME << " TApplication is running" << std::endl;
 
   m_theApp->Run(flag);
+}
+
+
+//_____________________________________________________________________________
+void
+EventDisplay::DrawHSTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,
+                              Double_t q)
+{
+  del::DeleteObject(m_hs_step_mark);
+
+  m_hs_step_mark = new TPolyMarker3D(nStep);
+  for(Int_t i=0; i<nStep; ++i){
+    m_hs_step_mark->SetPoint(i,
+			     StepPoint[i].x(),
+			     StepPoint[i].y(),
+			     StepPoint[i].z());
+  }
+
+  Color_t color = (q > 0) ? kRed : kBlue;
+
+  if(!m_is_save_mode){
+    m_hs_step_mark->SetMarkerSize(1);
+    m_hs_step_mark->SetMarkerStyle(6);
+  }
+  m_hs_step_mark->SetMarkerColor(color);
+
+  m_canvas->cd(1)->cd(2);
+  m_hs_step_mark->Draw();
+  m_canvas->Update();
+
+#if TPC
+  del::DeleteObject(m_HSMarkVertexXShs);
+  m_HSMarkVertexXShs = new TPolyMarker(nStep);
+  for(Int_t i=0; i<nStep; ++i){
+    Double_t x = StepPoint[i].x()-BeamAxis;
+    Double_t z = StepPoint[i].z()-zHS;
+    m_HSMarkVertexXShs->SetPoint(i, z, x);
+  }
+  if(!m_is_save_mode){
+    m_HSMarkVertexXShs->SetMarkerSize(0.4);
+    m_HSMarkVertexXShs->SetMarkerStyle(6);
+  }
+  m_HSMarkVertexXShs->SetMarkerColor(color);
+  // m_canvas_tpc->cd(1);
+  // m_HsMarkVertexXShs->Draw();
+  m_canvas->cd(2);
+  m_HSMarkVertexXShs->Draw();
+#endif
 }

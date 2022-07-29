@@ -44,17 +44,30 @@ bool
 CheckCrossing(Int_t lnum, const RKTrajectoryPoint &startPoint,
               const RKTrajectoryPoint &endPoint, RKcalcHitPoint &crossPoint);
 //_____________________________________________________________________________
+bool
+CheckCrossingHS(Int_t lnum, const RKTrajectoryPoint &startPoint,
+		const RKTrajectoryPoint &endPoint, RKcalcHitPoint &crossPoint);
+//_____________________________________________________________________________
 Int_t
 Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer);
 //_____________________________________________________________________________
+Int_t
+Extrap(const RKCordParameter &initial, RKHitPointContainer &hitContainer);
+//_____________________________________________________________________________
 RKTrajectoryPoint
 TraceOneStep(Double_t StepSize, const RKTrajectoryPoint &prevPoint);
+//_____________________________________________________________________________
+RKTrajectoryPoint
+PropagateOnce(Double_t StepSize, const RKTrajectoryPoint &prevPoint);
 //_____________________________________________________________________________
 bool
 TraceToLast(RKHitPointContainer &hitContainer);
 //_____________________________________________________________________________
 RKHitPointContainer
 MakeHPContainer();
+//_____________________________________________________________________________
+RKHitPointContainer
+MakeHSHPContainer();
 
 inline TString
 ClassName() { static TString s_name("RK"); return s_name; }
@@ -82,6 +95,7 @@ public:
   void Print(std::ostream &ost) const;
 
   friend RKTrajectoryPoint RK::TraceOneStep(Double_t, const RKTrajectoryPoint &);
+  friend RKTrajectoryPoint RK::PropagateOnce(Double_t, const RKTrajectoryPoint &);
   friend RKDeltaFieldIntegral
   RK::CalcDeltaFieldIntegral(const RKTrajectoryPoint &,
                              const RKFieldIntegral &,
@@ -110,6 +124,7 @@ private:
 public:
   void Print(std::ostream &ost) const;
   friend RKTrajectoryPoint RK::TraceOneStep(Double_t, const RKTrajectoryPoint &);
+  friend RKTrajectoryPoint RK::PropagateOnce(Double_t, const RKTrajectoryPoint &);
   friend RKDeltaFieldIntegral
   RK::CalcDeltaFieldIntegral(const RKTrajectoryPoint &,
                              const RKFieldIntegral &,
@@ -158,6 +173,8 @@ public:
   friend class RKTrajectoryPoint;
   friend RKTrajectoryPoint
   RK::TraceOneStep(Double_t, const RKTrajectoryPoint &);
+  friend RKTrajectoryPoint
+  RK::PropagateOnce(Double_t, const RKTrajectoryPoint &);
   friend RKDeltaFieldIntegral
   RK::CalcDeltaFieldIntegral(const RKTrajectoryPoint &,
                              const RKFieldIntegral &,
@@ -169,6 +186,9 @@ public:
   friend bool
   RK::CheckCrossing(int, const RKTrajectoryPoint &,
                     const RKTrajectoryPoint &, RKcalcHitPoint &);
+  friend bool
+  RK::CheckCrossingHS(int, const RKTrajectoryPoint &,
+		      const RKTrajectoryPoint &, RKcalcHitPoint &);
 };
 
 //_____________________________________________________________________________
@@ -276,6 +296,9 @@ public:
   friend bool
   RK::CheckCrossing(Int_t, const RKTrajectoryPoint &,
                     const RKTrajectoryPoint &, RKcalcHitPoint &);
+  friend bool
+  RK::CheckCrossingHS(Int_t, const RKTrajectoryPoint &,
+		      const RKTrajectoryPoint &, RKcalcHitPoint &);
 };
 
 //_____________________________________________________________________________
@@ -386,9 +409,14 @@ public:
 
   friend RKTrajectoryPoint
   RK::TraceOneStep(Double_t, const RKTrajectoryPoint &);
+  friend RKTrajectoryPoint
+  RK::PropagateOnce(Double_t, const RKTrajectoryPoint &);
   friend bool
   RK::CheckCrossing(Int_t, const RKTrajectoryPoint &,
                     const RKTrajectoryPoint &, RKcalcHitPoint &);
+  friend bool
+  RK::CheckCrossingHS(Int_t, const RKTrajectoryPoint &,
+		      const RKTrajectoryPoint &, RKcalcHitPoint &);
   friend RKDeltaFieldIntegral
   RK::CalcDeltaFieldIntegral(const RKTrajectoryPoint &,
                              const RKFieldIntegral &,

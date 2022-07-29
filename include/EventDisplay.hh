@@ -193,6 +193,7 @@ private:
   std::vector<TPolyLine3D*>  m_SdcInTrack;
   std::vector<TPolyLine3D*>  m_SdcOutTrack;
   TPolyMarker3D             *m_init_step_mark;
+  TPolyMarker3D             *m_hs_step_mark;
   TPolyMarker3D             *m_kurama_step_mark;
   // vertex
   TBox                      *m_TargetXZ_box;
@@ -212,6 +213,7 @@ private:
   std::vector<TPolyLine*>    m_SdcInYZ_line;
   std::vector<TPolyLine*>    m_SdcInXZ_line_tpc;
   std::vector<TPolyLine*>    m_SdcInYZ_line_tpc;
+  TPolyMarker               *m_HSMarkVertexXShs;
   TPolyMarker               *m_KuramaMarkVertexXShs;
   TPolyMarker               *m_KuramaMarkVertexX;
   TPolyMarker               *m_KuramaMarkVertexY;
@@ -249,6 +251,8 @@ public:
   void DrawSsdHit(Int_t lid, Int_t seg, Double_t de);
   void DrawVertex(const ThreeVector& vertex);
   void DrawKuramaTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,
+                       Double_t q);
+  void DrawHSTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,
                        Double_t q);
   void DrawTarget();
   void DrawMissingMomentum(const ThreeVector& mom,
