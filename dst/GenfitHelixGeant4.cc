@@ -120,6 +120,9 @@ struct Event
   Double_t mom_y[MaxTPCTracks][MaxTPCHits];
   Double_t mom_z[MaxTPCTracks][MaxTPCHits];
   Double_t mom[MaxTPCTracks][MaxTPCHits];
+  Double_t g4pos_x[MaxTPCTracks][MaxTPCHits];
+  Double_t g4pos_y[MaxTPCTracks][MaxTPCHits];
+  Double_t g4pos_z[MaxTPCTracks][MaxTPCHits];
   Double_t g4mom_x[MaxTPCTracks][MaxTPCHits];
   Double_t g4mom_y[MaxTPCTracks][MaxTPCHits];
   Double_t g4mom_z[MaxTPCTracks][MaxTPCHits];
@@ -262,6 +265,10 @@ main( Int_t argc, char **argv )
   std::cout<<"GenFit verbosity = "<<"-1: Silent, 0: Minimum, 1: Errors only, 2: Errors and Warnings, 3: Verbose mode, long term debugging(default)"<<std::endl;
   std::cout<<"Current verbosity = "<<GFtracks.GetVerbosity()<<std::endl;
 
+#if 0
+  GFtracks.DebugMode();
+#endif
+
   Int_t ievent = skip;
   for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
     gCounter.check();
@@ -326,6 +333,9 @@ dst::InitializeEvent( void )
       event.g4mom_x[i][j] =qnan;
       event.g4mom_y[i][j] =qnan;
       event.g4mom_z[i][j] =qnan;
+      event.g4pos_x[i][j] =qnan;
+      event.g4pos_y[i][j] =qnan;
+      event.g4pos_z[i][j] =qnan;
       event.g4mom[i][j] =qnan;
       event.hitpos_x[i][j] =qnan;
       event.hitpos_y[i][j] =qnan;
@@ -485,6 +495,9 @@ dst::DstRead( Int_t ievent )
 	if(d.Mag()<checker){
 	  checker = d.Mag();
 
+	  event.g4pos_x[it][ih] = src.x0tpc[ih2];
+	  event.g4pos_y[it][ih] = src.y0tpc[ih2];
+	  event.g4pos_z[it][ih] = src.z0tpc[ih2];
 	  event.g4mom_x[it][ih] = src.pxtpc[ih2];
 	  event.g4mom_y[it][ih] = src.pytpc[ih2];
 	  event.g4mom_z[it][ih] = src.pztpc[ih2];
@@ -545,8 +558,7 @@ dst::DstRead( Int_t ievent )
 
   GFtracks.FitTracks();
   for( Int_t igf=0; igf<GFtracks.GetNTrack(); ++igf ){
-    if(!GFtracks.FitCheck(igf)) continue;
-
+   if(!GFtracks.FitCheck(igf)) continue;
     event.GFntTpc++;
     event.GFchisqr[igf]=GFtracks.GetChi2NDF(igf);
     event.GFcharge[igf]=GFtracks.GetCharge(igf);
@@ -576,6 +588,13 @@ dst::DstRead( Int_t ievent )
     HF1( genfitHid+7, posv.x());
     HF1( genfitHid+8, posv.y());
     HF1( genfitHid+9, posv.z());
+    TVector3 pos(event.g4pos_x[igf][0],event.g4pos_y[igf][0],event.g4pos_z[igf][0]);
+    TVector3 mom(event.g4mom_x[igf][0],event.g4mom_y[igf][0],event.g4mom_z[igf][0]);
+    double residual[5]; double pull[5];
+    if(GFtracks.GetTrackPull(igf,GFtracks.GetPDGcode(igf),mom,pos,residual,pull)){
+      for(Int_t i=0; i<5; ++i) HF1( genfitHid+10+i, pull[i]);
+    }
+    HF1( genfitHid+15, GFtracks.GetPvalue(igf));
   }
   HF1( genfitHid, event.GFntTpc );
 
@@ -634,6 +653,13 @@ ConfMan::InitializeHistograms( void )
   HB1(genfitHid+7, "[GenFit] Vertex X; Vertex X [mm]; Counts [/0.1 mm]", 500, -25, 25 );
   HB1(genfitHid+8, "[GenFit] Vertex Y; Vertex Y [mm]; Counts [/0.1 mm]", 500, -25, 25 );
   HB1(genfitHid+9, "[GenFit] Vertex Z; Vertex Z [mm]; Counts [/0.1 mm]", 500, -143-25, -143+25 );
+  HB1(genfitHid+10, "[GenFit] q/p;pull; Number of Tracks", 240, -6, 6);
+  HB1(genfitHid+11, "[GenFit] slope u';pull; Number of Tracks", 1000, -20, 20);
+  HB1(genfitHid+12, "[GenFit] slope v';pull; Number of Tracks", 1000, -20, 20);
+  HB1(genfitHid+13, "[GenFit] coord. u;pull; Number of Tracks", 240, -6, 6);
+  HB1(genfitHid+14, "[GenFit] coord. v;pull; Number of Tracks", 240, -6, 6);
+  HB1(genfitHid+15, "[GenFit] p-value;p-value; Number of Tracks", 100, 0, 1);
+
 
   HBTree( "tpc", "tree of tpc" );
 
@@ -668,6 +694,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("mom0_y",event.mom0_y,"mom0_y[ntTpc]/D"); // Momentum at Y = 0
   tree->Branch("mom0_z",event.mom0_z,"mom0_z[ntTpc]/D"); // Momentum at Y = 0
   tree->Branch("mom0",event.mom0,"mom0[ntTpc]/D"); // Momentum at Y = 0
+  tree->Branch("g4pos_x",event.g4pos_x,Form("g4pos_x[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("g4pos_y",event.g4pos_y,Form("g4pos_y[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("g4pos_z",event.g4pos_z,Form("g4pos_z[ntTpc][%d]/D",MaxTPCHits));
   tree->Branch("g4mom_x",event.g4mom_x,Form("g4mom_x[ntTpc][%d]/D",MaxTPCHits));
   tree->Branch("g4mom_y",event.g4mom_y,Form("g4mom_y[ntTpc][%d]/D",MaxTPCHits));
   tree->Branch("g4mom_z",event.g4mom_z,Form("g4mom_z[ntTpc][%d]/D",MaxTPCHits));

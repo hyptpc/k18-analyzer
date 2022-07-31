@@ -29,10 +29,13 @@ public:
   genfit::MeasuredStateOnPlane GetFitState(int trackid) const;
 
   //Parameters
+  bool GetTrackPull(int trackid, int pdg, TVector3 g4mom, TVector3 g4pos, double *residual, double *pull) const;
   double GetChi2(int trackid) const;
   double GetNDF(int trackid) const;
   double GetChi2NDF(int trackid) const;
+  double GetPvalue(int trackid) const;
   double GetCharge(int trackid) const;
+  int GetPDGcode(int trackid) const;
   TVector3 GetMom(int trackid) const;
   TVector3 GetPos0(int trackid) const; //Get Vertex position
   double GetTrackLength(int trackid, int start=0, int end=-1) const;

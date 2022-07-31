@@ -92,6 +92,41 @@ genfit::MeasuredStateOnPlane HypTPCTask::GetFitState(int trackid) const{
   return fitState;
 }
 
+bool HypTPCTask::GetTrackPull(int trackid, int pdg, TVector3 g4mom, TVector3 g4pos, double *residual, double *pull) const{
+
+  for(int i=0;i<5;i++){
+    residual[i] = qnan;
+    pull[i] = qnan;
+  }
+  //ideal state(generated state)
+  genfit::AbsTrackRep* g4rep = new genfit::RKTrackRep(pdg);
+  genfit::MeasuredStateOnPlane g4state(g4rep);
+  TMatrixDSym covM(6);
+  covM.Zero();
+  g4rep -> setPosMomCov(g4state, g4pos, g4mom, covM);
+  genfit::StateOnPlane g4stateRef(g4state);
+  const TVectorD &referenceState = g4stateRef.getState();
+
+  //fitted track's state
+  genfit::MeasuredStateOnPlane fitState = GetFitState(trackid);
+  if(!FitCheck(trackid)) return false;
+  TVectorD &state = fitState.getState();
+  TMatrixDSym &cov = fitState.getCov();
+
+  residual[0] = GetCharge(trackid)/state[0]-g4mom.Mag();
+  residual[1] = state[1]-referenceState[1];
+  residual[2] = state[2]-referenceState[2];
+  residual[3] = state[3]-referenceState[3];
+  residual[4] = state[4]-referenceState[4];
+
+  pull[0] = (state[0]-referenceState[0]) / sqrt(cov[0][0]);
+  pull[1] = (state[1]-referenceState[1]) / sqrt(cov[1][1]);
+  pull[2] = (state[2]-referenceState[2]) / sqrt(cov[2][2]);
+  pull[3] = (state[3]-referenceState[3]) / sqrt(cov[3][3]);
+  pull[4] = (state[4]-referenceState[4]) / sqrt(cov[4][4]);
+  return true;
+}
+
 double HypTPCTask::GetChi2(int trackid) const{
 
   double chi2 = qnan;
@@ -117,12 +152,28 @@ double HypTPCTask::GetChi2NDF(int trackid) const{
   return chi2ndf;
 }
 
+double HypTPCTask::GetPvalue(int trackid) const{
+
+  double pval = qnan;
+  genfit::FitStatus *fitStatus = GetFitStatus(trackid);
+  if(fitStatus) pval = fitStatus -> getPVal();
+  return pval;
+}
+
 double HypTPCTask::GetCharge(int trackid) const{
 
   double charge = qnan;
-  genfit::MeasuredStateOnPlane fitState = GetFitState(trackid);
-  if(FitCheck(trackid)) charge = fitState.getCharge();
+  genfit::AbsTrackRep* rep = GetTrackRep(trackid);
+  if(rep) charge = rep -> getPDGCharge();
   return charge;
+}
+
+int HypTPCTask::GetPDGcode(int trackid) const{
+
+  int code = 0;
+  genfit::AbsTrackRep* rep = GetTrackRep(trackid);
+  if(rep) code = rep -> getPDG();
+  return code;
 }
 
 TVector3 HypTPCTask::GetMom(int trackid) const{
@@ -176,7 +227,6 @@ bool HypTPCTask::ExtrapolateTrack(int trackid, double distance, TVector3 &pos) c
     if(verbosity>=1) std::cerr << e.what();
     return false;
   }
-
   pos = 10.*fitState.getPos(); //cm -> mm
   return true;
 }
@@ -192,15 +242,11 @@ bool HypTPCTask::ExtrapolateToPoint(int trackid, TVector3 point, TVector3 &pos) 
     if(verbosity>=1) std::cerr << e.what();
     return false;
   }
-
   pos = 10.*fitState.getPos(); //cm -> mm
   return true;
 }
 
 bool HypTPCTask::ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, TVector3 &pos, double &tracklen, double &tof) const{
-
-  genfit::Track* fittedTrack = nullptr;
-  if(FitCheck(trackid)) fittedTrack = GetTrack(trackid);
 
   tracklen = 0.1*GetTrackLength(trackid); //mm -> cm
   genfit::RKTrackRep *rep = (genfit::RKTrackRep *) GetTrackRep(trackid);
@@ -215,9 +261,22 @@ bool HypTPCTask::ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, T
     return false;
   }
 
+#if 0
+  std::vector<genfit::MatStep> steps = rep->getSteps();
+  std::cout<<"RK number of steps : "<<steps.size()<<std::endl;
+  for(int i=0;i<steps.size();i++){
+    std::cout<<"Step : "<<i<<" Size of step : "<<steps.at(i).stepSize_<<std::endl;
+    std::cout<<"Density [g/cm3] : "<<steps.at(i).material_.density<<std::endl;
+    std::cout<<"Radiation length [cm] : "<<steps.at(i).material_.radiationLength<<std::endl;
+    std::cout<<"Atomic number Z : "<<steps.at(i).material_.Z<<std::endl;
+    std::cout<<"Mass number A : "<<steps.at(i).material_.A<<std::endl;
+    std::cout<<"mean excitation energy [eV] : "<<steps.at(i).material_.mEE<<std::endl;
+  }
+#endif
+
+  pos = 10.*fitState.getPos(); //cm -> mm
   tof = fitState.getTime() - time0;
   tracklen *= 10.; //cm -> mm
-  pos = 10.*fitState.getPos(); //cm -> mm
   return true;
 }
 

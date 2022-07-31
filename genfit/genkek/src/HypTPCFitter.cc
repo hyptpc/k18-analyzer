@@ -40,7 +40,7 @@ HypTPCFitter::HypTPCFitter(const std::string& tgeo_file_name, const bool m_is_co
 
   genfit::FieldManager::getInstance()->init(new HypTPCField(m_is_const));
   genfit::MaterialEffects::getInstance()->init(new genfit::TGeoMaterialInterface());
-
+  //genfit::MaterialEffects::getInstance()->drawdEdx(2212);
   GenFitFitter = gUser.GetParameter("Fitter");
   unsigned int MinIter = gUser.GetParameter("nIteration",0);
   unsigned int MaxIter = gUser.GetParameter("nIteration",1);
