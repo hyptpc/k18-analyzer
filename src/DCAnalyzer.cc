@@ -342,10 +342,12 @@ DCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
     }
     TPCCluster* cluster = new TPCCluster(layer, CandCont);
     if(!cluster) continue;
-    cluster->Calculate();
-    if(cluster->GetDe()<ClusterDeCut) continue;
-    ClCont.push_back(cluster);
-    // cluster->Print();
+    if(cluster->Calculate() && cluster->GetDe()>ClusterDeCut){
+      ClCont.push_back(cluster);
+      // cluster->Print();
+    }else{
+      delete cluster;
+    }
   }
 
   return true;
@@ -1130,9 +1132,10 @@ DCAnalyzer::TrackSearchK18D2U(const std::vector<Double_t>& XinCont)
 #endif
 
       K18TrackD2U *track = new K18TrackD2U(LocalX, trOut, TMath::Abs(pK18));
-      if(!track) continue;
-      track->CalcMomentumD2U();
-      m_K18D2UTC.push_back(track);
+      if(track && track->CalcMomentumD2U())
+	m_K18D2UTC.push_back(track);
+      else
+	delete track;
     }
   }
 
