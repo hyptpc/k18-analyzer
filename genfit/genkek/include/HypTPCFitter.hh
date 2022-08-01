@@ -24,7 +24,7 @@ class HypTPCFitter{
 public:
 
   HypTPCFitter(const std::string& tgeo_file_name, const bool m_is_const=false);
-  ~HypTPCFitter(){ delete _fitter; }
+  virtual ~HypTPCFitter(){ delete _fitter; }
   /*!
    * Fitter control:
    * default & 0: KalmanFitterRefTrack()

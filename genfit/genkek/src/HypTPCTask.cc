@@ -200,24 +200,31 @@ double HypTPCTask::GetTrackLength(int trackid, int start, int end) const{
   catch(genfit::Exception &e){
     if(verbosity>=2) LogWARNING("failed!");
     if(verbosity>=1) std::cerr << e.what();
-    return length=qnan;
+    return qnan;
   }
   return length;
 }
 
 double HypTPCTask::GetTrackTOF(int trackid, int start, int end) const{
 
-  double TOF = qnan;
+  double TOF;
   genfit::Track* fittedTrack = GetFittedTrack(trackid);
   if(end==-1) end = -2;
-  if(fittedTrack) TOF = fittedTrack -> getTOF(nullptr,start,end);
+  try{TOF = fittedTrack -> getTOF(nullptr,start,end);}
+  catch(genfit::Exception &e){
+    if(verbosity>=2) LogWARNING("failed!");
+    if(verbosity>=1) std::cerr << e.what();
+    return qnan;
+  }
   return TOF;
 }
 
 bool HypTPCTask::ExtrapolateTrack(int trackid, double distance, TVector3 &pos) const{
 
+  double tracklength = GetTrackLength(trackid);
+  if(TMath::IsNaN(tracklength)) return false;
   Double_t d = 0.1*distance; //mm -> cm
-  if(distance>=0.) d += 0.1*GetTrackLength(trackid);
+  if(distance>=0.) d += 0.1*tracklength;
   genfit::RKTrackRep *rep = (genfit::RKTrackRep *) GetTrackRep(trackid);
   genfit::MeasuredStateOnPlane fitState = GetFitState(trackid);
   if(!rep) return false;
@@ -248,7 +255,9 @@ bool HypTPCTask::ExtrapolateToPoint(int trackid, TVector3 point, TVector3 &pos) 
 
 bool HypTPCTask::ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, TVector3 &pos, double &tracklen, double &tof) const{
 
-  tracklen = 0.1*GetTrackLength(trackid); //mm -> cm
+  double tracklength = GetTrackLength(trackid);
+  if(TMath::IsNaN(tracklength)) return false;
+  tracklen = 0.1*tracklength; //mm -> cm
   genfit::RKTrackRep *rep = (genfit::RKTrackRep *) GetTrackRep(trackid);
   genfit::MeasuredStateOnPlane fitState = GetFitState(trackid);
   if(!rep) return false;
