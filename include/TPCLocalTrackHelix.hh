@@ -63,6 +63,7 @@ private:
   double m_min_t;
   double m_max_t;
   double m_path;
+  double m_transverse_path;
   int m_isbeam;
 
 public:
@@ -99,7 +100,7 @@ public:
   double GetMint(void) const {return m_min_t; }
   double GetMaxt(void) const {return m_max_t; }
   double GetPath(void) const {return m_path; }
-
+  double GetTransversePath(void) const {return m_transverse_path; }
 
   void SetAcx(double Acx) { m_Acx = Acx; }
   void SetAcy(double Acy) { m_Acy = Acy; }
