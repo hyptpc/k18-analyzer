@@ -253,7 +253,7 @@ class RunlistManager(metaclass=classimpl.Singleton):
     exit(1)
 
   #____________________________________________________________________________
-  def __make_dstin_path(self, base, key_array, is_geant4):
+  def __make_dstin_path(self, base, key_array, is_geant4, runno=None):
     ''' Make path array of input files for dst analysis. '''
     if self.__is_ready is False:
       return None
@@ -265,6 +265,9 @@ class RunlistManager(metaclass=classimpl.Singleton):
       split = os.path.splitext(base)
       if is_geant4:
         dstin_path.append(os.path.join(os.path.dirname(split[0]), key + split[1]))
+      elif runno is not None:
+        temp = f'run{runno:05d}_{key}'
+        dstin_path.append(os.path.join(os.path.dirname(split[0]), temp + split[1]))
       else:
         dstin_path.append(split[0] + key + split[1])
     return dstin_path
@@ -342,16 +345,21 @@ class RunlistManager(metaclass=classimpl.Singleton):
       base = (item[0] + '_' + os.path.basename(pbin) if runno is None
               else f'run{runno:05d}_{os.path.basename(pbin)}')
       run['root'] = self.__make_root_path(item[1]['root'], base)
-      if 'Dst' in run['bin']:
+      if 'Dst' in run['bin'] or 'Genfit' in run['bin']:
         if 'dstin' in item[1]:
           base = run['root'].replace(os.path.basename(run['bin']), '')
-          run['dstin'] = self.__make_dstin_path(base, item[1]['dstin'], is_geant4)
+          run['dstin'] = self.__make_dstin_path(base, item[1]['dstin'], is_geant4, runno)
           if is_geant4 and 'nevents' in item[1]:
             run['nevents'] = int(item[1]['nevents'])
+          elif run['nevents'] is not None:
+            pass
+          else:
+            logger.error(f'{run["bin"]} needs number of events set as "nevents".')
+            logger.debug(f'nevents = {run["nevents"]}')
+            exit(1)
         else:
           logger.error(f'{run["bin"]} needs input files set as "dstin".')
           exit(1)
-      logger.debug(f'nevents = {run["nevents"]}')
       if 'unit' in item[1] and isinstance(item[1]['unit'], int):
         run['unit'] = item[1]['unit']
       else:

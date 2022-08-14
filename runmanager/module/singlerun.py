@@ -41,9 +41,10 @@ class SingleRun(object):
     self.__tag = tag
     self.__key = runinfo['key']
     self.__bin_path = runinfo['bin']
-    self.__is_dst = ('Dst' in self.__bin_path and
-                     'dstin' in runinfo and
-                     len(runinfo['dstin']) > 0)
+    self.__is_dstgenfit = ('Dst' in self.__bin_path or 'Genfit' in self.__bin_path)
+    self.__is_dst = ( self.__is_dstgenfit and
+                      'dstin' in runinfo and
+                      len(runinfo['dstin']) > 0)
     if self.__is_dst:
       self.__dstin_path = runinfo['dstin']
     else:
@@ -524,7 +525,8 @@ class SingleRun(object):
       for node in tmp.findall('control/skip'):
         node.text = str(i * self.__div_unit)
       for node in tmp.findall('control/max_loop'):
-        node.text = str(-1 if i == len(self.__unpack_list) - 1 else
+        last = (-1 if self.__nevents is None else 1 + self.__nevents - i * self.__div_unit)
+        node.text = str(last if i == len(self.__unpack_list) - 1 else
                         self.__div_unit)
       tmp.write(item)
 

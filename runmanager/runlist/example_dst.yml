@@ -1,16 +1,19 @@
 WORKDIR: ~/k18analyzer/e42
 DEFAULT:
-  bin: bin/DstTPCTracking
-  buff: root/buf
-  conf: param/conf/analyzer_e42_2021feb.conf
-  data: /hsm/had/sks/E42/JPARC2021Feb/e03_2021feb
-  dstin:
-  - TPCHit
+  queue: s
+  qmerge: s
+  unit: 10000
   nproc: 18
-  queue: l
-  root: root/e42
-  unit: 1000
+  buff: root/buf
+  bin: bin/DstTPCTracking # if this includes 'Dst' or 'Genfit' and not includes 'Geant4'. if you want to use Geant4 input, please see the 'example_geant4.yml'
+  conf: param/conf
+  data: /hsm/had/sks/E42/JPARC2021Feb/e42_2021may # used to get the total event number
+  dstin :
+     - TPCHit #run0XX_TPCHit.root
+  root: filepath/ # rootfile path where the input and output rootfiles are placed.
+
 RUN:
-  1:
-  2:
-  3:
+  5744: #runnumber
+
+# this example is same as the following job.
+# bin/DstTPCTracking filapath/run05744_TPCHit.root param/conf/analyzer_05744.conf filapath/run05744_TPCHit.root filapath/run05744_DstTPCTracking.root
