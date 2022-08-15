@@ -525,7 +525,7 @@ class SingleRun(object):
       for node in tmp.findall('control/skip'):
         node.text = str(i * self.__div_unit)
       for node in tmp.findall('control/max_loop'):
-        last = (-1 if self.__nevents is None else 1 + self.__nevents - i * self.__div_unit)
+        last = (-1 if self.__nevents is None else self.__nevents - i * self.__div_unit)
         node.text = str(last if i == len(self.__unpack_list) - 1 else
                         self.__div_unit)
       tmp.write(item)
