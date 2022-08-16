@@ -571,7 +571,7 @@ class SingleRun(object):
       nsegs = 1
     else:
       nsegs = (1 if self.__nevents is None else
-               self.__nevents // self.__div_unit + 1)
+              (self.__nevents -1) // self.__div_unit + 1)
     for i in range(nsegs):
       self.__elem_list.append(f'{self.__basename}_{i}')
     self.__dump_log('elem', self.__elem_list)
