@@ -115,7 +115,8 @@ StopTimeDiffSdcOut 150
 StofOffset	-2.0378
 
 ### BcOutSdcInTracking
-MinLayerBcOutSdcIn 22
+#MinLayerBcOutSdcIn 22
+MinLayerBcOutSdcIn 20
 
 ### TPCHit
 BaselineCorrectionTPC	1
@@ -132,18 +133,15 @@ TimeBucketTPC		25 155
 #HIMAC value mm/ns
 #DriftVelocityTPC	0.05
 
-### Max Y Difference for TPC Cluster
+### TPC Cluster Y cut
 MaxYDifClusterTPC	10
+MinClusterDeTPC		0
 
 ### TPC Hough Window cut
 MinClusterSizeTPC 1
 MaxHoughWindow 10
-
 #TPCMaxLayerCut 28
 TPCMaxLayerCut 33
-#DECut_TPCTrack 100
-#DECut_TPCTrack 0.5
-DECut_TPCTrack 0.2
 
 ### TPC resolution parameter
 ### at 1T
@@ -158,8 +156,15 @@ TPC_sigma0 0.204
 ### TPC
 ##for the beam through
 #MinLayerTPC 10
-MinLayerTPC 6
+MinLayerTPC 8
 
 ### Conversion parameters(timediff to hitposition)
 PropagationBH2 137.815
 PropagationHTOF 158.167
+
+#GenFit
+Fitter 0 #kalmanFitterRefTrack
+#Fitter 1 #kalmanFitter
+#Fitter 2 #DAF w/ RefTrack
+#Fitter 3 #DAF
+nIteration 5 20

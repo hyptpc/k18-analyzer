@@ -23,12 +23,15 @@ public:
    * 1: Errors only, 2: Errors and Warnings
    * 3: Verbose mode, long term debugging (default)
    */
+  void DebugMode(); //for debugging mode
+
   int GetVerbosity() const { return verbosity; }
   void SetVerbosity(int v){
     this->verbosity = v;
     if(verbosity >= 1) genfit::Exception::quiet(false);
     else genfit::Exception::quiet(true);
   }
+
 
   bool FitCheck(int trackid) const;
   bool FitCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep* rep=nullptr) const;

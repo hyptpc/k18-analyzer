@@ -13,6 +13,8 @@
 
 ClassImp(HypTPCFitProcess)
 
+void HypTPCFitProcess::DebugMode(){ HypTPCFitter::_fitter -> setDebugLvl(); }
+
 bool HypTPCFitProcess::FitCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep* rep) const {
 
   if(rep==nullptr) return false;
@@ -24,6 +26,13 @@ bool HypTPCFitProcess::FitCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep*
     if(verbosity>=2) LogWARNING("Fit is not converged");
     return false;
   }
+  try{fittedTrack->getFittedState();}
+  catch(genfit::Exception& e){
+    if(verbosity>=2) LogWARNING("Track has no fitted state, failed!");
+    if(verbosity>=1) std::cerr << e.what();
+    return false;
+  }
+
   try{fittedTrack->checkConsistency();}
   catch(genfit::Exception& e){
     if(verbosity>=2) LogWARNING("genfit::Track::checkConsistency() failed!");

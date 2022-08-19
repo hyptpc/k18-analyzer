@@ -86,27 +86,31 @@ void HypTPCTrack::AddHelixTrack(int pdg, TPCLocalTrackHelix *tp){
   //GenFit Units : GeV/c, ns, cm, kGauss
   //K1.8Ana Units : GeV/c, ns, mm, T
   const TVector3& res_vect = tp -> GetHit(0) -> GetResolutionVect();
-  TMatrixDSym covSeed(6);
-  covSeed.Zero();
-  /*
-  covSeed(0, 0) = 0.01;
-  covSeed(1, 1) = 0.01;
-  covSeed(2, 2) = 0.04;
-  for (int iComp = 3; iComp < 6; iComp++) covSeed(iComp, iComp) = covSeed(iComp - 3, iComp - 3);
-  */
-  covSeed(0, 0) = res_vect.X() * res_vect.X()/100.;
-  covSeed(1, 1) = res_vect.Y() * res_vect.Y()/100.;
-  covSeed(2, 2) = res_vect.Z() * res_vect.Z()/100.;
-  for (int iComp = 3; iComp < 6; iComp++) covSeed(iComp, iComp) = covSeed(iComp - 3, iComp - 3)/(3*nMeasurement*nMeasurement);
-
-  TVector3 momSeed = tp -> GetHit(0) -> GetMomentumHelix(); //GeV/c
   TVector3 posSeed = tp -> GetHit(0) -> GetLocalCalPosHelix();
   posSeed.SetMag(posSeed.Mag()/10.); //mm -> cm
+  TVector3 momSeed = tp -> GetHit(0) -> GetMomentumHelix(); //GeV/c
+
+  TMatrixDSym covSeed(6);
+  covSeed.Zero();
+  double resT = 0.1*TMath::Sqrt(res_vect.X()*res_vect.X() + res_vect.Z()*res_vect.Z()); //mm -> cm
+  double resY = 0.1*res_vect.Y(); //mm -> cm
+  covSeed(0, 0) = resT*resT/2.;
+  covSeed(1, 1) = resY*resY;
+  covSeed(2, 2) = resT*resT/2.;
+
+  resT *= 0.01; //cm -> m
+  double L = 0.001*tp -> GetTransversePath(); //mm -> m
+  double Pt2 = momSeed.x()*momSeed.x() + momSeed.z()*momSeed.z();
+  double dPt2 = 720./(nMeasurement+4)*Pt2*Pt2/(0.09*L*L*L*L);
+  covSeed(3, 3) = dPt2*resT*resT/2.;
+  covSeed(4, 4) = dPt2*resT*resT/2.;
+  covSeed(5, 5) = dPt2*resT*resT/2.;
+  //covSeed.Print();
+
   // set start values and pdg to cand
   trackCand.setCovSeed(covSeed);
   trackCand.setPosMomSeedAndPdgCode(posSeed, momSeed, pdg);
   trackCand.setTimeSeed(0.); //set defualt _time=0.;
-  //covSeed.Print();
   //trackCand.setPosMomSeed(posSeed, momSeed, helixTrack -> Charge());
 
   new ((*_genfitTrackArray)[_genfitTrackArray -> GetEntriesFast()]) genfit::Track(trackCand, *_measurementFactory, new genfit::RKTrackRep(pdg));

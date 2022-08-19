@@ -12,6 +12,7 @@
 #include "ConfMan.hh"
 #include "Kinematics.hh"
 #include "DCGeomMan.hh"
+#include "FieldMan.hh"
 #include "DatabasePDG.hh"
 #include "DetectorID.hh"
 #include "MathTools.hh"
@@ -22,6 +23,8 @@
 #include "DCHit.hh"
 #include "TPCLocalTrackHelix.hh"
 #include "TPCHit.hh"
+#include "TPCPadHelper.hh"
+#include "ThreeVector.hh"
 
 #include "HypTPCFitter.hh"
 #include "HypTPCTask.hh"
@@ -39,7 +42,6 @@ const std::string& class_name("GenfitHelixGeant4");
 using hddaq::unpacker::GUnpacker;
 const auto& gUnpacker = GUnpacker::get_instance();
 ConfMan&            gConf = ConfMan::GetInstance();
-const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
 const UserParamMan& gUser = UserParamMan::GetInstance();
 const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
 debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
@@ -51,7 +53,8 @@ const Int_t MaxTPCTracks = 100;
 const bool IsWithRes = true;
 
 //For GenFit Setting
-const bool Const_field = true;
+//const bool Const_field = true;
+const bool Const_field = false;
 const Int_t verbosity = 0;//3;
 const auto& tpcGeo = ConfMan::Get<TString>("TPCGDML");
 }
@@ -109,6 +112,10 @@ struct Event
   Double_t mom0_y[MaxTPCTracks];
   Double_t mom0_z[MaxTPCTracks];
   Double_t mom0[MaxTPCTracks];
+  Double_t pathT[MaxTPCTracks];
+  Double_t hitresolution_x[MaxTPCTracks][MaxTPCHits];
+  Double_t hitresolution_y[MaxTPCTracks][MaxTPCHits];
+  Double_t hitresolution_z[MaxTPCTracks][MaxTPCHits];
   Int_t hitlayer[MaxTPCTracks][MaxTPCHits];
   Double_t hitpos_x[MaxTPCTracks][MaxTPCHits];
   Double_t hitpos_y[MaxTPCTracks][MaxTPCHits];
@@ -145,8 +152,11 @@ struct Event
   Int_t GFstatus;
   Int_t GFntTpc;
   Int_t GFinside[MaxTPCTracks];
+  Int_t GFndf[MaxTPCTracks];
+  Int_t GFnhits[MaxTPCTracks];
   Double_t GFtracklen[MaxTPCTracks];
   Double_t GFchisqr[MaxTPCTracks];
+  Double_t GFpval[MaxTPCTracks];
   Double_t GFtof[MaxTPCTracks];
   Double_t GFmom[MaxTPCTracks];
   Double_t GFcharge[MaxTPCTracks];
@@ -157,7 +167,8 @@ struct Event
   Double_t GFzHtof[MaxTPCTracks];
   Double_t GFtracklenHtof[MaxTPCTracks];
   Double_t GFtofHtof[MaxTPCTracks];
-
+  Double_t GFpulls[MaxTPCTracks][5];
+  Double_t GFresiduals[MaxTPCTracks][5];
 };
 
 //_____________________________________________________________________
@@ -297,6 +308,7 @@ dst::InitializeEvent( void )
   event.GFstatus = 0;
   event.GFntTpc = 0;
   event.GFnhHtof = 0;
+
   for(Int_t i=0; i<MaxTPCTracks; ++i){
     event.g4tidTpc[i] =0;
     event.g4nhtrack[i] =0;
@@ -312,8 +324,9 @@ dst::InitializeEvent( void )
     event.mom0_y[i] =qnan;
     event.mom0_z[i] =qnan;
     event.mom0[i] =qnan;
-
+    event.pathT[i] =qnan;
     event.GFchisqr[i] =qnan;
+    event.GFpval[i] =qnan;
     event.GFtracklen[i] =qnan;
     event.GFtof[i] =qnan;
     event.GFmom[i] =qnan;
@@ -324,12 +337,22 @@ dst::InitializeEvent( void )
     event.GFzHtof[i] =qnan;
     event.GFtracklenHtof[i] =qnan;
     event.GFtofHtof[i] =qnan;
+    event.GFndf[i] =0;
+    event.GFnhits[i] =0;
+    for(Int_t j=0; j<5; ++j){
+      event.GFpulls[i][j] =qnan;
+      event.GFresiduals[i][j] =qnan;
+    }
+
     for(Int_t j=0; j<MaxTPCHits; ++j){
       event.hitlayer[i][j] =-999;
       event.mom_x[i][j] =qnan;
       event.mom_y[i][j] =qnan;
       event.mom_z[i][j] =qnan;
       event.mom[i][j] =qnan;
+      event.hitresolution_x[i][j] =qnan;
+      event.hitresolution_y[i][j] =qnan;
+      event.hitresolution_z[i][j] =qnan;
       event.g4mom_x[i][j] =qnan;
       event.g4mom_y[i][j] =qnan;
       event.g4mom_z[i][j] =qnan;
@@ -388,7 +411,6 @@ bool
 dst::DstRead( Int_t ievent )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"]");
-
 
   if( ievent%10000==0 ){
     std::cout << "#D Event Number: "
@@ -454,14 +476,14 @@ dst::DstRead( Int_t ievent )
   HF1( k18Hid, event.ntTpc );
   for( Int_t it=0; it<ntTpc; ++it ){
     TPCLocalTrackHelix *tp= DCAna->GetTrackTPCHelix(it);
-   if(!tp) continue;
+    if(!tp) continue;
     Int_t nh = tp->GetNHit();
     Double_t chisqr = tp->GetChiSquare();
     Double_t cx = tp->Getcx(), cy = tp->Getcy();
     Double_t z0 = tp->Getz0(), r = tp->Getr();
     Double_t dz = tp->Getdz();
     TVector3 mom0 = tp->GetMom0();
-
+    event.pathT[it] = tp -> GetTransversePath();
     event.nhtrack[it] = nh;
     event.chisqr[it] = chisqr;
     event.helix_cx[it] = cx;
@@ -473,7 +495,6 @@ dst::DstRead( Int_t ievent )
     event.mom0_y[it] = mom0.Y();
     event.mom0_z[it] = mom0.Z();
     event.mom0[it] = mom0.Mag();
-
     Double_t offset_tracklen = 0; Double_t offset_tof = 0;
     for( Int_t ih=0; ih<nh; ++ih ){
       TPCLTrackHit *hit=tp->GetHit(ih);
@@ -485,7 +506,6 @@ dst::DstRead( Int_t ievent )
       Double_t residual = hit->GetResidual();
       TVector3 res_vect = hit->GetResidualVect();
       TVector3 mom = hit->GetMomentumHelix();
-
       Double_t checker=9999;
       for( Int_t ih2=0; ih2<src.nhittpc; ++ih2 ){
 	TVector3 setpos;
@@ -519,7 +539,9 @@ dst::DstRead( Int_t ievent )
 	offset_tracklen = event.tracklen[it][ih];
 	offset_tof = event.tof[it][ih];
       }
-
+      event.hitresolution_x[it][ih] = hit->GetResolutionVect().x();
+      event.hitresolution_y[it][ih] = hit->GetResolutionVect().y();
+      event.hitresolution_z[it][ih] = hit->GetResolutionVect().z();
       event.tracklen[it][ih] -= offset_tracklen;
       event.tof[it][ih] -= offset_tof;
       event.hitlayer[it][ih] = layerId;
@@ -538,13 +560,6 @@ dst::DstRead( Int_t ievent )
       event.residual_y[it][ih] = res_vect.y();
       event.residual_z[it][ih] = res_vect.z();
     } //ih
-    HF1( k18Hid+1, event.nhtrack[it]);
-    HF1( k18Hid+2, event.mom0[it]);
-    HF1( k18Hid+3, event.residual_p[it][0]);
-    HF1( k18Hid+4, event.chisqr[it]);
-    HF1( k18Hid+5, event.tracklen[it][nh-1]);
-    HF1( k18Hid+6, event.tof[it][nh-1]);
-
     //Add tracks into the GenFit TrackCand
     if(event.g4pid[it][0]!=0) GFtracks.AddHelixTrack(event.g4pid[it][0], tp);
   } //it
@@ -562,41 +577,74 @@ dst::DstRead( Int_t ievent )
     event.GFntTpc++;
     event.GFchisqr[igf]=GFtracks.GetChi2NDF(igf);
     event.GFcharge[igf]=GFtracks.GetCharge(igf);
-    event.GFmom[igf]=GFtracks.GetMom(igf).Mag();
-    event.GFresidual_p[igf]=event.GFmom[igf]-event.g4mom[igf][0];
     event.GFtof[igf]=GFtracks.GetTrackTOF(igf);
     event.GFtracklen[igf]=GFtracks.GetTrackLength(igf);
-    TVector3 htofhit; double len; double tof;
-    if(GFtracks.ExtrapolateToHTOF(igf,htofhit,len,tof)){
+    event.GFpval[igf]=GFtracks.GetPvalue(igf);
+    event.GFndf[igf]=GFtracks.GetNDF(igf);
+    event.GFnhits[igf]=GFtracks.GetNHits(igf);
+    TVector3 htofhit; TVector3 htofmom; double htoflen; double htoftof;
+    if(GFtracks.ExtrapolateToHTOF(igf,htofhit,htofmom,htoflen,htoftof)){
       event.GFnhHtof++;
       event.GFxHtof[igf]=htofhit.x();
       event.GFyHtof[igf]=htofhit.y();
       event.GFzHtof[igf]=htofhit.z();
-      event.GFtracklenHtof[igf]=len;
-      event.GFtofHtof[igf]=tof;
+      event.GFtracklenHtof[igf]=htoflen;
+      event.GFtofHtof[igf]=htoftof;
     }
-    TVector3 posv; TVector3 target(0.,0.,-143.);
-    GFtracks.ExtrapolateToPoint(igf,target,posv);
+    TVector3 target(0.,0.,tpc::ZTarget);
+    TVector3 posv; TVector3 momv; double len; double tof;
+    GFtracks.ExtrapolateToPoint(igf,target,posv,momv,len,tof);
+    event.GFmom[igf]=momv.Mag();
+
     if(!GFtracks.IsInsideTarget(igf)) event.GFinside[igf]=1;
     else event.GFinside[igf]=0;
-    HF1( genfitHid+1, GFtracks.GetNHit(igf));
-    HF1( genfitHid+2, event.GFmom[igf]);
-    HF1( genfitHid+3, event.GFresidual_p[igf]);
-    HF1( genfitHid+4, event.GFchisqr[igf]);
-    HF1( genfitHid+5, event.GFtracklen[igf]);
-    HF1( genfitHid+6, event.GFtof[igf]);
     HF1( genfitHid+7, posv.x());
     HF1( genfitHid+8, posv.y());
     HF1( genfitHid+9, posv.z());
-    TVector3 pos(event.g4pos_x[igf][0],event.g4pos_y[igf][0],event.g4pos_z[igf][0]);
-    TVector3 mom(event.g4mom_x[igf][0],event.g4mom_y[igf][0],event.g4mom_z[igf][0]);
-    double residual[5]; double pull[5];
-    if(GFtracks.GetTrackPull(igf,GFtracks.GetPDGcode(igf),mom,pos,residual,pull)){
-      for(Int_t i=0; i<5; ++i) HF1( genfitHid+10+i, pull[i]);
-    }
-    HF1( genfitHid+15, GFtracks.GetPvalue(igf));
+    HF1( genfitHid+15, event.GFpval[igf]);
   }
   HF1( genfitHid, event.GFntTpc );
+
+  for(int it=0;it<event.g4ntTpc;it++){
+    if(event.ntTpc==event.g4ntTpc && event.GFntTpc==event.g4ntTpc){
+      TVector3 resolution(event.hitresolution_x[it][0],event.hitresolution_y[it][0],event.hitresolution_z[it][0]);
+      TVector3 pos(event.g4pos_x[it][0],event.g4pos_y[it][0],event.g4pos_z[it][0]);
+      TVector3 mom(event.g4mom_x[it][0],event.g4mom_y[it][0],event.g4mom_z[it][0]);
+      double residual[5]; double pull[5]; double residual6D[6]; double pull6D[6];
+      if(GFtracks.GetTrackPull(it,GFtracks.GetPDGcode(it),resolution,event.tracklen[it][event.nhtrack[it]-1],mom,pos,residual,pull,residual6D,pull6D)){
+	for(Int_t i=0; i<5; ++i){
+	  HF1( genfitHid+10+i, pull[i]);
+	  event.GFpulls[it][i]=pull[i];
+	  event.GFresiduals[it][i]=residual[i];
+	  HF1( genfitHid+1, event.GFnhits[it]);
+	  if(i!=0) HF1( genfitHid+15+i, residual[i]);
+	}
+	event.GFresidual_p[it]=residual[0];
+	for(Int_t i=0; i<6; ++i){
+	  HF1( genfitHid+20+i, pull6D[i]);
+	  HF1( genfitHid+26+i, residual6D[i]);
+	}
+      }
+      HF1( k18Hid+1, event.nhtrack[it]);
+      HF1( k18Hid+2, event.mom0[it]);
+      HF1( k18Hid+3, event.residual_p[it][0]);
+      HF1( k18Hid+4, event.chisqr[it]);
+      HF1( k18Hid+5, event.tracklen[it][event.nhtrack[it]-1]);
+      HF1( k18Hid+6, event.tof[it][event.nhtrack[it]-1]);
+      HF1( k18Hid+7, event.residual_x[it][0]);
+      HF1( k18Hid+8, event.residual_y[it][0]);
+      HF1( k18Hid+9, event.residual_z[it][0]);
+      HF1( k18Hid+10, event.residual_px[it][0]);
+      HF1( k18Hid+11, event.residual_py[it][0]);
+      HF1( k18Hid+12, event.residual_pz[it][0]);
+      HF1( genfitHid+1, event.GFnhits[it]);
+      HF1( genfitHid+2, event.GFmom[it]);
+      HF1( genfitHid+3, event.GFresidual_p[it]);
+      HF1( genfitHid+4, event.GFchisqr[it]);
+      HF1( genfitHid+5, event.GFtracklen[it]);
+      HF1( genfitHid+6, event.GFtof[it]);
+    }
+  }
 
   GFtracks.Init();
   HF1( 2, event.GFstatus++ );
@@ -643,6 +691,12 @@ ConfMan::InitializeHistograms( void )
   HB1(k18Hid+4, "[K1.8] Chisqr/ndf;", 1000, 0, 50 );
   HB1(k18Hid+5, "[K1.8] Track Length; Length [mm]; Counts [/1 mm]", 500, 0, 500 );
   HB1(k18Hid+6, "[K1.8] Tof; Tof [ns]; Counts [/0.01 ns]", 500, 0, 5 );
+  HB1(k18Hid+7, "[K1.8] Residual x;Residual x [mm]; Number of Tracks", 500, -1, 1);
+  HB1(k18Hid+8, "[K1.8] Residual y;Residual y [mm]; Number of Tracks", 500, -1, 1);
+  HB1(k18Hid+9, "[K1.8] Residual z;Residual z [mm]; Number of Tracks", 500, -1, 1);
+  HB1(k18Hid+10, "[K1.8] p_x Residual;Residual [GeV/c]; Number of Tracks", 500, -0.1, 0.1);
+  HB1(k18Hid+11, "[K1.8] p_y Residual;Residual [GeV/c]; Number of Tracks", 500, -0.1, 0.1);
+  HB1(k18Hid+12, "[K1.8] p_z Residual;Residual [GeV/c]; Number of Tracks", 500, -0.1, 0.1);
   HB1(genfitHid, "[GenFit] #Track TPC", 10, 0., 10. );
   HB1(genfitHid+1, "[GenFit] #Hits of Track TPC", 33, 0., 33. );
   HB1(genfitHid+2, "[GenFit] Reconstructed P; P [GeV/c]; Counts [/0.001 GeV/c]", 1500, 0., 1.5 );
@@ -653,12 +707,28 @@ ConfMan::InitializeHistograms( void )
   HB1(genfitHid+7, "[GenFit] Vertex X; Vertex X [mm]; Counts [/0.1 mm]", 500, -25, 25 );
   HB1(genfitHid+8, "[GenFit] Vertex Y; Vertex Y [mm]; Counts [/0.1 mm]", 500, -25, 25 );
   HB1(genfitHid+9, "[GenFit] Vertex Z; Vertex Z [mm]; Counts [/0.1 mm]", 500, -143-25, -143+25 );
-  HB1(genfitHid+10, "[GenFit] q/p;pull; Number of Tracks", 240, -6, 6);
-  HB1(genfitHid+11, "[GenFit] slope u';pull; Number of Tracks", 1000, -20, 20);
-  HB1(genfitHid+12, "[GenFit] slope v';pull; Number of Tracks", 1000, -20, 20);
-  HB1(genfitHid+13, "[GenFit] coord. u;pull; Number of Tracks", 240, -6, 6);
-  HB1(genfitHid+14, "[GenFit] coord. v;pull; Number of Tracks", 240, -6, 6);
-  HB1(genfitHid+15, "[GenFit] p-value;p-value; Number of Tracks", 100, 0, 1);
+  HB1(genfitHid+10, "[GenFit] Track pull q/p;pull; Number of Tracks", 1000, -6, 6);
+  HB1(genfitHid+11, "[GenFit] Track pull u';pull; Number of Tracks", 1000, -6, 6);
+  HB1(genfitHid+12, "[GenFit] Track pull v';pull; Number of Tracks", 1000, -6, 6);
+  HB1(genfitHid+13, "[GenFit] Track pull u;pull; Number of Tracks", 1000, -6, 6);
+  HB1(genfitHid+14, "[GenFit] Track pull v;pull; Number of Tracks", 1000, -6, 6);
+  HB1(genfitHid+15, "[GenFit] p-value;p-value; Number of Tracks", 100, -0.05, 1.05);
+  HB1(genfitHid+16, "[GenFit] Residual u';Residual; Number of Tracks", 100, -0.03, 0.03);
+  HB1(genfitHid+17, "[GenFit] Residual v';Residual; Number of Tracks", 100, -0.03, 0.03);
+  HB1(genfitHid+18, "[GenFit] Residual u;Residual [cm]; Number of Tracks", 100, -0.1, 0.1);
+  HB1(genfitHid+19, "[GenFit] Residual v;Residual [cm]; Number of Tracks", 100, -0.1, 0.1);
+  HB1(genfitHid+20, "[GenFit] pull x;pull; Number of Tracks", 1000, -6, 6);
+  HB1(genfitHid+21, "[GenFit] pull y;pull; Number of Tracks", 1000, -6, 6);
+  HB1(genfitHid+22, "[GenFit] pull z;pull; Number of Tracks", 1000, -6, 6);
+  HB1(genfitHid+23, "[GenFit] pull P_x;pull; Number of Tracks", 1000, -6, 6);
+  HB1(genfitHid+24, "[GenFit] pull P_y;pull; Number of Tracks", 1000, -6, 6);
+  HB1(genfitHid+25, "[GenFit] pull P_z;pull; Number of Tracks", 1000, -6, 6);
+  HB1(genfitHid+26, "[GenFit] Residual x;Residual x [cm]; Number of Tracks", 500, -0.1, 0.1);
+  HB1(genfitHid+27, "[GenFit] Residual y;Residual y [cm]; Number of Tracks", 500, -0.1, 0.1);
+  HB1(genfitHid+28, "[GenFit] Residual z;Residual z [cm]; Number of Tracks", 500, -0.1, 0.1);
+  HB1(genfitHid+29, "[GenFit] Residual P_x;Residual P_x [GeV/c]; Number of Tracks", 500, -0.1, 0.1);
+  HB1(genfitHid+30, "[GenFit] Residual P_y;Residual P_y [GeV/c]; Number of Tracks", 500, -0.1, 0.1);
+  HB1(genfitHid+31, "[GenFit] Residual P_z;Residual P_z [GeV/c]; Number of Tracks", 500, -0.1, 0.1);
 
 
   HBTree( "tpc", "tree of tpc" );
@@ -694,6 +764,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("mom0_y",event.mom0_y,"mom0_y[ntTpc]/D"); // Momentum at Y = 0
   tree->Branch("mom0_z",event.mom0_z,"mom0_z[ntTpc]/D"); // Momentum at Y = 0
   tree->Branch("mom0",event.mom0,"mom0[ntTpc]/D"); // Momentum at Y = 0
+  tree->Branch("pathT",event.pathT,"pathT[ntTpc]/D");
   tree->Branch("g4pos_x",event.g4pos_x,Form("g4pos_x[ntTpc][%d]/D",MaxTPCHits));
   tree->Branch("g4pos_y",event.g4pos_y,Form("g4pos_y[ntTpc][%d]/D",MaxTPCHits));
   tree->Branch("g4pos_z",event.g4pos_z,Form("g4pos_z[ntTpc][%d]/D",MaxTPCHits));
@@ -713,6 +784,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("mom_x",event.mom_x,Form("mom_x[ntTpc][%d]/D",MaxTPCHits));
   tree->Branch("mom_y",event.mom_y,Form("mom_y[ntTpc][%d]/D",MaxTPCHits));
   tree->Branch("mom_z",event.mom_z,Form("mom_z[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("hitresolution_x",event.hitresolution_x,Form("hitresolution_x[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("hitresolution_y",event.hitresolution_y,Form("hitresolution_y[ntTpc][%d]/D",MaxTPCHits));
+  tree->Branch("hitresolution_z",event.hitresolution_z,Form("hitresolution_z[ntTpc][%d]/D",MaxTPCHits));
   tree->Branch("mom",event.mom,Form("mom[ntTpc][%d]/D",MaxTPCHits));
   tree->Branch("tracklen",event.tracklen,Form("tracklen[ntTpc][%d]/D",MaxTPCHits));
   tree->Branch("tof",event.tof,Form("tof[ntTpc][%d]/D",MaxTPCHits));
@@ -733,10 +807,15 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFinside",event.GFinside,"GFinside[GFntTpc]/D");
   tree->Branch("GFresidual_p",event.GFresidual_p,"GFresidual_p[GFntTpc]/D");
   tree->Branch("GFchisqr",event.GFchisqr,"GFchisqr[GFntTpc]/D");
+  tree->Branch("GFpval",event.GFpval,"GFpval[GFntTpc]/D");
   tree->Branch("GFmom",event.GFmom,"GFmom[GFntTpc]/D");
   tree->Branch("GFcharge",event.GFcharge,"GFcharge[GFntTpc]/D");
   tree->Branch("GFtracklen",event.GFtracklen,"GFtracklen[GFntTpc]/D");
   tree->Branch("GFtof",event.GFtof,"GFtof[GFntTpc]/D");
+  tree->Branch("GFndf",event.GFndf,"GFndf[GFntTpc]/I");
+  tree->Branch("GFnhits",event.GFnhits,"GFnhits[GFntTpc]/I");
+  tree->Branch("GFpulls",event.GFpulls,"GFpulls[GFntTpc][5]/D");
+  tree->Branch("GFresiduals",event.GFresiduals,"GFresiduals[GFntTpc][5]/D");
 
   tree->Branch("GFnhHtof",&event.GFnhHtof,"GFnhHtof/I");
   tree->Branch("GFxHtof",event.GFxHtof,"GFxHtof[GFntTpc]/D");
@@ -879,6 +958,7 @@ ConfMan::InitializeParameterFiles( void )
   return
     ( InitializeParameter<DCGeomMan>("DCGEO")   &&
       InitializeParameter<UserParamMan>("USER") &&
+      InitializeParameter<FieldMan>("FLDMAP", "HSFLDMAP") &&
       InitializeParameter<HodoPHCMan>("HDPHC") );
 }
 

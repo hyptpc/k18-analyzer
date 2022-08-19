@@ -22,12 +22,16 @@ const HypTPCHit* dethit, const TrackCandHit* hit)
     int nDim = 3;
     TMatrixDSym hitCov(nDim);
     hitCov.Zero();
-    hitCov(0, 0) = res_vect.X() * res_vect.X()/100.;
-    hitCov(1, 1) = res_vect.Y() * res_vect.Y()/100.;
-    hitCov(2, 2) = res_vect.Z() * res_vect.Z()/100.;
+
+    //Transverse & Vertical position resolution
+    double resT = 0.1*TMath::Sqrt(0.5*res_vect.X()*res_vect.X() + 0.5*res_vect.Z()*res_vect.Z()); //mm -> cm
+    double resY = 0.1*res_vect.Y();
+    hitCov(0, 0) = resT*resT/2.; //by assuming resX ~ resT/sqrt2
+    hitCov(1, 1) = resY*resY;
+    hitCov(2, 2) = resT*resT/2.; //by assuming resZ ~ resT/sqrt2
 
     const TVector3& pos = tpchit.GetLocalHitPos();
-    rawHitCoords_(0) = pos.X()/10.;
+    rawHitCoords_(0) = pos.X()/10.; //mm -> cm
     rawHitCoords_(1) = pos.Y()/10.;
     rawHitCoords_(2) = pos.Z()/10.;
 
