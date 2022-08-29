@@ -564,6 +564,11 @@ TPCHit::GetResolutionX()
   Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
   //Double_t sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
   Double_t sT_r = TMath::Sqrt(sT2);
+  Double_t sT_padlen = tpc::padParameter[m_layer][5]/TMath::Sqrt(12.);
+  Double_t dtheta = 360./tpc::padParameter[m_layer][3]*TMath::DegToRad();
+  Double_t dr = TMath::Hypot(sT_padlen, sT_r);
+  Double_t rdtheta = tpc::padParameter[m_layer][2]*dtheta/TMath::Sqrt(12);
+  rdtheta = TMath::Hypot(rdtheta, sT_r);
 
 #if 0
   //Check Tmporary change
@@ -572,12 +577,12 @@ TPCHit::GetResolutionX()
     Double_t padsize = Rpad*2.*TMath::Pi()/tpc::padParameter[m_layer-1][3];
     //sT_r = padsize/sqrt(12.);
   }
-  Double_t sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
   return TVector2(sT_r*TMath::Cos(alpha), sT_padlen*TMath::Sin(alpha)).Mod();
 #endif
 
   Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
-  return TMath::Abs(sT_r*TMath::Cos(alpha));
+  return TMath::Abs(dr*TMath::Sin(alpha)+rdtheta*TMath::Cos(alpha));
+  // return TMath::Abs(sT_r);
   //return 0.3;
 }
 
@@ -601,6 +606,11 @@ TPCHit::GetResolutionZ()
   Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
   //Double_t sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
   Double_t sT_r = TMath::Sqrt(sT2);
+  Double_t sT_padlen = tpc::padParameter[m_layer][5]/TMath::Sqrt(12.);
+  Double_t dtheta = 360./tpc::padParameter[m_layer][3]*TMath::DegToRad();
+  Double_t dr = TMath::Hypot(sT_padlen, sT_r);
+  Double_t rdtheta = tpc::padParameter[m_layer][2]*dtheta/TMath::Sqrt(12);
+  rdtheta = TMath::Hypot(rdtheta, sT_r);
 
 #if 0
   if(m_clsize ==1){
@@ -608,12 +618,11 @@ TPCHit::GetResolutionZ()
     Double_t padsize = Rpad*2.*TMath::Pi()/tpc::padParameter[m_layer-1][3];
     sT_r = padsize/sqrt(12.);
   }
-  Double_t sT_padlen = tpc::padParameter[m_layer][5]/sqrt(12.);
   return sqrt(pow(sT_r*TMath::Sin(alpha),2)+pow(sT_padlen*TMath::Cos(alpha),2));
 #endif
 
   Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
-  return TMath::Abs(sT_r*TMath::Sin(alpha));
+  return TMath::Abs(dr*TMath::Cos(alpha)-rdtheta*TMath::Sin(alpha));
   //return 0.3;
 }
 
