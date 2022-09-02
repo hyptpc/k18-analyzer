@@ -83,6 +83,7 @@ TPCCluster::Calculate()
   m_mean_phi = 0.;
   Double_t mean_y = 0.;
   Double_t buf_phi = TMath::QuietNaN();
+  Double_t buf_row = TMath::QuietNaN();
   for(const auto& hit: m_hit_array){
     const auto& pos = hit->GetPosition();
     TVector2 xz_vector(pos.X(), pos.Z());
@@ -97,15 +98,16 @@ TPCCluster::Calculate()
     const Double_t de = hit->GetCDe();
     Double_t phi = xz_vector.Phi();
     Double_t row = hit->GetRow();
-    if(TMath::Abs(phi - buf_phi) > TMath::Pi()/2.){
+    if(TMath::Abs(phi - buf_phi) > TMath::Pi()/2.)
       phi -= 2.*TMath::Pi();
+    if(TMath::Abs(row - buf_row) > 0.5*tpc::padParameter[m_layer][1])
       row -= tpc::padParameter[m_layer][1];
-    }
     m_mean_row += row * de;
     m_mean_phi += phi * de;
     mean_y += pos.Y() * de;
     m_cluster_de += de;
     buf_phi = phi;
+    buf_row = row;
   }
   m_mean_row *= 1./m_cluster_de;
   m_mean_phi *= 1./m_cluster_de;
@@ -114,6 +116,7 @@ TPCCluster::Calculate()
   xz_vector.SetMagPhi(R, m_mean_phi);
   xz_vector += target_center;
   m_cluster_position.SetXYZ(xz_vector.X(), mean_y, xz_vector.Y());
+  if(m_mean_row<0) m_mean_row += tpc::padParameter[m_layer][1];
   m_mean_hit->SetMRow(m_mean_row);
   m_mean_hit->AddHit(0., 0.);
   m_mean_hit->SetDe(m_cluster_de);
@@ -121,6 +124,23 @@ TPCCluster::Calculate()
   m_mean_hit->SetParentCluster(this);
   m_is_good = true;
   return true;
+}
+
+//_____________________________________________________________________________
+TPCHit*
+TPCCluster::GetCenterHit() const
+{
+
+  double rowdiff = 10; int id = -1;
+  for(Int_t i=0; i<m_hit_array.size(); ++i){
+    if(!m_hit_array[i]) continue;
+    double row = (double) m_hit_array[i] -> GetRow();
+    if(TMath::Abs(m_mean_row-row)<rowdiff){
+      rowdiff = TMath::Abs(m_mean_row-row);
+      id = i;
+    }
+  }
+  return m_hit_array[id];
 }
 
 //_____________________________________________________________________________

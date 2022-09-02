@@ -43,13 +43,11 @@ public:
   TPCHit*  GetHit(Int_t i) const { return m_hit_array.at(i); }
   const TPCHitContainer& GetHitContainer() const { return m_hit_array; }
   TPCHit*  GetMeanHit() const { return m_mean_hit; }
+  TPCHit*  GetCenterHit() const;
   Bool_t   IsGood() const { return m_is_good; }
   Double_t MeanRow() const { return m_mean_row; }
-  // Double_t GetDe_center() const { return m_cluster_de_center; }
   void     Print(Option_t* opt="") const;
   const TVector3& GetPosition() const { return m_cluster_position; }
-  // TVector3 GetPos_center() const { return Position_CLcenter(); }
-  // TVector3 Position_CLcenter() const;
   Double_t GetX() const { return m_cluster_position.X(); }
   Double_t GetY() const { return m_cluster_position.Y(); }
   Double_t GetZ() const { return m_cluster_position.Z(); }
