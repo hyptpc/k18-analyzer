@@ -51,9 +51,9 @@ public:
   Double_t GetX() const { return m_cluster_position.X(); }
   Double_t GetY() const { return m_cluster_position.Y(); }
   Double_t GetZ() const { return m_cluster_position.Z(); }
-  Double_t ResolustionX() const { return m_mean_hit->GetResolutionX(); }
-  Double_t ResolustionY() const { return m_mean_hit->GetResolutionY(); }
-  Double_t ResolustionZ() const { return m_mean_hit->GetResolutionZ(); }
+  Double_t ResolutionX() const { return m_mean_hit->GetResolutionX(); }
+  Double_t ResolutionY() const { return m_mean_hit->GetResolutionY(); }
+  Double_t ResolutionZ() const { return m_mean_hit->GetResolutionZ(); }
 };
 
 //_____________________________________________________________________________

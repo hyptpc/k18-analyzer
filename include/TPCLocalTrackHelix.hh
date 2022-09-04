@@ -88,7 +88,7 @@ public:
   TPCLTrackHit* GetHit(std::size_t nth) const;
   bool         IsFitted() const { return m_is_fitted; }
   bool         IsCalculated() const { return m_is_calculated; }
-  bool         Residual_check(TVector3 pos, TVector3 Res, double resi);
+  bool         Residual_check(TVector3 pos, TVector3 Res, double &resi);
   double       GetTcal(TVector3 pos);
   void         CalcChi2(void);
   double       CalcChi2_circle(double par[3]);
