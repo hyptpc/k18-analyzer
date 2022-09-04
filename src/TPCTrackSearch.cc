@@ -430,6 +430,7 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 
   std::vector<Double_t> hough_x;
   std::vector<Double_t> hough_y;
+  std::vector<Double_t> hough_z;
 
   for(Int_t tracki=0; tracki<MaxNumOfTrackTPC; tracki++){
     h1.Reset();
@@ -473,12 +474,13 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
     Double_t mr = h1.GetYaxis()->GetBinCenter(my);
     Bool_t hough_flag = true;
     for(Int_t i=0; i<hough_x.size(); ++i){
-      Int_t bindiff = TMath::Abs(mx-hough_x[i]) + TMath::Abs(my-hough_y[i]);
+      Int_t bindiff = TMath::Abs(mx-hough_x[i]) + TMath::Abs(my-hough_y[i]) + TMath::Abs(mz-hough_z[i]);
       if(bindiff<=4)
         hough_flag = false;
     }
     hough_x.push_back(mx);
     hough_y.push_back(my);
+    hough_z.push_back(mz);
     if(!hough_flag) continue;
     TPCLocalTrack *track = new TPCLocalTrack;
     p0[tracki] = mr/TMath::Sin(mtheta);
@@ -800,7 +802,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   static const Double_t MaxLayerCut = gUser.GetParameter("TPCMaxLayerCut");
   // static const Double_t DECut_TPCTrack = gUser.GetParameter("DECut_TPCTrack");
   Bool_t status = true;
-  
+
   //    if(valueHall) { // TODO
   //    }
   const Double_t Const = 0.299792458;
@@ -836,7 +838,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   const int    r_ndiv =  2000;
   const double r_min  = -5000;
   const double r_max  =  5000;
-  
+
   //for TPC circle track
 
   //start from hougy by using the HoughYcut info
@@ -866,12 +868,12 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   std::vector<Double_t> hough_x;
   std::vector<Double_t> hough_y;
   std::vector<Double_t> hough_z;
-  
+
   bool prev_add = true;
 
 
 
-  
+
   for(Int_t tracki=0; tracki<MaxNumOfTrackTPC; tracki++){
     //debug  std::cout<<"DCTrackSearch, tracki:"<<tracki<<", prev_add"<<prev_add<<std::endl;
     if(!prev_add)
@@ -900,8 +902,8 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 	//debug  std::cout<<"pos:("<<pos.x()<<", "<<pos.y()<<", "<<pos.z()<<"), Flag:"<<hit->GetHoughFlag()<<std::endl;
 	if(hit->GetHoughFlag()>0)
 	  continue;
-	
-	
+
+
 	for(Int_t ird=0; ird<nBin_rdiff; ++ird){
 	  Double_t rd = Ci_hist->GetXaxis()->GetBinCenter(ird+1);
 	  for(Int_t ip=0; ip<nBin_p; ++ip){
@@ -977,7 +979,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
     Ci_hist->GetBinXYZ(maxbin, mx, my, mz);
 
     //debug   std::cout<<"(x,z) hough maxbin:"<<Ci_hist->GetBinContent(maxbin)<<std::endl;
-      
+
     Bool_t hough_flag = true;
     for(Int_t i=0; i<hough_x.size(); ++i){
       Int_t bindiff = fabs(mx-hough_x[i])+fabs(my-hough_y[i])+fabs(mz-hough_z[i]);
@@ -1008,8 +1010,8 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 #if DebugDisp
     std::cout<<"Hough(rd, theta, p)=("<<hough_rd[tracki]<<", "
 	     <<hough_theta[tracki]<<", "<<hough_p[tracki]<<")"<<std::endl;
-#endif 
-     
+#endif
+
     Double_t hough_r = hough_p[tracki]/Const;
     Double_t hough_cx = (hough_r + hough_rd[tracki])*cos(hough_theta[tracki]);
     Double_t hough_cy = (hough_r + hough_rd[tracki])*sin(hough_theta[tracki]);
@@ -1048,12 +1050,12 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 	  //   track->AddTPCHit(new TPCLTrackHit(hit));
 	  //	    }
 	  // else
-	    
+
 
 	  //flag[layer][ci]++;
-	    
+
 	  //track->AddTPCHit(new TPCLTrackHit(hit));
-	    
+
 	  for(int ti=0; ti<thetaY_ndiv; ti++){
 	    double theta = thetaY_min+ti*(thetaY_max-thetaY_min)/thetaY_ndiv;
 	    double tmpx = -pos.x();
@@ -1065,7 +1067,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 	    histY->Fill(theta, cos(theta*acos(-1.)/180.)*tmp_xval
 			+sin(theta*acos(-1.)/180.)*tmpz);
 	  }
-	    
+
 	}
       }
     }
@@ -1073,17 +1075,17 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
     int maxbinY = histY->GetMaximumBin();
     int mxY,myY,mzY;
     histY->GetBinXYZ(maxbinY, mxY, myY, mzY);
-      
+
     double mtheta = histY->GetXaxis()->GetBinCenter(mxY)*acos(-1.)/180.;
     double mr = histY->GetYaxis()->GetBinCenter(myY);
-      
+
     double p0 = mr/sin(mtheta);
     double p1 = -cos(mtheta)/sin(mtheta);
 #if DebugDisp
     std::cout<<"(Y,phi) hough maxbin:"<<histY->GetBinContent(maxbinY)<<std::endl;
     std::cout<<"Hough (theta, r)=("<<mtheta<<", "<<mr<<")"<<std::endl;
 #endif
-      
+
     for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
       for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
 	//if(flag[layer][ci]>0) continue;
@@ -1101,14 +1103,14 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 	Double_t dist = fabs(r_cal - hough_r);
 	//if(dist < HoughWindowCut && layer < MaxLayerCut && de>DECut_TPCTrack){
 	if(dist < MaxHoughWindow && layer < MaxLayerCut){
-	    
+
 	  double tmpx = -pos.x();
 	  double tmpy = pos.z()-tpc::ZTarget;
 	  double tmpz = pos.y();
 	  double tmp_t = atan2(tmpy - hough_cy,
 			       tmpx - hough_cx);
 	  double tmp_xval = hough_r * tmp_t;
-	  
+
 	  double distY= fabs(p1*tmp_xval-tmpz+p0)/sqrt(pow(p1,2)+1);
 	  //double dist_sum = sqrt(dist*dist+distY*distY);
 	  //double dist_sum = dist+distY;
@@ -1136,7 +1138,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
     track->SetAr(hough_r);
 
 
-     
+
 
     // if(ity==0){
     // 	if(track->DoFit(3,1)){
@@ -1208,7 +1210,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 #if DebugDisp
 	  std::cout<<"Error !! (DCTrackSearch)"<<std::endl;
 	  getchar();
-#endif	    
+#endif
 	  delete track;
 	}
       }
