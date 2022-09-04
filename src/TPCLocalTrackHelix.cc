@@ -134,6 +134,7 @@ TPCLocalTrackHelix::TPCLocalTrackHelix()
     m_mom0_corN(0.,0.,0.),
     m_min_t(0.), m_max_t(0.),
     m_path(0.),
+    m_transverse_path(0.),
     m_isbeam(0)
 {
   m_hit_array.reserve(ReservedNumOfHits);
@@ -525,7 +526,7 @@ static inline void fcn2(int &npar, double *gin, double &f, double *par, int ifla
 
     chisqr += pow(d.x()/Res.x(), 2) + pow(d.y()/Res.y(), 2) + pow(d.z()/Res.z(), 2);
     //    chisqr += pow(dxz/Resxz, 2) + pow(d.y()/Res.y(), 2);
-   
+
 
     dof++;
     dof++;
@@ -571,7 +572,7 @@ static inline void fcn2_circ(int &npar, double *gin, double &f, double *par, int
     TVector2 d = pos_ - fittmp_;
     double dxy = d.Mod();
     double resxy = sqrt(pow(gRes[i].x(), 2) + pow(gRes[i].z(), 2));
-    
+
     chisqr += pow(d.X()/gRes[i].x(), 2) + pow(d.Y()/gRes[i].z(), 2);
     //chisqr += pow(dxy/resxy,2);
     dof++;
@@ -628,7 +629,7 @@ static inline double circleFit(const double *mX,const double *mY, const int npoi
   double f, g, h, p, q, t, g0, g02, a, b, c, d;
   double xroot, ff, fp, xd, yd, g1;
   double dx, dy, dradius2, xnom;
-  
+
   double xgravity = 0.0;
   double ygravity = 0.0;
   double x2 = 0.0;
@@ -655,7 +656,7 @@ static inline double circleFit(const double *mX,const double *mY, const int npoi
   }
   xgravity /= npoints;
   ygravity /= npoints;
-    
+
   for (int i=0; i<npoints; i++) {
     xx  = mX[i]-xgravity;
     yy  = mY[i]-ygravity;
@@ -707,7 +708,7 @@ static inline double circleFit(const double *mX,const double *mY, const int npoi
   }
 
   xd = (p-h*yd )/xnom;
-    
+
   radius2 = xd*xd+yd*yd+g1;
   *mXCenter = xd+xgravity;
   *mYCenter = yd+ygravity;
@@ -717,7 +718,7 @@ static inline double circleFit(const double *mX,const double *mY, const int npoi
     dradius2 = dx*dx+dy*dy;
     mVariance += dradius2+radius2-2.*sqrt(dradius2*radius2);
   }
-  
+
   *mRadius  = (double) sqrt(radius2);
 
   return  mVariance;
@@ -1235,6 +1236,7 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   m_min_t = mint;
   m_max_t = maxt;
   m_path = (maxt-mint)*sqrt(m_r*m_r*(1.+m_dz*m_dz));
+  m_transverse_path = (maxt-mint)*m_r;
 
 #if DebugDisp
   std::cout<<"m_chisqr: "<<m_chisqr
@@ -1477,7 +1479,7 @@ TPCLocalTrackHelix::CalcChi2_circle(double par[3])
     TVector2 d = pos2 - fittmp_;
     double dxy = d.Mod();
     double resxy = sqrt(pow(Res.x(), 2) + pow(Res.z(), 2));
-    
+
     chisqr += pow(d.X()/Res.x(), 2) + pow(d.Y()/Res.z(), 2);
     //chisqr += pow(dxy/resxy,2);
     dof++;
