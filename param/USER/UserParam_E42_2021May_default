@@ -140,6 +140,7 @@ MinClusterDeTPC		0
 ### TPC Hough Window cut
 MinClusterSizeTPC 1
 MaxHoughWindow 10
+MaxHoughWindowY 15
 #TPCMaxLayerCut 28
 TPCMaxLayerCut 33
 

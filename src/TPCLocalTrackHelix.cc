@@ -36,6 +36,7 @@
 
 //#define HSMagnetON 1
 
+#define DebugDisp    0
 
 namespace
 {
@@ -83,6 +84,7 @@ namespace
   //static const double  UpLimit2[5] = { 1000., acos(-1), 7000., 100000., 10. };
 
   static const double  MaxChisqr = 500.;
+  //  static const double  MaxChisqr = 10000.;
   //static const double  MaxChisqr = 100.;
   //  static const int  MaxTryMinuit = 3;
   static const int  MaxTryMinuit = 0;
@@ -132,7 +134,6 @@ TPCLocalTrackHelix::TPCLocalTrackHelix()
     m_mom0_corN(0.,0.,0.),
     m_min_t(0.), m_max_t(0.),
     m_path(0.),
-    m_transverse_path(0.),
     m_isbeam(0)
 {
   m_hit_array.reserve(ReservedNumOfHits);
@@ -524,7 +525,7 @@ static inline void fcn2(int &npar, double *gin, double &f, double *par, int ifla
 
     chisqr += pow(d.x()/Res.x(), 2) + pow(d.y()/Res.y(), 2) + pow(d.z()/Res.z(), 2);
     //    chisqr += pow(dxz/Resxz, 2) + pow(d.y()/Res.y(), 2);
-
+   
 
     dof++;
     dof++;
@@ -570,7 +571,7 @@ static inline void fcn2_circ(int &npar, double *gin, double &f, double *par, int
     TVector2 d = pos_ - fittmp_;
     double dxy = d.Mod();
     double resxy = sqrt(pow(gRes[i].x(), 2) + pow(gRes[i].z(), 2));
-
+    
     chisqr += pow(d.X()/gRes[i].x(), 2) + pow(d.Y()/gRes[i].z(), 2);
     //chisqr += pow(dxy/resxy,2);
     dof++;
@@ -627,7 +628,7 @@ static inline double circleFit(const double *mX,const double *mY, const int npoi
   double f, g, h, p, q, t, g0, g02, a, b, c, d;
   double xroot, ff, fp, xd, yd, g1;
   double dx, dy, dradius2, xnom;
-
+  
   double xgravity = 0.0;
   double ygravity = 0.0;
   double x2 = 0.0;
@@ -654,7 +655,7 @@ static inline double circleFit(const double *mX,const double *mY, const int npoi
   }
   xgravity /= npoints;
   ygravity /= npoints;
-
+    
   for (int i=0; i<npoints; i++) {
     xx  = mX[i]-xgravity;
     yy  = mY[i]-ygravity;
@@ -706,7 +707,7 @@ static inline double circleFit(const double *mX,const double *mY, const int npoi
   }
 
   xd = (p-h*yd )/xnom;
-
+    
   radius2 = xd*xd+yd*yd+g1;
   *mXCenter = xd+xgravity;
   *mYCenter = yd+ygravity;
@@ -716,7 +717,7 @@ static inline double circleFit(const double *mX,const double *mY, const int npoi
     dradius2 = dx*dx+dy*dy;
     mVariance += dradius2+radius2-2.*sqrt(dradius2*radius2);
   }
-
+  
   *mRadius  = (double) sqrt(radius2);
 
   return  mVariance;
@@ -761,11 +762,11 @@ TPCLocalTrackHelix::DoFit(int MinHits, int IsBeam)
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
-  if(IsFitted()){
-    hddaq::cerr << "#W " << func_name << " "
-		<< "already called" << std::endl;
-    return false;
-  }
+  // if(IsFitted()){
+  //   hddaq::cerr << "#W " << func_name << " "
+  // 		<< "already called" << std::endl;
+  //   return false;
+  // }
   bool status_dofit =  DoHelixFit(MinHits, IsBeam);
   m_is_fitted = status_dofit;
   m_isbeam = IsBeam;
@@ -1199,19 +1200,28 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   //  if(m_chisqr > MaxChisqr||std::isnan(m_chisqr))
   //return false;
 
+
   int false_layer =0;
   int delete_hit =-1;
   double Max_residual = -100.;
   double mint=1000., maxt=-1000.;
+  int mint_hit, maxt_hit;
+  std::vector<double> t_vect;
   for(std::size_t i=0; i<m_hit_array.size(); ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
     double resi =0.;
     TVector3 pos = hitp->GetLocalHitPos();
     double t = GetTcal(pos);
-    if(mint>t)
+    if(mint>t){
       mint = t;
-    if(maxt<t)
+      mint_hit = i;
+    }
+    if(maxt<t){
       maxt = t;
+      maxt_hit = i;
+    }
+    t_vect.push_back(t);
+
     TVector3 Res = hitp->GetResolutionVect();
     if(!Residual_check(pos,Res,resi)){
       if(Max_residual<resi){
@@ -1221,13 +1231,64 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
       ++false_layer;
     }
   }
+  double t_median = TMath::Median(t_vect.size(), t_vect.data());
   m_min_t = mint;
   m_max_t = maxt;
   m_path = (maxt-mint)*sqrt(m_r*m_r*(1.+m_dz*m_dz));
-  m_transverse_path = (maxt-mint)*m_r;
 
-  if(false_layer>0)
+#if DebugDisp
+  std::cout<<"m_chisqr: "<<m_chisqr
+	   <<", m_cx: "<<m_cx
+	   <<", m_cy: "<<m_cy
+	   <<", m_z0: "<<m_z0
+	   <<", m_r: "<<m_r
+	   <<", m_dz: "<<m_dz
+	   <<", m_path: "<<m_path
+	   <<", fabs(m_min_t-m_max_t): "<<fabs(m_min_t-m_max_t)<<std::endl;
+#endif
+
+
+  //debug
+  if(false_layer>0){
+    TPCLTrackHit *hitp = m_hit_array[delete_hit];
+    TVector3 pos = hitp->GetLocalHitPos();
+#if DebugDisp
+    std::cout<<"delete hits ["<<delete_hit<<"]=("
+    	     <<pos.x()<<", "
+      	     <<pos.y()<<", "
+      	     <<pos.z()<<"), Max_residual="
+      	     <<Max_residual<<std::endl;
+#endif
+  }
+
+  if(m_path>500.||fabs(m_min_t-m_max_t)>acos(-1)){
+    if(fabs(m_min_t - t_median)>fabs(m_max_t - t_median)){
+#if DebugDisp
+    std::cout<<"delete mint, t_median="
+	     <<t_median<<", mint="<<m_min_t<<std::endl;
+#endif
+    TPCLTrackHit *hitp = m_hit_array[mint_hit];
+    TPCHit *hit = hitp->GetHit();
+    hit->SetHoughFlag(100);
+    m_hit_array.erase(m_hit_array.begin()+mint_hit);
+  }
+    else{
+#if DebugDisp
+      std::cout<<"delete maxt, t_median="
+	       <<t_median<<", maxt="<<m_max_t<<std::endl;
+#endif
+      TPCLTrackHit *hitp = m_hit_array[maxt_hit];
+      TPCHit *hit = hitp->GetHit();
+      hit->SetHoughFlag(100);
+      m_hit_array.erase(m_hit_array.begin()+maxt_hit);
+    }
+  }
+  else if(false_layer>0){
+    TPCLTrackHit *hitp = m_hit_array[delete_hit];
+    TPCHit *hit = hitp->GetHit();
+    hit->SetHoughFlag(100);
     m_hit_array.erase(m_hit_array.begin()+delete_hit);
+  }
   if(m_hit_array.size()<MinHits)
     return false;
   // for(std::size_t i=0; i<m_hit_array.size(); ++i){
@@ -1247,14 +1308,8 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
 
   //getchar();
 
-  if(false_layer ==0){
-    if(m_path<300.)
-      return true;
-    else if(fabs(m_min_t-m_max_t)<acos(-1))
-      return true;
-    else
-      return false;
-  }
+  if(false_layer ==0)
+    return true;
   else
     return DoHelixFit(MinHits, IsBeam);
 
@@ -1264,7 +1319,7 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
 
 //______________________________________________________________________________
 bool
-TPCLocalTrackHelix::Residual_check(TVector3 pos, TVector3  Res, double resi)
+TPCLocalTrackHelix::Residual_check(TVector3 pos, TVector3  Res, double &resi)
 {
 
   bool status_rescheck=false;
@@ -1294,7 +1349,20 @@ TPCLocalTrackHelix::Residual_check(TVector3 pos, TVector3  Res, double resi)
   resi = d.Mag();
   if(d.Mag()<Res.Mag()*5.)
     status_rescheck = true;
-  // else
+  else{
+#if DebugDisp
+    std::cout<<"Residual Check, pos:("
+    	     <<pos.x()<<", "
+    	     <<pos.y()<<", "
+    	     <<pos.z()<<"), res:("
+    	     <<d.x()<<", "
+	     <<d.y()<<", "
+	     <<d.z()<<"), t="
+	     <<GetTcal(pos)
+	     <<", resi="<<resi
+             <<", status:"<<status_rescheck<<std::endl;
+#endif
+  }
   //   std::cout<<"Residual: "<<d.Mag()<<std::endl;
 
   return status_rescheck;
@@ -1409,7 +1477,7 @@ TPCLocalTrackHelix::CalcChi2_circle(double par[3])
     TVector2 d = pos2 - fittmp_;
     double dxy = d.Mod();
     double resxy = sqrt(pow(Res.x(), 2) + pow(Res.z(), 2));
-
+    
     chisqr += pow(d.X()/Res.x(), 2) + pow(d.Y()/Res.z(), 2);
     //chisqr += pow(dxy/resxy,2);
     dof++;
