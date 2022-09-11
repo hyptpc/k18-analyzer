@@ -778,10 +778,6 @@ TPCLocalTrackHelix::DoFit(int MinHits, int IsBeam)
     return false;
 }
 
-
-
-
-
 //______________________________________________________________________________
 bool
 TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
@@ -791,10 +787,14 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   DeleteNullHit();
 
   const std::size_t n = m_hit_array.size();
-
-  if(n<MinHits){
-    return false;
+  std::vector<Int_t> pads;
+  for(std::size_t i=0; i<n; ++i){
+    TPCLTrackHit *hit = m_hit_array[i];
+    pads.push_back(hit -> GetHit() -> GetPad());
   }
+  std::sort(pads.begin(),pads.end());
+  pads.erase(std::unique(pads.begin(),pads.end()),pads.end());
+  if(pads.size()<MinHits) return false;
 
   if(GetNDF()<1){
     hddaq::cerr << "#W " << func_name << " "

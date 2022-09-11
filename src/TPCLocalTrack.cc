@@ -493,8 +493,14 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
   // hddaq::cout << FUNC_NAME << std::endl;
 
   const Int_t n = m_hit_array.size();
-
-  if(n<min_hits || GetNDF()<1){
+  std::vector<Int_t> pads;
+  for(Int_t i=0; i<n; ++i){
+    TPCLTrackHit *hit = m_hit_array[i];
+    pads.push_back(hit -> GetHit() -> GetLayer());
+  }
+  std::sort(pads.begin(),pads.end());
+  pads.erase(std::unique(pads.begin(),pads.end()),pads.end());
+  if(pads.size()<min_hits || GetNDF()<1){
     // hddaq::cerr << FUNC_NAME << " "
     //             << "Min layer should be > NDF" << std::endl;
     return false;
