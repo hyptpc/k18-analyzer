@@ -77,6 +77,7 @@ TPCCluster::Calculate()
 {
   static const TVector2 target_center(0., tpc::ZTarget); // (X, Z)
   const Double_t R = tpc::GetRadius(m_layer);
+ 	int max_row= tpc::padParameter[m_layer][1];
   m_cluster_de = 0.;
   m_cluster_position.SetXYZ(0., 0., 0.);
   m_mean_row = 0.;
@@ -84,7 +85,11 @@ TPCCluster::Calculate()
   Double_t mean_y = 0.;
   Double_t buf_phi = TMath::QuietNaN();
   Double_t buf_row = TMath::QuietNaN();
-  for(const auto& hit: m_hit_array){
+  bool bf1= false;//branching flag
+  bool bf2= false;//branching flag
+	double branch=0;
+	double branch_row=0;
+	for(const auto& hit: m_hit_array){
     const auto& pos = hit->GetPosition();
     TVector2 xz_vector(pos.X(), pos.Z());
     xz_vector -= target_center;
@@ -98,10 +103,12 @@ TPCCluster::Calculate()
     const Double_t de = hit->GetCDe();
     Double_t phi = xz_vector.Phi();
     Double_t row = hit->GetRow();
-    if(TMath::Abs(phi - buf_phi) > TMath::Pi()/2.)
-      phi -= 2.*TMath::Pi();
-    if(TMath::Abs(row - buf_row) > 0.5*tpc::padParameter[m_layer][1])
-      row -= tpc::padParameter[m_layer][1];
+		if(phi<TMath::Pi()/2){
+			bf1=true;//any small enough angle would be OK.
+			branch+=2*TMath::Pi()*de;
+			branch_row+=max_row*de;
+		}
+		if(phi>3*TMath::Pi()/2) bf2=true;//any small enough angle would be OK.
     m_mean_row += row * de;
     m_mean_phi += phi * de;
     mean_y += pos.Y() * de;
@@ -109,14 +116,20 @@ TPCCluster::Calculate()
     buf_phi = phi;
     buf_row = row;
   }
-  m_mean_row *= 1./m_cluster_de;
-  m_mean_phi *= 1./m_cluster_de;
-  mean_y *= 1./m_cluster_de;
+	if(bf1&&bf2){
+		m_mean_phi = fmod((m_mean_phi+branch)/m_cluster_de,2*TMath::Pi());
+		m_mean_row = fmod((m_mean_row+branch_row)/m_cluster_de,max_row);
+	}
+	else{
+		m_mean_phi *= 1./m_cluster_de;
+		m_mean_row *= 1./m_cluster_de;
+	}
+	mean_y *= 1./m_cluster_de;
   TVector2 xz_vector;
   xz_vector.SetMagPhi(R, m_mean_phi);
   xz_vector += target_center;
   m_cluster_position.SetXYZ(xz_vector.X(), mean_y, xz_vector.Y());
-  if(m_mean_row<0) m_mean_row += tpc::padParameter[m_layer][1];
+//  if(m_mean_row<0) m_mean_row += tpc::padParameter[m_layer][1];
   m_mean_hit->SetMRow(m_mean_row);
   m_mean_hit->AddHit(0., 0.);
   m_mean_hit->SetDe(m_cluster_de);
