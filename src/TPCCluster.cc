@@ -161,9 +161,12 @@ TPCCluster::GetCenterHit() const
   double rowdiff = 10; int id = -1;
   for(Int_t i=0; i<m_hit_array.size(); ++i){
     if(!m_hit_array[i]) continue;
+		int layer = m_hit_array[i]->GetLayer();
+		int max_row = tpc::padParameter[layer][1];
     double row = (double) m_hit_array[i] -> GetRow();
-    if(TMath::Abs(m_mean_row-row)<rowdiff){
-      rowdiff = TMath::Abs(m_mean_row-row);
+    double dif_row = std::min(abs(m_mean_row-row),abs(m_mean_row-row+max_row));
+		if(dif_row<rowdiff){
+      rowdiff = dif_row;
       id = i;
     }
   }
