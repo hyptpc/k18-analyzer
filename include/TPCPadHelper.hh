@@ -963,6 +963,16 @@ inline Double_t getTheta(Int_t layer, Double_t m_row)
   return theta;
 }
 
+inline Double_t getMrow(Int_t layer, Double_t m_phi)
+{
+
+  Double_t mrow = 0.5*(padParameter[layer][1]-1.) + (90.-m_phi)*padParameter[layer][3]/360.;
+  if(mrow<-0.0001){
+    mrow = 0.5*(padParameter[layer][1]-1.) + (450.-m_phi)*padParameter[layer][3]/360.;
+  }
+  return mrow;
+}
+
 inline Double_t GetRadius(Int_t layer)
 {
   return padParameter[layer][2];

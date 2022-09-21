@@ -581,7 +581,8 @@ TPCHit::GetResolutionX()
 #endif
 
   Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
-  return TMath::Abs(dr*TMath::Sin(alpha)+rdtheta*TMath::Cos(alpha));
+  //return TMath::Abs(dr*TMath::Sin(alpha)+rdtheta*TMath::Cos(alpha));
+  return TMath::Sqrt(TMath::Power(dr*TMath::Sin(alpha),2)+TMath::Power(rdtheta*TMath::Cos(alpha),2));
   // return TMath::Abs(sT_r);
   //return 0.3;
 }
@@ -622,7 +623,7 @@ TPCHit::GetResolutionZ()
 #endif
 
   Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
-  return TMath::Abs(dr*TMath::Cos(alpha)-rdtheta*TMath::Sin(alpha));
+  return TMath::Sqrt(TMath::Power(dr*TMath::Cos(alpha),2)-TMath::Power(rdtheta*TMath::Sin(alpha),2));
   //return 0.3;
 }
 
