@@ -35,7 +35,7 @@
 
 #include "RootHelper.hh"
 
-#define DebugDisp    0
+#define DebugDisp    1
 #define DebugEvDisp    0
 
 #if DebugEvDisp
@@ -1223,6 +1223,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 	if( !hit ) continue;
 	hit->SetHoughFlag(100);
 #if DebugDisp
+	TVector3 hitpos= hit->GetPosition();
 	std::cout<<"Delete tarcks: pos("
 		 <<hitpos.x()<<", "
 		 <<hitpos.y()<<", "
@@ -1258,6 +1259,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 	if( !hit ) continue;
 	hit->SetHoughFlag(1);
 #if DebugDisp
+	TVector3 hitpos= hit->GetPosition();
 	std::cout<<"SetHoughFlag: pos("
 		 <<hitpos.x()<<", "
 		 <<hitpos.y()<<", "
