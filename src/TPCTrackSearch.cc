@@ -35,7 +35,7 @@
 
 #include "RootHelper.hh"
 
-#define DebugDisp    1
+#define DebugDisp    0
 #define DebugEvDisp    0
 
 #if DebugEvDisp
