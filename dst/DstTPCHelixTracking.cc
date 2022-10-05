@@ -724,6 +724,7 @@ dst::DstRead( int ievent )
 
     double min_t = 10000.;
     double max_t = -10000.;
+    Int_t min_layer=-1, max_layer=33;
     double min_layer_t=0., max_layer_t=0.;
     // double max_layer_y=0.;
     double de=0., path_dEdx=0.;
@@ -785,10 +786,15 @@ dst::DstRead( int ievent )
 	min_t = t_cal;
       if(max_t<t_cal)
 	max_t = t_cal;
-      if(ih==0)
+      if(layer<min_layer){
+	min_layer = layer;
 	min_layer_t = t_cal;
-      if(ih==nh-1)
+      }
+      if(layer>max_layer){
+	max_layer = layer;
 	max_layer_t = t_cal;
+      }
+
       Double_t residual = hit->GetResidual();
 
       // for(int ii=0; ii<ih; ++ii){
