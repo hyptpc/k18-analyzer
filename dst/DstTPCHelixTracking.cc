@@ -724,9 +724,10 @@ dst::DstRead( int ievent )
 
     double min_t = 10000.;
     double max_t = -10000.;
-    Int_t min_layer=-1, max_layer=33;
-    double min_layer_t=0., max_layer_t=0.;
+    double min_layer_t = 0., max_layer_t = 0.;
+    Int_t min_layer = 33, max_layer = -1;
     // double max_layer_y=0.;
+
     double de=0., path_dEdx=0.;
     double de_clmulti=0., path_clmulti_dEdx=0.;
     double path_dEdx_cor=0.;
