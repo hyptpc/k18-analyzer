@@ -623,7 +623,7 @@ TPCHit::GetResolutionZ()
 #endif
 
   Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
-  return TMath::Sqrt(TMath::Power(dr*TMath::Cos(alpha),2)-TMath::Power(rdtheta*TMath::Sin(alpha),2));
+  return TMath::Sqrt(TMath::Power(dr*TMath::Cos(alpha),2)+TMath::Power(rdtheta*TMath::Sin(alpha),2));
   //return 0.3;
 }
 
