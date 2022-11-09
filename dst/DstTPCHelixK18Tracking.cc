@@ -11,6 +11,7 @@
 
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
+#include "FieldMan.hh"
 #include "DatabasePDG.hh"
 #include "DebugCounter.hh"
 #include "DetectorID.hh"
@@ -31,37 +32,42 @@
 #include "UserParamMan.hh"
 
 #define TrackSearch 1
-#define TrackCluster 0
-#define TruncatedMean 0
+#define TrackCluster 1
+#define TruncatedMean 1
 
 namespace
 {
-  using namespace root;
-  using namespace dst;
-  using hddaq::unpacker::GUnpacker;
-  const auto& gUnpacker = GUnpacker::get_instance();
-  auto&       gConf = ConfMan::GetInstance();
-  const auto& gGeom = DCGeomMan::GetInstance();
-  const auto& gUser = UserParamMan::GetInstance();
-  const auto& gPHC  = HodoPHCMan::GetInstance();
-  const auto& gCounter = debug::ObjectCounter::GetInstance();
-  const double chisqrCut = 10.;//mm
-  const double truncatedMean = 0.8; //80%
+using namespace root;
+using namespace dst;
+using hddaq::unpacker::GUnpacker;
+const auto& gUnpacker = GUnpacker::get_instance();
+auto&       gConf = ConfMan::GetInstance();
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
+const auto& gPHC  = HodoPHCMan::GetInstance();
+const auto& gCounter = debug::ObjectCounter::GetInstance();
+//position cut for gain histogram
+//  const double min_ycut = -15.;//mm
+//const double max_ycut = 15.;//mm
+const double min_ycut = -30.;//mm
+const double max_ycut = 30.;//mm
+const double chisqrCut = 10.;//mm
+const double truncatedMean = 0.8; //80%
 }
 
 namespace dst
 {
-  enum kArgc
-    {
-      kProcess, kConfFile,
-      kTpcHit,  kOutFile, nArgc
-    };
-  std::vector<TString> ArgName =
-    { "[Process]", "[ConfFile]", "[TPCHit]",  "[OutFile]" };
-  std::vector<TString> TreeName = { "", "", "tpc", "" };
-  std::vector<TFile*> TFileCont;
-  std::vector<TTree*> TTreeCont;
-  std::vector<TTreeReader*> TTreeReaderCont;
+enum kArgc
+{
+  kProcess, kConfFile,
+  kTpcHit, kK18Tracking, kOutFile, nArgc
+};
+std::vector<TString> ArgName =
+{ "[Process]", "[ConfFile]", "[TPCHit]", "[K18Tracking]", "[OutFile]" };
+std::vector<TString> TreeName = { "", "", "tpc", "k18track","" };
+std::vector<TFile*> TFileCont;
+std::vector<TTree*> TTreeCont;
+std::vector<TTreeReader*> TTreeReaderCont;
 }
 
 //_____________________________________________________________________________
@@ -73,6 +79,16 @@ struct Event
   std::vector<Int_t> trigpat;
   std::vector<Int_t> trigflag;
   std::vector<Double_t> clkTpc;
+
+  // K18
+  Int_t ntK18;
+  std::vector<Double_t> chisqrK18;
+  std::vector<Double_t> pK18;
+  std::vector<Double_t> delta_3rd;
+  std::vector<Double_t> xout;
+  std::vector<Double_t> yout;
+  std::vector<Double_t> uout;
+  std::vector<Double_t> vout;
 
   Int_t nhTpc;
   std::vector<Double_t> raw_hitpos_x;
@@ -129,23 +145,13 @@ struct Event
   std::vector<Double_t> mom0_y;//Helix momentum at Y = 0
   std::vector<Double_t> mom0_z;//Helix momentum at Y = 0
   std::vector<Double_t> mom0;//Helix momentum at Y = 0
-
-  std::vector<Double_t> mom0_cor_x;//Helix momentum at Y = 0
-  std::vector<Double_t> mom0_cor_y;//Helix momentum at Y = 0
-  std::vector<Double_t> mom0_cor_z;//Helix momentum at Y = 0
-  std::vector<Double_t> mom0_cor;//Helix momentum at Y = 0
-
   std::vector<Int_t> charge;//Helix charge
   std::vector<Double_t> path;//Helix path
 
-  // under dev
   std::vector<Int_t> combi_id; //track number of combi
   std::vector<Double_t> mom_vtx;//Helix momentum at vtx
   std::vector<Double_t> mom_vty;//Helix momentum at vtx
   std::vector<Double_t> mom_vtz;//Helix momentum at vtx
-  std::vector<Double_t> mom_cor_vtx;//Helix momentum at vtx
-  std::vector<Double_t> mom_cor_vty;//Helix momentum at vtx
-  std::vector<Double_t> mom_cor_vtz;//Helix momentum at vtx
 
   std::vector<Int_t> pid;
   std::vector<Double_t> vtx;
@@ -153,26 +159,6 @@ struct Event
   std::vector<Double_t> vtz;
   std::vector<Int_t> chisqr_flag;
   std::vector<Double_t> closeDist;
-
-  std::vector<Double_t> M_Lambda;
-  std::vector<Double_t> Lvtx;
-  std::vector<Double_t> Lvty;
-  std::vector<Double_t> Lvtz;
-  std::vector<Double_t> LcloseDist;
-  std::vector<Double_t> Mom_Lambda;
-  std::vector<Double_t> Mom_Lambdax;
-  std::vector<Double_t> Mom_Lambday;
-  std::vector<Double_t> Mom_Lambdaz;
-
-  std::vector<Double_t> M_Ks;
-  std::vector<Double_t> Ksvtx;
-  std::vector<Double_t> Ksvty;
-  std::vector<Double_t> Ksvtz;
-  std::vector<Double_t> KscloseDist;
-  std::vector<Double_t> Mom_Ks;
-  std::vector<Double_t> Mom_Ksx;
-  std::vector<Double_t> Mom_Ksy;
-  std::vector<Double_t> Mom_Ksz;
 
   std::vector<std::vector<Double_t>> hitlayer;
   std::vector<std::vector<Double_t>> hitpos_x;
@@ -200,12 +186,22 @@ struct Event
 
   void clear( void )
   {
-    runnum = 0;
-    evnum = 0;
-    status = 0;
     trigpat.clear();
     trigflag.clear();
     clkTpc.clear();
+
+    runnum = 0;
+    evnum = 0;
+    status = 0;
+
+    ntK18 = 0;
+    chisqrK18.clear();
+    pK18.clear();
+    delta_3rd.clear();
+    xout.clear();
+    yout.clear();
+    uout.clear();
+    vout.clear();
 
     nhTpc = 0;
     raw_hitpos_x.clear();
@@ -264,11 +260,6 @@ struct Event
     mom0_z.clear();
     mom0.clear();
 
-    mom0_cor_x.clear();
-    mom0_cor_y.clear();
-    mom0_cor_z.clear();
-    mom0_cor.clear();
-
     charge.clear();
     path.clear();
 
@@ -276,9 +267,6 @@ struct Event
     mom_vtx.clear();
     mom_vty.clear();
     mom_vtz.clear();
-    mom_cor_vtx.clear();
-    mom_cor_vty.clear();
-    mom_cor_vtz.clear();
 
     pid.clear();
     vtx.clear();
@@ -286,26 +274,6 @@ struct Event
     vtz.clear();
     closeDist.clear();
     chisqr_flag.clear();
-
-    M_Lambda.clear();
-    Lvtx.clear();
-    Lvty.clear();
-    Lvtz.clear();
-    LcloseDist.clear();
-    Mom_Lambda.clear();
-    Mom_Lambdax.clear();
-    Mom_Lambday.clear();
-    Mom_Lambdaz.clear();
-
-    M_Ks.clear();
-    Ksvtx.clear();
-    Ksvty.clear();
-    Ksvtz.clear();
-    KscloseDist.clear();
-    Mom_Ks.clear();
-    Mom_Ksx.clear();
-    Mom_Ksy.clear();
-    Mom_Ksz.clear();
 
     hitlayer.clear();
     hitpos_x.clear();
@@ -350,33 +318,44 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* pedTpc;    // pedestal
   TTreeReaderValue<std::vector<Double_t>>* rmsTpc;    // rms
   TTreeReaderValue<std::vector<Double_t>>* deTpc;     // dE
-  TTreeReaderValue<std::vector<Double_t>>* cdeTpc;    // cdE
+  TTreeReaderValue<std::vector<Double_t>>* cdeTpc;     // cdE
   TTreeReaderValue<std::vector<Double_t>>* tTpc;      // time
-  TTreeReaderValue<std::vector<Double_t>>* ctTpc;     // time
+  TTreeReaderValue<std::vector<Double_t>>* ctTpc;      // time
   TTreeReaderValue<std::vector<Double_t>>* chisqrTpc; // chi^2 of signal fitting
-  TTreeReaderValue<std::vector<Double_t>>* clkTpc;    // clock time
+  TTreeReaderValue<std::vector<Double_t>>* clkTpc;      //clock time
+
+  // K18
+  Int_t ntK18;
+  Double_t chisqrK18[MaxHits];
+  Double_t pK18[MaxHits];
+  Double_t delta_3rd[MaxHits];
+  Double_t xout[MaxHits];
+  Double_t yout[MaxHits];
+  Double_t uout[MaxHits];
+  Double_t vout[MaxHits];
+
 };
 
 namespace root
 {
-  Event  event;
-  Src    src;
-  TH1   *h[MaxHist];
-  TTree *tree;
+Event  event;
+Src    src;
+TH1   *h[MaxHist];
+TTree *tree;
   enum eDetHid {
-    TPCGainHid = 100000,
-    TPCClHid  = 200000,
+    TPCGainHid    = 100000,
+    TPCClHid = 200000,
   };
 
-  Double_t
-  TranseverseDistance(Double_t x_center, Double_t z_center, Double_t x, Double_t z)
-  {
-    Double_t dummy = TMath::Sqrt((x-x_center)*(x-x_center) + (z-z_center)*(z-z_center));
-    Double_t dist;
-    if(x_center-x<0) dist=-1.*dummy;
-    else dist=dummy;
-    return dist;
-  }
+Double_t
+TranseverseDistance(Double_t x_center, Double_t z_center, Double_t x, Double_t z)
+{
+  Double_t dummy = TMath::Sqrt((x-x_center)*(x-x_center) + (z-z_center)*(z-z_center));
+  Double_t dist;
+  if(x_center-x<0) dist=-1.*dummy;
+  else dist=dummy;
+  return dist;
+}
 }
 
 //_____________________________________________________________________________
@@ -463,6 +442,18 @@ dst::DstRead( int ievent )
   event.trigflag = **src.trigflag;
   event.clkTpc = **src.clkTpc;
 
+  event.ntK18 = src.ntK18;
+  for(int it=0; it<src.ntK18; ++it){
+    event.chisqrK18.push_back(src.chisqrK18[it]);
+    event.pK18.push_back(src.pK18[it]);
+    event.delta_3rd.push_back(src.delta_3rd[it]);
+    event.xout.push_back(src.xout[it]);
+    event.yout.push_back(src.yout[it]);
+    event.uout.push_back(src.uout[it]);
+    event.vout.push_back(src.vout[it]);
+    HF1(14, src.pK18[it]);
+  }
+
   HF1( 1, event.status++ );
 
   if( **src.nhTpc == 0 )
@@ -478,7 +469,7 @@ dst::DstRead( int ievent )
   DCAnalyzer DCAna;
   DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock);
 
-  HF1(1, event.status++);
+  HF1( 1, event.status++ );
   Int_t nh_Tpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
     auto hc = DCAna.GetTPCHC( layer );
@@ -533,7 +524,6 @@ dst::DstRead( int ievent )
       event.cluster_y_center.push_back(centerPos.Y());
       event.cluster_z_center.push_back(centerPos.Z());
       event.cluster_row_center.push_back(centerRow);
-
       ++nclTpc;
     }
   }
@@ -564,10 +554,6 @@ dst::DstRead( int ievent )
   event.mom0_y.resize( ntTpc );
   event.mom0_z.resize( ntTpc );
   event.mom0.resize( ntTpc );
-  event.mom0_cor_x.resize( ntTpc );
-  event.mom0_cor_y.resize( ntTpc );
-  event.mom0_cor_z.resize( ntTpc );
-  event.mom0_cor.resize( ntTpc );
 
   event.dE.resize( ntTpc );
   event.dEdx.resize( ntTpc );
@@ -591,14 +577,10 @@ dst::DstRead( int ievent )
   event.charge.resize( ntTpc );
   event.path.resize( ntTpc );
 
-  // under dev
   event.combi_id.resize( ntTpc );
   event.mom_vtx.resize( ntTpc );
   event.mom_vty.resize( ntTpc );
   event.mom_vtz.resize( ntTpc );
-  event.mom_cor_vtx.resize( ntTpc );
-  event.mom_cor_vty.resize( ntTpc );
-  event.mom_cor_vtz.resize( ntTpc );
   event.pid.resize( ntTpc );
   event.vtx.resize( ntTpc );
   event.vty.resize( ntTpc );
@@ -700,7 +682,7 @@ dst::DstRead( int ievent )
 		      helix_r2, helix_dz2};
       double closeDist, t1, t2;
       TVector3 vert = Kinematics::VertexPointHelix(par1, par2,
-						   closeDist, t1, t2);
+						    closeDist, t1, t2);
       if(closeDist<min_closeDist){
 	event.combi_id[it] = it2;
 	event.vtx[it] = vert.x();
@@ -815,27 +797,6 @@ dst::DstRead( int ievent )
     if(min_layer_t<max_layer_t) event.charge[it] = 1;
     else event.charge[it] = -1;
 
-#if 1
-    TVector3 Mom0_cor, mom_cor_vtx;
-    if(event.charge[it] == 1){
-      Mom0_cor = tp->GetMom0_corP();
-      mom_cor_vtx = tp->CalcHelixMom_corP(par1, event.vty[it]);
-    }
-    if(event.charge[it] == -1){
-      Mom0_cor = tp->GetMom0_corN();
-      mom_cor_vtx = tp->CalcHelixMom_corN(par1, event.vty[it]);
-    }
-
-    event.mom0_cor_x[it]=Mom0_cor.x();
-    event.mom0_cor_y[it]=Mom0_cor.y();
-    event.mom0_cor_z[it]=Mom0_cor.z();
-    event.mom0_cor[it]=Mom0_cor.Mag();
-
-    event.mom_cor_vtx[it]=mom_cor_vtx.x();
-    event.mom_cor_vty[it]=mom_cor_vtx.y();
-    event.mom_cor_vtz[it]=mom_cor_vtx.z();
-#endif
-
     Double_t pathlen = (max_t - min_t)*sqrt(helix_r*helix_r*(1.+helix_dz*helix_dz));
     event.path[it] = pathlen;
     event.dE[it] = de;
@@ -910,94 +871,13 @@ dst::DstRead( int ievent )
     event.dEdx_cor_60[it]/=(double)n_60;
 #endif
     event.dz_factor[it] = sqrt(1.+(pow(helix_dz,2)));
-    HF1(14, event.mom0[it]);
+    HF1(15, event.mom0[it]);
+    if(src.ntK18==1) HF1(16, event.mom0[it]-src.delta_3rd[0]);
+    if(src.ntK18==1) HF1(17, event.mom0[it]-src.pK18[0]);
 
     int particleID= Kinematics::HypTPCdEdxPID_temp(event.dEdx[it], event.mom0[it]*event.charge[it]);
     event.pid[it]=particleID;
   }
-
-#if 0
-  // static const auto KaonMass    = pdg::KaonMass();
-  static const auto PionMass    = pdg::PionMass();
-  static const auto ProtonMass  = pdg::ProtonMass();
-
-  // rough estimation for Lambda and Ks event
-  if(ntTpc>1){
-    for( Int_t it=0; it<ntTpc-1; ++it ){
-      for( Int_t it2=it+1; it2<ntTpc; ++it2 ){
-	if(event.isBeam[it]==0&&event.isBeam[it2]==0
-	   &&event.combi_id[it]==it2&&event.combi_id[it2]==it
-	   &&event.charge[it]==-1*event.charge[it2]
-	   &&event.chisqr_flag[it]==1&&event.chisqr_flag[it2]==1){
-	  if(event.charge[it]==1){
-	    TVector3 mom_pos(event.mom_cor_vtx[it], event.mom_cor_vty[it], event.mom_cor_vtz[it]);
-	    TLorentzVector Lp(mom_pos, std::sqrt(ProtonMass*ProtonMass+mom_pos.Mag2()));
-	    TLorentzVector Lpip(mom_pos, std::sqrt(PionMass*PionMass+mom_pos.Mag2()));
-	    TVector3 mom_neg(event.mom_cor_vtx[it2], event.mom_cor_vty[it2], event.mom_cor_vtz[it2]);
-	    TLorentzVector Lpi(mom_neg, std::sqrt(PionMass*PionMass+mom_neg.Mag2()));
-	    TLorentzVector LLambda = Lp + Lpi;
-	    TLorentzVector LKs = Lpip + Lpi;
-	    //	    if(event.dEdx_20_cor[it]>event.dEdx_20_cor[it2]*1.5){
-	    if(event.pid[it]==2&&event.pid[it2]==-1){
-	      event.M_Lambda.push_back(LLambda.M());
-	      event.Lvtx.push_back(event.vtx[it]);
-	      event.Lvty.push_back(event.vty[it]);
-	      event.Lvtz.push_back(event.vtz[it]);
-	      event.LcloseDist.push_back(event.closeDist[it]);
-	      event.Mom_Lambda.push_back(LLambda.P());
-	      event.Mom_Lambdax.push_back(LLambda.Px());
-	      event.Mom_Lambday.push_back(LLambda.Py());
-	      event.Mom_Lambdaz.push_back(LLambda.Pz());
-	    }
-	    if(event.pid[it]==1&&event.pid[it2]==-1){
-	      event.M_Ks.push_back(LKs.M());
-	      event.Ksvtx.push_back(event.vtx[it]);
-	      event.Ksvty.push_back(event.vty[it]);
-	      event.Ksvtz.push_back(event.vtz[it]);
-	      event.KscloseDist.push_back(event.closeDist[it]);
-	      event.Mom_Ks.push_back(LKs.P());
-	      event.Mom_Ksx.push_back(LKs.Px());
-	      event.Mom_Ksx.push_back(LKs.Py());
-	      event.Mom_Ksx.push_back(LKs.Pz());
-	    }
-	  }
-	  else{
-	    TVector3 mom_pos(event.mom_cor_vtx[it2], event.mom_cor_vty[it2], event.mom_cor_vtz[it2]);
-	    TLorentzVector Lp(mom_pos, std::sqrt(ProtonMass*ProtonMass+mom_pos.Mag2()));
-	    TLorentzVector Lpip(mom_pos, std::sqrt(PionMass*PionMass+mom_pos.Mag2()));
-	    TVector3 mom_neg(event.mom_cor_vtx[it], event.mom_cor_vty[it], event.mom_cor_vtz[it]);
-	    TLorentzVector Lpi(mom_neg, std::sqrt(PionMass*PionMass+mom_neg.Mag2()));
-	    TLorentzVector LLambda = Lp + Lpi;
-	    TLorentzVector LKs = Lpip + Lpi;
-	    //	    if(event.dEdx_20_cor[it2]>event.dEdx_20_cor[it]*1.5){
-	    if(event.pid[it2]==2&&event.pid[it]==-1){
-	      event.M_Lambda.push_back(LLambda.M());
-	      event.Lvtx.push_back(event.mom_vtx[it]);
-	      event.Lvty.push_back(event.mom_vty[it]);
-	      event.Lvtz.push_back(event.mom_vtz[it]);
-	      event.LcloseDist.push_back(event.closeDist[it]);
-	      event.Mom_Lambda.push_back(LLambda.P());
-	      event.Mom_Lambdax.push_back(LLambda.Px());
-	      event.Mom_Lambday.push_back(LLambda.Py());
-	      event.Mom_Lambdaz.push_back(LLambda.Pz());
-	    }
-	    if(event.pid[it2]==1&&event.pid[it]==-1){
-	      event.M_Ks.push_back(LKs.M());
-	      event.Ksvtx.push_back(event.mom_vtx[it]);
-	      event.Ksvty.push_back(event.mom_vty[it]);
-	      event.Ksvtz.push_back(event.mom_vtz[it]);
-	      event.KscloseDist.push_back(event.closeDist[it]);
-	      event.Mom_Ks.push_back(LKs.P());
-	      event.Mom_Ksx.push_back(LKs.Px());
-	      event.Mom_Ksy.push_back(LKs.Py());
-	      event.Mom_Ksz.push_back(LKs.Pz());
-	    }
-	  }
-	}
-      }
-    }
-  }
-#endif
   HF1( 1, event.status++ );
 
   return true;
@@ -1026,11 +906,14 @@ ConfMan::InitializeHistograms( void )
 {
 
   HB1(1, "Status", 21, 0., 21. );
-  HB1(10, "#Tracks TPC", 40, 0., 40. );
+  HB1(10, "NTrack TPC", 40, 0., 40. );
   HB1(11, "#Hits of Track TPC", 50, 0., 50.);
   HB1(12, "Chisqr TPC", 500, 0., 500.);
   HB1(13, "LayerId TPC", 35, 0., 35.);
-  HB1(14, "mom0", 1000, 0., 2.5);
+  HB1(14, "pK18", 1000, 0., 2.5);
+  HB1(15, "mom0", 1000, 0., 2.5);
+  HB1(16, "mom0-#DeltapK18", 1000, 0., 2.5);
+  HB1(17, "mom0-pK18", 1000, -1.25, 1.25);
 
 #if TrackCluster
   const Int_t    NbinDe = 1000;
@@ -1057,7 +940,7 @@ ConfMan::InitializeHistograms( void )
   }
 #endif
 
-  HBTree( "tpc", "tree of DstTPCTracking" );
+  HBTree( "tpc", "tree of DstTPCHelixK18Tracking" );
 
   tree->Branch( "status", &event.status );
   tree->Branch( "runnum", &event.runnum );
@@ -1065,6 +948,15 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "trigpat", &event.trigpat );
   tree->Branch( "trigflag", &event.trigflag );
   tree->Branch( "clkTpc", &event.clkTpc);
+
+  tree->Branch( "ntK18",      &event.ntK18);
+  tree->Branch( "chisqrK18",  &event.chisqrK18);
+  tree->Branch( "pK18",       &event.pK18);
+  tree->Branch( "delta_3rd",  &event.delta_3rd);
+  tree->Branch( "xout",    &event.xout);
+  tree->Branch( "yout",    &event.yout);
+  tree->Branch( "uout",    &event.uout);
+  tree->Branch( "vout",    &event.vout);
 
   tree->Branch( "nhTpc", &event.nhTpc );
   tree->Branch( "raw_hitpos_x", &event.raw_hitpos_x );
@@ -1074,7 +966,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "raw_padid", &event.raw_padid );
   tree->Branch( "raw_layer", &event.raw_layer );
   tree->Branch( "raw_row", &event.raw_row );
-
   tree->Branch( "nclTpc", &event.nclTpc );
   tree->Branch( "cluster_x", &event.cluster_x );
   tree->Branch( "cluster_y", &event.cluster_y );
@@ -1102,10 +993,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "mom0_y", &event.mom0_y );
   tree->Branch( "mom0_z", &event.mom0_z );
   tree->Branch( "mom0", &event.mom0 );
-  tree->Branch( "mom0_cor_x", &event.mom0_cor_x );
-  tree->Branch( "mom0_cor_y", &event.mom0_cor_y );
-  tree->Branch( "mom0_cor_z", &event.mom0_cor_z );
-  tree->Branch( "mom0_cor", &event.mom0_cor );
   tree->Branch( "dE", &event.dE );
   tree->Branch( "dEdx", &event.dEdx );
 
@@ -1135,31 +1022,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "mom_vtx", &event.mom_vtx );
   tree->Branch( "mom_vty", &event.mom_vty );
   tree->Branch( "mom_vtz", &event.mom_vtz );
-  tree->Branch( "mom_cor_vtx", &event.mom_cor_vtx );
-  tree->Branch( "mom_cor_vty", &event.mom_cor_vty );
-  tree->Branch( "mom_cor_vtz", &event.mom_cor_vtz );
   tree->Branch( "vtx", &event.vtx );
   tree->Branch( "vty", &event.vty );
   tree->Branch( "vtz", &event.vtz );
   tree->Branch( "closeDist", &event.closeDist );
-  tree->Branch( "M_Lambda", &event.M_Lambda );
-  tree->Branch( "Lvtx", &event.Lvtx );
-  tree->Branch( "Lvty", &event.Lvty );
-  tree->Branch( "Lvtz", &event.Lvtz );
-  tree->Branch( "LcloseDist", &event.LcloseDist );
-  tree->Branch( "Mom_Lambda", &event.Mom_Lambda );
-  tree->Branch( "Mom_Lambdax", &event.Mom_Lambdax );
-  tree->Branch( "Mom_Lambday", &event.Mom_Lambday );
-  tree->Branch( "Mom_Lambdaz", &event.Mom_Lambdaz );
-  tree->Branch( "M_Ks", &event.M_Ks );
-  tree->Branch( "Ksvtx", &event.Ksvtx );
-  tree->Branch( "Ksvty", &event.Ksvty );
-  tree->Branch( "Ksvtz", &event.Ksvtz );
-  tree->Branch( "KscloseDist", &event.KscloseDist );
-  tree->Branch( "Mom_Ks", &event.Mom_Ks );
-  tree->Branch( "Mom_Ksx", &event.Mom_Ksx );
-  tree->Branch( "Mom_Ksy", &event.Mom_Ksy );
-  tree->Branch( "Mom_Ksz", &event.Mom_Ksz );
 
   tree->Branch( "hitlayer", &event.hitlayer );
   tree->Branch( "hitpos_x", &event.hitpos_x );
@@ -1205,6 +1071,25 @@ ConfMan::InitializeHistograms( void )
   src.chisqrTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqrTpc" );
   src.clkTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "clkTpc");
 
+  TTreeCont[kK18Tracking]->SetBranchStatus("*", 0);
+  TTreeCont[kK18Tracking]->SetBranchStatus("ntK18",       1);
+  TTreeCont[kK18Tracking]->SetBranchStatus("chisqrK18",   1);
+  TTreeCont[kK18Tracking]->SetBranchStatus("p_3rd",       1);
+  TTreeCont[kK18Tracking]->SetBranchStatus("delta_3rd",   1);
+  TTreeCont[kK18Tracking]->SetBranchStatus("xout",        1);
+  TTreeCont[kK18Tracking]->SetBranchStatus("yout",        1);
+  TTreeCont[kK18Tracking]->SetBranchStatus("uout",        1);
+  TTreeCont[kK18Tracking]->SetBranchStatus("vout",        1);
+
+  TTreeCont[kK18Tracking]->SetBranchAddress("ntK18",     &src.ntK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("chisqrK18", &src.chisqrK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("p_3rd",     &src.pK18);
+  TTreeCont[kK18Tracking]->SetBranchAddress("delta_3rd", &src.delta_3rd);
+  TTreeCont[kK18Tracking]->SetBranchAddress("xout",   &src.xout);
+  TTreeCont[kK18Tracking]->SetBranchAddress("yout",   &src.yout);
+  TTreeCont[kK18Tracking]->SetBranchAddress("uout",   &src.uout);
+  TTreeCont[kK18Tracking]->SetBranchAddress("vout",   &src.vout);
+
   return true;
 }
 
@@ -1217,6 +1102,7 @@ ConfMan::InitializeParameterFiles( void )
       InitializeParameter<TPCParamMan>("TPCPRM") &&
       InitializeParameter<TPCPositionCorrector>("TPCPOS") &&
       InitializeParameter<UserParamMan>("USER") &&
+      InitializeParameter<FieldMan>("FLDMAP", "HSFLDMAP") &&
       InitializeParameter<HodoPHCMan>("HDPHC") );
 }
 
