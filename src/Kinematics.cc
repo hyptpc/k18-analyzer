@@ -879,10 +879,12 @@ void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg){
 
   const Int_t particles = 3;
   Int_t pdgcode[particles] = {211, 321, 2212};
+  Int_t flag = 1;
   for(Int_t i=0;i<particles;i++){
-    Int_t temp = (i+1)&pid;
-    if(temp==i+1) pdg.push_back(charge*pdgcode[i]);
+    Int_t temp = flag&pid;
+    if(temp==flag) pdg.push_back(charge*pdgcode[i]);
     if(pid==0) pdg.push_back(charge*pdgcode[i]);
+    flag*=2;
   }
 }
 }
