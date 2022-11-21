@@ -1104,6 +1104,7 @@ inline Int_t findPadID(Double_t z, Double_t x)
 		double rad_in= padParameter[layer][2]-padParameter[layer][5]*0.5;
 		double rad_out= padParameter[layer][2]+padParameter[layer][5]*0.5;
   	if(rad_in<=radius and rad_out>=radius){ 
+			break;
 		}
 		if(layer==NumOfLayersTPC-1 && rad_out<radius) return -1000;
 	}
