@@ -1094,17 +1094,19 @@ inline Int_t findPadID(Double_t z, Double_t x)
 
   Int_t layer, row;
   // find layer_num.
-  for (layer = 0; !(padParameter[layer][2]+padParameter[layer][5]*0.5 >= radius
-                    && padParameter[layer][2]-padParameter[layer][5]*0.5 <= radius); layer++)
+  for (layer = 0; layer<NumOfLayersTPC;layer++)
   {
-    if (layer >= 32) return -1000;
     if (layer != 0)
     {
       if (padParameter[layer][2] - padParameter[layer][5] * 0.5 >= radius &&
           padParameter[layer - 1][2] + padParameter[layer - 1][5] * 0.5 <= radius) return -layer;
     }
-  }
-
+		double rad_in= padParameter[layer][2]-padParameter[layer][5]*0.5;
+		double rad_out= padParameter[layer][2]+padParameter[layer][5]*0.5;
+  	if(rad_in<=radius and rad_out>=radius){ 
+		}
+		if(layer==NumOfLayersTPC-1 && rad_out<radius) return -1000;
+	}
   //cout << " layer: " << layer << endl;
 
   Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
