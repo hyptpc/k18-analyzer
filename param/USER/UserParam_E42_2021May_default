@@ -122,7 +122,8 @@ MinLayerBcOutSdcIn 20
 BaselineCorrectionTPC	1
 MaxMultiHitTPC		2000
 #MinDeTPC		40
-MinDeTPC		60
+MinDeTPC		60 #FADC pulse height thr.
+MinCDeTPC		60 #TPC cde thr.
 MinRmsTPC		10
 # before change num of tbi
 #TimeBucketTPC		10 140

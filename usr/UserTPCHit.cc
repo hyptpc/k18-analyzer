@@ -202,6 +202,7 @@ UserTPCHit::ProcessingNormal()
   static const Int_t MaxMultiHitTPC = gUser.GetParameter("MaxMultiHitTPC");
   static const auto MinTdcHTOF = gUser.GetParameter("TdcHTOF", 0);
   static const auto MaxTdcHTOF = gUser.GetParameter("TdcHTOF", 1);
+  static const Double_t MinCDe = gUser.GetParameter("MinCDeTPC");
   const Int_t run_number   = gUnpacker.get_root()->get_run_number();
   const Int_t event_number = gUnpacker.get_event_number();
 
@@ -456,10 +457,11 @@ UserTPCHit::ProcessingNormal()
       Int_t nhit = hit->GetNHits();
       Bool_t good_for_analysis = false;
       for(Int_t i=0; i<nhit; ++i){
-        Double_t de = hit->GetDe(i);
+	Double_t cde = hit->GetCDe(i);
+	if(cde<MinCDe) continue;
+	Double_t de = hit->GetDe(i);
         Double_t time = hit->GetTime(i);
         Double_t chisqr = hit->GetChisqr(i);
-        Double_t cde = hit->GetCDe(i);
         Double_t ctime = hit->GetCTime(i);
         Double_t dl = hit->GetDriftLength(i);
         Double_t sigma = hit->GetSigma(i);
