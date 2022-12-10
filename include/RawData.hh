@@ -99,7 +99,7 @@ private:
                      Int_t type=kDcLeading);
   Bool_t AddTPCRawHit(TPCRHitContainer& cont,
                       Int_t layer, Int_t row, Double_t adc,
-                      Double_t* pars=nullptr);
+                      Double_t* pars=nullptr, Double_t raw_rms=0);
   void   DecodeHodo(Int_t id, Int_t plane, Int_t nseg, Int_t nch,
                     HodoRHitContainer& cont);
   void   DecodeHodo(Int_t id, Int_t nseg, Int_t nch,

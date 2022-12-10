@@ -55,14 +55,14 @@ namespace { TApplication app("DebugApp", nullptr, nullptr); }
 
 namespace
 {
-const auto& gGeom   = DCGeomMan::GetInstance();
-const auto& gUser   = UserParamMan::GetInstance();
-const auto& gTPC    = TPCParamMan::GetInstance();
-const auto& gTPCPos = TPCPositionCorrector::GetInstance();
-const Int_t MaxADC = 4096;
-const Int_t MaxIteration = 3;
-const Int_t MaxPeaks = 20;
-const Double_t MaxChisqr = 1000.;
+  const auto& gGeom   = DCGeomMan::GetInstance();
+  const auto& gUser   = UserParamMan::GetInstance();
+  const auto& gTPC    = TPCParamMan::GetInstance();
+  const auto& gTPCPos = TPCPositionCorrector::GetInstance();
+  const Int_t MaxADC = 4096;
+  const Int_t MaxIteration = 3;
+  const Int_t MaxPeaks = 20;
+  const Double_t MaxChisqr = 1000.;
 }
 
 //_____________________________________________________________________________
@@ -75,6 +75,7 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_pad(tpc::GetPadId(m_layer, m_row)),
     m_pedestal(TMath::QuietNaN()),
     m_rms(TMath::QuietNaN()),
+    m_raw_rms(TMath::QuietNaN()),
     m_de(),
     m_time(), // [time bucket]
     m_chisqr(),
@@ -214,6 +215,7 @@ TPCHit::DoFit()
 {
   static const Double_t MinDe = gUser.GetParameter("MinDeTPC");
   static const Double_t MinRms = gUser.GetParameter("MinRmsTPC");
+  static const Double_t MinRawRms = gUser.GetParameter("MinBaseRmsTPC");
   static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
   static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
 
@@ -246,10 +248,12 @@ TPCHit::DoFit()
   {
     Double_t mean = m_rhit->Mean();
     Double_t rms = m_rhit->RMS();
+    Double_t rawrms = m_rhit->RawRMS();
     m_pedestal = mean;
     m_rms = rms;
+    m_raw_rms = rawrms;
   }
-// #if QuickAnalysis
+  // #if QuickAnalysis
   // {
   //   Double_t max_adc = m_rhit->MaxAdc();
   //   //std::cout<<"max_dE = "<<max_adc - m_pedestal<<std::endl;
@@ -257,7 +261,7 @@ TPCHit::DoFit()
   //     return false;
   //   }
   // }
-// #endif
+  // #endif
 
 #if 0 // for check
   if(m_rhit->MaxAdc()-m_pedestal < 400
@@ -330,6 +334,9 @@ TPCHit::DoFit()
     // getchar();
     Double_t max_adc = m_rhit->MaxAdc();
     if(max_adc - mean < MinDe){
+      return false;
+    }
+    if(m_raw_rms < MinRawRms){
       return false;
     }
 #endif
@@ -518,7 +525,7 @@ TPCHit::DoFit()
       maxde = TMath::MaxElement(m_de.size(), m_de.data());
     if(m_time.size()>0 //&& maxde>200.
        || true
-      ){
+       ){
       //h2.Draw("");
       c1.Modified();
       c1.Update();
@@ -553,7 +560,7 @@ TPCHit::GetResolutionX()
   // Double_t s0 = 0.204;// mm HIMAC result //To do parameter
   Double_t s0 = gUser.GetParameter("TPC_sigma0");
   //s0 is considered for common resolution
-//  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
+  //  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
   Double_t Dt = gUser.GetParameter("TPC_Dt");
   Double_t L_D = 30.+(pos.Y()*0.1);//cm
   //Double_t N_eff = 42.8;
@@ -593,10 +600,10 @@ TPCHit::GetResolutionZ()
 {
   const auto& pos = GetPosition();
   //calculated by using NIM paper
-//Double_t s0 = 0.204;// mm HIMAC result //To do parameter
+  //Double_t s0 = 0.204;// mm HIMAC result //To do parameter
   Double_t s0 = gUser.GetParameter("TPC_sigma0");
   //s0 is considered for common resolution
-//  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
+  //  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
   Double_t Dt = gUser.GetParameter("TPC_Dt");
   Double_t L_D = 30.+(pos.Y()*0.1);//cm
   //Double_t N_eff = 42.8;

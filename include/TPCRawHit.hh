@@ -26,7 +26,7 @@ private:
   Int_t  m_layer_id;
   Int_t  m_row_id;
   FADC_t m_fadc;
-
+  Double_t m_raw_rms=0;
   // baseline correction
   PRM_t m_pars; // p0:adc_ofs, p1:scale, p2:tb_ofs
 
@@ -45,6 +45,8 @@ public:
   Double_t      RMS(TB_t tmin=0, TB_t tmax=NumOfTimeBucket) const;
   Double_t      RMS_10() const
   { return TMath::RMS(10, m_fadc.data()); }
+  Double_t	RawRMS() const {return m_raw_rms;}
+  void          SetRawRMS(Double_t raw_rms){ m_raw_rms = raw_rms;}
 };
 
 //_____________________________________________________________________________

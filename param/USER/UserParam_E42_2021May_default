@@ -124,7 +124,8 @@ MaxMultiHitTPC		2000
 #MinDeTPC		40
 MinDeTPC		60 #FADC pulse height thr.
 MinCDeTPC		60 #TPC cde thr.
-MinRmsTPC		10
+MinRmsTPC		10 #for FADC peak searching
+MinBaseRmsTPC		10 #for FADC baseline searching
 # before change num of tbi
 #TimeBucketTPC		10 140
 # after change num of tbi

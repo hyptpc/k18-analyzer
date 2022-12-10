@@ -94,14 +94,19 @@ struct Event
   std::vector<Int_t>    trigflag;
   Int_t                 npadTpc;   // number of pads
   Int_t                 nhTpc;     // number of hits
+
+  Int_t browTpc;
+  Int_t blayerTpc;
+  Double_t brmsTpc;//Baseline RMS;
   // vector (size=nhTpc)
   std::vector<Int_t>    layerTpc;  // layer id
   std::vector<Int_t>    rowTpc;    // row id
   std::vector<Int_t>    padTpc;    // pad id
   std::vector<Double_t> pedTpc;    // pedestal
   std::vector<Double_t> rmsTpc;    // rms
+  std::vector<Double_t> rawrmsTpc; // rawrms
   std::vector<Double_t> deTpc;     // dE
-  std::vector<Double_t> sigmaTpc;     // sigma
+  std::vector<Double_t> sigmaTpc;  // sigma
   std::vector<Double_t> tTpc;      // time
   std::vector<Double_t> chisqrTpc; // chi^2 of signal fitting
   std::vector<Double_t> cdeTpc;    // dE
@@ -137,6 +142,9 @@ Event::clear()
   evnum   = 0;
   npadTpc = 0;
   nhTpc   = 0;
+  browTpc   = -1;
+  blayerTpc = -1;
+  brmsTpc   = 0;
   trigpat.clear();
   trigflag.clear();
   layerTpc.clear();
@@ -144,6 +152,7 @@ Event::clear()
   padTpc.clear();
   pedTpc.clear();
   rmsTpc.clear();
+  rawrmsTpc.clear();
   deTpc.clear();
   sigmaTpc.clear();
   tTpc.clear();
@@ -398,6 +407,12 @@ UserTPCHit::ProcessingNormal()
     for(Int_t tb=0, ntb=fadc.size(); tb<ntb; ++tb){
       HF2(39, tb, fadc.at(tb));
     }
+    auto browTpc = baseline->RowId();
+    auto blayerTpc = baseline->LayerId();
+    auto brmsTpc = baseline->RMS();
+    event.browTpc = browTpc;
+    event.blayerTpc = blayerTpc;
+    event.brmsTpc = brmsTpc;
   }
   Int_t npadTpc = 0;
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
@@ -450,6 +465,7 @@ UserTPCHit::ProcessingNormal()
       Int_t pad = tpc::GetPadId(layer, row);
       Double_t ped = hit->GetPedestal();
       Double_t rms = hit->GetRMS();
+      Double_t rawrms = hit->GetRawRMS();
       HF1(101, ped);
       HF1(103, rms);
       const auto& vec = tpc::getPosition(pad);
@@ -462,7 +478,7 @@ UserTPCHit::ProcessingNormal()
 	Double_t de = hit->GetDe(i);
         Double_t time = hit->GetTime(i);
         Double_t chisqr = hit->GetChisqr(i);
-        Double_t ctime = hit->GetCTime(i);
+	Double_t ctime = hit->GetCTime(i);
         Double_t dl = hit->GetDriftLength(i);
         Double_t sigma = hit->GetSigma(i);
         event.layerTpc.push_back(layer);
@@ -470,6 +486,7 @@ UserTPCHit::ProcessingNormal()
         event.padTpc.push_back(pad);
         event.pedTpc.push_back(ped);
         event.rmsTpc.push_back(rms);
+	event.rawrmsTpc.push_back(rawrms);
         event.deTpc.push_back(de);
         event.tTpc.push_back(time);
         event.chisqrTpc.push_back(chisqr);
@@ -641,11 +658,15 @@ ConfMan:: InitializeHistograms()
   tree->Branch("trigflag", &event.trigflag);
   tree->Branch("npadTpc", &event.npadTpc);
   tree->Branch("nhTpc", &event.nhTpc);
+  tree->Branch("browTpc", &event.browTpc);
+  tree->Branch("blayerTpc", &event.blayerTpc);
+  tree->Branch("brmsTpc", &event.brmsTpc);
   tree->Branch("layerTpc", &event.layerTpc);
   tree->Branch("rowTpc", &event.rowTpc);
   tree->Branch("padTpc", &event.padTpc);
   tree->Branch("pedTpc", &event.pedTpc);
   tree->Branch("rmsTpc", &event.rmsTpc);
+  tree->Branch("rawrmsTpc", &event.rawrmsTpc);
   tree->Branch("deTpc", &event.deTpc);
   tree->Branch("tTpc", &event.tTpc);
   tree->Branch("chisqrTpc", &event.chisqrTpc);

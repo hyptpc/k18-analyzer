@@ -41,6 +41,7 @@ protected:
   Int_t                 m_pad;
   Double_t              m_pedestal;
   Double_t              m_rms;
+  Double_t 		m_raw_rms;
   std::vector<Double_t> m_de;
   std::vector<Double_t> m_sigma;
   std::vector<Double_t> m_time;
@@ -78,9 +79,9 @@ public:
   Double_t        GetSigma(Int_t i=0) const { return m_sigma.at(i); }
   Int_t           GetDeSize() const { return m_de.size(); }
   Double_t        GetDriftLength(Int_t i=0) const
-    { return m_drift_length.at(i); }
+  { return m_drift_length.at(i); }
   Int_t           GetDriftLengthSize() const
-    { return m_drift_length.size(); }
+  { return m_drift_length.size(); }
   Int_t           GetNHits() const { return m_de.size(); }
   TPCCluster*     GetParentCluster() const { return m_parent_cluster; }
   Int_t           GetPad() const { return m_pad; }
@@ -89,6 +90,7 @@ public:
   Int_t           GetRow() const { return m_row; }
   Double_t        GetPedestal() const { return m_pedestal; }
   Double_t        GetRMS() const { return m_rms; }
+  Double_t				GetRawRMS()const{return m_raw_rms;}
   Double_t        GetX(Int_t i=0) const { return m_position.at(i).X(); }
   Double_t        GetY(Int_t i=0) const { return m_position.at(i).Y(); }
   Double_t        GetZ(Int_t i=0) const { return m_position.at(i).Z(); }
@@ -110,10 +112,10 @@ public:
   //   { return m_pair_cont.at(nh).dl_range; }
   void            JoinTrack() { m_belong_track = true; }
   void            Print(const std::string& arg="",
-                         std::ostream& ost=hddaq::cout) const;
+			std::ostream& ost=hddaq::cout) const;
   void            QuitTrack() { m_belong_track = false;}
   void            RegisterHits(TPCLTrackHit *hit)
-    { m_register_container.push_back(hit); }
+  { m_register_container.push_back(hit); }
   void            SetDe(Double_t de){ m_de.at(0) = de; m_cde.at(0) = de; }
   void            SetPad(Int_t pad) { m_pad = pad; }
   void            SetLayer(Int_t layer) { m_layer  = layer; }
@@ -124,7 +126,6 @@ public:
   void            SetParentCluster(TPCCluster* parent){ m_parent_cluster = parent; }
   void            SetHoughFlag(Int_t hough_flag) { m_hough_flag = hough_flag; }
   void            SetHoughYnum(Int_t houghY_num);
-
 protected:
   void ClearRegisteredHits();
 };

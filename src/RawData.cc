@@ -38,33 +38,33 @@ namespace { TApplication app("DebugApp", nullptr, nullptr); }
 
 namespace
 {
-using namespace hddaq::unpacker;
-const auto& gUnpacker = GUnpacker::get_instance();
-const auto& gUser     = UserParamMan::GetInstance();
-enum EUorD { kOneSide=1, kBothSide=2 };
-enum EHodoDataType { kHodoAdc, kHodoLeading, kHodoTrailing,
-  kHodoOverflow, kHodoNDataType };
+  using namespace hddaq::unpacker;
+  const auto& gUnpacker = GUnpacker::get_instance();
+  const auto& gUser     = UserParamMan::GetInstance();
+  enum EUorD { kOneSide=1, kBothSide=2 };
+  enum EHodoDataType { kHodoAdc, kHodoLeading, kHodoTrailing,
+		       kHodoOverflow, kHodoNDataType };
 #if OscillationCut
-const Int_t  MaxMultiHitDC  = 16;
+  const Int_t  MaxMultiHitDC  = 16;
 #endif
 
-///// for CorrectBaselineTPC()
-TH1D* h_baseline = nullptr;
-Double_t f_baseline(Double_t* x, Double_t* par)
-{
-  // par[0]: adc offset, par[1]: scale, par[2]: time offset
-  if(!h_baseline){
-    throw Exception("something is wrong in [RawData::CorrectBaselineTPC()]");
-    // return TMath::QuietNaN();
+  ///// for CorrectBaselineTPC()
+  TH1D* h_baseline = nullptr;
+  Double_t f_baseline(Double_t* x, Double_t* par)
+  {
+    // par[0]: adc offset, par[1]: scale, par[2]: time offset
+    if(!h_baseline){
+      throw Exception("something is wrong in [RawData::CorrectBaselineTPC()]");
+      // return TMath::QuietNaN();
+    }
+    Int_t floor = TMath::FloorNint(par[2]);
+    Double_t frac = par[2] - floor;
+    Int_t bin_left = h_baseline->GetXaxis()->FindBin(x[0] + floor);
+    Double_t val_left = h_baseline->GetBinContent(bin_left);
+    Double_t val_right = h_baseline->GetBinContent(bin_left+1);
+    return
+      par[0] + par[1]*((1-frac)*val_left + frac*val_right);
   }
-  Int_t floor = TMath::FloorNint(par[2]);
-  Double_t frac = par[2] - floor;
-  Int_t bin_left = h_baseline->GetXaxis()->FindBin(x[0] + floor);
-  Double_t val_left = h_baseline->GetBinContent(bin_left);
-  Double_t val_right = h_baseline->GetBinContent(bin_left+1);
-  return
-    par[0] + par[1]*((1-frac)*val_left + frac*val_right);
-}
 }
 
 //_____________________________________________________________________________
@@ -143,6 +143,7 @@ RawData::CorrectBaselineTPC()
 {
   static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
   static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
+  static const Double_t MinRms = gUser.GetParameter("MinBaseRmsTPC");
 
   if(!m_is_decoded[kTPC]){
     hddaq::cerr << FUNC_NAME << " DecodeTPCHits() must be done!" << std::endl;
@@ -161,7 +162,7 @@ RawData::CorrectBaselineTPC()
   static TCanvas c1("c"+FUNC_NAME, FUNC_NAME, 1200, 900);
   c1.cd();
   TH1D h2(FUNC_NAME+"-h2", "Corrected FADC",
-          NumOfTimeBucket, 0, NumOfTimeBucket);
+	  NumOfTimeBucket, 0, NumOfTimeBucket);
 #endif
 
   m_baseline = nullptr;
@@ -169,16 +170,17 @@ RawData::CorrectBaselineTPC()
   for(const auto& hc : m_TPCRawHC){
     for(const auto& hit : hc){
       if(hit->FadcSize() != NumOfTimeBucket)
-        continue;
+	continue;
       ///// Minimum RMS method (unused)
       // auto ref = hit->RMS(MinTimeBucket, MaxTimeBucket);
       // if(hit->RMS(MinTimeBucket, MaxTimeBucket) < 20.) continue;
       ///// Minimum Amplitude method
       auto ref = hit->MaxAdc(MinTimeBucket, MaxTimeBucket)
-        - hit->Mean(MinTimeBucket, MaxTimeBucket);
-      if(ref < min_ref){
-        min_ref = ref;
-        m_baseline = hit;
+	- hit->Mean(MinTimeBucket, MaxTimeBucket);
+      double rms = hit->RMS();
+      if(ref < min_ref and rms>MinRms){
+	min_ref = ref;
+	m_baseline = hit;
       }
     }
   }
@@ -193,8 +195,8 @@ RawData::CorrectBaselineTPC()
     h_baseline->SetBinContent(i+1, base_fadc.at(i) - base_ped);
   }
   h_baseline->SetTitle(Form("Baseline Layer#%d Row#%d",
-                            m_baseline->LayerId(),
-                            m_baseline->RowId()));
+			    m_baseline->LayerId(),
+			    m_baseline->RowId()));
 
 #if DebugEvDisp
   {
@@ -204,13 +206,14 @@ RawData::CorrectBaselineTPC()
 
   for(const auto& hc : m_TPCRawHC){
     for(const auto& hit : hc){
+      double raw_rms = hit->RMS();
       TH1D h_fadc("h_fadc", Form("FADC Layer#%d Row#%d;sample# ;ADC ch",
-                                 hit->LayerId(), hit->RowId()),
-                  NumOfTimeBucket, 0, NumOfTimeBucket);
+				 hit->LayerId(), hit->RowId()),
+		  NumOfTimeBucket, 0, NumOfTimeBucket);
       h_fadc.SetLineWidth(2);
       const auto& fadc = hit->Fadc();
       for(Int_t i=0, n=fadc.size(); i<n; ++i){
-        h_fadc.SetBinContent(i+1, fadc.at(i));
+	h_fadc.SetBinContent(i+1, fadc.at(i));
       }
       TF1 f1("f1", f_baseline, 0, NumOfTimeBucket, 3);
       f1.SetParameter(0, hit->Mean(0, MinTimeBucket));
@@ -222,42 +225,42 @@ RawData::CorrectBaselineTPC()
       h_fadc.Fit("f1", "Q", "", 0, MinTimeBucket);
       Double_t max_cadc = -1e10;
       for(Int_t i=0, n=fadc.size(); i<n; ++i){
-        Double_t cadc = fadc.at(i) - f1.Eval(i);
-        AddTPCRawHit(m_TPCCorHC[hit->LayerId()], hit->LayerId(),
-                     hit->RowId(), cadc, f1.GetParameters());
-        if(cadc > max_cadc && i > 25){
-          max_cadc = cadc;
-        }
+	Double_t cadc = fadc.at(i) - f1.Eval(i);
+	AddTPCRawHit(m_TPCCorHC[hit->LayerId()], hit->LayerId(),
+		     hit->RowId(), cadc, f1.GetParameters(),raw_rms);
+	if(cadc > max_cadc && i > 25){
+	  max_cadc = cadc;
+	}
       }
 #if DebugEvDisp
       if(max_cadc > 100 && max_cadc<1000)
-      {
-        h2.Reset();
-        h2.SetLineWidth(2);
-        Double_t max_adc = -1e10;
-        for(Int_t i=0, n=fadc.size(); i<n; ++i){
-          h2.SetBinContent(i+1, fadc.at(i) - f1.Eval(i));
-          if(fadc.at(i) > max_adc) max_adc = fadc.at(i);
-        }
-        h_fadc.Draw();
-        // h_fadc.SetMinimum(min_adc - 100);
-        h_fadc.SetMinimum(-100);
-        h_fadc.SetMaximum(max_adc + 100);
-        // h_fadc.SetMaximum(1000);
-        // h_fadc.SetMaximum(2000);
-        TF1 f2("f2", f_baseline, MinTimeBucket, NumOfTimeBucket, 3);
-        f2.SetParameters(f1.GetParameters());
-        f2.Draw("same");
-        h2.SetLineColor(kGreen+1);
-        h2.SetLineWidth(2);
-        h2.Draw("same");
-        // h2.SetMinimum(-500);
-        // h2.SetMaximum( 500);
-        gPad->Modified();
-        gPad->Update();
-        c1.Print("c1.pdf");
-        getchar();
-      }
+	{
+	  h2.Reset();
+	  h2.SetLineWidth(2);
+	  Double_t max_adc = -1e10;
+	  for(Int_t i=0, n=fadc.size(); i<n; ++i){
+	    h2.SetBinContent(i+1, fadc.at(i) - f1.Eval(i));
+	    if(fadc.at(i) > max_adc) max_adc = fadc.at(i);
+	  }
+	  h_fadc.Draw();
+	  // h_fadc.SetMinimum(min_adc - 100);
+	  h_fadc.SetMinimum(-100);
+	  h_fadc.SetMaximum(max_adc + 100);
+	  // h_fadc.SetMaximum(1000);
+	  // h_fadc.SetMaximum(2000);
+	  TF1 f2("f2", f_baseline, MinTimeBucket, NumOfTimeBucket, 3);
+	  f2.SetParameters(f1.GetParameters());
+	  f2.Draw("same");
+	  h2.SetLineColor(kGreen+1);
+	  h2.SetLineWidth(2);
+	  h2.Draw("same");
+	  // h2.SetMinimum(-500);
+	  // h2.SetMaximum( 500);
+	  gPad->Modified();
+	  gPad->Update();
+	  c1.Print("c1.pdf");
+	  getchar();
+	}
 #endif
     }
   }
@@ -313,9 +316,9 @@ RawData::DecodeHits()
       UInt_t leading  = gUnpacker.get(DetIdSCH, 0, seg, 0, 0, i);
       UInt_t trailing = gUnpacker.get(DetIdSCH, 0, seg, 0, 1, i);
       AddHodoRawHit(m_SCHRawHC, DetIdSCH, 0, seg, 0,
-                    kHodoLeading,  leading);
+		    kHodoLeading,  leading);
       AddHodoRawHit(m_SCHRawHC, DetIdSCH, 0, seg, 0,
-                    kHodoTrailing, trailing);
+		    kHodoTrailing, trailing);
     }
   }
   // BVH
@@ -330,7 +333,7 @@ RawData::DecodeHits()
   for(Int_t seg=0; seg<NumOfSegWC; ++seg){
     for(Int_t AorT=0; AorT<2; ++AorT){
       for(Int_t m=0, nhit=gUnpacker.get_entries(DetIdWC, 0, seg, 2, AorT);
-          m<nhit; ++m){
+	  m<nhit; ++m){
 	UInt_t data = gUnpacker.get(DetIdWC, 0, seg, 2, AorT, m);
 	AddHodoRawHit(m_WCSUMRawHC, DetIdWCSUM, 0, seg, 0, AorT, data);
       }
@@ -345,9 +348,9 @@ RawData::DecodeHits()
 	UInt_t leading  = gUnpacker.get(DetIdBFT, plane, 0, seg, 0, i);
 	UInt_t trailing = gUnpacker.get(DetIdBFT, plane, 0, seg, 1, i);
 	AddHodoRawHit(m_BFTRawHC[plane], DetIdBFT, plane, seg, 0,
-                      kHodoLeading,  leading);
+		      kHodoLeading,  leading);
 	AddHodoRawHit(m_BFTRawHC[plane], DetIdBFT, plane, seg, 0,
-                      kHodoTrailing, trailing);
+		      kHodoTrailing, trailing);
       }
     }
   }
@@ -356,7 +359,7 @@ RawData::DecodeHits()
   for(Int_t plane=0; plane<NumOfLayersBcOut; ++plane){
     if(plane<NumOfLayersBc){
       for(Int_t wire=0; wire<MaxWireBC3; ++wire){
-        for(Int_t lt=0; lt<2; ++lt){
+	for(Int_t lt=0; lt<2; ++lt){
 	  UInt_t nhit = gUnpacker.get_entries(DetIdBC3, plane, 0, wire, lt);
 #if OscillationCut
 	  if(nhit>MaxMultiHitDC) continue;
@@ -366,33 +369,33 @@ RawData::DecodeHits()
 	    if (lt == 0 && (data<MinTdcBC3 || MaxTdcBC3<data)) continue;
 	    if (lt == 1 && data<MinTdcBC3) continue;
 	    AddDCRawHit(m_BcOutRawHC[plane+1], plane+PlMinBcOut, wire+1,
-                        data, lt);
+			data, lt);
 	  }
 	}
       }
     } else {
       // BC3 U-U' is dead E42
       if(gUnpacker.get_run_number() >= 5361
-         && (plane == NumOfLayersBc || plane == NumOfLayersBc+1)){
-        continue;
+	 && (plane == NumOfLayersBc || plane == NumOfLayersBc+1)){
+	continue;
       }
       //
       for(Int_t wire=0; wire<MaxWireBC4; ++wire){
-        for(Int_t lt=0; lt<2; ++lt){
+	for(Int_t lt=0; lt<2; ++lt){
 	  UInt_t nhit = gUnpacker.get_entries(DetIdBC4, plane-NumOfLayersBc,
-                                              0, wire, lt);
+					      0, wire, lt);
 #if OscillationCut
 	  if(nhit>MaxMultiHitDC) continue;
 #endif
 	  for(Int_t i=0; i<nhit; i++){
 	    UInt_t data =  gUnpacker.get(DetIdBC4, plane-NumOfLayersBc, 0,
-                                         wire, lt, i);
+					 wire, lt, i);
 	    if (lt == 0 && (data<MinTdcBC4 || MaxTdcBC4<data)) continue;
 	    if (lt == 1 && data<MinTdcBC4) continue;
 	    AddDCRawHit(m_BcOutRawHC[plane+1], plane+PlMinBcOut, wire+1,
-                        data, lt);
+			data, lt);
 	  }
-        }
+	}
       }
     }
   }
@@ -407,9 +410,9 @@ RawData::DecodeHits()
 #endif
 	for(Int_t i=0; i<nhit; ++i){
 	  UInt_t data = gUnpacker.get(DetIdSDC1, plane, 0, wire, lt, i);
-          if(lt == 0 && (data < MinTdcSDC1 || MaxTdcSDC1 < data)) continue;
-          if(lt == 1 && (data < MinTrailingSDC1 || MaxTrailingSDC1 < data)) continue;
-          AddDCRawHit(m_SdcInRawHC[plane+1], plane+PlMinSdcIn, wire+1, data , lt);
+	  if(lt == 0 && (data < MinTdcSDC1 || MaxTdcSDC1 < data)) continue;
+	  if(lt == 1 && (data < MinTrailingSDC1 || MaxTrailingSDC1 < data)) continue;
+	  AddDCRawHit(m_SdcInRawHC[plane+1], plane+PlMinSdcIn, wire+1, data , lt);
 	}
       }
     }
@@ -426,9 +429,9 @@ RawData::DecodeHits()
 	for(Int_t i=0; i<nhit; ++i){
 	  UInt_t data = gUnpacker.get(DetIdSDC2, plane, 0, wire, lt, i);
 	  if(lt == 0 && (data < MinTdcSDC2 || MaxTdcSDC2 < data)) continue;
-          if(lt == 1 && (data < MinTrailingSDC2 || MaxTrailingSDC2 < data)) continue;
-          AddDCRawHit(m_SdcInRawHC[plane+NumOfLayersSDC1+1],
-                      plane+NumOfLayersSDC1+PlMinSdcIn, wire+1, data , lt);
+	  if(lt == 1 && (data < MinTrailingSDC2 || MaxTrailingSDC2 < data)) continue;
+	  AddDCRawHit(m_SdcInRawHC[plane+NumOfLayersSDC1+1],
+		      plane+NumOfLayersSDC1+PlMinSdcIn, wire+1, data , lt);
 	}
       }
     }
@@ -438,17 +441,17 @@ RawData::DecodeHits()
   for(Int_t plane=0; plane<NumOfLayersSDC3; ++plane){
     for(Int_t wire=0; wire<MaxWireSDC3; ++wire){
       for(Int_t lt=0; lt<2; ++lt){
-        auto nhit = gUnpacker.get_entries(DetIdSDC3, plane, 0, wire, lt);
+	auto nhit = gUnpacker.get_entries(DetIdSDC3, plane, 0, wire, lt);
 #if OscillationCut
-        if(nhit > MaxMultiHitDC) continue;
+	if(nhit > MaxMultiHitDC) continue;
 #endif
-        for(Int_t i=0; i<nhit; ++i){
-          auto data = gUnpacker.get(DetIdSDC3, plane, 0, wire, lt, i);
-          if(lt == 0 && (data < MinTdcSDC3 || MaxTdcSDC3 < data)) continue;
-          if(lt == 1 && (data < MinTrailingSDC3 || MaxTrailingSDC3 < data)) continue;
-          AddDCRawHit(m_SdcOutRawHC[plane+1], plane+PlMinSdcOut, wire+1,
-                      data , lt);
-        }
+	for(Int_t i=0; i<nhit; ++i){
+	  auto data = gUnpacker.get(DetIdSDC3, plane, 0, wire, lt, i);
+	  if(lt == 0 && (data < MinTdcSDC3 || MaxTdcSDC3 < data)) continue;
+	  if(lt == 1 && (data < MinTrailingSDC3 || MaxTrailingSDC3 < data)) continue;
+	  AddDCRawHit(m_SdcOutRawHC[plane+1], plane+PlMinSdcOut, wire+1,
+		      data , lt);
+	}
       }
     }
   }
@@ -458,17 +461,17 @@ RawData::DecodeHits()
     const Int_t MaxWireSDC4 = (plane < 2) ? MaxWireSDC4Y : MaxWireSDC4X;
     for(Int_t wire=0; wire<MaxWireSDC4; ++wire){
       for(Int_t lt=0; lt<2; ++lt){
-        auto nhit = gUnpacker.get_entries(DetIdSDC4, plane, 0, wire, lt);
+	auto nhit = gUnpacker.get_entries(DetIdSDC4, plane, 0, wire, lt);
 #if OscillationCut
-        if(nhit > MaxMultiHitDC) continue;
+	if(nhit > MaxMultiHitDC) continue;
 #endif
-        for(Int_t i=0; i<nhit; ++i){
-          auto data = gUnpacker.get(DetIdSDC4, plane, 0, wire, lt, i);
-          if(lt == 0 && (data < MinTdcSDC4 || MaxTdcSDC4 < data)) continue;
-          if(lt == 1 && (data < MinTrailingSDC4 || MaxTrailingSDC4 < data)) continue;
-          AddDCRawHit(m_SdcOutRawHC[plane+NumOfLayersSDC3+1],
-                      plane+NumOfLayersSDC3+PlMinSdcOut, wire+1, data , lt);
-        }
+	for(Int_t i=0; i<nhit; ++i){
+	  auto data = gUnpacker.get(DetIdSDC4, plane, 0, wire, lt, i);
+	  if(lt == 0 && (data < MinTdcSDC4 || MaxTdcSDC4 < data)) continue;
+	  if(lt == 1 && (data < MinTrailingSDC4 || MaxTrailingSDC4 < data)) continue;
+	  AddDCRawHit(m_SdcOutRawHC[plane+NumOfLayersSDC3+1],
+		      plane+NumOfLayersSDC3+PlMinSdcOut, wire+1, data , lt);
+	}
       }
     }
   }
@@ -509,7 +512,7 @@ RawData::DecodeTPCHits()
     for(Int_t r=0; r<NumOfRow; ++r){
       const auto nhit = gUnpacker.get_entries(k_tpc, layer, 0, r, k_adc);
       for(Int_t i=0; i<nhit; ++i){
-        auto adc = gUnpacker.get(k_tpc, layer, 0, r, k_adc, i);
+	auto adc = gUnpacker.get(k_tpc, layer, 0, r, k_adc, i);
 	AddTPCRawHit(m_TPCRawHC[layer], layer, r, adc);
       }
     }
@@ -520,30 +523,30 @@ RawData::DecodeTPCHits()
     static const auto data_id = gUnpacker.get_data_id("HTOF", "fpga_leading");
     static const Int_t segment = 34;
     for(Int_t i=0, n=gUnpacker.get_entries(device_id, 0, segment, 0, data_id);
-        i<n; ++i){
+	i<n; ++i){
       auto tdc = gUnpacker.get(device_id, 0, segment, 0, data_id, i);
       AddHodoRawHit(m_TPCClockRawHC, 0, 0, 0, 0, kHodoLeading, tdc);
     }
   }
 
   m_is_decoded[kTPC] = true;
-
-  if(BaselineCorrectionTPC)
-    CorrectBaselineTPC();
+  bool is_baselinecorrected = true;
+  if(BaselineCorrectionTPC) is_baselinecorrected = CorrectBaselineTPC();
 
   /*
    * if correction is skipped or null baseline is found,
    * m_TPCCorHC is deeply copied from m_TPCRawHC.
    * So, in any case, m_TPCCorHC will be used in DCAnalyzer too.
    */
-  if(!m_baseline){
+  if(!m_baseline&&is_baselinecorrected){
     del::ClearContainerAll(m_TPCCorHC);
     for(const auto& hc: m_TPCRawHC){
       for(const auto& hit: hc){
-        for(const auto& adc: hit->Fadc()){
-          AddTPCRawHit(m_TPCCorHC[hit->LayerId()], hit->LayerId(),
-                       hit->RowId(), adc);
-        }
+	double raw_rms = hit->RawRMS();
+	for(const auto& adc: hit->Fadc()){
+	  AddTPCRawHit(m_TPCCorHC[hit->LayerId()], hit->LayerId(),
+		       hit->RowId(), adc,nullptr,raw_rms);
+	}
       }
     }
   }
@@ -551,6 +554,7 @@ RawData::DecodeTPCHits()
   return true;
 }
 
+/*
 //_____________________________________________________________________________
 Bool_t
 RawData::SelectTPCHits(Bool_t maxadccut, Bool_t maxadctbcut)
@@ -566,6 +570,7 @@ RawData::SelectTPCHits(Bool_t maxadccut, Bool_t maxadctbcut)
   DeleteCand.resize(NumOfLayersTPC+1);
 
   static const Double_t MinDe = gUser.GetParameter("MinDeTPC");
+  static const Double_t MinRawRms = gUser.GetParameter("MinBaseRmsTPC");//This is not MinRmsTPC!
   static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
   static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
   static const Bool_t BaselineCorrectionTPC
@@ -581,39 +586,47 @@ RawData::SelectTPCHits(Bool_t maxadccut, Bool_t maxadctbcut)
       continue;
     for(std::size_t hiti =0; hiti< nh; ++hiti){
       TPCRawHit* hit;
-      if(BaselineCorrectionTPC)
+      double raw_rms;
+      if(BaselineCorrectionTPC){
 	hit = m_TPCCorHC[layer][hiti];
-      else
+	raw_rms = m_TPCRawHC[layer][hiti]->RMS();
+      }
+      else{
 	hit = m_TPCRawHC[layer][hiti];
-
+	raw_rms = m_TPCRawHC[layer][hiti]->RMS();
+      }
       Double_t mean = hit->Mean();
       //Double_t max_adc = hit->MaxAdc() - mean;
       Double_t max_adc = hit->MaxAdc(MinTimeBucket, MaxTimeBucket) - mean;
       Int_t maxadc_tb = hit->LocMax();
-
-      if(maxadccut&&maxadctbcut){
-	if(max_adc>MinDe
-	   && (MinTimeBucket < maxadc_tb
-	       && maxadc_tb < MaxTimeBucket))
+      if(raw_rms>MinRawRms){
+	if(maxadccut&&maxadctbcut){
+	  if(max_adc>MinDe
+	     && (MinTimeBucket < maxadc_tb
+		 && maxadc_tb < MaxTimeBucket))
+	    ValidCand[layer].push_back(hit);
+	  else
+	    DeleteCand[layer].push_back(hit);
+	}
+	if(maxadccut&&!maxadctbcut){
+	  if(max_adc>MinDe)
+	    ValidCand[layer].push_back(hit);
+	  else
+	    DeleteCand[layer].push_back(hit);
+	}
+	if(!maxadccut&&maxadctbcut){
+	  if(MinTimeBucket < maxadc_tb
+	     && maxadc_tb < MaxTimeBucket)
+	    ValidCand[layer].push_back(hit);
+	  else
+	    DeleteCand[layer].push_back(hit);
+	}
+	if(!maxadccut&&!maxadctbcut){
 	  ValidCand[layer].push_back(hit);
-	else
-	  DeleteCand[layer].push_back(hit);
+	}
       }
-      if(maxadccut&&!maxadctbcut){
-	if(max_adc>MinDe)
-	  ValidCand[layer].push_back(hit);
-	else
-	  DeleteCand[layer].push_back(hit);
-      }
-      if(!maxadccut&&maxadctbcut){
-	if(MinTimeBucket < maxadc_tb
-	   && maxadc_tb < MaxTimeBucket)
-	  ValidCand[layer].push_back(hit);
-	else
-	  DeleteCand[layer].push_back(hit);
-      }
-      if(!maxadccut&&!maxadctbcut){
-	ValidCand[layer].push_back(hit);
+      else{
+	DeleteCand[layer].push_back(hit);
       }
     }
   }
@@ -636,7 +649,7 @@ RawData::SelectTPCHits(Bool_t maxadccut, Bool_t maxadctbcut)
   }
   return true;
 }
-
+*/
 
 //_____________________________________________________________________________
 Bool_t
@@ -646,7 +659,7 @@ RawData::DecodeCalibHits()
 
   for(Int_t plane=0; plane<NumOfPlaneVmeCalib; ++plane){
     DecodeHodo(DetIdVmeCalib, plane, NumOfSegVmeCalib,
-               kOneSide, m_VmeCalibRawHC);
+	       kOneSide, m_VmeCalibRawHC);
   }
 
   return true;
@@ -655,8 +668,8 @@ RawData::DecodeCalibHits()
 //_____________________________________________________________________________
 Bool_t
 RawData::AddHodoRawHit(HodoRHitContainer& cont,
-                       Int_t id, Int_t plane, Int_t seg,
-                       Int_t UorD, Int_t type, Int_t data)
+		       Int_t id, Int_t plane, Int_t seg,
+		       Int_t UorD, Int_t type, Int_t data)
 {
   HodoRawHit* p = nullptr;
   for(Int_t i=0, n=cont.size(); i<n; ++i){
@@ -703,7 +716,7 @@ RawData::AddHodoRawHit(HodoRHitContainer& cont,
 //_____________________________________________________________________________
 Bool_t
 RawData::AddDCRawHit(DCRHitContainer& cont,
-                     Int_t plane, Int_t wire, Int_t data, Int_t type)
+		     Int_t plane, Int_t wire, Int_t data, Int_t type)
 {
   DCRawHit* p = nullptr;
   for(Int_t i=0, n=cont.size(); i<n; ++i){
@@ -741,8 +754,8 @@ RawData::AddDCRawHit(DCRHitContainer& cont,
 //_____________________________________________________________________________
 Bool_t
 RawData::AddTPCRawHit(TPCRHitContainer& cont,
-                      Int_t layer, Int_t row, Double_t adc,
-                      Double_t* pars)
+		      Int_t layer, Int_t row, Double_t adc,
+		      Double_t* pars,Double_t raw_rms )
 {
   TPCRawHit* p = nullptr;
   for(Int_t i=0, n=cont.size(); i<n; ++i){
@@ -753,6 +766,7 @@ RawData::AddTPCRawHit(TPCRHitContainer& cont,
   }
   if(!p){
     p = new TPCRawHit(layer, row, pars);
+    p->SetRawRMS(raw_rms);
     cont.push_back(p);
   }
   p->AddFadc(adc);
@@ -762,13 +776,13 @@ RawData::AddTPCRawHit(TPCRHitContainer& cont,
 //_____________________________________________________________________________
 void
 RawData::DecodeHodo(Int_t id, Int_t plane, Int_t nseg, Int_t nch,
-                    HodoRHitContainer& cont)
+		    HodoRHitContainer& cont)
 {
   for(Int_t seg=0; seg<nseg; ++seg){
     for(Int_t UorD=0; UorD<nch; ++UorD){
       for(Int_t AorT=0; AorT<2; ++AorT){
 	for(Int_t m=0, nhit=gUnpacker.get_entries(id, plane, seg, UorD, AorT);
-            m<nhit; ++m){
+	    m<nhit; ++m){
 	  UInt_t data = gUnpacker.get(id, plane, seg, UorD, AorT, m);
 	  AddHodoRawHit(cont, id, plane, seg, UorD, AorT, data);
 	}
