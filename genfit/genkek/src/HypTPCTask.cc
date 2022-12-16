@@ -33,6 +33,7 @@ namespace{
   //const TVector3 targetsize(30,20,20);
   const TVector3 targetsize(35,25,25);
   const double htof_l = 34.86; //center to HTOF downstream
+  const double ztgt = tpc::ZTarget;
 }
 
 //GenFit Units : GeV/c, ns, cm, kGauss
@@ -64,7 +65,7 @@ HypTPCTask& HypTPCTask::GetInstance(){
 genfit::Track* HypTPCTask::GetFittedTrack(int trackid) const{
 
   genfit::Track* fittedTrack = nullptr;
-  if(FitCheck(trackid)) fittedTrack = GetTrack(trackid);
+  if(TrackCheck(trackid)) fittedTrack = GetTrack(trackid);
   return fittedTrack;
 }
 
@@ -85,11 +86,11 @@ genfit::FitStatus* HypTPCTask::GetFitStatus(int trackid) const{
   return fitStatus;
 }
 
-genfit::MeasuredStateOnPlane HypTPCTask::GetFitState(int trackid) const{
+genfit::MeasuredStateOnPlane HypTPCTask::GetFitState(int trackid, int pointid) const{
 
   genfit::MeasuredStateOnPlane fitState = 0;
   genfit::Track* fittedTrack = GetFittedTrack(trackid);
-  if(fittedTrack) fitState = fittedTrack -> getFittedState();
+  if(fittedTrack) fitState = fittedTrack -> getFittedState(pointid);
   return fitState;
 }
 
@@ -113,19 +114,21 @@ bool HypTPCTask::GetTrackPull(int trackid, int pdg, TVector3 res_vect, double tr
   TVectorD &referenceState = g4stateRef.getState();
   TVectorD referenceState6D = g4stateRef.get6DState();
   //fitted track's state
+  if(!TrackCheck(trackid)) return false;
   genfit::MeasuredStateOnPlane fitState = GetFitState(trackid);
-  if(!FitCheck(trackid)) return false;
   genfit::AbsTrackRep* rep = GetTrackRep(trackid);
-  TVectorD &state = fitState.getState();
-  TMatrixDSym &cov = fitState.getCov();
-  TVectorD state6D = fitState.get6DState();
-  TMatrixDSym cov6D = fitState.get6DCov();
   try{rep -> extrapolateToPlane(fitState, g4stateRef.getPlane());} //mm -> cm
   catch(genfit::Exception &e){
     if(verbosity>=2) LogWARNING("failed!");
     if(verbosity>=1) std::cerr << e.what();
     return false;
   }
+
+  TVectorD &state = fitState.getState();
+  TMatrixDSym &cov = fitState.getCov();
+  TVectorD state6D = fitState.get6DState();
+  TMatrixDSym cov6D = fitState.get6DCov();
+
   residual[0] = GetCharge(trackid)/state[0]-g4mom.Mag();
   residual[1] = state[1]-referenceState[1];
   residual[2] = state[2]-referenceState[2];
@@ -198,11 +201,11 @@ int HypTPCTask::GetNumOfIterations(int trackid) const{
 
 double HypTPCTask::GetCharge(int trackid) const{
 
-  double charge;
+  double charge = qnan;
   //genfit::AbsTrackRep* rep = GetTrackRep(trackid);
   //if(rep) charge = rep -> getPDGCharge();
   genfit::MeasuredStateOnPlane fitState = GetFitState(trackid);
-  if(FitCheck(trackid)) charge = fitState.getCharge();
+  if(TrackCheck(trackid)) charge = fitState.getCharge();
   return charge;
 }
 
@@ -214,20 +217,27 @@ int HypTPCTask::GetPDGcode(int trackid) const{
   return code;
 }
 
-TVector3 HypTPCTask::GetMom(int trackid) const{
+TVector3 HypTPCTask::GetMom(int trackid, int pointid) const{
 
   TVector3 mom(qnan, qnan, qnan);
-  genfit::MeasuredStateOnPlane fitState = GetFitState(trackid);
-  if(FitCheck(trackid)) mom = fitState.getMom();
+  if(GetNHits(trackid)<=pointid){
+    std::cout<<"Error : # of hits <= point Id"<<std::endl;
+    return mom;
+  }
+  genfit::MeasuredStateOnPlane fitState = GetFitState(trackid, pointid);
+  if(TrackCheck(trackid)) mom = fitState.getMom();
   return mom;
 }
 
-
-TVector3 HypTPCTask::GetPos0(int trackid) const{
+TVector3 HypTPCTask::GetPos(int trackid, int pointid) const{
 
   TVector3 pos(qnan, qnan, qnan);
-  genfit::MeasuredStateOnPlane fitState = GetFitState(trackid);
-  if(FitCheck(trackid)) pos = 10.*fitState.getPos(); //cm -> mm
+  if(GetNHits(trackid)<=pointid){
+    std::cout<<"Error : # of hits <= point Id"<<std::endl;
+    return pos;
+  }
+  genfit::MeasuredStateOnPlane fitState = GetFitState(trackid, pointid);
+  if(TrackCheck(trackid)) pos = 10.*fitState.getPos(); //cm -> mm
   return pos;
 }
 
@@ -243,7 +253,6 @@ int HypTPCTask::GetNHits(int trackid) const{
   }
   return nhits;
 }
-
 
 double HypTPCTask::GetTrackLength(int trackid, int start, int end) const{
 
@@ -280,7 +289,7 @@ bool HypTPCTask::ExtrapolateTrack(int trackid, double distance, TVector3 &pos, T
   if(distance>=0.) d += 0.1*tracklength;
   genfit::RKTrackRep *rep = (genfit::RKTrackRep *) GetTrackRep(trackid);
   genfit::MeasuredStateOnPlane fitState = GetFitState(trackid);
-  if(!rep || !FitCheck(trackid)) return false;
+  if(!rep || !TrackCheck(trackid)) return false;
   try{rep -> extrapolateBy(fitState, d);}
   catch(genfit::Exception &e){
     if(verbosity>=2) LogWARNING("failed!");
@@ -300,7 +309,7 @@ bool HypTPCTask::ExtrapolateToPoint(int trackid, TVector3 point, TVector3 &pos, 
   tracklen = 0.1*tracklength; //mm -> cm
   genfit::RKTrackRep *rep = (genfit::RKTrackRep *) GetTrackRep(trackid);
   genfit::MeasuredStateOnPlane fitState = GetFitState(trackid);
-  if(!rep || !FitCheck(trackid)) return false;
+  if(!rep || !TrackCheck(trackid)) return false;
 
   double time0 = fitState.getTime();
   double len;
@@ -326,7 +335,7 @@ bool HypTPCTask::ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, T
   tracklen = 0.1*tracklength; //mm -> cm
   genfit::RKTrackRep *rep = (genfit::RKTrackRep *) GetTrackRep(trackid);
   genfit::MeasuredStateOnPlane fitState = GetFitState(trackid);
-  if(!rep || !FitCheck(trackid)) return false;
+  if(!rep || !TrackCheck(trackid)) return false;
 
   double time0 = fitState.getTime();
   try{tracklen += rep -> extrapolateToPlane(fitState, plane);}
@@ -356,12 +365,16 @@ bool HypTPCTask::ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, T
   return true;
 }
 
+bool HypTPCTask::ExtrapolateToTarget(int trackid, TVector3 &pos, TVector3 &mom, double &tracklen, double &tof) const{
+
+  TVector3 target(0.,0.,ztgt);
+  return ExtrapolateToPoint(trackid, target, pos, mom, tracklen, tof);
+}
+
 bool HypTPCTask::IsInsideTarget(int trackid) const{
 
-  double ztgt = tpc::ZTarget;
-  TVector3 pos; TVector3 target(0.,0.,ztgt);
-  TVector3 mom; double tracklen; double tof;
-  if(ExtrapolateToPoint(trackid, target, pos, mom, tracklen, tof) &&
+  TVector3 pos; TVector3 mom; double tracklen; double tof;
+  if(ExtrapolateToTarget(trackid, pos, mom, tracklen, tof) &&
      (TMath::Abs(pos.x()) < targetsize.x()/2.0) &&
      (TMath::Abs(pos.y()) < targetsize.y()/2.0) &&
      (TMath::Abs(pos.z()-ztgt) < targetsize.z()/2.0)) return true;

@@ -32,10 +32,13 @@ public:
   void Init();
   genfit::Track* GetTrack(int ith) const;
   void AddReps(int ith, int pdg);
+  //single pid hypothesis
   void AddHelixTrack(int pdg, TPCLocalTrackHelix *tp);
+  void AddLinearTrack(int pdg, TPCLocalTrack *tp, double momentum);
+  //multiple pid hypotheses
   void AddHelixTrack(std::vector<int> pdg, TPCLocalTrackHelix *tp);
+  void AddLinearTrack(std::vector<int> pdg, TPCLocalTrack *tp, double momentum);
   int GetNTrack() const { return _genfitTrackArray -> GetEntriesFast(); }
-  int GetNHit(int ith) const;
 
 protected:
 

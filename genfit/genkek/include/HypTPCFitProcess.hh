@@ -32,9 +32,8 @@ public:
     else genfit::Exception::quiet(true);
   }
 
-
-  bool FitCheck(int trackid) const;
-  bool FitCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep* rep=nullptr) const;
+  bool TrackCheck(int trackid) const;
+  bool TrackCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep* rep=nullptr) const;
 
   //Process track with the all AbsTrackReps of the track.
   bool ProcessTrack(genfit::Track* Track);

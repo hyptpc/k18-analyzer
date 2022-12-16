@@ -34,7 +34,6 @@ const HypTPCHit* dethit, const TrackCandHit* hit)
     rawHitCoords_(0) = pos.X()/10.; //mm -> cm
     rawHitCoords_(1) = pos.Y()/10.;
     rawHitCoords_(2) = pos.Z()/10.;
-
     rawHitCov_ = hitCov;
     detId_ = hit -> getDetId();
     hitId_ = hit -> getHitId();

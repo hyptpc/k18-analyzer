@@ -15,38 +15,46 @@ ClassImp(HypTPCFitProcess)
 
 void HypTPCFitProcess::DebugMode(){ HypTPCFitter::_fitter -> setDebugLvl(); }
 
-bool HypTPCFitProcess::FitCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep* rep) const {
+bool HypTPCFitProcess::TrackCheck(genfit::Track* fittedTrack, genfit::AbsTrackRep* rep) const {
 
   if(rep==nullptr) return false;
   if(!fittedTrack->getFitStatus(rep)->isFitted()){
-    if(verbosity>=2) LogWARNING("Fitting is failed");
+    if(verbosity>=1) LogWARNING("Fitting is failed");
     return false;
   }
   if(!fittedTrack->getFitStatus(rep)->isFitConverged()){
-    if(verbosity>=2) LogWARNING("Fit is not converged");
+    if(verbosity>=1) LogWARNING("Fit is not converged");
     return false;
   }
-  try{fittedTrack->getFittedState();}
-  catch(genfit::Exception& e){
-    if(verbosity>=2) LogWARNING("Track has no fitted state, failed!");
-    if(verbosity>=1) std::cerr << e.what();
-    return false;
-  }
-
   try{fittedTrack->checkConsistency();}
   catch(genfit::Exception& e){
-    if(verbosity>=2) LogWARNING("genfit::Track::checkConsistency() failed!");
+    if(verbosity>=2) std::cerr << e.what();
+    if(verbosity>=1) LogWARNING("genfit::Track::checkConsistency() failed!");
+    return false;
+  }
+  int nhits = 0;
+  try{nhits = fittedTrack->getNumPointsWithMeasurement();}
+  catch(genfit::Exception &e){
+    if(verbosity>=2) LogWARNING("genfit::Track::getNumPointsWithMeasurement() failed!");
     if(verbosity>=1) std::cerr << e.what();
     return false;
+  }
+  for(int pointid=0;pointid<nhits;pointid++){
+    try{fittedTrack->getFittedState(pointid);}
+    catch(genfit::Exception& e){
+      if(verbosity>=2) std::cerr << e.what();
+      if(verbosity>=1) LogWARNING("Track has no fitted state, failed!");
+      return false;
+    }
   }
   return true;
 }
-bool HypTPCFitProcess::FitCheck(int trackid) const {
+
+bool HypTPCFitProcess::TrackCheck(int trackid) const {
 
   genfit::Track* fittedTrack = GetTrack(trackid);
   genfit::AbsTrackRep* rep = fittedTrack->getCardinalRep();
-  return FitCheck(fittedTrack, rep);
-
+  return TrackCheck(fittedTrack, rep);
 }
 
 void HypTPCFitProcess::FitTracks(){
@@ -55,7 +63,6 @@ void HypTPCFitProcess::FitTracks(){
   for(int i=0; i<nTracks; i++){
     ProcessTrack(GetTrack(i));
   }
-
 }
 
 bool HypTPCFitProcess::ProcessTrack(genfit::Track* Track){
@@ -70,9 +77,8 @@ bool HypTPCFitProcess::ProcessTrack(genfit::Track* Track){
     return false;
   }
 
-  if(!FitCheck(Track)) return false;
+  if(!TrackCheck(Track)) return false;
   return true;
-
 }
 
 bool HypTPCFitProcess::ProcessTrack(genfit::Track* Track, genfit::AbsTrackRep* rep){
@@ -87,7 +93,6 @@ bool HypTPCFitProcess::ProcessTrack(genfit::Track* Track, genfit::AbsTrackRep* r
     return false;
   }
 
-  if(!FitCheck(Track, rep)) return false;
+  if(!TrackCheck(Track, rep)) return false;
   return true;
-
 }

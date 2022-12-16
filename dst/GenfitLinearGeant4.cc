@@ -21,10 +21,10 @@
 #include "HodoPHCMan.hh"
 #include "DCAnalyzer.hh"
 #include "DCHit.hh"
-#include "TPCLocalTrackHelix.hh"
+#include "TPCCluster.hh"
+#include "TPCLocalTrack.hh"
 #include "TPCHit.hh"
 #include "TPCPadHelper.hh"
-#include "ThreeVector.hh"
 
 #include "HypTPCFitter.hh"
 #include "HypTPCTask.hh"
@@ -38,12 +38,12 @@ namespace
 using namespace root;
 using namespace dst;
 const auto qnan = TMath::QuietNaN();
-const std::string& class_name("GenfitHelixGeant4");
-using hddaq::unpacker::GUnpacker;
-const auto& gUnpacker = GUnpacker::get_instance();
-ConfMan&            gConf = ConfMan::GetInstance();
-const UserParamMan& gUser = UserParamMan::GetInstance();
-const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
+const std::string& class_name("GenfitLinearGeant4");
+const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
+auto&       gConf = ConfMan::GetInstance();
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
+const auto& gPHC  = HodoPHCMan::GetInstance();
 debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
 
 const Int_t MaxTPCHits = 500;
@@ -53,10 +53,11 @@ const Int_t MaxTPCTracks = 100;
 const bool IsWithRes = true;
 
 //For GenFit Setting
-//const bool Const_field = true;
-const bool Const_field = false;
+const bool Const_field = false; //Must be false for linear tracking
 const Int_t verbosity = 0;//3;
 const auto& tpcGeo = ConfMan::Get<TString>("TPCGDML");
+const Double_t mom_smear = 0.034; //dp/p ~ 3.4%
+
 }
 
 namespace dst
@@ -99,23 +100,20 @@ struct Event
   Double_t g4lengthHtof[MaxTPCHits];
   Double_t g4tHtof[MaxTPCHits];
 
-  //TrackSearchTPCHelix()
-  Int_t ntTpc;                 // Number of Tracks
+  //TrackSearchTPC()
+  Int_t ntTpc;                   // Number of Tracks
   Int_t nhtrack[MaxTPCTracks]; // Number of Hits (in 1 tracks)
   Double_t chisqr[MaxTPCTracks];
-  Double_t helix_cx[MaxTPCTracks];
-  Double_t helix_cy[MaxTPCTracks];
-  Double_t helix_z0[MaxTPCTracks];
-  Double_t helix_r[MaxTPCTracks];
-  Double_t helix_dz[MaxTPCTracks];
-  Double_t mom0_x[MaxTPCTracks];//Helix momentum at Y = 0
-  Double_t mom0_y[MaxTPCTracks];
-  Double_t mom0_z[MaxTPCTracks];
-  Double_t mom0[MaxTPCTracks];
-  Double_t pathT[MaxTPCTracks];
+  Double_t x0[MaxTPCTracks];
+  Double_t y0[MaxTPCTracks];
+  Double_t u0[MaxTPCTracks];
+  Double_t v0[MaxTPCTracks];
+  Double_t theta[MaxTPCTracks];
+
   Double_t hitresolution_x[MaxTPCTracks][MaxTPCHits];
   Double_t hitresolution_y[MaxTPCTracks][MaxTPCHits];
   Double_t hitresolution_z[MaxTPCTracks][MaxTPCHits];
+
   Int_t hitlayer[MaxTPCTracks][MaxTPCHits];
   Double_t hitpos_x[MaxTPCTracks][MaxTPCHits];
   Double_t hitpos_y[MaxTPCTracks][MaxTPCHits];
@@ -127,6 +125,15 @@ struct Event
   Double_t mom_y[MaxTPCTracks][MaxTPCHits];
   Double_t mom_z[MaxTPCTracks][MaxTPCHits];
   Double_t mom[MaxTPCTracks][MaxTPCHits];
+  Double_t residual[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_x[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_y[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_z[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_px[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_py[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_pz[MaxTPCTracks][MaxTPCHits];
+  Double_t residual_p[MaxTPCTracks][MaxTPCHits];
+
   Double_t g4pos_x[MaxTPCTracks][MaxTPCHits];
   Double_t g4pos_y[MaxTPCTracks][MaxTPCHits];
   Double_t g4pos_z[MaxTPCTracks][MaxTPCHits];
@@ -139,15 +146,6 @@ struct Event
   Double_t tracklen[MaxTPCTracks][MaxTPCHits];
   Double_t tof[MaxTPCTracks][MaxTPCHits];
 
-  Double_t residual[MaxTPCTracks][MaxTPCHits];
-  Double_t residual_x[MaxTPCTracks][MaxTPCHits];
-  Double_t residual_y[MaxTPCTracks][MaxTPCHits];
-  Double_t residual_z[MaxTPCTracks][MaxTPCHits];
-  Double_t residual_px[MaxTPCTracks][MaxTPCHits];
-  Double_t residual_py[MaxTPCTracks][MaxTPCHits];
-  Double_t residual_pz[MaxTPCTracks][MaxTPCHits];
-  Double_t residual_p[MaxTPCTracks][MaxTPCHits];
-
   //GenFit outputs
   Int_t GFstatus;
   Int_t GFntTpc;
@@ -159,7 +157,6 @@ struct Event
   Double_t GFchisqr[MaxTPCTracks];
   Double_t GFpval[MaxTPCTracks];
   Double_t GFtof[MaxTPCTracks];
-
   Double_t GFcharge[MaxTPCTracks];
   Double_t GFresidual_p[MaxTPCTracks];
   Int_t GFnhHtof;
@@ -190,7 +187,6 @@ struct Src
   Int_t nhittpc;                 // Number of Hits
 
   Int_t nhPrm;
-  Double_t pidPrm[MaxTPCTracks];
   Double_t xPrm[MaxTPCTracks];
   Double_t yPrm[MaxTPCTracks];
   Double_t zPrm[MaxTPCTracks];
@@ -198,8 +194,8 @@ struct Src
   Double_t pyPrm[MaxTPCTracks];
   Double_t pzPrm[MaxTPCTracks];
 
-  Int_t ititpc[MaxTPCTracks];
-  Int_t idtpc[MaxTPCTracks];
+  Int_t ititpc[MaxTPCHits];
+  Int_t idtpc[MaxTPCHits];
   Double_t xtpc[MaxTPCHits];//with resolution
   Double_t ytpc[MaxTPCHits];//with resolution
   Double_t ztpc[MaxTPCHits];//with resolution
@@ -258,24 +254,24 @@ namespace root
 }
 
 //_____________________________________________________________________
-Int_t
-main( Int_t argc, char **argv )
+int
+main(int argc, char **argv)
 {
-  std::vector<std::string> arg( argv, argv+argc );
+  std::vector<std::string> arg(argv, argv+argc);
 
-  if( !CheckArg( arg ) )
+  if(!CheckArg(arg))
     return EXIT_FAILURE;
-  if( !DstOpen( arg ) )
+  if(!DstOpen(arg))
     return EXIT_FAILURE;
-  if( !gConf.Initialize( arg[kConfFile] ) )
+  if(!gConf.Initialize(arg[kConfFile]))
     return EXIT_FAILURE;
-  if( !gConf.InitializeUnpacker() )
+  if(!gConf.InitializeUnpacker())
     return EXIT_FAILURE;
 
   Int_t skip = gUnpacker.get_skip();
   if (skip < 0) skip = 0;
   Int_t max_loop = gUnpacker.get_max_loop();
-  Int_t nevent = GetEntries( TTreeCont );
+  Int_t nevent = GetEntries(TTreeCont);
   if (max_loop > 0) nevent = skip + max_loop;
 
   CatchSignal::Set();
@@ -293,12 +289,11 @@ main( Int_t argc, char **argv )
 #endif
 
   Int_t ievent = skip;
-  for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
+  for(; ievent<nevent && !CatchSignal::Stop(); ++ievent){
     gCounter.check();
     InitializeEvent();
     if(DstRead(ievent)) tree->Fill();
   }
-
   std::cout << "#D Event Number: " << std::setw(6)
 	    << ievent << std::endl;
   DstClose();
@@ -308,10 +303,10 @@ main( Int_t argc, char **argv )
 }
 
 //_____________________________________________________________________
-bool
-dst::InitializeEvent( void )
+Bool_t
+dst::InitializeEvent()
 {
-  event.status = 0;
+  event.status   = 0;
   event.evnum = 0;
   event.g4nhTpc = 0;
   event.g4ntTpc = 0;
@@ -325,21 +320,16 @@ dst::InitializeEvent( void )
     event.g4tidTpc[i] =0;
     event.g4nhtrack[i] =0;
     event.nhtrack[i] =0;
-    event.chisqr[i] =qnan;
-    event.helix_cx[i] =qnan;
-    event.helix_cy[i] =qnan;
-    event.helix_z0[i] =qnan;
-    event.helix_r[i] =qnan;
-    event.helix_dz[i] =qnan;
-    event.mom0_x[i] =qnan;
-    event.mom0_y[i] =qnan;
-    event.mom0_z[i] =qnan;
-    event.mom0[i] =qnan;
-    event.pathT[i] =qnan;
     event.GFinside[i] = -9999;
+    event.chisqr[i] =qnan;
+    event.x0[i] =qnan;
+    event.y0[i] =qnan;
+    event.u0[i] =qnan;
+    event.v0[i] =qnan;
+    event.theta[i] =qnan;
+    event.GFfitstatus[i] =0;
     event.GFchisqr[i] =qnan;
     event.GFpval[i] =qnan;
-    event.GFfitstatus[i] =0;
     event.GFtracklen[i] =qnan;
     event.GFtof[i] =qnan;
     event.GFcharge[i] =qnan;
@@ -408,40 +398,41 @@ dst::InitializeEvent( void )
 }
 
 //_____________________________________________________________________
-bool
-dst::DstOpen( std::vector<std::string> arg )
+Bool_t
+dst::DstOpen(std::vector<std::string> arg)
 {
   Int_t open_file = 0;
   Int_t open_tree = 0;
-  for( std::size_t i=0; i<nArgc; ++i ){
-    if( i==kProcess || i==kConfFile || i==kOutFile ) continue;
-    open_file += OpenFile( TFileCont[i], arg[i] );
-    open_tree += OpenTree( TFileCont[i], TTreeCont[i], TreeName[i] );
+  for(std::size_t i=0; i<nArgc; ++i){
+    if(i==kProcess || i==kConfFile || i==kOutFile) continue;
+    open_file += OpenFile(TFileCont[i], arg[i]);
+    open_tree += OpenTree(TFileCont[i], TTreeCont[i], TreeName[i]);
   }
 
-  if( open_file!=open_tree || open_file!=nArgc-3 )
+  if(open_file!=open_tree || open_file!=nArgc-3)
     return false;
-  if( !CheckEntries( TTreeCont ) )
+  if(!CheckEntries(TTreeCont))
     return false;
 
-  TFileCont[kOutFile] = new TFile( arg[kOutFile].c_str(), "recreate" );
+  TFileCont[kOutFile] = new TFile(arg[kOutFile].c_str(), "recreate");
 
   return true;
 }
 
 //_____________________________________________________________________
-bool
-dst::DstRead( Int_t ievent )
+Bool_t
+dst::DstRead(Int_t ievent)
 {
   static const std::string func_name("["+class_name+"::"+__func__+"]");
 
-  //if( ievent%10000==0 ){
-  if( ievent%1==0 ){
+  if(ievent%10000==0){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
 
   GetEntry(ievent);
+
+  HF1(1, event.status++);
 
   event.evnum = src.evnum;
   event.g4nhTpc = src.nhittpc;
@@ -453,13 +444,7 @@ dst::DstRead( Int_t ievent )
     ++event.g4nhtrack[src.ititpc[ihit]-1];
   }
 
-  Int_t g4nhtrack_flag = 0;
-  for(Int_t i=0; i<event.g4ntTpc; ++i){
-    if(event.g4nhtrack[i]<8) g4nhtrack_flag++;
-    if(event.g4pidTpc[i] > 5000) g4nhtrack_flag++;
-  }
-  if(g4nhtrack_flag!=0) return true;
-
+  event.g4nhHtof = src.nhHtof;
   for(Int_t ihit=0; ihit<event.g4nhHtof; ++ihit){
     event.g4tidHtof[ihit] = src.tidHtof[ihit];
     event.g4xHtof[ihit] = src.xHtof[ihit];
@@ -482,19 +467,21 @@ dst::DstRead( Int_t ievent )
     return true;
 
   HF1( 1, event.status++ );
+
   HypTPCTask& GFtracks = HypTPCTask::GetInstance();
   GFtracks.Init();
+
   HF1( 2, event.GFstatus++ );
 
-  DCAnalyzer *DCAna = new DCAnalyzer();
-  if(IsWithRes) DCAna->DecodeTPCHitsGeant4(src.nhittpc, src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
-  else DCAna->DecodeTPCHitsGeant4(src.nhittpc, src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
-  DCAna->TrackSearchTPCHelix();
+  DCAnalyzer DCAna;
+  if(IsWithRes) DCAna.DecodeTPCHitsGeant4(src.nhittpc, src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
+  else DCAna.DecodeTPCHitsGeant4(src.nhittpc, src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
+  DCAna.TrackSearchTPC();
   HF1( 1, event.status++ );
   HF1( 2, event.GFstatus++ );
 
-  Int_t ntTpc = DCAna->GetNTracksTPCHelix();
-  if( MaxTPCHits<ntTpc ){
+  Int_t ntTpc = DCAna.GetNTracksTPC();
+  if(MaxTPCHits<ntTpc){
     std::cout << "#W " << func_name << " "
       	      << "too many ntTpc " << ntTpc << "/" << MaxTPCHits << std::endl;
     ntTpc = MaxTPCHits;
@@ -502,40 +489,40 @@ dst::DstRead( Int_t ievent )
 
   event.ntTpc = ntTpc;
   HF1( k18Hid, event.ntTpc );
-  for( Int_t it=0; it<ntTpc; ++it ){
-    TPCLocalTrackHelix *tp= DCAna->GetTrackTPCHelix(it);
-    if(!tp) continue;
-    Int_t nh = tp->GetNHit();
-    Double_t chisqr = tp->GetChiSquare();
-    Double_t cx = tp->Getcx(), cy = tp->Getcy();
-    Double_t z0 = tp->Getz0(), r = tp->Getr();
-    Double_t dz = tp->Getdz();
-    TVector3 mom0 = tp->GetMom0();
-    event.pathT[it] = tp -> GetTransversePath();
+  for(Int_t it=0; it<ntTpc; ++it){
+    TPCLocalTrack *track= DCAna.GetTrackTPC(it);
+    if(!track) continue;
+    Int_t nh = track->GetNHit();
+    Double_t chisqr = track->GetChiSquare();
+    Double_t x0 = track->GetX0(), y0 = track->GetY0();
+    Double_t u0 = track->GetU0(), v0 = track->GetV0();
+    Double_t theta = track->GetTheta();
+    HF1(k18Hid+14, x0);
+    HF1(k18Hid+15, y0);
+    HF1(k18Hid+16, u0);
+    HF1(k18Hid+17, v0);
+    HF2(k18Hid+18, x0, u0);
+    HF2(k18Hid+19, y0, v0);
+    HF2(k18Hid+20, y0, x0);
     event.nhtrack[it] = nh;
     event.chisqr[it] = chisqr;
-    event.helix_cx[it] = cx;
-    event.helix_cy[it] = cy;
-    event.helix_z0[it] = z0;
-    event.helix_r[it]  = r;
-    event.helix_dz[it] = dz;
-    event.mom0_x[it] = mom0.X();
-    event.mom0_y[it] = mom0.Y();
-    event.mom0_z[it] = mom0.Z();
-    event.mom0[it] = mom0.Mag();
+    event.x0[it] = x0;
+    event.y0[it] = y0;
+    event.u0[it] = u0;
+    event.v0[it] = v0;
+    event.theta[it] = theta;
     Double_t offset_tracklen = 0; Double_t offset_tof = 0;
-    for( Int_t ih=0; ih<nh; ++ih ){
-      TPCLTrackHit *hit=tp->GetHit(ih);
+    TVector3 mom;
+    for(Int_t ih=0; ih<nh; ++ih){
+      TPCLTrackHit *hit = track->GetHit(ih);
       if(!hit) continue;
-      HF1( 4, hit->GetHoughDist());
-      HF1( 5, hit->GetHoughDistY());
       Int_t layerId = 0;
       layerId = hit->GetLayer();
       TVector3 hitpos = hit->GetLocalHitPos();
-      TVector3 calpos = hit->GetLocalCalPosHelix();
+      TVector3 calpos = hit->GetLocalCalPos();
       //Double_t residual = hit->GetResidual();
       //TVector3 res_vect = hit->GetResidualVect();
-      TVector3 mom = hit->GetMomentumHelix();
+      HF1(k18Hid+13, layerId);
       Double_t checker=9999;
       for( Int_t ih2=0; ih2<src.nhittpc; ++ih2 ){
 	TVector3 setpos;
@@ -552,19 +539,15 @@ dst::DstRead( Int_t ievent )
 	  event.g4mom_y[it][ih] = src.pytpc[ih2];
 	  event.g4mom_z[it][ih] = src.pztpc[ih2];
 	  event.g4mom[it][ih] = src.pptpc[ih2];
+	  event.g4tid[it][ih] = src.ititpc[ih2];
+	  event.g4pid[it][ih] = src.idtpc[ih2];
 
-	  event.residual_px[it][ih] = mom.x() - src.pxtpc[ih2];
-	  event.residual_py[it][ih] = mom.y() - src.pytpc[ih2];
-	  event.residual_pz[it][ih] = mom.z() - src.pztpc[ih2];
-	  event.residual_p[it][ih] = mom.Mag() - src.pptpc[ih2];
 	  event.residual_x[it][ih] = calpos.x() - event.g4pos_x[it][ih];
 	  event.residual_y[it][ih] = calpos.y() - event.g4pos_y[it][ih];
 	  event.residual_z[it][ih] = calpos.z() - event.g4pos_z[it][ih];
 	  event.residual[it][ih] = TMath::Sqrt(event.residual_x[it][ih]*event.residual_x[it][ih]+
 					       event.residual_y[it][ih]*event.residual_y[it][ih]+
 					       event.residual_z[it][ih]*event.residual_z[it][ih]);
-	  event.g4tid[it][ih] = src.ititpc[ih2];
-	  event.g4pid[it][ih] = src.idtpc[ih2];
 
 	  event.tracklen[it][ih] = src.tlengthtpc[ih2];
 	  event.tof[it][ih] = src.timetpc[ih2];
@@ -573,7 +556,26 @@ dst::DstRead( Int_t ievent )
       if(ih==0){
 	offset_tracklen = event.tracklen[it][ih];
 	offset_tof = event.tof[it][ih];
+	double smear_factor = gRandom->Gaus(1.0, mom_smear);
+	mom = smear_factor*TVector3(event.g4mom_x[it][ih],event.g4mom_y[it][ih],event.g4mom_z[it][ih]);
       }
+      HF2(1000*(layerId+1)+1, calpos.X(), calpos.Y());
+      HF1(1000*(layerId+1)+2, calpos.X());
+      HF1(1000*(layerId+1)+3, calpos.Y());
+      HF1(1000*(layerId+1)+4, calpos.Z());
+      HF1(1000*(layerId+1)+5, hitpos.X());
+      HF1(1000*(layerId+1)+6, hitpos.Y());
+      HF1(1000*(layerId+1)+7, hitpos.Z());
+      HF1(1000*(layerId+1)+8, event.residual[it][ih]);
+      HF1(1000*(layerId+1)+9, event.residual_x[it][ih]);
+      HF1(1000*(layerId+1)+10, event.residual_y[it][ih]);
+      HF1(1000*(layerId+1)+11, event.residual_z[it][ih]);
+
+      event.residual_px[it][ih] = mom.x() - event.g4mom_x[it][it];
+      event.residual_py[it][ih] = mom.y() - event.g4mom_y[it][it];
+      event.residual_pz[it][ih] = mom.z() - event.g4mom_z[it][it];
+      event.residual_p[it][ih] = mom.Mag() - event.g4mom[it][it];
+
       event.hitresolution_x[it][ih] = hit->GetResolutionVect().x();
       event.hitresolution_y[it][ih] = hit->GetResolutionVect().y();
       event.hitresolution_z[it][ih] = hit->GetResolutionVect().z();
@@ -596,8 +598,8 @@ dst::DstRead( Int_t ievent )
       //event.residual_z[it][ih] = res_vect.z();
     } //ih
     //Add tracks into the GenFit TrackCand
-    if(event.g4pid[it][0]!=0) GFtracks.AddHelixTrack(event.g4pid[it][0], tp);
-  } //it
+    if(event.g4pid[it][0]!=0) GFtracks.AddLinearTrack(event.g4pid[it][0], track, event.mom[it][0]);
+  }//it
 
   HF1( g4Hid, event.g4ntTpc );
   for(Int_t i=0; i<event.g4ntTpc; ++i){
@@ -642,8 +644,9 @@ dst::DstRead( Int_t ievent )
       event.GFtracklenHtof[igf]=htoflen;
       event.GFtofHtof[igf]=htoftof;
     }
-    if(GFtracks.IsInsideTarget(igf)) event.GFinside[igf]=1;
+    if(!GFtracks.IsInsideTarget(igf)) event.GFinside[igf]=1;
     else event.GFinside[igf]=0;
+
     TVector3 posv; TVector3 momv; double len; double tof;
     GFtracks.ExtrapolateToTarget(igf,posv,momv,len,tof);
     HF1( genfitHid+7, posv.x());
@@ -652,6 +655,7 @@ dst::DstRead( Int_t ievent )
     HF1( genfitHid+15, event.GFpval[igf]);
   }
   HF1( genfitHid, event.GFntTpc );
+
   for(int it=0;it<event.g4ntTpc;it++){
     if(event.ntTpc==event.g4ntTpc && event.GFntTpc==event.g4ntTpc){
       TVector3 resolution(event.hitresolution_x[it][0],event.hitresolution_y[it][0],event.hitresolution_z[it][0]);
@@ -692,6 +696,7 @@ dst::DstRead( Int_t ievent )
       HF1( genfitHid+6, event.GFtof[it]);
     }
   }
+
   GFtracks.Init();
   HF1( 2, event.GFstatus++ );
 
@@ -700,37 +705,61 @@ dst::DstRead( Int_t ievent )
   std::cout<<"[g4nhTpc]: "<<std::setw(2)<<src.nhittpc<<" "<<std::endl;
 #endif
 
-  HF1( 1, event.status++ );
+  HF1(1, event.status++);
 
-  delete DCAna;
   return true;
 }
 
 //_____________________________________________________________________
-bool
-dst::DstClose( void )
+Bool_t
+dst::DstClose()
 {
   TFileCont[kOutFile]->Write();
   std::cout << "#D Close : " << TFileCont[kOutFile]->GetName() << std::endl;
   TFileCont[kOutFile]->Close();
 
   const std::size_t n = TFileCont.size();
-  for( std::size_t i=0; i<n; ++i ){
-    if( TTreeCont[i] ) delete TTreeCont[i];
-    if( TFileCont[i] ) delete TFileCont[i];
+  for(std::size_t i=0; i<n; ++i){
+    if(TTreeCont[i]) delete TTreeCont[i];
+    if(TFileCont[i]) delete TFileCont[i];
   }
   return true;
 }
 
 //_____________________________________________________________________
-bool
-ConfMan::InitializeHistograms( void )
+Bool_t
+ConfMan::InitializeHistograms()
 {
+
+  for(Int_t i=1; i<=NumOfLayersTPC; ++i){
+    // Tracking Histgrams
+    TString title1 = Form("[K1.8] LayerId%2d Y%%Xcal;X cal. [mm]; Y cal. [mm]", i);
+    TString title2 = Form("[K1.8] LayerId%2d Calc. Position x;Calpos x [mm]; Number of Tracks", i);
+    TString title3 = Form("[K1.8] LayerId%2d Calc. Position y;Calpos y [mm]; Number of Tracks", i);
+    TString title4 = Form("[K1.8] LayerId%2d Calc. Position z;Calpos z [mm]; Number of Tracks", i);
+    TString title5 = Form("[K1.8] LayerId%2d Hit Position x;Hitpos x [mm]; Number of Tracks", i);
+    TString title6 = Form("[K1.8] LayerId%2d Hit Position y;Hitpos y [mm]; Number of Tracks", i);
+    TString title7 = Form("[K1.8] LayerId%2d Hit Position z;Hitpos z [mm]; Number of Tracks", i);
+    TString title8 = Form("[K1.8] LayerId%2d Residual;Residual [mm]; Number of Tracks", i);
+    TString title9 = Form("[K1.8] LayerId%2d Residual x;Residual x [mm]; Number of Tracks", i);
+    TString title10 = Form("[K1.8] LayerId%2d Residual y;Residual y [mm]; Number of Tracks", i);
+    TString title11 = Form("[K1.8] LayerId%2d Residual z;Residual z [mm]; Number of Tracks", i);
+    HB2(1000*i+1, title1, 100, -250., 250., 100, -250., 250.);
+    HB1(1000*i+2, title2, 200, -250., 250.);
+    HB1(1000*i+3, title3, 200, -250., 250.);
+    HB1(1000*i+4, title4, 200, -250., 250.);
+    HB1(1000*i+5, title5, 200, -250., 250.);
+    HB1(1000*i+6, title6, 200, -250., 250.);
+    HB1(1000*i+7, title7, 200, -250., 250.);
+    HB1(1000*i+8, title8, 200, -2.0, 2.0);
+    HB1(1000*i+9, title9, 200, -2.0, 2.0);
+    HB1(1000*i+10, title10, 200, -2.0, 2.0);
+    HB1(1000*i+11, title11, 200, -2.0, 2.0);
+  }
+
   HB1(1, "Status", 21, 0., 21. );
   HB1(2, "[GenFit] Status", 21, 0., 21. );
   HB1(3, "[Genfit] Fit Status", 2, 0., 2. );
-  HB1(4, "Hough Dist [mm]", 300, 0., 30 );
-  HB1(5, "Hough DistY [mm]", 300, 0., 30 );
   HB1(g4Hid, "[Geant4] #Track TPC", 10, 0., 10. );
   HB1(g4Hid+1, "[Geant4] #Hits of Track TPC", 33, 0., 33. );
   HB1(k18Hid, "[K1.8] #Track TPC", 10, 0., 10. );
@@ -746,6 +775,15 @@ ConfMan::InitializeHistograms( void )
   HB1(k18Hid+10, "[K1.8] p_x Residual;Residual [GeV/c]; Number of Tracks", 500, -0.1, 0.1);
   HB1(k18Hid+11, "[K1.8] p_y Residual;Residual [GeV/c]; Number of Tracks", 500, -0.1, 0.1);
   HB1(k18Hid+12, "[K1.8] p_z Residual;Residual [GeV/c]; Number of Tracks", 500, -0.1, 0.1);
+  HB1(k18Hid+13, "[K1.8] LayerId TPC", 35, 0., 35.);
+  HB1(k18Hid+14, "[K1.8] X0 TPC", 400, -100., 100.);
+  HB1(k18Hid+15, "[K1.8] Y0 TPC", 400, -100., 100.);
+  HB1(k18Hid+16, "[K1.8] U0 TPC", 200, -10, 10);
+  HB1(k18Hid+17, "[K1.8] V0 TPC", 200, -10, 10);
+  HB2(k18Hid+18, "[K1.8] U0%X0 TPC", 100, -100., 100., 100, -10, 10);
+  HB2(k18Hid+19, "[K1.8] V0%Y0 TPC", 100, -100., 100., 100, -10, 10);
+  HB2(k18Hid+20, "[K1.8] X0%Y0 TPC", 100, -100., 100., 100, -100, 100);
+
   HB1(genfitHid, "[GenFit] #Track TPC", 10, 0., 10. );
   HB1(genfitHid+1, "[GenFit] #Hits of Track TPC", 33, 0., 33. );
   HB1(genfitHid+2, "[GenFit] Reconstructed P; P [GeV/c]; Counts [/0.001 GeV/c]", 1500, 0., 1.5 );
@@ -779,10 +817,10 @@ ConfMan::InitializeHistograms( void )
   HB1(genfitHid+30, "[GenFit] Residual P_y;Residual P_y [GeV/c]; Number of Tracks", 500, -0.1, 0.1);
   HB1(genfitHid+31, "[GenFit] Residual P_z;Residual P_z [GeV/c]; Number of Tracks", 500, -0.1, 0.1);
 
+  HBTree("tpc", "tree of TPCTracking using Geant4 input");
 
-  HBTree( "tpc", "tree of tpc" );
-  tree->Branch("status", &event.status, "status/I" );
-  tree->Branch("evnum", &event.evnum, "evnum/I" );
+  tree->Branch("status", &event.status, "status/I");
+  tree->Branch("evnum", &event.evnum, "evnum/I");
 
   //Geant4 Generated Hits & Tracks
   tree->Branch("g4ntTpc",&event.g4ntTpc,"g4ntTpc/I");
@@ -803,16 +841,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("ntTpc",&event.ntTpc,"ntTpc/I");
   tree->Branch("nhtrack",event.nhtrack,"nhtrack[ntTpc]/I");
   tree->Branch("chisqr",event.chisqr,"chisqr[ntTpc]/D");
-  tree->Branch("helix_cx",event.helix_cx,"helix_cx[ntTpc]/D");
-  tree->Branch("helix_cy",event.helix_cy,"helix_cy[ntTpc]/D");
-  tree->Branch("helix_z0",event.helix_z0,"helix_z0[ntTpc]/D");
-  tree->Branch("helix_r" ,event.helix_r, "helix_r[ntTpc]/D");
-  tree->Branch("helix_dz",event.helix_dz,"helix_dz[ntTpc]/D");
-  tree->Branch("mom0_x",event.mom0_x,"mom0_x[ntTpc]/D"); // Momentum at Y = 0
-  tree->Branch("mom0_y",event.mom0_y,"mom0_y[ntTpc]/D"); // Momentum at Y = 0
-  tree->Branch("mom0_z",event.mom0_z,"mom0_z[ntTpc]/D"); // Momentum at Y = 0
-  tree->Branch("mom0",event.mom0,"mom0[ntTpc]/D"); // Momentum at Y = 0
-  tree->Branch("pathT",event.pathT,"pathT[ntTpc]/D");
+  tree->Branch("x0",event.x0,"x0[ntTpc]/D");
+  tree->Branch("y0",event.y0,"y0[ntTpc]/D");
+  tree->Branch("u0",event.u0,"u0[ntTpc]/D");
+  tree->Branch("v0",event.v0,"v0[ntTpc]/D");
+  tree->Branch("theta",event.theta,"theta[ntTpc]/D");
   tree->Branch("g4pos_x",event.g4pos_x,Form("g4pos_x[ntTpc][%d]/D",MaxTPCHits));
   tree->Branch("g4pos_y",event.g4pos_y,Form("g4pos_y[ntTpc][%d]/D",MaxTPCHits));
   tree->Branch("g4pos_z",event.g4pos_z,Form("g4pos_z[ntTpc][%d]/D",MaxTPCHits));
@@ -882,15 +915,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFtracklenHtof",event.GFtracklenHtof,"GFtracklenHtof[GFntTpc]/D");
   tree->Branch("GFtofHtof",event.GFtofHtof,"GFtofHtof[GFntTpc]/D");
 
-  TTreeCont[kTPCGeant]->SetBranchStatus("nhittpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ititpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("idtpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("xtpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ytpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ztpc", 1);
   /*
-    tree->Branch("nPrm",&src.nPrm,"nPrm/I");
-    tree->Branch("pidPrm",src.pidPrm,"pidPrm[nPrm]/I");
+    tree->Branch("nPrm",&src.nhittpc,"nPrm/I");
     tree->Branch("xPrm",src.xPrm,"xPrm[nPrm]/D");
     tree->Branch("yPrm",src.yPrm,"yPrm[nPrm]/D");
     tree->Branch("zPrm",src.zPrm,"zPrm[nPrm]/D");
@@ -899,27 +925,20 @@ ConfMan::InitializeHistograms( void )
     tree->Branch("pzPrm",src.pzPrm,"pzPrm[nPrm]/D");
   */
 
-  tree->Branch("nhittpc",&src.nhittpc,"nhittpc/I");
-  tree->Branch("ititpc",&src.ititpc,"ititpc/I");
-  tree->Branch("idtpc",&src.idtpc,"idtpc/I");
-  tree->Branch("xtpc",&src.xtpc,"xtpc/D");
-  tree->Branch("ytpc",&src.ytpc,"ytpc/D");
-  tree->Branch("ztpc",&src.ztpc,"ztpc/D");
-
   ////////// Bring Address From Dst
   TTreeCont[kTPCGeant]->SetBranchStatus("*", 0);
   TTreeCont[kTPCGeant]->SetBranchStatus("evnum",  1);
   /*
-  TTreeCont[kTPCGeant]->SetBranchStatus("nhPrm",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pidPrm",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("xPrm",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("yPrm",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("zPrm",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pxPrm",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pyPrm",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pzPrm",  1);
+    TTreeCont[kTPCGeant]->SetBranchStatus("nhPrm",  1);
+    TTreeCont[kTPCGeant]->SetBranchStatus("pidPrm",  1);
+    TTreeCont[kTPCGeant]->SetBranchStatus("xPrm",  1);
+    TTreeCont[kTPCGeant]->SetBranchStatus("yPrm",  1);
+    TTreeCont[kTPCGeant]->SetBranchStatus("zPrm",  1);
+    TTreeCont[kTPCGeant]->SetBranchStatus("pxPrm",  1);
+    TTreeCont[kTPCGeant]->SetBranchStatus("pyPrm",  1);
+    TTreeCont[kTPCGeant]->SetBranchStatus("pzPrm",  1);
   */
-  TTreeCont[kTPCGeant]->SetBranchStatus("nhittpc", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("nhittpc",  1);
   TTreeCont[kTPCGeant]->SetBranchStatus("ititpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("idtpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("xtpc", 1);
@@ -934,7 +953,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchStatus("pztpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("pptpc", 1);   // total mometum
   // TTreeCont[kTPCGeant]->SetBranchStatus("masstpc", 1);   // mass TPC
-  //TTreeCont[kTPCGeant]->SetBranchStatus("betatpc", 1);
+  // TTreeCont[kTPCGeant]->SetBranchStatus("betatpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("timetpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("edeptpc", 1);
   // TTreeCont[kTPCGeant]->SetBranchStatus("dedxtpc", 1);
@@ -967,14 +986,14 @@ ConfMan::InitializeHistograms( void )
 
   TTreeCont[kTPCGeant]->SetBranchAddress("evnum", &src.evnum);
   /*
-  TTreeCont[kTPCGeant]->SetBranchAddress("nhPrm", &src.nhPrm);
-  TTreeCont[kTPCGeant]->SetBranchAddress("pidPrm", src.pidPrm);
-  TTreeCont[kTPCGeant]->SetBranchAddress("xPrm", src.xPrm);
-  TTreeCont[kTPCGeant]->SetBranchAddress("yPrm", src.yPrm);
-  TTreeCont[kTPCGeant]->SetBranchAddress("zPrm", src.zPrm);
-  TTreeCont[kTPCGeant]->SetBranchAddress("pxPrm", src.pxPrm);
-  TTreeCont[kTPCGeant]->SetBranchAddress("pyPrm", src.pyPrm);
-  TTreeCont[kTPCGeant]->SetBranchAddress("pzPrm", src.pzPrm);
+    TTreeCont[kTPCGeant]->SetBranchAddress("nhPrm", &src.nhPrm);
+    TTreeCont[kTPCGeant]->SetBranchAddress("pidPrm", &src.pidPrm);
+    TTreeCont[kTPCGeant]->SetBranchAddress("xPrm", src.xPrm);
+    TTreeCont[kTPCGeant]->SetBranchAddress("yPrm", src.yPrm);
+    TTreeCont[kTPCGeant]->SetBranchAddress("zPrm", src.zPrm);
+    TTreeCont[kTPCGeant]->SetBranchAddress("pxPrm", src.pxPrm);
+    TTreeCont[kTPCGeant]->SetBranchAddress("pyPrm", src.pyPrm);
+    TTreeCont[kTPCGeant]->SetBranchAddress("pzPrm", src.pzPrm);
   */
   TTreeCont[kTPCGeant]->SetBranchAddress("nhittpc", &src.nhittpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("ititpc", src.ititpc);
@@ -990,7 +1009,6 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchAddress("pytpc", src.pytpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("pztpc", src.pztpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("pptpc", src.pptpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("timetpc", src.timetpc);
   // TTreeCont[kTPCGeant]->SetBranchAddress("masstpc", src.masstpc);
   // TTreeCont[kTPCGeant]->SetBranchAddress("betatpc", src.betatpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("timetpc", src.timetpc);
@@ -1023,19 +1041,19 @@ ConfMan::InitializeHistograms( void )
 }
 
 //_____________________________________________________________________
-bool
-ConfMan::InitializeParameterFiles( void )
+Bool_t
+ConfMan::InitializeParameterFiles()
 {
   return
-    ( InitializeParameter<DCGeomMan>("DCGEO")   &&
-      InitializeParameter<UserParamMan>("USER") &&
-      InitializeParameter<FieldMan>("FLDMAP", "HSFLDMAP") &&
-      InitializeParameter<HodoPHCMan>("HDPHC") );
+    (InitializeParameter<DCGeomMan>("DCGEO")   &&
+     InitializeParameter<UserParamMan>("USER") &&
+     InitializeParameter<FieldMan>("FLDMAP", "HSFLDMAP") &&
+     InitializeParameter<HodoPHCMan>("HDPHC"));
 }
 
 //_____________________________________________________________________
-bool
-ConfMan::FinalizeProcess( void )
+Bool_t
+ConfMan::FinalizeProcess()
 {
   return true;
 }
