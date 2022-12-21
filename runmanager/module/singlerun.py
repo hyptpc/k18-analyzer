@@ -41,14 +41,14 @@ class SingleRun(object):
     self.__tag = tag
     self.__key = runinfo['key']
     self.__bin_path = runinfo['bin']
-    self.__is_dst = ('Dst' in self.__bin_path and
-                     'dstin' in runinfo and
-                     len(runinfo['dstin']) > 0)
+    self.__is_dstgenfit = ('Dst' in self.__bin_path or 'Genfit' in self.__bin_path)
+    self.__is_dst = ( self.__is_dstgenfit and
+                      'dstin' in runinfo and
+                      len(runinfo['dstin']) > 0)
     if self.__is_dst:
       self.__dstin_path = runinfo['dstin']
     else:
       self.__dstin_path = None
-    self.__dst_job = None
     self.__conf_path = runinfo['conf']
     self.__data_path = runinfo['data']
     self.__root_path = runinfo['root']
@@ -58,7 +58,7 @@ class SingleRun(object):
     self.__log_path = None
     self.__merge_log_path = None
     self.__nproc = runinfo['nproc']
-    if self.__nproc >= MAX_NPROC:
+    if self.__nproc > MAX_NPROC:
       logger.warning(f'{self.__key} nproc must be {MAX_NPROC} or less'+
                      f'=> change {MAX_NPROC}')
       self.__nproc = MAX_NPROC
@@ -66,6 +66,7 @@ class SingleRun(object):
     self.__nevents = runinfo['nevents']
     self.__div_unit = runinfo['unit']
     self.__queue = runinfo['queue']
+    self.__qmerge = runinfo['qmerge']
     self.__option = ''
     self.__start_time = time.time()
     self.__elapsed_time = 0
@@ -89,8 +90,7 @@ class SingleRun(object):
     self.__make_log()
     # self.__make_prefetch()
     self.__dump_init_info()
-    if self.__is_dst is not True:
-      self.__make_element()
+    self.__make_element()
     self.__ncomplete = 0
 
   #____________________________________________________________________________
@@ -164,44 +164,29 @@ class SingleRun(object):
     ''' Execute batch job. '''
     if self.__bjob_status is not None:
       return
-    if self.__is_dst is not True: # User
-      self.__make_conf_list()
-      self.__make_root_list()
-      self.__make_log_list()
-      if self.__bjob_status is False:
-        return
-      for i, elem in enumerate(self.__elem_list):
-        if os.path.exists(self.__root_list[i]):
-          os.remove(self.__root_list[i])
-        job = bsub.BSub(self, elem,
-                        self.__conf_list[i],
-                        self.__root_list[i],
-                        self.__log_list[i])
-        job.execute()
-        self.__bjob_list.append(job)
-        self.__jobid_list.append(None)
-        self.__jobstat_list.append(job.get_status())
-      for i, item in enumerate(self.__bjob_list):
-        self.__dump_log(f'pid[bjob({i})]', item.get_process_id())
-      self.__dump_log(None, '_'*80)
-      self.__bjob_status = 0
-      # self.__status = 0
-    else: # Dst
-      command = shlex.split(f'bsub -q {self.__queue} ' +
-                            f'-o {self.__log_path} ')
-      command.extend([self.__bin_path,
-                      self.__conf_path])
-      command.extend(self.__dstin_path)
-      command.append(self.__root_path)
-      proc = subprocess.run(command,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            check=True)
-      job_id = bjob.BJob.read_job_id(proc.stdout.decode())
-      self.__dst_job = bjob.BJob(job_id)
-      self.__dump_log(f'jid[dst]', job_id)
-      self.__dump_log(None, '_'*80)
-      self.__bjob_status = 0
+    self.__make_conf_list()
+    self.__make_root_list()
+    self.__make_log_list()
+    if self.__bjob_status is False:
+      return
+    for i, elem in enumerate(self.__elem_list):
+      if os.path.exists(self.__root_list[i]):
+        os.remove(self.__root_list[i])
+      job = bsub.BSub(self, elem,
+                      self.__conf_list[i],
+                      self.__root_list[i],
+                      self.__log_list[i])
+      if self.__is_dst is True:
+        job.set_dstin_list(self.__dstin_path)
+      job.execute()
+      self.__bjob_list.append(job)
+      self.__jobid_list.append(None)
+      self.__jobstat_list.append(job.get_status())
+    for i, item in enumerate(self.__bjob_list):
+      self.__dump_log(f'pid[bjob({i})]', item.get_process_id())
+    self.__dump_log(None, '_'*80)
+    self.__bjob_status = 0
+    # self.__status = 0
 
   #____________________________________________________________________________
   def finalize(self, keep_log=False):
@@ -244,12 +229,14 @@ class SingleRun(object):
     # self.update_status()
     info = dict()
     info['queue'] = self.__queue
+    info['qmerge'] = self.__qmerge
     info['nproc'] = self.__nproc
     info['unit'] = self.__div_unit
     info['nev'] = self.__nevents
     info['bin'] = self.__bin_path
     info['conf'] = self.__conf_path
     info['data'] = self.__data_path
+    info['dstin'] = self.__dstin_path
     info['root'] = self.__root_path
     info['time'] = self.get_elapsed_time()
     info['stat'] = self.get_status()
@@ -281,6 +268,11 @@ class SingleRun(object):
   # def get_prefetch_path(self):
   #   ''' Get prefetch path. '''
   #   return self.__prefetch_path
+
+  #____________________________________________________________________________
+  def get_queue_merge(self):
+    ''' Get queue for merging job. '''
+    return self.__qmerge
 
   #____________________________________________________________________________
   def get_queue(self):
@@ -338,14 +330,6 @@ class SingleRun(object):
     ''' Kill bjob. '''
     if self.__bjob_status is True:
       return
-    if self.__dst_job is not None:
-      stat = self.__dst_job.get_status()
-      self.__dst_job.kill()
-      self.__bjob_status = 1
-      job_id = self.__dst_job.get_job_id()
-      buff = f'Process was killed [jid: {job_id}]'
-      logger.info(f'Kill job [jid: {job_id}]')
-      self.__dump_log('kill_bjob', buff)
     for job in self.__bjob_list:
       stat = job.get_status()
       if stat == 0 or stat == 1:
@@ -393,11 +377,15 @@ class SingleRun(object):
       os.rename(self.__root_list[0], self.__root_path)
       self.__merge_status = 'DONE'
       return
-    size = 0
-    for item in self.__root_list:
-      size += os.path.getsize(item)
-    # qOpt = '-q sx' if size > 2 * 1024**3 + 5 * 1024**2 else '-q s'
-    qOpt = '-q s'
+    # size = 0
+    # for item in self.__root_list:
+    #   size += os.path.getsize(item)
+    # if size > 3.8*(10**9):
+    #   qOpt = '-q sx'
+    # else:
+    #   qOpt = '-q s'
+    # qOpt = '-q sx' if size > 3.8*(10**9) else '-q s'
+    qOpt = f'-q {self.__qmerge}'
     pOpt = f'-j {self.__nproc}' if self.__nproc > 1 else ''
     bOpt = f'-d {self.__buff_path}' if self.__buff_path is not None else ''
     cmd = shlex.split(f'bsub {qOpt} -o {self.__merge_log_path} '+
@@ -408,12 +396,20 @@ class SingleRun(object):
                                             stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE,
                                             check=True)
+    time.sleep(1)
     buff = self.__merging_process.stdout
-    self.__merging_job = bjob.BJob(bjob.BJob.read_job_id(buff.decode()))
-    self.__dump_log('jid[merge]', self.__merging_job.get_job_id())
-    self.__dump_log(None, '_'*80)
-    self.__merge_status = 'RUNNING'
-
+    job_id = bjob.BJob.read_job_id(buff.decode())
+    if job_id is not None:
+      btop_proc = subprocess.run(['btop', str(job_id)],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+      self.__merging_job = bjob.BJob(job_id)
+      self.__dump_log('jid[merge]', self.__merging_job.get_job_id())
+      self.__dump_log(None, '_'*80)
+      self.__merge_status = 'RUNNING'
+    else:
+      logger.warning(f'failed to read jobid ({cmd})')
+      self.__merge_status = 'FAILED'
   #____________________________________________________________________________
   def set_option(self, option):
     ''' Set option. '''
@@ -440,10 +436,7 @@ class SingleRun(object):
     elif self.__bjob_status is 0: # running
       self.__status = 'BJOB-RUNNING'
     elif self.__bjob_status is True: # complete
-      if self.__is_dst:
-        self.__status = 'DONE'
-      else:
-        self.__status = 'BJOB-DONE'
+      self.__status = 'BJOB-DONE'
     elif self.__bjob_status is False: # failure
       self.__status = 'FAILED'
       return
@@ -484,6 +477,7 @@ class SingleRun(object):
     self.__dump_log('nproc', self.__nproc)
     self.__dump_log('buff_path', self.__buff_path)
     self.__dump_log('queue', self.__queue)
+    self.__dump_log('qmerge', self.__qmerge)
     # self.__dump_log('prefetch', self.__prefetch_path)
     self.__dump_log('dirdummy', self.__dummy_dir.name)
     self.__dump_log(None, '_'*80)
@@ -531,7 +525,8 @@ class SingleRun(object):
       for node in tmp.findall('control/skip'):
         node.text = str(i * self.__div_unit)
       for node in tmp.findall('control/max_loop'):
-        node.text = str(-1 if i == len(self.__unpack_list) - 1 else
+        last = (-1 if self.__nevents is None else self.__nevents - i * self.__div_unit)
+        node.text = str(last if i == len(self.__unpack_list) - 1 else
                         self.__div_unit)
       tmp.write(item)
 
@@ -576,7 +571,7 @@ class SingleRun(object):
       nsegs = 1
     else:
       nsegs = (1 if self.__nevents is None else
-               self.__nevents // self.__div_unit + 1)
+              (self.__nevents -1) // self.__div_unit + 1)
     for i in range(nsegs):
       self.__elem_list.append(f'{self.__basename}_{i}')
     self.__dump_log('elem', self.__elem_list)
@@ -635,21 +630,6 @@ class SingleRun(object):
     ''' Update job status. '''
     if (self.__bjob_status is not None and self.__bjob_status != 0):
       return
-    if self.__is_dst:
-      if self.__dst_job is None:
-        return
-      stat = self.__dst_job.get_status()
-      if stat == 'PEND' or stat == 'RUN':
-        pass
-      elif stat == 'DONE':
-        self.__bjob_status = True
-      elif stat == 'EXIT':
-        self.__bjob_status = False
-        self.__dump_log('error', 'merging error')
-        self.__dump_log(None, '_'*80)
-      else:
-        self.__merge_status = 'UNKNOWN'
-      return
     n_complete = 0
     for i, job in enumerate(self.__bjob_list):
       stat = job.get_status()
@@ -688,7 +668,7 @@ class SingleRun(object):
     if self.__merge_status != 'RUNNING':
       return
     stat = self.__merging_job.get_status()
-    if stat == 'PEND' or stat == 'RUN':
+    if stat == 'INIT' or stat == 'PEND' or stat == 'RUN':
       return
     elif stat == 'DONE':
       self.__merge_status = 'DONE'
@@ -707,24 +687,20 @@ class SingleRun(object):
     stat = data['stat']
     nseg = data['nseg']
     prog = data['prog']
+    queue = data['queue']
+    qmerge = data['qmerge'] if 'qmerge' in data else '?'
     if stat == 'INIT':
-      buff = 'init'
+      buff = 'initialized'
     elif stat == 'PURGED':
       buff = 'purged'
     elif stat == 'STAGED':
       buff = 'staged'
     elif stat == 'BJOB-RUNNING':
-      if 'Dst' in data['bin']:
-        buff = 'running'
-      else:
-        buff = f'running({prog}/{nseg})'
+      buff = f'running:{queue}({prog}/{nseg})'
     elif stat == 'BJOB-DONE':
-      if 'Dst' in data['bin']:
-        buff = 'running'
-      else:
-        buff = f'running({prog}/{nseg})'
+      buff = f'running:{queue}({prog}/{nseg})'
     elif stat == 'MERGING':
-      buff = f'merging({nseg})'
+      buff = f'merging:{qmerge}({nseg})'
     elif stat == 'TERMINATED':
       buff = 'terminated'
     elif stat == 'DONE':

@@ -3,15 +3,15 @@
 #
 # The allowed keys are
 #   queue  <- bsub queue (eg. s, l, etc...)
+#   qmerge <- bsub queue for merging job to command "hadd"
 #   unit   <- dividing event unit
-#   nporc  <- number of process for merging (must be less than 20)
+#   nproc  <- number of process for merging (up to 18)
 #   buff   <- intermediate root files will be placed here if nproc is more than 2
+#             if not set, use the same "root" directory
 #   bin    <- path to executable binary
 #   conf   <- path to conf directory/file from the work directory
 #   data   <- path to data directory/file
 #   root   <- path to the output ROOT output directory/file
-#   dstin  <- list of input files for dst analysis
-#             these files are assumed to be in the same root directory of output
 #
 # Be careful of the indent rule because YAML format is sensitive to it.
 # Some problems will happen if there is no default setting declaration.
@@ -21,7 +21,7 @@
 # work directory path
 # The following paths must be relative to this path
 
-WORKDIR: ~/work/miwalove/analyzer
+WORKDIR: ~/workdir/of/your/analyzer
 
 #____________________________________________________
 # default setting
@@ -30,8 +30,9 @@ WORKDIR: ~/work/miwalove/analyzer
 
 DEFAULT:
   queue: s
+  qmerge: s
   unit:  100000
-  nproc: 1
+  nproc: 18
   buff:  /group/had/sks/Users/user/buffer
   bin:   ./bin/Hodoscope
   conf:  ./param/conf/analyzer_default.conf
@@ -52,6 +53,10 @@ RUN:
     root: ./test.root
 
   3838: # The default setting will be adapted. In this case run03838.dat.gz/.dat will be loaded.
+
+  3333: # if number of divisions and size of root files are large, set merge queue
+    qmerge: sx
+    unit: 1000
 
   3800:
     bin:  ./bin/KuramaTracking
@@ -75,11 +80,3 @@ RUN:
     unit:  50000
     bin:   ./bin/KuramaTracking
     data:  ../data/run03800.dat.gz
-
-  dst:
-    unit:  50000
-    bin:   ./bin/DstKuramaHodoscope
-    data:  ../data/run03800.dat.gz
-    dstin:
-      - KuramaTracking
-      - Hodoscope

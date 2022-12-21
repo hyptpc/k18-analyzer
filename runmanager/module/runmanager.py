@@ -19,6 +19,7 @@ import tempfile
 import time
 
 import bjob
+import bjobmanager
 import bsub
 import classimpl
 import singlerun
@@ -158,12 +159,16 @@ class RunManager(metaclass=classimpl.Singleton):
     ptime = time.time()
     self.__updater_status = 'RUNNING'
     self.__updater_thread.start()
+    bjob_man = bjobmanager.BJobManager()
+    bjob_man.start()
     while sum(self.__is_done) != self.__nruns:
+      logger.debug('running')
       self.__single_cycle()
       dtime = RUN_PERIOD - (time.time() - ptime)
       if dtime > 0:
         time.sleep(dtime)
       ptime = time.time()
+    bjob_man.stop()
     self.__updater_status = 'END'
     while self.__updater_thread.is_alive():
       self.__updater_thread.join()

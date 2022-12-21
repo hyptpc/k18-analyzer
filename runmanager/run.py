@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 #______________________________________________________________________________
 def main(runlist_path, status_path):
   ''' Main function. '''
-  logger.info("Press 'Ctrl-C' to terminate processes.")
   runlist_manager = runlist.RunlistManager()
   runlist_manager.set_run_list(runlist_path)
   run_manager = runmanager.RunManager()
@@ -35,6 +34,7 @@ def main(runlist_path, status_path):
   run_manager.set_status_output_path(status_path)
   run_manager.initialize()
   signal.signal(signal.SIGINT, signal_handler)
+  logger.info("Press 'Ctrl-C' to terminate processes.")
   run_manager.register_staging()
   run_manager.run()
   logger.info('done')

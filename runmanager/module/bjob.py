@@ -5,9 +5,11 @@ __version__ = '4.1'
 __date__ = '16 Feb. 2021'
 
 #______________________________________________________________________________
+import bjobmanager
 import logging
 import shlex
 import subprocess
+import time
 
 BSUB_RESPONCE = 'Job <JobID> is submitted to queue <queue>'
 logger = logging.getLogger('__main__').getChild(__name__)
@@ -34,28 +36,30 @@ class BJob(object):
         self.__status == 'EXIT' or
         self.__status == 'TERMINATED'):
       return self.__status
-    cmd = f'bjobs {self.__job_id}'
-    proc = None
-    try:
-      proc = subprocess.run(shlex.split(cmd),
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            check=True)
-    except subprocess.CalledProcessError as e:
-      logger.error(e)
-      self.__status = 'FAILED'
-      return self.__status
-    buff = proc.stdout.splitlines()[1].decode().split()
-    status = 'UNKNOWN'
-    if int(buff[0]) == self.__job_id:
-      if buff[2] == 'PEND':
-        status = 'PEND'
-      elif buff[2] == 'RUN':
-        status = 'RUN'
-      elif buff[2] == 'DONE':
-        status = 'DONE'
-      elif buff[2] == 'EXIT':
-        status = 'EXIT'
+    status = bjobmanager.BJobManager().get_job_status(self.__job_id)
+    logger.debug(f'{self.__job_id} is {status}')
+    # cmd = f'bjobs {self.__job_id}'
+    # proc = None
+    # try:
+    #   proc = subprocess.run(shlex.split(cmd),
+    #                         stdout=subprocess.PIPE,
+    #                         stderr=subprocess.PIPE,
+    #                         check=True)
+    # except subprocess.CalledProcessError as e:
+    #   logger.error(e)
+    #   self.__status = 'FAILED'
+    #   return self.__status
+    # buff = proc.stdout.splitlines()[1].decode().split()
+    # status = 'UNKNOWN'
+    # if int(buff[0]) == self.__job_id:
+    #   if buff[2] == 'PEND':
+    #     status = 'PEND'
+    #   elif buff[2] == 'RUN':
+    #     status = 'RUN'
+    #   elif buff[2] == 'DONE':
+    #     status = 'DONE'
+    #   elif buff[2] == 'EXIT':
+    #     status = 'EXIT'
     self.__status = status
     return status
 

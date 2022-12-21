@@ -59,17 +59,25 @@ def display(filename):
   for key, item in sorted(info.items(),
                           key=lambda x:int(x[0]) if isinstance(x[0], int) else x[0]):
     status = singlerun.SingleRun.decode_status(item)
-    if 'done' in status:
-      continue
+    # if 'done' in status:
+    #   continue
     n_unfinished += 1
     ptime = singlerun.SingleRun.decode_time(item)
+    infile = None
+    if 'data' in item and item['data'] is not None:
+      infile = item['data']
+    elif 'dstin' in item and len(item['dstin']) == 1:
+      infile = item['dstin'][0]
+    nev = None
+    if 'nev' in item:
+      nev = item['nev']
+    inbuf = f'{os.path.basename(str(infile))} ({str(nev)})'
     buff = (cl.bold + key[:8].ljust(8) + cl.end + '  '
             + f'{cl.reverce}{cl.bold}{cl.red}{status}{cl.end}'.ljust(16 + 20)
             + '  '
             + os.path.basename(item['bin'])[-16:].ljust(16) + '  '
             + os.path.basename(item['conf'])[-16:].ljust(16) + '  '
-            + (f'{os.path.basename(item["data"])} ({str(item["nev"])})'
-               [-24:].ljust(24))
+            + inbuf[-24:].ljust(24)
             + '  '
             + os.path.basename(item['root'])[-16:].ljust(16) + '  '
             + ptime.rjust(8))

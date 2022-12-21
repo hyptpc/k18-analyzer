@@ -349,7 +349,7 @@ class RunlistManager(metaclass=classimpl.Singleton):
         if 'dstin' in item[1]:
           base = run['root'].replace(os.path.basename(run['bin']), '')
           run['dstin'] = self.__make_dstin_path(base, item[1]['dstin'], is_geant4, runno)
-          if is_geant4 and 'nevents' in item[1]:
+          if 'nevents' in item[1]:
             run['nevents'] = int(item[1]['nevents'])
           elif run['nevents'] is not None:
             pass
