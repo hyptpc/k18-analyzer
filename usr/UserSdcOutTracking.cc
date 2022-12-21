@@ -367,7 +367,7 @@ UserSdcOutTracking::ProcessingNormal()
   if(nhTof == 0) HF1(43, common_stop_tdc);
   Bool_t common_stop_is_tof = (common_stop_tdc < MinStopTimingSdcOut
                                || MaxStopTimingSdcOut < common_stop_tdc);
-  if(!common_stop_is_tof) return true;
+ // if(!common_stop_is_tof) return true;
 
   HF1(1, 7);
 
