@@ -1,90 +1,90 @@
-/**
- *  file: FiberCluster.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef FIBER_CLUSTER_HH
 #define FIBER_CLUSTER_HH
 
 #include <vector>
 
+#include <TString.h>
+
 class FLHit;
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class FiberCluster
 {
 public:
-  FiberCluster( void );
-  virtual ~FiberCluster( void );
+  static const TString& ClassName();
+  FiberCluster();
+  virtual ~FiberCluster();
 
 private:
-  FiberCluster( const FiberCluster& object );
-  FiberCluster& operator =( const FiberCluster& object );
+  FiberCluster(const FiberCluster& object);
+  FiberCluster& operator =(const FiberCluster& object);
 
 protected:
   typedef std::vector<FLHit*> HitContainer;
   enum FlagsFiber { Initialized, gfastatus, sizeFlagsFiber };
   HitContainer m_hit_container;
-  int          m_cluster_size;
-  int          m_cluster_id;
-  int          m_max_cluster_id;
-  double       m_mean_time;
-  double       m_real_mean_time; // real mean (not a closest value of CTime)
-  double       m_max_width;
-  double       m_min_width;
-  double       m_mean_seg;
-  double       m_mean_pos;
-  double       m_mean_r;
-  double       m_mean_phi;
-  double       m_sum_adcLow;
-  double       m_sum_mipLow;
-  double       m_sum_dELow;
-
-  double       m_max_adcHi;
-  double       m_max_adcLow;
-  double       m_max_mipLow;
-  double       m_max_dELow;
-  double       m_max_seg;
-
-  bool         m_flag[sizeFlagsFiber];
+  Int_t          m_cluster_size;
+  Int_t          m_cluster_id;
+  Int_t          m_max_cluster_id;
+  Double_t       m_mean_time;
+  Double_t       m_max_time;
+  Double_t       m_real_mean_time;
+  // real mean (not a closest value of CTime)
+  Double_t       m_max_width;
+  Double_t       m_min_width;
+  Double_t       m_mean_seg;
+  Double_t       m_mean_pos;
+  Double_t       m_sum_adc_lg;
+  Double_t       m_sum_mip_lg;
+  Double_t       m_sum_de_lg;
+  Double_t       m_max_adc_hg;
+  Double_t       m_max_adc_lg;
+  Double_t       m_max_mip_lg;
+  Double_t       m_max_de_lg;
+  Double_t       m_max_seg;
+  Bool_t         m_flag[sizeFlagsFiber];
 
 public:
-  bool   Calculate( void );
-  void   push_back( FLHit* hit ) { m_hit_container.push_back(hit); };
-  int    VectorSize( void )      const { return m_hit_container.size();    }
-  int    ClusterId( void )       const { return m_cluster_id;      }
-  int    ClusterSize( void )     const { return m_cluster_size;    }
-  int    GetMaxClusterId( void )     const { return m_max_cluster_id;    }
-  double CMeanTime( void )       const { return m_mean_time;       }
-  double RCMeanTime( void )      const { return m_real_mean_time;  }
-  double Width( void )           const { return m_max_width;       }
-  double minWidth( void )        const { return m_min_width;       }
-  double Tot( void )             const { return Width();           }
-  double MeanPosition( void )    const { return m_mean_pos;        }
-  double MeanPositionR( void )   const { return m_mean_r;          }
-  double MeanPositionPhi( void ) const { return m_mean_phi;        }
-
-  double SumAdcLow( void )       const { return m_sum_adcLow;      }
-  double SumMIPLow( void )       const { return m_sum_mipLow;      }
-  double SumdELow( void )        const { return m_sum_dELow;       }
-  double MeanSeg( void )         const { return m_mean_seg;        }
-
-  double MaxAdcHi( void )        const { return m_max_adcHi;      }
-  double MaxAdcLow( void )       const { return m_max_adcLow;      }
-  double MaxMIPLow( void )       const { return m_max_mipLow;      }
-  double MaxdELow( void )        const { return m_max_dELow;       }
-  double MaxSeg( void )          const { return m_max_seg;         }
-
-  FLHit* GetHit( int i )     const;
-  bool   GoodForAnalysis( void ) const { return m_flag[gfastatus]; }
-  bool   GoodForAnalysis( bool status );
-  bool   ReCalc( bool applyRecusively=false );
+  Bool_t   Calculate();
+  void     push_back(FLHit* hit) { m_hit_container.push_back(hit); }
+  Int_t    VectorSize() const { return m_hit_container.size(); }
+  Int_t    ClusterId() const { return m_cluster_id; }
+  Int_t    ClusterSize() const { return m_cluster_size; }
+  Int_t    GetMaxClusterId() const { return m_max_cluster_id; }
+  Double_t CMeanTime() const { return m_mean_time; }
+  Double_t CMaxTime() const { return m_max_time; }
+  Double_t RCMeanTime() const { return m_real_mean_time; }
+  Double_t Width() const { return m_max_width; }
+  Double_t minWidth() const { return m_min_width; }
+  Double_t Tot() const { return Width(); }
+  Double_t MeanPosition() const { return m_mean_pos; }
+  Double_t SumAdcLG() const { return m_sum_adc_lg; }
+  Double_t SumMipLG() const { return m_sum_mip_lg; }
+  Double_t SumDeLG() const { return m_sum_de_lg; }
+  Double_t MeanSeg() const { return m_mean_seg; }
+  Double_t MaxAdcHi() const { return m_max_adc_hg; }
+  Double_t MaxAdcLG() const { return m_max_adc_lg; }
+  Double_t MaxMipLG() const { return m_max_mip_lg; }
+  Double_t MaxDeLG() const { return m_max_de_lg; }
+  Double_t MaxSeg() const { return m_max_seg; }
+  FLHit*   GetHit(Int_t i) const;
+  Bool_t   GoodForAnalysis() const { return m_flag[gfastatus]; }
+  Bool_t   GoodForAnalysis(Bool_t status);
+  Bool_t   ReCalc(Bool_t applyRecusively=false);
 
 private:
-  void calc( void );
-  void Debug( void );
+  void Debug();
 
 };
+
+//_____________________________________________________________________________
+inline const TString&
+FiberCluster::ClassName()
+{
+  static TString s_name("FiberCluster");
+  return s_name;
+}
 
 #endif

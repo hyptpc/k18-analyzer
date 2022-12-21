@@ -1,164 +1,133 @@
-
-/**
- *  file: HodoRawHit.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef HODO_RAW_HIT_HH
 #define HODO_RAW_HIT_HH
 
-#include <cstddef>
 #include <vector>
-#include <iostream>
 
-//______________________________________________________________________________
+#include <TString.h>
+
+//_____________________________________________________________________________
 class HodoRawHit
 {
 public:
-  HodoRawHit( int detector_id, int plane_id, int segment_id );
-  ~HodoRawHit( void );
+  static const TString& ClassName();
+  HodoRawHit(Int_t detector_id, Int_t plane_id, Int_t segment_id);
+  ~HodoRawHit();
 
 private:
-  int              m_detector_id;
-  int              m_plane_id;
-  int              m_segment_id;
-  std::vector<int> m_adc1;
-  std::vector<int> m_adc2;
-  std::vector<int> m_adc_Hi1;
-  std::vector<int> m_adc_Hi2;
-  std::vector<int> m_adc_Low1;
-  std::vector<int> m_adc_Low2;
+  Int_t              m_detector_id;
+  Int_t              m_plane_id;
+  Int_t              m_segment_id;
+  std::vector<Int_t> m_adc1;
+  std::vector<Int_t> m_adc2;
   // leading
-  std::vector<int> m_tdc1;
-  std::vector<int> m_tdc2;
+  std::vector<Int_t> m_tdc1;
+  std::vector<Int_t> m_tdc2;
   //trailing
-  std::vector<int> m_tdc_t1;
-  std::vector<int> m_tdc_t2;
-  bool             m_oftdc; // module TDC overflow
-  int              m_nhtdc;
+  std::vector<Int_t> m_tdc_t1;
+  std::vector<Int_t> m_tdc_t2;
+  Bool_t             m_oftdc; // module TDC overflow
+  Int_t              m_nhtdc;
 
 public:
-  //** Set 1 or 2 **//
-  void SetAdc1( int adc );
-  void SetAdc2( int adc );
-  //** AdcHi  **//
-  void SetAdcHi1( int adc );
-  void SetAdcHi2( int adc );
-  //** AdcLow  **//
-  void SetAdcLow1( int adc );
-  void SetAdcLow2( int adc );
-  //** Leading  **//
-  void SetTdc1( int tdc );
-  void SetTdc2( int tdc );
-  //** Trailing  **//
-  void SetTdcT1( int tdc );
-  void SetTdcT2( int tdc );
+  void SetAdc1(Int_t adc);
+  void SetAdc2(Int_t adc);
+  // leading
+  void SetTdc1(Int_t tdc);
+  void SetTdc2(Int_t tdc);
+  // trailing
+  void SetTdcT1(Int_t tdc);
+  void SetTdcT2(Int_t tdc);
 
-  //** Set Up or Down **//
-  void SetAdcUp( int adc )    { SetAdc1(adc); }
-  void SetAdcDown( int adc )  { SetAdc2(adc); }
-  //** AdcHi  **//
-  void SetAdcHiUp( int adc )    { SetAdcHi1(adc); }
-  //  void SetAdcLeft( int adc )  { SetAdc1(adc); }
-  void SetAdcHiDown( int adc )  { SetAdcHi2(adc); }
-  //  void SetAdcRight( int adc ) { SetAdc2(adc); }
-  //** AdcLow  **//
-  void SetAdcLowUp( int adc )    { SetAdcLow1(adc); }
-  void SetAdcLowDown( int adc )  { SetAdcLow2(adc); }
-  //** Leading  **//
-  void SetTdcUp( int tdc )    { SetTdc1(tdc); }
-  //  void SetTdcLeft( int tdc )  { SetTdc1(tdc); }
-  void SetTdcDown( int tdc )  { SetTdc2(tdc); }
-  //  void SetTdcRight( int tdc ) { SetTdc2(tdc); }
-  //** Trailing  **//
-  void SetTdcTUp( int tdc )    { SetTdcT1(tdc); }
-  //  void SetTdcTLeft( int tdc )  { SetTdcT1(tdc); }
-  void SetTdcTDown( int tdc )  { SetTdcT2(tdc); }
-  //  void SetTdcTRight( int tdc ) { SetTdcT2(tdc); }
+  void SetAdcUp(Int_t adc){ SetAdc1(adc); }
+  void SetAdcLeft(Int_t adc){ SetAdc1(adc); }
+  void SetAdcDown(Int_t adc){ SetAdc2(adc); }
+  void SetAdcRight(Int_t adc){ SetAdc2(adc); }
 
-  int  DetectorId( void )      const { return m_detector_id; }
-  int  PlaneId( void )         const { return m_plane_id;    }
-  int  SegmentId( void )       const { return m_segment_id;  }
+  // leading
+  void SetTdcUp(Int_t tdc){ SetTdc1(tdc); }
+  void SetTdcLeft(Int_t tdc){ SetTdc1(tdc); }
+  void SetTdcDown(Int_t tdc){ SetTdc2(tdc); }
+  void SetTdcRight(Int_t tdc){ SetTdc2(tdc); }
+  // trailing
+  void SetTdcTUp(Int_t tdc){ SetTdcT1(tdc); }
+  void SetTdcTLeft(Int_t tdc){ SetTdcT1(tdc); }
+  void SetTdcTDown(Int_t tdc){ SetTdcT2(tdc); }
+  void SetTdcTRight(Int_t tdc){ SetTdcT2(tdc); }
+
+  Int_t DetectorId() const { return m_detector_id; }
+  Int_t PlaneId() const { return m_plane_id; }
+  Int_t SegmentId() const { return m_segment_id; }
   // for Multi-hit method
-  void SetTdcOverflow( int fl ) { m_oftdc = static_cast<bool>( fl ); }
-  int  GetNumOfTdcHits( void )   const { return m_nhtdc;       }
+  void  SetTdcOverflow(Int_t flag) { m_oftdc = static_cast<Bool_t>(flag); }
+  Int_t GetNumOfTdcHits() const { return m_nhtdc; }
+  const std::vector<Int_t>& GetArrayAdc1() const { return m_adc1; }
+  const std::vector<Int_t>& GetArrayAdc2() const { return m_adc2; }
+  Int_t GetAdc1(Int_t i=0) const { return m_adc1.at(i); }
+  Int_t GetAdc2(Int_t i=0) const { return m_adc2.at(i); }
+  // leading
+  const std::vector<Int_t>& GetArrayTdc1() const { return m_tdc1; }
+  const std::vector<Int_t>& GetArrayTdc2() const { return m_tdc2; }
+  Int_t GetTdc1(Int_t i=0) const { return m_tdc1.at(i); }
+  Int_t GetTdc2(Int_t i=0) const { return m_tdc2.at(i); }
+  // trailing
+  const std::vector<Int_t>& GetArrayTdcT1() const { return m_tdc_t1; }
+  const std::vector<Int_t>& GetArrayTdcT2() const { return m_tdc_t2; }
+  Int_t GetTdcT1(Int_t i=0) const { return m_tdc_t1.at(i); }
+  Int_t GetTdcT2(Int_t i=0) const { return m_tdc_t2.at(i); }
 
-  //** Get 1 or 2 **//
-  int  GetAdc1( int i=0 )        const { return m_adc1.at(i);  }
-  int  GetAdc2( int i=0 )        const { return m_adc2.at(i);  }
-  //** AdcHi **//
-  int  GetAdcHi1( int i=0 )        const { return m_adc_Hi1.at(i);  }
-  int  GetAdcHi2( int i=0 )        const { return m_adc_Hi2.at(i);  }
-  //** AdcLow **//
-  int  GetAdcLow1( int i=0 )        const { return m_adc_Low1.at(i);  }
-  int  GetAdcLow2( int i=0 )        const { return m_adc_Low2.at(i);  }
-  //** Leading **//
-  int  GetTdc1( int i=0 )        const { return m_tdc1.at(i);  }
-  int  GetTdc2( int i=0 )        const { return m_tdc2.at(i);  }
-  //** Trailing **//
-  int  GetTdcT1( int i=0 )       const { return m_tdc_t1.at(i);  }
-  int  GetTdcT2( int i=0 )       const { return m_tdc_t2.at(i);  }
+  Int_t GetAdcUp(Int_t i=0) const { return GetAdc1(i); }
+  Int_t GetAdcLeft(Int_t i=0) const { return GetAdc1(i); }
+  Int_t GetAdcDown(Int_t i=0) const { return GetAdc2(i); }
+  Int_t GetAdcRight(Int_t i=0) const { return GetAdc2(i); }
 
-  //** Get Up or Down **//
-  int  GetAdcUp( int i=0 )       const { return GetAdc1(i);    }
-  int  GetAdcDown( int i=0 )     const { return GetAdc2(i);    }
-  //** AdcHi **//
-  int  GetAdcHiUp( int i=0 )       const { return GetAdcHi1(i);    }
-  //  int  GetAdcLeft( int i=0 )     const { return GetAdc1(i);    }
-  int  GetAdcHiDown( int i=0 )     const { return GetAdcHi2(i);    }
-  //  int  GetAdcRight( int i=0 )    const { return GetAdc2(i);    }
-  //** AdcLow **//
-  int  GetAdcLowUp( int i=0 )       const { return GetAdcLow1(i);    }
-  int  GetAdcLowDown( int i=0 )     const { return GetAdcLow2(i);    }
-  //** Leading **//
-  int  GetTdcUp( int i=0 )       const { return GetTdc1(i);    }
-  //  int  GetTdcLeft( int i=0 )     const { return GetTdc1(i);    }
-  int  GetTdcDown( int i=0 )     const { return GetTdc2(i);    }
-  //  int  GetTdcRight( int i=0 )    const { return GetTdc2(i);    }
-  //** Trailing **//
-  int  GetTdcTUp( int i=0 )      const { return GetTdcT1(i);    }
-  //  int  GetTdcTLeft( int i=0 )    const { return GetTdcT1(i);    }
-  int  GetTdcTDown( int i=0 )    const { return GetTdcT2(i);    }
-  //  int  GetTdcTRight( int i=0 )   const { return GetTdcT2(i);    }
+  // leading
+  Int_t GetTdcUp(Int_t i=0) const { return GetTdc1(i); }
+  Int_t GetTdcLeft(Int_t i=0) const { return GetTdc1(i); }
+  Int_t GetTdcDown(Int_t i=0) const { return GetTdc2(i); }
+  Int_t GetTdcRight(Int_t i=0) const { return GetTdc2(i); }
+  // trailing
+  Int_t GetTdcTUp(Int_t i=0) const { return GetTdcT1(i); }
+  Int_t GetTdcTLeft(Int_t i=0) const { return GetTdcT1(i); }
+  Int_t GetTdcTDown(Int_t i=0) const { return GetTdcT2(i); }
+  Int_t GetTdcTRight(Int_t i=0) const { return GetTdcT2(i); }
 
-  //** Size 1 or 2 **//
-  int  SizeAdc1( void ) const;
-  int  SizeAdc2( void ) const;
-  int  SizeAdcHi1( void ) const;
-  int  SizeAdcHi2( void ) const;
-  int  SizeAdcLow1( void ) const;
-  int  SizeAdcLow2( void ) const;
-  int  SizeTdc1( void ) const;
-  int  SizeTdc2( void ) const;
-  int  SizeTdcT1( void ) const;
-  int  SizeTdcT2( void ) const;
+  Int_t SizeAdc1() const;
+  Int_t SizeAdc2() const;
+  Int_t SizeTdc1() const;
+  Int_t SizeTdc2() const;
+  Int_t SizeTdcT1() const;
+  Int_t SizeTdcT2() const;
 
-  //** Size Up or Down **//
-  int  GetSizeAdcUp( void )    const { return SizeAdc1(); }
-  int  GetSizeAdcDown( void )  const { return SizeAdc2(); }
-  //** AdcHi **//
-  int  GetSizeAdcHiUp( void )    const { return SizeAdcHi1(); }
-  //  int  GetSizeAdcLeft( void )  const { return SizeAdc1(); }
-  int  GetSizeAdcHiDown( void )  const { return SizeAdcHi2(); }
-  //  int  GetSizeAdcRight( void ) const { return SizeAdc2(); }
-  //** AdcLow **//
-  int  GetSizeAdcLowUp( void )    const { return SizeAdcLow1(); }
-  int  GetSizeAdcLowDown( void )  const { return SizeAdcLow2(); }
-  //** Leading **//
-  int  GetSizeTdcUp( void )    const { return SizeTdc1(); }
-  //  int  GetSizeTdcLeft( void )  const { return SizeTdc1(); }
-  int  GetSizeTdcDown( void )  const { return SizeTdc2(); }
-  //  int  GetSizeTdcRight( void ) const { return SizeTdc2(); }
-  //** Trailing **//
-  int  GetSizeTdcTUp( void )    const { return SizeTdcT1(); }
-  //  int  GetSizeTdcTLeft( void )  const { return SizeTdcT1(); }
-  int  GetSizeTdcTDown( void )  const { return SizeTdcT2(); }
-  //  int  GetSizeTdcTRight( void ) const { return SizeTdcT2(); }
+  Int_t GetSizeAdcUp() const { return SizeAdc1(); }
+  Int_t GetSizeAdcLeft() const { return SizeAdc1(); }
+  Int_t GetSizeAdcDown() const { return SizeAdc2(); }
+  Int_t GetSizeAdcRight() const { return SizeAdc2(); }
 
-  bool IsTdcOverflow( void )   const { return m_oftdc; }
-  void Clear( void );
-  void Print( const std::string& arg="" );
+  // leading
+  Int_t GetSizeTdcUp() const { return SizeTdc1(); }
+  Int_t GetSizeTdcLeft() const { return SizeTdc1(); }
+  Int_t GetSizeTdcDown() const { return SizeTdc2(); }
+  Int_t GetSizeTdcRight() const { return SizeTdc2(); }
+
+  // trailing
+  Int_t GetSizeTdcTUp() const { return SizeTdcT1(); }
+  Int_t GetSizeTdcTLeft() const { return SizeTdcT1(); }
+  Int_t GetSizeTdcTDown() const { return SizeTdcT2(); }
+  Int_t GetSizeTdcTRight() const { return SizeTdcT2(); }
+
+  Bool_t IsTdcOverflow() const { return m_oftdc; }
+  void Clear();
+  void Print(const TString& arg="");
 };
+
+//_____________________________________________________________________________
+inline const TString&
+HodoRawHit::ClassName()
+{
+  static TString s_name("HodoRawHit");
+  return s_name;
+}
 
 #endif

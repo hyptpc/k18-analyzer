@@ -1,225 +1,201 @@
-/**
- *  file: DetectorID.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef DETECTOR_ID_HH
 #define DETECTOR_ID_HH
 
 #include <iostream>
+#include <vector>
+
+#include <TString.h>
 
 // Counters ___________________________________________________________
-const int DetIdBH1      =  1;
-const int DetIdBH2      =  2;
-const int DetIdSCH      =  7;
-const int DetIdTOF      =  8;
-const int DetIdSAC      =  9;
-const int DetIdLC       = 10;
-const int DetIdHtTOF    = 11; // high threshold TOF
-const int DetIdLAC      = 12;
-const int NumOfSegBH1   = 11;
-const int NumOfSegBH2   =  8;
-const int NumOfSegSCH   = 64;
-const int NumOfSegTOF   = 24;
-const int NumOfSegSAC   = 4;
-const int NumOfSegLC    = 28;
-const int NumOfSegLAC   = 15;
-const int NumOfSegHtTOF = 16;
+const Int_t DetIdBH1      =  1;
+const Int_t DetIdBH2      =  2;
+const Int_t DetIdBAC      =  3;
+const Int_t DetIdSCH      =  6;
+const Int_t DetIdTOF      =  7;
+const Int_t DetIdHTOF     =  8;
+const Int_t DetIdBVH      =  9;
+const Int_t DetIdLAC      = 12;
+const Int_t DetIdWC       = 13;
+const Int_t DetIdWCSUM    = 14; // Dummy
+const Int_t NumOfSegBH1   = 11;
+const Int_t NumOfSegBH2   =  8;
+const Int_t NumOfSegBAC   =  2;
+const Int_t NumOfSegSCH   = 64;
+const Int_t NumOfSegTOF   = 24;
+const Int_t NumOfSegHTOF  = 34;
+const Int_t NumOfSegBVH   =  4;
+const Int_t NumOfSegLAC   = 30;
+const Int_t NumOfSegWC    = 20;
 
 // Misc _______________________________________________________________
-const int DetIdTrig       = 21;
-const int DetIdScaler     = 22;
-const int DetIdMsT        = 25;
-const int DetIdMtx        = 26;
-const int DetIdFpgaBH2Mt  = 29;
-const int DetIdVmeRm      = 81;
-const int DetIdMsTRM      = 82;
-const int DetIdHulRM      = 83;
-const int NumOfSegTrig    = 32;
-const int NumOfSegScaler  = 96;
-const int SpillEndFlag    = 27; // 0-based
-const int NumOfPlaneVmeRm = 1;
+const Int_t DetIdTrig       = 21;
+const Int_t DetIdScaler     = 22;
+const Int_t DetIdMsT        = 25;
+const Int_t DetIdMtx        = 26;
+const Int_t DetIdVmeRm      = 81;
+const Int_t DetIdMsTRM      = 82;
+const Int_t DetIdHulRM      = 83;
+const Int_t NumOfSegScaler  = 96;
+const Int_t NumOfPlaneVmeRm = 2;
 
-enum eTriggerFlag
+// Trigger Flag
+namespace trigger
+{
+  enum ETriggerFlag
   {
-    kBh21K      =  0,
-    kBh22K      =  1,
-    kBh23K      =  2,
-    kBh24K      =  3,
-    kBh25K      =  4,
-    kBh26K      =  5,
-    kBh27K      =  6,
-    kBh28K      =  7,
-    kBh2K       =  8,
-    kElseOr     =  9,
-    kBeam       = 10,
-    kBeamTof    = 11,
-    kBeamPi     = 12,
-    kBeamP      = 13,
-    kCoin1      = 14,
-    kCoin2      = 15,
-    kE03        = 16,
-    kBh2KPs     = 17,
-    kBeamPs     = 18,
-    kBeamTofPs  = 19,
-    kBeamPiPs   = 10,
-    kBeamPPs    = 21,
-    kCoin1Ps    = 22,
-    kCoin2Ps    = 23,
-    kE03Ps      = 24,
-    kClock      = 25,
-    kReserve2   = 26,
-    kSpillEnd   = 27,
-    kMatrix     = 28,
-    kMstAccept  = 29,
-    kMstClear   = 30,
-    kTofTiming  = 31
+    kL1SpillOn,
+    kL1SpillOff,
+    kSpillEnd,
+    kSpillOnEnd,
+    kCommonStopSdcOut,
+    kMatrix2D1,
+    kMatrix2D2,
+    kMatrix3D,
+    kBeamA,
+    kBeamB,
+    kBeamC,
+    kBeamD,
+    kBeamE,
+    kBeamF,
+    kTrigA,
+    kTrigB,
+    kTrigC,
+    kTrigD,
+    kTrigE,
+    kTrigF,
+    kTrigAPS,
+    kTrigBPS,
+    kTrigCPS,
+    kTrigDPS,
+    kTrigEPS,
+    kTrigFPS,
+    kLevel1A,
+    kLevel1B,
+    kClockPS,
+    kReserve2PS,
+    kLevel1OR,
+    kEssDischarge,
+    NTriggerFlag
   };
 
-const int DetIdVmeCalib      = 999;
-const int NumOfPlaneVmeCalib =   5;
-const int NumOfSegVmeCalib   =  32;
+  const std::vector<TString> STriggerFlag =
+    {
+     "L1SpillOn",
+     "L1SpillOff",
+     "SpillEnd",
+     "SpillOnEnd",
+     "CommonStopSdcOut",
+     "Matrix2D1",
+     "Matrix2D2",
+     "Matrix3D",
+     "BeamA",
+     "BeamB",
+     "BeamC",
+     "BeamD",
+     "BeamE",
+     "BeamF",
+     "TrigA",
+     "TrigB",
+     "TrigC",
+     "TrigD",
+     "TrigE",
+     "TrigF",
+     "TrigA-PS",
+     "TrigB-PS",
+     "TrigC-PS",
+     "TrigD-PS",
+     "TrigE-PS",
+     "TrigF-PS",
+     "Level1A",
+     "Level1B",
+     "Clock-PS",
+     "Reserve2-PS",
+     "Level1OR",
+     "EssDischarge",
+    };
+}
+const Int_t NumOfSegTrig = trigger::NTriggerFlag;
+
+const Int_t DetIdVmeCalib      = 999;
+const Int_t NumOfPlaneVmeCalib =   5;
+const Int_t NumOfSegVmeCalib   =  32;
 
 // Trackers ___________________________________________________________
-const int DetIdBC3  = 103;
-const int DetIdBC4  = 104;
-const int DetIdSDC1 = 105;
-const int DetIdSDC2 = 106;
-const int DetIdSDC3 = 107;
-const int DetIdBFT  = 110;
-const int DetIdSFT  = 111;
-const int DetIdCFT  = 113;
-const int DetIdBGO  = 114;
-const int DetIdPiID = 115;
-const int DetIdFBT1 = 131;
-const int DetIdFBT2 = 132;
+const Int_t DetIdBC3  = 103;
+const Int_t DetIdBC4  = 104;
+const Int_t DetIdSDC1 = 105;
+const Int_t DetIdSDC2 = 106;
+const Int_t DetIdSDC3 = 107;
+const Int_t DetIdSDC4 = 108;
+const Int_t DetIdBFT  = 110;
 
-const int PlMinBcIn        =   1;
-const int PlMaxBcIn        =  12;
-const int PlMinBcOut       =  13;
-const int PlMaxBcOut       =  24;
-const int PlMinSdcIn       =   1;
-const int PlMaxSdcIn       =   9;
-const int PlMinFBT1        =  80;
-const int PlMaxFBT1        =  83;
-const int PlMinFBT2        =  84;
-const int PlMaxFBT2        =  87;
-const int PlMinSdcOut      =  31;
-const int PlMaxSdcOut      =  38;
-const int PlOffsBc         = 100;
-const int PlOffsSdcIn      =   0;
-const int PlOffsSft        =   6;
-const int PlOffsSdcOut     =  30;
-const int PlOffsVP         =  20;
-const int PlOffsFht        =  80;
+const Int_t PlMinBcIn        =   1;
+const Int_t PlMaxBcIn        =  12;
+const Int_t PlMinBcOut       =  13;
+const Int_t PlMaxBcOut       =  24;
+const Int_t PlMinSdcIn       =   1;
+const Int_t PlMaxSdcIn       =  10;
+const Int_t PlMinSdcOut      =  31;
+const Int_t PlMaxSdcOut      =  38;
+const Int_t PlMInTOF         =  41;
+const Int_t PlMaxTOF         =  44;
+const Int_t PlOffsBc         = 100;
+const Int_t PlOffsSdcIn      =   0;
+const Int_t PlOffsSdcOut     =  30;
+const Int_t PlOffsTOF        =  40;
+const Int_t PlOffsVP         =  20;
+const Int_t PlOffsTPCX       = 600;
+const Int_t PlOffsTPCY       = 650;
 
-const int NumOfLayersBc     = 6;
-const int NumOfLayersSFT    = 3;
-const int NumOfLayersSDC1   = 6;
-const int NumOfLayersSDC2   = 4;
-const int NumOfLayersSDC3   = 4;
-const int NumOfLayersFBT1   = 2;
-const int NumOfLayersFBT2   = 2;
-const int NumOfLayersBcIn   = PlMaxBcIn   - PlMinBcIn   + 1;
-const int NumOfLayersBcOut  = PlMaxBcOut  - PlMinBcOut  + 1;
-const int NumOfLayersSdcIn  = PlMaxSdcIn  - PlMinSdcIn  + 1;
-const int NumOfLayersFBT    = PlMaxFBT2   - PlMinFBT1   + 1;
-//const int NumOfLayersSdcOut = PlMaxSdcOut - PlMinSdcOut + 1; w/o FBT
-const int NumOfLayersSdcOut = PlMaxSdcOut - PlMinSdcOut + 1 + (PlMaxFBT2 - PlMinFBT1 + 1); // including FBT 
-const int NumOfLayersVP     = 5;
+const Int_t NumOfLayersBc     = 6;
+const Int_t NumOfLayersSDC1   = 6;
+const Int_t NumOfLayersSDC2   = 4;
+const Int_t NumOfLayersSDC3   = 4;
+const Int_t NumOfLayersSDC4   = 4;
+const Int_t NumOfLayersBcIn   = PlMaxBcIn   - PlMinBcIn   + 1;
+const Int_t NumOfLayersBcOut  = PlMaxBcOut  - PlMinBcOut  + 1;
+const Int_t NumOfLayersSdcIn  = PlMaxSdcIn  - PlMinSdcIn  + 1;
+const Int_t NumOfLayersSdcOut = PlMaxSdcOut - PlMinSdcOut + 1;
+const Int_t NumOfLayersTOF    = PlMaxTOF    - PlMInTOF    + 1;
+const Int_t NumOfLayersVP     = 5;
+const Int_t NumOfLayersTPC    = 32;
+const Int_t NumOfPadTPC       = 5768;
+const Int_t NumOfTimeBucket   = 170;
 
-const int MaxWireBC3      =  64;
-const int MaxWireBC4      =  64;
+const Int_t MaxWireBC3      =  64;
+const Int_t MaxWireBC4      =  64;
 
-const int MaxWireSDC1     =  64;
-const int MaxWireSDC2     = 128;
-const int MaxWireSDC3X    =  96;
-const int MaxWireSDC3Y    =  64;
+const Int_t MaxWireSDC1     =  64;
+const Int_t MaxWireSDC2X    =  70;
+const Int_t MaxWireSDC2Y    =  40;
+const Int_t MaxWireSDC3     = 128;
+const Int_t MaxWireSDC4X    =  96;
+const Int_t MaxWireSDC4Y    =  64;
 
-const int MaxSegFBT1      =  48;
-const int MaxSegFBT2      =  64;
+// MaxDriftLength = CellSize/2
+const Double_t CellSizeBC3 = 3.0;
+const Double_t CellSizeBC4 = 3.0;
+const Double_t CellSizeSDC1 =  6.0;
+const Double_t CellSizeSDC2 = 10.0;
+const Double_t CellSizeSDC3 =  9.0;
+const Double_t CellSizeSDC4 = 20.0;
 
-const int NumOfPlaneBFT   =   2;
-const int NumOfSegBFT     = 160;
-// SFT X layer has U D plane.
-// SFT UV layers have only U plnane.
-// enum SFT_PLANE{ SFT_X1, SFT_X2, SFT_V, SFT_U };
-enum SFT_PLANE{ SFT_U, SFT_V, SFT_X1, SFT_X2 };
-const int NumOfPlaneSFT   =   4;
-const int NumOfSegSFT_X   = 256;
-const int NumOfSegSFT_UV  = 320;
-const int NumOfSegCSFT    = 48;
-
-// AFT
-const int DetIdAFT  = 120;
-const int NumOfPlaneAFT   =  12;
-const int NumOfSegAFT_MAX =32;
-const int NumOfSegAFT[NumOfPlaneAFT]={32,32,16,16,32,32,16,16,32,32,16,16};
-
-// SST
-const int DetIdSST  = 121;
-const int NumOfPlaneSST   =8;
-const int NumOfSegSST_MAX =15;
-const int NumOfSegSST[NumOfPlaneSST]={15,15,15,15,15,15,15,15};
-const int NumOfSegSST_real[NumOfPlaneSST]={15,15,15,15,15,15,15,15};
-
-// TS for ELPH exp.
-const int DetIdTS = 122;
-const int NumOfSegTS = 2;
-
-// CFT
-const int NumOfPlaneCFT   =   8;
-enum CFT_PLANE{CFT_U1, CFT_PHI1, CFT_V2, CFT_PHI2, CFT_U3, CFT_PHI3, CFT_V4, CFT_PHI4};
-enum CFT_PLANE_{CFT_UV1, CFT_PHI1_, CFT_UV2, CFT_PHI2_, CFT_UV3, CFT_PHI3_, CFT_UV4, CFT_PHI4_};
-const int NumOfSegCFT_UV1   = 426;
-const int NumOfSegCFT_PHI1  = 584;
-const int NumOfSegCFT_UV2   = 472;
-const int NumOfSegCFT_PHI2  = 692;
-const int NumOfSegCFT_UV3   = 510;
-const int NumOfSegCFT_PHI3  = 800;
-const int NumOfSegCFT_UV4   = 538;
-const int NumOfSegCFT_PHI4  = 910;
-const int NumOfSegCFT[NumOfPlaneCFT]  = {426,584,472,692,510,800,538,910};
-
-// BGO
-const double BGO_X = 30.;
-const double BGO_Y = 25.;
-const double BGO_Z = 400.;
-const int    NumOfBGOUnit = 8;
-const int    NumOfBGOInOneUnit = 2;//pair unit
-const double RadiusOfBGOSurface = 100.;
-const int    NumOfBGOInOneUnit2 = 1;//single unit
-const double RadiusOfBGOSurface2 = 120.;
-const int NumOfSegBGO = NumOfBGOUnit*(NumOfBGOInOneUnit+NumOfBGOInOneUnit2);//24
-
-// PiID counter
-const int NumOfSegPiID =  32;
-
-const int NumOfPiIDUnit = 8;
-const int NumOfPiIDInOneUnit = 3;
-const double PiID_X = 30.;
-const double PiID_Y = 10.;
-const double PiID_Z = 400.;
-const double RadiusOfPiIDSurface = 164.;
-
-const int    NumOfPiIDInOneUnit2 = 1;//single unit
-const double PiID2_X = 40.;
-const double PiID2_Y = 10.;
-const double PiID2_Z = 400.;
-const double RadiusOfPiID2Surface = 180.;
+const Int_t NumOfPlaneBFT   =   2;
+const Int_t NumOfSegBFT     = 160;
 
 // HulRm -----------------------------------------------
-const int NumOfHulRm   = 0;
+const Int_t NumOfHulRm   = 4;
 
 // Matrix ----------------------------------------------
-const int NumOfSegSFT_Mtx = 48;
+const Int_t NumOfSegSFT_Mtx = 48;
 
 // MsT -------------------------------------------------
 enum TypesMst{typeHrTdc, typeLrTdc, typeFlag, NumOfTypesMst};
-const int NumOfMstHrTdc = 32;
-const int NumOfMstLrTdc = 64;
-const int NumOfMstFlag  = 7;
+const Int_t NumOfMstHrTdc = 32;
+const Int_t NumOfMstLrTdc = 64;
+const Int_t NumOfMstFlag  = 7;
 enum dTypesMst
   {
     mstClear,
@@ -233,6 +209,6 @@ enum dTypesMst
   };
 
 // Scaler ----------------------------------------------
-const int NumOfScaler  = 2;
+const Int_t NumOfScaler  = 2;
 
 #endif

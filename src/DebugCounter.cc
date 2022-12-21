@@ -1,8 +1,4 @@
-/**
- *  file: DebugCounter.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "DebugCounter.hh"
 
@@ -13,53 +9,44 @@
 
 #include <std_ostream.hh>
 
+#include "FuncName.hh"
+
 namespace debug
 {
-  namespace
-  {
-    const std::string& class_name("ObjectCounter");
-  }
 
-//_____________________________________________________________________
-ObjectCounter::ObjectCounter( void )
+//_____________________________________________________________________________
+ObjectCounter::ObjectCounter()
   : m_map()
 {
 }
 
-//_____________________________________________________________________
-ObjectCounter::~ObjectCounter( void )
+//_____________________________________________________________________________
+ObjectCounter::~ObjectCounter()
 {
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 void
-ObjectCounter::check( const std::string& arg ) const
+ObjectCounter::check(const TString& arg) const
 {
 #ifdef MemoryLeak
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  bool has_leak = false;
-
+  Bool_t has_leak = false;
   ObjectIter itr, end=m_map.end();
-  for( itr=m_map.begin(); itr!=end; ++itr ){
-    if( itr->second!=0 ) has_leak = true;
+  for(itr=m_map.begin(); itr!=end; ++itr){
+    if(itr->second!=0) has_leak = true;
   }
-
-  if( has_leak )
-    print( arg+" "+func_name );
-
+  if(has_leak)
+    print(arg+" "+FUNC_NAME);
 #endif
 }
 
-//_____________________________________________________________________
+//_____________________________________________________________________________
 void
-ObjectCounter::print( const std::string& arg ) const
+ObjectCounter::print(const TString& arg) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  hddaq::cout << "#DCounter " << func_name << " " << arg << std::endl;
+  hddaq::cout << "#DCounter " << FUNC_NAME << " " << arg << std::endl;
   ObjectIter itr, end=m_map.end();
-  for( itr=m_map.begin(); itr!=end; ++itr ){
+  for(itr=m_map.begin(); itr!=end; ++itr){
     hddaq::cout << std::setw(20) << std::left
 		<< itr->first << " : " << itr->second << std::endl;
   }

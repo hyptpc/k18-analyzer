@@ -1,22 +1,20 @@
-/**
- *  file: VEvent.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef VEVENT_HH
 #define VEVENT_HH
 
-//_____________________________________________________________________
+#include <TString.h>
+
+//_____________________________________________________________________________
 class VEvent
 {
 public:
-                VEvent( void );
-  virtual      ~VEvent( void )           = 0;
-  virtual bool  ProcessingBegin( void )  = 0;
-  virtual bool  ProcessingEnd( void )    = 0;
-  virtual bool  ProcessingNormal( void ) = 0;
-
+  VEvent();
+  virtual ~VEvent() = 0;
+  virtual const TString& ClassName() = 0;
+  virtual Bool_t ProcessingBegin() = 0;
+  virtual Bool_t ProcessingEnd() = 0;
+  virtual Bool_t ProcessingNormal() = 0;
 };
 
 #endif

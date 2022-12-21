@@ -1,8 +1,4 @@
-/**
- *  file: TrackHit.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "TrackHit.hh"
 
@@ -13,58 +9,54 @@
 #include "DCGeomMan.hh"
 #include "DCLocalTrack.hh"
 #include "DebugCounter.hh"
+#include "FuncName.hh"
 
-namespace
-{
-  const std::string& class_name("TrackHit");
-}
-
-//______________________________________________________________________________
-TrackHit::TrackHit( DCLTrackHit *hit )
+//_____________________________________________________________________________
+TrackHit::TrackHit(DCLTrackHit *hit)
   : m_dcltrack_hit(hit)
 {
-  debug::ObjectCounter::increase(class_name);
+  debug::ObjectCounter::increase(ClassName());
 }
 
-//______________________________________________________________________________
-TrackHit::~TrackHit( void )
+//_____________________________________________________________________________
+TrackHit::~TrackHit()
 {
-  debug::ObjectCounter::decrease(class_name);
+  debug::ObjectCounter::decrease(ClassName());
 }
 
-//______________________________________________________________________________
-double
-TrackHit::GetLocalHitPos( void ) const
+//_____________________________________________________________________________
+Double_t
+TrackHit::GetLocalHitPos() const
 {
   return m_dcltrack_hit->GetLocalHitPos();
 }
 
-//______________________________________________________________________________
-double
-TrackHit::GetResidual( void ) const
+//_____________________________________________________________________________
+Double_t
+TrackHit::GetResidual() const
 {
-  double a = GetTiltAngle()*math::Deg2Rad();
-  double u = m_cal_global_mom.x()/m_cal_global_mom.z();
-  double v = m_cal_global_mom.y()/m_cal_global_mom.z();
-  double dsdz = u*std::cos(a)+v*std::sin(a);
-  double coss = IsHoneycomb() ? std::cos( std::atan(dsdz) ) : 1.;
-  double wp   = GetWirePosition();
-  double ss   = wp+(GetLocalHitPos()-wp)/coss;
+  Double_t a = GetTiltAngle()*TMath::DegToRad();
+  Double_t u = m_cal_global_mom.x()/m_cal_global_mom.z();
+  Double_t v = m_cal_global_mom.y()/m_cal_global_mom.z();
+  Double_t dsdz = u*TMath::Cos(a)+v*TMath::Sin(a);
+  Double_t coss = IsHoneycomb() ? TMath::Cos(TMath::ATan(dsdz)) : 1.;
+  Double_t wp = GetWirePosition();
+  Double_t ss = wp+(GetLocalHitPos()-wp)/coss;
   return (ss-m_cal_local_pos)*coss;
 }
 
-//______________________________________________________________________________
-double
-TrackHit::GetTiltAngle( void ) const
+//_____________________________________________________________________________
+Double_t
+TrackHit::GetTiltAngle() const
 {
   return m_dcltrack_hit->GetTiltAngle();
 }
 
-//______________________________________________________________________________
-bool
-TrackHit::ReCalc( bool applyRecursively )
+//_____________________________________________________________________________
+Bool_t
+TrackHit::ReCalc(Bool_t applyRecursively)
 {
-  if( applyRecursively )
+  if(applyRecursively)
     return m_dcltrack_hit->ReCalc(applyRecursively);
   else
     return true;

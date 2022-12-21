@@ -1,12 +1,12 @@
-/**
- *  file: UserSkeleton.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
+
+#include "VEvent.hh"
 
 #include <iostream>
 #include <sstream>
 #include <cmath>
+
+#include <UnpackerManager.hh>
 
 #include "ConfMan.hh"
 #include "DetectorID.hh"
@@ -15,135 +15,113 @@
 #include "HodoRawHit.hh"
 #include "KuramaLib.hh"
 #include "RawData.hh"
-#include "UnpackerManager.hh"
-#include "VEvent.hh"
 
 namespace
 {
-  using namespace root;
-  const std::string& classname("EventSkeleton");
-  RMAnalyzer& gRM = RMAnalyzer::GetInstance();
+using namespace root;
+auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 }
 
-//______________________________________________________________________________
-VEvent::VEvent( void )
-{
-}
-
-//______________________________________________________________________________
-VEvent::~VEvent( void )
-{
-}
-
-//______________________________________________________________________________
-class EventSkeleton : public VEvent
+//_____________________________________________________________________________
+class UserSkeleton : public VEvent
 {
 private:
-  RawData *rawData;
 
 public:
-        EventSkeleton( void );
-       ~EventSkeleton( void );
-  bool  ProcessingBegin( void );
-  bool  ProcessingEnd( void );
-  bool  ProcessingNormal( void );
-  bool  InitializeHistograms( void );
-  void  InitializeEvent( void );
+  UserSkeleton();
+  ~UserSkeleton();
+  virtual const TString& ClassName();
+  virtual Bool_t         ProcessingBegin();
+  virtual Bool_t         ProcessingEnd();
+  virtual Bool_t         ProcessingNormal();
 };
 
-//______________________________________________________________________________
-EventSkeleton::EventSkeleton( void )
-  : VEvent(),
-    rawData(0)
+//_____________________________________________________________________________
+inline const TString&
+UserSkeleton::ClassName()
+{
+  static TString s_name("UserSkeleton");
+  return s_name;
+}
+
+//_____________________________________________________________________________
+UserSkeleton::UserSkeleton()
+  : VEvent()
 {
 }
 
-//______________________________________________________________________________
-EventSkeleton::~EventSkeleton( void )
+//_____________________________________________________________________________
+UserSkeleton::~UserSkeleton()
 {
-  if (rawData) delete rawData;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 struct Event
 {
-  int runnum;
-  int evnum;
-  int spill;
+  Int_t runnum;
+  Int_t evnum;
+  Int_t spill;
+  void clear()
+    {
+      runnum = -1;
+      evnum = -1;
+      spill = -1;
+    }
 };
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 namespace root
 {
-  Event  event;
-  TH1   *h[MaxHist];
-  TTree *tree;
+Event  event;
+TH1   *h[MaxHist];
+TTree *tree;
 }
 
-//______________________________________________________________________________
-bool
-EventSkeleton::ProcessingBegin( void )
+//_____________________________________________________________________________
+Bool_t
+UserSkeleton::ProcessingBegin()
 {
-  InitializeEvent();
+  event.clear();
   return true;
 }
 
-//______________________________________________________________________________
-bool
-EventSkeleton::ProcessingNormal( void )
+//_____________________________________________________________________________
+Bool_t
+UserSkeleton::ProcessingNormal()
 {
+  event.runnum = gUnpacker.get_run_number();
+  event.evnum  = gUnpacker.get_event_number();
   // rawData = new RawData;
   // rawData->DecodeHits();
 
-  gRM.Decode();
-
-  event.runnum = gRM.RunNumber();
-  event.evnum  = gRM.EventNumber();
-  event.spill  = gRM.SpillNumber();
-
-  for( int i=0; i<100; ++i ){
-    HF1( i, (double)i );
-  }
+  // for(Int_t i=0; i<100; ++i){
+  //   HF1(i, (double)i);
+  // }
 
   return true;
 }
 
-//______________________________________________________________________________
-bool
-EventSkeleton::ProcessingEnd( void )
+//_____________________________________________________________________________
+Bool_t
+UserSkeleton::ProcessingEnd()
 {
   tree->Fill();
   return true;
 }
 
-//______________________________________________________________________________
-void
-EventSkeleton::InitializeEvent( void )
-{
-  event.evnum = -1;
-}
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 VEvent*
-ConfMan::EventAllocator( void )
+ConfMan::EventAllocator()
 {
-  return new EventSkeleton;
+  return new UserSkeleton;
 }
 
-//______________________________________________________________________________
-namespace
+//_____________________________________________________________________________
+Bool_t
+ConfMan::InitializeHistograms()
 {
-  const int    NBin = 100;
-  const double Min  =   0.;
-  const double Max  = 100.;
-}
-
-//______________________________________________________________________________
-bool
-ConfMan::InitializeHistograms( void )
-{
-  for( int i=0; i<100; ++i ){
-    HB1( i, Form("hist %d", i ), 100, 0., 100. );
+  for(Int_t i=0; i<100; ++i){
+    HB1(i, Form("hist %d", i), 100, 0., 100.);
   }
 
   HBTree("skeleton","tree of Skeleton");
@@ -155,18 +133,18 @@ ConfMan::InitializeHistograms( void )
   return true;
 }
 
-//______________________________________________________________________________
-bool
-ConfMan::InitializeParameterFiles( void )
+//_____________________________________________________________________________
+Bool_t
+ConfMan::InitializeParameterFiles()
 {
   return
-    ( InitializeParameter<DCGeomMan>("DCGEO")    &&
-      InitializeParameter<HodoParamMan>("HDPRM") );
+    (InitializeParameter<DCGeomMan>("DCGEO") &&
+     InitializeParameter<HodoParamMan>("HDPRM"));
 }
 
-//______________________________________________________________________________
-bool
-ConfMan::FinalizeProcess( void )
+//_____________________________________________________________________________
+Bool_t
+ConfMan::FinalizeProcess()
 {
   return true;
 }

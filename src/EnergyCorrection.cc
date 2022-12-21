@@ -15,9 +15,9 @@ int CorrElossOut(double *mom_new, double *energy_new, double mom, int particle, 
 {
   double FL,FH,FTMP;
   double Elow, Ehigh, Elast, EPS;
-  double E, mass, length;
-  double length2;
-  double TgtZ = CyLH2TgtZ/2.;  
+  double E=0., mass, length=0.;
+  double length2=0.;
+  double TgtZ = CyLH2TgtZ/2.;
 
   switch (particle) {
   case PION:
@@ -90,9 +90,9 @@ int CorrElossOutWithCFRP(double *mom_new, double *energy_new, double mom, int pa
 {
   double FL,FH,FTMP;
   double Elow, Ehigh, Elast, EPS;
-  double E, mass, length;
-  double length2, length3;
-  double TgtZ = CyLH2TgtZ/2.;  
+  double E=0., mass, length=0.;
+  double length2=0., length3=0.;
+  double TgtZ = CyLH2TgtZ/2.;
 
   switch (particle) {
   case PION:
@@ -252,7 +252,7 @@ int caldE(double momentum, double mass, double distance, double *momentum_cor, d
 
   double beta;
   double thickness = distance/10.0; /*cm*/
-  double m = mass*1000.0;  /*mass of incident particle(Mev)*/ 
+  double m = mass*1000.0;  /*mass of incident particle(Mev)*/
 
   double E_0;
   double E;
@@ -315,7 +315,7 @@ int caldE(double momentum, double mass, double distance, double *momentum_cor, d
 
   return 1;
 }
- 
+
 
 double calc_dE_dx(double beta)
 {
@@ -390,7 +390,7 @@ double calc_dE_dx3(double beta)
 
   double rho=1.53;   /*g/cm^3 (C)*/
   double I=78.0;     /*eV*/
-  double Z_A=0.49954;      
+  double Z_A=0.49954;
   int z=1;
 
   gamma_2=1/(1-pow(beta,2.0));
@@ -409,7 +409,7 @@ double calc_dE_dx3(double beta)
 double mygamma(double beta)
 {
   double value;
-  
+
   value=1.0/sqrt(1.0-pow(beta,2.0));
 
   return value;
@@ -440,8 +440,8 @@ double calcLengthInTarget(ThreeVector dir, ThreeVector vertex)
   else // dir.z() == 0.
     t1 = 100000000000000000.;
 
-  double ux = dir.x(), uy = dir.y(); 
-  double vx = vertex.x(), vy = vertex.y(); 
+  double ux = dir.x(), uy = dir.y();
+  double vx = vertex.x(), vy = vertex.y();
 
   double a, b, c;
   a = ux*ux+uy*uy;
@@ -460,7 +460,7 @@ double calcLengthInTarget(ThreeVector dir, ThreeVector vertex)
   ThreeVector length_vec;
   if (t1 <= t2)
     length_vec = dir*t1;
-  else 
+  else
     length_vec = dir*t2;
 
   return length_vec.Mag();
@@ -481,8 +481,8 @@ double calcLengthInWindow(ThreeVector dir, ThreeVector vertex)
   else // dir.z() == 0.
     t1 = 100000000000000000.;
 
-  double ux = dir.x(), uy = dir.y(); 
-  double vx = vertex.x(), vy = vertex.y(); 
+  double ux = dir.x(), uy = dir.y();
+  double vx = vertex.x(), vy = vertex.y();
 
   double a, b, c;
   a = ux*ux+uy*uy;
@@ -498,7 +498,7 @@ double calcLengthInWindow(ThreeVector dir, ThreeVector vertex)
   }
 
   double VesselR = CyLH2TgtR/2.+ TargetVessThickness;
-  double VesselZ = CyLH2TgtZ/2.;
+  [[maybe_unused]] double VesselZ = CyLH2TgtZ/2.;
 
   a = ux*ux+uy*uy;
   b = ux*vx+uy*vy;
@@ -515,7 +515,7 @@ double calcLengthInWindow(ThreeVector dir, ThreeVector vertex)
   double t_vessel;
   if (t1 <= t2)
     t_vessel = 0;
-  else 
+  else
     t_vessel = t3-t2;
 
   /*
@@ -562,7 +562,7 @@ double calcLengthInWindow(ThreeVector dir, ThreeVector vertex)
 
 double calcLengthInCFRP(ThreeVector dir, ThreeVector pos0)
 {
-  double t1, t2, t3;
+  [[maybe_unused]] double t1, t2, t3;
 
   double VaccumWinR = VaccumChamWinR/2.;
   double VaccumWinZ = VaccumChamWinZ/2.;
@@ -582,8 +582,8 @@ double calcLengthInCFRP(ThreeVector dir, ThreeVector pos0)
     return 0.;
   }
 
-  double ux = dir.x(), uy = dir.y(); 
-  double vx = pos0.x(), vy = pos0.y(); 
+  double ux = dir.x(), uy = dir.y();
+  double vx = pos0.x(), vy = pos0.y();
 
 
 

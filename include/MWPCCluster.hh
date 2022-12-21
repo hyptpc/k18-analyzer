@@ -1,43 +1,41 @@
-/**
- *  file: MWPCCluster.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef MWPC_CLUSTER_HH
 #define MWPC_CLUSTER_HH
 
-#include <string>
 #include <vector>
+
+#include <TString.h>
 
 class DCHit;
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class MWPCCluster
 {
 public:
-  MWPCCluster( void );
-  ~MWPCCluster( void );
+  static const TString& ClassName();
+  MWPCCluster();
+  ~MWPCCluster();
 
 private:
-  MWPCCluster( const MWPCCluster& );
-  MWPCCluster& operator =( const MWPCCluster& );
+  MWPCCluster(const MWPCCluster&);
+  MWPCCluster& operator =(const MWPCCluster&);
 
 public:
   struct Statistics
   {
-    double m_wire;
-    double m_wpos;
-    double m_leading;
-    double m_trailing;
-    double m_length;
-    double m_totalLength;
-    int    m_clusterSize;
+    Double_t m_wire;
+    Double_t m_wpos;
+    Double_t m_leading;
+    Double_t m_trailing;
+    Double_t m_length;
+    Double_t m_totalLength;
+    Int_t    m_clusterSize;
 
-    Statistics( void );
-    ~Statistics( void );
+    Statistics();
+    ~Statistics();
 
-    void Print(const std::string& arg="") const;
+    void Print(const TString& arg="") const;
   };
 
 private:
@@ -47,20 +45,28 @@ private:
   bool                m_status;
 
 public:
-  void   Add(DCHit* h);
-  void   Calculate( void );
-  int    GetClusterSize( void ) const;
-  const Statistics&          GetFirst( void ) const;
-  const std::vector<DCHit*>& GetHits( void ) const;
-  const Statistics&          GetMean( void ) const;
-  double GetMeanTime( void ) const;
-  double GetMeanWire( void ) const;
-  double GetMeanWirePos( void ) const;
-  int    GetNumOfHits( void ) const;
-  bool   IsGoodForAnalysis( void ) const;
-  void   Print( const std::string& arg="" ) const;
-  void   SetStatus( bool status );
+  void                       Add(DCHit* h);
+  void                       Calculate();
+  Int_t                      GetClusterSize() const;
+  const Statistics&          GetFirst() const;
+  const std::vector<DCHit*>& GetHits() const;
+  const Statistics&          GetMean() const;
+  Double_t                   GetMeanTime() const;
+  Double_t                   GetMeanWire() const;
+  Double_t                   GetMeanWirePos() const;
+  Int_t                      GetNumOfHits() const;
+  bool                       IsGoodForAnalysis() const;
+  void                       Print(const TString& arg="") const;
+  void                       SetStatus(bool status);
 
 };
+
+//_____________________________________________________________________________
+inline const TString&
+MWPCCluster::ClassName()
+{
+  static TString s_name("MWPCCluster");
+  return s_name;
+}
 
 #endif

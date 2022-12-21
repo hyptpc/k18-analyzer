@@ -1,8 +1,4 @@
-/**
- *  file: DCRawHit.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "DCRawHit.hh"
 
@@ -12,45 +8,39 @@
 #include "std_ostream.hh"
 
 #include "DebugCounter.hh"
+#include "FuncName.hh"
 
-namespace
-{
-  const std::string& class_name("DCRawHit");
-}
-
-//______________________________________________________________________________
-DCRawHit::DCRawHit( int plane_id, int wire_id )
+//_____________________________________________________________________________
+DCRawHit::DCRawHit(Int_t plane_id, Int_t wire_id)
   : m_plane_id(plane_id),
     m_wire_id(wire_id),
-    m_oftdc( false )
+    m_oftdc(false)
 {
   m_tdc.clear();
   m_trailing.clear();
-  debug::ObjectCounter::increase(class_name);
+  debug::ObjectCounter::increase(ClassName());
 }
 
-//______________________________________________________________________________
-DCRawHit::~DCRawHit( void )
+//_____________________________________________________________________________
+DCRawHit::~DCRawHit()
 {
-  debug::ObjectCounter::decrease(class_name);
+  debug::ObjectCounter::decrease(ClassName());
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCRawHit::Print( const std::string& arg ) const
+DCRawHit::Print(const TString& arg) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-  hddaq::cerr << func_name << " " << arg << std::endl
+  hddaq::cerr << FUNC_NAME << " " << arg << std::endl
 	      << "plane_id = " << m_plane_id    << std::endl
 	      << "wire_id  = " << m_wire_id     << std::endl;
-
-  std::vector<int>::const_iterator itr, end;
+  std::vector<Int_t>::const_iterator itr, end;
   hddaq::cout << "tdc      = " << m_tdc.size() << " ";
-  std::copy( m_tdc.begin(), m_tdc.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
+  std::copy(m_tdc.begin(), m_tdc.end(),
+	     std::ostream_iterator<Int_t>(hddaq::cout," "));
   hddaq::cout << std::endl
 	      << "trailing = " << m_trailing.size() << " ";
-  std::copy( m_trailing.begin(), m_trailing.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
+  std::copy(m_trailing.begin(), m_trailing.end(),
+	     std::ostream_iterator<Int_t>(hddaq::cout," "));
   hddaq::cout << std::endl;
 }

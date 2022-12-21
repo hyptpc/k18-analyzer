@@ -1,8 +1,4 @@
-/**
- *  file: DstSkeleton.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include <cmath>
 #include <iostream>
@@ -11,6 +7,7 @@
 #include <string>
 
 #include <filesystem_util.hh>
+#include <UnpackerManager.hh>
 
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
@@ -23,30 +20,32 @@
 
 namespace
 {
-  using namespace root;
-  using namespace dst;
-  const std::string& class_name("DstSkeleton");
-  ConfMan&            gConf = ConfMan::GetInstance();
-  const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
-  const UserParamMan& gUser = UserParamMan::GetInstance();
+using namespace root;
+using namespace dst;
+const std::string& class_name("DstSkeleton");
+const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
+ConfMan&            gConf = ConfMan::GetInstance();
+const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
+const UserParamMan& gUser = UserParamMan::GetInstance();
 }
 
 namespace dst
 {
-  enum kArgc
-    {
-      kProcess, kConfFile,
-      kSkeleton,
-      kOutFile, nArgc
-    };
-  std::vector<TString> ArgName =
-    { "[Process]", "[ConfFile]",
-      "[Skeleton]",
-      "[OutFile]" };
-  std::vector<TString> TreeName =
-    { "", "", "tree", "" };
-  std::vector<TFile*> TFileCont;
-  std::vector<TTree*> TTreeCont;
+enum kArgc
+{
+  kProcess, kConfFile,
+  kSkeleton,
+  kOutFile, nArgc
+};
+std::vector<TString> ArgName =
+{ "[Process]", "[ConfFile]",
+  "[Skeleton]",
+  "[OutFile]" };
+std::vector<TString> TreeName =
+{ "", "", "tree", "" };
+std::vector<TFile*> TFileCont;
+std::vector<TTree*> TTreeCont;
+std::vector<TTreeReader*> TTreeReaderCont;
 }
 
 //_____________________________________________________________________
@@ -68,10 +67,10 @@ struct Src
 //_____________________________________________________________________
 namespace root
 {
-  Event  event;
-  Src    src;
-  TH1   *h[MaxHist];
-  TTree *tree;
+Event  event;
+Src    src;
+TH1   *h[MaxHist];
+TTree *tree;
 }
 
 //_____________________________________________________________________
@@ -86,12 +85,18 @@ main( int argc, char **argv )
     return EXIT_FAILURE;
   if( !gConf.Initialize( arg[kConfFile] ) )
     return EXIT_FAILURE;
+  if(!gConf.InitializeUnpacker())
+    return EXIT_FAILURE;
 
-  int nevent = GetEntries( TTreeCont );
+  Int_t skip = gUnpacker.get_skip();
+  if (skip < 0) skip = 0;
+  Int_t max_loop = gUnpacker.get_max_loop();
+  Int_t nevent = GetEntries(TTreeCont);
+  if (max_loop > 0) nevent = skip + max_loop;
 
   CatchSignal::Set();
 
-  int ievent = 0;
+  Int_t ievent = skip;
   for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
     InitializeEvent();
     if( DstRead( ievent ) ) tree->Fill();

@@ -1,8 +1,4 @@
-/**
- *  file: DCAnalyzer.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "DCAnalyzer.hh"
 
@@ -13,6 +9,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <TH2D.h>
 
 #include "ConfMan.hh"
 #include "DCDriftParamMan.hh"
@@ -24,6 +21,7 @@
 #include "DebugCounter.hh"
 #include "DebugTimer.hh"
 #include "FiberCluster.hh"
+#include "FuncName.hh"
 #include "Hodo1Hit.hh"
 #include "Hodo2Hit.hh"
 #include "HodoAnalyzer.hh"
@@ -55,84 +53,82 @@
 
 namespace
 {
-  using namespace K18Parameter;
-  const std::string& class_name("DCAnalyzer");
-  const ConfMan&      gConf = ConfMan::GetInstance();
-  const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
-  const UserParamMan& gUser = UserParamMan::GetInstance();
+using namespace K18Parameter;
+const auto& gConf   = ConfMan::GetInstance();
+const auto& gGeom   = DCGeomMan::GetInstance();
+const auto& gUser   = UserParamMan::GetInstance();
 
-  //______________________________________________________________________________
-  const double& pK18 = ConfMan::Get<double>("PK18");
-  const int& IdTOFUX = gGeom.DetectorId("TOF-UX");
-  const int& IdTOFUY = gGeom.DetectorId("TOF-UY");
-  const int& IdTOFDX = gGeom.DetectorId("TOF-DX");
-  const int& IdTOFDY = gGeom.DetectorId("TOF-DY");
+//_____________________________________________________________________________
+const Double_t& pK18 = ConfMan::Get<Double_t>("PK18");
+const Int_t& IdTOFUX = gGeom.DetectorId("TOF-UX");
+const Int_t& IdTOFUY = gGeom.DetectorId("TOF-UY");
+const Int_t& IdTOFDX = gGeom.DetectorId("TOF-DX");
+const Int_t& IdTOFDY = gGeom.DetectorId("TOF-DY");
 
-  const double MaxChiSqrKuramaTrack = 10000.;
-  const double MaxTimeDifMWPC       =   100.;
+const Double_t TimeDiffToYTOF = 77.3511; // [mm/ns]
 
-  const double kMWPCClusteringWireExtension =  1.0; // [mm]
-  const double kMWPCClusteringTimeExtension = 10.0; // [nsec]
+const Double_t MaxChiSqrKuramaTrack = 10000.;
+const Double_t MaxTimeDifMWPC       =   100.;
 
-  //______________________________________________________________________________
-  inline bool /* for MWPCCluster */
-  isConnectable( double wire1, double leading1, double trailing1,
-		 double wire2, double leading2, double trailing2,
-		 double wExt,  double tExt )
-  {
-    static const std::string func_name("["+class_name+"::"+__func__+"()]");
-    double w1Min = wire1 - wExt;
-    double w1Max = wire1 + wExt;
-    double t1Min = leading1  - tExt;
-    double t1Max = trailing1 + tExt;
-    double w2Min = wire2 - wExt;
-    double w2Max = wire2 + wExt;
-    double t2Min = leading2  - tExt;
-    double t2Max = trailing2 + tExt;
-    bool isWireOk = !(w1Min>w2Max || w1Max<w2Min);
-    bool isTimeOk = !(t1Min>t2Max || t1Max<t2Min);
+const Double_t kMWPCClusteringWireExtension =  1.0; // [mm]
+const Double_t kMWPCClusteringTimeExtension = 10.0; // [nsec]
+
+//_____________________________________________________________________________
+inline Bool_t /* for MWPCCluster */
+isConnectable(Double_t wire1, Double_t leading1, Double_t trailing1,
+              Double_t wire2, Double_t leading2, Double_t trailing2,
+              Double_t wExt,  Double_t tExt)
+{
+  Double_t w1Min = wire1 - wExt;
+  Double_t w1Max = wire1 + wExt;
+  Double_t t1Min = leading1  - tExt;
+  Double_t t1Max = trailing1 + tExt;
+  Double_t w2Min = wire2 - wExt;
+  Double_t w2Max = wire2 + wExt;
+  Double_t t2Min = leading2  - tExt;
+  Double_t t2Max = trailing2 + tExt;
+  Bool_t isWireOk = !(w1Min>w2Max || w1Max<w2Min);
+  Bool_t isTimeOk = !(t1Min>t2Max || t1Max<t2Min);
 #if 0
-    hddaq::cout << func_name << std::endl
-		<< " w1 = " << wire1
-		<< " le1 = " << leading1
-		<< " tr1 = " << trailing1 << "\n"
-		<< " w2 = " << wire2
-		<< " le2 = " << leading2
-		<< " tr2 = " << trailing2 << "\n"
-		<< " w1(" << w1Min << " -- " << w1Max << "), t1("
-		<< t1Min << " -- " << t1Max << ")\n"
-		<< " w2(" << w2Min << " -- " << w2Max << "), t2("
-		<< t2Min << " -- " << t2Max << ")\n"
-		<< " wire : " << isWireOk
-		<< ", time : " << isTimeOk
-		<< std::endl;
+  hddaq::cout << __func__ << std::endl
+              << " w1 = " << wire1
+              << " le1 = " << leading1
+              << " tr1 = " << trailing1 << "\n"
+              << " w2 = " << wire2
+              << " le2 = " << leading2
+              << " tr2 = " << trailing2 << "\n"
+              << " w1(" << w1Min << " -- " << w1Max << "), t1("
+              << t1Min << " -- " << t1Max << ")\n"
+              << " w2(" << w2Min << " -- " << w2Max << "), t2("
+              << t2Min << " -- " << t2Max << ")\n"
+              << " wire : " << isWireOk
+              << ", time : " << isTimeOk
+              << std::endl;
 #endif
-    return ( isWireOk && isTimeOk );
-  }
-
-  //______________________________________________________________________________
-  inline void
-  printConnectionFlag( const std::vector<std::deque<bool> >& flag )
-  {
-    for( std::size_t i=0, n=flag.size(); i<n; ++i ){
-      hddaq::cout << std::endl;
-      for( std::size_t j=0, m=flag[i].size(); j<m; ++j ){
-	hddaq::cout << " " << flag[i][j];
-      }
-    }
-    hddaq::cout << std::endl;
-  }
+  return (isWireOk && isTimeOk);
 }
 
-//______________________________________________________________________________
-DCAnalyzer::DCAnalyzer( void )
-  : m_is_decoded(n_type),
+//_____________________________________________________________________________
+inline void
+printConnectionFlag(const std::vector<std::deque<Bool_t> >& flag)
+{
+  for(Int_t i=0, n=flag.size(); i<n; ++i){
+    hddaq::cout << std::endl;
+    for(Int_t j=0, m=flag[i].size(); j<m; ++j){
+      hddaq::cout << " " << flag[i][j];
+    }
+  }
+  hddaq::cout << std::endl;
+}
+}
+
+//_____________________________________________________________________________
+DCAnalyzer::DCAnalyzer()
+  : m_max_v0diff(90.),
+    m_is_decoded(n_type),
     m_much_combi(n_type),
     m_MWPCClCont(NumOfLayersBcIn+1),
     m_TempBcInHC(NumOfLayersBcIn+1),
-    m_CFTHC(NumOfPlaneCFT),
-    m_CFT16HC(NumOfPlaneCFT*2+1),
-    m_CFT16ppHC(NumOfPlaneCFT*2+1),
     m_BcInHC(NumOfLayersBcIn+1),
     m_BcOutHC(NumOfLayersBcOut+2),
     m_SdcInHC(NumOfLayersSdcIn+1),
@@ -140,14 +136,15 @@ DCAnalyzer::DCAnalyzer( void )
     m_SdcInExTC(NumOfLayersSdcIn+1),
     m_SdcOutExTC(NumOfLayersSdcOut+1)
 {
-  for( int i=0; i<n_type; ++i ){
+  for(Int_t i=0; i<n_type; ++i){
     m_is_decoded[i] = false;
     m_much_combi[i] = 0;
   }
-  debug::ObjectCounter::increase(class_name);
+  debug::ObjectCounter::increase(ClassName());
 }
 
-DCAnalyzer::~DCAnalyzer( void )
+//_____________________________________________________________________________
+DCAnalyzer::~DCAnalyzer()
 {
   ClearKuramaTracks();
 #if UseBcIn
@@ -160,1228 +157,725 @@ DCAnalyzer::~DCAnalyzer( void )
   ClearTracksBcOut();
   ClearTracksBcOutSdcIn();
   ClearTracksSdcInSdcOut();
-  ClearTracksCFT();
-  ClearTracksCFT16();
-  ClearTracksCFT16pp();
   ClearDCHits();
   ClearVtxHits();
-  ClearCFTHits();
-  ClearCFT16Hits();
-  ClearCFT16ppHits();
-  debug::ObjectCounter::decrease(class_name);
+  debug::ObjectCounter::decrease(ClassName());
 }
 
-//______________________________________________________________________________
-void
-DCAnalyzer::PrintKurama( const std::string& arg ) const
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
-  int nn = m_KuramaTC.size();
-  hddaq::cout << func_name << " " << arg << std::endl
-	      << "   KuramaTC.size : " << nn << std::endl;
-  for( int i=0; i<nn; ++i ){
-    KuramaTrack *tp = m_KuramaTC[i];
-    hddaq::cout << std::setw(3) << i
-		<< " Niter=" << std::setw(3) << tp->Niteration()
-		<< " ChiSqr=" << tp->chisqr()
-		<< " P=" << tp->PrimaryMomentum().Mag()
-		<< " PL(TOF)=" << tp->PathLengthToTOF()
-		<< std::endl;
+//_____________________________________________________________________________
+void
+DCAnalyzer::PrintKurama(const TString& arg) const
+{
+  Int_t nn = m_KuramaTC.size();
+  hddaq::cout << FUNC_NAME << " " << arg << std::endl
+              << "   KuramaTC.size : " << nn << std::endl;
+  for(const auto& track: m_KuramaTC){
+    hddaq::cout << " Niter=" << std::setw(3) << track->Niteration()
+                << " ChiSqr=" << track->ChiSquare()
+                << " P=" << track->PrimaryMomentum().Mag()
+                << " PL(TOF)=" << track->PathLengthToTOF()
+                << std::endl;
   }
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 #if UseBcIn
-bool
-DCAnalyzer::DecodeBcInHits( RawData *rawData )
+Bool_t
+DCAnalyzer::DecodeBcInHits(RawData *rawData)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  if( m_is_decoded[k_BcIn] ){
-    hddaq::cout << "#D " << func_name << " "
-		<< "already decoded" << std::endl;
+  if(m_is_decoded[kBcIn]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
     return true;
   }
 
   ClearBcInHits();
 
-  for( int layer=1; layer<=NumOfLayersBcIn; ++layer ){
+  for(Int_t layer=1; layer<=NumOfLayersBcIn; ++layer){
     const DCRHitContainer &RHitCont = rawData->GetBcInRawHC(layer);
-    int nh = RHitCont.size();
-    for( int i=0; i<nh; ++i ){
+    Int_t nh = RHitCont.size();
+    for(Int_t i=0; i<nh; ++i){
       DCRawHit *rhit  = RHitCont[i];
-      DCHit    *thit  = new DCHit( rhit->PlaneId()+PlOffsBc, rhit->WireId() );
-      int       nhtdc = rhit->GetTdcSize();
+      DCHit    *thit  = new DCHit(rhit->PlaneId()+PlOffsBc, rhit->WireId());
+      Int_t       nhtdc = rhit->GetTdcSize();
       if(!thit) continue;
-      for( int j=0; j<nhtdc; ++j ){
-	thit->SetTdcVal( rhit->GetTdc(j) );
-	thit->SetTdcTrailing( rhit->GetTrailing(j) );
+      for(Int_t j=0; j<nhtdc; ++j){
+        thit->SetTdcVal(rhit->GetTdc(j));
+        thit->SetTdcTrailing(rhit->GetTrailing(j));
       }
 
       if(thit->CalcMWPCObservables())
-	m_TempBcInHC[layer].push_back(thit);
+        m_TempBcInHC[layer].push_back(thit);
       else
-	delete thit;
+        delete thit;
     }
 
     // hddaq::cout<<"*************************************"<<std::endl;
-    int ncl = clusterizeMWPCHit( m_TempBcInHC[layer], m_MWPCClCont[layer]);
+    Int_t ncl = clusterizeMWPCHit(m_TempBcInHC[layer], m_MWPCClCont[layer]);
     // hddaq::cout<<"numCl="<< ncl << std::endl;
-     for( int i=0; i<ncl; ++i ){
+    for(Int_t i=0; i<ncl; ++i){
       MWPCCluster *p = m_MWPCClCont[layer][i];
       if(!p) continue;
 
       const MWPCCluster::Statistics& mean  = p->GetMean();
       const MWPCCluster::Statistics& first = p->GetFirst();
-      double mwire    = mean.m_wire;
-      double mwirepos = mean.m_wpos;
-      double mtime    = mean.m_leading;
-      double mtrail   = mean.m_trailing;
+      Double_t mwire    = mean.m_wire;
+      Double_t mwirepos = mean.m_wpos;
+      Double_t mtime    = mean.m_leading;
+      Double_t mtrail   = mean.m_trailing;
 
-      DCHit *hit = new DCHit( layer+PlOffsBc, mwire );
+      DCHit *hit = new DCHit(layer+PlOffsBc, mwire);
       if(!hit) continue;
-      hit->SetClusterSize( p->GetClusterSize() );
-      hit->SetMWPCFlag( true );
-      hit->SetWire( mwire );
-      hit->SetMeanWire( mwire );
-      hit->SetMeanWirePosition( mwirepos );
-      hit->SetTrailing( mtrail );
+      hit->SetClusterSize(p->GetClusterSize());
+      hit->SetMWPCFlag(true);
+      hit->SetWire(mwire);
+      hit->SetMeanWire(mwire);
+      hit->SetMeanWirePosition(mwirepos);
+      hit->SetTrailing(mtrail);
       hit->SetDummyPair();
-      hit->SetTdcVal( 0 );
-      hit->SetTdcTrailing( 0 );
+      hit->SetTdcVal(0);
+      hit->SetTdcTrailing(0);
 
-      if( hit->CalcMWPCObservables() )
-	m_BcInHC[layer].push_back(hit);
+      if(hit->CalcMWPCObservables())
+        m_BcInHC[layer].push_back(hit);
       else
-	delete hit;
+        delete hit;
     }
     // hddaq::cout << "nh="<< m_BcInHC[layer].size() <<std::endl;
   }
 
-  m_is_decoded[k_BcIn] = true;
+  m_is_decoded[kBcIn] = true;
   return true;
 }
 #endif
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::DecodeBcOutHits( RawData *rawData )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::DecodeBcOutHits(RawData *rawData)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  if( m_is_decoded[k_BcOut] ){
-    hddaq::cout << "#D " << func_name << " "
-		<< "already decoded" << std::endl;
+  if(m_is_decoded[kBcOut]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
     return true;
   }
 
   ClearBcOutHits();
 
-  for( int layer=1; layer<=NumOfLayersBcOut; ++layer ){
-    const DCRHitContainer &RHitCont=rawData->GetBcOutRawHC(layer);
-    int nh = RHitCont.size();
-    for( int i=0; i<nh; ++i ){
-      DCRawHit *rhit  = RHitCont[i];
-      DCHit    *hit   = new DCHit( rhit->PlaneId()+PlOffsBc, rhit->WireId() );
-      int       nhtdc      = rhit->GetTdcSize();
-      int       nhtrailing = rhit->GetTrailingSize();
+  for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
+    for(const auto& rhit: rawData->GetBcOutRawHC(layer)){
+      auto hit = new DCHit(rhit->PlaneId()+PlOffsBc, rhit->WireId());
+      Int_t nhtdc = rhit->GetTdcSize();
+      Int_t nhtrailing = rhit->GetTrailingSize();
       if(!hit) continue;
-      for( int j=0; j<nhtdc; ++j ){
-	hit->SetTdcVal( rhit->GetTdc(j) );
+      for(Int_t j=0; j<nhtdc; ++j){
+        hit->SetTdcVal(rhit->GetTdc(j));
       }
-	  for( int j=0; j<nhtrailing; ++j ){
-	    hit->SetTdcTrailing( rhit->GetTrailing(j) );
-	  }
-
-      if( hit->CalcDCObservables() )
-	m_BcOutHC[layer].push_back(hit);
-      else
-	delete hit;
+      for(Int_t j=0; j<nhtrailing; ++j){
+        hit->SetTdcTrailing(rhit->GetTrailing(j));
+      }
+      if(hit->CalcDCObservables()){
+        m_BcOutHC[layer].push_back(hit);
+      }else{
+        delete hit;
+      }
     }
   }
 
-  m_is_decoded[k_BcOut] = true;
+  m_is_decoded[kBcOut] = true;
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::DecodeSdcInHits( RawData *rawData )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::DecodeSdcInHits(RawData *rawData)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  if( m_is_decoded[k_SdcIn] ){
-    hddaq::cout << "#D " << func_name << " "
-		<< "already decoded" << std::endl;
+  if(m_is_decoded[kSdcIn]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
     return true;
   }
 
   ClearSdcInHits();
 
-  // SFT
-  {
-    // HodoAnalyzer& hodoAna = HodoAnalyzer::GetInstance();
-    HodoAnalyzer hodoAna;
-    hodoAna.DecodeSFTHits( rawData );
-    for ( int l = 0; l < NumOfLayersSFT; ++l ) {
-      int layerId = l + PlMinSdcIn + NumOfLayersSDC1;
-
-      hodoAna.TimeCutSFT( l, -10, 5 );
-      int ncl = hodoAna.GetNClustersSFT( l );
-
-      for ( int j = 0; j < ncl; ++j ) {
-
-  	FiberCluster* cl = hodoAna.GetClusterSFT( l, j );
-	double seg  = cl->MeanSeg();
-  	double pos  = cl->MeanPosition();
-  	double time = cl->CMeanTime();
-
-  	// DCHit *hit = new DCHit( l + PlMinSdcIn );
-  	DCHit *hit = new DCHit( layerId, seg );
-  	hit->SetTdcVal( static_cast<int>( time ) );
-
-  	if ( hit->CalcFiberObservables() ) {
-  	  hit->SetWirePosition( pos );
-	  m_SdcInHC[layerId].push_back( hit );
-	  // m_SdcInHC[layer - 1].push_back(hit);
-  	} else {
-  	  delete hit;
-  	}
-
+  for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
+    for(const auto& rhit: rawData->GetSdcInRawHC(layer)){
+      auto hit = new DCHit(rhit->PlaneId(), rhit->WireId());
+      Int_t nhtdc = rhit->GetTdcSize();
+      Int_t nhtrailing = rhit->GetTrailingSize();
+      if(!hit) continue;
+      for(Int_t j=0; j<nhtdc; ++j){
+        hit->SetTdcVal(rhit->GetTdc(j));
+      }
+      for(Int_t j=0; j<nhtrailing; ++j){
+        hit->SetTdcTrailing(rhit->GetTrailing(j));
+      }
+      if(hit->CalcDCObservables()){
+        m_SdcInHC[layer].push_back(hit);
+      }else{
+        delete hit;
       }
     }
   }
 
-  // SDC1
-  {
-    for( int layer=1; layer<=NumOfLayersSdcIn - NumOfLayersSFT; ++layer ){
-      const DCRHitContainer &RHitCont=rawData->GetSdcInRawHC(layer);
-      int nh = RHitCont.size();
-      for( int i=0; i<nh; ++i ){
-	DCRawHit *rhit  = RHitCont[i];
-	DCHit    *hit   = new DCHit( rhit->PlaneId(), rhit->WireId() );
-	// DCHit    *hit   = new DCHit( rhit->PlaneId() + NumOfLayersSFT, rhit->WireId() );
-	int       nhtdc      = rhit->GetTdcSize();
-	int       nhtrailing = rhit->GetTrailingSize();
-	if(!hit) continue;
-	for( int j=0; j<nhtdc; ++j ){
-	  hit->SetTdcVal( rhit->GetTdc(j) );
-	}
-	for( int j=0; j<nhtrailing; ++j ){
-	  hit->SetTdcTrailing( rhit->GetTrailing(j) );
-	}
-	if( hit->CalcDCObservables() ) {
-	  m_SdcInHC[layer].push_back(hit);
-	} else {
-	  delete hit;
-	}
-      }
-    }
-  }
-  m_is_decoded[k_SdcIn] = true;
+  m_is_decoded[kSdcIn] = true;
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::DecodeSdcOutHits( RawData *rawData , double ofs_dt)
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::DecodeSdcOutHits(RawData *rawData , Double_t ofs_dt/*=0.*/)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  if( m_is_decoded[k_SdcOut] ){
-    hddaq::cout << "#D " << func_name << " "
-		<< "already decoded" << std::endl;
+  if(m_is_decoded[kSdcOut]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
     return true;
   }
 
   ClearSdcOutHits();
 
-  // SdcOut
-  {
-    for( int layer=1; layer<=NumOfLayersSdcOut; ++layer ){
-      const DCRHitContainer &RHitCont = rawData->GetSdcOutRawHC(layer);
-      int nh = RHitCont.size();
-      for( int i=0; i<nh; ++i ){
-	DCRawHit *rhit  = RHitCont[i];
-	DCHit    *hit   = new DCHit( rhit->PlaneId(), rhit->WireId() );
-	int       nhtdc      = rhit->GetTdcSize();
-	int       nhtrailing = rhit->GetTrailingSize();
-	if(!hit) continue;
-	
-	hit->SetOfsdT(ofs_dt);
-	for( int j=0; j<nhtdc; ++j ){
-	  hit->SetTdcVal( rhit->GetTdc(j) );
-	}
-	for( int j=0; j<nhtrailing; ++j ){
-	  hit->SetTdcTrailing( rhit->GetTrailing(j) );
-	}
-	if( hit->CalcDCObservables() )
-	  m_SdcOutHC[layer].push_back(hit);
-	else
-	  delete hit;
+  for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer){
+    for(const auto& rhit: rawData->GetSdcOutRawHC(layer)){
+      auto hit = new DCHit(rhit->PlaneId(), rhit->WireId());
+      Int_t nhtdc = rhit->GetTdcSize();
+      Int_t nhtrailing = rhit->GetTrailingSize();
+      if(!hit) continue;
+      if(ofs_dt != 0.) hit->SetOfsdT(ofs_dt);
+      for(Int_t j=0; j<nhtdc; ++j){
+        hit->SetTdcVal(rhit->GetTdc(j));
       }
-    }
-  }
- //* 
-  // FBT1                                                                  
-  {
-    HodoAnalyzer hodoAna;
-    hodoAna.DecodeFBT1Hits( rawData );
-    
-    for ( int l = 0; l < 2; ++l ) {
-      hodoAna.TimeCutFBT1( l, 0, -10, 5 ); //FBT1-U                           
-      hodoAna.TimeCutFBT1( l, 1, -10, 5 ); //FBT1-D                          
-
-      int nclU = hodoAna.GetNClustersFBT1( l, 0 );
-      int nclD = hodoAna.GetNClustersFBT1( l, 1 );
-
-      for ( int j = 0; j < nclU; ++j ) {
-        FiberCluster* clU = hodoAna.GetClusterFBT1( l, 0, j );
-        double segU  = clU->MeanSeg();
-        double posU  = clU->MeanPosition();
-        double timeU = clU->CMeanTime();
-
-        DCHit *hitU = new DCHit( 1+2*l+PlOffsFht, segU );
-        hitU->SetTdcVal( static_cast<int>( timeU ) );
-
-        int layer = NumOfLayersSdcOut-7 + 1 + 2*l;
-        if ( hitU->CalcFiberObservables() ) {
-          hitU->SetWirePosition( posU );
-          m_SdcOutHC[layer].push_back( hitU );
-	} else {
-          delete hitU;
-        }
+      for(Int_t j=0; j<nhtrailing; ++j){
+        hit->SetTdcTrailing(rhit->GetTrailing(j));
       }
-      
-      for ( int j = 0; j < nclD; ++j ) {
-        FiberCluster* clD = hodoAna.GetClusterFBT1( l, 1, j );
-	double segD  = clD->MeanSeg();
-        double posD  = clD->MeanPosition();
-        double timeD = clD->CMeanTime();
-
-        DCHit *hitD = new DCHit( 2*l+PlOffsFht, segD );
-        hitD->SetTdcVal( static_cast<int>( timeD ) );
-
-        int layer = NumOfLayersSdcOut-7 + 2*l;
-        if ( hitD->CalcFiberObservables() ) {
-          hitD->SetWirePosition( posD );
-          m_SdcOutHC[layer].push_back( hitD );
-	} else {
-          delete hitD;
-        }
-      }
-    }
-  }
-  
-  // FBT2
-  {
-    HodoAnalyzer hodoAna;
-    hodoAna.DecodeFBT2Hits( rawData );
-    
-    for ( int l = 0; l < 2; ++l ) {
-      hodoAna.TimeCutFBT2( l, 0, -10, 5 ); //FBT2-U                         
-      hodoAna.TimeCutFBT2( l, 1, -10, 5 ); //FBT2-D                        
-
-      int nclU = hodoAna.GetNClustersFBT2( l, 0 );
-      int nclD = hodoAna.GetNClustersFBT2( l, 1 );
-
-      for ( int j = 0; j < nclU; ++j ) {
-        FiberCluster* clU = hodoAna.GetClusterFBT2( l, 0, j );
-        double segU  = clU->MeanSeg();
-        double posU  = clU->MeanPosition();
-        double timeU = clU->CMeanTime();
-
-        DCHit *hitU = new DCHit( 5+2*l+PlOffsFht, segU );
-	hitU->SetTdcVal( timeU );
-
-        int layer = NumOfLayersSdcOut-3 + 1 + 2*l;
-        if ( hitU->CalcFiberObservables() ) {
-          hitU->SetWirePosition( posU );
-          m_SdcOutHC[layer].push_back( hitU );
-        } else {
-          delete hitU;
-	}
-      }
-      
-      for ( int j = 0; j < nclD; ++j ) {
-        FiberCluster* clD = hodoAna.GetClusterFBT2( l, 1, j );
-        double segD  = clD->MeanSeg();
-	double posD  = clD->MeanPosition();
-        double timeD = clD->CMeanTime();
-
-        DCHit *hitD = new DCHit( 4+2*l+PlOffsFht, segD );
-        hitD->SetTdcVal( timeD );
-        
-	int layer = NumOfLayersSdcOut-3 + 2*l;
-        if ( hitD->CalcFiberObservables() ) {
-          hitD->SetWirePosition( posD );
-          m_SdcOutHC[layer].push_back( hitD );
-        } else {
-          delete hitD;
-        }
+      if(hit->CalcDCObservables()){
+        m_SdcOutHC[layer].push_back(hit);
+      }else{
+        delete hit;
       }
     }
   }
 
-  m_is_decoded[k_SdcOut] = true;
+  m_is_decoded[kSdcOut] = true;
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::DecodeCFTHits( RawData *rawData )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  if( m_is_decoded[k_CFT] ){
-    hddaq::cout << "#D " << func_name << " "
-		<< "already decoded" << std::endl;
-    return true;
-  }
-
-  ClearCFTHits();
-  
-  HodoAnalyzer hodoAna;
-  hodoAna.DecodeCFTHits( rawData );
-  
-  for ( int l = 0; l < NumOfPlaneCFT; ++l ) {
-    hodoAna.TimeCutCFT( l, -30, 30 );
-    //hodoAna.AdcCutCFT( l, -100, 4000 );
-    hodoAna.AdcCutCFT( l, 0, 4000 );
-    //hodoAna.AdcCutCFT( l, 50, 4000 ); // for proton
-    //hodoAna.WidthCutCFT( l, 60, 300 );//pp scattering
-    //hodoAna.WidthCutCFT( l, 30, 300 );// cosmic ray
-    
-    int ncl = hodoAna.GetNClustersCFT( l );    
-    for ( int j = 0; j < ncl; ++j ) {
-            
-      FiberCluster* cl = hodoAna.GetClusterCFT( l, j );
-      double mean_seg = cl->MeanSeg();
-      double max_seg     = cl->MaxSeg();
-      double size     = cl->ClusterSize();
-      double posR     = cl->MeanPositionR();
-      double posPhi   = cl->MeanPositionPhi();
-      double time     = cl->CMeanTime();
-
-      double adcLow   = cl->SumAdcLow(); double max_adcLow  = cl->MaxAdcLow();
-      double mipLow   = cl->SumMIPLow(); double max_mipLow  = cl->MaxMIPLow();
-      double dELow    = cl->SumdELow();	 double max_dELow   = cl->MaxdELow(); 
-
-      if (adcLow>0) {
-
-	DCHit *hit = new DCHit(l);
-
-	hit->SetTdcCFT( time );      	
-	if ( hit->CalcCFTObservables() ) {
-	  hit->SetMeanSeg    ( mean_seg);
-	  hit->SetMaxSeg     ( max_seg );
-	  hit->SetClusterSize( size    );
-
-	  hit->SetAdcLow     ( adcLow ); hit->SetMaxAdcLow  ( max_adcLow );
-	  hit->SetMIPLow     ( mipLow ); hit->SetMaxMIPLow  ( max_mipLow );
-	  hit->SetdELow      ( dELow  ); hit->SetMaxdELow   ( max_dELow  );
-
-	  hit->SetPositionR  ( posR    );
-	  hit->SetPositionPhi( posPhi  );
-	  
-	  hit->SetWirePosition(0.);      
-	  m_CFTHC[l].push_back( hit );
-	} else {
-	  delete hit;      
-	} 	     
-      }      
-    }
-  }
-  
-  m_is_decoded[k_CFT] = true;
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-DCAnalyzer::DecodeCFT16Hits( RawData* rawData ,DCLocalTrack* tp , int i )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-  
-  if( m_is_decoded[k_CFT16_1st] && m_is_decoded[k_CFT16_2nd]  ){
-    hddaq::cout << "#D " << func_name << " "
-		<< "already decoded" 
-		<< ", i=" << i 
-		<< ", 1st = " << m_is_decoded[k_CFT16_1st]
-		<< ", 2nd = " << m_is_decoded[k_CFT16_2nd] << std::endl;
-    return true;
-  }  
-  if(i==0){ClearCFT16Hits();}
-
-  HodoAnalyzer hodoAna;
-  hodoAna.DecodeCFTHits( rawData );    
-    
-  int nh   = tp->GetNHit();
-  int nhUV = tp->GetNHitUV();
-  // straight layer
-  for ( int ip = 0; ip < nh; ++ip ) {
-    DCLTrackHit *hitp = tp->GetHit(ip);
-    int layer = hitp->GetLayer();
-    int ll = layer;
-    if(i==1)ll += 8 ;
-    int seg = (int)hitp->GetMeanSeg();
-
-    int ncl = hodoAna.GetNClustersCFT( layer );    
-    for ( int j = 0; j < ncl; ++j ) {      
-      FiberCluster* cl = hodoAna.GetClusterCFT( layer, j );
-      int    segCl  = (int)cl->MeanSeg();
-      double size  = cl->ClusterSize();
-      double posR   = cl->MeanPositionR();
-      double posPhi = cl->MeanPositionPhi();
-      double time   = cl->CMeanTime();
-      double adcLow   = cl->SumAdcLow();
-      if(seg == segCl){
-	DCHit *hit = new DCHit(ll);
-	hit->SetTdcCFT( static_cast<int>( 0 ) );
-	if ( hit->CalcCFTObservables() ) {
-	  hit->SetLayer      (ll);      
-	  hit->SetMeanSeg    (seg);      
-	  hit->SetWirePosition(0.);            
-	  hit->SetPositionR  ( posR   );
-	  hit->SetPositionPhi( posPhi );
-	  m_CFT16HC[ll].push_back( hit );
-	}else {
-	  delete hit;      
-	}  
-      }      
-    }   
-  }
-  // spiral layer
-  for ( int ip = 0; ip < nhUV; ++ip ) {
-    DCLTrackHit *hitp = tp->GetHitUV(ip);
-    int layer = hitp->GetLayer();
-    int ll = layer;
-    if(i==1)ll += 8 ;
-    int seg = (int)hitp->GetMeanSeg();
-    
-    int ncl = hodoAna.GetNClustersCFT( layer );    
-    for ( int j = 0; j < ncl; ++j ) {      
-      FiberCluster* cl = hodoAna.GetClusterCFT( layer, j );
-      int    segCl  = (int)cl->MeanSeg();
-      double size  = cl->ClusterSize();
-      double posR   = cl->MeanPositionR();
-      double posPhi = cl->MeanPositionPhi();
-      double time   = cl->CMeanTime();
-      double adcLow   = cl->SumAdcLow();
-      if(seg == segCl){	
-	DCHit *hit = new DCHit(ll);
-	hit->SetTdcCFT( static_cast<int>( 0 ) ); 
-	
-	if ( hit->CalcCFTObservables() ) {
-	  hit->SetLayer      (ll);      
-	  hit->SetMeanSeg    ( seg    );      
-	  hit->SetWirePosition(0.);            
-	  hit->SetPositionR  ( posR   );
-	  hit->SetPositionPhi( posPhi );
-	  m_CFT16HC[ll].push_back( hit );	  
-	}else {
-	  delete hit;      
-	}  
-      }
-    }
-  }
-
-  if(i==0){m_is_decoded[k_CFT16_1st] = true;}
-  else if(i==1){m_is_decoded[k_CFT16_2nd] = true;}
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-DCAnalyzer::DecodeCFT16ppHits( RawData* rawData ,DCLocalTrack* tp , int i )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-  
-  if( m_is_decoded[k_CFT16pp_1st] && m_is_decoded[k_CFT16pp_2nd]  ){
-    hddaq::cout << "#D " << func_name << " "
-		<< "already decoded" 
-		<< ", i=" << i 
-		<< ", 1st = " << m_is_decoded[k_CFT16pp_1st]
-		<< ", 2nd = " << m_is_decoded[k_CFT16pp_2nd] << std::endl;
-    return true;
-  }  
-  if(i==0){ClearCFT16ppHits();}
-
-  HodoAnalyzer hodoAna;
-  hodoAna.DecodeCFTHits( rawData );    
-    
-  int nh   = tp->GetNHit();
-  int nhUV = tp->GetNHitUV();
-  // straight layer
-  for ( int ip = 0; ip < nh; ++ip ) {
-    DCLTrackHit *hitp = tp->GetHit(ip);
-    int layer = hitp->GetLayer();
-    int ll = layer;
-    if(i==1)ll += 8 ;
-    int seg = (int)hitp->GetMeanSeg();
-
-    //double phi_ini   = tp->GetPhiIni(ll);      
-    //double z_track   = tp->GetZTrack(ll);
-    double phi_ini   = tp->GetPhiIni(layer);      
-    double z_track   = tp->GetZTrack(layer);
-    double r         = tp->GetR(layer);
-
-    //std::cout << "Decode" << i << ": layer" << ll <<  ",seg" << seg
-    //	      <<  ", z=" << z_track <<  ", phi_ini = " << phi_ini  << std::endl;
-
-    int ncl = hodoAna.GetNClustersCFT( layer );    
-    for ( int j = 0; j < ncl; ++j ) {
-      FiberCluster* cl = hodoAna.GetClusterCFT( layer, j );
-      int    segCl  = (int)cl->MeanSeg();
-      double size  = cl->ClusterSize();
-      double posR   = cl->MeanPositionR();
-      double posPhi = cl->MeanPositionPhi();
-      double time   = cl->CMeanTime();
-      double adcLow   = cl->SumAdcLow();
-      if(seg == segCl){
-	DCHit *hit = new DCHit(ll);
-	hit->SetTdcCFT( static_cast<int>( 0 ) );
-	if ( hit->CalcCFTObservables() ) {
-	  hit->SetLayer      (ll);
-	  hit->SetMeanSeg    (seg);
-	  hit->SetWirePosition(0.);
-	  hit->SetPositionR  ( posR   );
-	  hit->SetPositionPhi( posPhi );
-
-	  hit->SetPosPhi  ( phi_ini );
-	  hit->SetPosZ    ( z_track );
-	  hit->SetPosR    ( r );
-
-	  m_CFT16ppHC[ll].push_back( hit );
-	}else {
-	  delete hit;      
-	}  
-      }      
-    }   
-  }
-  // spiral layer
-  
-  for ( int ip = 0; ip < nhUV; ++ip ) {
-    DCLTrackHit *hitp = tp->GetHitUV(ip);
-    int layer = hitp->GetLayer();
-    int ll = layer;
-    if(i==1)ll += 8 ;
-    int seg = (int)hitp->GetMeanSeg();
-
-    //double phi_track = tp->GetPhiTrack(ll);      
-    //double z_ini     = tp->GetZIni(ll);      
-    double phi_track = tp->GetPhiTrack(layer);      
-    double z_ini     = tp->GetZIni(layer);      
-    double r     = tp->GetR(layer);      
-
-    int ncl = hodoAna.GetNClustersCFT( layer );    
-    for ( int j = 0; j < ncl; ++j ) {      
-      FiberCluster* cl = hodoAna.GetClusterCFT( layer, j );
-      int    segCl  = (int)cl->MeanSeg();
-      double size  = cl->ClusterSize();
-      double posR   = cl->MeanPositionR();
-      double posPhi = cl->MeanPositionPhi();
-      double time   = cl->CMeanTime();
-      double adcLow   = cl->SumAdcLow();
-      if(seg == segCl){	
-	DCHit *hit = new DCHit(ll);
-	hit->SetTdcCFT( static_cast<int>( 0 ) ); 
-	
-	if ( hit->CalcCFTObservables() ) {
-	  hit->SetLayer      (ll);      
-	  hit->SetMeanSeg    ( seg    );      
-	  hit->SetWirePosition(0.);            
-	  hit->SetPositionR  ( posR   );
-	  hit->SetPositionPhi( posPhi );
-
-	  hit->SetPosPhi  ( phi_track );
-	  hit->SetPosZ    ( z_ini );
-	  hit->SetPosR    ( r );
-
-	  m_CFT16ppHC[ll].push_back( hit );	  
-	}else {
-	  delete hit;      
-	}  
-	}
-      
-    }
-      
-  }
-  
-
-  if(i==0){m_is_decoded[k_CFT16pp_1st] = true;}
-  else if(i==1){m_is_decoded[k_CFT16pp_2nd] = true;}
-  return true;
-}
-
-
-//______________________________________________________________________________
-bool
-DCAnalyzer::DecodeRawHits( RawData *rawData )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::DecodeRawHits(RawData *rawData)
 {
   ClearDCHits();
 #if UseBcIn
-  DecodeBcInHits( rawData );
+  DecodeBcInHits(rawData);
 #endif
-  DecodeBcOutHits( rawData );
-  DecodeSdcInHits( rawData );
-  DecodeSdcOutHits( rawData );
+  DecodeBcOutHits(rawData);
+  DecodeSdcInHits(rawData);
+  DecodeSdcOutHits(rawData);
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::DecodeTOFHits( const Hodo2HitContainer& HitCont )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::DecodeTOFHits(const Hodo2HitContainer& HitCont)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  if( m_is_decoded[k_TOF] ){
-    hddaq::cout << "#D " << func_name << " "
-		<< "already decoded" << std::endl;
+  if(m_is_decoded[kTOF]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
     return true;
   }
 
   ClearTOFHits();
 
-  static const double RA2 = gGeom.GetRotAngle2("TOF"); // for the tilting plane case
-  static const ThreeVector TOFPos[2] = {
+  // for the tilting plane case
+  static const Double_t RA2 = gGeom.GetRotAngle2("TOF");
+  static const TVector3 TOFPos[2] = {
     gGeom.GetGlobalPosition("TOF-UX"),
     gGeom.GetGlobalPosition("TOF-DX") };
 
-  const std::size_t nh = HitCont.size();
-  for( std::size_t i=0; i<nh; ++i ){
-    Hodo2Hit *hodo_hit = HitCont[i];
-    if( !hodo_hit ) continue;
-    const double seg  = hodo_hit->SegmentId()+1;
-    const double dt   = hodo_hit->TimeDiff();
-    int layer_x = -1;
-    int layer_y = -1;
-    if( (int)seg%2==0 ){
+  for(const auto& hodo_hit: HitCont){
+    const Double_t seg = hodo_hit->SegmentId()+1;
+    const Double_t dt  = hodo_hit->TimeDiff();
+    Int_t layer_x = -1;
+    Int_t layer_y = -1;
+    if((Int_t)seg%2==0){
       layer_x  = IdTOFUX;
       layer_y  = IdTOFUY;
     }
-    if( (int)seg%2==1 ){
+    if((Int_t)seg%2==1){
       layer_x  = IdTOFDX;
       layer_y  = IdTOFDY;
     }
-    double wpos = gGeom.CalcWirePosition( layer_x, seg );
-    ThreeVector w( wpos, 0., 0. );
-    w.RotateY( RA2*math::Deg2Rad() ); // for the tilting plane case
-    const ThreeVector& hit_pos = TOFPos[(int)seg%2] + w
-      + ThreeVector( 0., dt/0.01285, 0. );
+    Double_t wpos = gGeom.CalcWirePosition(layer_x, seg);
+    TVector3 w(wpos, 0., 0.);
+    w.RotateY(RA2*TMath::DegToRad()); // for the tilting plane case
+    const TVector3 hit_pos = TOFPos[(Int_t)seg%2] + w
+      + TVector3(0., dt*TimeDiffToYTOF, 0.);
     // X
-    DCHit *dc_hit_x = new DCHit( layer_x, seg );
-    dc_hit_x->SetWirePosition( hit_pos.x() );
-    dc_hit_x->SetZ( hit_pos.z() );
-    dc_hit_x->SetTiltAngle( 0. );
+    DCHit *dc_hit_x = new DCHit(layer_x, seg);
+    dc_hit_x->SetWirePosition(hit_pos.x());
+    dc_hit_x->SetZ(hit_pos.z());
+    dc_hit_x->SetTiltAngle(0.);
     dc_hit_x->SetDummyPair();
-    m_TOFHC.push_back( dc_hit_x );
+    m_TOFHC.push_back(dc_hit_x);
     // Y
-    DCHit *dc_hit_y = new DCHit( layer_y, seg );
-    dc_hit_y->SetWirePosition( hit_pos.y() ); // [ns] -> [mm]
-    dc_hit_y->SetZ( hit_pos.z() );
-    dc_hit_y->SetTiltAngle( 90. );
+    DCHit *dc_hit_y = new DCHit(layer_y, seg);
+    dc_hit_y->SetWirePosition(hit_pos.y());
+    dc_hit_y->SetZ(hit_pos.z());
+    dc_hit_y->SetTiltAngle(90.);
     dc_hit_y->SetDummyPair();
-    m_TOFHC.push_back( dc_hit_y );
+    m_TOFHC.push_back(dc_hit_y);
   }
 
-  m_is_decoded[k_TOF] = true;
+  m_is_decoded[kTOF] = true;
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::DecodeTOFHits( const HodoClusterContainer& ClCont )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  if( m_is_decoded[k_TOF] ){
-    hddaq::cout << "#D " << func_name << " "
-		<< "already decoded" << std::endl;
+  if(m_is_decoded[kTOF]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
     return true;
   }
 
   ClearTOFHits();
 
-  static const double RA2 = gGeom.GetRotAngle2("TOF");
-  static const ThreeVector TOFPos[2] = {
+  static const Double_t RA2 = gGeom.GetRotAngle2("TOF");
+  static const TVector3 TOFPos[2] = {
     gGeom.GetGlobalPosition("TOF-UX"),
     gGeom.GetGlobalPosition("TOF-DX") };
 
-  const std::size_t nh = ClCont.size();
-  for( std::size_t i=0; i<nh; ++i ){
-    HodoCluster *hodo_cluster = ClCont[i];
-    if( !hodo_cluster ) continue;
-    const double seg  = hodo_cluster->MeanSeg()+1;
-    const double dt   = hodo_cluster->TimeDif();
-    int layer_x = -1;
-    int layer_y = -1;
-    if( (int)seg%2==0 ){
+  for(const auto& hodo_cluster: ClCont){
+    const Double_t seg = hodo_cluster->MeanSeg()+1;
+    const Double_t dt  = hodo_cluster->TimeDif();
+    Int_t layer_x = -1;
+    Int_t layer_y = -1;
+    if((Int_t)seg%2==0){
       layer_x  = IdTOFUX;
       layer_y  = IdTOFUY;
     }
-    if( (int)seg%2==1 ){
+    if((Int_t)seg%2==1){
       layer_x  = IdTOFDX;
       layer_y  = IdTOFDY;
     }
-    double wpos = gGeom.CalcWirePosition( layer_x, seg );
-    ThreeVector w( wpos, 0., 0. );
-    w.RotateY( RA2*math::Deg2Rad() );
-    const ThreeVector& hit_pos = TOFPos[(int)seg%2] + w
-      + ThreeVector( 0., dt/0.01285, 0. );
+    Double_t wpos = gGeom.CalcWirePosition(layer_x, seg);
+    TVector3 w(wpos, 0., 0.);
+    w.RotateY(RA2*TMath::DegToRad());
+    const TVector3& hit_pos = TOFPos[(Int_t)seg%2] + w
+      + TVector3(0., dt*TimeDiffToYTOF, 0.);
     // X
-    DCHit *dc_hit_x = new DCHit( layer_x, seg );
-    dc_hit_x->SetWirePosition( hit_pos.x() );
-    dc_hit_x->SetZ( hit_pos.z() );
-    dc_hit_x->SetTiltAngle( 0. );
+    DCHit *dc_hit_x = new DCHit(layer_x, seg);
+    dc_hit_x->SetWirePosition(hit_pos.x());
+    dc_hit_x->SetZ(hit_pos.z());
+    dc_hit_x->SetTiltAngle(0.);
     dc_hit_x->SetDummyPair();
-    m_TOFHC.push_back( dc_hit_x );
+    m_TOFHC.push_back(dc_hit_x);
     // Y
-    DCHit *dc_hit_y = new DCHit( layer_y, seg );
-    dc_hit_y->SetWirePosition( hit_pos.y() ); // [ns] -> [mm]
-    dc_hit_y->SetZ( hit_pos.z() );
-    dc_hit_y->SetTiltAngle( 90. );
+    DCHit *dc_hit_y = new DCHit(layer_y, seg);
+    dc_hit_y->SetWirePosition(hit_pos.y());
+    dc_hit_y->SetZ(hit_pos.z());
+    dc_hit_y->SetTiltAngle(90.);
     dc_hit_y->SetDummyPair();
-    m_TOFHC.push_back( dc_hit_y );
+    m_TOFHC.push_back(dc_hit_y);
   }
 
-  m_is_decoded[k_TOF] = true;
+  m_is_decoded[kTOF] = true;
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 #if UseBcIn
-bool
-DCAnalyzer::TrackSearchBcIn( void )
+Bool_t
+DCAnalyzer::TrackSearchBcIn()
 {
-  track::MWPCLocalTrackSearch( &(m_BcInHC[1]), m_BcInTC );
+  track::MWPCLocalTrackSearch(&(m_BcInHC[1]), m_BcInTC);
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchBcIn( const std::vector<std::vector<DCHitContainer> >& hc )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::TrackSearchBcIn(const std::vector<std::vector<DCHitContainer> >& hc)
 {
-  track::MWPCLocalTrackSearch( hc, m_BcInTC );
+  track::MWPCLocalTrackSearch(hc, m_BcInTC);
   return true;
 }
 #endif
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchBcOut( int T0Seg )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::TrackSearchBcOut(Int_t T0Seg)
 {
-  static const int MinLayer = gUser.GetParameter("MinLayerBcOut");
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerBcOut");
 
 #if BcOut_Pair //Pair Plane Tracking Routine for BcOut
-  int ntrack = track::LocalTrackSearch( m_BcOutHC, PPInfoBcOut, NPPInfoBcOut,
-					m_BcOutTC, MinLayer, T0Seg );
+  Int_t ntrack = track::LocalTrackSearch(m_BcOutHC, PPInfoBcOut, NPPInfoBcOut,
+                                         m_BcOutTC, MinLayer, T0Seg);
   return ntrack == -1 ? false : true;
 #endif
 
 #if BcOut_XUV  //XUV Tracking Routine for BcOut
-  int ntrack = track::LocalTrackSearchVUX( m_BcOutHC, PPInfoBcOut, NPPInfoBcOut,
-					   m_BcOutTC, MinLayer );
+  Int_t ntrack = track::LocalTrackSearchVUX(m_BcOutHC, PPInfoBcOut, NPPInfoBcOut,
+                                            m_BcOutTC, MinLayer);
   return ntrack == -1 ? false : true;
 #endif
 
   return false;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 // Use with BH2Filter
-bool
-DCAnalyzer::TrackSearchBcOut( const std::vector<std::vector<DCHitContainer> >& hc, int T0Seg )
+Bool_t
+DCAnalyzer::TrackSearchBcOut(const std::vector<std::vector<DCHitContainer> >& hc, Int_t T0Seg)
 {
-  static const int MinLayer = gUser.GetParameter("MinLayerBcOut");
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerBcOut");
 
 #if BcOut_Pair //Pair Plane Tracking Routine for BcOut
-  int ntrack = track::LocalTrackSearch( hc, PPInfoBcOut, NPPInfoBcOut, m_BcOutTC, MinLayer, T0Seg );
+  Int_t ntrack = track::LocalTrackSearch(hc, PPInfoBcOut, NPPInfoBcOut, m_BcOutTC, MinLayer, T0Seg);
   return ntrack == -1 ? false : true;
 #endif
 
 #if BcOut_XUV  //XUV Tracking Routine for BcOut
-  int ntrack = track::LocalTrackSearchVUX( hc, PPInfoBcOut, NPPInfoBcOut, m_BcOutTC, MinLayer );
+  Int_t ntrack = track::LocalTrackSearchVUX(hc, PPInfoBcOut, NPPInfoBcOut, m_BcOutTC, MinLayer);
   return ntrack == -1 ? false : true;
 #endif
 
   return false;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchSdcIn( void )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::TrackSearchSdcIn()
 {
-  static const int MinLayer = gUser.GetParameter("MinLayerSdcIn");
-
-  // track::LocalTrackSearch( m_SdcInHC, PPInfoSdcIn, NPPInfoSdcIn, m_SdcInTC, MinLayer );
-  track::LocalTrackSearchSdcInFiber( m_SdcInHC, PPInfoSdcIn, NPPInfoSdcIn, m_SdcInTC, MinLayer );
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcIn");
+  track::LocalTrackSearch(m_SdcInHC, PPInfoSdcIn, NPPInfoSdcIn, m_SdcInTC, MinLayer);
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchSdcOut( void )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::TrackSearchSdcOut()
 {
-  static const int MinLayer = gUser.GetParameter("MinLayerSdcOut");
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcOut");
 
-  track::LocalTrackSearchSdcOut( m_SdcOutHC, PPInfoSdcOut, NPPInfoSdcOut,
-				 m_SdcOutTC, MinLayer );
+  track::LocalTrackSearchSdcOut(m_SdcOutHC, PPInfoSdcOut, NPPInfoSdcOut,
+                                m_SdcOutTC, MinLayer);
 
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchSdcOut( const Hodo2HitContainer& TOFCont )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::TrackSearchSdcOut(const Hodo2HitContainer& TOFCont)
 {
-  static const int MinLayer = gUser.GetParameter("MinLayerSdcOut");
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcOut");
 
-  if( !DecodeTOFHits( TOFCont ) ) return false;
+  if(!DecodeTOFHits(TOFCont)) return false;
 
 #if 0
-  for( std::size_t i=0, n=m_TOFHC.size(); i<n; ++i ){
+  for(std::size_t i=0, n=m_TOFHC.size(); i<n; ++i){
     m_TOFHC[i]->Print();
   }
 #endif
 
-  track::LocalTrackSearchSdcOut( m_TOFHC, m_SdcOutHC, PPInfoSdcOut, NPPInfoSdcOut+2,
-				 m_SdcOutTC, MinLayer );
+  track::LocalTrackSearchSdcOut(m_TOFHC, m_SdcOutHC, PPInfoSdcOut, NPPInfoSdcOut+2,
+                                m_SdcOutTC, MinLayer);
 
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchSdcOut( const HodoClusterContainer& TOFCont )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::TrackSearchSdcOut(const HodoClusterContainer& TOFCont)
 {
-  static const int MinLayer = gUser.GetParameter("MinLayerSdcOut");
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcOut");
 
-  if( !DecodeTOFHits( TOFCont ) ) return false;
+  if(!DecodeTOFHits(TOFCont)) return false;
 
-  track::LocalTrackSearchSdcOut( m_TOFHC, m_SdcOutHC, PPInfoSdcOut, NPPInfoSdcOut+2,
-				 m_SdcOutTC, MinLayer );
+  track::LocalTrackSearchSdcOut(m_TOFHC, m_SdcOutHC, PPInfoSdcOut, NPPInfoSdcOut+2,
+                                m_SdcOutTC, MinLayer);
 
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchBcOutSdcIn( void )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::TrackSearchBcOutSdcIn()
 {
-  static const int MinLayer = gUser.GetParameter("MinLayerBcOutSdcIn");
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerBcOutSdcIn");
 
-  track::LocalTrackSearchBcOutSdcIn( m_BcOutHC, PPInfoBcOut,
-				     m_SdcInHC, PPInfoSdcIn,
-				     NPPInfoBcOut,NPPInfoSdcIn,
-				     m_BcOutSdcInTC, MinLayer );
+  track::LocalTrackSearchBcOutSdcIn(m_BcOutHC, PPInfoBcOut,
+                                    m_SdcInHC, PPInfoSdcIn,
+                                    NPPInfoBcOut, NPPInfoSdcIn,
+                                    m_BcOutSdcInTC, MinLayer);
 
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 #if UseBcIn
-bool
-DCAnalyzer::TrackSearchK18U2D( void )
+Bool_t
+DCAnalyzer::TrackSearchK18U2D()
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   ClearK18TracksU2D();
 
-  int nIn  = m_BcInTC.size();
-  int nOut = m_BcOutTC.size();
+  Int_t nIn  = m_BcInTC.size();
+  Int_t nOut = m_BcOutTC.size();
 
 # if 0
   hddaq::cout << "**************************************" << std::endl;
-  hddaq::cout << func_name << ": #TracksIn=" << std::setw(3) << nIn
-	      << " #TracksOut=" << std::setw(3) << nOut << std::endl;
+  hddaq::cout << FUNC_NAME << ": #TracksIn=" << std::setw(3) << nIn
+              << " #TracksOut=" << std::setw(3) << nOut << std::endl;
 # endif
 
-  if( nIn==0 || nOut==0 ) return true;
+  if(nIn==0 || nOut==0) return true;
 
-  for( int iIn=0; iIn<nIn; ++iIn ){
+  for(Int_t iIn=0; iIn<nIn; ++iIn){
     DCLocalTrack *trIn = m_BcInTC[iIn];
 # if 0
     hddaq::cout << "TrackIn  :" << std::setw(2) << iIn
-		<< " X0=" << trIn->GetX0() << " Y0=" << trIn->GetY0()
-		<< " U0=" << trIn->GetU0() << " V0=" << trIn->GetV0()
-		<< std::endl;
+                << " X0=" << trIn->GetX0() << " Y0=" << trIn->GetY0()
+                << " U0=" << trIn->GetU0() << " V0=" << trIn->GetV0()
+                << std::endl;
 # endif
-    if( !trIn->GoodForTracking() ||
-	trIn->GetX0()<MinK18InX || trIn->GetX0()>MaxK18InX ||
-	trIn->GetY0()<MinK18InY || trIn->GetY0()>MaxK18InY ||
-	trIn->GetU0()<MinK18InU || trIn->GetU0()>MaxK18InU ||
-	trIn->GetV0()<MinK18InV || trIn->GetV0()>MaxK18InV ) continue;
-    for( int iOut=0; iOut<nOut; ++iOut ){
+    if(!trIn->GoodForTracking() ||
+       trIn->GetX0()<MinK18InX || trIn->GetX0()>MaxK18InX ||
+       trIn->GetY0()<MinK18InY || trIn->GetY0()>MaxK18InY ||
+       trIn->GetU0()<MinK18InU || trIn->GetU0()>MaxK18InU ||
+       trIn->GetV0()<MinK18InV || trIn->GetV0()>MaxK18InV) continue;
+    for(Int_t iOut=0; iOut<nOut; ++iOut){
       DCLocalTrack *trOut=m_BcOutTC[iOut];
 # if 0
       hddaq::cout << "TrackOut :" << std::setw(2) << iOut
-		  << " X0=" << trOut->GetX0() << " Y0=" << trOut->GetY0()
-		  << " U0=" << trOut->GetU0() << " V0=" << trOut->GetV0()
-		  << std::endl;
+                  << " X0=" << trOut->GetX0() << " Y0=" << trOut->GetY0()
+                  << " U0=" << trOut->GetU0() << " V0=" << trOut->GetV0()
+                  << std::endl;
 # endif
-      if( !trOut->GoodForTracking() ||
-	  trOut->GetX0()<MinK18OutX || trOut->GetX0()>MaxK18OutX ||
-	  trOut->GetY0()<MinK18OutY || trOut->GetY0()>MaxK18OutY ||
-	  trOut->GetU0()<MinK18OutU || trOut->GetU0()>MaxK18OutU ||
-	  trOut->GetV0()<MinK18OutV || trOut->GetV0()>MaxK18OutV ) continue;
+      if(!trOut->GoodForTracking() ||
+         trOut->GetX0()<MinK18OutX || trOut->GetX0()>MaxK18OutX ||
+         trOut->GetY0()<MinK18OutY || trOut->GetY0()>MaxK18OutY ||
+         trOut->GetU0()<MinK18OutU || trOut->GetU0()>MaxK18OutU ||
+         trOut->GetV0()<MinK18OutV || trOut->GetV0()>MaxK18OutV) continue;
 
 # if 0
-      hddaq::cout << func_name << ": In -> " << trIn->GetChiSquare()
-		  << " (" << std::setw(2) << trIn->GetNHit() << ") "
-		  << "Out -> " << trOut->GetChiSquare()
-		  << " (" << std::setw(2) << trOut->GetNHit() << ") "
-		  << std::endl;
+      hddaq::cout << FUNC_NAME << ": In -> " << trIn->GetChiSquare()
+                  << " (" << std::setw(2) << trIn->GetNHit() << ") "
+                  << "Out -> " << trOut->GetChiSquare()
+                  << " (" << std::setw(2) << trOut->GetNHit() << ") "
+                  << std::endl;
 # endif
 
-      K18TrackU2D *track=new K18TrackU2D( trIn, trOut, pK18 );
-      if( track && track->DoFit() )
-	m_K18U2DTC.push_back(track);
+      K18TrackU2D *track=new K18TrackU2D(trIn, trOut, TMath::Abs(pK18));
+      if(track && track->DoFit())
+        m_K18U2DTC.push_back(track);
       else
-	delete track;
+        delete track;
     }
   }
 
 # if 0
   hddaq::cout << "********************" << std::endl;
   {
-    int nn = m_K18U2DTC.size();
-    hddaq::cout << func_name << ": Before sorting. #Track="
-		<< nn << std::endl;
-    for( int i=0; i<nn; ++i ){
+    Int_t nn = m_K18U2DTC.size();
+    hddaq::cout << FUNC_NAME << ": Before sorting. #Track="
+                << nn << std::endl;
+    for(Int_t i=0; i<nn; ++i){
       K18TrackU2D *tp = m_K18U2DTC[i];
       hddaq::cout << std::setw(3) << i
-		  << " ChiSqr=" << tp->chisquare()
-		  << " Delta=" << tp->Delta()
-		  << " P=" << tp->P() << "\n";
+                  << " ChiSqr=" << tp->chisquare()
+                  << " Delta=" << tp->Delta()
+                  << " P=" << tp->P() << "\n";
       //      hddaq::cout<<"********************"<<std::endl;
       //      hddaq::cout << "In :"
-      // 	       << " X " << tp->Xin() << "(" << tp->TrackIn()->GetX0() << ")"
-      // 	       << " Y " << tp->Yin() << "(" << tp->TrackIn()->GetY0() << ")"
-      // 	       << " U " << tp->Uin() << "(" << tp->TrackIn()->GetU0() << ")"
-      // 	       << " V " << tp->Vin() << "(" << tp->TrackIn()->GetV0() << ")"
-      // 	       << "\n";
+      //         << " X " << tp->Xin() << "(" << tp->TrackIn()->GetX0() << ")"
+      //         << " Y " << tp->Yin() << "(" << tp->TrackIn()->GetY0() << ")"
+      //         << " U " << tp->Uin() << "(" << tp->TrackIn()->GetU0() << ")"
+      //         << " V " << tp->Vin() << "(" << tp->TrackIn()->GetV0() << ")"
+      //         << "\n";
       //      hddaq::cout << "Out:"
-      // 	       << " X " << tp->Xout() << "(" << tp->TrackOut()->GetX0() << ")"
-      // 	       << " Y " << tp->Yout() << "(" << tp->TrackOut()->GetY0() << ")"
-      // 	       << " U " << tp->Uout() << "(" << tp->TrackOut()->GetU0() << ")"
-      // 	       << " V " << tp->Vout() << "(" << tp->TrackOut()->GetV0() << ")"
-      // 	       << std::endl;
+      //         << " X " << tp->Xout() << "(" << tp->TrackOut()->GetX0() << ")"
+      //         << " Y " << tp->Yout() << "(" << tp->TrackOut()->GetY0() << ")"
+      //         << " U " << tp->Uout() << "(" << tp->TrackOut()->GetU0() << ")"
+      //         << " V " << tp->Vout() << "(" << tp->TrackOut()->GetV0() << ")"
+      //         << std::endl;
     }
   }
 # endif
 
-  std::sort( m_K18U2DTC.begin(), m_K18U2DTC.end(), K18TrackU2DComp() );
+  std::sort(m_K18U2DTC.begin(), m_K18U2DTC.end(), K18TrackU2DComp());
 
   return true;
 }
 #endif // UseBcIn
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchK18D2U( const std::vector<double>& XinCont )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::TrackSearchK18D2U(const std::vector<Double_t>& XinCont)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   ClearK18TracksD2U();
 
   std::size_t nIn  = XinCont.size();
   std::size_t nOut = m_BcOutTC.size();
 
-  if( nIn==0 || nOut==0 )
+  if(nIn==0 || nOut==0)
     return true;
 
-  for( std::size_t iIn=0; iIn<nIn; ++iIn ){
-    double LocalX = XinCont.at( iIn );
-    for( std::size_t iOut=0; iOut<nOut; ++iOut ){
+  for(std::size_t iIn=0; iIn<nIn; ++iIn){
+    Double_t LocalX = XinCont.at(iIn);
+    for(std::size_t iOut=0; iOut<nOut; ++iOut){
       DCLocalTrack *trOut = m_BcOutTC[iOut];
 #if 0
       hddaq::cout << "TrackOut :" << std::setw(2) << iOut
-		  << " X0=" << trOut->GetX0() << " Y0=" << trOut->GetY0()
-		  << " U0=" << trOut->GetU0() << " V0=" << trOut->GetV0()
-		  << std::endl;
+                  << " X0=" << trOut->GetX0() << " Y0=" << trOut->GetY0()
+                  << " U0=" << trOut->GetU0() << " V0=" << trOut->GetV0()
+                  << std::endl;
 #endif
-      if( !trOut->GoodForTracking() ||
-	  trOut->GetX0()<MinK18OutX || trOut->GetX0()>MaxK18OutX ||
-	  trOut->GetY0()<MinK18OutY || trOut->GetY0()>MaxK18OutY ||
-	  trOut->GetU0()<MinK18OutU || trOut->GetU0()>MaxK18OutU ||
-	  trOut->GetV0()<MinK18OutV || trOut->GetV0()>MaxK18OutV ) continue;
+      if(!trOut->GoodForTracking() ||
+         trOut->GetX0()<MinK18OutX || trOut->GetX0()>MaxK18OutX ||
+         trOut->GetY0()<MinK18OutY || trOut->GetY0()>MaxK18OutY ||
+         trOut->GetU0()<MinK18OutU || trOut->GetU0()>MaxK18OutU ||
+         trOut->GetV0()<MinK18OutV || trOut->GetV0()>MaxK18OutV) continue;
 
 #if 0
-      hddaq::cout << func_name
-		  << "Out -> " << trOut->GetChiSquare()
-		  << " (" << std::setw(2) << trOut->GetNHit() << ") "
-		  << std::endl;
+      hddaq::cout << FUNC_NAME
+                  << "Out -> " << trOut->GetChiSquare()
+                  << " (" << std::setw(2) << trOut->GetNHit() << ") "
+                  << std::endl;
 #endif
 
-      K18TrackD2U *track = new K18TrackD2U( LocalX, trOut, pK18 );
-      if( !track ) continue;
-      track->CalcMomentumD2U();
-      m_K18D2UTC.push_back(track);
+      K18TrackD2U *track = new K18TrackD2U(LocalX, trOut, TMath::Abs(pK18));
+      if(track && track->CalcMomentumD2U())
+	m_K18D2UTC.push_back(track);
+      else
+	delete track;
     }
   }
 
 #if 0
   hddaq::cout<<"********************"<<std::endl;
   {
-    int nn = m_K18D2UTC.size();
-    hddaq::cout << func_name << ": Before sorting. #Track="
-		<< nn << std::endl;
-    for( int i=0; i<nn; ++i ){
+    Int_t nn = m_K18D2UTC.size();
+    hddaq::cout << FUNC_NAME << ": Before sorting. #Track="
+                << nn << std::endl;
+    for(Int_t i=0; i<nn; ++i){
       K18TrackD2U *tp = m_K18D2UTC[i];
       hddaq::cout << std::setw(3) << i
-		  << " ChiSqr=" << tp->chisquare()
-		  << " Delta=" << tp->Delta()
-		  << " P=" << tp->P() << "\n";
-//      hddaq::cout<<"********************"<<std::endl;
-//      hddaq::cout << "In :"
-// 	       << " X " << tp->Xin() << "(" << tp->TrackIn()->GetX0() << ")"
-// 	       << " Y " << tp->Yin() << "(" << tp->TrackIn()->GetY0() << ")"
-// 	       << " U " << tp->Uin() << "(" << tp->TrackIn()->GetU0() << ")"
-// 	       << " V " << tp->Vin() << "(" << tp->TrackIn()->GetV0() << ")"
-// 	       << "\n";
-//      hddaq::cout << "Out:"
-// 	       << " X " << tp->Xout() << "(" << tp->TrackOut()->GetX0() << ")"
-// 	       << " Y " << tp->Yout() << "(" << tp->TrackOut()->GetY0() << ")"
-// 	       << " U " << tp->Uout() << "(" << tp->TrackOut()->GetU0() << ")"
-// 	       << " V " << tp->Vout() << "(" << tp->TrackOut()->GetV0() << ")"
-// 	       << std::endl;
-   }
- }
-#endif
-
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchKurama( void )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  ClearKuramaTracks();
-
-  std::size_t nIn  = GetNtracksSdcIn();
-  std::size_t nOut = GetNtracksSdcOut();
-
-  if( nIn==0 || nOut==0 ) {
-    return true;
+                  << " ChiSqr=" << tp->chisquare()
+                  << " Delta=" << tp->Delta()
+                  << " P=" << tp->P() << "\n";
+      //      hddaq::cout<<"********************"<<std::endl;
+      //      hddaq::cout << "In :"
+      //         << " X " << tp->Xin() << "(" << tp->TrackIn()->GetX0() << ")"
+      //         << " Y " << tp->Yin() << "(" << tp->TrackIn()->GetY0() << ")"
+      //         << " U " << tp->Uin() << "(" << tp->TrackIn()->GetU0() << ")"
+      //         << " V " << tp->Vin() << "(" << tp->TrackIn()->GetV0() << ")"
+      //         << "\n";
+      //      hddaq::cout << "Out:"
+      //         << " X " << tp->Xout() << "(" << tp->TrackOut()->GetX0() << ")"
+      //         << " Y " << tp->Yout() << "(" << tp->TrackOut()->GetY0() << ")"
+      //         << " U " << tp->Uout() << "(" << tp->TrackOut()->GetU0() << ")"
+      //         << " V " << tp->Vout() << "(" << tp->TrackOut()->GetV0() << ")"
+      //         << std::endl;
+    }
   }
-  for( std::size_t iIn=0; iIn<nIn; ++iIn ){
-    DCLocalTrack *trIn = GetTrackSdcIn( iIn );
-    if( !trIn->GoodForTracking() ) continue;
-    for( std::size_t iOut=0; iOut<nOut; ++iOut ){
-      DCLocalTrack * trOut = GetTrackSdcOut( iOut );
-      if( !trOut->GoodForTracking() ) continue;
-
-      KuramaTrack *trKurama = new KuramaTrack( trIn, trOut );
-      if( !trKurama ) continue;
-      double u0In    = trIn->GetU0();
-      double u0Out   = trOut->GetU0();
-      double bending = u0Out - u0In;
-      double p[3] = { 0.08493, 0.2227, 0.01572 };
-      double initial_momentum = p[0] + p[1]/( bending-p[2] );
-      if( bending>0. && initial_momentum>0. ) {
-	trKurama->SetInitialMomentum( initial_momentum );
-      } else {
-	trKurama->SetInitialMomentum( 1. );
-      }
-      if( trKurama->DoFit() && trKurama->chisqr()<MaxChiSqrKuramaTrack ){
-	m_KuramaTC.push_back( trKurama );
-      }
-      else{
-	//	trKurama->Print( "in "+func_name );
-	delete trKurama;
-      }
-    }// for( iOut )
-  }// for( iIn )
-
-  std::sort( m_KuramaTC.begin(), m_KuramaTC.end(), KuramaTrackComp() );
-
-#if 0
-  PrintKurama( "Before Deleting" );
 #endif
 
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchKurama( double initial_momentum )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::TrackSearchKurama()
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   ClearKuramaTracks();
 
-  int nIn  = GetNtracksSdcIn();
-  int nOut = GetNtracksSdcOut();
-
-  if( nIn==0 || nOut==0 ) return true;
-
-  for( int iIn=0; iIn<nIn; ++iIn ){
-    DCLocalTrack *trIn = GetTrackSdcIn( iIn );
-    if( !trIn->GoodForTracking() ) continue;
-    for( int iOut=0; iOut<nOut; ++iOut ){
-      DCLocalTrack * trOut = GetTrackSdcOut( iOut );
-      if( !trOut->GoodForTracking() ) continue;
-      KuramaTrack *trKurama = new KuramaTrack( trIn, trOut );
-      if( !trKurama ) continue;
-      trKurama->SetInitialMomentum( initial_momentum );
-      if( trKurama->DoFit() && trKurama->chisqr()<MaxChiSqrKuramaTrack ){
-	m_KuramaTC.push_back( trKurama );
+  auto nIn = m_SdcInTC.size();
+  auto nOut = m_SdcOutTC.size();
+  if(nIn==0 || nOut==0) return true;
+  for(Int_t iIn=0; iIn<nIn; ++iIn){
+    DCLocalTrack *trIn = GetTrackSdcIn(iIn);
+    if(!trIn || !trIn->GoodForTracking()) continue;
+    for(Int_t iOut=0; iOut<nOut; ++iOut){
+      DCLocalTrack * trOut = GetTrackSdcOut(iOut);
+      if(!trOut || !trOut->GoodForTracking()) continue;
+      auto trKurama = new KuramaTrack(trIn, trOut);
+      if(!trKurama) continue;
+      Double_t u0In    = trIn->GetU0();
+      Double_t u0Out   = trOut->GetU0();
+      Double_t v0In    = trIn->GetV0();
+      Double_t v0Out   = trOut->GetV0();
+      Double_t bending = u0Out - u0In;
+      Double_t p[3] = { 0.08493, 0.2227, 0.01572 };
+      Double_t initial_momentum = p[0] + p[1]/(bending-p[2]);
+      if(bending>0. && initial_momentum>0.){
+        trKurama->SetInitialMomentum(initial_momentum);
+      } else {
+        trKurama->SetInitialMomentum(1.);
+      }
+      if(TMath::Abs(TMath::ATan(v0In) - TMath::ATan(v0Out)) < m_max_v0diff
+         && trKurama->DoFit()
+         && trKurama->ChiSquare()<MaxChiSqrKuramaTrack){
+        // trKurama->Print("in "+FUNC_NAME);
+        m_KuramaTC.push_back(trKurama);
       }
       else{
-	trKurama->Print( " in "+func_name );
-	delete trKurama;
+        // trKurama->Print("in "+FUNC_NAME);
+        delete trKurama;
       }
-    }// for( iOut )
-  }// for( iIn )
+    }
+  }
 
-  std::sort( m_KuramaTC.begin(), m_KuramaTC.end(), KuramaTrackComp() );
+  std::sort(m_KuramaTC.begin(), m_KuramaTC.end(), KuramaTrackComp());
 
 #if 0
-  PrintKurama( "Before Deleting" );
+  PrintKurama("Before Deleting");
 #endif
 
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchCFT( void )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::TrackSearchKurama(Double_t initial_momentum)
 {
-  static const int MinLayer = gUser.GetParameter("MinLayerCFT");
+  ClearKuramaTracks();
 
-  track::LocalTrackSearchCFT( m_CFTHC, PPInfoCFT, NPPInfoCFT, m_CFTTC, MinLayer );
+  Int_t nIn  = GetNtracksSdcIn();
+  Int_t nOut = GetNtracksSdcOut();
+
+  if(nIn==0 || nOut==0) return true;
+
+  for(Int_t iIn=0; iIn<nIn; ++iIn){
+    DCLocalTrack *trIn = GetTrackSdcIn(iIn);
+    if(!trIn->GoodForTracking()) continue;
+    for(Int_t iOut=0; iOut<nOut; ++iOut){
+      DCLocalTrack * trOut = GetTrackSdcOut(iOut);
+      if(!trOut->GoodForTracking()) continue;
+      KuramaTrack *trKurama = new KuramaTrack(trIn, trOut);
+      if(!trKurama) continue;
+      trKurama->SetInitialMomentum(initial_momentum);
+      if(trKurama->DoFit() && trKurama->ChiSquare()<MaxChiSqrKuramaTrack){
+        m_KuramaTC.push_back(trKurama);
+      }
+      else{
+        trKurama->Print(" in "+FUNC_NAME);
+        delete trKurama;
+      }
+    }// for(iOut)
+  }// for(iIn)
+
+  std::sort(m_KuramaTC.begin(), m_KuramaTC.end(), KuramaTrackComp());
+
+#if 0
+  PrintKurama("Before Deleting");
+#endif
+
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchCFT16( void )
-{
-  static const int MinLayer = gUser.GetParameter("MinLayerCFT16");
-
-  track::LocalTrackSearchCFT( m_CFT16HC, PPInfoCFT16, NPPInfoCFT16, m_CFT16TC, MinLayer );//same with normal tracking
-  return true;
-}
-
-//______________________________________________________________________________
-bool
-DCAnalyzer::TrackSearchCFT16pp( void )
-{
-  static const int MinLayer = gUser.GetParameter("MinLayerCFT16");
-
-  track::LocalTrackSearchCFTppPhi( m_CFT16ppHC, PPInfoCFT16, NPPInfoCFT16, m_CFT16ppTC, MinLayer );
-  return true;
-}
-
-
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ClearDCHits( void )
+DCAnalyzer::ClearDCHits()
 {
 #if UseBcIn
   ClearBcInHits();
@@ -1390,318 +884,274 @@ DCAnalyzer::ClearDCHits( void )
   ClearSdcInHits();
   ClearSdcOutHits();
   ClearTOFHits();
-  ClearCFTHits();
-  ClearCFT16Hits();
-  ClearCFT16ppHits();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 #if UseBcIn
 void
-DCAnalyzer::ClearBcInHits( void )
+DCAnalyzer::ClearBcInHits()
 {
-  del::ClearContainerAll( m_TempBcInHC );
-  del::ClearContainerAll( m_BcInHC );
-  del::ClearContainerAll( m_MWPCClCont );
+  del::ClearContainerAll(m_TempBcInHC);
+  del::ClearContainerAll(m_BcInHC);
+  del::ClearContainerAll(m_MWPCClCont);
 }
 #endif
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ClearBcOutHits( void )
+DCAnalyzer::ClearBcOutHits()
 {
-  del::ClearContainerAll( m_BcOutHC );
+  del::ClearContainerAll(m_BcOutHC);
 }
 
-//______________________________________________________________________________
+
+//_____________________________________________________________________________
 void
-DCAnalyzer::ClearSdcInHits( void )
+DCAnalyzer::ClearSdcInHits()
 {
-  del::ClearContainerAll( m_SdcInHC );
+  del::ClearContainerAll(m_SdcInHC);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ClearSdcOutHits( void )
+DCAnalyzer::ClearSdcOutHits()
 {
-  del::ClearContainerAll( m_SdcOutHC );
+  del::ClearContainerAll(m_SdcOutHC);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ClearVtxHits( void )
+DCAnalyzer::ClearVtxHits()
 {
-  del::ClearContainer( m_VtxPoint );
+  del::ClearContainer(m_VtxPoint);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ClearTOFHits( void )
+DCAnalyzer::ClearTOFHits()
 {
-  del::ClearContainer( m_TOFHC );
+  del::ClearContainer(m_TOFHC);
 }
 
-//______________________________________________________________________________
-void
-DCAnalyzer::ClearCFTHits( void )
-{
-  del::ClearContainerAll( m_CFTHC );
-}
-
-//______________________________________________________________________________
-void
-DCAnalyzer::ClearCFT16Hits( void )
-{
-  del::ClearContainerAll( m_CFT16HC );
-}
-
-//______________________________________________________________________________
-void
-DCAnalyzer::ClearCFT16ppHits( void )
-{
-  del::ClearContainerAll( m_CFT16ppHC );
-}
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 #if UseBcIn
 void
-DCAnalyzer::ClearTracksBcIn( void )
+DCAnalyzer::ClearTracksBcIn()
 {
-  del::ClearContainer( m_BcInTC );
+  del::ClearContainer(m_BcInTC);
 }
 #endif
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ClearTracksBcOut( void )
+DCAnalyzer::ClearTracksBcOut()
 {
-  del::ClearContainer( m_BcOutTC );
+  del::ClearContainer(m_BcOutTC);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ClearTracksSdcIn( void )
+DCAnalyzer::ClearTracksSdcIn()
 {
-  del::ClearContainer( m_SdcInTC );
-  del::ClearContainerAll( m_SdcInExTC );
+  del::ClearContainer(m_SdcInTC);
+  del::ClearContainerAll(m_SdcInExTC);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ClearTracksSdcOut( void )
+DCAnalyzer::ClearTracksSdcOut()
 {
-  del::ClearContainer( m_SdcOutTC );
-  del::ClearContainerAll( m_SdcOutExTC );
+  del::ClearContainer(m_SdcOutTC);
+  del::ClearContainerAll(m_SdcOutExTC);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 #if UseBcIn
 void
-DCAnalyzer::ClearK18TracksU2D( void )
+DCAnalyzer::ClearK18TracksU2D()
 {
-  del::ClearContainer( m_K18U2DTC );
+  del::ClearContainer(m_K18U2DTC);
 }
 #endif
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ClearK18TracksD2U( void )
+DCAnalyzer::ClearK18TracksD2U()
 {
-  del::ClearContainer( m_K18D2UTC );
+  del::ClearContainer(m_K18D2UTC);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ClearKuramaTracks( void )
+DCAnalyzer::ClearKuramaTracks()
 {
-  del::ClearContainer( m_KuramaTC );
+  del::ClearContainer(m_KuramaTC);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ClearTracksBcOutSdcIn( void )
+DCAnalyzer::ClearTracksBcOutSdcIn()
 {
-  del::ClearContainer( m_BcOutSdcInTC );
+  del::ClearContainer(m_BcOutSdcInTC);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ClearTracksSdcInSdcOut( void )
+DCAnalyzer::ClearTracksSdcInSdcOut()
 {
-  del::ClearContainer( m_SdcInSdcOutTC );
+  del::ClearContainer(m_SdcInSdcOutTC);
 }
 
-//______________________________________________________________________________
-void
-DCAnalyzer::ClearTracksCFT( void )
-{
-  del::ClearContainer( m_CFTTC );
-}
-
-//______________________________________________________________________________
-void
-DCAnalyzer::ClearTracksCFT16( void )
-{
-  del::ClearContainer( m_CFT16TC );
-}
-
-//______________________________________________________________________________
-void
-DCAnalyzer::ClearTracksCFT16pp( void )
-{
-  del::ClearContainer( m_CFT16ppTC );
-}
-
-//______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcMWPCHits( std::vector<DCHitContainer>& cont,
-			    bool applyRecursively )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::ReCalcMWPCHits(std::vector<DCHitContainer>& cont,
+                           Bool_t applyRecursively)
 {
   const std::size_t n = cont.size();
-  for( std::size_t l=0; l<n; ++l ){
+  for(std::size_t l=0; l<n; ++l){
     const std::size_t m = cont[l].size();
-    for( std::size_t i=0; i<m; ++i ){
+    for(std::size_t i=0; i<m; ++i){
       DCHit *hit = (cont[l])[i];
-      if( !hit ) continue;
+      if(!hit) continue;
       hit->ReCalcMWPC(applyRecursively);
     }
   }
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcDCHits( std::vector<DCHitContainer>& cont,
-			  bool applyRecursively )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::ReCalcDCHits(std::vector<DCHitContainer>& cont,
+                         Bool_t applyRecursively)
 {
   const std::size_t n = cont.size();
-  for( std::size_t l=0; l<n; ++l ){
+  for(std::size_t l=0; l<n; ++l){
     const std::size_t m = cont[l].size();
-    for( std::size_t i=0; i<m; ++i ){
+    for(std::size_t i=0; i<m; ++i){
       DCHit *hit = (cont[l])[i];
-      if( !hit ) continue;
+      if(!hit) continue;
       hit->ReCalcDC(applyRecursively);
     }
   }
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcDCHits( bool applyRecursively )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::ReCalcDCHits(Bool_t applyRecursively)
 {
 #if UseBcIn
-  ReCalcMWPCHits( m_TempBcInHC, applyRecursively );
-  ReCalcMWPCHits( m_BcInHC, applyRecursively );
+  ReCalcMWPCHits(m_TempBcInHC, applyRecursively);
+  ReCalcMWPCHits(m_BcInHC, applyRecursively);
 #endif
 
-  ReCalcDCHits( m_BcOutHC, applyRecursively );
-  ReCalcDCHits( m_SdcInHC, applyRecursively );
-  ReCalcDCHits( m_SdcOutHC, applyRecursively );
+  ReCalcDCHits(m_BcOutHC, applyRecursively);
+  ReCalcDCHits(m_SdcInHC, applyRecursively);
+  ReCalcDCHits(m_SdcOutHC, applyRecursively);
 
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcTrack( DCLocalTrackContainer& cont,
-			 bool applyRecursively )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::ReCalcTrack(DCLocalTrackContainer& cont,
+                        Bool_t applyRecursively)
 {
   const std::size_t n = cont.size();
-  for( std::size_t i=0; i<n; ++i ){
+  for(std::size_t i=0; i<n; ++i){
     DCLocalTrack *track = cont[i];
-    if( track ) track->ReCalc( applyRecursively );
+    if(track) track->ReCalc(applyRecursively);
   }
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcTrack( K18TrackD2UContainer& cont,
-			 bool applyRecursively )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::ReCalcTrack(K18TrackD2UContainer& cont,
+                        Bool_t applyRecursively)
 {
   const std::size_t n = cont.size();
-  for( std::size_t i=0; i<n; ++i ){
+  for(std::size_t i=0; i<n; ++i){
     K18TrackD2U *track = cont[i];
-    if( track ) track->ReCalc( applyRecursively );
+    if(track) track->ReCalc(applyRecursively);
   }
   return true;
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcTrack( KuramaTrackContainer& cont,
-			 bool applyRecursively )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::ReCalcTrack(KuramaTrackContainer& cont,
+                        Bool_t applyRecursively)
 {
   const std::size_t n = cont.size();
-  for( std::size_t i=0; i<n; ++i ){
+  for(std::size_t i=0; i<n; ++i){
     KuramaTrack *track = cont[i];
-    if( track ) track->ReCalc( applyRecursively );
+    if(track) track->ReCalc(applyRecursively);
   }
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 #if UseBcIn
-bool
-DCAnalyzer::ReCalcTrackBcIn( bool applyRecursively )
+Bool_t
+DCAnalyzer::ReCalcTrackBcIn(Bool_t applyRecursively)
 {
-  return ReCalcTrack( m_BcInTC );
+  return ReCalcTrack(m_BcInTC);
 }
 #endif
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcTrackBcOut( bool applyRecursively )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::ReCalcTrackBcOut(Bool_t applyRecursively)
 {
-  return ReCalcTrack( m_BcOutTC );
+  return ReCalcTrack(m_BcOutTC);
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcTrackSdcIn( bool applyRecursively )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::ReCalcTrackSdcIn(Bool_t applyRecursively)
 {
-  return ReCalcTrack( m_SdcInTC );
+  return ReCalcTrack(m_SdcInTC);
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcTrackSdcOut( bool applyRecursively )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::ReCalcTrackSdcOut(Bool_t applyRecursively)
 {
-  return ReCalcTrack( m_SdcOutTC );
+  return ReCalcTrack(m_SdcOutTC);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 #if UseBcIn
-bool
-DCAnalyzer::ReCalcK18TrackU2D( bool applyRecursively )
+Bool_t
+DCAnalyzer::ReCalcK18TrackU2D(Bool_t applyRecursively)
 {
-  int n = m_K18U2DTC.size();
-  for( int i=0; i<n; ++i ){
+  Int_t n = m_K18U2DTC.size();
+  for(Int_t i=0; i<n; ++i){
     K18TrackU2D *track = m_K18U2DTC[i];
-    if( track ) track->ReCalc( applyRecursively );
+    if(track) track->ReCalc(applyRecursively);
   }
   return true;
 }
 #endif
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcK18TrackD2U( bool applyRecursively )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::ReCalcK18TrackD2U(Bool_t applyRecursively)
 {
-  return ReCalcTrack( m_K18D2UTC, applyRecursively );
+  return ReCalcTrack(m_K18D2UTC, applyRecursively);
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcKuramaTrack( bool applyRecursively )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::ReCalcKuramaTrack(Bool_t applyRecursively)
 {
-  return ReCalcTrack( m_KuramaTC, applyRecursively );
+  return ReCalcTrack(m_KuramaTC, applyRecursively);
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcAll( void )
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::ReCalcAll()
 {
   ReCalcDCHits();
 #if UseBcIn
@@ -1718,23 +1168,23 @@ DCAnalyzer::ReCalcAll( void )
   return true;
 }
 
-//______________________________________________________________________________
-// int
+//_____________________________________________________________________________
+// Int_t
 // clusterizeMWPCHit(const DCHitContainer& hits,
-// 		  MWPCClusterContainer& clusters)
+//     MWPCClusterContainer& clusters)
 // {
 //   if (!clusters.empty()){
 //       std::for_each(clusters.begin(), clusters.end(), DeleteObject());
 //       clusters.clear();
 //   }
 
-//   const int nhits = hits.size();
-//   //   hddaq::cout << "#D " << __func__ << " " << nhits << std::endl;
+//   const Int_t nhits = hits.size();
+//   //   hddaq::cout << __func__ << " " << nhits << std::endl;
 //   if (nhits==0)
 //     return 0;
 
-//   int n = 0;
-//   for (int i=0; i<nhits; ++i){
+//   Int_t n = 0;
+//   for (Int_t i=0; i<nhits; ++i){
 //     const DCHit* h = hits[i];
 //     if (!h)
 //       continue;
@@ -1743,12 +1193,12 @@ DCAnalyzer::ReCalcAll( void )
 
 //   DCHitContainer singleHits;
 //   singleHits.reserve(n);
-//   for (int i=0; i<nhits; ++i){
+//   for (Int_t i=0; i<nhits; ++i){
 //     const DCHit* h = hits[i];
 //     if (!h)
 //       continue;
-//     int nn = h->GetTdcSize();
-//     for (int ii=0; ii<nn; ++ii){
+//     Int_t nn = h->GetTdcSize();
+//     for (Int_t ii=0; ii<nn; ++ii){
 //       DCHit* htmp = new DCHit(h->GetLayer(), h->GetWire());
 //       htmp->SetTdcVal(h->GetTdcVal());
 //       htmp->SetTdcTrailing(h->GetTdcTrailing());
@@ -1762,43 +1212,43 @@ DCAnalyzer::ReCalcAll( void )
 //     }
 //   }
 
-//   std::vector<std::deque<bool> > flag(n, std::deque<bool>(n, false));
+//   std::vector<std::deque<Bool_t> > flag(n, std::deque<Bool_t>(n, false));
 //   n = singleHits.size();
-//   for (int i=0;  i<n; ++i){
+//   for (Int_t i=0;  i<n; ++i){
 //     flag[i][i] = true;
 //     const DCHit* h1 = singleHits[i];
 //     //       h1->print("h1");
-//     for (int j=i+1; j<n; ++j){
+//     for (Int_t j=i+1; j<n; ++j){
 //       const DCHit* h2 = singleHits[j];
-//       // 	  h2->print("h2");
-//       // 	  hddaq::cout << " (i,j) = (" << i << ", " << j << ")" << std::endl;
-//       bool val
-// 	= isConnectable(h1->GetWirePosition(),
-// 			h1->GetDriftTime(),
-// 			h1->GetTrailingTime(),
-// 			h2->GetWirePosition(),
-// 			h2->GetDriftTime(),
-// 			h2->GetTrailingTime(),
-// 			kMWPCClusteringWireExtension,
-// 			kMWPCClusteringTimeExtension);
-//       // 	  hddaq::cout << "#D val = " << val << std::endl;
+//       //    h2->print("h2");
+//       //    hddaq::cout << " (i,j) = (" << i << ", " << j << ")" << std::endl;
+//       Bool_t val
+//  = isConnectable(h1->GetWirePosition(),
+//    h1->GetDriftTime(),
+//    h1->GetTrailingTime(),
+//    h2->GetWirePosition(),
+//    h2->GetDriftTime(),
+//    h2->GetTrailingTime(),
+//    kMWPCClusteringWireExtension,
+//    kMWPCClusteringTimeExtension);
+//       //    hddaq::cout << "#D val = " << val << std::endl;
 //       flag[i][j] = val;
 //       flag[j][i] = val;
 //     }
 //   }
 
-//   //   hddaq::cout << "#D " << __func__ << "  before " << std::endl;
+//   //   hddaq::cout << __func__ << "  before " << std::endl;
 //   //   printConnectionFlag(flag);
 
-//   const int maxLoop = static_cast<int>(std::log(x)/std::log(2.))+1;
-//   for (int loop=0; loop<maxLoop; ++loop){
-//     std::vector<std::deque<bool> > tmp(n, std::deque<bool>(n, false));
-//     for (int i=0; i<n; ++i){
-//       for (int j=i; j<n; ++j){
-// 	for (int k=0; k<n; ++k){
-// 	  tmp[i][j] |= (flag[i][k] && flag[k][j]);
-// 	  tmp[j][i] = tmp[i][j];
-// 	}
+//   const Int_t maxLoop = static_cast<Int_t>(std::log(x)/std::log(2.))+1;
+//   for (Int_t loop=0; loop<maxLoop; ++loop){
+//     std::vector<std::deque<Bool_t> > tmp(n, std::deque<Bool_t>(n, false));
+//     for (Int_t i=0; i<n; ++i){
+//       for (Int_t j=i; j<n; ++j){
+//  for (Int_t k=0; k<n; ++k){
+//    tmp[i][j] |= (flag[i][k] && flag[k][j]);
+//    tmp[j][i] = tmp[i][j];
+//  }
 //       }
 //     }
 //     flag = tmp;
@@ -1806,23 +1256,23 @@ DCAnalyzer::ReCalcAll( void )
 //     //       printConnectionFlag(flag);
 //   }
 
-//   //   hddaq::cout << "#D " << __func__ << "  after " << std::endl;
+//   //   hddaq::cout << __func__ << "  after " << std::endl;
 //   //   printConnectionFlag(flag);
 
-//   std::set<int> checked;
-//   for (int i=0; i<n; ++i){
+//   std::set<Int_t> checked;
+//   for (Int_t i=0; i<n; ++i){
 //     if (checked.find(i)!=checked.end())
 //       continue;
 //     MWPCCluster* c = 0;
-//     for (int j=i; j<n; ++j){
+//     for (Int_t j=i; j<n; ++j){
 //       if (flag[i][j]){
-// 	checked.insert(j);
-// 	if (!c) {
-// 	  c = new MWPCCluster;
-// 	  // 		  hddaq::cout << " new cluster " << std::endl;
-// 	}
-// 	// 	      hddaq::cout << " " << i << "---" << j << std::endl;
-// 	c->Add(singleHits[j]);
+//  checked.insert(j);
+//  if (!c) {
+//    c = new MWPCCluster;
+//    //     hddaq::cout << " new cluster " << std::endl;
+//  }
+//  //        hddaq::cout << " " << i << "---" << j << std::endl;
+//  c->Add(singleHits[j]);
 //       }
 //     }
 
@@ -1833,39 +1283,39 @@ DCAnalyzer::ReCalcAll( void )
 //   }
 
 //   //   hddaq::cout << " end of " << __func__
-//   // 	    << " : n = " << n << ", " << checked.size()
-//   // 	    << std::endl;
+//   //      << " : n = " << n << ", " << checked.size()
+//   //      << std::endl;
 
 //   //   hddaq::cout << __func__ << " n clusters = " << clusters.size() << std::endl;
 
 //   return clusters.size();
 // }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ChiSqrCutBcOut( double chisqr )
+DCAnalyzer::ChiSqrCutBcOut(Double_t chisqr)
 {
-  ChiSqrCut( m_BcOutTC, chisqr );
+  ChiSqrCut(m_BcOutTC, chisqr);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ChiSqrCutSdcIn( double chisqr )
+DCAnalyzer::ChiSqrCutSdcIn(Double_t chisqr)
 {
-  ChiSqrCut( m_SdcInTC, chisqr );
+  ChiSqrCut(m_SdcInTC, chisqr);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ChiSqrCutSdcOut( double chisqr )
+DCAnalyzer::ChiSqrCutSdcOut(Double_t chisqr)
 {
-  ChiSqrCut( m_SdcOutTC, chisqr );
+  ChiSqrCut(m_SdcOutTC, chisqr);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::ChiSqrCut( DCLocalTrackContainer& TrackCont,
-		       double chisqr )
+DCAnalyzer::ChiSqrCut(DCLocalTrackContainer& TrackCont,
+                      Double_t chisqr)
 {
   DCLocalTrackContainer DeleteCand;
   DCLocalTrackContainer ValidCand;
@@ -1877,54 +1327,63 @@ DCAnalyzer::ChiSqrCut( DCLocalTrackContainer& TrackCont,
     }
   }
 
-  del::ClearContainer( DeleteCand );
+  del::ClearContainer(DeleteCand);
 
   TrackCont.clear();
-  TrackCont.resize( ValidCand.size() );
-  std::copy( ValidCand.begin(), ValidCand.end(), TrackCont.begin() );
+  TrackCont.resize(ValidCand.size());
+  std::copy(ValidCand.begin(), ValidCand.end(), TrackCont.begin());
   ValidCand.clear();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::TotCutBCOut(double min_tot)
+DCAnalyzer::TotCutBCOut(Double_t min_tot)
 {
-  for(int i = 0; i<NumOfLayersBcOut; ++i){
+  for(Int_t i = 0; i<NumOfLayersBcOut; ++i){
     TotCut(m_BcOutHC[i + 1], min_tot, false);
   }// for(i)
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::TotCutSDC1(double min_tot)
+DCAnalyzer::TotCutSDC1(Double_t min_tot)
 {
-  for(int i = 0; i<NumOfLayersSdcIn - NumOfLayersSFT; ++i){
-    TotCut(m_SdcInHC[i + NumOfLayersSFT +1], min_tot, false);
+  for(Int_t i = 0; i<NumOfLayersSDC1; ++i){
+    TotCut(m_SdcInHC[i + 1], min_tot, false);
   }// for(i)
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::TotCutSDC2(double min_tot)
+DCAnalyzer::TotCutSDC2(Double_t min_tot)
 {
-  for(int i = 0; i<NumOfLayersSDC2; ++i){
+  for(Int_t i = 0; i<NumOfLayersSDC2; ++i){
+    TotCut(m_SdcInHC[i + NumOfLayersSDC1 + 1], min_tot, false);
+  }// for(i)
+}
+
+//_____________________________________________________________________________
+void
+DCAnalyzer::TotCutSDC3(Double_t min_tot)
+{
+  for(Int_t i = 0; i<NumOfLayersSDC3; ++i){
     TotCut(m_SdcOutHC[i + 1], min_tot, false);
   }// for(i)
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::TotCutSDC3(double min_tot)
+DCAnalyzer::TotCutSDC4(Double_t min_tot)
 {
-  for(int i = 0; i<NumOfLayersSDC3; ++i){
-    TotCut(m_SdcOutHC[i + NumOfLayersSDC2 +1], min_tot, false);
+  for(Int_t i = 0; i<NumOfLayersSDC4; ++i){
+    TotCut(m_SdcOutHC[i + NumOfLayersSDC3 + 1], min_tot, false);
   }// for(i)
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::TotCut( DCHitContainer& HitCont,
-		    double min_tot, bool adopt_nan )
+DCAnalyzer::TotCut(DCHitContainer& HitCont,
+                   Double_t min_tot, Bool_t adopt_nan)
 {
   DCHitContainer ValidCand;
   DCHitContainer DeleteCand;
@@ -1937,45 +1396,63 @@ DCAnalyzer::TotCut( DCHitContainer& HitCont,
     }
   }
 
-  del::ClearContainer( DeleteCand );
+  del::ClearContainer(DeleteCand);
 
   HitCont.clear();
-  HitCont.resize( ValidCand.size() );
-  std::copy( ValidCand.begin(), ValidCand.end(), HitCont.begin() );
+  HitCont.resize(ValidCand.size());
+  std::copy(ValidCand.begin(), ValidCand.end(), HitCont.begin());
   ValidCand.clear();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::DriftTimeCutBC34(double min_dt, double max_dt)
+DCAnalyzer::DriftTimeCutBC34(Double_t min_dt, Double_t max_dt)
 {
-  for(int i = 0; i<NumOfLayersBcOut; ++i){
+  for(Int_t i = 0; i<NumOfLayersBcOut; ++i){
     DriftTimeCut(m_BcOutHC[i + 1], min_dt, max_dt, true);
   }// for(i)
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::DriftTimeCutSDC2(double min_dt, double max_dt)
+DCAnalyzer::DriftTimeCutSDC1(Double_t min_dt, Double_t max_dt)
 {
-  for(int i = 0; i<NumOfLayersSDC2; ++i){
+  for(Int_t i = 0; i<NumOfLayersSDC1; ++i){
     DriftTimeCut(m_SdcOutHC[i + 1], min_dt, max_dt, true);
   }// for(i)
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::DriftTimeCutSDC3(double min_dt, double max_dt)
+DCAnalyzer::DriftTimeCutSDC2(Double_t min_dt, Double_t max_dt)
 {
-  for(int i = 0; i<NumOfLayersSDC3; ++i){
-    DriftTimeCut(m_SdcOutHC[i + NumOfLayersSDC2 + 1], min_dt, max_dt, true);
+  for(Int_t i = 0; i<NumOfLayersSDC2; ++i){
+    DriftTimeCut(m_SdcOutHC[i + NumOfLayersSDC1 + 1], min_dt, max_dt, true);
   }// for(i)
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCAnalyzer::DriftTimeCut( DCHitContainer& HitCont,
-			  double min_dt, double max_dt, bool select_1st )
+DCAnalyzer::DriftTimeCutSDC3(Double_t min_dt, Double_t max_dt)
+{
+  for(Int_t i = 0; i<NumOfLayersSDC3; ++i){
+    DriftTimeCut(m_SdcOutHC[i + 1], min_dt, max_dt, true);
+  }// for(i)
+}
+
+//_____________________________________________________________________________
+void
+DCAnalyzer::DriftTimeCutSDC4(Double_t min_dt, Double_t max_dt)
+{
+  for(Int_t i = 0; i<NumOfLayersSDC4; ++i){
+    DriftTimeCut(m_SdcOutHC[i + NumOfLayersSDC3 + 1], min_dt, max_dt, true);
+  }// for(i)
+}
+
+//_____________________________________________________________________________
+void
+DCAnalyzer::DriftTimeCut(DCHitContainer& HitCont,
+                         Double_t min_dt, Double_t max_dt, Bool_t select_1st)
 {
   DCHitContainer ValidCand;
   DCHitContainer DeleteCand;
@@ -1988,25 +1465,25 @@ DCAnalyzer::DriftTimeCut( DCHitContainer& HitCont,
     }
   }
 
-  del::ClearContainer( DeleteCand );
+  del::ClearContainer(DeleteCand);
 
   HitCont.clear();
-  HitCont.resize( ValidCand.size() );
-  std::copy( ValidCand.begin(), ValidCand.end(), HitCont.begin() );
+  HitCont.resize(ValidCand.size());
+  std::copy(ValidCand.begin(), ValidCand.end(), HitCont.begin());
   ValidCand.clear();
 }
 
-//______________________________________________________________________________
-bool
-DCAnalyzer::MakeBH2DCHit(int t0seg)
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::MakeBH2DCHit(Int_t t0seg)
 {
-  static const double centerbh2[] = {
+  static const Double_t centerbh2[] = {
     -41.8, -19.3, -10.7, -3.6, 3.6, 10.7, 19.3, 41.8
   };
 
-  bool status = true;
+  Bool_t status = true;
 
-  double bh2pos = centerbh2[t0seg];
+  Double_t bh2pos = centerbh2[t0seg];
   DCHit *dchit = new DCHit(125, t0seg);
   dchit->SetTdcVal(0.);
   if(dchit->CalcFiberObservables()){

@@ -1,163 +1,181 @@
-/**
- *  file: FieldMan.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "FieldMan.hh"
 
 #include <cmath>
 
-#include "FieldElements.hh"
-#include "KuramaFieldMap.hh"
+#include <std_ostream.hh>
 
-#include "std_ostream.hh"
+#include "FieldElements.hh"
+#include "FuncName.hh"
+#include "KuramaFieldMap.hh"
+#include "ConfMan.hh"
 
 namespace
 {
-  const std::string class_name("FieldMan");
-  const double Delta = 0.1;
+const auto& gConf = ConfMan::GetInstance();
+const auto& valueNMR  = ConfMan::Get<Double_t>("FLDNMR");
+const auto& valueCalc = ConfMan::Get<Double_t>("FLDCALC");
+const auto& valueHSHall = ConfMan::Get<Double_t>("HSFLDHALL");
+const auto& valueHSCalc = ConfMan::Get<Double_t>("HSFLDCALC");
 }
 
-//______________________________________________________________________________
-FieldMan::FieldMan( void )
-  : m_is_ready(false), m_kurama_map(0)
+namespace
+{
+const Double_t Delta = 0.1;
+}
+
+//_____________________________________________________________________________
+FieldMan::FieldMan()
+  : m_is_ready(false),
+    m_kurama_map(nullptr),
+    m_shs_map(nullptr)
 {
 }
 
-//______________________________________________________________________________
-FieldMan::~FieldMan( void )
+//_____________________________________________________________________________
+FieldMan::~FieldMan()
 {
-  delete m_kurama_map;
+  if(m_kurama_map) delete m_kurama_map;
+  if(m_shs_map)    delete m_shs_map;
 }
 
-//______________________________________________________________________________
-bool
-FieldMan::Initialize( void )
+//_____________________________________________________________________________
+Bool_t
+FieldMan::Initialize()
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
-  if( m_is_ready ){
-    hddaq::cerr << "#W " << func_name
-		<< " already initialied" << std::endl;
+  if(m_is_ready){
+    hddaq::cerr << FUNC_NAME << " already initialied" << std::endl;
     return false;
   }
 
-  if( m_kurama_map )
+  if(m_kurama_map)
     delete m_kurama_map;
 
-  m_kurama_map = new KuramaFieldMap( m_file_name );
-  if( m_kurama_map )
-    m_is_ready = m_kurama_map->Initialize();
+  m_kurama_map = new KuramaFieldMap(m_file_name_kurama, valueNMR, valueCalc);
+
+  if(m_shs_map)
+    delete m_shs_map;
+
+  m_shs_map = new KuramaFieldMap(m_file_name_shs, valueHSHall, valueHSCalc);
+
+  if(m_kurama_map && m_shs_map){
+    m_is_ready = (m_kurama_map->Initialize()) && (m_shs_map->Initialize());
+  }
   else
     m_is_ready = false;
 
   return m_is_ready;
 }
 
-//______________________________________________________________________________
-bool
-FieldMan::Initialize( const std::string &file_name )
+//_____________________________________________________________________________
+Bool_t
+FieldMan::Initialize(const TString& file_name_kurama,
+                     const TString& file_name_shs)
 {
-  m_file_name = file_name;
+  m_file_name_kurama = file_name_kurama;
+  m_file_name_shs    = file_name_shs;
   return Initialize();
 }
 
-//______________________________________________________________________________
-ThreeVector
-FieldMan::GetField( const ThreeVector& position ) const
+//_____________________________________________________________________________
+TVector3
+FieldMan::GetField(const TVector3& position) const
 {
-  ThreeVector field( 0., 0., 0. );
-  if( m_kurama_map ){
-    double p[3], b[3];
+  TVector3 field(0., 0., 0.);
+  if(m_kurama_map && m_shs_map){
+    Double_t p[3], b_kurama[3], b_shs[3];
     p[0] = position.x()*0.1;
     p[1] = position.y()*0.1;
     p[2] = position.z()*0.1;
-    if( m_kurama_map->GetFieldValue( p, b ) ){
-      field.SetX(b[0]);
-      field.SetY(b[1]);
-      field.SetZ(b[2]);
+    if(m_kurama_map->GetFieldValue(p, b_kurama) &&
+       m_shs_map->GetFieldValue(p, b_shs)){
+      field.SetX(b_kurama[0]+b_shs[0]);
+      field.SetY(b_kurama[1]+b_shs[1]);
+      field.SetZ(b_kurama[2]+b_shs[2]);
     }
   }
 
 #if 1
   FEIterator itr, itr_end = m_element_list.end();
-  for( itr=m_element_list.begin(); itr!=itr_end; ++itr ){
-    if( (*itr)->ExistField( position ) )
-      field += (*itr)->GetField( position );
+  for(itr=m_element_list.begin(); itr!=itr_end; ++itr){
+    if((*itr)->ExistField(position))
+      field += (*itr)->GetField(position);
   }
 #endif
 
   return field;
 }
 
-//______________________________________________________________________________
-ThreeVector
-FieldMan::GetdBdX( const ThreeVector& position ) const
+//_____________________________________________________________________________
+TVector3
+FieldMan::GetdBdX(const TVector3& position) const
 {
-  ThreeVector p1 = position + ThreeVector( Delta, 0., 0. );
-  ThreeVector p2 = position - ThreeVector( Delta, 0., 0. );
-  ThreeVector B1 = GetField( p1 );
-  ThreeVector B2 = GetField( p2 );
+  TVector3 p1 = position + TVector3(Delta, 0., 0.);
+  TVector3 p2 = position - TVector3(Delta, 0., 0.);
+  TVector3 B1 = GetField(p1);
+  TVector3 B2 = GetField(p2);
   return 0.5/Delta*(B1-B2);
 }
 
-//______________________________________________________________________________
-ThreeVector
-FieldMan::GetdBdY( const ThreeVector& position ) const
+//_____________________________________________________________________________
+TVector3
+FieldMan::GetdBdY(const TVector3& position) const
 {
-  ThreeVector p1 = position + ThreeVector( 0., Delta, 0. );
-  ThreeVector p2 = position - ThreeVector( 0., Delta, 0. );
-  ThreeVector B1 = GetField( p1 );
-  ThreeVector B2 = GetField( p2 );
+  TVector3 p1 = position + TVector3(0., Delta, 0.);
+  TVector3 p2 = position - TVector3(0., Delta, 0.);
+  TVector3 B1 = GetField(p1);
+  TVector3 B2 = GetField(p2);
   return 0.5/Delta*(B1-B2);
 }
 
-//______________________________________________________________________________
-ThreeVector
-FieldMan::GetdBdZ( const ThreeVector& position ) const
+//_____________________________________________________________________________
+TVector3
+FieldMan::GetdBdZ(const TVector3& position) const
 {
-  ThreeVector p1 = position + ThreeVector( 0., 0., Delta );
-  ThreeVector p2 = position - ThreeVector( 0., 0., Delta );
-  ThreeVector B1 = GetField( p1 );
-  ThreeVector B2 = GetField( p2 );
+  TVector3 p1 = position + TVector3(0., 0., Delta);
+  TVector3 p2 = position - TVector3(0., 0., Delta);
+  TVector3 B1 = GetField(p1);
+  TVector3 B2 = GetField(p2);
   return 0.5/Delta*(B1-B2);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-FieldMan::ClearElementsList( void )
+FieldMan::ClearElementsList()
 {
   m_element_list.clear();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-FieldMan::AddElement( FieldElements *element )
+FieldMan::AddElement(FieldElements *element)
 {
-  m_element_list.push_back( element );
+  m_element_list.push_back(element);
 }
 
-//______________________________________________________________________________
-double
-FieldMan::StepSize( const ThreeVector &position,
-		    double def_step_size, double min_step_size ) const
+//_____________________________________________________________________________
+Double_t
+FieldMan::StepSize(const TVector3 &position,
+                   Double_t def_step_size, Double_t min_step_size) const
 {
-  double d = std::abs( def_step_size );
-  double s = def_step_size/d;
-  min_step_size = std::abs( min_step_size );
+  Double_t d = TMath::Abs(def_step_size);
+  Double_t s = def_step_size/d;
+  min_step_size = TMath::Abs(min_step_size);
 
-  bool flag = true;
+  Bool_t flag = true;
   FEIterator itr, itr_end = m_element_list.end();
-  while ( flag && d>min_step_size ){
-    for( itr=m_element_list.begin(); itr!=itr_end; ++itr ){
-      if( (*itr)->CheckRegion( position, d ) != FieldElements::FERSurface() ){
+  while (flag && d>min_step_size){
+    for(itr=m_element_list.begin(); itr!=itr_end; ++itr){
+      if((*itr)->CheckRegion(position, d) != FieldElements::FERSurface()){
         flag=false;
         break;
       }
     }
     d *= 0.5;
   }
-  if( flag ) return s*min_step_size;
-  else       return s*d;
+  if(flag)
+    return s*min_step_size;
+  else
+    return s*d;
 }

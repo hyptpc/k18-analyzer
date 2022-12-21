@@ -1,42 +1,38 @@
-/**
- *  file: HodoRawHit.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "HodoRawHit.hh"
 
 #include <iterator>
 
 #include "DebugCounter.hh"
+#include "FuncName.hh"
 
-namespace
-{
-  const std::string class_name("HodoRawHit");
-}
-
-//______________________________________________________________________________
-HodoRawHit::HodoRawHit( int detector_id, int plane_id, int segment_id )
+//_____________________________________________________________________________
+HodoRawHit::HodoRawHit(Int_t detector_id, Int_t plane_id, Int_t segment_id)
   : m_detector_id(detector_id),
     m_plane_id(plane_id),
     m_segment_id(segment_id),
-    m_adc1(1, -1), m_adc2(1, -1),
-    m_adc_Hi1(1, -1), m_adc_Hi2(1, -1),
-    m_adc_Low1(1, -1), m_adc_Low2(1, -1),
-    m_tdc1(1, -1), m_tdc2(1, -1),
-    m_tdc_t1(1, -1), m_tdc_t2(1, -1),
-    m_oftdc( false ), m_nhtdc(0)
+    m_adc1(1, -1),
+    m_adc2(1, -1),
+    m_tdc1(1, -1),
+    m_tdc2(1, -1),
+    m_tdc_t1(1, -1),
+    m_tdc_t2(1, -1),
+    m_oftdc(false),
+    m_nhtdc(0)
 {
-  debug::ObjectCounter::increase(class_name);
-}//______________________________________________________________________________
-HodoRawHit::~HodoRawHit( void )
-{
-  debug::ObjectCounter::decrease(class_name);
+  debug::ObjectCounter::increase(ClassName());
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
+HodoRawHit::~HodoRawHit()
+{
+  debug::ObjectCounter::decrease(ClassName());
+}
+
+//_____________________________________________________________________________
 void
-HodoRawHit::SetAdc1( int adc )
+HodoRawHit::SetAdc1(Int_t adc)
 {
   if(-1 == m_adc1.at(0))
     m_adc1.at(0) = adc;
@@ -44,9 +40,9 @@ HodoRawHit::SetAdc1( int adc )
     m_adc1.push_back(adc);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-HodoRawHit::SetAdc2( int adc )
+HodoRawHit::SetAdc2(Int_t adc)
 {
   if(-1 == m_adc2.at(0))
     m_adc2.at(0) = adc;
@@ -54,49 +50,9 @@ HodoRawHit::SetAdc2( int adc )
     m_adc2.push_back(adc);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-HodoRawHit::SetAdcHi1( int adc )
-{
-  if(-1 == m_adc_Hi1.at(0))
-    m_adc_Hi1.at(0) = adc;
-  else
-    m_adc_Hi1.push_back(adc);
-}
-
-//______________________________________________________________________________
-void
-HodoRawHit::SetAdcHi2( int adc )
-{
-  if(-1 == m_adc_Hi2.at(0))
-    m_adc_Hi2.at(0) = adc;
-  else
-    m_adc_Hi2.push_back(adc);
-}
-
-//______________________________________________________________________________
-void
-HodoRawHit::SetAdcLow1( int adc )
-{
-  if(-1 == m_adc_Low1.at(0))
-    m_adc_Low1.at(0) = adc;
-  else
-    m_adc_Low1.push_back(adc);
-}
-
-//______________________________________________________________________________
-void
-HodoRawHit::SetAdcLow2( int adc )
-{
-  if(-1 == m_adc_Low2.at(0))
-    m_adc_Low2.at(0) = adc;
-  else
-    m_adc_Low2.push_back(adc);
-}
-
-//______________________________________________________________________________
-void
-HodoRawHit::SetTdc1( int tdc )
+HodoRawHit::SetTdc1(Int_t tdc)
 {
   if(-1 == m_tdc1.at(0)){
     m_tdc1.at(0) = tdc;
@@ -106,9 +62,9 @@ HodoRawHit::SetTdc1( int tdc )
   }
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-HodoRawHit::SetTdc2( int tdc )
+HodoRawHit::SetTdc2(Int_t tdc)
 {
   if(-1 == m_tdc2.at(0)){
     m_tdc2.at(0) = tdc;
@@ -118,9 +74,9 @@ HodoRawHit::SetTdc2( int tdc )
   }
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-HodoRawHit::SetTdcT1( int tdc )
+HodoRawHit::SetTdcT1(Int_t tdc)
 {
   if(-1 == m_tdc_t1.at(0)){
     m_tdc_t1.at(0) = tdc;
@@ -129,9 +85,9 @@ HodoRawHit::SetTdcT1( int tdc )
   }
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-HodoRawHit::SetTdcT2( int tdc )
+HodoRawHit::SetTdcT2(Int_t tdc)
 {
   if(-1 == m_tdc_t2.at(0)){
     m_tdc_t2.at(0) = tdc;
@@ -140,9 +96,9 @@ HodoRawHit::SetTdcT2( int tdc )
   }
 }
 
-//______________________________________________________________________________
-int
-HodoRawHit::SizeAdc1( void ) const
+//_____________________________________________________________________________
+Int_t
+HodoRawHit::SizeAdc1() const
 {
   if(-1 == m_adc1.at(0))
     return 0;
@@ -150,9 +106,9 @@ HodoRawHit::SizeAdc1( void ) const
     return m_adc1.size();
 }
 
-//______________________________________________________________________________
-int
-HodoRawHit::SizeAdc2( void ) const
+//_____________________________________________________________________________
+Int_t
+HodoRawHit::SizeAdc2() const
 {
   if(-1 == m_adc2.at(0))
     return 0;
@@ -160,49 +116,9 @@ HodoRawHit::SizeAdc2( void ) const
     return m_adc2.size();
 }
 
-//______________________________________________________________________________
-int
-HodoRawHit::SizeAdcHi1( void ) const
-{
-  if(-1 == m_adc_Hi1.at(0))
-    return 0;
-  else
-    return m_adc_Hi1.size();
-}
-
-//______________________________________________________________________________
-int
-HodoRawHit::SizeAdcHi2( void ) const
-{
-  if(-1 == m_adc_Hi2.at(0))
-    return 0;
-  else
-    return m_adc_Hi2.size();
-}
-
-//______________________________________________________________________________
-int
-HodoRawHit::SizeAdcLow1( void ) const
-{
-  if(-1 == m_adc_Low1.at(0))
-    return 0;
-  else
-    return m_adc_Low1.size();
-}
-
-//______________________________________________________________________________
-int
-HodoRawHit::SizeAdcLow2( void ) const
-{
-  if(-1 == m_adc_Low2.at(0))
-    return 0;
-  else
-    return m_adc_Low2.size();
-}
-
-//______________________________________________________________________________
-int
-HodoRawHit::SizeTdc1( void ) const
+//_____________________________________________________________________________
+Int_t
+HodoRawHit::SizeTdc1() const
 {
   if(-1 == m_tdc1.at(0))
     return 0;
@@ -210,9 +126,9 @@ HodoRawHit::SizeTdc1( void ) const
     return m_tdc1.size();
 }
 
-//______________________________________________________________________________
-int
-HodoRawHit::SizeTdc2( void ) const
+//_____________________________________________________________________________
+Int_t
+HodoRawHit::SizeTdc2() const
 {
   if(-1 == m_tdc2.at(0))
     return 0;
@@ -220,9 +136,9 @@ HodoRawHit::SizeTdc2( void ) const
     return m_tdc2.size();
 }
 
-//______________________________________________________________________________
-int
-HodoRawHit::SizeTdcT1( void ) const
+//_____________________________________________________________________________
+Int_t
+HodoRawHit::SizeTdcT1() const
 {
   if(-1 == m_tdc_t1.at(0))
     return 0;
@@ -230,9 +146,9 @@ HodoRawHit::SizeTdcT1( void ) const
     return m_tdc_t1.size();
 }
 
-//______________________________________________________________________________
-int
-HodoRawHit::SizeTdcT2( void ) const
+//_____________________________________________________________________________
+Int_t
+HodoRawHit::SizeTdcT2() const
 {
   if(-1 == m_tdc_t2.at(0))
     return 0;
@@ -240,82 +156,56 @@ HodoRawHit::SizeTdcT2( void ) const
     return m_tdc_t2.size();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-HodoRawHit::Clear( void )
+HodoRawHit::Clear()
 {
   m_nhtdc = 0;
   m_adc1.clear();
   m_adc2.clear();
-  m_adc_Hi1.clear();
-  m_adc_Hi2.clear();
-  m_adc_Low1.clear();
-  m_adc_Low2.clear();
   m_tdc1.clear();
   m_tdc2.clear();
   m_tdc_t1.clear();
   m_tdc_t2.clear();
   m_adc1.push_back(-1);
   m_adc2.push_back(-1);
-  m_adc_Hi1.push_back(-1);
-  m_adc_Hi2.push_back(-1);
-  m_adc_Low1.push_back(-1);
-  m_adc_Low2.push_back(-1);
   m_tdc1.push_back(-1);
   m_tdc2.push_back(-1);
   m_tdc_t1.push_back(-1);
   m_tdc_t2.push_back(-1);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-HodoRawHit::Print( const std::string& arg )
+HodoRawHit::Print(const TString& arg)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-  hddaq::cerr << func_name << " " << arg << std::endl
+  hddaq::cerr << FUNC_NAME << " " << arg << std::endl
 	      << "detector_id = " << m_detector_id << std::endl
 	      << "plane_id    = " << m_plane_id    << std::endl
 	      << "segment_id  = " << m_segment_id   << std::endl;
-
-  std::vector<int>::const_iterator itr, end;
+  std::vector<Int_t>::const_iterator itr, end;
   hddaq::cout << "adc1        = " << m_adc1.size() << " ";
-  std::copy( m_adc1.begin(), m_adc1.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
+  std::copy(m_adc1.begin(), m_adc1.end(),
+	     std::ostream_iterator<Int_t>(hddaq::cout," "));
   hddaq::cout << std::endl
 	      << "adc2        = " << m_adc2.size() << " ";
-  std::copy( m_adc2.begin(), m_adc2.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
-  hddaq::cout << std::endl
-	      << "adc_Hi1        = " << m_adc_Hi1.size() << " ";
-  std::copy( m_adc_Hi1.begin(), m_adc_Hi1.end(),
-  	     std::ostream_iterator<int>(hddaq::cout," ") );
-  hddaq::cout << std::endl
-  	      << "adc_Hi2        = " << m_adc_Hi2.size() << " ";
-  std::copy( m_adc_Hi2.begin(), m_adc_Hi2.end(),
-  	     std::ostream_iterator<int>(hddaq::cout," ") );
-  hddaq::cout << std::endl
-	      << "adc_Low1        = " << m_adc_Low1.size() << " ";
-  std::copy( m_adc_Low1.begin(), m_adc_Low1.end(),
-  	     std::ostream_iterator<int>(hddaq::cout," ") );
-  hddaq::cout << std::endl
-  	      << "adc_Low2        = " << m_adc_Low2.size() << " ";
-  std::copy( m_adc_Low2.begin(), m_adc_Low2.end(),
-  	     std::ostream_iterator<int>(hddaq::cout," ") );
+  std::copy(m_adc2.begin(), m_adc2.end(),
+	     std::ostream_iterator<Int_t>(hddaq::cout," "));
   hddaq::cout << std::endl
 	      << "tdc1        = " << m_tdc1.size() << " ";
-  std::copy( m_tdc1.begin(), m_tdc1.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
+  std::copy(m_tdc1.begin(), m_tdc1.end(),
+	     std::ostream_iterator<Int_t>(hddaq::cout," "));
   hddaq::cout << std::endl
 	      << "tdc2        = " << m_tdc2.size() << " ";
-  std::copy( m_tdc2.begin(), m_tdc2.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
+  std::copy(m_tdc2.begin(), m_tdc2.end(),
+	     std::ostream_iterator<Int_t>(hddaq::cout," "));
   hddaq::cout << std::endl
 	      << "tdc_t1      = " << m_tdc_t1.size() << " ";
-  std::copy( m_tdc_t1.begin(), m_tdc_t1.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
+  std::copy(m_tdc_t1.begin(), m_tdc_t1.end(),
+	     std::ostream_iterator<Int_t>(hddaq::cout," "));
   hddaq::cout << std::endl
 	      << "tdc_t2      = " << m_tdc_t2.size() << " ";
-  std::copy( m_tdc2.begin(), m_tdc2.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
+  std::copy(m_tdc2.begin(), m_tdc2.end(),
+	     std::ostream_iterator<Int_t>(hddaq::cout," "));
   hddaq::cout << std::endl;
 }

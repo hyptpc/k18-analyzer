@@ -1,8 +1,4 @@
-/**
- *  file: FiberHit.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef FIBER_HIT_HH
 #define FIBER_HIT_HH
@@ -15,104 +11,94 @@
 
 class FLHit;
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class FiberHit : public Hodo1Hit
 {
 public:
-  explicit  FiberHit( HodoRawHit *object, const char* name );
-  virtual  ~FiberHit( void );
+  static const TString& ClassName();
+  explicit FiberHit(HodoRawHit* object, const TString& name);
+  virtual  ~FiberHit();
 
 private:
-  FiberHit( void );
-  FiberHit( const FiberHit& object );
-  FiberHit& operator =( const FiberHit& object );
+  FiberHit();
+  FiberHit(const FiberHit& object);
+  FiberHit& operator =(const FiberHit& object);
 
 protected:
-  std::string m_detector_name;
-  int         m_segment;
-  int         m_ud;
-  double      m_position;
-  double      m_offset;
-  int         m_pair_id;
-  bool        m_status;
+  TString             m_detector_name;
+  Int_t               m_segment;
+  Int_t               m_ud;
+  Double_t            m_position;
+  Double_t            m_offset;
+  Int_t               m_pair_id;
+  Bool_t              m_status;
   std::vector<FLHit*> m_hit_container;
+  Double_t            m_adc_hg;
+  Double_t            m_adc_lg;
+  Double_t            m_pedcor_hg;
+  Double_t            m_pedcor_lg;
+  Double_t            m_mip_hg;
+  Double_t            m_mip_lg;
+  Double_t            m_dE_hg;
+  Double_t            m_dE_lg;
 
-  // for CFT
-  double         m_adc_hi; 
-  double         m_adc_low; 
-
-  double         m_pedcor_hi;
-  double         m_pedcor_low;
-
-  //double         m_nphoton_hi; 
-  //double         m_nphoton_low; 
-  double         m_mip_hi; 
-  double         m_mip_low; 
-  double         m_dE_hi; 
-  double         m_dE_low; 
-  double         m_r; 
-  double         m_phi; 
-
-  struct data_pair{
-    double time_l;
-    double time_t;
-    double ctime_l;
-    double tot;
-    int    index_t;
+  struct data_pair
+  {
+    Double_t time_l;
+    Double_t time_t;
+    Double_t ctime_l;
+    Double_t tot;
+    Int_t    index_t;
   };
 
   std::vector<data_pair> m_pair_cont;
 
 public:
-  void   SetDetectorName( const char* name ){ m_detector_name = name; }
-  void   SetDetectorName( const std::string& name ){ m_detector_name = name; }
-  bool   Calculate( void );
+  Bool_t   Calculate();
   // Call super class method
-  int    GetNLeading( void )  const { return Hodo1Hit::GetNumOfHit(0);    }
-  int    GetNTrailing( void ) const { return Hodo1Hit::GetNumOfHit(1);    }
-  double GetLeading( int n=0 )  const { return m_ud==0? m_raw->GetTdc1(n)  : m_raw->GetTdc2(n);}
-  double GetTrailing( int n=0 ) const { return m_ud==0? m_raw->GetTdcT1(n) : m_raw->GetTdcT2(n);}
-
+  Int_t    GetNLeading() const { return Hodo1Hit::GetNumOfHit(0); }
+  Int_t    GetNTrailing() const { return Hodo1Hit::GetNumOfHit(1); }
+  Double_t GetLeading(Int_t n=0) const
+  { return m_ud==0? m_raw->GetTdc1(n) : m_raw->GetTdc2(n); }
+  Double_t GetTrailing(Int_t n=0) const
+  { return m_ud==0? m_raw->GetTdcT1(n) : m_raw->GetTdcT2(n); }
   // Call member in this class
-  int    GetNPair( void )       const { return m_pair_cont.size();        }
-  double GetTime( int n=0 )     const { return m_pair_cont.at(n).time_l;  } // Leading
-  double GetCTime( int n=0 )    const { return m_pair_cont.at(n).ctime_l; } // Leading
-  double GetTimeT( int n=0 )    const { return m_pair_cont.at(n).time_t;  } // Trailing
-  double GetWidth( int n=0 )    const { return m_pair_cont.at(n).tot;     }
-  double GetTot( int n=0 )      const { return m_pair_cont.at(n).tot;     }
-
-  double GetPosition( void )  const { return m_position + m_offset;       }
-
-  int    PairId( void )       const { return m_pair_id;                   }
-  //  virtual double SegmentId( void )    const { return m_segment;                   }
-
-  // for CFT
-  double GetAdcHi( void ) const { return m_adc_hi;  }
-  double GetAdcLow( void )const { return m_adc_low; }
-  //double GetNPhotonHi( void ) const { return m_nphoton_hi;  }
-  //double GetNPhotonLow( void )const { return m_nphoton_low; }
-  double GetMIPHi( void ) const { return m_mip_hi;  }
-  double GetMIPLow( void )const { return m_mip_low; }
-  double GetdEHi( void ) const { return m_dE_hi;  }
-  double GetdELow( void )const { return m_dE_low; }
-  double GetPositionR( void )  const { return m_r;     }
-  double GetPositionPhi( void )  const { return m_phi; }
-
-  void SetPedestalCor( double deltaHG, double deltaLG ){ m_pedcor_hi = deltaHG; m_pedcor_low = deltaLG; }
-
-  void   Print( const std::string& arg="", std::ostream& ost=hddaq::cout ) const;
-  void   RegisterHits( FLHit* hit )   { m_hit_container.push_back(hit);   }
-
-  virtual bool ReCalc( bool allpyRecursively=false )
+  Int_t    GetNPair() const { return m_pair_cont.size(); }
+  Double_t GetTime(Int_t n=0) const { return m_pair_cont.at(n).time_l; }
+  Double_t GetCTime(Int_t n=0) const { return m_pair_cont.at(n).ctime_l; }
+  Double_t GetTimeT(Int_t n=0) const { return m_pair_cont.at(n).time_t; }
+  Double_t GetWidth(Int_t n=0) const { return m_pair_cont.at(n).tot; }
+  Double_t GetTot(Int_t n=0) const { return m_pair_cont.at(n).tot; }
+  Double_t GetPosition() const { return m_position + m_offset; }
+  Int_t    PairId() const { return m_pair_id; }
+  //  virtual Double_t SegmentId()    const { return m_segment; }
+  Double_t GetAdcHG() const { return m_adc_hg; }
+  Double_t GetAdcLG() const { return m_adc_lg; }
+  Double_t GetMipHG() const { return m_mip_hg; }
+  Double_t GetMipLG() const { return m_mip_lg; }
+  Double_t GetDeHG() const { return m_dE_hg; }
+  Double_t GetDeLG() const { return m_dE_lg; }
+  void     SetDetectorName(const TString& name) { m_detector_name = name; }
+  void     SetPedestalCor(Double_t deltaHG, Double_t deltaLG)
+  { m_pedcor_hg = deltaHG; m_pedcor_lg = deltaLG; }
+  void     Print(const TString& arg="", std::ostream& ost=hddaq::cout) const;
+  void     RegisterHits(FLHit* hit) { m_hit_container.push_back(hit); }
+  virtual Bool_t ReCalc(Bool_t allpyRecursively=false)
   { return FiberHit::Calculate(); }
-
-  static bool CompFiberHit( const FiberHit* left, const FiberHit* right );
-
+  static Bool_t CompFiberHit(const FiberHit* left, const FiberHit* right);
 };
 
-//______________________________________________________________________________
-inline bool
-FiberHit::CompFiberHit( const FiberHit* left, const FiberHit* right )
+//_____________________________________________________________________________
+inline const TString&
+FiberHit::ClassName()
+{
+  static TString s_name("FiberHit");
+  return s_name;
+}
+
+//_____________________________________________________________________________
+inline Bool_t
+FiberHit::CompFiberHit(const FiberHit* left, const FiberHit* right)
 {
   return left->PairId() < right->PairId();
 }

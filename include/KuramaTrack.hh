@@ -1,37 +1,36 @@
-/**
- *  file: KuramaTrack.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef KURAMA_TRACK_HH
 #define KURAMA_TRACK_HH
-
-#include "RungeKuttaUtilities.hh"
-#include "ThreeVector.hh"
 
 #include <vector>
 #include <iosfwd>
 #include <iostream>
 #include <functional>
 
+#include <TString.h>
+#include <TVector3.h>
+
 #include <std_ostream.hh>
+
+#include "RungeKuttaUtilities.hh"
 
 class DCLocalTrack;
 class TrackHit;
 class DCAnalyzer;
 class Hodo2Hit;
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class KuramaTrack
 {
 public:
-  KuramaTrack( DCLocalTrack *track_in, DCLocalTrack *track_out );
-  ~KuramaTrack( void );
+  static const TString& ClassName();
+  KuramaTrack(DCLocalTrack* track_in, DCLocalTrack* track_out);
+  ~KuramaTrack();
 
 private:
-  KuramaTrack( const KuramaTrack& );
-  KuramaTrack& operator =( const KuramaTrack& );
+  KuramaTrack(const KuramaTrack&);
+  KuramaTrack& operator =(const KuramaTrack&);
 
 public:
   enum RKstatus { kInit,
@@ -45,84 +44,93 @@ public:
 		  nRKstatus };
 
 private:
-  std::string             s_status[nRKstatus];
+  TString                 s_status[nRKstatus];
   RKstatus                m_status;
-  DCLocalTrack           *m_track_in;
-  DCLocalTrack           *m_track_out;
-  double                  m_tof_seg;
-  double                  m_initial_momentum;
+  DCLocalTrack*           m_track_in;
+  DCLocalTrack*           m_track_out;
+  Double_t                m_tof_seg;
+  Double_t                m_initial_momentum;
   std::vector<TrackHit*>  m_hit_array;
   RKHitPointContainer     m_HitPointCont;
-  int                     m_n_iteration;
-  int                     m_nef_iteration;
-  double                  m_chisqr;
-  double                  m_polarity;
-  ThreeVector             m_primary_position;
-  ThreeVector             m_primary_momentum;
-  double                  m_path_length_tof;
-  double                  m_path_length_total;
-  ThreeVector             m_tof_pos;
-  ThreeVector             m_tof_mom;
+  Int_t                   m_n_iteration;
+  Int_t                   m_nef_iteration;
+  Double_t                m_chisqr;
+  Double_t                m_polarity;
+  TVector3                m_primary_position;
+  TVector3                m_primary_momentum;
+  Double_t                m_path_length_tof;
+  Double_t                m_path_length_total;
+  TVector3                m_tof_pos;
+  TVector3                m_tof_mom;
   RKCordParameter         m_cord_param;
-  bool                    m_gfastatus;
+  Bool_t                  m_is_good;
 
 public:
-  DCLocalTrack*      GetLocalTrackIn( void ) { return m_track_in;}
-  DCLocalTrack*      GetLocalTrackOut( void ) { return m_track_out; }
-  bool               DoFit( void );
-  bool               DoFit( RKCordParameter iniCord );
-  bool               DoFitMinuit( void );
-  bool               Status( void ) const { return m_status; }
-  int                Niteration( void ) const { return m_n_iteration; }
-  void               SetInitialMomentum( double initial_momentum )
-  { m_initial_momentum = initial_momentum; }
-  const ThreeVector& PrimaryPosition( void ) const { return m_primary_position; }
-  const ThreeVector& PrimaryMomentum( void ) const { return m_primary_momentum; }
-  double             PrimaryMomMag( void )   const { return m_primary_momentum.Mag();}
-  double             PathLengthToTOF( void ) const { return m_path_length_tof; }
-  double             PathLengthTotal( void ) const { return m_path_length_total; }
-  double             TofSeg( void ) const { return m_tof_seg; }
-  const ThreeVector& TofPos( void ) const { return m_tof_pos; }
-  const ThreeVector& TofMom( void ) const { return m_tof_mom; }
-  double             chisqr( void )          const { return m_chisqr; }
-  double             Polarity( void )        const { return m_polarity; }
-  std::size_t        GetNHits( void )        const { return m_hit_array.size(); }
-  TrackHit*          GetHit( std::size_t nth ) const;
-  TrackHit*          GetHitOfLayerNumber( int lnum ) const;
-  bool               GoodForAnalysis( void ) const { return m_gfastatus; }
-  bool               GoodForAnalysis( bool status )
-  { bool ret=m_gfastatus; m_gfastatus=status; return ret; }
-  double             GetInitialMomentum( void ) const { return m_initial_momentum; }
-  bool               GetTrajectoryLocalPosition( int layer, double & x, double & y ) const;
-  void               Print( const std::string& arg="", std::ostream& ost=hddaq::cout );
-  bool               ReCalc( bool applyRecursively=false );
+  Double_t        ChiSquare() const { return m_chisqr; }
+  Bool_t          DoFit();
+  Bool_t          DoFit(RKCordParameter iniCord);
+  Bool_t          DoFitMinuit();
+  Double_t        GetChiSquare() const { return m_chisqr; }
+  TrackHit*       GetHit(Int_t nth) const { return m_hit_array.at(nth); }
+  TrackHit*       GetHitOfLayerNumber(Int_t lnum) const;
+  Double_t        GetInitialMomentum() const { return m_initial_momentum; }
+  DCLocalTrack*   GetLocalTrackIn() { return m_track_in; }
+  DCLocalTrack*   GetLocalTrackOut() { return m_track_out; }
+  Int_t           GetNHits() const { return m_hit_array.size(); }
+  Bool_t          GetTrajectoryLocalPosition(Int_t layer,
+                                             Double_t& x, Double_t& y) const;
+  Bool_t          GoodForAnalysis() const { return m_is_good; }
+  Bool_t          GoodForAnalysis(Bool_t status)
+  { m_is_good = status; return status; }
+  Int_t           Niteration() const { return m_n_iteration; }
+  Double_t        PathLengthToTOF() const { return m_path_length_tof; }
+  Double_t        PathLengthTotal() const { return m_path_length_total; }
+  Double_t        Polarity() const { return m_polarity; }
+  const TVector3& PrimaryMomentum() const { return m_primary_momentum; }
+  Double_t        PrimaryMomMag() const { return m_primary_momentum.Mag();}
+  const TVector3& PrimaryPosition() const { return m_primary_position; }
+  void            Print(const TString& arg="", std::ostream& ost=hddaq::cout);
+  Bool_t          ReCalc(Bool_t applyRecursively=false);
+  void            SetInitialMomentum(Double_t p) { m_initial_momentum = p; }
+  Bool_t          Status() const { return m_status; }
+  const TVector3& TofMom() const { return m_tof_mom; }
+  const TVector3& TofPos() const { return m_tof_pos; }
+  Double_t        TofSeg() const { return m_tof_seg; }
 
 private:
-  void   FillHitArray( void );
-  void   ClearHitArray( void );
-  double CalcChiSqr( const RKHitPointContainer &hpCont ) const;
-  bool   GuessNextParameters( const RKHitPointContainer &hpCont,
-			      RKCordParameter &Cord,
-			      double &estDeltaChisqr,
-			      double &lambdaCri, double dmp=0. ) const;
-  bool   SaveCalcPosition( const RKHitPointContainer &hpCont );
-  void   PrintCalcHits( const RKHitPointContainer &hpCont,
-			std::ostream &ost = std::cout ) const;
-  bool   SaveTrackParameters( const RKCordParameter &cp );
+  void     ClearHitArray();
+  Double_t CalcChiSqr(const RKHitPointContainer& hpCont) const;
+  void     FillHitArray();
+  Bool_t   GuessNextParameters(const RKHitPointContainer& hpCont,
+                               RKCordParameter& Cord,
+                               Double_t& estDeltaChisqr,
+                               Double_t& lambdaCri, Double_t dmp=0.) const;
+  void     PrintCalcHits(const RKHitPointContainer& hpCont,
+                         std::ostream& ost=std::cout) const;
+  Bool_t   SaveCalcPosition(const RKHitPointContainer& hpCont);
+  Bool_t   SaveTrackParameters(const RKCordParameter& cp);
 
 };
 
-//______________________________________________________________________________
-struct KuramaTrackComp
-  : public std::binary_function<KuramaTrack*, KuramaTrack*, bool>
+//_____________________________________________________________________________
+inline const TString&
+KuramaTrack::ClassName()
 {
-  bool operator()( const KuramaTrack * const p1,
-		   const KuramaTrack * const p2 ) const
+  static TString s_name("KuramaTrack");
+  return s_name;
+}
+
+//_____________________________________________________________________________
+struct KuramaTrackComp
+  : public std::binary_function<KuramaTrack*, KuramaTrack*, Bool_t>
+{
+  Bool_t operator()(const KuramaTrack* const p1,
+                    const KuramaTrack* const p2) const
   {
-    int n1=p1->GetNHits(), n2=p2->GetNHits();
-    if( n1>n2+1 ) return true;
-    if( n2>n1+1 ) return false;
-    return (p1->chisqr())<(p2->chisqr());
+    Int_t n1=p1->GetNHits(), n2=p2->GetNHits();
+    if(n1>n2+1) return true;
+    if(n2>n1+1) return false;
+    return (p1->ChiSquare())<(p2->ChiSquare());
   }
 };
 

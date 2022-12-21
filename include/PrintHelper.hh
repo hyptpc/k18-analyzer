@@ -1,8 +1,4 @@
-/**
- *  file: PrintHelper.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef PRINT_HELPER_HH
 #define PRINT_HELPER_HH
@@ -13,25 +9,25 @@
 
 #include <std_ostream.hh>
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class PrintHelper
 {
 public:
-  PrintHelper( std::size_t precision,
-	       std::ios::fmtflags flags,
-	       std::ostream& ost=hddaq::cout )
+  PrintHelper(std::size_t precision,
+              std::ios::fmtflags flags,
+              std::ostream& ost=hddaq::cout)
     : m_ostream(ost),
       m_precision(ost.precision()),
       m_flags(ost.flags())
-  {
-    m_ostream.precision(precision);
-    m_ostream.setf(flags);
-  }
-  ~PrintHelper( void )
-  {
-    m_ostream.precision(m_precision);
-    m_ostream.setf(m_flags);
-  }
+    {
+      m_ostream.precision(precision);
+      m_ostream.setf(flags);
+    }
+  ~PrintHelper()
+    {
+      m_ostream.precision(m_precision);
+      m_ostream.setf(m_flags);
+    }
 
 private:
   std::ostream&      m_ostream;
@@ -39,29 +35,29 @@ private:
   std::ios::fmtflags m_flags;
 
 public:
-  void precision( std::size_t precision );
-  void setf( std::ios::fmtflags flags );
-  void set( std::size_t precision, std::ios::fmtflags flags );
+  void precision(std::size_t precision);
+  void setf(std::ios::fmtflags flags);
+  void set(std::size_t precision, std::ios::fmtflags flags);
 
 };
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline void
-PrintHelper::precision( std::size_t precision )
+PrintHelper::precision(std::size_t precision)
 {
   m_ostream.precision(precision);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline void
-PrintHelper::setf( std::ios::fmtflags flags )
+PrintHelper::setf(std::ios::fmtflags flags)
 {
   m_ostream.setf(flags);
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline void
-PrintHelper::set( std::size_t precision, std::ios::fmtflags flags )
+PrintHelper::set(std::size_t precision, std::ios::fmtflags flags)
 {
   m_ostream.precision(precision);
   m_ostream.setf(flags);

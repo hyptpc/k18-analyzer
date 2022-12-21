@@ -8,28 +8,28 @@
 
 #include <TString.h>
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class Exception : public std::exception
 {
 public:
-  static TString ClassName( void );
-  Exception( const TString& msg );
-  virtual ~Exception( void ) throw();
+  static const TString& ClassName();
+  Exception(const TString& msg);
+  virtual ~Exception() throw();
 
 private:
   TString m_msg;
 
 public:
-  virtual void          hoge( const TString& arg="" ) const;
-  virtual const Char_t* what( void ) const throw();
+  virtual void          hoge(const TString& arg="") const;
+  virtual const Char_t* what() const throw();
 };
 
-//______________________________________________________________________________
-inline TString
-Exception::ClassName( void )
+//_____________________________________________________________________________
+inline const TString&
+Exception::ClassName()
 {
-  static TString g_name("Exception");
-  return g_name;
+  static TString s_name("Exception");
+  return s_name;
 }
 
 #endif
