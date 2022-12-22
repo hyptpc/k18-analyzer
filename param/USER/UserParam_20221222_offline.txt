@@ -78,17 +78,21 @@ TrailingSDC1 200 450
 TrailingSDC2 0 1000
 
 ### SDC3 Trailing gate range
-TrailingSDC3 300 900
+TrailingSDC3 0 1300
 
 ### SDC4 Trailing gate range
-TrailingSDC4 0 900
+TrailingSDC4 0 1300
+
+### SDC5 Trailing gate range
+TrailingSDC5 0 1300
 
 ### BC/SDC TOT cut
 MinTotBcOut 15
 MinTotSDC1 20
 MinTotSDC2 50
 MinTotSDC3 50
-MinTotSDC4 80
+MinTotSDC4 50
+MinTotSDC5 50
 
 ### BCOUT multiplicity gate
 MaxMultiHitBcOut 16
