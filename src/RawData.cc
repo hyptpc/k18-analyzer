@@ -121,6 +121,8 @@ RawData::DecodeHits()
   static const Double_t MaxTdcSDC3 = gUser.GetParameter("TdcSDC3", 1);
   static const Double_t MinTdcSDC4 = gUser.GetParameter("TdcSDC4", 0);
   static const Double_t MaxTdcSDC4 = gUser.GetParameter("TdcSDC4", 1);
+  static const Double_t MinTdcSDC5 = gUser.GetParameter("TdcSDC5", 0);
+  static const Double_t MaxTdcSDC5 = gUser.GetParameter("TdcSDC5", 1);
   static const Double_t MinTrailingSDC1 = gUser.GetParameter("TrailingSDC1", 0);
   static const Double_t MaxTrailingSDC1 = gUser.GetParameter("TrailingSDC1", 1);
   static const Double_t MinTrailingSDC2 = gUser.GetParameter("TrailingSDC2", 0);
@@ -129,6 +131,8 @@ RawData::DecodeHits()
   static const Double_t MaxTrailingSDC3 = gUser.GetParameter("TrailingSDC3", 1);
   static const Double_t MinTrailingSDC4 = gUser.GetParameter("TrailingSDC4", 0);
   static const Double_t MaxTrailingSDC4 = gUser.GetParameter("TrailingSDC4", 1);
+  static const Double_t MinTrailingSDC5 = gUser.GetParameter("TrailingSDC5", 0);
+  static const Double_t MaxTrailingSDC5 = gUser.GetParameter("TrailingSDC5", 1);
 
   if(m_is_decoded[kOthers]){
     hddaq::cout << "#D " << FUNC_NAME << " "
@@ -296,7 +300,7 @@ RawData::DecodeHits()
 
   // SDC4
   for(Int_t plane=0; plane<NumOfLayersSDC4; ++plane){
-    const Int_t MaxWireSDC4 = (plane < 2) ? MaxWireSDC4Y : MaxWireSDC4X;
+   // const Int_t MaxWireSDC4 = (plane < 2) ? MaxWireSDC4Y : MaxWireSDC4X;
     for(Int_t wire=0; wire<MaxWireSDC4; ++wire){
       for(Int_t lt=0; lt<2; ++lt){
 	auto nhit = gUnpacker.get_entries(DetIdSDC4, plane, 0, wire, lt);
@@ -309,6 +313,26 @@ RawData::DecodeHits()
 	  if(lt == 1 && (data < MinTrailingSDC4 || MaxTrailingSDC4 < data)) continue;
 	  AddDCRawHit(m_SdcOutRawHC[plane+NumOfLayersSDC3+1],
 		      plane+NumOfLayersSDC3+PlMinSdcOut, wire+1, data , lt);
+	}
+      }
+    }
+  }
+
+  // SDC5
+  for(Int_t plane=0; plane<NumOfLayersSDC5; ++plane){
+    const Int_t MaxWireSDC5 = (plane < 2) ? MaxWireSDC5X : MaxWireSDC5Y;
+    for(Int_t wire=0; wire<MaxWireSDC5; ++wire){
+      for(Int_t lt=0; lt<2; ++lt){
+	auto nhit = gUnpacker.get_entries(DetIdSDC5, plane, 0, wire, lt);
+#if OscillationCut
+	if(nhit > MaxMultiHitDC) continue;
+#endif
+	for(Int_t i=0; i<nhit; ++i){
+	  auto data = gUnpacker.get(DetIdSDC5, plane, 0, wire, lt, i);
+	  if(lt == 0 && (data < MinTdcSDC5 || MaxTdcSDC5 < data)) continue;
+	  if(lt == 1 && (data < MinTrailingSDC5 || MaxTrailingSDC5 < data)) continue;
+	  AddDCRawHit(m_SdcOutRawHC[plane+NumOfLayersSDC3+NumOfLayersSDC4+1],
+		      plane+NumOfLayersSDC3+NumOfLayersSDC4+PlMinSdcOut, wire+1, data , lt);
 	}
       }
     }
