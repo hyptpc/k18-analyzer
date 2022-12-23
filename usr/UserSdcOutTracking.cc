@@ -219,6 +219,7 @@ UserSdcOutTracking::ProcessingNormal()
 #if TotCut
   static const auto MinTotSDC3 = gUser.GetParameter("MinTotSDC3");
   static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
+  static const auto MinTotSDC5 = gUser.GetParameter("MinTotSDC5");
 #endif
 #if MaxMultiCut
   static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
@@ -393,6 +394,7 @@ UserSdcOutTracking::ProcessingNormal()
 #if TotCut
   DCAna->TotCutSDC3(MinTotSDC3);
   DCAna->TotCutSDC4(MinTotSDC4);
+  DCAna->TotCutSDC5(MinTotSDC5);
 #endif
   Double_t multi_SdcOut = 0.;
   for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer) {
@@ -663,6 +665,13 @@ ConfMan::InitializeHistograms()
   const Double_t MinSDC4DL  =  -3.;
   const Double_t MaxSDC4DL  =  15.;
 
+  const Int_t    NbinSDC5DT = 720;
+  const Double_t MinSDC5DT  = -50.;
+  const Double_t MaxSDC5DT  = 550.;
+  const Int_t    NbinSDC5DL = 180;
+  const Double_t MinSDC5DL  =  -3.;
+  const Double_t MaxSDC5DL  =  15.;
+
   HB1(1, "Status", 20, 0., 20.);
 
   for(Int_t i=1; i<=NumOfLayersSdcOut+NumOfLayersTOF; ++i){
@@ -678,15 +687,24 @@ ConfMan::InitializeHistograms()
       nbindl = NbinSDC3DL;
       mindl  = MinSDC3DL;
       maxdl  = MaxSDC3DL;
-    }else if(i<=NumOfLayersSdcOut){
+    }else if(i<=NumOfLayersSDC3+NumOfLayersSDC4){
       tag = "SDC4";
-      nwire   = (i==5 || i==6) ? MaxWireSDC4Y : MaxWireSDC4X;
+      nwire  = MaxWireSDC4;
       nbindt = NbinSDC4DT;
       mindt  = MinSDC4DT;
       maxdt  = MaxSDC4DT;
       nbindl = NbinSDC4DL;
       mindl  = MinSDC4DL;
       maxdl  = MaxSDC4DL;
+    }else if(i<=NumOfLayersSdcOut){
+      tag = "SDC5";
+      nwire   = (i==9 || i==10) ? MaxWireSDC5X : MaxWireSDC5Y;
+      nbindt = NbinSDC5DT;
+      mindt  = MinSDC5DT;
+      maxdt  = MaxSDC5DT;
+      nbindl = NbinSDC5DL;
+      mindl  = MinSDC5DL;
+      maxdl  = MaxSDC5DL;
     }else if(i<=NumOfLayersSdcOut+NumOfLayersTOF){
       tag = "TOF";
       nwire = NumOfSegTOF;

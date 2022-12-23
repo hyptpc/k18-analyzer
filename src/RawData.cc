@@ -300,7 +300,7 @@ RawData::DecodeHits()
 
   // SDC4
   for(Int_t plane=0; plane<NumOfLayersSDC4; ++plane){
-   // const Int_t MaxWireSDC4 = (plane < 2) ? MaxWireSDC4Y : MaxWireSDC4X;
+    const Int_t MaxWireSDC4 = (plane < 2) ? MaxWireSDC4Y : MaxWireSDC4X;
     for(Int_t wire=0; wire<MaxWireSDC4; ++wire){
       for(Int_t lt=0; lt<2; ++lt){
 	auto nhit = gUnpacker.get_entries(DetIdSDC4, plane, 0, wire, lt);
