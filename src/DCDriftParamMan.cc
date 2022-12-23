@@ -285,6 +285,17 @@ DCDriftParamMan::DriftLength6(Int_t PlaneId, Double_t dt,
     else
       return dl;
     break;
+    // SDC5
+  case 39: case 40: case 41: case 42:
+    if(dt < -20. || dt > 360.)
+      return qnan;
+    if(dl < 0.)
+      return 0.;
+    if(dl > 10. || dt > 300.)
+      return 10.;
+    else
+      return dl;
+    break;
   default:
     throw Exception(FUNC_NAME+" invalid plane id : "
                     +TString::Itoa(PlaneId, 10));
