@@ -26,6 +26,7 @@
 #include "TPCLocalTrack.hh"
 #include "TPCLocalTrackHelix.hh"
 #include "TPCCluster.hh"
+#include "TPCBeamRemover.hh"
 
 #include "RootHelper.hh"
 
@@ -836,7 +837,16 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   // }
   // ++Max_tracki_houghY;
   //  std::cout<<"Max_tracki="<<Max_tracki_houghY<<std::endl;
-
+	bool RemoveBeam = true;
+	TPCBeamRemover BeamRemover(ClCont);
+	BeamRemover.Enable(RemoveBeam);
+	BeamRemover.SearchAccidentalBeam(-50,50);
+  for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
+    for(auto cl:ClCont[layer]){
+			auto hit = cl->GetMeanHit();
+			if(BeamRemover.IsAccidental(hit)) hit->SetHoughFlag(2);//2 -> Accidental Flag;
+		}
+	}
 #if 0
   //Accidental beam kill
   //TrackBeam->SetHoughFlag(4);
@@ -1081,6 +1091,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 	  auto cl = ClCont[layer][ci];
 	  TPCHit* hit = cl->GetMeanHit();
 	  if(hit->GetHoughFlag()==1) continue;
+	  if(hit->GetHoughFlag()==2) continue;
 	  TVector3 pos = cl->GetPosition();
 	  TVector3 res =  TVector3(cl->ResolutionX(),
 				   cl->ResolutionY(),
