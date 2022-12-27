@@ -392,9 +392,9 @@ UserSdcOutTracking::ProcessingNormal()
   // Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
   DCAna->DecodeSdcOutHits(rawData);
 #if TotCut
-  DCAna->TotCutSDC3(MinTotSDC3);
-  DCAna->TotCutSDC4(MinTotSDC4);
-  DCAna->TotCutSDC5(MinTotSDC5);
+  //DCAna->TotCutSDC3(MinTotSDC3);
+  //DCAna->TotCutSDC4(MinTotSDC4);
+  //DCAna->TotCutSDC5(MinTotSDC5);
 #endif
   Double_t multi_SdcOut = 0.;
   for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer) {
