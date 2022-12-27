@@ -21,7 +21,7 @@ class TPCLocalTrackHelix;
 typedef std::vector<TPCHit*>        TPCHitContainer;
 typedef std::vector<TPCCluster*>    TPCClusterContainer;
 typedef std::vector<TPCLocalTrack*> TPCLocalTrackContainer;
-typedef std::vector<TPCLocalTrackHelix*> TPCLocalTrackHelixContainer; 
+typedef std::vector<TPCLocalTrackHelix*> TPCLocalTrackHelixContainer;
 
 static const int max_pad =  5768;
 //_____________________________________________________________________________
@@ -43,6 +43,7 @@ private:
   std::vector<TPCClusterContainer>   m_TPCClCont;
   TPCLocalTrackContainer             m_TPCTC;
   TPCLocalTrackHelixContainer        m_TPCTC_Helix;
+  TPCLocalTrackHelixContainer        m_TPCTC_HelixFailed;
 	double zK18HS,TPC_Dt;
 	int np;
 public:

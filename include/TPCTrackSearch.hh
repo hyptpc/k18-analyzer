@@ -31,13 +31,15 @@ Int_t LocalTrackSearch(const std::vector<TPCHitContainer>& HitCont,
                        Int_t MinNumOfHits=8);
 Int_t LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
                        std::vector<TPCLocalTrack*>& TrackCont,
-                       Int_t MinNumOfHits=8);
+		       Int_t MinNumOfHits=8);
 Int_t LocalTrackSearchHelix(const std::vector<TPCHitContainer>& HitCont,
                             std::vector<TPCLocalTrackHelix*>& TrackCont,
                             Int_t MinNumOfHits=8);
 Int_t LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
                             std::vector<TPCLocalTrackHelix*>& TrackCont,
+			    std::vector<TPCLocalTrackHelix*>& TrackContFailed,
                             Int_t MinNumOfHits=8);
+
 }
 
 #endif

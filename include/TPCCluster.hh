@@ -30,8 +30,6 @@ private:
   TPCHitContainer m_hit_array;
   Double_t        m_mean_row;
   Double_t        m_mean_phi; // in XZ plane
-  // TVector3        m_pos_center;
-  // Double_t        m_cluster_de_center;
   TPCHit*         m_mean_hit; // representative hit for tracking
 
 public:
@@ -42,11 +40,9 @@ public:
   Double_t GetDe() const { return m_cluster_de; }
   TPCHit*  GetHit(Int_t i) const { return m_hit_array.at(i); }
   const TPCHitContainer& GetHitContainer() const { return m_hit_array; }
-  TPCHit*  GetMeanHit() const { return m_mean_hit; }
-  TPCHit*  GetCenterHit() const;
   Bool_t   IsGood() const { return m_is_good; }
+  TPCHit*  GetMeanHit() const { return m_mean_hit; }
   Double_t MeanRow() const { return m_mean_row; }
-  void     Print(Option_t* opt="") const;
   const TVector3& GetPosition() const { return m_cluster_position; }
   Double_t GetX() const { return m_cluster_position.X(); }
   Double_t GetY() const { return m_cluster_position.Y(); }
@@ -54,6 +50,8 @@ public:
   Double_t ResolutionX() const { return m_mean_hit->GetResolutionX(); }
   Double_t ResolutionY() const { return m_mean_hit->GetResolutionY(); }
   Double_t ResolutionZ() const { return m_mean_hit->GetResolutionZ(); }
+  TPCHit*  GetCenterHit() const;
+  void     Print(Option_t* opt="") const;
 };
 
 //_____________________________________________________________________________

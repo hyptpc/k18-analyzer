@@ -88,7 +88,7 @@ const Double_t r_max  =  600;
 
 //  static const Double_t  MaxResidual = 5.;
 static const Double_t MaxResidual = 10.; // factor to resolution
-
+  /*
 // define the parametric line equation
 [[maybe_unused]] void
 Line(Double_t t, const Double_t *p, Double_t &x, Double_t &y, Double_t &z)
@@ -147,7 +147,7 @@ struct Chisquared
     return chisqr;
   }
 };
-
+  */
 }
 
 //_____________________________________________________________________________
@@ -370,6 +370,7 @@ TPCLocalTrack::DeleteNullHit()
   }
 }
 
+/*
 //_____________________________________________________________________________
 Bool_t
 TPCLocalTrack::DoFit()
@@ -458,7 +459,7 @@ TPCLocalTrack::DoFit()
 #endif
   return true;
 }
-
+*/
 //_____________________________________________________________________________
 Bool_t
 TPCLocalTrack::DoFit(Int_t min_hits)
@@ -545,9 +546,8 @@ TPCLocalTrack::DoFitLinear(Int_t min_hits)
   Double_t mr = hist.GetYaxis()->GetBinCenter(my);
   Double_t p0 = mr/TMath::Sin(mtheta);
   Double_t p1 = -TMath::Cos(mtheta)/TMath::Sin(mtheta);
-
-  Double_t m_Ay = p0+p1*tpc::ZTarget;
-  Double_t m_Av = p1;
+  m_Ay = p0+p1*tpc::ZTarget;
+  m_Av = p1;
   // std::cout<<"Hough x param:"<<m_Ax<<", y param:"<<m_Ay<<std::endl;
   // std::cout<<"Hough u param:"<<m_Au<<", v param:"<<m_Av<<std::endl;
 

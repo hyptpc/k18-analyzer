@@ -37,6 +37,8 @@
 //#define HSMagnetON 1
 
 #define DebugDisp    0
+#define InvertChargeTest 0
+//#define InvertChargeTest 1
 
 namespace
 {
@@ -123,6 +125,7 @@ namespace
 TPCLocalTrackHelix::TPCLocalTrackHelix()
   : m_is_fitted(false),
     m_is_calculated(false),
+    m_flag(0),
     m_cx(0.), m_cy(0.), m_z0(0.), m_r(0.), m_dz(0.),
     m_Acx(0.), m_Acy(0.), m_Az0(0.), m_Ar(0.), m_Adz(0.),
     m_chisqr(1.e+10),
@@ -135,7 +138,9 @@ TPCLocalTrackHelix::TPCLocalTrackHelix()
     m_min_t(0.), m_max_t(0.),
     m_path(0.),
     m_transverse_path(0.),
-    m_isbeam(0)
+    m_charge(0),
+    m_isbeam(0), m_iskurama(0),
+    m_houghtime(0), m_fittime(0)
 {
   m_hit_array.reserve(ReservedNumOfHits);
 
@@ -274,7 +279,7 @@ TPCLocalTrackHelix::CalcHelixMom_t(double par[5], double t) const
 
 // momentum correction for positive particle
 //______________________________________________________________________________
-TVector3
+[[maybe_unused]] TVector3
 TPCLocalTrackHelix::CalcHelixMom_corP(double par[5], double y) const
 {
 
@@ -307,7 +312,7 @@ TPCLocalTrackHelix::CalcHelixMom_corP(double par[5], double y) const
 }
 
 //______________________________________________________________________________
-TVector3
+[[maybe_unused]] TVector3
 TPCLocalTrackHelix::CalcHelixMom_t_corP(double par[5], double t) const
 {
 
@@ -339,7 +344,7 @@ TPCLocalTrackHelix::CalcHelixMom_t_corP(double par[5], double t) const
 
 // momentum correction for negative particle
 //______________________________________________________________________________
-TVector3
+[[maybe_unused]] TVector3
 TPCLocalTrackHelix::CalcHelixMom_corN(double par[5], double y) const
 {
 
@@ -369,7 +374,7 @@ TPCLocalTrackHelix::CalcHelixMom_corN(double par[5], double y) const
 }
 
 //______________________________________________________________________________
-TVector3
+[[maybe_unused]] TVector3
 TPCLocalTrackHelix::CalcHelixMom_t_corN(double par[5], double t) const
 {
 
@@ -399,12 +404,8 @@ TPCLocalTrackHelix::CalcHelixMom_t_corN(double par[5], double t) const
   return TVector3(px,py,pz);
 }
 
-
-
-
-
 //______________________________________________________________________________
-int
+[[maybe_unused]] int
 TPCLocalTrackHelix::GetHTOFSeg(double min_layer_t, double max_layer_t, double max_layer_y){
 
   //circle function 1 (tracking)
@@ -521,8 +522,8 @@ static inline void fcn2(int &npar, double *gin, double &f, double *par, int ifla
     TVector3 d = gHitPos[i] - fittmp_;
     TVector3 Res = gRes[i];
 
-    double dxz = sqrt(d.x()*d.x()+d.z()*d.z());
-    double Resxz = sqrt(Res.x()*Res.x()+Res.z()*Res.z());
+    //double dxz = sqrt(d.x()*d.x()+d.z()*d.z());
+    //double Resxz = sqrt(Res.x()*Res.x()+Res.z()*Res.z());
 
     chisqr += pow(d.x()/Res.x(), 2) + pow(d.y()/Res.y(), 2) + pow(d.z()/Res.z(), 2);
     //    chisqr += pow(dxz/Resxz, 2) + pow(d.y()/Res.y(), 2);
@@ -535,7 +536,7 @@ static inline void fcn2(int &npar, double *gin, double &f, double *par, int ifla
 }
 
 //______________________________________________________________________________
-static inline void fcn2_circ(int &npar, double *gin, double &f, double *par, int iflag)
+[[maybe_unused]] static inline void fcn2_circ(int &npar, double *gin, double &f, double *par, int iflag)
 {
   double chisqr=0.0;
   int dof = 0;
@@ -570,8 +571,8 @@ static inline void fcn2_circ(int &npar, double *gin, double &f, double *par, int
     // TVector2 fittmp2_(-tmpx,
     // 		      tmpy+zTgtTPC);
     TVector2 d = pos_ - fittmp_;
-    double dxy = d.Mod();
-    double resxy = sqrt(pow(gRes[i].x(), 2) + pow(gRes[i].z(), 2));
+    //double dxy = d.Mod();
+    //double resxy = sqrt(pow(gRes[i].x(), 2) + pow(gRes[i].z(), 2));
 
     chisqr += pow(d.X()/gRes[i].x(), 2) + pow(d.Y()/gRes[i].z(), 2);
     //chisqr += pow(dxy/resxy,2);
@@ -755,8 +756,20 @@ TPCLocalTrackHelix::DeleteNullHit()
       --i;
     }
   }
-
 }
+
+//______________________________________________________________________________
+void
+TPCLocalTrackHelix::SetHoughFlag(int hough_flag)
+{
+  for(std::size_t i=0; i<m_hit_array.size(); ++i){
+    TPCLTrackHit *hitp = m_hit_array[i];
+    TPCHit *hit = hitp->GetHit();
+    if( !hit ) continue;
+    hit->SetHoughFlag(hough_flag);
+  }
+}
+
 //______________________________________________________________________________
 bool
 TPCLocalTrackHelix::DoFit(int MinHits, int IsBeam)
@@ -824,7 +837,8 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
     yp[i] = pos.Z()-zTgtTPC;
   }
   double par_circ[3]={0};
-  double chi2_circle = circleFit(xp, yp, n, &par_circ[0], &par_circ[1], &par_circ[2]);
+  //double chi2_circle = circleFit(xp, yp, n, &par_circ[0], &par_circ[1], &par_circ[2]);
+  circleFit(xp, yp, n, &par_circ[0], &par_circ[1], &par_circ[2]);
   m_cx = par_circ[0];
   m_cy = par_circ[1];
   m_r = par_circ[2];
@@ -957,13 +971,8 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
       double tmpx = -gHitPos[i].X();
       double tmpy = gHitPos[i].Z()-zTgtTPC;
       double tmpz = gHitPos[i].Y();
-      //      double tmp_t = atan2(tmpy-m_Acy, tmpx-m_Acx);
-      // double tmp_t = atan2(tmpy - min_par_circ[1],
-      // 			   tmpx - min_par_circ[0]);
       double tmp_t = atan2(tmpy - min_par[1],
        			   tmpx - min_par[0]);
-      //double tmp_xval = m_Ar * tmp_t;
-      //      double tmp_xval = min_par_circ[2] * tmp_t;
       double tmp_xval = min_par[3] * tmp_t;
       hist->Fill(theta, cos(theta*acos(-1.)/180.)*tmp_xval
 		 +sin(theta*acos(-1.)/180.)*tmpz);
@@ -978,15 +987,10 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
 
   double p0 = mr/sin(mtheta);
   double p1 = -cos(mtheta)/sin(mtheta);
-  //  std::cout<<"MaxBin(y,theta): "<<hist.GetMaximum()<<std::endl;
-  // std::cout<<"mr: "<<mr<<", mtheta: "<<mtheta<<std::endl;
-  // std::cout<<"p0: "<<p0<<", p1: "<<p1<<", m_Ar:"<<m_Ar<<std::endl;
-  double m_Az0 = p0;
-  double m_Adz = p1;
   delete hist;
 
   //pre t-y fit
-  double par_li[2]={m_Az0, m_Adz};
+  double par_li[2]={p0, p1};
   double err_li[2]={-999.,-999.};
   TMinuit *minuit_li = new TMinuit(2);
   minuit_li->SetPrintLevel(-1);
@@ -1026,20 +1030,10 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   CalcChi2();
   min_chisqr = m_chisqr;
 
-  // std::cout<<"comp li par:"<<"{"<<m_Az0<<", "<<m_Adz<<"}, "
-  //    	   <<"{"<<m_z0<<", "<<m_dz<<"}"<<std::endl;
-
-  //  std::cout<<"chisqr fist: "<<min_chisqr<<std::endl;
-
-
-  //double par[5]={m_Acx, m_Acy, m_Az0, m_Ar, m_Adz};
   double par[5]={m_cx, m_cy, m_z0, m_r, m_dz};
-
   double err[5]={-999.,-999.,-999.,-999.,-999.};
 
   TMinuit *minuit = new TMinuit(5);
-
-
   ii = 0;
 
   minuit->SetPrintLevel(-1);
@@ -1053,7 +1047,6 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   minuit->mnexcm("SET NOW", arglist,1,ierflg); // No warnings
 
   TString name[5] = {"cx", "cy", "z0", "r", "dz"};
-
   for(int i = 0; i<5; i++){
     if(IsBeam==1)
       minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimitBeam[i], UpLimit[i], ierflg);
@@ -1064,7 +1057,6 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   minuit->Command("SET STRategy 0");
   // arglist[0] = 5000.;
   // arglist[1] = 0.01;
-
 
   arglist[0] = 1000;
   arglist[1] = 0.1;
@@ -1077,9 +1069,7 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   int Err;
   double bnd1, bnd2;
 
-
   while(m_chisqr>1.5){
-
     if(itry>MaxTryMinuit)
       break;
     minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
@@ -1128,28 +1118,28 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   m_r  =   min_par[3];
   m_dz =   min_par[4];
 
-
+#if InvertChargeTest
   // for invert charge fit
-  double min_layer_t=0., max_layer_t=0.;
-  int min_layer =100, max_layer = -1;
+  double test_minlayer_t = 0., test_maxlayer_t = 0.;
+  int test_minlayer = 33, test_maxlayer = -1;
   for(std::size_t i=0; i<m_hit_array.size(); ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp->GetLocalHitPos();
     double t = GetTcal(pos);
-    if(min_layer > hitp->GetLayer()){
-      min_layer =  hitp->GetLayer();
-      min_layer_t = t;
+    int layer = hitp->GetLayer();
+    if(test_minlayer > layer){
+      test_minlayer = layer;
+      test_minlayer_t = t;
     }
-    if(max_layer < hitp->GetLayer()){
-      max_layer =  hitp->GetLayer();
-      max_layer_t = t;
+    if(test_maxlayer < layer){
+      test_maxlayer = layer;
+      test_maxlayer_t = t;
     }
   }
-  double mid_t = (min_layer_t + max_layer_t)/2.;
+  double mid_t = (test_minlayer_t + test_maxlayer_t)/2.;
   TVector3 mid_pos = GetPosition(min_par, mid_t);
   double mid_x = mid_pos.x();
   double mid_y = mid_pos.y();
-
 
   par[0] = m_cx - 2.*(m_cx - mid_x);
   par[1] = m_cy - 2.*(m_cy - mid_y);
@@ -1189,23 +1179,22 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   m_z0 =   min_par[2];
   m_r  =   min_par[3];
   m_dz =   min_par[4];
+#endif
 
-  //  std::cout<<"final_chisqr: "<<min_chisqr<<std::endl;
   m_mom0 = CalcHelixMom(min_par, 0.);
   m_mom0_corP = CalcHelixMom_corP(min_par, 0.);
   m_mom0_corN = CalcHelixMom_corN(min_par, 0.);
-  //std::cout<<"m_chisqr: "<<m_chisqr<<std::endl;
-
   delete  minuit;
-
   //  if(m_chisqr > MaxChisqr||std::isnan(m_chisqr))
   //return false;
 
-
-  int false_layer =0;
-  int delete_hit =-1;
+  int false_layer = 0;
+  int delete_hit = -1;
   double Max_residual = -100.;
-  double mint=1000., maxt=-1000.;
+
+  double minlayer_t = 0., maxlayer_t = 0.;
+  int minlayer = 33, maxlayer = -1;
+  double mint = 10000., maxt = -10000.;
   int mint_hit, maxt_hit;
   std::vector<double> t_vect;
   for(std::size_t i=0; i<m_hit_array.size(); ++i){
@@ -1213,6 +1202,7 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
     double resi =0.;
     TVector3 pos = hitp->GetLocalHitPos();
     double t = GetTcal(pos);
+    int layer = hitp->GetLayer();
     if(mint>t){
       mint = t;
       mint_hit = i;
@@ -1231,7 +1221,19 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
       }
       ++false_layer;
     }
+
+    if(layer<minlayer){
+      minlayer = layer;
+      minlayer_t = t;
+    }
+    if(layer>maxlayer){
+      maxlayer = layer;
+      maxlayer_t = t;
+    }
   }
+  if(minlayer_t<maxlayer_t) m_charge = 1;
+  else m_charge = -1;
+
   double t_median = TMath::Median(t_vect.size(), t_vect.data());
   m_min_t = mint;
   m_max_t = maxt;
@@ -1245,10 +1247,10 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
 	   <<", m_z0: "<<m_z0
 	   <<", m_r: "<<m_r
 	   <<", m_dz: "<<m_dz
+	   <<", m_charge: "<<m_charge
 	   <<", m_path: "<<m_path
 	   <<", fabs(m_min_t-m_max_t): "<<fabs(m_min_t-m_max_t)<<std::endl;
 #endif
-
 
   //debug
   if(false_layer>0){
@@ -1266,14 +1268,15 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   if(m_path>500.||fabs(m_min_t-m_max_t)>acos(-1)){
     if(fabs(m_min_t - t_median)>fabs(m_max_t - t_median)){
 #if DebugDisp
-    std::cout<<"delete mint, t_median="
-	     <<t_median<<", mint="<<m_min_t<<std::endl;
+      std::cout<<"delete mint, t_median="
+	       <<t_median<<", mint="<<m_min_t<<std::endl;
 #endif
-    TPCLTrackHit *hitp = m_hit_array[mint_hit];
-    TPCHit *hit = hitp->GetHit();
-    hit->SetHoughFlag(100);
-    m_hit_array.erase(m_hit_array.begin()+mint_hit);
-  }
+      TPCLTrackHit *hitp = m_hit_array[mint_hit];
+      TPCHit *hit = hitp->GetHit();
+      //hit->SetHoughFlag(100);
+      hit->SetHoughFlag(0);
+      m_hit_array.erase(m_hit_array.begin()+mint_hit);
+    }
     else{
 #if DebugDisp
       std::cout<<"delete maxt, t_median="
@@ -1281,14 +1284,16 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
 #endif
       TPCLTrackHit *hitp = m_hit_array[maxt_hit];
       TPCHit *hit = hitp->GetHit();
-      hit->SetHoughFlag(100);
+      //hit->SetHoughFlag(100);
+      hit->SetHoughFlag(0);
       m_hit_array.erase(m_hit_array.begin()+maxt_hit);
     }
   }
   else if(false_layer>0){
     TPCLTrackHit *hitp = m_hit_array[delete_hit];
     TPCHit *hit = hitp->GetHit();
-    hit->SetHoughFlag(100);
+    //hit->SetHoughFlag(100);
+    hit->SetHoughFlag(0);
     m_hit_array.erase(m_hit_array.begin()+delete_hit);
   }
   if(m_hit_array.size()<MinHits)
@@ -1306,15 +1311,12 @@ TPCLocalTrackHelix::DoHelixFit(int MinHits , int IsBeam)
   //   if(m_hit_array.size()<MinHits)
   //     return false;
   // }
-
-
   //getchar();
 
-  if(false_layer ==0)
+  if(false_layer==0)
     return true;
   else
     return DoHelixFit(MinHits, IsBeam);
-
 
   return true;
 }
@@ -1344,8 +1346,6 @@ TPCLocalTrackHelix::Residual_check(TVector3 pos, TVector3  Res, double &resi)
   TVector3 fittmp_(-fittmp.X(),
 		   fittmp.Z(),
 		   fittmp.Y()+zTgtTPC);
-
-
   TVector3 d = pos - fittmp_;
 
   resi = d.Mag();
@@ -1365,11 +1365,9 @@ TPCLocalTrackHelix::Residual_check(TVector3 pos, TVector3  Res, double &resi)
              <<", status:"<<status_rescheck<<std::endl;
 #endif
   }
-  //   std::cout<<"Residual: "<<d.Mag()<<std::endl;
 
   return status_rescheck;
 }
-
 
 //______________________________________________________________________________
 double
@@ -1392,9 +1390,6 @@ TPCLocalTrackHelix::GetTcal(TVector3 pos)
 
   return min_t;
 }
-
-
-
 
 //______________________________________________________________________________
 void
@@ -1445,7 +1440,7 @@ TPCLocalTrackHelix::CalcChi2()
 
 
 //______________________________________________________________________________
-double
+[[maybe_unused]] double
 TPCLocalTrackHelix::CalcChi2_circle(double par[3])
 {
   double chisqr=0.0;
@@ -1477,8 +1472,8 @@ TPCLocalTrackHelix::CalcChi2_circle(double par[3])
 		     fittmp.Y()+zTgtTPC);
 
     TVector2 d = pos2 - fittmp_;
-    double dxy = d.Mod();
-    double resxy = sqrt(pow(Res.x(), 2) + pow(Res.z(), 2));
+    //double dxy = d.Mod();
+    //double resxy = sqrt(pow(Res.x(), 2) + pow(Res.z(), 2));
 
     chisqr += pow(d.X()/Res.x(), 2) + pow(d.Y()/Res.z(), 2);
     //chisqr += pow(dxy/resxy,2);
@@ -1486,4 +1481,123 @@ TPCLocalTrackHelix::CalcChi2_circle(double par[3])
   }
   chisqr = chisqr/(double)(dof-3);
   return chisqr;
+}
+
+void
+TPCLocalTrackHelix::Print(const TString& arg) const
+{
+  for(std::size_t i=0; i<m_hit_array.size(); ++i){
+    TPCLTrackHit *hitp = m_hit_array[i];
+    if( !hitp ) continue;
+    hitp->Print();
+    //TPCHit *hit = hitp->GetHit();
+    //if( !hit ) continue;
+    //hit->Print();
+  }
+}
+
+//______________________________________________________________________________
+double
+TPCLocalTrackHelix::GetdEdx(double truncatedMean)
+{
+
+  DeleteNullHit();
+  std::vector<Double_t> dEdx_vect;
+  for(std::size_t i=0; i<m_hit_array.size(); ++i){
+    TPCLTrackHit *hitp = m_hit_array[i];
+    Double_t clde = hitp->GetDe();
+    Double_t pathHit = hitp->GetPathHelix();
+    Double_t dEdx_cor = clde/pathHit;
+    dEdx_vect.push_back(dEdx_cor);
+  }
+
+  double dEdx = 0.;
+  std::sort(dEdx_vect.begin(), dEdx_vect.end());
+  int n_truncated = (int)(dEdx_vect.size()*truncatedMean);
+  for( int ih=0; ih<dEdx_vect.size(); ++ih ){
+    if(ih<n_truncated) dEdx += dEdx_vect[ih];
+  }
+  dEdx /= (double)n_truncated;
+
+  return dEdx;
+}
+
+//______________________________________________________________________________
+double
+TPCLocalTrackHelix::GetTrackdE()
+{
+
+  DeleteNullHit();
+  std::vector<Double_t> dEdx_vect;
+  double dE = 0;
+  for(std::size_t i=0; i<m_hit_array.size(); ++i){
+    TPCLTrackHit *hitp = m_hit_array[i];
+    dE += hitp->GetDe();
+  }
+  return dE;
+}
+
+//______________________________________________________________________________
+void
+TPCLocalTrackHelix::SetHelixUsingHoughParam()
+{
+
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  DeleteNullHit();
+
+  min_par[0] = m_Acx;
+  min_par[1] = m_Acy;
+  min_par[3] = m_Ar;
+  min_par[2] = m_Az0;
+  min_par[4] = m_Adz;
+
+  m_cx = min_par[0];
+  m_cy = min_par[1];
+  m_z0 = min_par[2];
+  m_r  = min_par[3];
+  m_dz = min_par[4];
+  CalcChi2();
+
+  m_mom0 = CalcHelixMom(min_par, 0.);
+  m_mom0_corP = CalcHelixMom_corP(min_par, 0.);
+  m_mom0_corN = CalcHelixMom_corN(min_par, 0.);
+
+  int minlayer = 33, maxlayer = -1;
+  double minlayer_t = 0., maxlayer_t = 0.;
+  double mint = 10000., maxt = -10000.;
+  for(std::size_t i=0; i<m_hit_array.size(); ++i){
+    TPCLTrackHit *hitp = m_hit_array[i];
+    TVector3 pos = hitp->GetLocalHitPos();
+    double t = GetTcal(pos);
+    int layer = hitp->GetLayer();
+    if(mint>t) mint = t;
+    if(maxt<t) maxt = t;
+    if(layer<minlayer){
+      minlayer = layer;
+      minlayer_t = t;
+    }
+    if(layer>maxlayer){
+      maxlayer = layer;
+      maxlayer_t = t;
+    }
+  }
+  if(minlayer_t<maxlayer_t) m_charge = 1;
+  else m_charge = -1;
+
+  m_min_t = mint;
+  m_max_t = maxt;
+  m_path = (maxt-mint)*sqrt(m_r*m_r*(1.+m_dz*m_dz));
+  m_transverse_path = (maxt-mint)*m_r;
+
+#if DebugDisp
+  std::cout<<"m_chisqr: "<<m_chisqr
+	   <<", m_cx: "<<m_cx
+	   <<", m_cy: "<<m_cy
+	   <<", m_z0: "<<m_z0
+	   <<", m_r: "<<m_r
+	   <<", m_dz: "<<m_dz
+	   <<", m_charge: "<<m_charge
+	   <<", m_path: "<<m_path
+	   <<", fabs(m_min_t-m_max_t): "<<fabs(m_min_t-m_max_t)<<std::endl;
+#endif
 }

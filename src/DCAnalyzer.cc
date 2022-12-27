@@ -312,7 +312,8 @@ DCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
                               TPCClusterContainer& ClCont,
                               Double_t maxdy)
 {
-  static const Double_t ClusterDeCut = gUser.GetParameter("MinClusterDeTPC");
+  static const Double_t MinClusterDe = gUser.GetParameter("MinClusterDeTPC");
+  static const Int_t MinClusterSize = gUser.GetParameter("MinClusterSizeTPC");
   const auto nh = HitCont.size();
   if(nh==0) return false;
 
@@ -342,7 +343,7 @@ DCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
     }
     TPCCluster* cluster = new TPCCluster(layer, CandCont);
     if(!cluster) continue;
-    if(cluster->Calculate() && cluster->GetDe()>ClusterDeCut){
+    if(cluster->Calculate() && cluster->GetDe()>=MinClusterDe && cluster->GetClusterSize()>=MinClusterSize){
       ClCont.push_back(cluster);
       // cluster->Print();
     }else{
@@ -1267,9 +1268,9 @@ DCAnalyzer::TrackSearchTPC()
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
-#if UseTpcCluster
   tpc::LocalTrackSearch(m_TPCClCont, m_TPCTC, MinLayer);
-#else
+
+#if 0 //unused
   tpc::LocalTrackSearch(m_TPCHitCont, m_TPCTC, MinLayer);
 #endif
   return true;
@@ -1281,9 +1282,9 @@ DCAnalyzer::TrackSearchTPCHelix()
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
-#if UseTpcCluster
-  tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTC_Helix, MinLayer);
-#else
+  tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTC_Helix, m_TPCTC_HelixFailed, MinLayer);
+
+#if 0 //unused
   tpc::LocalTrackSearchHelix(m_TPCHitCont, m_TPCTC_Helix, MinLayer);
 #endif
   return true;
@@ -1442,6 +1443,7 @@ void
 DCAnalyzer::ClearTracksTPC()
 {
   del::ClearContainer(m_TPCTC);
+  del::ClearContainer(m_TPCTC_HelixFailed);
   del::ClearContainer(m_TPCTC_Helix);
 }
 

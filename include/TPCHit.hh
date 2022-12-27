@@ -37,7 +37,10 @@ protected:
   TPCRawHit*            m_rhit;
   Int_t                 m_layer;
   Int_t                 m_row;
+  Double_t              m_padtheta;
+  Double_t              m_padlength;
   Double_t              m_mrow;
+  Double_t              m_mpadtheta;
   Int_t                 m_pad;
   Double_t              m_pedestal;
   Double_t              m_rms;
@@ -54,6 +57,8 @@ protected:
   Int_t                 m_is_calculated;
   Int_t                 m_hough_flag;
   std::vector<Int_t>    m_houghY_num;
+  Double_t              m_hough_dist;
+  Double_t              m_hough_disty;
   TPCCluster*           m_parent_cluster;
 
   Bool_t m_belong_track;
@@ -90,24 +95,33 @@ public:
   Int_t           GetRow() const { return m_row; }
   Double_t        GetPedestal() const { return m_pedestal; }
   Double_t        GetRMS() const { return m_rms; }
-  Double_t				GetRawRMS()const{return m_raw_rms;}
+  Double_t	  GetRawRMS()const{return m_raw_rms;}
   Double_t        GetX(Int_t i=0) const { return m_position.at(i).X(); }
   Double_t        GetY(Int_t i=0) const { return m_position.at(i).Y(); }
   Double_t        GetZ(Int_t i=0) const { return m_position.at(i).Z(); }
   DCHit*          GetHitXZ() const { return m_hit_xz; }
   DCHit*          GetHitYZ() const { return m_hit_yz; }
+  //Double_t        GetMPadTheta() const { return m_mpadtheta; }
+  //Double_t        GetPadTheta() const { return m_padtheta; }
+  Double_t        GetMPadTheta() { return m_mpadtheta; }
+  Double_t        GetPadTheta() { return m_padtheta; }
+  Double_t        GetPadLength() const { return m_padlength; }
   Double_t        GetMRow() const { return m_mrow; }
+
   Int_t           GetHoughY_num(Int_t i) const { return m_houghY_num.at(i); }
   Int_t           GetHoughY_num_size() const { return m_houghY_num.size(); }
   const TVector3& GetPosition(Int_t i=0) const { return m_position.at(i); }
-  Double_t        GetResolutionX();
-  Double_t        GetResolutionY();
-  Double_t        GetResolutionZ();
-  Double_t        GetResolution();
+  Double_t        GetResolutionX() const;
+  Double_t        GetResolutionY() const;
+  Double_t        GetResolutionZ() const;
+  Double_t        GetResolution() const;
+  TVector3        GetResolutionVect() const;
   Double_t        GetTime(Int_t i=0) const { return m_time.at(i); }
   Int_t           GetTimeSize() const { return m_time.size(); }
   Bool_t          IsGood() const { return m_is_good; }
   Int_t           GetHoughFlag() const { return m_hough_flag; }
+  Double_t        GetHoughDist() const { return m_hough_dist; }
+  Double_t        GetHoughDistY() const { return m_hough_disty; }
   // Bool_t          IsWithinRange() const
   //   { return m_pair_cont.at(nh).dl_range; }
   void            JoinTrack() { m_belong_track = true; }
@@ -122,10 +136,14 @@ public:
   void            SetRow(Int_t row) { m_row  = row; }
   void            SetPosition(const TVector3& pos){ m_position.at(0) = pos; }
   void            SetWirePosition(Double_t wpos) { m_wpos = wpos; }
+  void            SetPadLength(Double_t padlength) { m_padlength = padlength; }
   void            SetMRow(Double_t mrow) { m_mrow = mrow; }
+  void            SetMPadTheta(Double_t mpadtheta) { m_mpadtheta = mpadtheta; }
   void            SetParentCluster(TPCCluster* parent){ m_parent_cluster = parent; }
   void            SetHoughFlag(Int_t hough_flag) { m_hough_flag = hough_flag; }
   void            SetHoughYnum(Int_t houghY_num);
+  void            SetHoughDist(Double_t hough_dist) { m_hough_dist = hough_dist; }
+  void            SetHoughDistY(Double_t hough_disty) { m_hough_disty = hough_disty; }
 protected:
   void ClearRegisteredHits();
 };

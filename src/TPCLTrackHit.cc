@@ -14,6 +14,7 @@
 #include <std_ostream.hh>
 
 #include "ConfMan.hh"
+#include "FuncName.hh"
 #include "DCAnalyzer.hh"
 #include "MathTools.hh"
 #include "TPCPadHelper.hh"
@@ -35,6 +36,11 @@ static TF1 fint("fint",s_tmp.c_str(),-4.,4.);
 //______________________________________________________________________________
 TPCLTrackHit::TPCLTrackHit(TPCHit *hit)
   : m_hit(hit),
+    m_layer(hit->GetLayer()),
+    m_mrow(hit->GetMRow()),
+    m_local_hit_pos(hit->GetPosition()),
+    m_cal_pos(TVector3(0.,0.,0.)),
+    m_res(hit->GetResolutionVect()),
     m_x0(TMath::QuietNaN()),
     m_y0(TMath::QuietNaN()),
     m_u0(TMath::QuietNaN()),
@@ -43,20 +49,23 @@ TPCLTrackHit::TPCLTrackHit(TPCHit *hit)
     m_cy(TMath::QuietNaN()),
     m_z0(TMath::QuietNaN()),
     m_r(TMath::QuietNaN()),
-    m_dz(TMath::QuietNaN())
+    m_dz(TMath::QuietNaN()),
+    m_padtheta(hit->GetMPadTheta()),
+    m_padlength(hit->GetPadLength()),
+    m_de(hit->GetCDe())
 {
-  m_local_hit_pos = hit->GetPosition();
-  m_cal_pos = TVector3(0.,0.,0.);
-  m_res = TVector3(hit->GetResolutionX(),
-		   hit->GetResolutionY(),
-		   hit->GetResolutionZ());
-  debug::ObjectCounter::increase(ClassName());
   m_hit->RegisterHits(this);
+  debug::ObjectCounter::increase(ClassName());
 }
 
 //______________________________________________________________________________
 TPCLTrackHit::TPCLTrackHit(const TPCLTrackHit& right)
   : m_hit(right.m_hit),
+    m_layer(right.m_layer),
+    m_mrow(right.m_mrow),
+    m_local_hit_pos(right.m_local_hit_pos),
+    m_cal_pos(right.m_cal_pos),
+    m_res(right.m_res),
     m_x0(right.m_x0),
     m_y0(right.m_y0),
     m_u0(right.m_u0),
@@ -65,11 +74,11 @@ TPCLTrackHit::TPCLTrackHit(const TPCLTrackHit& right)
     m_cy(right.m_cy),
     m_z0(right.m_z0),
     m_r(right.m_r),
-    m_dz(right.m_dz)
+    m_dz(right.m_dz),
+    m_padtheta(right.m_padtheta),
+    m_padlength(right.m_padlength),
+    m_de(right.m_de)
 {
-  m_local_hit_pos = right.m_local_hit_pos;
-  m_cal_pos = right.m_cal_pos;
-  m_res = right.m_res;
   m_hit->RegisterHits(this);
   debug::ObjectCounter::increase(ClassName());
 }
@@ -224,10 +233,38 @@ TPCLTrackHit::ResidualCut() const
 }
 
 //______________________________________________________________________________
-void
-TPCLTrackHit::Print(const std::string& arg) const
+Double_t
+TPCLTrackHit::GetPadTrackAngleHelix() const
 {
-  m_hit->Print(arg);
-  hddaq::cout << "local_hit_pos " << m_local_hit_pos << std::endl
-	      << "residual " << GetResidual() << std::endl;
+  Double_t t_cal = GetTcal();
+  Double_t thetaDiff = t_cal - m_padtheta;
+  return thetaDiff;
+}
+
+//______________________________________________________________________________
+Double_t
+TPCLTrackHit::GetPathHelix() const
+{
+  //Approximation of pathlength
+  Double_t thetaDiff = GetPadTrackAngleHelix();
+  Double_t path_xz = m_padlength/TMath::Abs(cos(thetaDiff));
+  Double_t factor = TMath::Sqrt(1.+(TMath::Power(m_dz,2)));
+  return path_xz*factor;
+}
+
+//______________________________________________________________________________
+void
+TPCLTrackHit::Print(const TString& arg) const
+{
+  const int w = 8;
+  std::cout << "#D " << FUNC_NAME << " " << arg << std::endl
+	    << std::setw(w) << std::left << "layer" << m_hit->GetLayer()
+	    << std::setw(w) << std::left << " mean row" << m_hit->GetMRow()
+	    << std::endl;
+
+  std::cout << std::setw(3) << std::right << "(de, local pos, cal pos)=("
+	    << std::fixed << std::setprecision(3) << std::setw(6) << m_de
+	    << std::fixed << std::setprecision(3) << std::setw(6) << m_local_hit_pos
+	    << std::fixed << std::setprecision(3) << std::setw(6) << m_cal_pos
+	    << std::endl;
 }

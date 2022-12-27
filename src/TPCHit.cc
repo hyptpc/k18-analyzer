@@ -71,7 +71,10 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_rhit(rhit),
     m_layer(rhit->LayerId()),
     m_row(rhit->RowId()),
+    m_padtheta(tpc::getTheta(m_layer, m_row)*TMath::DegToRad()),
+    m_padlength(tpc::padParameter[m_layer][5]),
     m_mrow(TMath::Nint(m_row)),
+    m_mpadtheta(TMath::QuietNaN()),
     m_pad(tpc::GetPadId(m_layer, m_row)),
     m_pedestal(TMath::QuietNaN()),
     m_rms(TMath::QuietNaN()),
@@ -86,6 +89,8 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_is_calculated(false),
     m_hough_flag(),
     m_houghY_num(),
+    m_hough_dist(),
+    m_hough_disty(),
     m_belong_track(false),
     m_hit_xz(),
     m_hit_yz()
@@ -99,8 +104,11 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
     m_rhit(),
     m_layer(layer),
     m_row(TMath::Nint(mrow)),
+    m_padtheta(TMath::QuietNaN()),
+    m_padlength(tpc::padParameter[m_layer][5]),
     m_mrow(mrow),
-    m_pad(tpc::GetPadId(layer, m_row)),
+    m_mpadtheta(TMath::QuietNaN()),
+    m_pad(tpc::GetPadId(layer, mrow)),
     m_pedestal(TMath::QuietNaN()),
     m_rms(TMath::QuietNaN()),
     m_de(),
@@ -113,9 +121,12 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
     m_is_calculated(false),
     m_hough_flag(),
     m_houghY_num(),
+    m_hough_dist(),
+    m_hough_disty(),
     m_hit_xz(new DCHit(m_layer, m_row)),
     m_hit_yz(new DCHit(m_layer, m_row))
 {
+
   // m_hit_xz->SetWirePosition(m_pos.x());
   // m_hit_xz->SetZ(m_pos.z());
   m_hit_xz->SetTiltAngle(0.);
@@ -553,7 +564,7 @@ TPCHit::ClearRegisteredHits()
 
 //_____________________________________________________________________________
 Double_t
-TPCHit::GetResolutionX()
+TPCHit::GetResolutionX() const
 {
   //calculated by using NIM paper
   const auto& pos = GetPosition();
@@ -589,14 +600,14 @@ TPCHit::GetResolutionX()
 
   Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
   //return TMath::Abs(dr*TMath::Sin(alpha)+rdtheta*TMath::Cos(alpha));
-  return TMath::Sqrt(TMath::Power(dr*TMath::Sin(alpha),2)+TMath::Power(rdtheta*TMath::Cos(alpha),2));
-  // return TMath::Abs(sT_r);
+  //return TMath::Sqrt(TMath::Power(dr*TMath::Sin(alpha),2)+TMath::Power(rdtheta*TMath::Cos(alpha),2));
+  return TMath::Abs(sT_r);
   //return 0.3;
 }
 
 //_____________________________________________________________________________
 double
-TPCHit::GetResolutionZ()
+TPCHit::GetResolutionZ() const
 {
   const auto& pos = GetPosition();
   //calculated by using NIM paper
@@ -630,24 +641,32 @@ TPCHit::GetResolutionZ()
 #endif
 
   Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
-  return TMath::Sqrt(TMath::Power(dr*TMath::Cos(alpha),2)+TMath::Power(rdtheta*TMath::Sin(alpha),2));
+  //return TMath::Sqrt(TMath::Power(dr*TMath::Cos(alpha),2)+TMath::Power(rdtheta*TMath::Sin(alpha),2));
+  return TMath::Abs(sT_r);
   //return 0.3;
 }
 
 //_____________________________________________________________________________
 double
-TPCHit::GetResolutionY()
+TPCHit::GetResolutionY() const
 {
   // temporary
-  return 0.5;
-  //return 0.;
-  //return 0.3;
-  //return 2.;
+  //return 0.5; //HIMAC
+  return 0.55; //Temporary value based on Garfield & E42 data
 }
 
 //_____________________________________________________________________________
-double
-TPCHit::GetResolution()
+TVector3
+TPCHit::GetResolutionVect() const
+{
+  return TVector3(GetResolutionX(),
+                  GetResolutionY(),
+                  GetResolutionZ());
+}
+
+//_____________________________________________________________________________
+Double_t
+TPCHit::GetResolution() const
 {
   return TVector3(GetResolutionX(),
                   GetResolutionY(),
@@ -665,7 +684,7 @@ TPCHit::Print(const std::string& arg, std::ostream& ost) const
       << std::setw(w) << std::left << "pad"  << m_pad  << std::endl;
   for(Int_t i=0, n=GetNHits(); i<n; ++i){
     ost << std::setw(3) << std::right << i << " "
-	<< "(time,de,chisqr,ctime,cde,dl,pos)=("
+	<< "(time, de, chisqr, ctime, cde, dl, pos)=("
         << std::fixed << std::setprecision(3) << std::setw(9) << m_time[i]
         << std::fixed << std::setprecision(3) << std::setw(9) << m_de[i]
         << std::fixed << std::setprecision(3) << std::setw(9) << m_chisqr[i]

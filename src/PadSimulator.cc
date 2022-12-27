@@ -139,7 +139,7 @@ PadSimulator::TrackSearchTPCHelix()
 	static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
 #if UseTpcCluster
-	tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTC_Helix, MinLayer);
+	tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTC_Helix, m_TPCTC_HelixFailed, MinLayer);
 #else
 	tpc::LocalTrackSearchHelix(m_TPCHitCont, m_TPCTC_Helix, MinLayer);
 #endif

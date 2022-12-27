@@ -74,8 +74,8 @@ Bool_t
 TPCCluster::Calculate()
 {
   static const TVector2 target_center(0., tpc::ZTarget); // (X, Z)
-  const Double_t R = tpc::GetRadius(m_layer);
-  int max_row = tpc::padParameter[m_layer][1];
+  //const Double_t R = tpc::GetRadius(m_layer);
+  //int max_row = tpc::padParameter[m_layer][1];
   m_cluster_de = 0.;
   m_cluster_position.SetXYZ(0., 0., 0.);
   m_mean_row = 0.;
@@ -106,8 +106,10 @@ TPCCluster::Calculate()
   TVector2 xz_vector = xz_vectorHS + target_center;
   m_cluster_position.SetXYZ(xz_vector.X(), mean_y, xz_vector.Y());
   m_mean_row = tpc::getMrow(m_layer, m_mean_phi*TMath::RadToDeg());
-  m_mean_hit->SetMRow(m_mean_row);
   m_mean_hit->AddHit(0., 0.);
+  m_mean_hit->SetMRow(m_mean_row);
+  m_mean_hit->SetPadLength(tpc::padParameter[m_layer][5]);
+  m_mean_hit->SetMPadTheta(tpc::getTheta(m_layer, m_mean_row)*TMath::DegToRad());
   m_mean_hit->SetDe(m_cluster_de);
   m_mean_hit->SetPosition(m_cluster_position);
   m_mean_hit->SetParentCluster(this);
@@ -149,11 +151,10 @@ TPCCluster::Print(Option_t* opt) const
               << "Radius = " << R << std::endl
               << "mean row = " << m_mean_row << std::endl
               << "mean phi = " << m_mean_phi*TMath::RadToDeg() << " (in XZ plane)" << std::endl;
-  hddaq::cout << "L" << std::setw(2) << m_layer << " size="
+  hddaq::cout << "layer" << std::setw(2) << m_layer <<" size="
               << std::setw(3) << m_hit_array.size() << "  ";
   for(const auto& hit: m_hit_array){
-    hddaq::cout << hit->GetRow()
-                << "(de=" << hddaq::unpacker::esc::k_purple
+    hddaq::cout << "(de=" << hddaq::unpacker::esc::k_purple
                 << hit->GetCDe() << hddaq::unpacker::esc::k_default_color
                 << ", y=" << hddaq::unpacker::esc::k_cyan
                 << hit->GetDriftLength() << hddaq::unpacker::esc::k_default_color

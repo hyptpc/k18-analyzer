@@ -35,6 +35,7 @@ private:
 private:
   bool   m_is_fitted;     // flag of DoFit()
   bool   m_is_calculated; // flag of Calculate()
+  int m_flag;
   std::vector<TPCLTrackHit*> m_hit_array;
 
   //equation of Helix
@@ -64,7 +65,11 @@ private:
   double m_max_t;
   double m_path;
   double m_transverse_path;
+  int m_charge;
   int m_isbeam;
+  int m_iskurama;
+  int m_houghtime; //sec
+  int m_fittime; //sec
 
 public:
   void         AddTPCHit(TPCLTrackHit *hit);
@@ -94,6 +99,8 @@ public:
   double       CalcChi2_circle(double par[3]);
   int     GetHTOFSeg(double min_layer_t, double max_layer_t, double max_layer_y);
   int     GetIsBeam(void) const {return m_isbeam;}
+  int     GetIsKurama(void) const {return m_iskurama;}
+  void    SetIsKurama(void) { m_iskurama = 1;}
   // void SetMint(double min_t) { m_min_t = min_t; }
   // void SetMaxt(double max_t) { m_max_t = max_t; }
   // void SetPath(double path) { m_path = path; }
@@ -101,6 +108,9 @@ public:
   double GetMaxt(void) const {return m_max_t; }
   double GetPath(void) const {return m_path; }
   double GetTransversePath(void) const {return m_transverse_path; }
+  int    GetCharge(void) const {return m_charge;}
+  double GetTrackdE();
+  double GetdEdx(double truncatedMean = 1.0);
 
   void SetAcx(double Acx) { m_Acx = Acx; }
   void SetAcy(double Acy) { m_Acy = Acy; }
@@ -112,11 +122,14 @@ public:
   double Getz0() const { return m_z0; }
   double Getr() const { return m_r; }
   double Getdz() const { return m_dz; }
+  void SetHelixUsingHoughParam(void);
+  void SetHoughFlag(int hough_flag);
+  void SetFlag(int flag) { m_flag = flag; }
+  int GetFlag(void) const {return m_flag;}
 
   TVector3 GetMom0() const { return m_mom0; }// Momentum at Y = 0
   TVector3 GetMom0_corP() const { return m_mom0_corP; }// Momentum at Y = 0
   TVector3 GetMom0_corN() const { return m_mom0_corN; }// Momentum at Y = 0
-
 
   double GetAcx() const { return m_Acx; }
   double GetAcy() const { return m_Acy; }
@@ -138,6 +151,13 @@ public:
   bool   GoodForTracking() const { return m_good_for_tracking; }
   bool   GoodForTracking(bool status)
   { bool ret = m_good_for_tracking; m_good_for_tracking = status; return ret; }
+
+  int  GetHoughTime() const { return m_houghtime; }
+  int  GetFitTime() const { return m_fittime; }
+  void SetHoughTime(int time) { m_houghtime = time; }
+  void SetFitTime(int time) { m_fittime = time; }
+  void Print(const TString& arg="") const;
+
 };
 
 
