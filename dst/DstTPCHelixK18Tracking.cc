@@ -183,6 +183,8 @@ struct Event
   Int_t failed_ntTpc; // Number of Tracks
   std::vector<Int_t> failed_nhtrack;
   std::vector<Int_t> failed_flag;
+  std::vector<Int_t> failed_isBeam;
+  std::vector<Int_t> failed_isKurama;
   std::vector<Int_t> failed_fittime;  //sec
   std::vector<Double_t> failed_chisqr;
   std::vector<Double_t> failed_helix_cx;
@@ -323,6 +325,8 @@ struct Event
     failed_ntTpc = 0;
     failed_nhtrack.clear();
     failed_flag.clear();
+    failed_isBeam.clear();
+    failed_isKurama.clear();
     failed_fittime.clear();
     failed_chisqr.clear();
     failed_helix_cx.clear();
@@ -480,8 +484,7 @@ dst::DstRead( int ievent )
 {
   auto start = std::chrono::high_resolution_clock::now();
 
-  //if( ievent%1000==0 ){
-  if( ievent%1==0 ){
+  if( ievent%1000==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
@@ -681,9 +684,9 @@ dst::DstRead( int ievent )
     Double_t helix_z0 = tp->Getz0(), helix_r = tp->Getr();
     Double_t helix_dz = tp->Getdz();
     TVector3 Mom0 = tp->GetMom0();
+    Int_t flag = tp->GetFlag();
     Int_t isbeam = tp->GetIsBeam();
     Int_t iskurama = tp->GetIsKurama();
-    Int_t flag = tp->GetFlag();
     Int_t fittime = tp->GetFitTime();
     Int_t charge = tp->GetCharge();
     Double_t pathlen = tp->GetPath();
@@ -722,11 +725,12 @@ dst::DstRead( int ievent )
     event.dEdx[it] = tp->GetdEdx(truncatedMean);
     event.dz_factor[it] = sqrt(1.+(pow(helix_dz,2)));
 
+    HF2(20, event.mom0[it]*event.charge[it], event.dEdx[it]);
+
     HF1(15, event.mom0[it]);
     if(src.ntK18==1) HF1(16, event.mom0[it]-src.pK18[0]);
     int particleID = Kinematics::HypTPCdEdxPID_temp(event.dEdx[it], event.mom0[it]*event.charge[it]);
     event.pid[it]=particleID;
-
 
     event.combi_id[it].resize( ntTpc );
     event.closeDistTpc[it].resize( ntTpc );
@@ -792,7 +796,6 @@ dst::DstRead( int ievent )
       if( !hit ) continue;
       HF1( 2, hit->GetHoughDist());
       HF1( 3, hit->GetHoughDistY());
-      Double_t clde = hit->GetDe();
       Int_t layer = hit->GetLayer();
       Int_t houghflag = hit->GetHoughFlag();
       const TVector3& hitpos = hit->GetLocalHitPos();
@@ -802,6 +805,7 @@ dst::DstRead( int ievent )
 
 #if TrackCluster
       TPCHit *clhit = hit->GetHit();
+      Double_t clde = hit->GetDe();
       TPCCluster *cl = clhit->GetParentCluster();
       Int_t clsize = cl->GetClusterSize();
       Double_t mrow = cl->MeanRow(); // same
@@ -857,6 +861,9 @@ dst::DstRead( int ievent )
   Int_t failed_ntTpc = DCAna.GetNTracksTPCHelixFailed();
   event.failed_ntTpc = failed_ntTpc;
   event.failed_nhtrack.resize( failed_ntTpc );
+  event.failed_flag.resize( failed_ntTpc );
+  event.failed_isBeam.resize( failed_ntTpc );
+  event.failed_isKurama.resize( failed_ntTpc );
   event.failed_fittime.resize( failed_ntTpc );
   event.failed_chisqr.resize( failed_ntTpc );
   event.failed_helix_cx.resize( failed_ntTpc );
@@ -891,11 +898,15 @@ dst::DstRead( int ievent )
     Double_t helix_z0=tp->Getz0(), helix_r=tp->Getr();
     Double_t helix_dz = tp->Getdz();
     TVector3 Mom0 = tp->GetMom0();
+    Int_t flag = tp->GetFlag();
     Int_t isbeam = tp->GetIsBeam();
     Int_t iskurama = tp->GetIsKurama();
     Int_t fittime = tp->GetFitTime();
     Int_t charge = tp->GetCharge();
     event.failed_nhtrack[it] = nh;
+    event.failed_flag[it] = flag;
+    event.failed_isBeam[it] = isbeam;
+    event.failed_isKurama[it] = iskurama;
     event.failed_fittime[it] = fittime;
     event.failed_chisqr[it] = chisqr;
     event.failed_helix_cx[it] = helix_cx;
@@ -995,6 +1006,15 @@ ConfMan::InitializeHistograms( void )
   HB1(14, "pK18", 1000, 0., 2.5);
   HB1(15, "mom0", 1000, 0., 2.5);
   HB1(16, "mom0-pK18", 1000, -1.25, 1.25);
+
+  const Int_t nbinpoq = 1000;
+  const Double_t minpoq = -2.0;
+  const Double_t maxpoq = 2.0;
+  const Int_t nbindedx = 1000;
+  const Double_t mindedx = 0.;
+  const Double_t maxdedx = 350.;
+
+  HB2(20, "<dE/dx>;p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
 
 #if TrackCluster
   const Int_t    NbinDe = 1000;
@@ -1131,6 +1151,8 @@ ConfMan::InitializeHistograms( void )
 #if TrackSearchFailed
   tree->Branch( "failed_ntTpc", &event.failed_ntTpc );
   tree->Branch( "failed_nhtrack", &event.failed_nhtrack );
+  tree->Branch( "failed_isBeam", &event.failed_isBeam );
+  tree->Branch( "failed_isKurama", &event.failed_isKurama );
   tree->Branch( "failed_flag", &event.failed_flag );
   tree->Branch( "failed_fittime", &event.failed_fittime );
   tree->Branch( "failed_chisqr", &event.failed_chisqr );
@@ -1153,7 +1175,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "failed_residual_x", &event.failed_residual_x );
   tree->Branch( "failed_residual_y", &event.failed_residual_y );
   tree->Branch( "failed_residual_z", &event.failed_residual_z );
+  tree->Branch( "failed_track_cluster_de", &event.failed_track_cluster_de);
+  tree->Branch( "failed_track_cluster_size", &event.failed_track_cluster_size);
+  tree->Branch( "failed_track_cluster_mrow", &event.failed_track_cluster_mrow);
 #endif
+
   TTreeReaderCont[kTpcHit] = new TTreeReader( "tpc", TFileCont[kTpcHit] );
   const auto& reader = TTreeReaderCont[kTpcHit];
   src.runnum = new TTreeReaderValue<Int_t>( *reader, "runnum" );
