@@ -35,12 +35,16 @@ const Int_t& IdTOF_UY = gGeom.DetectorId("TOF-UY");
 const Int_t& IdTOF_DX = gGeom.DetectorId("TOF-DX");
 const Int_t& IdTOF_DY = gGeom.DetectorId("TOF-DY");
 const Int_t& IdTarget = gGeom.DetectorId("Target");
-const Int_t& IdHTOF = gGeom.DetectorId("HTOF");
+const Int_t& IdVPHTOF = gGeom.DetectorId("VPHTOF");
+const Int_t& IdVPTPC1 = gGeom.DetectorId("VPTPC1");
 const Int_t& IdRKINIT = gGeom.DetectorId("RKINIT");
 
 const Int_t& IdBH2    = gGeom.DetectorId("BH2");
 const Int_t& IdK18Target = gGeom.DetectorId("K18Target");
-  
+const Int_t& IdHTOF = gGeom.DetectorId("HTOF");
+const Int_t& IdVPHS1 = gGeom.DetectorId("VPHS1");
+const Int_t& IdBC3_X1 = gGeom.DetectorId("BC3-X1");
+const Int_t& IdBC4_U1 = gGeom.DetectorId("BC4-U1");
 const Double_t CHLB     = 2.99792458E-4;
 const Double_t Polarity = 1.;
 }
@@ -461,15 +465,15 @@ RK::PropagateOnce(Double_t StepSize, const RKTrajectoryPoint &prevPoint)
   Double_t pre_q = prevPoint.r.q;
   Double_t dr    = StepSize/std::sqrt(1.+pre_u*pre_u+pre_v*pre_v);
 
-  //  std::cout << pre_x << "\t" << pre_y << "\t" << pre_z 
+  //  std::cout << pre_x << "\t" << pre_y << "\t" << pre_z
   //	    << pre_u << "\t" << pre_v << "\t" << pre_q << std::endl;
   //  std::cout << StepSize << std::endl;
-    
+
   ThreeVector Z1 = prevPoint.PositionInGlobal();
-  
+
   ThreeVector B1 = gField.GetField(Z1);
   //  std::cout << B1.Y() << std::endl;
-  
+
   ThreeVector dBdX1 = gField.GetdBdX(Z1);
   ThreeVector dBdY1 = gField.GetdBdY(Z1);
   RKFieldIntegral f1 =
@@ -477,7 +481,7 @@ RK::PropagateOnce(Double_t StepSize, const RKTrajectoryPoint &prevPoint)
                           B1, dBdX1, dBdY1);
   RKDeltaFieldIntegral df1 =
     RK::CalcDeltaFieldIntegral(prevPoint, f1);
-  
+
   ThreeVector Z2 = Z1 +
     ThreeVector(0.5*dr,
                 0.5*dr*pre_u + 0.125*dr*dr*f1.kx,
@@ -762,7 +766,7 @@ RK::CheckCrossingHS(Int_t lnum, const RKTrajectoryPoint &startPoint,
   ThreeVector nomalVector = geom_record->NormalVector();
 
   ThreeVector startVector(startPoint.r.x,startPoint.r.y,startPoint.r.z);
-  ThreeVector endVector(endPoint.r.x,endPoint.r.y,endPoint.r.z);  
+  ThreeVector endVector(endPoint.r.x,endPoint.r.y,endPoint.r.z);
   // move to origin
   startVector -= posVector;
   endVector   -= posVector;
@@ -1000,7 +1004,7 @@ RK::Extrap(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
 {
   const Int_t nPlane = hitContainer.size();
   Int_t iPlane = 0;
-  
+
   RKTrajectoryPoint prevPoint(initial,
                               1., 0., 0., 0., 0.,
                               0., 1., 0., 0., 0.,
@@ -1015,12 +1019,12 @@ RK::Extrap(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
   std::vector<TVector3> StepPoint(MaxStep);
 
   Int_t iStep = 0;
-  
+
   while(++iStep < MaxStep){
     Double_t StepSize = gField.StepSize(prevPoint.PositionInGlobal(),
                                         NormalStepSize, MinStepSize);
     RKTrajectoryPoint nextPoint = RK::PropagateOnce(StepSize, prevPoint);
-    
+
     StepPoint[iStep-1] = nextPoint.PositionInGlobal();
 
     while(RK::CheckCrossingHS(hitContainer[iPlane].first,
@@ -1048,7 +1052,7 @@ RK::Extrap(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
 	return HSTrack::kPassed;
       }
     } // while(RKcheckCrossing())
-    
+
     if(nextPoint.PathLength() > MaxPathLength){
       return HSTrack::kExceedMaxPathLength;
     }
@@ -1106,7 +1110,7 @@ RK::TraceToLast(RKHitPointContainer& hitContainer)
     }
     prevPoint = nextPoint;
   }
-  
+
   return false;
 }
 
@@ -1124,9 +1128,10 @@ RK::MakeHPContainer()
 
   // /*** From Upstream ***/
   container.push_back(std::make_pair(IdTarget, RKcalcHitPoint()));
-
-  container.push_back(std::make_pair(IdHTOF, RKcalcHitPoint()));
-
+  for(int i = 0; i<5; ++i){
+    container.push_back(std::make_pair(IdVPTPC1+i, RKcalcHitPoint()));
+  }
+  container.push_back(std::make_pair(IdVPHTOF, RKcalcHitPoint()));
   for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
     container.push_back(std::make_pair(i+PlOffsSdcIn+1, RKcalcHitPoint()));
   }
@@ -1151,22 +1156,20 @@ RK::MakeHSHPContainer()
 {
   static const auto& IdList = gGeom.GetDetectorIDList();
   RKHitPointContainer cont;
-  
-  for (int i = 0 ; i <6 ; i++) {
-    cont.push_back(std::make_pair(113+i, RKcalcHitPoint()));
-  }
-  for (int i = 0 ; i <6 ; i++) {
-    cont.push_back(std::make_pair(119+i, RKcalcHitPoint()));
-  }
 
+  for (int i = 0 ; i <6 ; i++) {
+    cont.push_back(std::make_pair(IdBC3_X1+i, RKcalcHitPoint()));
+  }
+  for (int i = 0 ; i <6 ; i++) {
+    cont.push_back(std::make_pair(IdBC4_U1+i, RKcalcHitPoint()));
+  }
   cont.push_back(std::make_pair(IdBH2,RKcalcHitPoint()));
-
-  for (int i = 0 ; i < 4 ; i++) 
-    cont.push_back(std::make_pair(i+208, RKcalcHitPoint()));
-
+  for (int i = 0 ; i < 4 ; i++){
+    cont.push_back(std::make_pair(IdVPHS1+i, RKcalcHitPoint()));
+  }
   cont.push_back(std::make_pair(IdK18Target,RKcalcHitPoint()));
   cont.push_back(std::make_pair(IdHTOF,RKcalcHitPoint()));
-  
+
   return cont;
 }
 

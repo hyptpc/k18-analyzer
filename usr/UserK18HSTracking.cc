@@ -47,6 +47,7 @@ const auto& gUnpacker = GUnpacker::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
 auto& gFilter = BH2Filter::GetInstance();
 auto& gBH1Mth = BH1Match::GetInstance();
+
 }
 
 //_____________________________________________________________________________
@@ -152,21 +153,43 @@ struct Event
 
   Double_t xbh2HS[MaxHits];
   Double_t ybh2HS[MaxHits];
+  Double_t zbh2HS[MaxHits];
   Double_t ubh2HS[MaxHits];
   Double_t vbh2HS[MaxHits];
 
   Double_t xvp1HS[MaxHits];
   Double_t yvp1HS[MaxHits];
+  Double_t zvp1HS[MaxHits];
   Double_t uvp1HS[MaxHits];
   Double_t vvp1HS[MaxHits];
 
+  Double_t xvp2HS[MaxHits];
+  Double_t yvp2HS[MaxHits];
+  Double_t zvp2HS[MaxHits];
+  Double_t uvp2HS[MaxHits];
+  Double_t vvp2HS[MaxHits];
+
   Double_t xvp3HS[MaxHits];
   Double_t yvp3HS[MaxHits];
+  Double_t zvp3HS[MaxHits];
   Double_t uvp3HS[MaxHits];
   Double_t vvp3HS[MaxHits];
 
+  Double_t xvp4HS[MaxHits];
+  Double_t yvp4HS[MaxHits];
+  Double_t zvp4HS[MaxHits];
+  Double_t uvp4HS[MaxHits];
+  Double_t vvp4HS[MaxHits];
+
+  Double_t xhtofHS[MaxHits];
+  Double_t yhtofHS[MaxHits];
+  Double_t zhtofHS[MaxHits];
+  Double_t uhtofHS[MaxHits];
+  Double_t vhtofHS[MaxHits];
+
   Double_t xtgtHS[MaxHits];
   Double_t ytgtHS[MaxHits];
+  Double_t ztgtHS[MaxHits];
   Double_t utgtHS[MaxHits];
   Double_t vtgtHS[MaxHits];
   Double_t pHS[MaxHits];
@@ -174,7 +197,7 @@ struct Event
   Double_t phiHS[MaxHits];
   Double_t pathHS[MaxHits];
   Double_t m2[MaxHits];
-  
+
   void clear();
 };
 
@@ -235,21 +258,43 @@ Event::clear()
 
     xbh2HS[i] = qnan;
     ybh2HS[i] = qnan;
+    zbh2HS[i] = qnan;
     ubh2HS[i] = qnan;
     vbh2HS[i] = qnan;
 
     xvp1HS[i] = qnan;
     yvp1HS[i] = qnan;
+    zvp1HS[i] = qnan;
     uvp1HS[i] = qnan;
     vvp1HS[i] = qnan;
 
+    xvp2HS[i] = qnan;
+    yvp2HS[i] = qnan;
+    zvp2HS[i] = qnan;
+    ubh2HS[i] = qnan;
+    vbh2HS[i] = qnan;
+
     xvp3HS[i] = qnan;
     yvp3HS[i] = qnan;
+    zvp3HS[i] = qnan;
     uvp3HS[i] = qnan;
     vvp3HS[i] = qnan;
 
+    xvp4HS[i] = qnan;
+    yvp4HS[i] = qnan;
+    zvp4HS[i] = qnan;
+    uvp4HS[i] = qnan;
+    vvp4HS[i] = qnan;
+
+    xhtofHS[i] = qnan;
+    yhtofHS[i] = qnan;
+    zhtofHS[i] = qnan;
+    uhtofHS[i] = qnan;
+    vhtofHS[i] = qnan;
+
     xtgtHS[i] = qnan;
     ytgtHS[i] = qnan;
+    ztgtHS[i] = qnan;
     utgtHS[i] = qnan;
     vtgtHS[i] = qnan;
     pHS[i] = qnan;
@@ -556,11 +601,8 @@ UserK18HSTracking::ProcessingNormal()
     if(!trHS) continue;
     trHS->Propagate();
     const auto& PosTgt = trHS->TgtPosition();
-    const auto& MomTgt = trHS->TgtMomentum();    
-    // hddaq::cout << std::fixed
-    // 		<< "Pos = " << Pos << std::endl
-    // 		<< "Mom = " << Mom << std::endl;
-    Double_t xtgt = PosTgt.x(), ytgt = PosTgt.y();
+    const auto& MomTgt = trHS->TgtMomentum();
+    Double_t xtgt = PosTgt.x(), ytgt = PosTgt.y(), ztgt = PosTgt.z();
     Double_t pHS = MomTgt.Mag();
     Double_t q = trHS->Polarity();
     Double_t utgt = MomTgt.x()/MomTgt.z(), vtgt = MomTgt.y()/MomTgt.z();
@@ -572,42 +614,80 @@ UserK18HSTracking::ProcessingNormal()
     const auto& PosBH2 = trHS->BH2Position();
     const auto& MomBH2 = trHS->BH2Momentum();
     Double_t pBH2 = MomBH2.Mag();
-    Double_t xBH2 = PosBH2.x(), yBH2 = PosBH2.y();
-    Double_t uBH2 = MomBH2.x()/MomBH2.z() , vBH2 = MomBH2.y()/MomBH2.z();
+    Double_t xBH2 = PosBH2.x(), yBH2 = PosBH2.y(), zBH2 = PosBH2.z();
+    Double_t uBH2 = MomBH2.x()/MomBH2.z(), vBH2 = MomBH2.y()/MomBH2.z();
 
     const auto& PosVP1 = trHS->VP1Position();
     const auto& MomVP1 = trHS->VP1Momentum();
     Double_t pVP1 = MomVP1.Mag();
-    Double_t xVP1 = PosVP1.x(), yVP1 = PosVP1.y();
-    Double_t uVP1 = MomVP1.x()/MomVP1.z() , vVP1 = MomVP1.y()/MomVP1.z();
+    Double_t xVP1 = PosVP1.x(), yVP1 = PosVP1.y(), zVP1 = PosVP1.z();
+    Double_t uVP1 = MomVP1.x()/MomVP1.z(), vVP1 = MomVP1.y()/MomVP1.z();
+
+    const auto& PosVP2 = trHS->VP2Position();
+    const auto& MomVP2 = trHS->VP2Momentum();
+    Double_t pVP2 = MomVP2.Mag();
+    Double_t xVP2 = PosVP2.x(), yVP2 = PosVP2.y(), zVP2 = PosVP2.z();
+    Double_t uVP2 = MomVP2.x()/MomVP1.z(), vVP2 = MomVP2.y()/MomVP2.z();
 
     const auto& PosVP3 = trHS->VP3Position();
     const auto& MomVP3 = trHS->VP3Momentum();
     Double_t pVP3 = MomVP3.Mag();
-    Double_t xVP3 = PosVP3.x(), yVP3 = PosVP3.y();
-    Double_t uVP3 = MomVP3.x()/MomVP3.z() , vVP3 = MomVP3.y()/MomVP3.z();
-    
-    Double_t path = trHS->PathLength();
+    Double_t xVP3 = PosVP3.x(), yVP3 = PosVP3.y(), zVP3 = PosVP3.z();
+    Double_t uVP3 = MomVP3.x()/MomVP3.z(), vVP3 = MomVP3.y()/MomVP3.z();
 
+    const auto& PosVP4 = trHS->VP4Position();
+    const auto& MomVP4 = trHS->VP4Momentum();
+    Double_t pVP4 = MomVP4.Mag();
+    Double_t xVP4 = PosVP4.x(), yVP4 = PosVP4.y(), zVP4 = PosVP4.z();
+    Double_t uVP4 = MomVP4.x()/MomVP4.z(), vVP4 = MomVP4.y()/MomVP4.z();
+
+    const auto& PosHtof = trHS->HtofPosition();
+    const auto& MomHtof = trHS->HtofMomentum();
+    Double_t pHtof = MomHtof.Mag();
+    Double_t xHtof = PosHtof.x(), yHtof = PosHtof.y(), zHtof = PosHtof.z();
+    Double_t uHtof = MomHtof.x()/MomHtof.z(), vHtof = MomHtof.y()/MomHtof.z();
+    Double_t path = trHS->PathLength();
     Double_t m2 = Kinematics::MassSquare(pHS,path,StofOffset);
 
     event.xbh2HS[i] = xBH2;
     event.ybh2HS[i] = yBH2;
+    event.zbh2HS[i] = zBH2;
     event.ubh2HS[i] = uBH2;
     event.vbh2HS[i] = vBH2;
 
     event.xvp1HS[i] = xVP1;
     event.yvp1HS[i] = yVP1;
+    event.zvp1HS[i] = zVP1;
     event.uvp1HS[i] = uVP1;
     event.vvp1HS[i] = vVP1;
 
+    event.xvp2HS[i] = xVP2;
+    event.yvp2HS[i] = yVP2;
+    event.zvp2HS[i] = zVP2;
+    event.uvp2HS[i] = uVP2;
+    event.vvp2HS[i] = vVP2;
+
     event.xvp3HS[i] = xVP3;
     event.yvp3HS[i] = yVP3;
+    event.zvp3HS[i] = zVP3;
     event.uvp3HS[i] = uVP3;
     event.vvp3HS[i] = vVP3;
 
+    event.xvp4HS[i] = xVP4;
+    event.yvp4HS[i] = yVP4;
+    event.zvp4HS[i] = zVP4;
+    event.uvp4HS[i] = uVP4;
+    event.vvp4HS[i] = vVP4;
+
+    event.xhtofHS[i] = xHtof;
+    event.yhtofHS[i] = yHtof;
+    event.zhtofHS[i] = zHtof;
+    event.uhtofHS[i] = uHtof;
+    event.vhtofHS[i] = vHtof;
+
     event.xtgtHS[i] = xtgt;
     event.ytgtHS[i] = ytgt;
+    event.ztgtHS[i] = ztgt;
     event.utgtHS[i] = utgt;
     event.vtgtHS[i] = vtgt;
     event.pHS[i] = std::abs(pHS);
@@ -617,9 +697,9 @@ UserK18HSTracking::ProcessingNormal()
     event.m2[i] = m2;
   }
     HF1(1, 22.);
-    
+
     return true;
-    
+
 }
 
 //_____________________________________________________________________________
@@ -752,21 +832,43 @@ ConfMan:: InitializeHistograms()
   // HS Propagation
   tree->Branch("xbh2HS",   event.xbh2HS, "xbh2HS[ntK18]/D");
   tree->Branch("ybh2HS",   event.ybh2HS, "ybh2HS[ntK18]/D");
+  tree->Branch("zbh2HS",   event.zbh2HS, "zbh2HS[ntK18]/D");
   tree->Branch("ubh2HS",   event.ubh2HS, "ubh2HS[ntK18]/D");
   tree->Branch("vbh2HS",   event.vbh2HS, "vbh2HS[ntK18]/D");
 
   tree->Branch("xvp1HS",   event.xvp1HS, "xvp1HS[ntK18]/D");
   tree->Branch("yvp1HS",   event.yvp1HS, "yvp1HS[ntK18]/D");
+  tree->Branch("zvp1HS",   event.zvp1HS, "zvp1HS[ntK18]/D");
   tree->Branch("uvp1HS",   event.uvp1HS, "uvp1HS[ntK18]/D");
   tree->Branch("vvp1HS",   event.vvp1HS, "vvp1HS[ntK18]/D");
 
+  tree->Branch("xvp2HS",   event.xvp2HS, "xvp2HS[ntK18]/D");
+  tree->Branch("yvp2HS",   event.yvp2HS, "yvp2HS[ntK18]/D");
+  tree->Branch("zvp2HS",   event.zvp2HS, "zvp2HS[ntK18]/D");
+  tree->Branch("uvp2HS",   event.uvp2HS, "uvp2HS[ntK18]/D");
+  tree->Branch("vvp2HS",   event.vvp2HS, "vvp2HS[ntK18]/D");
+
   tree->Branch("xvp3HS",   event.xvp3HS, "xvp3HS[ntK18]/D");
   tree->Branch("yvp3HS",   event.yvp3HS, "yvp3HS[ntK18]/D");
+  tree->Branch("zvp3HS",   event.zvp3HS, "zvp3HS[ntK18]/D");
   tree->Branch("uvp3HS",   event.uvp3HS, "uvp3HS[ntK18]/D");
   tree->Branch("vvp3HS",   event.vvp3HS, "vvp3HS[ntK18]/D");
 
+  tree->Branch("xvp4HS",   event.xvp4HS, "xvp4HS[ntK18]/D");
+  tree->Branch("yvp4HS",   event.yvp4HS, "yvp4HS[ntK18]/D");
+  tree->Branch("zvp4HS",   event.zvp4HS, "zvp4HS[ntK18]/D");
+  tree->Branch("uvp4HS",   event.uvp4HS, "uvp4HS[ntK18]/D");
+  tree->Branch("vvp4HS",   event.vvp4HS, "vvp4HS[ntK18]/D");
+
+  tree->Branch("xhtofHS",  event.xhtofHS, "xhtofHS[ntK18]/D");
+  tree->Branch("yhtofHS",  event.yhtofHS, "yhtofHS[ntK18]/D");
+  tree->Branch("zhtofHS",  event.zhtofHS, "zhtofHS[ntK18]/D");
+  tree->Branch("uhtofHS",  event.uhtofHS, "uhtofHS[ntK18]/D");
+  tree->Branch("vhtofHS",  event.vhtofHS, "vhtofHS[ntK18]/D");
+
   tree->Branch("xtgtHS",   event.xtgtHS, "xtgtHS[ntK18]/D");
   tree->Branch("ytgtHS",   event.ytgtHS, "ytgtHS[ntK18]/D");
+  tree->Branch("ztgtHS",   event.ztgtHS, "ztgtHS[ntK18]/D");
   tree->Branch("utgtHS",   event.utgtHS, "utgtHS[ntK18]/D");
   tree->Branch("vtgtHS",   event.vtgtHS, "vtgtHS[ntK18]/D");
   tree->Branch("pHS"   ,   event.pHS,    "pHS[ntK18]/D");
