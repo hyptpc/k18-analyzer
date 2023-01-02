@@ -21,7 +21,6 @@
 
 namespace {
   const auto &gGeom = DCGeomMan::GetInstance();
-
 }
 
 HSTrack::HSTrack(Double_t x, Double_t y,
@@ -42,7 +41,7 @@ HSTrack::~HSTrack(){}
 
 Bool_t HSTrack::Propagate() {
   m_status = kInit;
-  
+
   if(m_initial_momentum <= 0){
     hddaq::cout << FUNC_NAME << " initial momentum must be exist"
 		<< m_initial_momentum << std::endl;
@@ -60,7 +59,7 @@ Bool_t HSTrack::Propagate() {
   const Double_t pz = m_initial_momentum/std::sqrt(1.+uIn*uIn+vIn*vIn);
   const ThreeVector posIn(xIn-50.,yIn,gPosBcOut-localBcOut);
   const ThreeVector momIn(pz*uIn , pz*vIn, pz);
-  //  std::cout << xIn << "\t" <<yIn << "\t" << uIn << "\t" << vIn << std::endl;
+  //std::cout << xIn << "\t" <<yIn << "\t" << uIn << "\t" << vIn << std::endl;
   RKCordParameter iniCord(posIn,momIn);
   RKCordParameter prevCord;
   RKHitPointContainer preHPntCont;
@@ -74,50 +73,75 @@ Bool_t HSTrack::Propagate() {
   return true;
 }
 
-    
+
 //_____________________________________________________________________________
 Bool_t
 HSTrack::SaveTrack()
 {
   //  const RKcalcHitPoint& hpTgt  = m_HitPointCont.rbegin()->second;
-
+  const Double_t& zK18HS = gGeom.LocalZ("K18HS");
   const Int_t TGTid = gGeom.DetectorId("K18Target");
+  const Double_t& zK18Tgt = gGeom.LocalZ("K18Target");
   const RKcalcHitPoint& hpTgt  = m_HitPointCont.HitPointOfLayer(TGTid);
   const ThreeVector& posTgt = hpTgt.PositionInGlobal();
   const ThreeVector& momTgt = hpTgt.MomentumInGlobal();
   m_tgt_position = gGeom.Global2LocalPos(TGTid, posTgt);
+  m_tgt_position.SetZ(zK18Tgt - zK18HS);
   m_tgt_momentum = gGeom.Global2LocalDir(TGTid, momTgt);
 
   const Int_t IdBH2 =gGeom.DetectorId("BH2");
+  const Double_t& zBH2 = gGeom.LocalZ("BH2");
   const RKcalcHitPoint& hpBH2 = m_HitPointCont.HitPointOfLayer(IdBH2);
   const ThreeVector &posBH2 = hpBH2.PositionInGlobal();
-  const ThreeVector &momBH2 = hpBH2.MomentumInGlobal();  
+  const ThreeVector &momBH2 = hpBH2.MomentumInGlobal();
   m_bh2_position = gGeom.Global2LocalPos(IdBH2,posBH2);
+  m_bh2_position.SetZ(zBH2 - zK18HS);
   m_bh2_momentum = gGeom.Global2LocalDir(IdBH2,momBH2);
-  
+
   const Int_t IdVP1 = gGeom.DetectorId("VPHS1");
+  const Double_t& zVPHS1 = gGeom.LocalZ("VPHS1");
   const RKcalcHitPoint& hpVP1 = m_HitPointCont.HitPointOfLayer(IdVP1);
   const ThreeVector &posVP1 = hpVP1.PositionInGlobal();
   const ThreeVector &momVP1 = hpVP1.MomentumInGlobal();
   m_vp1_position = gGeom.Global2LocalPos(IdVP1,posVP1);
+  m_vp1_position.SetZ(zVPHS1 - zK18HS);
   m_vp1_momentum = gGeom.Global2LocalDir(IdVP1,momVP1);
 
+  const Int_t IdVP2 = gGeom.DetectorId("VPHS2");
+  const Double_t& zVPHS2 = gGeom.LocalZ("VPHS2");
+  const RKcalcHitPoint& hpVP2 = m_HitPointCont.HitPointOfLayer(IdVP2);
+  const ThreeVector &posVP2 = hpVP2.PositionInGlobal();
+  const ThreeVector &momVP2 = hpVP2.MomentumInGlobal();
+  m_vp2_position = gGeom.Global2LocalPos(IdVP2,posVP2);
+  m_vp2_position.SetZ(zVPHS2 - zK18HS);
+  m_vp2_momentum = gGeom.Global2LocalDir(IdVP2,momVP2);
+
   const Int_t IdVP3 = gGeom.DetectorId("VPHS3");
+  const Double_t& zVPHS3 = gGeom.LocalZ("VPHS3");
   const RKcalcHitPoint& hpVP3 = m_HitPointCont.HitPointOfLayer(IdVP3);
   const ThreeVector &posVP3 = hpVP3.PositionInGlobal();
   const ThreeVector &momVP3 = hpVP3.MomentumInGlobal();
   m_vp3_position = gGeom.Global2LocalPos(IdVP3,posVP3);
+  m_vp3_position.SetZ(zVPHS3 - zK18HS);
   m_vp3_momentum = gGeom.Global2LocalDir(IdVP3,momVP3);
-  
+
+  const Int_t IdVP4 = gGeom.DetectorId("VPHS4");
+  const Double_t& zVPHS4 = gGeom.LocalZ("VPHS4");
+  const RKcalcHitPoint& hpVP4 = m_HitPointCont.HitPointOfLayer(IdVP4);
+  const ThreeVector &posVP4 = hpVP4.PositionInGlobal();
+  const ThreeVector &momVP4 = hpVP4.MomentumInGlobal();
+  m_vp4_position = gGeom.Global2LocalPos(IdVP4,posVP4);
+  m_vp4_position.SetZ(zVPHS4 - zK18HS);
+  m_vp4_momentum = gGeom.Global2LocalDir(IdVP4,momVP4);
+
   const Int_t IdHtof = m_HitPointCont.rbegin()->first;
+  const Double_t& zHtof = gGeom.LocalZ("HTOF");
   const RKcalcHitPoint &hpHtof = m_HitPointCont.rbegin()->second;
   const ThreeVector &posHtof = hpHtof.PositionInGlobal();
   const ThreeVector &momHtof = hpHtof.MomentumInGlobal();
   m_htof_position = gGeom.Global2LocalPos(IdHtof,posHtof);
+  m_htof_position.SetZ(zHtof - zK18HS);
   m_htof_momentum = gGeom.Global2LocalDir(IdHtof,momHtof);
-  
-
   m_path_length_total = std::abs(hpBH2.PathLength()-hpTgt.PathLength());
-
   return true;
 }

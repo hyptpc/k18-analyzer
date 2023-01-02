@@ -28,7 +28,7 @@ public:
   HSTrack(Double_t x, Double_t y,
 	  Double_t u, Double_t v, Double_t p);
   ~HSTrack();
-  
+
 private:
   HSTrack(const HSTrack&);
   HSTrack& operator =(const HSTrack&);
@@ -60,8 +60,14 @@ private:
   TVector3                m_vp1_position;
   TVector3                m_vp1_momentum;
 
+  TVector3                m_vp2_position;
+  TVector3                m_vp2_momentum;
+
   TVector3                m_vp3_position;
   TVector3                m_vp3_momentum;
+
+  TVector3                m_vp4_position;
+  TVector3                m_vp4_momentum;
 
   TVector3                m_htof_position;
   TVector3                m_htof_momentum;
@@ -69,7 +75,7 @@ private:
   Double_t                m_path_length_total;
   RKCordParameter         m_cord_param;
   Bool_t                  m_is_good;
-  
+
 public:
   Bool_t          Propagate();
   Bool_t          Propagate(RKCordParameter iniCord);
@@ -83,15 +89,21 @@ public:
   const TVector3& TgtMomentum() const { return m_tgt_momentum; }
   Double_t        TgtMomMag() const { return m_tgt_momentum.Mag();}
   const TVector3& TgtPosition() const { return m_tgt_position; }
-  
+
   const TVector3& BH2Momentum() const { return m_bh2_momentum; }
   const TVector3& BH2Position() const { return m_bh2_position; }
 
   const TVector3& VP1Momentum() const { return m_vp1_momentum; }
   const TVector3& VP1Position() const { return m_vp1_position; }
 
+  const TVector3& VP2Momentum() const { return m_vp2_momentum; }
+  const TVector3& VP2Position() const { return m_vp2_position; }
+
   const TVector3& VP3Momentum() const { return m_vp3_momentum; }
   const TVector3& VP3Position() const { return m_vp3_position; }
+
+  const TVector3& VP4Momentum() const { return m_vp4_momentum; }
+  const TVector3& VP4Position() const { return m_vp4_position; }
 
   const TVector3& HtofMomentum() const { return m_htof_momentum; }
   const TVector3& HtofPosition() const { return m_htof_position; }
@@ -99,7 +111,7 @@ public:
   void            Print(const TString& arg="", std::ostream& ost=hddaq::cout);
   void            SetInitialMomentum(Double_t p) { m_initial_momentum = p; }
   Bool_t          ExtrapStatus() const { return m_status; }
-  
+
 private:
   void     ClearHitArray();
   Bool_t   SaveTrack();
