@@ -44,6 +44,7 @@ public:
   Bool_t Initialize();
   Bool_t IsReady() const { return m_is_ready; }
   Bool_t GetFieldValue(const Double_t pointCM[3], Double_t* BfieldTesla) const;
+  Bool_t GetFieldValueHS(const Double_t pointCM[3], Double_t* BfieldTesla) const;
 
 private:
   void ClearField();

@@ -189,6 +189,60 @@ KuramaFieldMap::GetFieldValue(const Double_t pointCM[3],
 }
 
 //_____________________________________________________________________________
+Bool_t
+KuramaFieldMap::GetFieldValueHS(const Double_t pointCM[3],
+				Double_t* BfieldTesla) const
+{
+  Double_t xt = pointCM[0];
+  Double_t yt = pointCM[1];
+  Double_t zt = pointCM[2];
+
+  Int_t ix1, ix2, iy1, iy2, iz1, iz2;
+  ix1 = Int_t((xt-X0)/dX);
+  iy1 = Int_t((yt-Y0)/dY);
+  iz1 = Int_t((zt-Z0)/dZ);
+
+  Double_t wx1, wx2, wy1, wy2, wz1, wz2;
+  if(ix1<0) { ix1=ix2=0; wx1=1.; wx2=0.; }
+  else if(ix1>=Nx-1) { ix1=ix2=Nx-1; wx1=1.; wx2=0.; }
+  else { ix2=ix1+1; wx1=(X0+dX*ix2-xt)/dX; wx2=1.-wx1; }
+
+  if(iy1<0) { iy1=iy2=0; wy1=1.; wy2=0.; }
+  else if(iy1>=Ny-1) { iy1=iy2=Ny-1; wy1=1.; wy2=0.; }
+  else { iy2=iy1+1; wy1=(Y0+dY*iy2-yt)/dY; wy2=1.-wy1; }
+
+  if(iz1<0) { iz1=iz2=0; wz1=0.; wz2=0.; }
+  else if(iz1>=Nz-1) { iz1=iz2=Nz-1; wz1=1.; wz2=0.; }
+  else { iz2=iz1+1; wz1=(Z0+dZ*iz2-zt)/dZ; wz2=1.-wz1; }
+
+  Double_t bx1 = wx1*wy1*B[ix1][iy1][iz1].x + wx1*wy2*B[ix1][iy2][iz1].x
+    + wx2*wy1*B[ix2][iy1][iz1].x + wx2*wy2*B[ix2][iy2][iz1].x;
+  Double_t bx2 = wx1*wy1*B[ix1][iy1][iz2].x + wx1*wy2*B[ix1][iy2][iz2].x
+    + wx2*wy1*B[ix2][iy1][iz2].x + wx2*wy2*B[ix2][iy2][iz2].x;
+  Double_t bx  = wz1*bx1 + wz2*bx2;
+
+  Double_t by1 = wx1*wy1*B[ix1][iy1][iz1].y + wx1*wy2*B[ix1][iy2][iz1].y
+    + wx2*wy1*B[ix2][iy1][iz1].y + wx2*wy2*B[ix2][iy2][iz1].y;
+  Double_t by2 = wx1*wy1*B[ix1][iy1][iz2].y + wx1*wy2*B[ix1][iy2][iz2].y
+    + wx2*wy1*B[ix2][iy1][iz2].y + wx2*wy2*B[ix2][iy2][iz2].y;
+  Double_t by  = wz1*by1 + wz2*by2;
+
+  Double_t bz1 = wx1*wy1*B[ix1][iy1][iz1].z + wx1*wy2*B[ix1][iy2][iz1].z
+    + wx2*wy1*B[ix2][iy1][iz1].z + wx2*wy2*B[ix2][iy2][iz1].z;
+  Double_t bz2 = wx1*wy1*B[ix1][iy1][iz2].z + wx1*wy2*B[ix1][iy2][iz2].z
+    + wx2*wy1*B[ix2][iy1][iz2].z + wx2*wy2*B[ix2][iy2][iz2].z;
+  Double_t bz  = wz1*bz1 + wz2*bz2;
+
+  //Default
+  BfieldTesla[0] = bx;
+  BfieldTesla[1] = by;
+  BfieldTesla[2] = bz;
+
+  return true;
+}
+
+
+//_____________________________________________________________________________
 void
 KuramaFieldMap::ClearField()
 {

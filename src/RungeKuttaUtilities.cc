@@ -23,6 +23,7 @@
 #include "KuramaTrack.hh"
 #include "HSTrack.hh"
 #include "PrintHelper.hh"
+#include "TPCHit.hh"
 
 namespace
 {
@@ -35,16 +36,12 @@ const Int_t& IdTOF_UY = gGeom.DetectorId("TOF-UY");
 const Int_t& IdTOF_DX = gGeom.DetectorId("TOF-DX");
 const Int_t& IdTOF_DY = gGeom.DetectorId("TOF-DY");
 const Int_t& IdTarget = gGeom.DetectorId("Target");
-const Int_t& IdVPHTOF = gGeom.DetectorId("VPHTOF");
-const Int_t& IdVPTPC1 = gGeom.DetectorId("VPTPC1");
+const Int_t& IdHTOF = gGeom.DetectorId("HTOF");
 const Int_t& IdRKINIT = gGeom.DetectorId("RKINIT");
 
 const Int_t& IdBH2    = gGeom.DetectorId("BH2");
 const Int_t& IdK18Target = gGeom.DetectorId("K18Target");
-const Int_t& IdHTOF = gGeom.DetectorId("HTOF");
-const Int_t& IdVPHS1 = gGeom.DetectorId("VPHS1");
-const Int_t& IdBC3_X1 = gGeom.DetectorId("BC3-X1");
-const Int_t& IdBC4_U1 = gGeom.DetectorId("BC4-U1");
+  
 const Double_t CHLB     = 2.99792458E-4;
 const Double_t Polarity = 1.;
 }
@@ -297,6 +294,9 @@ RK::TraceOneStep(Double_t StepSize, const RKTrajectoryPoint &prevPoint)
                 0.5*dr*pre_u + 0.125*dr*dr*f1.kx,
                 0.5*dr*pre_v + 0.125*dr*dr*f1.ky);
   ThreeVector B2 = gField.GetField(Z2);
+
+  //  std::cout << Z1.Z() << "\t" << B1.Mag() << "\t" <<  Z2.Z() << "\t" << B2.Mag() << std::endl;
+
 #ifdef ExactFFTreat
   ThreeVector dBdX2 = gField.GetdBdX(Z2);
   ThreeVector dBdY2 = gField.GetdBdY(Z2);
@@ -465,28 +465,30 @@ RK::PropagateOnce(Double_t StepSize, const RKTrajectoryPoint &prevPoint)
   Double_t pre_q = prevPoint.r.q;
   Double_t dr    = StepSize/std::sqrt(1.+pre_u*pre_u+pre_v*pre_v);
 
-  //  std::cout << pre_x << "\t" << pre_y << "\t" << pre_z
-  //	    << pre_u << "\t" << pre_v << "\t" << pre_q << std::endl;
-  //  std::cout << StepSize << std::endl;
-
+  //  std::cout << pre_x << "\t" << pre_y << "\t" << pre_z << std::endl;
+  
+  //  std::cut << StepSize << std::endl;
+    
   ThreeVector Z1 = prevPoint.PositionInGlobal();
-
-  ThreeVector B1 = gField.GetField(Z1);
-  //  std::cout << B1.Y() << std::endl;
-
-  ThreeVector dBdX1 = gField.GetdBdX(Z1);
-  ThreeVector dBdY1 = gField.GetdBdY(Z1);
+  
+  ThreeVector B1 = gField.GetFieldHS(Z1);
+  
+  ThreeVector dBdX1 = gField.GetdBdXHS(Z1);
+  ThreeVector dBdY1 = gField.GetdBdYHS(Z1);
   RKFieldIntegral f1 =
     RK::CalcFieldIntegral(pre_u, pre_v, pre_q,
                           B1, dBdX1, dBdY1);
   RKDeltaFieldIntegral df1 =
     RK::CalcDeltaFieldIntegral(prevPoint, f1);
-
+  
   ThreeVector Z2 = Z1 +
     ThreeVector(0.5*dr,
                 0.5*dr*pre_u + 0.125*dr*dr*f1.kx,
                 0.5*dr*pre_v + 0.125*dr*dr*f1.ky);
-  ThreeVector B2 = gField.GetField(Z2);
+  ThreeVector B2 = gField.GetFieldHS(Z2);
+
+  //  std::cout << Z1.Z() << "\t" << B1.Mag() << "\t" <<  Z2.Z() << "\t" << B2.Mag() << std::endl;
+  
   ThreeVector dBdX2 = gField.GetdBdX(Z2);
   ThreeVector dBdY2 = gField.GetdBdY(Z2);
   RKFieldIntegral f2 =
@@ -507,10 +509,10 @@ RK::PropagateOnce(Double_t StepSize, const RKTrajectoryPoint &prevPoint)
     ThreeVector(dr,
                 dr*pre_u + 0.5*dr*dr*f3.kx,
                 dr*pre_v + 0.5*dr*dr*f3.ky);
-  ThreeVector B4 = gField.GetField(Z4);
+  ThreeVector B4 = gField.GetFieldHS(Z4);
 
-  ThreeVector dBdX4 = gField.GetdBdX(Z4);
-  ThreeVector dBdY4 = gField.GetdBdY(Z4);
+  ThreeVector dBdX4 = gField.GetdBdXHS(Z4);
+  ThreeVector dBdY4 = gField.GetdBdYHS(Z4);
   RKFieldIntegral f4 =
     RK::CalcFieldIntegral(pre_u + dr*f3.kx,
                           pre_v + dr*f3.ky,
@@ -588,7 +590,7 @@ RK::CheckCrossing(Int_t lnum, const RKTrajectoryPoint &startPoint,
 {
   const auto geom_record = gGeom.GetRecord(lnum);
   ThreeVector posVector   = geom_record->Position();
-  ThreeVector nomalVector = geom_record->NormalVector();
+  ThreeVector normalVector = geom_record->NormalVector();
 
   ThreeVector startVector = startPoint.PositionInGlobal();
   ThreeVector endVector   = endPoint.PositionInGlobal();
@@ -597,8 +599,8 @@ RK::CheckCrossing(Int_t lnum, const RKTrajectoryPoint &startPoint,
   endVector   -= posVector;
 
   // inner product
-  Double_t ip1 = nomalVector * startVector;
-  Double_t ip2 = nomalVector * endVector;
+  Double_t ip1 = normalVector * startVector;
+  Double_t ip2 = normalVector * endVector;
 
   // judge whether start/end points are same side
   if(ip1*ip2 > 0.) return false;
@@ -763,17 +765,17 @@ RK::CheckCrossingHS(Int_t lnum, const RKTrajectoryPoint &startPoint,
 {
   const auto geom_record = gGeom.GetRecord(lnum);
   ThreeVector posVector   = geom_record->Position();
-  ThreeVector nomalVector = geom_record->NormalVector();
+  ThreeVector normalVector = geom_record->NormalVector();
 
   ThreeVector startVector(startPoint.r.x,startPoint.r.y,startPoint.r.z);
-  ThreeVector endVector(endPoint.r.x,endPoint.r.y,endPoint.r.z);
+  ThreeVector endVector(endPoint.r.x,endPoint.r.y,endPoint.r.z);  
   // move to origin
   startVector -= posVector;
   endVector   -= posVector;
 
   // inner product
-  Double_t ip1 = nomalVector * startVector;
-  Double_t ip2 = nomalVector * endVector;
+  Double_t ip1 = normalVector * startVector;
+  Double_t ip2 = normalVector * endVector;
 
   // judge whether start/end points are same side
   if(ip1*ip2 > 0.) return false;
@@ -893,9 +895,168 @@ RK::CheckCrossingHS(Int_t lnum, const RKTrajectoryPoint &startPoint,
   crossPoint.dudv=dudv; crossPoint.dudq=dudq;
   crossPoint.dvdx=dvdx; crossPoint.dvdy=dvdy; crossPoint.dvdu=dvdu;
   crossPoint.dvdv=dvdv; crossPoint.dvdq=dvdq;
+  
+  return true;
+}
+
+Bool_t
+RK::CheckCrossingTPC(Int_t lnum, std::vector<TPCHit*> tpchc,
+		     const RKTrajectoryPoint &startPoint,
+		     const RKTrajectoryPoint &endPoint,
+		     RKcalcHitPoint &crossPoint)
+{
+
+  const auto gPosTgt = gGeom.GetGlobalPosition(IdK18Target);
+  const ThreeVector tgtTPC(0,0,-143);
+  const auto hit = tpchc.at(lnum);
+  auto pos = hit->GetPosition();  
+  ThreeVector posVector(pos.X() , pos.Y() , pos.Z());
+  posVector -= tgtTPC;
+  ThreeVector normalVector(0,0,1);
+  posVector += gPosTgt;
+
+  ThreeVector startVector(startPoint.r.x,startPoint.r.y,startPoint.r.z);
+  ThreeVector endVector(endPoint.r.x,endPoint.r.y,endPoint.r.z);  
+  /*
+  std::cout << "Start" << "\t" << startVector.X() << "\t" << startVector.Y() << "\t" << startVector.Z() << std::endl;
+  std::cout << "End" << "\t" <<endVector.X() << "\t" << endVector.Y() << "\t" << endVector.Z() << std::endl;
+  std::cout << pos.X() << "\t" << pos.Y() << "\t" << pos.Z() << std::endl;
+  std::cout << posVector.X() << "\t" << posVector.Y() << "\t" << posVector.Z() << std::endl;
+  */
+  // move to origin
+  startVector -= posVector;
+  endVector   -= posVector;
+
+  // inner product
+  Double_t ip1 = normalVector * startVector;
+  Double_t ip2 = normalVector * endVector;
+
+  // judge whether start/end points are same side
+  if(ip1*ip2 > 0.) return false;
+
+  Double_t x = (ip1*endPoint.r.x - ip2*startPoint.r.x)/(ip1-ip2);
+  Double_t y = (ip1*endPoint.r.y - ip2*startPoint.r.y)/(ip1-ip2);
+  Double_t z = (ip1*endPoint.r.z - ip2*startPoint.r.z)/(ip1-ip2);
+  Double_t u = (ip1*endPoint.r.u - ip2*startPoint.r.u)/(ip1-ip2);
+  Double_t v = (ip1*endPoint.r.v - ip2*startPoint.r.v)/(ip1-ip2);
+  Double_t q = (ip1*endPoint.r.q - ip2*startPoint.r.q)/(ip1-ip2);
+  Double_t l = (ip1*endPoint.l   - ip2*startPoint.l)/(ip1-ip2);
+
+  Double_t dxdx = (ip1*endPoint.dxdx - ip2*startPoint.dxdx)/(ip1-ip2);
+  Double_t dxdy = (ip1*endPoint.dxdy - ip2*startPoint.dxdy)/(ip1-ip2);
+  Double_t dxdu = (ip1*endPoint.dxdu - ip2*startPoint.dxdu)/(ip1-ip2);
+  Double_t dxdv = (ip1*endPoint.dxdv - ip2*startPoint.dxdv)/(ip1-ip2);
+  Double_t dxdq = (ip1*endPoint.dxdq - ip2*startPoint.dxdq)/(ip1-ip2);
+
+  Double_t dydx = (ip1*endPoint.dydx - ip2*startPoint.dydx)/(ip1-ip2);
+  Double_t dydy = (ip1*endPoint.dydy - ip2*startPoint.dydy)/(ip1-ip2);
+  Double_t dydu = (ip1*endPoint.dydu - ip2*startPoint.dydu)/(ip1-ip2);
+  Double_t dydv = (ip1*endPoint.dydv - ip2*startPoint.dydv)/(ip1-ip2);
+  Double_t dydq = (ip1*endPoint.dydq - ip2*startPoint.dydq)/(ip1-ip2);
+
+  Double_t dudx = (ip1*endPoint.dudx - ip2*startPoint.dudx)/(ip1-ip2);
+  Double_t dudy = (ip1*endPoint.dudy - ip2*startPoint.dudy)/(ip1-ip2);
+  Double_t dudu = (ip1*endPoint.dudu - ip2*startPoint.dudu)/(ip1-ip2);
+  Double_t dudv = (ip1*endPoint.dudv - ip2*startPoint.dudv)/(ip1-ip2);
+  Double_t dudq = (ip1*endPoint.dudq - ip2*startPoint.dudq)/(ip1-ip2);
+
+  Double_t dvdx = (ip1*endPoint.dvdx - ip2*startPoint.dvdx)/(ip1-ip2);
+  Double_t dvdy = (ip1*endPoint.dvdy - ip2*startPoint.dvdy)/(ip1-ip2);
+  Double_t dvdu = (ip1*endPoint.dvdu - ip2*startPoint.dvdu)/(ip1-ip2);
+  Double_t dvdv = (ip1*endPoint.dvdv - ip2*startPoint.dvdv)/(ip1-ip2);
+  Double_t dvdq = (ip1*endPoint.dvdq - ip2*startPoint.dvdq)/(ip1-ip2);
+
+  Double_t pz = Polarity/(std::sqrt(1.+u*u+v*v)*q);
+
+  crossPoint.posG = ThreeVector(x, y, z);
+  crossPoint.momG = ThreeVector(pz*u, pz*v, pz);
+
+  //  std::cout << x << "\t" << y << "\t" << z << std::endl;
+  
+  //  crossPoint.s = gGeom.Global2LocalPos(lnum, crossPoint.posG).x();
+  crossPoint.s = crossPoint.posG.x();
+
+  crossPoint.l = l;
+  
+  Double_t sx = 1.;
+  Double_t sy = 0.;
+  Double_t sz = 0.;
+  Double_t ux = 0.;
+  Double_t uy = 0.;
+  Double_t uz = 1.;
+
+  if(uz==0.){
+    crossPoint.dsdx = crossPoint.dsdy =
+      crossPoint.dsdu = crossPoint.dsdv = crossPoint.dsdq = 0.;
+    crossPoint.dsdxx = crossPoint.dsdxy =
+      crossPoint.dsdxu = crossPoint.dsdxv = crossPoint.dsdxq = 0.;
+    crossPoint.dsdyx = crossPoint.dsdyy =
+      crossPoint.dsdyu = crossPoint.dsdyv = crossPoint.dsdyq = 0.;
+    crossPoint.dsdux = crossPoint.dsduy =
+      crossPoint.dsduu = crossPoint.dsduv = crossPoint.dsduq = 0.;
+    crossPoint.dsdvx = crossPoint.dsdvy =
+      crossPoint.dsdvu = crossPoint.dsdvv = crossPoint.dsdvq = 0.;
+    crossPoint.dsdqx = crossPoint.dsdqy =
+      crossPoint.dsdqu = crossPoint.dsdqv = crossPoint.dsdqq = 0.;
+  }
+  
+  else {
+    Double_t ffx = ux/uz, ffy = uy/uz;
+    Double_t dzdx = -ffx*dxdx - ffy*dydx;
+    Double_t dzdy = -ffx*dxdy - ffy*dydy;
+    Double_t dzdu = -ffx*dxdu - ffy*dydu;
+    Double_t dzdv = -ffx*dxdv - ffy*dydv;
+    Double_t dzdq = -ffx*dxdq - ffy*dydq;
+
+    crossPoint.dsdx = sx*dxdx + sy*dydx + sz*dzdx;
+    crossPoint.dsdy = sx*dxdy + sy*dydy + sz*dzdy;
+    crossPoint.dsdu = sx*dxdu + sy*dydu + sz*dzdu;
+    crossPoint.dsdv = sx*dxdv + sy*dydv + sz*dzdv;
+    crossPoint.dsdq = sx*dxdq + sy*dydq + sz*dzdq;
+
+    crossPoint.dsdxx = sx*dzdx*dudx + sy*dzdx*dvdx;
+    crossPoint.dsdxy = sx*dzdx*dudy + sy*dzdx*dvdy;
+    crossPoint.dsdxu = sx*dzdx*dudu + sy*dzdx*dvdu;
+    crossPoint.dsdxv = sx*dzdx*dudv + sy*dzdx*dvdv;
+    crossPoint.dsdxq = sx*dzdx*dudq + sy*dzdx*dvdq;
+
+    crossPoint.dsdyx = sx*dzdy*dudx + sy*dzdy*dvdx;
+    crossPoint.dsdyy = sx*dzdy*dudy + sy*dzdy*dvdy;
+    crossPoint.dsdyu = sx*dzdy*dudu + sy*dzdy*dvdu;
+    crossPoint.dsdyv = sx*dzdy*dudv + sy*dzdy*dvdv;
+    crossPoint.dsdyq = sx*dzdy*dudq + sy*dzdy*dvdq;
+
+    crossPoint.dsdux = sx*dzdu*dudx + sy*dzdu*dvdx;
+    crossPoint.dsduy = sx*dzdu*dudy + sy*dzdu*dvdy;
+    crossPoint.dsduu = sx*dzdu*dudu + sy*dzdu*dvdu;
+    crossPoint.dsduv = sx*dzdu*dudv + sy*dzdu*dvdv;
+    crossPoint.dsduq = sx*dzdu*dudq + sy*dzdu*dvdq;
+
+    crossPoint.dsdvx = sx*dzdv*dudx + sy*dzdv*dvdx;
+    crossPoint.dsdvy = sx*dzdv*dudy + sy*dzdv*dvdy;
+    crossPoint.dsdvu = sx*dzdv*dudu + sy*dzdv*dvdu;
+    crossPoint.dsdvv = sx*dzdv*dudv + sy*dzdv*dvdv;
+    crossPoint.dsdvq = sx*dzdv*dudq + sy*dzdv*dvdq;
+
+    crossPoint.dsdqx = sx*dzdq*dudx + sy*dzdq*dvdx;
+    crossPoint.dsdqy = sx*dzdq*dudy + sy*dzdq*dvdy;
+    crossPoint.dsdqu = sx*dzdq*dudu + sy*dzdq*dvdu;
+    crossPoint.dsdqv = sx*dzdq*dudv + sy*dzdq*dvdv;
+    crossPoint.dsdqq = sx*dzdq*dudq + sy*dzdq*dvdq;
+  }
+
+  crossPoint.dxdx=dxdx; crossPoint.dxdy=dxdy; crossPoint.dxdu=dxdu;
+  crossPoint.dxdv=dxdv; crossPoint.dxdq=dxdq;
+  crossPoint.dydx=dydx; crossPoint.dydy=dydy; crossPoint.dydu=dydu;
+  crossPoint.dydv=dydv; crossPoint.dydq=dydq;
+  crossPoint.dudx=dudx; crossPoint.dudy=dudy; crossPoint.dudu=dudu;
+  crossPoint.dudv=dudv; crossPoint.dudq=dudq;
+  crossPoint.dvdx=dvdx; crossPoint.dvdy=dvdy; crossPoint.dvdu=dvdu;
+  crossPoint.dvdv=dvdv; crossPoint.dvdq=dvdq;
 
   return true;
 }
+
 
 //_____________________________________________________________________________
 Int_t
@@ -996,7 +1157,8 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
 	      << std::endl;
 #endif
 
-  return KuramaTrack::kExceedMaxStep;}
+  return KuramaTrack::kExceedMaxStep;
+}
 
 //_____________________________________________________________________________
 Int_t
@@ -1004,7 +1166,7 @@ RK::Extrap(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
 {
   const Int_t nPlane = hitContainer.size();
   Int_t iPlane = 0;
-
+  
   RKTrajectoryPoint prevPoint(initial,
                               1., 0., 0., 0., 0.,
                               0., 1., 0., 0., 0.,
@@ -1019,12 +1181,12 @@ RK::Extrap(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
   std::vector<TVector3> StepPoint(MaxStep);
 
   Int_t iStep = 0;
-
+  
   while(++iStep < MaxStep){
     Double_t StepSize = gField.StepSize(prevPoint.PositionInGlobal(),
                                         NormalStepSize, MinStepSize);
     RKTrajectoryPoint nextPoint = RK::PropagateOnce(StepSize, prevPoint);
-
+    
     StepPoint[iStep-1] = nextPoint.PositionInGlobal();
 
     while(RK::CheckCrossingHS(hitContainer[iPlane].first,
@@ -1052,14 +1214,65 @@ RK::Extrap(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
 	return HSTrack::kPassed;
       }
     } // while(RKcheckCrossing())
-
+    
     if(nextPoint.PathLength() > MaxPathLength){
       return HSTrack::kExceedMaxPathLength;
     }
     prevPoint = nextPoint;
   }// while(++iStep)
-
+  
   return HSTrack::kExceedMaxStep;
+}
+
+//_____________________________________________________________________________
+Int_t
+RK::ExtrapTPC(const RKCordParameter &initial, RKHitPointContainer &hitContainer,
+	      std::vector<TPCHit*> tpchc)
+{
+
+  const Int_t nLayer = hitContainer.size();
+  Int_t iLayer = 0;
+  
+  RKTrajectoryPoint prevPoint(initial,
+                              1., 0., 0., 0., 0.,
+                              0., 1., 0., 0., 0.,
+                              0., 0., 1., 0., 0.,
+                              0., 0., 0., 1., 0.,
+                              0.0);
+
+  Int_t MaxStep = 5000;
+  static const Double_t MaxPathLength  = 5000.; // mm
+  static const Double_t NormalStepSize = 5.;   // mm
+  Double_t MinStepSize = 2.;     // mm
+  //  std::vector<TVector3> StepPoint(MaxStep);
+
+  Int_t iStep = 0;
+  
+  while(++iStep < MaxStep){
+    Double_t StepSize = gField.StepSize(prevPoint.PositionInGlobal(),
+                                        NormalStepSize, MinStepSize);
+    RKTrajectoryPoint nextPoint = RK::PropagateOnce(StepSize, prevPoint);
+    
+    //    StepPoint[iStep-1] = nextPoint.PositionInGlobal();
+
+    while(RK::CheckCrossingTPC(hitContainer[iLayer].first, tpchc,
+			       prevPoint, nextPoint,hitContainer[iLayer].second)){
+      ++iLayer;
+      
+      if(iLayer == nLayer) {
+	  return HSTrack::kPassed;
+      }
+    }
+
+    if(nextPoint.PathLength() > MaxPathLength) {
+      return HSTrack::kExceedMaxPathLength;
+    }
+    
+    prevPoint = nextPoint;
+  }// while(++iStep)
+  
+  return HSTrack::kExceedMaxStep;
+
 }
 
 //_____________________________________________________________________________
@@ -1110,7 +1323,7 @@ RK::TraceToLast(RKHitPointContainer& hitContainer)
     }
     prevPoint = nextPoint;
   }
-
+  
   return false;
 }
 
@@ -1128,10 +1341,9 @@ RK::MakeHPContainer()
 
   // /*** From Upstream ***/
   container.push_back(std::make_pair(IdTarget, RKcalcHitPoint()));
-  for(int i = 0; i<5; ++i){
-    container.push_back(std::make_pair(IdVPTPC1+i, RKcalcHitPoint()));
-  }
-  container.push_back(std::make_pair(IdVPHTOF, RKcalcHitPoint()));
+
+  container.push_back(std::make_pair(IdHTOF, RKcalcHitPoint()));
+
   for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
     container.push_back(std::make_pair(i+PlOffsSdcIn+1, RKcalcHitPoint()));
   }
@@ -1152,24 +1364,40 @@ RK::MakeHPContainer()
 
 //_____________________________________________________________________________
 RKHitPointContainer
+RK::MakeTPCHPContainer(std::vector<TPCHit*> CandHits)
+{
+  RKHitPointContainer container;
+
+  for (int i = 0 ; i < CandHits.size() ; i++ ) 
+    container.push_back(std::make_pair(i, RKcalcHitPoint()));
+
+  
+  return container;
+  
+}
+
+//_____________________________________________________________________________
+RKHitPointContainer
 RK::MakeHSHPContainer()
 {
   static const auto& IdList = gGeom.GetDetectorIDList();
   RKHitPointContainer cont;
+  
+  for (int i = 0 ; i <6 ; i++) {
+    cont.push_back(std::make_pair(113+i, RKcalcHitPoint()));
+  }
+  for (int i = 0 ; i <6 ; i++) {
+    cont.push_back(std::make_pair(119+i, RKcalcHitPoint()));
+  }
 
-  for (int i = 0 ; i <6 ; i++) {
-    cont.push_back(std::make_pair(IdBC3_X1+i, RKcalcHitPoint()));
-  }
-  for (int i = 0 ; i <6 ; i++) {
-    cont.push_back(std::make_pair(IdBC4_U1+i, RKcalcHitPoint()));
-  }
   cont.push_back(std::make_pair(IdBH2,RKcalcHitPoint()));
-  for (int i = 0 ; i < 4 ; i++){
-    cont.push_back(std::make_pair(IdVPHS1+i, RKcalcHitPoint()));
-  }
-  cont.push_back(std::make_pair(IdK18Target,RKcalcHitPoint()));
-  cont.push_back(std::make_pair(IdHTOF,RKcalcHitPoint()));
 
+  for (int i = 0 ; i < 4 ; i++) 
+    cont.push_back(std::make_pair(i+208, RKcalcHitPoint()));
+
+  cont.push_back(std::make_pair(IdK18Target,RKcalcHitPoint()));
+  //  cont.push_back(std::make_pair(IdHTOF,RKcalcHitPoint()));
+  
   return cont;
 }
 

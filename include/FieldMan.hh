@@ -41,9 +41,16 @@ public:
                       const TString& file_name_shs);
   Bool_t   IsReady() const { return m_is_ready; }
   TVector3 GetField(const TVector3& position) const;
+  TVector3 GetFieldHS(const TVector3& position) const;
+
   TVector3 GetdBdX(const TVector3& position) const;
   TVector3 GetdBdY(const TVector3& position) const;
   TVector3 GetdBdZ(const TVector3& position) const;
+
+  TVector3 GetdBdXHS(const TVector3& position) const;
+  TVector3 GetdBdYHS(const TVector3& position) const;
+  TVector3 GetdBdZHS(const TVector3& position) const;
+
   void     ClearElementsList();
   void     AddElement(FieldElements* element);
   void     SetKuramaFileName(const TString& file_name) { m_file_name_kurama = file_name; }
