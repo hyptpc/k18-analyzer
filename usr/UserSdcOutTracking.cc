@@ -406,6 +406,7 @@ UserSdcOutTracking::ProcessingNormal()
     HF1(100*layer, nhOut);
     Int_t plane_eff = (layer-1)*3;
     Bool_t fl_valid_sig = false;
+    Int_t tdc1st_2 = -1;
     for(Int_t i=0; i<nhOut; ++i){
       DCHit *hit=contOut[i];
       Double_t wire=hit->GetWire();
@@ -416,13 +417,17 @@ UserSdcOutTracking::ProcessingNormal()
         Int_t tdc = hit->GetTdcVal(k);
         HF1(100*layer+2, tdc);
         HF1(10000*layer+Int_t(wire), tdc);
-        //	    HF2(1000*layer, tdc, wire-0.5);
+        HF2(100*layer+51, tdc, wire-0.5);
         if(tdc > tdc1st){
           tdc1st = tdc;
           fl_valid_sig = true;
         }
       }
       HF1(100*layer+6, tdc1st);
+      HF2(100*layer+52, tdc1st, wire-0.5);
+      if(tdc1st > tdc1st_2){
+        tdc1st_2 = tdc1st;
+      }
       for(Int_t k=0, n=hit->GetTdcTrailingSize(); k<n; ++k){
         Int_t trailing = hit->GetTdcTrailing(k);
         HF1(100*layer+10, trailing);
@@ -452,6 +457,7 @@ UserSdcOutTracking::ProcessingNormal()
         HF1(100*layer+4, dl);
       }
     }
+    HF1(100*layer+9, tdc1st_2);
     if(fl_valid_sig) ++plane_eff;
     HF1(38, plane_eff);
   }
@@ -726,7 +732,10 @@ ConfMan::InitializeHistograms()
       TString title6 = Form("Tdc 1st %s#%2d", tag.Data(), i);
       TString title7 = Form("TOT 1st %s#%2d", tag.Data(), i);
       TString title8 = Form("Drift Time %s#%2d (BH2 timing)", tag.Data(), i);
+      TString title9 = Form("Tdc 1st-2 %s#%2d", tag.Data(), i);
       TString title10 = Form("Trailing %s#%2d", tag.Data(), i);
+      TString title51 = Form("Tdc vs wire %s#%2d", tag.Data(), i);
+      TString title52 = Form("Tdc 1st vs wire %s#%2d", tag.Data(), i);
       HB1(100*i+0, title0, nwire+1, 0., nwire+1);
       HB1(100*i+1, title1, nwire, 0., nwire);
       HB1(100*i+2, title2, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc);
@@ -736,7 +745,10 @@ ConfMan::InitializeHistograms()
       HB1(100*i+6, title6, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc);
       HB1(100*i+7, title7, 500,    0, 500);
       HB1(100*i+8, title8, nbindt, mindt, maxdt);
+      HB1(100*i+9, title9, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc);
       HB1(100*i+10, title10, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc);
+      HB2(100*i+51, title51, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc, nwire, 0., nwire);
+      HB2(100*i+52, title52, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc, nwire, 0., nwire);
       for (Int_t wire=1; wire<=nwire; wire++){
         TString title11 = Form("Tdc %s#%2d  Wire#%4d", tag.Data(), i, wire);
         TString title12 = Form("DriftTime %s#%2d Wire#%4d", tag.Data(), i, wire);
