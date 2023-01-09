@@ -109,36 +109,6 @@ FieldMan::GetField(const TVector3& position) const
 
 //_____________________________________________________________________________
 TVector3
-FieldMan::GetFieldHS(const TVector3& position) const
-{
-  TVector3 field(0., 0., 0.);
-  if(m_kurama_map && m_shs_map){
-    Double_t p[3], b_kurama[3], b_shs[3];
-    p[0] = position.x()*0.1;
-    p[1] = position.y()*0.1;
-    p[2] = position.z()*0.1;
-    if(m_kurama_map->GetFieldValueHS(p, b_kurama) &&
-       m_shs_map->GetFieldValueHS(p, b_shs)){
-      field.SetX(b_kurama[0]+b_shs[0]);
-      field.SetY(b_kurama[1]+b_shs[1]);
-      field.SetZ(b_kurama[2]+b_shs[2]);
-    }
-  }
-
-#if 1
-  FEIterator itr, itr_end = m_element_list.end();
-  for(itr=m_element_list.begin(); itr!=itr_end; ++itr){
-    if((*itr)->ExistField(position))
-      field += (*itr)->GetField(position);
-  }
-#endif
-
-  return field;
-}
-
-
-//_____________________________________________________________________________
-TVector3
 FieldMan::GetdBdX(const TVector3& position) const
 {
   TVector3 p1 = position + TVector3(Delta, 0., 0.);
@@ -167,39 +137,6 @@ FieldMan::GetdBdZ(const TVector3& position) const
   TVector3 p2 = position - TVector3(0., 0., Delta);
   TVector3 B1 = GetField(p1);
   TVector3 B2 = GetField(p2);
-  return 0.5/Delta*(B1-B2);
-}
-
-//_____________________________________________________________________________
-TVector3
-FieldMan::GetdBdXHS(const TVector3& position) const
-{
-  TVector3 p1 = position + TVector3(Delta, 0., 0.);
-  TVector3 p2 = position - TVector3(Delta, 0., 0.);
-  TVector3 B1 = GetFieldHS(p1);
-  TVector3 B2 = GetFieldHS(p2);
-  return 0.5/Delta*(B1-B2);
-}
-
-//_____________________________________________________________________________
-TVector3
-FieldMan::GetdBdYHS(const TVector3& position) const
-{
-  TVector3 p1 = position + TVector3(0., Delta, 0.);
-  TVector3 p2 = position - TVector3(0., Delta, 0.);
-  TVector3 B1 = GetFieldHS(p1);
-  TVector3 B2 = GetFieldHS(p2);
-  return 0.5/Delta*(B1-B2);
-}
-
-//_____________________________________________________________________________
-TVector3
-FieldMan::GetdBdZHS(const TVector3& position) const
-{
-  TVector3 p1 = position + TVector3(0., 0., Delta);
-  TVector3 p2 = position - TVector3(0., 0., Delta);
-  TVector3 B1 = GetFieldHS(p1);
-  TVector3 B2 = GetFieldHS(p2);
   return 0.5/Delta*(B1-B2);
 }
 

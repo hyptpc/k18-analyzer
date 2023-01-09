@@ -9,11 +9,8 @@
 #include <utility>
 #include <iosfwd>
 
-#include "TPCHit.hh"
-#include "TPCRawHit.hh"
-#include "TPCPadHelper.hh"
-
 #include <TString.h>
+#include "TPCHit.hh"
 
 class RKFieldIntegral;
 class RKDeltaFieldIntegral;
@@ -80,10 +77,10 @@ RKHitPointContainer
 MakeHPContainer();
 //_____________________________________________________________________________
 RKHitPointContainer
-MakeTPCHPContainer(std::vector<TPCHit*> CandHits);
+MakeHSHPContainer();
 //_____________________________________________________________________________
 RKHitPointContainer
-MakeHSHPContainer();
+MakeTPCHPContainer(std::vector<TPCHit*> CandHits);
 
 inline TString
 ClassName() { static TString s_name("RK"); return s_name; }
@@ -323,7 +320,6 @@ public:
   RK::CheckCrossingTPC(int, std::vector<TPCHit*> ,
 		       const RKTrajectoryPoint &,
 		       const RKTrajectoryPoint &, RKcalcHitPoint &);
-
 };
 
 //_____________________________________________________________________________
@@ -446,7 +442,6 @@ public:
   RK::CheckCrossingTPC(int, std::vector<TPCHit*> ,
 		       const RKTrajectoryPoint &,
 		       const RKTrajectoryPoint &, RKcalcHitPoint &);
-
   friend RKDeltaFieldIntegral
   RK::CalcDeltaFieldIntegral(const RKTrajectoryPoint &,
                              const RKFieldIntegral &,

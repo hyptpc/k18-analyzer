@@ -51,11 +51,19 @@ private:
   Double_t                m_initial_momentum;
   RKHitPointContainer     m_HitPointCont;
   Double_t                m_polarity;
+
   TVector3                m_tgt_position;
   TVector3                m_tgt_momentum;
 
   TVector3                m_bh2_position;
   TVector3                m_bh2_momentum;
+  Double_t                m_bh2_path;
+
+  std::vector<TVector3>   m_bc_position;
+  std::vector<TVector3>   m_bc_momentum;
+
+  TVector3                m_v0_position;
+  TVector3                m_v0_momentum;
 
   TVector3                m_vp1_position;
   TVector3                m_vp1_momentum;
@@ -90,6 +98,9 @@ public:
   Double_t        TgtMomMag() const { return m_tgt_momentum.Mag();}
   const TVector3& TgtPosition() const { return m_tgt_position; }
 
+  const TVector3& V0Momentum() const { return m_v0_momentum; }
+  const TVector3& V0Position() const { return m_v0_position; }
+
   const TVector3& BH2Momentum() const { return m_bh2_momentum; }
   const TVector3& BH2Position() const { return m_bh2_position; }
 
@@ -107,6 +118,9 @@ public:
 
   const TVector3& HtofMomentum() const { return m_htof_momentum; }
   const TVector3& HtofPosition() const { return m_htof_position; }
+
+  const TVector3& BCMomentum(Int_t ith) const { return m_bc_momentum[ith]; }
+  const TVector3& BCPosition(Int_t ith) const { return m_bc_position[ith]; }
 
   void            Print(const TString& arg="", std::ostream& ost=hddaq::cout);
   void            SetInitialMomentum(Double_t p) { m_initial_momentum = p; }
