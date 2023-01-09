@@ -57,7 +57,6 @@ private:
 
   TVector3                m_bh2_position;
   TVector3                m_bh2_momentum;
-  Double_t                m_bh2_path;
 
   std::vector<TVector3>   m_bc_position;
   std::vector<TVector3>   m_bc_momentum;
