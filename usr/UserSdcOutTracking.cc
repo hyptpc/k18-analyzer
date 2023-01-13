@@ -20,10 +20,10 @@
 #include "RawData.hh"
 
 #define HodoCut     0
-#define TotCut      0
+#define TotCut      1
 #define Chi2Cut     0
 #define MaxMultiCut 0
-#define UseTOF      1 // use or not TOF for tracking
+#define UseTOF      0 // use or not TOF for tracking
 
 namespace
 {
@@ -392,9 +392,10 @@ UserSdcOutTracking::ProcessingNormal()
   // Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
   DCAna->DecodeSdcOutHits(rawData);
 #if TotCut
-  DCAna->TotCutSDC3(MinTotSDC3);
-  DCAna->TotCutSDC4(MinTotSDC4);
-  DCAna->TotCutSDC5(MinTotSDC5);
+  //DCAna->TotCutSDC3(MinTotSDC3);
+  //DCAna->TotCutSDC3(150);
+  //DCAna->TotCutSDC4(MinTotSDC4);
+  //DCAna->TotCutSDC5(MinTotSDC5);
 #endif
   Double_t multi_SdcOut = 0.;
   for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer) {
@@ -415,9 +416,11 @@ UserSdcOutTracking::ProcessingNormal()
       Int_t tdc1st = -1;
       for(Int_t k=0; k<nhtdc; k++){
         Int_t tdc = hit->GetTdcVal(k);
+        Int_t tot_1 = hit->GetTot(k);
         HF1(100*layer+2, tdc);
         HF1(10000*layer+Int_t(wire), tdc);
         HF2(100*layer+51, tdc, wire-0.5);
+        HF2(100*layer+53, tdc, tot_1);
         if(tdc > tdc1st){
           tdc1st = tdc;
           fl_valid_sig = true;
@@ -454,7 +457,9 @@ UserSdcOutTracking::ProcessingNormal()
       Int_t nhdl = hit->GetDriftTimeSize();
       for(Int_t k=0; k<nhdl; k++){
         Double_t dl = hit->GetDriftLength(k);
+        Double_t tot_2 = hit->GetTot(k);
         HF1(100*layer+4, dl);
+        HF2(100*layer+54, dl, tot_2);
       }
     }
     HF1(100*layer+9, tdc1st_2);
@@ -736,6 +741,8 @@ ConfMan::InitializeHistograms()
       TString title10 = Form("Trailing %s#%2d", tag.Data(), i);
       TString title51 = Form("Tdc vs wire %s#%2d", tag.Data(), i);
       TString title52 = Form("Tdc 1st vs wire %s#%2d", tag.Data(), i);
+      TString title53 = Form("Tdc vs tot %s#%2d", tag.Data(), i);
+      TString title54 = Form("Drift Length vs tot %s#%2d", tag.Data(), i);
       HB1(100*i+0, title0, nwire+1, 0., nwire+1);
       HB1(100*i+1, title1, nwire, 0., nwire);
       HB1(100*i+2, title2, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc);
@@ -749,6 +756,8 @@ ConfMan::InitializeHistograms()
       HB1(100*i+10, title10, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc);
       HB2(100*i+51, title51, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc, nwire, 0., nwire);
       HB2(100*i+52, title52, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc, nwire, 0., nwire);
+      HB2(100*i+53, title53, NbinSdcOutTdc, MinSdcOutTdc, MaxSdcOutTdc, 500, 0., 500);
+      HB2(100*i+54, title54, nbindl, mindl, maxdl, 500, 0., 500);
       for (Int_t wire=1; wire<=nwire; wire++){
         TString title11 = Form("Tdc %s#%2d  Wire#%4d", tag.Data(), i, wire);
         TString title12 = Form("DriftTime %s#%2d Wire#%4d", tag.Data(), i, wire);

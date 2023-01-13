@@ -280,8 +280,8 @@ DCDriftParamMan::DriftLength6(Int_t PlaneId, Double_t dt,
       return qnan;
     if(dl < 0.)
       return 0.;
-    if(dl > 10. || dt > 300.)
-      return 10.;
+    if(dl > 4.5 || dt > 300.)
+      return 4.5;
     else
       return dl;
     break;
@@ -291,8 +291,8 @@ DCDriftParamMan::DriftLength6(Int_t PlaneId, Double_t dt,
       return qnan;
     if(dl < 0.)
       return 0.;
-    if(dl > 10. || dt > 300.)
-      return 10.;
+    if(dl > 4.5 || dt > 300.)
+      return 4.5;
     else
       return dl;
     break;
