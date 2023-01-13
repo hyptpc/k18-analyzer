@@ -50,7 +50,7 @@ const DCPairPlaneInfo PPInfoSdcOut[] = {
   // { pair_plane, honeycomb, fiber, id1, id2, CellSize }
   { true, true, false, 1, 2,  9.0 }, { true, true, false, 3, 4,  9.0 }, //SDC3
   { true, true, false, 5, 6,  9.0 }, { true, true, false, 7, 8,  9.0 }, //SDC4
-  //{ true, true, false, 9, 10,  9.0 }, { true, true, false, 11, 12,  9.0 }, //SDC5
+  { true, true, false, 9, 10,  9.0 }, { true, true, false, 11, 12,  9.0 }, //SDC5
 };
 
 const Int_t NPPInfoBcOut  = sizeof(PPInfoBcOut)/sizeof(DCPairPlaneInfo);
@@ -98,7 +98,7 @@ const Double_t MinDLSdc[] = {
   // SDC4
   -0.5, -0.5, -0.5, -0.5
   // SDC5
-  //-0.5, -0.5, -0.5, -0.5
+  -0.5, -0.5, -0.5, -0.5
 };
 
 const Double_t MaxDLSdc[] = {
@@ -118,7 +118,7 @@ const Double_t MaxDLSdc[] = {
   //13.00, 13.00, 13.00, 13.00
   4.5, 4.5, 4.5, 4.5,
   // SDC5
-  //4.5, 4.5, 4.5, 4.5,
+  4.5, 4.5, 4.5, 4.5,
 };
 
 #endif

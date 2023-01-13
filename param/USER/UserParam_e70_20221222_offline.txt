@@ -110,7 +110,7 @@ MinLayerSdcIn 8
 MaxMultiHitSdcOut 16
 
 ### SDCOUT plane multiplicity gate (+2 in SdcOutTracking)
-MinLayerSdcOut 6
+MinLayerSdcOut  12
 
 ### CommonStop timing of "L1" for SdcOut
 StopTimingSdcOut 360 400
