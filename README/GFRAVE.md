@@ -24,7 +24,7 @@ pdf_options:
     </section>
 ---
 
-K1.8 analyzer README
+RAVE INSTALLATION README
 ====================
 
 <div style="text-align: right;">
@@ -45,13 +45,16 @@ Unzip rave*.tar.gz into somewhere and run ./boostrap and ./configure.
 
 Please set environment variables for CLHEP. Otherwise configure it with 
 
-./configure --with-clhep=/your/path/to/CLHEP 
+```sh
+$ ./configure \
+	    --with-clhep=/your/path/to/CLHEP 
 	    --with-clhep-libpath=/your/path/to/CLHEPLIB
 	    --with-clhep-incpath=/your/path/to/CLHEPINC
 	    --prefix=/your/path/to/install
 	    --disable-java 
 	    CXXFLAGS=-std=c++11 
 	    LDFLAGS=-L/usr/lib64
+```
 
 More details and options are available on ./configure --help
 
@@ -60,3 +63,12 @@ More details and options are available on ./configure --help
 Sample Makefile is summarized in MakeFile.gfRave.
 Please modify RAVE_DIR in Makefile to your path to RAVE Installation.
 
+## Environment variables
+
+Path to RAVE and CLHEP is required.
+For example, add some lines to bash_profile.
+
+```sh
+$ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:~/path/to/CLHEP/lib
+$ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:~/path/to/RAVE/lib
+```

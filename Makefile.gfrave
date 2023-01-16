@@ -66,11 +66,11 @@ RAVE_LIB	= -L$(RAVE_LIB_DIR) -lRaveBase -lRaveCore -lRaveVertex -lRaveFlavorTag 
 DFLAGS_RAVE 	= -DRAVE -DRaveDllExport= -DWITH_FLAVORTAGGING -DWITH_KINEMATICS
 
 # CLHEP
-#CLHEP_DIR	= $(HOME)/sw/CLHEP
-#CLHEP_INC_DIR	= $(CLHEP_DIR)/include
-#CLHEP_INCLUDE	= -I$(CLHEP_DIR)/include
-#CLHEP_LIB_DIR	= $(CLHEP_DIR)/lib
-#CLHEP_LIB	= -L$(CLHEP_DIR)/lib -lCLHEP-2.4.6.2
+CLHEP_DIR	= $(HOME)/sw/CLHEP
+CLHEP_INC_DIR	= $(CLHEP_DIR)/include
+CLHEP_INCLUDE	= -I$(CLHEP_DIR)/include
+CLHEP_LIB_DIR	= $(CLHEP_DIR)/lib
+CLHEP_LIB	= -L$(CLHEP_DIR)/lib -lCLHEP-2.4.6.2
 
 # ROOT
 root_config	= root-config
@@ -91,7 +91,7 @@ CFLAGS	+= -std=c++17
 # CFLAGS	+= -Wno-unused-variable -Wno-unused-but-set-variable
 #DFLAGS	= -Df2cFortran -Dextname -DDEBUG -fno-inline
 DFLAGS	+= -DMemoryLeak
-FLAGS	= $(CFLAGS) $(DFLAGS) $(DFLAGS_RAVE) -I. $(root_include) $(RAVE_INCLUDE)\
+FLAGS	= $(CFLAGS) $(DFLAGS) $(DFLAGS_RAVE) -I. $(root_include) $(RAVE_INCLUDE) $(CLHEP_INCLUDE)\
 	$(unpacker_include) $(addprefix -I, $(src_dir) $(include_dir) \
 	$(GenFit_src_FLAGS) $(GenFit_include_FLAGS) )
 #
@@ -161,7 +161,7 @@ GenKEK_linkdef_deps	= $(GenKEK_build_dir)/HypTPCRootDict.d
 GenKEK_linkdef_pcms	= $(lib_dir)/HypTPCRootDict_rdict.pcm
 GenKEK_shared_libs	= $(lib_dir)/libHypTPC.so
 #
-GenFit_k18lib		= -L$(lib_dir) -lGenKEK ${RAVE_LIB}
+GenFit_k18lib		= -L$(lib_dir) -lGenKEK $(RAVE_LIB) $(CLHEP_LIB)
 #GenFit_k18lib		+= $(addprefix -l,$(shared_libs:$(lib_dir)/lib%.so=%))
 #GenFit_k18lib		+= $(addprefix -l,$(GenKEK_shared_libs:$(lib_dir)/lib%.so=%))
 #
