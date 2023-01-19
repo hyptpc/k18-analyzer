@@ -114,6 +114,7 @@ struct Event
   Int_t nhit[NumOfLayersSdcOut+2];
   Int_t nlayer;
   Double_t pos[NumOfLayersSdcOut+2][MaxHits];
+  //Double_t wire[NumOfLayersSdcOut+2][MaxHits];
 
   Int_t ntrack;
   Double_t chisqr[MaxHits];
@@ -201,6 +202,7 @@ UserSdcOutTracking::ProcessingBegin()
 Bool_t
 UserSdcOutTracking::ProcessingNormal()
 {
+
 #if HodoCut
   static const auto MinDeBH2 = gUser.GetParameter("DeBH2", 0);
   static const auto MaxDeBH2 = gUser.GetParameter("DeBH2", 1);
@@ -391,6 +393,7 @@ UserSdcOutTracking::ProcessingNormal()
   HF1(1, 10.);
   // Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
   DCAna->DecodeSdcOutHits(rawData);
+
 #if TotCut
   //DCAna->TotCutSDC3(MinTotSDC3);
   //DCAna->TotCutSDC3(150);
@@ -408,10 +411,16 @@ UserSdcOutTracking::ProcessingNormal()
     Int_t plane_eff = (layer-1)*3;
     Bool_t fl_valid_sig = false;
     Int_t tdc1st_2 = -1;
+    //if(nhOut == 0){
+      //for(Int_t j=0; j<MaxHits; ++j){
+        //event.wire[layer-1][j] = -1;
+      //}
+    //}
     for(Int_t i=0; i<nhOut; ++i){
       DCHit *hit=contOut[i];
       Double_t wire=hit->GetWire();
       HF1(100*layer+1, wire-0.5);
+      //event.wire[layer-1][i] = wire-0.5;
       Int_t nhtdc = hit->GetTdcSize();
       Int_t tdc1st = -1;
       for(Int_t k=0; k<nhtdc; k++){
@@ -436,8 +445,10 @@ UserSdcOutTracking::ProcessingNormal()
         HF1(100*layer+10, trailing);
       }
 
-      if(i<MaxHits)
+      if(i<MaxHits){
         event.pos[layer-1][i] = hit->GetWirePosition();
+        //event.wire[layer-1][i] = wire;
+      }
 
       Int_t nhdt = hit->GetDriftTimeSize();
       Int_t tot1st = -1;
@@ -908,6 +919,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("nhit",     &event.nhit,     Form("nhit[%d]/I", NumOfLayersSdcOut));
   tree->Branch("nlayer",   &event.nlayer,   "nlayer/I");
   tree->Branch("pos",      &event.pos,     Form("pos[%d][%d]/D", NumOfLayersSdcOut, MaxHits));
+  //tree->Branch("wire",      &event.wire,     Form("wire[%d][%d]/D", NumOfLayersSdcOut, MaxHits));
   tree->Branch("ntrack",   &event.ntrack,   "ntrack/I");
   tree->Branch("chisqr",    event.chisqr,   "chisqr[ntrack]/D");
   tree->Branch("x0",        event.x0,       "x0[ntrack]/D");
