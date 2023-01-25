@@ -319,12 +319,11 @@ bool HypTPCTask::ExtrapolateToPoint(int trackid, TVector3 point, TVector3 &pos, 
     if(verbosity>=1) std::cerr << e.what();
     return false;
   }
-  if(len >= 0.) tracklen += len;
-  else tracklen = len;
+
   pos = 10.*fitState.getPos(); //cm -> mm
   mom = fitState.getMom(); //cm -> mm
   tof = fitState.getTime() - time0;
-  tracklen *= 10.; //cm -> mm
+  tracklen = 10.*len; //cm -> mm
   return true;
 }
 
@@ -332,13 +331,13 @@ bool HypTPCTask::ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, T
 
   double tracklength = GetTrackLength(trackid);
   if(TMath::IsNaN(tracklength)) return false;
-  tracklen = 0.1*tracklength; //mm -> cm
   genfit::RKTrackRep *rep = (genfit::RKTrackRep *) GetTrackRep(trackid);
   genfit::MeasuredStateOnPlane fitState = GetFitState(trackid);
   if(!rep || !TrackCheck(trackid)) return false;
 
   double time0 = fitState.getTime();
-  try{tracklen += rep -> extrapolateToPlane(fitState, plane);}
+  double len;
+  try{len = rep -> extrapolateToPlane(fitState, plane);}
   catch(genfit::Exception &e){
     if(verbosity>=2) LogWARNING("failed!");
     if(verbosity>=1) std::cerr << e.what();
@@ -361,7 +360,7 @@ bool HypTPCTask::ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, T
   pos = 10.*fitState.getPos(); //cm -> mm
   mom = fitState.getMom(); //cm -> mm
   tof = fitState.getTime() - time0;
-  tracklen *= 10.; //cm -> mm
+  tracklen = 10.*len; //cm -> mm
   return true;
 }
 
