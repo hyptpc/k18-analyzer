@@ -114,7 +114,7 @@ struct Event
   Int_t nhit[NumOfLayersSdcOut+2];
   Int_t nlayer;
   Double_t pos[NumOfLayersSdcOut+2][MaxHits];
-  //Double_t wire[NumOfLayersSdcOut+2][MaxHits];
+  Double_t wire[NumOfLayersSdcOut+2][MaxHits];
 
   Int_t ntrack;
   Double_t chisqr[MaxHits];
@@ -178,6 +178,7 @@ Event::clear()
     nhit[it] = 0;
     for(Int_t that=0; that<MaxHits; ++that){
       pos[it][that] = qnan;
+      wire[it][that] = qnan;
     }
   }
 }
@@ -419,8 +420,20 @@ UserSdcOutTracking::ProcessingNormal()
     for(Int_t i=0; i<nhOut; ++i){
       DCHit *hit=contOut[i];
       Double_t wire=hit->GetWire();
+#if 0
+      if(layer<=10){
+        if(wire<32 || wire>95){
+          return true;
+        }
+      }
+      if(layer>=11){
+        if(wire<16 || wire>79){
+          return true;
+        }
+      }
+#endif
       HF1(100*layer+1, wire-0.5);
-      //event.wire[layer-1][i] = wire-0.5;
+      event.wire[layer-1][i] = wire-0.5;
       Int_t nhtdc = hit->GetTdcSize();
       Int_t tdc1st = -1;
       for(Int_t k=0; k<nhtdc; k++){
@@ -680,19 +693,19 @@ ConfMan::InitializeHistograms()
   const Double_t MinSDC3DL  =  -2.;
   const Double_t MaxSDC3DL  =   7.;
 
-  const Int_t    NbinSDC4DT = 720;
+  const Int_t    NbinSDC4DT = 360;
   const Double_t MinSDC4DT  = -50.;
-  const Double_t MaxSDC4DT  = 550.;
-  const Int_t    NbinSDC4DL = 180;
-  const Double_t MinSDC4DL  =  -3.;
-  const Double_t MaxSDC4DL  =  15.;
+  const Double_t MaxSDC4DT  = 250.;
+  const Int_t    NbinSDC4DL =  90;
+  const Double_t MinSDC4DL  =  -2.;
+  const Double_t MaxSDC4DL  =   7.;
 
-  const Int_t    NbinSDC5DT = 720;
+  const Int_t    NbinSDC5DT = 360;
   const Double_t MinSDC5DT  = -50.;
-  const Double_t MaxSDC5DT  = 550.;
-  const Int_t    NbinSDC5DL = 180;
-  const Double_t MinSDC5DL  =  -3.;
-  const Double_t MaxSDC5DL  =  15.;
+  const Double_t MaxSDC5DT  = 250.;
+  const Int_t    NbinSDC5DL =  90;
+  const Double_t MinSDC5DL  =  -2.;
+  const Double_t MaxSDC5DL  =   7.;
 
   HB1(1, "Status", 20, 0., 20.);
 
@@ -812,7 +825,8 @@ ConfMan::InitializeHistograms()
     else
       HB2(100*i+16, title16, 100, -1000., 1000., 100, -200.0, 200.0);
     HB2(100*i+17, title17, 100, -1000., 1000., 100, -1000., 1000.);
-    if(i<=NumOfLayersSDC3)
+    //if(i<=NumOfLayersSDC3)
+    if(i<=NumOfLayersSdcOut)
       HB2(100*i+18, title18, 110, -5.5, 5.5, 100, -1.0, 1.0);
     else
       HB2(100*i+18, title18, 110, -11., 11., 100, -1.0, 1.0);
@@ -919,7 +933,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("nhit",     &event.nhit,     Form("nhit[%d]/I", NumOfLayersSdcOut));
   tree->Branch("nlayer",   &event.nlayer,   "nlayer/I");
   tree->Branch("pos",      &event.pos,     Form("pos[%d][%d]/D", NumOfLayersSdcOut, MaxHits));
-  //tree->Branch("wire",      &event.wire,     Form("wire[%d][%d]/D", NumOfLayersSdcOut, MaxHits));
+  tree->Branch("wire",      &event.wire,     Form("wire[%d][%d]/D", NumOfLayersSdcOut, MaxHits));
   tree->Branch("ntrack",   &event.ntrack,   "ntrack/I");
   tree->Branch("chisqr",    event.chisqr,   "chisqr[ntrack]/D");
   tree->Branch("x0",        event.x0,       "x0[ntrack]/D");
