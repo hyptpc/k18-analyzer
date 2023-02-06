@@ -86,6 +86,7 @@ private:
   DCLocalTrackContainer              m_SdcInSdcOutTC;
   std::vector<DCLocalTrackContainer> m_SdcInExTC;
   std::vector<DCLocalTrackContainer> m_SdcOutExTC;
+	std::vector<std::vector<double>>   m_AccidentalBeamParams;
 
 public:
   Int_t  MuchCombinationSdcIn() const { return m_much_combi[kSdcIn]; }
@@ -229,6 +230,9 @@ public:
     { return m_SdcInSdcOutTC.at(i); }
 
   Bool_t MakeBH2DCHit(Int_t t0seg);
+	std::vector<double> GetAccidentalBeamParam(int i){
+		return m_AccidentalBeamParams.at(i);
+	}
 
 protected:
   void ClearDCHits();

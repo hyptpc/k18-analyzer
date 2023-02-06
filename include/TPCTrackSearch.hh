@@ -38,6 +38,11 @@ Int_t LocalTrackSearchHelix(const std::vector<TPCHitContainer>& HitCont,
 Int_t LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
                             std::vector<TPCLocalTrackHelix*>& TrackCont,
 			    std::vector<TPCLocalTrackHelix*>& TrackContFailed,
+					std::vector<std::vector<double>>& AccidentalBeamParams,
+                            Int_t MinNumOfHits=8);
+Int_t LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
+                            std::vector<TPCLocalTrackHelix*>& TrackCont,
+			    std::vector<TPCLocalTrackHelix*>& TrackContFailed,
                             Int_t MinNumOfHits=8);
 
 }

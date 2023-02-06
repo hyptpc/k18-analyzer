@@ -1281,8 +1281,8 @@ Bool_t
 DCAnalyzer::TrackSearchTPCHelix()
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
-
-  tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTC_Helix, m_TPCTC_HelixFailed, MinLayer);
+	
+  tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTC_Helix, m_TPCTC_HelixFailed, m_AccidentalBeamParams,MinLayer);
 
 #if 0 //unused
   tpc::LocalTrackSearchHelix(m_TPCHitCont, m_TPCTC_Helix, MinLayer);

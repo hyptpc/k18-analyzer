@@ -66,7 +66,7 @@ const auto& zK18Target = gGeom.LocalZ("K18Target");
 
 // TPC Tracking
 //const Int_t    MaxNumOfTrackTPC = 100;
-const Int_t    MaxNumOfTrackTPC = 5;
+const Int_t    MaxNumOfTrackTPC = 20;
 const auto& valueHall = ConfMan::Get<Double_t>("HSFLDHALL");
 
 //_____________________________________________________________________________
@@ -777,6 +777,7 @@ Int_t
 LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 		      std::vector<TPCLocalTrackHelix*>& TrackCont,
 		      std::vector<TPCLocalTrackHelix*>& TrackContFailed,
+					std::vector<std::vector<double>>& AccidentalBeamParams, 
 		      Int_t MinNumOfHits /*=8*/)
 {
   static const Double_t MaxHoughWindow = gUser.GetParameter("MaxHoughWindow");
@@ -838,14 +839,20 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   // ++Max_tracki_houghY;
   //  std::cout<<"Max_tracki="<<Max_tracki_houghY<<std::endl;
 	bool RemoveBeam = true;
+//	RemoveBeam = false;
 	TPCBeamRemover BeamRemover(ClCont);
 	BeamRemover.Enable(RemoveBeam);
-	BeamRemover.SearchAccidentalBeam(-50,50);
+	BeamRemover.EnableHough(true);
+	BeamRemover.SearchAccidentalBeam(-30,30,-50,50);
   for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
     for(auto cl:ClCont[layer]){
 			auto hit = cl->GetMeanHit();
-			if(BeamRemover.IsAccidental(hit)) hit->SetHoughFlag(2);//2 -> Accidental Flag;
+			int hf = BeamRemover.IsAccidental(hit);
+			hit->SetHoughFlag(hf);//Flag = 1000+ BeamID;
 		}
+	}
+	for(int i = 0; i< 5; ++i){
+		AccidentalBeamParams.push_back(BeamRemover.GetParameter(i));
 	}
 #if 0
   //Accidental beam kill
@@ -1092,6 +1099,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 	  TPCHit* hit = cl->GetMeanHit();
 	  if(hit->GetHoughFlag()==1) continue;
 	  if(hit->GetHoughFlag()==2) continue;
+	  if(hit->GetHoughFlag()>999) continue;
 	  TVector3 pos = cl->GetPosition();
 	  TVector3 res =  TVector3(cl->ResolutionX(),
 				   cl->ResolutionY(),
@@ -1385,6 +1393,18 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   // return status? TrackCont.size() : -1;
 
   // return 0;
+}
+Int_t
+LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
+		      std::vector<TPCLocalTrackHelix*>& TrackCont,
+		      std::vector<TPCLocalTrackHelix*>& TrackContFailed,
+		      Int_t MinNumOfHits /*=8*/){
+					std::vector<std::vector<double>> Dummy; 
+	return 	LocalTrackSearchHelix( ClCont,
+		      TrackCont,
+		      TrackContFailed,
+					Dummy, 
+		      MinNumOfHits /*=8*/);
 }
 
 }
