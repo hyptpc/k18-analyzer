@@ -31,6 +31,7 @@
 #include "UserParamMan.hh"
 
 #define TrackSearch 1
+#define CheckAccidentalBeam 1
 #define TrackCluster 0
 #define TruncatedMean 0
 
@@ -96,6 +97,17 @@ struct Event
   std::vector<Double_t> cluster_y_center;
   std::vector<Double_t> cluster_z_center;
   std::vector<Int_t> cluster_row_center;
+  std::vector<Int_t> hough_flag;
+  std::vector<Double_t> hough_dist;
+
+
+	Int_t ntAcc;// Number of Accidental beam;
+  std::vector<Double_t> accidental_cx;
+  std::vector<Double_t> accidental_cy;
+  std::vector<Double_t> accidental_z0;
+  std::vector<Double_t> accidental_r;
+  std::vector<Double_t> accidental_dz;
+
 
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
@@ -229,6 +241,8 @@ struct Event
     cluster_y_center.clear();
     cluster_z_center.clear();
     cluster_row_center.clear();
+    hough_flag.clear();
+    hough_dist.clear();
 
     ntTpc = 0;
     nhtrack.clear();
@@ -451,7 +465,7 @@ dst::DstOpen( std::vector<std::string> arg )
 Bool_t
 dst::DstRead( int ievent )
 {
-  if( ievent%1000==0 ){
+  if( ievent%10==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
@@ -467,6 +481,8 @@ dst::DstRead( int ievent )
 
   if( **src.nhTpc == 0 )
     return true;
+
+//	if( event.trigflag.at(23)==0 and ievent%10!=0) return true;
 
   HF1( 1, event.status++ );
 
@@ -504,6 +520,10 @@ dst::DstRead( int ievent )
   event.nhTpc = nh_Tpc;
   HF1(1, event.status++);
 
+#if TrackSearch
+  DCAna.TrackSearchTPCHelix();
+#endif
+
   Int_t nclTpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
     auto hc = DCAna.GetTPCClCont( layer );
@@ -520,7 +540,11 @@ dst::DstRead( int ievent )
       const TVector3& centerPos = centerHit->GetPosition();
       Double_t centerDe = centerHit->GetCDe();
       Int_t centerRow = centerHit->GetRow();
-
+			auto mhit = cl->GetMeanHit();
+			Int_t hough_flag = mhit->GetHoughFlag();
+			Double_t hough_dist = mhit->GetHoughDist();	
+			event.hough_flag.push_back(hough_flag);
+			event.hough_dist.push_back(hough_dist);
       event.cluster_x.push_back(x);
       event.cluster_y.push_back(y);
       event.cluster_z.push_back(z);
@@ -533,16 +557,21 @@ dst::DstRead( int ievent )
       event.cluster_y_center.push_back(centerPos.Y());
       event.cluster_z_center.push_back(centerPos.Z());
       event.cluster_row_center.push_back(centerRow);
-
       ++nclTpc;
     }
   }
   event.nclTpc = nclTpc;
   HF1( 1, event.status++ );
 
-#if TrackSearch
-  DCAna.TrackSearchTPCHelix();
-#endif
+
+	Int_t ntAcc = DCAna.GetAccidentalBeamParam(0).size();
+	event.ntAcc = ntAcc;
+	event.accidental_cx = DCAna.GetAccidentalBeamParam(0);	
+	event.accidental_cy = DCAna.GetAccidentalBeamParam(1);	
+	event.accidental_z0 = DCAna.GetAccidentalBeamParam(2);	
+	event.accidental_r = DCAna.GetAccidentalBeamParam(3);	
+	event.accidental_dz = DCAna.GetAccidentalBeamParam(4);	
+	
 
   Int_t ntTpc = DCAna.GetNTracksTPCHelix();
   event.ntTpc = ntTpc;
@@ -1088,6 +1117,20 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "cluster_x_center", &event.cluster_x_center );
   tree->Branch( "cluster_y_center", &event.cluster_y_center );
   tree->Branch( "cluster_z_center", &event.cluster_z_center );
+  tree->Branch( "hough_flag", &event.hough_flag );
+  tree->Branch( "hough_dist", &event.hough_dist );
+
+#if CheckAccidentalBeam
+  tree->Branch( "ntAcc", &event.ntAcc );
+  tree->Branch( "accidental_cx", &event.accidental_cx );
+  tree->Branch( "accidental_cy", &event.accidental_cy );
+  tree->Branch( "accidental_z0", &event.accidental_z0 );
+  tree->Branch( "accidental_r", &event.accidental_r );
+  tree->Branch( "accidental_dz", &event.accidental_dz );
+
+#endif
+
+
 
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );

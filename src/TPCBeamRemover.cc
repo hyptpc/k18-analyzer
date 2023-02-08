@@ -393,15 +393,16 @@ TPCBeamRemover::DoYThetaFit(int i){
 		std::vector<double> ttmp;
 		YThetaGraph = new TGraph();
 		for(int ih = 0;ih<nhits;++ih){
-			if(h_flag[i].at(ih) != pow(2,ib)) continue;
-			auto pos = m_PeakCl_array[i].at(ih)->GetPosition();
-			double x = -pos.X();
-			double y = pos.Z()-ZTarget;
-			double z = pos.Y();
-			double t = atan2(y - hcy,x-hcx);
-			double rt = t * hr;
-			ttmp.push_back(t);
-			YThetaGraph->SetPoint(YThetaGraph->GetN(),rt,z);
+			if(IsThisBeam(h_flag[i].at(ih),ib)){
+				auto pos = m_PeakCl_array[i].at(ih)->GetPosition();
+				double x = -pos.X();
+				double y = pos.Z()-ZTarget;
+				double z = pos.Y();
+				double t = atan2(y - hcy,x-hcx);
+				double rt = t * hr;
+				ttmp.push_back(t);
+				YThetaGraph->SetPoint(YThetaGraph->GetN(),rt,z);
+			}
 		}//ih
 		std::sort(ttmp.begin(),ttmp.end());
 //		acc_tparam.push_back( ttmp.at(0));
