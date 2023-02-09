@@ -25,22 +25,6 @@ class TPCBeamRemover{
 		double MaxHoughWindow = 15;
 		double MaxHoughWindowY = 5;
 
-		const Int_t nBin_rdiff = 110;
- 		const Double_t rdiff_min = -110.;
-  	const Double_t rdiff_max = 110.;
-  	const Int_t nBin_theta = 180;
-  	const Double_t theta_min = (1.5)*acos(-1);
-  	const Double_t theta_max = (2.5)*acos(-1);//Charge < -1 region.
-  	const Int_t nBin_p = 100;
-  	const Double_t p_min = 1600.;//MeV/c
-  	const Double_t p_max = 2000.;//MeV/c
-  	const int    thetaY_ndiv =  180;
-  	const double thetaY_min  =  60.;
-  	const double thetaY_max  = 120.;
-  	const int    r_ndiv =  2000;
-  	const double r_min  = -5000.;
-  	const double r_max  =  5000.;
-
 
 
 
@@ -94,18 +78,11 @@ class TPCBeamRemover{
 		double linear(double z,double p0,double p1){
 			return p0+p1*z;
 		}
-		TF1* Quadratic = new TF1("quadratic","pol2",-250,250);
-		TF1* Linear = new TF1("linear","pol1",-250,250);
-		TF1* Arc = new TF1("Arc","-TMath::Sqrt([2]*[2]-(x-[1])*(x-[1]))+[0]",-150,400);
+//		TF1* Arc = new TF1("Arc","-TMath::Sqrt([2]*[2]-(x-[1])*(x-[1]))+[0]",-150,400);
 		
-		TH1D* hist_y = new TH1D("hist_y","hist_y",140,-350,350);
-		TH2D* hist_beam = new TH2D("hist_beam","hist_beam",100,-250,250,120,-120,120);
-		TH2D* hist_beamZY = new TH2D("hist_beamZY","hist_beamZY",100,-250,250,700,-350,350);
 		
-		TGraph* ArcGraph;
-		TGraph* YThetaGraph;
-		TH3D* hist_Ci;
-		TH2D* hist_YTheta;
+//		TGraph* ArcGraph;
+//		TGraph* YThetaGraph;
 		
 	private:
 		int SearchPeaks(TH1D* hist,std::vector<double> &peaks);
@@ -116,8 +93,6 @@ class TPCBeamRemover{
 		void DoCircleHough(int i);
 		void DoYThetaHough(int i);
 		void DoYThetaFit(int i);
-		void CircleFit(std::vector<TVector3> pos,double* param);
-		void LinearFit(std::vector<TVector3> pos,double* param);
 
 		int CompareHough(TVector3 pos, std::vector<double> hcx,std::vector<double>hcy,std::vector<double> hr); 
 		bool IsThisBeam(int hflag, int ib);	

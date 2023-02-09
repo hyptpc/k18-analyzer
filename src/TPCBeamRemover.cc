@@ -10,7 +10,7 @@
 #include "ConfMan.hh"
 #include "TPCCluster.hh"
 #include "RootHelper.hh"
-namespace
+namespace tpcBeamRemover
 {
 	const auto& gConf = ConfMan::GetInstance();
 	const auto& gGeom = DCGeomMan::GetInstance();
@@ -21,9 +21,88 @@ namespace
   static std::string s_tmp="pow([5]-([0]+([3]*cos(x))),2)+pow([6]-([1]+([3]*sin(x))),2)+pow([7]-([2]+([3]*[4]*x)),2)";
   static TF1 fint("fint",s_tmp.c_str(),-4.,4.);
 
-	// TPC Tracking
+
+	const Int_t nBin_rdiff = 220;
+	const Double_t rdiff_min = -110.;
+	const Double_t rdiff_max = 110.;
+	const Int_t nBin_theta = 180;
+	const Double_t theta_min = (2.)*acos(-1)-1;
+	const Double_t theta_max = (2.)*acos(-1)+1;//Charge < -1 region.
+	const Int_t nBin_p = 100;
+	const Double_t p_min = 1600.;//MeV/c
+	const Double_t p_max = 2000.;//MeV/c
+	const int    thetaY_ndiv =  180;
+	const double thetaY_min  =  60.;
+	const double thetaY_max  = 120.;
+	const int    r_ndiv =  2000;
+	const double r_min  = -5000.;
+	const double r_max  =  5000.;
+
+
+	TH3D* hist_Ci = new TH3D("hist_circle_acc","rd(mm);theta(rad);p(MeV/c)",
+			nBin_rdiff,rdiff_min,rdiff_max,
+			nBin_theta,theta_min,theta_max,
+			nBin_p,p_min,p_max);
+	TH2D* hist_YTheta = new TH2D("histY_acc","theta(deg),r(mm)",
+			thetaY_ndiv,thetaY_min,thetaY_max,
+			r_ndiv,r_min,r_max);
+
+	TF1* Quadratic = new TF1("quadratic","pol2",-250,250);
+	TF1* Linear = new TF1("linear","pol1",-250,250);
+	TH1D* hist_y = new TH1D("hist_y","hist_y",140,-350,350);
+	TH2D* hist_beam = new TH2D("hist_beam","hist_beam",100,-250,250,120,-120,120);
+	TH2D* hist_beamZY = new TH2D("hist_beamZY","hist_beamZY",100,-250,250,700,-350,350);
+
+	void CircleFit(std::vector<TVector3> posarr,double* param){
+		int n =posarr.size();
+		double Sumx=0,Sumy=0;
+		double Sumx2=0,Sumy2=0,Sumxy=0;
+		double Sumx3=0,Sumy3=0,Sumx2y=0,Sumy2x=0;
+		for (Int_t i=0;i<n;i++) {
+			double x = posarr.at(i).X();
+			double y = posarr.at(i).Y();
+			Sumx+=x;Sumy+=y;
+			Sumx2+=x*x;Sumy2+=y*y;Sumxy+=x*y;
+			Sumx3+=x*x*x;Sumy3+=y*y*y;Sumx2y+=x*x*y;Sumy2x+=y*y*x;
+		}
+		double a_1 = Sumx3 + Sumy2x, a_2 = Sumx2, a_3 = Sumx;
+		double b_1 = Sumy3 + Sumx2y, b_2 = Sumy2, b_3 = Sumy;
+		double c_1 = a_2+b_2,c_2 = Sumx,c_3 = Sumy;
+		double A = (a_1*(b_2*n-b_3*c_3)+a_3*(b_1*c_3-b_2*c_1)+Sumxy*(b_3*c_1-b_1*n))
+			/ ( Sumxy*(n*Sumxy-a_3*c_3-b_3*c_2)+a_2*b_3*c_3+a_3*b_2*c_2-a_2*b_2*n);
+		double B = (b_1*(a_2*n-a_3*c_2)+b_3*(a_1*c_2-a_2*c_1)+Sumxy*(a_3*c_1-a_1*n))      
+			/ ( Sumxy*(n*Sumxy-a_3*c_3-b_3*c_2)+a_2*b_3*c_3+a_3*b_2*c_2-a_2*b_2*n);
+		double C = (c_1*(a_2*b_2-Sumxy*Sumxy)+c_2*(Sumxy*b_1-a_1*b_2)+c_3*(Sumxy*a_1-b_1*a_2))
+			/ ( Sumxy*(n*Sumxy-a_3*c_3-b_3*c_2)+a_2*b_3*c_3+a_3*b_2*c_2-a_2*b_2*n);
+		double cx = -0.5 * A;
+		double cy = -0.5 * B;
+		double rad = sqrt(cx*cx+cy*cy-C);	
+		param[0] = cx;
+		param[1] = cy;
+		param[2] = rad;
+		//	std::cout<<Form("(cx,cy,rad) = (%f,%f,%f)",cx,cy,rad)<<std::endl;
+	}
+	void
+		LinearFit(std::vector<TVector3> posarr,double* param){
+			// y = ax + b;
+			int n =posarr.size();
+			double Sumx=0,Sumy=0;
+			double Sumx2=0,Sumy2=0,Sumxy=0;
+			for (Int_t i=0;i<n;i++) {
+				double x = posarr.at(i).X();
+				double y = posarr.at(i).Y();
+				Sumx+=x;Sumy+=y;
+				Sumx2+=x*x;Sumy2+=y*y;Sumxy+=x*y;
+			}
+			double a = (Sumx*Sumy-n*Sumxy)/( Sumx*Sumx-n*Sumx2);	
+			double b = (Sumx*Sumxy-Sumx2*Sumy)/( Sumx*Sumx-n*Sumx2);	
+			param[0]=b;//b = z0;
+			param[1]=a;//a = dz;
+			//	std::cout<<Form("(z0,dz) = (%f,%f)",b,a)<<std::endl;
+		}
 
 }
+using namespace tpcBeamRemover;
 TPCBeamRemover::TPCBeamRemover(std::vector<TPCClusterContainer>ClCont){
 	enable = true;
 	enableHough = true;
@@ -46,28 +125,12 @@ TPCBeamRemover::TPCBeamRemover(std::vector<TPCClusterContainer>ClCont){
 	HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
 	HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
 	dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-	hist_Ci = new TH3D("hist_circle_acc","rd(mm);theta(rad);p(MeV/c)",
-			nBin_rdiff,rdiff_min,rdiff_max,
-			nBin_theta,theta_min,theta_max,
-			nBin_p,p_min,p_max);
-	hist_YTheta = new TH2D("histY_acc","theta(deg),r(mm)",
-			thetaY_ndiv,thetaY_min,thetaY_max,
-			r_ndiv,r_min,r_max);
 	nh = m_Cl_array.size();
-
 	debug::ObjectCounter::increase(ClassName());
 }
 
 TPCBeamRemover::~TPCBeamRemover()
 {
-	delete Quadratic;
-	delete Linear;
-	delete Arc;
-	delete hist_beam;
-	delete hist_beamZY;
-	delete hist_y;
-	delete hist_Ci;
-	delete hist_YTheta;
 	debug::ObjectCounter::decrease(ClassName());
 }
 
@@ -95,7 +158,7 @@ TPCBeamRemover::SearchPeaks(TH1D* hist,std::vector<double> &peaks){
 		if(x>299792458)x+=0;//To avoid warning message.
 		for(int ip = 0;ip<npeaks;++ip){
 			double peak = peaks.at(ip);
-			if(x_min<x and x<x_max and y_min<y and y<y_max)continue;
+//			if(x_min<x and x<x_max and y_min<y and y<y_max)continue;
 			if(abs(peak - y)<Ywidth){
 				m_PeakCl_array[ip].push_back(hit);
 				break;
@@ -179,7 +242,7 @@ TPCBeamRemover::IsAccidental(TVector3 pos,TVector3 res, double& Adist){
 			TVector3 pos_(-x,z-ZTarget,y);
 			double fpar[8] = {cx,cy,z0,r,dz,pos_.X(),pos_.Y(),pos_.Z()};
   		fint.SetParameters(fpar);
-  		double t = fint.GetMinimumX();
+  		double t = fint.GetMinimumX(0*acos(-1),2*acos(-1));
 			TVector3 HelixPos(fpar[0]+fpar[3]*cos(t),fpar[1]+fpar[3]*sin(t),fpar[2]+(fpar[4]*fpar[3]*t));
 			TVector3 dX = HelixPos-pos_;
 			double delx = dX.X(),dely = dX.Y(),delz=dX.Z();
@@ -304,22 +367,30 @@ TPCBeamRemover::DoCircleHough(int i){
 	}//ib
 	int nbeam = h_cx[i].size();
 	for(int ib = 0;ib<nbeam;++ib){
-		double hcx = h_cx[i].at(ib);	
-		double hcy = h_cy[i].at(ib);	
-		double hr = h_r[i].at(ib);	
+//		double hcx = h_cx[i].at(ib);double hcy = h_cy[i].at(ib);double hr = h_r[i].at(ib);	
 		std::vector<TVector3>AccArr(0);
+		AccArr.clear();
 		for(int ih = 0; ih<nhits; ++ih){
 			if(IsThisBeam(h_flag[i].at(ih),ib)){
 				auto pos = m_PeakCl_array[i].at(ih)->GetPosition();
 				TVector3 HelixPos(-pos.X(),pos.Z()-ZTarget,pos.Y());
-				AccArr.push_back(pos);
+				AccArr.push_back(HelixPos);
 			}
 		}
 		double params[3] = {0,0,0};
 		CircleFit(AccArr,params);	
-		h_cx[i].at(ib)= params[0];
-		h_cy[i].at(ib)= params[1];
-		h_r[i].at(ib)= params[2];
+		if(params[2]>3000){
+			h_cx[i].at(ib)= params[0];
+			h_cy[i].at(ib)= params[1];
+			h_r[i].at(ib)= params[2];
+		}
+		else{
+//			std::cout<<"CircleFitFail!"<<std::endl;
+//			std::cout<<Form("Params(%f,%f,%f)",params[0],params[1],params[2])<<std::endl;
+			for(auto pv : AccArr){
+	//			std::cout<<Form("Pos(%f,%f,%f)",pv.X(),pv.Y(),pv.Z())<<std::endl;
+			}
+		}
 	}
 	
 }
@@ -396,6 +467,13 @@ TPCBeamRemover::DoYThetaFit(int i){
 		double p1 = params[1];
 		h_z0[i].push_back(p0);
 		h_dz[i].push_back(p1);
+#if 0
+		if(abs(params[1])>0.1){
+			for(auto v :AccArr){
+				std::cout<<Form("pos(%f,%f,%f)",v.X(),v.Y(),v.Z())<<std::endl;
+			}
+		}
+#endif
 	}
 }
 int
@@ -489,52 +567,6 @@ TPCBeamRemover::DoQuadraticSearch(int i){
 		beam_y.push_back(peak);
 		beam_v.push_back(beamv);
 	}
-}
-void
-TPCBeamRemover::CircleFit(std::vector<TVector3> posarr,double* param){
-	int n =posarr.size();
-	double Sumx=0,Sumy=0;
-	double Sumx2=0,Sumy2=0,Sumxy=0;
-	double Sumx3=0,Sumy3=0,Sumx2y=0,Sumy2x=0;
-	for (Int_t i=0;i<n;i++) {
-		double x = posarr.at(i).X();
-		double y = posarr.at(i).Y();
-		Sumx+=x;Sumy+=y;
-		Sumx2+=x*x;Sumy2+=y*y;Sumxy+=x*y;
-		Sumx3+=x*x*x;Sumy3+=y*y*y;Sumx2y+=x*x*y;Sumy2x+=y*y*x;
-	}
-	double a_1 = Sumx3 + Sumy2x, a_2 = Sumx2, a_3 = Sumx;
-	double b_1 = Sumy3 + Sumx2y, b_2 = Sumy2, b_3 = Sumy;
-	double c_1 = a_2+b_2,c_2 = Sumx,c_3 = Sumy;
-	double A = (a_1*(b_2*n-b_3*c_3)+a_3*(b_1*c_3-b_2*c_1)+Sumxy*(b_3*c_1-b_1*n))
-		/ ( Sumxy*(n*Sumxy-a_3*c_3-b_3*c_2)+a_2*b_3*c_3+a_3*b_2*c_2-a_2*b_2*n);
-	double B = (b_1*(a_2*n-a_3*c_2)+b_3*(a_1*c_2-a_2*c_1)+Sumxy*(a_3*c_1-a_1*n))      
-		/ ( Sumxy*(n*Sumxy-a_3*c_3-b_3*c_2)+a_2*b_3*c_3+a_3*b_2*c_2-a_2*b_2*n);
-	double C = (c_1*(a_2*b_2-Sumxy*Sumxy)+c_2*(Sumxy*b_1-a_1*b_2)+c_3*(Sumxy*a_1-b_1*a_2))
-		/ ( Sumxy*(n*Sumxy-a_3*c_3-b_3*c_2)+a_2*b_3*c_3+a_3*b_2*c_2-a_2*b_2*n);
-	double cx = -0.5 * A;
-	double cy = -0.5 * B;
-	double rad = sqrt(cx*cx+cy*cy-C);
-	param[0] = cx;
-	param[1] = cy;
-	param[2] = rad;
-}
-void
-TPCBeamRemover::LinearFit(std::vector<TVector3> posarr,double* param){
-	// y = ax + b;
-	int n =posarr.size();
-	double Sumx=0,Sumy=0;
-	double Sumx2=0,Sumy2=0,Sumxy=0;
-	for (Int_t i=0;i<n;i++) {
-		double x = posarr.at(i).X();
-		double y = posarr.at(i).Y();
-		Sumx+=x;Sumy+=y;
-		Sumx2+=x*x;Sumy2+=y*y;Sumxy+=x*y;
-	}
-	double a = (Sumxy-Sumx*Sumy)/( Sumx*Sumxy+Sumx2);	
-	double b = (Sumx2*Sumy-Sumxy*Sumxy)/( Sumx*Sumxy+Sumx2);	
-	param[0]=b;
-	param[1]=a;
 }
 
 
