@@ -51,6 +51,9 @@ namespace
   static const Int_t    Li_rho_ndiv =  180;
   static const Double_t Li_rho_min  = -720;
   static const Double_t Li_rho_max  =  720;
+  TH2D *histLinear = new TH2D("histLinear", "; #theta (deg.); #rho (mm)",
+			      Li_theta_ndiv, Li_theta_min, Li_theta_max,
+			      Li_rho_ndiv, Li_rho_min, Li_rho_max);
 
   // HoughCircle binning
   const Int_t    nBin_rdiff = 11;
@@ -62,6 +65,10 @@ namespace
   const Int_t    nBin_p = 900;
   const Double_t pmin = 50.;
   const Double_t pmax = 1550.; //MeV/c
+  TH3D *histCircle = new TH3D("histCircle",";rd (mm); theta (rad); p(MeV/c)",
+			       nBin_rdiff, rdiff_min,  rdiff_max,
+			       nBin_theta, theta_min, theta_max,
+			       nBin_p, pmin, pmax);
 
   // HoughY binning
   //const Ynt_t    thetaY_ndiv = 360; //previous value
@@ -71,6 +78,9 @@ namespace
   const Int_t    r_ndiv =  2000;
   const Double_t r_min  = -5000.;
   const Double_t r_max  =  5000.;
+  TH2D *histY = new TH2D("histY",";theta (deg.);r (mm)",
+			 thetaY_ndiv, thetaY_min, thetaY_max,
+			 r_ndiv, r_min, r_max);
 
   Double_t GetMagneticField()
   {
@@ -81,6 +91,61 @@ namespace
 //_____________________________________________________________________________
 namespace tpc
 {
+
+//_____________________________________________________________________________
+void
+HoughTransformLineYZ(std::vector<TVector3> gHitPos, Int_t *MaxBin,
+		     Double_t *LinearPar, Int_t MinNumOfHits /*=8*/)
+{
+
+#if DebugEvDisp
+  gStyle->SetOptStat(0);
+  gStyle->SetPadLeftMargin(0.15);
+  gStyle->SetPadBottomMargin(0.15);
+  static TCanvas c1("c"+FUNC_NAME, FUNC_NAME, 900, 900);
+  c1.cd();
+#endif
+
+  //Hough space
+  //for TPC linear track
+  //rho = z*cos(theta) + y*sin(theta)
+  //y = p[0] + p[1]*z
+  histLinear->Reset();
+  for(Int_t i=0; i<gHitPos.size(); ++i){
+    for(int ti=0; ti<thetaY_ndiv; ti++){
+      Double_t theta = histLinear->GetXaxis()->GetBinCenter(ti+1);
+      Double_t rho = TMath::Cos(theta*TMath::DegToRad())*gHitPos[i].Z()
+	+ TMath::Sin(theta*TMath::DegToRad())*gHitPos[i].Y();
+      histLinear->Fill(theta, rho);
+    } //ti
+  } //i
+
+#if DebugEvDisp
+  histLinear->Draw("colz");
+  gPad->Modified();
+  gPad->Update();
+  c1.Print(Form("c%d.pdf",cannum));
+  getchar();
+  cannum++;
+#endif
+
+  Int_t maxbin = histLinear->GetMaximumBin();
+  Int_t mx, my, mz;
+  histLinear->GetBinXYZ(maxbin, mx, my, mz);
+  MaxBin[0] = mx; MaxBin[1] = my; MaxBin[2] = mz;
+
+  Double_t mtheta = histLinear->GetXaxis()->GetBinCenter(mx)*TMath::DegToRad();
+  Double_t mr = histLinear->GetYaxis()->GetBinCenter(my);
+
+  LinearPar[0] = mr/TMath::Sin(mtheta);
+  LinearPar[1]  = -TMath::Cos(mtheta)/TMath::Sin(mtheta);
+
+#if DebugDisp
+  std::cout<<FUNC_NAME+" (Z, Y) hough vote : "<<histLinear->GetBinContent(maxbin)<<std::endl;
+  std::cout<<FUNC_NAME+" Hough (theta, r)=("<<mtheta<<", "<<mr<<")"<<std::endl;
+#endif
+
+}
 
 //_____________________________________________________________________________
 Bool_t
@@ -95,27 +160,25 @@ HoughTransformLineXZ(std::vector<TVector3> gHitPos, Int_t *MaxBin,
   static TCanvas c1("c"+FUNC_NAME, FUNC_NAME, 900, 900);
   c1.cd();
 #endif
+
   Bool_t status = true;
-  TH2D *histXZ = new TH2D("hist_xz", "; #theta (deg.); #rho (mm)",
-			   Li_theta_ndiv, Li_theta_min, Li_theta_max,
-			   Li_rho_ndiv, Li_rho_min, Li_rho_max);
 
   //Hough space
   //for TPC linear track
   //rho = z*cos(theta) + x*sin(theta)
   //x = p[0] + p[1]*z
-
+  histLinear->Reset();
   for(Int_t i=0; i<gHitPos.size(); ++i){
     for(int ti=0; ti<thetaY_ndiv; ti++){
-      Double_t theta = histXZ->GetXaxis()->GetBinCenter(ti+1);
+      Double_t theta = histLinear->GetXaxis()->GetBinCenter(ti+1);
       Double_t rho = TMath::Cos(theta*TMath::DegToRad())*gHitPos[i].Z()
 	+ TMath::Sin(theta*TMath::DegToRad())*gHitPos[i].X();
-      histXZ->Fill(theta, rho);
+      histLinear->Fill(theta, rho);
     } //ti
   } //i
 
 #if DebugEvDisp
-  histXZ->Draw("colz");
+  histLinear->Draw("colz");
   gPad->Modified();
   gPad->Update();
   c1.Print(Form("c%d.pdf",cannum));
@@ -123,25 +186,23 @@ HoughTransformLineXZ(std::vector<TVector3> gHitPos, Int_t *MaxBin,
   cannum++;
 #endif
 
-  Int_t maxbin = histXZ->GetMaximumBin();
+  Int_t maxbin = histLinear->GetMaximumBin();
   Int_t mx, my, mz;
-  histXZ->GetBinXYZ(maxbin, mx, my, mz);
+  histLinear->GetBinXYZ(maxbin, mx, my, mz);
   MaxBin[0] = mx; MaxBin[1] = my; MaxBin[2] = mz;
 
-  Double_t mtheta = histXZ->GetXaxis()->GetBinCenter(mx)*TMath::DegToRad();
-  Double_t mr = histXZ->GetYaxis()->GetBinCenter(my);
+  Double_t mtheta = histLinear->GetXaxis()->GetBinCenter(mx)*TMath::DegToRad();
+  Double_t mr = histLinear->GetYaxis()->GetBinCenter(my);
 
   LinearPar[0] = mr/TMath::Sin(mtheta);
   LinearPar[1]  = -TMath::Cos(mtheta)/TMath::Sin(mtheta);
 
 #if DebugDisp
-  std::cout<<FUNC_NAME+" (Z, X) hough vote : "<<histXZ->GetBinContent(maxbin)<<std::endl;
+  std::cout<<FUNC_NAME+" (Z, X) hough vote : "<<histLinear->GetBinContent(maxbin)<<std::endl;
   std::cout<<FUNC_NAME+" Hough (theta, r)=("<<mtheta<<", "<<mr<<")"<<std::endl;
 #endif
 
-  if(histXZ->GetMaximum() < 0.5*MinNumOfHits) status = false;
-
-  delete histXZ;
+  if(histLinear->GetMaximum() < 0.5*MinNumOfHits) status = false;
   return status;
 
 }
@@ -181,13 +242,10 @@ HoughTransformLineYPhi(std::vector<TVector3> gHitPos,
   c1.cd();
 #endif
 
-  TH2D *histY = new TH2D("histY",";theta (deg.);r (mm)",
-			 thetaY_ndiv, thetaY_min, thetaY_max,
-			 r_ndiv, r_min, r_max);
-
   //Hough space
   //mr = tmp_xval*cos(mtheta) + tmpz*sin(mtheta)
   //tmpz = p[2] + p[4]*tmp_xval
+  histY -> Reset();
   for(Int_t i=0; i<gHitPos.size(); ++i){
     Double_t tmpx = -gHitPos[i].X();
     Double_t tmpy = gHitPos[i].Z() - tpc::ZTarget;
@@ -197,7 +255,7 @@ HoughTransformLineYPhi(std::vector<TVector3> gHitPos,
     if(dist < MaxHoughWindow){
       for(int ti=0; ti<thetaY_ndiv; ti++){
 	Double_t theta = histY->GetXaxis()->GetBinCenter(ti+1);
-	Double_t tmpt = atan2(tmpy - HelixPar[1], tmpx - HelixPar[0]);
+	Double_t tmpt = TMath::ATan2(tmpy - HelixPar[1], tmpx - HelixPar[0]);
 	Double_t tmp_xval = HelixPar[3]*tmpt;
 	histY->Fill(theta, cos(theta*acos(-1.)/180.)*tmp_xval
 		    +sin(theta*acos(-1.)/180.)*tmpz);
@@ -227,7 +285,6 @@ HoughTransformLineYPhi(std::vector<TVector3> gHitPos,
   std::cout<<FUNC_NAME+" (Y, phi) hough vote : "<<histY->GetBinContent(maxbin)<<std::endl;
   std::cout<<FUNC_NAME+" Hough (theta, r)=("<<mtheta<<", "<<mr<<")"<<std::endl;
 #endif
-  delete histY;
 
 }
 
@@ -274,18 +331,14 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
 
   //for TPC circle track
   //Hough-transform
-  TH3D *hist_circle = new TH3D("hist_circle",";rd (mm); theta (rad); p(MeV/c)",
-			       nBin_rdiff, rdiff_min,  rdiff_max,
-			       nBin_theta, theta_min, theta_max,
-			       nBin_p, pmin, pmax);
-
+  histCircle -> Reset();
   for(Int_t i=0; i<gHitPos.size(); ++i){
     Double_t x = -gHitPos[i].X();
     Double_t y = gHitPos[i].Z() - tpc::ZTarget;
     for(Int_t ird=0; ird<nBin_rdiff; ++ird){
-      Double_t rd = hist_circle->GetXaxis()->GetBinCenter(ird+1);
+      Double_t rd = histCircle->GetXaxis()->GetBinCenter(ird+1);
       for(Int_t ip=0; ip<nBin_p; ++ip){
-	Double_t p = hist_circle->GetZaxis()->GetBinCenter(ip+1);
+	Double_t p = histCircle->GetZaxis()->GetBinCenter(ip+1);
 	Double_t r = p/(Const*dMagneticField);
 
 	//a*sin(theta) + b*cos(theta) + c = 0
@@ -301,7 +354,7 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
 	if(theta1_alpha>0.) theta2_alpha = acos(-1.) - theta1_alpha;
 	else theta2_alpha = -1.*acos(-1.) - theta1_alpha;
 
-	Double_t theta_alpha = atan2(b, a);
+	Double_t theta_alpha = TMath::ATan2(b, a);
 
 	Double_t xcenter1 = (r+rd)*cos(theta1_alpha - theta_alpha);
 	Double_t ycenter1 = (r+rd)*sin(theta1_alpha - theta_alpha);
@@ -311,8 +364,8 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
 	Double_t ycenter2 = (r+rd)*sin(theta2_alpha - theta_alpha);
 	Double_t r_re2 = sqrt(pow(x-xcenter1,2) + pow(y-ycenter1,2));
 
-	Double_t theta1 = atan2(ycenter1, xcenter1);
-	Double_t theta2 = atan2(ycenter2, xcenter2);
+	Double_t theta1 = TMath::ATan2(ycenter1, xcenter1);
+	Double_t theta2 = TMath::ATan2(ycenter2, xcenter2);
 	if(TMath::IsNaN(theta1)){
 	  std::cout<<"theta1="<<theta1<<", x="<<x<<", y="<<y
 		   <<"rd="<<rd<<", r"<<r<<std::endl;
@@ -323,14 +376,14 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
 		   <<", theta1:"<<theta1<<", theta2:"<<theta2
 		   <<", theta_alpha:"<<theta_alpha<<std::endl;
 	}
-	hist_circle->Fill(rd, theta1, p);
-	hist_circle->Fill(rd, theta2, p);
+	histCircle->Fill(rd, theta1, p);
+	histCircle->Fill(rd, theta2, p);
       } // p bins
     } // rdiff bins
   } //i
 
 #if DebugEvDisp
-  hist_circle->Draw("colz");
+  histCircle->Draw("colz");
   gPad->Modified();
   gPad->Update();
   c1.Print(Form("c%d.pdf",cannum));
@@ -338,28 +391,26 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
   cannum++;
 #endif
 
-  Int_t maxbin = hist_circle->GetMaximumBin();
+  Int_t maxbin = histCircle->GetMaximumBin();
   Int_t mx, my, mz;
-  hist_circle->GetBinXYZ(maxbin, mx, my, mz);
+  histCircle->GetBinXYZ(maxbin, mx, my, mz);
   MaxBin[0] = mx; MaxBin[1] = my; MaxBin[2] = mz;
 
-  Double_t hough_rd = hist_circle->GetXaxis()->GetBinCenter(mx);
-  Double_t hough_theta = hist_circle->GetYaxis()->GetBinCenter(my);
-  Double_t hough_p = hist_circle->GetZaxis()->GetBinCenter(mz);
+  Double_t hough_rd = histCircle->GetXaxis()->GetBinCenter(mx);
+  Double_t hough_theta = histCircle->GetYaxis()->GetBinCenter(my);
+  Double_t hough_p = histCircle->GetZaxis()->GetBinCenter(mz);
   HelixPar[3] = hough_p/(Const*dMagneticField); //helix r
   HelixPar[0] = (HelixPar[3] + hough_rd)*cos(hough_theta); //helix cx
   HelixPar[1] = (HelixPar[3] + hough_rd)*sin(hough_theta); //helix cy
 
 #if DebugDisp
-  std::cout<<FUNC_NAME+" XZ hough vote : "<<hist_circle->GetMaximum()<<std::endl;
-  std::cout<<FUNC_NAME+" Circle hough maxbin : "<<hist_circle->GetBinContent(maxbin)<<std::endl;
+  std::cout<<FUNC_NAME+" XZ hough vote : "<<histCircle->GetMaximum()<<std::endl;
+  std::cout<<FUNC_NAME+" Circle hough maxbin : "<<histCircle->GetBinContent(maxbin)<<std::endl;
   std::cout<<FUNC_NAME+" Hough(rd, theta, p)=("<<hough_rd<<", "
 	   <<hough_theta<<", "<<hough_p<<")"<<std::endl;
 #endif
 
-  if(hist_circle->GetMaximum() < 0.5*MinNumOfHits) status = false;
-
-  delete hist_circle;
+  if(histCircle->GetMaximum() < 0.5*MinNumOfHits) status = false;
   return status;
 }
 
