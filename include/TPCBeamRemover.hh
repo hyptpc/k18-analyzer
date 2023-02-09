@@ -116,7 +116,9 @@ class TPCBeamRemover{
 		void DoCircleHough(int i);
 		void DoYThetaHough(int i);
 		void DoYThetaFit(int i);
-		
+		void CircleFit(std::vector<TVector3> pos,double* param);
+		void LinearFit(std::vector<TVector3> pos,double* param);
+
 		int CompareHough(TVector3 pos, std::vector<double> hcx,std::vector<double>hcy,std::vector<double> hr); 
 		bool IsThisBeam(int hflag, int ib);	
 	

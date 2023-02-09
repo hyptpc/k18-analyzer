@@ -164,10 +164,11 @@ TPCBeamRemover::IsAccidental(TPCHit* hit){
 int
 TPCBeamRemover::IsAccidental(TVector3 pos,TVector3 res, double& Adist){
 	double x = pos.X(),y=pos.Y(),z=pos.Z();
-//	if(x_min<x and x<x_max and y_min<y and y<y_max) return false;
+	double sx = res.X(),sy=res.Y(),sz=res.Z();
+	//	if(x_min<x and x<x_max and y_min<y and y<y_max) return false;
 	if(enableHough){
 		int nb = Allh_cx.size();
-		double min_dist = 9999;
+		double min_delta = 1e9;
 		int beamID = -1;
 		for(int ib = 0; ib < nb; ++ib){
 			double cx = Allh_cx[ib];	
@@ -180,16 +181,17 @@ TPCBeamRemover::IsAccidental(TVector3 pos,TVector3 res, double& Adist){
   		fint.SetParameters(fpar);
   		double t = fint.GetMinimumX();
 			TVector3 HelixPos(fpar[0]+fpar[3]*cos(t),fpar[1]+fpar[3]*sin(t),fpar[2]+(fpar[4]*fpar[3]*t));
-			TVector3 distvec = HelixPos-pos_;
-			double dist = distvec.Mag();
-			if( dist<min_dist){
-				min_dist = dist;
+			TVector3 dX = HelixPos-pos_;
+			double delx = dX.X(),dely = dX.Y(),delz=dX.Z();
+			double delta = sqrt(delx*delx/sx/sx + dely*dely/sy/sy+delz*delz/sz/sz);
+			if( delta<min_delta){
+				min_delta = delta;
 				beamID = ib;
 			}
 		}
-		Adist = min_dist;
+		Adist = min_delta;
 
-		if(min_dist < res.Mag()*10){
+		if(min_delta < 10){
 			return 1000+beamID;
 		}else{
 			return 0;
@@ -300,41 +302,24 @@ TPCBeamRemover::DoCircleHough(int i){
 			h_r[i].push_back(hough_r);
 		}
 	}//ib
-	/*
-	for( int ih = 0; ih < nhits; ++ih){
-		int beamid = -1;
-		auto pos = m_PeakCl_array[i].at(ih)->GetPosition();
-		if(h_flag[i].at(ih)>0){
-			beamid = CompareHough(pos,h_cx[i],h_cy[i],h_r[i]);
-		}
-		if(beamid > -1){
-			h_flag[i].at(ih) = pow(2,beamid); 
-		}
-	}
-	*/
 	int nbeam = h_cx[i].size();
 	for(int ib = 0;ib<nbeam;++ib){
 		double hcx = h_cx[i].at(ib);	
 		double hcy = h_cy[i].at(ib);	
 		double hr = h_r[i].at(ib);	
-		ArcGraph = new TGraph(); 	
+		std::vector<TVector3>AccArr(0);
 		for(int ih = 0; ih<nhits; ++ih){
-//			if(h_flag[i].at(ih) == pow(2,ib)){
 			if(IsThisBeam(h_flag[i].at(ih),ib)){
 				auto pos = m_PeakCl_array[i].at(ih)->GetPosition();
-				//ArcGraph->AddPoint(pos.Z()-ZTarget,-pos.X());//After ROOT version 6.24
-				ArcGraph->SetPoint(ArcGraph->GetN(),pos.Z()-ZTarget,-pos.X());
+				TVector3 HelixPos(-pos.X(),pos.Z()-ZTarget,pos.Y());
+				AccArr.push_back(pos);
 			}
 		}
-		Arc->SetParameter(0,hcx);
-		Arc->SetParameter(1,hcy);
-		Arc->SetParameter(2,hr);
-		Arc->SetParLimits(2,0.8*hr,1.5*hr);
-		ArcGraph->Fit("Arc","QR0");
-		h_cx[i].at(ib)=Arc->GetParameter(0);
-		h_cy[i].at(ib)=Arc->GetParameter(1);
-		h_r[i].at(ib)=Arc->GetParameter(2);
-		delete ArcGraph;
+		double params[3] = {0,0,0};
+		CircleFit(AccArr,params);	
+		h_cx[i].at(ib)= params[0];
+		h_cy[i].at(ib)= params[1];
+		h_r[i].at(ib)= params[2];
 	}
 	
 }
@@ -391,7 +376,7 @@ TPCBeamRemover::DoYThetaFit(int i){
 		double hcy = h_cy[i].at(ib);
 		double hr = h_r[i].at(ib);
 		std::vector<double> ttmp;
-		YThetaGraph = new TGraph();
+		std::vector<TVector3> AccArr(0);
 		for(int ih = 0;ih<nhits;++ih){
 			if(IsThisBeam(h_flag[i].at(ih),ib)){
 				auto pos = m_PeakCl_array[i].at(ih)->GetPosition();
@@ -401,19 +386,16 @@ TPCBeamRemover::DoYThetaFit(int i){
 				double t = atan2(y - hcy,x-hcx);
 				double rt = t * hr;
 				ttmp.push_back(t);
-				YThetaGraph->SetPoint(YThetaGraph->GetN(),rt,z);
+				AccArr.push_back(TVector3(rt,z,y));			
 			}
 		}//ih
+		double params[2]={0,0};
+		LinearFit(AccArr,params);
 		std::sort(ttmp.begin(),ttmp.end());
-//		acc_tparam.push_back( ttmp.at(0));
-//		acc_tparam.push_back((ttmp.at(ttmp.size()-1))/2);
-//		acc_tparam.push_back(ttmp.at(ttmp.size()-1));
-		YThetaGraph->Fit("linear","Q");
-		double p0 = Linear->GetParameter(0);
-		double p1 = Linear->GetParameter(1);
+		double p0 = params[0];
+		double p1 = params[1];
 		h_z0[i].push_back(p0);
 		h_dz[i].push_back(p1);
-		delete YThetaGraph;
 	}
 }
 int
@@ -508,8 +490,52 @@ TPCBeamRemover::DoQuadraticSearch(int i){
 		beam_v.push_back(beamv);
 	}
 }
-
-
+void
+TPCBeamRemover::CircleFit(std::vector<TVector3> posarr,double* param){
+	int n =posarr.size();
+	double Sumx=0,Sumy=0;
+	double Sumx2=0,Sumy2=0,Sumxy=0;
+	double Sumx3=0,Sumy3=0,Sumx2y=0,Sumy2x=0;
+	for (Int_t i=0;i<n;i++) {
+		double x = posarr.at(i).X();
+		double y = posarr.at(i).Y();
+		Sumx+=x;Sumy+=y;
+		Sumx2+=x*x;Sumy2+=y*y;Sumxy+=x*y;
+		Sumx3+=x*x*x;Sumy3+=y*y*y;Sumx2y+=x*x*y;Sumy2x+=y*y*x;
+	}
+	double a_1 = Sumx3 + Sumy2x, a_2 = Sumx2, a_3 = Sumx;
+	double b_1 = Sumy3 + Sumx2y, b_2 = Sumy2, b_3 = Sumy;
+	double c_1 = a_2+b_2,c_2 = Sumx,c_3 = Sumy;
+	double A = (a_1*(b_2*n-b_3*c_3)+a_3*(b_1*c_3-b_2*c_1)+Sumxy*(b_3*c_1-b_1*n))
+		/ ( Sumxy*(n*Sumxy-a_3*c_3-b_3*c_2)+a_2*b_3*c_3+a_3*b_2*c_2-a_2*b_2*n);
+	double B = (b_1*(a_2*n-a_3*c_2)+b_3*(a_1*c_2-a_2*c_1)+Sumxy*(a_3*c_1-a_1*n))      
+		/ ( Sumxy*(n*Sumxy-a_3*c_3-b_3*c_2)+a_2*b_3*c_3+a_3*b_2*c_2-a_2*b_2*n);
+	double C = (c_1*(a_2*b_2-Sumxy*Sumxy)+c_2*(Sumxy*b_1-a_1*b_2)+c_3*(Sumxy*a_1-b_1*a_2))
+		/ ( Sumxy*(n*Sumxy-a_3*c_3-b_3*c_2)+a_2*b_3*c_3+a_3*b_2*c_2-a_2*b_2*n);
+	double cx = -0.5 * A;
+	double cy = -0.5 * B;
+	double rad = sqrt(cx*cx+cy*cy-C);
+	param[0] = cx;
+	param[1] = cy;
+	param[2] = rad;
+}
+void
+TPCBeamRemover::LinearFit(std::vector<TVector3> posarr,double* param){
+	// y = ax + b;
+	int n =posarr.size();
+	double Sumx=0,Sumy=0;
+	double Sumx2=0,Sumy2=0,Sumxy=0;
+	for (Int_t i=0;i<n;i++) {
+		double x = posarr.at(i).X();
+		double y = posarr.at(i).Y();
+		Sumx+=x;Sumy+=y;
+		Sumx2+=x*x;Sumy2+=y*y;Sumxy+=x*y;
+	}
+	double a = (Sumxy-Sumx*Sumy)/( Sumx*Sumxy+Sumx2);	
+	double b = (Sumx2*Sumy-Sumxy*Sumxy)/( Sumx*Sumxy+Sumx2);	
+	param[0]=b;
+	param[1]=a;
+}
 
 
 #endif
