@@ -36,7 +36,7 @@
 #define TrigC 0
 #define TrigD 0
 
-#define TrackCluster 0
+#define TrackCluster 1
 #define TruncatedMean 0
 #define TrackSearchFailed 1
 
@@ -51,7 +51,6 @@ const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& gPHC  = HodoPHCMan::GetInstance();
 const auto& gCounter = debug::ObjectCounter::GetInstance();
-  //const double chisqrCut = 10.;
 const double truncatedMean = 0.8; //80%
 }
 

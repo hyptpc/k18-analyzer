@@ -30,7 +30,6 @@
 
 #define HitClustering 0
 #define TrackSearch 0
-#define HoughYcut 0
 
 namespace
 {
@@ -44,11 +43,6 @@ namespace
   const auto& gPHC  = HodoPHCMan::GetInstance();
   const auto& gCounter = debug::ObjectCounter::GetInstance();
   const auto& gTPC    = TPCParamMan::GetInstance();
-  //position cut for gain histogram
-  //  const double min_ycut = -15.;//mm
-  //const double max_ycut = 15.;//mm
-  const double min_ycut = -50.;//mm
-  const double max_ycut = 50.;//mm
   const Int_t MinPosMapXZ = -270;
   const Int_t MaxPosMapXZ = 270;
   //const Int_t MinPosMapY = -45;
@@ -382,9 +376,6 @@ dst::DstRead(int ievent)
 
   DCAnalyzer DCAna;
   DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock);
-#if HoughYcut
-  DCAna.HoughYCut(min_ycut, max_ycut);
-#endif
 
   HF1(1, event.status++);
 

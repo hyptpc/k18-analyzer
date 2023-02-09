@@ -37,7 +37,6 @@
 #define GainCorrection 1
 #define PositionCorrection 0
 #define TrackSearch 1
-#define HoughYcut 0
 #define FillEvent 1
 #define PrintMemory 0
 namespace
@@ -99,8 +98,8 @@ namespace dst
 					X[k] += tpc::ZTarget;
 
 				padHist->AddBin(5,X,Y);
-			}   
-		}   
+			}
+		}
 
 		padHist->SetStats(0);
 		return padHist;
@@ -432,7 +431,7 @@ dst::DstRead(int ievent)
 	}
 
 
-#if PrintMemory 
+#if PrintMemory
 	int tSize = 0, resident = 0, share = 0;
 	std::ifstream buffer("/proc/self/statm");
 	buffer >> tSize >> resident >> share;
@@ -782,7 +781,7 @@ dst::DstRead(int ievent)
 #endif
 		}
 	}
-#endif	
+#endif
 	return true;
 }
 

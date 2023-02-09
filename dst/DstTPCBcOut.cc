@@ -34,7 +34,6 @@
 #define GainCorrection 1
 #define PositionCorrection 0
 #define TrackSearch 1
-#define HoughYcut 0
 
 namespace
 {
@@ -46,10 +45,6 @@ const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& gPHC  = HodoPHCMan::GetInstance();
 const auto& gCounter = debug::ObjectCounter::GetInstance();
-//position cut for gain histogram
-const double min_ycut = -50.;//mm
-const double max_ycut = 50.;//mm
-
 const Double_t& zK18HS = gGeom.LocalZ("K18HS");
 }
 
@@ -438,10 +433,6 @@ dst::DstRead(int ievent)
 
   DCAnalyzer DCAna;
   DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock);
-
-#if HoughYcut
-  DCAna.HoughYCut(min_ycut, max_ycut);
-#endif
 
   HF1(1, event.status++);
 

@@ -30,7 +30,6 @@
 
 #define TrackSearch 0
 #define Gain_center 1
-#define HoughYcut   0
 #define DebugEvDisp 0
 
 #if DebugEvDisp
@@ -262,10 +261,6 @@ dst::DstRead(int ievent)
 
   DCAnalyzer DCAna;
   DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock);
-
-// #if HoughYcut
-//   DCAna.HoughYCut(min_ycut, max_ycut);
-// #endif
 
   Int_t nhTpc = 0;
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){

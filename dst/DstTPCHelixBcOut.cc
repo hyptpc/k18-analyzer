@@ -30,8 +30,6 @@
 #include "UserParamMan.hh"
 
 #define TrackSearch 1
-#define HoughYcut 0
-
 
 namespace
 {
@@ -44,11 +42,6 @@ const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& gPHC  = HodoPHCMan::GetInstance();
 const auto& gCounter = debug::ObjectCounter::GetInstance();
-//position cut for gain histogram
-//  const double min_ycut = -15.;//mm
-//const double max_ycut = 15.;//mm
-const double min_ycut = -50.;//mm
-const double max_ycut = 50.;//mm
 const Int_t MinPosMapXZ = -270;
 const Int_t MaxPosMapXZ = 270;
 const Int_t MinPosMapY = -20;
@@ -386,9 +379,6 @@ dst::DstRead( int ievent )
   DCAnalyzer DCAna;
   //  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc);
   DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.ctTpc, **src.deTpc);
-#if HoughYcut
-  DCAna.HoughYCut(min_ycut, max_ycut);
-#endif
 
   HF1( 1, event.status++ );
 
