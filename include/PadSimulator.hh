@@ -42,6 +42,7 @@ private:
   std::vector<TPCHitContainer>       m_TempTPCHitCont;
   std::vector<TPCClusterContainer>   m_TPCClCont;
   TPCLocalTrackContainer             m_TPCTC;
+  TPCLocalTrackContainer             m_TPCTC_Failed;
   TPCLocalTrackHelixContainer        m_TPCTC_Helix;
   TPCLocalTrackHelixContainer        m_TPCTC_HelixFailed;
 	double zK18HS,TPC_Dt;
