@@ -59,12 +59,14 @@ namespace
   const Int_t    nBin_rdiff = 11;
   const Double_t rdiff_min = -110.;
   const Double_t rdiff_max = 110.;
-  const Int_t    nBin_theta = 720;
+  //const Int_t    nBin_theta = 720;
+  const Int_t    nBin_theta = 360;
   const Double_t theta_min = -1.*acos(-1);
   const Double_t theta_max = acos(-1);
-  const Int_t    nBin_p = 900;
+  //const Int_t    nBin_p = 1200;
+  const Int_t    nBin_p = 300;
   const Double_t pmin = 50.;
-  const Double_t pmax = 1550.; //MeV/c
+  const Double_t pmax = 2150.; //MeV/c
   TH3D *histCircle = new TH3D("histCircle",";rd (mm); theta (rad); p(MeV/c)",
 			       nBin_rdiff, rdiff_min,  rdiff_max,
 			       nBin_theta, theta_min, theta_max,
