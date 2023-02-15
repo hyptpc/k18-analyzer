@@ -8,35 +8,33 @@
 
 #include <std_ostream.hh>
 
-//#include "TMinuit.h"
 #include "TVector3.h"
 #include "ThreeVector.hh"
 #include "DetectorID.hh"
 #include "TPCHit.hh"
 #include "TPCLTrackHit.hh"
 
-
-
 class TPCHit;
-class DCAnalyzer;
 
 //______________________________________________________________________________
 class TPCLocalTrackHelix
 {
 public:
+  static const TString ClassName();
   explicit TPCLocalTrackHelix();
   ~TPCLocalTrackHelix();
+  TPCLocalTrackHelix(TPCLocalTrackHelix *init); //deep copy
 
 private:
-  TPCLocalTrackHelix(const TPCLocalTrackHelix &);
-  TPCLocalTrackHelix & operator =(const TPCLocalTrackHelix &);
-  //  TMinuit *minuit;
+  TPCLocalTrackHelix & operator =(const TPCLocalTrackHelix &init);
 
 private:
   bool   m_is_fitted;     // flag of DoFit()
   bool   m_is_calculated; // flag of Calculate()
-  int m_flag;
+  int    m_flag;
   std::vector<TPCLTrackHit*> m_hit_array;
+  std::vector<int> m_hit_order;
+  std::vector<double> m_hit_t;
 
   //equation of Helix
   //x = -X;
@@ -44,132 +42,144 @@ private:
   //z = Y;
   //x = p[0] + p[3]*cos(t+theta0);
   //y = p[1] + p[3]*sin(t+theta0);
-  //z = p[2] + (p[4]*p[3]*t);
-  double m_cx;
-  double m_cy;
-  double m_z0;
-  double m_r;
-  double m_dz;
+  //z = p[2] + p[4]*p[3]*(t+theta0);
+  // track coordinate origin is target, ***NOT TPC center***
+  //Hough params
   double m_Acx;
   double m_Acy;
   double m_Az0;
   double m_Ar;
   double m_Adz;
+  //Track params
+  double m_cx;
+  double m_cy;
+  double m_z0;
+  double m_r;
+  double m_dz;
+
   double m_chisqr;
-  bool   m_good_for_tracking;
   double m_n_iteration;
   TVector3 m_mom0;
   TVector3 m_mom0_corP;
   TVector3 m_mom0_corN;
+  double m_median_t;
   double m_min_t;
   double m_max_t;
   double m_path;
   double m_transverse_path;
   int m_charge;
-  int m_isbeam;
-  int m_iskurama;
-  int m_houghtime; //sec
-  int m_fittime; //sec
+  int m_fitflag;
+  int m_isBeam;
+  int m_isK18;
+  int m_isKurama;
+  int m_isAccidental;
+
+  int m_searchtime; //millisec
+  int m_fittime; //millisec
+
+  std::vector<double> m_cx_exclusive;
+  std::vector<double> m_cy_exclusive;
+  std::vector<double> m_z0_exclusive;
+  std::vector<double> m_r_exclusive;
+  std::vector<double> m_dz_exclusive;
+  std::vector<double> m_chisqr_exclusive;
+  std::vector<TVector3> m_vp; //RK virtual plane
 
 public:
   void         AddTPCHit(TPCLTrackHit *hit);
   void         ClearHits();
   void         Calculate();
   void         DeleteNullHit();
-  bool         DoHelixFit(int MinHits, int IsBeam);
-  //  bool         DoHelixFit();
-  bool         DoFit(int MinHits, int IsBeam);
-  int          GetNDF() const;
+  //bool         DoHelixFit(int MinHits);
+  bool         DoHelixFit();
+  bool         DoFit(int MinHits);
+  int          FinalizeTrack(int &delete_hit);
+  void         Sort(); //Sort hits by theta
+  bool         ResidualCheck(TVector3 pos, TVector3 Res, double &resi);
+  bool         ResidualCheck(TVector3 pos, double xzwindow, double ywindow, double &resi);
+  bool         ResidualCheck(TVector3 pos, double xzwindow, double ywindow);
+  void         InvertChargeCheck();
+  void         AddVPHit(TVector3 vp);
+  bool         DoVPFit();
+  void         Print(const TString& arg="", bool print_allhits = false) const;
 
-  TVector3     GetPosition(double par[5], double t) const;
-  TVector3     CalcHelixMom(double par[5], double y) const;
-  TVector3     CalcHelixMom_t(double par[5], double t) const;
-  TVector3     CalcHelixMom_corP(double par[5], double y) const;
-  TVector3     CalcHelixMom_t_corP(double par[5], double t) const;
-  TVector3     CalcHelixMom_corN(double par[5], double y) const;
-  TVector3     CalcHelixMom_t_corN(double par[5], double t) const;
+  TVector3 CalcHelixMom(double par[5], double y) const;
+  TVector3 CalcHelixMom_t(double par[5], double t) const;
+  TVector3 CalcHelixMom_corP(double par[5], double y) const;
+  TVector3 CalcHelixMom_t_corP(double par[5], double t) const;
+  TVector3 CalcHelixMom_corN(double par[5], double y) const;
+  TVector3 CalcHelixMom_t_corN(double par[5], double t) const;
 
-  int          GetNHit() const { return m_hit_array.size();  }
   TPCLTrackHit* GetHit(std::size_t nth) const;
-  bool         IsFitted() const { return m_is_fitted; }
-  bool         IsCalculated() const { return m_is_calculated; }
-  bool         Residual_check(TVector3 pos, TVector3 Res, double &resi);
-  double       GetTcal(TVector3 pos);
-  void         CalcChi2(void);
-  double       CalcChi2_circle(double par[3]);
-  int     GetHTOFSeg(double min_layer_t, double max_layer_t, double max_layer_y);
-  int     GetIsBeam(void) const {return m_isbeam;}
-  int     GetIsKurama(void) const {return m_iskurama;}
-  void    SetIsKurama(void) { m_iskurama = 1;}
-  // void SetMint(double min_t) { m_min_t = min_t; }
-  // void SetMaxt(double max_t) { m_max_t = max_t; }
-  // void SetPath(double path) { m_path = path; }
-  double GetMint(void) const {return m_min_t; }
-  double GetMaxt(void) const {return m_max_t; }
-  double GetPath(void) const {return m_path; }
-  double GetTransversePath(void) const {return m_transverse_path; }
-  int    GetCharge(void) const {return m_charge;}
-  double GetTrackdE();
-  double GetdEdx(double truncatedMean = 1.0);
+  TPCLTrackHit* GetHitInOrder(std::size_t nth) const;
+  int          GetNHit() const { return m_hit_array.size(); }
+  int          GetOrder(int i) const { return m_hit_order[i]; }
 
-  void SetAcx(double Acx) { m_Acx = Acx; }
-  void SetAcy(double Acy) { m_Acy = Acy; }
-  void SetAz0(double Az0) { m_Az0 = Az0; }
-  void SetAr(double Ar)  { m_Ar = Ar; }
-  void SetAdz(double Adz){  m_Adz = Adz; }
+  double   GetChiSquare() const { return m_chisqr; }
+  int      GetNIteration() const { return m_n_iteration; }
+  int      GetFlag(void) const {return m_flag; }
+  int      GetFitFlag(void) const {return m_fitflag; }
+  int      GetIsBeam(void) const { return m_isBeam; }
+  int      GetIsK18(void) const { return m_isK18; }
+  int      GetIsKurama(void) const { return m_isKurama; }
+  int      GetIsAccidental(void) const { return m_isAccidental; }
+  bool     IsFitted() const { return m_is_fitted; }
+  bool     IsCalculated() const { return m_is_calculated; }
+  int      GetSearchTime() const { return m_searchtime; }
+  int      GetFitTime() const { return m_fittime; }
+  TVector3 GetMom0() const { return m_mom0; }// Momentum at Y = 0
+  TVector3 GetMom0_corP() const { return m_mom0_corP; }// Momentum at Y = 0
+  TVector3 GetMom0_corN() const { return m_mom0_corN; }// Momentum at Y = 0
+  TVector3 GetPosition(double par[5], double t) const;
+  int      GetNDF() const;
   double Getcx() const { return m_cx; }
   double Getcy() const { return m_cy; }
   double Getz0() const { return m_z0; }
   double Getr() const { return m_r; }
   double Getdz() const { return m_dz; }
-  void SetHelixUsingHoughParam(void);
-  void SetHoughFlag(int hough_flag);
-  void SetFlag(int flag) { m_flag = flag; }
-  int GetFlag(void) const {return m_flag;}
-
-  TVector3 GetMom0() const { return m_mom0; }// Momentum at Y = 0
-  TVector3 GetMom0_corP() const { return m_mom0_corP; }// Momentum at Y = 0
-  TVector3 GetMom0_corN() const { return m_mom0_corN; }// Momentum at Y = 0
-
   double GetAcx() const { return m_Acx; }
   double GetAcy() const { return m_Acy; }
   double GetAz0() const { return m_Az0; }
   double GetAr() const { return m_Ar; }
   double GetAdz() const { return m_Adz; }
+  double GetTheta(int i) const { return m_hit_t[i]; }
+  double GetTcal(TVector3 pos);
+  double GetMint(void) const { return m_min_t; }
+  double GetMaxt(void) const { return m_max_t; }
+  double GetPath(void) const { return m_path; }
+  double GetTransversePath(void) const { return m_transverse_path; }
+  int    GetCharge(void) const { return m_charge; }
+  double GetTrackdE();
+  double GetdEdx(double truncatedMean = 1.0);
 
-  double GetChiSquare() const { return m_chisqr; }
-  // double GetChiX() const { return m_Chix; }
-  // double GetChiY() const { return m_Chiy; }
-  // double GetChiU() const { return m_Chiu; }
-  // double GetChiV() const { return m_Chiv; }
-
-  // double GetX(double z) const { return m_x0+m_u0*z; }
-  // double GetY(double z) const { return m_y0+m_v0*z; }
-  // double GetS(double z, double tilt) const { return GetX(z)*std::cos(tilt)+GetY(z)*std::sin(tilt); }
-  int    GetNIteration() const { return m_n_iteration; }
-  //double GetTheta() const;
-  bool   GoodForTracking() const { return m_good_for_tracking; }
-  bool   GoodForTracking(bool status)
-  { bool ret = m_good_for_tracking; m_good_for_tracking = status; return ret; }
-
-  int  GetHoughTime() const { return m_houghtime; }
-  int  GetFitTime() const { return m_fittime; }
-  void SetHoughTime(int time) { m_houghtime = time; }
+  void SetHoughFlag(int hough_flag);
+  void SetFlag(int flag);
+  void SetFitFlag(int flag) { m_fitflag = flag; }
+  void SetIsBeam(int flag=1) { m_isBeam = flag; }
+  void SetIsK18(int flag=1) { m_isK18 = flag; }
+  void SetIsKurama(int flag=1) { m_isKurama = flag; }
+  void SetIsAccidental(int flag=1) { m_isAccidental = flag; }
+  void SetSearchTime(int time) { m_searchtime = time; }
   void SetFitTime(int time) { m_fittime = time; }
-  void Print(const TString& arg="") const;
+  void SetAcx(double Acx) { m_Acx = Acx; }
+  void SetAcy(double Acy) { m_Acy = Acy; }
+  void SetAz0(double Az0) { m_Az0 = Az0; }
+  void SetAr(double Ar) { m_Ar = Ar; }
+  void SetAdz(double Adz) { m_Adz = Adz; }
+  void SetParamUsingHoughParam(void);
+
+  //exclusive
+  void CalculateExclusive();
+  void DoHelixFitExclusive();
 
 };
 
-
-//______________________________________________________________________________
-// inline
-// std::ostream&
-// operator <<(std::ostream& ost,
-// 	     const TPCLocalTrackHelix& track)
-// {
-//   track.Print("", ost);
-//   return ost;
-// }
-
+//_____________________________________________________________________________
+inline const TString
+TPCLocalTrackHelix::ClassName()
+{
+  static TString s_name("TPCLocalTrackHelix");
+  return s_name;
+}
 
 #endif

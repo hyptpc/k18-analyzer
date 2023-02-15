@@ -50,9 +50,16 @@ TPCLTrackHit::TPCLTrackHit(TPCHit *hit)
     m_z0(TMath::QuietNaN()),
     m_r(TMath::QuietNaN()),
     m_dz(TMath::QuietNaN()),
+    m_t(TMath::QuietNaN()),
     m_padtheta(hit->GetMPadTheta()),
     m_padlength(hit->GetPadLength()),
-    m_de(hit->GetCDe())
+    m_de(hit->GetCDe()),
+
+    m_cal_pos_exclusive(TVector3(0.,0.,0.)),
+    m_x0_exclusive(TMath::QuietNaN()),
+    m_y0_exclusive(TMath::QuietNaN()),
+    m_u0_exclusive(TMath::QuietNaN()),
+    m_v0_exclusive(TMath::QuietNaN())
 {
   m_hit->RegisterHits(this);
   debug::ObjectCounter::increase(ClassName());
@@ -75,9 +82,16 @@ TPCLTrackHit::TPCLTrackHit(const TPCLTrackHit& right)
     m_z0(right.m_z0),
     m_r(right.m_r),
     m_dz(right.m_dz),
+    m_t(right.m_t),
     m_padtheta(right.m_padtheta),
     m_padlength(right.m_padlength),
-    m_de(right.m_de)
+    m_de(right.m_de),
+
+    m_cal_pos_exclusive(right.m_cal_pos_exclusive),
+    m_x0_exclusive(right.m_x0_exclusive),
+    m_y0_exclusive(right.m_y0_exclusive),
+    m_u0_exclusive(right.m_u0_exclusive),
+    m_v0_exclusive(right.m_v0_exclusive)
 {
   m_hit->RegisterHits(this);
   debug::ObjectCounter::increase(ClassName());
@@ -105,17 +119,11 @@ TPCLTrackHit::GetHelixPosition(double par[5], double t) const
   return TVector3(x, y, z);
 }
 
-
-
 //______________________________________________________________________________
 TVector3
 TPCLTrackHit::GetLocalCalPos() const
 {
   TVector3 pos = m_local_hit_pos;
-  // TVector3 x0(m_x0, m_y0, 0.);
-  // TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, 1.);
-  //temp
-
   TVector3 x0(m_x0, m_y0, tpc::ZTarget);
   TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, tpc::ZTarget+1.);
   TVector3 u = (x1-x0).Unit();
@@ -129,13 +137,40 @@ TPCLTrackHit::GetLocalCalPos() const
 
 //______________________________________________________________________________
 TVector3
+TPCLTrackHit::GetLocalCalPosExclusive() const
+{
+  TVector3 pos = m_local_hit_pos;
+  TVector3 x0(m_x0_exclusive, m_y0_exclusive, tpc::ZTarget);
+  TVector3 x1(m_x0_exclusive + m_u0_exclusive, m_y0_exclusive + m_v0_exclusive, tpc::ZTarget+1.);
+  TVector3 u = (x1-x0).Unit();
+  TVector3 AP = pos-x0;
+  double dist_AX = u.Dot(AP);
+  TVector3 AI(x0.x()+(u.x()*dist_AX),
+	      x0.y()+(u.y()*dist_AX),
+	      x0.z()+(u.z()*dist_AX));
+  return AI;
+}
+
+//______________________________________________________________________________
+TVector3
 TPCLTrackHit::GetLocalCalPosHelix() const
 {
+  double par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
+  TVector3 fittmp = GetHelixPosition(par, m_t);
+  TVector3 calpos(-fittmp.X(),
+		   fittmp.Z(),
+		   fittmp.Y()+tpc::ZTarget);
+  return calpos;
+}
+
+//______________________________________________________________________________
+TVector3
+TPCLTrackHit::GetLocalCalPosHelixExclusive() const
+{
+  double par[5] = {m_cx_exclusive, m_cy_exclusive, m_z0_exclusive, m_r_exclusive, m_dz_exclusive};
   TVector3 pos(-m_local_hit_pos.X(),
 	       m_local_hit_pos.Z() - tpc::ZTarget,
 	       m_local_hit_pos.Y());
-
-  double par[5]={m_cx, m_cy, m_z0, m_r, m_dz};
   double fpar[8];
   for(int ip=0; ip<5; ++ip){
     fpar[ip] = par[ip];
@@ -153,7 +188,6 @@ TPCLTrackHit::GetLocalCalPosHelix() const
   return calpos;
 }
 
-
 //______________________________________________________________________________
 double
 TPCLTrackHit::GetTcal() const
@@ -162,7 +196,7 @@ TPCLTrackHit::GetTcal() const
 	       m_local_hit_pos.Z() - tpc::ZTarget,
 	       m_local_hit_pos.Y());
 
-  double par[5]={m_cx, m_cy, m_z0, m_r, m_dz};
+  double par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   double fpar[8];
   for(int ip=0; ip<5; ++ip){
     fpar[ip] = par[ip];
@@ -176,7 +210,6 @@ TPCLTrackHit::GetTcal() const
 
   return min_t;
 }
-
 
 //______________________________________________________________________________
 TVector3
@@ -203,20 +236,33 @@ TPCLTrackHit::GetMomentumHelix() const
   return TVector3(px,py,pz);
 }
 
-
-
 //______________________________________________________________________________
 TVector3
 TPCLTrackHit::GetResidualVect() const
 {
-  return m_cal_pos - m_local_hit_pos;
+  return m_local_hit_pos - m_cal_pos;
+}
+
+//______________________________________________________________________________
+TVector3
+TPCLTrackHit::GetResidualVectExclusive() const
+{
+  return m_local_hit_pos - m_cal_pos_exclusive;
 }
 
 //______________________________________________________________________________
 double
 TPCLTrackHit::GetResidual() const
 {
-  TVector3 Res = m_cal_pos - m_local_hit_pos;
+  TVector3 Res = m_local_hit_pos - m_cal_pos;
+  return Res.Mag();
+}
+
+//______________________________________________________________________________
+double
+TPCLTrackHit::GetResidualExclusive() const
+{
+  TVector3 Res = m_local_hit_pos - m_cal_pos_exclusive;
   return Res.Mag();
 }
 
@@ -236,8 +282,7 @@ TPCLTrackHit::ResidualCut() const
 Double_t
 TPCLTrackHit::GetPadTrackAngleHelix() const
 {
-  Double_t t_cal = GetTcal();
-  Double_t thetaDiff = t_cal - m_padtheta;
+  Double_t thetaDiff = m_t - m_padtheta;
   return thetaDiff;
 }
 
@@ -256,15 +301,11 @@ TPCLTrackHit::GetPathHelix() const
 void
 TPCLTrackHit::Print(const TString& arg) const
 {
-  const int w = 8;
-  std::cout << "#D " << FUNC_NAME << " " << arg << std::endl
-	    << std::setw(w) << std::left << "layer" << m_hit->GetLayer()
-	    << std::setw(w) << std::left << " mean row" << m_hit->GetMRow()
+  const int w = 2;
+  std::cout << arg.Data() << " Hough flag" << m_hit->GetHoughFlag()
+	    << " L" << m_hit->GetLayer() << " R" << m_hit->GetMRow()
+	    << std::setw(w) << std::right << " pos"
+	    << std::fixed << std::setprecision(1) << std::setw(w) << m_local_hit_pos
 	    << std::endl;
 
-  std::cout << std::setw(3) << std::right << "(de, local pos, cal pos)=("
-	    << std::fixed << std::setprecision(3) << std::setw(6) << m_de
-	    << std::fixed << std::setprecision(3) << std::setw(6) << m_local_hit_pos
-	    << std::fixed << std::setprecision(3) << std::setw(6) << m_cal_pos
-	    << std::endl;
 }

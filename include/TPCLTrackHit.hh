@@ -32,24 +32,39 @@ private:
   Double_t m_y0;
   Double_t m_u0;
   Double_t m_v0;
+
   Double_t m_cx;
   Double_t m_cy;
   Double_t m_z0;
   Double_t m_r;
   Double_t m_dz;
+  Double_t m_t;
+
   Double_t m_padtheta;
   Double_t m_padlength;
   Double_t m_de;
 
+  TVector3 m_cal_pos_exclusive;
+  Double_t m_x0_exclusive;
+  Double_t m_y0_exclusive;
+  Double_t m_u0_exclusive;
+  Double_t m_v0_exclusive;
+  Double_t m_cx_exclusive;
+  Double_t m_cy_exclusive;
+  Double_t m_z0_exclusive;
+  Double_t m_r_exclusive;
+  Double_t m_dz_exclusive;
+
 public:
   Bool_t IsGood() const { return (m_hit && m_hit->IsGood()); }
-  void   SetLocalHitPos(TVector3 xl)        { m_local_hit_pos = xl; }
-  void   SetCalPosition(TVector3 cal_pos)        { m_cal_pos = cal_pos; }
-  void   SetCalX0Y0(Double_t x0, Double_t y0)          { m_x0 = x0; m_y0 = y0; }
-  void   SetCalUV(Double_t u0, Double_t v0)            { m_u0 = u0; m_v0 = v0; }
+  void   SetLocalHitPos(TVector3 xl) { m_local_hit_pos = xl; }
+  void   SetCalPosition(TVector3 cal_pos) { m_cal_pos = cal_pos; }
+  void   SetCalX0Y0(Double_t x0, Double_t y0) { m_x0 = x0; m_y0 = y0; }
+  void   SetCalUV(Double_t u0, Double_t v0) { m_u0 = u0; m_v0 = v0; }
   void   SetCalHelix(Double_t cx, Double_t cy, Double_t z0, Double_t r, Double_t dz)
-  {m_cx = cx; m_cy = cy; m_z0 = z0; m_r = r, m_dz = dz;}
-  void   SetResolution(TVector3 res)        { m_res = res; }
+  {m_cx = cx; m_cy = cy; m_z0 = z0; m_r = r; m_dz = dz;}
+  void   SetResolution(TVector3 res) { m_res = res; }
+  void   SetTheta(Double_t t) { m_t = t; }
 
   TPCHit* GetHit() const { return m_hit; }
 
@@ -69,10 +84,12 @@ public:
   Double_t Getz0()        const { return m_z0; }
   Double_t Getr()         const { return m_r; }
   Double_t Getdz()        const { return m_dz; }
+  Double_t GetTheta()     const { return m_t; }
   const TVector3& GetResolutionVect() const { return m_res; }
 
-  TVector3 GetLocalCalPos()  const;
-  TVector3 GetLocalCalPosHelix()  const;
+  TVector3 GetLocalCalPos() const;
+  TVector3 GetLocalCalPosHelix() const;
+  TVector3 GetLocalCalPosHelix(double par[5]) const;
   TVector3 GetHelixPosition(Double_t par[5], Double_t t)  const;
   TVector3 GetMomentumHelix()  const;
   Double_t GetTcal() const;
@@ -90,6 +107,16 @@ public:
   Double_t GetHoughDist() const { return m_hit->GetHoughDist(); }
   Double_t GetHoughDistY() const { return m_hit->GetHoughDistY(); }
   void Print(const TString& arg="") const;
+
+  TVector3 GetLocalCalPosExclusive() const;
+  TVector3 GetLocalCalPosHelixExclusive() const;
+  void SetCalX0Y0Exclusive(Double_t x0, Double_t y0) { m_x0_exclusive = x0; m_y0_exclusive = y0; }
+  void SetCalUVExclusive(Double_t u0, Double_t v0) { m_u0_exclusive = u0; m_v0_exclusive = v0; }
+  void SetCalPositionExclusive(TVector3 cal_pos) { m_cal_pos_exclusive = cal_pos; }
+  void SetCalHelixExclusive(Double_t cx, Double_t cy, Double_t z0, Double_t r, Double_t dz)
+  {m_cx_exclusive = cx; m_cy_exclusive = cy; m_z0_exclusive = z0; m_r_exclusive = r, m_dz_exclusive = dz;}
+  TVector3 GetResidualVectExclusive() const;
+  Double_t GetResidualExclusive() const;
 
   friend class TPCHit;
 };
