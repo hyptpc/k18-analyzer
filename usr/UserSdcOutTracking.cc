@@ -209,7 +209,7 @@ UserSdcOutTracking::ProcessingNormal()
   static const auto MaxDeBH2 = gUser.GetParameter("DeBH2", 1);
   static const auto MinDeBH1 = gUser.GetParameter("DeBH1", 0);
   static const auto MaxDeBH1 = gUser.GetParameter("DeBH1", 1);
-  static const auto MinBeamToF = gUser.GetParameter("BTOF", 1);
+  static const auto MinBeamToF = gUser.GetParameter("BTOF", 0);
   static const auto MaxBeamToF = gUser.GetParameter("BTOF", 1);
 #endif
   static const auto MinDeTOF = gUser.GetParameter("DeTOF", 0);
@@ -400,6 +400,32 @@ UserSdcOutTracking::ProcessingNormal()
   //DCAna->TotCutSDC3(150);
   //DCAna->TotCutSDC4(MinTotSDC4);
   //DCAna->TotCutSDC5(MinTotSDC5);
+#endif
+#if 0
+  const auto& contOut_3y = DCAna->GetSdcOutHC(3);
+  const auto& contOut_5y = DCAna->GetSdcOutHC(11);
+  if(contOut_3y.size()==0 || contOut_5y.size()==0){
+    return true;
+  }
+  const auto& contOut_3x = DCAna->GetSdcOutHC(1);
+  const auto& contOut_5x = DCAna->GetSdcOutHC(9);
+  if(contOut_3x.size()==0 || contOut_5x.size()==0){
+    return true;
+  }
+  DCHit *hit_3y=contOut_3y[0];
+  Double_t wire_3y=hit_3y->GetWire();
+  DCHit *hit_5y=contOut_5y[0];
+  Double_t wire_5y=hit_5y->GetWire();
+  if(wire_3y < wire_5y-27 || wire_3y > wire_5y+59){
+    return true;
+  }
+  DCHit *hit_3x=contOut_3x[0];
+  Double_t wire_3x=hit_3x->GetWire();
+  DCHit *hit_5x=contOut_5x[0];
+  Double_t wire_5x=hit_5x->GetWire();
+  if(wire_3x < wire_5x-43 || wire_3x > wire_5x+43){
+    return true;
+  }
 #endif
   Double_t multi_SdcOut = 0.;
   for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer) {
@@ -630,6 +656,8 @@ UserSdcOutTracking::ProcessingNormal()
       HF2(100*layerId+18, sign*dl, res);
       Double_t xlcal=hit->GetLocalCalPos();
       HF2(100*layerId+19, dt, xlcal-wp);
+      HF1(100*layerId+23, std::abs(dl)-std::abs(pos-wp));
+      HF1(100*layerId+24, std::abs(dl)-std::abs(xlcal-wp));
 
       HF2(100*layerId+31, xcal, res);
       HF2(100*layerId+32, ycal, res);
@@ -807,6 +835,8 @@ ConfMan::InitializeHistograms()
     TString title20 = Form("DriftLength%%DriftTime SdcOut%2d", i);
     TString title21 = title15 + " [w/o Self]";
     TString title22 = title20;
+    TString title23 = Form("DriftLength-Hit Position SdcOut%2d [Track]", i);
+    TString title24 = Form("DriftLength-Cal Position SdcOut%2d [Track]", i);
     TString title40 = Form("TOT SdcOut%2d [Track]", i);
     TString title71 = Form("Residual SdcOut%2d (0<theta<15)", i);
     TString title72 = Form("Residual SdcOut%2d (15<theta<30)", i);
@@ -834,6 +864,8 @@ ConfMan::InitializeHistograms()
     HBProf(100*i+20, title20, 100, -50, 300, 0, maxdl);
     HB2(100*i+22, title22, nbindt, mindt, maxdt, 100, -0.5, maxdl);
     HB1(100*i+21, title21, 200, -5.0, 5.0);
+    HB1(100*i+23, title23, 1000, -5.0, 5.0);
+    HB1(100*i+24, title24, 1000, -5.0, 5.0);
     HB2(100*i+31, Form("Resid%%X SdcOut %d", i), 100, -1000., 1000., 100, -2., 2.);
     HB2(100*i+32, Form("Resid%%Y SdcOut %d", i), 100, -1000., 1000., 100, -2., 2.);
     HB2(100*i+33, Form("Resid%%U SdcOut %d", i), 100, -0.5, 0.5, 100, -2., 2.);

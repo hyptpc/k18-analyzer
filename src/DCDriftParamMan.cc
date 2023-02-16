@@ -265,11 +265,11 @@ DCDriftParamMan::DriftLength6(Int_t PlaneId, Double_t dt,
     break;
     // SDC3
   case 31: case 32: case 33: case 34:
-    if(dt < -20. || dt > 180.)
+    if(dt < -20. || dt > 360.)
       return qnan;
     if(dl < 0.)
       return 0.;
-    else if(dl > 4.5 || dt > 150.)
+    else if(dl > 4.5 || dt > 300.)
       return 4.5;
     else
       return dl;
