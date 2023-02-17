@@ -170,8 +170,8 @@ const Int_t MaxWireBC3      =  64;
 const Int_t MaxWireBC4      =  64;
 
 const Int_t MaxWireSDC1     =  64;
-const Int_t MaxWireSDC2X    =  70;
-const Int_t MaxWireSDC2Y    =  40;
+const Int_t MaxWireSDC2X    =  44;
+const Int_t MaxWireSDC2Y    =  44;
 const Int_t MaxWireSDC3     = 128;
 const Int_t MaxWireSDC4X    = 128;
 const Int_t MaxWireSDC4Y    = 128;
