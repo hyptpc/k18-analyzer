@@ -320,7 +320,8 @@ RawData::DecodeHits()
 
   // SDC5
   for(Int_t plane=0; plane<NumOfLayersSDC5; ++plane){
-    const Int_t MaxWireSDC5 = (plane < 2) ? MaxWireSDC5X : MaxWireSDC5Y;
+    //const Int_t MaxWireSDC5 = (plane < 2) ? MaxWireSDC5X : MaxWireSDC5Y;
+    const Int_t MaxWireSDC5 = (plane < 2) ? MaxWireSDC5Y : MaxWireSDC5X;
     for(Int_t wire=0; wire<MaxWireSDC5; ++wire){
       for(Int_t lt=0; lt<2; ++lt){
 	auto nhit = gUnpacker.get_entries(DetIdSDC5, plane, 0, wire, lt);

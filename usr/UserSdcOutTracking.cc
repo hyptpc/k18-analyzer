@@ -403,12 +403,12 @@ UserSdcOutTracking::ProcessingNormal()
 #endif
 #if 0
   const auto& contOut_3y = DCAna->GetSdcOutHC(3);
-  const auto& contOut_5y = DCAna->GetSdcOutHC(11);
+  const auto& contOut_5y = DCAna->GetSdcOutHC(9);
   if(contOut_3y.size()==0 || contOut_5y.size()==0){
     return true;
   }
   const auto& contOut_3x = DCAna->GetSdcOutHC(1);
-  const auto& contOut_5x = DCAna->GetSdcOutHC(9);
+  const auto& contOut_5x = DCAna->GetSdcOutHC(11);
   if(contOut_3x.size()==0 || contOut_5x.size()==0){
     return true;
   }
@@ -438,26 +438,9 @@ UserSdcOutTracking::ProcessingNormal()
     Int_t plane_eff = (layer-1)*3;
     Bool_t fl_valid_sig = false;
     Int_t tdc1st_2 = -1;
-    //if(nhOut == 0){
-      //for(Int_t j=0; j<MaxHits; ++j){
-        //event.wire[layer-1][j] = -1;
-      //}
-    //}
     for(Int_t i=0; i<nhOut; ++i){
       DCHit *hit=contOut[i];
       Double_t wire=hit->GetWire();
-#if 0
-      if(layer<=10){
-        if(wire<32 || wire>95){
-          return true;
-        }
-      }
-      if(layer>=11){
-        if(wire<16 || wire>79){
-          return true;
-        }
-      }
-#endif
       HF1(100*layer+1, wire-0.5);
       event.wire[layer-1][i] = wire-0.5;
       Int_t nhtdc = hit->GetTdcSize();
@@ -486,7 +469,6 @@ UserSdcOutTracking::ProcessingNormal()
 
       if(i<MaxHits){
         event.pos[layer-1][i] = hit->GetWirePosition();
-        //event.wire[layer-1][i] = wire;
       }
 
       Int_t nhdt = hit->GetDriftTimeSize();
@@ -761,7 +743,7 @@ ConfMan::InitializeHistograms()
       maxdl  = MaxSDC4DL;
     }else if(i<=NumOfLayersSdcOut){
       tag = "SDC5";
-      nwire   = (i==9 || i==10) ? MaxWireSDC5X : MaxWireSDC5Y;
+      nwire   = (i==9 || i==10) ? MaxWireSDC5Y : MaxWireSDC5X;
       nbindt = NbinSDC5DT;
       mindt  = MinSDC5DT;
       maxdt  = MaxSDC5DT;
