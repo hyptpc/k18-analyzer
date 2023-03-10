@@ -88,7 +88,6 @@ private:
   DCLocalTrackContainer              m_SdcInSdcOutTC;
   std::vector<DCLocalTrackContainer> m_SdcInExTC;
   std::vector<DCLocalTrackContainer> m_SdcOutExTC;
-  std::vector<std::vector<double>>   m_AccidentalBeamParams;
 
 public:
   Int_t  MuchCombinationSdcIn() const { return m_much_combi[kSdcIn]; }
@@ -117,15 +116,13 @@ public:
   const DCHitContainer& GetSdcOutHC(Int_t l) const { return m_SdcOutHC.at(l); }
   const DCHitContainer& GetTOFHC() const { return m_TOFHC; }
   const TPCHitContainer& GetTPCHC(Int_t l) const { return m_TPCHitCont.at(l); }
-  const TPCClusterContainer& GetTPCClCont(Int_t l) const { return m_TPCClCont.at(l); }
+  const TPCClusterContainer& GetTPCClCont(Int_t l) const
+    { return m_TPCClCont.at(l); }
 
   Bool_t TrackSearchBcIn();
   Bool_t TrackSearchBcIn(const std::vector< std::vector<DCHitContainer> >& hc);
   Bool_t TrackSearchBcOut(Int_t T0Seg=-1);
   Bool_t TrackSearchBcOut(const std::vector< std::vector<DCHitContainer> >& hc, Int_t T0Seg);
-  // Exclusive Tracks
-  Bool_t TrackSearchBcOutEx(Int_t T0Seg=-1);
-  Bool_t TrackSearchBcOutEx(const std::vector< std::vector<DCHitContainer> >& hc, Int_t T0Seg);
 
   Bool_t TrackSearchSdcIn();
   Bool_t TrackSearchSdcInFiber();
@@ -137,6 +134,8 @@ public:
   Bool_t TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
 			     std::vector<std::vector<TVector3>> KuramaVPs,
 			     Bool_t exclusive=false);
+  Bool_t TestHoughTransform();
+  Bool_t TestHoughTransformHelix();
 
   Int_t GetNtracksBcIn() const { return m_BcInTC.size(); }
   Int_t GetNtracksBcOut() const { return m_BcOutTC.size(); }
@@ -237,7 +236,6 @@ public:
     { return m_SdcInSdcOutTC.at(i); }
 
   Bool_t MakeBH2DCHit(Int_t t0seg);
-  std::vector<double> GetAccidentalBeamParam(int i){ return m_AccidentalBeamParams.at(i); }
 
 protected:
   void ClearDCHits();

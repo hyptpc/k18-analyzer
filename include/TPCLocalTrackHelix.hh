@@ -12,9 +12,11 @@
 #include "ThreeVector.hh"
 #include "DetectorID.hh"
 #include "TPCHit.hh"
+#include "TPCCluster.hh"
 #include "TPCLTrackHit.hh"
 
 class TPCHit;
+class TPCCluster;
 
 //______________________________________________________________________________
 class TPCLocalTrackHelix
@@ -31,7 +33,6 @@ private:
 private:
   bool   m_is_fitted;     // flag of DoFit()
   bool   m_is_calculated; // flag of Calculate()
-  int    m_flag;
   std::vector<TPCLTrackHit*> m_hit_array;
   std::vector<int> m_hit_order;
   std::vector<double> m_hit_t;
@@ -57,6 +58,7 @@ private:
   double m_r;
   double m_dz;
 
+  Double_t m_closedist; //closest distance from the track to the target
   double m_chisqr;
   double m_n_iteration;
   TVector3 m_mom0;
@@ -69,6 +71,7 @@ private:
   double m_transverse_path;
   int m_charge;
   int m_fitflag;
+  int m_vtxflag; //for track seperation around the target
   int m_isBeam;
   int m_isK18;
   int m_isKurama;
@@ -87,22 +90,26 @@ private:
 
 public:
   void         AddTPCHit(TPCLTrackHit *hit);
+  void         EraseHits(std::vector<Int_t> delete_hits);
   void         ClearHits();
   void         Calculate();
   void         DeleteNullHit();
   //bool         DoHelixFit(int MinHits);
   bool         DoHelixFit();
-  bool         DoFit(int MinHits);
+  bool         DoFit(int MinHits=0);
   int          FinalizeTrack(int &delete_hit);
-  void         Sort(); //Sort hits by theta
+  int          FinalizeTrack();
+  void         SortHitOrder(); //Sort hits by theta
   bool         ResidualCheck(TVector3 pos, TVector3 Res, double &resi);
   bool         ResidualCheck(TVector3 pos, double xzwindow, double ywindow, double &resi);
   bool         ResidualCheck(TVector3 pos, double xzwindow, double ywindow);
+  int          Side(TVector3 pos);
   void         InvertChargeCheck();
   void         AddVPHit(TVector3 vp);
   bool         DoVPFit();
   void         Print(const TString& arg="", bool print_allhits = false) const;
 
+  void     CalcClosestDist();
   TVector3 CalcHelixMom(double par[5], double y) const;
   TVector3 CalcHelixMom_t(double par[5], double t) const;
   TVector3 CalcHelixMom_corP(double par[5], double y) const;
@@ -113,12 +120,14 @@ public:
   TPCLTrackHit* GetHit(std::size_t nth) const;
   TPCLTrackHit* GetHitInOrder(std::size_t nth) const;
   int          GetNHit() const { return m_hit_array.size(); }
+  int          GetNPad() const;
   int          GetOrder(int i) const { return m_hit_order[i]; }
 
   double   GetChiSquare() const { return m_chisqr; }
+  Double_t GetClosestDist() const { return m_closedist; }
   int      GetNIteration() const { return m_n_iteration; }
-  int      GetFlag(void) const {return m_flag; }
   int      GetFitFlag(void) const {return m_fitflag; }
+  int      GetVtxFlag(void) const {return m_vtxflag;} //vtx is in the target or not
   int      GetIsBeam(void) const { return m_isBeam; }
   int      GetIsK18(void) const { return m_isK18; }
   int      GetIsKurama(void) const { return m_isKurama; }
@@ -155,6 +164,7 @@ public:
   void SetHoughFlag(int hough_flag);
   void SetFlag(int flag);
   void SetFitFlag(int flag) { m_fitflag = flag; }
+  void SetVtxFlag(int flag) { m_vtxflag = flag; }
   void SetIsBeam(int flag=1) { m_isBeam = flag; }
   void SetIsK18(int flag=1) { m_isK18 = flag; }
   void SetIsKurama(int flag=1) { m_isKurama = flag; }
@@ -166,11 +176,12 @@ public:
   void SetAz0(double Az0) { m_Az0 = Az0; }
   void SetAr(double Ar) { m_Ar = Ar; }
   void SetAdz(double Adz) { m_Adz = Adz; }
+  void SetHoughParam(double *par){ m_Acx = par[0]; m_Acy = par[1]; m_Az0 = par[2]; m_Ar = par[3]; m_Adz = par[4]; };
   void SetParamUsingHoughParam(void);
 
   //exclusive
   void CalculateExclusive();
-  void DoHelixFitExclusive();
+  void DoFitExclusive();
 
 };
 

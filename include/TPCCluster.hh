@@ -30,6 +30,7 @@ private:
   TPCHitContainer m_hit_array;
   Double_t        m_mean_row;
   Double_t        m_mean_phi; // in XZ plane
+  Int_t           m_center_hitid;
   TPCHit*         m_mean_hit; // representative hit for tracking
 
 public:
@@ -50,7 +51,8 @@ public:
   Double_t ResolutionX() const { return m_mean_hit->GetResolutionX(); }
   Double_t ResolutionY() const { return m_mean_hit->GetResolutionY(); }
   Double_t ResolutionZ() const { return m_mean_hit->GetResolutionZ(); }
-  TPCHit*  GetCenterHit() const;
+  TPCHit*  GetCenterHit() const { return m_hit_array.at(m_center_hitid); }
+  Int_t    GetHoughFlag() const { return m_mean_hit->GetHoughFlag(); }
   void     Print(Option_t* opt="") const;
 };
 

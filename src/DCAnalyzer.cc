@@ -1071,8 +1071,7 @@ DCAnalyzer::TrackSearchTPC(Bool_t exclusive)
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
-  tpc::LocalTrackSearch(m_TPCClCont, m_TPCTC, m_TPCTCFailed, MinLayer);
-  if(exclusive) tpc::ExclusiveTracking(m_TPCTC);
+  tpc::LocalTrackSearch(m_TPCClCont, m_TPCTC, m_TPCTCFailed, exclusive, MinLayer);
 
   return true;
 }
@@ -1083,8 +1082,7 @@ DCAnalyzer::TrackSearchTPCHelix(Bool_t exclusive)
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
-  tpc::HelixTrackSearch(0, 0, m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixFailed, MinLayer);
-  if(exclusive) tpc::ExclusiveTrackingHelix(m_TPCTCHelix);
+  tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixFailed, exclusive, MinLayer);
   return true;
 }
 
@@ -1096,8 +1094,27 @@ DCAnalyzer::TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
-  tpc::LocalTrackSearchHelix(K18VPs, KuramaVPs, m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixFailed, MinLayer);
-  if(exclusive) tpc::ExclusiveTrackingHelix(m_TPCTCHelix);
+  tpc::LocalTrackSearchHelix(K18VPs, KuramaVPs, m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixFailed, exclusive, MinLayer);
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::TestHoughTransform()
+{
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
+
+  tpc::HoughTransformTest(m_TPCClCont, m_TPCTC, MinLayer);
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::TestHoughTransformHelix()
+{
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
+
+  tpc::HoughTransformTestHelix(m_TPCClCont, m_TPCTCHelix, MinLayer);
   return true;
 }
 

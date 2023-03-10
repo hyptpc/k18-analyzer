@@ -214,7 +214,7 @@ TPCHit::Calculate(Double_t clock)
     m_drift_length[i] = dl;
     auto pos = tpc::getPosition(m_pad);
     pos.SetY(dl);
-    auto cpos = gTPCPos.Correct(pos);
+    auto cpos = gTPCPos.Correct(pos, m_layer, m_row);
     m_position[i] = cpos;
   }
   return true;
@@ -566,6 +566,7 @@ TPCHit::ClearRegisteredHits()
 Double_t
 TPCHit::GetResolutionX() const
 {
+#if 0
   //calculated by using NIM paper
   const auto& pos = GetPosition();
   // Double_t s0 = 0.204;// mm HIMAC result //To do parameter
@@ -588,6 +589,13 @@ TPCHit::GetResolutionX() const
   Double_t rdtheta = tpc::padParameter[m_layer][2]*dtheta/TMath::Sqrt(12);
   rdtheta = TMath::Hypot(rdtheta, sT_r);
 
+  Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
+  //return TMath::Abs(dr*TMath::Sin(alpha)+rdtheta*TMath::Cos(alpha));
+  //return TMath::Sqrt(TMath::Power(dr*TMath::Sin(alpha),2)+TMath::Power(rdtheta*TMath::Cos(alpha),2));
+  return TMath::Abs(sT_r);
+  //return 0.3;
+#endif
+
 #if 0
   //Check Tmporary change
   if(m_clsize ==1){
@@ -598,17 +606,25 @@ TPCHit::GetResolutionX() const
   return TVector2(sT_r*TMath::Cos(alpha), sT_padlen*TMath::Sin(alpha)).Mod();
 #endif
 
-  Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
-  //return TMath::Abs(dr*TMath::Sin(alpha)+rdtheta*TMath::Cos(alpha));
-  //return TMath::Sqrt(TMath::Power(dr*TMath::Sin(alpha),2)+TMath::Power(rdtheta*TMath::Cos(alpha),2));
-  return TMath::Abs(sT_r);
-  //return 0.3;
+#if 1
+  Double_t resolution_hsoff[32] =
+    {1.03239, 1.02736, 0.911595, 0.841133, 0.801814,
+     0.815236, 0.821172, 0.821089, 0.839851, 0.789304,
+     0.750903, 0.750903, 0.750903, 0.765357, 0.765357,
+     0.780544, 0.759362, 0.731685, 0.683834, 0.688737,
+     0.667413, 0.652318, 0.666213, 0.666213, 0.646582,
+     0.646582, 0.628595, 0.622293, 0.624752, 0.610846,
+     0.63606, 0.635358};
+
+  return resolution_hsoff[m_layer];
+#endif
 }
 
 //_____________________________________________________________________________
 double
 TPCHit::GetResolutionZ() const
 {
+#if 0
   const auto& pos = GetPosition();
   //calculated by using NIM paper
   //Double_t s0 = 0.204;// mm HIMAC result //To do parameter
@@ -630,6 +646,11 @@ TPCHit::GetResolutionZ() const
   Double_t dr = TMath::Hypot(sT_padlen, sT_r);
   Double_t rdtheta = tpc::padParameter[m_layer][2]*dtheta/TMath::Sqrt(12);
   rdtheta = TMath::Hypot(rdtheta, sT_r);
+  Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
+  //return TMath::Sqrt(TMath::Power(dr*TMath::Cos(alpha),2)+TMath::Power(rdtheta*TMath::Sin(alpha),2));
+  return TMath::Abs(sT_r);
+  //return 0.3;
+#endif
 
 #if 0
   if(m_clsize ==1){
@@ -640,19 +661,34 @@ TPCHit::GetResolutionZ() const
   return sqrt(pow(sT_r*TMath::Sin(alpha),2)+pow(sT_padlen*TMath::Cos(alpha),2));
 #endif
 
-  Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
-  //return TMath::Sqrt(TMath::Power(dr*TMath::Cos(alpha),2)+TMath::Power(rdtheta*TMath::Sin(alpha),2));
-  return TMath::Abs(sT_r);
-  //return 0.3;
+#if 1
+  Double_t resolution_hsoff[32] =
+    {1.03239, 1.02736, 0.911595, 0.841133, 0.801814,
+     0.815236, 0.821172, 0.821089, 0.839851, 0.789304,
+     0.750903, 0.750903, 0.750903, 0.765357, 0.765357,
+     0.780544, 0.759362, 0.731685, 0.683834, 0.688737,
+     0.667413, 0.652318, 0.666213, 0.666213, 0.646582,
+     0.646582, 0.628595, 0.622293, 0.624752, 0.610846,
+     0.63606, 0.635358};
+
+  return resolution_hsoff[m_layer];
+#endif
+
 }
 
 //_____________________________________________________________________________
 double
 TPCHit::GetResolutionY() const
 {
+
+#if 0
   // temporary
-  //return 0.5; //HIMAC
-  return 0.55; //Temporary value based on Garfield & E42 data
+  return 0.5; //HIMAC
+#endif
+#if 1
+  return 0.7; //Temporary value for HS-OFF
+#endif
+
 }
 
 //_____________________________________________________________________________

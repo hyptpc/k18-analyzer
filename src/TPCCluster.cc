@@ -1,4 +1,4 @@
-// -*- C++ -*-
+ // -*- C++ -*-
 
 #include <iostream>
 #include <iterator>
@@ -33,6 +33,7 @@ TPCCluster::TPCCluster(Int_t layer, const TPCHitContainer& HitCont)
     m_hit_array(HitCont), // shallow copy
     m_mean_row(),
     m_mean_phi(),
+    m_center_hitid(),
     m_mean_hit(new TPCHit(layer, TMath::QuietNaN()))
 {
   auto itr = m_hit_array.begin();
@@ -78,6 +79,11 @@ TPCCluster::Calculate()
   //int max_row = tpc::padParameter[m_layer][1];
   m_cluster_de = 0.;
   m_cluster_position.SetXYZ(0., 0., 0.);
+
+  //w/o position correction
+  TVector2 xz_vectorHS0(0., 0.);
+
+  //w/ position correction
   m_mean_row = 0.;
   m_mean_phi = 0.;
   Double_t mean_y = 0.;
@@ -87,7 +93,7 @@ TPCCluster::Calculate()
     TVector2 xz_vector(pos.X(), pos.Z());
     xz_vector -= target_center;
 
-#if 0
+#if 0 //after position correction, the size of xz_vector can be differ from the layer R.
     if(TMath::Abs(xz_vector.Mod() - R) > 1e-10){
       hit->Print();
       throw Exception(FUNC_NAME + Form(" found invalid radius %lf/%lf",
@@ -98,6 +104,13 @@ TPCCluster::Calculate()
     mean_y += pos.Y() * de;
     m_cluster_de += de;
     xz_vectorHS += de*xz_vector;
+
+    Int_t row = hit -> GetRow();
+    Int_t padid = tpc::GetPadId(m_layer, row);
+    auto pos0 = tpc::getPosition(padid);
+    TVector2 xz_vector0(pos0.X(), pos0.Z());
+    xz_vector0 -= target_center;
+    xz_vectorHS0 += de*xz_vector0;
   }
 
   mean_y *= 1./m_cluster_de;
@@ -113,29 +126,27 @@ TPCCluster::Calculate()
   m_mean_hit->SetDe(m_cluster_de);
   m_mean_hit->SetPosition(m_cluster_position);
   m_mean_hit->SetParentCluster(this);
-  m_is_good = true;
-  return true;
-}
 
-//_____________________________________________________________________________
-TPCHit*
-TPCCluster::GetCenterHit() const
-{
+  //center hit determination
+  Int_t max_row = tpc::padParameter[m_layer][3];
+  Double_t mean_phi0 = xz_vectorHS0.Phi();
+  Double_t mean_row0 = tpc::getMrow(m_layer, mean_phi0*TMath::RadToDeg());
 
-  double rowdiff = 10; int id = -1;
+  Double_t rowdiff = 10; Int_t id = -1;
   for(Int_t i=0; i<m_hit_array.size(); ++i){
     if(!m_hit_array[i]) continue;
-    int layer = m_hit_array[i]->GetLayer();
-    int max_row = tpc::padParameter[layer][3];
-    double row = (double) m_hit_array[i] -> GetRow();
-    double dif_row = std::min(abs(m_mean_row-row),abs(m_mean_row-row+max_row));
-    dif_row = std::min(dif_row,abs(m_mean_row-row-max_row));
+    Double_t row = (double) m_hit_array[i] -> GetRow();
+    Double_t dif_row = std::min(abs(mean_row0-row), abs(mean_row0-row+max_row));
+    dif_row = std::min(dif_row, abs(mean_row0-row-max_row));
     if(dif_row<rowdiff){
       rowdiff = dif_row;
       id = i;
     }
   }
-  return m_hit_array[id];
+  m_center_hitid = id;
+
+  m_is_good = true;
+  return true;
 }
 
 //_____________________________________________________________________________

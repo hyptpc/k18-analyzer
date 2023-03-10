@@ -683,7 +683,7 @@ dst::DstRead( int ievent )
     Double_t helix_z0 = tp->Getz0(), helix_r = tp->Getr();
     Double_t helix_dz = tp->Getdz();
     TVector3 Mom0 = tp->GetMom0();
-    Int_t flag = tp->GetFlag();
+    Int_t flag = tp->GetFitFlag();
     Int_t isbeam = tp->GetIsBeam();
     Int_t iskurama = tp->GetIsKurama();
     Int_t fittime = tp->GetFitTime();
@@ -897,7 +897,7 @@ dst::DstRead( int ievent )
     Double_t helix_z0=tp->Getz0(), helix_r=tp->Getr();
     Double_t helix_dz = tp->Getdz();
     TVector3 Mom0 = tp->GetMom0();
-    Int_t flag = tp->GetFlag();
+    Int_t flag = tp->GetFitFlag();
     Int_t isbeam = tp->GetIsBeam();
     Int_t iskurama = tp->GetIsKurama();
     Int_t fittime = tp->GetFitTime();

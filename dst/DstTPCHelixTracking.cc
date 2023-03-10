@@ -31,7 +31,6 @@
 #include "UserParamMan.hh"
 
 #define TrackSearch 1
-#define CheckAccidentalBeam 1
 #define TrackCluster 0
 #define TruncatedMean 0
 
@@ -99,14 +98,6 @@ struct Event
   std::vector<Int_t> cluster_row_center;
   std::vector<Int_t> hough_flag;
   std::vector<Double_t> hough_dist;
-
-
-	Int_t ntAcc;// Number of Accidental beam;
-  std::vector<Double_t> accidental_cx;
-  std::vector<Double_t> accidental_cy;
-  std::vector<Double_t> accidental_z0;
-  std::vector<Double_t> accidental_r;
-  std::vector<Double_t> accidental_dz;
 
 
   Int_t ntTpc; // Number of Tracks
@@ -542,7 +533,7 @@ dst::DstRead( int ievent )
       Int_t centerRow = centerHit->GetRow();
 			auto mhit = cl->GetMeanHit();
 			Int_t hough_flag = mhit->GetHoughFlag();
-			Double_t hough_dist = mhit->GetHoughDist();	
+			Double_t hough_dist = mhit->GetHoughDist();
 			event.hough_flag.push_back(hough_flag);
 			event.hough_dist.push_back(hough_dist);
       event.cluster_x.push_back(x);
@@ -562,16 +553,6 @@ dst::DstRead( int ievent )
   }
   event.nclTpc = nclTpc;
   HF1( 1, event.status++ );
-
-
-	Int_t ntAcc = DCAna.GetAccidentalBeamParam(0).size();
-	event.ntAcc = ntAcc;
-	event.accidental_cx = DCAna.GetAccidentalBeamParam(0);	
-	event.accidental_cy = DCAna.GetAccidentalBeamParam(1);	
-	event.accidental_z0 = DCAna.GetAccidentalBeamParam(2);	
-	event.accidental_r = DCAna.GetAccidentalBeamParam(3);	
-	event.accidental_dz = DCAna.GetAccidentalBeamParam(4);	
-	
 
   Int_t ntTpc = DCAna.GetNTracksTPCHelix();
   event.ntTpc = ntTpc;
@@ -1119,18 +1100,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "cluster_z_center", &event.cluster_z_center );
   tree->Branch( "hough_flag", &event.hough_flag );
   tree->Branch( "hough_dist", &event.hough_dist );
-
-#if CheckAccidentalBeam
-  tree->Branch( "ntAcc", &event.ntAcc );
-  tree->Branch( "accidental_cx", &event.accidental_cx );
-  tree->Branch( "accidental_cy", &event.accidental_cy );
-  tree->Branch( "accidental_z0", &event.accidental_z0 );
-  tree->Branch( "accidental_r", &event.accidental_r );
-  tree->Branch( "accidental_dz", &event.accidental_dz );
-
-#endif
-
-
 
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );

@@ -111,7 +111,7 @@ TPCLTrackHit::GetHelixPosition(double par[5], double t) const
   //This is the eqation of Helix
   // double  x = p[0] + p[3]*cos(t+theta0);
   // double  y = p[1] + p[3]*sin(t+theta0);
-  // double  z = p[2] + (p[4]*p[3]*t);
+  // double  z = p[2] + p[3]*p[4]*(t+theta0);
   double  x = par[0] + par[3]*cos(t);
   double  y = par[1] + par[3]*sin(t);
   double  z = par[2] + (par[4]*par[3]*t);

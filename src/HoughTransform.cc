@@ -45,10 +45,12 @@ namespace
   const double Const = 0.299792458;
 
   // HoughXZ binning
-  static const Int_t    Li_theta_ndiv = 180;
+  //static const Int_t    Li_theta_ndiv = 180;
+  static const Int_t    Li_theta_ndiv = 360;
   static const Double_t Li_theta_min  =   0;
   static const Double_t Li_theta_max  = 180;
-  static const Int_t    Li_rho_ndiv =  180;
+  //static const Int_t    Li_rho_ndiv =  180;
+  static const Int_t    Li_rho_ndiv =  720;
   static const Double_t Li_rho_min  = -720;
   static const Double_t Li_rho_max  =  720;
   TH2D *histLinear = new TH2D("histLinear", "; #theta (deg.); #rho (mm)",
@@ -59,14 +61,15 @@ namespace
   const Int_t    nBin_rdiff = 11;
   const Double_t rdiff_min = -110.;
   const Double_t rdiff_max = 110.;
-  //const Int_t    nBin_theta = 720;
-  const Int_t    nBin_theta = 360;
+  const Int_t    nBin_theta = 720;
+  //const Int_t    nBin_theta = 360;
   const Double_t theta_min = -1.*acos(-1);
   const Double_t theta_max = acos(-1);
-  //const Int_t    nBin_p = 1200;
-  const Int_t    nBin_p = 300;
+  const Int_t    nBin_p = 900;
+  //const Int_t    nBin_p = 300;
   const Double_t pmin = 50.;
-  const Double_t pmax = 2150.; //MeV/c
+  const Double_t pmax = 1550.; //MeV/c
+  //const Double_t pmax = 2150.; //MeV/c
   TH3D *histCircle = new TH3D("histCircle",";rd (mm); theta (rad); p(MeV/c)",
 			       nBin_rdiff, rdiff_min,  rdiff_max,
 			       nBin_theta, theta_min, theta_max,
@@ -83,21 +86,32 @@ namespace
   TH2D *histY = new TH2D("histY",";theta (deg.);r (mm)",
 			 thetaY_ndiv, thetaY_min, thetaY_max,
 			 r_ndiv, r_min, r_max);
+}
 
-  Double_t GetMagneticField()
-  {
-    return HS_field_0*(valueHSHall/valueHSCalc);
-  }
+//_____________________________________________________________________________
+static inline void
+HoughFlagCheck(const std::vector<TPCClusterContainer>& ClCont, std::vector<TVector3>& gHitPos){
+
+  for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
+    for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
+      auto cl = ClCont[layer][ci];
+      TPCHit* hit = cl->GetMeanHit();
+      if(hit->GetHoughFlag()>0) continue;
+      TVector3 pos = cl->GetPosition();
+      gHitPos.push_back(pos);
+    } //ci
+  } //layer
 }
 
 //_____________________________________________________________________________
 namespace tpc
 {
 
+/*
 //_____________________________________________________________________________
 void
 HoughTransformLineYZ(std::vector<TVector3> gHitPos, Int_t *MaxBin,
-		     Double_t *LinearPar, Int_t MinNumOfHits /*=8*/)
+		     Double_t *LinearPar)
 {
 
 #if DebugEvDisp
@@ -139,16 +153,17 @@ HoughTransformLineYZ(std::vector<TVector3> gHitPos, Int_t *MaxBin,
   Double_t mtheta = histLinear->GetXaxis()->GetBinCenter(mx)*TMath::DegToRad();
   Double_t mr = histLinear->GetYaxis()->GetBinCenter(my);
 
-  LinearPar[0] = mr/TMath::Sin(mtheta);
-  LinearPar[1]  = -TMath::Cos(mtheta)/TMath::Sin(mtheta);
+  LinearPar[1] = mr/TMath::Sin(mtheta);
+  LinearPar[3]  = -TMath::Cos(mtheta)/TMath::Sin(mtheta);
 
 #if DebugDisp
   std::cout<<FUNC_NAME+" (Z, Y) hough vote : "<<histLinear->GetBinContent(maxbin)<<std::endl;
   std::cout<<FUNC_NAME+" Hough (theta, r)=("<<mtheta<<", "<<mr<<")"<<std::endl;
+  std::cout<<FUNC_NAME+" m_y="<<LinearPar[1]<<" m_v="<<LinearPar[3]<<std::endl;
 #endif
 
 }
-
+*/
 //_____________________________________________________________________________
 Bool_t
 HoughTransformLineXZ(std::vector<TVector3> gHitPos, Int_t *MaxBin,
@@ -168,12 +183,13 @@ HoughTransformLineXZ(std::vector<TVector3> gHitPos, Int_t *MaxBin,
   //Hough space
   //for TPC linear track
   //rho = z*cos(theta) + x*sin(theta)
-  //x = p[0] + p[1]*z
+  //x = p[0] + p[2]*z
   histLinear->Reset();
+
   for(Int_t i=0; i<gHitPos.size(); ++i){
     for(int ti=0; ti<thetaY_ndiv; ti++){
       Double_t theta = histLinear->GetXaxis()->GetBinCenter(ti+1);
-      Double_t rho = TMath::Cos(theta*TMath::DegToRad())*gHitPos[i].Z()
+      Double_t rho = TMath::Cos(theta*TMath::DegToRad())*(gHitPos[i].Z() - tpc::ZTarget)
 	+ TMath::Sin(theta*TMath::DegToRad())*gHitPos[i].X();
       histLinear->Fill(theta, rho);
     } //ti
@@ -196,12 +212,13 @@ HoughTransformLineXZ(std::vector<TVector3> gHitPos, Int_t *MaxBin,
   Double_t mtheta = histLinear->GetXaxis()->GetBinCenter(mx)*TMath::DegToRad();
   Double_t mr = histLinear->GetYaxis()->GetBinCenter(my);
 
-  LinearPar[0] = mr/TMath::Sin(mtheta);
-  LinearPar[1]  = -TMath::Cos(mtheta)/TMath::Sin(mtheta);
+  LinearPar[0] = mr/TMath::Sin(mtheta); //m_x
+  LinearPar[2]  = -TMath::Cos(mtheta)/TMath::Sin(mtheta); //m_u
 
 #if DebugDisp
-  std::cout<<FUNC_NAME+" (Z, X) hough vote : "<<histLinear->GetBinContent(maxbin)<<std::endl;
+  std::cout<<FUNC_NAME+" (Z, X) hough vote : "<<histLinear->GetBinContent(maxbin)<<"/"<<gHitPos.size()<<std::endl;
   std::cout<<FUNC_NAME+" Hough (theta, r)=("<<mtheta<<", "<<mr<<")"<<std::endl;
+  std::cout<<FUNC_NAME+" m_x="<<LinearPar[0]<<" m_u="<<LinearPar[2]<<std::endl;
 #endif
 
   if(histLinear->GetMaximum() < 0.5*MinNumOfHits) status = false;
@@ -217,23 +234,162 @@ HoughTransformLineXZ(const std::vector<TPCClusterContainer>& ClCont,
 {
 
   std::vector<TVector3> gHitPos;
-  for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
-    for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
-      auto cl = ClCont[layer][ci];
-      TPCHit* hit = cl->GetMeanHit();
-      if(hit->GetHoughFlag()>0) continue;
-      TVector3 pos = cl->GetPosition();
-      gHitPos.push_back(pos);
-    } //ci
-  } //layer
-
+  HoughFlagCheck(ClCont, gHitPos);
   return HoughTransformLineXZ(gHitPos, MaxBin, LinearPar, MinNumOfHits);
+
 }
 
 //_____________________________________________________________________________
 void
-HoughTransformLineYPhi(std::vector<TVector3> gHitPos,
-		       Double_t *HelixPar, Double_t MaxHoughWindow)
+HoughTransformLineYZ(std::vector<TVector3> gHitPos, Int_t *MaxBin,
+		     Double_t *LinearPar, Double_t MaxHoughWindowY)
+{
+
+#if DebugEvDisp
+  gStyle->SetOptStat(0);
+  gStyle->SetPadLeftMargin(0.15);
+  gStyle->SetPadBottomMargin(0.15);
+  static TCanvas c1("c"+FUNC_NAME, FUNC_NAME, 900, 900);
+  c1.cd();
+#endif
+
+  //Hough space
+  //for TPC linear track
+  //rho = z*cos(theta) + y*sin(theta)
+  //y = p[1] + p[3]*z
+  histLinear->Reset();
+  for(Int_t i=0; i<gHitPos.size(); ++i){
+    Double_t dist = TMath::Abs(LinearPar[2]*(gHitPos[i].Z() - tpc::ZTarget) - gHitPos[i].X() +
+			       LinearPar[0])/TMath::Sqrt(TMath::Sq(LinearPar[2])+1.);
+    if(dist < MaxHoughWindowY){
+      for(int ti=0; ti<thetaY_ndiv; ti++){
+	Double_t theta = histLinear->GetXaxis()->GetBinCenter(ti+1);
+	Double_t rho = TMath::Cos(theta*TMath::DegToRad())*(gHitPos[i].Z() - tpc::ZTarget)
+	  + TMath::Sin(theta*TMath::DegToRad())*gHitPos[i].Y();
+	histLinear->Fill(theta, rho);
+      } //ti
+    } //dist
+  } //i
+
+#if DebugEvDisp
+  histLinear->Draw("colz");
+  gPad->Modified();
+  gPad->Update();
+  c1.Print(Form("c%d.pdf",cannum));
+  getchar();
+  cannum++;
+#endif
+
+  Int_t maxbin = histLinear->GetMaximumBin();
+  Int_t mx, my, mz;
+  histLinear->GetBinXYZ(maxbin, mx, my, mz);
+  MaxBin[0] = mx; MaxBin[1] = my;
+
+  Double_t mtheta = histLinear->GetXaxis()->GetBinCenter(mx)*TMath::DegToRad();
+  Double_t mr = histLinear->GetYaxis()->GetBinCenter(my);
+
+  LinearPar[1] = mr/TMath::Sin(mtheta); //m_y
+  LinearPar[3] = -TMath::Cos(mtheta)/TMath::Sin(mtheta); //m_v
+
+#if DebugDisp
+  std::cout<<FUNC_NAME+" (Z, Y) hough vote : "<<histLinear->GetBinContent(maxbin)<<"/"<<gHitPos.size()<<std::endl;
+  std::cout<<FUNC_NAME+" Hough (theta, r)=("<<mtheta<<", "<<mr<<")"<<std::endl;
+  std::cout<<FUNC_NAME+" m_y="<<LinearPar[1]<<" m_v="<<LinearPar[3]<<std::endl;
+#endif
+
+}
+
+//_____________________________________________________________________________
+void
+HoughTransformLineYZ(const std::vector<TPCClusterContainer>& ClCont,
+		     Int_t *MaxBin, Double_t *LinearPar,
+		     Double_t MaxHoughWindowY)
+{
+
+  std::vector<TVector3> gHitPos;
+  HoughFlagCheck(ClCont, gHitPos);
+  HoughTransformLineYZ(gHitPos, MaxBin, LinearPar, MaxHoughWindowY);
+
+}
+
+//_____________________________________________________________________________
+void
+HoughTransformLineYX(std::vector<TVector3> gHitPos, Int_t *MaxBin,
+		     Double_t *LinearPar, Double_t MaxHoughWindowY)
+{
+
+#if DebugEvDisp
+  gStyle->SetOptStat(0);
+  gStyle->SetPadLeftMargin(0.15);
+  gStyle->SetPadBottomMargin(0.15);
+  static TCanvas c1("c"+FUNC_NAME, FUNC_NAME, 900, 900);
+  c1.cd();
+#endif
+
+  //Hough space
+  //for TPC linear track
+  //rho = x*cos(theta) + y*sin(theta)
+  //y = tmp0 + tmp1*x
+  histLinear->Reset();
+  for(Int_t i=0; i<gHitPos.size(); ++i){
+    Double_t dist = TMath::Abs(LinearPar[2]*(gHitPos[i].Z() - tpc::ZTarget) - gHitPos[i].X() +
+			       LinearPar[0])/TMath::Sqrt(TMath::Sq(LinearPar[2])+1.);
+    if(dist < MaxHoughWindowY){
+      for(int ti=0; ti<thetaY_ndiv; ti++){
+	Double_t theta = histLinear->GetXaxis()->GetBinCenter(ti+1);
+	Double_t rho = TMath::Cos(theta*TMath::DegToRad())*gHitPos[i].X()
+	  + TMath::Sin(theta*TMath::DegToRad())*gHitPos[i].Y();
+	histLinear->Fill(theta, rho);
+      } //ti
+    } //dist
+  } //i
+
+#if DebugEvDisp
+  histLinear->Draw("colz");
+  gPad->Modified();
+  gPad->Update();
+  c1.Print(Form("c%d.pdf",cannum));
+  getchar();
+  cannum++;
+#endif
+
+  Int_t maxbin = histLinear->GetMaximumBin();
+  Int_t mx, my, mz;
+  histLinear->GetBinXYZ(maxbin, mx, my, mz);
+  MaxBin[0] = mx; MaxBin[1] = my;
+
+  Double_t mtheta = histLinear->GetXaxis()->GetBinCenter(mx)*TMath::DegToRad();
+  Double_t mr = histLinear->GetYaxis()->GetBinCenter(my);
+  Double_t tmp0 = mr/TMath::Sin(mtheta);
+  Double_t tmp1 = -TMath::Cos(mtheta)/TMath::Sin(mtheta);
+  LinearPar[1] = tmp0 + LinearPar[0]*tmp1;
+  LinearPar[3] = LinearPar[2]*tmp1;
+
+#if DebugDisp
+  std::cout<<FUNC_NAME+" (X, Y) hough vote : "<<histLinear->GetBinContent(maxbin)<<"/"<<gHitPos.size()<<std::endl;
+  std::cout<<FUNC_NAME+" Hough (theta, r)=("<<mtheta<<", "<<mr<<")"<<std::endl;
+  std::cout<<FUNC_NAME+" m_y="<<LinearPar[1]<<" m_v="<<LinearPar[3]<<std::endl;
+#endif
+
+}
+
+//_____________________________________________________________________________
+void
+HoughTransformLineYX(const std::vector<TPCClusterContainer>& ClCont,
+		     Int_t *MaxBin, Double_t *LinearPar,
+		     Double_t MaxHoughWindowY)
+{
+
+  std::vector<TVector3> gHitPos;
+  HoughFlagCheck(ClCont, gHitPos);
+  HoughTransformLineYX(gHitPos, MaxBin, LinearPar, MaxHoughWindowY);
+
+}
+
+//_____________________________________________________________________________
+void
+HoughTransformLineYTheta(std::vector<TVector3> gHitPos, Int_t *MaxBin,
+		       Double_t *HelixPar, Double_t MaxHoughWindowY)
 {
 
 #if DebugEvDisp
@@ -254,7 +410,7 @@ HoughTransformLineYPhi(std::vector<TVector3> gHitPos,
     Double_t tmpz = gHitPos[i].Y();
     Double_t r_cal = sqrt(pow(tmpx - HelixPar[0], 2) + pow(tmpy - HelixPar[1], 2));
     Double_t dist = fabs(r_cal - HelixPar[3]);
-    if(dist < MaxHoughWindow){
+    if(dist < MaxHoughWindowY){
       for(int ti=0; ti<thetaY_ndiv; ti++){
 	Double_t theta = histY->GetXaxis()->GetBinCenter(ti+1);
 	Double_t tmpt = TMath::ATan2(tmpy - HelixPar[1], tmpx - HelixPar[0]);
@@ -277,6 +433,7 @@ HoughTransformLineYPhi(std::vector<TVector3> gHitPos,
   Int_t maxbin = histY->GetMaximumBin();
   Int_t mx, my, mz;
   histY->GetBinXYZ(maxbin, mx, my, mz);
+  MaxBin[0] = mx; MaxBin[1] = my; MaxBin[2] = mz;
 
   double mtheta = histY->GetXaxis()->GetBinCenter(mx)*acos(-1.)/180.;
   Double_t mr = histY->GetYaxis()->GetBinCenter(my);
@@ -284,7 +441,7 @@ HoughTransformLineYPhi(std::vector<TVector3> gHitPos,
   HelixPar[4] = -cos(mtheta)/sin(mtheta);
 
 #if DebugDisp
-  std::cout<<FUNC_NAME+" (Y, phi) hough vote : "<<histY->GetBinContent(maxbin)<<std::endl;
+  std::cout<<FUNC_NAME+" (Y, phi) hough vote : "<<histY->GetBinContent(maxbin)<<"/"<<gHitPos.size()<<std::endl;
   std::cout<<FUNC_NAME+" Hough (theta, r)=("<<mtheta<<", "<<mr<<")"<<std::endl;
 #endif
 
@@ -292,22 +449,14 @@ HoughTransformLineYPhi(std::vector<TVector3> gHitPos,
 
 //_____________________________________________________________________________
 void
-HoughTransformLineYPhi(const std::vector<TPCClusterContainer>& ClCont,
-		       Double_t *HelixPar, Double_t MaxHoughWindow)
+HoughTransformLineYTheta(const std::vector<TPCClusterContainer>& ClCont,
+		       Int_t *MaxBin, Double_t *HelixPar, Double_t MaxHoughWindowY)
 {
 
   std::vector<TVector3> gHitPos;
-  for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
-    for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
-      auto cl = ClCont[layer][ci];
-      TPCHit* hit = cl->GetMeanHit();
-      if(hit->GetHoughFlag()>0) continue;
-      TVector3 pos = cl->GetPosition();
-      gHitPos.push_back(pos);
-    } //ci
-  } //layer
+  HoughFlagCheck(ClCont, gHitPos);
+  HoughTransformLineYTheta(gHitPos, MaxBin, HelixPar, MaxHoughWindowY);
 
-  HoughTransformLineYPhi(gHitPos, HelixPar, MaxHoughWindow);
 }
 
 //_____________________________________________________________________________
@@ -320,7 +469,7 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
   // Equation
   // (x - (r + rd)*cos(theta))^2 + (y - (r + rd)*sin(theta))^2 = r^2
   // p = r * Const * dMagneticField;
-  Double_t dMagneticField = GetMagneticField();
+  Double_t dMagneticField = HS_field_0*(valueHSHall/valueHSCalc);
   Bool_t status = true;
 
 #if DebugEvDisp
@@ -406,7 +555,7 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
   HelixPar[1] = (HelixPar[3] + hough_rd)*sin(hough_theta); //helix cy
 
 #if DebugDisp
-  std::cout<<FUNC_NAME+" XZ hough vote : "<<histCircle->GetMaximum()<<std::endl;
+  std::cout<<FUNC_NAME+" XZ hough vote : "<<histCircle->GetMaximum()<<"/"<<gHitPos.size()<<std::endl;
   std::cout<<FUNC_NAME+" Circle hough maxbin : "<<histCircle->GetBinContent(maxbin)<<std::endl;
   std::cout<<FUNC_NAME+" Hough(rd, theta, p)=("<<hough_rd<<", "
 	   <<hough_theta<<", "<<hough_p<<")"<<std::endl;
@@ -424,17 +573,9 @@ HoughTransformCircleXZ(const std::vector<TPCClusterContainer>& ClCont,
 {
 
   std::vector<TVector3> gHitPos;
-  for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
-    for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
-      auto cl = ClCont[layer][ci];
-      TPCHit* hit = cl->GetMeanHit();
-      if(hit->GetHoughFlag()>0) continue;
-      TVector3 pos = cl->GetPosition();
-      gHitPos.push_back(pos);
-    } //ci
-  } //layer
-
+  HoughFlagCheck(ClCont, gHitPos);
   return HoughTransformCircleXZ(gHitPos, MaxBin, HelixPar, MinNumOfHits);
+
 }
 
 } //namespace tpc
