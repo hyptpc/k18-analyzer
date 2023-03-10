@@ -7,6 +7,8 @@
 #include <vector>
 #include <TVector3.h>
 
+typedef std::vector<std::vector<TVector3>> CorrectionMap;
+
 //_____________________________________________________________________________
 class TPCPositionCorrector
 {
@@ -21,23 +23,17 @@ private:
   TPCPositionCorrector & operator =( const TPCPositionCorrector& );
 
 private:
-  typedef std::vector<std::vector<std::vector<TVector3>>> CorrectionMap;
+
+  std::vector<CorrectionMap> m_map;
   Bool_t          m_is_ready;
   TString         m_file_name;
-  CorrectionMap   m_correction_map;
-  Int_t           m_n_x;
   Int_t           m_n_y;
-  Int_t           m_n_z;
-  Double_t        m_x0;
   Double_t        m_y0;
-  Double_t        m_z0;
-  Double_t        m_dx;
   Double_t        m_dy;
-  Double_t        m_dz;
 
 public:
-  TVector3 Correct( const TVector3& pos ) const;
-  TVector3 GetCorrectionVector( const TVector3& pos ) const;
+  TVector3 Correct( const TVector3& pos, Int_t layer, Int_t row ) const;
+  TVector3 GetCorrectionVector( const TVector3& pos, Int_t layer, Int_t row ) const;
   Bool_t   Initialize( void );
   Bool_t   Initialize( const TString& file_name );
   Bool_t   IsReady( void ) const { return m_is_ready; }

@@ -6,21 +6,16 @@
 #include <std_ostream.hh>
 
 #include "FuncName.hh"
+#include "TPCPadHelper.hh"
 
 //_____________________________________________________________________________
 TPCPositionCorrector::TPCPositionCorrector( void )
-  : m_is_ready( false ),
+  : m_map(NumOfLayersTPC),
+    m_is_ready( false ),
     m_file_name(),
-    m_correction_map(),
-    m_n_x(),
     m_n_y(),
-    m_n_z(),
-    m_x0(),
     m_y0(),
-    m_z0(),
-    m_dx(),
-    m_dy(),
-    m_dz()
+    m_dy()
 {
 }
 
@@ -31,11 +26,85 @@ TPCPositionCorrector::~TPCPositionCorrector( void )
 
 //_____________________________________________________________________________
 TVector3
-TPCPositionCorrector::Correct( const TVector3& pos ) const
+TPCPositionCorrector::Correct( const TVector3& pos, Int_t layer, Int_t row  ) const
 {
-  return pos + GetCorrectionVector(pos);
+  return pos + GetCorrectionVector(pos, layer, row);
 }
 
+//_____________________________________________________________________________
+TVector3
+TPCPositionCorrector::GetCorrectionVector( const TVector3& pos, Int_t layer, Int_t row ) const
+{
+
+  Int_t iy1 = Int_t((pos.Y() - m_y0 )/m_dy);
+  Int_t iy2;
+
+  Double_t wy1, wy2;
+  if(iy1<0) { iy1=iy2=0; wy1=1.; wy2=0.; }
+  else if(iy1>=m_n_y-1) { iy1=iy2=m_n_y-1; wy1=1.; wy2=0.; }
+  else { iy2=iy1+1; wy1=(m_y0+m_dy*iy2-pos.Y())/m_dy; wy2=1.-wy1; }
+
+  TVector3 v = wy1*m_map[layer][row][iy1] + wy2*m_map[layer][row][iy2];
+  return v;
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCPositionCorrector::Initialize( void )
+{
+  if( m_is_ready ){
+    hddaq::cerr << FUNC_NAME << " already initialied" << std::endl;
+    return false;
+  }
+
+  std::ifstream ifs( m_file_name );
+  if( !ifs.is_open() ){
+    hddaq::cerr << FUNC_NAME << " file open fail : "
+                << m_file_name << std::endl;
+    return false;
+  }
+
+  if( !( ifs >> m_n_y >> m_y0 >> m_dy ) ){
+    hddaq::cerr << FUNC_NAME << " invalid format" << std::endl;
+    return false;
+  }
+
+  if( m_n_y <= 0 ){
+    hddaq::cerr << FUNC_NAME << " n_y must be positive." << std::endl;
+    return false;
+  }
+
+  for(Int_t l=0; l<NumOfLayersTPC; l++){
+    Int_t nrow = tpc::padParameter[l][1];
+    m_map[l].resize( nrow );
+    for( auto& x : m_map[l] ){
+      x.resize( m_n_y );
+    }
+  }
+
+  hddaq::cout << " reading correction map " << std::flush;
+
+  Int_t line = 0;
+  Int_t layer, row;
+  Double_t y, vx, vz;
+  while( ifs.good() ){
+    if( line++%1000==0 ) hddaq::cout << "." << std::flush;
+    ifs >> layer >> row >> y >> vx >> vz;
+    Int_t iy = Int_t( ( y - m_y0 + m_dy )/m_dy );
+    if( iy >= 0 && iy < m_n_y ){
+      m_map[layer][row][iy].SetX( vx );
+      m_map[layer][row][iy].SetY( 0. );
+      m_map[layer][row][iy].SetZ( vz );
+    }
+  }
+
+  hddaq::cout << " done" << std::endl;
+
+  m_is_ready = true;
+  return m_is_ready;
+}
+
+/*
 //_____________________________________________________________________________
 TVector3
 TPCPositionCorrector::GetCorrectionVector( const TVector3& pos ) const
@@ -150,7 +219,7 @@ TPCPositionCorrector::Initialize( void )
   m_is_ready = true;
   return m_is_ready;
 }
-
+*/
 //_____________________________________________________________________________
 Bool_t
 TPCPositionCorrector::Initialize( const TString& file_name )
