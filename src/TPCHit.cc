@@ -566,7 +566,7 @@ TPCHit::ClearRegisteredHits()
 Double_t
 TPCHit::GetResolutionX() const
 {
-#if 0
+#if 1
   //calculated by using NIM paper
   const auto& pos = GetPosition();
   // Double_t s0 = 0.204;// mm HIMAC result //To do parameter
@@ -606,7 +606,7 @@ TPCHit::GetResolutionX() const
   return TVector2(sT_r*TMath::Cos(alpha), sT_padlen*TMath::Sin(alpha)).Mod();
 #endif
 
-#if 1
+#if 0
   Double_t resolution_hsoff[32] =
     {1.03239, 1.02736, 0.911595, 0.841133, 0.801814,
      0.815236, 0.821172, 0.821089, 0.839851, 0.789304,
@@ -624,7 +624,7 @@ TPCHit::GetResolutionX() const
 double
 TPCHit::GetResolutionZ() const
 {
-#if 0
+#if 1
   const auto& pos = GetPosition();
   //calculated by using NIM paper
   //Double_t s0 = 0.204;// mm HIMAC result //To do parameter
@@ -661,7 +661,7 @@ TPCHit::GetResolutionZ() const
   return sqrt(pow(sT_r*TMath::Sin(alpha),2)+pow(sT_padlen*TMath::Cos(alpha),2));
 #endif
 
-#if 1
+#if 0
   Double_t resolution_hsoff[32] =
     {1.03239, 1.02736, 0.911595, 0.841133, 0.801814,
      0.815236, 0.821172, 0.821089, 0.839851, 0.789304,
@@ -681,11 +681,11 @@ double
 TPCHit::GetResolutionY() const
 {
 
-#if 0
+#if 1
   // temporary
   return 0.5; //HIMAC
 #endif
-#if 1
+#if 0
   return 0.7; //Temporary value for HS-OFF
 #endif
 
