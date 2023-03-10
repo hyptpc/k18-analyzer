@@ -898,6 +898,7 @@ TPCLocalTrackHelix::DeleteNullHit()
 void
 TPCLocalTrackHelix::SetHoughFlag(int hough_flag)
 {
+	m_hough_flag = hough_flag;
   for(std::size_t i=0; i<m_hit_array.size(); ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
     TPCHit *hit = hitp->GetHit();

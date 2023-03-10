@@ -33,6 +33,7 @@ private:
 private:
   bool   m_is_fitted;     // flag of DoFit()
   bool   m_is_calculated; // flag of Calculate()
+  int    m_hough_flag;
   std::vector<TPCLTrackHit*> m_hit_array;
   std::vector<int> m_hit_order;
   std::vector<double> m_hit_t;
@@ -126,6 +127,7 @@ public:
   double   GetChiSquare() const { return m_chisqr; }
   Double_t GetClosestDist() const { return m_closedist; }
   int      GetNIteration() const { return m_n_iteration; }
+  int      GetHoughFlag(void) const {return m_hough_flag; }
   int      GetFitFlag(void) const {return m_fitflag; }
   int      GetVtxFlag(void) const {return m_vtxflag;} //vtx is in the target or not
   int      GetIsBeam(void) const { return m_isBeam; }

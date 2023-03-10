@@ -266,8 +266,7 @@ PadSimulator::MakeUpTPCClusters(const TPCHitContainer& HitCont,
 }
 TVector2
 SimTrack::RandomGaus(double sig){
-	double r = gRandom->Gaus(0,sig);
-	double phi = gRandom->Uniform(0,TMath::ACos(-1));
-	double x = r*cos(phi),y=r*sin(phi);
+	double x = gRandom->Gaus(0,sig);
+	double y = gRandom->Gaus(0,sig);
 	return TVector2(x,y);
 }

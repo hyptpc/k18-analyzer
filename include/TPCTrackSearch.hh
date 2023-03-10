@@ -80,6 +80,11 @@ void K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 		    std::vector<TPCLocalTrackHelix*>& TrackContFailed,
 		    Int_t MinNumOfHits=8);
 //Accidental beam tracks
+void UseBeamRemover(const std::vector<TPCClusterContainer>& ClCont,
+		     std::vector<TPCLocalTrackHelix*>& TrackCont,
+		     std::vector<TPCLocalTrackHelix*>& TrackContFailed);
+
+
 void AccidentalBeamSearchTemp(const std::vector<TPCClusterContainer>& ClCont,
 			      std::vector<TPCLocalTrackHelix*>& TrackCont,
 			      std::vector<TPCLocalTrackHelix*>& TrackContFailed,

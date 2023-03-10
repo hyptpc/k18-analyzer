@@ -59,6 +59,7 @@ protected:
   std::vector<Int_t>    m_houghY_num;
   Double_t              m_hough_dist;
   Double_t              m_hough_disty;
+  Double_t              m_pull;
   TPCCluster*           m_parent_cluster;
 
   Bool_t m_belong_track;
@@ -122,6 +123,7 @@ public:
   Int_t           GetHoughFlag() const { return m_hough_flag; }
   Double_t        GetHoughDist() const { return m_hough_dist; }
   Double_t        GetHoughDistY() const { return m_hough_disty; }
+  Double_t        GetPull() const { return m_pull; }
   // Bool_t          IsWithinRange() const
   //   { return m_pair_cont.at(nh).dl_range; }
   void            JoinTrack() { m_belong_track = true; }
@@ -144,6 +146,7 @@ public:
   void            SetHoughYnum(Int_t houghY_num);
   void            SetHoughDist(Double_t hough_dist) { m_hough_dist = hough_dist; }
   void            SetHoughDistY(Double_t hough_disty) { m_hough_disty = hough_disty; }
+  void            SetPull(Double_t pull) { m_pull = pull; }
 protected:
   void ClearRegisteredHits();
 };

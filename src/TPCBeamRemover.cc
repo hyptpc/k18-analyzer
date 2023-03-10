@@ -10,8 +10,7 @@
 #include "ConfMan.hh"
 #include "TPCCluster.hh"
 #include "RootHelper.hh"
-namespace tpcBeamRemover
-{
+namespace {
 	const auto& gConf = ConfMan::GetInstance();
 	const auto& gGeom = DCGeomMan::GetInstance();
 	const auto& gUser = UserParamMan::GetInstance();
@@ -27,7 +26,7 @@ namespace tpcBeamRemover
 	const Double_t rdiff_max = 110.;
 	const Int_t nBin_theta = 180;
 	const Double_t theta_min = (2.)*acos(-1)-1;
-	const Double_t theta_max = (2.)*acos(-1)+1;//Charge < -1 region.
+	const Double_t theta_max = (2.)*acos(-1)+1;//Charge < -1
 	const Int_t nBin_p = 100;
 	const Double_t p_min = 1600.;//MeV/c
 	const Double_t p_max = 2000.;//MeV/c
@@ -102,7 +101,6 @@ namespace tpcBeamRemover
 		}
 
 }
-using namespace tpcBeamRemover;
 TPCBeamRemover::TPCBeamRemover(std::vector<TPCClusterContainer>ClCont){
 	enable = true;
 	enableHough = true;
@@ -116,9 +114,7 @@ TPCBeamRemover::TPCBeamRemover(std::vector<TPCClusterContainer>ClCont){
 		}
 		m_ClCont_array.push_back(temp_cl_arr);
 	}
-	Ywidth = 10; 
-	Ycut = 5; 
-	Xcut = 10; 
+	Ywindow = 10; 
 	hist_y->Reset();
 	hist_beam->Reset();
 	hist_beamZY->Reset();
@@ -155,11 +151,11 @@ TPCBeamRemover::SearchPeaks(TH1D* hist,std::vector<double> &peaks){
 	for(auto hit : m_Cl_array){
 		auto pos = hit->GetPosition();
 		double x = pos.X(),y=pos.Y();
-		if(x>299792458)x+=0;//To avoid warning message.
+		if(x>299792458)x+=0;//Dummy statement. But you will get warning message without this.
 		for(int ip = 0;ip<npeaks;++ip){
 			double peak = peaks.at(ip);
 //			if(x_min<x and x<x_max and y_min<y and y<y_max)continue;
-			if(abs(peak - y)<Ywidth){
+			if(abs(peak - y)<Ywindow){
 				m_PeakCl_array[ip].push_back(hit);
 				break;
 			}
@@ -182,33 +178,30 @@ TPCBeamRemover::SearchAccidentalBeam(double xmin = -30., double xmax = 30.,doubl
 		else hist_y->Fill(y);
 	}
 	np = SearchPeaks(hist_y,peaks);
-	m_Accidental.resize(nh,false);
 
-	for(int i = 0;i<np;++i){
+	for(int ip = 0;ip<np;++ip){
 		hist_beam->Reset();
 		hist_beamZY->Reset();
-		for(auto hitp:m_PeakCl_array[i]){
+		for(auto hitp:m_PeakCl_array[ip]){
 			TVector3 pos = hitp->GetPosition();
 			double x=pos.X(),y=pos.Y(),z=pos.Z();
 			if(x_min<x and x<x_max and y_min<y and y<y_max)continue;
 			hist_beam->Fill(z,x);	
 			hist_beamZY->Fill(z,y);	
 		}
-		if(enableHough) DoHoughSearch( i);
-		else DoQuadraticSearch( i);
+		DoHoughSearch( ip);
 	}//np = npeaks
 	int cnt=0;
-	if(enableHough){
-		for(int ip=0;ip < np;++ip){
-			int nb = h_cx[ip].size();
-			for(int ib = 0; ib< nb; ++ib){
-				Allh_cx.push_back(h_cx[ip][ib]);
-				Allh_cy.push_back(h_cy[ip][ib]);
-				Allh_z0.push_back(h_z0[ip][ib]);
-				Allh_r.push_back(h_r[ip][ib]);
-				Allh_dz.push_back(h_dz[ip][ib]);
-				cnt++;
-			}
+	for(int ip=0;ip < np;++ip){
+		int nb = h_cx[ip].size();
+		for(int ib = 0; ib< nb; ++ib){
+			Allh_cx.push_back(h_cx[ip][ib]);
+			Allh_cy.push_back(h_cy[ip][ib]);
+			Allh_z0.push_back(h_z0[ip][ib]);
+			Allh_r.push_back(h_r[ip][ib]);
+			Allh_dz.push_back(h_dz[ip][ib]);
+			AllPeaks.push_back(peaks.at(ip));
+			cnt++;
 		}
 	}
 }
@@ -218,64 +211,106 @@ int
 TPCBeamRemover::IsAccidental(TPCHit* hit){
 	auto pos = hit->GetPosition();
 	auto res = hit->GetResolutionVect();
-	double Adist=0;
-	int flag =  IsAccidental(pos,res,Adist);
-	if(Adist< 5000) hit->SetHoughDist(Adist);
+	double PullDist=0;
+	int flag =  IsAccidental(pos,res,PullDist);
+	if(PullDist< 1000) hit->SetPull(PullDist);
 	return flag;
 }
 
 int
-TPCBeamRemover::IsAccidental(TVector3 pos,TVector3 res, double& Adist){
+TPCBeamRemover::IsAccidental(TVector3 pos,TVector3 res, double& PullDist){
 	double x = pos.X(),y=pos.Y(),z=pos.Z();
 	double sx = res.X(),sy=res.Y(),sz=res.Z();
-	//	if(x_min<x and x<x_max and y_min<y and y<y_max) return false;
-	if(enableHough){
-		int nb = Allh_cx.size();
-		double min_delta = 1e9;
-		int beamID = -1;
-		for(int ib = 0; ib < nb; ++ib){
-			double cx = Allh_cx[ib];	
-			double cy = Allh_cy[ib];	
-			double z0 = Allh_z0[ib];	
-			double r = Allh_r[ib];	
-			double dz = Allh_dz[ib];	
-			TVector3 pos_(-x,z-ZTarget,y);
-			double fpar[8] = {cx,cy,z0,r,dz,pos_.X(),pos_.Y(),pos_.Z()};
-  		fint.SetParameters(fpar);
-  		double t = fint.GetMinimumX(0*acos(-1),2*acos(-1));
-			TVector3 HelixPos(fpar[0]+fpar[3]*cos(t),fpar[1]+fpar[3]*sin(t),fpar[2]+(fpar[4]*fpar[3]*t));
-			TVector3 dX = HelixPos-pos_;
-			double delx = dX.X(),dely = dX.Y(),delz=dX.Z();
-			double delta = sqrt(delx*delx/sx/sx + dely*dely/sy/sy+delz*delz/sz/sz);
-			if( delta<min_delta){
-				min_delta = delta;
-				beamID = ib;
-			}
+	int nb = Allh_cx.size();
+	double min_delta = 1e9;
+	int beamID = -1;
+	for(int ib = 0; ib < nb; ++ib){
+		double cx = Allh_cx[ib];	
+		double cy = Allh_cy[ib];	
+		double z0 = Allh_z0[ib];	
+		double r = Allh_r[ib];	
+		double dz = Allh_dz[ib];	
+		TVector3 pos_(-x,z-ZTarget,y);
+		double fpar[8] = {cx,cy,z0,r,dz,pos_.X(),pos_.Y(),pos_.Z()};
+		fint.SetParameters(fpar);
+		double t = fint.GetMinimumX(0*acos(-1),2*acos(-1));
+		TVector3 HelixPos(fpar[0]+fpar[3]*cos(t),fpar[1]+fpar[3]*sin(t),fpar[2]+(fpar[4]*fpar[3]*t));
+		TVector3 dX = HelixPos-pos_;
+		double delx = dX.X(),dely = dX.Y(),delz=dX.Z();
+		double delta = sqrt(delx*delx/sx/sx + dely*dely/sy/sy+delz*delz/sz/sz);
+		if( delta<min_delta){
+			min_delta = delta;
+			beamID = ib;
 		}
-		Adist = min_delta;
+	}
+	PullDist = min_delta;
 
-		if(min_delta < 10){
-			return 1000+beamID;
-		}else{
-			return 0;
-		}
-	}else{//Quadratic mode (Legacy)
-		for(int ib=0;ib<beam_y.size();++ib){
-			double p0= beam_p0[ib],p1=beam_p1[ib],p2=beam_p2[ib],by=beam_y[ib],bv=beam_v[ib];
-			double beamX = p0+p1*z+p2*z*z;
-			if( (abs(by+z*bv-y)<Ycut)and(abs(beamX-x)<Xcut) ){
-				return 1000+ib;
-			}
-		}
+	if(min_delta < 10){
+		return Acc_flag_base+beamID;
+	}else{
+		return 0;
 	}
 	return 0;
 }
+void
+TPCBeamRemover::ConstructAccidentalTracks(){
+  int nacc = GetNAccBeam();
+	for(int iacc=0; iacc<nacc;++iacc){
+		auto Track = new TPCLocalTrackHelix();
+		Track->SetAcx(GetParameter(0).at(iacc));
+		Track->SetAcy(GetParameter(1).at(iacc));
+		Track->SetAz0(GetParameter(2).at(iacc));
+		Track->SetAr(GetParameter(3).at(iacc));
+		Track->SetAdz(GetParameter(4).at(iacc));
+		Track->SetFlag(8);
+		Track->SetHoughFlag(Acc_flag_base+iacc);
+		m_Track_array.push_back(Track);
+	}
+	
+	std::vector<std::vector<TPCClusterContainer>>ClContVect;
+	ClContVect.resize(nacc);
+	
+	for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
+    for(auto cl:m_ClCont_array[layer]){
+			auto hit = cl -> GetMeanHit();
+			auto pos = hit->GetPosition();
+			int accf = IsAccidental(hit);
+			int iacc = accf - Acc_flag_base;	
+			if(hit->GetHoughFlag() !=0) continue;
+			if(!(-1 < iacc and iacc < 100  )){
+				continue;
+			}
+			else{
+				m_Track_array.at(iacc)->AddTPCHit(new TPCLTrackHit(hit));
+				hit->SetHoughFlag(accf);
+			}
+			for(auto peak : AllPeaks){
+				if(abs(peak - pos.Y())<Ywindow+5){
+					ClContVect.at(iacc)[layer].push_back(cl);
+				}
+			}
+		}
+	}
+	
+	int nt = nacc;	
+	for(int it = 0; it < nt; ++it){
+		auto Track = m_Track_array.at(it);
+		DoHelixFit(Track,ClContVect.at(it),8);
+	}
+}
+
+
+
+
+
+
 void 
 TPCBeamRemover::DoHoughSearch(int i){
 	DoCircleHough(i);
-	DoYThetaFit(i);
-//	DoYThetaHough(i);
+	DoYThetaHough(i);
 }
+
+
 void 
 TPCBeamRemover::DoCircleHough(int i){
 	int nhits = m_PeakCl_array[i].size();
@@ -356,8 +391,8 @@ TPCBeamRemover::DoCircleHough(int i){
 		}
 		std::sort(zdist.begin(),zdist.end());
 		for(int iz = 0; iz<hough_count-1;++iz){
-			double dist = abs(zdist.at(iz)-zdist.at(iz+1));
-			if(dist>125) hough_count = 0;
+			double gap = abs(zdist.at(iz)-zdist.at(iz+1));
+			if(gap>125) hough_count = 0;
 		}
 		if(hough_count > MinBeamHit and minz < MinZCut and maxz > MaxZCut){
 			h_cx[i].push_back(hough_cx);
@@ -367,7 +402,6 @@ TPCBeamRemover::DoCircleHough(int i){
 	}//ib
 	int nbeam = h_cx[i].size();
 	for(int ib = 0;ib<nbeam;++ib){
-//		double hcx = h_cx[i].at(ib);double hcy = h_cy[i].at(ib);double hr = h_r[i].at(ib);	
 		std::vector<TVector3>AccArr(0);
 		AccArr.clear();
 		for(int ih = 0; ih<nhits; ++ih){
@@ -379,7 +413,7 @@ TPCBeamRemover::DoCircleHough(int i){
 		}
 		double params[3] = {0,0,0};
 		CircleFit(AccArr,params);	
-		if(params[2]>3000){
+		if(params[2]>3000){//Update param only if radius>3000
 			h_cx[i].at(ib)= params[0];
 			h_cy[i].at(ib)= params[1];
 			h_r[i].at(ib)= params[2];
@@ -423,8 +457,6 @@ TPCBeamRemover::DoYThetaHough(int i){
     double mr = hist_YTheta->GetYaxis()->GetBinCenter(myY);
 		double p0 = mr/sin(mtheta);
     double p1 = -cos(mtheta)/sin(mtheta);
-		h_z0[i].push_back(p0);
-		h_dz[i].push_back(p1);
 		for(int ih = 0;ih<nhits;++ih){
 			if(h_flag[i].at(ih) != pow(2,ib)) continue;
 			auto pos = m_PeakCl_array[i].at(ih)->GetPosition();
@@ -437,7 +469,9 @@ TPCBeamRemover::DoYThetaHough(int i){
 			if(distY > MaxHoughWindowY) h_flag[i].at(i) = 0;
 		}
 	}
+	DoYThetaFit(i);
 }
+
 void 
 TPCBeamRemover::DoYThetaFit(int i){
 	int nb = h_cx[i].size();
@@ -476,9 +510,47 @@ TPCBeamRemover::DoYThetaFit(int i){
 #endif
 	}
 }
+
+void
+TPCBeamRemover::DoHelixFit(TPCLocalTrackHelix* Track,const std::vector<TPCClusterContainer>& ClCont,int MinNumOfHits = 8){
+	int hf = Track->GetHoughFlag();
+	int it = hf - Acc_flag_base; 
+	if(Track->DoFit(MinNumOfHits)){
+    TPCLocalTrackHelix *copied_track = new TPCLocalTrackHelix(Track);
+    bool Add_rescheck = false;
+    for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
+      for(auto cl:ClCont[layer]){
+				TPCHit* hit = cl->GetMeanHit();
+				auto pos = hit->GetPosition();
+				auto res = hit->GetResolutionVect();
+				double residual = 0;
+				if(copied_track->ResidualCheck(pos,res,residual)){
+	  			copied_track->AddTPCHit(new TPCLTrackHit(hit));
+	  			Add_rescheck = true;
+				}
+			}//cl
+		}//layer
+		if(!Add_rescheck){
+			delete copied_track;
+		}
+		else{
+			if(copied_track->DoFit(MinNumOfHits)){
+				copied_track->SetHoughFlag(hf);
+				copied_track->SetFitFlag(2);
+				m_Track_array.at(it) = copied_track;
+				delete Track;
+			}
+		}
+	}//if(DoFit)
+	else{
+		Track->SetFlag(8);
+		Track->SetHoughFlag(hf);
+		Track->SetParamUsingHoughParam();
+	}
+}
+
 int
-TPCBeamRemover::CompareHough(TVector3 pos, std::vector<double> hcx,std::vector<double>hcy,std::vector<double> hr){ 
-			
+TPCBeamRemover::CompareHoughDist(TVector3 pos, std::vector<double> hcx,std::vector<double>hcy,std::vector<double> hr){ 
 	int beamid = -1;
 	double x = -pos.X();
 	double y = pos.Z() - ZTarget;
@@ -500,73 +572,6 @@ TPCBeamRemover::IsThisBeam(int hflag, int ib){
 	int mask = pow(2,ib+1);
 	int flag= hflag%mask;
 	return flag/int(pow(2,ib));
-}
-
-void 
-TPCBeamRemover::DoQuadraticSearch(int i){
-	double peak = peaks.at(i);
-	Linear->SetParameter(0,peak);
-	Linear->SetParLimits(0,-400,400);
-
-	Linear->SetParameter(1,0);
-	Linear->SetParLimits(1,-0.1,0.1);
-
-	Quadratic->SetParameter(0,0);
-	Quadratic->SetParLimits(0,-120,120);
-
-	Quadratic->SetParameter(1,-0.05);
-	Quadratic->SetParLimits(1,-0.1,-0.01);
-
-	Quadratic->SetParameter(2,-7.6e-5);
-	Quadratic->SetParLimits(2,-3e-4,-3e-5);
-	double min_z = MinZCut;
-	double dist_cut[3]={20,10,5};
-	double dist_cutY[3]={10,7.5,5};
-	bool isAccidental = false;
-	for(int nitr=0;nitr<3;++nitr){
-		min_z = 255;
-		hist_beam->Fit("quadratic","QRNB");
-		hist_beamZY->Fit("linear","QRNB");
-		double p0,p1,p2,v=0;
-		hist_beam->Reset("ICES");
-		hist_beamZY->Reset("ICES");
-		p0=Quadratic->GetParameter(0);
-		p1=Quadratic->GetParameter(1);
-		p2=Quadratic->GetParameter(2);
-		peak = Linear->GetParameter(0);
-		v = Linear->GetParameter(1);
-		for(auto hitp:m_PeakCl_array[i]){
-			TVector3 pos = hitp->GetPosition();
-			double x = pos.X(),y = pos.Y(),z = pos.Z();
-			if(y>y_min and y<y_max)continue;
-			if(abs(peak+v*z-y)>dist_cutY[nitr] ) continue;
-			double val = quadratic(z,p0,p1,p2);
-			if(abs(val-x)>dist_cut[nitr]) continue;
-			hist_beam->Fill(pos.Z(),pos.X());	
-			hist_beamZY->Fill(pos.Z(),pos.Y());	
-			min_z = std::min(pos.Z(),min_z);
-		}
-	}//nitr;
-	Quadratic->SetParameter(2,-7.6e-5);//~1.8GeV;
-	int ent_cut = 15;
-	if(hist_beam->GetEffectiveEntries()<ent_cut)return;
-	hist_beam->Fit("quadratic","QRNB");
-	hist_beamZY->Fit("linear","QRNB");
-	peak = Linear->GetParameter(0);
-	double par0 = Quadratic->GetParameter(0);
-	double par1 = Quadratic->GetParameter(1);
-	double par2 = Quadratic->GetParameter(2);
-	double beamv = Linear->GetParameter(1);
-	double rad = 1/(2*par2);// x = p0 + p1 z + p2 z^2 -> BendingAngle = (dx/dz)_zOut-(dx/dz)_zIn 2*p2*(zOut-zIn). rad = arclength/angle ~ (zOut-zIn)/BendingAngle = 1/(2*p2)
-	double mom = rad*(Const*dMagneticField);
-	if(hist_beam->GetEntries()>ent_cut  and abs(mom)>500 and min_z<MinZCut )isAccidental=true;	
-	if(isAccidental){
-		beam_p0.push_back(par0);
-		beam_p1.push_back(par1);
-		beam_p2.push_back(par2);
-		beam_y.push_back(peak);
-		beam_v.push_back(beamv);
-	}
 }
 
 

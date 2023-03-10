@@ -836,6 +836,32 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 
 //_____________________________________________________________________________
 void
+UseBeamRemover(const std::vector<TPCClusterContainer>& ClCont,
+		     std::vector<TPCLocalTrackHelix*>& TrackCont,
+		     std::vector<TPCLocalTrackHelix*>& TrackContFailed)
+{
+	bool RemoveBeam = true;
+	bool UseHough = true;
+	TPCBeamRemover BeamRemover(ClCont);
+	BeamRemover.Enable(RemoveBeam);
+	BeamRemover.EnableHough(UseHough);
+	
+	BeamRemover.SearchAccidentalBeam(-30,30,-50,50);
+	BeamRemover.ConstructAccidentalTracks();
+	int nt = BeamRemover.GetNAccBeam();
+	for(int it = 0; it<nt; ++it){
+		auto Track = BeamRemover.GetAccTrack(it);
+		if(Track->IsFitted()){
+			TrackCont.push_back(Track);
+		}
+		else{
+			TrackContFailed.push_back(Track);
+		}
+	}
+}
+
+//_____________________________________________________________________________
+void
 AccidentalBeamSearchTemp(const std::vector<TPCClusterContainer>& ClCont,
 			 std::vector<TPCLocalTrackHelix*>& TrackCont,
 			 std::vector<TPCLocalTrackHelix*>& TrackContFailed,
