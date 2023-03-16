@@ -1420,7 +1420,7 @@ TPCLocalTrackHelix::FinalizeTrack(int &delete_hit)
 
     TVector3 res = hitp->GetResolutionVect();
     if(!ResidualCheck(pos, res, resi)){
-      if(Max_residual<resi){
+      if(Max_residual<resi or isnan(resi)){
 	Max_residual = resi;
 	delete_hit = i;
       }
