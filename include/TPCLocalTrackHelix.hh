@@ -148,6 +148,7 @@ public:
   double Getz0() const { return m_z0; }
   double Getr() const { return m_r; }
   double Getdz() const { return m_dz; }
+  double Getflag() const { return m_hough_flag; }
   double GetAcx() const { return m_Acx; }
   double GetAcy() const { return m_Acy; }
   double GetAz0() const { return m_Az0; }

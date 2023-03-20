@@ -10,6 +10,7 @@
 #include "ConfMan.hh"
 #include "TPCCluster.hh"
 #include "RootHelper.hh"
+#define DebugDisplay 1
 namespace {
 	const auto& gConf = ConfMan::GetInstance();
 	const auto& gGeom = DCGeomMan::GetInstance();
@@ -31,8 +32,8 @@ namespace {
 	const Double_t p_min = 1600.;//MeV/c
 	const Double_t p_max = 2000.;//MeV/c
 	const int    thetaY_ndiv =  180;
-	const double thetaY_min  =  60.;
-	const double thetaY_max  = 120.;
+	const double thetaY_min  =  120.;
+	const double thetaY_max  =  240.;
 	const int    r_ndiv =  2000;
 	const double r_min  = -5000.;
 	const double r_max  =  5000.;
@@ -161,6 +162,9 @@ TPCBeamRemover::SearchPeaks(TH1D* hist,std::vector<double> &peaks){
 			}
 		}
 	}
+#if DebugDisplay
+	std::cout<<ClassName()<<"::SearchPeaks = "<<npeaks<<std::endl;
+#endif
 	return npeaks;
 }
 
@@ -252,10 +256,14 @@ TPCBeamRemover::IsAccidental(TVector3 pos,TVector3 res, double& PullDist){
 	}
 	return 0;
 }
+
 void
 TPCBeamRemover::ConstructAccidentalTracks(){
   int nacc = GetNAccBeam();
+	std::vector<std::vector<TPCClusterContainer>>ClContVect;
+	ClContVect.resize(nacc);
 	for(int iacc=0; iacc<nacc;++iacc){
+		ClContVect.at(iacc).resize(NumOfLayersTPC);
 		auto Track = new TPCLocalTrackHelix();
 		Track->SetAcx(GetParameter(0).at(iacc));
 		Track->SetAcy(GetParameter(1).at(iacc));
@@ -266,9 +274,6 @@ TPCBeamRemover::ConstructAccidentalTracks(){
 		Track->SetHoughFlag(Acc_flag_base+iacc);
 		m_Track_array.push_back(Track);
 	}
-	
-	std::vector<std::vector<TPCClusterContainer>>ClContVect;
-	ClContVect.resize(nacc);
 	
 	for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
     for(auto cl:m_ClCont_array[layer]){
@@ -314,6 +319,9 @@ TPCBeamRemover::DoHoughSearch(int i){
 void 
 TPCBeamRemover::DoCircleHough(int i){
 	int nhits = m_PeakCl_array[i].size();
+#if DebugDisplay 
+	std::cout<<ClassName()<<"::DoCircleHough::nhits = "<<nhits<<std::endl;
+#endif
 	MaxNBeam = 3;
 	h_flag[i].resize(nhits);
 	std::vector<double> hough_x;
@@ -419,10 +427,14 @@ TPCBeamRemover::DoCircleHough(int i){
 			h_r[i].at(ib)= params[2];
 		}
 		else{
+#if DebugDisplay 
 //			std::cout<<"CircleFitFail!"<<std::endl;
 //			std::cout<<Form("Params(%f,%f,%f)",params[0],params[1],params[2])<<std::endl;
+#endif
 			for(auto pv : AccArr){
+#if DebugDisplay 
 	//			std::cout<<Form("Pos(%f,%f,%f)",pv.X(),pv.Y(),pv.Z())<<std::endl;
+#endif
 			}
 		}
 	}
@@ -446,6 +458,7 @@ TPCBeamRemover::DoYThetaHough(int i){
 			for(int ti=0; ti<thetaY_ndiv; ti++){
 				double theta = thetaY_min+ti*(thetaY_max-thetaY_min)/thetaY_ndiv;
 				double tmp_t = atan2(y - hcy,x-hcx);
+				if(tmp_t < 0) tmp_t += 2*acos(-1);
 				double tmp_xval = hr * tmp_t;
 				hist_YTheta->Fill(theta, cos(theta*acos(-1.)/180.)*tmp_xval+sin(theta*acos(-1.)/180.)*z);
 			}
@@ -464,6 +477,7 @@ TPCBeamRemover::DoYThetaHough(int i){
 	  	double tmpy = pos.z() - ZTarget;
 	  	double tmpz = pos.y();
 	  	double tmp_t = atan2(tmpy - hcy,tmpx - hcx);
+			if(tmp_t < 0) tmp_t += 2*acos(-1);
 	  	double tmp_xval = hr * tmp_t;
 	  	double distY = fabs(p1*tmp_xval - tmpz + p0)/sqrt(pow(p1, 2) + 1);
 			if(distY > MaxHoughWindowY) h_flag[i].at(i) = 0;
@@ -489,6 +503,7 @@ TPCBeamRemover::DoYThetaFit(int i){
 				double y = pos.Z()-ZTarget;
 				double z = pos.Y();
 				double t = atan2(y - hcy,x-hcx);
+				if(t < 0) t += 2*acos(-1);
 				double rt = t * hr;
 				ttmp.push_back(t);
 				AccArr.push_back(TVector3(rt,z,y));			
@@ -514,6 +529,9 @@ TPCBeamRemover::DoYThetaFit(int i){
 void
 TPCBeamRemover::DoHelixFit(TPCLocalTrackHelix* Track,const std::vector<TPCClusterContainer>& ClCont,int MinNumOfHits = 8){
 	int hf = Track->GetHoughFlag();
+#if DebugDisplay 
+	std::cout<<"BeamRemover::DoHelixFit -> GetHoughFlag() = "<<hf<<std::endl;
+#endif
 	int it = hf - Acc_flag_base; 
 	if(Track->DoFit(MinNumOfHits)){
     TPCLocalTrackHelix *copied_track = new TPCLocalTrackHelix(Track);

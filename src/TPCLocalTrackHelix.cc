@@ -48,7 +48,7 @@ namespace
   //static const double  MaxChisqr = 100.;
   //static const int  MaxTryMinuit = 3;
   static const int  MaxTryMinuit = 0;
-  static const Double_t MaxResidual = 5.;
+  static const Double_t MaxResidual = 15.;
 
   // B-field
   const double& HS_field_0 = 0.9860;
@@ -1116,8 +1116,9 @@ TPCLocalTrackHelix::ResidualCheck(TVector3 pos, TVector3 Res, double &resi)
 		   fittmp.Z(),
 		   fittmp.Y()+tpc::ZTarget);
   TVector3 d = pos - fittmp_;
-
-  resi = d.Mag();
+	double dx = d.X(),dy = d.Y(), dz = d.Z();
+	double sx = Res.X(),sy = Res.Y(), sz = Res.Z();
+  resi = sqrt(dx*dx/sx/sx + dy*dy/sy/sy + dz*dz/sz/sz);
   if(d.Mag()<Res.Mag()*MaxResidual) status = true;
   return status;
 }
