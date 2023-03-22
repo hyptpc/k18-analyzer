@@ -64,7 +64,8 @@ Bool_t HypTPCVertex::Execute(std::vector<TPCTrack *> &tpcTrackArray,std::vector<
 
     genfit::GFRaveVertex *vertex = static_cast<genfit::GFRaveVertex*>(vertices[iVtx]);
     TPCVertex *tpcVertex = new TPCVertex(*vertex);
-					 
+    tpcVertex->SetVertexID(iVtx);
+    
     if (numVertices > 0) {
       auto pos = 10*vertex->getPos();
       std::cout << pos.X() << "\t" << pos.Y() << "\t" << pos.Z() << std::endl;
@@ -115,6 +116,7 @@ Bool_t HypTPCVertex::Execute(std::vector<TPCTrack *> &tpcTrackArray,std::vector<
       }
       
     }
+    delete vertex;
   }
   
   return true;
