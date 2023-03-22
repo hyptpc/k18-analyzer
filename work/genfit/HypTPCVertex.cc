@@ -53,8 +53,6 @@ Bool_t HypTPCVertex::Execute(std::vector<TPCTrack *> &tpcTrackArray,std::vector<
   //  fVertexFactory -> setBeamspot(fVertex, fCovVertex);
   
   std::vector<genfit::GFRaveVertex *> vertices;
-	std::cout << "here"<< std::endl;
-  
   try {
     fVertexFactory->findVertices(&vertices, gfTrackToVertexArray);
   } catch (...) {
@@ -81,7 +79,8 @@ Bool_t HypTPCVertex::Execute(std::vector<TPCTrack *> &tpcTrackArray,std::vector<
     for (Int_t iTrack = 0 ; iTrack < numTracks ; iTrack++) {
       genfit::GFRaveTrackParameters *par = vertex -> getParameters(iTrack);
       const genfit::Track *track = par->getTrack();
-
+      Double_t weight = par->getWeight();
+      
       std::vector<genfit::Track *>::iterator iter = std::find(gfTrackToVertexArray.begin(), gfTrackToVertexArray.end(), track);
 
       if (iter != gfTrackToVertexArray.end()) {
@@ -95,8 +94,10 @@ Bool_t HypTPCVertex::Execute(std::vector<TPCTrack *> &tpcTrackArray,std::vector<
 	
 	auto tpcTrack = tpcTrackArray.at(index_org);
 
-	if (tpcTrack->GetVertexID() < 0)
+	if (tpcTrack->GetVertexID() < 0){
 	  tpcTrack->SetVertexID(iVtx);
+	  tpcTrack->SetVertexWeight(weight);
+	}
 	
 	TVector3 momVertex, posVertex;
 	fHypTPCTask.GetMomentumWithVertex(gfTrack, 10*vertex->getPos(), momVertex, posVertex);

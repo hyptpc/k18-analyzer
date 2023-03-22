@@ -58,6 +58,9 @@ public:
 
   void SetVertex(TVector3 pos) {fVertex = pos;}
   TVector3 GetVertex() const {return fVertex;}  
+
+  void SetVertexWeight(Double_t weight) {fVertexWeight = weight;}
+  Double_t GetVertexWeight() const {return fVertexWeight;}
   
   void SetGenFitTrack(genfit::Track *track) {fGFTrack = track;}
   genfit::Track *GetGenFitTrack() {return fGFTrack;}
@@ -124,6 +127,7 @@ private:
   Double_t fTOF;
   Double_t fTOFHTOF;
 
+  Double_t fVertexWeight;
 };
 
 
