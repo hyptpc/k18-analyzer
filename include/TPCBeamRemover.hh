@@ -20,26 +20,29 @@ class TPCBeamRemover{
 		~TPCBeamRemover();	
 	private:
 		int MaxNBeam = 3;
-		int MinBeamHit = 10;
-		double MinZCut = -180;
-		double MaxZCut = 150;
-		double MaxHoughWindow = 15;
-		double MaxHoughWindowY = 2.5;
-
+		int MinBeamHit = 8;
+		double MinZCut = -150;
+		double MaxZCut = 145;
+		double MaxHoughWindow = 10.;
+		double MaxHoughWindowY = 3.;
+		double Ywindow = 10;//=10 
+		double MaxPullDist = 25;
 
 
 
 	private:
 		std::vector<TPCClusterContainer> m_ClCont_array;
+		std::vector<int> m_Cl_Flag;
 		std::vector<TPCLocalTrackHelix*> m_Track_array;
 		TPCClusterContainer m_Cl_array;
 		std::vector<TPCClusterContainer> m_PeakCl_array;
-		std::vector<TPCClusterContainer> m_BeamClCont_array;
-		TPCClusterContainer m_BeamCl_array;
+		std::vector<std::vector<int>> m_PeakCl_ID;
+		std::vector<TPCClusterContainer> m_ZYHoughCl_array;
+		std::vector<int> m_ZYHough_Flag;
+		
+		
 		std::vector<double>peaks;
 		std::vector<int> m_layer_info;
-		std::vector<std::vector<int>> m_Peaklayer;
-		std::vector<bool> m_Accidental;
 	
 		std::vector<double> beam_p0;
 		std::vector<double> beam_p1;
@@ -48,10 +51,9 @@ class TPCBeamRemover{
 		std::vector<double> beam_v;
 	
 		double x_min,x_max,y_min,y_max;
-		double Ywindow;//=10 
 		bool enable;
 		bool enableHough;
-		int np,nh;
+		int np=0,nh=0;
 
 		std::vector<std::vector<double>> h_cx;
 		std::vector<std::vector<double>> h_cy;
@@ -87,11 +89,13 @@ class TPCBeamRemover{
 	private:
 		int SearchPeaks(TH1D* hist,std::vector<double> &peaks);
 		
-		void DoHoughSearch(int i);
+		void DoPeakHoughSearch(int i);
+		void DoZYHoughSearch(int i);
 			
-		void DoCircleHough(int i);
-		void DoYThetaHough(int i);
-		void DoYThetaFit(int i);
+		void DoCircleHough(TPCClusterContainer ClCont, int i);
+		void DoYThetaHough(TPCClusterContainer ClCont, int i);
+		void DoZYHough();
+		void DoYThetaFit(TPCClusterContainer ClCont,int i);
 
 		void DoHelixFit(TPCLocalTrackHelix* Track,const std::vector<TPCClusterContainer>& ClCont,int MinNumOfHits);
 
@@ -125,9 +129,6 @@ class TPCBeamRemover{
 		}
 		std::vector<TPCClusterContainer> GetClCont(){
 			return m_ClCont_array;
-		};
-		std::vector<TPCClusterContainer> GetBeamClCont(){
-			return m_BeamClCont_array;//ClContainor of accidental beams.
 		};
 		TPCLocalTrackHelix* GetAccTrack(int iacc){
 			return m_Track_array.at(iacc);

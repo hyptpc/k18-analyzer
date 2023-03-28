@@ -101,7 +101,7 @@ public:
   int          FinalizeTrack(int &delete_hit);
   int          FinalizeTrack();
   void         SortHitOrder(); //Sort hits by theta
-  bool         ResidualCheck(TVector3 pos, TVector3 Res, double &resi);
+  bool         ResidualCheck(TVector3 pos, TVector3 Res, double &resi, double MaxResidual = 15);
   bool         ResidualCheck(TVector3 pos, double xzwindow, double ywindow, double &resi);
   bool         ResidualCheck(TVector3 pos, double xzwindow, double ywindow);
   int          Side(TVector3 pos);

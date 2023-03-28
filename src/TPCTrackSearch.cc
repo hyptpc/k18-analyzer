@@ -413,7 +413,7 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 #endif
 
   CalcTracks(TrackCont);
-  CalcTracks(TrackContFailed);
+//  CalcTracks(TrackContFailed);
   if(Exclusive) ExclusiveTracking(TrackCont);
 
   return TrackCont.size();
@@ -846,16 +846,26 @@ AccidentalBeamSearch(const std::vector<TPCClusterContainer>& ClCont,
 	BeamRemover.Enable(RemoveBeam);
 	BeamRemover.EnableHough(UseHough);
 	
-	BeamRemover.SearchAccidentalBeam(-30,30,-50,50);
+	BeamRemover.SearchAccidentalBeam(-0,0,-0,0);
 	BeamRemover.ConstructAccidentalTracks();
 	int nt = BeamRemover.GetNAccBeam();
+#if DebugDisp
+	std::cout<<"TPCBeamRemover::NumOfTracks = "<<nt<<std::endl;
+#endif
 	for(int it = 0; it<nt; ++it){
 		auto Track = BeamRemover.GetAccTrack(it);
 		if(Track->IsFitted()){
+#if DebugDisp
+			std::cout<<"BeamRemover::IsFitted = "<<it<<std::endl;
+#endif
 			TrackCont.push_back(Track);
 		}
 		else{
-			TrackContFailed.push_back(Track);
+#if DebugDisp
+			std::cout<<"BeamRemover::Falied = "<<it<<std::endl;
+#endif
+			if(Track->GetNPad()> 3 and Track->GetNDF()>0 ) TrackContFailed.push_back(Track);
+			else delete Track;
 		}
 	}
 }
@@ -929,7 +939,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 {
 
   //Track searching and fitting
-  AccidentalBeamSearch(ClCont, TrackCont, TrackContFailed);
+	AccidentalBeamSearch(ClCont, TrackCont, TrackContFailed);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
 
 #if RemainHitTest
@@ -942,7 +952,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 #endif
 
   CalcTracks(TrackCont);
-//  CalcTracks(TrackContFailed);crashes for some reason...
+  CalcTracks(TrackContFailed);
   if(Exclusive) ExclusiveTracking(TrackCont);
 
   return TrackCont.size();
@@ -967,9 +977,10 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 
   //Track searching and fitting
   //for Accidental beams and K1.8 & Kurama tracks
-  K18TrackSearch(K18VPs, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+//  AccidentalBeamSearchTemp(ClCont, TrackCont, TrackContFailed, 12);
   KuramaTrackSearch(KuramaVPs, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
-  AccidentalBeamSearch(ClCont, TrackCont, TrackContFailed);
+  K18TrackSearch(K18VPs, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+	AccidentalBeamSearch(ClCont, TrackCont, TrackContFailed);
   //for scattered helix tracks
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
 

@@ -48,7 +48,6 @@ namespace
   //static const double  MaxChisqr = 100.;
   //static const int  MaxTryMinuit = 3;
   static const int  MaxTryMinuit = 0;
-  static const Double_t MaxResidual = 15.;
 
   // B-field
   const double& HS_field_0 = 0.9860;
@@ -63,7 +62,8 @@ namespace
   // static const double  UpLimit[5] = { 7000., 7000., 7000., 7000., 10. };
   // static const double  LowLimit[5] = { -20000., -20000., -7000., 0., -10. };
   // static const double  UpLimit[5] = { 20000., 20000., 7000., 20000., 10. };
-  static const double  LowLimitBeam[5] = { -40000., -40000., -7000., 5666., -10. };// about 1.7 GeV/c
+  static const double  LowLimitBeam[5] = { 1000., -3000., -700., 2500., -0.1 };// about 1.7 GeV/c
+  static const double  UpLimitBeam[5] = { 10000., 3000., 700., 10000., 0.1 };
   static const double  LowLimit[5] = { -40000., -40000., -7000., 0., -10. };
   static const double  UpLimit[5] = { 40000., 40000., 7000., 40000., 10. };
   // static const double  LowLimit[5] = { -4000., -4000., -700., 0., -10. };
@@ -85,7 +85,7 @@ namespace
   //([5],[6],[7]) = (x, y, z)
   static std::string s_tmp="pow([5]-([0]+([3]*cos(x))),2)+pow([6]-([1]+([3]*sin(x))),2)+pow([7]-([2]+([3]*[4]*x)),2)";
   //static TF1 fint("fint",s_tmp.c_str(),-10.,10.);
-  static TF1 fint("fint",s_tmp.c_str(),-4.,4.);
+  static TF1 fint("fint",s_tmp.c_str(),0*acos(-1),2*acos(-1));
 
   //for circle tracking
   //[0]~[2] are the circle parameters,
@@ -436,7 +436,7 @@ static inline void HelixFit(int IsBeam)
 
   TString name[5] = {"cx", "cy", "z0", "r", "dz"};
   for(int i=0; i<5; i++){
-    if(IsBeam==1) minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimitBeam[i], UpLimit[i], ierflg);
+    if(IsBeam==1) minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimitBeam[i], UpLimitBeam[i], ierflg);
     else minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
   }
 
@@ -612,10 +612,28 @@ TPCLocalTrackHelix::Calculate()
   CalcClosestDist();
 
   const std::size_t n = m_hit_array.size();
-  for(std::size_t i=0; i<n; ++i){
+  const std::size_t nt = m_hit_t.size();
+#if DebugDisp
+  std::cout<<FUNC_NAME<<"status : "<<m_is_fitted<<" n / nt  = "<<n<<" / "<<nt<<std::endl; 
+  std::cout<<FUNC_NAME+" chisqr: "<<m_chisqr<<std::endl
+	   <<", cx: "<<m_cx
+	   <<", cy: "<<m_cy
+	   <<", z0: "<<m_z0
+	   <<", r: "<<m_r
+	   <<", dz: "<<m_dz<<std::endl
+	   <<", charge: "<<m_charge
+	   <<", path: "<<m_path
+	   <<", hough_flag: "<<m_hough_flag
+	   <<", fit status: "<<m_is_fitted
+	   <<", fabs(m_min_t-m_max_t): "<<fabs(m_min_t-m_max_t)<<std::endl;
+	std::cout<<"hit size / t size = "<<n<< " / "<<nt<<std::endl;
+#endif
+	if(n != nt) m_hit_t.resize(n);
+	for(std::size_t i=0; i<n; ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
     hitp->SetCalHelix(m_cx, m_cy, m_z0, m_r, m_dz);
-    hitp->SetTheta(m_hit_t[i]);
+//   	std::cout<<"TPCLocalTrackHelix::Calculate() m_hit_t = "<<m_hit_t[i]<<std::endl; 
+		hitp->SetTheta(m_hit_t[i]);
     hitp->SetCalPosition(hitp->GetLocalCalPosHelix());
   }
   m_is_calculated = true;
@@ -914,7 +932,10 @@ TPCLocalTrackHelix::SetFlag(int flag)
   if((flag&1)==1) m_isBeam=1;
   if((flag&2)==2) m_isK18=1;
   if((flag&4)==4) m_isKurama=1;
-  if((flag&8)==8) m_isAccidental=1;
+  if((flag&8)==8) {
+		m_isAccidental=1;
+		m_isBeam=1;
+	}
 }
 
 //______________________________________________________________________________
@@ -982,7 +1003,9 @@ TPCLocalTrackHelix::DoHelixFit()
 	   <<", cy: "<<m_Acy
 	   <<", z0: "<<m_Az0
 	   <<", r: "<<m_Ar
-	   <<", dz: "<<m_Adz<<std::endl;
+	   <<", dz: "<<m_Adz
+	   <<", hough_flag: "<<m_hough_flag
+		 <<std::endl;
 #endif
 
   //for pre circle fit
@@ -1092,7 +1115,7 @@ TPCLocalTrackHelix::DoHelixFit()
 
 //______________________________________________________________________________
 bool
-TPCLocalTrackHelix::ResidualCheck(TVector3 pos, TVector3 Res, double &resi)
+TPCLocalTrackHelix::ResidualCheck(TVector3 pos, TVector3 Res, double &resi, double MaxResidual/* = 15*/)//resi is NOT residual, but pull.
 {
 
   bool status = false;
@@ -1119,7 +1142,7 @@ TPCLocalTrackHelix::ResidualCheck(TVector3 pos, TVector3 Res, double &resi)
 	double dx = d.X(),dy = d.Y(), dz = d.Z();
 	double sx = Res.X(),sy = Res.Y(), sz = Res.Z();
   resi = sqrt(dx*dx/sx/sx + dy*dy/sy/sy + dz*dz/sz/sz);
-  if(d.Mag()<Res.Mag()*MaxResidual) status = true;
+	if(resi<MaxResidual) status = true;
   return status;
 }
 
@@ -1463,6 +1486,7 @@ TPCLocalTrackHelix::FinalizeTrack(int &delete_hit)
 	   <<", charge: "<<m_charge
 	   <<", path: "<<m_path
 	   <<", fabs(m_min_t-m_max_t): "<<fabs(m_min_t-m_max_t)<<std::endl;
+	std::cout<<"hit size / t size = "<<m_hit_array.size()<< " / "<<m_hit_t.size()<<std::endl;
 #endif
 
   return false_layer;
@@ -1525,7 +1549,7 @@ TPCLocalTrackHelix::InvertChargeCheck()
   TString name[5] = {"cx", "cy", "z0", "r", "dz"};
   for(int i = 0; i<5; i++){
     if(GetIsBeam()==1)
-      minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimitBeam[i], UpLimit[i], ierflg);
+      minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimitBeam[i], UpLimitBeam[i], ierflg);
     else
       minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
   }
