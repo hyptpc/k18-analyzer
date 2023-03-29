@@ -109,6 +109,7 @@ struct Event
   std::vector<Double_t> helix_z0;
   std::vector<Double_t> helix_r;
   std::vector<Double_t> helix_dz;
+  std::vector<Int_t> helix_flag;
   std::vector<Double_t> dE;
   std::vector<Double_t> dEdx; //reference dedx
 
@@ -244,6 +245,7 @@ struct Event
     helix_z0.clear();
     helix_r.clear();
     helix_dz.clear();
+    helix_flag.clear();
     dE.clear();
     dEdx.clear();
 #if TruncatedMean
@@ -570,6 +572,7 @@ dst::DstRead( int ievent )
   event.helix_z0.resize( ntTpc );
   event.helix_r.resize( ntTpc );
   event.helix_dz.resize( ntTpc );
+  event.helix_flag.resize( ntTpc );
   event.mom0_x.resize( ntTpc );
   event.mom0_y.resize( ntTpc );
   event.mom0_z.resize( ntTpc );
@@ -649,6 +652,7 @@ dst::DstRead( int ievent )
     Double_t helix_cx=tp->Getcx(), helix_cy=tp->Getcy();
     Double_t helix_z0=tp->Getz0(), helix_r=tp->Getr();
     Double_t helix_dz = tp->Getdz();
+    Double_t helix_flag = tp->GetHoughFlag();
     TVector3 Mom0 = tp->GetMom0();
     Int_t isbeam = tp->GetIsBeam();
 
@@ -663,6 +667,7 @@ dst::DstRead( int ievent )
     event.helix_z0[it] = helix_z0;
     event.helix_r[it] = helix_r ;
     event.helix_dz[it] = helix_dz;
+    event.helix_flag[it] = helix_flag;
     event.mom0_x[it] = Mom0.x();
     event.mom0_y[it] = Mom0.y();
     event.mom0_z[it] = Mom0.z();
@@ -1110,6 +1115,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "helix_z0", &event.helix_z0 );
   tree->Branch( "helix_r", &event.helix_r );
   tree->Branch( "helix_dz", &event.helix_dz );
+  tree->Branch( "helix_flag", &event.helix_flag );
   tree->Branch( "mom0_x", &event.mom0_x );
   tree->Branch( "mom0_y", &event.mom0_y );
   tree->Branch( "mom0_z", &event.mom0_z );
