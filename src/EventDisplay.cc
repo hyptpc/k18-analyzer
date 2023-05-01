@@ -67,7 +67,7 @@
 #define SdcOut     1
 #define SCH        1
 #define TOF        1
-#define WC         1
+#define WC         0
 #define Vertex     0
 #define Hist       0
 #define Hist_Timing 0
@@ -81,7 +81,7 @@ const Int_t& IdBH1 = gGeom.DetectorId("BH1");
 const Int_t& IdBH2 = gGeom.DetectorId("BH2");
 const Int_t& IdSCH = gGeom.DetectorId("SCH");
 const Int_t& IdTOF = gGeom.DetectorId("TOF");
-const Int_t& IdWC = gGeom.DetectorId("WC");
+// const Int_t& IdWC = gGeom.DetectorId("WC");
 const Int_t& IdTarget = gGeom.DetectorId("Target");
 const Double_t& zTarget = gGeom.LocalZ("Target");
 const Double_t& zHS = gGeom.LocalZ("HS");
@@ -2009,8 +2009,8 @@ EventDisplay::DrawHitHodoscope(Int_t lid, Int_t seg, Int_t Tu, Int_t Td)
     node_name = Form("SCHseg_node_%d", seg);
   }else if(lid == IdTOF){
     node_name = Form("TOFseg_node_%d", seg);
-  }else if(lid == IdWC){
-    node_name = Form("WCseg_node_%d", seg);
+  // }else if(lid == IdWC){
+  //   node_name = Form("WCseg_node_%d", seg);
   }else{
     throw Exception(FUNC_NAME + Form(" no such plane : %d", lid));
   }

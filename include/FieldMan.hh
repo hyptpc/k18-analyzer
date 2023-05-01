@@ -37,6 +37,7 @@ private:
 
 public:
   Bool_t   Initialize();
+  Bool_t   Initialize(const TString& file_name_kurama);
   Bool_t   Initialize(const TString& file_name_kurama,
                       const TString& file_name_shs);
   Bool_t   IsReady() const { return m_is_ready; }

@@ -52,20 +52,33 @@ FieldMan::Initialize()
   if(m_kurama_map)
     delete m_kurama_map;
 
-  m_kurama_map = new KuramaFieldMap(m_file_name_kurama, valueNMR, valueCalc);
+  if(!m_file_name_kurama.IsNull()){
+    m_kurama_map = new KuramaFieldMap(m_file_name_kurama, valueNMR, valueCalc);
+    if(!m_kurama_map->Initialize())
+      return false;
+  }
 
   if(m_shs_map)
     delete m_shs_map;
 
-  m_shs_map = new KuramaFieldMap(m_file_name_shs, valueHSHall, valueHSCalc);
-
-  if(m_kurama_map && m_shs_map){
-    m_is_ready = (m_kurama_map->Initialize()) && (m_shs_map->Initialize());
+  std::cout << m_file_name_shs << " " << m_file_name_shs.IsNull() << std::endl;
+  if(!m_file_name_shs.IsNull()){
+    std::cout << m_file_name_shs << " " << m_file_name_shs.IsNull() << std::endl;
+    m_shs_map = new KuramaFieldMap(m_file_name_shs, valueHSHall, valueHSCalc);
+    if(!m_shs_map->Initialize())
+      return false;
   }
-  else
-    m_is_ready = false;
 
+  m_is_ready = (m_kurama_map || m_shs_map);
   return m_is_ready;
+}
+
+//_____________________________________________________________________________
+Bool_t
+FieldMan::Initialize(const TString& file_name_kurama)
+{
+  m_file_name_kurama = file_name_kurama;
+  return Initialize();
 }
 
 //_____________________________________________________________________________
