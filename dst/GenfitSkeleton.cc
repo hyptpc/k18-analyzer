@@ -423,11 +423,12 @@ ConfMan::InitializeHistograms( void )
 bool
 ConfMan::InitializeParameterFiles( void )
 {
+  return
     (InitializeParameter<DCGeomMan>("DCGEO")   &&
-      InitializeParameter<TPCParamMan>("TPCPRM") &&
-      InitializeParameter<TPCPositionCorrector>("TPCPOS") &&
-      InitializeParameter<UserParamMan>("USER") &&
-      InitializeParameter<HodoPHCMan>("HDPHC"));
+     InitializeParameter<TPCParamMan>("TPCPRM") &&
+     InitializeParameter<TPCPositionCorrector>("TPCPOS") &&
+     InitializeParameter<UserParamMan>("USER") &&
+     InitializeParameter<HodoPHCMan>("HDPHC"));
 }
 
 //_____________________________________________________________________
