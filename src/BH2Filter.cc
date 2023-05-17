@@ -77,8 +77,8 @@ BH2Filter::Apply(const HodoAnalyzer& hodo, const DCAnalyzer& dc,
   m_dc = &dc;
   m_hodo = &hodo;
   std::set<Int_t> seg;
-  for(Int_t i=0, n=hodo.GetNHitsBH2(); i<n; ++i){
-    auto h = hodo.GetHitBH2(i);
+  for(Int_t i=0, n=hodo.GetNHits("BH2"); i<n; ++i){
+    auto h = hodo.GetHit("BH2", i);
     if(!h) continue;
     seg.insert(h->SegmentId());
   }

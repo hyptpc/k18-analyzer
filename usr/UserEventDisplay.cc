@@ -53,7 +53,6 @@ class UserEventDisplay : public VEvent
 private:
   RawData*      rawData;
   DCAnalyzer*   DCAna;
-  HodoAnalyzer* hodoAna;
 public:
   UserEventDisplay();
   ~UserEventDisplay();
@@ -75,8 +74,7 @@ UserEventDisplay::ClassName()
 UserEventDisplay::UserEventDisplay()
   : VEvent(),
     rawData(new RawData),
-    DCAna(new DCAnalyzer),
-    hodoAna(new HodoAnalyzer)
+    DCAna(new DCAnalyzer)
 {
 }
 
@@ -84,7 +82,6 @@ UserEventDisplay::UserEventDisplay()
 UserEventDisplay::~UserEventDisplay()
 {
   if(DCAna) delete DCAna;
-  if(hodoAna) delete hodoAna;
   if(rawData) delete rawData;
 }
 
@@ -134,6 +131,7 @@ UserEventDisplay::ProcessingNormal()
   gEvDisp.DrawRunEvent(0.04, 0.5, evinfo);
 
   rawData->DecodeHits();
+  HodoAnalyzer hodoAna(rawData);
 
   //________________________________________________________
   //___ TrigRawHit
@@ -197,8 +195,8 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ BH2HodoCluster
-  hodoAna->DecodeBH2Hits(rawData);
-  const auto Time0Cl = hodoAna->GetTime0BH2Cluster();
+  hodoAna.DecodeHits("BH2");
+  const auto Time0Cl = hodoAna.GetTime0BH2Cluster();
   Double_t ctime0 = 0.;
   if(!Time0Cl){
     hddaq::cout << "[Warning] Time0Cl is null!" << std::endl;
@@ -211,8 +209,8 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ BH1HodoCluster
-  hodoAna->DecodeBH1Hits(rawData);
-  const auto Btof0Cl = hodoAna->GetBtof0BH1Cluster(ctime0);
+  hodoAna.DecodeHits("BH1");
+  const auto Btof0Cl = hodoAna.GetBtof0BH1Cluster(ctime0);
   Double_t btof = (Btof0Cl)
     ? Btof0Cl->CMeanTime() - ctime0
     : TMath::QuietNaN();
@@ -247,8 +245,8 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ TOFHodoHit
-  hodoAna->DecodeTOFHits(rawData);
-  const auto& TOFCont = hodoAna->GetHitsTOF();
+  hodoAna.DecodeHits("TOF");
+  const auto& TOFCont = hodoAna.GetHitContainer("TOF");
   if(TOFCont.empty()){
     hddaq::cout << "[Warning] TOFCont is empty!" << std::endl;
     //gEvDisp.GetCommand();
@@ -426,10 +424,10 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ BFTCluster
-  hodoAna->DecodeBFTHits(rawData);
-  hodoAna->TimeCutBFT(MinTimeBFT, MaxTimeBFT);
+  hodoAna.DecodeBFTHits();
+  hodoAna.TimeCutBFT(MinTimeBFT, MaxTimeBFT);
   std::vector<Double_t> BftXCont;
-  for(const auto& cl: hodoAna->GetClustersBFT()){
+  for(const auto& cl: hodoAna.GetClustersBFT()){
     BftXCont.push_back(cl->MeanPosition());
   }
   if(BftXCont.empty()){

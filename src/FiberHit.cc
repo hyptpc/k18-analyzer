@@ -15,7 +15,6 @@
 #include "DCGeomMan.hh"
 #include "DebugCounter.hh"
 #include "DeleteUtility.hh"
-#include "FLHit.hh"
 #include "FuncName.hh"
 #include "HodoParamMan.hh"
 #include "HodoPHCMan.hh"
@@ -34,7 +33,6 @@ FiberHit::FiberHit(HodoRawHit *object)
   : HodoHit(object),
     m_paired_plane(),
     m_paired_segment(),
-    m_ud(0),
     m_position(qnan),
     m_offset(0),
     m_pair_id(0),
@@ -76,45 +74,21 @@ FiberHit::Calculate()
   Int_t plane = m_raw->PlaneId();
   Int_t seg   = m_raw->SegmentId();
 
-  // Geometry calibration
-  m_ud = 0; // BFT is allways U
-  const auto& detector_name = m_raw->DetectorName();
-  if("BFT" == detector_name || "SFT-X" == detector_name){
-    // case of BFT and SFT X layers
-    // They have up and down planes in 1 layer.
-    // We treat these 2 planes as 1 dimentional plane.
-    // if(1 == m_raw->PlaneId()){
-    if (1 == m_raw->PlaneId()%2) {
-      // case of down plane
-      m_offset = 0.5;
-      m_pair_id  = 1;
-    }
-    m_pair_id += 2*m_raw->SegmentId();
-  }else{
-    // case of SFT UV layers & CFT
-    // They have only 1 plane in 1 layer.
-    m_pair_id = m_raw->SegmentId();
-  }
-
-  Int_t DetectorId = gGeom.GetDetectorId(detector_name);
+  Int_t DetectorId = gGeom.GetDetectorId(m_raw->DetectorName());
   m_position       = gGeom.CalcWirePosition(DetectorId, seg);
 
   // hit information
-  Int_t multi_hit_l = m_ud==0 ?
-    m_raw->GetSizeTdcLeading(0) :
-    m_raw->GetSizeTdcLeading(1);
-  Int_t multi_hit_t = m_ud==0 ?
-    m_raw->GetSizeTdcTrailing(0) :
-    m_raw->GetSizeTdcTrailing(1);
+  Int_t multi_hit_l = m_raw->GetSizeTdcLeading(0);
+  Int_t multi_hit_t = m_raw->GetSizeTdcTrailing(0);
 
   std::vector<Int_t> leading_cont, trailing_cont;
   {
-    for(Int_t m=0; m<multi_hit_l; ++m) {
-      leading_cont.push_back(m_ud==0? m_raw->GetTdcLeading(0, m) : m_raw->GetTdcLeading(1, m));
-    }
-    for(Int_t m=0; m<multi_hit_t; ++m) {
-      trailing_cont.push_back(m_ud==0? m_raw->GetTdcTrailing(0, m): m_raw->GetTdcTrailing(1, m));
-    }
+    // for(Int_t m=0; m<multi_hit_l; ++m) {
+    //   leading_cont.push_back(m_raw->GetTdcLeading(0, m) : m_raw->GetTdcLeading(1, m));
+    // }
+    // for(Int_t m=0; m<multi_hit_t; ++m) {
+    //   trailing_cont.push_back(m_ud==0? m_raw->GetTdcTrailing(0, m): m_raw->GetTdcTrailing(1, m));
+    // }
 
     std::sort(leading_cont.begin(),  leading_cont.end(),  std::greater<Int_t>());
     std::sort(trailing_cont.begin(), trailing_cont.end(), std::greater<Int_t>());
@@ -158,11 +132,11 @@ FiberHit::Calculate()
     // leading
     Int_t leading = leading_cont.at(i);
     Double_t time_leading = qnan;
-    if(!gHodo.GetTime(id, plane, seg, m_ud, leading, time_leading)){
+    if(!gHodo.GetTime(id, plane, seg, 0, leading, time_leading)){
       hddaq::cerr << FUNC_NAME
 		  << " something is wrong at GetTime("
 		  << id  << ", " << plane          << ", " << seg  << ", "
-		  << m_ud << ", " << leading  << ", " << time_leading << ")" << std::endl;
+		  << 0 << ", " << leading  << ", " << time_leading << ")" << std::endl;
       return false;
     }
     // m_t.push_back(time_leading);
@@ -180,17 +154,17 @@ FiberHit::Calculate()
     // trailing
     Int_t trailing = trailing_cont.at(m_pair_cont.at(i).index_t);
     Double_t time_trailing = qnan;
-    if(!gHodo.GetTime(id, plane, seg, m_ud, trailing, time_trailing)){
+    if(!gHodo.GetTime(id, plane, seg, 0, trailing, time_trailing)){
       hddaq::cerr << FUNC_NAME
 		  << " something is wrong at GetTime("
 		  << id  << ", " << plane          << ", " << seg  << ", "
-		  << m_ud << ", " << trailing  << ", " << time_trailing << ")" << std::endl;
+		  << 0 << ", " << trailing  << ", " << time_trailing << ")" << std::endl;
       return false;
     }
 
     Double_t tot           = time_trailing - time_leading;
     Double_t ctime_leading = time_leading;
-    gPHC.DoCorrection(id, plane, seg, m_ud, time_leading, tot, ctime_leading);
+    gPHC.DoCorrection(id, plane, seg, 0, time_leading, tot, ctime_leading);
 
     // m_de.at(HodoRawHit::kUp).push_back(tot);
     // m_ct.push_back(ctime_leading);

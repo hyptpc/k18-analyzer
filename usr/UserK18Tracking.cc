@@ -52,7 +52,6 @@ class UserK18Tracking : public VEvent
 {
 private:
   RawData*      rawData;
-  HodoAnalyzer* hodoAna;
   DCAnalyzer*   DCAna;
 
 public:
@@ -76,7 +75,6 @@ UserK18Tracking::ClassName()
 UserK18Tracking::UserK18Tracking()
   : VEvent(),
     rawData(new RawData),
-    hodoAna(new HodoAnalyzer),
     DCAna(new DCAnalyzer)
 {
 }
@@ -85,7 +83,6 @@ UserK18Tracking::UserK18Tracking()
 UserK18Tracking::~UserK18Tracking()
 {
   if(rawData) delete rawData;
-  if(hodoAna) delete hodoAna;
   if(DCAna) delete DCAna;
 }
 
@@ -251,6 +248,7 @@ UserK18Tracking::ProcessingNormal()
   // static const Double_t MaxMultiHitBcOut = gUser.GetParameter("MaxMultiHitBcOut");
 
   rawData->DecodeHits();
+  HodoAnalyzer hodoAna(rawData);
 
   event.evnum = gUnpacker.get_event_number();
 
@@ -277,15 +275,15 @@ UserK18Tracking::ProcessingNormal()
   HF1(1, 1);
 
   ////////// BH2 time 0
-  hodoAna->DecodeBH2Hits(rawData);
+  hodoAna.DecodeHits("BH2");
 #if HodoCut
-  Int_t nhBh2 = hodoAna->GetNHitsBH2();
+  Int_t nhBh2 = hodoAna.GetNHits("BH2");
   if(nhBh2==0) return true;
 #endif
   HF1(1, 2);
 
   //////////////BH2 Analysis
-  BH2Cluster *cl_time0 = hodoAna->GetTime0BH2Cluster();
+  BH2Cluster *cl_time0 = hodoAna.GetTime0BH2Cluster();
   if(cl_time0){
     event.Time0Seg = cl_time0->MeanSeg()+1;
     event.deTime0  = cl_time0->DeltaE();
@@ -298,15 +296,15 @@ UserK18Tracking::ProcessingNormal()
   HF1(1, 3);
 
   ////////// BH1 Analysis
-  hodoAna->DecodeBH1Hits(rawData);
+  hodoAna.DecodeHits("BH1");
 #if HodoCut
-  Int_t nhBh1 = hodoAna->GetNHitsBH1();
+  Int_t nhBh1 = hodoAna.GetNHits("BH1");
   if(nhBh1==0) return true;
 #endif
   HF1(1, 4);
 
   Double_t btof0_seg = -1;
-  HodoCluster* cl_btof0 = event.Time0Seg > 0? hodoAna->GetBtof0BH1Cluster(event.CTime0) : NULL;
+  HodoCluster* cl_btof0 = event.Time0Seg > 0? hodoAna.GetBtof0BH1Cluster(event.CTime0) : NULL;
   if(cl_btof0){
     btof0_seg = cl_btof0->MeanSeg();
   }
@@ -317,19 +315,19 @@ UserK18Tracking::ProcessingNormal()
 
   std::vector<Double_t> xCand;
   ////////// BFT
+  hodoAna.DecodeBFTHits();
   {
-    hodoAna->DecodeBFTHits(rawData);
     // Fiber Cluster
-    Int_t ncl_raw = hodoAna->GetNClustersBFT();
+    Int_t ncl_raw = hodoAna.GetNClustersBFT();
 #if TimeCut
-    hodoAna->TimeCutBFT(MinTimeBFT, MaxTimeBFT);
+    hodoAna.TimeCutBFT(MinTimeBFT, MaxTimeBFT);
 #endif
-    Int_t ncl = hodoAna->GetNClustersBFT();
+    Int_t ncl = hodoAna.GetNClustersBFT();
     event.bft_ncl = ncl;
     HF1(BFTHid +100, ncl_raw);
     HF1(BFTHid +101, ncl);
     for(Int_t i=0; i<ncl; ++i){
-      FiberCluster *cl = hodoAna->GetClusterBFT(i);
+      FiberCluster *cl = hodoAna.GetClusterBFT(i);
       if(!cl) continue;
       Double_t clsize = cl->ClusterSize();
       Double_t ctime  = cl->CMeanTime();

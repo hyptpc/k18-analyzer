@@ -48,6 +48,8 @@ public:
   void                     ClearAll();
   Bool_t                   DecodeHits(const TString& name="");
   Bool_t                   DecodeCalibHits();
+  const map_t<HodoRawHitContainer>& GetHodoRawHitCollection() const
+    { return m_hodo_raw_hit_collection; }
   const HodoRawHitContainer& GetHodoRawHitContainer(const TString& name) const;
   const DCRawHitContainer&   GetBcInRawHC(Int_t layer) const;
   const DCRawHitContainer&   GetBcOutRawHC(Int_t layer) const;

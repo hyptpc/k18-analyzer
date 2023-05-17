@@ -44,7 +44,6 @@ class UserEasiroc : public VEvent
 private:
   RawData*      rawData;
   DCAnalyzer*   DCAna;
-  HodoAnalyzer* hodoAna;
 
 public:
   UserEasiroc();
@@ -67,8 +66,7 @@ UserEasiroc::ClassName()
 UserEasiroc::UserEasiroc()
   : VEvent(),
     rawData(new RawData),
-    DCAna(new DCAnalyzer),
-    hodoAna(new HodoAnalyzer)
+    DCAna(new DCAnalyzer)
 {
 }
 
@@ -76,7 +74,6 @@ UserEasiroc::UserEasiroc()
 UserEasiroc::~UserEasiroc()
 {
   if(rawData) delete rawData;
-  if(hodoAna) delete hodoAna;
   if(DCAna) delete DCAna;
 }
 
@@ -189,6 +186,7 @@ UserEasiroc::ProcessingNormal()
   rawData->DecodeHits("BH1");
   rawData->DecodeHits("BH2");
   rawData->DecodeHits("BFT");
+  HodoAnalyzer hodoAna(rawData);
 
   event.evnum = gUnpacker.get_event_number();
 
@@ -215,8 +213,8 @@ UserEasiroc::ProcessingNormal()
   HF1(1, 1);
 
   ////////// BH2 time 0
-  hodoAna->DecodeBH2Hits(rawData);
-  Int_t nhBh2 = hodoAna->GetNHitsBH2();
+  hodoAna.DecodeHits("BH2");
+  Int_t nhBh2 = hodoAna.GetNHits("BH2");
 #if HodoCut
   if(nhBh2==0) return true;
 #endif
@@ -224,7 +222,7 @@ UserEasiroc::ProcessingNormal()
   Double_t time0 = qnan;
   ////////// BH2 Analysis
   for(Int_t i=0; i<nhBh2; ++i){
-    BH2Hit *hit = hodoAna->GetHitBH2(i);
+    const auto& hit = hodoAna.GetHit<BH2Hit>("BH2", i);
     if(!hit) continue;
     Double_t cmt = hit->CMeanTime();
     Double_t ct0 = hit->CTime0();
@@ -243,15 +241,15 @@ UserEasiroc::ProcessingNormal()
   HF1(1, 3);
 
   ////////// BH1 Analysis
-  hodoAna->DecodeBH1Hits(rawData);
-  Int_t nhBh1 = hodoAna->GetNHitsBH1();
+  hodoAna.DecodeHits("BH1");
+  Int_t nhBh1 = hodoAna.GetNHits("BH1");
 #if HodoCut
   if(nhBh1==0) return true;
 #endif
   HF1(1, 4);
   Double_t btof0 = qnan;
   for(Int_t i=0; i<nhBh1; ++i){
-    auto hit = hodoAna->GetHitBH1(i);
+    const auto& hit = hodoAna.GetHit("BH1", i);
     if(!hit) continue;
     Double_t cmt  = hit->CMeanTime();
     Double_t btof = cmt - time0;
@@ -271,16 +269,16 @@ UserEasiroc::ProcessingNormal()
 
   ////////// BFT
   {
-    hodoAna->DecodeBFTHits(rawData);
+    hodoAna.DecodeBFTHits();
     return true;
     // Fiber Hit
     Int_t unhits = 0;
     Int_t dnhits = 0;
     for(Int_t plane = 0; plane<NumOfPlaneBFT; ++plane){
-      Int_t nh = hodoAna->GetNHitsBFT(plane);
+      Int_t nh = hodoAna.GetNHitsBFT(plane);
       enum { U, D };
       for(Int_t i=0; i<nh; ++i){
-	auto hit = hodoAna->GetHitBFT(plane, i);
+	auto hit = hodoAna.GetHitBFT(plane, i);
 	if(!hit) continue;
 	Int_t mhit_l  = hit->GetEntries();
 	Int_t mhit_t  = hit->GetEntries();
@@ -294,7 +292,7 @@ UserEasiroc::ProcessingNormal()
 	// raw leading data
 	for(Int_t m=0; m<mhit_l; ++m){
 	  if(mhit_l > MaxDepth) break;
-	  Double_t leading  = hit->GetTdcLeading(m);
+	  Double_t leading  = hit->GetTimeLeading(HodoRawHit::kUp, m);
 
 	  if(leading==prev) continue;
 	  prev = leading;
@@ -371,9 +369,9 @@ UserEasiroc::ProcessingNormal()
 
     // Fiber Cluster
 #if TimeCut
-    hodoAna->TimeCutBFT(MinTimeBFT, MaxTimeBFT);
+    hodoAna.TimeCutBFT(MinTimeBFT, MaxTimeBFT);
 #endif
-    Int_t ncl = hodoAna->GetNClustersBFT();
+    Int_t ncl = hodoAna.GetNClustersBFT();
     if(ncl > NumOfSegBFT){
       // std::cout << "#W BFT too much number of clusters" << std::endl;
       ncl = NumOfSegBFT;
@@ -381,7 +379,7 @@ UserEasiroc::ProcessingNormal()
     event.bft_ncl = ncl;
     HF1(BFTHid +101, ncl);
     for(Int_t i=0; i<ncl; ++i){
-      FiberCluster *cl = hodoAna->GetClusterBFT(i);
+      const auto& cl = hodoAna.GetClusterBFT(i);
       if(!cl) continue;
       Double_t clsize = cl->ClusterSize();
       Double_t ctime  = cl->CMeanTime();

@@ -55,24 +55,24 @@ FLHit::Dump() const
 void
 FLHit::Initialize()
 {
-  if(m_hit_d == nullptr){
-    m_leading  = m_hit_u->GetTdcLeading(m_nth_hit_u);
-    // m_trailing = m_hit_u->GetTdcTrailing(m_nth_hit_u);
-    m_trailing = m_leading; 	// Temporary solution. Need to be changed some day.
-    m_time     = m_hit_u->GetTime(m_nth_hit_u);
-    m_width    = m_hit_u->GetWidth(m_nth_hit_u);
-    m_ctime    = m_hit_u->GetCTime(m_nth_hit_u);
-  }else{
-    m_leading  =
-      (m_hit_u->GetTdcLeading(m_nth_hit_u) + m_hit_d->GetTdcLeading(m_nth_hit_d))/2;
-    m_trailing  =
-      (m_hit_u->GetTdcTrailing(m_nth_hit_u) + m_hit_d->GetTdcTrailing(m_nth_hit_d))/2;
-    m_time  =
-      (m_hit_u->GetTime(m_nth_hit_u) + m_hit_d->GetTime(m_nth_hit_d))/2;
-    m_ctime  =
-      (m_hit_u->GetCTime(m_nth_hit_u) + m_hit_d->GetCTime(m_nth_hit_d))/2;
-    m_width  =
-      (m_hit_u->GetWidth(m_nth_hit_u) + m_hit_d->GetWidth(m_nth_hit_d))/2;
-  }
-  m_flag_fljoin = false;
+  // if(m_hit_d == nullptr){
+  //   m_leading  = m_hit_u->GetTdcLeading(m_nth_hit_u);
+  //   // m_trailing = m_hit_u->GetTdcTrailing(m_nth_hit_u);
+  //   m_trailing = m_leading; 	// Temporary solution. Need to be changed some day.
+  //   m_time     = m_hit_u->GetTime(m_nth_hit_u);
+  //   m_width    = m_hit_u->GetWidth(m_nth_hit_u);
+  //   m_ctime    = m_hit_u->GetCTime(m_nth_hit_u);
+  // }else{
+  //   m_leading  =
+  //     (m_hit_u->GetTdcLeading(m_nth_hit_u) + m_hit_d->GetTdcLeading(m_nth_hit_d))/2;
+  //   m_trailing  =
+  //     (m_hit_u->GetTdcTrailing(m_nth_hit_u) + m_hit_d->GetTdcTrailing(m_nth_hit_d))/2;
+  //   m_time  =
+  //     (m_hit_u->GetTime(m_nth_hit_u) + m_hit_d->GetTime(m_nth_hit_d))/2;
+  //   m_ctime  =
+  //     (m_hit_u->GetCTime(m_nth_hit_u) + m_hit_d->GetCTime(m_nth_hit_d))/2;
+  //   m_width  =
+  //     (m_hit_u->GetWidth(m_nth_hit_u) + m_hit_d->GetWidth(m_nth_hit_d))/2;
+  // }
+  // m_flag_fljoin = false;
 }

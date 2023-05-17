@@ -27,7 +27,7 @@
 #include "UserParamMan.hh"
 #include "DCGeomMan.hh"
 
-#define TimeCut    1 // in cluster analysis
+// #define TimeCut    1 // in cluster analysis
 #define FHitBranch 0 // make FiberHit branches (becomes heavy)
 #define HodoHitPos 0
 
@@ -45,7 +45,6 @@ class UserHodoscope : public VEvent
 {
 private:
   RawData*      rawData;
-  HodoAnalyzer* hodoAna;
 
 public:
   UserHodoscope();
@@ -67,15 +66,13 @@ UserHodoscope::ClassName()
 //_____________________________________________________________________________
 UserHodoscope::UserHodoscope()
   : VEvent(),
-    rawData(new RawData),
-    hodoAna(new HodoAnalyzer)
+    rawData(new RawData)
 {
 }
 
 //_____________________________________________________________________________
 UserHodoscope::~UserHodoscope()
 {
-  if(hodoAna) delete hodoAna;
   if(rawData) delete rawData;
 }
 
@@ -500,12 +497,6 @@ UserHodoscope::ProcessingNormal()
   static const auto PropVelBH2 = gUser.GetParameter("PropagationBH2");
 #endif
 
-  rawData->DecodeHits("BH1");
-  rawData->DecodeHits("BH2");
-  rawData->DecodeHits("BAC");
-  rawData->DecodeHits("TOF");
-  rawData->DecodeHits("LAC");
-  rawData->DecodeHits("WC");
 
   gRM.Decode();
 
@@ -541,6 +532,7 @@ UserHodoscope::ProcessingNormal()
   HF1(1, 1);
 
   ///// BH1
+  rawData->DecodeHits("BH1");
   {
     Int_t bh1_nhits = 0;
     const auto& cont = rawData->GetHodoRawHitContainer("BH1");
@@ -591,6 +583,7 @@ UserHodoscope::ProcessingNormal()
   }
 
   ///// BH2
+  rawData->DecodeHits("BH2");
   {
     Int_t bh2_nhits = 0;
     const auto& cont = rawData->GetHodoRawHitContainer("BH2");
@@ -641,6 +634,7 @@ UserHodoscope::ProcessingNormal()
   }
 
   ///// BAC
+  rawData->DecodeHits("BAC");
   {
     Int_t bac_nhits = 0;
     const auto& cont = rawData->GetHodoRawHitContainer("BAC");
@@ -674,6 +668,7 @@ UserHodoscope::ProcessingNormal()
   }
 
   ///// TOF
+  rawData->DecodeHits("TOF");
   {
     Int_t tof_nhits = 0;
     const auto& cont = rawData->GetHodoRawHitContainer("TOF");
@@ -734,6 +729,7 @@ UserHodoscope::ProcessingNormal()
   }
 
   ///// LAC
+  rawData->DecodeHits("LAC");
   {
     Int_t lac_nhits = 0;
     const auto& cont = rawData->GetHodoRawHitContainer("LAC");
@@ -763,14 +759,16 @@ UserHodoscope::ProcessingNormal()
   }
 
   ///// WC
+  rawData->DecodeHits("WC");
   {
     Int_t wc_nhits = 0;
+    Int_t wcsum_nhits = 0;
     const auto& cont = rawData->GetHodoRawHitContainer("WC");
     Int_t nh = cont.size();
     HF1(WCHid, Double_t(nh));
     Int_t nh1 = 0, nh2 = 0;
     for(Int_t i=0; i<nh; ++i){
-      HodoRawHit *hit = cont[i];
+      const auto& hit = cont[i];
       Int_t seg = hit->SegmentId()+1;
       HF1(WCHid +1, seg-0.5);
       // Up
@@ -808,55 +806,45 @@ UserHodoscope::ProcessingNormal()
         wc_nhits++;
         ++nh2; HF1(WCHid +5, seg-0.5);
       }
+      // Sum
+      Int_t As = hit->GetAdcExtra();
+      HF1(WCSUMHid +100*seg +1, As);
+      event.wcsuma[seg-1] = As;
+      Bool_t is_hit_s = false;
+      Int_t m_s = 0;
+      for(const auto& T: hit->GetArrayTdcLeading(HodoRawHit::kExtra)){
+        HF1(WCSUMHid +100*seg +3, T);
+        if(m_s < MaxDepth) event.wcsumt[seg-1][m_s++] = T;
+        if(MinTdcWC < T && T < MaxTdcWC) is_hit_s = true;
+      }
+      if(is_hit_s) HF1(WCSUMHid +100*seg +5, As);
+      else         HF1(WCSUMHid +100*seg +7, As);
+      // HitPat
+      if(is_hit_s){
+        event.wcsumhitpat[wcsum_nhits++] = seg;
+        HF1(WCSUMHid +1, seg-0.5);
+      }
     }
     HF1(WCHid +2, Double_t(nh1)); HF1(WCHid +4, Double_t(nh2));
     event.wcnhits = wc_nhits;
+    HF1(WCSUMHid, wcsum_nhits);
+    event.wcsumnhits = wcsum_nhits;
   }
-
-  ///// WCSUM
-  // {
-  //   Int_t wcsum_nhits = 0;
-  //   const auto &cont = rawData->GetHodoRawHitContainer("WC");
-  //   Int_t nh = cont.size();
-  //   for( Int_t i=0; i<nh; ++i ){
-  //     HodoRawHit *hit = cont[i];
-  //     Int_t seg = hit->SegmentId()+1;
-  //     Int_t A = hit->GetAdcUp();
-  //     HF1( WCSUMHid +100*seg +1, A);
-  //     event.wcsuma[seg-1] = A;
-  //     Bool_t is_hit = false;
-  //     for(Int_t m=0, mh=hit->GetSizeTdcUp(); m<mh; ++m){
-  //       Int_t T = hit->GetTdcUp(m);
-  //       HF1(WCSUMHid +100*seg +3, T);
-  //       event.wcsumt[seg-1][m] = T;
-  //       if(MinTdcWC < T && T < MaxTdcWC) is_hit = true;
-  //     }
-  //     if(is_hit) HF1(WCSUMHid +100*seg +5, A);
-  //     else       HF1(WCSUMHid +100*seg +7, A);
-  //     // HitPat
-  //     if(is_hit){
-  //       event.wcsumhitpat[wcsum_nhits++] = seg;
-  //       HF1(WCSUMHid +1, seg-0.5);
-  //     }
-  //   }
-  //   HF1(WCSUMHid, wcsum_nhits);
-  //   event.wcsumnhits = wcsum_nhits;
-  // }
-
 
   //**************************************************************************
   //****************** NormalizedData
+  HodoAnalyzer hodoAna(rawData);
 
   //BH1
-  hodoAna->DecodeBH1Hits(rawData);
-  //  hodoAna->TimeCutBH1(-10, 10);
-  hodoAna->TimeCutBH1(-2, 2);
+  hodoAna.DecodeHits("BH1");
+  // hodoAna.TimeCutBH1(-10, 10);
+  // hodoAna.TimeCut("BH1", -2, 2);
   {
-    Int_t nh = hodoAna->GetNHitsBH1();
+    Int_t nh = hodoAna.GetNHits("BH1");
     HF1(BH1Hid+10, Double_t(nh));
     Int_t nh2 = 0;
     for(Int_t i=0; i<nh; ++i){
-      auto hit = hodoAna->GetHitBH1(i);
+      auto hit = hodoAna.GetHit("BH1", i);
       if(!hit) continue;
       Int_t seg = hit->SegmentId()+1;
 
@@ -903,12 +891,12 @@ UserHodoscope::ProcessingNormal()
 
     HF1(BH1Hid+14, Double_t(nh2));
     for(Int_t i1=0; i1<nh; ++i1){
-      HodoHit *hit1 = hodoAna->GetHitBH1(i1);
+      HodoHit *hit1 = hodoAna.GetHit("BH1", i1);
       if(!hit1 || hit1->DeltaE()<=0.5) continue;
       Int_t seg1 = hit1->SegmentId()+1;
       for(Int_t i2=0; i2<nh; ++i2){
         if(i1==i2) continue;
-        HodoHit *hit2=hodoAna->GetHitBH1(i2);
+        HodoHit *hit2=hodoAna.GetHit("BH1", i2);
         if(!hit2 || hit2->DeltaE()<=0.5) continue;
         Int_t seg2 = hit2->SegmentId()+1;
 
@@ -926,14 +914,14 @@ UserHodoscope::ProcessingNormal()
   }
 
   // BH2
-  hodoAna->DecodeBH2Hits(rawData);
-  // hodoAna->TimeCutBH2(-2, 2);
+  hodoAna.DecodeHits("BH2");
+  // hodoAna.TimeCut("BH2", -2, 2);
   {
-    Int_t nh = hodoAna->GetNHitsBH2();
+    Int_t nh = hodoAna.GetNHits("BH2");
     HF1(BH2Hid+10, Double_t(nh));
     Int_t nh2 = 0;
     for(Int_t i=0; i<nh; ++i){
-      auto hit = hodoAna->GetHitBH2(i);
+      const auto& hit = hodoAna.GetHit<BH2Hit>("BH2", i);
       if(!hit) continue;
       Int_t seg = hit->SegmentId()+1;
 
@@ -993,12 +981,12 @@ UserHodoscope::ProcessingNormal()
     }//for(i)
     HF1(BH2Hid+14, Double_t(nh2));
     for(Int_t i1=0; i1<nh; ++i1){
-      BH2Hit *hit1 = hodoAna->GetHitBH2(i1);
+      const auto& hit1 = hodoAna.GetHit<BH2Hit>("BH2", i1);
       if(!hit1 || hit1->DeltaE()<=0.5) continue;
       Int_t seg1 = hit1->SegmentId()+1;
       for(Int_t i2=0; i2<nh; ++i2){
         if(i1==i2) continue;
-        BH2Hit *hit2 = hodoAna->GetHitBH2(i2);
+        const auto& hit2 = hodoAna.GetHit<BH2Hit>("BH2", i2);
         if(!hit2 || hit2->DeltaE()<=0.5) continue;
         Int_t seg2 = hit2->SegmentId()+1;
 
@@ -1014,18 +1002,18 @@ UserHodoscope::ProcessingNormal()
       }//for(i2)
     }//for(i1)
 
-    Int_t nc=hodoAna->GetNClustersBH2();
+    Int_t nc=hodoAna.GetNClusters("BH2");
     HF1(BH2Hid+30, Double_t(nc));
     Int_t nc2=0;
 
     for(Int_t i=0; i<nc; ++i){
-      BH2Cluster *cluster=hodoAna->GetClusterBH2(i);
-      if(!cluster) continue;
-      Int_t cs=cluster->ClusterSize();
-      Double_t ms = cluster->MeanSeg()+1;
-      Double_t cmt= cluster->CMeanTime();
-      Double_t de = cluster->DeltaE();
-      // Double_t mt = cluster->MeanTime();
+      const auto& cl = hodoAna.GetCluster<BH2Cluster>("BH2", i);
+      if(!cl) continue;
+      Int_t cs=cl->ClusterSize();
+      Double_t ms = cl->MeanSeg()+1;
+      Double_t cmt= cl->CMeanTime();
+      Double_t de = cl->DeltaE();
+      // Double_t mt = cl->MeanTime();
       HF1(BH2Hid+31, Double_t(cs));
       HF1(BH2Hid+32, ms-0.5);
       HF1(BH2Hid+33, cmt); HF1(BH2Hid+34, de);
@@ -1035,7 +1023,7 @@ UserHodoscope::ProcessingNormal()
 
       for(Int_t i2=0; i2<nc; ++i2){
         if(i2==i) continue;
-        BH2Cluster *cl2=hodoAna->GetClusterBH2(i2);
+        const auto& cl2 = hodoAna.GetCluster<BH2Cluster>("BH2", i2);
         if(!cl2) continue;
         Double_t ms2=cl2->MeanSeg()+1, cmt2=cl2->CMeanTime(),
           de2=cl2->DeltaE();
@@ -1050,7 +1038,7 @@ UserHodoscope::ProcessingNormal()
     }//for(i)
     HF1(BH2Hid+35, Double_t(nc2));
 
-    BH2Cluster* cl_time0 = hodoAna->GetTime0BH2Cluster();
+    BH2Cluster* cl_time0 = hodoAna.GetTime0BH2Cluster();
     if(cl_time0){
       event.Time0Seg = cl_time0->MeanSeg()+1;
       event.deTime0 = cl_time0->DeltaE();
@@ -1066,7 +1054,7 @@ UserHodoscope::ProcessingNormal()
 
     // BTOF0 segment
     HodoCluster* cl_btof0 = (dst.Time0Seg > 0)
-      ? hodoAna->GetBtof0BH1Cluster(dst.CTime0) : nullptr;
+      ? hodoAna.GetBtof0BH1Cluster(dst.CTime0) : nullptr;
     if(cl_btof0){
       event.Btof0Seg = cl_btof0->MeanSeg()+1;
       event.deBtof0 = cl_btof0->DeltaE();
@@ -1084,26 +1072,25 @@ UserHodoscope::ProcessingNormal()
 
   // BH1 with BH2 gate
   {
-    Int_t nhbh2 = hodoAna->GetNHitsBH2();
-    if(nhbh2){
-      Int_t    seg2 = hodoAna->GetHitBH2(0)->SegmentId()+1;
-      Int_t n_mhit2 = hodoAna->GetHitBH2(0)->GetEntries();
+    Int_t nhbh2 = hodoAna.GetNHits("BH2");
+    if(nhbh2 > 0){
+      const auto& hit2 = hodoAna.GetHit<BH2Hit>("BH2", 0);
+      Int_t    seg2 = hit2->SegmentId()+1;
+      Int_t n_mhit2 = hit2->GetEntries();
       for(Int_t m2 = 0; m2<n_mhit2; ++m2){
-        Double_t mt2  = hodoAna->GetHitBH2(0)->CTime0(m2);
-        Int_t    nh   = hodoAna->GetNHitsBH1();
+        Double_t mt2  = hit2->CTime0(m2);
+        Int_t    nh   = hodoAna.GetNHits("BH1");
         for(Int_t i=0; i<nh; ++i){
-          auto hit = hodoAna->GetHitBH1(i);
-          if(!hit) continue;
-
-          Int_t n_mhit1 = hit->GetEntries();
+          auto hit1 = hodoAna.GetHit("BH1", i);
+          if(!hit1) continue;
+          Int_t n_mhit1 = hit1->GetEntries();
           for(Int_t m1 = 0; m1<n_mhit1; ++m1){
-            Int_t seg1 = hit->SegmentId()+1;
-            Double_t tu1 = hit->GetTUp(m1), td1 = hit->GetTDown(m1);
-            Double_t mt1 = hit->MeanTime(m1);
+            Int_t seg1 = hit1->SegmentId()+1;
+            Double_t tu1 = hit1->GetTUp(m1), td1 = hit1->GetTDown(m1);
+            Double_t mt1 = hit1->MeanTime(m1);
             HF1(BH1Hid+100*seg1+1100+21+seg2*10, tu1);
             HF1(BH1Hid+100*seg1+1100+22+seg2*10, td1);
             HF1(BH1Hid+100*seg1+1100+23+seg2*10, mt1);
-
             //For BH1vsBH2 Correlation
             HF2(BH1Hid+100*seg1+2200+21+seg2*10, tu1, mt2);
             HF2(BH1Hid+100*seg1+2200+22+seg2*10, td1, mt2);
@@ -1113,21 +1100,21 @@ UserHodoscope::ProcessingNormal()
       }// for(m2)
     }
     for(Int_t i2=0; i2<nhbh2; ++i2){
-      Int_t    seg2 = hodoAna->GetHitBH2(i2)->SegmentId()+1;
-      Int_t n_mhit2 = hodoAna->GetHitBH2(i2)->GetEntries();
+      const auto& hit2 = hodoAna.GetHit<BH2Hit>("BH2", i2);
+      Int_t    seg2 = hit2->SegmentId()+1;
+      Int_t n_mhit2 = hit2->GetEntries();
       for(Int_t m2 = 0; m2<n_mhit2; ++m2){
-        Double_t ct0  = hodoAna->GetHitBH2(i2)->CTime0();
-        Double_t t0   = hodoAna->GetHitBH2(i2)->Time0();
-        Int_t nhbh1=hodoAna->GetNHitsBH1();
+        Double_t ct0  = hit2->CTime0();
+        Double_t t0   = hit2->Time0();
+        Int_t nhbh1=hodoAna.GetNHits("BH1");
         for(Int_t i1=0; i1<nhbh1; ++i1){
-          HodoHit *hit=hodoAna->GetHitBH1(i1);
-          if(!hit) continue;
-
-          Int_t n_mhit1 = hit->GetEntries();
+          const auto& hit1 = hodoAna.GetHit("BH1", i1);
+          if(!hit1) continue;
+          Int_t n_mhit1 = hit1->GetEntries();
           for(Int_t m1 = 0; m1<n_mhit1; ++m1){
-            Int_t seg1=hit->SegmentId()+1;
-            Double_t mt1 = hit->MeanTime(m1);
-            Double_t cmt1 = hit->CMeanTime(m1);
+            Int_t seg1=hit1->SegmentId()+1;
+            Double_t mt1 = hit1->MeanTime(m1);
+            Double_t cmt1 = hit1->CMeanTime(m1);
             Double_t btof = mt1 - t0;
             Double_t cbtof = cmt1 - ct0;
             event.btof[seg1-1][seg2-1] = btof;
@@ -1145,10 +1132,10 @@ UserHodoscope::ProcessingNormal()
 
   // BH1-BH2
   {
-    Int_t nhbh1 = hodoAna->GetNHitsBH1();
-    Int_t nhbh2 = hodoAna->GetNHitsBH2();
+    Int_t nhbh1 = hodoAna.GetNHits("BH1");
+    Int_t nhbh2 = hodoAna.GetNHits("BH2");
     for(Int_t i2=0; i2<nhbh2; ++i2){
-      BH2Hit *hit2 = hodoAna->GetHitBH2(i2);
+      const auto& hit2 = hodoAna.GetHit<BH2Hit>("BH2", i2);
       if(!hit2) continue;
 
       Int_t n_mhit2 = hit2->GetEntries();
@@ -1158,7 +1145,7 @@ UserHodoscope::ProcessingNormal()
         Double_t t0      = hit2->Time0(m2);
 
         for(Int_t i1=0; i1<nhbh1; ++i1){
-          HodoHit *hit1 = hodoAna->GetHitBH1(i1);
+          const auto& hit1 = hodoAna.GetHit("BH1", i1);
           if(!hit1) continue;
 
           Int_t n_mhit1  = hit1->GetEntries();
@@ -1173,7 +1160,6 @@ UserHodoscope::ProcessingNormal()
             HF2(203, t0, mt1);
             HF1(204, mt1);
             HF1(205, t0);
-
             if(de1>0.5 && de2>0.5){
               HF1(211, mt1-t0);
               HF2(212, seg1-0.5, seg2-0.5);
@@ -1187,10 +1173,10 @@ UserHodoscope::ProcessingNormal()
 #if 1
   // BH1-BH2 PHC
   {
-    Int_t nh1 = hodoAna->GetNHitsBH1();
-    Int_t nh2 = hodoAna->GetNHitsBH2();
+    Int_t nh1 = hodoAna.GetNHits("BH1");
+    Int_t nh2 = hodoAna.GetNHits("BH2");
     for(Int_t i2=0; i2<nh2; ++i2){
-      BH2Hit *hit2 = hodoAna->GetHitBH2(i2);
+      const auto& hit2 = hodoAna.GetHit<BH2Hit>("BH2", i2);
       Int_t     seg2 = hit2->SegmentId()+1;
       Double_t  au2  = hit2->GetAUp(),  ad2  = hit2->GetADown();
       Int_t n_mhit2  = hit2->GetEntries();
@@ -1201,7 +1187,7 @@ UserHodoscope::ProcessingNormal()
         Double_t  ct0  = hit2->CTime0(m2);
         Double_t  tofs = ct0-(ctu2+ctd2)/2.;
         for(Int_t i1=0; i1<nh1; ++i1){
-          HodoHit *hit1 = hodoAna->GetHitBH1(i1);
+          const auto& hit1 = hodoAna.GetHit("BH1", i1);
           Int_t       seg1 = hit1->SegmentId()+1;
           Double_t    au1  = hit1->GetAUp(),  ad1  = hit1->GetADown();
           Int_t    n_mhit1 = hit1->GetEntries();
@@ -1227,13 +1213,13 @@ UserHodoscope::ProcessingNormal()
 #endif
 
   // BAC
+  hodoAna.DecodeHits("BAC");
   {
-    hodoAna->DecodeBACHits(rawData);
-    Int_t nh=hodoAna->GetNHitsBAC();
+    Int_t nh=hodoAna.GetNHits("BAC");
     dst.nhBac = nh;
     HF1(BACHid+10, Double_t(nh));
     for(Int_t i=0; i<nh; ++i){
-      auto hit = hodoAna->GetHitBAC(i);
+      const auto& hit = hodoAna.GetHit("BAC", i);
       if(!hit) continue;
       Int_t seg = hit->SegmentId()+1;
       HF1(BACHid+11, seg-0.5);
@@ -1252,13 +1238,13 @@ UserHodoscope::ProcessingNormal()
   }
 
   // TOF
-  hodoAna->DecodeTOFHits(rawData);
+  hodoAna.DecodeHits("TOF");
   {
-    Int_t nh = hodoAna->GetNHitsTOF();
+    Int_t nh = hodoAna.GetNHits("TOF");
     HF1(TOFHid+10, Double_t(nh));
     Int_t nh2 = 0;
     for(Int_t i=0; i<nh; ++i){
-      auto hit = hodoAna->GetHitTOF(i);
+      const auto& hit = hodoAna.GetHit("TOF", i);
       if(!hit) continue;
       Int_t seg = hit->SegmentId()+1;
       Int_t n_mhit = hit->GetEntries();
@@ -1298,12 +1284,12 @@ UserHodoscope::ProcessingNormal()
 
     HF1(TOFHid+14, Double_t(nh2));
     for(Int_t i1=0; i1<nh; ++i1){
-      HodoHit *hit1 = hodoAna->GetHitTOF(i1);
+      const auto& hit1 = hodoAna.GetHit("TOF", i1);
       if(!hit1 || hit1->DeltaE()<=0.5) continue;
       Int_t seg1 = hit1->SegmentId()+1;
       for(Int_t i2=0; i2<nh; ++i2){
         if(i1==i2) continue;
-        HodoHit *hit2 = hodoAna->GetHitTOF(i2);
+        const auto& hit2 = hodoAna.GetHit("TOF", i2);
         if(!hit2 || hit2->DeltaE()<=0.5) continue;
         Int_t seg2 = hit2->SegmentId()+1;
 
@@ -1319,31 +1305,29 @@ UserHodoscope::ProcessingNormal()
       }//for(i1)
     }
 
-    Int_t nc = hodoAna->GetNClustersTOF();
+    Int_t nc = hodoAna.GetNClusters("TOF");
     HF1(TOFHid+30, Double_t(nc));
     for(Int_t i=0; i<nc; ++i){
-      HodoCluster *cluster = hodoAna->GetClusterTOF(i);
-      if(!cluster) continue;
-      Int_t cs = cluster->ClusterSize();
-      Double_t ms  = cluster->MeanSeg()+1;
-      Double_t cmt = cluster->CMeanTime();
-      Double_t de  = cluster->DeltaE();
+      const auto& cl = hodoAna.GetCluster("TOF", i);
+      if(!cl) continue;
+      Int_t cs = cl->ClusterSize();
+      Double_t ms  = cl->MeanSeg()+1;
+      Double_t cmt = cl->CMeanTime();
+      Double_t de  = cl->DeltaE();
       HF1(TOFHid+31, Double_t(cs));
       HF1(TOFHid+32, ms-0.5);
       HF1(TOFHid+33, cmt); HF1(TOFHid+34, de);
     }
   }
 
-  hodoAna->DecodeWCHits(rawData);
-
   // WCSUM
-  // hodoAna->DecodeWCSUMHits(rawData);
+  // hodoAna.DecodeWCSUMHits(rawData);
   // {
-  //   Int_t nh = hodoAna->GetNHitsWCSUM();
+  //   Int_t nh = hodoAna.GetNHitsWCSUM();
   //   HF1(WCSUMHid+10, Double_t(nh));
   //   Int_t nh2 = 0;
   //   for(Int_t i=0; i<nh; ++i){
-  //     auto hit = hodoAna->GetHitWCSUM(i);
+  //     auto hit = hodoAna.GetHitWCSUM(i);
   //     if(!hit) continue;
   //     Int_t seg = hit->SegmentId()+1;
   //     for(Int_t m=0, n_mhit=hit->GetEntries(); m<n_mhit; ++m){
@@ -1372,10 +1356,10 @@ UserHodoscope::ProcessingNormal()
   //       }
   //     }
   //   }
-  //   Int_t nc = hodoAna->GetNClustersWCSUM();
+  //   Int_t nc = hodoAna.GetNClustersWCSUM();
   //   HF1(WCSUMHid+30, Double_t(nc));
   //   for(Int_t i=0; i<nc; ++i){
-  //     HodoCluster *cluster = hodoAna->GetClusterWCSUM(i);
+  //     HodoCluster *cluster = hodoAna.GetClusterWCSUM(i);
   //     if(!cluster) continue;
   //     Int_t cs = cluster->ClusterSize();
   //     Double_t ms = cluster->MeanSeg()+1;
@@ -1387,13 +1371,13 @@ UserHodoscope::ProcessingNormal()
   //   }
   // }
 
-  hodoAna->DecodeLACHits(rawData);
+  hodoAna.DecodeHits("LAC");
   ////////// Dst
   {
-    Int_t nc = hodoAna->GetNClustersBH1();
+    Int_t nc = hodoAna.GetNClusters("BH1");
     dst.nhBh1 = nc;
     for(Int_t i=0; i<nc; ++i){
-      HodoCluster *cl = hodoAna->GetClusterBH1(i);
+      const auto& cl = hodoAna.GetCluster("BH1", i);
       if(!cl) continue;
       dst.csBh1[i]  = cl->ClusterSize();
       dst.Bh1Seg[i] = cl->MeanSeg()+1;
@@ -1401,9 +1385,9 @@ UserHodoscope::ProcessingNormal()
       dst.dtBh1[i]  = cl->TimeDif();
       dst.deBh1[i]  = cl->DeltaE();
 
-      Int_t nc2 = hodoAna->GetNClustersBH2();
+      Int_t nc2 = hodoAna.GetNClusters("BH2");
       for(Int_t i2=0; i2<nc2; ++i2){
-        BH2Cluster *cl2 = hodoAna->GetClusterBH2(i2);
+        const auto& cl2 = hodoAna.GetCluster("BH2", i2);
         if(!cl2) continue;
         Double_t btof = cl->MeanTime() - dst.Time0;
         Double_t cbtof = cl->CMeanTime() - dst.CTime0;
@@ -1414,10 +1398,10 @@ UserHodoscope::ProcessingNormal()
   }
 
   {
-    Int_t nc = hodoAna->GetNClustersBH2();
+    Int_t nc = hodoAna.GetNClusters("BH2");
     dst.nhBh2 = nc;
     for(Int_t i=0; i<nc; ++i){
-      BH2Cluster *cl = hodoAna->GetClusterBH2(i);
+      const auto& cl = hodoAna.GetCluster<BH2Cluster>("BH2", i);
       if(!cl) continue;
       dst.csBh2[i]  = cl->ClusterSize();
       dst.Bh2Seg[i] = cl->MeanSeg()+1;
@@ -1432,10 +1416,10 @@ UserHodoscope::ProcessingNormal()
   }
 
   {
-    Int_t nc = hodoAna->GetNClustersBAC();
+    Int_t nc = hodoAna.GetNClusters("BAC");
     dst.nhBac = nc;
     for(Int_t i=0; i<nc; ++i){
-      HodoCluster *cl = hodoAna->GetClusterBAC(i);
+      const auto& cl = hodoAna.GetCluster("BAC", i);
       if(!cl) continue;
       dst.csBac[i]  = cl->ClusterSize();
       dst.BacSeg[i] = cl->MeanSeg()+1;
@@ -1445,10 +1429,10 @@ UserHodoscope::ProcessingNormal()
   }
 
   {
-    Int_t nc = hodoAna->GetNClustersTOF();
+    Int_t nc = hodoAna.GetNClusters("TOF");
     dst.nhTof = nc;
     for(Int_t i=0; i<nc; ++i){
-      HodoCluster *cl = hodoAna->GetClusterTOF(i);
+      const auto& cl = hodoAna.GetCluster("TOF", i);
       if(!cl) continue;
       dst.csTof[i]  = cl->ClusterSize();
       dst.TofSeg[i] = cl->MeanSeg()+1;
@@ -1459,10 +1443,10 @@ UserHodoscope::ProcessingNormal()
   }
 
   {
-    Int_t nc = hodoAna->GetNClustersLAC();
+    Int_t nc = hodoAna.GetNClusters("LAC");
     dst.nhLac = nc;
     for(Int_t i=0; i<nc; ++i){
-      HodoCluster *cl = hodoAna->GetClusterLAC(i);
+      const auto& cl = hodoAna.GetCluster("LAC", i);
       if(!cl) continue;
       dst.csLac[i]  = cl->ClusterSize();
       dst.LacSeg[i] = cl->MeanSeg()+1;

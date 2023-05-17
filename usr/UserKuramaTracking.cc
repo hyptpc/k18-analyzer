@@ -45,7 +45,6 @@ class UserKuramaTracking : public VEvent
 {
 private:
   RawData*      rawData;
-  HodoAnalyzer* hodoAna;
   DCAnalyzer*   DCAna;
 
 public:
@@ -69,7 +68,6 @@ UserKuramaTracking::ClassName()
 UserKuramaTracking::UserKuramaTracking()
   : VEvent(),
     rawData(new RawData),
-    hodoAna(new HodoAnalyzer),
     DCAna(new DCAnalyzer)
 {
 }
@@ -78,7 +76,6 @@ UserKuramaTracking::UserKuramaTracking()
 UserKuramaTracking::~UserKuramaTracking()
 {
   if(rawData) delete rawData;
-  if(hodoAna) delete hodoAna;
   if(DCAna) delete DCAna;
 }
 
@@ -327,6 +324,7 @@ UserKuramaTracking::ProcessingNormal()
   static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
 
   rawData->DecodeHits();
+  HodoAnalyzer hodoAna(rawData);
 
   event.evnum = gUnpacker.get_event_number();
 
@@ -354,8 +352,8 @@ UserKuramaTracking::ProcessingNormal()
   HF1(1, 1.);
 
   //////////////BH2 Analysis
-  hodoAna->DecodeBH2Hits(rawData);
-  Int_t nhBh2 = hodoAna->GetNHitsBH2();
+  hodoAna.DecodeHits("BH2");
+  Int_t nhBh2 = hodoAna.GetNHits("BH2");
   event.nhBh2 = nhBh2;
 #if HodoCut
   if(nhBh2==0) return true;
@@ -364,7 +362,7 @@ UserKuramaTracking::ProcessingNormal()
   //////////////BH2 Analysis
   Double_t min_time = -999.;
   for(Int_t i=0; i<nhBh2; ++i){
-    auto hit = hodoAna->GetHitBH2(i);
+    const auto& hit = hodoAna.GetHit<BH2Hit>("BH2", i);
     if(!hit) continue;
     Double_t seg = hit->SegmentId()+1;
     Double_t mt  = hit->MeanTime();
@@ -386,8 +384,8 @@ UserKuramaTracking::ProcessingNormal()
   event.time0 = time0;
 
   //////////////BH1 Analysis
-  hodoAna->DecodeBH1Hits(rawData);
-  Int_t nhBh1 = hodoAna->GetNHitsBH1();
+  hodoAna.DecodeHits("BH1");
+  Int_t nhBh1 = hodoAna.GetNHits("BH1");
   event.nhBh1 = nhBh1;
 #if HodoCut
   if(nhBh1==0) return true;
@@ -397,7 +395,7 @@ UserKuramaTracking::ProcessingNormal()
 
   Double_t btof0 = -999.;
   for(Int_t i=0; i<nhBh1; ++i){
-    auto hit = hodoAna->GetHitBH1(i);
+    auto hit = hodoAna.GetHit("BH1", i);
     if(!hit) continue;
     Int_t    seg  = hit->SegmentId()+1;
     Double_t cmt  = hit->CMeanTime();
@@ -421,16 +419,16 @@ UserKuramaTracking::ProcessingNormal()
 
   HodoClusterContainer TOFCont;
   //////////////Tof Analysis
-  hodoAna->DecodeTOFHits(rawData);
-  //hodoAna->TimeCutTOF(7, 25);
-  Int_t nhTof = hodoAna->GetNClustersTOF();
+  hodoAna.DecodeHits("TOF");
+  //hodoAna.TimeCutTOF(7, 25);
+  Int_t nhTof = hodoAna.GetNClusters("TOF");
   event.nhTof = nhTof;
   {
 #if HodoCut
     Int_t nhOk = 0;
 #endif
     for(Int_t i=0; i<nhTof; ++i){
-      auto hit = hodoAna->GetClusterTOF(i);
+      auto hit = hodoAna.GetCluster("TOF", i);
       Double_t seg = hit->MeanSeg()+1;
       Double_t cmt = hit->CMeanTime();
       Double_t dt  = hit->TimeDif();
@@ -595,7 +593,7 @@ UserKuramaTracking::ProcessingNormal()
 
       Bool_t condTof=false;
       for(Int_t j=0; j<ncTof; ++j){
-	HodoCluster *clTof=hodoAna->GetClusterTOF(j);
+	HodoCluster *clTof=hodoAna.GetCluster("TOF", j);
 	if(!clTof || !clTof->GoodForAnalysis()) continue;
 	Double_t ttof=clTof->CMeanTime()-time0;
 	//------------------------Cut
@@ -605,7 +603,7 @@ UserKuramaTracking::ProcessingNormal()
       if(condTof){
 	++ntOk;
 	for(Int_t j=0; j<ncTof; ++j){
-	  HodoCluster *clTof=hodoAna->GetClusterTOF(j);
+	  HodoCluster *clTof=hodoAna.GetCluster("TOF", j);
 	  if(!clTof || !clTof->GoodForAnalysis()) continue;
 	  Double_t ttof=clTof->CMeanTime()-time0;
 	}
@@ -790,7 +788,7 @@ UserKuramaTracking::ProcessingNormal()
     Double_t minres = 1.0e10;
 #endif
     Double_t time = qnan;
-    for(const auto& hit: hodoAna->GetHitsTOF()){
+    for(const auto& hit: hodoAna.GetHitContainer("TOF")){
       if(!hit) continue;
       Int_t seg = hit->SegmentId() + 1;
 #if UseTOF
@@ -923,9 +921,9 @@ UserKuramaTracking::ProcessingNormal()
 
   // TOF
   {
-    Int_t nh = hodoAna->GetNHitsTOF();
+    Int_t nh = hodoAna.GetNHits("TOF");
     for(Int_t i=0; i<nh; ++i){
-      auto hit=hodoAna->GetHitTOF(i);
+      auto hit=hodoAna.GetHit("TOF", i);
       if(!hit) continue;
       Int_t seg=hit->SegmentId()+1;
       Double_t tu = hit->GetTUp(), td=hit->GetTDown();

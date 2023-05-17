@@ -40,7 +40,6 @@ class UserBcOutTracking : public VEvent
 private:
   RawData*      rawData;
   DCAnalyzer*   DCAna;
-  HodoAnalyzer* hodoAna;
 
 public:
   UserBcOutTracking();
@@ -63,8 +62,7 @@ UserBcOutTracking::ClassName()
 UserBcOutTracking::UserBcOutTracking()
   : VEvent(),
     rawData(new RawData),
-    DCAna(new DCAnalyzer),
-    hodoAna(new HodoAnalyzer)
+    DCAna(new DCAnalyzer)
 {
 }
 
@@ -73,7 +71,6 @@ UserBcOutTracking::~UserBcOutTracking()
 {
   if(rawData) delete rawData;
   if(DCAna) delete DCAna;
-  if(hodoAna) delete hodoAna;
 }
 
 //_____________________________________________________________________________
@@ -190,6 +187,7 @@ UserBcOutTracking::ProcessingNormal()
 #endif
 
   rawData->DecodeHits();
+  HodoAnalyzer hodoAna(rawData);
 
   event.evnum = gUnpacker.get_event_number();
 
@@ -212,8 +210,8 @@ UserBcOutTracking::ProcessingNormal()
   HF1(1, 1.);
 
   //////////////BH2 time 0
-  hodoAna->DecodeBH2Hits(rawData);
-  Int_t nhBh2 = hodoAna->GetNHitsBH2();
+  hodoAna.DecodeHits("BH2");
+  Int_t nhBh2 = hodoAna.GetNHits("BH2");
   event.nhBh2 = nhBh2;
 #if HodoCut
   if(nhBh2==0) return true;
@@ -223,7 +221,7 @@ UserBcOutTracking::ProcessingNormal()
   Double_t time0 = qnan;
   //////////////BH2 Analysis
   for(Int_t i=0; i<nhBh2; ++i){
-    auto hit = hodoAna->GetHitBH2(i);
+    auto hit = hodoAna.GetHit("BH2", i);
     if(!hit) continue;
     Double_t seg = hit->SegmentId()+1;
     Double_t cmt = hit->CMeanTime();
@@ -237,7 +235,7 @@ UserBcOutTracking::ProcessingNormal()
     event.Bh2Seg[i] = seg;
   }
 
-  auto cl_time0 = hodoAna->GetTime0BH2Cluster();
+  auto cl_time0 = hodoAna.GetTime0BH2Cluster();
   if(cl_time0){
     event.Time0Seg = cl_time0->MeanSeg()+1;
     event.deTime0  = cl_time0->DeltaE();
@@ -253,8 +251,8 @@ UserBcOutTracking::ProcessingNormal()
   HF1(1, 3.);
 
   //////////////BH1 Analysis
-  hodoAna->DecodeBH1Hits(rawData);
-  Int_t nhBh1 = hodoAna->GetNHitsBH1();
+  hodoAna.DecodeHits("BH1");
+  Int_t nhBh1 = hodoAna.GetNHits("BH1");
   event.nhBh1 = nhBh1;
 #if HodoCut
   if(nhBh1==0) return true;
@@ -262,7 +260,7 @@ UserBcOutTracking::ProcessingNormal()
   HF1(1, 4);
 
   for(Int_t i=0; i<nhBh1; ++i){
-    auto hit = hodoAna->GetHitBH1(i);
+    auto hit = hodoAna.GetHit("BH1", i);
     if(!hit) continue;
     Double_t cmt = hit->CMeanTime();
     Double_t dE  = hit->DeltaE();
@@ -276,7 +274,7 @@ UserBcOutTracking::ProcessingNormal()
 
   Double_t btof0 = qnan;
   HodoCluster* cl_btof0 = event.Time0Seg > 0 ?
-    hodoAna->GetBtof0BH1Cluster(event.CTime0) : nullptr;
+    hodoAna.GetBtof0BH1Cluster(event.CTime0) : nullptr;
   if(cl_btof0) btof0 = cl_btof0->CMeanTime() - time0;
   event.btof = btof0;
 

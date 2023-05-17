@@ -40,22 +40,11 @@ const Int_t    MaxSizeCl       = 8;
 }
 
 //_____________________________________________________________________________
-HodoAnalyzer::HodoAnalyzer()
-  : m_BH1Cont(),
-    m_BH2Cont(),
-    m_BACCont(),
-    m_TOFCont(),
-    m_LACCont(),
-    m_WCCont(),
-    m_WCSUMCont(),
+HodoAnalyzer::HodoAnalyzer(RawData* raw_data)
+  : m_raw_data(raw_data),
+    m_hodo_hit_collection(),
+    m_hodo_cluster_collection(),
     m_BFTCont(),
-    m_BH1ClCont(),
-    m_BH2ClCont(),
-    m_BACClCont(),
-    m_TOFClCont(),
-    m_LACClCont(),
-    m_WCClCont(),
-    m_WCSUMClCont(),
     m_BFTClCont()
 {
   debug::ObjectCounter::increase(ClassName());
@@ -64,71 +53,12 @@ HodoAnalyzer::HodoAnalyzer()
 //_____________________________________________________________________________
 HodoAnalyzer::~HodoAnalyzer()
 {
-  ClearBH1Hits();
-  ClearBH2Hits();
-  ClearBACHits();
-  ClearTOFHits();
-  ClearLACHits();
-  ClearWCHits();
-  ClearWCSUMHits();
+  for(auto& elem: m_hodo_hit_collection)
+    del::ClearContainer(elem.second);
+  for(auto& elem: m_hodo_cluster_collection)
+    del::ClearContainer(elem.second);
   ClearBFTHits();
   debug::ObjectCounter::decrease(ClassName());
-}
-
-//_____________________________________________________________________________
-void
-HodoAnalyzer::ClearBH1Hits()
-{
-  del::ClearContainer(m_BH1Cont);
-  del::ClearContainer(m_BH1ClCont);
-}
-
-//_____________________________________________________________________________
-void
-HodoAnalyzer::ClearBH2Hits()
-{
-  del::ClearContainer(m_BH2Cont);
-  del::ClearContainer(m_BH2ClCont);
-}
-
-//_____________________________________________________________________________
-void
-HodoAnalyzer::ClearBACHits()
-{
-  del::ClearContainer(m_BACCont);
-  del::ClearContainer(m_BACClCont);
-}
-
-//_____________________________________________________________________________
-void
-HodoAnalyzer::ClearTOFHits()
-{
-  del::ClearContainer(m_TOFCont);
-  del::ClearContainer(m_TOFClCont);
-}
-
-//_____________________________________________________________________________
-void
-HodoAnalyzer::ClearLACHits()
-{
-  del::ClearContainer(m_LACCont);
-  del::ClearContainer(m_LACClCont);
-}
-
-//_____________________________________________________________________________
-void
-HodoAnalyzer::ClearWCHits()
-{
-  del::ClearContainer(m_WCCont);
-  del::ClearContainer(m_WCClCont);
-}
-
-//_____________________________________________________________________________
-void
-HodoAnalyzer::ClearWCSUMHits()
-{
-  del::ClearContainer(m_WCSUMCont);
-  del::ClearContainer(m_WCSUMClCont);
 }
 
 //_____________________________________________________________________________
@@ -143,158 +73,44 @@ HodoAnalyzer::ClearBFTHits()
 
 //_____________________________________________________________________________
 Bool_t
-HodoAnalyzer::DecodeRawHits(RawData *rawData)
+HodoAnalyzer::DecodeHits(const TString& name, Double_t max_time_diff)
 {
-  DecodeBH1Hits(rawData);
-  DecodeBH2Hits(rawData);
-  DecodeBACHits(rawData);
-  DecodeTOFHits(rawData);
-  DecodeLACHits(rawData);
-  DecodeWCHits(rawData);
-  // DecodeWCSUMHits(rawData);
-  DecodeBFTHits(rawData);
-  return true;
-}
+  auto& cont = m_hodo_hit_collection[name];
+  for(auto& hit: cont){
+    delete hit;
+  }
+  cont.clear();
 
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::DecodeBH1Hits(RawData *rawData)
-{
-  ClearBH1Hits();
-  for(auto& hit: rawData->GetHodoRawHitContainer("BH1")){
-    if(!hit) continue;
-    auto hp = new HodoHit(hit);
-    if(hp && hp->Calculate()){
-      m_BH1Cont.push_back(hp);
+  for(auto& rhit: m_raw_data->GetHodoRawHitContainer(name)){
+    if(!rhit) continue;
+    HodoHit* hit;
+    if(name.EqualTo("BH2")){
+      hit = new BH2Hit(rhit);
     }else{
-      delete hp;
+      hit = new HodoHit(rhit);
+    }
+    if(hit && hit->Calculate()){
+      cont.push_back(hit);
+    }else{
+      delete hit;
     }
   }
 
 #if Cluster
-  MakeUpClusters(m_BH1Cont, m_BH1ClCont, MaxTimeDifBH1);
+  auto& cl_cont = m_hodo_cluster_collection[name];
+  MakeUpClusters(cont, cl_cont, MaxTimeDifBH1);
 #endif
 
+  // DecodeBFTHits(m_raw_data);
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-HodoAnalyzer::DecodeBH2Hits(RawData *rawData)
-{
-  ClearBH2Hits();
-  for(auto& hit: rawData->GetHodoRawHitContainer("BH2")){
-    if(!hit) continue;
-    auto hp = new BH2Hit(hit);
-    if(hp && hp->Calculate()){
-      m_BH2Cont.push_back(hp);
-    }else{
-      delete hp;
-    }
-  }
-
-#if Cluster
-  MakeUpClusters(m_BH2Cont, m_BH2ClCont, MaxTimeDifBH2);
-#endif
-
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::DecodeBACHits(RawData *rawData)
-{
-  ClearBACHits();
-  for(auto& hit: rawData->GetHodoRawHitContainer("BAC")){
-    if(!hit) continue;
-    auto hp = new HodoHit(hit);
-    if(hp && hp->Calculate()){
-      m_BACCont.push_back(hp);
-    }else{
-      delete hp;
-    }
-  }
-
-#if Cluster
-  MakeUpClusters(m_BACCont, m_BACClCont, MaxTimeDifBAC);
-#endif
-
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::DecodeTOFHits(RawData *rawData)
-{
-  ClearTOFHits();
-  for(auto& hit: rawData->GetHodoRawHitContainer("TOF")){
-    if(!hit) continue;
-    auto hp = new HodoHit(hit, 15.);
-    if(!hp) continue;
-    if(hp->Calculate()){
-      m_TOFCont.push_back(hp);
-    }else{
-      delete hp;
-    }
-  }
-
-#if Cluster
-  MakeUpClusters(m_TOFCont, m_TOFClCont, MaxTimeDifTOF);
-#endif
-
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::DecodeLACHits(RawData *rawData)
-{
-  ClearLACHits();
-  for(auto& hit: rawData->GetHodoRawHitContainer("LAC")){
-    if(!hit) continue;
-    auto hp = new HodoHit(hit);
-    if(hp && hp->Calculate()){
-      m_LACCont.push_back(hp);
-    }else{
-      delete hp;
-    }
-  }
-
-#if Cluster
-  MakeUpClusters(m_LACCont, m_LACClCont, MaxTimeDifLAC);
-#endif
-
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::DecodeWCHits(RawData *rawData)
-{
-  ClearWCHits();
-  for(auto& hit: rawData->GetHodoRawHitContainer("WC")){
-    if(!hit) continue;
-    auto hp = new HodoHit(hit);
-    if(hp && hp->Calculate()){
-      m_WCCont.push_back(hp);
-    }else{
-      delete hp;
-    }
-  }
-
-#if Cluster
-  MakeUpClusters(m_WCCont, m_WCClCont, MaxTimeDifWC);
-#endif
-
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::DecodeBFTHits(RawData* rawData)
+HodoAnalyzer::DecodeBFTHits()
 {
   ClearBFTHits();
-  for(auto& hit: rawData->GetHodoRawHitContainer("BFT")){
+  for(auto& hit: m_raw_data->GetHodoRawHitContainer("BFT")){
     if(!hit) continue;
     auto hp = new FiberHit(hit);
     if(hp && hp->Calculate()){
@@ -688,141 +504,20 @@ HodoAnalyzer::MakeUpCoincidence(const FiberHitContainer& cont,
 
 //_____________________________________________________________________________
 Bool_t
-HodoAnalyzer::ReCalcBH1Hits(Bool_t applyRecursively)
+HodoAnalyzer::ReCalcHit(const TString& name, Bool_t applyRecursively)
 {
-  for(Int_t i=0, n=m_BH1Cont.size(); i<n; ++i){
-    HodoHit *hit = m_BH1Cont[i];
-    if(hit) hit->ReCalc(applyRecursively);
+  for(auto& cl: GetHitContainer(name)){
+    cl->ReCalc(applyRecursively);
   }
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-HodoAnalyzer::ReCalcBACHits(Bool_t applyRecursively)
+HodoAnalyzer::ReCalcCluster(const TString& name, Bool_t applyRecursively)
 {
-  for(Int_t i=0, n=m_BACCont.size(); i<n; ++i){
-    HodoHit *hit = m_BACCont[i];
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::ReCalcBH2Hits(Bool_t applyRecursively)
-{
-  for(Int_t i=0, n=m_BH2Cont.size(); i<n; ++i){
-    BH2Hit *hit = m_BH2Cont[i];
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::ReCalcTOFHits(Bool_t applyRecursively)
-{
-  for(Int_t i=0, n=m_TOFCont.size(); i<n; ++i){
-    HodoHit *hit = m_TOFCont[i];
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::ReCalcLACHits(Bool_t applyRecursively)
-{
-  for(Int_t i=0, n=m_LACCont.size(); i<n; ++i){
-    HodoHit *hit = m_LACCont[i];
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::ReCalcWCHits(Bool_t applyRecursively)
-{
-  for(auto& hit: m_WCCont){
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::ReCalcWCSUMHits( Bool_t applyRecursively )
-{
-  for(auto& hit: m_WCSUMCont){
-    if(hit) hit->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::ReCalcBH1Clusters(Bool_t applyRecursively)
-{
-  for(Int_t i=0, n=m_BH1ClCont.size(); i<n; ++i){
-    HodoCluster *cl = m_BH1ClCont[i];
-    if(cl) cl->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::ReCalcBACClusters(Bool_t applyRecursively)
-{
-  for(Int_t i=0, n=m_BACClCont.size(); i<n; ++i){
-    HodoCluster *cl = m_BACClCont[i];
-    if(cl) cl->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::ReCalcBH2Clusters(Bool_t applyRecursively)
-{
-  for(Int_t i=0, n=m_BH2ClCont.size(); i<n; ++i){
-    BH2Cluster *cl = m_BH2ClCont[i];
-    if(cl) cl->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::ReCalcTOFClusters(Bool_t applyRecursively)
-{
-  for(Int_t i=0, n=m_TOFClCont.size(); i<n; ++i){
-    HodoCluster *cl = m_TOFClCont[i];
-    if(cl) cl->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::ReCalcLACClusters(Bool_t applyRecursively)
-{
-  for(Int_t i=0, n=m_LACClCont.size(); i<n; ++i){
-    HodoCluster *cl = m_LACClCont[i];
-    if(cl) cl->ReCalc(applyRecursively);
-  }
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::ReCalcWCSUMClusters(Bool_t applyRecursively)
-{
-  for(auto& cl: m_WCSUMClCont){
-    if(cl) cl->ReCalc(applyRecursively);
+  for(auto& cl: GetClusterContainer(name)){
+    cl->ReCalc(applyRecursively);
   }
   return true;
 }
@@ -831,41 +526,14 @@ HodoAnalyzer::ReCalcWCSUMClusters(Bool_t applyRecursively)
 Bool_t
 HodoAnalyzer::ReCalcAll()
 {
-  ReCalcBH1Hits();
-  ReCalcBACHits();
-  ReCalcBH2Hits();
-  ReCalcTOFHits();
-  ReCalcLACHits();
-  ReCalcWCHits();
-  ReCalcWCSUMHits();
-  ReCalcBH1Clusters();
-  ReCalcBACClusters();
-  ReCalcBH2Clusters();
-  ReCalcTOFClusters();
-  ReCalcLACClusters();
-  ReCalcWCSUMClusters();
   return true;
 }
 
 //_____________________________________________________________________________
 void
-HodoAnalyzer::TimeCutBH1(Double_t tmin, Double_t tmax)
+HodoAnalyzer::TimeCut(const TString& name, Double_t tmin, Double_t tmax)
 {
-  TimeCut(m_BH1ClCont, tmin, tmax);
-}
-
-//_____________________________________________________________________________
-void
-HodoAnalyzer::TimeCutBH2(Double_t tmin, Double_t tmax)
-{
-  TimeCut(m_BH2ClCont, tmin, tmax);
-}
-
-//_____________________________________________________________________________
-void
-HodoAnalyzer::TimeCutTOF(Double_t tmin, Double_t tmax)
-{
-  TimeCut(m_TOFClCont, tmin, tmax);
+  TimeCut(m_hodo_cluster_collection[name], tmin, tmax);
 }
 
 //_____________________________________________________________________________
@@ -1007,7 +675,7 @@ HodoAnalyzer::GetTime0BH2Cluster()
 
   BH2Cluster* time0_cluster = nullptr;
   Double_t min_mt = -9999;
-  for(const auto& cluster : m_BH2ClCont){
+  for(const auto& cluster : GetClusterContainer("BH2")){
     Double_t mt = cluster->MeanTime();
     if(true
        && std::abs(mt) < std::abs(min_mt)
@@ -1017,7 +685,7 @@ HodoAnalyzer::GetTime0BH2Cluster()
 #endif
       ){
       min_mt        = mt;
-      time0_cluster = cluster;
+      time0_cluster = dynamic_cast<BH2Cluster*>(cluster);
     }// T0 selection
   }// for
 
@@ -1037,7 +705,7 @@ HodoAnalyzer::GetBtof0BH1Cluster(Double_t time0)
 
   HodoCluster* time0_cluster = nullptr;
   Double_t min_btof            = -9999;
-  for(const auto& cluster : m_BH1ClCont){
+  for(const auto& cluster : GetClusterContainer("BH1")){
     Double_t cmt  = cluster->CMeanTime();
     Double_t btof = cmt - time0;
     if(true
@@ -1053,4 +721,33 @@ HodoAnalyzer::GetBtof0BH1Cluster(Double_t time0)
   }// for
 
   return time0_cluster;
+}
+
+
+//_____________________________________________________________________________
+const HodoHitContainer&
+HodoAnalyzer::GetHitContainer(const TString& name) const
+{
+  auto itr = m_hodo_hit_collection.find(name);
+  if(itr == m_hodo_hit_collection.end()){
+    // throw Exception(FUNC_NAME + " No such detector: " + name);
+    static HodoHitContainer null_container;
+    return null_container;
+  }else{
+    return itr->second;
+  }
+}
+
+//_____________________________________________________________________________
+const HodoClusterContainer&
+HodoAnalyzer::GetClusterContainer(const TString& name) const
+{
+  auto itr = m_hodo_cluster_collection.find(name);
+  if(itr == m_hodo_cluster_collection.end()){
+    // throw Exception(FUNC_NAME + " No such detector: " + name);
+    static HodoClusterContainer null_container;
+    return null_container;
+  }else{
+    return itr->second;
+  }
 }
