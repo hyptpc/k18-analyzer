@@ -24,18 +24,18 @@ const auto& gPHC  = HodoPHCMan::GetInstance();
 }
 
 //_____________________________________________________________________________
-HodoHit::HodoHit()
+HodoVHit::HodoVHit()
 {
 }
 
 //_____________________________________________________________________________
-HodoHit::~HodoHit()
+HodoVHit::~HodoVHit()
 {
 }
 
 //_____________________________________________________________________________
 Hodo1Hit::Hodo1Hit(HodoRawHit *rhit, Int_t index)
-  : HodoHit(), m_raw(rhit), m_is_calculated(false), m_index(index)
+  : HodoVHit(), m_raw(rhit), m_is_calculated(false), m_index(index)
 {
   debug::ObjectCounter::increase(ClassName());
 }
@@ -56,7 +56,8 @@ Hodo1Hit::Calculate(Bool_t tdc_flag)
     return false;
   }
 
-  if(tdc_flag && m_raw->GetNumOfTdcHits()!=1)
+  if(tdc_flag // && m_raw->GetNumOfTdcHits()!=1
+    )
     return false;
 
   if(!gHodo.IsReady()){

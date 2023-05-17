@@ -10,8 +10,6 @@
 
 #include "DebugCounter.hh"
 #include "HodoHit.hh"
-#include "Hodo1Hit.hh"
-#include "Hodo2Hit.hh"
 #include "HodoAnalyzer.hh"
 
 //_____________________________________________________________________________

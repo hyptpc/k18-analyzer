@@ -19,7 +19,7 @@ class FiberCluster;
 class HodoCluster;
 
 class Hodo1Hit;
-class Hodo2Hit;
+class HodoHit;
 class HodoAnalyzer;
 
 typedef std::vector<DCHit*>        DCHitContainer;
@@ -30,7 +30,7 @@ typedef std::vector<K18TrackD2U*>  K18TrackD2UContainer;
 typedef std::vector<KuramaTrack*>  KuramaTrackContainer;
 
 typedef std::vector<Hodo1Hit*> Hodo1HitContainer;
-typedef std::vector<Hodo2Hit*> Hodo2HitContainer;
+typedef std::vector<HodoHit*> HodoHitContainer;
 typedef std::vector<HodoCluster*> HodoClusterContainer;
 
 //_____________________________________________________________________________
@@ -80,7 +80,7 @@ public:
   Bool_t DecodeBcOutHits(RawData* rawData);
   Bool_t DecodeSdcInHits(RawData* rawData);
   Bool_t DecodeSdcOutHits(RawData* rawData, Double_t ofs_dt=0.);
-  Bool_t DecodeTOFHits(const Hodo2HitContainer& HitCont);
+  Bool_t DecodeTOFHits(const HodoHitContainer& HitCont);
   Bool_t DecodeTOFHits(const HodoClusterContainer& ClCont);
   // Bool_t DecodeSimuHits(SimuData *simuData);
   Int_t  ClusterizeMWPCHit(const DCHitContainer& hits,
@@ -101,7 +101,7 @@ public:
   Bool_t TrackSearchSdcIn();
   Bool_t TrackSearchSdcInFiber();
   Bool_t TrackSearchSdcOut();
-  Bool_t TrackSearchSdcOut(const Hodo2HitContainer& HitCont);
+  Bool_t TrackSearchSdcOut(const HodoHitContainer& HitCont);
   Bool_t TrackSearchSdcOut(const HodoClusterContainer& ClCont);
 
   Int_t GetNtracksBcIn() const { return m_BcInTC.size(); }

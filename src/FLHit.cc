@@ -56,17 +56,17 @@ void
 FLHit::Initialize()
 {
   if(m_hit_d == nullptr){
-    m_leading  = m_hit_u->GetLeading(m_nth_hit_u);
-    // m_trailing = m_hit_u->GetTrailing(m_nth_hit_u);
+    m_leading  = m_hit_u->GetTdcLeading(m_nth_hit_u);
+    // m_trailing = m_hit_u->GetTdcTrailing(m_nth_hit_u);
     m_trailing = m_leading; 	// Temporary solution. Need to be changed some day.
     m_time     = m_hit_u->GetTime(m_nth_hit_u);
     m_width    = m_hit_u->GetWidth(m_nth_hit_u);
     m_ctime    = m_hit_u->GetCTime(m_nth_hit_u);
   }else{
     m_leading  =
-      (m_hit_u->GetLeading(m_nth_hit_u) + m_hit_d->GetLeading(m_nth_hit_d))/2;
+      (m_hit_u->GetTdcLeading(m_nth_hit_u) + m_hit_d->GetTdcLeading(m_nth_hit_d))/2;
     m_trailing  =
-      (m_hit_u->GetTrailing(m_nth_hit_u) + m_hit_d->GetTrailing(m_nth_hit_d))/2;
+      (m_hit_u->GetTdcTrailing(m_nth_hit_u) + m_hit_d->GetTdcTrailing(m_nth_hit_d))/2;
     m_time  =
       (m_hit_u->GetTime(m_nth_hit_u) + m_hit_d->GetTime(m_nth_hit_d))/2;
     m_ctime  =

@@ -25,7 +25,7 @@ const auto& gPHC = HodoPHCMan::GetInstance();
 
 //_____________________________________________________________________________
 Hodo2Hit::Hodo2Hit(HodoRawHit *rhit, Double_t max_time_diff)
-  : HodoHit(),
+  : HodoVHit(),
     m_raw(rhit),
     m_is_calculated(false),
     m_is_tof(false),
@@ -49,9 +49,9 @@ Hodo2Hit::Calculate()
     return false;
   }
 
-  if(m_raw->GetNumOfTdcHits() != 2){
-    return false;
-  }
+  // if(m_raw->GetNumOfTdcHits() != 2){
+  //   return false;
+  // }
 
   if(!gHodo.IsReady()){
     hddaq::cout << FUNC_NAME << " HodoParamMan must be initialized" << std::endl;

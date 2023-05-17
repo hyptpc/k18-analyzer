@@ -9,7 +9,9 @@
 #include <TF1.h>
 
 #include <std_ostream.hh>
+#include <UnpackerConfig.hh>
 #include <UnpackerManager.hh>
+#include <UnpackerXMLReadDigit.hh>
 
 #include "ConfMan.hh"
 #include "DCRawHit.hh"
@@ -36,74 +38,127 @@ namespace { TApplication app("DebugApp", nullptr, nullptr); }
 
 namespace
 {
-  using namespace hddaq::unpacker;
-  const auto& gUnpacker = GUnpacker::get_instance();
-  const auto& gUser     = UserParamMan::GetInstance();
-  enum EUorD { kOneSide=1, kBothSide=2 };
-  enum EHodoDataType { kHodoAdc, kHodoLeading, kHodoTrailing,
-		       kHodoOverflow, kHodoNDataType };
+using namespace hddaq::unpacker;
+const auto& gUnpacker = GUnpacker::get_instance();
+const auto& gConf     = GConfig::get_instance();
+const auto& gUser     = UserParamMan::GetInstance();
+enum EUorD { kOneSide=1, kBothSide=2 };
+enum EHodoDataType { kHodoAdc, kHodoLeading, kHodoTrailing,
+  kHodoCstop, kHodoOverflow, kHodoNDataType };
 #if OscillationCut
-  const Int_t  MaxMultiHitDC  = 16;
+const Int_t  MaxMultiHitDC  = 16;
 #endif
 
 }
 
 //_____________________________________________________________________________
 RawData::RawData()
-  : m_is_decoded(kNType),
-    m_BH1RawHC(),
-    m_BH2RawHC(),
-    m_BACRawHC(),
-    m_HTOFRawHC(),
-    m_SCHRawHC(),
-    m_BVHRawHC(),
-    m_TOFRawHC(),
-    m_LACRawHC(),
-    m_WCRawHC(),
-    m_WCSUMRawHC(),
+  : m_is_decoded(),
+    m_hodo_raw_hit_collection(),
+    m_dc_raw_hit_collection(),
     m_BFTRawHC(NumOfPlaneBFT),
     m_BcInRawHC(NumOfLayersBcIn+1),
     m_BcOutRawHC(NumOfLayersBcOut+1),
     m_SdcInRawHC(NumOfLayersSdcIn+1),
     m_SdcOutRawHC(NumOfLayersSdcOut+1),
-    m_ScalerRawHC(),
-    m_TrigRawHC(),
-    m_VmeCalibRawHC()
+    m_ScalerRawHC()
 {
-  for(auto& d: m_is_decoded) d = false;
   debug::ObjectCounter::increase(ClassName());
 }
 
 //_____________________________________________________________________________
 RawData::~RawData()
 {
+  for(auto& elem: m_hodo_raw_hit_collection)
+    del::ClearContainer(elem.second);
+  for(auto& elem: m_dc_raw_hit_collection)
+    del::ClearContainer(elem.second);
+
+  m_hodo_raw_hit_collection.clear();
+  m_dc_raw_hit_collection.clear();
   ClearAll();
   debug::ObjectCounter::decrease(ClassName());
 }
 
 //_____________________________________________________________________________
 void
+RawData::Clear(const TString& name)
+{
+  del::ClearContainer(m_hodo_raw_hit_collection[name]);
+  del::ClearContainer(m_dc_raw_hit_collection[name]);
+}
+
+//_____________________________________________________________________________
+void
 RawData::ClearAll()
 {
-  del::ClearContainer(m_BH1RawHC);
-  del::ClearContainer(m_BACRawHC);
-  del::ClearContainer(m_BH2RawHC);
-  del::ClearContainer(m_HTOFRawHC);
-  del::ClearContainer(m_SCHRawHC);
-  del::ClearContainer(m_BVHRawHC);
-  del::ClearContainer(m_TOFRawHC);
-  del::ClearContainer(m_LACRawHC);
-  del::ClearContainer(m_WCRawHC);
-  del::ClearContainer(m_WCSUMRawHC);
   del::ClearContainerAll(m_BFTRawHC);
   del::ClearContainerAll(m_BcInRawHC);
   del::ClearContainerAll(m_BcOutRawHC);
   del::ClearContainerAll(m_SdcInRawHC);
   del::ClearContainerAll(m_SdcOutRawHC);
   del::ClearContainer(m_ScalerRawHC);
-  del::ClearContainer(m_TrigRawHC);
-  del::ClearContainer(m_VmeCalibRawHC);
 }
+
+//_____________________________________________________________________________
+Bool_t
+RawData::DecodeHits(const TString& name)
+{
+  static const auto& digit_info = gConf.get_digit_info();
+
+  if(m_is_decoded[name]){
+    hddaq::cerr << FUNC_NAME << " " << name << " is already decoded"
+                << std::endl;
+    return false;
+  }
+
+  if(name.IsNull()){
+    Bool_t ret = true;
+    for(const auto& n: digit_info.get_name_list()){
+      if(!n.empty())
+        ret &= DecodeHits(n);
+    }
+    return ret;
+  }
+
+  if(false
+     || name.Contains("null", TString::kIgnoreCase)
+     || name.Contains("Scaler", TString::kIgnoreCase)
+     || name.Contains("RM", TString::kIgnoreCase)){
+    return false;
+  }
+
+  Clear(name);
+
+  auto id = digit_info.get_device_id(name.Data());
+
+  for(Int_t plane=0, n_plane=gUnpacker.get_n_plane(id);
+      plane<n_plane; ++plane){
+    for(Int_t seg=0, n_seg=gUnpacker.get_n_segment(id, plane);
+        seg<n_seg; ++seg){
+      for(Int_t ch=0, n_ch=gUnpacker.get_n_ch(id, plane, seg);
+          ch<n_ch; ++ch){
+        for(Int_t data=0, n_data=gUnpacker.get_n_data(id, plane, seg, ch);
+            data<n_data; ++data){
+          for(Int_t i=0, n=gUnpacker.get_entries(id, plane, seg, ch, data);
+              i<n; ++i){
+            UInt_t val = gUnpacker.get(id, plane, seg, ch, data, i);
+            if(name.Contains("BC") || name.Contains("SDC")){
+              // to be prepared
+            }else if(digit_info.get_n_ch(id) <= HodoRawHit::kNChannel){
+              AddHodoRawHit(m_hodo_raw_hit_collection[name], name, plane, seg, ch, data, val);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  m_is_decoded[name] = true;
+  return true;
+}
+
+#if 0
 
 //_____________________________________________________________________________
 Bool_t
@@ -134,67 +189,38 @@ RawData::DecodeHits()
   static const Double_t MinTrailingSDC5 = gUser.GetParameter("TrailingSDC5", 0);
   static const Double_t MaxTrailingSDC5 = gUser.GetParameter("TrailingSDC5", 1);
 
-  if(m_is_decoded[kOthers]){
-    hddaq::cout << "#D " << FUNC_NAME << " "
-		<< "already decoded!" << std::endl;
-    return false;
-  }
+  // if(m_is_decoded[kOthers]){
+  //   hddaq::cout << "#D " << FUNC_NAME << " "
+  //       	<< "already decoded!" << std::endl;
+  //   return false;
+  // }
 
   ClearAll();
 
-  // BH1
-  DecodeHodo(DetIdBH1, NumOfSegBH1, kBothSide, m_BH1RawHC);
-  // BH2
-  DecodeHodo(DetIdBH2, NumOfSegBH2, kBothSide, m_BH2RawHC);
-  // BAC
-  DecodeHodo(DetIdBAC, NumOfSegBAC, kOneSide,  m_BACRawHC);
-  // HTOF
-  DecodeHodo(DetIdHTOF, NumOfSegHTOF, kBothSide, m_HTOFRawHC);
-  // SCH
-  for(Int_t seg=0; seg<NumOfSegSCH; ++seg){
-    UInt_t nhit = gUnpacker.get_entries(DetIdSCH, 0, seg, 0, 0);
-    for(Int_t i=0; i<nhit; ++i){
-      UInt_t leading  = gUnpacker.get(DetIdSCH, 0, seg, 0, 0, i);
-      UInt_t trailing = gUnpacker.get(DetIdSCH, 0, seg, 0, 1, i);
-      AddHodoRawHit(m_SCHRawHC, DetIdSCH, 0, seg, 0,
-		    kHodoLeading,  leading);
-      AddHodoRawHit(m_SCHRawHC, DetIdSCH, 0, seg, 0,
-		    kHodoTrailing, trailing);
-    }
-  }
-  // BVH
-  DecodeHodo(DetIdBVH, NumOfSegBVH, kOneSide,  m_BVHRawHC);
-  // TOF
-  DecodeHodo(DetIdTOF, NumOfSegTOF, kBothSide, m_TOFRawHC);
-  // LAC
-  DecodeHodo(DetIdLAC, NumOfSegLAC, kOneSide, m_LACRawHC);
-  // WC
-  DecodeHodo(DetIdWC, NumOfSegWC, kBothSide, m_WCRawHC);
-  // WC SUM
-  for(Int_t seg=0; seg<NumOfSegWC; ++seg){
-    for(Int_t AorT=0; AorT<2; ++AorT){
-      for(Int_t m=0, nhit=gUnpacker.get_entries(DetIdWC, 0, seg, 2, AorT);
-	  m<nhit; ++m){
-	UInt_t data = gUnpacker.get(DetIdWC, 0, seg, 2, AorT, m);
-	AddHodoRawHit(m_WCSUMRawHC, DetIdWCSUM, 0, seg, 0, AorT, data);
-      }
+  static const auto& digit_info = gConf.get_digit_info();
+  static std::vector<std::string> name_list;
+  if(name_list.empty()){
+    for(const auto& name: digit_info.get_name_list()){
+      if(name.empty())
+        continue;
+      TString upper(name);
+      upper.ToUpper();
+      if(upper.Contains("NULL") || upper.Contains("RM"))
+        continue;
+      name_list.push_back(name);
     }
   }
 
-  //BFT
-  for(Int_t plane=0; plane<NumOfPlaneBFT; ++plane){
-    for(Int_t seg=0; seg<NumOfSegBFT; ++seg){
-      UInt_t nhit = gUnpacker.get_entries(DetIdBFT, plane, 0, seg, 0);
-      for(Int_t i=0; i<nhit; ++i){
-	UInt_t leading  = gUnpacker.get(DetIdBFT, plane, 0, seg, 0, i);
-	UInt_t trailing = gUnpacker.get(DetIdBFT, plane, 0, seg, 1, i);
-	AddHodoRawHit(m_BFTRawHC[plane], DetIdBFT, plane, seg, 0,
-		      kHodoLeading,  leading);
-	AddHodoRawHit(m_BFTRawHC[plane], DetIdBFT, plane, seg, 0,
-		      kHodoTrailing, trailing);
-      }
+  for(auto& name: name_list){
+    auto id = digit_info.get_device_id(name);
+    TString n(name);
+    if(n.Contains("BC") || n.Contains("SDC")){
+      ;
+    }else if(digit_info.get_n_ch(id) <= HodoRawHit::kNChannel){
+      DecodeHodo(name, m_hodo_raw_hit_collection[name]);
     }
   }
+  return true;
 
   // BC3&BC4 MWDC
   for(Int_t plane=0; plane<NumOfLayersBcOut; ++plane){
@@ -207,8 +233,8 @@ RawData::DecodeHits()
 #endif
 	  for(Int_t i=0; i<nhit; i++){
 	    UInt_t data = gUnpacker.get(DetIdBC3, plane, 0, wire, lt, i);
-	    if (lt == 0 && (data<MinTdcBC3 || MaxTdcBC3<data)) continue;
-	    if (lt == 1 && data<MinTdcBC3) continue;
+	    if(lt == 0 && (data<MinTdcBC3 || MaxTdcBC3<data)) continue;
+	    if(lt == 1 && data<MinTdcBC3) continue;
 	    AddDCRawHit(m_BcOutRawHC[plane+1], plane+PlMinBcOut, wire+1,
 			data, lt);
 	  }
@@ -232,8 +258,8 @@ RawData::DecodeHits()
 	  for(Int_t i=0; i<nhit; i++){
 	    UInt_t data =  gUnpacker.get(DetIdBC4, plane-NumOfLayersBc, 0,
 					 wire, lt, i);
-	    if (lt == 0 && (data<MinTdcBC4 || MaxTdcBC4<data)) continue;
-	    if (lt == 1 && data<MinTdcBC4) continue;
+	    if(lt == 0 && (data<MinTdcBC4 || MaxTdcBC4<data)) continue;
+	    if(lt == 1 && data<MinTdcBC4) continue;
 	    AddDCRawHit(m_BcOutRawHC[plane+1], plane+PlMinBcOut, wire+1,
 			data, lt);
 	  }
@@ -340,87 +366,87 @@ RawData::DecodeHits()
   }
 
   // Scaler
-  for(Int_t l = 0; l<NumOfScaler; ++l){
-    for(Int_t seg=0; seg<NumOfSegScaler; ++seg){
-      UInt_t nhit = gUnpacker.get_entries(DetIdScaler, l, 0, seg, 0);
-      if(nhit == 0) continue;
-      UInt_t data = gUnpacker.get(DetIdScaler, l, 0, seg, 0);
-      AddHodoRawHit(m_ScalerRawHC, DetIdScaler, l, seg, 0, 0, data);
-    }
-  }
+  // for(Int_t l = 0; l<NumOfScaler; ++l){
+  //   for(Int_t seg=0; seg<NumOfSegScaler; ++seg){
+  //     UInt_t nhit = gUnpacker.get_entries(DetIdScaler, l, 0, seg, 0);
+  //     if(nhit == 0) continue;
+  //     UInt_t data = gUnpacker.get(DetIdScaler, l, 0, seg, 0);
+  //     AddHodoRawHit(m_ScalerRawHC, DetIdScaler, l, seg, 0, 0, data);
+  //   }
+  // }
 
   // Trigger Flag
-  DecodeHodo(DetIdTrig, NumOfSegTrig, kOneSide, m_TrigRawHC);
+  // DecodeHodo(DetIdTrig, NumOfSegTrig, kOneSide, m_TrigRawHC);
 
-  m_is_decoded[kOthers] = true;
+  // m_is_decoded[kOthers] = true;
   return true;
 }
 
-//_____________________________________________________________________________
-Bool_t
-RawData::DecodeCalibHits()
-{
-  del::ClearContainer(m_VmeCalibRawHC);
-
-  for(Int_t plane=0; plane<NumOfPlaneVmeCalib; ++plane){
-    DecodeHodo(DetIdVmeCalib, plane, NumOfSegVmeCalib,
-	       kOneSide, m_VmeCalibRawHC);
-  }
-
-  return true;
-}
+#endif
 
 //_____________________________________________________________________________
 Bool_t
-RawData::AddHodoRawHit(HodoRHitContainer& cont,
-		       Int_t id, Int_t plane, Int_t seg,
-		       Int_t UorD, Int_t type, Int_t data)
+RawData::AddHodoRawHit(HodoRawHitContainer& cont,
+		       const TString& name, Int_t plane, Int_t seg,
+		       Int_t ch, Int_t data, Double_t val)
 {
   HodoRawHit* p = nullptr;
   for(Int_t i=0, n=cont.size(); i<n; ++i){
     HodoRawHit* q = cont[i];
-    if(q->DetectorId() == id &&
+    if(q->DetectorName() == name &&
        q->PlaneId() == plane &&
        q->SegmentId() == seg){
       p=q; break;
     }
   }
   if(!p){
-    p = new HodoRawHit(id, plane, seg);
+    p = new HodoRawHit(name, plane, seg);
     cont.push_back(p);
   }
 
-  switch(type){
-  case kHodoAdc:
-    if(UorD==0) p->SetAdcUp(data);
-    else        p->SetAdcDown(data);
-    break;
-  case kHodoLeading:
-    if(UorD==0) p->SetTdcUp(data);
-    else        p->SetTdcDown(data);
-    break;
-  case kHodoTrailing:
-    if(UorD==0) p->SetTdcTUp(data);
-    else        p->SetTdcTDown(data);
-    break;
-  case kHodoOverflow:
-    p->SetTdcOverflow(data);
-    break;
-  default:
-    hddaq::cerr << FUNC_NAME << " wrong data type " << std::endl
-		<< "DetectorId = " << id    << std::endl
-		<< "PlaneId    = " << plane << std::endl
-		<< "SegId      = " << seg   << std::endl
-		<< "AorT       = " << type  << std::endl
-		<< "UorD       = " << UorD  << std::endl;
-    return false;
+  // Fiber
+  if(name.Contains("BFT") || name.Contains("AFT")){
+    if(data == gUnpacker.get_data_id(name, "leading")){
+      p->SetTdcLeading(ch, val);
+    }else if(data == gUnpacker.get_data_id(name, "trailing")){
+      p->SetTdcTrailing(ch, val);
+    }else if(data == gUnpacker.get_data_id(name, "highgain")){
+      // p->SetTrailing(ch, val);
+    }else if(data == gUnpacker.get_data_id(name, "lowgain")){
+      // p->SetTrailing(ch, val);
+    }else{
+      ;
+    }
+  }
+  // Hodoscope
+  else{
+    if(data == gUnpacker.get_data_id(name, "adc")){
+      p->SetAdc(ch, val);
+    }else if(data == gUnpacker.get_data_id(name, "tdc")){
+      p->SetTdcLeading(ch, val);
+    }else if(data == gUnpacker.get_data_id(name, "trailing")){
+      p->SetTdcTrailing(ch, val);
+    // }else if(data == gUnpacker.get_data_id(name, "cstop")){
+    //   ;
+    }else if(data == gUnpacker.get_data_id(name, "overflow")){
+      p->SetTdcOverflow(ch, val);
+    }
+    // else{
+    //   hddaq::cerr << FUNC_NAME << " wrong data type " << std::endl
+    //       	<< "DetectorId = " << id    << std::endl
+    //       	<< "Plane      = " << plane << std::endl
+    //       	<< "Segment    = " << seg   << std::endl
+    //       	<< "Channel    = " << ch    << std::endl
+    //       	<< "Data       = " << data  << std::endl;
+    //   return false;
+    // }
   }
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-RawData::AddDCRawHit(DCRHitContainer& cont,
+RawData::AddDCRawHit(DCRawHitContainer& cont,
 		     Int_t plane, Int_t wire, Int_t data, Int_t type)
 {
   DCRawHit* p = nullptr;
@@ -457,26 +483,15 @@ RawData::AddDCRawHit(DCRHitContainer& cont,
 }
 
 //_____________________________________________________________________________
-void
-RawData::DecodeHodo(Int_t id, Int_t plane, Int_t nseg, Int_t nch,
-		    HodoRHitContainer& cont)
+const HodoRawHitContainer&
+RawData::GetHodoRawHitContainer(const TString& name) const
 {
-  for(Int_t seg=0; seg<nseg; ++seg){
-    for(Int_t UorD=0; UorD<nch; ++UorD){
-      for(Int_t AorT=0; AorT<2; ++AorT){
-	for(Int_t m=0, nhit=gUnpacker.get_entries(id, plane, seg, UorD, AorT);
-	    m<nhit; ++m){
-	  UInt_t data = gUnpacker.get(id, plane, seg, UorD, AorT, m);
-	  AddHodoRawHit(cont, id, plane, seg, UorD, AorT, data);
-	}
-      }
-    }
+  auto itr = m_hodo_raw_hit_collection.find(name);
+  if(itr == m_hodo_raw_hit_collection.end()){
+    // throw Exception(FUNC_NAME + " No such detector: " + name);
+    static HodoRawHitContainer null_container;
+    return null_container;
+  }else{
+    return itr->second;
   }
-}
-
-//_____________________________________________________________________________
-void
-RawData::DecodeHodo(Int_t id, Int_t nseg, Int_t nch, HodoRHitContainer& cont)
-{
-  DecodeHodo(id, 0, nseg, nch, cont);
 }

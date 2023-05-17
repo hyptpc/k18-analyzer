@@ -20,6 +20,8 @@
 #include "FiberHit.hh"
 #include "FLHit.hh"
 #include "FuncName.hh"
+#include "HodoAnalyzer.hh"
+#include "HodoHit.hh"
 #include "KuramaLib.hh"
 #include "RawData.hh"
 //#include "RootHelper.hh"
@@ -107,12 +109,8 @@ UserEventDisplay::ProcessingNormal()
   static const auto MaxTdcBH1 = gUser.GetParameter("TdcBH1", 1);
   static const auto MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
   static const auto MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
-  static const auto MinTdcSCH  = gUser.GetParameter("TdcSCH", 0);
-  static const auto MaxTdcSCH  = gUser.GetParameter("TdcSCH", 1);
   static const auto MinTdcTOF  = gUser.GetParameter("TdcTOF", 0);
   static const auto MaxTdcTOF  = gUser.GetParameter("TdcTOF", 1);
-  // static const auto MinTdcHTOF = gUser.GetParameter("TdcHTOF", 0);
-  // static const auto MaxTdcHTOF = gUser.GetParameter("TdcHTOF", 1);
   static const auto MinTdcWC = gUser.GetParameter("TdcWC", 0);
   static const auto MaxTdcWC = gUser.GetParameter("TdcWC", 1);
 
@@ -124,7 +122,6 @@ UserEventDisplay::ProcessingNormal()
   static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
 
   // static const Int_t IdBH2 = gGeom.GetDetectorId("BH2");
-  static const Int_t IdSCH = gGeom.GetDetectorId("SCH");
   static const Int_t IdTOF = gGeom.GetDetectorId("TOF");
   // static const Int_t IdWC = gGeom.GetDetectorId("WC");
 
@@ -141,8 +138,8 @@ UserEventDisplay::ProcessingNormal()
   //________________________________________________________
   //___ TrigRawHit
   std::bitset<NumOfSegTrig> trigger_flag;
-  for(auto& hit: rawData->GetTrigRawHC()){
-    if(hit->GetTdc1() > 0) trigger_flag.set(hit->SegmentId());
+  for(auto& hit: rawData->GetHodoRawHitContainer("TFlag")){
+    if(hit->GetTdc(0) > 0) trigger_flag.set(hit->SegmentId());
   }
   // if(trigger_flag[trigger::kSpillEnd]) return true;
   // if(!trigger_flag[trigger::kTrigBPS]) return true;
@@ -151,20 +148,18 @@ UserEventDisplay::ProcessingNormal()
   //________________________________________________________
   //___ BH2RawHit
   std::vector<Int_t> BH2SegCont;
-  for(const auto& hit: rawData->GetBH2RawHC()){
+  for(const auto& hit: rawData->GetHodoRawHitContainer("BH2")){
     Int_t seg = hit->SegmentId();
     Bool_t is_hit_u = false;
     Bool_t is_hit_d = false;
-    for(Int_t j=0, m=hit->GetSizeTdcUp(); j<m; ++j){
-      Int_t Tu = hit->GetTdcUp(j);
-      if(MinTdcBH2 < Tu && Tu < MaxTdcBH2){
+    for(const auto& tdc: hit->GetArrayTdcLeading(0)){
+      if(MinTdcBH2 < tdc && tdc < MaxTdcBH2){
         is_hit_u = true;
       }
       // gEvDisp.FillBH2(seg, Tu);
     }
-    for(Int_t j=0, m=hit->GetSizeTdcDown(); j<m; ++j){
-      Int_t Td = hit->GetTdcDown(j);
-      if(MinTdcBH2 < Td && Td < MaxTdcBH2){
+    for(const auto& tdc: hit->GetArrayTdcLeading(1)){
+      if(MinTdcBH2 < tdc && tdc < MaxTdcBH2){
         is_hit_d = true;
       }
       // gEvDisp.FillBH2(seg, Td);
@@ -178,20 +173,18 @@ UserEventDisplay::ProcessingNormal()
   //________________________________________________________
   //___ BH1RawHit
   std::vector<Int_t> BH1SegCont;
-  for(const auto& hit: rawData->GetBH1RawHC()){
+  for(const auto& hit: rawData->GetHodoRawHitContainer("BH1")){
     Int_t seg = hit->SegmentId();
     Bool_t is_hit_u = false;
     Bool_t is_hit_d = false;
-    for(Int_t j=0, m=hit->GetSizeTdcUp(); j<m; ++j){
-      Int_t Tu = hit->GetTdcUp(j);
-      if(MinTdcBH1 < Tu && Tu < MaxTdcBH1){
+    for(const auto& tdc: hit->GetArrayTdcLeading(0)){
+      if(MinTdcBH1 < tdc && tdc < MaxTdcBH1){
         is_hit_u = true;
       }
       // gEvDisp.FillBH1(seg, Tu);
     }
-    for(Int_t j=0, m=hit->GetSizeTdcDown(); j<m; ++j){
-      Int_t Td = hit->GetTdcDown(j);
-      if(MinTdcBH1 < Td && Td < MaxTdcBH1){
+    for(const auto& tdc: hit->GetArrayTdcLeading(1)){
+      if(MinTdcBH1 < tdc && tdc < MaxTdcBH1){
         is_hit_d = true;
       }
       // gEvDisp.FillBH1(seg, Td);
@@ -227,20 +220,18 @@ UserEventDisplay::ProcessingNormal()
   //________________________________________________________
   //___ TOFRawHit
   std::vector<Int_t> TOFSegCont;
-  for(const auto& hit: rawData->GetTOFRawHC()){
+  for(const auto& hit: rawData->GetHodoRawHitContainer("TOF")){
     Int_t seg = hit->SegmentId();
     Bool_t is_hit_u = false;
     Bool_t is_hit_d = false;
-    for(Int_t j=0, m=hit->GetSizeTdcUp(); j<m; ++j){
-      Int_t Tu = hit->GetTdcUp(j);
-      if(MinTdcTOF < Tu && Tu < MaxTdcTOF){
+    for(const auto& tdc: hit->GetArrayTdcLeading(0)){
+      if(MinTdcTOF < tdc && tdc < MaxTdcTOF){
         is_hit_u = true;
       }
       // gEvDisp.FillTOF(seg, Tu);
     }
-    for(Int_t j=0, m=hit->GetSizeTdcDown(); j<m; ++j){
-      Int_t Td = hit->GetTdcDown(j);
-      if(MinTdcTOF < Td && Td < MaxTdcTOF){
+    for(const auto& tdc: hit->GetArrayTdcLeading(1)){
+      if(MinTdcTOF < tdc && tdc < MaxTdcTOF){
         is_hit_d = true;
       }
       // gEvDisp.FillTOF(seg, Td);
@@ -262,21 +253,6 @@ UserEventDisplay::ProcessingNormal()
     hddaq::cout << "[Warning] TOFCont is empty!" << std::endl;
     //gEvDisp.GetCommand();
     return true;
-  }
-
-  //________________________________________________________
-  //___ SCHRawHit
-  for(const auto& hit: rawData->GetSCHRawHC()){
-    Int_t seg = hit->SegmentId();
-    Bool_t is_hit = false;
-    for(Int_t j=0, m=hit->GetSizeTdcUp(); j<m; ++j){
-      Int_t Tu = hit->GetTdcUp(j);
-      if(Tu > 0) gEvDisp.FillSCH(seg, Tu);
-      if(MinTdcSCH < Tu && Tu < MaxTdcSCH){
-        is_hit = true;
-      }
-    }
-    if(is_hit) gEvDisp.DrawHitHodoscope(IdSCH, seg);
   }
 
   //________________________________________________________
@@ -598,67 +574,7 @@ UserEventDisplay::ProcessingNormal()
     return true;
   }
 
-  //________________________________________________________
-  //___ HTOFRawHit
-  // std::vector<Int_t> HTOFSegCont;
-  // Int_t nhHtof = 0;
-  // for(const auto& hit: rawData->GetHTOFRawHC()){
-  //   if(!hit) continue;
-  //   Int_t seg = hit->SegmentId();
-  //   Bool_t is_hit_u = false;
-  //   for(const auto& tdc: hit->GetArrayTdc1()){
-  //     if(MinTdcHTOF < tdc && tdc < MaxTdcHTOF) is_hit_u = true;
-  //   }
-  //   Bool_t is_hit_d = false;
-  //   for(const auto& tdc: hit->GetArrayTdc2()){
-  //     if(MinTdcHTOF < tdc && tdc < MaxTdcHTOF) is_hit_d = true;
-  //   }
-  //   if(is_hit_u && is_hit_d){
-  //     ++nhHtof;
-  //     Int_t binid = 0;
-  //     if(seg == 0) binid=1;
-  //     else if(seg == 1 || seg == 2) binid = 2;
-  //     else if(seg == 3 || seg == 4) binid = 3;
-  //     else binid = seg-1;
-  //     gEvDisp.FillHTOF(binid);
-  //     HTOFSegCont.push_back(seg);
-  //   }
-  // }
-  // if(nhHtof==0) {
-  //   hddaq::cout << "[Warning] HtofCont is empty!" << std::endl;
-  //   return true;
-  // }
-
-  //________________________________________________________
-  //___ TPCRawHit
-  // rawData->DecodeTPCHits();
-  // Int_t npadTpc = 0;
-  // for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-  //   const auto hc = rawData->GetTPCRawHC(layer);
-  //   const auto nhit = hc.size();
-  //   npadTpc += nhit;
-  //   for (const auto& rhit : hc) {
-  //     Int_t layer = rhit->LayerId();
-  //     Int_t row = rhit->RowId();
-  //     auto mean = rhit->Mean();
-  //     auto max_adc = rhit->MaxAdc();
-  //     // auto rms = rhit->RMS();
-  //     auto loc_max = rhit->LocMax();
-  //     if(loc_max < 25 || 155 <loc_max)
-  //       continue;
-  //     gEvDisp.FillTPCADC(layer, row, max_adc - mean);
-  //     gEvDisp.FillTPCTDC(layer, row, loc_max);
-  //     // TVector3 pos = tpc::getPosition(layer, row);
-  //     // pos.SetY((loc_max - 76.75)*80.0*0.05);
-  //     // gEvDisp.SetTPCMarker(pos);
-  //   }
-  // }
-
   gEvDisp.Update();
-
-  // if(nhHtof >= 4){
-  //   gEvDisp.GetCommand();
-  // }
 
   std::vector<ThreeVector> KpPCont, KpXCont;
   std::vector<Double_t> M2Cont;

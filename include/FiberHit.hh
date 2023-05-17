@@ -7,16 +7,16 @@
 
 #include <std_ostream.hh>
 
-#include "Hodo1Hit.hh"
+#include "HodoHit.hh"
 
 class FLHit;
 
 //_____________________________________________________________________________
-class FiberHit : public Hodo1Hit
+class FiberHit : public HodoHit
 {
 public:
   static const TString& ClassName();
-  explicit FiberHit(HodoRawHit* object, const TString& name);
+  explicit FiberHit(HodoRawHit* hit);
   virtual  ~FiberHit();
 
 private:
@@ -25,13 +25,12 @@ private:
   FiberHit& operator =(const FiberHit& object);
 
 protected:
-  TString             m_detector_name;
-  Int_t               m_segment;
+  Int_t               m_paired_plane;
+  Int_t               m_paired_segment;
   Int_t               m_ud;
   Double_t            m_position;
   Double_t            m_offset;
   Int_t               m_pair_id;
-  Bool_t              m_status;
   std::vector<FLHit*> m_hit_container;
   Double_t            m_adc_hg;
   Double_t            m_adc_lg;
@@ -56,12 +55,12 @@ protected:
 public:
   Bool_t   Calculate();
   // Call super class method
-  Int_t    GetNLeading() const { return Hodo1Hit::GetNumOfHit(0); }
-  Int_t    GetNTrailing() const { return Hodo1Hit::GetNumOfHit(1); }
-  Double_t GetLeading(Int_t n=0) const
-  { return m_ud==0? m_raw->GetTdc1(n) : m_raw->GetTdc2(n); }
-  Double_t GetTrailing(Int_t n=0) const
-  { return m_ud==0? m_raw->GetTdcT1(n) : m_raw->GetTdcT2(n); }
+  // Int_t    GetNLeading() const { return HodoHit::GetNumOfHit(0); }
+  // Int_t    GetNTrailing() const { return HodoHit::GetNumOfHit(1); }
+  Double_t GetTdcLeading(Int_t n=0) const
+    { return m_ud==0? m_raw->GetTdcLeading(0, n) : m_raw->GetTdcLeading(1, n); }
+  Double_t GetTdcTrailing(Int_t n=0) const
+    { return m_ud==0? m_raw->GetTdcTrailing(0, n) : m_raw->GetTdcTrailing(1, n); }
   // Call member in this class
   Int_t    GetNPair() const { return m_pair_cont.size(); }
   Double_t GetTime(Int_t n=0) const { return m_pair_cont.at(n).time_l; }
@@ -78,7 +77,6 @@ public:
   Double_t GetMipLG() const { return m_mip_lg; }
   Double_t GetDeHG() const { return m_dE_hg; }
   Double_t GetDeLG() const { return m_dE_lg; }
-  void     SetDetectorName(const TString& name) { m_detector_name = name; }
   void     SetPedestalCor(Double_t deltaHG, Double_t deltaLG)
   { m_pedcor_hg = deltaHG; m_pedcor_lg = deltaLG; }
   void     Print(const TString& arg="", std::ostream& ost=hddaq::cout) const;

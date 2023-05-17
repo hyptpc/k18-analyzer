@@ -6,10 +6,10 @@
 #include <TString.h>
 
 #include "DebugCounter.hh"
-#include "Hodo2Hit.hh"
+#include "HodoHit.hh"
 
 //_____________________________________________________________________________
-class BH2Hit : public Hodo2Hit
+class BH2Hit : public HodoHit
 {
 public:
   static const TString& ClassName();

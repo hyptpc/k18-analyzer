@@ -3,7 +3,7 @@
 #ifndef HODO2_HIT_HH
 #define HODO2_HIT_HH
 
-#include "HodoHit.hh"
+#include "HodoVHit.hh"
 
 #include <cmath>
 #include <cstddef>
@@ -12,7 +12,7 @@
 #include "ThreeVector.hh"
 
 //_____________________________________________________________________________
-class Hodo2Hit : public HodoHit
+class Hodo2Hit : public HodoVHit
 {
 public:
   explicit Hodo2Hit(HodoRawHit *rhit, Double_t max_time_diff=10.);

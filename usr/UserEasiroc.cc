@@ -15,8 +15,7 @@
 #include "FiberCluster.hh"
 #include "FiberHit.hh"
 #include "RootHelper.hh"
-#include "Hodo1Hit.hh"
-#include "Hodo2Hit.hh"
+#include "HodoHit.hh"
 #include "HodoAnalyzer.hh"
 #include "HodoCluster.hh"
 #include "HodoParamMan.hh"
@@ -107,19 +106,6 @@ struct Event
   Double_t bft_ctot[NumOfSegBFT];
   Double_t bft_clpos[NumOfSegBFT];
   Double_t bft_clseg[NumOfSegBFT];
-  // SCH
-  Int_t    sch_nhits;
-  Int_t    sch_hitpat[NumOfSegSCH];
-  Double_t sch_tdc[NumOfSegSCH][MaxDepth];
-  Double_t sch_trailing[NumOfSegSCH][MaxDepth];
-  Double_t sch_tot[NumOfSegSCH][MaxDepth];
-  Int_t    sch_depth[NumOfSegSCH];
-  Int_t    sch_ncl;
-  Int_t    sch_clsize[NumOfSegSCH];
-  Double_t sch_ctime[NumOfSegSCH];
-  Double_t sch_ctot[NumOfSegSCH];
-  Double_t sch_clpos[NumOfSegSCH];
-  Double_t sch_clseg[NumOfSegSCH];
 
   void clear();
 };
@@ -133,8 +119,6 @@ Event::clear()
   bft_unhits = 0;
   bft_dnhits = 0;
   bft_ncl    = 0;
-  sch_nhits  = 0;
-  sch_ncl    = 0;
 
   for(Int_t it=0; it<NumOfSegTrig; it++){
     trigpat[it]  = -1;
@@ -160,21 +144,6 @@ Event::clear()
     bft_clpos[it]  = qnan;
     bft_clseg[it]  = qnan;
   }
-
-  for(Int_t it=0; it<NumOfSegSCH; it++){
-    sch_hitpat[it] = -1;
-    sch_depth[it]  = 0;
-    for(Int_t that=0; that<MaxDepth; that++){
-      sch_tdc[it][that] = qnan;
-      sch_trailing[it][that] = qnan;
-      sch_tot[it][that] = qnan;
-    }
-    sch_clsize[it] = 0;
-    sch_ctime[it]  = qnan;
-    sch_ctot[it]   = qnan;
-    sch_clpos[it]  = qnan;
-    sch_clseg[it]  = qnan;
-  }
 }
 
 //_____________________________________________________________________________
@@ -186,7 +155,6 @@ TTree *tree;
 enum eDetHid
 {
   BFTHid  = 10000,
-  SCHHid  = 20000
 };
 }
 
@@ -212,16 +180,15 @@ UserEasiroc::ProcessingNormal()
 #endif
   static const Double_t MinTdcBFT  = gUser.GetParameter("TdcBFT",  0);
   static const Double_t MaxTdcBFT  = gUser.GetParameter("TdcBFT",  1);
-  static const Double_t MinTdcSCH  = gUser.GetParameter("TdcSCH",  0);
-  static const Double_t MaxTdcSCH  = gUser.GetParameter("TdcSCH",  1);
 #if TimeCut
   static const Double_t MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
   static const Double_t MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
-  static const Double_t MinTimeSCH = gUser.GetParameter("TimeSCH", 0);
-  static const Double_t MaxTimeSCH = gUser.GetParameter("TimeSCH", 1);
 #endif
 
-  rawData->DecodeHits();
+  rawData->DecodeHits("TFlag");
+  rawData->DecodeHits("BH1");
+  rawData->DecodeHits("BH2");
+  rawData->DecodeHits("BFT");
 
   event.evnum = gUnpacker.get_event_number();
 
@@ -230,9 +197,9 @@ UserEasiroc::ProcessingNormal()
   ///// Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
   {
-    for(const auto& hit: rawData->GetTrigRawHC()){
+    for(const auto& hit: rawData->GetHodoRawHitContainer("TFlag")){
       Int_t seg = hit->SegmentId();
-      Int_t tdc = hit->GetTdc1();
+      Int_t tdc = hit->GetTdc();
       if(tdc > 0){
 	event.trigpat[trigger_flag.count()] = seg;
 	event.trigflag[seg] = tdc;
@@ -251,7 +218,7 @@ UserEasiroc::ProcessingNormal()
   hodoAna->DecodeBH2Hits(rawData);
   Int_t nhBh2 = hodoAna->GetNHitsBH2();
 #if HodoCut
-  if (nhBh2==0) return true;
+  if(nhBh2==0) return true;
 #endif
   HF1(1, 2);
   Double_t time0 = qnan;
@@ -284,7 +251,7 @@ UserEasiroc::ProcessingNormal()
   HF1(1, 4);
   Double_t btof0 = qnan;
   for(Int_t i=0; i<nhBh1; ++i){
-    Hodo2Hit* hit = hodoAna->GetHitBH1(i);
+    auto hit = hodoAna->GetHitBH1(i);
     if(!hit) continue;
     Double_t cmt  = hit->CMeanTime();
     Double_t btof = cmt - time0;
@@ -305,6 +272,7 @@ UserEasiroc::ProcessingNormal()
   ////////// BFT
   {
     hodoAna->DecodeBFTHits(rawData);
+    return true;
     // Fiber Hit
     Int_t unhits = 0;
     Int_t dnhits = 0;
@@ -312,10 +280,10 @@ UserEasiroc::ProcessingNormal()
       Int_t nh = hodoAna->GetNHitsBFT(plane);
       enum { U, D };
       for(Int_t i=0; i<nh; ++i){
-	const FiberHit* hit = hodoAna->GetHitBFT(plane, i);
+	auto hit = hodoAna->GetHitBFT(plane, i);
 	if(!hit) continue;
-	Int_t mhit_l  = hit->GetNLeading();
-	Int_t mhit_t  = hit->GetNTrailing();
+	Int_t mhit_l  = hit->GetEntries();
+	Int_t mhit_t  = hit->GetEntries();
 	Int_t seg   = hit->SegmentId();
 	if(plane==U) event.bft_udepth[seg] = mhit_l;
 	if(plane==D) event.bft_ddepth[seg] = mhit_l;
@@ -326,7 +294,7 @@ UserEasiroc::ProcessingNormal()
 	// raw leading data
 	for(Int_t m=0; m<mhit_l; ++m){
 	  if(mhit_l > MaxDepth) break;
-	  Double_t leading  = hit->GetLeading(m);
+	  Double_t leading  = hit->GetTdcLeading(m);
 
 	  if(leading==prev) continue;
 	  prev = leading;
@@ -349,7 +317,7 @@ UserEasiroc::ProcessingNormal()
 	// raw leading data
 	for(Int_t m=0; m<mhit_t; ++m){
 	  if(mhit_t > MaxDepth) break;
-	  Double_t trailing = hit->GetTrailing(m);
+	  Double_t trailing = hit->GetTdcTrailing(m);
 
 	  if(plane==U){
 	    event.bft_utrailing[seg][m] = trailing;
@@ -430,106 +398,6 @@ UserEasiroc::ProcessingNormal()
       HF1(BFTHid +104, ctot);
       HF2(BFTHid +105, ctot, ctime);
       HF1(BFTHid +106, pos);
-    }
-  }
-
-  ////////// SCH
-  {
-    hodoAna->DecodeSCHHits(rawData);
-    Int_t nh = hodoAna->GetNHitsSCH();
-    Int_t sch_nhits = 0;
-    for(Int_t i=0; i<nh; ++i){
-      FiberHit* hit = hodoAna->GetHitSCH(i);
-      if(!hit) continue;
-      Int_t mhit_l = hit->GetNLeading();
-      Int_t mhit_t = hit->GetNTrailing();
-      Int_t seg    = hit->SegmentId();
-      event.sch_depth[seg] = mhit_l;
-      Int_t  prev     = 0;
-      Bool_t hit_flag = false;
-
-      for(Int_t m=0; m<mhit_l; ++m){
-	if(mhit_l > MaxDepth) break;
-	Double_t leading  = hit->GetLeading(m);
-	if(leading==prev) continue;
-	prev = leading;
-	HF1(SCHHid +3, leading);
-	HF2(SCHHid +5, seg, leading);
-	HF1(SCHHid +1000+seg+1, leading);
-
-	event.sch_tdc[seg][m]      = leading;
-
-	if(MinTdcSCH<leading && leading<MaxTdcSCH){
-	  hit_flag = true;
-	}
-      }// for(m)
-
-      for(Int_t m=0; m<mhit_t; ++m){
-	if(mhit_t > MaxDepth) break;
-	Double_t trailing = hit->GetTrailing(m);
-	event.sch_trailing[seg][m] = trailing;
-      }// for(m)
-
-      Int_t mhit_pair = hit->GetNPair();
-      for(Int_t m=0; m<mhit_pair; ++m){
-	if(mhit_pair > MaxDepth) break;
-
-	Double_t time     = hit->GetTime(m);
-	Double_t ctime    = hit->GetCTime(m);
-	Double_t width    = hit->GetWidth(m);
-
-	HF1(SCHHid +4, width);
-	HF2(SCHHid +6, seg, width);
-	HF1(SCHHid +21, time);
-	HF2(SCHHid +22, width, time);
-	HF1(SCHHid +31, ctime);
-	HF2(SCHHid +32, width, ctime);
-	HF1(SCHHid +2000+seg+1, width);
-	if(-10.<time && time<10.){
-	  HF2(SCHHid +3000+seg+1, width, time);
-	  HF2(SCHHid +4000+seg+1, width, ctime);
-	}
-
-	event.sch_tot[seg][m]      = width;
-
-      }//for(m)
-      if(hit_flag){
-	HF1(SCHHid +2, seg+0.5);
-	event.sch_hitpat[sch_nhits++] = seg;
-      }
-    }
-    HF1(SCHHid +1, sch_nhits);
-    event.sch_nhits = sch_nhits;
-
-    // Fiber Cluster
-#if TimeCut
-    hodoAna->TimeCutSCH(MinTimeSCH, MaxTimeSCH);
-#endif
-    Int_t ncl = hodoAna->GetNClustersSCH();
-    if(ncl > NumOfSegSCH){
-      // std::cout << "#W SCH too much number of clusters" << std::endl;
-      ncl = NumOfSegSCH;
-    }
-    event.sch_ncl = ncl;
-    HF1(SCHHid +101, ncl);
-    for(Int_t i=0; i<ncl; ++i){
-      FiberCluster *cl = hodoAna->GetClusterSCH(i);
-      if(!cl) continue;
-      Double_t clsize = cl->ClusterSize();
-      Double_t ctime  = cl->CMeanTime();
-      Double_t ctot   = cl->Width();
-      Double_t pos    = cl->MeanPosition();
-      Double_t seg    = cl->MeanSeg();
-      event.sch_clsize[i] = clsize;
-      event.sch_ctime[i]  = ctime;
-      event.sch_ctot[i]   = ctot;
-      event.sch_clpos[i]  = pos;
-      event.sch_clseg[i]  = seg;
-      HF1(SCHHid +102, clsize);
-      HF1(SCHHid +103, ctime);
-      HF1(SCHHid +104, ctot);
-      HF2(SCHHid +105, ctot, ctime);
-      HF1(SCHHid +106, pos);
     }
   }
 
@@ -623,39 +491,6 @@ ConfMan::InitializeHistograms()
   HB1(BFTHid +106, "BFT Cluster Position",
       NumOfSegBFT, -0.5*(Double_t)NumOfSegBFT, 0.5*(Double_t)NumOfSegBFT);
 
-  //SCH
-  HB1(SCHHid +1, "SCH Nhits",     NumOfSegSCH, 0., (Double_t)NumOfSegSCH);
-  HB1(SCHHid +2, "SCH Hitpat",    NumOfSegSCH, 0., (Double_t)NumOfSegSCH);
-  HB1(SCHHid +3, "SCH Tdc",      NbinTdc, MinTdc, MaxTdc);
-  HB1(SCHHid +4, "SCH Tot",      NbinTot, MinTot, MaxTot);
-  HB2(SCHHid +5, "SCH Tdc U%Seg",
-      NumOfSegSCH, 0., (Double_t)NumOfSegSCH, NbinTdc, MinTdc, MaxTdc);
-  HB2(SCHHid +6, "SCH Tot U%Seg",
-      NumOfSegSCH, 0., (Double_t)NumOfSegSCH, NbinTot, MinTot, MaxTot);
-  HB2(SCHHid +13, "SCH Tot D%Seg",
-      NumOfSegSCH, 0., (Double_t)NumOfSegSCH, NbinTot, MinTot, MaxTot);
-  for(Int_t i=0; i<NumOfSegSCH; i++){
-    HB1(SCHHid +1000+i+1, Form("SCH Tdc %d", i+1), NbinTdc, MinTdc, MaxTdc);
-    HB1(SCHHid +2000+i+1, Form("SCH Tot %d", i+1), NbinTot, MinTot, MaxTot);
-    HB2(SCHHid +3000+i+1, Form("SCH Time/Tot %d", i+1),
-        NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
-    HB2(SCHHid +4000+i+1, Form("SCH CTime/Tot %d", i+1),
-        NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
-  }
-  HB1(SCHHid +21, "SCH Time",     NbinTime, MinTime, MaxTime);
-  HB2(SCHHid +22, "SCH Time/Tot", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
-  HB1(SCHHid +31, "SCH CTime",     NbinTime, MinTime, MaxTime);
-  HB2(SCHHid +32, "SCH CTime/Tot", NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
-
-  HB1(SCHHid +101, "SCH NCluster", 20, 0, 20);
-  HB1(SCHHid +102, "SCH Cluster Size", 5, 0, 5);
-  HB1(SCHHid +103, "SCH CTime (Cluster)", NbinTime, MinTime, MaxTime);
-  HB1(SCHHid +104, "SCH Tot (Cluster)", NbinTot, MinTot, MaxTot);
-  HB2(SCHHid +105, "SCH CTime%Tot (Cluster)",
-      NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
-  HB1(SCHHid +106, "SCH Cluster Position",
-      NumOfSegSCH, -0.5*(Double_t)NumOfSegSCH, 0.5*(Double_t)NumOfSegSCH);
-
   //Tree
   HBTree("ea0c", "tree of Easiroc");
   //Trig
@@ -692,26 +527,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("bft_clpos",      event.bft_clpos,        "bft_clpos[bft_ncl]/D");
   tree->Branch("bft_clseg",      event.bft_clseg,        "bft_clseg[bft_ncl]/D");
 
-  //SCH
-#if FHitBranch
-  tree->Branch("sch_nhits",     &event.sch_nhits,        "sch_nhits/I");
-  tree->Branch("sch_hitpat",     event.sch_hitpat,       "sch_hitpat[sch_nhits]/I");
-  tree->Branch("sch_tdc",        event.sch_tdc,          Form("sch_tdc[%d][%d]/D",
-							      NumOfSegSCH, MaxDepth));
-  tree->Branch("sch_trailing",   event.sch_trailing,     Form("sch_trailing[%d][%d]/D",
-							      NumOfSegSCH, MaxDepth));
-  tree->Branch("sch_tot",        event.sch_tot,          Form("sch_tot[%d][%d]/D",
-							      NumOfSegSCH, MaxDepth));
-  tree->Branch("sch_depth",      event.sch_depth,        Form("sch_depth[%d]/I", NumOfSegSCH));
-#endif
-  tree->Branch("sch_ncl",       &event.sch_ncl,          "sch_ncl/I");
-  tree->Branch("sch_clsize",     event.sch_clsize,       "sch_clsize[sch_ncl]/I");
-  tree->Branch("sch_ctime",      event.sch_ctime,        "sch_ctime[sch_ncl]/D");
-  tree->Branch("sch_ctot",       event.sch_ctot,         "sch_ctot[sch_ncl]/D");
-  tree->Branch("sch_clpos",      event.sch_clpos,        "sch_clpos[sch_ncl]/D");
-  tree->Branch("sch_clseg",      event.sch_clseg,        "sch_clseg[sch_ncl]/D");
-
-  HPrint();
+  // HPrint();
   return true;
 }
 

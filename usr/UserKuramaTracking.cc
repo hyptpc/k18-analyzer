@@ -16,6 +16,8 @@
 #include "DebugTimer.hh"
 #include "DetectorID.hh"
 #include "FuncName.hh"
+#include "HodoAnalyzer.hh"
+#include "HodoHit.hh"
 #include "MathTools.hh"
 #include "RMAnalyzer.hh"
 #include "KuramaLib.hh"
@@ -332,9 +334,9 @@ UserKuramaTracking::ProcessingNormal()
 
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
-  for(const auto& hit: rawData->GetTrigRawHC()){
+  for(const auto& hit: rawData->GetHodoRawHitContainer("TFlag")){
     Int_t seg = hit->SegmentId();
-    Int_t tdc = hit->GetTdc1();
+    Int_t tdc = hit->GetTdc();
     if(tdc > 0){
       event.trigpat[trigger_flag.count()] = seg;
       event.trigflag[seg] = tdc;
@@ -362,7 +364,7 @@ UserKuramaTracking::ProcessingNormal()
   //////////////BH2 Analysis
   Double_t min_time = -999.;
   for(Int_t i=0; i<nhBh2; ++i){
-    BH2Hit *hit = hodoAna->GetHitBH2(i);
+    auto hit = hodoAna->GetHitBH2(i);
     if(!hit) continue;
     Double_t seg = hit->SegmentId()+1;
     Double_t mt  = hit->MeanTime();
@@ -395,7 +397,7 @@ UserKuramaTracking::ProcessingNormal()
 
   Double_t btof0 = -999.;
   for(Int_t i=0; i<nhBh1; ++i){
-    Hodo2Hit *hit = hodoAna->GetHitBH1(i);
+    auto hit = hodoAna->GetHitBH1(i);
     if(!hit) continue;
     Int_t    seg  = hit->SegmentId()+1;
     Double_t cmt  = hit->CMeanTime();
@@ -428,7 +430,7 @@ UserKuramaTracking::ProcessingNormal()
     Int_t nhOk = 0;
 #endif
     for(Int_t i=0; i<nhTof; ++i){
-      HodoCluster *hit = hodoAna->GetClusterTOF(i);
+      auto hit = hodoAna->GetClusterTOF(i);
       Double_t seg = hit->MeanSeg()+1;
       Double_t cmt = hit->CMeanTime();
       Double_t dt  = hit->TimeDif();
@@ -482,7 +484,7 @@ UserKuramaTracking::ProcessingNormal()
       const DCHitContainer &contSdcIn =DCAna->GetSdcInHC(layer);
       Int_t nhSdcIn = contSdcIn.size();
       if(nhSdcIn==1){
-	DCHit *hit = contSdcIn[0];
+	auto hit = contSdcIn[0];
 	Double_t wpos = hit->GetWirePosition();
 	event.wposSdcIn[layer-1] = wpos;
       }
@@ -504,7 +506,7 @@ UserKuramaTracking::ProcessingNormal()
       const DCHitContainer &contSdcOut =DCAna->GetSdcOutHC(layer);
       Int_t nhSdcOut=contSdcOut.size();
       if(nhSdcOut==1){
-	DCHit *hit = contSdcOut[0];
+	auto hit = contSdcOut[0];
 	Double_t wpos = hit->GetWirePosition();
 	event.wposSdcOut[layer-1] = wpos;
       }
@@ -836,7 +838,7 @@ UserKuramaTracking::ProcessingNormal()
       Double_t dl   = hit->GetHit()->GetDriftLength();
       Double_t pos  = hit->GetCalLPos();
       Double_t res  = hit->GetResidual();
-      DCLTrackHit *lhit = hit->GetHit();
+      auto lhit = hit->GetHit();
       Double_t xcal = lhit->GetXcal();
       Double_t ycal = lhit->GetYcal();
       HF1(100*layerId+11, Double_t(wire)-0.5);
@@ -923,7 +925,7 @@ UserKuramaTracking::ProcessingNormal()
   {
     Int_t nh = hodoAna->GetNHitsTOF();
     for(Int_t i=0; i<nh; ++i){
-      Hodo2Hit *hit=hodoAna->GetHitTOF(i);
+      auto hit=hodoAna->GetHitTOF(i);
       if(!hit) continue;
       Int_t seg=hit->SegmentId()+1;
       Double_t tu = hit->GetTUp(), td=hit->GetTDown();
@@ -947,10 +949,10 @@ UserKuramaTracking::ProcessingNormal()
       HF2(30000+100*seg+84, dde, calt[Event::Pion]+time0-StofOffset-td);
     }
 
-    const HodoRHitContainer &cont=rawData->GetTOFRawHC();
+    const auto& cont = rawData->GetHodoRawHitContainer("TOF");
     Int_t NofHit = cont.size();
     for(Int_t i = 0; i<NofHit; ++i){
-      HodoRawHit *hit = cont[i];
+      auto hit = cont[i];
       Int_t seg = hit->SegmentId();
       event.tofua[seg] = hit->GetAdcUp();
       event.tofda[seg] = hit->GetAdcDown();

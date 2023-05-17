@@ -14,6 +14,8 @@
 #include "DCRawHit.hh"
 #include "DetectorID.hh"
 #include "FuncName.hh"
+#include "HodoAnalyzer.hh"
+#include "HodoHit.hh"
 #include "RMAnalyzer.hh"
 #include "RootHelper.hh"
 #include "KuramaLib.hh"
@@ -236,9 +238,9 @@ UserSdcOutTracking::ProcessingNormal()
 
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
-  for(const auto& hit: rawData->GetTrigRawHC()){
+  for(const auto& hit: rawData->GetHodoRawHitContainer("TFlag")){
     Int_t seg = hit->SegmentId();
-    Int_t tdc = hit->GetTdc1();
+    Int_t tdc = hit->GetTdc();
     if(tdc > 0){
       event.trigpat[trigger_flag.count()] = seg;
       event.trigflag[seg] = tdc;
@@ -267,7 +269,7 @@ UserSdcOutTracking::ProcessingNormal()
   Double_t time0 = -9999.;
   //////////////BH2 Analysis
   for(Int_t i=0; i<nhBh2; ++i){
-    BH2Hit* hit = hodoAna->GetHitBH2(i);
+    auto hit = hodoAna->GetHitBH2(i);
     if(!hit) continue;
     Double_t seg = hit->SegmentId()+1;
     Double_t cmt = hit->CMeanTime();
@@ -306,7 +308,7 @@ UserSdcOutTracking::ProcessingNormal()
   HF1(1, 4);
 
   for(Int_t i=0; i<nhBh1; ++i){
-    Hodo2Hit *hit = hodoAna->GetHitBH1(i);
+    auto hit = hodoAna->GetHitBH1(i);
     if(!hit) continue;
     Double_t cmt = hit->CMeanTime();
     Double_t dE  = hit->DeltaE();
@@ -339,7 +341,7 @@ UserSdcOutTracking::ProcessingNormal()
   {
     Int_t nhOk = 0;
     for(Int_t i=0; i<nhTof; ++i){
-      HodoCluster *hit = hodoAna->GetClusterTOF(i);
+      auto hit = hodoAna->GetClusterTOF(i);
       if(!hit) continue;
       Double_t cmt  = hit->CMeanTime();
       Double_t dt   = hit->TimeDif();

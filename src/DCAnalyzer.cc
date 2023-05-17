@@ -22,8 +22,7 @@
 #include "DebugTimer.hh"
 #include "FiberCluster.hh"
 #include "FuncName.hh"
-#include "Hodo1Hit.hh"
-#include "Hodo2Hit.hh"
+#include "HodoHit.hh"
 #include "HodoAnalyzer.hh"
 #include "HodoCluster.hh"
 #include "K18Parameters.hh"
@@ -375,7 +374,7 @@ DCAnalyzer::DecodeRawHits(RawData *rawData)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::DecodeTOFHits(const Hodo2HitContainer& HitCont)
+DCAnalyzer::DecodeTOFHits(const HodoHitContainer& HitCont)
 {
   if(m_is_decoded[kTOF]){
     hddaq::cout << FUNC_NAME << " "
@@ -566,7 +565,7 @@ DCAnalyzer::TrackSearchSdcOut()
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchSdcOut(const Hodo2HitContainer& TOFCont)
+DCAnalyzer::TrackSearchSdcOut(const HodoHitContainer& TOFCont)
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcOut");
 

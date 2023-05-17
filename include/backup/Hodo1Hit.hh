@@ -4,10 +4,10 @@
 #define HODO1_HIT_HH
 
 #include "HodoRawHit.hh"
-#include "HodoHit.hh"
+#include "HodoVHit.hh"
 
 //_____________________________________________________________________________
-class Hodo1Hit : public HodoHit
+class Hodo1Hit : public HodoVHit
 {
 public:
   explicit Hodo1Hit(HodoRawHit *rhit, Int_t index=0);

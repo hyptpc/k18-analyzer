@@ -16,8 +16,7 @@
 #include "RMAnalyzer.hh"
 #include "FiberCluster.hh"
 #include "FiberHit.hh"
-#include "Hodo1Hit.hh"
-#include "Hodo2Hit.hh"
+#include "HodoHit.hh"
 #include "HodoCluster.hh"
 #include "HodoAnalyzer.hh"
 #include "HodoParamMan.hh"
@@ -260,9 +259,9 @@ UserK18Tracking::ProcessingNormal()
   ///// Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
   {
-    for(const auto& hit: rawData->GetTrigRawHC()){
+    for(const auto& hit: rawData->GetHodoRawHitContainer("TFlag")){
       Int_t seg = hit->SegmentId();
-      Int_t tdc = hit->GetTdc1();
+      Int_t tdc = hit->GetTdc();
       if(tdc > 0){
 	event.trigpat[trigger_flag.count()] = seg;
 	event.trigflag[seg]  = tdc;
