@@ -12,7 +12,7 @@
 
 #include "DebugCounter.hh"
 #include "FiberHit.hh"
-#include "FLHit.hh"
+// #include "FLHit.hh"
 #include "FuncName.hh"
 
 namespace
@@ -44,7 +44,7 @@ FiberCluster::~FiberCluster()
 }
 
 //_____________________________________________________________________________
-FLHit*
+FiberHit*
 FiberCluster::GetHit(Int_t i) const
 {
   return m_hit_container.at(i);
@@ -74,6 +74,8 @@ FiberCluster::Calculate()
 		<< "No FiberHit in local container" << std::endl;
     return false;
   }
+
+#if 0
 
   Double_t mean_seg       = 0.;
   Double_t mean_pos       = 0.;
@@ -159,6 +161,8 @@ FiberCluster::Calculate()
   m_real_mean_time = real_mean_time;
   m_cluster_id     = (m_cluster_size == 1) ? 2*cluster_id : cluster_id;
 
+#endif
+
   if(m_cluster_size == 0){
     //    std::cout << "FiberCluster is destroied" << std::endl;
     return false;
@@ -179,6 +183,6 @@ FiberCluster::Debug()
 {
   hddaq::cout << "Used hit" << std::endl;
   for(Int_t i = 0; i<m_cluster_size; ++i){
-    m_hit_container.at(i)->Dump();
+    // m_hit_container.at(i)->Dump();
   }
 }

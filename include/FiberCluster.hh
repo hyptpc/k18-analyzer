@@ -7,7 +7,7 @@
 
 #include <TString.h>
 
-class FLHit;
+class FiberHit;
 
 //_____________________________________________________________________________
 class FiberCluster
@@ -22,7 +22,7 @@ private:
   FiberCluster& operator =(const FiberCluster& object);
 
 protected:
-  typedef std::vector<FLHit*> HitContainer;
+  using HitContainer = std::vector<FiberHit*>;
   enum FlagsFiber { Initialized, gfastatus, sizeFlagsFiber };
   HitContainer m_hit_container;
   Int_t          m_cluster_size;
@@ -48,7 +48,7 @@ protected:
 
 public:
   Bool_t   Calculate();
-  void     push_back(FLHit* hit) { m_hit_container.push_back(hit); }
+  void     push_back(FiberHit* hit) { m_hit_container.push_back(hit); }
   Int_t    VectorSize() const { return m_hit_container.size(); }
   Int_t    ClusterId() const { return m_cluster_id; }
   Int_t    ClusterSize() const { return m_cluster_size; }
@@ -69,7 +69,7 @@ public:
   Double_t MaxMipLG() const { return m_max_mip_lg; }
   Double_t MaxDeLG() const { return m_max_de_lg; }
   Double_t MaxSeg() const { return m_max_seg; }
-  FLHit*   GetHit(Int_t i) const;
+  FiberHit* GetHit(Int_t i) const;
   Bool_t   GoodForAnalysis() const { return m_flag[gfastatus]; }
   Bool_t   GoodForAnalysis(Bool_t status);
   Bool_t   ReCalc(Bool_t applyRecusively=false);

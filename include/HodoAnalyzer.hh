@@ -53,6 +53,7 @@ private:
   FiberClusterContainer       m_BFTClCont;
 
 public:
+  template <typename T=HodoHit>
   Bool_t DecodeHits(const TString& name, Double_t max_time_diff=10.);
   Bool_t DecodeBFTHits();
   const HodoHitContainer& GetHitContainer(const TString& name) const;
@@ -134,6 +135,35 @@ HodoAnalyzer::ClassName()
 {
   static TString s_name("HodoAnalyzer");
   return s_name;
+}
+
+//_____________________________________________________________________________
+template <typename T>
+inline Bool_t
+HodoAnalyzer::DecodeHits(const TString& name, Double_t max_time_diff)
+{
+  auto& cont = m_hodo_hit_collection[name];
+  for(auto& hit: cont){
+    delete hit;
+  }
+  cont.clear();
+
+  for(auto& rhit: m_raw_data->GetHodoRawHitContainer(name)){
+    if(!rhit) continue;
+    auto hit = new T(rhit);
+    if(hit && hit->Calculate()){
+      cont.push_back(hit);
+    }else{
+      delete hit;
+    }
+  }
+
+#if Cluster
+  auto& cl_cont = m_hodo_cluster_collection[name];
+  MakeUpClusters(cont, cl_cont, max_time_diff);
+#endif
+
+  return true;
 }
 
 #endif

@@ -213,7 +213,7 @@ UserEasiroc::ProcessingNormal()
   HF1(1, 1);
 
   ////////// BH2 time 0
-  hodoAna.DecodeHits("BH2");
+  hodoAna.DecodeHits<BH2Hit>("BH2");
   Int_t nhBh2 = hodoAna.GetNHits("BH2");
 #if HodoCut
   if(nhBh2==0) return true;
@@ -268,96 +268,59 @@ UserEasiroc::ProcessingNormal()
   HF1(1, 6);
 
   ////////// BFT
+  hodoAna.DecodeHits<FiberHit>("BFT");
   {
-    hodoAna.DecodeBFTHits();
-    return true;
-    // Fiber Hit
+    const auto& U = HodoRawHit::kUp;
+    Int_t nh = hodoAna.GetNHits("BFT");
     Int_t unhits = 0;
     Int_t dnhits = 0;
-    for(Int_t plane = 0; plane<NumOfPlaneBFT; ++plane){
-      Int_t nh = hodoAna.GetNHitsBFT(plane);
-      enum { U, D };
-      for(Int_t i=0; i<nh; ++i){
-	auto hit = hodoAna.GetHitBFT(plane, i);
-	if(!hit) continue;
-	Int_t mhit_l  = hit->GetEntries();
-	Int_t mhit_t  = hit->GetEntries();
-	Int_t seg   = hit->SegmentId();
-	if(plane==U) event.bft_udepth[seg] = mhit_l;
-	if(plane==D) event.bft_ddepth[seg] = mhit_l;
-
-	Int_t  prev = 0;
-	Bool_t hit_flag = false;
-
-	// raw leading data
-	for(Int_t m=0; m<mhit_l; ++m){
-	  if(mhit_l > MaxDepth) break;
-	  Double_t leading  = hit->GetTimeLeading(HodoRawHit::kUp, m);
-
-	  if(leading==prev) continue;
-	  prev = leading;
-	  HF1(BFTHid +plane + 6, leading);
-	  HF2(BFTHid +plane + 10, seg, leading);
-	  HF1(BFTHid +1000*(1+plane)+seg+1, leading);
-
-	  if(plane==U){
-	    event.bft_utdc[seg][m]      = leading;
-	  }
-	  if(plane==D){
-	    event.bft_dtdc[seg][m]      = leading;
-	  }
-
-	  if(MinTdcBFT<leading && leading<MaxTdcBFT){
-	    hit_flag = true;
-	  }
-	}// for(m)
-
-	// raw leading data
-	for(Int_t m=0; m<mhit_t; ++m){
-	  if(mhit_t > MaxDepth) break;
-	  Double_t trailing = hit->GetTdcTrailing(m);
-
-	  if(plane==U){
-	    event.bft_utrailing[seg][m] = trailing;
-	  }
-	  if(plane==D){
-	    event.bft_dtrailing[seg][m] = trailing;
-	  }
-
-	}// for(m)
-
-	Int_t mhit_pair  = hit->GetNPair();
-	// pair data
-	for(Int_t m=0; m<mhit_pair; ++m){
-	  if(mhit_pair > MaxDepth) break;
-	  Double_t time     = hit->GetTime(m);
-	  Double_t ctime    = hit->GetCTime(m);
-	  Double_t width    = hit->GetWidth(m);
-
-	  HF1(BFTHid +plane+8, width);
-	  HF2(BFTHid +plane+12, seg, width);
-	  HF1(BFTHid +plane+21, time);
-	  HF1(BFTHid +plane+31, ctime);
-	  HF1(BFTHid +1000*(plane+3)+seg+1, width);
-	  if(-10.<time && time<10.){
-            HF2(BFTHid +plane+23, width, time);
-            HF2(BFTHid +plane+33, width, ctime);
-	    HF2(BFTHid +1000*(plane+5)+seg+1, width, time);
-	    HF2(BFTHid +1000*(plane+7)+seg+1, width, ctime);
-	  }
-	  if(plane==U){
-	    event.bft_utot[seg][m]      = width;
-	  }
-	  if(plane==D){
-	    event.bft_dtot[seg][m]      = width;
-	  }
-
-	}
-	if(hit_flag){
+    for(Int_t i=0; i<nh; ++i){
+      const auto& hit = hodoAna.GetHit("BFT", i);
+      const auto& rhit = hit->GetRawHit();
+      Int_t plane = hit->PlaneId();
+      Int_t seg = hit->SegmentId();
+      // Raw
+      Int_t mh_l = rhit->GetSizeTdcLeading();
+      if(plane == 0) event.bft_udepth[seg] = mh_l;
+      for(Int_t j=0; j<mh_l; ++j){
+        Double_t leading = rhit->GetTdcLeading(U, j);
+        HF1(BFTHid +plane + 6, leading);
+        HF2(BFTHid +plane + 10, seg, leading);
+        HF1(BFTHid +1000*(1+plane)+seg+1, leading);
+        if(plane == 0) event.bft_utdc[seg][j] = leading;
+        if(plane == 1) event.bft_dtdc[seg][j] = leading;
+        if(MinTdcBFT<leading && leading<MaxTdcBFT){
 	  HF1(BFTHid +plane+4, seg+0.5);
-	  if(plane==U) event.bft_uhitpat[unhits++] = seg;
-	  if(plane==D) event.bft_dhitpat[dnhits++] = seg;
-	}
+	  if(plane==0) event.bft_uhitpat[unhits++] = seg;
+	  if(plane==1) event.bft_dhitpat[dnhits++] = seg;
+        }
+      }
+      Int_t mh_t = rhit->GetSizeTdcTrailing();
+      if(plane == 1) event.bft_ddepth[seg] = mh_l;
+      for(Int_t j=0; j<mh_t; ++j){
+        Double_t trailing = rhit->GetTdcTrailing(U, j);
+        if(plane == 0) event.bft_utrailing[seg][j] = trailing;
+        if(plane == 1) event.bft_dtrailing[seg][j] = trailing;
+      }
+      // Normalized
+      Int_t mh = hit->GetEntries();
+      for(Int_t j=0; j<mh; ++j){
+        Double_t time  = hit->MeanTime(j);
+        Double_t ctime = hit->CMeanTime(j);
+        Double_t tot   = hit->TOT(U, j);
+        HF1(BFTHid +plane+8, tot);
+        HF2(BFTHid +plane+12, seg, tot);
+        HF1(BFTHid +plane+21, time);
+        HF1(BFTHid +plane+31, ctime);
+        HF1(BFTHid +1000*(plane+3)+seg+1, tot);
+        if(plane == 0) event.bft_utot[seg][j] = tot;
+        if(plane == 1) event.bft_dtot[seg][j] = tot;
+        if(-10.<time && time<10.){
+          HF2(BFTHid +plane+23, tot, time);
+          HF2(BFTHid +plane+33, tot, ctime);
+          HF2(BFTHid +1000*(plane+5)+seg+1, tot, time);
+          HF2(BFTHid +1000*(plane+7)+seg+1, tot, ctime);
+        }
       }
     }
     HF1(BFTHid +1, unhits);
@@ -366,6 +329,8 @@ UserEasiroc::ProcessingNormal()
     event.bft_unhits = unhits;
     event.bft_dnhits = dnhits;
     event.bft_nhits  = unhits + dnhits;
+
+    return true;
 
     // Fiber Cluster
 #if TimeCut

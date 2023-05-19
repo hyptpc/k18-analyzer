@@ -18,7 +18,6 @@
 #include "RMAnalyzer.hh"
 #include "FiberCluster.hh"
 #include "FiberHit.hh"
-#include "FLHit.hh"
 #include "FuncName.hh"
 #include "HodoAnalyzer.hh"
 #include "HodoHit.hh"

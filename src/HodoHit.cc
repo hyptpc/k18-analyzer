@@ -127,34 +127,34 @@ HodoHit::Calculate()
   //   gHodo.GetTime(id, plane, seg, 2, 0., offset_vtof);
   // }
 
-  auto& lu_cont = leading.at(HodoRawHit::kUp);
-  auto& ld_cont = leading.at(HodoRawHit::kDown);
-  auto& clu_cont = cleading.at(HodoRawHit::kUp);
-  auto& cld_cont = cleading.at(HodoRawHit::kDown);
+  auto& lu_buf = leading.at(HodoRawHit::kUp);
+  auto& ld_buf = leading.at(HodoRawHit::kDown);
+  auto& clu_buf = cleading.at(HodoRawHit::kUp);
+  auto& cld_buf = cleading.at(HodoRawHit::kDown);
 
-  auto& tu_cont = trailing.at(HodoRawHit::kUp);
-  auto& td_cont = trailing.at(HodoRawHit::kDown);
-  auto& ctu_cont = ctrailing.at(HodoRawHit::kUp);
-  auto& ctd_cont = ctrailing.at(HodoRawHit::kDown);
+  auto& lu_cont = m_time_leading.at(HodoRawHit::kUp);
+  auto& ld_cont = m_time_leading.at(HodoRawHit::kDown);
+  auto& clu_cont = m_ctime_leading.at(HodoRawHit::kUp);
+  auto& cld_cont = m_ctime_leading.at(HodoRawHit::kDown);
 
-  for(Int_t ju=0; ju<lu_cont.size(); ++ju){
-    Double_t lu = lu_cont.at(ju);
-    Double_t clu = clu_cont.at(ju);
-    // one-side readout
-    if(m_n_ch == 1){
-      m_time_leading.at(HodoRawHit::kUp).push_back(lu);
-      m_ctime_leading.at(HodoRawHit::kUp).push_back(clu);
-    }
-    // two-side readout
-    else{
-      for(Int_t jd=0; jd<ld_cont.size(); ++jd){
-        Double_t ld = ld_cont.at(jd);
+  // one-side readout
+  if(m_n_ch == 1){
+    lu_cont = lu_buf;
+    clu_cont = clu_buf;
+  }
+  // two-side readout
+  else{
+    for(Int_t ju=0; ju<lu_buf.size(); ++ju){
+      Double_t lu = lu_buf.at(ju);
+      Double_t clu = clu_buf.at(ju);
+      for(Int_t jd=0; jd<ld_buf.size(); ++jd){
+        Double_t ld = ld_buf.at(jd);
         if(TMath::Abs(lu - ld) < m_max_time_diff){
-          m_time_leading.at(HodoRawHit::kUp).push_back(lu);
-          m_time_leading.at(HodoRawHit::kDown).push_back(ld);
-          Double_t cld = cld_cont.at(jd);
-          m_ctime_leading.at(HodoRawHit::kUp).push_back(clu);
-          m_ctime_leading.at(HodoRawHit::kDown).push_back(cld);
+          Double_t cld = cld_buf.at(jd);
+          lu_cont.push_back(lu);
+          ld_cont.push_back(ld);
+          clu_cont.push_back(clu);
+          cld_cont.push_back(cld);
           break;
         }else{
           ;
@@ -165,6 +165,15 @@ HodoHit::Calculate()
 
   m_time_leading.at(HodoRawHit::kExtra) = leading.at(HodoRawHit::kExtra);
   m_ctime_leading.at(HodoRawHit::kExtra) = cleading.at(HodoRawHit::kExtra);
+  for(Int_t ch=0; ch<HodoRawHit::kNChannel; ++ch){
+    m_time_trailing.at(ch) = trailing.at(ch);
+    m_ctime_trailing.at(ch) = trailing.at(ch);
+  }
+
+  /*
+    HodoHit considers only the coinsidence of Up/Down LEADINGs
+    and does not care about the presence/absence of TRAILINGs or the counts.
+  */
 
   m_is_calculated = true;
   return (m_ctime_leading.at(HodoRawHit::kUp).size() > 0);
@@ -172,7 +181,7 @@ HodoHit::Calculate()
 
 //_____________________________________________________________________________
 Double_t
-HodoHit::DeltaE(Int_t j) const
+HodoHit::DeltaEHighGain(Int_t j) const
 {
   try {
     if(m_n_ch == 1){
@@ -181,6 +190,23 @@ HodoHit::DeltaE(Int_t j) const
       return TMath::Sqrt(
         TMath::Abs(m_de_high.at(HodoRawHit::kUp).at(j) *
                    m_de_high.at(HodoRawHit::kDown).at(j)));
+    }
+  }catch(const std::out_of_range& e){
+    return TMath::QuietNaN();
+  }
+}
+
+//_____________________________________________________________________________
+Double_t
+HodoHit::DeltaELowGain(Int_t j) const
+{
+  try {
+    if(m_n_ch == 1){
+      return m_de_low.at(HodoRawHit::kUp).at(j);
+    }else{
+      return TMath::Sqrt(
+        TMath::Abs(m_de_low.at(HodoRawHit::kUp).at(j) *
+                   m_de_low.at(HodoRawHit::kDown).at(j)));
     }
   }catch(const std::out_of_range& e){
     return TMath::QuietNaN();

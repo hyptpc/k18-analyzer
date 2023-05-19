@@ -37,7 +37,7 @@ protected:
   data_t m_time_leading;
   data_t m_time_trailing;
   data_t m_ctime_leading;
-  data_t m_ctime_trailing;
+  data_t m_ctime_trailing; // no use
   std::vector<Bool_t> m_flag_join;
 
 public:
@@ -73,13 +73,15 @@ public:
   // Double_t CTOT(Int_t i, Int_t j=0) const
   //   { return CTimeOverThreshold(i, j); }
 
-  Double_t DeltaE(Int_t j=0) const;
+  Double_t DeltaEHighGain(Int_t j=0) const;
+  Double_t DeltaELowGain(Int_t j=0) const;
   Double_t MeanTime(Int_t j=0) const;
   Double_t CMeanTime(Int_t j=0) const;
   Double_t TimeDiff(Int_t j=0) const;
   Double_t CTimeDiff(Int_t j=0) const;
 
   // aliases
+  Double_t DeltaE(Int_t j=0) const { return DeltaEHighGain(j); }
   Double_t A(Int_t i, Int_t j=0) const { return GetDeltaEHighGain(i, j); }
   Double_t GetA(Int_t i, Int_t j=0) const { return A(i, j); }
   Double_t GetAUp(Int_t j=0) const { return A(HodoRawHit::kUp, j); }

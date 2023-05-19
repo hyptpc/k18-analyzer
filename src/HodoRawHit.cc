@@ -6,21 +6,24 @@
 
 #include <TMath.h>
 
+#include <UnpackerConfig.hh>
 #include <UnpackerManager.hh>
+#include <UnpackerXMLReadDigit.hh>
 
 #include "DebugCounter.hh"
 #include "FuncName.hh"
 
 namespace
 {
-const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
+const auto& gConf = hddaq::unpacker::GConfig::get_instance();
 }
 
 //_____________________________________________________________________________
 HodoRawHit::HodoRawHit(const TString& detector_name,
                        Int_t plane_id, Int_t segment_id)
   : m_detector_name(detector_name),
-    m_detector_id(gUnpacker.get_device_id(detector_name)),
+    m_detector_id(),
+    m_plane_name(),
     m_plane_id(plane_id),
     m_segment_id(segment_id),
     m_adc_high(kNChannel),
@@ -29,6 +32,10 @@ HodoRawHit::HodoRawHit(const TString& detector_name,
     m_tdc_trailing(kNChannel),
     m_tdc_is_overflow(false)
 {
+  static const auto& digit_info = gConf.get_digit_info();
+  m_detector_id = digit_info.get_device_id(detector_name.Data());
+  const auto& plane_names = digit_info.get_name_list(m_detector_id);
+  m_plane_name = plane_names.at(plane_id);
   debug::ObjectCounter::increase(ClassName());
 }
 

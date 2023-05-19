@@ -20,6 +20,7 @@ private:
   using data_t = std::vector<std::vector<Double_t>>;
   TString m_detector_name;
   Int_t   m_detector_id;
+  TString m_plane_name;
   Int_t   m_plane_id;
   Int_t   m_segment_id;
   data_t  m_adc_high;
@@ -31,6 +32,7 @@ private:
 public:
   const TString& DetectorName() const { return m_detector_name; }
   Int_t DetectorId() const { return m_detector_id; }
+  const TString& PlaneName() const { return m_plane_name; }
   Int_t PlaneId() const { return m_plane_id; }
   Int_t SegmentId() const { return m_segment_id; }
 

@@ -15,7 +15,7 @@
 #include "DeleteUtility.hh"
 #include "FiberCluster.hh"
 #include "FiberHit.hh"
-#include "FLHit.hh"
+// #include "FLHit.hh"
 #include "FuncName.hh"
 #include "HodoHit.hh"
 #include "HodoCluster.hh"
@@ -69,40 +69,6 @@ HodoAnalyzer::ClearBFTHits()
     del::ClearContainer(*itr);
   }
   del::ClearContainer(m_BFTClCont);
-}
-
-//_____________________________________________________________________________
-Bool_t
-HodoAnalyzer::DecodeHits(const TString& name, Double_t max_time_diff)
-{
-  auto& cont = m_hodo_hit_collection[name];
-  for(auto& hit: cont){
-    delete hit;
-  }
-  cont.clear();
-
-  for(auto& rhit: m_raw_data->GetHodoRawHitContainer(name)){
-    if(!rhit) continue;
-    HodoHit* hit;
-    if(name.EqualTo("BH2")){
-      hit = new BH2Hit(rhit);
-    }else{
-      hit = new HodoHit(rhit);
-    }
-    if(hit && hit->Calculate()){
-      cont.push_back(hit);
-    }else{
-      delete hit;
-    }
-  }
-
-#if Cluster
-  auto& cl_cont = m_hodo_cluster_collection[name];
-  MakeUpClusters(cont, cl_cont, MaxTimeDifBH1);
-#endif
-
-  // DecodeBFTHits(m_raw_data);
-  return true;
 }
 
 //_____________________________________________________________________________
@@ -307,7 +273,7 @@ HodoAnalyzer::MakeUpClusters(const FiberHitContainer& cont,
     for(Int_t mhitA=0, NofHitA=HitA->GetEntries(); mhitA<NofHitA; ++mhitA){
       if(HitA->Joined(mhitA)) continue;
       FiberCluster *cluster = new FiberCluster;
-      cluster->push_back(new FLHit(HitA, mhitA));
+      // cluster->push_back(new FLHit(HitA, mhitA));
       if(!fl_ClCandA){
 	// there is no more candidates
 	if(cluster->Calculate()){
@@ -329,7 +295,7 @@ HodoAnalyzer::MakeUpClusters(const FiberHitContainer& cont,
 	FiberHit* HitB = cont.at(seg+1);
 	cmtB = (Double_t)HitB->GetCTime(mhitB);
 	if(std::abs(cmtB-cmtA)<maxTimeDif){
-	  cluster->push_back(new FLHit(HitB, mhitB));
+	  // cluster->push_back(new FLHit(HitB, mhitB));
 	  CurrentPair = HitB->PairId();
 	  fl_HitB = true;
 	  break;
@@ -363,7 +329,7 @@ HodoAnalyzer::MakeUpClusters(const FiberHitContainer& cont,
            && std::abs(cmtC-cmtA)<maxTimeDif
            && !(fl_HitB && (std::abs(cmtC-cmtB)>maxTimeDif))
           ){
-	  cluster->push_back(new FLHit(HitC, mhitC));
+	  // cluster->push_back(new FLHit(HitC, mhitC));
 	  CurrentPair = HitC->PairId();
 	  fl_HitC = true;
 	  break;
@@ -397,7 +363,7 @@ HodoAnalyzer::MakeUpClusters(const FiberHitContainer& cont,
            && !(fl_HitB && (std::abs(cmtD-cmtB)>maxTimeDif))
            && !(fl_HitC && (std::abs(cmtD-cmtC)>maxTimeDif))
           ){
-	  cluster->push_back(new FLHit(HitD, mhitD));
+	  // cluster->push_back(new FLHit(HitD, mhitD));
 	  break;
 	}
       }
@@ -415,92 +381,92 @@ HodoAnalyzer::MakeUpClusters(const FiberHitContainer& cont,
 
 //_____________________________________________________________________________
 // Clustering function for FBH
-Int_t
-HodoAnalyzer::MakeUpClusters(const FLHitContainer& cont,
-                             FiberClusterContainer& ClusterCont,
-                             Double_t maxTimeDif,
-                             Int_t DifPairId)
-{
-  std::vector<FiberCluster*> DeleteCand;
-  for(Int_t seg=0, NofSeg=cont.size(); seg<NofSeg; ++seg){
-    FLHit* HitA = cont.at(seg);
-    if(HitA->Joined()) continue;
-    HitA->SetJoined();
-    FiberCluster *cluster = new FiberCluster;
-    cluster->push_back(HitA);
-    Int_t CurrentPair = HitA->PairId();
-    for(Int_t smarker = seg+1; smarker<NofSeg; ++smarker){
-      FLHit* HitB = cont.at(smarker);
-      if(false
-         || DifPairId < (HitB->PairId() - CurrentPair)
-         || HitB->PairId() == CurrentPair
-        ){ continue; }
-      if(HitB->Joined()) continue;
-      HitB->SetJoined();
-      Double_t cmtB = HitB->GetCTime();
-      Bool_t   fl_all_valid = true;
-      for(Int_t cindex = 0; cindex<cluster->VectorSize(); ++cindex){
-	Double_t cmt = cluster->GetHit(cindex)->GetCTime();
-	if(std::abs(cmt-cmtB) > maxTimeDif){
-	  fl_all_valid = false; break;
-	}
-      }
-      if(fl_all_valid){
-	// we found a cluster candidate
-	cluster->push_back(HitB);
-	CurrentPair = HitB->PairId();
-	break;
-      }
-    }
-    // Finish
-    if(cluster->Calculate()){
-      ClusterCont.push_back(cluster);
-    } else {
-      DeleteCand.push_back(cluster);
-    }
-  }
-  del::ClearContainer(DeleteCand);
-  return ClusterCont.size();
-}
+// Int_t
+// HodoAnalyzer::MakeUpClusters(const FLHitContainer& cont,
+//                              FiberClusterContainer& ClusterCont,
+//                              Double_t maxTimeDif,
+//                              Int_t DifPairId)
+// {
+//   std::vector<FiberCluster*> DeleteCand;
+//   for(Int_t seg=0, NofSeg=cont.size(); seg<NofSeg; ++seg){
+//     FLHit* HitA = cont.at(seg);
+//     if(HitA->Joined()) continue;
+//     HitA->SetJoined();
+//     FiberCluster *cluster = new FiberCluster;
+//     cluster->push_back(HitA);
+//     Int_t CurrentPair = HitA->PairId();
+//     for(Int_t smarker = seg+1; smarker<NofSeg; ++smarker){
+//       FLHit* HitB = cont.at(smarker);
+//       if(false
+//          || DifPairId < (HitB->PairId() - CurrentPair)
+//          || HitB->PairId() == CurrentPair
+//         ){ continue; }
+//       if(HitB->Joined()) continue;
+//       HitB->SetJoined();
+//       Double_t cmtB = HitB->GetCTime();
+//       Bool_t   fl_all_valid = true;
+//       for(Int_t cindex = 0; cindex<cluster->VectorSize(); ++cindex){
+// 	Double_t cmt = cluster->GetHit(cindex)->GetCTime();
+// 	if(std::abs(cmt-cmtB) > maxTimeDif){
+// 	  fl_all_valid = false; break;
+// 	}
+//       }
+//       if(fl_all_valid){
+// 	// we found a cluster candidate
+// 	cluster->push_back(HitB);
+// 	CurrentPair = HitB->PairId();
+// 	break;
+//       }
+//     }
+//     // Finish
+//     if(cluster->Calculate()){
+//       ClusterCont.push_back(cluster);
+//     } else {
+//       DeleteCand.push_back(cluster);
+//     }
+//   }
+//   del::ClearContainer(DeleteCand);
+//   return ClusterCont.size();
+// }
 
 //_____________________________________________________________________________
-Int_t
-HodoAnalyzer::MakeUpCoincidence(const FiberHitContainer& cont,
-                                FLHitContainer& CoinCont,
-                                Double_t maxTimeDif)
-{
-  for(Int_t seg=0, NofSeg=cont.size(); seg<NofSeg; ++seg){
-    FiberHit* HitA = cont.at(seg);
-    Int_t NofHitA = HitA->GetEntries();
-    for(Int_t mhitA = 0; mhitA<NofHitA; ++mhitA){
-      if(HitA->Joined(mhitA)) continue;
-      Double_t cmt = HitA->GetCTime(mhitA);
-      Int_t CurrentPair = HitA->PairId();
-      for(Int_t smarker = seg+1; smarker<NofSeg; ++smarker){
-	FiberHit* HitB = cont.at(smarker);
-	if(0 != (HitB->PairId() - CurrentPair)) continue;
-	Int_t NofHitB = HitB->GetEntries();
-	for(Int_t mhitB = 0; mhitB<NofHitB; ++mhitB){
-	  if(HitB->Joined(mhitB)) continue;
-	  Double_t cmtB = HitB->GetCTime(mhitB);
-	  Bool_t   fl_all_valid = true;
-	  if(std::abs(cmt-cmtB)>maxTimeDif){
-	    fl_all_valid = false;
-	    break;
-	  }
-	  if(fl_all_valid){
-	    // we found a coin candidate
-	    //	    hddaq::cout << "yes" << std::endl;
-	    CoinCont.push_back(new FLHit(HitA, HitB, mhitA, mhitB));
-	    break;
-	  }
-	}// for(mhitB)
-      }// for(segB)
-    }// for(mhitA)
-  }// for(segA)
+// Int_t
+// HodoAnalyzer::MakeUpCoincidence(const FiberHitContainer& cont,
+//                                 FLHitContainer& CoinCont,
+//                                 Double_t maxTimeDif)
+// {
+//   for(Int_t seg=0, NofSeg=cont.size(); seg<NofSeg; ++seg){
+//     FiberHit* HitA = cont.at(seg);
+//     Int_t NofHitA = HitA->GetEntries();
+//     for(Int_t mhitA = 0; mhitA<NofHitA; ++mhitA){
+//       if(HitA->Joined(mhitA)) continue;
+//       Double_t cmt = HitA->GetCTime(mhitA);
+//       Int_t CurrentPair = HitA->PairId();
+//       for(Int_t smarker = seg+1; smarker<NofSeg; ++smarker){
+// 	FiberHit* HitB = cont.at(smarker);
+// 	if(0 != (HitB->PairId() - CurrentPair)) continue;
+// 	Int_t NofHitB = HitB->GetEntries();
+// 	for(Int_t mhitB = 0; mhitB<NofHitB; ++mhitB){
+// 	  if(HitB->Joined(mhitB)) continue;
+// 	  Double_t cmtB = HitB->GetCTime(mhitB);
+// 	  Bool_t   fl_all_valid = true;
+// 	  if(std::abs(cmt-cmtB)>maxTimeDif){
+// 	    fl_all_valid = false;
+// 	    break;
+// 	  }
+// 	  if(fl_all_valid){
+// 	    // we found a coin candidate
+// 	    //	    hddaq::cout << "yes" << std::endl;
+// 	    CoinCont.push_back(new FLHit(HitA, HitB, mhitA, mhitB));
+// 	    break;
+// 	  }
+// 	}// for(mhitB)
+//       }// for(segB)
+//     }// for(mhitA)
+//   }// for(segA)
 
-  return CoinCont.size();
-}
+//   return CoinCont.size();
+// }
 
 //_____________________________________________________________________________
 Bool_t

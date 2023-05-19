@@ -914,7 +914,7 @@ UserHodoscope::ProcessingNormal()
   }
 
   // BH2
-  hodoAna.DecodeHits("BH2");
+  hodoAna.DecodeHits<BH2Hit>("BH2");
   // hodoAna.TimeCut("BH2", -2, 2);
   {
     Int_t nh = hodoAna.GetNHits("BH2");
