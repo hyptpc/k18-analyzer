@@ -112,7 +112,7 @@ HodoRawHit::Print(const TString& arg) const
 	      << "detector_id   = " << m_detector_id   << std::endl
 	      << "plane_id      = " << m_plane_id      << std::endl
 	      << "segment_id    = " << m_segment_id    << std::endl;
-  for(const auto data_map: std::map<TString, data_t>
+  for(const auto& data_map: std::map<TString, data_t>
         {{"adc-hi", m_adc_high}, {"adc-lo", m_adc_low},
          {"tdc-l ", m_tdc_leading}, {"tdc-t ", m_tdc_trailing}}){
     for(const auto& cont: data_map.second){
