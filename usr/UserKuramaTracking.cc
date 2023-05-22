@@ -431,7 +431,7 @@ UserKuramaTracking::ProcessingNormal()
       auto hit = hodoAna.GetCluster("TOF", i);
       Double_t seg = hit->MeanSeg()+1;
       Double_t cmt = hit->CMeanTime();
-      Double_t dt  = hit->TimeDif();
+      Double_t dt  = hit->TimeDiff();
       Double_t de   = hit->DeltaE();
       event.TofSeg[i] = seg;
       event.tTof[i]   = cmt;//stof;

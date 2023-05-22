@@ -1382,7 +1382,7 @@ UserHodoscope::ProcessingNormal()
       dst.csBh1[i]  = cl->ClusterSize();
       dst.Bh1Seg[i] = cl->MeanSeg()+1;
       dst.tBh1[i]   = cl->CMeanTime();
-      dst.dtBh1[i]  = cl->TimeDif();
+      dst.dtBh1[i]  = cl->TimeDiff();
       dst.deBh1[i]  = cl->DeltaE();
 
       Int_t nc2 = hodoAna.GetNClusters("BH2");
@@ -1407,10 +1407,10 @@ UserHodoscope::ProcessingNormal()
       dst.Bh2Seg[i] = cl->MeanSeg()+1;
       dst.tBh2[i]   = cl->CMeanTime();
       dst.t0Bh2[i]  = cl->CTime0();
-      dst.dtBh2[i]  = cl->TimeDif();
+      dst.dtBh2[i]  = cl->TimeDiff();
       dst.deBh2[i]  = cl->DeltaE();
 #if HodoHitPos
-      dst.posBh2[i]  = 0.5*PropVelBH2*cl->TimeDif();
+      dst.posBh2[i]  = 0.5*PropVelBH2*cl->TimeDiff();
 #endif
     }
   }
@@ -1437,7 +1437,7 @@ UserHodoscope::ProcessingNormal()
       dst.csTof[i]  = cl->ClusterSize();
       dst.TofSeg[i] = cl->MeanSeg()+1;
       dst.tTof[i]   = cl->CMeanTime();
-      dst.dtTof[i]  = cl->TimeDif();
+      dst.dtTof[i]  = cl->TimeDiff();
       dst.deTof[i]  = cl->DeltaE();
     }
   }
@@ -1778,7 +1778,7 @@ ConfMan::InitializeHistograms()
   HB2(BH2Hid +44, "BH2ClP%BH2ClP(ADCGood)", NumOfSegBH2,   0., Double_t(NumOfSegBH2),
       NumOfSegBH2,   0., Double_t(NumOfSegBH2));
 
-  HB1(201, "TimeDif BH1-BH2", 200, -10., 10.);
+  HB1(201, "TimeDiff BH1-BH2", 200, -10., 10.);
   HB2(202, "SegBH2%SegBH1",NumOfSegBH1,   0., Double_t(NumOfSegBH1),
       NumOfSegBH2,   0., Double_t(NumOfSegBH2));
   //For BH1vsBH2 Corr
@@ -1786,7 +1786,7 @@ ConfMan::InitializeHistograms()
   HB1(204, "MTBH1", 200, -10., 10.);
   HB1(205, "MTBH2", 200, -10., 10.);
 
-  HB1(211, "TimeDif BH1-BH2(GoodAdc)", 200, -10., 10.);
+  HB1(211, "TimeDiff BH1-BH2(GoodAdc)", 200, -10., 10.);
   HB2(212, "SegBH2%SegBH1(GoodAdc)",NumOfSegBH1,   0., Double_t(NumOfSegBH1),
       NumOfSegBH2,   0., Double_t(NumOfSegBH2));
 

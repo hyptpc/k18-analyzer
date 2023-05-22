@@ -447,7 +447,7 @@ DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
 
   for(const auto& hodo_cluster: ClCont){
     const Double_t seg = hodo_cluster->MeanSeg()+1;
-    const Double_t dt  = hodo_cluster->TimeDif();
+    const Double_t dt  = hodo_cluster->TimeDiff();
     Int_t layer_x = -1;
     Int_t layer_y = -1;
     if((Int_t)seg%2==0){

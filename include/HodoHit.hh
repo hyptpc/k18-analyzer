@@ -38,20 +38,21 @@ protected:
   data_t m_time_trailing;
   data_t m_ctime_leading;
   data_t m_ctime_trailing; // no use
-  std::vector<Bool_t> m_flag_join;
+  std::vector<Bool_t> m_is_clustered;
 
 public:
-  const TString& GetName() const { return m_raw->DetectorName(); }
+  const TString&    GetName() const { return m_raw->DetectorName(); }
   const HodoRawHit* GetRawHit() const { return m_raw; }
-  Int_t DetectorId() const { return m_raw->DetectorId(); }
-  Int_t PlaneId() const { return m_raw->PlaneId(); }
-  Int_t SegmentId() const { return m_raw->SegmentId(); }
+  Int_t             DetectorId() const { return m_raw->DetectorId(); }
+  const TString&    DetectorName() const { return m_raw->DetectorName(); }
+  Int_t             PlaneId() const { return m_raw->PlaneId(); }
+  const TString&    PlaneName() const { return m_raw->PlaneName(); }
+  Int_t             SegmentId() const { return m_raw->SegmentId(); }
+  Bool_t            Calculate();
+  Bool_t            IsCalculated() const { return m_is_calculated; }
 
-  Bool_t Calculate();
-  Bool_t IsCalculated() const { return m_is_calculated; }
-
-  Int_t GetEntries(Int_t i=0) const { return m_ctime_leading.at(i).size(); }
-
+  Int_t GetEntries(Int_t i=0) const
+    { return m_ctime_leading.at(i).size(); }
   Double_t GetDeltaEHighGain(Int_t i, Int_t j=0) const
     { return m_de_high.at(i).at(j); }
   Double_t GetDeltaELowGain(Int_t i, Int_t j=0) const
@@ -105,12 +106,13 @@ public:
   Double_t GetCTDown(Int_t j=0) const { return CT(HodoRawHit::kDown, j); }
   Double_t GetCTRight(Int_t j=0) const { return CT(HodoRawHit::kDown, j); }
 
-  void SetJoined(Int_t m) { m_flag_join.at(m) = true; }
-  Bool_t Joined(Int_t m) const { return m_flag_join.at(m); }
-  Bool_t JoinedAllMhit();
+  void JoinCluster(Int_t m) { m_is_clustered.at(m) = true; }
+  Bool_t IsClustered(Int_t m) const { return m_is_clustered.at(m); }
+  Bool_t IsClusteredAll();
 
   virtual Bool_t ReCalc(Bool_t applyRecursively=false){ return Calculate(); }
-  virtual void Print(Option_t* arg="") const;
+  virtual void   Print(Option_t* arg="") const;
+  static  Bool_t Compare(const HodoHit* left, const HodoHit* right);
 };
 
 //_____________________________________________________________________________
@@ -119,6 +121,13 @@ HodoHit::ClassName()
 {
   static TString s_name("HodoHit");
   return s_name;
+}
+
+//_____________________________________________________________________________
+inline Bool_t
+HodoHit::Compare(const HodoHit* left, const HodoHit* right)
+{
+  return left->SegmentId() < right->SegmentId();
 }
 
 #endif

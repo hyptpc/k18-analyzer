@@ -5,15 +5,17 @@
 
 #include <TString.h>
 
-class HodoHit;
-class HodoAnalyzer;
+#include "HodoAnalyzer.hh"
+#include "HodoHit.hh"
 
 //_____________________________________________________________________________
 class HodoCluster
 {
 public:
   static const TString& ClassName();
-  HodoCluster(HodoHit* hitA, HodoHit* hitB=nullptr, HodoHit* hitC=nullptr);
+  using index_t = std::vector<Int_t>;
+  HodoCluster(const HodoHitContainer& cont,
+              const index_t& index);
   virtual ~HodoCluster();
 
 private:
@@ -21,37 +23,45 @@ private:
   HodoCluster& operator =(const HodoCluster &);
 
 private:
-  HodoHit* m_hitA;
-  HodoHit* m_hitB;
-  HodoHit* m_hitC;
-  Int_t      m_indexA;
-  Int_t      m_indexB;
-  Int_t      m_indexC;
-  Int_t       m_cluster_size;
-  Double_t    m_mean_time;
-  Double_t    m_cmean_time;
-  Double_t    m_de;
-  Double_t    m_mean_seg;
-  Double_t    m_time_diff;
-  Double_t    m_1st_seg;
-  Double_t    m_1st_time;
-  Bool_t      m_good_for_analysis;
+  Bool_t           m_is_good;
+  HodoHitContainer m_hit_container;
+  index_t          m_index;
+  Int_t            m_cluster_size;
+  Double_t         m_mean_time;
+  Double_t         m_ctime;
+  Double_t         m_time_diff;
+  Double_t         m_de;
+  Double_t         m_tot;
+  Double_t         m_segment;
+  Double_t         m_position;
+  Double_t         m_1st_seg;
+  Double_t         m_1st_time;
 
 public:
-  Double_t  C1stSeg() const { return m_1st_seg; }
-  Double_t  C1stTime() const { return m_1st_time; }
-  void      Calculate();
+  const TString& DetectorName() const
+    { return m_hit_container.at(0)->DetectorName(); }
+  const TString& PlaneName() const
+    { return m_hit_container.at(0)->PlaneName(); }
+  Int_t     DetectorId() const { return m_hit_container.at(0)->DetectorId(); }
+  Int_t     PlaneId() const { return m_hit_container.at(0)->PlaneId(); }
+  Bool_t    IsGood() const { return m_is_good; }
   Int_t     ClusterSize() const { return m_cluster_size; }
-  Double_t  CMeanTime() const { return m_cmean_time; }
-  Double_t  DeltaE() const { return m_de; }
-  HodoHit*  GetHit(Int_t i) const;
-  Bool_t    GoodForAnalysis() const { return m_good_for_analysis; }
-  Bool_t    GoodForAnalysis(Bool_t status);
   Double_t  MeanTime() const { return m_mean_time; }
-  Double_t  MeanSeg() const { return m_mean_seg; }
+  Double_t  CMeanTime() const { return m_ctime; }
+  Double_t  CTime() const { return CMeanTime(); }
+  Double_t  TimeDiff() const { return m_time_diff; }
+  Double_t  DeltaE() const { return m_de; }
+  Double_t  TOT() const { return m_tot; }
+  Double_t  MeanSeg() const { return m_segment; }
+  Double_t  Position() const { return m_position; }
+  Double_t  FirstSeg() const { return m_1st_seg; }
+  Double_t  FirstTime() const { return m_1st_time; }
+  HodoHit*  GetHit(Int_t i) const;
+  void      Print(Option_t* opt="") const;
   Bool_t    ReCalc(Bool_t applyRecusively=false);
-  void      SetIndex(Int_t iA, Int_t iB=0, Int_t iC=0);
-  Double_t  TimeDif() const { return m_time_diff; }
+
+protected:
+  void      Calculate();
 };
 
 //_____________________________________________________________________________

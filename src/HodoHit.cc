@@ -41,7 +41,7 @@ HodoHit::HodoHit(HodoRawHit *rhit, Double_t max_time_diff)
     m_time_trailing(HodoRawHit::kNChannel),
     m_ctime_leading(HodoRawHit::kNChannel),
     m_ctime_trailing(HodoRawHit::kNChannel),
-    m_flag_join()
+    m_is_clustered()
 {
   debug::ObjectCounter::increase(ClassName());
 }
@@ -155,6 +155,7 @@ HodoHit::Calculate()
           ld_cont.push_back(ld);
           clu_cont.push_back(clu);
           cld_cont.push_back(cld);
+          m_is_clustered.push_back(false);
           break;
         }else{
           ;
@@ -279,11 +280,11 @@ HodoHit::CTimeDiff(Int_t j) const
 
 //_____________________________________________________________________________
 Bool_t
-HodoHit::JoinedAllMhit()
+HodoHit::IsClusteredAll()
 {
   Bool_t ret = true;
-  for(Int_t i=0, n=m_flag_join.size(); i<n; ++i){
-    ret = ret & m_flag_join[i];
+  for(const auto& f: m_is_clustered){
+    ret &= f;
   }
   return ret;
 }

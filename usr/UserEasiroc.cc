@@ -26,7 +26,7 @@
 #include "UnpackerManager.hh"
 
 #define HodoCut    0 // with BH1/BH2
-#define TimeCut    1 // in cluster analysis
+#define TIME_CUT   0 // in cluster analysis
 #define FHitBranch 1 // make FiberHit branches (becomes heavy)
 
 namespace
@@ -177,7 +177,7 @@ UserEasiroc::ProcessingNormal()
 #endif
   static const Double_t MinTdcBFT  = gUser.GetParameter("TdcBFT",  0);
   static const Double_t MaxTdcBFT  = gUser.GetParameter("TdcBFT",  1);
-#if TimeCut
+#if TIME_CUT
   static const Double_t MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
   static const Double_t MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
 #endif
@@ -208,7 +208,8 @@ UserEasiroc::ProcessingNormal()
     }
   }
 
-  if(trigger_flag[trigger::kSpillEnd]) return true;
+  if(trigger_flag[trigger::kSpillEnd])
+    return true;
 
   HF1(1, 1);
 
@@ -330,13 +331,11 @@ UserEasiroc::ProcessingNormal()
     event.bft_dnhits = dnhits;
     event.bft_nhits  = unhits + dnhits;
 
-    return true;
-
     // Fiber Cluster
-#if TimeCut
-    hodoAna.TimeCutBFT(MinTimeBFT, MaxTimeBFT);
+#if TIME_CUT
+    hodoAna.TimeCut("BFT", MinTimeBFT, MaxTimeBFT);
 #endif
-    Int_t ncl = hodoAna.GetNClustersBFT();
+    Int_t ncl = hodoAna.GetNClusters("BFT");
     if(ncl > NumOfSegBFT){
       // std::cout << "#W BFT too much number of clusters" << std::endl;
       ncl = NumOfSegBFT;
@@ -344,12 +343,12 @@ UserEasiroc::ProcessingNormal()
     event.bft_ncl = ncl;
     HF1(BFTHid +101, ncl);
     for(Int_t i=0; i<ncl; ++i){
-      const auto& cl = hodoAna.GetClusterBFT(i);
+      const auto& cl = hodoAna.GetCluster("BFT", i);
       if(!cl) continue;
       Double_t clsize = cl->ClusterSize();
       Double_t ctime  = cl->CMeanTime();
-      Double_t ctot   = cl->Width();
-      Double_t pos    = cl->MeanPosition();
+      Double_t ctot   = cl->TOT();
+      Double_t pos    = cl->Position();
       Double_t seg    = cl->MeanSeg();
       event.bft_clsize[i] = clsize;
       event.bft_ctime[i]  = ctime;

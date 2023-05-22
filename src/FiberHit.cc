@@ -52,6 +52,8 @@ FiberHit::Calculate()
   if(!HodoHit::Calculate())
     return false;
 
+  m_is_clustered.clear();
+
   Int_t id    = m_raw->DetectorId();
   Int_t plane = m_raw->PlaneId();
   Int_t seg   = m_raw->SegmentId();
@@ -77,6 +79,7 @@ FiberHit::Calculate()
       gPHC.DoCorrection(id, plane, seg, ch, l, tot, ctime);
       m_ctime_leading.at(ch).push_back(ctime);
       m_ctime_trailing.at(ch).push_back(ctime + tot); // no use
+      m_is_clustered.push_back(false);
     }
   }
   m_time_trailing = trailing;

@@ -9,24 +9,34 @@
 #include <sstream>
 
 #include "DebugCounter.hh"
+#include "FuncName.hh"
 #include "HodoHit.hh"
 #include "HodoAnalyzer.hh"
+#include "PrintHelper.hh"
 
 //_____________________________________________________________________________
-HodoCluster::HodoCluster(HodoHit* hitA, HodoHit* hitB, HodoHit* hitC)
-  : m_hitA(hitA),
-    m_hitB(hitB),
-    m_hitC(hitC),
-    m_indexA(0),
-    m_indexB(0),
-    m_indexC(0),
-    m_cluster_size(0),
-    m_good_for_analysis(true)
+HodoCluster::HodoCluster(const HodoHitContainer& cont,
+                         const index_t& index)
+  : m_is_good(false),
+    m_hit_container(cont.size()),
+    m_index(index.size()),
+    m_cluster_size(cont.size()),
+    m_mean_time(),
+    m_ctime(),
+    m_time_diff(),
+    m_de(),
+    m_tot(),
+    m_segment(),
+    m_position(),
+    m_1st_seg(TMath::QuietNaN()),
+    m_1st_time(DBL_MAX)
 {
-  if(hitA) ++m_cluster_size;
-  if(hitB) ++m_cluster_size;
-  if(hitC) ++m_cluster_size;
-  //  Calculate();
+  if(cont.size() != index.size()){
+    hddaq::cerr << FUNC_NAME << " cont size mismatch" << std::endl;
+    return;
+  }
+  std::copy(cont.begin(), cont.end(), m_hit_container.begin());
+  Calculate();
   debug::ObjectCounter::increase(ClassName());
 }
 
@@ -40,76 +50,71 @@ HodoCluster::~HodoCluster()
 void
 HodoCluster::Calculate()
 {
-  Double_t ms = 0.;
-  Double_t mt = 0.;
-  Double_t cmt= 0.;
-  Double_t de = 0.;
-  Double_t dt = 0.;
-  Double_t s1 = 0.;
-  Double_t t1 = 0.;
+  m_is_good = false;
 
-  if(m_hitA){
-    ms += m_hitA->SegmentId();
-    mt += m_hitA->MeanTime(m_indexA);
-    cmt+= m_hitA->CMeanTime(m_indexA);
-    de += m_hitA->DeltaE();
-    dt += (m_hitA->GetTDown(m_indexA)-m_hitA->GetTUp(m_indexA));
-    s1  = m_hitA->SegmentId();
-    t1  = m_hitA->CMeanTime(m_indexA);
-  }
-  if(m_hitB){
-    ms += m_hitB->SegmentId();
-    mt += m_hitB->MeanTime(m_indexB);
-    cmt+= m_hitB->CMeanTime(m_indexB);
-    de += m_hitB->DeltaE();
-    dt += (m_hitB->GetTDown(m_indexB)-m_hitB->GetTUp(m_indexB));
-    if(m_hitB->CMeanTime(m_indexB)<t1){
-      s1 = m_hitB->SegmentId();
-      t1 = m_hitB->CMeanTime(m_indexB);
+  if(m_hit_container.empty())
+    return;
+
+  m_mean_time = 0;
+  m_ctime     = 0;
+  m_time_diff = 0;
+  m_de        = 0;
+  m_tot       = 0;
+  m_segment   = 0;
+  m_position  = 0;
+  m_1st_seg   = TMath::QuietNaN();
+  m_1st_time  = DBL_MAX;
+
+  for(Int_t i=0; i<m_cluster_size; ++i){
+    const auto& hit = m_hit_container[i];
+    const auto& index = m_index[i];
+    m_segment   += hit->SegmentId();
+    m_mean_time += hit->MeanTime(index);
+    m_ctime     += hit->CMeanTime(index);
+    m_time_diff += hit->TimeDiff(index);
+    m_de        += hit->DeltaE();
+    m_tot       += hit->TOT(index);
+    if(hit->CMeanTime(index) < m_1st_time){
+      m_1st_seg  = hit->SegmentId();
+      m_1st_time = hit->CMeanTime(index);
     }
   }
-  if(m_hitC){
-    ms += m_hitC->SegmentId();
-    mt += m_hitC->MeanTime(m_indexC);
-    cmt+= m_hitC->CMeanTime(m_indexC);
-    de += m_hitC->DeltaE();
-    dt += (m_hitC->GetTDown(m_indexC)-m_hitC->GetTUp(m_indexC));
-    if(m_hitC->CMeanTime(m_indexC)<t1){
-      s1 = m_hitC->SegmentId();
-      t1 = m_hitC->CMeanTime(m_indexC);
-    }
-  }
-  ms /= Double_t(m_cluster_size);
-  mt /= Double_t(m_cluster_size);
-  cmt/= Double_t(m_cluster_size);
-  dt /= Double_t(m_cluster_size);
 
-  m_mean_time = mt;
-  m_cmean_time= cmt;
-  m_de        = de;
-  m_mean_seg  = ms;
-  m_time_diff = dt;
-  m_1st_seg   = s1;
-  m_1st_time  = t1;
+  m_segment   /= Double_t(m_cluster_size);
+  m_mean_time /= Double_t(m_cluster_size);
+  m_ctime     /= Double_t(m_cluster_size);
+  m_time_diff /= Double_t(m_cluster_size);
+
+  m_is_good = true;
 }
 
 //_____________________________________________________________________________
 HodoHit*
 HodoCluster::GetHit(Int_t i) const
 {
-  if(i==0) return m_hitA;
-  if(i==1) return m_hitB;
-  if(i==2) return m_hitC;
-  return nullptr;
+  // try {
+    return m_hit_container.at(i);
+  // }catch(const std::out_of_range&){
+  //   return nullptr;
+  // }
 }
 
 //_____________________________________________________________________________
-Bool_t
-HodoCluster::GoodForAnalysis(Bool_t status)
+void
+HodoCluster::Print(Option_t*) const
 {
-  Bool_t pre_status = m_good_for_analysis;
-  m_good_for_analysis = status;
-  return pre_status;
+  PrintHelper helper(3, std::ios::fixed);
+  hddaq::cout << FUNC_NAME << std::endl
+              << " detector name : " << m_hit_container.at(0)->DetectorName() << std::endl
+              << " cluster size  : " << m_cluster_size << std::endl;
+  for(Int_t i=0; i<m_cluster_size; ++i){
+    const auto& hit = m_hit_container[i];
+    const auto& j = m_index[i];
+    hddaq::cout << "  " << hit->PlaneName();
+    hddaq::cout << " " << hit->SegmentId();
+    hddaq::cout << " "  << hit->CMeanTime(j);
+  }
+  hddaq::cout << std::endl;
 }
 
 //_____________________________________________________________________________
@@ -117,20 +122,10 @@ Bool_t
 HodoCluster::ReCalc(Bool_t applyRecursively)
 {
   if(applyRecursively){
-    if(m_hitA) m_hitA->ReCalc(applyRecursively);
-    if(m_hitB) m_hitB->ReCalc(applyRecursively);
-    if(m_hitC) m_hitC->ReCalc(applyRecursively);
+    for(auto& hit: m_hit_container){
+      hit->ReCalc(applyRecursively);
+    }
   }
   Calculate();
-
-  return true;
-}
-
-//_____________________________________________________________________________
-void
-HodoCluster::SetIndex(Int_t iA, Int_t iB, Int_t iC)
-{
-  m_indexA = iA;
-  m_indexB = iB;
-  m_indexC = iC;
+  return m_is_good;
 }

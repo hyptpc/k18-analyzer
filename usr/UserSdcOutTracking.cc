@@ -342,7 +342,7 @@ UserSdcOutTracking::ProcessingNormal()
       auto hit = hodoAna.GetCluster("TOF", i);
       if(!hit) continue;
       Double_t cmt  = hit->CMeanTime();
-      Double_t dt   = hit->TimeDif();
+      Double_t dt   = hit->TimeDiff();
       Double_t de   = hit->DeltaE();
       Double_t stof = cmt-time0;
       event.TofSeg[i] = hit->MeanSeg()+1;

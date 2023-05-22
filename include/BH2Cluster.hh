@@ -49,7 +49,7 @@ public:
   Double_t MeanSeg() const { return m_mean_seg; }
   Double_t MeanTime() const { return m_mean_time; }
   Double_t Time0() const { return m_time0; }
-  Double_t TimeDif() const { return m_time_diff; }
+  Double_t TimeDiff() const { return m_time_diff; }
   Bool_t   ReCalc(Bool_t applyRecusively=false);
   void     SetIndex(Int_t iA, Int_t iB=0, Int_t iC=0);
 };

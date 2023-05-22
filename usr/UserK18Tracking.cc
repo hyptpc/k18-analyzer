@@ -32,7 +32,7 @@
 #include "UnpackerManager.hh"
 
 #define HodoCut 0 // with BH1/BH2
-#define TimeCut 1 // in cluster analysis
+#define TIME_CUT 1 // in cluster analysis
 #define TotCut  1 //for BcOut tracking
 #define Chi2Cut  1 //for BcOut tracking
 
@@ -238,7 +238,7 @@ UserK18Tracking::ProcessingNormal()
   static const Double_t MinBeamToF = gUser.GetParameter("BTOF",  1);
   static const Double_t MaxBeamToF = gUser.GetParameter("BTOF",  1);
 #endif
-#if TimeCut
+#if TIME_CUT
   static const Double_t MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
   static const Double_t MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
 #endif
@@ -315,19 +315,19 @@ UserK18Tracking::ProcessingNormal()
 
   std::vector<Double_t> xCand;
   ////////// BFT
-  hodoAna.DecodeBFTHits();
+  hodoAna.DecodeHits("BFT");
   {
     // Fiber Cluster
-    Int_t ncl_raw = hodoAna.GetNClustersBFT();
-#if TimeCut
-    hodoAna.TimeCutBFT(MinTimeBFT, MaxTimeBFT);
+    Int_t ncl_raw = hodoAna.GetNClusters("BFT");
+#if TIME_CUT
+    hodoAna.TimeCut("BFT", MinTimeBFT, MaxTimeBFT);
 #endif
-    Int_t ncl = hodoAna.GetNClustersBFT();
+    Int_t ncl = hodoAna.GetNClusters("BFT");
     event.bft_ncl = ncl;
     HF1(BFTHid +100, ncl_raw);
     HF1(BFTHid +101, ncl);
     for(Int_t i=0; i<ncl; ++i){
-      FiberCluster *cl = hodoAna.GetClusterBFT(i);
+      FiberCluster *cl = hodoAna.GetCluster<FiberCluster>("BFT", i);
       if(!cl) continue;
       Double_t clsize = cl->ClusterSize();
       Double_t ctime  = cl->CMeanTime();

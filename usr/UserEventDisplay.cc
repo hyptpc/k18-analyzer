@@ -351,16 +351,16 @@ UserEventDisplay::ProcessingNormal()
   }
   //________________________________________________________
   //___ BFTRawHit
-  for(Int_t layer=0; layer<NumOfPlaneBFT; layer++){
-    for(const auto& hit: rawData->GetBFTRawHC(layer)){
-      Int_t seg = hit->SegmentId();
-      for(Int_t j=0, m=hit->GetSizeTdcUp(); j<m; ++j){
-        Int_t Tu = hit->GetTdcUp(j);
-        // hddaq::cout << "[Info] BFTxSeg = " << seg << std::endl;
-        if(Tu>0) gEvDisp.FillBFT(layer, seg, Tu);
-      }
+  for(const auto& hit: rawData->GetHodoRawHitContainer("BFT")){
+    Int_t plane = hit->PlaneId();
+    Int_t seg = hit->SegmentId();
+    for(Int_t j=0, m=hit->GetSizeTdcUp(); j<m; ++j){
+      Int_t Tu = hit->GetTdcUp(j);
+      // hddaq::cout << "[Info] BFTxSeg = " << seg << std::endl;
+      if(Tu>0) gEvDisp.FillBFT(layer, seg, Tu);
     }
   }
+
 #endif
 
   //________________________________________________________
@@ -423,11 +423,11 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ BFTCluster
-  hodoAna.DecodeBFTHits();
-  hodoAna.TimeCutBFT(MinTimeBFT, MaxTimeBFT);
+  hodoAna.DecodeHits("BFT");
+  hodoAna.TimeCut("BFT", MinTimeBFT, MaxTimeBFT);
   std::vector<Double_t> BftXCont;
-  for(const auto& cl: hodoAna.GetClustersBFT()){
-    BftXCont.push_back(cl->MeanPosition());
+  for(const auto& cl: hodoAna.GetClusterContainer("BFT")){
+    // BftXCont.push_back(cl->MeanPosition());
   }
   if(BftXCont.empty()){
     hddaq::cout << "[Warning] BftXCont is empty!" << std::endl;
