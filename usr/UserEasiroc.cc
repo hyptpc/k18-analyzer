@@ -186,6 +186,7 @@ UserEasiroc::ProcessingNormal()
   rawData->DecodeHits("BH1");
   rawData->DecodeHits("BH2");
   rawData->DecodeHits("BFT");
+  rawData->DecodeHits("AFT");
   HodoAnalyzer hodoAna(rawData);
 
   event.evnum = gUnpacker.get_event_number();
@@ -223,7 +224,7 @@ UserEasiroc::ProcessingNormal()
   Double_t time0 = qnan;
   ////////// BH2 Analysis
   for(Int_t i=0; i<nhBh2; ++i){
-    const auto& hit = hodoAna.GetHit<BH2Hit>("BH2", i);
+    const auto& hit = hodoAna.GetHit("BH2", i);
     if(!hit) continue;
     Double_t cmt = hit->CMeanTime();
     Double_t ct0 = hit->CTime0();
@@ -276,7 +277,7 @@ UserEasiroc::ProcessingNormal()
     Int_t unhits = 0;
     Int_t dnhits = 0;
     for(Int_t i=0; i<nh; ++i){
-      const auto& hit = hodoAna.GetHit("BFT", i);
+      const auto& hit = hodoAna.GetHit<FiberHit>("BFT", i);
       const auto& rhit = hit->GetRawHit();
       Int_t plane = hit->PlaneId();
       Int_t seg = hit->SegmentId();
@@ -345,10 +346,11 @@ UserEasiroc::ProcessingNormal()
     for(Int_t i=0; i<ncl; ++i){
       const auto& cl = hodoAna.GetCluster("BFT", i);
       if(!cl) continue;
+      // cl->Print();
       Double_t clsize = cl->ClusterSize();
       Double_t ctime  = cl->CMeanTime();
       Double_t ctot   = cl->TOT();
-      Double_t pos    = cl->Position();
+      Double_t pos    = cl->MeanPosition();
       Double_t seg    = cl->MeanSeg();
       event.bft_clsize[i] = clsize;
       event.bft_ctime[i]  = ctime;
@@ -360,6 +362,24 @@ UserEasiroc::ProcessingNormal()
       HF1(BFTHid +104, ctot);
       HF2(BFTHid +105, ctot, ctime);
       HF1(BFTHid +106, pos);
+    }
+  }
+
+  ////////// AFT
+  for(const auto& hit: rawData->GetHodoRawHitContainer("AFT")){
+    // hit->Print();
+  }
+  hodoAna.DecodeHits<FiberHit>("AFT");
+  {
+    // const auto& U = HodoRawHit::kUp;
+    // const auto& D = HodoRawHit::kDown;
+    Int_t nh = hodoAna.GetNHits("AFT");
+    for(Int_t i=0; i<nh; ++i){
+      const auto& hit = hodoAna.GetHit("AFT", i);
+      const auto& rhit = hit->GetRawHit();
+      hit->Print();
+      Int_t plane = hit->PlaneId();
+      Int_t seg = hit->SegmentId();
     }
   }
 

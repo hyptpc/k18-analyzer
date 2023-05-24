@@ -59,6 +59,7 @@ public:
   Double_t        TiltAngle() const { return m_tilt_angle; }
   Double_t        RotationAngle1() const { return m_rot_angle1; }
   Double_t        RotationAngle2() const { return m_rot_angle2; }
+  Double_t        dXdW() const { return m_dd; }
   Double_t        Length() const { return m_length; }
   Double_t        Resolution() const { return m_resolution; }
   void            SetResolution(Double_t res) { m_resolution = res; }

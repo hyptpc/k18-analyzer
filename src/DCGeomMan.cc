@@ -36,6 +36,20 @@ DCGeomMan::~DCGeomMan()
 }
 
 //_____________________________________________________________________________
+Double_t
+DCGeomMan::dXdW(Int_t layer) const
+{
+  return GetRecord(layer)->dXdW();
+}
+
+//_____________________________________________________________________________
+Double_t
+DCGeomMan::dXdW(const TString& key) const
+{
+  return dXdW(GetDetectorId(key));
+}
+
+//_____________________________________________________________________________
 void
 DCGeomMan::SetFileName(const TString& file_name)
 {

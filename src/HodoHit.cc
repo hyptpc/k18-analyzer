@@ -24,6 +24,9 @@
 
 namespace
 {
+const auto U = HodoRawHit::kUp;
+const auto D = HodoRawHit::kDown;
+const auto E = HodoRawHit::kExtra;
 const auto& gConf = hddaq::unpacker::GConfig::get_instance();
 const auto& gHodo = HodoParamMan::GetInstance();
 const auto& gPHC = HodoPHCMan::GetInstance();
@@ -35,12 +38,13 @@ HodoHit::HodoHit(HodoRawHit *rhit, Double_t max_time_diff)
     m_is_calculated(false),
     m_max_time_diff(max_time_diff),
     m_n_ch(gConf.get_digit_info().get_n_ch(rhit->DetectorId())),
-    m_de_high(HodoRawHit::kNChannel),
-    m_de_low(HodoRawHit::kNChannel),
-    m_time_leading(HodoRawHit::kNChannel),
-    m_time_trailing(HodoRawHit::kNChannel),
-    m_ctime_leading(HodoRawHit::kNChannel),
-    m_ctime_trailing(HodoRawHit::kNChannel),
+    m_time_offset(),
+    m_de_high(m_n_ch),
+    m_de_low(m_n_ch),
+    m_time_leading(m_n_ch),
+    m_time_trailing(m_n_ch),
+    m_ctime_leading(m_n_ch),
+    m_ctime_trailing(m_n_ch),
     m_is_clustered()
 {
   debug::ObjectCounter::increase(ClassName());
@@ -75,12 +79,12 @@ HodoHit::Calculate()
   Int_t plane = m_raw->PlaneId();
   Int_t seg   = m_raw->SegmentId();
 
-  data_t leading(HodoRawHit::kNChannel);
-  data_t trailing(HodoRawHit::kNChannel);
-  data_t cleading(HodoRawHit::kNChannel);
-  data_t ctrailing(HodoRawHit::kNChannel);
+  data_t leading(m_n_ch);
+  data_t trailing(m_n_ch);
+  data_t cleading(m_n_ch);
+  data_t ctrailing(m_n_ch);
 
-  for(Int_t ch=0; ch<HodoRawHit::kNChannel; ++ch){
+  for(Int_t ch=0; ch<m_n_ch; ++ch){
     // adc
     for(const auto& adc: m_raw->GetArrayAdcHigh(ch)){
       Double_t de = TMath::QuietNaN();
@@ -127,34 +131,24 @@ HodoHit::Calculate()
   //   gHodo.GetTime(id, plane, seg, 2, 0., offset_vtof);
   // }
 
-  auto& lu_buf = leading.at(HodoRawHit::kUp);
-  auto& ld_buf = leading.at(HodoRawHit::kDown);
-  auto& clu_buf = cleading.at(HodoRawHit::kUp);
-  auto& cld_buf = cleading.at(HodoRawHit::kDown);
-
-  auto& lu_cont = m_time_leading.at(HodoRawHit::kUp);
-  auto& ld_cont = m_time_leading.at(HodoRawHit::kDown);
-  auto& clu_cont = m_ctime_leading.at(HodoRawHit::kUp);
-  auto& cld_cont = m_ctime_leading.at(HodoRawHit::kDown);
-
   // one-side readout
   if(m_n_ch == 1){
-    lu_cont = lu_buf;
-    clu_cont = clu_buf;
+    m_time_leading.at(U) = leading.at(U);
+    m_ctime_leading.at(U) = cleading.at(U);
   }
   // two-side readout
   else{
-    for(Int_t ju=0; ju<lu_buf.size(); ++ju){
-      Double_t lu = lu_buf.at(ju);
-      Double_t clu = clu_buf.at(ju);
-      for(Int_t jd=0; jd<ld_buf.size(); ++jd){
-        Double_t ld = ld_buf.at(jd);
+    for(Int_t ju=0; ju<leading.at(U).size(); ++ju){
+      Double_t lu = leading.at(U).at(ju);
+      Double_t clu = cleading.at(U).at(ju);
+      for(Int_t jd=0; jd<leading.at(D).size(); ++jd){
+        Double_t ld = leading.at(D).at(jd);
         if(TMath::Abs(lu - ld) < m_max_time_diff){
-          Double_t cld = cld_buf.at(jd);
-          lu_cont.push_back(lu);
-          ld_cont.push_back(ld);
-          clu_cont.push_back(clu);
-          cld_cont.push_back(cld);
+          Double_t cld = cleading.at(D).at(jd);
+          m_time_leading.at(U).push_back(lu);
+          m_time_leading.at(D).push_back(ld);
+          m_ctime_leading.at(U).push_back(clu);
+          m_ctime_leading.at(D).push_back(cld);
           m_is_clustered.push_back(false);
           break;
         }else{
@@ -164,9 +158,13 @@ HodoHit::Calculate()
     }
   }
 
-  m_time_leading.at(HodoRawHit::kExtra) = leading.at(HodoRawHit::kExtra);
-  m_ctime_leading.at(HodoRawHit::kExtra) = cleading.at(HodoRawHit::kExtra);
-  for(Int_t ch=0; ch<HodoRawHit::kNChannel; ++ch){
+  // extra channel remains
+  if(m_n_ch == HodoRawHit::kNChannel){
+    m_time_leading.at(E) = leading.at(E);
+    m_ctime_leading.at(E) = cleading.at(E);
+  }
+
+  for(Int_t ch=0; ch<m_n_ch; ++ch){
     m_time_trailing.at(ch) = trailing.at(ch);
     m_ctime_trailing.at(ch) = trailing.at(ch);
   }
@@ -177,7 +175,7 @@ HodoHit::Calculate()
   */
 
   m_is_calculated = true;
-  return (m_ctime_leading.at(HodoRawHit::kUp).size() > 0);
+  return (m_ctime_leading.at(U).size() > 0);
 }
 
 //_____________________________________________________________________________
@@ -186,11 +184,11 @@ HodoHit::DeltaEHighGain(Int_t j) const
 {
   try {
     if(m_n_ch == 1){
-      return m_de_high.at(HodoRawHit::kUp).at(j);
+      return m_de_high.at(U).at(j);
     }else{
       return TMath::Sqrt(
-        TMath::Abs(m_de_high.at(HodoRawHit::kUp).at(j) *
-                   m_de_high.at(HodoRawHit::kDown).at(j)));
+        TMath::Abs(m_de_high.at(U).at(j) *
+                   m_de_high.at(D).at(j)));
     }
   }catch(const std::out_of_range& e){
     return TMath::QuietNaN();
@@ -203,11 +201,11 @@ HodoHit::DeltaELowGain(Int_t j) const
 {
   try {
     if(m_n_ch == 1){
-      return m_de_low.at(HodoRawHit::kUp).at(j);
+      return m_de_low.at(U).at(j);
     }else{
       return TMath::Sqrt(
-        TMath::Abs(m_de_low.at(HodoRawHit::kUp).at(j) *
-                   m_de_low.at(HodoRawHit::kDown).at(j)));
+        TMath::Abs(m_de_low.at(U).at(j) *
+                   m_de_low.at(D).at(j)));
     }
   }catch(const std::out_of_range& e){
     return TMath::QuietNaN();
@@ -220,10 +218,10 @@ HodoHit::MeanTime(Int_t j) const
 {
   try {
     if(m_n_ch == 1){
-      return m_time_leading.at(HodoRawHit::kUp).at(j);
+      return m_time_leading.at(U).at(j);
     }else{
-      return 0.5*(m_time_leading.at(HodoRawHit::kUp).at(j) +
-                  m_time_leading.at(HodoRawHit::kDown).at(j));
+      return 0.5*(m_time_leading.at(U).at(j) +
+                  m_time_leading.at(D).at(j));
     }
   }catch(const std::out_of_range& e){
     return TMath::QuietNaN();
@@ -236,10 +234,10 @@ HodoHit::CMeanTime(Int_t j) const
 {
   try {
     if(m_n_ch == 1){
-      return m_ctime_leading.at(HodoRawHit::kUp).at(j);
+      return m_ctime_leading.at(U).at(j);
     }else{
-      return 0.5*(m_ctime_leading.at(HodoRawHit::kUp).at(j) +
-                  m_ctime_leading.at(HodoRawHit::kDown).at(j));
+      return 0.5*(m_ctime_leading.at(U).at(j) +
+                  m_ctime_leading.at(D).at(j));
     }
   }catch(const std::out_of_range& e){
     return TMath::QuietNaN();
@@ -254,8 +252,8 @@ HodoHit::TimeDiff(Int_t j) const
     if(m_n_ch == 1){
       return TMath::QuietNaN();
     }else{
-      return (m_time_leading.at(HodoRawHit::kDown).at(j) -
-              m_time_leading.at(HodoRawHit::kUp).at(j));
+      return (m_time_leading.at(D).at(j) -
+              m_time_leading.at(U).at(j));
     }
   }catch(const std::out_of_range& e){
     return TMath::QuietNaN();
@@ -270,8 +268,8 @@ HodoHit::CTimeDiff(Int_t j) const
     if(m_n_ch == 1){
       return 0.;
     }else{
-      return (m_ctime_leading.at(HodoRawHit::kDown).at(j) -
-              m_ctime_leading.at(HodoRawHit::kUp).at(j));
+      return (m_ctime_leading.at(D).at(j) -
+              m_ctime_leading.at(U).at(j));
     }
   }catch(const std::out_of_range& e){
     return TMath::QuietNaN();

@@ -411,9 +411,9 @@ RawData::AddHodoRawHit(HodoRawHitContainer& cont,
     }else if(data == gUnpacker.get_data_id(name, "trailing")){
       p->SetTdcTrailing(ch, val);
     }else if(data == gUnpacker.get_data_id(name, "highgain")){
-      // p->SetTrailing(ch, val);
+      p->SetAdcHigh(ch, val);
     }else if(data == gUnpacker.get_data_id(name, "lowgain")){
-      // p->SetTrailing(ch, val);
+      p->SetAdcLow(ch, val);
     }else{
       ;
     }

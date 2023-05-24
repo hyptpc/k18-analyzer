@@ -31,10 +31,10 @@ private:
 
 public:
   const TString& DetectorName() const { return m_detector_name; }
-  Int_t DetectorId() const { return m_detector_id; }
+  Int_t          DetectorId() const { return m_detector_id; }
   const TString& PlaneName() const { return m_plane_name; }
-  Int_t PlaneId() const { return m_plane_id; }
-  Int_t SegmentId() const { return m_segment_id; }
+  Int_t          PlaneId() const { return m_plane_id; }
+  Int_t          SegmentId() const { return m_segment_id; }
 
   const std::vector<Double_t>& GetArrayAdcHigh(Int_t i=0) const
     { return m_adc_high.at(i); }

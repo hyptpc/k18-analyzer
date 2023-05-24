@@ -5,24 +5,25 @@
 
 #include <TString.h>
 
-#include "HodoAnalyzer.hh"
 #include "HodoHit.hh"
+
+using HodoHitContainer = std::vector<HodoHit*>;
+using index_t = std::vector<Int_t>;
 
 //_____________________________________________________________________________
 class HodoCluster
 {
 public:
   static const TString& ClassName();
-  using index_t = std::vector<Int_t>;
   HodoCluster(const HodoHitContainer& cont,
               const index_t& index);
   virtual ~HodoCluster();
 
 private:
-  HodoCluster(const HodoCluster &);
-  HodoCluster& operator =(const HodoCluster &);
+  HodoCluster(const HodoCluster&);
+  HodoCluster& operator =(const HodoCluster&);
 
-private:
+protected:
   Bool_t           m_is_good;
   HodoHitContainer m_hit_container;
   index_t          m_index;
@@ -32,8 +33,8 @@ private:
   Double_t         m_time_diff;
   Double_t         m_de;
   Double_t         m_tot;
+  Double_t         m_mean_position;
   Double_t         m_segment;
-  Double_t         m_position;
   Double_t         m_1st_seg;
   Double_t         m_1st_time;
 
@@ -46,6 +47,7 @@ public:
   Int_t     PlaneId() const { return m_hit_container.at(0)->PlaneId(); }
   Bool_t    IsGood() const { return m_is_good; }
   Int_t     ClusterSize() const { return m_cluster_size; }
+  Double_t  MeanPosition() const { return m_mean_position; }
   Double_t  MeanTime() const { return m_mean_time; }
   Double_t  CMeanTime() const { return m_ctime; }
   Double_t  CTime() const { return CMeanTime(); }
@@ -53,7 +55,6 @@ public:
   Double_t  DeltaE() const { return m_de; }
   Double_t  TOT() const { return m_tot; }
   Double_t  MeanSeg() const { return m_segment; }
-  Double_t  Position() const { return m_position; }
   Double_t  FirstSeg() const { return m_1st_seg; }
   Double_t  FirstTime() const { return m_1st_time; }
   HodoHit*  GetHit(Int_t i) const;

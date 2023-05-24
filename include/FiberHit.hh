@@ -25,37 +25,21 @@ private:
 
 protected:
   Double_t m_position;
-  Double_t m_offset;
-  Int_t    m_pair_id;
-  // Double_t            m_pedcor_hg;
-  // Double_t            m_pedcor_lg;
-  // Double_t            m_mip_hg;
-  // Double_t            m_mip_lg;
-  // Double_t            m_dE_hg;
-  // Double_t            m_dE_lg;
-
-  struct data_pair
-  {
-    Double_t time_l;
-    Double_t time_t;
-    Double_t ctime_l;
-    Double_t tot;
-    Int_t    index_t;
-  };
-
-  std::vector<data_pair> m_pair_cont;
+  Double_t m_dxdw;
 
 public:
   Bool_t   Calculate();
-  Int_t    GetNPair() const { return m_pair_cont.size(); }
-  Double_t GetTime(Int_t n=0) const { return m_pair_cont.at(n).time_l; }
-  Double_t GetCTime(Int_t n=0) const { return m_pair_cont.at(n).ctime_l; }
-  Double_t GetTimeT(Int_t n=0) const { return m_pair_cont.at(n).time_t; }
-  Double_t GetWidth(Int_t n=0) const { return m_pair_cont.at(n).tot; }
-  Double_t GetTot(Int_t n=0) const { return m_pair_cont.at(n).tot; }
-  Double_t GetPosition() const { return m_position + m_offset; }
-  Int_t    PairId() const { return m_pair_id; }
-  //  virtual Double_t SegmentId()    const { return m_segment; }
+  Double_t Position() const { return m_position; }
+  Double_t dXdW() const { return m_dxdw; }
+  Double_t TimeOverThreshold(Int_t i, Int_t j=0) const
+    { return m_time_trailing.at(i).at(j) - m_time_leading.at(i).at(j); }
+  Double_t TOT(Int_t i, Int_t j=0) const
+    { return TimeOverThreshold(i, j); }
+  // Double_t CTimeOverThreshold(Int_t i, Int_t j=0) const
+  //   { return m_ctime_trailing.at(i).at(j) - m_ctime_leading.at(i).at(j); }
+  // Double_t CTOT(Int_t i, Int_t j=0) const
+  //   { return CTimeOverThreshold(i, j); }
+
   // Double_t GetAdcHG() const { return m_adc_hg; }
   // Double_t GetAdcLG() const { return m_adc_lg; }
   // Double_t GetMipHG() const { return m_mip_hg; }
@@ -65,10 +49,11 @@ public:
   // void     SetPedestalCor(Double_t deltaHG, Double_t deltaLG)
   // { m_pedcor_hg = deltaHG; m_pedcor_lg = deltaLG; }
   // void     RegisterHits(FLHit* hit) { m_hit_container.push_back(hit); }
-  virtual void Print(Option_t* arg="") const;
-  virtual Bool_t ReCalc(Bool_t allpyRecursively=false)
-  { return FiberHit::Calculate(); }
-  static Bool_t CompFiberHit(const FiberHit* left, const FiberHit* right);
+
+  virtual void   Print(Option_t* arg="") const;
+  virtual Bool_t ReCalc(Bool_t allpyRecursively=false){ return Calculate(); }
+
+  static Bool_t Compare(const FiberHit* left, const FiberHit* right);
 };
 
 //_____________________________________________________________________________
@@ -81,9 +66,9 @@ FiberHit::ClassName()
 
 //_____________________________________________________________________________
 inline Bool_t
-FiberHit::CompFiberHit(const FiberHit* left, const FiberHit* right)
+FiberHit::Compare(const FiberHit* left, const FiberHit* right)
 {
-  return left->PairId() < right->PairId();
+  return left->Position() < right->Position();
 }
 
 #endif

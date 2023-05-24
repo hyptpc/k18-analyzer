@@ -7,7 +7,11 @@
 
 #include <TString.h>
 
+#include "DeleteUtility.hh"
 #include "DetectorID.hh"
+#include "FiberCluster.hh"
+#include "FuncName.hh"
+#include "HodoCluster.hh"
 #include "HodoHit.hh"
 #include "RawData.hh"
 #include "UserParamMan.hh"
@@ -15,21 +19,17 @@
 class RawData;
 class BH2Hit;
 class FiberHit;
-class HodoCluster;
 class BH2Cluster;
-class FiberCluster;
 
-using HodoHitContainer = std::vector<HodoHit*>;
-using FiberHitContainer = std::vector<FiberHit*>;
-typedef std::vector<BH2Hit*>   BH2HitContainer;
-typedef std::vector< std::vector<FiberHit*> >
-MultiPlaneFiberHitContainer;
+// typedef std::vector<BH2Hit*>   BH2HitContainer;
+// typedef std::vector< std::vector<FiberHit*> >
+// MultiPlaneFiberHitContainer;
 
-typedef std::vector<HodoCluster*>  HodoClusterContainer;
-typedef std::vector<BH2Cluster*>   BH2ClusterContainer;
-typedef std::vector<FiberCluster*> FiberClusterContainer;
-typedef std::vector< std::vector<FiberCluster*> >
-MultiPlaneFiberClusterContainer;
+using HodoClusterContainer = std::vector<HodoCluster*>;
+// typedef std::vector<BH2Cluster*>   BH2ClusterContainer;
+// typedef std::vector<FiberCluster*> FiberClusterContainer;
+// typedef std::vector< std::vector<FiberCluster*> >
+// MultiPlaneFiberClusterContainer;
 
 //_____________________________________________________________________________
 class HodoAnalyzer
@@ -98,19 +98,28 @@ private:
                  Double_t min, Double_t max, Bool_t adopt_nan);
   template <typename T>
   void AdcCut(std::vector<T>& cont, Double_t min, Double_t max);
-
-  static Bool_t PairPlane(TString planeA, TString planeB); // pair or same plane
-  static Int_t MakeUpClusters(const HodoHitContainer& HitCont,
+  template <typename T>
+  static Int_t MakeUpClusters(const std::vector<T*>& HitCont,
                               HodoClusterContainer& ClusterCont,
                               Int_t MaxClusterSize,
-                              Double_t MaxTimeDif);
-  static Int_t MakeUpClusters(const BH2HitContainer& HitCont,
-                              BH2ClusterContainer& ClusterCont,
-                              Double_t maxTimeDif);
-  static Int_t MakeUpClusters(const FiberHitContainer& cont,
-                              FiberClusterContainer& ClusterCont,
-                              Double_t maxTimeDif,
-                              Int_t DifPairId);
+                              Double_t MaxTimeDiff);
+  template <typename T>
+  static HodoCluster* AllocateCluster(HodoHitContainer& HitCont,
+                                      index_t index);
+  static Bool_t Connectable(const HodoHit* hitA, Int_t indexA,
+                            const HodoHit* hitB, Int_t indexB,
+                            Double_t MaxTimeDiff);
+  static Bool_t Connectable(const FiberHit* hitA, Int_t indexA,
+                            const FiberHit* hitB, Int_t indexB,
+                            Double_t MaxTimeDiff);
+
+  // static Int_t MakeUpClusters(const BH2HitContainer& HitCont,
+  //                             BH2ClusterContainer& ClusterCont,
+  //                             Double_t maxTimeDif);
+  // static Int_t MakeUpClusters(const FiberHitContainer& cont,
+  //                             FiberClusterContainer& ClusterCont,
+  //                             Double_t maxTimeDif,
+  //                             Int_t DifPairId);
 };
 
 //_____________________________________________________________________________
@@ -126,44 +135,152 @@ template <typename T>
 inline Bool_t
 HodoAnalyzer::DecodeHits(const TString& name, Double_t max_time_diff)
 {
-  auto& cont = m_hodo_hit_collection[name];
-  for(auto& hit: cont){
-    delete hit;
-  }
-  cont.clear();
-
+  std::vector<T*> CandCont;
   for(auto& rhit: m_raw_data->GetHodoRawHitContainer(name)){
     if(!rhit) continue;
     auto hit = new T(rhit);
     if(hit && hit->Calculate()){
-      cont.push_back(hit);
+      CandCont.push_back(hit);
     }else{
       delete hit;
     }
   }
+  std::sort(CandCont.begin(), CandCont.end(), T::Compare);
 
-  std::sort(cont.begin(), cont.end(), T::Compare);
+  // m_hodo_hit_collection[name] = CandCont;
+  auto& cont = m_hodo_hit_collection[name];
+  for(auto& hit: cont)
+    delete hit;
+  cont.clear();
+  for(const auto& hit: CandCont)
+    cont.push_back(hit);
 
 #if 1
   // static const auto& gUser = UserParamMan::GetInstance();
   const auto MaxClusterSize = 3;
   const auto MaxTimeDiff    = 100;
-  MakeUpClusters(cont, m_hodo_cluster_collection[name],
-                 MaxClusterSize, MaxTimeDiff);
+  MakeUpClusters<T>(CandCont, m_hodo_cluster_collection[name],
+                    MaxClusterSize, MaxTimeDiff);
 #endif
 
   return true;
 }
 
 //_____________________________________________________________________________
-inline Bool_t
-HodoAnalyzer::PairPlane(TString planeA, TString planeB)
+template <typename T>
+inline Int_t
+HodoAnalyzer::MakeUpClusters(const std::vector<T*>& HitCont,
+                             HodoClusterContainer& ClusterCont,
+                             Int_t MaxClusterSize,
+                             Double_t MaxTimeDiff)
 {
+  del::ClearContainer(ClusterCont);
+
+  if(HitCont.empty())
+    return 0;
+
+  for(Int_t iA=0, n=HitCont.size(); iA<n; ++iA){
+    const auto& hitA = HitCont[iA];
+    if(hitA->IsClusteredAll())
+      continue;
+    T* hitLast = hitA;
+    for(Int_t jA=0, mA=hitA->GetEntries(); jA<mA; ++jA){
+      if(hitA->IsClustered(jA))
+        continue;
+      Int_t jLast = jA;
+      HodoHitContainer CandCont;
+      index_t index;
+      hitA->JoinCluster(jA);
+      CandCont.push_back(hitA);
+      index.push_back(jA);
+      for(Int_t iB=iA+1; iB<n; ++iB){
+        const auto& hitB = HitCont[iB];
+        for(Int_t jB=0, mB=hitB->GetEntries(); jB<mB; ++jB){
+          if(hitB->IsClustered(jB))
+            continue;
+          if(Connectable(hitLast, jLast, hitB, jB, MaxTimeDiff)){
+            hitB->JoinCluster(jB);
+            CandCont.push_back(hitB);
+            index.push_back(jB);
+            hitLast = hitB;
+            jLast = jB;
+            break;
+          }
+        }
+      }
+      auto cluster = AllocateCluster<T>(CandCont, index);
+      if(cluster && cluster->IsGood()){
+        ClusterCont.push_back(cluster);
+      }else{
+        delete cluster;
+      }
+    }
+  }
+  return ClusterCont.size();
+}
+
+//_____________________________________________________________________________
+template <typename T>
+inline HodoCluster*
+HodoAnalyzer::AllocateCluster(HodoHitContainer& HitCont,
+                              index_t index)
+{
+  return new HodoCluster(HitCont, index);
+}
+
+//_____________________________________________________________________________
+template <>
+inline HodoCluster*
+HodoAnalyzer::AllocateCluster<FiberHit>(HodoHitContainer& HitCont,
+                                        index_t index)
+{
+  return new FiberCluster(HitCont, index);
+}
+
+//_____________________________________________________________________________
+inline Bool_t
+HodoAnalyzer::Connectable(const HodoHit* hitA, Int_t indexA,
+                          const HodoHit* hitB, Int_t indexB,
+                          Double_t MaxTimeDiff)
+{
+  Double_t cmtA = hitA->CMeanTime(indexA);
+  Double_t cmtB = hitB->CMeanTime(indexB);
+  Double_t segA = hitA->SegmentId();
+  Double_t segB = hitB->SegmentId();
+  return (true
+          && TMath::Abs(segA - segB) <= 1
+          && TMath::Abs(cmtA - cmtB) < MaxTimeDiff);
+}
+
+//_____________________________________________________________________________
+inline Bool_t
+HodoAnalyzer::Connectable(const FiberHit* hitA, Int_t indexA,
+                          const FiberHit* hitB, Int_t indexB,
+                          Double_t MaxTimeDiff)
+{
+  TString planeA = hitA->PlaneName();
   if(planeA.EndsWith("P", TString::kIgnoreCase))
     planeA.Chop();
+  TString planeB = hitB->PlaneName();
   if(planeB.EndsWith("P", TString::kIgnoreCase))
     planeB.Chop();
-  return planeA.EqualTo(planeB, TString::kIgnoreCase);
+  Double_t cmtA = hitA->CMeanTime(indexA);
+  Double_t cmtB = hitB->CMeanTime(indexB);
+  Double_t posA = hitA->Position();
+  Double_t posB = hitB->Position();
+#if 0
+  hddaq::cout << FUNC_NAME << << std::endl
+              << " " << planeA << " == " << planeB << std::endl
+              << " " << cmtA << " - " << cmtB << " <= " << MaxTimeDiff
+              << std::endl
+              << " " << posA << " - " << posB << " <= " << hitA->dXdW()
+              << std::endl;
+#endif
+  return (true
+          && planeA.EqualTo(planeB, TString::kIgnoreCase)
+          && TMath::Abs(cmtA - cmtB) <= MaxTimeDiff
+          && TMath::Abs(posA - posB) <= hitA->dXdW()
+    );
 }
 
 #endif

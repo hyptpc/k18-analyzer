@@ -26,8 +26,8 @@ HodoCluster::HodoCluster(const HodoHitContainer& cont,
     m_time_diff(),
     m_de(),
     m_tot(),
+    m_mean_position(),
     m_segment(),
-    m_position(),
     m_1st_seg(TMath::QuietNaN()),
     m_1st_time(DBL_MAX)
 {
@@ -55,13 +55,11 @@ HodoCluster::Calculate()
   if(m_hit_container.empty())
     return;
 
-  m_mean_time = 0;
-  m_ctime     = 0;
-  m_time_diff = 0;
-  m_de        = 0;
-  m_tot       = 0;
-  m_segment   = 0;
-  m_position  = 0;
+  m_mean_time = 0.;
+  m_ctime     = 0.;
+  m_time_diff = 0.;
+  m_de        = 0.;
+  m_segment   = 0.;
   m_1st_seg   = TMath::QuietNaN();
   m_1st_time  = DBL_MAX;
 
@@ -73,7 +71,6 @@ HodoCluster::Calculate()
     m_ctime     += hit->CMeanTime(index);
     m_time_diff += hit->TimeDiff(index);
     m_de        += hit->DeltaE();
-    m_tot       += hit->TOT(index);
     if(hit->CMeanTime(index) < m_1st_time){
       m_1st_seg  = hit->SegmentId();
       m_1st_time = hit->CMeanTime(index);
@@ -106,6 +103,9 @@ HodoCluster::Print(Option_t*) const
   PrintHelper helper(3, std::ios::fixed);
   hddaq::cout << FUNC_NAME << std::endl
               << " detector name : " << m_hit_container.at(0)->DetectorName() << std::endl
+              << " mean time     : " << m_mean_time << std::endl
+              << " de            : " << m_de << std::endl
+              << " tot           : " << m_tot << std::endl
               << " cluster size  : " << m_cluster_size << std::endl;
   for(Int_t i=0; i<m_cluster_size; ++i){
     const auto& hit = m_hit_container[i];

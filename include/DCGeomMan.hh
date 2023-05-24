@@ -38,6 +38,8 @@ private:
   DoubleList      m_local_z_map;
 
 public:
+  Double_t            dXdW(Int_t layer) const;
+  Double_t            dXdW(const TString& name) const;
   Bool_t              Initialize();
   Bool_t              Initialize(const TString& file_name);
   Bool_t              IsReady() const { return m_is_ready; }

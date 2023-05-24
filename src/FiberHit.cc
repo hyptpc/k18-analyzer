@@ -32,9 +32,7 @@ const auto& gPHC  = HodoPHCMan::GetInstance();
 //_____________________________________________________________________________
 FiberHit::FiberHit(HodoRawHit *rhit)
   : HodoHit(rhit),
-    m_position(qnan),
-    m_offset(0),
-    m_pair_id(0)
+    m_position(qnan)
 {
   debug::ObjectCounter::increase(ClassName());
 }
@@ -58,8 +56,8 @@ FiberHit::Calculate()
   Int_t plane = m_raw->PlaneId();
   Int_t seg   = m_raw->SegmentId();
 
-  data_t trailing(HodoRawHit::kNChannel);
-  for(Int_t ch=0; ch<HodoRawHit::kNChannel; ++ch){
+  data_t trailing(m_n_ch);
+  for(Int_t ch=0; ch<m_n_ch; ++ch){
     const auto& l_cont = m_time_leading.at(ch);
     m_ctime_leading.at(ch).clear();
     m_ctime_trailing.at(ch).clear();
@@ -83,6 +81,10 @@ FiberHit::Calculate()
     }
   }
   m_time_trailing = trailing;
+
+  Int_t layer = gGeom.GetDetectorId(DetectorName()+"-"+PlaneName());
+  m_position = gGeom.CalcWirePosition(layer, seg);
+  m_dxdw     = gGeom.dXdW(layer);
 
   return true;
 
@@ -178,7 +180,7 @@ FiberHit::Print(Option_t* arg) const
     }
     hddaq::cout << std::endl;
   }
-  for(Int_t ch=0; ch<HodoRawHit::kNChannel; ++ch){
+  for(Int_t ch=0; ch<m_n_ch; ++ch){
     hddaq::cout << " tot     :";
     for(Int_t j=0, n=GetEntries(ch); j<n; ++j){
       hddaq::cout << " " << TOT(ch, j);

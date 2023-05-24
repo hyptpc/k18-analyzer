@@ -29,6 +29,7 @@ protected:
   Bool_t      m_is_calculated;
   Double_t    m_max_time_diff; // [ns]
   Int_t       m_n_ch;
+  Double_t    m_time_offset;
 
   using data_t = std::vector<std::vector<Double_t>>; // [ch][i]
 
@@ -65,14 +66,6 @@ public:
     { return m_ctime_leading.at(i).at(j); }
   Double_t GetCTimeTrailing(Int_t i, Int_t j=0) const
     { return m_ctime_leading.at(i).at(j); }
-  Double_t TimeOverThreshold(Int_t i, Int_t j=0) const
-    { return m_time_trailing.at(i).at(j) - m_time_leading.at(i).at(j); }
-  Double_t TOT(Int_t i, Int_t j=0) const
-    { return TimeOverThreshold(i, j); }
-  // Double_t CTimeOverThreshold(Int_t i, Int_t j=0) const
-  //   { return m_ctime_trailing.at(i).at(j) - m_ctime_leading.at(i).at(j); }
-  // Double_t CTOT(Int_t i, Int_t j=0) const
-  //   { return CTimeOverThreshold(i, j); }
 
   Double_t DeltaEHighGain(Int_t j=0) const;
   Double_t DeltaELowGain(Int_t j=0) const;
@@ -80,6 +73,9 @@ public:
   Double_t CMeanTime(Int_t j=0) const;
   Double_t TimeDiff(Int_t j=0) const;
   Double_t CTimeDiff(Int_t j=0) const;
+
+  Double_t Time0(Int_t j=0) const { return MeanTime() + m_time_offset; }
+  Double_t CTime0(Int_t j=0) const { return CMeanTime() + m_time_offset; }
 
   // aliases
   Double_t DeltaE(Int_t j=0) const { return DeltaEHighGain(j); }
@@ -106,12 +102,13 @@ public:
   Double_t GetCTDown(Int_t j=0) const { return CT(HodoRawHit::kDown, j); }
   Double_t GetCTRight(Int_t j=0) const { return CT(HodoRawHit::kDown, j); }
 
-  void JoinCluster(Int_t m) { m_is_clustered.at(m) = true; }
+  void   JoinCluster(Int_t m) { m_is_clustered.at(m) = true; }
   Bool_t IsClustered(Int_t m) const { return m_is_clustered.at(m); }
   Bool_t IsClusteredAll();
 
-  virtual Bool_t ReCalc(Bool_t applyRecursively=false){ return Calculate(); }
   virtual void   Print(Option_t* arg="") const;
+  virtual Bool_t ReCalc(Bool_t applyRecursively=false){ return Calculate(); }
+
   static  Bool_t Compare(const HodoHit* left, const HodoHit* right);
 };
 
