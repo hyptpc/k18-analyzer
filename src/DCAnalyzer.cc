@@ -122,8 +122,9 @@ printConnectionFlag(const std::vector<std::deque<Bool_t> >& flag)
 }
 
 //_____________________________________________________________________________
-DCAnalyzer::DCAnalyzer()
-  : m_max_v0diff(90.),
+DCAnalyzer::DCAnalyzer(const RawData& raw_data)
+  : m_raw_data(&raw_data),
+    m_max_v0diff(90.),
     m_is_decoded(n_type),
     m_much_combi(n_type),
     m_MWPCClCont(NumOfLayersBcIn+1),
@@ -181,7 +182,7 @@ DCAnalyzer::PrintKurama(const TString& arg) const
 //_____________________________________________________________________________
 #if UseBcIn
 Bool_t
-DCAnalyzer::DecodeBcInHits(RawData *rawData)
+DCAnalyzer::DecodeBcInHits()
 {
   if(m_is_decoded[kBcIn]){
     hddaq::cout << FUNC_NAME << " "
@@ -192,7 +193,7 @@ DCAnalyzer::DecodeBcInHits(RawData *rawData)
   ClearBcInHits();
 
   for(Int_t layer=1; layer<=NumOfLayersBcIn; ++layer){
-    const DCRHitContainer &RHitCont = rawData->GetBcInRawHC(layer);
+    const DCRHitContainer &RHitCont = m_raw_data->GetBcInRawHC(layer);
     Int_t nh = RHitCont.size();
     for(Int_t i=0; i<nh; ++i){
       DCRawHit *rhit  = RHitCont[i];
@@ -251,7 +252,7 @@ DCAnalyzer::DecodeBcInHits(RawData *rawData)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::DecodeBcOutHits(RawData *rawData)
+DCAnalyzer::DecodeBcOutHits()
 {
   if(m_is_decoded[kBcOut]){
     hddaq::cout << FUNC_NAME << " "
@@ -262,7 +263,7 @@ DCAnalyzer::DecodeBcOutHits(RawData *rawData)
   ClearBcOutHits();
 
   for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
-    for(const auto& rhit: rawData->GetBcOutRawHC(layer)){
+    for(const auto& rhit: m_raw_data->GetBcOutRawHC(layer)){
       auto hit = new DCHit(rhit->PlaneId()+PlOffsBc, rhit->WireId());
       Int_t nhtdc = rhit->GetTdcSize();
       Int_t nhtrailing = rhit->GetTrailingSize();
@@ -287,7 +288,7 @@ DCAnalyzer::DecodeBcOutHits(RawData *rawData)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::DecodeSdcInHits(RawData *rawData)
+DCAnalyzer::DecodeSdcInHits()
 {
   if(m_is_decoded[kSdcIn]){
     hddaq::cout << FUNC_NAME << " "
@@ -298,7 +299,7 @@ DCAnalyzer::DecodeSdcInHits(RawData *rawData)
   ClearSdcInHits();
 
   for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
-    for(const auto& rhit: rawData->GetSdcInRawHC(layer)){
+    for(const auto& rhit: m_raw_data->GetSdcInRawHC(layer)){
       auto hit = new DCHit(rhit->PlaneId(), rhit->WireId());
       Int_t nhtdc = rhit->GetTdcSize();
       Int_t nhtrailing = rhit->GetTrailingSize();
@@ -323,7 +324,7 @@ DCAnalyzer::DecodeSdcInHits(RawData *rawData)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::DecodeSdcOutHits(RawData *rawData , Double_t ofs_dt/*=0.*/)
+DCAnalyzer::DecodeSdcOutHits(Double_t ofs_dt/*=0.*/)
 {
   if(m_is_decoded[kSdcOut]){
     hddaq::cout << FUNC_NAME << " "
@@ -334,7 +335,7 @@ DCAnalyzer::DecodeSdcOutHits(RawData *rawData , Double_t ofs_dt/*=0.*/)
   ClearSdcOutHits();
 
   for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer){
-    for(const auto& rhit: rawData->GetSdcOutRawHC(layer)){
+    for(const auto& rhit: m_raw_data->GetSdcOutRawHC(layer)){
       auto hit = new DCHit(rhit->PlaneId(), rhit->WireId());
       Int_t nhtdc = rhit->GetTdcSize();
       Int_t nhtrailing = rhit->GetTrailingSize();
@@ -360,15 +361,15 @@ DCAnalyzer::DecodeSdcOutHits(RawData *rawData , Double_t ofs_dt/*=0.*/)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::DecodeRawHits(RawData *rawData)
+DCAnalyzer::DecodeRawHits()
 {
   ClearDCHits();
 #if UseBcIn
-  DecodeBcInHits(rawData);
+  DecodeBcInHits();
 #endif
-  DecodeBcOutHits(rawData);
-  DecodeSdcInHits(rawData);
-  DecodeSdcOutHits(rawData);
+  DecodeBcOutHits();
+  DecodeSdcInHits();
+  DecodeSdcOutHits();
   return true;
 }
 

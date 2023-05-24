@@ -38,7 +38,7 @@ class DCAnalyzer
 {
 public:
   static const TString& ClassName();
-  DCAnalyzer();
+  DCAnalyzer(const RawData& raw_data);
   ~DCAnalyzer();
 
 private:
@@ -48,6 +48,7 @@ private:
 private:
   enum e_type
   { kBcIn, kBcOut, kSdcIn, kSdcOut, kTOF, n_type };
+  const RawData*                     m_raw_data;
   Double_t                           m_max_v0diff;
   std::vector<Bool_t>                m_is_decoded;
   std::vector<Int_t>                 m_much_combi;
@@ -73,13 +74,13 @@ private:
 
 public:
   Int_t  MuchCombinationSdcIn() const { return m_much_combi[kSdcIn]; }
-  Bool_t DecodeRawHits(RawData* rawData);
+  Bool_t DecodeRawHits();
   // Bool_t DecodeFiberHits(FiberCluster* FiberCl, Int_t layer);
-  Bool_t DecodeFiberHits(RawData* rawData);
-  Bool_t DecodeBcInHits(RawData* rawData);
-  Bool_t DecodeBcOutHits(RawData* rawData);
-  Bool_t DecodeSdcInHits(RawData* rawData);
-  Bool_t DecodeSdcOutHits(RawData* rawData, Double_t ofs_dt=0.);
+  Bool_t DecodeFiberHits();
+  Bool_t DecodeBcInHits();
+  Bool_t DecodeBcOutHits();
+  Bool_t DecodeSdcInHits();
+  Bool_t DecodeSdcOutHits(Double_t ofs_dt=0.);
   Bool_t DecodeTOFHits(const HodoHitContainer& HitCont);
   Bool_t DecodeTOFHits(const HodoClusterContainer& ClCont);
   // Bool_t DecodeSimuHits(SimuData *simuData);

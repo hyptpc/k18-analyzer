@@ -48,45 +48,6 @@ auto& gBH1Mth = BH1Match::GetInstance();
 }
 
 //_____________________________________________________________________________
-class UserK18Tracking : public VEvent
-{
-private:
-  RawData*      rawData;
-  DCAnalyzer*   DCAna;
-
-public:
-  UserK18Tracking();
-  ~UserK18Tracking();
-  virtual const TString& ClassName();
-  virtual Bool_t         ProcessingBegin();
-  virtual Bool_t         ProcessingEnd();
-  virtual Bool_t         ProcessingNormal();
-};
-
-//_____________________________________________________________________________
-inline const TString&
-UserK18Tracking::ClassName()
-{
-  static TString s_name("UserK18Tracking");
-  return s_name;
-}
-
-//_____________________________________________________________________________
-UserK18Tracking::UserK18Tracking()
-  : VEvent(),
-    rawData(new RawData),
-    DCAna(new DCAnalyzer)
-{
-}
-
-//_____________________________________________________________________________
-UserK18Tracking::~UserK18Tracking()
-{
-  if(rawData) delete rawData;
-  if(DCAna) delete DCAna;
-}
-
-//_____________________________________________________________________________
 struct Event
 {
   Int_t evnum;
@@ -220,7 +181,7 @@ enum eParticle
 
 //_____________________________________________________________________________
 Bool_t
-UserK18Tracking::ProcessingBegin()
+ProcessingBegin()
 {
   event.clear();
   return true;
@@ -228,7 +189,7 @@ UserK18Tracking::ProcessingBegin()
 
 //_____________________________________________________________________________
 Bool_t
-UserK18Tracking::ProcessingNormal()
+ProcessingNormal()
 {
 #if HodoCut
   static const Double_t MinDeBH2   = gUser.GetParameter("DeBH2", 0);
@@ -247,8 +208,10 @@ UserK18Tracking::ProcessingNormal()
 #endif
   // static const Double_t MaxMultiHitBcOut = gUser.GetParameter("MaxMultiHitBcOut");
 
-  rawData->DecodeHits();
+  RawData rawData;
+  rawData.DecodeHits();
   HodoAnalyzer hodoAna(rawData);
+  DCAnalyzer   DCAna(rawData);
 
   event.evnum = gUnpacker.get_event_number();
 
@@ -257,7 +220,7 @@ UserK18Tracking::ProcessingNormal()
   ///// Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
   {
-    for(const auto& hit: rawData->GetHodoRawHitContainer("TFlag")){
+    for(const auto& hit: rawData.GetHodoRawHitContainer("TFlag")){
       Int_t seg = hit->SegmentId();
       Int_t tdc = hit->GetTdc();
       if(tdc > 0){
@@ -283,7 +246,7 @@ UserK18Tracking::ProcessingNormal()
   HF1(1, 2);
 
   //////////////BH2 Analysis
-  BH2Cluster *cl_time0 = hodoAna.GetTime0BH2Cluster();
+  const auto& cl_time0 = hodoAna.GetTime0BH2Cluster();
   if(cl_time0){
     event.Time0Seg = cl_time0->MeanSeg()+1;
     event.deTime0  = cl_time0->DeltaE();
@@ -304,8 +267,8 @@ UserK18Tracking::ProcessingNormal()
   HF1(1, 4);
 
   Double_t btof0_seg = -1;
-  HodoCluster* cl_btof0 = event.Time0Seg > 0? hodoAna.GetBtof0BH1Cluster(event.CTime0) : NULL;
-  if(cl_btof0){
+  if(event.Time0Seg > 0){
+    const auto& cl_btof0 = hodoAna.GetBtof0BH1Cluster(event.CTime0);
     btof0_seg = cl_btof0->MeanSeg();
   }
 
@@ -327,7 +290,7 @@ UserK18Tracking::ProcessingNormal()
     HF1(BFTHid +100, ncl_raw);
     HF1(BFTHid +101, ncl);
     for(Int_t i=0; i<ncl; ++i){
-      FiberCluster *cl = hodoAna.GetCluster<FiberCluster>("BFT", i);
+      const auto& cl = hodoAna.GetCluster<FiberCluster>("BFT", i);
       if(!cl) continue;
       Double_t clsize = cl->ClusterSize();
       Double_t ctime  = cl->CMeanTime();
@@ -360,16 +323,16 @@ UserK18Tracking::ProcessingNormal()
   if(xCand.size()!=1) return true;
   HF1(1, 10.);
 
-  DCAna->DecodeRawHits(rawData);
+  DCAna.DecodeRawHits();
 #if TotCut
-  DCAna->TotCutBCOut( MinTotBcOut );
+  DCAna.TotCutBCOut( MinTotBcOut );
 #endif
   ////////////// BC3&4 number of hit in one layer not 0
   Double_t multi_BcOut=0.;
   {
     Int_t nlBcOut = 0;
     for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
-      const DCHitContainer &contBcOut = DCAna->GetBcOutHC(layer);
+      const DCHitContainer &contBcOut = DCAna.GetBcOutHC(layer);
       Int_t nhBcOut = contBcOut.size();
       multi_BcOut += Double_t(nhBcOut);
       if(nhBcOut>0) nlBcOut++;
@@ -384,16 +347,16 @@ UserK18Tracking::ProcessingNormal()
   //////////////BCOut tracking
   // BH2Filter::FilterList cands;
   // gFilter.Apply((Int_t)event.Time0Seg-1, *DCAna, cands);
-  //DCAna->TrackSearchBcOut(cands, event.Time0Seg-1);
-  //  DCAna->TrackSearchBcOut(-1);
-  //  DCAna->ChiSqrCutBcOut(10);
+  //DCAna.TrackSearchBcOut(cands, event.Time0Seg-1);
+  //  DCAna.TrackSearchBcOut(-1);
+  //  DCAna.ChiSqrCutBcOut(10);
 
-  DCAna->TrackSearchBcOut();
+  DCAna.TrackSearchBcOut();
  #if Chi2Cut
-  DCAna->ChiSqrCutBcOut(10);
+  DCAna.ChiSqrCutBcOut(10);
  #endif
 
-  Int_t ntBcOut = DCAna->GetNtracksBcOut();
+  Int_t ntBcOut = DCAna.GetNtracksBcOut();
   event.ntBcOut = ntBcOut;
   if(ntBcOut > MaxHits){
     std::cout << "#W too many BcOut tracks : ntBcOut = "
@@ -402,7 +365,7 @@ UserK18Tracking::ProcessingNormal()
   }
   HF1(50, Double_t(ntBcOut));
   for(Int_t it=0; it<ntBcOut; ++it){
-    DCLocalTrack *tp = DCAna->GetTrackBcOut(it);
+    DCLocalTrack *tp = DCAna.GetTrackBcOut(it);
     Int_t nh = tp->GetNHit();
     Double_t chisqr = tp->GetChiSquare();
     Double_t u0 = tp->GetU0(),  v0 = tp->GetV0();
@@ -434,8 +397,8 @@ UserK18Tracking::ProcessingNormal()
 
   HF1(1, 20.);
   ////////// K18Tracking D2U
-  DCAna->TrackSearchK18D2U(xCand);
-  Int_t ntK18 = DCAna->GetNTracksK18D2U();
+  DCAna.TrackSearchK18D2U(xCand);
+  Int_t ntK18 = DCAna.GetNTracksK18D2U();
   if(ntK18 > MaxHits){
     std::cout << "#W too many ntK18 "
 	      << ntK18 << "/" << MaxHits << std::endl;
@@ -444,7 +407,7 @@ UserK18Tracking::ProcessingNormal()
   event.ntK18 = ntK18;
   HF1(70, Double_t(ntK18));
   for(Int_t i=0; i<ntK18; ++i){
-    K18TrackD2U *tp=DCAna->GetK18TrackD2U(i);
+    K18TrackD2U *tp=DCAna.GetK18TrackD2U(i);
     if(!tp) continue;
     DCLocalTrack *track = tp->TrackOut();
     std::size_t nh = track->GetNHit();
@@ -502,17 +465,10 @@ UserK18Tracking::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-UserK18Tracking::ProcessingEnd()
+ProcessingEnd()
 {
   tree->Fill();
   return true;
-}
-
-//_____________________________________________________________________________
-VEvent*
-ConfMan::EventAllocator()
-{
-  return new UserK18Tracking;
 }
 
 //_____________________________________________________________________________

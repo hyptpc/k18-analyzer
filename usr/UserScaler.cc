@@ -33,38 +33,11 @@ auto& gUnpacker = GUnpacker::get_instance();
 }
 
 //_____________________________________________________________________________
-class UserScaler : public VEvent
-{
-public:
-  UserScaler();
-  ~UserScaler();
-  virtual const TString& ClassName();
-  virtual Bool_t         ProcessingBegin();
-  virtual Bool_t         ProcessingEnd();
-  virtual Bool_t         ProcessingNormal();
-};
-
-//_____________________________________________________________________________
-inline const TString&
-UserScaler::ClassName()
-{
-  static TString s_name("UserScaler");
-  return s_name;
-}
-
-//_____________________________________________________________________________
 struct Event
 {
   Int_t evnum;
   // void clear();
 };
-
-//_____________________________________________________________________________
-// void
-// Event::clear()
-// {
-//   evnum = -1;
-// }
 
 //_____________________________________________________________________________
 namespace root
@@ -75,19 +48,8 @@ TTree *tree;
 }
 
 //_____________________________________________________________________________
-UserScaler::UserScaler()
-  : VEvent()
-{
-}
-
-//_____________________________________________________________________________
-UserScaler::~UserScaler()
-{
-}
-
-//_____________________________________________________________________________
 Bool_t
-UserScaler::ProcessingBegin()
+ProcessingBegin()
 {
   // event.clear();
   return true;
@@ -95,7 +57,7 @@ UserScaler::ProcessingBegin()
 
 //_____________________________________________________________________________
 Bool_t
-UserScaler::ProcessingNormal()
+ProcessingNormal()
 {
   event.evnum++;
   gScaler.Decode();
@@ -113,16 +75,9 @@ UserScaler::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-UserScaler::ProcessingEnd()
+ProcessingEnd()
 {
   return true;
-}
-
-//_____________________________________________________________________________
-VEvent*
-ConfMan::EventAllocator()
-{
-  return new UserScaler;
 }
 
 //_____________________________________________________________________________

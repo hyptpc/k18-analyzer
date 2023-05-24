@@ -23,39 +23,6 @@ auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 }
 
 //_____________________________________________________________________________
-class UserSkeleton : public VEvent
-{
-private:
-
-public:
-  UserSkeleton();
-  ~UserSkeleton();
-  virtual const TString& ClassName();
-  virtual Bool_t         ProcessingBegin();
-  virtual Bool_t         ProcessingEnd();
-  virtual Bool_t         ProcessingNormal();
-};
-
-//_____________________________________________________________________________
-inline const TString&
-UserSkeleton::ClassName()
-{
-  static TString s_name("UserSkeleton");
-  return s_name;
-}
-
-//_____________________________________________________________________________
-UserSkeleton::UserSkeleton()
-  : VEvent()
-{
-}
-
-//_____________________________________________________________________________
-UserSkeleton::~UserSkeleton()
-{
-}
-
-//_____________________________________________________________________________
 struct Event
 {
   Int_t runnum;
@@ -79,7 +46,7 @@ TTree *tree;
 
 //_____________________________________________________________________________
 Bool_t
-UserSkeleton::ProcessingBegin()
+ProcessingBegin()
 {
   event.clear();
   return true;
@@ -87,7 +54,7 @@ UserSkeleton::ProcessingBegin()
 
 //_____________________________________________________________________________
 Bool_t
-UserSkeleton::ProcessingNormal()
+ProcessingNormal()
 {
   event.runnum = gUnpacker.get_run_number();
   event.evnum  = gUnpacker.get_event_number();
@@ -103,17 +70,10 @@ UserSkeleton::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-UserSkeleton::ProcessingEnd()
+ProcessingEnd()
 {
   tree->Fill();
   return true;
-}
-
-//_____________________________________________________________________________
-VEvent*
-ConfMan::EventAllocator()
-{
-  return new UserSkeleton;
 }
 
 //_____________________________________________________________________________

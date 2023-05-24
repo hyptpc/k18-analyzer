@@ -41,42 +41,6 @@ auto& gUser = UserParamMan::GetInstance();
 }
 
 //_____________________________________________________________________________
-class UserHodoscope : public VEvent
-{
-private:
-  RawData*      rawData;
-
-public:
-  UserHodoscope();
-  ~UserHodoscope();
-  virtual const TString& ClassName();
-  virtual Bool_t         ProcessingBegin();
-  virtual Bool_t         ProcessingEnd();
-  virtual Bool_t         ProcessingNormal();
-};
-
-//_____________________________________________________________________________
-inline const TString&
-UserHodoscope::ClassName()
-{
-  static TString s_name("UserHodoscope");
-  return s_name;
-}
-
-//_____________________________________________________________________________
-UserHodoscope::UserHodoscope()
-  : VEvent(),
-    rawData(new RawData)
-{
-}
-
-//_____________________________________________________________________________
-UserHodoscope::~UserHodoscope()
-{
-  if(rawData) delete rawData;
-}
-
-//_____________________________________________________________________________
 struct Event
 {
   Int_t evnum;
@@ -470,7 +434,7 @@ enum eDetHid {
 
 //_____________________________________________________________________________
 Bool_t
-UserHodoscope::ProcessingBegin()
+ProcessingBegin()
 {
   event.clear();
   dst.clear();
@@ -479,7 +443,7 @@ UserHodoscope::ProcessingBegin()
 
 //_____________________________________________________________________________
 Bool_t
-UserHodoscope::ProcessingNormal()
+ProcessingNormal()
 {
   static const auto MinTdcBH1 = gUser.GetParameter("TdcBH1", 0);
   static const auto MaxTdcBH1 = gUser.GetParameter("TdcBH1", 1);
@@ -497,6 +461,9 @@ UserHodoscope::ProcessingNormal()
   static const auto PropVelBH2 = gUser.GetParameter("PropagationBH2");
 #endif
 
+  RawData rawData;
+  HodoAnalyzer hodoAna(rawData);
+
 
   gRM.Decode();
 
@@ -513,7 +480,7 @@ UserHodoscope::ProcessingNormal()
 
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
-  for(const auto& hit: rawData->GetHodoRawHitContainer("TFlag")){
+  for(const auto& hit: rawData.GetHodoRawHitContainer("TFlag")){
     Int_t seg = hit->SegmentId();
     Int_t tdc = hit->GetTdc();
     if(tdc > 0){
@@ -532,10 +499,10 @@ UserHodoscope::ProcessingNormal()
   HF1(1, 1);
 
   ///// BH1
-  rawData->DecodeHits("BH1");
+  rawData.DecodeHits("BH1");
   {
     Int_t bh1_nhits = 0;
-    const auto& cont = rawData->GetHodoRawHitContainer("BH1");
+    const auto& cont = rawData.GetHodoRawHitContainer("BH1");
     Int_t nh = cont.size();
     HF1(BH1Hid, nh);
     Int_t nh1 = 0, nh2 = 0;
@@ -583,10 +550,10 @@ UserHodoscope::ProcessingNormal()
   }
 
   ///// BH2
-  rawData->DecodeHits("BH2");
+  rawData.DecodeHits("BH2");
   {
     Int_t bh2_nhits = 0;
-    const auto& cont = rawData->GetHodoRawHitContainer("BH2");
+    const auto& cont = rawData.GetHodoRawHitContainer("BH2");
     Int_t nh = cont.size();
     HF1(BH2Hid, nh);
     Int_t nh1 = 0, nh2 = 0;
@@ -634,10 +601,10 @@ UserHodoscope::ProcessingNormal()
   }
 
   ///// BAC
-  rawData->DecodeHits("BAC");
+  rawData.DecodeHits("BAC");
   {
     Int_t bac_nhits = 0;
-    const auto& cont = rawData->GetHodoRawHitContainer("BAC");
+    const auto& cont = rawData.GetHodoRawHitContainer("BAC");
     Int_t nh = cont.size();
     HF1(BACHid, nh);
     Int_t nh1 = 0;
@@ -668,10 +635,10 @@ UserHodoscope::ProcessingNormal()
   }
 
   ///// TOF
-  rawData->DecodeHits("TOF");
+  rawData.DecodeHits("TOF");
   {
     Int_t tof_nhits = 0;
-    const auto& cont = rawData->GetHodoRawHitContainer("TOF");
+    const auto& cont = rawData.GetHodoRawHitContainer("TOF");
     Int_t nh = cont.size();
     HF1(TOFHid, Double_t(nh));
     Int_t nh1 = 0, nh2 = 0;
@@ -729,10 +696,10 @@ UserHodoscope::ProcessingNormal()
   }
 
   ///// LAC
-  rawData->DecodeHits("LAC");
+  rawData.DecodeHits("LAC");
   {
     Int_t lac_nhits = 0;
-    const auto& cont = rawData->GetHodoRawHitContainer("LAC");
+    const auto& cont = rawData.GetHodoRawHitContainer("LAC");
     Int_t nh = cont.size();
     HF1(LACHid, nh);
     for(Int_t i=0; i<nh; ++i){
@@ -759,11 +726,11 @@ UserHodoscope::ProcessingNormal()
   }
 
   ///// WC
-  rawData->DecodeHits("WC");
+  rawData.DecodeHits("WC");
   {
     Int_t wc_nhits = 0;
     Int_t wcsum_nhits = 0;
-    const auto& cont = rawData->GetHodoRawHitContainer("WC");
+    const auto& cont = rawData.GetHodoRawHitContainer("WC");
     Int_t nh = cont.size();
     HF1(WCHid, Double_t(nh));
     Int_t nh1 = 0, nh2 = 0;
@@ -833,7 +800,6 @@ UserHodoscope::ProcessingNormal()
 
   //**************************************************************************
   //****************** NormalizedData
-  HodoAnalyzer hodoAna(rawData);
 
   //BH1
   hodoAna.DecodeHits("BH1");
@@ -844,7 +810,7 @@ UserHodoscope::ProcessingNormal()
     HF1(BH1Hid+10, Double_t(nh));
     Int_t nh2 = 0;
     for(Int_t i=0; i<nh; ++i){
-      auto hit = hodoAna.GetHit("BH1", i);
+      const auto& hit = hodoAna.GetHit("BH1", i);
       if(!hit) continue;
       Int_t seg = hit->SegmentId()+1;
 
@@ -891,12 +857,12 @@ UserHodoscope::ProcessingNormal()
 
     HF1(BH1Hid+14, Double_t(nh2));
     for(Int_t i1=0; i1<nh; ++i1){
-      HodoHit *hit1 = hodoAna.GetHit("BH1", i1);
+      const auto& hit1 = hodoAna.GetHit("BH1", i1);
       if(!hit1 || hit1->DeltaE()<=0.5) continue;
       Int_t seg1 = hit1->SegmentId()+1;
       for(Int_t i2=0; i2<nh; ++i2){
         if(i1==i2) continue;
-        HodoHit *hit2=hodoAna.GetHit("BH1", i2);
+        const auto& hit2 = hodoAna.GetHit("BH1", i2);
         if(!hit2 || hit2->DeltaE()<=0.5) continue;
         Int_t seg2 = hit2->SegmentId()+1;
 
@@ -1038,7 +1004,7 @@ UserHodoscope::ProcessingNormal()
     }//for(i)
     HF1(BH2Hid+35, Double_t(nc2));
 
-    BH2Cluster* cl_time0 = hodoAna.GetTime0BH2Cluster();
+    const auto& cl_time0 = hodoAna.GetTime0BH2Cluster();
     if(cl_time0){
       event.Time0Seg = cl_time0->MeanSeg()+1;
       event.deTime0 = cl_time0->DeltaE();
@@ -1053,9 +1019,8 @@ UserHodoscope::ProcessingNormal()
     }
 
     // BTOF0 segment
-    HodoCluster* cl_btof0 = (dst.Time0Seg > 0)
-      ? hodoAna.GetBtof0BH1Cluster(dst.CTime0) : nullptr;
-    if(cl_btof0){
+    if(dst.Time0Seg > 0){
+      const auto& cl_btof0 = hodoAna.GetBtof0BH1Cluster(dst.CTime0);
       event.Btof0Seg = cl_btof0->MeanSeg()+1;
       event.deBtof0 = cl_btof0->DeltaE();
       event.Btof0 = cl_btof0->MeanTime() - dst.Time0;
@@ -1457,7 +1422,7 @@ UserHodoscope::ProcessingNormal()
 #if 0
   // BH1 (for parameter tuning)
   if(dst.Time0Seg==4){
-    const HodoRHitContainer& cont = rawData->GetBH1HodoRawHitContainer();
+    const HodoRHitContainer& cont = rawData.GetBH1HodoRawHitContainer();
     Int_t nh = cont.size();
     for(Int_t i=0; i<nh; ++i){
       auto hit = cont[i];
@@ -1489,18 +1454,11 @@ UserHodoscope::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-UserHodoscope::ProcessingEnd()
+ProcessingEnd()
 {
   tree->Fill();
   hodo->Fill();
   return true;
-}
-
-//_____________________________________________________________________________
-VEvent*
-ConfMan::EventAllocator()
-{
-  return new UserHodoscope;
 }
 
 //_____________________________________________________________________________

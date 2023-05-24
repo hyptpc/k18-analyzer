@@ -39,8 +39,8 @@ const Int_t    MaxSizeCl       = 8;
 }
 
 //_____________________________________________________________________________
-HodoAnalyzer::HodoAnalyzer(RawData* raw_data)
-  : m_raw_data(raw_data),
+HodoAnalyzer::HodoAnalyzer(const RawData& raw_data)
+  : m_raw_data(&raw_data),
     m_hodo_hit_collection(),
     m_hodo_cluster_collection()
 {
@@ -240,8 +240,8 @@ HodoAnalyzer::AdcCut(std::vector<T>& cont,
 }
 
 //_____________________________________________________________________________
-BH2Cluster*
-HodoAnalyzer::GetTime0BH2Cluster()
+const BH2Cluster*
+HodoAnalyzer::GetTime0BH2Cluster() const
 {
   static const Double_t MinMt = gUser.GetParameter("MtBH2", 0);
   static const Double_t MaxMt = gUser.GetParameter("MtBH2", 1);
@@ -270,8 +270,8 @@ HodoAnalyzer::GetTime0BH2Cluster()
 }
 
 //_____________________________________________________________________________
-HodoCluster*
-HodoAnalyzer::GetBtof0BH1Cluster(Double_t time0)
+const HodoCluster*
+HodoAnalyzer::GetBtof0BH1Cluster(Double_t time0) const
 {
   static const Double_t MinBtof = gUser.GetParameter("BTOF",  0);
   static const Double_t MaxBtof = gUser.GetParameter("BTOF",  1);

@@ -15,7 +15,6 @@
 #include "DCRawHit.hh"
 #include "DebugTimer.hh"
 #include "DetectorID.hh"
-#include "FuncName.hh"
 #include "HodoAnalyzer.hh"
 #include "HodoHit.hh"
 #include "MathTools.hh"
@@ -38,45 +37,6 @@ const auto& gUnpacker = GUnpacker::get_instance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& zTOF = gGeom.LocalZ("TOF");
-}
-
-//_____________________________________________________________________________
-class UserKuramaTracking : public VEvent
-{
-private:
-  RawData*      rawData;
-  DCAnalyzer*   DCAna;
-
-public:
-  UserKuramaTracking();
-  ~UserKuramaTracking();
-  virtual const TString& ClassName();
-  virtual Bool_t         ProcessingBegin();
-  virtual Bool_t         ProcessingEnd();
-  virtual Bool_t         ProcessingNormal();
-};
-
-//_____________________________________________________________________________
-inline const TString&
-UserKuramaTracking::ClassName()
-{
-  static TString s_name("UserKuramaTracking");
-  return s_name;
-}
-
-//_____________________________________________________________________________
-UserKuramaTracking::UserKuramaTracking()
-  : VEvent(),
-    rawData(new RawData),
-    DCAna(new DCAnalyzer)
-{
-}
-
-//_____________________________________________________________________________
-UserKuramaTracking::~UserKuramaTracking()
-{
-  if(rawData) delete rawData;
-  if(DCAna) delete DCAna;
 }
 
 //_____________________________________________________________________________
@@ -291,7 +251,7 @@ TTree *tree;
 
 //_____________________________________________________________________________
 Bool_t
-UserKuramaTracking::ProcessingBegin()
+ProcessingBegin()
 {
   event.clear();
   return true;
@@ -299,7 +259,7 @@ UserKuramaTracking::ProcessingBegin()
 
 //_____________________________________________________________________________
 Bool_t
-UserKuramaTracking::ProcessingNormal()
+ProcessingNormal()
 {
 #if HodoCut
   static const auto MinDeBH2   = gUser.GetParameter("DeBH2", 0);
@@ -323,8 +283,10 @@ UserKuramaTracking::ProcessingNormal()
   static const auto MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
   static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
 
-  rawData->DecodeHits();
+  RawData rawData;
+  rawData.DecodeHits();
   HodoAnalyzer hodoAna(rawData);
+  DCAnalyzer   DCAna(rawData);
 
   event.evnum = gUnpacker.get_event_number();
 
@@ -332,7 +294,7 @@ UserKuramaTracking::ProcessingNormal()
 
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
-  for(const auto& hit: rawData->GetHodoRawHitContainer("TFlag")){
+  for(const auto& hit: rawData.GetHodoRawHitContainer("TFlag")){
     Int_t seg = hit->SegmentId();
     Int_t tdc = hit->GetTdc();
     if(tdc > 0){
@@ -417,7 +379,8 @@ UserKuramaTracking::ProcessingNormal()
 
   HF1(1, 3.);
 
-  HodoClusterContainer TOFCont;
+  // std::vector<const HodoCluster*> TOFCont;
+  const auto& TOFCont = hodoAna.GetClusterContainer("TOF");
   //////////////Tof Analysis
   hodoAna.DecodeHits("TOF");
   //hodoAna.TimeCutTOF(7, 25);
@@ -428,7 +391,7 @@ UserKuramaTracking::ProcessingNormal()
     Int_t nhOk = 0;
 #endif
     for(Int_t i=0; i<nhTof; ++i){
-      auto hit = hodoAna.GetCluster("TOF", i);
+      const auto& hit = hodoAna.GetCluster("TOF", i);
       Double_t seg = hit->MeanSeg()+1;
       Double_t cmt = hit->CMeanTime();
       Double_t dt  = hit->TimeDiff();
@@ -442,7 +405,7 @@ UserKuramaTracking::ProcessingNormal()
       // HF2(100*seg+30000+82, da, stof);
       // HF2(100*seg+30000+83, ua, (time0-OffsetTof)-ut);
       // HF2(100*seg+30000+84, da, (time0-OffsetTof)-dt);
-      TOFCont.push_back(hit);
+      // TOFCont.push_back(hit);
 #if HodoCut
       if(MinDeTOF<de  && de<MaxDeTOF  &&
          MinTimeTOF<stof && stof<MaxTimeTOF){
@@ -467,19 +430,19 @@ UserKuramaTracking::ProcessingNormal()
 
   HF1(1, 10.);
 
-  DCAna->DecodeSdcInHits(rawData);
+  DCAna.DecodeSdcInHits();
 
   // Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
-  DCAna->DecodeSdcOutHits(rawData);
-  DCAna->TotCutSDC3(MinTotSDC3);
-  DCAna->TotCutSDC4(MinTotSDC4);
+  DCAna.DecodeSdcOutHits();
+  DCAna.TotCutSDC3(MinTotSDC3);
+  DCAna.TotCutSDC4(MinTotSDC4);
 
   Double_t multi_SdcIn  = 0.;
   ////////////// SdcIn number of hit layer
   {
     Int_t nlSdcIn = 0;
     for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
-      const DCHitContainer &contSdcIn =DCAna->GetSdcInHC(layer);
+      const DCHitContainer &contSdcIn =DCAna.GetSdcInHC(layer);
       Int_t nhSdcIn = contSdcIn.size();
       if(nhSdcIn==1){
 	auto hit = contSdcIn[0];
@@ -501,7 +464,7 @@ UserKuramaTracking::ProcessingNormal()
   {
     Int_t nlSdcOut = 0;
     for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer){
-      const DCHitContainer &contSdcOut =DCAna->GetSdcOutHC(layer);
+      const DCHitContainer &contSdcOut =DCAna.GetSdcOutHC(layer);
       Int_t nhSdcOut=contSdcOut.size();
       if(nhSdcOut==1){
 	auto hit = contSdcOut[0];
@@ -522,20 +485,19 @@ UserKuramaTracking::ProcessingNormal()
 
 
   // std::cout << "==========TrackSearch SdcIn============" << std::endl;
-  DCAna->TrackSearchSdcIn();
-  // DCAna->ChiSqrCutSdcIn(50.);
-  Int_t ntSdcIn = DCAna->GetNtracksSdcIn();
+  DCAna.TrackSearchSdcIn();
+  // DCAna.ChiSqrCutSdcIn(50.);
+  Int_t ntSdcIn = DCAna.GetNtracksSdcIn();
   if(MaxHits<ntSdcIn){
-    std::cout << "#W " << FUNC_NAME << " "
-	      << "too many ntSdcIn " << ntSdcIn << "/" << MaxHits << std::endl;
+    std::cout << "#W too many ntSdcIn " << ntSdcIn << "/" << MaxHits << std::endl;
     ntSdcIn = MaxHits;
   }
   event.ntSdcIn = ntSdcIn;
   HF1(10, Double_t(ntSdcIn));
-  Int_t much_combi = DCAna->MuchCombinationSdcIn();
+  Int_t much_combi = DCAna.MuchCombinationSdcIn();
   event.much = much_combi;
   for(Int_t it=0; it<ntSdcIn; ++it){
-    DCLocalTrack *tp=DCAna->GetTrackSdcIn(it);
+    DCLocalTrack *tp=DCAna.GetTrackSdcIn(it);
     Int_t nh=tp->GetNHit();
     Double_t chisqr=tp->GetChiSquare();
     Double_t x0=tp->GetX0(), y0=tp->GetY0();
@@ -583,7 +545,7 @@ UserKuramaTracking::ProcessingNormal()
   {
     Int_t ntOk=0;
     for(Int_t it=0; it<ntSdcIn; ++it){
-      DCLocalTrack *tp=DCAna->GetTrackSdcIn(it);
+      DCLocalTrack *tp=DCAna.GetTrackSdcIn(it);
       if(!tp) continue;
 
       Int_t nh=tp->GetNHit();
@@ -623,22 +585,21 @@ UserKuramaTracking::ProcessingNormal()
   //std::cout << "==========TrackSearch SdcOut============" << std::endl;
 
 #if UseTOF
-  DCAna->TrackSearchSdcOut(TOFCont);
+  DCAna.TrackSearchSdcOut(TOFCont);
 #else
-  DCAna->TrackSearchSdcOut();
+  DCAna.TrackSearchSdcOut();
 #endif
 
-  // DCAna->ChiSqrCutSdcOut(50.);
-  Int_t ntSdcOut = DCAna->GetNtracksSdcOut();
+  // DCAna.ChiSqrCutSdcOut(50.);
+  Int_t ntSdcOut = DCAna.GetNtracksSdcOut();
   if(MaxHits<ntSdcOut){
-    std::cout << "#W " << FUNC_NAME << " "
-	      << "too many ntSdcOut " << ntSdcOut << "/" << MaxHits << std::endl;
+    std::cout << "#W too many ntSdcOut " << ntSdcOut << "/" << MaxHits << std::endl;
     ntSdcOut = MaxHits;
   }
   event.ntSdcOut=ntSdcOut;
   HF1(30, Double_t(ntSdcOut));
   for(Int_t it=0; it<ntSdcOut; ++it){
-    DCLocalTrack *tp=DCAna->GetTrackSdcOut(it);
+    DCLocalTrack *tp=DCAna.GetTrackSdcOut(it);
     Int_t nh=tp->GetNHit();
     Double_t chisqr=tp->GetChiSquare();
     Double_t u0=tp->GetU0(), v0=tp->GetV0();
@@ -687,11 +648,11 @@ UserKuramaTracking::ProcessingNormal()
   HF1(1, 14.);
 
   for(Int_t i1=0; i1<ntSdcIn; ++i1){
-    DCLocalTrack *trSdcIn=DCAna->GetTrackSdcIn(i1);
+    DCLocalTrack *trSdcIn=DCAna.GetTrackSdcIn(i1);
     Double_t xin=trSdcIn->GetX0(), yin=trSdcIn->GetY0();
     Double_t uin=trSdcIn->GetU0(), vin=trSdcIn->GetV0();
     for(Int_t i2=0; i2<ntSdcOut; ++i2){
-      DCLocalTrack *trSdcOut=DCAna->GetTrackSdcOut(i2);
+      DCLocalTrack *trSdcOut=DCAna.GetTrackSdcOut(i2);
       Double_t xout=trSdcOut->GetX0(), yout=trSdcOut->GetY0();
       Double_t uout=trSdcOut->GetU0(), vout=trSdcOut->GetV0();
       HF2(20001, xin, xout); HF2(20002, yin, yout);
@@ -709,18 +670,17 @@ UserKuramaTracking::ProcessingNormal()
   static const auto StofOffset = gUser.GetParameter("StofOffset");
 
   //////////////KURAMA Tracking
-  DCAna->TrackSearchKurama();
-  Int_t ntKurama = DCAna->GetNTracksKurama();
+  DCAna.TrackSearchKurama();
+  Int_t ntKurama = DCAna.GetNTracksKurama();
   if(MaxHits < ntKurama){
-    std::cout << "#W " << FUNC_NAME << " "
-	      << "too many ntKurama " << ntKurama << "/" << MaxHits << std::endl;
+    std::cout << "#W too many ntKurama " << ntKurama << "/" << MaxHits << std::endl;
     ntKurama = MaxHits;
   }
   event.ntKurama = ntKurama;
   HF1(50, ntKurama);
 
   for(Int_t i=0; i<ntKurama; ++i){
-    auto track = DCAna->GetKuramaTrack(i);
+    auto track = DCAna.GetKuramaTrack(i);
     if(!track) continue;
     // track->Print();
     Int_t nh = track->GetNHits();
@@ -894,7 +854,7 @@ UserKuramaTracking::ProcessingNormal()
   }
 
   for(Int_t i=0; i<ntKurama; ++i){
-    KuramaTrack *track=DCAna->GetKuramaTrack(i);
+    KuramaTrack *track=DCAna.GetKuramaTrack(i);
     if(!track) continue;
     DCLocalTrack *trSdcIn =track->GetLocalTrackIn();
     DCLocalTrack *trSdcOut=track->GetLocalTrackOut();
@@ -906,7 +866,7 @@ UserKuramaTracking::ProcessingNormal()
   }
 
   if(ntKurama==0) return true;
-  KuramaTrack *track = DCAna->GetKuramaTrack(0);
+  KuramaTrack *track = DCAna.GetKuramaTrack(0);
   Double_t path = track->PathLengthToTOF();
   Double_t p    = track->PrimaryMomentum().Mag();
   //Double_t tTof[Event::nParticle];
@@ -947,7 +907,7 @@ UserKuramaTracking::ProcessingNormal()
       HF2(30000+100*seg+84, dde, calt[Event::Pion]+time0-StofOffset-td);
     }
 
-    const auto& cont = rawData->GetHodoRawHitContainer("TOF");
+    const auto& cont = rawData.GetHodoRawHitContainer("TOF");
     Int_t NofHit = cont.size();
     for(Int_t i = 0; i<NofHit; ++i){
       auto hit = cont[i];
@@ -964,17 +924,10 @@ UserKuramaTracking::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-UserKuramaTracking::ProcessingEnd()
+ProcessingEnd()
 {
   tree->Fill();
   return true;
-}
-
-//_____________________________________________________________________________
-VEvent*
-ConfMan::EventAllocator()
-{
-  return new UserKuramaTracking;
 }
 
 //_____________________________________________________________________________

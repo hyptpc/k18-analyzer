@@ -35,45 +35,6 @@ const auto& gUser = UserParamMan::GetInstance();
 }
 
 //_____________________________________________________________________________
-class UserBcOutTracking : public VEvent
-{
-private:
-  RawData*      rawData;
-  DCAnalyzer*   DCAna;
-
-public:
-  UserBcOutTracking();
-  ~UserBcOutTracking();
-  virtual const TString& ClassName();
-  virtual Bool_t         ProcessingBegin();
-  virtual Bool_t         ProcessingEnd();
-  virtual Bool_t         ProcessingNormal();
-};
-
-//_____________________________________________________________________________
-inline const TString&
-UserBcOutTracking::ClassName()
-{
-  static TString s_name("UserBcOutTracking");
-  return s_name;
-}
-
-//_____________________________________________________________________________
-UserBcOutTracking::UserBcOutTracking()
-  : VEvent(),
-    rawData(new RawData),
-    DCAna(new DCAnalyzer)
-{
-}
-
-//_____________________________________________________________________________
-UserBcOutTracking::~UserBcOutTracking()
-{
-  if(rawData) delete rawData;
-  if(DCAna) delete DCAna;
-}
-
-//_____________________________________________________________________________
 struct Event
 {
   Int_t evnum;
@@ -163,7 +124,7 @@ enum eParticle { kKaon, kPion, nParticle };
 
 //_____________________________________________________________________________
 Bool_t
-UserBcOutTracking::ProcessingBegin()
+ProcessingBegin()
 {
   event.clear();
   return true;
@@ -171,7 +132,7 @@ UserBcOutTracking::ProcessingBegin()
 
 //_____________________________________________________________________________
 Bool_t
-UserBcOutTracking::ProcessingNormal()
+ProcessingNormal()
 {
 #if HodoCut
   static const auto MinDeBH2 = gUser.GetParameter("DeBH2", 0);
@@ -186,14 +147,16 @@ UserBcOutTracking::ProcessingNormal()
   static const auto MinTotBcOut = gUser.GetParameter("MinTotBcOut");
 #endif
 
-  rawData->DecodeHits();
+  RawData rawData;
+  rawData.DecodeHits();
   HodoAnalyzer hodoAna(rawData);
+  DCAnalyzer   DCAna(rawData);
 
   event.evnum = gUnpacker.get_event_number();
 
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
-  for(const auto& hit: rawData->GetHodoRawHitContainer("TFlag")){
+  for(const auto& hit: rawData.GetHodoRawHitContainer("TFlag")){
     Int_t seg = hit->SegmentId();
     Int_t tdc = hit->GetTdc();
     if(tdc > 0){
@@ -221,7 +184,7 @@ UserBcOutTracking::ProcessingNormal()
   Double_t time0 = qnan;
   //////////////BH2 Analysis
   for(Int_t i=0; i<nhBh2; ++i){
-    auto hit = hodoAna.GetHit("BH2", i);
+    const auto& hit = hodoAna.GetHit("BH2", i);
     if(!hit) continue;
     Double_t seg = hit->SegmentId()+1;
     Double_t cmt = hit->CMeanTime();
@@ -235,7 +198,7 @@ UserBcOutTracking::ProcessingNormal()
     event.Bh2Seg[i] = seg;
   }
 
-  auto cl_time0 = hodoAna.GetTime0BH2Cluster();
+  const auto& cl_time0 = hodoAna.GetTime0BH2Cluster();
   if(cl_time0){
     event.Time0Seg = cl_time0->MeanSeg()+1;
     event.deTime0  = cl_time0->DeltaE();
@@ -260,7 +223,7 @@ UserBcOutTracking::ProcessingNormal()
   HF1(1, 4);
 
   for(Int_t i=0; i<nhBh1; ++i){
-    auto hit = hodoAna.GetHit("BH1", i);
+    const auto& hit = hodoAna.GetHit("BH1", i);
     if(!hit) continue;
     Double_t cmt = hit->CMeanTime();
     Double_t dE  = hit->DeltaE();
@@ -273,9 +236,10 @@ UserBcOutTracking::ProcessingNormal()
   }
 
   Double_t btof0 = qnan;
-  HodoCluster* cl_btof0 = event.Time0Seg > 0 ?
-    hodoAna.GetBtof0BH1Cluster(event.CTime0) : nullptr;
-  if(cl_btof0) btof0 = cl_btof0->CMeanTime() - time0;
+  if(event.Time0Seg > 0){
+    const auto cl_btof0 = hodoAna.GetBtof0BH1Cluster(event.CTime0);
+    btof0 = cl_btof0->CMeanTime() - time0;
+  }
   event.btof = btof0;
 
   HF1(1, 5.);
@@ -283,12 +247,12 @@ UserBcOutTracking::ProcessingNormal()
 
 
   //////////////BC3&4 number of hit layer
-  DCAna->DecodeRawHits(rawData);
+  DCAna.DecodeRawHits();
 #if TotCut
-  DCAna->TotCutBCOut(MinTotBcOut);
+  DCAna.TotCutBCOut(MinTotBcOut);
 #endif
-  // DCAna->DriftTimeCutBC34(-10, 50);
-  // DCAna->MakeBH2DCHit(event.Time0Seg-1);
+  // DCAna.DriftTimeCutBC34(-10, 50);
+  // DCAna.MakeBH2DCHit(event.Time0Seg-1);
 
   Double_t multi_BcOut = 0.;
   Double_t multiplicity[] = {0, 0};
@@ -299,7 +263,7 @@ UserBcOutTracking::ProcessingNormal()
   };
   {
     for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
-      const DCHitContainer &contOut = DCAna->GetBcOutHC(layer);
+      const DCHitContainer &contOut = DCAna.GetBcOutHC(layer);
       Int_t nhOut = contOut.size();
       event.nhit[layer-1] = nhOut;
       if(nhOut>0) event.nlayer++;
@@ -391,16 +355,16 @@ UserBcOutTracking::ProcessingNormal()
 #if 1
   // Bc Out
   //  std::cout << "==========TrackSearch BcOut============" << std::endl;
-  Bool_t status_tracking = DCAna->TrackSearchBcOut();
+  Bool_t status_tracking = DCAna.TrackSearchBcOut();
 #if Chi2Cut
-  DCAna->ChiSqrCutBcOut(10);
+  DCAna.ChiSqrCutBcOut(10);
 #endif
-  Int_t nt=DCAna->GetNtracksBcOut();
+  Int_t nt=DCAna.GetNtracksBcOut();
   event.ntrack=nt;
   HF1(10, Double_t(nt));
   HF1(40, status_tracking? Double_t(nt) : -1);
   for(Int_t it=0; it<nt; ++it){
-    DCLocalTrack *tp=DCAna->GetTrackBcOut(it);
+    DCLocalTrack *tp=DCAna.GetTrackBcOut(it);
     Int_t nh=tp->GetNHit();
     Double_t chisqr=tp->GetChiSquare();
     Double_t x0=tp->GetX0(), y0=tp->GetY0();
@@ -499,17 +463,10 @@ UserBcOutTracking::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-UserBcOutTracking::ProcessingEnd()
+ProcessingEnd()
 {
   tree->Fill();
   return true;
-}
-
-//_____________________________________________________________________________
-VEvent*
-ConfMan::EventAllocator()
-{
-  return new UserBcOutTracking;
 }
 
 //_____________________________________________________________________________

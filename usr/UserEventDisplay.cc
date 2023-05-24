@@ -47,53 +47,15 @@ const Double_t ProtonMass = pdg::ProtonMass();
 }
 
 //_____________________________________________________________________________
-class UserEventDisplay : public VEvent
-{
-private:
-  RawData*      rawData;
-  DCAnalyzer*   DCAna;
-public:
-  UserEventDisplay();
-  ~UserEventDisplay();
-  virtual const TString& ClassName();
-  virtual Bool_t         ProcessingBegin();
-  virtual Bool_t         ProcessingEnd();
-  virtual Bool_t         ProcessingNormal();
-};
-
-//_____________________________________________________________________________
-inline const TString&
-UserEventDisplay::ClassName()
-{
-  static TString s_name("UserEventDisplay");
-  return s_name;
-}
-
-//_____________________________________________________________________________
-UserEventDisplay::UserEventDisplay()
-  : VEvent(),
-    rawData(new RawData),
-    DCAna(new DCAnalyzer)
-{
-}
-
-//_____________________________________________________________________________
-UserEventDisplay::~UserEventDisplay()
-{
-  if(DCAna) delete DCAna;
-  if(rawData) delete rawData;
-}
-
-//_____________________________________________________________________________
 Bool_t
-UserEventDisplay::ProcessingBegin()
+ProcessingBegin()
 {
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-UserEventDisplay::ProcessingNormal()
+ProcessingNormal()
 {
   static const auto MaxMultiHitBcOut = gUser.GetParameter("MaxMultiHitBcOut");
   static const auto MaxMultiHitSdcIn = gUser.GetParameter("MaxMultiHitSdcIn");
@@ -119,7 +81,7 @@ UserEventDisplay::ProcessingNormal()
 
   // static const Int_t IdBH2 = gGeom.GetDetectorId("BH2");
   static const Int_t IdTOF = gGeom.GetDetectorId("TOF");
-  // static const Int_t IdWC = gGeom.GetDetectorId("WC");
+  static const Int_t IdWC = gGeom.GetDetectorId("WC");
 
   static TString evinfo;
   evinfo = Form("Run# %5d%4sEvent# %6d",
@@ -129,13 +91,15 @@ UserEventDisplay::ProcessingNormal()
               << "[Info] " << evinfo << std::endl;
   gEvDisp.DrawRunEvent(0.04, 0.5, evinfo);
 
-  rawData->DecodeHits();
+  RawData rawData;
+  rawData.DecodeHits();
   HodoAnalyzer hodoAna(rawData);
+  DCAnalyzer DCAna(rawData);
 
   //________________________________________________________
   //___ TrigRawHit
   std::bitset<NumOfSegTrig> trigger_flag;
-  for(auto& hit: rawData->GetHodoRawHitContainer("TFlag")){
+  for(auto& hit: rawData.GetHodoRawHitContainer("TFlag")){
     if(hit->GetTdc(0) > 0) trigger_flag.set(hit->SegmentId());
   }
   // if(trigger_flag[trigger::kSpillEnd]) return true;
@@ -145,7 +109,7 @@ UserEventDisplay::ProcessingNormal()
   //________________________________________________________
   //___ BH2RawHit
   std::vector<Int_t> BH2SegCont;
-  for(const auto& hit: rawData->GetHodoRawHitContainer("BH2")){
+  for(const auto& hit: rawData.GetHodoRawHitContainer("BH2")){
     Int_t seg = hit->SegmentId();
     Bool_t is_hit_u = false;
     Bool_t is_hit_d = false;
@@ -170,7 +134,7 @@ UserEventDisplay::ProcessingNormal()
   //________________________________________________________
   //___ BH1RawHit
   std::vector<Int_t> BH1SegCont;
-  for(const auto& hit: rawData->GetHodoRawHitContainer("BH1")){
+  for(const auto& hit: rawData.GetHodoRawHitContainer("BH1")){
     Int_t seg = hit->SegmentId();
     Bool_t is_hit_u = false;
     Bool_t is_hit_d = false;
@@ -217,7 +181,7 @@ UserEventDisplay::ProcessingNormal()
   //________________________________________________________
   //___ TOFRawHit
   std::vector<Int_t> TOFSegCont;
-  for(const auto& hit: rawData->GetHodoRawHitContainer("TOF")){
+  for(const auto& hit: rawData.GetHodoRawHitContainer("TOF")){
     Int_t seg = hit->SegmentId();
     Bool_t is_hit_u = false;
     Bool_t is_hit_d = false;
@@ -254,22 +218,21 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ WCRawHit
-  // std::vector<Int_t> WCSegCont;
-  // for(const auto& hit: rawData->GetWCSUMRawHC()){
-  //   Int_t seg = hit->SegmentId();
-  //   Bool_t is_hit = false;
-  //   for(Int_t j=0, m=hit->GetSizeTdcUp(); j<m; ++j){
-  //     Int_t Tu = hit->GetTdcUp(j);
-  //     if(MinTdcWC < Tu && Tu < MaxTdcWC){
-  //       is_hit = true;
-  //     }
-  //   }
-  //   if(is_hit){
-  //     gEvDisp.DrawHitHodoscope(IdWC, seg, is_hit, is_hit);
-  //     hddaq::cout << "[Info] WcSeg = " << seg << std::endl;
-  //     WCSegCont.push_back(seg);
-  //   }
-  // }
+  std::vector<Int_t> WCSegCont;
+  for(const auto& hit: rawData.GetHodoRawHitContainer("WC")){
+    Int_t seg = hit->SegmentId();
+    Bool_t is_hit = false;
+    for(const auto T: hit->GetArrayTdcLeading(HodoRawHit::kExtra)){
+      if(MinTdcWC < T && T < MaxTdcWC){
+        is_hit = true;
+      }
+    }
+    if(is_hit){
+      gEvDisp.DrawHitHodoscope(IdWC, seg, is_hit, is_hit);
+      hddaq::cout << "[Info] WcSeg = " << seg << std::endl;
+      WCSegCont.push_back(seg);
+    }
+  }
 
 #if 0
   static const Int_t IdSDC1 = gGeom.DetectorId("SDC1-X1");
@@ -279,7 +242,7 @@ UserEventDisplay::ProcessingNormal()
   //________________________________________________________
   //___ BcOutRawHit
   for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
-    for(const auto& hit: rawData->GetBcOutRawHC(layer)){
+    for(const auto& hit: rawData.GetBcOutRawHC(layer)){
       Int_t wire = hit->WireId();
       for(Int_t j=0, m=hit->GetTdcSize(); j<m; ++j){
         Int_t tdc = hit->GetTdc(j);
@@ -289,14 +252,14 @@ UserEventDisplay::ProcessingNormal()
   }
   //________________________________________________________
   //___ SdcInRawHit
-  for(const auto& hit: rawData->GetSdcInRawHC(IdSDC1)){
+  for(const auto& hit: rawData.GetSdcInRawHC(IdSDC1)){
     Int_t wire = hit->WireId();
     for(Int_t j=0, m=hit->GetTdcSize(); j<m; ++j){
       Int_t tdc = hit->GetTdc(j);
       if(tdc>0) gEvDisp.FillSDC1(wire, tdc);
     }
   }
-  for(const auto& hit: rawData->GetSdcInRawHC(IdSDC1+1)){
+  for(const auto& hit: rawData.GetSdcInRawHC(IdSDC1+1)){
     Int_t wire = hit->WireId();
     for(Int_t j=0, m=hit->GetTdcSize(); j<m; ++j){
       Int_t tdc = hit->GetTdc(j);
@@ -305,7 +268,7 @@ UserEventDisplay::ProcessingNormal()
   }
   //________________________________________________________
   //___ SdcOutRawHit
-  for(const auto& hit: rawData->GetSdcOutRawHC(IdSDC3-30)){
+  for(const auto& hit: rawData.GetSdcOutRawHC(IdSDC3-30)){
     Int_t wire = hit->WireId();
     for(Int_t j=0, m=hit->GetTdcSize(); j<m; ++j){
       Int_t tdc = hit->GetTdc(j);
@@ -316,7 +279,7 @@ UserEventDisplay::ProcessingNormal()
       if(tdc>0) gEvDisp.FillSDC3_Trailing(wire, tdc);
     }
   }
-  for(const auto& hit: rawData->GetSdcOutRawHC(IdSDC3+1-30)){
+  for(const auto& hit: rawData.GetSdcOutRawHC(IdSDC3+1-30)){
     Int_t wire = hit->WireId();
     for(Int_t j=0, m=hit->GetTdcSize(); j<m; ++j){
       Int_t tdc = hit->GetTdc(j);
@@ -327,7 +290,7 @@ UserEventDisplay::ProcessingNormal()
       if(tdc>0) gEvDisp.FillSDC3p_Trailing(wire, tdc);
     }
   }
-  for(const auto& hit: rawData->GetSdcOutRawHC(IdSDC4-30)){
+  for(const auto& hit: rawData.GetSdcOutRawHC(IdSDC4-30)){
     Int_t wire = hit->WireId();
     for(Int_t j=0, m=hit->GetTdcSize(); j<m; ++j){
       Int_t tdc = hit->GetTdc(j);
@@ -338,7 +301,7 @@ UserEventDisplay::ProcessingNormal()
       if(tdc>0) gEvDisp.FillSDC4_Trailing(wire, tdc);
     }
   }
-  for(const auto& hit: rawData->GetSdcOutRawHC(IdSDC4+1-30)){
+  for(const auto& hit: rawData.GetSdcOutRawHC(IdSDC4+1-30)){
     Int_t wire = hit->WireId();
     for(Int_t j=0, m=hit->GetTdcSize(); j<m; ++j){
       Int_t tdc = hit->GetTdc(j);
@@ -351,7 +314,7 @@ UserEventDisplay::ProcessingNormal()
   }
   //________________________________________________________
   //___ BFTRawHit
-  for(const auto& hit: rawData->GetHodoRawHitContainer("BFT")){
+  for(const auto& hit: rawData.GetHodoRawHitContainer("BFT")){
     Int_t plane = hit->PlaneId();
     Int_t seg = hit->SegmentId();
     for(Int_t j=0, m=hit->GetSizeTdcUp(); j<m; ++j){
@@ -365,11 +328,11 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ BcOutDCHit
-  DCAna->DecodeBcOutHits(rawData);
-  DCAna->TotCutBCOut(MinTotBcOut);
+  DCAna.DecodeBcOutHits();
+  DCAna.TotCutBCOut(MinTotBcOut);
   Double_t multi_BcOut = 0.;
   for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
-    const auto& cont = DCAna->GetBcOutHC(layer);
+    const auto& cont = DCAna.GetBcOutHC(layer);
     multi_BcOut += cont.size();
     // for(const auto& hit: cont){
     //   Double_t wire = hit->GetWire();
@@ -397,11 +360,11 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ BcOutTracking
-  DCAna->TrackSearchBcOut();
-  Int_t ntBcOut = DCAna->GetNtracksBcOut();
+  DCAna.TrackSearchBcOut();
+  Int_t ntBcOut = DCAna.GetNtracksBcOut();
   hddaq::cout << "[Info] ntBcOut = " << ntBcOut << std::endl;
   for(Int_t it=0; it<ntBcOut; ++it){
-    auto track = DCAna->GetTrackBcOut(it);
+    auto track = DCAna.GetTrackBcOut(it);
     auto chisqr = track->GetChiSquare();
     hddaq::cout << "       " << it << "-th track, chi2 = "
                 << chisqr << std::endl;
@@ -427,7 +390,7 @@ UserEventDisplay::ProcessingNormal()
   hodoAna.TimeCut("BFT", MinTimeBFT, MaxTimeBFT);
   std::vector<Double_t> BftXCont;
   for(const auto& cl: hodoAna.GetClusterContainer("BFT")){
-    // BftXCont.push_back(cl->MeanPosition());
+    BftXCont.push_back(cl->MeanPosition());
   }
   if(BftXCont.empty()){
     hddaq::cout << "[Warning] BftXCont is empty!" << std::endl;
@@ -438,10 +401,10 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ K18Tracking
-  DCAna->TrackSearchK18D2U(BftXCont);
-  Int_t ntK18 = DCAna->GetNTracksK18D2U();
+  DCAna.TrackSearchK18D2U(BftXCont);
+  Int_t ntK18 = DCAna.GetNTracksK18D2U();
   for(Int_t i=0; i<ntK18; ++i){
-    auto track = DCAna->GetK18TrackD2U(i);
+    auto track = DCAna.GetK18TrackD2U(i);
     if(!track) continue;
     Double_t x = track->Xtgt(), y = track->Ytgt();
     Double_t u = track->Utgt(), v = track->Vtgt();
@@ -460,10 +423,10 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ SdcInDCHit
-  DCAna->DecodeSdcInHits(rawData);
+  DCAna.DecodeSdcInHits();
   Double_t multi_SdcIn = 0.;
   for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
-    const auto& cont = DCAna->GetSdcInHC(layer);
+    const auto& cont = DCAna.GetSdcInHC(layer);
     Int_t n = cont.size();
     multi_SdcIn += n;
     if(n > MaxMultiHitSdcIn) continue;
@@ -491,11 +454,11 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ SdcInTracking
-  DCAna->TrackSearchSdcIn();
-  Int_t ntSdcIn = DCAna->GetNtracksSdcIn();
+  DCAna.TrackSearchSdcIn();
+  Int_t ntSdcIn = DCAna.GetNtracksSdcIn();
   hddaq::cout << "[Info] ntSdcIn = " << ntSdcIn << std::endl;
   for(Int_t it=0; it<ntSdcIn; ++it){
-    auto track = DCAna->GetTrackSdcIn(it);
+    auto track = DCAna.GetTrackSdcIn(it);
     auto chisqr = track->GetChiSquare();
     hddaq::cout << "       " << it << "-th track, chi2 = "
                 << chisqr << std::endl;
@@ -517,12 +480,12 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ SdcOutDCHit
-  DCAna->DecodeSdcOutHits(rawData);
-  DCAna->TotCutSDC3(MinTotSDC3);
-  DCAna->TotCutSDC4(MinTotSDC4);
+  DCAna.DecodeSdcOutHits();
+  DCAna.TotCutSDC3(MinTotSDC3);
+  DCAna.TotCutSDC4(MinTotSDC4);
   Double_t multi_SdcOut = 0.;
   for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer){
-    const auto& cont = DCAna->GetSdcOutHC(layer);
+    const auto& cont = DCAna.GetSdcOutHC(layer);
     Int_t n = cont.size();
     multi_SdcOut += n;
     if(n > MaxMultiHitSdcOut) continue;
@@ -547,11 +510,11 @@ UserEventDisplay::ProcessingNormal()
 
   //________________________________________________________
   //___ SdcOutTracking
-  DCAna->TrackSearchSdcOut(TOFCont);
-  Int_t ntSdcOut = DCAna->GetNtracksSdcOut();
+  DCAna.TrackSearchSdcOut(TOFCont);
+  Int_t ntSdcOut = DCAna.GetNtracksSdcOut();
   hddaq::cout << "[Info] ntSdcOut = " << ntSdcOut << std::endl;
   for(Int_t it=0; it<ntSdcOut; ++it){
-    auto track = DCAna->GetTrackSdcOut(it);
+    auto track = DCAna.GetTrackSdcOut(it);
     auto chisqr = track->GetChiSquare();
     hddaq::cout << "       " << it << "-th track, chi2 = "
                 << chisqr << std::endl;
@@ -580,13 +543,13 @@ UserEventDisplay::ProcessingNormal()
   //________________________________________________________
   //___ KuramaTracking
   static const auto StofOffset = gUser.GetParameter("StofOffset");
-  // DCAna->SetMaxV0Diff(10.);
-  DCAna->TrackSearchKurama();
+  // DCAna.SetMaxV0Diff(10.);
+  DCAna.TrackSearchKurama();
   Bool_t through_target = false;
-  Int_t ntKurama = DCAna->GetNTracksKurama();
+  Int_t ntKurama = DCAna.GetNTracksKurama();
   hddaq::cout << "[Info] ntKurama = " << ntKurama << std::endl;
   for(Int_t it=0; it<ntKurama; ++it){
-    auto track = DCAna->GetKuramaTrack(it);
+    auto track = DCAna.GetKuramaTrack(it);
     // track->Print();
     auto chisqr = track->GetChiSquare();
     hddaq::cout << "       " << it << "-th track, chi2 = "
@@ -658,25 +621,25 @@ UserEventDisplay::ProcessingNormal()
   buf = "BcOut"; gEvDisp.DrawText(0.040, 0.280, buf);
   buf= "#chi^{2} = ";
   for(Int_t i=0; i<ntBcOut; ++i){
-    buf += Form(" %.3f", DCAna->GetTrackBcOut(i)->GetChiSquare());
+    buf += Form(" %.3f", DCAna.GetTrackBcOut(i)->GetChiSquare());
   }
   gEvDisp.DrawText(0.130, 0.280, buf);
   buf = "SdcIn"; gEvDisp.DrawText(0.040, 0.240, buf);
   buf = "#chi^{2} = ";
   for(Int_t i=0; i<ntSdcIn; ++i){
-    buf += Form(" %.3f", DCAna->GetTrackSdcIn(i)->GetChiSquare());
+    buf += Form(" %.3f", DCAna.GetTrackSdcIn(i)->GetChiSquare());
   }
   gEvDisp.DrawText(0.130, 0.240, buf);
   buf = "SdcOut"; gEvDisp.DrawText(0.040, 0.20, buf);
   buf = "#chi^{2} = ";
   for(Int_t i=0; i<ntSdcOut; ++i){
-    buf += Form(" %.3f", DCAna->GetTrackSdcOut(i)->GetChiSquare());
+    buf += Form(" %.3f", DCAna.GetTrackSdcOut(i)->GetChiSquare());
   }
   gEvDisp.DrawText(0.130, 0.200, buf);
   buf = "Kurama"; gEvDisp.DrawText(0.040, 0.16, buf);
   buf = "#chi^{2} = ";
   for(Int_t i=0; i<ntKurama; ++i){
-    buf += Form(" %.3f", DCAna->GetKuramaTrack(i)->GetChiSquare());
+    buf += Form(" %.3f", DCAna.GetKuramaTrack(i)->GetChiSquare());
   }
   gEvDisp.DrawText(0.130, 0.160, buf);
   gEvDisp.DrawText(0.680, 0.960, "BTOF");
@@ -757,19 +720,12 @@ UserEventDisplay::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-UserEventDisplay::ProcessingEnd()
+ProcessingEnd()
 {
   // gEvDisp.GetCommand();
   gEvDisp.EndOfEvent();
   // if(utility::UserStop()) gEvDisp.Run();
   return true;
-}
-
-//_____________________________________________________________________________
-VEvent*
-ConfMan::EventAllocator()
-{
-  return new UserEventDisplay;
 }
 
 //_____________________________________________________________________________

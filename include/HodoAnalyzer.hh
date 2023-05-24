@@ -36,7 +36,7 @@ class HodoAnalyzer
 {
 public:
   static TString ClassName();
-  explicit HodoAnalyzer(RawData* raw_data);
+  explicit HodoAnalyzer(const RawData& raw_data);
   ~HodoAnalyzer();
 
 private:
@@ -45,7 +45,7 @@ private:
 
 private:
   template <typename T> using map_t = std::map<TString, T>;
-  RawData*                    m_raw_data;
+  const RawData*              m_raw_data;
   map_t<HodoHitContainer>     m_hodo_hit_collection;
   map_t<HodoClusterContainer> m_hodo_cluster_collection;
 
@@ -60,11 +60,11 @@ public:
     { return GetClusterContainer(name).size(); };
 
   template <typename T=HodoHit>
-  T* GetHit(const TString& name, Int_t i=0) const
+  const T* GetHit(const TString& name, Int_t i=0) const
     { return dynamic_cast<T*>(GetHitContainer(name).at(i)); }
 
   template <typename T=HodoCluster>
-  T* GetCluster(const TString& name, Int_t i=0) const
+  const T* GetCluster(const TString& name, Int_t i=0) const
     { return dynamic_cast<T*>(GetClusterContainer(name).at(i)); }
 
   Bool_t ReCalcHit(const TString& name, Bool_t applyRecursively=false);
@@ -75,8 +75,8 @@ public:
   void TotCut(const TString& name, Double_t min, Double_t max,
               Bool_t adopt_nan=true);
 
-  BH2Cluster*  GetTime0BH2Cluster();
-  HodoCluster* GetBtof0BH1Cluster(Double_t time0);
+  const BH2Cluster*  GetTime0BH2Cluster() const;
+  const HodoCluster* GetBtof0BH1Cluster(Double_t time0) const;
 
 private:
   void ClearBH1Hits();

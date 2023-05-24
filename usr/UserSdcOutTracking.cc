@@ -13,7 +13,6 @@
 #include "ConfMan.hh"
 #include "DCRawHit.hh"
 #include "DetectorID.hh"
-#include "FuncName.hh"
 #include "HodoAnalyzer.hh"
 #include "HodoHit.hh"
 #include "RMAnalyzer.hh"
@@ -38,45 +37,6 @@ const auto& gUser = UserParamMan::GetInstance();
 const auto& zTOF = gGeom.LocalZ("TOF");
 const auto& zTOFU = gGeom.LocalZ("TOF-UX");
 const auto& zTOFD = gGeom.LocalZ("TOF-DX");
-}
-
-//_____________________________________________________________________________
-class UserSdcOutTracking : public VEvent
-{
-private:
-  RawData*      rawData;
-  DCAnalyzer*   DCAna;
-
-public:
-  UserSdcOutTracking();
-  ~UserSdcOutTracking();
-  virtual const TString& ClassName();
-  virtual Bool_t         ProcessingBegin();
-  virtual Bool_t         ProcessingEnd();
-  virtual Bool_t         ProcessingNormal();
-};
-
-//_____________________________________________________________________________
-inline const TString&
-UserSdcOutTracking::ClassName()
-{
-  static TString s_name("UserSdcOutTracking");
-  return s_name;
-}
-
-//_____________________________________________________________________________
-UserSdcOutTracking::UserSdcOutTracking()
-  : VEvent(),
-    rawData(new RawData),
-    DCAna(new DCAnalyzer)
-{
-}
-
-//_____________________________________________________________________________
-UserSdcOutTracking::~UserSdcOutTracking()
-{
-  if(rawData) delete rawData;
-  if(DCAna) delete DCAna;
 }
 
 //_____________________________________________________________________________
@@ -192,7 +152,7 @@ TTree *tree;
 
 //_____________________________________________________________________________
 Bool_t
-UserSdcOutTracking::ProcessingBegin()
+ProcessingBegin()
 {
   event.clear();
   return true;
@@ -200,7 +160,7 @@ UserSdcOutTracking::ProcessingBegin()
 
 //_____________________________________________________________________________
 Bool_t
-UserSdcOutTracking::ProcessingNormal()
+ProcessingNormal()
 {
 
 #if HodoCut
@@ -227,8 +187,10 @@ UserSdcOutTracking::ProcessingNormal()
   static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
 #endif
 
-  rawData->DecodeHits();
+  RawData rawData;
+  rawData.DecodeHits();
   HodoAnalyzer hodoAna(rawData);
+  DCAnalyzer   DCAna(rawData);
 
   event.evnum = gUnpacker.get_event_number();
 
@@ -236,7 +198,7 @@ UserSdcOutTracking::ProcessingNormal()
 
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
-  for(const auto& hit: rawData->GetHodoRawHitContainer("TFlag")){
+  for(const auto& hit: rawData.GetHodoRawHitContainer("TFlag")){
     Int_t seg = hit->SegmentId();
     Int_t tdc = hit->GetTdc();
     if(tdc > 0){
@@ -267,7 +229,7 @@ UserSdcOutTracking::ProcessingNormal()
   Double_t time0 = -9999.;
   //////////////BH2 Analysis
   for(Int_t i=0; i<nhBh2; ++i){
-    auto hit = hodoAna.GetHit("BH2", i);
+    const auto& hit = hodoAna.GetHit("BH2", i);
     if(!hit) continue;
     Double_t seg = hit->SegmentId()+1;
     Double_t cmt = hit->CMeanTime();
@@ -281,7 +243,7 @@ UserSdcOutTracking::ProcessingNormal()
     event.Bh2Seg[i] = seg;
   }
 
-  BH2Cluster *cl_time0 = hodoAna.GetTime0BH2Cluster();
+  const auto& cl_time0 = hodoAna.GetTime0BH2Cluster();
   if(cl_time0){
     event.Time0Seg = cl_time0->MeanSeg()+1;
     event.deTime0  = cl_time0->DeltaE();
@@ -319,16 +281,17 @@ UserSdcOutTracking::ProcessingNormal()
   }
 
   Double_t btof0 = -999.;
-  HodoCluster* cl_btof0 = event.Time0Seg > 0 ?
-    hodoAna.GetBtof0BH1Cluster(event.CTime0) : nullptr;
-  if(cl_btof0) btof0 = cl_btof0->CMeanTime() - time0;
+  if(event.Time0Seg > 0){
+    const auto& cl_btof0 = hodoAna.GetBtof0BH1Cluster(event.CTime0);
+    btof0 = cl_btof0->CMeanTime() - time0;
+  }
   event.btof = btof0;
 
   HF1(1, 5.);
 
 
   //////////////Tof Analysis
-  HodoClusterContainer TOFCont;
+  const auto& TOFCont = hodoAna.GetClusterContainer("TOF");
   hodoAna.DecodeHits("TOF");
   // hodoAna.TimeCut("TOF", 7, 25);
   Int_t nhTof = hodoAna.GetNClusters("TOF");
@@ -350,7 +313,7 @@ UserSdcOutTracking::ProcessingNormal()
       event.dtTof[i]  = dt;
       event.deTof[i]  = de;
       event.stof[i]   = stof;
-      TOFCont.push_back(hit);
+      // TOFCont.push_back(hit);
       if(MinDeTOF<de  && de<MaxDeTOF  &&
          MinTimeTOF<stof && stof<MaxTimeTOF){
         ++nhOk;
@@ -379,10 +342,10 @@ UserSdcOutTracking::ProcessingNormal()
 #if 0
   static const Double_t MaxMultiHitSdcIn = gUser.GetParameter("MaxMultiHitSdcIn");
   //////////////SdcIn number of hit layer
-  DCAna->DecodeSdcInHits(rawData);
+  DCAna.DecodeSdcInHits();
   Double_t multi_SdcIn=0.;
   for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
-    Int_t nhIn = DCAna->GetSdcInHC(layer).size();
+    Int_t nhIn = DCAna.GetSdcInHC(layer).size();
     multi_SdcIn += Double_t(nhIn);
   }
 # if MaxMultiCut
@@ -393,22 +356,22 @@ UserSdcOutTracking::ProcessingNormal()
 
   HF1(1, 10.);
   // Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
-  DCAna->DecodeSdcOutHits(rawData);
+  DCAna.DecodeSdcOutHits();
 
 #if TotCut
-  //DCAna->TotCutSDC3(MinTotSDC3);
-  //DCAna->TotCutSDC3(150);
-  //DCAna->TotCutSDC4(MinTotSDC4);
-  //DCAna->TotCutSDC5(MinTotSDC5);
+  //DCAna.TotCutSDC3(MinTotSDC3);
+  //DCAna.TotCutSDC3(150);
+  //DCAna.TotCutSDC4(MinTotSDC4);
+  //DCAna.TotCutSDC5(MinTotSDC5);
 #endif
 #if 0
-  const auto& contOut_3y = DCAna->GetSdcOutHC(3);
-  const auto& contOut_5y = DCAna->GetSdcOutHC(9);
+  const auto& contOut_3y = DCAna.GetSdcOutHC(3);
+  const auto& contOut_5y = DCAna.GetSdcOutHC(9);
   if(contOut_3y.size()==0 || contOut_5y.size()==0){
     return true;
   }
-  const auto& contOut_3x = DCAna->GetSdcOutHC(1);
-  const auto& contOut_5x = DCAna->GetSdcOutHC(11);
+  const auto& contOut_3x = DCAna.GetSdcOutHC(1);
+  const auto& contOut_5x = DCAna.GetSdcOutHC(11);
   if(contOut_3x.size()==0 || contOut_5x.size()==0){
     return true;
   }
@@ -429,7 +392,7 @@ UserSdcOutTracking::ProcessingNormal()
 #endif
   Double_t multi_SdcOut = 0.;
   for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer) {
-    const auto& contOut = DCAna->GetSdcOutHC(layer);
+    const auto& contOut = DCAna.GetSdcOutHC(layer);
     Int_t nhOut = contOut.size();
     event.nhit[layer-1] = nhOut;
     if(nhOut>0) event.nlayer++;
@@ -508,27 +471,26 @@ UserSdcOutTracking::ProcessingNormal()
 
   // std::cout << "==========TrackSearch SdcOut============" << std::endl;
 #if UseTOF
-  DCAna->TrackSearchSdcOut(TOFCont);
+  DCAna.TrackSearchSdcOut(TOFCont);
 #else
-  DCAna->TrackSearchSdcOut();
+  DCAna.TrackSearchSdcOut();
 #endif
 
 #if 1
 #if Chi2Cut
-  DCAna->ChiSqrCutSdcOut(30.);
+  DCAna.ChiSqrCutSdcOut(30.);
 #endif
 
-  Int_t nt=DCAna->GetNtracksSdcOut();
+  Int_t nt=DCAna.GetNtracksSdcOut();
   // std::cout << nt << std::endl;
   if(MaxHits<nt){
-    std::cout << "#W " << FUNC_NAME << " "
-              << "too many ntSdcOut " << nt << "/" << MaxHits << std::endl;
+    std::cout << "#W too many ntSdcOut " << nt << "/" << MaxHits << std::endl;
     nt = MaxHits;
   }
   event.ntrack=nt;
   HF1(10, Double_t(nt));
   for(Int_t it=0; it<nt; ++it){
-    const auto track = DCAna->GetTrackSdcOut(it);
+    const auto track = DCAna.GetTrackSdcOut(it);
     if(!track) continue;
     Int_t nh=track->GetNHit();
     Double_t chisqr    = track->GetChiSquare();
@@ -675,17 +637,10 @@ UserSdcOutTracking::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-UserSdcOutTracking::ProcessingEnd()
+ProcessingEnd()
 {
   tree->Fill();
   return true;
-}
-
-//_____________________________________________________________________________
-VEvent*
-ConfMan::EventAllocator()
-{
-  return new UserSdcOutTracking;
 }
 
 //_____________________________________________________________________________

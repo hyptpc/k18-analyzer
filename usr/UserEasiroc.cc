@@ -39,45 +39,6 @@ const auto& gUser = UserParamMan::GetInstance();
 }
 
 //_____________________________________________________________________________
-class UserEasiroc : public VEvent
-{
-private:
-  RawData*      rawData;
-  DCAnalyzer*   DCAna;
-
-public:
-  UserEasiroc();
-  ~UserEasiroc();
-  virtual const TString& ClassName();
-  virtual Bool_t         ProcessingBegin();
-  virtual Bool_t         ProcessingEnd();
-  virtual Bool_t         ProcessingNormal();
-};
-
-//_____________________________________________________________________________
-inline const TString&
-UserEasiroc::ClassName()
-{
-  static TString s_name("UserEasiroc");
-  return s_name;
-}
-
-//_____________________________________________________________________________
-UserEasiroc::UserEasiroc()
-  : VEvent(),
-    rawData(new RawData),
-    DCAna(new DCAnalyzer)
-{
-}
-
-//_____________________________________________________________________________
-UserEasiroc::~UserEasiroc()
-{
-  if(rawData) delete rawData;
-  if(DCAna) delete DCAna;
-}
-
-//_____________________________________________________________________________
 struct Event
 {
   Int_t evnum;
@@ -157,7 +118,7 @@ enum eDetHid
 
 //_____________________________________________________________________________
 Bool_t
-UserEasiroc::ProcessingBegin()
+ProcessingBegin()
 {
   event.clear();
   return true;
@@ -165,7 +126,7 @@ UserEasiroc::ProcessingBegin()
 
 //_____________________________________________________________________________
 Bool_t
-UserEasiroc::ProcessingNormal()
+ProcessingNormal()
 {
 #if HodoCut
   static const Double_t MinDeBH2   = gUser.GetParameter("DeBH2", 0);
@@ -182,11 +143,12 @@ UserEasiroc::ProcessingNormal()
   static const Double_t MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
 #endif
 
-  rawData->DecodeHits("TFlag");
-  rawData->DecodeHits("BH1");
-  rawData->DecodeHits("BH2");
-  rawData->DecodeHits("BFT");
-  rawData->DecodeHits("AFT");
+  RawData rawData;
+  rawData.DecodeHits("TFlag");
+  rawData.DecodeHits("BH1");
+  rawData.DecodeHits("BH2");
+  rawData.DecodeHits("BFT");
+  rawData.DecodeHits("AFT");
   HodoAnalyzer hodoAna(rawData);
 
   event.evnum = gUnpacker.get_event_number();
@@ -196,7 +158,7 @@ UserEasiroc::ProcessingNormal()
   ///// Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
   {
-    for(const auto& hit: rawData->GetHodoRawHitContainer("TFlag")){
+    for(const auto& hit: rawData.GetHodoRawHitContainer("TFlag")){
       Int_t seg = hit->SegmentId();
       Int_t tdc = hit->GetTdc();
       if(tdc > 0){
@@ -366,7 +328,7 @@ UserEasiroc::ProcessingNormal()
   }
 
   ////////// AFT
-  for(const auto& hit: rawData->GetHodoRawHitContainer("AFT")){
+  for(const auto& hit: rawData.GetHodoRawHitContainer("AFT")){
     // hit->Print();
   }
   hodoAna.DecodeHits<FiberHit>("AFT");
@@ -388,17 +350,10 @@ UserEasiroc::ProcessingNormal()
 
 //_____________________________________________________________________________
 Bool_t
-UserEasiroc::ProcessingEnd()
+ProcessingEnd()
 {
   tree->Fill();
   return true;
-}
-
-//_____________________________________________________________________________
-VEvent*
-ConfMan::EventAllocator()
-{
-  return new UserEasiroc;
 }
 
 //_____________________________________________________________________________

@@ -73,11 +73,9 @@ main(int argc, char **argv)
   CatchSignal::Set(SIGINT);
 
   for(; !gUnpacker.eof() && !CatchSignal::Stop(); ++gUnpacker){
-    VEvent* event = gConf.EventAllocator();
-    event->ProcessingBegin();
-    event->ProcessingNormal();
-    event->ProcessingEnd();
-    delete event;
+    ProcessingBegin();
+    ProcessingNormal();
+    ProcessingEnd();
     gCounter.check();
   }
   gConf.Finalize();
