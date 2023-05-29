@@ -31,6 +31,7 @@
 
 namespace
 {
+enum EUorD { kU, kD, kUorD };
 using namespace root;
 using hddaq::unpacker::GUnpacker;
 const auto qnan = TMath::QuietNaN();
@@ -64,6 +65,14 @@ struct Event
   Double_t bft_ctot[NumOfSegBFT];
   Double_t bft_clpos[NumOfSegBFT];
   Double_t bft_clseg[NumOfSegBFT];
+
+  // AFT
+  Int_t    aft_nhits[NumOfPlaneAFT];
+  Int_t    aft_hitpat[NumOfPlaneAFT][NumOfSegAFT];
+  Double_t aft_tdc[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
+  Double_t aft_tot[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
+  Double_t aft_adc_high[NumOfPlaneAFT][NumOfSegAFT][kUorD];
+  Double_t aft_adc_low[NumOfPlaneAFT][NumOfSegAFT][kUorD];
 
   void clear();
 };
@@ -101,6 +110,21 @@ Event::clear()
     bft_ctot[it]   = qnan;
     bft_clpos[it]  = qnan;
     bft_clseg[it]  = qnan;
+  }
+
+  for(Int_t p=0; p<NumOfPlaneAFT; p++){
+    aft_nhits[p] = 0;
+    for(Int_t seg=0; seg<NumOfSegAFT; seg++){
+      aft_hitpat[p][seg] = -1;
+      for(Int_t ud=0; ud<kUorD; ud++){
+        aft_adc_high[p][seg][ud] = qnan;
+        aft_adc_low[p][seg][ud] = qnan;
+        for(Int_t i=0; i<MaxDepth; i++){
+          aft_tdc[p][seg][ud][i] = qnan;
+          aft_tot[p][seg][ud][i] = qnan;
+        }
+      }
+    }
   }
 }
 
@@ -329,6 +353,15 @@ ProcessingNormal()
 
   ////////// AFT
   for(const auto& hit: rawData.GetHodoRawHitContainer("AFT")){
+    Int_t plane = hit->PlaneId();
+    Int_t seg = hit->SegmentId();
+    for(Int_t ud=0; ud<kUorD; ++ud){
+      event.aft_adc_high[plane][seg][ud] = hit->GetAdcHigh(ud);
+      event.aft_adc_low[plane][seg][ud] = hit->GetAdcLow(ud);
+      for(Int_t i=0, n=hit->GetSizeTdcLeading(ud); i<n; ++i){
+        event.aft_tdc[plane][seg][ud][i] = hit->GetTdc(ud, i);
+      }
+    }
     // hit->Print();
   }
   hodoAna.DecodeHits<FiberHit>("AFT");
@@ -339,8 +372,8 @@ ProcessingNormal()
     for(Int_t i=0; i<nh; ++i){
       const auto& hit = hodoAna.GetHit("AFT", i);
       const auto& rhit = hit->GetRawHit();
-      hit->Print();
-      rhit->Print();
+      // hit->Print();
+      // rhit->Print();
       Int_t plane = hit->PlaneId();
       Int_t seg = hit->SegmentId();
     }
@@ -464,6 +497,19 @@ ConfMan::InitializeHistograms()
   tree->Branch("bft_ctot",       event.bft_ctot,         "bft_ctot[bft_ncl]/D");
   tree->Branch("bft_clpos",      event.bft_clpos,        "bft_clpos[bft_ncl]/D");
   tree->Branch("bft_clseg",      event.bft_clseg,        "bft_clseg[bft_ncl]/D");
+
+  tree->Branch("aft_adc_high", event.aft_adc_high, Form("aft_adc_high[%d][%d][%d]/D",
+                                                        NumOfPlaneAFT, NumOfSegAFT,
+                                                        kUorD));
+  tree->Branch("aft_adc_low", event.aft_adc_low, Form("aft_adc_low[%d][%d][%d]/D",
+                                                      NumOfPlaneAFT, NumOfSegAFT,
+                                                      kUorD));
+  tree->Branch("aft_tdc", event.aft_tdc, Form("aft_tdc[%d][%d][%d][%d]/D",
+                                              NumOfPlaneAFT, NumOfSegAFT,
+                                              kUorD, MaxDepth));
+  tree->Branch("aft_tot", event.aft_tot, Form("aft_tdc[%d][%d][%d][%d]/D",
+                                              NumOfPlaneAFT, NumOfSegAFT,
+                                              kUorD, MaxDepth));
 
   // HPrint();
   return true;

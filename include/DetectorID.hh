@@ -9,6 +9,11 @@
 
 #include <TString.h>
 
+// temp
+const Int_t DetIdAFT = 112;
+const Int_t NumOfPlaneAFT = 36;
+const Int_t NumOfSegAFT = 32;
+
 // Counters ___________________________________________________________
 const Int_t DetIdBH1      =  1;
 const Int_t DetIdBH2      =  2;
