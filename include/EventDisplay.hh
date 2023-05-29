@@ -236,10 +236,10 @@ public:
   void DrawText(Double_t xpos, Double_t ypos, const TString& arg);
   void DrawTrackWire(Int_t lid, Int_t hit_wire, Int_t it);
   void DrawHitHodoscope(Int_t lid, Int_t seg, Int_t Tu=1, Int_t Td=1);
-  void DrawBcOutLocalTrack(DCLocalTrack *tp);
+  void DrawBcOutLocalTrack(const DCLocalTrack *tp);
   void DrawBcOutLocalTrack(Double_t x0, Double_t y0, Double_t u0, Double_t v0);
-  void DrawSdcInLocalTrack(DCLocalTrack *tp);
-  void DrawSdcOutLocalTrack(DCLocalTrack *tp);
+  void DrawSdcInLocalTrack(const DCLocalTrack *tp);
+  void DrawSdcOutLocalTrack(const DCLocalTrack *tp);
   void DrawSsdHit(Int_t lid, Int_t seg, Double_t de);
   void DrawVertex(const ThreeVector& vertex);
   void DrawKuramaTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,

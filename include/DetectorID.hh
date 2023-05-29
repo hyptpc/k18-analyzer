@@ -4,6 +4,7 @@
 #define DETECTOR_ID_HH
 
 #include <iostream>
+#include <map>
 #include <vector>
 
 #include <TString.h>
@@ -28,6 +29,10 @@ const Int_t NumOfSegHTOF  = 34;
 const Int_t NumOfSegBVH   =  4;
 const Int_t NumOfSegLAC   = 30;
 const Int_t NumOfSegWC    = 20;
+
+const std::map<TString, std::vector<TString>> DCNameList = {
+  {"SdcIn", { "SDC1", "SDC2" }},
+};
 
 // Misc _______________________________________________________________
 const Int_t DetIdTrig       = 21;

@@ -3,6 +3,7 @@
 #ifndef DC_ANALYZER_HH
 #define DC_ANALYZER_HH
 
+#include <map>
 #include <vector>
 #include <TString.h>
 
@@ -22,16 +23,16 @@ class Hodo1Hit;
 class HodoHit;
 class HodoAnalyzer;
 
-typedef std::vector<DCHit*>        DCHitContainer;
-typedef std::vector<MWPCCluster*>  MWPCClusterContainer;
-typedef std::vector<DCLocalTrack*> DCLocalTrackContainer;
-typedef std::vector<K18TrackU2D*>  K18TrackU2DContainer;
-typedef std::vector<K18TrackD2U*>  K18TrackD2UContainer;
-typedef std::vector<KuramaTrack*>  KuramaTrackContainer;
+using DCHitContainer = std::vector<DCHit*>;
+using MWPCClusterContainer = std::vector<MWPCCluster*>;
+using DCLocalTrackContainer = std::vector<DCLocalTrack*>;
+using K18TrackU2DContainer = std::vector<K18TrackU2D*>;
+using K18TrackD2UContainer = std::vector<K18TrackD2U*>;
+using KuramaTrackContainer = std::vector<KuramaTrack*>;
 
-typedef std::vector<Hodo1Hit*> Hodo1HitContainer;
-typedef std::vector<HodoHit*> HodoHitContainer;
-typedef std::vector<HodoCluster*> HodoClusterContainer;
+using Hodo1HitContainer = std::vector<Hodo1Hit*>;
+using HodoHitContainer = std::vector<HodoHit*>;
+using HodoClusterContainer = std::vector<HodoCluster*>;
 
 //_____________________________________________________________________________
 class DCAnalyzer
@@ -46,9 +47,13 @@ private:
   DCAnalyzer& operator =(const DCAnalyzer&);
 
 private:
+  template <typename T> using map_t = std::map<TString, T>;
   enum e_type
   { kBcIn, kBcOut, kSdcIn, kSdcOut, kTOF, n_type };
   const RawData*                     m_raw_data;
+  map_t<DCHitContainer>              m_dc_hit_collection;
+  // map_t<std::vector<DCHitContainer>> m_dc_hit_local;
+
   Double_t                           m_max_v0diff;
   std::vector<Bool_t>                m_is_decoded;
   std::vector<Int_t>                 m_much_combi;
@@ -113,14 +118,14 @@ public:
   Int_t GetNtracksSdcInEx(Int_t l) const { return m_SdcInExTC.at(l).size(); }
   Int_t GetNtracksSdcOutEx(Int_t l) const { return m_SdcOutExTC.at(l).size(); }
 
-  DCLocalTrack* GetTrackBcIn(Int_t l) const { return m_BcInTC.at(l); }
-  DCLocalTrack* GetTrackBcOut(Int_t l) const { return m_BcOutTC.at(l); }
-  DCLocalTrack* GetTrackSdcIn(Int_t l) const { return m_SdcInTC.at(l); }
-  DCLocalTrack* GetTrackSdcOut(Int_t l) const { return m_SdcOutTC.at(l); }
+  const DCLocalTrack* GetTrackBcIn(Int_t l) const { return m_BcInTC.at(l); }
+  const DCLocalTrack* GetTrackBcOut(Int_t l) const { return m_BcOutTC.at(l); }
+  const DCLocalTrack* GetTrackSdcIn(Int_t l) const { return m_SdcInTC.at(l); }
+  const DCLocalTrack* GetTrackSdcOut(Int_t l) const { return m_SdcOutTC.at(l); }
   // Exclusive Tracks
-  DCLocalTrack* GetTrackSdcInEx(Int_t l, Int_t i) const
+  const DCLocalTrack* GetTrackSdcInEx(Int_t l, Int_t i) const
     { return m_SdcInExTC.at(l).at(i); }
-  DCLocalTrack* GetTrackSdcOutEx(Int_t l, Int_t i) const
+  const DCLocalTrack* GetTrackSdcOutEx(Int_t l, Int_t i) const
     { return m_SdcOutExTC.at(l).at(i); }
 
   Bool_t TrackSearchK18U2D();
@@ -148,9 +153,9 @@ public:
   Int_t GetNTracksK18D2U() const { return m_K18D2UTC.size(); }
   Int_t GetNTracksKurama() const { return m_KuramaTC.size(); }
 
-  K18TrackU2D* GetK18TrackU2D(Int_t l) const { return m_K18U2DTC.at(l); }
-  K18TrackD2U* GetK18TrackD2U(Int_t l) const { return m_K18D2UTC.at(l); }
-  KuramaTrack* GetKuramaTrack(Int_t l) const { return m_KuramaTC.at(l); }
+  const K18TrackU2D* GetK18TrackU2D(Int_t l) const { return m_K18U2DTC.at(l); }
+  const K18TrackD2U* GetK18TrackD2U(Int_t l) const { return m_K18D2UTC.at(l); }
+  const KuramaTrack* GetKuramaTrack(Int_t l) const { return m_KuramaTC.at(l); }
   const K18TrackD2UContainer& GetK18TracksD2U() const { return m_K18D2UTC; }
   const KuramaTrackContainer& GetKuramaTracks() const { return m_KuramaTC; }
 
@@ -218,6 +223,8 @@ protected:
   static Int_t MakeUpMWPCClusters(const DCHitContainer& HitCont,
                                   MWPCClusterContainer& ClusterCont,
                                   Double_t maxTimeDif);
+  void   DecodeHits(const TString& name);
+
 public:
   void ResetTracksBcIn()        { ClearTracksBcIn();        }
   void ResetTracksBcOut()       { ClearTracksBcOut();       }
@@ -228,6 +235,7 @@ public:
   void ApplyBh1SegmentCut(const std::vector<Double_t>& validBh1Cluster);
   void ApplyBh2SegmentCut(const Double_t Time0_Cluster);
 
+protected:
 };
 
 //_____________________________________________________________________________

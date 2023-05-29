@@ -442,7 +442,7 @@ ProcessingNormal()
   {
     Int_t nlSdcIn = 0;
     for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
-      const DCHitContainer &contSdcIn =DCAna.GetSdcInHC(layer);
+      const auto& contSdcIn =DCAna.GetSdcInHC(layer);
       Int_t nhSdcIn = contSdcIn.size();
       if(nhSdcIn==1){
 	auto hit = contSdcIn[0];
@@ -464,7 +464,7 @@ ProcessingNormal()
   {
     Int_t nlSdcOut = 0;
     for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer){
-      const DCHitContainer &contSdcOut =DCAna.GetSdcOutHC(layer);
+      const auto& contSdcOut =DCAna.GetSdcOutHC(layer);
       Int_t nhSdcOut=contSdcOut.size();
       if(nhSdcOut==1){
 	auto hit = contSdcOut[0];
@@ -497,11 +497,11 @@ ProcessingNormal()
   Int_t much_combi = DCAna.MuchCombinationSdcIn();
   event.much = much_combi;
   for(Int_t it=0; it<ntSdcIn; ++it){
-    DCLocalTrack *tp=DCAna.GetTrackSdcIn(it);
-    Int_t nh=tp->GetNHit();
-    Double_t chisqr=tp->GetChiSquare();
-    Double_t x0=tp->GetX0(), y0=tp->GetY0();
-    Double_t u0=tp->GetU0(), v0=tp->GetV0();
+    const auto& track = DCAna.GetTrackSdcIn(it);
+    Int_t nh=track->GetNHit();
+    Double_t chisqr=track->GetChiSquare();
+    Double_t x0=track->GetX0(), y0=track->GetY0();
+    Double_t u0=track->GetU0(), v0=track->GetV0();
     HF1(11, Double_t(nh));
     HF1(12, chisqr);
     HF1(14, x0); HF1(15, y0);
@@ -515,7 +515,7 @@ ProcessingNormal()
     event.u0SdcIn[it] = u0;
     event.v0SdcIn[it] = v0;
     for(Int_t ih=0; ih<nh; ++ih){
-      DCLTrackHit *hit=tp->GetHit(ih);
+      const auto& hit=track->GetHit(ih);
 
       Int_t layerId = hit->GetLayer();
       HF1(13, hit->GetLayer());
@@ -545,13 +545,13 @@ ProcessingNormal()
   {
     Int_t ntOk=0;
     for(Int_t it=0; it<ntSdcIn; ++it){
-      DCLocalTrack *tp=DCAna.GetTrackSdcIn(it);
-      if(!tp) continue;
+      const auto& track = DCAna.GetTrackSdcIn(it);
+      if(!track) continue;
 
-      Int_t nh=tp->GetNHit();
-      Double_t chisqr=tp->GetChiSquare();
-      Double_t u0=tp->GetU0(), v0=tp->GetV0();
-      Double_t x0=tp->GetX0(), y0=tp->GetY0();
+      Int_t nh=track->GetNHit();
+      Double_t chisqr=track->GetChiSquare();
+      Double_t u0=track->GetU0(), v0=track->GetV0();
+      Double_t x0=track->GetX0(), y0=track->GetY0();
 
       Bool_t condTof=false;
       for(Int_t j=0; j<ncTof; ++j){
@@ -569,10 +569,10 @@ ProcessingNormal()
 	  if(!clTof || !clTof->GoodForAnalysis()) continue;
 	  Double_t ttof=clTof->CMeanTime()-time0;
 	}
-	// if(ntOk>0) tp->GoodForTracking(false);
+	// if(ntOk>0) track->GoodForTracking(false);
       }
       else {
-	// tp->GoodForTracking(false);
+	// track->GoodForTracking(false);
       }
     }
     // if(ntOk<1) return true;
@@ -599,11 +599,11 @@ ProcessingNormal()
   event.ntSdcOut=ntSdcOut;
   HF1(30, Double_t(ntSdcOut));
   for(Int_t it=0; it<ntSdcOut; ++it){
-    DCLocalTrack *tp=DCAna.GetTrackSdcOut(it);
-    Int_t nh=tp->GetNHit();
-    Double_t chisqr=tp->GetChiSquare();
-    Double_t u0=tp->GetU0(), v0=tp->GetV0();
-    Double_t x0=tp->GetX0(), y0=tp->GetY0();
+    const auto& track = DCAna.GetTrackSdcOut(it);
+    Int_t nh=track->GetNHit();
+    Double_t chisqr=track->GetChiSquare();
+    Double_t u0=track->GetU0(), v0=track->GetV0();
+    Double_t x0=track->GetX0(), y0=track->GetY0();
     HF1(31, Double_t(nh));
     HF1(32, chisqr);
     HF1(34, x0); HF1(35, y0);
@@ -617,7 +617,7 @@ ProcessingNormal()
     event.u0SdcOut[it] = u0;
     event.v0SdcOut[it] = v0;
     for(Int_t ih=0; ih<nh; ++ih){
-      DCLTrackHit *hit=tp->GetHit(ih);
+      const auto& hit = track->GetHit(ih);
       Int_t layerId = hit->GetLayer();
       if(hit->GetLayer()>79) layerId -= 62;
       else if(hit->GetLayer()>40) layerId -= 15;
@@ -648,11 +648,11 @@ ProcessingNormal()
   HF1(1, 14.);
 
   for(Int_t i1=0; i1<ntSdcIn; ++i1){
-    DCLocalTrack *trSdcIn=DCAna.GetTrackSdcIn(i1);
+    const auto& trSdcIn=DCAna.GetTrackSdcIn(i1);
     Double_t xin=trSdcIn->GetX0(), yin=trSdcIn->GetY0();
     Double_t uin=trSdcIn->GetU0(), vin=trSdcIn->GetV0();
     for(Int_t i2=0; i2<ntSdcOut; ++i2){
-      DCLocalTrack *trSdcOut=DCAna.GetTrackSdcOut(i2);
+      const auto& trSdcOut=DCAna.GetTrackSdcOut(i2);
       Double_t xout=trSdcOut->GetX0(), yout=trSdcOut->GetY0();
       Double_t uout=trSdcOut->GetU0(), vout=trSdcOut->GetV0();
       HF2(20001, xin, xout); HF2(20002, yin, yout);
@@ -784,7 +784,7 @@ ProcessingNormal()
     }
 
     for(Int_t j=0; j<nh; ++j){
-      TrackHit *hit=track->GetHit(j);
+      const auto& hit = track->GetHit(j);
       if(!hit) continue;
       Int_t layerId = hit->GetLayer();
       if(hit->GetLayer()>79) layerId -= 62;
@@ -796,7 +796,7 @@ ProcessingNormal()
       Double_t dl   = hit->GetHit()->GetDriftLength();
       Double_t pos  = hit->GetCalLPos();
       Double_t res  = hit->GetResidual();
-      auto lhit = hit->GetHit();
+      const auto& lhit = hit->GetHit();
       Double_t xcal = lhit->GetXcal();
       Double_t ycal = lhit->GetYcal();
       HF1(100*layerId+11, Double_t(wire)-0.5);
@@ -823,8 +823,8 @@ ProcessingNormal()
       }
     }
 
-    DCLocalTrack *trSdcIn  = track->GetLocalTrackIn();
-    DCLocalTrack *trSdcOut = track->GetLocalTrackOut();
+    const auto& trSdcIn  = track->GetLocalTrackIn();
+    const auto& trSdcOut = track->GetLocalTrackOut();
     if(trSdcIn){
       Int_t nhSdcIn=trSdcIn->GetNHit();
       Double_t x0in=trSdcIn->GetX0(), y0in=trSdcIn->GetY0();
@@ -854,10 +854,10 @@ ProcessingNormal()
   }
 
   for(Int_t i=0; i<ntKurama; ++i){
-    KuramaTrack *track=DCAna.GetKuramaTrack(i);
+    const auto& track = DCAna.GetKuramaTrack(i);
     if(!track) continue;
-    DCLocalTrack *trSdcIn =track->GetLocalTrackIn();
-    DCLocalTrack *trSdcOut=track->GetLocalTrackOut();
+    const auto& trSdcIn =track->GetLocalTrackIn();
+    const auto& trSdcOut=track->GetLocalTrackOut();
     if(!trSdcIn || !trSdcOut) continue;
     Double_t yin=trSdcIn->GetY(500.), vin=trSdcIn->GetV0();
     Double_t yout=trSdcOut->GetY(3800.), vout=trSdcOut->GetV0();
@@ -866,7 +866,7 @@ ProcessingNormal()
   }
 
   if(ntKurama==0) return true;
-  KuramaTrack *track = DCAna.GetKuramaTrack(0);
+  const auto& track = DCAna.GetKuramaTrack(0);
   Double_t path = track->PathLengthToTOF();
   Double_t p    = track->PrimaryMomentum().Mag();
   //Double_t tTof[Event::nParticle];
@@ -883,7 +883,7 @@ ProcessingNormal()
   {
     Int_t nh = hodoAna.GetNHits("TOF");
     for(Int_t i=0; i<nh; ++i){
-      auto hit=hodoAna.GetHit("TOF", i);
+      const auto& hit = hodoAna.GetHit("TOF", i);
       if(!hit) continue;
       Int_t seg=hit->SegmentId()+1;
       Double_t tu = hit->GetTUp(), td=hit->GetTDown();

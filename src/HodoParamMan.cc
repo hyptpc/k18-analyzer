@@ -39,15 +39,23 @@ HodoParamMan::HodoParamMan()
 //_____________________________________________________________________________
 HodoParamMan::~HodoParamMan()
 {
-  ClearACont();
+  ClearAHCont();
+  ClearALCont();
   ClearTCont();
 }
 
 //_____________________________________________________________________________
 void
-HodoParamMan::ClearACont()
+HodoParamMan::ClearAHCont()
 {
-  del::ClearMap(m_APContainer);
+  del::ClearMap(m_AHPContainer);
+}
+
+//_____________________________________________________________________________
+void
+HodoParamMan::ClearALCont()
+{
+  del::ClearMap(m_ALPContainer);
 }
 
 //_____________________________________________________________________________
@@ -84,7 +92,8 @@ HodoParamMan::Initialize()
     return false;
   }
 
-  ClearACont();
+  ClearAHCont();
+  ClearALCont();
   ClearTCont();
 
   Int_t invalid=0;
@@ -98,10 +107,10 @@ HodoParamMan::Initialize()
     Double_t p2=qnan, p3=qnan, p4=qnan, p5=qnan;
     if(input_line >> cid >> plid >> seg >> at >> ud >> p0 >> p1){
       Int_t key = KEY(cid, plid, seg, ud);
-      if(at == kAdc){
-	auto pre_param = m_APContainer[key];
+      if(at == kAdcHigh){
+	auto pre_param = m_AHPContainer[key];
 	auto param = new HodoAParam(p0, p1);
-	m_APContainer[key] = param;
+	m_AHPContainer[key] = param;
 	if(pre_param){
 	  hddaq::cerr << FUNC_NAME << ": duplicated key "
 		      << " following record is deleted." << std::endl
@@ -119,18 +128,29 @@ HodoParamMan::Initialize()
 		      << " key = " << key << std::endl;
 	  delete pre_param;
 	}
-      }else if(at == 3){// for fiber position correction
-	if(input_line  >> p2 >> p3>> p4 >> p5){
-	  HodoFParam *pre_param = m_FPContainer[key];
-	  HodoFParam *param = new HodoFParam(p0, p1, p2, p3, p4, p5);
-	  m_FPContainer[key] = param;
-	  if(pre_param){
-	    hddaq::cerr << FUNC_NAME << ": duplicated key "
-			<< " following record is deleted." << std::endl
-			<< " key = " << key << std::endl;
-	    delete pre_param;
-	  }
+      }
+      else if(at == kAdcLow){
+	auto pre_param = m_ALPContainer[key];
+	auto param = new HodoAParam(p0, p1);
+	m_ALPContainer[key] = param;
+	if(pre_param){
+	  hddaq::cerr << FUNC_NAME << ": duplicated key "
+		      << " following record is deleted." << std::endl
+		      << " key = " << key << std::endl;
+	  delete pre_param;
 	}
+        // }else if(at == 3){// for fiber position correction
+        //   if(input_line  >> p2 >> p3>> p4 >> p5){
+        //     HodoFParam *pre_param = m_FPContainer[key];
+        //     HodoFParam *param = new HodoFParam(p0, p1, p2, p3, p4, p5);
+        //     m_FPContainer[key] = param;
+        //     if(pre_param){
+        //       hddaq::cerr << FUNC_NAME << ": duplicated key "
+        //   		<< " following record is deleted." << std::endl
+        //   		<< " key = " << key << std::endl;
+        //       delete pre_param;
+        //     }
+        //   }
       }else{
 	hddaq::cerr << FUNC_NAME << ": Invalid Input" << std::endl
 		    << " ===> (" << invalid << "a)" << line << " " << std::endl;
@@ -138,7 +158,7 @@ HodoParamMan::Initialize()
     }
     else {
       hddaq::cerr << FUNC_NAME << ": Invalid Input" << std::endl
-		  << " ===> (" << invalid << "b)" << line << " " << std::endl;
+                  << " ===> (" << invalid << "b)" << line << " " << std::endl;
     } /* if(input_line >>) */
   } /* while(std::getline) */
 
@@ -167,50 +187,61 @@ HodoParamMan::GetTime(Int_t cid, Int_t plid, Int_t seg,
 
 //_____________________________________________________________________________
 Bool_t
-HodoParamMan::GetDe(Int_t cid, Int_t plid, Int_t seg,
-                    Int_t ud, Int_t adc, Double_t& de) const
+HodoParamMan::GetDeHighGain(Int_t cid, Int_t plid, Int_t seg,
+                            Int_t ud, Int_t adc, Double_t& de) const
 {
-  HodoAParam* map = GetAmap(cid, plid, seg, ud);
+  const auto& map = GetAHmap(cid, plid, seg, ud);
   if(!map) return false;
   de = map->DeltaE(adc);
   return true;
 }
 
 //_____________________________________________________________________________
-Double_t
-HodoParamMan::GetP0(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
+Bool_t
+HodoParamMan::GetDeLowGain(Int_t cid, Int_t plid, Int_t seg,
+                           Int_t ud, Int_t adc, Double_t& de) const
 {
-  HodoAParam* map = GetAmap(cid, plid, seg, ud);
-  if(!map) return -1;
-  Double_t p0 = map->Pedestal();
-  return p0;
+  const auto& map = GetALmap(cid, plid, seg, ud);
+  if(!map) return false;
+  de = map->DeltaE(adc);
+  return true;
 }
 
 //_____________________________________________________________________________
-Double_t
-HodoParamMan::GetP1(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
-{
-  HodoAParam* map = GetAmap(cid, plid, seg, ud);
-  if(!map) return -1;
-  Double_t p1 = map->Gain();
-  return p1;
-}
+// Double_t
+// HodoParamMan::GetP0(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
+// {
+//   HodoAParam* map = GetAmap(cid, plid, seg, ud);
+//   if(!map) return -1;
+//   Double_t p0 = map->Pedestal();
+//   return p0;
+// }
+
+// //_____________________________________________________________________________
+// Double_t
+// HodoParamMan::GetP1(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
+// {
+//   HodoAParam* map = GetAmap(cid, plid, seg, ud);
+//   if(!map) return -1;
+//   Double_t p1 = map->Gain();
+//   return p1;
+// }
 
 //_____________________________________________________________________________
-Double_t
-HodoParamMan::GetPar(Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t i) const
-{
-  HodoFParam *map = GetFmap(cid, plid, seg, ud);
-  if(!map) return -1;
-  Double_t par=0;
-  if(i==0) par=map->par0();
-  else if(i==1) par=map->par1();
-  else if(i==2) par=map->par2();
-  else if(i==3) par=map->par3();
-  else if(i==4) par=map->par4();
-  else if(i==5) par=map->par5();
-  return par;
-}
+// Double_t
+// HodoParamMan::GetPar(Int_t cid, Int_t plid, Int_t seg, Int_t ud, Int_t i) const
+// {
+//   HodoFParam *map = GetFmap(cid, plid, seg, ud);
+//   if(!map) return -1;
+//   Double_t par=0;
+//   if(i==0) par=map->par0();
+//   else if(i==1) par=map->par1();
+//   else if(i==2) par=map->par2();
+//   else if(i==3) par=map->par3();
+//   else if(i==4) par=map->par4();
+//   else if(i==5) par=map->par5();
+//   return par;
+// }
 
 //_____________________________________________________________________________
 Double_t
@@ -244,11 +275,23 @@ HodoParamMan::GetTmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
 
 //_____________________________________________________________________________
 HodoAParam*
-HodoParamMan::GetAmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
+HodoParamMan::GetAHmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
 {
   Int_t key = KEY(cid, plid, seg, ud);
-  AIterator itr = m_APContainer.find(key);
-  if(itr != m_APContainer.end())
+  AIterator itr = m_AHPContainer.find(key);
+  if(itr != m_AHPContainer.end())
+    return itr->second;
+  else
+    return nullptr;
+}
+
+//_____________________________________________________________________________
+HodoAParam*
+HodoParamMan::GetALmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const
+{
+  Int_t key = KEY(cid, plid, seg, ud);
+  AIterator itr = m_ALPContainer.find(key);
+  if(itr != m_ALPContainer.end())
     return itr->second;
   else
     return nullptr;

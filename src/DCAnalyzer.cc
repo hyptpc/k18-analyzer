@@ -11,6 +11,10 @@
 #include <string>
 #include <TH2D.h>
 
+#include <UnpackerConfig.hh>
+#include <UnpackerManager.hh>
+#include <UnpackerXMLReadDigit.hh>
+
 #include "ConfMan.hh"
 #include "DCDriftParamMan.hh"
 #include "DCGeomMan.hh"
@@ -52,6 +56,10 @@
 
 namespace
 {
+using namespace hddaq::unpacker;
+const auto& gUnpacker = GUnpacker::get_instance();
+const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
+
 using namespace K18Parameter;
 const auto& gConf   = ConfMan::GetInstance();
 const auto& gGeom   = DCGeomMan::GetInstance();
@@ -124,6 +132,7 @@ printConnectionFlag(const std::vector<std::deque<Bool_t> >& flag)
 //_____________________________________________________________________________
 DCAnalyzer::DCAnalyzer(const RawData& raw_data)
   : m_raw_data(&raw_data),
+    m_dc_hit_collection(),
     m_max_v0diff(90.),
     m_is_decoded(n_type),
     m_much_combi(n_type),
@@ -131,9 +140,9 @@ DCAnalyzer::DCAnalyzer(const RawData& raw_data)
     m_TempBcInHC(NumOfLayersBcIn+1),
     m_BcInHC(NumOfLayersBcIn+1),
     m_BcOutHC(NumOfLayersBcOut+2),
-    m_SdcInHC(NumOfLayersSdcIn+1),
+    m_SdcInHC(),
     m_SdcOutHC(NumOfLayersSdcOut+1),
-    m_SdcInExTC(NumOfLayersSdcIn+1),
+    m_SdcInExTC(NumOfLayersSdcIn),
     m_SdcOutExTC(NumOfLayersSdcOut+1)
 {
   for(Int_t i=0; i<n_type; ++i){
@@ -146,6 +155,9 @@ DCAnalyzer::DCAnalyzer(const RawData& raw_data)
 //_____________________________________________________________________________
 DCAnalyzer::~DCAnalyzer()
 {
+  for(auto& elem: m_dc_hit_collection)
+    del::ClearContainer(elem.second);
+
   ClearKuramaTracks();
 #if UseBcIn
   ClearK18TracksU2D();
@@ -233,7 +245,7 @@ DCAnalyzer::DecodeBcInHits()
       hit->SetMeanWire(mwire);
       hit->SetMeanWirePosition(mwirepos);
       hit->SetTrailing(mtrail);
-      hit->SetDummyPair();
+      hit->SetDummyData();
       hit->SetTdcVal(0);
       hit->SetTdcTrailing(0);
 
@@ -262,6 +274,7 @@ DCAnalyzer::DecodeBcOutHits()
 
   ClearBcOutHits();
 
+#if 0
   for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
     for(const auto& rhit: m_raw_data->GetBcOutRawHC(layer)){
       auto hit = new DCHit(rhit->PlaneId()+PlOffsBc, rhit->WireId());
@@ -281,6 +294,7 @@ DCAnalyzer::DecodeBcOutHits()
       }
     }
   }
+#endif
 
   m_is_decoded[kBcOut] = true;
   return true;
@@ -290,35 +304,19 @@ DCAnalyzer::DecodeBcOutHits()
 Bool_t
 DCAnalyzer::DecodeSdcInHits()
 {
-  if(m_is_decoded[kSdcIn]){
-    hddaq::cout << FUNC_NAME << " "
-                << "already decoded" << std::endl;
-    return true;
-  }
+  static const auto& digit_info = gUConf.get_digit_info();
 
-  ClearSdcInHits();
-
-  for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
-    for(const auto& rhit: m_raw_data->GetSdcInRawHC(layer)){
-      auto hit = new DCHit(rhit->PlaneId(), rhit->WireId());
-      Int_t nhtdc = rhit->GetTdcSize();
-      Int_t nhtrailing = rhit->GetTrailingSize();
-      if(!hit) continue;
-      for(Int_t j=0; j<nhtdc; ++j){
-        hit->SetTdcVal(rhit->GetTdc(j));
-      }
-      for(Int_t j=0; j<nhtrailing; ++j){
-        hit->SetTdcTrailing(rhit->GetTrailing(j));
-      }
-      if(hit->CalcDCObservables()){
-        m_SdcInHC[layer].push_back(hit);
-      }else{
-        delete hit;
-      }
+  Int_t plane_offset = 0;
+  for(const auto& name: DCNameList.at("SdcIn")){
+    Int_t id = digit_info.get_device_id(name.Data());
+    Int_t n_plane = digit_info.get_n_plane(id);
+    m_SdcInHC.resize(n_plane + m_SdcInHC.size());
+    DecodeHits(name);
+    for(const auto& hit: m_dc_hit_collection.at(name)){
+      m_SdcInHC[hit->PlaneId() + plane_offset].push_back(hit);
     }
+    plane_offset += n_plane;
   }
-
-  m_is_decoded[kSdcIn] = true;
   return true;
 }
 
@@ -334,6 +332,7 @@ DCAnalyzer::DecodeSdcOutHits(Double_t ofs_dt/*=0.*/)
 
   ClearSdcOutHits();
 
+#if 0
   for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer){
     for(const auto& rhit: m_raw_data->GetSdcOutRawHC(layer)){
       auto hit = new DCHit(rhit->PlaneId(), rhit->WireId());
@@ -354,9 +353,30 @@ DCAnalyzer::DecodeSdcOutHits(Double_t ofs_dt/*=0.*/)
       }
     }
   }
+#endif
 
   m_is_decoded[kSdcOut] = true;
   return true;
+}
+
+//_____________________________________________________________________________
+void
+DCAnalyzer::DecodeHits(const TString& name)
+{
+  auto& HitCont = m_dc_hit_collection[name];
+  del::ClearContainer(HitCont);
+  HitCont.clear();
+  for(const auto& rhit: m_raw_data->GetDCRawHitContainer(name)){
+    auto hit = new DCHit(rhit);
+    if(hit && hit->CalcDCObservables()){
+      HitCont.push_back(hit);
+    }else{
+      delete hit;
+    }
+  }
+  std::sort(HitCont.begin(), HitCont.end(), DCHit::Compare);
+  // for(const auto& hit: m_dc_hit_collection[name])
+  //   hit->Print();
 }
 
 //_____________________________________________________________________________
@@ -414,14 +434,14 @@ DCAnalyzer::DecodeTOFHits(const HodoHitContainer& HitCont)
     dc_hit_x->SetWirePosition(hit_pos.x());
     dc_hit_x->SetZ(hit_pos.z());
     dc_hit_x->SetTiltAngle(0.);
-    dc_hit_x->SetDummyPair();
+    dc_hit_x->SetDummyData();
     m_TOFHC.push_back(dc_hit_x);
     // Y
     DCHit *dc_hit_y = new DCHit(layer_y, seg);
     dc_hit_y->SetWirePosition(hit_pos.y());
     dc_hit_y->SetZ(hit_pos.z());
     dc_hit_y->SetTiltAngle(90.);
-    dc_hit_y->SetDummyPair();
+    dc_hit_y->SetDummyData();
     m_TOFHC.push_back(dc_hit_y);
   }
 
@@ -469,14 +489,14 @@ DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
     dc_hit_x->SetWirePosition(hit_pos.x());
     dc_hit_x->SetZ(hit_pos.z());
     dc_hit_x->SetTiltAngle(0.);
-    dc_hit_x->SetDummyPair();
+    dc_hit_x->SetDummyData();
     m_TOFHC.push_back(dc_hit_x);
     // Y
     DCHit *dc_hit_y = new DCHit(layer_y, seg);
     dc_hit_y->SetWirePosition(hit_pos.y());
     dc_hit_y->SetZ(hit_pos.z());
     dc_hit_y->SetTiltAngle(90.);
-    dc_hit_y->SetDummyPair();
+    dc_hit_y->SetDummyData();
     m_TOFHC.push_back(dc_hit_y);
   }
 
@@ -793,10 +813,10 @@ DCAnalyzer::TrackSearchKurama()
   auto nOut = m_SdcOutTC.size();
   if(nIn==0 || nOut==0) return true;
   for(Int_t iIn=0; iIn<nIn; ++iIn){
-    DCLocalTrack *trIn = GetTrackSdcIn(iIn);
+    const auto& trIn = GetTrackSdcIn(iIn);
     if(!trIn || !trIn->GoodForTracking()) continue;
     for(Int_t iOut=0; iOut<nOut; ++iOut){
-      DCLocalTrack * trOut = GetTrackSdcOut(iOut);
+      const auto& trOut = GetTrackSdcOut(iOut);
       if(!trOut || !trOut->GoodForTracking()) continue;
       auto trKurama = new KuramaTrack(trIn, trOut);
       if(!trKurama) continue;
@@ -846,10 +866,10 @@ DCAnalyzer::TrackSearchKurama(Double_t initial_momentum)
   if(nIn==0 || nOut==0) return true;
 
   for(Int_t iIn=0; iIn<nIn; ++iIn){
-    DCLocalTrack *trIn = GetTrackSdcIn(iIn);
+    const auto& trIn = GetTrackSdcIn(iIn);
     if(!trIn->GoodForTracking()) continue;
     for(Int_t iOut=0; iOut<nOut; ++iOut){
-      DCLocalTrack * trOut = GetTrackSdcOut(iOut);
+      const auto& trOut = GetTrackSdcOut(iOut);
       if(!trOut->GoodForTracking()) continue;
       KuramaTrack *trKurama = new KuramaTrack(trIn, trOut);
       if(!trKurama) continue;
@@ -1002,6 +1022,7 @@ DCAnalyzer::ClearTracksSdcInSdcOut()
   del::ClearContainer(m_SdcInSdcOutTC);
 }
 
+#if UseBcIn
 //_____________________________________________________________________________
 Bool_t
 DCAnalyzer::ReCalcMWPCHits(std::vector<DCHitContainer>& cont,
@@ -1018,6 +1039,7 @@ DCAnalyzer::ReCalcMWPCHits(std::vector<DCHitContainer>& cont,
   }
   return true;
 }
+#endif
 
 //_____________________________________________________________________________
 Bool_t
@@ -1349,7 +1371,7 @@ void
 DCAnalyzer::TotCutSDC1(Double_t min_tot)
 {
   for(Int_t i = 0; i<NumOfLayersSDC1; ++i){
-    TotCut(m_SdcInHC[i + 1], min_tot, false);
+    TotCut(m_SdcInHC[i], min_tot, false);
   }// for(i)
 }
 
@@ -1358,7 +1380,7 @@ void
 DCAnalyzer::TotCutSDC2(Double_t min_tot)
 {
   for(Int_t i = 0; i<NumOfLayersSDC2; ++i){
-    TotCut(m_SdcInHC[i + NumOfLayersSDC1 + 1], min_tot, false);
+    TotCut(m_SdcInHC[i + NumOfLayersSDC1], min_tot, false);
   }// for(i)
 }
 
@@ -1389,7 +1411,7 @@ DCAnalyzer::TotCut(DCHitContainer& HitCont,
   DCHitContainer DeleteCand;
   for(auto *ptr : HitCont){
     ptr->TotCut(min_tot, adopt_nan);
-    if(0 == ptr->GetDriftTimeSize()){
+    if(0 == ptr->GetEntries()){
       DeleteCand.push_back(ptr);
     }else{
       ValidCand.push_back(ptr);
@@ -1458,7 +1480,7 @@ DCAnalyzer::DriftTimeCut(DCHitContainer& HitCont,
   DCHitContainer DeleteCand;
   for(auto *ptr : HitCont){
     ptr->GateDriftTime(min_dt, max_dt, select_1st);
-    if(0 == ptr->GetDriftTimeSize()){
+    if(0 == ptr->GetEntries()){
       DeleteCand.push_back(ptr);
     }else{
       ValidCand.push_back(ptr);

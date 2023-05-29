@@ -25,7 +25,7 @@ class KuramaTrack
 {
 public:
   static const TString& ClassName();
-  KuramaTrack(DCLocalTrack* track_in, DCLocalTrack* track_out);
+  KuramaTrack(const DCLocalTrack* track_in, const DCLocalTrack* track_out);
   ~KuramaTrack();
 
 private:
@@ -46,8 +46,8 @@ public:
 private:
   TString                 s_status[nRKstatus];
   RKstatus                m_status;
-  DCLocalTrack*           m_track_in;
-  DCLocalTrack*           m_track_out;
+  const DCLocalTrack*     m_track_in;
+  const DCLocalTrack*     m_track_out;
   Double_t                m_tof_seg;
   Double_t                m_initial_momentum;
   std::vector<TrackHit*>  m_hit_array;
@@ -71,11 +71,11 @@ public:
   Bool_t          DoFit(RKCordParameter iniCord);
   Bool_t          DoFitMinuit();
   Double_t        GetChiSquare() const { return m_chisqr; }
-  TrackHit*       GetHit(Int_t nth) const { return m_hit_array.at(nth); }
-  TrackHit*       GetHitOfLayerNumber(Int_t lnum) const;
+  const TrackHit* GetHit(Int_t nth) const { return m_hit_array.at(nth); }
+  const TrackHit* GetHitOfLayerNumber(Int_t lnum) const;
   Double_t        GetInitialMomentum() const { return m_initial_momentum; }
-  DCLocalTrack*   GetLocalTrackIn() { return m_track_in; }
-  DCLocalTrack*   GetLocalTrackOut() { return m_track_out; }
+  const DCLocalTrack* GetLocalTrackIn() const { return m_track_in; }
+  const DCLocalTrack* GetLocalTrackOut() const { return m_track_out; }
   Int_t           GetNHits() const { return m_hit_array.size(); }
   Bool_t          GetTrajectoryLocalPosition(Int_t layer,
                                              Double_t& x, Double_t& y) const;
@@ -89,7 +89,7 @@ public:
   const TVector3& PrimaryMomentum() const { return m_primary_momentum; }
   Double_t        PrimaryMomMag() const { return m_primary_momentum.Mag();}
   const TVector3& PrimaryPosition() const { return m_primary_position; }
-  void            Print(const TString& arg="", std::ostream& ost=hddaq::cout);
+  void            Print(Option_t* arg="") const;
   Bool_t          ReCalc(Bool_t applyRecursively=false);
   void            SetInitialMomentum(Double_t p) { m_initial_momentum = p; }
   Bool_t          Status() const { return m_status; }
@@ -105,8 +105,7 @@ private:
                                RKCordParameter& Cord,
                                Double_t& estDeltaChisqr,
                                Double_t& lambdaCri, Double_t dmp=0.) const;
-  void     PrintCalcHits(const RKHitPointContainer& hpCont,
-                         std::ostream& ost=std::cout) const;
+  void     PrintCalcHits(const RKHitPointContainer& hpCont) const;
   Bool_t   SaveCalcPosition(const RKHitPointContainer& hpCont);
   Bool_t   SaveTrackParameters(const RKCordParameter& cp);
 

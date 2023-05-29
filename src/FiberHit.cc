@@ -58,25 +58,25 @@ FiberHit::Calculate()
 
   data_t trailing(m_n_ch);
   for(Int_t ch=0; ch<m_n_ch; ++ch){
-    const auto& l_cont = m_time_leading.at(ch);
-    m_ctime_leading.at(ch).clear();
-    m_ctime_trailing.at(ch).clear();
+    const auto& l_cont = m_time_leading[ch];
+    m_ctime_leading[ch].clear();
+    m_ctime_trailing[ch].clear();
     for(Int_t il=0, nl=l_cont.size(); il<nl; ++il){
-      Double_t l = l_cont.at(il);
-      Double_t l_next = (il+1) != nl ? l_cont.at(il+1) : DBL_MAX;
+      Double_t l = l_cont[il];
+      Double_t l_next = (il+1) != nl ? l_cont[il+1] : DBL_MAX;
       Double_t buf = qnan;
-      for(const auto& t: m_time_trailing.at(ch)){
+      for(const auto& t: m_time_trailing[ch]){
         if(l<t && t<l_next){
           buf = t;
           break;
         }
       }
-      trailing.at(ch).push_back(buf);
+      trailing[ch].push_back(buf);
       Double_t ctime = qnan;
       Double_t tot = buf - l;
       gPHC.DoCorrection(id, plane, seg, ch, l, tot, ctime);
-      m_ctime_leading.at(ch).push_back(ctime);
-      m_ctime_trailing.at(ch).push_back(ctime + tot); // no use
+      m_ctime_leading[ch].push_back(ctime);
+      m_ctime_trailing[ch].push_back(ctime + tot); // no use
       m_is_clustered.push_back(false);
     }
   }

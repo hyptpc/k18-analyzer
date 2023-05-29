@@ -35,7 +35,8 @@ const Double_t MinDeltaChiSqrR = 0.0002;
 #define WARNOUT 0
 
 //_____________________________________________________________________________
-KuramaTrack::KuramaTrack(DCLocalTrack *track_in, DCLocalTrack *track_out)
+KuramaTrack::KuramaTrack(const DCLocalTrack *track_in,
+                         const DCLocalTrack *track_out)
   : m_status(kInit),
     m_track_in(track_in),
     m_track_out(track_out),
@@ -71,7 +72,7 @@ KuramaTrack::~KuramaTrack()
 }
 
 //_____________________________________________________________________________
-TrackHit*
+const TrackHit*
 KuramaTrack::GetHitOfLayerNumber(Int_t lnum) const
 {
   for(Int_t i=0, n=m_hit_array.size(); i<n; ++i){
@@ -124,8 +125,8 @@ Bool_t
 KuramaTrack::ReCalc(Bool_t applyRecursively)
 {
   if(applyRecursively){
-    m_track_in->ReCalc(applyRecursively);
-    m_track_out->ReCalc(applyRecursively);
+    // m_track_in->ReCalc(applyRecursively);
+    // m_track_out->ReCalc(applyRecursively);
     //    Int_t nh=m_hit_array.size();
     //    for(Int_t i=0; i<nh; ++i){
     //      m_hit_array[i]->ReCalc(applyRecursively);
@@ -723,30 +724,30 @@ KuramaTrack::SaveCalcPosition(const RKHitPointContainer &hpCont)
 
 //_____________________________________________________________________________
 void
-KuramaTrack::Print(const TString& arg, std::ostream& ost)
+KuramaTrack::Print(Option_t* arg) const
 {
-  PrintHelper helper(5, std::ios::fixed, ost);
+  PrintHelper helper(5, std::ios::fixed);
 
-  ost << FUNC_NAME << " " << arg << std::endl
-      << "   status : " << s_status[m_status] << std::endl
-      << " in " << std::setw(3) << m_n_iteration << " ("
-      << std::setw(2) << m_nef_iteration << ") Iteractions "
-      << " chisqr=" << std::setw(10) << m_chisqr << std::endl;
-  ost << " Target X (" << std::setprecision(2)
-      << std::setw(7) << m_primary_position.x() << ", "
-      << std::setw(7) << m_primary_position.y() << ", "
-      << std::setw(7) << m_primary_position.z() << ")" << std::endl
-      << "        P " << std::setprecision(5)
-      << std::setw(7) << m_primary_momentum.Mag() << " ("
-      << std::setw(7) << m_primary_momentum.x() << ", "
-      << std::setw(7) << m_primary_momentum.y() << ", "
-      << std::setw(7) << m_primary_momentum.z() << ")"
-      << " init=" << m_initial_momentum
-      << std::endl
-      << "        PathLength  " << std::setprecision(1)
-      << std::setw(7) << m_path_length_tof << " "
-      << "TOF#" << std::setw(2) << std::right
-      << (Int_t)m_tof_seg << std::endl;
+  hddaq::cout << FUNC_NAME << " " << arg << std::endl
+              << "   status : " << s_status[m_status] << std::endl
+              << " in " << std::setw(3) << m_n_iteration << " ("
+              << std::setw(2) << m_nef_iteration << ") Iteractions "
+              << " chisqr=" << std::setw(10) << m_chisqr << std::endl;
+  hddaq::cout << " Target X (" << std::setprecision(2)
+              << std::setw(7) << m_primary_position.x() << ", "
+              << std::setw(7) << m_primary_position.y() << ", "
+              << std::setw(7) << m_primary_position.z() << ")" << std::endl
+              << "        P " << std::setprecision(5)
+              << std::setw(7) << m_primary_momentum.Mag() << " ("
+              << std::setw(7) << m_primary_momentum.x() << ", "
+              << std::setw(7) << m_primary_momentum.y() << ", "
+              << std::setw(7) << m_primary_momentum.z() << ")"
+              << " init=" << m_initial_momentum
+              << std::endl
+              << "        PathLength  " << std::setprecision(1)
+              << std::setw(7) << m_path_length_tof << " "
+              << "TOF#" << std::setw(2) << std::right
+              << (Int_t)m_tof_seg << std::endl;
   //  << std::setw(7) << m_path_length_total << std::endl;
 
   PrintCalcHits(m_HitPointCont);
@@ -754,9 +755,9 @@ KuramaTrack::Print(const TString& arg, std::ostream& ost)
 
 //_____________________________________________________________________________
 void
-KuramaTrack::PrintCalcHits(const RKHitPointContainer &hpCont, std::ostream &ost) const
+KuramaTrack::PrintCalcHits(const RKHitPointContainer &hpCont) const
 {
-  PrintHelper helper(2, std::ios::fixed, ost);
+  PrintHelper helper(2, std::ios::fixed);
 
   const Int_t n = m_hit_array.size();
   RKHitPointContainer::RKHpCIterator itr, end = hpCont.end();
@@ -773,27 +774,27 @@ KuramaTrack::PrintCalcHits(const RKHitPointContainer &hpCont, std::ostream &ost)
     ThreeVector pos = calhp.PositionInGlobal();
     std::string h = " ";
     if (thp){ h = "-"; if (thp->IsHoneycomb()) h = "+"; }
-    ost << "#"   << std::setw(2) << lnum << h
-	<< " L " << std::setw(8) << calhp.PathLength()
-	<< " X " << std::setw(7) << calhp.PositionInLocal()
-	<< " (" << std::setw(7) << pos.x()
-	<< ", "  << std::setw(7) << pos.y()
-	<< ", "  << std::setw(8) << pos.z() << ")";
+    hddaq::cout << "#"   << std::setw(2) << lnum << h
+                << " L " << std::setw(8) << calhp.PathLength()
+                << " X " << std::setw(7) << calhp.PositionInLocal()
+                << " (" << std::setw(7) << pos.x()
+                << ", "  << std::setw(7) << pos.y()
+                << ", "  << std::setw(8) << pos.z() << ")";
     if(thp){
-      ost << " "   << std::setw(7) << thp->GetLocalHitPos()
-	  << " -> " << std::setw(7)
-	  << thp->GetResidual();
+      hddaq::cout << " "   << std::setw(7) << thp->GetLocalHitPos()
+                  << " -> " << std::setw(7)
+                  << thp->GetResidual();
       //<< thp->GetLocalHitPos()-calhp.PositionInLocal();
     }
-    ost << std::endl;
+    hddaq::cout << std::endl;
 #if 0
     {
       ThreeVector mom = calhp.MomentumInGlobal();
-      ost << "   P=" << std::setw(7) << mom.Mag()
-	  << " (" << std::setw(9) << mom.x()
-	  << ", " << std::setw(9) << mom.y()
-	  << ", " << std::setw(9) << mom.z()
-	  << ")" << std::endl;
+      hddaq::cout << "   P=" << std::setw(7) << mom.Mag()
+                  << " (" << std::setw(9) << mom.x()
+                  << ", " << std::setw(9) << mom.y()
+                  << ", " << std::setw(9) << mom.z()
+                  << ")" << std::endl;
     }
 #endif
   }

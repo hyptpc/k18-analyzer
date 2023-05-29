@@ -88,13 +88,13 @@ HodoHit::Calculate()
     // adc
     for(const auto& adc: m_raw->GetArrayAdcHigh(ch)){
       Double_t de = TMath::QuietNaN();
-      if(gHodo.GetDe(id, plane, seg, ch, adc, de)){
+      if(gHodo.GetDeHighGain(id, plane, seg, ch, adc, de)){
         m_de_high.at(ch).push_back(de);
       }
     }
     for(const auto& adc: m_raw->GetArrayAdcLow(ch)){
       Double_t de = TMath::QuietNaN();
-      if(gHodo.GetDe(id, plane, seg, ch, adc, de)){
+      if(gHodo.GetDeLowGain(id, plane, seg, ch, adc, de)){
         m_de_low.at(ch).push_back(de);
       }
     }

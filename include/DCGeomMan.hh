@@ -75,6 +75,8 @@ public:
   Int_t               CalcWireNumber(const TString& key, Double_t position) const;
   std::vector<Int_t>  GetDetectorIDList() const;
   Int_t               GetDetectorId(const TString &key) const;
+  Int_t               GetLayerId(const TString &key) const
+    { return GetDetectorId(key); }
   void                SetFileName(const TString &file_name);
   // Do not use this method except for special cases
   void                SetResolution(Int_t lnum, Double_t res);

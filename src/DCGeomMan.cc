@@ -433,7 +433,7 @@ DCGeomMan::GetDetectorId(const TString &key) const
 {
   for(DCGeomIterator itr=m_container.begin(), end=m_container.end();
       itr != end; ++itr){
-    if(itr->second->Name() == key)
+    if(itr->second->Name().EqualTo(key, TString::kIgnoreCase))
       return itr->second->Id();
   }
 

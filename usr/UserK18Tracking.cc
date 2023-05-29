@@ -332,7 +332,7 @@ ProcessingNormal()
   {
     Int_t nlBcOut = 0;
     for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
-      const DCHitContainer &contBcOut = DCAna.GetBcOutHC(layer);
+      const auto& contBcOut = DCAna.GetBcOutHC(layer);
       Int_t nhBcOut = contBcOut.size();
       multi_BcOut += Double_t(nhBcOut);
       if(nhBcOut>0) nlBcOut++;
@@ -365,11 +365,11 @@ ProcessingNormal()
   }
   HF1(50, Double_t(ntBcOut));
   for(Int_t it=0; it<ntBcOut; ++it){
-    DCLocalTrack *tp = DCAna.GetTrackBcOut(it);
-    Int_t nh = tp->GetNHit();
-    Double_t chisqr = tp->GetChiSquare();
-    Double_t u0 = tp->GetU0(),  v0 = tp->GetV0();
-    Double_t x0 = tp->GetX(0.), y0 = tp->GetY(0.);
+    const auto& track = DCAna.GetTrackBcOut(it);
+    Int_t nh = track->GetNHit();
+    Double_t chisqr = track->GetChiSquare();
+    Double_t u0 = track->GetU0(),  v0 = track->GetV0();
+    Double_t x0 = track->GetX(0.), y0 = track->GetY(0.);
 
     HF1(51, Double_t(nh));
     HF1(52, chisqr);
@@ -386,7 +386,7 @@ ProcessingNormal()
     event.v0BcOut[it] = v0;
 
     for(Int_t ih=0; ih<nh; ++ih){
-      DCLTrackHit *hit=tp->GetHit(ih);
+      const auto& hit = track->GetHit(ih);
       Int_t layerId=hit->GetLayer()-100;
       HF1(53, layerId);
     }
@@ -407,27 +407,27 @@ ProcessingNormal()
   event.ntK18 = ntK18;
   HF1(70, Double_t(ntK18));
   for(Int_t i=0; i<ntK18; ++i){
-    K18TrackD2U *tp=DCAna.GetK18TrackD2U(i);
-    if(!tp) continue;
-    DCLocalTrack *track = tp->TrackOut();
-    std::size_t nh = track->GetNHit();
-    Double_t chisqr = track->GetChiSquare();
+    const auto& k18track = DCAna.GetK18TrackD2U(i);
+    if(!k18track) continue;
+    const auto& ltrack = k18track->TrackOut();
+    std::size_t nh = ltrack->GetNHit();
+    Double_t chisqr = ltrack->GetChiSquare();
 
-    Double_t xin=tp->Xin(), yin=tp->Yin();
-    Double_t uin=tp->Uin(), vin=tp->Vin();
+    Double_t xin=k18track->Xin(), yin=k18track->Yin();
+    Double_t uin=k18track->Uin(), vin=k18track->Vin();
 
-    Double_t xt=tp->Xtgt(), yt=tp->Ytgt();
-    Double_t ut=tp->Utgt(), vt=tp->Vtgt();
+    Double_t xt=k18track->Xtgt(), yt=k18track->Ytgt();
+    Double_t ut=k18track->Utgt(), vt=k18track->Vtgt();
 
-    Double_t xout=tp->Xout(), yout=tp->Yout();
-    Double_t uout=tp->Uout(), vout=tp->Vout();
+    Double_t xout=k18track->Xout(), yout=k18track->Yout();
+    Double_t uout=k18track->Uout(), vout=k18track->Vout();
 
-    Double_t p_2nd=tp->P();
-    Double_t p_3rd=tp->P3rd();
-    Double_t delta_2nd=tp->Delta();
-    Double_t delta_3rd=tp->Delta3rd();
-    Double_t theta = track->GetTheta();
-    Double_t phi   = track->GetPhi();
+    Double_t p_2nd=k18track->P();
+    Double_t p_3rd=k18track->P3rd();
+    Double_t delta_2nd=k18track->Delta();
+    Double_t delta_3rd=k18track->Delta3rd();
+    Double_t theta = ltrack->GetTheta();
+    Double_t phi   = ltrack->GetPhi();
 
     HF1(74, xt); HF1(75, yt); HF1(76, ut); HF1(77,vt);
     HF2(78, xt, ut); HF2(79, yt, vt); HF2(80, xt, yt);

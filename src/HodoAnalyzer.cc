@@ -58,36 +58,6 @@ HodoAnalyzer::~HodoAnalyzer()
 }
 
 //_____________________________________________________________________________
-// Bool_t
-// HodoAnalyzer::DecodeBFTHits()
-// {
-//   ClearBFTHits();
-//   for(auto& hit: m_raw_data->GetHodoRawHitContainer("BFT")){
-//     if(!hit) continue;
-//     auto hp = new FiberHit(hit);
-//     if(hp && hp->Calculate()){
-//       delete hp;
-//       //m_BFTCont.at(p).push_back(hp);
-//     }else{
-//       delete hp;
-//     }
-//   }
-//     // std::sort(m_BFTCont.at(p).begin(), m_BFTCont.at(p).end(),
-//     //           FiberHit::CompFiberHit);
-
-// #if 0 // Cluster
-//   FiberHitContainer cont_merge(m_BFTCont.at(0));
-//   cont_merge.reserve(m_BFTCont.at(0).size() + m_BFTCont.at(1).size());
-//   cont_merge.insert(cont_merge.end(), m_BFTCont.at(1).begin(),
-//                     m_BFTCont.at(1).end());
-//   std::sort(cont_merge.begin(), cont_merge.end(), FiberHit::CompFiberHit);
-//   MakeUpClusters(cont_merge, m_BFTClCont, MaxTimeDifBFT, 3);
-// #endif
-
-//   return true;
-// }
-
-//_____________________________________________________________________________
 Bool_t
 HodoAnalyzer::ReCalcHit(const TString& name, Bool_t applyRecursively)
 {

@@ -407,8 +407,8 @@ MakePairPlaneHitCluster(const DCHitContainer & HC1,
       DCHit *hit2=HC2[i2];
       Double_t wp2=hit2->GetWirePosition();
       if(std::abs(wp1-wp2)<CellSize){
-        Int_t multi1 = hit1->GetDriftLengthSize();
-        Int_t multi2 = hit2->GetDriftLengthSize();
+        Int_t multi1 = hit1->GetEntries();
+        Int_t multi2 = hit2->GetEntries();
         for(Int_t m1=0; m1<multi1; ++m1) {
           if(!hit1->IsWithinRange(m1))
             continue;
@@ -417,12 +417,12 @@ MakePairPlaneHitCluster(const DCHitContainer & HC1,
               continue;
             Double_t x1,x2;
             if(wp1<wp2){
-              x1=wp1+hit1->GetDriftLength(m1);
-              x2=wp2-hit2->GetDriftLength(m2);
+              x1=wp1+hit1->DriftLength(m1);
+              x2=wp2-hit2->DriftLength(m2);
             }
             else {
-              x1=wp1-hit1->GetDriftLength(m1);
-              x2=wp2+hit2->GetDriftLength(m2);
+              x1=wp1-hit1->DriftLength(m1);
+              x2=wp2+hit2->DriftLength(m2);
             }
             DCPairHitCluster *cluster =
               new DCPairHitCluster(new DCLTrackHit(hit1,x1,m1),
@@ -436,10 +436,10 @@ MakePairPlaneHitCluster(const DCHitContainer & HC1,
     }
 #if 1
     if(!flag){
-      Int_t multi1 = hit1->GetDriftLengthSize();
+      Int_t multi1 = hit1->GetEntries();
       for(Int_t m1=0; m1<multi1; m1++) {
         if(!(hit1->IsWithinRange(m1))) continue;
-        Double_t dl=hit1->GetDriftLength(m1);
+        Double_t dl=hit1->DriftLength(m1);
         DCPairHitCluster *cluster1 = new DCPairHitCluster(new DCLTrackHit(hit1,wp1+dl,m1));
         DCPairHitCluster *cluster2 = new DCPairHitCluster(new DCLTrackHit(hit1,wp1-dl,m1));
         cluster1->SetHoneycomb(honeycomb);
@@ -454,11 +454,11 @@ MakePairPlaneHitCluster(const DCHitContainer & HC1,
   for(Int_t i2=0; i2<nh2; ++i2){
     if(UsedFlag[i2]==0) {
       DCHit *hit2=HC2[i2];
-      Int_t multi2 = hit2->GetDriftLengthSize();
+      Int_t multi2 = hit2->GetEntries();
       for(Int_t m2=0; m2<multi2; m2++) {
         if(!(hit2->IsWithinRange(m2))) continue;
         Double_t wp=hit2->GetWirePosition();
-        Double_t dl=hit2->GetDriftLength(m2);
+        Double_t dl=hit2->DriftLength(m2);
         DCPairHitCluster *cluster1 = new DCPairHitCluster(new DCLTrackHit(hit2,wp+dl,m2));
         DCPairHitCluster *cluster2 = new DCPairHitCluster(new DCLTrackHit(hit2,wp-dl,m2));
         cluster1->SetHoneycomb(honeycomb);
@@ -482,11 +482,11 @@ MakeUnPairPlaneHitCluster(const DCHitContainer& HC,
   for(std::size_t i=0; i<nh; ++i){
     DCHit *hit = HC[i];
     if(!hit) continue;
-    std::size_t mh = hit->GetDriftLengthSize();
+    std::size_t mh = hit->GetEntries();
     for(std::size_t m=0; m<mh; ++m) {
       if(!hit->IsWithinRange(m)) continue;
       Double_t wp = hit->GetWirePosition();
-      Double_t dl = hit->GetDriftLength(m);
+      Double_t dl = hit->DriftLength(m);
       DCPairHitCluster *cluster1 =
         new DCPairHitCluster(new DCLTrackHit(hit,wp+dl,m));
       DCPairHitCluster *cluster2 =
@@ -510,11 +510,11 @@ MakeMWPCPairPlaneHitCluster(const DCHitContainer& HC,
   for(Int_t i=0; i<nh; ++i){
     DCHit *hit=HC[i];
     if(hit){
-      Int_t multi = hit->GetDriftTimeSize();
+      Int_t multi = hit->GetEntries();
       for(Int_t m=0; m<multi; m++) {
         if(!(hit->IsWithinRange(m))) continue;
         Double_t wp=hit->GetWirePosition();
-        // Double_t dl=hit->GetDriftLength(m);
+        // Double_t dl=hit->DriftLength(m);
         Cont.push_back(new DCPairHitCluster(new DCLTrackHit(hit, wp, m)));
       }
     }
@@ -560,14 +560,14 @@ MakePairPlaneHitClusterVUX(const DCHitContainer& HC1,
       Double_t wp2=hit2->GetWirePosition();
       if(std::abs(wp1-wp2)<CellSize){
 
-        Int_t multi1 = hit1->GetDriftLengthSize();
-        Int_t multi2 = hit2->GetDriftLengthSize();
+        Int_t multi1 = hit1->GetEntries();
+        Int_t multi2 = hit2->GetEntries();
         for(Int_t m1=0; m1<multi1; m1++) {
           if(!(hit1->IsWithinRange(m1))) continue;
           for(Int_t m2=0; m2<multi2; m2++) {
             if(!(hit2->IsWithinRange(m2))) continue;
-            Double_t dl1=hit1->GetDriftLength(m1);
-            Double_t dl2=hit2->GetDriftLength(m2);
+            Double_t dl1=hit1->DriftLength(m1);
+            Double_t dl2=hit2->DriftLength(m2);
 
             Cont.push_back(new DCPairHitCluster(new DCLTrackHit(hit1,wp1+dl1,m1),
                                                 new DCLTrackHit(hit2,wp2+dl2,m2)));
@@ -584,10 +584,10 @@ MakePairPlaneHitClusterVUX(const DCHitContainer& HC1,
       }
     }
     if(!flag){
-      Int_t multi1 = hit1->GetDriftLengthSize();
+      Int_t multi1 = hit1->GetEntries();
       for(Int_t m1=0; m1<multi1; m1++) {
         if(!(hit1->IsWithinRange(m1))) continue;
-        Double_t dl=hit1->GetDriftLength(m1);
+        Double_t dl=hit1->DriftLength(m1);
         Cont.push_back(new DCPairHitCluster(new DCLTrackHit(hit1,wp1+dl,m1)));
         Cont.push_back(new DCPairHitCluster(new DCLTrackHit(hit1,wp1-dl,m1)));
       }
@@ -596,12 +596,12 @@ MakePairPlaneHitClusterVUX(const DCHitContainer& HC1,
   for(Int_t i2=0; i2<nh2; ++i2){
     if(UsedFlag[i2]==0) {
       DCHit *hit2=HC2[i2];
-      Int_t multi2 = hit2->GetDriftLengthSize();
+      Int_t multi2 = hit2->GetEntries();
       for(Int_t m2=0; m2<multi2; m2++) {
         if(!(hit2->IsWithinRange(m2))) continue;
 
         Double_t wp=hit2->GetWirePosition();
-        Double_t dl=hit2->GetDriftLength(m2);
+        Double_t dl=hit2->DriftLength(m2);
         Cont.push_back(new DCPairHitCluster(new DCLTrackHit(hit2,wp+dl,m2)));
         Cont.push_back(new DCPairHitCluster(new DCLTrackHit(hit2,wp-dl,m2)));
       }
@@ -754,7 +754,6 @@ LocalTrackSearch(const std::vector<DCHitContainer>& HC,
     Bool_t fiber     = PpInfo[i].fiber;
     Int_t  layer1    = PpInfo[i].id1;
     Int_t  layer2    = PpInfo[i].id2;
-
     if(ppFlag && !fiber){
       MakePairPlaneHitCluster(HC[layer1], HC[layer2],
                               PpInfo[i].CellSize, CandCont[i], honeycomb);

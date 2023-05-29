@@ -158,7 +158,8 @@ ProcessingNormal()
 #endif
 
   RawData rawData;
-  rawData.DecodeHits();
+  rawData.DecodeHits("SDC1");
+  // rawData.DecodeHits("SDC2");
   HodoAnalyzer hodoAna(rawData);
   DCAnalyzer   DCAna(rawData);
 
@@ -257,7 +258,8 @@ ProcessingNormal()
 
 
   //////////////BCout
-  DCAna.DecodeRawHits();
+  DCAna.DecodeBcOutHits();
+
 #if TotCut
   DCAna.TotCutSDC1(MinTotSDC1);
   DCAna.TotCutSDC2(MinTotSDC2);
@@ -289,7 +291,7 @@ ProcessingNormal()
     }
     event.ntBcOut = ntBcOut;
     for(Int_t it=0; it<ntBcOut; ++it){
-      DCLocalTrack *tp=DCAna.GetTrackBcOut(it);
+      const auto& tp=DCAna.GetTrackBcOut(it);
       Double_t chisqr=tp->GetChiSquare();
       if(chisqr<20.) ntOk++;
     }
@@ -299,13 +301,14 @@ ProcessingNormal()
   }
 #endif
 
-
   //////////////SdcIn number of hit layer
+  DCAna.DecodeSdcInHits();
   HF1(1, 10.);
   Double_t multi_SdcIn=0.;
   {
-    for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
-      const DCHitContainer &contIn =DCAna.GetSdcInHC(layer);
+    for(Int_t plane=0; plane<NumOfLayersSdcIn; ++plane){
+      Int_t layer = plane + 1;
+      const auto& contIn =DCAna.GetSdcInHC(plane);
       Int_t nhIn = contIn.size();
       event.nhit[layer-1] = nhIn;
       if(nhIn>0) event.nlayer++;
@@ -313,9 +316,9 @@ ProcessingNormal()
       HF1(100*layer, nhIn);
       Int_t plane_eff = (layer-1)*3;
       Bool_t fl_valid_sig = false;
-
       for(Int_t i=0; i<nhIn; ++i){
-	DCHit *hit=contIn[i];
+	const auto& hit=contIn[i];
+        hit->Print();
 	Double_t wire=hit->GetWire();
 	HF1(100*layer+1, wire-0.5);
 	Int_t nhtdc = hit->GetTdcSize();
@@ -390,7 +393,7 @@ ProcessingNormal()
   event.ntrack = nt;
   HF1(10, Double_t(nt));
   for(Int_t it=0; it<nt; ++it){
-    DCLocalTrack *tp=DCAna.GetTrackSdcIn(it);
+    const auto& tp=DCAna.GetTrackSdcIn(it);
     Int_t nh=tp->GetNHit();
     Double_t chisqr=tp->GetChiSquare();
     Double_t x0=tp->GetX0(), y0=tp->GetY0();
@@ -692,7 +695,7 @@ ConfMan:: InitializeHistograms()
   //   TString type = Form("%s_pos[%d]/D", layer_name[i].Data(), MaxHits);
   //   tree->Branch(name, event.pos[i], type);
   // }
-  HPrint();
+  // HPrint();
   return true;
 }
 

@@ -41,7 +41,7 @@ const Double_t UpperBandOut[5] =
 }
 
 //_____________________________________________________________________________
-K18TrackD2U::K18TrackD2U(Double_t local_x, DCLocalTrack* track_out,
+K18TrackD2U::K18TrackD2U(Double_t local_x, const DCLocalTrack* track_out,
                          Double_t p0)
   : m_local_x(local_x),
     m_track_out(track_out),
@@ -168,6 +168,6 @@ K18TrackD2U::GoodForAnalysis(Bool_t status)
 Bool_t
 K18TrackD2U::ReCalc(Bool_t applyRecursively)
 {
-  if(applyRecursively) m_track_out->ReCalc(applyRecursively);
+  // if(applyRecursively) m_track_out->ReCalc(applyRecursively);
   return CalcMomentumD2U();
 }

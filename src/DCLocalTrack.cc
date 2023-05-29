@@ -108,7 +108,7 @@ DCLocalTrack::Calculate()
     if(hit->IsHoneycomb()){
       Double_t scal = hit->GetLocalCalPos();
       Double_t wp   = hit->GetWirePosition();
-      Double_t dl   = hit->GetDriftLength();
+      Double_t dl   = hit->DriftLength();
       Double_t ss   = scal-wp>0 ? wp+dl : wp-dl;
       hit->SetLocalHitPos(ss);
     }
@@ -236,7 +236,7 @@ DCLocalTrack::DoFit()
       Double_t aa = hitp->GetTiltAngle()*TMath::DegToRad();
       ct[i] = TMath::Cos(aa); st[i] = TMath::Sin(aa);
       Double_t ss = hitp->GetLocalHitPos();
-      Double_t dl = hitp->GetDriftLength();
+      Double_t dl = hitp->DriftLength();
       Double_t dsdz = m_u0*TMath::Cos(aa)+m_v0*TMath::Sin(aa);
       Double_t dcos = TMath::Cos(TMath::ATan(dsdz));
       coss[i] = dcos;
@@ -349,7 +349,7 @@ DCLocalTrack::DoFitBcSdc()
       Double_t aa = hitp->GetTiltAngle()*TMath::DegToRad();
       ct[i] = TMath::Cos(aa); st[i] = TMath::Sin(aa);
       Double_t ss = hitp->GetLocalHitPos();
-      Double_t dl = hitp->GetDriftLength();
+      Double_t dl = hitp->DriftLength();
       Double_t dsdz = m_u0*TMath::Cos(aa)+m_v0*TMath::Sin(aa);
       Double_t dcos = TMath::Cos(TMath::ATan(dsdz));
       coss[i] = dcos;

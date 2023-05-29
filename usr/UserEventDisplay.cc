@@ -491,7 +491,7 @@ ProcessingNormal()
     if(n > MaxMultiHitSdcOut) continue;
     for(const auto& hit: cont){
       Int_t  wire = hit->GetWire();
-      Int_t  mhit = hit->GetDriftTimeSize();
+      Int_t  mhit = hit->GetEntries();
       Bool_t is_good = false;
       for(Int_t j=0; j<mhit && !is_good; ++j){
         is_good = hit->IsWithinRange(j);

@@ -2039,7 +2039,7 @@ EventDisplay::DrawHitHodoscope(Int_t lid, Int_t seg, Int_t Tu, Int_t Td)
 
 //_____________________________________________________________________________
 void
-EventDisplay::DrawBcOutLocalTrack(DCLocalTrack *tp)
+EventDisplay::DrawBcOutLocalTrack(const DCLocalTrack *tp)
 {
   const Double_t offsetZ = -3108.4;
 
@@ -2155,7 +2155,7 @@ EventDisplay::DrawBcOutLocalTrack(DCLocalTrack *tp)
 
 //_____________________________________________________________________________
 void
-EventDisplay::DrawSdcInLocalTrack(DCLocalTrack *tp)
+EventDisplay::DrawSdcInLocalTrack(const DCLocalTrack *tp)
 {
 #if SdcIn
   static const Double_t zSdc1x1 = gGeom.GetLocalZ("SDC1-X1") - 100.;
@@ -2210,7 +2210,7 @@ EventDisplay::DrawSdcInLocalTrack(DCLocalTrack *tp)
 
 //_____________________________________________________________________________
 void
-EventDisplay::DrawSdcOutLocalTrack(DCLocalTrack *tp)
+EventDisplay::DrawSdcOutLocalTrack(const DCLocalTrack *tp)
 {
 #if SdcOut
   Double_t x0 = tp->GetX0(), y0 = tp->GetY0();

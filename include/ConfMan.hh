@@ -13,7 +13,6 @@
 #include <std_ostream.hh>
 
 class TNamed;
-class VEvent;
 
 //_____________________________________________________________________________
 class ConfMan
@@ -29,14 +28,14 @@ private:
   ConfMan& operator=(const ConfMan&);
 
 private:
-  typedef std::map<TString, TString>  StrList;
-  typedef std::map<TString, Double_t> DoubleList;
-  typedef std::map<TString, Int_t>    IntList;
-  typedef std::map<TString, Bool_t>   BoolList;
-  typedef StrList::const_iterator     StrIterator;
-  typedef DoubleList::const_iterator  DoubleIterator;
-  typedef IntList::const_iterator     IntIterator;
-  typedef BoolList::const_iterator    BoolIterator;
+  using StrList        = std::map<TString, TString>;
+  using DoubleList     = std::map<TString, Double_t>;
+  using IntList        = std::map<TString, Int_t>;
+  using BoolList       = std::map<TString, Bool_t>;
+  using StrIterator    = StrList::const_iterator;
+  using DoubleIterator = DoubleList::const_iterator;
+  using IntIterator    = IntList::const_iterator;
+  using BoolIterator   = BoolList::const_iterator;
   Bool_t     m_is_ready;
   StrList    m_file;
   StrList    m_string;
@@ -48,7 +47,6 @@ private:
 
 public:
   void    AddObject();
-  VEvent* EventAllocator();
   Bool_t  Finalize();
   Bool_t  FinalizeProcess();
   Bool_t  Initialize();

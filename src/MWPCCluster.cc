@@ -29,13 +29,13 @@ calcFirst(const std::vector<DCHit*>& hits,
     const DCHit* h = hits[i];
     if (!h)
       continue;
-    Double_t le = h->GetDriftTime(0);
+    Double_t le = h->DriftTime(0);
     if (i==0)
     {
       first.m_wire     = h->GetWire();
       first.m_wpos     = h->GetWirePosition();
       first.m_leading  = le;
-      first.m_trailing = h->GetTrailingTime(0);
+      first.m_trailing = h->TrailingTime(0);
       first.m_length   = first.m_trailing - le;
     }
     else if (le<first.m_leading) // update first hit
@@ -43,7 +43,7 @@ calcFirst(const std::vector<DCHit*>& hits,
       first.m_wire     = h->GetWire();
       first.m_wpos     = h->GetWirePosition();
       first.m_leading  = le;
-      first.m_trailing = h->GetTrailingTime(0);
+      first.m_trailing = h->TrailingTime(0);
       first.m_length   = first.m_trailing - le;
     }
   }
@@ -59,10 +59,10 @@ calcFirst(const std::vector<DCHit*>& hits,
     const DCHit* h = hits[i];
     if (!h)
       continue;
-    Double_t le = h->GetDriftTime(0);
+    Double_t le = h->DriftTime(0);
     if (MathTools::Equal(le, first.m_leading))
     {
-      Double_t tr   = h->GetTrailingTime();
+      Double_t tr   = h->TrailingTime();
       Double_t len  = tr - le;
       Double_t w    = h->GetWire();
       wire       += w*len;
@@ -118,8 +118,8 @@ calcMean(const std::vector<DCHit*>& hits,
       continue;
     Double_t w    = h->GetWire();
     Double_t wpos = h->GetWirePosition();
-    Double_t le   = h->GetDriftTime(0);
-    Double_t tr   = h->GetTrailingTime(0);
+    Double_t le   = h->DriftTime(0);
+    Double_t tr   = h->TrailingTime(0);
     Double_t len  = tr - le;
 
     length   += len;

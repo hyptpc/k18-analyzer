@@ -101,7 +101,7 @@ DCLTrackHit::ReCalc(Bool_t applyRecursively)
   }
 
   Double_t wp = GetWirePosition();
-  Double_t dl = GetDriftLength();
+  Double_t dl = DriftLength();
 
   if(m_local_hit_pos>wp)  m_local_hit_pos = wp+dl;
   else                    m_local_hit_pos = wp-dl;

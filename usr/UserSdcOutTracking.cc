@@ -434,10 +434,10 @@ ProcessingNormal()
         event.pos[layer-1][i] = hit->GetWirePosition();
       }
 
-      Int_t nhdt = hit->GetDriftTimeSize();
+      Int_t nhdt = hit->GetEntries();
       Int_t tot1st = -1;
       for(Int_t k=0; k<nhdt; k++){
-        Double_t dt = hit->GetDriftTime(k);
+        Double_t dt = hit->DriftTime(k);
         if(common_stop_is_tof) HF1(100*layer+3, dt);
         else                   HF1(100*layer+8, dt);
         HF1(10000*layer+1000+Int_t(wire), dt);
@@ -449,9 +449,9 @@ ProcessingNormal()
         }
       }
       HF1(100*layer+7, tot1st);
-      Int_t nhdl = hit->GetDriftTimeSize();
+      Int_t nhdl = hit->GetEntries();
       for(Int_t k=0; k<nhdl; k++){
-        Double_t dl = hit->GetDriftLength(k);
+        Double_t dl = hit->DriftLength(k);
         Double_t tot_2 = hit->GetTot(k);
         HF1(100*layer+4, dl);
         HF2(100*layer+54, dl, tot_2);
@@ -583,7 +583,7 @@ ProcessingNormal()
       HF1(37, chisqr);
 
       Double_t wire=hit->GetWire();
-      Double_t dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
+      Double_t dt=hit->DriftTime(), dl=hit->DriftLength();
       HF1(100*layerId+11, wire-0.5);
       HF1(100*layerId+12, dt);
       HF1(100*layerId+13, dl);

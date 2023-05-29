@@ -364,7 +364,7 @@ ProcessingNormal()
   HF1(10, Double_t(nt));
   HF1(40, status_tracking? Double_t(nt) : -1);
   for(Int_t it=0; it<nt; ++it){
-    DCLocalTrack *tp=DCAna.GetTrackBcOut(it);
+    const auto& tp=DCAna.GetTrackBcOut(it);
     Int_t nh=tp->GetNHit();
     Double_t chisqr=tp->GetChiSquare();
     Double_t x0=tp->GetX0(), y0=tp->GetY0();

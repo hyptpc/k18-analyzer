@@ -115,7 +115,7 @@ private:
   HodoParamMan& operator =(const HodoParamMan&);
 
 private:
-  enum eAorT { kAdc, kTdc, kAorT };
+  enum eAorT { kAdcHigh, kTdc, kAdcLow, kAorT };
   typedef std::map<Int_t, HodoTParam*> TContainer;
   typedef std::map<Int_t, HodoAParam*> AContainer;
   typedef std::map<Int_t, HodoFParam*> FContainer;
@@ -125,7 +125,8 @@ private:
   Bool_t     m_is_ready;
   TString    m_file_name;
   TContainer m_TPContainer;
-  AContainer m_APContainer;
+  AContainer m_AHPContainer;
+  AContainer m_ALPContainer;
   FContainer m_FPContainer;
 
 public:
@@ -134,8 +135,10 @@ public:
   Bool_t   IsReady() const { return m_is_ready; }
   Bool_t   GetTime(Int_t cid, Int_t plid, Int_t seg,
                    Int_t ud, Int_t tdc, Double_t &time) const;
-  Bool_t   GetDe(Int_t cid, Int_t plid, Int_t seg,
-                 Int_t ud, Int_t adc, Double_t &de) const;
+  Bool_t   GetDeHighGain(Int_t cid, Int_t plid, Int_t seg,
+                         Int_t ud, Int_t adc, Double_t &de) const;
+  Bool_t   GetDeLowGain(Int_t cid, Int_t plid, Int_t seg,
+                        Int_t ud, Int_t adc, Double_t &de) const;
   Bool_t   GetTdc(Int_t cid, Int_t plid, Int_t seg,
                   Int_t ud, Double_t time, Int_t &tdc) const;
   Bool_t   GetAdc(Int_t cid, Int_t plid, Int_t seg,
@@ -148,11 +151,13 @@ public:
   void     SetFileName(const TString& file_name) { m_file_name = file_name; }
 
 private:
-  void        ClearACont();
+  void        ClearAHCont();
+  void        ClearALCont();
   void        ClearTCont();
   void        ClearFCont();
   HodoTParam* GetTmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
-  HodoAParam* GetAmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
+  HodoAParam* GetAHmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
+  HodoAParam* GetALmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
   HodoFParam* GetFmap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
 };
 

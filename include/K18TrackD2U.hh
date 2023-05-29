@@ -19,7 +19,7 @@ class K18TrackD2U
 {
 public:
   static const TString& ClassName();
-  K18TrackD2U(Double_t local_x, DCLocalTrack* track_out, Double_t p0);
+  K18TrackD2U(Double_t local_x, const DCLocalTrack* track_out, Double_t p0);
   ~K18TrackD2U();
 
 private:
@@ -29,7 +29,7 @@ private:
 
 private:
   Double_t      m_local_x;
-  DCLocalTrack* m_track_out;
+  const DCLocalTrack* m_track_out;
   Double_t      m_p0;
   Double_t      m_Xi;
   Double_t      m_Yi;
@@ -56,7 +56,7 @@ public:
   Double_t      P3rd() const { return m_p0*(1.+m_delta3rd); }
   Bool_t        ReCalc(Bool_t applyRecursively=false);
   Bool_t        StatusD2U() const { return m_status; }
-  DCLocalTrack* TrackOut() { return m_track_out; }
+  const DCLocalTrack* TrackOut() const { return m_track_out; }
   Double_t      Uin() const { return m_Ui; }
   Double_t      Uout() const { return m_Uo; }
   Double_t      Utgt() const;

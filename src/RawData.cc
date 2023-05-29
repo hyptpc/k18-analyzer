@@ -56,11 +56,6 @@ RawData::RawData()
   : m_is_decoded(),
     m_hodo_raw_hit_collection(),
     m_dc_raw_hit_collection(),
-    m_BFTRawHC(NumOfPlaneBFT),
-    m_BcInRawHC(NumOfLayersBcIn+1),
-    m_BcOutRawHC(NumOfLayersBcOut+1),
-    m_SdcInRawHC(NumOfLayersSdcIn+1),
-    m_SdcOutRawHC(NumOfLayersSdcOut+1),
     m_ScalerRawHC()
 {
   debug::ObjectCounter::increase(ClassName());
@@ -92,11 +87,6 @@ RawData::Clear(const TString& name)
 void
 RawData::ClearAll()
 {
-  del::ClearContainerAll(m_BFTRawHC);
-  del::ClearContainerAll(m_BcInRawHC);
-  del::ClearContainerAll(m_BcOutRawHC);
-  del::ClearContainerAll(m_SdcInRawHC);
-  del::ClearContainerAll(m_SdcOutRawHC);
   del::ClearContainer(m_ScalerRawHC);
 }
 
@@ -144,15 +134,19 @@ RawData::DecodeHits(const TString& name)
               i<n; ++i){
             UInt_t val = gUnpacker.get(id, plane, seg, ch, data, i);
             if(name.Contains("BC") || name.Contains("SDC")){
-              // to be prepared
+              AddDCRawHit(m_dc_raw_hit_collection[name], name,
+                          plane, seg, ch, data, val);
             }else if(digit_info.get_n_ch(id) <= HodoRawHit::kNChannel){
-              AddHodoRawHit(m_hodo_raw_hit_collection[name], name, plane, seg, ch, data, val);
+              AddHodoRawHit(m_hodo_raw_hit_collection[name], name,
+                            plane, seg, ch, data, val);
             }
           }
         }
       }
     }
   }
+
+  // Print();
 
   m_is_decoded[name] = true;
   return true;
@@ -393,9 +387,10 @@ RawData::AddHodoRawHit(HodoRawHitContainer& cont,
   HodoRawHit* p = nullptr;
   for(Int_t i=0, n=cont.size(); i<n; ++i){
     HodoRawHit* q = cont[i];
-    if(q->DetectorName() == name &&
-       q->PlaneId() == plane &&
-       q->SegmentId() == seg){
+    if(true
+       && q->DetectorName() == name
+       && q->PlaneId() == plane
+       && q->SegmentId() == seg){
       p=q; break;
     }
   }
@@ -447,37 +442,37 @@ RawData::AddHodoRawHit(HodoRawHitContainer& cont,
 //_____________________________________________________________________________
 Bool_t
 RawData::AddDCRawHit(DCRawHitContainer& cont,
-		     Int_t plane, Int_t wire, Int_t data, Int_t type)
+                     const TString& name, Int_t plane, Int_t seg,
+                     Int_t ch, Int_t data, Double_t val)
 {
+  Int_t wire = ch;
   DCRawHit* p = nullptr;
   for(Int_t i=0, n=cont.size(); i<n; ++i){
     DCRawHit* q = cont[i];
-    if(q->PlaneId()==plane &&
-       q->WireId()==wire){
+    if(true
+       && q->DetectorName() == name
+       && q->PlaneId()==plane
+       && q->WireId()==wire){
       p=q; break;
     }
   }
   if(!p){
-    p = new DCRawHit(plane, wire);
+    p = new DCRawHit(name, plane, wire);
     cont.push_back(p);
   }
 
-  switch(type){
-  case kDcLeading:
-    p->SetTdc(data);
-    break;
-  case kDcTrailing:
-    p->SetTrailing(data);
-    break;
-  case kDcOverflow:
-    p->SetTdcOverflow(data);
-    break;
-  default:
-    hddaq::cerr << FUNC_NAME << " wrong data type " << std::endl
+  if(data == gUnpacker.get_data_id(name, "leading")){
+    p->SetTdc(val);
+  }else if(data == gUnpacker.get_data_id(name, "trailing")){
+    p->SetTrailing(val);
+  }else if(data == gUnpacker.get_data_id(name, "overflow")){
+    p->SetTdcOverflow(val);
+  }else{
+    hddaq::cerr << FUNC_NAME << " unknown data type " << std::endl
 		<< "PlaneId    = " << plane << std::endl
 		<< "WireId     = " << wire  << std::endl
-		<< "DataType   = " << type  << std::endl;
-    return false;
+		<< "DataType   = " << data  << std::endl
+		<< "Value      = " << val   << std::endl;
   }
   return true;
 }
@@ -493,5 +488,35 @@ RawData::GetHodoRawHitContainer(const TString& name) const
     return null_container;
   }else{
     return itr->second;
+  }
+}
+
+//_____________________________________________________________________________
+const DCRawHitContainer&
+RawData::GetDCRawHitContainer(const TString& name) const
+{
+  auto itr = m_dc_raw_hit_collection.find(name);
+  if(itr == m_dc_raw_hit_collection.end()){
+    // throw Exception(FUNC_NAME + " No such detector: " + name);
+    static DCRawHitContainer null_container;
+    return null_container;
+  }else{
+    return itr->second;
+  }
+}
+
+//_____________________________________________________________________________
+void
+RawData::Print(Option_t*) const
+{
+  for(const auto& p: m_hodo_raw_hit_collection){
+    for(const auto& hit: p.second){
+      hit->Print();
+    }
+  }
+  for(const auto& p: m_dc_raw_hit_collection){
+    for(const auto& hit: p.second){
+      hit->Print();
+    }
   }
 }

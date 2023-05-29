@@ -15,11 +15,11 @@
 
 #include "DebugCounter.hh"
 
-//typedef std::vector<Bool_t>   BoolVec;
-typedef std::deque<Bool_t>    BoolVec;
-typedef std::vector<Int_t>    IntVec;
-typedef std::vector<Double_t> DoubleVec;
+using BVec_t = std::deque<Bool_t>;
+using IVec_t = std::vector<Int_t>;
+using DVec_t = std::vector<Double_t>;
 
+class DCRawHit;
 class DCLTrackHit;
 
 //_____________________________________________________________________________
@@ -27,7 +27,7 @@ class DCHit
 {
 public:
   static const TString& ClassName();
-  DCHit();
+  DCHit(const DCRawHit* rhit);
   DCHit(Int_t layer);
   DCHit(Int_t layer, Double_t wire);
   ~DCHit();
@@ -37,29 +37,24 @@ private:
   DCHit& operator =(const DCHit&);
 
 protected:
-  Int_t     m_layer;
-  Double_t  m_wire;
-  IntVec    m_tdc;
-  IntVec    m_adc;
-  IntVec    m_trailing;
-
-  //  DoubleVec m_dt;
-  //  DoubleVec m_dl;
-  //  DoubleVec m_trailing_time;
+  const DCRawHit* m_raw_hit;
+  Int_t     m_plane; // by DIGIT
+  Int_t     m_layer; // by DCGEO
+  Double_t  m_wire;  // 1-based (ch + 1)
+  IVec_t    m_tdc;
+  IVec_t    m_adc;
+  IVec_t    m_trailing;
 
   // For DC with HUL MH-TDC
-  struct data_pair
+  struct data_t
   {
     Double_t drift_time;
     Double_t drift_length;
-    Double_t trailing_time;
-    Double_t tot;
-    Int_t    index_t;
-    Bool_t   belong_track;
-    Bool_t   dl_range;
+    Double_t tot; // [ch]
+    Bool_t   belong_to_track;
+    Bool_t   dl_is_good;
   };
-
-  std::vector<data_pair> m_pair_cont;
+  std::vector<data_t> m_data;
 
   Double_t  m_wpos;
   Double_t  m_angle;
@@ -89,7 +84,7 @@ protected:
   Double_t max_dE_low;
   Double_t m_r;
   Double_t m_phi;
-  BoolVec  m_belong_track;
+  // BVec_t   m_belong_track;
   TVector3 m_vtx;
   Double_t m_pos_phi;
   Double_t m_pos_z;
@@ -102,27 +97,38 @@ protected:
   std::vector<DCLTrackHit*> m_register_container;
 
 public:
+  const DCRawHit* GetRawHit() const { return m_raw_hit; }
+  Int_t           PlaneId() const { return m_plane; }
+  Int_t           LayerId() const { return m_layer; }
+  Int_t           GetLayer() const { return LayerId(); }
+  Double_t        WireId() const { return m_wire; }
+  Double_t        GetWire() const {
+    if(m_mwpc_flag) return m_mwpc_wire;
+    else return m_wire;
+  }
+  Bool_t Calculate();
   Bool_t CalcDCObservables();
-  Bool_t CalcMWPCObservables();
+  // Bool_t CalcMWPCObservables();
   Bool_t CalcFiberObservables();
   Bool_t CalcCFTObservables();
   //  Bool_t CalcObservablesSimulation(Double_t dlength);
 
-  void SetLayer(Int_t layer)              { m_layer = layer;                    }
-  void SetWire(Double_t wire)             { m_wire  = wire;                     }
-  void SetTdcVal(Int_t tdc)               { m_tdc.push_back(tdc);               }
-  void SetAdcVal(Int_t adc)               { m_adc.push_back(adc);               }
-  void SetTdcTrailing(Int_t tdc)            { m_trailing.push_back(tdc);          }
-  void SetDummyPair();
-  void SetDriftLength(Int_t ith, Double_t dl){m_pair_cont.at(ith).drift_length = dl;}
-  void SetDriftTime(Int_t ith, Double_t dt) { m_pair_cont.at(ith).drift_time = dt;  }
-  void SetTiltAngle(Double_t angleDegree) { m_angle = angleDegree;              }
-
-  void SetClusterSize(Int_t size)          { m_cluster_size   = size;           }
-  void SetMWPCFlag(Bool_t flag)            { m_mwpc_flag = flag;                }
-  void SetMeanWire(Double_t mwire)         { m_mwpc_wire = mwire;               }
-  void SetMeanWirePosition(Double_t mwpos) { m_mwpc_wpos = mwpos;               }
-  void SetWirePosition(Double_t wpos)      { m_wpos      = wpos;                }
+  void SetLayer(Int_t layer){ m_layer = layer; }
+  void SetWire(Double_t wire){ m_wire  = wire; }
+  void SetTdcVal(Int_t tdc){ m_tdc.push_back(tdc); }
+  void SetTdc(Int_t tdc){ m_tdc.push_back(tdc); }
+  void SetAdcVal(Int_t adc){ m_adc.push_back(adc); }
+  void SetTrailing(Int_t tdc){ m_trailing.push_back(tdc); }
+  void SetTdcTrailing(Int_t tdc){ m_trailing.push_back(tdc); }
+  void SetDummyData();
+  void SetDriftLength(Int_t i, Double_t dl){ m_data.at(i).drift_length = dl; }
+  void SetDriftTime(Int_t i, Double_t dt){ m_data.at(i).drift_time = dt; }
+  void SetTiltAngle(Double_t angleDegree){ m_angle = angleDegree; }
+  void SetClusterSize(Int_t size){ m_cluster_size = size; }
+  void SetMWPCFlag(Bool_t flag){ m_mwpc_flag = flag; }
+  void SetMeanWire(Double_t mwire){ m_mwpc_wire = mwire; }
+  void SetMeanWirePosition(Double_t mwpos){ m_mwpc_wpos = mwpos; }
+  void SetWirePosition(Double_t wpos){ m_wpos = wpos; }
 
   ///// for TOF
   void SetZ(Double_t z) { m_z = z; }
@@ -151,30 +157,38 @@ public:
   void SetTime(Double_t time) { m_time = time; }
   void SetVtx(const TVector3& vtx) { m_vtx = vtx; }
 
-
   void GateDriftTime(Double_t min, Double_t max, Bool_t select_1st);
 
-  Int_t GetLayer() const { return m_layer; }
-  Double_t GetWire()  const {
-    if(m_mwpc_flag) return m_mwpc_wire;
-    else return Int_t(m_wire);
-  }
-
-  Int_t GetTdcSize()             const { return m_tdc.size(); }
-  Int_t GetAdcSize()             const { return m_adc.size(); }
-  Int_t GetDriftTimeSize()       const { return m_pair_cont.size(); }
-  Int_t GetDriftLengthSize()     const { return m_pair_cont.size(); }
-  Int_t GetTdcVal(Int_t nh=0)          const { return m_tdc[nh]; }
-  Int_t GetAdcVal(Int_t nh=0)          const { return m_adc[nh]; }
-  Int_t GetTdcTrailing(Int_t nh=0)     const { return m_trailing[nh]; }
-  Int_t GetTdcTrailingSize()     const { return m_trailing.size(); }
+  Int_t GetTdcSize() const { return m_tdc.size(); }
+  Int_t GetAdcSize() const { return m_adc.size(); }
+  Int_t GetTdcVal(Int_t i=0) const { return m_tdc[i]; }
+  Int_t GetAdcVal(Int_t i=0) const { return m_adc[i]; }
+  Int_t GetTdcTrailing(Int_t i=0) const { return m_trailing[i]; }
+  Int_t GetTdcTrailingSize() const { return m_trailing.size(); }
+  Int_t GetTdc1st() const;
+  Int_t GetEntries() const { return m_data.size(); }
 
   Double_t GetResolution()       const;
 
-  Double_t GetDriftTime(Int_t nh=0)    const { return m_pair_cont.at(nh).drift_time; }
-  Double_t GetDriftLength(Int_t nh=0)  const { return m_pair_cont.at(nh).drift_length; }
-  Double_t GetTrailingTime(Int_t nh=0) const { return m_pair_cont.at(nh).trailing_time; }
-  Double_t GetTot(Int_t nh=0)          const { return m_pair_cont.at(nh).tot; }
+  Double_t GetDriftTime(Int_t i=0) const { return m_data.at(i).drift_time; }
+  Double_t GetDriftLength(Int_t i=0) const { return m_data.at(i).drift_length; }
+  Double_t TimeOverThreshold(Int_t i=0) const { return m_data.at(i).tot; }
+
+  // aliases
+  Int_t GetTdc(Int_t i=0) const { return GetTdcVal(i); }
+  Int_t Tdc(Int_t i=0) const { return GetTdcVal(i); }
+  Int_t Tdc1st() const { return GetTdc1st(); }
+  Int_t GetTrailing(Int_t i=0) const { return GetTdcTrailing(i); }
+  Int_t Trailing(Int_t i=0) const { return GetTdcTrailing(i); }
+  Double_t DT(Int_t i=0) const { return DriftTime(i); }
+  Double_t DL(Int_t i=0) const { return DriftLength(i); }
+  Double_t DriftTime(Int_t i=0) const { return GetDriftTime(i); }
+  Double_t DriftLength(Int_t i=0) const { return GetDriftLength(i); }
+  Double_t TOT(Int_t i=0) const { return TimeOverThreshold(i); }
+  Double_t GetTot(Int_t i=0) const { return TimeOverThreshold(i); }
+  Double_t TrailingTime(Int_t i=0) const { return DT(i) + TOT(i); }
+  Double_t GetDriftTimeSize() const { return GetEntries(); }
+  Double_t GetDriftLengthSize() const { return GetEntries(); }
 
   Double_t GetTiltAngle() const { return m_angle; }
   Double_t GetWirePosition() const {
@@ -211,24 +225,22 @@ public:
   Double_t GetTime() const { return m_time;     }
   TVector3 GetVtx() const { return m_vtx;      }
 
-  void JoinTrack(Int_t nh=0) { m_pair_cont.at(nh).belong_track = true; }
-  void QuitTrack(Int_t nh=0) { m_pair_cont.at(nh).belong_track = false;}
-  Bool_t BelongToTrack(Int_t nh=0) const { return m_pair_cont.at(nh).belong_track; }
-  Bool_t IsWithinRange(Int_t nh=0) const { return m_pair_cont.at(nh).dl_range; }
-
-  void JoinTrackCFT(Int_t nh=0) {m_belong_track[nh] = true; }
-  void QuitTrackCFT(Int_t nh=0) {m_belong_track[nh] = false; }
-  Bool_t BelongToTrackCFT(Int_t nh=0) const { return m_belong_track[nh]; }
+  void JoinTrack(Int_t i=0) { m_data.at(i).belong_to_track = true; }
+  void QuitTrack(Int_t i=0) { m_data.at(i).belong_to_track = false; }
+  Bool_t BelongToTrack(Int_t i=0) const { return m_data.at(i).belong_to_track; }
+  Bool_t IsWithinRange(Int_t i=0) const { return m_data.at(i).dl_is_good; }
 
   void RegisterHits(DCLTrackHit *hit)
     { m_register_container.push_back(hit); }
 
   Bool_t ReCalcDC(Bool_t applyRecursively=false) { return CalcDCObservables(); }
-  Bool_t ReCalcMWPC(Bool_t applyRecursively=false) { return CalcMWPCObservables(); }
+  // Bool_t ReCalcMWPC(Bool_t applyRecursively=false) { return CalcMWPCObservables(); }
 
   void TotCut(Double_t min_tot, Bool_t adopt_nan);
 
   void Print(const TString& arg="", std::ostream& ost=hddaq::cout) const;
+
+  static Bool_t Compare(const DCHit* left, const DCHit* right);
 
 protected:
   void ClearRegisteredHits();
@@ -240,6 +252,16 @@ DCHit::ClassName()
 {
   static TString s_name("DCHit");
   return s_name;
+}
+
+//_____________________________________________________________________________
+inline Bool_t
+DCHit::Compare(const DCHit* left, const DCHit* right)
+{
+  if(left->LayerId() == right->LayerId())
+    return left->WireId() < right->WireId();
+  else
+    return left->LayerId() < right->LayerId();
 }
 
 //_____________________________________________________________________
