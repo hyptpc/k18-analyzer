@@ -901,7 +901,7 @@ DCAnalyzer::ClearDCHits()
   ClearBcInHits();
 #endif
   ClearBcOutHits();
-  ClearSdcInHits();
+  // ClearSdcInHits();
   ClearSdcOutHits();
   ClearTOFHits();
 }

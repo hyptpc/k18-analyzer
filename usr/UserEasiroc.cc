@@ -340,6 +340,7 @@ ProcessingNormal()
       const auto& hit = hodoAna.GetHit("AFT", i);
       const auto& rhit = hit->GetRawHit();
       hit->Print();
+      rhit->Print();
       Int_t plane = hit->PlaneId();
       Int_t seg = hit->SegmentId();
     }
