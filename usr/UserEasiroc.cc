@@ -66,13 +66,18 @@ struct Event
   Double_t bft_clpos[NumOfSegBFT];
   Double_t bft_clseg[NumOfSegBFT];
 
-  // AFT
+  // AFT raw
   Int_t    aft_nhits[NumOfPlaneAFT];
   Int_t    aft_hitpat[NumOfPlaneAFT][NumOfSegAFT];
   Double_t aft_tdc[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
-  Double_t aft_tot[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
   Double_t aft_adc_high[NumOfPlaneAFT][NumOfSegAFT][kUorD];
   Double_t aft_adc_low[NumOfPlaneAFT][NumOfSegAFT][kUorD];
+  // AFT normalized
+  Double_t aft_mt[NumOfPlaneAFT][NumOfSegAFT][MaxDepth];
+  Double_t aft_cmt[NumOfPlaneAFT][NumOfSegAFT][MaxDepth];
+  Double_t aft_mtot[NumOfPlaneAFT][NumOfSegAFT][MaxDepth];
+  Double_t aft_de_high[NumOfPlaneAFT][NumOfSegAFT];
+  Double_t aft_de_low[NumOfPlaneAFT][NumOfSegAFT];
 
   void clear();
 };
@@ -121,8 +126,14 @@ Event::clear()
         aft_adc_low[p][seg][ud] = qnan;
         for(Int_t i=0; i<MaxDepth; i++){
           aft_tdc[p][seg][ud][i] = qnan;
-          aft_tot[p][seg][ud][i] = qnan;
         }
+      }
+      aft_de_high[p][seg] = qnan;
+      aft_de_low[p][seg] = qnan;
+      for(Int_t i=0; i<MaxDepth; i++){
+        aft_mt[p][seg][i] = qnan;
+        aft_cmt[p][seg][i] = qnan;
+        aft_mtot[p][seg][i] = qnan;
       }
     }
   }
@@ -136,7 +147,8 @@ TH1   *h[MaxHist];
 TTree *tree;
 enum eDetHid
 {
-  BFTHid  = 10000,
+  BFTHid  =  10000,
+  AFTHid  = 100000,
 };
 }
 
@@ -353,30 +365,70 @@ ProcessingNormal()
 
   ////////// AFT
   for(const auto& hit: rawData.GetHodoRawHitContainer("AFT")){
+    // hit->Print();
     Int_t plane = hit->PlaneId();
     Int_t seg = hit->SegmentId();
     for(Int_t ud=0; ud<kUorD; ++ud){
-      event.aft_adc_high[plane][seg][ud] = hit->GetAdcHigh(ud);
-      event.aft_adc_low[plane][seg][ud] = hit->GetAdcLow(ud);
+      auto adc_high = hit->GetAdcHigh(ud);
+      auto adc_low = hit->GetAdcLow(ud);
+      event.aft_adc_high[plane][seg][ud] = adc_high;
+      event.aft_adc_low[plane][seg][ud] = adc_low;
+      HF1(AFTHid+plane*1000+7+ud, adc_high);
+      HF1(AFTHid+plane*1000+9+ud, adc_low);
+      HF2(AFTHid+plane*1000+15+ud, seg, adc_high);
+      HF2(AFTHid+plane*1000+17+ud, seg, adc_low);
       for(Int_t i=0, n=hit->GetSizeTdcLeading(ud); i<n; ++i){
-        event.aft_tdc[plane][seg][ud][i] = hit->GetTdc(ud, i);
+        auto tdc = hit->GetTdc(ud, i);
+        event.aft_tdc[plane][seg][ud][i] = tdc;
+        HF1(AFTHid+plane*1000+3+ud, tdc);
+        HF2(AFTHid+plane*1000+11+ud, seg, tdc);
+        // HF1(AFTHid+plane*1000+seg+100+ud*100, tdc);
       }
     }
-    // hit->Print();
   }
+
   hodoAna.DecodeHits<FiberHit>("AFT");
-  {
-    // const auto& U = HodoRawHit::kUp;
-    // const auto& D = HodoRawHit::kDown;
-    Int_t nh = hodoAna.GetNHits("AFT");
-    for(Int_t i=0; i<nh; ++i){
-      const auto& hit = hodoAna.GetHit("AFT", i);
-      const auto& rhit = hit->GetRawHit();
-      // hit->Print();
-      // rhit->Print();
-      Int_t plane = hit->PlaneId();
-      Int_t seg = hit->SegmentId();
+  for(Int_t i=0, n=hodoAna.GetNHits("AFT"); i<n; ++i){
+    const auto& hit = hodoAna.GetHit<FiberHit>("AFT", i);
+    // hit->Print();
+    // const auto& rhit = hit->GetRawHit();
+    // rhit->Print();
+    Int_t plane = hit->PlaneId();
+    Int_t seg = hit->SegmentId();
+    event.aft_hitpat[plane][event.aft_nhits[plane]++] = seg;
+    HF1(AFTHid+plane*1000+2, seg);
+    Int_t m = hit->GetEntries();
+    for(Int_t j=0; j<m; ++j){
+      auto mt = hit->MeanTime(j);
+      auto cmt = hit->CMeanTime(j);
+      auto mtot = hit->MeanTOT(j);
+      event.aft_mt[plane][seg][j] = mt;
+      event.aft_cmt[plane][seg][j] = cmt;
+      event.aft_mtot[plane][seg][j] = mtot;
+      HF1(AFTHid+plane*1000+21, mt);
+      HF1(AFTHid+plane*1000+22, cmt);
+      HF1(AFTHid+plane*1000+23, mtot);
+      HF2(AFTHid+plane*1000+31, seg, mt);
+      HF2(AFTHid+plane*1000+32, seg, cmt);
+      HF2(AFTHid+plane*1000+33, seg, mtot);
+      for(Int_t ud=0; ud<kUorD; ++ud){
+        auto tot = hit->TOT(ud, j);
+        HF1(AFTHid+plane*1000+5+ud, tot);
+        HF2(AFTHid+plane*1000+13+ud, seg, tot);
+        // HF1(AFTHid+plane*1000+seg+300+ud*100, tot);
+      }
     }
+    auto de_high = hit->DeltaEHighGain();
+    auto de_low = hit->DeltaELowGain();
+    event.aft_de_high[plane][seg] = de_high;
+    event.aft_de_low[plane][seg] = de_low;
+    HF1(AFTHid+plane*1000+24, de_high);
+    HF1(AFTHid+plane*1000+25, de_low);
+    HF2(AFTHid+plane*1000+34, seg, de_high);
+    HF2(AFTHid+plane*1000+35, seg, de_low);
+  }
+  for(Int_t plane=0; plane<NumOfPlaneAFT; ++plane){
+    HF1(AFTHid+plane*1000+1, event.aft_nhits[plane]);
   }
 
   return true;
@@ -394,6 +446,10 @@ ProcessingEnd()
 Bool_t
 ConfMan::InitializeHistograms()
 {
+  const Int_t    NbinAdc = 4000;
+  const Double_t MinAdc  =    0.;
+  const Double_t MaxAdc  = 4000.;
+
   const Int_t    NbinTdc = 1000;
   const Double_t MinTdc  =    0.;
   const Double_t MaxTdc  = 1000.;
@@ -405,6 +461,10 @@ ConfMan::InitializeHistograms()
   const Int_t    NbinTime = 100;
   const Double_t MinTime  = -50.;
   const Double_t MaxTime  =  50.;
+
+  const Int_t    NbinDe = 1000;
+  const Double_t MinDe  =  0.;
+  const Double_t MaxDe  = 10.;
 
   HB1( 1, "Status",  20,   0., 20.);
   HB1(10, "Trigger HitPat", NumOfSegTrig, 0., Double_t(NumOfSegTrig));
@@ -462,6 +522,52 @@ ConfMan::InitializeHistograms()
   HB1(BFTHid +106, "BFT Cluster Position",
       NumOfSegBFT, -0.5*(Double_t)NumOfSegBFT, 0.5*(Double_t)NumOfSegBFT);
 
+  //AFT
+  for(Int_t plane=0; plane<NumOfPlaneAFT; ++plane){
+    HB1(AFTHid+plane*1000+1, Form("AFT Nhits Plane#%d", plane), NumOfSegAFT, 0., NumOfSegAFT);
+    HB1(AFTHid+plane*1000+2, Form("AFT Hitpat Plane#%d", plane), NumOfSegAFT, 0., NumOfSegAFT);
+    HB1(AFTHid+plane*1000+21, Form("AFT MeanTime Plane#%d", plane), NbinTime, MinTime, MaxTime);
+    HB1(AFTHid+plane*1000+22, Form("AFT CMeanTime Plane#%d", plane), NbinTime, MinTime, MaxTime);
+    HB1(AFTHid+plane*1000+23, Form("AFT MeanTot Plane#%d", plane), NbinTot, MinTot, MaxTot);
+    HB1(AFTHid+plane*1000+24, Form("AFT DeltaE HighGain Plane#%d", plane), NbinDe, MinDe, MaxDe);
+    HB1(AFTHid+plane*1000+25, Form("AFT DeltaE LowGain Plane#%d", plane), NbinDe, MinDe, MaxDe);
+    HB2(AFTHid+plane*1000+31, Form("AFT MeanTime Plane#%d", plane),
+        NumOfSegAFT, 0., NumOfSegAFT, NbinTime, MinTime, MaxTime);
+    HB2(AFTHid+plane*1000+32, Form("AFT CMeanTime Plane#%d", plane),
+        NumOfSegAFT, 0., NumOfSegAFT, NbinTime, MinTime, MaxTime);
+    HB2(AFTHid+plane*1000+33, Form("AFT MeanTot Plane#%d", plane),
+        NumOfSegAFT, 0., NumOfSegAFT, NbinTot, MinTot, MaxTot);
+    HB2(AFTHid+plane*1000+34, Form("AFT DeltaE HighGain Plane#%d", plane),
+        NumOfSegAFT, 0., NumOfSegAFT, NbinDe, MinDe, MaxDe);
+    HB2(AFTHid+plane*1000+35, Form("AFT DeltaE LowGain Plane#%d", plane),
+        NumOfSegAFT, 0., NumOfSegAFT, NbinDe, MinDe, MaxDe);
+    for(Int_t ud=0; ud<kUorD; ++ud){
+      const Char_t* s = (ud == kU) ? "U" : "D";
+      HB1(AFTHid+plane*1000+3+ud, Form("AFT Tdc %s Plane#%d", s, plane), NbinTdc, MinTdc, MaxTdc);
+      HB1(AFTHid+plane*1000+5+ud, Form("AFT Tot %s Plane#%d", s, plane), NbinTdc, MinTdc, MaxTdc);
+      HB1(AFTHid+plane*1000+7+ud, Form("AFT AdcHigh %s Plane#%d", s, plane), NbinAdc, MinAdc, MaxAdc);
+      HB1(AFTHid+plane*1000+9+ud, Form("AFT AdcHigh %s Plane#%d", s, plane), NbinAdc, MinAdc, MaxAdc);
+      HB2(AFTHid+plane*1000+11+ud, Form("AFT Tdc %s%%Seg Plane#%d", s, plane),
+          NumOfSegAFT, 0., NumOfSegAFT, NbinTdc, MinTdc, MaxTdc);
+      HB2(AFTHid+plane*1000+13+ud, Form("AFT Tot %s%%Seg Plane#%d", s, plane),
+          NumOfSegAFT, 0., NumOfSegAFT, NbinTot, MinTot, MaxTot);
+      HB2(AFTHid+plane*1000+15+ud, Form("AFT AdcHigh %s%%Seg Plane#%d", s, plane),
+          NumOfSegAFT, 0., NumOfSegAFT, NbinAdc, MinAdc, MaxAdc);
+      HB2(AFTHid+plane*1000+17+ud, Form("AFT AdcLow %s%%Seg Plane#%d", s, plane),
+          NumOfSegAFT, 0., NumOfSegAFT, NbinAdc, MinAdc, MaxAdc);
+    }
+  }
+
+  // HB1(AFTHid +101, "AFT NCluster", 100, 0, 100);
+  // HB1(AFTHid +102, "AFT Cluster Size", 5, 0, 5);
+  // HB1(AFTHid +103, "AFT CTime (Cluster)", 100., -20., 30.);
+  // HB1(AFTHid +104, "AFT Tot (Cluster)", NbinTot, MinTot, MaxTot);
+  // HB2(AFTHid +105, "AFT CTime%Tot (Cluster)",
+  //     NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
+  // HB1(AFTHid +106, "AFT Cluster Position",
+  //     NumOfSegAFT, -0.5*(Double_t)NumOfSegAFT, 0.5*(Double_t)NumOfSegAFT);
+
+
   //Tree
   HBTree("ea0c", "tree of Easiroc");
   //Trig
@@ -498,18 +604,26 @@ ConfMan::InitializeHistograms()
   tree->Branch("bft_clpos",      event.bft_clpos,        "bft_clpos[bft_ncl]/D");
   tree->Branch("bft_clseg",      event.bft_clseg,        "bft_clseg[bft_ncl]/D");
 
-  tree->Branch("aft_adc_high", event.aft_adc_high, Form("aft_adc_high[%d][%d][%d]/D",
-                                                        NumOfPlaneAFT, NumOfSegAFT,
-                                                        kUorD));
-  tree->Branch("aft_adc_low", event.aft_adc_low, Form("aft_adc_low[%d][%d][%d]/D",
-                                                      NumOfPlaneAFT, NumOfSegAFT,
-                                                      kUorD));
-  tree->Branch("aft_tdc", event.aft_tdc, Form("aft_tdc[%d][%d][%d][%d]/D",
-                                              NumOfPlaneAFT, NumOfSegAFT,
-                                              kUorD, MaxDepth));
-  tree->Branch("aft_tot", event.aft_tot, Form("aft_tdc[%d][%d][%d][%d]/D",
-                                              NumOfPlaneAFT, NumOfSegAFT,
-                                              kUorD, MaxDepth));
+  tree->Branch("aft_nhits", event.aft_nhits, Form("aft_nhits[%d]/I", NumOfPlaneAFT));
+  tree->Branch("aft_hitpat", event.aft_hitpat,
+               Form("aft_hitpat[%d][%d]/I", NumOfPlaneAFT, NumOfSegAFT));
+  tree->Branch("aft_adc_high", event.aft_adc_high,
+               Form("aft_adc_high[%d][%d][%d]/D", NumOfPlaneAFT, NumOfSegAFT, kUorD));
+  tree->Branch("aft_adc_low", event.aft_adc_low,
+               Form("aft_adc_low[%d][%d][%d]/D", NumOfPlaneAFT, NumOfSegAFT, kUorD));
+  tree->Branch("aft_tdc", event.aft_tdc,
+               Form("aft_tdc[%d][%d][%d][%d]/D",
+                    NumOfPlaneAFT, NumOfSegAFT, kUorD, MaxDepth));
+  tree->Branch("aft_mt", event.aft_mt,
+               Form("aft_mt[%d][%d][%d]/D", NumOfPlaneAFT, NumOfSegAFT, MaxDepth));
+  tree->Branch("aft_cmt", event.aft_cmt,
+               Form("aft_cmt[%d][%d][%d]/D", NumOfPlaneAFT, NumOfSegAFT, MaxDepth));
+  tree->Branch("aft_mtot", event.aft_mtot,
+               Form("aft_mtot[%d][%d][%d]/D", NumOfPlaneAFT, NumOfSegAFT, MaxDepth));
+  tree->Branch("aft_de_high", event.aft_de_high,
+               Form("aft_de_high[%d][%d]/D", NumOfPlaneAFT, NumOfSegAFT));
+  tree->Branch("aft_de_low", event.aft_de_low,
+               Form("aft_de_low[%d][%d]/D", NumOfPlaneAFT, NumOfSegAFT));
 
   // HPrint();
   return true;

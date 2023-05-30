@@ -151,6 +151,23 @@ FiberHit::Calculate()
 }
 
 //_____________________________________________________________________________
+Double_t
+FiberHit::MeanTimeOverThreshold(Int_t j) const
+{
+  try {
+    if(m_n_ch == 1){
+      return TimeOverThreshold(HodoRawHit::kUp, j);
+    }else{
+      return TMath::Sqrt(
+        TMath::Abs(TimeOverThreshold(HodoRawHit::kUp, j) *
+                   TimeOverThreshold(HodoRawHit::kDown, j)));
+    }
+  }catch(const std::out_of_range&){
+    return TMath::QuietNaN();
+  }
+}
+
+//_____________________________________________________________________________
 void
 FiberHit::Print(Option_t* arg) const
 {
@@ -165,6 +182,7 @@ FiberHit::Print(Option_t* arg) const
               << "de            = " << DeltaE() << std::endl
               << "mt/cmt        = " << MeanTime()
               << " / " << CMeanTime() << std::endl
+              << "mtot          = " << MeanTOT() << std::endl
               << "tdiff/ctdiff  = " << TimeDiff()
               << " / " << CTimeDiff() << std::endl;
   for(const auto data_map: std::map<TString, data_t>
@@ -180,11 +198,11 @@ FiberHit::Print(Option_t* arg) const
     }
     hddaq::cout << std::endl;
   }
+  hddaq::cout << " tot    :";
   for(Int_t ch=0; ch<m_n_ch; ++ch){
-    hddaq::cout << " tot     :";
     for(Int_t j=0, n=GetEntries(ch); j<n; ++j){
       hddaq::cout << " " << TOT(ch, j);
     }
-    hddaq::cout << std::endl;
   }
+  hddaq::cout << std::endl;
 }

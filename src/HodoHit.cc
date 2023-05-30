@@ -190,7 +190,7 @@ HodoHit::DeltaEHighGain(Int_t j) const
         TMath::Abs(m_de_high.at(U).at(j) *
                    m_de_high.at(D).at(j)));
     }
-  }catch(const std::out_of_range& e){
+  }catch(const std::out_of_range&){
     return TMath::QuietNaN();
   }
 }
