@@ -546,7 +546,7 @@ ConfMan::InitializeHistograms()
       HB1(AFTHid+plane*1000+3+ud, Form("AFT Tdc %s Plane#%d", s, plane), NbinTdc, MinTdc, MaxTdc);
       HB1(AFTHid+plane*1000+5+ud, Form("AFT Tot %s Plane#%d", s, plane), NbinTdc, MinTdc, MaxTdc);
       HB1(AFTHid+plane*1000+7+ud, Form("AFT AdcHigh %s Plane#%d", s, plane), NbinAdc, MinAdc, MaxAdc);
-      HB1(AFTHid+plane*1000+9+ud, Form("AFT AdcHigh %s Plane#%d", s, plane), NbinAdc, MinAdc, MaxAdc);
+      HB1(AFTHid+plane*1000+9+ud, Form("AFT AdcLow %s Plane#%d", s, plane), NbinAdc, MinAdc, MaxAdc);
       HB2(AFTHid+plane*1000+11+ud, Form("AFT Tdc %s%%Seg Plane#%d", s, plane),
           NumOfSegAFT, 0., NumOfSegAFT, NbinTdc, MinTdc, MaxTdc);
       HB2(AFTHid+plane*1000+13+ud, Form("AFT Tot %s%%Seg Plane#%d", s, plane),
