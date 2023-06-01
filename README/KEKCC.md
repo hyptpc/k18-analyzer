@@ -28,14 +28,14 @@ Environment setting in KEKCC
 ============================
 
 <div style="text-align: right;">
+Rev. 2023.06.01<br>
 2020.09.06
 </div><br>
 
 The new KEKCC is CentOS Linux 7.7.1908.
 The default compiler for CentOS 7 is gcc 4.8.5.
-In the K1.8 counting room, we use CentOS 8 which is stable one year after its release.
 This file shows the environment setting in the KEKCC using gcc 8.3.0
-which is the default compiler for CentOS 8.
+which is the default compiler for RHEL 8.
 
 ## module
 
@@ -70,7 +70,8 @@ For example PyROOT doesn't work.
 | /sw/packages/geant4/10.6—    | 8.3.0 |
 
 Since there is no root library compiled with gcc 8.3.0, the compiled one is placed on the group disk,
-/group/had/sks/software/root/6.22.02.
+/group/had/sks/software/root/6.22.02 with C++11,
+/group/had/sks/software/root/6.22.08 with C++17.
 
 If you really want to use the old version of root or geant4, use gcc 4.8.5 or install it yourself.
 
@@ -103,13 +104,12 @@ The following is an example of environment setting in .bashrc.
 ```sh
 module load gcc/830
 module load git/2260
-module load python/3.7 2>/dev/null # suppress usage
 . /opt/python-3.7/etc/profile.d/conda.sh
-. /group/had/sks/software/root/6.22.02/bin/thisroot.sh
-. /sw/packages/geant4/10.6.2-mt/bin/geant4.sh
-. /sw/packages/geant4/10.6.2-mt/share/Geant4-10.6.2/geant4make/geant4make.sh
+. /group/had/sks/software/root/6.22.08/bin/thisroot.sh
+. /sw/packages/geant4/11.0.2-mt/bin/geant4.sh
+. /sw/packages/geant4/11.0.2-mt/share/Geant4-11.0.2/geant4make/geant4make.sh
 export G4WORKDIR=$HOME/work/geant4 # set as you like
-export PATH=/group/had/sks/software/unpacker/unpacker.gcc830/bin:$PATH
+export PATH=/group/had/sks/software/unpacker/s2s/bin:$PATH
 export PATH=$G4WORKDIR/bin/Linux-g++:$PATH
 ```
 
@@ -122,7 +122,7 @@ Note that it is recommended to use `conda install` instead of `pip install` in t
 ```sh
 $ conda create -n py37 python=3.7 # py37 is an example name
 $ conda activate py37
-$ conda install numpy psutil pyyaml
+$ conda install numpy psutil pyyaml rich
 ```
 
 Add the following line in .bashrc to activate your environment.
@@ -145,7 +145,7 @@ Install the K1.8 analyzer as follows.
 $ git clone \
 ssh://sks@www-online.kek.jp:8022/~/public_html/git/k18-analyzer.git
 $ cd k18-analyzer
-$ git checkout e40 # choose branch as you like
+$ git checkout e70 # choose branch as you like
 $ cp Makefile.org Makefile
 $ make
 ```
