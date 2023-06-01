@@ -158,8 +158,11 @@ ProcessingNormal()
 #endif
 
   RawData rawData;
+  rawData.DecodeHits("TFlag");
+  rawData.DecodeHits("BH1");
+  rawData.DecodeHits("BH2");
   rawData.DecodeHits("SDC1");
-  // rawData.DecodeHits("SDC2");
+  rawData.DecodeHits("SDC2");
   HodoAnalyzer hodoAna(rawData);
   DCAnalyzer   DCAna(rawData);
 
@@ -256,7 +259,6 @@ ProcessingNormal()
 
   HF1(1, 5.);
 
-
   //////////////BCout
   DCAna.DecodeBcOutHits();
 
@@ -267,9 +269,9 @@ ProcessingNormal()
   //BC3&BC4
   Double_t multi_BcOut=0.;
   {
-    for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
-      const DCHitContainer &contOut =DCAna.GetBcOutHC(layer);
-      Int_t nhOut=contOut.size();
+    for(Int_t plane=0; plane<NumOfLayersBcOut; ++plane){
+      const auto &cont =DCAna.GetBcOutHC(plane);
+      Int_t nhOut = cont.size();
       multi_BcOut += Double_t(nhOut);
     }
   }
@@ -303,6 +305,7 @@ ProcessingNormal()
 
   //////////////SdcIn number of hit layer
   DCAna.DecodeSdcInHits();
+  // DCAna.TotCutSDC1();
   HF1(1, 10.);
   Double_t multi_SdcIn=0.;
   {
@@ -318,7 +321,7 @@ ProcessingNormal()
       Bool_t fl_valid_sig = false;
       for(Int_t i=0; i<nhIn; ++i){
 	const auto& hit=contIn[i];
-        hit->Print();
+        // hit->Print();
 	Double_t wire=hit->GetWire();
 	HF1(100*layer+1, wire-0.5);
 	Int_t nhtdc = hit->GetTdcSize();
@@ -377,7 +380,6 @@ ProcessingNormal()
 #endif
 
   HF1(1, 11.);
-
   // std::cout << "==========TrackSearch SdcIn============" << std::endl;
 #if 1
 #if Chi2Cut

@@ -11,11 +11,16 @@
 #include "HodoRawHit.hh"
 #include "ThreeVector.hh"
 
+class HodoHit;
+// class FiberHit;
+using HodoHC = std::vector<HodoHit*>;
+// using FiberHC = std::vector<FiberHit*>;
+
 //_____________________________________________________________________________
 class HodoHit
 {
 public:
-  explicit HodoHit(HodoRawHit *rhit,
+  explicit HodoHit(const HodoRawHit *rhit,
                    Double_t max_time_diff=10.);
   virtual ~HodoHit();
   static TString ClassName();
@@ -25,13 +30,13 @@ private:
   HodoHit& operator =(const HodoHit&);
 
 protected:
-  HodoRawHit* m_raw;
-  Bool_t      m_is_calculated;
-  Double_t    m_max_time_diff; // [ns]
-  Int_t       m_n_ch;
-  Double_t    m_time_offset;
+  const HodoRawHit* m_raw;
+  Bool_t            m_is_calculated;
+  Double_t          m_max_time_diff; // [ns]
+  Int_t             m_n_ch;
+  Double_t          m_time_offset;
 
-  using data_t = std::vector<std::vector<Double_t>>; // [ch][i]
+  using data_t = std::vector<std::vector<Double_t>>; // [ch][mhit]
 
   data_t m_de_high;
   data_t m_de_low;
@@ -52,6 +57,7 @@ public:
   Bool_t            Calculate();
   Bool_t            IsCalculated() const { return m_is_calculated; }
 
+  Int_t NumOfChannel() const { return m_n_ch; }
   Int_t GetEntries(Int_t i=0) const
     { return m_ctime_leading.at(i).size(); }
   Double_t GetDeltaEHighGain(Int_t i, Int_t j=0) const

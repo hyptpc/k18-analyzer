@@ -20,7 +20,7 @@ const Bool_t reject_nan = false;
 }
 
 //_____________________________________________________________________________
-FiberCluster::FiberCluster(const HodoHitContainer& cont,
+FiberCluster::FiberCluster(const HodoHC& cont,
                            const index_t& index)
   : HodoCluster(cont, index)
 {

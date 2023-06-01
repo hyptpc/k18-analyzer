@@ -3,11 +3,7 @@
 #ifndef DC_RAW_HIT_HH
 #define DC_RAW_HIT_HH
 
-#include <vector>
-
 #include <TString.h>
-
-using IntVec = std::vector<Int_t>;
 
 //_____________________________________________________________________________
 class DCRawHit
@@ -18,14 +14,15 @@ public:
   ~DCRawHit();
 
 private:
+  using data_t = std::vector<Double_t>; // [mhit]
   TString m_detector_name;
   Int_t   m_detector_id;
   TString m_plane_name;
   Int_t   m_plane_id;
   Int_t   m_dcgeom_layer;
   Int_t   m_wire_id;
-  IntVec  m_tdc;
-  IntVec  m_trailing;
+  data_t  m_tdc;
+  data_t  m_trailing;
   Bool_t  m_oftdc; // module tdc over flow
 
 public:

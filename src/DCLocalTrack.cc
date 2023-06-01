@@ -16,6 +16,7 @@
 #include "DCAnalyzer.hh"
 #include "DCLTrackHit.hh"
 #include "DCGeomMan.hh"
+#include "DebugCounter.hh"
 #include "DetectorID.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"

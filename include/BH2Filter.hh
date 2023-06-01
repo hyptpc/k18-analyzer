@@ -8,9 +8,8 @@
 
 #include <TString.h>
 
-#include "DCAnalyzer.hh"
-
 class DCHit;
+class DCAnalyzer;
 class HodoAnalyzer;
 
 //______________________________________________________________________________
@@ -27,9 +26,9 @@ private:
   BH2Filter& operator =(const BH2Filter&);
 
 public:
-  typedef std::vector<std::vector<DCHitContainer>> FilterList;
-  typedef FilterList::iterator                     FIterator;
+  using FilterList = std::vector<std::vector<std::vector<DCHit*>>>;
   // FilterList : [segment id] [plane id] [hit id]
+  using FIterator = FilterList::iterator;
 
   struct Param
   {

@@ -22,8 +22,8 @@
 #include "UnpackerManager.hh"
 
 #define HodoCut 0
-#define TotCut  1
-#define Chi2Cut 1
+#define TotCut  0
+#define Chi2Cut 0
 
 namespace
 {
@@ -148,7 +148,11 @@ ProcessingNormal()
 #endif
 
   RawData rawData;
-  rawData.DecodeHits();
+  rawData.DecodeHits("TFlag");
+  rawData.DecodeHits("BH1");
+  rawData.DecodeHits("BH2");
+  rawData.DecodeHits("BC3");
+  rawData.DecodeHits("BC4");
   HodoAnalyzer hodoAna(rawData);
   DCAnalyzer   DCAna(rawData);
 
@@ -244,16 +248,13 @@ ProcessingNormal()
 
   HF1(1, 5.);
 
-
-
   //////////////BC3&4 number of hit layer
-  DCAna.DecodeRawHits();
+  DCAna.DecodeBcOutHits();
 #if TotCut
   DCAna.TotCutBCOut(MinTotBcOut);
 #endif
   // DCAna.DriftTimeCutBC34(-10, 50);
   // DCAna.MakeBH2DCHit(event.Time0Seg-1);
-
   Double_t multi_BcOut = 0.;
   Double_t multiplicity[] = {0, 0};
   struct hit_info
@@ -262,8 +263,9 @@ ProcessingNormal()
     Double_t pos;
   };
   {
-    for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
-      const DCHitContainer &contOut = DCAna.GetBcOutHC(layer);
+    for(Int_t plane=0; plane<NumOfLayersBcOut; ++plane){
+      Int_t layer = plane + 1;
+      const auto &contOut = DCAna.GetBcOutHC(plane);
       Int_t nhOut = contOut.size();
       event.nhit[layer-1] = nhOut;
       if(nhOut>0) event.nlayer++;
@@ -345,8 +347,6 @@ ProcessingNormal()
   HF2(41, multiplicity[0], multiplicity[1]);
 
   if(multi_BcOut/Double_t(NumOfLayersBcOut) > MaxMultiHitBcOut){
-    std::cout << "#W " << __FILE__ << " L" << __LINE__ << std::endl
-	      << "multi_BcOut is too many: " << multi_BcOut << std::endl;
     return true;
   }
 

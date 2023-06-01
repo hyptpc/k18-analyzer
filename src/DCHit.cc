@@ -42,12 +42,15 @@ DCHit::DCHit(const DCRawHit* rhit)
     m_tdc(),
     m_adc(),
     m_trailing(),
-    m_data(),
+    m_drift_time(),
+    m_drift_length(),
+    m_tot(),
+    m_belong_to_track(),
+    m_is_good(),
     m_wpos(qnan),
     m_angle(0.),
     m_cluster_size(0.),
-    m_mwpc_flag(false),
-    m_ofs_dt(0.)
+    m_mwpc_flag(false)
 {
   for(const auto& t: rhit->GetTdcArray())
     m_tdc.push_back(t);
@@ -65,8 +68,7 @@ DCHit::DCHit(Int_t layer)
     m_wpos(qnan),
     m_angle(0.),
     m_cluster_size(0.),
-    m_mwpc_flag(false),
-    m_ofs_dt(0.)
+    m_mwpc_flag(false)
 {
   debug::ObjectCounter::increase(ClassName());
 }
@@ -78,9 +80,7 @@ DCHit::DCHit(Int_t layer, Double_t wire)
     m_wpos(qnan),
     m_angle(0.),
     m_cluster_size(0.),
-    m_mwpc_flag(false),
-    m_ofs_dt(0.),
-    m_hitnum(0)
+    m_mwpc_flag(false)
 {
   debug::ObjectCounter::increase(ClassName());
 }
@@ -94,18 +94,36 @@ DCHit::~DCHit()
 
 //_____________________________________________________________________________
 void
-DCHit::SetTdcCFT(Int_t tdc)
+DCHit::ClearDCData()
 {
-  m_tdc.push_back(tdc);
-  //m_belong_track.push_back(false);
+  m_drift_time.clear();
+  m_drift_length.clear();
+  m_tot.clear();
+  m_belong_to_track.clear();
+  m_is_good.clear();
 }
 
 //_____________________________________________________________________________
 void
-DCHit::SetDummyData()
+DCHit::EraseDCData(Int_t i)
 {
-  data_t a_data = { 0., 0., qnan, false, true };
-  m_data.push_back(a_data);
+  m_drift_time.erase(m_drift_time.begin() + i);
+  m_drift_length.erase(m_drift_length.begin() + i);
+  m_tot.erase(m_tot.begin() + i);
+  m_belong_to_track.erase(m_belong_to_track.begin() + i);
+  m_is_good.erase(m_is_good.begin() + i);
+}
+
+//_____________________________________________________________________________
+void
+DCHit::SetDCData(Double_t dt, Double_t dl, Double_t tot,
+                 Bool_t belong_to_track, Bool_t is_good)
+{
+  m_drift_time.push_back(dt);
+  m_drift_length.push_back(dl);
+  m_tot.push_back(tot);
+  m_belong_to_track.push_back(belong_to_track);
+  m_is_good.push_back(is_good);
 }
 
 //_____________________________________________________________________________
@@ -117,14 +135,6 @@ DCHit::ClearRegisteredHits()
     delete m_register_container[i];
   }
 }
-
-//_____________________________________________________________________________
-Bool_t
-DCHit::Calculate()
-{
-  return CalcDCObservables();
-}
-
 
 //_____________________________________________________________________________
 Bool_t
@@ -144,9 +154,7 @@ DCHit::CalcDCObservables()
   std::sort(m_tdc.begin(), m_tdc.end(), std::greater<Int_t>());
   std::sort(m_trailing.begin(), m_trailing.end(), std::greater<Int_t>());
 
-  Bool_t status = true;
-
-  DVec_t leading, trailing;
+  data_t leading, trailing;
   for(Int_t il=0, nl=m_tdc.size(); il<nl; ++il){
     Double_t l = m_tdc[il];
     Double_t l_next = (il+1) != nl ? m_tdc[il+1] : DBL_MIN;
@@ -161,7 +169,6 @@ DCHit::CalcDCObservables()
     trailing.push_back(buf);
     Double_t ctime = TMath::QuietNaN();
     gTdc.GetTime(m_layer, m_wire, l, ctime);
-    ctime += m_ofs_dt;
     Double_t dt = TMath::QuietNaN();
     Double_t dl = TMath::QuietNaN();
     gDrift.CalcDrift(m_layer, m_wire, ctime, dt, dl);
@@ -191,24 +198,19 @@ DCHit::CalcDCObservables()
     default:
       hddaq::cout << FUNC_NAME << " "
 		  << "invalid layer id : " << m_layer << std::endl;
-      status = false;
-      break;
+      return false;
     }
-    data_t a_data;
-    a_data.drift_time = dt;
-    a_data.drift_length = dl;
-    a_data.tot = tot;
-    a_data.belong_to_track = false;
-    a_data.dl_is_good = dl_is_good;
-    m_data.push_back(a_data);
-    if(SelectTDC1st && dl_is_good){
-      m_data.clear();
-      m_data.push_back(a_data);
+
+    if(!SelectTDC1st){
+      SetDCData(dt, dl, tot, false, dl_is_good);
+    }else if(dl_is_good){
+      SetDCData(dt, dl, tot, false, dl_is_good);
       break;
     }
   }
-
-  return status;
+  m_tdc = leading;
+  m_trailing = trailing;
+  return true;
 }
 
 //_____________________________________________________________________________
@@ -220,134 +222,14 @@ DCHit::CalcFiberObservables()
   m_angle = gGeom.GetTiltAngle(m_layer);
   m_z     = gGeom.GetLocalZ(m_layer);
   for(const auto& tdc: m_tdc){
-    data_t a_data = { static_cast<Double_t>(tdc), 0., qnan, false, true };
-    m_data.push_back(a_data);
+    m_drift_time.push_back(tdc);
+    m_drift_length.push_back(0.);
+    m_tot.push_back(qnan);
+    m_belong_to_track.push_back(false);
+    m_is_good.push_back(true);
   }
   return true;
 }
-
-#if 0
-//_____________________________________________________________________________
-Bool_t
-DCHit::CalcMWPCObservables()
-{
-  if(!gGeom.IsReady() || !gTdc.IsReady())
-    return false;
-
-  m_angle = gGeom.GetTiltAngle(m_layer);
-  m_wpos  = gGeom.CalcWirePosition(m_layer, m_wire);
-  m_z     = gGeom.GetLocalZ(m_layer);
-
-  Bool_t status = true;
-  Int_t  nh_tdc      = m_tdc.size();
-  Int_t  nh_trailing = m_trailing.size();
-
-  IVec_t leading_cont, trailing_cont;
-
-  // Prepare
-  {
-    for(Int_t m = 0; m < nh_tdc; ++m) {
-      leading_cont.push_back(m_tdc.at(m));
-    }
-    for(Int_t m = 0; m < nh_trailing; ++m) {
-      trailing_cont.push_back(m_trailing.at(m));
-    }
-
-    std::sort(leading_cont.begin(),  leading_cont.end(),  std::greater<Int_t>());
-    std::sort(trailing_cont.begin(), trailing_cont.end(), std::greater<Int_t>());
-
-    Int_t i_t = 0;
-    for(Int_t i = 0; i<nh_tdc; ++i){
-      data_t a_data = {0., 0., qnan, qnan, -1, false, false};
-
-      Int_t leading  = leading_cont.at(i);
-      while(i_t < nh_trailing){
-	Int_t trailing = trailing_cont.at(i_t);
-
-	if(leading > trailing){
-	  a_data.index_t = i_t;
-	  m_data.push_back(a_data);
-	  break;
-	}else{
-	  ++i_t;
-	}// Goto next trailing
-      }
-
-      if(i_t == nh_trailing){
-	a_data.index_t = -1;
-	m_data.push_back(a_data);
-	continue;
-      }// no more trailing data
-    }// for(i)
-  }
-
-  // Delete duplication index_t
-  for(Int_t i = 0; i<nh_tdc-1; ++i){
-    if(true
-       && m_data.at(i).index_t != -1
-       && m_data.at(i).index_t == m_data.at(i+1).index_t)
-    {
-      m_data.at(i).index_t = -1;
-    }
-  }// for(i)
-
-
-  for(Int_t i=0; i<nh_tdc; ++i) {
-    Double_t ctime;
-    if(!gTdc.GetTime(m_layer, m_wire, leading_cont.at(i), ctime)){
-      return false;
-    }
-
-    Double_t dtime, dlength;
-    if(!gDrift.CalcDrift(m_layer, m_wire, ctime, dtime, dlength)){
-      status = false;
-    }
-
-    m_data.at(i).drift_time   = dtime;
-    m_data.at(i).drift_length = dlength;
-
-    if(m_data.at(i).index_t != -1){
-      Double_t trailing_ctime;
-      gTdc.GetTime(m_layer, m_wire, trailing_cont.at(i), trailing_ctime);
-      m_data.at(i).trailing_time = trailing_ctime;
-      m_data.at(i).tot           = ctime - trailing_ctime;
-    }else{
-      m_data.at(i).trailing_time = qnan;
-      m_data.at(i).tot           = qnan;
-    }
-
-    if(m_data.at(i).drift_time > MinDLBc[m_layer-100] && m_data.at(i).drift_time < MaxDLBc[m_layer-100]){
-      m_data.at(i).dl_range = true;
-    }else{
-      status = false;
-    }
-  }
-
-  return status;
-}
-
-//_____________________________________________________________________________
-Bool_t
-DCHit::CalcCFTObservables()
-{
-  if(!gGeom.IsReady()) return false;
-
-  //m_angle = gGeom.GetTiltAngle(m_layer);
-  //m_z     = gGeom.GetLocalZ(m_layer);
-
-  Bool_t status = true;
-
-  std::size_t nh_tdc = m_tdc.size();
-  for(std::size_t i=0; i<nh_tdc; i++){
-    data_t a_data = {(Double_t)m_tdc[i], 0., qnan, qnan, //-1, false, true};
-      -1, false, false};
-    m_data.push_back(a_data);
-  }
-
-
-  return status;
-}
-#endif
 
 //_____________________________________________________________________________
 Int_t
@@ -368,66 +250,78 @@ DCHit::GetResolution() const
 
 //_____________________________________________________________________________
 void
-DCHit::TotCut(Double_t min_tot, Bool_t adopt_nan)
+DCHit::TotCut(Double_t min, Bool_t adopt_nan)
 {
-  auto itr_new_end =
-    std::remove_if(m_data.begin(), m_data.end(),
-		   [min_tot, adopt_nan](data_t a_data)->Bool_t
-                     {return(isnan(a_data.tot) && adopt_nan) ? false : !(a_data.tot > min_tot);}
-      );
-  m_data.erase(itr_new_end, m_data.end());
+  const Int_t n = GetEntries();
+  for(Int_t i=0; i<n; ++i){
+    if(!adopt_nan && TMath::IsNaN(m_tot[i]))
+      continue;
+    if(m_tot[i] < min){
+      m_is_good[i] = false;
+    }
+  }
 }
 
 //_____________________________________________________________________________
 void
 DCHit::GateDriftTime(Double_t min, Double_t max, Bool_t select_1st)
 {
-  auto itr_new_end =
-    std::remove_if(m_data.begin(), m_data.end(),
-		   [min, max](data_t a_data)->Bool_t
-                     {return !(min < a_data.drift_time && a_data.drift_time < max);}
-      );
-  m_data.erase(itr_new_end, m_data.end());
-  if(0 == m_data.size()) return;
-
-  if(select_1st) m_data.erase(m_data.begin()+1, m_data.end());
+  const Int_t n = GetEntries();
+  for(Int_t i=0; i<n; ++i){
+    if(m_drift_time[i] < min || max < m_drift_time[i]){
+      m_is_good[i] = false;
+    }
+  }
 }
 
 //_____________________________________________________________________________
 void
-DCHit::Print(const TString& arg, std::ostream& ost) const
+DCHit::Print(const TString& arg) const
 {
   const Int_t w = 16;
-  ost << FUNC_NAME << " " << arg << std::endl
+  hddaq::cout << FUNC_NAME << " " << arg << std::endl
       << std::setw(w) << std::left << "layer" << m_layer << std::endl
       << std::setw(w) << std::left << "wire"  << m_wire  << std::endl
-      << std::setw(w) << std::left << "wpos"  << m_wpos  << std::endl
-      << std::setw(w) << std::left << "angle" << m_angle << std::endl
-      << std::setw(w) << std::left << "z"     << m_z     << std::endl;
+              << std::setw(w) << std::left << "wpos"  << m_wpos  << std::endl
+              << std::setw(w) << std::left << "angle" << m_angle << std::endl
+              << std::setw(w) << std::left << "z"     << m_z     << std::endl;
 
-  ost << std::setw(w) << std::left << "tdc" << m_tdc.size() << " : ";
+  hddaq::cout << std::setw(w) << std::left << "tdc" << m_tdc.size() << " : ";
   std::copy(m_tdc.begin(), m_tdc.end(),
-            std::ostream_iterator<Int_t>(ost, " "));
-  ost << std::endl;
-  ost << std::setw(w) << std::left << "trailing" << m_trailing.size() << " : ";
+            std::ostream_iterator<Int_t>(hddaq::cout, " "));
+  hddaq::cout << std::endl;
+  hddaq::cout << std::setw(w) << std::left << "trailing" << m_trailing.size() << " : ";
   std::copy(m_trailing.begin(), m_trailing.end(),
-            std::ostream_iterator<Int_t>(ost, " "));
-  ost << std::endl;
-  hddaq::cout << std::setw(w) << std::left << "data.size()"
-              << m_data.size() << std::endl;
-  for(const auto& d: m_data){
-    hddaq::cout << "\tdt:" << d.drift_time
-                << "\tdl:" << d.drift_length
-                << "\ttot:" << d.tot
-                << "\tbelong_to_track:" << d.belong_to_track
-                << "\tdl_is_good:" << d.dl_is_good
-                << std::endl;
+            std::ostream_iterator<Int_t>(hddaq::cout, " "));
+  hddaq::cout << std::endl;
+  for(const auto& data_map: std::map<TString, data_t>
+        {{"dt", m_drift_time},
+         {"dl", m_drift_length},
+         {"tot", m_tot},
+        }){
+    const auto& cont = data_map.second;
+    hddaq::cout << std::setw(w) << std::left << data_map.first << cont.size()
+                << " : ";
+    std::copy(cont.begin(), cont.end(),
+              std::ostream_iterator<Double_t>(hddaq::cout, " "));
+    hddaq::cout << std::endl;
+  }
+  for(const auto& data_map: std::map<TString, flag_t>
+        {{"belong_to_track", m_belong_to_track},
+         {"is_good", m_is_good},
+        }){
+    const auto& cont = data_map.second;
+    hddaq::cout << std::setw(w) << std::left << data_map.first << cont.size()
+                << " : ";
+    std::copy(cont.begin(), cont.end(),
+              std::ostream_iterator<Bool_t>(hddaq::cout, " "));
+    hddaq::cout << std::endl;
   }
 
   if(m_mwpc_flag){
-    ost << std::endl
-	<< std::setw(w) << std::left << "clsize" << m_cluster_size << std::endl
-	<< std::setw(w) << std::left << "mean wire" << m_mwpc_wire << std::endl
-	<< std::setw(w) << std::left << "mean pos"  << m_mwpc_wpos << std::endl;
+    hddaq::cout << std::endl
+                << std::setw(w) << std::left << "clsize" << m_cluster_size << std::endl
+                << std::setw(w) << std::left << "mean wire" << m_mwpc_wire << std::endl
+                << std::setw(w) << std::left << "mean pos"  << m_mwpc_wpos << std::endl;
   }
 }

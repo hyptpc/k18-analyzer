@@ -15,7 +15,7 @@
 #include "PrintHelper.hh"
 
 //_____________________________________________________________________________
-HodoCluster::HodoCluster(const HodoHitContainer& cont,
+HodoCluster::HodoCluster(const HodoHC& cont,
                          const index_t& index)
   : m_is_good(false),
     m_hit_container(cont.size()),

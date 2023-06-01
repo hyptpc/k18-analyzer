@@ -37,8 +37,8 @@ public:
   Bool_t   IsHoneycomb() const { return m_honeycomb; }
   Int_t    GetLayer() const { return m_hit->GetLayer(); }
   Int_t    LayerId() const { return m_hit->LayerId(); }
-  Int_t    GetMeanSeg() const { return m_hit->GetMeanSeg(); }
-  Int_t    GetMaxSeg() const { return m_hit->GetMaxSeg(); }
+  // Int_t    GetMeanSeg() const { return m_hit->GetMeanSeg(); }
+  // Int_t    GetMaxSeg() const { return m_hit->GetMaxSeg(); }
   Double_t GetWire() const { return m_hit->GetWire(); }
   Int_t    GetTdcVal() const { return m_hit->GetTdcVal(m_nth_hit); }
   Int_t    GetTdcSize() const { return m_hit->GetTdcSize(); }

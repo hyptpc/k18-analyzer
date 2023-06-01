@@ -21,15 +21,8 @@ class BH2Hit;
 class FiberHit;
 class BH2Cluster;
 
-// typedef std::vector<BH2Hit*>   BH2HitContainer;
-// typedef std::vector< std::vector<FiberHit*> >
-// MultiPlaneFiberHitContainer;
-
 using HodoClusterContainer = std::vector<HodoCluster*>;
-// typedef std::vector<BH2Cluster*>   BH2ClusterContainer;
-// typedef std::vector<FiberCluster*> FiberClusterContainer;
-// typedef std::vector< std::vector<FiberCluster*> >
-// MultiPlaneFiberClusterContainer;
+using HodoCC = std::vector<HodoCluster*>;
 
 //_____________________________________________________________________________
 class HodoAnalyzer
@@ -45,15 +38,17 @@ private:
 
 private:
   template <typename T> using map_t = std::map<TString, T>;
-  const RawData*              m_raw_data;
-  map_t<HodoHitContainer>     m_hodo_hit_collection;
-  map_t<HodoClusterContainer> m_hodo_cluster_collection;
+  const RawData* m_raw_data;
+  map_t<HodoHC>  m_hodo_hit_collection;
+  map_t<HodoCC>  m_hodo_cluster_collection;
 
 public:
   template <typename T=HodoHit>
   Bool_t DecodeHits(const TString& name, Double_t max_time_diff=10.);
-  const HodoHitContainer& GetHitContainer(const TString& name) const;
-  const HodoClusterContainer& GetClusterContainer(const TString& name) const;
+
+  const HodoHC& GetHitContainer(const TString& name) const;
+  const HodoCC& GetClusterContainer(const TString& name) const;
+
   Int_t  GetNHits(const TString& name) const
     { return GetHitContainer(name).size(); };
   Int_t  GetNClusters(const TString& name) const
@@ -100,11 +95,11 @@ private:
   void AdcCut(std::vector<T>& cont, Double_t min, Double_t max);
   template <typename T>
   static Int_t MakeUpClusters(const std::vector<T*>& HitCont,
-                              HodoClusterContainer& ClusterCont,
+                              HodoCC& ClusterCont,
                               Int_t MaxClusterSize,
                               Double_t MaxTimeDiff);
   template <typename T>
-  static HodoCluster* AllocateCluster(HodoHitContainer& HitCont,
+  static HodoCluster* AllocateCluster(HodoHC& HitCont,
                                       index_t index);
   static Bool_t Connectable(const HodoHit* hitA, Int_t indexA,
                             const HodoHit* hitB, Int_t indexB,
@@ -170,7 +165,7 @@ HodoAnalyzer::DecodeHits(const TString& name, Double_t max_time_diff)
 template <typename T>
 inline Int_t
 HodoAnalyzer::MakeUpClusters(const std::vector<T*>& HitCont,
-                             HodoClusterContainer& ClusterCont,
+                             HodoCC& ClusterCont,
                              Int_t MaxClusterSize,
                              Double_t MaxTimeDiff)
 {
@@ -188,7 +183,7 @@ HodoAnalyzer::MakeUpClusters(const std::vector<T*>& HitCont,
       if(hitA->IsClustered(jA))
         continue;
       Int_t jLast = jA;
-      HodoHitContainer CandCont;
+      HodoHC CandCont;
       index_t index;
       hitA->JoinCluster(jA);
       CandCont.push_back(hitA);
@@ -222,7 +217,7 @@ HodoAnalyzer::MakeUpClusters(const std::vector<T*>& HitCont,
 //_____________________________________________________________________________
 template <typename T>
 inline HodoCluster*
-HodoAnalyzer::AllocateCluster(HodoHitContainer& HitCont,
+HodoAnalyzer::AllocateCluster(HodoHC& HitCont,
                               index_t index)
 {
   return new HodoCluster(HitCont, index);
@@ -231,7 +226,7 @@ HodoAnalyzer::AllocateCluster(HodoHitContainer& HitCont,
 //_____________________________________________________________________________
 template <>
 inline HodoCluster*
-HodoAnalyzer::AllocateCluster<FiberHit>(HodoHitContainer& HitCont,
+HodoAnalyzer::AllocateCluster<FiberHit>(HodoHC& HitCont,
                                         index_t index)
 {
   return new FiberCluster(HitCont, index);

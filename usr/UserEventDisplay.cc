@@ -338,7 +338,7 @@ ProcessingNormal()
     //   Double_t wire = hit->GetWire();
     //   Bool_t goodFlag = false;
     //   for(Int_t j=0, mh=hit->GetTdcSize(); j<mh; j++){
-    //     if(hit->IsWithinRange(j)){
+    //     if(hit->IsGood(j)){
     //       goodFlag = true;
     //       break;
     //     }
@@ -435,7 +435,7 @@ ProcessingNormal()
       Int_t mhit = hit->GetTdcSize();
       Bool_t goodFlag = false;
       for(Int_t j=0; j<mhit; j++){
-        if(hit->IsWithinRange(j)){
+        if(hit->IsGood(j)){
           goodFlag = true;
           break;
         }
@@ -494,7 +494,7 @@ ProcessingNormal()
       Int_t  mhit = hit->GetEntries();
       Bool_t is_good = false;
       for(Int_t j=0; j<mhit && !is_good; ++j){
-        is_good = hit->IsWithinRange(j);
+        is_good = hit->IsGood(j);
       }
       if(is_good) gEvDisp.DrawHitWire(layer+30, wire);
       else gEvDisp.DrawHitWire(layer+30, wire, false, false);

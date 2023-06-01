@@ -17,6 +17,7 @@
 #include "DCGeomMan.hh"
 #include "DCHit.hh"
 #include "DCLocalTrack.hh"
+#include "DebugCounter.hh"
 #include "DetectorID.hh"
 #include "FuncName.hh"
 #include "K18Parameters.hh"

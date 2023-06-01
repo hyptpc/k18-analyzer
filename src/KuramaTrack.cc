@@ -15,6 +15,7 @@
 #include "DCAnalyzer.hh"
 #include "DCGeomMan.hh"
 #include "DCLocalTrack.hh"
+#include "DebugCounter.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
 #include "PrintHelper.hh"

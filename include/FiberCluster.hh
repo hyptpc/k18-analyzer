@@ -10,14 +10,12 @@
 #include "FiberHit.hh"
 #include "HodoCluster.hh"
 
-using FiberHitContainer = std::vector<FiberHit*>;
-
 //_____________________________________________________________________________
 class FiberCluster : public HodoCluster
 {
 public:
   static const TString& ClassName();
-  FiberCluster(const HodoHitContainer& cont,
+  FiberCluster(const HodoHC& cont,
                const index_t& index);
   virtual ~FiberCluster();
 

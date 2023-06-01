@@ -3,19 +3,16 @@
 #ifndef RAW_DATA_HH
 #define RAW_DATA_HH
 
-#include <deque>
 #include <map>
 #include <vector>
 
 #include <TString.h>
 
-#include "DetectorID.hh"
-
 class HodoRawHit;
 class DCRawHit;
 
-using HodoRawHitContainer = std::vector<HodoRawHit*>;
-using DCRawHitContainer = std::vector<DCRawHit*>;
+using HodoRHC = std::vector<HodoRawHit*>;
+using DCRHC = std::vector<DCRawHit*>;
 
 //_____________________________________________________________________________
 class RawData
@@ -32,33 +29,39 @@ private:
 private:
   template <typename T> using map_t = std::map<TString, T>;
 
-  map_t<Bool_t>              m_is_decoded;
-  map_t<HodoRawHitContainer> m_hodo_raw_hit_collection;
-  map_t<DCRawHitContainer>   m_dc_raw_hit_collection;
-
-  HodoRawHitContainer              m_ScalerRawHC;
+  map_t<Bool_t>  m_is_decoded;
+  map_t<HodoRHC> m_hodo_raw_hit_collection;
+  map_t<DCRHC>   m_dc_raw_hit_collection;
 
 public:
-  void                     Clear(const TString& name="");
-  void                     ClearAll();
-  Bool_t                   DecodeHits(const TString& name="");
-  Bool_t                   DecodeCalibHits();
-  const auto& GetHodoRawHitCollection() const
-    { return m_hodo_raw_hit_collection; }
-  const auto& GetDCRawHitCollection() const
-    { return m_dc_raw_hit_collection; }
-  const HodoRawHitContainer& GetHodoRawHitContainer(const TString& name) const;
-  const DCRawHitContainer&   GetDCRawHitContainer(const TString& name) const;
-  void        Print(Option_t* arg="") const;
+  void           Clear(const TString& name="");
+  Bool_t         DecodeHits(const TString& name="");
+  Bool_t         DecodeCalibHits();
+  const HodoRHC& GetHodoRawHitContainer(const TString& name) const;
+  const DCRHC&   GetDCRawHitContainer(const TString& name) const;
+  void           Print(Option_t* arg="") const;
+
+  // aliases
+  const HodoRHC& GetHodoRawHC(const TString& name) const
+    { return GetHodoRawHitContainer(name); }
+  const DCRHC&   GetDCRawHC(const TString& name) const
+    { return GetDCRawHitContainer(name); }
+  const HodoRHC& GetHodoRawHits(const TString& name) const
+    { return GetHodoRawHitContainer(name); }
+  const DCRHC&   GetDCRawHits(const TString& name) const
+    { return GetDCRawHitContainer(name); }
+
+  // templates
+  template <typename T> Int_t GetEntries(const TString& name) const;
+  template <typename T> const T* Get(const TString& name, Int_t i) const;
 
 private:
-  enum EDCDataType { kDcLeading, kDcTrailing, kDcOverflow, kDcNDataType };
   void AddRawHit(const TString& name, Int_t plane, Int_t seg,
                  Int_t ch, Int_t data, Double_t val);
-  Bool_t AddHodoRawHit(HodoRawHitContainer& cont,
+  Bool_t AddHodoRawHit(HodoRHC& cont,
                        const TString& name, Int_t plane, Int_t seg,
                        Int_t UorD, Int_t data, Double_t val);
-  Bool_t AddDCRawHit(DCRawHitContainer& cont,
+  Bool_t AddDCRawHit(DCRHC& cont,
                        const TString& name, Int_t plane, Int_t seg,
                        Int_t UorD, Int_t data, Double_t val);
 };
@@ -69,6 +72,38 @@ RawData::ClassName()
 {
   static TString s_name("RawData");
   return s_name;
+}
+
+//_____________________________________________________________________________
+template <>
+inline Int_t
+RawData::GetEntries<HodoRawHit>(const TString& name) const
+{
+  return m_hodo_raw_hit_collection.at(name).size();
+}
+
+//_____________________________________________________________________________
+template <>
+inline Int_t
+RawData::GetEntries<DCRawHit>(const TString& name) const
+{
+  return m_dc_raw_hit_collection.at(name).size();
+}
+
+//_____________________________________________________________________________
+template <>
+inline const HodoRawHit*
+RawData::Get<HodoRawHit>(const TString& name, Int_t i) const
+{
+  return m_hodo_raw_hit_collection.at(name).at(i);
+}
+
+//_____________________________________________________________________________
+template <>
+inline const DCRawHit*
+RawData::Get<DCRawHit>(const TString& name, Int_t i) const
+{
+  return m_dc_raw_hit_collection.at(name).at(i);
 }
 
 #endif

@@ -27,17 +27,17 @@ namespace
 const auto U = HodoRawHit::kUp;
 const auto D = HodoRawHit::kDown;
 const auto E = HodoRawHit::kExtra;
-const auto& gConf = hddaq::unpacker::GConfig::get_instance();
+const auto& gUnpackerConf = hddaq::unpacker::GConfig::get_instance();
 const auto& gHodo = HodoParamMan::GetInstance();
 const auto& gPHC = HodoPHCMan::GetInstance();
 }
 
 //_____________________________________________________________________________
-HodoHit::HodoHit(HodoRawHit *rhit, Double_t max_time_diff)
+HodoHit::HodoHit(const HodoRawHit *rhit, Double_t max_time_diff)
   : m_raw(rhit),
     m_is_calculated(false),
     m_max_time_diff(max_time_diff),
-    m_n_ch(gConf.get_digit_info().get_n_ch(rhit->DetectorId())),
+    m_n_ch(gUnpackerConf.get_digit_info().get_n_ch(rhit->DetectorId())),
     m_time_offset(),
     m_de_high(m_n_ch),
     m_de_low(m_n_ch),

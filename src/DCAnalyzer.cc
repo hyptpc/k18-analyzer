@@ -58,7 +58,7 @@ namespace
 {
 using namespace hddaq::unpacker;
 const auto& gUnpacker = GUnpacker::get_instance();
-const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
+const auto& gUnpackerConf = hddaq::unpacker::GConfig::get_instance();
 
 using namespace K18Parameter;
 const auto& gConf   = ConfMan::GetInstance();
@@ -139,7 +139,7 @@ DCAnalyzer::DCAnalyzer(const RawData& raw_data)
     m_MWPCClCont(NumOfLayersBcIn+1),
     m_TempBcInHC(NumOfLayersBcIn+1),
     m_BcInHC(NumOfLayersBcIn+1),
-    m_BcOutHC(NumOfLayersBcOut+2),
+    m_BcOutHC(),
     m_SdcInHC(),
     m_SdcOutHC(NumOfLayersSdcOut+1),
     m_SdcInExTC(NumOfLayersSdcIn),
@@ -245,7 +245,7 @@ DCAnalyzer::DecodeBcInHits()
       hit->SetMeanWire(mwire);
       hit->SetMeanWirePosition(mwirepos);
       hit->SetTrailing(mtrail);
-      hit->SetDummyData();
+      hit->SetNomalizedData();
       hit->SetTdcVal(0);
       hit->SetTdcTrailing(0);
 
@@ -266,37 +266,19 @@ DCAnalyzer::DecodeBcInHits()
 Bool_t
 DCAnalyzer::DecodeBcOutHits()
 {
-  if(m_is_decoded[kBcOut]){
-    hddaq::cout << FUNC_NAME << " "
-                << "already decoded" << std::endl;
-    return true;
-  }
-
-  ClearBcOutHits();
-
-#if 0
-  for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
-    for(const auto& rhit: m_raw_data->GetBcOutRawHC(layer)){
-      auto hit = new DCHit(rhit->PlaneId()+PlOffsBc, rhit->WireId());
-      Int_t nhtdc = rhit->GetTdcSize();
-      Int_t nhtrailing = rhit->GetTrailingSize();
-      if(!hit) continue;
-      for(Int_t j=0; j<nhtdc; ++j){
-        hit->SetTdcVal(rhit->GetTdc(j));
-      }
-      for(Int_t j=0; j<nhtrailing; ++j){
-        hit->SetTdcTrailing(rhit->GetTrailing(j));
-      }
-      if(hit->CalcDCObservables()){
-        m_BcOutHC[layer].push_back(hit);
-      }else{
-        delete hit;
-      }
+  static const auto& digit_info = gUnpackerConf.get_digit_info();
+  m_BcOutHC.clear();
+  Int_t plane_offset = 0;
+  for(const auto& name: DCNameList.at("BcOut")){
+    Int_t id = digit_info.get_device_id(name.Data());
+    Int_t n_plane = digit_info.get_n_plane(id);
+    m_BcOutHC.resize(n_plane + m_BcOutHC.size());
+    DecodeHits(name);
+    for(const auto& hit: m_dc_hit_collection.at(name)){
+      m_BcOutHC[hit->PlaneId() + plane_offset].push_back(hit);
     }
+    plane_offset += n_plane;
   }
-#endif
-
-  m_is_decoded[kBcOut] = true;
   return true;
 }
 
@@ -304,8 +286,8 @@ DCAnalyzer::DecodeBcOutHits()
 Bool_t
 DCAnalyzer::DecodeSdcInHits()
 {
-  static const auto& digit_info = gUConf.get_digit_info();
-
+  static const auto& digit_info = gUnpackerConf.get_digit_info();
+  m_SdcInHC.clear();
   Int_t plane_offset = 0;
   for(const auto& name: DCNameList.at("SdcIn")){
     Int_t id = digit_info.get_device_id(name.Data());
@@ -395,7 +377,7 @@ DCAnalyzer::DecodeRawHits()
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::DecodeTOFHits(const HodoHitContainer& HitCont)
+DCAnalyzer::DecodeTOFHits(const HodoHC& HitCont)
 {
   if(m_is_decoded[kTOF]){
     hddaq::cout << FUNC_NAME << " "
@@ -434,14 +416,14 @@ DCAnalyzer::DecodeTOFHits(const HodoHitContainer& HitCont)
     dc_hit_x->SetWirePosition(hit_pos.x());
     dc_hit_x->SetZ(hit_pos.z());
     dc_hit_x->SetTiltAngle(0.);
-    dc_hit_x->SetDummyData();
+    dc_hit_x->SetDCData();
     m_TOFHC.push_back(dc_hit_x);
     // Y
     DCHit *dc_hit_y = new DCHit(layer_y, seg);
     dc_hit_y->SetWirePosition(hit_pos.y());
     dc_hit_y->SetZ(hit_pos.z());
     dc_hit_y->SetTiltAngle(90.);
-    dc_hit_y->SetDummyData();
+    dc_hit_y->SetDCData();
     m_TOFHC.push_back(dc_hit_y);
   }
 
@@ -489,14 +471,14 @@ DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
     dc_hit_x->SetWirePosition(hit_pos.x());
     dc_hit_x->SetZ(hit_pos.z());
     dc_hit_x->SetTiltAngle(0.);
-    dc_hit_x->SetDummyData();
+    dc_hit_x->SetDCData();
     m_TOFHC.push_back(dc_hit_x);
     // Y
     DCHit *dc_hit_y = new DCHit(layer_y, seg);
     dc_hit_y->SetWirePosition(hit_pos.y());
     dc_hit_y->SetZ(hit_pos.z());
     dc_hit_y->SetTiltAngle(90.);
-    dc_hit_y->SetDummyData();
+    dc_hit_y->SetDCData();
     m_TOFHC.push_back(dc_hit_y);
   }
 
@@ -515,7 +497,7 @@ DCAnalyzer::TrackSearchBcIn()
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchBcIn(const std::vector<std::vector<DCHitContainer> >& hc)
+DCAnalyzer::TrackSearchBcIn(const std::vector<std::vector<DCHC> >& hc)
 {
   track::MWPCLocalTrackSearch(hc, m_BcInTC);
   return true;
@@ -546,7 +528,7 @@ DCAnalyzer::TrackSearchBcOut(Int_t T0Seg)
 //_____________________________________________________________________________
 // Use with BH2Filter
 Bool_t
-DCAnalyzer::TrackSearchBcOut(const std::vector<std::vector<DCHitContainer> >& hc, Int_t T0Seg)
+DCAnalyzer::TrackSearchBcOut(const std::vector<std::vector<DCHC> >& hc, Int_t T0Seg)
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerBcOut");
 
@@ -586,7 +568,7 @@ DCAnalyzer::TrackSearchSdcOut()
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchSdcOut(const HodoHitContainer& TOFCont)
+DCAnalyzer::TrackSearchSdcOut(const HodoHC& TOFCont)
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcOut");
 
@@ -900,9 +882,6 @@ DCAnalyzer::ClearDCHits()
 #if UseBcIn
   ClearBcInHits();
 #endif
-  ClearBcOutHits();
-  // ClearSdcInHits();
-  ClearSdcOutHits();
   ClearTOFHits();
 }
 
@@ -1025,7 +1004,7 @@ DCAnalyzer::ClearTracksSdcInSdcOut()
 #if UseBcIn
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::ReCalcMWPCHits(std::vector<DCHitContainer>& cont,
+DCAnalyzer::ReCalcMWPCHits(std::vector<DCHC>& cont,
                            Bool_t applyRecursively)
 {
   const std::size_t n = cont.size();
@@ -1043,7 +1022,7 @@ DCAnalyzer::ReCalcMWPCHits(std::vector<DCHitContainer>& cont,
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::ReCalcDCHits(std::vector<DCHitContainer>& cont,
+DCAnalyzer::ReCalcDCHits(std::vector<DCHC>& cont,
                          Bool_t applyRecursively)
 {
   const std::size_t n = cont.size();
@@ -1076,7 +1055,7 @@ DCAnalyzer::ReCalcDCHits(Bool_t applyRecursively)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::ReCalcTrack(DCLocalTrackContainer& cont,
+DCAnalyzer::ReCalcTrack(DCLocalTC& cont,
                         Bool_t applyRecursively)
 {
   const std::size_t n = cont.size();
@@ -1089,8 +1068,7 @@ DCAnalyzer::ReCalcTrack(DCLocalTrackContainer& cont,
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::ReCalcTrack(K18TrackD2UContainer& cont,
-                        Bool_t applyRecursively)
+DCAnalyzer::ReCalcTrack(K18TC& cont, Bool_t applyRecursively)
 {
   const std::size_t n = cont.size();
   for(std::size_t i=0; i<n; ++i){
@@ -1102,7 +1080,7 @@ DCAnalyzer::ReCalcTrack(K18TrackD2UContainer& cont,
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::ReCalcTrack(KuramaTrackContainer& cont,
+DCAnalyzer::ReCalcTrack(KuramaTC& cont,
                         Bool_t applyRecursively)
 {
   const std::size_t n = cont.size();
@@ -1192,7 +1170,7 @@ DCAnalyzer::ReCalcAll()
 
 //_____________________________________________________________________________
 // Int_t
-// clusterizeMWPCHit(const DCHitContainer& hits,
+// clusterizeMWPCHit(const DCHC& hits,
 //     MWPCClusterContainer& clusters)
 // {
 //   if (!clusters.empty()){
@@ -1213,7 +1191,7 @@ DCAnalyzer::ReCalcAll()
 //     n += h->GetTdcSize();
 //   }
 
-//   DCHitContainer singleHits;
+//   DCHC singleHits;
 //   singleHits.reserve(n);
 //   for (Int_t i=0; i<nhits; ++i){
 //     const DCHit* h = hits[i];
@@ -1336,11 +1314,11 @@ DCAnalyzer::ChiSqrCutSdcOut(Double_t chisqr)
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ChiSqrCut(DCLocalTrackContainer& TrackCont,
+DCAnalyzer::ChiSqrCut(DCLocalTC& TrackCont,
                       Double_t chisqr)
 {
-  DCLocalTrackContainer DeleteCand;
-  DCLocalTrackContainer ValidCand;
+  DCLocalTC DeleteCand;
+  DCLocalTC ValidCand;
   for(auto& tempTrack : TrackCont){
     if(tempTrack->GetChiSquare() > chisqr){
       DeleteCand.push_back(tempTrack);
@@ -1361,8 +1339,8 @@ DCAnalyzer::ChiSqrCut(DCLocalTrackContainer& TrackCont,
 void
 DCAnalyzer::TotCutBCOut(Double_t min_tot)
 {
-  for(Int_t i = 0; i<NumOfLayersBcOut; ++i){
-    TotCut(m_BcOutHC[i + 1], min_tot, false);
+  for(const auto& name: DCNameList.at("BcOut")){
+    TotCut(m_dc_hit_collection.at(name), min_tot, false);
   }// for(i)
 }
 
@@ -1404,12 +1382,12 @@ DCAnalyzer::TotCutSDC4(Double_t min_tot)
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::TotCut(DCHitContainer& HitCont,
+DCAnalyzer::TotCut(DCHC& HitCont,
                    Double_t min_tot, Bool_t adopt_nan)
 {
-  DCHitContainer ValidCand;
-  DCHitContainer DeleteCand;
-  for(auto *ptr : HitCont){
+  DCHC ValidCand;
+  DCHC DeleteCand;
+  for(auto& ptr : HitCont){
     ptr->TotCut(min_tot, adopt_nan);
     if(0 == ptr->GetEntries()){
       DeleteCand.push_back(ptr);
@@ -1473,11 +1451,11 @@ DCAnalyzer::DriftTimeCutSDC4(Double_t min_dt, Double_t max_dt)
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::DriftTimeCut(DCHitContainer& HitCont,
+DCAnalyzer::DriftTimeCut(DCHC& HitCont,
                          Double_t min_dt, Double_t max_dt, Bool_t select_1st)
 {
-  DCHitContainer ValidCand;
-  DCHitContainer DeleteCand;
+  DCHC ValidCand;
+  DCHC DeleteCand;
   for(auto *ptr : HitCont){
     ptr->GateDriftTime(min_dt, max_dt, select_1st);
     if(0 == ptr->GetEntries()){

@@ -11,6 +11,7 @@
 #include <std_ostream.hh>
 
 #include "DCAnalyzer.hh"
+#include "DebugCounter.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
 

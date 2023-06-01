@@ -7,7 +7,7 @@
 
 #include <std_ostream.hh>
 
-#include "DCHit.hh"
+// #include "DCHit.hh"
 #include "HodoHit.hh"
 
 //_____________________________________________________________________________

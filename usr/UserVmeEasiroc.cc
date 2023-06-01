@@ -164,271 +164,39 @@ ProcessingBegin()
 Bool_t
 ProcessingNormal()
 {
-#if HodoCut
-  static const Double_t MinDeBH2   = gUser.GetParameter("DeBH2", 0);
-  static const Double_t MaxDeBH2   = gUser.GetParameter("DeBH2", 1);
-  static const Double_t MinDeBH1   = gUser.GetParameter("DeBH1", 0);
-  static const Double_t MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
-  static const Double_t MinBeamToF = gUser.GetParameter("BTOF",  0);
-  static const Double_t MaxBeamToF = gUser.GetParameter("BTOF",  1);
-#endif
-  static const Double_t MinTdcBFT  = gUser.GetParameter("TdcBFT",  0);
-  static const Double_t MaxTdcBFT  = gUser.GetParameter("TdcBFT",  1);
-#if TIME_CUT
-  static const Double_t MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
-  static const Double_t MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
-#endif
-
   RawData rawData;
-  rawData.DecodeHits("TFlag");
-  rawData.DecodeHits("BH1");
-  rawData.DecodeHits("BH2");
-  rawData.DecodeHits("BFT");
-  rawData.DecodeHits("AFT");
-  HodoAnalyzer hodoAna(rawData);
+  // rawData.DecodeHits("TFlag");
+  rawData.DecodeHits("VMEEASIROC");
+  // HodoAnalyzer hodoAna(rawData);
+  rawData.Print();
 
   event.evnum = gUnpacker.get_event_number();
 
   HF1(1, 0);
 
   ///// Trigger Flag
-  std::bitset<NumOfSegTrig> trigger_flag;
-  {
-    for(const auto& hit: rawData.GetHodoRawHC("TFlag")){
-      Int_t seg = hit->SegmentId();
-      Int_t tdc = hit->GetTdc();
-      if(tdc > 0){
-	event.trigpat[trigger_flag.count()] = seg;
-	event.trigflag[seg] = tdc;
-        trigger_flag.set(seg);
-	HF1(10, seg);
-	HF1(10+seg, tdc);
-      }
-    }
-  }
+  // std::bitset<NumOfSegTrig> trigger_flag;
+  // {
+  //   for(const auto& hit: rawData.GetHodoRawHitContainer("TFlag")){
+  //     Int_t seg = hit->SegmentId();
+  //     Int_t tdc = hit->GetTdc();
+  //     if(tdc > 0){
+  //       event.trigpat[trigger_flag.count()] = seg;
+  //       event.trigflag[seg] = tdc;
+  //       trigger_flag.set(seg);
+  //       HF1(10, seg);
+  //       HF1(10+seg, tdc);
+  //     }
+  //   }
+  // }
 
-  if(trigger_flag[trigger::kSpillEnd])
-    return true;
+  // if(trigger_flag[trigger::kSpillEnd])
+  //   return true;
 
   HF1(1, 1);
 
-  ////////// BH2 time 0
-  hodoAna.DecodeHits<BH2Hit>("BH2");
-  Int_t nhBh2 = hodoAna.GetNHits("BH2");
-#if HodoCut
-  if(nhBh2==0) return true;
-#endif
-  HF1(1, 2);
-  Double_t time0 = qnan;
-  ////////// BH2 Analysis
-  for(Int_t i=0; i<nhBh2; ++i){
-    const auto& hit = hodoAna.GetHit("BH2", i);
-    if(!hit) continue;
-    Double_t cmt = hit->CMeanTime();
-    Double_t ct0 = hit->CTime0();
-    Double_t min_time = qnan;
-#if HodoCut
-    Double_t dE  = hit->DeltaE();
-    if(dE<MinDeBH2 || MaxDeBH2<dE)
-      continue;
-#endif
-    if(std::abs(cmt)<std::abs(min_time)){
-      min_time = cmt;
-      time0    = ct0;
-    }
-  }
-
-  HF1(1, 3);
-
-  ////////// BH1 Analysis
-  hodoAna.DecodeHits("BH1");
-  Int_t nhBh1 = hodoAna.GetNHits("BH1");
-#if HodoCut
-  if(nhBh1==0) return true;
-#endif
-  HF1(1, 4);
-  Double_t btof0 = qnan;
-  for(Int_t i=0; i<nhBh1; ++i){
-    const auto& hit = hodoAna.GetHit("BH1", i);
-    if(!hit) continue;
-    Double_t cmt  = hit->CMeanTime();
-    Double_t btof = cmt - time0;
-#if HodoCut
-    Double_t dE   = hit->DeltaE();
-    if(dE<MinDeBH1 || MaxDeBH1<dE) continue;
-    if(btof<MinBeamToF || MaxBeamToF<btof) continue;
-#endif
-    if(std::abs(btof)<std::abs(btof0)){
-      btof0 = btof;
-    }
-  }
-
-  HF1(1, 5);
-
-  HF1(1, 6);
-
-  ////////// BFT
-  hodoAna.DecodeHits<FiberHit>("BFT");
-  {
-    const auto& U = HodoRawHit::kUp;
-    Int_t nh = hodoAna.GetNHits("BFT");
-    Int_t unhits = 0;
-    Int_t dnhits = 0;
-    for(Int_t i=0; i<nh; ++i){
-      const auto& hit = hodoAna.GetHit<FiberHit>("BFT", i);
-      const auto& rhit = hit->GetRawHit();
-      Int_t plane = hit->PlaneId();
-      Int_t seg = hit->SegmentId();
-      // Raw
-      Int_t mh_l = rhit->GetSizeTdcLeading();
-      if(plane == 0) event.bft_udepth[seg] = mh_l;
-      for(Int_t j=0; j<mh_l; ++j){
-        Double_t leading = rhit->GetTdcLeading(U, j);
-        HF1(BFTHid +plane + 6, leading);
-        HF2(BFTHid +plane + 10, seg, leading);
-        HF1(BFTHid +1000*(1+plane)+seg+1, leading);
-        if(plane == 0) event.bft_utdc[seg][j] = leading;
-        if(plane == 1) event.bft_dtdc[seg][j] = leading;
-        if(MinTdcBFT<leading && leading<MaxTdcBFT){
-	  HF1(BFTHid +plane+4, seg+0.5);
-	  if(plane==0) event.bft_uhitpat[unhits++] = seg;
-	  if(plane==1) event.bft_dhitpat[dnhits++] = seg;
-        }
-      }
-      Int_t mh_t = rhit->GetSizeTdcTrailing();
-      if(plane == 1) event.bft_ddepth[seg] = mh_l;
-      for(Int_t j=0; j<mh_t; ++j){
-        Double_t trailing = rhit->GetTdcTrailing(U, j);
-        if(plane == 0) event.bft_utrailing[seg][j] = trailing;
-        if(plane == 1) event.bft_dtrailing[seg][j] = trailing;
-      }
-      // Normalized
-      Int_t mh = hit->GetEntries();
-      for(Int_t j=0; j<mh; ++j){
-        Double_t time  = hit->MeanTime(j);
-        Double_t ctime = hit->CMeanTime(j);
-        Double_t tot   = hit->TOT(U, j);
-        HF1(BFTHid +plane+8, tot);
-        HF2(BFTHid +plane+12, seg, tot);
-        HF1(BFTHid +plane+21, time);
-        HF1(BFTHid +plane+31, ctime);
-        HF1(BFTHid +1000*(plane+3)+seg+1, tot);
-        if(plane == 0) event.bft_utot[seg][j] = tot;
-        if(plane == 1) event.bft_dtot[seg][j] = tot;
-        if(-10.<time && time<10.){
-          HF2(BFTHid +plane+23, tot, time);
-          HF2(BFTHid +plane+33, tot, ctime);
-          HF2(BFTHid +1000*(plane+5)+seg+1, tot, time);
-          HF2(BFTHid +1000*(plane+7)+seg+1, tot, ctime);
-        }
-      }
-    }
-    HF1(BFTHid +1, unhits);
-    HF1(BFTHid +2, dnhits);
-    HF1(BFTHid +3, unhits + dnhits);
-    event.bft_unhits = unhits;
-    event.bft_dnhits = dnhits;
-    event.bft_nhits  = unhits + dnhits;
-
-    // Fiber Cluster
-#if TIME_CUT
-    hodoAna.TimeCut("BFT", MinTimeBFT, MaxTimeBFT);
-#endif
-    Int_t ncl = hodoAna.GetNClusters("BFT");
-    if(ncl > NumOfSegBFT){
-      // std::cout << "#W BFT too much number of clusters" << std::endl;
-      ncl = NumOfSegBFT;
-    }
-    event.bft_ncl = ncl;
-    HF1(BFTHid +101, ncl);
-    for(Int_t i=0; i<ncl; ++i){
-      const auto& cl = hodoAna.GetCluster("BFT", i);
-      if(!cl) continue;
-      // cl->Print();
-      Double_t clsize = cl->ClusterSize();
-      Double_t ctime  = cl->CMeanTime();
-      Double_t ctot   = cl->TOT();
-      Double_t pos    = cl->MeanPosition();
-      Double_t seg    = cl->MeanSeg();
-      event.bft_clsize[i] = clsize;
-      event.bft_ctime[i]  = ctime;
-      event.bft_ctot[i]   = ctot;
-      event.bft_clpos[i]  = pos;
-      event.bft_clseg[i]  = seg;
-      HF1(BFTHid +102, clsize);
-      HF1(BFTHid +103, ctime);
-      HF1(BFTHid +104, ctot);
-      HF2(BFTHid +105, ctot, ctime);
-      HF1(BFTHid +106, pos);
-    }
-  }
-
-  ////////// AFT
-  for(const auto& hit: rawData.GetHodoRawHC("AFT")){
-    // hit->Print();
-    Int_t plane = hit->PlaneId();
-    Int_t seg = hit->SegmentId();
-    for(Int_t ud=0; ud<kUorD; ++ud){
-      auto adc_high = hit->GetAdcHigh(ud);
-      auto adc_low = hit->GetAdcLow(ud);
-      event.aft_adc_high[plane][seg][ud] = adc_high;
-      event.aft_adc_low[plane][seg][ud] = adc_low;
-      HF1(AFTHid+plane*1000+7+ud, adc_high);
-      HF1(AFTHid+plane*1000+9+ud, adc_low);
-      HF2(AFTHid+plane*1000+15+ud, seg, adc_high);
-      HF2(AFTHid+plane*1000+17+ud, seg, adc_low);
-      for(Int_t i=0, n=hit->GetSizeTdcLeading(ud); i<n; ++i){
-        auto tdc = hit->GetTdc(ud, i);
-        event.aft_tdc[plane][seg][ud][i] = tdc;
-        HF1(AFTHid+plane*1000+3+ud, tdc);
-        HF2(AFTHid+plane*1000+11+ud, seg, tdc);
-        // HF1(AFTHid+plane*1000+seg+100+ud*100, tdc);
-      }
-    }
-  }
-
-  hodoAna.DecodeHits<FiberHit>("AFT");
-  for(Int_t i=0, n=hodoAna.GetNHits("AFT"); i<n; ++i){
-    const auto& hit = hodoAna.GetHit<FiberHit>("AFT", i);
-    // hit->Print();
-    // const auto& rhit = hit->GetRawHit();
-    // rhit->Print();
-    Int_t plane = hit->PlaneId();
-    Int_t seg = hit->SegmentId();
-    event.aft_hitpat[plane][event.aft_nhits[plane]++] = seg;
-    HF1(AFTHid+plane*1000+2, seg);
-    Int_t m = hit->GetEntries();
-    for(Int_t j=0; j<m; ++j){
-      auto mt = hit->MeanTime(j);
-      auto cmt = hit->CMeanTime(j);
-      auto mtot = hit->MeanTOT(j);
-      event.aft_mt[plane][seg][j] = mt;
-      event.aft_cmt[plane][seg][j] = cmt;
-      event.aft_mtot[plane][seg][j] = mtot;
-      HF1(AFTHid+plane*1000+21, mt);
-      HF1(AFTHid+plane*1000+22, cmt);
-      HF1(AFTHid+plane*1000+23, mtot);
-      HF2(AFTHid+plane*1000+31, seg, mt);
-      HF2(AFTHid+plane*1000+32, seg, cmt);
-      HF2(AFTHid+plane*1000+33, seg, mtot);
-      for(Int_t ud=0; ud<kUorD; ++ud){
-        auto tot = hit->TOT(ud, j);
-        HF1(AFTHid+plane*1000+5+ud, tot);
-        HF2(AFTHid+plane*1000+13+ud, seg, tot);
-        // HF1(AFTHid+plane*1000+seg+300+ud*100, tot);
-      }
-    }
-    auto de_high = hit->DeltaEHighGain();
-    auto de_low = hit->DeltaELowGain();
-    event.aft_de_high[plane][seg] = de_high;
-    event.aft_de_low[plane][seg] = de_low;
-    HF1(AFTHid+plane*1000+24, de_high);
-    HF1(AFTHid+plane*1000+25, de_low);
-    HF2(AFTHid+plane*1000+34, seg, de_high);
-    HF2(AFTHid+plane*1000+35, seg, de_low);
-  }
-  for(Int_t plane=0; plane<NumOfPlaneAFT; ++plane){
-    HF1(AFTHid+plane*1000+1, event.aft_nhits[plane]);
+  for(const auto& hit: rawData.GetHodoRawHitContainer("VMEEASIROC")){
+    hit->Print();
   }
 
   return true;

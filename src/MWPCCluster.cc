@@ -11,9 +11,10 @@
 #include <std_ostream.hh>
 
 #include "DCHit.hh"
+#include "DebugCounter.hh"
+#include "DeleteUtility.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
-#include "DeleteUtility.hh"
 
 //_____________________________________________________________________________
 void

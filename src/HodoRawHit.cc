@@ -15,7 +15,7 @@
 
 namespace
 {
-const auto& gConf = hddaq::unpacker::GConfig::get_instance();
+const auto& gUnpackerConf = hddaq::unpacker::GConfig::get_instance();
 }
 
 //_____________________________________________________________________________
@@ -32,7 +32,7 @@ HodoRawHit::HodoRawHit(const TString& detector_name,
     m_tdc_trailing(kNChannel),
     m_tdc_is_overflow(false)
 {
-  static const auto& digit_info = gConf.get_digit_info();
+  static const auto& digit_info = gUnpackerConf.get_digit_info();
   m_detector_id = digit_info.get_device_id(detector_name.Data());
   const auto& plane_names = digit_info.get_name_list(m_detector_id);
   m_plane_name = plane_names.at(plane_id);

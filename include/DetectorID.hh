@@ -36,6 +36,7 @@ const Int_t NumOfSegLAC   = 30;
 const Int_t NumOfSegWC    = 20;
 
 const std::map<TString, std::vector<TString>> DCNameList = {
+  {"BcOut", { "BC3", "BC4" }},
   {"SdcIn", { "SDC1", "SDC2" }},
 };
 

@@ -106,15 +106,15 @@ BH2Filter::BuildCandidates(std::set<Int_t>& seg, FilterList& cands)
   for(auto itSeg=seg.begin(), itSegEnd=seg.end();
       itSeg != itSegEnd; ++itSeg, ++itCont){
     const Int_t iSeg = *itSeg;
-    std::vector<DCHitContainer>& c = *itCont;
+    auto& c = *itCont;
     c.resize(NumOfLayersBcOut+2);
     if(m_verbose) std::cout << "  BH2 seg = " << iSeg << std::endl;
     for(Int_t iplane=0; iplane<NumOfLayersBcOut+1; ++iplane){
       Int_t iLayer = iplane + 1;
-      DCHitContainer& after = c[iLayer];
+      auto & after = c[iLayer];
       const Double_t xmin = m_param[iSeg].m_xmin[iplane];
       const Double_t xmax = m_param[iSeg].m_xmax[iplane];
-      const DCHitContainer& before = m_dc->GetBcOutHC(iLayer);
+      const auto& before = m_dc->GetBcOutHC(iLayer);
       for(Int_t ih=0, nh=before.size(); ih<nh; ++ih){
 	auto h = before[ih];
 	if(!h) continue;

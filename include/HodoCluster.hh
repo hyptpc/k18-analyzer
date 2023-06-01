@@ -7,7 +7,6 @@
 
 #include "HodoHit.hh"
 
-using HodoHitContainer = std::vector<HodoHit*>;
 using index_t = std::vector<Int_t>;
 
 //_____________________________________________________________________________
@@ -15,7 +14,7 @@ class HodoCluster
 {
 public:
   static const TString& ClassName();
-  HodoCluster(const HodoHitContainer& cont,
+  HodoCluster(const HodoHC& cont,
               const index_t& index);
   virtual ~HodoCluster();
 
@@ -24,19 +23,19 @@ private:
   HodoCluster& operator =(const HodoCluster&);
 
 protected:
-  Bool_t           m_is_good;
-  HodoHitContainer m_hit_container;
-  index_t          m_index;
-  Int_t            m_cluster_size;
-  Double_t         m_mean_time;
-  Double_t         m_ctime;
-  Double_t         m_time_diff;
-  Double_t         m_de;
-  Double_t         m_tot;
-  Double_t         m_mean_position;
-  Double_t         m_segment;
-  Double_t         m_1st_seg;
-  Double_t         m_1st_time;
+  Bool_t   m_is_good;
+  HodoHC   m_hit_container;
+  index_t  m_index;
+  Int_t    m_cluster_size;
+  Double_t m_mean_time;
+  Double_t m_ctime;
+  Double_t m_time_diff;
+  Double_t m_de;
+  Double_t m_tot;
+  Double_t m_mean_position;
+  Double_t m_segment;
+  Double_t m_1st_seg;
+  Double_t m_1st_time;
 
 public:
   const TString& DetectorName() const

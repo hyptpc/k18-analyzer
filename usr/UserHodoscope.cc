@@ -480,7 +480,7 @@ ProcessingNormal()
 
   // Trigger Flag
   std::bitset<NumOfSegTrig> trigger_flag;
-  for(const auto& hit: rawData.GetHodoRawHitContainer("TFlag")){
+  for(const auto& hit: rawData.GetHodoRawHC("TFlag")){
     Int_t seg = hit->SegmentId();
     Int_t tdc = hit->GetTdc();
     if(tdc > 0){
@@ -502,7 +502,7 @@ ProcessingNormal()
   rawData.DecodeHits("BH1");
   {
     Int_t bh1_nhits = 0;
-    const auto& cont = rawData.GetHodoRawHitContainer("BH1");
+    const auto& cont = rawData.GetHodoRawHC("BH1");
     Int_t nh = cont.size();
     HF1(BH1Hid, nh);
     Int_t nh1 = 0, nh2 = 0;
@@ -553,7 +553,7 @@ ProcessingNormal()
   rawData.DecodeHits("BH2");
   {
     Int_t bh2_nhits = 0;
-    const auto& cont = rawData.GetHodoRawHitContainer("BH2");
+    const auto& cont = rawData.GetHodoRawHC("BH2");
     Int_t nh = cont.size();
     HF1(BH2Hid, nh);
     Int_t nh1 = 0, nh2 = 0;
@@ -604,7 +604,7 @@ ProcessingNormal()
   rawData.DecodeHits("BAC");
   {
     Int_t bac_nhits = 0;
-    const auto& cont = rawData.GetHodoRawHitContainer("BAC");
+    const auto& cont = rawData.GetHodoRawHC("BAC");
     Int_t nh = cont.size();
     HF1(BACHid, nh);
     Int_t nh1 = 0;
@@ -638,7 +638,7 @@ ProcessingNormal()
   rawData.DecodeHits("TOF");
   {
     Int_t tof_nhits = 0;
-    const auto& cont = rawData.GetHodoRawHitContainer("TOF");
+    const auto& cont = rawData.GetHodoRawHC("TOF");
     Int_t nh = cont.size();
     HF1(TOFHid, Double_t(nh));
     Int_t nh1 = 0, nh2 = 0;
@@ -699,7 +699,7 @@ ProcessingNormal()
   rawData.DecodeHits("LAC");
   {
     Int_t lac_nhits = 0;
-    const auto& cont = rawData.GetHodoRawHitContainer("LAC");
+    const auto& cont = rawData.GetHodoRawHC("LAC");
     Int_t nh = cont.size();
     HF1(LACHid, nh);
     for(Int_t i=0; i<nh; ++i){
@@ -730,7 +730,7 @@ ProcessingNormal()
   {
     Int_t wc_nhits = 0;
     Int_t wcsum_nhits = 0;
-    const auto& cont = rawData.GetHodoRawHitContainer("WC");
+    const auto& cont = rawData.GetHodoRawHC("WC");
     Int_t nh = cont.size();
     HF1(WCHid, Double_t(nh));
     Int_t nh1 = 0, nh2 = 0;

@@ -272,13 +272,13 @@ HodoAnalyzer::GetBtof0BH1Cluster(Double_t time0) const
 
 
 //_____________________________________________________________________________
-const HodoHitContainer&
+const HodoHC&
 HodoAnalyzer::GetHitContainer(const TString& name) const
 {
   auto itr = m_hodo_hit_collection.find(name);
   if(itr == m_hodo_hit_collection.end()){
     // throw Exception(FUNC_NAME + " No such detector: " + name);
-    static HodoHitContainer null_container;
+    static HodoHC null_container;
     return null_container;
   }else{
     return itr->second;
@@ -286,13 +286,13 @@ HodoAnalyzer::GetHitContainer(const TString& name) const
 }
 
 //_____________________________________________________________________________
-const HodoClusterContainer&
+const HodoCC&
 HodoAnalyzer::GetClusterContainer(const TString& name) const
 {
   auto itr = m_hodo_cluster_collection.find(name);
   if(itr == m_hodo_cluster_collection.end()){
     // throw Exception(FUNC_NAME + " No such detector: " + name);
-    static HodoClusterContainer null_container;
+    static HodoCC null_container;
     return null_container;
   }else{
     return itr->second;
