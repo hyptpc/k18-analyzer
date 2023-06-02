@@ -106,8 +106,8 @@ module load gcc/830
 module load git/2260
 . /opt/python-3.7/etc/profile.d/conda.sh
 . /group/had/sks/software/root/6.22.08/bin/thisroot.sh
-. /sw/packages/geant4/11.0.2-mt/bin/geant4.sh
-. /sw/packages/geant4/11.0.2-mt/share/Geant4-11.0.2/geant4make/geant4make.sh
+. /sw/packages/geant4/11.0.2/bin/geant4.sh
+. /sw/packages/geant4/11.0.2/share/Geant4-11.0.2/geant4make/geant4make.sh
 export G4WORKDIR=$HOME/work/geant4 # set as you like
 export PATH=/group/had/sks/software/unpacker/s2s/bin:$PATH
 export PATH=$G4WORKDIR/bin/Linux-g++:$PATH
