@@ -88,7 +88,9 @@ RawData::DecodeHits(const TString& name)
   if(false
      || name.Contains("null", TString::kIgnoreCase)
      || name.Contains("Scaler", TString::kIgnoreCase)
-     || name.Contains("RM", TString::kIgnoreCase)){
+     || name.Contains("RM", TString::kIgnoreCase)
+     || name.Contains("UnixTime", TString::kIgnoreCase)
+    ){
     return false;
   }
 

@@ -134,21 +134,15 @@ DCAnalyzer::DCAnalyzer(const RawData& raw_data)
   : m_raw_data(&raw_data),
     m_dc_hit_collection(),
     m_max_v0diff(90.),
-    m_is_decoded(n_type),
-    m_much_combi(n_type),
-    m_MWPCClCont(NumOfLayersBcIn+1),
     m_TempBcInHC(NumOfLayersBcIn+1),
     m_BcInHC(NumOfLayersBcIn+1),
     m_BcOutHC(),
     m_SdcInHC(),
-    m_SdcOutHC(NumOfLayersSdcOut+1),
+    m_SdcOutHC(),
     m_SdcInExTC(NumOfLayersSdcIn),
-    m_SdcOutExTC(NumOfLayersSdcOut+1)
+    m_SdcOutExTC(NumOfLayersSdcOut+1),
+    m_MWPCClCont(NumOfLayersBcIn+1)
 {
-  for(Int_t i=0; i<n_type; ++i){
-    m_is_decoded[i] = false;
-    m_much_combi[i] = 0;
-  }
   debug::ObjectCounter::increase(ClassName());
 }
 
@@ -196,12 +190,6 @@ DCAnalyzer::PrintKurama(const TString& arg) const
 Bool_t
 DCAnalyzer::DecodeBcInHits()
 {
-  if(m_is_decoded[kBcIn]){
-    hddaq::cout << FUNC_NAME << " "
-                << "already decoded" << std::endl;
-    return true;
-  }
-
   ClearBcInHits();
 
   for(Int_t layer=1; layer<=NumOfLayersBcIn; ++layer){
@@ -257,7 +245,6 @@ DCAnalyzer::DecodeBcInHits()
     // hddaq::cout << "nh="<< m_BcInHC[layer].size() <<std::endl;
   }
 
-  m_is_decoded[kBcIn] = true;
   return true;
 }
 #endif
@@ -306,38 +293,19 @@ DCAnalyzer::DecodeSdcInHits()
 Bool_t
 DCAnalyzer::DecodeSdcOutHits(Double_t ofs_dt/*=0.*/)
 {
-  if(m_is_decoded[kSdcOut]){
-    hddaq::cout << FUNC_NAME << " "
-                << "already decoded" << std::endl;
-    return true;
-  }
-
-  ClearSdcOutHits();
-
-#if 0
-  for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer){
-    for(const auto& rhit: m_raw_data->GetSdcOutRawHC(layer)){
-      auto hit = new DCHit(rhit->PlaneId(), rhit->WireId());
-      Int_t nhtdc = rhit->GetTdcSize();
-      Int_t nhtrailing = rhit->GetTrailingSize();
-      if(!hit) continue;
-      if(ofs_dt != 0.) hit->SetOfsdT(ofs_dt);
-      for(Int_t j=0; j<nhtdc; ++j){
-        hit->SetTdcVal(rhit->GetTdc(j));
-      }
-      for(Int_t j=0; j<nhtrailing; ++j){
-        hit->SetTdcTrailing(rhit->GetTrailing(j));
-      }
-      if(hit->CalcDCObservables()){
-        m_SdcOutHC[layer].push_back(hit);
-      }else{
-        delete hit;
-      }
+  static const auto& digit_info = gUnpackerConf.get_digit_info();
+  m_SdcOutHC.clear();
+  Int_t plane_offset = 0;
+  for(const auto& name: DCNameList.at("SdcOut")){
+    Int_t id = digit_info.get_device_id(name.Data());
+    Int_t n_plane = digit_info.get_n_plane(id);
+    m_SdcOutHC.resize(n_plane + m_SdcOutHC.size());
+    DecodeHits(name);
+    for(const auto& hit: m_dc_hit_collection.at(name)){
+      m_SdcOutHC[hit->PlaneId() + plane_offset].push_back(hit);
     }
+    plane_offset += n_plane;
   }
-#endif
-
-  m_is_decoded[kSdcOut] = true;
   return true;
 }
 
@@ -345,6 +313,11 @@ DCAnalyzer::DecodeSdcOutHits(Double_t ofs_dt/*=0.*/)
 void
 DCAnalyzer::DecodeHits(const TString& name)
 {
+  if(m_dc_hit_collection.find(name) != m_dc_hit_collection.end()){
+    hddaq::cerr << FUNC_NAME << std::endl
+                << " " << name << " is already decoded." << std::endl;
+    return;
+  }
   auto& HitCont = m_dc_hit_collection[name];
   del::ClearContainer(HitCont);
   HitCont.clear();
@@ -357,8 +330,7 @@ DCAnalyzer::DecodeHits(const TString& name)
     }
   }
   std::sort(HitCont.begin(), HitCont.end(), DCHit::Compare);
-  // for(const auto& hit: m_dc_hit_collection[name])
-  //   hit->Print();
+  // for(const auto& hit: HitCont) hit->Print();
 }
 
 //_____________________________________________________________________________
@@ -379,12 +351,6 @@ DCAnalyzer::DecodeRawHits()
 Bool_t
 DCAnalyzer::DecodeTOFHits(const HodoHC& HitCont)
 {
-  if(m_is_decoded[kTOF]){
-    hddaq::cout << FUNC_NAME << " "
-                << "already decoded" << std::endl;
-    return true;
-  }
-
   ClearTOFHits();
 
   // for the tilting plane case
@@ -427,7 +393,6 @@ DCAnalyzer::DecodeTOFHits(const HodoHC& HitCont)
     m_TOFHC.push_back(dc_hit_y);
   }
 
-  m_is_decoded[kTOF] = true;
   return true;
 }
 
@@ -435,12 +400,6 @@ DCAnalyzer::DecodeTOFHits(const HodoHC& HitCont)
 Bool_t
 DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
 {
-  if(m_is_decoded[kTOF]){
-    hddaq::cout << FUNC_NAME << " "
-                << "already decoded" << std::endl;
-    return true;
-  }
-
   ClearTOFHits();
 
   static const Double_t RA2 = gGeom.GetRotAngle2("TOF");
@@ -482,7 +441,6 @@ DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
     m_TOFHC.push_back(dc_hit_y);
   }
 
-  m_is_decoded[kTOF] = true;
   return true;
 }
 

@@ -67,7 +67,6 @@ struct Event
   Double_t deTof[MaxHits];
 
   Int_t ntSdcIn;
-  Int_t much; // debug
   Int_t nlSdcIn;
   Int_t nhSdcIn[MaxHits];
   Double_t wposSdcIn[NumOfLayersSdcIn];
@@ -142,7 +141,6 @@ Event::clear()
   nhBh2    = 0;
   nhBh1    = 0;
   nhTof    = 0;
-  much     = -1;
 
   time0 = qnan;
   btof  = qnan;
@@ -494,8 +492,6 @@ ProcessingNormal()
   }
   event.ntSdcIn = ntSdcIn;
   HF1(10, Double_t(ntSdcIn));
-  Int_t much_combi = DCAna.MuchCombinationSdcIn();
-  event.much = much_combi;
   for(Int_t it=0; it<ntSdcIn; ++it){
     const auto& track = DCAna.GetTrackSdcIn(it);
     Int_t nh=track->GetNHit();
@@ -1238,7 +1234,6 @@ ConfMan:: InitializeHistograms()
 
   //Tracking
   tree->Branch("ntSdcIn",    &event.ntSdcIn,     "ntSdcIn/I");
-  tree->Branch("much",       &event.much,        "much/I");
   tree->Branch("nlSdcIn",    &event.nlSdcIn,     "nlSdcIn/I");
   tree->Branch("nhSdcIn",     event.nhSdcIn,     "nhSdcIn[ntSdcIn]/I");
   tree->Branch("chisqrSdcIn", event.chisqrSdcIn, "chisqrSdcIn[ntSdcIn]/D");

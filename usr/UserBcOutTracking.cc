@@ -151,8 +151,7 @@ ProcessingNormal()
   rawData.DecodeHits("TFlag");
   rawData.DecodeHits("BH1");
   rawData.DecodeHits("BH2");
-  rawData.DecodeHits("BC3");
-  rawData.DecodeHits("BC4");
+  for(const auto& name: DCNameList.at("BcOut")) rawData.DecodeHits(name);
   HodoAnalyzer hodoAna(rawData);
   DCAnalyzer   DCAna(rawData);
 

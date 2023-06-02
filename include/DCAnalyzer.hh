@@ -48,37 +48,31 @@ private:
 
 private:
   template <typename T> using map_t = std::map<TString, T>;
-  enum e_type
-  { kBcIn, kBcOut, kSdcIn, kSdcOut, kTOF, n_type };
-  const RawData*                     m_raw_data;
-  map_t<DCHC>              m_dc_hit_collection;
-  // map_t<std::vector<DCHC>> m_dc_hit_local;
-
-  Double_t                           m_max_v0diff;
-  std::vector<Bool_t>                m_is_decoded;
-  std::vector<Int_t>                 m_much_combi;
-  std::vector<MWPCClusterContainer>  m_MWPCClCont;
-  std::vector<DCHC>        m_TempBcInHC;
-  std::vector<DCHC>        m_BcInHC;
-  std::vector<DCHC>        m_BcOutHC;
-  std::vector<DCHC>        m_SdcInHC;
-  std::vector<DCHC>        m_SdcOutHC;
-  DCHC                     m_TOFHC;
-  DCHC                     m_VtxPoint;
+  const RawData*         m_raw_data;
+  map_t<DCHC>            m_dc_hit_collection;
+  Double_t               m_max_v0diff;
+  std::vector<DCHC>      m_TempBcInHC;
+  std::vector<DCHC>      m_BcInHC;
+  std::vector<DCHC>      m_BcOutHC;
+  std::vector<DCHC>      m_SdcInHC;
+  std::vector<DCHC>      m_SdcOutHC;
+  DCHC                   m_TOFHC;
+  DCHC                   m_VtxPoint;
   DCLocalTC              m_BcInTC;
   DCLocalTC              m_BcOutTC;
   DCLocalTC              m_SdcInTC;
   DCLocalTC              m_SdcOutTC;
-  K18TrackU2DContainer               m_K18U2DTC;
-  K18TC               m_K18D2UTC;
+  K18TC                  m_K18D2UTC;
   KuramaTC               m_KuramaTC;
   DCLocalTC              m_BcOutSdcInTC;
   DCLocalTC              m_SdcInSdcOutTC;
   std::vector<DCLocalTC> m_SdcInExTC;
   std::vector<DCLocalTC> m_SdcOutExTC;
+  // no use
+  std::vector<MWPCClusterContainer>  m_MWPCClCont;
+  K18TrackU2DContainer               m_K18U2DTC;
 
 public:
-  Int_t  MuchCombinationSdcIn() const { return m_much_combi[kSdcIn]; }
   void   DecodeHits(const TString& name);
   void   DecodeLocalHits(const TString& name);
   Bool_t DecodeRawHits();

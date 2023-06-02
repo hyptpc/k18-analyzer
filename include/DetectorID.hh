@@ -38,6 +38,7 @@ const Int_t NumOfSegWC    = 20;
 const std::map<TString, std::vector<TString>> DCNameList = {
   {"BcOut", { "BC3", "BC4" }},
   {"SdcIn", { "SDC1", "SDC2" }},
+  {"SdcOut", { "SDC3", "SDC4", "SDC5" }},
 };
 
 // Misc _______________________________________________________________

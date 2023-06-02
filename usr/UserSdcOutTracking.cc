@@ -21,7 +21,7 @@
 #include "RawData.hh"
 
 #define HodoCut     0
-#define TotCut      1
+#define TotCut      0
 #define Chi2Cut     0
 #define MaxMultiCut 0
 #define UseTOF      0 // use or not TOF for tracking
@@ -188,7 +188,13 @@ ProcessingNormal()
 #endif
 
   RawData rawData;
-  rawData.DecodeHits();
+  rawData.DecodeHits("TFlag");
+  rawData.DecodeHits("BH1");
+  rawData.DecodeHits("BH2");
+  rawData.DecodeHits("TOF");
+  for(const auto& name: DCNameList.at("SdcIn")) rawData.DecodeHits(name);
+  for(const auto& name: DCNameList.at("SdcOut")) rawData.DecodeHits(name);
+
   HodoAnalyzer hodoAna(rawData);
   DCAnalyzer   DCAna(rawData);
 
@@ -391,8 +397,9 @@ ProcessingNormal()
   }
 #endif
   Double_t multi_SdcOut = 0.;
-  for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer) {
-    const auto& contOut = DCAna.GetSdcOutHC(layer);
+  for(Int_t plane=0; plane<NumOfLayersSdcOut; ++plane){
+    Int_t layer = plane + 1;
+    const auto& contOut = DCAna.GetSdcOutHC(plane);
     Int_t nhOut = contOut.size();
     event.nhit[layer-1] = nhOut;
     if(nhOut>0) event.nlayer++;
