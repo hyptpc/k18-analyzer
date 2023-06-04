@@ -150,7 +150,7 @@ RawData::AddHodoRawHit(HodoRHC& cont,
   }
 
   // Fiber
-  if(name.Contains("BFT") || name.Contains("AFT")){
+  if(name.Contains("BFT") || name.Contains("AFT") || name.Contains("VMEEASIROC")){
     if(data == gUnpacker.get_data_id(name, "leading")){
       p->SetTdcLeading(ch, val);
     }else if(data == gUnpacker.get_data_id(name, "trailing")){
