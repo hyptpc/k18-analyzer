@@ -71,8 +71,20 @@ public:
   // aliases
   const std::vector<Double_t>& GetArrayAdc(Int_t i=0) const
     { return GetArrayAdcHigh(i); }
+  const std::vector<Double_t>& GetArrayAdcUp() const
+    { return GetArrayAdcHigh(kUp); }
+  const std::vector<Double_t>& GetArrayAdcDown() const
+    { return GetArrayAdcHigh(kDown); }
+  const std::vector<Double_t>& GetArrayAdcExtra() const
+    { return GetArrayAdcHigh(kExtra); }
   const std::vector<Double_t>& GetArrayTdc(Int_t i=0) const
     { return GetArrayTdcLeading(i); }
+  const std::vector<Double_t>& GetArrayTdcUp() const
+    { return GetArrayTdcLeading(kUp); }
+  const std::vector<Double_t>& GetArrayTdcDown() const
+    { return GetArrayTdcLeading(kDown); }
+  const std::vector<Double_t>& GetArrayTdcExtra() const
+    { return GetArrayTdcLeading(kExtra); }
   Double_t GetAdc(Int_t i=0, Int_t j=0) const
     { return GetAdcHigh(i, j); }
   Double_t GetTdc(Int_t i=0, Int_t j=0) const

@@ -20,6 +20,13 @@ const Int_t DetIdVMEASIROC = 116;
 const Int_t NumOfPlaneVMEEASIROC = 96;
 const Int_t NumOfSegVMEEASIROC = 64;
 
+const std::map<TString, std::vector<TString>> DCNameList =
+{
+  {"BcOut", { "BC3", "BC4" }},
+  {"SdcIn", { "SDC1", "SDC2" }},
+  {"SdcOut", { "SDC3", "SDC4", "SDC5" }},
+};
+
 // Counters ___________________________________________________________
 const Int_t NumOfSegBH1   = 11;
 const Int_t NumOfSegBH2   =  8;
@@ -28,14 +35,8 @@ const Int_t NumOfSegSCH   = 64;
 const Int_t NumOfSegTOF   = 24;
 const Int_t NumOfSegHTOF  = 34;
 const Int_t NumOfSegBVH   =  4;
-const Int_t NumOfSegLAC   = 30;
+const Int_t NumOfSegAC1   = 30;
 const Int_t NumOfSegWC    = 20;
-
-const std::map<TString, std::vector<TString>> DCNameList = {
-  {"BcOut", { "BC3", "BC4" }},
-  {"SdcIn", { "SDC1", "SDC2" }},
-  {"SdcOut", { "SDC3", "SDC4", "SDC5" }},
-};
 
 // Misc _______________________________________________________________
 const Int_t DetIdTrig       = 21;

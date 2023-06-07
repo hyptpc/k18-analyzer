@@ -56,14 +56,12 @@ public:
   template <typename T> const T* Get(const TString& name, Int_t i) const;
 
 private:
-  void AddRawHit(const TString& name, Int_t plane, Int_t seg,
-                 Int_t ch, Int_t data, Double_t val);
-  Bool_t AddHodoRawHit(HodoRHC& cont,
-                       const TString& name, Int_t plane, Int_t seg,
+  Bool_t AddHodoRawHit(const TString& name, Int_t plane, Int_t seg,
                        Int_t UorD, Int_t data, Double_t val);
-  Bool_t AddDCRawHit(DCRHC& cont,
-                       const TString& name, Int_t plane, Int_t seg,
-                       Int_t UorD, Int_t data, Double_t val);
+  Bool_t AddFiberRawHit(const TString& name, Int_t plane, Int_t seg,
+                        Int_t UorD, Int_t data, Double_t val);
+  Bool_t AddDCRawHit(const TString& name, Int_t plane, Int_t seg,
+                     Int_t UorD, Int_t data, Double_t val);
 };
 
 //_____________________________________________________________________________

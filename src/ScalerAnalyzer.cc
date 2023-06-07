@@ -207,15 +207,15 @@ ScalerAnalyzer::Decode()
   }
 
   //////////////////// for LAC SUM
-  {
-    if(Has("LAC-SUM")){
-      static Channel ch = Find("LAC-SUM");
-      m_info[ch.first][ch.second].data = 0;
-      for(Int_t i=0; i<NumOfSegLAC/2; ++i){
-	m_info[ch.first][ch.second].data += Get(Form("LAC-%02d", i+1));
-      }
-    }
-  }
+  // {
+  //   if(Has("LAC-SUM")){
+  //     static Channel ch = Find("LAC-SUM");
+  //     m_info[ch.first][ch.second].data = 0;
+  //     for(Int_t i=0; i<NumOfSegLAC/2; ++i){
+  //       m_info[ch.first][ch.second].data += Get(Form("LAC-%02d", i+1));
+  //     }
+  //   }
+  // }
 
   //////////////////// Spill
   {

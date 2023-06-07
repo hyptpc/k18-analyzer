@@ -62,9 +62,9 @@ main(int argc, char **argv)
 
   hddaq::cout << "[::main()] recreate root file : " << out_file << std::endl;
   new TFile(out_file, "recreate");
-  auto version = new TNamed(
-    "version", ("\n"+gSystem->GetFromPipe("git log -1")).Data());
-  version->Write();
+  auto git = new TNamed
+    ("git", ("\n"+gSystem->GetFromPipe("git log -1")).Data());
+  git->Write();
 
   if(!gConf.Initialize(conf_file) || !gConf.InitializeUnpacker())
     return EXIT_FAILURE;

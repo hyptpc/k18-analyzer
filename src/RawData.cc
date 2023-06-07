@@ -84,18 +84,25 @@ RawData::DecodeHits(const TString& name)
     return ret;
   }
 
-  if(false
-     || name.Contains("null", TString::kIgnoreCase)
-     || name.Contains("Scaler", TString::kIgnoreCase)
-     || name.Contains("RM", TString::kIgnoreCase)
-     || name.Contains("UnixTime", TString::kIgnoreCase)
-    ){
+  auto id = digit_info.get_device_id(name.Data());
+  const TString type = digit_info.get_device_type(id);
+
+#if 0
+  hddaq::cout << FUNC_NAME << std::endl
+              << id << " " << name << " " << type << std::endl;
+#endif
+
+  if(type.IsNull())
     return false;
-  }
 
   Clear(name);
 
-  auto id = digit_info.get_device_id(name.Data());
+  Bool_t is_hodo  = type.Contains("Hodo", TString::kIgnoreCase);
+  Bool_t is_fiber = type.Contains("Fiber", TString::kIgnoreCase);
+  Bool_t is_dc    = type.Contains("DC", TString::kIgnoreCase);
+
+  if(!is_hodo && !is_fiber && !is_dc)
+    return false;
 
   for(Int_t plane=0, n_plane=gUnpacker.get_n_plane(id);
       plane<n_plane; ++plane){
@@ -108,20 +115,14 @@ RawData::DecodeHits(const TString& name)
           for(Int_t i=0, n=gUnpacker.get_entries(id, plane, seg, ch, data);
               i<n; ++i){
             UInt_t val = gUnpacker.get(id, plane, seg, ch, data, i);
-            if(name.Contains("BC") || name.Contains("SDC")){
-              AddDCRawHit(m_dc_raw_hit_collection[name], name,
-                          plane, seg, ch, data, val);
-            }else if(digit_info.get_n_ch(id) <= HodoRawHit::kNChannel){
-              AddHodoRawHit(m_hodo_raw_hit_collection[name], name,
-                            plane, seg, ch, data, val);
-            }
+            if(is_hodo)  AddHodoRawHit(name, plane, seg, ch, data, val);
+            if(is_fiber) AddFiberRawHit(name, plane, seg, ch, data, val);
+            if(is_dc)    AddDCRawHit(name, plane, seg, ch, data, val);
           }
         }
       }
     }
   }
-
-  // Print();
 
   m_is_decoded[name] = true;
   return true;
@@ -129,10 +130,10 @@ RawData::DecodeHits(const TString& name)
 
 //_____________________________________________________________________________
 Bool_t
-RawData::AddHodoRawHit(HodoRHC& cont,
-		       const TString& name, Int_t plane, Int_t seg,
+RawData::AddHodoRawHit(const TString& name, Int_t plane, Int_t seg,
 		       Int_t ch, Int_t data, Double_t val)
 {
+  auto& cont = m_hodo_raw_hit_collection[name];
   HodoRawHit* p = nullptr;
   for(Int_t i=0, n=cont.size(); i<n; ++i){
     HodoRawHit* q = cont[i];
@@ -148,52 +149,76 @@ RawData::AddHodoRawHit(HodoRHC& cont,
     cont.push_back(p);
   }
 
-  // Fiber
-  if(name.Contains("BFT") || name.Contains("AFT") || name.Contains("VMEEASIROC")){
-    if(data == gUnpacker.get_data_id(name, "leading")){
-      p->SetTdcLeading(ch, val);
-    }else if(data == gUnpacker.get_data_id(name, "trailing")){
-      p->SetTdcTrailing(ch, val);
-    }else if(data == gUnpacker.get_data_id(name, "highgain")){
-      p->SetAdcHigh(ch, val);
-    }else if(data == gUnpacker.get_data_id(name, "lowgain")){
-      p->SetAdcLow(ch, val);
-    }else{
-      ;
-    }
+  if(data == gUnpacker.get_data_id(name, "adc")){
+    p->SetAdc(ch, val);
+  }else if(data == gUnpacker.get_data_id(name, "tdc")){
+    p->SetTdcLeading(ch, val);
+  }else if(data == gUnpacker.get_data_id(name, "trailing")){
+    p->SetTdcTrailing(ch, val);
+  // }else if(data == gUnpacker.get_data_id(name, "cstop")){
+  //   ;
+  }else if(data == gUnpacker.get_data_id(name, "overflow")){
+    p->SetTdcOverflow(ch, val);
   }
-  // Hodoscope
   else{
-    if(data == gUnpacker.get_data_id(name, "adc")){
-      p->SetAdc(ch, val);
-    }else if(data == gUnpacker.get_data_id(name, "tdc")){
-      p->SetTdcLeading(ch, val);
-    }else if(data == gUnpacker.get_data_id(name, "trailing")){
-      p->SetTdcTrailing(ch, val);
-      // }else if(data == gUnpacker.get_data_id(name, "cstop")){
-      //   ;
-    }else if(data == gUnpacker.get_data_id(name, "overflow")){
-      p->SetTdcOverflow(ch, val);
-    }
-    else{
-      // hddaq::cerr << FUNC_NAME << " wrong data type " << std::endl
-      //             << " DetectorId = " << id    << std::endl
-      //             << " Plane      = " << plane << std::endl
-      //             << " Segment    = " << seg   << std::endl
-      //             << " Channel    = " << ch    << std::endl
-      //             << " Data       = " << data  << std::endl;
-      // return false;
-    }
+    hddaq::cerr << FUNC_NAME << " wrong data type " << std::endl
+                << " Detector   = " << name  << std::endl
+                << " Plane      = " << plane << std::endl
+                << " Segment    = " << seg   << std::endl
+                << " Channel    = " << ch    << std::endl
+                << " Data       = " << data  << std::endl;
+    return false;
   }
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-RawData::AddDCRawHit(DCRHC& cont,
-                     const TString& name, Int_t plane, Int_t seg,
+RawData::AddFiberRawHit(const TString& name, Int_t plane, Int_t seg,
+		       Int_t ch, Int_t data, Double_t val)
+{
+  auto& cont = m_hodo_raw_hit_collection[name];
+  HodoRawHit* p = nullptr;
+  for(Int_t i=0, n=cont.size(); i<n; ++i){
+    HodoRawHit* q = cont[i];
+    if(true
+       && q->DetectorName() == name
+       && q->PlaneId() == plane
+       && q->SegmentId() == seg){
+      p=q; break;
+    }
+  }
+  if(!p){
+    p = new HodoRawHit(name, plane, seg);
+    cont.push_back(p);
+  }
+
+  if(data == gUnpacker.get_data_id(name, "leading")){
+    p->SetTdcLeading(ch, val);
+  }else if(data == gUnpacker.get_data_id(name, "trailing")){
+    p->SetTdcTrailing(ch, val);
+  }else if(data == gUnpacker.get_data_id(name, "highgain")){
+    p->SetAdcHigh(ch, val);
+  }else if(data == gUnpacker.get_data_id(name, "lowgain")){
+    p->SetAdcLow(ch, val);
+  }else{
+    hddaq::cerr << FUNC_NAME << " wrong data type " << std::endl
+                << " Detector   = " << name  << std::endl
+                << " Plane      = " << plane << std::endl
+                << " Segment    = " << seg   << std::endl
+                << " Channel    = " << ch    << std::endl
+                << " Data       = " << data  << std::endl;
+    return false;
+  }
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+RawData::AddDCRawHit(const TString& name, Int_t plane, Int_t seg,
                      Int_t ch, Int_t data, Double_t val)
 {
+  auto& cont = m_dc_raw_hit_collection[name];
   Int_t wire = ch;
   DCRawHit* p = nullptr;
   for(Int_t i=0, n=cont.size(); i<n; ++i){
@@ -223,10 +248,11 @@ RawData::AddDCRawHit(DCRHC& cont,
     p->SetTdcOverflow(val);
   }else{
     hddaq::cerr << FUNC_NAME << " unknown data type " << std::endl
-		<< "PlaneId    = " << plane << std::endl
-		<< "WireId     = " << wire  << std::endl
-		<< "DataType   = " << data  << std::endl
-		<< "Value      = " << val   << std::endl;
+                << " Detector = " << name  << std::endl
+		<< " PlaneId  = " << plane << std::endl
+		<< " WireId   = " << wire  << std::endl
+		<< " DataType = " << data  << std::endl
+		<< " Value    = " << val   << std::endl;
   }
   return true;
 }
