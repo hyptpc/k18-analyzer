@@ -35,10 +35,9 @@
 
 namespace
 {
-using hddaq::unpacker::GUnpacker;
 const TString kConfFile("CONF");
 TString sConfDir;
-auto& gUnpacker = GUnpacker::get_instance();
+auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gMatrix = MatrixParamMan::GetInstance();
 auto& gUser = UserParamMan::GetInstance();
 }

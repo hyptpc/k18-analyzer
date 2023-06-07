@@ -138,6 +138,7 @@ public:
   void TotCutSDC2(Double_t min_tot);
   void TotCutSDC3(Double_t min_tot);
   void TotCutSDC4(Double_t min_tot);
+  void TotCutSDC5(Double_t min_tot);
 
   void DriftTimeCutBC34(Double_t min_dt, Double_t max_dt);
   void DriftTimeCutSDC1(Double_t min_dt, Double_t max_dt);
@@ -215,6 +216,7 @@ protected:
   void ClearKuramaTracks();
   void ChiSqrCut(DCLocalTC& cont, Double_t chisqr);
   void TotCut(DCHC& cont, Double_t min_tot, Bool_t adopt_nan);
+  void TotCut(const TString& name, Double_t min_tot, Bool_t adopt_nan);
   void DriftTimeCut(DCHC& cont, Double_t min_dt, Double_t max_dt, Bool_t select_1st);
   static Int_t MakeUpMWPCClusters(const DCHC& HitCont,
                                   MWPCClusterContainer& ClusterCont,

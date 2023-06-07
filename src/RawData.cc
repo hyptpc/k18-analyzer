@@ -27,7 +27,6 @@ namespace
 {
 using namespace hddaq::unpacker;
 const auto& gUnpacker     = GUnpacker::get_instance();
-const auto& gUnpackerConf = GConfig::get_instance();
 const auto& gUser         = UserParamMan::GetInstance();
 }
 
@@ -68,7 +67,7 @@ RawData::Clear(const TString& name)
 Bool_t
 RawData::DecodeHits(const TString& name)
 {
-  static const auto& digit_info = gUnpackerConf.get_digit_info();
+  static const auto& digit_info = GConfig::get_instance().get_digit_info();
 
   if(m_is_decoded[name]){
     hddaq::cerr << FUNC_NAME << " " << name << " is already decoded"

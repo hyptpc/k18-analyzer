@@ -50,6 +50,8 @@
 #include <TLine.h>
 
 #include <std_ostream.hh>
+#include <UnpackerConfig.hh>
+#include <UnpackerXMLReadDigit.hh>
 
 #include "DCGeomMan.hh"
 #include "DCLocalTrack.hh"
@@ -76,7 +78,8 @@
 
 namespace
 {
-const DCGeomMan& gGeom = DCGeomMan::GetInstance();
+const auto& gUnpackerConf = hddaq::unpacker::GConfig::get_instance();
+const auto& gGeom = DCGeomMan::GetInstance();
 const Int_t& IdBH1 = gGeom.DetectorId("BH1");
 const Int_t& IdBH2 = gGeom.DetectorId("BH2");
 const Int_t& IdSCH = gGeom.DetectorId("SCH");
@@ -699,18 +702,21 @@ EventDisplay::Initialize()
 Bool_t
 EventDisplay::ConstructBH2()
 {
+  const auto& digit_info = gUnpackerConf.get_digit_info();
+  const Int_t id = digit_info.get_device_id("BH2");
+  const Int_t n_seg = digit_info.get_n_segment(id);
   const Int_t lid = gGeom.GetDetectorId("BH2");
 
   Double_t rotMatBH2[9] = {};
   Double_t BH2wallX = 120.0/2.; // X
   Double_t BH2wallY =   6.0/2.; // Z
   Double_t BH2wallZ =  40.0/2.; // Y
-  Double_t BH2SizeX[NumOfSegBH2] = { 120./2. }; // X
-  Double_t BH2SizeY[NumOfSegBH2] = {   6./2. }; // Z
-  Double_t BH2SizeZ[NumOfSegBH2] = {  40./2. }; // Y
-  Double_t BH2PosX[NumOfSegBH2]  = { 0./2. };
-  Double_t BH2PosY[NumOfSegBH2]  = { 0./2. };
-  Double_t BH2PosZ[NumOfSegBH2]  = { 0./2. };
+  Double_t BH2SizeX[n_seg] = { 120./2. }; // X
+  Double_t BH2SizeY[n_seg] = {   6./2. }; // Z
+  Double_t BH2SizeZ[n_seg] = {  40./2. }; // Y
+  Double_t BH2PosX[n_seg]  = { 0./2. };
+  Double_t BH2PosY[n_seg]  = { 0./2. };
+  Double_t BH2PosZ[n_seg]  = { 0./2. };
 
   CalcRotMatrix(gGeom.GetTiltAngle(lid),
                 gGeom.GetRotAngle1(lid),
@@ -728,7 +734,7 @@ EventDisplay::ConstructBH2()
   m_BH2wall_node->SetVisibility(0);
   m_BH2wall_node->cd();
 
-  for(Int_t i=0; i<NumOfSegBH2; ++i){
+  for(Int_t i=0; i<n_seg; ++i){
     new TBRIK(Form("BH2seg_brik_%d", i),
               Form("BH2seg_brik_%d", i),
               "void", BH2SizeX[i], BH2SizeY[i], BH2SizeZ[i]);

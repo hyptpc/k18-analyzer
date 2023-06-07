@@ -90,6 +90,10 @@ public:
   Double_t GetTdcRight(Int_t i=0) const { return GetTdc(kDown, i); }
   Double_t GetTdcExtra(Int_t i=0) const { return GetTdc(kExtra, i); }
 
+  Int_t GetSizeTdcUp() const { return GetSizeTdcLeading(kUp); }
+  Int_t GetSizeTdcDown() const { return GetSizeTdcLeading(kDown); }
+  Int_t GetSizeTdcExtra() const { return GetSizeTdcLeading(kExtra); }
+
   void SetAdc(Int_t i, Double_t adc) { SetAdcHigh(i, adc); }
   void SetTdc(Int_t i, Double_t tdc) { SetTdcLeading(i, tdc); }
 

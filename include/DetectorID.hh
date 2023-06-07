@@ -10,7 +10,6 @@
 #include <TString.h>
 
 // temp
-const Int_t DetIdAFT = 112;
 const Int_t NumOfPlaneAFT = 36;
 const Int_t NumOfSegAFT = 32;
 // VMEEASIROC
@@ -22,16 +21,6 @@ const Int_t NumOfPlaneVMEEASIROC = 96;
 const Int_t NumOfSegVMEEASIROC = 64;
 
 // Counters ___________________________________________________________
-const Int_t DetIdBH1      =  1;
-const Int_t DetIdBH2      =  2;
-const Int_t DetIdBAC      =  3;
-const Int_t DetIdSCH      =  6;
-const Int_t DetIdTOF      =  7;
-const Int_t DetIdHTOF     =  8;
-const Int_t DetIdBVH      =  9;
-const Int_t DetIdLAC      = 12;
-const Int_t DetIdWC       = 13;
-const Int_t DetIdWCSUM    = 14; // Dummy
 const Int_t NumOfSegBH1   = 11;
 const Int_t NumOfSegBH2   =  8;
 const Int_t NumOfSegBAC   =  2;
@@ -142,14 +131,14 @@ const Int_t NumOfPlaneVmeCalib =   5;
 const Int_t NumOfSegVmeCalib   =  32;
 
 // Trackers ___________________________________________________________
-const Int_t DetIdBC3  = 103;
-const Int_t DetIdBC4  = 104;
-const Int_t DetIdSDC1 = 105;
-const Int_t DetIdSDC2 = 106;
-const Int_t DetIdSDC3 = 107;
-const Int_t DetIdSDC4 = 108;
-const Int_t DetIdSDC5 = 109;
-const Int_t DetIdBFT  = 110;
+// const Int_t DetIdBC3  = 103;
+// const Int_t DetIdBC4  = 104;
+// const Int_t DetIdSDC1 = 105;
+// const Int_t DetIdSDC2 = 106;
+// const Int_t DetIdSDC3 = 107;
+// const Int_t DetIdSDC4 = 108;
+// const Int_t DetIdSDC5 = 109;
+// const Int_t DetIdBFT  = 110;
 
 const Int_t PlMinBcIn        =   1;
 const Int_t PlMaxBcIn        =  12;
@@ -235,5 +224,19 @@ enum dTypesMst
 
 // Scaler ----------------------------------------------
 const Int_t NumOfScaler  = 2;
+
+// Parasite ___________________________________________________________
+const Int_t DetIdE72BAC      =  501;
+const Int_t DetIdE90SAC      =  502;
+const Int_t DetIdE72KVC      =  503;
+const Int_t DetIdE42BH2      =  504;
+const Int_t DetIdT1          =  505;
+const Int_t DetIdT2          =  506;
+const Int_t NumOfSegE72BAC   =  1;
+const Int_t NumOfSegE90SAC   =  2;
+const Int_t NumOfSegE72KVC   =  4;
+const Int_t NumOfSegE42BH2   =  8;
+const Int_t NumOfSegT1       =  1;
+const Int_t NumOfSegT2       =  1;
 
 #endif

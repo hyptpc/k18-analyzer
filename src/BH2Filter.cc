@@ -12,6 +12,9 @@
 
 #include <TString.h>
 
+#include <UnpackerConfig.hh>
+#include <UnpackerXMLReadDigit.hh>
+
 #include "BH2Hit.hh"
 #include "DetectorID.hh"
 #include "DCHit.hh"
@@ -57,10 +60,14 @@ BH2Filter::Param::Print(const TString& arg) const
 BH2Filter::BH2Filter()
   : m_is_ready(false),
     m_verbose(false),
-    m_param(NumOfSegBH2),
+    m_param(),
     m_dc(),
     m_hodo()
 {
+  const auto& digit_info = hddaq::unpacker::GConfig::get_instance().get_digit_info();
+  const Int_t id = digit_info.get_device_id("BH2");
+  const Int_t n_seg = digit_info.get_n_segment(id);
+  m_param.resize(n_seg);
 }
 
 //_____________________________________________________________________________

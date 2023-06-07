@@ -8,6 +8,9 @@
 #include <fstream>
 #include <sstream>
 
+#include <UnpackerConfig.hh>
+#include <UnpackerXMLReadDigit.hh>
+
 #include "DetectorID.hh"
 #include "FuncName.hh"
 #include "Exception.hh"
@@ -38,9 +41,15 @@ BH1Match::Param::Print(std::ostream& ost) const
 
 //_____________________________________________________________________________
 BH1Match::BH1Match()
-  : m_param(2*NumOfSegBH1-1)
+  : m_status(),
+    m_param()
 {
+  static const auto& digit_info =
+    hddaq::unpacker::GConfig::get_instance().get_digit_info();
+  static const Int_t id = digit_info.get_device_id("BH1");
+  static const Int_t n_seg = digit_info.get_n_segment(id);
   m_status.reset();
+  m_param.resize(2*n_seg-1);
 }
 
 //_____________________________________________________________________________

@@ -365,36 +365,9 @@ ProcessingNormal()
   DCAna.DecodeSdcOutHits();
 
 #if TotCut
-  //DCAna.TotCutSDC3(MinTotSDC3);
-  //DCAna.TotCutSDC3(150);
-  //DCAna.TotCutSDC4(MinTotSDC4);
-  //DCAna.TotCutSDC5(MinTotSDC5);
-#endif
-#if 0
-  const auto& contOut_3y = DCAna.GetSdcOutHC(3);
-  const auto& contOut_5y = DCAna.GetSdcOutHC(9);
-  if(contOut_3y.size()==0 || contOut_5y.size()==0){
-    return true;
-  }
-  const auto& contOut_3x = DCAna.GetSdcOutHC(1);
-  const auto& contOut_5x = DCAna.GetSdcOutHC(11);
-  if(contOut_3x.size()==0 || contOut_5x.size()==0){
-    return true;
-  }
-  DCHit *hit_3y=contOut_3y[0];
-  Double_t wire_3y=hit_3y->GetWire();
-  DCHit *hit_5y=contOut_5y[0];
-  Double_t wire_5y=hit_5y->GetWire();
-  if(wire_3y < wire_5y-27 || wire_3y > wire_5y+59){
-    return true;
-  }
-  DCHit *hit_3x=contOut_3x[0];
-  Double_t wire_3x=hit_3x->GetWire();
-  DCHit *hit_5x=contOut_5x[0];
-  Double_t wire_5x=hit_5x->GetWire();
-  if(wire_3x < wire_5x-43 || wire_3x > wire_5x+43){
-    return true;
-  }
+  DCAna.TotCutSDC3(MinTotSDC3);
+  DCAna.TotCutSDC4(MinTotSDC4);
+  DCAna.TotCutSDC5(MinTotSDC5);
 #endif
   Double_t multi_SdcOut = 0.;
   for(Int_t plane=0; plane<NumOfLayersSdcOut; ++plane){
