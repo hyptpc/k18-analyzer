@@ -127,6 +127,7 @@ public:
   void QuitTrack(Int_t i=0) { m_belong_to_track.at(i) = false; }
   Bool_t BelongToTrack(Int_t i=0) const { return m_belong_to_track.at(i); }
   Bool_t IsGood(Int_t i=0) const { return m_is_good.at(i); }
+  Bool_t IsEmpty() const { return GetEntries() == 0; }
 
   void SetLayer(Int_t layer){ m_layer = layer; }
   void SetWire(Double_t wire){ m_wire  = wire; }
@@ -166,8 +167,8 @@ public:
   Double_t GetDriftLengthSize() const { return GetEntries(); }
 
   void GateDriftTime(Double_t min, Double_t max, Bool_t select_1st);
-  void TotCut(Double_t min, Bool_t adopt_nan);
-  void Print(const TString& arg="") const;
+  void TotCut(Double_t min, Bool_t keep_nan);
+  void Print(Option_t* arg="") const;
 
   ///// for CFT
   // void SetMeanSeg(Double_t seg) { m_meanseg = seg; }

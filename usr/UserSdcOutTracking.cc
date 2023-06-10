@@ -21,7 +21,7 @@
 #include "RawData.hh"
 
 #define HodoCut     0
-#define TotCut      0
+#define TotCut      1
 #define Chi2Cut     0
 #define MaxMultiCut 0
 #define UseTOF      0 // use or not TOF for tracking
@@ -382,7 +382,7 @@ ProcessingNormal()
     Bool_t fl_valid_sig = false;
     Int_t tdc1st_2 = -1;
     for(Int_t i=0; i<nhOut; ++i){
-      DCHit *hit=contOut[i];
+      const auto& hit = contOut[i];
       Double_t wire=hit->GetWire();
       HF1(100*layer+1, wire-0.5);
       event.wire[layer-1][i] = wire-0.5;
@@ -390,11 +390,11 @@ ProcessingNormal()
       Int_t tdc1st = -1;
       for(Int_t k=0; k<nhtdc; k++){
         Int_t tdc = hit->GetTdcVal(k);
-        Int_t tot_1 = hit->GetTot(k);
+        // Int_t tot_1 = hit->GetTot(k);
         HF1(100*layer+2, tdc);
         HF1(10000*layer+Int_t(wire), tdc);
         HF2(100*layer+51, tdc, wire-0.5);
-        HF2(100*layer+53, tdc, tot_1);
+        // HF2(100*layer+53, tdc, tot_1);
         if(tdc > tdc1st){
           tdc1st = tdc;
           fl_valid_sig = true;
@@ -471,7 +471,6 @@ ProcessingNormal()
   HF1(10, Double_t(nt));
   for(Int_t it=0; it<nt; ++it){
     const auto track = DCAna.GetTrackSdcOut(it);
-    if(!track) continue;
     Int_t nh=track->GetNHit();
     Double_t chisqr    = track->GetChiSquare();
     Double_t chisqr1st = track->GetChiSquare1st();

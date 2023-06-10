@@ -1971,7 +1971,7 @@ ConfMan::InitializeHistograms()
   //WCSUM
   tree->Branch("wcsumnhits", &event.wcsumnhits, "wcsumnhits/I");
   tree->Branch("wcsumhitpat", &event.wcsumhitpat, Form("wcsumhitpat[%d]/I", NumOfSegWC));
-  tree->Branch("wcsuma", &event.wcsuma, Form("wcsuma[%d]/I", NumOfSegWC));
+  tree->Branch("wcsuma", &event.wcsuma, Form("wcsuma[%d]/D", NumOfSegWC));
   tree->Branch("wcsumt", &event.wcsumt, Form("wcsumt[%d][%d]/D", NumOfSegWC, MaxDepth));
 
   //Normalized data

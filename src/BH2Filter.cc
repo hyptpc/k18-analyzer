@@ -64,10 +64,6 @@ BH2Filter::BH2Filter()
     m_dc(),
     m_hodo()
 {
-  const auto& digit_info = hddaq::unpacker::GConfig::get_instance().get_digit_info();
-  const Int_t id = digit_info.get_device_id("BH2");
-  const Int_t n_seg = digit_info.get_n_segment(id);
-  m_param.resize(n_seg);
 }
 
 //_____________________________________________________________________________
@@ -149,14 +145,14 @@ BH2Filter::BuildCandidates(std::set<Int_t>& seg, FilterList& cands)
 const std::vector<Double_t>&
 BH2Filter::GetXmax(Int_t seg) const
 {
-  return m_param[seg].m_xmax;
+  return m_param.at(seg).m_xmax;
 }
 
 //_____________________________________________________________________________
 const std::vector<Double_t>&
 BH2Filter::GetXmin(Int_t seg) const
 {
-  return m_param[seg].m_xmin;
+  return m_param.at(seg).m_xmin;
 }
 
 //_____________________________________________________________________________
@@ -210,9 +206,7 @@ BH2Filter::Print(Option_t*) const
 {
   std::cout << FUNC_NAME << std::endl
 	    << "   (xmin xmax)" << std::endl;
-  for(Int_t i=0, n=m_param.size(); i<n; ++i){
-    std::stringstream ss;
-    ss << i;
-    m_param[i].Print(ss.str());
+  for(const auto& elem: m_param){
+    elem.second.Print(std::to_string(elem.first));
   }
 }

@@ -250,14 +250,15 @@ DCHit::GetResolution() const
 
 //_____________________________________________________________________________
 void
-DCHit::TotCut(Double_t min, Bool_t adopt_nan)
+DCHit::TotCut(Double_t min, Bool_t keep_nan)
 {
   const Int_t n = GetEntries();
-  for(Int_t i=0; i<n; ++i){
-    if(!adopt_nan && TMath::IsNaN(m_tot[i]))
+  for(Int_t i=n-1; i>=0; --i){
+    if(keep_nan && TMath::IsNaN(m_tot[i]))
       continue;
     if(m_tot[i] < min){
-      m_is_good[i] = false;
+      EraseDCData(i);
+      // m_is_good[i] = false;
     }
   }
 }
@@ -267,16 +268,17 @@ void
 DCHit::GateDriftTime(Double_t min, Double_t max, Bool_t select_1st)
 {
   const Int_t n = GetEntries();
-  for(Int_t i=0; i<n; ++i){
+  for(Int_t i=n-1; i>=0; --i){
     if(m_drift_time[i] < min || max < m_drift_time[i]){
-      m_is_good[i] = false;
+      EraseDCData(i);
+      // m_is_good[i] = false;
     }
   }
 }
 
 //_____________________________________________________________________________
 void
-DCHit::Print(const TString& arg) const
+DCHit::Print(Option_t* arg) const
 {
   const Int_t w = 16;
   hddaq::cout << FUNC_NAME << " " << arg << std::endl

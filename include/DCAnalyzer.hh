@@ -215,8 +215,8 @@ protected:
   void ClearK18TracksD2U();
   void ClearKuramaTracks();
   void ChiSqrCut(DCLocalTC& cont, Double_t chisqr);
-  void TotCut(DCHC& cont, Double_t min_tot, Bool_t adopt_nan);
-  void TotCut(const TString& name, Double_t min_tot, Bool_t adopt_nan);
+  void TotCut(DCHC& cont, Double_t min_tot, Bool_t keep_nan);
+  void TotCut(const TString& name, Double_t min_tot, Bool_t keep_nan);
   void DriftTimeCut(DCHC& cont, Double_t min_dt, Double_t max_dt, Bool_t select_1st);
   static Int_t MakeUpMWPCClusters(const DCHC& HitCont,
                                   MWPCClusterContainer& ClusterCont,

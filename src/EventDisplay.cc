@@ -64,12 +64,10 @@
 
 #define BH2        0
 #define BcOut      1
-#define KURAMA     1
 #define SdcIn      1
 #define SdcOut     1
-#define SCH        1
 #define TOF        1
-#define WC         0
+#define WC         1
 #define Vertex     0
 #define Hist       0
 #define Hist_Timing 0
@@ -82,9 +80,8 @@ const auto& gUnpackerConf = hddaq::unpacker::GConfig::get_instance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const Int_t& IdBH1 = gGeom.DetectorId("BH1");
 const Int_t& IdBH2 = gGeom.DetectorId("BH2");
-const Int_t& IdSCH = gGeom.DetectorId("SCH");
 const Int_t& IdTOF = gGeom.DetectorId("TOF");
-// const Int_t& IdWC = gGeom.DetectorId("WC");
+const Int_t& IdWC = gGeom.DetectorId("WC");
 const Int_t& IdTarget = gGeom.DetectorId("Target");
 const Double_t& zTarget = gGeom.LocalZ("Target");
 const Double_t& zHS = gGeom.LocalZ("HS");
@@ -186,7 +183,6 @@ EventDisplay::EventDisplay()
     m_kurama_inner_node(),
     m_kurama_outer_node(),
     m_BH2wall_node(),
-    m_SCHwall_node(),
     m_TOFwall_node(),
     m_WCwall_node(),
     m_BcOutTrack(),
@@ -256,9 +252,7 @@ EventDisplay::Initialize()
 
   m_theApp = new TApplication("App", 0, 0);
 
-#if ROOT_VERSION_CODE > ROOT_VERSION(6,4,0)
   // gStyle->SetPalette(kCool);
-#endif
   gStyle->SetNumberContours(255);
 
   m_geometry = new TGeometry("evdisp", "K1.8 Event Display");
@@ -276,9 +270,7 @@ EventDisplay::Initialize()
 
   ConstructTarget();
 
-#if KURAMA
   ConstructKURAMA();
-#endif
 
 #if BcOut
   ConstructBcOut();
@@ -290,10 +282,6 @@ EventDisplay::Initialize()
 
 #if SdcOut
   ConstructSdcOut();
-#endif
-
-#if SCH
-  ConstructSCH();
 #endif
 
 #if TOF
@@ -367,8 +355,6 @@ EventDisplay::Initialize()
   m_canvas_hist2->Divide(3,3);
   m_hist_bh2  = new TH2F("hist_bh2", "BH2", NumOfSegBH2, 0., NumOfSegBH2, 500, -500, 500);
   m_hist_bh2->GetYaxis()->SetRangeUser(-100, 100);
-  m_hist_sch = new TH2F("hist_sch", "SCH", NumOfSegSCH, 0, NumOfSegSCH, 500, -500, 500);
-  m_hist_sch->GetYaxis()->SetRangeUser(-100, 100);
   m_hist_tof = new TH2F("hist_tof", "TOF", NumOfSegTOF, 0, NumOfSegTOF, 500, -500, 500);
   m_hist_tof->GetYaxis()->SetRangeUser(-100, 100);
 
@@ -649,24 +635,6 @@ EventDisplay::Initialize()
     m_BH2box_cont2[i]->Draw("L");
   }
 
-  Double_t globalPosSchZ = gGeom.GetGlobalPosition(IdSCH).z();
-
-  Double_t SchSegX = 11.5/2.;
-  Double_t SchSegY = 2.0/2.;
-  for (Int_t i=1; i<=NumOfSegSCH; i++) {
-    Double_t globalPosSchX = gGeom.CalcWirePosition(IdSCH, (Double_t)i);
-    m_SCHbox_cont.push_back(new TBox(globalPosSchX-SchSegX,
-                                     globalPosSchZ-SchSegY-20,
-                                     globalPosSchX+SchSegX,
-                                     globalPosSchZ+SchSegY+20));
-  }
-  for (Int_t i=0; i<NumOfSegSCH; i++) {
-    m_SCHbox_cont[i]->SetFillColor(kWhite);
-    m_SCHbox_cont[i]->SetLineColor(kBlack);
-    m_SCHbox_cont[i]->Draw("L");
-  }
-
-
   Double_t globalPosTarget_x = gGeom.GetGlobalPosition(IdTarget).x();
   Double_t globalPosTarget_y = gGeom.GetGlobalPosition(IdTarget).y();
   Double_t globalPosTarget_z = gGeom.GetGlobalPosition(IdTarget).z();
@@ -753,91 +721,95 @@ Bool_t
 EventDisplay::ConstructKURAMA()
 {
   Double_t Matrix[9] = {};
-
-  Double_t inner_x = 1400.0/2.; // X
-  Double_t inner_y =  800.0/2.; // Z
-  Double_t inner_z =  800.0/2.; // Y
-
-  Double_t outer_x = 2200.0/2.; // X
-  Double_t outer_y =  800.0/2.; // Z
-  Double_t outer_z = 1540.0/2.; // Y
-
-  Double_t uguard_inner_x = 1600.0/2.; // X
-  Double_t uguard_inner_y =  100.0/2.; // Z
-  Double_t uguard_inner_z = 1940.0/2.; // Y
-  Double_t uguard_outer_x =  600.0/2.; // X
-  Double_t uguard_outer_y =  100.0/2.; // Z
-  Double_t uguard_outer_z =  300.0/2.; // Y
-
-  Double_t dguard_inner_x = 1600.0/2.; // X
-  Double_t dguard_inner_y =  100.0/2.; // Z
-  Double_t dguard_inner_z = 1940.0/2.; // Y
-  Double_t dguard_outer_x = 1100.0/2.; // X
-  Double_t dguard_outer_y =  100.0/2.; // Z
-  Double_t dguard_outer_z = 1100.0/2.; // Y
-
   CalcRotMatrix(0., 0., 0., Matrix);
 
-  new TRotMatrix("rotKURAMA", "rotKURAMA", Matrix);
+  // Q1
+  const TVector3 Q1InnerSize( 500./2.,  500./2., 880./2.);
+  const TVector3 Q1OuterSize(2400./2., 2400./2., 880./2.);
+  const TVector3 posS2SQ1(0., 0., -2775.6 - 1110.);
+  new TRotMatrix("rotS2SQ1", "rotS2SQ1", Matrix);
+  new TBRIK("s2sq1_inner_brik", "s2sq1_inner_brik", "void",
+            Q1InnerSize.X(), Q1InnerSize.Z(), Q1InnerSize.Y());
+  new TBRIK("s2sq1_outer_brik", "s2sq1_outer_brik", "void",
+            Q1OuterSize.X(), Q1OuterSize.Z(), Q1OuterSize.Y());
+  new TNode("s2sq1_inner_node",
+            "s2sq1_inner_node",
+            "s2sq1_inner_brik",
+            posS2SQ1.X(), posS2SQ1.Y(), posS2SQ1.Z(),
+            "rotS2SQ1", "void");
+  new TNode("s2sq1_outer_node",
+            "s2sq1_outer_node",
+            "s2sq1_outer_brik",
+            posS2SQ1.X(), posS2SQ1.Y(), posS2SQ1.Z(),
+            "rotS2SQ1", "void");
 
-  new TBRIK("kurama_inner_brik", "kurama_inner_brik",
-            "void", inner_x, inner_y, inner_z);
+  // Q2
+  const TVector3 Q2InnerSize( 500./2.,  500./2., 540./2.);
+  const TVector3 Q2OuterSize(2100./2., 1540./2., 540./2.);
+  const TVector3 posS2SQ2(0., 0., -2775.);
+  new TRotMatrix("rotS2SQ2", "rotS2SQ2", Matrix);
+  new TBRIK("s2sq2_inner_brik", "s2sq2_inner_brik", "void",
+            Q2InnerSize.X(), Q2InnerSize.Z(), Q2InnerSize.Y());
+  new TBRIK("s2sq2_outer_brik", "s2sq2_outer_brik", "void",
+            Q2OuterSize.X(), Q2OuterSize.Z(), Q2OuterSize.Y());
+  new TNode("s2sq2_inner_node",
+            "s2sq2_inner_node",
+            "s2sq2_inner_brik",
+            posS2SQ2.X(), posS2SQ2.Y(), posS2SQ2.Z(),
+            "rotS2SQ2", "void");
+  new TNode("s2sq2_outer_node",
+            "s2sq2_outer_node",
+            "s2sq2_outer_brik",
+            posS2SQ2.X(), posS2SQ2.Y(), posS2SQ2.Z(),
+            "rotS2SQ2", "void");
 
-  new TBRIK("kurama_outer_brik", "kurama_outer_brik",
-            "void", outer_x, outer_y, outer_z);
+  // D1
+  const Double_t rho       = gGeom.GetLocalZ("S2SD1");
+  const Double_t bendAngle = gGeom.GetRotAngle2("S2SD1");
+  const TVector3 D1InnerSize(800./2., 320./2., 3665.19/2.);
+  const TVector3 D1OuterSize(2453.1/2., 1200./2., 3665.19/2.);
+  const TVector3 posS2SD1(3000., 0., -2100.623);
+  new TRotMatrix("rotS2SD1", "rotS2SD1", Matrix);
+  new TTUBS("s2sd1_inner_tubs", "s2sd1_inner_tubs",
+            "void", rho-D1InnerSize.X(), rho+D1InnerSize.X(), D1InnerSize.Y(),
+            180., 180.+bendAngle);
+  new TTUBS("s2sd1_outer_tubs", "s2sd1_outer_tubs",
+            "void", rho-D1OuterSize.X(), rho+D1OuterSize.X(), D1OuterSize.Y(),
+            180., 180.+bendAngle);
+  m_kurama_inner_node = new TNode("s2sd1_inner_node",
+                                  "s2sd1_inner_node",
+                                  "s2sd1_inner_tubs",
+                                  posS2SD1.X(), posS2SD1.Y(), posS2SD1.Z(),
+                                  "rotS2SD1", "void");
+  m_kurama_outer_node = new TNode("s2sd1_outer_node",
+                                  "s2sd1_outer_node",
+                                  "s2sd1_outer_tubs",
+                                  posS2SD1.X(), posS2SD1.Y(), posS2SD1.Z(),
+                                  "rotS2SD1", "void");
 
-  new TBRIK("uguard_inner_brik", "uguard_inner_brik",
-            "void", uguard_inner_x, uguard_inner_y, uguard_inner_z);
-
-  new TBRIK("uguard_outer_brik", "uguard_outer_brik",
-            "void", uguard_outer_x, uguard_outer_y, uguard_outer_z);
-
-  new TBRIK("dguard_inner_brik", "dguard_inner_brik",
-            "void", dguard_inner_x, dguard_inner_y, dguard_inner_z);
-
-  new TBRIK("dguard_outer_brik", "dguard_outer_brik",
-            "void", dguard_outer_x, dguard_outer_y, dguard_outer_z);
-
-
-  m_kurama_inner_node = new TNode("kurama_inner_node",
-                                  "kurama_inner_node",
-                                  "kurama_inner_brik",
-                                  0., 0., 0., "rotKURAMA", "void");
-  m_kurama_outer_node = new TNode("kurama_outer_node",
-                                  "kurama_outer_node",
-                                  "kurama_outer_brik",
-                                  0., 0., 0., "rotKURAMA", "void");
-
-  TNode *uguard_inner = new TNode("uguard_inner_node",
-                                  "uguard_inner_node",
-                                  "uguard_inner_brik",
-                                  0., 0., -820.,
-                                  "rotKURAMA", "void");
-  TNode *uguard_outer = new TNode("uguard_outer_node",
-                                  "uguard_outer_node",
-                                  "uguard_outer_brik",
-                                  0., 0., -820.,
-                                  "rotKURAMA", "void");
-
-  TNode *dguard_inner = new TNode("dguard_inner_node",
-                                  "dguard_inner_node",
-                                  "dguard_inner_brik",
-                                  0., 0., 820.,
-                                  "rotKURAMA", "void");
-  TNode *dguard_outer = new TNode("dguard_outer_node",
-                                  "dguard_outer_node",
-                                  "dguard_outer_brik",
-                                  0., 0., 820.,
-                                  "rotKURAMA", "void");
+  // D1 End Guard
+  const TVector3 D1EGInnerSize(810./2., 330./2., 76./2.);
+  const TVector3 D1EGOuterSize(1880./2., 1200./2., 76./2.);
+  const auto& posS2SD1EG = gGeom.GetGlobalPosition("S2SD1EG");
+  const Double_t RA2 = gGeom.GetRotAngle2("S2SD1EG");
+  Double_t MatrixEG[9] = {};
+  CalcRotMatrix(0., 0., RA2, MatrixEG);
+  new TRotMatrix("rotS2SD1EG", "rotS2SD1EG", MatrixEG);
+  new TBRIK("s2sd1eg_inner_brik", "s2sd1eg_inner_brik", "void",
+            D1EGInnerSize.X(), D1EGInnerSize.Z(), D1EGInnerSize.Y());
+  new TBRIK("s2sd1eg_outer_brik", "s2sd1eg_outer_brik", "void",
+            D1EGOuterSize.X(), D1EGOuterSize.Z(), D1EGOuterSize.Y());
+  new TNode("s2sd1eg_inner_node", "s2sd1eg_inner_node", "s2sd1eg_inner_brik",
+            posS2SD1EG.X(), posS2SD1EG.Y(), posS2SD1EG.Z(),
+            "rotS2SD1EG", "void");
+  new TNode("s2sd1eg_outer_node", "s2sd1eg_outer_node", "s2sd1eg_outer_brik",
+            posS2SD1EG.X(), posS2SD1EG.Y(), posS2SD1EG.Z(),
+            "rotS2SD1EG", "void");
 
   const Color_t color = kBlack;
-
   m_kurama_inner_node->SetLineColor(color);
   m_kurama_outer_node->SetLineColor(color);
-  uguard_inner->SetLineColor(color);
-  uguard_outer->SetLineColor(color);
-  dguard_inner->SetLineColor(color);
-  dguard_outer->SetLineColor(color);
+  m_kurama_outer_node->SetFillColor(kBlue);
 
   m_node->cd();
   ConstructionDone(__func__);
@@ -1332,9 +1304,9 @@ EventDisplay::ConstructSdcIn()
     }
   }
 
-  // SDC2 X1
+  // SDC2 V1
   {
-    const Int_t lid = gGeom.GetDetectorId("SDC2-X1");
+    const Int_t lid = gGeom.GetDetectorId("SDC2-V1");
     Double_t Rmin = 0.0;
     Double_t Rmax = 0.01;
     Double_t L    = wireLSDC2X/2.;
@@ -1359,9 +1331,9 @@ EventDisplay::ConstructSdcIn()
     }
   }
 
-  // SDC2 X2
+  // SDC2 V2
   {
-    const Int_t lid = gGeom.GetDetectorId("SDC2-X2");
+    const Int_t lid = gGeom.GetDetectorId("SDC2-V2");
     Double_t Rmin = 0.0;
     Double_t Rmax = 0.01;
     Double_t Z    = wireLSDC2X/2.;
@@ -1386,9 +1358,9 @@ EventDisplay::ConstructSdcIn()
     }
   }
 
-  // SDC2 Y1
+  // SDC2 U1
   {
-    const Int_t lid = gGeom.GetDetectorId("SDC2-Y1");
+    const Int_t lid = gGeom.GetDetectorId("SDC2-U1");
     Double_t Rmin = 0.0;
     Double_t Rmax = 0.01;
     Double_t Z    = wireLSDC2Y/2.;
@@ -1413,9 +1385,9 @@ EventDisplay::ConstructSdcIn()
     }
   }
 
-  // SDC2 Y2
+  // SDC2 U2
   {
-    const Int_t lid = gGeom.GetDetectorId("SDC2-Y2");
+    const Int_t lid = gGeom.GetDetectorId("SDC2-U2");
     Double_t Rmin = 0.0;
     Double_t Rmax = 0.01;
     Double_t Z    = wireLSDC2Y/2.;
@@ -1707,76 +1679,20 @@ EventDisplay::ConstructTarget()
 
 //_____________________________________________________________________________
 Bool_t
-EventDisplay::ConstructSCH()
-{
-  const Int_t lid = gGeom.GetDetectorId("SCH");
-
-  Double_t rotMatSCH[9] = {};
-  Double_t SCHwallX =   11.5/2.0*NumOfSegSCH; // X
-  Double_t SCHwallY =    2.0/2.0*2.0; // Z
-  Double_t SCHwallZ =  450.0/2.0; // Y
-
-  Double_t SCHSegX =   11.5/2.0; // X
-  Double_t SCHSegY =    2.0/2.0; // Z
-  Double_t SCHSegZ =  450.0/2.0; // Y
-
-  Double_t overlap = 1.0;
-
-  CalcRotMatrix(gGeom.GetTiltAngle(lid),
-                gGeom.GetRotAngle1(lid),
-                gGeom.GetRotAngle2(lid),
-                rotMatSCH);
-
-  new TRotMatrix("rotSCH", "rotSCH", rotMatSCH);
-  ThreeVector  SCHwallPos = gGeom.GetGlobalPosition(lid);
-  Double_t offset =  gGeom.CalcWirePosition(lid, (Double_t)NumOfSegSCH/2.-0.5);
-  new TBRIK("SCHwall_brik", "SCHwall_brik", "void",
-            SCHwallX, SCHwallY, SCHwallZ);
-  m_SCHwall_node = new TNode("SCHwall_node", "SCHwall_node", "SCHwall_brik",
-                             SCHwallPos.x() + offset,
-                             SCHwallPos.y(),
-                             SCHwallPos.z(),
-                             "rotSCH", "void");
-
-  m_SCHwall_node->SetVisibility(0);
-  m_SCHwall_node->cd();
-
-
-  new TBRIK("SCHseg_brik", "SCHseg_brik", "void",
-            SCHSegX, SCHSegY, SCHSegZ);
-  for(Int_t i=0; i<NumOfSegSCH; i++){
-    ThreeVector schSegLocalPos((-NumOfSegSCH/2.+i)*(SCHSegX*2.-overlap)+10.5/2.,
-                               (-(i%2)*2+1)*SCHSegY-(i%2)*2+1,
-                               0.);
-    m_SCHseg_node.push_back(new TNode(Form("SCHseg_node_%d", i),
-                                      Form("SCHseg_node_%d", i),
-                                      "SCHseg_brik",
-                                      schSegLocalPos.x(),
-                                      schSegLocalPos.y(),
-                                      schSegLocalPos.z()));
-  }
-
-  m_node->cd();
-  ConstructionDone(__func__);
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
 EventDisplay::ConstructTOF()
 {
   const Int_t lid = gGeom.GetDetectorId("TOF");
 
   Double_t rotMatTOF[9] = {};
-  Double_t TOFwallX =   80.0/2.0*NumOfSegTOF; // X
-  Double_t TOFwallY =   30.0/2.0*2.0; // Z
-  Double_t TOFwallZ = 1800.0/2.0; // Y
+  Double_t TOFwallX =  70.0/2.0*NumOfSegTOF; // X
+  Double_t TOFwallY =  20.0/2.0*2.0; // Z
+  Double_t TOFwallZ = 600.0/2.0; // Y
 
-  Double_t TOFSegX =   80.0/2.0; // X
-  Double_t TOFSegY =   30.0/2.0; // Z
-  Double_t TOFSegZ = 1800.0/2.0; // Y
+  Double_t TOFSegX =  70.0/2.0; // X
+  Double_t TOFSegY =  20.0/2.0; // Z
+  Double_t TOFSegZ = 600.0/2.0; // Y
 
-  Double_t overlap = 5.0;
+  Double_t overlap = 4.0;
 
   CalcRotMatrix(gGeom.GetTiltAngle(lid),
                 gGeom.GetRotAngle1(lid),
@@ -1824,15 +1740,15 @@ EventDisplay::ConstructWC()
   const Int_t lid = gGeom.GetDetectorId("WC");
 
   Double_t rotMatWC[9] = {};
-  Double_t WCwallX =  255.0/2.0*NumOfSegWC; // X
-  Double_t WCwallY =  205.0/2.0*2.0; // Z
-  Double_t WCwallZ = 1840.0/2.0; // Y
+  Double_t WCwallX = 180.0/2.0*NumOfSegWC; // X
+  Double_t WCwallY = 230.0/2.0*2.0; // Z
+  Double_t WCwallZ = 730.0/2.0; // Y
 
-  Double_t WCSegX =  255.0/2.0; // X
-  Double_t WCSegY =  205.0/2.0; // Z
-  Double_t WCSegZ = 1840.0/2.0; // Y
+  Double_t WCSegX = 180.0/2.0; // X
+  Double_t WCSegY = 230.0/2.0; // Z
+  Double_t WCSegZ = 730.0/2.0; // Y
 
-  Double_t overlap = 255.0/2.0;
+  Double_t overlap = 180.0/2.0;
 
   CalcRotMatrix(gGeom.GetTiltAngle(lid),
                 gGeom.GetRotAngle1(lid),
@@ -2011,12 +1927,10 @@ EventDisplay::DrawHitHodoscope(Int_t lid, Int_t seg, Int_t Tu, Int_t Td)
 
   if(lid == IdBH2){
     node_name = Form("BH2seg_node_%d", seg);
-  }else if(lid == IdSCH){
-    node_name = Form("SCHseg_node_%d", seg);
   }else if(lid == IdTOF){
     node_name = Form("TOFseg_node_%d", seg);
-  // }else if(lid == IdWC){
-  //   node_name = Form("WCseg_node_%d", seg);
+  }else if(lid == IdWC){
+    node_name = Form("WCseg_node_%d", seg);
   }else{
     throw Exception(FUNC_NAME + Form(" no such plane : %d", lid));
   }
@@ -2493,7 +2407,6 @@ EventDisplay::ResetVisibility()
   ResetVisibility(m_SDC4x1_node);
   ResetVisibility(m_SDC4x2_node);
   ResetVisibility(m_BH2seg_node, kBlack);
-  ResetVisibility(m_SCHseg_node, kBlack);
   ResetVisibility(m_TOFseg_node, kBlack);
   ResetVisibility(m_WCseg_node, kBlack);
   ResetVisibility(m_target_node, kBlack);
@@ -2572,10 +2485,6 @@ EventDisplay::ResetHist()
     m_BH2box_cont[i]->SetFillColor(kWhite);
     m_BH2box_cont2[i]->SetFillColor(kWhite);
   }
-
-  Int_t ncSch=m_SCHbox_cont.size();
-  for (Int_t i=0; i<ncSch; i++)
-    m_SCHbox_cont[i]->SetFillColor(kWhite);
 
   m_hist_bcOut_sdcIn->Reset();
   m_hist_sdcIn_predict->Reset();
@@ -2814,37 +2723,6 @@ EventDisplay::DrawSdcInTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0,
 
   }
 
-#endif
-}
-
-//_____________________________________________________________________________
-void
-EventDisplay::FillSCH(Int_t seg, Int_t tdc)
-{
-#if Hist_Timing
-  Double_t p0 = gHodo.GetOffset(DetIdSCH, 0, seg, 0);
-  Double_t p1 = gHodo.GetGain(DetIdSCH, 0, seg, 0);
-
-  m_hist_sch->Fill(seg, p1*((Double_t)tdc-p0));
-  //m_canvas_hist2->cd(2);
-  //gPad->Modified();
-  //gPad->Update();
-#endif
-}
-
-//_____________________________________________________________________________
-void
-EventDisplay::SetCorrectTimeSCH(Int_t seg, Double_t de)
-{
-#if Hist_BcIn
-  Int_t color;
-  if (de<30)
-    color = kBlue;
-  else if (de >= 30 && de <= 60)
-    color = kOrange;
-  else
-    color = kRed;
-  m_SCHbox_cont[seg]->SetFillColor(color);
 #endif
 }
 

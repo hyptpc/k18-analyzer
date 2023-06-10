@@ -3,6 +3,7 @@
 #ifndef BH2_FILTER_HH
 #define BH2_FILTER_HH
 
+#include <map>
 #include <vector>
 #include <set>
 
@@ -50,11 +51,11 @@ public:
     };
 
 private:
-  Bool_t              m_is_ready;
-  Bool_t              m_verbose;
-  std::vector<Param>  m_param;
-  const DCAnalyzer*   m_dc;
-  const HodoAnalyzer* m_hodo;
+  Bool_t                 m_is_ready;
+  Bool_t                 m_verbose;
+  std::map<Int_t, Param> m_param;
+  const DCAnalyzer*      m_dc;
+  const HodoAnalyzer*    m_hodo;
 
 public:
   void Apply(const HodoAnalyzer& hodo, const DCAnalyzer& dc, FilterList& cands);

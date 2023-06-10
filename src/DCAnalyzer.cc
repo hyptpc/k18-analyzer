@@ -251,7 +251,8 @@ DCAnalyzer::DecodeBcInHits()
 Bool_t
 DCAnalyzer::DecodeBcOutHits()
 {
-  static const auto& digit_info = hddaq::unpacker::GConfig::get_instance().get_digit_info();
+  static const auto& digit_info =
+    hddaq::unpacker::GConfig::get_instance().get_digit_info();
   m_BcOutHC.clear();
   Int_t plane_offset = 0;
   for(const auto& name: DCNameList.at("BcOut")){
@@ -271,7 +272,8 @@ DCAnalyzer::DecodeBcOutHits()
 Bool_t
 DCAnalyzer::DecodeSdcInHits()
 {
-  static const auto& digit_info = hddaq::unpacker::GConfig::get_instance().get_digit_info();
+  static const auto& digit_info =
+    hddaq::unpacker::GConfig::get_instance().get_digit_info();
   m_SdcInHC.clear();
   Int_t plane_offset = 0;
   for(const auto& name: DCNameList.at("SdcIn")){
@@ -291,7 +293,8 @@ DCAnalyzer::DecodeSdcInHits()
 Bool_t
 DCAnalyzer::DecodeSdcOutHits(Double_t ofs_dt/*=0.*/)
 {
-  static const auto& digit_info = hddaq::unpacker::GConfig::get_instance().get_digit_info();
+  static const auto& digit_info =
+    hddaq::unpacker::GConfig::get_instance().get_digit_info();
   m_SdcOutHC.clear();
   Int_t plane_offset = 0;
   for(const auto& name: DCNameList.at("SdcOut")){
@@ -328,7 +331,6 @@ DCAnalyzer::DecodeHits(const TString& name)
     }
   }
   std::sort(HitCont.begin(), HitCont.end(), DCHit::Compare);
-  // for(const auto& hit: HitCont) hit->Print();
 }
 
 //_____________________________________________________________________________
@@ -1296,7 +1298,7 @@ void
 DCAnalyzer::TotCutBCOut(Double_t min_tot)
 {
   for(const auto& name: DCNameList.at("BcOut")){
-    TotCut(m_dc_hit_collection.at(name), min_tot, false);
+    TotCut(m_dc_hit_collection.at(name), min_tot, true);
   }// for(i)
 }
 
@@ -1304,70 +1306,52 @@ DCAnalyzer::TotCutBCOut(Double_t min_tot)
 void
 DCAnalyzer::TotCutSDC1(Double_t min_tot)
 {
-  for(Int_t i = 0; i<NumOfLayersSDC1; ++i){
-    TotCut(m_SdcInHC[i], min_tot, false);
-  }// for(i)
+  TotCut("SDC1", min_tot, true);
 }
 
 //_____________________________________________________________________________
 void
 DCAnalyzer::TotCutSDC2(Double_t min_tot)
 {
-  for(Int_t i = 0; i<NumOfLayersSDC2; ++i){
-    TotCut(m_SdcInHC[i + NumOfLayersSDC1], min_tot, false);
-  }// for(i)
+  TotCut("SDC2", min_tot, true);
 }
 
 //_____________________________________________________________________________
 void
 DCAnalyzer::TotCutSDC3(Double_t min_tot)
 {
-  TotCut("SDC3", min_tot, false);
+  TotCut("SDC3", min_tot, true);
 }
 
 //_____________________________________________________________________________
 void
 DCAnalyzer::TotCutSDC4(Double_t min_tot)
 {
-  TotCut("SDC4", min_tot, false);
+  TotCut("SDC4", min_tot, true);
 }
 
 //_____________________________________________________________________________
 void
 DCAnalyzer::TotCutSDC5(Double_t min_tot)
 {
-  TotCut("SDC5", min_tot, false);
+  TotCut("SDC5", min_tot, true);
 }
 
 //_____________________________________________________________________________
 void
 DCAnalyzer::TotCut(DCHC& HitCont,
-                   Double_t min_tot, Bool_t adopt_nan)
+                   Double_t min_tot, Bool_t keep_nan)
 {
-  DCHC ValidCand;
-  DCHC DeleteCand;
-  for(auto& ptr : HitCont){
-    ptr->TotCut(min_tot, adopt_nan);
-    if(0 == ptr->GetEntries()){
-      DeleteCand.push_back(ptr);
-    }else{
-      ValidCand.push_back(ptr);
-    }
+  for(auto& hit: HitCont){
+    hit->TotCut(min_tot, keep_nan);
   }
-
-  del::ClearContainer(DeleteCand);
-
-  HitCont.clear();
-  HitCont.resize(ValidCand.size());
-  std::copy(ValidCand.begin(), ValidCand.end(), HitCont.begin());
-  ValidCand.clear();
 }
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::TotCut(const TString& name, Double_t min_tot, Bool_t adopt_nan)
+DCAnalyzer::TotCut(const TString& name, Double_t min_tot, Bool_t keep_nan)
 {
-  TotCut(m_dc_hit_collection.at(name), min_tot, adopt_nan);
+  TotCut(m_dc_hit_collection.at(name), min_tot, keep_nan);
 }
 
 //_____________________________________________________________________________
@@ -1420,23 +1404,9 @@ void
 DCAnalyzer::DriftTimeCut(DCHC& HitCont,
                          Double_t min_dt, Double_t max_dt, Bool_t select_1st)
 {
-  DCHC ValidCand;
-  DCHC DeleteCand;
-  for(auto *ptr : HitCont){
-    ptr->GateDriftTime(min_dt, max_dt, select_1st);
-    if(0 == ptr->GetEntries()){
-      DeleteCand.push_back(ptr);
-    }else{
-      ValidCand.push_back(ptr);
-    }
+  for(auto& hit: HitCont){
+    hit->GateDriftTime(min_dt, max_dt, select_1st);
   }
-
-  del::ClearContainer(DeleteCand);
-
-  HitCont.clear();
-  HitCont.resize(ValidCand.size());
-  std::copy(ValidCand.begin(), ValidCand.end(), HitCont.begin());
-  ValidCand.clear();
 }
 
 //_____________________________________________________________________________

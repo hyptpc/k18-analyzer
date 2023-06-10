@@ -39,7 +39,6 @@ namespace
 const auto& gGeom   = DCGeomMan::GetInstance();
 auto&       gEvDisp = EventDisplay::GetInstance();
 const auto& gUser   = UserParamMan::GetInstance();
-auto&       gFilter = BH2Filter::GetInstance();
 auto&       gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const Double_t PionMass   = pdg::PionMass();
 const Double_t KaonMass   = pdg::KaonMass();
@@ -213,7 +212,7 @@ ProcessingNormal()
   if(TOFCont.empty()){
     hddaq::cout << "[Warning] TOFCont is empty!" << std::endl;
     //gEvDisp.GetCommand();
-    return true;
+    // return true;
   }
 
   //________________________________________________________
@@ -329,10 +328,10 @@ ProcessingNormal()
   //________________________________________________________
   //___ BcOutDCHit
   DCAna.DecodeBcOutHits();
-  DCAna.TotCutBCOut(MinTotBcOut);
+  // DCAna.TotCutBCOut(MinTotBcOut);
   Double_t multi_BcOut = 0.;
-  for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
-    const auto& cont = DCAna.GetBcOutHC(layer);
+  for(Int_t plane=0; plane<NumOfLayersBcOut; ++plane){
+    const auto& cont = DCAna.GetBcOutHC(plane);
     multi_BcOut += cont.size();
     // for(const auto& hit: cont){
     //   Double_t wire = hit->GetWire();
@@ -355,7 +354,7 @@ ProcessingNormal()
     hddaq::cout << "[Warning] BcOutHits exceed MaxMultiHit "
                 << multi_BcOut << "/" << MaxMultiHitBcOut << std::endl;
     // gEvDisp.GetCommand();
-    return true;
+    // return true;
   }
 
   //________________________________________________________
@@ -381,7 +380,7 @@ ProcessingNormal()
   }
   if(ntBcOut==0) {
     hddaq::cout << "[Warning] BcOutTrack is empty!" << std::endl;
-    return true;
+    // return true;
   }
 
   //________________________________________________________
@@ -394,7 +393,7 @@ ProcessingNormal()
   }
   if(BftXCont.empty()){
     hddaq::cout << "[Warning] BftXCont is empty!" << std::endl;
-    return true;
+    // return true;
   }
 
   std::vector<ThreeVector> KmPCont, KmXCont;
@@ -418,30 +417,30 @@ ProcessingNormal()
   if(ntK18 == 0){
     hddaq::cout << "[Warning] Km is empty!" << std::endl;
     // gEvDisp.GetCommand();
-    return true;
+    // return true;
   }
 
   //________________________________________________________
   //___ SdcInDCHit
   DCAna.DecodeSdcInHits();
   Double_t multi_SdcIn = 0.;
-  for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
-    const auto& cont = DCAna.GetSdcInHC(layer);
+  for(Int_t plane=0; plane<NumOfLayersSdcIn; ++plane){
+    const auto& cont = DCAna.GetSdcInHC(plane);
     Int_t n = cont.size();
     multi_SdcIn += n;
     if(n > MaxMultiHitSdcIn) continue;
     for(const auto& hit: cont){
+      Int_t layer = hit->LayerId();
       Int_t wire = hit->GetWire();
       Int_t mhit = hit->GetTdcSize();
-      Bool_t goodFlag = false;
+      Bool_t is_good = false;
       for(Int_t j=0; j<mhit; j++){
         if(hit->IsGood(j)){
-          goodFlag = true;
+          is_good = true;
           break;
         }
       }
-      if(goodFlag) gEvDisp.DrawHitWire(layer, wire);
-      else gEvDisp.DrawHitWire(layer, wire, false, false);
+      gEvDisp.DrawHitWire(layer, wire, is_good, is_good);
     }
   }
   multi_SdcIn /= (Double_t)NumOfLayersSdcIn;
@@ -449,7 +448,7 @@ ProcessingNormal()
     hddaq::cout << "[Warning] SdcInHits exceed MaxMultiHit "
                 << multi_SdcIn << "/" << MaxMultiHitSdcIn << std::endl;
     // gEvDisp.GetCommand();
-    return true;
+    // return true;
   }
 
   //________________________________________________________
@@ -475,29 +474,29 @@ ProcessingNormal()
   }
   if(ntSdcIn != 1){
     hddaq::cout << "[Warning] SdcInTrack is empty!" << std::endl;
-    return true;
+    // return true;
   }
 
   //________________________________________________________
   //___ SdcOutDCHit
   DCAna.DecodeSdcOutHits();
-  DCAna.TotCutSDC3(MinTotSDC3);
-  DCAna.TotCutSDC4(MinTotSDC4);
+  // DCAna.TotCutSDC3(MinTotSDC3);
+  // DCAna.TotCutSDC4(MinTotSDC4);
   Double_t multi_SdcOut = 0.;
-  for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer){
-    const auto& cont = DCAna.GetSdcOutHC(layer);
+  for(Int_t plane=0; plane<NumOfLayersSdcOut; ++plane){
+    const auto& cont = DCAna.GetSdcOutHC(plane);
     Int_t n = cont.size();
     multi_SdcOut += n;
     if(n > MaxMultiHitSdcOut) continue;
     for(const auto& hit: cont){
-      Int_t  wire = hit->GetWire();
-      Int_t  mhit = hit->GetEntries();
+      Int_t layer = hit->LayerId();
+      Int_t wire = hit->GetWire();
+      Int_t mhit = hit->GetEntries();
       Bool_t is_good = false;
       for(Int_t j=0; j<mhit && !is_good; ++j){
         is_good = hit->IsGood(j);
       }
-      if(is_good) gEvDisp.DrawHitWire(layer+30, wire);
-      else gEvDisp.DrawHitWire(layer+30, wire, false, false);
+      gEvDisp.DrawHitWire(layer, wire, is_good, is_good);
     }
   }
   multi_SdcOut /= (Double_t)NumOfLayersSdcOut;
@@ -505,7 +504,7 @@ ProcessingNormal()
     hddaq::cout << "[Warning] SdcOutHits exceed MaxMultiHit "
                 << multi_SdcOut << "/" << MaxMultiHitSdcOut << std::endl;
     // gEvDisp.GetCommand();
-    return true;
+    // return true;
   }
 
   //________________________________________________________
@@ -531,7 +530,7 @@ ProcessingNormal()
   }
   if(ntSdcOut != 1){
     hddaq::cout << "[Warning] SdcOutTrack is empty!" << std::endl;
-    return true;
+    // return true;
   }
 
   gEvDisp.Update();
@@ -582,7 +581,7 @@ ProcessingNormal()
   if(KpPCont.size() == 0){
     hddaq::cout << "[Warning] Kp is empty!" << std::endl;
     // gEvDisp.GetCommand();
-    return true;
+    // return true;
   }
   if(through_target) gEvDisp.DrawTarget();
 
@@ -725,6 +724,7 @@ ProcessingEnd()
   // gEvDisp.GetCommand();
   gEvDisp.EndOfEvent();
   // if(utility::UserStop()) gEvDisp.Run();
+  // gEvDisp.Run();
   return true;
 }
 
@@ -749,7 +749,7 @@ ConfMan::InitializeParameterFiles()
      && InitializeParameter<DCTdcCalibMan>("DCTDC")
      && InitializeParameter<HodoParamMan>("HDPRM")
      && InitializeParameter<HodoPHCMan>("HDPHC")
-     && InitializeParameter<FieldMan>("FLDMAP")
+     // && InitializeParameter<FieldMan>("FLDMAP")
      && InitializeParameter<K18TransMatrix>("K18TM")
      && InitializeParameter<BH2Filter>("BH2FLT")
      && InitializeParameter<UserParamMan>("USER")

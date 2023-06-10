@@ -96,7 +96,6 @@ private:
   TH2                       *m_hist_sdcIn_predict;
   TH2                       *m_hist_sdcIn_predict2;
   std::vector<TBox*>         m_BH2box_cont2;
-  std::vector<TBox*>         m_SCHbox_cont;
   TBox                      *m_TargetXZ_box2;
   TBox                      *m_TargetYZ_box2;
   std::vector<TLine*>        m_BcOutTrack3;
@@ -177,8 +176,6 @@ private:
   std::vector<TNode*>        m_SSD1y1_node;
   TNode                     *m_FBHwall_node;
   std::vector<TNode*>        m_FBHseg_node;
-  TNode                     *m_SCHwall_node;
-  std::vector<TNode*>        m_SCHseg_node;
   TNode                     *m_TOFwall_node;
   std::vector<TNode*>        m_TOFseg_node;
   TNode                     *m_WCwall_node;
@@ -225,7 +222,6 @@ public:
   Bool_t ConstructSdcOut();
   Bool_t ConstructSSD();
   Bool_t ConstructFBH();
-  Bool_t ConstructSCH();
   Bool_t ConstructTOF();
   Bool_t ConstructWC();
   void DrawInitTrack(Int_t nStep, ThreeVector *StepPoint);
@@ -262,8 +258,6 @@ public:
   void SetCorrectTimeBcOut(Int_t layer, Double_t pos);
   void DrawBcOutTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, Bool_t flagGoodForTracking = true);
   void DrawSdcInTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, Bool_t flagKurama = false, Bool_t flagBeam = false);
-  void FillSCH(Int_t seg, Int_t tdc);
-  void SetCorrectTimeSCH(Int_t seg, Double_t de);
   void SetCorrectTimeSdcIn(Int_t layer, Double_t pos);
 
   void FillTOF(Int_t seg, Int_t tdc);
