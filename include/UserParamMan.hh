@@ -40,6 +40,8 @@ public:
   Bool_t   IsReady() const { return m_is_ready; }
   Int_t    GetSize(const TString& key) const;
   Double_t GetParameter(const TString& key, Int_t i=0) const;
+  Double_t Get(const TString& key, Int_t i=0) const
+    { return GetParameter(key, i); }
   void     Print(const TString& arg="") const;
   void     UseDefaultValue(Bool_t flag=true) { m_use_default = flag; }
 };

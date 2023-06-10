@@ -71,7 +71,9 @@ public:
               Bool_t adopt_nan=true);
 
   const BH2Cluster*  GetTime0BH2Cluster() const;
-  const HodoCluster* GetBtof0BH1Cluster(Double_t time0) const;
+  const HodoCluster* GetBtof0BH1Cluster() const;
+  Double_t Time0() const;
+  Double_t Btof0() const;
 
 private:
   void ClearBH1Hits();
@@ -151,9 +153,9 @@ HodoAnalyzer::DecodeHits(const TString& name, Double_t max_time_diff)
     cont.push_back(hit);
 
 #if 1
-  // static const auto& gUser = UserParamMan::GetInstance();
-  const auto MaxClusterSize = 3;
-  const auto MaxTimeDiff    = 100;
+  static const auto& gUser = UserParamMan::GetInstance();
+  const auto MaxClusterSize = gUser.Get("MaxClusterSize"+name);
+  const auto MaxTimeDiff    = gUser.Get("MaxTimeDiff"+name);
   MakeUpClusters<T>(CandCont, m_hodo_cluster_collection[name],
                     MaxClusterSize, MaxTimeDiff);
 #endif
@@ -189,6 +191,8 @@ HodoAnalyzer::MakeUpClusters(const std::vector<T*>& HitCont,
       CandCont.push_back(hitA);
       index.push_back(jA);
       for(Int_t iB=iA+1; iB<n; ++iB){
+        if(CandCont.size() == MaxClusterSize)
+          break;
         const auto& hitB = HitCont[iB];
         for(Int_t jB=0, mB=hitB->GetEntries(); jB<mB; ++jB){
           if(hitB->IsClustered(jB))

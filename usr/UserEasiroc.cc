@@ -344,7 +344,6 @@ ProcessingNormal()
     for(Int_t i=0; i<ncl; ++i){
       const auto& cl = hodoAna.GetCluster("BFT", i);
       if(!cl) continue;
-      // cl->Print();
       Double_t clsize = cl->ClusterSize();
       Double_t ctime  = cl->CMeanTime();
       Double_t ctot   = cl->TOT();

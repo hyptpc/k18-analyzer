@@ -286,11 +286,7 @@ ProcessingNormal()
     event.deBh1[i] = dE;
   }
 
-  Double_t btof0 = -999.;
-  if(event.Time0Seg > 0){
-    const auto& cl_btof0 = hodoAna.GetBtof0BH1Cluster(event.CTime0);
-    btof0 = cl_btof0->CMeanTime() - time0;
-  }
+  Double_t btof0 = hodoAna.Btof0();
   event.btof = btof0;
 
   HF1(1, 5.);

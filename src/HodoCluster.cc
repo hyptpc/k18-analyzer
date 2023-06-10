@@ -104,6 +104,7 @@ HodoCluster::Print(Option_t*) const
   hddaq::cout << FUNC_NAME << std::endl
               << " detector name : " << m_hit_container.at(0)->DetectorName() << std::endl
               << " mean time     : " << m_mean_time << std::endl
+              << " ctime         : " << m_ctime << std::endl
               << " de            : " << m_de << std::endl
               << " tot           : " << m_tot << std::endl
               << " cluster size  : " << m_cluster_size << std::endl;

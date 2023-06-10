@@ -27,15 +27,6 @@
 namespace
 {
 const auto& gUser = UserParamMan::GetInstance();
-const Double_t MaxTimeDifBH1   =  2.0;
-const Double_t MaxTimeDifBH2   =  2.0;
-const Double_t MaxTimeDifBAC   = -1.0;
-const Double_t MaxTimeDifTOF   = -1.0;
-const Double_t MaxTimeDifLAC   = -1.0;
-const Double_t MaxTimeDifWC    = -1.0;
-const Double_t MaxTimeDifWCSUM = -1.0;
-const Double_t MaxTimeDifBFT   =  8.0;
-const Int_t    MaxSizeCl       = 8;
 }
 
 //_____________________________________________________________________________
@@ -221,11 +212,11 @@ HodoAnalyzer::GetTime0BH2Cluster() const
 #endif
 
   BH2Cluster* time0_cluster = nullptr;
-  Double_t min_mt = -9999;
+  Double_t min_mt = DBL_MAX;
   for(const auto& cluster : GetClusterContainer("BH2")){
     Double_t mt = cluster->MeanTime();
     if(true
-       && std::abs(mt) < std::abs(min_mt)
+       && TMath::Abs(mt) < TMath::Abs(min_mt)
        && MinMt < mt && mt < MaxMt
 #if REQDE
        && (MinDe < cluster->DeltaE() && cluster->DeltaE() < MaxDe)
@@ -241,7 +232,7 @@ HodoAnalyzer::GetTime0BH2Cluster() const
 
 //_____________________________________________________________________________
 const HodoCluster*
-HodoAnalyzer::GetBtof0BH1Cluster(Double_t time0) const
+HodoAnalyzer::GetBtof0BH1Cluster() const
 {
   static const Double_t MinBtof = gUser.GetParameter("BTOF",  0);
   static const Double_t MaxBtof = gUser.GetParameter("BTOF",  1);
@@ -250,26 +241,28 @@ HodoAnalyzer::GetBtof0BH1Cluster(Double_t time0) const
   static const Double_t MaxDe   = gUser.GetParameter("DeBH1", 1);
 #endif
 
-  HodoCluster* time0_cluster = nullptr;
-  Double_t min_btof            = -9999;
+  HodoCluster* btof0_cluster = nullptr;
+
+  Double_t time0 = Time0();
+  if(TMath::IsNaN(time0)) return nullptr;
+  Double_t min_btof = DBL_MAX;
   for(const auto& cluster : GetClusterContainer("BH1")){
     Double_t cmt  = cluster->CMeanTime();
     Double_t btof = cmt - time0;
     if(true
-       && std::abs(btof) < std::abs(min_btof)
+       && TMath::Abs(btof) < TMath::Abs(min_btof)
        && MinBtof < btof && btof < MaxBtof
 #if REQDE
        && (MinDe < cluster->DeltaE() && cluster->DeltaE() < MaxDe)
 #endif
       ){
       min_btof      = btof;
-      time0_cluster = cluster;
+      btof0_cluster = cluster;
     }// T0 selection
   }// for
 
-  return time0_cluster;
+  return btof0_cluster;
 }
-
 
 //_____________________________________________________________________________
 const HodoHC&
@@ -297,4 +290,22 @@ HodoAnalyzer::GetClusterContainer(const TString& name) const
   }else{
     return itr->second;
   }
+}
+
+//_____________________________________________________________________________
+Double_t
+HodoAnalyzer::Time0() const
+{
+  const auto& cl = GetTime0BH2Cluster();
+  if(cl) return cl->CTime0();
+  else   return TMath::QuietNaN();
+}
+
+//_____________________________________________________________________________
+Double_t
+HodoAnalyzer::Btof0() const
+{
+  const auto& cl = GetBtof0BH1Cluster();
+  if(cl) return cl->CMeanTime() - Time0();
+  else   return TMath::QuietNaN();
 }

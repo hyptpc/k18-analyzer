@@ -184,7 +184,6 @@ ProcessingNormal()
 #endif
   HF1(1, 2);
 
-  Double_t time0 = qnan;
   //////////////BH2 Analysis
   for(Int_t i=0; i<nhBh2; ++i){
     const auto& hit = hodoAna.GetHit("BH2", i);
@@ -207,7 +206,6 @@ ProcessingNormal()
     event.deTime0  = cl_time0->DeltaE();
     event.Time0    = cl_time0->Time0();
     event.CTime0   = cl_time0->CTime0();
-    time0          = cl_time0->CTime0();
   } else {
 #if HodoCut
     return true;
@@ -238,11 +236,7 @@ ProcessingNormal()
     event.deBh1[i] = dE;
   }
 
-  Double_t btof0 = qnan;
-  if(event.Time0Seg > 0){
-    const auto cl_btof0 = hodoAna.GetBtof0BH1Cluster(event.CTime0);
-    btof0 = cl_btof0->CMeanTime() - time0;
-  }
+  Double_t btof0 = hodoAna.Btof0();
   event.btof = btof0;
 
   HF1(1, 5.);

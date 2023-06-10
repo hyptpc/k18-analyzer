@@ -1019,8 +1019,8 @@ ProcessingNormal()
     }
 
     // BTOF0 segment
-    if(dst.Time0Seg > 0){
-      const auto& cl_btof0 = hodoAna.GetBtof0BH1Cluster(dst.CTime0);
+    const auto& cl_btof0 = hodoAna.GetBtof0BH1Cluster();
+    if(cl_btof0){
       event.Btof0Seg = cl_btof0->MeanSeg()+1;
       event.deBtof0 = cl_btof0->DeltaE();
       event.Btof0 = cl_btof0->MeanTime() - dst.Time0;
@@ -1300,6 +1300,7 @@ ProcessingNormal()
       dst.tBh1[i]   = cl->CMeanTime();
       dst.dtBh1[i]  = cl->TimeDiff();
       dst.deBh1[i]  = cl->DeltaE();
+      if(cl->ClusterSize() >1) cl->Print();
 
       Int_t nc2 = hodoAna.GetNClusters("BH2");
       for(Int_t i2=0; i2<nc2; ++i2){

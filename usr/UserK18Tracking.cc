@@ -268,7 +268,7 @@ ProcessingNormal()
 
   Double_t btof0_seg = -1;
   if(event.Time0Seg > 0){
-    const auto& cl_btof0 = hodoAna.GetBtof0BH1Cluster(event.CTime0);
+    const auto& cl_btof0 = hodoAna.GetBtof0BH1Cluster();
     btof0_seg = cl_btof0->MeanSeg();
   }
 

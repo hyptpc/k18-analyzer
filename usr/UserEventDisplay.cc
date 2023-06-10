@@ -74,9 +74,9 @@ ProcessingNormal()
   // static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
   // static const auto MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
   // static const auto MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
-  static const auto MinTotBcOut = gUser.GetParameter("MinTotBcOut");
-  static const auto MinTotSDC3 = gUser.GetParameter("MinTotSDC3");
-  static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
+  // static const auto MinTotBcOut = gUser.GetParameter("MinTotBcOut");
+  // static const auto MinTotSDC3 = gUser.GetParameter("MinTotSDC3");
+  // static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
 
   // static const Int_t IdBH2 = gGeom.GetDetectorId("BH2");
   static const Int_t IdTOF = gGeom.GetDetectorId("TOF");
@@ -172,10 +172,7 @@ ProcessingNormal()
   //________________________________________________________
   //___ BH1HodoCluster
   hodoAna.DecodeHits("BH1");
-  const auto Btof0Cl = hodoAna.GetBtof0BH1Cluster(ctime0);
-  Double_t btof = (Btof0Cl)
-    ? Btof0Cl->CMeanTime() - ctime0
-    : TMath::QuietNaN();
+  Double_t btof = hodoAna.Btof0();
 
   //________________________________________________________
   //___ TOFRawHit
