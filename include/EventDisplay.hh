@@ -139,8 +139,6 @@ private:
   TH1                       *m_hist_bc4p_time;
 
   TNode                     *m_target_node;
-  TNode                     *m_kurama_inner_node;
-  TNode                     *m_kurama_outer_node;
   TNode                     *m_BH2wall_node;
   std::vector<TNode*>        m_BH2seg_node;
   std::vector<TNode*>        m_BC3x1_node;
@@ -173,11 +171,16 @@ private:
   std::vector<TNode*>        m_SDC4y2_node;
   std::vector<TNode*>        m_SDC4x1_node;
   std::vector<TNode*>        m_SDC4x2_node;
+  std::vector<TNode*>        m_SDC5y1_node;
+  std::vector<TNode*>        m_SDC5y2_node;
+  std::vector<TNode*>        m_SDC5x1_node;
+  std::vector<TNode*>        m_SDC5x2_node;
   std::vector<TNode*>        m_SSD1y1_node;
   TNode                     *m_FBHwall_node;
   std::vector<TNode*>        m_FBHseg_node;
   TNode                     *m_TOFwall_node;
   std::vector<TNode*>        m_TOFseg_node;
+  TNode                     *m_AC1_node;
   TNode                     *m_WCwall_node;
   std::vector<TNode*>        m_WCseg_node;
   std::vector<TPolyLine3D*>  m_BcOutTrack;
@@ -223,6 +226,7 @@ public:
   Bool_t ConstructSSD();
   Bool_t ConstructFBH();
   Bool_t ConstructTOF();
+  Bool_t ConstructAC1();
   Bool_t ConstructWC();
   void DrawInitTrack(Int_t nStep, ThreeVector *StepPoint);
   void DrawInitTrack();

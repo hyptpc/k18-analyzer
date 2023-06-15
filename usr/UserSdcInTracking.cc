@@ -22,7 +22,7 @@
 #include "RootHelper.hh"
 
 #define HodoCut     0
-#define TotCut      0
+#define TotCut      1
 #define Chi2Cut     0
 #define MaxMultiCut 0
 #define BcOutCut    0
@@ -257,10 +257,6 @@ ProcessingNormal()
   //////////////BCout
   DCAna.DecodeBcOutHits();
 
-#if TotCut
-  DCAna.TotCutSDC1(MinTotSDC1);
-  DCAna.TotCutSDC2(MinTotSDC2);
-#endif
   //BC3&BC4
   Double_t multi_BcOut=0.;
   {
@@ -300,7 +296,10 @@ ProcessingNormal()
 
   //////////////SdcIn number of hit layer
   DCAna.DecodeSdcInHits();
-  // DCAna.TotCutSDC1();
+#if TotCut
+  DCAna.TotCutSDC1(MinTotSDC1);
+  DCAna.TotCutSDC2(MinTotSDC2);
+#endif
   HF1(1, 10.);
   Double_t multi_SdcIn=0.;
   {
