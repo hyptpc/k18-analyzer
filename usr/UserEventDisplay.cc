@@ -55,6 +55,8 @@ ProcessingNormal()
   static const auto MaxMultiHitSdcIn = gUser.GetParameter("MaxMultiHitSdcIn");
   static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
 
+  static const auto MinTimeAFT = gUser.GetParameter("TimeAFT", 0);
+  static const auto MaxTimeAFT = gUser.GetParameter("TimeAFT", 1);
   static const auto MinTdcBH2 = gUser.GetParameter("TdcBH2", 0);
   static const auto MaxTdcBH2 = gUser.GetParameter("TdcBH2", 1);
   static const auto MinTdcBH1 = gUser.GetParameter("TdcBH1", 0);
@@ -99,6 +101,26 @@ ProcessingNormal()
   // if(trigger_flag[trigger::kSpillEnd]) return true;
   // if(!trigger_flag[trigger::kTrigBPS]) return true;
   hddaq::cout << "[Info] TrigPat = " << trigger_flag << std::endl;
+
+  //________________________________________________________
+  //___ AFT
+  hodoAna.DecodeHits<FiberHit>("AFT");
+  for(Int_t i=0, n=hodoAna.GetNHits("AFT"); i<n; ++i){
+    const auto& hit = hodoAna.GetHit<FiberHit>("AFT", i);
+    Int_t plane = hit->PlaneId();
+    Int_t seg = hit->SegmentId();
+    // Int_t m = hit->GetEntries();
+    // for(Int_t j=0; j<m; ++j){
+    //   auto mt = hit->MeanTime(j);
+    //   if( MinTimeAFT < mt && mt < MaxTimeAFT ){
+    // 	auto de_high = hit->DeltaEHighGain();
+    // 	gEvDisp.FillAFT(plane, seg, de_high);
+    // 	break;
+    //   }
+    // }
+    auto de_high = hit->DeltaEHighGain();
+    gEvDisp.FillAFT(plane, seg, de_high);
+  }
 
   //________________________________________________________
   //___ BH2RawHit

@@ -61,6 +61,7 @@
 #include "DeleteUtility.hh"
 #include "HodoParamMan.hh"
 #include "DCTdcCalibMan.hh"
+#include "AftHelper.hh"
 
 #define BH2        1
 #define BcOut      1
@@ -79,6 +80,7 @@ namespace
 {
 const auto& gUnpackerConf = hddaq::unpacker::GConfig::get_instance();
 const auto& gGeom = DCGeomMan::GetInstance();
+auto& gAftHelper = AftHelper::GetInstance();
 const Int_t& IdBH1 = gGeom.DetectorId("BH1");
 const Int_t& IdBH2 = gGeom.DetectorId("BH2");
 const Int_t& IdTOF = gGeom.DetectorId("TOF");
@@ -318,6 +320,41 @@ EventDisplay::Initialize()
 
   m_canvas->Modified();
   m_canvas->Update();
+
+
+  m_canvas->cd(2)->Divide(1, 2);
+  m_canvas->cd(2)->cd(1)->SetPad(0.00, 0.37, 1.00, 1.00);
+  m_canvas->cd(2)->cd(2)->SetPad(0.00, 0.00, 1.00, 0.37);
+  const char* title_x = "AFT_X";
+  const char* title_y = "AFT_Y";
+  m_hist_aft_x = new TH2Poly(title_x, title_x, -15, 125, -70, 70);
+  m_hist_aft_y = new TH2Poly(title_y, title_y, -15, 125, -35, 35);
+  const double phi   = gAftHelper.GetPhi();
+  const int    npoly = gAftHelper.GetNPoly();
+  double X[npoly], Z[npoly];
+  for( int iPlane = 0; iPlane < NumOfPlaneAFT; iPlane++ ){
+    int nseg;
+    if( iPlane%4 == 0 || iPlane%4 == 1 ) nseg = NumOfSegAFTX;
+    if( iPlane%4 == 2 || iPlane%4 == 3 ) nseg = NumOfSegAFTY;
+    for( int iSeg = 0; iSeg < nseg; iSeg++ ){
+      double posx = gAftHelper.GetX( iPlane, iSeg );
+      double posz = gAftHelper.GetZ( iPlane, iSeg );
+      for( int ipoly = 0; ipoly < npoly; ipoly++ ){
+	X[ipoly] = posx + phi/2.*TMath::Cos(ipoly*2*TMath::Pi()/npoly);
+	Z[ipoly] = posz + phi/2.*TMath::Sin(ipoly*2*TMath::Pi()/npoly);
+      }
+      if( iPlane%4 == 0 || iPlane%4 == 1 ) m_hist_aft_x->AddBin(npoly, Z, X);
+      if( iPlane%4 == 2 || iPlane%4 == 3 ) m_hist_aft_y->AddBin(npoly, Z, X);
+    }
+  }
+  m_canvas->cd(2)->cd(1);
+  // m_hist_aft_x->SetStats( 0 );
+  m_hist_aft_x->SetMinimum( 0. );
+  m_hist_aft_x->Draw("colz");
+  m_canvas->cd(2)->cd(2);
+  // m_hist_aft_y->SetStats( 0 );
+  m_hist_aft_y->SetMinimum( 0. );
+  m_hist_aft_y->Draw("colz");
 
 #if Vertex
 
@@ -2600,6 +2637,10 @@ EventDisplay::ResetVisibility()
 void
 EventDisplay::ResetHist()
 {
+
+  m_hist_aft_x->Reset("");
+  m_hist_aft_y->Reset("");
+
 #if Hist_Timing
   m_hist_bh2->Reset();
   m_hist_sch->Reset();
@@ -2781,6 +2822,20 @@ EventDisplay::SetCorrectTimeBFT(Double_t pos)
 #if Hist_BcIn
   m_hist_bcIn->Fill(pos, zBFT);
 #endif
+}
+
+//_____________________________________________________________________________
+void
+EventDisplay::FillAFT(Int_t plane, Int_t seg, Double_t de_high)
+{
+
+  double posx = gAftHelper.GetX( plane, seg );
+  double posz = gAftHelper.GetZ( plane, seg );
+  if( plane%4 == 0 || plane%4 == 1 ) m_hist_aft_x->Fill(posz, posx, de_high);
+  if( plane%4 == 2 || plane%4 == 3 ) m_hist_aft_y->Fill(posz, posx, de_high);
+  //m_canvas_hist2->cd(1);
+  //gPad->Modified();
+  //gPad->Update();
 }
 
 //_____________________________________________________________________________

@@ -10,13 +10,14 @@
 #include <TString.h>
 
 // temp
+const Int_t DetIdAFT      = 112;
 const Int_t NumOfPlaneAFT = 36;
-const Int_t NumOfSegAFT = 32;
+const Int_t NumOfSegAFTX  = 32;
+const Int_t NumOfSegAFTY  = 16;
+const Int_t NumOfSegAFT   = 32;
+//const Int_t NumOfSegAFT[4]    = {NumOfSegAFTX, NumOfSegAFTX, NumOfSegAFTY, NumOfSegAFTY};
 // VMEEASIROC
 const Int_t DetIdVMEASIROC = 116;
-// const std::vector<Int_t> PlaneIdOfVMEEASIROC = {16, 17, 31, 32, 33, 34, 49, 50, 51, 52, 53, 69,
-// 						27, 28, 29, 30, 44, 45, 46, 47, 48, 64, 65, 66, 67, 68, 86};
-// const Int_t NumOfPlaneVMEEASIROC = PlaneIdOfVMEEASIROC.size();
 const Int_t NumOfPlaneVMEEASIROC = 96;
 const Int_t NumOfSegVMEEASIROC = 64;
 

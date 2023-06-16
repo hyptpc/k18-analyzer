@@ -82,6 +82,8 @@ private:
   TH1                       *m_hist_p;
   TH1                       *m_hist_m2;
   TH1                       *m_hist_missmass;
+  TH2Poly                   *m_hist_aft_x;
+  TH2Poly                   *m_hist_aft_y;
   TH2                       *m_hist_bh1;
   TH2                       *m_hist_bft;
   TH2                       *m_hist_bft_p;
@@ -257,6 +259,7 @@ public:
   void FillBFT(Int_t layer, Int_t seg, Int_t tdc);
   void SetCorrectTimeBFT(Double_t pos);
   void DrawBcInTrack(Double_t x0, Double_t u0);
+  void FillAFT(Int_t plane, Int_t seg, Double_t de_high);
   void FillBH2(Int_t seg, Int_t tdc);
   void SetCorrectTimeBH2(Int_t seg, Double_t de);
   void SetCorrectTimeBcOut(Int_t layer, Double_t pos);
