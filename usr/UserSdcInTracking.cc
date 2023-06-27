@@ -34,6 +34,9 @@ using hddaq::unpacker::GUnpacker;
 const auto qnan = TMath::QuietNaN();
 const auto& gUnpacker = GUnpacker::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
+const auto& gGeom = DCGeomMan::GetInstance();
+const Double_t& zK18tgt = gGeom.LocalZ("K18Target");
+const Double_t& zBac    = gGeom.LocalZ("BAC1");
 }
 
 //_____________________________________________________________________________
@@ -408,14 +411,14 @@ ProcessingNormal()
     HF2(18, x0, u0); HF2(19, y0, v0);
     HF2(20, x0, y0);
 
-    Double_t xtgt=tp->GetX(-1289.1), ytgt=tp->GetY(-1289.1);
+    Double_t xtgt=tp->GetX(zK18tgt), ytgt=tp->GetY(zK18tgt);
     Double_t utgt=u0, vtgt=v0;
     HF1(21, xtgt); HF1(22, ytgt);
     HF1(23, utgt); HF1(24, vtgt);
     HF2(25, xtgt, utgt); HF2(26, ytgt, vtgt);
     HF2(27, xtgt, ytgt);
 
-    Double_t xbac=tp->GetX(-815.0), ybac=tp->GetY(-815.0);
+    Double_t xbac=tp->GetX(zBac), ybac=tp->GetY(zBac);
     Double_t ubac=u0, vbac=v0;
     HF1(31, xbac); HF1(32, ybac);
     HF1(33, ubac); HF1(34, vbac);
@@ -676,7 +679,7 @@ ConfMan:: InitializeHistograms()
   tree->Branch("nlayer", &event.nlayer, "nlayer/I");
   tree->Branch("ntrack", &event.ntrack, "ntrack/I");
   tree->Branch("pos",    &event.pos, Form("pos[%d][%d]/D",
-                                          NumOfLayersSdcOut, MaxHits));
+                                          NumOfLayersSdcIn, MaxHits));
   tree->Branch("chisqr", event.chisqr,   "chisqr[ntrack]/D");
   tree->Branch("x0",     event.x0,       "x0[ntrack]/D");
   tree->Branch("y0",     event.y0,       "y0[ntrack]/D");
