@@ -273,14 +273,14 @@ ProcessingNormal()
       for(Int_t i=0; i<nhOut; ++i){
 	DCHit *hit = contOut[i];
 	Double_t wire = hit->GetWire();
-	HF1(100*layer+1, wire-0.5);
+	HF1(100*layer+1, wire+0.5);
 	Int_t nhtdc = hit->GetTdcSize();
 	Int_t tdc1st = -1;
 	for(Int_t k=0; k<nhtdc; k++){
 	  Int_t tdc = hit->GetTdcVal(k);
 	  HF1(100*layer+2, tdc);
 	  HF1(10000*layer+int(wire), tdc);
-	  //	  HF2(1000*layer, tdc, wire-0.5);
+	  //	  HF2(1000*layer, tdc, wire+0.5);
 	  if(tdc > tdc1st){
 	    tdc1st = tdc;
 	    fl_valid_sig = true;
@@ -408,7 +408,7 @@ ProcessingNormal()
       HF1(13, layerId);
       Double_t wire=hit->GetWire();
       Double_t dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
-      HF1(100*layerId+11, wire-0.5);
+      HF1(100*layerId+11, wire+0.5);
       HF1(100*layerId+12, dt);
       HF1(100*layerId+13, dl);
       HF1(10000*layerId+ 5000 +(Int_t)wire, dt);
@@ -526,7 +526,7 @@ ConfMan:: InitializeHistograms()
     TString title15 = Form("Residual BcOut%2d", i);
     TString title16 = Form("Resid%%Pos BcOut%2d", i);
     TString title17 = Form("Y%%Xcal BcOut%2d", i);
-    TString title18 = Form("Res%%dl BcOut%2d", i);
+    TString title18 = Form("Res%%DL BcOut%2d", i);
     TString title19 = Form("HitPos%%DriftTime BcOut%2d", i);
     TString title20 = Form("DriftLength%%DriftTime BcOut%2d", i);
     TString title21 = title15 + " [w/o Self]";

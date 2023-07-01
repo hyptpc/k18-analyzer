@@ -320,14 +320,14 @@ ProcessingNormal()
 	const auto& hit=contIn[i];
         // hit->Print();
 	Double_t wire=hit->GetWire();
-	HF1(100*layer+1, wire-0.5);
+	HF1(100*layer+1, wire+0.5);
 	Int_t nhtdc = hit->GetTdcSize();
 	Int_t tdc1st = -1;
 	for(Int_t k=0; k<nhtdc; k++){
 	  Int_t tdc = hit->GetTdcVal(k);
 	  HF1(100*layer+2, tdc);
 	  HF1(10000*layer+Int_t(wire), tdc);
-	  //	  HF2(1000*layer, tdc, wire-0.5);
+	  //	  HF2(1000*layer, tdc, wire+0.5);
 	  if(tdc > tdc1st){
 	    tdc1st = tdc;
 	    fl_valid_sig = true;
@@ -433,7 +433,7 @@ ProcessingNormal()
 
       Double_t wire=hit->GetWire();
       Double_t dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
-      HF1(100*layerId+11, wire-0.5);
+      HF1(100*layerId+11, wire+0.5);
       HF1(100*layerId+12, dt);
       HF1(100*layerId+13, dl);
       HF1(10000*layerId+ 5000 +Int_t(wire), dt);

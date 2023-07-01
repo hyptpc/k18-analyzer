@@ -380,8 +380,8 @@ ProcessingNormal()
     for(Int_t i=0; i<nhOut; ++i){
       const auto& hit = contOut[i];
       Double_t wire=hit->GetWire();
-      HF1(100*layer+1, wire-0.5);
-      event.wire[layer-1][i] = wire-0.5;
+      HF1(100*layer+1, wire+0.5);
+      event.wire[layer-1][i] = wire+0.5;
       Int_t nhtdc = hit->GetTdcSize();
       Int_t tdc1st = -1;
       for(Int_t k=0; k<nhtdc; k++){
@@ -389,7 +389,7 @@ ProcessingNormal()
         // Int_t tot_1 = hit->GetTot(k);
         HF1(100*layer+2, tdc);
         HF1(10000*layer+Int_t(wire), tdc);
-        HF2(100*layer+51, tdc, wire-0.5);
+        HF2(100*layer+51, tdc, wire+0.5);
         // HF2(100*layer+53, tdc, tot_1);
         if(tdc > tdc1st){
           tdc1st = tdc;
@@ -397,7 +397,7 @@ ProcessingNormal()
         }
       }
       HF1(100*layer+6, tdc1st);
-      HF2(100*layer+52, tdc1st, wire-0.5);
+      HF2(100*layer+52, tdc1st, wire+0.5);
       if(tdc1st > tdc1st_2){
         tdc1st_2 = tdc1st;
       }
@@ -559,7 +559,7 @@ ProcessingNormal()
 
       Double_t wire=hit->GetWire();
       Double_t dt=hit->DriftTime(), dl=hit->DriftLength();
-      HF1(100*layerId+11, wire-0.5);
+      HF1(100*layerId+11, wire+0.5);
       HF1(100*layerId+12, dt);
       HF1(100*layerId+13, dl);
       Double_t xcal=hit->GetXcal(), ycal=hit->GetYcal();
