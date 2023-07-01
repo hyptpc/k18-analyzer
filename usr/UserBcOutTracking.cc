@@ -507,7 +507,7 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+8, title8, 72,     0, 60);
     HB1(100*i+9, title9, 64,   -32, 32);
     HB1(100*i+10, title10, NbinBcOutTdc, MinBcOutTdc, MaxBcOutTdc);
-    for (Int_t wire=1; wire<=nwire; wire++) {
+    for (Int_t wire=0; wire<nwire; wire++) {
       TString title10 = Form("Tdc %s#%2d Wire#%d", tag.Data(), i, wire);
       TString title11 = Form("Drift Time %s#%2d Wire#%d", tag.Data(), i, wire);
       TString title12 = Form("Drift Length %s#%2d Wire#%d", tag.Data(), i, wire);
@@ -556,10 +556,10 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+72, title72, 200, -5.0, 5.0);
     HB1(100*i+73, title73, 200, -5.0, 5.0);
     HB1(100*i+74, title74, 200, -5.0, 5.0);
-    for (Int_t j=1; j<=64; j++) {
-      TString title = Form("XT of Layer %2d Wire #%4d", i, j);
-      HBProf(100000*i+3000+j, title, 100, -4., 4., -5., 40.);
-      HB2(100000*i+4000+j, title, 100, -4., 4., 100, -5., 40.);
+    for (Int_t wire=0; wire<=nwire; wire++) {
+      TString title = Form("XT of Layer %2d Wire #%4d", i, wire);
+      HBProf(100000*i+3000+wire, title, 100, -4., 4., -5., 40.);
+      HB2(100000*i+4000+wire, title, 100, -4., 4., 100, -5., 40.);
     }
 
   }
