@@ -55,8 +55,8 @@ ProcessingNormal()
   static const auto MaxMultiHitSdcIn = gUser.GetParameter("MaxMultiHitSdcIn");
   static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
 
-  static const auto MinTimeAFT = gUser.GetParameter("TimeAFT", 0);
-  static const auto MaxTimeAFT = gUser.GetParameter("TimeAFT", 1);
+  // static const auto MinTimeAFT = gUser.GetParameter("TimeAFT", 0);
+  // static const auto MaxTimeAFT = gUser.GetParameter("TimeAFT", 1);
   static const auto MinTdcBH2 = gUser.GetParameter("TdcBH2", 0);
   static const auto MaxTdcBH2 = gUser.GetParameter("TdcBH2", 1);
   static const auto MinTdcBH1 = gUser.GetParameter("TdcBH1", 0);
@@ -523,7 +523,8 @@ ProcessingNormal()
 
   //________________________________________________________
   //___ SdcOutTracking
-  DCAna.TrackSearchSdcOut(TOFCont);
+  DCAna.TrackSearchSdcOut();
+  // DCAna.TrackSearchSdcOut(TOFCont);
   Int_t ntSdcOut = DCAna.GetNtracksSdcOut();
   hddaq::cout << "[Info] ntSdcOut = " << ntSdcOut << std::endl;
   for(Int_t it=0; it<ntSdcOut; ++it){
@@ -763,7 +764,7 @@ ConfMan::InitializeParameterFiles()
      && InitializeParameter<DCTdcCalibMan>("DCTDC")
      && InitializeParameter<HodoParamMan>("HDPRM")
      && InitializeParameter<HodoPHCMan>("HDPHC")
-     // && InitializeParameter<FieldMan>("FLDMAP")
+     && InitializeParameter<FieldMan>("FLDMAP")
      && InitializeParameter<K18TransMatrix>("K18TM")
      && InitializeParameter<BH2Filter>("BH2FLT")
      && InitializeParameter<UserParamMan>("USER")

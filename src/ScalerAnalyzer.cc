@@ -105,19 +105,20 @@ ScalerAnalyzer::Decode()
       }
     }
   }
-  if(trigger_flag[trigger::kSpillEnd]){
+  if(trigger_flag[trigger::kSpillOnEnd]){
+    m_is_spill_on_end = true;
     m_is_spill_end = true;
   }
-  if(trigger_flag[trigger::kSpillOnEnd])
-    m_is_spill_on_end = true;
+  if(trigger_flag[trigger::kSpillOffEnd])
+    m_is_spill_end = true;
+
   if(m_flag[kSpillOn]){
     if(!trigger_flag[trigger::kSpillOnEnd] &&
 	!trigger_flag[trigger::kL1SpillOn]){
       return false;
     }
   }
-  auto spill_off_end = (trigger_flag[trigger::kSpillEnd] &&
-			 !trigger_flag[trigger::kSpillOnEnd]);
+  auto spill_off_end = trigger_flag[trigger::kSpillOffEnd];
   if(m_flag[kSpillOff]){
     if(!spill_off_end &&
 	!trigger_flag[trigger::kL1SpillOff]){

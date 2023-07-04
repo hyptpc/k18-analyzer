@@ -57,8 +57,8 @@ namespace trigger
   {
     kL1SpillOn,
     kL1SpillOff,
-    kSpillEnd,
     kSpillOnEnd,
+    kSpillOffEnd,
     kCommonStopSdcOut,
     kMatrix2D1,
     kMatrix2D2,

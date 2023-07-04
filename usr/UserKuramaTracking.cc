@@ -313,7 +313,8 @@ ProcessingNormal()
 
   HF1(1, 0.);
 
-  if(trigger_flag[trigger::kSpillEnd]) return true;
+  if(trigger_flag[trigger::kSpillOnEnd] || trigger_flag[trigger::kSpillOffEnd])
+    return true;
 
   HF1(1, 1.);
 
@@ -1320,7 +1321,7 @@ ConfMan:: InitializeHistograms()
   tree->Branch("tofua",     event.tofua,     Form("tofua[%d]/D", NumOfSegTOF));
   tree->Branch("tofda",     event.tofda,     Form("tofda[%d]/D", NumOfSegTOF));
 
-  HPrint();
+  // HPrint();
   return true;
 }
 

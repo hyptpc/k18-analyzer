@@ -62,8 +62,10 @@ ProcessingNormal()
   event.evnum++;
   gScaler.Decode();
 
+#if !MAKE_LOG
   if(event.evnum%400==0)
     gScaler.Print();
+#endif
 
 #if SPILL_RESET
   if(gScaler.SpillIncrement())
@@ -119,56 +121,58 @@ ConfMan::InitializeHistograms()
     gScaler.Set(c, r++, ScalerInfo("BH2-06",     0, 69));
     gScaler.Set(c, r++, ScalerInfo("BH2-07",     0, 70));
     gScaler.Set(c, r++, ScalerInfo("BH2-08",     0, 71));
-    gScaler.Set(c, r++, ScalerInfo("BAC",        0, 18));
-    gScaler.Set(c, r++, ScalerInfo("HTOF",       0, 19));
-    gScaler.Set(c, r++, ScalerInfo("SCH",        0, 26));
+    gScaler.Set(c, r++, ScalerInfo("V792gate-1", 2, 2));
+    gScaler.Set(c, r++, ScalerInfo("V792gate-2", 2, 3));
+    gScaler.Set(c, r++, ScalerInfo("V792gate-3", 2, 4));
+    gScaler.Set(c, r++, ScalerInfo("AFT-01",   0, 80));
+    gScaler.Set(c, r++, ScalerInfo("AFT-02",   0, 81));
+    gScaler.Set(c, r++, ScalerInfo("AFT-03",   0, 82));
   }
 
   {
     Int_t c = ScalerAnalyzer::kCenter;
     Int_t r = 0;
-    gScaler.Set(c, r++, ScalerInfo("Beam",         0, 38));
-    gScaler.Set(c, r++, ScalerInfo("K-Beam",       0, 35));
-    gScaler.Set(c, r++, ScalerInfo("Pi-Beam",      0, 40));
+    gScaler.Set(c, r++, ScalerInfo("10M-Clock",    0,  0));
     gScaler.Set(c, r++, ScalerInfo("TM",           0,  9));
     gScaler.Set(c, r++, ScalerInfo("SY",           0, 10));
+    gScaler.Set(c, r++, ScalerInfo("K-Beam",       0, 35));
+    gScaler.Set(c, r++, ScalerInfo("Pi-Beam",      0, 39));
+    gScaler.Set(c, r++, ScalerInfo("Beam",         0, 36));
     gScaler.Set(c, r++, ScalerInfo("BH1-1/100-PS", 1, 11));
     gScaler.Set(c, r++, ScalerInfo("BH1-1/1e5-PS", 1, 12));
-    gScaler.Set(c, r++, ScalerInfo("TOF-24",       0, 29));
-    gScaler.Set(c, r++, ScalerInfo("HTOF-Cosmic",  0, 25));
+    gScaler.Set(c, r++, ScalerInfo("Mtx2D-1",      0, 32));
+    gScaler.Set(c, r++, ScalerInfo("Mtx2D-2",      0, 33));
+    gScaler.Set(c, r++, ScalerInfo("Mtx3D",        0, 34));
+    gScaler.Set(c, r++, ScalerInfo("Other3",       0, 27));
+    gScaler.Set(c, r++, ScalerInfo("Other4",       0, 28));
     gScaler.Set(c, r++, ScalerInfo("BEAM-A",       0, 35));
     gScaler.Set(c, r++, ScalerInfo("BEAM-B",       0, 36));
     gScaler.Set(c, r++, ScalerInfo("BEAM-C",       0, 37));
     gScaler.Set(c, r++, ScalerInfo("BEAM-D",       0, 38));
     gScaler.Set(c, r++, ScalerInfo("BEAM-E",       0, 39));
     gScaler.Set(c, r++, ScalerInfo("BEAM-F",       0, 40));
-    gScaler.Set(c, r++, ScalerInfo("Mtx2D-1",      0, 32));
-    gScaler.Set(c, r++, ScalerInfo("Mtx2D-2",      0, 33));
-    gScaler.Set(c, r++, ScalerInfo("Mtx3D",        0, 34));
-    gScaler.Set(c, r++, ScalerInfo("HTOF-Mp2",     0, 20));
-    gScaler.Set(c, r++, ScalerInfo("HTOF-Mp3",     0, 21));
-    gScaler.Set(c, r++, ScalerInfo("HTOF-Mp4",     0, 27));
-    gScaler.Set(c, r++, ScalerInfo("HTOF-Mp5",     0, 28));
-    gScaler.Set(c, r++, ScalerInfo("BVH",          0, 13));
-    gScaler.Set(c, r++, ScalerInfo("TOF",          0, 22));
-    gScaler.Set(c, r++, ScalerInfo("LAC",          0, 23));
-    gScaler.Set(c, r++, ScalerInfo("WC",           0, 24));
+    gScaler.Set(c, r++, ScalerInfo("BAC",        0, 18));
+    gScaler.Set(c, r++, ScalerInfo("TOF",        0, 22));
+    gScaler.Set(c, r++, ScalerInfo("AC1",        0, 23));
+    gScaler.Set(c, r++, ScalerInfo("WC",         0, 24));
+    gScaler.Set(c, r++, ScalerInfo("V792gate-4",    2, 5));
+    gScaler.Set(c, r++, ScalerInfo("V792gate-5",    2, 6));
+    gScaler.Set(c, r++, ScalerInfo("V792gate-6",    2, 7));
+    gScaler.Set(c, r++, ScalerInfo( "AFT-04",     0, 83));
+    gScaler.Set(c, r++, ScalerInfo( "AFT-05",     0, 84));
+    gScaler.Set(c, r++, ScalerInfo( "AFT-06",     0, 85));
   }
 
   {
     Int_t c = ScalerAnalyzer::kRight;
     Int_t r = 0;
     gScaler.Set(c, r++, ScalerInfo("Spill",        -1, -1));
-    gScaler.Set(c, r++, ScalerInfo("10M-Clock",     0,  0));
     gScaler.Set(c, r++, ScalerInfo("Real-Time",     0,  1));
     gScaler.Set(c, r++, ScalerInfo("Live-Time",     0,  2));
     gScaler.Set(c, r++, ScalerInfo("L1-Req",        0,  3));
     gScaler.Set(c, r++, ScalerInfo("L1-Acc",        0,  4));
-    // gScaler.Set(c, r++, ScalerInfo("MstClr",        0,  5));
-    // gScaler.Set(c, r++, ScalerInfo("Clear",         0,  6));
     gScaler.Set(c, r++, ScalerInfo("L2-Req",        0,  7));
     gScaler.Set(c, r++, ScalerInfo("L2-Acc",        0,  8));
-    gScaler.Set(c, r++, ScalerInfo("GET-Busy",      0, 14));
     gScaler.Set(c, r++, ScalerInfo("TRIG-A",        0, 41));
     gScaler.Set(c, r++, ScalerInfo("TRIG-B",        0, 42));
     gScaler.Set(c, r++, ScalerInfo("TRIG-C",        0, 43));
@@ -186,6 +190,11 @@ ConfMan::InitializeHistograms()
     gScaler.Set(c, r++, ScalerInfo("Clock-PS",      0, 56));
     gScaler.Set(c, r++, ScalerInfo("Reserve2-PS",   0, 57));
     gScaler.Set(c, r++, ScalerInfo("Level1-PS",     0, 58));
+    gScaler.Set(c, r++, ScalerInfo("V792gate-7",    2, 8));
+    gScaler.Set(c, r++, ScalerInfo("V792gate-8",    2, 9));
+    gScaler.Set( c, r++, ScalerInfo( "AFT-07",      0, 86));
+    gScaler.Set( c, r++, ScalerInfo( "AFT-08",      0, 87));
+    gScaler.Set( c, r++, ScalerInfo( "AFT-09",      0, 88));
   }
 
 #if USE_COMMA
