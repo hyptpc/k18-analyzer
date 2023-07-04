@@ -763,8 +763,8 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
                               0., 0., 1., 0., 0.,
                               0., 0., 0., 1., 0.,
                               0.0);
-  Int_t MaxStep = 10000;
-  static const Double_t MaxPathLength  = 10000.; // mm
+  Int_t MaxStep = 100000;
+  static const Double_t MaxPathLength  = 100000.; // mm
   static const Double_t NormalStepSize = -10.;   // mm
   Double_t MinStepSize = 2.;     // mm
   /*for EventDisplay*/
@@ -805,10 +805,9 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
 		    << ","   << std::setw(8) << gmom.y()
 		    << ","   << std::setw(8) << gmom.z()
 		    << ")"   << std::endl;
-
 	helper.precision(2);
 	hddaq::cout << "  PL=" << std::setw(10) << chp.PathLength();
-	helper.set(3, std::ios::scientific);
+	// helper.set(3, std::ios::scientific);
 	hddaq::cout << "  Coeff.s = "
 		    << std::setw(10) << chp.coefX() << " "
 		    << std::setw(10) << chp.coefY() << " "
@@ -857,13 +856,18 @@ RK::TraceToLast(RKHitPointContainer& hitContainer)
 {
   Int_t nPlane = hitContainer.size();
   Int_t iPlane = nPlane-1;
-  Int_t idini  = hitContainer[iPlane].first;
+  // Int_t idini  = hitContainer[iPlane].first;
 
   // add downstream detectors from TOF
-  for(const auto& lid: gGeom.GetDetectorIDList()){
-    if(idini < lid && lid <= IdRKINIT){
-      hitContainer.push_back(std::make_pair(lid, RKcalcHitPoint()));
-    }
+  // for(const auto& lid: gGeom.GetDetectorIDList()){
+  //   if(idini < lid && lid <= IdRKINIT){
+  //     hitContainer.push_back(std::make_pair(lid, RKcalcHitPoint()));
+  //   }
+  // }
+
+  for(const auto& key : {"AC1", "WC-U", "WC-D", "RKINIT"}){
+    auto id = gGeom.DetectorId(key);
+    hitContainer.push_back(std::make_pair(id, RKcalcHitPoint()));
   }
 
   nPlane = hitContainer.size();

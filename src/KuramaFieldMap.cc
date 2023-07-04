@@ -14,6 +14,13 @@
 //#include "ConfMan.hh"
 #include "FuncName.hh"
 
+#define DebugDisp 0
+#if DebugDisp
+#include <TCanvas.h>
+#include <TH1.h>
+#include <TH2.h>
+#endif
+
 //namespace
 //{
 //const auto& gConf = ConfMan::GetInstance();
@@ -115,6 +122,13 @@ KuramaFieldMap::Initialize()
 
   hddaq::cout << " reading fieldmap " << std::flush;
 
+#if DebugDisp
+  auto h1 = new TH2D("h1", "By; Z [cm]; X[cm]",
+                     900/2, -590, 310,
+                     800/2, -200, 600);
+  h1->SetStats(0);
+#endif
+
   Int_t line = 0;
   while(ifs.good()){
     if(line++%1000000==0)
@@ -127,8 +141,20 @@ KuramaFieldMap::Initialize()
       B[ix][iy][iz].x = bx*factor;
       B[ix][iy][iz].y = by*factor;
       B[ix][iy][iz].z = bz*factor;
+#if DebugDisp
+      if(TMath::Abs(y) < 1.) h1->Fill(z, x, by);
+#endif
     }
+    // else{
+    //   hddaq::cerr << FUNC_NAME << " out of range : " << std::endl;
+    // }
   }
+
+#if DebugDisp
+  auto c1 = new TCanvas("c1", "c1", 900, 800);
+  h1->Draw("colz");
+  c1->Print("c1.pdf");
+#endif
 
   hddaq::cout << " done" << std::endl;
   m_is_ready = true;

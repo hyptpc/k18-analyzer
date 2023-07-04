@@ -776,11 +776,11 @@ DCAnalyzer::TrackSearchKurama()
       if(true
          && trKurama->DoFit()
          && trKurama->ChiSquare()<MaxChiSqrKuramaTrack){
-        trKurama->Print("in "+FUNC_NAME);
+        // trKurama->Print("in "+FUNC_NAME);
         m_KuramaTC.push_back(trKurama);
       }
       else{
-        trKurama->Print("in "+FUNC_NAME);
+        // trKurama->Print("in "+FUNC_NAME);
         delete trKurama;
       }
     }

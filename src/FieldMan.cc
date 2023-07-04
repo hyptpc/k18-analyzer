@@ -96,16 +96,18 @@ TVector3
 FieldMan::GetField(const TVector3& position) const
 {
   TVector3 field(0., 0., 0.);
-  if(m_kurama_map && m_shs_map){
-    Double_t p[3], b_kurama[3], b_shs[3];
+  if(m_kurama_map // && m_shs_map
+    ){
+    Double_t p[3], b_kurama[3]; //, b_shs[3];
     p[0] = position.x()*0.1;
     p[1] = position.y()*0.1;
     p[2] = position.z()*0.1;
-    if(m_kurama_map->GetFieldValue(p, b_kurama) &&
-       m_shs_map->GetFieldValue(p, b_shs)){
-      field.SetX(b_kurama[0]+b_shs[0]);
-      field.SetY(b_kurama[1]+b_shs[1]);
-      field.SetZ(b_kurama[2]+b_shs[2]);
+    if(m_kurama_map->GetFieldValue(p, b_kurama)//  &&
+       // m_shs_map->GetFieldValue(p, b_shs)
+      ){
+      field.SetX(b_kurama[0]);
+      field.SetY(b_kurama[1]);
+      field.SetZ(b_kurama[2]);
     }
   }
 

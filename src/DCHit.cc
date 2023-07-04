@@ -282,6 +282,7 @@ DCHit::Print(Option_t* arg) const
 {
   const Int_t w = 16;
   hddaq::cout << FUNC_NAME << " " << arg << std::endl
+      << std::setw(w) << std::left << "plane" << m_plane << std::endl
       << std::setw(w) << std::left << "layer" << m_layer << std::endl
       << std::setw(w) << std::left << "wire"  << m_wire  << std::endl
               << std::setw(w) << std::left << "wpos"  << m_wpos  << std::endl
