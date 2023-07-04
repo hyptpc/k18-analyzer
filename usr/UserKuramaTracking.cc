@@ -26,7 +26,7 @@
 #include "UnpackerManager.hh"
 
 #define HodoCut 0
-#define UseTOF  1
+#define UseTOF  0
 
 namespace
 {
@@ -282,7 +282,13 @@ ProcessingNormal()
   static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
 
   RawData rawData;
-  rawData.DecodeHits();
+  rawData.DecodeHits("TFlag");
+  rawData.DecodeHits("BH1");
+  rawData.DecodeHits("BH2");
+  rawData.DecodeHits("TOF");
+  for(const auto& name: DCNameList.at("SdcIn")) rawData.DecodeHits(name);
+  for(const auto& name: DCNameList.at("SdcOut")) rawData.DecodeHits(name);
+
   HodoAnalyzer hodoAna(rawData);
   DCAnalyzer   DCAna(rawData);
 
@@ -439,13 +445,13 @@ ProcessingNormal()
   ////////////// SdcIn number of hit layer
   {
     Int_t nlSdcIn = 0;
-    for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
-      const auto& contSdcIn =DCAna.GetSdcInHC(layer);
+    for(Int_t l=0; l<NumOfLayersSdcIn; ++l){
+      const auto& contSdcIn =DCAna.GetSdcInHC(l);
       Int_t nhSdcIn = contSdcIn.size();
       if(nhSdcIn==1){
 	auto hit = contSdcIn[0];
 	Double_t wpos = hit->GetWirePosition();
-	event.wposSdcIn[layer-1] = wpos;
+	event.wposSdcIn[l] = wpos;
       }
       multi_SdcIn += Double_t(nhSdcIn);
       if(nhSdcIn>0) nlSdcIn++;
@@ -461,13 +467,13 @@ ProcessingNormal()
   ////////////// SdcOut number of hit layer
   {
     Int_t nlSdcOut = 0;
-    for(Int_t layer=1; layer<=NumOfLayersSdcOut; ++layer){
-      const auto& contSdcOut =DCAna.GetSdcOutHC(layer);
+    for(Int_t l=0; l<NumOfLayersSdcOut; ++l){
+      const auto& contSdcOut =DCAna.GetSdcOutHC(l);
       Int_t nhSdcOut=contSdcOut.size();
       if(nhSdcOut==1){
 	auto hit = contSdcOut[0];
 	Double_t wpos = hit->GetWirePosition();
-	event.wposSdcOut[layer-1] = wpos;
+	event.wposSdcOut[l] = wpos;
       }
       multi_SdcOut += Double_t(nhSdcOut);
       if(nhSdcOut>0) nlSdcOut++;
@@ -1328,7 +1334,7 @@ ConfMan::InitializeParameterFiles()
      InitializeParameter<DCTdcCalibMan>("DCTDC")    &&
      InitializeParameter<HodoParamMan>("HDPRM")     &&
      InitializeParameter<HodoPHCMan>("HDPHC")       &&
-     InitializeParameter<FieldMan>("FLDMAP", "HSFLDMAP") &&
+     InitializeParameter<FieldMan>("FLDMAP") &&
      InitializeParameter<UserParamMan>("USER"));
 }
 
