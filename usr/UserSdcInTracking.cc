@@ -320,14 +320,14 @@ ProcessingNormal()
 	const auto& hit=contIn[i];
         // hit->Print();
 	Double_t wire=hit->GetWire();
-	HF1(100*layer+1, wire-0.5);
+	HF1(100*layer+1, wire+0.5);
 	Int_t nhtdc = hit->GetTdcSize();
 	Int_t tdc1st = -1;
 	for(Int_t k=0; k<nhtdc; k++){
 	  Int_t tdc = hit->GetTdcVal(k);
 	  HF1(100*layer+2, tdc);
 	  HF1(10000*layer+Int_t(wire), tdc);
-	  //	  HF2(1000*layer, tdc, wire-0.5);
+	  //	  HF2(1000*layer, tdc, wire+0.5);
 	  if(tdc > tdc1st){
 	    tdc1st = tdc;
 	    fl_valid_sig = true;
@@ -433,7 +433,7 @@ ProcessingNormal()
 
       Double_t wire=hit->GetWire();
       Double_t dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
-      HF1(100*layerId+11, wire-0.5);
+      HF1(100*layerId+11, wire+0.5);
       HF1(100*layerId+12, dt);
       HF1(100*layerId+13, dl);
       HF1(10000*layerId+ 5000 +Int_t(wire), dt);
@@ -559,7 +559,7 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+7, title7, 500,  0, 500);
     HB1(100*i+10, title10, NbinSdcInTdc, MinSdcInTdc, MaxSdcInTdc);
     HB1(100*i+30, title30, nbindt, mindt, maxdt);
-    for (Int_t wire=1; wire<=nwire; wire++){
+    for (Int_t wire=0; wire<nwire; wire++){
       TString title11 = Form("Tdc %s#%2d  Wire#%4d", tag.Data(), i, wire);
       TString title12 = Form("DriftTime %s#%2d Wire#%4d", tag.Data(), i, wire);
       TString title13 = Form("DriftLength %s#%2d Wire#%d", tag.Data(), i, wire);
@@ -609,7 +609,7 @@ ConfMan:: InitializeHistograms()
     // 	 NbinSdcOutTdc/4, MinSdcOutTdc, MaxSdcOutTdc,
     // 	 MaxWire+1, 0., Double_t(MaxWire+1));
 
-    for (Int_t j=1; j<=nwire; j++) {
+    for (Int_t j=0; j<nwire; j++) {
       TString title = Form("XT of Layer %2d Wire #%4d", i, j);
       HBProf(100000*i+3000+j, title, 100, -maxdl, maxdl, -5, 50);
       HB2(100000*i+4000+j, title, 100, -maxdl, maxdl, 40, -5., 50.);

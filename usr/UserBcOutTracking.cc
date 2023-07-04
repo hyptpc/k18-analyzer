@@ -273,14 +273,14 @@ ProcessingNormal()
       for(Int_t i=0; i<nhOut; ++i){
 	DCHit *hit = contOut[i];
 	Double_t wire = hit->GetWire();
-	HF1(100*layer+1, wire-0.5);
+	HF1(100*layer+1, wire+0.5);
 	Int_t nhtdc = hit->GetTdcSize();
 	Int_t tdc1st = -1;
 	for(Int_t k=0; k<nhtdc; k++){
 	  Int_t tdc = hit->GetTdcVal(k);
 	  HF1(100*layer+2, tdc);
 	  HF1(10000*layer+int(wire), tdc);
-	  //	  HF2(1000*layer, tdc, wire-0.5);
+	  //	  HF2(1000*layer, tdc, wire+0.5);
 	  if(tdc > tdc1st){
 	    tdc1st = tdc;
 	    fl_valid_sig = true;
@@ -408,7 +408,7 @@ ProcessingNormal()
       HF1(13, layerId);
       Double_t wire=hit->GetWire();
       Double_t dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
-      HF1(100*layerId+11, wire-0.5);
+      HF1(100*layerId+11, wire+0.5);
       HF1(100*layerId+12, dt);
       HF1(100*layerId+13, dl);
       HF1(10000*layerId+ 5000 +(Int_t)wire, dt);
@@ -507,7 +507,7 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+8, title8, 72,     0, 60);
     HB1(100*i+9, title9, 64,   -32, 32);
     HB1(100*i+10, title10, NbinBcOutTdc, MinBcOutTdc, MaxBcOutTdc);
-    for (Int_t wire=1; wire<=nwire; wire++) {
+    for (Int_t wire=0; wire<nwire; wire++) {
       TString title10 = Form("Tdc %s#%2d Wire#%d", tag.Data(), i, wire);
       TString title11 = Form("Drift Time %s#%2d Wire#%d", tag.Data(), i, wire);
       TString title12 = Form("Drift Length %s#%2d Wire#%d", tag.Data(), i, wire);
@@ -526,7 +526,7 @@ ConfMan:: InitializeHistograms()
     TString title15 = Form("Residual BcOut%2d", i);
     TString title16 = Form("Resid%%Pos BcOut%2d", i);
     TString title17 = Form("Y%%Xcal BcOut%2d", i);
-    TString title18 = Form("Res%%dl BcOut%2d", i);
+    TString title18 = Form("Res%%DL BcOut%2d", i);
     TString title19 = Form("HitPos%%DriftTime BcOut%2d", i);
     TString title20 = Form("DriftLength%%DriftTime BcOut%2d", i);
     TString title21 = title15 + " [w/o Self]";
@@ -556,10 +556,10 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+72, title72, 200, -5.0, 5.0);
     HB1(100*i+73, title73, 200, -5.0, 5.0);
     HB1(100*i+74, title74, 200, -5.0, 5.0);
-    for (Int_t j=1; j<=64; j++) {
-      TString title = Form("XT of Layer %2d Wire #%4d", i, j);
-      HBProf(100000*i+3000+j, title, 100, -4., 4., -5., 40.);
-      HB2(100000*i+4000+j, title, 100, -4., 4., 100, -5., 40.);
+    for (Int_t wire=0; wire<=nwire; wire++) {
+      TString title = Form("XT of Layer %2d Wire #%4d", i, wire);
+      HBProf(100000*i+3000+wire, title, 100, -4., 4., -5., 40.);
+      HB2(100000*i+4000+wire, title, 100, -4., 4., 100, -5., 40.);
     }
 
   }
