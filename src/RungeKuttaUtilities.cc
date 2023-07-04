@@ -34,7 +34,6 @@ const Int_t& IdTOF_UY = gGeom.DetectorId("TOF-UY");
 const Int_t& IdTOF_DX = gGeom.DetectorId("TOF-DX");
 const Int_t& IdTOF_DY = gGeom.DetectorId("TOF-DY");
 const Int_t& IdTarget = gGeom.DetectorId("Target");
-const Int_t& IdHTOF = gGeom.DetectorId("HTOF");
 const Int_t& IdRKINIT = gGeom.DetectorId("RKINIT");
 
 const Int_t& IdBH2    = gGeom.DetectorId("BH2");
@@ -112,6 +111,7 @@ void
 RKTrajectoryPoint::Print(std::ostream &ost) const
 {
   PrintHelper helper(3, std::ios::scientific, ost);
+  ost << TVector3(r.x, r.y, r.z) << std::endl;
 }
 
 //_____________________________________________________________________________
@@ -771,7 +771,6 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
   std::vector<TVector3> StepPoint(MaxStep);
 
   Int_t iStep = 0;
-
   while(++iStep < MaxStep){
     Double_t StepSize = gField.StepSize(prevPoint.PositionInGlobal(),
                                         NormalStepSize, MinStepSize);
@@ -918,8 +917,6 @@ RK::MakeHPContainer()
 
   // /*** From Upstream ***/
   container.push_back(std::make_pair(IdTarget, RKcalcHitPoint()));
-
-  container.push_back(std::make_pair(IdHTOF, RKcalcHitPoint()));
 
   for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
     container.push_back(std::make_pair(i+PlOffsSdcIn+1, RKcalcHitPoint()));

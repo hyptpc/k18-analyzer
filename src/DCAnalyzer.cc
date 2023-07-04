@@ -762,24 +762,25 @@ DCAnalyzer::TrackSearchKurama()
       if(!trKurama) continue;
       Double_t u0In    = trIn->GetU0();
       Double_t u0Out   = trOut->GetU0();
-      Double_t v0In    = trIn->GetV0();
-      Double_t v0Out   = trOut->GetV0();
+      // Double_t v0In    = trIn->GetV0();
+      // Double_t v0Out   = trOut->GetV0();
       Double_t bending = u0Out - u0In;
       Double_t p[3] = { 0.08493, 0.2227, 0.01572 };
       Double_t initial_momentum = p[0] + p[1]/(bending-p[2]);
-      if(bending>0. && initial_momentum>0.){
+      if(false
+         && bending>0. && initial_momentum>0.){
         trKurama->SetInitialMomentum(initial_momentum);
       } else {
-        trKurama->SetInitialMomentum(1.);
+        trKurama->SetInitialMomentum(1.3);
       }
-      if(TMath::Abs(TMath::ATan(v0In) - TMath::ATan(v0Out)) < m_max_v0diff
+      if(true
          && trKurama->DoFit()
          && trKurama->ChiSquare()<MaxChiSqrKuramaTrack){
-        // trKurama->Print("in "+FUNC_NAME);
+        trKurama->Print("in "+FUNC_NAME);
         m_KuramaTC.push_back(trKurama);
       }
       else{
-        // trKurama->Print("in "+FUNC_NAME);
+        trKurama->Print("in "+FUNC_NAME);
         delete trKurama;
       }
     }

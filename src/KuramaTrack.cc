@@ -152,13 +152,16 @@ KuramaTrack::DoFit()
   }
 
   static const auto gposTOFDX = gGeom.GetGlobalPosition("TOF-DX");
-  const Double_t xOut    = m_track_out->GetX(gposTOFDX.z());
-  const Double_t yOut    = m_track_out->GetY(gposTOFDX.z());
+  static const auto LzTOFDX = gGeom.GetLocalZ("TOF-DX");
+  const Double_t xOut    = m_track_out->GetX(LzTOFDX);
+  const Double_t yOut    = m_track_out->GetY(LzTOFDX);
   const Double_t uOut    = m_track_out->GetU0();
   const Double_t vOut    = m_track_out->GetV0();
   const Double_t pzOut   = m_initial_momentum/std::sqrt(1.+uOut*uOut+vOut*vOut);
-  const ThreeVector posOut(xOut, yOut, gposTOFDX.z());
-  const ThreeVector momOut(pzOut*uOut, pzOut*vOut, pzOut);
+  const ThreeVector posOut =
+    gGeom.Local2GlobalPos(IdTOFDX, TVector3(xOut, yOut, 0.));
+  const ThreeVector momOut =
+    gGeom.Local2GlobalDir(IdTOFDX, TVector3(pzOut*uOut, pzOut*vOut, pzOut));
 
   RKCordParameter     iniCord(posOut, momOut);
   RKCordParameter     prevCord;
