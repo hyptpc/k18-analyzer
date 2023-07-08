@@ -273,6 +273,7 @@ ProcessingNormal()
 
       for(Int_t i=0; i<nhOut; ++i){
 	DCHit *hit = contOut[i];
+        if(hit->IsEmpty()) continue;
 	Double_t wire = hit->GetWire();
 	HF1(100*layer+1, wire+0.5);
 	Int_t nhtdc = hit->GetTdcSize();

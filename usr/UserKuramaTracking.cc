@@ -275,8 +275,11 @@ ProcessingNormal()
   static const auto MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
   static const auto MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
   // static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
+  static const auto MinTotSDC1 = gUser.GetParameter("MinTotSDC1");
+  static const auto MinTotSDC2 = gUser.GetParameter("MinTotSDC2");
   static const auto MinTotSDC3 = gUser.GetParameter("MinTotSDC3");
   static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
+  static const auto MinTotSDC5 = gUser.GetParameter("MinTotSDC5");
 
   static const auto MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
   static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
@@ -436,11 +439,14 @@ ProcessingNormal()
   HF1(1, 10.);
 
   DCAna.DecodeSdcInHits();
+  DCAna.TotCutSDC1(MinTotSDC1);
+  DCAna.TotCutSDC2(MinTotSDC2);
 
   // Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
   DCAna.DecodeSdcOutHits();
   DCAna.TotCutSDC3(MinTotSDC3);
   DCAna.TotCutSDC4(MinTotSDC4);
+  DCAna.TotCutSDC5(MinTotSDC5);
 
   Double_t multi_SdcIn  = 0.;
   ////////////// SdcIn number of hit layer

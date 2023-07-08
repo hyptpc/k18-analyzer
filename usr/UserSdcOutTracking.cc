@@ -380,6 +380,7 @@ ProcessingNormal()
     Int_t tdc1st_2 = -1;
     for(Int_t i=0; i<nhOut; ++i){
       const auto& hit = contOut[i];
+      if(hit->IsEmpty()) continue;
       Double_t wire=hit->GetWire();
       HF1(100*layer+1, wire+0.5);
       event.wire[layer-1][i] = wire+0.5;

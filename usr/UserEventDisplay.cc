@@ -98,7 +98,8 @@ ProcessingNormal()
   for(auto& hit: rawData.GetHodoRawHitContainer("TFlag")){
     if(hit->GetTdc(0) > 0) trigger_flag.set(hit->SegmentId());
   }
-  // if(trigger_flag[trigger::kSpillEnd]) return true;
+  if(trigger_flag[trigger::kSpillOnEnd] || trigger_flag[trigger::kSpillOffEnd])
+    return true;
   // if(!trigger_flag[trigger::kTrigBPS]) return true;
   hddaq::cout << "[Info] TrigPat = " << trigger_flag << std::endl;
 
@@ -368,7 +369,7 @@ ProcessingNormal()
     hddaq::cout << "[Warning] BcOutHits exceed MaxMultiHit "
                 << multi_BcOut << "/" << MaxMultiHitBcOut << std::endl;
     // gEvDisp.GetCommand();
-    // return true;
+    return true;
   }
 
   //________________________________________________________
@@ -394,7 +395,7 @@ ProcessingNormal()
   }
   if(ntBcOut==0) {
     hddaq::cout << "[Warning] BcOutTrack is empty!" << std::endl;
-    // return true;
+    return true;
   }
 
   //________________________________________________________
@@ -462,7 +463,7 @@ ProcessingNormal()
     hddaq::cout << "[Warning] SdcInHits exceed MaxMultiHit "
                 << multi_SdcIn << "/" << MaxMultiHitSdcIn << std::endl;
     // gEvDisp.GetCommand();
-    // return true;
+    return true;
   }
 
   //________________________________________________________
@@ -488,7 +489,7 @@ ProcessingNormal()
   }
   if(ntSdcIn != 1){
     hddaq::cout << "[Warning] SdcInTrack is empty!" << std::endl;
-    // return true;
+    return true;
   }
 
   //________________________________________________________
@@ -518,7 +519,7 @@ ProcessingNormal()
     hddaq::cout << "[Warning] SdcOutHits exceed MaxMultiHit "
                 << multi_SdcOut << "/" << MaxMultiHitSdcOut << std::endl;
     // gEvDisp.GetCommand();
-    // return true;
+    return true;
   }
 
   //________________________________________________________
@@ -545,7 +546,7 @@ ProcessingNormal()
   }
   if(ntSdcOut != 1){
     hddaq::cout << "[Warning] SdcOutTrack is empty!" << std::endl;
-    // return true;
+    return true;
   }
 
   gEvDisp.Update();

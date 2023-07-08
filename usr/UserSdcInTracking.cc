@@ -316,10 +316,10 @@ ProcessingNormal()
       multi_SdcIn += Double_t(nhIn);
       HF1(100*layer, nhIn);
       Int_t plane_eff = (layer-1)*3;
-      Bool_t fl_valid_sig = false;
+      Bool_t is_valid = false;
       for(Int_t i=0; i<nhIn; ++i){
 	const auto& hit=contIn[i];
-        // hit->Print();
+        if(hit->IsEmpty()) continue;
 	Double_t wire=hit->GetWire();
 	HF1(100*layer+1, wire+0.5);
 	Int_t nhtdc = hit->GetTdcSize();
@@ -331,7 +331,7 @@ ProcessingNormal()
 	  //	  HF2(1000*layer, tdc, wire+0.5);
 	  if(tdc > tdc1st){
 	    tdc1st = tdc;
-	    fl_valid_sig = true;
+	    is_valid = true;
 	  }
 	}
 	HF1(100*layer+6, tdc1st);
@@ -367,7 +367,7 @@ ProcessingNormal()
 	  HF1(100*layer+4, dl);
 	}
       }
-      if(fl_valid_sig) ++plane_eff;
+      if(is_valid) ++plane_eff;
       HF1(38, plane_eff);
     }
   }
