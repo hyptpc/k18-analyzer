@@ -556,7 +556,12 @@ class SingleRun(object):
       path_conf = os.path.join(self.__dummy_dir.name, item+'.conf')
       with open(path_conf, 'w') as f:
         for option in config.options('dummy'):
-          f.write(option + ':\t' + self.__make_path(config.get('dummy', option)) + '\n')
+          value = config.get('dummy', option)
+          try:
+            float(value)
+          except ValueError:
+            value = self.__make_path(value)
+          f.write(option + ':\t' + value + '\n')
       self.__conf_list.append(path_conf)
       self.__unpack_list.append(path_unpack)
     self.__dump_log('conf',   self.__conf_list)
