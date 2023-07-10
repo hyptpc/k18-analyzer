@@ -77,6 +77,7 @@ struct Event
 
   Int_t ac1nhits;
   Int_t ac1hitpat[MaxHits];
+  Double_t ac1a[NumOfSegAC1];
   Double_t ac1t[NumOfSegAC1][MaxDepth];
 
   Int_t wcnhits;
@@ -239,6 +240,7 @@ Event::clear()
   }
 
   for(Int_t it=0; it<NumOfSegAC1; it++){
+    ac1a[it] = qnan;
     for(Int_t m=0; m<MaxDepth; ++m){
       ac1t[it][m]  = qnan;
     }
@@ -707,6 +709,9 @@ ProcessingNormal()
       HodoRawHit *hit = cont[i];
       Int_t seg = hit->SegmentId()+1;
       HF1(AC1Hid +1, seg-0.5);
+      Int_t A = hit->GetAdcUp();
+      HF1(AC1Hid +100*seg +1, A);
+      event.ac1a[seg-1] = A;
       Bool_t is_hit = false;
       Int_t m = 0;
       for(const auto& T: hit->GetArrayTdcLeading()){
@@ -1839,8 +1844,14 @@ ConfMan::InitializeHistograms()
   HB1(AC1Hid +4, "#Hits AC1(Tand)",  NumOfSegAC1+1, 0., Double_t(NumOfSegAC1+1));
   HB1(AC1Hid +5, "Hitpat AC1(Tand)", NumOfSegAC1,   0., Double_t(NumOfSegAC1));
   for(Int_t i=1; i<=NumOfSegAC1; ++i){
+    TString title1 = Form("AC1-%d Adc", i);
     TString title3 = Form("AC1-%d Tdc", i);
+    TString title5 = Form("BAC-%d Adc(w Tdc)", i);
+    TString title7 = Form("BAC-%d Adc(w/o Tdc)", i);
+    HB1(AC1Hid +100*i +1, title1, NbinAdc, MinAdc, MaxAdc);
     HB1(AC1Hid +100*i +3, title3, NbinTdc, MinTdc, MaxTdc);
+    HB1(AC1Hid +100*i +5, title5, NbinAdc, MinAdc, MaxAdc);
+    HB1(AC1Hid +100*i +7, title7, NbinAdc, MinAdc, MaxAdc);
   }
   HB1(AC1Hid +10, "#Hits Ac1[Hodo]",  NumOfSegAC1+1, 0., Double_t(NumOfSegAC1+1));
   HB1(AC1Hid +11, "Hitpat Ac1[Hodo]", NumOfSegAC1,   0., Double_t(NumOfSegAC1));
@@ -1962,6 +1973,7 @@ ConfMan::InitializeHistograms()
   //AC1
   tree->Branch("ac1nhits", &event.ac1nhits, "ac1nhits/I");
   tree->Branch("ac1hitpat", event.ac1hitpat, Form("ac1hitpat[%d]/I", NumOfSegAC1));
+  tree->Branch("ac1a", event.ac1a, Form("ac1a[%d]/D", NumOfSegAC1));
   tree->Branch("ac1t", event.ac1t, Form("ac1t[%d][%d]/D", NumOfSegAC1, MaxDepth));
   //WC
   tree->Branch("wcnhits",   &event.wcnhits,    "wcnhits/I");
