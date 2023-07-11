@@ -26,7 +26,7 @@
 #include "UnpackerManager.hh"
 
 #define HodoCut    0 // with BH1/BH2
-#define TIME_CUT   0 // in cluster analysis
+#define TIME_CUT   1 // in cluster analysis
 #define FHitBranch 1 // make FiberHit branches (becomes heavy)
 
 namespace
