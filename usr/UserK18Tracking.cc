@@ -55,11 +55,15 @@ struct Event
   Int_t trigpat[NumOfSegTrig];
   Int_t trigflag[NumOfSegTrig];
 
-  // Time0
+  // BH1,2
   Double_t Time0Seg;
   Double_t deTime0;
   Double_t Time0;
   Double_t CTime0;
+  Double_t Btof0Seg;
+  Double_t deBtof0;
+  Double_t Btof0;
+  Double_t CBtof0;
 
   // BFT
   Int_t    bft_ncl;
@@ -127,6 +131,10 @@ Event::clear()
   deTime0        = qnan;
   Time0          = qnan;
   CTime0         = qnan;
+  Btof0Seg       = qnan;
+  deBtof0        = qnan;
+  Btof0          = qnan;
+  CBtof0         = qnan;
 
   for(Int_t it=0; it<NumOfSegTrig; it++){
     trigpat[it]  = -1;
@@ -257,7 +265,7 @@ ProcessingNormal()
   //////////////BH2 Analysis
   const auto& cl_time0 = hodoAna.GetTime0BH2Cluster();
   if(cl_time0){
-    event.Time0Seg = cl_time0->MeanSeg()+1;
+    event.Time0Seg = cl_time0->MeanSeg();
     event.deTime0  = cl_time0->DeltaE();
     event.Time0    = cl_time0->Time0();
     event.CTime0   = cl_time0->CTime0();
@@ -274,7 +282,15 @@ ProcessingNormal()
 #endif
   HF1(1, 4);
 
-  Double_t btof0_seg = hodoAna.Btof0Seg();
+  const auto& cl_btof0 = hodoAna.GetBtof0BH1Cluster();
+  if(cl_btof0){
+    event.Btof0Seg = cl_btof0->MeanSeg();
+    event.deBtof0  = cl_btof0->DeltaE();
+    event.Btof0    = cl_btof0->MeanTime() - event.Time0;
+    event.CBtof0   = cl_btof0->CMeanTime() - event.CTime0;
+  }else{
+    return true;
+  }
 
   HF1(1, 5);
 
@@ -305,8 +321,8 @@ ProcessingNormal()
       event.bft_ctime[i]  = ctime;
       event.bft_clpos[i]  = pos;
 
-      if(btof0_seg > 0 && ncl != 1){
-	if(gBH1Mth.Judge(pos, btof0_seg)){
+      if(event.Btof0Seg >= 0 && ncl != 1){
+	if(gBH1Mth.Judge(pos, event.Btof0Seg)){
 	  event.bft_bh1mth[i] = 1;
 	  xCand.push_back(pos);
 	}
@@ -561,6 +577,10 @@ ConfMan:: InitializeHistograms()
   tree->Branch("deTime0",  &event.deTime0,   "deTime0/D");
   tree->Branch("Time0",    &event.Time0,     "Time0/D");
   tree->Branch("CTime0",   &event.CTime0,    "CTime0/D");
+  tree->Branch("Btof0Seg", &event.Btof0Seg,  "Btof0Seg/D");
+  tree->Branch("deBtof0",  &event.deBtof0,   "deBtof0/D");
+  tree->Branch("Btof0",    &event.Btof0,     "Btof0/D");
+  tree->Branch("CBtof0",   &event.CBtof0,    "CBtof0/D");
 
   //BFT
   tree->Branch("bft_ncl",        &event.bft_ncl,    "bft_ncl/I");
