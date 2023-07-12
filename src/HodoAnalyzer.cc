@@ -9,7 +9,7 @@
 #include <iostream>
 #include <string>
 
-#include "BH2Cluster.hh"
+// #include "BH2Cluster.hh"
 #include "BH2Hit.hh"
 #include "DebugCounter.hh"
 #include "DeleteUtility.hh"
@@ -201,7 +201,7 @@ HodoAnalyzer::AdcCut(std::vector<T>& cont,
 }
 
 //_____________________________________________________________________________
-const BH2Cluster*
+const HodoCluster*
 HodoAnalyzer::GetTime0BH2Cluster() const
 {
   static const Double_t MinMt = gUser.GetParameter("MtBH2", 0);
@@ -211,7 +211,7 @@ HodoAnalyzer::GetTime0BH2Cluster() const
   static const Double_t MaxDe = gUser.GetParameter("DeBH2", 1);
 #endif
 
-  BH2Cluster* time0_cluster = nullptr;
+  HodoCluster* time0_cluster = nullptr;
   Double_t min_mt = DBL_MAX;
   for(const auto& cluster : GetClusterContainer("BH2")){
     Double_t mt = cluster->MeanTime();
@@ -223,9 +223,9 @@ HodoAnalyzer::GetTime0BH2Cluster() const
 #endif
       ){
       min_mt        = mt;
-      time0_cluster = dynamic_cast<BH2Cluster*>(cluster);
-    }// T0 selection
-  }// for
+      time0_cluster = cluster;
+    }
+  }
 
   return time0_cluster;
 }
@@ -307,5 +307,23 @@ HodoAnalyzer::Btof0() const
 {
   const auto& cl = GetBtof0BH1Cluster();
   if(cl) return cl->CMeanTime() - Time0();
+  else   return TMath::QuietNaN();
+}
+
+//_____________________________________________________________________________
+Double_t
+HodoAnalyzer::Time0Seg() const
+{
+  const auto& cl = GetTime0BH2Cluster();
+  if(cl) return cl->MeanSeg();
+  else   return TMath::QuietNaN();
+}
+
+//_____________________________________________________________________________
+Double_t
+HodoAnalyzer::Btof0Seg() const
+{
+  const auto& cl = GetBtof0BH1Cluster();
+  if(cl) return cl->MeanSeg();
   else   return TMath::QuietNaN();
 }

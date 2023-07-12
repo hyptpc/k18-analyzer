@@ -3,11 +3,10 @@
 #ifndef BH1_MATHC_HH
 #define BH1_MATHC_HH
 
-#include <vector>
 #include <bitset>
-#include <TString.h>
+#include <map>
 
-#include <std_ostream.hh>
+#include <TString.h>
 
 //_____________________________________________________________________________
 class BH1Match
@@ -30,7 +29,7 @@ private:
     Double_t m_seg;
     Double_t m_xmin;
     Double_t m_xmax;
-    void Print(std::ostream& ost=hddaq::cout) const;
+    void Print() const;
   };
 
   enum EStatus
@@ -40,8 +39,8 @@ private:
     kNStatus
   };
 
-  std::bitset<kNStatus> m_status;
-  std::vector<Param>    m_param;
+  std::bitset<kNStatus>     m_status;
+  std::map<Double_t, Param> m_param;
 
 public:
   enum EParam
@@ -53,7 +52,7 @@ public:
   };
   Bool_t Initialize(const TString& file_name);
   Bool_t Judge(Double_t bft_xpos, Double_t bh1seg);
-  void   Print(std::ostream& ost=hddaq::cout) const;
+  void   Print() const;
   void   SetVerbose();
 };
 

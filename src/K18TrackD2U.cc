@@ -31,6 +31,8 @@ using namespace K18Parameter;
 const auto& gGeom   = DCGeomMan::GetInstance();
 const auto& gK18Mtx = K18TransMatrix::GetInstance();
 const Double_t& zK18Target = gGeom.LocalZ("K18Target");
+const Double_t& zBFTx = gGeom.LocalZ("BFT-X");
+const Double_t& zBFTxp = gGeom.LocalZ("BFT-XP");
 const Double_t LowBand[5] =
 { MinK18InX, MinK18InY, MinK18InU, MinK18InV, MinK18Delta };
 const Double_t UpperBand[5] =
@@ -154,6 +156,34 @@ Double_t
 K18TrackD2U::Vtgt() const
 {
   return m_track_out->GetV0();
+}
+
+//_____________________________________________________________________________
+Double_t
+K18TrackD2U::Xbft() const
+{
+  return Uin()*(zBFTx+zBFTxp)*0.5 + Xin();
+}
+
+//_____________________________________________________________________________
+Double_t
+K18TrackD2U::Ybft() const
+{
+  return Vin()*(zBFTx+zBFTxp)*0.5 + Yin();
+}
+
+//_____________________________________________________________________________
+Double_t
+K18TrackD2U::Ubft() const
+{
+  return Uin();
+}
+
+//_____________________________________________________________________________
+Double_t
+K18TrackD2U::Vbft() const
+{
+  return Vin();
 }
 
 //_____________________________________________________________________________

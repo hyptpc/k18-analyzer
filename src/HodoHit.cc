@@ -299,6 +299,7 @@ HodoHit::Print(Option_t* arg) const
 	      << "segment_id    = " << m_raw->SegmentId()  << std::endl
               << "n_ch          = " << m_n_ch              << std::endl
               << "de            = " << DeltaE() << std::endl
+              << "time offset   = " << m_time_offset << std::endl
               << "mt/cmt        = " << MeanTime()
               << " / " << CMeanTime() << std::endl
               << "tdiff/ctdiff  = " << TimeDiff()

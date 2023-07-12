@@ -19,7 +19,7 @@
 class RawData;
 class BH2Hit;
 class FiberHit;
-class BH2Cluster;
+// class BH2Cluster;
 
 using HodoClusterContainer = std::vector<HodoCluster*>;
 using HodoCC = std::vector<HodoCluster*>;
@@ -70,10 +70,12 @@ public:
   void TotCut(const TString& name, Double_t min, Double_t max,
               Bool_t adopt_nan=true);
 
-  const BH2Cluster*  GetTime0BH2Cluster() const;
+  const HodoCluster* GetTime0BH2Cluster() const;
   const HodoCluster* GetBtof0BH1Cluster() const;
   Double_t Time0() const;
   Double_t Btof0() const;
+  Double_t Time0Seg() const;
+  Double_t Btof0Seg() const;
 
 private:
   void ClearBH1Hits();

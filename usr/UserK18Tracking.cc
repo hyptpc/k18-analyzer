@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "BH2Cluster.hh"
+// #include "BH2Cluster.hh"
 #include "BH2Hit.hh"
 #include "ConfMan.hh"
 #include "DCAnalyzer.hh"
@@ -102,6 +102,10 @@ struct Event
   Double_t ytgtK18[MaxHits];
   Double_t utgtK18[MaxHits];
   Double_t vtgtK18[MaxHits];
+  Double_t xbftK18[MaxHits];
+  Double_t ybftK18[MaxHits];
+  Double_t ubftK18[MaxHits];
+  Double_t vbftK18[MaxHits];
 
   Double_t theta[MaxHits];
   Double_t phi[MaxHits];
@@ -161,6 +165,10 @@ Event::clear()
     ytgtK18[i] = qnan;
     utgtK18[i] = qnan;
     vtgtK18[i] = qnan;
+    xbftK18[i] = qnan;
+    ybftK18[i] = qnan;
+    ubftK18[i] = qnan;
+    vbftK18[i] = qnan;
     theta[i] = qnan;
     phi[i] = qnan;
   }
@@ -239,7 +247,7 @@ ProcessingNormal()
   HF1(1, 1);
 
   ////////// BH2 time 0
-  hodoAna.DecodeHits("BH2");
+  hodoAna.DecodeHits<BH2Hit>("BH2");
 #if HodoCut
   Int_t nhBh2 = hodoAna.GetNHits("BH2");
   if(nhBh2==0) return true;
@@ -256,7 +264,6 @@ ProcessingNormal()
   }else{
     return true;
   }
-
   HF1(1, 3);
 
   ////////// BH1 Analysis
@@ -267,11 +274,7 @@ ProcessingNormal()
 #endif
   HF1(1, 4);
 
-  Double_t btof0_seg = -1;
-  if(event.Time0Seg > 0){
-    const auto& cl_btof0 = hodoAna.GetBtof0BH1Cluster();
-    btof0_seg = cl_btof0->MeanSeg();
-  }
+  Double_t btof0_seg = hodoAna.Btof0Seg();
 
   HF1(1, 5);
 
@@ -279,7 +282,7 @@ ProcessingNormal()
 
   std::vector<Double_t> xCand;
   ////////// BFT
-  hodoAna.DecodeHits("BFT");
+  hodoAna.DecodeHits<FiberHit>("BFT");
   {
     // Fiber Cluster
     Int_t ncl_raw = hodoAna.GetNClusters("BFT");
@@ -291,7 +294,7 @@ ProcessingNormal()
     HF1(BFTHid +100, ncl_raw);
     HF1(BFTHid +101, ncl);
     for(Int_t i=0; i<ncl; ++i){
-      const auto& cl = hodoAna.GetCluster<FiberCluster>("BFT", i);
+      const auto& cl = hodoAna.GetCluster("BFT", i);
       if(!cl) continue;
       Double_t clsize = cl->ClusterSize();
       Double_t ctime  = cl->CMeanTime();
@@ -326,14 +329,14 @@ ProcessingNormal()
 
   DCAna.DecodeRawHits();
 #if TotCut
-  DCAna.TotCutBCOut( MinTotBcOut );
+  DCAna.TotCutBCOut(MinTotBcOut);
 #endif
   ////////////// BC3&4 number of hit in one layer not 0
   Double_t multi_BcOut=0.;
   {
     Int_t nlBcOut = 0;
-    for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
-      const auto& contBcOut = DCAna.GetBcOutHC(layer);
+    for(Int_t l=0; l<NumOfLayersBcOut; ++l){
+      const auto& contBcOut = DCAna.GetBcOutHC(l);
       Int_t nhBcOut = contBcOut.size();
       multi_BcOut += Double_t(nhBcOut);
       if(nhBcOut>0) nlBcOut++;
@@ -354,7 +357,7 @@ ProcessingNormal()
 
   DCAna.TrackSearchBcOut();
  #if Chi2Cut
-  DCAna.ChiSqrCutBcOut(10);
+  DCAna.ChiSqrCutBcOut(20);
  #endif
 
   Int_t ntBcOut = DCAna.GetNtracksBcOut();
@@ -420,6 +423,9 @@ ProcessingNormal()
     Double_t xt=k18track->Xtgt(), yt=k18track->Ytgt();
     Double_t ut=k18track->Utgt(), vt=k18track->Vtgt();
 
+    Double_t xb=k18track->Xbft(), yb=k18track->Ybft();
+    Double_t ub=k18track->Ubft(), vb=k18track->Vbft();
+
     Double_t xout=k18track->Xout(), yout=k18track->Yout();
     Double_t uout=k18track->Uout(), vout=k18track->Vout();
 
@@ -430,9 +436,11 @@ ProcessingNormal()
     Double_t theta = ltrack->GetTheta();
     Double_t phi   = ltrack->GetPhi();
 
-    HF1(74, xt); HF1(75, yt); HF1(76, ut); HF1(77,vt);
+    HF1(74, xt); HF1(75, yt); HF1(76, ut); HF1(77, vt);
     HF2(78, xt, ut); HF2(79, yt, vt); HF2(80, xt, yt);
-    HF1(81, p_3rd); HF1(82, delta_3rd);
+    HF1(84, xb); HF1(85, yb); HF1(86, ub); HF1(87, vb);
+    HF2(88, xb, ub); HF2(89, yb, vb); HF2(90, xb, yb);
+    HF1(91, p_3rd); HF1(92, delta_3rd);
 
     event.p_2nd[i] = p_2nd;
     event.p_3rd[i] = p_3rd;
@@ -455,6 +463,10 @@ ProcessingNormal()
     event.ytgtK18[i]   = yt;
     event.utgtK18[i]   = ut;
     event.vtgtK18[i]   = vt;
+    event.xbftK18[i]   = xb;
+    event.ybftK18[i]   = yb;
+    event.ubftK18[i]   = ub;
+    event.vbftK18[i]   = vb;
     event.theta[i] = theta;
     event.phi[i]   = phi;
   }
@@ -528,8 +540,15 @@ ConfMan:: InitializeHistograms()
   HB2(78, "U%Xtgt K18Track", 100, -100., 100., 100, -0.25, 0.25);
   HB2(79, "V%Ytgt K18Track", 100, -100., 100., 100, -0.10, 0.10);
   HB2(80, "Y%Xtgt K18Track", 100, -100., 100., 100, -100., 100.);
-  HB1(81, "P K18Track", 500, 0.50, 2.0);
-  HB1(82, "dP K18Track", 200, -0.1, 0.1);
+  HB1(84, "Xbft K18Track", 200, -100., 100.);
+  HB1(85, "Ybft K18Track", 200, -100., 100.);
+  HB1(86, "Ubft K18Track", 300, -0.30, 0.30);
+  HB1(87, "Vbft K18Track", 300, -0.20, 0.20);
+  HB2(88, "U%Xbft K18Track", 100, -100., 100., 100, -0.25, 0.25);
+  HB2(89, "V%Ybft K18Track", 100, -100., 100., 100, -0.10, 0.10);
+  HB2(90, "Y%Xbft K18Track", 100, -100., 100., 100, -100., 100.);
+  HB1(91, "P K18Track", 500, 0.50, 2.0);
+  HB1(92, "dP K18Track", 200, -0.1, 0.1);
 
   //tree
   HBTree("k18track","Data Summary Table of K18Tracking");
@@ -581,6 +600,10 @@ ConfMan:: InitializeHistograms()
   tree->Branch("ytgtK18",    event.ytgtK18,   "ytgtK18[ntK18]/D");
   tree->Branch("utgtK18",    event.utgtK18,   "utgtK18[ntK18]/D");
   tree->Branch("vtgtK18",    event.vtgtK18,   "vtgtK18[ntK18]/D");
+  tree->Branch("xbftK18",    event.xbftK18,   "xbftK18[ntK18]/D");
+  tree->Branch("ybftK18",    event.ybftK18,   "ybftK18[ntK18]/D");
+  tree->Branch("ubftK18",    event.ubftK18,   "ubftK18[ntK18]/D");
+  tree->Branch("vbftK18",    event.vbftK18,   "vbftK18[ntK18]/D");
   tree->Branch("theta",   event.theta,  "theta[ntK18]/D");
   tree->Branch("phi",     event.phi,    "phi[ntK18]/D");
 

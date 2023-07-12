@@ -60,15 +60,19 @@ public:
   Double_t      Uin() const { return m_Ui; }
   Double_t      Uout() const { return m_Uo; }
   Double_t      Utgt() const;
+  Double_t      Ubft() const;
   Double_t      Vin() const { return m_Vi; }
   Double_t      Vout() const { return m_Vo; }
   Double_t      Vtgt() const;
+  Double_t      Vbft() const;
   Double_t      Xin() const { return m_Xi; }
   Double_t      Xout() const { return m_Xo; }
   Double_t      Xtgt() const;
+  Double_t      Xbft() const;
   Double_t      Yin() const { return m_Yi; }
   Double_t      Yout() const { return m_Yo; }
   Double_t      Ytgt() const;
+  Double_t      Ybft() const;
 };
 
 //_____________________________________________________________________________

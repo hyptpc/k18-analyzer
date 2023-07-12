@@ -29,7 +29,9 @@ HodoCluster::HodoCluster(const HodoHC& cont,
     m_mean_position(),
     m_segment(),
     m_1st_seg(TMath::QuietNaN()),
-    m_1st_time(DBL_MAX)
+    m_1st_time(DBL_MAX),
+    m_time0(),
+    m_ctime0()
 {
   if(cont.size() != index.size()){
     hddaq::cerr << FUNC_NAME << " cont size mismatch" << std::endl;
@@ -62,6 +64,8 @@ HodoCluster::Calculate()
   m_segment   = 0.;
   m_1st_seg   = TMath::QuietNaN();
   m_1st_time  = DBL_MAX;
+  m_time0     = 0.;
+  m_ctime0    = 0.;
 
   for(Int_t i=0; i<m_cluster_size; ++i){
     const auto& hit = m_hit_container[i];
@@ -69,6 +73,8 @@ HodoCluster::Calculate()
     m_segment   += hit->SegmentId();
     m_mean_time += hit->MeanTime(index);
     m_ctime     += hit->CMeanTime(index);
+    m_time0     += hit->Time0(index);
+    m_ctime0    += hit->CTime0(index);
     m_time_diff += hit->TimeDiff(index);
     m_de        += hit->DeltaE();
     if(hit->CMeanTime(index) < m_1st_time){
@@ -80,6 +86,8 @@ HodoCluster::Calculate()
   m_segment   /= Double_t(m_cluster_size);
   m_mean_time /= Double_t(m_cluster_size);
   m_ctime     /= Double_t(m_cluster_size);
+  m_time0     /= Double_t(m_cluster_size);
+  m_ctime0    /= Double_t(m_cluster_size);
   m_time_diff /= Double_t(m_cluster_size);
 
   m_is_good = true;
@@ -107,7 +115,13 @@ HodoCluster::Print(Option_t*) const
               << " ctime         : " << m_ctime << std::endl
               << " de            : " << m_de << std::endl
               << " tot           : " << m_tot << std::endl
-              << " cluster size  : " << m_cluster_size << std::endl;
+              << " cluster size  : " << m_cluster_size << std::endl
+              << " mean position : " << m_mean_position << std::endl
+              << " segment       : " << m_segment << std::endl
+              << " 1st segment   : " << m_1st_seg << std::endl
+              << " 1st time      : " << m_1st_time << std::endl
+              << " time0         : " << m_time0 << std::endl
+              << " ctime0        : " << m_ctime0 << std::endl;
   for(Int_t i=0; i<m_cluster_size; ++i){
     const auto& hit = m_hit_container[i];
     const auto& j = m_index[i];

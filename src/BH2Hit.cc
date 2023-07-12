@@ -24,8 +24,7 @@ const auto& gHodo = HodoParamMan::GetInstance();
 
 //_____________________________________________________________________________
 BH2Hit::BH2Hit(HodoRawHit *rhit, double max_time_diff)
-  : HodoHit(rhit, max_time_diff),
-    m_time_offset(0.)
+  : HodoHit(rhit, max_time_diff)
 {
   debug::ObjectCounter::increase(ClassName());
 }
@@ -77,22 +76,4 @@ Double_t
 BH2Hit::DCTime0(Int_t i) const
 {
   return m_ctime_leading.at(HodoRawHit::kDown).at(i) + m_time_offset;
-}
-
-//_____________________________________________________________________________
-Double_t
-BH2Hit::Time0(Int_t i) const
-{
-  return 0.5*(m_time_leading.at(HodoRawHit::kUp).at(i) +
-              m_time_leading.at(HodoRawHit::kDown).at(i)) +
-    m_time_offset;
-}
-
-//_____________________________________________________________________________
-Double_t
-BH2Hit::CTime0(Int_t i) const
-{
-  return 0.5*(m_ctime_leading.at(HodoRawHit::kUp).at(i) +
-              m_ctime_leading.at(HodoRawHit::kDown).at(i)) +
-    m_time_offset;
 }

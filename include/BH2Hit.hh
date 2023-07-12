@@ -16,17 +16,12 @@ public:
   BH2Hit(HodoRawHit *rhit, Double_t max_time_diff=10.);
   ~BH2Hit();
 
-private:
-  Double_t m_time_offset;
-
 public:
   Bool_t   Calculate();
   Double_t UTime0(Int_t i=0) const;
   Double_t UCTime0(Int_t i=0) const;
   Double_t DTime0(Int_t i=0) const;
   Double_t DCTime0(Int_t i=0) const;
-  Double_t Time0(Int_t i=0) const;
-  Double_t CTime0(Int_t i=0) const;
   virtual Bool_t ReCalc(Bool_t applyRecursively=false) { return Calculate(); }
 };
 

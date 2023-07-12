@@ -80,8 +80,9 @@ public:
   Double_t TimeDiff(Int_t j=0) const;
   Double_t CTimeDiff(Int_t j=0) const;
 
-  Double_t Time0(Int_t j=0) const { return MeanTime() + m_time_offset; }
-  Double_t CTime0(Int_t j=0) const { return CMeanTime() + m_time_offset; }
+  Double_t TimeOffset() const { return m_time_offset; }
+  Double_t Time0(Int_t j=0) const { return MeanTime(j) + m_time_offset; }
+  Double_t CTime0(Int_t j=0) const { return CMeanTime(j) + m_time_offset; }
 
   // aliases
   Double_t DeltaE(Int_t j=0) const { return DeltaEHighGain(j); }

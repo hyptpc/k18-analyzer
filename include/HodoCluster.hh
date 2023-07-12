@@ -36,6 +36,8 @@ protected:
   Double_t m_segment;
   Double_t m_1st_seg;
   Double_t m_1st_time;
+  Double_t m_time0;
+  Double_t m_ctime0;
 
 public:
   const TString& DetectorName() const
@@ -51,6 +53,8 @@ public:
   Double_t  CMeanTime() const { return m_ctime; }
   Double_t  CTime() const { return CMeanTime(); }
   Double_t  TimeDiff() const { return m_time_diff; }
+  Double_t  Time0() const { return m_time0; }
+  Double_t  CTime0() const { return m_ctime0; }
   Double_t  DeltaE() const { return m_de; }
   Double_t  TOT() const { return m_tot; }
   Double_t  MeanSeg() const { return m_segment; }

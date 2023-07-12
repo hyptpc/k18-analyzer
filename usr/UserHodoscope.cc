@@ -8,7 +8,7 @@
 
 #include <UnpackerManager.hh>
 
-#include "BH2Cluster.hh"
+// #include "BH2Cluster.hh"
 #include "BH2Hit.hh"
 #include "FiberCluster.hh"
 #include "FiberHit.hh"
@@ -979,7 +979,7 @@ ProcessingNormal()
     Int_t nc2=0;
 
     for(Int_t i=0; i<nc; ++i){
-      const auto& cl = hodoAna.GetCluster<BH2Cluster>("BH2", i);
+      const auto& cl = hodoAna.GetCluster("BH2", i);
       if(!cl) continue;
       Int_t cs=cl->ClusterSize();
       Double_t ms = cl->MeanSeg()+1;
@@ -995,7 +995,7 @@ ProcessingNormal()
 
       for(Int_t i2=0; i2<nc; ++i2){
         if(i2==i) continue;
-        const auto& cl2 = hodoAna.GetCluster<BH2Cluster>("BH2", i2);
+        const auto& cl2 = hodoAna.GetCluster("BH2", i2);
         if(!cl2) continue;
         Double_t ms2=cl2->MeanSeg()+1, cmt2=cl2->CMeanTime(),
           de2=cl2->DeltaE();
@@ -1166,8 +1166,8 @@ ProcessingNormal()
             Double_t    tu1  = hit1->GetTUp(m1),  td1  = hit1->GetTDown(m1);
             Double_t    ctu1 = hit1->GetCTUp(m1), ctd1 = hit1->GetCTDown(m1);
             Double_t    cmt1 = hit1->CMeanTime(m1);
-            if(trigger_flag[trigger::kBeamA] == 0) continue;
-            if(event.bacnhits > 0) continue;
+            // if(trigger_flag[trigger::kBeamA] == 0) continue;
+            // if(event.bacnhits > 0) continue;
             HF2(100*seg1+BH1Hid+81, au1, ct0-0.5*(ctu1+ctd1));
             HF2(100*seg1+BH1Hid+82, ad1, ct0-0.5*(ctu1+ctd1));
             HF2(100*seg1+BH1Hid+83, au1, ct0-tu1);
