@@ -6,7 +6,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
-
+#include <array>
 #include <TString.h>
 
 // temp
@@ -15,6 +15,9 @@ const Int_t NumOfPlaneAFT = 36;
 const Int_t NumOfSegAFTX  = 32;
 const Int_t NumOfSegAFTY  = 16;
 const Int_t NumOfSegAFT   = 32;
+const std::vector<int> NumOfSegAFTarr = { 32,32,16,16,32,32,16,16,32,32,16,16,32,32,16,16,32,32,16,16,32,32,16,16,32,32,16,16,32,32,16,16,32,32,16,16 };
+//const Int_t NumOfSegAFT[4]    = {NumOfSegAFTX, NumOfSegAFTX, NumOfSegAFTY, NumOfSegAFTY};
+
 //const Int_t NumOfSegAFT[4]    = {NumOfSegAFTX, NumOfSegAFTX, NumOfSegAFTY, NumOfSegAFTY};
 // VMEEASIROC
 const Int_t DetIdVMEASIROC = 116;

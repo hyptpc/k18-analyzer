@@ -5,6 +5,9 @@
 #include <iostream>
 #include <sstream>
 #include <cmath>
+#include <vector>
+#include <utility>
+#include <algorithm>
 
 #include "BH2Cluster.hh"
 #include "BH2Hit.hh"
@@ -430,6 +433,29 @@ ProcessingNormal()
     HF1(AFTHid+plane*1000+1, event.aft_nhits[plane]);
   }
 
+  //select tdc which is first hit and has the largest adc value in one plane
+  for(int ud=0; ud<kUorD; ud++){
+	for(int plane=0; plane<NumOfPlaneAFT; plane++){
+	  std::vector<std::pair<int,int>> adc_seg_pair;
+	  for(int s=0; s<NumOfSegAFTarr.at(plane); s++){
+		if(std::isfinite(event.aft_tdc[plane][s][ud][0])){
+		  double adc = event.aft_adc_high[plane][s][ud];
+		  adc_seg_pair.push_back( {adc, s} );
+		}
+	  }
+	  if(!adc_seg_pair.empty()){
+		std::sort(adc_seg_pair.rbegin(), adc_seg_pair.rend());
+		int adcmax = adc_seg_pair.at(0).first;
+		int adcmax_seg = adc_seg_pair.at(0).second;
+		int tdc_adcmax_seg = event.aft_tdc[plane][adcmax_seg][ud][0];
+		HF2(AFTHid+plane*1000+50+ud, adcmax_seg, tdc_adcmax_seg);
+		HF1(AFTHid+plane*1000+52+ud, adcmax_seg);
+		HF2(AFTHid+plane*1000+54+ud, adcmax_seg, adcmax);
+		HF1(AFTHid+plane*1000+56+ud, adcmax);
+	  }
+	}
+  }
+
   return true;
 }
 
@@ -554,6 +580,15 @@ ConfMan::InitializeHistograms()
           NumOfSegAFT, 0., NumOfSegAFT, NbinAdc, MinAdc, MaxAdc);
       HB2(AFTHid+plane*1000+17+ud, Form("AFT AdcLow %s%%Seg Plane#%d", s, plane),
           NumOfSegAFT, 0., NumOfSegAFT, NbinAdc, MinAdc, MaxAdc);
+
+      HB2(AFTHid+plane*1000+50+ud, Form("AFT Tdc w/maxadc %s%%Seg Plane#%d", s, plane),
+          NumOfSegAFTarr.at(plane), 0., NumOfSegAFTarr.at(plane), NbinTdc, MinTdc, MaxTdc);
+      HB1(AFTHid+plane*1000+52+ud, Form("AFT HitPat %s Plane#%d", s, plane), NumOfSegAFTarr.at(plane), 0, NumOfSegAFTarr.at(plane));
+      HB2(AFTHid+plane*1000+54+ud, Form("AFT AdcHigh w/maxadc %s%%Seg Plane#%d", s, plane),
+          NumOfSegAFTarr.at(plane), 0., NumOfSegAFTarr.at(plane), NbinAdc, MinAdc, MaxAdc);
+      HB1(AFTHid+plane*1000+56+ud, Form("AFT AdcHigh w/maxadc %s Plane#%d", s, plane), NbinAdc, 0, NbinAdc);
+
+
     }
   }
 
