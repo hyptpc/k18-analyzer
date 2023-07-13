@@ -81,7 +81,8 @@ struct Event
   Double_t aft_mtot[NumOfPlaneAFT][NumOfSegAFT][MaxDepth];
   Double_t aft_de_high[NumOfPlaneAFT][NumOfSegAFT];
   Double_t aft_de_low[NumOfPlaneAFT][NumOfSegAFT];
-
+  Double_t aft_ltime[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
+  Double_t aft_ttime[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
   void clear();
 };
 
@@ -129,6 +130,8 @@ Event::clear()
         aft_adc_low[p][seg][ud] = qnan;
         for(Int_t i=0; i<MaxDepth; i++){
           aft_tdc[p][seg][ud][i] = qnan;
+          aft_ltime[p][seg][ud][i] = qnan;
+          aft_ttime[p][seg][ud][i] = qnan;
         }
       }
       aft_de_high[p][seg] = qnan;
@@ -415,8 +418,14 @@ ProcessingNormal()
       HF2(AFTHid+plane*1000+33, seg, mtot);
       for(Int_t ud=0; ud<kUorD; ++ud){
         auto tot = hit->TOT(ud, j);
+		auto ltime = hit->GetTimeLeading(ud, j);
+		auto ttime = hit->GetTimeTrailing(ud, j);
+		event.aft_ltime[plane][seg][ud][j] = ltime;
+		event.aft_ttime[plane][seg][ud][j] = ttime;
         HF1(AFTHid+plane*1000+5+ud, tot);
         HF2(AFTHid+plane*1000+13+ud, seg, tot);
+		HF2(AFTHid+plane*1000+58+ud, seg, ltime);
+		HF1(AFTHid+plane*1000+60+ud, ltime);
         // HF1(AFTHid+plane*1000+seg+300+ud*100, tot);
       }
     }
@@ -587,8 +596,9 @@ ConfMan::InitializeHistograms()
       HB2(AFTHid+plane*1000+54+ud, Form("AFT AdcHigh w/maxadc %s%%Seg Plane#%d", s, plane),
           NumOfSegAFTarr.at(plane), 0., NumOfSegAFTarr.at(plane), NbinAdc, MinAdc, MaxAdc);
       HB1(AFTHid+plane*1000+56+ud, Form("AFT AdcHigh w/maxadc %s Plane#%d", s, plane), NbinAdc, 0, NbinAdc);
-
-
+      HB2(AFTHid+plane*1000+58+ud, Form("AFT Time %s%%Seg Plane#%d", s, plane),
+          NumOfSegAFTarr.at(plane), 0., NumOfSegAFTarr.at(plane), NbinTime, MinTime, MaxTime);
+      HB1(AFTHid+plane*1000+60+ud, Form("AFT Time %s Plane#%d", s, plane), NbinTime, MinTime, MaxTime);
     }
   }
 
@@ -658,6 +668,12 @@ ConfMan::InitializeHistograms()
                Form("aft_de_high[%d][%d]/D", NumOfPlaneAFT, NumOfSegAFT));
   tree->Branch("aft_de_low", event.aft_de_low,
                Form("aft_de_low[%d][%d]/D", NumOfPlaneAFT, NumOfSegAFT));
+  tree->Branch("aft_ltime", event.aft_ltime,
+               Form("aft_ltime[%d][%d][%d][%d]/D",
+                    NumOfPlaneAFT, NumOfSegAFT, kUorD, MaxDepth));
+  tree->Branch("aft_ttime", event.aft_ttime,
+               Form("aft_ttime[%d][%d][%d][%d]/D",
+                    NumOfPlaneAFT, NumOfSegAFT, kUorD, MaxDepth));
 
   // HPrint();
   return true;
