@@ -140,6 +140,16 @@ struct Event
   Double_t Btof0;
   Double_t CBtof0;
 
+  //SAC3
+  //Int_t sac3nhits;
+  Double_t sac3a[NumOfSegSAC3];
+  Double_t sac3t[NumOfSegSAC3][MaxDepth];
+
+  //SFV
+  //Int_t sfvnhits;
+  //Int_t sfvhitpat[MaxHits];
+  Double_t sfvt[NumOfSegSFV][MaxDepth];
+
   void clear();
 };
 
@@ -258,6 +268,20 @@ Event::clear()
       wcmt[it][m]   = qnan;
     }
   }
+
+  for(Int_t it=0; it<NumOfSegSAC3; it++){
+    sac3a[it] = qnan;
+    for(Int_t m=0; m<MaxDepth; ++m){
+      sac3t[it][m]  = qnan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegSFV; it++){
+    for(Int_t m=0; m<MaxDepth; ++m){
+      sfvt[it][m]  = qnan;
+    }
+  }
+
 }
 
 //_____________________________________________________________________________
@@ -412,6 +436,7 @@ Dst::clear()
       tAc1[MaxDepth*it + m]   = qnan;
     }
   }
+
 }
 
 
@@ -802,6 +827,42 @@ ProcessingNormal()
     event.wcnhits = wc_nhits;
     HF1(WCSUMHid, wcsum_nhits);
     event.wcsumnhits = wcsum_nhits;
+  }
+
+   // SAC3
+  {
+    static const int device_id = gUnpacker.get_device_id("SAC3");
+    for(Int_t seg = 0; seg<NumOfSegSAC3; seg++) {
+      int plane = 0;
+      int ch = 0;
+      int data = 0; // adc
+      int nhita = gUnpacker.get_entries( device_id, plane, seg, ch, data ); // adc
+      if(nhita>0){
+	int adc = gUnpacker.get( device_id, plane, seg, ch, data );
+	event.sac3a[seg] = adc;
+      }
+      data = 1; // tdc leading
+      int nhitt = gUnpacker.get_entries( device_id, plane, seg, ch, data ); // tdc
+      for(int m=0; m<nhitt; m++){
+	int tdc = gUnpacker.get( device_id, plane, seg, ch, data, m ); // tdc multihit
+	event.sac3t[seg][m] = tdc;
+      }
+    }
+  }
+
+   // SFV
+  {
+    static const int device_id = gUnpacker.get_device_id("SFV");
+    for(Int_t seg = 0; seg<NumOfSegSFV; seg++) {
+      int plane = 0;
+      int ch = 0;
+      int data = 1; // tdc leading
+      int nhitt = gUnpacker.get_entries( device_id, plane, seg, ch, data ); // tdc
+      for(int m=0; m<nhitt; m++){
+	int tdc = gUnpacker.get( device_id, plane, seg, ch, data, m ); // tdc multihit
+	event.sfvt[seg][m] = tdc;
+      }
+    }
   }
 
   //**************************************************************************
@@ -2029,6 +2090,15 @@ ConfMan::InitializeHistograms()
   tree->Branch("deBtof0",  &event.deBtof0,   "deBtof0/D");
   tree->Branch("Btof0",    &event.Btof0,     "Btof0/D");
   tree->Branch("CBtof0",   &event.CBtof0,    "CBtof0/D");
+
+  //SAC3
+  //tree->Branch("sac3nhits", &event.sac3nhits, "sac3nhits/I");
+  tree->Branch("sac3a", event.sac3a, Form("sac3a[%d]/D", NumOfSegSAC3));
+  tree->Branch("sac3t", event.sac3t, Form("sac3t[%d][%d]/D", NumOfSegSAC3, MaxDepth));
+  //SFV
+  //tree->Branch("sfvnhits", &event.sfvnhits, "sfvnhits/I");
+  //tree->Branch("sfvhitpat", event.sfvhitpat, Form("sfvhitpat[%d]/I", NumOfSegSFV));
+  tree->Branch("sfvt", event.sfvt, Form("sfvt[%d][%d]/D", NumOfSegSFV, MaxDepth));
 
   ////////////////////////////////////////////
   //Dst
