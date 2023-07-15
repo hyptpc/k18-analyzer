@@ -167,9 +167,9 @@ DCGeomRecord::Print(const TString& arg, std::ostream& ost) const
   ost << " id = "   << std::setw(3) << std::right << m_id << " "
       << " name = " << std::setw(9) << std::left << m_name << " "
       << " pos = (" << " " << std::right << std::fixed
-      << std::setw(8)  << m_pos.x() << ", "
-      << std::setw(8)  << m_pos.y() << ", "
-      << std::setw(10) << m_pos.z() << ") "
+      << std::setw(8)  << m_pos.X() << ", "
+      << std::setw(8)  << m_pos.Y() << ", "
+      << std::setw(10) << m_pos.Z() << ") "
       << " TA = "     << std::setw(7) << m_tilt_angle << " "
       << " RA1 = "    << std::setw(6) << m_rot_angle1 << " "
       << " RA2 = "    << std::setw(6) << m_rot_angle2 << " "

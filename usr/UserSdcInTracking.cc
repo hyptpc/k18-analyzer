@@ -319,7 +319,6 @@ ProcessingNormal()
       Bool_t is_valid = false;
       for(Int_t i=0; i<nhIn; ++i){
 	const auto& hit=contIn[i];
-        if(hit->IsEmpty()) continue;
 	Double_t wire=hit->GetWire();
 	HF1(100*layer+1, wire+0.5);
 	Int_t nhtdc = hit->GetTdcSize();

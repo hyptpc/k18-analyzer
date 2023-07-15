@@ -166,7 +166,7 @@ public:
   Double_t GetDriftTimeSize() const { return GetEntries(); }
   Double_t GetDriftLengthSize() const { return GetEntries(); }
 
-  void GateDriftTime(Double_t min, Double_t max, Bool_t select_1st);
+  void DriftTimeCut(Double_t min, Double_t max, Bool_t select_1st);
   void TotCut(Double_t min, Bool_t keep_nan);
   void Print(Option_t* arg="") const;
 

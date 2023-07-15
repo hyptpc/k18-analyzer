@@ -250,28 +250,29 @@ DCHit::GetResolution() const
 
 //_____________________________________________________________________________
 void
-DCHit::TotCut(Double_t min, Bool_t keep_nan)
+DCHit::DriftTimeCut(Double_t min, Double_t max, Bool_t select_1st)
 {
-  const Int_t n = GetEntries();
-  for(Int_t i=n-1; i>=0; --i){
-    if(keep_nan && TMath::IsNaN(m_tot[i]))
-      continue;
-    if(m_tot[i] < min){
+  for(Int_t i=GetEntries()-1; i>=0; --i){
+    if(m_drift_time[i] < min || max < m_drift_time[i]){
       EraseDCData(i);
-      // m_is_good[i] = false;
+    }
+  }
+  if(select_1st){
+    for(Int_t i=GetEntries()-1; i>0; --i){
+      EraseDCData(i);
     }
   }
 }
 
 //_____________________________________________________________________________
 void
-DCHit::GateDriftTime(Double_t min, Double_t max, Bool_t select_1st)
+DCHit::TotCut(Double_t min, Bool_t keep_nan)
 {
-  const Int_t n = GetEntries();
-  for(Int_t i=n-1; i>=0; --i){
-    if(m_drift_time[i] < min || max < m_drift_time[i]){
+  for(Int_t i=GetEntries()-1; i>=0; --i){
+    if(keep_nan && TMath::IsNaN(m_tot[i]))
+      continue;
+    if(m_tot[i] < min){
       EraseDCData(i);
-      // m_is_good[i] = false;
     }
   }
 }
@@ -282,9 +283,11 @@ DCHit::Print(Option_t* arg) const
 {
   const Int_t w = 16;
   hddaq::cout << FUNC_NAME << " " << arg << std::endl
-      << std::setw(w) << std::left << "plane" << m_plane << std::endl
-      << std::setw(w) << std::left << "layer" << m_layer << std::endl
-      << std::setw(w) << std::left << "wire"  << m_wire  << std::endl
+              << std::setw(w) << std::left << "detector"
+              << m_raw_hit->DetectorName() << std::endl
+              << std::setw(w) << std::left << "plane" << m_plane << std::endl
+              << std::setw(w) << std::left << "layer" << m_layer << std::endl
+              << std::setw(w) << std::left << "wire"  << m_wire  << std::endl
               << std::setw(w) << std::left << "wpos"  << m_wpos  << std::endl
               << std::setw(w) << std::left << "angle" << m_angle << std::endl
               << std::setw(w) << std::left << "z"     << m_z     << std::endl;

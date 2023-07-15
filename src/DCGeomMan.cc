@@ -268,7 +268,6 @@ DCGeomMan::Initialize()
 	delete m_container[id];
       }
       m_container[id] = record;
-
       m_detector_id_map[name] = id;
       m_global_z_map[name]    = gz;
       m_local_z_map[name]     = l;

@@ -1296,10 +1296,37 @@ DCAnalyzer::ChiSqrCut(DCLocalTC& TrackCont,
 
 //_____________________________________________________________________________
 void
+DCAnalyzer::EraseEmptyHits(std::vector<DCHC>& HitCont)
+{
+  for(auto& hc: HitCont){
+    auto i = hc.begin();
+    while(i != hc.end()){
+      if((*i)->IsEmpty()) i = hc.erase(i);
+      else ++i;
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void
+DCAnalyzer::EraseEmptyHits(const TString& name)
+{
+  for(const auto& dcname: DCNameList){
+    if(std::find(dcname.second.begin(), dcname.second.end(), name)
+       != dcname.second.end()){
+      if(dcname.first == "BcOut") EraseEmptyHits(m_BcOutHC);
+      if(dcname.first == "SdcIn") EraseEmptyHits(m_SdcInHC);
+      if(dcname.first == "SdcOut") EraseEmptyHits(m_SdcOutHC);
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void
 DCAnalyzer::TotCutBCOut(Double_t min_tot)
 {
   for(const auto& name: DCNameList.at("BcOut")){
-    TotCut(m_dc_hit_collection.at(name), min_tot, true);
+    TotCut(name, min_tot, true);
   }// for(i)
 }
 
@@ -1340,74 +1367,69 @@ DCAnalyzer::TotCutSDC5(Double_t min_tot)
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::TotCut(DCHC& HitCont,
-                   Double_t min_tot, Bool_t keep_nan)
+DCAnalyzer::TotCut(const TString& name, Double_t min_tot, Bool_t keep_nan)
 {
+  DCHC& HitCont = m_dc_hit_collection.at(name);
   for(auto& hit: HitCont){
     hit->TotCut(min_tot, keep_nan);
   }
-}
-
-//_____________________________________________________________________________
-void
-DCAnalyzer::TotCut(const TString& name, Double_t min_tot, Bool_t keep_nan)
-{
-  TotCut(m_dc_hit_collection.at(name), min_tot, keep_nan);
+  EraseEmptyHits(name);
 }
 
 //_____________________________________________________________________________
 void
 DCAnalyzer::DriftTimeCutBC34(Double_t min_dt, Double_t max_dt)
 {
-  for(Int_t i = 0; i<NumOfLayersBcOut; ++i){
-    DriftTimeCut(m_BcOutHC[i + 1], min_dt, max_dt, true);
-  }// for(i)
+  for(const auto& name: DCNameList.at("BcOut")){
+    DriftTimeCut(name, min_dt, max_dt, true);
+  }
 }
 
 //_____________________________________________________________________________
 void
 DCAnalyzer::DriftTimeCutSDC1(Double_t min_dt, Double_t max_dt)
 {
-  for(Int_t i = 0; i<NumOfLayersSDC1; ++i){
-    DriftTimeCut(m_SdcOutHC[i + 1], min_dt, max_dt, true);
-  }// for(i)
+  DriftTimeCut("SDC1", min_dt, max_dt, true);
 }
 
 //_____________________________________________________________________________
 void
 DCAnalyzer::DriftTimeCutSDC2(Double_t min_dt, Double_t max_dt)
 {
-  for(Int_t i = 0; i<NumOfLayersSDC2; ++i){
-    DriftTimeCut(m_SdcOutHC[i + NumOfLayersSDC1 + 1], min_dt, max_dt, true);
-  }// for(i)
+  DriftTimeCut("SDC2", min_dt, max_dt, true);
 }
 
 //_____________________________________________________________________________
 void
 DCAnalyzer::DriftTimeCutSDC3(Double_t min_dt, Double_t max_dt)
 {
-  for(Int_t i = 0; i<NumOfLayersSDC3; ++i){
-    DriftTimeCut(m_SdcOutHC[i + 1], min_dt, max_dt, true);
-  }// for(i)
+  DriftTimeCut("SDC3", min_dt, max_dt, true);
 }
 
 //_____________________________________________________________________________
 void
 DCAnalyzer::DriftTimeCutSDC4(Double_t min_dt, Double_t max_dt)
 {
-  for(Int_t i = 0; i<NumOfLayersSDC4; ++i){
-    DriftTimeCut(m_SdcOutHC[i + NumOfLayersSDC3 + 1], min_dt, max_dt, true);
-  }// for(i)
+  DriftTimeCut("SDC4", min_dt, max_dt, true);
 }
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::DriftTimeCut(DCHC& HitCont,
+DCAnalyzer::DriftTimeCutSDC5(Double_t min_dt, Double_t max_dt)
+{
+  DriftTimeCut("SDC5", min_dt, max_dt, true);
+}
+
+//_____________________________________________________________________________
+void
+DCAnalyzer::DriftTimeCut(const TString& name,
                          Double_t min_dt, Double_t max_dt, Bool_t select_1st)
 {
+  DCHC& HitCont = m_dc_hit_collection.at(name);
   for(auto& hit: HitCont){
-    hit->GateDriftTime(min_dt, max_dt, select_1st);
+    hit->DriftTimeCut(min_dt, max_dt, select_1st);
   }
+  EraseEmptyHits(name);
 }
 
 //_____________________________________________________________________________
