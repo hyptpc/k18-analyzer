@@ -48,6 +48,11 @@ struct Event
   Int_t evnum;
   Int_t trigpat[NumOfSegTrig];
   Int_t trigflag[NumOfSegTrig];
+
+  // BH1
+  Int_t    bh1_nhits;
+  Int_t	bh1seg[MaxHits];
+
   // BFT
   Int_t    bft_nhits;
   Int_t    bft_unhits;
@@ -99,6 +104,11 @@ Event::clear()
   for(Int_t it=0; it<NumOfSegTrig; it++){
     trigpat[it]  = -1;
     trigflag[it] = -1;
+  }
+
+  bh1_nhits = 0;
+  for(Int_t it=0; it<MaxHits; it++){
+    bh1seg[it]  = -1;
   }
 
   for(Int_t it=0; it<NumOfSegBFT; it++){
@@ -254,11 +264,14 @@ ProcessingNormal()
 #endif
   HF1(1, 4);
   Double_t btof0 = qnan;
+  Int_t bh1nhits = 0;
   for(Int_t i=0; i<nhBh1; ++i){
     const auto& hit = hodoAna.GetHit("BH1", i);
     if(!hit) continue;
     Double_t cmt  = hit->CMeanTime();
     Double_t btof = cmt - time0;
+    Int_t seg = hit->SegmentId()+1;
+    event.bh1seg[bh1nhits++] = seg;
 #if HodoCut
     Double_t dE   = hit->DeltaE();
     if(dE<MinDeBH1 || MaxDeBH1<dE) continue;
@@ -268,6 +281,7 @@ ProcessingNormal()
       btof0 = btof;
     }
   }
+  event.bh1_nhits  = bh1nhits;
 
   HF1(1, 5);
 
@@ -618,6 +632,10 @@ ConfMan::InitializeHistograms()
   tree->Branch("evnum",     &event.evnum,     "evnum/I");
   tree->Branch("trigpat",    event.trigpat,   Form("trigpat[%d]/I", NumOfSegTrig));
   tree->Branch("trigflag",   event.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
+
+  //BH1
+  tree->Branch("bh1_nhits",     &event.bh1_nhits,        "bh1_nhits/I");
+  tree->Branch("bh1seg",     event.bh1seg,        Form("bh1seg[%d]/I", NumOfSegBH1));
 
   //BFT
 #if FHitBranch
