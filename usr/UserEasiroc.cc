@@ -80,14 +80,16 @@ struct Event
   Double_t aft_tdc[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
   Double_t aft_adc_high[NumOfPlaneAFT][NumOfSegAFT][kUorD];
   Double_t aft_adc_low[NumOfPlaneAFT][NumOfSegAFT][kUorD];
+  Double_t aft_ltime[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
+  Double_t aft_ttime[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
+  Double_t aft_tot[NumOfSegBFT][NumOfSegAFT][kUorD][MaxDepth];
+
   // AFT normalized
   Double_t aft_mt[NumOfPlaneAFT][NumOfSegAFT][MaxDepth];
   Double_t aft_cmt[NumOfPlaneAFT][NumOfSegAFT][MaxDepth];
   Double_t aft_mtot[NumOfPlaneAFT][NumOfSegAFT][MaxDepth];
   Double_t aft_de_high[NumOfPlaneAFT][NumOfSegAFT];
   Double_t aft_de_low[NumOfPlaneAFT][NumOfSegAFT];
-  Double_t aft_ltime[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
-  Double_t aft_ttime[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
   void clear();
 };
 
@@ -142,6 +144,7 @@ Event::clear()
           aft_tdc[p][seg][ud][i] = qnan;
           aft_ltime[p][seg][ud][i] = qnan;
           aft_ttime[p][seg][ud][i] = qnan;
+          aft_tot[p][seg][ud][i] = qnan;
         }
       }
       aft_de_high[p][seg] = qnan;
@@ -193,6 +196,8 @@ ProcessingNormal()
 #if TIME_CUT
   static const Double_t MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
   static const Double_t MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
+  static const Double_t MinTimeAFT = gUser.GetParameter("TimeAFT", 0);
+  static const Double_t MaxTimeAFT = gUser.GetParameter("TimeAFT", 1);  
 #endif
 
   RawData rawData;
@@ -415,7 +420,7 @@ ProcessingNormal()
     Int_t plane = hit->PlaneId();
     Int_t seg = hit->SegmentId();
     event.aft_hitpat[plane][event.aft_nhits[plane]++] = seg;
-    HF1(AFTHid+plane*1000+2, seg);
+    //HF1(AFTHid+plane*1000+2, seg);
     Int_t m = hit->GetEntries();
     for(Int_t j=0; j<m; ++j){
       auto mt = hit->MeanTime(j);
@@ -434,6 +439,7 @@ ProcessingNormal()
         auto tot = hit->TOT(ud, j);
 		auto ltime = hit->GetTimeLeading(ud, j);
 		auto ttime = hit->GetTimeTrailing(ud, j);
+		event.aft_tot[plane][seg][ud][j]   = tot;
 		event.aft_ltime[plane][seg][ud][j] = ltime;
 		event.aft_ttime[plane][seg][ud][j] = ttime;
         HF1(AFTHid+plane*1000+5+ud, tot);
@@ -453,19 +459,41 @@ ProcessingNormal()
     HF2(AFTHid+plane*1000+35, seg, de_low);
   }
   for(Int_t plane=0; plane<NumOfPlaneAFT; ++plane){
-    HF1(AFTHid+plane*1000+1, event.aft_nhits[plane]);
+    //HF1(AFTHid+plane*1000+1, event.aft_nhits[plane]);
   }
 
-  //select tdc which is first hit and has the largest adc value in one plane
-  for(int ud=0; ud<kUorD; ud++){
+  //aft_analysis
+  int multiplicity_pair[18] = { 0 };
+  for(int ud=0; ud<kUorD; ud++){ 
 	for(int plane=0; plane<NumOfPlaneAFT; plane++){
 	  std::vector<std::pair<int,int>> adc_seg_pair;
+	  int multiplicity = 0;
 	  for(int s=0; s<NumOfSegAFTarr.at(plane); s++){
+		//--------------------------------------------------------
+		for(int depth=0; depth<MaxDepth; depth++){
+		  double ltime = event.aft_ltime[plane][s][ud][depth];
+		  double adc   = event.aft_adc_high[plane][s][ud];
+		  double tot   = event.aft_tot[plane][s][ud][depth];
+		  double mt    = event.aft_mt[plane][s][depth];
+		  double de_high = event.aft_de_high[plane][s];
+		  bool Timecut = ( MinTimeAFT<ltime && ltime<MaxTimeAFT);
+		  bool MeanTimecut = ( MinTimeAFT<mt && mt<MaxTimeAFT);
+		  bool Decut   = ( 0.2<de_high );
+		  if( Timecut )  HF2(AFTHid+plane*1000+62+ud, adc, tot);
+		  if (MeanTimecut ) HF2(AFTHid+plane*1000+64+ud, de_high, mt); 
+		  if( MeanTimecut && Decut){
+			multiplicity++;
+			HF1(AFTHid+plane*1000+2, s);
+		  }
+		}
+		//--------------------------------------------------------
 		if(std::isfinite(event.aft_tdc[plane][s][ud][0])){
 		  double adc = event.aft_adc_high[plane][s][ud];
-		  adc_seg_pair.push_back( {adc, s} );
+		  if(1000<adc) adc_seg_pair.push_back( {adc, s} );
 		}
-	  }
+	  }//for seg
+	  if(ud==0) multiplicity_pair[plane/2] += multiplicity; 
+	  if( ((plane%2)==1) && (ud==0) )  HF1(AFTHid+(plane/2)*1000+1, multiplicity_pair[plane/2]);
 	  if(!adc_seg_pair.empty()){
 		std::sort(adc_seg_pair.rbegin(), adc_seg_pair.rend());
 		int adcmax = adc_seg_pair.at(0).first;
@@ -476,8 +504,8 @@ ProcessingNormal()
 		HF2(AFTHid+plane*1000+54+ud, adcmax_seg, adcmax);
 		HF1(AFTHid+plane*1000+56+ud, adcmax);
 	  }
-	}
-  }
+	}//for plane
+  }//for ud
 
   return true;
 }
@@ -506,9 +534,9 @@ ConfMan::InitializeHistograms()
   const Double_t MinTot  =  -10.;
   const Double_t MaxTot  =  160.;
 
-  const Int_t    NbinTime = 100;
-  const Double_t MinTime  = -50.;
-  const Double_t MaxTime  =  50.;
+  const Int_t    NbinTime = 60;
+  const Double_t MinTime  = -30.;
+  const Double_t MaxTime  =  30.;
 
   const Int_t    NbinDe = 1000;
   const Double_t MinDe  =  0.;
@@ -613,6 +641,10 @@ ConfMan::InitializeHistograms()
       HB2(AFTHid+plane*1000+58+ud, Form("AFT Time %s%%Seg Plane#%d", s, plane),
           NumOfSegAFTarr.at(plane), 0., NumOfSegAFTarr.at(plane), NbinTime, MinTime, MaxTime);
       HB1(AFTHid+plane*1000+60+ud, Form("AFT Time %s Plane#%d", s, plane), NbinTime, MinTime, MaxTime);
+      HB2(AFTHid+plane*1000+62+ud, Form("AFT adc:tot w/timecut %s%%Plane#%d", s, plane),
+          NbinAdc, MinAdc, MaxAdc, 200, 0, 200);
+      HB2(AFTHid+plane*1000+64+ud, Form("AFT de_high:time  %s%%Plane#%d", s, plane),
+		  NbinDe, MinDe, MaxDe, NbinTime, MinTime, MaxTime);
     }
   }
 
@@ -691,6 +723,9 @@ ConfMan::InitializeHistograms()
                     NumOfPlaneAFT, NumOfSegAFT, kUorD, MaxDepth));
   tree->Branch("aft_ttime", event.aft_ttime,
                Form("aft_ttime[%d][%d][%d][%d]/D",
+                    NumOfPlaneAFT, NumOfSegAFT, kUorD, MaxDepth));
+  tree->Branch("aft_tot", event.aft_tot,
+               Form("aft_tot[%d][%d][%d][%d]/D",
                     NumOfPlaneAFT, NumOfSegAFT, kUorD, MaxDepth));
 
   // HPrint();
