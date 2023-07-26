@@ -741,7 +741,7 @@ ProcessingNormal()
       Int_t m = 0;
       for(const auto& T: hit->GetArrayTdcLeading()){
         HF1(AC1Hid +100*seg +3, Double_t(T));
-        if(m < MaxDepth) event.ac1t[seg-1][m] = T;
+        if(m < MaxDepth) event.ac1t[seg-1][m++] = T;
         if(MinTdcAC1 < T && T < MaxTdcAC1) is_hit = true;
       }
       //HitPat
@@ -1907,8 +1907,8 @@ ConfMan::InitializeHistograms()
   for(Int_t i=1; i<=NumOfSegAC1; ++i){
     TString title1 = Form("AC1-%d Adc", i);
     TString title3 = Form("AC1-%d Tdc", i);
-    TString title5 = Form("BAC-%d Adc(w Tdc)", i);
-    TString title7 = Form("BAC-%d Adc(w/o Tdc)", i);
+    TString title5 = Form("AC1-%d Adc(w Tdc)", i);
+    TString title7 = Form("AC1-%d Adc(w/o Tdc)", i);
     HB1(AC1Hid +100*i +1, title1, NbinAdc, MinAdc, MaxAdc);
     HB1(AC1Hid +100*i +3, title3, NbinTdc, MinTdc, MaxTdc);
     HB1(AC1Hid +100*i +5, title5, NbinAdc, MinAdc, MaxAdc);
