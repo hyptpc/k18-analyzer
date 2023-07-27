@@ -25,12 +25,17 @@ namespace
 {
 const auto& gGeom = DCGeomMan::GetInstance();
 // const Int_t& IdTOF   = gGeom.DetectorId("TOF");
-const Int_t& IdTOFUX = gGeom.DetectorId("TOF-UX");
-const Int_t& IdTOFDX = gGeom.DetectorId("TOF-DX");
-const Int_t    MaxIteraction = 100;
+const Int_t& IdTOFUX  = gGeom.DetectorId("TOF-UX");
+const Int_t& IdTOFDX  = gGeom.DetectorId("TOF-DX");
+const Int_t& IdRKINIT = gGeom.DetectorId("RKINIT");
+const Int_t    MaxIteration = 100;
 const Double_t InitialChiSqr = 1.e+10;
 const Double_t MaxChiSqr     = 1.e+2;
 const Double_t MinDeltaChiSqrR = 0.0002;
+
+const TString coutRed   = "\033[31m";
+const TString coutGreen = "\033[32m";
+const TString coutEnd   = "\033[m";
 }
 
 #define WARNOUT 0
@@ -151,17 +156,17 @@ KuramaTrack::DoFit()
     return false;
   }
 
-  static const auto gposTOFDX = gGeom.GetGlobalPosition("TOF-DX");
-  static const auto LzTOFDX = gGeom.GetLocalZ("TOF-DX");
-  const Double_t xOut    = m_track_out->GetX(LzTOFDX);
-  const Double_t yOut    = m_track_out->GetY(LzTOFDX);
+  static const auto gposRKINIT = gGeom.GetGlobalPosition("RKINIT");
+  static const auto LzRKINIT = gGeom.GetLocalZ("RKINIT");
+  const Double_t xOut    = m_track_out->GetX(LzRKINIT);
+  const Double_t yOut    = m_track_out->GetY(LzRKINIT);
   const Double_t uOut    = m_track_out->GetU0();
   const Double_t vOut    = m_track_out->GetV0();
   const Double_t pzOut   = m_initial_momentum/std::sqrt(1.+uOut*uOut+vOut*vOut);
   const ThreeVector posOut =
-    gGeom.Local2GlobalPos(IdTOFDX, TVector3(xOut, yOut, 0.));
+    gGeom.Local2GlobalPos(IdRKINIT, TVector3(xOut, yOut, 0.));
   const ThreeVector momOut =
-    gGeom.Local2GlobalDir(IdTOFDX, TVector3(pzOut*uOut, pzOut*vOut, pzOut));
+    gGeom.Local2GlobalDir(IdRKINIT, TVector3(pzOut*uOut, pzOut*vOut, pzOut));
 
   RKCordParameter     iniCord(posOut, momOut);
   RKCordParameter     prevCord;
@@ -178,7 +183,7 @@ KuramaTrack::DoFit()
 
   Int_t iItr = 0, iItrEf = 1;
 
-  while(++iItr<MaxIteraction){
+  while(++iItr<MaxIteration){
     m_status = (RKstatus)RK::Trace(iniCord, m_HitPointCont);
     if(m_status != kPassed){
 #ifdef WARNOUT
@@ -317,7 +322,7 @@ KuramaTrack::DoFit(RKCordParameter iniCord)
 
   Int_t iItr=0, iItrEf=1;
 
-  while(++iItr < MaxIteraction){
+  while(++iItr < MaxIteration){
     if(!RK::Trace(iniCord, m_HitPointCont)){
       // Error
 #ifdef WARNOUT
@@ -731,12 +736,13 @@ void
 KuramaTrack::Print(Option_t* arg) const
 {
   PrintHelper helper(5, std::ios::fixed);
+  TString coutColor = m_status == kPassed ? coutGreen : coutRed;
 
   hddaq::cout << FUNC_NAME << " " << arg << std::endl
-              << "   status : " << s_status[m_status] << std::endl
-              << " in " << std::setw(3) << m_n_iteration << " ("
-              << std::setw(2) << m_nef_iteration << ") Iteractions "
-              << " chisqr=" << std::setw(10) << m_chisqr << std::endl;
+	      << "   status : " << coutColor << s_status[m_status] << coutEnd << std::endl
+	      << " in " << std::setw(3) << m_n_iteration << " ("
+	      << std::setw(2) << m_nef_iteration << ") Iterations "
+	      << " chisqr=" << std::setw(10) << m_chisqr << std::endl;
   hddaq::cout << " Target X (" << std::setprecision(2)
               << std::setw(7) << m_primary_position.x() << ", "
               << std::setw(7) << m_primary_position.y() << ", "

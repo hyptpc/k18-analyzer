@@ -582,8 +582,8 @@ RK::CheckCrossing(Int_t lnum, const RKTrajectoryPoint &startPoint,
                   RKcalcHitPoint &crossPoint)
 {
   const auto geom_record = gGeom.GetRecord(lnum);
-  ThreeVector posVector   = geom_record->Position();
-  ThreeVector nomalVector = geom_record->NormalVector();
+  ThreeVector posVector    = geom_record->Position();
+  ThreeVector normalVector = geom_record->NormalVector();
 
   ThreeVector startVector = startPoint.PositionInGlobal();
   ThreeVector endVector   = endPoint.PositionInGlobal();
@@ -592,8 +592,8 @@ RK::CheckCrossing(Int_t lnum, const RKTrajectoryPoint &startPoint,
   endVector   -= posVector;
 
   // inner product
-  Double_t ip1 = nomalVector * startVector;
-  Double_t ip2 = nomalVector * endVector;
+  Double_t ip1 = normalVector * startVector;
+  Double_t ip2 = normalVector * endVector;
 
   // judge whether start/end points are same side
   if(ip1*ip2 > 0.) return false;
@@ -816,6 +816,7 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
 		    << std::setw(10) << chp.coefQ() << std::endl;
       }
 #endif
+
       --iPlane;
       if(iPlane<0) {
 	if(gEvDisp.IsReady()){
@@ -865,7 +866,7 @@ RK::TraceToLast(RKHitPointContainer& hitContainer)
   //   }
   // }
 
-  for(const auto& key : {"AC1", "WC-U", "WC-D", "RKINIT"}){
+  for(const auto& key : {"RKINIT", "AC1", "WC-U", "WC-D"}){
     auto id = gGeom.DetectorId(key);
     hitContainer.push_back(std::make_pair(id, RKcalcHitPoint()));
   }
@@ -883,7 +884,7 @@ RK::TraceToLast(RKHitPointContainer& hitContainer)
 
   iPlane += 1;
 
-  ThreeVector StepPoint[MaxStep];
+  std::vector<TVector3> StepPoint(MaxStep);
   Int_t iStep = 0;
   while(++iStep < MaxStep){
     RKTrajectoryPoint nextPoint = RK::TraceOneStep(-StepSize, prevPoint);
@@ -894,10 +895,10 @@ RK::TraceToLast(RKHitPointContainer& hitContainer)
                             prevPoint, nextPoint,
                             hitContainer[iPlane].second)){
       if(++iPlane>=nPlane){
-	//	if(gEvDisp.IsReady()){
-	//Double_t q = hitContainer[0].second.MomentumInGlobal().z();
-	//gEvDisp.DrawKuramaTrack(iStep, StepPoint, q);
-	//    }
+	// if(gEvDisp.IsReady()){
+	//   Double_t q = hitContainer[0].second.MomentumInGlobal().z();
+	//   gEvDisp.DrawKuramaTrack(iStep, StepPoint, q);
+	// }
 	return true;
       }
     }
