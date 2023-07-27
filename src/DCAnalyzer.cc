@@ -771,7 +771,7 @@ DCAnalyzer::TrackSearchKurama()
          && bending>0. && initial_momentum>0.){
         trKurama->SetInitialMomentum(initial_momentum);
       } else {
-        trKurama->SetInitialMomentum(1.3);
+        trKurama->SetInitialMomentum(pK18);
       }
       if(true
          && trKurama->DoFit()
