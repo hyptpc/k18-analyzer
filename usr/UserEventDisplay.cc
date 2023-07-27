@@ -21,7 +21,7 @@
 #include "FuncName.hh"
 #include "HodoAnalyzer.hh"
 #include "HodoHit.hh"
-#include "KuramaLib.hh"
+#include "S2sLib.hh"
 #include "RawData.hh"
 //#include "RootHelper.hh"
 #include "UnpackerManager.hh"
@@ -554,18 +554,18 @@ ProcessingNormal()
 
   std::vector<ThreeVector> KpPCont, KpXCont;
   std::vector<Double_t> M2Cont;
-  std::vector<Double_t> Chi2KuramaCont;
+  std::vector<Double_t> Chi2S2sCont;
 
   //________________________________________________________
-  //___ KuramaTracking
+  //___ S2sTracking
   static const auto StofOffset = gUser.GetParameter("StofOffset");
   // DCAna.SetMaxV0Diff(10.);
-  DCAna.TrackSearchKurama();
+  DCAna.TrackSearchS2s();
   Bool_t through_target = false;
-  Int_t ntKurama = DCAna.GetNTracksKurama();
-  hddaq::cout << "[Info] ntKurama = " << ntKurama << std::endl;
-  for(Int_t it=0; it<ntKurama; ++it){
-    auto track = DCAna.GetKuramaTrack(it);
+  Int_t ntS2s = DCAna.GetNTracksS2s();
+  hddaq::cout << "[Info] ntS2s = " << ntS2s << std::endl;
+  for(Int_t it=0; it<ntS2s; ++it){
+    auto track = DCAna.GetS2sTrack(it);
     // track->Print();
     auto chisqr = track->GetChiSquare();
     hddaq::cout << "       " << it << "-th track, chi2 = "
@@ -592,7 +592,7 @@ ProcessingNormal()
       KpPCont.push_back(momtgt);
       KpXCont.push_back(postgt);
       M2Cont.push_back(m2);
-      Chi2KuramaCont.push_back(chisqr);
+      Chi2S2sCont.push_back(chisqr);
     }
   }
   if(KpPCont.size() == 0){
@@ -652,10 +652,10 @@ ProcessingNormal()
     buf += Form(" %.3f", DCAna.GetTrackSdcOut(i)->GetChiSquare());
   }
   gEvDisp.DrawText(0.130, 0.200, buf);
-  buf = "Kurama"; gEvDisp.DrawText(0.040, 0.16, buf);
+  buf = "S2s"; gEvDisp.DrawText(0.040, 0.16, buf);
   buf = "#chi^{2} = ";
-  for(Int_t i=0; i<ntKurama; ++i){
-    buf += Form(" %.3f", DCAna.GetKuramaTrack(i)->GetChiSquare());
+  for(Int_t i=0; i<ntS2s; ++i){
+    buf += Form(" %.3f", DCAna.GetS2sTrack(i)->GetChiSquare());
   }
   gEvDisp.DrawText(0.130, 0.160, buf);
   gEvDisp.DrawText(0.680, 0.960, "BTOF");
@@ -695,7 +695,7 @@ ProcessingNormal()
     ){
       gEvDisp.DrawText(0.680, 0.920, "pK18");
       gEvDisp.DrawText(0.860, 0.920, Form("%.3f", pkm.Mag()));
-      gEvDisp.DrawText(0.680, 0.880, "pKurama");
+      gEvDisp.DrawText(0.680, 0.880, "pS2s");
       gEvDisp.DrawText(0.860, 0.880, Form("%.3f", pkp.Mag()));
       gEvDisp.DrawText(0.680, 0.840, "MassSquared");
       gEvDisp.DrawText(0.860, 0.840, Form("%.3f", m2));

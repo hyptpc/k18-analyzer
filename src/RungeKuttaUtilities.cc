@@ -20,7 +20,7 @@
 #include "Exception.hh"
 #include "FieldMan.hh"
 #include "FuncName.hh"
-#include "KuramaTrack.hh"
+#include "S2sTrack.hh"
 #include "PrintHelper.hh"
 
 namespace
@@ -821,9 +821,9 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
       if(iPlane<0) {
 	if(gEvDisp.IsReady()){
 	  Double_t q = hitContainer[0].second.MomentumInGlobal().z();
-	  gEvDisp.DrawKuramaTrack(iStep, StepPoint, q);
+	  gEvDisp.DrawS2sTrack(iStep, StepPoint, q);
         }
-	return KuramaTrack::kPassed;
+	return S2sTrack::kPassed;
       }
     } // while(RKcheckCrossing())
 
@@ -835,7 +835,7 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
 		  << " iPlane=" << std::dec << hitContainer[iPlane+1].first
 		  << std::endl;
 #endif
-      return KuramaTrack::kExceedMaxPathLength;
+      return S2sTrack::kExceedMaxPathLength;
     }
     prevPoint = nextPoint;
   }// while(++iStep)
@@ -848,7 +848,7 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
 	      << std::endl;
 #endif
 
-  return KuramaTrack::kExceedMaxStep;
+  return S2sTrack::kExceedMaxStep;
 }
 
 //_____________________________________________________________________________
@@ -897,7 +897,7 @@ RK::TraceToLast(RKHitPointContainer& hitContainer)
       if(++iPlane>=nPlane){
 	// if(gEvDisp.IsReady()){
 	//   Double_t q = hitContainer[0].second.MomentumInGlobal().z();
-	//   gEvDisp.DrawKuramaTrack(iStep, StepPoint, q);
+	//   gEvDisp.DrawS2sTrack(iStep, StepPoint, q);
 	// }
 	return true;
       }

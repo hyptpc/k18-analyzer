@@ -10,8 +10,8 @@
 
 namespace
 {
-enum  EDefinition { kSks, kKurama };
-const EDefinition GlobalCoordinate = kKurama;
+enum  EDefinition { kSks, kS2s };
+const EDefinition GlobalCoordinate = kS2s;
 }
 
 //_____________________________________________________________________________
@@ -98,7 +98,7 @@ DCGeomRecord::CalcVectors()
     m_dudy = -st1*ct2;
     m_dudz =  ct1;
     break;
-  case kKurama: // new difinition : RA2 is around Y-axis
+  case kS2s: // new difinition : RA2 is around Y-axis
     m_dxds =  ct0*ct2+st0*st1*st2;
     m_dxdt = -st0*ct2+ct0*st1*st2;
     m_dxdu =  ct1*st2;

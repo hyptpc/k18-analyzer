@@ -17,7 +17,7 @@
 #include "HodoHit.hh"
 #include "RMAnalyzer.hh"
 #include "RootHelper.hh"
-#include "KuramaLib.hh"
+#include "S2sLib.hh"
 #include "RawData.hh"
 
 #define HodoCut     0

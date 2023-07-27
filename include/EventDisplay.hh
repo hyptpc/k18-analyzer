@@ -192,7 +192,7 @@ private:
   std::vector<TPolyLine3D*>  m_SdcOutTrack;
   TPolyMarker3D             *m_init_step_mark;
   TPolyMarker3D             *m_hs_step_mark;
-  TPolyMarker3D             *m_kurama_step_mark;
+  TPolyMarker3D             *m_s2s_step_mark;
   // vertex
   TBox                      *m_TargetXZ_box;
   TBox                      *m_TargetYZ_box;
@@ -208,9 +208,9 @@ private:
   std::vector<TPolyLine*>    m_SdcInXZ_line;
   std::vector<TPolyLine*>    m_SdcInYZ_line;
   TPolyMarker               *m_HSMarkVertexXShs;
-  TPolyMarker               *m_KuramaMarkVertexXShs;
-  TPolyMarker               *m_KuramaMarkVertexX;
-  TPolyMarker               *m_KuramaMarkVertexY;
+  TPolyMarker               *m_S2sMarkVertexXShs;
+  TPolyMarker               *m_S2sMarkVertexX;
+  TPolyMarker               *m_S2sMarkVertexY;
   TPolyLine                 *m_MissMomXZ_line;
   TPolyLine                 *m_MissMomYZ_line;
 
@@ -220,7 +220,7 @@ public:
   Bool_t ConstructEmulsion();
   Bool_t ConstructTarget();
   Bool_t ConstructBH2();
-  Bool_t ConstructKURAMA();
+  Bool_t ConstructS2S();
   Bool_t ConstructCollimator();
   Bool_t ConstructBcOut();
   Bool_t ConstructSdcIn();
@@ -244,7 +244,7 @@ public:
   void DrawSdcOutLocalTrack(const DCLocalTrack *tp);
   void DrawSsdHit(Int_t lid, Int_t seg, Double_t de);
   void DrawVertex(const ThreeVector& vertex);
-  void DrawKuramaTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,
+  void DrawS2sTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,
                        Double_t q);
   void DrawHSTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,
                        Double_t q);
@@ -264,7 +264,7 @@ public:
   void SetCorrectTimeBH2(Int_t seg, Double_t de);
   void SetCorrectTimeBcOut(Int_t layer, Double_t pos);
   void DrawBcOutTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, Bool_t flagGoodForTracking = true);
-  void DrawSdcInTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, Bool_t flagKurama = false, Bool_t flagBeam = false);
+  void DrawSdcInTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, Bool_t flagS2s = false, Bool_t flagBeam = false);
   void SetCorrectTimeSdcIn(Int_t layer, Double_t pos);
 
   void FillTOF(Int_t seg, Int_t tdc);

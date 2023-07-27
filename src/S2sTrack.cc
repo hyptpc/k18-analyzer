@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-#include "KuramaTrack.hh"
+#include "S2sTrack.hh"
 
 #include <cstring>
 #include <iomanip>
@@ -41,7 +41,7 @@ const TString coutEnd   = "\033[m";
 #define WARNOUT 0
 
 //_____________________________________________________________________________
-KuramaTrack::KuramaTrack(const DCLocalTrack *track_in,
+S2sTrack::S2sTrack(const DCLocalTrack *track_in,
                          const DCLocalTrack *track_out)
   : m_status(kInit),
     m_track_in(track_in),
@@ -71,7 +71,7 @@ KuramaTrack::KuramaTrack(const DCLocalTrack *track_in,
 }
 
 //_____________________________________________________________________________
-KuramaTrack::~KuramaTrack()
+S2sTrack::~S2sTrack()
 {
   ClearHitArray();
   debug::ObjectCounter::decrease(ClassName());
@@ -79,7 +79,7 @@ KuramaTrack::~KuramaTrack()
 
 //_____________________________________________________________________________
 const TrackHit*
-KuramaTrack::GetHitOfLayerNumber(Int_t lnum) const
+S2sTrack::GetHitOfLayerNumber(Int_t lnum) const
 {
   for(Int_t i=0, n=m_hit_array.size(); i<n; ++i){
     if(m_hit_array[i]->GetLayer()==lnum)
@@ -90,7 +90,7 @@ KuramaTrack::GetHitOfLayerNumber(Int_t lnum) const
 
 //_____________________________________________________________________________
 void
-KuramaTrack::FillHitArray()
+S2sTrack::FillHitArray()
 {
   Int_t nIn  = m_track_in->GetNHit();
   Int_t nOut = m_track_out->GetNHit();
@@ -117,7 +117,7 @@ KuramaTrack::FillHitArray()
 
 //_____________________________________________________________________________
 void
-KuramaTrack::ClearHitArray()
+S2sTrack::ClearHitArray()
 {
   Int_t nh = m_hit_array.size();
   for(Int_t i=nh-1; i>=0; --i){
@@ -128,7 +128,7 @@ KuramaTrack::ClearHitArray()
 
 //_____________________________________________________________________________
 Bool_t
-KuramaTrack::ReCalc(Bool_t applyRecursively)
+S2sTrack::ReCalc(Bool_t applyRecursively)
 {
   if(applyRecursively){
     // m_track_in->ReCalc(applyRecursively);
@@ -145,7 +145,7 @@ KuramaTrack::ReCalc(Bool_t applyRecursively)
 
 //_____________________________________________________________________________
 Bool_t
-KuramaTrack::DoFit()
+S2sTrack::DoFit()
 {
   m_status = kInit;
 
@@ -302,7 +302,7 @@ KuramaTrack::DoFit()
 
 //_____________________________________________________________________________
 Bool_t
-KuramaTrack::DoFit(RKCordParameter iniCord)
+S2sTrack::DoFit(RKCordParameter iniCord)
 {
   //  ClearHitArray();
   //  FillHitArray();
@@ -431,7 +431,7 @@ KuramaTrack::DoFit(RKCordParameter iniCord)
 
 //_____________________________________________________________________________
 Double_t
-KuramaTrack::CalcChiSqr(const RKHitPointContainer &hpCont) const
+S2sTrack::CalcChiSqr(const RKHitPointContainer &hpCont) const
 {
   Int_t nh = m_hit_array.size();
 
@@ -465,7 +465,7 @@ KuramaTrack::CalcChiSqr(const RKHitPointContainer &hpCont) const
 
 //_____________________________________________________________________________
 Bool_t
-KuramaTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
+S2sTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
                                  RKCordParameter& Cord, Double_t& estDeltaChisqr,
                                  Double_t& lambdaCri, Double_t dmp) const
 {
@@ -717,7 +717,7 @@ KuramaTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
 
 //_____________________________________________________________________________
 Bool_t
-KuramaTrack::SaveCalcPosition(const RKHitPointContainer &hpCont)
+S2sTrack::SaveCalcPosition(const RKHitPointContainer &hpCont)
 {
   for(Int_t i=0, n=m_hit_array.size(); i<n; ++i){
     TrackHit *thp = m_hit_array[i];
@@ -733,7 +733,7 @@ KuramaTrack::SaveCalcPosition(const RKHitPointContainer &hpCont)
 
 //_____________________________________________________________________________
 void
-KuramaTrack::Print(Option_t* arg) const
+S2sTrack::Print(Option_t* arg) const
 {
   PrintHelper helper(5, std::ios::fixed);
   TString coutColor = m_status == kPassed ? coutGreen : coutRed;
@@ -765,7 +765,7 @@ KuramaTrack::Print(Option_t* arg) const
 
 //_____________________________________________________________________________
 void
-KuramaTrack::PrintCalcHits(const RKHitPointContainer &hpCont) const
+S2sTrack::PrintCalcHits(const RKHitPointContainer &hpCont) const
 {
   PrintHelper helper(2, std::ios::fixed);
 
@@ -812,7 +812,7 @@ KuramaTrack::PrintCalcHits(const RKHitPointContainer &hpCont) const
 
 //_____________________________________________________________________________
 Bool_t
-KuramaTrack::SaveTrackParameters(const RKCordParameter &cp)
+S2sTrack::SaveTrackParameters(const RKCordParameter &cp)
 {
   m_cord_param = cp;
   const Int_t TGTid = m_HitPointCont.begin()->first;
@@ -856,7 +856,7 @@ KuramaTrack::SaveTrackParameters(const RKCordParameter &cp)
 
 //_____________________________________________________________________________
 Bool_t
-KuramaTrack::GetTrajectoryLocalPosition(Int_t layer,
+S2sTrack::GetTrajectoryLocalPosition(Int_t layer,
                                         Double_t& x, Double_t& y) const
 {
   try {

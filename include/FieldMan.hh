@@ -8,7 +8,7 @@
 #include <TString.h>
 #include <TVector3.h>
 
-class KuramaFieldMap;
+class S2sFieldMap;
 class FieldElements;
 
 typedef std::vector<FieldElements*> FEContainer;
@@ -29,16 +29,16 @@ private:
 
 private:
   Bool_t          m_is_ready;
-  TString         m_file_name_kurama;
+  TString         m_file_name_s2s;
   TString         m_file_name_shs;
-  KuramaFieldMap* m_kurama_map;
-  KuramaFieldMap* m_shs_map;
+  S2sFieldMap* m_s2s_map;
+  S2sFieldMap* m_shs_map;
   FEContainer     m_element_list;
 
 public:
   Bool_t   Initialize();
-  Bool_t   Initialize(const TString& file_name_kurama);
-  Bool_t   Initialize(const TString& file_name_kurama,
+  Bool_t   Initialize(const TString& file_name_s2s);
+  Bool_t   Initialize(const TString& file_name_s2s,
                       const TString& file_name_shs);
   Bool_t   IsReady() const { return m_is_ready; }
   TVector3 GetField(const TVector3& position) const;
@@ -47,7 +47,7 @@ public:
   TVector3 GetdBdZ(const TVector3& position) const;
   void     ClearElementsList();
   void     AddElement(FieldElements* element);
-  void     SetKuramaFileName(const TString& file_name) { m_file_name_kurama = file_name; }
+  void     SetS2sFileName(const TString& file_name) { m_file_name_s2s = file_name; }
   void     SetShsFileName(const TString& file_name) { m_file_name_shs = file_name; }
   Double_t StepSize(const TVector3& position,
                     Double_t default_step_size,

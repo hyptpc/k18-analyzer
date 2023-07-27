@@ -19,7 +19,7 @@
 #include "HodoHit.hh"
 #include "MathTools.hh"
 #include "RMAnalyzer.hh"
-#include "KuramaLib.hh"
+#include "S2sLib.hh"
 #include "MathTools.hh"
 #include "RawData.hh"
 #include "RootHelper.hh"
@@ -86,31 +86,31 @@ struct Event
   Double_t x0SdcOut[MaxHits];
   Double_t y0SdcOut[MaxHits];
 
-  Int_t ntKurama;
-  Int_t nlKurama;
-  Int_t nhKurama[MaxHits];
-  Double_t chisqrKurama[MaxHits];
+  Int_t ntS2s;
+  Int_t nlS2s;
+  Int_t nhS2s[MaxHits];
+  Double_t chisqrS2s[MaxHits];
   Double_t path[MaxHits];
   Double_t stof[MaxHits];
-  Double_t pKurama[MaxHits];
-  Double_t qKurama[MaxHits];
+  Double_t pS2s[MaxHits];
+  Double_t qS2s[MaxHits];
   Double_t m2[MaxHits];
   Double_t resP[MaxHits];
   Double_t vpx[NumOfLayersVP];
   Double_t vpy[NumOfLayersVP];
 
-  Double_t xtgtKurama[MaxHits];
-  Double_t ytgtKurama[MaxHits];
-  Double_t utgtKurama[MaxHits];
-  Double_t vtgtKurama[MaxHits];
-  Double_t thetaKurama[MaxHits];
-  Double_t phiKurama[MaxHits];
+  Double_t xtgtS2s[MaxHits];
+  Double_t ytgtS2s[MaxHits];
+  Double_t utgtS2s[MaxHits];
+  Double_t vtgtS2s[MaxHits];
+  Double_t thetaS2s[MaxHits];
+  Double_t phiS2s[MaxHits];
 
-  Double_t xtofKurama[MaxHits];
-  Double_t ytofKurama[MaxHits];
-  Double_t utofKurama[MaxHits];
-  Double_t vtofKurama[MaxHits];
-  Double_t tofsegKurama[MaxHits];
+  Double_t xtofS2s[MaxHits];
+  Double_t ytofS2s[MaxHits];
+  Double_t utofS2s[MaxHits];
+  Double_t vtofS2s[MaxHits];
+  Double_t tofsegS2s[MaxHits];
 
   std::vector< std::vector<Double_t> > resL;
   std::vector< std::vector<Double_t> > resG;
@@ -136,8 +136,8 @@ Event::clear()
   nlSdcIn  = 0;
   ntSdcOut = 0;
   nlSdcOut = 0;
-  ntKurama = 0;
-  nlKurama = 0;
+  ntS2s = 0;
+  nlS2s = 0;
   nhBh2    = 0;
   nhBh1    = 0;
   nhTof    = 0;
@@ -193,25 +193,25 @@ Event::clear()
   }
 
   for(Int_t it=0; it<MaxHits; it++){
-    nhKurama[it]     = 0;
-    chisqrKurama[it] = qnan;
+    nhS2s[it]     = 0;
+    chisqrS2s[it] = qnan;
     stof[it]         = qnan;
     path[it]         = qnan;
-    pKurama[it]      = qnan;
-    qKurama[it]      = qnan;
+    pS2s[it]      = qnan;
+    qS2s[it]      = qnan;
     m2[it]           = qnan;
-    xtgtKurama[it]  = qnan;
-    ytgtKurama[it]  = qnan;
-    utgtKurama[it]  = qnan;
-    vtgtKurama[it]  = qnan;
-    thetaKurama[it] = qnan;
-    phiKurama[it]   = qnan;
+    xtgtS2s[it]  = qnan;
+    ytgtS2s[it]  = qnan;
+    utgtS2s[it]  = qnan;
+    vtgtS2s[it]  = qnan;
+    thetaS2s[it] = qnan;
+    phiS2s[it]   = qnan;
     resP[it]        = qnan;
-    xtofKurama[it]  = qnan;
-    ytofKurama[it]  = qnan;
-    utofKurama[it]  = qnan;
-    vtofKurama[it]  = qnan;
-    tofsegKurama[it] = qnan;
+    xtofS2s[it]  = qnan;
+    ytofS2s[it]  = qnan;
+    utofS2s[it]  = qnan;
+    vtofS2s[it]  = qnan;
+    tofsegS2s[it] = qnan;
   }
 
   for(Int_t i=0; i<NumOfLayersSdcIn+NumOfLayersSdcOut+2; ++i){
@@ -464,7 +464,7 @@ ProcessingNormal()
       if(nhSdcIn>0) nlSdcIn++;
     }
     event.nlSdcIn   = nlSdcIn;
-    event.nlKurama += nlSdcIn;
+    event.nlS2s += nlSdcIn;
   }
   if(multi_SdcIn/Double_t(NumOfLayersSdcIn) > MaxMultiHitSdcIn){
     // return true;
@@ -486,7 +486,7 @@ ProcessingNormal()
       if(nhSdcOut>0) nlSdcOut++;
     }
     event.nlSdcOut = nlSdcOut;
-    event.nlKurama += nlSdcOut;
+    event.nlS2s += nlSdcOut;
   }
   if(multi_SdcOut/Double_t(NumOfLayersSdcOut) > MaxMultiHitSdcOut){
     // return true;
@@ -678,18 +678,18 @@ ProcessingNormal()
   ///// BTOF BH2-Target
   static const auto StofOffset = gUser.GetParameter("StofOffset");
 
-  //////////////KURAMA Tracking
-  DCAna.TrackSearchKurama();
-  Int_t ntKurama = DCAna.GetNTracksKurama();
-  if(MaxHits < ntKurama){
-    std::cout << "#W too many ntKurama " << ntKurama << "/" << MaxHits << std::endl;
-    ntKurama = MaxHits;
+  //////////////S2S Tracking
+  DCAna.TrackSearchS2s();
+  Int_t ntS2s = DCAna.GetNTracksS2s();
+  if(MaxHits < ntS2s){
+    std::cout << "#W too many ntS2s " << ntS2s << "/" << MaxHits << std::endl;
+    ntS2s = MaxHits;
   }
-  event.ntKurama = ntKurama;
-  HF1(50, ntKurama);
+  event.ntS2s = ntS2s;
+  HF1(50, ntS2s);
 
-  for(Int_t i=0; i<ntKurama; ++i){
-    auto track = DCAna.GetKuramaTrack(i);
+  for(Int_t i=0; i<ntS2s; ++i){
+    auto track = DCAna.GetS2sTrack(i);
     if(!track) continue;
     // track->Print();
     Int_t nh = track->GetNHits();
@@ -713,19 +713,19 @@ ProcessingNormal()
     HF1(54, xt); HF1(55, yt); HF1(56, ut); HF1(57,vt);
     HF2(58, xt, ut); HF2(59, yt, vt); HF2(60, xt, yt);
     HF1(61, p); HF1(62, path);
-    event.nhKurama[i] = nh;
-    event.chisqrKurama[i] = chisqr;
+    event.nhS2s[i] = nh;
+    event.chisqrS2s[i] = chisqr;
     event.path[i] = path;
-    event.pKurama[i] = p;
-    event.qKurama[i] = q;
-    event.xtgtKurama[i] = xt;
-    event.ytgtKurama[i] = yt;
-    event.utgtKurama[i] = ut;
-    event.vtgtKurama[i] = vt;
-    event.thetaKurama[i] = theta;
-    event.phiKurama[i] = phi;
+    event.pS2s[i] = p;
+    event.qS2s[i] = q;
+    event.xtgtS2s[i] = xt;
+    event.ytgtS2s[i] = yt;
+    event.utgtS2s[i] = ut;
+    event.vtgtS2s[i] = vt;
+    event.thetaS2s[i] = theta;
+    event.phiS2s[i] = phi;
     event.resP[i] = p - initial_momentum;
-    if(ntKurama == 1){
+    if(ntS2s == 1){
       for(Int_t l = 0; l<NumOfLayersVP; ++l){
 	Double_t x, y;
 	track->GetTrajectoryLocalPosition(21 + l, x, y);
@@ -735,24 +735,24 @@ ProcessingNormal()
     }
     const auto& posTof = track->TofPos();
     const auto& momTof = track->TofMom();
-    event.xtofKurama[i] = posTof.x();
-    event.ytofKurama[i] = posTof.y();
-    event.utofKurama[i] = momTof.x()/momTof.z();
-    event.vtofKurama[i] = momTof.y()/momTof.z();
+    event.xtofS2s[i] = posTof.x();
+    event.ytofS2s[i] = posTof.y();
+    event.utofS2s[i] = momTof.x()/momTof.z();
+    event.vtofS2s[i] = momTof.y()/momTof.z();
 #if UseTOF
     Double_t tof_seg = track->TofSeg();
-    event.tofsegKurama[i] = tof_seg;
+    event.tofsegS2s[i] = tof_seg;
 #else
     Double_t tof_x = track->GetLocalTrackOut()->GetX(zTOF);
     Double_t tof_seg = MathTools::Round(tof_x/75. + (NumOfSegTOF + 1)*0.5);
-    event.tofsegKurama[i] = tof_seg;
+    event.tofsegS2s[i] = tof_seg;
 # if 0
     std::cout << "posTof " << posTof << std::endl;
     std::cout << "momTof " << momTof << std::endl;
     std::cout << std::setw(10) << vecTof.X()
 	      << std::setw(10) << vecTof.Y()
 	      << std::setw(10) << sign*vecTof.Mod()
-	      << std::setw(10) << TofSegKurama << std::endl;
+	      << std::setw(10) << TofSegS2s << std::endl;
 # endif
     Double_t minres = 1.0e10;
 #endif
@@ -862,8 +862,8 @@ ProcessingNormal()
     }
   }
 
-  for(Int_t i=0; i<ntKurama; ++i){
-    const auto& track = DCAna.GetKuramaTrack(i);
+  for(Int_t i=0; i<ntS2s; ++i){
+    const auto& track = DCAna.GetS2sTrack(i);
     if(!track) continue;
     const auto& trSdcIn =track->GetLocalTrackIn();
     const auto& trSdcOut=track->GetLocalTrackOut();
@@ -874,8 +874,8 @@ ProcessingNormal()
     HF2(20023, vin, yout); HF2(20024, vout, yin);
   }
 
-  if(ntKurama==0) return true;
-  const auto& track = DCAna.GetKuramaTrack(0);
+  if(ntS2s==0) return true;
+  const auto& track = DCAna.GetS2sTrack(0);
   Double_t path = track->PathLengthToTOF();
   Double_t p    = track->PrimaryMomentum().Mag();
   //Double_t tTof[Event::nParticle];
@@ -978,16 +978,16 @@ ConfMan:: InitializeHistograms()
   HB2(19, "V0%Y0 SdcIn", 100, -100., 100., 100, -0.20, 0.20);
   HB2(20, "X0%Y0 SdcIn", 100, -100., 100., 100, -100., 100.);
 
-  HB1(21, "#Hits of Track SdcIn [KuramaTrack]", 15, 0., 15.);
-  HB1(22, "Chisqr SdcIn [KuramaTrack]", 500, 0., 50.);
-  HB1(23, "LayerId SdcIn [KuramaTrack]", 15, 0., 15.);
-  HB1(24, "X0 SdcIn [KuramaTrack]", 400, -100., 100.);
-  HB1(25, "Y0 SdcIn [KuramaTrack]", 400, -100., 100.);
-  HB1(26, "U0 SdcIn [KuramaTrack]", 200, -0.20, 0.20);
-  HB1(27, "V0 SdcIn [KuramaTrack]", 200, -0.20, 0.20);
-  HB2(28, "U0%X0 SdcIn [KuramaTrack]", 100, -100., 100., 100, -0.20, 0.20);
-  HB2(29, "V0%Y0 SdcIn [KuramaTrack]", 100, -100., 100., 100, -0.20, 0.20);
-  //HB2(30, "X0%Y0 SdcIn [KuramaTrack]", 100, -100., 100., 100, -100., 100.);
+  HB1(21, "#Hits of Track SdcIn [S2sTrack]", 15, 0., 15.);
+  HB1(22, "Chisqr SdcIn [S2sTrack]", 500, 0., 50.);
+  HB1(23, "LayerId SdcIn [S2sTrack]", 15, 0., 15.);
+  HB1(24, "X0 SdcIn [S2sTrack]", 400, -100., 100.);
+  HB1(25, "Y0 SdcIn [S2sTrack]", 400, -100., 100.);
+  HB1(26, "U0 SdcIn [S2sTrack]", 200, -0.20, 0.20);
+  HB1(27, "V0 SdcIn [S2sTrack]", 200, -0.20, 0.20);
+  HB2(28, "U0%X0 SdcIn [S2sTrack]", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(29, "V0%Y0 SdcIn [S2sTrack]", 100, -100., 100., 100, -0.20, 0.20);
+  //HB2(30, "X0%Y0 SdcIn [S2sTrack]", 100, -100., 100., 100, -100., 100.);
 
   HB1(30, "#Tracks SdcOut", 10, 0., 10.);
   HB1(31, "#Hits of Track SdcOut", 20, 0., 20.);
@@ -1001,30 +1001,30 @@ ConfMan:: InitializeHistograms()
   HB2(39, "V0%Y0 SdcOut", 100, -500., 500., 100, -0.20, 0.20);
   HB2(40, "X0%Y0 SdcOut", 100, -1200., 1200., 100, -500., 500.);
 
-  HB1(41, "#Hits of Track SdcOut [KuramaTrack]", 20, 0., 20.);
-  HB1(42, "Chisqr SdcOut [KuramaTrack]", 500, 0., 50.);
-  HB1(43, "LayerId SdcOut [KuramaTrack]", 20, 30., 50.);
-  HB1(44, "X0 SdcOut [KuramaTrack]", 1400, -1200., 1200.);
-  HB1(45, "Y0 SdcOut [KuramaTrack]", 1000, -500., 500.);
-  HB1(46, "U0 SdcOut [KuramaTrack]",  700, -0.35, 0.35);
-  HB1(47, "V0 SdcOut [KuramaTrack]",  200, -0.10, 0.10);
-  HB2(48, "U0%X0 SdcOut [KuramaTrack]", 120, -600., 600., 100, -0.40, 0.40);
-  HB2(49, "V0%Y0 SdcOut [KuramaTrack]", 100, -500., 500., 100, -0.10, 0.10);
-  //HB2(50, "X0%Y0 SdcOut [KuramaTrack]", 100, -700., 700., 100, -500., 500.);
+  HB1(41, "#Hits of Track SdcOut [S2sTrack]", 20, 0., 20.);
+  HB1(42, "Chisqr SdcOut [S2sTrack]", 500, 0., 50.);
+  HB1(43, "LayerId SdcOut [S2sTrack]", 20, 30., 50.);
+  HB1(44, "X0 SdcOut [S2sTrack]", 1400, -1200., 1200.);
+  HB1(45, "Y0 SdcOut [S2sTrack]", 1000, -500., 500.);
+  HB1(46, "U0 SdcOut [S2sTrack]",  700, -0.35, 0.35);
+  HB1(47, "V0 SdcOut [S2sTrack]",  200, -0.10, 0.10);
+  HB2(48, "U0%X0 SdcOut [S2sTrack]", 120, -600., 600., 100, -0.40, 0.40);
+  HB2(49, "V0%Y0 SdcOut [S2sTrack]", 100, -500., 500., 100, -0.10, 0.10);
+  //HB2(50, "X0%Y0 SdcOut [S2sTrack]", 100, -700., 700., 100, -500., 500.);
 
-  HB1(50, "#Tracks KURAMA", 10, 0., 10.);
-  HB1(51, "#Hits of KuramaTrack", 50, 0., 50.);
-  HB1(52, "Chisqr KuramaTrack", 500, 0., 50.);
-  HB1(53, "LayerId KuramaTrack", 90, 0., 90.);
-  HB1(54, "Xtgt KuramaTrack", 200, -100., 100.);
-  HB1(55, "Ytgt KuramaTrack", 200, -100., 100.);
-  HB1(56, "Utgt KuramaTrack", 300, -0.30, 0.30);
-  HB1(57, "Vtgt KuramaTrack", 300, -0.20, 0.20);
-  HB2(58, "U%Xtgt KuramaTrack", 100, -100., 100., 100, -0.25, 0.25);
-  HB2(59, "V%Ytgt KuramaTrack", 100, -100., 100., 100, -0.10, 0.10);
-  HB2(60, "Y%Xtgt KuramaTrack", 100, -100., 100., 100, -100., 100.);
-  HB1(61, "P KuramaTrack", 500, 0.00, 2.50);
-  HB1(62, "PathLength KuramaTrack", 600, 3000., 4000.);
+  HB1(50, "#Tracks S2S", 10, 0., 10.);
+  HB1(51, "#Hits of S2sTrack", 50, 0., 50.);
+  HB1(52, "Chisqr S2sTrack", 500, 0., 50.);
+  HB1(53, "LayerId S2sTrack", 90, 0., 90.);
+  HB1(54, "Xtgt S2sTrack", 200, -100., 100.);
+  HB1(55, "Ytgt S2sTrack", 200, -100., 100.);
+  HB1(56, "Utgt S2sTrack", 300, -0.30, 0.30);
+  HB1(57, "Vtgt S2sTrack", 300, -0.20, 0.20);
+  HB2(58, "U%Xtgt S2sTrack", 100, -100., 100., 100, -0.25, 0.25);
+  HB2(59, "V%Ytgt S2sTrack", 100, -100., 100., 100, -0.10, 0.10);
+  HB2(60, "Y%Xtgt S2sTrack", 100, -100., 100., 100, -100., 100.);
+  HB1(61, "P S2sTrack", 500, 0.00, 2.50);
+  HB1(62, "PathLength S2sTrack", 600, 3000., 4000.);
   HB1(63, "MassSqr", 600, -0.4, 1.4);
 
   // SDC1
@@ -1043,14 +1043,14 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+5, title5, 200, -2.0, 2.0);
     HB2(100*i+6, title6, 100, -100., 100., 100, -2.0, 2.0);
     HB2(100*i+7, title7, 100, -100., 100., 100, -50., 50.);
-    title1 += " [KuramaTrack]";
-    title2 += " [KuramaTrack]";
-    title3 += " [KuramaTrack]";
-    title4 += " [KuramaTrack]";
-    title5 += " [KuramaTrack]";
-    title6 += " [KuramaTrack]";
-    title7 += " [KuramaTrack]";
-    TString title22 = Form("DriftLength%%DriftTime Sdc%d [KuramaTrack]", i);
+    title1 += " [S2sTrack]";
+    title2 += " [S2sTrack]";
+    title3 += " [S2sTrack]";
+    title4 += " [S2sTrack]";
+    title5 += " [S2sTrack]";
+    title6 += " [S2sTrack]";
+    title7 += " [S2sTrack]";
+    TString title22 = Form("DriftLength%%DriftTime Sdc%d [S2sTrack]", i);
     HB1(100*i+11, title1, 96, 0., 96.);
     HB1(100*i+12, title2, NBinDTSDC1, MinDTSDC1, MaxDTSDC1);
     HB1(100*i+13, title3, NBinDLSDC1, MinDLSDC1, MaxDLSDC1);
@@ -1073,11 +1073,11 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+5, title5, 500, -5.0, 5.0);
     HB2(100*i+6, title6, 100, -600., 600., 100, -5.0, 5.0);
     HB2(100*i+7, title7, 100, -600., 600., 100, -600., 600.);
-    title1 += " [KuramaTrack]";
-    title4 += " [KuramaTrack]";
-    title5 += " [KuramaTrack]";
-    title6 += " [KuramaTrack]";
-    title7 += " [KuramaTrack]";
+    title1 += " [S2sTrack]";
+    title4 += " [S2sTrack]";
+    title5 += " [S2sTrack]";
+    title6 += " [S2sTrack]";
+    title7 += " [S2sTrack]";
     HB1(100*i+11, title1, 70, 0., 70.);
     HB1(100*i+14, title4, 800, -400., 400.);
     HB1(100*i+15, title5, 500, -5.0, 5.0);
@@ -1101,14 +1101,14 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+5, title5, 200, -2.0, 2.0);
     HB2(100*i+6, title6, 100, -600., 600., 100, -2.0, 2.0);
     HB2(100*i+7, title7, 100, -600., 600., 100, -600., 600.);
-    title1 += " [KuramaTrack]";
-    title2 += " [KuramaTrack]";
-    title3 += " [KuramaTrack]";
-    title4 += " [KuramaTrack]";
-    title5 += " [KuramaTrack]";
-    title6 += " [KuramaTrack]";
-    title7 += " [KuramaTrack]";
-    TString title22 = Form("DriftLength%%DriftTime Sdc2_%d [KuramaTrack]", i-NumOfLayersSdcIn);
+    title1 += " [S2sTrack]";
+    title2 += " [S2sTrack]";
+    title3 += " [S2sTrack]";
+    title4 += " [S2sTrack]";
+    title5 += " [S2sTrack]";
+    title6 += " [S2sTrack]";
+    title7 += " [S2sTrack]";
+    TString title22 = Form("DriftLength%%DriftTime Sdc2_%d [S2sTrack]", i-NumOfLayersSdcIn);
     HB1(100*i+11, title1, 112, 0., 112.);
     HB1(100*i+12, title2, NBinDTSDC2, MinDTSDC2, MaxDTSDC2);
     HB1(100*i+13, title3, NBinDLSDC2, MinDLSDC2, MaxDLSDC2);
@@ -1136,14 +1136,14 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+5, title5, 200, -2.0, 2.0);
     HB2(100*i+6, title6, 100, -600., 600., 100, -1.0, 1.0);
     HB2(100*i+7, title7, 100, -600., 600., 100, -600., 600.);
-    title1 += " [KuramaTrack]";
-    title2 += " [KuramaTrack]";
-    title3 += " [KuramaTrack]";
-    title4 += " [KuramaTrack]";
-    title5 += " [KuramaTrack]";
-    title6 += " [KuramaTrack]";
-    title7 += " [KuramaTrack]";
-    TString title22 = Form("DriftLength%%DriftTime Sdc3_%d [KuramaTrack]", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
+    title1 += " [S2sTrack]";
+    title2 += " [S2sTrack]";
+    title3 += " [S2sTrack]";
+    title4 += " [S2sTrack]";
+    title5 += " [S2sTrack]";
+    title6 += " [S2sTrack]";
+    title7 += " [S2sTrack]";
+    TString title22 = Form("DriftLength%%DriftTime Sdc3_%d [S2sTrack]", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
     HB1(100*i+11, title1, 120, 0., 120.);
     HB1(100*i+12, title2, NBinDTSDC3, MinDTSDC3, MaxDTSDC3);
     HB1(100*i+13, title3, NBinDLSDC3, MinDLSDC3, MaxDLSDC3);
@@ -1168,11 +1168,11 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+5, title5, 200, -2.0, 2.0);
     HB2(100*i+6, title6, 100, -600., 600., 100, -1.0, 1.0);
     HB2(100*i+7, title7, 100, -600., 600., 100, -600., 600.);
-    title1 += " [KuramaTrack]";
-    title4 += " [KuramaTrack]";
-    title5 += " [KuramaTrack]";
-    title6 += " [KuramaTrack]";
-    title7 += " [KuramaTrack]";
+    title1 += " [S2sTrack]";
+    title4 += " [S2sTrack]";
+    title5 += " [S2sTrack]";
+    title6 += " [S2sTrack]";
+    title7 += " [S2sTrack]";
     HB1(100*i+11, title1, 70, 0., 70.);
     HB1(100*i+14, title4, 800, -400., 400.);
     HB1(100*i+15, title5, 200, -2.0, 2.0);
@@ -1181,7 +1181,7 @@ ConfMan:: InitializeHistograms()
   }
 
 
-  // TOF in SdcOut/KuramaTracking
+  // TOF in SdcOut/S2sTracking
   for(Int_t i=NumOfLayersSdcIn+NumOfLayersSdcOut+1;
       i<=NumOfLayersSdcIn+NumOfLayersSdcOut+2; ++i){
     TString title1 = Form("HitPat Tof%d", i-(NumOfLayersSdcIn+NumOfLayersSdcOut));
@@ -1194,11 +1194,11 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+5, title5, 200, -20., 20.);
     HB2(100*i+6, title6, 100, -1000., 1000., 100, -200., 200.);
     HB2(100*i+7, title6, 100, -1000., 1000., 100, -1000., 1000.);
-    title1 += " [KuramaTrack]";
-    title4 += " [KuramaTrack]";
-    title5 += " [KuramaTrack]";
-    title6 += " [KuramaTrack]";
-    title7 += " [KuramaTrack]";
+    title1 += " [S2sTrack]";
+    title4 += " [S2sTrack]";
+    title5 += " [S2sTrack]";
+    title6 += " [S2sTrack]";
+    title7 += " [S2sTrack]";
     HB1(100*i+11, title1, 200, 0., 200.);
     HB1(100*i+14, title4, 1000, -1000., 1000.);
     HB1(100*i+15, title5, 200, -20., 20.);
@@ -1211,14 +1211,14 @@ ConfMan:: InitializeHistograms()
   HB2(20003, "Uout%Uin", 100, -0.5,  0.5,  100, -0.5,  0.5);
   HB2(20004, "Vin%Vout", 100, -0.1,  0.1,  100, -0.1,  0.1);
 
-  HB2(20021, "Yout%Yin [KuramaTrack]", 100, -150., 150., 120, -300., 300.);
-  HB2(20022, "Vout%Vin [KuramaTrack]", 100, -0.05, 0.05, 100, -0.1, 0.1);
-  HB2(20023, "Yout%Vin [KuramaTrack]", 100, -0.05, 0.05, 100, -300., 300.);
-  HB2(20024, "Yin%Vout [KuramaTrack]", 100, -0.10, 0.10, 100, -150., 150.);
+  HB2(20021, "Yout%Yin [S2sTrack]", 100, -150., 150., 120, -300., 300.);
+  HB2(20022, "Vout%Vin [S2sTrack]", 100, -0.05, 0.05, 100, -0.1, 0.1);
+  HB2(20023, "Yout%Vin [S2sTrack]", 100, -0.05, 0.05, 100, -300., 300.);
+  HB2(20024, "Yin%Vout [S2sTrack]", 100, -0.10, 0.10, 100, -150., 150.);
 
   ////////////////////////////////////////////
   //Tree
-  HBTree("kurama","tree of KuramaTracking");
+  HBTree("s2s","tree of S2sTracking");
   tree->Branch("evnum",     &event.evnum,    "evnum/I");
   tree->Branch("trigpat",    event.trigpat,  Form("trigpat[%d]/I", NumOfSegTrig));
   tree->Branch("trigflag",   event.trigflag, Form("trigflag[%d]/I", NumOfSegTrig));
@@ -1264,31 +1264,31 @@ ConfMan:: InitializeHistograms()
   tree->Branch("u0SdcOut",    event.u0SdcOut,     "u0SdcOut[ntSdcOut]/D");
   tree->Branch("v0SdcOut",    event.v0SdcOut,     "v0SdcOut[ntSdcOut]/D");
 
-  // KURAMA Tracking
-  tree->Branch("ntKurama",    &event.ntKurama,     "ntKurama/I");
-  tree->Branch("nlKurama",    &event.nlKurama,     "nlKurama/I");
-  tree->Branch("nhKurama",     event.nhKurama,     "nhKurama[ntKurama]/I");
-  tree->Branch("chisqrKurama", event.chisqrKurama, "chisqrKurama[ntKurama]/D");
-  tree->Branch("stof",         event.stof,         "stof[ntKurama]/D");
-  tree->Branch("path",         event.path,         "path[ntKurama]/D");
-  tree->Branch("pKurama",      event.pKurama,      "pKurama[ntKurama]/D");
-  tree->Branch("qKurama",      event.qKurama,      "qKurama[ntKurama]/D");
-  tree->Branch("m2",           event.m2,           "m2[ntKurama]/D");
+  // S2S Tracking
+  tree->Branch("ntS2s",    &event.ntS2s,     "ntS2s/I");
+  tree->Branch("nlS2s",    &event.nlS2s,     "nlS2s/I");
+  tree->Branch("nhS2s",     event.nhS2s,     "nhS2s[ntS2s]/I");
+  tree->Branch("chisqrS2s", event.chisqrS2s, "chisqrS2s[ntS2s]/D");
+  tree->Branch("stof",         event.stof,         "stof[ntS2s]/D");
+  tree->Branch("path",         event.path,         "path[ntS2s]/D");
+  tree->Branch("pS2s",      event.pS2s,      "pS2s[ntS2s]/D");
+  tree->Branch("qS2s",      event.qS2s,      "qS2s[ntS2s]/D");
+  tree->Branch("m2",           event.m2,           "m2[ntS2s]/D");
 
-  tree->Branch("xtgtKurama",   event.xtgtKurama,   "xtgtKurama[ntKurama]/D");
-  tree->Branch("ytgtKurama",   event.ytgtKurama,   "ytgtKurama[ntKurama]/D");
-  tree->Branch("utgtKurama",   event.utgtKurama,   "utgtKurama[ntKurama]/D");
-  tree->Branch("vtgtKurama",   event.vtgtKurama,   "vtgtKurama[ntKurama]/D");
+  tree->Branch("xtgtS2s",   event.xtgtS2s,   "xtgtS2s[ntS2s]/D");
+  tree->Branch("ytgtS2s",   event.ytgtS2s,   "ytgtS2s[ntS2s]/D");
+  tree->Branch("utgtS2s",   event.utgtS2s,   "utgtS2s[ntS2s]/D");
+  tree->Branch("vtgtS2s",   event.vtgtS2s,   "vtgtS2s[ntS2s]/D");
 
-  tree->Branch("thetaKurama",  event.thetaKurama,  "thetaKurama[ntKurama]/D");
-  tree->Branch("phiKurama",    event.phiKurama,    "phiKurama[ntKurama]/D");
-  tree->Branch("resP",    event.resP,   "resP[ntKurama]/D");
+  tree->Branch("thetaS2s",  event.thetaS2s,  "thetaS2s[ntS2s]/D");
+  tree->Branch("phiS2s",    event.phiS2s,    "phiS2s[ntS2s]/D");
+  tree->Branch("resP",    event.resP,   "resP[ntS2s]/D");
 
-  tree->Branch("xtofKurama",   event.xtofKurama,   "xtofKurama[ntKurama]/D");
-  tree->Branch("ytofKurama",   event.ytofKurama,   "ytofKurama[ntKurama]/D");
-  tree->Branch("utofKurama",   event.utofKurama,   "utofKurama[ntKurama]/D");
-  tree->Branch("vtofKurama",   event.vtofKurama,   "vtofKurama[ntKurama]/D");
-  tree->Branch("tofsegKurama", event.tofsegKurama, "tofsegKurama[ntKurama]/D");
+  tree->Branch("xtofS2s",   event.xtofS2s,   "xtofS2s[ntS2s]/D");
+  tree->Branch("ytofS2s",   event.ytofS2s,   "ytofS2s[ntS2s]/D");
+  tree->Branch("utofS2s",   event.utofS2s,   "utofS2s[ntS2s]/D");
+  tree->Branch("vtofS2s",   event.vtofS2s,   "vtofS2s[ntS2s]/D");
+  tree->Branch("tofsegS2s", event.tofsegS2s, "tofsegS2s[ntS2s]/D");
 
   tree->Branch("vpx",          event.vpx,          Form("vpx[%d]/D", NumOfLayersVP));
   tree->Branch("vpy",          event.vpy,          Form("vpy[%d]/D", NumOfLayersVP));

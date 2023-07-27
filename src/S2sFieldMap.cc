@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-#include "KuramaFieldMap.hh"
+#include "S2sFieldMap.hh"
 
 #include <cmath>
 #include <cstdlib>
@@ -29,7 +29,7 @@
 //}
 
 //_____________________________________________________________________________
-KuramaFieldMap::KuramaFieldMap(const TString& file_name)
+S2sFieldMap::S2sFieldMap(const TString& file_name)
   : m_is_ready(false),
     m_file_name(file_name),
     B(),
@@ -46,7 +46,7 @@ KuramaFieldMap::KuramaFieldMap(const TString& file_name)
 }
 
 //_____________________________________________________________________________
-KuramaFieldMap::KuramaFieldMap(const TString& file_name, const Double_t measure, const Double_t calc)
+S2sFieldMap::S2sFieldMap(const TString& file_name, const Double_t measure, const Double_t calc)
   : m_is_ready(false),
     m_file_name(file_name),
     B(),
@@ -66,14 +66,14 @@ KuramaFieldMap::KuramaFieldMap(const TString& file_name, const Double_t measure,
 
 
 //_____________________________________________________________________________
-KuramaFieldMap::~KuramaFieldMap()
+S2sFieldMap::~S2sFieldMap()
 {
   ClearField();
 }
 
 //_____________________________________________________________________________
 Bool_t
-KuramaFieldMap::Initialize()
+S2sFieldMap::Initialize()
 {
   std::ifstream ifs(m_file_name);
   if(!ifs.is_open()){
@@ -110,7 +110,7 @@ KuramaFieldMap::Initialize()
 
   if(valueCalc==0. || !std::isfinite(valueCalc) ||
      valueMeasure==0.  || !std::isfinite(valueMeasure) ){
-    hddaq::cout << FUNC_NAME << " KuramaField is zero : "
+    hddaq::cout << FUNC_NAME << " S2sField is zero : "
                 << " Calc = " << valueCalc
                 << " Measure = " << valueMeasure << std::endl
                 << " -> skip reading fieldmap" << std::endl;
@@ -163,7 +163,7 @@ KuramaFieldMap::Initialize()
 
 //_____________________________________________________________________________
 Bool_t
-KuramaFieldMap::GetFieldValue(const Double_t pointCM[3],
+S2sFieldMap::GetFieldValue(const Double_t pointCM[3],
                               Double_t* BfieldTesla) const
 {
   Double_t xt = pointCM[0];
@@ -216,7 +216,7 @@ KuramaFieldMap::GetFieldValue(const Double_t pointCM[3],
 
 //_____________________________________________________________________________
 void
-KuramaFieldMap::ClearField()
+S2sFieldMap::ClearField()
 {
   for(Int_t ix=0; ix<Nx; ++ix){
     for(Int_t iy=0; iy<Ny; ++iy){

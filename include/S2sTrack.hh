@@ -1,7 +1,7 @@
 // -*- C++ -*-
 
-#ifndef KURAMA_TRACK_HH
-#define KURAMA_TRACK_HH
+#ifndef S2S_TRACK_HH
+#define S2S_TRACK_HH
 
 #include <vector>
 #include <iosfwd>
@@ -21,16 +21,16 @@ class DCAnalyzer;
 class Hodo2Hit;
 
 //_____________________________________________________________________________
-class KuramaTrack
+class S2sTrack
 {
 public:
   static const TString& ClassName();
-  KuramaTrack(const DCLocalTrack* track_in, const DCLocalTrack* track_out);
-  ~KuramaTrack();
+  S2sTrack(const DCLocalTrack* track_in, const DCLocalTrack* track_out);
+  ~S2sTrack();
 
 private:
-  KuramaTrack(const KuramaTrack&);
-  KuramaTrack& operator =(const KuramaTrack&);
+  S2sTrack(const S2sTrack&);
+  S2sTrack& operator =(const S2sTrack&);
 
 public:
   enum RKstatus { kInit,
@@ -113,18 +113,18 @@ private:
 
 //_____________________________________________________________________________
 inline const TString&
-KuramaTrack::ClassName()
+S2sTrack::ClassName()
 {
-  static TString s_name("KuramaTrack");
+  static TString s_name("S2sTrack");
   return s_name;
 }
 
 //_____________________________________________________________________________
-struct KuramaTrackComp
-  : public std::binary_function<KuramaTrack*, KuramaTrack*, Bool_t>
+struct S2sTrackComp
+  : public std::binary_function<S2sTrack*, S2sTrack*, Bool_t>
 {
-  Bool_t operator()(const KuramaTrack* const p1,
-                    const KuramaTrack* const p2) const
+  Bool_t operator()(const S2sTrack* const p1,
+                    const S2sTrack* const p2) const
   {
     Int_t n1=p1->GetNHits(), n2=p2->GetNHits();
     if(n1>n2+1) return true;

@@ -197,15 +197,15 @@ EventDisplay::EventDisplay()
     m_SdcInTrack(),
     m_init_step_mark(),
     m_hs_step_mark(),
-    m_kurama_step_mark(),
+    m_s2s_step_mark(),
     m_TargetXZ_box(),
     m_TargetYZ_box(),
     m_VertexPointXZ(),
     m_VertexPointYZ(),
     m_HSMarkVertexXShs(),
-    m_KuramaMarkVertexXShs(),
-    m_KuramaMarkVertexX(),
-    m_KuramaMarkVertexY(),
+    m_S2sMarkVertexXShs(),
+    m_S2sMarkVertexX(),
+    m_S2sMarkVertexY(),
     m_MissMomXZ_line(),
     m_MissMomYZ_line()
 {
@@ -277,7 +277,7 @@ EventDisplay::Initialize()
 
   ConstructTarget();
 
-  ConstructKURAMA();
+  ConstructS2S();
 
 #if BcOut
   ConstructBcOut();
@@ -761,7 +761,7 @@ EventDisplay::ConstructBH2()
 
 //_____________________________________________________________________________
 Bool_t
-EventDisplay::ConstructKURAMA()
+EventDisplay::ConstructS2S()
 {
   Double_t Matrix[9] = {};
   CalcRotMatrix(0., 0., 0., Matrix);
@@ -2442,14 +2442,14 @@ EventDisplay::DrawMissingMomentum(const ThreeVector& mom, const ThreeVector& pos
 
 //_____________________________________________________________________________
 void
-EventDisplay::DrawKuramaTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,
+EventDisplay::DrawS2sTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,
                               Double_t q)
 {
-  del::DeleteObject(m_kurama_step_mark);
+  del::DeleteObject(m_s2s_step_mark);
 
-  m_kurama_step_mark = new TPolyMarker3D(nStep);
+  m_s2s_step_mark = new TPolyMarker3D(nStep);
   for(Int_t i=0; i<nStep; ++i){
-    m_kurama_step_mark->SetPoint(i,
+    m_s2s_step_mark->SetPoint(i,
                                  StepPoint[i].x(),
                                  StepPoint[i].y(),
                                  StepPoint[i].z());
@@ -2458,40 +2458,40 @@ EventDisplay::DrawKuramaTrack(Int_t nStep, const std::vector<TVector3>& StepPoin
   Color_t color = (q > 0) ? kRed : kBlue;
 
   if(!m_is_save_mode){
-    m_kurama_step_mark->SetMarkerSize(1);
-    m_kurama_step_mark->SetMarkerStyle(6);
+    m_s2s_step_mark->SetMarkerSize(1);
+    m_s2s_step_mark->SetMarkerStyle(6);
   }
-  m_kurama_step_mark->SetMarkerColor(color);
+  m_s2s_step_mark->SetMarkerColor(color);
 
   m_canvas->cd(1)->cd(2);
-  m_kurama_step_mark->Draw();
+  m_s2s_step_mark->Draw();
   m_canvas->Update();
 
 #if Vertex
-  del::DeleteObject(m_KuramaMarkVertexX);
-  m_KuramaMarkVertexX = new TPolyMarker(nStep);
+  del::DeleteObject(m_S2sMarkVertexX);
+  m_S2sMarkVertexX = new TPolyMarker(nStep);
   for(Int_t i=0; i<nStep; ++i){
     Double_t x = StepPoint[i].x()-BeamAxis;
     Double_t z = StepPoint[i].z()-zTarget;
-    m_KuramaMarkVertexX->SetPoint(i, z, x);
+    m_S2sMarkVertexX->SetPoint(i, z, x);
   }
-  m_KuramaMarkVertexX->SetMarkerSize(0.4);
-  m_KuramaMarkVertexX->SetMarkerColor(color);
-  m_KuramaMarkVertexX->SetMarkerStyle(6);
+  m_S2sMarkVertexX->SetMarkerSize(0.4);
+  m_S2sMarkVertexX->SetMarkerColor(color);
+  m_S2sMarkVertexX->SetMarkerStyle(6);
   m_canvas_vertex->cd(1);
-  m_KuramaMarkVertexX->Draw();
-  del::DeleteObject(m_KuramaMarkVertexY);
-  m_KuramaMarkVertexY = new TPolyMarker(nStep);
+  m_S2sMarkVertexX->Draw();
+  del::DeleteObject(m_S2sMarkVertexY);
+  m_S2sMarkVertexY = new TPolyMarker(nStep);
   for(Int_t i=0; i<nStep; ++i){
     Double_t y = StepPoint[i].y();
     Double_t z = StepPoint[i].z()-zTarget;
-    m_KuramaMarkVertexY->SetPoint(i, z, y);
+    m_S2sMarkVertexY->SetPoint(i, z, y);
   }
-  m_KuramaMarkVertexY->SetMarkerSize(0.4);
-  m_KuramaMarkVertexY->SetMarkerColor(color);
-  m_KuramaMarkVertexY->SetMarkerStyle(6);
+  m_S2sMarkVertexY->SetMarkerSize(0.4);
+  m_S2sMarkVertexY->SetMarkerColor(color);
+  m_S2sMarkVertexY->SetMarkerStyle(6);
   m_canvas_vertex->cd(2);
-  m_KuramaMarkVertexY->Draw();
+  m_S2sMarkVertexY->Draw();
   m_canvas_vertex->Update();
 #endif
 }
@@ -2559,15 +2559,15 @@ EventDisplay::EndOfEvent()
   del::DeleteObject(m_SdcInTrack2);
   del::DeleteObject(m_SdcOutTrack);
   del::DeleteObject(m_hs_step_mark);
-  del::DeleteObject(m_kurama_step_mark);
+  del::DeleteObject(m_s2s_step_mark);
   del::DeleteObject(m_VertexPointXZ);
   del::DeleteObject(m_VertexPointYZ);
   del::DeleteObject(m_MissMomXZ_line);
   del::DeleteObject(m_MissMomYZ_line);
   del::DeleteObject(m_HSMarkVertexXShs);
-  del::DeleteObject(m_KuramaMarkVertexXShs);
-  del::DeleteObject(m_KuramaMarkVertexX);
-  del::DeleteObject(m_KuramaMarkVertexY);
+  del::DeleteObject(m_S2sMarkVertexXShs);
+  del::DeleteObject(m_S2sMarkVertexX);
+  del::DeleteObject(m_S2sMarkVertexY);
   ResetVisibility();
   ResetHist();
 }
@@ -2934,20 +2934,20 @@ EventDisplay::DrawBcOutTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0,
 
 //_____________________________________________________________________________
 void
-EventDisplay::DrawSdcInTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, Bool_t flagKurama, Bool_t flagBeam)
+EventDisplay::DrawSdcInTrack(Double_t x0, Double_t u0, Double_t y0, Double_t v0, Bool_t flagS2s, Bool_t flagBeam)
 {
 #if Hist_BcIn
 
   Double_t z1 = -1500, z2 = 0;
   TLine *l = new TLine(x0+u0*z1, z1, x0+u0*z2, z2);
-  if (flagKurama)
+  if (flagS2s)
     l->SetLineColor(kRed);
   if (flagBeam)
     l->SetLineColor(kOrange);
   m_SdcInTrack2.push_back(l);
 
   TLine *l2 = new TLine(y0+v0*z1, z1, y0+v0*z2, z2);
-  if (flagKurama)
+  if (flagS2s)
     l2->SetLineColor(kRed);
   if (flagBeam)
     l2->SetLineColor(kOrange);

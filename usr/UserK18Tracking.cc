@@ -25,7 +25,7 @@
 #include "K18TrackD2U.hh"
 #include "BH1Match.hh"
 #include "BH2Filter.hh"
-#include "KuramaLib.hh"
+#include "S2sLib.hh"
 #include "MathTools.hh"
 #include "RawData.hh"
 #include "RootHelper.hh"

@@ -1,23 +1,23 @@
 // -*- C++ -*-
 
-#ifndef KURAMA_FIELD_MAP_HH
-#define KURAMA_FIELD_MAP_HH
+#ifndef S2S_FIELD_MAP_HH
+#define S2S_FIELD_MAP_HH
 
 #include <vector>
 #include <TString.h>
 
 //_____________________________________________________________________________
-class KuramaFieldMap
+class S2sFieldMap
 {
 public:
   static const TString& ClassName();
-  KuramaFieldMap(const TString& file_name);
-  KuramaFieldMap(const TString& file_name, const Double_t measure, const Double_t calc);
-  ~KuramaFieldMap();
+  S2sFieldMap(const TString& file_name);
+  S2sFieldMap(const TString& file_name, const Double_t measure, const Double_t calc);
+  ~S2sFieldMap();
 
 private:
-  KuramaFieldMap(const KuramaFieldMap&);
-  KuramaFieldMap& operator =(const KuramaFieldMap&);
+  S2sFieldMap(const S2sFieldMap&);
+  S2sFieldMap& operator =(const S2sFieldMap&);
 
 private:
   struct XYZ { Double_t x, y, z; };
@@ -51,9 +51,9 @@ private:
 
 //_____________________________________________________________________________
 inline const TString&
-KuramaFieldMap::ClassName()
+S2sFieldMap::ClassName()
 {
-  static TString s_name("KuramaFieldMap");
+  static TString s_name("S2sFieldMap");
   return s_name;
 }
 

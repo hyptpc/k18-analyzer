@@ -17,7 +17,7 @@
 #include "RMAnalyzer.hh"
 #include "MathTools.hh"
 #include "RootHelper.hh"
-#include "KuramaLib.hh"
+#include "S2sLib.hh"
 #include "RawData.hh"
 #include "UnpackerManager.hh"
 

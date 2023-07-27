@@ -32,7 +32,7 @@
 #include "K18Parameters.hh"
 //#include "K18TrackU2D.hh"
 #include "K18TrackD2U.hh"
-#include "KuramaTrack.hh"
+#include "S2sTrack.hh"
 #include "MathTools.hh"
 #include "MWPCCluster.hh"
 #include "RawData.hh"
@@ -50,7 +50,7 @@
 #define BcOut_XUV  0 // XUV Tracking (slow but accerate)
 #define BcOut_Pair 1 // Pair plane Tracking (fast but bad for large angle track)
 /* SdcInTracking */
-#define SdcIn_XUV         0 // XUV Tracking (not used in KURAMA)
+#define SdcIn_XUV         0 // XUV Tracking (not used in S2S)
 #define SdcIn_Pair        1 // Pair plane Tracking (fast but bad for large angle track)
 #define SdcIn_Deletion    1 // Deletion method for too many combinations
 
@@ -72,7 +72,7 @@ const Int_t& IdTOFDY = gGeom.DetectorId("TOF-DY");
 
 const Double_t TimeDiffToYTOF = 77.3511; // [mm/ns]
 
-const Double_t MaxChiSqrKuramaTrack = 10000.;
+const Double_t MaxChiSqrS2sTrack = 10000.;
 const Double_t MaxTimeDifMWPC       =   100.;
 
 const Double_t kMWPCClusteringWireExtension =  1.0; // [mm]
@@ -150,7 +150,7 @@ DCAnalyzer::~DCAnalyzer()
   for(auto& elem: m_dc_hit_collection)
     del::ClearContainer(elem.second);
 
-  ClearKuramaTracks();
+  ClearS2sTracks();
 #if UseBcIn
   ClearK18TracksU2D();
   ClearTracksBcIn();
@@ -169,12 +169,12 @@ DCAnalyzer::~DCAnalyzer()
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::PrintKurama(const TString& arg) const
+DCAnalyzer::PrintS2s(const TString& arg) const
 {
-  Int_t nn = m_KuramaTC.size();
+  Int_t nn = m_S2sTC.size();
   hddaq::cout << FUNC_NAME << " " << arg << std::endl
-              << "   KuramaTC.size : " << nn << std::endl;
-  for(const auto& track: m_KuramaTC){
+              << "   S2sTC.size : " << nn << std::endl;
+  for(const auto& track: m_S2sTC){
     hddaq::cout << " Niter=" << std::setw(3) << track->Niteration()
                 << " ChiSqr=" << track->ChiSquare()
                 << " P=" << track->PrimaryMomentum().Mag()
@@ -745,9 +745,9 @@ DCAnalyzer::TrackSearchK18D2U(const std::vector<Double_t>& XinCont)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchKurama()
+DCAnalyzer::TrackSearchS2s()
 {
-  ClearKuramaTracks();
+  ClearS2sTracks();
 
   auto nIn = m_SdcInTC.size();
   auto nOut = m_SdcOutTC.size();
@@ -758,8 +758,8 @@ DCAnalyzer::TrackSearchKurama()
     for(Int_t iOut=0; iOut<nOut; ++iOut){
       const auto& trOut = GetTrackSdcOut(iOut);
       if(!trOut || !trOut->GoodForTracking()) continue;
-      auto trKurama = new KuramaTrack(trIn, trOut);
-      if(!trKurama) continue;
+      auto trS2s = new S2sTrack(trIn, trOut);
+      if(!trS2s) continue;
       Double_t u0In    = trIn->GetU0();
       Double_t u0Out   = trOut->GetU0();
       // Double_t v0In    = trIn->GetV0();
@@ -769,27 +769,27 @@ DCAnalyzer::TrackSearchKurama()
       Double_t initial_momentum = p[0] + p[1]/(bending-p[2]);
       if(false
          && bending>0. && initial_momentum>0.){
-        trKurama->SetInitialMomentum(initial_momentum);
+        trS2s->SetInitialMomentum(initial_momentum);
       } else {
-        trKurama->SetInitialMomentum(pK18);
+        trS2s->SetInitialMomentum(pK18);
       }
       if(true
-         && trKurama->DoFit()
-         && trKurama->ChiSquare()<MaxChiSqrKuramaTrack){
-        // trKurama->Print("in "+FUNC_NAME);
-        m_KuramaTC.push_back(trKurama);
+         && trS2s->DoFit()
+         && trS2s->ChiSquare()<MaxChiSqrS2sTrack){
+        // trS2s->Print("in "+FUNC_NAME);
+        m_S2sTC.push_back(trS2s);
       }
       else{
-        // trKurama->Print("in "+FUNC_NAME);
-        delete trKurama;
+        // trS2s->Print("in "+FUNC_NAME);
+        delete trS2s;
       }
     }
   }
 
-  std::sort(m_KuramaTC.begin(), m_KuramaTC.end(), KuramaTrackComp());
+  std::sort(m_S2sTC.begin(), m_S2sTC.end(), S2sTrackComp());
 
 #if 0
-  PrintKurama("Before Deleting");
+  PrintS2s("Before Deleting");
 #endif
 
   return true;
@@ -797,9 +797,9 @@ DCAnalyzer::TrackSearchKurama()
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchKurama(Double_t initial_momentum)
+DCAnalyzer::TrackSearchS2s(Double_t initial_momentum)
 {
-  ClearKuramaTracks();
+  ClearS2sTracks();
 
   Int_t nIn  = GetNtracksSdcIn();
   Int_t nOut = GetNtracksSdcOut();
@@ -812,23 +812,23 @@ DCAnalyzer::TrackSearchKurama(Double_t initial_momentum)
     for(Int_t iOut=0; iOut<nOut; ++iOut){
       const auto& trOut = GetTrackSdcOut(iOut);
       if(!trOut->GoodForTracking()) continue;
-      KuramaTrack *trKurama = new KuramaTrack(trIn, trOut);
-      if(!trKurama) continue;
-      trKurama->SetInitialMomentum(initial_momentum);
-      if(trKurama->DoFit() && trKurama->ChiSquare()<MaxChiSqrKuramaTrack){
-        m_KuramaTC.push_back(trKurama);
+      S2sTrack *trS2s = new S2sTrack(trIn, trOut);
+      if(!trS2s) continue;
+      trS2s->SetInitialMomentum(initial_momentum);
+      if(trS2s->DoFit() && trS2s->ChiSquare()<MaxChiSqrS2sTrack){
+        m_S2sTC.push_back(trS2s);
       }
       else{
-        trKurama->Print(" in "+FUNC_NAME);
-        delete trKurama;
+        trS2s->Print(" in "+FUNC_NAME);
+        delete trS2s;
       }
     }// for(iOut)
   }// for(iIn)
 
-  std::sort(m_KuramaTC.begin(), m_KuramaTC.end(), KuramaTrackComp());
+  std::sort(m_S2sTC.begin(), m_S2sTC.end(), S2sTrackComp());
 
 #if 0
-  PrintKurama("Before Deleting");
+  PrintS2s("Before Deleting");
 #endif
 
   return true;
@@ -941,9 +941,9 @@ DCAnalyzer::ClearK18TracksD2U()
 
 //_____________________________________________________________________________
 void
-DCAnalyzer::ClearKuramaTracks()
+DCAnalyzer::ClearS2sTracks()
 {
-  del::ClearContainer(m_KuramaTC);
+  del::ClearContainer(m_S2sTC);
 }
 
 //_____________________________________________________________________________
@@ -1039,12 +1039,12 @@ DCAnalyzer::ReCalcTrack(K18TC& cont, Bool_t applyRecursively)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::ReCalcTrack(KuramaTC& cont,
+DCAnalyzer::ReCalcTrack(S2sTC& cont,
                         Bool_t applyRecursively)
 {
   const std::size_t n = cont.size();
   for(std::size_t i=0; i<n; ++i){
-    KuramaTrack *track = cont[i];
+    S2sTrack *track = cont[i];
     if(track) track->ReCalc(applyRecursively);
   }
   return true;
@@ -1103,9 +1103,9 @@ DCAnalyzer::ReCalcK18TrackD2U(Bool_t applyRecursively)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::ReCalcKuramaTrack(Bool_t applyRecursively)
+DCAnalyzer::ReCalcS2sTrack(Bool_t applyRecursively)
 {
-  return ReCalcTrack(m_KuramaTC, applyRecursively);
+  return ReCalcTrack(m_S2sTC, applyRecursively);
 }
 
 //_____________________________________________________________________________
@@ -1122,7 +1122,7 @@ DCAnalyzer::ReCalcAll()
   ReCalcTrackSdcOut();
 
   //ReCalcK18TrackD2U();
-  ReCalcKuramaTrack();
+  ReCalcS2sTrack();
 
   return true;
 }

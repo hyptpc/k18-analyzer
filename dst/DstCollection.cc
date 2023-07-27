@@ -31,7 +31,7 @@ namespace dst
       kProcess,
       kHodoscope, kEasiroc,
       kBcOutTracking, kSdcInTracking, kSdcOutTracking,
-      kK18Tracking, kKuramaTracking,
+      kK18Tracking, kS2sTracking,
       kEMC, kHUL, kMassTrigger,
       kOutFile, nArgc
     };
@@ -39,14 +39,14 @@ namespace dst
     { "[Process]",
       "[Hodoscope]", "[Easiroc]",
       "[BcOutTracking]", "[SdcInTracking]", "[SdcOutTracking]",
-      "[K18Tracking]", "[KuramaTracking]",
+      "[K18Tracking]", "[S2sTracking]",
       "[EMC]", "[HUL]", "[MassTrigger]",
       "[OutFile]" };
   std::vector<TString> TreeName =
     { "",
       "hodo", "ea0c",
       "bcout", "sdcin", "sdcout",
-      "k18track", "kurama",
+      "k18track", "s2s",
       "emc", "hul", "mst",
       "" };
   std::vector<TFile*> TFileCont;

@@ -1,7 +1,7 @@
 // -*- C++ -*-
 
-#ifndef KURAMA_LIB_HH
-#define KURAMA_LIB_HH
+#ifndef S2S_LIB_HH
+#define S2S_LIB_HH
 
 #include "ConfMan.hh"
 #include "VEvent.hh"
@@ -31,7 +31,7 @@
 #include "DCLTrackHit.hh"
 //#include "K18TrackU2D.hh"
 #include "K18TrackD2U.hh"
-#include "KuramaTrack.hh"
+#include "S2sTrack.hh"
 
 #include "K18TransMatrix.hh"
 #include "FieldMan.hh"

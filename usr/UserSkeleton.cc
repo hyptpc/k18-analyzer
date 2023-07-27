@@ -13,7 +13,7 @@
 #include "RMAnalyzer.hh"
 #include "RootHelper.hh"
 #include "HodoRawHit.hh"
-#include "KuramaLib.hh"
+#include "S2sLib.hh"
 #include "RawData.hh"
 
 namespace
