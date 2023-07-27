@@ -81,14 +81,16 @@ namespace
 const auto& gUnpackerConf = hddaq::unpacker::GConfig::get_instance();
 const auto& gGeom = DCGeomMan::GetInstance();
 auto& gAftHelper = AftHelper::GetInstance();
-const Int_t& IdBH1 = gGeom.DetectorId("BH1");
-const Int_t& IdBH2 = gGeom.DetectorId("BH2");
-const Int_t& IdTOF = gGeom.DetectorId("TOF");
-const Int_t& IdAC1 = gGeom.DetectorId("AC1");
-const Int_t& IdWC = gGeom.DetectorId("WC");
-const Int_t& IdTarget = gGeom.DetectorId("Target");
+const Int_t& IdTarget  = gGeom.DetectorId("Target");
+const Int_t& IdBH1     = gGeom.DetectorId("BH1");
+const Int_t& IdBH2     = gGeom.DetectorId("BH2");
+const Int_t& IdSDC2U2  = gGeom.DetectorId("SDC2-U2");
+const Int_t& IdS2SD1EG = gGeom.DetectorId("S2SD1EG");
+const Int_t& IdRKINIT  = gGeom.DetectorId("RKINIT");
+const Int_t& IdTOF     = gGeom.DetectorId("TOF");
+const Int_t& IdAC1     = gGeom.DetectorId("AC1");
+const Int_t& IdWC      = gGeom.DetectorId("WC");
 const Double_t& zTarget = gGeom.LocalZ("Target");
-const Double_t& zHS = gGeom.LocalZ("HS");
 const Double_t& zK18Target = gGeom.LocalZ("K18Target");
 const Double_t& gzK18Target = gGeom.GlobalZ("K18Target");
 // const Double_t& gxK18Target = gGeom.GetGlobalPosition("K18Target").x();
@@ -97,7 +99,9 @@ const Double_t& zBFT = gGeom.LocalZ("BFT");
 
 //const Double_t BeamAxis = -150.; //E07
 // const Double_t BeamAxis = -240.; //E40
-const Double_t BeamAxis = -50.; //E42
+// const Double_t BeamAxis = -50.; //E42
+const Double_t BeamAxis = 0.; //E70
+
 #if Vertex
 const Double_t MinX = -50.;
 const Double_t MaxX =  50.;
@@ -2178,7 +2182,7 @@ EventDisplay::DrawHitHodoscope(Int_t lid, Int_t seg, Int_t Tu, Int_t Td)
 void
 EventDisplay::DrawBcOutLocalTrack(const DCLocalTrack *tp)
 {
-  const Double_t offsetZ = -3108.4;
+  const Double_t offsetZ = -6526.5; // 5326.5(S2S-FF) + 1200.0(FF-V0)
 
   Double_t z0 = gGeom.GetLocalZ("BC3-X1") - 100.;
   Double_t x0 = tp->GetX(z0) + BeamAxis;
@@ -2295,13 +2299,14 @@ void
 EventDisplay::DrawSdcInLocalTrack(const DCLocalTrack *tp)
 {
 #if SdcIn
-  static const Double_t zSdc1x1 = gGeom.GetLocalZ("SDC1-X1") - 100.;
-  Double_t x0 = tp->GetX0(), y0 = tp->GetY0();
-  Double_t x1 = tp->GetX(zSdc1x1), y1 = tp->GetY(zSdc1x1);
-  // ThreeVector gPos0(x0+BeamAxis, y0, 0.);
-  // ThreeVector gPos1(x1+BeamAxis, y1, zSdc1x1);
-  ThreeVector gPos0(x0, y0, 0.);
-  ThreeVector gPos1(x1, y1, zSdc1x1);
+  Double_t z0 = gGeom.GetLocalZ(IdTarget);
+  Double_t x0 = tp->GetX(z0), y0 = tp->GetY(z0);
+  ThreeVector gPos0 = gGeom.Local2GlobalPos(IdTarget, TVector3(x0, y0, 0.));
+
+  Double_t z1 = gGeom.GetLocalZ(IdSDC2U2);
+  Double_t x1 = tp->GetX(z1), y1 = tp->GetY(z1);
+  ThreeVector gPos1 = gGeom.Local2GlobalPos(IdSDC2U2,  TVector3(x1, y1, 0.));
+
   auto p = new TPolyLine3D(2);
   p->SetLineColor(kRed);
   p->SetLineWidth(1);
@@ -2350,15 +2355,15 @@ void
 EventDisplay::DrawSdcOutLocalTrack(const DCLocalTrack *tp)
 {
 #if SdcOut
-  Double_t x0 = tp->GetX0(), y0 = tp->GetY0();
-  // Double_t zSdcOut = gGeom.GetLocalZ("TOF-DX");
-  Double_t zSdcOut = gGeom.GetLocalZ("RKINIT");
-  Double_t x1 = tp->GetX(zSdcOut), y1 = tp->GetY(zSdcOut);
+  Double_t z0 = gGeom.GetLocalZ(IdS2SD1EG);
+  Double_t x0 = tp->GetX(z0), y0 = tp->GetY(z0);
+  ThreeVector gPos0 = gGeom.Local2GlobalPos(IdS2SD1EG, TVector3(x0, y0, 0.));
 
-  ThreeVector gPos0(x0, y0, 0.);
-  ThreeVector gPos1(x1, y1, zSdcOut);
+  Double_t z1 = gGeom.GetLocalZ(IdRKINIT);
+  Double_t x1 = tp->GetX(z1), y1 = tp->GetY(z1);
+  ThreeVector gPos1 = gGeom.Local2GlobalPos(IdRKINIT,  TVector3(x1, y1, 0.));
 
-  TPolyLine3D *p = new TPolyLine3D(2);
+  auto p = new TPolyLine3D(2);
   p->SetLineColor(kRed);
   p->SetLineWidth(1);
   p->SetPoint(0, gPos0.x(), gPos0.y(), gPos0.z());

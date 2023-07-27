@@ -28,6 +28,7 @@
 #include "BH2Filter.hh"
 
 #define SAVEPDF 0
+#define DEBUG 0
 
 namespace
 {
@@ -730,6 +731,10 @@ ProcessingNormal()
     gSystem->Sleep(5000);
 #endif
   }
+#if DEBUG
+  hddaq::cout << "Wait a moment ..." << std::endl;
+  gSystem->Sleep(5000);
+#endif
   return true;
 }
 
