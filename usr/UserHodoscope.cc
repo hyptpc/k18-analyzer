@@ -501,7 +501,6 @@ ProcessingNormal()
   dst.spill   = gRM.SpillNumber();
 
   HF1(1, 0);
-
   //**************************************************************************
   //****************** RawData
 
@@ -1124,9 +1123,9 @@ ProcessingNormal()
             HF1(BH1Hid+100*seg1+1100+22+seg2*10, td1);
             HF1(BH1Hid+100*seg1+1100+23+seg2*10, mt1);
             //For BH1vsBH2 Correlation
-            HF2(BH1Hid+100*seg1+2200+21+seg2*10, tu1, mt2);
-            HF2(BH1Hid+100*seg1+2200+22+seg2*10, td1, mt2);
-            HF2(BH1Hid+100*seg1+2200+23+seg2*10, mt1, mt2);
+            HF2(BH1Hid+100*seg1+2200+21+seg2*10, mt2, tu1);
+            HF2(BH1Hid+100*seg1+2200+22+seg2*10, mt2, td1);
+            HF2(BH1Hid+100*seg1+2200+23+seg2*10, mt2, mt1);
           }// for(m1)
         }// for(bh1:seg)
       }// for(m2)
@@ -1152,7 +1151,6 @@ ProcessingNormal()
             event.btof[seg1-1][seg2-1] = btof;
             event.cbtof[seg1-1][seg2-1] = cbtof;
             HF1(BH1Hid+100*seg1+1100+24+seg2*10, mt1-ct0);
-            HF1(BH1Hid+100*seg1+2200+104, mt1-ct0);
             if(seg1==5){
               HF1(30+seg2, mt1-ct0);
             }
@@ -1547,6 +1545,33 @@ ConfMan::InitializeHistograms()
   HB1(BH1Hid +15, "Hitpat BH1[HodoGood]", NumOfSegBH1,   0., Double_t(NumOfSegBH1));
   HB1(BH1Hid +16, "CMeanTime BH1[HodoGood]", 200, -10., 10.);
 
+  HB2(BH1Hid +21, "BH1HitPat%BH1HitPat[HodoGood]",
+      NumOfSegBH1, 0., Double_t(NumOfSegBH1),
+      NumOfSegBH1, 0., Double_t(NumOfSegBH1));
+  HB2(BH1Hid +22, "CMeanTimeBH1%CMeanTimeBH1[HodoGood]",
+      100, -5., 5., 100, -5., 5.);
+  HB1(BH1Hid +23, "TDiff BH1[HodoGood]", 200, -10., 10.);
+  HB2(BH1Hid +24, "BH1HitPat%BH1HitPat[HodoGood2]",
+      NumOfSegBH1, 0., Double_t(NumOfSegBH1),
+      NumOfSegBH1, 0., Double_t(NumOfSegBH1));
+  HB1(BH1Hid +30, "#Clusters BH1", NumOfSegBH1+1, 0., Double_t(NumOfSegBH1+1));
+  HB1(BH1Hid +31, "ClusterSize BH1", 5, 0., 5.);
+  HB1(BH1Hid +32, "HitPat Cluster BH1", 2*NumOfSegBH1, 0., Double_t(NumOfSegBH1));
+  HB1(BH1Hid +33, "CMeamTime Cluster BH1", 200, -10., 10.);
+  HB1(BH1Hid +34, "DeltaE Cluster BH1", 100, -0.5, 4.5);
+  HB1(BH1Hid +35, "#Clusters BH1(AdcGood)", NumOfSegBH1+1, 0., Double_t(NumOfSegBH1+1));
+  HB1(BH1Hid +36, "CMeamTime Cluster BH1(AdcGood)", 200, -10., 10.);
+
+  HB2(BH1Hid +41, "BH1ClP%BH1ClP",
+      NumOfSegBH1, 0., Double_t(NumOfSegBH1),
+      NumOfSegBH1, 0., Double_t(NumOfSegBH1));
+  HB2(BH1Hid +42, "CMeanTimeBH1%CMeanTimeBH1[Cluster]",
+      100, -5., 5., 100, -5., 5.);
+  HB1(BH1Hid +43, "TDiff BH1[Cluster]", 200, -10., 10.);
+  HB2(BH1Hid +44, "BH1ClP%BH1ClP[AdcGood]",
+      NumOfSegBH1, 0., Double_t(NumOfSegBH1),
+      NumOfSegBH1, 0., Double_t(NumOfSegBH1));
+
   for(Int_t i=1; i<=NumOfSegBH1; ++i){
     TString title11 = Form("BH1-%d Up Time", i);
     TString title12 = Form("BH1-%d Down Time", i);
@@ -1565,7 +1590,7 @@ ConfMan::InitializeHistograms()
     TString title31 = Form("BH1-%d Up Time%%dE", i);
     TString title32 = Form("BH1-%d Down Time%%dE", i);
     TString title33 = Form("BH1-%d Up CTime%%dE", i);
-    TString title34 = Form("BH1-%d Down CTIme%%dE", i);
+    TString title34 = Form("BH1-%d Down CTime%%dE", i);
     HB1(BH1Hid +100*i +11, title11, 200, -10., 10.);
     HB1(BH1Hid +100*i +12, title12, 200, -10., 10.);
     HB1(BH1Hid +100*i +13, title13, 200, -10., 10.);
@@ -1580,79 +1605,29 @@ ConfMan::InitializeHistograms()
     HB2(BH1Hid +100*i +22, title22, 100, -10., 10., 100, -0.5, 4.5);
     HB2(BH1Hid +100*i +23, title23, 100, -10., 10., 100, -0.5, 4.5);
     HB2(BH1Hid +100*i +24, title24, 100, -10., 10., 100, -0.5, 4.5);
-    HB2(BH1Hid +100*i +31, title31, 100, -0.5, 4.5,1000,-10.,10.);
-    HB2(BH1Hid +100*i +32, title32, 100, -0.5, 4.5,1000,-10.,10.);
-    HB2(BH1Hid +100*i +33, title33, 100, -0.5, 4.5,1000,-10.,10.);
-    HB2(BH1Hid +100*i +34, title34, 100, -0.5, 4.5,1000,-10.,10.);
+    HB2(BH1Hid +100*i +31, title31, 100, -0.5, 4.5, 1000,-10.,10.);
+    HB2(BH1Hid +100*i +32, title32, 100, -0.5, 4.5, 1000,-10.,10.);
+    HB2(BH1Hid +100*i +33, title33, 100, -0.5, 4.5, 1000,-10.,10.);
+    HB2(BH1Hid +100*i +34, title34, 100, -0.5, 4.5, 1000,-10.,10.);
 
-    //For BH1vsBH2 Correlation
-    HB2(BH1Hid +100*i +2200 +21, Form("BH1-%d BH2 Up MT%%MT", i),
-        100, -10., 10., 100, -10., 10.);
-    HB2(BH1Hid +100*i +2200 +22, Form("BH1-%d BH2 Down MT%%MT", i),
-        100, -10., 10., 100, -10., 10.);
-    HB2(BH1Hid +100*i +2200 +23, Form("BH1-%d BH2 MeanTime MT%%MT", i),
-        100, -10., 10., 100, -10., 10.);
+    for(Int_t j=1; j<=NumOfSegBH2; ++j){
+      TString title1 = Form("BH1-%d Up Time [BH2-%d]", i, j);
+      TString title2 = Form("BH1-%d Down Time [BH2-%d]", i, j);
+      TString title3 = Form("BH1-%d MeanTime [BH2-%d]", i, j);
+      TString title4 = Form("BH1-%d MeanTime-BH2MeamTime [BH2-%d]", i, j);
+      HB1(BH1Hid +100*i +1100 +21 +j*10, title1, 200, -10., 10.);
+      HB1(BH1Hid +100*i +1100 +22 +j*10, title2, 200, -10., 10.);
+      HB1(BH1Hid +100*i +1100 +23 +j*10, title3, 200, -10., 10.);
+      HB1(BH1Hid +100*i +1100 +24 +j*10, title4, 200, -10., 10.);
+      //For BH1vsBH2 Correlation
+      HB2(BH1Hid +100*i +2200 +21 +j*10, Form("BH1-%d Up Time %% BH2-%d MeanTime", i, j),
+	  100, -10., 10., 100, -10., 10.);
+      HB2(BH1Hid +100*i +2200 +22 +j*10, Form("BH1-%d Down Time %% BH2-%d MeanTime", i, j),
+	  100, -10., 10., 100, -10., 10.);
+      HB2(BH1Hid +100*i +2200 +23 +j*10, Form("BH1-%d MeanTime %% BH2-%d MeanTime", i, j),
+	  100, -10., 10., 100, -10., 10.);
+    }
   }
-  for(Int_t i=1; i<=NumOfSegBH1; ++i){
-    TString title1 = Form("BH1-%d Up Time [BH2]", i);
-    HB1(BH1Hid +1100 +100*i +31, title1, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +41, title1, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +51, title1, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +61, title1, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +71, title1, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +81, title1, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +91, title1, 200, -10., 10.);
-    TString title2 = Form("BH1-%d Down Time [BH2]", i);
-    HB1(BH1Hid +1100 +100*i +32, title2, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +42, title2, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +52, title2, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +62, title2, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +72, title2, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +82, title2, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +92, title2, 200, -10., 10.);
-    TString title3 = Form("BH1-%d MeanTime [BH2]", i);
-    HB1(BH1Hid +1100 +100*i +33, title3, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +43, title3, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +53, title3, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +63, title3, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +73, title3, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +83, title3, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +93, title3, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +103, title3, 200, -10., 10.);
-    TString title4 = Form("BH1-%d MeanTime-BH2MeamTime", i);
-    HB1(BH1Hid +1100 +100*i +34, title4, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +44, title4, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +54, title4, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +64, title4, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +74, title4, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +84, title4, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +94, title4, 200, -10., 10.);
-    HB1(BH1Hid +1100 +100*i +104, title4, 200, -10., 10.);
-    HB1(BH1Hid +100*i +2200 +114, title4, 200, -10., 10.);
-  }
-
-  HB2(BH1Hid +21, "BH1HitPat%BH1HitPat[HodoGood]", NumOfSegBH1,   0., Double_t(NumOfSegBH1),
-      NumOfSegBH1,   0., Double_t(NumOfSegBH1));
-  HB2(BH1Hid +22, "CMeanTimeBH1%CMeanTimeBH1[HodoGood]",
-      100, -5., 5., 100, -5., 5.);
-  HB1(BH1Hid +23, "TDiff BH1[HodoGood]", 200, -10., 10.);
-  HB2(BH1Hid +24, "BH1HitPat%BH1HitPat[HodoGood2]", NumOfSegBH1,   0., Double_t(NumOfSegBH1),
-      NumOfSegBH1,   0., Double_t(NumOfSegBH1));
-  HB1(BH1Hid +30, "#Clusters BH1", NumOfSegBH1+1, 0., Double_t(NumOfSegBH1+1));
-  HB1(BH1Hid +31, "ClusterSize BH1", 5, 0., 5.);
-  HB1(BH1Hid +32, "HitPat Cluster BH1", 2*NumOfSegBH1, 0., Double_t(NumOfSegBH1));
-  HB1(BH1Hid +33, "CMeamTime Cluster BH1", 200, -10., 10.);
-  HB1(BH1Hid +34, "DeltaE Cluster BH1", 100, -0.5, 4.5);
-  HB1(BH1Hid +35, "#Clusters BH1(AdcGood)", NumOfSegBH1+1, 0., Double_t(NumOfSegBH1+1));
-  HB1(BH1Hid +36, "CMeamTime Cluster BH1(AdcGood)", 200, -10., 10.);
-
-  HB2(BH1Hid +41, "BH1ClP%BH1ClP",  NumOfSegBH1,   0., Double_t(NumOfSegBH1),
-      NumOfSegBH1,   0., Double_t(NumOfSegBH1));
-  HB2(BH1Hid +42, "CMeanTimeBH1%CMeanTimeBH1[Cluster]",
-      100, -5., 5., 100, -5., 5.);
-  HB1(BH1Hid +43, "TDiff BH1[Cluster]", 200, -10., 10.);
-  HB2(BH1Hid +44, "BH1ClP%BH1ClP[AdcGood]",  NumOfSegBH1,   0., Double_t(NumOfSegBH1),
-      NumOfSegBH1,   0., Double_t(NumOfSegBH1));
 
   // BH2
   HB1(BH2Hid +0, "#Hits BH2",        NumOfSegBH2+1, 0., Double_t(NumOfSegBH2+1));

@@ -47,6 +47,7 @@
 
 #define ThrowError 1 // if h[i] already exist, throw error
 #define OverWrite  0 // if h[i] already exist, delete and renew.
+#define NoExist    1 // if h[i] doesn't exist, throw error
 
 namespace root
 {
@@ -176,6 +177,9 @@ HF1(Int_t i, Double_t x)
   if(i<0 || MaxHist<=i)
     throw Exception(Form("HF1() invalid HistId : %d/%d", i, MaxHist));
   if(h[i]) h[i]->Fill(x);
+#if NoExist
+  else     throw Exception(Form("HF1() h%d does not exist", i));
+#endif
 }
 
 //_____________________________________________________________________________
@@ -185,6 +189,9 @@ HF2(Int_t i, Double_t x, Double_t y)
   if(i<0 || MaxHist<=i)
     throw Exception(Form("HF2() invalid HistId : %d/%d", i, MaxHist));
   if(h[i]) h[i]->Fill(x, y);
+#if NoExist
+  else     throw Exception(Form("HF2() h%d does not exist", i));
+#endif
 }
 
 //_____________________________________________________________________________
@@ -194,6 +201,9 @@ HF2Poly(Int_t i, Double_t x, Double_t y, Double_t w=1.)
   if(i<0 || MaxHist<=i)
     throw Exception(Form("HF2Poly() invalid HistId : %d/%d", i, MaxHist));
   if(h[i]) dynamic_cast<TH2Poly*>(h[i])->Fill(x, y, w);
+#if NoExist
+  else     throw Exception(Form("HF2Poly() h%d does not exist", i));
+#endif
 }
 
 //_____________________________________________________________________________
@@ -203,6 +213,9 @@ HF2Poly(Int_t i, Int_t bin, Double_t val)
   if(i<0 || MaxHist<=i)
     throw Exception(Form("HF2Poly() invalid HistId : %d/%d", i, MaxHist));
   if(h[i]) dynamic_cast<TH2Poly*>(h[i])->SetBinContent(bin, val);
+#if NoExist
+  else     throw Exception(Form("HF2Poly() h%d does not exist", i));
+#endif
 }
 
 //_____________________________________________________________________________
@@ -212,6 +225,9 @@ HFProf(Int_t i, Double_t x, Double_t y)
   if(i<0 || MaxHist<=i)
     throw Exception(Form("HFProf() invalid HistId : %d/%d", i, MaxHist));
   if(h[i]) h[i]->Fill(x, y);
+#if NoExist
+  else     throw Exception(Form("HF2Prof() h%d does not exist", i));
+#endif
 }
 
 //_____________________________________________________________________________
