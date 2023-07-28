@@ -550,9 +550,9 @@ ProcessingNormal()
       Int_t layerId = 0;
       layerId = hit->GetLayer();
       if(layerId <= PlMaxSdcOut)
-        layerId -= PlOffsSdcOut;
+	layerId -= PlMinSdcOut - 1;
       else
-        layerId -= PlOffsTOF - NumOfLayersSdcOut;
+	layerId -= PlOffsTOF - NumOfLayersSdcOut;
 
       HF1(13, hit->GetLayer());
       HF1(36, Double_t(nh));

@@ -183,7 +183,7 @@ BH2Filter::Initialize(const TString& file_name)
     const Int_t bcPlane = static_cast<Int_t>(v[kLayerID]);
     const Double_t xmin = v[kXMin];
     const Double_t xmax = v[kXMax];
-    Int_t iplane = bcPlane - (PlOffsBc+13);
+    Int_t iplane = bcPlane - PlMinBcOut;
     if(m_verbose){
       hddaq::cout << " seg = "    << std::setw(2) << bh2Seg
 		  << ", plane = " << std::setw(3) << bcPlane

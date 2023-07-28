@@ -924,13 +924,13 @@ RK::MakeHPContainer()
   container.push_back(std::make_pair(IdTarget, RKcalcHitPoint()));
 
   for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
-    container.push_back(std::make_pair(i+PlOffsSdcIn+1, RKcalcHitPoint()));
+    container.push_back(std::make_pair(i+PlMinSdcIn, RKcalcHitPoint()));
   }
   for(Int_t i=0; i<NumOfLayersVP; ++i){
-    container.push_back(std::make_pair(i+PlOffsVP+1, RKcalcHitPoint()));
+    container.push_back(std::make_pair(i+PlMinVP, RKcalcHitPoint()));
   }
   for(Int_t i=0; i<NumOfLayersSdcOut; ++i){
-    container.push_back(std::make_pair(i+PlOffsSdcOut+1, RKcalcHitPoint()));
+    container.push_back(std::make_pair(i+PlMinSdcOut, RKcalcHitPoint()));
   }
 
   container.push_back(std::make_pair(IdTOF_UX, RKcalcHitPoint()));

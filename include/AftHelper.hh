@@ -63,18 +63,6 @@ private:
   AftHelper( const AftHelper& );
   AftHelper& operator=( const AftHelper );
 
-public:
-  enum EPadParameter {
-    kLayerId,
-    kNumOfPad,
-    kCenterRadius,
-    kDivisionId,
-    kRadiusId,
-    kPadLength,
-    NPadParameter
-  };
-  static const Double_t PadParameter[NumOfLayersTPC][NPadParameter];
-
 private:
   // typedef std::map<Int_t,AftParam*> TpcGeomMap;
   // TpcGeomMap m_map;
