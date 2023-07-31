@@ -700,7 +700,7 @@ ProcessingNormal()
     HF1(72, chisqr);
     HF1(74, xt); HF1(75, yt); HF1(76, ut); HF1(77,vt);
     HF2(78, xt, ut); HF2(79, yt, vt); HF2(80, xt, yt);
-    HF1(91, p); HF1(92, path);
+    HF1(91, p); HF1(92, q); HF1(93, path);
     event.nhS2s[i] = nh;
     event.chisqrS2s[i] = chisqr;
     event.path[i] = path;
@@ -763,7 +763,7 @@ ProcessingNormal()
     event.stof[i] = time;
     if(time > 0.){
       Double_t m2 = Kinematics::MassSquare(p, path, time);
-      HF1(93, m2);
+      HF1(94, m2);
       event.m2[i] = m2;
 # if 0
       std::ios::fmtflags pre_flags     = std::cout.flags();
@@ -1027,8 +1027,9 @@ ConfMan::InitializeHistograms()
   HB2(80, "Y%Xtgt S2sTrack", 100, -100., 100., 100, -100., 100.);
 
   HB1(91, "P S2sTrack", 500, 0.00, 2.50);
-  HB1(92, "PathLength S2sTrack", 600, 3000., 4000.);
-  HB1(93, "MassSqr", 600, -0.4, 1.4);
+  HB1(92, "q S2sTrack", 4, -2., 2.);
+  HB1(93, "PathLength S2sTrack", 600, 3000., 4000.);
+  HB1(94, "MassSqr", 600, -0.4, 1.4);
 
 
   // SdcInTracking
