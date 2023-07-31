@@ -52,6 +52,9 @@ struct Event
   // BH1
   Int_t    bh1_nhits;
   Int_t	bh1seg[MaxHits];
+  Int_t    bh1_ncl;
+  Int_t    bh1_clsize[NumOfSegBH1];
+  Double_t bh1_clseg[NumOfSegBH1];
 
   // BFT
   Int_t    bft_nhits;
@@ -111,6 +114,11 @@ Event::clear()
   bh1_nhits = 0;
   for(Int_t it=0; it<MaxHits; it++){
     bh1seg[it]  = -1;
+  }
+  bh1_ncl    = 0;
+  for(Int_t it=0; it<NumOfSegBH1; it++){
+    bh1_clsize[it] = 0;
+    bh1_clseg[it] = qnan;
   }
 
   for(Int_t it=0; it<NumOfSegBFT; it++){
@@ -287,6 +295,21 @@ ProcessingNormal()
     }
   }
   event.bh1_nhits  = bh1nhits;
+
+  Int_t nclbh1 = hodoAna.GetNClusters("BH1");
+  if(nclbh1 > NumOfSegBH1){
+    // std::cout << "#W BFT too much number of clusters" << std::endl;
+    nclbh1 = NumOfSegBH1;
+  }
+  event.bh1_ncl = nclbh1;
+  for(Int_t i=0; i<nclbh1; ++i){
+    const auto& cl = hodoAna.GetCluster("BH1", i);
+    if(!cl) continue;
+    Double_t clsize = cl->ClusterSize();
+    Double_t seg  = cl->MeanSeg();
+    event.bh1_clseg[i] = seg;
+    event.bh1_clsize[i] = clsize;
+  }
 
   HF1(1, 5);
 
@@ -668,6 +691,9 @@ ConfMan::InitializeHistograms()
   //BH1
   tree->Branch("bh1_nhits",     &event.bh1_nhits,        "bh1_nhits/I");
   tree->Branch("bh1seg",     event.bh1seg,        Form("bh1seg[%d]/I", NumOfSegBH1));
+  tree->Branch("bh1_ncl",       &event.bh1_ncl,          "bh1_ncl/I");
+  tree->Branch("bh1_clsize",     event.bh1_clsize,       "bh1_clsize[bh1_ncl]/I");
+  tree->Branch("bh1_clseg",      event.bh1_clseg,        "bh1_clseg[bh1_ncl]/D");
 
   //BFT
 #if FHitBranch
