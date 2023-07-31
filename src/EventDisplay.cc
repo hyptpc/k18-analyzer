@@ -523,21 +523,21 @@ EventDisplay::Initialize()
   m_hist_sdc3yp_t->SetFillColor(kGreen);
 
 
-  m_hist_sdc4_l = new TH2F("hist_sdc4_l", "SDC4 (leading)", MaxWireSDC4X, 0, MaxWireSDC4X, 500, -500, 500);
-  m_hist_sdc4_t = new TH2F("hist_sdc4_t", "SDC4 (trailing)", MaxWireSDC4X, 0, MaxWireSDC4X, 500, -500, 500);
+  m_hist_sdc4_l = new TH2F("hist_sdc4_l", "SDC4 (leading)", MaxWireSDC4, 0, MaxWireSDC4, 500, -500, 500);
+  m_hist_sdc4_t = new TH2F("hist_sdc4_t", "SDC4 (trailing)", MaxWireSDC4, 0, MaxWireSDC4, 500, -500, 500);
   m_hist_sdc4_t->SetFillColor(kRed);
 
-  m_hist_sdc4p_l = new TH2F("hist_sdc4p_l", "SDC4 Xp(leading)", MaxWireSDC4X, 0, MaxWireSDC4X, 500, -500, 500);
-  m_hist_sdc4p_t = new TH2F("hist_sdc4p_t", "SDC4 Xp(trailing)", MaxWireSDC4X, 0, MaxWireSDC4X, 500, -500, 500);
+  m_hist_sdc4p_l = new TH2F("hist_sdc4p_l", "SDC4 Xp(leading)", MaxWireSDC4, 0, MaxWireSDC4, 500, -500, 500);
+  m_hist_sdc4p_t = new TH2F("hist_sdc4p_t", "SDC4 Xp(trailing)", MaxWireSDC4, 0, MaxWireSDC4, 500, -500, 500);
   m_hist_sdc4p_l->SetFillColor(kBlack);
   m_hist_sdc4p_t->SetFillColor(kGreen);
 
-  m_hist_sdc4y_l = new TH2F("hist_sdc4y_l", "SDC4 Y (leading)", MaxWireSDC4Y, 0, MaxWireSDC4Y, 500, -500, 500);
-  m_hist_sdc4y_t = new TH2F("hist_sdc4y_t", "SDC4 Y (trailing)", MaxWireSDC4Y, 0, MaxWireSDC4Y, 500, -500, 500);
+  m_hist_sdc4y_l = new TH2F("hist_sdc4y_l", "SDC4 Y (leading)", MaxWireSDC4, 0, MaxWireSDC4, 500, -500, 500);
+  m_hist_sdc4y_t = new TH2F("hist_sdc4y_t", "SDC4 Y (trailing)", MaxWireSDC4, 0, MaxWireSDC4, 500, -500, 500);
   m_hist_sdc4y_t->SetFillColor(kRed);
 
-  m_hist_sdc4yp_l = new TH2F("hist_sdc4yp_l", "SDC4 Yp(leading)", MaxWireSDC4Y, 0, MaxWireSDC4Y, 500, -500, 500);
-  m_hist_sdc4yp_t = new TH2F("hist_sdc4yp_t", "SDC4 Yp(trailing)", MaxWireSDC4Y, 0, MaxWireSDC4Y, 500, -500, 500);
+  m_hist_sdc4yp_l = new TH2F("hist_sdc4yp_l", "SDC4 Yp(leading)", MaxWireSDC4, 0, MaxWireSDC4, 500, -500, 500);
+  m_hist_sdc4yp_t = new TH2F("hist_sdc4yp_t", "SDC4 Yp(trailing)", MaxWireSDC4, 0, MaxWireSDC4, 500, -500, 500);
   m_hist_sdc4yp_l->SetFillColor(kBlack);
   m_hist_sdc4yp_t->SetFillColor(kGreen);
 
@@ -1355,7 +1355,7 @@ EventDisplay::ConstructSdcIn()
                   Matrix);
     new TRotMatrix("rotSDC2X1", "rotSDC2X1", Matrix);
     new TTUBE("SDC2X1Tube", "SDC2X1Tube", "void", Rmin, Rmax, L);
-    for(Int_t wire=1; wire<=MaxWireSDC2X; ++wire){
+    for(Int_t wire=1; wire<=MaxWireSDC2; ++wire){
       Double_t localPos = gGeom.CalcWirePosition(lid, wire);
       ThreeVector wireLocalPos(localPos, 0, 0);
       ThreeVector wireGlobalPos = gGeom.Local2GlobalPos(lid, wireLocalPos);
@@ -1382,7 +1382,7 @@ EventDisplay::ConstructSdcIn()
                   Matrix);
     new TRotMatrix("rotSDC2X2", "rotSDC2X2", Matrix);
     new TTUBE("SDC2X2Tube", "SDC2X2Tube", "void", Rmin, Rmax, Z);
-    for(Int_t wire=1; wire<=MaxWireSDC2X; ++wire){
+    for(Int_t wire=1; wire<=MaxWireSDC2; ++wire){
       Double_t localPos = gGeom.CalcWirePosition(lid, wire);
       ThreeVector wireLocalPos(localPos, 0, 0);
       ThreeVector wireGlobalPos = gGeom.Local2GlobalPos(lid, wireLocalPos);
@@ -1409,7 +1409,7 @@ EventDisplay::ConstructSdcIn()
                   Matrix);
     new TRotMatrix("rotSDC2Y1", "rotSDC2Y1", Matrix);
     new TTUBE("SDC2Y1Tube", "SDC2Y1Tube", "void", Rmin, Rmax, Z);
-    for(Int_t wire=1; wire<=MaxWireSDC2Y; ++wire){
+    for(Int_t wire=1; wire<=MaxWireSDC2; ++wire){
       Double_t localPos = gGeom.CalcWirePosition(lid, wire);
       ThreeVector wireLocalPos(localPos, 0, 0);
       ThreeVector wireGlobalPos = gGeom.Local2GlobalPos(lid, wireLocalPos);
@@ -1436,7 +1436,7 @@ EventDisplay::ConstructSdcIn()
                   Matrix);
     new TRotMatrix("rotSDC2Y2", "rotSDC2Y2", Matrix);
     new TTUBE("SDC2Y2Tube", "SDC2Y2Tube", "void", Rmin, Rmax, Z);
-    for(Int_t wire=1; wire<=MaxWireSDC2Y; ++wire){
+    for(Int_t wire=1; wire<=MaxWireSDC2; ++wire){
       Double_t localPos = gGeom.CalcWirePosition(lid, wire);
       ThreeVector wireLocalPos(localPos, 0, 0);
       ThreeVector wireGlobalPos = gGeom.Local2GlobalPos(lid, wireLocalPos);
@@ -1580,7 +1580,7 @@ EventDisplay::ConstructSdcOut()
                   gGeom.GetRotAngle2(lid), Matrix);
     new TRotMatrix("rotY1", "rotY1", Matrix);
     new TTUBE("SDC4Y1Tube", "SDC4Y1Tube", "void", Rmin, Rmax, L);
-    for(Int_t wire=1; wire<= MaxWireSDC4Y; ++wire){
+    for(Int_t wire=1; wire<= MaxWireSDC4; ++wire){
       Double_t localPos = gGeom.CalcWirePosition(lid, wire);
       ThreeVector wireLocalPos(localPos, 0., 0.);
       ThreeVector wireGlobalPos = gGeom.Local2GlobalPos(lid, wireLocalPos);
@@ -1607,7 +1607,7 @@ EventDisplay::ConstructSdcOut()
                   Matrix);
     new TRotMatrix("rotY2", "rotY2", Matrix);
     new TTUBE("SDC4Y2Tube", "SDC4Y2Tube", "void", Rmin, Rmax, L);
-    for(Int_t wire=1; wire<= MaxWireSDC4Y; ++wire){
+    for(Int_t wire=1; wire<= MaxWireSDC4; ++wire){
       Double_t localPos = gGeom.CalcWirePosition(lid, wire);
       ThreeVector wireLocalPos(localPos, 0., 0.);
       ThreeVector wireGlobalPos = gGeom.Local2GlobalPos(lid, wireLocalPos);
@@ -1634,7 +1634,7 @@ EventDisplay::ConstructSdcOut()
                   Matrix);
     new TRotMatrix("rotX1", "rotX1", Matrix);
     new TTUBE("SDC4X1Tube", "SDC4X1Tube", "void", Rmin, Rmax, L);
-    for(Int_t wire=1; wire<= MaxWireSDC4X; ++wire){
+    for(Int_t wire=1; wire<= MaxWireSDC4; ++wire){
       Double_t localPos = gGeom.CalcWirePosition(lid, wire);
       ThreeVector wireLocalPos(localPos, 0., 0.);
       ThreeVector wireGlobalPos = gGeom.Local2GlobalPos(lid, wireLocalPos);
@@ -1661,7 +1661,7 @@ EventDisplay::ConstructSdcOut()
                   Matrix);
     new TRotMatrix("rotX2", "rotX2", Matrix);
     new TTUBE("SDC4X2Tube", "SDC4X2Tube", "void", Rmin, Rmax, L);
-    for(Int_t wire=1; wire<= MaxWireSDC4X; ++wire){
+    for(Int_t wire=1; wire<= MaxWireSDC4; ++wire){
       Double_t localPos = gGeom.CalcWirePosition(lid, wire);
       ThreeVector wireLocalPos(localPos, 0., 0.);
       ThreeVector wireGlobalPos = gGeom.Local2GlobalPos(lid, wireLocalPos);
@@ -2065,13 +2065,13 @@ EventDisplay::DrawHitWire(Int_t lid, Int_t hit_wire,
 
     // SDC2X
   case 7: case 8:
-    if(hit_wire>MaxWireSDC2X) return;
+    if(hit_wire>MaxWireSDC2) return;
     node_name = sdcin_node_name[lid-1];
     break;
 
     // SDC2Y
   case 9: case 10:
-    if(hit_wire>MaxWireSDC2Y) return;
+    if(hit_wire>MaxWireSDC2) return;
     node_name = sdcin_node_name[lid-1];
     break;
 
@@ -2083,13 +2083,13 @@ EventDisplay::DrawHitWire(Int_t lid, Int_t hit_wire,
 
     // SDC4Y
   case 35: case 36:
-    if(hit_wire>MaxWireSDC4Y) return;
+    if(hit_wire>MaxWireSDC4) return;
     node_name = sdcout_node_name[lid-31];
     break;
 
     // SDC4X
   case 37: case 38:
-    if(hit_wire>MaxWireSDC4X) return;
+    if(hit_wire>MaxWireSDC4) return;
     node_name = sdcout_node_name[lid-31];
     break;
 

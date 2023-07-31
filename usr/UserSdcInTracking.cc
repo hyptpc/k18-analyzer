@@ -529,8 +529,8 @@ ConfMan:: InitializeHistograms()
       mindl  = MinSDC1DL;
       maxdl  = MaxSDC1DL;
     }else if(i<=NumOfLayersSdcIn){
-      tag = "SDC2";
-      nwire   = (i==7 || i==8) ? MaxWireSDC2X : MaxWireSDC2Y;
+      tag    = "SDC2";
+      nwire  = MaxWireSDC2;
       nbindt = NbinSDC2DT;
       mindt  = MinSDC2DT;
       maxdt  = MaxSDC2DT;

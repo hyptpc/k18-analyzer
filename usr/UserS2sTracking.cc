@@ -214,7 +214,7 @@ Event::clear()
     tofsegS2s[it] = qnan;
   }
 
-  for(Int_t i=0; i<NumOfLayersSdcIn+NumOfLayersSdcOut+2; ++i){
+  for(Int_t i=0; i<PlMaxTOF; ++i){
     resL[i].clear();
     resG[i].clear();
   }
@@ -387,10 +387,9 @@ ProcessingNormal()
 
   HF1(1, 3.);
 
-  // std::vector<const HodoCluster*> TOFCont;
-  const auto& TOFCont = hodoAna.GetClusterContainer("TOF");
   //////////////Tof Analysis
   hodoAna.DecodeHits("TOF");
+  const auto& TOFCont = hodoAna.GetClusterContainer("TOF");
   //hodoAna.TimeCutTOF(7, 25);
   Int_t nhTof = hodoAna.GetNClusters("TOF");
   event.nhTof = nhTof;
@@ -413,7 +412,6 @@ ProcessingNormal()
       // HF2(100*seg+30000+82, da, stof);
       // HF2(100*seg+30000+83, ua, (time0-OffsetTof)-ut);
       // HF2(100*seg+30000+84, da, (time0-OffsetTof)-dt);
-      // TOFCont.push_back(hit);
 #if HodoCut
       if(MinDeTOF<de  && de<MaxDeTOF  &&
          MinTimeTOF<stof && stof<MaxTimeTOF){
@@ -539,9 +537,7 @@ ProcessingNormal()
       HF1(100*layerId+5, res);
       HF2(100*layerId+6, pos, res);
       HF2(100*layerId+7, xcal, ycal);
-      for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
-	if(i==layerId-1) event.resL[i].push_back(res);
-      }
+      event.resL[layerId-1].push_back(res);
     }
   }
   if(ntSdcIn<1) return true;
@@ -606,19 +602,19 @@ ProcessingNormal()
     ntSdcOut = MaxHits;
   }
   event.ntSdcOut=ntSdcOut;
-  HF1(30, Double_t(ntSdcOut));
+  HF1(40, Double_t(ntSdcOut));
   for(Int_t it=0; it<ntSdcOut; ++it){
     const auto& track = DCAna.GetTrackSdcOut(it);
     Int_t nh=track->GetNHit();
     Double_t chisqr=track->GetChiSquare();
     Double_t u0=track->GetU0(), v0=track->GetV0();
     Double_t x0=track->GetX0(), y0=track->GetY0();
-    HF1(31, Double_t(nh));
-    HF1(32, chisqr);
-    HF1(34, x0); HF1(35, y0);
-    HF1(36, u0); HF1(37, v0);
-    HF2(38, x0, u0); HF2(39, y0, v0);
-    HF2(40, x0, y0);
+    HF1(41, Double_t(nh));
+    HF1(42, chisqr);
+    HF1(44, x0); HF1(45, y0);
+    HF1(46, u0); HF1(47, v0);
+    HF2(48, x0, u0); HF2(49, y0, v0);
+    HF2(50, x0, y0);
     event.nhSdcOut[it] = nh;
     event.chisqrSdcOut[it] = chisqr;
     event.x0SdcOut[it] = x0;
@@ -628,11 +624,7 @@ ProcessingNormal()
     for(Int_t ih=0; ih<nh; ++ih){
       const auto& hit = track->GetHit(ih);
       Int_t layerId = hit->GetLayer();
-      if(hit->GetLayer()>79) layerId -= 62;
-      else if(hit->GetLayer()>40) layerId -= 15;
-      else if(hit->GetLayer()>30) layerId -= 21;
-      //std::cout << "layerId :" << layerId << std::endl;
-      HF1(33, hit->GetLayer());
+      HF1(43, hit->GetLayer());
       Double_t wire=hit->GetWire();
       Double_t dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
       HF1(100*layerId+1, wire-0.5);
@@ -644,11 +636,7 @@ ProcessingNormal()
       HF1(100*layerId+5, res);
       HF2(100*layerId+6, pos, res);
       HF2(100*layerId+7, xcal, ycal);
-      for(Int_t i=0; i<NumOfLayersSdcOut+2; ++i){
-	if(i==layerId-NumOfLayersSdcIn-1){
-	  event.resL[i+NumOfLayersSdcIn].push_back(res);
-	}
-      }
+      event.resL[layerId-1].push_back(res);
     }
   }
 
@@ -686,7 +674,7 @@ ProcessingNormal()
     ntS2s = MaxHits;
   }
   event.ntS2s = ntS2s;
-  HF1(50, ntS2s);
+  HF1(70, ntS2s);
 
   for(Int_t i=0; i<ntS2s; ++i){
     auto track = DCAna.GetS2sTrack(i);
@@ -708,11 +696,11 @@ ProcessingNormal()
     Double_t theta = TMath::ACos(cost)*TMath::RadToDeg();
     Double_t phi = TMath::ATan2(ut, vt);
     Double_t initial_momentum = track->GetInitialMomentum();
-    HF1(51, nh);
-    HF1(52, chisqr);
-    HF1(54, xt); HF1(55, yt); HF1(56, ut); HF1(57,vt);
-    HF2(58, xt, ut); HF2(59, yt, vt); HF2(60, xt, yt);
-    HF1(61, p); HF1(62, path);
+    HF1(71, nh);
+    HF1(72, chisqr);
+    HF1(74, xt); HF1(75, yt); HF1(76, ut); HF1(77,vt);
+    HF2(78, xt, ut); HF2(79, yt, vt); HF2(80, xt, yt);
+    HF1(91, p); HF1(92, path);
     event.nhS2s[i] = nh;
     event.chisqrS2s[i] = chisqr;
     event.path[i] = path;
@@ -758,7 +746,7 @@ ProcessingNormal()
 #endif
     Double_t time = qnan;
     for(const auto& hit: hodoAna.GetHitContainer("TOF")){
-      if(!hit) continue;
+   if(!hit) continue;
       Int_t seg = hit->SegmentId() + 1;
 #if UseTOF
       if((Int_t)tof_seg == seg){
@@ -775,7 +763,7 @@ ProcessingNormal()
     event.stof[i] = time;
     if(time > 0.){
       Double_t m2 = Kinematics::MassSquare(p, path, time);
-      HF1(63, m2);
+      HF1(93, m2);
       event.m2[i] = m2;
 # if 0
       std::ios::fmtflags pre_flags     = std::cout.flags();
@@ -796,10 +784,7 @@ ProcessingNormal()
       const auto& hit = track->GetHit(j);
       if(!hit) continue;
       Int_t layerId = hit->GetLayer();
-      if(hit->GetLayer()>79) layerId -= 62;
-      else if(hit->GetLayer()>40) layerId -= 15;
-      else if(hit->GetLayer()>30) layerId -= 21;
-      HF1(53, hit->GetLayer());
+      HF1(73, hit->GetLayer());
       Double_t wire = hit->GetHit()->GetWire();
       Double_t dt   = hit->GetHit()->GetDriftTime();
       Double_t dl   = hit->GetHit()->GetDriftLength();
@@ -822,14 +807,7 @@ ProcessingNormal()
       if (std::abs(dl-std::abs(xcal-wp))<2.0){
 	HF2(100*layerId+22, dt, std::abs(xcal-wp));
       }
-      for(Int_t l=0; l<NumOfLayersSdcIn; ++l){
-	if(l==layerId-1)
-	  event.resG[l].push_back(res);
-      }
-      for(Int_t l=0; l<NumOfLayersSdcOut+2; ++l){
-	if(l==layerId-1-NumOfLayersSdcIn)
-	  event.resG[l+NumOfLayersSdcIn].push_back(res);
-      }
+      event.resG[layerId-1].push_back(res);
     }
 
     const auto& trSdcIn  = track->GetLocalTrackIn();
@@ -841,7 +819,7 @@ ProcessingNormal()
       Double_t chiin=trSdcIn->GetChiSquare();
       HF1(21, Double_t(nhSdcIn)); HF1(22, chiin);
       HF1(24, x0in); HF1(25, y0in); HF1(26, u0in); HF1(27, v0in);
-      HF2(28, x0in, u0in); HF2(29, y0in, v0in);
+      HF2(28, x0in, u0in); HF2(29, y0in, v0in); HF2(30, y0in, x0in);
       for(Int_t jin=0; jin<nhSdcIn; ++jin){
 	Int_t layer=trSdcIn->GetHit(jin)->GetLayer();
 	HF1(23, layer);
@@ -852,15 +830,15 @@ ProcessingNormal()
       Double_t x0out=trSdcOut->GetX(zTOF), y0out=trSdcOut->GetY(zTOF);
       Double_t u0out=trSdcOut->GetU0(), v0out=trSdcOut->GetV0();
       Double_t chiout=trSdcOut->GetChiSquare();
-      HF1(41, Double_t(nhSdcOut)); HF1(42, chiout);
-      HF1(44, x0out); HF1(45, y0out); HF1(46, u0out); HF1(47, v0out);
-      HF2(48, x0out, u0out); HF2(49, y0out, v0out);
+      HF1(51, Double_t(nhSdcOut)); HF1(52, chiout);
+      HF1(54, x0out); HF1(55, y0out); HF1(56, u0out); HF1(57, v0out);
+      ;;      HF2(58, x0out, u0out); HF2(59, y0out, v0out); HF2(60, y0out, x0out);
       for(Int_t jout=0; jout<nhSdcOut; ++jout){
 	Int_t layer=trSdcOut->GetHit(jout)->GetLayer();
-	HF1(43, layer);
+	HF1(53, layer);
       }
     }
-  }
+  } // for in ntS2s
 
   for(Int_t i=0; i<ntS2s; ++i){
     const auto& track = DCAna.GetS2sTrack(i);
@@ -868,10 +846,12 @@ ProcessingNormal()
     const auto& trSdcIn =track->GetLocalTrackIn();
     const auto& trSdcOut=track->GetLocalTrackOut();
     if(!trSdcIn || !trSdcOut) continue;
-    Double_t yin=trSdcIn->GetY(500.), vin=trSdcIn->GetV0();
-    Double_t yout=trSdcOut->GetY(3800.), vout=trSdcOut->GetV0();
-    HF2(20021, yin, yout); HF2(20022, vin, vout);
-    HF2(20023, vin, yout); HF2(20024, vout, yin);
+    Double_t xin=trSdcIn->GetX0(), yin=trSdcIn->GetY0();
+    Double_t uin=trSdcIn->GetU0(), vin=trSdcIn->GetV0();
+    Double_t xout=trSdcOut->GetX0(), yout=trSdcOut->GetY0();
+    Double_t uout=trSdcOut->GetU0(), vout=trSdcOut->GetV0();
+    HF2(20011, xin, xout); HF2(20012, yin, yout);
+    HF2(20013, uin, uout); HF2(20014, vin, vout);
   }
 
   if(ntS2s==0) return true;
@@ -910,10 +890,10 @@ ProcessingNormal()
       event.ddeTofSeg[seg-1] = dde;
       // event.ctTofSeg[seg-1]  = t;
       // event.deTofSeg[seg-1]  = de;
-      HF2(30000+100*seg+83, ude, calt[Event::Pion]+time0-StofOffset-cmt);
-      HF2(30000+100*seg+84, dde, calt[Event::Pion]+time0-StofOffset-cmt);
-      HF2(30000+100*seg+83, ude, calt[Event::Pion]+time0-StofOffset-tu);
-      HF2(30000+100*seg+84, dde, calt[Event::Pion]+time0-StofOffset-td);
+      // HF2(30000+100*seg+83, ude, calt[Event::Pion]+time0-StofOffset-cmt);
+      // HF2(30000+100*seg+84, dde, calt[Event::Pion]+time0-StofOffset-cmt);
+      // HF2(30000+100*seg+83, ude, calt[Event::Pion]+time0-StofOffset-tu);
+      // HF2(30000+100*seg+84, dde, calt[Event::Pion]+time0-StofOffset-td);
     }
 
     const auto& cont = rawData.GetHodoRawHitContainer("TOF");
@@ -941,28 +921,50 @@ ProcessingEnd()
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan:: InitializeHistograms()
+ConfMan::InitializeHistograms()
 {
-  const Int_t    NBinDTSDC1 =  90;
-  const Double_t MinDTSDC1  = -10.;
-  const Double_t MaxDTSDC1  =  80.;
-  const Int_t    NBinDLSDC1 =  100;
-  const Double_t MinDLSDC1  = -0.5;
-  const Double_t MaxDLSDC1  =  3.0;
+  const Int_t    NbinSDC1DT =  240;
+  const Double_t MinSDC1DT  = -30.;
+  const Double_t MaxSDC1DT  = 170.;
+  const Int_t    NbinSDC1DL =   55;
+  const Double_t MinSDC1DL  = -0.5;
+  const Double_t MaxSDC1DL  =  5.0;
 
-  const Int_t    NBinDTSDC2 =  220;
-  const Double_t MinDTSDC2  = -20.;
-  const Double_t MaxDTSDC2  = 200.;
-  const Int_t    NBinDLSDC2 =  100;
-  const Double_t MinDLSDC2  = -0.5;
-  const Double_t MaxDLSDC2  =  4.5;
+  const Int_t    NbinSDC2DT =  360;
+  const Double_t MinSDC2DT  = -50.;
+  const Double_t MaxSDC2DT  = 250.;
+  const Int_t    NbinSDC2DL =   85;
+  const Double_t MinSDC2DL  = -0.5;
+  const Double_t MaxSDC2DL  =   8.;
 
-  const Int_t    NBinDTSDC3 =  400;
-  const Double_t MinDTSDC3  = -100.;
-  const Double_t MaxDTSDC3  =  300.;
-  const Int_t    NBinDLSDC3 =  100;
-  const Double_t MinDLSDC3  = -5.0;
-  const Double_t MaxDLSDC3  = 15.0;
+  const Int_t    NbinSDC3DT =  360;
+  const Double_t MinSDC3DT  = -50.;
+  const Double_t MaxSDC3DT  = 250.;
+  const Int_t    NbinSDC3DL =   90;
+  const Double_t MinSDC3DL  = -2.0;
+  const Double_t MaxSDC3DL  =  7.0;
+
+  const Int_t    NbinSDC4DT =  360;
+  const Double_t MinSDC4DT  = -50.;
+  const Double_t MaxSDC4DT  = 250.;
+  const Int_t    NbinSDC4DL =   90;
+  const Double_t MinSDC4DL  = -2.0;
+  const Double_t MaxSDC4DL  =  7.0;
+
+  const Int_t    NbinSDC5DT =  360;
+  const Double_t MinSDC5DT  = -50.;
+  const Double_t MaxSDC5DT  = 250.;
+  const Int_t    NbinSDC5DL =   90;
+  const Double_t MinSDC5DL  = -2.0;
+  const Double_t MaxSDC5DL  =  7.0;
+
+  const Int_t NbinSdcInRes   =  200;
+  const Double_t MinSdcInRes = -1.;
+  const Double_t MaxSdcInRes =  1.;
+
+  const Int_t NbinSdcOutRes   = 1000;
+  const Double_t MinSdcOutRes =  -5.;
+  const Double_t MaxSdcOutRes =   5.;
 
   HB1(1, "Status", 30, 0., 30.);
 
@@ -987,62 +989,87 @@ ConfMan:: InitializeHistograms()
   HB1(27, "V0 SdcIn [S2sTrack]", 200, -0.20, 0.20);
   HB2(28, "U0%X0 SdcIn [S2sTrack]", 100, -100., 100., 100, -0.20, 0.20);
   HB2(29, "V0%Y0 SdcIn [S2sTrack]", 100, -100., 100., 100, -0.20, 0.20);
-  //HB2(30, "X0%Y0 SdcIn [S2sTrack]", 100, -100., 100., 100, -100., 100.);
+  HB2(30, "X0%Y0 SdcIn [S2sTrack]", 100, -100., 100., 100, -100., 100.);
 
-  HB1(30, "#Tracks SdcOut", 10, 0., 10.);
-  HB1(31, "#Hits of Track SdcOut", 20, 0., 20.);
-  HB1(32, "Chisqr SdcOut", 500, 0., 50.);
-  HB1(33, "LayerId SdcOut", 20, 30., 50.);
-  HB1(34, "X0 SdcOut", 1400, -1200., 1200.);
-  HB1(35, "Y0 SdcOut", 1000, -500., 500.);
-  HB1(36, "U0 SdcOut",  700, -0.35, 0.35);
-  HB1(37, "V0 SdcOut",  200, -0.20, 0.20);
-  HB2(38, "U0%X0 SdcOut", 120, -1200., 1200., 100, -0.40, 0.40);
-  HB2(39, "V0%Y0 SdcOut", 100, -500., 500., 100, -0.20, 0.20);
-  HB2(40, "X0%Y0 SdcOut", 100, -1200., 1200., 100, -500., 500.);
+  HB1(40, "#Tracks SdcOut", 10, 0., 10.);
+  HB1(41, "#Hits of Track SdcOut", 20, 0., 20.);
+  HB1(42, "Chisqr SdcOut", 500, 0., 50.);
+  HB1(43, "LayerId SdcOut", 20, 30., 50.);
+  HB1(44, "X0 SdcOut", 1400, -1200., 1200.);
+  HB1(45, "Y0 SdcOut", 1000, -500., 500.);
+  HB1(46, "U0 SdcOut",  700, -0.35, 0.35);
+  HB1(47, "V0 SdcOut",  200, -0.20, 0.20);
+  HB2(48, "U0%X0 SdcOut", 120, -1200., 1200., 100, -0.40, 0.40);
+  HB2(49, "V0%Y0 SdcOut", 100, -500., 500., 100, -0.20, 0.20);
+  HB2(50, "X0%Y0 SdcOut", 100, -1200., 1200., 100, -500., 500.);
 
-  HB1(41, "#Hits of Track SdcOut [S2sTrack]", 20, 0., 20.);
-  HB1(42, "Chisqr SdcOut [S2sTrack]", 500, 0., 50.);
-  HB1(43, "LayerId SdcOut [S2sTrack]", 20, 30., 50.);
-  HB1(44, "X0 SdcOut [S2sTrack]", 1400, -1200., 1200.);
-  HB1(45, "Y0 SdcOut [S2sTrack]", 1000, -500., 500.);
-  HB1(46, "U0 SdcOut [S2sTrack]",  700, -0.35, 0.35);
-  HB1(47, "V0 SdcOut [S2sTrack]",  200, -0.10, 0.10);
-  HB2(48, "U0%X0 SdcOut [S2sTrack]", 120, -600., 600., 100, -0.40, 0.40);
-  HB2(49, "V0%Y0 SdcOut [S2sTrack]", 100, -500., 500., 100, -0.10, 0.10);
-  //HB2(50, "X0%Y0 SdcOut [S2sTrack]", 100, -700., 700., 100, -500., 500.);
+  HB1(51, "#Hits of Track SdcOut [S2sTrack]", 20, 0., 20.);
+  HB1(52, "Chisqr SdcOut [S2sTrack]", 500, 0., 50.);
+  HB1(53, "LayerId SdcOut [S2sTrack]", 20, 30., 50.);
+  HB1(54, "X0 SdcOut [S2sTrack]", 1400, -1200., 1200.);
+  HB1(55, "Y0 SdcOut [S2sTrack]", 1000, -500., 500.);
+  HB1(56, "U0 SdcOut [S2sTrack]",  700, -0.35, 0.35);
+  HB1(57, "V0 SdcOut [S2sTrack]",  200, -0.10, 0.10);
+  HB2(58, "U0%X0 SdcOut [S2sTrack]", 120, -600., 600., 100, -0.40, 0.40);
+  HB2(59, "V0%Y0 SdcOut [S2sTrack]", 100, -500., 500., 100, -0.10, 0.10);
+  HB2(60, "X0%Y0 SdcOut [S2sTrack]", 100, -700., 700., 100, -500., 500.);
 
-  HB1(50, "#Tracks S2S", 10, 0., 10.);
-  HB1(51, "#Hits of S2sTrack", 50, 0., 50.);
-  HB1(52, "Chisqr S2sTrack", 500, 0., 50.);
-  HB1(53, "LayerId S2sTrack", 90, 0., 90.);
-  HB1(54, "Xtgt S2sTrack", 200, -100., 100.);
-  HB1(55, "Ytgt S2sTrack", 200, -100., 100.);
-  HB1(56, "Utgt S2sTrack", 300, -0.30, 0.30);
-  HB1(57, "Vtgt S2sTrack", 300, -0.20, 0.20);
-  HB2(58, "U%Xtgt S2sTrack", 100, -100., 100., 100, -0.25, 0.25);
-  HB2(59, "V%Ytgt S2sTrack", 100, -100., 100., 100, -0.10, 0.10);
-  HB2(60, "Y%Xtgt S2sTrack", 100, -100., 100., 100, -100., 100.);
-  HB1(61, "P S2sTrack", 500, 0.00, 2.50);
-  HB1(62, "PathLength S2sTrack", 600, 3000., 4000.);
-  HB1(63, "MassSqr", 600, -0.4, 1.4);
+  HB1(70, "#Tracks S2S", 10, 0., 10.);
+  HB1(71, "#Hits of S2sTrack", 50, 0., 50.);
+  HB1(72, "Chisqr S2sTrack", 500, 0., 50.);
+  HB1(73, "LayerId S2sTrack", 90, 0., 90.);
+  HB1(74, "Xtgt S2sTrack", 200, -100., 100.);
+  HB1(75, "Ytgt S2sTrack", 200, -100., 100.);
+  HB1(76, "Utgt S2sTrack", 300, -0.30, 0.30);
+  HB1(77, "Vtgt S2sTrack", 300, -0.20, 0.20);
+  HB2(78, "U%Xtgt S2sTrack", 100, -100., 100., 100, -0.25, 0.25);
+  HB2(79, "V%Ytgt S2sTrack", 100, -100., 100., 100, -0.10, 0.10);
+  HB2(80, "Y%Xtgt S2sTrack", 100, -100., 100., 100, -100., 100.);
 
-  // SDC1
-  for(Int_t i=1; i<=NumOfLayersSDC1; ++i){
-    TString title1 = Form("HitPat Sdc1_%d", i);
-    TString title2 = Form("DriftTime Sdc1_%d", i);
-    TString title3 = Form("DriftLength Sdc1_%d", i);
-    TString title4 = Form("Position Sdc1_%d", i);
-    TString title5 = Form("Residual Sdc1_%d", i);
-    TString title6 = Form("Resid%%Pos Sdc1_%d", i);
-    TString title7 = Form("Y%%Xcal Sdc1_%d", i);
-    HB1(100*i+1, title1, 96, 0., 96.);
-    HB1(100*i+2, title2, NBinDTSDC1, MinDTSDC1, MaxDTSDC1);
-    HB1(100*i+3, title3, NBinDLSDC1, MinDLSDC1, MaxDLSDC1);
-    HB1(100*i+4, title4, 500, -100., 100.);
-    HB1(100*i+5, title5, 200, -2.0, 2.0);
-    HB2(100*i+6, title6, 100, -100., 100., 100, -2.0, 2.0);
-    HB2(100*i+7, title7, 100, -100., 100., 100, -50., 50.);
+  HB1(91, "P S2sTrack", 500, 0.00, 2.50);
+  HB1(92, "PathLength S2sTrack", 600, 3000., 4000.);
+  HB1(93, "MassSqr", 600, -0.4, 1.4);
+
+
+  // SdcInTracking
+  for( Int_t i = 1; i <= NumOfLayersSdcIn; ++i ){
+    TString tag;
+    Int_t nwire = 0, nbindt = 1, nbindl = 1;
+    Double_t mindt = 0., maxdt = 1., mindl = 0., maxdl = 1.;
+    Int_t l = i + PlMinSdcIn - 1;
+    if( i <= NumOfLayersSDC1 ){
+      tag    = "SDC1";
+      nwire  = MaxWireSDC1;
+      nbindt = NbinSDC1DT;
+      mindt  = MinSDC1DT;
+      maxdt  = MaxSDC1DT;
+      nbindl = NbinSDC1DL;
+      mindl  = MinSDC1DL;
+      maxdl  = MaxSDC1DL;
+    }else{
+      tag    = "SDC2";
+      nwire  = MaxWireSDC2;
+      nbindt = NbinSDC2DT;
+      mindt  = MinSDC2DT;
+      maxdt  = MaxSDC2DT;
+      nbindl = NbinSDC2DL;
+      mindl  = MinSDC2DL;
+      maxdl  = MaxSDC2DL;
+    }
+    TString title1 = Form("HitPat SdcIn%2d", i);
+    TString title2 = Form("DriftTime SdcIn%d", i);
+    TString title3 = Form("DriftLength SdcIn%2d", i);
+    TString title4 = Form("Position SdcIn%2d", i);
+    TString title5 = Form("Residual SdcIn%2d", i);
+    TString title6 = Form("Resid%%Pos SdcIn%2d", i);
+    TString title7 = Form("Y%%Xcal SdcIn%2d", i);
+    HB1(100*l+1, title1, nwire, 0., Double_t(nwire));
+    HB1(100*l+2, title2, nbindt, mindt, maxdt);
+    HB1(100*l+3, title3, nbindl, mindl, maxdl);
+    HB1(100*l+4, title4, 500, -100., 100.);
+    HB1(100*l+5, title5, NbinSdcInRes, MinSdcInRes, MaxSdcInRes);
+    HB2(100*l+6, title6, 100, -100., 100., NbinSdcInRes, MinSdcInRes, MaxSdcInRes);
+    HB2(100*l+7, title7, 100, -100., 100., 100, -50., 50.);
     title1 += " [S2sTrack]";
     title2 += " [S2sTrack]";
     title3 += " [S2sTrack]";
@@ -1050,92 +1077,65 @@ ConfMan:: InitializeHistograms()
     title5 += " [S2sTrack]";
     title6 += " [S2sTrack]";
     title7 += " [S2sTrack]";
-    TString title22 = Form("DriftLength%%DriftTime Sdc%d [S2sTrack]", i);
-    HB1(100*i+11, title1, 96, 0., 96.);
-    HB1(100*i+12, title2, NBinDTSDC1, MinDTSDC1, MaxDTSDC1);
-    HB1(100*i+13, title3, NBinDLSDC1, MinDLSDC1, MaxDLSDC1);
-    HB1(100*i+14, title4, 500, -100., 100.);
-    HB1(100*i+15, title5, 200, -2.0, 2.0);
-    HB2(100*i+16, title6, 100, -100., 100., 100, -2.0, 2.0);
-    HB2(100*i+17, title7, 100, -100., 100., 100, -50., 50.);
-    HB2(100*i+22, title22, NBinDTSDC1, MinDTSDC1, MaxDTSDC1, NBinDLSDC1, MinDLSDC1, MaxDLSDC1);
+    HB1(100*l+11, title1, nwire, 0., Double_t(nwire));
+    HB1(100*l+12, title2, nbindt, mindt, maxdt);
+    HB1(100*l+13, title3, nbindl, mindl, maxdl);
+    HB1(100*l+14, title4, 500, -100., 100.);
+    HB1(100*l+15, title5, NbinSdcInRes, MinSdcInRes, MaxSdcInRes);
+    HB2(100*l+16, title6, 100, -100., 100., NbinSdcInRes, MinSdcInRes, MaxSdcInRes);
+    HB2(100*l+17, title7, 100, -100., 100., 100, -50., 50.);
+    TString title22 = Form("DriftLength%%DriftTime SdcIn%2d [S2sTrack]", i);
+    HB2(100*l+22, title22, nbindt, mindt, maxdt, nbindl, mindl, maxdl);
   }
 
-  //SFT
-  for(Int_t i=NumOfLayersSDC1+1; i<=NumOfLayersSdcIn; ++i){
-    TString title1 = Form("HitPat Sft%d", i-NumOfLayersSDC1);
-    TString title4 = Form("Position Sft%d", i-NumOfLayersSDC1);
-    TString title5 = Form("Residual Sft%d", i-NumOfLayersSDC1);
-    TString title6 = Form("Resid%%Pos Sft%d", i-NumOfLayersSDC1);
-    TString title7 = Form("Y%%Xcal Sft%d", i-NumOfLayersSDC1);
-    HB1(100*i+1, title1, 70, 0., 70.);
-    HB1(100*i+4, title4, 800, -400., 400.);
-    HB1(100*i+5, title5, 500, -5.0, 5.0);
-    HB2(100*i+6, title6, 100, -600., 600., 100, -5.0, 5.0);
-    HB2(100*i+7, title7, 100, -600., 600., 100, -600., 600.);
-    title1 += " [S2sTrack]";
-    title4 += " [S2sTrack]";
-    title5 += " [S2sTrack]";
-    title6 += " [S2sTrack]";
-    title7 += " [S2sTrack]";
-    HB1(100*i+11, title1, 70, 0., 70.);
-    HB1(100*i+14, title4, 800, -400., 400.);
-    HB1(100*i+15, title5, 500, -5.0, 5.0);
-    HB2(100*i+16, title6, 100, -600., 600., 100, -5.0, 5.0);
-    HB2(100*i+17, title7, 100, -600., 600., 100, -600., 600.);
-  }
-
-  // SDC2
-  for(Int_t i=NumOfLayersSdcIn+1; i<=(NumOfLayersSdcIn+NumOfLayersSDC2); ++i){
-    TString title1 = Form("HitPat Sdc2_%d", i-NumOfLayersSdcIn);
-    TString title2 = Form("DriftTime Sdc2_%d", i-NumOfLayersSdcIn);
-    TString title3 = Form("DriftLength Sdc2_%d", i-NumOfLayersSdcIn);
-    TString title4 = Form("Position Sdc2_%d", i-NumOfLayersSdcIn);
-    TString title5 = Form("Residual Sdc2_%d", i-NumOfLayersSdcIn);
-    TString title6 = Form("Resid%%Pos Sdc2_%d", i-NumOfLayersSdcIn);
-    TString title7 = Form("Y%%Xcal Sdc2_%d", i-NumOfLayersSdcIn);
-    HB1(100*i+1, title1, 112, 0., 112.);
-    HB1(100*i+2, title2, NBinDTSDC2, MinDTSDC2, MaxDTSDC2);
-    HB1(100*i+3, title3, NBinDLSDC2, MinDLSDC2, MaxDLSDC2);
-    HB1(100*i+4, title4, 1000, -600., 600.);
-    HB1(100*i+5, title5, 200, -2.0, 2.0);
-    HB2(100*i+6, title6, 100, -600., 600., 100, -2.0, 2.0);
-    HB2(100*i+7, title7, 100, -600., 600., 100, -600., 600.);
-    title1 += " [S2sTrack]";
-    title2 += " [S2sTrack]";
-    title3 += " [S2sTrack]";
-    title4 += " [S2sTrack]";
-    title5 += " [S2sTrack]";
-    title6 += " [S2sTrack]";
-    title7 += " [S2sTrack]";
-    TString title22 = Form("DriftLength%%DriftTime Sdc2_%d [S2sTrack]", i-NumOfLayersSdcIn);
-    HB1(100*i+11, title1, 112, 0., 112.);
-    HB1(100*i+12, title2, NBinDTSDC2, MinDTSDC2, MaxDTSDC2);
-    HB1(100*i+13, title3, NBinDLSDC2, MinDLSDC2, MaxDLSDC2);
-    HB1(100*i+14, title4, 1000, -600., 600.);
-    HB1(100*i+15, title5, 200, -2.0, 2.0);
-    HB2(100*i+16, title6, 100, -600., 600., 100, -2.0, 2.0);
-    HB2(100*i+17, title7, 100, -600., 600., 100, -600., 600.);
-    HB2(100*i+22, title22, NBinDTSDC2, MinDTSDC2, MaxDTSDC2, NBinDLSDC2, MinDLSDC2, MaxDLSDC2);
-  }
-
-  // SDC3
-  for(Int_t i=NumOfLayersSdcIn+NumOfLayersSDC2+1;
-      i<=(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3) ; ++i){
-    TString title1 = Form("HitPat Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    TString title2 = Form("DriftTime Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    TString title3 = Form("DriftLength Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    TString title4 = Form("Position Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    TString title5 = Form("Residual Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    TString title6 = Form("Resid%%Pos Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    TString title7 = Form("Y%%Xcal Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    HB1(100*i+1, title1, 120, 0., 120.);
-    HB1(100*i+2, title2, NBinDTSDC3, MinDTSDC3, MaxDTSDC3);
-    HB1(100*i+3, title3, NBinDLSDC3, MinDLSDC3, MaxDLSDC3);
-    HB1(100*i+4, title4, 1000, -600., 600.);
-    HB1(100*i+5, title5, 200, -2.0, 2.0);
-    HB2(100*i+6, title6, 100, -600., 600., 100, -1.0, 1.0);
-    HB2(100*i+7, title7, 100, -600., 600., 100, -600., 600.);
+  // SdcOutTracking
+  for( Int_t i = 1; i <= NumOfLayersSdcOut; ++i ){
+    TString tag;
+    Int_t nwire = 0, nbindt = 1, nbindl = 1;
+    Double_t mindt = 0., maxdt = 1., mindl = 0., maxdl = 1.;
+    Int_t l = i + PlMinSdcOut - 1;
+    if( i <= NumOfLayersSDC3 ){
+      tag    = "SDC3";
+      nwire  = MaxWireSDC3;
+      nbindt = NbinSDC3DT;
+      mindt  = MinSDC3DT;
+      maxdt  = MaxSDC3DT;
+      nbindl = NbinSDC3DL;
+      mindl  = MinSDC3DL;
+      maxdl  = MaxSDC3DL;
+    }else if( i <= NumOfLayersSDC3 + NumOfLayersSDC4 ){
+      tag    = "SDC4";
+      nwire  = MaxWireSDC4;
+      nbindt = NbinSDC4DT;
+      mindt  = MinSDC4DT;
+      maxdt  = MaxSDC4DT;
+      nbindl = NbinSDC4DL;
+      mindl  = MinSDC4DL;
+      maxdl  = MaxSDC4DL;
+    }else{
+      tag    = "SDC5";
+      nwire  = (i==11 || i==12) ? MaxWireSDC5X : MaxWireSDC5Y;
+      nbindt = NbinSDC5DT;
+      mindt  = MinSDC5DT;
+      maxdt  = MaxSDC5DT;
+      nbindl = NbinSDC5DL;
+      mindl  = MinSDC5DL;
+      maxdl  = MaxSDC5DL;
+    }
+    TString title1 = Form("HitPat SdcOut%2d", i);
+    TString title2 = Form("DriftTime SdcOut%d", i);
+    TString title3 = Form("DriftLength SdcOut%2d", i);
+    TString title4 = Form("Position SdcOut%2d", i);
+    TString title5 = Form("Residual SdcOut%2d", i);
+    TString title6 = Form("Resid%%Pos SdcOut%2d", i);
+    TString title7 = Form("Y%%Xcal SdcOut%2d", i);
+    HB1(100*l+1, title1, nwire, 0., Double_t(nwire));
+    HB1(100*l+2, title2, nbindt, mindt, maxdt);
+    HB1(100*l+3, title3, nbindl, mindl, maxdl);
+    HB1(100*l+4, title4, 2000, -1000., 1000.);
+    HB1(100*l+5, title5, NbinSdcOutRes, MinSdcOutRes, MaxSdcOutRes);
+    HB2(100*l+6, title6, 2000, -1000., 1000., NbinSdcOutRes, MinSdcOutRes, MaxSdcOutRes);
+    HB2(100*l+7, title7, 100, -600., 600., 100, -600., 600.);
     title1 += " [S2sTrack]";
     title2 += " [S2sTrack]";
     title3 += " [S2sTrack]";
@@ -1143,67 +1143,55 @@ ConfMan:: InitializeHistograms()
     title5 += " [S2sTrack]";
     title6 += " [S2sTrack]";
     title7 += " [S2sTrack]";
-    TString title22 = Form("DriftLength%%DriftTime Sdc3_%d [S2sTrack]", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    HB1(100*i+11, title1, 120, 0., 120.);
-    HB1(100*i+12, title2, NBinDTSDC3, MinDTSDC3, MaxDTSDC3);
-    HB1(100*i+13, title3, NBinDLSDC3, MinDLSDC3, MaxDLSDC3);
-    HB1(100*i+14, title4, 1000, -600., 600.);
-    HB1(100*i+15, title5, 200, -2.0, 2.0);
-    HB2(100*i+16, title6, 100, -600., 600., 100, -2.0, 2.0);
-    HB2(100*i+17, title7, 100, -600., 600., 100, -600., 600.);
-    HB2(100*i+22, title22, NBinDTSDC3, MinDTSDC3, MaxDTSDC3, NBinDLSDC3, MinDLSDC3, MaxDLSDC3);
+    HB1(100*l+11, title1, nwire, 0., Double_t(nwire));
+    HB1(100*l+12, title2, nbindt, mindt, maxdt);
+    HB1(100*l+13, title3, nbindl, mindl, maxdl);
+    HB1(100*l+14, title4, 2000, -1000., 1000.);
+    HB1(100*l+15, title5, NbinSdcOutRes, MinSdcOutRes, MaxSdcOutRes);
+    HB2(100*l+16, title6, 2000, -1000., 1000., NbinSdcOutRes, MinSdcOutRes, MaxSdcOutRes);
+    HB2(100*l+17, title7, 100, -600., 600., 100, -600., 600.);
+    TString title22 = Form("DriftLength%%DriftTime SdcOut%2d [S2sTrack]", i);
+    HB2(100*l+22, title22, nbindt, mindt, maxdt, nbindl, mindl, maxdl);
   }
   /////////////////////
 
-  // FBT1, 2
-  for(Int_t i=NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3+1;
-      i<=(NumOfLayersSdcIn+NumOfLayersSdcOut); ++i){
-    TString title1 = Form("HitPat Fbt%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3));
-    TString title4 = Form("Position Fbt%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3));
-    TString title5 = Form("Residual Fbt%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3));
-    TString title6 = Form("Resid%%Pos Fbt%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3));
-    TString title7 = Form("Y%%Xcal Fbt%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3));
-    HB1(100*i+1, title1, 70, 0., 70.);
-    HB1(100*i+4, title4, 800, -400., 400.);
-    HB1(100*i+5, title5, 200, -2.0, 2.0);
-    HB2(100*i+6, title6, 100, -600., 600., 100, -1.0, 1.0);
-    HB2(100*i+7, title7, 100, -600., 600., 100, -600., 600.);
-    title1 += " [S2sTrack]";
-    title4 += " [S2sTrack]";
-    title5 += " [S2sTrack]";
-    title6 += " [S2sTrack]";
-    title7 += " [S2sTrack]";
-    HB1(100*i+11, title1, 70, 0., 70.);
-    HB1(100*i+14, title4, 800, -400., 400.);
-    HB1(100*i+15, title5, 200, -2.0, 2.0);
-    HB2(100*i+16, title6, 100, -600., 600., 100, -2.0, 2.0);
-    HB2(100*i+17, title7, 100, -600., 600., 100, -600., 600.);
-  }
-
-
   // TOF in SdcOut/S2sTracking
-  for(Int_t i=NumOfLayersSdcIn+NumOfLayersSdcOut+1;
-      i<=NumOfLayersSdcIn+NumOfLayersSdcOut+2; ++i){
-    TString title1 = Form("HitPat Tof%d", i-(NumOfLayersSdcIn+NumOfLayersSdcOut));
-    TString title4 = Form("Position Tof%d", i-(NumOfLayersSdcIn+NumOfLayersSdcOut));
-    TString title5 = Form("Residual Tof%d", i-(NumOfLayersSdcIn+NumOfLayersSdcOut));
-    TString title6 = Form("Resid%%Pos Tof%d", i-(NumOfLayersSdcIn+NumOfLayersSdcOut));
-    TString title7 = Form("Y%%Xcal Tof%d", i-(NumOfLayersSdcIn+NumOfLayersSdcOut));
-    HB1(100*i+1, title1, 200, 0., 200.);
-    HB1(100*i+4, title4, 1000, -1000., 1000.);
-    HB1(100*i+5, title5, 200, -20., 20.);
-    HB2(100*i+6, title6, 100, -1000., 1000., 100, -200., 200.);
-    HB2(100*i+7, title6, 100, -1000., 1000., 100, -1000., 1000.);
+  for( Int_t i = 1; i <= NumOfLayersTOF; ++i ){
+  const Int_t    NbinSDC4DT =  360;
+  const Double_t MinSDC4DT  = -50.;
+  const Double_t MaxSDC4DT  = 250.;
+  const Int_t    NbinSDC4DL =   90;
+  const Double_t MinSDC4DL  = -2.0;
+  const Double_t MaxSDC4DL  =  7.0;
+    Int_t l = i + PlMinTOF - 1;
+    TString title1 = Form("HitPat Tof%d", i);
+    TString title2 = Form("DriftTime Tof%d", i);
+    TString title3 = Form("DriftLength Tof%2d", i);
+    TString title4 = Form("Position Tof%d", i);
+    TString title5 = Form("Residual Tof%d", i);
+    TString title6 = Form("Resid%%Pos Tof%d", i);
+    TString title7 = Form("Y%%Xcal Tof%d", i);
+    HB1(100*l+1, title1, 200, 0., 200.);
+    HB1(100*l+2, title2, 400, 0., 200.);
+    HB1(100*l+3, title3, 100, -2., 8.);
+    HB1(100*l+4, title4, 1000, -1000., 1000.);
+    HB1(100*l+5, title5, 200, -20., 20.);
+    HB2(100*l+6, title6, 100, -1000., 1000., 100, -200., 200.);
+    HB2(100*l+7, title6, 100, -1000., 1000., 100, -1000., 1000.);
     title1 += " [S2sTrack]";
+    title2 += " [S2sTrack]";
+    title3 += " [S2sTrack]";
     title4 += " [S2sTrack]";
     title5 += " [S2sTrack]";
     title6 += " [S2sTrack]";
     title7 += " [S2sTrack]";
-    HB1(100*i+11, title1, 200, 0., 200.);
-    HB1(100*i+14, title4, 1000, -1000., 1000.);
-    HB1(100*i+15, title5, 200, -20., 20.);
-    HB2(100*i+16, title6, 100, -1000., 1000., 100, -200., 200.);
-    HB2(100*i+17, title7, 100, -1000., 1000., 100, -1000., 1000.);
+    HB1(100*l+11, title1, 200, 0., 200.);
+    HB1(100*l+12, title2, 400, 0., 200.);
+    HB1(100*l+13, title3, 100, -2., 8.);
+    HB1(100*l+14, title4, 1000, -1000., 1000.);
+    HB1(100*l+15, title5, 200, -20., 20.);
+    HB2(100*l+16, title6, 100, -1000., 1000., 100, -200., 200.);
+    HB2(100*l+17, title7, 100, -1000., 1000., 100, -1000., 1000.);
   }
 
   HB2(20001, "Xout%Xin", 100, -200., 200., 100, -200., 200.);
@@ -1211,10 +1199,10 @@ ConfMan:: InitializeHistograms()
   HB2(20003, "Uout%Uin", 100, -0.5,  0.5,  100, -0.5,  0.5);
   HB2(20004, "Vin%Vout", 100, -0.1,  0.1,  100, -0.1,  0.1);
 
-  HB2(20021, "Yout%Yin [S2sTrack]", 100, -150., 150., 120, -300., 300.);
-  HB2(20022, "Vout%Vin [S2sTrack]", 100, -0.05, 0.05, 100, -0.1, 0.1);
-  HB2(20023, "Yout%Vin [S2sTrack]", 100, -0.05, 0.05, 100, -300., 300.);
-  HB2(20024, "Yin%Vout [S2sTrack]", 100, -0.10, 0.10, 100, -150., 150.);
+  HB2(20011, "Xout%Xin [S2sTrack]", 100, -200., 200., 100, -200., 200.);
+  HB2(20012, "Yout%Yin [S2sTrack]", 100, -200., 200., 100, -200., 200.);
+  HB2(20013, "Uout%Uin [S2sTrack]", 100, -0.5,  0.5,  100, -0.5,  0.5);
+  HB2(20014, "Vin%Vout [S2sTrack]", 100, -0.1,  0.1,  100, -0.1,  0.1);
 
   ////////////////////////////////////////////
   //Tree
@@ -1293,31 +1281,15 @@ ConfMan:: InitializeHistograms()
   tree->Branch("vpx",          event.vpx,          Form("vpx[%d]/D", NumOfLayersVP));
   tree->Branch("vpy",          event.vpy,          Form("vpy[%d]/D", NumOfLayersVP));
 
-  event.resL.resize(NumOfLayersSdcIn+NumOfLayersSdcOut+2);
-  event.resG.resize(NumOfLayersSdcIn+NumOfLayersSdcOut+2);
-  // tree->Branch("resL", &event.resL);
-  // tree->Branch("resG", &event.resG);
-  for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
-    tree->Branch(Form("ResL%d",i+ 1), &event.resL[i]);
-  }
+  event.resL.resize(PlMaxTOF);
+  for( Int_t i = PlMinSdcIn;  i<= PlMaxSdcIn;  i++ ) tree->Branch(Form("ResL%d", i), &event.resL[i-1]);
+  for( Int_t i = PlMinSdcOut; i<= PlMaxSdcOut; i++ ) tree->Branch(Form("ResL%d", i), &event.resL[i-1]);
+  for( Int_t i = PlMinTOF;    i<= PlMaxTOF;    i++ ) tree->Branch(Form("ResL%d", i), &event.resL[i-1]);
 
-  for(Int_t i=0; i<NumOfLayersSdcOut; ++i){
-    tree->Branch(Form("ResL%d",i+31), &event.resL[i+NumOfLayersSdcIn]);
-  }
-
-  tree->Branch("ResL41", &event.resL[NumOfLayersSdcIn+NumOfLayersSdcOut]);
-  tree->Branch("ResL42", &event.resL[NumOfLayersSdcIn+NumOfLayersSdcOut+1]);
-
-  for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
-    tree->Branch(Form("ResG%d",i+ 1), &event.resG[i]);
-  }
-
-  for(Int_t i=0; i<NumOfLayersSdcOut; ++i){
-    tree->Branch(Form("ResG%d",i+31), &event.resG[i+NumOfLayersSdcIn]);
-  }
-
-  tree->Branch("ResG41", &event.resG[NumOfLayersSdcIn+NumOfLayersSdcOut]);
-  tree->Branch("ResG42", &event.resG[NumOfLayersSdcIn+NumOfLayersSdcOut+1]);
+  event.resG.resize(PlMaxTOF);
+  for( Int_t i = PlMinSdcIn;  i<= PlMaxSdcIn;  i++ ) tree->Branch(Form("ResG%d", i), &event.resG[i-1]);
+  for( Int_t i = PlMinSdcOut; i<= PlMaxSdcOut; i++ ) tree->Branch(Form("ResG%d", i), &event.resG[i-1]);
+  for( Int_t i = PlMinTOF;    i<= PlMaxTOF;    i++ ) tree->Branch(Form("ResG%d", i), &event.resG[i-1]);
 
   tree->Branch("tTofCalc",  event.tTofCalc,  "tTofCalc[3]/D");
   tree->Branch("utTofSeg",  event.utTofSeg,  Form("utTofSeg[%d]/D", NumOfSegTOF));

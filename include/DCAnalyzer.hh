@@ -63,7 +63,7 @@ private:
   DCLocalTC              m_SdcInTC;
   DCLocalTC              m_SdcOutTC;
   K18TC                  m_K18D2UTC;
-  S2sTC               m_S2sTC;
+  S2sTC                  m_S2sTC;
   DCLocalTC              m_BcOutSdcInTC;
   DCLocalTC              m_SdcInSdcOutTC;
   std::vector<DCLocalTC> m_SdcInExTC;

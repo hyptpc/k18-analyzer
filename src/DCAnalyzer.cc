@@ -355,9 +355,8 @@ DCAnalyzer::DecodeTOFHits(const HodoHC& HitCont)
 
   // for the tilting plane case
   static const Double_t RA2 = gGeom.GetRotAngle2("TOF");
-  static const TVector3 TOFPos[2] = {
-    gGeom.GetGlobalPosition("TOF-UX"),
-    gGeom.GetGlobalPosition("TOF-DX") };
+  static const TVector3 TOFPos[2] = { gGeom.GetGlobalPosition("TOF-UX"),
+				      gGeom.GetGlobalPosition("TOF-DX") };
 
   for(const auto& hodo_hit: HitCont){
     const Double_t seg = hodo_hit->SegmentId()+1;
