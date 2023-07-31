@@ -121,8 +121,13 @@ struct Event
   Double_t btof[NumOfSegBH1][NumOfSegBH2];
   Double_t cbtof[NumOfSegBH1][NumOfSegBH2];
 
-  Double_t tofmt[NumOfSegTOF][MaxDepth];
+  Double_t tofmt[NumOfSegTOF][MaxDepth]; 
   Double_t tofde[NumOfSegTOF];
+  Double_t tofude[NumOfSegTOF];
+  Double_t tofdde[NumOfSegTOF];
+  Double_t tofctu[NumOfSegTOF][MaxDepth];
+  Double_t tofctd[NumOfSegTOF][MaxDepth];
+  Double_t tofcmt[NumOfSegTOF][MaxDepth];
 
   // Using WCSUM
   Double_t wcde[NumOfSegWC];
@@ -242,10 +247,15 @@ Event::clear()
     tofua[it] = qnan;
     tofda[it] = qnan;
     tofde[it] = qnan;
+    tofude[it] = qnan;
+    tofdde[it] = qnan;
     for(Int_t m=0; m<MaxDepth; ++m){
       tofut[it][m] = qnan;
       tofdt[it][m] = qnan;
       tofmt[it][m] = qnan;
+      tofctu[it][m] = qnan;
+      tofctd[it][m] = qnan;
+      tofcmt[it][m] = qnan;
     }
   }
 
@@ -1285,8 +1295,15 @@ ProcessingNormal()
         Double_t ctu = hit->GetCTUp(),  ctd = hit->GetCTDown();
         Double_t mt  = hit->MeanTime(), cmt = hit->CMeanTime();
         Double_t de  = hit->DeltaE();
+        Double_t ude  = hit->UDeltaE();
+        Double_t dde  = hit->DDeltaE();
         event.tofmt[seg-1][m] = mt;
         event.tofde[seg-1]    = de;
+        event.tofude[seg-1]    = ude;
+        event.tofdde[seg-1]    = dde;
+        event.tofctu[seg-1][m] = ctu;
+        event.tofctd[seg-1][m] = ctd;
+        event.tofcmt[seg-1][m] = cmt;
         HF1(TOFHid+100*seg+11, tu);      HF1(TOFHid+100*seg+12, td);
         HF1(TOFHid+100*seg+13, mt);
         HF1(TOFHid+100*seg+17, ctu);     HF1(TOFHid+100*seg+18, ctd);
@@ -2048,6 +2065,11 @@ ConfMan::InitializeHistograms()
   tree->Branch("bacde",     event.bacde,     Form("bacde[%d]/D", NumOfSegBAC));
   tree->Branch("tofmt",     event.tofmt,     Form("tofmt[%d][%d]/D", NumOfSegTOF, MaxDepth));
   tree->Branch("tofde",     event.tofde,     Form("tofde[%d]/D", NumOfSegTOF));
+  tree->Branch("tofude",     event.tofude,     Form("tofude[%d]/D", NumOfSegTOF));
+  tree->Branch("tofdde",     event.tofdde,     Form("tofdde[%d]/D", NumOfSegTOF));
+  tree->Branch("tofctu",     event.tofctu,     Form("tofctu[%d][%d]/D", NumOfSegTOF, MaxDepth));
+  tree->Branch("tofctd",     event.tofctd,     Form("tofctd[%d][%d]/D", NumOfSegTOF, MaxDepth));
+  tree->Branch("tofcmt",     event.tofcmt,     Form("tofcmt[%d][%d]/D", NumOfSegTOF, MaxDepth));
   tree->Branch("wcmt",     event.wcmt,     Form("wcmt[%d][%d]/D", NumOfSegWC, MaxDepth));
   tree->Branch("wcde",     event.wcde,     Form("wcde[%d]/D", NumOfSegWC));
 
