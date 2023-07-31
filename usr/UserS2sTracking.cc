@@ -1028,7 +1028,7 @@ ConfMan::InitializeHistograms()
 
   HB1(91, "P S2sTrack", 500, 0.00, 2.50);
   HB1(92, "q S2sTrack", 4, -2., 2.);
-  HB1(93, "PathLength S2sTrack", 600, 3000., 4000.);
+  HB1(93, "PathLength S2sTrack", 300, 7000., 10000.);
   HB1(94, "MassSqr", 600, -0.4, 1.4);
 
 
