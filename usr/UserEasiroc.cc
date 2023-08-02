@@ -93,6 +93,16 @@ struct Event
   Double_t aft_mtot[NumOfPlaneAFT][NumOfSegAFT][MaxDepth];
   Double_t aft_de_high[NumOfPlaneAFT][NumOfSegAFT];
   Double_t aft_de_low[NumOfPlaneAFT][NumOfSegAFT];
+
+  //AFT cluster
+  Int_t    aft_ncl;
+  Int_t    aft_clsize[NumOfPlaneAFT];
+  Double_t aft_clseg[NumOfPlaneAFT];
+  Double_t aft_cltot[NumOfPlaneAFT];
+  Double_t aft_clde[NumOfPlaneAFT];
+  Double_t aft_cltime[NumOfPlaneAFT];
+  Double_t aft_clplane[NumOfPlaneAFT];
+
   void clear();
 };
 
@@ -143,6 +153,13 @@ Event::clear()
 
   for(Int_t p=0; p<NumOfPlaneAFT; p++){
     aft_nhits[p] = 0;
+    aft_nhits[p] = 0;	
+	aft_clsize[p]  = qnan;
+	aft_clseg[p]   = qnan;
+	aft_cltot[p]   = qnan;
+	aft_clde[p]    = qnan;
+	aft_cltime[p]  = qnan;
+	aft_clplane[p] = qnan;
     for(Int_t seg=0; seg<NumOfSegAFT; seg++){
       aft_hitpat[p][seg] = -1;
       for(Int_t ud=0; ud<kUorD; ud++){
@@ -485,6 +502,40 @@ ProcessingNormal()
     //HF1(AFTHid+plane*1000+1, event.aft_nhits[plane]);
   }
 
+  //AFT cluster 
+#if TIME_CUT
+  hodoAna.TimeCut("AFT", MinTimeAFT, MaxTimeAFT);
+#endif
+  {
+	int nclaft = hodoAna.GetNClusters("AFT");
+	event.aft_ncl = nclaft;
+	if (nclaft > NumOfPlaneAFT) nclaft = NumOfPlaneAFT;
+	for(Int_t i=0; i<nclaft; ++i){
+	  const auto& cl = hodoAna.GetCluster("AFT", i);
+	  if(!cl) continue;
+	  Int_t    plane  = cl->PlaneId();
+	  Double_t clsize = cl->ClusterSize();
+	  Double_t time   = cl->MeanTime();
+	  Double_t tot    = cl->TOT();
+	  Double_t pos    = cl->MeanPosition();
+	  Double_t seg    = cl->MeanSeg();
+	  Double_t de     = cl->DeltaE();
+	  event.aft_clsize[i]  = clsize;
+	  event.aft_clseg[i]   = seg;
+	  event.aft_cltot[i]   = tot;
+	  event.aft_clde[i]    = de;
+	  event.aft_cltime[i]  = time;
+	  event.aft_clplane[i] = plane;
+	  HF1(AFTHid + 102, clsize);
+	  HF1(AFTHid + 103, time);
+	  HF1(AFTHid + 104, tot);
+	  HF2(AFTHid + 105, time, tot);
+	  HF1(AFTHid + 106, seg);
+	}
+	HF1(AFTHid + 101, nclaft);
+  }
+
+
   //aft_analysis
   int multiplicity_pair[18] = { 0 };
   for(int ud=0; ud<kUorD; ud++){ 
@@ -671,14 +722,14 @@ ConfMan::InitializeHistograms()
     }
   }
 
-  // HB1(AFTHid +101, "AFT NCluster", 100, 0, 100);
-  // HB1(AFTHid +102, "AFT Cluster Size", 5, 0, 5);
-  // HB1(AFTHid +103, "AFT CTime (Cluster)", 100., -20., 30.);
-  // HB1(AFTHid +104, "AFT Tot (Cluster)", NbinTot, MinTot, MaxTot);
-  // HB2(AFTHid +105, "AFT CTime%Tot (Cluster)",
-  //     NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
-  // HB1(AFTHid +106, "AFT Cluster Position",
-  //     NumOfSegAFT, -0.5*(Double_t)NumOfSegAFT, 0.5*(Double_t)NumOfSegAFT);
+  HB1(AFTHid +101, "AFT NCluster", 100, 0, 100);
+  HB1(AFTHid +102, "AFT Cluster Size", 5, 0, 5);
+  HB1(AFTHid +103, "AFT CTime (Cluster)", 100., -20., 30.);
+  HB1(AFTHid +104, "AFT Tot (Cluster)", NbinTot, MinTot, MaxTot);
+  HB2(AFTHid +105, "AFT CTime%Tot (Cluster)",
+      NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
+  HB1(AFTHid +106, "AFT Cluster Position",
+      NumOfSegAFT, -0.5*(Double_t)NumOfSegAFT, 0.5*(Double_t)NumOfSegAFT);
 
 
   //Tree
@@ -753,6 +804,14 @@ ConfMan::InitializeHistograms()
   tree->Branch("aft_tot", event.aft_tot,
                Form("aft_tot[%d][%d][%d][%d]/D",
                     NumOfPlaneAFT, NumOfSegAFT, kUorD, MaxDepth));
+
+  tree->Branch("aft_ncl",       &event.aft_ncl,          "aft_ncl/I");
+  tree->Branch("aft_clsize",     event.aft_clsize,       "aft_clsize[aft_ncl]/I");
+  tree->Branch("aft_cltime",     event.aft_cltime,       "aft_ctime[aft_ncl]/D");
+  tree->Branch("aft_cltot",      event.aft_cltot,        "aft_ctot[aft_ncl]/D");
+  tree->Branch("aft_clseg",      event.aft_clseg,        "aft_clseg[aft_ncl]/D");
+  tree->Branch("aft_clde",       event.aft_clde,         "aft_clde[aft_ncl]/D");
+  tree->Branch("aft_clplane",    event.aft_clplane,      "aft_clplane[aft_ncl]/D");
 
   // HPrint();
   return true;
