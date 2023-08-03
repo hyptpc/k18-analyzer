@@ -79,6 +79,8 @@ public:
   Int_t           GetNHits() const { return m_hit_array.size(); }
   Bool_t          GetTrajectoryLocalPosition(Int_t layer,
                                              Double_t& x, Double_t& y) const;
+  Bool_t          GetTrajectoryLocalDirection(Int_t layer,
+					      Double_t& u, Double_t& v) const;
   Bool_t          GoodForAnalysis() const { return m_is_good; }
   Bool_t          GoodForAnalysis(Bool_t status)
   { m_is_good = status; return status; }

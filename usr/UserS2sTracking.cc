@@ -98,6 +98,8 @@ struct Event
   Double_t resP[MaxHits];
   Double_t vpx[NumOfLayersVP];
   Double_t vpy[NumOfLayersVP];
+  Double_t vpu[NumOfLayersVP];
+  Double_t vpv[NumOfLayersVP];
 
   Double_t xtgtS2s[MaxHits];
   Double_t ytgtS2s[MaxHits];
@@ -148,6 +150,8 @@ Event::clear()
   for(Int_t i = 0; i<NumOfLayersVP; ++i){
     vpx[i] = qnan;
     vpy[i] = qnan;
+    vpu[i] = qnan;
+    vpv[i] = qnan;
   }
 
   for(Int_t it=0; it<NumOfSegTrig; it++){
@@ -713,13 +717,17 @@ ProcessingNormal()
     event.thetaS2s[i] = theta;
     event.phiS2s[i] = phi;
     event.resP[i] = p - initial_momentum;
-    if(ntS2s == 1){
-      for(Int_t l = 0; l<NumOfLayersVP; ++l){
-	Double_t x, y;
-	track->GetTrajectoryLocalPosition(21 + l, x, y);
-	event.vpx[l] = x;
-	event.vpy[l] = y;
-      }// for(l)
+    for(Int_t i = 0; i<NumOfLayersVP; ++i){
+      Int_t l = PlMinVP + i;
+      Double_t vpx, vpy;
+      Double_t vpu, vpv;
+      track->GetTrajectoryLocalPosition(l, vpx, vpy);
+      track->GetTrajectoryLocalDirection(l, vpu, vpv);
+      event.vpx[i] = vpx;
+      event.vpy[i] = vpy;
+      event.vpu[i] = vpu;
+      event.vpv[i] = vpv;
+      HF2(100*l+1, vpx, vpu); HF2(100*l+2, vpy, vpv); HF2(100*l+3, vpx, vpy);
     }
     const auto& posTof = track->TofPos();
     const auto& momTof = track->TofMom();
@@ -1031,7 +1039,6 @@ ConfMan::InitializeHistograms()
   HB1(93, "PathLength S2sTrack", 300, 7000., 10000.);
   HB1(94, "MassSqr", 600, -0.4, 1.4);
 
-
   // SdcInTracking
   for( Int_t i = 1; i <= NumOfLayersSdcIn; ++i ){
     TString tag;
@@ -1195,6 +1202,16 @@ ConfMan::InitializeHistograms()
     HB2(100*l+17, title7, 100, -1000., 1000., 100, -1000., 1000.);
   }
 
+  for( Int_t i = 1; i <= NumOfLayersVP; ++i ){
+    Int_t l = i + PlMinVP - 1;
+    TString title1 = Form("U%%X VP%d S2sTrack", i);
+    TString title2 = Form("V%%Y VP%d S2sTrack", i);
+    TString title3 = Form("Y%%X VP%d S2sTrack", i);
+    HB2(100*l+1, title1, 400, -400., 400., 100, -0.5, 0.5);
+    HB2(100*l+2, title2, 400, -400., 400., 100, -0.1, 0.1);
+    HB2(100*l+3, title3, 400, -400., 400., 300, -300., 300.);
+  }
+
   HB2(20001, "Xout%Xin", 100, -200., 200., 100, -200., 200.);
   HB2(20002, "Yout%Yin", 100, -200., 200., 100, -200., 200.);
   HB2(20003, "Uout%Uin", 100, -0.5,  0.5,  100, -0.5,  0.5);
@@ -1281,6 +1298,8 @@ ConfMan::InitializeHistograms()
 
   tree->Branch("vpx",          event.vpx,          Form("vpx[%d]/D", NumOfLayersVP));
   tree->Branch("vpy",          event.vpy,          Form("vpy[%d]/D", NumOfLayersVP));
+  tree->Branch("vpu",          event.vpu,          Form("vpu[%d]/D", NumOfLayersVP));
+  tree->Branch("vpv",          event.vpv,          Form("vpv[%d]/D", NumOfLayersVP));
 
   event.resL.resize(PlMaxTOF);
   for( Int_t i = PlMinSdcIn;  i<= PlMaxSdcIn;  i++ ) tree->Branch(Form("ResL%d", i), &event.resL[i-1]);

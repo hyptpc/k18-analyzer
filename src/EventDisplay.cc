@@ -75,6 +75,7 @@
 #define Hist_Timing 0
 #define Hist_SdcOut 0
 #define Hist_BcIn   0
+#define DrawOneS2sTrack 1
 
 namespace
 {
@@ -193,11 +194,11 @@ EventDisplay::EventDisplay()
     m_AC1_node(),
     m_WCwall_node(),
     m_BcOutTrack(),
-    m_BcOutTrackShs(),
     m_SdcInTrack(),
     m_init_step_mark(),
     m_hs_step_mark(),
     m_s2s_step_mark(),
+    m_s2s_step_mark_tolast(),
     m_TargetXZ_box(),
     m_TargetYZ_box(),
     m_VertexPointXZ(),
@@ -2443,28 +2444,94 @@ EventDisplay::DrawMissingMomentum(const ThreeVector& mom, const ThreeVector& pos
 //_____________________________________________________________________________
 void
 EventDisplay::DrawS2sTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,
-                              Double_t q)
+			   Double_t q)
 {
-  del::DeleteObject(m_s2s_step_mark);
 
-  m_s2s_step_mark = new TPolyMarker3D(nStep);
+#if DrawOneS2sTrack
+  del::DeleteObject(m_s2s_step_mark);
+#endif
+
+  auto step_mark = new TPolyMarker3D(nStep);
   for(Int_t i=0; i<nStep; ++i){
-    m_s2s_step_mark->SetPoint(i,
-                                 StepPoint[i].x(),
-                                 StepPoint[i].y(),
-                                 StepPoint[i].z());
+    step_mark->SetPoint(i,
+			StepPoint[i].x(),
+			StepPoint[i].y(),
+			StepPoint[i].z());
   }
 
   Color_t color = (q > 0) ? kRed : kBlue;
 
   if(!m_is_save_mode){
-    m_s2s_step_mark->SetMarkerSize(1);
-    m_s2s_step_mark->SetMarkerStyle(6);
+    step_mark->SetMarkerSize(1);
+    step_mark->SetMarkerStyle(6);
   }
-  m_s2s_step_mark->SetMarkerColor(color);
+  step_mark->SetMarkerColor(color);
+
+  m_s2s_step_mark.push_back(step_mark);
 
   m_canvas->cd(1)->cd(2);
-  m_s2s_step_mark->Draw();
+  step_mark->Draw();
+  m_canvas->Update();
+
+#if Vertex
+  del::DeleteObject(m_S2sMarkVertexX);
+  m_S2sMarkVertexX = new TPolyMarker(nStep);
+  for(Int_t i=0; i<nStep; ++i){
+    Double_t x = StepPoint[i].x()-BeamAxis;
+    Double_t z = StepPoint[i].z()-zTarget;
+    m_S2sMarkVertexX->SetPoint(i, z, x);
+  }
+  m_S2sMarkVertexX->SetMarkerSize(0.4);
+  m_S2sMarkVertexX->SetMarkerColor(color);
+  m_S2sMarkVertexX->SetMarkerStyle(6);
+  m_canvas_vertex->cd(1);
+  m_S2sMarkVertexX->Draw();
+  del::DeleteObject(m_S2sMarkVertexY);
+  m_S2sMarkVertexY = new TPolyMarker(nStep);
+  for(Int_t i=0; i<nStep; ++i){
+    Double_t y = StepPoint[i].y();
+    Double_t z = StepPoint[i].z()-zTarget;
+    m_S2sMarkVertexY->SetPoint(i, z, y);
+  }
+  m_S2sMarkVertexY->SetMarkerSize(0.4);
+  m_S2sMarkVertexY->SetMarkerColor(color);
+  m_S2sMarkVertexY->SetMarkerStyle(6);
+  m_canvas_vertex->cd(2);
+  m_S2sMarkVertexY->Draw();
+  m_canvas_vertex->Update();
+#endif
+}
+
+//_____________________________________________________________________________
+void
+EventDisplay::DrawS2sTrackToLast(Int_t nStep, const std::vector<TVector3>& StepPoint,
+				 Double_t q)
+{
+
+#if DrawOneS2sTrack
+  del::DeleteObject(m_s2s_step_mark_tolast);
+#endif
+
+  auto step_mark = new TPolyMarker3D(nStep);
+  for(Int_t i=0; i<nStep; ++i){
+    step_mark->SetPoint(i,
+			StepPoint[i].x(),
+			StepPoint[i].y(),
+			StepPoint[i].z());
+  }
+
+  Color_t color = (q > 0) ? kRed : kBlue;
+
+  if(!m_is_save_mode){
+    step_mark->SetMarkerSize(1);
+    step_mark->SetMarkerStyle(6);
+  }
+  step_mark->SetMarkerColor(color);
+
+  m_s2s_step_mark_tolast.push_back(step_mark);
+
+  m_canvas->cd(1)->cd(2);
+  step_mark->Draw();
   m_canvas->Update();
 
 #if Vertex
@@ -2516,6 +2583,7 @@ EventDisplay::DrawRunEvent(Double_t xpos, Double_t ypos, const TString& arg)
   if(arg.Contains("Run")){
     // std::cout << arg << " find " << std::endl;
     m_canvas->cd(1)->cd(1)->Clear();
+    m_canvas->cd(1)->cd(2)->Clear();
   }
   m_canvas->cd(1)->cd(1);
   TLatex tex;
@@ -2552,7 +2620,6 @@ EventDisplay::EndOfEvent()
   del::DeleteObject(m_SdcInYZ_line);
   del::DeleteObject(m_BcInTrack);
   del::DeleteObject(m_BcOutTrack);
-  del::DeleteObject(m_BcOutTrackShs);
   del::DeleteObject(m_BcOutTrack2);
   del::DeleteObject(m_BcOutTrack3);
   del::DeleteObject(m_SdcInTrack);
@@ -2560,6 +2627,7 @@ EventDisplay::EndOfEvent()
   del::DeleteObject(m_SdcOutTrack);
   del::DeleteObject(m_hs_step_mark);
   del::DeleteObject(m_s2s_step_mark);
+  del::DeleteObject(m_s2s_step_mark_tolast);
   del::DeleteObject(m_VertexPointXZ);
   del::DeleteObject(m_VertexPointYZ);
   del::DeleteObject(m_MissMomXZ_line);

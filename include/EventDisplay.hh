@@ -186,13 +186,12 @@ private:
   TNode                     *m_WCwall_node;
   std::vector<TNode*>        m_WCseg_node;
   std::vector<TPolyLine3D*>  m_BcOutTrack;
-  // TPolyMarker*               m_BcOutTrackShs;
-  TF1*                       m_BcOutTrackShs;
   std::vector<TPolyLine3D*>  m_SdcInTrack;
   std::vector<TPolyLine3D*>  m_SdcOutTrack;
   TPolyMarker3D             *m_init_step_mark;
   TPolyMarker3D             *m_hs_step_mark;
-  TPolyMarker3D             *m_s2s_step_mark;
+  std::vector<TPolyMarker3D*>  m_s2s_step_mark_tolast;
+  std::vector<TPolyMarker3D*>  m_s2s_step_mark;
   // vertex
   TBox                      *m_TargetXZ_box;
   TBox                      *m_TargetYZ_box;
@@ -245,7 +244,9 @@ public:
   void DrawSsdHit(Int_t lid, Int_t seg, Double_t de);
   void DrawVertex(const ThreeVector& vertex);
   void DrawS2sTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,
-                       Double_t q);
+		    Double_t q);
+  void DrawS2sTrackToLast(Int_t nStep, const std::vector<TVector3>& StepPoint,
+			  Double_t q);
   void DrawHSTrack(Int_t nStep, const std::vector<TVector3>& StepPoint,
                        Double_t q);
   void DrawTarget();

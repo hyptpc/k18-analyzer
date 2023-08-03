@@ -866,7 +866,7 @@ RK::TraceToLast(RKHitPointContainer& hitContainer)
   //   }
   // }
 
-  for(const auto& key : {"RKINIT", "AC1", "WC-U", "WC-D"}){
+  for(const auto& key : {"RKINIT", "AC1", "WC-U", "WC-D", "VP10"}){
     auto id = gGeom.DetectorId(key);
     hitContainer.push_back(std::make_pair(id, RKcalcHitPoint()));
   }
@@ -895,10 +895,10 @@ RK::TraceToLast(RKHitPointContainer& hitContainer)
                             prevPoint, nextPoint,
                             hitContainer[iPlane].second)){
       if(++iPlane>=nPlane){
-	// if(gEvDisp.IsReady()){
-	//   Double_t q = hitContainer[0].second.MomentumInGlobal().z();
-	//   gEvDisp.DrawS2sTrack(iStep, StepPoint, q);
-	// }
+	if(gEvDisp.IsReady()){
+	  Double_t q = hitContainer[0].second.MomentumInGlobal().z();
+	  gEvDisp.DrawS2sTrackToLast(iStep, StepPoint, q);
+	}
 	return true;
       }
     }
@@ -926,7 +926,7 @@ RK::MakeHPContainer()
   for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
     container.push_back(std::make_pair(i+PlMinSdcIn, RKcalcHitPoint()));
   }
-  for(Int_t i=0; i<NumOfLayersVP; ++i){
+  for(Int_t i=0; i<NumOfLayersVP-1; ++i){
     container.push_back(std::make_pair(i+PlMinVP, RKcalcHitPoint()));
   }
   for(Int_t i=0; i<NumOfLayersSdcOut; ++i){

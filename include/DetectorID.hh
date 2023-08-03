@@ -9,21 +9,6 @@
 #include <array>
 #include <TString.h>
 
-// temp
-const Int_t DetIdAFT      = 112;
-const Int_t NumOfPlaneAFT = 36;
-const Int_t NumOfSegAFTX  = 32;
-const Int_t NumOfSegAFTY  = 16;
-const Int_t NumOfSegAFT   = 32;
-const std::vector<int> NumOfSegAFTarr = { 32,32,16,16,32,32,16,16,32,32,16,16,32,32,16,16,32,32,16,16,32,32,16,16,32,32,16,16,32,32,16,16,32,32,16,16 };
-//const Int_t NumOfSegAFT[4]    = {NumOfSegAFTX, NumOfSegAFTX, NumOfSegAFTY, NumOfSegAFTY};
-
-//const Int_t NumOfSegAFT[4]    = {NumOfSegAFTX, NumOfSegAFTX, NumOfSegAFTY, NumOfSegAFTY};
-// VMEEASIROC
-const Int_t DetIdVMEASIROC = 116;
-const Int_t NumOfPlaneVMEEASIROC = 96;
-const Int_t NumOfSegVMEEASIROC = 64;
-
 const std::map<TString, std::vector<TString>> DCNameList =
 {
   {"BcOut", { "BC3", "BC4" }},
@@ -36,13 +21,37 @@ const Int_t NumOfSegBH1   = 11;
 const Int_t NumOfSegBH2   =  8;
 const Int_t NumOfSegBAC   =  2;
 const Int_t NumOfSegSCH   = 64;
-const Int_t NumOfSegTOF   = 24;
+const Int_t NumOfSegTOF   = 19;
 const Int_t NumOfSegHTOF  = 34;
 const Int_t NumOfSegBVH   =  4;
 const Int_t NumOfSegAC1   = 30;
-const Int_t NumOfSegWC    = 20;
+const Int_t NumOfSegWC    = 12;
 const Int_t NumOfSegSAC3  = 2;
 const Int_t NumOfSegSFV   = 6;
+
+// AFT
+const Int_t DetIdAFT      = 112;
+const Int_t NumOfPlaneAFT = 36;
+const Int_t NumOfSegAFTX  = 32;
+const Int_t NumOfSegAFTY  = 16;
+const Int_t NumOfSegAFT   = 32;
+const std::vector<int> NumOfSegAFTarr = { 32, 32, 16, 16,
+					  32, 32, 16, 16,
+					  32, 32, 16, 16,
+					  32, 32, 16, 16,
+					  32, 32, 16, 16,
+					  32, 32, 16, 16,
+					  32, 32, 16, 16,
+					  32, 32, 16, 16,
+					  32, 32, 16, 16 };
+//const Int_t NumOfSegAFT[4]    = {NumOfSegAFTX, NumOfSegAFTX, NumOfSegAFTY, NumOfSegAFTY};
+
+//const Int_t NumOfSegAFT[4]    = {NumOfSegAFTX, NumOfSegAFTX, NumOfSegAFTY, NumOfSegAFTY};
+
+// VMEEASIROC
+const Int_t DetIdVMEASIROC = 116;
+const Int_t NumOfPlaneVMEEASIROC = 96;
+const Int_t NumOfSegVMEEASIROC = 64;
 
 // Misc _______________________________________________________________
 const Int_t DetIdTrig       = 21;
@@ -158,7 +167,7 @@ const Int_t PlMaxSdcOut      =  42;
 const Int_t PlMinTOF         =  51; // need to change
 const Int_t PlMaxTOF         =  54; // need to change
 const Int_t PlMinVP          =  21;
-const Int_t PlMaxVP          =  25;
+const Int_t PlMaxVP          =  30;
 const Int_t PlOffsBc         = 100;
 const Int_t PlOffsSdcIn      =   0;
 const Int_t PlOffsSdcOut     =  30;

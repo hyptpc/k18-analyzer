@@ -857,7 +857,7 @@ S2sTrack::SaveTrackParameters(const RKCordParameter &cp)
 //_____________________________________________________________________________
 Bool_t
 S2sTrack::GetTrajectoryLocalPosition(Int_t layer,
-                                        Double_t& x, Double_t& y) const
+				     Double_t& x, Double_t& y) const
 {
   try {
     const RKcalcHitPoint& HP   = m_HitPointCont.HitPointOfLayer(layer);
@@ -865,6 +865,24 @@ S2sTrack::GetTrajectoryLocalPosition(Int_t layer,
     ThreeVector lpos = gGeom.Global2LocalPos(layer,gpos);
     x = lpos.x();
     y = lpos.y();
+    return true;
+  }
+  catch(const std::out_of_range&) {
+    return false;
+  }
+}
+
+//_____________________________________________________________________________
+Bool_t
+S2sTrack::GetTrajectoryLocalDirection(Int_t layer,
+				      Double_t& u, Double_t& v) const
+{
+  try {
+    const RKcalcHitPoint& HP   = m_HitPointCont.HitPointOfLayer(layer);
+    const ThreeVector&    gmom = HP.MomentumInGlobal();
+    ThreeVector lmom = gGeom.Global2LocalDir(layer,gmom);
+    u = lmom.x()/lmom.z();
+    v = lmom.y()/lmom.z();
     return true;
   }
   catch(const std::out_of_range&) {
