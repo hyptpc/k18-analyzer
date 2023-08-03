@@ -1207,9 +1207,9 @@ ConfMan::InitializeHistograms()
     TString title1 = Form("U%%X VP%d S2sTrack", i);
     TString title2 = Form("V%%Y VP%d S2sTrack", i);
     TString title3 = Form("Y%%X VP%d S2sTrack", i);
-    HB2(100*l+1, title1, 400, -400., 400., 100, -0.5, 0.5);
-    HB2(100*l+2, title2, 400, -400., 400., 100, -0.1, 0.1);
-    HB2(100*l+3, title3, 400, -400., 400., 300, -300., 300.);
+    HB2(100*l+1, title1, 500, -500., 500., 1000, -0.5, 0.5);
+    HB2(100*l+2, title2, 300, -300., 300., 200, -0.1, 0.1);
+    HB2(100*l+3, title3, 500, -500., 500., 300, -300., 300.);
   }
 
   HB2(20001, "Xout%Xin", 100, -200., 200., 100, -200., 200.);
