@@ -36,7 +36,8 @@ const Int_t DCLocalMinNHits    =  4;
 const Int_t DCLocalMinNHitsVXU =  2;// for SSD
 const Int_t MaxIteration       = 100;// for Honeycomb
 const Double_t MaxChisqrDiff   = 1.0e-3;
-const Double_t SdcInXoffset = 49.95; // mm
+// const Double_t SdcInXoffset = 49.95; // mm
+const Double_t SdcInXoffset = 0.; // mm
 }
 
 //_____________________________________________________________________________
@@ -101,9 +102,9 @@ DCLocalTrack::Calculate()
   for(auto& hit: m_hit_array){
     Int_t lnum = hit->GetLayer();
     Double_t z0 = hit->GetZ();
-    if(m_is_bcsdc && lnum >= 1 && lnum <= 10){ // SdcIn
-      z0 += zK18tgt - zTgt;
-    }
+    // if(m_is_bcsdc && lnum >= 1 && lnum <= 10){ // SdcIn
+    //   z0 += zK18tgt - zTgt;
+    // }
     hit->SetCalPosition(GetX(z0), GetY(z0));
     hit->SetCalUV(m_u0, m_v0);
     if(hit->IsHoneycomb()){
@@ -336,9 +337,9 @@ DCLocalTrack::DoFitBcSdc()
       honeycomb[i] = hitp->IsHoneycomb();
       wp[i] = hitp->GetWirePosition();
       z0[i] = hitp->GetZ();
-      if(lnum >= 1 && lnum <= 10){ // SdcIn
-        z0[i] += zK18tgt - zTgt;
-      }
+      // if(lnum >= 1 && lnum <= 10){ // SdcIn
+      //   z0[i] += zK18tgt - zTgt;
+      // }
       // if(lnum >= 113 && lnum <= 124){ // BcOut
       //   z0[i] -= zK18tgt - zTgt;
       // }
@@ -365,7 +366,7 @@ DCLocalTrack::DoFitBcSdc()
 	s[i] = ss;
 	z[i] = z0[i];
       }
-      if(lnum >= 1 && lnum <= 10){ // SdcIn
+      if(lnum >= PlMinSdcIn && lnum <= PlMaxSdcIn){ // SdcIn
         s[i] += SdcInXoffset*TMath::Cos(aa);
       }
     }
@@ -608,7 +609,7 @@ DCLocalTrack::Print(const TString& arg, std::ostream& ost) const
     Double_t res = hitp->GetResidual();
     Double_t aa = hitp->GetTiltAngle()*TMath::DegToRad();
     // Double_t scal=GetX(zz)*TMath::Cos(aa)+GetY(zz)*TMath::Sin(aa);
-    if(m_is_bcsdc && lnum >= 1 && lnum <= 10){
+    if(m_is_bcsdc && lnum >= PlMinSdcIn && lnum <= PlMaxSdcIn){
       res += SdcInXoffset*TMath::Cos(aa);
     }
     const TString& h = hitp->IsHoneycomb() ? "+" : "-";

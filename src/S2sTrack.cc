@@ -156,7 +156,6 @@ S2sTrack::DoFit()
     return false;
   }
 
-  static const auto gposRKINIT = gGeom.GetGlobalPosition("RKINIT");
   static const auto LzRKINIT = gGeom.GetLocalZ("RKINIT");
   const Double_t xOut    = m_track_out->GetX(LzRKINIT);
   const Double_t yOut    = m_track_out->GetY(LzRKINIT);
