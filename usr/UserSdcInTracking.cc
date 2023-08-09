@@ -67,6 +67,7 @@ struct Event
 
   Int_t nhit[NumOfLayersSdcIn];
   Int_t nlayer;
+  Double_t wirepos[NumOfLayersSdcIn][MaxHits];
   Double_t pos[NumOfLayersSdcIn][MaxHits];
 
   Int_t ntrack;
@@ -117,6 +118,7 @@ Event::clear()
   for(Int_t it = 0; it<NumOfLayersSdcIn; it++){
     nhit[it] = -1;
     for(Int_t that=0; that<MaxHits; that++){
+      wirepos[it][that] = qnan;
       pos[it][that] = qnan;
     }
   }
@@ -340,7 +342,7 @@ ProcessingNormal()
 	}
 
 	if(i<MaxHits)
-	  event.pos[layer-1][i] = hit->GetWirePosition();
+	  event.wirepos[layer-1][i] = hit->GetWirePosition();
 
 	Int_t nhdt = hit->GetDriftTimeSize();
 	Int_t tot1st = -1;
@@ -439,6 +441,7 @@ ProcessingNormal()
       HF1(10000*layerId+ 5000 +Int_t(wire), dt);
       Double_t xcal=hit->GetXcal(), ycal=hit->GetYcal();
       Double_t pos=hit->GetLocalHitPos(), res=hit->GetResidual();
+      event.pos[layerId-1][it] = pos;
       HF1(100*layerId+14, pos);
       HF1(100*layerId+15, res);
       HF2(100*layerId+16, pos, res);
@@ -678,6 +681,8 @@ ConfMan:: InitializeHistograms()
   tree->Branch("nhit", &event.nhit, Form("nhit[%d]/I", NumOfLayersSdcIn));
   tree->Branch("nlayer", &event.nlayer, "nlayer/I");
   tree->Branch("ntrack", &event.ntrack, "ntrack/I");
+  tree->Branch("wirepos",    &event.wirepos, Form("wirepos[%d][%d]/D",
+                                          NumOfLayersSdcIn, MaxHits));
   tree->Branch("pos",    &event.pos, Form("pos[%d][%d]/D",
                                           NumOfLayersSdcIn, MaxHits));
   tree->Branch("chisqr", event.chisqr,   "chisqr[ntrack]/D");
