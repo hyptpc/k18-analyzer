@@ -199,7 +199,38 @@ HodoAnalyzer::AdcCut(std::vector<T>& cont,
   std::copy(ValidCand.begin(), ValidCand.end(), cont.begin());
   ValidCand.clear();
 }
+//_____________________________________________________________________________
+void
+HodoAnalyzer::DeCut(const TString& name, Double_t min, Double_t max)
+{
+  DeCut(m_hodo_cluster_collection[name], min, max);
+}
 
+//_____________________________________________________________________________
+// Implementation of Time cut for the cluster container
+template <typename T>
+void
+HodoAnalyzer::DeCut(std::vector<T>& cont,
+                      Double_t min, Double_t max)
+{
+  std::vector<T> DeleteCand;
+  std::vector<T> ValidCand;
+  for(Int_t i=0, n=cont.size(); i<n; ++i){
+    Double_t de = cont.at(i)->DeltaE();
+    if(min < de && de < max){
+      ValidCand.push_back(cont.at(i));
+    }else{
+      DeleteCand.push_back(cont.at(i));
+    }
+  }
+
+  del::ClearContainer(DeleteCand);
+
+  cont.clear();
+  cont.resize(ValidCand.size());
+  std::copy(ValidCand.begin(), ValidCand.end(), cont.begin());
+  ValidCand.clear();
+}
 //_____________________________________________________________________________
 const HodoCluster*
 HodoAnalyzer::GetTime0BH2Cluster() const

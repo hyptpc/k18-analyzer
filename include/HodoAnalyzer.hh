@@ -69,6 +69,7 @@ public:
   void TimeCut(const TString& name, Double_t min, Double_t max);
   void TotCut(const TString& name, Double_t min, Double_t max,
               Bool_t adopt_nan=true);
+  void DeCut(const TString& name, Double_t min, Double_t max);
 
   const HodoCluster* GetTime0BH2Cluster() const;
   const HodoCluster* GetBtof0BH1Cluster() const;
@@ -97,6 +98,9 @@ private:
                  Double_t min, Double_t max, Bool_t adopt_nan);
   template <typename T>
   void AdcCut(std::vector<T>& cont, Double_t min, Double_t max);
+  template <typename T>
+  void DeCut(std::vector<T>& cont, Double_t min, Double_t max);
+
   template <typename T>
   static Int_t MakeUpClusters(const std::vector<T*>& HitCont,
                               HodoCC& ClusterCont,

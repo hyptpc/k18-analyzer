@@ -30,6 +30,7 @@
 
 #define HodoCut    0 // with BH1/BH2
 #define TIME_CUT   1 // in cluster analysis
+#define DE_CUT     1 // in cluster analysis for aft
 #define FHitBranch 1 // make FiberHit branches (becomes heavy)
 
 namespace
@@ -224,6 +225,10 @@ ProcessingNormal()
   static const Double_t MinTimeAFT = gUser.GetParameter("TimeAFT", 0);
   static const Double_t MaxTimeAFT = gUser.GetParameter("TimeAFT", 1);  
 #endif
+#if DE_CUT
+  static const Double_t MinDeAFT   = gUser.GetParameter("DeAFT", 0);
+  static const Double_t MaxDeAFT   = gUser.GetParameter("DeAFT", 1);
+#endif 
 
   RawData rawData;
   rawData.DecodeHits("TFlag");
@@ -505,6 +510,9 @@ ProcessingNormal()
   //AFT cluster 
 #if TIME_CUT
   hodoAna.TimeCut("AFT", MinTimeAFT, MaxTimeAFT);
+#endif
+#if DE_CUT
+  hodoAna.DeCut("AFT", MinDeAFT, MaxDeAFT);
 #endif
   {
 	int nclaft = hodoAna.GetNClusters("AFT");
