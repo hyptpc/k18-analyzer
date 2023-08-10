@@ -166,13 +166,13 @@ const Int_t PlMinSdcOut      =  31;
 const Int_t PlMaxSdcOut      =  42;
 const Int_t PlMinTOF         =  51; // need to change
 const Int_t PlMaxTOF         =  54; // need to change
-const Int_t PlMinVP          =  21;
-const Int_t PlMaxVP          =  30;
+const Int_t PlMinVP          =  16;
+const Int_t PlMaxVP          =  26;
 const Int_t PlOffsBc         = 100;
 const Int_t PlOffsSdcIn      =   0;
 const Int_t PlOffsSdcOut     =  30;
 const Int_t PlOffsTOF        =  50;
-const Int_t PlOffsVP         =  20;
+const Int_t PlOffsVP         =  15;
 // const Int_t PlOffsTPCX       = 600;
 // const Int_t PlOffsTPCY       = 650;
 
