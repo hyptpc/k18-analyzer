@@ -807,7 +807,7 @@ ProcessingNormal()
       HF1(100*layerId+13, dl);
       HF1(100*layerId+14, pos);
 
-      if(nh>17 && q<=0. && chisqr<200.){
+      if(nh>17 && q>=0. && chisqr<200.){
       	HF1(100*layerId+15, res);
 	HF2(100*layerId+16, pos, res);
       }

@@ -94,15 +94,15 @@ RKCordParameter::RKCordParameter(const ThreeVector &pos,
     u(mom.x()/mom.z()), v(mom.y()/mom.z())
 {
   Double_t p = mom.Mag();
-  q = -Polarity/p;
+  q = Polarity/p;
 }
 
 //_____________________________________________________________________________
 ThreeVector
 RKCordParameter::MomentumInGlobal() const
 {
-  Double_t p  = -Polarity/q;
-  Double_t pz = -std::abs(p)/std::sqrt(1.+u*u+v*v);
+  Double_t p  = Polarity/q;
+  Double_t pz = std::abs(p)/std::sqrt(1.+u*u+v*v);
   return ThreeVector(pz*u, pz*v, pz);
 }
 
@@ -880,14 +880,14 @@ RK::TraceToLast(RKHitPointContainer& hitContainer)
   RKTrajectoryPoint prevPoint(hpini);
 
   const Int_t    MaxStep  = 80000;
-  const Double_t StepSize =  -20.;  // mm
+  const Double_t StepSize =   20.;  // mm
 
   iPlane += 1;
 
   std::vector<TVector3> StepPoint(MaxStep);
   Int_t iStep = 0;
   while(++iStep < MaxStep){
-    RKTrajectoryPoint nextPoint = RK::TraceOneStep(-StepSize, prevPoint);
+    RKTrajectoryPoint nextPoint = RK::TraceOneStep(StepSize, prevPoint);
 
     StepPoint[iStep-1] = nextPoint.PositionInGlobal();
 
