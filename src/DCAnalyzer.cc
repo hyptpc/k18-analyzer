@@ -64,6 +64,7 @@ const auto& gGeom   = DCGeomMan::GetInstance();
 const auto& gUser   = UserParamMan::GetInstance();
 
 //_____________________________________________________________________________
+const auto& valueNMR  = ConfMan::Get<Double_t>("FLDNMR");
 const Double_t& pK18 = ConfMan::Get<Double_t>("PK18");
 const Int_t& IdTOFUX = gGeom.DetectorId("TOF-UX");
 const Int_t& IdTOFUY = gGeom.DetectorId("TOF-UY");
@@ -764,13 +765,15 @@ DCAnalyzer::TrackSearchS2s()
       // Double_t v0In    = trIn->GetV0();
       // Double_t v0Out   = trOut->GetV0();
       Double_t bending = u0Out - u0In;
-      Double_t p[3] = { 0.08493, 0.2227, 0.01572 };
-      Double_t initial_momentum = p[0] + p[1]/(bending-p[2]);
+      // Double_t p[3] = { 0.08493, 0.2227, 0.01572 };
+      // Double_t initial_momentum = p[0] + p[1]/(bending-p[2]);
+      Double_t s = valueNMR/TMath::Abs(valueNMR);
+      Double_t initial_momentum = s*pK18;
       if(false
          && bending>0. && initial_momentum>0.){
         trS2s->SetInitialMomentum(initial_momentum);
       } else {
-        trS2s->SetInitialMomentum(pK18);
+        trS2s->SetInitialMomentum(initial_momentum);
       }
       if(true
          && trS2s->DoFit()
