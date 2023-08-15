@@ -442,14 +442,13 @@ S2sTrack::CalcChiSqr(const RKHitPointContainer &hpCont) const
     if(!thp) continue;
     Int_t    lnum = thp->GetLayer();
     const RKcalcHitPoint& calhp = hpCont.HitPointOfLayer(lnum);
-    const ThreeVector& mom = calhp.MomentumInGlobal();
     Double_t w = gGeom.GetResolution(lnum);
     w = 1./(w*w);
     Double_t hitpos = thp->GetLocalHitPos();
     Double_t calpos = calhp.PositionInLocal();
     Double_t a = thp->GetTiltAngle()*TMath::DegToRad();
-    Double_t u = mom.x()/mom.z();
-    Double_t v = mom.y()/mom.z();
+    Double_t u, v;
+    GetTrajectoryLocalDirection(lnum, u, v);
     Double_t dsdz = u*TMath::Cos(a)+v*TMath::Sin(a);
     Double_t coss = thp->IsHoneycomb() ? TMath::Cos(TMath::ATan(dsdz)) : 1.;
     Double_t wp   = thp->GetWirePosition();
@@ -495,17 +494,16 @@ S2sTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
     if(!thp) continue;
     Int_t lnum = thp->GetLayer();
     const RKcalcHitPoint &calhp = hpCont.HitPointOfLayer(lnum);
-    const ThreeVector&    mom   = calhp.MomentumInGlobal();
     Double_t hitpos = thp->GetLocalHitPos();
     Double_t calpos = calhp.PositionInLocal();
     Double_t a = thp->GetTiltAngle()*TMath::DegToRad();
-    Double_t u = mom.x()/mom.z();
-    Double_t v = mom.y()/mom.z();
+    Double_t u, v;
+    GetTrajectoryLocalDirection(lnum, u, v);
     Double_t dsdz = u*TMath::Cos(a)+v*TMath::Sin(a);
     Double_t coss = thp->IsHoneycomb() ? TMath::Cos(TMath::ATan(dsdz)) : 1.;
     Double_t wp   = thp->GetWirePosition();
     Double_t ss   = wp+(hitpos-wp)/coss;
-    Double_t cb   = ss-calpos;
+    Double_t cb   = (ss-calpos)*coss;
     // Double_t cb = thp->GetLocalHitPos()-calhp.PositionInLocal();
     // Double_t cb = thp->GetResidual();
     Double_t wt = gGeom.GetResolution(lnum);
@@ -726,6 +724,9 @@ S2sTrack::SaveCalcPosition(const RKHitPointContainer &hpCont)
     thp->SetCalGPos(calhp.PositionInGlobal());
     thp->SetCalGMom(calhp.MomentumInGlobal());
     thp->SetCalLPos(calhp.PositionInLocal());
+    Double_t u, v;
+    GetTrajectoryLocalDirection(lnum, u, v);
+    thp->SetCalLUV(u, v);
   }
   return true;
 }

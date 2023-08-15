@@ -26,12 +26,15 @@ private:
   TVector3     m_cal_global_mom;
   TVector3     m_cal_global_pos;
   Double_t     m_cal_local_pos;
+  Double_t     m_cal_local_u;
+  Double_t     m_cal_local_v;
 
 public:
   Bool_t          IsHoneycomb() const { return m_dcltrack_hit->IsHoneycomb(); }
   void            SetCalGMom(const TVector3 &mom) { m_cal_global_mom = mom; }
   void            SetCalGPos(const TVector3 &pos) { m_cal_global_pos = pos; }
   void            SetCalLPos(Double_t pos) { m_cal_local_pos=pos; }
+  void            SetCalLUV(Double_t u, Double_t v) { m_cal_local_u = u; m_cal_local_v = v; }
   DCLTrackHit*    GetHit() const { return m_dcltrack_hit; }
   Double_t        GetWirePosition() const
   { return m_dcltrack_hit->GetWirePosition(); }

@@ -36,9 +36,7 @@ Double_t
 TrackHit::GetResidual() const
 {
   Double_t a = GetTiltAngle()*TMath::DegToRad();
-  Double_t u = m_cal_global_mom.x()/m_cal_global_mom.z();
-  Double_t v = m_cal_global_mom.y()/m_cal_global_mom.z();
-  Double_t dsdz = u*TMath::Cos(a)+v*TMath::Sin(a);
+  Double_t dsdz = m_cal_local_u*TMath::Cos(a)+m_cal_local_v*TMath::Sin(a);
   Double_t coss = IsHoneycomb() ? TMath::Cos(TMath::ATan(dsdz)) : 1.;
   Double_t wp = GetWirePosition();
   Double_t ss = wp+(GetLocalHitPos()-wp)/coss;
