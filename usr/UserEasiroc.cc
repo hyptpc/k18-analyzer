@@ -517,6 +517,7 @@ ProcessingNormal()
   {
 	int nclaft = hodoAna.GetNClusters("AFT");
 	event.aft_ncl = nclaft;
+	double desum = 0;
 	if (nclaft > NumOfPlaneAFT) nclaft = NumOfPlaneAFT;
 	for(Int_t i=0; i<nclaft; ++i){
 	  const auto& cl = hodoAna.GetCluster("AFT", i);
@@ -528,6 +529,7 @@ ProcessingNormal()
 	  Double_t pos    = cl->MeanPosition();
 	  Double_t seg    = cl->MeanSeg();
 	  Double_t de     = cl->DeltaE();
+	  desum = desum + de;
 	  event.aft_clsize[i]  = clsize;
 	  event.aft_clseg[i]   = seg;
 	  event.aft_cltot[i]   = tot;
@@ -541,6 +543,7 @@ ProcessingNormal()
 	  HF1(AFTHid + 106, seg);
 	}
 	HF1(AFTHid + 101, nclaft);
+	HF1(AFTHid + 107, desum);
   }
 
 
@@ -738,6 +741,7 @@ ConfMan::InitializeHistograms()
       NbinTot, MinTot, MaxTot, NbinTime, MinTime, MaxTime);
   HB1(AFTHid +106, "AFT Cluster Position",
       NumOfSegAFT, -0.5*(Double_t)NumOfSegAFT, 0.5*(Double_t)NumOfSegAFT);
+  HB1(AFTHid +107, "AFT DeltaE Sum(Cluster)", 800, 0, 80);
 
 
   //Tree
