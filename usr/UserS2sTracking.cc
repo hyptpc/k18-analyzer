@@ -336,7 +336,7 @@ ProcessingNormal()
   //////////////BH2 Analysis
   Double_t min_time = -999.;
   for(Int_t i=0; i<nhBh2; ++i){
-    const auto& hit = hodoAna.GetHit<BH2Hit>("BH2", i);
+    const auto& hit = hodoAna.GetHit("BH2", i);
     if(!hit) continue;
     Double_t seg = hit->SegmentId()+1;
     Double_t mt  = hit->MeanTime();
