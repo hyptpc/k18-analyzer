@@ -86,6 +86,19 @@ DCHit::DCHit(Int_t layer, Double_t wire)
 }
 
 //_____________________________________________________________________________
+DCHit::DCHit(Int_t plane, Int_t layer, Int_t wire, Double_t wpos) // for Geant4
+  : m_plane(plane),
+    m_layer(layer),
+    m_wire(wire),
+    m_wpos(wpos),
+    m_angle(0.),
+    m_cluster_size(0.),
+    m_mwpc_flag(false)
+{
+  debug::ObjectCounter::increase(ClassName());
+}
+
+//_____________________________________________________________________________
 DCHit::~DCHit()
 {
   ClearRegisteredHits();
@@ -210,6 +223,51 @@ DCHit::CalcDCObservables()
   }
   m_tdc = leading;
   m_trailing = trailing;
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+DCHit::SetDCObservablesGeant4(Double_t dl, Double_t tot)
+{
+  // if(false
+  //    || !gGeom.IsReady()
+  //    || !gTdc.IsReady()
+  //    || !gDrift.IsReady()){
+  //   return false;
+  // }
+
+  m_angle = gGeom.GetTiltAngle(m_layer);
+  m_z     = gGeom.GetLocalZ(m_layer);
+
+  Double_t dt = TMath::QuietNaN();
+  Bool_t dl_is_good = false;
+  switch(m_layer){
+    // BC3,4
+  case 113: case 114: case 115: case 116: case 117: case 118:
+  case 119: case 120: case 121: case 122: case 123: case 124:
+    if(MinDLBc[m_layer-100] < dl && dl < MaxDLBc[m_layer-100]){
+      dl_is_good = true;
+    }
+    break;
+    // SDC1,2,3,4,5
+  case 1: case 2: case 3: case 4: case 5: case 6:
+  case 7: case 8: case 9: case 10:
+  case 31: case 32: case 33: case 34:
+  case 35: case 36: case 37: case 38:
+  case 39: case 40: case 41: case 42:
+    if(MinDLSdc[m_layer] < dl && dl < MaxDLSdc[m_layer]){
+      dl_is_good = true;
+    }
+    break;
+  default:
+    hddaq::cout << FUNC_NAME << " "
+		<< "invalid layer id : " << m_layer << std::endl;
+    return false;
+  }
+
+  SetDCData(dt, dl, tot, false, dl_is_good);
+
   return true;
 }
 

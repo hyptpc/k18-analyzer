@@ -6,6 +6,7 @@
 #include <map>
 #include <vector>
 #include <TString.h>
+#include <TVector3.h>
 
 #include "DetectorID.hh"
 
@@ -39,6 +40,7 @@ class DCAnalyzer
 {
 public:
   static const TString& ClassName();
+  DCAnalyzer();
   DCAnalyzer(const RawData& raw_data);
   ~DCAnalyzer();
 
@@ -82,6 +84,15 @@ public:
   Bool_t DecodeBcOutHits();
   Bool_t DecodeSdcInHits();
   Bool_t DecodeSdcOutHits(Double_t ofs_dt=0.);
+  Bool_t DecodeSdcInHitsGeant4(const std::vector<Int_t>& nhit,
+			       const std::vector<std::vector<TVector3>>& pos,
+			       const std::vector<std::vector<Double_t>>& de);
+  Bool_t DecodeSdcOutHitsGeant4(const std::vector<Int_t>& nhit,
+				const std::vector<std::vector<TVector3>>& pos,
+				const std::vector<std::vector<Double_t>>& de);
+  void DecodeHitsGeant4(const TString& name,
+			const std::vector<Int_t>& planeId, const std::vector<Int_t>& layerId,
+			const std::vector<TVector3>& gpos, const std::vector<Double_t>& de);
   Bool_t DecodeTOFHits(const HodoHC& HitCont);
   Bool_t DecodeTOFHits(const HodoCC& ClCont);
   // Bool_t DecodeSimuHits(SimuData *simuData);

@@ -24,6 +24,7 @@ public:
   DCHit(const DCRawHit* rhit);
   DCHit(Int_t layer);
   DCHit(Int_t layer, Double_t wire);
+  DCHit(Int_t plane, Int_t layer, Int_t wire, Double_t wpos); // for Geant4
   ~DCHit();
 
 private:
@@ -92,6 +93,7 @@ public:
     else return m_wire;
   }
   Bool_t CalcDCObservables();
+  Bool_t SetDCObservablesGeant4(Double_t dl, Double_t tot);
   Bool_t CalcFiberObservables();
   Bool_t CalcMWPCObservables();
   Bool_t CalcCFTObservables();
