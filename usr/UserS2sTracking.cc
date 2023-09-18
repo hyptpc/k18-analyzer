@@ -10,6 +10,7 @@
 
 #include <TMath.h>
 
+#include "BH2Hit.hh"
 #include "ConfMan.hh"
 #include "DatabasePDG.hh"
 #include "DCRawHit.hh"
@@ -17,6 +18,10 @@
 #include "DetectorID.hh"
 #include "HodoAnalyzer.hh"
 #include "HodoHit.hh"
+#include "HodoParamMan.hh"
+#include "HodoCluster.hh"
+#include "HodoPHCMan.hh"
+#include "HodoRawHit.hh"
 #include "MathTools.hh"
 #include "RMAnalyzer.hh"
 #include "S2sLib.hh"
@@ -326,7 +331,7 @@ ProcessingNormal()
   HF1(1, 1.);
 
   //////////////BH2 Analysis
-  hodoAna.DecodeHits("BH2");
+  hodoAna.DecodeHits<BH2Hit>("BH2");
   Int_t nhBh2 = hodoAna.GetNHits("BH2");
   event.nhBh2 = nhBh2;
 #if HodoCut
@@ -336,16 +341,16 @@ ProcessingNormal()
   //////////////BH2 Analysis
   Double_t min_time = -999.;
   for(Int_t i=0; i<nhBh2; ++i){
-    const auto& hit = hodoAna.GetHit("BH2", i);
+    const auto& hit = hodoAna.GetHit<BH2Hit>("BH2", i);
     if(!hit) continue;
     Double_t seg = hit->SegmentId()+1;
     Double_t mt  = hit->MeanTime();
     Double_t cmt = hit->CMeanTime();
     Double_t ct0 = hit->CTime0();
     Double_t de  = hit->DeltaE();
-#if HodoCut
-    if(de<MinDeBH2 || MaxDeBH2<de) continue;
-#endif
+    #if HodoCut
+        if(de<MinDeBH2 || MaxDeBH2<de) continue;
+    #endif
     event.tBh2[i]   = cmt;
     event.t0Bh2[i]  = ct0;
     event.deBh2[i]  = de;
