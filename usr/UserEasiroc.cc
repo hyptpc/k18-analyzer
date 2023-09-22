@@ -103,6 +103,7 @@ struct Event
   Double_t aft_clde[NumOfPlaneAFT];
   Double_t aft_cltime[NumOfPlaneAFT];
   Double_t aft_clplane[NumOfPlaneAFT];
+  Double_t aft_desum;
 
   void clear();
 };
@@ -544,6 +545,7 @@ ProcessingNormal()
 	}
 	HF1(AFTHid + 101, nclaft);
 	HF1(AFTHid + 107, desum);
+	event.aft_desum = desum;
   }
 
 
@@ -824,6 +826,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("aft_clseg",      event.aft_clseg,        "aft_clseg[aft_ncl]/D");
   tree->Branch("aft_clde",       event.aft_clde,         "aft_clde[aft_ncl]/D");
   tree->Branch("aft_clplane",    event.aft_clplane,      "aft_clplane[aft_ncl]/D");
+  tree->Branch("aft_desum",     &event.aft_desum,        "aft_desum/D");
 
   // HPrint();
   return true;
