@@ -76,7 +76,19 @@ HodoCluster::Calculate()
     m_time0     += hit->Time0(index);
     m_ctime0    += hit->CTime0(index);
     m_time_diff += hit->TimeDiff(index);
-    m_de        += hit->DeltaE();
+	if(hit->GetName() == "AFT"){
+	  const auto& rawhit = hit->GetRawHit();
+	  bool IsSaturate = ( rawhit->GetAdcHigh(0)>3200 || rawhit->GetAdcHigh(1)>3200 );
+	  if(IsSaturate){
+		m_de += hit->DeltaELowGain();
+		}
+	  else{
+		m_de += hit->DeltaEHighGain();
+	  }
+	}
+    else{
+	  m_de += hit->DeltaE();
+	}
     if(hit->CMeanTime(index) < m_1st_time){
       m_1st_seg  = hit->SegmentId();
       m_1st_time = hit->CMeanTime(index);
