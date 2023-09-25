@@ -52,6 +52,7 @@
 namespace root
 {
 const Int_t MaxHits  = 500;
+const Int_t MaxCluster = 100;
 const Int_t MaxDepth = 16;
 const Int_t MaxHist  = 100000000;
 extern TH1   *h[MaxHist];

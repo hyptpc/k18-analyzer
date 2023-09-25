@@ -32,6 +32,8 @@
 #define TIME_CUT   1 // in cluster analysis
 #define DE_CUT     1 // in cluster analysis for aft
 #define FHitBranch 1 // make FiberHit branches (becomes heavy)
+#define RawHitAFTBranch 1 //make AFT RawHit branches 
+#define ClusterHitAFTBranch 1 //make AFTCluster branches
 
 namespace
 {
@@ -97,13 +99,14 @@ struct Event
 
   //AFT cluster
   Int_t    aft_ncl;
-  Int_t    aft_clsize[NumOfPlaneAFT];
-  Double_t aft_clseg[NumOfPlaneAFT];
-  Double_t aft_cltot[NumOfPlaneAFT];
-  Double_t aft_clde[NumOfPlaneAFT];
-  Double_t aft_cltime[NumOfPlaneAFT];
-  Double_t aft_clplane[NumOfPlaneAFT];
   Double_t aft_desum;
+  Int_t    aft_clsize[MaxCluster];
+  Double_t aft_clseg[MaxCluster];
+  Double_t aft_cltot[MaxCluster];
+  Double_t aft_clde[MaxCluster];
+  Double_t aft_cltime[MaxCluster];
+  Int_t    aft_clplane[MaxCluster];
+  Double_t aft_clpos[MaxCluster];
 
   void clear();
 };
@@ -153,15 +156,10 @@ Event::clear()
     bft_clseg[it]  = qnan;
   }
 
+  //aft raw
   for(Int_t p=0; p<NumOfPlaneAFT; p++){
     aft_nhits[p] = 0;
     aft_nhits[p] = 0;	
-	aft_clsize[p]  = qnan;
-	aft_clseg[p]   = qnan;
-	aft_cltot[p]   = qnan;
-	aft_clde[p]    = qnan;
-	aft_cltime[p]  = qnan;
-	aft_clplane[p] = qnan;
     for(Int_t seg=0; seg<NumOfSegAFT; seg++){
       aft_hitpat[p][seg] = -1;
       for(Int_t ud=0; ud<kUorD; ud++){
@@ -182,6 +180,19 @@ Event::clear()
         aft_mtot[p][seg][i] = qnan;
       }
     }
+  }
+
+  //aft cluster
+  aft_ncl   = qnan;
+  aft_desum = qnan;
+  for(Int_t it=0; it<MaxCluster; it++){
+	aft_clsize[it]  = qnan;
+	aft_clseg[it]   = qnan;
+	aft_cltot[it]   = qnan;
+	aft_clde[it]    = qnan;
+	aft_cltime[it]  = qnan;
+	aft_clplane[it] = qnan;
+	aft_clpos[it]   = qnan;
   }
 }
 
@@ -519,7 +530,7 @@ ProcessingNormal()
 	int nclaft = hodoAna.GetNClusters("AFT");
 	event.aft_ncl = nclaft;
 	double desum = 0;
-	if (nclaft > NumOfPlaneAFT) nclaft = NumOfPlaneAFT;
+	if (nclaft > MaxCluster) nclaft = MaxCluster;
 	for(Int_t i=0; i<nclaft; ++i){
 	  const auto& cl = hodoAna.GetCluster("AFT", i);
 	  if(!cl) continue;
@@ -537,6 +548,7 @@ ProcessingNormal()
 	  event.aft_clde[i]    = de;
 	  event.aft_cltime[i]  = time;
 	  event.aft_clplane[i] = plane;
+	  event.aft_clpos[i]   = pos;
 	  HF1(AFTHid + 102, clsize);
 	  HF1(AFTHid + 103, time);
 	  HF1(AFTHid + 104, tot);
@@ -789,6 +801,8 @@ ConfMan::InitializeHistograms()
   tree->Branch("bft_clpos",      event.bft_clpos,        "bft_clpos[bft_ncl]/D");
   tree->Branch("bft_clseg",      event.bft_clseg,        "bft_clseg[bft_ncl]/D");
 
+  //AFT
+#if RawHitAFTBranch
   tree->Branch("aft_nhits", event.aft_nhits, Form("aft_nhits[%d]/I", NumOfPlaneAFT));
   tree->Branch("aft_hitpat", event.aft_hitpat,
                Form("aft_hitpat[%d][%d]/I", NumOfPlaneAFT, NumOfSegAFT));
@@ -818,15 +832,19 @@ ConfMan::InitializeHistograms()
   tree->Branch("aft_tot", event.aft_tot,
                Form("aft_tot[%d][%d][%d][%d]/D",
                     NumOfPlaneAFT, NumOfSegAFT, kUorD, MaxDepth));
+#endif
 
+#if ClusterHitAFTBranch
   tree->Branch("aft_ncl",       &event.aft_ncl,          "aft_ncl/I");
+  tree->Branch("aft_desum",     &event.aft_desum,        "aft_desum/D");
   tree->Branch("aft_clsize",     event.aft_clsize,       "aft_clsize[aft_ncl]/I");
   tree->Branch("aft_cltime",     event.aft_cltime,       "aft_ctime[aft_ncl]/D");
   tree->Branch("aft_cltot",      event.aft_cltot,        "aft_ctot[aft_ncl]/D");
   tree->Branch("aft_clseg",      event.aft_clseg,        "aft_clseg[aft_ncl]/D");
   tree->Branch("aft_clde",       event.aft_clde,         "aft_clde[aft_ncl]/D");
-  tree->Branch("aft_clplane",    event.aft_clplane,      "aft_clplane[aft_ncl]/D");
-  tree->Branch("aft_desum",     &event.aft_desum,        "aft_desum/D");
+  tree->Branch("aft_clplane",    event.aft_clplane,      "aft_clplane[aft_ncl]/I");
+  tree->Branch("aft_clpos",      event.aft_clpos,        "aft_clpos[aft_ncl]/D");
+#endif
 
   // HPrint();
   return true;
