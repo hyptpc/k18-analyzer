@@ -62,12 +62,14 @@
 #include "DeleteUtility.hh"
 #include "HodoParamMan.hh"
 #include "DCTdcCalibMan.hh"
+#include "UserParamMan.hh"
 #include "TPCPadHelper.hh"
 
 namespace
 {
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gTdc = DCTdcCalibMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
 const auto& IdTarget = gGeom.DetectorId("Target");
 const auto& zTarget = gGeom.LocalZ("Target");
 const auto& zK18Target = gGeom.LocalZ("K18Target");
@@ -151,6 +153,7 @@ EventDisplayShs::Initialize( void )
     return false;
   }
 
+  static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");
   m_theApp = new TApplication("App", 0, 0);
 
 #if ROOT_VERSION_CODE > ROOT_VERSION(6,4,0)
@@ -161,7 +164,7 @@ EventDisplayShs::Initialize( void )
   m_canvas = new TCanvas("Event Display", "Event Display", 1800, 900);
 
   m_tpc_adc = new TH1D("h_tpc_adc", "TPC ADC", 4096, 0, 4096);
-  m_tpc_tdc = new TH1D("h_tpc_adc", "TPC TDC",
+  m_tpc_tdc = new TH1D("h_tpc_tdc", "TPC TDC",
                        NumOfTimeBucket, 0, NumOfTimeBucket);
   const Double_t MinX = -400.;
   const Double_t MaxX =  400.;
@@ -237,7 +240,8 @@ EventDisplayShs::Initialize( void )
   m_canvas->cd(1)->SetLogz();
   m_tpc_adc2d->Draw("colz");
   m_htof_2d->Draw("same col");
-  m_canvas->cd(2);
+  //m_canvas->cd(2);
+  m_canvas->cd(2)->SetLogz(); //wstest
   m_tpc_tdc2d->Draw("colz");
   m_htof_2d->Draw("same col");
 
@@ -270,7 +274,6 @@ EventDisplayShs::Initialize( void )
   // gPad->GetView()->ShowAxis();
 
   m_canvas->Update();
-
   m_is_ready = true;
   return m_is_ready;
 }
@@ -372,7 +375,7 @@ EventDisplayShs::Update(void)
     auto canvas = dynamic_cast<TCanvas*>(canvas_iterator.Next());
     if (!canvas) break;
     canvas->UseCurrentStyle();
-    canvas->cd(1)->SetLogz();
+    //canvas->cd(1)->SetLogz();
     canvas->Modified();
     canvas->Update();
   }

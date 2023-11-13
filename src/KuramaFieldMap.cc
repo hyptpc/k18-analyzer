@@ -184,7 +184,6 @@ KuramaFieldMap::GetFieldValue(const Double_t pointCM[3],
   BfieldTesla[0] = bx;
   BfieldTesla[1] = by;
   BfieldTesla[2] = bz;
-
   return true;
 }
 

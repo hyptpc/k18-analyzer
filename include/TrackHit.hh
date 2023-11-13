@@ -43,7 +43,6 @@ public:
   Double_t        GetResolution() const
   { return m_dcltrack_hit->GetResolution(); }
   Double_t        GetTiltAngle() const;
-  DCLTrackHit*    GetDCLTrack(){ return m_dcltrack_hit; }
   Bool_t          ReCalc(Bool_t applyRecursively=false);
 };
 

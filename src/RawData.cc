@@ -141,9 +141,10 @@ RawData::ClearTPC()
 Bool_t
 RawData::CorrectBaselineTPC()
 {
+  static const Double_t MinRms = gUser.GetParameter("MinBaseRmsTPC");
   static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
   static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
-  static const Double_t MinRms = gUser.GetParameter("MinBaseRmsTPC");
+  static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");
 
   if(!m_is_decoded[kTPC]){
     hddaq::cerr << FUNC_NAME << " DecodeTPCHits() must be done!" << std::endl;
@@ -169,16 +170,18 @@ RawData::CorrectBaselineTPC()
   Double_t min_ref = 1e5;
   for(const auto& hc : m_TPCRawHC){
     for(const auto& hit : hc){
-      if(hit->FadcSize() != NumOfTimeBucket)
+      if(hit->FadcSize() != NumOfTimeBucket){
+	hddaq::cout << FUNC_NAME << " " << "FadcSize!=NumOfTimeBucket!" << hit->FadcSize()<<" "<<NumOfTimeBucket<<std::endl;
 	continue;
+      }
       ///// Minimum RMS method (unused)
       // auto ref = hit->RMS(MinTimeBucket, MaxTimeBucket);
       // if(hit->RMS(MinTimeBucket, MaxTimeBucket) < 20.) continue;
       ///// Minimum Amplitude method
       auto ref = hit->MaxAdc(MinTimeBucket, MaxTimeBucket)
 	- hit->Mean(MinTimeBucket, MaxTimeBucket);
-      double rms = hit->RMS();
-      if(ref < min_ref and rms>MinRms){
+      double rms = hit -> RMS(MinTimeBucket, MaxTimeBucket);
+      if(ref < min_ref && rms > MinRms){
 	min_ref = ref;
 	m_baseline = hit;
       }
@@ -206,7 +209,7 @@ RawData::CorrectBaselineTPC()
 
   for(const auto& hc : m_TPCRawHC){
     for(const auto& hit : hc){
-      double raw_rms = hit->RMS();
+      double raw_rms = hit->RMS(0, NumOfTimeBucket);
       TH1D h_fadc("h_fadc", Form("FADC Layer#%d Row#%d;sample# ;ADC ch",
 				 hit->LayerId(), hit->RowId()),
 		  NumOfTimeBucket, 0, NumOfTimeBucket);
@@ -545,7 +548,7 @@ RawData::DecodeTPCHits()
 	double raw_rms = hit->RawRMS();
 	for(const auto& adc: hit->Fadc()){
 	  AddTPCRawHit(m_TPCCorHC[hit->LayerId()], hit->LayerId(),
-		       hit->RowId(), adc,nullptr,raw_rms);
+		       hit->RowId(), adc, nullptr, raw_rms);
 	}
       }
     }
@@ -553,103 +556,6 @@ RawData::DecodeTPCHits()
 
   return true;
 }
-
-/*
-//_____________________________________________________________________________
-Bool_t
-RawData::SelectTPCHits(Bool_t maxadccut, Bool_t maxadctbcut)
-{
-  if(!m_is_decoded[kTPC]){
-    hddaq::cerr << FUNC_NAME << " "
-		<< "Rawdata has not been decoded!" << std::endl;
-    return false;
-  }
-  std::vector<TPCRHitContainer> ValidCand;
-  ValidCand.resize(NumOfLayersTPC+1);
-  std::vector<TPCRHitContainer> DeleteCand;
-  DeleteCand.resize(NumOfLayersTPC+1);
-
-  static const Double_t MinDe = gUser.GetParameter("MinDeTPC");
-  static const Double_t MinRawRms = gUser.GetParameter("MinBaseRmsTPC");//This is not MinRmsTPC!
-  static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
-  static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
-  static const Bool_t BaselineCorrectionTPC
-    = (gUser.GetParameter("BaselineCorrectionTPC") == 1);
-
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    std::size_t nh;
-    if(BaselineCorrectionTPC)
-      nh = m_TPCCorHC[layer].size();
-    else
-      nh = m_TPCRawHC[layer].size();
-    if(nh==0)
-      continue;
-    for(std::size_t hiti =0; hiti< nh; ++hiti){
-      TPCRawHit* hit;
-      double raw_rms;
-      if(BaselineCorrectionTPC){
-	hit = m_TPCCorHC[layer][hiti];
-	raw_rms = m_TPCRawHC[layer][hiti]->RMS();
-      }
-      else{
-	hit = m_TPCRawHC[layer][hiti];
-	raw_rms = m_TPCRawHC[layer][hiti]->RMS();
-      }
-      Double_t mean = hit->Mean();
-      //Double_t max_adc = hit->MaxAdc() - mean;
-      Double_t max_adc = hit->MaxAdc(MinTimeBucket, MaxTimeBucket) - mean;
-      Int_t maxadc_tb = hit->LocMax();
-      if(raw_rms>MinRawRms){
-	if(maxadccut&&maxadctbcut){
-	  if(max_adc>MinDe
-	     && (MinTimeBucket < maxadc_tb
-		 && maxadc_tb < MaxTimeBucket))
-	    ValidCand[layer].push_back(hit);
-	  else
-	    DeleteCand[layer].push_back(hit);
-	}
-	if(maxadccut&&!maxadctbcut){
-	  if(max_adc>MinDe)
-	    ValidCand[layer].push_back(hit);
-	  else
-	    DeleteCand[layer].push_back(hit);
-	}
-	if(!maxadccut&&maxadctbcut){
-	  if(MinTimeBucket < maxadc_tb
-	     && maxadc_tb < MaxTimeBucket)
-	    ValidCand[layer].push_back(hit);
-	  else
-	    DeleteCand[layer].push_back(hit);
-	}
-	if(!maxadccut&&!maxadctbcut){
-	  ValidCand[layer].push_back(hit);
-	}
-      }
-      else{
-	DeleteCand[layer].push_back(hit);
-      }
-    }
-  }
-
-  del::ClearContainerAll(DeleteCand);
-
-  for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
-    if(BaselineCorrectionTPC){
-      m_TPCCorHC[layer].clear();
-      m_TPCCorHC[layer].resize(ValidCand[layer].size());
-      std::copy(ValidCand[layer].begin(), ValidCand[layer].end(), m_TPCCorHC[layer].begin());
-      ValidCand[layer].clear();
-    }
-    else{
-      m_TPCRawHC[layer].clear();
-      m_TPCRawHC[layer].resize(ValidCand[layer].size());
-      std::copy(ValidCand[layer].begin(), ValidCand[layer].end(), m_TPCRawHC[layer].begin());
-      ValidCand[layer].clear();
-    }
-  }
-  return true;
-}
-*/
 
 //_____________________________________________________________________________
 Bool_t

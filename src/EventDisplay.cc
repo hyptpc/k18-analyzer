@@ -59,6 +59,7 @@
 #include "DeleteUtility.hh"
 #include "HodoParamMan.hh"
 #include "DCTdcCalibMan.hh"
+#include "UserParamMan.hh"
 #include "TPCPadHelper.hh"
 
 #define BH2        0
@@ -107,6 +108,7 @@ const Double_t MaxZ =  50.;
 
 const HodoParamMan& gHodo = HodoParamMan::GetInstance();
 const DCTdcCalibMan& gTdc = DCTdcCalibMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
 }
 
 //_____________________________________________________________________________
@@ -333,6 +335,7 @@ EventDisplay::Initialize()
 #endif
 
 #if TPC
+  static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");
   // m_tpc_adc = new TH1D("h_tpc_adc", "TPC ADC", 4096, 0, 4096);
   // m_tpc_tdc = new TH1D("h_tpc_adc", "TPC TDC",
   //                      NumOfTimeBucket, 0, NumOfTimeBucket);

@@ -146,11 +146,12 @@ const Int_t PlOffsBcOut      = 112;
 const Int_t PlOffsSdcIn      =   0;
 const Int_t PlOffsSdcOut     =  30;
 const Int_t PlOffsTOF        =  40;
-const Int_t PlOffsVP         =  20;
-const Int_t PlOffsVPTPC      =  10;
-const Int_t PlOffsVPHS       = 207;
-const Int_t PlOffsTPCX       = 600;
-const Int_t PlOffsTPCY       = 650;
+const Int_t PlOffsVP         =  20; //Kurama Tracking
+const Int_t PlOffsVPTPC      =  10; //Kurama w/ TPC Tracking
+const Int_t PlOffsVPHS       = 207; //K1.8 w/ TPC Tracking
+const Int_t PlOffsTPCHit     = 700; //Kurama or K1.8 w/ TPC Tracking
+//const Int_t PlOffsTPCX       = 600;
+//const Int_t PlOffsTPCY       = 650;
 
 const Int_t NumOfLayersBc     = 6;
 const Int_t NumOfLayersSDC1   = 6;
@@ -167,7 +168,7 @@ const Int_t NumOfLayersVPTPC  = 5;
 const Int_t NumOfLayersVPHS   = 4;
 const Int_t NumOfLayersTPC    = 32;
 const Int_t NumOfPadTPC       = 5768;
-const Int_t NumOfTimeBucket   = 170;
+//const Int_t NumOfTimeBucket   = 170;
 
 const Int_t MaxWireBC3      =  64;
 const Int_t MaxWireBC4      =  64;
