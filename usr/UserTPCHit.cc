@@ -114,23 +114,6 @@ struct Event
   std::vector<Double_t> dlTpc;     // time
   std::vector<Double_t> clkTpc;    // clock timing
 
-  Int_t htofnhits;
-  Int_t htofhitpat[MaxHits];
-  Double_t htofua[NumOfSegHTOF];
-  Double_t htofda[NumOfSegHTOF];
-  Double_t htofut[NumOfSegHTOF][MaxDepth];
-  Double_t htofdt[NumOfSegHTOF][MaxDepth];
-
-  Double_t htofmt[NumOfSegHTOF][MaxDepth];
-  Double_t htofde[NumOfSegHTOF];
-
-  Int_t    nhHtof;
-  Int_t    csHtof[NumOfSegHTOF*MaxDepth];
-  Double_t HtofSeg[NumOfSegHTOF*MaxDepth];
-  Double_t tHtof[NumOfSegHTOF*MaxDepth];
-  Double_t dtHtof[NumOfSegHTOF*MaxDepth];
-  Double_t deHtof[NumOfSegHTOF*MaxDepth];
-
   void clear();
 };
 
@@ -161,28 +144,6 @@ Event::clear()
   ctTpc.clear();
   dlTpc.clear();
   clkTpc.clear();
-
-  htofnhits =0;
-  nhHtof =0;
-  for(Int_t it=0; it<MaxHits; ++it){
-    htofhitpat[it]  = -1;
-  }
-  for(Int_t it=0; it<NumOfSegHTOF; it++){
-    htofua[it] = qnan;
-    htofda[it] = qnan;
-    htofde[it] = qnan;
-    for(Int_t m=0; m<MaxDepth; ++m){
-      htofut[it][m] = qnan;
-      htofdt[it][m] = qnan;
-      htofmt[it][m] = qnan;
-
-      csHtof[MaxDepth*it + m]  = 0;
-      HtofSeg[MaxDepth*it + m] = qnan;
-      tHtof[MaxDepth*it + m]   = qnan;
-      dtHtof[MaxDepth*it + m]  = qnan;
-      deHtof[MaxDepth*it + m]  = qnan;
-    }
-  }
 }
 
 //_____________________________________________________________________________
@@ -209,9 +170,7 @@ Bool_t
 UserTPCHit::ProcessingNormal()
 {
   static const Int_t MaxMultiHitTPC = gUser.GetParameter("MaxMultiHitTPC");
-  static const auto MinTdcHTOF = gUser.GetParameter("TdcHTOF", 0);
-  static const auto MaxTdcHTOF = gUser.GetParameter("TdcHTOF", 1);
-  static const Double_t MinCDe = gUser.GetParameter("MinCDeTPC");
+  static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");
   const Int_t run_number   = gUnpacker.get_root()->get_run_number();
   const Int_t event_number = gUnpacker.get_event_number();
 
@@ -233,122 +192,6 @@ UserTPCHit::ProcessingNormal()
   }
 
   if(trigger_flag[trigger::kSpillEnd]) return true;
-
-  ///// HTOF Raw data
-  {
-    Int_t htof_nhits = 0;
-    const HodoRHitContainer& cont = rawData->GetHTOFRawHC();
-    Int_t nh = cont.size();
-    //    HF1(HTOFHid, nh);
-    Int_t nh1 = 0, nh2 = 0;
-    for(Int_t i=0; i<nh; ++i){
-      HodoRawHit* hit = cont[i];
-      Int_t seg = hit->SegmentId()+1;
-      //HF1(HTOFHid+1, seg-0.5);
-      // Up
-      Int_t Au = hit->GetAdcUp();
-      //HF1(HTOFHid+100*seg+1, Au);
-      event.htofua[seg-1] = Au;
-      Bool_t is_hit_u = false;
-      for(Int_t m=0, n_mhit=hit->GetSizeTdcUp(); m<n_mhit; ++m){
-        Int_t T = hit->GetTdcUp(m);
-        //HF1(HTOFHid +100*seg +3, T);
-        event.htofut[seg-1][m] = T;
-        if(MinTdcHTOF < T && T < MaxTdcHTOF) is_hit_u = true;
-      }
-      // if(is_hit_u) HF1(HTOFHid+100*seg+5, Au);
-      // else         HF1(HTOFHid+100*seg+7, Au);
-      // Down
-      Int_t Ad = hit->GetAdcDown();
-      //      HF1(HTOFHid+100*seg+2, Ad);
-      event.htofda[seg-1] = Ad;
-      Bool_t is_hit_d = false;
-      for(Int_t m=0, n_mhit=hit->GetSizeTdcDown(); m<n_mhit; ++m){
-        Int_t T = hit->GetTdcDown(m);
-        //HF1(HTOFHid +100*seg +4, T);
-        event.htofdt[seg-1][m] = T;
-        if(MinTdcHTOF < T && T < MaxTdcHTOF) is_hit_d = true;
-      }
-      // if(is_hit_d) HF1(HTOFHid+100*seg+6, Ad);
-      // else         HF1(HTOFHid+100*seg+8, Ad);
-      // HitPat
-      if(is_hit_u || is_hit_d){
-        ++nh1; //HF1(HTOFHid+3, seg-0.5);
-      }
-      if(is_hit_u && is_hit_d){
-        event.htofhitpat[htof_nhits++] = seg;
-        ++nh2; //HF1(HTOFHid+5, seg-0.5);
-      }
-    }
-    //HF1(HTOFHid+2, nh1); HF1(HTOFHid+4, nh2);
-    event.htofnhits = htof_nhits;
-  }
-
-  ///// HTOF Normalized data
-  hodoAna->DecodeHTOFHits(rawData);
-  {
-    Int_t nh = hodoAna->GetNHitsHTOF();
-    //HF1(HTOFHid+10, Double_t(nh));
-    Int_t nh2 = 0;
-    for(Int_t i=0; i<nh; ++i){
-      Hodo2Hit *hit = hodoAna->GetHitHTOF(i);
-      if(!hit) continue;
-      Int_t seg = hit->SegmentId()+1;
-      Int_t n_mhit = hit->GetNumOfHit();
-      for(Int_t m=0; m<n_mhit; ++m){
-	//HF1(HTOFHid+11, seg-0.5);
-	// Double_t au = hit->GetAUp(), ad = hit->GetADown();
-	// Double_t tu = hit->GetTUp(), td = hit->GetTDown();
-	// Double_t ctu = hit->GetCTUp(), ctd = hit->GetCTDown();
-	Double_t mt = hit->MeanTime();//, cmt = hit->CMeanTime();
-	Double_t de = hit->DeltaE();
-	event.htofmt[seg-1][m] = mt;
-	event.htofde[seg-1] = de;
-	// HF1(HTOFHid+100*seg+11, tu); HF1(HTOFHid+100*seg+12, td);
-	// HF1(HTOFHid+100*seg+13, mt);
-	// HF1(HTOFHid+100*seg+17, ctu); HF1(HTOFHid+100*seg+18, ctd);
-	// HF1(HTOFHid+100*seg+19, cmt); HF1(HTOFHid+100*seg+20, ctu-ctd);
-	// HF2(HTOFHid+100*seg+21, tu, au); HF2(HTOFHid+100*seg+22, td, ad);
-	// HF2(HTOFHid+100*seg+23, ctu, au); HF2(HTOFHid+100*seg+24, ctd, ad);
-	// HF1(HTOFHid+12, cmt);
-	// if(m == 0){
-	//   HF1(HTOFHid+100*seg+14, au); HF1(HTOFHid+100*seg+15, ad);
-	//   HF1(HTOFHid+100*seg+16, de); HF1(HTOFHid+13, de);
-	// }
-	if(de > 0.5){
-	  //HF1(HTOFHid+15, seg-0.5);
-	  ++nh2;
-	}
-      }
-    }
-    // Int_t nc = hodoAna->GetNClustersHTOF();
-    // //HF1(HTOFHid+30, Double_t(nc));
-    // for(Int_t i=0; i<nc; ++i){
-    //   HodoCluster *cluster = hodoAna->GetClusterHTOF(i);
-    //   if(!cluster) continue;
-    //   Int_t cs = cluster->ClusterSize();
-    //   Double_t ms = cluster->MeanSeg()+1;
-    //   Double_t cmt = cluster->CMeanTime();
-    //   Double_t de = cluster->DeltaE();
-    //   // HF1(HTOFHid+31, Double_t(cs));
-    //   // HF1(HTOFHid+32, ms-0.5);
-    //   // HF1(HTOFHid+33, cmt); HF1(HTOFHid+34, de);
-    // }
-  }
-
-  {
-    Int_t nc = hodoAna->GetNClustersHTOF();
-    event.nhHtof = nc;
-    for(Int_t i=0; i<nc; ++i){
-      HodoCluster *cl = hodoAna->GetClusterHTOF(i);
-      if(!cl) continue;
-      event.csHtof[i] = cl->ClusterSize();
-      event.HtofSeg[i] = cl->MeanSeg()+1;
-      event.tHtof[i] = cl->CMeanTime();
-      event.dtHtof[i] = cl->TimeDif();
-      event.deHtof[i] = cl->DeltaE();
-    }
-  }
 
   rawData->DecodeTPCHits();
 
@@ -382,11 +225,11 @@ UserTPCHit::ProcessingNormal()
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     auto hc = rawData->GetTPCRawHC(layer);
     for(const auto& rhit : hc){
-      auto mean    = rhit->Mean();
-      auto max_adc = rhit->MaxAdc();
-      auto min_adc = rhit->MinAdc();
-      auto rms     = rhit->RMS();
-      auto loc_max = rhit->LocMax();
+      auto mean    = rhit->Mean(0, NumOfTimeBucket);
+      auto max_adc = rhit->MaxAdc(0, NumOfTimeBucket);
+      auto min_adc = rhit->MinAdc(0, NumOfTimeBucket);
+      auto rms     = rhit->RMS(0, NumOfTimeBucket);
+      auto loc_max = rhit->LocMax(0, NumOfTimeBucket);
       HF1(11, mean);
       HF1(12, max_adc);
       HF1(13, rms);
@@ -409,7 +252,7 @@ UserTPCHit::ProcessingNormal()
     }
     auto browTpc = baseline->RowId();
     auto blayerTpc = baseline->LayerId();
-    auto brmsTpc = baseline->RMS();
+    auto brmsTpc = baseline->RMS(0, NumOfTimeBucket);
     event.browTpc = browTpc;
     event.blayerTpc = blayerTpc;
     event.brmsTpc = brmsTpc;
@@ -420,11 +263,11 @@ UserTPCHit::ProcessingNormal()
     const auto nhit = hc.size();
     npadTpc += nhit;
     for(const auto& rhit : hc){
-      auto mean    = rhit->Mean();
-      auto max_adc = rhit->MaxAdc();
-      auto min_adc = rhit->MinAdc();
-      auto rms     = rhit->RMS();
-      auto loc_max = rhit->LocMax();
+      auto mean    = rhit->Mean(0, NumOfTimeBucket);
+      auto max_adc = rhit->MaxAdc(0, NumOfTimeBucket);
+      auto min_adc = rhit->MinAdc(0, NumOfTimeBucket);
+      auto rms     = rhit->RMS(0, NumOfTimeBucket);
+      auto loc_max = rhit->LocMax(0, NumOfTimeBucket);
       auto pars    = rhit->GetParameters();
       HF1(31, mean);
       HF1(32, max_adc);
@@ -474,7 +317,6 @@ UserTPCHit::ProcessingNormal()
       Bool_t good_for_analysis = false;
       for(Int_t i=0; i<nhit; ++i){
 	Double_t cde = hit->GetCDe(i);
-	if(cde<MinCDe) continue;
 	Double_t de = hit->GetDe(i);
         Double_t time = hit->GetTime(i);
         Double_t chisqr = hit->GetChisqr(i);
@@ -577,30 +419,30 @@ ConfMan:: InitializeHistograms()
   const Int_t    NbinSigma = 500;
   const Double_t MinSigma  = 0.;
   const Double_t MaxSigma  =  50.;
-
+  const Int_t    NTimeBucket = 170;
   HB1(1, "Status", 20, 0., 20.);
   HB1(10, "TPC Multiplicity (Raw)", NumOfPadTPC+1, 0, NumOfPadTPC+1);
   HB1(11, "TPC FADC Mean", NbinAdc, MinAdc, MaxAdc);
   HB1(12, "TPC FADC Max", NbinAdc, MinAdc, MaxAdc);
   HB1(13, "TPC FADC RMS", NbinRms, MinRms, MaxRms);
-  HB1(14, "TPC FADC LocMax", NumOfTimeBucket+1, 0, NumOfTimeBucket+1);
+  HB1(14, "TPC FADC LocMax", NTimeBucket+1, 0, NTimeBucket+1);
   HB1(15, "TPC FADC Min", NbinAdc, MinAdc, MaxAdc);
   HB1(31, "TPC FADC Mean Cor", NbinAdc, MinAdc, MaxAdc);
   HB1(32, "TPC FADC Max Cor", NbinAdc, MinAdc, MaxAdc);
   HB1(33, "TPC FADC RMS Cor", NbinRms, MinRms, MaxRms);
-  HB1(34, "TPC FADC LocMax Cor", NumOfTimeBucket+1, 0, NumOfTimeBucket+1);
+  HB1(34, "TPC FADC LocMax Cor", NTimeBucket+1, 0, NTimeBucket+1);
   HB1(35, "TPC FADC Min Cor", NbinAdc, MinAdc, MaxAdc);
   HB1(36, "TPC FADC Baseline p0", NbinAdc, MinAdc, MaxAdc);
   HB1(37, "TPC FADC Baseline p1", 120, -6, 6);
   HB1(38, "TPC FADC Baseline p2", 120, -12, 12);
   HB2(39, "TPC FADC Baseline",
-      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc, MaxAdc);
+      NTimeBucket+1, 0, NTimeBucket+1, NbinAdc, MinAdc, MaxAdc);
 
   HB1(100, "TPC Multiplicity (TPCHit)", NumOfPadTPC+1, 0, NumOfPadTPC+1);
   HB1(101, "TPC Pedestal", NbinAdc, MinAdc, MaxAdc);
   HB1(102, "TPC DeltaE", NbinDe, MinDe, MaxDe);
   HB1(103, "TPC RMS", NbinRms, MinRms, MaxRms);
-  HB1(104, "TPC Time", (NumOfTimeBucket+1)*30, 0, NumOfTimeBucket+1);
+  HB1(104, "TPC Time", (NTimeBucket+1)*30, 0, NTimeBucket+1);
   HB1(105, "TPC Chisqr", NbinChisqr, MinChisqr, MaxChisqr);
   HB1(106, "TPC CDeltaE", NbinDe, MinDe, MaxDe);
   HB1(107, "TPC CTime", NbinTime, MinTime, MaxTime);
@@ -609,11 +451,11 @@ ConfMan:: InitializeHistograms()
   HB2(110, "TPC sigma%de", NbinDe, MinDe, MaxDe, NbinSigma, MinSigma, MaxSigma);
   HB2(111, "TPC time%de", NbinDe, MinDe, MaxDe, NbinTime, MinTime, MaxTime);
   HB2(121, "TPC FADC (Before)",
-      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc, MaxAdc);
+      NTimeBucket+1, 0, NTimeBucket+1, NbinAdc, MinAdc, MaxAdc);
   HB2(122, "TPC FADC (After)",
-      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc-500, MaxAdc-500);
+      NTimeBucket+1, 0, NTimeBucket+1, NbinAdc, MinAdc-500, MaxAdc-500);
   HB2(123, "TPC FADC (Good)",
-      NumOfTimeBucket+1, 0, NumOfTimeBucket+1, NbinAdc, MinAdc, MaxAdc);
+      NTimeBucket+1, 0, NTimeBucket+1, NbinAdc, MinAdc, MaxAdc);
 
   HB1(501, "TPC Clock TDC", 100000, 0., 1000000.);
   HB1(502, "TPC Clock Time", 20000, -100., 100.);
@@ -626,7 +468,7 @@ ConfMan:: InitializeHistograms()
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
     for(Int_t r=0; r<NumOfRow; ++r){
-      HB1(PadHid + layer*1000 + r , "TPC Time", (NumOfTimeBucket+1)*30, 0, NumOfTimeBucket+1);
+      HB1(PadHid + layer*1000 + r , "TPC Time", (NTimeBucket+1)*30, 0, NTimeBucket+1);
     }
   }
 #endif
@@ -675,22 +517,6 @@ ConfMan:: InitializeHistograms()
   tree->Branch("dlTpc", &event.dlTpc);
   tree->Branch("sigmaTpc", &event.sigmaTpc);
   tree->Branch("clkTpc", &event.clkTpc);
-
-  //htof
-  tree->Branch("htofnhits", &event.htofnhits, "htofnhits/I");
-  tree->Branch("htofhitpat", event.htofhitpat, Form("htofhitpat[%d]/I", NumOfSegHTOF));
-  tree->Branch("htofua", event.htofua, Form("htofua[%d]/D", NumOfSegHTOF));
-  tree->Branch("htofda", event.htofda, Form("htofda[%d]/D", NumOfSegHTOF));
-  tree->Branch("htofut", event.htofut, Form("htofut[%d][%d]/D", NumOfSegHTOF, MaxDepth));
-  tree->Branch("htofdt", event.htofdt, Form("htofdt[%d][%d]/D", NumOfSegHTOF, MaxDepth));
-  tree->Branch("htofmt", event.htofmt, Form("htofmt[%d][%d]/D", NumOfSegHTOF, MaxDepth));
-  tree->Branch("htofde", event.htofde, Form("htofde[%d]/D", NumOfSegHTOF));
-  tree->Branch("nhHtof", &event.nhHtof, "nhHtof/I");
-  tree->Branch("csHtof", event.csHtof, "csHtof[nhHtof]/I");
-  tree->Branch("HtofSeg", event.HtofSeg, "HtofSeg[nhHtof]/D");
-  tree->Branch("tHtof", event.tHtof, "tHtof[nhHtof]/D");
-  tree->Branch("dtHtof", event.dtHtof, "dtHtof[nhHtof]/D");
-  tree->Branch("deHtof", event.deHtof, "deHtof[nhHtof]/D");
 
   // HPrint();
   return true;

@@ -99,7 +99,7 @@ struct Event
   Double_t momg_x[MaxTPCTracks][MaxTPCnHits];
   Double_t momg_y[MaxTPCTracks][MaxTPCnHits];
   Double_t momg_z[MaxTPCTracks][MaxTPCnHits];
-  
+
   Int_t iti_g[MaxTPCTracks][MaxTPCnHits];
 
   Double_t residual[MaxTPCTracks][MaxTPCnHits];
@@ -318,13 +318,13 @@ dst::DstRead( int ievent )
   //debug  std::cout<<"DstTPCTracking Helix Geant4, nhit="<<event.nhittpc<<std::endl;
   for(int ihit=0; ihit<event.nhittpc; ++ihit){
     event.ititpc[ihit] = src.ititpc[ihit];
-    
+
     //for debug
     //debug    std::cout<<"iti:"<<src.ititpc[ihit]<<", pos:"
     //debug     <<"("<<src.xtpc[ihit]<<", "
     //debug     <<src.ytpc[ihit]<<", "
     //debug     <<src.ztpc[ihit]<<")"<<std::endl;
-    
+
     if(event.max_ititpc<src.ititpc[ihit])
       event.max_ititpc = src.ititpc[ihit];
     ++event.nhittpc_iti[src.ititpc[ihit]-1];
@@ -333,7 +333,7 @@ dst::DstRead( int ievent )
     // debug     std::cout<<"nhit_iti("<<iti<<"): "<<event.nhittpc_iti[iti]<<std::endl;
   }
   // debug     getchar();
-  
+
   // double u = src.pxPrm[0]/src.pzPrm[0];
   // double v = src.pyPrm[0]/src.pzPrm[0];
   // double cost = 1./std::sqrt(1.+u*u+v*v);
@@ -343,7 +343,7 @@ dst::DstRead( int ievent )
 
   if(src.nhittpc<5)
     return true;
-    
+
 
   DCAnalyzer *DCAna = new DCAnalyzer();
 
@@ -365,9 +365,9 @@ dst::DstRead( int ievent )
 
   //  std::cout<<"nhittpc"<<src.nhittpc<<std::endl;
 
-  
+
   if(IsWithRes){
-    
+
     DCAna->DecodeTPCHitsGeant4(src.nhittpc,
 			       src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
     // if(src.nhittpc<=8)
@@ -422,7 +422,7 @@ dst::DstRead( int ievent )
     event.mom0_y[it] = mom0.Y();
     event.mom0_z[it] = mom0.Z();
 
-    
+
     //debug     std::cout<<"nh:"<<nh<<std::endl;
     for( int ih=0; ih<nh; ++ih ){
       TPCLTrackHit *hit=tp->GetHit(ih);
@@ -434,13 +434,13 @@ dst::DstRead( int ievent )
       TVector3 calpos = hit->GetLocalCalPosHelix();
       double residual = hit->GetResidual();
       TVector3 res_vect = hit->GetResidualVect();
-      TVector3 mom = hit->GetMomentumHelix();
+      TVector3 mom = hit->GetMomentumHelix(tp->GetCharge());
 
       //debug      std::cout<<"it="<<it<<", pos("
       //debug 	       <<hitpos.x()<<", "
       //debug 	       <<hitpos.y()<<", "
       //debug 	       <<hitpos.z()<<")"<<std::endl;
-      
+
       for( int ih2=0; ih2<src.nhittpc; ++ih2 ){
 	TVector3 setpos;
 	if(IsWithRes)
@@ -460,7 +460,7 @@ dst::DstRead( int ievent )
 	  event.residual_py[it][ih] = mom.y() - src.pytpc[ih2]*1000.;//MeV/c
 	  event.residual_pz[it][ih] = mom.z() - src.pztpc[ih2]*1000.;//MeV/c
 	  event.residual_p[it][ih] = mom.Mag() - momg_mag;//MeV/c
-	  
+
 	  event.iti_g[it][ih] = src.ititpc[ih2];
 	  break;
 	}
@@ -539,8 +539,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("evnum", &event.evnum, "evnum/I" );
   tree->Branch("nhittpc",&event.nhittpc,"nhittpc/I");
   tree->Branch("nttpc",&event.nttpc,"nttpc/I");
-  
-  tree->Branch("max_ititpc",&event.max_ititpc,"max_ititpc/I");  
+
+  tree->Branch("max_ititpc",&event.max_ititpc,"max_ititpc/I");
   tree->Branch("ititpc",event.ititpc,"ititpc[nhittpc]/I");
   tree->Branch("nhittpc_iti",event.nhittpc_iti,"nhittpc_iti[max_ititpc]/I");
 

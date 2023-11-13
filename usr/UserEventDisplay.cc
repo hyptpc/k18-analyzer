@@ -32,6 +32,8 @@
 #include "TPCRawHit.hh"
 
 #define SAVEPDF 0
+#define DRAWTEXT_DETECTOR 0
+#define DRAWTEXT_TRACKING 1
 
 namespace
 {
@@ -123,6 +125,8 @@ UserEventDisplay::ProcessingNormal()
   static const auto MinTotSDC3 = gUser.GetParameter("MinTotSDC3");
   static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
 
+  static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");
+
   // static const Int_t IdBH2 = gGeom.GetDetectorId("BH2");
   static const Int_t IdSCH = gGeom.GetDetectorId("SCH");
   static const Int_t IdTOF = gGeom.GetDetectorId("TOF");
@@ -135,7 +139,6 @@ UserEventDisplay::ProcessingNormal()
   hddaq::cout << "\033c" << TString('=', 80) << std::endl
               << "[Info] " << evinfo << std::endl;
   gEvDisp.DrawRunEvent(0.04, 0.5, evinfo);
-
   rawData->DecodeHits();
 
   //________________________________________________________
@@ -425,6 +428,7 @@ UserEventDisplay::ProcessingNormal()
   DCAna->TrackSearchBcOut();
   Int_t ntBcOut = DCAna->GetNtracksBcOut();
   hddaq::cout << "[Info] ntBcOut = " << ntBcOut << std::endl;
+
   for(Int_t it=0; it<ntBcOut; ++it){
     auto track = DCAna->GetTrackBcOut(it);
     auto chisqr = track->GetChiSquare();
@@ -519,6 +523,7 @@ UserEventDisplay::ProcessingNormal()
   DCAna->TrackSearchSdcIn();
   Int_t ntSdcIn = DCAna->GetNtracksSdcIn();
   hddaq::cout << "[Info] ntSdcIn = " << ntSdcIn << std::endl;
+
   for(Int_t it=0; it<ntSdcIn; ++it){
     auto track = DCAna->GetTrackSdcIn(it);
     auto chisqr = track->GetChiSquare();
@@ -595,7 +600,6 @@ UserEventDisplay::ProcessingNormal()
     hddaq::cout << "[Warning] SdcInTrack is empty!" << std::endl;
     return true;
   }
-
   //________________________________________________________
   //___ HTOFRawHit
   std::vector<Int_t> HTOFSegCont;
@@ -626,7 +630,6 @@ UserEventDisplay::ProcessingNormal()
     hddaq::cout << "[Warning] HtofCont is empty!" << std::endl;
     return true;
   }
-
   //________________________________________________________
   //___ TPCRawHit
   rawData->DecodeTPCHits();
@@ -638,10 +641,10 @@ UserEventDisplay::ProcessingNormal()
     for (const auto& rhit : hc) {
       Int_t layer = rhit->LayerId();
       Int_t row = rhit->RowId();
-      auto mean = rhit->Mean();
-      auto max_adc = rhit->MaxAdc();
-      // auto rms = rhit->RMS();
-      auto loc_max = rhit->LocMax();
+      auto mean = rhit->Mean(0, NumOfTimeBucket);
+      auto max_adc = rhit->MaxAdc(0, NumOfTimeBucket);
+      // auto rms = rhit->RMS(0, NumOfTimeBucket);
+      auto loc_max = rhit->LocMax(0, NumOfTimeBucket);
       if(loc_max < 25 || 155 <loc_max)
         continue;
       gEvDisp.FillTPCADC(layer, row, max_adc - mean);
@@ -651,23 +654,23 @@ UserEventDisplay::ProcessingNormal()
       // gEvDisp.SetTPCMarker(pos);
     }
   }
-
   gEvDisp.Update();
 
   // if(nhHtof >= 4){
   //   gEvDisp.GetCommand();
   // }
-
   std::vector<ThreeVector> KpPCont, KpXCont;
   std::vector<Double_t> M2Cont;
   std::vector<Double_t> Chi2KuramaCont;
-
   //________________________________________________________
   //___ KuramaTracking
   static const auto StofOffset = gUser.GetParameter("StofOffset");
   // DCAna->SetMaxV0Diff(10.);
+  std::cout<<"kurama check1"<<std::endl;
   DCAna->TrackSearchKurama();
+  std::cout<<"kurama check2"<<std::endl;
   Bool_t through_target = false;
+
   Int_t ntKurama = DCAna->GetNTracksKurama();
   hddaq::cout << "[Info] ntKurama = " << ntKurama << std::endl;
   for(Int_t it=0; it<ntKurama; ++it){
@@ -708,8 +711,7 @@ UserEventDisplay::ProcessingNormal()
   }
   if(through_target) gEvDisp.DrawTarget();
 
-  //________________________________________________________
-  //___ DrawText
+#if(DRAWTEXT_DETECTOR)
   TString buf;
   std::stringstream ss; ss << trigger_flag;
   buf = ss.str();
@@ -766,7 +768,7 @@ UserEventDisplay::ProcessingNormal()
   gEvDisp.DrawText(0.130, 0.160, buf);
   gEvDisp.DrawText(0.680, 0.960, "BTOF");
   gEvDisp.DrawText(0.860, 0.960, Form("%.3f", btof));
-
+#endif
   //________________________________________________________
   //___ Reaction
   Bool_t is_good = false;
@@ -788,17 +790,20 @@ UserEventDisplay::ProcessingNormal()
     LorentzVector LvRp = LvKm+LvP-LvKp;
     ThreeVector MissMom = LvRp.Vect();
     Double_t MissMass = LvRp.Mag();
+
     hddaq::cout << "[Info] Vertex = " << vertex << std::endl;
     hddaq::cout << "[Info] MissingMomentum = " << MissMom << std::endl;
+
     gEvDisp.DrawVertex(vertex);
     gEvDisp.DrawMissingMomentum(MissMom, vertex);
     if(true
-       && TMath::Abs(vertex.z()+70) < 100
        && TMath::Abs(vertex.x()-8.9) < 25.
        && TMath::Abs(vertex.y()) < 20.
+       && TMath::Abs(vertex.z()+70) < 100
        && closedist < 20.
        // && through_target
     ){
+#if(DRAWTEXT_TRACKING)
       gEvDisp.DrawText(0.680, 0.920, "pK18");
       gEvDisp.DrawText(0.860, 0.920, Form("%.3f", pkm.Mag()));
       gEvDisp.DrawText(0.680, 0.880, "pKurama");
@@ -815,6 +820,7 @@ UserEventDisplay::ProcessingNormal()
                                           MissMom.X(), MissMom.Y(), MissMom.Z()));
       gEvDisp.DrawText(0.660, 0.160, "MissMass");
       gEvDisp.DrawText(0.770, 0.160, Form("%.4f", MissMass));
+#endif
       if(true
          && mass == KaonMass
          && pkp.z() > 0
@@ -859,7 +865,7 @@ ConfMan::EventAllocator()
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan:: InitializeHistograms()
+ConfMan::InitializeHistograms()
 {
   gUnpacker.disable_istream_bookmark();
   return true;

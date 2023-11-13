@@ -95,12 +95,11 @@ UserEventDisplayShs::ProcessingNormal()
 {
   static const auto MinTdcHTOF = gUser.GetParameter("TdcHTOF", 0);
   static const auto MaxTdcHTOF = gUser.GetParameter("TdcHTOF", 1);
-
+  static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");
   // const Int_t run_number = gUnpacker.get_root()->get_run_number();
   // const Int_t event_number = gUnpacker.get_event_number();
 
   rawData->DecodeHits();
-
   //________________________________________________________
   //___ HTOFRawHit
   for(const auto& hit: rawData->GetHTOFRawHC()){
@@ -123,9 +122,7 @@ UserEventDisplayShs::ProcessingNormal()
       gEvDisp.FillHTOF(binid);
     }
   }
-
   rawData->DecodeTPCHits();
-
   //________________________________________________________
   //___ TPCRawHit
   Int_t npadTpc = 0;
@@ -136,10 +133,10 @@ UserEventDisplayShs::ProcessingNormal()
     for (const auto& rhit : hc) {
       Int_t layer = rhit->LayerId();
       Int_t row = rhit->RowId();
-      auto mean = rhit->Mean();
-      auto max_adc = rhit->MaxAdc();
-      // auto rms = rhit->RMS();
-      auto loc_max = rhit->LocMax();
+      auto mean = rhit->Mean(0, NumOfTimeBucket);
+      auto max_adc = rhit->MaxAdc(0, NumOfTimeBucket);
+      // auto rms = rhit->RMS(0, NumOfTimeBucket);
+      auto loc_max = rhit->LocMax(0, NumOfTimeBucket);
       if(loc_max < 25 || 175 <loc_max)
         continue;
       TVector3 pos = tpc::getPosition(layer, row);
@@ -149,7 +146,6 @@ UserEventDisplayShs::ProcessingNormal()
       // gEvDisp.SetTPCMarker(pos);
     }
   }
-
   gEvDisp.Update();
   gSystem->Sleep(3000);
   return true;

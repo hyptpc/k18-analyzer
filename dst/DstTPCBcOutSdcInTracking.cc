@@ -15,44 +15,32 @@
 #include "DetectorID.hh"
 #include "DCAnalyzer.hh"
 #include "DCGeomMan.hh"
-#include "DCHit.hh"
 #include "DstHelper.hh"
-#include "HodoPHCMan.hh"
 #include "Kinematics.hh"
 #include "MathTools.hh"
 #include "RootHelper.hh"
+#include "TPCCluster.hh"
 #include "TPCPadHelper.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCParamMan.hh"
-#include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
 
-#define HitClustering 0
-#define TrackSearch 0
+#define Exclusive 1
 
 namespace
 {
   using namespace root;
   using namespace dst;
   using hddaq::unpacker::GUnpacker;
+  const auto qnan = TMath::QuietNaN();
   const auto& gUnpacker = GUnpacker::get_instance();
   auto&       gConf = ConfMan::GetInstance();
   const auto& gGeom = DCGeomMan::GetInstance();
   const auto& gUser = UserParamMan::GetInstance();
-  const auto& gPHC  = HodoPHCMan::GetInstance();
   const auto& gCounter = debug::ObjectCounter::GetInstance();
-  const auto& gTPC    = TPCParamMan::GetInstance();
-  const Int_t MinPosMapXZ = -270;
-  const Int_t MaxPosMapXZ = 270;
-  //const Int_t MinPosMapY = -45;
-  //const Int_t MaxPosMapY = 45;
-  const Int_t MinPosMapY = -60;
-  const Int_t MaxPosMapY = 60;
-
-  const Int_t Meshsize = 15;
-
-  const Double_t& zK18HS = gGeom.LocalZ("K18HS");
+  const Double_t& zK18Target = gGeom.LocalZ("K18Target");
+  const Double_t& zTarget = gGeom.LocalZ("Target");
 }
 
 namespace dst
@@ -60,11 +48,11 @@ namespace dst
   enum kArgc
     {
       kProcess, kConfFile,
-      kTpcHit,  kBcSdc, kOutFile, nArgc
+      kTpc, kBcSdc, kOutFile, nArgc
     };
   std::vector<TString> ArgName =
-    { "[Process]", "[ConfFile]", "[TPCHit]", "[BcOutSdcInTracking]", "[OutFile]" };
-  std::vector<TString> TreeName = { "", "", "tpc","bcsdc" ,"" };
+    { "[Process]", "[ConfFile]", "[TPCTracking]", "[BcOutSdcInTracking]", "[OutFile]" };
+  std::vector<TString> TreeName = { "", "", "tpc", "bcsdc", "" };
   std::vector<TFile*> TFileCont;
   std::vector<TTree*> TTreeCont;
   std::vector<TTreeReader*> TTreeReaderCont;
@@ -78,45 +66,17 @@ struct Event
   Int_t evnum;
   std::vector<Int_t> trigpat;
   std::vector<Int_t> trigflag;
-  Int_t nhTpc;
-  Int_t nh_cluster_Tpc;
-  std::vector<Double_t> raw_hitpos_x;
-  std::vector<Double_t> raw_hitpos_y;
-  std::vector<Double_t> raw_hitpos_z;
-  std::vector<Double_t> raw_de;
-  std::vector<Int_t> raw_padid;
-  std::vector<Int_t> raw_layer;
-  std::vector<Int_t> raw_row;
-  std::vector<Double_t> cluster_hitpos_x;
-  std::vector<Double_t> cluster_hitpos_y;
-  std::vector<Double_t> cluster_hitpos_z;
-  std::vector<Double_t> cluster_de;
-  std::vector<Int_t> cluster_size;
-  std::vector<Int_t> cluster_layer;
-  std::vector<Int_t> cluster_row;
-  std::vector<Double_t> cluster_mrow;
-  std::vector<Double_t> cluster_de_center;
-  std::vector<Double_t> cluster_hitpos_center_x;
-  std::vector<Double_t> cluster_hitpos_center_y;
-  std::vector<Double_t> cluster_hitpos_center_z;
-
-  //BcOutSdcintracking info
-  Int_t ntrack_bcsdc;
-  std::vector<Double_t> chisqr_bcsdc;
-  std::vector<Double_t> theta_bcsdc;
-  std::vector<Double_t> x0_bcsdc;
-  std::vector<Double_t> y0_bcsdc;
-  std::vector<Double_t> u0_bcsdc;
-  std::vector<Double_t> v0_bcsdc;
 
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
-  std::vector<Double_t> chisqr;
-  std::vector<Double_t> x0;
-  std::vector<Double_t> y0;
-  std::vector<Double_t> u0;
-  std::vector<Double_t> v0;
+  std::vector<Double_t> chisqrTpc;
+  std::vector<Double_t> x0Tpc;
+  std::vector<Double_t> y0Tpc;
+  std::vector<Double_t> u0Tpc;
+  std::vector<Double_t> v0Tpc;
   std::vector<Double_t> theta;
+  std::vector<Double_t> dE;
+  std::vector<Double_t> dEdx; //reference dedx
   std::vector<std::vector<Double_t>> hitlayer;
   std::vector<std::vector<Double_t>> hitpos_x;
   std::vector<std::vector<Double_t>> hitpos_y;
@@ -128,57 +88,85 @@ struct Event
   std::vector<std::vector<Double_t>> residual_x;
   std::vector<std::vector<Double_t>> residual_y;
   std::vector<std::vector<Double_t>> residual_z;
-  std::vector<std::vector<Double_t>> residual_wbcsdc_x;
-  std::vector<std::vector<Double_t>> residual_wbcsdc_y;
-  std::vector<std::vector<Double_t>> residual_trackwbcsdc_x;
-  std::vector<std::vector<Double_t>> residual_trackwbcsdc_y;
+  std::vector<std::vector<Double_t>> residual_horizontal;
+  std::vector<std::vector<Double_t>> residual_vertical;
+  std::vector<std::vector<Double_t>> resolution_x;
+  std::vector<std::vector<Double_t>> resolution_y;
+  std::vector<std::vector<Double_t>> resolution_z;
+  std::vector<std::vector<Double_t>> resolution_horizontal;
+  std::vector<std::vector<Double_t>> resolution_vertical;
+  std::vector<std::vector<Double_t>> pathhit;
+  std::vector<std::vector<Double_t>> theta_diff;
+  std::vector<std::vector<Double_t>> track_cluster_de;
+  std::vector<std::vector<Double_t>> track_cluster_size;
+  std::vector<std::vector<Double_t>> track_cluster_mrow;
+  std::vector<std::vector<Double_t>> track_cluster_de_center;
+  std::vector<std::vector<Double_t>> track_cluster_x_center;
+  std::vector<std::vector<Double_t>> track_cluster_y_center;
+  std::vector<std::vector<Double_t>> track_cluster_z_center;
+  std::vector<std::vector<Double_t>> track_cluster_row_center;
 
-  std::vector<Double_t> clkTpc;
+  //exclusive
+  std::vector<std::vector<Double_t>> exresidual;
+  std::vector<std::vector<Double_t>> exresidual_x;
+  std::vector<std::vector<Double_t>> exresidual_y;
+  std::vector<std::vector<Double_t>> exresidual_z;
+  std::vector<std::vector<Double_t>> exresidual_horizontal;
+  std::vector<std::vector<Double_t>> exresidual_vertical;
+
+  Double_t btof;
+
+  Int_t ntBcSdc;
+  std::vector<Int_t> nhBcSdc;
+  std::vector<Double_t> chisqrBcSdc;
+  std::vector<Double_t> x0BcSdc;
+  std::vector<Double_t> y0BcSdc;
+  std::vector<Double_t> u0BcSdc;
+  std::vector<Double_t> v0BcSdc;
+  std::vector<Double_t> xtgtBcSdc;
+  std::vector<Double_t> ytgtBcSdc;
+  std::vector<Double_t> utgtBcSdc;
+  std::vector<Double_t> vtgtBcSdc;
+
+  Int_t ntBcOut;
+  std::vector<Int_t> nhBcOut;
+  std::vector<Double_t> chisqrBcOut;
+  std::vector<Double_t> x0BcOut;
+  std::vector<Double_t> y0BcOut;
+  std::vector<Double_t> u0BcOut;
+  std::vector<Double_t> v0BcOut;
+  std::vector<Double_t> xtgtBcOut;
+  std::vector<Double_t> ytgtBcOut;
+  std::vector<Double_t> utgtBcOut;
+  std::vector<Double_t> vtgtBcOut;
+
+  Int_t ntSdcIn;
+  std::vector<Int_t> nhSdcIn;
+  std::vector<Double_t> chisqrSdcIn;
+  std::vector<Double_t> x0SdcIn;
+  std::vector<Double_t> y0SdcIn;
+  std::vector<Double_t> u0SdcIn;
+  std::vector<Double_t> v0SdcIn;
+  std::vector<Double_t> xtgtSdcIn;
+  std::vector<Double_t> ytgtSdcIn;
+  std::vector<Double_t> utgtSdcIn;
+  std::vector<Double_t> vtgtSdcIn;
 
   void clear()
   {
     runnum = 0;
     evnum = 0;
     status = 0;
-    nhTpc = 0;
-    nh_cluster_Tpc = 0;
-    raw_hitpos_x.clear();
-    raw_hitpos_y.clear();
-    raw_hitpos_z.clear();
-    raw_de.clear();
-    raw_padid.clear();
-    raw_layer.clear();
-    raw_row.clear();
-    cluster_hitpos_x.clear();
-    cluster_hitpos_y.clear();
-    cluster_hitpos_z.clear();
-    cluster_de.clear();
-    cluster_size.clear();
-    cluster_layer.clear();
-    cluster_row.clear();
-    cluster_mrow.clear();
-    cluster_de_center.clear();
-    cluster_hitpos_center_x.clear();
-    cluster_hitpos_center_y.clear();
-    cluster_hitpos_center_z.clear();
-    ntTpc = 0;
     trigpat.clear();
     trigflag.clear();
-    clkTpc.clear();
 
-    ntrack_bcsdc = 0;
-    chisqr_bcsdc.clear();
-    x0_bcsdc.clear();
-    y0_bcsdc.clear();
-    u0_bcsdc.clear();
-    v0_bcsdc.clear();
-    theta_bcsdc.clear();
+    ntTpc = 0;
     nhtrack.clear();
-    chisqr.clear();
-    x0.clear();
-    y0.clear();
-    u0.clear();
-    v0.clear();
+    chisqrTpc.clear();
+    x0Tpc.clear();
+    y0Tpc.clear();
+    u0Tpc.clear();
+    v0Tpc.clear();
     theta.clear();
     hitlayer.clear();
     hitpos_x.clear();
@@ -190,45 +178,157 @@ struct Event
     residual.clear();
     residual_x.clear();
     residual_y.clear();
-    residual_wbcsdc_x.clear();
-    residual_wbcsdc_y.clear();
-    residual_trackwbcsdc_x.clear();
-    residual_trackwbcsdc_y.clear();
     residual_z.clear();
+    residual_horizontal.clear();
+    residual_vertical.clear();
+    resolution_x.clear();
+    resolution_y.clear();
+    resolution_z.clear();
+    resolution_horizontal.clear();
+    resolution_vertical.clear();
 
+    dE.clear();
+    dEdx.clear();
+    pathhit.clear();
+    theta_diff.clear();
+    track_cluster_de.clear();
+    track_cluster_size.clear();
+    track_cluster_mrow.clear();
+    track_cluster_de_center.clear();
+    track_cluster_x_center.clear();
+    track_cluster_y_center.clear();
+    track_cluster_z_center.clear();
+    track_cluster_row_center.clear();
 
+    exresidual.clear();
+    exresidual_x.clear();
+    exresidual_y.clear();
+    exresidual_z.clear();
+    exresidual_horizontal.clear();
+    exresidual_vertical.clear();
+
+    btof = qnan;
+
+    ntBcSdc = 0;
+    nhBcSdc.clear();
+    chisqrBcSdc.clear();
+    x0BcSdc.clear();
+    y0BcSdc.clear();
+    u0BcSdc.clear();
+    v0BcSdc.clear();
+    xtgtBcSdc.clear();
+    ytgtBcSdc.clear();
+    utgtBcSdc.clear();
+    vtgtBcSdc.clear();
+
+    ntBcOut = 0;
+    nhBcOut.clear();
+    chisqrBcOut.clear();
+    x0BcOut.clear();
+    y0BcOut.clear();
+    u0BcOut.clear();
+    v0BcOut.clear();
+    xtgtBcOut.clear();
+    ytgtBcOut.clear();
+    utgtBcOut.clear();
+    vtgtBcOut.clear();
+
+    ntSdcIn = 0;
+    nhSdcIn.clear();
+    chisqrSdcIn.clear();
+    x0SdcIn.clear();
+    y0SdcIn.clear();
+    u0SdcIn.clear();
+    v0SdcIn.clear();
+    xtgtSdcIn.clear();
+    ytgtSdcIn.clear();
+    utgtSdcIn.clear();
+    vtgtSdcIn.clear();
   }
 };
 
 //_____________________________________________________________________________
 struct Src
 {
+
+  TTreeReaderValue<Int_t>* status;
   TTreeReaderValue<Int_t>* runnum;
   TTreeReaderValue<Int_t>* evnum;
   TTreeReaderValue<std::vector<Int_t>>* trigpat;
   TTreeReaderValue<std::vector<Int_t>>* trigflag;
-  TTreeReaderValue<Int_t>* npadTpc;   // number of pads
-  TTreeReaderValue<Int_t>* nhTpc;     // number of hits
-  // vector (size=nhTpc)
-  TTreeReaderValue<std::vector<Int_t>>* layerTpc;     // layer id
-  TTreeReaderValue<std::vector<Int_t>>* rowTpc;       // row id
-  TTreeReaderValue<std::vector<Int_t>>* padTpc;       // pad id
-  TTreeReaderValue<std::vector<Double_t>>* pedTpc;    // pedestal
-  TTreeReaderValue<std::vector<Double_t>>* rmsTpc;    // rms
-  TTreeReaderValue<std::vector<Double_t>>* deTpc;     // dE
-  TTreeReaderValue<std::vector<Double_t>>* tTpc;      // time
-  TTreeReaderValue<std::vector<Double_t>>* ctTpc;      // time
-  TTreeReaderValue<std::vector<Double_t>>* chisqrTpc; // chi^2 of signal fitting
-  TTreeReaderValue<std::vector<Double_t>>* clkTpc;      // time
 
-  //BcOutSdcintracking input
-  Int_t ntrack;
-  Double_t chisqr[MaxHits];
-  Double_t theta[MaxHits];
-  Double_t x0[MaxHits];
-  Double_t y0[MaxHits];
-  Double_t u0[MaxHits];
-  Double_t v0[MaxHits];
+  TTreeReaderValue<Int_t>* ntTpc;
+  TTreeReaderValue<std::vector<Int_t>>* nhtrack;
+  TTreeReaderValue<std::vector<Double_t>>* chisqrTpc;
+  TTreeReaderValue<std::vector<Double_t>>* x0Tpc;
+  TTreeReaderValue<std::vector<Double_t>>* y0Tpc;
+  TTreeReaderValue<std::vector<Double_t>>* u0Tpc;
+  TTreeReaderValue<std::vector<Double_t>>* v0Tpc;
+  TTreeReaderValue<std::vector<Double_t>>* theta;
+  TTreeReaderValue<std::vector<Double_t>>* dE;
+  TTreeReaderValue<std::vector<Double_t>>* dEdx;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* theta_diff;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* pathhit;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* residual;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* residual_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* residual_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* residual_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* residual_horizontal;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* residual_vertical;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* resolution_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* resolution_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* resolution_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* resolution_horizontal;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* resolution_vertical;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* hitlayer;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* hitpos_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* hitpos_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* hitpos_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* calpos_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* calpos_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* calpos_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_de;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_size;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_mrow;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_de_center;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_x_center;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_y_center;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_z_center;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_row_center;
+
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* exresidual;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* exresidual_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* exresidual_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* exresidual_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* exresidual_horizontal;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* exresidual_vertical;
+
+  Double_t btof;
+
+  Int_t ntBcSdc;
+  Int_t nhBcSdc[MaxHits];
+  Double_t chisqrBcSdc[MaxHits];
+  Double_t x0BcSdc[MaxHits];
+  Double_t y0BcSdc[MaxHits];
+  Double_t u0BcSdc[MaxHits];
+  Double_t v0BcSdc[MaxHits];
+
+  Int_t ntBcOut;
+  Int_t nhBcOut[MaxHits];
+  Double_t chisqrBcOut[MaxHits];
+  Double_t x0BcOut[MaxHits];
+  Double_t y0BcOut[MaxHits];
+  Double_t u0BcOut[MaxHits];
+  Double_t v0BcOut[MaxHits];
+
+  Int_t ntSdcIn;
+  Int_t nhSdcIn[MaxHits];
+  Double_t chisqrSdcIn[MaxHits];
+  Double_t x0SdcIn[MaxHits];
+  Double_t y0SdcIn[MaxHits];
+  Double_t u0SdcIn[MaxHits];
+  Double_t v0SdcIn[MaxHits];
+
 };
 
 namespace root
@@ -238,32 +338,9 @@ namespace root
   TH1   *h[MaxHist];
   TTree *tree;
   enum eDetHid {
-    TPCXHid        = 1000000,
-    TPCYHid        = 2000000,
-    TPCPadYHid     = 3000000,
-    TPCResYHid     = 4000000,
-    TPCResY2DHid   = 5000000,
-    TPCResXHid     = 6000000,
-    TPCResX2DHid   = 7000000,
-    TPCResYCoBoHid = 8000000,
-    TPCResYBcSdcY2DHid = 9000000,
-    TPCResYBcSdcY2DHid_thetacut = 10000000,
-    TPCDeHid   = 100000,
-    TPCClDeHid = 200000,
+    PadHid    = 100000,
   };
 }
-
-Int_t GetHistNum(Double_t x, Double_t y, Double_t z){
-  int ix = (int)((x - (MinPosMapXZ - Meshsize/2.)))/Meshsize;
-  int iy = (int)((y - (MinPosMapY - Meshsize/2.)))/Meshsize;
-  int iz = (int)((z - (MinPosMapXZ - Meshsize/2.)))/Meshsize;
-
-  Int_t NumOfDivXZ = ((MaxPosMapXZ - MinPosMapXZ)/Meshsize) + 1;
-  Int_t NumOfDivY = ((MaxPosMapY - MinPosMapY)/Meshsize) + 1;
-  int histnum = ix*NumOfDivY*NumOfDivXZ + iy*NumOfDivXZ + iz;
-  return histnum;
-}
-
 
 //_____________________________________________________________________________
 int
@@ -281,10 +358,10 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
 
   Int_t skip = gUnpacker.get_skip();
-  if (skip < 0) skip = 0;
+  if(skip < 0) skip = 0;
   Int_t max_loop = gUnpacker.get_max_loop();
   Int_t nevent = GetEntries(TTreeCont);
-  if (max_loop > 0) nevent = skip + max_loop;
+  if(max_loop > 0) nevent = skip + max_loop;
 
   CatchSignal::Set();
 
@@ -337,7 +414,13 @@ dst::DstOpen(std::vector<std::string> arg)
 Bool_t
 dst::DstRead(int ievent)
 {
+
+  const ThreeVector& posBcOut = gGeom.GetGlobalPosition("BC3-X1");
+  const ThreeVector& posSdcIn = gGeom.GetGlobalPosition("SDC1-U2");
+  const ThreeVector& posHS = gGeom.GetGlobalPosition("K18HS");
+
   if(ievent%100==0){
+  //if(ievent%1==0){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
@@ -348,385 +431,543 @@ dst::DstRead(int ievent)
   event.trigpat = **src.trigpat;
   event.trigflag = **src.trigflag;
 
-  event.clkTpc = **src.clkTpc;
+  HF1(1, event.status++);
 
-  event.ntrack_bcsdc = src.ntrack;
+  event.ntTpc = **src.ntTpc;
+  event.nhtrack = **src.nhtrack;
+  event.chisqrTpc = **src.chisqrTpc;
+  event.x0Tpc = **src.x0Tpc;
+  event.y0Tpc = **src.y0Tpc;
+  event.u0Tpc = **src.u0Tpc;
+  event.v0Tpc = **src.v0Tpc;
+  event.theta = **src.theta;
+  event.dE = **src.dE;
+  event.dEdx = **src.dEdx;
+  event.theta_diff = **src.theta_diff;
+  event.pathhit = **src.pathhit;
+  event.residual = **src.residual;
+  event.residual_x = **src.residual_x;
+  event.residual_y = **src.residual_y;
+  event.residual_z = **src.residual_z;
+  event.residual_horizontal = **src.residual_horizontal;
+  event.residual_vertical = **src.residual_vertical;
+  event.resolution_x = **src.resolution_x;
+  event.resolution_y = **src.resolution_y;
+  event.resolution_z = **src.resolution_z;
+  event.resolution_horizontal = **src.resolution_horizontal;
+  event.resolution_vertical = **src.resolution_vertical;
 
-  for(int it=0; it<src.ntrack; ++it){
-    event.chisqr_bcsdc.push_back(src.chisqr[it]);
-    event.theta_bcsdc.push_back(src.theta[it]);
-    event.x0_bcsdc.push_back(src.x0[it]);
-    event.y0_bcsdc.push_back(src.y0[it]);
-    event.u0_bcsdc.push_back(src.u0[it]);
-    event.v0_bcsdc.push_back(src.v0[it]);
+  event.hitlayer = **src.hitlayer;
+  event.hitpos_x = **src.hitpos_x;
+  event.hitpos_y = **src.hitpos_y;
+  event.hitpos_z = **src.hitpos_z;
+  event.calpos_x = **src.calpos_x;
+  event.calpos_y = **src.calpos_y;
+  event.calpos_z = **src.calpos_z;
+  event.track_cluster_de = **src.track_cluster_de;
+  event.track_cluster_size = **src.track_cluster_size;
+  event.track_cluster_mrow = **src.track_cluster_mrow;
+  event.track_cluster_de_center = **src.track_cluster_de_center;
+  event.track_cluster_x_center = **src.track_cluster_x_center;
+  event.track_cluster_y_center = **src.track_cluster_y_center;
+  event.track_cluster_z_center = **src.track_cluster_z_center;
+  event.track_cluster_row_center = **src.track_cluster_row_center;
+  event.exresidual = **src.exresidual;
+  event.exresidual_x = **src.exresidual_x;
+  event.exresidual_y = **src.exresidual_y;
+  event.exresidual_z = **src.exresidual_z;
+  event.exresidual_horizontal = **src.exresidual_horizontal;
+  event.exresidual_vertical = **src.exresidual_vertical;
+
+  HF1(1, event.status++);
+
+  event.btof = src.btof;
+  event.ntBcOut = src.ntBcOut;
+  for(Int_t it=0; it<src.ntBcOut; ++it){
+    event.nhBcOut.push_back(src.nhBcOut[it]);
+    event.chisqrBcOut.push_back(src.chisqrBcOut[it]);
+    event.x0BcOut.push_back(src.x0BcOut[it]);
+    event.y0BcOut.push_back(src.y0BcOut[it]);
+    event.u0BcOut.push_back(src.u0BcOut[it]);
+    event.v0BcOut.push_back(src.v0BcOut[it]);
+
+    Double_t xtgt = src.u0BcOut[it]*zK18Target + src.x0BcOut[it] + posBcOut.x() - posHS.x();
+    Double_t ytgt = src.v0BcOut[it]*zK18Target + src.y0BcOut[it] + posBcOut.y() - posHS.y();
+    Double_t utgt = src.u0BcOut[it];
+    Double_t vtgt = src.v0BcOut[it];
+    event.xtgtBcOut.push_back(xtgt);
+    event.ytgtBcOut.push_back(ytgt);
+    event.utgtBcOut.push_back(utgt);
+    event.vtgtBcOut.push_back(vtgt);
   }
 
   HF1(1, event.status++);
 
-  if(**src.nhTpc == 0)
-    return true;
+  event.ntBcSdc = src.ntBcSdc;
+  for(Int_t it=0; it<src.ntBcSdc; ++it){
+    event.nhBcSdc.push_back(src.nhBcSdc[it]);
+    event.chisqrBcSdc.push_back(src.chisqrBcSdc[it]);
+    event.x0BcSdc.push_back(src.x0BcSdc[it]);
+    event.y0BcSdc.push_back(src.y0BcSdc[it]);
+    event.u0BcSdc.push_back(src.u0BcSdc[it]);
+    event.v0BcSdc.push_back(src.v0BcSdc[it]);
 
-  HF1(1, event.status++);
-
-  if(event.clkTpc.size() != 1){
-    std::cerr << "something is wrong" << std::endl;
-    return true;
+    Double_t xtgt = src.u0BcSdc[it]*zK18Target + src.x0BcSdc[it] + posBcOut.x() - posHS.x();
+    Double_t ytgt = src.v0BcSdc[it]*zK18Target + src.y0BcSdc[it] + posBcOut.y() - posHS.y();
+    Double_t utgt = src.u0BcSdc[it];
+    Double_t vtgt = src.v0BcSdc[it];
+    event.xtgtBcSdc.push_back(xtgt);
+    event.ytgtBcSdc.push_back(ytgt);
+    event.utgtBcSdc.push_back(utgt);
+    event.vtgtBcSdc.push_back(vtgt);
   }
-  Double_t clock = event.clkTpc.at(0);
-
-  DCAnalyzer DCAna;
-  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock);
 
   HF1(1, event.status++);
 
-  Int_t nhTpc = 0;
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    auto hc = DCAna.GetTPCHC(layer);
-    for(const auto& hit : hc){
-      if(!hit || !hit->IsGood())
-        continue;
-      const auto& pos = hit->GetPosition();
-      Double_t x = pos.X();
-      Double_t y = pos.Y();
-      Double_t z = pos.Z();
-      Double_t zTPC = zK18HS + z;
-      Double_t de = hit->GetCDe();
-      Double_t pad = hit->GetPad();
-      Int_t row = hit->GetRow();
-      Int_t cobo = tpc::GetCoBoId(layer, row);
-      event.raw_hitpos_x.push_back(x);
-      event.raw_hitpos_y.push_back(y);
-      event.raw_hitpos_z.push_back(z);
-      event.raw_de.push_back(de);
-      event.raw_padid.push_back(pad);
-      event.raw_layer.push_back(layer);
-      event.raw_row.push_back(row);
-      for(int it=0; it<src.ntrack; ++it){
-	Double_t x0 = src.x0[it];
-     	Double_t u0 = src.u0[it];
-     	Double_t y0 = src.y0[it];
-     	Double_t v0 = src.v0[it];
-     	Double_t xbc = x0 + zTPC*u0;
-     	Double_t ybc = y0 + zTPC*v0;
-        Double_t resx = x - xbc;
-        Double_t resy = y - ybc;
-        if(src.ntrack == 1 && src.chisqr[it] < 10.){
-	  HF1(TPCResYHid+layer*1000, resy);
-          HF1(TPCResYHid+layer*1000+row+1, resy);
-          HF2(TPCResY2DHid+layer*1000, clock, resy);
-          HF2(TPCResYCoBoHid+cobo*1000, clock, resy);
-          HF1(TPCResXHid+layer*1000, resx);
-          HF1(TPCResXHid+layer*1000+row+1, resx);
-          HF2(TPCResX2DHid+layer*1000, clock, resx);
-	  HF2(TPCResYBcSdcY2DHid+layer*1000, ybc, resy);
-	  if(src.theta[it] < 2.) HF2(TPCResYBcSdcY2DHid_thetacut+layer*1000, ybc, resy);
-        }
-      }
+  event.ntSdcIn = src.ntSdcIn;
+  for(Int_t it=0; it<src.ntSdcIn; ++it){
+    event.nhSdcIn.push_back(src.nhSdcIn[it]);
+    event.chisqrSdcIn.push_back(src.chisqrSdcIn[it]);
+    event.x0SdcIn.push_back(src.x0SdcIn[it]);
+    event.y0SdcIn.push_back(src.y0SdcIn[it]);
+    event.u0SdcIn.push_back(src.u0SdcIn[it]);
+    event.v0SdcIn.push_back(src.v0SdcIn[it]);
 
-      ++nhTpc;
+    Double_t xtgt = src.u0SdcIn[it]*zTarget + src.x0SdcIn[it] + posSdcIn.x() - posHS.x();
+    Double_t ytgt = src.v0SdcIn[it]*zTarget + src.y0SdcIn[it] + posSdcIn.y() - posHS.y();
+    Double_t utgt = src.u0SdcIn[it];
+    Double_t vtgt = src.v0SdcIn[it];
+    event.xtgtSdcIn.push_back(xtgt);
+    event.ytgtSdcIn.push_back(ytgt);
+    event.utgtSdcIn.push_back(utgt);
+    event.vtgtSdcIn.push_back(vtgt);
+  }
+
+  HF1(1, event.status++);
+
+  if(event.ntTpc!=1 || event.ntBcOut!=1 || event.ntSdcIn!=1) return true;
+  //if(event.chisqrTpc[0]>5. || event.chisqrBcOut[0]>5. || event.chisqrSdcIn[0]>5.) return true;
+  if(event.chisqrBcOut[0]>5. || event.chisqrSdcIn[0]>5.) return true;
+
+  HF1(10, event.ntTpc);
+  for(Int_t it=0; it<event.ntTpc; ++it){
+    HF1(11, event.nhtrack[it]);
+    HF1(12, event.chisqrTpc[it]);
+    HF1(14, event.x0Tpc[it]);
+    HF1(15, event.y0Tpc[it]);
+    HF1(16, event.u0Tpc[it]);
+    HF1(17, event.v0Tpc[it]);
+    HF2(18, event.x0Tpc[it], event.u0Tpc[it]);
+    HF2(19, event.y0Tpc[it], event.v0Tpc[it]);
+    HF2(20, event.x0Tpc[it], event.y0Tpc[it]);
+    HF2(21, event.x0Tpc[it], atan(event.u0Tpc[it])*180./acos(-1.));
+    HF2(22, event.y0Tpc[it], atan(event.v0Tpc[it])*180./acos(-1.));
+  }
+
+  for(Int_t it=0; it<event.ntTpc; ++it){
+    for(Int_t ih=0; ih<event.nhtrack[it]; ++ih){
+      if(event.resolution_x[it][ih] > 0.9e5 && event.resolution_y[it][ih] > 0.9e5 && event.resolution_x[it][ih] > 0.9e5) continue; // exclude dummy hits
+      HF2(1000*(event.hitlayer[it][ih]+1) + 1, event.xtgtSdcIn[0], event.residual_x[it][ih]);
+      HF2(1000*(event.hitlayer[it][ih]+1) + 2, event.ytgtSdcIn[0], event.residual_y[it][ih]);
+      HF2(1000*(event.hitlayer[it][ih]+1) + 3, event.xtgtSdcIn[0], event.residual_z[it][ih]);
+      HF2(1000*(event.hitlayer[it][ih]+1) + 4, event.xtgtSdcIn[0], event.residual_horizontal[it][ih]);
+      HF2(1000*(event.hitlayer[it][ih]+1) + 5, event.xtgtSdcIn[0], event.residual_vertical[it][ih]);
+      HF2(1000*(event.hitlayer[it][ih]+1) + 6, event.xtgtSdcIn[0], TMath::Sqrt(event.residual_x[it][ih]*event.residual_x[it][ih] + event.residual_z[it][ih]*event.residual_z[it][ih]));
+
+      HF1(1000*(event.hitlayer[it][ih]+1) + 11, event.residual_x[it][ih]/event.resolution_x[it][ih]);
+      HF1(1000*(event.hitlayer[it][ih]+1) + 12, event.residual_y[it][ih]/event.resolution_y[it][ih]);
+      HF1(1000*(event.hitlayer[it][ih]+1) + 13, event.residual_z[it][ih]/event.resolution_z[it][ih]);
+      HF1(1000*(event.hitlayer[it][ih]+1) + 14, event.residual_horizontal[it][ih]/event.resolution_horizontal[it][ih]);
+      HF1(1000*(event.hitlayer[it][ih]+1) + 15, event.residual_vertical[it][ih]/event.resolution_vertical[it][ih]);
+
+      HF1(1000*(event.hitlayer[it][ih]+1) + 101, event.residual_x[it][ih]);
+      HF1(1000*(event.hitlayer[it][ih]+1) + 102, event.residual_y[it][ih]);
+      HF1(1000*(event.hitlayer[it][ih]+1) + 103, event.residual_z[it][ih]);
+      HF1(1000*(event.hitlayer[it][ih]+1) + 104, event.residual_horizontal[it][ih]);
+      HF1(1000*(event.hitlayer[it][ih]+1) + 105, event.residual_vertical[it][ih]);
+      HF1(1000*(event.hitlayer[it][ih]+1) + 106, TMath::Sqrt(event.residual_x[it][ih]*event.residual_x[it][ih] + event.residual_z[it][ih]*event.residual_z[it][ih]));
     }
   }
-  event.nhTpc = nhTpc;
-  HF1(1, event.status++);
 
-#if HitClustering
-  Int_t nh_cl_Tpc = 0;
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-  auto hc = DCAna.GetTPCClCont(layer);
-  for(const auto& hit : hc){
-  if(!hit || !hit->IsGood())
-    continue;
-  Double_t x = hit->GetX();
-  Double_t y = hit->GetY();
-  Double_t z = hit->GetZ();
-  Double_t de = hit->GetCharge();
-  Int_t cl_size = hit->GetClusterSize();
-  Int_t row = hit->GetRow();
-  Double_t mrow = hit->GetMRow();
-  Double_t de_center = hit->GetCharge_center();
-  TVector3 pos_center = hit->GetPos_center();
-  event.cluster_hitpos_x.push_back(x);
-  event.cluster_hitpos_y.push_back(y);
-  event.cluster_hitpos_z.push_back(z);
-  event.cluster_de.push_back(de);
-  event.cluster_size.push_back(cl_size);
-  event.cluster_layer.push_back(layer);
-  event.cluster_row.push_back(row);
-  event.cluster_mrow.push_back(mrow);
-  event.cluster_de_center.push_back(de_center);
-  event.cluster_hitpos_center_x.push_back(pos_center.X());
-  event.cluster_hitpos_center_y.push_back(pos_center.Y());
-  event.cluster_hitpos_center_z.push_back(pos_center.Z());
-
-  ++nh_cl_Tpc;
-}
-}
-  event.nh_cluster_Tpc = nh_cl_Tpc;
-  if(event.nh_cluster_Tpc == 0)
-    return true;
-#endif
-
-  HF1(1, event.status++);
-
-#if TrackSearch
-  DCAna.TrackSearchTPC();
-
-  Int_t ntTpc = DCAna.GetNTracksTPC();
-  event.ntTpc = ntTpc;
-  HF1(10, ntTpc);
-  if(event.ntTpc == 0)
-    return true;
-
-  HF1(1, event.status++);
-
-  event.nhtrack.resize(ntTpc);
-  event.chisqr.resize(ntTpc);
-  event.x0.resize(ntTpc);
-  event.y0.resize(ntTpc);
-  event.u0.resize(ntTpc);
-  event.v0.resize(ntTpc);
-  event.theta.resize(ntTpc);
-  event.hitlayer.resize(ntTpc);
-  event.hitpos_x.resize(ntTpc);
-  event.hitpos_y.resize(ntTpc);
-  event.hitpos_z.resize(ntTpc);
-  event.calpos_x.resize(ntTpc);
-  event.calpos_y.resize(ntTpc);
-  event.calpos_z.resize(ntTpc);
-  event.residual.resize(ntTpc);
-  event.residual_x.resize(ntTpc);
-  event.residual_y.resize(ntTpc);
-  event.residual_wbcsdc_x.resize(ntTpc);
-  event.residual_wbcsdc_y.resize(ntTpc);
-  event.residual_trackwbcsdc_x.resize(ntTpc);
-  event.residual_trackwbcsdc_y.resize(ntTpc);
-  event.residual_z.resize(ntTpc);
-
-  for(Int_t it=0; it<ntTpc; ++it){
-    TPCLocalTrack *tp = DCAna.GetTrackTPC(it);
-    if(!tp) continue;
-    Int_t nh = tp->GetNHit();
-    Double_t chisqr = tp->GetChiSquare();
-    Double_t x0=tp->GetX0(), y0=tp->GetY0();
-    Double_t u0=tp->GetU0(), v0=tp->GetV0();
-    Double_t theta = tp->GetTheta();
-    event.nhtrack[it] = nh;
-    event.chisqr[it] = chisqr;
-    event.theta[it] = theta;
-    event.x0[it] = x0;
-    event.y0[it] = y0;
-    event.u0[it] = u0;
-    event.v0[it] = v0;
-    event.theta[it] = theta;
-    event.hitlayer[it].resize(nh);
-    event.hitpos_x[it].resize(nh);
-    event.hitpos_y[it].resize(nh);
-    event.hitpos_z[it].resize(nh);
-    event.calpos_x[it].resize(nh);
-    event.calpos_y[it].resize(nh);
-    event.calpos_z[it].resize(nh);
-    event.residual[it].resize(nh);
-    event.residual_x[it].resize(nh);
-    event.residual_y[it].resize(nh);
-    event.residual_wbcsdc_x[it].resize(nh);
-    event.residual_wbcsdc_y[it].resize(nh);
-    event.residual_trackwbcsdc_x[it].resize(nh);
-    event.residual_trackwbcsdc_y[it].resize(nh);
-    event.residual_z[it].resize(nh);
-
-    for(int ih=0; ih<nh; ++ih){
-      TPCLTrackHit *hit = tp->GetHit(ih);
-      if(!hit) continue;
-      Int_t layer = hit->GetLayer();
-      const TVector3& hitpos = hit->GetLocalHitPos();
-      const TVector3& calpos = hit->GetLocalCalPos();
-      const TVector3& res_vect = hit->GetResidualVect();
-      Double_t residual = hit->GetResidual();
-      Int_t row = hit->GetHit()->GetRow();
-      const TVector3& pos_center = hit->GetHit()->GetPos_center();
-
-      event.hitlayer[it][ih] = layer;
-      event.hitpos_x[it][ih] = hitpos.x();
-      event.hitpos_y[it][ih] = hitpos.y();
-      event.hitpos_z[it][ih] = hitpos.z();
-      event.calpos_x[it][ih] = calpos.x();
-      event.calpos_y[it][ih] = calpos.y();
-      event.calpos_z[it][ih] = calpos.z();
-      event.residual[it][ih] = residual;
-      event.residual_x[it][ih] = res_vect.x();
-      event.residual_y[it][ih] = res_vect.y();
-      event.residual_z[it][ih] = res_vect.z();
-      if(src.ntrack==1){
-	Double_t x0 = src.x0[0];
-	Double_t u0_BC = src.u0[0];
-	Double_t y0_BC = src.y0[0];
-	Double_t v0_BC = src.v0[0];
-
-	Double_t zTPC = zK18HS + pos_center.z();
-	Double_t xbc = x0 + zTPC*u0_BC;
-	Double_t ybc = y0_BC + zTPC*v0_BC;
-	event.residual_wbcsdc_x[it][ih] = hitpos.x() - xbc;
-	event.residual_wbcsdc_y[it][ih] = hitpos.y() - ybc;
-	event.residual_trackwbcsdc_x[it][ih] = calpos.x() - xbc;
-	event.residual_trackwbcsdc_y[it][ih] = calpos.y() - ybc;
-      }
-    }
+  HF1(110, event.ntBcOut);
+  for(Int_t it=0; it<src.ntBcOut; ++it){
+    HF1(111, event.nhBcOut[it]);
+    HF1(112, event.chisqrBcOut[it]);
+    HF1(114, event.x0BcOut[it]);
+    HF1(115, event.y0BcOut[it]);
+    HF1(116, event.u0BcOut[it]);
+    HF1(117, event.v0BcOut[it]);
+    HF2(118, event.utgtBcOut[it], event.xtgtBcOut[it]);
+    HF2(119, event.vtgtBcOut[it], event.ytgtBcOut[it]);
+    HF2(120, event.xtgtBcOut[it], event.ytgtBcOut[it]);
+    HF1(121, event.xtgtBcOut[it]);
+    HF1(122, event.ytgtBcOut[it]);
+    HF1(123, event.utgtBcOut[it]);
+    HF1(124, event.vtgtBcOut[it]);
   }
-#endif
+
+  HF1(210, event.ntSdcIn);
+  for(Int_t it=0; it<src.ntBcSdc; ++it){
+    HF1(211, event.nhSdcIn[it]);
+    HF1(212, event.chisqrSdcIn[it]);
+    HF1(214, event.x0SdcIn[it]);
+    HF1(215, event.y0SdcIn[it]);
+    HF1(216, event.u0SdcIn[it]);
+    HF1(217, event.v0SdcIn[it]);
+    HF2(218, event.utgtSdcIn[it], event.xtgtSdcIn[it]);
+    HF2(219, event.vtgtSdcIn[it], event.ytgtSdcIn[it]);
+    HF2(220, event.xtgtSdcIn[it], event.ytgtSdcIn[it]);
+    HF1(221, event.xtgtSdcIn[it]);
+    HF1(222, event.ytgtSdcIn[it]);
+    HF1(223, event.utgtSdcIn[it]);
+    HF1(224, event.vtgtSdcIn[it]);
+  }
+
+  HF1(310, event.ntBcSdc);
+  for(Int_t it=0; it<src.ntBcSdc; ++it){
+    HF1(311, event.nhBcSdc[it]);
+    HF1(312, event.chisqrBcSdc[it]);
+    HF1(314, event.x0BcSdc[it]);
+    HF1(315, event.y0BcSdc[it]);
+    HF1(316, event.u0BcSdc[it]);
+    HF1(317, event.v0BcSdc[it]);
+    HF2(318, event.utgtBcSdc[it], event.xtgtBcSdc[it]);
+    HF2(319, event.vtgtBcSdc[it], event.ytgtBcSdc[it]);
+    HF2(320, event.xtgtBcSdc[it], event.ytgtBcSdc[it]);
+    HF1(321, event.xtgtBcSdc[it]);
+    HF1(322, event.ytgtBcSdc[it]);
+    HF1(323, event.utgtBcSdc[it]);
+    HF1(324, event.vtgtBcSdc[it]);
+  }
+
+  HF2(401, event.x0Tpc[0], event.xtgtBcOut[0]);
+  HF2(402, event.y0Tpc[0], event.ytgtBcOut[0]);
+  HF2(403, event.u0Tpc[0], event.utgtBcOut[0]);
+  HF2(404, event.v0Tpc[0], event.vtgtBcOut[0]);
+  HF1(405, event.xtgtBcOut[0]-event.x0Tpc[0]);
+  HF1(406, event.ytgtBcOut[0]-event.y0Tpc[0]);
+  HF1(407, event.utgtBcOut[0]-event.u0Tpc[0]);
+  HF1(408, event.vtgtBcOut[0]-event.v0Tpc[0]);
+  HF2(409, event.xtgtBcOut[0], event.xtgtBcOut[0]-event.x0Tpc[0]);
+  HF2(410, event.ytgtBcOut[0], event.ytgtBcOut[0]-event.y0Tpc[0]);
+  HF2(411, event.xtgtBcOut[0], event.utgtBcOut[0]-event.u0Tpc[0]);
+  HF2(412, event.ytgtBcOut[0], event.vtgtBcOut[0]-event.v0Tpc[0]);
+
+  HF2(501, event.x0Tpc[0], event.xtgtSdcIn[0]);
+  HF2(502, event.y0Tpc[0], event.ytgtSdcIn[0]);
+  HF2(503, event.u0Tpc[0], event.utgtSdcIn[0]);
+  HF2(504, event.v0Tpc[0], event.vtgtSdcIn[0]);
+  HF1(505, event.xtgtSdcIn[0]-event.x0Tpc[0]);
+  HF1(506, event.ytgtSdcIn[0]-event.y0Tpc[0]);
+  HF1(507, event.utgtSdcIn[0]-event.u0Tpc[0]);
+  HF1(508, event.vtgtSdcIn[0]-event.v0Tpc[0]);
+  HF2(509, event.xtgtSdcIn[0], event.xtgtSdcIn[0]-event.x0Tpc[0]);
+  HF2(510, event.ytgtSdcIn[0], event.ytgtSdcIn[0]-event.y0Tpc[0]);
+  HF2(511, event.xtgtSdcIn[0], event.utgtSdcIn[0]-event.u0Tpc[0]);
+  HF2(512, event.ytgtSdcIn[0], event.vtgtSdcIn[0]-event.v0Tpc[0]);
+
+  HF2(601, event.xtgtBcOut[0], event.xtgtSdcIn[0]);
+  HF2(602, event.ytgtBcOut[0], event.ytgtSdcIn[0]);
+  HF2(603, event.utgtBcOut[0], event.utgtSdcIn[0]);
+  HF2(604, event.vtgtBcOut[0], event.vtgtSdcIn[0]);
+  HF1(605, event.xtgtSdcIn[0]-event.xtgtBcOut[0]);
+  HF1(606, event.ytgtSdcIn[0]-event.ytgtBcOut[0]);
+  HF1(607, event.utgtSdcIn[0]-event.utgtBcOut[0]);
+  HF1(608, event.vtgtSdcIn[0]-event.vtgtBcOut[0]);
+  HF2(609, event.xtgtSdcIn[0], event.xtgtSdcIn[0]-event.xtgtBcOut[0]);
+  HF2(610, event.ytgtSdcIn[0], event.ytgtSdcIn[0]-event.ytgtBcOut[0]);
+  HF2(611, event.xtgtSdcIn[0], event.utgtSdcIn[0]-event.utgtBcOut[0]);
+  HF2(612, event.ytgtSdcIn[0], event.vtgtSdcIn[0]-event.vtgtBcOut[0]);
+
+  if(event.ntBcSdc==1){
+    HF2(701, event.xtgtBcOut[0], event.xtgtBcSdc[0]);
+    HF2(702, event.ytgtBcOut[0], event.ytgtBcSdc[0]);
+    HF2(703, event.utgtBcOut[0], event.utgtBcSdc[0]);
+    HF2(704, event.vtgtBcOut[0], event.vtgtBcSdc[0]);
+    HF1(705, event.xtgtBcSdc[0]-event.xtgtBcOut[0]);
+    HF1(706, event.ytgtBcSdc[0]-event.ytgtBcOut[0]);
+    HF1(707, event.utgtBcSdc[0]-event.utgtBcOut[0]);
+    HF1(708, event.vtgtBcSdc[0]-event.vtgtBcOut[0]);
+    HF2(709, event.xtgtBcSdc[0], event.xtgtBcSdc[0]-event.xtgtBcOut[0]);
+    HF2(710, event.ytgtBcSdc[0], event.ytgtBcSdc[0]-event.ytgtBcOut[0]);
+    HF2(711, event.xtgtBcSdc[0], event.utgtBcSdc[0]-event.utgtBcOut[0]);
+    HF2(712, event.ytgtBcSdc[0], event.vtgtBcSdc[0]-event.vtgtBcOut[0]);
+
+    HF2(721, event.x0BcOut[0], event.x0BcSdc[0]);
+    HF2(722, event.y0BcOut[0], event.y0BcSdc[0]);
+    HF2(723, event.u0BcOut[0], event.u0BcSdc[0]);
+    HF2(724, event.v0BcOut[0], event.v0BcSdc[0]);
+    HF1(725, event.x0BcSdc[0]-event.x0BcOut[0]);
+    HF1(726, event.y0BcSdc[0]-event.y0BcOut[0]);
+    HF1(727, event.u0BcSdc[0]-event.u0BcOut[0]);
+    HF1(728, event.v0BcSdc[0]-event.v0BcOut[0]);
+    HF2(729, event.x0BcSdc[0], event.x0BcSdc[0]-event.x0BcOut[0]);
+    HF2(730, event.y0BcSdc[0], event.y0BcSdc[0]-event.y0BcOut[0]);
+    HF2(731, event.x0BcSdc[0], event.u0BcSdc[0]-event.u0BcOut[0]);
+    HF2(732, event.y0BcSdc[0], event.v0BcSdc[0]-event.v0BcOut[0]);
+
+    HF2(801, event.xtgtSdcIn[0], event.xtgtBcSdc[0]);
+    HF2(802, event.ytgtSdcIn[0], event.ytgtBcSdc[0]);
+    HF2(803, event.utgtSdcIn[0], event.utgtBcSdc[0]);
+    HF2(804, event.vtgtSdcIn[0], event.vtgtBcSdc[0]);
+    HF1(805, event.xtgtBcSdc[0]-event.xtgtSdcIn[0]);
+    HF1(806, event.ytgtBcSdc[0]-event.ytgtSdcIn[0]);
+    HF1(807, event.utgtBcSdc[0]-event.utgtSdcIn[0]);
+    HF1(808, event.vtgtBcSdc[0]-event.vtgtSdcIn[0]);
+    HF2(809, event.xtgtBcSdc[0], event.xtgtBcSdc[0]-event.xtgtSdcIn[0]);
+    HF2(810, event.ytgtBcSdc[0], event.ytgtBcSdc[0]-event.ytgtSdcIn[0]);
+    HF2(811, event.xtgtBcSdc[0], event.utgtBcSdc[0]-event.utgtSdcIn[0]);
+    HF2(812, event.ytgtBcSdc[0], event.vtgtBcSdc[0]-event.vtgtSdcIn[0]);
+
+    HF2(901, event.x0Tpc[0], event.xtgtBcSdc[0]);
+    HF2(902, event.y0Tpc[0], event.ytgtBcSdc[0]);
+    HF2(903, event.u0Tpc[0], event.utgtBcSdc[0]);
+    HF2(904, event.v0Tpc[0], event.vtgtBcSdc[0]);
+    HF1(905, event.xtgtBcSdc[0]-event.x0Tpc[0]);
+    HF1(906, event.ytgtBcSdc[0]-event.y0Tpc[0]);
+    HF1(907, event.utgtBcSdc[0]-event.u0Tpc[0]);
+    HF1(908, event.vtgtBcSdc[0]-event.v0Tpc[0]);
+    HF2(909, event.xtgtBcSdc[0], event.xtgtBcSdc[0]-event.x0Tpc[0]);
+    HF2(910, event.ytgtBcSdc[0], event.ytgtBcSdc[0]-event.y0Tpc[0]);
+    HF2(911, event.xtgtBcSdc[0], event.utgtBcSdc[0]-event.u0Tpc[0]);
+    HF2(912, event.ytgtBcSdc[0], event.vtgtBcSdc[0]-event.v0Tpc[0]);
+
+    Double_t BCSdcZoffset = - zK18Target + zTarget;
+    HF2(821, (event.x0SdcIn[0] + BCSdcZoffset*event.u0SdcIn[0] + posSdcIn.x() - posBcOut.x()), event.x0BcSdc[0]);
+    HF2(822, (event.y0SdcIn[0] + BCSdcZoffset*event.v0SdcIn[0] + posSdcIn.y() - posBcOut.y()), event.y0BcSdc[0]);
+    HF2(823, event.u0SdcIn[0], event.u0BcSdc[0]);
+    HF2(824, event.v0SdcIn[0], event.v0BcSdc[0]);
+    HF1(825, event.x0BcSdc[0] - (event.x0SdcIn[0] + BCSdcZoffset*event.u0SdcIn[0] + posSdcIn.x() - posBcOut.x()));
+    HF1(826, event.y0BcSdc[0] - (event.y0SdcIn[0] + BCSdcZoffset*event.v0SdcIn[0] + posSdcIn.y() - posBcOut.y()));
+    HF1(827, event.u0BcSdc[0]-event.u0SdcIn[0]);
+    HF1(828, event.v0BcSdc[0]-event.v0SdcIn[0]);
+    HF2(829, event.x0BcSdc[0], event.x0BcSdc[0] - (event.x0SdcIn[0] + BCSdcZoffset*event.u0SdcIn[0] + posSdcIn.x() - posBcOut.x()));
+    HF2(830, event.y0BcSdc[0], event.y0BcSdc[0] - (event.y0SdcIn[0] + BCSdcZoffset*event.v0SdcIn[0] + posSdcIn.y() - posBcOut.y()));
+    HF2(831, event.x0BcSdc[0], event.u0BcSdc[0]-event.u0SdcIn[0]);
+    HF2(832, event.y0BcSdc[0], event.v0BcSdc[0]-event.v0SdcIn[0]);
+  }
 
   return true;
 }
 
 //_____________________________________________________________________________
- Bool_t
-   dst::DstClose()
- {
+Bool_t
+dst::DstClose()
+{
   TFileCont[kOutFile]->Write();
   std::cout << "#D Close : " << TFileCont[kOutFile]->GetName() << std::endl;
   TFileCont[kOutFile]->Close();
 
   const Int_t n = TFileCont.size();
   for(Int_t i=0; i<n; ++i){
-  if(TTreeReaderCont[i]) delete TTreeReaderCont[i];
-  if(TTreeCont[i]) delete TTreeCont[i];
-  if(TFileCont[i]) delete TFileCont[i];
-}
+    if(TTreeReaderCont[i]) delete TTreeReaderCont[i];
+    if(TTreeCont[i]) delete TTreeCont[i];
+    if(TFileCont[i]) delete TFileCont[i];
+  }
   return true;
 }
 
- //_____________________________________________________________________________
- Bool_t
-   ConfMan::InitializeHistograms()
- {
-  const Int_t    NbinDe = 1000;
-  const Double_t MinDe  =    0.;
-  const Double_t MaxDe  = 2000.;
-  const Int_t    NbinRes = 400;
-  const Double_t MinRes  = -20.;
-  const Double_t MaxRes  =  20.;
-  const Int_t    NbinPos = 1600;
-  const Double_t MinPos  = -40.;
-  const Double_t MaxPos  = 40.;
-  // const Int_t    NbinClk = 20000;
-  // const Double_t MinClk  = 100.;
-  // const Double_t MaxClk  = 100.;
-
+//_____________________________________________________________________________
+Bool_t
+ConfMan::InitializeHistograms()
+{
   HB1(1, "Status", 21, 0., 21.);
-  HB1(10, "NTrack TPC", 40, 0., 40.);
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-  HB1(100 + layer, "dE TPC", NbinDe, MinDe, MaxDe);
-}
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-  const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
-  for(Int_t r=0; r<NumOfRow; ++r){
-  HB1(TPCDeHid + layer*1000 + r , "TPC hit dE", NbinDe, MinDe, MaxDe);
-  HB1(TPCClDeHid + layer*1000 + r , "TPC dE_center", NbinDe, MinDe, MaxDe);
-}
-}
-  Int_t NumOfDivXZ = ((MaxPosMapXZ - MinPosMapXZ)/Meshsize) + 1;
-  Int_t NumOfDivY = ((MaxPosMapY - MinPosMapY)/Meshsize) + 1;
+  HB1(10, "#Tracks TPC", 40, 0., 40.);
+  HB1(11, "#Hits of Track TPC", 50, 0., 50.);
+  HB1(12, "Chisqr TPC", 500, 0., 100.);
+  HB1(14, "X0 TPC", 600, -300., 300.);
+  HB1(15, "Y0 TPC", 200, -100., 100.);
+  HB1(16, "U0 TPC", 200, -0.20, 0.20);
+  HB1(17, "V0 TPC", 200, -0.20, 0.20);
+  HB2(18, "U0%X0 TPC", 300, -300., 300., 100, -0.20, 0.20);
+  HB2(19, "V0%Y0 TPC", 100, -100., 100., 100, -0.20, 0.20);
+  HB2(20, "Y0%X0 TPC", 300, -300., 300., 100, -100, 100);
+  HB2(21, "atan(U0)%X0 TPC", 300, -300., 300., 100, -20, 20);
+  HB2(22, "atan(V0)%Y0 TPC", 300, -300., 300., 100, -20, 20);
 
-  int histnum =0;
-  for(Int_t ix=0; ix<NumOfDivXZ; ++ix){
-  for(Int_t iy=0; iy<NumOfDivY; ++iy){
-  for(Int_t iz=0; iz<NumOfDivXZ; ++iz){
-  HB1(TPCXHid + histnum, "TPC Pos XCor", NbinPos, MinPos, MaxPos);
-  HB1(TPCYHid + histnum, "TPC Pos YCor", NbinPos, MinPos, MaxPos);
-  ++histnum;
-}
-}
-}
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-  const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
-  HB1(TPCResYHid+layer*1000,
-    Form("TPC Y Residual Layer%d (TPCHit);[mm];Counts", layer),
-    NbinRes, MinRes, MaxRes);
-  HB2(TPCResY2DHid+layer*1000,
-    Form("ResY%%ClockTime Layer%d (TPCHit);[ns];[mm];Counts", layer),
-    400, -50, 50, 400, -50, 50);
-  HB2(TPCResYBcSdcY2DHid+layer*1000,
-    Form("ResY%%YBcSdc Layer%d (TPCHit);[ns];[mm];Counts", layer),
-    400, -100, 100, 400, -50, 50);
-  HB2(TPCResYBcSdcY2DHid_thetacut+layer*1000,
-    Form("ResY%%YBcSdc Layer%d, theta<2 (TPCHit);[ns];[mm];Counts", layer),
-    400, -100, 100, 400, -50, 50);
-  HB2(TPCResYCoBoHid+layer*1000,
-    Form("ResY%%ClockTime CoBo%d (TPCHit);[ns];[mm];Counts", layer),
-    400, -50, 50, 400, -50, 50);
-  HB1(TPCResXHid+layer*1000,
-    Form("TPC X Residual Layer%d (TPCHit);[mm];Counts", layer),
-    NbinRes, MinRes, MaxRes);
-  HB2(TPCResX2DHid+layer*1000,
-    Form("ResX%%ClockTime Layer%d (TPCHit);[ns];[mm];Counts", layer),
-    400, -50, 50, 400, -50, 50);
-  for(Int_t r=0; r<NumOfRow; ++r){
-  // HB1(TPCPadYHid+layer*1000+r, "TPC Pad Y Cor", NbinPos, MinPos, MaxPos);
-  HB1(TPCResYHid+layer*1000+r+1,
-    Form("TPC Y Residual L%dR%d (TPCHit);[mm];Counts", layer, r),
-    NbinRes, MinRes, MaxRes);
-  // HB1(TPCPadXHid+layer*1000+r, "TPC Pad X Cor", NbinPos, MinPos, MaxPos);
-  HB1(TPCResXHid+layer*1000+r+1,
-    Form("TPC X Residual L%dR%d (TPCHit);[mm];Counts", layer, r),
-    NbinRes, MinRes, MaxRes);
-}
-}
+  HB1(110, "#Tracks BcOut", 40, 0., 40.);
+  HB1(111, "#Hits of Track BcOut", 50, 0., 50.);
+  HB1(112, "Chisqr BcOut", 500, 0., 500.);
+  HB1(114, "X0 BcOut", 400, -100., 100.);
+  HB1(115, "Y0 BcOut", 400, -100., 100.);
+  HB1(116, "U0 BcOut", 200, -0.20, 0.20);
+  HB1(117, "V0 BcOut", 200, -0.20, 0.20);
+  HB2(118, "U%Xtgt BcOut", 100, -0.20, 0.20, 100, -100., 100.);
+  HB2(119, "V%Ytgt BcOut", 100, -0.20, 0.20, 100, -100., 100.);
+  HB2(120, "X%Ytgt BcOut", 100, -100., 100., 100, -100, 100);
+  HB1(121, "Xtgt BcOut", 400, -100., 100.);
+  HB1(122, "Ytgt BcOut", 400, -100., 100.);
+  HB1(123, "Utgt BcOut", 200, -0.20, 0.20);
+  HB1(124, "Vtgt BcOut", 200, -0.20, 0.20);
 
+  HB1(210, "#Tracks SdcIn", 40, 0., 40.);
+  HB1(211, "#Hits of Track SdcIn", 50, 0., 50.);
+  HB1(212, "Chisqr SdcIn", 500, 0., 500.);
+  HB1(214, "X0 SdcIn", 400, -100., 100.);
+  HB1(215, "Y0 SdcIn", 400, -100., 100.);
+  HB1(216, "U0 SdcIn", 200, -0.20, 0.20);
+  HB1(217, "V0 SdcIn", 200, -0.20, 0.20);
+  HB2(218, "U%Xtgt SdcIn", 100, -0.20, 0.20, 100, -100., 100.);
+  HB2(219, "V%Ytgt SdcIn", 100, -0.20, 0.20, 100, -100., 100.);
+  HB2(220, "X%Ytgt SdcIn", 100, -100., 100., 100, -100, 100);
+  HB1(221, "Xtgt SdcIn", 400, -100., 100.);
+  HB1(222, "Ytgt SdcIn", 400, -100., 100.);
+  HB1(223, "Utgt SdcIn", 200, -0.20, 0.20);
+  HB1(224, "Vtgt SdcIn", 200, -0.20, 0.20);
 
-  // for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-  //   const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
-  //   for(Int_t r=0; r<NumOfRow; ++r){
-  //     HB1(PadHid + layer*1000 + r , "TPC DeltaE_center", NbinDe, MinDe, MaxDe);
-  //   }
-  // }
+  HB1(310, "#Tracks BcSdc", 40, 0., 40.);
+  HB1(311, "#Hits of Track BcSdc", 50, 0., 50.);
+  HB1(312, "Chisqr BcSdc", 500, 0., 500.);
+  HB1(314, "X0 BcSdc", 400, -100., 100.);
+  HB1(315, "Y0 BcSdc", 400, -100., 100.);
+  HB1(316, "U0 BcSdc", 200, -0.20, 0.20);
+  HB1(317, "V0 BcSdc", 200, -0.20, 0.20);
+  HB2(318, "U%Xtgt BcSdc", 100, -0.20, 0.20, 100, -100., 100.);
+  HB2(319, "V%Ytgt BcSdc", 100, -0.20, 0.20, 100, -100., 100.);
+  HB2(320, "X%Ytgt BcSdc", 100, -100., 100., 100, -100, 100);
+  HB1(321, "Xtgt BcSdc", 400, -100., 100.);
+  HB1(322, "Ytgt BcSdc", 400, -100., 100.);
+  HB1(323, "Utgt BcSdc", 200, -0.20, 0.20);
+  HB1(324, "Vtgt BcSdc", 200, -0.20, 0.20);
 
+  HB2(401, "Xtgt BcOut%%Tpc", 400, -200., 200., 400, -200., 200.);
+  HB2(402, "Ytgt BcOut%%Tpc", 400, -100., 100., 400, -100., 100.);
+  HB2(403, "Utgt BcOut%%Tpc", 400, -0.15, 0.15, 400, -0.15, 0.15);
+  HB2(404, "Vtgt BcOut%%Tpc", 400, -0.05, 0.05, 400, -0.05, 0.05);
+  HB1(405, "Xtgt, BcOut-Tpc", 640, -16., 16.);
+  HB1(406, "Ytgt, BcOut-Tpc", 640, -16., 16.);
+  HB1(407, "Utgt, BcOut-Tpc", 200, -0.05, 0.05);
+  HB1(408, "Vtgt, BcOut-Tpc", 200, -0.05, 0.05);
+  HB2(409, "Xtgt BcOut-Tpc%%Xtgt BcOut", 400, -150., 150., 400, -10., 10.);
+  HB2(410, "Ytgt BcOut-Tpc%%Ytgt BcOut", 400, -100., 100., 400, -15., 15.);
+  HB2(411, "Utgt BcOut-Tpc%%Xtgt BcOut", 400, -150., 150., 400, -0.03, 0.03);
+  HB2(412, "Vtgt BcOut-Tpc%%Ytgt BcOut", 400, -100., 100., 400, -0.03, 0.03);
+
+  HB2(501, "Xtgt SdcIn%%Tpc", 400, -200., 200., 400, -200., 200.);
+  HB2(502, "Ytgt SdcIn%%Tpc", 400, -100., 100., 400, -100., 100.);
+  HB2(503, "Utgt SdcIn%%Tpc", 400, -0.15, 0.15, 400, -0.15, 0.15);
+  HB2(504, "Vtgt SdcIn%%Tpc", 400, -0.05, 0.05, 400, -0.05, 0.05);
+  HB1(505, "Xtgt, SdcIn-Tpc", 640, -16., 16.);
+  HB1(506, "Ytgt, SdcIn-Tpc", 640, -16., 16.);
+  HB1(507, "Utgt, SdcIn-Tpc", 200, -0.05, 0.05);
+  HB1(508, "Vtgt, SdcIn-Tpc", 200, -0.05, 0.05);
+  HB2(509, "Xtgt SdcIn-Tpc%%Xtgt SdcIn", 400, -150., 150., 400, -10., 10.);
+  HB2(510, "Ytgt SdcIn-Tpc%%Ytgt SdcIn", 400, -100., 100., 400, -15., 15.);
+  HB2(511, "Utgt SdcIn-Tpc%%Xtgt SdcIn", 400, -150., 150., 400, -0.03, 0.03);
+  HB2(512, "Vtgt SdcIn-Tpc%%Ytgt SdcIn", 400, -100., 100., 400, -0.03, 0.03);
+
+  HB2(601, "Xtgt SdcIn%%BcOut", 400, -200., 200., 400, -200., 200.);
+  HB2(602, "Ytgt SdcIn%%BcOut", 400, -100., 100., 400, -100., 100.);
+  HB2(603, "Utgt SdcIn%%BcOut", 400, -0.15, 0.15, 400, -0.15, 0.15);
+  HB2(604, "Vtgt SdcIn%%BcOut", 400, -0.05, 0.05, 400, -0.05, 0.05);
+  HB1(605, "Xtgt, SdcIn-BcOut", 640, -16., 16.);
+  HB1(606, "Ytgt, SdcIn-BcOut", 640, -16., 16.);
+  HB1(607, "Utgt, SdcIn-BcOut", 200, -0.05, 0.05);
+  HB1(608, "Vtgt, SdcIn-BcOut", 200, -0.05, 0.05);
+  HB2(609, "Xtgt SdcIn-BcOut%%Xtgt SdcIn", 400, -150., 150., 400, -10., 10.);
+  HB2(610, "Ytgt SdcIn-BcOut%%Ytgt SdcIn", 400, -100., 100., 400, -15., 15.);
+  HB2(611, "Utgt SdcIn-BcOut%%Xtgt SdcIn", 400, -150., 150., 400, -0.03, 0.03);
+  HB2(612, "Vtgt SdcIn-BcOut%%Ytgt SdcIn", 400, -100., 100., 400, -0.03, 0.03);
+
+  HB2(701, "Xtgt BcSdc%%BcOut", 400, -200., 200., 400, -200., 200.);
+  HB2(702, "Ytgt BcSdc%%BcOut", 400, -100., 100., 400, -100., 100.);
+  HB2(703, "Utgt BcSdc%%BcOut", 400, -0.15, 0.15, 400, -0.15, 0.15);
+  HB2(704, "Vtgt BcSdc%%BcOut", 400, -0.05, 0.05, 400, -0.05, 0.05);
+  HB1(705, "Xtgt, BcSdc-BcOut", 640, -16., 16.);
+  HB1(706, "Ytgt, BcSdc-BcOut", 640, -16., 16.);
+  HB1(707, "Utgt, BcSdc-BcOut", 200, -0.05, 0.05);
+  HB1(708, "Vtgt, BcSdc-BcOut", 200, -0.05, 0.05);
+  HB2(709, "Xtgt BcSdc-BcOut%%Xtgt BcSdc",  400, -150., 150., 400, -10., 10.);
+  HB2(710, "Ytgt BcSdc-BcOut%%Ytgt BcSdc", 400, -100., 100., 400, -15., 15.);
+  HB2(711, "Utgt BcSdc-BcOut%%Xtgt BcSdc", 400, -150., 150., 400, -0.03, 0.03);
+  HB2(712, "Vtgt BcSdc-BcOut%%Ytgt BcSdc", 400, -100., 100., 400, -0.03, 0.03);
+  HB2(721, "X0 BcSdc%%BcOut", 400, -200., 200., 400, -200., 200.);
+  HB2(722, "Y0 BcSdc%%BcOut", 400, -100., 100., 400, -100., 100.);
+  HB2(723, "U0 BcSdc%%BcOut", 400, -0.15, 0.15, 400, -0.15, 0.15);
+  HB2(724, "V0 BcSdc%%BcOut", 400, -0.05, 0.05, 400, -0.05, 0.05);
+  HB1(725, "X0, BcSdc-BcOut", 640, -16., 16.);
+  HB1(726, "Y0, BcSdc-BcOut", 640, -16., 16.);
+  HB1(727, "U0, BcSdc-BcOut", 200, -0.05, 0.05);
+  HB1(728, "V0, BcSdc-BcOut", 200, -0.05, 0.05);
+  HB2(729, "X0 BcSdc-BcOut%%X0 BcSdc",  400, -150., 150., 400, -10., 10.);
+  HB2(730, "Y0 BcSdc-BcOut%%Y0 BcSdc", 400, -100., 100., 400, -15., 15.);
+  HB2(731, "U0 BcSdc-BcOut%%X0 BcSdc", 400, -150., 150., 400, -0.03, 0.03);
+  HB2(732, "V0 BcSdc-BcOut%%Y0 BcSdc", 400, -100., 100., 400, -0.03, 0.03);
+
+  HB2(801, "Xtgt BcSdc%%SdcIn", 400, -200., 200., 400, -200., 200.);
+  HB2(802, "Ytgt BcSdc%%SdcIn", 400, -100., 100., 400, -100., 100.);
+  HB2(803, "Utgt BcSdc%%SdcIn", 400, -0.15, 0.15, 400, -0.15, 0.15);
+  HB2(804, "Vtgt BcSdc%%SdcIn", 400, -0.05, 0.05, 400, -0.05, 0.05);
+  HB1(805, "Xtgt, BcSdc-SdcIn", 640, -16., 16.);
+  HB1(806, "Ytgt, BcSdc-SdcIn", 640, -16., 16.);
+  HB1(807, "Utgt, BcSdc-SdcIn", 200, -0.05, 0.05);
+  HB1(808, "Vtgt, BcSdc-SdcIn", 200, -0.05, 0.05);
+  HB2(809, "Xtgt BcSdc-SdcIn%%Xtgt BcSdc", 400, -150., 150., 400, -10., 10.);
+  HB2(810, "Ytgt BcSdc-SdcIn%%Ytgt BcSdc", 400, -100., 100., 400, -15., 15.);
+  HB2(811, "Utgt BcSdc-SdcIn%%Xtgt BcSdc", 400, -150., 150., 400, -0.03, 0.03);
+  HB2(812, "Vtgt BcSdc-SdcIn%%Ytgt BcSdc", 400, -100., 100., 400, -0.03, 0.03);
+  HB2(821, "X0 BcSdc%%SdcIn", 400, -200., 200., 400, -200., 200.);
+  HB2(822, "Y0 BcSdc%%SdcIn", 400, -100., 100., 400, -100., 100.);
+  HB2(823, "U0 BcSdc%%SdcIn", 400, -0.15, 0.15, 400, -0.15, 0.15);
+  HB2(824, "V0 BcSdc%%SdcIn", 400, -0.05, 0.05, 400, -0.05, 0.05);
+  HB1(825, "X0, BcSdc-SdcIn", 640, -16., 16.);
+  HB1(826, "Y0, BcSdc-SdcIn", 640, -16., 16.);
+  HB1(827, "U0, BcSdc-SdcIn", 200, -0.05, 0.05);
+  HB1(828, "V0, BcSdc-SdcIn", 200, -0.05, 0.05);
+  HB2(829, "X0 BcSdc-SdcIn%%X0 BcSdc", 400, -150., 150., 400, -10., 10.);
+  HB2(830, "Y0 BcSdc-SdcIn%%Y0 BcSdc", 400, -100., 100., 400, -15., 15.);
+  HB2(831, "U0 BcSdc-SdcIn%%X0 BcSdc", 400, -150., 150., 400, -0.03, 0.03);
+  HB2(832, "V0 BcSdc-SdcIn%%Y0 BcSdc", 400, -100., 100., 400, -0.03, 0.03);
+
+  HB2(901, "Xtgt BcSdc%%Tpc", 400, -200., 200., 400, -200., 200.);
+  HB2(902, "Ytgt BcSdc%%Tpc", 400, -100., 100., 400, -100., 100.);
+  HB2(903, "Utgt BcSdc%%Tpc", 400, -0.15, 0.15, 400, -0.15, 0.15);
+  HB2(904, "Vtgt BcSdc%%Tpc", 400, -0.05, 0.05, 400, -0.05, 0.05);
+  HB1(905, "Xtgt, BcSdc-Tpc", 640, -16., 16.);
+  HB1(906, "Ytgt, BcSdc-Tpc", 640, -16., 16.);
+  HB1(907, "Utgt, BcSdc-Tpc", 200, -0.05, 0.05);
+  HB1(908, "Vtgt, BcSdc-Tpc", 200, -0.05, 0.05);
+  HB2(909, "Xtgt BcSdc-Tpc%%Xtgt BcSdc", 400, -150., 150., 400, -10., 10.);
+  HB2(910, "Ytgt BcSdc-Tpc%%Ytgt BcSdc", 400, -100., 100., 400, -15., 15.);
+  HB2(911, "Utgt BcSdc-Tpc%%Xtgt BcSdc", 400, -150., 150., 400, -0.03, 0.03);
+  HB2(912, "Vtgt BcSdc-Tpc%%Ytgt BcSdc", 400, -100., 100., 400, -0.03, 0.03);
+
+  for(Int_t i=0; i<NumOfLayersTPC; ++i){
+    HB2(1000*(i+1) + 1, Form("TPC L%d X Residual%%SdcIn X", i+1), 400, -200., 200., 400, -20., 20.);
+    HB2(1000*(i+1) + 2, Form("TPC L%d Y Residual%%SdcIn Y", i+1), 400, -200., 200., 400, -20., 20.);
+    HB2(1000*(i+1) + 3, Form("TPC L%d Z Residual%%SdcIn X", i+1), 400, -200., 200., 400, -20., 20.);
+    HB2(1000*(i+1) + 4, Form("TPC L%d Local X Residual%%SdcIn X", i+1), 800, -200., 200., 400, -20., 20.);
+    HB2(1000*(i+1) + 5, Form("TPC L%d Local Y Residual%%SdcIn X", i+1), 800, -200., 200., 400, -20., 20.);
+    HB2(1000*(i+1) + 6, Form("TPC L%d XZ Residual%%SdcIn X", i+1), 400, -200., 200., 200, 0., 20.);
+
+    HB1(1000*(i+1) + 11, Form("TPC L%d X Pull", i+1), 200, -5., 5.);
+    HB1(1000*(i+1) + 12, Form("TPC L%d Y Pull", i+1), 200, -5., 5.);
+    HB1(1000*(i+1) + 13, Form("TPC L%d Z Pull", i+1), 200, -5., 5.);
+    HB1(1000*(i+1) + 14, Form("TPC L%d Local X Pull", i+1), 200, -5., 5.);
+    HB1(1000*(i+1) + 15, Form("TPC L%d Local Y Pull", i+1), 200, -5., 5.);
+
+    HB1(1000*(i+1) + 101, Form("TPC L%d X Residual", i+1), 200, -8., 8.);
+    HB1(1000*(i+1) + 102, Form("TPC L%d Y Residual", i+1), 200, -8., 8.);
+    HB1(1000*(i+1) + 103, Form("TPC L%d Z Residual", i+1), 200, -8., 8.);
+    HB1(1000*(i+1) + 104, Form("TPC L%d Local X Residual", i+1), 400, -16., 16.);
+    HB1(1000*(i+1) + 105, Form("TPC L%d Local Y Residual", i+1), 200, -8., 8.);
+    HB1(1000*(i+1) + 106, Form("TPC L%d XZ Residual", i+1), 100, 0, 8.);
+  }
 
   HBTree("tpc", "tree of DstTPCTracking");
+  tree->Branch( "status", &event.status );
+  tree->Branch( "runnum", &event.runnum );
+  tree->Branch( "evnum", &event.evnum );
+  tree->Branch( "trigpat", &event.trigpat );
+  tree->Branch( "trigflag", &event.trigflag );
 
-  tree->Branch("status", &event.status);
-  tree->Branch("runnum", &event.runnum);
-  tree->Branch("evnum", &event.evnum);
-  tree->Branch("trigpat", &event.trigpat);
-  tree->Branch("trigflag", &event.trigflag);
-
-  tree->Branch("clkTpc", &event.clkTpc);
-
-  tree->Branch("nhTpc", &event.nhTpc);
-  tree->Branch("nh_cluster_Tpc", &event.nh_cluster_Tpc);
-  tree->Branch("raw_hitpos_x", &event.raw_hitpos_x);
-  tree->Branch("raw_hitpos_y", &event.raw_hitpos_y);
-  tree->Branch("raw_hitpos_z", &event.raw_hitpos_z);
-  tree->Branch("raw_de", &event.raw_de);
-  tree->Branch("raw_padid", &event.raw_padid);
-  tree->Branch("raw_layer", &event.raw_layer);
-  tree->Branch("raw_row", &event.raw_row);
-  tree->Branch("cluster_hitpos_x", &event.cluster_hitpos_x);
-  tree->Branch("cluster_hitpos_y", &event.cluster_hitpos_y);
-  tree->Branch("cluster_hitpos_z", &event.cluster_hitpos_z);
-  tree->Branch("cluster_de", &event.cluster_de);
-  tree->Branch("cluster_size", &event.cluster_size);
-  tree->Branch("cluster_layer", &event.cluster_layer);
-  tree->Branch("cluster_row", &event.cluster_row);
-  tree->Branch("cluster_mrow", &event.cluster_mrow);
-  tree->Branch("cluster_de_center", &event.cluster_de_center);
-  tree->Branch("cluster_hitpos_center_x", &event.cluster_hitpos_center_x);
-  tree->Branch("cluster_hitpos_center_y", &event.cluster_hitpos_center_y);
-  tree->Branch("cluster_hitpos_center_z", &event.cluster_hitpos_center_z);
-
-  tree->Branch("ntrack_bcsdc", &event.ntrack_bcsdc);
-  tree->Branch("chisqr_bcsdc", &event.chisqr_bcsdc);
-  tree->Branch("theta_bcsdc", &event.theta_bcsdc);
-  tree->Branch("x0_bcsdc", &event.x0_bcsdc);
-  tree->Branch("y0_bcsdc", &event.y0_bcsdc);
-  tree->Branch("u0_bcsdc", &event.u0_bcsdc);
-  tree->Branch("v0_bcsdc", &event.v0_bcsdc);
-#if TrackSearch
   tree->Branch("ntTpc", &event.ntTpc);
   tree->Branch("nhtrack", &event.nhtrack);
-  tree->Branch("chisqr", &event.chisqr);
-  tree->Branch("x0", &event.x0);
-  tree->Branch("y0", &event.y0);
-  tree->Branch("u0", &event.u0);
-  tree->Branch("v0", &event.v0);
+  tree->Branch("chisqrTpc", &event.chisqrTpc);
+  tree->Branch("x0Tpc", &event.x0Tpc);
+  tree->Branch("y0Tpc", &event.y0Tpc);
+  tree->Branch("u0Tpc", &event.u0Tpc);
+  tree->Branch("v0Tpc", &event.v0Tpc);
   tree->Branch("theta", &event.theta);
   tree->Branch("hitlayer", &event.hitlayer);
   tree->Branch("hitpos_x", &event.hitpos_x);
@@ -738,68 +979,188 @@ dst::DstRead(int ievent)
   tree->Branch("residual", &event.residual);
   tree->Branch("residual_x", &event.residual_x);
   tree->Branch("residual_y", &event.residual_y);
-  tree->Branch("residual_wbcsdc_x", &event.residual_wbcsdc_x);
-  tree->Branch("residual_wbcsdc_y", &event.residual_wbcsdc_y);
-  tree->Branch("residual_trackwbcsdc_x", &event.residual_trackwbcsdc_x);
-  tree->Branch("residual_trackwbcsdc_y", &event.residual_trackwbcsdc_y);
   tree->Branch("residual_z", &event.residual_z);
+  tree->Branch("residual_horizontal", &event.residual_horizontal);
+  tree->Branch("residual_vertical", &event.residual_vertical);
+  tree->Branch("resolution_x", &event.resolution_x);
+  tree->Branch("resolution_y", &event.resolution_y);
+  tree->Branch("resolution_z", &event.resolution_z);
+  tree->Branch("resolution_horizontal", &event.resolution_horizontal);
+  tree->Branch("resolution_vertical", &event.resolution_vertical);
+  tree->Branch("dE", &event.dE );
+  tree->Branch("dEdx", &event.dEdx );
+  tree->Branch("pathhit", &event.pathhit);
+  tree->Branch("theta_diff", &event.theta_diff);
+  tree->Branch("track_cluster_de", &event.track_cluster_de);
+  tree->Branch("track_cluster_size", &event.track_cluster_size);
+  tree->Branch("track_cluster_mrow", &event.track_cluster_mrow);
+  tree->Branch("track_cluster_de_center", &event.track_cluster_de_center);
+  tree->Branch("track_cluster_x_center", &event.track_cluster_x_center);
+  tree->Branch("track_cluster_y_center", &event.track_cluster_y_center);
+  tree->Branch("track_cluster_z_center", &event.track_cluster_z_center);
+  tree->Branch("track_cluster_row_center", &event.track_cluster_row_center);
+
+#if Exclusive
+  tree->Branch("exresidual", &event.exresidual);
+  tree->Branch("exresidual_x", &event.exresidual_x);
+  tree->Branch("exresidual_y", &event.exresidual_y);
+  tree->Branch("exresidual_z", &event.exresidual_z);
+  tree->Branch("exresidual_horizontal", &event.exresidual_horizontal);
+  tree->Branch("exresidual_vertical", &event.exresidual_vertical);
 #endif
 
-  TTreeReaderCont[kTpcHit] = new TTreeReader("tpc", TFileCont[kTpcHit]);
-  const auto& reader = TTreeReaderCont[kTpcHit];
+  tree->Branch("btof", &event.btof);
+  tree->Branch("ntBcSdc", &event.ntBcSdc);
+  tree->Branch("nhBcSdc", &event.nhBcSdc);
+  tree->Branch("chisqrBcSdc", &event.chisqrBcSdc);
+  tree->Branch("x0BcSdc", &event.x0BcSdc);
+  tree->Branch("y0BcSdc", &event.y0BcSdc);
+  tree->Branch("u0BcSdc", &event.u0BcSdc);
+  tree->Branch("v0BcSdc", &event.v0BcSdc);
+  tree->Branch("xtgtBcSdc", &event.xtgtBcSdc);
+  tree->Branch("ytgtBcSdc", &event.ytgtBcSdc);
+  tree->Branch("utgtBcSdc", &event.utgtBcSdc);
+  tree->Branch("vtgtBcSdc", &event.vtgtBcSdc);
+
+  tree->Branch("ntBcOut", &event.ntBcOut);
+  tree->Branch("nhBcOut", &event.nhBcOut);
+  tree->Branch("chisqrBcOut", &event.chisqrBcOut);
+  tree->Branch("x0BcOut", &event.x0BcOut);
+  tree->Branch("y0BcOut", &event.y0BcOut);
+  tree->Branch("u0BcOut", &event.u0BcOut);
+  tree->Branch("v0BcOut", &event.v0BcOut);
+  tree->Branch("xtgtBcOut", &event.xtgtBcOut);
+  tree->Branch("ytgtBcOut", &event.ytgtBcOut);
+  tree->Branch("utgtBcOut", &event.utgtBcOut);
+  tree->Branch("vtgtBcOut", &event.vtgtBcOut);
+
+  tree->Branch("ntSdcIn", &event.ntSdcIn);
+  tree->Branch("nhSdcIn", &event.nhSdcIn);
+  tree->Branch("chisqrSdcIn", &event.chisqrSdcIn);
+  tree->Branch("x0SdcIn", &event.x0SdcIn);
+  tree->Branch("y0SdcIn", &event.y0SdcIn);
+  tree->Branch("u0SdcIn", &event.u0SdcIn);
+  tree->Branch("v0SdcIn", &event.v0SdcIn);
+  tree->Branch("xtgtSdcIn", &event.xtgtSdcIn);
+  tree->Branch("ytgtSdcIn", &event.ytgtSdcIn);
+  tree->Branch("utgtSdcIn", &event.utgtSdcIn);
+  tree->Branch("vtgtSdcIn", &event.vtgtSdcIn);
+
+  TTreeReaderCont[kTpc] = new TTreeReader("tpc", TFileCont[kTpc]);
+  const auto& reader = TTreeReaderCont[kTpc];
   src.runnum = new TTreeReaderValue<Int_t>(*reader, "runnum");
   src.evnum = new TTreeReaderValue<Int_t>(*reader, "evnum");
   src.trigpat = new TTreeReaderValue<std::vector<Int_t>>(*reader, "trigpat");
   src.trigflag = new TTreeReaderValue<std::vector<Int_t>>(*reader, "trigflag");
-  src.npadTpc = new TTreeReaderValue<Int_t>(*reader, "npadTpc");
-  src.nhTpc = new TTreeReaderValue<Int_t>(*reader, "nhTpc");
-  src.layerTpc = new TTreeReaderValue<std::vector<Int_t>>(*reader, "layerTpc");
-  src.rowTpc = new TTreeReaderValue<std::vector<Int_t>>(*reader, "rowTpc");
-  src.padTpc = new TTreeReaderValue<std::vector<Int_t>>(*reader, "padTpc");
-  src.pedTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "pedTpc");
-  src.rmsTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "rmsTpc");
-  src.deTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "deTpc");
-  src.tTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "tTpc");
-  src.ctTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "ctTpc");
+
+  src.ntTpc = new TTreeReaderValue<Int_t>(*reader, "ntTpc");
+  src.nhtrack = new TTreeReaderValue<std::vector<Int_t>>(*reader, "nhtrack");
   src.chisqrTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "chisqrTpc");
-  src.clkTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "clkTpc");
+  src.x0Tpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "x0Tpc");
+  src.y0Tpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "y0Tpc");
+  src.u0Tpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "u0Tpc");
+  src.v0Tpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "v0Tpc");
+  src.theta = new TTreeReaderValue<std::vector<Double_t>>(*reader, "theta");
+  src.dE = new TTreeReaderValue<std::vector<Double_t>>(*reader, "dE");
+  src.dEdx = new TTreeReaderValue<std::vector<Double_t>>(*reader, "dEdx");
+  src.hitlayer = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "hitlayer");
+  src.hitpos_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "hitpos_x");
+  src.hitpos_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "hitpos_y");
+  src.hitpos_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "hitpos_z");
+  src.calpos_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "calpos_x");
+  src.calpos_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "calpos_y");
+  src.calpos_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "calpos_z");
+  src.residual = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "residual");
+  src.residual_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "residual_x");
+  src.residual_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "residual_y");
+  src.residual_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "residual_z");
+  src.residual_horizontal = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "residual_horizontal");
+  src.residual_vertical = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "residual_vertical");
+  src.resolution_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "resolution_x");
+  src.resolution_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "resolution_y");
+  src.resolution_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "resolution_z");
+  src.resolution_horizontal = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "resolution_horizontal");
+  src.resolution_vertical = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "resolution_vertical");
+  src.pathhit = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "pathhit");
+  src.theta_diff = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "theta_diff");
+  src.track_cluster_de = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "track_cluster_de");
+  src.track_cluster_size = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "track_cluster_size");
+  src.track_cluster_mrow = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "track_cluster_mrow");
+  src.track_cluster_de_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "track_cluster_de_center");
+  src.track_cluster_x_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "track_cluster_x_center");
+  src.track_cluster_y_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "track_cluster_y_center");
+  src.track_cluster_z_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "track_cluster_z_center");
+  src.track_cluster_row_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "track_cluster_row_center");
 
-  TTreeCont[kBcSdc]->SetBranchStatus("*", 0);
-  TTreeCont[kBcSdc]->SetBranchStatus("ntrack",  1);
-  TTreeCont[kBcSdc]->SetBranchStatus("chisqr",  1);
-  TTreeCont[kBcSdc]->SetBranchStatus("theta",  1);
-  TTreeCont[kBcSdc]->SetBranchStatus("x0",  1);
-  TTreeCont[kBcSdc]->SetBranchStatus("y0",  1);
-  TTreeCont[kBcSdc]->SetBranchStatus("u0",  1);
-  TTreeCont[kBcSdc]->SetBranchStatus("v0",  1);
+  src.exresidual = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "exresidual");
+  src.exresidual_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "exresidual_x");
+  src.exresidual_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "exresidual_y");
+  src.exresidual_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "exresidual_z");
+  src.exresidual_horizontal = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "exresidual_horizontal");
+  src.exresidual_vertical = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "exresidual_vertical");
 
-  TTreeCont[kBcSdc]->SetBranchAddress("ntrack",  &src.ntrack);
-  TTreeCont[kBcSdc]->SetBranchAddress("chisqr",  src.chisqr);
-  TTreeCont[kBcSdc]->SetBranchAddress("theta",  src.theta);
-  TTreeCont[kBcSdc]->SetBranchAddress("x0",  src.x0);
-  TTreeCont[kBcSdc]->SetBranchAddress("y0",  src.y0);
-  TTreeCont[kBcSdc]->SetBranchAddress("u0",  src.u0);
-  TTreeCont[kBcSdc]->SetBranchAddress("v0",  src.v0);
+  TTreeCont[kBcSdc]->SetBranchStatus("btof",               1);
+  TTreeCont[kBcSdc]->SetBranchStatus("ntrack",             1);
+  TTreeCont[kBcSdc]->SetBranchStatus("nh",                 1);
+  TTreeCont[kBcSdc]->SetBranchStatus("chisqr",             1);
+  TTreeCont[kBcSdc]->SetBranchStatus("x0",                 1);
+  TTreeCont[kBcSdc]->SetBranchStatus("y0",                 1);
+  TTreeCont[kBcSdc]->SetBranchStatus("u0",                 1);
+  TTreeCont[kBcSdc]->SetBranchStatus("v0",                 1);
+  TTreeCont[kBcSdc]->SetBranchStatus("ntBcOut",            1);
+  TTreeCont[kBcSdc]->SetBranchStatus("nhBcOut",            1);
+  TTreeCont[kBcSdc]->SetBranchStatus("chisqrBcOut",        1);
+  TTreeCont[kBcSdc]->SetBranchStatus("x0BcOut",            1);
+  TTreeCont[kBcSdc]->SetBranchStatus("y0BcOut",            1);
+  TTreeCont[kBcSdc]->SetBranchStatus("u0BcOut",            1);
+  TTreeCont[kBcSdc]->SetBranchStatus("v0BcOut",            1);
+  TTreeCont[kBcSdc]->SetBranchStatus("ntSdcIn",            1);
+  TTreeCont[kBcSdc]->SetBranchStatus("ntSdcIn",            1);
+  TTreeCont[kBcSdc]->SetBranchStatus("chisqrSdcIn",        1);
+  TTreeCont[kBcSdc]->SetBranchStatus("x0SdcIn",            1);
+  TTreeCont[kBcSdc]->SetBranchStatus("y0SdcIn",            1);
+  TTreeCont[kBcSdc]->SetBranchStatus("u0SdcIn",            1);
+  TTreeCont[kBcSdc]->SetBranchStatus("v0SdcIn",            1);
 
+  TTreeCont[kBcSdc]->SetBranchAddress("btof", &src.btof);
+  TTreeCont[kBcSdc]->SetBranchAddress("ntrack", &src.ntBcSdc);
+  TTreeCont[kBcSdc]->SetBranchAddress("nh", &src.nhBcSdc);
+  TTreeCont[kBcSdc]->SetBranchAddress("chisqr", src.chisqrBcSdc);
+  TTreeCont[kBcSdc]->SetBranchAddress("x0", src.x0BcSdc);
+  TTreeCont[kBcSdc]->SetBranchAddress("y0", src.y0BcSdc);
+  TTreeCont[kBcSdc]->SetBranchAddress("u0", src.u0BcSdc);
+  TTreeCont[kBcSdc]->SetBranchAddress("v0", src.v0BcSdc);
+  TTreeCont[kBcSdc]->SetBranchAddress("ntBcOut", &src.ntBcOut);
+  TTreeCont[kBcSdc]->SetBranchAddress("nhBcOut", &src.nhBcOut);
+  TTreeCont[kBcSdc]->SetBranchAddress("chisqrBcOut", src.chisqrBcOut);
+  TTreeCont[kBcSdc]->SetBranchAddress("x0BcOut", src.x0BcOut);
+  TTreeCont[kBcSdc]->SetBranchAddress("y0BcOut", src.y0BcOut);
+  TTreeCont[kBcSdc]->SetBranchAddress("u0BcOut", src.u0BcOut);
+  TTreeCont[kBcSdc]->SetBranchAddress("v0BcOut", src.v0BcOut);
+  TTreeCont[kBcSdc]->SetBranchAddress("ntSdcIn", &src.ntSdcIn);
+  TTreeCont[kBcSdc]->SetBranchAddress("nhSdcIn", &src.nhSdcIn);
+  TTreeCont[kBcSdc]->SetBranchAddress("chisqrSdcIn", src.chisqrSdcIn);
+  TTreeCont[kBcSdc]->SetBranchAddress("x0SdcIn", src.x0SdcIn);
+  TTreeCont[kBcSdc]->SetBranchAddress("y0SdcIn", src.y0SdcIn);
+  TTreeCont[kBcSdc]->SetBranchAddress("u0SdcIn", src.u0SdcIn);
+  TTreeCont[kBcSdc]->SetBranchAddress("v0SdcIn", src.v0SdcIn);
 
   return true;
- }
+}
 
- //_____________________________________________________________________________
- Bool_t
-   ConfMan::InitializeParameterFiles()
- {
-   return
-     (InitializeParameter<DCGeomMan>("DCGEO")   &&
+//_____________________________________________________________________________
+Bool_t
+ConfMan::InitializeParameterFiles()
+{
+  return
+    (InitializeParameter<DCGeomMan>("DCGEO")   &&
      InitializeParameter<TPCParamMan>("TPCPRM") &&
-     InitializeParameter<TPCPositionCorrector>("TPCPOS") &&
-     InitializeParameter<UserParamMan>("USER") &&
-     InitializeParameter<HodoPHCMan>("HDPHC"));
- }
+     InitializeParameter<UserParamMan>("USER"));
+}
 
- //_____________________________________________________________________________
- Bool_t
-   ConfMan::FinalizeProcess()
- {
-   return true;
- }
+//_____________________________________________________________________________
+Bool_t
+ConfMan::FinalizeProcess()
+{
+  return true;
+}
