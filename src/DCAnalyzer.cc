@@ -35,15 +35,6 @@
 #include "RawData.hh"
 #include "UserParamMan.hh"
 #include "DeleteUtility.hh"
-#include "TPCPadHelper.hh"
-#include "TPCParamMan.hh"
-#include "TPCPositionCorrector.hh"
-#include "TPCRawHit.hh"
-#include "TPCHit.hh"
-#include "TPCCluster.hh"
-#include "TPCLocalTrack.hh"
-#include "TPCLocalTrackHelix.hh"
-#include "TPCTrackSearch.hh"
 
 #define DefStatic
 #include "DCParameters.hh"
@@ -59,16 +50,12 @@
 #define SdcIn_XUV         0 // XUV Tracking (not used in KURAMA)
 #define SdcIn_Pair        1 // Pair plane Tracking (fast but bad for large angle track)
 #define SdcIn_Deletion    1 // Deletion method for too many combinations
-/* TPCTracking */
-#define UseTpcCluster 1 // 1 : Common clustering method, 0 : Cluster size=1 no clustering
 
 namespace
 {
 using namespace K18Parameter;
 const auto& gConf   = ConfMan::GetInstance();
 const auto& gGeom   = DCGeomMan::GetInstance();
-const auto& gTPC  = TPCParamMan::GetInstance();
-const auto& gTPCPos = TPCPositionCorrector::GetInstance();
 const auto& gUser   = UserParamMan::GetInstance();
 
 //_____________________________________________________________________________
@@ -78,16 +65,13 @@ const Int_t& IdTOFUY = gGeom.DetectorId("TOF-UY");
 const Int_t& IdTOFDX = gGeom.DetectorId("TOF-DX");
 const Int_t& IdTOFDY = gGeom.DetectorId("TOF-DY");
 
+//const Double_t TimeDiffToYTOF = 77.3511; // [mm/ns]
 const Double_t TimeDiffToYTOF = 77.3511; // [mm/ns]
-
 const Double_t MaxChiSqrKuramaTrack = 10000.;
 const Double_t MaxTimeDifMWPC       =   100.;
 
 const Double_t kMWPCClusteringWireExtension =  1.0; // [mm]
 const Double_t kMWPCClusteringTimeExtension = 10.0; // [nsec]
-
-const Int_t    MaxNumOfTrackTPC = 20;
-const Int_t    MaxRowDifTPC = 2; // for cluster
 
 //_____________________________________________________________________________
 inline Bool_t /* for MWPCCluster */
@@ -148,12 +132,7 @@ DCAnalyzer::DCAnalyzer()
     m_BcInHC(NumOfLayersBcIn+1),
     m_BcOutHC(NumOfLayersBcOut+2),
     m_SdcInHC(NumOfLayersSdcIn+1),
-    m_SdcOutHC(NumOfLayersSdcOut+1),
-    m_TPCHitCont(NumOfLayersTPC+1),
-    m_TempTPCHitCont(NumOfLayersTPC+1),
-    m_TPCClCont(NumOfLayersTPC),
-    m_SdcInExTC(NumOfLayersSdcIn+1),
-    m_SdcOutExTC(NumOfLayersSdcOut+1)
+    m_SdcOutHC(NumOfLayersSdcOut+1)
 {
   for(Int_t i=0; i<n_type; ++i){
     m_is_decoded[i] = false;
@@ -176,7 +155,6 @@ DCAnalyzer::~DCAnalyzer()
   ClearTracksBcOut();
   ClearTracksBcOutSdcIn();
   ClearTracksSdcInSdcOut();
-  ClearTracksTPC();
   ClearDCHits();
   ClearVtxHits();
   debug::ObjectCounter::decrease(ClassName());
@@ -303,178 +281,6 @@ DCAnalyzer::DecodeBcOutHits(RawData *rawData)
   }
 
   m_is_decoded[kBcOut] = true;
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-DCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
-                              TPCClusterContainer& ClCont,
-                              Double_t maxdy)
-{
-  static const Double_t MinClusterDe = gUser.GetParameter("MinClusterDeTPC");
-  static const Int_t MinClusterSize = gUser.GetParameter("MinClusterSizeTPC");
-  const auto nh = HitCont.size();
-  if(nh==0) return false;
-
-  std::vector<Int_t> joined(nh, 0);
-  for(Int_t i=0; i<nh; ++i){
-    if(joined[i] > 0) continue;
-    TPCHitContainer CandCont;
-    TPCHit* hit = HitCont[i];
-    if(!hit || !hit->IsGood()) continue;
-    Int_t layer = hit->GetLayer();
-    CandCont.push_back(hit);
-    joined[i]++;
-#if UseTpcCluster
-    for(Int_t j=0; j<nh; ++j){
-      if(i==j || joined[j]>0) continue;
-      TPCHit* thit = HitCont[j];
-      if(!thit || !thit->IsGood()) continue;
-      Int_t rowID = thit->GetRow();
-      for(const auto& c_hit: CandCont){
-        Int_t c_rowID = c_hit->GetRow();
-        if(tpc::IsClusterable(layer, rowID, c_rowID, MaxRowDifTPC)
-           && TMath::Abs(thit->GetY() - c_hit->GetY()) < maxdy){
-          CandCont.push_back(thit);
-          joined[j]++;
-          break;
-        }
-      }
-    }
-#endif
-
-    TPCCluster* cluster = new TPCCluster(layer, CandCont);
-    if(!cluster) continue;
-    if(cluster->Calculate() && cluster->GetDe()>=MinClusterDe && cluster->GetClusterSize()>=MinClusterSize){
-      ClCont.push_back(cluster);
-    }else{
-      delete cluster;
-    }
-  }
-
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-DCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
-{
-  if(m_is_decoded[kTPC]){
-    hddaq::cout << FUNC_NAME << " "
-                << "already decoded" << std::endl;
-    return true;
-  }
-
-  ClearTPCHits();
-  ClearTPCClusters();
-
-  for(Int_t layer=0; layer<=NumOfLayersTPC; ++layer){
-    for(const auto& rhit: rawData->GetTPCCorHC(layer)){
-      auto hit = new TPCHit(rhit);
-      if(hit->DoFit() && hit->Calculate(clock)){
-        m_TPCHitCont[layer].push_back(hit);
-      }else{
-        delete hit;
-      }
-    }
-  }
-
-#if 0 // Cluster analysis will be done by RecalcTPCHits() in Dst.
-  static const Double_t MaxYDif = gUser.GetParameter("MaxYDifClusterTPC");
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    MakeUpTPCClusters(m_TPCHitCont[layer], m_TPCClCont[layer], MaxYDif);
-  }
-#endif
-
-  m_is_decoded[kTPC] = true;
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-DCAnalyzer::ReCalcTPCHits(const Int_t nhits,
-                          const std::vector<Int_t>& pad,
-                          const std::vector<Double_t>& time,
-                          const std::vector<Double_t>& de,
-                          Double_t clock)
-{
-  if(m_is_decoded[kTPC]){
-    hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;
-    return false;
-  }
-
-  ClearTPCHits();
-  ClearTPCClusters();
-
-  if(nhits != pad.size() || nhits != time.size() || nhits != de.size()){
-    hddaq::cerr << FUNC_NAME << " vector size mismatch" << std::endl;
-    return false;
-  }
-
-  for(Int_t ih=0; ih<nhits; ih++){
-    const Int_t layer = tpc::getLayerID(pad[ih]);
-    const Double_t row = tpc::getRowID(pad[ih]);
-    auto hit = new TPCHit(layer, row);
-    hit->AddHit(de[ih], time[ih]);
-    if(hit->Calculate(clock)){
-      m_TPCHitCont[layer].push_back(hit);
-    }else{
-      delete hit;
-    }
-  }
-
-#if 1
-  static const Double_t MaxYDif = gUser.GetParameter("MaxYDifClusterTPC");
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    MakeUpTPCClusters(m_TPCHitCont[layer], m_TPCClCont[layer], MaxYDif);
-  }
-#endif
-
-  m_is_decoded[kTPC] = true;
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-DCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
-                                const Double_t *x, const Double_t *y,
-                                const Double_t *z, const Double_t *de)
-{
-  if(m_is_decoded[kTPC]){
-    hddaq::cout << FUNC_NAME << " "
-                << "already decoded" << std::endl;
-    return true;
-  }
-  ClearTPCClusters();
-  ClearTPCHits();
-
-  for(Int_t i=0; i<nhits; i++){
-    Int_t pad = tpc::findPadID(z[i], x[i]);
-    Int_t layer = tpc::getLayerID(pad);
-    Int_t row = tpc::getRowID(pad);
-    auto hit = new TPCHit(layer, row);
-    hit->AddHit(TMath::QuietNaN(), TMath::QuietNaN()); // allocate hit
-    // tentative treatment
-    if(de[i] == 0. || de[i] == TMath::QuietNaN()){
-      hit->SetDe(1.e-3);
-    }else{
-      hit->SetDe(de[i]);
-    }
-    // end of tentative treatment
-    hit->SetPosition(TVector3(x[i], y[i], z[i]));
-    // hit->Print();
-    m_TPCHitCont[layer].push_back(hit);
-  }
-
-#if 1
-  static const Double_t MaxYDif = gUser.GetParameter("MaxYDifClusterTPC");
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    MakeUpTPCClusters(m_TPCHitCont[layer], m_TPCClCont[layer], MaxYDif);
-  }
-#endif
-
-  m_is_decoded[kTPC] = true;
   return true;
 }
 
@@ -696,13 +502,13 @@ DCAnalyzer::TrackSearchBcIn(const std::vector<std::vector<DCHitContainer> >& hc)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchBcOut(Int_t T0Seg)
+DCAnalyzer::TrackSearchBcOut(Int_t T0Seg, Bool_t Exclusive)
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerBcOut");
 
 #if BcOut_Pair //Pair Plane Tracking Routine for BcOut
   Int_t ntrack = track::LocalTrackSearch(m_BcOutHC, PPInfoBcOut, NPPInfoBcOut,
-                                         m_BcOutTC, MinLayer, T0Seg);
+                                         m_BcOutTC, Exclusive, MinLayer, T0Seg);
   return ntrack == -1 ? false : true;
 #endif
 
@@ -718,17 +524,19 @@ DCAnalyzer::TrackSearchBcOut(Int_t T0Seg)
 //_____________________________________________________________________________
 // Use with BH2Filter
 Bool_t
-DCAnalyzer::TrackSearchBcOut(const std::vector<std::vector<DCHitContainer> >& hc, Int_t T0Seg)
+DCAnalyzer::TrackSearchBcOut(const std::vector<std::vector<DCHitContainer> >& hc, Int_t T0Seg, Bool_t Exclusive)
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerBcOut");
 
 #if BcOut_Pair //Pair Plane Tracking Routine for BcOut
-  Int_t ntrack = track::LocalTrackSearch(hc, PPInfoBcOut, NPPInfoBcOut, m_BcOutTC, MinLayer, T0Seg);
+  Int_t ntrack = track::LocalTrackSearch(hc, PPInfoBcOut, NPPInfoBcOut,
+					 m_BcOutTC, Exclusive, MinLayer, T0Seg);
   return ntrack == -1 ? false : true;
 #endif
 
 #if BcOut_XUV  //XUV Tracking Routine for BcOut
-  Int_t ntrack = track::LocalTrackSearchVUX(hc, PPInfoBcOut, NPPInfoBcOut, m_BcOutTC, MinLayer);
+  Int_t ntrack = track::LocalTrackSearchVUX(hc, PPInfoBcOut, NPPInfoBcOut,
+					    m_BcOutTC, MinLayer);
   return ntrack == -1 ? false : true;
 #endif
 
@@ -737,28 +545,31 @@ DCAnalyzer::TrackSearchBcOut(const std::vector<std::vector<DCHitContainer> >& hc
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchSdcIn()
+DCAnalyzer::TrackSearchSdcIn(Bool_t Exclusive)
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcIn");
-  track::LocalTrackSearch(m_SdcInHC, PPInfoSdcIn, NPPInfoSdcIn, m_SdcInTC, MinLayer);
+
+  track::LocalTrackSearch(m_SdcInHC, PPInfoSdcIn, NPPInfoSdcIn,
+			  m_SdcInTC, Exclusive, MinLayer);
+
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchSdcOut()
+DCAnalyzer::TrackSearchSdcOut(Bool_t Exclusive)
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcOut");
 
   track::LocalTrackSearchSdcOut(m_SdcOutHC, PPInfoSdcOut, NPPInfoSdcOut,
-                                m_SdcOutTC, MinLayer);
+				m_SdcOutTC, Exclusive, MinLayer);
 
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchSdcOut(const Hodo2HitContainer& TOFCont)
+DCAnalyzer::TrackSearchSdcOut(const Hodo2HitContainer& TOFCont, Bool_t Exclusive)
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcOut");
 
@@ -771,35 +582,34 @@ DCAnalyzer::TrackSearchSdcOut(const Hodo2HitContainer& TOFCont)
 #endif
 
   track::LocalTrackSearchSdcOut(m_TOFHC, m_SdcOutHC, PPInfoSdcOut, NPPInfoSdcOut+2,
-                                m_SdcOutTC, MinLayer);
+                                m_SdcOutTC, Exclusive, MinLayer);
 
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchSdcOut(const HodoClusterContainer& TOFCont)
+DCAnalyzer::TrackSearchSdcOut(const HodoClusterContainer& TOFCont, Bool_t Exclusive )
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcOut");
 
   if(!DecodeTOFHits(TOFCont)) return false;
 
   track::LocalTrackSearchSdcOut(m_TOFHC, m_SdcOutHC, PPInfoSdcOut, NPPInfoSdcOut+2,
-                                m_SdcOutTC, MinLayer);
+				m_SdcOutTC, Exclusive, MinLayer);
 
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchBcOutSdcIn()
+DCAnalyzer::TrackSearchBcOutSdcIn(Bool_t Exclusive)
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerBcOutSdcIn");
 
-  track::LocalTrackSearchBcOutSdcIn(m_BcOutHC, PPInfoBcOut,
-                                    m_SdcInHC, PPInfoSdcIn,
-                                    NPPInfoBcOut, NPPInfoSdcIn,
-                                    m_BcOutSdcInTC, MinLayer);
+  track::LocalTrackSearchBcOutSdcIn(m_BcOutHC, PPInfoBcOut, m_SdcInHC,
+				    PPInfoSdcIn, NPPInfoBcOut, NPPInfoSdcIn,
+				    m_BcOutSdcInTC, Exclusive, MinLayer);
 
   return true;
 }
@@ -1004,6 +814,7 @@ DCAnalyzer::TrackSearchKurama()
       } else {
         trKurama->SetInitialMomentum(1.);
       }
+
       if(TMath::Abs(TMath::ATan(v0In) - TMath::ATan(v0Out)) < m_max_v0diff
          && trKurama->DoFit()
          && trKurama->ChiSquare()<MaxChiSqrKuramaTrack){
@@ -1066,59 +877,6 @@ DCAnalyzer::TrackSearchKurama(Double_t initial_momentum)
 }
 
 //_____________________________________________________________________________
-Bool_t
-DCAnalyzer::TrackSearchTPC(Bool_t exclusive)
-{
-  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
-
-  tpc::LocalTrackSearch(m_TPCClCont, m_TPCTC, m_TPCTCFailed, exclusive, MinLayer);
-
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-DCAnalyzer::TrackSearchTPCHelix(Bool_t exclusive)
-{
-  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
-
-  tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixFailed, exclusive, MinLayer);
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-DCAnalyzer::TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
-				std::vector<std::vector<TVector3>> KuramaVPs,
-				Bool_t exclusive)
-{
-  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
-
-  tpc::LocalTrackSearchHelix(K18VPs, KuramaVPs, m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixFailed, exclusive, MinLayer);
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-DCAnalyzer::TestHoughTransform()
-{
-  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
-
-  tpc::HoughTransformTest(m_TPCClCont, m_TPCTC, MinLayer);
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-DCAnalyzer::TestHoughTransformHelix()
-{
-  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
-
-  tpc::HoughTransformTestHelix(m_TPCClCont, m_TPCTCHelix, MinLayer);
-  return true;
-}
-
-//_____________________________________________________________________________
 void
 DCAnalyzer::ClearDCHits()
 {
@@ -1129,8 +887,6 @@ DCAnalyzer::ClearDCHits()
   ClearSdcInHits();
   ClearSdcOutHits();
   ClearTOFHits();
-  ClearTPCHits();
-  ClearTPCClusters();
 }
 
 //_____________________________________________________________________________
@@ -1180,21 +936,6 @@ DCAnalyzer::ClearTOFHits()
 }
 
 //_____________________________________________________________________________
-void
-DCAnalyzer::ClearTPCHits()
-{
-  del::ClearContainerAll(m_TPCHitCont);
-  del::ClearContainerAll(m_TempTPCHitCont);
-}
-
-//_____________________________________________________________________________
-void
-DCAnalyzer::ClearTPCClusters()
-{
-  del::ClearContainerAll(m_TPCClCont);
-}
-
-//_____________________________________________________________________________
 #if UseBcIn
 void
 DCAnalyzer::ClearTracksBcIn()
@@ -1215,7 +956,6 @@ void
 DCAnalyzer::ClearTracksSdcIn()
 {
   del::ClearContainer(m_SdcInTC);
-  del::ClearContainerAll(m_SdcInExTC);
 }
 
 //_____________________________________________________________________________
@@ -1223,7 +963,6 @@ void
 DCAnalyzer::ClearTracksSdcOut()
 {
   del::ClearContainer(m_SdcOutTC);
-  del::ClearContainerAll(m_SdcOutExTC);
 }
 
 //_____________________________________________________________________________
@@ -1261,16 +1000,6 @@ void
 DCAnalyzer::ClearTracksSdcInSdcOut()
 {
   del::ClearContainer(m_SdcInSdcOutTC);
-}
-
-//_____________________________________________________________________________
-void
-DCAnalyzer::ClearTracksTPC()
-{
-  del::ClearContainer(m_TPCTC);
-  del::ClearContainer(m_TPCTCFailed);
-  del::ClearContainer(m_TPCTCHelix);
-  del::ClearContainer(m_TPCTCHelixFailed);
 }
 
 //_____________________________________________________________________________
@@ -1608,6 +1337,28 @@ DCAnalyzer::ChiSqrCut(DCLocalTrackContainer& TrackCont,
 
 //_____________________________________________________________________________
 void
+DCAnalyzer::ChiSqrCutKurama(Double_t chisqr)
+{
+  KuramaTrackContainer DeleteCand;
+  KuramaTrackContainer ValidCand;
+  for(auto& tempTrack : m_KuramaTC){
+    if(tempTrack->GetChiSquare() > chisqr){
+      DeleteCand.push_back(tempTrack);
+    }else{
+      ValidCand.push_back(tempTrack);
+    }
+  }
+
+  del::ClearContainer(DeleteCand);
+
+  m_KuramaTC.clear();
+  m_KuramaTC.resize(ValidCand.size());
+  std::copy(ValidCand.begin(), ValidCand.end(), m_KuramaTC.begin());
+  ValidCand.clear();
+}
+
+//_____________________________________________________________________________
+void
 DCAnalyzer::TotCutBCOut(Double_t min_tot)
 {
   for(Int_t i = 0; i<NumOfLayersBcOut; ++i){
@@ -1689,7 +1440,7 @@ void
 DCAnalyzer::DriftTimeCutSDC1(Double_t min_dt, Double_t max_dt)
 {
   for(Int_t i = 0; i<NumOfLayersSDC1; ++i){
-    DriftTimeCut(m_SdcOutHC[i + 1], min_dt, max_dt, true);
+    DriftTimeCut(m_SdcInHC[i + 1], min_dt, max_dt, true);
   }// for(i)
 }
 
@@ -1698,7 +1449,7 @@ void
 DCAnalyzer::DriftTimeCutSDC2(Double_t min_dt, Double_t max_dt)
 {
   for(Int_t i = 0; i<NumOfLayersSDC2; ++i){
-    DriftTimeCut(m_SdcOutHC[i + NumOfLayersSDC1 + 1], min_dt, max_dt, true);
+    DriftTimeCut(m_SdcInHC[i + NumOfLayersSDC1 + 1], min_dt, max_dt, true);
   }// for(i)
 }
 

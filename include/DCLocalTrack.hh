@@ -30,9 +30,11 @@ private:
 private:
   Bool_t  m_is_fitted;     // flag of DoFit()
   Bool_t  m_is_calculated; // flag of Calculate()
+  Bool_t  m_is_fitted_exclusive;
   Bool_t  m_is_bcsdc;
   std::vector<DCLTrackHit*> m_hit_array;
   std::vector<DCLTrackHit*> m_hit_arrayUV;
+  //for VXU tracking
   Double_t m_Ax;
   Double_t m_Ay;
   Double_t m_Au;
@@ -41,19 +43,30 @@ private:
   Double_t m_Chiy;
   Double_t m_Chiu;
   Double_t m_Chiv;
+  Double_t m_a;
+  Double_t m_b;
+  // for SSD
+  Double_t m_de;
+  // common
   Double_t m_x0;
   Double_t m_y0;
   Double_t m_u0;
   Double_t m_v0;
-  Double_t m_a;
-  Double_t m_b;
   Double_t m_chisqr;
   Bool_t   m_good_for_tracking;
-  // for SSD
-  Double_t m_de;
   // for Honeycomb
   Double_t m_chisqr1st; // 1st iteration for honeycomb
   Double_t m_n_iteration;
+
+  //for exclusive
+  std::vector<Double_t> m_x0_exclusive;
+  std::vector<Double_t> m_y0_exclusive;
+  std::vector<Double_t> m_u0_exclusive;
+  std::vector<Double_t> m_v0_exclusive;
+  std::vector<Double_t> m_de_exclusive;
+  std::vector<Double_t> m_chisqr_exclusive;
+  std::vector<Double_t> m_chisqr1st_exclusive;
+  std::vector<Double_t> m_n_iteration_exclusive;
 
 public:
   void         AddHit(DCLTrackHit *hitp);
@@ -77,6 +90,18 @@ public:
   Bool_t       IsFitted() const { return m_is_fitted; }
   Bool_t       IsCalculated() const { return m_is_calculated; }
 
+  Double_t GetX0() const { return m_x0; }
+  Double_t GetY0() const { return m_y0; }
+  Double_t GetU0() const { return m_u0; }
+  Double_t GetV0() const { return m_v0; }
+
+  //For SSD
+  void SetDe(Double_t de) { m_de = de; }
+  Double_t GetDe() const { return m_de; }
+
+  //For XUV Tracking
+  Bool_t DoFitVXU();
+
   void SetAx(Double_t Ax) { m_Ax = Ax; }
   void SetAy(Double_t Ay) { m_Ay = Ay; }
   void SetAu(Double_t Au) { m_Au = Au; }
@@ -85,15 +110,6 @@ public:
   void SetChiy(Double_t Chiy) { m_Chiy = Chiy; }
   void SetChiu(Double_t Chiu) { m_Chiu = Chiu; }
   void SetChiv(Double_t Chiv) { m_Chiv = Chiv; }
-  void SetDe(Double_t de) { m_de = de; }
-
-  Double_t GetX0() const { return m_x0; }
-  Double_t GetY0() const { return m_y0; }
-  Double_t GetU0() const { return m_u0; }
-  Double_t GetV0() const { return m_v0; }
-
-  //For XUV Tracking
-  Bool_t DoFitVXU();
 
   Double_t GetVXU_A() const { return m_a; }
   Double_t GetVXU_B() const { return m_b; }
@@ -102,15 +118,17 @@ public:
   Double_t GetAy() const { return m_Ay; }
   Double_t GetAu() const { return m_Au; }
   Double_t GetAv() const { return m_Av; }
-
   Double_t GetDifVXU() const ;
   Double_t GetDifVXUSDC34() const;
-  Double_t GetChiSquare() const { return m_chisqr; }
-  Double_t GetChiSquare1st() const { return m_chisqr1st; }
   Double_t GetChiX() const { return m_Chix; }
   Double_t GetChiY() const { return m_Chiy; }
   Double_t GetChiU() const { return m_Chiu; }
   Double_t GetChiV() const { return m_Chiv; }
+  void   PrintVXU(const TString& arg="") const;
+
+  // Common
+  Double_t GetChiSquare() const { return m_chisqr; }
+  Double_t GetChiSquare1st() const { return m_chisqr1st; }
   Double_t GetX(Double_t z) const { return m_x0+m_u0*z; }
   Double_t GetY(Double_t z) const { return m_y0+m_v0*z; }
   Double_t GetS(Double_t z, Double_t tilt) const
@@ -122,9 +140,12 @@ public:
   Bool_t   GoodForTracking(Bool_t status)
   { Bool_t ret = m_good_for_tracking; m_good_for_tracking = status; return ret; }
   Bool_t   ReCalc(Bool_t ApplyRecursively=false);
-  Double_t GetDe() const { return m_de; }
   void   Print(const TString& arg="", std::ostream& ost=hddaq::cout) const;
-  void   PrintVXU(const TString& arg="") const;
+
+  //for exclusive
+  Bool_t DoFitExclusive();
+  void CalculateExclusive();
+
 };
 
 //_____________________________________________________________________________

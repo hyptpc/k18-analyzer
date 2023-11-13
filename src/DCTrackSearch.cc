@@ -70,6 +70,15 @@ CalcTracks(std::vector<T*>& trackCont)
 
 //_____________________________________________________________________________
 template <typename T> void
+ExclusiveTracking(std::vector<T*>& TrackCont)
+{
+  for(auto& track: TrackCont){
+    if(track->DoFitExclusive()) track->CalculateExclusive();
+  }
+}
+
+//_____________________________________________________________________________
+template <typename T> void
 ClearFlags(std::vector<T*>& trackCont)
 {
   for(const auto& track: trackCont){
@@ -309,6 +318,7 @@ FinalizeTrack(const TString& arg,
               std::vector<DCLocalTrack*>& trackCont,
               Functor comp,
               std::vector<ClusterList>& candCont,
+	      Bool_t exclusive=false,
               Bool_t delete_flag=true)
 {
   ClearFlags(trackCont);
@@ -319,7 +329,6 @@ FinalizeTrack(const TString& arg,
 
   std::stable_sort(trackCont.begin(), trackCont.end(), DCLTrackComp_Nhit());
 
-
 #if 0
   DebugPrint(trackCont, arg+" After Sorting (Nhit) ");
 #endif
@@ -328,7 +337,6 @@ FinalizeTrack(const TString& arg,
   std::vector<index_pair> index_pair_vec;
 
   std::vector<Int_t> nhit_vec;
-
   for(Int_t i=0; i<trackCont.size(); i++) {
     Int_t nhit = trackCont[i]->GetNHit();
     nhit_vec.push_back(nhit);
@@ -370,7 +378,6 @@ FinalizeTrack(const TString& arg,
   DebugPrint(trackCont, arg+" After Deleting in each hit number");
 #endif
 
-
   std::stable_sort(trackCont.begin(), trackCont.end(), comp);
 
 #if 0
@@ -384,6 +391,7 @@ FinalizeTrack(const TString& arg,
 #endif
 
   CalcTracks(trackCont);
+  if(exclusive) ExclusiveTracking(trackCont);
   del::ClearContainerAll(candCont);
 }
 
@@ -745,10 +753,11 @@ Int_t /* Local Track Search without BH2Filter */
 LocalTrackSearch(const std::vector<DCHitContainer>& HC,
                  const DCPairPlaneInfo * PpInfo,
                  Int_t npp, std::vector<DCLocalTrack*>& TrackCont,
+		 Bool_t Exclusive,
                  Int_t MinNumOfHits, Int_t T0Seg)
 {
-  std::vector<ClusterList> CandCont(npp);
 
+  std::vector<ClusterList> CandCont(npp);
   for(Int_t i=0; i<npp; ++i){
     Bool_t ppFlag    = PpInfo[i].pair;
     Bool_t honeycomb = PpInfo[i].honeycomb;
@@ -778,7 +787,6 @@ LocalTrackSearch(const std::vector<DCHitContainer>& HC,
 
   Bool_t status = true;
   std::vector<IndexList> CombiIndex = MakeIndex(npp, nCombi, status);
-
   for(Int_t i=0, n=CombiIndex.size(); i<n; ++i){
     DCLocalTrack *track = MakeTrack(CandCont, CombiIndex[i]);
     if(!track) continue;
@@ -812,7 +820,7 @@ LocalTrackSearch(const std::vector<DCHitContainer>& HC,
     }
   }
 
-  FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackComp(), CandCont);
+  FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackComp(), CandCont, Exclusive);
   return status? TrackCont.size() : -1;
 }
 
@@ -821,6 +829,7 @@ Int_t /* Local Track Search with BH2Filter */
 LocalTrackSearch(const std::vector<std::vector<DCHitContainer>> &hcAssemble,
                  const DCPairPlaneInfo * PpInfo,
                  Int_t npp, std::vector<DCLocalTrack*> &trackCont,
+		 Bool_t Exclusive,
                  Int_t MinNumOfHits, Int_t T0Seg)
 {
   std::vector<std::vector<DCHitContainer>>::const_iterator
@@ -830,7 +839,7 @@ LocalTrackSearch(const std::vector<std::vector<DCHitContainer>> &hcAssemble,
   for(itr=hcAssemble.begin(); itr!=itr_end; ++itr){
     const std::vector<DCHitContainer>& l = *itr;
     std::vector<DCLocalTrack*> tc;
-    status = LocalTrackSearch(l, PpInfo, npp, tc, MinNumOfHits, T0Seg);
+    status = LocalTrackSearch(l, PpInfo, npp, tc, Exclusive, MinNumOfHits, T0Seg);
     trackCont.insert(trackCont.end(), tc.begin(), tc.end());
   }
 
@@ -848,6 +857,7 @@ Int_t
 LocalTrackSearchSdcOut(const std::vector<DCHitContainer>& SdcOutHC,
                        const DCPairPlaneInfo* PpInfo,
                        Int_t npp, std::vector<DCLocalTrack*>& TrackCont,
+		       Bool_t Exclusive,
                        Int_t MinNumOfHits /*=6*/)
 {
   std::vector<ClusterList> CandCont(npp);
@@ -894,7 +904,7 @@ LocalTrackSearchSdcOut(const std::vector<DCHitContainer>& SdcOutHC,
     }
   }
 
-  FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackComp(), CandCont);
+  FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackComp(), CandCont, Exclusive);
   return status? TrackCont.size() : -1;
 }
 
@@ -905,6 +915,7 @@ LocalTrackSearchSdcOut(const DCHitContainer& TOFHC,
                        const DCPairPlaneInfo* PpInfo,
                        Int_t npp,
                        std::vector<DCLocalTrack*>& TrackCont,
+		       Bool_t Exclusive,
                        Int_t MinNumOfHits /*=6*/)
 {
   std::vector<ClusterList> CandCont(npp);
@@ -982,16 +993,18 @@ LocalTrackSearchSdcOut(const DCHitContainer& TOFHC,
     }
   }
 
-  FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackComp(), CandCont);
+  FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackComp(), CandCont, Exclusive);
   return status? TrackCont.size() : -1;
 }
 
+/*
+//Legacy
 //_____________________________________________________________________________
-Int_t /* Local Track Search SdcIn w/Fiber */
+Int_t // Local Track Search SdcIn w/Fiber
 LocalTrackSearchSdcInFiber(const std::vector<DCHitContainer>& HC,
                            const DCPairPlaneInfo* PpInfo,
                            Int_t npp, std::vector<DCLocalTrack*>& TrackCont,
-                           Int_t MinNumOfHits /*=6*/)
+                           Int_t MinNumOfHits)
 {
   std::vector<ClusterList> CandCont(npp);
 
@@ -1036,9 +1049,10 @@ LocalTrackSearchSdcInFiber(const std::vector<DCHitContainer>& HC,
       delete track;
   }
 
-  FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackCompSdcInFiber(), CandCont);
+  FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackComp(), CandCont, exclusive);
   return status? TrackCont.size() : -1;
 }
+*/
 
 // BC3&4, SDC1 VUX Tracking ___________________________________________
 Int_t
@@ -1635,6 +1649,7 @@ LocalTrackSearchBcOutSdcIn(const std::vector<DCHitContainer>& BcHC,
                            const DCPairPlaneInfo *SdcPpInfo,
                            Int_t BcNpp, Int_t SdcNpp,
                            std::vector<DCLocalTrack*>& TrackCont,
+			   Bool_t Exclusive,
                            Int_t MinNumOfHits)
 {
   const Int_t npp = BcNpp + SdcNpp;
@@ -1644,21 +1659,23 @@ LocalTrackSearchBcOutSdcIn(const std::vector<DCHitContainer>& BcHC,
   for(Int_t i=0; i<BcNpp; ++i){
     Bool_t ppFlag=BcPpInfo[i].pair;
     Int_t layer1=BcPpInfo[i].id1, layer2=BcPpInfo[i].id2;
+    Bool_t honeycomb = BcPpInfo[i].honeycomb;
     if(ppFlag)
       MakePairPlaneHitCluster(BcHC[layer1], BcHC[layer2],
-                              BcPpInfo[i].CellSize, CandCont[i]);
+                              BcPpInfo[i].CellSize, CandCont[i], honeycomb);
     else
-      MakeUnPairPlaneHitCluster(BcHC[layer1], CandCont[i]);
+      MakeUnPairPlaneHitCluster(BcHC[layer1], CandCont[i], honeycomb);
   }
 
   for(Int_t i=0; i<SdcNpp; ++i){
     Bool_t ppFlag=SdcPpInfo[i].pair;
     Int_t layer1=SdcPpInfo[i].id1, layer2=SdcPpInfo[i].id2;
+    Bool_t honeycomb = SdcPpInfo[i].honeycomb;
     if(ppFlag)
       MakePairPlaneHitCluster(SdcHC[layer1], SdcHC[layer2],
-                              SdcPpInfo[i].CellSize, CandCont[i+BcNpp]);
+                              SdcPpInfo[i].CellSize, CandCont[i+BcNpp], honeycomb);
     else
-      MakeUnPairPlaneHitCluster(SdcHC[layer1], CandCont[i+BcNpp]);
+      MakeUnPairPlaneHitCluster(SdcHC[layer1], CandCont[i+BcNpp], honeycomb);
   }
 
   IndexList nCombi(npp);
@@ -1696,8 +1713,7 @@ LocalTrackSearchBcOutSdcIn(const std::vector<DCHitContainer>& BcHC,
       delete track;
   }
 
-  FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackComp(), CandCont);
-
+  FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackComp(), CandCont, Exclusive);
   return TrackCont.size();
 }
 
@@ -1728,6 +1744,7 @@ LocalTrackSearchSdcInSdcOut(const std::vector<DCHitContainer>& SdcInHC,
                             const DCPairPlaneInfo* SdcOutPpInfo,
                             Int_t SdcInNpp, Int_t SdcOutNpp,
                             std::vector<DCLocalTrack*>& TrackCont,
+			    Bool_t Exclusive,
                             Int_t MinNumOfHits)
 {
   const Int_t npp = SdcInNpp+SdcOutNpp;
@@ -1779,7 +1796,7 @@ LocalTrackSearchSdcInSdcOut(const std::vector<DCHitContainer>& SdcInHC,
       delete track;
   }
 
-  FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackComp(), CandCont);
+  FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackComp(), CandCont, Exclusive);
   return status? TrackCont.size() : -1;
 }
 

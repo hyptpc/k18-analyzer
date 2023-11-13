@@ -22,12 +22,19 @@ private:
   DCHit*   m_hit;
   Int_t    m_nth_hit;
   Double_t m_local_hit_pos;
-  Double_t m_cal_pos;
+  Double_t m_cal_pos; //for VXU
   Double_t m_xcal;
   Double_t m_ycal;
   Double_t m_ucal;
   Double_t m_vcal;
   Bool_t   m_honeycomb;
+  //exlcusive
+  //double  m_cal_pos_exclusive; //for VXU, not supported
+  Bool_t  m_is_fitted_exclusive;
+  double  m_xcal_exclusive;
+  double  m_ycal_exclusive;
+  double  m_ucal_exclusive;
+  double  m_vcal_exclusive;
 
 public:
   void     SetLocalHitPos(Double_t xl) { m_local_hit_pos = xl; }
@@ -66,6 +73,13 @@ public:
   void     SetLocalCalPosVXU(Double_t xcl) { m_cal_pos=xcl; }
   Double_t GetLocalCalPosVXU() const { return m_cal_pos; }
   Double_t GetResidualVXU() const { return m_local_hit_pos-m_cal_pos; }
+
+  //exlcusive
+  void     SetExclusiveReady(Bool_t flag=true) { m_is_fitted_exclusive = flag; }
+  void     SetCalPositionExclusive(Double_t x, Double_t y) { m_xcal_exclusive = x; m_ycal_exclusive = y; }
+  void     SetCalUVExclusive(Double_t u, Double_t v) { m_ucal_exclusive = u; m_vcal_exclusive = v; }
+  Double_t GetLocalCalPosExclusive()  const;
+  Double_t GetResidualExclusive() const;
 
   ///// for TOF
   Double_t GetZ() const { return m_hit->GetZ(); }

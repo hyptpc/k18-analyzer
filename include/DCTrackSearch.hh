@@ -36,15 +36,20 @@ DCLocalTrack*          MakeTrack(const std::vector<ClusterList>& CandCont,
 Int_t LocalTrackSearch(const std::vector<DCHitContainer>& HC,
                        const DCPairPlaneInfo *PpInfo,
                        Int_t npp, std::vector<DCLocalTrack*>& TrackCont,
+		       Bool_t Exclusive,
                        Int_t MinNumOfHits=6, Int_t T0Seg = -1);
 Int_t LocalTrackSearch(const std::vector< std::vector<DCHitContainer> >& hcAssemble,
                        const DCPairPlaneInfo *PpInfo,
                        Int_t npp, std::vector<DCLocalTrack*>& TrackCont,
-                       Int_t MinNumOfHits=6, Int_t T0Seg = -1);
-Int_t LocalTrackSearchSdcInFiber(const std::vector<DCHitContainer>& HC,
+		       Bool_t Exclusive,
+		       Int_t MinNumOfHits=6, Int_t T0Seg = -1);
+/*
+//Legacy
+  Int_t LocalTrackSearchSdcInFiber(const std::vector<DCHitContainer>& HC,
                                  const DCPairPlaneInfo *PpInfo,
                                  Int_t npp, std::vector<DCLocalTrack*>& trackCont,
                                  Int_t MinNumOfHits=6);
+*/
 Int_t LocalTrackSearchVUX(const std::vector<DCHitContainer>& HC,
                           const DCPairPlaneInfo *PpInfo,
                           Int_t npp, std::vector<DCLocalTrack*>& TrackCont,
@@ -52,12 +57,14 @@ Int_t LocalTrackSearchVUX(const std::vector<DCHitContainer>& HC,
 Int_t LocalTrackSearchSdcOut(const std::vector<DCHitContainer>& SdcOutHC,
                              const DCPairPlaneInfo *PpInfo, Int_t npp,
                              std::vector<DCLocalTrack*>& TrackCont,
+			     Bool_t Exclusive,
                              Int_t MinNumOfHits=6);
 Int_t LocalTrackSearchSdcOut(const DCHitContainer& TOFHC,
                              const std::vector<DCHitContainer>& SdcOutHC,
                              const DCPairPlaneInfo *PpInfo,
                              Int_t npp,
                              std::vector<DCLocalTrack*>& TrackCont,
+			     Bool_t Exclusive,
                              Int_t MinNumOfHits=6);
 Int_t LocalTrackSearchBcOutSdcIn(const std::vector<DCHitContainer>& BcHC,
                                  const DCPairPlaneInfo *BcPpInfo,
@@ -65,6 +72,7 @@ Int_t LocalTrackSearchBcOutSdcIn(const std::vector<DCHitContainer>& BcHC,
                                  const DCPairPlaneInfo *SdcPpInfo,
                                  Int_t BcNpp, Int_t SdcNpp,
                                  std::vector<DCLocalTrack*>& TrackCont,
+				 Bool_t Exclusive,
                                  Int_t MinNumOfHits=18);
 Int_t LocalTrackSearchSdcInSdcOut(const std::vector<DCHitContainer>& SdcInHC,
                                   const DCPairPlaneInfo *SdcInPpInfo,
@@ -72,6 +80,7 @@ Int_t LocalTrackSearchSdcInSdcOut(const std::vector<DCHitContainer>& SdcInHC,
                                   const DCPairPlaneInfo *SdcOutPpInfo,
                                   Int_t SdcInNpp, Int_t SdcOutNpp,
                                   std::vector<DCLocalTrack*>& TrackCont,
+				  Bool_t Exclusive,
                                   Int_t MinNumOfHits=12);
 Int_t MWPCLocalTrackSearch(const std::vector<DCHitContainer>& HC,
                            std::vector<DCLocalTrack*>& TrackCont);
