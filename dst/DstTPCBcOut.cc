@@ -32,8 +32,8 @@
 
 #define TrackCluster 1
 #define GainCorrection 1
-#define PositionCorrection 0
 #define TrackSearch 1
+#define HoughYcut 0
 
 namespace
 {
@@ -45,6 +45,10 @@ const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& gPHC  = HodoPHCMan::GetInstance();
 const auto& gCounter = debug::ObjectCounter::GetInstance();
+//position cut for gain histogram
+const double min_ycut = -50.;//mm
+const double max_ycut = 50.;//mm
+
 const Double_t& zK18HS = gGeom.LocalZ("K18HS");
 }
 
@@ -434,6 +438,10 @@ dst::DstRead(int ievent)
   DCAnalyzer DCAna;
   DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock);
 
+#if HoughYcut
+  DCAna.HoughYCut(min_ycut, max_ycut);
+#endif
+
   HF1(1, event.status++);
 
   Int_t nhTpc = 0;
@@ -514,43 +522,6 @@ dst::DstRead(int ievent)
       event.cluster_y_center.push_back(centerPos.Y());
       event.cluster_z_center.push_back(centerPos.Z());
       event.cluster_row_center.push_back(centerRow);
-
-#if PositionCorrection
-      ///// Compare with BcOut
-      if(src.ntBcOut == 1){
-	Double_t x0BcOut = src.x0BcOut[0];
-	Double_t u0BcOut = src.u0BcOut[0];
-	Double_t y0BcOut = src.y0BcOut[0];
-	Double_t v0BcOut = src.v0BcOut[0];
-	Double_t zTPC = zK18HS + z;
-	Double_t xBcOut = x0BcOut + zTPC*u0BcOut;
-	Double_t yBcOut = y0BcOut + zTPC*v0BcOut;
-	// if(MinPosMapXZ<x && x<MaxPosMapXZ&&
-	//    MinPosMapY<y && y<MaxPosMapY&&
-	//    MinPosMapXZ<z && z<MaxPosMapXZ&&
-	//    cl_size>=2){
-
-        Int_t hid = XyzToHid(x, y, z);
-        event.xCorVec.push_back(xBcOut - x);
-        event.yCorVec.push_back(yBcOut - y);
-        event.zCorVec.push_back(0.);
-        event.xCorPos.push_back(x);
-        event.yCorPos.push_back(y);
-        event.zCorPos.push_back(z);
-
-        // if(TMath::Abs(yBcOut - y)<60.)
-        HF1(XCorrectionMapHid+hid, xBcOut - x);
-        // if(TMath::Abs(xBcOut - x)<100.){
-        HF1(YCorrectionMapHid+hid, yBcOut - y);
-        //   //	    HF1(TPCPadYHid + layer*1000+ row,  pos_center.Y() - yBcOut);
-        // }
-        // if(TMath::Abs(yBcOut - y)<60.&&TMath::Abs(xBcOut - x)<100.){
-        //   HF1(100 + layer, de);
-        //   HF1(TPCClDeHid + layer*1000+ row,  de_center);
-        // }
-	// }
-      }
-#endif
       ++nclTpc;
     }
   }
@@ -715,27 +686,6 @@ dst::DstRead(int ievent)
 #if GainCorrection
       HF1(TPCGainHid+(layer+1)*1000+centerRow, centerDe);
 #endif
-#if PositionCorrection
-      // if(nh>15)
-      //   HF1(TPCResYHid + layer*1000+ row,  -1.*res_vect.y());
-      //      for(int it=0; it<src.ntBcOut; ++it){
-      // if(src.ntBcOut==1){
-      //   Double_t x0BcOut = src.x0BcOut[0];
-      //   Double_t u0BcOut = src.u0BcOut[0];
-      //   Double_t y0BcOut = src.y0BcOut[0];
-      //   Double_t v0BcOut = src.v0BcOut[0];
-      //   Double_t zTPC = zK18HS + pos_center.z();
-      //   Double_t xBcOut = x0BcOut + zTPC*u0BcOut;
-      //   Double_t yBcOut = y0BcOut + zTPC*v0BcOut;
-      //   // if(TMath::Abs(xBcOut - x)<100.&&de>100.){
-      //   if(nh>15)
-      //     HF1(TPCPadYHid + layer*1000+ row,  pos_center.y() - yBcOut);
-      //   event.residual_wbcout_x[it][ih] = hitpos.x() - xBcOut;
-      //   event.residual_wbcout_y[it][ih] = hitpos.y() - yBcOut;
-      //   event.residual_trackwbcout_x[it][ih] = calpos.x() - xBcOut;
-      //   event.residual_trackwbcout_y[it][ih] = calpos.y() - yBcOut;
-      // }
-#endif
     }
   }
 #if 0
@@ -772,14 +722,12 @@ ConfMan::InitializeHistograms()
   const Int_t    NbinHitDe = 500;
   const Double_t MinHitDe  =   0.;
   const Double_t MaxHitDe  = 1000.;
-#if PositionCorrection
   const Int_t    NbinRes = 400;
   const Double_t MinRes  = -20.;
   const Double_t MaxRes  =  20.;
   const Int_t    NbinPos = 400;
   const Double_t MinPos  = -100.;
   const Double_t MaxPos  = 100.;
-#endif
   // const Int_t    NbinClk = 20000;
   // const Double_t MinClk  = 100.;
   // const Double_t MaxClk  = 100.;
@@ -833,7 +781,6 @@ ConfMan::InitializeHistograms()
   }
 #endif
 
-#if PositionCorrection
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
     HB1(TPCResYHid+layer*1000,
@@ -866,31 +813,7 @@ ConfMan::InitializeHistograms()
     }
   }
 
-  ///// Correction Map
-  HB2(XCorrectionMapHid+100000, "TPC XCorrection at Y=0",
-      NumOfDivXZ, MinPosMapXZ, MaxPosMapXZ,
-      NumOfDivXZ, MinPosMapXZ, MaxPosMapXZ);
-  HB2(YCorrectionMapHid+100000, "TPC YCorrection at Y=0",
-      NumOfDivXZ, MinPosMapXZ, MaxPosMapXZ,
-      NumOfDivXZ, MinPosMapXZ, MaxPosMapXZ);
-  for(Double_t x=MinPosMapXZ; x<=MaxPosMapXZ; x+=Meshsize){
-    for(Double_t y=MinPosMapY; y<=MaxPosMapY; y+=Meshsize){
-      for(Double_t z=MinPosMapXZ; z<=MaxPosMapXZ; z+=Meshsize){
-	TVector3 pos(x, y, z);
-	Int_t hid = XyzToHid(pos);
-	if(pos != HidToXyz(hid)){ return false; } // check functions
-	std::stringstream ss; ss << pos;
-	HB1(XCorrectionMapHid+hid,
-	    "TPC XCorrection at "+ss.str(), NbinPos, MinPos, MaxPos);
-	HB1(YCorrectionMapHid+hid,
-	    "TPC YCorrection at "+ss.str(), NbinPos, MinPos, MaxPos);
-      }
-    }
-  }
-#endif
-
   HBTree("tpc", "tree of DstTPCTracking");
-
   tree->Branch("status", &event.status);
   tree->Branch("runnum", &event.runnum);
   tree->Branch("evnum", &event.evnum);
