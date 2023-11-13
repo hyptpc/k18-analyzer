@@ -15,22 +15,16 @@
 
 #include "ConfMan.hh"
 #include "FuncName.hh"
-#include "DCAnalyzer.hh"
+#include "TPCAnalyzer.hh"
 #include "MathTools.hh"
 #include "TPCPadHelper.hh"
+//#include "TPCParamMan.hh"
 
 namespace
 {
-const double& HS_field_0 = 0.9860;
-const double& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
-const double& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
-
-//for Helix tracking
-//[0]~[4] are the Helix parameters,
-//([5],[6],[7]) = (x, y, z)
-std::string s_tmp="pow([5]-([0]+([3]*cos(x))),2)+pow([6]-([1]+([3]*sin(x))),2)+pow([7]-([2]+([3]*[4]*x)),2)";
-//static TF1 fint("fint",s_tmp.c_str(),-10.,10.);
-static TF1 fint("fint",s_tmp.c_str(),-4.,4.);
+const Double_t& HSfield_Calib = ConfMan::Get<Double_t>("HSFLDCALIB");
+const Double_t& HSfield_Calc = ConfMan::Get<Double_t>("HSFLDCALC");
+const Double_t& HSfield_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
 }
 
 //______________________________________________________________________________
@@ -40,7 +34,8 @@ TPCLTrackHit::TPCLTrackHit(TPCHit *hit)
     m_mrow(hit->GetMRow()),
     m_local_hit_pos(hit->GetPosition()),
     m_cal_pos(TVector3(0.,0.,0.)),
-    m_res(hit->GetResolutionVect()),
+    m_res(),
+    m_res_param(hit->GetResolutionParams()),
     m_x0(TMath::QuietNaN()),
     m_y0(TMath::QuietNaN()),
     m_u0(TMath::QuietNaN()),
@@ -51,7 +46,8 @@ TPCLTrackHit::TPCLTrackHit(TPCHit *hit)
     m_r(TMath::QuietNaN()),
     m_dz(TMath::QuietNaN()),
     m_t(TMath::QuietNaN()),
-    m_padtheta(hit->GetMPadTheta()),
+    //m_padtheta(hit->GetMPadTheta()),
+    m_padtheta(hit->GetPadTheta()),
     m_padlength(hit->GetPadLength()),
     m_de(hit->GetCDe()),
 
@@ -59,7 +55,13 @@ TPCLTrackHit::TPCLTrackHit(TPCHit *hit)
     m_x0_exclusive(TMath::QuietNaN()),
     m_y0_exclusive(TMath::QuietNaN()),
     m_u0_exclusive(TMath::QuietNaN()),
-    m_v0_exclusive(TMath::QuietNaN())
+    m_v0_exclusive(TMath::QuietNaN()),
+    m_cx_exclusive(TMath::QuietNaN()),
+    m_cy_exclusive(TMath::QuietNaN()),
+    m_z0_exclusive(TMath::QuietNaN()),
+    m_r_exclusive(TMath::QuietNaN()),
+    m_dz_exclusive(TMath::QuietNaN()),
+    m_t_exclusive(TMath::QuietNaN())
 {
   m_hit->RegisterHits(this);
   debug::ObjectCounter::increase(ClassName());
@@ -73,6 +75,7 @@ TPCLTrackHit::TPCLTrackHit(const TPCLTrackHit& right)
     m_local_hit_pos(right.m_local_hit_pos),
     m_cal_pos(right.m_cal_pos),
     m_res(right.m_res),
+    m_res_param(right.m_res_param),
     m_x0(right.m_x0),
     m_y0(right.m_y0),
     m_u0(right.m_u0),
@@ -91,7 +94,13 @@ TPCLTrackHit::TPCLTrackHit(const TPCLTrackHit& right)
     m_x0_exclusive(right.m_x0_exclusive),
     m_y0_exclusive(right.m_y0_exclusive),
     m_u0_exclusive(right.m_u0_exclusive),
-    m_v0_exclusive(right.m_v0_exclusive)
+    m_v0_exclusive(right.m_v0_exclusive),
+    m_cx_exclusive(right.m_cx_exclusive),
+    m_cy_exclusive(right.m_cy_exclusive),
+    m_z0_exclusive(right.m_z0_exclusive),
+    m_r_exclusive(right.m_r_exclusive),
+    m_dz_exclusive(right.m_dz_exclusive),
+    m_t_exclusive(right.m_t_exclusive)
 {
   m_hit->RegisterHits(this);
   debug::ObjectCounter::increase(ClassName());
@@ -109,12 +118,9 @@ TVector3
 TPCLTrackHit::GetHelixPosition(double par[5], double t) const
 {
   //This is the eqation of Helix
-  // double  x = p[0] + p[3]*cos(t+theta0);
-  // double  y = p[1] + p[3]*sin(t+theta0);
-  // double  z = p[2] + p[3]*p[4]*(t+theta0);
-  double  x = par[0] + par[3]*cos(t);
-  double  y = par[1] + par[3]*sin(t);
-  double  z = par[2] + (par[4]*par[3]*t);
+  double x = par[0] + par[3]*cos(t);
+  double y = par[1] + par[3]*sin(t);
+  double z = par[2] + (par[4]*par[3]*t);
 
   return TVector3(x, y, z);
 }
@@ -168,20 +174,7 @@ TVector3
 TPCLTrackHit::GetLocalCalPosHelixExclusive() const
 {
   double par[5] = {m_cx_exclusive, m_cy_exclusive, m_z0_exclusive, m_r_exclusive, m_dz_exclusive};
-  TVector3 pos(-m_local_hit_pos.X(),
-	       m_local_hit_pos.Z() - tpc::ZTarget,
-	       m_local_hit_pos.Y());
-  double fpar[8];
-  for(int ip=0; ip<5; ++ip){
-    fpar[ip] = par[ip];
-  }
-  fpar[5] = pos.X();
-  fpar[6] = pos.Y();
-  fpar[7] = pos.Z();
-
-  fint.SetParameters(fpar);
-  double min_t = fint.GetMinimumX();
-  TVector3 fittmp = GetHelixPosition(par, min_t);
+  TVector3 fittmp = GetHelixPosition(par, m_t_exclusive);
   TVector3 calpos(-fittmp.X(),
 		   fittmp.Z(),
 		   fittmp.Y()+tpc::ZTarget);
@@ -189,39 +182,15 @@ TPCLTrackHit::GetLocalCalPosHelixExclusive() const
 }
 
 //______________________________________________________________________________
-double
-TPCLTrackHit::GetTcal() const
-{
-  TVector3 pos(-m_local_hit_pos.X(),
-	       m_local_hit_pos.Z() - tpc::ZTarget,
-	       m_local_hit_pos.Y());
-
-  double par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
-  double fpar[8];
-  for(int ip=0; ip<5; ++ip){
-    fpar[ip] = par[ip];
-  }
-  fpar[5] = pos.X();
-  fpar[6] = pos.Y();
-  fpar[7] = pos.Z();
-
-  fint.SetParameters(fpar);
-  double min_t = fint.GetMinimumX();
-
-  return min_t;
-}
-
-//______________________________________________________________________________
 TVector3
-TPCLTrackHit::GetMomentumHelix() const
+TPCLTrackHit::GetMomentumHelix(Double_t charge) const
 {
   TVector3 pos(-m_cal_pos.X(),
    	       m_cal_pos.Z() - tpc::ZTarget,
    	       m_cal_pos.Y());
 
   const double Const = 0.299792458; // =c/10^9
-  //const double dMagneticField = 1.; //T, "-1" is needed. // Should be given by field param
-  const double dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  const double dMagneticField = HSfield_Calib*(HSfield_Hall/HSfield_Calc);
 
   double t = (pos.Z()-m_z0)/(m_r*m_dz);
   double pt = fabs(m_r)*(Const*dMagneticField); // MeV/c
@@ -233,7 +202,9 @@ TPCLTrackHit::GetMomentumHelix() const
   double py = tmp_pz*0.001;
   double pz = tmp_py*0.001;
 
-  return TVector3(px,py,pz);
+  TVector3 p = TVector3(px,py,pz);
+  if(charge<0.) p *= -1.;
+  return p;
 }
 
 //______________________________________________________________________________
@@ -264,18 +235,6 @@ TPCLTrackHit::GetResidualExclusive() const
 {
   TVector3 Res = m_local_hit_pos - m_cal_pos_exclusive;
   return Res.Mag();
-}
-
-//______________________________________________________________________________
-Bool_t
-TPCLTrackHit::ResidualCut() const
-{
-  Bool_t status = false;
-  TVector3 Res = m_cal_pos - m_local_hit_pos;
-  double resolution = m_hit->GetResolution();
-  if(Res.Mag()<resolution*5.)
-    status = true;
-  return status;
 }
 
 //______________________________________________________________________________

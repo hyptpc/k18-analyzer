@@ -16,11 +16,6 @@
 
 #include <std_ostream.hh>
 
-//#include "DCDriftParamMan.hh"
-#include "DCGeomMan.hh"
-#include "DCHit.hh"
-//#include "DCParameters.hh"
-//#include "DCTdcCalibMan.hh"
 #include "DeleteUtility.hh"
 #include "FuncName.hh"
 #include "DebugCounter.hh"
@@ -32,6 +27,7 @@
 #include "TPCPositionCorrector.hh"
 #include "TPCRawHit.hh"
 #include "UserParamMan.hh"
+#include "ConfMan.hh"
 
 //#define QuickAnalysis  1 // User EventSelectionTPCHits in RawData.cc
 //#define FitPedestal    1
@@ -55,7 +51,6 @@ namespace { TApplication app("DebugApp", nullptr, nullptr); }
 
 namespace
 {
-  const auto& gGeom   = DCGeomMan::GetInstance();
   const auto& gUser   = UserParamMan::GetInstance();
   const auto& gTPC    = TPCParamMan::GetInstance();
   const auto& gTPCPos = TPCPositionCorrector::GetInstance();
@@ -63,6 +58,11 @@ namespace
   const Int_t MaxIteration = 3;
   const Int_t MaxPeaks = 20;
   const Double_t MaxChisqr = 1000.;
+  const Double_t& HSfield_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
+  const auto& ResParamInnerLayerHSOn = gTPC.TPCResolutionParams(true, false); //B=1 T, Inner layers
+  const auto& ResParamOuterLayerHSOn = gTPC.TPCResolutionParams(true, true); //B=1 T, Outer layers
+  const auto& ResParamInnerLayerHSOff = gTPC.TPCResolutionParams(false, false); //B=0, Inner layers
+  const auto& ResParamOuterLayerHSOff = gTPC.TPCResolutionParams(false, true); //B=0, Outer layers
 }
 
 //_____________________________________________________________________________
@@ -74,7 +74,6 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_padtheta(tpc::getTheta(m_layer, m_row)*TMath::DegToRad()),
     m_padlength(tpc::padParameter[m_layer][5]),
     m_mrow(TMath::Nint(m_row)),
-    m_mpadtheta(TMath::QuietNaN()),
     m_pad(tpc::GetPadId(m_layer, m_row)),
     m_pedestal(TMath::QuietNaN()),
     m_rms(TMath::QuietNaN()),
@@ -91,11 +90,14 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_houghY_num(),
     m_hough_dist(),
     m_hough_disty(),
-    m_belong_track(false),
-    m_hit_xz(),
-    m_hit_yz()
+    m_res_param()
 {
   debug::ObjectCounter::increase(ClassName());
+
+  if(HSfield_Hall<0.1&&m_layer<10) m_res_param = ResParamInnerLayerHSOff;
+  else if(HSfield_Hall<0.1&&m_layer>=10) m_res_param = ResParamOuterLayerHSOff;
+  else if(m_layer<10) m_res_param = ResParamInnerLayerHSOn;
+  else m_res_param = ResParamOuterLayerHSOn;
 }
 
 //_____________________________________________________________________________
@@ -104,10 +106,9 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
     m_rhit(),
     m_layer(layer),
     m_row(TMath::Nint(mrow)),
-    m_padtheta(TMath::QuietNaN()),
+    m_padtheta(tpc::getTheta(m_layer, mrow)*TMath::DegToRad()),
     m_padlength(tpc::padParameter[m_layer][5]),
     m_mrow(mrow),
-    m_mpadtheta(TMath::QuietNaN()),
     m_pad(tpc::GetPadId(layer, mrow)),
     m_pedestal(TMath::QuietNaN()),
     m_rms(TMath::QuietNaN()),
@@ -123,19 +124,15 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
     m_houghY_num(),
     m_hough_dist(),
     m_hough_disty(),
-    m_hit_xz(new DCHit(m_layer, m_row)),
-    m_hit_yz(new DCHit(m_layer, m_row))
+    m_res_param()
 {
 
-  // m_hit_xz->SetWirePosition(m_pos.x());
-  // m_hit_xz->SetZ(m_pos.z());
-  m_hit_xz->SetTiltAngle(0.);
-  m_hit_xz->SetDummyPair();
-  // m_hit_yz->SetWirePosition(m_pos.y());
-  // m_hit_yz->SetZ(m_pos.z());
-  m_hit_yz->SetTiltAngle(90.);
-  m_hit_yz->SetDummyPair();
   debug::ObjectCounter::increase(ClassName());
+
+  if(HSfield_Hall<0.1&&m_layer<10) m_res_param = ResParamInnerLayerHSOff;
+  else if(HSfield_Hall<0.1&&m_layer>=10) m_res_param = ResParamOuterLayerHSOff;
+  else if(m_layer<10) m_res_param = ResParamInnerLayerHSOn;
+  else m_res_param = ResParamOuterLayerHSOn;
 }
 
 
@@ -229,6 +226,7 @@ TPCHit::DoFit()
   static const Double_t MinRawRms = gUser.GetParameter("MinBaseRmsTPC");
   static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
   static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
+  static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");
 
   if(m_is_calculated){
     hddaq::cerr << FUNC_NAME << " already calculated" << std::endl;
@@ -257,8 +255,8 @@ TPCHit::DoFit()
   gErrorIgnoreLevel = kError;
 
   {
-    Double_t mean = m_rhit->Mean();
-    Double_t rms = m_rhit->RMS();
+    Double_t mean = m_rhit->Mean(0, NumOfTimeBucket);
+    Double_t rms = m_rhit->RMS(0, NumOfTimeBucket);
     Double_t rawrms = m_rhit->RawRMS();
     m_pedestal = mean;
     m_rms = rms;
@@ -266,7 +264,7 @@ TPCHit::DoFit()
   }
   // #if QuickAnalysis
   // {
-  //   Double_t max_adc = m_rhit->MaxAdc();
+  //   Double_t max_adc = m_rhit->MaxAdc(0, NumOfTimeBucket);
   //   //std::cout<<"max_dE = "<<max_adc - m_pedestal<<std::endl;
   //   if(max_adc-m_pedestal < MinDe){
   //     return false;
@@ -275,9 +273,9 @@ TPCHit::DoFit()
   // #endif
 
 #if 0 // for check
-  if(m_rhit->MaxAdc()-m_pedestal < 400
-     || m_rhit->LocMax() < 40
-     || m_rhit->LocMax() > 140){
+  if(m_rhit->MaxAdc(0, NumOfTimeBucket)-m_pedestal < 400
+     || m_rhit->LocMax(0, NumOfTimeBucket) < 40
+     || m_rhit->LocMax(0, NumOfTimeBucket) > 140){
     return false;
   }
 #endif
@@ -305,15 +303,15 @@ TPCHit::DoFit()
     // }
   }
   h2.GetXaxis()->SetRangeUser(MinTimeBucket, MaxTimeBucket);
-  h2.GetYaxis()->SetRangeUser(m_pedestal-100., m_rhit->MaxAdc()+200);
+  h2.GetYaxis()->SetRangeUser(m_pedestal-100., m_rhit->MaxAdc(0, NumOfTimeBucket)+200);
   // h2.GetYaxis()->SetRangeUser(0, 0x1000);
-  // h2.GetYaxis()->SetRangeUser(0, TMath::Max(m_rhit->MaxAdc()+200, 2000.));
-  //std::cout<<"pedestal:"<<m_pedestal<<", max_adc:"<<m_rhit->MaxAdc()<<std::endl;
+  // h2.GetYaxis()->SetRangeUser(0, TMath::Max(m_rhit->MaxAdc(0, NumOfTimeBucket)+200, 2000.));
+  //std::cout<<"pedestal:"<<m_pedestal<<", max_adc:"<<m_rhit->MaxAdc(0, NumOfTimeBucket)<<std::endl;
 
 #if FitPedestal
   { //___ Pedestal Fitting
     Double_t mean = h1.GetXaxis()->GetBinCenter(h1.GetMaximumBin());
-    Double_t rms = m_rhit->RMS();
+    Double_t rms = m_rhit->RMS(0, NumOfTimeBucket);
     if(mean > 1000.) mean = 400.;
     TF1 f1("f1", "gaus", 0, MaxADC);
     f1.SetParameter(0, NumOfTimeBucket/rms);
@@ -343,7 +341,7 @@ TPCHit::DoFit()
     c1.Modified();
     c1.Update();
     // getchar();
-    Double_t max_adc = m_rhit->MaxAdc();
+    Double_t max_adc = m_rhit->MaxAdc(0, NumOfTimeBucket);
     if(max_adc - mean < MinDe){
       return false;
     }
@@ -428,7 +426,7 @@ TPCHit::DoFit()
       TF1 f1("f1", "[0]*(x-[1])*exp(-(x-[1])/[2])+[3]", 0, NumOfTimeBucket);
       Double_t c = 3.; // decay constant
       f1.SetParameter(0, de*TMath::Exp(1)/c);
-      f1.SetParLimits(0, TMath::Exp(1)/c, m_rhit->MaxAdc()*TMath::Exp(1)/c);
+      f1.SetParLimits(0, TMath::Exp(1)/c, m_rhit->MaxAdc(0, NumOfTimeBucket)*TMath::Exp(1)/c);
       f1.SetParameter(1, time+c);
       f1.SetParLimits(1, time+c-12, time+c+12);
       f1.SetParameter(2, c);
@@ -448,7 +446,7 @@ TPCHit::DoFit()
       TF1 f1("f1", "[0]*exp(-(x-[1])/[2])*exp(-exp(-(x-[1])/[2]))+[3]",
              0, NumOfTimeBucket);
       f1.SetParameter(0, de);
-      //f1.SetParLimits(0, 0, m_rhit->MaxAdc()+m_pedestal+m_rms);
+      //f1.SetParLimits(0, 0, m_rhit->MaxAdc(0, NumOfTimeBucket)+m_pedestal+m_rms);
       //f1.SetParLimits(0, 0, de+m_rms);
       f1.SetParameter(1, time);
       f1.SetParLimits(1, time-10, time+10);
@@ -558,155 +556,6 @@ void
 TPCHit::ClearRegisteredHits()
 {
   del::ClearContainer(m_register_container);
-  if(m_hit_xz) delete m_hit_xz;
-  if(m_hit_yz) delete m_hit_yz;
-}
-
-//_____________________________________________________________________________
-Double_t
-TPCHit::GetResolutionX() const
-{
-#if 1
-  //calculated by using NIM paper
-  const auto& pos = GetPosition();
-  // Double_t s0 = 0.204;// mm HIMAC result //To do parameter
-  Double_t s0 = gUser.GetParameter("TPC_sigma0");
-  //s0 is considered for common resolution
-  //  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
-  Double_t Dt = gUser.GetParameter("TPC_Dt");
-  Double_t L_D = 30.+(pos.Y()*0.1);//cm
-  //Double_t N_eff = 42.8;
-  Double_t N_eff = 42.1;
-  //  Double_t A = 0.0582*0.01;//m-1 -> cm-1
-  Double_t A = 0.055*0.01;//m-1 -> cm-1
-  Double_t e_ALD = exp(-1.*A*L_D);
-  Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
-  //Double_t sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
-  Double_t sT_r = TMath::Sqrt(sT2);
-  Double_t sT_padlen = tpc::padParameter[m_layer][5]/TMath::Sqrt(12.);
-  Double_t dtheta = 360./tpc::padParameter[m_layer][3]*TMath::DegToRad();
-  Double_t dr = TMath::Hypot(sT_padlen, sT_r);
-  Double_t rdtheta = tpc::padParameter[m_layer][2]*dtheta/TMath::Sqrt(12);
-  rdtheta = TMath::Hypot(rdtheta, sT_r);
-
-  Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
-  //return TMath::Abs(dr*TMath::Sin(alpha)+rdtheta*TMath::Cos(alpha));
-  //return TMath::Sqrt(TMath::Power(dr*TMath::Sin(alpha),2)+TMath::Power(rdtheta*TMath::Cos(alpha),2));
-  return TMath::Abs(sT_r);
-  //return 0.3;
-#endif
-
-#if 0
-  //Check Tmporary change
-  if(m_clsize ==1){
-    Double_t Rpad = tpc::padParameter[m_layer][2];
-    Double_t padsize = Rpad*2.*TMath::Pi()/tpc::padParameter[m_layer-1][3];
-    //sT_r = padsize/sqrt(12.);
-  }
-  return TVector2(sT_r*TMath::Cos(alpha), sT_padlen*TMath::Sin(alpha)).Mod();
-#endif
-
-#if 0
-  Double_t resolution_hsoff[32] =
-    {1.03239, 1.02736, 0.911595, 0.841133, 0.801814,
-     0.815236, 0.821172, 0.821089, 0.839851, 0.789304,
-     0.750903, 0.750903, 0.750903, 0.765357, 0.765357,
-     0.780544, 0.759362, 0.731685, 0.683834, 0.688737,
-     0.667413, 0.652318, 0.666213, 0.666213, 0.646582,
-     0.646582, 0.628595, 0.622293, 0.624752, 0.610846,
-     0.63606, 0.635358};
-
-  return resolution_hsoff[m_layer];
-#endif
-}
-
-//_____________________________________________________________________________
-double
-TPCHit::GetResolutionZ() const
-{
-#if 1
-  const auto& pos = GetPosition();
-  //calculated by using NIM paper
-  //Double_t s0 = 0.204;// mm HIMAC result //To do parameter
-  Double_t s0 = gUser.GetParameter("TPC_sigma0");
-  //s0 is considered for common resolution
-  //  Double_t Dt = 0.18;//mm/sqrt(cm) at 1T //To do parameter
-  Double_t Dt = gUser.GetParameter("TPC_Dt");
-  Double_t L_D = 30.+(pos.Y()*0.1);//cm
-  //Double_t N_eff = 42.8;
-  Double_t N_eff = 42.1;
-  //Double_t A = 0.0582*0.01;//m-1 -> cm-1
-  Double_t A = 0.055*0.01;//m-1 -> cm-1
-  Double_t e_ALD = exp(-1.*A*L_D);
-  Double_t sT2 = s0*s0 + (Dt*Dt*L_D/(N_eff*e_ALD));
-  //Double_t sT2 = (Dt*Dt*L_D/(N_eff*e_ALD));
-  Double_t sT_r = TMath::Sqrt(sT2);
-  Double_t sT_padlen = tpc::padParameter[m_layer][5]/TMath::Sqrt(12.);
-  Double_t dtheta = 360./tpc::padParameter[m_layer][3]*TMath::DegToRad();
-  Double_t dr = TMath::Hypot(sT_padlen, sT_r);
-  Double_t rdtheta = tpc::padParameter[m_layer][2]*dtheta/TMath::Sqrt(12);
-  rdtheta = TMath::Hypot(rdtheta, sT_r);
-  Double_t alpha = TMath::ATan2(pos.X(), pos.Z() - tpc::ZTarget);
-  //return TMath::Sqrt(TMath::Power(dr*TMath::Cos(alpha),2)+TMath::Power(rdtheta*TMath::Sin(alpha),2));
-  return TMath::Abs(sT_r);
-  //return 0.3;
-#endif
-
-#if 0
-  if(m_clsize ==1){
-    Double_t Rpad = tpc::padParameter[m_layer][2];
-    Double_t padsize = Rpad*2.*TMath::Pi()/tpc::padParameter[m_layer-1][3];
-    sT_r = padsize/sqrt(12.);
-  }
-  return sqrt(pow(sT_r*TMath::Sin(alpha),2)+pow(sT_padlen*TMath::Cos(alpha),2));
-#endif
-
-#if 0
-  Double_t resolution_hsoff[32] =
-    {1.03239, 1.02736, 0.911595, 0.841133, 0.801814,
-     0.815236, 0.821172, 0.821089, 0.839851, 0.789304,
-     0.750903, 0.750903, 0.750903, 0.765357, 0.765357,
-     0.780544, 0.759362, 0.731685, 0.683834, 0.688737,
-     0.667413, 0.652318, 0.666213, 0.666213, 0.646582,
-     0.646582, 0.628595, 0.622293, 0.624752, 0.610846,
-     0.63606, 0.635358};
-
-  return resolution_hsoff[m_layer];
-#endif
-
-}
-
-//_____________________________________________________________________________
-double
-TPCHit::GetResolutionY() const
-{
-
-#if 1
-  // temporary
-  return 0.5; //HIMAC
-#endif
-#if 0
-  return 0.7; //Temporary value for HS-OFF
-#endif
-
-}
-
-//_____________________________________________________________________________
-TVector3
-TPCHit::GetResolutionVect() const
-{
-  return TVector3(GetResolutionX(),
-                  GetResolutionY(),
-                  GetResolutionZ());
-}
-
-//_____________________________________________________________________________
-Double_t
-TPCHit::GetResolution() const
-{
-  return TVector3(GetResolutionX(),
-                  GetResolutionY(),
-                  GetResolutionZ()).Mag();
 }
 
 //_____________________________________________________________________________

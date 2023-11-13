@@ -36,13 +36,13 @@ public:
   TB_t          FadcSize() const { return m_fadc.size(); }
   const PRM_t&  GetParameters() const { return m_pars; }
   Int_t         LayerId() const { return m_layer_id; }
-  Double_t      LocMax(TB_t tmin=0, TB_t tmax=NumOfTimeBucket) const;
+  Double_t      LocMax(TB_t tmin, TB_t tmax) const;
   void          Print(Option_t* opt="") const;
   Int_t         RowId() const { return m_row_id; }
-  Double_t      MaxAdc(TB_t tmin=0, TB_t tmax=NumOfTimeBucket) const;
-  Double_t      MinAdc(TB_t tmin=0, TB_t tmax=NumOfTimeBucket) const;
-  Double_t      Mean(TB_t tmin=0, TB_t tmax=NumOfTimeBucket) const;
-  Double_t      RMS(TB_t tmin=0, TB_t tmax=NumOfTimeBucket) const;
+  Double_t      MaxAdc(TB_t tmin, TB_t tmax) const;
+  Double_t      MinAdc(TB_t tmin, TB_t tmax) const;
+  Double_t      Mean(TB_t tmin, TB_t tmax) const;
+  Double_t      RMS(TB_t tmin, TB_t tmax) const;
   Double_t      RMS_10() const
   { return TMath::RMS(10, m_fadc.data()); }
   Double_t	RawRMS() const {return m_raw_rms;}

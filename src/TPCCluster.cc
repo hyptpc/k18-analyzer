@@ -16,9 +16,6 @@
 #include "TPCPositionCorrector.hh"
 #include "ThreeVector.hh"
 
-#define WeightedMean 0
-#define WeightedMeanTheta 1
-
 namespace
 {
 const auto& gTPCPos = TPCPositionCorrector::GetInstance();
@@ -27,12 +24,13 @@ const auto& gTPCPos = TPCPositionCorrector::GetInstance();
 //_____________________________________________________________________________
 TPCCluster::TPCCluster(Int_t layer, const TPCHitContainer& HitCont)
   : m_is_good(false),
+    m_is_onframe(false),
     m_layer(layer),
     m_cluster_de(),
     m_cluster_position(),
     m_hit_array(HitCont), // shallow copy
     m_mean_row(),
-    m_mean_phi(),
+    m_mean_theta(),
     m_center_hitid(),
     m_mean_hit(new TPCHit(layer, TMath::QuietNaN()))
 {
@@ -68,6 +66,31 @@ TPCCluster::AddTPCHit(TPCHit* hit)
 {
   if(hit) m_hit_array.push_back(hit);
   m_is_good = false;
+  m_is_onframe = false;
+}
+
+//_____________________________________________________________________________
+void
+TPCCluster::CheckClusterOnTheFrame()
+{
+  m_is_onframe = false;
+  if(m_layer<8) return; // no frame
+
+  Int_t low_row = 10000; Int_t high_row = -1; //get edge pad ids of the cluster
+  for(Int_t i=0; i<m_hit_array.size(); ++i){
+    if(!m_hit_array[i]) continue;
+    Int_t row = m_hit_array[i] -> GetRow();
+    if(row<low_row) low_row = row;
+    if(row>high_row) high_row = row;
+  }
+
+  Bool_t status = false;
+  for(Int_t i=0; i<5; ++i){
+    if(TMath::Abs(tpc::FrameHighEdge[m_layer][i] - low_row) <= tpc::MaxRowDifTPC) status = true;
+    if(TMath::Abs(tpc::FrameLowEdge[m_layer][i] - high_row) <= tpc::MaxRowDifTPC) status = true;
+  }
+
+  m_is_onframe = status;
 }
 
 //_____________________________________________________________________________
@@ -85,7 +108,7 @@ TPCCluster::Calculate()
 
   //w/ position correction
   m_mean_row = 0.;
-  m_mean_phi = 0.;
+  m_mean_theta = 0.;
   Double_t mean_y = 0.;
   TVector2 xz_vectorHS(0., 0.);
   for(const auto& hit: m_hit_array){
@@ -93,7 +116,7 @@ TPCCluster::Calculate()
     TVector2 xz_vector(pos.X(), pos.Z());
     xz_vector -= target_center;
 
-#if 0 //after position correction, the size of xz_vector can be differ from the layer R.
+#if 0 //Legacy. After position correction, the size of xz_vector can be differ from the layer R.
     if(TMath::Abs(xz_vector.Mod() - R) > 1e-10){
       hit->Print();
       throw Exception(FUNC_NAME + Form(" found invalid radius %lf/%lf",
@@ -115,14 +138,14 @@ TPCCluster::Calculate()
 
   mean_y *= 1./m_cluster_de;
   xz_vectorHS *= 1./m_cluster_de;
-  m_mean_phi = xz_vectorHS.Phi();
+  m_mean_theta = xz_vectorHS.Phi();
   TVector2 xz_vector = xz_vectorHS + target_center;
   m_cluster_position.SetXYZ(xz_vector.X(), mean_y, xz_vector.Y());
-  m_mean_row = tpc::getMrow(m_layer, m_mean_phi*TMath::RadToDeg());
+  m_mean_row = tpc::getMrow(m_layer, m_mean_theta*TMath::RadToDeg());
   m_mean_hit->AddHit(0., 0.);
   m_mean_hit->SetMRow(m_mean_row);
   m_mean_hit->SetPadLength(tpc::padParameter[m_layer][5]);
-  m_mean_hit->SetMPadTheta(tpc::getTheta(m_layer, m_mean_row)*TMath::DegToRad());
+  m_mean_hit->SetPadTheta(tpc::getTheta(m_layer, m_mean_row)*TMath::DegToRad());
   m_mean_hit->SetDe(m_cluster_de);
   m_mean_hit->SetPosition(m_cluster_position);
   m_mean_hit->SetParentCluster(this);
@@ -144,7 +167,7 @@ TPCCluster::Calculate()
     }
   }
   m_center_hitid = id;
-
+  CheckClusterOnTheFrame(); //check whether the cluster on the frame or not
   m_is_good = true;
   return true;
 }
@@ -161,7 +184,7 @@ TPCCluster::Print(Option_t* opt) const
               << "position = " << m_cluster_position << std::endl
               << "Radius = " << R << std::endl
               << "mean row = " << m_mean_row << std::endl
-              << "mean phi = " << m_mean_phi*TMath::RadToDeg() << " (in XZ plane)" << std::endl;
+              << "mean phi = " << m_mean_theta*TMath::RadToDeg() << " (in XZ plane)" << std::endl;
   hddaq::cout << "layer" << std::setw(2) << m_layer <<" size="
               << std::setw(3) << m_hit_array.size() << "  ";
   for(const auto& hit: m_hit_array){

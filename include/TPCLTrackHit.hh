@@ -9,8 +9,9 @@
 #include "MathTools.hh"
 #include "ThreeVector.hh"
 #include "TPCHit.hh"
+#include "TPCCluster.hh"
 
-class DCAnalyzer;
+class TPCAnalyzer;
 
 //_____________________________________________________________________________
 class TPCLTrackHit
@@ -22,12 +23,13 @@ public:
   ~TPCLTrackHit();
 
 private:
-  TPCHit*  m_hit;
+  TPCHit* m_hit;
   Int_t m_layer;
   Double_t m_mrow;
   TVector3 m_local_hit_pos;
   TVector3 m_cal_pos;
   TVector3 m_res;
+  std::vector<Double_t> m_res_param;
   Double_t m_x0;
   Double_t m_y0;
   Double_t m_u0;
@@ -54,9 +56,11 @@ private:
   Double_t m_z0_exclusive;
   Double_t m_r_exclusive;
   Double_t m_dz_exclusive;
+  Double_t m_t_exclusive;
 
 public:
   Bool_t IsGood() const { return (m_hit && m_hit->IsGood()); }
+  Bool_t IsOnTheFrame(){ return m_hit->GetParentCluster()->IsOnTheFrame(); };
   void   SetLocalHitPos(TVector3 xl) { m_local_hit_pos = xl; }
   void   SetCalPosition(TVector3 cal_pos) { m_cal_pos = cal_pos; }
   void   SetCalX0Y0(Double_t x0, Double_t y0) { m_x0 = x0; m_y0 = y0; }
@@ -86,23 +90,18 @@ public:
   Double_t Getdz()        const { return m_dz; }
   Double_t GetTheta()     const { return m_t; }
   const TVector3& GetResolutionVect() const { return m_res; }
+  const std::vector<Double_t>& GetResolutionParams() const { return m_res_param; }
 
   TVector3 GetLocalCalPos() const;
   TVector3 GetLocalCalPosHelix() const;
-  TVector3 GetLocalCalPosHelix(double par[5]) const;
-  TVector3 GetHelixPosition(Double_t par[5], Double_t t)  const;
-  TVector3 GetMomentumHelix()  const;
-  Double_t GetTcal() const;
+  TVector3 GetHelixPosition(Double_t par[5], Double_t t) const;
+  TVector3 GetMomentumHelix(Double_t charge)  const;
   Double_t GetPadTrackAngleHelix() const;
   Double_t GetPathHelix() const;
   TVector3 GetResidualVect() const;
   Double_t GetResidual() const;
-  Bool_t ResidualCut() const;
   Double_t GetResolution() const { return m_res.Mag(); }
 
-  void   JoinTrack() { m_hit->JoinTrack(); }
-  void   QuitTrack() { m_hit->QuitTrack(); }
-  Bool_t BelongToTrack() const { return m_hit->BelongToTrack(); }
   Int_t GetHoughFlag() const { return m_hit->GetHoughFlag(); }
   Double_t GetHoughDist() const { return m_hit->GetHoughDist(); }
   Double_t GetHoughDistY() const { return m_hit->GetHoughDistY(); }
@@ -110,8 +109,10 @@ public:
 
   TVector3 GetLocalCalPosExclusive() const;
   TVector3 GetLocalCalPosHelixExclusive() const;
+  void SetDe(Double_t de){ m_de = de; }
   void SetCalX0Y0Exclusive(Double_t x0, Double_t y0) { m_x0_exclusive = x0; m_y0_exclusive = y0; }
   void SetCalUVExclusive(Double_t u0, Double_t v0) { m_u0_exclusive = u0; m_v0_exclusive = v0; }
+  void SetThetaExclusive(Double_t t) { m_t_exclusive = t; }
   void SetCalPositionExclusive(TVector3 cal_pos) { m_cal_pos_exclusive = cal_pos; }
   void SetCalHelixExclusive(Double_t cx, Double_t cy, Double_t z0, Double_t r, Double_t dz)
   {m_cx_exclusive = cx; m_cy_exclusive = cy; m_z0_exclusive = z0; m_r_exclusive = r, m_dz_exclusive = dz;}

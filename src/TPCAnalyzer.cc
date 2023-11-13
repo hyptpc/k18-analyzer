@@ -11,6 +11,8 @@
 #include <string>
 
 //#include "ConfMan.hh"
+#include "DCGeomMan.hh"
+#include "DCGeomRecord.hh"
 #include "DebugCounter.hh"
 #include "DebugTimer.hh"
 #include "FuncName.hh"
@@ -18,37 +20,67 @@
 #include "RawData.hh"
 #include "UserParamMan.hh"
 #include "DeleteUtility.hh"
+#include "RungeKuttaUtilities.hh"
 #include "TPCPadHelper.hh"
-//#include "TPCParamMan.hh"
-//#include "TPCPositionCorrector.hh"
+ //#include "TPCParamMan.hh"
+ //#include "TPCPositionCorrector.hh"
 #include "TPCRawHit.hh"
 #include "TPCHit.hh"
 #include "TPCCluster.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLocalTrackHelix.hh"
 #include "TPCTrackSearch.hh"
+#include "DCHit.hh"
+#include "TrackHit.hh"
+#include "TPCRKTrack.hh"
+#include "PrintHelper.hh"
 
-/* TPCTracking */
+ /* TPCTracking */
 #define UseTpcCluster 1 // 1 : Common clustering method, 0 : Cluster size=1 no clustering
 
 namespace
 {
 
 //const auto& gConf   = ConfMan::GetInstance();
-//const auto& gGeom   = DCGeomMan::GetInstance();
 //const auto& gTPC  = TPCParamMan::GetInstance();
 //const auto& gTPCPos = TPCPositionCorrector::GetInstance();
 const auto& gUser   = UserParamMan::GetInstance();
+const auto& gGeom   = DCGeomMan::GetInstance();
 
-const Int_t MaxRowDifTPC = 2; // for cluster
+//Kurama
+// const Int_t& IdTOF   = gGeom.DetectorId("TOF");
+const Int_t& IdTgt = gGeom.DetectorId("Target");
+const Int_t& IdTOFUX = gGeom.DetectorId("TOF-UX");
+const Int_t& IdTOFUY = gGeom.DetectorId("TOF-UY");
+const Int_t& IdTOFDX = gGeom.DetectorId("TOF-DX");
+const Int_t& IdTOFDY = gGeom.DetectorId("TOF-DY");
+const Int_t& IdTPCGasVessel_U = gGeom.DetectorId("VesselU");
+const Int_t& IdTPCGasVessel_D = gGeom.DetectorId("VesselD");
+const Int_t& IdVPHTOF = gGeom.DetectorId("VPHTOF");
+const Int_t& IdRKINIT = gGeom.DetectorId("RKINIT");
+//K1.8
+const Int_t& IdBH2 = gGeom.DetectorId("BH2");
 
+  /*
+const Int_t& IdVP1 = gGeom.DetectorId("VPHS1");
+const Int_t& IdVP2 = gGeom.DetectorId("VPHS2");
+const Int_t& IdVP3 = gGeom.DetectorId("VPHS3");
+const Int_t& IdVP4 = gGeom.DetectorId("VPHS4");
+const Int_t& IdHTOF = gGeom.DetectorId("HTOF");
+  */
+
+const Double_t MaxChiSqrTrack = 10000.;
+static std::vector<Double_t> gChisqr;
+}
+
+static inline Bool_t CompareChisqr(const Int_t a, const Int_t b){
+  return gChisqr[a] < gChisqr[b];
 }
 
 //_____________________________________________________________________________
 TPCAnalyzer::TPCAnalyzer()
   : m_is_decoded(n_type),
     m_TPCHitCont(NumOfLayersTPC+1),
-    m_TempTPCHitCont(NumOfLayersTPC+1),
     m_TPCClCont(NumOfLayersTPC)
 {
   for(Int_t i=0; i<n_type; ++i){
@@ -62,18 +94,23 @@ TPCAnalyzer::~TPCAnalyzer()
 {
   ClearTPCHits();
   ClearTPCClusters();
-  ClearTracksTPC();
+  ClearTPCTracks();
+  ClearTPCKuramaTracks();
+  ClearTPCK18Tracks();
   debug::ObjectCounter::decrease(ClassName());
 }
 
 //_____________________________________________________________________________
 Bool_t
 TPCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
-                              TPCClusterContainer& ClCont,
-                              Double_t maxdy)
+			       TPCClusterContainer& ClCont,
+			       Double_t maxdy)
 {
   static const Double_t MinClusterDe = gUser.GetParameter("MinClusterDeTPC");
   static const Int_t MinClusterSize = gUser.GetParameter("MinClusterSizeTPC");
+  static const Double_t MinClusterYPos = gUser.GetParameter("MinClusterYPosTPC");
+  static const Double_t MaxClusterYPos = gUser.GetParameter("MaxClusterYPosTPC");
+
   const auto nh = HitCont.size();
   if(nh==0) return false;
 
@@ -94,7 +131,7 @@ TPCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
       Int_t rowID = thit->GetRow();
       for(const auto& c_hit: CandCont){
         Int_t c_rowID = c_hit->GetRow();
-        if(tpc::IsClusterable(layer, rowID, c_rowID, MaxRowDifTPC)
+        if(tpc::IsClusterable(layer, rowID, c_rowID)
            && TMath::Abs(thit->GetY() - c_hit->GetY()) < maxdy){
           CandCont.push_back(thit);
           joined[j]++;
@@ -106,7 +143,9 @@ TPCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
 
     TPCCluster* cluster = new TPCCluster(layer, CandCont);
     if(!cluster) continue;
-    if(cluster->Calculate() && cluster->GetDe()>=MinClusterDe && cluster->GetClusterSize()>=MinClusterSize){
+    if(cluster->Calculate()
+       && cluster->GetDe()>=MinClusterDe && cluster->GetClusterSize()>=MinClusterSize
+       && cluster->GetY()>=MinClusterYPos && cluster->GetY()<=MaxClusterYPos){
       ClCont.push_back(cluster);
     }else{
       delete cluster;
@@ -154,15 +193,17 @@ TPCAnalyzer::DecodeTPCHits(RawData *rawData, Double_t clock)
 //_____________________________________________________________________________
 Bool_t
 TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
-                          const std::vector<Int_t>& pad,
-                          const std::vector<Double_t>& time,
-                          const std::vector<Double_t>& de,
-                          Double_t clock)
+			   const std::vector<Int_t>& pad,
+			   const std::vector<Double_t>& time,
+			   const std::vector<Double_t>& de,
+			   Double_t clock)
 {
   if(m_is_decoded[kTPC]){
     hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;
     return false;
   }
+
+  static const Double_t MinCDe = gUser.GetParameter("MinCDeTPC");
 
   ClearTPCHits();
   ClearTPCClusters();
@@ -177,7 +218,7 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
     const Double_t row = tpc::getRowID(pad[ih]);
     auto hit = new TPCHit(layer, row);
     hit->AddHit(de[ih], time[ih]);
-    if(hit->Calculate(clock)){
+    if(hit->Calculate(clock) && hit->GetCDe()>=MinCDe){
       m_TPCHitCont[layer].push_back(hit);
     }else{
       delete hit;
@@ -198,8 +239,8 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
 //_____________________________________________________________________________
 Bool_t
 TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
-                                const Double_t *x, const Double_t *y,
-                                const Double_t *z, const Double_t *de)
+				 const Double_t *x, const Double_t *y,
+				 const Double_t *z, const Double_t *de)
 {
   if(m_is_decoded[kTPC]){
     hddaq::cout << FUNC_NAME << " "
@@ -243,9 +284,17 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
 Bool_t
 TPCAnalyzer::TrackSearchTPC(Bool_t exclusive)
 {
+  if(m_is_decoded[kTPCTracking]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
+    return true;
+  }
+
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
   tpc::LocalTrackSearch(m_TPCClCont, m_TPCTC, m_TPCTCFailed, exclusive, MinLayer);
+
+  m_is_decoded[kTPCTracking] = true;
   return true;
 }
 
@@ -253,31 +302,77 @@ TPCAnalyzer::TrackSearchTPC(Bool_t exclusive)
 Bool_t
 TPCAnalyzer::TrackSearchTPCHelix(Bool_t exclusive)
 {
+  if(m_is_decoded[kTPCTracking]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
+    return true;
+  }
+
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
   tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixFailed, exclusive, MinLayer);
+
+  m_is_decoded[kTPCTracking] = true;
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
 TPCAnalyzer::TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
-				std::vector<std::vector<TVector3>> KuramaVPs,
-				Bool_t exclusive)
+				 std::vector<std::vector<TVector3>> KuramaVPs,
+				 Bool_t exclusive)
 {
-  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
+  if(m_is_decoded[kTPCTracking]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
+    return true;
+  }
 
-  tpc::LocalTrackSearchHelix(K18VPs, KuramaVPs, m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixFailed, exclusive, MinLayer);
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
+  tpc::LocalTrackSearchHelix(K18VPs, KuramaVPs, m_TPCClCont, m_TPCTCHelix, m_TPCTCVP, m_TPCTCHelixFailed, exclusive, MinLayer);
+
+  m_is_decoded[kTPCTracking] = true;
   return true;
 }
+/*
+//_____________________________________________________________________________
+Bool_t
+TPCAnalyzer::TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
+				 std::vector<Double_t> K18Mom,
+				 std::vector<std::vector<TVector3>> KuramaVPs,
+				 std::vector<Double_t> KuramaCharge,
+				 std::vector<Double_t> KuramaMom,
+				 Bool_t exclusive)
+{
+  if(m_is_decoded[kTPCTracking]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
+    return true;
+  }
 
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
+
+  tpc::LocalTrackSearchHelix(K18VPs, K18Mom, KuramaVPs, KuramaCharge, KuramaMom, m_TPCClCont, m_TPCTCHelix, m_TPCTCVP, m_TPCTCHelixFailed, exclusive, MinLayer);
+
+  m_is_decoded[kTPCTracking] = true;
+  return true;
+}
+*/
 //_____________________________________________________________________________
 Bool_t
 TPCAnalyzer::TestHoughTransform()
 {
+  if(m_is_decoded[kTPCTracking]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
+    return true;
+  }
+
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
   tpc::HoughTransformTest(m_TPCClCont, m_TPCTC, MinLayer);
+
+  m_is_decoded[kTPCTracking] = true;
   return true;
 }
 
@@ -285,9 +380,17 @@ TPCAnalyzer::TestHoughTransform()
 Bool_t
 TPCAnalyzer::TestHoughTransformHelix()
 {
+  if(m_is_decoded[kTPCTracking]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
+    return true;
+  }
+
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
 
   tpc::HoughTransformTestHelix(m_TPCClCont, m_TPCTCHelix, MinLayer);
+
+  m_is_decoded[kTPCTracking] = true;
   return true;
 }
 
@@ -296,7 +399,6 @@ void
 TPCAnalyzer::ClearTPCHits()
 {
   del::ClearContainerAll(m_TPCHitCont);
-  del::ClearContainerAll(m_TempTPCHitCont);
 }
 
 //_____________________________________________________________________________
@@ -308,10 +410,495 @@ TPCAnalyzer::ClearTPCClusters()
 
 //_____________________________________________________________________________
 void
-TPCAnalyzer::ClearTracksTPC()
+TPCAnalyzer::ClearTPCTracks()
 {
   del::ClearContainer(m_TPCTC);
   del::ClearContainer(m_TPCTCFailed);
   del::ClearContainer(m_TPCTCHelix);
+  del::ClearContainer(m_TPCTCVP);
   del::ClearContainer(m_TPCTCHelixFailed);
+}
+
+//_____________________________________________________________________________
+void
+TPCAnalyzer::ClearTPCKuramaTracks()
+{
+  del::ClearContainer(m_TPCKuramaTC);
+}
+
+//_____________________________________________________________________________
+void
+TPCAnalyzer::ClearTPCK18Tracks()
+{
+  del::ClearContainer(m_TPCK18TC);
+}
+
+//_____________________________________________________________________________
+//KuramaTracking
+void
+TPCAnalyzer::MakeTPCKuramaHPContainer(TPCLocalTrackHelix *tpctrack,
+				      std::vector<Int_t> &lnum){
+
+  //The end point of RK tracking is the target z position.
+  //So, clusters before the target center are excluded in the tracking. (Z_cluster < Z_target).
+
+  // /*** From Upstream ***/
+  lnum.clear();
+  lnum.push_back(IdTgt);
+
+  //TPC hits and VP planes in the HypTPC
+  Int_t nhtpc = tpctrack -> GetNHit();
+  auto start = tpctrack -> GetHitInOrder(0) -> GetLocalHitPos();
+  auto end = tpctrack -> GetHitInOrder(nhtpc-1) -> GetLocalHitPos();
+  double prev=-10000.;
+  for(int i=0; i<nhtpc; ++i){
+    int id = i;
+    if(start.z()>end.z()) id = nhtpc - 1 - i;
+    TPCLTrackHit *thp = tpctrack -> GetHitInOrder(id);
+    if(!thp) continue;
+    const TVector3& localhitpos = thp->GetLocalHitPos();
+    Double_t TGTz = gGeom.GlobalZ("Target") - gGeom.GlobalZ("HS");
+    if(localhitpos.z()<TGTz) continue; //Exclude clusters before the target
+
+    for(int j=0; j<NumOfLayersVPTPC; ++j){
+      Double_t VPz = gGeom.GlobalZ(Form("VPTPC%d",j+1)) - gGeom.GlobalZ("HS");
+      if(VPz>prev && localhitpos.z()>VPz){
+	const Int_t& IdVP = gGeom.DetectorId(Form("VPTPC%d",j+1));
+	lnum.push_back(IdVP);
+      }
+    }
+    lnum.push_back(id + PlOffsTPCHit + 1);
+    prev = localhitpos.z();
+  }
+  for(int j=0; j<NumOfLayersVPTPC; ++j){
+    Double_t VPz = gGeom.GlobalZ(Form("VPTPC%d",j+1)) - gGeom.GlobalZ("HS");
+    if(VPz>prev){
+      const Int_t& IdVP = gGeom.DetectorId(Form("VPTPC%d",j+1));
+      lnum.push_back(IdVP);
+    }
+  }
+  lnum.push_back(IdTPCGasVessel_D);
+  lnum.push_back(IdVPHTOF);
+  for(Int_t i=0; i<NumOfLayersSdcIn; ++i) lnum.push_back(i+PlOffsSdcIn+1);
+  for(Int_t i=0; i<NumOfLayersVP; ++i) lnum.push_back(i+PlOffsVP+1);
+  for(Int_t i=0; i<NumOfLayersSdcOut; ++i) lnum.push_back(i+PlOffsSdcOut+1);
+  lnum.push_back(IdTOFUX);
+  lnum.push_back(IdTOFUY);
+  lnum.push_back(IdTOFDX);
+  lnum.push_back(IdTOFDY);
+
+}
+
+//_____________________________________________________________________________
+TPCRKTrack*
+TPCAnalyzer::MakeTPCKuramaTrack(TPCLocalTrackHelix *tpctrack,
+				const std::vector<Int_t> layerID,
+				const std::vector<Double_t> wire,
+				const std::vector<Double_t> localHitPos)
+{
+
+  std::vector<Int_t> lnum;
+  MakeTPCKuramaHPContainer(tpctrack, lnum);
+  TPCRKTrack *track = new TPCRKTrack(tpctrack, lnum);
+  for(Int_t ih=0; ih<layerID.size(); ih++){ //Add DC Hits
+    auto hit = new DCHit(layerID[ih], wire[ih]);
+    hit -> SetWirePosition(gGeom.CalcWirePosition(layerID[ih], wire[ih]));
+    hit -> SetTiltAngle(gGeom.GetTiltAngle(layerID[ih]));
+    hit -> SetZ(gGeom.GetLocalZ(layerID[ih]));
+    auto dclthit = new DCLTrackHit(hit, localHitPos[ih], ih);
+    dclthit -> SetHoneycomb();
+    auto thit = new TrackHit(dclthit);
+    track -> AddRKHit(thit);
+
+    if(layerID[ih]==IdTOFUX || layerID[ih]==IdTOFDX) track -> SetTofSeg(wire[ih]);
+  } //nhitsDC
+
+  return track;
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCAnalyzer::DoFitTPCKuramaTrack(Int_t KuramaTrackID,
+				 const Int_t PID,
+				 const TVector3 initPos,
+				 const TVector3 initMom,
+				 const std::vector<Int_t> layerID,
+				 const std::vector<Double_t> wire,
+				 const std::vector<Double_t> localHitPos,
+				 Bool_t U2D)
+{
+  Bool_t status = false;
+  gChisqr.clear();
+  std::vector<Int_t> id;
+  Int_t ntTpc = GetNTracksTPCHelix();
+  TPCRKTrackContainer tempKuramaTC;
+  for(Int_t ittpc=0; ittpc<ntTpc; ittpc++){
+    TPCLocalTrackHelix* tpctrack = GetTrackTPCHelix(ittpc);
+    if(tpctrack -> GetIsKurama()!=1 || !tpctrack -> IsKuramaTrackCandidate(KuramaTrackID)) continue; //whether the track is pair candidate of the kurama track
+    if(tpctrack -> GetTrackID()!=-1) continue; //if the track already has a Kurama track pair
+
+    //After track pair matching
+    TPCRKTrack* track = MakeTPCKuramaTrack(tpctrack, layerID, wire, localHitPos);
+    track -> SetPID(PID);
+    if(track->DoFit(initPos, initMom, U2D) && track->ChiSquare()<MaxChiSqrTrack){
+      tempKuramaTC.push_back(track);
+      gChisqr.push_back(track -> ChiSquare());
+      status = true;
+      id.push_back(gChisqr.size() - 1);
+    }
+    else delete track;
+  } //nttpc
+
+  //find the best combination of lowest ChiSqruare()
+  std::sort(id.begin(), id.end(), CompareChisqr);
+  if(tempKuramaTC.size()!=0){
+    tempKuramaTC.at(id.at(0)) -> SetTPCTrackID(KuramaTrackID);
+    m_TPCKuramaTC.push_back(tempKuramaTC.at(id.at(0)));
+    tempKuramaTC.erase(tempKuramaTC.begin()+id.at(0));
+    del::ClearContainer(tempKuramaTC);
+  }
+
+  return status;
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCAnalyzer::TrackSearchTPCKurama(const std::vector<Int_t> PID,
+				  const std::vector<TVector3> initPos,
+				  const std::vector<TVector3> initMom,
+				  const std::vector<std::vector<Int_t>> layerID,
+				  const std::vector<std::vector<Double_t>> wire,
+				  const std::vector<std::vector<Double_t>> localHitPos,
+				  Bool_t U2D)
+{
+
+  if(m_is_decoded[kTPCKurama]){
+    hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;
+    return false;
+  }
+
+  if(initPos.size()!=initMom.size() || initPos.size()!=layerID.size() ||
+     initPos.size()!=wire.size() || initPos.size()!=localHitPos.size()){
+    hddaq::cerr << FUNC_NAME << " sizes of vector are not consistent" << std::endl;
+    return false;
+  }
+
+  ClearTPCKuramaTracks();
+  Int_t ntKurama = initPos.size();
+  for(Int_t itkurama=0; itkurama<ntKurama; itkurama++){
+    DoFitTPCKuramaTrack(itkurama, PID[itkurama], initPos[itkurama], initMom[itkurama],
+			layerID[itkurama], wire[itkurama],
+			localHitPos[itkurama], U2D);
+  } //ntkurama
+
+  m_is_decoded[kTPCKurama] = true;
+  return true;
+}
+
+//_____________________________________________________________________________
+//K18Tracking
+void
+TPCAnalyzer::MakeTPCK18HPContainer(TPCLocalTrackHelix *tpctrack,
+				   std::vector<Int_t> &lnum){
+
+  // /*** From Upstream ***/
+  lnum.clear();
+  for(Int_t i=0; i<NumOfLayersBcOut; ++i) lnum.push_back(i+PlOffsBcOut+1);
+  lnum.push_back(IdBH2);
+  lnum.push_back(IdTPCGasVessel_U);
+  //TPC hits and VP planes in the HypTPC
+  Int_t nhtpc = tpctrack -> GetNHit();
+  auto start = tpctrack -> GetHitInOrder(0) -> GetLocalHitPos();
+  auto end = tpctrack -> GetHitInOrder(nhtpc-1) -> GetLocalHitPos();
+  double prev=-10000.;
+  for(int i=0; i<nhtpc; ++i){
+    int id = i;
+    if(start.z()>end.z()) id = nhtpc - 1 - i;
+    TPCLTrackHit *thp = tpctrack -> GetHitInOrder(id);
+    if(!thp) continue;
+    const TVector3& localhitpos = thp->GetLocalHitPos();
+    for(int j=0; j<NumOfLayersVPHS; ++j){
+      Double_t VPz = gGeom.GlobalZ(Form("VPHS%d",j+1)) - gGeom.GlobalZ("HS");
+      if(VPz>prev && localhitpos.z()>VPz){
+	const Int_t& IdVP = gGeom.DetectorId(Form("VPHS%d",j+1));
+	lnum.push_back(IdVP);
+      }
+    }
+    lnum.push_back(id + PlOffsTPCHit + 1);
+    prev = localhitpos.z();
+  }
+  for(int j=0; j<NumOfLayersVPHS; ++j){
+    Double_t VPz = gGeom.GlobalZ(Form("VPHS%d",j+1)) - gGeom.GlobalZ("HS");
+    if(VPz>prev){
+      const Int_t& IdVP = gGeom.DetectorId(Form("VPHS%d",j+1));
+      lnum.push_back(IdVP);
+    }
+  }
+  lnum.push_back(IdTgt);
+  lnum.push_back(IdTPCGasVessel_D);
+  lnum.push_back(IdVPHTOF);
+
+}
+
+//_____________________________________________________________________________
+TPCRKTrack*
+TPCAnalyzer::MakeTPCK18Track(TPCLocalTrackHelix *tpctrack,
+			     const std::vector<Int_t> layerID,
+			     const std::vector<Double_t> wire,
+			     const std::vector<Double_t> localHitPos)
+{
+
+  std::vector<Int_t> lnum;
+  MakeTPCK18HPContainer(tpctrack, lnum);
+  TPCRKTrack *track = new TPCRKTrack(tpctrack, lnum);
+  for(Int_t ih=0; ih<layerID.size(); ih++){ //Add DC Hits
+    auto hit = new DCHit(layerID[ih], wire[ih]);
+    hit -> SetWirePosition(gGeom.CalcWirePosition(layerID[ih], wire[ih]));
+    hit -> SetTiltAngle(gGeom.GetTiltAngle(layerID[ih]));
+    hit -> SetZ(gGeom.GetLocalZ(layerID[ih]));
+    auto dclthit = new DCLTrackHit(hit, localHitPos[ih], ih);
+    auto thit = new TrackHit(dclthit);
+    track -> AddRKHit(thit);
+  } //nhitsDC
+
+  return track;
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCAnalyzer::DoFitTPCK18Track(Int_t K18TrackID,
+			      const TVector3 initPos,
+			      const TVector3 initMom,
+			      const std::vector<Int_t> layerID,
+			      const std::vector<Double_t> wire,
+			      const std::vector<Double_t> localHitPos,
+			      Bool_t U2D)
+{
+  Bool_t status = false;
+  gChisqr.clear();
+  std::vector<Int_t> id;
+  Int_t ntTpc = GetNTracksTPCHelix();
+  TPCRKTrackContainer tempK18TC;
+  for(Int_t ittpc=0; ittpc<ntTpc; ittpc++){
+    TPCLocalTrackHelix* tpctrack = GetTrackTPCHelix(ittpc);
+    if(K18TrackID != tpctrack -> GetTrackID() || tpctrack -> GetIsK18()!=1) continue;
+    //After track matching of a K18Track and a TPC track
+    TPCRKTrack* track = MakeTPCK18Track(tpctrack, layerID, wire, localHitPos);
+    if(track->DoFit(initPos, initMom, U2D) && track->ChiSquare()<MaxChiSqrTrack){
+      tempK18TC.push_back(track);
+      gChisqr.push_back(track -> ChiSquare());
+      status = true;
+      id.push_back(gChisqr.size() - 1);
+    }
+    else delete track;
+  } //nttpc
+
+  //find the best combination of lowest ChiSqruare()
+  std::sort(id.begin(), id.end(), CompareChisqr);
+  if(tempK18TC.size()!=0){
+    m_TPCK18TC.push_back(tempK18TC.at(id.at(0)));
+    tempK18TC.erase(tempK18TC.begin()+id.at(0));
+    del::ClearContainer(tempK18TC);
+  }
+
+  return status;
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCAnalyzer::TrackSearchTPCK18(const std::vector<TVector3> initPos,
+			       const std::vector<TVector3> initMom,
+			       const std::vector<std::vector<Int_t>> layerID,
+			       const std::vector<std::vector<Double_t>> wire,
+			       const std::vector<std::vector<Double_t>> localHitPos,
+			       Bool_t U2D)
+{
+
+  if(m_is_decoded[kTPCK18]){
+    hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;
+    return false;
+  }
+
+  if(initPos.size()!=initMom.size() || initPos.size()!=layerID.size() ||
+     initPos.size()!=wire.size() || initPos.size()!=localHitPos.size()){
+    hddaq::cerr << FUNC_NAME << " sizes of vector are not consistent" << std::endl;
+    return false;
+  }
+
+  ClearTPCK18Tracks();
+  Int_t ntK18 = initPos.size();
+  for(Int_t itk18=0; itk18<ntK18; itk18++){
+    DoFitTPCK18Track(itk18, initPos[itk18], initMom[itk18],
+		     layerID[itk18], wire[itk18],
+		     localHitPos[itk18], U2D);
+  } //ntK18
+
+  m_is_decoded[kTPCK18] = true;
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCAnalyzer::GetVertex(const TVector3 XtgtKm, const TVector3 PtgtKm,
+		       const TVector3 XtgtKp, const TVector3 PtgtKp,
+		       TVector3 &Vertex, Double_t &closeDist,
+		       Double_t &KmPathInTgt, Double_t &KpPathInTgt,
+		       TVector3 &KmMomVtx, TVector3 &KpMomVtx)
+{
+
+  RKcalcHitPoint inPointKm; RKcalcHitPoint outPointKp;
+  return RK::FindVertex(XtgtKm, PtgtKm, XtgtKp, PtgtKp, Vertex, closeDist, KmPathInTgt, KpPathInTgt, KmMomVtx, KpMomVtx, inPointKm, outPointKp);
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCAnalyzer::ReCalcTPCTracks(const Int_t ntracks,
+			     const std::vector<Int_t>& nhits,
+			     const std::vector<Double_t>& x0,
+			     const std::vector<Double_t>& y0,
+			     const std::vector<Double_t>& u0,
+			     const std::vector<Double_t>& v0,
+			     const std::vector<std::vector<Double_t>>& layer,
+			     const std::vector<std::vector<Double_t>>& mrow,
+			     const std::vector<std::vector<Double_t>>& de,
+			     const std::vector<std::vector<Double_t>>& res_x,
+			     const std::vector<std::vector<Double_t>>& res_y,
+			     const std::vector<std::vector<Double_t>>& res_z,
+			     const std::vector<std::vector<Double_t>>& localpos_x,
+			     const std::vector<std::vector<Double_t>>& localpos_y,
+			     const std::vector<std::vector<Double_t>>& localpos_z)
+{
+  if(m_is_decoded[kTPC]){
+    hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;
+    return false;
+  }
+
+  ClearTPCHits();
+  //ClearTPCClusters();
+  ClearTPCTracks();
+
+  if(ntracks != nhits.size() || ntracks != x0.size() || ntracks != y0.size() || ntracks != u0.size() || ntracks != v0.size()){
+
+    hddaq::cerr << FUNC_NAME << " track params vector size mismatch" << std::endl;
+    return false;
+  }
+
+  if(ntracks != layer.size() || ntracks != mrow.size() || ntracks != res_x.size() ||
+     ntracks != res_y.size() || ntracks != res_z.size() || ntracks != localpos_x.size() ||
+     ntracks != localpos_y.size() || ntracks != localpos_z.size() || ntracks != de.size()){
+
+    hddaq::cerr << FUNC_NAME << " track params vector size mismatch" << std::endl;
+    return false;
+  }
+
+  for(Int_t it=0; it<ntracks; it++){
+    TPCLocalTrack *track = new TPCLocalTrack();
+    Double_t Par[4] = {x0[it], y0[it], u0[it], v0[it]};
+    track->SetParam(Par);
+    for(Int_t ih=0; ih<nhits[it]; ih++){
+      Int_t l = layer[it][ih];
+      auto hit = new TPCHit(l, mrow[it][ih]);
+      hit -> AddHit(0, 0.);
+      hit -> SetDe(de[it][ih]);
+      hit -> SetPosition(TVector3(localpos_x[it][ih], localpos_y[it][ih], localpos_z[it][ih]));
+      m_TPCHitCont[l].push_back(hit);
+
+      TPCLTrackHit *hitp = new TPCLTrackHit(hit);
+      hitp->SetCalX0Y0(x0[it], y0[it]);
+      hitp->SetCalUV(u0[it], v0[it]);
+      hitp->SetCalPosition(hitp->GetLocalCalPos());
+      hitp->SetResolution(TVector3(res_x[it][ih], res_y[it][ih], res_z[it][ih]));
+      track->AddTPCHit(hitp);
+    }
+    m_TPCTC.push_back(track);
+  }
+
+  m_is_decoded[kTPC] = true;
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCAnalyzer::ReCalcTPCTracks(const Int_t ntracks,
+			     const std::vector<Int_t>& isK18,
+			     const std::vector<Int_t>& isKurama,
+			     const std::vector<Int_t>& charge,
+			     const std::vector<Int_t>& nhits,
+			     const std::vector<Double_t>& cx,
+			     const std::vector<Double_t>& cy,
+			     const std::vector<Double_t>& z0,
+			     const std::vector<Double_t>& r,
+			     const std::vector<Double_t>& dz,
+			     const std::vector<std::vector<Double_t>>& layer,
+			     const std::vector<std::vector<Double_t>>& mrow,
+			     const std::vector<std::vector<Double_t>>& helix_t,
+			     const std::vector<std::vector<Double_t>>& de,
+			     const std::vector<std::vector<Double_t>>& res_x,
+			     const std::vector<std::vector<Double_t>>& res_y,
+			     const std::vector<std::vector<Double_t>>& res_z,
+			     const std::vector<std::vector<Double_t>>& localpos_x,
+			     const std::vector<std::vector<Double_t>>& localpos_y,
+			     const std::vector<std::vector<Double_t>>& localpos_z)
+{
+  if(m_is_decoded[kTPC]){
+    hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;
+    return false;
+  }
+
+  ClearTPCHits();
+  //ClearTPCClusters();
+  ClearTPCTracks();
+
+  if(ntracks != nhits.size() || ntracks != cx.size() || ntracks != cy.size() || ntracks != z0.size() || ntracks != r.size() || ntracks != dz.size() || ntracks != isK18.size() || ntracks != isKurama.size() || ntracks != charge.size()){
+
+    hddaq::cerr << FUNC_NAME << " track params vector size mismatch" << std::endl;
+    return false;
+  }
+  if(ntracks != layer.size() || ntracks != mrow.size() || ntracks != helix_t.size() ||
+     ntracks != res_x.size() || ntracks != res_y.size() || ntracks != res_z.size() ||
+     ntracks != localpos_x.size() || ntracks != localpos_y.size() || ntracks != localpos_z.size() || ntracks != de.size()){
+
+    hddaq::cerr << FUNC_NAME << " track params vector size mismatch" << std::endl;
+    return false;
+  }
+
+  for(Int_t it=0; it<ntracks; it++){
+    TPCLocalTrackHelix *track = new TPCLocalTrackHelix();
+    Double_t HelixPar[5] = {cx[it], cy[it], z0[it], r[it], dz[it]};
+    track->SetParam(HelixPar);
+
+    for(Int_t ih=0; ih<nhits[it]; ih++){
+      Int_t id = ih;
+      if(charge[it] < 0) id = nhits[it] -ih -1;
+      Int_t l = layer[it][id];
+      auto hit = new TPCHit(l, mrow[it][id]);
+      hit -> AddHit(0, 0.);
+      hit -> SetIsGood();
+      hit -> SetDe(de[it][id]);
+      hit -> SetPosition(TVector3(localpos_x[it][id], localpos_y[it][id], localpos_z[it][id]));
+      m_TPCHitCont[l].push_back(hit);
+
+      TPCLTrackHit *hitp = new TPCLTrackHit(hit);
+      hitp->SetCalHelix(cx[it], cy[it], z0[it], r[it], dz[it]);
+      hitp->SetTheta(helix_t[it][id]);
+      hitp->SetCalPosition(hitp->GetLocalCalPosHelix());
+      hitp->SetResolution(TVector3(res_x[it][id], res_y[it][id], res_z[it][id]));
+      track->AddTPCHit(hitp);
+    }
+    Double_t path = TMath::Abs(helix_t[it][0] - helix_t[it][nhits[it]-1])*r[it];
+    track->SetTransversePath(path);
+    track->SetPath(path*TMath::Sqrt(1. + dz[it]*dz[it]));
+    track->SetMom0(track->CalcHelixMomCenter(HelixPar));
+    track->SetIsK18(isK18[it]);
+    track->SetIsKurama(isKurama[it]);
+    track->SetCharge(charge[it]);
+    track->SetIsCalculated();
+    track->SetIsFitted();
+    track->SetIsThetaCalculated();
+
+    m_TPCTCHelix.push_back(track);
+  }
+
+  m_is_decoded[kTPC] = true;
+  return true;
 }

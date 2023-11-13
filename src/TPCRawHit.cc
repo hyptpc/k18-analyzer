@@ -85,10 +85,10 @@ TPCRawHit::Print(Option_t*) const
               << "   layer  = " << m_layer_id  << std::endl
               << "   row    = " << m_row_id << std::endl
               << "   fadc.size() = " << m_fadc.size() << std::endl
-              << "   maxadc = " << MaxAdc() << std::endl
-              << "   locmax = " << LocMax() << std::endl
-              << "   mean   = " << Mean() << std::endl
-              << "   rms    = " << RMS() << std::endl
+              << "   maxadc = " << MaxAdc(0, 170) << std::endl
+              << "   locmax = " << LocMax(0, 170) << std::endl
+              << "   mean   = " << Mean(0, 170) << std::endl
+              << "   rms    = " << RMS(0, 170) << std::endl
               << std::endl;
 }
 
