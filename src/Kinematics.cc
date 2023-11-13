@@ -1,4 +1,10 @@
 // -*- C++ -*-
+/*
+//Comment by Wooseung
+Material lookup table for HypTPC dEdx calculation
+0:P10, 1:Polyethylene(Target) 2:Diamond(Target) 3:Polyvinyltoluene (old TPC gas-vessel)
+4:Mylar (gas vessel window) 5:Al (gas-vessel frame)
+*/
 
 #include "Kinematics.hh"
 
@@ -23,9 +29,9 @@ const Double_t TARGEThw      = 15.0/2.0;
 const Double_t TARGETsizeX   = 25.0/2.0;
 const Double_t TARGETsizeY   = 15.0/2.0;
 const Double_t TARGETsizeZ   = 15.0/2.0;
-const Double_t TARGETradius  = 67.3/2.0;
 const Double_t TARGETcenterX = 0.0;
 const Double_t TARGETcenterY = 0.0;
+const Double_t TARGETradius  = 67.3/2.0; //Legacy (Not E42 target)
 }
 
 //_____________________________________________________________________________
@@ -208,7 +214,6 @@ VertexPointTF2(const TVector3& Xin, const TVector3& Xout,
 
   return TVector3(vertx, verty, vertz);
 }
-
 
 //_____________________________________________________________________________
 TVector3
@@ -398,7 +403,7 @@ CorrElossOut(const TVector3& Pout, const TVector3& Xout,
 
   TVector3 CorPout = Pout;
   Double_t mom = Pout.Mag();
-
+  std::cout<<" corpout "<<CorPout.x()<<" "<<CorPout.y()<<" "<<CorPout.z()<<std::endl;
   if (std::abs(vtx.z()-TARGETcenter) < TARGETsizeZ)
     length =  CalcLengthScat(Pout, Xout, vtx);
   else if (vtx.z() < -TARGETsizeZ-TARGETcenter){
@@ -434,6 +439,7 @@ CorrElossOut(const TVector3& Pout, const TVector3& Xout,
   }
 
   Double_t energy_new = E;
+  std::cout<<"e "<<energy_new<<" mass "<<mass<<std::endl;
   Double_t mom_new = TMath::Sqrt(energy_new*energy_new-mass*mass);
 
   CorPout = mom_new/mom*Pout;
@@ -520,7 +526,7 @@ CorrElossOutCheck(const TVector3& Pout, const TVector3& Xout,
   TVector3 CorPout = Pout;
 
   if (std::abs(vtx.z()-TARGETcenter) <= TARGETsizeZ)
-    length =  CalcLengthBeam(Pout, Xout, vtx);
+    length = CalcLengthBeam(Pout, Xout, vtx);
   else if (vtx.z() < -TARGETsizeZ+TARGETcenter){
     Double_t u=Pout.x()/Pout.z();
     Double_t v=Pout.y()/Pout.z();
@@ -546,7 +552,7 @@ IsInsideTarget(const TVector3&point)
 #if 1
   return ((std::abs(point.x() - TARGETcenterX) < TARGETsizeX)&&
           (std::abs(point.y() - TARGETcenterY) < TARGETsizeY));
-#else
+#else //Legacy (Not E42 target)
   return (pow((point.x()-TARGETcenterX), 2.) +
           pow((point.y()-TARGETcenterY), 2.) <=
           pow(TARGETradius, 2.));
@@ -654,6 +660,7 @@ CalcDe(Double_t momentum, Double_t mass, Double_t distance,
   return 1;
 }
 
+//Legacy
 //_____________________________________________________________________________
 Double_t
 CalcDedx(Double_t beta)
@@ -718,36 +725,6 @@ Beta(Double_t energy,Double_t mormentum)
 Int_t
 PID_HypTPC_dEdx(const Double_t dEdx, const Double_t mom, const Int_t charge)
 {
-// function for proton
-// [0]+[1]/x+[2]/(x*x) : x= mom (not p/q)
-// Low
-// [0] =0.172461, [1] =-0.12322, [2] =0.442865
-// High
-// [0] =0.51042, [1] =-0.432761, [2] =1.06032
-// Central
-// [0] =0.236399, [1] =-0.181781, [2] =0.559682
-
-// function for pi+
-//   [0]+[1]/x : x= mom (not p/q)
-// Low
-// [0] =0.343343, [1] =0.0584624
-// High
-// [0] =0.580406, [1] =0.169202
-// Central
-// [0] =0.485581, [1] =0.124906
-// function for pi-
-//   [0]+[1]/x : x= mom (not p/q)
-// Low
-// [0] =0.343343, [1] =0.0584624
-// High
-// [0] =0.770056, [1] =0.257794
-// Central
-// [0] =0.485581, [1] =0.124906
-
-  // return value
-  // pi+:1, proton:2, both (inside both pi+ and proton): 3
-  // pi-:-1
-  // no identification: 0
 
   int pid = 0;
 
@@ -802,29 +779,272 @@ PID_HypTPC_dEdx(const Double_t dEdx, const Double_t mom, const Int_t charge)
   return pid;
 }
 
-Double_t HypTPCdEdx(Double_t Z, Double_t *x, Double_t *p){
-  //x : poq
-  //p[0] : converting constant p[1] : density effect correction p[2] : mass
-  Double_t me  = 0.5109989461;
-  Double_t rho = TMath::Power(10.,-3)*(0.9*1.662 + 0.1*0.6672); //[g cm-3]
-  Double_t K = 0.307075; //[MeV cm2 mol-1]
-  Double_t ZoverA = 17.2/37.6; //[mol g-1]
-  Double_t constant = rho*K*ZoverA; //[MeV cm-1]
-  Double_t I2 = 0.9*188.0 + 0.1*41.7; I2 = I2*I2; //Mean excitaion energy [eV]
-  Double_t MeVToeV = TMath::Power(10.,6);
-  Double_t mom = 1000.*x[0]*Z; //MeV
-  Double_t beta2 = mom*mom/(mom*mom+p[2]*p[2]);
-  Double_t gamma2 = 1./(1.-beta2);
-  Double_t Wmax = 2*me*beta2*gamma2/((me+p[2])*(me+p[2])+2*me*p[2]*(TMath::Sqrt(gamma2)-1));
-  Double_t dedx = p[0]*constant*Z*Z/beta2*(0.5*TMath::Log(2*me*beta2*gamma2*Wmax*MeVToeV*MeVToeV/I2)-beta2-p[1]);
-  return dedx;
+/*
+  Correct Energy loss in the Target
+  inputs : 1. path length through the target  2.momentum vector at the target crossing point
+*/
+
+//_____________________________________________________________________________
+Double_t DensityEffectCorrection(Double_t betagamma, Double_t *par){
+
+    //reference : Sternheimer’s parameterizatin(PDG)
+    //notation : par[0] : a, par[1] : k, par[2] : x0, par[3] : x1, par[4] : _C, par[5] : delta0
+    Double_t constant = 2*TMath::Log(10);
+    Double_t delta = 0.;
+    Double_t X = log10(betagamma);
+    if(X<=par[2]) delta = par[5]*TMath::Power(10., 2*(X - par[2]));
+    else if(par[2]<X && X<par[3]) delta = constant*X - par[4] + par[0]*pow((par[3] - X), par[1]);
+    else if(X>=par[3]) delta = constant*X - par[4];
+
+  return delta;
+
 }
 
-Double_t HypTPCBethe(Double_t *x, Double_t *p){ return HypTPCdEdx(1, x, p); }
+//_____________________________________________________________________________
+Double_t HypTPCdEdx(Int_t materialid, Double_t mass/*MeV/c2*/, Double_t beta){
 
+  Double_t rho=0.; //[g cm-3]
+  Double_t ZoverA=0.; //[mol g-1]
+  Double_t I=0.; //[eV]
+  Double_t density_effect_par[6]={0.}; //Sternheimer’s parameterization
+  if(materialid==0){  //P10
+    rho = TMath::Power(10.,-3)*(0.9*1.662 + 0.1*0.6672);
+    ZoverA = 17.2/37.6;
+    I = 0.9*188.0 + 0.1*41.7;
+    density_effect_par[0] = 0.9*0.19714 + 0.1*0.09253;
+    density_effect_par[1] = 0.9*2.9618 + 0.1*3.6257;
+    density_effect_par[2] = 0.9*1.7635 + 0.1*1.6263;
+    density_effect_par[3] = 0.9*4.4855 + 0.1*3.9716;
+    density_effect_par[4] = 0.9*11.9480 + 0.1*9.5243;
+    density_effect_par[5] = 0.;
+  }
+  else if(materialid==1){ //Polyethylene(Target)
+    rho = 1.13;
+    ZoverA = 0.57034;
+    I = 57.4;
+    density_effect_par[0] = 0.12108;
+    density_effect_par[1] = 3.4292;
+    density_effect_par[2] = 0.1489;
+    density_effect_par[3] = 2.5296;
+    density_effect_par[4] = 3.0563;
+    density_effect_par[5] = 0.;
+  }
+  else if(materialid==2){ //Diamond(Target)
+    rho = 3.223;
+    ZoverA = 6./12.0107;
+    I = 78.0;
+    density_effect_par[0] = 0.26142;
+    density_effect_par[1] = 2.8697;
+    density_effect_par[2] = -0.1135;
+    density_effect_par[3] = 2.2458;
+    density_effect_par[4] = 2.4271;
+    density_effect_par[5] = 0.12;
+  }
+  else if(materialid==3){ //Polyvinyltoluene
+    rho = 1.032;
+    ZoverA = 0.54141;
+    I = 64.7;
+    density_effect_par[0] = 0.16101;
+    density_effect_par[1] = 3.2393;
+    density_effect_par[2] = 0.1464;
+    density_effect_par[3] = 2.4855;
+    density_effect_par[4] = 3.1997;
+    density_effect_par[5] = 0.00;
+  }
+  else if(materialid==4){ //Mylar (gas-vessel window)
+    rho = 1.400;
+    ZoverA = 0.52037;
+    I = 78.7;
+    density_effect_par[0] = 0.12679;
+    density_effect_par[1] = 3.3076;
+    density_effect_par[2] = 0.1562;
+    density_effect_par[3] = 2.6507;
+    density_effect_par[4] = 3.3262;
+    density_effect_par[5] = 0.00;
+  }
+  else if(materialid==5){ //Al (gas-vessel frame)
+    rho = 2.699;
+    ZoverA = 0.481811;
+    I = 166.0;
+    density_effect_par[0] = 0.08024;
+    density_effect_par[1] = 3.6345;
+    density_effect_par[2] = 0.1708;
+    density_effect_par[3] = 3.0127;
+    density_effect_par[4] = 4.2395;
+    density_effect_par[5] = 0.12;
+  }
+
+  Double_t Z = 1.;
+  Double_t me = 0.5109989461; //[MeV]
+  Double_t K = 0.307075; //[MeV cm2 mol-1]
+  Double_t constant = rho*K*ZoverA; //[MeV cm-1]
+  Double_t I2 = I*I; //Mean excitaion energy [eV]
+  Double_t beta2 = beta*beta;
+  Double_t gamma2 = 1./(1.-beta2);
+  Double_t MeVToeV = TMath::Power(10.,6);
+  Double_t Wmax = 2*me*beta2*gamma2/((me/mass+1.)*(me/mass+1.)+2*(me/mass)*(TMath::Sqrt(gamma2)-1));
+  Double_t delta = DensityEffectCorrection(TMath::Sqrt(beta2*gamma2), density_effect_par);
+  Double_t dedx = constant*Z*Z/beta2*(0.5*TMath::Log(2*me*beta2*gamma2*Wmax*MeVToeV*MeVToeV/I2) - beta2 - 0.5*delta);
+  return dedx;
+
+}
+
+//_____________________________________________________________________________
+Int_t
+HypTPCCalcDe(Int_t materialid, Double_t momentum, Double_t mass, Double_t distance,
+	     Double_t *momentum_cor, Double_t *energy_cor)
+{
+  Double_t dE_dx; /*MeV/cm*/
+  Double_t eloss; /*MeV*/
+
+  Double_t beta;
+  Double_t thickness = distance/10.0; /*cm*/
+  Double_t m = mass*1000.0;  /*mass of incident particle(Mev)*/
+
+  Double_t E_0;
+  Double_t E;
+  Double_t p = momentum*1000.0;
+  Double_t delta=0.01; /*cm*/
+  //Double_t delta=0.1; /*cm*/
+  Int_t i;
+  Double_t length=0.0;
+  Double_t total_eloss=0.0;
+
+  //E_0=Gamma(beta)*m;
+  //p=Gamma(beta)*beta*m;
+
+  E_0= TMath::Sqrt(m*m + p*p);
+  E=E_0;
+  beta = Beta(E,p);
+  //printf("beta=%f, E=%f, p=%f\n",beta, E, p);
+  if(beta<=0.0) {
+    *momentum_cor = p/1000.0;
+    *energy_cor = E/1000.0;
+    return 1;
+  }
+  dE_dx=0.0;
+  eloss=0.0;
+  for(i=0;i<=thickness/delta;i++){
+    dE_dx=HypTPCdEdx(materialid, m, beta);
+    eloss=dE_dx*delta;
+    E=E-eloss;
+    if(E<m){
+      fprintf(stderr,"particle stops in material at %5.3fcm\n",length);
+      *momentum_cor = p/1000.0;
+      *energy_cor = E/1000.0;
+      return 0;
+      //break;
+    }
+    p=TMath::Sqrt(pow(E,2.0)-pow(m,2.0));
+    beta=Beta(E,p);
+    length=length+delta;
+    total_eloss=total_eloss+eloss;
+    /*
+      printf("beta:%5.3f\n",beta);
+      printf("dE_dx:%5.3f\teloss:%5.3f\n",dE_dx,eloss);
+      printf("E:%5.3f(MeV)\tp:%5.3f(MeV/c)\n",E,p);
+      printf("length:%5.3f(cm)\n",length);
+      printf("total energy loss:%5.3f(MeV)\n",total_eloss);
+    */
+    //getchar();
+  }
+  *momentum_cor = p/1000.0;
+  *energy_cor = E/1000.0;
+
+  return 1;
+}
+
+//_____________________________________________________________________________
+Double_t
+HypTPCDiffE(Int_t materialid, Double_t mass, Double_t E, Double_t length, Double_t Elast)
+{
+
+  Double_t p = TMath::Sqrt(E*E-mass*mass);
+  Double_t mom_new, energy_new;
+  HypTPCCalcDe(materialid, p, mass, length, &mom_new, &energy_new);
+  return (energy_new - Elast);
+
+}
+
+//_____________________________________________________________________________
+TVector3
+HypTPCCorrElossOut(Int_t materialid, const TVector3& Pout, Double_t length, Double_t mass)
+{
+
+  TVector3 CorPout = Pout;
+  if(length>0. && !TMath::IsNaN(mass)){
+    Double_t FL,FH,FTMP;
+    Double_t Elow, Ehigh, Elast, EPS;
+    Double_t E = 0.;
+    Double_t mom = Pout.Mag();
+    Elow  = mass;
+    Ehigh = 10.;
+    Elast = TMath::Sqrt(mass*mass+mom*mom);
+    EPS = 0.001;
+    FL  = HypTPCDiffE(materialid, mass, Elow, length, Elast);
+    FH  = HypTPCDiffE(materialid, mass, Ehigh, length, Elast);
+    while (std::abs((Ehigh-Elow)/Ehigh) > EPS) {
+      E = Ehigh-(Ehigh-Elow)*FH/(FH-FL);
+      //printf("-------E=%f, Elow=%f, Ehigh=%f, FL=%f, FH=%f----------\n",E, Elow, Ehigh, FL, FH);
+      if (std::abs(FTMP=HypTPCDiffE(materialid, mass, E, length, Elast)) < 0.0000001){
+	Elow = E;
+	Ehigh = E;
+	FH = FTMP;
+      } if ((FTMP=HypTPCDiffE(materialid, mass, E, length, Elast)) < 0) {
+	Elow = E;
+	FL = FTMP;
+      } else if ((FTMP=HypTPCDiffE(materialid, mass, E, length, Elast)) > 0){
+	Ehigh = E;
+	FH = FTMP;
+      }
+    }
+
+    Double_t energy_new = E;
+    Double_t mom_new = TMath::Sqrt(energy_new*energy_new-mass*mass);
+    CorPout = mom_new/mom*Pout;
+    //hddaq::cout<<"CorrElossOut:: length = "<<length<<" mm"<<std::endl;
+    //hddaq::cout<<"CorrElossOut:: mom = "<<mom<<", mom_new = "<<mom_new<<" dP = "<<mom_new - mom<<std::endl;
+    //hddaq::cout << "CorrElossOut:: E = " << TMath::Sqrt(mass*mass+mom*mom) << ", E_new = " << energy_new << " dE = "<< energy_new - TMath::Sqrt(mass*mass+mom*mom)<<std::endl;
+  }
+
+  return CorPout;
+
+}
+
+//_____________________________________________________________________________
+TVector3
+HypTPCCorrElossIn(Int_t materialid, const TVector3& Pin, Double_t length, Double_t mass)
+{
+
+  Double_t mom = Pin.Mag();
+  Double_t mom_new, energy_new;
+  TVector3 CorPin = Pin;
+  if(length>0. && HypTPCCalcDe(materialid, mom, mass, length, &mom_new, &energy_new)){
+    CorPin = mom_new/mom*Pin;
+    //hddaq::cout<<"CorrElossIn:: length = "<<length<<" [mm]"<<std::endl;
+    //hddaq::cout<<"CorrElossIn:: mom = "<<mom<<", mom_new = "<<mom_new<<" dP = "<<mom_new - mom<<std::endl;
+    //hddaq::cout << "CorrElossIn:: E = " << TMath::Sqrt(mass*mass+mom*mom) << ", mom_new = " << energy_new << " dE = "<< energy_new - TMath::Sqrt(mass*mass+mom*mom)<<std::endl;
+  }
+
+  return CorPin;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCBethe(Double_t *x, Double_t *p){
+
+  //x[0] : poq [GeV/c]
+  //p[0] : converting factor
+  //p[1] : mass [MeV/c2]
+  Double_t momentum = 1000.*TMath::Abs(x[0]); /*MeV/c2*/
+  Double_t beta = Beta(TMath::Sqrt(p[1]*p[1] + momentum*momentum), momentum);
+  Double_t dedx = p[0]*HypTPCdEdx(0, p[1], beta); //P10
+
+  return dedx;
+}
+//_____________________________________________________________________________
 Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq){
 
-  Double_t bethe_par[2] = {7195.92, -10.5616};
+  Double_t conversion_factor = 10452;
   Double_t limit = 0.6; //GeV/c
   Double_t mpi = 139.57039;
   Double_t mk  = 493.677;
@@ -838,12 +1058,12 @@ Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq){
   TF1 *f_p = new TF1("f_p", HypTPCBethe, 0., 3., 3);
   TF1 *f_d = new TF1("f_d", HypTPCBethe, 0., 3., 3);
 
-  f_pim -> SetParameters(bethe_par[0], bethe_par[1], mpi);
-  f_km -> SetParameters(bethe_par[0], bethe_par[1], mk);
-  f_pip -> SetParameters(bethe_par[0], bethe_par[1], mpi);
-  f_kp -> SetParameters(bethe_par[0], bethe_par[1], mk);
-  f_p -> SetParameters(bethe_par[0], bethe_par[1], mp);
-  f_d -> SetParameters(bethe_par[0], bethe_par[1], md);
+  f_pim -> SetParameters(conversion_factor, mpi);
+  f_km -> SetParameters(conversion_factor, mk);
+  f_pip -> SetParameters(conversion_factor, mpi);
+  f_kp -> SetParameters(conversion_factor, mk);
+  f_p -> SetParameters(conversion_factor, mp);
+  f_d -> SetParameters(conversion_factor, md);
 
   Int_t pid[3] = {0};
   if(poq >= limit){
@@ -875,6 +1095,7 @@ Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq){
   return output;
 }
 
+//_____________________________________________________________________________
 void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg){
 
   const Int_t particles = 3;
@@ -887,4 +1108,173 @@ void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg){
     flag*=2;
   }
 }
+
+//_____________________________________________________________________________
+TVector3
+CalcHelixMom(Double_t Bfield, Int_t charge, Double_t par[5], Double_t t){
+
+  Double_t pt = fabs(par[3])*tpc::ConstC*Bfield;
+  Double_t tmp_px = pt*(-1.*sin(t));
+  Double_t tmp_py = pt*(cos(t));
+  Double_t tmp_pz = pt*(par[4]);
+  Double_t px = -tmp_px*0.001;
+  Double_t py = tmp_pz*0.001;
+  Double_t pz = tmp_py*0.001;
+
+  TVector3 mom(px, py, pz);
+  if(charge < 0) mom *= -1.;
+  return mom;
+}
+
+//_____________________________________________________________________________
+TVector3
+VertexPointHelix(Double_t par1[5], Double_t par2[5], Double_t t1_start, Double_t t1_end, Double_t t2_start, Double_t t2_end, Double_t& close_t1, Double_t& close_t2, Double_t& dist){
+
+  //helix function 1
+  //x = [0] + [3]*cos(t);
+  //y = [1] + [3]*sin(t);
+  //z = [2] + [3]*[4]*t;
+
+  //helix function 2
+  //x = [5] + [8]*cos(t);
+  //y = [6] + [8]*sin(t);
+  //z = [7] + [8]*[9]*t;
+
+  TF2 fvertex_helix("fvertex_helix", "pow(([0]+[3]*cos(x))-([5]+[8]*cos(y)),2)+pow(([1]+[3]*sin(x))-([6]+[8]*sin(y)),2)+pow(([2]+[3]*[4]*x)-([7]+[8]*[9]*y),2)", t1_start, t1_end, t2_start, t2_end);
+
+  fvertex_helix.SetParameter(0, par1[0]);
+  fvertex_helix.SetParameter(1, par1[1]);
+  fvertex_helix.SetParameter(2, par1[2]);
+  fvertex_helix.SetParameter(3, par1[3]);
+  fvertex_helix.SetParameter(4, par1[4]);
+  fvertex_helix.SetParameter(5, par2[0]);
+  fvertex_helix.SetParameter(6, par2[1]);
+  fvertex_helix.SetParameter(7, par2[2]);
+  fvertex_helix.SetParameter(8, par2[3]);
+  fvertex_helix.SetParameter(9, par2[4]);
+
+  Double_t close_zin, close_zout;
+  fvertex_helix.GetMinimumXY(close_zin, close_zout);
+  close_t1 = close_zin;
+  close_t2 = close_zout;
+
+  Double_t xin = par1[0]+par1[3]*cos(close_zin);
+  Double_t xout = par2[0]+par2[3]*cos(close_zout);
+  Double_t yin =  par1[1]+par1[3]*sin(close_zin);
+  Double_t yout = par2[1]+par2[3]*sin(close_zout);
+  Double_t zin = par1[2]+par1[3]*par1[4]*close_zin;
+  Double_t zout = par2[2]+par2[3]*par2[4]*close_zout;
+
+  Double_t vx = (xin+xout)/2.;
+  Double_t vy = (yin+yout)/2.;
+  Double_t vz = (zin+zout)/2.;
+
+  dist = sqrt(pow(xin-xout,2)
+	      +pow(yin-yout,2)
+	      +pow(zin-zout,2));
+  Double_t vertx = -1.*vx;
+  Double_t verty = vz;
+  Double_t vertz = vy + tpc::ZTarget;
+  return TVector3(vertx, verty, vertz);
+}
+
+//_____________________________________________________________________________
+TVector3
+LambdaVertex(Double_t Bfield, Double_t p_par[5], Double_t pi_par[5],
+	     Double_t p_theta_min, Double_t p_theta_max,
+	     Double_t pi_theta_min, Double_t pi_theta_max,
+	     TVector3 &p_mom, TVector3 &pi_mom, TVector3 &lambda_mom,
+	     Double_t& dist){
+
+
+  Double_t close_t1, close_t2;
+  TVector3 vertex = VertexPointHelix(p_par, pi_par, p_theta_min, p_theta_max, pi_theta_min, pi_theta_max, close_t1, close_t2, dist);
+  p_mom = CalcHelixMom(Bfield, 1, p_par, close_t1);
+  pi_mom = CalcHelixMom(Bfield, -1, pi_par, close_t2);
+  lambda_mom = p_mom + pi_mom;
+
+  return vertex;
+}
+
+//_____________________________________________________________________________
+TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
+		  Double_t theta_min, Double_t theta_max,
+		  TVector3 Xlambda, TVector3 Plambda,
+		  TVector3 &Ppi, Double_t &lambdapi_dist){
+
+  Double_t lambdavtx_xivtx_cut = 0.;
+
+  Double_t xi = -1.*Xlambda.x();
+  Double_t yi = Xlambda.z() - tpc::ZTarget;
+  Double_t zi = Xlambda.y();
+  Double_t pxi = -1.*Plambda.x();
+  Double_t pyi = Plambda.z();
+  Double_t pzi = Plambda.y();
+  Double_t ui = -pxi/pyi, vi = pzi/pyi;
+
+  TVector3 p_L = TVector3(pxi, pyi, pzi);
+  TVector3 p_unit = p_L.Unit();
+
+  //helix function
+  //x = [0] + [3]*cos(t);
+  //y = [1] + [3]*sin(t);
+  //z = [2] + [3]*[4]*t;
+
+  //straight function
+  //x = [5] + [6]*y;
+  //z = [7] + [8]*y;
+
+  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::ZTarget, 250.-tpc::ZTarget);
+
+  Double_t scan_range[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  if(pyi>0) scan_range[1] = yi + lambdavtx_xivtx_cut/(p_unit.y());
+  else scan_range[0] = yi - lambdavtx_xivtx_cut/(p_unit.y());
+  TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, scan_range[0], scan_range[1]);
+  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::ZTarget, 250.-tpc::ZTarget);
+
+  fvertex_helix_linear.SetParameter(0, pi_par[0]);
+  fvertex_helix_linear.SetParameter(1, pi_par[1]);
+  fvertex_helix_linear.SetParameter(2, pi_par[2]);
+  fvertex_helix_linear.SetParameter(3, pi_par[3]);
+  fvertex_helix_linear.SetParameter(4, pi_par[4]);
+  fvertex_helix_linear.SetParameter(5, xi + ui*yi);
+  fvertex_helix_linear.SetParameter(6, -ui);
+  fvertex_helix_linear.SetParameter(7, zi - vi*yi);
+  fvertex_helix_linear.SetParameter(8, vi);
+
+  Double_t helix_t, close_y;
+  fvertex_helix_linear.GetMinimumXY(helix_t, close_y);
+  //lambdapi_dist = TMath::Sqrt(fvertex_helix_linear.GetMinimum());
+  lambdapi_dist = TMath::Sqrt(fvertex_helix_linear.Eval(helix_t, close_y));
+
+  Ppi = CalcHelixMom(Bfield, -1, pi_par, helix_t);
+
+  Double_t xPi = pi_par[0]+pi_par[3]*cos(helix_t);
+  Double_t yPi = pi_par[1]+pi_par[3]*sin(helix_t);
+  Double_t zPi = pi_par[2]+pi_par[3]*pi_par[4]*helix_t;
+  Double_t xL = xi - ui*(close_y-yi);
+  Double_t yL = close_y;
+  Double_t zL = zi + vi*(close_y-yi);
+  Double_t vx = 0.5*(xPi+xL);
+  Double_t vy = 0.5*(yPi+yL);
+  Double_t vz = 0.5*(zPi+zL);
+
+  Double_t vertx = -1.*vx;
+  Double_t verty = vz;
+  Double_t vertz = vy + tpc::ZTarget;
+  return TVector3(vertx, verty, vertz);
+}
+
+//_____________________________________________________________________________
+Bool_t HelixDirection(TVector3 vertex, TVector3 start, TVector3 end, Double_t &dist){
+
+  Bool_t status = false;
+  Int_t dummy;
+  TVector3 dist1 = vertex - start;
+  TVector3 dist2 = vertex - end;
+  dist = dist1.Mag();
+  if(dist1.Mag() < dist2.Mag()) status = true;
+  return status;
+}
+
 }

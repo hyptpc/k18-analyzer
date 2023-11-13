@@ -58,11 +58,46 @@ namespace Kinematics
   Double_t CalcDedx(Double_t beta);
   Double_t Gamma(Double_t beta);
   Double_t Beta(Double_t energy, Double_t mormentum);
-  Int_t PID_HypTPC_dEdx(const Double_t dEdx, const Double_t mom, const Int_t charge);
-  Double_t HypTPCdEdx(Double_t Z, Double_t *x, Double_t *p);
+
+  //For HypTPC dE calculation
+  //Material lookup table
+  //0:P10, 1:Polyethylene(Target) 2:Diamond(Target) 3:Polyvinyltoluene (old TPC gas-vessel) 4:Mylar (gas vessel window) 5:Al (gas-vessel frame)
+  Double_t DensityEffectCorrection(Double_t betagamma, Double_t *par);
+  Double_t HypTPCdEdx(Int_t target_material, Double_t mass, Double_t beta);
+  Int_t HypTPCCalcDe(Int_t target_material, Double_t momentum,
+		     Double_t mass, Double_t distance,
+		     Double_t *momentum_cor, Double_t *energy_cor);
+  Double_t HypTPCDiffE(Int_t materialid, Double_t mass,
+		       Double_t E, Double_t length, Double_t Elast);
+  TVector3 HypTPCCorrElossOut(Int_t target_material, const TVector3& Pout,
+			      Double_t length, Double_t mass);
+  TVector3 HypTPCCorrElossIn(Int_t target_material, const TVector3& Pin,
+			     Double_t length, Double_t mass);
+
+  //For HypTPC dE/dx pid
   Double_t HypTPCBethe(Double_t *x, Double_t *p);
   Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq);
   void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg);
+
+  //For helix tracking & vertex reconstruction
+  TVector3 CalcHelixMom(Double_t Bfield, Int_t charge,
+			Double_t par[5], Double_t t);
+  TVector3 VertexPointHelix(Double_t par1[5], Double_t par2[5],
+			    Double_t t1_start, Double_t t1_end,
+			    Double_t t2_start, Double_t t2_end,
+			    Double_t& close_t1, Double_t& close_t2,
+			    Double_t& dist);
+  TVector3 LambdaVertex(Double_t Bfield, Double_t p_par[5], Double_t pi_par[5],
+			Double_t t1_start, Double_t t1_end,
+			Double_t t2_start, Double_t t2_end,
+			TVector3 &p_mom, TVector3 &pi_mom,
+			TVector3 &lambda_mom, Double_t& dist);
+  TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
+		    Double_t t_start, Double_t t_end,
+		    TVector3 Xlambda, TVector3 Plambda,
+		    TVector3 &Ppi, Double_t &lambdapi_dist);
+  Bool_t HelixDirection(TVector3 vertex, TVector3 start, TVector3 end,
+			Double_t &dist);
 }
 
 //_____________________________________________________________________________

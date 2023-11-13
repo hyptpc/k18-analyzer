@@ -11,6 +11,7 @@
 
 #include <TString.h>
 #include "TPCHit.hh"
+#include "TPCLocalTrackHelix.hh"
 
 class RKFieldIntegral;
 class RKDeltaFieldIntegral;
@@ -18,6 +19,7 @@ class RKTrajectoryPoint;
 class RKcalcHitPoint;
 class RKCordParameter;
 class RKHitPointContainer;
+class TPCLocalTrackHelix;
 
 //_____________________________________________________________________________
 namespace RK
@@ -50,38 +52,68 @@ CheckCrossingHS(Int_t lnum, const RKTrajectoryPoint &startPoint,
 		const RKTrajectoryPoint &endPoint, RKcalcHitPoint &crossPoint);
 //_____________________________________________________________________________
 bool
-CheckCrossingTPC(Int_t lnum, std::vector<TPCHit*> tpchc,
+CheckCrossingTPC(Int_t lnum, TPCLocalTrackHelix *tpctrack,
 		 const RKTrajectoryPoint &startPoint,
 		 const RKTrajectoryPoint &endPoint, RKcalcHitPoint &crossPoint);
+//_____________________________________________________________________________
+void
+ELossCorrection(Int_t lnum, const RKTrajectoryPoint &prevPoint,
+		RKTrajectoryPoint &nextPoint,
+		RKcalcHitPoint &crossPoint, Int_t pikp=1);
 //_____________________________________________________________________________
 Int_t
 Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer);
 //_____________________________________________________________________________
 Int_t
-Extrap(const RKCordParameter &initial, RKHitPointContainer &hitContainer);
+TraceTPC(TPCLocalTrackHelix *tpctrack, const RKCordParameter &initial, RKHitPointContainer &hitContainer, Int_t pikp);
 //_____________________________________________________________________________
 Int_t
-ExtrapTPC(const RKCordParameter &initial, RKHitPointContainer &hitContainer,
-	  std::vector<TPCHit*> tpchc);
+Extrap(const RKCordParameter &initial, RKHitPointContainer &hitContainer, Int_t pikp);
+//_____________________________________________________________________________
+Int_t
+ExtrapTPC(TPCLocalTrackHelix *tpctrack, const RKCordParameter &initial, RKHitPointContainer &hitContainer, Int_t pikp);
 //_____________________________________________________________________________
 RKTrajectoryPoint
 TraceOneStep(Double_t StepSize, const RKTrajectoryPoint &prevPoint);
 //_____________________________________________________________________________
-RKTrajectoryPoint
-PropagateOnce(Double_t StepSize, const RKTrajectoryPoint &prevPoint);
-//_____________________________________________________________________________
 bool
 TraceToLast(RKHitPointContainer &hitContainer);
+//_____________________________________________________________________________
+bool
+TraceToLastTPC(TPCLocalTrackHelix *tpctrack, RKHitPointContainer &hitContainer);
+//_____________________________________________________________________________
+bool
+CheckTrackTargetCrossing(const RKTrajectoryPoint &startPoint,
+			 const RKTrajectoryPoint &endPoint,
+			 RKcalcHitPoint &crossPoint,
+			 Int_t &crossPlaneId,
+			 bool &InToOut);
+//_____________________________________________________________________________
+bool
+FindVertex(const ThreeVector XtgtKm,
+	   const ThreeVector PtgtKm,
+	   const ThreeVector XtgtKp,
+	   const ThreeVector PtgtKp,
+	   ThreeVector &Vertex,
+	   Double_t &closeDist,
+	   Double_t &pathKm,
+	   Double_t &pathKp,
+	   ThreeVector &momVertexKm,
+	   ThreeVector &momVertexKp,
+	   RKcalcHitPoint &inPointKm,
+	   RKcalcHitPoint &outPointKp);
 //_____________________________________________________________________________
 RKHitPointContainer
 MakeHPContainer();
 //_____________________________________________________________________________
 RKHitPointContainer
-MakeHSHPContainer();
+MakeHPContainer(std::vector<Int_t> lnum);
 //_____________________________________________________________________________
 RKHitPointContainer
-MakeTPCHPContainer(std::vector<TPCHit*> CandHits);
-
+MakeHSHPContainer();
+//_____________________________________________________________________________
+//RKHitPointContainer MakeHPContainerTPC(TPCLocalTrackHelix *tpctrack);
+//_____________________________________________________________________________
 inline TString
 ClassName() { static TString s_name("RK"); return s_name; }
 }
@@ -108,7 +140,6 @@ public:
   void Print(std::ostream &ost) const;
 
   friend RKTrajectoryPoint RK::TraceOneStep(Double_t, const RKTrajectoryPoint &);
-  friend RKTrajectoryPoint RK::PropagateOnce(Double_t, const RKTrajectoryPoint &);
   friend RKDeltaFieldIntegral
   RK::CalcDeltaFieldIntegral(const RKTrajectoryPoint &,
                              const RKFieldIntegral &,
@@ -137,7 +168,6 @@ private:
 public:
   void Print(std::ostream &ost) const;
   friend RKTrajectoryPoint RK::TraceOneStep(Double_t, const RKTrajectoryPoint &);
-  friend RKTrajectoryPoint RK::PropagateOnce(Double_t, const RKTrajectoryPoint &);
   friend RKDeltaFieldIntegral
   RK::CalcDeltaFieldIntegral(const RKTrajectoryPoint &,
                              const RKFieldIntegral &,
@@ -182,12 +212,12 @@ public:
   Double_t U() const { return u; }
   Double_t V() const { return v; }
   Double_t Q() const { return q; }
+  void ConvertCharge(){ q*=-1.; }
+  void AddMomentum(Double_t add);
 
   friend class RKTrajectoryPoint;
   friend RKTrajectoryPoint
   RK::TraceOneStep(Double_t, const RKTrajectoryPoint &);
-  friend RKTrajectoryPoint
-  RK::PropagateOnce(Double_t, const RKTrajectoryPoint &);
   friend RKDeltaFieldIntegral
   RK::CalcDeltaFieldIntegral(const RKTrajectoryPoint &,
                              const RKFieldIntegral &,
@@ -196,6 +226,10 @@ public:
   friend RKDeltaFieldIntegral
   RK::CalcDeltaFieldIntegral(const RKTrajectoryPoint &,
                              const RKFieldIntegral &);
+  friend void
+  RK::ELossCorrection(Int_t lnum, const RKTrajectoryPoint &prevPoint,
+		      RKTrajectoryPoint &nextPoint,
+		      RKcalcHitPoint &crossPoint, Int_t pikp);
   friend bool
   RK::CheckCrossing(int, const RKTrajectoryPoint &,
                     const RKTrajectoryPoint &, RKcalcHitPoint &);
@@ -203,7 +237,7 @@ public:
   RK::CheckCrossingHS(int, const RKTrajectoryPoint &,
 		      const RKTrajectoryPoint &, RKcalcHitPoint &);
   friend bool
-  RK::CheckCrossingTPC(int, std::vector<TPCHit*> ,
+  RK::CheckCrossingTPC(Int_t, TPCLocalTrackHelix* ,
 		       const RKTrajectoryPoint &,
 		       const RKTrajectoryPoint &, RKcalcHitPoint &);
 };
@@ -310,6 +344,10 @@ public:
   Double_t dVdV() const { return dvdv; }
   Double_t dVdQ() const { return dvdq; }
 
+  friend void
+  RK::ELossCorrection(Int_t lnum, const RKTrajectoryPoint &prevPoint,
+		      RKTrajectoryPoint &nextPoint,
+		      RKcalcHitPoint &crossPoint, Int_t pikp);
   friend bool
   RK::CheckCrossing(Int_t, const RKTrajectoryPoint &,
                     const RKTrajectoryPoint &, RKcalcHitPoint &);
@@ -317,7 +355,7 @@ public:
   RK::CheckCrossingHS(Int_t, const RKTrajectoryPoint &,
 		      const RKTrajectoryPoint &, RKcalcHitPoint &);
   friend bool
-  RK::CheckCrossingTPC(int, std::vector<TPCHit*> ,
+  RK::CheckCrossingTPC(Int_t, TPCLocalTrackHelix*,
 		       const RKTrajectoryPoint &,
 		       const RKTrajectoryPoint &, RKcalcHitPoint &);
 };
@@ -430,8 +468,10 @@ public:
 
   friend RKTrajectoryPoint
   RK::TraceOneStep(Double_t, const RKTrajectoryPoint &);
-  friend RKTrajectoryPoint
-  RK::PropagateOnce(Double_t, const RKTrajectoryPoint &);
+  friend void
+  RK::ELossCorrection(Int_t lnum, const RKTrajectoryPoint &prevPoint,
+		      RKTrajectoryPoint &nextPoint,
+		      RKcalcHitPoint &crossPoint, Int_t pikp);
   friend bool
   RK::CheckCrossing(Int_t, const RKTrajectoryPoint &,
                     const RKTrajectoryPoint &, RKcalcHitPoint &);
@@ -439,7 +479,7 @@ public:
   RK::CheckCrossingHS(Int_t, const RKTrajectoryPoint &,
 		      const RKTrajectoryPoint &, RKcalcHitPoint &);
   friend bool
-  RK::CheckCrossingTPC(int, std::vector<TPCHit*> ,
+  RK::CheckCrossingTPC(Int_t, TPCLocalTrackHelix*,
 		       const RKTrajectoryPoint &,
 		       const RKTrajectoryPoint &, RKcalcHitPoint &);
   friend RKDeltaFieldIntegral
