@@ -10,7 +10,6 @@
 //k18-analyzer
 #include "TPCLocalTrackHelix.hh"
 #include "TPCLocalTrack.hh"
-#include "TPCLTrackHit.hh"
 
 //GenFit
 #include <AbsMeasurement.h>
@@ -23,18 +22,20 @@
 
 //STL
 #include <vector>
+
 class HypTPCTrack{
 
 public:
 
   HypTPCTrack();
-  virtual ~HypTPCTrack(){}
-  void Init();
+  virtual ~HypTPCTrack(){};
+  void Clear();
   genfit::Track* GetTrack(int ith) const;
   void AddReps(int ith, int pdg);
   //single pid hypothesis
   void AddHelixTrack(int pdg, TPCLocalTrackHelix *tp);
   void AddLinearTrack(int pdg, TPCLocalTrack *tp, double momentum);
+  void AddReconstructedTrack(int pdg, TVector3 posSeed, TVector3 momSeed); //add recontructed track for extrapolation
   //multiple pid hypotheses
   void AddHelixTrack(std::vector<int> pdg, TPCLocalTrackHelix *tp);
   void AddLinearTrack(std::vector<int> pdg, TPCLocalTrack *tp, double momentum);

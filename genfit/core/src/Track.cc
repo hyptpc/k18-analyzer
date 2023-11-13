@@ -505,7 +505,7 @@ void Track::deletePoint(int id) {
 void Track::insertMeasurement(AbsMeasurement* measurement, int id) {
   insertPoint(new TrackPoint(measurement, this), id);
 }
-  
+
 void Track::deleteFittedState(const genfit::AbsTrackRep* rep) {
   if(hasFitStatus(rep)) {
     delete fitStatuses_.at(rep);
@@ -987,7 +987,7 @@ double Track::getTOF(AbsTrackRep* rep, int startId, int endId) const {
     std::swap(startId, endId);
   }
 
-  endId += 1;
+  //endId += 1;
 
   if (rep == nullptr)
     rep = getCardinalRep();
@@ -996,7 +996,7 @@ double Track::getTOF(AbsTrackRep* rep, int startId, int endId) const {
 
   const TrackPoint* startPoint(trackPoints_[startId]);
   const TrackPoint* endPoint(trackPoints_[endId]);
-  
+
   if (!startPoint->hasFitterInfo(rep)
       || !endPoint->hasFitterInfo(rep)) {
       Exception e("Track::getTOF: trackPoint has no fitterInfo", __LINE__,__FILE__);

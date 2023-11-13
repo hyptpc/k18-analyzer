@@ -40,7 +40,7 @@ bool HypTPCFitProcess::TrackCheck(genfit::Track* fittedTrack, genfit::AbsTrackRe
     return false;
   }
   for(int pointid=0;pointid<nhits;pointid++){
-    try{fittedTrack->getFittedState(pointid);}
+    try{fittedTrack->getFittedState(pointid, rep);}
     catch(genfit::Exception& e){
       if(verbosity>=2) std::cerr << e.what();
       if(verbosity>=1) LogWARNING("Track has no fitted state, failed!");
@@ -50,10 +50,12 @@ bool HypTPCFitProcess::TrackCheck(genfit::Track* fittedTrack, genfit::AbsTrackRe
   return true;
 }
 
-bool HypTPCFitProcess::TrackCheck(int trackid) const {
+bool HypTPCFitProcess::TrackCheck(int trackid, int repid) const {
 
   genfit::Track* fittedTrack = GetTrack(trackid);
-  genfit::AbsTrackRep* rep = fittedTrack->getCardinalRep();
+  genfit::AbsTrackRep* rep = nullptr;
+  if(fittedTrack&&repid==-1) rep = fittedTrack -> getCardinalRep();
+  else if(fittedTrack&&repid!=-1) rep = fittedTrack -> getTrackRep(repid);
   return TrackCheck(fittedTrack, rep);
 }
 
@@ -65,8 +67,12 @@ void HypTPCFitProcess::FitTracks(){
   }
 }
 
-bool HypTPCFitProcess::ProcessTrack(genfit::Track* Track){
+void HypTPCFitProcess::FitTrack(int trackid){
 
+  ProcessTrack(GetTrack(trackid));
+}
+
+bool HypTPCFitProcess::ProcessTrack(genfit::Track* Track){
   try{ HypTPCFitter::_fitter->processTrack(Track); }
   catch(genfit::Exception& e){
     if(verbosity >= 1){

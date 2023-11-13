@@ -156,7 +156,7 @@ double MaterialEffects::effects(const std::vector<RKStep>& steps,
 
     if (debugLvl_ > 0) {
       debugOut << "     calculate matFX ";
-      if (doNoise) 
+      if (doNoise)
         debugOut << "and noise";
       debugOut << " for ";
       debugOut << "stepSize = " << it->matStep_.stepSize_ << "\t";
@@ -565,7 +565,6 @@ void MaterialEffects::noiseCoulomb(M7x7& noise,
   const double step2 = step * step;
   if (mscModelCode_ == 0) {// PANDA report PV/01-07 eq(43); linear in step length
     sigma2 = 225.E-6 * charge_ * charge_ / (betaSquare * momSquare) * step / radiationLength_ * matZ_ / (matZ_ + 1) * log(159.*pow(matZ_, -1. / 3.)) / log(287.*pow(matZ_, -0.5)); // sigma^2 = 225E-6*z^2/mom^2 * XX0/beta_^2 * Z/(Z+1) * ln(159*Z^(-1/3))/ln(287*Z^(-1/2)
-
   } else if (mscModelCode_ == 1) { //Highland not linear in step length formula taken from PDG book 2011 edition
     double stepOverRadLength = step / radiationLength_;
     double logCor = (1 + 0.038 * log(stepOverRadLength));
@@ -814,7 +813,7 @@ void MaterialEffects::noiseBrems(M7x7& noise, double momSquare, double betaSquar
   double minusXOverLn2  = -1.442695 * fabs(stepSize_) / radiationLength_;
   double sigma2E = 1.44*(pow(3., minusXOverLn2) - pow(4., minusXOverLn2)) * momSquare;
   sigma2E = std::max(sigma2E, 0.0); // must be positive
-  
+
   // update noise matrix, using linear error propagation from E to q/p
   noise[6 * 7 + 6] += charge_*charge_/betaSquare / pow(momSquare, 2) * sigma2E;
 }
@@ -895,5 +894,3 @@ void MaterialEffects::drawdEdx(int pdg) {
 }
 
 } /* End of namespace genfit */
-
-

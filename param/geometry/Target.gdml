@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+
+  <define/>
+
+  <materials>
+    <isotope N="12" Z="6" name="C120x42a5ab0">
+      <atom unit="g/mole" value="12"/>
+    </isotope>
+    <isotope N="13" Z="6" name="C130x42a5b00">
+      <atom unit="g/mole" value="13.0034"/>
+    </isotope>
+    <element name="C0x42a5b50">
+      <fraction n="0.9893" ref="C120x42a5ab0"/>
+      <fraction n="0.0107" ref="C130x42a5b00"/>
+    </element>
+    <material name="Diamond0x42a6500" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="81"/>
+      <D unit="g/cm3" value="3.34"/>
+      <fraction n="1" ref="C0x42a5b50"/>
+    </material>
+  </materials>
+
+  <solids>
+    <box lunit="mm" name="Target0x433a360" x="30" y="20" z="20"/>
+  </solids>
+
+  <structure>
+    <volume name="TargetLV0x433a4f0">
+      <materialref ref="Diamond0x42a6500"/>
+      <solidref ref="Target0x433a360"/>
+    </volume>
+  </structure>
+
+  <setup name="Default" version="1.0">
+    <world ref="TargetLV0x433a4f0"/>
+  </setup>
+
+</gdml>
