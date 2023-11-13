@@ -846,6 +846,26 @@ KuramaTrack::SaveTrackParameters(const RKCordParameter &cp)
 //_____________________________________________________________________________
 Bool_t
 KuramaTrack::GetTrajectoryLocalPosition(Int_t layer,
+                                        Double_t& path, Double_t& x, Double_t& y) const
+{
+  try {
+    const RKcalcHitPoint& hpTgt  = m_HitPointCont.begin()->second;
+    const RKcalcHitPoint& HP   = m_HitPointCont.HitPointOfLayer(layer);
+    const ThreeVector&    gpos = HP.PositionInGlobal();
+    ThreeVector lpos = gGeom.Global2LocalPos(layer,gpos);
+    path = std::abs(hpTgt.PathLength()-HP.PathLength());
+    x = lpos.x();
+    y = lpos.y();
+    return true;
+  }
+  catch(const std::out_of_range&) {
+    return false;
+  }
+}
+
+//_____________________________________________________________________________
+Bool_t
+KuramaTrack::GetTrajectoryLocalPosition(Int_t layer,
                                         Double_t& x, Double_t& y) const
 {
   try {

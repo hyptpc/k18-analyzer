@@ -48,9 +48,11 @@ private:
   RKstatus                m_status;
   Double_t xInit, yInit;
   Double_t uInit, vInit;
-  Double_t                m_initial_momentum;
+
   RKHitPointContainer     m_HitPointCont;
+  Double_t                m_initial_momentum;
   Double_t                m_polarity;
+  Int_t                   m_pid;
 
   TVector3                m_tgt_position;
   TVector3                m_tgt_momentum;
@@ -75,6 +77,12 @@ private:
 
   TVector3                m_vp4_position;
   TVector3                m_vp4_momentum;
+
+  TVector3                m_gasvesselU_position;
+  TVector3                m_gasvesselU_momentum;
+
+  TVector3                m_gasvesselD_position;
+  TVector3                m_gasvesselD_momentum;
 
   TVector3                m_htof_position;
   TVector3                m_htof_momentum;
@@ -115,6 +123,12 @@ public:
   const TVector3& VP4Momentum() const { return m_vp4_momentum; }
   const TVector3& VP4Position() const { return m_vp4_position; }
 
+  const TVector3& GasVesselUMomentum() const { return m_gasvesselU_momentum; }
+  const TVector3& GasVesselUPosition() const { return m_gasvesselU_position; }
+
+  const TVector3& GasVesselDMomentum() const { return m_gasvesselD_momentum; }
+  const TVector3& GasVesselDPosition() const { return m_gasvesselD_position; }
+
   const TVector3& HtofMomentum() const { return m_htof_momentum; }
   const TVector3& HtofPosition() const { return m_htof_position; }
 
@@ -123,6 +137,7 @@ public:
 
   void            Print(const TString& arg="", std::ostream& ost=hddaq::cout);
   void            SetInitialMomentum(Double_t p) { m_initial_momentum = p; }
+  void            SetPID(Int_t pikp) { m_pid = pikp; }
   Bool_t          ExtrapStatus() const { return m_status; }
 
 private:
