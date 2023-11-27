@@ -962,6 +962,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 {
 
   //Track finding and fitting
+  HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
 
 #if DebugDisp
