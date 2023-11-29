@@ -53,7 +53,8 @@ public:
   //TPC Hit&Cluster
   Bool_t DecodeTPCHitsGeant4(const Int_t nhits,
                              const Double_t *x, const Double_t *y,
-                             const Double_t *z, const Double_t *de);
+                             const Double_t *z, const Double_t *de,
+			     const Int_t *pid);
   Bool_t DecodeTPCHits(RawData* rawData, Double_t clock=0.);
   Bool_t ReCalcTPCHits(const Int_t nhits,
                        const std::vector<Int_t>& pad,

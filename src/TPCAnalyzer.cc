@@ -240,7 +240,8 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
 Bool_t
 TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
 				 const Double_t *x, const Double_t *y,
-				 const Double_t *z, const Double_t *de)
+				 const Double_t *z, const Double_t *de,
+				 const Int_t *pid)
 {
   if(m_is_decoded[kTPC]){
     hddaq::cout << FUNC_NAME << " "
@@ -248,6 +249,10 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     return true;
   }
 
+  static const Double_t MinClusterYPos = gUser.GetParameter("MinClusterYPosTPC");
+  static const Double_t MaxClusterYPos = gUser.GetParameter("MaxClusterYPosTPC");
+
+  bool RejectKaonHits = true;
   ClearTPCHits();
   ClearTPCClusters();
 
@@ -255,6 +260,7 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     Int_t pad = tpc::findPadID(z[i], x[i]);
     Int_t layer = tpc::getLayerID(pad);
     Int_t row = tpc::getRowID(pad);
+    if(RejectKaonHits && abs(pid[i])==321) continue;
     auto hit = new TPCHit(layer, row);
     hit->AddHit(TMath::QuietNaN(), TMath::QuietNaN()); // allocate hit
     // tentative treatment
@@ -265,16 +271,17 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     }
     // end of tentative treatment
     hit->SetPosition(TVector3(x[i], y[i], z[i]));
-    // hit->Print();
+
+    TPCHitContainer CandCont;
+    CandCont.push_back(hit);
+    TPCCluster* cluster = new TPCCluster(layer, CandCont);
+    if(!cluster) continue;
+    if(cluster->Calculate() && cluster->GetY()>=MinClusterYPos && cluster->GetY()<=MaxClusterYPos){
+      m_TPCClCont[layer].push_back(cluster);
+    }
+    else delete cluster;
     m_TPCHitCont[layer].push_back(hit);
   }
-
-#if 1
-  static const Double_t MaxYDif = gUser.GetParameter("MaxYDifClusterTPC");
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    MakeUpTPCClusters(m_TPCHitCont[layer], m_TPCClCont[layer], MaxYDif);
-  }
-#endif
 
   m_is_decoded[kTPC] = true;
   return true;
