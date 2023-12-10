@@ -1231,7 +1231,7 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+4, title4, 1000, -1000., 1000.);
     HB1(100*i+5, title5, 200, -20., 20.);
     HB2(100*i+6, title6, 100, -1000., 1000., 100, -200., 200.);
-    HB2(100*i+7, title6, 100, -1000., 1000., 100, -1000., 1000.);
+    HB2(100*i+7, title7, 100, -1000., 1000., 100, -1000., 1000.);
     title1 += " [KuramaTrack]";
     title4 += " [KuramaTrack]";
     title5 += " [KuramaTrack]";
