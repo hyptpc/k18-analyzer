@@ -33,6 +33,7 @@
 #include "TPCCluster.hh"
 #include "TPCPadHelper.hh"
 #include "TPCLocalTrackHelix.hh"
+#include "TPCVertexHelix.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
@@ -44,10 +45,11 @@
 #define TrigC 0
 #define TrigD 0
 
-#define KKEvent 0
+#define KKEvent 1
 
+#define SaveHistograms 0
 #define RawHit 0
-#define RawCluster 0
+#define RawCluster 1
 #define TrackCluster 1
 #define TruncatedMean 0
 #define TrackSearchFailed 0
@@ -324,6 +326,7 @@ struct Event
   std::vector<std::vector<Double_t>> failed_track_cluster_mrow;
 
   std::vector<Int_t> isgoodTPCK18;
+  std::vector<Int_t> tpcidTPCK18;
   std::vector<Int_t> niterationTPCK18;
   std::vector<Double_t> chisqrTPCK18;
   std::vector<Double_t> pTPCK18;
@@ -341,6 +344,7 @@ struct Event
   std::vector<std::vector<Double_t>> yvpTPCK18;
 
   std::vector<Int_t> isgoodTPCKurama;
+  std::vector<Int_t> tpcidTPCKurama;
   std::vector<Int_t> niterationTPCKurama;
   std::vector<Int_t> kflagTPCKurama;
   std::vector<Double_t> chisqrTPCKurama;
@@ -377,16 +381,34 @@ struct Event
   std::vector<Double_t> MissMassCorrTPC;
   std::vector<Double_t> MissMassCorrDETPC;
   std::vector<Double_t> pOrgTPC;
-  std::vector<Double_t> pCalcTPC;
   std::vector<Double_t> pCorrTPC;
   std::vector<Double_t> pCorrDETPC;
-  std::vector<Double_t> thetaTPC;
+  std::vector<Double_t> pCalcTPC;
   std::vector<Double_t> thetaCMTPC;
   std::vector<Double_t> costCMTPC;
+  std::vector<Double_t> pCalcDETPC;
+  std::vector<Double_t> thetaCMDETPC;
+  std::vector<Double_t> costCMDETPC;
+  std::vector<Double_t> thetaTPC;
   std::vector<Double_t> ubTPC;
   std::vector<Double_t> vbTPC;
   std::vector<Double_t> usTPC;
   std::vector<Double_t> vsTPC;
+
+  Int_t nvtxTpc;
+  std::vector<Double_t> vtx_x;
+  std::vector<Double_t> vtx_y;
+  std::vector<Double_t> vtx_z;
+  std::vector<Double_t> vtx_dist;
+  std::vector<Double_t> vtx_angle;
+  std::vector<std::vector<Double_t>> vtxid;
+  std::vector<std::vector<Double_t>> vtxmom_theta;
+  std::vector<std::vector<Double_t>> vtxpos_x;
+  std::vector<std::vector<Double_t>> vtxpos_y;
+  std::vector<std::vector<Double_t>> vtxpos_z;
+  std::vector<std::vector<Double_t>> vtxmom_x;
+  std::vector<std::vector<Double_t>> vtxmom_y;
+  std::vector<std::vector<Double_t>> vtxmom_z;
 
   void clear( void )
   {
@@ -627,6 +649,7 @@ struct Event
     failed_track_cluster_mrow.clear();
 
     isgoodTPCK18.clear();
+    tpcidTPCK18.clear();
     niterationTPCK18.clear();
     chisqrTPCK18.clear();
     qTPCK18.clear();
@@ -644,6 +667,7 @@ struct Event
     yvpTPCK18.clear();
 
     isgoodTPCKurama.clear();
+    tpcidTPCKurama.clear();
     niterationTPCKurama.clear();
     kflagTPCKurama.clear();
     chisqrTPCKurama.clear();
@@ -680,17 +704,35 @@ struct Event
     MissMassCorrTPC.clear();
     MissMassCorrDETPC.clear();
     pOrgTPC.clear();
-    pCalcTPC.clear();
     pCorrTPC.clear();
     pCorrDETPC.clear();
-    thetaTPC.clear();
+    pCalcTPC.clear();
     thetaCMTPC.clear();
     costCMTPC.clear();
+    pCalcDETPC.clear();
+    thetaCMDETPC.clear();
+    costCMDETPC.clear();
+    thetaTPC.clear();
+
     ubTPC.clear();
     vbTPC.clear();
     usTPC.clear();
     vsTPC.clear();
 
+    nvtxTpc = 0;
+    vtx_x.clear();
+    vtx_y.clear();
+    vtx_z.clear();
+    vtx_dist.clear();
+    vtx_angle.clear();
+    vtxid.clear();
+    vtxmom_theta.clear();
+    vtxpos_x.clear();
+    vtxpos_y.clear();
+    vtxpos_z.clear();
+    vtxmom_x.clear();
+    vtxmom_y.clear();
+    vtxmom_z.clear();
   }
 };
 
@@ -790,9 +832,14 @@ struct Src
   Double_t ytgtKurama[MaxHits];
   Double_t utgtKurama[MaxHits];
   Double_t vtgtKurama[MaxHits];
+  Double_t xtofKurama[MaxHits];
+  Double_t ytofKurama[MaxHits];
+  Double_t utofKurama[MaxHits];
+  Double_t vtofKurama[MaxHits];
   Double_t tofsegKurama[MaxHits];
   Double_t thetaKurama[MaxHits];
   Double_t phiKurama[MaxHits];
+  Double_t path[MaxHits];
   Double_t stof[MaxHits];
 
   Double_t vpxtpc[MaxHits][NumOfLayersVP];
@@ -801,14 +848,6 @@ struct Src
   Double_t vpxhtof[MaxHits];
   Double_t vpyhtof[MaxHits];
   Double_t vpzhtof[MaxHits];
-
-  TTreeReaderValue<Int_t>* nhHtof;
-  TTreeReaderArray<Double_t>* HtofSeg;
-  TTreeReaderArray<Double_t>* tHtof;
-  TTreeReaderArray<Double_t>* dtHtof;
-  TTreeReaderArray<Double_t>* deHtof;
-  TTreeReaderValue<std::vector<Int_t>>* pid;
-  TTreeReaderValue<std::vector<Double_t>>* chisqr;
 
   Int_t nh[MaxHits];
   Double_t xout[MaxHits];
@@ -823,10 +862,10 @@ struct Src
   Double_t pxtof[MaxHits];
   Double_t pytof[MaxHits];
   Double_t pztof[MaxHits];
-  Int_t layer[MaxHits][20];
-  Double_t wire[MaxHits][20];
-  Double_t localhitpos[MaxHits][20];
-  Double_t wpos[MaxHits][20];
+  Int_t layer[MaxHits][22];
+  Double_t wire[MaxHits][22];
+  Double_t localhitpos[MaxHits][22];
+  Double_t wpos[MaxHits][22];
 
 };
 
@@ -837,8 +876,11 @@ Src    src;
 TH1   *h[MaxHist];
 TTree *tree;
   enum eDetHid {
-    TPCRKHid = 100000,
-    TPCClHid = 200000,
+    TPCK18VPHid = 100000,
+    TPCKuramaVPHid = 200000,
+    TPCK18RKHid = 300000,
+    TPCKuramaRKHid = 400000,
+    TPCClHid = 500000,
   };
 
 Double_t
@@ -861,10 +903,7 @@ const Double_t vb_off = 0.000;
   Double_t pKuramaCorrection(Double_t u, Double_t v, Double_t pOrg)
   {
     //momentum scaling
-    //Double_t p0 = 0.214605;
-    //Double_t p1 = 1.29215;
     Double_t p0 = 0.;
-    //Double_t p1 = 1.06853;
     Double_t p1 = 1.0;
 
     //Angular dependence correction
@@ -901,6 +940,7 @@ main( int argc, char **argv )
   Int_t skip = gUnpacker.get_skip();
   if(skip < 0) skip = 0;
   Int_t max_loop = gUnpacker.get_max_loop();
+
   Int_t nevent = GetEntries( TTreeCont );
   if(max_loop > 0) nevent = skip + max_loop;
 
@@ -960,8 +1000,14 @@ dst::DstRead( int ievent )
   static const auto ProtonMass  = pdg::ProtonMass();
   static const auto XiMass      = pdg::XiMinusMass();
 
-  //if( ievent%1000==0 ){
-  if( ievent%1==0 ){
+  static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
+  static const auto yGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Y();
+  static const auto zGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Z();
+  static const auto zLocalBcOut = gGeom.GetLocalZ("BC3-X1");
+  static const auto xGlobalSdcOut = gGeom.GetGlobalPosition("SDC4-X2").X();
+  static const auto yGlobalSdcOut = gGeom.GetGlobalPosition("SDC4-X2").Y();
+
+  if( ievent%1000==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
@@ -1109,11 +1155,8 @@ dst::DstRead( int ievent )
     vpK18[it].push_back(TVector3(event.xtgtHS[it], event.ytgtHS[it], event.ztgtHS[it]));
 
     HF1(14, src.pHS[it]);
-
-    static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
-    static const auto zGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Z();
-    static const auto zLocalBcOut = gGeom.GetLocalZ("BC3-X1");
-    TVector3 posOut(xGlobalBcOut + event.xoutK18[it], event.youtK18[it],
+    TVector3 posOut(xGlobalBcOut + event.xoutK18[it],
+		    yGlobalBcOut + event.youtK18[it],
 		    zGlobalBcOut - zLocalBcOut);
     TVector3 momOut(event.uoutK18[it], event.voutK18[it], 1.);
     momOut *= 1./momOut.Mag();
@@ -1132,6 +1175,9 @@ dst::DstRead( int ievent )
   std::vector<std::vector<TVector3>> vpKurama;
   vpKurama.resize( src.ntKurama );
 
+  std::vector<Int_t> pidKurama;
+  std::vector<TVector3> initPosKurama;
+  std::vector<TVector3> initMomKurama;
   event.xvpKurama.resize( src.ntKurama );
   event.yvpKurama.resize( src.ntKurama );
   event.zvpKurama.resize( src.ntKurama );
@@ -1162,11 +1208,14 @@ dst::DstRead( int ievent )
     event.xhtofKurama[it] = src.vpxhtof[it];
     event.yhtofKurama[it] = src.vpyhtof[it];
     event.zhtofKurama[it] = src.vpzhtof[it] - zHSCenter;
+
+    Int_t pikp = -1;
+    if(src.m2[it] > 0. && src.m2[it] < 0.12) pikp=0;
+    else if(src.m2[it] > 0.15 && src.m2[it] < 0.4) pikp=1;
+    else if(src.m2[it] > 0.4 && src.m2[it] < 1.5)  pikp=2;
+    pidKurama.push_back(pikp);
   }
 
-  std::vector<Int_t> pidKurama;
-  std::vector<TVector3> initPosKurama;
-  std::vector<TVector3> initMomKurama;
   event.ntKurama = src.ntKurama;
   event.layer.resize(event.ntKurama);
   event.wire.resize(event.ntKurama);
@@ -1187,21 +1236,10 @@ dst::DstRead( int ievent )
     event.pytof.push_back(src.pytof[i]);
     event.pztof.push_back(src.pztof[i]);
 
-    TVector3 posOut(event.xout[i], event.yout[i], event.zout[i]);
+    TVector3 posOut(xGlobalSdcOut + event.xout[i], yGlobalSdcOut + event.yout[i], event.zout[i]);
     TVector3 momOut(event.pxout[i], event.pyout[i], event.pzout[i]);
-    TVector3 posTgt(event.xtgtKurama[i], event.ytgtKurama[i], -1862.5);
-    TVector3 momTgt(event.utgtKurama[i], event.vtgtKurama[i], 1.);
-    momTgt *= 1./momTgt.Mag();
-    momTgt *= event.pKurama[i];
-
     initPosKurama.push_back(posOut);
     initMomKurama.push_back(momOut);
-
-    Int_t pikp = -1;
-    if(src.m2[i] > 0. && src.m2[i] < 0.12) pikp=0;
-    else if(src.m2[i] > 0.15 && src.m2[i] < 0.4) pikp=1;
-    else if(src.m2[i] > 0.4 && src.m2[i] < 1.5)  pikp=2;
-    pidKurama.push_back(pikp);
 
     for(Int_t j=0; j<event.nh[i]; ++j){
       event.layer[i].push_back(src.layer[i][j]);
@@ -1211,7 +1249,6 @@ dst::DstRead( int ievent )
     }
   }
 
-  //if( **src.nhTpc == 0 ) return true;
   HF1( 1, event.status++ );
 
   if(event.clkTpc.size() != 1){
@@ -1267,7 +1304,7 @@ dst::DstRead( int ievent )
     Int_t iskurama = tp->GetIsKurama();
     Int_t isk18 = tp->GetIsK18();
     Int_t charge = tp->GetCharge();
-    if(iskurama==1) vptracks.push_back(tp);
+    if(iskurama==1||isk18==1) vptracks.push_back(tp);
     event.vpnhtrack[it] = nh;
     event.vptrackid[it] = trackid;
     event.vpisKurama[it] = iskurama;
@@ -1305,6 +1342,7 @@ dst::DstRead( int ievent )
 #endif
 
   event.isgoodTPCK18.resize( src.ntK18 );
+  event.tpcidTPCK18.resize( src.ntK18 );
   event.niterationTPCK18.resize( src.ntK18 );
   event.chisqrTPCK18.resize( src.ntK18 );
   event.qTPCK18.resize( src.ntK18 );
@@ -1322,7 +1360,6 @@ dst::DstRead( int ievent )
   event.yvpTPCK18.resize( src.ntK18 );
   for(Int_t itk18=0; itk18<TPCAna.GetNTracksTPCK18(); ++itk18){
     TPCRKTrack* tr_km = TPCAna.GetTPCK18Track(itk18);
-    Int_t id = tr_km -> GetTPCTrackID();
     Int_t niteration = tr_km -> Niteration();
     Double_t chisqr = tr_km -> GetChiSquare();
     const TVector3& tgtmom = tr_km -> TargetMomentum();
@@ -1338,40 +1375,86 @@ dst::DstRead( int ievent )
     Double_t cost = 1./TMath::Sqrt(1.+uCorr*uCorr+vCorr*vCorr);
     Double_t theta = TMath::ACos(cost)*TMath::RadToDeg();
 
-    event.isgoodTPCK18[id] = 1;
-    event.niterationTPCK18[id] = niteration;
-    event.chisqrTPCK18[id] = chisqr;
-    event.qTPCK18[id] = q;
-    event.pTPCK18[id] = tgtmom.Mag()*pK18_factor+pK18_offset;
-    event.xtgtTPCK18[id] = posCorr.x();
-    event.ytgtTPCK18[id] = posCorr.y();
-    event.utgtTPCK18[id] = uCorr;
-    event.vtgtTPCK18[id] = vCorr;
-    event.thetaTPCK18[id] = theta;
+    Int_t idtpc = tr_km -> GetTPCTrackID();
+    Int_t idk18 = tr_km -> GetTrackID();
+    event.isgoodTPCK18[idk18] = 1;
+    event.tpcidTPCK18[idk18] = idtpc;
+    event.niterationTPCK18[idk18] = niteration;
+    event.chisqrTPCK18[idk18] = chisqr;
+    event.qTPCK18[idk18] = q;
+    event.pTPCK18[idk18] = tgtmom.Mag()*pK18_factor+pK18_offset;
+    event.xtgtTPCK18[idk18] = posCorr.x();
+    event.ytgtTPCK18[idk18] = posCorr.y();
+    event.utgtTPCK18[idk18] = uCorr;
+    event.vtgtTPCK18[idk18] = vCorr;
+    event.thetaTPCK18[idk18] = theta;
 
     Double_t path, x, y;
     tr_km -> GetTrajectoryLocalPosition(20, path, x, y);
-    event.lhtofTPCK18[id] = path;
-    event.xhtofTPCK18[id] = x;
-    event.yhtofTPCK18[id] = y;
-    event.lvpTPCK18[id].resize( NumOfLayersVPHS );
-    event.xvpTPCK18[id].resize( NumOfLayersVPHS );
-    event.yvpTPCK18[id].resize( NumOfLayersVPHS );
+    event.lhtofTPCK18[idk18] = path;
+    event.xhtofTPCK18[idk18] = x;
+    event.yhtofTPCK18[idk18] = y;
+    event.lvpTPCK18[idk18].resize( NumOfLayersVPHS );
+    event.xvpTPCK18[idk18].resize( NumOfLayersVPHS );
+    event.yvpTPCK18[idk18].resize( NumOfLayersVPHS );
     for(Int_t l = 0; l<NumOfLayersVPHS; ++l){
       tr_km -> GetTrajectoryLocalPosition(208 + l, path, x, y);
-      event.lvpTPCK18[id][l] = path;
-      event.xvpTPCK18[id][l] = x;
-      event.yvpTPCK18[id][l] = y;
+      event.lvpTPCK18[idk18][l] = path;
+      event.xvpTPCK18[idk18][l] = x;
+      event.yvpTPCK18[idk18][l] = y;
     }// for(l)
     for(Int_t i=0; i<NumOfLayersBcOut; ++i){
       Double_t resolution; Double_t residual;
       if(tr_km -> GetTrajectoryResidual(i+PlOffsBcOut+1, resolution, residual)){
-	HF1(TPCRKHid+i, residual/resolution);
+	HF1(TPCK18RKHid+100+i, residual/resolution);
+	HF1(TPCK18RKHid+200+i, residual);
       }
     }
+
+    Int_t nhTpc = tr_km -> GetTPCTrack() -> GetNHit();
+    for(Int_t i=0; i<nhTpc; ++i){
+      TVector3 resolution; TVector3 residual;
+      if(tr_km -> GetTrajectoryResidualTPC(i, resolution, residual)){
+	if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) continue; // exclude bad hits
+	Int_t layer = tr_km -> GetTPCTrack() -> GetHitInOrder(i) -> GetLayer();
+	const TVector3& resi_vect = tr_km -> GetTPCTrack() -> GetHitInOrder(i) -> GetResidualVect();
+	HF1(TPCK18RKHid+layer+300, residual.x()/resolution.x());
+	HF1(TPCK18RKHid+layer+400, residual.y()/resolution.y());
+	HF1(TPCK18RKHid+layer+500, residual.x());
+	HF1(TPCK18RKHid+layer+600, residual.y());
+	HF1(TPCK18RKHid+layer+700, resi_vect.x());
+	HF1(TPCK18RKHid+layer+800, resi_vect.y());
+	HF1(TPCK18RKHid+layer+900, resi_vect.z());
+      }
+    }
+
+#if VPTracks
+    for(Int_t it=0; it<vptracks.size(); ++it){
+      TPCLocalTrackHelix *tr_vptrack = vptracks[it];
+      if(tr_vptrack->GetTrackID()==idk18){
+	TPCLocalTrackHelix *tr_tpc = tr_km -> GetTPCTrack();
+	Int_t nh = tr_tpc -> GetNHit();
+	for( int ih=0; ih<nh; ++ih ){
+	  TPCLTrackHit *hit = tr_tpc -> GetHitInOrder(ih);
+	  Int_t layer = hit -> GetLayer();
+	  const TVector3& hitpos = hit -> GetLocalHitPos();
+	  TVector3 resi = tr_vptrack -> CalcResidual(hitpos);
+	  double xz_resi = TMath::Sqrt(resi.x()*resi.x()+resi.z()*resi.z());
+	  double x_resi = resi.x();
+	  double y_resi = resi.y();
+	  double z_resi = resi.z();
+	  HF1(TPCK18VPHid+layer, xz_resi);
+	  HF1(TPCK18VPHid+100+layer, x_resi);
+	  HF1(TPCK18VPHid+200+layer, y_resi);
+	  HF1(TPCK18VPHid+300+layer, z_resi);
+	}
+      }
+    }
+#endif
   }
 
   event.isgoodTPCKurama.resize( src.ntKurama );
+  event.tpcidTPCKurama.resize( src.ntKurama );
   event.niterationTPCKurama.resize( src.ntKurama );
   event.kflagTPCKurama.resize( src.ntKurama );
   event.chisqrTPCKurama.resize( src.ntKurama );
@@ -1390,9 +1473,8 @@ dst::DstRead( int ievent )
   event.lvpTPCKurama.resize( src.ntKurama );
   event.xvpTPCKurama.resize( src.ntKurama );
   event.yvpTPCKurama.resize( src.ntKurama );
-  for(Int_t itkurama=0; itkurama<TPCAna.GetNTracksTPCKurama(); ++itkurama){
-    TPCRKTrack* tr_kp = TPCAna.GetTPCKuramaTrack(itkurama);
-    Int_t id = tr_kp -> GetTPCTrackID();
+  for(Int_t ittpckurama=0; ittpckurama<TPCAna.GetNTracksTPCKurama(); ++ittpckurama){
+    TPCRKTrack* tr_kp = TPCAna.GetTPCKuramaTrack(ittpckurama);
     Int_t niteration = tr_kp -> Niteration();
     Double_t chisqr = tr_kp -> GetChiSquare();
     const TVector3& tgtpos = tr_kp -> TargetPosition();
@@ -1407,40 +1489,41 @@ dst::DstRead( int ievent )
     Double_t theta = TMath::ACos(cost)*TMath::RadToDeg();
     Double_t pathtof = tr_kp -> PathLengthToTOF();
 
-    event.isgoodTPCKurama[id] = 1;
-    event.niterationTPCKurama[id] = niteration;
-    event.chisqrTPCKurama[id] = chisqr;
-    event.pTPCKurama[id] = pCorr;
-    event.qTPCKurama[id] = q;
+    Int_t idtpc = tr_kp -> GetTPCTrackID();
+    Int_t idkurama = tr_kp -> GetTrackID();
+    event.isgoodTPCKurama[idkurama] = 1;
+    event.tpcidTPCKurama[idkurama] = idtpc;
+    event.niterationTPCKurama[idkurama] = niteration;
+    event.chisqrTPCKurama[idkurama] = chisqr;
+    event.pTPCKurama[idkurama] = pCorr;
+    event.qTPCKurama[idkurama] = q;
 
-    Double_t cstof = src.stof[id];
-    Int_t tofseg = src.tofsegKurama[id];
+    Double_t cstof = src.stof[idkurama];
+    if(cstof > 0.) event.m2TPCKurama[idkurama] = Kinematics::MassSquare(momCorr.Mag(), pathtof, cstof);
+    else event.m2TPCKurama[idkurama] = TMath::QuietNaN();
 
-    if(cstof > 0.) event.m2TPCKurama[id] = Kinematics::MassSquare(momCorr.Mag(), pathtof, cstof);
-    else event.m2TPCKurama[id] = TMath::QuietNaN();
-
-    event.xtgtTPCKurama[id] = tgtpos.x();
-    event.ytgtTPCKurama[id] = tgtpos.y();
-    event.utgtTPCKurama[id] = utgt;
-    event.vtgtTPCKurama[id] = vtgt;
-    event.thetaTPCKurama[id] = theta;
-    event.pathTPCKurama[id] = pathtof;
-    if(event.m2TPCKurama[id] > 0.15 && event.m2TPCKurama[id] < 0.40)
-      event.kflagTPCKurama[id] = 1;
+    event.xtgtTPCKurama[idkurama] = tgtpos.x();
+    event.ytgtTPCKurama[idkurama] = tgtpos.y();
+    event.utgtTPCKurama[idkurama] = utgt;
+    event.vtgtTPCKurama[idkurama] = vtgt;
+    event.thetaTPCKurama[idkurama] = theta;
+    event.pathTPCKurama[idkurama] = pathtof;
+    if(event.m2TPCKurama[idkurama] > 0.15 && event.m2TPCKurama[idkurama] < 0.40)
+      event.kflagTPCKurama[idkurama] = 1;
 
     Double_t path, x, y;
     tr_kp -> GetTrajectoryLocalPosition(20, path, x, y);
-    event.lhtofTPCKurama[id] = path;
-    event.xhtofTPCKurama[id] = x;
-    event.yhtofTPCKurama[id] = y;
-    event.lvpTPCKurama[id].resize( NumOfLayersVPTPC );
-    event.xvpTPCKurama[id].resize( NumOfLayersVPTPC );
-    event.yvpTPCKurama[id].resize( NumOfLayersVPTPC );
+    event.lhtofTPCKurama[idkurama] = path;
+    event.xhtofTPCKurama[idkurama] = x;
+    event.yhtofTPCKurama[idkurama] = y;
+    event.lvpTPCKurama[idkurama].resize( NumOfLayersVPTPC );
+    event.xvpTPCKurama[idkurama].resize( NumOfLayersVPTPC );
+    event.yvpTPCKurama[idkurama].resize( NumOfLayersVPTPC );
     for(Int_t l = 0; l<NumOfLayersVPTPC; ++l){
       tr_kp -> GetTrajectoryLocalPosition(21 + l, path, x, y);
-      event.lvpTPCKurama[id][l] = path;
-      event.xvpTPCKurama[id][l] = x;
-      event.yvpTPCKurama[id][l] = y;
+      event.lvpTPCKurama[idkurama][l] = path;
+      event.xvpTPCKurama[idkurama][l] = x;
+      event.yvpTPCKurama[idkurama][l] = y;
     }// for(l)
   }
 
@@ -1462,19 +1545,22 @@ dst::DstRead( int ievent )
   event.MissMassCorrTPC.resize(nkk);
   event.MissMassCorrDETPC.resize(nkk);
   event.pOrgTPC.resize(nkk);
-  event.pCalcTPC.resize(nkk);
   event.pCorrTPC.resize(nkk);
   event.pCorrDETPC.resize(nkk);
-  event.thetaTPC.resize(nkk);
+  event.pCalcTPC.resize(nkk);
   event.thetaCMTPC.resize(nkk);
   event.costCMTPC.resize(nkk);
+  event.pCalcDETPC.resize(nkk);
+  event.thetaCMDETPC.resize(nkk);
+  event.costCMDETPC.resize(nkk);
+  event.thetaTPC.resize(nkk);
   event.ubTPC.resize(nkk);
   event.vbTPC.resize(nkk);
   event.usTPC.resize(nkk);
   event.vsTPC.resize(nkk);
   for(Int_t itkurama=0; itkurama<TPCAna.GetNTracksTPCKurama(); ++itkurama){
     TPCRKTrack* trScat = TPCAna.GetTPCKuramaTrack(itkurama);
-    Int_t idScat = trScat -> GetTPCTrackID();
+    Int_t idScat = trScat -> GetTrackID();
     const TVector3& tgtmomScat = trScat -> TargetMomentum();
     const TVector3& tgtposScat = trScat -> TargetPosition();
     Double_t us = tgtmomScat.x()/tgtmomScat.z(), vs = tgtmomScat.y()/tgtmomScat.z();
@@ -1507,7 +1593,8 @@ dst::DstRead( int ievent )
       //Reaction vertex
       TVector3 KKVertex; TVector3 KmMomVtx; TVector3 KpMomVtx;
       Double_t closeDist; Double_t KmPathInTgt; Double_t KpPathInTgt;
-      Bool_t inTarget = TPCAna.GetVertex(xKm, pKmCorr, xScat, pScatCorr, KKVertex, closeDist, KmPathInTgt, KpPathInTgt, KmMomVtx, KpMomVtx);
+      //Bool_t IsKKVertexInTarget = TPCAna.GetProductionVertex(xKm, pKmCorr, xScat, pScatCorr, KKVertex, closeDist, KmPathInTgt, KpPathInTgt, KmMomVtx, KpMomVtx);
+      TPCAna.GetProductionVertex(xKm, pKmCorr, xScat, pScatCorr, KKVertex, closeDist, KmPathInTgt, KpPathInTgt, KmMomVtx, KpMomVtx);
 
       Int_t inside = 0;
       if(TMath::Abs(KKVertex.x()) < 30.
@@ -1516,8 +1603,10 @@ dst::DstRead( int ievent )
          && closeDist < 30.) inside = 1;
 
       //Eloss correction
-      ThreeVector pKmCorrDE = Kinematics::HypTPCCorrElossIn(1, pKmCorr, KmPathInTgt, KaonMass);
-      ThreeVector pScatCorrDE = Kinematics::HypTPCCorrElossOut(1, pScatCorr, KpPathInTgt, ScatMass);
+      Int_t target_material = 2; //Carbon
+      if(event.runnum >= 5641 && event.runnum <= 5666) target_material = 1; //CH2
+      ThreeVector pKmCorrDE = Kinematics::HypTPCCorrElossIn(target_material, pKmCorr, KmPathInTgt, KaonMass);
+      ThreeVector pScatCorrDE = Kinematics::HypTPCCorrElossOut(target_material, pScatCorr, KpPathInTgt, ScatMass);
 
       //Missing-Mass reconstruction
       LorentzVector LvKm(pKm, std::sqrt(KaonMass*KaonMass+pKm.Mag2()));
@@ -1535,39 +1624,82 @@ dst::DstRead( int ievent )
       Double_t MissMassCorr = LvRcCorr.Mag();
       Double_t MissMassCorrDE = LvRcCorrDE.Mag();//-LvC.Mag();
 
-      //Primary frame
-      LorentzVector PrimaryLv = LvKmCorr+LvC;
-      Double_t TotalEnergyCM = PrimaryLv.Mag();
-      ThreeVector beta(1/PrimaryLv.E()*PrimaryLv.Vect());
+      {
+	//Primary frame
+	LorentzVector PrimaryLv = LvKmCorr+LvC;
+	Double_t TotalEnergyCM = PrimaryLv.Mag();
+	ThreeVector beta(1/PrimaryLv.E()*PrimaryLv.Vect());
 
-      //CM
-      Double_t TotalMomCM
-	= 0.5*std::sqrt((TotalEnergyCM*TotalEnergyCM
-                         -(KaonMass+XiMass)*(KaonMass+XiMass))
-			*(TotalEnergyCM*TotalEnergyCM
-                          -(KaonMass-XiMass)*(KaonMass-XiMass)))/TotalEnergyCM;
+	//CM
+	Double_t TotalMomCM
+	  = 0.5*std::sqrt((TotalEnergyCM*TotalEnergyCM
+			   -(KaonMass+XiMass)*(KaonMass+XiMass))
+			  *(TotalEnergyCM*TotalEnergyCM
+			    -(KaonMass-XiMass)*(KaonMass-XiMass)))/TotalEnergyCM;
 
-      Double_t costLab = cost;
-      Double_t cottLab = costLab/std::sqrt(1.-costLab*costLab);
-      Double_t bt = beta.Mag(), gamma = 1./std::sqrt(1.-bt*bt);
-      Double_t gbep = gamma*bt*std::sqrt(TotalMomCM*TotalMomCM+KaonMass*KaonMass)/TotalMomCM;
-      Double_t a  = gamma*gamma+cottLab*cottLab;
-      Double_t bp = gamma*gbep;
-      Double_t c  = gbep*gbep-cottLab*cottLab;
-      Double_t dd = bp*bp-a*c;
+	Double_t costLab = cost;
+	Double_t cottLab = costLab/std::sqrt(1.-costLab*costLab);
+	Double_t bt = beta.Mag(), gamma = 1./std::sqrt(1.-bt*bt);
+	Double_t gbep = gamma*bt*std::sqrt(TotalMomCM*TotalMomCM+KaonMass*KaonMass)/TotalMomCM;
+	Double_t a  = gamma*gamma+cottLab*cottLab;
+	Double_t bp = gamma*gbep;
+	Double_t c  = gbep*gbep-cottLab*cottLab;
+	Double_t dd = bp*bp-a*c;
 
-      if(dd<0.){
-	std::cerr << "dd<0." << std::endl;
-	dd = 0.;
+	if(dd<0.){
+	  std::cerr << "dd<0." << std::endl;
+	  dd = 0.;
+	}
+
+	Double_t costCM = (std::sqrt(dd)-bp)/a;
+	if(costCM>1. || costCM<-1.){
+	  std::cerr << "costCM>1. || costCM<-1." << std::endl;
+	  costCM=-1.;
+	}
+	Double_t sintCM  = std::sqrt(1.-costCM*costCM);
+	Double_t KaonMom = TotalMomCM*sintCM/std::sqrt(1.-costLab*costLab);
+	event.thetaCMTPC[id] = TMath::ACos(costCM)*TMath::RadToDeg();
+	event.costCMTPC[id] = costCM;
+	event.pCalcTPC[id] = KaonMom;
       }
+      {
+	//Primary frame
+	LorentzVector PrimaryLv = LvKmCorrDE+LvC;
+	Double_t TotalEnergyCM = PrimaryLv.Mag();
+	ThreeVector beta(1/PrimaryLv.E()*PrimaryLv.Vect());
 
-      Double_t costCM = (std::sqrt(dd)-bp)/a;
-      if(costCM>1. || costCM<-1.){
-	std::cerr << "costCM>1. || costCM<-1." << std::endl;
-	costCM=-1.;
+	//CM
+	Double_t TotalMomCM
+	  = 0.5*std::sqrt((TotalEnergyCM*TotalEnergyCM
+			   -(KaonMass+XiMass)*(KaonMass+XiMass))
+			  *(TotalEnergyCM*TotalEnergyCM
+			    -(KaonMass-XiMass)*(KaonMass-XiMass)))/TotalEnergyCM;
+
+	Double_t costLab = cost;
+	Double_t cottLab = costLab/std::sqrt(1.-costLab*costLab);
+	Double_t bt = beta.Mag(), gamma = 1./std::sqrt(1.-bt*bt);
+	Double_t gbep = gamma*bt*std::sqrt(TotalMomCM*TotalMomCM+KaonMass*KaonMass)/TotalMomCM;
+	Double_t a  = gamma*gamma+cottLab*cottLab;
+	Double_t bp = gamma*gbep;
+	Double_t c  = gbep*gbep-cottLab*cottLab;
+	Double_t dd = bp*bp-a*c;
+
+	if(dd<0.){
+	  std::cerr << "dd<0." << std::endl;
+	  dd = 0.;
+	}
+
+	Double_t costCM = (std::sqrt(dd)-bp)/a;
+	if(costCM>1. || costCM<-1.){
+	  std::cerr << "costCM>1. || costCM<-1." << std::endl;
+	  costCM=-1.;
+	}
+	Double_t sintCM  = std::sqrt(1.-costCM*costCM);
+	Double_t KaonMom = TotalMomCM*sintCM/std::sqrt(1.-costLab*costLab);
+	event.thetaCMDETPC[id] = TMath::ACos(costCM)*TMath::RadToDeg();
+	event.costCMDETPC[id] = costCM;
+	event.pCalcDETPC[id] = KaonMom;
       }
-      Double_t sintCM  = std::sqrt(1.-costCM*costCM);
-      Double_t KaonMom = TotalMomCM*sintCM/std::sqrt(1.-costLab*costLab);
 
       event.isgoodTPC[id] = 1;
       event.insideTPC[id] = inside;
@@ -1582,17 +1714,12 @@ dst::DstRead( int ievent )
       event.pzScatTPC[id] = KpMomVtx.z();
 
       event.closeDistTPC[id] = closeDist;
-
       event.MissMassTPC[id] = MissMass;
       event.MissMassCorrTPC[id] = MissMassCorr;
       event.MissMassCorrDETPC[id] = MissMassCorrDE;
 
       event.thetaTPC[id] = theta;
-      event.thetaCMTPC[id] = TMath::ACos(costCM)*TMath::RadToDeg();
-      event.costCMTPC[id] = costCM;
-
       event.pOrgTPC[id] = pOrg;
-      event.pCalcTPC[id] = KaonMom;
       event.pCorrTPC[id] = pCorr;
       event.pCorrDETPC[id] = pScatCorrDE.Mag();
 
@@ -1625,18 +1752,20 @@ dst::DstRead( int ievent )
 		const TVector3& hitpos = hit -> GetLocalHitPos();
 		TVector3 resi = tr_vptrack -> CalcResidual(hitpos);
 		double xz_resi = TMath::Sqrt(resi.x()*resi.x()+resi.z()*resi.z());
+		double x_resi = resi.x();
 		double y_resi = resi.y();
+		double z_resi = resi.z();
 		if(event.qTPCKurama[idScat]>0.){
-		  HF1(TPCRKHid+700+layer, xz_resi);
-		  HF1(TPCRKHid+800+layer, y_resi);
-		  HF1(TPCRKHid+700+NumOfLayersTPC, xz_resi);
-		  HF1(TPCRKHid+800+NumOfLayersTPC, y_resi);
+		  HF1(TPCKuramaVPHid+layer, xz_resi);
+		  HF1(TPCKuramaVPHid+100+layer, x_resi);
+		  HF1(TPCKuramaVPHid+200+layer, y_resi);
+		  HF1(TPCKuramaVPHid+300+layer, z_resi);
 		}
 		else{
-		  HF1(TPCRKHid+1700+layer, xz_resi);
-		  HF1(TPCRKHid+1800+layer, y_resi);
-		  HF1(TPCRKHid+1700+NumOfLayersTPC, xz_resi);
-		  HF1(TPCRKHid+1800+NumOfLayersTPC, y_resi);
+		  HF1(TPCKuramaVPHid+1000+layer, xz_resi);
+		  HF1(TPCKuramaVPHid+1100+layer, x_resi);
+		  HF1(TPCKuramaVPHid+1200+layer, y_resi);
+		  HF1(TPCKuramaVPHid+1300+layer, z_resi);
 		}
 
 	      }
@@ -1647,15 +1776,27 @@ dst::DstRead( int ievent )
 	  for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
 	    Double_t resolution; Double_t residual;
 	    if(trScat -> GetTrajectoryResidual(i+PlOffsSdcIn+1, resolution, residual)){
-	      if(event.qTPCKurama[idScat]>0.) HF1(TPCRKHid+100+i, residual/resolution);
-	      else HF1(TPCRKHid+1100+i, residual/resolution);
+	      if(event.qTPCKurama[idScat]>0.){
+		HF1(TPCKuramaRKHid+100+i, residual/resolution);
+		HF1(TPCKuramaRKHid+200+i, residual);
+	      }
+	      else{
+		HF1(TPCKuramaRKHid+1100+i, residual/resolution);
+		HF1(TPCKuramaRKHid+1200+i, residual);
+	      }
 	    }
 	  }
 	  for(Int_t i=0; i<NumOfLayersSdcOut; ++i){
 	    Double_t resolution; Double_t residual;
 	    if(trScat -> GetTrajectoryResidual(i+PlOffsSdcOut+1, resolution, residual)){
-	      if(event.qTPCKurama[idScat]>0.) HF1(TPCRKHid+200+i, residual/resolution);
-	      else HF1(TPCRKHid+1200+i, residual/resolution);
+	      if(event.qTPCKurama[idScat]>0.){
+		HF1(TPCKuramaRKHid+300+i, residual/resolution);
+		HF1(TPCKuramaRKHid+400+i, residual);
+	      }
+	      else{
+		HF1(TPCKuramaRKHid+1300+i, residual/resolution);
+		HF1(TPCKuramaRKHid+1400+i, residual);
+	      }
 	    }
 	  }
 
@@ -1663,18 +1804,28 @@ dst::DstRead( int ievent )
 	  for(Int_t i=0; i<nhTpc; ++i){
 	    TVector3 resolution; TVector3 residual;
 	    if(trScat -> GetTrajectoryResidualTPC(i, resolution, residual)){
+	      if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) continue; // exclude bad hits
 	      Int_t layer = trScat -> GetTPCTrack() -> GetHitInOrder(i) -> GetLayer();
+	      const TVector3& resi_vect = trScat -> GetTPCTrack() -> GetHitInOrder(i) -> GetResidualVect();
 	      if(event.qTPCKurama[idScat]>0.){
-		HF1(TPCRKHid+layer+300, residual.x()/resolution.x());
-		HF1(TPCRKHid+layer+400, residual.y()/resolution.y());
-		HF1(TPCRKHid+layer+500, residual.x());
-		HF1(TPCRKHid+layer+600, residual.y());
+		HF1(TPCKuramaRKHid+layer+500, residual.x()/resolution.x());
+		HF1(TPCKuramaRKHid+layer+600, residual.y()/resolution.y());
+		HF1(TPCKuramaRKHid+layer+700, residual.x());
+		HF1(TPCKuramaRKHid+layer+800, residual.y());
+
+		HF1(TPCKuramaRKHid+layer+4100, resi_vect.x());
+		HF1(TPCKuramaRKHid+layer+4200, resi_vect.y());
+		HF1(TPCKuramaRKHid+layer+4300, resi_vect.z());
 	      }
 	      else{
-		HF1(TPCRKHid+layer+1300, residual.x()/resolution.x());
-		HF1(TPCRKHid+layer+1400, residual.y()/resolution.y());
-		HF1(TPCRKHid+layer+1500, residual.x());
-		HF1(TPCRKHid+layer+1600, residual.y());
+		HF1(TPCKuramaRKHid+layer+1500, residual.x()/resolution.x());
+		HF1(TPCKuramaRKHid+layer+1600, residual.y()/resolution.y());
+		HF1(TPCKuramaRKHid+layer+1700, residual.x());
+		HF1(TPCKuramaRKHid+layer+1800, residual.y());
+
+		HF1(TPCKuramaRKHid+layer+5100, resi_vect.x());
+		HF1(TPCKuramaRKHid+layer+5200, resi_vect.y());
+		HF1(TPCKuramaRKHid+layer+5300, resi_vect.z());
 	      }
 	    }
 	  }
@@ -1718,37 +1869,37 @@ dst::DstRead( int ievent )
 	    HF1(7014, MissMassCorr);
 	    HF1(7015, MissMassCorrDE);
 
-	    HF2(7016, us, pScat.Mag() - KaonMom);
-	    HF2(7017, us, pScatCorr.Mag() - KaonMom);
-	    HF2(7018, us, pScatCorrDE.Mag() - KaonMom);
+	    HF2(7016, us, pScat.Mag() - event.pCalcTPC[idScat]);
+	    HF2(7017, us, pScatCorr.Mag() - event.pCalcTPC[idScat]);
+	    HF2(7018, us, pScatCorrDE.Mag() - event.pCalcDETPC[idScat]);
 	    HF2(7019, us, MissMass);
 	    HF2(7020, us, MissMassCorr);
 	    HF2(7021, us, MissMassCorrDE);
-	    HF2(7022, vs, pScat.Mag() - KaonMom);
-	    HF2(7023, vs, pScatCorr.Mag() - KaonMom);
-	    HF2(7024, vs, pScatCorrDE.Mag() - KaonMom);
+	    HF2(7022, vs, pScat.Mag() - event.pCalcTPC[idScat]);
+	    HF2(7023, vs, pScatCorr.Mag() - event.pCalcTPC[idScat]);
+	    HF2(7024, vs, pScatCorrDE.Mag() - event.pCalcDETPC[idScat]);
 	    HF2(7025, vs, MissMass);
 	    HF2(7026, vs, MissMassCorr);
 	    HF2(7027, vs, MissMassCorrDE);
-	    HF2(7028, KaonMom, pScat.Mag() - KaonMom);
-	    HF2(7029, KaonMom, pScatCorr.Mag() - KaonMom);
-	    HF2(7030, KaonMom, pScatCorrDE.Mag() - KaonMom);
+	    HF2(7028, event.pCalcTPC[idScat], pScat.Mag() - event.pCalcTPC[idScat]);
+	    HF2(7029, event.pCalcTPC[idScat], pScatCorr.Mag() - event.pCalcTPC[idScat]);
+	    HF2(7030, event.pCalcDETPC[idScat], pScatCorrDE.Mag() - event.pCalcDETPC[idScat]);
 
-	    HFProf(7116, us, pScat.Mag() - KaonMom);
-	    HFProf(7117, us, pScatCorr.Mag() - KaonMom);
-	    HFProf(7118, us, pScatCorrDE.Mag() - KaonMom);
+	    HFProf(7116, us, pScat.Mag() - event.pCalcTPC[idScat]);
+	    HFProf(7117, us, pScatCorr.Mag() - event.pCalcTPC[idScat]);
+	    HFProf(7118, us, pScatCorrDE.Mag() - event.pCalcDETPC[idScat]);
 	    HFProf(7119, us, MissMass);
 	    HFProf(7120, us, MissMassCorr);
 	    HFProf(7121, us, MissMassCorrDE);
-	    HFProf(7122, vs, pScat.Mag() - KaonMom);
-	    HFProf(7123, vs, pScatCorr.Mag() - KaonMom);
-	    HFProf(7124, vs, pScatCorrDE.Mag() - KaonMom);
+	    HFProf(7122, vs, pScat.Mag() - event.pCalcTPC[idScat]);
+	    HFProf(7123, vs, pScatCorr.Mag() - event.pCalcTPC[idScat]);
+	    HFProf(7124, vs, pScatCorrDE.Mag() - event.pCalcDETPC[idScat]);
 	    HFProf(7125, vs, MissMass);
 	    HFProf(7126, vs, MissMassCorr);
 	    HFProf(7127, vs, MissMassCorrDE);
-	    HFProf(7128, KaonMom, pScat.Mag() - KaonMom);
-	    HFProf(7129, KaonMom, pScatCorr.Mag() - KaonMom);
-	    HFProf(7130, KaonMom, pScatCorrDE.Mag() - KaonMom);
+	    HFProf(7128, event.pCalcTPC[idScat], pScat.Mag() - event.pCalcTPC[idScat]);
+	    HFProf(7129, event.pCalcTPC[idScat], pScatCorr.Mag() - event.pCalcTPC[idScat]);
+	    HFProf(7130, event.pCalcDETPC[idScat], pScatCorrDE.Mag() - event.pCalcDETPC[idScat]);
 
 	    if(event.pTPCKurama[idScat] > 1.1){
 	      HF1(8001, event.pTPCK18[idKm]);
@@ -1761,37 +1912,37 @@ dst::DstRead( int ievent )
 	      HF1(8013, KKVertex.z());
 	      HF1(8014, MissMassCorr);
 	      HF1(8015, MissMassCorrDE);
-	      HF2(8016, us, pScat.Mag() - KaonMom);
-	      HF2(8017, us, pScatCorr.Mag() - KaonMom);
-	      HF2(8018, us, pScatCorrDE.Mag() - KaonMom);
+	      HF2(8016, us, pScat.Mag() - event.pCalcTPC[idScat]);
+	      HF2(8017, us, pScatCorr.Mag() - event.pCalcTPC[idScat]);
+	      HF2(8018, us, pScatCorrDE.Mag() - event.pCalcDETPC[idScat]);
 	      HF2(8019, us, MissMass);
 	      HF2(8020, us, MissMassCorr);
 	      HF2(8021, us, MissMassCorrDE);
-	      HF2(8022, vs, pScat.Mag() - KaonMom);
-	      HF2(8023, vs, pScatCorr.Mag() - KaonMom);
-	      HF2(8024, vs, pScatCorrDE.Mag() - KaonMom);
+	      HF2(8022, vs, pScat.Mag() - event.pCalcTPC[idScat]);
+	      HF2(8023, vs, pScatCorr.Mag() - event.pCalcTPC[idScat]);
+	      HF2(8024, vs, pScatCorrDE.Mag() - event.pCalcDETPC[idScat]);
 	      HF2(8025, vs, MissMass);
 	      HF2(8026, vs, MissMassCorr);
 	      HF2(8027, vs, MissMassCorrDE);
-	      HF2(8028, KaonMom, pScat.Mag() - KaonMom);
-	      HF2(8029, KaonMom, pScatCorr.Mag() - KaonMom);
-	      HF2(8030, KaonMom, pScatCorrDE.Mag() - KaonMom);
+	      HF2(8028, event.pCalcTPC[idScat], pScat.Mag() - event.pCalcTPC[idScat]);
+	      HF2(8029, event.pCalcTPC[idScat], pScatCorr.Mag() - event.pCalcTPC[idScat]);
+	      HF2(8030, event.pCalcDETPC[idScat], pScatCorrDE.Mag() - event.pCalcDETPC[idScat]);
 
-	      HFProf(8116, us, pScat.Mag() - KaonMom);
-	      HFProf(8117, us, pScatCorr.Mag() - KaonMom);
-	      HFProf(8118, us, pScatCorrDE.Mag() - KaonMom);
+	      HFProf(8116, us, pScat.Mag() - event.pCalcTPC[idScat]);
+	      HFProf(8117, us, pScatCorr.Mag() - event.pCalcTPC[idScat]);
+	      HFProf(8118, us, pScatCorrDE.Mag() - event.pCalcDETPC[idScat]);
 	      HFProf(8119, us, MissMass);
 	      HFProf(8120, us, MissMassCorr);
 	      HFProf(8121, us, MissMassCorrDE);
-	      HFProf(8122, vs, pScat.Mag() - KaonMom);
-	      HFProf(8123, vs, pScatCorr.Mag() - KaonMom);
-	      HFProf(8124, vs, pScatCorrDE.Mag() - KaonMom);
+	      HFProf(8122, vs, pScat.Mag() - event.pCalcTPC[idScat]);
+	      HFProf(8123, vs, pScatCorr.Mag() - event.pCalcTPC[idScat]);
+	      HFProf(8124, vs, pScatCorrDE.Mag() - event.pCalcDETPC[idScat]);
 	      HFProf(8125, vs, MissMass);
 	      HFProf(8126, vs, MissMassCorr);
 	      HFProf(8127, vs, MissMassCorrDE);
-	      HFProf(8128, KaonMom, pScat.Mag() - KaonMom);
-	      HFProf(8129, KaonMom, pScatCorr.Mag() - KaonMom);
-	      HFProf(8130, KaonMom, pScatCorrDE.Mag() - KaonMom);
+	      HFProf(8128, event.pCalcTPC[idScat], pScat.Mag() - event.pCalcTPC[idScat]);
+	      HFProf(8129, event.pCalcTPC[idScat], pScatCorr.Mag() - event.pCalcTPC[idScat]);
+	      HFProf(8130, event.pCalcDETPC[idScat], pScatCorrDE.Mag() - event.pCalcDETPC[idScat]);
 	    }
 	  }
 	  //Proton
@@ -1891,7 +2042,6 @@ dst::DstRead( int ievent )
   event.ntTpc = ntTpc;
 
   HF1( 10, ntTpc );
-  //if( event.ntTpc == 0 ) return true;
 
   HF1( 1, event.status++ );
   event.nhtrack.resize( ntTpc );
@@ -2085,7 +2235,6 @@ dst::DstRead( int ievent )
       TPCHit *clhit = hit->GetHit();
       TPCCluster *cl = clhit->GetParentCluster();
       Int_t clsize = cl->GetClusterSize();
-      //Double_t mrow = cl->MeanRow(); // same
       TPCHit* centerHit = cl->GetCenterHit();
       const TVector3& centerPos = centerHit->GetPosition();
       Double_t centerDe = centerHit->GetCDe();
@@ -2134,6 +2283,58 @@ dst::DstRead( int ievent )
       event.houghflag[it][ih] = houghflag;
       event.helix_t[it][ih] = hit->GetTheta();
     }
+  }
+
+  Int_t nvtxTpc = TPCAna.GetNVerticesTPCHelix();
+  event.nvtxTpc = nvtxTpc;
+  event.vtx_x.resize(nvtxTpc);
+  event.vtx_y.resize(nvtxTpc);
+  event.vtx_z.resize(nvtxTpc);
+  event.vtx_dist.resize(nvtxTpc);
+  event.vtx_angle.resize(nvtxTpc);
+  event.vtxid.resize(nvtxTpc);
+  event.vtxmom_theta.resize(nvtxTpc);
+  event.vtxpos_x.resize(nvtxTpc);
+  event.vtxpos_y.resize(nvtxTpc);
+  event.vtxpos_z.resize(nvtxTpc);
+  event.vtxmom_x.resize(nvtxTpc);
+  event.vtxmom_y.resize(nvtxTpc);
+  event.vtxmom_z.resize(nvtxTpc);
+  for( Int_t it=0; it<nvtxTpc; ++it ){
+    TPCVertexHelix *vp = TPCAna.GetTPCVertexHelix( it );
+    if( !vp ) continue;
+    event.vtx_x[it] = vp -> GetVertex().x();
+    event.vtx_y[it] = vp -> GetVertex().y();
+    event.vtx_z[it] = vp -> GetVertex().z();
+    event.vtx_dist[it] = vp -> GetClosestDist();
+    event.vtx_angle[it] = vp -> GetOpeningAngle();
+
+    event.vtxid[it].resize(2);
+    event.vtxmom_theta[it].resize(2);
+    event.vtxpos_x[it].resize(2);
+    event.vtxpos_y[it].resize(2);
+    event.vtxpos_z[it].resize(2);
+    event.vtxmom_x[it].resize(2);
+    event.vtxmom_y[it].resize(2);
+    event.vtxmom_z[it].resize(2);
+
+    event.vtxid[it][0] = vp -> GetTrack1Id();
+    event.vtxmom_theta[it][0] = vp -> GetTrack1Theta();
+    event.vtxpos_x[it][0] = vp -> GetTrack1Pos().x();
+    event.vtxpos_y[it][0] = vp -> GetTrack1Pos().y();
+    event.vtxpos_z[it][0] = vp -> GetTrack1Pos().z();
+    event.vtxmom_x[it][0] = vp -> GetTrack1Mom().x();
+    event.vtxmom_y[it][0] = vp -> GetTrack1Mom().y();
+    event.vtxmom_z[it][0] = vp -> GetTrack1Mom().z();
+
+    event.vtxid[it][1] = vp -> GetTrack2Id();
+    event.vtxmom_theta[it][1] = vp -> GetTrack2Theta();
+    event.vtxpos_x[it][1] = vp -> GetTrack2Pos().x();
+    event.vtxpos_y[it][1] = vp -> GetTrack2Pos().y();
+    event.vtxpos_z[it][1] = vp -> GetTrack2Pos().z();
+    event.vtxmom_x[it][1] = vp -> GetTrack2Mom().x();
+    event.vtxmom_y[it][1] = vp -> GetTrack2Mom().y();
+    event.vtxmom_z[it][1] = vp -> GetTrack2Mom().z();
   }
 
 #if TrackSearchFailed
@@ -2292,6 +2493,7 @@ Bool_t
 ConfMan::InitializeHistograms( void )
 {
 
+#if SaveHistograms
   HB1(1, "Status", 21, 0., 21. );
   HB1(2, "Hough Dist [mm]", 500, 0., 50 );
   HB1(3, "Hough DistY [mm]", 1000, 0., 100 );
@@ -2366,37 +2568,65 @@ ConfMan::InitializeHistograms( void )
   }
 #endif
 
-  for(Int_t layer=0; layer<NumOfLayersBcOut; ++layer)
-    HB1(TPCRKHid+layer, Form("BcOut RK pull, layer%d;pull;Counts",layer), 500, -10, 10);
-  for(Int_t layer=0; layer<NumOfLayersSdcIn; ++layer)
-    HB1(TPCRKHid+100+layer, Form("Q>0, SdcIn RK pull, layer%d;pull;Counts",layer), 500, -10, 10);
-  for(Int_t layer=0; layer<NumOfLayersSdcOut; ++layer)
-    HB1(TPCRKHid+200+layer, Form("Q>0, SdcOut RK pull, layer%d;pull;Counts",layer), 500, -10, 10);
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    HB1(TPCRKHid+300+layer, Form("Q>0, X TPCRK pull, layer%d;X pull;Counts",layer), 500, -10, 10);
-    HB1(TPCRKHid+400+layer, Form("Q>0, Y TPCRK pull, layer%d;X pull;Counts",layer), 500, -10, 10);
-    HB1(TPCRKHid+500+layer, Form("Q>0, X TPCRK residual, layer%d;X residual [mm];Counts",layer), 500, -10, 10);
-    HB1(TPCRKHid+600+layer, Form("Q>0, Y TPCRK residual, layer%d;Y residual [mm];Counts",layer), 500, -10, 10);
-    HB1(TPCRKHid+700+layer, Form("Q>0, XZ Kurama - TPC, layer%d;XZ residual;Counts",layer), 500, 0, 50);
-    HB1(TPCRKHid+800+layer, Form("Q>0, Y Kurama - TPC, layer%d;Y residual;Counts",layer), 500, -50, 50);
+  for(Int_t layer=0; layer<NumOfLayersBcOut; ++layer){
+    HB1(TPCK18RKHid+100+layer, Form("BcOut RK pull, layer%d;pull;Counts",layer), 500, -10, 10);
+    HB1(TPCK18RKHid+200+layer, Form("BcOut RK residual, layer%d;X residual [mm];Counts",layer), 500, -10, 10);
   }
-  HB1(TPCRKHid+700+NumOfLayersTPC, "Q>0,X Kurama - TPC;X residual;Counts", 500, 0, 50);
-  HB1(TPCRKHid+800+NumOfLayersTPC, "Q>0,Y Kurama - TPC;Y residual;Counts", 500, -50, 50);
+  for(Int_t layer=0; layer<10; ++layer){
+    HB1(TPCK18RKHid+300+layer, Form("X TPCRK pull, layer%d;X pull;Counts",layer), 500, -10, 10);
+    HB1(TPCK18RKHid+400+layer, Form("Y TPCRK pull, layer%d;X pull;Counts",layer), 500, -10, 10);
+    HB1(TPCK18RKHid+500+layer, Form("X TPCRK residual, layer%d;Residual [mm];Counts",layer), 500, -10, 10);
+    HB1(TPCK18RKHid+600+layer, Form("Y TPCRK residual, layer%d;Residual [mm];Counts",layer), 500, -10, 10);
+    HB1(TPCK18RKHid+700+layer, Form("TPC X residual, layer%d;X Residual [mm];Counts",layer), 500, -10, 10);
+    HB1(TPCK18RKHid+800+layer, Form("TPC Y residual, layer%d;Y Residual [mm];Counts",layer), 500, -10, 10);
+    HB1(TPCK18RKHid+900+layer, Form("TPC Z residual, layer%d;Z Residual [mm];Counts",layer), 500, -10, 10);
 
-  for(Int_t layer=0; layer<NumOfLayersSdcIn; ++layer)
-    HB1(TPCRKHid+1100+layer, Form("Q<0, SdcIn RK pull, layer%d;pull;Counts",layer), 500, -10, 10);
-  for(Int_t layer=0; layer<NumOfLayersSdcOut; ++layer)
-    HB1(TPCRKHid+1200+layer, Form("Q<0,SdcOut RK pull, layer%d;pull;Counts",layer), 500, -10, 10);
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    HB1(TPCRKHid+1300+layer, Form("Q<0,X TPCRK pull, layer%d;X pull;Counts",layer), 500, -10, 10);
-    HB1(TPCRKHid+1400+layer, Form("Q<0,Y TPCRK pull, layer%d;X pull;Counts",layer), 500, -10, 10);
-    HB1(TPCRKHid+1500+layer, Form("Q<0,X TPCRK residual, layer%d;X residual [mm];Counts",layer), 500, -10, 10);
-    HB1(TPCRKHid+1600+layer, Form("Q<0,Y TPCRK residual, layer%d;Y residual [mm];Counts",layer), 500, -10, 10);
-    HB1(TPCRKHid+1700+layer, Form("Q<0,XZ Kurama - TPC, layer%d;XZ residual;Counts",layer), 500, 0, 50);
-    HB1(TPCRKHid+1800+layer, Form("Q<0,Y Kurama - TPC, layer%d;Y residual;Counts",layer), 500, -50, 50);
+    HB1(TPCK18VPHid+layer, Form("TPC - K18 XZ, layer%d;XZ residual [mm];Counts",layer), 500, 0, 100);
+    HB1(TPCK18VPHid+100+layer, Form("TPC - K18 X, layer%d;X residual [mm];Counts",layer), 500, -100, 100);
+    HB1(TPCK18VPHid+200+layer, Form("TPC - K18 Y, layer%d;Y residual [mm];Counts",layer), 500, -100, 100);
+    HB1(TPCK18VPHid+300+layer, Form("TPC - K18 Z, layer%d;Z residual [mm];Counts",layer), 500, -100, 100);
   }
-  HB1(TPCRKHid+1700+NumOfLayersTPC, "Q<0,X Kurama - TPC;X residual;Counts", 500, 0, 50);
-  HB1(TPCRKHid+1800+NumOfLayersTPC, "Q<0,Y Kurama - TPC;Y residual;Counts", 500, -50, 50);
+  for(Int_t layer=0; layer<NumOfLayersSdcIn; ++layer){
+    HB1(TPCKuramaRKHid+100+layer, Form("Q>0, SdcIn RK pull, layer%d;pull;Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+200+layer, Form("Q>0, SdcIn RK residual, layer%d;Residual [mm];Counts",layer), 500, -10, 10);
+
+    HB1(TPCKuramaRKHid+1100+layer, Form("Q<0, SdcIn RK pull, layer%d;pull;Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+1200+layer, Form("Q<0, SdcIn RK residual, layer%d;Residual [mm];Counts",layer), 500, -10, 10);
+  }
+  for(Int_t layer=0; layer<NumOfLayersSdcOut; ++layer){
+    HB1(TPCKuramaRKHid+300+layer, Form("Q>0, SdcOut RK pull, layer%d;pull;Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+400+layer, Form("Q>0, SdcOut RK residual, layer%d;residual [mm];Counts",layer), 500, -10, 10);
+
+    HB1(TPCKuramaRKHid+1300+layer, Form("Q<0, SdcOut RK pull, layer%d;pull;Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+1400+layer, Form("Q<0, SdcOut RK residual, layer%d;residual [mm];Counts",layer), 500, -10, 10);
+  }
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    HB1(TPCKuramaRKHid+500+layer, Form("Q>0, X TPCRK pull, layer%d;X pull;Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+600+layer, Form("Q>0, Y TPCRK pull, layer%d;X pull;Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+700+layer, Form("Q>0, X TPCRK residual, layer%d;X residual [mm];Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+800+layer, Form("Q>0, Y TPCRK residual, layer%d;Y residual [mm];Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+1500+layer, Form("Q<0, X TPCRK pull, layer%d;X pull;Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+1600+layer, Form("Q<0, Y TPCRK pull, layer%d;X pull;Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+1700+layer, Form("Q<0, X TPCRK residual, layer%d;X residual [mm];Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+1800+layer, Form("Q<0, Y TPCRK residual, layer%d;Y residual [mm];Counts",layer), 500, -10, 10);
+
+    HB1(TPCKuramaRKHid+4100+layer, Form("Q>0, TPC X residual, layer%d;X Residual [mm];Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+4200+layer, Form("Q>0, TPC Y residual, layer%d;Y Residual [mm];Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+4300+layer, Form("Q>0, TPC Z residual, layer%d;Z Residual [mm];Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+5100+layer, Form("Q<0, TPC X residual, layer%d;X Residual [mm];Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+5200+layer, Form("Q<0, TPC Y residual, layer%d;Y Residual [mm];Counts",layer), 500, -10, 10);
+    HB1(TPCKuramaRKHid+5300+layer, Form("Q<0, TPC Z residual, layer%d;Z Residual [mm];Counts",layer), 500, -10, 10);
+  }
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    HB1(TPCKuramaVPHid+layer, Form("Q>0, TPC - Kurama XZ, layer%d;XZ residual [mm];Counts",layer), 500, 0, 100);
+    HB1(TPCKuramaVPHid+100+layer, Form("Q>0, TPC - Kurama X, layer%d;X residual [mm];Counts",layer), 500, -100, 100);
+    HB1(TPCKuramaVPHid+200+layer, Form("Q>0, TPC - Kurama Y, layer%d;Y residual [mm];Counts",layer), 500, -100, 100);
+    HB1(TPCKuramaVPHid+300+layer, Form("Q>0, TPC - Kurama Z, layer%d;Z residual [mm];Counts",layer), 500, -100, 100);
+    HB1(TPCKuramaVPHid+1000+layer, Form("Q<0, TPC - Kurama XZ, layer%d;XZ residual [mm];Counts",layer), 500, 0, 100);
+    HB1(TPCKuramaVPHid+1100+layer, Form("Q<0, TPC - Kurama X, layer%d;X residual [mm];Counts",layer), 500, -100, 100);
+    HB1(TPCKuramaVPHid+1200+layer, Form("Q<0, TPC - Kurama Y, layer%d;Y residual [mm];Counts",layer), 500, -100, 100);
+    HB1(TPCKuramaVPHid+1300+layer, Form("Q<0, TPC - Kurama Z, layer%d;Z residual [mm];Counts",layer), 500, -100, 100);
+  }
 
   HB1(5001, "P K18", 800, 1.4, 2.2);
   HB1(5002, "P Kurama", 600, 0, 3);
@@ -2534,9 +2764,9 @@ ConfMan::InitializeHistograms( void )
           200, -3., 3.);
     }
   }
+#endif
 
   HBTree( "tpc", "tree of DstTPCKuramaK18Tracking" );
-
   tree->Branch( "status", &event.status );
   tree->Branch( "runnum", &event.runnum );
   tree->Branch( "evnum", &event.evnum );
@@ -2582,6 +2812,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "uvpHS",    &event.uvpHS);
   tree->Branch( "vvpHS",    &event.vvpHS);
 #endif
+  tree->Branch( "tpcidTPCK18", &event.tpcidTPCK18);
   tree->Branch( "isgoodTPCK18", &event.isgoodTPCK18);
   tree->Branch( "niterationTPCK18", &event.niterationTPCK18);
   tree->Branch( "chisqrTPCK18", &event.chisqrTPCK18);
@@ -2617,6 +2848,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "yhtofKurama",   &event.yhtofKurama);
   tree->Branch( "zhtofKurama",   &event.zhtofKurama);
 #endif
+  tree->Branch( "tpcidTPCKurama", &event.tpcidTPCKurama);
   tree->Branch( "isgoodTPCKurama", &event.isgoodTPCKurama);
   tree->Branch( "niterationTPCKurama", &event.niterationTPCKurama);
   tree->Branch( "kflagTPCKurama", &event.kflagTPCKurama);
@@ -2653,12 +2885,15 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "MissMassCorrTPC", &event.MissMassCorrTPC);
   tree->Branch( "MissMassCorrDETPC", &event.MissMassCorrDETPC);
   tree->Branch( "pOrgTPC", &event.pOrgTPC);
-  tree->Branch( "pCalcTPC", &event.pCalcTPC);
   tree->Branch( "pCorrTPC", &event.pCorrTPC);
   tree->Branch( "pCorrDETPC", &event.pCorrDETPC);
-  tree->Branch( "thetaTPC", &event.thetaTPC);
+  tree->Branch( "pCalcTPC", &event.pCalcTPC);
   tree->Branch( "thetaCMTPC", &event.thetaCMTPC);
   tree->Branch( "costCMTPC", &event.costCMTPC);
+  tree->Branch( "pCalcDETPC", &event.pCalcDETPC);
+  tree->Branch( "thetaCMDETPC", &event.thetaCMDETPC);
+  tree->Branch( "costCMDETPC", &event.costCMDETPC);
+  tree->Branch( "thetaTPC", &event.thetaTPC);
   tree->Branch( "ubTPC", &event.ubTPC);
   tree->Branch( "vbTPC", &event.vbTPC);
   tree->Branch( "usTPC", &event.usTPC);
@@ -2822,6 +3057,21 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "failed_track_cluster_mrow", &event.failed_track_cluster_mrow);
 #endif
 
+  tree->Branch( "nvtxTpc", &event.nvtxTpc );
+  tree->Branch( "vtx_x", &event.vtx_x );
+  tree->Branch( "vtx_y", &event.vtx_y );
+  tree->Branch( "vtx_z", &event.vtx_z );
+  tree->Branch( "vtx_dist", &event.vtx_dist );
+  tree->Branch( "vtx_angle", &event.vtx_angle );
+  tree->Branch( "vtxid", &event.vtxid );
+  tree->Branch( "vtxmom_theta", &event.vtxmom_theta );
+  tree->Branch( "vtxpos_x", &event.vtxpos_x );
+  tree->Branch( "vtxpos_y", &event.vtxpos_y );
+  tree->Branch( "vtxpos_z", &event.vtxpos_z );
+  tree->Branch( "vtxmom_x", &event.vtxmom_x );
+  tree->Branch( "vtxmom_y", &event.vtxmom_y );
+  tree->Branch( "vtxmom_z", &event.vtxmom_z );
+
   TTreeReaderCont[kTpcHit] = new TTreeReader( "tpc", TFileCont[kTpcHit] );
   const auto& reader = TTreeReaderCont[kTpcHit];
   src.runnum = new TTreeReaderValue<Int_t>( *reader, "runnum" );
@@ -2968,9 +3218,14 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKuramaTracking]->SetBranchStatus("ytgtKurama",     1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("utgtKurama",     1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("vtgtKurama",     1);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("xtofKurama",     1);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("ytofKurama",     1);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("utofKurama",     1);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("vtofKurama",     1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("tofsegKurama",   1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("thetaKurama",    1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("phiKurama",      1);
+  TTreeCont[kKuramaTracking]->SetBranchStatus("path",           1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("stof",           1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("vpxtpc",         1);
   TTreeCont[kKuramaTracking]->SetBranchStatus("vpytpc",         1);
@@ -3007,9 +3262,14 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKuramaTracking]->SetBranchAddress("ytgtKurama",     src.ytgtKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("utgtKurama",     src.utgtKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("vtgtKurama",     src.vtgtKurama);
+  TTreeCont[kKuramaTracking]->SetBranchAddress("xtofKurama",     src.xtofKurama);
+  TTreeCont[kKuramaTracking]->SetBranchAddress("ytofKurama",     src.ytofKurama);
+  TTreeCont[kKuramaTracking]->SetBranchAddress("utofKurama",     src.utofKurama);
+  TTreeCont[kKuramaTracking]->SetBranchAddress("vtofKurama",     src.vtofKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("tofsegKurama",   src.tofsegKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("thetaKurama",    src.thetaKurama);
   TTreeCont[kKuramaTracking]->SetBranchAddress("phiKurama",      src.phiKurama);
+  TTreeCont[kKuramaTracking]->SetBranchAddress("path",           src.path);
   TTreeCont[kKuramaTracking]->SetBranchAddress("stof",           src.stof);
   TTreeCont[kKuramaTracking]->SetBranchAddress("vpxtpc",         src.vpxtpc);
   TTreeCont[kKuramaTracking]->SetBranchAddress("vpytpc",         src.vpytpc);
