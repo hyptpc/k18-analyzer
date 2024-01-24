@@ -1044,7 +1044,8 @@ Double_t HypTPCBethe(Double_t *x, Double_t *p){
 //_____________________________________________________________________________
 Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq){
 
-  Double_t conversion_factor = 10452;
+  //Double_t conversion_factor = 10452;
+  Double_t conversion_factor = 11073.3;
   Double_t limit = 0.6; //GeV/c
   Double_t mpi = 139.57039;
   Double_t mk  = 493.677;
@@ -1072,16 +1073,21 @@ Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq){
   else if(limit > poq && poq >= 0.){
     Double_t dedx_d = f_d -> Eval(poq); Double_t dedx_p = f_p -> Eval(poq);
     Double_t dedx_kp = f_kp -> Eval(poq); Double_t dedx_pip = f_pip -> Eval(poq);
-    if(dedx_d > dedx && dedx >= dedx_kp) pid[2]=1;
+    if(dedx >= dedx_kp) pid[2]=1;
     if(dedx_p > dedx){
       pid[0]=1; pid[1]=1;
     }
   }
   else if(0.> poq && poq >= -limit){
-    pid[0]=1; pid[1]=1;
+    Double_t dedx_d = f_d -> Eval(-poq); Double_t dedx_p = f_p -> Eval(-poq);
+    Double_t dedx_kp = f_kp -> Eval(-poq); Double_t dedx_pip = f_pip -> Eval(-poq);
+    if(dedx >= dedx_kp) pid[2]=1;
+    if(dedx_p > dedx){
+      pid[0]=1; pid[1]=1;
+    }
   }
   else{
-    pid[0]=1; pid[1]=1;
+    pid[0]=1; pid[1]=1; pid[2]=1;
   }
 
   delete f_pim;
@@ -1128,7 +1134,7 @@ CalcHelixMom(Double_t Bfield, Int_t charge, Double_t par[5], Double_t t){
 
 //_____________________________________________________________________________
 TVector3
-VertexPointHelix(Double_t par1[5], Double_t par2[5], Double_t t1_start, Double_t t1_end, Double_t t2_start, Double_t t2_end, Double_t& close_t1, Double_t& close_t2, Double_t& dist){
+VertexPointHelix(Double_t par1[5], Double_t par2[5], Double_t t1_start, Double_t t1_end, Double_t t2_start, Double_t t2_end, Double_t& t1, Double_t& t2, Double_t& dist){
 
   //helix function 1
   //x = [0] + [3]*cos(t);
@@ -1155,8 +1161,8 @@ VertexPointHelix(Double_t par1[5], Double_t par2[5], Double_t t1_start, Double_t
 
   Double_t close_zin, close_zout;
   fvertex_helix.GetMinimumXY(close_zin, close_zout);
-  close_t1 = close_zin;
-  close_t2 = close_zout;
+  t1 = close_zin;
+  t2 = close_zout;
 
   Double_t xin = par1[0]+par1[3]*cos(close_zin);
   Double_t xout = par2[0]+par2[3]*cos(close_zout);
@@ -1187,10 +1193,10 @@ LambdaVertex(Double_t Bfield, Double_t p_par[5], Double_t pi_par[5],
 	     Double_t& dist){
 
 
-  Double_t close_t1, close_t2;
-  TVector3 vertex = VertexPointHelix(p_par, pi_par, p_theta_min, p_theta_max, pi_theta_min, pi_theta_max, close_t1, close_t2, dist);
-  p_mom = CalcHelixMom(Bfield, 1, p_par, close_t1);
-  pi_mom = CalcHelixMom(Bfield, -1, pi_par, close_t2);
+  Double_t t1, t2;
+  TVector3 vertex = VertexPointHelix(p_par, pi_par, p_theta_min, p_theta_max, pi_theta_min, pi_theta_max, t1, t2, dist);
+  p_mom = CalcHelixMom(Bfield, 1, p_par, t1);
+  pi_mom = CalcHelixMom(Bfield, -1, pi_par, t2);
   lambda_mom = p_mom + pi_mom;
 
   return vertex;
@@ -1203,6 +1209,7 @@ TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
 		  TVector3 &Ppi, Double_t &lambdapi_dist){
 
   Double_t lambdavtx_xivtx_cut = 0.;
+  //Double_t lambdavtx_xivtx_cut = 30.;
 
   Double_t xi = -1.*Xlambda.x();
   Double_t yi = Xlambda.z() - tpc::ZTarget;
