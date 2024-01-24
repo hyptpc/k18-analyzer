@@ -25,6 +25,7 @@ public:
 private:
   TPCHit* m_hit;
   Int_t m_layer;
+  Int_t m_section;
   Double_t m_mrow;
   TVector3 m_local_hit_pos;
   TVector3 m_cal_pos;
@@ -74,6 +75,7 @@ public:
 
   const TVector3& GetLocalHitPos()  const { return m_local_hit_pos; }
   Int_t  GetLayer()       const { return m_layer; }
+  Int_t  GetSection()       const { return m_section; }
   Double_t GetMRow()      const { return m_mrow; }
   Double_t GetPadTheta()  const { return m_padtheta; }
   Double_t GetPadLength() const { return m_padlength; }

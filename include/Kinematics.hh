@@ -85,7 +85,7 @@ namespace Kinematics
   TVector3 VertexPointHelix(Double_t par1[5], Double_t par2[5],
 			    Double_t t1_start, Double_t t1_end,
 			    Double_t t2_start, Double_t t2_end,
-			    Double_t& close_t1, Double_t& close_t2,
+			    Double_t& t1, Double_t& t2,
 			    Double_t& dist);
   TVector3 LambdaVertex(Double_t Bfield, Double_t p_par[5], Double_t pi_par[5],
 			Double_t t1_start, Double_t t1_end,

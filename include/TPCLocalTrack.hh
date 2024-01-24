@@ -46,6 +46,7 @@ private:
   Double_t m_v0;
 
   Double_t m_closedist; //closest distance from the track to the target
+  TVector3 m_edgepoint; //the most outer point of the track
   Double_t m_chisqr;
   Int_t m_minuit; //Minuit output status 0:not calculated at all 1:approximation only, not accurate
   //2:full matrix, but forced positive-definite 3:full accurate covariance matrix
@@ -70,7 +71,7 @@ public:
   void          EraseHit(Int_t delete_hit);
   void          ClearHits();
   void          Calculate();
-  void          CalcClosestDist();
+  void          CalcClosestDistTgt();
   void          DeleteNullHit();
   Bool_t        DoFit(Int_t MinHits=0);
   Bool_t        DoStraightTrackFit();
@@ -87,7 +88,7 @@ public:
   Double_t      GetVerticalResolution(Int_t i);
 
   Bool_t        ResidualCheck(Int_t i, Double_t &residual);
-  Bool_t        ResidualCheck(TPCHit *hit, Double_t &residual);
+  Bool_t        IsGoodHitToAdd(TPCHit *hit, Double_t &residual);
   Int_t         Side(TVector3 pos);
   void          Print(const TString& arg="", Bool_t print_allhits = false) const;
   Bool_t        IsGoodForTracking();
@@ -132,8 +133,11 @@ public:
   void SetSearchTime(Int_t time) { m_searchtime = time; }
   void SetFitTime(Int_t time) { m_fittime = time; }
 
+  Bool_t VertexAtTarget();
+  Bool_t IsBackward();
   Bool_t SeparateTracksAtTarget();
   Bool_t SeparateClustersWithGap();
+  void RecalcTrack();
 
   //exclusive
   void CalculateExclusive();

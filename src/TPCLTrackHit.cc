@@ -31,6 +31,7 @@ const Double_t& HSfield_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
 TPCLTrackHit::TPCLTrackHit(TPCHit *hit)
   : m_hit(hit),
     m_layer(hit->GetLayer()),
+    m_section(-1),
     m_mrow(hit->GetMRow()),
     m_local_hit_pos(hit->GetPosition()),
     m_cal_pos(TVector3(0.,0.,0.)),
@@ -46,7 +47,6 @@ TPCLTrackHit::TPCLTrackHit(TPCHit *hit)
     m_r(TMath::QuietNaN()),
     m_dz(TMath::QuietNaN()),
     m_t(TMath::QuietNaN()),
-    //m_padtheta(hit->GetMPadTheta()),
     m_padtheta(hit->GetPadTheta()),
     m_padlength(hit->GetPadLength()),
     m_de(hit->GetCDe()),
@@ -63,6 +63,12 @@ TPCLTrackHit::TPCLTrackHit(TPCHit *hit)
     m_dz_exclusive(TMath::QuietNaN()),
     m_t_exclusive(TMath::QuietNaN())
 {
+
+  if((m_local_hit_pos.z() + m_local_hit_pos.x()) < 0 && (m_local_hit_pos.z() - m_local_hit_pos.x()) < 0) m_section = 1;
+  if((m_local_hit_pos.z() + m_local_hit_pos.x()) < 0 && (m_local_hit_pos.z() - m_local_hit_pos.x()) > 0) m_section = 2;
+  if((m_local_hit_pos.z() + m_local_hit_pos.x()) > 0 && (m_local_hit_pos.z() - m_local_hit_pos.x()) > 0) m_section = 3;
+  if((m_local_hit_pos.z() + m_local_hit_pos.x()) > 0 && (m_local_hit_pos.z() - m_local_hit_pos.x()) < 0) m_section = 4;
+
   m_hit->RegisterHits(this);
   debug::ObjectCounter::increase(ClassName());
 }
@@ -71,6 +77,7 @@ TPCLTrackHit::TPCLTrackHit(TPCHit *hit)
 TPCLTrackHit::TPCLTrackHit(const TPCLTrackHit& right)
   : m_hit(right.m_hit),
     m_layer(right.m_layer),
+    m_section(-1),
     m_mrow(right.m_mrow),
     m_local_hit_pos(right.m_local_hit_pos),
     m_cal_pos(right.m_cal_pos),

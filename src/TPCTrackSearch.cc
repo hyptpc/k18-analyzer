@@ -6,13 +6,13 @@
 Track finding process
 1. Hough-transform on the XZ plane
 2. Hough-transform on the vertical plane
-    -> Get initial track parameters.
+   -> Get initial track parameters.
 3. Check residual(Houghdist) in the Hough-space and
 make a inital track with clusters with small residual.
 
 Track fitting process
 1. First fitting with inital track.
-2. If fitting is succedeed, check the residual of other cluster with the track.
+2. If fitting is succeeded, check the residual of other cluster with the track.
 If residual is acceptable, add cluster into the track.
 3. If the track is extended by added clusters, then do fitting again. (recursive)
 
@@ -50,30 +50,40 @@ Detailed fitting procedures are explained in the TPCLocalTrack/Helix.
 #include "TPCLTrackHit.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLocalTrackHelix.hh"
+#include "TPCVertexHelix.hh"
 #include "TPCCluster.hh"
 #include "RootHelper.hh"
 
 #define DebugDisp 0
+#define FragmentedTrackTest 1
+//#define FragmentedTrackTest 0
 
 namespace
 {
-  const Double_t Const = 0.299792458;
   const auto qnan = TMath::QuietNaN();
   const auto& gUser = UserParamMan::GetInstance();
 
-  const Int_t    MaxNumOfTrackTPC = 20;
-  //const Double_t KuramaXZWindow = 30.;
-  //const Double_t KuramaYWindow = 10.;
-  const Double_t KuramaXZWindow = 35.;
-  const Double_t KuramaYWindow = 20.;
+  const Int_t    MaxNumOfTrackTPC = 30;
+  //const Double_t KuramaXZWindow = 35.; //ref
+  const Double_t KuramaXZWindow = 45.;
+  //const Double_t KuramaYWindow = 20.; //ref
+  const Double_t KuramaYWindow = 30.; //ref
   const Double_t K18XZWindow = 10.5;
   //const Double_t K18YWindow = 10.;
   const Double_t K18YWindow = 15.;
+
+  // Closest distance cut for vertex finding
+  const Double_t VertexDistCut = 30.;
+
+  // Maximum number of fitting steps
+  //const Int_t MaxFitSteps = 5;
+  const Int_t MaxFitSteps = 10;
 
   // Houghflags
   const Int_t GoodForTracking = 100;
   const Int_t K18Tracks = 200;
   //const Int_t KuramaTracks = 300;
+  const Int_t BadHoughTransform = 300;
   const Int_t BadForTracking = 400;
   const Int_t Candidate = 1000;
 
@@ -84,9 +94,8 @@ namespace
   std::vector<Double_t> Yhough_x;
   std::vector<Double_t> Yhough_y;
 
-  //________________________ _____________________________________________________
+  //_____________________________________________________________________________
   // Local Functions
-
   //_____________________________________________________________________________
   template <typename T> void
   CalcTracks(std::vector<T*>& TrackCont)
@@ -133,9 +142,21 @@ namespace
   }
 
   //_____________________________________________________________________________
+  template <typename T> Bool_t
+  IsGood(T* track, Int_t MinNumOfHits)
+  {
+
+    Bool_t status = false;
+    if(track->IsBackward()) status = true;
+    else if(track->GetNHit() >= MinNumOfHits) status = true; //track w/ enough clusters
+    return status;
+  }
+
+  //_____________________________________________________________________________
   //Convert a straight line track into helix track
   Bool_t
-  ConvertTrack(TPCLocalTrack *LinearTrack, TPCLocalTrackHelix *HelixTrack){
+  ConvertTrack(TPCLocalTrack *LinearTrack, TPCLocalTrackHelix *HelixTrack)
+  {
 
     Int_t n = LinearTrack->GetNHit();
     for(Int_t i=0; i<n; ++i){
@@ -145,44 +166,71 @@ namespace
     Double_t LinearPar[4];
     LinearTrack->GetParam(LinearPar);
     Bool_t status = HelixTrack->ConvertParam(LinearPar);
-
     delete LinearTrack;
+    if(status &&
+       HelixTrack-> Getr() < 200.) status = false;
     return status;
   }
-}
 
-//_____________________________________________________________________________
-namespace tpc
-{
+  //_____________________________________________________________________________
+  template <typename T> Bool_t
+  AddClusters(T* Track, const std::vector<TPCClusterContainer>& ClCont, Int_t HoughFlag=0)
+  {
 
+    Bool_t status = false;
+    //Residual check with other hits
+    for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
+      for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
+	auto cl = ClCont[layer][ci];
+	TPCHit* hit = cl->GetMeanHit();
+	if(hit->GetHoughFlag()!=HoughFlag) continue;
+	Double_t resi=0.;
+	if(Track->IsGoodHitToAdd(hit, resi)){
+	  Int_t vtxflag = Track -> GetVtxFlag();
+	  TVector3 pos = hit -> GetPosition();
+	  Int_t side = Track -> Side(pos);
+	  //Vertex inside the target : vtxflag = -1 or 1 / outside vtxflag = 0
+	  //if track and new cluster are on the same side and vertex in the target : vtxflag*side = 1
+	  //if vertex is outside of the target : vtxflag*side = 0
+	  if(vtxflag*side >= 0){
+	    Track->AddTPCHit(new TPCLTrackHit(hit));
+	    status = true;
+	  }
+	}
+      } //ci
+    } //layer
+    return status;
+  }
+} //namespace
+
+namespace tpc{
 //_____________________________________________________________________________
 template <typename T> Bool_t
-AddClusters(T* Track, const std::vector<TPCClusterContainer>& ClCont)
+FitStep(T* Track,
+	const std::vector<TPCClusterContainer>& ClCont,
+	std::vector<T*>& TrackContFailed,
+	Int_t MinNumOfHits)
 {
 
-  Bool_t status = false;
+  Bool_t status = true;
+  if(Track->DoFit(MinNumOfHits)){ // MinNumOfHits cut is not applied in inital tracking
+    Track->SetClustersHoughFlag(Candidate);
 
-  //Residual check with other hits
-  for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
-    for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
-      auto cl = ClCont[layer][ci];
-      TPCHit* hit = cl->GetMeanHit();
-      if(hit->GetHoughFlag()>0) continue;
-      Double_t resi=0.;
-      if(Track->ResidualCheck(hit, resi)){
-	Int_t vtxflag = Track -> GetVtxFlag();
-	TVector3 pos = hit -> GetPosition();
-	Int_t side = Track -> Side(pos);
-	//Vertex inside the target : vtxflag = -1 or 1 / outside vtxflag = 0
-	//if track and new cluster are on the same side and vertex in the target : vtxflag*side = 1
-	//if vertex is outside of the target : vtxflag*side = 0
-	if(vtxflag*side >= 0){
-	  Track->AddTPCHit(new TPCLTrackHit(hit));
-	  status = true;
-	}
-      }
-    } //ci
-  } //layer
+#if DebugDisp
+    Track->Print(FUNC_NAME+" Fitting is succeeded");
+    //Track->Print(FUNC_NAME+" Fitting is succeeded", true);
+#endif
+  }
+  else{ //Fitting is failed. (reset clusters' Hough flag)
+    Track->SetClustersHoughFlag(0);
+    Track->SetFlag(0);
+    TrackContFailed.push_back(Track);
+
+#if DebugDisp
+    Track->Print(FUNC_NAME+" Fitting is failed");
+#endif
+    status = false;
+  }
 
   return status;
 }
@@ -200,221 +248,103 @@ FitTrack(T* Track, Int_t Houghflag,
   auto fit_start = std::chrono::high_resolution_clock::now();
 
 #if DebugDisp
-  Track->Print(FUNC_NAME+" Initial track after Hough-transform");
-  //Track->Print(FUNC_NAME+" Initial track after Hough-transform", true);
+  Track->Print(FUNC_NAME+" An initial track for fitting");
+  //Track->Print(FUNC_NAME+" An initial track for fitting", true);
 #endif
 
-  //first fitting
-  if(Track->DoFit()){ // MinNumOfHits cut is not applied in inital tracking
-    auto first_fit = std::chrono::high_resolution_clock::now();
-    sec = std::chrono::duration_cast<std::chrono::milliseconds>(first_fit - fit_start);
-    Track->SetClustersHoughFlag(Candidate);
-    Track->SetFitTime(sec.count());
-    Track->SetFitFlag(1);
-
-#if DebugDisp
-    Track->Print(FUNC_NAME+" First fitting is succeeded");
-    //Track->Print(FUNC_NAME+" First fitting is succeeded", true);
-#endif
-
-    //1st fitting is succeeded.
+  Int_t nstep = 0;
+  while(true){
     T *ExtendedTrack = new T(Track);
-    if(!AddClusters(ExtendedTrack, ClCont)){ //case1. No more cluster to add. -> Move the track into containers
+    //Int_t thr_ncl = 0.5*MinNumOfHits;
+    Int_t thr_ncl = 0;
+    if(nstep==0) thr_ncl = 0; //The initial track can be short.
+    else if(nstep > MaxFitSteps){ //Tracking is over
       delete ExtendedTrack;
-      if(Track->GetNHit() >= MinNumOfHits){ //track w/ enough clusters
+      if(IsGood(Track, MinNumOfHits)){
+#if DebugDisp
+	Track->Print(FUNC_NAME+" Tracking is over. track is good for tracking");
+	//Track->Print(FUNC_NAME+" Tracking is over. track is good for tracking", true);
+#endif
 	Track->SetClustersHoughFlag(Houghflag);
 	TrackCont.push_back(Track);
       }
       else{
+#if DebugDisp
+	Track->Print(FUNC_NAME+" Tracking is over. track is not good for tracking");
+	//Track->Print(FUNC_NAME+" Tracking is over. track is not good for tracking", true);
+#endif
 	Track->SetClustersHoughFlag(BadForTracking); //track w/ few clusters
 	Track->SetFlag(0);
 	TrackContFailed.push_back(Track);
       }
-#if DebugDisp
-      Track->Print(FUNC_NAME+" No more cluster to add");
-      //Track->Print(FUNC_NAME+" No more cluster to add", true);
-#endif
+      break;
     }
-    else{ //case2. More clusters are added to the track -> Do track fitting process again.
-      auto hitadd = std::chrono::high_resolution_clock::now();
+    else if(!AddClusters(ExtendedTrack, ClCont)){
+      if(!AddClusters(ExtendedTrack, ClCont, BadHoughTransform)){
+	if(!AddClusters(ExtendedTrack, ClCont, BadForTracking)){
+	  delete ExtendedTrack;
+	  if(IsGood(Track, MinNumOfHits)){
 #if DebugDisp
-      ExtendedTrack->Print(FUNC_NAME+" After adding clusters");
-      //ExtendedTrack->Print(FUNC_NAME+" After adding clusters", true);
+	    Track->Print(FUNC_NAME+" track is good and no more cluster to add");
+	    //Track->Print(FUNC_NAME+" track is good and no more cluster to add", true);
 #endif
-      if(ExtendedTrack->DoFit(MinNumOfHits)){ //2nd fitting success
-	delete Track;
-	auto second_fit = std::chrono::high_resolution_clock::now();
-	sec = std::chrono::duration_cast<std::chrono::milliseconds>(second_fit - hitadd);
-	ExtendedTrack->SetFitTime(sec.count());
-	ExtendedTrack->SetFitFlag(2);
-	ExtendedTrack->SetClustersHoughFlag(Houghflag);
-	TrackCont.push_back(ExtendedTrack);
-
+	    Track->SetClustersHoughFlag(Houghflag);
+	    TrackCont.push_back(Track);
+	  }
+	  else{
 #if DebugDisp
-	ExtendedTrack->Print(FUNC_NAME+" Fitting success after adding clusters (residual check)");
-	//ExtendedTrack->Print(FUNC_NAME+" Fitting success after adding clusters (residual check)", true);
+	    Track->Print(FUNC_NAME+" Track is not good and no more cluster to add");
+	    //Track->Print(FUNC_NAME+" Track is not good and no more cluster to add", true);
 #endif
-      }
-      else{ //2nd fitting failure -> Save the 1st fitting result
-	delete ExtendedTrack;
-	//push 1st fitting track
-	auto hitadd_fail = std::chrono::high_resolution_clock::now();
-	sec = std::chrono::duration_cast<std::chrono::milliseconds>(hitadd_fail - hitadd);
-	Track->SetFitTime(sec.count());
-	Track->SetFitFlag(3);
-	if(Track->GetNHit() >= MinNumOfHits){ //track w/ enough clusters
-	  Track->SetClustersHoughFlag(Houghflag);
-	  TrackCont.push_back(Track);
+	    Track->SetClustersHoughFlag(BadForTracking); //track w/ few clusters
+	    Track->SetFlag(0);
+	    TrackContFailed.push_back(Track);
+	  }
+	  break; //No more cluster to add
 	}
-	else{
-	  Track->SetClustersHoughFlag(BadForTracking); //track w/ few clusters
-	  TrackContFailed.push_back(Track);
-	}
-
-#if DebugDisp
-	Track->Print(FUNC_NAME+" 2nd fitting failure!");
-	//Track->Print(FUNC_NAME+" 2nd fitting failure!", true);
-#endif
       }
+    } // No more cluster to add
+
+    //After adding more clusters, fitting starts.
+    if(FitStep(ExtendedTrack, ClCont, TrackContFailed, thr_ncl)){
+      delete Track;
+      Track = ExtendedTrack; //Updates the track
+      //std::cout<<"extension"<<std::endl;
     }
-  }
-  else{ //First fitting is failed. (reset clusters' Hough flag)
-    auto after_1stfit_fail = std::chrono::high_resolution_clock::now();
-    sec = std::chrono::duration_cast<std::chrono::milliseconds>(after_1stfit_fail - fit_start);
-    Track->SetFitTime(sec.count());
-    Track->SetFitFlag(4);
-    Track->SetClustersHoughFlag(0);
-    Track->SetFlag(0);
-    TrackContFailed.push_back(Track);
-
+    else{
+      if(nstep!=0 && IsGood(Track, MinNumOfHits)){
 #if DebugDisp
-    Track->Print(FUNC_NAME+" First fitting is failed");
-    //Track->Print(FUNC_NAME+" First fitting is failed", true);
+	Track->Print(FUNC_NAME+" no more clusters to add");
+	//Track->Print(FUNC_NAME+" no more clusters to add", true);
 #endif
-  }
-
-#if DebugDisp
-  std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
-  std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
-#endif
-
-}
-  /*
-//_____________________________________________________________________________
-//if there is a charge or momentum constraint, they can be applied in tracking.
-template <typename T> void
-FitTrack(T* Track, Int_t Houghflag,
-	 const std::vector<TPCClusterContainer>& ClCont,
-	 std::vector<T*>& TrackCont,
-	 std::vector<T*>& TrackContFailed,
-	 Double_t ChargeConstraint, Double_t RKHelixParam[5],
-	 Int_t MinNumOfHits)
-{
-
-  std::chrono::milliseconds sec;
-  auto fit_start = std::chrono::high_resolution_clock::now();
-
-#if DebugDisp
-  Track->Print(FUNC_NAME+" Initial track");
-  //Track->Print(FUNC_NAME+" Initial track", true);
-#endif
-
-  //first fitting
-  if(Track->DoFit(ChargeConstraint, RKHelixParam)){ // No MinNumOfHits cut for the inital Hough track
-    auto first_fit = std::chrono::high_resolution_clock::now();
-    sec = std::chrono::duration_cast<std::chrono::milliseconds>(first_fit - fit_start);
-    Track->SetClustersHoughFlag(Candidate);
-    Track->SetFitTime(sec.count());
-    Track->SetFitFlag(1);
-
-#if DebugDisp
-    Track->Print(FUNC_NAME+" First fitting is succeeded");
-    //Track->Print(FUNC_NAME+" First fitting is succeeded", true);
-#endif
-
-    //1st fitting is succeeded.
-    T *ExtendedTrack = new T(Track);
-    if(!AddClusters(ExtendedTrack, ClCont)){ //No more cluster to add
-      delete ExtendedTrack;
-      if(Track->GetNHit() >= MinNumOfHits){ //track w/ enough clusters
 	Track->SetClustersHoughFlag(Houghflag);
 	TrackCont.push_back(Track);
       }
       else{
-	Track->SetClustersHoughFlag(BadForTracking); //track w/ few clusters
-	Track->SetFlag(0);
-	TrackContFailed.push_back(Track);
-      }
 #if DebugDisp
-      Track->Print(FUNC_NAME+" No added cluster");
-      //Track->Print(FUNC_NAME+" No added cluster", true);
+	std::cout<<"delete"<<std::endl;
 #endif
-    }
-    else{ //More clusters are added to the track
-      auto hitadd = std::chrono::high_resolution_clock::now();
-#if DebugDisp
-      ExtendedTrack->Print(FUNC_NAME+" After cluster adding");
-      //ExtendedTrack->Print(FUNC_NAME+" After cluster adding", true);
-#endif
-      if(ExtendedTrack->DoFit(ChargeConstraint, RKHelixParam, MinNumOfHits)){ //2nd fitting success
 	delete Track;
-	auto second_fit = std::chrono::high_resolution_clock::now();
-	sec = std::chrono::duration_cast<std::chrono::milliseconds>(second_fit - hitadd);
-	ExtendedTrack->SetFitTime(sec.count());
-	ExtendedTrack->SetFitFlag(2);
-	ExtendedTrack->SetClustersHoughFlag(Houghflag);
-	TrackCont.push_back(ExtendedTrack);
-
-#if DebugDisp
-	ExtendedTrack->Print(FUNC_NAME+" Fitting success after adding hits (residual check)");
-	//ExtendedTrack->Print(FUNC_NAME+" Fitting success after adding hits (residual check)", true);
-#endif
       }
-      else{ //2nd fitting failure
-	delete ExtendedTrack;
-	//push 1st fitting track
-	auto hitadd_fail = std::chrono::high_resolution_clock::now();
-	sec = std::chrono::duration_cast<std::chrono::milliseconds>(hitadd_fail - hitadd);
-	Track->SetFitTime(sec.count());
-	Track->SetFitFlag(3);
-	if(Track->GetNHit() >= MinNumOfHits){ //track w/ enough clusters
-	  Track->SetClustersHoughFlag(Houghflag);
-	  TrackCont.push_back(Track);
-	}
-	else{
-	  Track->SetClustersHoughFlag(BadForTracking); //track w/ few clusters
-	  TrackContFailed.push_back(Track);
-	}
-
-#if DebugDisp
-	Track->Print(FUNC_NAME+" 2nd fitting failure!");
-	//Track->Print(FUNC_NAME+" 2nd fitting failure!", true);
-#endif
-      }
+      break; //Extended track's fitting is failed
     }
-  }
-  else{ //First fitting is failed. Reset clusters' Hough flag
-    auto after_1stfit_fail = std::chrono::high_resolution_clock::now();
-    sec = std::chrono::duration_cast<std::chrono::milliseconds>(after_1stfit_fail - fit_start);
-    Track->SetFitTime(sec.count());
-    Track->SetFitFlag(4);
-    Track->SetClustersHoughFlag(0);
-    Track->SetFlag(0);
-    TrackContFailed.push_back(Track);
 
 #if DebugDisp
-    Track->Print(FUNC_NAME+" First fitting is failed");
-    //Track->Print(FUNC_NAME+" First fitting is failed", true);
+    std::cout<<FUNC_NAME+" # of fitting steps for tracking: "<<nstep<<std::endl;
+    std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<" #failed track : "<<TrackContFailed.size()<<std::endl;
+    std::cout<<std::endl;
 #endif
-  }
 
-#if DebugDisp
-  std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
-  std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
-#endif
+    nstep++;
+  } //while
+
+  auto fittingtime = std::chrono::high_resolution_clock::now();
+  sec = std::chrono::duration_cast<std::chrono::milliseconds>(fittingtime - fit_start);
+  if(Track) Track -> SetFitTime(sec.count());
+  if(Track) Track -> SetFitFlag(nstep);
 
 }
-  */
+
 //_____________________________________________________________________________
 Int_t
 LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
@@ -467,6 +397,7 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
     prev_add = MakeLinearTrack(track, vtx_flag, ClCont, LinearPar, MaxHoughWindowY);
     if(!prev_add) continue;
     if(!track -> IsGoodForTracking() || !vtx_flag){
+      track->SetClustersHoughFlag(BadHoughTransform);
       TrackContFailed.push_back(track);
       continue;
     }
@@ -498,6 +429,7 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
       std::cout<<FUNC_NAME+" The same track is found by Hough-Transform : tracki : "<<tracki<<" hough cont size : "<<XZhough_x.size()<<std::endl;
 #endif
       track->SetFitFlag(0);
+      track->SetClustersHoughFlag(BadHoughTransform);
       TrackContFailed.push_back(track);
       continue;
     }
@@ -510,6 +442,7 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
     FitTrack(track, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
   }// tracki
   ResetHoughFlag(ClCont);
+  ResetHoughFlag(ClCont, BadHoughTransform);
 
 #if DebugDisp
   std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
@@ -553,15 +486,15 @@ MakeLinearTrack(TPCLocalTrack *Track, Bool_t &VtxFlag,
 
   if(status){
     //Vtx in the target, need to check whether two tracks are merged or not
-    //VtxFlag = (Track -> SeparateClustersWithGap() && Track -> SeparateTracksAtTarget());
     Track -> SetClustersHoughFlag(Candidate);
-    VtxFlag = Track -> SeparateTracksAtTarget();
+    VtxFlag = (Track -> SeparateClustersWithGap() || Track -> SeparateTracksAtTarget());
+    //VtxFlag = Track -> SeparateTracksAtTarget();
     if(VtxFlag && AddClusters(Track, ClCont)) Track -> SetClustersHoughFlag(Candidate);
   }
 
 #if DebugDisp
   if(status) Track->Print(FUNC_NAME+" Initial track after track finding");
-//if(status) Track->Print(FUNC_NAME+" Initial track after track finding", true);
+  //if(status) Track->Print(FUNC_NAME+" Initial track after track finding", true);
 #endif
 
   if(!status) delete Track;
@@ -580,7 +513,7 @@ MakeHelixTrack(TPCLocalTrackHelix *Track, Bool_t &VtxFlag,
 
   //Check Hough-distance and add hits
   Int_t id = 0;
-  Double_t theta0 = 0; Double_t prev_theta = 0.; Bool_t thetaflip = false;
+  Bool_t thetaflip = false;
   for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
     for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
       auto cl = ClCont[layer][ci];
@@ -594,15 +527,14 @@ MakeHelixTrack(TPCLocalTrackHelix *Track, Bool_t &VtxFlag,
       Double_t r_cal = TMath::Sqrt(pow(tmpx - HelixPar[0], 2) + pow(tmpy - HelixPar[1], 2));
       Double_t dist = TMath::Abs(r_cal - HelixPar[3]);
       if(dist < MaxHoughWindow){
+
+	//for the inital track, scanning theta within range (-pi, pi)
 	Double_t tmpt = TMath::ATan2(tmpy - HelixPar[1], tmpx - HelixPar[0]);
 	Double_t tmp_xval = HelixPar[3]*tmpt;
 	Double_t distY = TMath::Abs(HelixPar[4]*tmp_xval - tmpz + HelixPar[2])/TMath::Sqrt(pow(HelixPar[4], 2) + 1.);
+	Double_t distY_2pi = TMath::Abs(HelixPar[4]*(tmp_xval + 2.*TMath::Pi()*HelixPar[3]) - tmpz + HelixPar[2])/TMath::Sqrt(pow(HelixPar[4], 2) + 1.);
+	Double_t distY_m2pi = TMath::Abs(HelixPar[4]*(tmp_xval - 2.*TMath::Pi()*HelixPar[3]) - tmpz + HelixPar[2])/TMath::Sqrt(pow(HelixPar[4], 2) + 1.);
 	if(distY < MaxHoughWindowY){
-	  //Check theta flip
-	  if(id==0) theta0 = tmpt;
-	  if(TMath::Abs(prev_theta - tmpt) > TMath::Pi()) thetaflip = true;
-	  prev_theta = tmpt;
-
 	  //Add hit into the track
 	  hit->SetHoughDist(dist);
 	  hit->SetHoughDistY(distY);
@@ -611,16 +543,36 @@ MakeHelixTrack(TPCLocalTrackHelix *Track, Bool_t &VtxFlag,
 	  id++;
 	  status = true;
 	} //distY
+	else if(distY_2pi < MaxHoughWindowY){
+	  //Add hit into the track
+	  hit->SetHoughDist(dist);
+	  hit->SetHoughDistY(distY_2pi);
+	  Track->AddTPCHit(new TPCLTrackHit(hit));
+
+	  id++;
+	  status = true;
+	}
+	else if(distY_m2pi < MaxHoughWindowY){
+	  //Add hit into the track
+	  hit->SetHoughDist(dist);
+	  hit->SetHoughDistY(distY_m2pi);
+	  Track->AddTPCHit(new TPCLTrackHit(hit));
+
+	  id++;
+	  status = true;
+	}
       } //dist
     } //ci
   } //layer
 
-  if(thetaflip) Track -> SetIsThetaFlip();
   if(status){
-    //Vtx in the target, need to check whether two tracks are merged or not
-    Track -> CalcThetaHits();
     Track -> SetClustersHoughFlag(Candidate);
-    //VtxFlag = (Track -> SeparateClustersWithGap() && Track -> SeparateTracksAtTarget());
+    Track -> CalcHelixTheta();
+
+    //If track has very large gap, then spilt it.
+    if(Track -> SeparateClustersWithGap()) Track -> CalcHelixTheta();
+
+    //If the vtx is in the target, need to check whether two tracks are fragmented tracks or independent tracks.
     VtxFlag = Track -> SeparateTracksAtTarget();
     if(VtxFlag && AddClusters(Track, ClCont)){
       Double_t par[5];
@@ -631,7 +583,8 @@ MakeHelixTrack(TPCLocalTrackHelix *Track, Bool_t &VtxFlag,
   }
 
 #if DebugDisp
-    Track->Print(FUNC_NAME+" Inital track after track finding");
+  if(status) Track->Print(FUNC_NAME+" Initial track after track finding");
+  //if(status) Track->Print(FUNC_NAME+" Initial track after track finding", true);
 #endif
 
   if(!status) delete Track;
@@ -687,6 +640,7 @@ HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
     prev_add = MakeHelixTrack(track, vtx_flag, ClCont, HelixPar, MaxHoughWindow, MaxHoughWindowY);
     if(!prev_add) continue;
     if(!track -> IsGoodForTracking() || !vtx_flag){
+      track->SetClustersHoughFlag(BadHoughTransform);
       TrackContFailed.push_back(track);
       continue;
     }
@@ -719,6 +673,7 @@ HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
       std::cout<<FUNC_NAME+" The same track is found by Hough-Transform : tracki : "<<tracki<<" hough cont size : "<<XZhough_x.size()<<std::endl;
 #endif
       track->SetFitFlag(0);
+      track->SetClustersHoughFlag(BadHoughTransform);
       TrackContFailed.push_back(track);
       continue;
     }
@@ -731,6 +686,7 @@ HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
     FitTrack(track, Houghflag, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
   }//tracki
   ResetHoughFlag(ClCont);
+  ResetHoughFlag(ClCont, BadHoughTransform);
 
 }
 
@@ -769,10 +725,11 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
 
 #if DebugDisp
     std::cout<<FUNC_NAME+" Kurama VP Helix cx : "<<trackref->Getcx()<<" cy : "<<trackref->Getcy()<<" z0 : "<<trackref->Getz0()<<" r : "<<trackref->Getr()<<" dz : "<<trackref->Getdz()<<std::endl;
-    std::cout<<FUNC_NAME+" Kurama VP Helix p : "<<trackref->Getr()*Const<<std::endl;
+    std::cout<<FUNC_NAME+" Kurama VP Helix p : "<<trackref->Getr()*0.299792458<<std::endl;
 #endif
 
     Int_t Trackflag = 1*0 + 2*0 + 4*1 + 8*0; // isBeam, isK18, isKurama, isAccidental
+    Int_t id = 0;
     for(auto& track: TrackCont){
       if(track){
 	//Check whether all track custers within the window along the Kurama track
@@ -783,12 +740,13 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
 	  if( !hit ) continue;
 	  const TVector3& hitpos = hit->GetLocalHitPos();
 	  if(!trackref->ResidualCheck(hitpos, KuramaXZWindow, KuramaYWindow)) break;
-	  //If all clusters are in the window, mark that helix track.
+	  //If all clusters are in the window, mark the track.
 	  if(ih==nh-1){
 	    track->AddTrackIDCandidate(nt);
 	    track->SetFlag(Trackflag);
 	  }
 	}
+	id++;
       }
     }
   } //nt
@@ -801,8 +759,9 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 	       const std::vector<TPCClusterContainer>& ClCont,
 	       std::vector<TPCLocalTrackHelix*>& TrackCont,
 	       std::vector<TPCLocalTrackHelix*>& TrackContVP,
-	       Int_t MinNumOfHits /*=3*/)
+	       Int_t MinNumOfHits /*=2*/)
 {
+
   if(VPs.size()==0) return;
   for(Int_t nt=0; nt<VPs.size(); nt++){
 #if DebugDisp
@@ -826,11 +785,16 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 
 #if DebugDisp
     std::cout<<FUNC_NAME+" K18 VP Helix cx : "<<trackref->Getcx()<<" cy : "<<trackref->Getcy()<<" z0 : "<<trackref->Getz0()<<" r : "<<trackref->Getr()<<" dz : "<<trackref->Getdz()<<std::endl;
-    std::cout<<FUNC_NAME+" K18 VP Helix p : "<<trackref->Getr()*Const<<std::endl;
+    std::cout<<FUNC_NAME+" K18 VP Helix p : "<<trackref->Getr()*0.299792458<<std::endl;
 #endif
 
     Int_t BeforeTGTHits = 0;
     TPCLocalTrackHelix *track = new TPCLocalTrackHelix();
+    //set min, max theta for checking a closest distance and residual
+    track -> SetMint(trackref->GetMint());
+    track -> SetMaxt(trackref->GetMaxt());
+
+    trackref->DoVPFit();
     std::vector<TPCClusterContainer> ClContK18(NumOfLayersTPC);
     for(Int_t layer=0; layer<10; layer++){ //inner layers
       Double_t minresi = 1000.; Int_t id = -1;
@@ -839,7 +803,8 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 	TPCHit* hit = cl->GetMeanHit();
 	if(hit->GetHoughFlag()>0) continue;
 	TVector3 pos = cl->GetPosition();
-	if(pos.Z()>tpc::ZTarget) continue;
+	//if(pos.Z()>tpc::ZTarget) continue;
+	if(pos.Z()>tpc::ZTarget-10.) continue;
 	Double_t resi;
 	if(trackref->ResidualCheck(pos, K18XZWindow, K18YWindow, resi)){
 	  ClContK18[layer].push_back(cl);
@@ -889,8 +854,8 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
       track->SetClustersHoughFlag(Candidate);
 
 #if DebugDisp
-      track->Print(FUNC_NAME+" First fitting is succeeded");
-      //track->Print(FUNC_NAME+" First fitting is succeeded", true);
+      //track->Print(FUNC_NAME+" First fitting is succeeded");
+      track->Print(FUNC_NAME+" First fitting is succeeded", true);
 #endif
 
       TPCLocalTrackHelix *ExtendedTrack = new TPCLocalTrackHelix(track);
@@ -904,7 +869,7 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 	//track->Print(FUNC_NAME+" No added cluster", true);
 #endif
       }
-      else{ //More clusters are added Into the track
+      else{ //More clusters are added into the track
 	auto hitadd = std::chrono::high_resolution_clock::now();
 #if DebugDisp
 	ExtendedTrack->Print(FUNC_NAME+" After cluster adding");
@@ -957,14 +922,20 @@ Int_t
 LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 		      std::vector<TPCLocalTrackHelix*>& TrackCont,
 		      std::vector<TPCLocalTrackHelix*>& TrackContFailed,
+		      std::vector<TPCVertexHelix*>& VertexCont,
 		      Bool_t Exclusive,
 		      Int_t MinNumOfHits)
 {
 
-  //Track finding and fitting
+  //Scattered helix track searching
   HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
-
+  //Vertex finding with tracks in the TrackCont.
+  VertexSearch(TrackCont, VertexCont);
+#if FragmentedTrackTest
+  //Merged fragmented tracks
+  RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+#endif
 #if DebugDisp
   std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
   std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
@@ -985,8 +956,9 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 		      std::vector<TPCLocalTrackHelix*>& TrackCont,
 		      std::vector<TPCLocalTrackHelix*>& TrackContVP,
 		      std::vector<TPCLocalTrackHelix*>& TrackContFailed,
+		      std::vector<TPCVertexHelix*>& VertexCont,
 		      Bool_t Exclusive,
-		      Int_t MinNumOfHits /*=8*/)
+		      Int_t MinNumOfHits)
 {
 
   XZhough_x.clear();
@@ -996,11 +968,18 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
   Yhough_y.clear();
 
   //Track finding and fitting
-  //for K1.8 & Kurama tracks
-  K18TrackSearch(K18VPs, ClCont, TrackCont, TrackContVP); //default NimNumOfHits = 3
-  //for scattered helix tracks
+  //for K1.8 track searching
+  K18TrackSearch(K18VPs, ClCont, TrackCont, TrackContVP); //default NimNumOfHits = 2
+  //Scattered helix track searching
   HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+  //Vertex finding with tracks in the TrackCont.
+  VertexSearch(TrackCont, VertexCont);
+#if FragmentedTrackTest
+  //Merged fragmented tracks
+  RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+#endif
+  //Search Kurama track candidates from the TrackCont.
   KuramaTrackSearch(KuramaVPs, TrackCont, TrackContVP);
 
 #if DebugDisp
@@ -1066,6 +1045,7 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
     prev_add = MakeLinearTrack(track, vtx_flag, ClCont, LinearPar, MaxHoughWindowY);
     if(!prev_add) continue;
     if(!track -> IsGoodForTracking() || !vtx_flag){
+      track->SetClustersHoughFlag(BadHoughTransform);
       delete track;
       continue;
     }
@@ -1096,6 +1076,7 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
 #if DebugDisp
       std::cout<<FUNC_NAME+" The same track is found by Hough-Transform : tracki : "<<tracki<<" hough cont size : "<<XZhough_x.size()<<std::endl;
 #endif
+      track->SetClustersHoughFlag(BadHoughTransform);
       delete track;
       continue;
     }
@@ -1160,6 +1141,7 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
     prev_add = MakeHelixTrack(track, vtx_flag, ClCont, HelixPar, MaxHoughWindow, MaxHoughWindowY);
     if(!prev_add) continue;
     if(!track -> IsGoodForTracking() || !vtx_flag){
+      track->SetClustersHoughFlag(BadHoughTransform);
       delete track;
       continue;
     }
@@ -1191,6 +1173,7 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
 #if DebugDisp
       std::cout<<FUNC_NAME+" The same track is found by Hough-Transform : tracki : "<<tracki<<" hough cont size : "<<XZhough_x.size()<<std::endl;
 #endif
+      track->SetClustersHoughFlag(BadHoughTransform);
       delete track;
       continue;
     }
@@ -1256,6 +1239,7 @@ HighMomHelixTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
     prev_add = MakeLinearTrack(trackTemp, vtx_flag, ClCont, LinearPar, MaxHoughWindowY);
     if(!prev_add) continue;
     if(!trackTemp -> IsGoodForTracking() || !vtx_flag){
+      trackTemp->SetClustersHoughFlag(BadHoughTransform);
       delete trackTemp;
       continue;
     }
@@ -1286,28 +1270,26 @@ HighMomHelixTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 #if DebugDisp
       std::cout<<FUNC_NAME+" The same track is found by Hough-Transform : tracki : "<<tracki<<" hough cont size : "<<tempXZhough_x.size()<<std::endl;
 #endif
+      trackTemp->SetClustersHoughFlag(BadHoughTransform);
       delete trackTemp;
       continue;
     }
 
     //Convert the temporary straight line track into helix track
     TPCLocalTrackHelix *track = new TPCLocalTrackHelix;
-    //track -> GetNDF();
     if(!ConvertTrack(trackTemp, track)){
+      //track -> Print("converting is failed", true);
 #if DebugDisp
       track->Print(FUNC_NAME+ " Track converting is failed");
 #endif
+      track -> SetClustersHoughFlag(BadForTracking); //track w/ few clusters
       delete track;
       continue;
     }
-    else{ //temporary treatment
-      if(AddClusters(track, ClCont)){
-	//track -> GetNDF();
-	Double_t par[5];
-	track -> GetParam(par);
-	track -> DoPreFit(par);
-      }
-    }
+
+#if DebugDisp
+    track->Print(FUNC_NAME+ " Track converting is succeeded");
+#endif
 
     auto after_hough = std::chrono::high_resolution_clock::now();
     sec = std::chrono::duration_cast<std::chrono::milliseconds>(after_hough - before_hough);
@@ -1317,6 +1299,7 @@ HighMomHelixTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
     FitTrack(track, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
   }// tracki
   ResetHoughFlag(ClCont);
+  ResetHoughFlag(ClCont, BadHoughTransform);
   ResetHoughFlag(ClCont, BadForTracking);
 
 #if DebugDisp
@@ -1324,6 +1307,124 @@ HighMomHelixTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
   std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
 #endif
 
+}
+
+//_____________________________________________________________________________
+void
+VertexSearch(std::vector<TPCLocalTrackHelix*>& TrackCont,
+	     std::vector<TPCVertexHelix*>& VertexCont)
+{
+  //pair
+  for(Int_t trackid1=0; trackid1<TrackCont.size(); trackid1++){
+    TPCLocalTrackHelix *track1 = TrackCont[trackid1];
+    for(Int_t trackid2=trackid1+1; trackid2<TrackCont.size(); trackid2++){
+      TPCLocalTrackHelix *track2 = TrackCont[trackid2];
+      TPCVertexHelix *vertex = new TPCVertexHelix(trackid1, trackid2);
+      vertex -> Calculate(track1, track2);
+
+      Double_t closedist = vertex -> GetClosestDist();
+      if(closedist < VertexDistCut){
+	VertexCont.push_back(vertex);
+#if DebugDisp
+	vertex->Print(FUNC_NAME+" Vertex finding");
+	//vertex->Print(FUNC_NAME+" Vertex finding", true);
+#endif
+      }
+      else delete vertex;
+    } //trackid2
+  } //trackid1
+
+}
+
+//_____________________________________________________________________________
+template <typename T> void
+RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
+			std::vector<T*>& TrackCont,
+			std::vector<T*>& TrackContFailed,
+			std::vector<TPCVertexHelix*>& VertexCont,
+			Bool_t Exclusive,
+			Int_t MinNumOfHits)
+{
+
+  std::vector<Int_t> candidates;
+  for(auto& vertex: VertexCont){
+    //Threshold conditions of a distance and an angle between two tracks.
+    TVector3 vtx = vertex -> GetVertex();
+    Int_t trackid1 = vertex -> GetTrack1Id();
+    Int_t trackid2 = vertex -> GetTrack2Id();
+    if(TrackCont[trackid1] -> GetIsBeam()==1 ||
+       TrackCont[trackid2] -> GetIsBeam()==1) continue;
+
+    if(TMath::Abs(vtx.x()) < 15. &&
+       TMath::Abs(vtx.y()) < 10. &&
+       TMath::Abs(vtx.z() - tpc::ZTarget) < 10.) continue;
+    /*
+    std::cout<<"vtx "<<TMath::Abs(vtx.x())<<" "<<TMath::Abs(vtx.y())<<" "<<TMath::Abs(vtx.z())<<std::endl;
+    std::cout<<"angle "<<0.0833*TMath::Pi()<<" "<<vertex -> GetOpeningAngle()<<" "<<(1. - 0.0833)*TMath::Pi()<<std::endl;
+    std::cout<<"id "<<vertex -> GetTrack1Id()<<" "<<vertex -> GetTrack2Id()<<std::endl;
+    */
+    if(vertex -> GetClosestDist() > 15. ||
+       (vertex -> GetOpeningAngle() > 0.0833*TMath::Pi() &&
+	vertex -> GetOpeningAngle() < (1. - 0.0833)*TMath::Pi())) continue;
+
+#if DebugDisp
+    vertex -> Print(FUNC_NAME+" Vertex candidate for merging tracks");
+    //vertex -> Print(FUNC_NAME+" Vertex candidate for merging tracks", true);
+#endif
+
+    //Avoid duplication
+    if(find(candidates.begin(), candidates.end(), trackid1) != candidates.end()) continue;
+    if(find(candidates.begin(), candidates.end(), trackid2) != candidates.end()) continue;
+
+    //Longer track(track1) is a reference.
+    //Add two tracks.
+    Bool_t order = TrackCont[trackid1] -> GetNHit() >= TrackCont[trackid2] -> GetNHit() ?  true : false;
+    if(!order){
+      trackid1 = vertex -> GetTrack2Id();
+      trackid2 = vertex -> GetTrack1Id();
+    }
+
+    T *track1 = TrackCont[trackid1];
+    T *track2 = TrackCont[trackid2];
+    T *MergedTrack = new T(track1);
+    for(Int_t hit=0;hit<track2 -> GetNHit();hit++)
+      MergedTrack -> AddTPCHit(new TPCLTrackHit(track2 -> GetHitInOrder(hit) -> GetHit()));
+    //Check whether tracks belong to the same track or not
+    if(!MergedTrack -> TestMergedTrack()){
+      delete MergedTrack;
+      continue;
+    }
+
+    candidates.push_back(trackid1);
+    candidates.push_back(trackid2);
+
+#if DebugDisp
+    MergedTrack -> Print(FUNC_NAME+" Before fitting the merged track");
+    //MergedTrack -> Print(FUNC_NAME+" Before fitting the merged track", true);
+#endif
+
+    FitTrack(MergedTrack, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+#if DebugDisp
+    MergedTrack -> Print(FUNC_NAME+" After fitting the merged track");
+    //MergedTrack -> Print(FUNC_NAME+" After fitting the merged track", true);
+#endif
+    if(Exclusive){
+      MergedTrack->DoFitExclusive();
+      MergedTrack->CalculateExclusive();
+    }
+  }
+
+  if(candidates.size()>0){
+    std::sort(candidates.begin(), candidates.end());
+    for(Int_t i=0; i<candidates.size(); ++i){
+      Int_t trackID = candidates[i] - i;
+      TrackContFailed.push_back(TrackCont[trackID]);
+      TrackCont.erase(TrackCont.begin() + trackID);
+    }
+    //Vertex finding again with new tracks
+    del::ClearContainer(VertexCont);
+    VertexSearch(TrackCont, VertexCont);
+  }
 }
 
 } //namespace tpc

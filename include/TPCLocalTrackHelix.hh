@@ -33,9 +33,10 @@ private:
 private:
   Bool_t m_is_fitted;     // flag of DoFit()
   Bool_t m_is_calculated; // flag of Calculate()
-  Bool_t m_is_theta_calculated; // flag of CalcThetaHits()
+  Bool_t m_is_theta_calculated; // flag of CalcHelixTheta()
   Bool_t m_is_fitted_exclusive; // flag of DoFitExclusive()
-  Bool_t m_is_thetaflip; //Atan2 theta flip occurs or not
+  //Bool_t m_is_thetaflip; //Atan2 theta flip occurs or not
+  Bool_t m_is_multiloop; // Multi-loop track w/ High p_L, low p_T
 
   std::vector<TPCLTrackHit*> m_hit_array;
   std::vector<Int_t> m_hit_order;
@@ -63,6 +64,7 @@ private:
   //2:full matrix, but forced positive-definite 3:full accurate covariance matrix
   Int_t m_n_iteration;
   TVector3 m_mom0;
+  TVector3 m_edgepoint; //the most outer point of the track
   Double_t m_min_t;
   Double_t m_max_t;
   Double_t m_path;
@@ -96,8 +98,8 @@ public:
   void         EraseHit(Int_t delete_hit);
   void         ClearHits();
   void         Calculate();
-  void         CalcClosestDist();
-  void         CalcThetaHits();
+  void         CalcClosestDistTgt();
+  void         CalcHelixTheta();
   void         DeleteNullHit();
   Bool_t       DoFit(Int_t MinHits=0);
   Bool_t       DoHelixTrackFit();
@@ -112,16 +114,13 @@ public:
   void         SortHitOrder(); //Sort hits by theta
 
   Bool_t       ResidualCheck(Int_t i, Double_t &residual);
-  Bool_t       ResidualCheck(TPCHit *hit, Double_t &residual);
+  Bool_t       IsGoodHitToAdd(TPCHit *hit, Double_t &residual);
   Int_t        Side(TVector3 hitpos);
-  void         Print(const TString& arg="", Bool_t print_allhits = false) const;
+  void         Print(const TString& arg="", Bool_t print_allhits=false) const;
   Bool_t       IsGoodForTracking();
 
-  Double_t CalcTheta(TVector3 pos) const;
-  Double_t CalcTheta(TPCLTrackHit *hit) const;
-  TVector3 CalcHelixMomCenter(Double_t par[5]) const;
-  TVector3 CalcHelixMom(Double_t par[5], TVector3 pos) const;
   TVector3 CalcHelixMom(Double_t par[5], Double_t theta) const;
+  TVector3 CalcHelixMomCenter(Double_t par[5]) const;
 
   TPCLTrackHit* GetHit(std::size_t nth) const;
   TPCLTrackHit* GetHitInOrder(std::size_t nth) const;
@@ -144,6 +143,8 @@ public:
 
   TVector3 GetResolutionVect(TPCHit *hit, Bool_t vetoBadClusters);
   TVector3 GetResolutionVect(Int_t i, Bool_t vetoBadClusters);
+  Double_t GetResolutionY(TPCHit *hit);
+  Double_t GetResolutionY(Int_t i);
 
   TVector3 CalcResidual(TVector3 position);
 
@@ -166,8 +167,8 @@ public:
   Int_t    GetNPad() const;
   Int_t    GetNDF() const;
   TVector3 GetPosition(Double_t par[5], Double_t t) const;
-  Double_t GetAlpha(Int_t i) const; //alpha : pad - track angle //ws
-  Double_t GetAlpha(TPCHit *hit) const; //alpha : pad - track angle //ws
+  Double_t GetAlpha(Int_t i) const; //alpha : pad - track angle
+  Double_t GetAlpha(TPCHit *hit) const; //alpha : pad - track angle
 
   Int_t GetIsBeam() const { return m_isBeam; }
   Int_t GetIsK18() const { return m_isK18; }
@@ -190,13 +191,18 @@ public:
   void SetIsThetaCalculated(Bool_t flag=true) { m_is_theta_calculated = flag; }
   void SetSearchTime(Int_t time) { m_searchtime = time; }
   void SetFitTime(Int_t time) { m_fittime = time; }
-  void SetIsThetaFlip() { m_is_thetaflip = true; }
-  void SetPath(Double_t path) { m_path = path; }
-  void SetTransversePath(Double_t path) { m_transverse_path = path; }
-  void SetMom0(TVector3 mom) { m_mom0 = mom; }// Momentum at Y = 0
+  //void SetIsThetaFlip() { m_is_thetaflip = true; }
+  void SetMint(Double_t t) { m_min_t = t; }
+  void SetMaxt(Double_t t) { m_max_t = t; }
   Bool_t ConvertParam(Double_t *linear_par);
+
+  Bool_t IsBackward();
+  void IsMultiLoop();
+  Bool_t VertexAtTarget();
   Bool_t SeparateTracksAtTarget();
   Bool_t SeparateClustersWithGap();
+  Bool_t TestMergedTrack();
+  void RecalcTrack();
 
   //for K1.8 & Kurama tracking
   Bool_t       DoCircleFitwMomConstraint(Double_t *par);

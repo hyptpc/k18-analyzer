@@ -19,7 +19,8 @@
 namespace tpc
 {
 const Double_t ZTarget = -143.; // Target from center
-const Double_t TargetVtxWindow = 25.;
+  //const Double_t TargetVtxWindow = 25.;
+const Double_t TargetVtxWindow = 30.;
 
 enum EPadParameter
 {
@@ -34,6 +35,7 @@ enum EPadParameter
 
 //for clustering
 static const Int_t MaxRowDifTPC = 2;
+//static const Int_t MaxRowDifTPC = 3;
 //for helix tracking
 static const Double_t ConstC = 0.299792458; //=c/10^9
 //_____________________________________________________________________________
@@ -71,6 +73,13 @@ static const Double_t padParameter[NumOfLayersTPC][NPadParameter] =
  {29,130,    358.5,807, 0,  12.5},
  {30,108,    371.5,837, 0,  12.5},
  {31,90,     384.5,867, 0, 12.5}};
+
+//_____________________________________________________________________________
+static const Int_t noisypad[] =
+{
+  1507,4106,4356,4592,5113,5216
+  //??? 1515 2405, 3198, 5226
+};
 
 //_____________________________________________________________________________
 static const Int_t padOnCenterFrame[] =
@@ -1319,6 +1328,7 @@ IsClusterable(Int_t layer, Int_t row_a, Int_t row_b)
   for(Int_t row=TMath::Min(row_a, row_b)+1;row<TMath::Max(row_a, row_b);row++){
     Int_t padID = GetPadId(layer, row);
     if(std::find(std::begin(deadChannel[layer]), std::end(deadChannel[layer]), padID) != std::end(deadChannel[layer])) deadpads++;
+    if(std::find(std::begin(noisypad), std::end(noisypad), padID) != std::end(noisypad)) deadpads++;
   }
 
   if(layer < 10){
@@ -1336,7 +1346,8 @@ inline Bool_t Dead(Int_t padID){
   Bool_t centerframe = std::find(std::begin(padOnCenterFrame), std::end(padOnCenterFrame), padID) != std::end(padOnCenterFrame);
   Int_t layer = getLayerID(padID);
   Bool_t dead = std::find(std::begin(deadChannel[layer]), std::end(deadChannel[layer]), padID) != std::end(deadChannel[layer]);
-  if(centerframe||dead) return true;
+  Bool_t noisy = std::find(std::begin(noisypad), std::end(noisypad), padID) != std::end(noisypad);
+  if(centerframe||dead||noisy) return true;
   else return false;
 }
 
