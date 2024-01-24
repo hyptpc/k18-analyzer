@@ -335,6 +335,48 @@ DCGeomMan::Global2LocalPos(Int_t lnum, const ThreeVector& in) const
 
 //_____________________________________________________________________________
 ThreeVector
+DCGeomMan::Global2LocalPos(ThreeVector posVector, Double_t TA,
+			   Double_t RA1, Double_t RA2,
+			   const ThreeVector& in) const
+{
+
+  Double_t ct0 = TMath::Cos(TA*TMath::DegToRad());
+  Double_t st0 = TMath::Sin(TA*TMath::DegToRad());
+  Double_t ct1 = TMath::Cos(RA1*TMath::DegToRad());
+  Double_t st1 = TMath::Sin(RA1*TMath::DegToRad());
+  Double_t ct2 = TMath::Cos(RA2*TMath::DegToRad());
+  Double_t st2 = TMath::Sin(RA2*TMath::DegToRad());
+
+  Double_t dsdx =  ct0*ct2+st0*st1*st2;
+  Double_t dsdy =  st0*ct1;
+  Double_t dsdz = -ct0*st2+st0*st1*ct2;
+
+  Double_t dtdx = -st0*ct2+ct0*st1*st2;
+  Double_t dtdy =  ct0*ct1;
+  Double_t dtdz =  st0*st2+ct0*st1*ct2;
+
+  Double_t dudx =  ct1*st2;
+  Double_t dudy = -st1;
+  Double_t dudz =  ct1*ct2;
+
+  Double_t x
+    = dsdx*(in.x()-posVector.x())
+    + dsdy*(in.y()-posVector.y())
+    + dsdz*(in.z()-posVector.z());
+  Double_t y
+    = dtdx*(in.x()-posVector.x())
+    + dtdy*(in.y()-posVector.y())
+    + dtdz*(in.z()-posVector.z());
+  Double_t z
+    = dudx*(in.x()-posVector.x())
+    + dudy*(in.y()-posVector.y())
+    + dudz*(in.z()-posVector.z());
+
+  return ThreeVector(x, y, z);
+}
+
+//_____________________________________________________________________________
+ThreeVector
 DCGeomMan::Global2LocalPos(const TString& key, const ThreeVector& in) const
 {
   return Global2LocalPos(GetDetectorId(key), in);

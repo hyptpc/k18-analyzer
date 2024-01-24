@@ -60,6 +60,8 @@ public:
   ThreeVector         Local2GlobalPos(Int_t lnum, const ThreeVector &in) const;
   ThreeVector         Local2GlobalPos(const TString& key, const ThreeVector &in) const;
   ThreeVector         Global2LocalPos(Int_t lnum, const ThreeVector &in) const;
+  ThreeVector         Global2LocalPos(ThreeVector posVector, Double_t TA,
+				      Double_t RA1, Double_t RA2, const ThreeVector& in) const;
   ThreeVector         Global2LocalPos(const TString& key, const ThreeVector &in) const;
   ThreeVector         Local2GlobalDir(Int_t lnum, const ThreeVector &in) const;
   ThreeVector         Local2GlobalDir(const TString& key, const ThreeVector &in) const;

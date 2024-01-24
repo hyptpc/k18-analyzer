@@ -500,8 +500,8 @@ DCLocalTrack::DoFitBcSdc()
   Double_t BCSdcZoffset = zK18tgt - zTgt;
   Double_t BCSdcXoffset = gposSdcIn.x() - gposBcOut.x();
   Double_t BCSdcYoffset = gposSdcIn.y() - gposBcOut.y();
-  Double_t BCSdcUoffset = -0.00115165; //measured
-  Double_t BCSdcVoffset = 0.000701507; //measured
+  Double_t BCSdcUoffset = -0.000205984; //Measured
+  Double_t BCSdcVoffset = 0.000691015; //Measured
 
   Int_t n = m_hit_array.size();
   if(n < DCLocalMinNHits) return false;
@@ -546,6 +546,16 @@ DCLocalTrack::DoFitBcSdc()
 	s[i] = ss;
 	z[i] = z0[i];
       }
+      /*
+      if(lnum > 10){ // SdcIn
+	std::cout<<"  iItr "<<iItr<<" i "<<i<<" scal "<<scal;
+	std::cout<<" s "<<s[i]<<" z "<<z[i]<<" wp "<<wp[i]<<" ss "<<ss<<std::endl;
+      }
+      else{
+	std::cout<<"iItr "<<iItr<<" i "<<i<<" scal "<<scal;
+	std::cout<<" s "<<s[i]<<" z "<<z[i]<<" wp "<<wp[i]<<" ss "<<ss<<std::endl;
+      }
+      */
     }
 
     Double_t x0, u0, y0, v0;
@@ -562,9 +572,12 @@ DCLocalTrack::DoFitBcSdc()
       Double_t ss   = wp[i]+(s[i]-wp[i])/coss[i];
       Double_t res  = honeycomb[i] ? (ss-scal)*coss[i] : s[i]-scal;
       chisqr += w[i]*res*res;
+      //if(!honeycomb[i]) std::cout<<"  scal "<<scal<<" s "<<s[i]<<" z0 "<<z0[i]<<" wp "<<wp[i]<<" ss "<<ss<<" resi "<<res<<" coss "<<coss[i]<<std::endl;
+      //if(honeycomb[i]) std::cout<<"scal "<<scal<<" s "<<s[i]<<" z0 "<<z0[i]<<" wp "<<wp[i]<<" ss "<<ss<<" resi "<<res<<std::endl;
+      if(honeycomb[i]) continue;
     }
     chisqr /= GetNDF();
-
+    std::cout<<std::endl;
     if(iItr==0) m_chisqr1st = chisqr;
 
     // if worse, not update
