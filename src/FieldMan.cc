@@ -58,7 +58,7 @@ FieldMan::Initialize()
   if(m_shs_map)
     delete m_shs_map;
 
-  m_shs_map = new KuramaFieldMap(m_file_name_shs, valueHSHall*valueHSCalib, valueHSCalib);
+  m_shs_map = new KuramaFieldMap(m_file_name_shs, valueHSHall*valueHSCalib, valueHSCalc);
 
   if(m_kurama_map && m_shs_map){
     m_is_ready = (m_kurama_map->Initialize()) && (m_shs_map->Initialize());

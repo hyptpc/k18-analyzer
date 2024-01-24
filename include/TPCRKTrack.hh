@@ -25,6 +25,8 @@ class TPCRKTrack
 public:
   static const TString& ClassName();
   TPCRKTrack(TPCLocalTrackHelix *track_tpc, std::vector<Int_t> lnum);
+  TPCRKTrack(TPCLocalTrackHelix *tpctrack, DCLocalTrack* track_in,
+	     DCLocalTrack* track_out, std::vector<Int_t> lnum);
   ~TPCRKTrack();
 
 private:
@@ -45,6 +47,7 @@ public:
 private:
   TString                 s_status[nRKstatus];
   RKstatus                m_status;
+  Int_t                   m_trackid;
   DCLocalTrack*           m_track_in;
   DCLocalTrack*           m_track_out;
   TPCLocalTrackHelix*     m_track_tpc;
@@ -89,6 +92,8 @@ public:
                                              Double_t& x, Double_t& y) const;
   Bool_t          GetTrajectoryResidual(Int_t layer, Double_t& resolution, Double_t& residual) const;
   Bool_t          GetTrajectoryResidualTPC(Int_t clusterId, TVector3& resolution, TVector3& residual) const;
+  Bool_t          GetTrajectoryGlobalPosition(Int_t layer, TVector3& global_pos) const;
+  Bool_t          GetTrajectoryGlobalPositionTPC(Int_t clusterId, TVector3& global_pos) const;
   Bool_t          GoodForAnalysis() const { return m_is_good; }
   Bool_t          GoodForAnalysis(Bool_t status)
   { m_is_good = status; return status; }
@@ -119,11 +124,15 @@ public:
   TPCLocalTrackHelix* GetTPCTrack() const { return m_track_tpc; }
   Int_t GetTPCTrackID() const { return m_track_tpc -> GetTrackID(); }
   void SetTPCTrackID(Int_t id) { m_track_tpc -> SetTrackID(id); }
+  Int_t GetTrackID() const { return m_trackid; }
+  void SetTrackID(Int_t id) { m_trackid = id; }
 
 private:
   void     ClearHitArray();
   Double_t CalcChiSqr(const RKHitPointContainer& hpCont) const;
   void     Initialize(std::vector<Int_t> lnum);
+  void     Initialize(DCLocalTrack* track_in, DCLocalTrack* track_out,
+		      std::vector<Int_t> lnum);
   Bool_t   GuessNextParameters(const RKHitPointContainer& hpCont,
                                RKCordParameter& Cord,
                                Double_t& estDeltaChisqr,

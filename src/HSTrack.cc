@@ -31,7 +31,7 @@ namespace {
 HSTrack::HSTrack(Double_t x, Double_t y,
 		 Double_t u, Double_t v, Double_t p)
   :m_status(kInit), xInit(x), yInit(y), uInit(u), vInit(v), m_initial_momentum(p),
-   m_polarity(0.), m_pid(1), m_path_length_total(0.),  m_is_good(true)
+   m_polarity(0.), m_pid(1), m_path_length_total(0.), m_is_good(true)
 {
   s_status[kInit]                = "Initialized";
   s_status[kPassed]              = "Passed";
@@ -55,6 +55,7 @@ Bool_t HSTrack::Propagate() {
   }
 
   static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
+  static const auto yGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Y();
   static const auto zGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Z();
   static const auto zLocalBcOut = gGeom.GetLocalZ("BC3-X1");
 
@@ -63,8 +64,7 @@ Bool_t HSTrack::Propagate() {
   const Double_t xIn = xInit;
   const Double_t yIn = yInit;
   const Double_t pz = m_initial_momentum/std::sqrt(1. + uIn*uIn+vIn*vIn);
-
-  const ThreeVector posIn(xGlobalBcOut + xIn, yIn, zGlobalBcOut - zLocalBcOut);
+  const ThreeVector posIn(xGlobalBcOut + xIn, yGlobalBcOut + yIn, zGlobalBcOut - zLocalBcOut);
   const ThreeVector momIn(pz*uIn , pz*vIn, pz);
   m_v0_position.SetX(xInit);
   m_v0_position.SetY(yInit);

@@ -14,12 +14,14 @@ class TPCHit;
 class TPCCluster;
 class TPCLocalTrack;
 class TPCLocalTrackHelix;
+class TPCVertexHelix;
 class TPCRKTrack;
 
 typedef std::vector<TPCHit*>        TPCHitContainer;
 typedef std::vector<TPCCluster*>    TPCClusterContainer;
 typedef std::vector<TPCLocalTrack*> TPCLocalTrackContainer;
 typedef std::vector<TPCLocalTrackHelix*> TPCLocalTrackHelixContainer;
+typedef std::vector<TPCVertexHelix*> TPCVertexHelixContainer;
 typedef std::vector<TPCRKTrack*>    TPCRKTrackContainer;
 
 //_____________________________________________________________________________
@@ -47,6 +49,7 @@ private:
   TPCLocalTrackHelixContainer        m_TPCTCHelixFailed;
   TPCRKTrackContainer                m_TPCKuramaTC;
   TPCRKTrackContainer                m_TPCK18TC;
+  TPCVertexHelixContainer            m_TPCVCHelix;
 
 public:
 
@@ -171,17 +174,23 @@ public:
   const TPCRKTrackContainer& GetTPCK18Tracks() const { return m_TPCK18TC; }
 
   //Vertex in the target
-  Bool_t GetVertex(const TVector3 XtgtKm, const TVector3 PtgtKm,
-		   const TVector3 XtgtKp, const TVector3 PtgtKp,
-		   TVector3 &Vertex, Double_t &closeDist,
-		   Double_t &KmPathInTgt, Double_t &KpPathInTgt,
-		   TVector3 &KmMomVtx, TVector3 &KpMomVtx);
+  Bool_t GetProductionVertex(const TVector3 XtgtKm, const TVector3 PtgtKm,
+			     const TVector3 XtgtKp, const TVector3 PtgtKp,
+			     TVector3 &Vertex, Double_t &closeDist,
+			     Double_t &KmPathInTgt, Double_t &KpPathInTgt,
+			     TVector3 &KmMomVtx, TVector3 &KpMomVtx);
+
+  //Vertices between tracks
+  Int_t GetNVerticesTPCHelix() const { return m_TPCVCHelix.size(); }
+  TPCVertexHelix* GetTPCVertexHelix(Int_t l) const { return m_TPCVCHelix.at(l); }
+  const TPCVertexHelixContainer& GetTPCVerticesHelix() const { return m_TPCVCHelix; }
 
 protected:
 
   void ClearTPCHits();
   void ClearTPCClusters();
   void ClearTPCTracks();
+  void ClearTPCVertices();
   void ClearTPCKuramaTracks();
   void ClearTPCK18Tracks();
   static Bool_t MakeUpTPCClusters(const TPCHitContainer& HitCont,

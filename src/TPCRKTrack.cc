@@ -4,7 +4,7 @@
   For on each TPC cluster, Virtual plane which is normal to z-axix is defined.
   X position and Y position of each cluster are treated as a independent two points.
 
-  ex) For a 1 cluster of HypTPC, following equations are used for chisqr and ndf calculation
+  ex) For each cluster of HypTPC, following equations are used for chisqr and ndf calculation
   chisqr += ((x_tpc-x_track)/sig_x_tpc)^2 + ((y_tpc-y_track)/sig_y_tpc)^2
   Ndf += 2*N_tpcclusters
 
@@ -15,6 +15,7 @@
 
 #include "TPCRKTrack.hh"
 
+#include <cmath>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
@@ -45,17 +46,18 @@ const Int_t& IdTOFUY = gGeom.DetectorId("TOF-UY");
 const Int_t& IdTOFDX = gGeom.DetectorId("TOF-DX");
 const Int_t& IdTOFDY = gGeom.DetectorId("TOF-DY");
 
-const Int_t    MaxIteraction = 100;
+const Int_t    MaxIteration = 100;
 const Double_t InitialChiSqr = 1.e+10;
 const Double_t MaxChiSqr     = 1.e+2;
 const Double_t MinDeltaChiSqrR = 0.0002;
 }
 
-#define WARNOUT 0
+#define WARNOUT 1
 
 //_____________________________________________________________________________
 TPCRKTrack::TPCRKTrack(TPCLocalTrackHelix *tpctrack, std::vector<Int_t> lnum)
   : m_status(kInit),
+    m_trackid(-1),
     m_track_in(),
     m_track_out(),
     m_track_tpc(tpctrack),
@@ -92,6 +94,46 @@ TPCRKTrack::TPCRKTrack(TPCLocalTrackHelix *tpctrack, std::vector<Int_t> lnum)
 }
 
 //_____________________________________________________________________________
+TPCRKTrack::TPCRKTrack(TPCLocalTrackHelix *tpctrack, DCLocalTrack* track_in,
+		       DCLocalTrack* track_out, std::vector<Int_t> lnum)
+  : m_status(kInit),
+    m_trackid(-1),
+    m_track_in(),
+    m_track_out(),
+    m_track_tpc(tpctrack),
+    m_tof_seg(-1.),
+    m_initial_momentum(TMath::QuietNaN()),
+    m_n_iteration(-1),
+    m_nef_iteration(-1),
+    m_chisqr(InitialChiSqr),
+    m_polarity(0.),
+    m_pid(1),
+    m_primary_position(ThreeVector(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN())),
+    m_primary_momentum(ThreeVector(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN())),
+    m_last_position(ThreeVector(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN())),
+    m_last_momentum(ThreeVector(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN())),
+    m_path_length_tof(0.),
+    m_path_length_tgt(0.),
+    m_path_length_total(0.),
+    m_tgt_position(ThreeVector(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN())),
+    m_tgt_momentum(ThreeVector(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN())),
+    m_tof_pos(ThreeVector(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN())),
+    m_tof_mom(ThreeVector(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN())),
+    m_is_good(true)
+{
+  s_status[kInit]                = "Initialized";
+  s_status[kPassed]              = "Passed";
+  s_status[kExceedMaxPathLength] = "Exceed Max Path Length";
+  s_status[kExceedMaxStep]       = "Exceed Max Step";
+  s_status[kFailedTraceLast]     = "Failed to Trace Last";
+  s_status[kFailedGuess]         = "Failed to Guess";
+  s_status[kFailedSave]          = "Failed to Save";
+  s_status[kFatal]               = "Fatal";
+  Initialize(track_out, track_out, lnum);
+  debug::ObjectCounter::increase(ClassName());
+}
+
+//_____________________________________________________________________________
 TPCRKTrack::~TPCRKTrack()
 {
   ClearHitArray();
@@ -102,20 +144,30 @@ TPCRKTrack::~TPCRKTrack()
 void
 TPCRKTrack::Initialize(std::vector<Int_t> lnum)
 {
+  ClearHitArray();
+  m_HitPointCont = RK::MakeHPContainer(lnum);
+}
+
+//_____________________________________________________________________________
+void
+TPCRKTrack::Initialize(DCLocalTrack* track_in, DCLocalTrack* track_out,
+		       std::vector<Int_t> lnum)
+{
+
+  m_track_in = track_in;
+  m_track_out = track_out;
 
   ClearHitArray();
-  Int_t nIn = 0;
-  if(m_track_in) nIn = m_track_in->GetNHit();
-  Int_t nOut = 0;
-  if(m_track_out) nOut = m_track_out->GetNHit();
+  Int_t nIn = track_in->GetNHit();
+  Int_t nOut = track_out->GetNHit();
   m_dchit_array.reserve(nIn+nOut);
   for(Int_t i=0; i<nIn; ++i){
-    DCLTrackHit *hit  = m_track_in->GetHit(i);
+    DCLTrackHit *hit  = track_in->GetHit(i);
     TrackHit    *thit = new TrackHit(hit);
     m_dchit_array.push_back(thit);
   }
   for(Int_t i=0; i<nOut; ++i){
-    DCLTrackHit *hit  = m_track_out->GetHit(i);
+    DCLTrackHit *hit  = track_out->GetHit(i);
     TrackHit    *thit = new TrackHit(hit);
     m_dchit_array.push_back(thit);
     if(hit->GetLayer() == IdTOFUX ||
@@ -146,6 +198,7 @@ TPCRKTrack::ClearHitArray()
 Bool_t
 TPCRKTrack::DoFit(TVector3 initPos, TVector3 initMom, Bool_t U2D)
 {
+
   m_status = kInit;
   m_initial_momentum = initMom.Mag();
   if(m_initial_momentum<0){
@@ -175,24 +228,22 @@ TPCRKTrack::DoFit(RKCordParameter initCord, Bool_t U2D)
 
   RKHitPointContainer prevHPntCont;
   Int_t iItr = 0, iItrEf = 1;
-
-  while(++iItr<MaxIteraction){
+  while(++iItr<MaxIteration){
     if(U2D) m_status = (RKstatus)RK::ExtrapTPC(m_track_tpc, initCord, m_HitPointCont, m_pid);
     else m_status = (RKstatus)RK::TraceTPC(m_track_tpc, initCord, m_HitPointCont, m_pid);
-
     if(m_status != kPassed){
 #ifdef WARNOUT
-      // hddaq::cerr << FUNC_NAME << " "
-      // 		<< "something is wrong : " << iItr << std::endl;
+      hddaq::cerr << FUNC_NAME << " "
+		  << "something is wrong : " << iItr << std::endl;
 #endif
       break;
     }
 
     chiSqr = CalcChiSqr(m_HitPointCont);
-    //std::cout<<"CalcChiSqr() "<<chiSqr<<std::endl;
     Double_t dChiSqr  = chiSqr - prevChiSqr;
     Double_t dChiSqrR = dChiSqr/prevChiSqr;
     Double_t Rchisqr  = dChiSqr/estDChisqr;
+
 #if 0
     {
       //PrintHelper helper(3, std::ios::scientific);
@@ -260,7 +311,7 @@ TPCRKTrack::DoFit(RKCordParameter initCord, Bool_t U2D)
 	if(2.-Rchisqr > 2.) uf=2.-Rchisqr;
 	dmp *= uf;
       }
-      initCord        = prevCord;
+      initCord       = prevCord;
       m_HitPointCont = prevHPntCont;
     }
 
@@ -271,14 +322,13 @@ TPCRKTrack::DoFit(RKCordParameter initCord, Bool_t U2D)
       m_status = kFailedGuess;
       return false;
     }
-
   }  /* End of Iteration */
 
   m_n_iteration   = iItr;
   m_nef_iteration = iItrEf;
   m_chisqr = chiSqr;
-  Int_t pikp = 1; //Kaon beam
-  if(!RK::TraceToLastTPC(m_track_tpc, m_HitPointCont)){
+
+  if(m_track_tpc -> GetIsKurama()==1 && !RK::TraceToLast(m_HitPointCont)){
     m_status = kFailedTraceLast;
   }
 
@@ -334,18 +384,22 @@ TPCRKTrack::CalcChiSqr(const RKHitPointContainer &hpCont) const
 
     const TVector3& localhitpos = thp->GetLocalHitPos();
     Double_t TGTz = gGeom.GlobalZ("Target") - gGeom.GlobalZ("HS");
-    if(localhitpos.z()<TGTz) continue; //Exclude clusters before the target
+    if(m_track_tpc -> GetIsKurama()==1 && localhitpos.z()<TGTz) continue; //Exclude clusters before the target
+    if(m_track_tpc -> GetIsK18()==1 && localhitpos.z()>TGTz) continue; //Exclude clusters after the target
     const TVector3& resolution = thp->GetResolutionVect();
+    if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) continue; // exclude bad hits
 
     Int_t lnum = i + PlOffsTPCHit + 1;
-    const RKcalcHitPoint& calhp = hpCont.HitPointOfLayer(lnum);
-    ThreeVector calpos = calhp.PositionInGlobal();
-    ThreeVector residual = gGeom.Local2GlobalPos(IdHS, localhitpos);
-    residual -= calpos;
-
-    chisqr += TMath::Power(residual.x()/resolution.x(), 2);
-    chisqr += TMath::Power(residual.y()/resolution.y(), 2);
+    const RKcalcHitPoint& calhp_x = hpCont.HitPointOfLayer(lnum);
+    Double_t callocalpos_x = calhp_x.PositionInLocal();
+    if(TMath::IsNaN(callocalpos_x)) continue;
+    chisqr += TMath::Power(callocalpos_x/TMath::Hypot(resolution.x(), resolution.z()), 2);
     ++n;
+
+    const RKcalcHitPoint& calhp_y = hpCont.HitPointOfLayer(lnum + PlOffsTPCHit);
+    Double_t callocalpos_y = calhp_y.PositionInLocal();
+    if(TMath::IsNaN(callocalpos_y)) continue;
+    chisqr += TMath::Power(callocalpos_y/resolution.y(), 2);
     ++n;
   }
 
@@ -371,7 +425,7 @@ TPCRKTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
   }
 
   Double_t cb2[10], wSvd[5], dcb[5];
-  Double_t wv[5];   // working space for SVD functions
+  Double_t wv[5]; // working space for SVD functions
 
   for(Int_t i=0; i<10; ++i){
     cb2[i]=0.0;
@@ -393,8 +447,8 @@ TPCRKTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
     Double_t v = mom.y()/mom.z();
     Double_t dsdz = u*TMath::Cos(a)+v*TMath::Sin(a);
     Double_t coss = thp->IsHoneycomb() ? TMath::Cos(TMath::ATan(dsdz)) : 1.;
-    Double_t wp   = thp->GetWirePosition();
-    Double_t ss   = wp+(hitpos-wp)/coss;
+    Double_t wp = thp->GetWirePosition();
+    Double_t ss = wp+(hitpos-wp)/coss;
     Double_t cb = ss-calpos;
     Double_t wt = gGeom.GetResolution(lnum);
     wt = 1./(wt*wt);
@@ -437,7 +491,7 @@ TPCRKTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
     a2[4][4] += 2.*wt*(cfq*cfq - cb*calhp.coefQQ());
   }
 
-  //TPC X & Y terms
+  //TPC XZ
   Int_t nhtpc = m_track_tpc -> GetNHit();
   for(Int_t i=0; i<nhtpc; ++i){
     TPCLTrackHit *thp = m_track_tpc -> GetHitInOrder(i);
@@ -445,21 +499,18 @@ TPCRKTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
 
     const TVector3& localhitpos = thp->GetLocalHitPos();
     Double_t TGTz = gGeom.GlobalZ("Target") - gGeom.GlobalZ("HS");
-    if(localhitpos.z()<TGTz) continue; //Exclude clusters before the target
+    if(m_track_tpc -> GetIsKurama()==1 && localhitpos.z()<TGTz) continue; //Exclude clusters before the target
+    if(m_track_tpc -> GetIsK18()==1 && localhitpos.z()>TGTz) continue; //Exclude clusters after the target
     const TVector3& resolution = thp->GetResolutionVect();
+    if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) continue; // exclude bad hits
 
     Int_t lnum = i + PlOffsTPCHit + 1;
     const RKcalcHitPoint& calhp = hpCont.HitPointOfLayer(lnum);
-    ThreeVector calpos = calhp.PositionInGlobal();
-    ThreeVector residual = gGeom.Local2GlobalPos(IdHS, localhitpos);
-    residual -= calpos;
-
+    if(TMath::IsNaN(calhp.PositionInLocal())) continue;
     Double_t cfx=calhp.coefX(), cfy=calhp.coefY();
     Double_t cfu=calhp.coefU(), cfv=calhp.coefV(), cfq=calhp.coefQ();
-
-    //TPC X position
-    Double_t cb = residual.x(); //x residual
-    Double_t wt = 1./(resolution.x()*resolution.x());
+    Double_t wt = 1./(resolution.x()*resolution.x() + resolution.z()*resolution.z());
+    Double_t cb = 0 - calhp.PositionInLocal(); //the center of the virtual plane is 0;
     ++nth;
 
     cb2[0] += 2.*cfx*wt*cb;  cb2[1] += 2.*cfy*wt*cb;  cb2[2] += 2.*cfu*wt*cb;
@@ -494,10 +545,28 @@ TPCRKTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
     a2[4][2] += 2.*wt*(cfq*cfu - cb*calhp.coefQU());
     a2[4][3] += 2.*wt*(cfq*cfv - cb*calhp.coefQV());
     a2[4][4] += 2.*wt*(cfq*cfq - cb*calhp.coefQQ());
+  }
 
-    //TPC Y position
-    cb = residual.y(); //y residual
-    wt = 1./(resolution.y()*resolution.y());
+  //TPC Y terms
+  for(Int_t i=0; i<nhtpc; ++i){
+    TPCLTrackHit *thp = m_track_tpc -> GetHitInOrder(i);
+    if(!thp) continue;
+
+    const TVector3& localhitpos = thp->GetLocalHitPos();
+    Double_t TGTz = gGeom.GlobalZ("Target") - gGeom.GlobalZ("HS");
+    if(m_track_tpc -> GetIsKurama()==1 && localhitpos.z()<TGTz) continue; //Exclude clusters before the target
+    if(m_track_tpc -> GetIsK18()==1 && localhitpos.z()>TGTz) continue; //Exclude clusters after the target
+    const TVector3& resolution = thp->GetResolutionVect();
+    if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) continue; // exclude bad hits
+
+    Int_t lnum = i + 2.*PlOffsTPCHit + 1;
+    const RKcalcHitPoint& calhp = hpCont.HitPointOfLayer(lnum);
+    if(TMath::IsNaN(calhp.PositionInLocal())) continue;
+    Double_t cfx=calhp.coefX(), cfy=calhp.coefY();
+    Double_t cfu=calhp.coefU(), cfv=calhp.coefV(), cfq=calhp.coefQ();
+    Double_t wt = 1./(resolution.y()*resolution.y());
+    Double_t cb = 0 - calhp.PositionInLocal(); //the center of the virtual plane is 0;
+
     ++nth;
 
     cb2[0] += 2.*cfx*wt*cb;  cb2[1] += 2.*cfy*wt*cb;  cb2[2] += 2.*cfu*wt*cb;
@@ -798,7 +867,7 @@ TPCRKTrack::PrintCalcHits(const RKHitPointContainer &hpCont, std::ostream &ost) 
     std::string h = " ";
 
     Int_t lnum = itr->first;
-    if(lnum > PlOffsTPCHit){
+    if(lnum > PlOffsTPCHit && lnum < 2.*PlOffsTPCHit){
       Int_t clusterId = lnum - PlOffsTPCHit - 1;
       TPCLTrackHit *thp = m_track_tpc -> GetHitInOrder(clusterId);
       const TVector3& localhitpos = thp->GetLocalHitPos();
@@ -811,9 +880,11 @@ TPCRKTrack::PrintCalcHits(const RKHitPointContainer &hpCont, std::ostream &ost) 
 	  << " ("  << std::setw(7) << pos.x()
 	  << ", "  << std::setw(7) << pos.y()
 	  << ", "  << std::setw(8) << pos.z()<< ")";
-      ost << " residual (x, y) Local " << std::setw(7) << thp->GetResidualVect().x()
+      ost << " residual (x, y, z) Local " << std::setw(7) << thp->GetResidualVect().x()
 	  << " "<< std::setw(7) << thp->GetResidualVect().y()
+	  << " "<< std::setw(7) << thp->GetResidualVect().z()
 	  << " Calc. " << std::setw(7) << residual.x()
+	  << " "<< std::setw(7) << residual.y()
 	  << " "<< std::setw(7) << residual.y();
     }
     else{
@@ -833,7 +904,7 @@ TPCRKTrack::PrintCalcHits(const RKHitPointContainer &hpCont, std::ostream &ost) 
 	  << ", "  << std::setw(8) << pos.z() << ")";
       if(thp){
 	ost << " local pos "   << std::setw(7) << thp->GetLocalHitPos()
-	    << " residual " << std::setw(7) << thp->GetResidual();
+	    << " residual " << std::setw(7) << thp->GetLocalHitPos() - calhp.PositionInLocal();
       }
     }
     ost << std::endl;
@@ -854,10 +925,20 @@ TPCRKTrack::PrintCalcHits(const RKHitPointContainer &hpCont, std::ostream &ost) 
 Bool_t
 TPCRKTrack::SaveTrackParameters(const RKCordParameter &cp)
 {
-  m_cord_param = cp;
 
-  const Int_t idFirst = m_HitPointCont.begin()->first;
-  const RKcalcHitPoint& hpFirst  = m_HitPointCont.begin()->second;
+  Int_t dcFirst = -1;
+  RKHitPointContainer::RKHpCIterator itr, end = m_HitPointCont.end();
+  for(itr=m_HitPointCont.begin(); itr!=end; ++itr){
+    Int_t lnum = itr->first;
+    if(lnum < PlOffsTPCHit){
+      dcFirst = lnum;
+      break;
+    }
+  }
+  if(dcFirst < 0) return false;
+
+  const Int_t idFirst = dcFirst;
+  const RKcalcHitPoint& hpFirst = m_HitPointCont.HitPointOfLayer(idFirst);
   const ThreeVector& posFirst = hpFirst.PositionInGlobal();
   const ThreeVector& momFirst = hpFirst.MomentumInGlobal();
   m_primary_position = gGeom.Global2LocalPos(idFirst, posFirst);
@@ -898,6 +979,7 @@ TPCRKTrack::SaveTrackParameters(const RKCordParameter &cp)
       m_tof_mom = (hpTofU.MomentumInGlobal()+hpTofD.MomentumInGlobal())*0.5;
     }
   }
+
   return true;
 }
 
@@ -910,12 +992,7 @@ TPCRKTrack::GetTrajectoryLocalPosition(Int_t layer, Double_t& path, Double_t& x,
     const RKcalcHitPoint& hpTgt = m_HitPointCont.begin()->second;
     const RKcalcHitPoint& HP = m_HitPointCont.HitPointOfLayer(layer);
     const ThreeVector& gpos = HP.PositionInGlobal();
-    if(layer > PlOffsTPCHit){
-      const ThreeVector& HSpos = gGeom.GetGlobalPosition("HS");
-      ThreeVector localcalpos = gpos - HSpos;
-      lpos = localcalpos;
-    }
-    else lpos = gGeom.Global2LocalPos(layer,gpos);
+    lpos = gGeom.Global2LocalPos(layer, gpos);
 
     path = std::abs(hpTgt.PathLength()-HP.PathLength());
     x = lpos.x();
@@ -945,14 +1022,17 @@ TPCRKTrack::GetTrajectoryResidualTPC(Int_t clusterId, TVector3& resolution, TVec
     if(!thp) return false;
     const TVector3& localhitpos = thp->GetLocalHitPos();
     Double_t TGTz = gGeom.GlobalZ("Target") - gGeom.GlobalZ("HS");
-    if(localhitpos.z()<TGTz) return false;
+    if(m_track_tpc -> GetIsKurama()==1 && localhitpos.z()<TGTz) return false; //Exclude clusters before the target
+    if(m_track_tpc -> GetIsK18()==1 && localhitpos.z()>TGTz) return false; //Exclude clusters after the target
+    resolution = thp->GetResolutionVect();
+    if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) return false;
 
     Int_t lnum = clusterId + PlOffsTPCHit + 1;
     const RKcalcHitPoint& calhp = m_HitPointCont.HitPointOfLayer(lnum);
     ThreeVector calpos = calhp.PositionInGlobal();
     residual = gGeom.Local2GlobalPos(IdHS, localhitpos);
     residual -= calpos;
-    resolution = thp->GetResolutionVect();
+
     return true;
   }
   catch(const std::out_of_range&) {
@@ -988,6 +1068,46 @@ TPCRKTrack::GetTrajectoryResidual(Int_t layer, Double_t& resolution, Double_t& r
       residual = (ss-calpos)*coss;
     }
     return status;
+  }
+  catch(const std::out_of_range&) {
+    return false;
+  }
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCRKTrack::GetTrajectoryGlobalPosition(Int_t layer, TVector3& global_pos) const
+{
+  try {
+    const RKcalcHitPoint& HP = m_HitPointCont.HitPointOfLayer(layer);
+    const ThreeVector& gpos = HP.PositionInGlobal();
+    global_pos = gpos;
+    return true;
+  }
+  catch(const std::out_of_range&) {
+    return false;
+  }
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCRKTrack::GetTrajectoryGlobalPositionTPC(Int_t clusterId, TVector3& global_pos) const
+{
+  try {
+    TPCLTrackHit *thp = m_track_tpc -> GetHitInOrder(clusterId);
+    if(!thp) return false;
+    const TVector3& localhitpos = thp->GetLocalHitPos();
+    Double_t TGTz = gGeom.GlobalZ("Target") - gGeom.GlobalZ("HS");
+    if(m_track_tpc -> GetIsKurama()==1 && localhitpos.z()<TGTz) return false; //Exclude clusters before the target
+    if(m_track_tpc -> GetIsK18()==1 && localhitpos.z()>TGTz) return false; //Exclude clusters after the target
+    const TVector3& resolution = thp->GetResolutionVect();
+    if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) return false;
+
+    Int_t lnum = clusterId + PlOffsTPCHit + 1;
+    const RKcalcHitPoint& HP = m_HitPointCont.HitPointOfLayer(lnum);
+    const ThreeVector& gpos = HP.PositionInGlobal();
+    global_pos = gpos;
+    return true;
   }
   catch(const std::out_of_range&) {
     return false;
