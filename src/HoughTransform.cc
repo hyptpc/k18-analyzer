@@ -65,7 +65,8 @@ namespace
   const Double_t theta_min = -1.*acos(-1);
   const Double_t theta_max = acos(-1);
   const Int_t    nBin_p = 900;
-  const Double_t pmin = 50.;
+  //const Double_t pmin = 50.;
+  const Double_t pmin = 20.;
   const Double_t pmax = 1550.; //MeV/c
 
   /*
@@ -365,13 +366,17 @@ HoughTransformLineYTheta(std::vector<TVector3> gHitPos, Int_t *MaxBin,
     if(dist < MaxHoughWindowY){
       for(Int_t ti=0; ti<histY -> GetNbinsX(); ti++){
 	Double_t theta = histY->GetXaxis()->GetBinCenter(ti+1);
+	Double_t mtheta = theta*acos(-1.)/180.;
 	Double_t tmpt = TMath::ATan2(tmpy - HelixPar[1], tmpx - HelixPar[0]);
 	Double_t tmp_xval = HelixPar[3]*tmpt;
-	histY->Fill(theta, cos(theta*acos(-1.)/180.)*tmp_xval
-		    +sin(theta*acos(-1.)/180.)*tmpz);
-      } //ti
-    } //dist
-  }
+	Double_t mr = cos(mtheta)*tmp_xval + sin(mtheta)*tmpz;
+
+	Double_t p2 = mr/sin(mtheta);
+	Double_t p4 = -cos(mtheta)/sin(mtheta);
+	if(TMath::Abs(p2) < 15000. && TMath::Abs(p4) < 15.) histY->Fill(theta, mr);
+    } //ti
+  } //dist
+}
 
 #if DebugEvDisp
   histY->Draw("colz");
