@@ -312,7 +312,7 @@ class SingleRun(object):
       logger.error(e)
       return False
     buf = proc.stdout.decode().split()[0]
-    return (buf == 'G' or buf == 'B')
+    return (buf == 'G' or buf == 'B' or buf == 'BP')
 
   #____________________________________________________________________________
   def kill_all(self):
