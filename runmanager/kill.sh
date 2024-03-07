@@ -1,6 +1,6 @@
 #!/bin/sh
 
-bjobs | while read jid buff; do 
+bjobs | while read jid buff; do
 
     if [ $jid == 'JOBID' ]; then
 	continue
