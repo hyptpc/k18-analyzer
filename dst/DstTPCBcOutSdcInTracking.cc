@@ -41,6 +41,7 @@ namespace
   const auto& gCounter = debug::ObjectCounter::GetInstance();
   const Double_t& zK18Target = gGeom.LocalZ("K18Target");
   const Double_t& zTarget = gGeom.LocalZ("Target");
+  const Int_t& IdHS = gGeom.DetectorId("HS");
 }
 
 namespace dst
@@ -341,6 +342,77 @@ namespace root
     PadHid    = 100000,
     TPCCalibHid =1000,
   };
+
+  TVector3 Global2LocalPos(TVector3 GlobalPos, TVector3 DetectorGlobalPos,
+			   Double_t tilt, Double_t RA1, Double_t RA2){
+
+    Double_t ct0 = TMath::Cos(tilt*TMath::DegToRad());
+    Double_t st0 = TMath::Sin(tilt*TMath::DegToRad());
+    Double_t ct1 = TMath::Cos(RA1*TMath::DegToRad());
+    Double_t st1 = TMath::Sin(RA1*TMath::DegToRad());
+    Double_t ct2 = TMath::Cos(RA2*TMath::DegToRad());
+    Double_t st2 = TMath::Sin(RA2*TMath::DegToRad());
+
+    Double_t dsdx =  ct0*ct2+st0*st1*st2;
+    Double_t dsdy =  st0*ct1;
+    Double_t dsdz = -ct0*st2+st0*st1*ct2;
+
+    Double_t dtdx = -st0*ct2+ct0*st1*st2;
+    Double_t dtdy =  ct0*ct1;
+    Double_t dtdz =  st0*st2+ct0*st1*ct2;
+
+    Double_t dudx =  ct1*st2;
+    Double_t dudy = -st1;
+    Double_t dudz =  ct1*ct2;
+
+    Double_t x
+      = dsdx*(GlobalPos.x()-DetectorGlobalPos.x())
+      + dsdy*(GlobalPos.y()-DetectorGlobalPos.y())
+      + dsdz*(GlobalPos.z()-DetectorGlobalPos.z());
+    Double_t y
+      = dtdx*(GlobalPos.x()-DetectorGlobalPos.x())
+      + dtdy*(GlobalPos.y()-DetectorGlobalPos.y())
+      + dtdz*(GlobalPos.z()-DetectorGlobalPos.z());
+    Double_t z
+      = dudx*(GlobalPos.x()-DetectorGlobalPos.x())
+      + dudy*(GlobalPos.y()-DetectorGlobalPos.y())
+      + dudz*(GlobalPos.z()-DetectorGlobalPos.z());
+
+    return TVector3(x, y, z);
+  }
+
+  TVector3 Local2GlobalPos(TVector3 LocalPos, TVector3 DetectorGlobalPos,
+			    Double_t tilt, Double_t RA1, Double_t RA2){
+
+    Double_t ct0 = TMath::Cos(tilt*TMath::DegToRad());
+    Double_t st0 = TMath::Sin(tilt*TMath::DegToRad());
+    Double_t ct1 = TMath::Cos(RA1*TMath::DegToRad());
+    Double_t st1 = TMath::Sin(RA1*TMath::DegToRad());
+    Double_t ct2 = TMath::Cos(RA2*TMath::DegToRad());
+    Double_t st2 = TMath::Sin(RA2*TMath::DegToRad());
+
+    Double_t dxds =  ct0*ct2+st0*st1*st2;
+    Double_t dxdt = -st0*ct2+ct0*st1*st2;
+    Double_t dxdu =  ct1*st2;
+
+    Double_t dyds =  st0*ct1;
+    Double_t dydt =  ct0*ct1;
+    Double_t dydu = -st1;
+
+    Double_t dzds = -ct0*st2+st0*st1*ct2;
+    Double_t dzdt =  st0*st2+ct0*st1*ct2;
+    Double_t dzdu =  ct1*ct2;
+
+    Double_t x = dxds*LocalPos.x() + dxdt*LocalPos.y()
+      + dxdu*LocalPos.z() + DetectorGlobalPos.x();
+    Double_t y = dyds*LocalPos.x() + dydt*LocalPos.y()
+      + dydu*LocalPos.z() + DetectorGlobalPos.y();
+    Double_t z = dzds*LocalPos.x() + dzdt*LocalPos.y()
+      + dzdu*LocalPos.z() + DetectorGlobalPos.z();
+
+    return TVector3(x, y, z);
+  }
+
 }
 
 //_____________________________________________________________________________
@@ -416,9 +488,18 @@ Bool_t
 dst::DstRead(int ievent)
 {
 
+  const Double_t& zBC3 = gGeom.LocalZ("BC3-X1");
   const ThreeVector& posBcOut = gGeom.GetGlobalPosition("BC3-X1");
+  TVector3 posV0 = posBcOut + TVector3(0., 0., -zBC3);
+
+  const Double_t& zSdcIn = gGeom.LocalZ("SDC1-U2");
   const ThreeVector& posSdcIn = gGeom.GetGlobalPosition("SDC1-U2");
+  TVector3 posKurama = posSdcIn + TVector3(0., 0., -zSdcIn);
+
   const ThreeVector& posHS = gGeom.GetGlobalPosition("K18HS");
+  const Double_t tilt = gGeom.GetTiltAngle("K18HS");
+  const Double_t RA1 = gGeom.GetRotAngle1("K18HS");
+  const Double_t RA2 = gGeom.GetRotAngle2("K18HS");
 
   if(ievent%100==0){
   //if(ievent%1==0){
@@ -492,10 +573,10 @@ dst::DstRead(int ievent)
     event.u0BcOut.push_back(src.u0BcOut[it]);
     event.v0BcOut.push_back(src.v0BcOut[it]);
 
-    Double_t xtgt = src.u0BcOut[it]*zK18Target + src.x0BcOut[it] + posBcOut.x() - posHS.x();
-    Double_t ytgt = src.v0BcOut[it]*zK18Target + src.y0BcOut[it] + posBcOut.y() - posHS.y();
     Double_t utgt = src.u0BcOut[it];
     Double_t vtgt = src.v0BcOut[it];
+    Double_t xtgt = utgt*zK18Target + src.x0BcOut[it];
+    Double_t ytgt = vtgt*zK18Target + src.y0BcOut[it];
     event.xtgtBcOut.push_back(xtgt);
     event.ytgtBcOut.push_back(ytgt);
     event.utgtBcOut.push_back(utgt);
@@ -513,10 +594,10 @@ dst::DstRead(int ievent)
     event.u0BcSdc.push_back(src.u0BcSdc[it]);
     event.v0BcSdc.push_back(src.v0BcSdc[it]);
 
-    Double_t xtgt = src.u0BcSdc[it]*zK18Target + src.x0BcSdc[it] + posBcOut.x() - posHS.x();
-    Double_t ytgt = src.v0BcSdc[it]*zK18Target + src.y0BcSdc[it] + posBcOut.y() - posHS.y();
     Double_t utgt = src.u0BcSdc[it];
     Double_t vtgt = src.v0BcSdc[it];
+    Double_t xtgt = utgt*zK18Target + src.x0BcSdc[it];
+    Double_t ytgt = vtgt*zK18Target + src.y0BcSdc[it];
     event.xtgtBcSdc.push_back(xtgt);
     event.ytgtBcSdc.push_back(ytgt);
     event.utgtBcSdc.push_back(utgt);
@@ -534,10 +615,10 @@ dst::DstRead(int ievent)
     event.u0SdcIn.push_back(src.u0SdcIn[it]);
     event.v0SdcIn.push_back(src.v0SdcIn[it]);
 
-    Double_t xtgt = src.u0SdcIn[it]*zTarget + src.x0SdcIn[it] + posSdcIn.x() - posHS.x();
-    Double_t ytgt = src.v0SdcIn[it]*zTarget + src.y0SdcIn[it] + posSdcIn.y() - posHS.y();
     Double_t utgt = src.u0SdcIn[it];
     Double_t vtgt = src.v0SdcIn[it];
+    Double_t xtgt = utgt*zTarget + src.x0SdcIn[it];
+    Double_t ytgt = vtgt*zTarget + src.y0SdcIn[it];
     event.xtgtSdcIn.push_back(xtgt);
     event.ytgtSdcIn.push_back(ytgt);
     event.utgtSdcIn.push_back(utgt);
@@ -547,8 +628,33 @@ dst::DstRead(int ievent)
   HF1(1, event.status++);
 
   if(event.ntTpc!=1 || event.ntBcOut!=1 || event.ntSdcIn!=1) return true;
-  //if(event.chisqrTpc[0]>5. || event.chisqrBcOut[0]>5. || event.chisqrSdcIn[0]>5.) return true;
-  if(event.chisqrBcOut[0]>5. || event.chisqrSdcIn[0]>5.) return true;
+  if(event.chisqrTpc[0]>10. || event.chisqrBcOut[0]>5. || event.chisqrSdcIn[0]>5.) return true;
+
+  TVector3 xytgt(event.x0Tpc[0], event.y0Tpc[0], tpc::ZTarget); //Target local position in the HS
+  TVector3 xytgtGlobal = Local2GlobalPos(xytgt, posHS, tilt, RA1, RA2);
+  std::vector<Double_t> xyuvBcOut_HScoor(4);
+  {
+    //On the HS coordinate
+    Double_t zpos = Global2LocalPos(xytgtGlobal, posV0, 0., 0., 0.).z();
+    TVector3 localpos(src.u0BcOut[0]*zpos + src.x0BcOut[0], src.v0BcOut[0]*zpos + src.y0BcOut[0], zpos);
+    TVector3 globalpos = Local2GlobalPos(localpos, posV0, 0., 0., 0.);
+    xyuvBcOut_HScoor[0] = Global2LocalPos(globalpos, posHS, tilt, RA1, RA2).x();
+    xyuvBcOut_HScoor[1] = Global2LocalPos(globalpos, posHS, tilt, RA1, RA2).y();
+    xyuvBcOut_HScoor[2] = src.u0BcOut[0] - TMath::Tan(RA2*TMath::DegToRad());
+    xyuvBcOut_HScoor[3] = src.v0BcOut[0] + TMath::Tan(RA1*TMath::DegToRad());
+  }
+
+  std::vector<Double_t> xyuvSdcIn_HScoor(4);
+  {
+    //On the HS coordinate
+    Double_t zpos = Global2LocalPos(xytgtGlobal, posKurama, 0., 0., 0.).z();
+    TVector3 localpos(src.u0SdcIn[0]*zpos + src.x0SdcIn[0], src.v0SdcIn[0]*zpos + src.y0SdcIn[0], zpos);
+    TVector3 globalpos = Local2GlobalPos(localpos, posKurama, 0., 0., 0.);
+    xyuvSdcIn_HScoor[0] = Global2LocalPos(globalpos, posHS, tilt, RA1, RA2).x();
+    xyuvSdcIn_HScoor[1] = Global2LocalPos(globalpos, posHS, tilt, RA1, RA2).y();
+    xyuvSdcIn_HScoor[2] = src.u0SdcIn[0] - TMath::Tan(RA2*TMath::DegToRad());
+    xyuvSdcIn_HScoor[3] = src.v0SdcIn[0] + TMath::Tan(RA1*TMath::DegToRad());
+  }
 
   HF1(10, event.ntTpc);
   for(Int_t it=0; it<event.ntTpc; ++it){
@@ -588,6 +694,16 @@ dst::DstRead(int ievent)
       HF1(1000*(event.hitlayer[it][ih]+1) + 104, event.residual_horizontal[it][ih]);
       HF1(1000*(event.hitlayer[it][ih]+1) + 105, event.residual_vertical[it][ih]);
       HF1(1000*(event.hitlayer[it][ih]+1) + 106, TMath::Sqrt(event.residual_x[it][ih]*event.residual_x[it][ih] + event.residual_z[it][ih]*event.residual_z[it][ih]));
+
+      ThreeVector lpos_tpc(event.hitpos_x[it][ih],  event.hitpos_y[it][ih],  event.hitpos_z[it][ih]);
+      ThreeVector gpos = gGeom.Local2GlobalPos(IdHS, lpos_tpc);
+      ThreeVector lpos_bc = gpos - posV0;
+      ThreeVector lpos_sdcin = gpos - posKurama;
+
+      HF1(1000*(event.hitlayer[it][ih]+1) + 201, -(src.u0BcOut[it]*lpos_bc.z() + src.x0BcOut[it]) + lpos_bc.x());
+      HF1(1000*(event.hitlayer[it][ih]+1) + 202, -(src.v0BcOut[it]*lpos_bc.z() + src.y0BcOut[it]) + lpos_bc.y());
+      HF1(1000*(event.hitlayer[it][ih]+1) + 203, -(src.u0SdcIn[it]*lpos_sdcin.z() + src.x0SdcIn[it]) + lpos_sdcin.x());
+      HF1(1000*(event.hitlayer[it][ih]+1) + 204, -(src.v0SdcIn[it]*lpos_sdcin.z() + src.y0SdcIn[it]) + lpos_sdcin.y());
     }
   }
 
@@ -642,46 +758,59 @@ dst::DstRead(int ievent)
     HF1(324, event.vtgtBcSdc[it]);
   }
 
-  HF2(401, event.x0Tpc[0], event.xtgtBcOut[0]);
-  HF2(402, event.y0Tpc[0], event.ytgtBcOut[0]);
-  HF2(403, event.u0Tpc[0], event.utgtBcOut[0]);
-  HF2(404, event.v0Tpc[0], event.vtgtBcOut[0]);
-  HF1(405, event.xtgtBcOut[0]-event.x0Tpc[0]);
-  HF1(406, event.ytgtBcOut[0]-event.y0Tpc[0]);
-  HF1(407, event.utgtBcOut[0]-event.u0Tpc[0]);
-  HF1(408, event.vtgtBcOut[0]-event.v0Tpc[0]);
-  HF2(409, event.xtgtBcOut[0], event.xtgtBcOut[0]-event.x0Tpc[0]);
-  HF2(410, event.ytgtBcOut[0], event.ytgtBcOut[0]-event.y0Tpc[0]);
-  HF2(411, event.xtgtBcOut[0], event.utgtBcOut[0]-event.u0Tpc[0]);
-  HF2(412, event.ytgtBcOut[0], event.vtgtBcOut[0]-event.v0Tpc[0]);
+  HF2(401, event.x0Tpc[0], xyuvBcOut_HScoor[0]);
+  HF2(402, event.y0Tpc[0], xyuvBcOut_HScoor[1]);
+  HF2(403, event.u0Tpc[0], xyuvBcOut_HScoor[2]);
+  HF2(404, event.v0Tpc[0], xyuvBcOut_HScoor[3]);
+  HF1(405, xyuvBcOut_HScoor[0]-event.x0Tpc[0]);
+  HF1(406, xyuvBcOut_HScoor[1]-event.y0Tpc[0]);
+  HF1(407, xyuvBcOut_HScoor[2]-event.u0Tpc[0]);
+  HF1(408, xyuvBcOut_HScoor[3]-event.v0Tpc[0]);
+  HF2(409, xyuvBcOut_HScoor[0], xyuvBcOut_HScoor[0]-event.x0Tpc[0]);
+  HF2(410, xyuvBcOut_HScoor[1], xyuvBcOut_HScoor[1]-event.y0Tpc[0]);
+  HF2(411, xyuvBcOut_HScoor[0], xyuvBcOut_HScoor[2]-event.u0Tpc[0]);
+  HF2(412, xyuvBcOut_HScoor[1], xyuvBcOut_HScoor[3]-event.v0Tpc[0]);
 
-  HF2(501, event.x0Tpc[0], event.xtgtSdcIn[0]);
-  HF2(502, event.y0Tpc[0], event.ytgtSdcIn[0]);
-  HF2(503, event.u0Tpc[0], event.utgtSdcIn[0]);
-  HF2(504, event.v0Tpc[0], event.vtgtSdcIn[0]);
-  HF1(505, event.xtgtSdcIn[0]-event.x0Tpc[0]);
-  HF1(506, event.ytgtSdcIn[0]-event.y0Tpc[0]);
-  HF1(507, event.utgtSdcIn[0]-event.u0Tpc[0]);
-  HF1(508, event.vtgtSdcIn[0]-event.v0Tpc[0]);
-  HF2(509, event.xtgtSdcIn[0], event.xtgtSdcIn[0]-event.x0Tpc[0]);
-  HF2(510, event.ytgtSdcIn[0], event.ytgtSdcIn[0]-event.y0Tpc[0]);
-  HF2(511, event.xtgtSdcIn[0], event.utgtSdcIn[0]-event.u0Tpc[0]);
-  HF2(512, event.ytgtSdcIn[0], event.vtgtSdcIn[0]-event.v0Tpc[0]);
+  HF2(501, event.x0Tpc[0], xyuvSdcIn_HScoor[0]);
+  HF2(502, event.y0Tpc[0], xyuvSdcIn_HScoor[1]);
+  HF2(503, event.u0Tpc[0], xyuvSdcIn_HScoor[2]);
+  HF2(504, event.v0Tpc[0], xyuvSdcIn_HScoor[3]);
+  HF1(505, xyuvSdcIn_HScoor[0]-event.x0Tpc[0]);
+  HF1(506, xyuvSdcIn_HScoor[1]-event.y0Tpc[0]);
+  HF1(507, xyuvSdcIn_HScoor[2]-event.u0Tpc[0]);
+  HF1(508, xyuvSdcIn_HScoor[3]-event.v0Tpc[0]);
+  HF2(509, xyuvSdcIn_HScoor[0], xyuvSdcIn_HScoor[0]-event.x0Tpc[0]);
+  HF2(510, xyuvSdcIn_HScoor[1], xyuvSdcIn_HScoor[1]-event.y0Tpc[0]);
+  HF2(511, xyuvSdcIn_HScoor[0], xyuvSdcIn_HScoor[2]-event.u0Tpc[0]);
+  HF2(512, xyuvSdcIn_HScoor[1], xyuvSdcIn_HScoor[3]-event.v0Tpc[0]);
 
-  HF2(601, event.xtgtBcOut[0], event.xtgtSdcIn[0]);
-  HF2(602, event.ytgtBcOut[0], event.ytgtSdcIn[0]);
-  HF2(603, event.utgtBcOut[0], event.utgtSdcIn[0]);
-  HF2(604, event.vtgtBcOut[0], event.vtgtSdcIn[0]);
-  HF1(605, event.xtgtSdcIn[0]-event.xtgtBcOut[0]);
-  HF1(606, event.ytgtSdcIn[0]-event.ytgtBcOut[0]);
-  HF1(607, event.utgtSdcIn[0]-event.utgtBcOut[0]);
-  HF1(608, event.vtgtSdcIn[0]-event.vtgtBcOut[0]);
-  HF2(609, event.xtgtSdcIn[0], event.xtgtSdcIn[0]-event.xtgtBcOut[0]);
-  HF2(610, event.ytgtSdcIn[0], event.ytgtSdcIn[0]-event.ytgtBcOut[0]);
-  HF2(611, event.xtgtSdcIn[0], event.utgtSdcIn[0]-event.utgtBcOut[0]);
-  HF2(612, event.ytgtSdcIn[0], event.vtgtSdcIn[0]-event.vtgtBcOut[0]);
+  HF2(601, xyuvBcOut_HScoor[0], xyuvSdcIn_HScoor[0]);
+  HF2(602, xyuvBcOut_HScoor[1], xyuvSdcIn_HScoor[1]);
+  HF2(603, xyuvBcOut_HScoor[2], xyuvSdcIn_HScoor[2]);
+  HF2(604, xyuvBcOut_HScoor[3], xyuvSdcIn_HScoor[3]);
+  HF1(605, xyuvSdcIn_HScoor[0]-xyuvBcOut_HScoor[0]);
+  HF1(606, xyuvSdcIn_HScoor[1]-xyuvBcOut_HScoor[1]);
+  HF1(607, xyuvSdcIn_HScoor[2]-xyuvBcOut_HScoor[2]);
+  HF1(608, xyuvSdcIn_HScoor[3]-xyuvBcOut_HScoor[3]);
+  HF2(609, xyuvSdcIn_HScoor[0], xyuvSdcIn_HScoor[0]-xyuvBcOut_HScoor[0]);
+  HF2(610, xyuvSdcIn_HScoor[1], xyuvSdcIn_HScoor[1]-xyuvBcOut_HScoor[1]);
+  HF2(611, xyuvSdcIn_HScoor[0], xyuvSdcIn_HScoor[2]-xyuvBcOut_HScoor[2]);
+  HF2(612, xyuvSdcIn_HScoor[1], xyuvSdcIn_HScoor[3]-xyuvBcOut_HScoor[3]);
 
   if(event.ntBcSdc==1){
+
+    std::vector<Double_t> xyuvBcSdc_HScoor(4);
+    {
+      //On the HS coordinate
+      Double_t zpos = Global2LocalPos(xytgtGlobal, posV0, 0., 0., 0.).z();
+      TVector3 localpos(src.u0BcSdc[0]*zpos + src.x0BcSdc[0], src.v0BcSdc[0]*zpos + src.y0BcSdc[0], zpos);
+      TVector3 globalpos = Local2GlobalPos(localpos, posV0, 0., 0., 0.);
+      xyuvBcSdc_HScoor[0] = Global2LocalPos(globalpos, posHS, tilt, RA1, RA2).x();
+      xyuvBcSdc_HScoor[1] = Global2LocalPos(globalpos, posHS, tilt, RA1, RA2).y();
+      xyuvBcSdc_HScoor[2] = src.u0BcSdc[0] - TMath::Tan(RA2*TMath::DegToRad());
+      xyuvBcSdc_HScoor[3] = src.v0BcSdc[0] + TMath::Tan(RA1*TMath::DegToRad());
+    }
+
     HF2(701, event.xtgtBcOut[0], event.xtgtBcSdc[0]);
     HF2(702, event.ytgtBcOut[0], event.ytgtBcSdc[0]);
     HF2(703, event.utgtBcOut[0], event.utgtBcSdc[0]);
@@ -708,45 +837,56 @@ dst::DstRead(int ievent)
     HF2(731, event.x0BcSdc[0], event.u0BcSdc[0]-event.u0BcOut[0]);
     HF2(732, event.y0BcSdc[0], event.v0BcSdc[0]-event.v0BcOut[0]);
 
-    HF2(801, event.xtgtSdcIn[0], event.xtgtBcSdc[0]);
-    HF2(802, event.ytgtSdcIn[0], event.ytgtBcSdc[0]);
-    HF2(803, event.utgtSdcIn[0], event.utgtBcSdc[0]);
-    HF2(804, event.vtgtSdcIn[0], event.vtgtBcSdc[0]);
-    HF1(805, event.xtgtBcSdc[0]-event.xtgtSdcIn[0]);
-    HF1(806, event.ytgtBcSdc[0]-event.ytgtSdcIn[0]);
-    HF1(807, event.utgtBcSdc[0]-event.utgtSdcIn[0]);
-    HF1(808, event.vtgtBcSdc[0]-event.vtgtSdcIn[0]);
-    HF2(809, event.xtgtBcSdc[0], event.xtgtBcSdc[0]-event.xtgtSdcIn[0]);
-    HF2(810, event.ytgtBcSdc[0], event.ytgtBcSdc[0]-event.ytgtSdcIn[0]);
-    HF2(811, event.xtgtBcSdc[0], event.utgtBcSdc[0]-event.utgtSdcIn[0]);
-    HF2(812, event.ytgtBcSdc[0], event.vtgtBcSdc[0]-event.vtgtSdcIn[0]);
+    HF2(801, xyuvSdcIn_HScoor[0], xyuvBcSdc_HScoor[0]);
+    HF2(802, xyuvSdcIn_HScoor[1], xyuvBcSdc_HScoor[1]);
+    HF2(803, xyuvSdcIn_HScoor[2], xyuvBcSdc_HScoor[2]);
+    HF2(804, xyuvSdcIn_HScoor[3], xyuvBcSdc_HScoor[3]);
+    HF1(805, xyuvBcSdc_HScoor[0]-xyuvSdcIn_HScoor[0]);
+    HF1(806, xyuvBcSdc_HScoor[1]-xyuvSdcIn_HScoor[1]);
+    HF1(807, xyuvBcSdc_HScoor[2]-xyuvSdcIn_HScoor[2]);
+    HF1(808, xyuvBcSdc_HScoor[3]-xyuvSdcIn_HScoor[3]);
+    HF2(809, xyuvBcSdc_HScoor[0], xyuvBcSdc_HScoor[0]-xyuvSdcIn_HScoor[0]);
+    HF2(810, xyuvBcSdc_HScoor[1], xyuvBcSdc_HScoor[1]-xyuvSdcIn_HScoor[1]);
+    HF2(811, xyuvBcSdc_HScoor[0], xyuvBcSdc_HScoor[2]-xyuvSdcIn_HScoor[2]);
+    HF2(812, xyuvBcSdc_HScoor[1], xyuvBcSdc_HScoor[3]-xyuvSdcIn_HScoor[3]);
 
-    HF2(901, event.x0Tpc[0], event.xtgtBcSdc[0]);
-    HF2(902, event.y0Tpc[0], event.ytgtBcSdc[0]);
-    HF2(903, event.u0Tpc[0], event.utgtBcSdc[0]);
-    HF2(904, event.v0Tpc[0], event.vtgtBcSdc[0]);
-    HF1(905, event.xtgtBcSdc[0]-event.x0Tpc[0]);
-    HF1(906, event.ytgtBcSdc[0]-event.y0Tpc[0]);
-    HF1(907, event.utgtBcSdc[0]-event.u0Tpc[0]);
-    HF1(908, event.vtgtBcSdc[0]-event.v0Tpc[0]);
-    HF2(909, event.xtgtBcSdc[0], event.xtgtBcSdc[0]-event.x0Tpc[0]);
-    HF2(910, event.ytgtBcSdc[0], event.ytgtBcSdc[0]-event.y0Tpc[0]);
-    HF2(911, event.xtgtBcSdc[0], event.utgtBcSdc[0]-event.u0Tpc[0]);
-    HF2(912, event.ytgtBcSdc[0], event.vtgtBcSdc[0]-event.v0Tpc[0]);
+    HF2(901, event.x0Tpc[0], xyuvBcSdc_HScoor[0]);
+    HF2(902, event.y0Tpc[0], xyuvBcSdc_HScoor[1]);
+    HF2(903, event.u0Tpc[0], xyuvBcSdc_HScoor[2]);
+    HF2(904, event.v0Tpc[0], xyuvBcSdc_HScoor[3]);
+    HF1(905, xyuvBcSdc_HScoor[0]-event.x0Tpc[0]);
+    HF1(906, xyuvBcSdc_HScoor[1]-event.y0Tpc[0]);
+    HF1(907, xyuvBcSdc_HScoor[2]-event.u0Tpc[0]);
+    HF1(908, xyuvBcSdc_HScoor[3]-event.v0Tpc[0]);
+    HF2(909, xyuvBcSdc_HScoor[0], xyuvBcSdc_HScoor[0]-event.x0Tpc[0]);
+    HF2(910, xyuvBcSdc_HScoor[1], xyuvBcSdc_HScoor[1]-event.y0Tpc[0]);
+    HF2(911, xyuvBcSdc_HScoor[0], xyuvBcSdc_HScoor[2]-event.u0Tpc[0]);
+    HF2(912, xyuvBcSdc_HScoor[1], xyuvBcSdc_HScoor[3]-event.v0Tpc[0]);
 
-    Double_t BCSdcZoffset = - zK18Target + zTarget;
-    HF2(821, (event.x0SdcIn[0] + BCSdcZoffset*event.u0SdcIn[0] + posSdcIn.x() - posBcOut.x()), event.x0BcSdc[0]);
-    HF2(822, (event.y0SdcIn[0] + BCSdcZoffset*event.v0SdcIn[0] + posSdcIn.y() - posBcOut.y()), event.y0BcSdc[0]);
-    HF2(823, event.u0SdcIn[0], event.u0BcSdc[0]);
-    HF2(824, event.v0SdcIn[0], event.v0BcSdc[0]);
-    HF1(825, event.x0BcSdc[0] - (event.x0SdcIn[0] + BCSdcZoffset*event.u0SdcIn[0] + posSdcIn.x() - posBcOut.x()));
-    HF1(826, event.y0BcSdc[0] - (event.y0SdcIn[0] + BCSdcZoffset*event.v0SdcIn[0] + posSdcIn.y() - posBcOut.y()));
-    HF1(827, event.u0BcSdc[0]-event.u0SdcIn[0]);
-    HF1(828, event.v0BcSdc[0]-event.v0SdcIn[0]);
-    HF2(829, event.x0BcSdc[0], event.x0BcSdc[0] - (event.x0SdcIn[0] + BCSdcZoffset*event.u0SdcIn[0] + posSdcIn.x() - posBcOut.x()));
-    HF2(830, event.y0BcSdc[0], event.y0BcSdc[0] - (event.y0SdcIn[0] + BCSdcZoffset*event.v0SdcIn[0] + posSdcIn.y() - posBcOut.y()));
-    HF2(831, event.x0BcSdc[0], event.u0BcSdc[0]-event.u0SdcIn[0]);
-    HF2(832, event.y0BcSdc[0], event.v0BcSdc[0]-event.v0SdcIn[0]);
+    //Double_t BCSdcZoffset = - zK18Target + zTarget;
+    HF2(821, xyuvSdcIn_HScoor[0], xyuvBcSdc_HScoor[0]);
+    HF2(822, xyuvSdcIn_HScoor[1], xyuvBcSdc_HScoor[1]);
+    HF2(823, xyuvSdcIn_HScoor[2], xyuvBcSdc_HScoor[2]);
+    HF2(824, xyuvSdcIn_HScoor[3], xyuvBcSdc_HScoor[3]);
+    HF1(825, xyuvBcSdc_HScoor[0] - xyuvSdcIn_HScoor[0]);
+    HF1(826, xyuvBcSdc_HScoor[1] - xyuvSdcIn_HScoor[1]);
+    HF1(827, xyuvBcSdc_HScoor[2] - xyuvSdcIn_HScoor[2]);
+    HF1(828, xyuvBcSdc_HScoor[3] - xyuvSdcIn_HScoor[3]);
+    HF2(829, xyuvBcSdc_HScoor[0], xyuvBcSdc_HScoor[0] - xyuvSdcIn_HScoor[0]);
+    HF2(830, xyuvBcSdc_HScoor[1], xyuvBcSdc_HScoor[1] - xyuvSdcIn_HScoor[1]);
+    HF2(831, xyuvBcSdc_HScoor[0], xyuvBcSdc_HScoor[2] - xyuvSdcIn_HScoor[2]);
+    HF2(832, xyuvBcSdc_HScoor[1], xyuvBcSdc_HScoor[3] - xyuvSdcIn_HScoor[3]);
+
+    for(Int_t it=0; it<event.ntTpc; ++it){
+      for(Int_t ih=0; ih<event.nhtrack[it]; ++ih){
+	if(event.resolution_x[it][ih] > 0.9e5 && event.resolution_y[it][ih] > 0.9e5 && event.resolution_x[it][ih] > 0.9e5) continue; // exclude dummy hits
+	ThreeVector lpos_tpc(event.hitpos_x[it][ih],  event.hitpos_y[it][ih],  event.hitpos_z[it][ih]);
+	ThreeVector gpos = gGeom.Local2GlobalPos(IdHS, lpos_tpc);
+	ThreeVector lpos_bc = gpos - posV0;
+	HF1(1000*(event.hitlayer[it][ih]+1) + 205, -(src.u0BcSdc[it]*lpos_bc.z() + src.x0BcSdc[it]) + lpos_bc.x());
+	HF1(1000*(event.hitlayer[it][ih]+1) + 206, -(src.v0BcSdc[it]*lpos_bc.z() + src.y0BcSdc[it]) + lpos_bc.y());
+      }
+    }
   }
 
   return true;
@@ -954,10 +1094,17 @@ ConfMan::InitializeHistograms()
     HB1(1000*(i+1) + 104, Form("TPC L%d Local X Residual", i+1), 400, -16., 16.);
     HB1(1000*(i+1) + 105, Form("TPC L%d Local Y Residual", i+1), 200, -8., 8.);
     HB1(1000*(i+1) + 106, Form("TPC L%d XZ Residual", i+1), 100, 0, 8.);
+
+    HB1(1000*(i+1) + 201, Form("TPC L%d, BcOut X Residual", i+1), 200, -8., 8.);
+    HB1(1000*(i+1) + 202, Form("TPC L%d, BcOut Y Residual", i+1), 200, -8., 8.);
+    HB1(1000*(i+1) + 203, Form("TPC L%d, SdcIn X Residual", i+1), 200, -8., 8.);
+    HB1(1000*(i+1) + 204, Form("TPC L%d, SdcIn Y Residual", i+1), 200, -8., 8.);
+    HB1(1000*(i+1) + 205, Form("TPC L%d, BcSdc X Residual", i+1), 200, -8., 8.);
+    HB1(1000*(i+1) + 206, Form("TPC L%d, BcSdc Y Residual", i+1), 200, -8., 8.);
   }
   HB2(TPCCalibHid, "Layer%ResY", 32, 0, 32, 400, -5, 5);
 
-  HBTree("tpc", "tree of DstTPCTracking");
+  HBTree("tpc", "tree of DstTPCBcOutSdcInTracking");
   tree->Branch( "status", &event.status );
   tree->Branch( "runnum", &event.runnum );
   tree->Branch( "evnum", &event.evnum );
