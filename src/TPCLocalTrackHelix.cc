@@ -117,10 +117,8 @@ namespace
   //const Double_t ResidualWindowPullXZ = 10.; //bad
   const Double_t ResidualWindowPullXZ = 6.; //ref
   const Double_t ResidualWindowPullY = 6.; //ref
-  //const Double_t ResidualWindowPullY = 8.;
   //const Double_t ResidualWindowPullY = 10.;
   //const Double_t ResidualWindowPullY = 3.;
-  //const Double_t ResidualWindowInXZ = 5; //[mm]
 
   const Double_t ResidualWindowUnderTgtXZ = 5; //[mm]
   //const Double_t ResidualWindowUnderTgtXZ = 10; //[mm]
@@ -389,7 +387,6 @@ static inline void fcn_line(Int_t &npar, Double_t *gin, Double_t &f, Double_t *p
       tmp_theta += 2.*TMath::Pi()*turns;
       Double_t diff_z = TMath::Power(pos.Z()-(par[0]+(par[1]*gPar[3]*tmp_theta)), 2);
     */
-
     /*
       Double_t param[5] = {gPar[0], gPar[1], par[0], gPar[3], par[1]};
       Double_t diff_z = ResidualVect(param, gHitPos[i], gHelixTheta[i]).y();
@@ -687,8 +684,7 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters){
     //Double_t grad[5];
     //minuit -> Eval(5, grad, Chisqr, par, 0);
     Double_t Chisqr = CalcChi2(par, ndf, vetoBadClusters);
-    //if(icstat>0 && gChisqr>Chisqr){
-    if(gChisqr>Chisqr){
+    if(gChisqr>=Chisqr || TMath::Abs(gChisqr-Chisqr) < 0.01){
       gChisqr = Chisqr;
       gPar[0] = par[0];
       gPar[1] = par[1];
@@ -704,9 +700,10 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters){
     ++itry;
   }
   delete minuit;
-  if(IsBeam==1 && !status && gChisqr < 5.0) status = true;
+  if(IsBeam==1 && !status && gChisqr < 6.0) status = true;
 
 #if DebugDisp
+  std::cout<<"HelixFit() status="<<status<<" gChisqr "<<gChisqr<<" isBeam "<<IsBeam<<std::endl;
   if(gMinuitStatus==0) std::cout<<"HelixFit() icstat==0"<<std::endl;
 #endif
   return status;
@@ -803,7 +800,7 @@ TPCLocalTrackHelix::TPCLocalTrackHelix()
     m_is_multiloop(false),
     m_hit_order(), m_hit_t(), m_kuramaid_candidate(),
     m_cx(0.), m_cy(0.), m_z0(0.), m_r(0.), m_dz(0.),
-    m_closedist(1.e+10),
+    m_closedist(1.e+10, 1.e+10, 1.e+10),
     m_chisqr(1.e+10),
     m_minuit(0),
     m_n_iteration(0),
@@ -1036,7 +1033,7 @@ TPCLocalTrackHelix::CalcClosestDistTgt()
   Double_t theta_tgt = EvalTheta(par, tgt, m_min_t - scantheta, m_max_t + scantheta);
   TVector3 closest_point = GlobalPosition(par, theta_tgt);
   TVector3 dist = closest_point - tgt;
-  m_closedist = dist.Mag();
+  m_closedist = dist;
 }
 
 //_____________________________________________________________________________
@@ -1048,7 +1045,9 @@ TPCLocalTrackHelix::GetResolutionVect(TPCHit* hit, Bool_t vetoBadClusters){
     return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
   }
 
+  hit->GetParentCluster();
   if(vetoBadClusters && hit->GetParentCluster()->IsOnTheFrame()) return TVector3(3.e+10, 3.e+10, 3.e+10);
+
   TVector3 pos = hit->GetPosition();
   Int_t layer = hit->GetLayer();
   Double_t padTheta = hit->GetPadTheta();
@@ -1543,6 +1542,7 @@ TPCLocalTrackHelix::DoCircleFit(Double_t *par)
 
   Double_t par_circ[3]={0};
   Int_t npad = GetNPad();
+  if(npad==3) return true;
   if(npad<3 || CircleFit(xp, yp, n, &par_circ[0], &par_circ[1], &par_circ[2])<0) return false;
 
   par[0] = par_circ[0];
@@ -1733,6 +1733,8 @@ TPCLocalTrackHelix::DoHelixFit(Double_t *par, Bool_t vetoBadClusters)
   gPar[3] = par[3];
   gPar[4] = par[4];
 
+  IsBackward();
+
   Bool_t status = false;
   if(HelixFit(m_isBeam, vetoBadClusters)){
     status = true;
@@ -1920,6 +1922,14 @@ TPCLocalTrackHelix::IsGoodHitToAdd(TPCHit *hit, Double_t &residual)
   TVector3 position = hit->GetPosition();
   TVector3 res = CalcResolution(par, layer, position, padTheta, resparam, false);
 
+  Int_t upstream_tgt = -1;
+  if(TMath::Abs(position.x()) < 25. &&
+     TMath::Abs(position.y()) < 10. &&
+     position.z() < tpc::ZTarget) upstream_tgt = 0; //Beam section
+  else if(TMath::Abs(position.x()) < 25. &&
+	  TMath::Abs(position.y()) > 10. &&
+	  position.z() < tpc::ZTarget) upstream_tgt = 1; //above or below the beam section
+
   Int_t section = -1;
   if((position.z() + position.x()) < 0 && (position.z() - position.x()) < 0) section = 1;
   if((position.z() + position.x()) < 0 && (position.z() - position.x()) > 0) section = 2;
@@ -1927,37 +1937,69 @@ TPCLocalTrackHelix::IsGoodHitToAdd(TPCHit *hit, Double_t &residual)
   if((position.z() + position.x()) > 0 && (position.z() - position.x()) < 0) section = 4;
 
   Double_t factor = 1.;
+  Int_t nhit_upstream_tgt = 0;
   std::vector<Int_t> gSection;
   const std::size_t n = m_hit_array.size();
   for(Int_t i=0; i<n; ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
     Int_t section = hitp->GetSection();
     gSection.push_back(section);
+
+    TVector3 pos = hitp -> GetLocalHitPos();
+    if(TMath::Abs(pos.x()) < 25. && pos.z() < tpc::ZTarget) nhit_upstream_tgt++;
   }
 
   Double_t max_scanrange = 40.;
-  if(find(gSection.begin(), gSection.end(), section) == gSection.end()){
-    factor = 2.; //Crossing to the other sections
+  if(find(gSection.begin(), gSection.end(), section) == gSection.end()){ //Crossing to the other sections
+    factor = 2.;
     Bool_t include_section1 = (find(gSection.begin(), gSection.end(), 1) == gSection.end());
     Bool_t include_section2 = (find(gSection.begin(), gSection.end(), 2) == gSection.end());
     Bool_t include_section3 = (find(gSection.begin(), gSection.end(), 3) == gSection.end());
     Bool_t include_section4 = (find(gSection.begin(), gSection.end(), 4) == gSection.end());
-    if(section==1){
+    /*
+      if(section==1){
       if(include_section2 || include_section4) max_scanrange += 30.;
       else max_scanrange += 60.;
+      }
+      else if(section==2){
+      if(include_section1 || include_section3) max_scanrange += 30.;
+      else max_scanrange += 60.;
+      }
+      else if(section==3){
+      if(include_section2 || include_section4) max_scanrange += 30.;
+      else max_scanrange += 60.;
+      }
+      else if(section==4){
+      if(include_section1 || include_section3) max_scanrange += 30.;
+      else max_scanrange += 60.;
+      }
+    */
+    if(section==1){
+      if(include_section2 || include_section4) max_scanrange += 60.;
+      else max_scanrange += 120.;
     }
     else if(section==2){
-      if(include_section1 || include_section3) max_scanrange += 30.;
-      else max_scanrange += 60.;
+      if(include_section1 || include_section3) max_scanrange += 60.;
+      else max_scanrange += 120.;
     }
     else if(section==3){
-      if(include_section2 || include_section4) max_scanrange += 30.;
-      else max_scanrange += 60.;
+      if(include_section2 || include_section4) max_scanrange += 60.;
+      else max_scanrange += 120.;
     }
     else if(section==4){
-      if(include_section1 || include_section3) max_scanrange += 30.;
-      else max_scanrange += 60.;
+      if(include_section1 || include_section3) max_scanrange += 60.;
+      else max_scanrange += 120.;
     }
+  }
+  else if(nhit_upstream_tgt==0 && upstream_tgt==1 &&
+	  (TMath::Hypot(m_closedist.x(), m_closedist.z())<25. &&
+	   TMath::Abs(m_closedist.y())>10.)){ //Under or over the target
+    factor = 1.;
+    max_scanrange += 40.;
+  }
+  else if(nhit_upstream_tgt==0 && upstream_tgt==0){ //Beam section
+    factor = 1.;
+    max_scanrange = 20.;
   }
   max_scanrange /= m_r;
 
@@ -2126,7 +2168,7 @@ TPCLocalTrackHelix::CalcHelixTheta()
   }
 
 #if DebugDisp
-  std::cout<<"helix theta calculated: theta "<<m_min_t<<" "<<m_max_t<<std::endl;
+  std::cout<<"helix theta calculated: theta min "<<m_min_t<<" max "<<m_max_t<<std::endl;
 #endif
   m_is_theta_calculated = true;
 
@@ -2443,7 +2485,7 @@ TPCLocalTrackHelix::VertexAtTarget()
   }
 
   Bool_t status = false;
-  if(m_closedist < tpc::TargetVtxWindow) status = true;
+  if(m_closedist.Mag() < tpc::TargetVtxWindow) status = true;
   return status;
 }
 
@@ -2457,17 +2499,29 @@ TPCLocalTrackHelix::IsBackward()
     return false;
   }
 
-  if(TMath::Abs(TMath::Hypot(m_cx, m_cy ) - m_r) > 30.) return false;
-  if(m_edgepoint.z() > tpc::ZTarget) return false;
+  //track is starting from the target
+  if(TMath::Abs(TMath::Hypot(m_cx, m_cy) - m_r) > tpc::TargetVtxWindow) return false;
 
+  //Track exist before the target position
+  if(m_edgepoint.z() > tpc::ZTarget) return false;
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   if(GetPosition(par, GetMint()).Z() > tpc::ZTarget || GetPosition(par, GetMaxt()).Z() > tpc::ZTarget) return false;
 
+  //upstream end of the track is within window
+  TVector3 extrap_point; // extrapolated point at Z=-250.
   Double_t sint = (-250. - tpc::ZTarget - m_cy)/m_r; //at Z=-250.
   if(sint > 1 || sint < -1) return false;
+  TVector3 point1(TMath::Abs(m_cx + m_r*TMath::Sqrt(1. - sint*sint)), 0, -250.);
+  TVector3 point2(TMath::Abs(m_cx - m_r*TMath::Sqrt(1. - sint*sint)), 0, -250.);
+  TVector3 residualXZ1 = ResidualVectXZ(par, point1);
+  TVector3 residualXZ2 = ResidualVectXZ(par, point2);
+  if(residualXZ1.Mag() > residualXZ2.Mag()) extrap_point = point2;
+  else extrap_point = point1;
 
-  //if(TMath::Abs(m_cx + m_r*TMath::Sqrt(1. - sint*sint)) > 50. && TMath::Abs(m_cx - m_r*TMath::Sqrt(1. - sint*sint)) > 50.) return false; //Abs(X) < 50 at Z=-250.
-  if(TMath::Abs(m_cx + m_r*TMath::Sqrt(1. - sint*sint)) > 75. && TMath::Abs(m_cx - m_r*TMath::Sqrt(1. - sint*sint)) > 75.) return false; //Abs(X) < 75 at Z=-250.
+  if(extrap_point.x() > 75.) return false; //Abs(X) < 75 at Z=-250.
+
+  //If the backward track is accidental beam, set isbeam=1 to make fitting easier.
+  if(extrap_point.x() < 25. && TMath::Abs(m_dz)<0.15) SetIsBeam();
 
   return true;
 }
@@ -2682,8 +2736,9 @@ TPCLocalTrackHelix::ConvertParam(Double_t *linear_par)
 	   <<", z0: "<<gPar[2]
 	   <<", r: "<<gPar[3]
 	   <<", dz: "<<gPar[4]<<std::endl;
+  std::cout<<"converted track's theta min: "<<m_min_t<<" max: "<<m_max_t<<" size: "<<m_hit_t.size()<<std::endl;
 #endif
-  //std::cout<<"convert param : theta "<<m_min_t<<" "<<m_max_t<<" size "<<m_hit_t.size()<<std::endl;
+
   return true;
 }
 
@@ -2694,12 +2749,12 @@ TPCLocalTrackHelix::SeparateTracksAtTarget()
 {
 
   Bool_t status = true;
+  m_vtxflag = 0;
   //If the target is at the middle of the inintial track, that track is separated with different side flag. (Two tracks are reconized as a single track)
   //Please see the Side() function.
 
   static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
-  if(BeamThroughTPC){
-    m_vtxflag = 0;
+  if(BeamThroughTPC || m_isAccidental==1){
     return status;
   }
 
@@ -2709,8 +2764,9 @@ TPCLocalTrackHelix::SeparateTracksAtTarget()
   if(m_is_multiloop && (m_max_t - m_min_t) > 2.*TMath::Pi()) return status;
 
   CalcClosestDistTgt(); //Distance between the target & the track
-  if(VertexAtTarget()){
-    std::vector<Int_t> side1_hits; std::vector<Int_t> side2_hits;
+  std::vector<Int_t> side1_hits; std::vector<Int_t> side2_hits;
+  if(VertexAtTarget()){ //If track is crossing the target.
+    //Exclude the beam hit from the scattered track of the other scattered track's hit.
     const std::size_t n = m_hit_array.size();
     for(std::size_t i=0; i<n; ++i){
       TPCLTrackHit *hitp = m_hit_array[i];
@@ -2718,36 +2774,55 @@ TPCLocalTrackHelix::SeparateTracksAtTarget()
       if(Side(pos)==1) side1_hits.push_back(i);
       else if(Side(pos)==-1) side2_hits.push_back(i);
     }
+  }
+  else{ //If track is not crossing the target.
+    SortHitOrder();
 
-    if(side1_hits.size()==0 || side2_hits.size()==0) return status;
-    else{ //exclude the shorter side
-      m_is_fitted = false; //Need to do minimization again
+    //Exclude the beam hit from the scattered track.
+    Bool_t flag = false;
+    TVector3 prev_pos;
+    Bool_t prev_isBeamHit = false; Bool_t isBeamHit;
+    const std::size_t n = m_hit_array.size();
+    for(Int_t i=0; i<n; ++i){
+      Int_t id = m_hit_order[i];
+      TPCLTrackHit *hitp = m_hit_array[id];
+      TVector3 pos = hitp -> GetLocalHitPos();
+      if(TMath::Abs(pos.x()) < 25. &&
+	 TMath::Abs(pos.y()) < 30. &&
+	 pos.z() < tpc::ZTarget) isBeamHit = true;
+      else isBeamHit = false;
 
-      if(side1_hits.size() >= side2_hits.size()){
-	EraseHits(side2_hits);
-	m_vtxflag = 1;
-      }
-      else{
-	EraseHits(side1_hits);
-	m_vtxflag = -1;
-      }
-
-      //After separation, recalculate track params.
-      Double_t par[5]={0};
-      status = DoPreFit(par);
-      if(status){
-	CalcClosestDistTgt();
-	TVector3 pos = m_hit_array[0] -> GetLocalHitPos();
-	if(VertexAtTarget()) m_vtxflag = Side(pos);
-	else m_vtxflag = 0;
-      }
+      TVector3 gap = pos - prev_pos;
+      //std::cout<<i<<" gap "<<gap.Mag()<<" pos "<<pos<<std::endl;
+      if((m_dz > 0.01 || m_r < 3300.) && i!=0 && gap.Mag() > 30. && prev_isBeamHit!=isBeamHit) flag = true;
+      if(!flag) side1_hits.push_back(id);
+      else side2_hits.push_back(id);
+      prev_pos = pos;
+      prev_isBeamHit = isBeamHit;
     }
   }
-  else m_vtxflag = 0;
+
+  if(side1_hits.size()==0 || side2_hits.size()==0) return status;
+  else{ //exclude the shorter side
+    m_is_fitted = false; //Need to do minimization again
+    m_n_iteration = 0;
+
+    if(side1_hits.size() >= side2_hits.size()) EraseHits(side2_hits);
+    else EraseHits(side1_hits);
+
+    Double_t par[5]={0};
+    status = DoPreFit(par);
+    if(status){
+      CalcClosestDistTgt();
+      TVector3 pos = m_hit_array[0] -> GetLocalHitPos();
+      if(VertexAtTarget()) m_vtxflag = Side(pos);
+      else m_vtxflag = 0;
+    }
+  }
 
 #if DebugDisp
   if(!status) std::cout<<FUNC_NAME+" Separated track is not good for tracking"<<std::endl;
-  std::cout<<FUNC_NAME+" Close distance from the target to the track : "<<m_closedist<<std::endl;
+  std::cout<<FUNC_NAME+" Close distance from the target to the track : "<<m_closedist.Mag()<<std::endl;
 #endif
 
   return status;
@@ -2871,6 +2946,7 @@ TPCLocalTrackHelix::TestMergedTrack()
   std::cout<<FUNC_NAME+" Helix fitting of the merged track"<<std::endl
 	   <<" n_iteration: "<<m_n_iteration
 	   <<", chisqr: "<<gChisqr<<std::endl
+	   <<" # of clusters: "<<GetNHit()
 	   <<", cx: "<<gPar[0]
 	   <<", cy: "<<gPar[1]
 	   <<", z0: "<<gPar[2]
@@ -2883,11 +2959,13 @@ TPCLocalTrackHelix::TestMergedTrack()
 #if DebugDisp
   std::cout<<FUNC_NAME+" # of bad clusters : "<<false_layer<<std::endl;
 #endif
-  if(false_layer > 3) return false;
+  //if(false_layer > 3) return false;
+  if(false_layer > 3 && (Double_t) false_layer/GetNHit() > 0.2) return false;
 
   //Check whether the track passing the target or not
   CalcClosestDistTgt(); //Distance between the target & the track
   if(VertexAtTarget()){
+
     std::vector<Int_t> side1_hits; std::vector<Int_t> side2_hits;
     for(Int_t i=0; i<n; ++i){
       Double_t resi;
@@ -2900,7 +2978,10 @@ TPCLocalTrackHelix::TestMergedTrack()
 
     //The merged track is close to the target but not crossing the target.
     //Set the vtxflag 0 to make SeparateTracksAtTarget() off.
-    if(side1_hits.size() > 0 && side2_hits.size() > 0) return false;
+    if(side1_hits.size() > 0 && side2_hits.size() > 0){
+      if(TMath::Abs(m_closedist.x())<15. && TMath::Abs(m_closedist.y())<10. && TMath::Abs(m_closedist.z())<10.) return false;
+      else m_isAccidental = 1;
+    }
   }
   else m_vtxflag=0;
 
@@ -2931,4 +3012,166 @@ TPCLocalTrackHelix::RecalcTrack()
   m_mom0 = CalcHelixMom(par, 0.);
   IsMultiLoop();
 
+}
+
+//_____________________________________________________________________________
+void
+TPCLocalTrackHelix::CheckIsAccidental()
+{
+
+  if(!m_is_theta_calculated){
+    std::cout<<FUNC_NAME+" Fatal error : No helix theta information!!! CalcHelixTheta() should be run in front of this"<<std::endl;
+    return;
+  }
+  if(!m_is_fitted) return;
+
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+  if(BeamThroughTPC || m_isAccidental==1) return;
+  if(TMath::Abs(m_dz)>0.03 || m_r<3300) return;
+
+  Int_t nhit_upstream_tgt = 0; Int_t nhit_downstream_tgt = 0;
+  const std::size_t n = m_hit_array.size();
+  for(Int_t i=0; i<n; ++i){
+    TPCLTrackHit *hitp = m_hit_array[i];
+    TVector3 pos = hitp -> GetLocalHitPos();
+    if(TMath::Abs(pos.x()) < 40. && pos.z() < tpc::ZTarget) nhit_upstream_tgt++;
+    if(TMath::Abs(pos.x()) < 40. && pos.z() > tpc::ZTarget) nhit_downstream_tgt++;
+  }
+  if(nhit_upstream_tgt>1 && nhit_downstream_tgt>=5){m_isAccidental=1; m_isBeam=1;}
+}
+
+//_____________________________________________________________________________
+TVector3
+TPCLocalTrackHelix::GetMomentumResolutionVect(Int_t i, Double_t MomScale, Double_t PhiScale, Double_t dZScale){
+
+  Double_t t = GetHitInOrder(i) -> GetTheta();
+  return GetMomentumResolutionVect(t, MomScale, PhiScale, dZScale);
+}
+
+//_____________________________________________________________________________
+TVector3
+TPCLocalTrackHelix::GetMomentumResolutionVect(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale){
+  if(t == -9999) t = m_min_t;
+  /*
+    For a Multivaraible function F(M), the Covariance is given as V(F) = JV(M)J^T, where J = dFdM is a Jacobian matrix.
+    We will calculate the momentum resolution from pt, theta, and dZ resolution.
+  */
+  Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  Double_t p_t = m_r*(tpc::ConstC*B)*0.001;
+  //Double_t pz = p_t*(cos(t));
+  //Double_t py = p_t*m_dz;
+  //Double_t px = p_t*(sin(t));
+  //std::cout<<"px "<<px<<" "<<py<<" "<<pz<<std::endl;
+
+  Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
+  TVector3 calcmom = CalcHelixMom(par, t);
+
+  Double_t t_avg = 0.5*(m_max_t + m_min_t);
+  Double_t t_dif = (t-t_avg);
+  Double_t sign = 0;
+  if(t_dif>0)sign = 1;
+  else sign = -1;
+
+  Double_t ddZ = dZScale * GetdZResolution();
+  Double_t dt = PhiScale * GetTransverseAngularResolution(t);
+  Double_t dp_t = MomScale * GetTransverseMomentumResolution();
+  Double_t Vp_t = dp_t*dp_t;
+  Double_t Vt = dt*dt;
+  Double_t VdZ = ddZ*ddZ;
+  /*
+    V(px) = J V(p_t,t)* J^T
+    V(pt, t) = res_pt^2, Cov(pt,t)
+    Cov(pt,t),	res_t^2
+    **Note! Cov(pt,t) = res_pt*res_t, because res_t ~ res_pt!
+
+    Jx = dpx / dp_t, dpx / dt = sin(t),-p_t cos(t);
+    Jz = dpz / dp_t, dpz / dt = cos(t),-p_t sin(t);
+  */
+  Double_t cov_pt_t = sign*dp_t*dt;
+  Double_t Vpx = sin(t) *(Vp_t *(sin(t)) + cov_pt_t*(p_t*cos(t))) + p_t*cos(t)*(cov_pt_t*(sin(t))+Vt*(p_t*cos(t)));
+  Double_t Vpz = cos(t) *(Vp_t *(cos(t)) + cov_pt_t*(-p_t*sin(t))) + -p_t*sin(t)*(cov_pt_t*(cos(t))+Vt*(-p_t*sin(t)));
+
+  /*
+    V(py) = J V(p_t,dZ) J^T,
+    Cov(p_t,dZ_) is assumed to be 0 since they should be independent.
+    Jy = dpy/dp_t,dpy/ddz = m_dz,pt
+  */
+  Double_t Vpy = m_dz*Vp_t*m_dz + p_t*VdZ*p_t;
+  return TVector3(sqrt(Vpx), sqrt(Vpy), sqrt(Vpz));
+}
+
+//_____________________________________________________________________________
+Double_t
+TPCLocalTrackHelix::GetTransverseMomentumResolution(){
+  Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  Double_t dt = abs(m_max_t - m_min_t);
+  if(dt > 2*acos(-1) )dt = 2*acos(-1);
+  Double_t path = m_r * dt;
+  Double_t L = 2 * sin(0.5*dt)*m_r;//String length, not Arc length
+  L*=0.001;//mm->m;
+  Double_t res = 0;
+  Int_t nh = m_hit_array.size();
+  for(Int_t ih=0;ih<m_hit_array.size();++ih){
+    Int_t id = m_hit_order[ih];
+    TPCLTrackHit *hitp = m_hit_array[id];
+    auto ResV = hitp -> GetResolutionVect();
+    Double_t res_T = hypot(ResV.X(),ResV.Z());
+    if(ResV.X()>0.9e10 && ResV.Y()>0.9e10 && ResV.Z()>0.9e10){
+      nh--;
+      continue;
+    }
+    res+=res_T*res_T;
+  }
+  Double_t pt = m_r*(tpc::ConstC*B)*0.001;
+  if(nh<4) return pt*0.1;
+  res = sqrt(3./2) * sqrt(res / nh)* 0.001;//mm-> m
+  Double_t dPOverP = pt / (0.3*L*L*B)*sqrt(720./(nh+4))*res;
+  return pt*dPOverP;
+}
+
+//_____________________________________________________________________________
+Double_t
+TPCLocalTrackHelix::GetTransverseAngularResolution(Double_t t){
+  if(t == -9999)t = m_min_t;
+  Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  Double_t pt = m_r*(tpc::ConstC*B)*0.001;
+  Double_t dp = GetTransverseMomentumResolution();
+  Double_t dr = m_r * dp/pt;
+  Double_t t_avg = 0.5*(m_max_t + m_min_t);
+  Double_t dt = (t-t_avg);
+  if(dt >acos(-1))dt = acos(-1);
+  Double_t path = m_r * dt;
+
+  return path * dr / m_r / m_r;
+}
+
+//_____________________________________________________________________________
+Double_t
+TPCLocalTrackHelix::GetdZResolution(){
+  Double_t res2 = 0;
+  Int_t nh = m_hit_array.size();
+  for(Int_t ih=0;ih<m_hit_array.size();++ih){
+    Int_t id = m_hit_order[ih];
+    TPCLTrackHit *hitp = m_hit_array[id];
+    auto ResV = hitp -> GetResolutionVect();
+    Double_t res_Y = ResV.Y();
+    if(ResV.X()>0.9e10 && ResV.Y()>0.9e10 && ResV.Z()>0.9e10){
+      nh--;
+      continue;
+    }
+    res2 += res_Y*res_Y;
+  }
+  Double_t dt = abs(m_max_t - m_min_t);
+  if(dt > 2*acos(-1)) dt = 2*acos(-1);
+  Double_t path = m_r * dt;
+  Double_t path_dev = path*path*nh/12;
+  Double_t d_slope = 1./(nh-2)*res2/path_dev;
+  return d_slope;
+}
+
+//_____________________________________________________________________________
+Double_t
+TPCLocalTrackHelix::GetThetaResolution(){
+  double d_slope = GetdZResolution();
+  return d_slope / (1+m_dz*m_dz);
 }

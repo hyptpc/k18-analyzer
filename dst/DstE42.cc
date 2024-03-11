@@ -668,7 +668,7 @@ dst::DstRead( int ievent )
 {
 
   //if( ievent%1000==0 ){
-  if( ievent%1==0 ){
+  if( ievent%100==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }

@@ -35,9 +35,8 @@
 #include "HypTPCFitter.hh"
 #include "HypTPCTask.hh"
 
-#define K18 1
 #define RawHit 0
-#define RawCluster 1
+#define RawCluster 0
 #define TrackCluster 1
 
 namespace
@@ -58,20 +57,12 @@ const double truncatedMean = 0.8; //80%
 const bool Const_field = false; //Must be false for linear tracking
 const Int_t verbosity = 0;//3;
 const auto& tpcGeo = ConfMan::Get<TString>("TPCGDML");
+
+const Double_t vtx_scan_range = 150.;
 }
 
 namespace dst
 {
-#if K18
-enum kArgc
-{
-  kProcess, kConfFile,
-  kTpcHit, kHodoscope, kK18HSTracking, kOutFile, nArgc
-};
-std::vector<TString> ArgName =
-  { "[Process]", "[ConfFile]", "[TPCHit]", "[Hodoscope]", "[K18HSTracking]", "[OutFile]" };
-std::vector<TString> TreeName = { "", "", "tpc", "hodo", "k18track", "" };
-#else
 enum kArgc
 {
   kProcess, kConfFile,
@@ -80,7 +71,6 @@ enum kArgc
 std::vector<TString> ArgName =
   { "[Process]", "[ConfFile]", "[TPCHit]", "[Hodoscope]", "[OutFile]" };
 std::vector<TString> TreeName = { "", "", "tpc", "hodo", "" };
-#endif
 std::vector<TFile*> TFileCont;
 std::vector<TTree*> TTreeCont;
 std::vector<TTreeReader*> TTreeReaderCont;
@@ -95,45 +85,6 @@ struct Event
   std::vector<Int_t> trigpat;
   std::vector<Int_t> trigflag;
   std::vector<Double_t> clkTpc;
-
-  // K18
-  Int_t ntK18;
-  std::vector<Int_t> nhK18;
-  std::vector<Double_t> chisqrK18;
-  std::vector<Double_t> p_3rd;
-  std::vector<Double_t> delta_3rd;
-  std::vector<Double_t> xoutK18;
-  std::vector<Double_t> youtK18;
-  std::vector<Double_t> uoutK18;
-  std::vector<Double_t> voutK18;
-  std::vector<Double_t> xtgtHS;
-  std::vector<Double_t> ytgtHS;
-  std::vector<Double_t> ztgtHS;
-  std::vector<Double_t> utgtHS;
-  std::vector<Double_t> vtgtHS;
-
-  std::vector<Double_t> xbh2HS;
-  std::vector<Double_t> ybh2HS;
-  std::vector<Double_t> zbh2HS;
-  std::vector<Double_t> ubh2HS;
-  std::vector<Double_t> vbh2HS;
-  std::vector<Double_t> xhtofHS;
-  std::vector<Double_t> yhtofHS;
-  std::vector<Double_t> zhtofHS;
-  std::vector<Double_t> uhtofHS;
-  std::vector<Double_t> vhtofHS;
-  std::vector<Double_t> initmomHS;
-  std::vector<Double_t> pHS;
-  std::vector<std::vector<Double_t>> xvpHS;
-  std::vector<std::vector<Double_t>> yvpHS;
-  std::vector<std::vector<Double_t>> zvpHS;
-  std::vector<std::vector<Double_t>> uvpHS;
-  std::vector<std::vector<Double_t>> vvpHS;
-  std::vector<std::vector<Double_t>> xbcHS;
-  std::vector<std::vector<Double_t>> ybcHS;
-  std::vector<std::vector<Double_t>> zbcHS;
-  std::vector<std::vector<Double_t>> ubcHS;
-  std::vector<std::vector<Double_t>> vbcHS;
 
   Int_t nhTpc;
   std::vector<Double_t> raw_hitpos_x;
@@ -249,8 +200,20 @@ struct Event
   std::vector<Double_t> GFxTgt;
   std::vector<Double_t> GFyTgt;
   std::vector<Double_t> GFzTgt;
+  std::vector<Double_t> GFmomTgt;
+  std::vector<Double_t> GFmomxTgt;
+  std::vector<Double_t> GFmomyTgt;
+  std::vector<Double_t> GFmomzTgt;
+
   std::vector<Double_t> GFtracklenTgt; //extrapolate to the target
   std::vector<Double_t> GFtofTgt;
+
+  Int_t GFid1Vtx;
+  Int_t GFid2Vtx;
+  Double_t GFxVtx;
+  Double_t GFyVtx;
+  Double_t GFzVtx;
+  Double_t GFcloseDist;
 
   std::vector<Int_t> GFnhHtof; //not real hit, extrapolation candidate.
   std::vector<std::vector<Double_t>> GFsegHtof;
@@ -264,19 +227,61 @@ struct Event
   std::vector<Double_t> GFmom_p;
   std::vector<Double_t> GFtof_p;
   std::vector<Double_t> GFtracklen_p;
+
+  std::vector<Int_t> GFinside_p;
+  std::vector<Double_t> GFxTgt_p;
+  std::vector<Double_t> GFyTgt_p;
+  std::vector<Double_t> GFzTgt_p;
+  std::vector<Double_t> GFmomTgt_p;
+  std::vector<Double_t> GFmomxTgt_p;
+  std::vector<Double_t> GFmomyTgt_p;
+  std::vector<Double_t> GFmomzTgt_p;
+  std::vector<Double_t> GFtracklenTgt_p; //extrapolate to the target
   std::vector<Double_t> GFtofTgt_p;
-  std::vector<Double_t> GFtracklenTgt_p;
+
+  std::vector<Double_t> GFxVtx_p;
+  std::vector<Double_t> GFyVtx_p;
+  std::vector<Double_t> GFzVtx_p;
+  std::vector<Double_t> GFmomVtx_p;
+  std::vector<Double_t> GFmomxVtx_p;
+  std::vector<Double_t> GFmomyVtx_p;
+  std::vector<Double_t> GFmomzVtx_p;
+  std::vector<Double_t> GFtracklenVtx_p;
+  std::vector<Double_t> GFtofVtx_p;
+  std::vector<Double_t> GFdistVtx_p;
+
+  std::vector<Int_t> GFnhHtof_p;
+  std::vector<std::vector<Double_t>> GFsegHtof_p;
+  std::vector<std::vector<Double_t>> GFtracklenHtof_p;
+  std::vector<std::vector<Double_t>> GFtofHtof_p;
 
   std::vector<Int_t> GFfitstatus_pi;
   std::vector<Double_t> GFmom_pi;
   std::vector<Double_t> GFtof_pi;
   std::vector<Double_t> GFtracklen_pi;
+
+  std::vector<Int_t> GFinside_pi;
+  std::vector<Double_t> GFxTgt_pi;
+  std::vector<Double_t> GFyTgt_pi;
+  std::vector<Double_t> GFzTgt_pi;
+  std::vector<Double_t> GFmomTgt_pi;
+  std::vector<Double_t> GFmomxTgt_pi;
+  std::vector<Double_t> GFmomyTgt_pi;
+  std::vector<Double_t> GFmomzTgt_pi;
+  std::vector<Double_t> GFtracklenTgt_pi; //extrapolate to the target
   std::vector<Double_t> GFtofTgt_pi;
-  std::vector<Double_t> GFtracklenTgt_pi;
-  std::vector<Int_t> GFnhHtof_p;
-  std::vector<std::vector<Double_t>> GFsegHtof_p;
-  std::vector<std::vector<Double_t>> GFtracklenHtof_p;
-  std::vector<std::vector<Double_t>> GFtofHtof_p;
+
+  std::vector<Double_t> GFxVtx_pi;
+  std::vector<Double_t> GFyVtx_pi;
+  std::vector<Double_t> GFzVtx_pi;
+  std::vector<Double_t> GFmomVtx_pi;
+  std::vector<Double_t> GFmomxVtx_pi;
+  std::vector<Double_t> GFmomyVtx_pi;
+  std::vector<Double_t> GFmomzVtx_pi;
+  std::vector<Double_t> GFtracklenVtx_pi;
+  std::vector<Double_t> GFtofVtx_pi;
+  std::vector<Double_t> GFdistVtx_pi;
+
   std::vector<Int_t> GFnhHtof_pi;
   std::vector<std::vector<Double_t>> GFsegHtof_pi;
   std::vector<std::vector<Double_t>> GFtracklenHtof_pi;
@@ -290,44 +295,6 @@ struct Event
     trigpat.clear();
     trigflag.clear();
     clkTpc.clear();
-
-    ntK18 = 0;
-    nhK18.clear();
-    chisqrK18.clear();
-    p_3rd.clear();
-    delta_3rd.clear();
-    xoutK18.clear();
-    youtK18.clear();
-    uoutK18.clear();
-    voutK18.clear();
-
-    initmomHS.clear();
-    pHS.clear();
-    xtgtHS.clear();
-    ytgtHS.clear();
-    ztgtHS.clear();
-    utgtHS.clear();
-    vtgtHS.clear();
-    xbh2HS.clear();
-    ybh2HS.clear();
-    zbh2HS.clear();
-    ubh2HS.clear();
-    vbh2HS.clear();
-    xhtofHS.clear();
-    yhtofHS.clear();
-    zhtofHS.clear();
-    uhtofHS.clear();
-    vhtofHS.clear();
-    xvpHS.clear();
-    yvpHS.clear();
-    uvpHS.clear();
-    vvpHS.clear();
-    zvpHS.clear();
-    xbcHS.clear();
-    ybcHS.clear();
-    zbcHS.clear();
-    ubcHS.clear();
-    vbcHS.clear();
 
     nhTpc = 0;
     raw_hitpos_x.clear();
@@ -445,8 +412,19 @@ struct Event
     GFxTgt.clear();
     GFyTgt.clear();
     GFzTgt.clear();
+    GFmomxTgt.clear();
+    GFmomxTgt.clear();
+    GFmomyTgt.clear();
+    GFmomzTgt.clear();
     GFtracklenTgt.clear();
     GFtofTgt.clear();
+
+    GFid1Vtx = -1;
+    GFid2Vtx = -1;
+    GFxVtx = qnan;
+    GFyVtx = qnan;
+    GFzVtx = qnan;
+    GFcloseDist = qnan;
 
     GFnhHtof.clear();
     GFsegHtof.clear();
@@ -460,8 +438,29 @@ struct Event
     GFmom_p.clear();
     GFtof_p.clear();
     GFtracklen_p.clear();
-    GFtofTgt_p.clear();
+
+    GFinside_p.clear();
+    GFxTgt_p.clear();
+    GFyTgt_p.clear();
+    GFzTgt_p.clear();
+    GFmomTgt_p.clear();
+    GFmomxTgt_p.clear();
+    GFmomyTgt_p.clear();
+    GFmomzTgt_p.clear();
     GFtracklenTgt_p.clear();
+    GFtofTgt_p.clear();
+
+    GFxVtx_p.clear();
+    GFyVtx_p.clear();
+    GFzVtx_p.clear();
+    GFmomVtx_p.clear();
+    GFmomxVtx_p.clear();
+    GFmomyVtx_p.clear();
+    GFmomzVtx_p.clear();
+    GFtracklenVtx_p.clear();
+    GFtofVtx_p.clear();
+    GFdistVtx_p.clear();
+
     GFnhHtof_p.clear();
     GFsegHtof_p.clear();
     GFtofHtof_p.clear();
@@ -471,13 +470,33 @@ struct Event
     GFmom_pi.clear();
     GFtof_pi.clear();
     GFtracklen_pi.clear();
-    GFtofTgt_pi.clear();
+
+    GFinside_pi.clear();
+    GFxTgt_pi.clear();
+    GFyTgt_pi.clear();
+    GFzTgt_pi.clear();
+    GFmomTgt_pi.clear();
+    GFmomxTgt_pi.clear();
+    GFmomyTgt_pi.clear();
+    GFmomzTgt_pi.clear();
     GFtracklenTgt_pi.clear();
+    GFtofTgt_pi.clear();
+
+    GFxVtx_pi.clear();
+    GFyVtx_pi.clear();
+    GFzVtx_pi.clear();
+    GFmomVtx_pi.clear();
+    GFmomxVtx_pi.clear();
+    GFmomyVtx_pi.clear();
+    GFmomzVtx_pi.clear();
+    GFtracklenVtx_pi.clear();
+    GFtofVtx_pi.clear();
+    GFdistVtx_pi.clear();
+
     GFnhHtof_pi.clear();
     GFsegHtof_pi.clear();
     GFtofHtof_pi.clear();
     GFtracklenHtof_pi.clear();
-
   }
 };
 
@@ -511,66 +530,6 @@ struct Src
   Double_t deHtof[NumOfSegHTOF*MaxDepth];
   Double_t posHtof[NumOfSegHTOF*MaxDepth];
 
-  // K18HS
-  Int_t ntK18;
-  Int_t nhK18[MaxHits];
-  Double_t chisqrK18[MaxHits];
-  Double_t p_3rd[MaxHits];
-  Double_t delta_3rd[MaxHits];
-  Double_t xoutK18[MaxHits];
-  Double_t youtK18[MaxHits];
-  Double_t uoutK18[MaxHits];
-  Double_t voutK18[MaxHits];
-  Double_t xtgtHS[MaxHits];
-  Double_t ytgtHS[MaxHits];
-  Double_t ztgtHS[MaxHits];
-  Double_t utgtHS[MaxHits];
-  Double_t vtgtHS[MaxHits];
-  Double_t pHS[MaxHits];
-  Double_t initmomHS[MaxHits];
-
-  Double_t xbh2HS[MaxHits];
-  Double_t ybh2HS[MaxHits];
-  Double_t zbh2HS[MaxHits];
-  Double_t ubh2HS[MaxHits];
-  Double_t vbh2HS[MaxHits];
-
-  Double_t xvp1HS[MaxHits];
-  Double_t yvp1HS[MaxHits];
-  Double_t zvp1HS[MaxHits];
-  Double_t uvp1HS[MaxHits];
-  Double_t vvp1HS[MaxHits];
-
-  Double_t xvp2HS[MaxHits];
-  Double_t yvp2HS[MaxHits];
-  Double_t zvp2HS[MaxHits];
-  Double_t uvp2HS[MaxHits];
-  Double_t vvp2HS[MaxHits];
-
-  Double_t xvp3HS[MaxHits];
-  Double_t yvp3HS[MaxHits];
-  Double_t zvp3HS[MaxHits];
-  Double_t uvp3HS[MaxHits];
-  Double_t vvp3HS[MaxHits];
-
-  Double_t xvp4HS[MaxHits];
-  Double_t yvp4HS[MaxHits];
-  Double_t zvp4HS[MaxHits];
-  Double_t uvp4HS[MaxHits];
-  Double_t vvp4HS[MaxHits];
-
-  Double_t xhtofHS[MaxHits];
-  Double_t yhtofHS[MaxHits];
-  Double_t zhtofHS[MaxHits];
-  Double_t uhtofHS[MaxHits];
-  Double_t vhtofHS[MaxHits];
-
-  Double_t xbcHS[MaxHits][NumOfLayersBcOut];
-  Double_t ybcHS[MaxHits][NumOfLayersBcOut];
-  Double_t zbcHS[MaxHits][NumOfLayersBcOut];
-  Double_t ubcHS[MaxHits][NumOfLayersBcOut];
-  Double_t vbcHS[MaxHits][NumOfLayersBcOut];
-
 };
 
 namespace root
@@ -603,7 +562,7 @@ main( int argc, char **argv )
   Int_t skip = gUnpacker.get_skip();
   if (skip < 0) skip = 0;
   Int_t max_loop = gUnpacker.get_max_loop();
-  skip = 0; max_loop = 30;
+  max_loop = 10;
   Int_t nevent = GetEntries( TTreeCont );
   if (max_loop > 0) nevent = skip + max_loop;
 
@@ -673,16 +632,6 @@ Bool_t
 dst::DstRead( int ievent )
 {
 
-  const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
-
-  Int_t pdgbeam = -1;
-  if(BeamThroughTPC){
-    const Double_t& pK18 = ConfMan::Get<Double_t>("PK18");
-    Int_t pikp = gUser.GetParameter("BeamThroughPID");
-    Int_t pdgcode[3] = {211, 321, 2212};
-    pdgbeam = pdgcode[pikp]*pK18/TMath::Abs(pK18);
-  }
-
   //if( ievent%1000==0 ){
   if( ievent%1==0 ){
     std::cout << "#D Event Number: "
@@ -706,105 +655,6 @@ dst::DstRead( int ievent )
   HF1( 1, event.status++ );
 
   if( **src.nhTpc < 5 ) return true;
-
-#if K18
-  event.ntK18 = src.ntK18;
-  event.nhK18.resize(src.ntK18);
-  event.chisqrK18.resize(src.ntK18);
-  event.p_3rd.resize(src.ntK18);
-  event.delta_3rd.resize(src.ntK18);
-  event.xoutK18.resize(src.ntK18);
-  event.youtK18.resize(src.ntK18);
-  event.uoutK18.resize(src.ntK18);
-  event.voutK18.resize(src.ntK18);
-
-  event.xtgtHS.resize(src.ntK18);
-  event.ytgtHS.resize(src.ntK18);
-  event.ztgtHS.resize(src.ntK18);
-  event.utgtHS.resize(src.ntK18);
-  event.vtgtHS.resize(src.ntK18);
-  event.pHS.resize(src.ntK18);
-  event.initmomHS.resize(src.ntK18);
-
-  event.xbh2HS.resize(src.ntK18);
-  event.ybh2HS.resize(src.ntK18);
-  event.zbh2HS.resize(src.ntK18);
-  event.ubh2HS.resize(src.ntK18);
-  event.vbh2HS.resize(src.ntK18);
-  event.xhtofHS.resize(src.ntK18);
-  event.yhtofHS.resize(src.ntK18);
-  event.zhtofHS.resize(src.ntK18);
-  event.uhtofHS.resize(src.ntK18);
-  event.vhtofHS.resize(src.ntK18);
-
-  event.xbcHS.resize(src.ntK18);
-  event.ybcHS.resize(src.ntK18);
-  event.zbcHS.resize(src.ntK18);
-  event.ubcHS.resize(src.ntK18);
-  event.vbcHS.resize(src.ntK18);
-  event.xvpHS.resize(src.ntK18);
-  event.yvpHS.resize(src.ntK18);
-  event.zvpHS.resize(src.ntK18);
-  event.uvpHS.resize(src.ntK18);
-  event.vvpHS.resize(src.ntK18);
-
-  for(int it=0; it<src.ntK18; ++it){
-    event.nhK18[it] = src.nhK18[it];
-    event.chisqrK18[it] = src.chisqrK18[it];
-    event.p_3rd[it] = src.p_3rd[it];
-    event.delta_3rd[it] = src.delta_3rd[it];
-    event.xoutK18[it] = src.xoutK18[it];
-    event.youtK18[it] = src.youtK18[it];
-    event.uoutK18[it] = src.uoutK18[it];
-    event.voutK18[it] = src.voutK18[it];
-
-    event.xtgtHS[it] = src.xtgtHS[it];
-    event.ytgtHS[it] = src.ytgtHS[it];
-    event.ztgtHS[it] = src.ztgtHS[it];
-    event.utgtHS[it] = src.utgtHS[it];
-    event.vtgtHS[it] = src.vtgtHS[it];
-    event.pHS[it] = src.pHS[it];
-    event.initmomHS[it] = src.initmomHS[it];
-
-    event.xbh2HS[it] = src.xbh2HS[it];
-    event.ybh2HS[it] = src.ybh2HS[it];
-    event.zbh2HS[it] = src.zbh2HS[it];
-    event.ubh2HS[it] = src.ubh2HS[it];
-    event.vbh2HS[it] = src.vbh2HS[it];
-    event.xhtofHS[it] = src.xhtofHS[it];
-    event.yhtofHS[it] = src.yhtofHS[it];
-    event.zhtofHS[it] = src.zhtofHS[it];
-    event.uhtofHS[it] = src.uhtofHS[it];
-    event.vhtofHS[it] = src.vhtofHS[it];
-    event.xvpHS[it].push_back(src.xvp1HS[it]);
-    event.xvpHS[it].push_back(src.xvp2HS[it]);
-    event.xvpHS[it].push_back(src.xvp3HS[it]);
-    event.xvpHS[it].push_back(src.xvp4HS[it]);
-    event.yvpHS[it].push_back(src.yvp1HS[it]);
-    event.yvpHS[it].push_back(src.yvp2HS[it]);
-    event.yvpHS[it].push_back(src.yvp3HS[it]);
-    event.yvpHS[it].push_back(src.yvp4HS[it]);
-    event.zvpHS[it].push_back(src.zvp1HS[it]);
-    event.zvpHS[it].push_back(src.zvp2HS[it]);
-    event.zvpHS[it].push_back(src.zvp3HS[it]);
-    event.zvpHS[it].push_back(src.zvp4HS[it]);
-    event.uvpHS[it].push_back(src.uvp1HS[it]);
-    event.uvpHS[it].push_back(src.uvp2HS[it]);
-    event.uvpHS[it].push_back(src.uvp3HS[it]);
-    event.uvpHS[it].push_back(src.uvp4HS[it]);
-    event.vvpHS[it].push_back(src.vvp1HS[it]);
-    event.vvpHS[it].push_back(src.vvp2HS[it]);
-    event.vvpHS[it].push_back(src.vvp3HS[it]);
-    event.vvpHS[it].push_back(src.vvp4HS[it]);
-    for(int il=0; il<NumOfLayersBcOut; ++il){
-      event.xbcHS[it].push_back(src.xbcHS[it][il]);
-      event.ybcHS[it].push_back(src.ybcHS[it][il]);
-      event.zbcHS[it].push_back(src.zbcHS[it][il]);
-      event.ubcHS[it].push_back(src.ubcHS[it][il]);
-      event.vbcHS[it].push_back(src.vbcHS[it][il]);
-    }
-  }
-#endif
 
   if(event.clkTpc.size() != 1){
     std::cerr << "something is wrong" << std::endl;
@@ -1077,9 +927,19 @@ dst::DstRead( int ievent )
     int particleID = Kinematics::HypTPCdEdxPID_temp(event.dEdx[it], event.mom0[it]*event.charge[it]);
     event.pid[it]=particleID;
     std::vector<Int_t> pdgcode;
+    /*
     Kinematics::HypTPCPID_PDGCode(event.charge[it], particleID, pdgcode);
     if(BeamThroughTPC) GFtracks.AddHelixTrack(pdgbeam, tp);
     else GFtracks.AddHelixTrack(pdgcode, tp);
+    */
+    if(event.charge[it]>0){
+      pdgcode.push_back(211);
+      pdgcode.push_back(2212);
+    }
+    else{
+      pdgcode.push_back(-211);
+    }
+    GFtracks.AddHelixTrack(pdgcode, tp);
   }
   HF1( 2, event.GFstatus++ );
   GFtracks.FitTracks();
@@ -1120,6 +980,10 @@ dst::DstRead( int ievent )
   event.GFxTgt.resize(GFntTpc);
   event.GFyTgt.resize(GFntTpc);
   event.GFzTgt.resize(GFntTpc);
+  event.GFmomTgt.resize(GFntTpc);
+  event.GFmomxTgt.resize(GFntTpc);
+  event.GFmomyTgt.resize(GFntTpc);
+  event.GFmomzTgt.resize(GFntTpc);
   event.GFtracklenTgt.resize(GFntTpc);
   event.GFtofTgt.resize(GFntTpc);
 
@@ -1135,22 +999,66 @@ dst::DstRead( int ievent )
   event.GFmom_p.resize(GFntTpc);
   event.GFtof_p.resize(GFntTpc);
   event.GFtracklen_p.resize(GFntTpc);
-  event.GFtofTgt_p.resize(GFntTpc);
+
+  event.GFinside_p.resize(GFntTpc);
+  event.GFxTgt_p.resize(GFntTpc);
+  event.GFyTgt_p.resize(GFntTpc);
+  event.GFzTgt_p.resize(GFntTpc);
+  event.GFmomTgt_p.resize(GFntTpc);
+  event.GFmomxTgt_p.resize(GFntTpc);
+  event.GFmomyTgt_p.resize(GFntTpc);
+  event.GFmomzTgt_p.resize(GFntTpc);
   event.GFtracklenTgt_p.resize(GFntTpc);
+  event.GFtofTgt_p.resize(GFntTpc);
+
   event.GFnhHtof_p.resize(GFntTpc);
   event.GFtofHtof_p.resize(GFntTpc);
   event.GFtracklenHtof_p.resize(GFntTpc);
   event.GFsegHtof_p.resize(GFntTpc);
+
+  event.GFxVtx_p.resize(GFntTpc);
+  event.GFyVtx_p.resize(GFntTpc);
+  event.GFzVtx_p.resize(GFntTpc);
+  event.GFmomVtx_p.resize(GFntTpc);
+  event.GFmomxVtx_p.resize(GFntTpc);
+  event.GFmomyVtx_p.resize(GFntTpc);
+  event.GFmomzVtx_p.resize(GFntTpc);
+  event.GFtracklenVtx_p.resize(GFntTpc);
+  event.GFtofVtx_p.resize(GFntTpc);
+  event.GFdistVtx_p.resize(GFntTpc);
+
   event.GFfitstatus_pi.resize(GFntTpc);
   event.GFmom_pi.resize(GFntTpc);
   event.GFtof_pi.resize(GFntTpc);
   event.GFtracklen_pi.resize(GFntTpc);
-  event.GFtofTgt_pi.resize(GFntTpc);
+
+  event.GFinside_pi.resize(GFntTpc);
+  event.GFxTgt_pi.resize(GFntTpc);
+  event.GFyTgt_pi.resize(GFntTpc);
+  event.GFzTgt_pi.resize(GFntTpc);
+  event.GFmomTgt_pi.resize(GFntTpc);
+  event.GFmomxTgt_pi.resize(GFntTpc);
+  event.GFmomyTgt_pi.resize(GFntTpc);
+  event.GFmomzTgt_pi.resize(GFntTpc);
   event.GFtracklenTgt_pi.resize(GFntTpc);
+  event.GFtofTgt_pi.resize(GFntTpc);
+
   event.GFnhHtof_pi.resize(GFntTpc);
   event.GFtofHtof_pi.resize(GFntTpc);
   event.GFtracklenHtof_pi.resize(GFntTpc);
   event.GFsegHtof_pi.resize(GFntTpc);
+
+  event.GFxVtx_pi.resize(GFntTpc);
+  event.GFyVtx_pi.resize(GFntTpc);
+  event.GFzVtx_pi.resize(GFntTpc);
+  event.GFmomVtx_pi.resize(GFntTpc);
+  event.GFmomxVtx_pi.resize(GFntTpc);
+  event.GFmomyVtx_pi.resize(GFntTpc);
+  event.GFmomzVtx_pi.resize(GFntTpc);
+  event.GFtracklenVtx_pi.resize(GFntTpc);
+  event.GFtofVtx_pi.resize(GFntTpc);
+  event.GFdistVtx_pi.resize(GFntTpc);
+
   for( Int_t igf=0; igf<GFntTpc; ++igf ){
     event.GFfitstatus[igf] = (int)GFtracks.TrackCheck(igf);
     HF1( 3, event.GFfitstatus[igf]);
@@ -1234,11 +1142,15 @@ dst::DstRead( int ievent )
       HF1( genfitHid+20, posv.x());
       HF1( genfitHid+21, posv.y());
       HF1( genfitHid+22, posv.z());
-      event.GFxTgt[igf]=posv.x();
-      event.GFyTgt[igf]=posv.y();
-      event.GFzTgt[igf]=posv.z();
-      event.GFtracklenTgt[igf]=len;
-      event.GFtofTgt[igf]=tof;
+      event.GFxTgt[igf] = posv.x();
+      event.GFyTgt[igf] = posv.y();
+      event.GFzTgt[igf] = posv.z();
+      event.GFmomTgt[igf] = momv.Mag();
+      event.GFmomxTgt[igf] = momv.x();
+      event.GFmomyTgt[igf] = momv.y();
+      event.GFmomzTgt[igf] = momv.z();
+      event.GFtracklenTgt[igf] = len;
+      event.GFtofTgt[igf] = tof;
     }
     else event.GFinside[igf] = 0;
 
@@ -1268,71 +1180,173 @@ dst::DstRead( int ievent )
       }
     }
     HF1( genfitHid+23, event.GFnhHtof[igf]);
+  } //igf
 
-    if(GFtracks.IsInsideTarget(igf)){
-      std::cout<<"pid "<<event.pid[igf]<<std::endl;
-      if((event.pid[igf]&4)==4 && event.charge[igf]==1){
-	std::cout<<"proton pid "<<event.pid[igf]<<std::endl;
-	Int_t repid = 0;
-	Int_t flag = 1;
-	for(Int_t i=0;i<2;i++){
-	  Int_t temp = flag&event.pid[igf];
-	  if(temp==flag) repid += 1;
-	  flag*=2;
-	}
-	event.GFfitstatus_p[igf] = (int)GFtracks.TrackCheck(igf, repid);
-	if(GFtracks.TrackCheck(igf, repid)){
-	  event.GFtof_p[igf] = GFtracks.GetTrackTOF(igf, 0, -1, repid);
-	  event.GFmom_p[igf] = GFtracks.GetMom(igf, 0, repid).Mag();
-	  event.GFtracklen_p[igf] = GFtracks.GetTrackLength(igf, 0, -1, repid);
+  Int_t candidates_vtx = 0;
+  Double_t angle_vtx = 0;
+  Int_t id1 = -1; Int_t id2 = -1;
+  if(GFntTpc>1){
+    std::vector<Double_t> helix_cx;
+    std::vector<Double_t> helix_cy;
+    for( Int_t igf1=0; igf1<GFntTpc-1; ++igf1 ){
+      std::cout<<"dist "<<TMath::Hypot(event.helix_cx[igf1], event.helix_cy[igf1])<<std::endl;
+      std::cout<<"cx "<<event.helix_cx[igf1]<<" cy "<<event.helix_cy[igf1]<<" r "<<event.helix_r[igf1]<<std::endl;
+      if(TMath::Abs(TMath::Hypot(event.helix_cx[igf1], event.helix_cy[igf1]) - event.helix_r[igf1]) > 30.) continue;
+      if(event.chisqr[igf1] > 5) continue;
+      for( Int_t igf2=igf1+1; igf2<GFntTpc; ++igf2 ){
+	if(TMath::Abs(TMath::Hypot(event.helix_cx[igf2], event.helix_cy[igf2]) - event.helix_r[igf2]) > 30.) continue;
+	if(event.chisqr[igf2] > 5) continue;
+	TVector3 momv1(event.GFmomxTgt[igf1], event.GFmomyTgt[igf1], event.GFmomzTgt[igf1]);
+	TVector3 momv2(event.GFmomxTgt[igf2], event.GFmomyTgt[igf2], event.GFmomzTgt[igf2]);
 
-	  TVector3 posv; TVector3 momv; double len; double tof;
-	  GFtracks.ExtrapolateToTarget(igf, posv, momv, len, tof, repid);
-	  event.GFtracklenTgt_p[igf]=len;
-	  event.GFtofTgt_p[igf]=tof;
-	  int candidates = 0; int htofid[8]; TVector3 htofpos[8]; TVector3 htofmom[8]; double htoflen[8]; double htoftof[8];
-	  if(GFtracks.ExtrapolateToHTOF(igf, candidates, htofid, htofpos, htofmom, htoflen, htoftof, repid)){
-	    event.GFnhHtof_p[igf]=candidates;
-	    event.GFsegHtof_p[igf].resize(candidates);
-	    event.GFtracklenHtof_p[igf].resize(candidates);
-	    event.GFtofHtof_p[igf].resize(candidates);
-	    for( Int_t ihit=0; ihit<candidates; ++ihit ){
-	      event.GFsegHtof_p[igf][ihit]=htofid[ihit];
-	      event.GFtracklenHtof_p[igf][ihit]=htoflen[ihit];
-	      event.GFtofHtof_p[igf][ihit]=htoftof[ihit];
-	    }
-	  }
-	}
-      }
-      if((event.pid[igf]&1)==1){
-	std::cout<<"pion pid "<<event.pid[igf]<<std::endl;
-	Int_t repid = 0;
-	event.GFfitstatus_pi[igf] = (int)GFtracks.TrackCheck(igf, repid);
-	if(GFtracks.TrackCheck(igf, repid)){
-	  event.GFtof_pi[igf] = GFtracks.GetTrackTOF(igf, 0, -1, repid);
-	  event.GFmom_pi[igf] = GFtracks.GetMom(igf, 0, repid).Mag();
-	  event.GFtracklen_pi[igf] = GFtracks.GetTrackLength(igf, 0, -1, repid);
-	  TVector3 posv; TVector3 momv; double len; double tof;
-	  GFtracks.ExtrapolateToTarget(igf, posv, momv, len, tof, repid);
-	  event.GFtracklenTgt_pi[igf]=len;
-	  event.GFtofTgt_pi[igf]=tof;
-
-	  int candidates = 0; int htofid[8]; TVector3 htofpos[8]; TVector3 htofmom[8]; double htoflen[8]; double htoftof[8];
-	  if(GFtracks.ExtrapolateToHTOF(igf, candidates, htofid, htofpos, htofmom, htoflen, htoftof, repid)){
-	    event.GFnhHtof_pi[igf]=candidates;
-	    event.GFsegHtof_pi[igf].resize(candidates);
-	    event.GFtracklenHtof_pi[igf].resize(candidates);
-	    event.GFtofHtof_pi[igf].resize(candidates);
-	    for( Int_t ihit=0; ihit<candidates; ++ihit ){
-	      event.GFsegHtof_pi[igf][ihit]=htofid[ihit];
-	      event.GFtracklenHtof_pi[igf][ihit]=htoflen[ihit];
-	      event.GFtofHtof_pi[igf][ihit]=htoftof[ihit];
-	    }
-	  }
+	double angle = TMath::Abs(momv1.Angle(momv2) - 0.5*TMath::Pi());
+	candidates_vtx++;
+	if(angle_vtx < angle){
+	  angle_vtx = angle;
+	  id1 = igf1; id2 = igf2;
 	}
       }
     }
+  }
+
+  std::vector<Double_t> GFextrapolation_decays(2);
+  std::vector<TVector3> GFmom_decays(2);
+
+  TVector3 GFvertex;
+  Double_t GFdist;
+  Bool_t vtxcut = false;
+  if(candidates_vtx > 0){
+    vtxcut = GFtracks.FindVertex(id1, id2, -1, -1,
+				 GFextrapolation_decays[0],
+				 GFextrapolation_decays[1],
+				 GFmom_decays[0],
+				 GFmom_decays[1],
+				 GFdist, GFvertex,
+				 vtx_scan_range);
+
+    event.GFid1Vtx = id1;
+    event.GFid2Vtx = id2;
+    event.GFxVtx = GFvertex.x();
+    event.GFyVtx = GFvertex.y();
+    event.GFzVtx = GFvertex.z();
+    event.GFcloseDist = GFdist;
+  }
+
+  for( Int_t igf=0; igf<GFntTpc; ++igf ){
+    Int_t repid = 0; //pion
+    TVector3 posv; TVector3 momv; double len; double tof;
+    if(GFtracks.TrackCheck(igf, repid) && GFtracks.IsInsideTarget(igf, repid) &&
+       GFtracks.ExtrapolateToTarget(igf, posv, momv, len, tof, repid)){
+
+      event.GFxTgt_pi[igf] = posv.x();
+      event.GFyTgt_pi[igf] = posv.y();
+      event.GFzTgt_pi[igf] = posv.z();
+      event.GFmomTgt_pi[igf] = momv.Mag();
+      event.GFmomxTgt_pi[igf] = momv.x();
+      event.GFmomyTgt_pi[igf] = momv.y();
+      event.GFmomzTgt_pi[igf] = momv.z();
+      event.GFtracklenTgt_pi[igf] = len;
+      event.GFtofTgt_pi[igf] = tof;
+
+      event.GFtof_pi[igf] = GFtracks.GetTrackTOF(igf, 0, -1, repid);
+      event.GFmom_pi[igf] = GFtracks.GetMom(igf, 0, repid).Mag();
+      event.GFtracklen_pi[igf] = GFtracks.GetTrackLength(igf, 0, -1, repid);
+
+      int candidates = 0; int htofid[8]; TVector3 htofpos[8]; TVector3 htofmom[8]; double htoflen[8]; double htoftof[8];
+      if(GFtracks.ExtrapolateToHTOF(igf, candidates, htofid, htofpos, htofmom, htoflen, htoftof, repid)){
+	event.GFnhHtof_pi[igf]=candidates;
+	event.GFsegHtof_pi[igf].resize(candidates);
+	event.GFtracklenHtof_pi[igf].resize(candidates);
+	event.GFtofHtof_pi[igf].resize(candidates);
+	for( Int_t ihit=0; ihit<candidates; ++ihit ){
+	  event.GFsegHtof_pi[igf][ihit]=htofid[ihit];
+	  event.GFtracklenHtof_pi[igf][ihit]=htoflen[ihit];
+	  event.GFtofHtof_pi[igf][ihit]=htoftof[ihit];
+	}
+      }
+
+      if(vtxcut){
+	TVector3 Vertex(event.GFxVtx, event.GFyVtx, event.GFzVtx);
+	TVector3 posVtx; TVector3 momVtx;
+	Double_t lenVtx; Double_t tofVtx;
+	if(GFtracks.ExtrapolateToPoint(igf, Vertex,
+					  posVtx, momVtx,
+					  lenVtx, tofVtx)){
+
+	  event.GFxVtx_pi[igf] = posVtx.x();
+	  event.GFyVtx_pi[igf] = posVtx.y();
+	  event.GFzVtx_pi[igf] = posVtx.z();
+	  event.GFmomVtx_pi[igf] = momVtx.Mag();
+	  event.GFmomxVtx_pi[igf] = momVtx.x();
+	  event.GFmomyVtx_pi[igf] = momVtx.y();
+	  event.GFmomzVtx_pi[igf] = momVtx.z();
+	  event.GFtracklenVtx_pi[igf] = lenVtx;
+	  event.GFtofVtx_pi[igf] = tofVtx;
+
+	  Vertex -= posVtx;
+	  event.GFdistVtx_pi[igf] = Vertex.Mag();
+	}
+      }
+    } //pion
+
+    if(event.charge[igf]==1){ //proton
+      repid = 1;
+      if(GFtracks.TrackCheck(igf, repid) && GFtracks.IsInsideTarget(igf, repid) &&
+	 GFtracks.ExtrapolateToTarget(igf, posv, momv, len, tof, repid)){
+
+	event.GFxTgt_p[igf] = posv.x();
+	event.GFyTgt_p[igf] = posv.y();
+	event.GFzTgt_p[igf] = posv.z();
+	event.GFmomTgt_p[igf] = momv.Mag();
+	event.GFmomxTgt_p[igf] = momv.x();
+	event.GFmomyTgt_p[igf] = momv.y();
+	event.GFmomzTgt_p[igf] = momv.z();
+	event.GFtracklenTgt_p[igf] = len;
+	event.GFtofTgt_p[igf] = tof;
+
+	event.GFtof_p[igf] = GFtracks.GetTrackTOF(igf, 0, -1, repid);
+	event.GFmom_p[igf] = GFtracks.GetMom(igf, 0, repid).Mag();
+	event.GFtracklen_p[igf] = GFtracks.GetTrackLength(igf, 0, -1, repid);
+
+	int candidates = 0; int htofid[8]; TVector3 htofpos[8]; TVector3 htofmom[8]; double htoflen[8]; double htoftof[8];
+	if(GFtracks.ExtrapolateToHTOF(igf, candidates, htofid, htofpos, htofmom, htoflen, htoftof, repid)){
+	  event.GFnhHtof_p[igf]=candidates;
+	  event.GFsegHtof_p[igf].resize(candidates);
+	  event.GFtracklenHtof_p[igf].resize(candidates);
+	  event.GFtofHtof_p[igf].resize(candidates);
+	  for( Int_t ihit=0; ihit<candidates; ++ihit ){
+	    event.GFsegHtof_p[igf][ihit]=htofid[ihit];
+	    event.GFtracklenHtof_p[igf][ihit]=htoflen[ihit];
+	    event.GFtofHtof_p[igf][ihit]=htoftof[ihit];
+	  }
+	}
+
+	if(vtxcut){
+	  TVector3 Vertex(event.GFxVtx, event.GFyVtx, event.GFzVtx);
+	  TVector3 posVtx; TVector3 momVtx;
+	  Double_t lenVtx; Double_t tofVtx;
+	  if(GFtracks.ExtrapolateToPoint(igf, Vertex,
+					    posVtx, momVtx,
+					    lenVtx, tofVtx)){
+
+	    event.GFxVtx_p[igf] = posVtx.x();
+	    event.GFyVtx_p[igf] = posVtx.y();
+	    event.GFzVtx_p[igf] = posVtx.z();
+	    event.GFmomVtx_p[igf] = momVtx.Mag();
+	    event.GFmomxVtx_p[igf] = momVtx.x();
+	    event.GFmomyVtx_p[igf] = momVtx.y();
+	    event.GFmomzVtx_p[igf] = momVtx.z();
+	    event.GFtracklenVtx_p[igf] = lenVtx;
+	    event.GFtofVtx_p[igf] = tofVtx;
+
+	    Vertex -= posVtx;
+	    event.GFdistVtx_p[igf] = Vertex.Mag();
+	  }
+	}
+      }
+    } //proton
   } //igf
+
   HF1( 2, event.GFstatus++);
   HF1( 1, event.status++ );
 
@@ -1360,28 +1374,28 @@ dst::DstClose( void )
 Bool_t
 ConfMan::InitializeHistograms( void )
 {
+  /*
+    HB1( 1, "Status", 21, 0., 21. );
+    HB1( 2, "Genfit Status", 20, 0., 20. );
+    HB1( 3, "Genfit Fit Status", 2, 0., 2. );
+    HB1( 10, "NTrack TPC", 20, 0., 20. );
 
-  HB1( 1, "Status", 21, 0., 21. );
-  HB1( 2, "Genfit Status", 20, 0., 20. );
-  HB1( 3, "Genfit Fit Status", 2, 0., 2. );
-  HB1( 10, "NTrack TPC", 20, 0., 20. );
+    HB1(genfitHid, "[GenFit] #Track TPC; #Track; Counts", 20, 0., 20. );
+    HB1(genfitHid+1, "[GenFit] Chisqr/ndf; ; Counts", 200, 0, 10 );
+    HB1(genfitHid+2, "[GenFit] p-value; p-value; Counts", 100, -0.05, 1.05);
+    HB1(genfitHid+3, "[GenFit] Charge;", 6, -3, 3 );
+    HB1(genfitHid+4, "[GenFit] #Hits of Track", 50, 0., 50. );
+    HB1(genfitHid+5, "[GenFit] Track Length; Length [mm]; Counts [/1 mm]", 500, 0, 500 );
+    HB1(genfitHid+6, "[GenFit] Tof; Tof [ns]; Counts [/0.01 ns]", 500, 0, 5 );
+    HB1(genfitHid+7, "[GenFit] Reconstructed P; P [GeV/c]; Counts [/0.001 GeV/c]", 1500, 0., 1.5 );
+    HB1(genfitHid+8, "[GenFit] LayerID", 33, 0., 33. );
 
-  HB1(genfitHid, "[GenFit] #Track TPC; #Track; Counts", 20, 0., 20. );
-  HB1(genfitHid+1, "[GenFit] Chisqr/ndf; ; Counts", 200, 0, 10 );
-  HB1(genfitHid+2, "[GenFit] p-value; p-value; Counts", 100, -0.05, 1.05);
-  HB1(genfitHid+3, "[GenFit] Charge;", 6, -3, 3 );
-  HB1(genfitHid+4, "[GenFit] #Hits of Track", 50, 0., 50. );
-  HB1(genfitHid+5, "[GenFit] Track Length; Length [mm]; Counts [/1 mm]", 500, 0, 500 );
-  HB1(genfitHid+6, "[GenFit] Tof; Tof [ns]; Counts [/0.01 ns]", 500, 0, 5 );
-  HB1(genfitHid+7, "[GenFit] Reconstructed P; P [GeV/c]; Counts [/0.001 GeV/c]", 1500, 0., 1.5 );
-  HB1(genfitHid+8, "[GenFit] LayerID", 33, 0., 33. );
-
-  //Residuals
-  HB1(genfitHid+10, "[GenFit] Residual x; Residual x [mm]; Counts [/0.1 mm]", 400, -20., 20.);
-  HB1(genfitHid+11, "[GenFit] Residual y; Residual y [mm]; Counts [/0.1 mm]", 400, -20., 20.);
-  HB1(genfitHid+12, "[GenFit] Residual z; Residual z [mm]; Counts [/0.1 mm]", 400, -20., 20.);
-  HB1(genfitHid+13, "[GenFit] Residual P; Residual P [GeV/c]; Counts [/0.001 GeV/c]", 400, -0.2, 0.2 );
-  HB1(genfitHid+14, "[GenFit] Residual Px; Residual Px [GeV/c]; Counts [/0.001 GeV/c]", 400, -0.2, 0.2 );
+    //Residuals
+    HB1(genfitHid+10, "[GenFit] Residual x; Residual x [mm]; Counts [/0.1 mm]", 400, -20., 20.);
+    HB1(genfitHid+11, "[GenFit] Residual y; Residual y [mm]; Counts [/0.1 mm]", 400, -20., 20.);
+    HB1(genfitHid+12, "[GenFit] Residual z; Residual z [mm]; Counts [/0.1 mm]", 400, -20., 20.);
+    HB1(genfitHid+13, "[GenFit] Residual P; Residual P [GeV/c]; Counts [/0.001 GeV/c]", 400, -0.2, 0.2 );
+    HB1(genfitHid+14, "[GenFit] Residual Px; Residual Px [GeV/c]; Counts [/0.001 GeV/c]", 400, -0.2, 0.2 );
   HB1(genfitHid+15, "[GenFit] Residual Py; Residual Py [GeV/c]; Counts [/0.001 GeV/c]", 400, -0.2, 0.2 );
   HB1(genfitHid+16, "[GenFit] Residual Pz; Residual Pz [GeV/c]; Counts [/0.001 GeV/c]", 400, -0.2, 0.2 );
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
@@ -1405,7 +1419,7 @@ ConfMan::InitializeHistograms( void )
   HB1(genfitHid+27, "[GenFit] Y (extrapolated to the HTOF); Y [mm]; Counts [/0.1 mm]", 8000, -400, 400 );
   HB1(genfitHid+28, "[GenFit] Z (extrapolated to the HTOF); Z [mm]; Counts [/0.1 mm]", 10000, -500, 500 );
   HB1(genfitHid+29, "[GenFit] HTOF ID; #ID ; Counts", 36, 0, 36 );
-
+*/
   HBTree( "tpc", "tree of DstTPCTracking" );
 
   tree->Branch( "status", &event.status );
@@ -1505,22 +1519,13 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_row_center", &event.track_cluster_row_center);
 #endif
 
-  // K18
-  tree->Branch("ntK18",      &event.ntK18);
-  tree->Branch("nhK18",      &event.nhK18);
-  tree->Branch("chisqrK18",  &event.chisqrK18);
-  tree->Branch("p_3rd",      &event.p_3rd);
-  tree->Branch("delta_3rd",  &event.delta_3rd);
-  tree->Branch("xout",    &event.xoutK18);
-  tree->Branch("yout",    &event.youtK18);
-  tree->Branch("uout",    &event.uoutK18);
-  tree->Branch("vout",    &event.voutK18);
-  tree->Branch("xtgtHS",  &event.xtgtHS);
-  tree->Branch("ytgtHS",  &event.ytgtHS);
-  tree->Branch("ztgtHS",  &event.ztgtHS);
-  tree->Branch("utgtHS",  &event.utgtHS);
-  tree->Branch("vtgtHS",  &event.vtgtHS);
-  tree->Branch("pHS"   ,  &event.pHS);
+  tree->Branch("GFnhHtof", &event.GFnhHtof);
+  tree->Branch("GFsegHtof", &event.GFsegHtof);
+  tree->Branch("GFxHtof", &event.GFxHtof);
+  tree->Branch("GFyHtof", &event.GFyHtof);
+  tree->Branch("GFzHtof", &event.GFzHtof);
+  tree->Branch("GFtracklenHtof", &event.GFtracklenHtof);
+  tree->Branch("GFtofHtof", &event.GFtofHtof);
 
   //track fitting results
   tree->Branch("GFstatus", &event.GFstatus);
@@ -1554,38 +1559,82 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFxTgt", &event.GFxTgt);
   tree->Branch("GFyTgt", &event.GFyTgt);
   tree->Branch("GFzTgt", &event.GFzTgt);
+  tree->Branch("GFmomTgt", &event.GFmomTgt);
+  tree->Branch("GFmomxTgt", &event.GFmomxTgt);
+  tree->Branch("GFmomyTgt", &event.GFmomyTgt);
+  tree->Branch("GFmomzTgt", &event.GFmomzTgt);
   tree->Branch("GFtracklenTgt", &event.GFtracklenTgt);
   tree->Branch("GFtofTgt", &event.GFtofTgt);
-
-  tree->Branch("GFnhHtof", &event.GFnhHtof);
-  tree->Branch("GFsegHtof", &event.GFsegHtof);
-  tree->Branch("GFxHtof", &event.GFxHtof);
-  tree->Branch("GFyHtof", &event.GFyHtof);
-  tree->Branch("GFzHtof", &event.GFzHtof);
-  tree->Branch("GFtracklenHtof", &event.GFtracklenHtof);
-  tree->Branch("GFtofHtof", &event.GFtofHtof);
-
-  tree->Branch("GFfitstatus_pi", &event.GFfitstatus_pi);
-  tree->Branch("GFtof_pi", &event.GFtof_pi);
-  tree->Branch("GFmom_pi", &event.GFmom_pi);
-  tree->Branch("GFtracklen_pi", &event.GFtracklen_pi);
-  tree->Branch("GFtofTgt_pi", &event.GFtofTgt_pi);
-  tree->Branch("GFtracklenTgt_pi", &event.GFtracklenTgt_pi);
-  tree->Branch("GFnhHtof_pi", &event.GFnhHtof_pi);
-  tree->Branch("GFsegHtof_pi", &event.GFsegHtof_pi);
-  tree->Branch("GFtofHtof_pi", &event.GFtofHtof_pi);
-  tree->Branch("GFtracklenHtof_pi", &event.GFtracklenHtof_pi);
+  tree->Branch("GFid1Vtx", &event.GFid1Vtx);
+  tree->Branch("GFid2Vtx", &event.GFid2Vtx);
+  tree->Branch("GFxVtx", &event.GFxVtx);
+  tree->Branch("GFyVtx", &event.GFyVtx);
+  tree->Branch("GFzVtx", &event.GFzVtx);
+  tree->Branch("GFcloseDist", &event.GFcloseDist);
 
   tree->Branch("GFfitstatus_p", &event.GFfitstatus_p);
   tree->Branch("GFtof_p", &event.GFtof_p);
   tree->Branch("GFmom_p", &event.GFmom_p);
   tree->Branch("GFtracklen_p", &event.GFtracklen_p);
-  tree->Branch("GFtofTgt_p", &event.GFtofTgt_p);
+
+  tree->Branch("GFinside_p", &event.GFinside_p);
+  tree->Branch("GFxTgt_p", &event.GFxTgt_p);
+  tree->Branch("GFyTgt_p", &event.GFyTgt_p);
+  tree->Branch("GFzTgt_p", &event.GFzTgt_p);
+  tree->Branch("GFmomTgt_p", &event.GFmomTgt_p);
+  tree->Branch("GFmomxTgt_p", &event.GFmomxTgt_p);
+  tree->Branch("GFmomyTgt_p", &event.GFmomyTgt_p);
+  tree->Branch("GFmomzTgt_p", &event.GFmomzTgt_p);
   tree->Branch("GFtracklenTgt_p", &event.GFtracklenTgt_p);
+  tree->Branch("GFtofTgt_p", &event.GFtofTgt_p);
+
+  tree->Branch("GFxVtx_p", &event.GFxVtx_p);
+  tree->Branch("GFyVtx_p", &event.GFyVtx_p);
+  tree->Branch("GFzVtx_p", &event.GFzVtx_p);
+  tree->Branch("GFmomVtx_p", &event.GFmomVtx_p);
+  tree->Branch("GFmomxVtx_p", &event.GFmomxVtx_p);
+  tree->Branch("GFmomyVtx_p", &event.GFmomyVtx_p);
+  tree->Branch("GFmomzVtx_p", &event.GFmomzVtx_p);
+  tree->Branch("GFtracklenVtx_p", &event.GFtracklenVtx_p);
+  tree->Branch("GFtofVtx_p", &event.GFtofVtx_p);
+  tree->Branch("GFdistVtx_p", &event.GFdistVtx_p);
+
   tree->Branch("GFnhHtof_p", &event.GFnhHtof_p);
   tree->Branch("GFsegHtof_p", &event.GFsegHtof_p);
   tree->Branch("GFtofHtof_p", &event.GFtofHtof_p);
   tree->Branch("GFtracklenHtof_p", &event.GFtracklenHtof_p);
+
+  tree->Branch("GFfitstatus_pi", &event.GFfitstatus_pi);
+  tree->Branch("GFtof_pi", &event.GFtof_pi);
+  tree->Branch("GFmom_pi", &event.GFmom_pi);
+  tree->Branch("GFtracklen_pi", &event.GFtracklen_pi);
+
+  tree->Branch("GFinside_pi", &event.GFinside_pi);
+  tree->Branch("GFxTgt_pi", &event.GFxTgt_pi);
+  tree->Branch("GFyTgt_pi", &event.GFyTgt_pi);
+  tree->Branch("GFzTgt_pi", &event.GFzTgt_pi);
+  tree->Branch("GFmomTgt_pi", &event.GFmomTgt_pi);
+  tree->Branch("GFmomxTgt_pi", &event.GFmomxTgt_pi);
+  tree->Branch("GFmomyTgt_pi", &event.GFmomyTgt_pi);
+  tree->Branch("GFmomzTgt_pi", &event.GFmomzTgt_pi);
+  tree->Branch("GFtracklenTgt_pi", &event.GFtracklenTgt_pi);
+  tree->Branch("GFtofTgt_pi", &event.GFtofTgt_pi);
+
+  tree->Branch("GFxVtx_pi", &event.GFxVtx_pi);
+  tree->Branch("GFyVtx_pi", &event.GFyVtx_pi);
+  tree->Branch("GFzVtx_pi", &event.GFzVtx_pi);
+  tree->Branch("GFmomVtx_pi", &event.GFmomVtx_pi);
+  tree->Branch("GFmomxVtx_pi", &event.GFmomxVtx_pi);
+  tree->Branch("GFmomyVtx_pi", &event.GFmomyVtx_pi);
+  tree->Branch("GFmomzVtx_pi", &event.GFmomzVtx_pi);
+  tree->Branch("GFtracklenVtx_pi", &event.GFtracklenVtx_pi);
+  tree->Branch("GFtofVtx_pi", &event.GFtofVtx_pi);
+  tree->Branch("GFdistVtx_pi", &event.GFdistVtx_pi);
+
+  tree->Branch("GFnhHtof_pi", &event.GFnhHtof_pi);
+  tree->Branch("GFsegHtof_pi", &event.GFsegHtof_pi);
+  tree->Branch("GFtofHtof_pi", &event.GFtofHtof_pi);
+  tree->Branch("GFtracklenHtof_pi", &event.GFtracklenHtof_pi);
 
   TTreeReaderCont[kTpcHit] = new TTreeReader( "tpc", TFileCont[kTpcHit] );
   const auto& reader = TTreeReaderCont[kTpcHit];
@@ -1624,79 +1673,6 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kHodoscope]->SetBranchAddress("dtHtof",    src.dtHtof);
   TTreeCont[kHodoscope]->SetBranchAddress("deHtof",    src.deHtof);
   TTreeCont[kHodoscope]->SetBranchAddress("posHtof",    src.posHtof);
-#if K18
-  TTreeCont[kK18HSTracking]->SetBranchStatus("*", 0);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("ntK18",       1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("nhK18"  ,     1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("chisqrK18",   1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("p_3rd",       1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("delta_3rd",   1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("xout",        1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("yout",        1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("uout",        1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("vout",        1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("xtgtHS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("ytgtHS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("ztgtHS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("utgtHS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("vtgtHS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("pHS"    ,     1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("initmomHS",   1);
-
-  TTreeCont[kK18HSTracking]->SetBranchStatus("xvp1HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("yvp1HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("zvp1HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("uvp1HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("vvp1HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("xvp2HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("yvp2HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("zvp2HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("uvp2HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("vvp2HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("xvp3HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("yvp3HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("zvp3HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("uvp3HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("vvp3HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("xvp4HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("yvp4HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("zvp4HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("uvp4HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("vvp4HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("xbh2HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("ybh2HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("zbh2HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("ubh2HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("vbh2HS",      1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("xhtofHS",     1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("yhtofHS",     1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("zhtofHS",     1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("uhtofHS",     1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("vhtofHS",     1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("xbcHS"  ,     1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("ybcHS"  ,     1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("zbcHS"  ,     1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("ubcHS"  ,     1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("vbcHS"  ,     1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("initmomHS",   1);
-
-  TTreeCont[kK18HSTracking]->SetBranchAddress("ntK18",     &src.ntK18);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("nhK18",     src.nhK18);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("chisqrK18", src.chisqrK18);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("p_3rd",     src.p_3rd);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("delta_3rd", src.delta_3rd);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("xout" ,    src.xoutK18);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("yout" ,    src.youtK18);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("uout" ,    src.uoutK18);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("vout" ,    src.voutK18);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("xtgtHS",   src.xtgtHS);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("ytgtHS",   src.ytgtHS);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("ztgtHS",   src.ztgtHS);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("utgtHS",   src.utgtHS);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("vtgtHS",   src.vtgtHS);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("pHS"    ,  src.pHS);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("initmomHS",  src.initmomHS);
-#endif
   return true;
 }
 

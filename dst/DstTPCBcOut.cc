@@ -265,6 +265,9 @@ Src    src;
 TH1   *h[MaxHist];
 TTree *tree;
 enum eDetHid {
+  TPCCalibHid    = 10000,
+  TPCGainHid     = 100000,
+  TPCClHid       = 200000,
   XCorrectionMapHid = 1000000,
   YCorrectionMapHid = 2000000,
   TPCPadYHid     = 3000000,
@@ -274,8 +277,6 @@ enum eDetHid {
   TPCResXClkHid  = 7000000,
   TPCResYCoBoHid = 8000000,
   TPCResYPosHid  = 9000000,
-  TPCGainHid   = 100000,
-  TPCClHid = 200000,
 };
 
 const Int_t MinPosMapXZ = -300;
@@ -357,6 +358,7 @@ main(int argc, char **argv)
     if(DstRead(ievent)) tree->Fill();
   }
 
+
   std::cout << "#D Event Number: " << std::setw(6)
             << ievent << std::endl;
 
@@ -399,6 +401,8 @@ dst::DstOpen(std::vector<std::string> arg)
 Bool_t
 dst::DstRead(int ievent)
 {
+
+
   if(ievent%1000==0){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
@@ -476,11 +480,14 @@ dst::DstRead(int ievent)
      	Double_t ybc = y0BcOut + zTPC*v0BcOut;
         Double_t resx = x - xbc;
         Double_t resy = y - ybc;
+	HF2(TPCCalibHid, layer, resy);
         if(src.ntBcOut == 1 && src.chisqrBcOut[it] < 10.){
+	  //	  HF2(TPCCalibHid, layer, resy);
           HF1(TPCResYHid+layer*1000, resy);
           HF1(TPCResYHid+layer*1000+row+1, resy);
           HF2(TPCResYClkHid+layer*1000, clock, resy);
           HF2(TPCResYCoBoHid+cobo*1000, clock, resy);
+          HFProf(TPCResYCoBoHid+cobo*1000+1, clock, resy);
           HF2(TPCResYPosHid+layer*1000, ybc, resy);
           HF1(TPCResXHid+layer*1000, resx);
           HF1(TPCResXHid+layer*1000+row+1, resx);
@@ -755,7 +762,7 @@ ConfMan::InitializeHistograms()
   HB2(18, "U0%X0 TPC", 100, -100., 100., 100, -0.20, 0.20);
   HB2(19, "V0%Y0 TPC", 100, -100., 100., 100, -0.20, 0.20);
   HB2(20, "X0%Y0 TPC", 100, -100., 100., 100, -100, 100);
-
+  HB2(TPCCalibHid,"Layer%ResY", 32, 0, 32, 400, -5, 5);
 #if TrackCluster
   HB1(TPCClHid, "Cluster size;Cluster size;Counts", NbinClSize, MinClSize, MaxClSize);
   HB1(TPCClHid+1, "Cluster dE;Cluster dE;Counts", NbinDe, MinDe, MaxDe);
@@ -792,6 +799,10 @@ ConfMan::InitializeHistograms()
     HB2(TPCResYCoBoHid+layer*1000,
 	Form("ResY%%ClockTime CoBo%d (TPCHit);[ns];[mm];Counts", layer),
 	400, -50, 50, 400, -50, 50);
+    HBProf(1+TPCResYCoBoHid+layer*1000,
+	   //    	Form("TProf ResY%%ClockTime CoBo%d (TPCHit);[ns];[mm];Counts", layer),
+    	Form("Tprof CoBo%d ResY%%ClockTime (TPCHit);[ns];[mm];Counts", layer),
+    	400, -50, 50, -50, 50);
     HB2(TPCResYPosHid+layer*1000,
 	Form("ResY%%YBcOut Layer%d (TPCHit);[mm];[mm];Counts", layer),
 	600, -300, 300, 400, -50, 50);

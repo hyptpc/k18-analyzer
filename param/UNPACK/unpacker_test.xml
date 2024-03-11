@@ -4,12 +4,12 @@
 
   <control>
     <skip>        0      </skip>
-    <max_loop>    1000      </max_loop>
+    <max_loop>    10      </max_loop>
     <cout>        std::cout </cout>
     <cerr>        std::cerr </cerr>
     <tout>        std::cerr </tout>
     <esc>         off       </esc>
-    <print_cycle> 500       </print_cycle>
+    <print_cycle> 10       </print_cycle>
 
     <error_check>
       <format check="true"/>

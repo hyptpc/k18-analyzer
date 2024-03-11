@@ -18,9 +18,9 @@ handlers:
   #   class: logging.FileHandler
   #   filename: /dev/null # to be replaced if you want to save file
   #   formatter: simple
-  rich:
-    class: rich.logging.RichHandler
-    rich_tracebacks: True
+  #rich:
+  #  class: rich.logging.RichHandler
+  #  rich_tracebacks: True
 loggers:
   __main__:
     handlers:

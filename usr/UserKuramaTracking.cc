@@ -257,7 +257,7 @@ Event::clear()
     tofsegKurama[it] = qnan;
   }
 
-  for(Int_t i=0; i<NumOfLayersSdcIn+NumOfLayersSdcOut+2; ++i){
+  for(Int_t i=0; i<NumOfLayersSdcIn+NumOfLayersSdcOut+4; ++i){
     resL[i].clear();
     resG[i].clear();
   }
@@ -318,6 +318,8 @@ UserKuramaTracking::ProcessingNormal()
   static const auto MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
   static const auto MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
   // static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
+  static const auto MinTotSDC1 = gUser.GetParameter("MinTotSDC1");
+  static const auto MinTotSDC2 = gUser.GetParameter("MinTotSDC2");
   static const auto MinTotSDC3 = gUser.GetParameter("MinTotSDC3");
   static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
 
@@ -471,6 +473,8 @@ UserKuramaTracking::ProcessingNormal()
 
   // Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
   DCAna->DecodeSdcOutHits(rawData);
+  DCAna->TotCutSDC1(MinTotSDC1);
+  DCAna->TotCutSDC2(MinTotSDC2);
   DCAna->TotCutSDC3(MinTotSDC3);
   DCAna->TotCutSDC4(MinTotSDC4);
 
@@ -523,7 +527,7 @@ UserKuramaTracking::ProcessingNormal()
 
   // std::cout << "==========TrackSearch SdcIn============" << std::endl;
   DCAna->TrackSearchSdcIn();
-  // DCAna->ChiSqrCutSdcIn(50.);
+  //  DCAna->ChiSqrCutSdcIn(50.);
   Int_t ntSdcIn = DCAna->GetNtracksSdcIn();
   if(MaxHits<ntSdcIn){
     std::cout << "#W " << FUNC_NAME << " "
@@ -628,7 +632,7 @@ UserKuramaTracking::ProcessingNormal()
   DCAna->TrackSearchSdcOut();
 #endif
 
-  // DCAna->ChiSqrCutSdcOut(50.);
+  //  DCAna->ChiSqrCutSdcOut(50.);
   Int_t ntSdcOut = DCAna->GetNtracksSdcOut();
   if(MaxHits<ntSdcOut){
     std::cout << "#W " << FUNC_NAME << " "
@@ -659,9 +663,8 @@ UserKuramaTracking::ProcessingNormal()
       DCLTrackHit *hit=tp->GetHit(ih);
       Int_t layerId = hit->GetLayer();
       if(hit->GetLayer()>79) layerId -= 62;
-      else if(hit->GetLayer()>40) layerId -= 15;
-      else if(hit->GetLayer()>30) layerId -= 21;
-      //std::cout << "layerId :" << layerId << std::endl;
+      else if(hit->GetLayer()>40) layerId -= 22;
+      else if(hit->GetLayer()>30) layerId -= 20;
       HF1(33, hit->GetLayer());
       Double_t wire=hit->GetWire();
       Double_t dt=hit->GetDriftTime(), dl=hit->GetDriftLength();
@@ -674,7 +677,7 @@ UserKuramaTracking::ProcessingNormal()
       HF1(100*layerId+5, res);
       HF2(100*layerId+6, pos, res);
       HF2(100*layerId+7, xcal, ycal);
-      for(Int_t i=0; i<NumOfLayersSdcOut+2; ++i){
+      for(Int_t i=0; i<NumOfLayersSdcOut+4; ++i){
 	if(i==layerId-NumOfLayersSdcIn-1){
 	  event.resL[i+NumOfLayersSdcIn].push_back(res);
 	}
@@ -828,8 +831,8 @@ UserKuramaTracking::ProcessingNormal()
       if(!hit) continue;
       Int_t layerId = hit->GetLayer();
       if(hit->GetLayer()>79) layerId -= 62;
-      else if(hit->GetLayer()>40) layerId -= 15;
-      else if(hit->GetLayer()>30) layerId -= 21;
+      else if(hit->GetLayer()>40) layerId -= 22;
+      else if(hit->GetLayer()>30) layerId -= 20;
       HF1(53, hit->GetLayer());
       Double_t wire = hit->GetHit()->GetWire();
       Double_t dt   = hit->GetHit()->GetDriftTime();
@@ -857,7 +860,7 @@ UserKuramaTracking::ProcessingNormal()
 	if(l==layerId-1)
 	  event.resG[l].push_back(res);
       }
-      for(Int_t l=0; l<NumOfLayersSdcOut+2; ++l){
+      for(Int_t l=0; l<NumOfLayersSdcOut+4; ++l){
 	if(l==layerId-1-NumOfLayersSdcIn)
 	  event.resG[l+NumOfLayersSdcIn].push_back(res);
       }
@@ -1002,6 +1005,13 @@ ConfMan:: InitializeHistograms()
   const Double_t MinDLSDC3  = -5.0;
   const Double_t MaxDLSDC3  = 15.0;
 
+  const Int_t    NBinDTSDC4 =  400;
+  const Double_t MinDTSDC4  = -100.;
+  const Double_t MaxDTSDC4  =  300.;
+  const Int_t    NBinDLSDC4 =  100;
+  const Double_t MinDLSDC4  = -5.0;
+  const Double_t MaxDLSDC4  = 15.0;
+
   HB1(1, "Status", 30, 0., 30.);
 
   HB1(10, "#Tracks SdcIn", 10, 0., 10.);
@@ -1099,13 +1109,13 @@ ConfMan:: InitializeHistograms()
     HB2(100*i+22, title22, NBinDTSDC1, MinDTSDC1, MaxDTSDC1, NBinDLSDC1, MinDLSDC1, MaxDLSDC1);
   }
 
-  //SFT
+  //SDC2
   for(Int_t i=NumOfLayersSDC1+1; i<=NumOfLayersSdcIn; ++i){
-    TString title1 = Form("HitPat Sft%d", i-NumOfLayersSDC1);
-    TString title4 = Form("Position Sft%d", i-NumOfLayersSDC1);
-    TString title5 = Form("Residual Sft%d", i-NumOfLayersSDC1);
-    TString title6 = Form("Resid%%Pos Sft%d", i-NumOfLayersSDC1);
-    TString title7 = Form("Y%%Xcal Sft%d", i-NumOfLayersSDC1);
+    TString title1 = Form("HitPat Sdc2_%d", i-NumOfLayersSDC1);
+    TString title4 = Form("Position Sdc2_%d", i-NumOfLayersSDC1);
+    TString title5 = Form("Residual Sdc2_%d", i-NumOfLayersSDC1);
+    TString title6 = Form("Resid%%Pos Sdc2_%d", i-NumOfLayersSDC1);
+    TString title7 = Form("Y%%Xcal Sdc2_%d", i-NumOfLayersSDC1);
     HB1(100*i+1, title1, 70, 0., 70.);
     HB1(100*i+4, title4, 800, -400., 400.);
     HB1(100*i+5, title5, 500, -5.0, 5.0);
@@ -1123,18 +1133,18 @@ ConfMan:: InitializeHistograms()
     HB2(100*i+17, title7, 100, -600., 600., 100, -600., 600.);
   }
 
-  // SDC2
-  for(Int_t i=NumOfLayersSdcIn+1; i<=(NumOfLayersSdcIn+NumOfLayersSDC2); ++i){
-    TString title1 = Form("HitPat Sdc2_%d", i-NumOfLayersSdcIn);
-    TString title2 = Form("DriftTime Sdc2_%d", i-NumOfLayersSdcIn);
-    TString title3 = Form("DriftLength Sdc2_%d", i-NumOfLayersSdcIn);
-    TString title4 = Form("Position Sdc2_%d", i-NumOfLayersSdcIn);
-    TString title5 = Form("Residual Sdc2_%d", i-NumOfLayersSdcIn);
-    TString title6 = Form("Resid%%Pos Sdc2_%d", i-NumOfLayersSdcIn);
-    TString title7 = Form("Y%%Xcal Sdc2_%d", i-NumOfLayersSdcIn);
+  // SDC3
+  for(Int_t i=NumOfLayersSdcIn+1; i<=(NumOfLayersSdcIn+NumOfLayersSDC3); ++i){
+    TString title1 = Form("HitPat Sdc3_%d", i-NumOfLayersSdcIn);
+    TString title2 = Form("DriftTime Sdc3_%d", i-NumOfLayersSdcIn);
+    TString title3 = Form("DriftLength Sdc3_%d", i-NumOfLayersSdcIn);
+    TString title4 = Form("Position Sdc3_%d", i-NumOfLayersSdcIn);
+    TString title5 = Form("Residual Sdc3_%d", i-NumOfLayersSdcIn);
+    TString title6 = Form("Resid%%Pos Sdc3_%d", i-NumOfLayersSdcIn);
+    TString title7 = Form("Y%%Xcal Sdc3_%d", i-NumOfLayersSdcIn);
     HB1(100*i+1, title1, 112, 0., 112.);
-    HB1(100*i+2, title2, NBinDTSDC2, MinDTSDC2, MaxDTSDC2);
-    HB1(100*i+3, title3, NBinDLSDC2, MinDLSDC2, MaxDLSDC2);
+    HB1(100*i+2, title2, NBinDTSDC3, MinDTSDC3, MaxDTSDC3);
+    HB1(100*i+3, title3, NBinDLSDC3, MinDLSDC3, MaxDLSDC3);
     HB1(100*i+4, title4, 1000, -600., 600.);
     HB1(100*i+5, title5, 200, -2.0, 2.0);
     HB2(100*i+6, title6, 100, -600., 600., 100, -2.0, 2.0);
@@ -1146,30 +1156,30 @@ ConfMan:: InitializeHistograms()
     title5 += " [KuramaTrack]";
     title6 += " [KuramaTrack]";
     title7 += " [KuramaTrack]";
-    TString title22 = Form("DriftLength%%DriftTime Sdc2_%d [KuramaTrack]", i-NumOfLayersSdcIn);
+    TString title22 = Form("DriftLength%%DriftTime Sdc3_%d [KuramaTrack]", i-NumOfLayersSdcIn);
     HB1(100*i+11, title1, 112, 0., 112.);
-    HB1(100*i+12, title2, NBinDTSDC2, MinDTSDC2, MaxDTSDC2);
-    HB1(100*i+13, title3, NBinDLSDC2, MinDLSDC2, MaxDLSDC2);
+    HB1(100*i+12, title2, NBinDTSDC3, MinDTSDC3, MaxDTSDC3);
+    HB1(100*i+13, title3, NBinDLSDC3, MinDLSDC3, MaxDLSDC3);
     HB1(100*i+14, title4, 1000, -600., 600.);
     HB1(100*i+15, title5, 200, -2.0, 2.0);
     HB2(100*i+16, title6, 100, -600., 600., 100, -2.0, 2.0);
     HB2(100*i+17, title7, 100, -600., 600., 100, -600., 600.);
-    HB2(100*i+22, title22, NBinDTSDC2, MinDTSDC2, MaxDTSDC2, NBinDLSDC2, MinDLSDC2, MaxDLSDC2);
+    HB2(100*i+22, title22, NBinDTSDC3, MinDTSDC3, MaxDTSDC3, NBinDLSDC3, MinDLSDC3, MaxDLSDC3);
   }
 
-  // SDC3
-  for(Int_t i=NumOfLayersSdcIn+NumOfLayersSDC2+1;
-      i<=(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3) ; ++i){
-    TString title1 = Form("HitPat Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    TString title2 = Form("DriftTime Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    TString title3 = Form("DriftLength Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    TString title4 = Form("Position Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    TString title5 = Form("Residual Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    TString title6 = Form("Resid%%Pos Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
-    TString title7 = Form("Y%%Xcal Sdc3_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
+  // SDC4
+  for(Int_t i=NumOfLayersSdcIn+NumOfLayersSDC3+1;
+      i<=(NumOfLayersSdcIn+NumOfLayersSdcOut) ; ++i){
+    TString title1 = Form("HitPat Sdc4_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC3));
+    TString title2 = Form("DriftTime Sdc4_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC3));
+    TString title3 = Form("DriftLength Sdc4_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC3));
+    TString title4 = Form("Position Sdc4_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC3));
+    TString title5 = Form("Residual Sdc4_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC3));
+    TString title6 = Form("Resid%%Pos Sdc4_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC3));
+    TString title7 = Form("Y%%Xcal Sdc4_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC3));
     HB1(100*i+1, title1, 120, 0., 120.);
-    HB1(100*i+2, title2, NBinDTSDC3, MinDTSDC3, MaxDTSDC3);
-    HB1(100*i+3, title3, NBinDLSDC3, MinDLSDC3, MaxDLSDC3);
+    HB1(100*i+2, title2, NBinDTSDC4, MinDTSDC4, MaxDTSDC4);
+    HB1(100*i+3, title3, NBinDLSDC4, MinDLSDC4, MaxDLSDC4);
     HB1(100*i+4, title4, 1000, -600., 600.);
     HB1(100*i+5, title5, 200, -2.0, 2.0);
     HB2(100*i+6, title6, 100, -600., 600., 100, -1.0, 1.0);
@@ -1181,47 +1191,22 @@ ConfMan:: InitializeHistograms()
     title5 += " [KuramaTrack]";
     title6 += " [KuramaTrack]";
     title7 += " [KuramaTrack]";
-    TString title22 = Form("DriftLength%%DriftTime Sdc3_%d [KuramaTrack]", i-(NumOfLayersSdcIn+NumOfLayersSDC2));
+    TString title22 = Form("DriftLength%%DriftTime Sdc4_%d [KuramaTrack]", i-(NumOfLayersSdcIn+NumOfLayersSDC3));
     HB1(100*i+11, title1, 120, 0., 120.);
-    HB1(100*i+12, title2, NBinDTSDC3, MinDTSDC3, MaxDTSDC3);
-    HB1(100*i+13, title3, NBinDLSDC3, MinDLSDC3, MaxDLSDC3);
+    HB1(100*i+12, title2, NBinDTSDC4, MinDTSDC4, MaxDTSDC4);
+    HB1(100*i+13, title3, NBinDLSDC4, MinDLSDC4, MaxDLSDC4);
     HB1(100*i+14, title4, 1000, -600., 600.);
     HB1(100*i+15, title5, 200, -2.0, 2.0);
     HB2(100*i+16, title6, 100, -600., 600., 100, -2.0, 2.0);
     HB2(100*i+17, title7, 100, -600., 600., 100, -600., 600.);
-    HB2(100*i+22, title22, NBinDTSDC3, MinDTSDC3, MaxDTSDC3, NBinDLSDC3, MinDLSDC3, MaxDLSDC3);
+    HB2(100*i+22, title22, NBinDTSDC4, MinDTSDC4, MaxDTSDC4, NBinDLSDC4, MinDLSDC4, MaxDLSDC4);
   }
   /////////////////////
-
-  // FBT1, 2
-  for(Int_t i=NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3+1;
-      i<=(NumOfLayersSdcIn+NumOfLayersSdcOut); ++i){
-    TString title1 = Form("HitPat Fbt%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3));
-    TString title4 = Form("Position Fbt%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3));
-    TString title5 = Form("Residual Fbt%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3));
-    TString title6 = Form("Resid%%Pos Fbt%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3));
-    TString title7 = Form("Y%%Xcal Fbt%d", i-(NumOfLayersSdcIn+NumOfLayersSDC2+NumOfLayersSDC3));
-    HB1(100*i+1, title1, 70, 0., 70.);
-    HB1(100*i+4, title4, 800, -400., 400.);
-    HB1(100*i+5, title5, 200, -2.0, 2.0);
-    HB2(100*i+6, title6, 100, -600., 600., 100, -1.0, 1.0);
-    HB2(100*i+7, title7, 100, -600., 600., 100, -600., 600.);
-    title1 += " [KuramaTrack]";
-    title4 += " [KuramaTrack]";
-    title5 += " [KuramaTrack]";
-    title6 += " [KuramaTrack]";
-    title7 += " [KuramaTrack]";
-    HB1(100*i+11, title1, 70, 0., 70.);
-    HB1(100*i+14, title4, 800, -400., 400.);
-    HB1(100*i+15, title5, 200, -2.0, 2.0);
-    HB2(100*i+16, title6, 100, -600., 600., 100, -2.0, 2.0);
-    HB2(100*i+17, title7, 100, -600., 600., 100, -600., 600.);
-  }
 
 
   // TOF in SdcOut/KuramaTracking
   for(Int_t i=NumOfLayersSdcIn+NumOfLayersSdcOut+1;
-      i<=NumOfLayersSdcIn+NumOfLayersSdcOut+2; ++i){
+      i<=NumOfLayersSdcIn+NumOfLayersSdcOut+4; ++i){
     TString title1 = Form("HitPat Tof%d", i-(NumOfLayersSdcIn+NumOfLayersSdcOut));
     TString title4 = Form("Position Tof%d", i-(NumOfLayersSdcIn+NumOfLayersSdcOut));
     TString title5 = Form("Residual Tof%d", i-(NumOfLayersSdcIn+NumOfLayersSdcOut));
@@ -1229,9 +1214,9 @@ ConfMan:: InitializeHistograms()
     TString title7 = Form("Y%%Xcal Tof%d", i-(NumOfLayersSdcIn+NumOfLayersSdcOut));
     HB1(100*i+1, title1, 200, 0., 200.);
     HB1(100*i+4, title4, 1000, -1000., 1000.);
-    HB1(100*i+5, title5, 200, -20., 20.);
+    HB1(100*i+5, title5, 400, -80., 80.);
     HB2(100*i+6, title6, 100, -1000., 1000., 100, -200., 200.);
-    HB2(100*i+7, title6, 100, -1000., 1000., 100, -1000., 1000.);
+    HB2(100*i+7, title7, 100, -1000., 1000., 100, -1000., 1000.);
     title1 += " [KuramaTrack]";
     title4 += " [KuramaTrack]";
     title5 += " [KuramaTrack]";
@@ -1239,7 +1224,7 @@ ConfMan:: InitializeHistograms()
     title7 += " [KuramaTrack]";
     HB1(100*i+11, title1, 200, 0., 200.);
     HB1(100*i+14, title4, 1000, -1000., 1000.);
-    HB1(100*i+15, title5, 200, -20., 20.);
+    HB1(100*i+15, title5, 400, -80., 80.);
     HB2(100*i+16, title6, 100, -1000., 1000., 100, -200., 200.);
     HB2(100*i+17, title7, 100, -1000., 1000., 100, -1000., 1000.);
   }
@@ -1331,13 +1316,13 @@ ConfMan:: InitializeHistograms()
 
   tree->Branch("vpx",          event.vpx,          Form("vpx[%d]/D", NumOfLayersVP));
   tree->Branch("vpy",          event.vpy,          Form("vpy[%d]/D", NumOfLayersVP));
-
-  event.resL.resize(NumOfLayersSdcIn+NumOfLayersSdcOut+2);
-  event.resG.resize(NumOfLayersSdcIn+NumOfLayersSdcOut+2);
+  
+  event.resL.resize(NumOfLayersSdcIn+NumOfLayersSdcOut+4);
+  event.resG.resize(NumOfLayersSdcIn+NumOfLayersSdcOut+4);
   // tree->Branch("resL", &event.resL);
   // tree->Branch("resG", &event.resG);
   for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
-    tree->Branch(Form("ResL%d",i+ 1), &event.resL[i]);
+    tree->Branch(Form("ResL%d",i+1), &event.resL[i]);
   }
 
   for(Int_t i=0; i<NumOfLayersSdcOut; ++i){
@@ -1346,6 +1331,8 @@ ConfMan:: InitializeHistograms()
 
   tree->Branch("ResL41", &event.resL[NumOfLayersSdcIn+NumOfLayersSdcOut]);
   tree->Branch("ResL42", &event.resL[NumOfLayersSdcIn+NumOfLayersSdcOut+1]);
+  tree->Branch("ResL43", &event.resL[NumOfLayersSdcIn+NumOfLayersSdcOut+2]);
+  tree->Branch("ResL44", &event.resL[NumOfLayersSdcIn+NumOfLayersSdcOut+3]);
 
   for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
     tree->Branch(Form("ResG%d",i+ 1), &event.resG[i]);
@@ -1357,6 +1344,8 @@ ConfMan:: InitializeHistograms()
 
   tree->Branch("ResG41", &event.resG[NumOfLayersSdcIn+NumOfLayersSdcOut]);
   tree->Branch("ResG42", &event.resG[NumOfLayersSdcIn+NumOfLayersSdcOut+1]);
+  tree->Branch("ResG43", &event.resG[NumOfLayersSdcIn+NumOfLayersSdcOut+2]);
+  tree->Branch("ResG44", &event.resG[NumOfLayersSdcIn+NumOfLayersSdcOut+3]);
 
   tree->Branch("tTofCalc",  event.tTofCalc,  "tTofCalc[3]/D");
   tree->Branch("utTofSeg",  event.utTofSeg,  Form("utTofSeg[%d]/D", NumOfSegTOF));

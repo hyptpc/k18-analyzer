@@ -60,9 +60,9 @@ bool HypTPCFitProcess::TrackCheck(int trackid, int repid) const {
 }
 
 void HypTPCFitProcess::FitTracks(){
-
   int nTracks = GetNTrack();
   for(int i=0; i<nTracks; i++){
+    if(GetTrack(i)->getNumPointsWithMeasurement()==0) continue;
     ProcessTrack(GetTrack(i));
   }
 }

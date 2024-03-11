@@ -35,7 +35,8 @@
 #define HodoCut 0 // with BH1/BH2
 #define TimeCut 1 // in cluster analysis
 #define TotCut  1 //for BcOut tracking
-#define Chi2Cut  1 //for BcOut tracking
+//#define Chi2Cut  1 //for BcOut tracking
+#define Chi2Cut 0 //for BcOut tracking
 
 namespace
 {

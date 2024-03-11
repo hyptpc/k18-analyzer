@@ -61,6 +61,7 @@ private:
 
 public:
   Bool_t IsGood() const { return (m_hit && m_hit->IsGood()); }
+  Bool_t IsGoodForTracking() const;
   Bool_t IsOnTheFrame(){ return m_hit->GetParentCluster()->IsOnTheFrame(); };
   void   SetLocalHitPos(TVector3 xl) { m_local_hit_pos = xl; }
   void   SetCalPosition(TVector3 cal_pos) { m_cal_pos = cal_pos; }

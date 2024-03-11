@@ -992,3 +992,99 @@ TPCAnalyzer::ReCalcTPCTracks(const Int_t ntracks,
   m_is_decoded[kTPC] = true;
   return true;
 }
+//_____________________________________________________________________________
+Bool_t
+TPCAnalyzer::ReCalcTPCTracksGeant4(const Int_t ntracks,
+			     const std::vector<Int_t>& charge,
+			     const std::vector<Int_t>& nhits,
+			     const std::vector<Double_t>& cx,
+			     const std::vector<Double_t>& cy,
+			     const std::vector<Double_t>& z0,
+			     const std::vector<Double_t>& r,
+			     const std::vector<Double_t>& dz,
+			     const std::vector<std::vector<Double_t>>& layer,
+			     const std::vector<std::vector<Double_t>>& mrow,
+			     const std::vector<std::vector<Double_t>>& helix_t,
+			     const std::vector<std::vector<Double_t>>& de,
+			     const std::vector<std::vector<Double_t>>& res_x,
+			     const std::vector<std::vector<Double_t>>& res_y,
+			     const std::vector<std::vector<Double_t>>& res_z,
+			     const std::vector<std::vector<Double_t>>& localpos_x,
+			     const std::vector<std::vector<Double_t>>& localpos_y,
+			     const std::vector<std::vector<Double_t>>& localpos_z)
+{
+  if(m_is_decoded[kTPC]){
+    hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;
+    return false;
+  }
+
+  ClearTPCHits();
+  //ClearTPCClusters();
+  ClearTPCTracks();
+  ClearTPCVertices();
+
+  if(ntracks != nhits.size() ||
+     ntracks != cx.size() ||
+     ntracks != cy.size() ||
+     ntracks != z0.size() ||
+     ntracks != r.size() ||
+     ntracks != dz.size() ||
+     ntracks != charge.size() ||
+     ntracks != layer.size() ||
+     ntracks != mrow.size() ||
+     ntracks != helix_t.size() ||
+     ntracks != res_x.size() ||
+     ntracks != res_y.size() ||
+     ntracks != res_z.size() ||
+     ntracks != localpos_x.size() ||
+     ntracks != localpos_y.size() ||
+     ntracks != localpos_z.size() ||
+     ntracks != de.size()){
+
+    hddaq::cerr << FUNC_NAME << " track params vector size mismatch" << std::endl;
+    return false;
+  }
+
+  for(Int_t it=0; it<ntracks; it++){
+    if(layer[it].size() != nhits[it] ||
+       mrow[it].size() != nhits[it] ||
+       helix_t[it].size() != nhits[it] ||
+       res_x[it].size() != nhits[it] ||
+       res_y[it].size() != nhits[it] ||
+       res_z[it].size() != nhits[it] ||
+       localpos_x[it].size() != nhits[it] ||
+       localpos_y[it].size() != nhits[it] ||
+       localpos_z[it].size() != nhits[it] ||
+       de[it].size() != nhits[it]){
+
+      hddaq::cerr << FUNC_NAME << " track params vector size mismatch" << std::endl;
+      return false;
+    }
+
+    TPCLocalTrackHelix *track = new TPCLocalTrackHelix();
+    Double_t HelixPar[5] = {cx[it], cy[it], z0[it], r[it], dz[it]};
+    track -> SetParam(HelixPar);
+    track -> SetCharge(charge[it]);
+    for(Int_t ih=0; ih<nhits[it]; ih++){
+      Int_t id = ih;
+      if(charge[it] < 0) id = nhits[it] -ih -1;
+      Int_t l = layer[it][id];
+      auto hit = new TPCHit(l, mrow[it][id]);
+      hit -> AddHit(0, 0.);
+      hit -> SetIsGood();
+      hit -> SetDe(de[it][id]);
+      hit -> SetPosition(TVector3(localpos_x[it][id], localpos_y[it][id], localpos_z[it][id]));
+      m_TPCHitCont[l].push_back(hit);
+
+      TPCLTrackHit *hitp = new TPCLTrackHit(hit);
+      hitp -> SetResolution(TVector3(res_x[it][id], res_y[it][id], res_z[it][id]));
+      hitp -> SetTheta(helix_t[it][id]);
+      track -> AddTPCHit(hitp);
+    }
+    track -> RecalcTrack();
+    m_TPCTCHelix.push_back(track);
+  }
+
+  m_is_decoded[kTPC] = true;
+  return true;
+}

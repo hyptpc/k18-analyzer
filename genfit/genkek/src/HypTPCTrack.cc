@@ -1,5 +1,8 @@
 //  Authors: Wooseung Jung
 
+#ifndef HYPTPCTRACK_CC
+#define HYPTPCTRACK_CC
+
 //GenKEK
 #include "HypTPCTrack.hh"
 #include "HypTPCHit.hh"
@@ -36,7 +39,7 @@
 
 //STL
 #include <iostream>
-
+using namespace genfit;
 ClassImp(HypTPCTrack)
 
 TClonesArray *HypTPCTrack::_hitClusterArray = nullptr;
@@ -73,47 +76,100 @@ void HypTPCTrack::AddHelixTrack(int pdg, TPCLocalTrackHelix *tp){
   _hitClusterArray -> Delete();
   genfit::TrackCand trackCand;
 
+  //GenFit Units : GeV/c, ns, cm, kGauss
+  //K1.8Ana Units : GeV/c, ns, mm, T
+  TVector3 posSeed; TVector3 momSeed;
+  TMatrixDSym covSeed(6);
+  covSeed.Zero();
+
+
+
+
+  int hitid = 0;
   int nMeasurement = tp -> GetNHit();
   for(int i=0; i<nMeasurement; i++){
     TPCLTrackHit *point = tp -> GetHitInOrder(i);
     if(!point) continue;
-    new ((*_hitClusterArray)[i]) HypTPCHit(*point);
-    trackCand.addHit(TPCDetID, i);
+    if(!point -> IsGoodForTracking()) continue;
+    new ((*_hitClusterArray)[hitid]) HypTPCHit(*point);
+    trackCand.addHit(TPCDetID, hitid);
+
+    if(hitid==0){
+      posSeed = point -> GetLocalCalPosHelix();
+      posSeed.SetMag(posSeed.Mag()/10.); //mm -> cm
+      Double_t charge = tp -> GetCharge();
+      momSeed = point -> GetMomentumHelix(charge); //GeV/c
+
+      const TVector3& res_vect = PositionScale*point -> GetResolutionVect();
+      double resX = 0.1*res_vect.X(); //mm -> cm
+      double resY = 0.1*res_vect.Y(); //mm -> cm
+      double resZ = 0.1*res_vect.Z(); //mm -> cm
+			double px = momSeed.X();
+			double py = momSeed.Y();
+			double pz = momSeed.Z();
+      
+			covSeed(0, 0) = resX*resX;
+      covSeed(1, 1) = resY*resY;
+      covSeed(2, 2) = resZ*resZ;
+
+
+
+#if 0
+      double resT = 0.01*TMath::Sqrt(resX*resX + resZ*resZ); //cm -> m
+      double L = 0.001*tp -> GetTransversePath(); //mm -> m
+      double Pt2 = momSeed.x()*momSeed.x() + momSeed.z()*momSeed.z();
+      double dPt2 = 720./(nMeasurement+4.)*Pt2*Pt2/(0.09*L*L*L*L);
+      covSeed(3, 3) = dPt2*resT*resT/2.;
+      covSeed(4, 4) = dPt2*resT*resT/2.;
+      covSeed(5, 5) = dPt2*resT*resT/2.;
+#else
+      //TVector3 resP = tp -> GetMomentumResolutionVect(i);
+      TVector3 resP = tp -> GetMomentumResolutionVect(i,MomentumScale,PhiScale,dZScale);
+      double resPX = resP.x();
+      double resPY = resP.y();
+      double resPZ = resP.z();
+      covSeed(3, 3) = resPX*resPX;
+      covSeed(4, 4) = resPY*resPY;
+      covSeed(5, 5) = resPZ*resPZ;
+			if(AddCovariance ){	
+				if(px*py>0){
+					covSeed(3,4)=Corr*resX*resY;
+					covSeed(4,3)=Corr*resX*resY;
+				}
+				else{
+					covSeed(3,4)=-Corr*resX*resY;
+					covSeed(4,3)=-Corr*resX*resY;
+				}
+				if(py*pz>0){
+					covSeed(1,2)=-Corr*resY*resZ;
+					covSeed(2,1)=-Corr*resY*resZ;
+					covSeed(4,5)=Corr*resY*resZ;
+					covSeed(5,4)=Corr*resY*resZ;
+				}
+				else{
+					covSeed(1,2)=Corr*resY*resZ;
+					covSeed(2,1)=Corr*resY*resZ;
+					covSeed(4,5)=-Corr*resY*resZ;
+					covSeed(5,4)=-Corr*resY*resZ;
+				}
+				if(pz*px>0){
+					covSeed(0,2)=-Corr*resX*resZ;
+					covSeed(2,0)=-Corr*resX*resZ;
+					covSeed(5,3)=Corr*resZ*resX;
+					covSeed(3,5)=Corr*resZ*resX;
+				}
+				else{
+					covSeed(0,2)=Corr*resX*resZ;
+					covSeed(2,0)=Corr*resX*resZ;
+					covSeed(5,3)=-Corr*resZ*resX;
+					covSeed(3,5)=-Corr*resZ*resX;
+				}
+			}
+#endif
+      covSeed.Print();
+    }
+    hitid++;
   }
-
-  //GenFit Units : GeV/c, ns, cm, kGauss
-  //K1.8Ana Units : GeV/c, ns, mm, T
-  Double_t charge = tp -> GetCharge();
-  TVector3 posSeed; TVector3 momSeed;
-  posSeed = tp -> GetHitInOrder(0) -> GetLocalCalPosHelix();
-  posSeed.SetMag(posSeed.Mag()/10.); //mm -> cm
-  momSeed = tp -> GetHitInOrder(0) -> GetMomentumHelix(charge); //GeV/c
-
-  double resX = 0; double resY = 0; double resZ = 0;
-  for(int i=0; i<nMeasurement; i++){
-    auto point = tp -> GetHitInOrder(i);
-    const TVector3& res_vect = point -> GetResolutionVect();
-    if(res_vect.x() > 0.9e+10 && res_vect.y() > 0.9e+10 && res_vect.z() > 0.9e+10) continue;
-    resX = 0.1*res_vect.X(); //mm -> cm
-    resY = 0.1*res_vect.Y(); //mm -> cm
-    resZ = 0.1*res_vect.Z(); //mm -> cm
-    //break;
-  }
-
-  TMatrixDSym covSeed(6);
-  covSeed.Zero();
-  covSeed(0, 0) = resX*resX;
-  covSeed(1, 1) = resY*resY;
-  covSeed(2, 2) = resZ*resZ;
-
-  double resT = 0.01*TMath::Sqrt(resX*resX + resZ*resZ); //cm -> m
-  double L = 0.001*tp -> GetTransversePath(); //mm -> m
-  double Pt2 = momSeed.x()*momSeed.x() + momSeed.z()*momSeed.z();
-  double dPt2 = 720./(nMeasurement+4.)*Pt2*Pt2/(0.09*L*L*L*L);
-  covSeed(3, 3) = dPt2*resT*resT/2.;
-  covSeed(4, 4) = dPt2*resT*resT/2.;
-  covSeed(5, 5) = dPt2*resT*resT/2.;
-  //covSeed.Print();
 
   // set start values and pdg to cand
   trackCand.setCovSeed(covSeed);
@@ -140,36 +196,43 @@ void HypTPCTrack::AddLinearTrack(int pdg, TPCLocalTrack *tp, double momentum){
   _hitClusterArray -> Delete();
   genfit::TrackCand trackCand;
 
+  //GenFit Units : GeV/c, ns, cm, kGauss
+  //K1.8Ana Units : GeV/c, ns, mm, T
+  TVector3 posSeed; TVector3 momSeed;
+  TMatrixDSym covSeed(6);
+  covSeed.Zero();
+
+  int hitid = 0;
   int nMeasurement = tp -> GetNHit();
   for(int i=0; i<nMeasurement; i++){
     TPCLTrackHit *point = tp -> GetHit(i);
     if(!point) continue;
-    new ((*_hitClusterArray)[i]) HypTPCHit(*point);
-    trackCand.addHit(TPCDetID, i);
+    if(!point -> IsGoodForTracking()) continue;
+    new ((*_hitClusterArray)[hitid]) HypTPCHit(*point);
+    trackCand.addHit(TPCDetID, hitid);
+
+    if(hitid==0){
+      const TVector3& res_vect = point -> GetResolutionVect();
+      double resX = 0.1*res_vect.X(); //mm -> cm
+      double resY = 0.1*res_vect.Y(); //mm -> cm
+      double resZ = 0.1*res_vect.Z(); //mm -> cm
+      covSeed(0, 0) = resX*resX;
+      covSeed(1, 1) = resY*resY;
+      covSeed(2, 2) = resZ*resZ;
+      double dPt2 = TMath::Power(momSeed.Mag()*0.034,2); //dp/p ~ 3.4%
+      covSeed(3, 3) = dPt2/2.;
+      covSeed(4, 4) = dPt2/2.;
+      covSeed(5, 5) = dPt2/2.;
+      //covSeed.Print();
+
+      posSeed = tp -> GetHit(i) -> GetLocalCalPos();
+      posSeed.SetMag(posSeed.Mag()/10.); //mm -> cm
+      double u = tp -> GetU0(); double v = tp -> GetV0();
+      TVector3 momSeed(u,v,1.0);
+      momSeed.SetMag(momentum);
+    }
+    hitid++;
   }
-
-  //GenFit Units : GeV/c, ns, cm, kGauss
-  //K1.8Ana Units : GeV/c, ns, mm, T
-  const TVector3& res_vect = tp -> GetHit(0) -> GetResolutionVect();
-  TVector3 posSeed = tp -> GetHit(0) -> GetLocalCalPos();
-  posSeed.SetMag(posSeed.Mag()/10.); //mm -> cm
-  double u = tp -> GetU0(); double v = tp -> GetV0();
-  TVector3 momSeed(u,v,1.0);
-  momSeed.SetMag(momentum);
-
-  TMatrixDSym covSeed(6);
-  covSeed.Zero();
-  double resX = 0.1*res_vect.X(); //mm -> cm
-  double resY = 0.1*res_vect.Y(); //mm -> cm
-  double resZ = 0.1*res_vect.Z(); //mm -> cm
-  covSeed(0, 0) = resX*resX;
-  covSeed(1, 1) = resY*resY;
-  covSeed(2, 2) = resZ*resZ;
-
-  double dPt2 = TMath::Power(momSeed.Mag()*0.034,2); //dp/p ~ 3.4%
-  covSeed(3, 3) = dPt2/2.;
-  covSeed(4, 4) = dPt2/2.;
-  covSeed(5, 5) = dPt2/2.;
 
   // set start values and pdg to cand
   trackCand.setCovSeed(covSeed);
@@ -228,3 +291,4 @@ void HypTPCTrack::AddReconstructedTrack(int pdg, TVector3 posSeed, TVector3 momS
   delete track;
   delete hit;
 }
+#endif

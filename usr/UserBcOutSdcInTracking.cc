@@ -9,20 +9,20 @@
 #include <sstream>
 #include <string>
 
+#include <TMath.h>
+
 #include "ConfMan.hh"
 #include "DCGeomMan.hh"
 #include "DCRawHit.hh"
 #include "DetectorID.hh"
 #include "RMAnalyzer.hh"
-#include "MathTools.hh"
-#include "RootHelper.hh"
 #include "KuramaLib.hh"
+#include "MathTools.hh"
 #include "RawData.hh"
+#include "RootHelper.hh"
 #include "UnpackerManager.hh"
 
 #define HodoCut 0
-#define TotCut  1
-#define Chi2Cut 1
 
 namespace
 {
@@ -84,6 +84,9 @@ struct Event
   Int_t trigpat[NumOfSegTrig];
   Int_t trigflag[NumOfSegTrig];
 
+  Double_t btof;
+  Double_t time0;
+
   Int_t nhBh1;
   Double_t tBh1[MaxHits];
   Double_t deBh1[MaxHits];
@@ -99,15 +102,29 @@ struct Event
   Double_t CTime0;
 
   Int_t ntrack;
-  Int_t nlayer[MaxHits];
+  Int_t nh[MaxHits];
   Double_t chisqr[MaxHits];
   Double_t x_Bh2[MaxHits];
   Double_t x0[MaxHits];
   Double_t y0[MaxHits];
   Double_t u0[MaxHits];
   Double_t v0[MaxHits];
-  Double_t pos[NumOfLayersBcOut+NumOfLayersSdcIn][MaxHits];
-  Double_t res[NumOfLayersBcOut+NumOfLayersSdcIn][MaxHits];
+
+  Int_t ntBcOut;
+  Int_t nhBcOut[MaxHits];
+  Double_t chisqrBcOut[MaxHits];
+  Double_t x0BcOut[MaxHits];
+  Double_t y0BcOut[MaxHits];
+  Double_t u0BcOut[MaxHits];
+  Double_t v0BcOut[MaxHits];
+
+  Int_t ntSdcIn;
+  Int_t nhSdcIn[MaxHits];
+  Double_t chisqrSdcIn[MaxHits];
+  Double_t x0SdcIn[MaxHits];
+  Double_t y0SdcIn[MaxHits];
+  Double_t u0SdcIn[MaxHits];
+  Double_t v0SdcIn[MaxHits];
 
   void clear();
 };
@@ -125,8 +142,13 @@ Event::clear()
   Time0     = qnan;
   CTime0    = qnan;
 
+  time0 = qnan;
+  btof  = qnan;
+
+  ntBcOut = 0;
+  ntSdcIn = 0;
   for(Int_t it=0; it<MaxHits; it++){
-    nlayer[it] =  0;
+    nh[it]     = 0;
     tBh1[it]   = qnan;
     deBh1[it]  = qnan;
     Bh2Seg[it] = -1;
@@ -137,18 +159,25 @@ Event::clear()
     y0[it]     = qnan;
     u0[it]     = qnan;
     v0[it]     = qnan;
+
+    nhBcOut[it] = 0;
+    chisqrBcOut[it] = qnan;
+    x0BcOut[it] = qnan;
+    y0BcOut[it] = qnan;
+    u0BcOut[it] = qnan;
+    v0BcOut[it] = qnan;
+
+    nhSdcIn[it] = 0;
+    chisqrSdcIn[it] = qnan;
+    x0SdcIn[it] = qnan;
+    y0SdcIn[it] = qnan;
+    u0SdcIn[it] = qnan;
+    v0SdcIn[it] = qnan;
   }
 
   for(Int_t it=0; it<NumOfSegTrig; it++){
     trigpat[it] = -1;
     trigflag[it] = -1;
-  }
-
-  for (Int_t it=0; it<NumOfLayersBcOut+NumOfLayersSdcIn; it++){
-    for(Int_t that=0; that<MaxHits; that++){
-      pos[it][that] = qnan;
-      res[it][that] = qnan;
-    }
   }
 }
 
@@ -158,7 +187,6 @@ namespace root
 Event event;
 TH1   *h[MaxHist];
 TTree *tree;
-enum eParticle { kKaon, kPion, nParticle };
 }
 
 //_____________________________________________________________________________
@@ -178,16 +206,25 @@ UserBcOutSdcInTracking::ProcessingNormal()
   static const auto MaxDeBH2 = gUser.GetParameter("DeBH2", 1);
   static const auto MinDeBH1 = gUser.GetParameter("DeBH1", 0);
   static const auto MaxDeBH1 = gUser.GetParameter("DeBH1", 1);
-  static const auto MinBeamToF = gUser.GetParameter("BTOF", 1);
+  static const auto MinBeamToF = gUser.GetParameter("BTOF", 0);
   static const auto MaxBeamToF = gUser.GetParameter("BTOF", 1);
 #endif
-  static const auto MaxMultiHitBcOut = gUser.GetParameter("MaxMultiHitBcOut");
-  static const auto MaxMultiHitSdcIn = gUser.GetParameter("MaxMultiHitSdcIn");
-#if TotCut
   static const auto MinTotBcOut = gUser.GetParameter("MinTotBcOut");
   static const auto MinTotSDC1 = gUser.GetParameter("MinTotSDC1");
   static const auto MinTotSDC2 = gUser.GetParameter("MinTotSDC2");
-#endif
+
+  static const auto MaxChisqrBcOut = gUser.GetParameter("MaxChisqrBcOut");
+  static const auto MaxChisqrSdcIn = gUser.GetParameter("MaxChisqrSdcIn");
+
+  static const auto MaxMultiHitBcOut = gUser.GetParameter("MaxMultiHitBcOut");
+  static const auto MaxMultiHitSdcIn = gUser.GetParameter("MaxMultiHitSdcIn");
+
+  static const auto MinDriftTimeBC34 = gUser.GetParameter("DriftTimeBC34", 0);
+  static const auto MaxDriftTimeBC34 = gUser.GetParameter("DriftTimeBC34", 1);
+  static const auto MinDriftTimeSDC1 = gUser.GetParameter("DriftTimeSDC1", 0);
+  static const auto MaxDriftTimeSDC1 = gUser.GetParameter("DriftTimeSDC1", 1);
+  static const auto MinDriftTimeSDC2 = gUser.GetParameter("DriftTimeSDC2", 0);
+  static const auto MaxDriftTimeSDC2 = gUser.GetParameter("DriftTimeSDC2", 1);
 
   rawData->DecodeHits();
 
@@ -220,7 +257,7 @@ UserBcOutSdcInTracking::ProcessingNormal()
 #endif
   HF1(1, 2);
 
-  [[maybe_unused]] Double_t time0 = qnan;
+  Double_t time0 = qnan;
   //////////////BH2 Analysis
   for(Int_t i=0; i<nhBh2; ++i){
     BH2Hit* hit = hodoAna->GetHitBH2(i);
@@ -259,6 +296,7 @@ UserBcOutSdcInTracking::ProcessingNormal()
 #if HodoCut
   if(nhBh1==0) return true;
 #endif
+
   HF1(1, 4);
 
   for(Int_t i=0; i<nhBh1; ++i){
@@ -267,6 +305,7 @@ UserBcOutSdcInTracking::ProcessingNormal()
     Double_t cmt = hit->CMeanTime();
     Double_t dE  = hit->DeltaE();
 #if HodoCut
+    Double_t btof = cmt - time0;
     if(dE<MinDeBH1 || MaxDeBH1<dE) continue;
     if(btof<MinBeamToF || MaxBeamToF<btof) continue;
 #endif
@@ -274,22 +313,22 @@ UserBcOutSdcInTracking::ProcessingNormal()
     event.deBh1[i] = dE;
   }
 
-  // Double_t btof0 = qnan;
-  // HodoCluster* cl_btof0 = event.Time0Seg > 0 ?
-  //   hodoAna->GetBtof0BH1Cluster(event.CTime0) : nullptr;
-  // if(cl_btof0) btof0 = cl_btof0->CMeanTime() - time0;
+  Double_t btof0 = qnan;
+  HodoCluster* cl_btof0 = event.Time0Seg > 0 ?
+	  hodoAna->GetBtof0BH1Cluster(event.CTime0) : nullptr;
+  if(cl_btof0) btof0 = cl_btof0->CMeanTime() - time0;
+  event.btof = btof0;
 
   HF1(1, 5.);
-
 
   DCAna->DecodeRawHits(rawData);
 
   ///// BcOut number of hit layer
-#if TotCut
   DCAna->TotCutBCOut(MinTotBcOut);
-#endif
-  // DCAna->DriftTimeCutBC34(-10, 50);
+  DCAna->TotCutBCOut(MinTotBcOut);
+  DCAna->DriftTimeCutBC34(MinDriftTimeBC34, MaxDriftTimeBC34);
   // DCAna->MakeBH2DCHit(event.Time0Seg-1);
+
   Double_t multi_BcOut = 0.;
   for(Int_t layer=1; layer<=NumOfLayersBcOut; ++layer){
     multi_BcOut += DCAna->GetBcOutHC(layer).size();
@@ -303,10 +342,11 @@ UserBcOutSdcInTracking::ProcessingNormal()
   HF1(1, 11.);
 
   ///// SdcIn number of hit layer
-#if TotCut
   DCAna->TotCutSDC1(MinTotSDC1);
   DCAna->TotCutSDC2(MinTotSDC2);
-#endif
+  DCAna->DriftTimeCutSDC1(MinDriftTimeSDC1, MaxDriftTimeSDC1);
+  DCAna->DriftTimeCutSDC2(MinDriftTimeSDC2, MaxDriftTimeSDC2);
+
   Double_t multi_SdcIn = 0.;
   for(Int_t layer=1; layer<=NumOfLayersSdcIn; ++layer){
     multi_SdcIn += DCAna->GetSdcInHC(layer).size();
@@ -333,7 +373,7 @@ UserBcOutSdcInTracking::ProcessingNormal()
     Double_t x0=track->GetX0(), y0=track->GetY0();
     Double_t u0=track->GetU0(), v0=track->GetV0();
     Double_t theta = track->GetTheta();
-    event.nlayer[it] = nh;
+    event.nh[it] = nh;
     event.chisqr[it] = chisqr;
     event.x0[it] = x0;
     event.y0[it] = y0;
@@ -353,9 +393,8 @@ UserBcOutSdcInTracking::ProcessingNormal()
     HF1(23, utgt); HF1(24, vtgt);
     HF2(25, xtgt, utgt); HF2(26, ytgt, vtgt);
     HF2(27, xtgt, ytgt);
-
+    /*
     Double_t Xangle = -1000*TMath::ATan(u0);
-
     HF2(51, -track->GetX(245.), Xangle);
     HF2(52, -track->GetX(600.), Xangle);
     HF2(53, -track->GetX(1200.), Xangle);
@@ -364,7 +403,7 @@ UserBcOutSdcInTracking::ProcessingNormal()
     HF2(61, track->GetX(600.), track->GetX(245.));
     HF2(62, track->GetX(1200.), track->GetX(245.));
     HF2(63, track->GetX(1600.), track->GetX(245.));
-
+    */
     for(Int_t ih=0; ih<nh; ++ih){
       const auto hit = track->GetHit(ih);
       Int_t layerId = hit->GetLayer();//-112;
@@ -376,18 +415,15 @@ UserBcOutSdcInTracking::ProcessingNormal()
       HF1(100*layerId+11, wire-0.5);
       HF1(100*layerId+12, dt);
       HF1(100*layerId+13, dl);
-  //     HF1(10000*layerId+ 5000 +(Int_t)wire, dt);
       Double_t xcal=hit->GetXcal(), ycal=hit->GetYcal();
       Double_t pos=hit->GetLocalHitPos(), res=hit->GetResidual();
       if(layerId > 12){
-        res += 49.95*TMath::Cos(hit->GetTiltAngle()*TMath::DegToRad());
+        res += 50.*TMath::Cos(hit->GetTiltAngle()*TMath::DegToRad());
       }
-      // std::cout << layerId << " " << res << std::endl;
       HF1(100*layerId+14, pos);
       HF1(100*layerId+15, res);
       HF2(100*layerId+16, pos, res);
       HF2(100*layerId+17, xcal, ycal);
-  //     //      HF1(100000*layerId+50000+wire, res);
       Double_t wp=hit->GetWirePosition();
       Double_t sign=1.;
       if(pos-wp<0.) sign=-1;
@@ -404,17 +440,55 @@ UserBcOutSdcInTracking::ProcessingNormal()
         HF1(100*layerId+73, res);
       else if (theta>=45)
         HF1(100*layerId+74, res);
-
-  //     if (std::abs(dl-std::abs(xlcal-wp))<2.0) {
-  //       HFProf(100*layerId+20, dt, std::abs(xlcal-wp));
-  //       HF2(100*layerId+22, dt, std::abs(xlcal-wp));
-  //       HFProf(100000*layerId+3000+(Int_t)wire, xlcal-wp,dt);
-  //       HF2(100000*layerId+4000+(Int_t)wire, xlcal-wp,dt);
-  //     }
     }
   }
 
   HF1(1, 15.);
+
+#if 1
+  // Bc Out
+  //  std::cout << "==========TrackSearch BcOut============" << std::endl;
+  DCAna->TrackSearchBcOut();
+  DCAna->ChiSqrCutBcOut(MaxChisqrBcOut);
+
+  Int_t ntBcOut = DCAna->GetNtracksBcOut();
+  event.ntBcOut = ntBcOut;
+  for(Int_t it=0; it<ntBcOut; ++it){
+    DCLocalTrack *tp=DCAna->GetTrackBcOut(it);
+    Int_t nh=tp->GetNHit();
+    Double_t chisqr=tp->GetChiSquare();
+    Double_t x0=tp->GetX0(), y0=tp->GetY0();
+    Double_t u0=tp->GetU0(), v0=tp->GetV0();
+    event.nhBcOut[it] = nh;
+    event.chisqrBcOut[it] = chisqr;
+    event.x0BcOut[it] = x0;
+    event.y0BcOut[it] = y0;
+    event.u0BcOut[it] = u0;
+    event.v0BcOut[it] = v0;
+  }
+#endif
+
+#if 1
+  // std::cout << "==========TrackSearch SdcIn============" << std::endl;
+  DCAna->TrackSearchSdcIn();
+  DCAna->ChiSqrCutSdcIn(MaxChisqrSdcIn);
+
+  Int_t ntSdcIn = DCAna->GetNtracksSdcIn();
+  event.ntSdcIn = ntSdcIn;
+  for(Int_t it=0; it<ntSdcIn; ++it){
+    DCLocalTrack *tp=DCAna->GetTrackSdcIn(it);
+    Int_t nh=tp->GetNHit();
+    Double_t chisqr=tp->GetChiSquare();
+    Double_t x0=tp->GetX0(), y0=tp->GetY0();
+    Double_t u0=tp->GetU0(), v0=tp->GetV0();
+    event.nhSdcIn[it] = nh;
+    event.chisqrSdcIn[it] = chisqr;
+    event.x0SdcIn[it] = x0;
+    event.y0SdcIn[it] = y0;
+    event.u0SdcIn[it] = u0;
+    event.v0SdcIn[it] = v0;
+  }
+#endif
 
   return true;
 }
@@ -436,36 +510,34 @@ ConfMan::EventAllocator()
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan:: InitializeHistograms()
+ConfMan::InitializeHistograms()
 {
   const Int_t nl = NumOfLayersBcOut+NumOfLayersSdcIn;
 
-  const Int_t NbinBcOutDT   =  96;
-  const Double_t MinBcOutDT =  -10.;
-  const Double_t MaxBcOutDT =   70.;
+  const Int_t    NbinBcOutDT = 96;
+  const Double_t MinBcOutDT  = -10.;
+  const Double_t MaxBcOutDT  = 70.;
+  const Int_t    NbinBcOutDL = 80;
+  const Double_t MinBcOutDL  = -0.5;
+  const Double_t MaxBcOutDL  = 3.5;
 
-  const Int_t NbinBcOutDL   = 80;
-  const Double_t MinBcOutDL =  -0.5;
-  const Double_t MaxBcOutDL =   3.5;
-
-  const Int_t    NbinSDC1DT = 240;
+  const Int_t    NbinSDC1DT = 180;
   const Double_t MinSDC1DT  = -30.;
-  const Double_t MaxSDC1DT  = 170.;
-  const Int_t    NbinSDC1DL = 55;
+  const Double_t MaxSDC1DT  = 120.;
+  const Int_t    NbinSDC1DL = 80;
   const Double_t MinSDC1DL  = -0.5;
-  const Double_t MaxSDC1DL  = 5.0;
+  const Double_t MaxSDC1DL  = 3.5;
 
   const Int_t    NbinSDC2DT = 360;
   const Double_t MinSDC2DT  = -50.;
   const Double_t MaxSDC2DT  = 250.;
-  const Int_t    NbinSDC2DL = 85;
-  const Double_t MinSDC2DL  =  -0.5;
-  const Double_t MaxSDC2DL  =   8.;
+  const Int_t    NbinSDC2DL = 130;
+  const Double_t MinSDC2DL  = -0.5;
+  const Double_t MaxSDC2DL  = 6.;
 
   HB1(1, "Status", 20, 0., 20.);
 
   //***********************Chamber
-  // BC34
   for(Int_t i=1; i<=nl; ++i){
     TString tag;
     Int_t nwire;
@@ -516,6 +588,7 @@ ConfMan:: InitializeHistograms()
       mindl = MinSDC2DL;
       maxdl = MaxSDC2DL;
     }
+
     // Tracking Histgrams
     TString title11 = Form("HitPat BcOutSdcIn L%2d [Track]", i);
     TString title12 = Form("DriftTime BcOutSdcIn L%2d [Track]", i);
@@ -552,12 +625,6 @@ ConfMan:: InitializeHistograms()
     HB1(100*i+72, title72, 200, -5.0, 5.0);
     HB1(100*i+73, title73, 200, -5.0, 5.0);
     HB1(100*i+74, title74, 200, -5.0, 5.0);
-    for (Int_t j=1; j<=64; j++) {
-      TString title = Form("XT of Layer %2d Wire #%4d", i, j);
-      HBProf(100000*i+3000+j, title, 100, -4., 4., -5., 40.);
-      HB2(100000*i+4000+j, title, 100, -4., 4., 100, -5., 40.);
-    }
-
   }
 
   // Tracking Histgrams
@@ -581,8 +648,8 @@ ConfMan:: InitializeHistograms()
   HB2(26, "Vtgt%Ytgt BcOutSdcIn", 100, -100., 100., 100, -0.20, 0.20);
   HB2(27, "Xtgt%Ytgt BcOutSdcIn", 100, -100., 100., 100, -100, 100);
 
-  HB1(38, "Plane Eff", 36, 0, 36);
-
+  //HB1(38, "Plane Eff", 36, 0, 36);
+  /*
   HB2(51, "X-X' 245 BcOutSdcIn", 400, -100., 100., 120, -60, 60);
   HB2(52, "X-X' 600 BcOutSdcIn", 400, -100., 100., 120, -60, 60);
   HB2(53, "X-X' 1200 BcOutSdcIn", 400, -100., 100., 120, -60, 60);
@@ -591,7 +658,7 @@ ConfMan:: InitializeHistograms()
   HB2(61, "X-X 600 BcOutSdcIn", 400, -100., 100., 400, -100, 100);
   HB2(62, "X-X 1200 BcOutSdcIn", 400, -100., 100., 400, -100, 100);
   HB2(63, "X-X 1600 BcOutSdcIn", 400, -100., 100., 400, -100, 100);
-
+  */
   // Analysis status
   HB1(40, "Tacking status", 11, -1., 10.);
   HB2(41, "BC3X0/BC4X1", 20, 0, 20, 20, 0, 20);
@@ -613,20 +680,35 @@ ConfMan:: InitializeHistograms()
   tree->Branch("deBh2",     event.deBh2,   Form("deBh2[%d]/D",  MaxHits));
   tree->Branch("Bh2Seg",    event.Bh2Seg,  Form("Bh2Seg[%d]/D", MaxHits));
 
+  tree->Branch("btof",     &event.btof,      "btof/D");
   tree->Branch("Time0Seg", &event.Time0Seg,  "Time0Seg/D");
   tree->Branch("deTime0",  &event.deTime0,   "deTime0/D");
   tree->Branch("Time0",    &event.Time0,     "Time0/D");
   tree->Branch("CTime0",   &event.CTime0,    "CTime0/D");
 
   tree->Branch("ntrack", &event.ntrack, "ntrack/I");
-  tree->Branch("nlayer", &event.nlayer, "nlayer[ntrack]/I");
+  tree->Branch("nh",     &event.nh, "nh[ntrack]/I");
   tree->Branch("chisqr",  event.chisqr, "chisqr[ntrack]/D");
   tree->Branch("x0",      event.x0,     "x0[ntrack]/D");
   tree->Branch("y0",      event.y0,     "y0[ntrack]/D");
   tree->Branch("u0",      event.u0,     "u0[ntrack]/D");
   tree->Branch("v0",      event.v0,     "v0[ntrack]/D");
-  tree->Branch("pos", &event.pos, Form("pos[%d][%d]/D", nl, MaxHits));
-  tree->Branch("res", &event.res, Form("res[%d][%d]/D", nl, MaxHits));
+
+  tree->Branch("ntBcOut",    &event.ntBcOut,     "ntBcOut/I");
+  tree->Branch("nhBcOut",     event.nhBcOut,     "nhBcOut[ntBcOut]/I");
+  tree->Branch("chisqrBcOut", event.chisqrBcOut, "chisqrBcOut[ntBcOut]/D");
+  tree->Branch("x0BcOut",     event.x0BcOut,     "x0BcOut[ntBcOut]/D");
+  tree->Branch("y0BcOut",     event.y0BcOut,     "y0BcOut[ntBcOut]/D");
+  tree->Branch("u0BcOut",     event.u0BcOut,     "u0BcOut[ntBcOut]/D");
+  tree->Branch("v0BcOut",     event.v0BcOut,     "v0BcOut[ntBcOut]/D");
+
+  tree->Branch("ntSdcIn",    &event.ntSdcIn,     "ntSdcIn/I");
+  tree->Branch("nhSdcIn",     event.nhSdcIn,     "nhSdcIn[ntSdcIn]/I");
+  tree->Branch("chisqrSdcIn", event.chisqrSdcIn, "chisqrSdcIn[ntSdcIn]/D");
+  tree->Branch("x0SdcIn",     event.x0SdcIn,     "x0SdcIn[ntSdcIn]/D");
+  tree->Branch("y0SdcIn",     event.y0SdcIn,     "y0SdcIn[ntSdcIn]/D");
+  tree->Branch("u0SdcIn",     event.u0SdcIn,     "u0SdcIn[ntSdcIn]/D");
+  tree->Branch("v0SdcIn",     event.v0SdcIn,     "v0SdcIn[ntSdcIn]/D");
 
   // HPrint();
 

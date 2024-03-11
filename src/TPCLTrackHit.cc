@@ -264,6 +264,15 @@ TPCLTrackHit::GetPathHelix() const
 }
 
 //______________________________________________________________________________
+Bool_t
+TPCLTrackHit::IsGoodForTracking() const
+{
+  Bool_t isgood = true;
+  if(m_res.x() > 0.9e+10 && m_res.y() > 0.9e+10 && m_res.z() > 0.9e+10) isgood = false;
+  return isgood;
+}
+
+//______________________________________________________________________________
 void
 TPCLTrackHit::Print(const TString& arg) const
 {

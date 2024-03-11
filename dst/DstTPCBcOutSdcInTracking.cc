@@ -339,6 +339,7 @@ namespace root
   TTree *tree;
   enum eDetHid {
     PadHid    = 100000,
+    TPCCalibHid =1000,
   };
 }
 
@@ -566,6 +567,7 @@ dst::DstRead(int ievent)
 
   for(Int_t it=0; it<event.ntTpc; ++it){
     for(Int_t ih=0; ih<event.nhtrack[it]; ++ih){
+      HF2(TPCCalibHid, event.hitlayer[it][ih], event.residual_y[it][ih]);
       if(event.resolution_x[it][ih] > 0.9e5 && event.resolution_y[it][ih] > 0.9e5 && event.resolution_x[it][ih] > 0.9e5) continue; // exclude dummy hits
       HF2(1000*(event.hitlayer[it][ih]+1) + 1, event.xtgtSdcIn[0], event.residual_x[it][ih]);
       HF2(1000*(event.hitlayer[it][ih]+1) + 2, event.ytgtSdcIn[0], event.residual_y[it][ih]);
@@ -953,6 +955,7 @@ ConfMan::InitializeHistograms()
     HB1(1000*(i+1) + 105, Form("TPC L%d Local Y Residual", i+1), 200, -8., 8.);
     HB1(1000*(i+1) + 106, Form("TPC L%d XZ Residual", i+1), 100, 0, 8.);
   }
+  HB2(TPCCalibHid, "Layer%ResY", 32, 0, 32, 400, -5, 5);
 
   HBTree("tpc", "tree of DstTPCTracking");
   tree->Branch( "status", &event.status );

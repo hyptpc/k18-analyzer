@@ -27,7 +27,7 @@
     <material name="CH20x47d93a0" state="solid">
       <T unit="K" value="293.15"/>
       <MEE unit="eV" value="56.5182975271737"/>
-      <D unit="g/cm3" value="0.95"/>
+      <D unit="g/cm3" value="1.13"/>
       <fraction n="0.856284505178629" ref="Carbon0x47c1850"/>
       <fraction n="0.143715494821372" ref="Hydrogen0x47c1630"/>
     </material>

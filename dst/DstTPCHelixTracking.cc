@@ -702,8 +702,8 @@ dst::DstRead( int ievent )
       event.vtxTpc[it][it2] = vert.x();
       event.vtyTpc[it][it2] = vert.y();
       event.vtzTpc[it][it2] = vert.z();
-
-      TVector3 mom_vtx = tp->CalcHelixMom(par1, vert);
+	
+      TVector3 mom_vtx = tp->CalcHelixMom(par1, t1);
       event.mom_vtx[it][it2] = mom_vtx.x();
       event.mom_vty[it][it2] = mom_vtx.y();
       event.mom_vtz[it][it2] = mom_vtx.z();

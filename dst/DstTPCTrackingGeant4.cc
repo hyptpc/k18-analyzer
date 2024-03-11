@@ -282,7 +282,7 @@ dst::DstRead(Int_t ievent)
   // }
 
   DCAna.DecodeTPCHitsGeant4(src.nhittpc,
-                            src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
+                            src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc);
                             // src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
   DCAna.TrackSearchTPC();
 

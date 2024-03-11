@@ -290,7 +290,7 @@ dst::DstRead( Int_t ievent )
   }
 
   HypTPCTask& GFtracks = HypTPCTask::GetInstance();
-  GFtracks.Init();
+  GFtracks.Clear();
 
   HF1( 2, event.GFstatus++ );
 
@@ -323,8 +323,8 @@ dst::DstRead( Int_t ievent )
     if(!GFtracks.TrackCheck(igf)) continue;
     event.GFntTpc++;
     event.GFchisqr[igf]=GFtracks.GetChi2NDF(igf);
-    event.GFtracklen[igf]=GFtracks.GetTrackLength(igf);
-    event.GFtof[igf]=GFtracks.GetTrackTOF(igf);
+    event.GFtracklen[igf]=GFtracks.GetTrackLength(igf,0,-1);
+    event.GFtof[igf]=GFtracks.GetTrackTOF(igf,0,-1);
     for( Int_t ihit=0; ihit<GFtracks.GetNHits(igf); ++ihit ){
       TVector3 hit = GFtracks.GetPos(igf, ihit);
       TVector3 mom = GFtracks.GetMom(igf, ihit);
@@ -338,7 +338,7 @@ dst::DstRead( Int_t ievent )
     }
   }
 
-  GFtracks.Init();
+  GFtracks.Clear();
   HF1( 2, event.GFstatus++ );
 
 #if 0

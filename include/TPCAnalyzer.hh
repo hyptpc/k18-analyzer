@@ -99,6 +99,24 @@ public:
 			 const std::vector<std::vector<Double_t>>& localpos_x,
 			 const std::vector<std::vector<Double_t>>& localpos_y,
 			 const std::vector<std::vector<Double_t>>& localpos_z);
+  Bool_t ReCalcTPCTracksGeant4(const Int_t ntracks,
+			 const std::vector<Int_t>& charge,
+			 const std::vector<Int_t>& nhits,
+			 const std::vector<Double_t>& cx,
+			 const std::vector<Double_t>& cy,
+			 const std::vector<Double_t>& z0,
+			 const std::vector<Double_t>& r,
+			 const std::vector<Double_t>& dz,
+			 const std::vector<std::vector<Double_t>>& layer,
+			 const std::vector<std::vector<Double_t>>& mrow,
+			 const std::vector<std::vector<Double_t>>& helix_t,
+			 const std::vector<std::vector<Double_t>>& de,
+			 const std::vector<std::vector<Double_t>>& res_x,
+			 const std::vector<std::vector<Double_t>>& res_y,
+			 const std::vector<std::vector<Double_t>>& res_z,
+			 const std::vector<std::vector<Double_t>>& localpos_x,
+			 const std::vector<std::vector<Double_t>>& localpos_y,
+			 const std::vector<std::vector<Double_t>>& localpos_z);
   const TPCHitContainer& GetTPCHC(Int_t l) const { return m_TPCHitCont.at(l); }
   const TPCClusterContainer& GetTPCClCont(Int_t l) const { return m_TPCClCont.at(l); }
 

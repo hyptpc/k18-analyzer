@@ -17,7 +17,7 @@
     <material name="Diamond0x582d610" state="solid">
       <T unit="K" value="293.15"/>
       <MEE unit="eV" value="81"/>
-      <D unit="g/cm3" value="3.34"/>
+      <D unit="g/cm3" value="3.223"/>
       <fraction n="1" ref="C0x582cc60"/>
     </material>
     <isotope N="36" Z="18" name="Ar360x582f280">

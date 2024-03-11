@@ -58,7 +58,7 @@ private:
   Double_t m_r;
   Double_t m_dz;
 
-  Double_t m_closedist; //closest distance from the track to the target
+  TVector3 m_closedist; //closest distance from the track to the target
   Double_t m_chisqr;
   Int_t m_minuit; //Minuit output status 0:not calculated at all 1:approximation only, not accurate
   //2:full matrix, but forced positive-definite 3:full accurate covariance matrix
@@ -128,7 +128,7 @@ public:
   Int_t         GetOrder(Int_t i) const { return m_hit_order[i]; }
 
   Double_t   GetChiSquare() const { return m_chisqr; }
-  Double_t   GetClosestDist() const { return m_closedist; }
+  Double_t   GetClosestDist() const { return m_closedist.Mag(); }
   Int_t      GetMinuitStatus() const { return m_minuit; }
   Int_t      GetNIteration() const { return m_n_iteration; }
   Int_t      GetFitFlag() const { return m_fitflag; }
@@ -145,6 +145,16 @@ public:
   TVector3 GetResolutionVect(Int_t i, Bool_t vetoBadClusters);
   Double_t GetResolutionY(TPCHit *hit);
   Double_t GetResolutionY(Int_t i);
+  
+	TVector3 GetMomentumResolutionVect(double t = -9999.,double MomScale =1, double PhiScale=1. , double dZScale =1.);
+	TVector3 GetMomentumResolutionVect(int i,double MomScale =1., double PhiScale=1. , double dZScale=1. );
+	double GetTransverseMomentumResolution();//returns dP, not dP/P;
+	double GetTransverseAngularResolution(double t = -9999);//returns angular resolution on pad plane
+	double GetdZResolution();//returns pitch resolution. 
+	double GetThetaResolution();//returns pitch angle resolution. 
+
+
+
 
   TVector3 CalcResidual(TVector3 position);
 
@@ -198,6 +208,7 @@ public:
 
   Bool_t IsBackward();
   void IsMultiLoop();
+  void CheckIsAccidental();
   Bool_t VertexAtTarget();
   Bool_t SeparateTracksAtTarget();
   Bool_t SeparateClustersWithGap();

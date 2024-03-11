@@ -907,8 +907,8 @@ const Double_t vb_off = 0.000;
     Double_t p1 = 1.0;
 
     //Angular dependence correction
-    Double_t par_dxdz[5] = {0};
-    Double_t par_dydz[5] = {0};
+    Double_t par_dxdz[5] = {-0.0510159, -0.0336997, -0.734776, -6.35546, -15.7187};
+    Double_t par_dydz[5] = {-0.0077718, -0.00781963, 1.8943, -2.31203, -57.2703};
 
     //Correction : pCorr = p1*[pOrg-p0] - f(dx/dz) - g(dy/dz)
     Double_t pCorr = pOrg;

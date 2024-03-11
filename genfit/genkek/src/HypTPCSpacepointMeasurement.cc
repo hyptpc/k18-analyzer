@@ -15,9 +15,14 @@ const HypTPCHit* dethit, const TrackCandHit* hit)
     : SpacepointMeasurement()
   {
     const TPCLTrackHit& tpchit = dethit -> GetHit();
-    const TVector3& res_vect = tpchit.GetResolutionVect();
-
-    //GenFit Units : GeV/c, ns, cm, kGauss
+    //const TVector3& res_vect = tpchit.GetResolutionVect();
+    const TVector3& res_vect = PositionScale*tpchit.GetResolutionVect();
+		const TVector3& mom_vect = tpchit.GetMomentumHelix(1);//Charge does not matter for px*pz
+    double px = mom_vect.X();
+    double py = mom_vect.Y();
+    double pz = mom_vect.Z();
+		
+		//GenFit Units : GeV/c, ns, cm, kGauss
     //K1.8Ana Units : GeV/c, ns, mm, T
     int nDim = 3;
     TMatrixDSym hitCov(nDim);
@@ -30,6 +35,24 @@ const HypTPCHit* dethit, const TrackCandHit* hit)
     hitCov(0, 0) = resX*resX;
     hitCov(1, 1) = resY*resY;
     hitCov(2, 2) = resZ*resZ;
+		if(AddCovariance or 1){
+			if(px*pz>0){
+				hitCov(0,2)=-Corr*resX*resZ;
+				hitCov(2,0)=-Corr*resX*resZ;
+			}
+			else{
+				hitCov(0,2)=Corr*resX*resZ;
+				hitCov(2,0)=Corr*resX*resZ;
+			}
+			if(py*pz>0){
+				hitCov(1,2)=-Corr*resY*resZ;
+				hitCov(2,1)=-Corr*resY*resZ;
+			}
+			else{
+				hitCov(1,2)=Corr*resY*resZ;
+				hitCov(2,1)=Corr*resY*resZ;
+			}
+		}
 
     const TVector3& pos = tpchit.GetLocalHitPos();
     rawHitCoords_(0) = pos.X()/10.; //mm -> cm

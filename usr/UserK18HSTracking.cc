@@ -35,8 +35,8 @@
 
 #define HodoCut 0 // with BH1/BH2
 #define TimeCut 1 // in cluster analysis
-#define TotCut  1 //for BcOut tracking
-#define Chi2Cut  1 //for BcOut tracking
+#define Chi2Cut 1 // for BcOut tracking
+#define SaveBft 0
 
 namespace
 {
@@ -47,7 +47,6 @@ const auto& gUnpacker = GUnpacker::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
 auto& gFilter = BH2Filter::GetInstance();
 auto& gBH1Mth = BH1Match::GetInstance();
-
 }
 
 //_____________________________________________________________________________
@@ -150,6 +149,19 @@ struct Event
 
   Double_t theta[MaxHits];
   Double_t phi[MaxHits];
+  Double_t layerK18[MaxHits][NumOfLayersBcOut];
+  Double_t wireK18[MaxHits][NumOfLayersBcOut];
+  Double_t localhitposK18[MaxHits][NumOfLayersBcOut];
+  Double_t wposK18[MaxHits][NumOfLayersBcOut];
+
+  //Double_t qHS[MaxHits];
+  Double_t initmomHS[MaxHits];
+
+  Double_t xbcHS[MaxHits][NumOfLayersBcOut];
+  Double_t ybcHS[MaxHits][NumOfLayersBcOut];
+  Double_t zbcHS[MaxHits][NumOfLayersBcOut];
+  Double_t ubcHS[MaxHits][NumOfLayersBcOut];
+  Double_t vbcHS[MaxHits][NumOfLayersBcOut];
 
   Double_t xbh2HS[MaxHits];
   Double_t ybh2HS[MaxHits];
@@ -256,6 +268,8 @@ Event::clear()
     theta[i] = qnan;
     phi[i] = qnan;
 
+    //qHS[i] = qnan;
+    initmomHS[i] = qnan;
     xbh2HS[i] = qnan;
     ybh2HS[i] = qnan;
     zbh2HS[i] = qnan;
@@ -302,6 +316,19 @@ Event::clear()
     phiHS[i] = qnan;
     pathHS[i] = qnan;
     m2[i] = qnan;
+
+    for(Int_t j=0; j<NumOfLayersBcOut; j++){
+      layerK18[i][j] = qnan;
+      wireK18[i][j] = qnan;
+      localhitposK18[i][j] = qnan;
+      wposK18[i][j] = qnan;
+
+      xbcHS[i][j] = qnan;
+      ybcHS[i][j] = qnan;
+      zbcHS[i][j] = qnan;
+      ubcHS[i][j] = qnan;
+      vbcHS[i][j] = qnan;
+    }
   }
 }
 
@@ -331,21 +358,24 @@ Bool_t
 UserK18HSTracking::ProcessingNormal()
 {
 #if HodoCut
-  static const Double_t MinDeBH2   = gUser.GetParameter("DeBH2", 0);
-  static const Double_t MaxDeBH2   = gUser.GetParameter("DeBH2", 1);
-  static const Double_t MinDeBH1   = gUser.GetParameter("DeBH1", 0);
-  static const Double_t MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
-  static const Double_t MinBeamToF = gUser.GetParameter("BTOF",  1);
-  static const Double_t MaxBeamToF = gUser.GetParameter("BTOF",  1);
+  static const auto MinDeBH2   = gUser.GetParameter("DeBH2", 0);
+  static const auto MaxDeBH2   = gUser.GetParameter("DeBH2", 1);
+  static const auto MinDeBH1   = gUser.GetParameter("DeBH1", 0);
+  static const auto MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
+  static const auto MinBeamToF = gUser.GetParameter("BTOF",  0);
+  static const auto MaxBeamToF = gUser.GetParameter("BTOF",  1);
 #endif
 #if TimeCut
-  static const Double_t MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
-  static const Double_t MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
+  static const auto MinTimeBFT = gUser.GetParameter("TimeBFT", 0);
+  static const auto MaxTimeBFT = gUser.GetParameter("TimeBFT", 1);
 #endif
-#if TotCut
-  static const Double_t MinTotBcOut = gUser.GetParameter("MinTotBcOut", 0);
-#endif
-  // static const Double_t MaxMultiHitBcOut = gUser.GetParameter("MaxMultiHitBcOut");
+  static const auto MaxChisqrBcOut = gUser.GetParameter("MaxChisqrBcOut");
+  static const auto MinDriftTimeBC34 = gUser.GetParameter("DriftTimeBC34", 0);
+  static const auto MaxDriftTimeBC34 = gUser.GetParameter("DriftTimeBC34", 1);
+  static const auto MinTotBcOut = gUser.GetParameter("MinTotBcOut");
+  static const auto MaxMultiHitBcOut = gUser.GetParameter("MaxMultiHitBcOut");
+
+  const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
 
   rawData->DecodeHits();
 
@@ -460,9 +490,9 @@ UserK18HSTracking::ProcessingNormal()
   HF1(1, 10.);
 
   DCAna->DecodeRawHits(rawData);
-#if TotCut
-  DCAna->TotCutBCOut( MinTotBcOut );
-#endif
+  DCAna->TotCutBCOut(MinTotBcOut);
+  DCAna->DriftTimeCutBC34(MinDriftTimeBC34, MaxDriftTimeBC34);
+
   ////////////// BC3&4 number of hit in one layer not 0
   Double_t multi_BcOut=0.;
   {
@@ -476,7 +506,7 @@ UserK18HSTracking::ProcessingNormal()
     event.nlBcOut = nlBcOut;
   }
 
-  // if(multi_BcOut/Double_t(NumOfLayersBcOut) > MaxMultiHitBcOut) return true;
+  if(multi_BcOut/Double_t(NumOfLayersBcOut) > MaxMultiHitBcOut) return true;
 
   HF1(1, 11.);
 
@@ -485,11 +515,10 @@ UserK18HSTracking::ProcessingNormal()
   // gFilter.Apply((Int_t)event.Time0Seg-1, *DCAna, cands);
   //DCAna->TrackSearchBcOut(cands, event.Time0Seg-1);
   //  DCAna->TrackSearchBcOut(-1);
-  //  DCAna->ChiSqrCutBcOut(10);
 
   DCAna->TrackSearchBcOut();
  #if Chi2Cut
-  DCAna->ChiSqrCutBcOut(10);
+  DCAna->ChiSqrCutBcOut(MaxChisqrBcOut);
  #endif
 
   Int_t ntBcOut = DCAna->GetNtracksBcOut();
@@ -509,8 +538,8 @@ UserK18HSTracking::ProcessingNormal()
 
     HF1(51, Double_t(nh));
     HF1(52, chisqr);
-    HF1(54, x0); HF1(35, y0);
-    HF1(56, u0); HF1(37, v0);
+    HF1(54, x0); HF1(55, y0);
+    HF1(56, u0); HF1(57, v0);
     HF2(58, x0, u0); HF2(39, y0, v0);
     HF2(60, x0, y0);
 
@@ -592,19 +621,31 @@ UserK18HSTracking::ProcessingNormal()
     event.vtgtK18[i]   = vt;
     event.theta[i] = theta;
     event.phi[i]   = phi;
+    for(Int_t j=0; j<nh; ++j){
+      DCLTrackHit *hit=track->GetHit(j);
+      event.layerK18[i][j] = hit->GetLayer();
+      event.wireK18[i][j] = hit->GetWire();
+      event.localhitposK18[i][j] = hit->GetLocalHitPos();
+      event.wposK18[i][j] = hit->GetWirePosition();
+    }
 
     ////////// K18HSTracking Propagation to Tgt
-    //    DCAna->TrackPropagationHS(xout, yout, uout, vout, p_3rd);
     static const auto StofOffset = abs(gUser.GetParameter("StofOffset"));
 
+    const Double_t& pK18 = ConfMan::Get<Double_t>("PK18");
     auto trHS = new HSTrack(xout, yout, uout, vout, p_3rd);
     if(!trHS) continue;
+    if(BeamThroughTPC){
+      Int_t pikp = gUser.GetParameter("BeamThroughPID");
+      trHS -> SetPID(pikp);
+    }
     trHS->Propagate();
     const auto& PosTgt = trHS->TgtPosition();
     const auto& MomTgt = trHS->TgtMomentum();
     Double_t xtgt = PosTgt.x(), ytgt = PosTgt.y(), ztgt = PosTgt.z();
     Double_t pHS = MomTgt.Mag();
-    Double_t q = trHS->Polarity();
+    //Double_t qHS = trHS->Polarity();
+
     Double_t utgt = MomTgt.x()/MomTgt.z(), vtgt = MomTgt.y()/MomTgt.z();
     Double_t costHS = 1./TMath::Sqrt(1.+utgt*utgt+vtgt*vtgt);
     Double_t thetaHS = TMath::ACos(costHS)*TMath::RadToDeg();
@@ -613,41 +654,62 @@ UserK18HSTracking::ProcessingNormal()
 
     const auto& PosBH2 = trHS->BH2Position();
     const auto& MomBH2 = trHS->BH2Momentum();
-    Double_t pBH2 = MomBH2.Mag();
     Double_t xBH2 = PosBH2.x(), yBH2 = PosBH2.y(), zBH2 = PosBH2.z();
     Double_t uBH2 = MomBH2.x()/MomBH2.z(), vBH2 = MomBH2.y()/MomBH2.z();
 
     const auto& PosVP1 = trHS->VP1Position();
     const auto& MomVP1 = trHS->VP1Momentum();
-    Double_t pVP1 = MomVP1.Mag();
     Double_t xVP1 = PosVP1.x(), yVP1 = PosVP1.y(), zVP1 = PosVP1.z();
     Double_t uVP1 = MomVP1.x()/MomVP1.z(), vVP1 = MomVP1.y()/MomVP1.z();
 
     const auto& PosVP2 = trHS->VP2Position();
     const auto& MomVP2 = trHS->VP2Momentum();
-    Double_t pVP2 = MomVP2.Mag();
     Double_t xVP2 = PosVP2.x(), yVP2 = PosVP2.y(), zVP2 = PosVP2.z();
     Double_t uVP2 = MomVP2.x()/MomVP1.z(), vVP2 = MomVP2.y()/MomVP2.z();
 
     const auto& PosVP3 = trHS->VP3Position();
     const auto& MomVP3 = trHS->VP3Momentum();
-    Double_t pVP3 = MomVP3.Mag();
     Double_t xVP3 = PosVP3.x(), yVP3 = PosVP3.y(), zVP3 = PosVP3.z();
     Double_t uVP3 = MomVP3.x()/MomVP3.z(), vVP3 = MomVP3.y()/MomVP3.z();
 
     const auto& PosVP4 = trHS->VP4Position();
     const auto& MomVP4 = trHS->VP4Momentum();
-    Double_t pVP4 = MomVP4.Mag();
     Double_t xVP4 = PosVP4.x(), yVP4 = PosVP4.y(), zVP4 = PosVP4.z();
     Double_t uVP4 = MomVP4.x()/MomVP4.z(), vVP4 = MomVP4.y()/MomVP4.z();
 
     const auto& PosHtof = trHS->HtofPosition();
     const auto& MomHtof = trHS->HtofMomentum();
-    Double_t pHtof = MomHtof.Mag();
     Double_t xHtof = PosHtof.x(), yHtof = PosHtof.y(), zHtof = PosHtof.z();
     Double_t uHtof = MomHtof.x()/MomHtof.z(), vHtof = MomHtof.y()/MomHtof.z();
     Double_t path = trHS->PathLength();
-    Double_t m2 = Kinematics::MassSquare(pHS,path,StofOffset);
+    Double_t m2 = Kinematics::MassSquare(pHS, path, StofOffset);
+
+    const auto& PosGasVesselU = trHS->GasVesselUPosition();
+    const auto& MomGasVesselU = trHS->GasVesselUMomentum();
+    Double_t xGasVesselU = PosGasVesselU.x(), yGasVesselU = PosGasVesselU.y(), zGasVesselU = PosGasVesselU.z();
+    Double_t uGasVesselU = MomGasVesselU.x()/MomGasVesselU.z(), vGasVesselU = MomGasVesselU.y()/MomGasVesselU.z();
+
+    const auto& PosGasVesselD = trHS->GasVesselDPosition();
+    const auto& MomGasVesselD = trHS->GasVesselDMomentum();
+    Double_t xGasVesselD = PosGasVesselD.x(), yGasVesselD = PosGasVesselD.y(), zGasVesselD = PosGasVesselD.z();
+    Double_t uGasVesselD = MomGasVesselD.x()/MomGasVesselD.z(), vGasVesselD = MomGasVesselD.y()/MomGasVesselD.z();
+
+    HF2(90, xBH2, yBH2);
+    HF2(91, xGasVesselU, yGasVesselU);
+    HF2(92, xGasVesselD, yGasVesselD);
+
+    for(Int_t j=0; j<NumOfLayersBcOut; ++j){
+      const auto& PosBC = trHS->BCPosition(j);
+      const auto& MomBC = trHS->BCMomentum(j);
+      Double_t xBC = PosBC.x(), yBC = PosBC.y(), zBC = PosBC.z();
+      Double_t uBC = MomBC.x()/MomBC.z(), vBC = MomBC.y()/MomBC.z();
+
+      event.xbcHS[i][j] = xBC;
+      event.ybcHS[i][j] = yBC;
+      event.zbcHS[i][j] = zBC;
+      event.ubcHS[i][j] = uBC;
+      event.vbcHS[i][j] = vBC;
+    }
 
     event.xbh2HS[i] = xBH2;
     event.ybh2HS[i] = yBH2;
@@ -695,10 +757,12 @@ UserK18HSTracking::ProcessingNormal()
     event.phiHS[i] = phiHS;
     event.pathHS[i] = path;
     event.m2[i] = m2;
+    //event.qHS[i] = qHS;
+    event.initmomHS[i] = initial_momentum;
   }
-    HF1(1, 22.);
+  HF1(1, 22.);
 
-    return true;
+  return true;
 
 }
 
@@ -719,7 +783,7 @@ ConfMan::EventAllocator()
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan:: InitializeHistograms()
+ConfMan::InitializeHistograms()
 {
   const Int_t    NbinTot =  136;
   const Double_t MinTot  =   -8.;
@@ -734,6 +798,7 @@ ConfMan:: InitializeHistograms()
     HB1(10+i+1, Form("Trigger Flag %d", i+1), 0x1000, 0, 0x1000);
   }
 
+#if SaveBft
   //BFT
   HB1(BFTHid +21, "BFT CTime U",     NbinTime, MinTime, MaxTime);
   HB1(BFTHid +22, "BFT CTime D",     NbinTime, MinTime, MaxTime);
@@ -745,8 +810,9 @@ ConfMan:: InitializeHistograms()
   HB1(BFTHid +102, "BFT Cluster Size", 5, 0, 5);
   HB1(BFTHid +103, "BFT CTime (Cluster)", NbinTime, MinTime, MaxTime);
   HB1(BFTHid +104, "BFT Cluster Position",
-       NumOfSegBFT, -0.5*(Double_t)NumOfSegBFT, 0.5*(Double_t)NumOfSegBFT);
+      NumOfSegBFT, -0.5*(Double_t)NumOfSegBFT, 0.5*(Double_t)NumOfSegBFT);
   HB1(BFTHid +105, "BFT NCluster [TimeCut && BH1Matching]", 10, 0, 10);
+#endif
 
   // BcOut
   HB1(50, "#Tracks BcOut", 10, 0., 10.);
@@ -776,6 +842,10 @@ ConfMan:: InitializeHistograms()
   HB1(81, "P K18Track", 500, 0.50, 2.0);
   HB1(82, "dP K18Track", 200, -0.1, 0.1);
 
+  HB2(90, "Y%X@BH2", 150, -150., 150., 150, -150., 150.);
+  HB2(91, "Y%X@GasVessel-U", 500, -500., 500., 400, -400., 400.);
+  HB2(92, "Y%X@GasVessel-D", 500, -500., 500., 400, -400., 400.);
+
   //tree
   HBTree("k18track","Data Summary Table of K18HSTracking");
   // Trigger Flag
@@ -788,6 +858,7 @@ ConfMan:: InitializeHistograms()
   tree->Branch("Time0",    &event.Time0,     "Time0/D");
   tree->Branch("CTime0",   &event.CTime0,    "CTime0/D");
 
+#if SaveBft
   //BFT
   tree->Branch("bft_ncl",        &event.bft_ncl,    "bft_ncl/I");
   tree->Branch("bft_ncl_bh1mth", &event.bft_ncl_bh1mth, "bft_ncl_bh1mth/I");
@@ -795,6 +866,7 @@ ConfMan:: InitializeHistograms()
   tree->Branch("bft_ctime",       event.bft_ctime,  "bft_ctime[bft_ncl]/D");
   tree->Branch("bft_clpos",       event.bft_clpos,  "bft_clpos[bft_ncl]/D");
   tree->Branch("bft_bh1mth",      event.bft_bh1mth, "bft_bh1mth[bft_ncl]/I");
+#endif
 
   // BcOut
   tree->Branch("nlBcOut",   &event.nlBcOut,     "nlBcOut/I");
@@ -829,7 +901,20 @@ ConfMan:: InitializeHistograms()
   tree->Branch("theta",   event.theta,  "theta[ntK18]/D");
   tree->Branch("phi",     event.phi,    "phi[ntK18]/D");
 
+  tree->Branch("layerK18", event.layerK18, "layerK18[ntK18][12]/D");
+  tree->Branch("wireK18", event.wireK18, "wireK18[ntK18][12]/D");
+  tree->Branch("localhitposK18", event.localhitposK18, "localhitposK18[ntK18][12]/D");
+  tree->Branch("wposK18", event.wposK18, "wposK18[ntK18][12]/D");
+
   // HS Propagation
+  //tree->Branch("qHS",   event.qHS, "qHS[ntK18]/D");
+  tree->Branch("initmomHS",   event.initmomHS, "initmomHS[ntK18]/D");
+  tree->Branch("xbcHS",   event.xbcHS, "xbcHS[ntK18][12]/D");
+  tree->Branch("ybcHS",   event.ybcHS, "ybcHS[ntK18][12]/D");
+  tree->Branch("zbcHS",   event.zbcHS, "zbcHS[ntK18][12]/D");
+  tree->Branch("ubcHS",   event.ubcHS, "ubcHS[ntK18][12]/D");
+  tree->Branch("vbcHS",   event.vbcHS, "vbcHS[ntK18][12]/D");
+
   tree->Branch("xbh2HS",   event.xbh2HS, "xbh2HS[ntK18]/D");
   tree->Branch("ybh2HS",   event.ybh2HS, "ybh2HS[ntK18]/D");
   tree->Branch("zbh2HS",   event.zbh2HS, "zbh2HS[ntK18]/D");

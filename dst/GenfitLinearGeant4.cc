@@ -159,12 +159,15 @@ struct Event
   Double_t GFtof[MaxTPCTracks];
   Double_t GFcharge[MaxTPCTracks];
   Double_t GFresidual_p[MaxTPCTracks];
-  Int_t GFnhHtof;
-  Double_t GFxHtof[MaxTPCTracks];
-  Double_t GFyHtof[MaxTPCTracks];
-  Double_t GFzHtof[MaxTPCTracks];
-  Double_t GFtracklenHtof[MaxTPCTracks];
-  Double_t GFtofHtof[MaxTPCTracks];
+
+  Int_t GFnhHtof[MaxTPCTracks];
+  Int_t GFsegHtof[MaxTPCTracks][8];
+  Double_t GFxHtof[MaxTPCTracks][8];
+  Double_t GFyHtof[MaxTPCTracks][8];
+  Double_t GFzHtof[MaxTPCTracks][8];
+  Double_t GFextraHtof[MaxTPCTracks][8];
+  Double_t GFtofHtof[MaxTPCTracks][8];
+
   Double_t GFpos_x[MaxTPCTracks][MaxTPCHits];
   Double_t GFpos_y[MaxTPCTracks][MaxTPCHits];
   Double_t GFpos_z[MaxTPCTracks][MaxTPCHits];
@@ -314,7 +317,6 @@ dst::InitializeEvent()
 
   event.GFstatus = 0;
   event.GFntTpc = 0;
-  event.GFnhHtof = 0;
 
   for(Int_t i=0; i<MaxTPCTracks; ++i){
     event.g4tidTpc[i] =0;
@@ -334,16 +336,20 @@ dst::InitializeEvent()
     event.GFtof[i] =qnan;
     event.GFcharge[i] =qnan;
     event.GFresidual_p[i] =qnan;
-    event.GFxHtof[i] =qnan;
-    event.GFyHtof[i] =qnan;
-    event.GFzHtof[i] =qnan;
-    event.GFtracklenHtof[i] =qnan;
-    event.GFtofHtof[i] =qnan;
     event.GFndf[i] =0;
     event.GFnhits[i] =0;
     for(Int_t j=0; j<5; ++j){
       event.GFpulls[i][j] =qnan;
       event.GFresiduals[i][j] =qnan;
+    }
+    event.GFnhHtof[i] = 0;
+    for(Int_t j=0; j<8; ++j){
+      event.GFsegHtof[i][j] =-9999;
+      event.GFxHtof[i][j] =qnan;
+      event.GFyHtof[i][j] =qnan;
+      event.GFzHtof[i][j] =qnan;
+      event.GFextraHtof[i][j] =qnan;
+      event.GFtofHtof[i][j] =qnan;
     }
 
     for(Int_t j=0; j<MaxTPCHits; ++j){
@@ -469,18 +475,17 @@ dst::DstRead(Int_t ievent)
   HF1( 1, event.status++ );
 
   HypTPCTask& GFtracks = HypTPCTask::GetInstance();
-  GFtracks.Init();
 
   HF1( 2, event.GFstatus++ );
 
-  DCAnalyzer DCAna;
-  if(IsWithRes) DCAna.DecodeTPCHitsGeant4(src.nhittpc, src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
-  else DCAna.DecodeTPCHitsGeant4(src.nhittpc, src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc);
-  DCAna.TrackSearchTPC();
+  TPCAnalyzer TPCAna;
+  if(IsWithRes) TPCAna.DecodeTPCHitsGeant4(src.nhittpc, src.xtpc, src.ytpc, src.ztpc, src.edeptpc, src.idtpc);
+  else TPCAna.DecodeTPCHitsGeant4(src.nhittpc, src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc);
+  TPCAna.TrackSearchTPC();
   HF1( 1, event.status++ );
   HF1( 2, event.GFstatus++ );
 
-  Int_t ntTpc = DCAna.GetNTracksTPC();
+  Int_t ntTpc = TPCAna.GetNTracksTPC();
   if(MaxTPCHits<ntTpc){
     std::cout << "#W " << func_name << " "
       	      << "too many ntTpc " << ntTpc << "/" << MaxTPCHits << std::endl;
@@ -490,7 +495,7 @@ dst::DstRead(Int_t ievent)
   event.ntTpc = ntTpc;
   HF1( k18Hid, event.ntTpc );
   for(Int_t it=0; it<ntTpc; ++it){
-    TPCLocalTrack *track= DCAna.GetTrackTPC(it);
+    TPCLocalTrack *track= TPCAna.GetTrackTPC(it);
     if(!track) continue;
     Int_t nh = track->GetNHit();
     Double_t chisqr = track->GetChiSquare();
@@ -630,19 +635,23 @@ dst::DstRead(Int_t ievent)
     }
     event.GFchisqr[igf]=GFtracks.GetChi2NDF(igf);
     event.GFcharge[igf]=GFtracks.GetCharge(igf);
-    event.GFtof[igf]=GFtracks.GetTrackTOF(igf);
-    event.GFtracklen[igf]=GFtracks.GetTrackLength(igf);
+    event.GFtof[igf]=GFtracks.GetTrackTOF(igf, 0, -1);
+    event.GFtracklen[igf]=GFtracks.GetTrackLength(igf, 0, -1);
     event.GFpval[igf]=GFtracks.GetPvalue(igf);
     event.GFndf[igf]=GFtracks.GetNDF(igf);
     event.GFnhits[igf]=GFtracks.GetNHits(igf);
-    TVector3 htofhit; TVector3 htofmom; double htoflen; double htoftof;
-    if(GFtracks.ExtrapolateToHTOF(igf,htofhit,htofmom,htoflen,htoftof)){
-      event.GFnhHtof++;
-      event.GFxHtof[igf]=htofhit.x();
-      event.GFyHtof[igf]=htofhit.y();
-      event.GFzHtof[igf]=htofhit.z();
-      event.GFtracklenHtof[igf]=htoflen;
-      event.GFtofHtof[igf]=htoftof;
+
+    int candidates = 0; int htofid[8]; TVector3 htofpos[8]; TVector3 htofmom[8]; double htoflen[8]; double htoftof[8];
+    if(GFtracks.ExtrapolateToHTOF(igf, candidates, htofid, htofpos, htofmom, htoflen, htoftof)){
+      event.GFnhHtof[igf]=candidates;
+      for( Int_t ihit=0; ihit<candidates; ++ihit ){
+	event.GFsegHtof[igf][ihit]=htofid[ihit];
+	event.GFxHtof[igf][ihit]=htofpos[ihit].x();
+	event.GFyHtof[igf][ihit]=htofpos[ihit].y();
+	event.GFzHtof[igf][ihit]=htofpos[ihit].z();
+	event.GFextraHtof[igf][ihit]=htoflen[ihit];
+	event.GFtofHtof[igf][ihit]=htoftof[ihit];
+      }
     }
     if(!GFtracks.IsInsideTarget(igf)) event.GFinside[igf]=1;
     else event.GFinside[igf]=0;
@@ -697,7 +706,6 @@ dst::DstRead(Int_t ievent)
     }
   }
 
-  GFtracks.Init();
   HF1( 2, event.GFstatus++ );
 
 #if 0
@@ -707,6 +715,7 @@ dst::DstRead(Int_t ievent)
 
   HF1(1, event.status++);
 
+  GFtracks.Clear();
   return true;
 }
 
@@ -908,12 +917,13 @@ ConfMan::InitializeHistograms()
   tree->Branch("GFmom_z",event.GFmom_z,Form("GFmom_z[GFntTpc][%d]/D",MaxTPCHits));
   tree->Branch("GFmom",event.GFmom,Form("GFmom[GFntTpc][%d]/D",MaxTPCHits));
 
-  tree->Branch("GFnhHtof",&event.GFnhHtof,"GFnhHtof/I");
-  tree->Branch("GFxHtof",event.GFxHtof,"GFxHtof[GFntTpc]/D");
-  tree->Branch("GFyHtof",event.GFyHtof,"GFyHtof[GFntTpc]/D");
-  tree->Branch("GFzHtof",event.GFzHtof,"GFzHtof[GFntTpc]/D");
-  tree->Branch("GFtracklenHtof",event.GFtracklenHtof,"GFtracklenHtof[GFntTpc]/D");
-  tree->Branch("GFtofHtof",event.GFtofHtof,"GFtofHtof[GFntTpc]/D");
+  tree->Branch("GFnhHtof",event.GFnhHtof,"GFnhHtof[GFntTpc]/I");
+  tree->Branch("GFsegHtof",event.GFsegHtof,Form("GFsegHtof[GFntTpc][%d]/I",8));
+  tree->Branch("GFxHtof",event.GFxHtof,Form("GFxHtof[GFntTpc][%d]/D",8));
+  tree->Branch("GFyHtof",event.GFyHtof,Form("GFyHtof[GFntTpc][%d]/D",8));
+  tree->Branch("GFzHtof",event.GFzHtof,Form("GFzHtof[GFntTpc][%d]/D",8));
+  tree->Branch("GFextraHtof",event.GFextraHtof,Form("GFextraHtof[GFntTpc][%d]/D",8));
+  tree->Branch("GFtofHtof",event.GFtofHtof,Form("GFtofHtof[GFntTpc][%d]/D",8));
 
   /*
     tree->Branch("nPrm",&src.nhittpc,"nPrm/I");

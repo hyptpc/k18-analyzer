@@ -25,6 +25,7 @@ runmanager/stat
 runmanager/tmp
 runmanager/unpack
 scaler
+param
 param/KURAMA
 src/back
 include/back
