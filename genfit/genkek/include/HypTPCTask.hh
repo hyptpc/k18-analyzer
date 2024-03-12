@@ -56,7 +56,7 @@ public:
   bool TPCHTOFTrackMatching(int trackid, int repid, std::vector<Double_t> HtofSeg, std::vector<Double_t> posHtof, int &htofhitid, double &tof, double &tracklen, TVector3 &pos, TVector3 &vtx) const;
   bool TPCHTOFTrackMatching(int trackid, int repid, std::vector<Double_t> HtofSeg, std::vector<Double_t> posHtof, int &htofhitid, double &tof, double &tracklen, TVector3 &pos) const;
   double DistLambdaTarget(TVector3 decayvtx_lambda, TVector3 mom_lambda) const;
-
+  bool XiDecayToProdVertex(int trackid, TVector3 kkvtx, TVector3 &xiprodvtx, TVector3 &mom, double &tracklen, double &tof) const;
 private:
 
   genfit::SharedPlanePtr HTOFPlane[8];

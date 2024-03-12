@@ -1,8 +1,5 @@
 //  Authors: Wooseung Jung
 
-#ifndef HYPTPCTRACK_CC
-#define HYPTPCTRACK_CC
-
 //GenKEK
 #include "HypTPCTrack.hh"
 #include "HypTPCHit.hh"
@@ -39,7 +36,7 @@
 
 //STL
 #include <iostream>
-using namespace genfit;
+
 ClassImp(HypTPCTrack)
 
 TClonesArray *HypTPCTrack::_hitClusterArray = nullptr;
@@ -82,9 +79,6 @@ void HypTPCTrack::AddHelixTrack(int pdg, TPCLocalTrackHelix *tp){
   TMatrixDSym covSeed(6);
   covSeed.Zero();
 
-
-
-
   int hitid = 0;
   int nMeasurement = tp -> GetNHit();
   for(int i=0; i<nMeasurement; i++){
@@ -99,22 +93,15 @@ void HypTPCTrack::AddHelixTrack(int pdg, TPCLocalTrackHelix *tp){
       posSeed.SetMag(posSeed.Mag()/10.); //mm -> cm
       Double_t charge = tp -> GetCharge();
       momSeed = point -> GetMomentumHelix(charge); //GeV/c
-
-      const TVector3& res_vect = PositionScale*point -> GetResolutionVect();
+#if 1
+      const TVector3& res_vect = point -> GetResolutionVect();
       double resX = 0.1*res_vect.X(); //mm -> cm
       double resY = 0.1*res_vect.Y(); //mm -> cm
       double resZ = 0.1*res_vect.Z(); //mm -> cm
-			double px = momSeed.X();
-			double py = momSeed.Y();
-			double pz = momSeed.Z();
-      
-			covSeed(0, 0) = resX*resX;
+      covSeed(0, 0) = resX*resX;
       covSeed(1, 1) = resY*resY;
       covSeed(2, 2) = resZ*resZ;
 
-
-
-#if 0
       double resT = 0.01*TMath::Sqrt(resX*resX + resZ*resZ); //cm -> m
       double L = 0.001*tp -> GetTransversePath(); //mm -> m
       double Pt2 = momSeed.x()*momSeed.x() + momSeed.z()*momSeed.z();
@@ -123,50 +110,24 @@ void HypTPCTrack::AddHelixTrack(int pdg, TPCLocalTrackHelix *tp){
       covSeed(4, 4) = dPt2*resT*resT/2.;
       covSeed(5, 5) = dPt2*resT*resT/2.;
 #else
+      const TVector3& res_vect = 1.7*point -> GetResolutionVect();
+      double resX = 0.1*res_vect.X(); //mm -> cm
+      double resY = 0.1*res_vect.Y(); //mm -> cm
+      double resZ = 0.1*res_vect.Z(); //mm -> cm
+      covSeed(0, 0) = resX*resX;
+      covSeed(1, 1) = resY*resY;
+      covSeed(2, 2) = resZ*resZ;
+
       //TVector3 resP = tp -> GetMomentumResolutionVect(i);
-      TVector3 resP = tp -> GetMomentumResolutionVect(i,MomentumScale,PhiScale,dZScale);
+      TVector3 resP = 0.5*tp -> GetMomentumResolutionVect(i);
       double resPX = resP.x();
       double resPY = resP.y();
       double resPZ = resP.z();
       covSeed(3, 3) = resPX*resPX;
       covSeed(4, 4) = resPY*resPY;
       covSeed(5, 5) = resPZ*resPZ;
-			if(AddCovariance ){	
-				if(px*py>0){
-					covSeed(3,4)=Corr*resX*resY;
-					covSeed(4,3)=Corr*resX*resY;
-				}
-				else{
-					covSeed(3,4)=-Corr*resX*resY;
-					covSeed(4,3)=-Corr*resX*resY;
-				}
-				if(py*pz>0){
-					covSeed(1,2)=-Corr*resY*resZ;
-					covSeed(2,1)=-Corr*resY*resZ;
-					covSeed(4,5)=Corr*resY*resZ;
-					covSeed(5,4)=Corr*resY*resZ;
-				}
-				else{
-					covSeed(1,2)=Corr*resY*resZ;
-					covSeed(2,1)=Corr*resY*resZ;
-					covSeed(4,5)=-Corr*resY*resZ;
-					covSeed(5,4)=-Corr*resY*resZ;
-				}
-				if(pz*px>0){
-					covSeed(0,2)=-Corr*resX*resZ;
-					covSeed(2,0)=-Corr*resX*resZ;
-					covSeed(5,3)=Corr*resZ*resX;
-					covSeed(3,5)=Corr*resZ*resX;
-				}
-				else{
-					covSeed(0,2)=Corr*resX*resZ;
-					covSeed(2,0)=Corr*resX*resZ;
-					covSeed(5,3)=-Corr*resZ*resX;
-					covSeed(3,5)=-Corr*resZ*resX;
-				}
-			}
 #endif
-      covSeed.Print();
+      //covSeed.Print();
     }
     hitid++;
   }
@@ -291,4 +252,3 @@ void HypTPCTrack::AddReconstructedTrack(int pdg, TVector3 posSeed, TVector3 momS
   delete track;
   delete hit;
 }
-#endif
