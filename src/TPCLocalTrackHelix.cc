@@ -1296,6 +1296,7 @@ TPCLocalTrackHelix::DoHelixTrackFit(Double_t RKpar[5]) //for beam track fitting
   gLayer.clear();
   gPadTheta.clear();
   gResParam.clear();
+  gHelixTheta.clear();
   gBadHits = 0;
   gMinuitStatus = 0;
   gChisqr = 1.e+10;
@@ -2199,10 +2200,12 @@ TPCLocalTrackHelix::DoFitExclusive()
     gLayer.clear();
     gPadTheta.clear();
     gResParam.clear();
+  	gHelixTheta.clear();
     gHitPos.resize(n-1);
     gLayer.resize(n-1);
     gPadTheta.resize(n-1);
     gResParam.resize(n-1);
+  	gHelixTheta.resize(n-1);
 
     gChisqr = 1.e+10;
     gPar[0] = m_cx;
