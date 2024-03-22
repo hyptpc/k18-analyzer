@@ -1413,6 +1413,7 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     if(Exclusive){
 			if(prev_size+1 == post_size){	
 				MergedTrack = TrackCont[post_size-1];
+      	MergedTrack->Calculate();
       	MergedTrack->DoFitExclusive();
       	MergedTrack->CalculateExclusive();
 			}
