@@ -1402,16 +1402,21 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     MergedTrack -> Print(FUNC_NAME+" Before fitting the merged track");
     //MergedTrack -> Print(FUNC_NAME+" Before fitting the merged track", true);
 #endif
+		int prev_size = TrackCont.size();
 
     FitTrack(MergedTrack, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
 #if DebugDisp
     MergedTrack -> Print(FUNC_NAME+" After fitting the merged track");
     //MergedTrack -> Print(FUNC_NAME+" After fitting the merged track", true);
 #endif
+		int post_size = TrackCont.size();
     if(Exclusive){
-      MergedTrack->DoFitExclusive();
-      MergedTrack->CalculateExclusive();
-    }
+			if(prev_size+1 == post_size){	
+				MergedTrack = TrackCont[post_size-1];
+      	MergedTrack->DoFitExclusive();
+      	MergedTrack->CalculateExclusive();
+			}
+		}
   }
 
   if(candidates.size()>0){
