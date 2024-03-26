@@ -125,6 +125,7 @@ public:
   TPCLTrackHit* GetHit(std::size_t nth) const;
   TPCLTrackHit* GetHitInOrder(std::size_t nth) const;
   Int_t         GetNHit() const { return m_hit_array.size(); }
+  Int_t         GetNHitsEffective() const;
   Int_t         GetOrder(Int_t i) const { return m_hit_order[i]; }
 
   Double_t   GetChiSquare() const { return m_chisqr; }
@@ -146,13 +147,16 @@ public:
   Double_t GetResolutionY(TPCHit *hit);
   Double_t GetResolutionY(Int_t i);
   
-	TVector3 GetMomentumResolutionVect(double t = -9999.,double MomScale =1, double PhiScale=1. , double dZScale =1.);
-	TVector3 GetMomentumResolutionVect(int i,double MomScale =1., double PhiScale=1. , double dZScale=1. );
+	TVector3 GetMomentumResolutionVectT(double t = -9999.,double MomScale =1, double PhiScale=1. , double dZScale =1.);
+	TVector3 GetMomentumCovarianceVectT(double t = -9999.,double MomScale =1, double PhiScale=1. , double dZScale =1.);
+	TVector3 GetMomentumResolutionVect(int i=0,double MomScale =1., double PhiScale=1. , double dZScale=1. );
+	TVector3 GetMomentumCovarianceVect(int i=0,double MomScale =1., double PhiScale=1. , double dZScale=1. );
 	double GetTransverseMomentumResolution();//returns dP, not dP/P;
-	double GetTransverseAngularResolution(double t = -9999);//returns angular resolution on pad plane
+	double GetTransverseAngularResolution(double t = -9999,double sig0 = 0.01);//returns angular resolution on pad plane
 	double GetdZResolution();//returns pitch resolution. 
 	double GetThetaResolution();//returns pitch angle resolution. 
-
+	double GetTransverseMomentumAngularCovariance(double t = -9999); 
+	double GetMomentumPitchAngleCovariance(); 
 
 
 

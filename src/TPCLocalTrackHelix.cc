@@ -602,7 +602,7 @@ static inline Bool_t StraightLineFit()
 }
 
 //______________________________________________________________________________
-static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters){
+static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters, Bool_t ExclusiveFlag = true){
 
   if(gHitPos.size()!=gNumOfHits || gHelixTheta.size()!=gNumOfHits || gLayer.size()!=gNumOfHits || gPadTheta.size()!=gNumOfHits || gResParam.size()!=gNumOfHits){
     hddaq::cerr << " TPCLocalTrackHelix HelixFit() "
@@ -632,7 +632,9 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters){
     gBadHits = gNumOfHits - 0.5*ndf;
     if(TMath::Abs(gChisqr-1.e+10)<0.1) return false;
   }
-
+	if(ExclusiveFlag){
+		gChisqr = 1e10;
+	}
   TMinuit *minuit = new TMinuit(5);
   minuit->SetPrintLevel(-1);
   minuit->SetFCN(fcn_helix);
@@ -906,6 +908,19 @@ TPCLocalTrackHelix::ClearHits()
   m_hit_array.clear();
   m_hit_order.clear();
   m_hit_t.clear();
+}
+
+//______________________________________________________________________________
+Int_t
+TPCLocalTrackHelix::GetNHitsEffective()
+const {
+	int n = 0;
+	for(auto h:m_hit_array){
+		auto ResV = h->GetResolutionVect();
+    if(ResV.X()>0.9e10 && ResV.Y()>0.9e10 && ResV.Z()>0.9e10)continue;
+		++n;
+	}
+	return n;
 }
 
 //______________________________________________________________________________
@@ -2225,14 +2240,15 @@ TPCLocalTrackHelix::DoFitExclusive()
       gHitPos[flag] = pos;
       gLayer[flag] = layer;
       gPadTheta[flag] = padTheta;
-      gResParam[flag] = resparam;
+      gHelixTheta[flag] = hitp->GetTheta();
+			gResParam[flag] = resparam;
       flag++;
     } //j
 
     //Helix fitting
     Bool_t vetoBadClusters = true;
 
-    HelixFit(m_isBeam, vetoBadClusters);
+    HelixFit(m_isBeam, vetoBadClusters,true);
     m_chisqr_exclusive[ihit] = gChisqr;
     m_cx_exclusive[ihit] = gPar[0];
     m_cy_exclusive[ihit] = gPar[1];
@@ -3053,7 +3069,7 @@ TPCLocalTrackHelix::GetMomentumResolutionVect(Int_t i, Double_t MomScale, Double
 
 //_____________________________________________________________________________
 TVector3
-TPCLocalTrackHelix::GetMomentumResolutionVect(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale){
+TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale){
   if(t == -9999) t = m_min_t;
   /*
     For a Multivaraible function F(M), the Covariance is given as V(F) = JV(M)J^T, where J = dFdM is a Jacobian matrix.
@@ -3064,16 +3080,12 @@ TPCLocalTrackHelix::GetMomentumResolutionVect(Double_t t, Double_t MomScale, Dou
   //Double_t pz = p_t*(cos(t));
   //Double_t py = p_t*m_dz;
   //Double_t px = p_t*(sin(t));
-  //std::cout<<"px "<<px<<" "<<py<<" "<<pz<<std::endl;
 
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 calcmom = CalcHelixMom(par, t);
 
   Double_t t_avg = 0.5*(m_max_t + m_min_t);
   Double_t t_dif = (t-t_avg);
-  Double_t sign = 0;
-  if(t_dif>0)sign = 1;
-  else sign = -1;
 
   Double_t ddZ = dZScale * GetdZResolution();
   Double_t dt = PhiScale * GetTransverseAngularResolution(t);
@@ -3082,26 +3094,186 @@ TPCLocalTrackHelix::GetMomentumResolutionVect(Double_t t, Double_t MomScale, Dou
   Double_t Vt = dt*dt;
   Double_t VdZ = ddZ*ddZ;
   /*
-    V(px) = J V(p_t,t)* J^T
-    V(pt, t) = res_pt^2, Cov(pt,t)
-    Cov(pt,t),	res_t^2
+		p_x = p_t*sin(t);	
+		p_y = p_t*dZ;	
+		p_z = p_t*cos(t);	
+
+		Cov(px,pz,py) = J V(p_t,t,dZ)J^T
     **Note! Cov(pt,t) = res_pt*res_t, because res_t ~ res_pt!
 
-    Jx = dpx / dp_t, dpx / dt = sin(t),-p_t cos(t);
-    Jz = dpz / dp_t, dpz / dt = cos(t),-p_t sin(t);
-  */
-  Double_t cov_pt_t = sign*dp_t*dt;
-  Double_t Vpx = sin(t) *(Vp_t *(sin(t)) + cov_pt_t*(p_t*cos(t))) + p_t*cos(t)*(cov_pt_t*(sin(t))+Vt*(p_t*cos(t)));
-  Double_t Vpz = cos(t) *(Vp_t *(cos(t)) + cov_pt_t*(-p_t*sin(t))) + -p_t*sin(t)*(cov_pt_t*(cos(t))+Vt*(-p_t*sin(t)));
+		Differentiate row with coloumn.
+								y
+i.e. J = x	| dy/dx
 
-  /*
-    V(py) = J V(p_t,dZ) J^T,
-    Cov(p_t,dZ_) is assumed to be 0 since they should be independent.
-    Jy = dpy/dp_t,dpy/ddz = m_dz,pt
+							pt			t				dZ
+				px	|	sint	pt*cost		0
+		J = py	|	dZ			0				pt
+				pz	|	cost	-pt*sint	0
+							
+				|	rpt^2,	c(pt,t)	,		0
+		V = |	c(pt,t),	rt^2		,		0
+				|		0		,		0			,	rdZ^2
   */
-  Double_t Vpy = m_dz*Vp_t*m_dz + p_t*VdZ*p_t;
+  Double_t cov_pt_t = MomScale * PhiScale * GetTransverseMomentumAngularCovariance(t); 
+ 	double V[3][3] = 
+	{	Vp_t,		cov_pt_t,		0,
+		cov_pt_t,	Vt,			0,
+		0,					0,		VdZ};	
+	
+ 	double J[3][3] = 
+	{	sin(t),		p_t*cos(t),		0,
+		m_dz	,		0,					p_t,
+		cos(t),		-p_t*sin(t),	0
+	};
+	double JT[3][3]={0};
+	for(int row=0;row<3;++row){
+	for(int col=0;col<3;++col){
+		JT[row][col] = J[col][row];	
+	}
+	}
+	double VJT[3][3]={0};
+	for(int row=0;row<3;++row){
+	for(int col=0;col<3;++col){
+		for(int itr=0;itr<3;++itr){
+			VJT[row][col]+=V[row][itr]*JT[itr][col];	
+		}
+	}
+	}
+ 	double JVJT[3][3]={0};
+	for(int row=0;row<3;++row){
+	for(int col=0;col<3;++col){
+		for(int itr=0;itr<3;++itr){
+			JVJT[row][col]+=J[row][itr]*VJT[itr][col];	
+		}
+	}
+	}
+	double Vpx = JVJT[0][0];
+	double Vpy = JVJT[1][1];
+	double Vpz = JVJT[2][2];
+	if(Vpx<0 or Vpy<0 or Vpz < 0 or isnan(Vpx) or isnan(Vpy) or isnan(Vpz)){
+	}
   return TVector3(sqrt(Vpx), sqrt(Vpy), sqrt(Vpz));
 }
+
+TVector3
+TPCLocalTrackHelix::GetMomentumCovarianceVect(Int_t i, Double_t MomScale, Double_t PhiScale, Double_t dZScale){
+
+  Double_t t = GetHitInOrder(i) -> GetTheta();
+  return GetMomentumCovarianceVectT(t, MomScale, PhiScale, dZScale);
+}
+
+
+double
+TPCLocalTrackHelix::GetTransverseMomentumAngularCovariance(Double_t t){
+  if(t == -9999) t = m_min_t;
+  Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  Double_t p_t = m_r*(tpc::ConstC*B)*0.001;
+  Double_t t_avg = 0.5*(m_max_t + m_min_t);
+  Double_t t_dif = (t-t_avg);
+  double sign = 1;
+	if(t_dif>0)sign = -1;
+  else sign = 1;
+  Double_t dp_t =  GetTransverseMomentumResolution();
+  Double_t dt = GetTransverseAngularResolution(t,0);
+	return sign * dp_t * dt;
+}
+double
+TPCLocalTrackHelix::GetMomentumPitchAngleCovariance(){
+  Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  Double_t p_t = m_r*(tpc::ConstC*B)*0.001;
+	double pitch = atan2(1,m_dz);//dYdZ angle, dZ= 0 -> should return pi/2
+	double res_pitch = GetThetaResolution();
+	return p_t*cos(pitch)/sin(pitch)/sin(pitch)*res_pitch*res_pitch;
+
+}
+TVector3
+TPCLocalTrackHelix::GetMomentumCovarianceVectT(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale){
+  if(t == -9999) t = m_min_t;
+  /*
+    For a Multivaraible function F(M), the Covariance is given as V(F) = JV(M)J^T, where J = dFdM is a Jacobian matrix.
+    We will calculate the momentum resolution from pt, theta, and dZ resolution.
+  */
+  Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  Double_t p_t = m_r*(tpc::ConstC*B)*0.001;
+  //Double_t pz = p_t*(cos(t));
+  //Double_t py = p_t*m_dz;
+  //Double_t px = p_t*(sin(t));
+
+  Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
+  TVector3 calcmom = CalcHelixMom(par, t);
+
+  Double_t t_avg = 0.5*(m_max_t + m_min_t);
+  Double_t t_dif = (t-t_avg);
+
+  Double_t ddZ = dZScale * GetdZResolution();
+  Double_t dt = PhiScale * GetTransverseAngularResolution(t);
+  Double_t dp_t = MomScale * GetTransverseMomentumResolution();
+  Double_t Vp_t = dp_t*dp_t;
+  Double_t Vt = dt*dt;
+  Double_t VdZ = ddZ*ddZ;
+  /*
+		p_x = p_t*sin(t);	
+		p_y = p_t*dZ;	
+		p_z = p_t*cos(t);	
+
+		Cov(px,pz,py) = J V(p_t,t,dZ)J^T
+    **Note! Cov(pt,t) = res_pt*res_t, because res_t ~ res_pt!
+		
+		Differentiate row with coloumn.
+								y
+i.e. J = x	| dy/dx
+
+							pt			t				dZ
+				px	|	sint	pt*cost		0
+		J = py	|	dZ			0				pt
+				pz	|	cost	-pt*sint	0
+							
+				|	rpt^2,	c(pt,t)	,		0
+		V = |	c(pt,t),	rt^2	,		0
+				|		0		,		0			,	rdZ^2
+	*/
+  Double_t cov_pt_t = MomScale * PhiScale * GetTransverseMomentumAngularCovariance(t); 
+ 	double V[3][3] = 
+	{	Vp_t,		cov_pt_t,		0,
+		cov_pt_t,	Vt,			0,
+		0,					0,		VdZ};
+	
+ 	double J[3][3] = 
+	{	sin(t),		p_t*cos(t),		0,
+		m_dz	,		0,					p_t,
+		cos(t),		-p_t*sin(t),	0
+	};
+	double JT[3][3]={0};
+	for(int row=0;row<3;++row){
+	for(int col=0;col<3;++col){
+		JT[row][col] = J[col][row];	
+	}
+	}
+	double VJT[3][3]={0};
+	for(int row=0;row<3;++row){
+	for(int col=0;col<3;++col){
+		for(int itr=0;itr<3;++itr){
+			VJT[row][col]+=V[row][itr]*JT[itr][col];	
+		}
+	}
+	}
+ 	double JVJT[3][3]={0};
+	for(int row=0;row<3;++row){
+	for(int col=0;col<3;++col){
+		for(int itr=0;itr<3;++itr){
+			JVJT[row][col]+=J[row][itr]*VJT[itr][col];	
+		}
+	}
+	}
+	double Cxy = JVJT[0][1]; 
+	double Cyz = JVJT[1][2]; 
+	double Czx = JVJT[2][0]; 
+  return TVector3((Cxy), (Cyz), (Czx));
+}
+
+
+
+
 
 //_____________________________________________________________________________
 Double_t
@@ -3129,12 +3301,14 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
   if(nh<4) return pt*0.1;
   res = sqrt(3./2) * sqrt(res / nh)* 0.001;//mm-> m
   Double_t dPOverP = pt / (0.3*L*L*B)*sqrt(720./(nh+4))*res;
-  return pt*dPOverP;
+	if(isnan(dPOverP) or dPOverP < 0){
+	}
+	return pt*dPOverP;
 }
 
 //_____________________________________________________________________________
 Double_t
-TPCLocalTrackHelix::GetTransverseAngularResolution(Double_t t){
+TPCLocalTrackHelix::GetTransverseAngularResolution(Double_t t, Double_t sig0){
   if(t == -9999)t = m_min_t;
   Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
   Double_t pt = m_r*(tpc::ConstC*B)*0.001;
@@ -3143,9 +3317,9 @@ TPCLocalTrackHelix::GetTransverseAngularResolution(Double_t t){
   Double_t t_avg = 0.5*(m_max_t + m_min_t);
   Double_t dt = (t-t_avg);
   if(dt >acos(-1))dt = acos(-1);
-  Double_t path = m_r * dt;
+  Double_t path = m_r * abs(dt);
 
-  return path * dr / m_r / m_r;
+  return hypot(path * dr / m_r / m_r,sig0);
 }
 
 //_____________________________________________________________________________
@@ -3165,11 +3339,14 @@ TPCLocalTrackHelix::GetdZResolution(){
     res2 += res_Y*res_Y;
   }
   Double_t dt = abs(m_max_t - m_min_t);
-  if(dt > 2*acos(-1)) dt = 2*acos(-1);
+//  if(dt > 2*acos(-1)) dt = 2*acos(-1);
   Double_t path = m_r * dt;
   Double_t path_dev = path*path*nh/12;
+	if(nh < 3) return 0.01;
   Double_t d_slope = 1./(nh-2)*res2/path_dev;
-  return d_slope;
+ 	if(isnan(d_slope) or isinf(d_slope)){
+	}
+	return d_slope;
 }
 
 //_____________________________________________________________________________
