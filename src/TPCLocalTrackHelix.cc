@@ -348,7 +348,7 @@ static inline void fcn_helix(Int_t &npar, Double_t *gin, Double_t &f, Double_t *
     TVector3 d = ResidualVect(par, gHitPos[i], gHelixTheta[i]);
     if(gRes[i].x() > 0.9e+10 && gRes[i].y() > 0.9e+10 && gRes[i].z() > 0.9e+10) continue; // exclude dummy hits
     //chisqr += pow(d.x()/gRes[i].x(), 2) + pow(d.y()/gRes[i].y(), 2) + pow(d.z()/gRes[i].z(), 2);
-    chisqr += 2.*TMath::Power(TMath::Hypot(d.x(), d.z())/TMath::Hypot(gRes[i].x(), gRes[i].z()), 2) + TMath::Power(d.y()/gRes[i].y(), 2);
+    chisqr += 1.*TMath::Power(TMath::Hypot(d.x(), d.z())/TMath::Hypot(gRes[i].x(), gRes[i].z()), 2) + TMath::Power(d.y()/gRes[i].y(), 2);
     dof++;
     dof++;
   }
@@ -420,7 +420,7 @@ static inline Double_t CalcChi2(Double_t *HelixPar, Int_t &ndf, Bool_t vetoBadCl
     TVector3 res = CalcResolution(HelixPar, gLayer[i], gHitPos[i], gPadTheta[i], gResParam[i], vetoBadClusters);
     if(res.x() > 0.9e+10 && res.y() > 0.9e+10 && res.z() > 0.9e+10) continue; // exclude bad clusters
     //chisqr += TMath::Power(d.x()/res.x(), 2) + TMath::Power(d.y()/res.y(), 2) + TMath::Power(d.z()/res.z(), 2);
-    chisqr += 2.*TMath::Power(TMath::Hypot(d.x(), d.z())/TMath::Hypot(res.x(), res.z()), 2) + TMath::Power(d.y()/res.y(), 2);
+    chisqr += 1.*TMath::Power(TMath::Hypot(d.x(), d.z())/TMath::Hypot(res.x(), res.z()), 2) + TMath::Power(d.y()/res.y(), 2);
     ndf++;
     ndf++;
   }
