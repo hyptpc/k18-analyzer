@@ -1,7 +1,7 @@
 // -*- C++ -*-
 
 /*
-  For on each TPC cluster, Virtual plane which is normal to z-axix is defined.
+  For on each TPC cluster, Virtual plane which is normal to track is defined.
   X position and Y position of each cluster are treated as a independent two points.
 
   ex) For each cluster of HypTPC, following equations are used for chisqr and ndf calculation
@@ -373,6 +373,14 @@ TPCRKTrack::CalcChiSqr(const RKHitPointContainer &hpCont) const
     Double_t wp   = thp->GetWirePosition();
     Double_t ss   = wp+(hitpos-wp)/coss;
     Double_t res  = (ss-calpos)*coss;
+#if 0 //Checking L/R configuration again with RK tracking result.
+    Double_t ss_pair   = wp-(hitpos-wp)/coss;
+    Double_t res_pair  = (ss_pair-calpos)*coss;
+    if(res_pair*res_pair<res*res){
+      res = res_pair;
+      thp->SetLocalHitPos(wp - (hitpos-wp)/coss);
+    }
+#endif
     chisqr += w*res*res;
     ++n;
   }
@@ -387,7 +395,7 @@ TPCRKTrack::CalcChiSqr(const RKHitPointContainer &hpCont) const
     if(m_track_tpc -> GetIsKurama()==1 && localhitpos.z()<TGTz) continue; //Exclude clusters before the target
     if(m_track_tpc -> GetIsK18()==1 && localhitpos.z()>TGTz) continue; //Exclude clusters after the target
     const TVector3& resolution = thp->GetResolutionVect();
-    if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) continue; // exclude bad hits
+    if(!thp->IsGoodForTracking()) continue; // exclude bad hits
 
     Int_t lnum = i + PlOffsTPCHit + 1;
     const RKcalcHitPoint& calhp_x = hpCont.HitPointOfLayer(lnum);
@@ -502,7 +510,7 @@ TPCRKTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
     if(m_track_tpc -> GetIsKurama()==1 && localhitpos.z()<TGTz) continue; //Exclude clusters before the target
     if(m_track_tpc -> GetIsK18()==1 && localhitpos.z()>TGTz) continue; //Exclude clusters after the target
     const TVector3& resolution = thp->GetResolutionVect();
-    if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) continue; // exclude bad hits
+    if(!thp->IsGoodForTracking()) continue; // exclude bad hits
 
     Int_t lnum = i + PlOffsTPCHit + 1;
     const RKcalcHitPoint& calhp = hpCont.HitPointOfLayer(lnum);
@@ -557,7 +565,7 @@ TPCRKTrack::GuessNextParameters(const RKHitPointContainer& hpCont,
     if(m_track_tpc -> GetIsKurama()==1 && localhitpos.z()<TGTz) continue; //Exclude clusters before the target
     if(m_track_tpc -> GetIsK18()==1 && localhitpos.z()>TGTz) continue; //Exclude clusters after the target
     const TVector3& resolution = thp->GetResolutionVect();
-    if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) continue; // exclude bad hits
+    if(!thp->IsGoodForTracking()) continue; // exclude bad hits
 
     Int_t lnum = i + 2.*PlOffsTPCHit + 1;
     const RKcalcHitPoint& calhp = hpCont.HitPointOfLayer(lnum);
@@ -1025,7 +1033,7 @@ TPCRKTrack::GetTrajectoryResidualTPC(Int_t clusterId, TVector3& resolution, TVec
     if(m_track_tpc -> GetIsKurama()==1 && localhitpos.z()<TGTz) return false; //Exclude clusters before the target
     if(m_track_tpc -> GetIsK18()==1 && localhitpos.z()>TGTz) return false; //Exclude clusters after the target
     resolution = thp->GetResolutionVect();
-    if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) return false;
+    if(!thp->IsGoodForTracking()) return false;
 
     Int_t lnum = clusterId + PlOffsTPCHit + 1;
     const RKcalcHitPoint& calhp = m_HitPointCont.HitPointOfLayer(lnum);
@@ -1100,13 +1108,51 @@ TPCRKTrack::GetTrajectoryGlobalPositionTPC(Int_t clusterId, TVector3& global_pos
     Double_t TGTz = gGeom.GlobalZ("Target") - gGeom.GlobalZ("HS");
     if(m_track_tpc -> GetIsKurama()==1 && localhitpos.z()<TGTz) return false; //Exclude clusters before the target
     if(m_track_tpc -> GetIsK18()==1 && localhitpos.z()>TGTz) return false; //Exclude clusters after the target
-    const TVector3& resolution = thp->GetResolutionVect();
-    if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) return false;
+    if(!thp->IsGoodForTracking()) return false;
 
     Int_t lnum = clusterId + PlOffsTPCHit + 1;
     const RKcalcHitPoint& HP = m_HitPointCont.HitPointOfLayer(lnum);
     const ThreeVector& gpos = HP.PositionInGlobal();
     global_pos = gpos;
+    return true;
+  }
+  catch(const std::out_of_range&) {
+    return false;
+  }
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCRKTrack::GetTrajectoryMomentum(Int_t layer, TVector3& global_mom) const
+{
+  try {
+    const RKcalcHitPoint& HP = m_HitPointCont.HitPointOfLayer(layer);
+    const ThreeVector& gmom = HP.MomentumInGlobal();
+    global_mom = gmom;
+    return true;
+  }
+  catch(const std::out_of_range&) {
+    return false;
+  }
+}
+
+//_____________________________________________________________________________
+Bool_t
+TPCRKTrack::GetTrajectoryMomentumTPC(Int_t clusterId, TVector3& global_mom) const
+{
+  try {
+    TPCLTrackHit *thp = m_track_tpc -> GetHitInOrder(clusterId);
+    if(!thp) return false;
+    const TVector3& localhitpos = thp->GetLocalHitPos();
+    Double_t TGTz = gGeom.GlobalZ("Target") - gGeom.GlobalZ("HS");
+    if(m_track_tpc -> GetIsKurama()==1 && localhitpos.z()<TGTz) return false; //Exclude clusters before the target
+    if(m_track_tpc -> GetIsK18()==1 && localhitpos.z()>TGTz) return false; //Exclude clusters after the target
+    if(!thp->IsGoodForTracking()) return false;
+
+    Int_t lnum = clusterId + PlOffsTPCHit + 1;
+    const RKcalcHitPoint& HP = m_HitPointCont.HitPointOfLayer(lnum);
+    const ThreeVector& gmom = HP.MomentumInGlobal();
+    global_mom = gmom;
     return true;
   }
   catch(const std::out_of_range&) {
