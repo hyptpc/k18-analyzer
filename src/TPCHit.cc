@@ -559,6 +559,13 @@ TPCHit::ClearRegisteredHits()
 }
 
 //_____________________________________________________________________________
+Bool_t
+TPCHit::IsGood() const
+{
+  return m_is_good;
+}
+
+//_____________________________________________________________________________
 void
 TPCHit::Print(const std::string& arg, std::ostream& ost) const
 {

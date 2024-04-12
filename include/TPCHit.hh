@@ -103,7 +103,7 @@ public:
   const std::vector<Double_t>& GetResolutionParams() const { return m_res_param; }
   Double_t        GetTime(Int_t i=0) const { return m_time.at(i); }
   Int_t           GetTimeSize() const { return m_time.size(); }
-  Bool_t          IsGood() const { return m_is_good; }
+  Bool_t          IsGood() const;
   Int_t           GetHoughFlag() const { return m_hough_flag; }
   Double_t        GetHoughDist() const { return m_hough_dist; }
   Double_t        GetHoughDistY() const { return m_hough_disty; }
