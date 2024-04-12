@@ -69,7 +69,7 @@ const Int_t& IdVP4 = gGeom.DetectorId("VPHS4");
 const Int_t& IdHTOF = gGeom.DetectorId("HTOF");
   */
 
-//const Double_t MaxChiSqrTrack = 100000.;
+const Double_t MaxChiSqrTrack = 1000.;
 static std::vector<Double_t> gChisqr;
 }
 
@@ -219,7 +219,7 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
     const Double_t row = tpc::getRowID(pad[ih]);
     auto hit = new TPCHit(layer, row);
     hit->AddHit(de[ih], time[ih]);
-    if(hit->Calculate(clock) && hit->GetCDe()>=MinCDe){
+    if(hit->Calculate(clock) && hit->GetCDe()>=MinCDe && hit->IsGood()){
       m_TPCHitCont[layer].push_back(hit);
     }else{
       delete hit;
@@ -564,8 +564,8 @@ TPCAnalyzer::DoFitTPCKuramaTrack(Int_t KuramaTrackID,
     TPCRKTrack* track = MakeTPCKuramaTrack(tpctrack, layerID, wire, localHitPos);
     track -> SetPID(PID);
     track -> SetTPCTrackID(ittpc);
-    //if(track->DoFit(initPos, initMom, U2D) && track->ChiSquare()<MaxChiSqrTrack){
-    if(track->DoFit(initPos, initMom, U2D)){
+    if(track->DoFit(initPos, initMom, U2D) && track->ChiSquare()<MaxChiSqrTrack){
+      //if(track->DoFit(initPos, initMom, U2D)){
       tempKuramaTC.push_back(track);
       gChisqr.push_back(track -> ChiSquare());
       status = true;
@@ -736,8 +736,8 @@ TPCAnalyzer::DoFitTPCK18Track(Int_t K18TrackID,
     if(K18TrackID != tpctrack -> GetTrackID() || tpctrack -> GetIsK18()!=1) continue;
     //After track matching of a K18Track and a TPC track
     TPCRKTrack* track = MakeTPCK18Track(tpctrack, layerID, wire, localHitPos);
-    //if(track->DoFit(initPos, initMom, U2D) && track->ChiSquare()<MaxChiSqrTrack){
-    if(track->DoFit(initPos, initMom, U2D)){
+    if(track->DoFit(initPos, initMom, U2D) && track->ChiSquare()<MaxChiSqrTrack){
+      //if(track->DoFit(initPos, initMom, U2D)){
       tempK18TC.push_back(track);
       gChisqr.push_back(track -> ChiSquare());
       track -> SetTPCTrackID(ittpc);
@@ -992,26 +992,27 @@ TPCAnalyzer::ReCalcTPCTracks(const Int_t ntracks,
   m_is_decoded[kTPC] = true;
   return true;
 }
+
 //_____________________________________________________________________________
 Bool_t
 TPCAnalyzer::ReCalcTPCTracksGeant4(const Int_t ntracks,
-			     const std::vector<Int_t>& charge,
-			     const std::vector<Int_t>& nhits,
-			     const std::vector<Double_t>& cx,
-			     const std::vector<Double_t>& cy,
-			     const std::vector<Double_t>& z0,
-			     const std::vector<Double_t>& r,
-			     const std::vector<Double_t>& dz,
-			     const std::vector<std::vector<Double_t>>& layer,
-			     const std::vector<std::vector<Double_t>>& mrow,
-			     const std::vector<std::vector<Double_t>>& helix_t,
-			     const std::vector<std::vector<Double_t>>& de,
-			     const std::vector<std::vector<Double_t>>& res_x,
-			     const std::vector<std::vector<Double_t>>& res_y,
-			     const std::vector<std::vector<Double_t>>& res_z,
-			     const std::vector<std::vector<Double_t>>& localpos_x,
-			     const std::vector<std::vector<Double_t>>& localpos_y,
-			     const std::vector<std::vector<Double_t>>& localpos_z)
+				   const std::vector<Int_t>& charge,
+				   const std::vector<Int_t>& nhits,
+				   const std::vector<Double_t>& cx,
+				   const std::vector<Double_t>& cy,
+				   const std::vector<Double_t>& z0,
+				   const std::vector<Double_t>& r,
+				   const std::vector<Double_t>& dz,
+				   const std::vector<std::vector<Double_t>>& layer,
+				   const std::vector<std::vector<Double_t>>& mrow,
+				   const std::vector<std::vector<Double_t>>& helix_t,
+				   const std::vector<std::vector<Double_t>>& de,
+				   const std::vector<std::vector<Double_t>>& res_x,
+				   const std::vector<std::vector<Double_t>>& res_y,
+				   const std::vector<std::vector<Double_t>>& res_z,
+				   const std::vector<std::vector<Double_t>>& localpos_x,
+				   const std::vector<std::vector<Double_t>>& localpos_y,
+				   const std::vector<std::vector<Double_t>>& localpos_z)
 {
   if(m_is_decoded[kTPC]){
     hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;
