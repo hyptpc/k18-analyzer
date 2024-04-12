@@ -44,8 +44,8 @@ private:
   Double_t m_y0;
   Double_t m_u0;
   Double_t m_v0;
-
-  Double_t m_closedist; //closest distance from the track to the target
+  Int_t m_isAccidental;
+  TVector3 m_closedist; //closest distance from the track to the target
   TVector3 m_edgepoint; //the most outer point of the track
   Double_t m_chisqr;
   Int_t m_minuit; //Minuit output status 0:not calculated at all 1:approximation only, not accurate
@@ -97,7 +97,7 @@ public:
   Int_t         GetNHit() const { return m_hit_array.size(); }
 
   Double_t GetChiSquare() const { return m_chisqr; }
-  Double_t GetClosestDist() const { return m_closedist; }
+  Double_t GetClosestDist() const { return m_closedist.Mag(); }
   Int_t    GetMinuitStatus() const { return m_minuit; }
   Int_t    GetNIteration() const { return m_n_iteration; }
   Int_t    GetFitFlag(void) const {return m_fitflag;}
@@ -135,6 +135,7 @@ public:
 
   Bool_t VertexAtTarget();
   Bool_t IsBackward();
+  void CheckIsAccidental();
   Bool_t SeparateTracksAtTarget();
   Bool_t SeparateClustersWithGap();
   void RecalcTrack();

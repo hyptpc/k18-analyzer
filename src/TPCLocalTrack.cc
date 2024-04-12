@@ -329,7 +329,8 @@ TPCLocalTrack::TPCLocalTrack()
     m_is_calculated(false),
     m_hit_array(),
     m_x0(0.), m_y0(0.), m_u0(0.), m_v0(0.),
-    m_closedist(1.e+10),
+    m_isAccidental(0),
+    m_closedist(1.e+10,1.e+10, 1.e+10),
     m_edgepoint(0.,0.,-143.),
     m_chisqr(1.e+10),
     m_minuit(0),
@@ -364,6 +365,7 @@ TPCLocalTrack::TPCLocalTrack(TPCLocalTrack *init){
   this -> m_y0 = init -> m_y0 ;
   this -> m_u0 = init -> m_u0 ;
   this -> m_v0 = init -> m_v0 ;
+  this -> m_isAccidental = init -> m_isAccidental ;
   this -> m_closedist = init -> m_closedist ;
   this -> m_edgepoint = init -> m_edgepoint ;
   this -> m_chisqr = init -> m_chisqr ;
@@ -531,7 +533,7 @@ TPCLocalTrack::CalcClosestDistTgt()
   TVector3 unit_v = (x1-x0).Unit();
   TVector3 diff_v = tgt - x0;
   TVector3 dist = diff_v.Cross(unit_v);
-  m_closedist = dist.Mag();
+  m_closedist = dist;
 
 }
 
@@ -541,7 +543,7 @@ TPCLocalTrack::VertexAtTarget()
 {
 
   Bool_t status = false;
-  if(m_closedist < tpc::TargetVtxWindow) status = true;
+  if(m_closedist.Mag() < tpc::TargetVtxWindow) status = true;
   return status;
 }
 
@@ -1143,17 +1145,17 @@ TPCLocalTrack::SeparateTracksAtTarget()
 {
 
   static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+  m_vtxflag = 0;
 
   Bool_t status = true;
   if(BeamThroughTPC){
-    m_vtxflag = 0;
     return status;
   }
 
+  std::vector<Int_t> side1_hits; std::vector<Int_t> side2_hits;
   CalcClosestDistTgt(); //Distance between the target & the track
   if(VertexAtTarget()){
 
-    std::vector<Int_t> side1_hits; std::vector<Int_t> side2_hits;
     const std::size_t n = m_hit_array.size();
     for(std::size_t i=0; i<n; ++i){
       TPCLTrackHit *hitp = m_hit_array[i];
@@ -1161,70 +1163,104 @@ TPCLocalTrack::SeparateTracksAtTarget()
       if(Side(pos)==1) side1_hits.push_back(i);
       else if(Side(pos)==-1) side2_hits.push_back(i);
     }
+  }
+  else{ //If track is not crossing the target.
+    gComp.clear();
+    std::vector<Int_t> m_hit_order;
+    const std::size_t n = m_hit_array.size();
+    for(std::size_t i=0; i<n; ++i){
+      TPCLTrackHit *hitp = m_hit_array[i];
+      TVector3 pos = hitp -> GetLocalHitPos();
+      TVector3 tgt(0., 0., tpc::ZTarget);
+      TVector3 pos_ = pos - tgt;
+      TVector3 division(1./m_u0, 0., -1.);
+      TVector3 norm = pos_.Cross(division);
+      gComp.push_back(norm.Y());
+      m_hit_order.push_back(i);
+    }
 
-    if(side1_hits.size()==0 || side2_hits.size()==0) return status;
-    else{ //exclude the shorter side
-      m_is_fitted = false; //Need to do minimization again
-      m_n_iteration = 0;
+    for(std::size_t i=0; i<m_hit_order.size(); ++i){
+      std::sort(m_hit_order.begin(), m_hit_order.end(), CompareDist);
+    }
 
-      if(side1_hits.size() >= side2_hits.size()){
-	EraseHits(side2_hits);
-	m_vtxflag = 1;
-      }
-      else{
-	EraseHits(side1_hits);
-	m_vtxflag = -1;
-      }
+    //Exclude the beam hit from the scattered track.
+    Bool_t flag = false;
+    TVector3 prev_pos;
+    Bool_t prev_isBeamHit = false; Bool_t isBeamHit;
+    for(Int_t i=0; i<n; ++i){
+      Int_t id = m_hit_order[i];
+      TPCLTrackHit *hitp = m_hit_array[id];
+      TVector3 pos = hitp -> GetLocalHitPos();
+      if(TMath::Abs(pos.x()) < 25. &&
+	 TMath::Abs(pos.y()) < 30. &&
+	 pos.z() < tpc::ZTarget) isBeamHit = true;
+      else isBeamHit = false;
 
-      //After separation, recalculate track params.
-      status = IsGoodForTracking();
-      if(status){
-
-	const Int_t n_remain = m_hit_array.size();
-	gNumOfHits = n_remain;
-	gHitPos.clear();
-	gLayer.clear();
-	gPadTheta.clear();
-	gResParam.clear();
-	for(Int_t i=0; i<n_remain; ++i){
-	  TPCLTrackHit *hitp = m_hit_array[i];
-	  TVector3 pos = hitp->GetLocalHitPos();
-	  gHitPos.push_back(pos);
-	  Int_t layer = hitp->GetLayer();
-	  gLayer.push_back(layer);
-	  Double_t padTheta = hitp->GetPadTheta();
-	  gPadTheta.push_back(padTheta);
-	  std::vector<Double_t> resparam = hitp->GetResolutionParams();
-	  gResParam.push_back(resparam);
-	}
-
-	gPar[0] = m_x0;
-	gPar[1] = m_y0;
-	gPar[2] = m_u0;
-	gPar[3] = m_v0;
-	Int_t ndf;
-	gChisqr = CalcChi2(gPar, ndf, false);
-
-	//Track fitting
-	StraightLineFit(false);
-	m_x0 = gPar[0];
-	m_y0 = gPar[1];
-	m_u0 = gPar[2];
-	m_v0 = gPar[3];
-	m_chisqr = gChisqr;
-
-	CalcClosestDistTgt();
-	TVector3 pos = m_hit_array[0] -> GetLocalHitPos();
-	if(VertexAtTarget()) m_vtxflag = Side(pos);
-	else m_vtxflag = 0;
-      }
+      TVector3 gap = pos - prev_pos;
+      //std::cout<<i<<" gap "<<gap.Mag()<<" pos "<<pos<<std::endl;
+      if(m_v0 > 0.01 && i!=0 && gap.Mag() > 30. && prev_isBeamHit!=isBeamHit) flag = true;
+      if(!flag) side1_hits.push_back(id);
+      else side2_hits.push_back(id);
+      prev_pos = pos;
+      prev_isBeamHit = isBeamHit;
     }
   }
-  else m_vtxflag = 0;
+
+  if(side1_hits.size()==0 || side2_hits.size()==0) return status;
+  else{ //exclude the shorter side
+    m_is_fitted = false; //Need to do minimization again
+    m_n_iteration = 0;
+
+    if(side1_hits.size() >= side2_hits.size()) EraseHits(side2_hits);
+    else EraseHits(side1_hits);
+
+    //After separation, recalculate track params.
+    status = IsGoodForTracking();
+    if(status){
+
+      const Int_t n_remain = m_hit_array.size();
+      gNumOfHits = n_remain;
+      gHitPos.clear();
+      gLayer.clear();
+      gPadTheta.clear();
+      gResParam.clear();
+      for(Int_t i=0; i<n_remain; ++i){
+	TPCLTrackHit *hitp = m_hit_array[i];
+	TVector3 pos = hitp->GetLocalHitPos();
+	gHitPos.push_back(pos);
+	Int_t layer = hitp->GetLayer();
+	gLayer.push_back(layer);
+	Double_t padTheta = hitp->GetPadTheta();
+	gPadTheta.push_back(padTheta);
+	std::vector<Double_t> resparam = hitp->GetResolutionParams();
+	gResParam.push_back(resparam);
+      }
+
+      gPar[0] = m_x0;
+      gPar[1] = m_y0;
+      gPar[2] = m_u0;
+      gPar[3] = m_v0;
+      Int_t ndf;
+      gChisqr = CalcChi2(gPar, ndf, false);
+
+      //Track fitting
+      StraightLineFit(false);
+      m_x0 = gPar[0];
+      m_y0 = gPar[1];
+      m_u0 = gPar[2];
+      m_v0 = gPar[3];
+      m_chisqr = gChisqr;
+
+      CalcClosestDistTgt();
+      TVector3 pos = m_hit_array[0] -> GetLocalHitPos();
+      if(VertexAtTarget()) m_vtxflag = Side(pos);
+      else m_vtxflag = 0;
+    }
+  }
 
 #if DebugDisp
   if(!status) std::cout<<FUNC_NAME+" Separated track is not good for tracking"<<std::endl;
-  std::cout<<FUNC_NAME+" Close distance from the target to the track : "<<m_closedist<<std::endl;
+  std::cout<<FUNC_NAME+" Close distance from the target to the track : "<<m_closedist.Mag()<<std::endl;
 #endif
 
   return status;
@@ -1341,5 +1377,28 @@ TPCLocalTrack::RecalcTrack()
     hit->SetCalPosition(hit->GetLocalCalPos());
     hit->SetResolution(GetResolutionVect(i, true));
   }
+
+}
+
+//_____________________________________________________________________________
+void
+TPCLocalTrack::CheckIsAccidental()
+{
+
+  if(!m_is_fitted) return;
+
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+  if(BeamThroughTPC || m_isAccidental==1) return;
+  if(m_u0>0.02 || m_v0>0.02 || m_x0 > 40.) return;
+
+  Int_t nhit_upstream_tgt = 0; Int_t nhit_downstream_tgt = 0;
+  const std::size_t n = m_hit_array.size();
+  for(Int_t i=0; i<n; ++i){
+    TPCLTrackHit *hitp = m_hit_array[i];
+    TVector3 pos = hitp -> GetLocalHitPos();
+    if(TMath::Abs(pos.x()) < 40. && pos.z() < tpc::ZTarget) nhit_upstream_tgt++;
+    if(TMath::Abs(pos.x()) < 40. && pos.z() > tpc::ZTarget) nhit_downstream_tgt++;
+  }
+  if(nhit_upstream_tgt>1 && nhit_downstream_tgt>=5) m_isAccidental=1;
 
 }
