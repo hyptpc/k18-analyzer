@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sstream>
-#include <iomanip>
 
 #include <TDirectory.h>
 #include <TH2Poly.h>
@@ -79,7 +78,6 @@ static const Double_t padParameter[NumOfLayersTPC][NPadParameter] =
 static const Int_t noisypad[] =
 {
   1507,4106,4356,4592,5113,5216
-  //??? 1515 2405, 3198, 5226
 };
 
 //_____________________________________________________________________________
