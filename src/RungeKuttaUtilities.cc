@@ -1837,7 +1837,6 @@ RK::FindVertex(const ThreeVector XtgtKm,
 
     prevPointKm = nextPointKm;
     prevPointKp = nextPointKp;
-    ++iStep;
     if(gGeom.Global2LocalPos(IdK18Target, nextPointKp.PositionInGlobal()).z() > 0.5*ScanWindow) break;
   }
 
@@ -1886,7 +1885,6 @@ RK::FindVertex(const ThreeVector XtgtKm,
 
     prevPointKm = nextPointKm;
     prevPointKp = nextPointKp;
-    ++iStep;
     if(gGeom.Global2LocalPos(IdK18Target, nextPointKm.PositionInGlobal()).z() < -0.5*ScanWindow) break;
   }
   //1st scanning ends
@@ -1940,7 +1938,6 @@ RK::FindVertex(const ThreeVector XtgtKm,
 
     prevPointKm = nextPointKm;
     prevPointKp = nextPointKp;
-    ++iStep;
     if(nextPointKp.PositionInGlobal().z() - naiveVertexPointKp.PositionInGlobal().z() >= StepSize) break;
   }
 
@@ -1977,7 +1974,6 @@ RK::FindVertex(const ThreeVector XtgtKm,
 
     prevPointKm = nextPointKm;
     prevPointKp = nextPointKp;
-    ++iStep;
     if(nextPointKp.PositionInGlobal().z() - naiveVertexPointKp.PositionInGlobal().z() <= -StepSize) break;
   }
   //2nd scanning ends
