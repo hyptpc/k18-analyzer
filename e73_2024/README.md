@@ -1,0 +1,11 @@
+## Example programs
+- ExRawElph (example/ExampleRawElph.cc)
+  - just fill raw histograms + scalers for the Elph test experiment
+- ExLogger (example/ExampleLogger.cc) 
+  - how to access positions of the mover. 
+- ExScaler (example/ExampleScaler.cc) 
+  - Calculate sum of the scaler counts during a run. for Elph at this moment.
+- Raw (example/ExampleRawAll.cc) : to be prepared
+  - just fill raw histograms for all detectors
+- Raw (example/ExampleRaw.cc) : to be prepared
+  - just fill raw histograms for T0new,BHD,DEF,BPC,PbF2

@@ -1,0 +1,62 @@
+#!/bin/sh
+if [ $# -le 2 ]; then
+    echo "usage: bash ana.sh [program] [prefix] [list] (--maxloop xxx --skip xxx --mc --cosmic -q [s,l,h])"
+    exit
+fi
+ROOTDIR=$T98ROOTDIR
+ANADIR=$ANALYZERDIR/t98
+LOGDIR=$ROOTDIR/log
+
+PROG=$1
+PREFIX=$2
+RUNLIST=$3
+shift 3
+Q=s
+
+while (( $# > 0 ))
+do
+    case $1 in
+	--cosmic | --mc)
+	    OPT+="$1 "
+	    ;;
+	--maxloop | --skip )
+	    if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+		echo "$1 requires an argument." 1>&2
+		exit 1
+	    else
+		OPT+="$1 $2 "
+		shift
+	    fi
+	    ;;
+	-q )
+	    if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+		echo "$1 requires an argument." 1>&2
+		exit 1
+	    else
+		Q=$2
+		shift
+	    fi
+	    ;;
+	*)
+	    echo "invalid argument $1"
+	    exit 1
+	    ;;
+    esac
+    shift
+done
+echo $OPT
+
+while read line
+do
+list=(${line//\t/ })
+run=${list[0]}
+aaa=${list[1]}
+tmpmax=""
+if [ ${#list[@]} -eq 2 ]; then
+    tmpmax="--maxloop $aaa"
+fi
+RUN=$(printf %05d $run)
+LOGNAME=$LOGDIR/$PREFIX\_$RUN.log
+rm -f $LOGNAME
+bsub -q $Q -o $LOGNAME bash $ANADIR/script/ana.sh $PROG $PREFIX $run $OPT $tmpmax
+done <$RUNLIST
