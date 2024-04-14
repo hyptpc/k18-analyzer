@@ -1,0 +1,58 @@
+#Type Chamber:0  Counter:1  NotDetector:3
+#Num1 :number of layers for a chamber, number of segments for a Counter
+#Num2 :number of wires for a chamber, number of sensors for a Counter
+#Num3 :not used
+#Flag1: shape is common for all the semgments
+#Flag2: invisible
+#Material:
+#Color:red,gray,grey,black,red,green,blue,cyan,magenta,yellow
+#CID Name1      Type    Num1	Num2  Num3 Flag1 Flag2 Material  Color
+0    CDH        1	36	2     1    1     0     Plastic   red
+1    BHD        1	20	2     1    1     0     Plastic   red
+2    T0	        1	5	2     1    1     0     Plastic   red
+3    AC	        2	1	4     1    1     0     Aerogel   black
+4    T0new      1	1	2     1    1     0     Plastic	 red
+5    E0         1	3	2     1    1     0     Plastic   red
+6    DEF        1	5	2     1    1     0     Plastic   red
+29   PbF2PMT    3	40	1     1    1     0     Aluminum  black
+30   PbF2       1	40	1     1    1     0     PbF2      white
+31   Veto       1	2	2     1    1     0     Plastic   red
+32   Veto0      1	1	1     1    1     0     Plastic   red
+33   BTC        2	1	1     1    1     0     Plastic   red
+34   Leak       6	1	1     1    0     0     Plastic   red
+100  CDC        0	15	-1    1    1     0     CDCGas    green
+101  BLC1a      0	8	32    1    1     0     BLDCGas   green
+102  BLC1b      0	8	32    1    1     0     BLDCGas   green
+103  BLC2a      0	8	32    1    1     0     BLDCGas   green
+104  BLC2b      0	8	32    1    1     0     BLDCGas   green
+105  BPC        0	8	15    1    1     0     BLDCGas   green
+111  BLC1       0	16	32    1    1     0     BLDCGas   green
+112  BLC2       0	16	32    1    1     0     BLDCGas   green
+200  Hall       3       0       0     1    1     1     Air	 black 
+201  Floor      3       0       0     1    1     1     Concrete	 black
+210  BeamDump   3       0       0     1    1     0     Iron	 blue
+211  SideDump   3       0       0     1    1     0     Iron      blue
+212  NShield    3       0       0     1    1     0     Iron	 blue
+213  SideCon    3       0       0     1    1     0     Concrete  blue
+214  DoorCon    3       0       0     1    1     0     Air       blue
+215  DumpCon    3       2       0     1    0     0     Concrete  blue
+220  Doraemon   3       3       0     0    0     0     Iron	 blue
+221  USWK       3       4       0     0    0     0     Iron	 white
+225  Bobbin     3       0       0     0    0     0     Aluminum   cyan
+226  Coil       3       0       0     0    0     0     Coil      yellow
+230  CDCCFRP    3       0       0     1    1     1     CFRP      gray
+231  CDCMylar   3       0       0     1    1     1     Mylar     black
+232  CDCEndCap  3       6       0     0    0     0     Aluminum  cyan
+240  TarChm     3       0       0     1    1     1     Vacuum    black
+241  RadS       3       3       0     0    0     0     Vacuum    gray
+242  TarCFRP    3       0       0     1    1     0     CFRP      gray
+243  TarCap     3       0       0     1    1     0     Aluminum  gray
+244  TarRing    3       0       0     1    1     0     Aluminum  gray
+250  TarCell    3       0       0     1    1     1     LHelium-3 black
+251  Target     3       0       0     1    1     0     LHelium-3 cyan
+252  CellBe     3       0       0     1    1     0     Beryllium gray
+253  CellAlBe   3       4       0     0    0     0     AlBeMet   gray
+254  BShield    3       0       0     0    0     0     Aluminum  gray
+255  BFrange    3       0       0     0    0     0     Iron      gray
+256  CellRing   3       1       0     0    0     0     AlBeMet   gray
+260  Fiducial   3       0       0     1    1     0     LHelium-3 cyan

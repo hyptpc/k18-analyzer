@@ -1,0 +1,674 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<digit_data xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	    xsi:noNamespaceSchemaLocation="schema/digit.xsd">
+  
+  <device id="0xff" name="null"/>
+  <!--________________________________________________________________-->
+  <device id="0" name="CDH"><for var="seg" from="0" to="35">
+    <segment id="seg"><for var="UorD" from="0" to="1">
+      <ch id="UorD">
+        <data id="0" name="adc"/>
+        <data id="1" name="leading"/>
+        <data id="2" name="trailing"/>
+	<data id="3" name="commonstop"/>
+	<data id="4" name="overflow"/>
+      </ch></for>
+    </segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="1" name="BHT"><for var="seg" from="0" to="63">
+    <segment id="seg"><for var="UorD" from="0" to="1">
+      <ch id="UorD">
+        <data id="0" name="leading"/>
+        <data id="1" name="trailing"/>
+	<data id="2" name="commonstop"/>
+	<data id="3" name="overflow"/>
+      </ch></for>
+    </segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="2" name="T0"><for var="seg" from="0" to="4">
+    <segment id="seg"><for var="UorD" from="0" to="1">
+      <ch id="UorD">
+        <data id="0" name="adc"/>
+        <data id="1" name="leading"/>
+        <data id="2" name="trailing"/>
+	<data id="3" name="commonstop"/>
+	<data id="4" name="overflow"/>
+      </ch></for>
+    </segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="3" name="AC">
+    <segment id="0"><for var="ch" from="0" to="0">
+      <ch id="ch">
+        <data id="0" name="adc1"/>
+        <data id="1" name="adc2"/>
+        <data id="2" name="adc3"/>
+        <data id="3" name="adc4"/>
+        <data id="4" name="leading"/>
+        <data id="5" name="trailing"/>
+	<data id="6" name="commonstop"/>
+	<data id="7" name="overflow"/>
+      </ch></for>
+    </segment>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="4" name="T0new">
+    <segment id="0"><for var="LorR" from="0" to="1">
+      <ch id="LorR">
+        <data id="0" name="adc"/>
+        <data id="1" name="leading"/>
+        <data id="2" name="trailing"/>
+	<data id="3" name="commonstop"/>
+	<data id="4" name="overflow"/>
+      </ch></for>
+    </segment>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="5" name="E0"><for var="seg" from="0" to="2">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="adc"/>
+            <data id="1" name="leading"/>
+            <data id="2" name="trailing"/>
+	    <data id="3" name="commonstop"/>
+	    <data id="4" name="overflow"/>
+	</ch></for>
+    </segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="6" name="DEF"><for var="seg" from="0" to="4">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="adc"/>
+            <data id="1" name="leading"/>
+            <data id="2" name="trailing"/>
+	    <data id="3" name="commonstop"/>
+	    <data id="4" name="overflow"/>
+	</ch></for>
+    </segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="29" name="PbG"><for var="seg" from="0" to="39">
+    <segment id="seg">
+      <data id="0" name="adc"/>
+      <data id="1" name="leading"/>
+      <data id="2" name="trailing"/>
+      <data id="3" name="commonstop"/>
+      <data id="4" name="overflow"/>
+    </segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="30" name="PbF2"><for var="seg" from="0" to="39">
+    <segment id="seg">
+      <data id="0" name="adc"/>
+      <data id="1" name="leading"/>
+      <data id="2" name="trailing"/>
+      <data id="3" name="commonstop"/>
+      <data id="4" name="overflow"/>
+    </segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="31" name="Veto"><for var="seg" from="0" to="3">
+    <segment id="seg"><for var="UorD" from="0" to="1">
+      <ch id="UorD">
+        <data id="0" name="adc"/>
+        <data id="1" name="leading"/>
+        <data id="2" name="trailing"/>
+	<data id="3" name="commonstop"/>
+	<data id="4" name="overflow"/>
+      </ch></for>
+    </segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="32" name="Veto0"><for var="seg" from="0" to="1">
+    <segment id="seg"><ch id="0">
+        <data id="0" name="adc"/>
+        <data id="1" name="leading"/>
+        <data id="2" name="trailing"/>
+	<data id="3" name="commonstop"/>
+	<data id="4" name="overflow"/>
+    </ch></segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="33" name="BTC"><for var="seg" from="0" to="1">
+    <segment id="seg"><for var="UorD" from="0" to="1">
+      <ch id="UorD">
+        <data id="0" name="adc"/>
+        <data id="1" name="leading"/>
+        <data id="2" name="trailing"/>
+	<data id="3" name="commonstop"/>
+	<data id="4" name="overflow"/>
+      </ch></for>
+    </segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="34" name="Leak"><for var="seg" from="0" to="5">
+    <segment id="seg"><ch id="0">
+      <data id="0" name="adc"/>
+      <data id="1" name="leading"/>
+      <data id="2" name="trailing"/>
+      <data id="3" name="commonstop"/>
+      <data id="4" name="overflow"/>
+    </ch></segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="98" name="RC"><for var="seg" from="0" to="7">
+      <segment id="seg"><for var="UorD" from="0" to="1">
+	  <ch id="UorD">
+            <data id="0" name="adc"/>
+            <data id="1" name="leading"/>
+            <data id="2" name="trailing"/>
+	    <data id="3" name="commonstop"/>
+	    <data id="4" name="overflow"/>
+	</ch></for>
+    </segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="81" name="VME-RM">
+    <plane id="0" name="vme01">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+    <plane id="1" name="vme02">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+    <plane id="2" name="vme03">
+      <ch id="0" name="tag">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+      <ch id="1" name="lock_bit">
+	<data id="0" name="event"/>
+	<data id="1" name="spill"/>
+	<data id="2" name="serial"/>
+	<data id="3" name="time"/>
+      </ch>
+    </plane>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="82" name="HUL-RM"><for var="seg" from="0" to="15">
+    <segment id="seg"><for var="UorD" from="0" to="1">
+      <ch id="UorD">
+        <data id="0" name="leading"/>
+        <data id="1" name="trailing"/>
+        <data id="2" name="hitnum"/>
+	<data id="3" name="event"/>
+	<data id="4" name="spill"/>
+	<data id="5" name="sinc"/>
+	<data id="6" name="lock"/>
+      </ch></for>
+    </segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="91" name="Scaler">
+    <plane id="0">
+      <for var="ch" from="0" to="63">
+	<ch id="ch">
+	  <data id="0" name="scaler"/>
+	  <data id="1" name="event"/>
+	  <data id="2" name="spill"/>
+	  <data id="3" name="sinc"/>
+	  <data id="4" name="lock"/>
+	</ch>
+      </for>
+    </plane>
+    <plane id="1">
+      <for var="ch" from="0" to="63">
+	<ch id="ch">
+	  <data id="0" name="scaler"/>
+	  <data id="1" name="event"/>
+	  <data id="2" name="spill"/>
+	  <data id="3" name="sinc"/>
+	  <data id="4" name="lock"/>
+	</ch>
+      </for>
+    </plane>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="99" name="TriggerFlag"><for var="seg" from="0" to="127">
+    <segment id="seg">
+      <data id="0" name="leading"/>
+      <data id="1" name="trailing"/>
+      <data id="2" name="hitnum"/>      
+    </segment></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="53" name="VFT">
+    <for var="plane" from="0" to="13"><for var="wire" from="0" to="63">
+      <plane id="plane">
+	<ch id="wire">
+	  <data id="0" name="leading"/>
+	  <data id="1" name="trailing"/>
+          <data id="2" name="highgain"/>
+          <data id="3" name="lowgain"/>
+	</ch>
+      </plane>
+    </for></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="100" name="CDC">
+    <for var="plane" from="0" to="119"><for var="wire" from="0" to="15">
+      <plane id="plane">
+	<ch id="wire">
+	  <data id="0" name="leading"/>
+	  <data id="1" name="trailing"/>
+	  <data id="2" name="hitnum"/>
+	  <data id="3" name="event"/>
+	  <data id="4" name="spill"/>
+	  <data id="5" name="sinc"/>
+	  <data id="6" name="lock"/>
+	</ch>
+      </plane>
+    </for></for>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="101" name="BLC1a">
+    <plane id="0" name="plane1"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="1" name="plane2"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="2" name="plane3"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="3" name="plane4"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="4" name="plane5"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="5" name="plane6"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="6" name="plane7"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="7" name="plane8"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="102" name="BLC1b">
+    <plane id="0" name="plane1"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="1" name="plane2"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="2" name="plane3"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="3" name="plane4"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="4" name="plane5"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="5" name="plane6"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="6" name="plane7"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="7" name="plane8"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="103" name="BLC2a">
+    <plane id="0" name="plane1"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="1" name="plane2"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="2" name="plane3"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="3" name="plane4"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="4" name="plane5"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="5" name="plane6"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="6" name="plane7"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="7" name="plane8"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="104" name="BLC2b">
+    <plane id="0" name="plane1"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="1" name="plane2"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="2" name="plane3"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="3" name="plane4"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="4" name="plane5"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="5" name="plane6"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="6" name="plane7"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="7" name="plane8"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+  </device>
+  <!--________________________________________________________________-->
+  <device id="105" name="BPC">
+    <plane id="0" name="plane1"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="1" name="plane2"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="2" name="plane3"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="3" name="plane4"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="4" name="plane5"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="5" name="plane6"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="6" name="plane7"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="7" name="plane8"><for var="wire" from="0" to="31">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+  </device>
+  <!--________________________________________________________________-->
+  <!--________________________________________________________________-->
+  <device id="106" name="BPCmini">
+    <plane id="0" name="plane1"><for var="wire" from="0" to="15">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="1" name="plane2"><for var="wire" from="0" to="15">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="2" name="plane3"><for var="wire" from="0" to="15">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="3" name="plane4"><for var="wire" from="0" to="15">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="4" name="plane5"><for var="wire" from="0" to="15">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="5" name="plane6"><for var="wire" from="0" to="15">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="6" name="plane7"><for var="wire" from="0" to="15">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+    <plane id="7" name="plane8"><for var="wire" from="0" to="15">
+      <ch id="wire">
+	<data id="0" name="leading"/>
+	<data id="1" name="trailing"/>
+	<data id="2" name="hitnum"/>
+      </ch></for>
+    </plane>
+  </device>
+  <!--________________________________________________________________-->
+
+  <device id="116" name="VMEEASIROC"><for var="plane" from="0" to="14">
+    <plane id="plane"><for var="seg" from="0" to="63">
+      <segment id="seg">
+          <data id="0" name="leading"/>
+          <data id="1" name="trailing"/>
+          <data id="2" name="highgain"/>
+          <data id="3" name="lowgain"/>
+      </segment></for>
+    </plane></for>
+  </device>
+  <!--________________________________________________________________-->
+
+  <device id="999" name="VMEdummy">
+    <for var="plane" from="0" to="255">
+      <plane id="plane">
+	<for var="seg" from="0" to="127">
+	  <segment id="seg">
+	    <ch id="0">
+	      <data id="0" name="adc"/>
+	      <data id="1" name="tdc"/>
+	      <data id="2" name="trailing"/>
+	      <data id="3" name="commonstop"/>
+	      <data id="4" name="overflow"/>
+	</ch></segment></for>
+    </plane></for>
+  </device>
+
+</digit_data>

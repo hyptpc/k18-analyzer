@@ -1,0 +1,14 @@
+##
+UNPACKER:	param/UNPACK/unpacker.xml
+UNPACK:		param/UNPACK/unpacker.xml
+DIGIT:		param/DIGIT/digit_data_e73_20240405.xml
+CMAP:		param/CMAP/channel_map_e73_20240405.xml
+##
+HDPRM:         param/HDPRM/HodoParam_1_040_049
+HDPHC:         param/HDPHC/HodoPHC_0
+XTMap:         param/XTMap/XT_1_017
+DCTDC:	       param/DCTDC/DCTDC_1_017
+USER:          param/USER/UserParam.online
+#
+BLDCWire:      param/BLDCWire/BLDCWire_1
+TM:	       param/TM/TransferMatrix.param

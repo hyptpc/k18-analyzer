@@ -1,0 +1,6 @@
+##
+UNPACKER:	param/UNPACK/unpacker.xml
+UNPACK:		param/UNPACK/unpacker.xml
+DIGIT:		param/DIGIT/digit_data_raw.xml
+CMAP:		param/CMAP/channel_map_raw.xml
+##

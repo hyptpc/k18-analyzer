@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<channel_map xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:noNamespaceSchemaLocation="schema/channel_map.xsd">
+  <DAQNode node_id="1" name="k18eb">
+    <!--________________________________________________________________-->
+    <VmeMaster node_id="513" name="vme01">
+      <VmeRm address="0xff010000">
+    	<for var="ch" from="0" to="1"><for var="data" from="0" to="3">
+    	  <FE ch="ch" data="data"><D Device="VME-RM" Plane="vme01" ch="ch" data="data"/></FE>
+    	</for></for>
+      </VmeRm>
+      <VmeCaenV792 address="0xad010000">
+	<for var="ch" from="0" to="31">
+    	  <FE ch="ch"><D Device="Counter" segment="ch" ch="0" data="0"/></FE>
+    	</for>
+      </VmeCaenV792>
+      <VmeCaenV792 address="0xad020000">
+	<for var="ch" from="0" to="31">
+    	  <FE ch="ch"><D Device="QDC2" segment="ch" ch="0" data="0"/></FE>
+    	</for>
+      </VmeCaenV792>
+      <VmeCaenV792 address="0xad030000">
+	<for var="ch" from="0" to="31">
+    	  <FE ch="ch"><D Device="QDC3" segment="ch" ch="0" data="0"/></FE>
+    	</for>
+      </VmeCaenV792>
+      <VmeEmc address="0xe3c00000">
+	<for var="data" from="0" to="5">
+	  <FE data="data"><D Device="EMC" data="data"/></FE>
+	</for>
+      </VmeEmc>
+    </VmeMaster>
+    <!-- ________________________________________________________________ -->
+    <HulHRTdc node_id="1657" name="hulhrtdc-121">
+      <for var="ch" from="0" to="63"><for var="data" from="0" to="3">
+	<FE ch="ch" data="data"><D Device="HRTDC1" segment="ch" ch="0" data="data"/></FE>
+      </for></for>
+    </HulHRTdc>
+    <!-- ________________________________________________________________ -->
+    <HulHRTdc node_id="1658" name="hulhrtdc-122">
+      <for var="ch" from="0" to="63"><for var="data" from="0" to="3">
+	<FE ch="ch" data="data"><D Device="HRTDC2" segment="ch" ch="0" data="data"/></FE>
+      </for></for>
+    </HulHRTdc>
+    <!-- ________________________________________________________________ -->
+    <HulHRTdc node_id="1659" name="hulhrtdc-123">
+      <for var="ch" from="0" to="63"><for var="data" from="0" to="3">
+	<FE ch="ch" data="data"><D Device="HRTDC3" segment="ch" ch="0" data="data"/></FE>
+      </for></for>
+    </HulHRTdc>
+    <!-- ________________________________________________________________ -->
+    <HulMHTdc node_id="1674" name="hulmhtdc-138">
+      <for var="ch" from="0" to="127"><for var="data" from="0" to="2">
+    	<FE ch="ch" data="data"><D Device="TriggerFlag" segment="ch" ch="0" data="data"/></FE>
+      </for></for>
+    </HulMHTdc>
+    <!-- ________________________________________________________________ -->
+    <HulScaler node_id="1675" name="hulscaler-139">
+      <for var="ch" from="0" to="63"><for var="data" from="0" to="4">
+    	<FE ch="ch" data="data"><D Device="Scaler" plane="0" ch="ch" data="data"/></FE>
+      </for></for>
+    </HulScaler>
+    <!-- ______________________________
+    <HulScaler node_id="1676" name="hulscaler-140">
+      <for var="ch" from="0" to="63"><for var="data" from="0" to="4">
+    	<FE ch="ch" data="data"><D Device="Scaler" plane="0" ch="ch" data="data"/></FE>
+      </for></for>
+    </HulScaler>
+    __________________________________ -->
+    <!-- ________________________________________________________________ -->
+    <HulHRTdc node_id="1678" name="hulhrtdc-142">
+      <for var="ch" from="0" to="63"><for var="data" from="0" to="3">
+	<FE ch="ch" data="data"><D Device="HRTDC4" segment="ch" ch="0" data="data"/></FE>
+      </for></for>
+    </HulHRTdc>
+    <!-- ________________________________________________________________ -->
+    <HulHRTdc node_id="1679" name="hulhrtdc-143">
+      <for var="ch" from="0" to="63"><for var="data" from="0" to="3">
+	<FE ch="ch" data="data"><D Device="HRTDC5" segment="ch" ch="0" data="data"/></FE>
+      </for></for>
+    </HulHRTdc>
+    <!-- ________________________________________________________________ -->
+    <HulHRTdc node_id="1680" name="hulhrtdc-144">
+      <for var="ch" from="0" to="63"><for var="data" from="0" to="3">
+	<FE ch="ch" data="data"><D Device="HRTDC6" segment="ch" ch="0" data="data"/></FE>
+      </for></for>
+    </HulHRTdc>
+
+    <!--BPC/HRTDC RM______________________________________________________________ -->
+    <HulMHTdc node_id="1637" name="hulmhtdc-101">
+      <for var="data" from="0" to="6">
+	<FE ch="0" data="data"><D Device="HUL-RM" segment="1" ch="0" data="data "/></FE>
+      </for>
+      <for var="ch" from="1" to="127"><for var="data" from="0" to="3">
+    	  <FE ch="ch" data="data"><D Device="VMEdummy" plane="101" segment="ch" ch="0" data="data+1"/></FE>
+      </for></for>
+    </HulMHTdc>
+    <!--BPC______________________________________________________________ -->
+    <HulMHTdc node_id="1638" name="hulmhtdc-102">
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="2">
+    	<FE ch="ch" data="data"><D Device="BPC2" plane="0" ch="ch" data="data"/></FE>
+    	<FE ch="ch + 16" data="data"><D Device="BPC2" plane="0" ch="31 - ch" data="data"/></FE>
+      </for></for>
+      <for var="ch" from="32" to="47"><for var="data" from="0" to="2">
+    	<FE ch="ch" data="data"><D Device="BPC2" plane="1" ch="47 - ch" data="data"/></FE>
+    	<FE ch="ch + 16" data="data"><D Device="BPC2" plane="1" ch="ch - 16" data="data"/></FE>
+      </for></for>
+      <for var="ch" from="64" to="79"><for var="data" from="0" to="2">
+    	<FE ch="ch" data="data"><D Device="BPC2" plane="2" ch="ch - 64" data="data"/></FE>
+    	<FE ch="ch + 16" data="data"><D Device="BPC2" plane="2" ch="95 - ch" data="data"/></FE>
+      </for></for>
+      <for var="ch" from="96" to="111"><for var="data" from="0" to="2">
+    	<FE ch="ch" data="data"><D Device="BPC2" plane="3" ch="111 - ch" data="data"/></FE>
+    	<FE ch="ch + 16" data="data"><D Device="BPC2" plane="3" ch="ch - 80" data="data"/></FE>
+      </for></for>
+    </HulMHTdc>
+    <!--BPC2______________________________________________________________ -->
+    <HulMHTdc node_id="1639" name="hulmhtdc-103">
+      <for var="ch" from="0" to="15"><for var="data" from="0" to="2">
+    	<FE ch="ch" data="data"><D Device="BPC2" plane="4" ch="ch" data="data"/></FE>
+    	<FE ch="ch + 16" data="data"><D Device="BPC2" plane="4" ch="31 - ch" data="data"/></FE>
+      </for></for>
+      <for var="ch" from="32" to="47"><for var="data" from="0" to="2">
+    	<FE ch="ch" data="data"><D Device="BPC2" plane="5" ch="47 - ch" data="data"/></FE>
+    	<FE ch="ch + 16" data="data"><D Device="BPC2" plane="5" ch="ch - 16" data="data"/></FE>
+      </for></for>
+      <for var="ch" from="64" to="79"><for var="data" from="0" to="2">
+    	<FE ch="ch" data="data"><D Device="BPC2" plane="6" ch="ch - 64" data="data"/></FE>
+    	<FE ch="ch + 16" data="data"><D Device="BPC2" plane="6" ch="95 - ch" data="data"/></FE>
+      </for></for>
+      <for var="ch" from="96" to="111"><for var="data" from="0" to="2">
+    	<FE ch="ch" data="data"><D Device="BPC2" plane="7" ch="111 - ch" data="data"/></FE>
+    	<FE ch="ch + 16" data="data"><D Device="BPC2" plane="7" ch="ch - 80" data="data"/></FE>
+      </for></for>
+    </HulMHTdc>
+    <!-- ________________________________________________________________ -->
+  </DAQNode>    
+</channel_map>
