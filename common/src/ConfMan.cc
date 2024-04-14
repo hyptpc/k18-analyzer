@@ -35,7 +35,6 @@ enum EArg
     kArgConfFile,
     kArgInFile,
     kArgOutFile,
-    kArgRunNum,
     kArgc
   };
 }
@@ -158,15 +157,15 @@ ConfMan::ParseCommand( int argc, char **argv )
   const std::string& process = arg[kArgProcess];
   if( argc<kArgc ){
     hddaq::cout << "#D Usage: " << hddaq::basename(process)
-  		<< " --conf=[analyzer config file]"
-  		<< " --infile=[data input stream]"
-  		<< " --outfile=[output root file]"
-  		<< " --run=[run number]"
-  		<< "(--=[skip])"
-  		<< "(--skip=[skip])"
-  		<< "(--maxloop=[max loop])"
-		<< "(--cdctree=[tracking file name])"
-		<< "(--cdcresol=[cdc resolution])"
+  		<< " [analyzer config file]"
+  		<< " [data input stream]"
+  		<< " [output root file]"
+      // << " [run number]"
+      // << "(--=[skip])"
+      // << "(--skip=[skip])"
+      // << "(--maxloop=[max loop])"
+      // << "(--cdctree=[tracking file name])"
+      // << "(--cdcresol=[cdc resolution])"
   		<< std::endl;
     return EXIT_SUCCESS;
   }
@@ -176,56 +175,11 @@ ConfMan::ParseCommand( int argc, char **argv )
   m_file[kCDCFile]="None";
   m_is_mc=false;
   m_is_cosmic=false;
-  for (int i = 1 ; i < argc ; i++) {
-    std::string arg = argv[i];
-    std::cout<<arg<<std::endl;
-    iss.str("");
-    iss.clear();
-    if (arg.substr(0, 7) == "--conf=") {
-      iss.str(arg.substr(7));
-      iss >> tmp;
-      m_file[kConfFile] = tmp;
-    }
-    if (arg.substr(0, 9) == "--infile=") {
-      iss.str(arg.substr(9));
-      iss >> tmp;
-      m_file[kInFile] = tmp;
-    }
-    if (arg.substr(0, 10) == "--outfile=") {
-      iss.str(arg.substr(10));
-      iss >> tmp;
-      m_file[kOutFile] = tmp;
-    }
-    if (arg.substr(0, 6) == "--run=") {
-      iss.str(arg.substr(6));
-      iss >> m_runnum;
-    }
-    if (arg.substr(0, 10) == "--maxloop=") {
-      iss.str(arg.substr(10));
-      int tmpint;
-      iss >> tmpint;
-      if(m_maxloop<0 || tmpint<m_maxloop) m_maxloop=tmpint;
-    }
-    if (arg.substr(0, 7) == "--skip=") {
-      iss.str(arg.substr(7));
-      iss >> m_skip;
-    }
-    if (arg.substr(0, 10) == "--cdctree=") {
-      iss.str(arg.substr(10));
-      iss >> tmp;
-      m_file[kCDCFile] = tmp;
-    }
-    if (arg.substr(0, 11) == "--cdcresol=") {
-      iss.str(arg.substr(11));
-      iss >> m_resolution_cdc;
-    }
-    if (arg.substr(0, 8) == "--cosmic") {
-      m_is_cosmic=true;
-    }
-    if (arg.substr(0, 4) == "--mc") {
-      m_is_mc=true;
-    }
-  }
+
+  m_file[kConfFile] = arg[kArgConfFile];
+  m_file[kInFile] = arg[kArgInFile];
+  m_file[kOutFile] = arg[kArgOutFile];
+
   hddaq::cout << "#D " << func_name
 	      << " runnumber           : " << m_runnum<<std::endl;
   hddaq::cout << "#D " << func_name
