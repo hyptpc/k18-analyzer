@@ -22,13 +22,14 @@ namespace
 
 #define Cluster 0
 //______________________________________________________________________________
-HodoAnalyzer::HodoAnalyzer( void )
+HodoAnalyzer::HodoAnalyzer(const RawData& rawData)
+  : m_raw_data(&rawData)
 {
   debug::ObjectCounter::increase(class_name);
 }
 
 //______________________________________________________________________________
-HodoAnalyzer::~HodoAnalyzer( void )
+HodoAnalyzer::~HodoAnalyzer()
 {
   del::ClearContainer( m_BHDCont );
   del::ClearContainer( m_T0Cont );
@@ -75,63 +76,63 @@ HodoAnalyzer::~HodoAnalyzer( void )
 //______________________________________________________________________________
 //______________________________________________________________________________
 bool
-HodoAnalyzer::DecodeRawHits( RawData *rawData )
+HodoAnalyzer::DecodeRawHits()
 {
 #if T98
-  DecodeBHTHits( DetIdBHT, m_BHDCont, rawData );
+  DecodeBHTHits( DetIdBHT, m_BHDCont);
 #elif E73_2024
-  DecodeBHTHits( DetIdBHT, m_BHDCont, rawData );
+  DecodeBHTHits( DetIdBHT, m_BHDCont);
 #else
-  DecodeHodoHits( DetIdBHD, m_BHDCont, rawData );
+  DecodeHodoHits( DetIdBHD, m_BHDCont);
 #endif
-  DecodeHodoHits( DetIdT0,  m_T0Cont,  rawData );
-  DecodeHodoHits( DetIdT0new, m_T0newCont, rawData );
-  DecodeHodoHits( DetIdDEF, m_DEFCont, rawData );
+  DecodeHodoHits( DetIdT0,  m_T0Cont);
+  DecodeHodoHits( DetIdT0new, m_T0newCont);
+  DecodeHodoHits( DetIdDEF, m_DEFCont);
 #ifdef CDS
-  DecodeHodoHits( DetIdCDH, m_CDHCont, rawData );
+  DecodeHodoHits( DetIdCDH, m_CDHCont);
 #endif
 #ifdef E15
-  DecodeHodoHits(  DetIdBVC, m_BVCCont, rawData );
-  DecodeHodoHits(  DetIdCVC, m_CVCCont, rawData );
-  DecodeHodoHits(  DetIdNC,  m_NCCont,  rawData );
-  DecodeHodoHits(  DetIdPC,  m_PCCont,  rawData );
-  DecodeHodoHits(  DetIdLB,  m_LBCont,  rawData );
-  DecodeHodo1Hits( DetIdWVC, m_WVCCont, rawData );
-  DecodeHodoHits(  DetIdBD,  m_BDCont,  rawData );
-  DecodeHodoHits(  DetIdBPD, m_BPDCont, rawData );
-  DecodeHodo1Hits( DetIdIH,  m_IHCont,  rawData );
+  DecodeHodoHits(  DetIdBVC, m_BVCCont);
+  DecodeHodoHits(  DetIdCVC, m_CVCCont);
+  DecodeHodoHits(  DetIdNC,  m_NCCont);
+  DecodeHodoHits(  DetIdPC,  m_PCCont);
+  DecodeHodoHits(  DetIdLB,  m_LBCont);
+  DecodeHodo1Hits( DetIdWVC, m_WVCCont);
+  DecodeHodoHits(  DetIdBD,  m_BDCont);
+  DecodeHodoHits(  DetIdBPD, m_BPDCont);
+  DecodeHodo1Hits( DetIdIH,  m_IHCont);
 #elif E57
-  DecodeHodoHits( DetIdE0,  m_E0Cont,  rawData );
+  DecodeHodoHits( DetIdE0,  m_E0Cont);
 #elif E62
-  DecodeHodoHits( DetIdE0,  m_E0Cont,  rawData );
-  DecodeHodoHits( DetIdStart,  m_StartCont,  rawData );
-  DecodeHodoHits( DetIdStop,  m_StopCont,  rawData );
+  DecodeHodoHits( DetIdE0,  m_E0Cont);
+  DecodeHodoHits( DetIdStart,  m_StartCont);
+  DecodeHodoHits( DetIdStop,  m_StopCont);
 #elif E73
-  DecodeHodo1Hits( DetIdPbF2,  m_PbF2Cont, rawData );
-  DecodeHodoHits(  DetIdVeto1, m_Veto1Cont,rawData );
-  DecodeHodo1Hits( DetIdVeto0, m_Veto0Cont,rawData );
-  DecodeHodo1Hits( DetIdBTC,   m_BTCCont,  rawData );
+  DecodeHodo1Hits( DetIdPbF2,  m_PbF2Cont);
+  DecodeHodoHits(  DetIdVeto1, m_Veto1Cont);
+  DecodeHodo1Hits( DetIdVeto0, m_Veto0Cont);
+  DecodeHodo1Hits( DetIdBTC,   m_BTCCont);
 #elif E73_2024
-  DecodeHodo1Hits( DetIdPbG,   m_PbGCont,  rawData );
-  DecodeHodo1Hits( DetIdPbF2,  m_PbF2Cont, rawData );
-  DecodeHodoHits(  DetIdVeto,  m_VetoCont, rawData );
-  DecodeHodoHits(  DetIdBTC,   m_BTCCont,  rawData );
+  DecodeHodo1Hits( DetIdPbG,   m_PbGCont);
+  DecodeHodo1Hits( DetIdPbF2,  m_PbF2Cont);
+  DecodeHodoHits(  DetIdVeto,  m_VetoCont);
+  DecodeHodoHits(  DetIdBTC,   m_BTCCont);
 #elif T98
-  DecodeHodo1Hits( DetIdPbG,   m_PbGCont,  rawData );
-  DecodeHodo1Hits( DetIdPbF2,  m_PbF2Cont, rawData );
-  DecodeHodoHits(  DetIdVeto,  m_VetoCont, rawData );
-  DecodeHodoHits(  DetIdBTC,   m_BTCCont,  rawData );
-  DecodeHodoHits(  DetIdRC,    m_RCCont,   rawData );
+  DecodeHodo1Hits( DetIdPbG,   m_PbGCont);
+  DecodeHodo1Hits( DetIdPbF2,  m_PbF2Cont);
+  DecodeHodoHits(  DetIdVeto,  m_VetoCont);
+  DecodeHodoHits(  DetIdBTC,   m_BTCCont);
+  DecodeHodoHits(  DetIdRC,    m_RCCont);
 #endif
   return true;
 }
 
 //______________________________________________________________________________
 bool
-HodoAnalyzer::DecodeHodoHits(const int &detid, Hodo2HitContainer &m_Cont, RawData *rawData )
+HodoAnalyzer::DecodeHodoHits(const int &detid, Hodo2HitContainer &m_Cont)
 {
   del::ClearContainer( m_Cont );
-  const HodoRHitContainer &cont = rawData->GetHodoRawHC(detid);
+  const HodoRHitContainer &cont = m_raw_data->GetHodoRawHC(detid);
   int nh = cont.size();
   for( int i=0; i<nh; ++i ){
     HodoRawHit *hit = cont[i];
@@ -150,10 +151,10 @@ HodoAnalyzer::DecodeHodoHits(const int &detid, Hodo2HitContainer &m_Cont, RawDat
 
 //______________________________________________________________________________
 bool
-HodoAnalyzer::DecodeBHTHits(const int &detid, BHTHitContainer &m_Cont, RawData *rawData )
+HodoAnalyzer::DecodeBHTHits(const int &detid, BHTHitContainer &m_Cont)
 {
   del::ClearContainer( m_Cont );
-  const HodoRHitContainer &cont = rawData->GetHodoRawHC(detid);
+  const HodoRHitContainer &cont = m_raw_data->GetHodoRawHC(detid);
   int nh = cont.size();
   for( int i=0; i<nh; ++i ){
     HodoRawHit *hit = cont[i];
@@ -184,10 +185,10 @@ HodoAnalyzer::DecodeBHTHits(const int &detid, BHTHitContainer &m_Cont, RawData *
 
 //______________________________________________________________________________
 bool
-HodoAnalyzer::DecodeHodo1Hits(const int &detid, Hodo2HitContainer &m_Cont, RawData *rawData )
+HodoAnalyzer::DecodeHodo1Hits(const int &detid, Hodo2HitContainer &m_Cont)
 {
   del::ClearContainer( m_Cont );
-  const HodoRHitContainer &cont = rawData->GetHodoRawHC(detid);
+  const HodoRHitContainer &cont = m_raw_data->GetHodoRawHC(detid);
   int nh = cont.size();
   for( int i=0; i<nh; ++i ){
     HodoRawHit *hit = cont[i];
@@ -206,7 +207,7 @@ HodoAnalyzer::DecodeHodo1Hits(const int &detid, Hodo2HitContainer &m_Cont, RawDa
 
 //______________________________________________________________________________
 bool
-HodoAnalyzer::ReCalcAll( void )
+HodoAnalyzer::ReCalcAll()
 {
   return true;
 }

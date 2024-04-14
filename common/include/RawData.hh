@@ -18,8 +18,8 @@ typedef std::vector<DCRawHit*>   DCRHitContainer;
 class RawData
 {
 public:
-  RawData( void );
-  virtual ~RawData( void );
+  RawData();
+  virtual ~RawData();
 
 // private:
 //   RawData( const RawData& );
@@ -88,25 +88,25 @@ protected:
   HodoRHitContainer m_VmeCalibRawHC;
 
 public:
-  virtual void             ClearAll( void );
-  virtual bool             DecodeHits( void );
-  virtual bool             DecodeHodoHits( void );
-  virtual bool             DecodeDCHits( void );
-  virtual bool             DecodeCDCHits( void );
-  virtual bool             DecodeMTDCHits( void );
-  virtual bool             DecodeCalibHits( void );
+  virtual void             ClearAll();
+  virtual bool             DecodeHits();
+  virtual bool             DecodeHodoHits();
+  virtual bool             DecodeDCHits();
+  virtual bool             DecodeCDCHits();
+  virtual bool             DecodeMTDCHits();
+  virtual bool             DecodeCalibHits();
   virtual void             PrintHodo( const int &detid );
 
-  SDDRHitContainer&  GetSDDRawHC(  const int &detid );
-  HodoRHitContainer& GetHodoRawHC( const int &detid );
-  MTDCRHitContainer& GetMTDCRawHC( const int &detid );
-  DCRHitContainer&   GetDCRawHC(   const int &detid, int layer );
-  HodoRHitContainer& GetVmeCalibRawHC( void );
+  const SDDRHitContainer&  GetSDDRawHC(  const int &detid ) const;
+  const HodoRHitContainer& GetHodoRawHC( const int &detid ) const;
+  const MTDCRHitContainer& GetMTDCRawHC( const int &detid ) const;
+  const DCRHitContainer&   GetDCRawHC(   const int &detid, int layer ) const;
+  const HodoRHitContainer& GetVmeCalibRawHC() const;
 };
 
 //______________________________________________________________________________
-inline SDDRHitContainer&
-RawData::GetSDDRawHC( const int &detid )
+inline const SDDRHitContainer&
+RawData::GetSDDRawHC( const int &detid ) const
 {
   switch(detid){
   case DetIdSDD:
@@ -117,8 +117,8 @@ RawData::GetSDDRawHC( const int &detid )
   return m_SDDRawHC;
 }
 //______________________________________________________________________________
-inline MTDCRHitContainer&
-RawData::GetMTDCRawHC( const int &detid )
+inline const MTDCRHitContainer&
+RawData::GetMTDCRawHC( const int &detid ) const
 {
   switch(detid){
   case DetIdTrigFlag:
@@ -129,8 +129,8 @@ RawData::GetMTDCRawHC( const int &detid )
   return m_TrigRawHC;
 }
 //______________________________________________________________________________
-inline HodoRHitContainer&
-RawData::GetHodoRawHC( const int &detid )
+inline const HodoRHitContainer&
+RawData::GetHodoRawHC( const int &detid ) const
 {
   switch(detid){
   case DetIdBHD:    return m_BHDRawHC;
@@ -187,8 +187,8 @@ RawData::GetHodoRawHC( const int &detid )
 }
 
 //______________________________________________________________________________
-inline DCRHitContainer&
-RawData::GetDCRawHC( const int &detid, int layer ) 
+inline const DCRHitContainer&
+RawData::GetDCRawHC( const int &detid, int layer ) const
 {
   if( detid==DetIdCDC ){
     if( layer<0 || layer>118 ) layer = 0;
@@ -198,35 +198,35 @@ RawData::GetDCRawHC( const int &detid, int layer )
     if( layer<0 || layer>14 ) layer = 0;
   }
   else if( layer<0 || layer>7 ) layer = 0;
-  
+
   switch(detid){
 #ifdef E15
-  case DetIdFDC:    return m_FDCRawHC[layer];
+  case DetIdFDC:    return m_FDCRawHC.at(layer);
 #elif E62
-  case DetIdSDC:    return m_SDCRawHC[layer];
-  case DetIdFDC:    return m_FDCRawHC[layer];
+  case DetIdSDC:    return m_SDCRawHC.at(layer);
+  case DetIdFDC:    return m_FDCRawHC.at(layer);
 #elif T98
-  case DetIdVFT:    return m_VFTRawHC[layer];
+  case DetIdVFT:    return m_VFTRawHC.at(layer);
 #elif E73_2024
-  case DetIdVFT:    return m_VFTRawHC[layer];
-  case DetIdBPC1:    return m_BPC1RawHC[layer];
+  case DetIdVFT:    return m_VFTRawHC.at(layer);
+  case DetIdBPC1:    return m_BPC1RawHC.at(layer);
 #endif
 #ifdef CDS
-  case DetIdCDC:    return m_CDCRawHC[layer];
+  case DetIdCDC:    return m_CDCRawHC.at(layer);
 #endif
-  case DetIdBLC1a:  return m_BLC1aRawHC[layer];
-  case DetIdBLC1b:  return m_BLC1bRawHC[layer];
-  case DetIdBLC2a:  return m_BLC2aRawHC[layer];
-  case DetIdBLC2b:  return m_BLC2bRawHC[layer];
-  case DetIdBPC2:   return m_BPC2RawHC[layer];
+  case DetIdBLC1a:  return m_BLC1aRawHC.at(layer);
+  case DetIdBLC1b:  return m_BLC1bRawHC.at(layer);
+  case DetIdBLC2a:  return m_BLC2aRawHC.at(layer);
+  case DetIdBLC2b:  return m_BLC2bRawHC.at(layer);
+  case DetIdBPC2:   return m_BPC2RawHC.at(layer);
   default:
     std::cout<<"E# invalid detector id "<< detid<<std::endl;
   }
   return m_BLC1aRawHC[0];
 }
 
-inline HodoRHitContainer&
-RawData::GetVmeCalibRawHC( void ) 
+inline const HodoRHitContainer&
+RawData::GetVmeCalibRawHC() const
 {
   return m_VmeCalibRawHC;
 }

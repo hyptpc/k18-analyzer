@@ -1,8 +1,4 @@
-/**
- *  file: ConfMan.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "ConfMan.hh"
 
@@ -28,20 +24,20 @@
 
 namespace
 {
-  using namespace hddaq::unpacker;
-  const std::string& class_name("ConfMan");
-  std::string sConfDir;
-  UnpackerManager&      gUnpacker = GUnpacker::get_instance();
-  const UserParamMan&   gUser     = UserParamMan::GetInstance();
-  enum EArg
-    {
-      kArgProcess,
-      kArgConfFile,
-      kArgInFile,
-      kArgOutFile,
-      kArgRunNum,
-      kArgc
-    };
+using namespace hddaq::unpacker;
+const std::string& class_name("ConfMan");
+std::string sConfDir;
+UnpackerManager&      gUnpacker = GUnpacker::get_instance();
+const UserParamMan&   gUser     = UserParamMan::GetInstance();
+enum EArg
+  {
+    kArgProcess,
+    kArgConfFile,
+    kArgInFile,
+    kArgOutFile,
+    kArgRunNum,
+    kArgc
+  };
 }
 
 //______________________________________________________________________________
@@ -103,14 +99,14 @@ ConfMan::Initialize( void )
       std::ifstream ifs2(FilePath(v[1]));
       int run1, run2;
       std::string line2;
-      while( ifs2.good() && std::getline( ifs2, line2 ) ){		
+      while( ifs2.good() && std::getline( ifs2, line2 ) ){
 	if( line2[0]=='#' || line2.empty() ) continue;
 	std::istringstream iss2( line2 );
 	if(iss2>>run1>>run2>>tmpstr){
 	  if(m_runnum>=run1&&m_runnum<=run2){
 	    hddaq::cout << "       " << std::setw(10);
 	    hddaq::cout <<v[1]<<" : "<<tmpstr<<std::endl;
-	    break;	  
+	    break;
 	  }
 	  tmpstr="none";
 	}

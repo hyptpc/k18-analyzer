@@ -88,14 +88,10 @@ knucl_main()
       continue;
 
     evtree->GetEvent(iev);
-    VEvent* event = gConf.EventAllocator();
-    bool tmp2=
-      event->ProcessingBeginMC(detectorData,mcData,reactionData,iev) &&
-      event->ProcessingNormal() &&
-      event->ProcessingEnd();
-    delete event;
+    // ProcessBeginMC(detectorData,mcData,reactionData,iev);
+    ProcessNormal();
+    ProcessEnd();
     gCounter.check();
-    if(!tmp2) break;
   }
   gConf.Finalize();
 

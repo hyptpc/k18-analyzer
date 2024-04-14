@@ -30,9 +30,9 @@ namespace{
   double mulbins2[3]={10,-0.5,9.5};
   double timebins[3]={10000,-100,100};
   double tofbins[3]={10000,-100,100};
-  double debins[3]={5000,-2,48}; 
-  double evdebins[6]={200,0,5e6,200,-2,18}; 
-  double evtimebins[6]={200,0,5e6,200,-10,10}; 
+  double debins[3]={5000,-2,48};
+  double evdebins[6]={200,0,5e6,200,-2,18};
+  double evtimebins[6]={200,0,5e6,200,-10,10};
   double posbins2[6]={150,-15*cm,15*cm,150,-15*cm,15*cm};
   double residbins[3]={200,-5*mm,5*mm};
 }
@@ -53,7 +53,7 @@ bool BasicAnalysis::AnaInit(MTDCAnalyzer* mtdc, HodoAnalyzer* hodo, bool mc, boo
   position[kT0]=TVector3(-999,-999,-999);
   position[kT1]=TVector3(-999,-999,-999);
   position[kDEF]=TVector3(-999,-999,-999);
-  return AnaFlag(mtdc) 
+  return AnaFlag(mtdc)
     && CalcTime0(hodo)
     && CheckBHTT0TOF(hodo,slewing);
 }
@@ -67,16 +67,16 @@ bool BasicAnalysis::AnaFlag(MTDCAnalyzer* mtdc){
   for(int i=0;i<kNumTrig;i++) TriggerFlag[i]=false;
 
   for( int i=0; i<nh; ++i ){
-    MTDCHit *hit = mtdc->GetHit(cid,i);
-    MTDCRawHit *raw = hit->GetRawHit();
+    const auto& hit = mtdc->GetHit(cid,i);
+    const auto& raw = hit->GetRawHit();
     int seg = hit->SegmentId();
     TString segstr=Form("_seg%d",seg);
-    for(int it=0;it<raw->GetSizeLeading();it++){   
+    for(int it=0;it<raw->GetSizeLeading();it++){
       double tu  = raw->GetLeading(it);
       hist::H1(tmpname+"_TDC"+segstr,tu,mtdcbins);
     }
     bool tmpflag=false;
-    for(int it=0;it<hit->GetIndex();it++){   
+    for(int it=0;it<hit->GetIndex();it++){
       double tu  = hit->Time(it);
       hist::H1(tmpname+"_Time"+segstr,tu,timebins);
       //if(gUser.Check("TriggerFlag",tu)) tmpflag=true;
@@ -109,7 +109,7 @@ bool BasicAnalysis::CalcTime0(HodoAnalyzer* hodo){
   int cid= DetIdT1;
   int nh = hodo->GetNHits(cid);
   for( int i=0; i<nh; ++i ){
-    Hodo2Hit *hit = hodo->GetHit(cid,i);
+    auto hit = hodo->GetHit(cid,i);
     if(!hit) continue;
     int nind=hit->GetIndex();
     for(int it=0;it<nind;it++){
@@ -117,12 +117,12 @@ bool BasicAnalysis::CalcTime0(HodoAnalyzer* hodo){
       double cmt = hit->CMeanTime(it);
       //std::cout<<i<<"  "<<it<<"  "<<mt<<"  "<<cmt<<std::endl;
       hist::H1("T0MeanTime" , mt,tofbins);
-      hist::H1("T0CMeanTime",cmt,tofbins);      
+      hist::H1("T0CMeanTime",cmt,tofbins);
       if(TMath::Abs(mt)<10){
-	Time0=mt; 
+	Time0=mt;
 	CTime0=cmt;
 	hist::H1("T0MeanTime_selected" ,mt ,tofbins);
-	hist::H1("T0CMeanTime_selected",cmt,tofbins);      
+	hist::H1("T0CMeanTime_selected",cmt,tofbins);
       }
     }
   }
@@ -130,7 +130,7 @@ bool BasicAnalysis::CalcTime0(HodoAnalyzer* hodo){
   cid= DetIdT0;
   nh = hodo->GetNHits(cid);
   for( int i=0; i<nh; ++i ){
-    Hodo2Hit *hit = hodo->GetHit(cid,i);
+    auto hit = hodo->GetHit(cid,i);
     if(!hit) continue;
     int nind=hit->GetIndex();
     for(int it=0;it<nind;it++){
@@ -138,12 +138,12 @@ bool BasicAnalysis::CalcTime0(HodoAnalyzer* hodo){
       double cmt = hit->CMeanTime(it);
       //std::cout<<i<<"  "<<it<<"  "<<mt<<"  "<<cmt<<std::endl;
       hist::H1("T1MeanTime" , mt,tofbins);
-      hist::H1("T1CMeanTime",cmt,tofbins);      
+      hist::H1("T1CMeanTime",cmt,tofbins);
       if(TMath::Abs(mt)<10){
-	Time1=mt; 
+	Time1=mt;
 	CTime1=cmt;
 	hist::H1("T1MeanTime_selected" ,mt ,tofbins);
-	hist::H1("T1CMeanTime_selected",cmt,tofbins);      
+	hist::H1("T1CMeanTime_selected",cmt,tofbins);
       }
     }
   }
@@ -156,25 +156,25 @@ bool BasicAnalysis::CheckBHTT0TOF(HodoAnalyzer* hodo, bool slewing){
   int cid=DetIdBHT;
   int nh = hodo->GetNHits(cid);
   for( int i=0; i<nh; ++i ){
-    Hodo2Hit *hit = hodo->GetHit(cid,i);
+    auto hit = hodo->GetHit(cid,i);
     int seg = hit->SegmentId();
-    if(seg<3||12<seg) continue; 
+    if(seg<3||12<seg) continue;
     if(!hit) continue;
     int nind=hit->GetIndex();
     for(int it=0;it<nind;it++){
-      double mt    = hit->MeanTime(it); 
+      double mt    = hit->MeanTime(it);
       double cmt   = hit->CMeanTime(it);
       double tof   = mt-time0();
       double ctof  = cmt-ctime0();
       hist::H1("BHTMeanTime" ,mt ,tofbins);
-      hist::H1("BHTCMeanTime",cmt,tofbins);      
+      hist::H1("BHTCMeanTime",cmt,tofbins);
       hist::H1("BHTT0TOF" ,tof ,tofbins);
       hist::H1("BHTT0cTOF",ctof,tofbins);
       if(TMath::Abs(mt)<10){
 	TOF_BHTT0=tof;
 	cTOF_BHTT0=ctof;
 	hist::H1("BHTMeanTime_selected" ,mt ,tofbins);
-	hist::H1("BHTCMeanTime_selected",cmt,tofbins);      
+	hist::H1("BHTCMeanTime_selected",cmt,tofbins);
 	hist::H1("BHTT0TOF_selected" ,tof,tofbins);
 	hist::H1("BHTT0cTOF_selected",ctof,tofbins);
 	if(gUser.Check("TOFK",ctof)){
@@ -207,7 +207,7 @@ bool BasicAnalysis::AnaAC(RawData* raw){
     HodoRawHit *raw = cont[i];
     if(!raw) continue;
     int ntu=raw->GetSizeTdcUp();
-    for(int it=0;it<ntu;it++){   
+    for(int it=0;it<ntu;it++){
       double tu  = raw->GetTdcUp(it);
       if(gUser.Check("ACTDC",tu)) ACHIT=true;
       hist::H1(tmpname+"_TDC",tu,tdcbins);
@@ -217,7 +217,7 @@ bool BasicAnalysis::AnaAC(RawData* raw){
       adcsum+=raw->GetAdcUp(ia);
     hist::H1(tmpname+"_ADC",adcsum,adcbins);
     if(trig(kBeam)){
-      hist::H1(tmpname+"_ADC_ifB",adcsum,adcbins);	
+      hist::H1(tmpname+"_ADC_ifB",adcsum,adcbins);
       if(tofk()){
 	hist::H1(tmpname+"_ADC_ifB_TOFK",adcsum,adcbins);
 	if(achit()){
@@ -276,16 +276,16 @@ bool BasicAnalysis::FillHodoRaw(RawData* raw,int kHodo){
     }else{
       hist::H1(name+"_ADCwoTd"+segstr,ad,adcbins);
     }
-    for(int it=0;it<ntu;it++){   
+    for(int it=0;it<ntu;it++){
       double tu  = raw->GetTdcUp(it);
       hist::H1(name+"_TDCu"+segstr,tu,tdcbins);
       if(it<ntd){
 	double td  = raw->GetTdcDown(it);
 	hist::H1(name+"_TDCdiffud",tu-td,diffbins);
-      } 
+      }
       if(gUser.Check("HODOTDC",tu)) TIMING=true;
     }
-    for(int it=0;it<ntd;it++){   
+    for(int it=0;it<ntd;it++){
       double td  = raw->GetTdcDown(it);
       hist::H1(name+"_TDCd"+segstr,td,tdcbins);
     }
@@ -320,9 +320,9 @@ bool BasicAnalysis::FillHodoDecoded(HodoAnalyzer* hodo,int kHodo,std::vector<TSt
     int nind= hit->GetIndex();
     hist::H1(name+"_Mul"+segstr,nind,mulbins2);
     hist::H2(name+"_Mul_pat",seg,nind,patbins,mulbins2);
-    if(nind>0){ 
-      hist::H1(name+"_Pat",seg,patbins);  
-      mul++; 
+    if(nind>0){
+      hist::H1(name+"_Pat",seg,patbins);
+      mul++;
     }
     double de = hit->DeltaE();
     double deu = hit->GetAUp();
@@ -389,7 +389,7 @@ bool BasicAnalysis::FillHodoDecoded(HodoAnalyzer* hodo,int kHodo,std::vector<TSt
     // if(trig(kBeam)&&achit()){
     //   hist::H2("Run_"+name+"_dEuwB"+segstr,run_number,deu,400,100,900,400,-1,19);
     //   hist::H2("Run_"+name+"_dEdwB"+segstr,run_number,ded,400,100,900,400,-1,19);
-    // }	
+    // }
   }//for(ihit)
   hist::H1(name+"_Mul",mul ,mulbins);
   //  hist::H1(name+"_Mulgate",hodomul,mulbins);
@@ -412,9 +412,9 @@ bool BasicAnalysis::FillHodo1Decoded(HodoAnalyzer* hodo,int kHodo,std::vector<TS
     int nind= hit->GetIndex();
     hist::H1(name+"_Mul"+segstr,nind,mulbins2);
     hist::H2(name+"_Mul_pat",seg,nind,patbins,mulbins2);
-    if(nind>0){ 
-      hist::H1(name+"_Pat",seg,patbins);  
-      mul++; 
+    if(nind>0){
+      hist::H1(name+"_Pat",seg,patbins);
+      mul++;
     }
     double de = hit->GetAUp();
     hist::H1(name+"_dE" +segstr,de ,debins,trig_add);
@@ -480,12 +480,12 @@ bool BasicAnalysis::AnaDC(DCAnalyzer* dc,int kDC,double tmin,double tmax,double 
       if(hodoseg(kT0)>-1){
 	track->XYLocalPosatZ(20*cm,x,y);
 	hist::H2(name+"_XY"+Form("_ifT0seg%d",hodoseg(kT0)),x,y,posbins2);
-      }      
+      }
     }else if(cid==DetIdBPC||cid==DetIdSDC){
       if(hodoseg(kDEF)>-1){
 	track->XYLocalPosatZ(5*cm,x,y);
-	hist::H2(name+"_XY"+Form("_ifDEFseg%d",hodoseg(kDEF)),x,y,posbins2);   
-      }      	  
+	hist::H2(name+"_XY"+Form("_ifDEFseg%d",hodoseg(kDEF)),x,y,posbins2);
+      }
     }
     track->XYPosatZ(z,x,y);
     hist::H2(name+"_XY",x,y,posbins2);
@@ -507,7 +507,7 @@ bool BasicAnalysis::AnaHodo(HodoAnalyzer* hodo,int kHodo)
     Hodo2Hit *hit = hodo->GetHit(cid,i);
     if(!hit) continue;
     int nind= hit->GetIndex();
-    for(int ii=0;ii<nind;ii++){      
+    for(int ii=0;ii<nind;ii++){
       double mt  = hit->MeanTime(ii)-time0();
       double cmt  = hit->CMeanTime(ii)-ctime0();
       hist::H1(name+"_Time_all" ,mt,timebins);
@@ -608,9 +608,9 @@ bool BasicAnalysis::AnaBHT(HodoAnalyzer* hodo,int kHodo)
     ev.td = hit->GetTDown(nth);
     ev.ctu = hit->GetCTUp(nth);
     ev.ctd = hit->GetCTDown(nth);
-    hodo_container[kHodo].push_back(ev);    
+    hodo_container[kHodo].push_back(ev);
   }
-  del::ClearContainer( clusterContainer );    
+  del::ClearContainer( clusterContainer );
   return true;
 }
 
@@ -631,7 +631,7 @@ bool BasicAnalysis::AnaHodo1(HodoAnalyzer* hodo,int kHodo)
     //   hodo_container[kHodo].push_back(ev);
     //   break;
     // }
-    for(int ii=0;ii<nind;ii++){      
+    for(int ii=0;ii<nind;ii++){
       double mt  = hit->Time(ii);
       if(!gUser.Check("HodoGATE",mt)) continue;
       HodoEvent ev;
@@ -689,7 +689,7 @@ bool BasicAnalysis::AnaPbF2(HodoAnalyzer* hodo,std::vector<TString> add)
     hist::H1(name+"_Energy"+segstr, de ,tmpbins,add);
     hist::H1(name+"_Energy2"+segstr, de2 ,tmpbins,add);
     int nind= hit->GetIndex();
-    for(int ii=0;ii<nind;ii++){      
+    for(int ii=0;ii<nind;ii++){
       double tof  = hit->Time(ii)-time0();
       hist::H1(name+"_TOF_all", tof ,tofbins,add);
       if(!gUser.Check("PbF2TOF",tof)) continue;
@@ -703,7 +703,7 @@ bool BasicAnalysis::AnaPbF2(HodoAnalyzer* hodo,std::vector<TString> add)
 	PbF2_EnergyMax=de2;
 	tmpemax=de;
       }
-      tmphit.push_back(i);				       
+      tmphit.push_back(i);
       break;
     }
   }//for(ihit)
@@ -752,7 +752,7 @@ bool BasicAnalysis::AnaPbF2(HodoAnalyzer* hodo,std::vector<TString> add)
       hist::H1(name+"_Energy2_single"+segstr, de2 ,tmpbins,add);
       if(!isMC){
 	double adc= hit->GetRawHit()->GetAdcUp();
-	hist::H1(name+"_ADC_single"+segstr, adc ,adcbins,add);    
+	hist::H1(name+"_ADC_single"+segstr, adc ,adcbins,add);
       }
     }
   }
@@ -806,23 +806,23 @@ DeuteronEvent BasicAnalysis::get_devent(HodoAnalyzer *hodo)
   ev.time_t0new = hodotime(kT1,0);
   ev.de_t0new	= hodode(  kT1,0);
   ev.seg_t0new	= hodoseg( kT1,0);
-		  
+
   ev.time_t0	= hodotime(kT0,0);
   ev.de_t0	= hodode(  kT0,0);
   ev.seg_t0	= hodoseg( kT0,0);
-		  
+
   ev.time_bht	= hodotime(kBHT,0);
   ev.de_bht	= hodode(  kBHT,0);
   ev.seg_bht	= hodoseg( kBHT,0);
-		  
+
   ev.time_def	= hodotime(kDEF,0);
   ev.de_def	= hodode(  kDEF,0);
   ev.seg_def	= hodoseg( kDEF,0);
-		  
+
   ev.time_veto	= hodotime(kVeto,0);
   ev.de_veto	= hodode(  kVeto,0);
   ev.seg_veto	= hodoseg( kVeto,0);
-		  
+
   ev.time_btc	= hodotime(kBTC,0);
   ev.de_btc	= hodode(  kBTC,0);
   ev.seg_btc	= hodoseg( kBTC,0);

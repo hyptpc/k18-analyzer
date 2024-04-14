@@ -1,8 +1,4 @@
-/**
- *  file: MTDCAnalyzer.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef MTDC_ANALYZER_HH
 #define MTDC_ANALYZER_HH
@@ -23,27 +19,26 @@ typedef std::vector <MTDCHit*> MTDCHitContainer;
 class MTDCAnalyzer
 {
 public:
-  MTDCAnalyzer( void );
-  ~MTDCAnalyzer( void );
+  MTDCAnalyzer(const RawData& rawData);
+  ~MTDCAnalyzer();
 
-  static MTDCAnalyzer& GetInstance( void );
+  static MTDCAnalyzer& GetInstance();
 
 private:
   MTDCAnalyzer( const MTDCAnalyzer& );
   MTDCAnalyzer& operator =( const MTDCAnalyzer& );
 
 private:
+  const RawData*     m_raw_data;
   MTDCHitContainer     m_TrigCont;
   bool                 m_Flag[32];
 
 public:
-  bool DecodeRawHits( RawData* rawData );
-  bool DecodeMTDCHits( const int &detid, MTDCHitContainer &m_Cont, RawData *rawData );
-
+  bool DecodeRawHits();
+  bool DecodeMTDCHits( const int &detid, MTDCHitContainer &m_Cont);
   inline int GetNHits(  int detID )  const;
-
-  inline MTDCHit * GetHit( int detid, std::size_t i )  const;  
-  bool ReCalcAll( void );
+  inline const MTDCHit* GetHit( int detid, std::size_t i )  const;
+  bool ReCalcAll();
   bool flag(const int &i) { return m_Flag[i]; }
 };
 
@@ -58,7 +53,7 @@ MTDCAnalyzer::GetNHits( int detID  )  const
   }
 }
 //______________________________________________________________________________
-inline MTDCHit*
+inline const MTDCHit*
 MTDCAnalyzer::GetHit( int detID, std::size_t i ) const
 {
   switch(detID){
@@ -66,7 +61,7 @@ MTDCAnalyzer::GetHit( int detID, std::size_t i ) const
     if( i<m_TrigCont.size() )      return m_TrigCont[i];
   default:
     return 0;
-  }  
+  }
 }
 //______________________________________________________________________________
 #endif

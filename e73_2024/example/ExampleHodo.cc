@@ -1,13 +1,12 @@
-/**
- *  file: UserSkeleton.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
+
+#include "VEvent.hh"
 
 #include <iostream>
 #include <sstream>
 #include <cmath>
-#include "TString.h"
+
+#include <TString.h>
 
 #include "ConfMan.hh"
 #include "DetectorID.hh"
@@ -27,7 +26,6 @@
 #include "DCTdcCalibMan.hh"
 #include "BLDCWireMapMan.hh"
 #include "RawData.hh"
-#include "VEvent.hh"
 #include "HistTools.hh"
 #include "UnpackerManager.hh"
 
@@ -36,134 +34,91 @@
 #define DEBUG 0
 namespace
 {
-  using namespace e73_2024;
-  using namespace root;
-  const std::string& classname("EventHodo");
-  using namespace hddaq::unpacker;
-  const UnpackerManager& gUnpacker = GUnpacker::get_instance();
-  const UserParamMan&   gUser = UserParamMan::GetInstance();
-  int run_number;
-  int event_number;
+using namespace e73_2024;
+using namespace root;
+const std::string& classname("EventHodo");
+using namespace hddaq::unpacker;
+const UnpackerManager& gUnpacker = GUnpacker::get_instance();
+const UserParamMan&   gUser = UserParamMan::GetInstance();
+int run_number;
+int event_number;
 }
 
-//______________________________________________________________________________
-VEvent::VEvent( void )
-{
-}
-
-//______________________________________________________________________________
-VEvent::~VEvent( void )
-{
-}
-
-//______________________________________________________________________________
-class EventBeam : public VEvent
-{
-private:
-  RawData      *rawData;
-  DCAnalyzer   *DCAna;
-  HodoAnalyzer *hodoAna;
-  MTDCAnalyzer *MTDCAna;
-
-public:
-  EventBeam( void );
-  ~EventBeam( void );
-  bool  ProcessingBegin( void );
-  bool  ProcessingEnd( void );
-  bool  ProcessingNormal( void );
-  bool  InitializeHistograms( void );
-  void  InitializeEvent( void );
-};
-
-//______________________________________________________________________________
-EventBeam::EventBeam( void )
-  : VEvent(),
-    rawData(0),
-    DCAna(  new DCAnalyzer ),
-    hodoAna(new HodoAnalyzer),
-    MTDCAna(new MTDCAnalyzer )
-{
-}
-
-//______________________________________________________________________________
-EventBeam::~EventBeam( void )
-{
-  if( hodoAna ) delete hodoAna;
-  if( DCAna )   delete DCAna;
-  if( MTDCAna ) delete MTDCAna;
-  if( rawData ) delete rawData;
-}
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 namespace root
 {
-  TH1   *h[MaxHist];
-  const int nhodo=9;
-  int khodo[nhodo]={kT1,kBHT,kT0,kDEF,kVeto,kBTC,kCVC,kNC,kCDH};
-  // const int nhodo=5;
-  // int khodo[nhodo]={kT0new,kBHT,kT0,kDEF,kRC};
+TH1   *h[MaxHist];
+const int nhodo=9;
+int khodo[nhodo]={kT1,kBHT,kT0,kDEF,kVeto,kBTC,kCVC,kNC,kCDH};
+// const int nhodo=5;
+// int khodo[nhodo]={kT0new,kBHT,kT0,kDEF,kRC};
 
-  double tdcbins[3]={5000,0,2e6};
-  double adcbins[3]={4096,-0.5,4095.5};
-  double mtdcbins[3]={2000,0,2000};
-  double diffbins[3]={2000,-1e5,1e5};
-  double debins[3]={5000,-2,48}; 
-  double debins2[3]={1000,-100,900}; 
-  double deudbins[6]={100,-2,18,100,-2,18};
-  double sumbins[3]={4096*4,-0.5,4096*4-0.5};
-  double evmulbins[6]={200,0,5e6,11,-0.5,10.5}; 
-  double evudbins[6]={200,0,5e6,21,-10.5,10.5}; 
-  double evdebins[6]={200,0,5e6,200,-2,18}; 
-  double evdebins2[6]={200,0,5e6,100,-100,900}; 
-  double evadcbins[6]={200,0,5e6,100,0,500}; 
-  double evtimebins[6]={200,0,5e6,200,-10,10}; 
+double tdcbins[3]={5000,0,2e6};
+double adcbins[3]={4096,-0.5,4095.5};
+double mtdcbins[3]={2000,0,2000};
+double diffbins[3]={2000,-1e5,1e5};
+double debins[3]={5000,-2,48};
+double debins2[3]={1000,-100,900};
+double deudbins[6]={100,-2,18,100,-2,18};
+double sumbins[3]={4096*4,-0.5,4096*4-0.5};
+double evmulbins[6]={200,0,5e6,11,-0.5,10.5};
+double evudbins[6]={200,0,5e6,21,-10.5,10.5};
+double evdebins[6]={200,0,5e6,200,-2,18};
+double evdebins2[6]={200,0,5e6,100,-100,900};
+double evadcbins[6]={200,0,5e6,100,0,500};
+double evtimebins[6]={200,0,5e6,200,-10,10};
 }
 
-//______________________________________________________________________________
-bool
-EventBeam::ProcessingBegin( void )
+//_____________________________________________________________________________
+Bool_t
+ProcessBegin()
 {
-  InitializeEvent();
   event_number=gUnpacker.get_event_number();
   return true;
 }
 
-//______________________________________________________________________________
-bool
-EventBeam::ProcessingNormal( void )
+//_____________________________________________________________________________
+Bool_t
+ProcessNormal()
 {
 #if DEBUG
   std::cout << __FILE__ << " " << __LINE__ << std::endl;
 #endif
-  rawData = new RawData;
-  rawData->DecodeHits();
-  hodoAna->DecodeRawHits( rawData );
-  MTDCAna->DecodeRawHits( rawData );
-  bool BEAM  = MTDCAna->flag(kBeam);
-  bool KAON2 = MTDCAna->flag(kKaon2);
-  bool KAON3 = MTDCAna->flag(kKaon3);
-  bool KCDH1 = MTDCAna->flag(kKCDH1);
-  //  bool DEUTERON = MTDCAna->flag(kDeteuteron);
-  bool DEUTERON = MTDCAna->flag(15);
 
-  bool TOFK=false, TOFPi=false, TOFP=false, TOFD=false;
-  bool ACHIT=false;
-  bool VETO=false;
+  RawData rawData;
+  rawData.DecodeHits();
+
+  HodoAnalyzer hodoAna(rawData);
+  hodoAna.DecodeRawHits();
+
+  MTDCAnalyzer MTDCAna(rawData);
+  MTDCAna.DecodeRawHits();
+
+  Bool_t BEAM  = MTDCAna.flag(kBeam);
+  Bool_t KAON2 = MTDCAna.flag(kKaon2);
+  Bool_t KAON3 = MTDCAna.flag(kKaon3);
+  Bool_t KCDH1 = MTDCAna.flag(kKCDH1);
+  //  Bool_t DEUTERON = MTDCAna.flag(kDeteuteron);
+  Bool_t DEUTERON = MTDCAna.flag(15);
+
+  Bool_t TOFK=false, TOFPi=false, TOFP=false, TOFD=false;
+  Bool_t ACHIT=false;
+  Bool_t VETO=false;
 
   // Time0
   double time0=-9999;
-  double ctime0=-9999;  
+  double ctime0=-9999;
   {
     int cid=DetIdT0new;
-    int nh = hodoAna->GetNHits(cid);
+    int nh = hodoAna.GetNHits(cid);
     for( int i=0; i<nh; ++i ){
-      Hodo2Hit *hit = hodoAna->GetHit(cid,i);
+      Hodo2Hit *hit = hodoAna.GetHit(cid,i);
       if(!hit) continue;
       int nind=hit->GetIndex();
       for(int it=0;it<nind;it++){
 	double mt  = hit->MeanTime(it);
 	if(gUser.Check("Time0",mt)){
-	  time0=mt; 
+	  time0=mt;
 	  ctime0=hit->CMeanTime(it);
 	}
       }
@@ -173,9 +128,9 @@ EventBeam::ProcessingNormal( void )
   // K/pi by BHD MeanTime
   {
     int cid=DetIdBHT;
-    int nh = hodoAna->GetNHits(cid);
+    int nh = hodoAna.GetNHits(cid);
     for( int i=0; i<nh; ++i ){
-      Hodo2Hit *hit = hodoAna->GetHit(cid,i);
+      Hodo2Hit *hit = hodoAna.GetHit(cid,i);
       if(!hit) continue;
       int nind=hit->GetIndex();
       for(int it=0;it<nind;it++){
@@ -190,14 +145,14 @@ EventBeam::ProcessingNormal( void )
   // AC
   {
     int cid=DetIdAC;
-    const HodoRHitContainer &cont = rawData->GetHodoRawHC(cid);
+    const HodoRHitContainer &cont = rawData.GetHodoRawHC(cid);
     int nh = cont.size();
     TString tmpname="AC";
     for( int i=0; i<nh; ++i ){
       HodoRawHit *raw = cont[i];
       if(!raw) continue;
       int ntu=raw->GetSizeTdcUp();
-      for(int it=0;it<ntu;it++){   
+      for(int it=0;it<ntu;it++){
 	double tu  = raw->GetTdcUp(it);
 	if(gUser.Check("ACTDC",tu)) ACHIT=true;
 	hist::H1(tmpname+"_TDC",tu,tdcbins);
@@ -210,7 +165,7 @@ EventBeam::ProcessingNormal( void )
   if(BEAM) trig_add.push_back("ifB");
   if(BEAM&&ACHIT) trig_add.push_back("ifPi");
   if(TOFD&&!ACHIT)  trig_add.push_back("ifD");
-  if(TOFP&&!ACHIT)  trig_add.push_back("ifP");  
+  if(TOFP&&!ACHIT)  trig_add.push_back("ifP");
   if(KAON2) trig_add.push_back("ifK2");
   //  if(KAON3) trig_add.push_back("ifK");
   //  if(KCDH1) trig_add.push_back("ifKCDH");
@@ -230,7 +185,7 @@ EventBeam::ProcessingNormal( void )
 
     // rawhit
     int mulu=0,muld=0;
-    const HodoRHitContainer &cont = rawData->GetHodoRawHC(cid);
+    const HodoRHitContainer &cont = rawData.GetHodoRawHC(cid);
     int nh = cont.size();
     std::vector<int> hitsegu;
     std::vector<int> hitsegd;
@@ -247,7 +202,7 @@ EventBeam::ProcessingNormal( void )
       int ntd    =raw->GetSizeTdcDown();
       int ngateu=0;
       int ngated=0;
-      for(int it=0;it<ntu;it++){ 
+      for(int it=0;it<ntu;it++){
 	double tu  = raw->GetTdcUp(it);
 	hist::H1(name+"_TDCu"+segstr,tu,tdcbins);
 	if(it+1<ntu)
@@ -260,7 +215,7 @@ EventBeam::ProcessingNormal( void )
 	  ngateu++;
 	}
       }
-      for(int it=0;it<ntd;it++){   
+      for(int it=0;it<ntd;it++){
 	double td  = raw->GetTdcDown(it);
 	hist::H1(name+"_TDCd"+segstr,td,tdcbins);
 	if(it+1<ntd)
@@ -275,7 +230,7 @@ EventBeam::ProcessingNormal( void )
 	double dttotbins[6]={200,1e6,1.4e6,200,0,1e5};
 	int nau = raw->GetSizeAdcUp();
 	int nad = raw->GetSizeAdcDown();
-	for(int it=0;it<ntu;it++){ 
+	for(int it=0;it<ntu;it++){
 	  double tu  = raw->GetTdcUp(it);
 	  if(it<nau){
 	    double au  = raw->GetAdcUp(it);
@@ -285,7 +240,7 @@ EventBeam::ProcessingNormal( void )
 	    hist::H2(name+"_Seg_TOTu",seg,tu-au,segtotbins);
 	  }
 	}
-	for(int it=0;it<ntd;it++){ 
+	for(int it=0;it<ntd;it++){
 	  double td  = raw->GetTdcDown(it);
 	  if(it<nad){
 	    double ad  = raw->GetAdcDown(it);
@@ -343,20 +298,20 @@ EventBeam::ProcessingNormal( void )
     // raw hit done
     // Decoded hit
     int mul=0,mulgate=0;
-    nh = hodoAna->GetNHits(cid);
-    bool TDCHIT=false;
+    nh = hodoAna.GetNHits(cid);
+    Bool_t TDCHIT=false;
     for( int i=0; i<nh; ++i ){
-      Hodo2Hit *hit = hodoAna->GetHit(cid,i);
+      Hodo2Hit *hit = hodoAna.GetHit(cid,i);
       if(!hit) continue;
       int seg = hit->SegmentId();
       TString segstr=Form("_seg%d",seg);
       int nind= hit->GetIndex();
       hist::H1(name+"_Mul"+segstr,nind,mulbins2);
       hist::H2(name+"_Mul_pat",seg,nind,patbins,mulbins2);
-      if(nind>0){ 
-	hist::H1(name+"_Pat",seg,patbins);  
-	mul++; 
-      }      
+      if(nind>0){
+	hist::H1(name+"_Pat",seg,patbins);
+	mul++;
+      }
       int idx=-1;
       for(int ii=0;ii<nind;ii++){
 	double mt  = hit->MeanTime(ii);
@@ -391,8 +346,8 @@ EventBeam::ProcessingNormal( void )
 	TDCHIT=true;
 	idx=ii;
 	mulgate++;
-	hodoseg[ihodo]=seg;  
-	hodotime[ihodo]=mt;     
+	hodoseg[ihodo]=seg;
+	hodotime[ihodo]=mt;
       } // nindex
       if(cid==DetIdBHT && idx<0) continue;
       double demin=-1,demax=49,demax2=19;
@@ -400,14 +355,14 @@ EventBeam::ProcessingNormal( void )
       double ad = hit->GetRawHit()->GetAdcDown();
       double de = hit->DeltaE();
       double deu = hit->GetAUp();
-      double ded = hit->GetADown();	
+      double ded = hit->GetADown();
       if(cid==DetIdBHT){
 	demin=0;demax=1e5;demax2=2e4;
 	// au = hit->GetAUp(idx);
 	// ad = hit->GetADown(idx);
 	// de = hit->DeltaCE(idx);
 	// deu = hit->GetCAUp(idx);
-	// ded = hit->GetCADown(idx);	
+	// ded = hit->GetCADown(idx);
       }
       double tmpdebins[3]={1000,demin,demax};
       double tmpdeudbins[6]={100,demin,demax2,100,demin,demax2};
@@ -432,7 +387,7 @@ EventBeam::ProcessingNormal( void )
 	if(cid==DetIdBHT || cid==DetIdCDH) continue;
 	hist::H2("Run_"+name+"_dEuwB"+segstr,run_number,deu,400,100,900,100,demin,demax2);
 	hist::H2("Run_"+name+"_dEdwB"+segstr,run_number,ded,400,100,900,100,demin,demax2);
-      }	
+      }
     }//for(ihit)
     hist::H1(name+"_Mul",mul ,mulbins);
     hist::H1(name+"_Mulgate",mulgate,mulbins);
@@ -453,9 +408,9 @@ EventBeam::ProcessingNormal( void )
       double mulbins2[3]={10,-0.5,9.5};
       int mul=0;
       int adcsum=0;
-      int nh = hodoAna->GetNHits(cid);
+      int nh = hodoAna.GetNHits(cid);
       for( int i=0; i<nh; ++i ){
-	Hodo1Hit *hit = hodoAna->Get1Hit(cid,i);
+	Hodo1Hit *hit = hodoAna.Get1Hit(cid,i);
 	HodoRawHit *raw = hit->GetRawHit();
 	if(!raw) continue;
 	int seg  = raw->SegmentId();
@@ -468,12 +423,12 @@ EventBeam::ProcessingNormal( void )
 	int ntu=raw->GetSizeTdcUp();
 	hist::H1(tmpname+"_Mul"+segstr,ntu,mulbins2);
 	int ngate=0;
-	for(int it=0;it<ntu;it++){   
+	for(int it=0;it<ntu;it++){
 	  double tu  = raw->GetTdcUp(it);
 	  hist::H1(tmpname+"_TDC"+segstr,tu,tdcbins);
 	  if(gUser.Check("HODOTDC",tu)){
 	    ngate++;
-	  }	  
+	  }
 	}
 	if(ngate>0){
 	  mul++;
@@ -492,60 +447,49 @@ EventBeam::ProcessingNormal( void )
       }//for(i)
       hist::H1(tmpname+"_Mul"    ,mul,mulbins);
       hist::H1(tmpname+"_ADC_sum",adcsum,sumbins);
-    }  
+    }
   }
 #if DEBUG
   std::cout << __FILE__ << " " << __LINE__ << std::endl;
-#endif  
+#endif
   return true;
 }
 
-//______________________________________________________________________________
-bool
-EventBeam::ProcessingEnd( void )
+//_____________________________________________________________________________
+Bool_t
+ProcessEnd()
 {
   return true;
 }
 
-//______________________________________________________________________________
-void
-EventBeam::InitializeEvent( void )
+//_____________________________________________________________________________
+Bool_t
+ConfMan::InitializeHistograms()
 {
-}
-
-//______________________________________________________________________________
-VEvent*
-ConfMan::EventAllocator( void )
-{
-  return new EventBeam;
-}
-//______________________________________________________________________________
-bool
-ConfMan::InitializeHistograms( void )
-{  
   return true;
 }
 
-//______________________________________________________________________________
-bool
-ConfMan::InitializeParameterFiles( void )
+//_____________________________________________________________________________
+Bool_t
+ConfMan::InitializeParameterFiles()
 {
-  return 
+  return
     ( InitializeParameter<HodoParamMan>("HDPRM","CDSPRM") ) &&
     ( InitializeParameter<HodoPHCMan>  ("HDPHC","CDSPHC") ) &&
     ( InitializeParameter<UserParamMan>("USER") ) ;
 }
 
-//______________________________________________________________________________
-bool
+//_____________________________________________________________________________
+Bool_t
 ConfMan::BeginRunProcess()
 {
   run_number = get_run_number();
   return true;
 }
-//______________________________________________________________________________
-bool
-ConfMan::FinalizeProcess( void )
+
+//_____________________________________________________________________________
+Bool_t
+ConfMan::FinalizeProcess()
 {
   return true;
 }

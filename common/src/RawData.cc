@@ -1,8 +1,4 @@
-/**
- *  file: RawData.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "RawData.hh"
 
@@ -28,343 +24,343 @@
 
 namespace
 {
-  using namespace hddaq::unpacker;
-  const std::string& class_name("RawData");
-  const UnpackerManager& gUnpacker = GUnpacker::get_instance();
-  //  const UserParamMan&    gUser     = UserParamMan::GetInstance();
-  enum EUorD { kOneSide=1, kBothSide=2 };
-  enum EDCDataType { kLeading, kTrailing, kNDCDataType };
+using namespace hddaq::unpacker;
+const std::string& class_name("RawData");
+const UnpackerManager& gUnpacker = GUnpacker::get_instance();
+//  const UserParamMan&    gUser     = UserParamMan::GetInstance();
+enum EUorD { kOneSide=1, kBothSide=2 };
+enum EDCDataType { kLeading, kTrailing, kNDCDataType };
 #if OscillationCut
-  const int  MaxMultiHitDC  = 16;
+const int  MaxMultiHitDC  = 16;
 #endif
-  
-  //______________________________________________________________________________
-  inline bool
-  AddHodoRawHit( HodoRHitContainer& cont,
-		 int id, int plane, int seg, int UorD, int AorT, int data, bool DEBUG=false )
-  {
-    static const std::string func_name("["+class_name+"::"+__func__+"()]");
-    
-    HodoRawHit *p = 0;
-    for( std::size_t i=0, n=cont.size(); i<n; ++i ){
-      HodoRawHit *q = cont[i];
-      if( q->DetectorId()==id &&
-	  q->PlaneId()==plane &&
-	  q->SegmentId()==seg ){
-	if(DEBUG) std::cout<<"add data"<<std::endl;
-	p=q; break;
-      }
-    }
-    if( !p ){
-      p = new HodoRawHit( id, plane, seg );
-      cont.push_back(p);
-      if(DEBUG) std::cout<<"========= new hodorawhit ======="<<std::endl;
-    }
-    if(DEBUG){
-      std::cout   << "DetectorId = " << id    << std::endl
-		  << "PlaneId    = " << plane << std::endl
-		  << "SegId      = " << seg   << std::endl
-		  << "AorT       = " << AorT  << std::endl
-		  << "UorD       = " << UorD  << std::endl;      
-    }
-    switch(AorT){
-    case 0:
-      if( UorD==0 ) p->SetAdcUp(data);
-      else          p->SetAdcDown(data);
-      break;
-    case 1:
-      if( UorD==0 ) p->SetTdcUp(data);
-      else          p->SetTdcDown(data);
-      break;
-    default:
-      hddaq::cerr << func_name << " wrong AorT " << std::endl
-		  << "DetectorId = " << id    << std::endl
-		  << "PlaneId    = " << plane << std::endl
-		  << "SegId      = " << seg   << std::endl
-		  << "AorT       = " << AorT  << std::endl
-		  << "UorD       = " << UorD  << std::endl;
-      return false;
-    }
-    return true;
-  }
-  //______________________________________________________________________________
-  inline bool
-  AddSDDRawHit( SDDRHitContainer& cont,
-		int id, int port, int unit, int type, int data )
-  {
-    static const std::string func_name("["+class_name+"::"+__func__+"()]");    
-    SDDRawHit *p = 0;
-    for( std::size_t i=0, n=cont.size(); i<n; ++i ){
-      SDDRawHit *q = cont[i];
-      if(q->PortId()==port && q->UnitId()==unit ){
-	p=q; break;
-      }
-    }
-    if( !p ){
-      p = new SDDRawHit( id, port, unit );
-      cont.push_back(p);
-    }
-    switch(type){
-    case 0:
-    case 1:
-    case 2:
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 7:
-      p->SetAdc(type,data);
-      break;
-    case 8:
-      p->SetLeading(data);
-      break;
-    case 9:
-      p->SetTrailing(data);
-      break;
-    case 11:
-      p->SetResetLeading(data);
-      break;
-    case 12:
-      p->SetResetTrailing(data);
-      break;
-    default:
-      return false;
-    }
-    return true;
-  }
-  //______________________________________________________________________________
-  inline bool
-  AddACRawHit( HodoRHitContainer& cont,
-	       int id, int plane, int seg, int type, int data, bool DEBUG=false )
-  {
-    static const std::string func_name("["+class_name+"::"+__func__+"()]");
-    
-    HodoRawHit *p = 0;
-    for( std::size_t i=0, n=cont.size(); i<n; ++i ){
-      HodoRawHit *q = cont[i];
-      if( q->DetectorId()==id &&
-	  q->PlaneId()==plane &&
-	  q->SegmentId()==seg ){
-	p=q; break;
-      }
-    }
-    if( !p ){
-      p = new HodoRawHit( id, plane, seg );
-      cont.push_back(p);
-    }
-    switch(type){
-    case 0:
-    case 1:
-    case 2:
-    case 3:
-      p->SetAdcUp(data);
-      break;
-    case 4:
-      p->SetTdcUp(data);
-      break;
-    default:
-      hddaq::cerr << func_name << " wrong type " << std::endl
-		  << "DetectorId = " << id    << std::endl
-		  << "PlaneId    = " << plane << std::endl
-		  << "SegId      = " << seg   << std::endl
-		  << "type       = " << type  << std::endl;
-      return false;
-    }
-    return true;
-  }
-  //______________________________________________________________________________
-  inline bool
-  AddDCRawHit( DCRHitContainer& cont,
-	       int plane, int wire, int tdc, int type=kLeading )
-  {
-    static const std::string func_name("["+class_name+"::"+__func__+"()]");
-    DCRawHit *p = 0;
-    for( std::size_t i=0, n=cont.size(); i<n; ++i ){
-      DCRawHit *q = cont[i];
-      if( q->PlaneId()==plane &&
-	  q->WireId()==wire ){
-	p=q; break;
-      }
-    }
-    if( !p ){
-      p = new DCRawHit( plane, wire );
-      cont.push_back(p);
-    }
 
-    switch(type){
-    case kLeading:
-      p->SetTdc(tdc);
-      break;
-    case kTrailing:
-      p->SetTrailing(tdc);
-      break;
-    default:
-      hddaq::cerr << func_name << " wrong data type " << std::endl
-		  << "PlaneId    = " << plane << std::endl
-		  << "WireId     = " << wire  << std::endl
-		  << "DataType   = " << type  << std::endl;
-      return false;
+//______________________________________________________________________________
+inline bool
+AddHodoRawHit( HodoRHitContainer& cont,
+               int id, int plane, int seg, int UorD, int AorT, int data, bool DEBUG=false )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+  HodoRawHit *p = 0;
+  for( std::size_t i=0, n=cont.size(); i<n; ++i ){
+    HodoRawHit *q = cont[i];
+    if( q->DetectorId()==id &&
+        q->PlaneId()==plane &&
+        q->SegmentId()==seg ){
+      if(DEBUG) std::cout<<"add data"<<std::endl;
+      p=q; break;
     }
-    return true;
+  }
+  if( !p ){
+    p = new HodoRawHit( id, plane, seg );
+    cont.push_back(p);
+    if(DEBUG) std::cout<<"========= new hodorawhit ======="<<std::endl;
+  }
+  if(DEBUG){
+    std::cout   << "DetectorId = " << id    << std::endl
+                << "PlaneId    = " << plane << std::endl
+                << "SegId      = " << seg   << std::endl
+                << "AorT       = " << AorT  << std::endl
+                << "UorD       = " << UorD  << std::endl;
+  }
+  switch(AorT){
+  case 0:
+    if( UorD==0 ) p->SetAdcUp(data);
+    else          p->SetAdcDown(data);
+    break;
+  case 1:
+    if( UorD==0 ) p->SetTdcUp(data);
+    else          p->SetTdcDown(data);
+    break;
+  default:
+    hddaq::cerr << func_name << " wrong AorT " << std::endl
+                << "DetectorId = " << id    << std::endl
+                << "PlaneId    = " << plane << std::endl
+                << "SegId      = " << seg   << std::endl
+                << "AorT       = " << AorT  << std::endl
+                << "UorD       = " << UorD  << std::endl;
+    return false;
+  }
+  return true;
+}
+//______________________________________________________________________________
+inline bool
+AddSDDRawHit( SDDRHitContainer& cont,
+              int id, int port, int unit, int type, int data )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  SDDRawHit *p = 0;
+  for( std::size_t i=0, n=cont.size(); i<n; ++i ){
+    SDDRawHit *q = cont[i];
+    if(q->PortId()==port && q->UnitId()==unit ){
+      p=q; break;
+    }
+  }
+  if( !p ){
+    p = new SDDRawHit( id, port, unit );
+    cont.push_back(p);
+  }
+  switch(type){
+  case 0:
+  case 1:
+  case 2:
+  case 3:
+  case 4:
+  case 5:
+  case 6:
+  case 7:
+    p->SetAdc(type,data);
+    break;
+  case 8:
+    p->SetLeading(data);
+    break;
+  case 9:
+    p->SetTrailing(data);
+    break;
+  case 11:
+    p->SetResetLeading(data);
+    break;
+  case 12:
+    p->SetResetTrailing(data);
+    break;
+  default:
+    return false;
+  }
+  return true;
+}
+//______________________________________________________________________________
+inline bool
+AddACRawHit( HodoRHitContainer& cont,
+             int id, int plane, int seg, int type, int data, bool DEBUG=false )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+  HodoRawHit *p = 0;
+  for( std::size_t i=0, n=cont.size(); i<n; ++i ){
+    HodoRawHit *q = cont[i];
+    if( q->DetectorId()==id &&
+        q->PlaneId()==plane &&
+        q->SegmentId()==seg ){
+      p=q; break;
+    }
+  }
+  if( !p ){
+    p = new HodoRawHit( id, plane, seg );
+    cont.push_back(p);
+  }
+  switch(type){
+  case 0:
+  case 1:
+  case 2:
+  case 3:
+    p->SetAdcUp(data);
+    break;
+  case 4:
+    p->SetTdcUp(data);
+    break;
+  default:
+    hddaq::cerr << func_name << " wrong type " << std::endl
+                << "DetectorId = " << id    << std::endl
+                << "PlaneId    = " << plane << std::endl
+                << "SegId      = " << seg   << std::endl
+                << "type       = " << type  << std::endl;
+    return false;
+  }
+  return true;
+}
+//______________________________________________________________________________
+inline bool
+AddDCRawHit( DCRHitContainer& cont,
+             int plane, int wire, int tdc, int type=kLeading )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  DCRawHit *p = 0;
+  for( std::size_t i=0, n=cont.size(); i<n; ++i ){
+    DCRawHit *q = cont[i];
+    if( q->PlaneId()==plane &&
+        q->WireId()==wire ){
+      p=q; break;
+    }
+  }
+  if( !p ){
+    p = new DCRawHit( plane, wire );
+    cont.push_back(p);
   }
 
-  //______________________________________________________________________________
-  inline bool
-  AddMTDCRawHit( MTDCRHitContainer& cont,
-		 int id, int seg, int type, int data )
-  {
-    static const std::string func_name("["+class_name+"::"+__func__+"()]");
-    MTDCRawHit *p = 0;
-    for( std::size_t i=0, n=cont.size(); i<n; ++i ){
-      MTDCRawHit *q = cont[i];
-      if(q->SegmentId()==seg ){
-	p=q; break;
-      }
-    }
-    if( !p ){
-      p = new MTDCRawHit( id, 0, seg );
-      cont.push_back(p);
-    }
-    
-    switch(type){
-    case kLeading:
-      p->SetLeading(data);
-      break;
-    case kTrailing:
-      p->SetTrailing(data);
-      break;
-    default:
-      hddaq::cerr << func_name << " wrong data type " << std::endl
-		  << "SegmentId  = " << seg  << std::endl
-		  << "DataType   = " << type  << std::endl;
-      return false;
-    }
-    return true;
+  switch(type){
+  case kLeading:
+    p->SetTdc(tdc);
+    break;
+  case kTrailing:
+    p->SetTrailing(tdc);
+    break;
+  default:
+    hddaq::cerr << func_name << " wrong data type " << std::endl
+                << "PlaneId    = " << plane << std::endl
+                << "WireId     = " << wire  << std::endl
+                << "DataType   = " << type  << std::endl;
+    return false;
   }
-
-  //______________________________________________________________________________
-  inline void
-  DecodeHodo( int id, int plane, int nseg, int nch, HodoRHitContainer& cont, bool DEBUG=false )
-  {
-    for( int seg=0; seg<nseg; ++seg ){
-      for( int UorD=0; UorD<nch; ++UorD ){
-	for( int AorT=0; AorT<2; ++AorT ){
-	  int nhit = gUnpacker.get_entries( id, plane, seg, UorD, AorT );
-	  if( nhit<=0 ) continue;
-	  for(int ihit=0;ihit<nhit;++ihit){
-	    int data = gUnpacker.get( id, plane, seg, UorD, AorT, ihit );
-	    AddHodoRawHit( cont, id, plane, seg, UorD, AorT, data, DEBUG );
-	  }
-	}
-      }
-    }
-  }
-  //______________________________________________________________________________
-  inline void
-  DecodeBHT( int id, int plane, int nseg, int nch, HodoRHitContainer& cont, bool DEBUG=false )
-  {
-    for( int seg=0; seg<nseg; ++seg ){
-      for( int UorD=0; UorD<nch; ++UorD ){
-	int nhit = gUnpacker.get_entries( id, plane, seg, UorD, kLeading ); //leading
-	if( nhit<=0 ) continue;
-	for(int ihit=0;ihit<nhit;++ihit){
-	  int data = gUnpacker.get( id, plane, seg, UorD, kLeading, ihit );
-	  AddHodoRawHit( cont, id, plane, seg, UorD, 1, data, DEBUG );
-	}
-	nhit = gUnpacker.get_entries( id, plane, seg, UorD, kTrailing ); //trailing
-	if( nhit<=0 ) continue;
-	for(int ihit=0;ihit<nhit;++ihit){
-	  int data = gUnpacker.get( id, plane, seg, UorD, kTrailing, ihit );
-	  AddHodoRawHit( cont, id, plane, seg, UorD, 0, data, DEBUG );
-	}
-      }
-    }
-  }
-  //______________________________________________________________________________
-  inline void
-  DecodeSDD( int id, int nport, SDDRHitContainer& cont )
-  {
-    for( int port=0; port<nport; ++port ){
-      for( int unit=0; unit<4; ++unit ){
-	for( int type=0; type<14; ++type ){
-	  int nhit = gUnpacker.get_entries( id, port, 0, unit, type );
-	  if( nhit<=0 ) continue;
-	  for(int ihit=0;ihit<nhit;++ihit){
-	    int data = gUnpacker.get(id, port, 0, unit,  type, ihit );
-	    AddSDDRawHit( cont, id, port, unit ,type, data );
-	  }
-	}
-      }
-    }
-  }
-  inline void
-  DecodeAC( int id, int nadc, HodoRHitContainer& cont )
-  {
-    for( int type=0; type<nadc+1; ++type ){
-      int nhit = gUnpacker.get_entries( id, 0, 0, 0, type );
-      if( nhit<=0 ) continue;
-      for(int ihit=0;ihit<nhit;++ihit){
-	int data = gUnpacker.get(id, 0, 0, 0,  type, ihit );
-	AddACRawHit( cont, id, 0, 0 ,type, data );
-      }
-    }
-  }
-  //______________________________________________________________________________
-  inline void
-  DecodeMTDC( int id, int nseg, MTDCRHitContainer& cont )
-  {
-    for( int seg=0; seg<nseg; ++seg ){
-      for( int type=0; type<2; ++type ){
-	int nhit = gUnpacker.get_entries( id, 0, seg, 0, type );
-	//	std::cout<<"DecodeMTDC  "<<id<<"  "<<seg<<"  "<<type<<"  "<<nhit<<std::endl;
-	if( nhit<=0 ) continue;
-	for(int ihit=0;ihit<nhit;++ihit){
-	  int data = gUnpacker.get(id, 0, seg, 0, type, ihit );
-	  AddMTDCRawHit( cont, id, seg,type, data );
-	}
-      }
-    }
-  }
-  //______________________________________________________________________________
-  inline void
-  DecodeDC( int id, int layer, int nwire, DCRHitContainer& cont)
-  {
-    for(int wire=0; wire<nwire; ++wire){
-#ifndef E62 // large BPC
-      //      if(id==DetIdBPC&&(wire<6||wire>25)) continue;
-#endif
-      int nhit = gUnpacker.get_entries( id, layer, 0, wire, 0 );
-#if OscillationCut
-      if( nhit>MaxMultiHitDC ) continue;
-#endif
-      for(int i=0; i<nhit; i++ ){
-	int data = gUnpacker.get( id, layer, 0, wire, 0, i);
-	//	if(id==DetIdVFT) std::cout<<id<<"  "<<layer<<"  "<<wire<<"  "<<i<<"  "<<data<<std::endl;
-	//	if( data<tdcmin || tdcmax<data ) continue;
-	AddDCRawHit( cont, layer, wire, data );
-      }
-      // trailing edge
-      nhit = gUnpacker.get_entries( id, layer, 0, wire, 1 );
-      for(int i=0; i<nhit; i++ ){
-	int data = gUnpacker.get( id, layer, 0, wire, 1, i);
-	//	if(id==DetIdFDC) std::cout<<id<<"  "<<layer<<"  "<<wire<<"  "<<i<<"  "<<data<<std::endl;
-	//	if( data<tdcmin || tdcmax<data ) continue;
-	AddDCRawHit( cont, layer, wire, data, kTrailing );
-      }
-    }
-  }
-  
-  //______________________________________________________________________________
-  inline void
-  DecodeHodo( int id, int nseg, int nch, HodoRHitContainer& cont )
-  {
-    DecodeHodo( id, 0, nseg, nch, cont );
-  }
-  
+  return true;
 }
 
 //______________________________________________________________________________
-RawData::RawData( void )
+inline bool
+AddMTDCRawHit( MTDCRHitContainer& cont,
+               int id, int seg, int type, int data )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  MTDCRawHit *p = 0;
+  for( std::size_t i=0, n=cont.size(); i<n; ++i ){
+    MTDCRawHit *q = cont[i];
+    if(q->SegmentId()==seg ){
+      p=q; break;
+    }
+  }
+  if( !p ){
+    p = new MTDCRawHit( id, 0, seg );
+    cont.push_back(p);
+  }
+
+  switch(type){
+  case kLeading:
+    p->SetLeading(data);
+    break;
+  case kTrailing:
+    p->SetTrailing(data);
+    break;
+  default:
+    hddaq::cerr << func_name << " wrong data type " << std::endl
+                << "SegmentId  = " << seg  << std::endl
+                << "DataType   = " << type  << std::endl;
+    return false;
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+inline void
+DecodeHodo( int id, int plane, int nseg, int nch, HodoRHitContainer& cont, bool DEBUG=false )
+{
+  for( int seg=0; seg<nseg; ++seg ){
+    for( int UorD=0; UorD<nch; ++UorD ){
+      for( int AorT=0; AorT<2; ++AorT ){
+        int nhit = gUnpacker.get_entries( id, plane, seg, UorD, AorT );
+        if( nhit<=0 ) continue;
+        for(int ihit=0;ihit<nhit;++ihit){
+          int data = gUnpacker.get( id, plane, seg, UorD, AorT, ihit );
+          AddHodoRawHit( cont, id, plane, seg, UorD, AorT, data, DEBUG );
+        }
+      }
+    }
+  }
+}
+//______________________________________________________________________________
+inline void
+DecodeBHT( int id, int plane, int nseg, int nch, HodoRHitContainer& cont, bool DEBUG=false )
+{
+  for( int seg=0; seg<nseg; ++seg ){
+    for( int UorD=0; UorD<nch; ++UorD ){
+      int nhit = gUnpacker.get_entries( id, plane, seg, UorD, kLeading ); //leading
+      if( nhit<=0 ) continue;
+      for(int ihit=0;ihit<nhit;++ihit){
+        int data = gUnpacker.get( id, plane, seg, UorD, kLeading, ihit );
+        AddHodoRawHit( cont, id, plane, seg, UorD, 1, data, DEBUG );
+      }
+      nhit = gUnpacker.get_entries( id, plane, seg, UorD, kTrailing ); //trailing
+      if( nhit<=0 ) continue;
+      for(int ihit=0;ihit<nhit;++ihit){
+        int data = gUnpacker.get( id, plane, seg, UorD, kTrailing, ihit );
+        AddHodoRawHit( cont, id, plane, seg, UorD, 0, data, DEBUG );
+      }
+    }
+  }
+}
+//______________________________________________________________________________
+inline void
+DecodeSDD( int id, int nport, SDDRHitContainer& cont )
+{
+  for( int port=0; port<nport; ++port ){
+    for( int unit=0; unit<4; ++unit ){
+      for( int type=0; type<14; ++type ){
+        int nhit = gUnpacker.get_entries( id, port, 0, unit, type );
+        if( nhit<=0 ) continue;
+        for(int ihit=0;ihit<nhit;++ihit){
+          int data = gUnpacker.get(id, port, 0, unit,  type, ihit );
+          AddSDDRawHit( cont, id, port, unit ,type, data );
+        }
+      }
+    }
+  }
+}
+inline void
+DecodeAC( int id, int nadc, HodoRHitContainer& cont )
+{
+  for( int type=0; type<nadc+1; ++type ){
+    int nhit = gUnpacker.get_entries( id, 0, 0, 0, type );
+    if( nhit<=0 ) continue;
+    for(int ihit=0;ihit<nhit;++ihit){
+      int data = gUnpacker.get(id, 0, 0, 0,  type, ihit );
+      AddACRawHit( cont, id, 0, 0 ,type, data );
+    }
+  }
+}
+//______________________________________________________________________________
+inline void
+DecodeMTDC( int id, int nseg, MTDCRHitContainer& cont )
+{
+  for( int seg=0; seg<nseg; ++seg ){
+    for( int type=0; type<2; ++type ){
+      int nhit = gUnpacker.get_entries( id, 0, seg, 0, type );
+      //	std::cout<<"DecodeMTDC  "<<id<<"  "<<seg<<"  "<<type<<"  "<<nhit<<std::endl;
+      if( nhit<=0 ) continue;
+      for(int ihit=0;ihit<nhit;++ihit){
+        int data = gUnpacker.get(id, 0, seg, 0, type, ihit );
+        AddMTDCRawHit( cont, id, seg,type, data );
+      }
+    }
+  }
+}
+//______________________________________________________________________________
+inline void
+DecodeDC( int id, int layer, int nwire, DCRHitContainer& cont)
+{
+  for(int wire=0; wire<nwire; ++wire){
+#ifndef E62 // large BPC
+    //      if(id==DetIdBPC&&(wire<6||wire>25)) continue;
+#endif
+    int nhit = gUnpacker.get_entries( id, layer, 0, wire, 0 );
+#if OscillationCut
+    if( nhit>MaxMultiHitDC ) continue;
+#endif
+    for(int i=0; i<nhit; i++ ){
+      int data = gUnpacker.get( id, layer, 0, wire, 0, i);
+      //	if(id==DetIdVFT) std::cout<<id<<"  "<<layer<<"  "<<wire<<"  "<<i<<"  "<<data<<std::endl;
+      //	if( data<tdcmin || tdcmax<data ) continue;
+      AddDCRawHit( cont, layer, wire, data );
+    }
+    // trailing edge
+    nhit = gUnpacker.get_entries( id, layer, 0, wire, 1 );
+    for(int i=0; i<nhit; i++ ){
+      int data = gUnpacker.get( id, layer, 0, wire, 1, i);
+      //	if(id==DetIdFDC) std::cout<<id<<"  "<<layer<<"  "<<wire<<"  "<<i<<"  "<<data<<std::endl;
+      //	if( data<tdcmin || tdcmax<data ) continue;
+      AddDCRawHit( cont, layer, wire, data, kTrailing );
+    }
+  }
+}
+
+//______________________________________________________________________________
+inline void
+DecodeHodo( int id, int nseg, int nch, HodoRHitContainer& cont )
+{
+  DecodeHodo( id, 0, nseg, nch, cont );
+}
+
+}
+
+//______________________________________________________________________________
+RawData::RawData()
   : m_is_decoded(false),
     m_BHDRawHC(),
     m_T0RawHC(),
@@ -428,7 +424,7 @@ RawData::RawData( void )
 }
 
 //______________________________________________________________________________
-RawData::~RawData( void )
+RawData::~RawData()
 {
   ClearAll();
   debug::ObjectCounter::decrease(class_name);
@@ -436,7 +432,7 @@ RawData::~RawData( void )
 
 //______________________________________________________________________________
 void
-RawData::ClearAll( void )
+RawData::ClearAll()
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 
@@ -473,20 +469,20 @@ RawData::ClearAll( void )
   del::ClearContainer( m_PbF2RawHC );
   del::ClearContainer( m_Veto0RawHC );
   del::ClearContainer( m_VetoRawHC );
-  del::ClearContainer( m_BTCRawHC );  
+  del::ClearContainer( m_BTCRawHC );
   del::ClearContainer( m_LeakRawHC );
 #elif T98
   del::ClearContainer( m_PbGRawHC );
   del::ClearContainer( m_PbF2RawHC );
   del::ClearContainer( m_VetoRawHC );
-  del::ClearContainer( m_BTCRawHC );  
+  del::ClearContainer( m_BTCRawHC );
   del::ClearContainer( m_RCRawHC );
   del::ClearContainerAll( m_VFTRawHC );
 #elif E73_2024
   del::ClearContainer( m_PbGRawHC );
   del::ClearContainer( m_PbF2RawHC );
   del::ClearContainer( m_VetoRawHC );
-  del::ClearContainer( m_BTCRawHC );  
+  del::ClearContainer( m_BTCRawHC );
   del::ClearContainer( m_CVCRawHC );
   del::ClearContainer( m_NCRawHC );
   del::ClearContainerAll( m_BPC1RawHC );
@@ -500,7 +496,7 @@ RawData::ClearAll( void )
 
 //______________________________________________________________________________
 bool
-RawData::DecodeMTDCHits( void )
+RawData::DecodeMTDCHits()
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
   del::ClearContainer( m_TrigRawHC );
@@ -509,7 +505,7 @@ RawData::DecodeMTDCHits( void )
 }
 //______________________________________________________________________________
 bool
-RawData::DecodeHits( void )
+RawData::DecodeHits()
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
   if( m_is_decoded ){
@@ -527,7 +523,7 @@ RawData::DecodeHits( void )
 }
 //______________________________________________________________________________
 bool
-RawData::DecodeHodoHits( void )
+RawData::DecodeHodoHits()
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 #if T98
@@ -583,7 +579,7 @@ RawData::DecodeHodoHits( void )
 }
 //______________________________________________________________________________
 bool
-RawData::DecodeDCHits( void )
+RawData::DecodeDCHits()
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
   for(int i=0;i<8;i++){
@@ -597,29 +593,29 @@ RawData::DecodeDCHits( void )
     if(i<6){
       DecodeDC( DetIdFDC, i, 64, m_FDCRawHC[i] );
     }
-#elif E57 
+#elif E57
     DecodeDC( DetIdBPC2  , i, 32, m_BPC2RawHC[i] );
-#elif E73 
+#elif E73
     DecodeDC( DetIdBPC2  , i, 32, m_BPC2RawHC[i] );
 #elif T98
     DecodeDC( DetIdBPC2  , i, 32, m_BPC2RawHC[i] );
     //    DecodeDC( DetIdBPC2 , i, 15, m_BPC2RawHC[i] );
   }
   for(int i=0;i<14;i++){
-    DecodeDC( DetIdVFT  , i, 64, m_VFTRawHC[i] ); 
+    DecodeDC( DetIdVFT  , i, 64, m_VFTRawHC[i] );
 #elif E73_2024
     DecodeDC( DetIdBPC1 , i, 15, m_BPC1RawHC[i] );
     DecodeDC( DetIdBPC2 , i, 32, m_BPC2RawHC[i] );
   }
   for(int i=0;i<14;i++){
-    DecodeDC( DetIdVFT  , i, 64, m_VFTRawHC[i] ); 
-#endif    
+    DecodeDC( DetIdVFT  , i, 64, m_VFTRawHC[i] );
+#endif
   }
   return true;
 }
 //______________________________________________________________________________
 bool
-RawData::DecodeCDCHits( void )
+RawData::DecodeCDCHits()
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
 #ifdef CDS
@@ -631,7 +627,7 @@ RawData::DecodeCDCHits( void )
 }
 //______________________________________________________________________________
 bool
-RawData::DecodeCalibHits( void )
+RawData::DecodeCalibHits()
 {
   return true;
 }
@@ -659,19 +655,19 @@ RawData::PrintHodo( const int &detid )
     if(!raw) continue;
     int seg = raw->SegmentId();
     double au = raw->GetAdcUp();
-    double ad = raw->GetAdcDown();  
+    double ad = raw->GetAdcDown();
     int ntu = raw->GetSizeTdcUp();
     int ntd = raw->GetSizeTdcDown();
     std::cout<<"[Segment "<<std::setw(2)<<seg<<"]"<<std::endl;
     std::cout<<"   ADCud  :"<<std::setw(8)<<au<<std::setw(8)<<ad<<std::endl;
-    std::cout<<"   TDCup  :["<<std::setw(2)<<ntu<<"]";      
-    for(int it=0;it<ntu;it++){   
+    std::cout<<"   TDCup  :["<<std::setw(2)<<ntu<<"]";
+    for(int it=0;it<ntu;it++){
       int tu  = raw->GetTdcUp(it);
       std::cout<<std::setw(15)<<tu;
     }
     std::cout<<std::endl;
-    std::cout<<"   TDCdown:["<<std::setw(2)<<ntd<<"]";      
-    for(int it=0;it<ntd;it++){   
+    std::cout<<"   TDCdown:["<<std::setw(2)<<ntd<<"]";
+    for(int it=0;it<ntd;it++){
       int td  = raw->GetTdcDown(it);
       std::cout<<std::setw(15)<<td;
     }

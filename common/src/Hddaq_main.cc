@@ -49,13 +49,10 @@ hddaq_main()
   gConf.BeginRun();
 
   for( ; !gUnpacker.eof() && !CatchSignal::Stop(); ++gUnpacker ){
-    VEvent* event = gConf.EventAllocator();
-    bool tmp=event->ProcessingBegin() &&
-      event->ProcessingNormal() &&
-      event->ProcessingEnd();
-    delete event;
+    ProcessBegin();
+    ProcessNormal();
+    ProcessEnd();
     gCounter.check();
-    if(!tmp) break;
   }
   gConf.Finalize();
 

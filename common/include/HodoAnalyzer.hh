@@ -19,16 +19,18 @@ typedef std::vector <BHTHit*> BHTHitContainer;
 class HodoAnalyzer
 {
 public:
-  HodoAnalyzer( void );
-  ~HodoAnalyzer( void );
+  HodoAnalyzer(const RawData& rawData);
+  ~HodoAnalyzer();
 
-  static HodoAnalyzer& GetInstance( void );
+  static HodoAnalyzer& GetInstance();
 
 private:
   HodoAnalyzer( const HodoAnalyzer& );
   HodoAnalyzer& operator =( const HodoAnalyzer& );
 
 private:
+  const RawData* m_raw_data;
+
 #if T98
   BHTHitContainer         m_BHDCont;
 #elif E73_2024
@@ -72,10 +74,10 @@ private:
 #endif
 
 public:
-  bool DecodeRawHits( RawData* rawData );
-  bool DecodeHodoHits(const int &detid, Hodo2HitContainer &m_Cont, RawData *rawData );
-  bool DecodeBHTHits(const int &detid, BHTHitContainer &m_Cont, RawData *rawData );
-  bool DecodeHodo1Hits(const int &detid, Hodo2HitContainer &m_Cont, RawData *rawData );
+  bool DecodeRawHits();
+  bool DecodeHodoHits(const int &detid, Hodo2HitContainer &m_Cont);
+  bool DecodeBHTHits(const int &detid, BHTHitContainer &m_Cont);
+  bool DecodeHodo1Hits(const int &detid, Hodo2HitContainer &m_Cont);
 
   inline int  GetNHits( int detID )  const;
   inline bool AddHit(   int detID, Hodo2Hit* hp );
@@ -83,7 +85,7 @@ public:
 
   inline Hodo1Hit * Get1Hit( int detID, std::size_t i )  const;
   inline Hodo2Hit * GetHit( int detID, std::size_t i )  const;
-  bool ReCalcAll( void );
+  bool ReCalcAll();
 
 };
 

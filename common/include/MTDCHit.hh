@@ -1,8 +1,4 @@
-/**
- *  file: MTDCHit.hh
-x *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef MTDC_HIT_HH
 #define MTDC_HIT_HH
@@ -11,7 +7,7 @@ x *  date: 2017.04.10
 
 class RawData;
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class MTDCHit
 {
 public:
@@ -31,9 +27,9 @@ protected:
   int                  m_index;
 
 public:
-  MTDCRawHit* GetRawHit( void ) { return m_raw; }
-  bool   Calculate( void );
-  bool   IsCalculated( void ) const { return m_is_calculated; }
+  const MTDCRawHit* GetRawHit() const { return m_raw; }
+  bool   Calculate();
+  bool   IsCalculated() const { return m_is_calculated; }
   double GetT( int n=0 )   const { return m_t.at(n); }
   double GetCT( int n=0 )  const { return m_ct.at(n); }
 
@@ -41,10 +37,10 @@ public:
   double CTime( int n=0 )  const { return GetCT(n); }
   int         GetIndex(void)        const { return m_index; }
 
-  int DetectorId( void ) const { return m_raw->DetectorId(); }
-  int UnitId( void )    const { return m_raw->UnitId(); }
-  int SegmentId( void )  const { return m_raw->SegmentId(); }
-  
+  int DetectorId() const { return m_raw->DetectorId(); }
+  int UnitId()    const { return m_raw->UnitId(); }
+  int SegmentId()  const { return m_raw->SegmentId(); }
+
   virtual bool ReCalc( bool applyRecursively=false )
   { return Calculate(); }
 

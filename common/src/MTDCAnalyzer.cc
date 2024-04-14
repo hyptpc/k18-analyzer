@@ -1,8 +1,4 @@
-/**
- *  file: MTDCAnalyzer.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "MTDCAnalyzer.hh"
 
@@ -20,20 +16,21 @@
 
 namespace
 {
-  const std::string& class_name("MTDCAnalyzer");
+const std::string& class_name("MTDCAnalyzer");
 }
 
 #define Cluster 0
 
 //______________________________________________________________________________
-MTDCAnalyzer::MTDCAnalyzer( void )
+MTDCAnalyzer::MTDCAnalyzer(const RawData& rawData)
+  : m_raw_data(&rawData)
 {
   debug::ObjectCounter::increase(class_name);
   for(int i=0;i<32;i++) m_Flag[i]=false;
 }
 
 //______________________________________________________________________________
-MTDCAnalyzer::~MTDCAnalyzer( void )
+MTDCAnalyzer::~MTDCAnalyzer()
 {
   del::ClearContainer( m_TrigCont );
   debug::ObjectCounter::decrease(class_name);
@@ -41,17 +38,17 @@ MTDCAnalyzer::~MTDCAnalyzer( void )
 
 //______________________________________________________________________________
 bool
-MTDCAnalyzer::DecodeRawHits( RawData *rawData )
+MTDCAnalyzer::DecodeRawHits()
 {
-  DecodeMTDCHits( DetIdTrigFlag, m_TrigCont,  rawData );
-  return true;  
+  DecodeMTDCHits( DetIdTrigFlag, m_TrigCont);
+  return true;
 }
 //______________________________________________________________________________
 bool
-MTDCAnalyzer::DecodeMTDCHits( const int &detid, MTDCHitContainer &m_Cont, RawData *rawData )
+MTDCAnalyzer::DecodeMTDCHits( const int &detid, MTDCHitContainer &m_Cont)
 {
   del::ClearContainer( m_Cont );
-  const MTDCRHitContainer &cont = rawData->GetMTDCRawHC(detid);
+  const MTDCRHitContainer &cont = m_raw_data->GetMTDCRawHC(detid);
   int nh = cont.size();
   //  std::cout<<"DecodeMTDCHits  "<<detid<<"  "<<nh<<std::endl;
   for( int i=0; i<nh; ++i ){
@@ -74,8 +71,7 @@ MTDCAnalyzer::DecodeMTDCHits( const int &detid, MTDCHitContainer &m_Cont, RawDat
 
 //______________________________________________________________________________
 bool
-MTDCAnalyzer::ReCalcAll( void )
+MTDCAnalyzer::ReCalcAll()
 {
   return true;
 }
-

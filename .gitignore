@@ -5,7 +5,14 @@
 *.dylib
 *.dll
 *.a
+*.pcm
+*Dict.cc
+*.root
+*.ps
+*.pdf
+*.png
 .DS_Store
 bin
 lib
 .build
+usr
