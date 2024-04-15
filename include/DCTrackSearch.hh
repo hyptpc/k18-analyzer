@@ -37,12 +37,12 @@ Int_t LocalTrackSearch(const std::vector<DCHitContainer>& HC,
                        const DCPairPlaneInfo *PpInfo,
                        Int_t npp, std::vector<DCLocalTrack*>& TrackCont,
 		       Bool_t Exclusive,
-                       Int_t MinNumOfHits=6, Int_t T0Seg = -1);
+                       Int_t MinNumOfHits=6, Double_t T0Seg = -1);
 Int_t LocalTrackSearch(const std::vector< std::vector<DCHitContainer> >& hcAssemble,
                        const DCPairPlaneInfo *PpInfo,
                        Int_t npp, std::vector<DCLocalTrack*>& TrackCont,
 		       Bool_t Exclusive,
-		       Int_t MinNumOfHits=6, Int_t T0Seg = -1);
+		       Int_t MinNumOfHits=6, Double_t T0Seg = -1);
 /*
 //Legacy
   Int_t LocalTrackSearchSdcInFiber(const std::vector<DCHitContainer>& HC,

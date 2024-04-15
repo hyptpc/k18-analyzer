@@ -502,7 +502,7 @@ DCAnalyzer::TrackSearchBcIn(const std::vector<std::vector<DCHitContainer> >& hc)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::TrackSearchBcOut(Int_t T0Seg, Bool_t Exclusive)
+DCAnalyzer::TrackSearchBcOut(Double_t T0Seg, Bool_t Exclusive)
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerBcOut");
 
@@ -524,7 +524,7 @@ DCAnalyzer::TrackSearchBcOut(Int_t T0Seg, Bool_t Exclusive)
 //_____________________________________________________________________________
 // Use with BH2Filter
 Bool_t
-DCAnalyzer::TrackSearchBcOut(const std::vector<std::vector<DCHitContainer> >& hc, Int_t T0Seg, Bool_t Exclusive)
+DCAnalyzer::TrackSearchBcOut(const std::vector<std::vector<DCHitContainer> >& hc, Double_t T0Seg, Bool_t Exclusive)
 {
   static const Int_t MinLayer = gUser.GetParameter("MinLayerBcOut");
 
@@ -1495,6 +1495,7 @@ DCAnalyzer::DriftTimeCut(DCHitContainer& HitCont,
   ValidCand.clear();
 }
 
+//Legacy
 //_____________________________________________________________________________
 Bool_t
 DCAnalyzer::MakeBH2DCHit(Int_t t0seg)

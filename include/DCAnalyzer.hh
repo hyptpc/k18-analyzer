@@ -96,8 +96,8 @@ public:
 
   Bool_t TrackSearchBcIn();
   Bool_t TrackSearchBcIn(const std::vector< std::vector<DCHitContainer> >& hc);
-  Bool_t TrackSearchBcOut(Int_t T0Seg=-1, Bool_t Exclusive=false);
-  Bool_t TrackSearchBcOut(const std::vector< std::vector<DCHitContainer> >& hc, Int_t T0Seg, Bool_t Exclusive=false);
+  Bool_t TrackSearchBcOut(Double_t T0Seg=-1, Bool_t Exclusive=false);
+  Bool_t TrackSearchBcOut(const std::vector< std::vector<DCHitContainer> >& hc, Double_t T0Seg, Bool_t Exclusive=false);
   Bool_t TrackSearchSdcIn(Bool_t Exclusive=false);
   //Bool_t TrackSearchSdcInFiber(); //legacy
   Bool_t TrackSearchSdcOut(Bool_t Exclusive=false);

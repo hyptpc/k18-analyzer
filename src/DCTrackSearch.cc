@@ -45,18 +45,19 @@ const Double_t MaxCombi = 1.0e6;    // Set to be Less than 10^6
 // SdcIn & BcOut for XUV Tracking routine
 const Double_t MaxChisquareVXU = 50.;//
 const Double_t ChisquareCutVXU = 50.;//
-
-const Double_t Bh2SegX[NumOfSegBH2]      = {35./2., 10./2., 7./2., 7./2., 7./2., 7./2., 10./2., 35./2.};
-const Double_t Bh2SegXAcc[NumOfSegBH2]   = {20., 6.5, 5., 5., 5., 5., 6.5, 20.};
-const Double_t localPosBh2X_dX           = 0.;
-const Double_t localPosBh2X[NumOfSegBH2] = {-41.5 + localPosBh2X_dX,
-  -19.0 + localPosBh2X_dX,
-  -10.5 + localPosBh2X_dX,
-  -3.5  + localPosBh2X_dX,
-  3.5   + localPosBh2X_dX,
-  10.5  + localPosBh2X_dX,
-  19.0  + localPosBh2X_dX,
-  41.5  + localPosBh2X_dX};
+//const Double_t Bh2SegX[NumOfSegBH2]      = {17./2., 14./2., 14./2., 14./2., 14./2., 14./2., 14./2., 17./2.};
+//Window for BH2 Vs BcOut matching
+//X:Half width + 1.5 mm (#Segid = X.0), 5 mm (#Segid = X.5) and Y:Half length 40 mm;
+//localPosBh2X_dX: X offset of the BH2 X position acheived from analysis
+//localPosBh2X: X position of each segments of the BH2
+const Double_t Bh2SegXAcc[15] = {10., 5., 8.5, 5., 8.5, 5., 8.5, 5., 8.5, 5., 8.5, 5., 8.5, 5., 10.};
+const Double_t Bh2SegYAcc = 40.; //BH2's length is 80 mm
+const Double_t localPosBh2X_dX[15] = {-3.7, -3.35, -3.0, -3., -3., -2.9, -2.8, -2.65, -2.5, -2.3, -2.1, -2.0, -1.8, -1.55, -1.3};
+const Double_t localPosBh2X[15] = {-50.5 + localPosBh2X_dX[0], -42.75 + localPosBh2X_dX[1], -35.0 + localPosBh2X_dX[2],
+				   -28.0 + localPosBh2X_dX[3], -21.0 + localPosBh2X_dX[4],  -14.0 + localPosBh2X_dX[5],
+				   -7.0 + localPosBh2X_dX[6], 0.0 + localPosBh2X_dX[7], 7.0 + localPosBh2X_dX[8],
+				   14.0 + localPosBh2X_dX[9], 21.0 + localPosBh2X_dX[10], 28.0 + localPosBh2X_dX[11],
+				   35.0 + localPosBh2X_dX[12], 42.75 + localPosBh2X_dX[13], 50.5 + localPosBh2X_dX[14]};
 
 //_____________________________________________________________________________
 // Local Functions
@@ -754,7 +755,7 @@ LocalTrackSearch(const std::vector<DCHitContainer>& HC,
                  const DCPairPlaneInfo * PpInfo,
                  Int_t npp, std::vector<DCLocalTrack*>& TrackCont,
 		 Bool_t Exclusive,
-                 Int_t MinNumOfHits, Int_t T0Seg)
+                 Int_t MinNumOfHits, Double_t T0Seg)
 {
 
   std::vector<ClusterList> CandCont(npp);
@@ -796,15 +797,11 @@ LocalTrackSearch(const std::vector<DCHitContainer>& HC,
 
       if(T0Seg>=0 && T0Seg<NumOfSegBH2) {
         Double_t xbh2=track->GetX(zBH2), ybh2=track->GetY(zBH2);
-        Double_t difPosBh2 = localPosBh2X[T0Seg] - xbh2;
-
-        //   Double_t xtgt=track->GetX(zTarget), ytgt=track->GetY(zTarget);
-        //   Double_t ytgt=track->GetY(zTarget);
-
+	Int_t bh2id = T0Seg*2;
+        Double_t difPosBh2 = localPosBh2X[bh2id] - xbh2;
         if(true
-           && fabs(difPosBh2)<Bh2SegXAcc[T0Seg]
-           && (-10 < ybh2 && ybh2 < 40)
-           //       && fabs(ytgt)<21.
+           && fabs(difPosBh2)<Bh2SegXAcc[bh2id]
+	   && (-Bh2SegYAcc < ybh2 && ybh2 < Bh2SegYAcc)
           ){
           TrackCont.push_back(track);
         }else{
@@ -830,7 +827,7 @@ LocalTrackSearch(const std::vector<std::vector<DCHitContainer>> &hcAssemble,
                  const DCPairPlaneInfo * PpInfo,
                  Int_t npp, std::vector<DCLocalTrack*> &trackCont,
 		 Bool_t Exclusive,
-                 Int_t MinNumOfHits, Int_t T0Seg)
+                 Int_t MinNumOfHits, Double_t T0Seg)
 {
   std::vector<std::vector<DCHitContainer>>::const_iterator
     itr, itr_end = hcAssemble.end();
