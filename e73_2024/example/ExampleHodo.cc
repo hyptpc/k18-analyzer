@@ -36,37 +36,36 @@ namespace
 {
 using namespace e73_2024;
 using namespace root;
-const std::string& classname("EventHodo");
 using namespace hddaq::unpacker;
-const UnpackerManager& gUnpacker = GUnpacker::get_instance();
-const UserParamMan&   gUser = UserParamMan::GetInstance();
-int run_number;
-int event_number;
+const auto& gUnpacker = GUnpacker::get_instance();
+const auto& gUser = UserParamMan::GetInstance();
+Int_t run_number;
+Int_t event_number;
 }
 
 //_____________________________________________________________________________
 namespace root
 {
 TH1   *h[MaxHist];
-const int nhodo=9;
-int khodo[nhodo]={kT1,kBHT,kT0,kDEF,kVeto,kBTC,kCVC,kNC,kCDH};
-// const int nhodo=5;
-// int khodo[nhodo]={kT0new,kBHT,kT0,kDEF,kRC};
+const Int_t nhodo=9;
+Int_t khodo[nhodo]={kT1,kBHT,kT0,kDEF,kVeto,kBTC,kCVC,kNC,kCDH};
+// const Int_t nhodo=5;
+// Int_t khodo[nhodo]={kT0new,kBHT,kT0,kDEF,kRC};
 
-double tdcbins[3]={5000,0,2e6};
-double adcbins[3]={4096,-0.5,4095.5};
-double mtdcbins[3]={2000,0,2000};
-double diffbins[3]={2000,-1e5,1e5};
-double debins[3]={5000,-2,48};
-double debins2[3]={1000,-100,900};
-double deudbins[6]={100,-2,18,100,-2,18};
-double sumbins[3]={4096*4,-0.5,4096*4-0.5};
-double evmulbins[6]={200,0,5e6,11,-0.5,10.5};
-double evudbins[6]={200,0,5e6,21,-10.5,10.5};
-double evdebins[6]={200,0,5e6,200,-2,18};
-double evdebins2[6]={200,0,5e6,100,-100,900};
-double evadcbins[6]={200,0,5e6,100,0,500};
-double evtimebins[6]={200,0,5e6,200,-10,10};
+Double_t tdcbins[3]={5000,0,2e6};
+Double_t adcbins[3]={4096,-0.5,4095.5};
+Double_t mtdcbins[3]={2000,0,2000};
+Double_t diffbins[3]={2000,-1e5,1e5};
+Double_t debins[3]={5000,-2,48};
+Double_t debins2[3]={1000,-100,900};
+Double_t deudbins[6]={100,-2,18,100,-2,18};
+Double_t sumbins[3]={4096*4,-0.5,4096*4-0.5};
+Double_t evmulbins[6]={200,0,5e6,11,-0.5,10.5};
+Double_t evudbins[6]={200,0,5e6,21,-10.5,10.5};
+Double_t evdebins[6]={200,0,5e6,200,-2,18};
+Double_t evdebins2[6]={200,0,5e6,100,-100,900};
+Double_t evadcbins[6]={200,0,5e6,100,0,500};
+Double_t evtimebins[6]={200,0,5e6,200,-10,10};
 }
 
 //_____________________________________________________________________________
@@ -106,17 +105,17 @@ ProcessNormal()
   Bool_t VETO=false;
 
   // Time0
-  double time0=-9999;
-  double ctime0=-9999;
+  Double_t time0=-9999;
+  Double_t ctime0=-9999;
   {
-    int cid=DetIdT0new;
-    int nh = hodoAna.GetNHits(cid);
-    for( int i=0; i<nh; ++i ){
+    Int_t cid=DetIdT0new;
+    Int_t nh = hodoAna.GetNHits(cid);
+    for( Int_t i=0; i<nh; ++i ){
       Hodo2Hit *hit = hodoAna.GetHit(cid,i);
       if(!hit) continue;
-      int nind=hit->GetIndex();
-      for(int it=0;it<nind;it++){
-	double mt  = hit->MeanTime(it);
+      Int_t nind=hit->GetIndex();
+      for(Int_t it=0;it<nind;it++){
+	Double_t mt  = hit->MeanTime(it);
 	if(gUser.Check("Time0",mt)){
 	  time0=mt;
 	  ctime0=hit->CMeanTime(it);
@@ -127,14 +126,14 @@ ProcessNormal()
 
   // K/pi by BHD MeanTime
   {
-    int cid=DetIdBHT;
-    int nh = hodoAna.GetNHits(cid);
-    for( int i=0; i<nh; ++i ){
+    Int_t cid=DetIdBHT;
+    Int_t nh = hodoAna.GetNHits(cid);
+    for( Int_t i=0; i<nh; ++i ){
       Hodo2Hit *hit = hodoAna.GetHit(cid,i);
       if(!hit) continue;
-      int nind=hit->GetIndex();
-      for(int it=0;it<nind;it++){
-	double tof  = hit->MeanTime(it)-time0;
+      Int_t nind=hit->GetIndex();
+      for(Int_t it=0;it<nind;it++){
+	Double_t tof  = hit->MeanTime(it)-time0;
 	if(gUser.Check("TOFK",tof)) TOFK=true;
 	if(gUser.Check("TOFPi",tof)) TOFPi=true;
 	if(gUser.Check("TOFP", tof)) TOFP=true;
@@ -144,16 +143,16 @@ ProcessNormal()
   }
   // AC
   {
-    int cid=DetIdAC;
+    Int_t cid=DetIdAC;
     const HodoRHitContainer &cont = rawData.GetHodoRawHC(cid);
-    int nh = cont.size();
+    Int_t nh = cont.size();
     TString tmpname="AC";
-    for( int i=0; i<nh; ++i ){
+    for( Int_t i=0; i<nh; ++i ){
       HodoRawHit *raw = cont[i];
       if(!raw) continue;
-      int ntu=raw->GetSizeTdcUp();
-      for(int it=0;it<ntu;it++){
-	double tu  = raw->GetTdcUp(it);
+      Int_t ntu=raw->GetSizeTdcUp();
+      for(Int_t it=0;it<ntu;it++){
+	Double_t tu  = raw->GetTdcUp(it);
 	if(gUser.Check("ACTDC",tu)) ACHIT=true;
 	hist::H1(tmpname+"_TDC",tu,tdcbins);
       }
@@ -169,54 +168,54 @@ ProcessNormal()
   if(KAON2) trig_add.push_back("ifK2");
   //  if(KAON3) trig_add.push_back("ifK");
   //  if(KCDH1) trig_add.push_back("ifKCDH");
-  int ntrig=trig_add.size();
+  Int_t ntrig=trig_add.size();
 
 
   // hodoscopes
-  int hodoseg[nhodo];
-  double hodotime[nhodo];
-  for(int ihodo=0;ihodo<nhodo;++ihodo){
-    int kHodo=khodo[ihodo];
-    int cid=hodoid[kHodo];
+  Int_t hodoseg[nhodo];
+  Double_t hodotime[nhodo];
+  for(Int_t ihodo=0;ihodo<nhodo;++ihodo){
+    Int_t kHodo=khodo[ihodo];
+    Int_t cid=hodoid[kHodo];
     TString name=hodoname[kHodo];
-    double mulbins[3]={nsegs[kHodo]+1,-0.5,nsegs[kHodo]+0.5};
-    double patbins[3]={nsegs[kHodo],-0.5,nsegs[kHodo]-0.5};
-    double mulbins2[3]={10,-0.5,9.5};
+    Double_t mulbins[3]={nsegs[kHodo]+1,-0.5,nsegs[kHodo]+0.5};
+    Double_t patbins[3]={nsegs[kHodo],-0.5,nsegs[kHodo]-0.5};
+    Double_t mulbins2[3]={10,-0.5,9.5};
 
     // rawhit
-    int mulu=0,muld=0;
+    Int_t mulu=0,muld=0;
     const HodoRHitContainer &cont = rawData.GetHodoRawHC(cid);
-    int nh = cont.size();
-    std::vector<int> hitsegu;
-    std::vector<int> hitsegd;
-    for( int i=0; i<nh; ++i ){
+    Int_t nh = cont.size();
+    std::vector<Int_t> hitsegu;
+    std::vector<Int_t> hitsegd;
+    for( Int_t i=0; i<nh; ++i ){
       HodoRawHit *raw = cont[i];
       if(!raw) continue;
-      int seg = raw->SegmentId();
+      Int_t seg = raw->SegmentId();
       TString segstr=Form("_seg%d",seg);
-      double au  = -1;
-      double ad  = -1;
+      Double_t au  = -1;
+      Double_t ad  = -1;
       if(raw->GetSizeAdcUp()>0)      au=raw->GetAdcUp();
       if(raw->GetSizeAdcDown()>0)    ad=raw->GetAdcDown();
-      int ntu    =raw->GetSizeTdcUp();
-      int ntd    =raw->GetSizeTdcDown();
-      int ngateu=0;
-      int ngated=0;
-      for(int it=0;it<ntu;it++){
-	double tu  = raw->GetTdcUp(it);
+      Int_t ntu    =raw->GetSizeTdcUp();
+      Int_t ntd    =raw->GetSizeTdcDown();
+      Int_t ngateu=0;
+      Int_t ngated=0;
+      for(Int_t it=0;it<ntu;it++){
+	Double_t tu  = raw->GetTdcUp(it);
 	hist::H1(name+"_TDCu"+segstr,tu,tdcbins);
 	if(it+1<ntu)
 	  hist::H1(name+"_TDCdiffu"+segstr,raw->GetTdcUp(it+1)-tu,tdcbins);
 	if(it<ntd){
-	  double td  = raw->GetTdcDown(it);
+	  Double_t td  = raw->GetTdcDown(it);
 	  hist::H1(name+"_TDCdiffud",tu-td,diffbins);
 	}
 	if(gUser.Check("HODOTDC",tu)){
 	  ngateu++;
 	}
       }
-      for(int it=0;it<ntd;it++){
-	double td  = raw->GetTdcDown(it);
+      for(Int_t it=0;it<ntd;it++){
+	Double_t td  = raw->GetTdcDown(it);
 	hist::H1(name+"_TDCd"+segstr,td,tdcbins);
 	if(it+1<ntd)
 	  hist::H1(name+"_TDCdiffd"+segstr,raw->GetTdcDown(it+1)-td,tdcbins);
@@ -225,25 +224,25 @@ ProcessNormal()
 	}
       }
       if(cid==DetIdBHT){
-	double totbins[3]={2000,0,1e5};
-	double segtotbins[6]={64,-0.5,63.5,200,0,1e5};
-	double dttotbins[6]={200,1e6,1.4e6,200,0,1e5};
-	int nau = raw->GetSizeAdcUp();
-	int nad = raw->GetSizeAdcDown();
-	for(int it=0;it<ntu;it++){
-	  double tu  = raw->GetTdcUp(it);
+	Double_t totbins[3]={2000,0,1e5};
+	Double_t segtotbins[6]={64,-0.5,63.5,200,0,1e5};
+	Double_t dttotbins[6]={200,1e6,1.4e6,200,0,1e5};
+	Int_t nau = raw->GetSizeAdcUp();
+	Int_t nad = raw->GetSizeAdcDown();
+	for(Int_t it=0;it<ntu;it++){
+	  Double_t tu  = raw->GetTdcUp(it);
 	  if(it<nau){
-	    double au  = raw->GetAdcUp(it);
+	    Double_t au  = raw->GetAdcUp(it);
 	    hist::H1(name+"_TOTu",tu-au,totbins);
 	    hist::H1(name+"_TOTu"+segstr,tu-au,totbins);
 	    hist::H2(name+"_TDC_TOTu",tu,tu-au,dttotbins);
 	    hist::H2(name+"_Seg_TOTu",seg,tu-au,segtotbins);
 	  }
 	}
-	for(int it=0;it<ntd;it++){
-	  double td  = raw->GetTdcDown(it);
+	for(Int_t it=0;it<ntd;it++){
+	  Double_t td  = raw->GetTdcDown(it);
 	  if(it<nad){
-	    double ad  = raw->GetAdcDown(it);
+	    Double_t ad  = raw->GetAdcDown(it);
 	    hist::H1(name+"_TOTd",td-ad,totbins);
 	    hist::H1(name+"_TOTd"+segstr,td-ad,totbins);
 	    hist::H2(name+"_TDC_TOTd",td,td-ad,dttotbins);
@@ -280,8 +279,8 @@ ProcessNormal()
 	hist::H1(name+"_ADCwoTd"+segstr,ad,adcbins);
       }
     }//for(i)
-    for(int iu=0;iu<hitsegu.size();iu++){
-      for(int id=0;id<hitsegd.size();id++){
+    for(Int_t iu=0;iu<hitsegu.size();iu++){
+      for(Int_t id=0;id<hitsegd.size();id++){
 	hist::H2(name+"_UDcorr" ,hitsegu.at(iu),hitsegd.at(id) ,patbins,patbins);
 	hist::H2(name+"_EvNum_UDdiff",event_number,hitsegu.at(iu)-hitsegd.at(id),evudbins);
 	if(name=="BHT"){
@@ -297,29 +296,29 @@ ProcessNormal()
     hist::H1(name+"_Muld",muld,mulbins);
     // raw hit done
     // Decoded hit
-    int mul=0,mulgate=0;
+    Int_t mul=0,mulgate=0;
     nh = hodoAna.GetNHits(cid);
     Bool_t TDCHIT=false;
-    for( int i=0; i<nh; ++i ){
+    for( Int_t i=0; i<nh; ++i ){
       Hodo2Hit *hit = hodoAna.GetHit(cid,i);
       if(!hit) continue;
-      int seg = hit->SegmentId();
+      Int_t seg = hit->SegmentId();
       TString segstr=Form("_seg%d",seg);
-      int nind= hit->GetIndex();
+      Int_t nind= hit->GetIndex();
       hist::H1(name+"_Mul"+segstr,nind,mulbins2);
       hist::H2(name+"_Mul_pat",seg,nind,patbins,mulbins2);
       if(nind>0){
 	hist::H1(name+"_Pat",seg,patbins);
 	mul++;
       }
-      int idx=-1;
-      for(int ii=0;ii<nind;ii++){
-	double mt  = hit->MeanTime(ii);
-	double cmt  =hit->CMeanTime(ii);
+      Int_t idx=-1;
+      for(Int_t ii=0;ii<nind;ii++){
+	Double_t mt  = hit->MeanTime(ii);
+	Double_t cmt  =hit->CMeanTime(ii);
 	// if(!gUser.Check("BHTTOT",hit->GetAUp(ii)))   continue;
 	// if(!gUser.Check("BHTTOT",hit->GetADown(ii))) continue;
-	double tof = mt - time0;
-	double ctof = cmt - ctime0;
+	Double_t tof = mt - time0;
+	Double_t ctof = cmt - ctime0;
 	hist::H1(name+"_MeanTime"        ,mt ,4000,-200,200, trig_add);
 	hist::H1(name+"_MeanTime" +segstr,mt ,4000,-200,200, trig_add);
 	hist::H1(name+"_CMeanTime"       ,cmt,4000,-200,200, trig_add);
@@ -329,8 +328,8 @@ ProcessNormal()
 	  hist::H1(name+"_TOF" +segstr,tof ,2000,-100,100, trig_add);
 	  hist::H1(name+"_cTOF"       ,ctof,2000,-100,100, trig_add);
 	  hist::H1(name+"_cTOF"+segstr,ctof,2000,-100,100, trig_add);
-	  double de = hit->DeltaE();
-	  double demin=-1,demax=19;
+	  Double_t de = hit->DeltaE();
+	  Double_t demin=-1,demax=19;
 	  if(cid==DetIdBHT){
 	    de=hit->DeltaCE(ii);
 	    demin=0;
@@ -350,12 +349,12 @@ ProcessNormal()
 	hodotime[ihodo]=mt;
       } // nindex
       if(cid==DetIdBHT && idx<0) continue;
-      double demin=-1,demax=49,demax2=19;
-      double au = hit->GetRawHit()->GetAdcUp();
-      double ad = hit->GetRawHit()->GetAdcDown();
-      double de = hit->DeltaE();
-      double deu = hit->GetAUp();
-      double ded = hit->GetADown();
+      Double_t demin=-1,demax=49,demax2=19;
+      Double_t au = hit->GetRawHit()->GetAdcUp();
+      Double_t ad = hit->GetRawHit()->GetAdcDown();
+      Double_t de = hit->DeltaE();
+      Double_t deu = hit->GetAUp();
+      Double_t ded = hit->GetADown();
       if(cid==DetIdBHT){
 	demin=0;demax=1e5;demax2=2e4;
 	// au = hit->GetAUp(idx);
@@ -364,8 +363,8 @@ ProcessNormal()
 	// deu = hit->GetCAUp(idx);
 	// ded = hit->GetCADown(idx);
       }
-      double tmpdebins[3]={1000,demin,demax};
-      double tmpdeudbins[6]={100,demin,demax2,100,demin,demax2};
+      Double_t tmpdebins[3]={1000,demin,demax};
+      Double_t tmpdeudbins[6]={100,demin,demax2,100,demin,demax2};
 
       hist::H1(name+"_dE" +segstr,de ,tmpdebins,trig_add);
       hist::H2(name+"_dEud"+segstr,deu,ded,tmpdeudbins,trig_add);
@@ -398,33 +397,33 @@ ProcessNormal()
   if(hodoseg[kVeto]) VETO=true;
   // calorimeter
   {
-    int kCalori[2]={kPbF2,kPbG};
-    for(int i=0;i<2;i++){
-      int kHodo=kCalori[i];
-      int cid=hodoid[kHodo];
+    Int_t kCalori[2]={kPbF2,kPbG};
+    for(Int_t i=0;i<2;i++){
+      Int_t kHodo=kCalori[i];
+      Int_t cid=hodoid[kHodo];
       TString tmpname=hodoname[kHodo];
-      double mulbins[3]={nsegs[kHodo]+1,-0.5,nsegs[kHodo]+0.5};
-      double patbins[3]={nsegs[kHodo],-0.5,nsegs[kHodo]-0.5};
-      double mulbins2[3]={10,-0.5,9.5};
-      int mul=0;
-      int adcsum=0;
-      int nh = hodoAna.GetNHits(cid);
-      for( int i=0; i<nh; ++i ){
+      Double_t mulbins[3]={nsegs[kHodo]+1,-0.5,nsegs[kHodo]+0.5};
+      Double_t patbins[3]={nsegs[kHodo],-0.5,nsegs[kHodo]-0.5};
+      Double_t mulbins2[3]={10,-0.5,9.5};
+      Int_t mul=0;
+      Int_t adcsum=0;
+      Int_t nh = hodoAna.GetNHits(cid);
+      for( Int_t i=0; i<nh; ++i ){
 	Hodo1Hit *hit = hodoAna.Get1Hit(cid,i);
 	HodoRawHit *raw = hit->GetRawHit();
 	if(!raw) continue;
-	int seg  = raw->SegmentId();
-	double au= raw->GetAdcUp();
-	double de= hit->GetAUp();
+	Int_t seg  = raw->SegmentId();
+	Double_t au= raw->GetAdcUp();
+	Double_t de= hit->GetAUp();
 	TString segstr=Form("_seg%d",seg);
 	adcsum+=au;
 	hist::H1(tmpname+"_ADC"+segstr,au,adcbins);
 	hist::H1(tmpname+"_dE"+segstr,de,debins2);
-	int ntu=raw->GetSizeTdcUp();
+	Int_t ntu=raw->GetSizeTdcUp();
 	hist::H1(tmpname+"_Mul"+segstr,ntu,mulbins2);
-	int ngate=0;
-	for(int it=0;it<ntu;it++){
-	  double tu  = raw->GetTdcUp(it);
+	Int_t ngate=0;
+	for(Int_t it=0;it<ntu;it++){
+	  Double_t tu  = raw->GetTdcUp(it);
 	  hist::H1(tmpname+"_TDC"+segstr,tu,tdcbins);
 	  if(gUser.Check("HODOTDC",tu)){
 	    ngate++;
