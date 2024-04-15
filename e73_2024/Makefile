@@ -39,7 +39,7 @@ CXX=/usr/bin/g++
 endif
 CFLAGS	= -g -O3 -fPIC -Wall
 CFLAGS	+= -Wno-sign-compare
-CFLAGS	+= -std=c++0x
+# CFLAGS	+= -std=c++0x
 # CFLAGS	+= -Wno-unused-variable -Wno-unused-but-set-variable
 FLAGS	= $(CFLAGS) $(DFLAGS) -I. $(root_include) $(unpacker_include)
 FLAGS	+=$(addprefix -I,$(core_src_dir) $(core_include_dir))

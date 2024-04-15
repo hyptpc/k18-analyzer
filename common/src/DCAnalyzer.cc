@@ -1,8 +1,4 @@
-/**
- *  file: DCAnalyzer.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "DCAnalyzer.hh"
 
@@ -42,70 +38,70 @@
 // Tracking routine selection __________________________________________________
 namespace
 {
-  // using namespace ;
-  const std::string& class_name("DCAnalyzer");
-  const ConfMan&      gConf = ConfMan::GetInstance();
-  const BLDCWireMapMan&  gGeom  = BLDCWireMapMan::GetInstance();
-  const UserParamMan& gUser = UserParamMan::GetInstance();
-  //______________________________________________________________________________
-  const double MaxChisquare       = 100.; // Set to be More than 30
-  const double MaxNumOfCluster = 5.; // Set to be Less than 30
-  const double MaxCombi = 1.0e2; // Set to be Less than 10^6
-  const double tdiff_clusters = 30;
-  const double tdiff_xy = 20;
-  const double max_slope=0.3;
-  const int minslayers1=3;
-  const int minslayers2=6;
-  //______________________________________________________________________________
-  typedef std::vector<int>               IndexList;
-  std::vector<IndexList>
-  MakeIndex( int ndim, const int *index1 )
-  {
-    static const std::string func_name("["+class_name+"::"+__func__+"()]");
+// using namespace ;
+const std::string& class_name("DCAnalyzer");
+const auto& gConf = ConfMan::GetInstance();
+const auto& gGeom  = BLDCWireMapMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
+const double MaxChisquare       = 100.; // Set to be More than 30
+const double MaxNumOfCluster = 5.; // Set to be Less than 30
+const double MaxCombi = 1.0e2; // Set to be Less than 10^6
+const double tdiff_clusters = 30;
+const double tdiff_xy = 20;
+const double max_slope=0.3;
+const int minslayers1=3;
+const int minslayers2=6;
 
-    if( ndim==1 ){
-      std::vector<IndexList> index2;
-      for( int i=-1; i<index1[0]; ++i ){
-	IndexList elem(1,i);
-	index2.push_back(elem);
-      }
-      return index2;
+typedef std::vector<int>               IndexList;
+std::vector<IndexList>
+MakeIndex( int ndim, const int *index1 )
+{
+  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+
+  if( ndim==1 ){
+    std::vector<IndexList> index2;
+    for( int i=-1; i<index1[0]; ++i ){
+      IndexList elem(1,i);
+      index2.push_back(elem);
     }
-    std::vector<IndexList> index2 = MakeIndex( ndim-1, index1+1 );
-    std::vector<IndexList> index;
-    int n2=index2.size();
-    for( int j=0; j<n2; ++j ){
-      for( int i=-1; i<index1[0]; ++i ){
-	IndexList elem;
-	int n3=index2[j].size();
-	elem.reserve(n3+1);
-	elem.push_back(i);
-	for( int k=0; k<n3; ++k )
-	  elem.push_back(index2[j][k]);
-	index.push_back(elem);
-	int size1=index.size();
-	if( size1>MaxCombi ){
+    return index2;
+  }
+  std::vector<IndexList> index2 = MakeIndex( ndim-1, index1+1 );
+  std::vector<IndexList> index;
+  int n2=index2.size();
+  for( int j=0; j<n2; ++j ){
+    for( int i=-1; i<index1[0]; ++i ){
+      IndexList elem;
+      int n3=index2[j].size();
+      elem.reserve(n3+1);
+      elem.push_back(i);
+      for( int k=0; k<n3; ++k )
+        elem.push_back(index2[j][k]);
+      index.push_back(elem);
+      int size1=index.size();
+      if( size1>MaxCombi ){
 #if 0
-	  hddaq::cout << func_name << " too much combinations..." << std::endl;
+        hddaq::cout << func_name << " too much combinations..." << std::endl;
 #endif
-	  return std::vector<IndexList>(0);
-	}
+        return std::vector<IndexList>(0);
       }
     }
-    return index;
   }
-  //______________________________________________________________________________
-  std::vector<IndexList>
-  MakeIndex( int ndim, const IndexList& index1 )
-  {
-    return MakeIndex( ndim, &(index1[0]) );
-  }
+  return index;
+}
+//______________________________________________________________________________
+std::vector<IndexList>
+MakeIndex( int ndim, const IndexList& index1 )
+{
+  return MakeIndex( ndim, &(index1[0]) );
+}
 
 }
 
 //______________________________________________________________________________
-DCAnalyzer::DCAnalyzer( void )
-  : m_is_decoded(n_type),
+DCAnalyzer::DCAnalyzer(const RawData& raw_data)
+  : m_raw_data(&raw_data),
+    m_is_decoded(n_type),
     m_much_combi(n_type),
     m_BLC1aHC(8),
     m_BLC1bHC(8),
@@ -122,7 +118,7 @@ DCAnalyzer::DCAnalyzer( void )
   debug::ObjectCounter::increase(class_name);
 }
 
-DCAnalyzer::~DCAnalyzer( void )
+DCAnalyzer::~DCAnalyzer()
 {
   ClearDCHits();
   ClearDCTracks();
@@ -130,8 +126,8 @@ DCAnalyzer::~DCAnalyzer( void )
   debug::ObjectCounter::decrease(class_name);
 }
 //______________________________________________________________________________
-bool
-DCAnalyzer::DecodeRawHits( RawData *rawData, e_type k_det, const int &detid, double retiming )
+Bool_t
+DCAnalyzer::DecodeRawHits(e_type k_det, const int &detid, double retiming )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"()]");
   if( m_is_decoded[k_det] ){
@@ -141,8 +137,8 @@ DCAnalyzer::DecodeRawHits( RawData *rawData, e_type k_det, const int &detid, dou
   }
   ClearDCHits(detid);
   for( int layer=0; layer<8; ++layer ){
-    if(detid==DetIdFDC&&layer>5) break; 
-    const DCRHitContainer &RHitCont=rawData->GetDCRawHC(detid,layer);
+    if(detid==DetIdFDC&&layer>5) break;
+    const DCRHitContainer &RHitCont=m_raw_data->GetDCRawHC(detid,layer);
     int nh = RHitCont.size();
     //    if(detid==DetIdFDC)    std::cout<<"size of raw hit container "<< detid<<"  "<<layer<<"  "<<nh<<std::endl;
     for( int i=0; i<nh; ++i ){
@@ -153,10 +149,10 @@ DCAnalyzer::DecodeRawHits( RawData *rawData, e_type k_det, const int &detid, dou
       if(!hit) continue;
       for( int j=0; j<nhtdc; ++j ){
 	hit->SetTdcVal( rhit->GetTdc(j) );
-      }      
+      }
       for( int j=0; j<nhtrailing; ++j ){
 	hit->SetTdcTrailing( rhit->GetTrailing(j) );
-      }      
+      }
       if( hit->CalcDCObservables(retiming) ){
 	GetDCHC(detid,layer).push_back(hit);
       }
@@ -171,27 +167,27 @@ DCAnalyzer::DecodeRawHits( RawData *rawData, e_type k_det, const int &detid, dou
 
 
 //______________________________________________________________________________
-bool
-DCAnalyzer::DecodeRawHits( RawData *rawData, double retiming_t0, double retiming_def )
+Bool_t
+DCAnalyzer::DecodeRawHits(double retiming_t0, double retiming_def )
 {
   ClearDCHits();
   ClearDCTracks();
 #if E15
-  DecodeRawHits( rawData, k_FDC, DetIdFDC );
+  DecodeRawHits(k_FDC, DetIdFDC );
 #endif
 #if E62
-  DecodeRawHits( rawData, k_SDC, DetIdSDC );
-  //  DecodeRawHits( rawData, k_FDC, DetIdFDC );
+  DecodeRawHits(k_SDC, DetIdSDC );
+  //  DecodeRawHits(k_FDC, DetIdFDC );
 #elif E73_2024
-  DecodeRawHits( rawData, k_BPC1, DetIdBPC1, retiming_def );
-  DecodeRawHits( rawData, k_BPC2, DetIdBPC2, retiming_def );
+  DecodeRawHits(k_BPC1, DetIdBPC1, retiming_def );
+  DecodeRawHits(k_BPC2, DetIdBPC2, retiming_def );
 #else
-  DecodeRawHits( rawData, k_BPC, DetIdBPC, retiming_def );
+  DecodeRawHits(k_BPC, DetIdBPC, retiming_def );
 #endif
-  DecodeRawHits( rawData, k_BLC1a, DetIdBLC1a, retiming_t0 );
-  DecodeRawHits( rawData, k_BLC1b, DetIdBLC1b, retiming_t0 );
-  DecodeRawHits( rawData, k_BLC2a, DetIdBLC2a, retiming_t0 );
-  DecodeRawHits( rawData, k_BLC2b, DetIdBLC2b, retiming_t0 );
+  DecodeRawHits(k_BLC1a, DetIdBLC1a, retiming_t0 );
+  DecodeRawHits(k_BLC1b, DetIdBLC1b, retiming_t0 );
+  DecodeRawHits(k_BLC2a, DetIdBLC2a, retiming_t0 );
+  DecodeRawHits(k_BLC2b, DetIdBLC2b, retiming_t0 );
   return true;
 }
 
@@ -292,13 +288,13 @@ DCAnalyzer::ClearDCClusters(void)
   DCClusterListContainer::iterator itr, itr_end=m_DCCC.end();
   for( itr=m_DCCC.begin(); itr!=itr_end; ++itr )
     del::ClearContainerAll( itr->second );
-  m_DCCC.clear();  
+  m_DCCC.clear();
 }
 
 //______________________________________________________________________________
-bool
+Bool_t
 DCAnalyzer::ReCalcDCHits( std::vector<DCHitContainer>& cont,
-			  bool applyRecursively )
+			  Bool_t applyRecursively )
 {
   const std::size_t n = cont.size();
   for( std::size_t l=0; l<n; ++l ){
@@ -312,15 +308,15 @@ DCAnalyzer::ReCalcDCHits( std::vector<DCHitContainer>& cont,
   return true;
 }
 //______________________________________________________________________________
-bool
+Bool_t
 DCAnalyzer::TrackSearchAll(){
-  double maxsub=999; 
+  double maxsub=999;
   //  MakePairsAll(maxsub);
   return true;
 }
 //______________________________________________________________________________
 int
-DCAnalyzer::TrackSearch( const int &detid, const bool &TIMING, const int &debug ){
+DCAnalyzer::TrackSearch( const int &detid, const Bool_t &TIMING, const int &debug ){
   int ndet=1;
   int detlist[2]={detid,detid};
   int minslayers=minslayers1;
@@ -347,11 +343,11 @@ DCAnalyzer::TrackSearch( const int &detid, const bool &TIMING, const int &debug 
   LocalTrackContainer tmpcontainer[2];
   LocalTrackContainer tmpcontainer2[2];
   LocalTrackContainer tmpcontainer3;
-  for(int xy=0;xy<2;xy++){   
+  for(int xy=0;xy<2;xy++){
     if(debug>0) std::cout<<"============= "<<detid<<"  "<<xy<<std::endl;
-    int ncomb=1;    
+    int ncomb=1;
     for(int idet=0;idet<ndet;idet++){
-      int nlay=GetNClusterContainers(detlist[idet],xy);   
+      int nlay=GetNClusterContainers(detlist[idet],xy);
       for(int ith=0;ith<nlay;ith++){
 	int nc=GetNClusters(detlist[idet],xy,ith);
 	ncomb*=nc;
@@ -366,7 +362,7 @@ DCAnalyzer::TrackSearch( const int &detid, const bool &TIMING, const int &debug 
       if(ncomb==0){
 	Print(detid);
 	Print(DetIdBPC);
-      }      
+      }
     }
 #endif
     for(int icomb=0;icomb<ncomb;icomb++){
@@ -374,7 +370,7 @@ DCAnalyzer::TrackSearch( const int &detid, const bool &TIMING, const int &debug 
       int tmp=icomb;
       LocalTrack *track = new LocalTrack(detlist[0]);
       for(int idet=0;idet<ndet;idet++){
-	int nlay=GetNClusterContainers(detlist[idet],xy);   
+	int nlay=GetNClusterContainers(detlist[idet],xy);
 	for(int ith=0;ith<nlay;ith++){
 	  int nc=GetNClusters(detlist[idet],xy,ith);
 	  int ic=tmp%nc;
@@ -451,7 +447,7 @@ DCAnalyzer::TrackSearch( const int &detid, const bool &TIMING, const int &debug 
 	    // delete tmptr2;
 	    // if(debug>0) std::cout<<"erase track done"<<std::endl;
 	  }
-	}  
+	}
       }
     }
     if(debug>0) std::cout<<"tmpcontainer2 size: "<<tmpcontainer2[xy].size()<<std::endl;
@@ -503,7 +499,7 @@ DCAnalyzer::TrackSearch( const int &detid, const bool &TIMING, const int &debug 
       int tmpbest=-1;
       for(int itr=0;itr<tmpcontainer3.size();itr++){
 	LocalTrack *tmptr=tmpcontainer3[itr];
-	if(debug>0){ 
+	if(debug>0){
 	  std::cout<<"final "<<itr
 		   <<std::setw(10)<<tmptr->chi2all()
 		   <<std::setw(10)<<tmptr->GetTrackTime()
@@ -518,7 +514,7 @@ DCAnalyzer::TrackSearch( const int &detid, const bool &TIMING, const int &debug 
 	}
       }
       if(tmpbest<0){
-	break; //del::ClearContainer( tmpcontainer3 );  
+	break; //del::ClearContainer( tmpcontainer3 );
       }else{
 	LocalTrack *tmptr=tmpcontainer3[tmpbest];
 	status=1;
@@ -533,17 +529,17 @@ DCAnalyzer::TrackSearch( const int &detid, const bool &TIMING, const int &debug 
 	    // tmpcontainer3.erase(it);
 	    // delete tmptr2;
 	  }
-	}    
-      }  
+	}
+      }
     }
   }
-  del::ClearContainer( tmpcontainer[0] );  
-  del::ClearContainer( tmpcontainer[1] );  
+  del::ClearContainer( tmpcontainer[0] );
+  del::ClearContainer( tmpcontainer[1] );
   // tmpcontainer2[0].clear();
   // tmpcontainer2[1].clear();
-  // del::ClearContainer( tmpcontainer2[0] );  
-  // del::ClearContainer( tmpcontainer2[1] );  
-  del::ClearContainer( tmpcontainer3 );  
+  // del::ClearContainer( tmpcontainer2[0] );
+  // del::ClearContainer( tmpcontainer2[1] );
+  del::ClearContainer( tmpcontainer3 );
   return status;
 }
 //______________________________________________________________________________
@@ -564,8 +560,8 @@ DCAnalyzer::DeleteBadClusters( const int &detid, const int &xy,const int &icc)
   return good;
 }
 //______________________________________________________________________________
-bool
-DCAnalyzer::MakePairs( const int &detid, const bool &isMC, const double &maxsub )
+Bool_t
+DCAnalyzer::MakePairs( const int &detid, const Bool_t &isMC, const double &maxsub )
 {
   int nlayers=8;
   int id1=detid;
@@ -585,8 +581,8 @@ DCAnalyzer::MakePairs( const int &detid, const bool &isMC, const double &maxsub 
   return true;
 }
 //______________________________________________________________________________
-bool
-DCAnalyzer::MakePairsAll(const bool &isMC, const double &maxsub )
+Bool_t
+DCAnalyzer::MakePairsAll(const Bool_t &isMC, const double &maxsub )
 {
   ClearDCClusters();
   MakePairs(DetIdBLC1a,isMC,maxsub);
@@ -601,13 +597,13 @@ DCAnalyzer::MakePairsAll(const bool &isMC, const double &maxsub )
 #elif E73_2024
   MakePairs(DetIdBPC1,isMC,maxsub);
   MakePairs(DetIdBPC2,isMC,maxsub);
-#else 
+#else
   MakePairs(DetIdBPC,isMC,maxsub);
 #endif
   return true;
 #if 0
-  for(int xy=0;xy<2;xy++){   
-    int nlay=GetNClusterContainers(detid,xy);   
+  for(int xy=0;xy<2;xy++){
+    int nlay=GetNClusterContainers(detid,xy);
     for(int ith=0;ith<nlay;ith++){
       int good=DeleteBadClusters(detid,xy,ith);
       if(good!=1) return false;
@@ -615,8 +611,8 @@ DCAnalyzer::MakePairsAll(const bool &isMC, const double &maxsub )
   }
 #endif
 }
-bool
-DCAnalyzer::MakePairs( const int &detid, const int &layer1, const int &layer2, const bool &isMC, const double &maxsub)
+Bool_t
+DCAnalyzer::MakePairs( const int &detid, const int &layer1, const int &layer2, const Bool_t &isMC, const double &maxsub)
 {
   const DCHitContainer &hc1=GetDCHC(detid,layer1);
   const DCHitContainer &hc2=GetDCHC(detid,layer2);
@@ -630,7 +626,7 @@ DCAnalyzer::MakePairs( const int &detid, const int &layer1, const int &layer2, c
     DCHit *hit1=hc1[i1];
     TVector3 wp1=hit1->GetWirePosition();
     int multi1 = hit1->GetDriftLengthSize();
-    bool flag=false;
+    Bool_t flag=false;
     for( int i2=0; i2<nh2; ++i2 ){
       DCHit *hit2=hc2[i2];
       TVector3 wp2=hit2->GetWirePosition();
@@ -691,15 +687,15 @@ DCAnalyzer::MakePairs( const int &detid, const int &layer1, const int &layer2, c
   return true;
 }
 //______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcDCHits( bool applyRecursively )
+Bool_t
+DCAnalyzer::ReCalcDCHits( Bool_t applyRecursively )
 {
   return true;
 }
 
 //______________________________________________________________________________
-bool
-DCAnalyzer::ReCalcAll( void )
+Bool_t
+DCAnalyzer::ReCalcAll()
 {
   ReCalcDCHits();
   return true;

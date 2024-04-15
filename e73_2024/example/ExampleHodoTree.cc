@@ -1,7 +1,12 @@
+// -*- C++ -*-
+
+#include "VEvent.hh"
+
 #include <iostream>
 #include <sstream>
 #include <cmath>
-#include "TString.h"
+
+#include <TString.h>
 
 #include "ConfMan.hh"
 #include "DetectorID.hh"
@@ -15,13 +20,11 @@
 #include "HodoPHCMan.hh"
 #include "UserParamMan.hh"
 #include "RawData.hh"
-#include "VEvent.hh"
 #include "HistTools.hh"
 #include "UnpackerManager.hh"
 
 #include "setup.hh"
 
-#define TREE 1
 #define DEBUG 0
 
 namespace

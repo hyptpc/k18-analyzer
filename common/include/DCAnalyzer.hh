@@ -1,8 +1,4 @@
-/**
- *  file: DCAnalyzer.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef DC_ANALYZER_HH
 #define DC_ANALYZER_HH
@@ -30,21 +26,23 @@ typedef std::vector<DCCluster*>    DCClusterContainer;
 typedef std::vector<LocalTrack*>   LocalTrackContainer;
 typedef std::vector<DCClusterContainer> DCClusterList;
 typedef std::map<int, DCClusterList > DCClusterListContainer;
-//______________________________________________________________________________
+
+//_____________________________________________________________________________
 class DCAnalyzer
 {
 public:
-  DCAnalyzer( void );
-  ~DCAnalyzer( void );
+  DCAnalyzer(const RawData& raw_data);
+  ~DCAnalyzer();
   enum e_type { k_BLC1a, k_BLC1b, k_BLC2a, k_BLC2b, k_SDC, k_BPC1=k_SDC, k_BPC, k_BPC2=k_BPC, k_FDC,  n_type };
-  
+
 private:
   DCAnalyzer( const DCAnalyzer& );
   DCAnalyzer& operator =( const DCAnalyzer& );
-  
+
 private:
-  std::vector<bool>     m_is_decoded;
-  std::vector<int>      m_much_combi;
+  const RawData*              m_raw_data;
+  std::vector<bool>           m_is_decoded;
+  std::vector<int>            m_much_combi;
   std::vector<DCHitContainer>       m_BLC1aHC;
   std::vector<DCHitContainer>       m_BLC1bHC;
   std::vector<DCHitContainer>       m_BLC2aHC;
@@ -67,9 +65,9 @@ private:
 
   inline int MakeKey(int cid,int xy){ return cid<<3 | xy; }
 public:
-  bool DecodeRawHits( RawData* rawData, double retiming_t0=0, double retiming_def=0 );
-  bool DecodeRawHits( RawData* rawData, e_type k_type,const int &detid, double retiming=0 );
-  bool DecodeDCHits( RawData* rawData , const int &detid);
+  bool DecodeRawHits(double retiming_t0=0, double retiming_def=0 );
+  bool DecodeRawHits(e_type k_type,const int &detid, double retiming=0 );
+  bool DecodeDCHits(const int &detid);
 
   inline DCHitContainer& GetDCHC( const int &detid, int layer );
   inline DCClusterList& GetDCCL( const int &detid, const int &xy );
@@ -92,14 +90,14 @@ public:
 		     bool applyRecursively=false );
   bool ReCalcDCHits( bool applyRecursively=false );
 
-  bool ReCalcAll( void );
+  bool ReCalcAll();
   void Print(const int &detid);
 protected:
-  void ClearDCHits( void );
+  void ClearDCHits();
   void ClearDCHits( const int &detid );
-  void ClearDCTracks( void );
+  void ClearDCTracks();
   void ClearDCTracks( const int &detid );
-  void ClearDCClusters( void );
+  void ClearDCClusters();
 };
 
 //______________________________________________________________________________
@@ -167,7 +165,7 @@ DCAnalyzer::GetNClusterContainers( const int &detid, const int &xy )
   return GetDCCL(detid,xy).size();
 }
 inline int
-DCAnalyzer::GetNClusters( const int &detid, const int &xy, const int &i ) 
+DCAnalyzer::GetNClusters( const int &detid, const int &xy, const int &i )
 {
   if(GetNClusterContainers(detid,xy)>i){
     return m_DCCC[MakeKey(detid,xy)][i].size();
@@ -175,7 +173,7 @@ DCAnalyzer::GetNClusters( const int &detid, const int &xy, const int &i )
   return 0;
 }
 inline DCCluster*
-DCAnalyzer::GetCluster( const int &detid, const int &xy, const int &i, const int &j ) 
+DCAnalyzer::GetCluster( const int &detid, const int &xy, const int &i, const int &j )
 {
   if(GetNClusters(detid,xy,i)>j){
     return GetDCCL(detid,xy)[i][j];
@@ -183,4 +181,3 @@ DCAnalyzer::GetCluster( const int &detid, const int &xy, const int &i, const int
   return 0;
 }
 #endif
- 
