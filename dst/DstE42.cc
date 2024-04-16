@@ -92,6 +92,7 @@ struct Event
   std::vector<Int_t> charge; //Helix charge
   std::vector<Int_t> pid;
   std::vector<Double_t> chisqr;
+  std::vector<Double_t> pval;
   std::vector<Double_t> helix_cx;
   std::vector<Double_t> helix_cy;
   std::vector<Double_t> helix_z0;
@@ -121,6 +122,20 @@ struct Event
   std::vector<std::vector<Double_t>> alpha;
   std::vector<std::vector<Double_t>> track_cluster_de;
   std::vector<std::vector<Double_t>> track_cluster_mrow;
+  Int_t nvtxTpc;
+  std::vector<Double_t> vtx_x;
+  std::vector<Double_t> vtx_y;
+  std::vector<Double_t> vtx_z;
+  std::vector<Double_t> vtx_dist;
+  std::vector<Double_t> vtx_angle;
+  std::vector<std::vector<Double_t>> vtxid;
+  std::vector<std::vector<Double_t>> vtxmom_theta;
+  std::vector<std::vector<Double_t>> vtxpos_x;
+  std::vector<std::vector<Double_t>> vtxpos_y;
+  std::vector<std::vector<Double_t>> vtxpos_z;
+  std::vector<std::vector<Double_t>> vtxmom_x;
+  std::vector<std::vector<Double_t>> vtxmom_y;
+  std::vector<std::vector<Double_t>> vtxmom_z;
 
   Int_t ntK18;
   std::vector<Double_t> pK18;
@@ -263,6 +278,7 @@ struct Event
     pid.clear();
 
     chisqr.clear();
+    pval.clear();
     helix_cx.clear();
     helix_cy.clear();
     helix_z0.clear();
@@ -292,6 +308,21 @@ struct Event
     alpha.clear();
     track_cluster_de.clear();
     track_cluster_mrow.clear();
+    
+		nvtxTpc = 0;
+    vtx_x.clear();
+    vtx_y.clear();
+    vtx_z.clear();
+    vtx_dist.clear();
+    vtx_angle.clear();
+    vtxid.clear();
+    vtxmom_theta.clear();
+    vtxpos_x.clear();
+    vtxpos_y.clear();
+    vtxpos_z.clear();
+    vtxmom_x.clear();
+    vtxmom_y.clear();
+    vtxmom_z.clear();
 
     ntK18 = 0;
     pK18.clear();
@@ -433,6 +464,7 @@ struct Src
   TTreeReaderValue<std::vector<Int_t>>* charge;//Helix charge
   TTreeReaderValue<std::vector<Int_t>>* pid;
   TTreeReaderValue<std::vector<Double_t>>* chisqr;
+  TTreeReaderValue<std::vector<Double_t>>* pval;
   TTreeReaderValue<std::vector<Double_t>>* helix_cx;
   TTreeReaderValue<std::vector<Double_t>>* helix_cy;
   TTreeReaderValue<std::vector<Double_t>>* helix_z0;
@@ -526,6 +558,23 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* vbTPC;
   TTreeReaderValue<std::vector<Double_t>>* usTPC;
   TTreeReaderValue<std::vector<Double_t>>* vsTPC;
+  
+	TTreeReaderValue<Int_t>* nvtxTpc;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_x;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_y;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_z;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_dist;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_angle;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxid;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_theta;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_z;
+
+
 
   Int_t    ntK18;
   Double_t chisqrK18[MaxHits];
@@ -680,7 +729,23 @@ dst::DstRead( int ievent )
   event.trigflag = **src.trigflag;
 
   event.nhHtof = src.nhHtof;
-  for(Int_t it=0; it<event.nhHtof; it++){
+
+  event.nvtxTpc = **src.nvtxTpc;
+  event.vtx_x = **src.vtx_x;
+  event.vtx_y = **src.vtx_y;
+  event.vtx_z = **src.vtx_z;
+  event.vtx_dist = **src.vtx_dist;
+  event.vtx_angle = **src.vtx_angle;
+  event.vtxid = **src.vtxid;
+  event.vtxmom_theta = **src.vtxmom_theta;
+  event.vtxpos_x = **src.vtxpos_x;
+  event.vtxpos_y = **src.vtxpos_y;
+  event.vtxpos_z = **src.vtxpos_z;
+  event.vtxmom_x = **src.vtxmom_x;
+  event.vtxmom_y = **src.vtxmom_y;
+  event.vtxmom_z = **src.vtxmom_z;
+  
+	for(Int_t it=0; it<event.nhHtof; it++){
     event.HtofSeg.push_back(src.HtofSeg[it]);
     event.tHtof.push_back(src.tHtof[it]);
     event.dtHtof.push_back(src.dtHtof[it]);
@@ -1302,6 +1367,7 @@ dst::DstRead( int ievent )
   event.charge = **src.charge;
   event.pid = **src.pid;
   event.chisqr = **src.chisqr;
+  event.pval = **src.pval;
   event.helix_cx = **src.helix_cx;
   event.helix_cy = **src.helix_cy;
   event.helix_z0 = **src.helix_z0;
@@ -1738,6 +1804,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "charge", &event.charge );
   tree->Branch( "pid", &event.pid );
   tree->Branch( "chisqr", &event.chisqr );
+  tree->Branch( "pval", &event.pval );
   tree->Branch( "helix_cx", &event.helix_cx );
   tree->Branch( "helix_cy", &event.helix_cy );
   tree->Branch( "helix_z0", &event.helix_z0 );
@@ -1860,6 +1927,20 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("us",         &event.ukp);
   tree->Branch("vs",         &event.vkp);
   tree->Branch("Kflag",      &event.Kflag);
+	tree->Branch( "nvtxTpc", &event.nvtxTpc );
+  tree->Branch( "vtx_x", &event.vtx_x );
+  tree->Branch( "vtx_y", &event.vtx_y );
+  tree->Branch( "vtx_z", &event.vtx_z );
+  tree->Branch( "vtx_dist", &event.vtx_dist );
+  tree->Branch( "vtx_angle", &event.vtx_angle );
+  tree->Branch( "vtxid", &event.vtxid );
+  tree->Branch( "vtxmom_theta", &event.vtxmom_theta );
+  tree->Branch( "vtxpos_x", &event.vtxpos_x );
+  tree->Branch( "vtxpos_y", &event.vtxpos_y );
+  tree->Branch( "vtxpos_z", &event.vtxpos_z );
+  tree->Branch( "vtxmom_x", &event.vtxmom_x );
+  tree->Branch( "vtxmom_y", &event.vtxmom_y );
+  tree->Branch( "vtxmom_z", &event.vtxmom_z );
 
 #if SaveKKTPC
   tree->Branch( "isgoodTPC", &event.isgoodTPC);
@@ -1906,6 +1987,7 @@ ConfMan::InitializeHistograms( void )
   src.charge = new TTreeReaderValue<std::vector<Int_t>>( *reader, "charge" );
   src.pid = new TTreeReaderValue<std::vector<Int_t>>( *reader, "pid" );
   src.chisqr = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqr" );
+  src.pval = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pval" );
   src.helix_cx = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_cx" );
   src.helix_cy = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_cy" );
   src.helix_z0 = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_z0" );
@@ -1999,6 +2081,20 @@ ConfMan::InitializeHistograms( void )
   src.vbTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vbTPC" );
   src.usTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "usTPC" );
   src.vsTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vsTPC" );
+	src.nvtxTpc = new TTreeReaderValue<Int_t>(*reader,"nvtxTpc");
+  src.vtx_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_x" );
+  src.vtx_y = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_y" );
+  src.vtx_z = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_z" );
+  src.vtx_dist = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_dist" );
+  src.vtx_angle = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_angle" );
+  src.vtxid = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxid" );
+  src.vtxmom_theta = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_theta" );
+  src.vtxpos_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_x" );
+  src.vtxpos_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_y" );
+  src.vtxpos_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_z" );
+  src.vtxmom_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_x" );
+  src.vtxmom_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_y" );
+  src.vtxmom_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_z" );
 
   TTreeCont[kKScat]->SetBranchStatus("*", 0);
   TTreeCont[kKScat]->SetBranchStatus("ntK18",          1);

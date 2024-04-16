@@ -94,7 +94,9 @@ public:
   Bool_t          GetTrajectoryResidualTPC(Int_t clusterId, TVector3& resolution, TVector3& residual) const;
   Bool_t          GetTrajectoryGlobalPosition(Int_t layer, TVector3& global_pos) const;
   Bool_t          GetTrajectoryGlobalPositionTPC(Int_t clusterId, TVector3& global_pos) const;
-  Bool_t          GoodForAnalysis() const { return m_is_good; }
+  Bool_t          GetTrajectoryMomentum(Int_t layer, TVector3& global_mom) const;
+  Bool_t          GetTrajectoryMomentumTPC(Int_t layer, TVector3& global_mom) const;
+	Bool_t          GoodForAnalysis() const { return m_is_good; }
   Bool_t          GoodForAnalysis(Bool_t status)
   { m_is_good = status; return status; }
   Int_t           Niteration() const { return m_n_iteration; }

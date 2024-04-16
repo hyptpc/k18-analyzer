@@ -18,15 +18,22 @@
 #include "RootHelper.hh"
 #include "UserParamMan.hh"
 #include "HodoPHCMan.hh"
+#include "TPCAnalyzer.hh"
 #include "TPCParamMan.hh"
 #include "DCAnalyzer.hh"
 #include "DCHit.hh"
 #include "TPCLocalTrackHelix.hh"
+#include "TPCRKTrack.hh"
 #include "TPCHit.hh"
+#include "TPCPadHelper.hh"
+#include <Math/ProbFunc.h>
 
 #include "DstHelper.hh"
 #include <TRandom.h>
 #include "DebugCounter.hh"
+
+#define ExclusiveResidual 0
+#define Kurama 0
 
 namespace
 {
@@ -48,8 +55,8 @@ const Int_t MaxTPCTracks = 100;
 const Int_t MaxTPCnHits = 50;
 const Int_t MaxG4Hits = 500;
 const double truncatedMean = 0.8; //80%
-  //const bool IsWithRes = false;
 const bool IsWithRes = true;
+//const bool IsWithRes = true;
 }
 
 namespace dst
@@ -81,7 +88,15 @@ struct Event
   Int_t ititpc[MaxTPCHits];
   Int_t nhittpc_iti[MaxTPCHits];
   vector<Int_t> nhtrack;
+  vector<Int_t> nhtrackEff;
+  vector<Int_t> trackid; //for Kurama & K1.8 tracks
+  vector<Int_t> isBeam;
+  vector<Int_t> isKurama;
+  vector<Int_t> isK18;
+  vector<Int_t> isAccidental;
+  vector<Int_t> flag;
   vector<Double_t> chisqr;
+  vector<Double_t> pval;
   vector<Double_t> helix_cx;
   vector<Double_t> helix_cy;
   vector<Double_t> helix_z0;
@@ -110,9 +125,14 @@ struct Event
   vector<vector<Double_t>> mom_z;
 
   vector<vector<Double_t>> residual;
+  vector<vector<Double_t>> residual_t;
   vector<vector<Double_t>> residual_x;
   vector<vector<Double_t>> residual_y;
   vector<vector<Double_t>> residual_z;
+  vector<vector<Double_t>> pull_t;
+  vector<vector<Double_t>> pull_x;
+  vector<vector<Double_t>> pull_y;
+  vector<vector<Double_t>> pull_z;
   vector<vector<Double_t>> resolution;
   vector<vector<Double_t>> resolution_x;
   vector<vector<Double_t>> resolution_y;
@@ -293,6 +313,54 @@ struct Event
   Double_t ppBvh[MaxG4Hits];
   Double_t deBvh[MaxG4Hits];
   Double_t tBvh[MaxG4Hits];
+	
+	//RealData
+	int ntK18;
+	vector<vector<double>>xvpHS;
+	vector<vector<double>>yvpHS;
+	vector<vector<double>>zvpHS;
+	vector<double>xtgtHS;
+	vector<double>ytgtHS;
+	vector<double>ztgtHS;
+	vector<double>xoutK18;
+	vector<double>youtK18;
+	vector<double>uoutK18;
+	vector<double>voutK18;
+	vector<double>p_3rd;
+	vector<vector<double>> layerK18;
+	vector<vector<double>> wireK18;
+	vector<vector<double>> localhitposK18;
+	int ntKurama;
+	vector<vector<double>>xvpKurama;
+	vector<vector<double>>yvpKurama;
+	vector<vector<double>>zvpKurama;
+	vector<double>xtgtKurama;
+	vector<double>ytgtKurama;
+	vector<double>xout;
+	vector<double>yout;
+	vector<double>zout;
+	vector<double>pxout;
+	vector<double>pyout;
+	vector<double>pzout;
+	vector<vector<double>> wire;
+	vector<vector<double>> layer;
+	vector<vector<double>> localhitpos;
+
+	
+	
+  vector<Int_t> isgoodTPCK18;
+  vector<Int_t> tpcidTPCK18;
+  vector<Int_t> niterationTPCK18;
+  vector<Double_t> chisqrTPCK18;
+  
+	vector<Int_t> isgoodTPCKurama;
+  vector<Int_t> tpcidTPCKurama;
+  vector<Int_t> niterationTPCKurama;
+  vector<Int_t> kflagTPCKurama;
+  vector<Double_t> chisqrTPCKurama;
+	
+	
+	
 	void Clear(){
 		PKm = qnan;PKm_x=qnan;PKm_y=qnan;PKm_z=qnan;
 		PKp = qnan;PKp_x=qnan;PKp_y=qnan;PKp_z=qnan;
@@ -302,7 +370,15 @@ struct Event
 		PPi1 = qnan;PPi1_x=qnan;PPi1_y=qnan;PPi1_z=qnan;
 		PP = qnan;PP_x=qnan;PP_y=qnan;PP_z=qnan;
 		nhtrack.clear();
+		nhtrackEff.clear();
+    trackid.clear();
+    isBeam.clear();
+    isKurama.clear();
+    isK18.clear();
+    isAccidental.clear();
+    flag.clear();
 		chisqr.clear();
+		pval.clear();
 		helix_cx.clear();
 		helix_cy.clear();
 		helix_z0.clear();
@@ -331,13 +407,55 @@ struct Event
 		resolution_y.clear();
 		resolution_z.clear();
 		residual.clear();
+		residual_t.clear();
 		residual_x.clear();
 		residual_y.clear();
 		residual_z.clear();
+		pull_t.clear();
+		pull_x.clear();
+		pull_y.clear();
+		pull_z.clear();
 		helix_t.clear();
     
 		track_cluster_de.clear();
     track_cluster_mrow.clear();
+		ntK18 = 0;
+		xvpHS.clear();
+		yvpHS.clear();
+		zvpHS.clear();
+		xoutK18.clear();
+		youtK18.clear();
+		uoutK18.clear();
+		voutK18.clear();
+		p_3rd.clear();
+		layerK18.clear();
+		wireK18.clear();
+		localhitposK18.clear();
+		ntKurama = 0;
+		xvpKurama.clear();
+		yvpKurama.clear();
+		zvpKurama.clear();
+		xout.clear();
+		yout.clear();
+		zout.clear();
+		pxout.clear();
+		pyout.clear();
+		pzout.clear();
+		layer.clear();
+		wire.clear();
+		localhitpos.clear();
+    
+		isgoodTPCK18.clear();
+    tpcidTPCK18.clear();
+    niterationTPCK18.clear();
+    chisqrTPCK18.clear();
+    
+		isgoodTPCKurama.clear();
+    tpcidTPCKurama.clear();
+    niterationTPCKurama.clear();
+    kflagTPCKurama.clear();
+    chisqrTPCKurama.clear();
+	
 	};
 };
 
@@ -516,6 +634,40 @@ struct Src
   Double_t deBvh[MaxG4Hits];
   Double_t tBvh[MaxG4Hits];
 
+
+	//RealData
+  TTreeReaderValue<int>* ntK18=nullptr;
+  TTreeReaderValue<vector<vector<double>>>* xvpHS=nullptr;
+  TTreeReaderValue<vector<vector<double>>>* yvpHS=nullptr;
+  TTreeReaderValue<vector<vector<double>>>* zvpHS=nullptr;
+	TTreeReaderValue<vector<double>>* xtgtHS=nullptr;
+	TTreeReaderValue<vector<double>>* ytgtHS=nullptr;
+	TTreeReaderValue<vector<double>>* ztgtHS=nullptr;
+	TTreeReaderValue<vector<double>>* xoutK18=nullptr;
+  TTreeReaderValue<vector<double>>* youtK18=nullptr;
+  TTreeReaderValue<vector<double>>* uoutK18=nullptr;
+  TTreeReaderValue<vector<double>>* voutK18=nullptr;
+  TTreeReaderValue<vector<double>>* p_3rd=nullptr;
+  TTreeReaderValue<vector<vector<double>>>* layerK18=nullptr;
+  TTreeReaderValue<vector<vector<double>>>* wireK18=nullptr;
+  TTreeReaderValue<vector<vector<double>>>* localhitposK18=nullptr;
+  TTreeReaderValue<int>* ntKurama=nullptr;
+	TTreeReaderValue<vector<vector<double>>>* xvpKurama=nullptr;
+  TTreeReaderValue<vector<vector<double>>>* yvpKurama=nullptr;
+  TTreeReaderValue<vector<vector<double>>>* zvpKurama=nullptr;
+	TTreeReaderValue<vector<double>>* xtgtKurama=nullptr;
+	TTreeReaderValue<vector<double>>* ytgtKurama=nullptr;
+	TTreeReaderValue<vector<double>>* xout=nullptr;
+  TTreeReaderValue<vector<double>>* yout=nullptr;
+  TTreeReaderValue<vector<double>>* zout=nullptr;
+	TTreeReaderValue<vector<double>>* pxout=nullptr;
+  TTreeReaderValue<vector<double>>* pyout=nullptr;
+  TTreeReaderValue<vector<double>>* pzout=nullptr;
+  TTreeReaderValue<vector<vector<double>>>* layer=nullptr;
+  TTreeReaderValue<vector<vector<double>>>* wire=nullptr;
+  TTreeReaderValue<vector<vector<double>>>* localhitpos=nullptr;
+
+
 };
 
 namespace root
@@ -524,6 +676,16 @@ namespace root
   Src    src;
   TH1   *h[MaxHist];
   TTree *tree;
+  enum eDetHid {
+    TPCK18VPHid = 100000,
+    TPCKuramaVPHid = 200000,
+    TPCK18RKHid = 300000,
+    TPCKuramaRKHid = 400000,
+    TPCClHid = 500000,
+  	TPCInclusiveHid = 600000,
+  	TPCExclusiveHid = 700000,
+  	TPCIntrinsicHid = 800000
+	};
 }
 
 //_____________________________________________________________________
@@ -793,9 +955,18 @@ bool
 dst::DstRead( int ievent )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"]");
+  
+	static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
+  static const auto yGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Y();
+  static const auto zGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Z();
+  static const auto zLocalBcOut = gGeom.GetLocalZ("BC3-X1");
+  static const auto xGlobalSdcOut = gGeom.GetGlobalPosition("SDC4-X2").X();
+  static const auto yGlobalSdcOut = gGeom.GetGlobalPosition("SDC4-X2").Y();
 
 
-  if( ievent%10==0 ){
+
+
+  if( ievent%1==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
@@ -990,53 +1161,117 @@ dst::DstRead( int ievent )
     ++event.nhittpc_iti[src.ititpc[ihit]-1];
   }
   for(int iti=0; iti<event.max_ititpc; ++iti){
-    // debug     std::cout<<"nhit_iti("<<iti<<"): "<<event.nhittpc_iti[iti]<<std::endl;
   }
-  // debug     getchar();
 
-  // double u = src.pxPrm[0]/src.pzPrm[0];
-  // double v = src.pyPrm[0]/src.pzPrm[0];
-  // double cost = 1./std::sqrt(1.+u*u+v*v);
-  // double theta=std::acos(cost)*math::Rad2Deg();
-  // if(theta>20.)
-  //   return true;
 
   if(src.nhittpc<5)
     return true;
 
 
-  DCAnalyzer *DCAna = new DCAnalyzer();
 
-  //with stable resolution
-  // for(int it=0; it<src.nhittpc; ++it){
-  //   src.x0tpc[it] += gRandom->Gaus(0,0.3);
-  //   src.y0tpc[it] += gRandom->Gaus(0,0.3);
-  //   src.z0tpc[it] += gRandom->Gaus(0,0.3);
-  // }
-  //for test
-  // for(int it=0; it<src.nhittpc; ++it){
-  //    // src.xtpc[it] += gRandom->Gaus(0,0.1);
-  //    // src.ztpc[it] += gRandom->Gaus(0,0.1);
-  //   double xtpc_re = src.x0tpc[it] + (src.xtpc[it] - src.x0tpc[it])*4.;
-  //   double ztpc_re = src.z0tpc[it] + (src.ztpc[it] - src.z0tpc[it])*4.;
-  //   src.xtpc[it]=xtpc_re;
-  //   src.ztpc[it]=ztpc_re;
-  // }
 
-  //  std::cout<<"nhittpc"<<src.nhittpc<<std::endl;
+  TPCAnalyzer *TPCAna = new TPCAnalyzer();
+
 
   if(IsWithRes){
-
-    DCAna->DecodeTPCHitsGeant4(src.nhittpc,
+    TPCAna->DecodeTPCHitsGeant4(src.nhittpc,
 			       src.xtpc, src.ytpc, src.ztpc, src.edeptpc, src.idtpc);
   }
   else{
-    DCAna->DecodeTPCHitsGeant4(src.nhittpc,
+    TPCAna->DecodeTPCHitsGeant4(src.nhittpc,
       			       src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc);
   }
-  DCAna->TrackSearchTPCHelix();
+	
+	event.ntK18 = **src.ntK18;
+	event.xvpHS = **src.xvpHS;
+	event.yvpHS = **src.yvpHS;
+	event.zvpHS = **src.zvpHS;
+	event.xtgtHS = **src.xtgtHS;
+	event.ytgtHS = **src.ytgtHS;
+	event.ztgtHS = **src.ztgtHS;
+	event.p_3rd = **src.p_3rd;
+	event.xoutK18 = **src.xoutK18;
+	event.youtK18 = **src.youtK18;
+	event.uoutK18 = **src.uoutK18;
+	event.voutK18 = **src.voutK18;
+	event.layerK18 = **src.layerK18;
+	event.wireK18 = **src.wireK18;
+	event.localhitposK18 = **src.localhitposK18;
+	event.ntKurama = **src.ntKurama;
+	event.xvpKurama = **src.xvpKurama;
+	event.yvpKurama = **src.yvpKurama;
+	event.zvpKurama = **src.zvpKurama;
+	event.xtgtKurama = **src.xtgtKurama;
+	event.ytgtKurama = **src.ytgtKurama;
+	event.xout = **src.xout;
+	event.yout = **src.yout;
+	event.zout = **src.zout;
+	event.pxout = **src.pxout;
+	event.pyout = **src.pyout;
+	event.pzout = **src.pzout;
+	event.layer = **src.layer;
+	event.wire = **src.wire;
+	event.localhitpos = **src.localhitpos;
 
-  int ntTpc = DCAna->GetNTracksTPCHelix();
+
+
+
+	vector<vector<TVector3>>vpK18;
+	vpK18.resize(event.ntK18);
+	vector<TVector3> initPosK18;
+	vector<TVector3> initMomK18;
+	vector<vector<int>> intlayerK18;
+	intlayerK18.resize(event.ntK18);
+  for(int it=0; it<event.ntK18; ++it){
+    for(Int_t il=0; il<event.xvpHS[it].size(); ++il){
+      vpK18[it].push_back(TVector3(event.xvpHS[it][il], event.yvpHS[it][il], event.zvpHS[it][il]));
+      intlayerK18[it].push_back(event.layerK18[it][il]);
+		}	
+    vpK18[it].push_back(TVector3(event.xtgtHS[it], event.ytgtHS[it], event.ztgtHS[it]));
+    TVector3 posOut(xGlobalBcOut + event.xoutK18[it],
+		    yGlobalBcOut + event.youtK18[it],
+		    zGlobalBcOut - zLocalBcOut);
+    TVector3 momOut(event.uoutK18[it], event.voutK18[it], 1.);
+    momOut *= 1./momOut.Mag();
+    momOut *= event.p_3rd[it];
+
+    initPosK18.push_back(posOut);
+    initMomK18.push_back(momOut);
+	
+	}
+  vector<Int_t> pidKurama;
+  vector<TVector3> initPosKurama;
+  vector<TVector3> initMomKurama;
+  vector<vector<TVector3>> vpKurama;
+	vector<vector<int>> intlayer;
+	intlayer.resize(event.ntKurama);
+	vpKurama.resize( event.ntKurama );
+  for(Int_t it=0; it<event.ntKurama; ++it){
+    vpKurama[it].push_back(TVector3(event.xtgtKurama[it], event.ytgtKurama[it], tpc::ZTarget));
+		cout<<event.ntKurama<<", "<<event.xvpKurama.size()<<endl;
+		for(Int_t il=0; il<event.xvpKurama[it].size(); ++il){
+      vpKurama[it].push_back(TVector3(event.xvpKurama[it][il], event.yvpKurama[it][il], event.zvpKurama[it][il]));
+    	intlayer[it].push_back(event.layer[it][il]);
+		}
+    pidKurama.push_back(1);
+    TVector3 posOut(xGlobalSdcOut + event.xout[it], yGlobalSdcOut + event.yout[it], event.zout[it]);
+    TVector3 momOut(event.pxout[it], event.pyout[it], event.pzout[it]);
+    initPosKurama.push_back(posOut);
+    initMomKurama.push_back(momOut);
+	}
+#if Kurama
+#if ExclusiveResidual
+  TPCAna->TrackSearchTPCHelix(vpK18, vpKurama,true);
+#else
+  TPCAna->TrackSearchTPCHelix(vpK18, vpKurama);
+#endif
+  TPCAna->TrackSearchTPCKurama(pidKurama, initPosKurama, initMomKurama, intlayer, event.wire, event.localhitpos);
+  TPCAna->TrackSearchTPCK18(initPosK18, initMomK18, intlayerK18, event.wireK18, event.localhitposK18);
+#else
+	TPCAna->TrackSearchTPCHelix();
+#endif
+
+	int ntTpc = TPCAna->GetNTracksTPCHelix();
   if( 1000<ntTpc ){
     std::cout << "#W " << func_name << " "
       	      << "too many ntTpc " << ntTpc << "/" << 1000 << std::endl;
@@ -1044,7 +1279,15 @@ dst::DstRead( int ievent )
   }
   event.ntTpc = ntTpc;
   event.nhtrack.resize( ntTpc );
+  event.nhtrackEff.resize( ntTpc );
+  event.flag.resize( ntTpc );
+  event.trackid.resize( ntTpc );
+  event.isBeam.resize( ntTpc );
+  event.isKurama.resize( ntTpc );
+  event.isK18.resize( ntTpc );
+  event.isAccidental.resize( ntTpc );
   event.chisqr.resize( ntTpc );
+  event.pval.resize( ntTpc );
   event.helix_cx.resize( ntTpc );
   event.helix_cy.resize( ntTpc );
   event.helix_z0.resize( ntTpc );
@@ -1076,27 +1319,87 @@ dst::DstRead( int ievent )
   event.resolution_y.resize( ntTpc );
   event.resolution_z.resize( ntTpc );
   event.residual.resize( ntTpc );
+  event.residual_t.resize( ntTpc );
   event.residual_x.resize( ntTpc );
   event.residual_y.resize( ntTpc );
   event.residual_z.resize( ntTpc );
+  event.pull_t.resize( ntTpc );
+  event.pull_x.resize( ntTpc );
+  event.pull_y.resize( ntTpc );
+  event.pull_z.resize( ntTpc );
   event.helix_t.resize( ntTpc );
   event.pathhit.resize(ntTpc);
   event.alpha.resize(ntTpc);
   event.track_cluster_de.resize(ntTpc);
   event.track_cluster_mrow.resize(ntTpc);
-  for( int it=0; it<ntTpc; ++it ){
-    TPCLocalTrackHelix *tp= DCAna->GetTrackTPCHelix(it);
+	
+	
+	event.isgoodTPCK18.resize(event.ntK18);
+	event.tpcidTPCK18.resize(event.ntK18);
+	event.niterationTPCK18.resize(event.ntK18);
+	event.chisqrTPCK18.resize(event.ntK18);
+  for(Int_t itk18=0; itk18<TPCAna->GetNTracksTPCK18(); ++itk18){
+    TPCRKTrack* tr_km = TPCAna->GetTPCK18Track(itk18);
+    Int_t niteration = tr_km -> Niteration();
+    Double_t chisqr = tr_km -> GetChiSquare();
+    Int_t idtpc = tr_km -> GetTPCTrackID();
+    Int_t idk18 = tr_km -> GetTrackID();
+    event.isgoodTPCK18[idk18] = 1;
+    event.tpcidTPCK18[idk18] = idtpc;
+    event.niterationTPCK18[idk18] = niteration;
+    event.chisqrTPCK18[idk18] = chisqr;
+	} 
+  event.isgoodTPCKurama.resize( event.ntKurama );
+  event.tpcidTPCKurama.resize( event.ntKurama );
+  event.niterationTPCKurama.resize( event.ntKurama );
+  event.kflagTPCKurama.resize( event.ntKurama );
+  event.chisqrTPCKurama.resize( event.ntKurama );
+  for(Int_t ittpckurama=0; ittpckurama<TPCAna->GetNTracksTPCKurama(); ++ittpckurama){
+    TPCRKTrack* tr_kp = TPCAna->GetTPCKuramaTrack(ittpckurama);
+    Int_t niteration = tr_kp -> Niteration();
+    Double_t chisqr = tr_kp -> GetChiSquare();
+    Int_t idtpc = tr_kp -> GetTPCTrackID();
+    Int_t idkurama = tr_kp -> GetTrackID();
+    event.isgoodTPCKurama[idkurama] = 1;
+    event.tpcidTPCKurama[idkurama] = idtpc;
+    event.niterationTPCKurama[idkurama] = niteration;
+    event.chisqrTPCKurama[idkurama] = chisqr;
+    event.kflagTPCKurama[idkurama] = 1;
+
+	}	
+	
+	
+	
+	
+	for( int it=0; it<ntTpc; ++it ){
+    TPCLocalTrackHelix *tp= TPCAna->GetTrackTPCHelix(it);
     if(!tp) continue;
     int nh=tp->GetNHit();
+    int nhEff=tp->GetNHitsEffective();
     double chisqr    = tp->GetChiSquare();
+		Double_t pval = 1-ROOT::Math::chisquared_cdf( chisqr*(2*nhEff-5),2*nhEff-5);
 
     double cx=tp->Getcx(), cy=tp->Getcy();
     double z0=tp->Getz0(), r=tp->Getr();
     double dz = tp->Getdz();
     TVector3 Mom0 = tp->GetMom0();
+    Int_t flag = tp->GetFitFlag();
+    Int_t trackid = tp->GetTrackID();
+    Int_t isbeam = tp->GetIsBeam();
+    Int_t iskurama = tp->GetIsKurama();
+    Int_t isk18 = tp->GetIsK18();
+    Int_t isaccidental = tp->GetIsAccidental();
 
     event.nhtrack[it] = nh;
+    event.nhtrackEff[it] = nhEff;
+    event.flag[it] = flag;
+    event.trackid[it] = trackid;
+    event.isBeam[it] = isbeam;
+    event.isKurama[it] = iskurama;
+    event.isK18[it] = isk18;
+    event.isAccidental[it] = isaccidental;
     event.chisqr[it] = chisqr;
+    event.pval[it] = pval;
     event.helix_cx[it] = cx;
     event.helix_cy[it] = cy;
     event.helix_z0[it] = z0;
@@ -1110,7 +1413,8 @@ dst::DstRead( int ievent )
     event.dE[it] = tp->GetTrackdE();
     event.dEdx[it] = tp->GetdEdx(truncatedMean);
     event.charge[it]= tp->GetCharge();
-//		event.pid[it]=particleID;
+    int particleID = Kinematics::HypTPCdEdxPID_temp(event.dEdx[it], event.mom0[it]*event.charge[it]);
+		event.pid[it]=particleID;
     event.hitlayer[it].resize( nh );
     event.hitpos_x[it].resize( nh );
     event.hitpos_y[it].resize( nh );
@@ -1122,9 +1426,14 @@ dst::DstRead( int ievent )
     event.mom_y[it].resize( nh );
     event.mom_z[it].resize( nh );
     event.residual[it].resize( nh );
+    event.residual_t[it].resize( nh );
     event.residual_x[it].resize( nh );
     event.residual_y[it].resize( nh );
     event.residual_z[it].resize( nh );
+    event.pull_t[it].resize( nh );
+    event.pull_x[it].resize( nh );
+    event.pull_y[it].resize( nh );
+    event.pull_z[it].resize( nh );
     event.resolution_x[it].resize( nh );
     event.resolution_y[it].resize( nh );
     event.resolution_z[it].resize( nh );
@@ -1141,7 +1450,8 @@ dst::DstRead( int ievent )
 		for( int ih=0; ih<nh; ++ih ){
 			TPCLTrackHit *hit = tp -> GetHitInOrder(ih);
       if(!hit) continue;
-      int layerId = 0;
+      int order = tp->GetOrder(ih);
+			int layerId = 0;
       layerId = hit->GetLayer();
       const TVector3& resi_vect = hit->GetResidualVect();
       const TVector3& res_vect = hit->GetResolutionVect();
@@ -1151,8 +1461,14 @@ dst::DstRead( int ievent )
 			const TVector3& calpos = hit->GetLocalCalPosHelix();
       const TVector3& mom = hit->GetMomentumHelix(tp->GetCharge());
 			double residual = hit->GetResidual();
-			
-
+      const TVector3& excl_resi_vect = hit->GetResidualVectExclusive(); 
+#if ExclusiveResidual
+			const TVector3& ex_calpos	= hit->GetLocalCalPosHelixExclusive();
+			double excl_cx=tp->GetcxExclusive(order), excl_cy=tp->GetcyExclusive(order);
+			double excl_z0=tp->Getz0Exclusive(order), excl_r=tp->GetrExclusive(order);
+			double excl_dz = tp->GetdzExclusive(order);
+//      const TVector3& excl_resi_vect = hit->GetResidualVectExclusive();
+#endif
       for( int ih2=0; ih2<src.nhittpc; ++ih2 ){
 	TVector3 setpos;
 	if(IsWithRes)
@@ -1201,7 +1517,137 @@ dst::DstRead( int ievent )
       event.resolution_x[it][ih] = res_vect.x();
       event.resolution_y[it][ih] = res_vect.y();
       event.resolution_z[it][ih] = res_vect.z();
-		}
+			double res_t = hypot(res_vect.x(),res_vect.z());
+			double res_x = res_vect.x();
+			double res_y = res_vect.y();
+			double res_z = res_vect.z();
+		
+			double resi_x = resi_vect.x();
+			double resi_y = resi_vect.y();
+			double resi_z = resi_vect.z();
+			if(res_x>1e10 or res_y>1e10 or res_z > 1e10) continue;			
+			double resi_theta = atan2(resi_z,-resi_x); 
+			TVector3 dir_hit(cos(hit->GetTheta()),sin(hit->GetTheta()),0);	
+			TVector3 dir_resi(cos(resi_theta),sin(resi_theta),0);	
+			double sign = 1.;
+			if(dir_hit*dir_resi<0) sign = -1.;
+//			double hitpos_r = hypot(hitpos.z()-(-143) -cy,-hitpos.x()-cx);
+//			double resi_t = hitpos_r - r;	
+			double resi_t = sign*hypot(resi_x,resi_z);
+      event.residual_t[it][ih] = resi_t;
+      event.pull_t[it][ih] = resi_t/res_t;
+      event.pull_x[it][ih] = resi_x/res_x;
+      event.pull_y[it][ih] = resi_y/res_y;
+      event.pull_z[it][ih] = resi_z/res_z;
+			
+			if(pval>0.01) continue;
+			HF1(TPCInclusiveHid+layerId,resi_t);
+			HF1(TPCInclusiveHid+100+layerId,resi_x);
+			HF1(TPCInclusiveHid+200+layerId,resi_y);
+			HF1(TPCInclusiveHid+300+layerId,resi_z);
+			HF1(TPCInclusiveHid+1000+layerId,resi_t/res_t);
+			HF1(TPCInclusiveHid+1100+layerId,resi_x/res_x);
+			HF1(TPCInclusiveHid+1200+layerId,resi_y/res_y);
+			HF1(TPCInclusiveHid+1300+layerId,resi_z/res_z);
+			HF1(TPCInclusiveHid+32,resi_t);
+			HF1(TPCInclusiveHid+100+32,resi_x);
+			HF1(TPCInclusiveHid+200+32,resi_y);
+			HF1(TPCInclusiveHid+300+32,resi_z);
+			HF1(TPCInclusiveHid+1000+32,resi_t/res_t);
+			HF1(TPCInclusiveHid+1100+32,resi_x/res_x);
+			HF1(TPCInclusiveHid+1200+32,resi_y/res_y);
+			HF1(TPCInclusiveHid+1300+32,resi_z/res_z);
+			
+			HF2(TPCInclusiveHid+10000,layerId,resi_t);
+			HF2(TPCInclusiveHid+100+10000,layerId,resi_x);
+			HF2(TPCInclusiveHid+200+10000,layerId,resi_y);
+			HF2(TPCInclusiveHid+300+10000,layerId,resi_z);
+			HF2(TPCInclusiveHid+1000+10000,layerId,resi_t/res_t);
+			HF2(TPCInclusiveHid+1100+10000,layerId,resi_x/res_x);
+			HF2(TPCInclusiveHid+1200+10000,layerId,resi_y/res_y);
+			HF2(TPCInclusiveHid+1300+10000,layerId,resi_z/res_z);
+			double alpha = abs(event.alpha[it][ih]);
+			int bin_alpha = (50*alpha / acos(-1));
+			HF1(TPCInclusiveHid + 20000 + bin_alpha,resi_t);
+			HF1(TPCInclusiveHid +100+ 20000 + bin_alpha,resi_x);
+			HF1(TPCInclusiveHid +300+ 20000 + bin_alpha,resi_z);
+#if ExclusiveResidual	
+//			double excl_resi_t = excl_hitpos_r - excl_r;	
+			double excl_resi_x = excl_resi_vect.x();
+			double excl_resi_y = excl_resi_vect.y();
+			double excl_resi_z = excl_resi_vect.z();
+			double excl_resi_t = sign*hypot(excl_resi_x,excl_resi_z);
+			
+			HF1(TPCExclusiveHid+layerId,excl_resi_t);
+			HF1(TPCExclusiveHid+100+layerId,excl_resi_x);
+			HF1(TPCExclusiveHid+200+layerId,excl_resi_y);
+			HF1(TPCExclusiveHid+300+layerId,excl_resi_z);
+			HF1(TPCExclusiveHid+1000+layerId,excl_resi_t/res_t);
+			HF1(TPCExclusiveHid+1100+layerId,excl_resi_x/res_x);
+			HF1(TPCExclusiveHid+1200+layerId,excl_resi_y/res_y);
+			HF1(TPCExclusiveHid+1300+layerId,excl_resi_z/res_z);
+			HF1(TPCExclusiveHid+32,excl_resi_t);
+			HF1(TPCExclusiveHid+100+32,excl_resi_x);
+			HF1(TPCExclusiveHid+200+32,excl_resi_y);
+			HF1(TPCExclusiveHid+300+32,excl_resi_z);
+			HF1(TPCExclusiveHid+1000+32,excl_resi_t/res_t);
+			HF1(TPCExclusiveHid+1100+32,excl_resi_x/res_x);
+			HF1(TPCExclusiveHid+1200+32,excl_resi_y/res_y);
+			HF1(TPCExclusiveHid+1300+32,excl_resi_z/res_z);
+			
+			HF2(TPCExclusiveHid+10000,layerId,excl_resi_t);
+			HF2(TPCExclusiveHid+100+10000,layerId,excl_resi_x);
+			HF2(TPCExclusiveHid+200+10000,layerId,excl_resi_y);
+			HF2(TPCExclusiveHid+300+10000,layerId,excl_resi_z);
+			HF2(TPCExclusiveHid+1000+10000,layerId,excl_resi_t/res_t);
+			HF2(TPCExclusiveHid+1100+10000,layerId,excl_resi_x/res_x);
+			HF2(TPCExclusiveHid+1200+10000,layerId,excl_resi_y/res_y);
+			HF2(TPCExclusiveHid+1300+10000,layerId,excl_resi_z/res_z);
+    
+			double intr_resi_t = sqrt(abs(resi_t*excl_resi_t));
+			double intr_resi_x = sqrt(abs(resi_x*excl_resi_x));
+			double intr_resi_y = sqrt(abs(resi_y*excl_resi_y));
+			double intr_resi_z = sqrt(abs(resi_z*excl_resi_z));
+			if(resi_t<0) intr_resi_t*=-1;
+			if(resi_x<0) intr_resi_x*=-1;
+			if(resi_y<0) intr_resi_y*=-1;
+			if(resi_z<0) intr_resi_z*=-1;
+			
+			HF1(TPCIntrinsicHid+layerId,intr_resi_t);
+			HF1(TPCIntrinsicHid+100+layerId,intr_resi_x);
+			HF1(TPCIntrinsicHid+200+layerId,intr_resi_y);
+			HF1(TPCIntrinsicHid+300+layerId,intr_resi_z);
+			HF1(TPCIntrinsicHid+1000+layerId,intr_resi_t/res_t);
+			HF1(TPCIntrinsicHid+1100+layerId,intr_resi_x/res_x);
+			HF1(TPCIntrinsicHid+1200+layerId,intr_resi_y/res_y);
+			HF1(TPCIntrinsicHid+1300+layerId,intr_resi_z/res_z);
+			HF1(TPCIntrinsicHid+32,intr_resi_t);
+			HF1(TPCIntrinsicHid+100+32,intr_resi_x);
+			HF1(TPCIntrinsicHid+200+32,intr_resi_y);
+			HF1(TPCIntrinsicHid+300+32,intr_resi_z);
+			HF1(TPCIntrinsicHid+1000+32,intr_resi_t/res_t);
+			HF1(TPCIntrinsicHid+1100+32,intr_resi_x/res_x);
+			HF1(TPCIntrinsicHid+1200+32,intr_resi_y/res_y);
+			HF1(TPCIntrinsicHid+1300+32,intr_resi_z/res_z);
+			
+			HF2(TPCIntrinsicHid+10000,layerId,intr_resi_t);
+			HF2(TPCIntrinsicHid+100+10000,layerId,intr_resi_x);
+			HF2(TPCIntrinsicHid+200+10000,layerId,intr_resi_y);
+			HF2(TPCIntrinsicHid+300+10000,layerId,intr_resi_z);
+			HF2(TPCIntrinsicHid+1000+10000,layerId,intr_resi_t/res_t);
+			HF2(TPCIntrinsicHid+1100+10000,layerId,intr_resi_x/res_x);
+			HF2(TPCIntrinsicHid+1200+10000,layerId,intr_resi_y/res_y);
+			HF2(TPCIntrinsicHid+1300+10000,layerId,intr_resi_z/res_z);
+			
+			HF1(TPCExclusiveHid + 20000 + bin_alpha,resi_t);
+			HF1(TPCExclusiveHid +100+ 20000 + bin_alpha,resi_x);
+			HF1(TPCExclusiveHid +300+ 20000 + bin_alpha,resi_z);
+			HF1(TPCIntrinsicHid + 20000 + bin_alpha,resi_t);
+			HF1(TPCIntrinsicHid +100+ 20000 + bin_alpha,resi_x);
+			HF1(TPCIntrinsicHid +300+ 20000 + bin_alpha,resi_z);
+		
+#endif	
+		}//ih
     event.path[it] = r*(max_t - min_t);
 
   }
@@ -1229,7 +1675,7 @@ dst::DstRead( int ievent )
 
   //HF1( 1, event.status++ );
 
-  delete DCAna;
+  delete TPCAna;
   return true;
 }
 
@@ -1243,6 +1689,7 @@ dst::DstClose( void )
 
   const std::size_t n = TFileCont.size();
   for( std::size_t i=0; i<n; ++i ){
+    if( TTreeReaderCont[i] ) delete TTreeReaderCont[i];
     if( TTreeCont[i] ) delete TTreeCont[i];
     if( TFileCont[i] ) delete TFileCont[i];
   }
@@ -1254,6 +1701,105 @@ bool
 ConfMan::InitializeHistograms( void )
 {
   HB1( 1, "Status", 21, 0., 21. );
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+		HB1(TPCInclusiveHid+layer,	Form("TPC InclusiveResidual T[mm];layer%d",layer),1000,-10,10);
+		HB1(TPCInclusiveHid+100+layer,	Form("TPC InclusiveResidual X[mm];layer%d",layer),1000,-10,10);
+		HB1(TPCInclusiveHid+200+layer,	Form("TPC InclusiveResidual Y[mm];layer%d",layer),1000,-10,10);
+		HB1(TPCInclusiveHid+300+layer,	Form("TPC InclusiveResidual Z[mm];layer%d",layer),1000,-10,10);
+		HB1(TPCInclusiveHid+1000+layer,	Form("TPC InclusivePull T;layer%d",layer),1000,-10,10);
+		HB1(TPCInclusiveHid+1000+100+layer,	Form("TPC InclusivePull X;layer%d",layer),1000,-10,10);
+		HB1(TPCInclusiveHid+1000+200+layer,	Form("TPC InclusivePull Y;layer%d",layer),1000,-10,10);
+		HB1(TPCInclusiveHid+1000+300+layer,	Form("TPC InclusivePull Z;layer%d",layer),1000,-10,10);
+	
+		HB1(TPCExclusiveHid+layer,	Form("TPC ExclusiveResidual T[mm];layer%d",layer),1000,-10,10);
+		HB1(TPCExclusiveHid+100+layer,	Form("TPC ExclusiveResidual X[mm];layer%d",layer),1000,-10,10);
+		HB1(TPCExclusiveHid+200+layer,	Form("TPC ExclusiveResidual Y[mm];layer%d",layer),1000,-10,10);
+		HB1(TPCExclusiveHid+300+layer,	Form("TPC ExclusiveResidual Z[mm];layer%d",layer),1000,-10,10);
+		HB1(TPCExclusiveHid+1000+layer,	Form("TPC ExclusivePull T;layer%d",layer),1000,-10,10);
+		HB1(TPCExclusiveHid+1000+100+layer,	Form("TPC ExclusivePull X;layer%d",layer),1000,-10,10);
+		HB1(TPCExclusiveHid+1000+200+layer,	Form("TPC ExclusivePull Y;layer%d",layer),1000,-10,10);
+		HB1(TPCExclusiveHid+1000+300+layer,	Form("TPC ExclusivePull Z;layer%d",layer),1000,-10,10);
+		
+		HB1(TPCIntrinsicHid+layer,	Form("TPC IntrinsicResidual T[mm];layer%d",layer),1000,-10,10);
+		HB1(TPCIntrinsicHid+100+layer,	Form("TPC IntrinsicResidual X[mm];layer%d",layer),1000,-10,10);
+		HB1(TPCIntrinsicHid+200+layer,	Form("TPC IntrinsicResidual Y[mm];layer%d",layer),1000,-10,10);
+		HB1(TPCIntrinsicHid+300+layer,	Form("TPC IntrinsicResidual Z[mm];layer%d",layer),1000,-10,10);
+		HB1(TPCIntrinsicHid+1000+layer,	Form("TPC IntrinsicPull T;layer%d",layer),1000,-10,10);
+		HB1(TPCIntrinsicHid+1000+100+layer,	Form("TPC IntrinsicPull X;layer%d",layer),1000,-10,10);
+		HB1(TPCIntrinsicHid+1000+200+layer,	Form("TPC IntrinsicPull Y;layer%d",layer),1000,-10,10);
+		HB1(TPCIntrinsicHid+1000+300+layer,	Form("TPC IntrinsicPull Z;layer%d",layer),1000,-10,10);
+  }
+	HB1(TPCInclusiveHid+32,	Form("TPC InclusiveResidual T[mm];AllLayer"),1000,-10,10);
+	HB1(TPCInclusiveHid+100+32,	Form("TPC InclusiveResidual X[mm];AllLayer"),1000,-10,10);
+	HB1(TPCInclusiveHid+200+32,	Form("TPC InclusiveResidual Y[mm];AllLayer"),1000,-10,10);
+	HB1(TPCInclusiveHid+300+32,	Form("TPC InclusiveResidual Z[mm];AllLayer"),1000,-10,10);
+	HB1(TPCInclusiveHid+1000+32,	Form("TPC InclusivePull T;AllLayer"),1000,-10,10);
+	HB1(TPCInclusiveHid+1000+100+32,	Form("TPC InclusivePull X;AllLayer"),1000,-10,10);
+	HB1(TPCInclusiveHid+1000+200+32,	Form("TPC InclusivePull Y;AllLayer"),1000,-10,10);
+	HB1(TPCInclusiveHid+1000+300+32,	Form("TPC InclusivePull Z;AllLayer"),1000,-10,10);
+
+	HB1(TPCExclusiveHid+32,	Form("TPC ExclusiveResidual T[mm];AllLayer"),1000,-10,10);
+	HB1(TPCExclusiveHid+100+32,	Form("TPC ExclusiveResidual X[mm];AllLayer"),1000,-10,10);
+	HB1(TPCExclusiveHid+200+32,	Form("TPC ExclusiveResidual Y[mm];AllLayer"),1000,-10,10);
+	HB1(TPCExclusiveHid+300+32,	Form("TPC ExclusiveResidual Z[mm];AllLayer"),1000,-10,10);
+	HB1(TPCExclusiveHid+1000+32,	Form("TPC ExclusivePull T;AllLayer"),1000,-10,10);
+	HB1(TPCExclusiveHid+1000+100+32,	Form("TPC ExclusivePull X;AllLayer"),1000,-10,10);
+	HB1(TPCExclusiveHid+1000+200+32,	Form("TPC ExclusivePull Y;AllLayer"),1000,-10,10);
+	HB1(TPCExclusiveHid+1000+300+32,	Form("TPC ExclusivePull Z;AllLayer"),1000,-10,10);
+
+	HB1(TPCIntrinsicHid+32,	Form("TPC IntrinsicResidual T[mm];AllLayer"),1000,-10,10);
+	HB1(TPCIntrinsicHid+100+32,	Form("TPC IntrinsicResidual X[mm];AllLayer"),1000,-10,10);
+	HB1(TPCIntrinsicHid+200+32,	Form("TPC IntrinsicResidual Y[mm];AllLayer"),1000,-10,10);
+	HB1(TPCIntrinsicHid+300+32,	Form("TPC IntrinsicResidual Z[mm];AllLayer"),1000,-10,10);
+	HB1(TPCIntrinsicHid+1000+32,	Form("TPC IntrinsicPull T;AllLayer"),1000,-10,10);
+	HB1(TPCIntrinsicHid+1000+100+32,	Form("TPC IntrinsicPull X;AllLayer"),1000,-10,10);
+	HB1(TPCIntrinsicHid+1000+200+32,	Form("TPC IntrinsicPull Y;AllLayer"),1000,-10,10);
+	HB1(TPCIntrinsicHid+1000+300+32,	Form("TPC IntrinsicPull Z;AllLayer"),1000,-10,10);
+	
+
+	HB2(TPCInclusiveHid+10000,	Form("TPC InclusiveResidual T[mm]:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCInclusiveHid+100+10000,	Form("TPC InclusiveResidual X[mm]:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCInclusiveHid+200+10000,	Form("TPC InclusiveResidual Y[mm]:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCInclusiveHid+300+10000,	Form("TPC InclusiveResidual Z[mm]:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCInclusiveHid+1000+10000,	Form("TPC InclusivePull T:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCInclusiveHid+1000+100+10000,	Form("TPC InclusivePull X:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCInclusiveHid+1000+200+10000,	Form("TPC InclusivePull Y:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCInclusiveHid+1000+300+10000,	Form("TPC InclusivePull Z:Layer"),31,0,31,1000,-10,10);
+
+	HB2(TPCExclusiveHid+10000,	Form("TPC ExclusiveResidual T[mm]:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCExclusiveHid+100+10000,	Form("TPC ExclusiveResidual X[mm]:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCExclusiveHid+200+10000,	Form("TPC ExclusiveResidual Y[mm]:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCExclusiveHid+300+10000,	Form("TPC ExclusiveResidual Z[mm]:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCExclusiveHid+1000+10000,	Form("TPC ExclusivePull T:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCExclusiveHid+1000+100+10000,	Form("TPC ExclusivePull X:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCExclusiveHid+1000+200+10000,	Form("TPC ExclusivePull Y:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCExclusiveHid+1000+300+10000,	Form("TPC ExclusivePull Z:Layer"),31,0,31,1000,-10,10);
+
+	HB2(TPCIntrinsicHid+10000,	Form("TPC IntrinsicResidual T[mm]:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCIntrinsicHid+100+10000,	Form("TPC IntrinsicResidual X[mm]:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCIntrinsicHid+200+10000,	Form("TPC IntrinsicResidual Y[mm]:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCIntrinsicHid+300+10000,	Form("TPC IntrinsicResidual Z[mm]:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCIntrinsicHid+1000+10000,	Form("TPC IntrinsicPull T:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCIntrinsicHid+1000+100+10000,	Form("TPC IntrinsicPull X:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCIntrinsicHid+1000+200+10000,	Form("TPC IntrinsicPull Y:Layer"),31,0,31,1000,-10,10);
+	HB2(TPCIntrinsicHid+1000+300+10000,	Form("TPC IntrinsicPull Z:Layer"),31,0,31,1000,-10,10);
+	
+	for(int ih=0;ih<50;++ih){
+		double dt = acos(-1)*1./50;
+		double alpha_l = dt*ih;	
+		double alpha_h = dt*(ih+1);	
+		HB1(TPCInclusiveHid + 20000 + ih,Form("TPCInclusiveResidualPt_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+		HB1(TPCInclusiveHid +100+ 20000 + ih,Form("TPCInclusiveResidualPx_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+		HB1(TPCInclusiveHid +300+ 20000 + ih,Form("TPCInclusiveResidualPz_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+		HB1(TPCExclusiveHid + 20000 + ih,Form("TPCExclusiveResidualPt_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+		HB1(TPCExclusiveHid +100+ 20000 + ih,Form("TPCExclusiveResidualPx_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+		HB1(TPCExclusiveHid +300+ 20000 + ih,Form("TPCExclusiveResidualPz_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+		HB1(TPCIntrinsicHid + 20000 + ih,Form("TPCIntrinsicResidualPt_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+		HB1(TPCIntrinsicHid +100+ 20000 + ih,Form("TPCIntrinsicResidualPx_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+		HB1(TPCIntrinsicHid +300+ 20000 + ih,Form("TPCIntrinsicResidualPz_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+	}
+
+
 
 
   HBTree( "tpc", "tree of DstTPC_g" );
@@ -1268,7 +1814,15 @@ ConfMan::InitializeHistograms( void )
 
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
+  tree->Branch( "nhtrackEff", &event.nhtrackEff );
+  tree->Branch( "trackid", &event.trackid );
+  tree->Branch( "isBeam", &event.isBeam );
+  tree->Branch( "isKurama", &event.isKurama );
+  tree->Branch( "isK18", &event.isK18 );
+  tree->Branch( "isAccidental", &event.isAccidental );
+  tree->Branch( "flag", &event.flag );
   tree->Branch( "chisqr", &event.chisqr );
+  tree->Branch( "pval", &event.pval );
   tree->Branch( "helix_cx", &event.helix_cx );
   tree->Branch( "helix_cy", &event.helix_cy );
   tree->Branch( "helix_z0", &event.helix_z0 );
@@ -1468,173 +2022,8 @@ ConfMan::InitializeHistograms( void )
 
 
   ////////// Bring Address From Dst
-  TTreeCont[kTPCGeant]->SetBranchStatus("*", 0);
-  TTreeCont[kTPCGeant]->SetBranchStatus("evnum",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("nhittpc",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("nhPrm",  1);
-
-  TTreeCont[kTPCGeant]->SetBranchStatus("xPrm",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("yPrm",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("zPrm",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pxPrm",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pyPrm",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pzPrm",  1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ppPrm",  1);
-
-  TTreeCont[kTPCGeant]->SetBranchStatus("ititpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("idtpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("parentID", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("NumberOfTracks", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("PIDOfTrack", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ParentIDOfTrack", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("VertexOfTrack_x", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("VertexOfTrack_y", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("VertexOfTrack_z", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("MomentumOfTrack", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("MomentumOfTrack_x", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("MomentumOfTrack_y", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("MomentumOfTrack_z", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("SpinXi_x", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("SpinXi_y", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("SpinXi_z", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ThXi_CM", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("MomXi_x", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("MomXi_y", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("MomXi_z", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("SpinLd_x", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("SpinLd_y", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("SpinLd_z", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ThLd_CM", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("MomLd_x", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("MomLd_y", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("MomLd_z", 1);
-  
-	TTreeCont[kTPCGeant]->SetBranchStatus("xtpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ytpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ztpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("x0tpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("y0tpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("z0tpc", 1);
-  //  TTreeCont[kTPCGeant]->SetBranchStatus("resoX", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pxtpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pytpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pztpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pptpc", 1);   // total mometum
-  // TTreeCont[kTPCGeant]->SetBranchStatus("masstpc", 1);   // mass TPC
-  // TTreeCont[kTPCGeant]->SetBranchStatus("betatpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("edeptpc", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("dedxtpc", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("slengthtpc", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("laytpc", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("rowtpc", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("parentID", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("iPadtpc", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("xtpc_pad", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("ytpc_pad", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("ztpc_pad", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("dxtpc_pad", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("dytpc_pad", 1);
-  // TTreeCont[kTPCGeant]->SetBranchStatus("dztpc_pad", 1);
-
-  TTreeCont[kTPCGeant]->SetBranchStatus("nhSch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("tidSch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pidSch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("didSch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("prtSch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("qSch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("xSch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ySch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("zSch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pxSch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pySch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pzSch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ppSch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("deSch", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("tSch", 1);
-
-
-  TTreeCont[kTPCGeant]->SetBranchStatus("nhLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("tidLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pidLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("didLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("prtLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("qLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("xLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("yLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("zLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pxLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pyLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pzLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("deLac", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("tLac", 1);
-  
-	TTreeCont[kTPCGeant]->SetBranchStatus("nhHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("tidHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pidHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("didHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("prtHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("qHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("xHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("yHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("zHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pxHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pyHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pzHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ppHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("deHtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("tHtof", 1);
-
-
-  TTreeCont[kTPCGeant]->SetBranchStatus("nhFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("tidFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pidFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("didFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("prtFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("qFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("xFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("yFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("zFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pxFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pyFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pzFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ppFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("deFtof", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("tFtof", 1);
-  
-	TTreeCont[kTPCGeant]->SetBranchStatus("nhSdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("tidSdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pidSdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("didSdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("prtSdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("qSdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("xSdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ySdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("zSdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pxSdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pySdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pzSdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ppSdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("deSdc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("tSdc", 1);
-
-
-  TTreeCont[kTPCGeant]->SetBranchStatus("nhBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("tidBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pidBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("didBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("prtBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("qBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("xBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("yBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("zBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pxBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pyBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("pzBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ppBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("deBvh", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("tBvh", 1);
-  
+  TTreeReaderCont[kTPCGeant] = new TTreeReader( "TPC_g", TFileCont[kTPCGeant] );
+  const auto& reader = TTreeReaderCont[kTPCGeant];
 	
 	TTreeCont[kTPCGeant]->SetBranchAddress("evnum", &src.evnum);
   TTreeCont[kTPCGeant]->SetBranchAddress("nhittpc", &src.nhittpc);
@@ -1801,6 +2190,39 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchAddress("ppBvh", src.ppBvh);
   TTreeCont[kTPCGeant]->SetBranchAddress("deBvh", src.deBvh);
   TTreeCont[kTPCGeant]->SetBranchAddress("tBvh", src.tBvh);
+
+  src.ntK18 = new TTreeReaderValue<Int_t>( *reader, "ntK18" );
+  src.xvpHS = new TTreeReaderValue<vector<vector<double>>>( *reader, "xvpHS" );
+  src.yvpHS = new TTreeReaderValue<vector<vector<Double_t>>>( *reader, "yvpHS" );
+  src.zvpHS = new TTreeReaderValue<vector<vector<Double_t>>>( *reader, "zvpHS" );
+  src.p_3rd = new TTreeReaderValue<vector<Double_t>>( *reader, "p_3rd" );
+  src.xtgtHS = new TTreeReaderValue<vector<Double_t>>( *reader, "xtgtHS" );
+  src.ytgtHS = new TTreeReaderValue<vector<Double_t>>( *reader, "ytgtHS" );
+  src.ztgtHS = new TTreeReaderValue<vector<Double_t>>( *reader, "ztgtHS" );
+  src.xoutK18 = new TTreeReaderValue<vector<Double_t>>( *reader, "xoutK18" );
+  src.youtK18 = new TTreeReaderValue<vector<Double_t>>( *reader, "youtK18" );
+  src.uoutK18 = new TTreeReaderValue<vector<Double_t>>( *reader, "uoutK18" );
+  src.voutK18 = new TTreeReaderValue<vector<Double_t>>( *reader, "voutK18" );
+  src.layerK18 = new TTreeReaderValue<vector<vector<Double_t>>>( *reader, "layerK18" );
+  src.wireK18 = new TTreeReaderValue<vector<vector<Double_t>>>( *reader, "wireK18" );
+  src.localhitposK18 = new TTreeReaderValue<vector<vector<Double_t>>>( *reader, "localhitposK18" );
+
+  src.ntKurama = new TTreeReaderValue<Int_t>( *reader, "ntKurama" );
+  src.xvpKurama = new TTreeReaderValue<vector<vector<Double_t>>>( *reader, "xvpKurama" );
+  src.yvpKurama = new TTreeReaderValue<vector<vector<Double_t>>>( *reader, "yvpKurama" );
+  src.zvpKurama = new TTreeReaderValue<vector<vector<Double_t>>>( *reader, "zvpKurama" );
+  src.xtgtKurama = new TTreeReaderValue<vector<Double_t>>( *reader, "xtgtKurama" );
+  src.ytgtKurama = new TTreeReaderValue<vector<Double_t>>( *reader, "ytgtKurama" );
+  src.xout = new TTreeReaderValue<vector<Double_t>>( *reader, "xout" );
+  src.yout = new TTreeReaderValue<vector<Double_t>>( *reader, "yout" );
+  src.zout = new TTreeReaderValue<vector<Double_t>>( *reader, "zout" );
+  src.pxout = new TTreeReaderValue<vector<Double_t>>( *reader, "pxout" );
+  src.pyout = new TTreeReaderValue<vector<Double_t>>( *reader, "pyout" );
+  src.pzout = new TTreeReaderValue<vector<Double_t>>( *reader, "pzout" );
+  src.layer = new TTreeReaderValue<vector<vector<Double_t>>>( *reader, "layer" );
+  src.wire = new TTreeReaderValue<vector<vector<Double_t>>>( *reader, "wire" );
+  src.localhitpos = new TTreeReaderValue<vector<vector<Double_t>>>( *reader, "localhitpos" );
+
 
 	return true;
 }

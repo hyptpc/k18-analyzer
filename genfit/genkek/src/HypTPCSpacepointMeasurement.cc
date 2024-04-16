@@ -15,12 +15,14 @@ const HypTPCHit* dethit, const TrackCandHit* hit)
     : SpacepointMeasurement()
   {
     const TPCLTrackHit& tpchit = dethit -> GetHit();
-#if 1
-    const TVector3& res_vect = tpchit.GetResolutionVect();
-#else
-    const TVector3& res_vect = 1.7*tpchit.GetResolutionVect();
-#endif
-    //GenFit Units : GeV/c, ns, cm, kGauss
+    //const TVector3& res_vect = tpchit.GetResolutionVect();
+    const TVector3& res_vect = PositionScale*tpchit.GetResolutionVect();
+		const TVector3& mom_vect = tpchit.GetMomentumHelix(1);//Charge does not matter for px*pz
+    double px = mom_vect.X();
+    double py = mom_vect.Y();
+    double pz = mom_vect.Z();
+		
+		//GenFit Units : GeV/c, ns, cm, kGauss
     //K1.8Ana Units : GeV/c, ns, mm, T
     int nDim = 3;
     TMatrixDSym hitCov(nDim);

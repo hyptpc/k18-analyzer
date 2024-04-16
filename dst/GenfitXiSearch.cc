@@ -31,13 +31,15 @@
 #include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
+#include "FourVectorCartesianFitter.hh"
+#include "FourVectorFitter.hh"
 
 #include "HypTPCFitter.hh"
 #include "HypTPCTask.hh"
 
 #define SaveTPCK18 0
 #define MMcut_Xi 0
-
+#define SkipGenfit 0
 namespace
 {
 using namespace root;
@@ -51,7 +53,7 @@ const auto& gCounter = debug::ObjectCounter::GetInstance();
 
 //For GenFit Setting
 const Bool_t Const_field = true; //Must be false for linear tracking
-const Int_t verbosity = 0;//0~3;
+const Int_t verbosity = -1;//0~3;
 //const Int_t verbosity = 1;
 const auto& tpcGeo = ConfMan::Get<TString>("TPCGDML");
 
@@ -83,6 +85,20 @@ const Double_t GFlpi_distcut = 100.;
 const Double_t& HS_field_0 = ConfMan::Get<Double_t>("HSFLDCALIB");
 const Double_t& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
 const Double_t& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
+TLorentzVector ToHelix(TLorentzVector GlobalLV){
+	double E = GlobalLV.E();
+	double X = -GlobalLV.X();
+	double Y = GlobalLV.Z();
+	double Z = GlobalLV.Y();
+	return TLorentzVector(X,Y,Z,E);
+}
+TLorentzVector ToGlobal(TLorentzVector HelixLV){
+	return ToHelix(HelixLV);
+}
+const Int_t KFMaxStep = 2;
+double ScaleMomRes = 1.4;
+double ScalePhiRes = 1.4;
+double ScaledZRes = 1.5;
 }
 
 namespace dst
@@ -220,6 +236,7 @@ struct Event
   std::vector<Int_t> charge; //Helix charge
   std::vector<Int_t> pid;
   std::vector<Double_t> chisqr;
+  std::vector<Double_t> pval;
   std::vector<Double_t> helix_cx;
   std::vector<Double_t> helix_cy;
   std::vector<Double_t> helix_z0;
@@ -250,7 +267,28 @@ struct Event
   std::vector<std::vector<Double_t>> track_cluster_de;
   std::vector<std::vector<Double_t>> track_cluster_mrow;
 
+  Int_t nvtxTpc;
+  std::vector<Double_t> vtx_x;
+  std::vector<Double_t> vtx_y;
+  std::vector<Double_t> vtx_z;
+  std::vector<Double_t> vtx_dist;
+  std::vector<Double_t> vtx_angle;
+  std::vector<std::vector<Double_t>> vtxid;
+  std::vector<std::vector<Double_t>> vtxmom_theta;
+  std::vector<std::vector<Double_t>> vtxpos_x;
+  std::vector<std::vector<Double_t>> vtxpos_y;
+  std::vector<std::vector<Double_t>> vtxpos_z;
+  std::vector<std::vector<Double_t>> vtxmom_x;
+  std::vector<std::vector<Double_t>> vtxmom_y;
+  std::vector<std::vector<Double_t>> vtxmom_z;
+
+
+	int best;
+	Double_t pvalSph;
+	Double_t pvalCart;
   Bool_t xiflag;
+	Double_t pvalXiSph;
+	Double_t pvalXiCart;
   Double_t ximass;
   Double_t xidecayvtx_x;
   Double_t xidecayvtx_y;
@@ -261,6 +299,8 @@ struct Event
   Double_t lpi_dist;
 
   Bool_t lflag;
+	Double_t pvalLdSph;
+	Double_t pvalLdCart;
   Double_t lmass;
   Double_t ldecayvtx_x;
   Double_t ldecayvtx_y;
@@ -281,6 +321,75 @@ struct Event
   std::vector<Double_t> decays_res_mom_t;
   std::vector<Double_t> decays_res_th;
   std::vector<Double_t> decays_res_ph;
+  std::vector<Double_t> decays_cov_mom_xy;
+  std::vector<Double_t> decays_cov_mom_yz;
+  std::vector<Double_t> decays_cov_mom_zx;
+
+
+	int bestKFSph;
+	Double_t pvalKFSph;
+	Double_t pvalXiKFSph;
+  Double_t ximassKFSph;//MassBeforeKF;
+  Double_t xidecayvtx_xKFSph;
+  Double_t xidecayvtx_yKFSph;
+  Double_t xidecayvtx_zKFSph;
+  Double_t ximom_xKFSph;
+  Double_t ximom_yKFSph;
+  Double_t ximom_zKFSph;
+  Double_t lpi_distKFSph;
+  
+	Double_t pvalLdKFSph;
+	Double_t lmassKFSph;//MassBeforeKF;
+  Double_t ldecayvtx_xKFSph;
+  Double_t ldecayvtx_yKFSph;
+  Double_t ldecayvtx_zKFSph;
+  Double_t lmom_xKFSph;
+  Double_t lmom_yKFSph;
+  Double_t lmom_zKFSph;
+  Double_t ppi_distKFSph;
+  vector<Int_t> decays_idKFSph;
+  vector<Double_t> decays_momKFSph;
+  vector<Double_t> decays_mom_xKFSph;
+  vector<Double_t> decays_mom_yKFSph;
+  vector<Double_t> decays_mom_zKFSph;
+  vector<vector<Double_t>> decays_pull_KFSph;
+
+
+	int bestKFCart;
+	Double_t pvalKFCart;
+	Double_t pvalXiKFCart;
+  Double_t ximassKFCart;//MassBeforeKF;
+  Double_t xidecayvtx_xKFCart;
+  Double_t xidecayvtx_yKFCart;
+  Double_t xidecayvtx_zKFCart;
+  Double_t ximom_xKFCart;
+  Double_t ximom_yKFCart;
+  Double_t ximom_zKFCart;
+  Double_t lpi_distKFCart;
+  
+	Double_t pvalLdKFCart;
+	Double_t lmassKFCart;//MassBeforeKF;
+  Double_t ldecayvtx_xKFCart;
+  Double_t ldecayvtx_yKFCart;
+  Double_t ldecayvtx_zKFCart;
+  Double_t lmom_xKFCart;
+  Double_t lmom_yKFCart;
+  Double_t lmom_zKFCart;
+  Double_t ppi_distKFCart;
+  vector<Int_t> decays_idKFCart;
+  vector<Double_t> decays_momKFCart;
+  vector<Double_t> decays_mom_xKFCart;
+  vector<Double_t> decays_mom_yKFCart;
+  vector<Double_t> decays_mom_zKFCart;
+  vector<vector<Double_t>> decays_pull_KFCart;
+
+
+
+
+
+
+
+
 
   Bool_t GFxiflag;
   Double_t GFximass;
@@ -469,6 +578,7 @@ struct Event
     pid.clear();
 
     chisqr.clear();
+    pval.clear();
     helix_cx.clear();
     helix_cy.clear();
     helix_z0.clear();
@@ -499,7 +609,28 @@ struct Event
     track_cluster_de.clear();
     track_cluster_mrow.clear();
 
+    nvtxTpc = 0;
+    vtx_x.clear();
+    vtx_y.clear();
+    vtx_z.clear();
+    vtx_dist.clear();
+    vtx_angle.clear();
+    vtxid.clear();
+    vtxmom_theta.clear();
+    vtxpos_x.clear();
+    vtxpos_y.clear();
+    vtxpos_z.clear();
+    vtxmom_x.clear();
+    vtxmom_y.clear();
+    vtxmom_z.clear();
+
+
+		best = -1;
+		pvalSph = -1;
+		pvalCart = -1;
     xiflag = false;
+		pvalXiSph = -1;
+		pvalXiCart = -1;
     ximass = qnan;
     xidecayvtx_x = qnan;
     xidecayvtx_y = qnan;
@@ -510,6 +641,9 @@ struct Event
     lpi_dist = qnan;
 
     lflag = false;
+		pvalLdSph = -1;
+		pvalLdCart = -1;
+    ximass = qnan;
     lmass = qnan;
     ldecayvtx_x = qnan;
     ldecayvtx_y = qnan;
@@ -528,8 +662,78 @@ struct Event
     decays_res_mom_y.clear();
     decays_res_mom_z.clear();
     decays_res_mom_t.clear();
+    decays_cov_mom_xy.clear();
+    decays_cov_mom_yz.clear();
+    decays_cov_mom_zx.clear();
     decays_res_th.clear();
     decays_res_ph.clear();
+
+		bestKFSph = -1;
+		pvalKFSph = -1;
+		pvalXiKFSph = -1;
+    ximassKFSph = qnan;
+    xidecayvtx_xKFSph = qnan;
+    xidecayvtx_yKFSph = qnan;
+    xidecayvtx_zKFSph = qnan;
+    ximom_xKFSph = qnan;
+    ximom_yKFSph = qnan;
+    ximom_zKFSph = qnan;
+    lpi_distKFSph = qnan;
+
+		pvalLdKFSph = -1;
+    lmassKFSph = qnan;
+    ldecayvtx_xKFSph = qnan;
+    ldecayvtx_yKFSph = qnan;
+    ldecayvtx_zKFSph = qnan;
+    lmom_xKFSph = qnan;
+    lmom_yKFSph = qnan;
+    lmom_zKFSph = qnan;
+    ppi_distKFSph = qnan;
+    decays_idKFSph.clear();
+    decays_momKFSph.clear();
+    decays_mom_xKFSph.clear();
+    decays_mom_yKFSph.clear();
+    decays_mom_zKFSph.clear();
+		decays_pull_KFSph.clear();
+		
+		bestKFCart = -1;
+		pvalKFCart = -1;
+		pvalXiKFCart = -1;
+    ximassKFCart = qnan;
+    xidecayvtx_xKFCart = qnan;
+    xidecayvtx_yKFCart = qnan;
+    xidecayvtx_zKFCart = qnan;
+    ximom_xKFCart = qnan;
+    ximom_yKFCart = qnan;
+    ximom_zKFCart = qnan;
+    lpi_distKFCart = qnan;
+
+		pvalLdKFCart = -1;
+    lmassKFCart = qnan;
+    ldecayvtx_xKFCart = qnan;
+    ldecayvtx_yKFCart = qnan;
+    ldecayvtx_zKFCart = qnan;
+    lmom_xKFCart = qnan;
+    lmom_yKFCart = qnan;
+    lmom_zKFCart = qnan;
+    ppi_distKFCart = qnan;
+    decays_idKFCart.clear();
+    decays_momKFCart.clear();
+    decays_mom_xKFCart.clear();
+    decays_mom_yKFCart.clear();
+    decays_mom_zKFCart.clear();
+		decays_pull_KFCart.clear();
+
+
+
+
+
+
+
+
+
+
+
 
     GFxiflag = false;
     GFximass = qnan;
@@ -720,6 +924,7 @@ struct Src
   TTreeReaderValue<std::vector<Int_t>>* charge;//Helix charge
   TTreeReaderValue<std::vector<Int_t>>* pid;
   TTreeReaderValue<std::vector<Double_t>>* chisqr;
+  TTreeReaderValue<std::vector<Double_t>>* pval;
   TTreeReaderValue<std::vector<Double_t>>* helix_cx;
   TTreeReaderValue<std::vector<Double_t>>* helix_cy;
   TTreeReaderValue<std::vector<Double_t>>* helix_z0;
@@ -748,6 +953,21 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* alpha;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_de;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_mrow;
+
+  TTreeReaderValue<Int_t>* nvtxTpc;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_x;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_y;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_z;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_dist;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_angle;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxid;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_theta;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_z;
 
 };
 
@@ -813,7 +1033,10 @@ main( int argc, char **argv )
   for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
     gCounter.check();
     InitializeEvent();
-    if( DstRead( ievent ) ) tree->Fill();
+    if( DstRead( ievent ) ){
+			if(event.xiflag) cout<<"Filling tree"<<endl;
+			tree->Fill();
+		}
   }
 
   std::cout << "#D Event Number: " << std::setw(6)
@@ -866,7 +1089,7 @@ dst::DstRead( Int_t ievent )
   static const auto XiMinusMass = pdg::XiMinusMass();
 
   //if( ievent%1000==0 ){
-  if( ievent%100==0 ){
+  if( ievent%10000==0 ){
   //if( ievent%100000==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
@@ -915,6 +1138,12 @@ dst::DstRead( Int_t ievent )
 #endif
 
   event.ntKurama = **src.ntKurama;
+  event.pKurama = **src.pKurama;
+  event.qKurama = **src.qKurama;
+  event.xtgtKurama = **src.xtgtKurama;
+  event.ytgtKurama = **src.ytgtKurama;
+  event.utgtKurama = **src.utgtKurama;
+  event.vtgtKurama = **src.vtgtKurama;
   event.tpcidTPCKurama = **src.tpcidTPCKurama;
   event.isgoodTPCKurama = **src.isgoodTPCKurama;
   event.kflagTPCKurama = **src.kflagTPCKurama;
@@ -993,8 +1222,26 @@ dst::DstRead( Int_t ievent )
   event.deHtof = **src.deHtof;
   event.posHtof = **src.posHtof;
 
+
+
   Int_t ntTpc = **src.ntTpc;
-  if( ntTpc == 0 ) return true;
+  event.nvtxTpc = **src.nvtxTpc;
+  event.vtx_x = **src.vtx_x;
+  event.vtx_y = **src.vtx_y;
+  event.vtx_z = **src.vtx_z;
+  event.vtx_dist = **src.vtx_dist;
+  event.vtx_angle = **src.vtx_angle;
+  event.vtxid = **src.vtxid;
+  event.vtxmom_theta = **src.vtxmom_theta;
+  event.vtxpos_x = **src.vtxpos_x;
+  event.vtxpos_y = **src.vtxpos_y;
+  event.vtxpos_z = **src.vtxpos_z;
+  event.vtxmom_x = **src.vtxmom_x;
+  event.vtxmom_y = **src.vtxmom_y;
+  event.vtxmom_z = **src.vtxmom_z;
+  
+	
+	if( ntTpc == 0 ) return true;
   HF1( 1, event.status++ );
 
   event.ntTpc = ntTpc;
@@ -1007,6 +1254,7 @@ dst::DstRead( Int_t ievent )
   event.charge = **src.charge;
   event.pid = **src.pid;
   event.chisqr = **src.chisqr;
+  event.pval = **src.pval;
   event.helix_cx = **src.helix_cx;
   event.helix_cy = **src.helix_cy;
   event.helix_z0 = **src.helix_z0;
@@ -1047,6 +1295,9 @@ dst::DstRead( Int_t ievent )
   std::vector<TVector3> p_mom_container, pi_mom_container, pi2_mom_container;
   std::vector<Double_t> ppi_closedist; std::vector<Double_t> lpi_closedist;
 
+
+
+
   TPCAnalyzer TPCAna;
   TPCAna.ReCalcTPCTracks(**src.ntTpc, **src.isK18, **src.isKurama,
 			 **src.charge, **src.nhtrack, **src.helix_cx,
@@ -1063,7 +1314,6 @@ dst::DstRead( Int_t ievent )
   for(Int_t it1=0;it1<ntTpc;it1++){
     //std::cout<<"it1 "<<it1<<" pid "<<event.pid[it1]<<" charge "<<event.charge[it1]<<std::endl;
     if(event.isK18[it1]==1 || event.isKurama[it1]==1) continue;
-    TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix(it1);
     //if(event.isK18[it1]==1) continue;
     //if(event.isK18[it1]==1 || event.isgoodTPCKurama[it1]==1) continue;
     //if((event.pid[it1]&4)!=4 && event.charge[it1]==1) continue; //select proton like
@@ -1234,7 +1484,7 @@ dst::DstRead( Int_t ievent )
 	xi_candidates++;
 	event.xiflag = true;
 	//std::cout<<"!!! recon Xi mass "<<Lxi.M()<<" id "<<it1<<" "<<it2<<" "<<it3<<std::endl;
-      } //it3
+			} //it3
     } //it2
   } //it1
 
@@ -1247,6 +1497,7 @@ dst::DstRead( Int_t ievent )
       best = candi;
     }
   }
+
 #else //Select the best Xi mass combination
   Int_t best = -1; Double_t prev_massdiff = 9999.;
   for(Int_t candi=0;candi<xi_candidates;candi++){
@@ -1258,10 +1509,13 @@ dst::DstRead( Int_t ievent )
   }
 #endif
 
+
+
   if( event.lflag) HF1( 7, event.MissMass[0] );
 
   if( !event.xiflag ) return true;
 
+	event.best = best;
   event.ximass = xi_mass_container[best];
   event.xidecayvtx_x = xi_vert_container[best].x();
   event.xidecayvtx_y = xi_vert_container[best].y();
@@ -1285,7 +1539,6 @@ dst::DstRead( Int_t ievent )
   event.decays_mom_y.push_back(p_mom_container[best].y());
   event.decays_mom_z.push_back(p_mom_container[best].z());
 
-	event.decays_mom_x.push_back(pi_mom_container[best].x());
   event.decays_mom_x.push_back(pi_mom_container[best].x());
   event.decays_mom_y.push_back(pi_mom_container[best].y());
   event.decays_mom_z.push_back(pi_mom_container[best].z());
@@ -1298,12 +1551,35 @@ dst::DstRead( Int_t ievent )
   event.decays_id.push_back(xi_pi_container[best]);
   event.decays_id.push_back(xi_pi2_container[best]);
 
+	
+
+
+
+
+	
+	
+	
 	int id_p = xi_p_container[best];
 	int id_pi = xi_pi_container[best];
 	int id_pi2 = xi_pi2_container[best];
+	
+	
 	auto Track_p = TPCAna.GetTrackTPCHelix(id_p); 
 	auto Track_pi = TPCAna.GetTrackTPCHelix(id_pi); 
 	auto Track_pi2 = TPCAna.GetTrackTPCHelix(id_pi2); 
+	for(int ih=0;ih<Track_p->GetNHit();++ih){
+		auto pos = Track_p->GetHitInOrder(ih)->GetLocalHitPos();
+		HF2(1001,pos.z(),pos.x());
+	}
+	for(int ih=0;ih<Track_pi->GetNHit();++ih){
+		auto pos = Track_pi->GetHitInOrder(ih)->GetLocalHitPos();
+		HF2(1002,pos.z(),pos.x());
+	}
+	for(int ih=0;ih<Track_pi2->GetNHit();++ih){
+		auto pos = Track_pi2->GetHitInOrder(ih)->GetLocalHitPos();
+		HF2(1003,pos.z(),pos.x());
+	}
+
 	event.decays_res_mom.push_back(Track_p->GetMomentumResolutionVect().Mag());
 	event.decays_res_mom_x.push_back(Track_p->GetMomentumResolutionVect().X());
 	event.decays_res_mom_y.push_back(Track_p->GetMomentumResolutionVect().Y());
@@ -1311,6 +1587,9 @@ dst::DstRead( Int_t ievent )
 	event.decays_res_mom_t.push_back(Track_p->GetTransverseMomentumResolution());
 	event.decays_res_th.push_back(Track_p->GetThetaResolution());
 	event.decays_res_ph.push_back(Track_p->GetTransverseAngularResolution());
+	event.decays_cov_mom_xy.push_back(Track_p->GetMomentumCovarianceVect().x());
+	event.decays_cov_mom_yz.push_back(Track_p->GetMomentumCovarianceVect().y());
+	event.decays_cov_mom_zx.push_back(Track_p->GetMomentumCovarianceVect().z());
 
 	event.decays_res_mom.push_back(Track_pi->GetMomentumResolutionVect().Mag());
 	event.decays_res_mom_x.push_back(Track_pi->GetMomentumResolutionVect().X());
@@ -1319,6 +1598,9 @@ dst::DstRead( Int_t ievent )
 	event.decays_res_mom_t.push_back(Track_pi->GetTransverseMomentumResolution());
 	event.decays_res_th.push_back(Track_pi->GetThetaResolution());
 	event.decays_res_ph.push_back(Track_pi->GetTransverseAngularResolution());
+	event.decays_cov_mom_xy.push_back(Track_pi->GetMomentumCovarianceVect().x());
+	event.decays_cov_mom_yz.push_back(Track_pi->GetMomentumCovarianceVect().y());
+	event.decays_cov_mom_zx.push_back(Track_pi->GetMomentumCovarianceVect().z());
 	
 	event.decays_res_mom.push_back(Track_pi2->GetMomentumResolutionVect().Mag());
 	event.decays_res_mom_x.push_back(Track_pi2->GetMomentumResolutionVect().X());
@@ -1327,11 +1609,16 @@ dst::DstRead( Int_t ievent )
 	event.decays_res_mom_t.push_back(Track_pi2->GetTransverseMomentumResolution());
 	event.decays_res_th.push_back(Track_pi2->GetThetaResolution());
 	event.decays_res_ph.push_back(Track_pi2->GetTransverseAngularResolution());
+	event.decays_cov_mom_xy.push_back(Track_pi2->GetMomentumCovarianceVect().x());
+	event.decays_cov_mom_yz.push_back(Track_pi2->GetMomentumCovarianceVect().y());
+	event.decays_cov_mom_zx.push_back(Track_pi2->GetMomentumCovarianceVect().z());
 
 
 
 
-
+#if SkipGenfit
+	return true;
+#endif
 
 
   HF1( 10, event.MissMass[0] );
@@ -1354,7 +1641,7 @@ dst::DstRead( Int_t ievent )
   for( Int_t it=0; it<ntTpc; ++it ){
     TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix(it);
     if( !tp ) continue;
-
+//		if(it != id_p or it != id_pi or it != id_pi2) continue;
     int dedxPID = Kinematics::HypTPCdEdxPID_temp(event.dEdx[it], event.mom0[it]*event.charge[it]);
     event.pid[it]=dedxPID;
 
@@ -1372,7 +1659,9 @@ dst::DstRead( Int_t ievent )
     std::cout<<"# of Tracks in Genfit Track Container != # of TPC Tracks"<<std::endl;
     return true;
   }
-
+	for(int i=0;i<GFntTpc;++i){
+		
+	}
   HF1( 2, event.GFstatus++ );
   HF1( 1, event.status++ );
 
@@ -1398,7 +1687,7 @@ dst::DstRead( Int_t ievent )
   std::vector<Double_t> GFlpi_closedist_container(xi_candidates, qnan);
 
   Int_t gfbest = -1; prev_massdiff = 9999.;
-  for(Int_t candi=0;candi<xi_candidates;candi++){
+	for(Int_t candi=0;candi<xi_candidates;candi++){
 
     Int_t trackid_p = xi_p_container[candi];
     Int_t trackid_pi = xi_pi_container[candi];
@@ -1414,6 +1703,7 @@ dst::DstRead( Int_t ievent )
 
     Double_t GFextrapolation_decays[3];
     Double_t GFmass_decays[3]; TVector3 GFmom_decays[3]; TVector3 GFlambda_vert; double GFppi_dist=qnan;
+ 		cout<<"GF Vertexing p_pi"<<endl;
     if(!GFTrackCont.FindVertex(trackid_p, trackid_pi,
 			       repid_p, repid_pi,
 			       GFextrapolation_decays[0], GFextrapolation_decays[1],
@@ -1443,6 +1733,7 @@ dst::DstRead( Int_t ievent )
     }
 
     TVector3 GFxi_vert; Double_t GFlpi_dist = qnan; Double_t GFlambda_Ltracklen;
+ 		cout<<"GF Vertexing l_pi"<<endl;
     if(!GFTrackCont.FindVertexXi(trackid_pi2, repid_pi2,
 				 GFlambda_vert, GFlambda_mom, GFlambda_Ltracklen,
 				 GFextrapolation_decays[0], GFmom_decays[2], GFlpi_dist, GFxi_vert,
@@ -1597,7 +1888,8 @@ dst::DstRead( Int_t ievent )
     event.GFtof[j] = GFTrackCont.GetTrackTOF(igf, 0, -1, repid);
     event.GFtracklen[j] = GFTrackCont.GetTrackLength(igf, 0, -1, repid);
     event.GFpval[j] = GFTrackCont.GetPvalue(igf, repid);
-    event.GFpdgcode[j] = GFTrackCont.GetPDGcode(igf, repid);
+		event.GFpdgcode[j] = GFTrackCont.GetPDGcode(igf, repid);
+		HF1(600,event.GFpval[j]);
 
     TVector3 GFmom_decays = GFp_mom_container[gfbest];
     if(j==1) GFmom_decays = GFpi_mom_container[gfbest];
@@ -1685,18 +1977,32 @@ dst::DstRead( Int_t ievent )
       event.GFresidual_py[j][ihit] = mom.y() - mom0.y();
       event.GFresidual_pz[j][ihit] = mom.z() - mom0.z();
    	
-			event.GFresolution_x[j][ihit] = GFresidual6D[0]; 
-   		event.GFresolution_y[j][ihit] = GFresidual6D[1]; 
-   		event.GFresolution_z[j][ihit] = GFresidual6D[2]; 
-   		event.GFresolution_px[j][ihit] = GFresidual6D[3]; 
-   		event.GFresolution_py[j][ihit] = GFresidual6D[4]; 
-   		event.GFresolution_pz[j][ihit] = GFresidual6D[5]; 
+			event.GFresolution_x[j][ihit] = GFresidual6D[0]/GFpull6D[0]; 
+   		event.GFresolution_y[j][ihit] = GFresidual6D[1]/GFpull6D[1]; 
+   		event.GFresolution_z[j][ihit] = GFresidual6D[2]/GFpull6D[2]; 
+   		event.GFresolution_px[j][ihit] = GFresidual6D[3]/GFpull6D[3]; 
+   		event.GFresolution_py[j][ihit] = GFresidual6D[4]/GFpull6D[4]; 
+   		event.GFresolution_pz[j][ihit] = GFresidual6D[5]/GFpull6D[5]; 
 			event.GFpull_x[j][ihit] = GFpull6D[0]; 
    		event.GFpull_y[j][ihit] = GFpull6D[1]; 
    		event.GFpull_z[j][ihit] = GFpull6D[2]; 
    		event.GFpull_px[j][ihit] = GFpull6D[3]; 
    		event.GFpull_py[j][ihit] = GFpull6D[4]; 
    		event.GFpull_pz[j][ihit] = GFpull6D[5]; 
+    	HF1(601,event.GFpull_x[j][ihit]);
+    	HF1(602,event.GFpull_y[j][ihit]);
+    	HF1(603,event.GFpull_z[j][ihit]);
+    	HF1(604,event.GFpull_px[j][ihit]);
+    	HF1(605,event.GFpull_py[j][ihit]);
+    	HF1(606,event.GFpull_pz[j][ihit]);
+			if(event.GFpval[j]>0.01){
+				HF1(611,event.GFpull_x[j][ihit]);
+				HF1(612,event.GFpull_y[j][ihit]);
+				HF1(613,event.GFpull_z[j][ihit]);
+				HF1(614,event.GFpull_px[j][ihit]);
+				HF1(615,event.GFpull_py[j][ihit]);
+				HF1(616,event.GFpull_pz[j][ihit]);
+			}
 		} //ihit
   } //igf
 
@@ -1782,7 +2088,6 @@ dst::DstRead( Int_t ievent )
     std::cout<<" GFximass "<<event.GFximass<<" GFlmass "<<event.GFlmass<<std::endl;
   }
 #endif
-
   GFTrackCont.Clear();
   return true;
 }
@@ -1853,6 +2158,29 @@ ConfMan::InitializeHistograms( void )
   HB1( 41, "[GenFit] pi_{#Lambda} Mass; M [GeV/#font[12]{c}^{2}]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 750, 0., 1.5);
   HB1( 42, "[GenFit] pi_{#Xi} Mass; M [GeV/#font[12]{c}^{2}]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 750, 0., 1.5);
 
+
+	HB1(600,"GF p-value",1000,0,1);	
+	HB1(601,"GFx Pull",1000,-5,5);	
+	HB1(602,"GFy Pull",1000,-5,5);	
+	HB1(603,"GFz Pull",1000,-5,5);	
+	HB1(604,"GFp_{x} Pull",1000,-5,5);	
+	HB1(605,"GFp_{y} Pull",1000,-5,5);	
+	HB1(606,"GFp_{z} Pull",1000,-5,5);	
+	HB1(611,"GFx Pull pval>0.01",1000,-5,5);	
+	HB1(612,"GFy Pull pval>0.01",1000,-5,5);	
+	HB1(613,"GFz Pull pval>0.01",1000,-5,5);	
+	HB1(614,"GFp_{x} Pull pval>0.01",1000,-5,5);	
+	HB1(615,"GFp_{y} Pull pval>0.01",1000,-5,5);	
+	HB1(616,"GFp_{z} Pull pval>0.01",1000,-5,5);	
+
+
+
+
+	HB2(1001, "p hit pattern",100,-250,250,100,-250,250); 
+	HB2(1002, "#pi_{#Lambda} hit pattern",100,-250,250,100,-250,250); 
+	HB2(1003, "#pi_{#Xi} hit pattern",100,-250,250,100,-250,250); 
+
+
   HBTree( "tpc", "tree of DstTPCTracking" );
   tree->Branch( "status", &event.status );
   tree->Branch( "runnum", &event.runnum );
@@ -1877,6 +2205,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "charge", &event.charge );
   tree->Branch( "pid", &event.pid );
   tree->Branch( "chisqr", &event.chisqr );
+  tree->Branch( "pval", &event.pval );
   tree->Branch( "helix_cx", &event.helix_cx );
   tree->Branch( "helix_cy", &event.helix_cy );
   tree->Branch( "helix_z0", &event.helix_z0 );
@@ -1965,9 +2294,29 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "pCalcTPC", &event.pCalcTPC);
   tree->Branch( "pCorrTPC", &event.pCorrTPC);
   tree->Branch( "pCorrDETPC", &event.pCorrDETPC);
+  
+	tree->Branch( "nvtxTpc", &event.nvtxTpc );
+  tree->Branch( "vtx_x", &event.vtx_x );
+  tree->Branch( "vtx_y", &event.vtx_y );
+  tree->Branch( "vtx_z", &event.vtx_z );
+  tree->Branch( "vtx_dist", &event.vtx_dist );
+  tree->Branch( "vtx_angle", &event.vtx_angle );
+  tree->Branch( "vtxid", &event.vtxid );
+  tree->Branch( "vtxmom_theta", &event.vtxmom_theta );
+  tree->Branch( "vtxpos_x", &event.vtxpos_x );
+  tree->Branch( "vtxpos_y", &event.vtxpos_y );
+  tree->Branch( "vtxpos_z", &event.vtxpos_z );
+  tree->Branch( "vtxmom_x", &event.vtxmom_x );
+  tree->Branch( "vtxmom_y", &event.vtxmom_y );
+  tree->Branch( "vtxmom_z", &event.vtxmom_z );
 
   tree->Branch("Lflag", &event.lflag);
   tree->Branch("Xiflag", &event.xiflag);
+  tree->Branch("best", &event.best);
+  tree->Branch("pvalSph", &event.pvalSph);
+  tree->Branch("pvalCart", &event.pvalCart);
+  tree->Branch("pvalXiCart", &event.pvalXiCart);
+  tree->Branch("pvalXiSph", &event.pvalXiSph);
   tree->Branch("XiMass", &event.ximass);
   tree->Branch("XiDecayVtx_x", &event.xidecayvtx_x);
   tree->Branch("XiDecayVtx_y", &event.xidecayvtx_y);
@@ -1976,6 +2325,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("XiMom_y", &event.ximom_y);
   tree->Branch("XiMom_z", &event.ximom_z);
   tree->Branch("XiVtxCloseDist", &event.lpi_dist);
+  
+	tree->Branch("pvalLdCart", &event.pvalLdCart);
+	tree->Branch("pvalLdSph", &event.pvalLdSph);
   tree->Branch("LambdaMass", &event.lmass);
   tree->Branch("LambdaDecayVtx_x", &event.ldecayvtx_x);
   tree->Branch("LambdaDecayVtx_y", &event.ldecayvtx_y);
@@ -1996,6 +2348,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("DecaysMomRes_t", &event.decays_res_mom_t);
   tree->Branch("DecaysThRes", &event.decays_res_th);
   tree->Branch("DecaysPhRes", &event.decays_res_ph);
+  tree->Branch("DecaysMomCov_xy", &event.decays_cov_mom_xy);
+  tree->Branch("DecaysMomCov_yz", &event.decays_cov_mom_yz);
+  tree->Branch("DecaysMomCov_zx", &event.decays_cov_mom_zx);
+
+
 
   tree->Branch("GFXiflag", &event.GFxiflag);
   tree->Branch("GFXiMass", &event.GFximass);
@@ -2118,6 +2475,7 @@ ConfMan::InitializeHistograms( void )
   src.charge = new TTreeReaderValue<std::vector<Int_t>>( *reader, "charge" );
   src.pid = new TTreeReaderValue<std::vector<Int_t>>( *reader, "pid" );
   src.chisqr = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqr" );
+  src.pval = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pval" );
   src.helix_cx = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_cx" );
   src.helix_cy = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_cy" );
   src.helix_z0 = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_z0" );
@@ -2223,6 +2581,20 @@ ConfMan::InitializeHistograms( void )
   src.vbTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vbTPC" );
   src.usTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "usTPC" );
   src.vsTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vsTPC" );
+	src.nvtxTpc = new TTreeReaderValue<Int_t>(*reader,"nvtxTpc");
+  src.vtx_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_x" );
+  src.vtx_y = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_y" );
+  src.vtx_z = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_z" );
+  src.vtx_dist = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_dist" );
+  src.vtx_angle = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_angle" );
+  src.vtxid = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxid" );
+  src.vtxmom_theta = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_theta" );
+  src.vtxpos_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_x" );
+  src.vtxpos_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_y" );
+  src.vtxpos_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_z" );
+  src.vtxmom_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_x" );
+  src.vtxmom_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_y" );
+  src.vtxmom_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_z" );
 
   return true;
 }

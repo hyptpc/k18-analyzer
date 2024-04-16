@@ -51,7 +51,6 @@ bool HypTPCFitProcess::TrackCheck(genfit::Track* fittedTrack, genfit::AbsTrackRe
 }
 
 bool HypTPCFitProcess::TrackCheck(int trackid, int repid) const {
-
   genfit::Track* fittedTrack = GetTrack(trackid);
   genfit::AbsTrackRep* rep = nullptr;
   if(fittedTrack&&repid==-1) rep = fittedTrack -> getCardinalRep();

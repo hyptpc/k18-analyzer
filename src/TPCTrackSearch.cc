@@ -1418,6 +1418,9 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
       	MergedTrack->CalculateExclusive();
 			}
 		}
+		else{
+			std::cout<<"Warning! prev_size != post_size"<<std::endl;
+		}
   }
 
   if(candidates.size()>0){
