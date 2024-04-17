@@ -228,7 +228,7 @@ ConfMan::WriteParams( void )
     tmp=tmp(tmp.Last('/')+1,tmp.Sizeof());
     tmp=tmp.ReplaceAll('.','_');
     TMacro paramfile;
-    paramfile.SetName(tmp.Data());
+    paramfile.SetName(tmp);
     paramfile.SetTitle(m_file[*itr].c_str());
     paramfile.ReadFile(m_file[*itr].c_str());
     paramfile.Write();

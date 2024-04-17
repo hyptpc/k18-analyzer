@@ -1,3 +1,5 @@
+// -*- C++ -*-
+
 #include "BasicAnalysis.hh"
 #include "HodoPHCMan.hh"
 #include "HodoCluster.hh"
@@ -12,29 +14,30 @@
 #include "KinematicalFit.hh"
 #endif
 
-namespace{
-  const UserParamMan& gUser = UserParamMan::GetInstance();
-  const HodoPHCMan& gPHC = HodoPHCMan::GetInstance();
+namespace
+{
+const auto& gUser = UserParamMan::GetInstance();
+const auto& gPHC = HodoPHCMan::GetInstance();
 #if TKIN
-  KinematicalFit& gKin  = KinematicalFit::GetInstance();
+auto& gKin  = KinematicalFit::GetInstance();
 #endif
-  const double mm=0.1;
-  const double cm=10*mm;
+const double mm=0.1;
+const double cm=10*mm;
 
-  double pi_beta=1./TMath::Hypot(1.,pdg::Mass(-211)); // at 1 GeV/c
+double pi_beta=1./TMath::Hypot(1.,pdg::Mass(-211)); // at 1 GeV/c
 
-  double tdcbins[3]={10000,0,2e6};
-  double adcbins[3]={4096,-0.5,4095.5};
-  double diffbins[3]={4000,-10000,10000};
-  double mtdcbins[3]={2000,0,2000};
-  double mulbins2[3]={10,-0.5,9.5};
-  double timebins[3]={10000,-100,100};
-  double tofbins[3]={10000,-100,100};
-  double debins[3]={5000,-2,48};
-  double evdebins[6]={200,0,5e6,200,-2,18};
-  double evtimebins[6]={200,0,5e6,200,-10,10};
-  double posbins2[6]={150,-15*cm,15*cm,150,-15*cm,15*cm};
-  double residbins[3]={200,-5*mm,5*mm};
+double tdcbins[3]={10000,0,2e6};
+double adcbins[3]={4096,-0.5,4095.5};
+double diffbins[3]={4000,-10000,10000};
+double mtdcbins[3]={2000,0,2000};
+double mulbins2[3]={10,-0.5,9.5};
+double timebins[3]={10000,-100,100};
+double tofbins[3]={10000,-100,100};
+double debins[3]={5000,-2,48};
+double evdebins[6]={200,0,5e6,200,-2,18};
+double evtimebins[6]={200,0,5e6,200,-10,10};
+double posbins2[6]={150,-15*cm,15*cm,150,-15*cm,15*cm};
+double residbins[3]={200,-5*mm,5*mm};
 }
 
 BasicAnalysis::BasicAnalysis()
@@ -105,7 +108,8 @@ bool BasicAnalysis::AnaFlag(MTDCAnalyzer* mtdc){
   return true;
 }
 
-bool BasicAnalysis::CalcTime0(HodoAnalyzer* hodo){
+bool BasicAnalysis::CalcTime0(HodoAnalyzer* hodo)
+{
   int cid= DetIdT1;
   int nh = hodo->GetNHits(cid);
   for( int i=0; i<nh; ++i ){
@@ -152,7 +156,8 @@ bool BasicAnalysis::CalcTime0(HodoAnalyzer* hodo){
   return true;
 }
 
-bool BasicAnalysis::CheckBHTT0TOF(HodoAnalyzer* hodo, bool slewing){
+bool BasicAnalysis::CheckBHTT0TOF(HodoAnalyzer* hodo, bool slewing)
+{
   int cid=DetIdBHT;
   int nh = hodo->GetNHits(cid);
   for( int i=0; i<nh; ++i ){
@@ -196,7 +201,8 @@ bool BasicAnalysis::CheckBHTT0TOF(HodoAnalyzer* hodo, bool slewing){
   return true;
 }
 
-bool BasicAnalysis::AnaAC(RawData* raw){
+bool BasicAnalysis::AnaAC(RawData* raw)
+{
   if(!raw) return false;
   int cid=DetIdAC;
   const HodoRHitContainer &cont = raw->GetHodoRawHC(cid);
@@ -234,7 +240,8 @@ bool BasicAnalysis::AnaAC(RawData* raw){
   return ACHIT;
 }
 
-bool BasicAnalysis::FillHodoRaw(RawData* raw,int kHodo){
+bool BasicAnalysis::FillHodoRaw(RawData* raw,int kHodo)
+{
   int mulu=0,muld=0;
   int cid=hodoid[kHodo];
   TString name=hodoname[kHodo];

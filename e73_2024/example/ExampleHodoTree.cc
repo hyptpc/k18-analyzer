@@ -82,8 +82,8 @@ TDCVector   btc_leading_right;
 std::vector<Short_t> btc_qdc_left;
 std::vector<Short_t> btc_qdc_right;
 
-const Int_t nhodo=7;
-Int_t khodo[nhodo]={kT0new,kBHT,kT0,kDEF,kVeto,kBTC,kRC};
+// const Int_t nhodo=7;
+// Int_t khodo[nhodo]={kT0new,kBHT,kT0,kDEF,kVeto,kBTC,kRC};
 // const Int_t nhodo=5;
 // Int_t khodo[nhodo]={kT0new,kBHT,kT0,kDEF,kRC};
 
@@ -162,7 +162,7 @@ ProcessNormal()
   Bool_t BEAM  = MTDCAna.flag(kBeam);
   Bool_t KAON2 = MTDCAna.flag(kKaon2);
   Bool_t KAON3 = MTDCAna.flag(kKaon3);
-  Bool_t KCDH1 = MTDCAna.flag(kKCDH1);
+  // Bool_t KCDH1 = MTDCAna.flag(kKCDH1);
 
   Bool_t TOFK=false, TOFPi=false;
   Bool_t ACHIT=false;
@@ -227,18 +227,17 @@ ProcessNormal()
   if(BEAM&&ACHIT) trig_add.push_back("ifPi");
   if(KAON2) trig_add.push_back("ifK2");
   if(KAON3) trig_add.push_back("ifK");
-  if(KCDH1) trig_add.push_back("ifKCDH");
+  // if(KCDH1) trig_add.push_back("ifKCDH");
   Int_t ntrig=trig_add.size();
 
   // hodoscopes
-  Int_t hodoseg[nhodo];
-  Double_t hodotime[nhodo];
-  for(Int_t ihodo=0;ihodo<nhodo;++ihodo){
-    Int_t kHodo=khodo[ihodo];
-    Int_t cid=hodoid[kHodo];
-    TString name=hodoname[kHodo];
-    Double_t mulbins[3]={nsegs[kHodo]+1,-0.5,nsegs[kHodo]+0.5};
-    Double_t patbins[3]={nsegs[kHodo],-0.5,nsegs[kHodo]-0.5};
+  Int_t hodoseg[kNumHodo];
+  Double_t hodotime[kNumHodo];
+  for(Int_t ihodo=0;ihodo<kNumHodo;++ihodo){
+    Int_t cid=hodoid[ihodo];
+    TString name=hodoname[ihodo];
+    Double_t mulbins[3]={nsegs[ihodo]+1,-0.5,nsegs[ihodo]+0.5};
+    Double_t patbins[3]={nsegs[ihodo],-0.5,nsegs[ihodo]-0.5};
     Double_t mulbins2[3]={10,-0.5,9.5};
 
     // rawhit

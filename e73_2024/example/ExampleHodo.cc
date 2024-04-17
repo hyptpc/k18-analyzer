@@ -47,11 +47,6 @@ Int_t event_number;
 namespace root
 {
 TH1   *h[MaxHist];
-const Int_t nhodo=9;
-Int_t khodo[nhodo]={kT1,kBHT,kT0,kDEF,kVeto,kBTC,kCVC,kNC,kCDH};
-// const Int_t nhodo=5;
-// Int_t khodo[nhodo]={kT0new,kBHT,kT0,kDEF,kRC};
-
 Double_t tdcbins[3]={5000,0,2e6};
 Double_t adcbins[3]={4096,-0.5,4095.5};
 Double_t mtdcbins[3]={2000,0,2000};
@@ -96,7 +91,7 @@ ProcessNormal()
   Bool_t BEAM  = MTDCAna.flag(kBeam);
   Bool_t KAON2 = MTDCAna.flag(kKaon2);
   Bool_t KAON3 = MTDCAna.flag(kKaon3);
-  Bool_t KCDH1 = MTDCAna.flag(kKCDH1);
+  // Bool_t KCDH1 = MTDCAna.flag(kKCDH1);
   //  Bool_t DEUTERON = MTDCAna.flag(kDeteuteron);
   Bool_t DEUTERON = MTDCAna.flag(15);
 
@@ -172,14 +167,13 @@ ProcessNormal()
 
 
   // hodoscopes
-  Int_t hodoseg[nhodo];
-  Double_t hodotime[nhodo];
-  for(Int_t ihodo=0;ihodo<nhodo;++ihodo){
-    Int_t kHodo=khodo[ihodo];
-    Int_t cid=hodoid[kHodo];
-    TString name=hodoname[kHodo];
-    Double_t mulbins[3]={nsegs[kHodo]+1,-0.5,nsegs[kHodo]+0.5};
-    Double_t patbins[3]={nsegs[kHodo],-0.5,nsegs[kHodo]-0.5};
+  Int_t hodoseg[kNumHodo];
+  Double_t hodotime[kNumHodo];
+  for(Int_t ihodo=0;ihodo<kNumHodo;++ihodo){
+    Int_t cid=hodoid[ihodo];
+    TString name=hodoname[ihodo];
+    Double_t mulbins[3]={nsegs[ihodo]+1,-0.5,nsegs[ihodo]+0.5};
+    Double_t patbins[3]={nsegs[ihodo],-0.5,nsegs[ihodo]-0.5};
     Double_t mulbins2[3]={10,-0.5,9.5};
 
     // rawhit
@@ -395,6 +389,8 @@ ProcessNormal()
     // decoded hit done
   }
   if(hodoseg[kVeto]) VETO=true;
+
+#if 0
   // calorimeter
   {
     Int_t kCalori[2]={kPbF2,kPbG};
@@ -448,6 +444,8 @@ ProcessNormal()
       hist::H1(tmpname+"_ADC_sum",adcsum,sumbins);
     }
   }
+#endif
+
 #if DEBUG
   std::cout << __FILE__ << " " << __LINE__ << std::endl;
 #endif
@@ -473,9 +471,9 @@ Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return
-    ( InitializeParameter<HodoParamMan>("HDPRM","CDSPRM") ) &&
-    ( InitializeParameter<HodoPHCMan>  ("HDPHC","CDSPHC") ) &&
-    ( InitializeParameter<UserParamMan>("USER") ) ;
+    (InitializeParameter<HodoParamMan>("HDPRM","CDSPRM")) &&
+    (InitializeParameter<HodoPHCMan>("HDPHC","CDSPHC")) &&
+    (InitializeParameter<UserParamMan>("USER"));
 }
 
 //_____________________________________________________________________________
