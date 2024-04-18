@@ -209,13 +209,13 @@ bool DCHit::CheckRangeHits(){
   std::string str3=Form("DCTot%d",m_cid);
   //  std::string str3=Form("DCDl%d",m_cid);
   for( int index=m_tdc.size()-1; index!=0-1; --index ){
-    if(gUser.Check(str1,m_dt[index])) m_dt_range[index]=true;
-    if(gUser.IsExist(str2)){
-      if(gUser.Check(str2,m_tot[index])) m_tot_range[index]=true;
+    if(gUser.IsInRange(str1,m_dt[index])) m_dt_range[index]=true;
+    if(gUser.Has(str2)){
+      if(gUser.IsInRange(str2,m_tot[index])) m_tot_range[index]=true;
     }else{
-      if(gUser.Check(str3,m_tot[index])) m_tot_range[index]=true;
+      if(gUser.IsInRange(str3,m_tot[index])) m_tot_range[index]=true;
     }
-    //    if(gUser.Check(str3,m_dl[index])) m_dl_range[index]=true;
+    //    if(gUser.IsInRange(str3,m_dl[index])) m_dl_range[index]=true;
   }
   return true;
 }

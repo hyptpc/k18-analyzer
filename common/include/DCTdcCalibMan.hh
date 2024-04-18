@@ -1,15 +1,12 @@
-/**
- *  file: DCTdcCalibMan.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef DC_TDC_CALIB_MAN_HH
 #define DC_TDC_CALIB_MAN_HH
 
 #include <map>
-#include <string>
 #include <vector>
+
+#include <TString.h>
 
 struct DCTdcCalMap;
 
@@ -17,12 +14,12 @@ struct DCTdcCalMap;
 class DCTdcCalibMan
 {
 public:
-  static DCTdcCalibMan&     GetInstance( void );
-  static const std::string& ClassName( void );
-  ~DCTdcCalibMan( void );
+  static DCTdcCalibMan& GetInstance();
+  static const TString& ClassName();
+  ~DCTdcCalibMan();
 
 private:
-  DCTdcCalibMan( void );
+  DCTdcCalibMan();
   DCTdcCalibMan( const DCTdcCalibMan & );
   DCTdcCalibMan& operator =( const DCTdcCalibMan & );
 
@@ -30,37 +27,37 @@ private:
   typedef std::map <unsigned int, DCTdcCalMap*> DCTdcContainer;
   typedef DCTdcContainer::const_iterator DCTdcIterator;
   bool           m_is_ready;
-  std::vector<std::string>    m_file_names;
+  std::vector<TString>    m_file_names;
   DCTdcContainer m_container;
 
 public:
-  bool Initialize( void );
-  bool Initialize( const std::string& file_name );
-  bool Initialize( const std::string& file_name, const std::string& file_name2 );
-  bool ReadFile( const std::string& file_name );
-  bool IsReady( void ) const { return m_is_ready; }
+  bool Initialize();
+  bool Initialize( const TString& file_name );
+  bool Initialize( const TString& file_name, const TString& file_name2 );
+  bool ReadFile( const TString& file_name );
+  bool IsReady() const { return m_is_ready; }
   bool GetTime( int det_id, int plane_id, int wire_id, int tdc, double& time ) const;
   bool GetTdc( int det_id, int plane_id, int wire_id, double time, int& tdc ) const;
-  //  void SetFileName( const std::string& file_name ) { m_file_name = file_name; }
+  //  void SetFileName( const TString& file_name ) { m_file_name = file_name; }
 
 private:
   DCTdcCalMap* GetMap( int det_id, int plane_id, int wire_id ) const;
-  void         ClearElements( void );
+  void         ClearElements();
 };
 
 //______________________________________________________________________________
 inline DCTdcCalibMan&
-DCTdcCalibMan::GetInstance( void )
+DCTdcCalibMan::GetInstance()
 {
   static DCTdcCalibMan g_instance;
   return g_instance;
 }
 
 //______________________________________________________________________________
-inline const std::string&
-DCTdcCalibMan::ClassName( void )
+inline const TString&
+DCTdcCalibMan::ClassName()
 {
-  static std::string g_name("DCTdcCalibMan");
+  static TString g_name("DCTdcCalibMan");
   return g_name;
 }
 

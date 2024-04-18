@@ -139,7 +139,7 @@ ProcessNormal()
       int ntu=raw->GetSizeTdcUp();
       for(int it=0;it<ntu;it++){
 	double tu  = raw->GetTdcUp(it);
-	if(gUser.Check("ACTDC",tu)) ACHIT=true;
+	if(gUser.IsInRange("ACTDC",tu)) ACHIT=true;
 	hist::H1(tmpname+"_TDC",tu,tdcbins);
       }
     }
@@ -181,8 +181,8 @@ ProcessNormal()
 	}
 	double tof =mt-time0;
 	if(cid==DetIdBHD){
-	  if(gUser.Check("TOFK",tof)) TOFK=true;
-	  if(gUser.Check("TOFPi",tof)) TOFPi=true;
+	  if(gUser.IsInRange("TOFK",tof)) TOFK=true;
+	  if(gUser.IsInRange("TOFPi",tof)) TOFPi=true;
 	}
 	hist::H1(tmpname+"_MeanTime",mt,4000,-200,200);
 	hist::H1(tmpname+"_MeanTime"+segstr,mt,4000,-200,200);
@@ -552,26 +552,17 @@ Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return
-    ( InitializeParameter<HodoParamMan>("HDPRM","CDSPRM") ) &&
-    ( InitializeParameter<HodoPHCMan>("HDPHC","CDSPHC") ) &&
-    ( InitializeParameter<DCTdcCalibMan>("DCTDC") )  &&
-    ( InitializeParameter<XTMapMan>("XTMap") )   &&
-    ( InitializeParameter<GeomMapMan>("GeomBL","GeomHall") )   &&
-    ( InitializeParameter<UserParamMan>("USER") )   &&
-    ( InitializeParameter<TransferMatrixMan>("TM") )   &&
-    ( InitializeParameter<DCTimeCorrMan>("DCTC") )   &&
-    ( InitializeParameter<BLDCWireMapMan>("BLDCWire") );
+    (InitializeParameter<HodoParamMan>("HDPRM")) &&
+    (InitializeParameter<HodoPHCMan>("HDPHC")) &&
+    (InitializeParameter<DCTdcCalibMan>("DCTDC")) &&
+    (InitializeParameter<XTMapMan>("XTMap")) &&
+    (InitializeParameter<GeomMapMan>("GeomBL","GeomHall")) &&
+    (InitializeParameter<UserParamMan>("USER")) &&
+    (InitializeParameter<TransferMatrixMan>("TM")) &&
+    (InitializeParameter<DCTimeCorrMan>("DCTC")) &&
+    (InitializeParameter<BLDCWireMapMan>("BLDCWire"));
 }
 
-//_____________________________________________________________________________
-Bool_t
-ConfMan::BeginRunProcess( )
-{
-  run_number = get_run_number();
-  ofsk.open(Form("beamprof/beam.k.e73_run%05d",run_number));
-  ofspi.open(Form("beamprof/beam.pi.e73_run%05d",run_number));
-  return true;
-}
 //_____________________________________________________________________________
 Bool_t
 ConfMan::FinalizeProcess()

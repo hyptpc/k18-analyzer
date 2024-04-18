@@ -82,7 +82,7 @@ bool BasicAnalysis::AnaFlag(MTDCAnalyzer* mtdc){
     for(int it=0;it<hit->GetIndex();it++){
       double tu  = hit->Time(it);
       hist::H1(tmpname+"_Time"+segstr,tu,timebins);
-      //if(gUser.Check("TriggerFlag",tu)) tmpflag=true;
+      //if(gUser.IsInRange("TriggerFlag",tu)) tmpflag=true;
       if(fabs(tu)<10) tmpflag=true;
     }
     if(tmpflag){
@@ -182,16 +182,16 @@ bool BasicAnalysis::CheckBHTT0TOF(HodoAnalyzer* hodo, bool slewing)
 	hist::H1("BHTCMeanTime_selected",cmt,tofbins);
 	hist::H1("BHTT0TOF_selected" ,tof,tofbins);
 	hist::H1("BHTT0cTOF_selected",ctof,tofbins);
-	if(gUser.Check("TOFK",ctof)){
+	if(gUser.IsInRange("TOFK",ctof)){
 	  TOFK=true;
 	  hist::H1("BHTT0cTOF_TOFK",ctof,tofbins);
 	  //	  return true;
 	}
-	if(gUser.Check("TOFP",ctof)){
+	if(gUser.IsInRange("TOFP",ctof)){
 	  TOFP=true;
 	  hist::H1("BHTT0cTOF_TOFP",ctof,tofbins);
 	}
-	if(gUser.Check("TOFPi",ctof)){
+	if(gUser.IsInRange("TOFPi",ctof)){
 	  TOFPi=true;
 	  hist::H1("BHTT0cTOF_TOFPi",ctof,tofbins);
 	}
@@ -215,7 +215,7 @@ bool BasicAnalysis::AnaAC(RawData* raw)
     int ntu=raw->GetSizeTdcUp();
     for(int it=0;it<ntu;it++){
       double tu  = raw->GetTdcUp(it);
-      if(gUser.Check("ACTDC",tu)) ACHIT=true;
+      if(gUser.IsInRange("ACTDC",tu)) ACHIT=true;
       hist::H1(tmpname+"_TDC",tu,tdcbins);
     }
     double adcsum=0;
@@ -290,7 +290,7 @@ bool BasicAnalysis::FillHodoRaw(RawData* raw,int kHodo)
 	double td  = raw->GetTdcDown(it);
 	hist::H1(name+"_TDCdiffud",tu-td,diffbins);
       }
-      if(gUser.Check("HODOTDC",tu)) TIMING=true;
+      if(gUser.IsInRange("HODOTDC",tu)) TIMING=true;
     }
     for(int it=0;it<ntd;it++){
       double td  = raw->GetTdcDown(it);
@@ -520,11 +520,11 @@ bool BasicAnalysis::AnaHodo(HodoAnalyzer* hodo,int kHodo)
       hist::H1(name+"_Time_all" ,mt,timebins);
       hist::H1(name+"_CTime_all" ,cmt,timebins);
       if(cid==DetIdCDH){
-	if(!gUser.Check("CDHTOF",mt)) continue;
+	if(!gUser.IsInRange("CDHTOF",mt)) continue;
       }else if(cid==DetIdVeto){
-	if(!gUser.Check("VetoTOF",mt)) continue;
+	if(!gUser.IsInRange("VetoTOF",mt)) continue;
       }else{
-	if(!gUser.Check("HodoGATE",mt)) continue;
+	if(!gUser.IsInRange("HodoGATE",mt)) continue;
       }
       hist::H1(name+"_Time_gate" ,mt,timebins);
       hist::H1(name+"_CTime_gate",cmt,timebins);
@@ -601,7 +601,7 @@ bool BasicAnalysis::AnaBHT(HodoAnalyzer* hodo,int kHodo)
     double cmt= hit->CMeanTime(nth);
     hist::H1(name+"_Time_all" ,mt,timebins);
     hist::H1(name+"_CTime_all" ,cmt,timebins);
-    if(!gUser.Check("HodoGATE",mt)) continue;
+    if(!gUser.IsInRange("HodoGATE",mt)) continue;
     hist::H1(name+"_Time_gate" ,mt,timebins);
     hist::H1(name+"_CTime_gate",cmt,timebins);
     HodoEvent ev;
@@ -640,7 +640,7 @@ bool BasicAnalysis::AnaHodo1(HodoAnalyzer* hodo,int kHodo)
     // }
     for(int ii=0;ii<nind;ii++){
       double mt  = hit->Time(ii);
-      if(!gUser.Check("HodoGATE",mt)) continue;
+      if(!gUser.IsInRange("HodoGATE",mt)) continue;
       HodoEvent ev;
       ev.cid=cid;
       ev.seg= hit->SegmentId();
@@ -699,7 +699,7 @@ bool BasicAnalysis::AnaPbF2(HodoAnalyzer* hodo,std::vector<TString> add)
     for(int ii=0;ii<nind;ii++){
       double tof  = hit->Time(ii)-time0();
       hist::H1(name+"_TOF_all", tof ,tofbins,add);
-      if(!gUser.Check("PbF2TOF",tof)) continue;
+      if(!gUser.IsInRange("PbF2TOF",tof)) continue;
       hist::H1(name+"_TOF_gate", tof ,tofbins,add);
       //      std::cout<<"seg,adc,de,de2: "<<seg<<"  "<<adc<<"  "<<de<<"  "<<de2<<std::endl;
       PbF2_EnergySumwT+=de;

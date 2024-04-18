@@ -1,8 +1,4 @@
-/**
- *  file: DCTdcCalibMan.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "DCTdcCalibMan.hh"
 
@@ -13,15 +9,12 @@
 #include <iomanip>
 #include <sstream>
 
+#include <TRandom.h>
+
 #include <std_ostream.hh>
 
-#include "TRandom.h"
 #include "DeleteUtility.hh"
-
-namespace
-{
-  const std::string& class_name("DCTdcCalibMan");
-}
+#include "FuncName.hh"
 
 //______________________________________________________________________________
 struct DCTdcCalMap
@@ -33,20 +26,20 @@ struct DCTdcCalMap
 };
 
 //______________________________________________________________________________
-DCTdcCalibMan::DCTdcCalibMan( void )
+DCTdcCalibMan::DCTdcCalibMan()
   : m_is_ready(false)
 {
 }
 
 //______________________________________________________________________________
-DCTdcCalibMan::~DCTdcCalibMan( void )
+DCTdcCalibMan::~DCTdcCalibMan()
 {
   ClearElements();
 }
 
 //______________________________________________________________________________
 void
-DCTdcCalibMan::ClearElements( void )
+DCTdcCalibMan::ClearElements()
 {
   del::ClearMap( m_container );
 }
@@ -60,12 +53,10 @@ MakeKey( int det_id, int plane_id, int wire_id )
 
 //______________________________________________________________________________
 bool
-DCTdcCalibMan::Initialize( void )
+DCTdcCalibMan::Initialize()
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   if( m_is_ready ){
-    hddaq::cerr << "#W " << func_name
+    hddaq::cerr << "#W " << FUNC_NAME
 		<< " already initialied" << std::endl;
     return false;
   }
@@ -78,13 +69,12 @@ DCTdcCalibMan::Initialize( void )
 }
 //______________________________________________________________________________
 bool
-DCTdcCalibMan::ReadFile( const std::string& file_name )
+DCTdcCalibMan::ReadFile( const TString& file_name )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
   if(file_name=="") return true;
-  std::ifstream ifs( file_name.c_str() );
+  std::ifstream ifs(file_name);
   if( !ifs.is_open() ){
-    hddaq::cerr << "#E " << func_name << " "
+    hddaq::cerr << "#E " << FUNC_NAME << " "
 		<< "file open fail : " << file_name << std::endl;
     return false;
   }
@@ -103,7 +93,7 @@ DCTdcCalibMan::ReadFile( const std::string& file_name )
       m_container[key] = tdc_calib;
     }
     else{
-      hddaq::cerr << func_name << ": Bad format => "
+      hddaq::cerr << FUNC_NAME << ": Bad format => "
 		  << line << std::endl;
     }
   }
@@ -112,7 +102,7 @@ DCTdcCalibMan::ReadFile( const std::string& file_name )
 
 //______________________________________________________________________________
 bool
-DCTdcCalibMan::Initialize( const std::string& file_name )
+DCTdcCalibMan::Initialize( const TString& file_name )
 {
   m_file_names.push_back(file_name);
   return Initialize();
@@ -120,7 +110,7 @@ DCTdcCalibMan::Initialize( const std::string& file_name )
 
 //______________________________________________________________________________
 bool
-DCTdcCalibMan::Initialize( const std::string& file_name,const std::string& file_name2 )
+DCTdcCalibMan::Initialize( const TString& file_name,const TString& file_name2 )
 {
   m_file_names.push_back(file_name);
   m_file_names.push_back(file_name2);
@@ -143,7 +133,6 @@ bool
 DCTdcCalibMan::GetTime( int det_id, int plane_id, int wire_id,
 			int tdc, double& time ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
   DCTdcCalMap *tdc_calib = GetMap( det_id, plane_id, wire_id );
   if( tdc_calib ){
     time = ( tdc + gRandom->Uniform(-0.5,0.5) ) * (tdc_calib->p1)  + (tdc_calib->p0);
@@ -155,7 +144,7 @@ DCTdcCalibMan::GetTime( int det_id, int plane_id, int wire_id,
     return true;
   }
   else{
-    hddaq::cerr << func_name << ": No record. "
+    hddaq::cerr << FUNC_NAME << ": No record. "
 		<< " DetectorId=" << std::setw(3) << std::dec << det_id
 		<< " PlaneId=" << std::setw(3) << std::dec << plane_id
 		<< " WireId="  << std::setw(3) << std::dec << wire_id
@@ -169,7 +158,6 @@ bool
 DCTdcCalibMan::GetTdc( int det_id, int plane_id, int wire_id,
 		       double time, int &tdc ) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
   DCTdcCalMap *tdc_calib = GetMap( det_id, plane_id, wire_id );
   if( tdc_calib ){
     tdc = int((time-(tdc_calib->p0))/(tdc_calib->p1));
@@ -181,7 +169,7 @@ DCTdcCalibMan::GetTdc( int det_id, int plane_id, int wire_id,
     return true;
   }
   else{
-    hddaq::cerr << func_name << ": No record. "
+    hddaq::cerr << FUNC_NAME << ": No record. "
 		<< " DetectorId=" << std::setw(3) << std::dec << det_id
 		<< " PlaneId=" << std::setw(3) << std::dec << plane_id
 		<< " WireId="  << std::setw(3) << std::dec << wire_id

@@ -16,8 +16,8 @@ namespace{
   double degree=TMath::DegToRad();
   const double mm=0.1;
   const double cm=10*mm;
-  double cdc_rin=154.*mm; 
-  double cdh_rin=544.*mm; 
+  double cdc_rin=154.*mm;
+  double cdh_rin=544.*mm;
   double cdh_rout=574.*mm;
   double cdh_r=cdh_rin;
   //  double cdh_r=(cdh_rin+cdh_rout)*0.5; // from 20221122 to 20230113; does not fit with MC analysis
@@ -32,7 +32,7 @@ namespace{
 double cds::Mass2Resol(int pid, double mom, double fl)
 {
   double tofresol=0.160;//ns
-  double lv=TMath::C()*1e-6*mm;//mm/ns  
+  double lv=TMath::C()*1e-6*mm;//mm/ns
   double mass=pdg::Mass(pid);
   double momres=MomResol(pid,mom);
   double tmp2=4*pow(mass,4)*pow(momres,2)+4*pow(mom,2)*(pow(mom,2)+pow(mass,2))*pow(lv/fl*tofresol,2);
@@ -55,10 +55,10 @@ double cds::MomResol(int pid, double mom)
 		      {-5.6182e-05, 0.0632374, 0.0002, 0.195},
 		      {0.00216906, 0.0596655, 0.000187301, 0.13}
   };
-#else  
-  //parameter at CDC 
-  double param[3][4]={{-0.000154926, 0.0628548, 0.000544216, 0.0203668}, 
-		      {-0.0119525, 0.0699056, 0.0058263, 0.00385919}, 
+#else
+  //parameter at CDC
+  double param[3][4]={{-0.000154926, 0.0628548, 0.000544216, 0.0203668},
+		      {-0.0119525, 0.0699056, 0.0058263, 0.00385919},
 		      {-0.00514371, 0.0653424, 0.00293869, -0.0220217}
   };
 #endif
@@ -104,14 +104,14 @@ bool cds::FindMass2(CDSTrack *track, TVector3 t0pos,TVector3 vtxbpc,TVector3 vtx
 {
   double param[5];
   TVector3 tmp;
-  track->GetParameters(DetIdCDC,param,tmp);   
+  track->GetParameters(DetIdCDC,param,tmp);
   TVector3 cdhvtx=math::CalcHelixPosatR(param,cdh_r);
   TVector3 pos_cdcin=math::CalcHelixPosatR(param,cdc_rin);
   if(fabs(cdhvtx.Z())>1000 || fabs(pos_cdcin.Z())>1000 ){
     return false;
   }
   double cdc_dis=math::CalcHelixArc(param,cdhvtx,pos_cdcin);
-  
+
   double mom,time_beam;
   eloss::CalcElossBeam(t0pos,vtxbpc,beammom,beammass,mom,time_beam);
   double tof_vtx_cdh=tof_t0_cdh-time_beam;
@@ -144,7 +144,7 @@ bool cds::FindMass2(CDSTrack *track, TVector3 t0pos,TVector3 vtxbpc,TVector3 vtx
 
 bool cds::CalcVertex2HelixdE(CDSTrack *cds1, CDSTrack *cds2, const double &mass1, const double &mass2, TVector3 &vtx1, TVector3 &vtx2)
 {
-  // calc vertex of 2 cdc tracks considering curavature change by dE loss 
+  // calc vertex of 2 cdc tracks considering curavature change by dE loss
   //  std::cout<<"[ "<<__FUNCTION__<<" ]"<<std::endl;
   double par1[5];
   double par2[5];
@@ -206,7 +206,7 @@ bool cds::CalcVertex2Helix2(CDSTrack *cds1, CDSTrack *cds2, TVector3 &vtx1, TVec
       math::HelixToHelix(par1,par2,tmp1,tmp2,dis);
       //      if((GeomTools::GetID(tmp1)==id||GeomTools::GetID(tmp2)==id2)&&dis<tmpdis){
       //      std::cout<<GeomTools::GetID(tmp1)<<"  "<<id<<"   "<<tmp1.Perp()<<"  "<<tmp1.Z()<<std::endl;
-      if((geom::GetID(tmp1)==id||geom::IsSameVolumeHelix(par1,tmppos1,tmp1,margin))){	
+      if((geom::GetID(tmp1)==id||geom::IsSameVolumeHelix(par1,tmppos1,tmp1,margin))){
 	//	std::cout<<dis<<"  "<<tmpdis<<std::endl;
 	//	std::cout<<GeomTools::GetID(tmp2)<<"  "<<id2<<"   "<<tmp2.Perp()<<"  "<<tmp2.Z()<<std::endl;
 	if((geom::GetID(tmp2)==id2||geom::IsSameVolumeHelix(par2,tmppos2,tmp2,margin))
@@ -277,7 +277,7 @@ bool cds::CalcLineHelixVertex(pBeam *beam,CDSTrack *cds,TVector3 &vtx1,TVector3 
   else return false;
 }
 
-void cds::CalcBetaMass(TVector3 vertex,LocalTrack *beam, CDSTrack* cdc, 
+void cds::CalcBetaMass(TVector3 vertex,LocalTrack *beam, CDSTrack* cdc,
 		       int beam_pid,double tof, double &beta,double &mass2)
 {
   double param[5];
@@ -293,14 +293,14 @@ void cds::CalcBetaMass(TVector3 vertex,LocalTrack *beam, CDSTrack* cdc,
 
   double beta_b=mybeta(pdg::Mass(beam_pid),1.0); // assume 1.0 GeV/c beam momentum
   double time_beam=beam_dis/beta_b/(TMath::C()*1e-6*mm);
-  
-  //#####CDC dis#######		  	
+
+  //#####CDC dis#######
   TVector3 cdhvtx=math::CalcHelixPosatR(param,cdh_r);
   double cdc_dis=math::CalcHelixArc(param,cdhvtx,vertex);
 
   double beta_calc=cdc_dis/(tof-time_beam)/(TMath::C()*1e-6*mm);
   double calc_mass2=mom*mom*(1/(beta_calc*beta_calc)-1);
-  
+
   beta = beta_calc;
   mass2 = calc_mass2;
 #if 0
@@ -343,7 +343,7 @@ int cds::PID2d(double mom,double mass2)
 		  {0.00084734,0.00011146,p_mass2 ,0.00674811},
 		  {0.00084734,0.00011146,d_mass2 ,0.00674811}};
   /* <----- 2016.07.05 */
-  
+
   double pi_sigma = sqrt(4.0*p[0][2]*p[0][0]*mom*mom+
 			 4.0*p[0][2]*p[0][2]*p[0][1]*(1.0+p[0][2]/(mom*mom))+
 			 4.0*p[0][3]*mom*mom*(p[0][2]+mom*mom));
@@ -464,10 +464,10 @@ pCDS* cds::CalcSingleAll(pBeam *beam,CDSTrack* cdc,HodoAnalyzer *hodo,bool ELOSS
     Hodo2Hit *hit = hodo->GetHit(DetIdCDH,i);
     if(!hit) continue;
     int nind= hit->GetIndex();
-    for(int ii=0;ii<nind;ii++){      
+    for(int ii=0;ii<nind;ii++){
       double cmt  = hit->CMeanTime(ii);
       int seg=hit->SegmentId();
-      if(!gUser.Check("CDHTOF",cmt-beam->t0ctime())) continue;
+      if(!gUser.IsInRange("CDHTOF",cmt-beam->t0ctime())) continue;
       TVector3 tmppos;
       if(!gGeom.GetGPos(DetIdCDH,seg,tmppos)) continue;
       //  tmppos.Print();
@@ -496,12 +496,12 @@ pCDS* cds::CalcSingleAll(pBeam *beam,CDSTrack* cdc,HodoAnalyzer *hodo,bool ELOSS
     }
     pid=cds::PID1d(mom,mass2);
     if(REFIT){
-      double cdc_mass=pdg::Mass(pid);      
-      double beta_calc=fabs(mom)/sqrt(mom*mom+cdc_mass*cdc_mass);    
-      double time_calc2=cdc_dis/(beta_calc*TMath::C()*1e-6*mm);      
+      double cdc_mass=pdg::Mass(pid);
+      double beta_calc=fabs(mom)/sqrt(mom*mom+cdc_mass*cdc_mass);
+      double time_calc2=cdc_dis/(beta_calc*TMath::C()*1e-6*mm);
       double cdhdt=tof-time_calc2-time_beam;
       cdc->Retiming(cdhdt,beta_calc,true);
-      mom = cdc->mom();   
+      mom = cdc->mom();
       cds::FindMass2(cdc,beam,tof,beta,mass2,tofvtxcdc);
     }
     cdstrack->SetTOF(cdhctime);
@@ -510,12 +510,12 @@ pCDS* cds::CalcSingleAll(pBeam *beam,CDSTrack* cdc,HodoAnalyzer *hodo,bool ELOSS
     cdstrack->SetMass(sqrt(mass2));
     cdstrack->SetMass2(mass2);
   }
-  //  
+  //
   //  std::cout<<"# vertex with dE"<<std::endl;
   double mass=pdg::Mass(pid);
   if(mass<0) ELOSS=false;
   double tmpl;
-  if(ELOSS){    
+  if(ELOSS){
     //    std::cout<<"calcvertextimelength"<<std::endl;
     bool flag=cdc->CalcVertexTimeLength(beam->bpcpos(),beam->bpcdir(),mass,vtxbpc,vtxcdc,tofvtxcdc,tmpl,true);
     if(!flag){
@@ -525,16 +525,16 @@ pCDS* cds::CalcSingleAll(pBeam *beam,CDSTrack* cdc,HodoAnalyzer *hodo,bool ELOSS
       delete cdstrack;
       return 0;
     }
-  }  
+  }
   dis=(vtxbpc-vtxcdc).Mag();
   //  std::cout<<"# momentum with dE"<<std::endl;
   TVector3 Pd;
   double tof,length;
-  if( !cdc->GetMomentum(vtxcdc, mass, Pd , tof,length, ELOSS) ){    
+  if( !cdc->GetMomentum(vtxcdc, mass, Pd , tof,length, ELOSS) ){
     std::cout<<"[cds::CalcSingleAll] failed in GetMomentum"<<std::endl;
     delete cdstrack;
     return 0;
-  }      
+  }
 
   //  pid=PID2d(mom,mass2);
 
@@ -545,7 +545,7 @@ pCDS* cds::CalcSingleAll(pBeam *beam,CDSTrack* cdc,HodoAnalyzer *hodo,bool ELOSS
   cdstrack->SetPID(pid);
   cdstrack->SetRawMomentum(mom);
   cdstrack->SetMomentum(mom/TMath::Abs(mom)*Pd.Mag());
-  cdstrack->SetAngleLab(beam->bpcdir().Angle(Pd));    
+  cdstrack->SetAngleLab(beam->bpcdir().Angle(Pd));
   cdstrack->SetChi2(cdc->chi2());
   cdstrack->SetFL(cdc_dis);
   cdstrack->SetDeCDC(cdc->totave2());
@@ -583,9 +583,9 @@ pCDS *cds::Calc2HelixAll(pBeam *beam, pCDS* cds1, pCDS* cds2,CDCAnalyzer *cdcAna
     if(debug>0) std::cout<<"#W [cds::Calc2HelixAll] no cdh hit"<<std::endl;
     return 0;
   }
-  CDSTrack *track1=cdcAna->GetTrack(cds1->id());	
-  CDSTrack *track2=cdcAna->GetTrack(cds2->id());	
-  TVector3 vtx1=DEFVECT,vtx2=DEFVECT;  
+  CDSTrack *track1=cdcAna->GetTrack(cds1->id());
+  CDSTrack *track2=cdcAna->GetTrack(cds2->id());
+  TVector3 vtx1=DEFVECT,vtx2=DEFVECT;
   //  if( ELOSS && !cds::CalcVertex2HelixdE(track1,track2,cds1->pdgmass(),cds2->pdgmass(),vtx1,vtx2) ){
   if( ELOSS && !cds::CalcVertex2Helix2(track1,track2,vtx1,vtx2) ){
     if(debug>0) std::cout<<"#W [cds::Calc2HelixAll] failed in CalcVertex2Helix2"<<std::endl;
@@ -609,8 +609,8 @@ pCDS *cds::Calc2HelixAll(pBeam *beam, pCDS* cds1, pCDS* cds2,CDCAnalyzer *cdcAna
   TVector3 Pp= Pp1+Pp2;
   TLorentzVector L1; L1.SetVectM( Pp1, cds1->pdgmass() );
   TLorentzVector L2; L2.SetVectM( Pp2, cds2->pdgmass() );
-  double im = (L1+L2).M();	
-  
+  double im = (L1+L2).M();
+
   double dist,dltmp=0;
   TVector3 xest,nest;
   TVector3 vtx=(vtx1+vtx2)*0.5;
@@ -619,7 +619,7 @@ pCDS *cds::Calc2HelixAll(pBeam *beam, pCDS* cds1, pCDS* cds2,CDCAnalyzer *cdcAna
   double time_beam=beam->CalcVertexTime(nest);
   double beta_pro=mybeta(im,Pp.Mag());
   double time_to_decay=(xest-vtx).Mag()/beta_pro/(TMath::C()*1e-6*mm);
-  
+
   TVector3 pos1,pos2;
   double param[5];
   track1->GetParameters(DetIdCDCCFRP,param,pos1);
@@ -637,7 +637,7 @@ pCDS *cds::Calc2HelixAll(pBeam *beam, pCDS* cds1, pCDS* cds2,CDCAnalyzer *cdcAna
   double dt1=cds1->tof()-time_beam-time_to_decay-tof1-time_cdc1;
   double dt2=cds2->tof()-time_beam-time_to_decay-tof2-time_cdc2;
   //  std::cout<<time_beam<<"  "<<beam->t0ctime()<<std::endl;
-  pCDS* pro=new pCDS();    
+  pCDS* pro=new pCDS();
   pro->SetDaughterID1(cds1->id());
   pro->SetDaughterID2(cds2->id());
   pro->SetDaughterLMom1(L1);
@@ -652,8 +652,8 @@ pCDS *cds::Calc2HelixAll(pBeam *beam, pCDS* cds1, pCDS* cds2,CDCAnalyzer *cdcAna
   pro->SetVertexCDC(xest);
   pro->SetMomDir(Pp.Unit());
   pro->SetVDis((vtx1-vtx2).Mag()); // 2 helix
-  pro->SetVBDis((xest-vtx).Mag()); // displaced vertex 
-  pro->SetPBDCA(dist); // DCA btw beam and product 
+  pro->SetVBDis((xest-vtx).Mag()); // displaced vertex
+  pro->SetPBDCA(dist); // DCA btw beam and product
   pro->SetOA(Pp1.Angle(Pp2));
   pro->SetAngleLab(beam->bpcdir().Angle(Pp));
   pro->SetDt1(dt1);
@@ -675,14 +675,14 @@ void cds::PDFLambda(double* per, double* pdf,bool YAMAGA){
 	 1.0,-3.403185,-0.000388, 0.0, 0.0, 0.0, //dca p-K
 	 2.967292, -2.445, -7.8313095, -6.826, -0.2258,  1.298 //dca4 Lambda-p
       };
-    
+
     /* mass */
     c0=cutparam[0][0];
     c1=cutparam[0][1];
     c2=cutparam[0][2];
     tmppdf = c0 * TMath::Exp(-TMath::Power((per[0]-c1)/c2,2)/2.0);
     pdf[0] = tmppdf;
-    
+
     for( int i=1; i<4; i++){
       c0=cutparam[i][0];
       c1=cutparam[i][1];
@@ -690,15 +690,15 @@ void cds::PDFLambda(double* per, double* pdf,bool YAMAGA){
       tmppdf = c0 *TMath::Exp(c1*per[i]+c2*per[i]*per[i]);
       pdf[i] = tmppdf;
     }
-    
+
     c0=cutparam[4][0];
     c1=cutparam[4][1];
     c2=cutparam[4][2];
     c3=cutparam[4][3];
     c4=cutparam[4][4];
-    c5=cutparam[4][5];  
+    c5=cutparam[4][5];
     tmppdf = c0*TMath::Exp(c1*per[4]) + c2*TMath::Exp(c3*TMath::Power((per[4]-c4),c5));
-    pdf[4] = tmppdf;  
+    pdf[4] = tmppdf;
     return;
   }else{
     // double cutparam[5][6]=
@@ -707,7 +707,7 @@ void cds::PDFLambda(double* per, double* pdf,bool YAMAGA){
     // 	 1.0, -2.600850, -10.915050, 0.0, 0.0, 0.0, //dca Lambda-K
     // 	 1.0, -2.721580, -15.428124, 0.0, 0.0, 0.0, //dca p-K
     // 	 1.0, -1.222023, 0.007465, 0.0, 0.0, 0.0, //dca Lambda-p
-    //   };      
+    //   };
     double cutparam[5][6]={1.0,   1.1156,      0.002, 0.0, 0.0, 0.0,  //mass
 			   1.0, -1.75127,  -0.229124, 0.0, 0.0, 0.0,  //dca pi-p
 			   1.0, -4.01229,   -5.12492, 0.0, 0.0, 0.0,  //dca Lambda-K
@@ -720,7 +720,7 @@ void cds::PDFLambda(double* per, double* pdf,bool YAMAGA){
     c2=cutparam[0][2];
     tmppdf = c0 * TMath::Exp(-TMath::Power((per[0]-c1)/c2,2)/2.0);
     pdf[0] = tmppdf;
-    
+
     for( int i=1; i<5; i++){
       c0=cutparam[i][0];
       c1=cutparam[i][1];

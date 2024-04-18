@@ -1,4 +1,5 @@
 // -*- C++ -*-
+
 #include "BHTHit.hh"
 #include <cstring>
 #include <iomanip>
@@ -64,20 +65,20 @@ BHTHit::Calculate( void )
   Int_t cid  = m_raw->DetectorId();
   Int_t plid = m_raw->PlaneId();
   Int_t seg  = m_raw->SegmentId();
-  
+
   for(int ud=0;ud<2;ud++){
     int ntdc=m_raw->GetSizeTdc(ud);
     int nadc=m_raw->GetSizeAdc(ud);
-    if( ntdc==0 || nadc==0 ) return false; 
-    for(int i=0;i<ntdc;i++){ 
+    if( ntdc==0 || nadc==0 ) return false;
+    for(int i=0;i<ntdc;i++){
       int tdc = m_raw->GetTdc(ud,i);
       if(nadc<i+1) break;
       int adc = m_raw->GetAdc(ud,i);
       if( tdc<0 || adc<0 ){
 	if(i==0) return false;
 	else break;
-      }  
-      int j=1; 
+      }
+      int j=1;
       while(tdc<adc){
 	if(nadc<i+j+1) break;
 	adc=m_raw->GetAdc(ud,i+j);
@@ -89,16 +90,16 @@ BHTHit::Calculate( void )
 	hddaq::cerr << "#E " << func_name
 		    << " something is wrong at GetTime("
 		    << cid  << ", " << plid << ", " << seg  << ", "
-		    << ud << ", " << tdc << ", time" 
+		    << ud << ", " << tdc << ", time"
 		    << ")" << std::endl;
 	return false;
       }
       double ctot = 0.;
-      if( !gHodo.GetDe( cid, plid, seg, ud, tot, ctot )){
+      if( !gHodo.GetDeHighGain( cid, plid, seg, ud, tot, ctot )){
 	hddaq::cerr << "#E " << func_name
-		    << " something is wrong at GetDe("
+		    << " something is wrong at GetDeHighGain("
 		    << cid  << ", " << plid << ", " << seg  << ", "
-		    << ud << ", " << tdc << ", time" 
+		    << ud << ", " << tdc << ", time"
 		    << ")" << std::endl;
 	return false;
       }
@@ -109,7 +110,7 @@ BHTHit::Calculate( void )
     }
   }
   auto cittr1=m_ct1.begin();
-  for( auto ittr1=m_t1.begin(); ittr1!=m_t1.end(); ++ittr1 ){    
+  for( auto ittr1=m_t1.begin(); ittr1!=m_t1.end(); ++ittr1 ){
     auto cittr2=m_ct2.begin();
     for( auto ittr2=m_t2.begin(); ittr2!=m_t2.end(); ++ittr2 ){
       if(TMath::Abs(*ittr1-*ittr2)<10){

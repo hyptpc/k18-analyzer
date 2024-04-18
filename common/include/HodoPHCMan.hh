@@ -4,91 +4,98 @@
 #define HODO_PHC_MAN_HH
 
 #include <map>
-#include <string>
 #include <vector>
+#include <TString.h>
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class HodoPHCParam
 {
 public:
-  HodoPHCParam( int type, int np, std::vector<double> parlist );
-  ~HodoPHCParam( void );
+  static const TString& ClassName();
+  HodoPHCParam(Int_t type, Int_t n_param,
+               const std::vector<Double_t>& parlist);
+  ~HodoPHCParam();
 
 private:
-  HodoPHCParam( const HodoPHCParam& right );
-  HodoPHCParam& operator =( const HodoPHCParam& );
+  HodoPHCParam(const HodoPHCParam&);
+  HodoPHCParam& operator =(const HodoPHCParam&);
 
 private:
-  int                 m_type;
-  int                 m_n_param;
-  std::vector<double> m_param_list;
+  Int_t                 m_type;
+  Int_t                 m_n_param;
+  std::vector<Double_t> m_param_list;
 
 public:
-  double DoPHC( double time, double de ) const;
-  double DoRPHC( double time, double de ) const;
+  Double_t DoPHC(Double_t time, Double_t de) const;
+  Double_t DoRPHC(Double_t time, Double_t de) const;
+  Double_t DoSTC(Double_t stof, Double_t btof) const; //for stof correction
 
 private:
-  double type1Correction( double time, double de ) const;
-  double type2Correction( double time, double de ) const; // For fiber
-  double type3Correction( double time, double de ) const; // For SDD
-  double type4Correction( double time, double de ) const; // NC/CVC
-  double type5Correction( double time, double de ) const; // CDC in E15
-  double type6Correction( double time, double de ) const; // PbF2 non-linearity
-  double type1RCorrection( double time, double de ) const;
+  Double_t Type1Correction(Double_t time, Double_t de) const;
+  Double_t Type2Correction(Double_t time, Double_t de) const; // For fiber
+  Double_t Type1RCorrection(Double_t time, Double_t de) const;
+  Double_t Type1STCorrection(Double_t stof, Double_t btof) const;//for stof correction
 };
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
+inline const TString&
+HodoPHCParam::ClassName()
+{
+  static TString s_name("HodoPHCParam");
+  return s_name;
+}
+
+//_____________________________________________________________________________
 class HodoPHCMan
 {
 public:
-  static HodoPHCMan&        GetInstance( void );
-  static const std::string& ClassName( void );
-  ~HodoPHCMan( void );
+  static const TString& ClassName();
+  static HodoPHCMan&    GetInstance();
+  ~HodoPHCMan();
 
 private:
-  HodoPHCMan( void );
-  HodoPHCMan( const HodoPHCMan& );
-  HodoPHCMan& operator =( const HodoPHCMan& );
+  HodoPHCMan();
+  HodoPHCMan(const HodoPHCMan&);
+  HodoPHCMan& operator =(const HodoPHCMan&);
 
 private:
-  typedef std::map <int, HodoPHCParam *> PhcPContainer;
-  typedef std::map <int, HodoPHCParam *>::const_iterator PhcPIterator;
-  bool          m_is_ready;
-  std::vector<std::string>  m_file_names;
+  typedef std::map<Int_t, HodoPHCParam*> PhcPContainer;
+  typedef PhcPContainer::const_iterator  PhcPIterator;
+  Bool_t        m_is_ready;
+  TString       m_file_name;
   PhcPContainer m_container;
 
 public:
-  bool Initialize( void );
-  bool Initialize( const std::string& file_name1,
-		   const std::string& file_name2="",
-		   const std::string &file_name3="" );
-  bool IsReady( void ) const { return m_is_ready; }
-  bool DoCorrection( int cid, int plid, int seg, int ud, double time,
-                     double de, double& ctime ) const;
-  bool DoRCorrection( int cid, int plid, int seg, int ud, double time,
-                      double de, double& ctime ) const;
-  void SetFileName( const std::string& file_name ) { m_file_names.push_back(file_name); }
-  bool ReadFile( const std::string& file_name);
+  Bool_t DoCorrection(Int_t cid, Int_t plid, Int_t seg, Int_t ud,
+                      Double_t time, Double_t de, Double_t& ctime) const;
+  Bool_t DoRCorrection(Int_t cid, Int_t plid, Int_t seg, Int_t ud,
+                       Double_t time, Double_t de, Double_t& ctime) const;
+  Bool_t DoStofCorrection(Int_t cid, Int_t plid, Int_t seg, Int_t ud,
+                          Double_t stof, Double_t btof, Double_t& cstof) const;
+  Bool_t Initialize();
+  Bool_t Initialize(const TString& file_name);
+  Bool_t IsReady() const { return m_is_ready; }
+  void   SetFileName(const TString& file_name) { m_file_name = file_name; }
 
 private:
-  void          ClearElements( void );
-  HodoPHCParam* GetMap( int cid, int plid, int seg, int ud ) const;
+  void          ClearElements();
+  HodoPHCParam* GetMap(Int_t cid, Int_t plid, Int_t seg, Int_t ud) const;
 };
 
-//______________________________________________________________________________
-inline HodoPHCMan&
-HodoPHCMan::GetInstance( void )
+//_____________________________________________________________________________
+inline const TString&
+HodoPHCMan::ClassName()
 {
-  static HodoPHCMan g_instance;
-  return g_instance;
+  static TString s_name("HodoPHCMan");
+  return s_name;
 }
 
-//______________________________________________________________________________
-inline const std::string&
-HodoPHCMan::ClassName( void )
+//_____________________________________________________________________________
+inline HodoPHCMan&
+HodoPHCMan::GetInstance()
 {
-  static std::string g_name("HodoPHCMan");
-  return g_name;
+  static HodoPHCMan s_instance;
+  return s_instance;
 }
 
 #endif

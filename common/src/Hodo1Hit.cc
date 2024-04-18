@@ -78,9 +78,9 @@ Hodo1Hit::Calculate( void )
 
   double dE = 0.;
   if( adc>=0 ){
-    if( !gHodo.GetDe( cid, plid, seg, UorD, adc, dE ) ){
+    if( !gHodo.GetDeHighGain( cid, plid, seg, UorD, adc, dE ) ){
       hddaq::cerr << "#E " << func_name
-		  << " something is wrong at GetDe("
+		  << " something is wrong at GetDeHighGain("
 		  << cid  << ", " << plid << ", " << seg << ", "
 		  << UorD << ", " << adc  << ", " << dE  << ")" << std::endl;
       return false;

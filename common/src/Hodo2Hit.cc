@@ -120,12 +120,12 @@ Hodo2Hit::Calculate( void )
 #if DE
   double dE1 = 0., dE2 = 0.;
   if( adc1>=0 ){
-    if( !gHodo.GetDe( cid, plid, seg, 0, adc1, dE1 ) ){
+    if( !gHodo.GetDeHighGain( cid, plid, seg, 0, adc1, dE1 ) ){
       return false;
     }
   }
   if( adc2>=0 ){
-    if( !gHodo.GetDe( cid, plid, seg, 1, adc2, dE2 ) ){
+    if( !gHodo.GetDeHighGain( cid, plid, seg, 1, adc2, dE2 ) ){
       return false;
     }
   }

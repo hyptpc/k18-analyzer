@@ -111,7 +111,7 @@ ProcessNormal()
       Int_t nind=hit->GetIndex();
       for(Int_t it=0;it<nind;it++){
 	Double_t mt  = hit->MeanTime(it);
-	if(gUser.Check("Time0",mt)){
+	if(gUser.IsInRange("Time0",mt)){
 	  time0=mt;
 	  ctime0=hit->CMeanTime(it);
 	}
@@ -129,10 +129,10 @@ ProcessNormal()
       Int_t nind=hit->GetIndex();
       for(Int_t it=0;it<nind;it++){
 	Double_t tof  = hit->MeanTime(it)-time0;
-	if(gUser.Check("TOFK",tof)) TOFK=true;
-	if(gUser.Check("TOFPi",tof)) TOFPi=true;
-	if(gUser.Check("TOFP", tof)) TOFP=true;
-	if(gUser.Check("TOFD", tof)) TOFD=true;
+	if(gUser.IsInRange("TOFK",tof)) TOFK=true;
+	if(gUser.IsInRange("TOFPi",tof)) TOFPi=true;
+	if(gUser.IsInRange("TOFP", tof)) TOFP=true;
+	if(gUser.IsInRange("TOFD", tof)) TOFD=true;
       }
     }
   }
@@ -148,7 +148,7 @@ ProcessNormal()
       Int_t ntu=raw->GetSizeTdcUp();
       for(Int_t it=0;it<ntu;it++){
 	Double_t tu  = raw->GetTdcUp(it);
-	if(gUser.Check("ACTDC",tu)) ACHIT=true;
+	if(gUser.IsInRange("ACTDC",tu)) ACHIT=true;
 	hist::H1(tmpname+"_TDC",tu,tdcbins);
       }
     }
@@ -204,7 +204,7 @@ ProcessNormal()
 	  Double_t td  = raw->GetTdcDown(it);
 	  hist::H1(name+"_TDCdiffud",tu-td,diffbins);
 	}
-	if(gUser.Check("HODOTDC",tu)){
+	if(gUser.IsInRange("HODOTDC",tu)){
 	  ngateu++;
 	}
       }
@@ -213,7 +213,7 @@ ProcessNormal()
 	hist::H1(name+"_TDCd"+segstr,td,tdcbins);
 	if(it+1<ntd)
 	  hist::H1(name+"_TDCdiffd"+segstr,raw->GetTdcDown(it+1)-td,tdcbins);
-	if(gUser.Check("HODOTDC",td)){
+	if(gUser.IsInRange("HODOTDC",td)){
 	  ngated++;
 	}
       }
@@ -309,8 +309,8 @@ ProcessNormal()
       for(Int_t ii=0;ii<nind;ii++){
 	Double_t mt  = hit->MeanTime(ii);
 	Double_t cmt  =hit->CMeanTime(ii);
-	// if(!gUser.Check("BHTTOT",hit->GetAUp(ii)))   continue;
-	// if(!gUser.Check("BHTTOT",hit->GetADown(ii))) continue;
+	// if(!gUser.IsInRange("BHTTOT",hit->GetAUp(ii)))   continue;
+	// if(!gUser.IsInRange("BHTTOT",hit->GetADown(ii))) continue;
 	Double_t tof = mt - time0;
 	Double_t ctof = cmt - ctime0;
 	hist::H1(name+"_MeanTime"        ,mt ,4000,-200,200, trig_add);
@@ -421,7 +421,7 @@ ProcessNormal()
 	for(Int_t it=0;it<ntu;it++){
 	  Double_t tu  = raw->GetTdcUp(it);
 	  hist::H1(tmpname+"_TDC"+segstr,tu,tdcbins);
-	  if(gUser.Check("HODOTDC",tu)){
+	  if(gUser.IsInRange("HODOTDC",tu)){
 	    ngate++;
 	  }
 	}
@@ -471,17 +471,9 @@ Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return
-    (InitializeParameter<HodoParamMan>("HDPRM","CDSPRM")) &&
-    (InitializeParameter<HodoPHCMan>("HDPHC","CDSPHC")) &&
+    (InitializeParameter<HodoParamMan>("HDPRM")) &&
+    (InitializeParameter<HodoPHCMan>("HDPHC")) &&
     (InitializeParameter<UserParamMan>("USER"));
-}
-
-//_____________________________________________________________________________
-Bool_t
-ConfMan::BeginRunProcess()
-{
-  run_number = get_run_number();
-  return true;
 }
 
 //_____________________________________________________________________________

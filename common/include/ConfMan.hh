@@ -8,22 +8,18 @@
 #include <string>
 #include <vector>
 
+#include <TString.h>
+
 #include <std_ostream.hh>
 
-class VEvent;
+class TNamed;
 
-namespace
-{
-const std::string& kConfFile("CONF");
-const std::string& kInFile("IN");
-const std::string& kOutFile("OUT");
-const std::string& kCDCFile("CDC");
-}
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class ConfMan
 {
 public:
-  static ConfMan& GetInstance();
+  static const TString& ClassName();
+  static ConfMan&       GetInstance();
   ~ConfMan();
 
 private:
@@ -32,137 +28,113 @@ private:
   ConfMan& operator=(const ConfMan&);
 
 private:
-  typedef std::map<std::string, std::string> StrList;
-  typedef std::map<std::string, double>      DoubleList;
-  typedef std::map<std::string, int>         IntList;
-  typedef std::map<std::string, bool>        BoolList;
-  typedef StrList::const_iterator    StrIterator;
-  typedef DoubleList::const_iterator DoubleIterator;
-  typedef IntList::const_iterator    IntIterator;
-  typedef BoolList::const_iterator   BoolIterator;
-
-  bool        m_is_ready;
-  StrList     m_file;
-  StrList     m_string;
-  DoubleList  m_double;
-  IntList     m_int;
-  BoolList    m_bool;
-
-  int         m_runnum;
-  int         m_maxloop;
-  int         m_skip;
-  double      m_resolution_cdc;
-  bool        m_is_mc;
-  bool        m_is_cosmic;
-
-  std::vector<std::string> m_keys_used;
+  using StrList        = std::map<TString, TString>;
+  using DoubleList     = std::map<TString, Double_t>;
+  using IntList        = std::map<TString, Int_t>;
+  using BoolList       = std::map<TString, Bool_t>;
+  using StrIterator    = StrList::const_iterator;
+  using DoubleIterator = DoubleList::const_iterator;
+  using IntIterator    = IntList::const_iterator;
+  using BoolIterator   = BoolList::const_iterator;
+  Bool_t     m_is_ready;
+  StrList    m_file;
+  StrList    m_string;
+  DoubleList m_double;
+  IntList    m_int;
+  BoolList   m_bool;
+  TString    m_buf;
+  TNamed*    m_object;
 
 public:
-  VEvent* EventAllocator();
+  void    AddObject();
+  Bool_t  Finalize();
+  Bool_t  FinalizeProcess();
+  Bool_t  Initialize();
+  Bool_t  Initialize(const TString& file_name);
+  Bool_t  InitializeHistograms();
+  Bool_t  InitializeParameterFiles();
+  Bool_t  InitializeUnpacker();
+  Bool_t  IsReady() const { return m_is_ready; }
+  // templates
   template <typename T>
-  static const T& Get(const std::string& key) { return T(); }
-  bool    Initialize();
-  bool    Initialize(int argc, char **argv);
-  bool    Initialize(const std::string& file_name, const int &runnum=-1);
-  bool    InitializeHistograms();
-  bool    InitializeParameterFiles();
-  bool    InitializeUnpacker();
-  bool    ParseCommand(int argc, char **argv);
-  bool    IsReady() const { return m_is_ready; }
-  bool    IsCosmic() const { return m_is_cosmic; }
-  bool    IsMC() const { return m_is_mc; }
-  bool    Finalize();
-  bool    FinalizeProcess();
-  bool    BeginRun();
-  bool    BeginRunProcess();
-  // Initialize Parameter
+  static const T& Get(const TString& key) { return T(); }
   template <typename T>
-  bool    InitializeParameter();
+  Bool_t InitializeParameter();
   template <typename T>
-  bool    InitializeParameter(const std::string& key);
+  Bool_t InitializeParameter(const TString& key);
   template <typename T>
-  bool    InitializeParameter(const std::string& key1,
-                              const std::string& key2);
-  template <typename T>
-  bool    InitializeParameter(const std::string& key1,
-                              const std::string& key2,
-                              const std::string& key3);
-
-  int     get_run_number()     const { return m_runnum; }
-  int     get_maxloop()        const { return m_maxloop; }
-  int     get_skip()           const { return m_skip; }
-  double  get_resolution_cdc() const { return m_resolution_cdc; }
-
-  std::string get_conffilename()  { return m_file[kConfFile]; }
-  std::string get_infilename()    { return m_file[kInFile]; }
-  std::string get_outfilename()   { return m_file[kOutFile]; }
-  std::string get_cdcfilename()   { return m_file[kCDCFile]; }
-
-  void WriteParams();
+  Bool_t InitializeParameter(const TString& key1,
+                             const TString& key2);
 
 private:
-  std::string FilePath(const std::string& src) const;
-  bool        ShowResult(bool s, const std::string& name) const;
+  TString FilePath(const TString& src) const;
+  Bool_t  ShowResult(Bool_t s, const TString& name) const;
 };
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
+inline const TString&
+ConfMan::ClassName()
+{
+  static TString s_name("ConfMan");
+  return s_name;
+}
+
+//_____________________________________________________________________________
 inline ConfMan&
 ConfMan::GetInstance()
 {
-  static ConfMan g_instance;
-  return g_instance;
+  static ConfMan s_instance;
+  return s_instance;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 template <>
-inline const std::string&
-ConfMan::Get<std::string>(const std::string& key)
+inline const TString&
+ConfMan::Get<TString>(const TString& key)
 {
   return GetInstance().m_string[key];
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 template <>
-inline const double&
-ConfMan::Get<double>(const std::string& key)
+inline const Double_t&
+ConfMan::Get<Double_t>(const TString& key)
 {
   return GetInstance().m_double[key];
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 template <>
-inline const int&
-ConfMan::Get<int>(const std::string& key)
+inline const Int_t&
+ConfMan::Get<Int_t>(const TString& key)
 {
   return GetInstance().m_int[key];
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 template <>
-inline const bool&
-ConfMan::Get<bool>(const std::string& key)
+inline const Bool_t&
+ConfMan::Get<Bool_t>(const TString& key)
 {
   return GetInstance().m_bool[key];
 }
 
-//______________________________________________________________________________
-inline bool
-ConfMan::ShowResult(bool s, const std::string& name) const
+//_____________________________________________________________________________
+inline Bool_t
+ConfMan::ShowResult(Bool_t s, const TString& name) const
 {
   if(s)
-    hddaq::cout << std::setw(20) << std::left
-		<< " ["+name+"]"
+    hddaq::cout << std::setw(24) << std::left << " ["+name+"]"
 		<< "-> Initialized" << std::endl;
   else
-    hddaq::cout << std::setw(20) << std::left
-		<< " ["+name+"]"
+    hddaq::cout << std::setw(24) << std::left << " ["+name+"]"
 		<< "-> Failed" << std::endl;
   return s;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 template <typename T>
-inline bool
+inline Bool_t
 ConfMan::InitializeParameter()
 {
   return
@@ -170,45 +142,24 @@ ConfMan::InitializeParameter()
                T::ClassName());
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 template <typename T>
-inline bool
-ConfMan::InitializeParameter(const std::string& key)
+inline Bool_t
+ConfMan::InitializeParameter(const TString& key)
 {
-  m_keys_used.push_back(key);
   return
     ShowResult(T::GetInstance().Initialize(m_file[key]),
                T::ClassName());
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 template <typename T>
-inline bool
-ConfMan::InitializeParameter(const std::string& key1,
-                             const std::string& key2)
+inline Bool_t
+ConfMan::InitializeParameter(const TString& key1,
+                             const TString& key2)
 {
-  m_keys_used.push_back(key1);
-  m_keys_used.push_back(key2);
   return
-    ShowResult(T::GetInstance().Initialize(m_file[key1],
-                                           m_file[key2]),
-               T::ClassName());
-}
-
-//______________________________________________________________________________
-template <typename T>
-inline bool
-ConfMan::InitializeParameter(const std::string& key1,
-                             const std::string& key2,
-                             const std::string& key3)
-{
-  m_keys_used.push_back(key1);
-  m_keys_used.push_back(key2);
-  m_keys_used.push_back(key3);
-  return
-    ShowResult(T::GetInstance().Initialize(m_file[key1],
-                                           m_file[key2],
-                                           m_file[key3]),
+    ShowResult(T::GetInstance().Initialize(m_file[key1], m_file[key2]),
                T::ClassName());
 }
 

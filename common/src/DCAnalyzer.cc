@@ -551,7 +551,7 @@ DCAnalyzer::DeleteBadClusters( const int &detid, const int &xy,const int &icc)
   //  int tmpn=dccc.size();
   DCClusterContainer::iterator ittr;
   for( ittr=dccc.end()-1; ittr!=dccc.begin()-1; --ittr ){
-    if(!gUser.Check(Form("DCCL%d",detid),(*ittr)->time()) ) dccc.erase(ittr);
+    if(!gUser.IsInRange(Form("DCCL%d",detid),(*ittr)->time()) ) dccc.erase(ittr);
     else good++;
   }
   //  std::cout<<"before: "<<dccc.size()<<std::endl;

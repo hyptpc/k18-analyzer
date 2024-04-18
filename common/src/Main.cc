@@ -1,25 +1,90 @@
-#include <ConfMan.hh>
-extern int
-hddaq_main();
-extern int
-unidaq_main();
-extern int
-knucl_main();
+// -*- C++ -*-
+
+#include <ctime>
+#include <iomanip>
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include <TROOT.h>
+#include <TFile.h>
+#include <TString.h>
+#include <TSystem.h>
+
+#include <std_ostream.hh>
+
+#include "CatchSignal.hh"
+#include "ConfMan.hh"
+#include "DebugCounter.hh"
+#include "DebugTimer.hh"
+#include "DeleteUtility.hh"
+#include "UnpackerManager.hh"
+#include "VEvent.hh"
 
 namespace
 {
-  ConfMan&              gConf     = ConfMan::GetInstance();
+using hddaq::unpacker::GUnpacker;
+auto& gConf     = ConfMan::GetInstance();
+auto& gCounter  = debug::ObjectCounter::GetInstance();
+auto& gUnpacker = GUnpacker::get_instance();
+enum EArg
+{
+  kArgProcess,
+  kArgConfFile,
+  kArgInFile,
+  kArgOutFile,
+  kArgc
+};
 }
+
+TROOT theROOT("k18analyzer", "k18analyzer");
 
 //______________________________________________________________________________
 int
-main( int argc, char **argv )
+main(int argc, char **argv)
 {
-  gConf.ParseCommand(argc,argv);
-  if(gConf.IsMC())
-    return knucl_main();
-  else
-    return hddaq_main();
+  std::vector<TString> arg(argv, argv + argc);
+  const TString& process = arg[kArgProcess];
+  if(argc!=kArgc){
+    hddaq::cout << "#D Usage: " << gSystem->BaseName(process)
+  		<< " [analyzer config file]"
+  		<< " [data input stream]"
+  		<< " [output root file]"
+  		<< std::endl;
+    return EXIT_SUCCESS;
+  }
 
-  //  return EXIT_SUCCESS;
+  debug::Timer timer("[::main()] End of Analyzer");
+
+  const TString& conf_file = arg[kArgConfFile];
+  const TString& in_file   = arg[kArgInFile];
+  const TString& out_file  = arg[kArgOutFile];
+
+  hddaq::cout << "[::main()] recreate root file : " << out_file << std::endl;
+  new TFile(out_file, "recreate");
+  auto git = new TNamed
+    ("git", ("\n"+gSystem->GetFromPipe("git log -1")).Data());
+  git->Write();
+
+  if(!gConf.Initialize(conf_file) || !gConf.InitializeUnpacker())
+    return EXIT_FAILURE;
+
+  gUnpacker.set_istream(in_file.Data());
+  // gUnpacker.enable_istream_bookmark();
+  gUnpacker.initialize();
+
+  CatchSignal::Set(SIGINT);
+
+  for(; !gUnpacker.eof() && !CatchSignal::Stop(); ++gUnpacker){
+    ProcessBegin();
+    ProcessNormal();
+    ProcessEnd();
+    gCounter.check();
+  }
+  gConf.Finalize();
+
+  gFile->Write();
+  gFile->Close();
+
+  return EXIT_SUCCESS;
 }

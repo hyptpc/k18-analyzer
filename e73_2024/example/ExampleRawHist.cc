@@ -43,13 +43,13 @@ double diffbins[3]={2000,-10000,10000};
 
 //_____________________________________________________________________________
 void
-InitializeEvent( void )
+InitializeEvent()
 {
 }
 
 //_____________________________________________________________________________
 Bool_t
-ProcessBegin( void )
+ProcessBegin()
 {
   InitializeEvent();
   return true;
@@ -57,7 +57,7 @@ ProcessBegin( void )
 
 //_____________________________________________________________________________
 Bool_t
-ProcessNormal( void )
+ProcessNormal()
 {
 #if DEBUG
   std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -190,7 +190,7 @@ ProcessNormal( void )
       int seg = raw->SegmentId();
       double au  = raw->GetAdcUp();
       double ad  = raw->GetAdcDown();
-      std::cout<<tmpname<<"  "<<seg<<"  "<<au<<"  "<<ad<<std::endl;
+      // std::cout<<tmpname<<"  "<<seg<<"  "<<au<<"  "<<ad<<std::endl;
       hist::H1(Form("%s_ADCu_seg%d",tmpname.Data(),seg),au,adcbins);
       hist::H1(Form("%s_ADCd_seg%d",tmpname.Data(),seg),ad,adcbins);
       int ntu=raw->GetSizeTdcUp();
@@ -303,34 +303,28 @@ ProcessNormal( void )
 
 //_____________________________________________________________________________
 Bool_t
-ProcessEnd( void )
+ProcessEnd()
 {
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan::InitializeHistograms( void )
+ConfMan::InitializeHistograms()
 {
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan::InitializeParameterFiles( void )
+ConfMan::InitializeParameterFiles()
 {
   return ( InitializeParameter<CDCWireMapMan>("CDCGeom", "CDCASD" ) );
 }
 
 //_____________________________________________________________________________
 Bool_t
-ConfMan::BeginRunProcess()
-{
-  return true;
-}
-//_____________________________________________________________________________
-Bool_t
-ConfMan::FinalizeProcess( void )
+ConfMan::FinalizeProcess()
 {
   return true;
 }

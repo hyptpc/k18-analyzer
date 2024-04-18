@@ -86,7 +86,7 @@ bool disp::DrawSegmentsXY( TVirtualPad *pad, int cid )
   if( cid!=DetIdCDH && cid != DetIdIH ) return false;
   pad->cd();
   int nseg=dList.GetNsegs(cid);
-  for( int seg=0; seg<nseg; seg++ ){   
+  for( int seg=0; seg<nseg; seg++ ){
     gGeom.GetXYCDS(cid,seg,pline);
   }
   return true;
@@ -201,7 +201,7 @@ bool disp::DrawCDCLayersZR( TVirtualPad *pad )
 }
 // ====================================================
 bool disp::DrawCDSHits( TVirtualPad *pad, HodoAnalyzer* hodo, int cid, enum XYZ xyz )
-{  
+{
   if( cid!=DetIdCDH && cid!=DetIdIH) return false;
   pad->cd();
   SetMarker(1,20);
@@ -210,13 +210,13 @@ bool disp::DrawCDSHits( TVirtualPad *pad, HodoAnalyzer* hodo, int cid, enum XYZ 
     Hodo2Hit *hit = hodo->GetHit(cid,i);
     if(!hit) continue;
     int nind= hit->GetIndex();
-    for(int ii=0;ii<nind;ii++){      
+    for(int ii=0;ii<nind;ii++){
       double mt  = hit->MeanTime(ii);
       double tsub= hit->TimeDiff(ii);
       if(cid==DetIdCDH){
-	if(!gUser.Check("CDHTOF",mt)) continue;
+	if(!gUser.IsInRange("CDHTOF",mt)) continue;
       }else{
-	if(!gUser.Check("HodoGATE",mt)) continue;
+	if(!gUser.IsInRange("HodoGATE",mt)) continue;
       }
       int seg=hit->SegmentId();
       TVector3 pos,pos2;
@@ -238,13 +238,13 @@ bool disp::DrawCDSHits( TVirtualPad *pad, HodoAnalyzer* hodo, int cid, enum XYZ 
 }
 // ====================================================
 bool disp::DrawCDCHits( TVirtualPad *pad, CDCAnalyzer* cdc, enum XYZ xyz )
-{  
+{
   pad->cd();
   for( int layer=0; layer<15; layer++ ){
     const DCHitContainer &cont = cdc->GetDCHC(DetIdCDC, layer);
     int mul=cont.size();
     for(int ihit=0;ihit<mul;ihit++){
-      DCHit* hit=cont[ihit];      	
+      DCHit* hit=cont[ihit];
       TVector3 pos=hit->GetWirePosition();
       TVector3 dir=hit->GetWireDirection();
       pos-=pos.Z()/dir.Z()*dir;
@@ -275,21 +275,21 @@ bool disp::DrawCDCHits( TVirtualPad *pad, CDCAnalyzer* cdc, enum XYZ xyz )
 }
 // ====================================================
 bool disp::DrawCDCClusterHits( TVirtualPad *pad, CDCAnalyzer* cdc, enum XYZ xyz )
-{  
+{
   pad->cd();
   for( int layer=0; layer<7; layer++ ){
     int ncl=cdc->GetNClusters(layer);
     for(int icl=0;icl<ncl;icl++){
       DCCluster* cl=cdc->GetCluster(layer,icl);
-      int mul=cl->nhit();      
+      int mul=cl->nhit();
       for(int ihit=0;ihit<mul;ihit++){
-	DCHit* hit=cl->hit(ihit);      	
+	DCHit* hit=cl->hit(ihit);
 	TVector3 pos=hit->GetWirePosition();
 	TVector3 dir=hit->GetWireDirection();
 	pos-=pos.Z()/dir.Z()*dir;
 	SetMarker(1,1,1);
 	if(xyz==kXY)   marker.DrawMarker(pos.X(),pos.Y());
-	
+
 	bool FLAG=false;
 	int multi=hit->GetDriftLengthSize();
 	for ( int m1=0; m1<multi; ++m1 ) {
@@ -334,7 +334,7 @@ bool disp::DrawCDCTracks( TVirtualPad *pad, CDCAnalyzer* cdc, enum XYZ xyz )
 	if(xyz==kZR)  marker.DrawMarker(pos.Z(),pos.Perp());
 	if(xyz==kZPhi){
 	  double phi=pos.Phi();
-	  marker.DrawMarker(pos.Z(),phi);	  
+	  marker.DrawMarker(pos.Z(),phi);
 	  if(phi>3)  marker.DrawMarker(pos.Z(),phi-2*TMath::Pi());
 	  if(phi<-3) marker.DrawMarker(pos.Z(),phi+2*TMath::Pi());
 	}
@@ -347,9 +347,9 @@ bool disp::DrawCDCTracks( TVirtualPad *pad, CDCAnalyzer* cdc, enum XYZ xyz )
 	TVector3 p0=tr->GetPos0();
 	TVector3 p1=tr->GetPositionatR(60);
 	line.DrawLine(p0.X(),p0.Y(),p1.X(),p1.Y());
-      }      
-    }else{ 
-      TVector3 circle=TVector3(tr->CircleX(),tr->CircleY(),0);   
+      }
+    }else{
+      TVector3 circle=TVector3(tr->CircleX(),tr->CircleY(),0);
       if(xyz==kXY){
 	SetArc(2+i);
 	arc.DrawArc(tr->CircleX(),tr->CircleY(),tr->CircleR(),0,360);
@@ -370,7 +370,7 @@ bool disp::DrawCDCTracks( TVirtualPad *pad, CDCAnalyzer* cdc, enum XYZ xyz )
     //CDH
     // TVector3 cdhpos;
     // for(int n=0;n<track->nCDHHit();n++)
-    //   {	  
+    //   {
     // 	cdhpos.SetXYZ(track->CDHHit(cdsMan,n)->x(),
     // 		      track->CDHHit(cdsMan,n)->y(),
     // 		      track->CDHHit(cdsMan,n)->z() );
@@ -390,35 +390,35 @@ bool disp::DrawCDCTrackYZ( TVirtualPad *pad, ConfMan *conf, CDSTrackingMan *trac
       CDSTrack *track=trackMan->Track(i);
       double aparam[5];
       track->GetParameters(aparam);
-      
+
       if(aparam[2]==0)
 	{
 	  TLine lzy;
 	  double a,b,c;
-	  a=track->A(); b=track->B(); c=track->C();	  
+	  a=track->A(); b=track->B(); c=track->C();
 	  double x1,y1,z1,x2,y2,z2;
-	  
+
 	  x1=aparam[0]*cos(aparam[1])-(0)*sin(aparam[1]);
 	  y1=aparam[0]*sin(aparam[1])+(0)*cos(aparam[1]);
 	  z1=aparam[3]-(0)*aparam[4];
 	  x2=aparam[0]*cos(aparam[1])-60*sin(aparam[1]);
 	  y2=aparam[0]*sin(aparam[1])+60*cos(aparam[1]);
 	  z2=aparam[3]-60*aparam[4];
-	  
-	  lzy.SetLineColor(2+i);	    
-	  lzy.DrawLine(z1,y1,z2,y2);	        
+
+	  lzy.SetLineColor(2+i);
+	  lzy.DrawLine(z1,y1,z2,y2);
 	}
       else
-	{    
-	  
+	{
+
 	  TF1 *func_y=new TF1("func_y","([0])*sin([1])+1./[2]*(sin([1])-sin( [1]+([3]-x)/([4]*1./[2]) ) )",aparam[3]-1./aparam[2]*aparam[4]*(-TMath::Pi()/2. ),aparam[3]-1./aparam[2]*aparam[4]*(TMath::Pi()/2. ) );
 	  func_y->SetParameters(aparam[0],aparam[1],aparam[2],aparam[3],aparam[4]);
 	  func_y->SetLineColor(2+i);
 	  func_y->SetLineWidth(1);
-	  
+
 	  func_y->Draw("LPSAME");
 	}
-    }  
+    }
   return true;
 }
 // ====================================================
@@ -442,7 +442,7 @@ bool disp::DrawCDCTrackXZ( TVirtualPad *pad, ConfMan *conf, CDSTrackingMan *trac
       if( r<rout ){
 	xx[count]=x;
 	yy[count]=y;
-	zz[count]=z; 
+	zz[count]=z;
 	count++;
       }
     }
@@ -453,7 +453,7 @@ bool disp::DrawCDCTrackXZ( TVirtualPad *pad, ConfMan *conf, CDSTrackingMan *trac
 // ====================================================
 bool disp::DrawBLHitXZ( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan *bl, int cid )
 {
-  
+
   if( cid==DetIdCVC || cid==DetIdT0 || cid==DetIdBHD  ||
       cid==DetIdPC || cid==DetIdNC
       ){
@@ -478,7 +478,7 @@ bool disp::DrawBLHitXZ( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan *bl, int
 // ====================================================
 bool disp::DrawBLHitYZ( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan *bl, int cid )
 {
-  
+
   if( cid==DetIdCVC || cid==DetIdT0 || cid==DetIdBHD
       ){
     pad->cd();
@@ -543,10 +543,10 @@ bool disp::DrawBLDCLayersYZ( TVirtualPad *pad, ConfMan *conf,int cid )
 // ====================================================
 bool disp::DrawBLDCHit( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan *blMan, int cid,int xy )
 {
-  //xz plane :xy=0 
+  //xz plane :xy=0
   //yz plane :xy=1
   if( !(xy==0 || xy==1) ) return false;
-  if( !( cid==DetIdBLC1a || cid==DetIdBLC1b || cid==DetIdBLC1 || cid==DetIdBLC2 ||cid==DetIdBLC2a || cid==DetIdBLC2b || cid==DetIdBPC ) ) return false; 
+  if( !( cid==DetIdBLC1a || cid==DetIdBLC1b || cid==DetIdBLC1 || cid==DetIdBLC2 ||cid==DetIdBLC2a || cid==DetIdBLC2b || cid==DetIdBPC ) ) return false;
 
   pad->cd();
   TMarker mark;
@@ -557,9 +557,9 @@ bool disp::DrawBLDCHit( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan *blMan, 
       int nw,xytmp;
       double z,xy0,dxy,wl,tilt,ra;
       conf->GetBLDCWireMapManager()->GetParam( cid, layer,
-					       nw, z, xytmp, xy0, 
+					       nw, z, xytmp, xy0,
 					       dxy, wl, tilt, ra );
-      
+
       if(xytmp!=xy)	  continue;
       for( int i=0; i<blMan->nBLDC(cid,layer); i++ )
 	{
@@ -574,16 +574,16 @@ bool disp::DrawBLDCHit( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan *blMan, 
 	  mark.DrawMarker(z,x);
 	}
     }
-  
+
   return true;
 }
 // ====================================================
 bool disp::DrawBLDCTrack( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan* blMan, BeamLineTrackMan *blTrackMan, int cid,int xy )
 {
-  //xz plane :xy=0 
+  //xz plane :xy=0
   //yz plane :xy=1
   if( !(xy==0 || xy==1) ) return false;
-  if( !( cid==DetIdBLC1a || cid==DetIdBLC1b || cid==DetIdBLC1 || cid==DetIdBLC2 ||cid==DetIdBLC2a || cid==DetIdBLC2b || cid==DetIdBPC ) ) return false; 
+  if( !( cid==DetIdBLC1a || cid==DetIdBLC1b || cid==DetIdBLC1 || cid==DetIdBLC2 ||cid==DetIdBLC2a || cid==DetIdBLC2b || cid==DetIdBPC ) ) return false;
 
   pad->cd();
   for(int itr=0;itr<blTrackMan->ntrackBLDC(cid);itr++)
@@ -610,9 +610,9 @@ bool disp::DrawBLDCTrack( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan* blMan
       for(int ih=0;ih<bldc->nhit();ih++)
    	{
    	  ChamberLikeHit *hit=bldc->hit(blMan,ih);
-   	  TMarker blt_m;	
+   	  TMarker blt_m;
    	  double hpos,wpos,dltrack;
-   	  if(hit->xy()==0) 
+   	  if(hit->xy()==0)
    	    {
    	      hpos=hit->x(); wpos=hit->wx();dltrack=fabs(hpos-wpos);
 	      if(xy==0)
@@ -622,8 +622,8 @@ bool disp::DrawBLDCTrack( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan* blMan
 		  blt_m.SetMarkerColor(3+itr );
 		  blt_m.DrawMarker(hit->wz(),hit->wx() );
 		}
-   	    }  
-   	  else if(hit->xy()==1) 
+   	    }
+   	  else if(hit->xy()==1)
    	    {
    	      hpos=hit->y(); wpos=hit->wy();dltrack=fabs(hpos-wpos);
 	      if(xy==1)
@@ -633,7 +633,7 @@ bool disp::DrawBLDCTrack( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan* blMan
 		  blt_m.SetMarkerColor(3+itr );
 		  blt_m.DrawMarker(hit->wz(),hit->wy() );
 		}
-   	    }  
+   	    }
    	}
      }
   return true;
@@ -646,7 +646,7 @@ bool disp::DrawBLDCTrackHitXZ( TVirtualPad *pad, ConfMan *conf, BeamLineTrackMan
   mark.SetMarkerStyle(20);
   mark.SetMarkerColor(4);
   mark.SetMarkerSize(0.5);
-  
+
   int ntr=trackMan->ntrackBLDC(id);
   std::cout<<id<<"\ttracking status: "<<trackMan->status(id)<<"\t"<<ntr<<" track in X plane"<<std::endl;
   for( int itr=0; itr<ntr; itr++ ){
@@ -667,7 +667,7 @@ bool disp::DrawBLDCTrackHitXZ( TVirtualPad *pad, ConfMan *conf, BeamLineTrackMan
       z = hit->z();
       mark.DrawMarker(z,x);
     }
-  }  
+  }
   return true;
 }
 // ====================================================
@@ -678,7 +678,7 @@ bool disp::DrawBLDCTrackXZ( TVirtualPad *pad, ConfMan *conf, BeamLineTrackMan *t
   double z[2]={-25,25};
   int ntr=trackMan->ntrackBLDC(id);
   std::cout<<id<<"\ttracking status: "<<trackMan->status(id)<<"\t"<<ntr<<" track in X plane"<<std::endl;
-  
+
   pline.SetLineColor(col);
   for( int itr=0; itr<ntr; itr++ ){
     if(col==-1)
@@ -700,7 +700,7 @@ bool disp::DrawBLDCTrackHitYZ( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan* 
 
   int ntr=trackMan->ntrackBLDC(id);
   std::cout<<id<<"\ttracking status: "<<trackMan->status(id)<<"\t"<<ntr<<" track in Y plane"<<std::endl;
-  
+
   for( int itr=0; itr<ntr; itr++ ){
     LocalTrack *track=trackMan->trackBLDC(id,itr);
     std::cout<<"track "<<itr<<"\t chi2yz= "<<track->chi2yz()
@@ -718,7 +718,7 @@ bool disp::DrawBLDCTrackHitYZ( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan* 
       z = hit->z();
       mark.DrawMarker(z,y);
     }
-  }  
+  }
   return true;
 }
 // ====================================================
@@ -746,7 +746,7 @@ bool disp::DrawClusterTime( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan *blM
   pad->cd();
   double x,y;
   int ntr=trackMan->ntrackBLDC(id);
-  
+
   TMarker mark;
   mark.SetMarkerSize(0.5);
   mark.SetMarkerStyle(20);
@@ -797,8 +797,8 @@ bool disp::DrawBLC2TrackfromBLC1YZ( TVirtualPad *pad, ConfMan *conf, LocalTrack 
   TVector2 pos2=pos.Rotate(-135./180.*TMath::Pi());
   TVector2 dir2=dir.Rotate(-135./180.*TMath::Pi());
 
-  y[0]=pos2.Y()+z[0]*TMath::Tan(dir2.Y()/1000.);  
-  y[1]=pos2.Y()+z[1]*TMath::Tan(dir2.Y()/1000.);  
+  y[0]=pos2.Y()+z[0]*TMath::Tan(dir2.Y()/1000.);
+  y[1]=pos2.Y()+z[1]*TMath::Tan(dir2.Y()/1000.);
   TPolyLine pline;
   pline.SetLineColor(col);
   pline.DrawPolyLine(2,z,y);
@@ -839,8 +839,8 @@ bool disp::DrawBLC2TrackfromBLC1XZ( TVirtualPad *pad, ConfMan *conf, LocalTrack 
   TVector2 pos2=pos.Rotate(-135./180.*TMath::Pi());
   TVector2 dir2=dir.Rotate(-135./180.*TMath::Pi());
 
-  x[0]=pos2.X()+z[0]*TMath::Tan(dir2.X()/1000.);  
-  x[1]=pos2.X()+z[1]*TMath::Tan(dir2.X()/1000.);  
+  x[0]=pos2.X()+z[0]*TMath::Tan(dir2.X()/1000.);
+  x[1]=pos2.X()+z[1]*TMath::Tan(dir2.X()/1000.);
   pline.SetLineColor(col);
   pline.DrawPolyLine(2,z,x);
   */
@@ -936,7 +936,7 @@ bool disp::DrawFDCHitWire( TVirtualPad *pad, ConfMan *conf, BeamLineHitMan *bl )
     wireman->GetParam(DetIdFDC1,layer,
 		      nw,z,xy,xy0,dxy,wl,tilt,ra);
     TVector2 tmp(0,wl/2);
-    TVector2 rot=tmp.Rotate(TMath::Pi()*ra/180.);    
+    TVector2 rot=tmp.Rotate(TMath::Pi()*ra/180.);
     for(int i=0;i<bl->nBLDC(DetIdFDC1,layer);i++){
       int wire=bl->BLDC(DetIdFDC1,layer,i)->wire();
       TVector2 zero(xy0+dxy*(wire-1),0);

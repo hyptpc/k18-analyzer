@@ -171,12 +171,13 @@ class RunlistManager(metaclass=classimpl.Singleton):
     except yaml.parser.ParserError as e:
       logger.error(f'runlist yaml syntax error: {e}')
       exit(1)
-    work_dir = os.path.expanduser(data['WORKDIR'])
-    if os.path.isdir(work_dir):
-      return work_dir
-    else:
-      logger.error(f'Cannot find {work_dir}')
-      exit(1)
+    work_dir = None
+    if 'WORKDIR' in data:
+      work_dir = os.path.expanduser(data['WORKDIR'])
+      if os.path.isdir(work_dir):
+        return work_dir
+    logger.error(f'Cannot find WORKDIR : {work_dir}')
+    exit(1)
 
   #____________________________________________________________________________
   def set_run_list(self, path):

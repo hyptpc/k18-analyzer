@@ -60,7 +60,7 @@ RUN:
 
   3800:
     bin:  ./bin/KuramaTracking
-    conf: ./param/conf		# ./param/conf/analyzer_03800.conf will be loaded.
+    conf: ./param/conf # ./param/conf/analyzer_03800.conf will be loaded.
     data: ./tmp_data
 
   hodo:

@@ -180,7 +180,7 @@ ProcessNormal()
       Int_t nind=hit->GetIndex();
       for(Int_t it=0;it<nind;it++){
 	Double_t mt  = hit->MeanTime(it);
-	if(gUser.Check("Time0",mt)){
+	if(gUser.IsInRange("Time0",mt)){
 	  time0=mt;
 	  ctime0=hit->CMeanTime(it);
 	}
@@ -197,8 +197,8 @@ ProcessNormal()
       Int_t nind=hit->GetIndex();
       for(Int_t it=0;it<nind;it++){
 	Double_t tof  = hit->MeanTime(it)-time0;
-	if(gUser.Check("TOFK",tof)) TOFK=true;
-	if(gUser.Check("TOFPi",tof)) TOFPi=true;
+	if(gUser.IsInRange("TOFK",tof)) TOFK=true;
+	if(gUser.IsInRange("TOFPi",tof)) TOFPi=true;
       }
     }
   }
@@ -215,7 +215,7 @@ ProcessNormal()
       for(Int_t it=0;it<ntu;it++){
 	Double_t tu  = raw->GetTdcUp(it);
 	ac_leading.push_back(tu);
-	if(gUser.Check("ACTDC",tu)) ACHIT=true;
+	if(gUser.IsInRange("ACTDC",tu)) ACHIT=true;
 	hist::H1(tmpname+"_TDC",tu,tdcbins);
       }
     }
@@ -284,7 +284,7 @@ ProcessNormal()
       for(Int_t it=0;it<ntu;it++){
 	Double_t tu  = raw->GetTdcUp(it);
 	hist::H1(name+"_TDCu"+segstr,tu,tdcbins);
-	if(gUser.Check("HODOTDC",tu)) tmp_tdcu.push_back(tu);
+	if(gUser.IsInRange("HODOTDC",tu)) tmp_tdcu.push_back(tu);
 	if(it<ntd){
 	  Double_t td  = raw->GetTdcDown(it);
 	  hist::H1(name+"_TDCdiffud",tu-td,diffbins);
@@ -292,7 +292,7 @@ ProcessNormal()
       }
       for(Int_t it=0;it<ntd;it++){
 	Double_t td  = raw->GetTdcDown(it);
-	if(gUser.Check("HODOTDC",td)) tmp_tdcd.push_back(td);
+	if(gUser.IsInRange("HODOTDC",td)) tmp_tdcd.push_back(td);
 	hist::H1(name+"_TDCd"+segstr,td,tdcbins);
       }
       if(cid==DetIdBHT){
@@ -300,11 +300,11 @@ ProcessNormal()
 	std::vector<Double_t> tmp_trailingd;
 	for( Int_t it=0; it<raw->GetSizeAdcUp(); ++it ){
 	  Double_t tt  = raw->GetAdcUp(it);
-	  if(gUser.Check("HODOTDC",tt)) tmp_trailingu.push_back(tt);
+	  if(gUser.IsInRange("HODOTDC",tt)) tmp_trailingu.push_back(tt);
 	}
 	for( Int_t it=0; it<raw->GetSizeAdcDown(); ++it ){
 	  Double_t tt  = raw->GetAdcDown(it);
-	  if(gUser.Check("HODOTDC",tt)) tmp_trailingd.push_back(tt);
+	  if(gUser.IsInRange("HODOTDC",tt)) tmp_trailingd.push_back(tt);
 	}
 	bht_segment.push_back(seg);
 	bht_leading_top.push_back(tmp_tdcu);
@@ -477,18 +477,11 @@ Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return
-    ( InitializeParameter<HodoParamMan>("HDPRM","CDSPRM") ) &&
-    ( InitializeParameter<HodoPHCMan>  ("HDPHC","CDSPHC") ) &&
-    ( InitializeParameter<UserParamMan>("USER") ) ;
+    (InitializeParameter<HodoParamMan>("HDPRM")) &&
+    (InitializeParameter<HodoPHCMan>("HDPHC")) &&
+    (InitializeParameter<UserParamMan>("USER"));
 }
 
-//_____________________________________________________________________________
-Bool_t
-ConfMan::BeginRunProcess()
-{
-  run_number = get_run_number();
-  return true;
-}
 //_____________________________________________________________________________
 Bool_t
 ConfMan::FinalizeProcess()
