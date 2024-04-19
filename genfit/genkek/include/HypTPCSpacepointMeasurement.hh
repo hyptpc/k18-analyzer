@@ -12,11 +12,6 @@
 #include "HypTPCHit.hh"
 
 namespace genfit {
-	inline bool AddCovariance = true;
-	inline double PositionScale = 1.;
-	inline double MomentumScale = 1.5;
-	inline double PhiScale = 1.;
-	inline double dZScale = 1.;
 
   class HypTPCSpacepointMeasurement : public SpacepointMeasurement{
 

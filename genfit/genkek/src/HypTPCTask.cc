@@ -291,6 +291,7 @@ double HypTPCTask::GetTrackTOF(int trackid, int start, int end, int repid) const
 }
 
 bool HypTPCTask::ExtrapolateTrack(int trackid, double distance, TVector3 &pos, TVector3 &mom, int repid) const{
+
   double tracklength = GetTrackLength(trackid, 0, -1, repid);
   if(TMath::IsNaN(tracklength)) return false;
   Double_t d = 0.1*distance; //mm -> cm
@@ -463,12 +464,12 @@ bool HypTPCTask::ExtrapolateToHTOF(int trackid, int &candidates, int *ID, TVecto
 bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2, double &extrap_dist1, double &extrap_dist2, TVector3 &mom_vertex1, TVector3 &mom_vertex2, double &distance, TVector3 &vertex, double scan_range) const{
 
   distance = 10000.;
-  int MaxStep  = 800;
+  int MaxStep  = 80000;
   double StepSize = 1.; // mm (1st naive scanning)
   double fineStepSize = StepSize*0.01; // (2nd fine scanning)
   int iStep1 = 0; int iStep2 = 0;
   double dist1 = 0.; double dist2 = 0.;
-	if(!TrackCheck(trackid1) || !TrackCheck(trackid2)) return false;
+  if(!TrackCheck(trackid1) || !TrackCheck(trackid2)) return false;
   while(iStep2 < MaxStep){
     iStep1 = 0;
     while(iStep1 < MaxStep){
@@ -551,7 +552,7 @@ bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, 
   bool status = false;
 
   distance = 10000.;
-  int MaxStep  = 800;
+  int MaxStep  = 80000;
   double StepSize = 1.; // mm (1st naive scanning)
   double fineStepSize = StepSize*0.01; // (2nd fine scanning)
   int iStep = 0; double dist = 0.;
@@ -603,7 +604,7 @@ bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, 
     TVector3 u = mom_lambda.Unit();
     Double_t dist_AX = u.Dot(AP);
     TVector3 AI = dist_AX*u;
-		AI += decayvtx_lambda;
+    AI += decayvtx_lambda;
     Double_t lambdavtx_xivtx = (AI - decayvtx_lambda)*u;
     TVector3 diff = pos - AI;
     if(distance > diff.Mag() && lambdavtx_xivtx < 0){

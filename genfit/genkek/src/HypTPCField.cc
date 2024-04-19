@@ -21,7 +21,7 @@ ClassImp(HypTPCField)
 HypTPCField::HypTPCField(bool is_constant_field)
 : genfit::AbsBField(),
   m_is_const(is_constant_field),
-  const_field(-0.96)
+  const_field(-1.0)
 {}
 
 //GenFit Units : GeV/c, ns, cm, kGauss
