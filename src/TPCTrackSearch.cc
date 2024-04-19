@@ -57,6 +57,8 @@ Detailed fitting procedures are explained in the TPCLocalTrack/Helix.
 #define DebugDisp 0
 #define FragmentedTrackTest 1
 //#define FragmentedTrackTest 0
+//#define RemainingClustersTest 1
+#define RemainingClustersTest 0
 
 namespace
 {
@@ -100,7 +102,9 @@ namespace
   template <typename T> void
   CalcTracks(std::vector<T*>& TrackCont)
   {
-    for(auto& track: TrackCont) track->Calculate();
+    for(auto& track: TrackCont){
+      track->Calculate();
+    }
   }
 
   //_____________________________________________________________________________
@@ -113,6 +117,13 @@ namespace
     }
   }
 
+  template <typename T> void
+  MarkingAccidentalTracks(std::vector<T*>& TrackCont)
+  {
+    for(auto& track: TrackCont){
+      track->CheckIsAccidental();
+    }
+  }
   //_____________________________________________________________________________
   //reset houghflag of remain clusters
   void
@@ -354,7 +365,7 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 		 Int_t MinNumOfHits)
 {
 
-  const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
+  static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
 
   XZhough_x.clear();
   XZhough_y.clear();
@@ -450,6 +461,7 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 #endif
 
   CalcTracks(TrackCont);
+  MarkingAccidentalTracks(TrackCont);
   CalcTracks(TrackContFailed);
   if(Exclusive) ExclusiveTracking(TrackCont);
   return TrackCont.size();
@@ -601,8 +613,8 @@ HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
 {
 
   // HoughTransform binning
-  const auto MaxHoughWindow = gUser.GetParameter("MaxHoughWindow");
-  const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
+  static const auto MaxHoughWindow = gUser.GetParameter("MaxHoughWindow");
+  static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
 
   Bool_t prev_add = true;
   for(Int_t tracki=0; tracki<MaxNumOfTrackTPC; tracki++){
@@ -688,6 +700,11 @@ HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
   ResetHoughFlag(ClCont);
   ResetHoughFlag(ClCont, BadHoughTransform);
 
+#if DebugDisp
+  std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
+  std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
+#endif
+
 }
 
 //_____________________________________________________________________________
@@ -696,6 +713,7 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
 		  std::vector<TPCLocalTrackHelix*>& TrackCont,
 		  std::vector<TPCLocalTrackHelix*>& TrackContVP)
 {
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
 
   if(VPs.size()==0) return;
   for(Int_t nt=0; nt<VPs.size(); nt++){
@@ -732,16 +750,19 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
     Int_t id = 0;
     for(auto& track: TrackCont){
       if(track){
+	Int_t ncl_downstream_tgt = 0; //#cluster after the target.
+
 	//Check whether all track custers within the window along the Kurama track
-	if(track -> GetIsK18()==1) continue;
+	if(!BeamThroughTPC && track -> GetIsK18()==1) continue;
 	Int_t nh = track->GetNHit();
 	for(Int_t ih=0; ih<nh; ++ih){
 	  TPCLTrackHit *hit = track -> GetHit( ih );
 	  if( !hit ) continue;
 	  const TVector3& hitpos = hit->GetLocalHitPos();
 	  if(!trackref->ResidualCheck(hitpos, KuramaXZWindow, KuramaYWindow)) break;
+	  if(hitpos.Z()>tpc::ZTarget) ncl_downstream_tgt++;
 	  //If all clusters are in the window, mark the track.
-	  if(ih==nh-1){
+	  if(ih==nh-1 && ncl_downstream_tgt>0){
 	    track->AddTrackIDCandidate(nt);
 	    track->SetFlag(Trackflag);
 	  }
@@ -930,18 +951,24 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   //Scattered helix track searching
   HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+#if RemainingClustersTest
+  ResetHoughFlag(ClCont, BadForTracking);
+  HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+#endif
   //Vertex finding with tracks in the TrackCont.
   VertexSearch(TrackCont, VertexCont);
 #if FragmentedTrackTest
   //Merged fragmented tracks
   RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
+
 #if DebugDisp
   std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
   std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
 #endif
 
   CalcTracks(TrackCont);
+  MarkingAccidentalTracks(TrackCont);
   CalcTracks(TrackContFailed);
   if(Exclusive) ExclusiveTracking(TrackCont);
 
@@ -960,6 +987,7 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 		      Bool_t Exclusive,
 		      Int_t MinNumOfHits)
 {
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
 
   XZhough_x.clear();
   XZhough_y.clear();
@@ -969,10 +997,14 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 
   //Track finding and fitting
   //for K1.8 track searching
-  K18TrackSearch(K18VPs, ClCont, TrackCont, TrackContVP); //default NimNumOfHits = 2
+  if(!BeamThroughTPC) K18TrackSearch(K18VPs, ClCont, TrackCont, TrackContVP); //default NimNumOfHits = 2
   //Scattered helix track searching
   HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+#if RemainingClustersTest
+  ResetHoughFlag(ClCont, BadForTracking);
+  HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+#endif
   //Vertex finding with tracks in the TrackCont.
   VertexSearch(TrackCont, VertexCont);
 #if FragmentedTrackTest
@@ -988,6 +1020,7 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 #endif
 
   CalcTracks(TrackCont);
+  MarkingAccidentalTracks(TrackCont);
   CalcTracks(TrackContVP);
   CalcTracks(TrackContFailed); //Tracking failed cases
   if(Exclusive) ExclusiveTracking(TrackCont);
@@ -1002,7 +1035,7 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
 		   Int_t MinNumOfHits /*=8*/)
 {
 
-  const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
+  static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
 
   XZhough_x.clear();
   XZhough_y.clear();
@@ -1089,6 +1122,7 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
   }// tracki
 
   CalcTracks(TrackCont);
+  MarkingAccidentalTracks(TrackCont);
 }
 
 //_____________________________________________________________________________
@@ -1098,8 +1132,8 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
 			Int_t MinNumOfHits /*=8*/)
 {
   // HoughTransform binning
-  const auto MaxHoughWindow = gUser.GetParameter("MaxHoughWindow");
-  const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
+  static const auto MaxHoughWindow = gUser.GetParameter("MaxHoughWindow");
+  static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
 
   XZhough_x.clear();
   XZhough_y.clear();
@@ -1187,6 +1221,7 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
   }//tracki
 
   CalcTracks(TrackCont);
+  MarkingAccidentalTracks(TrackCont);
 }
 
 //_____________________________________________________________________________
@@ -1197,7 +1232,7 @@ HighMomHelixTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 			Int_t MinNumOfHits)
 {
 
-  const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
+  static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
 
   std::vector<Double_t> tempXZhough_x;
   std::vector<Double_t> tempXZhough_y;
@@ -1325,6 +1360,7 @@ VertexSearch(std::vector<TPCLocalTrackHelix*>& TrackCont,
       Double_t closedist = vertex -> GetClosestDist();
       if(closedist < VertexDistCut){
 	VertexCont.push_back(vertex);
+
 #if DebugDisp
 	vertex->Print(FUNC_NAME+" Vertex finding");
 	//vertex->Print(FUNC_NAME+" Vertex finding", true);
@@ -1352,20 +1388,20 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     TVector3 vtx = vertex -> GetVertex();
     Int_t trackid1 = vertex -> GetTrack1Id();
     Int_t trackid2 = vertex -> GetTrack2Id();
-    if(TrackCont[trackid1] -> GetIsBeam()==1 ||
-       TrackCont[trackid2] -> GetIsBeam()==1) continue;
-
-    if(TMath::Abs(vtx.x()) < 15. &&
-       TMath::Abs(vtx.y()) < 10. &&
-       TMath::Abs(vtx.z() - tpc::ZTarget) < 10.) continue;
+    if(TrackCont[trackid1] -> GetIsK18()==1 ||
+       TrackCont[trackid2] -> GetIsK18()==1) continue;
     /*
+    std::cout<<"id "<<vertex -> GetTrack1Id()<<" "<<vertex -> GetTrack2Id()<<std::endl;
     std::cout<<"vtx "<<TMath::Abs(vtx.x())<<" "<<TMath::Abs(vtx.y())<<" "<<TMath::Abs(vtx.z())<<std::endl;
     std::cout<<"angle "<<0.0833*TMath::Pi()<<" "<<vertex -> GetOpeningAngle()<<" "<<(1. - 0.0833)*TMath::Pi()<<std::endl;
-    std::cout<<"id "<<vertex -> GetTrack1Id()<<" "<<vertex -> GetTrack2Id()<<std::endl;
     */
     if(vertex -> GetClosestDist() > 15. ||
        (vertex -> GetOpeningAngle() > 0.0833*TMath::Pi() &&
 	vertex -> GetOpeningAngle() < (1. - 0.0833)*TMath::Pi())) continue;
+
+    if(TMath::Abs(vtx.x()) < 15. &&
+       TMath::Abs(vtx.y()) < 10. &&
+       TMath::Abs(vtx.z() - tpc::ZTarget) < 10.) continue;
 
 #if DebugDisp
     vertex -> Print(FUNC_NAME+" Vertex candidate for merging tracks");
@@ -1402,25 +1438,23 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     MergedTrack -> Print(FUNC_NAME+" Before fitting the merged track");
     //MergedTrack -> Print(FUNC_NAME+" Before fitting the merged track", true);
 #endif
-		int prev_size = TrackCont.size();
 
+    Int_t prev_size = TrackCont.size();
     FitTrack(MergedTrack, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
 #if DebugDisp
     MergedTrack -> Print(FUNC_NAME+" After fitting the merged track");
     //MergedTrack -> Print(FUNC_NAME+" After fitting the merged track", true);
 #endif
-		int post_size = TrackCont.size();
+    Int_t post_size = TrackCont.size();
     if(Exclusive){
-			if(prev_size+1 == post_size){	
-				MergedTrack = TrackCont[post_size-1];
-      	MergedTrack->Calculate();
-      	MergedTrack->DoFitExclusive();
-      	MergedTrack->CalculateExclusive();
-			}
-		}
-		else{
-			std::cout<<"Warning! prev_size != post_size"<<std::endl;
-		}
+      if(prev_size+1 == post_size){
+	MergedTrack = TrackCont[post_size-1];
+      	MergedTrack -> Calculate();
+      	MergedTrack -> DoFitExclusive();
+      	MergedTrack -> CalculateExclusive();
+      }
+      else std::cout<<"Warning! prev_size != post_size"<<std::endl;
+    }
   }
 
   if(candidates.size()>0){
