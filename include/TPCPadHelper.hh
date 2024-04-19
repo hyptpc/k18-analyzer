@@ -33,6 +33,12 @@ enum EPadParameter
   NPadParameter
 };
 
+//for kinematic fitting
+static const Double_t PositionScale = 1.;
+static const Double_t MomentumScale = 1.5;
+static const Double_t PhiScale = 1.;
+static const Double_t dZScale = 1.;
+
 //for clustering
 static const Int_t MaxRowDifTPC = 2;
 //static const Int_t MaxRowDifTPC = 3;
