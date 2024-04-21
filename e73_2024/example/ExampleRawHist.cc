@@ -269,7 +269,7 @@ ProcessNormal()
   static const int k_bldc    = gUnpacker.get_fe_id("hulmhtdc-101");
   {
     int data_size = gUnpacker.get_node_header( k_eb, DAQNode::k_data_size);
-    hist::H1("DataSize",data_size,10000,0,20000);
+    hist::H1("DataSize; Words; Counts",data_size,10000,0,20000);
     hist::H2("DataSize_vs_EvNum",evnum,data_size,300,0,3e6,200,0,20000);
   }
   { // VME node

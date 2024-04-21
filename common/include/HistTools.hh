@@ -112,10 +112,12 @@ inline void
 hist::H1(TString name, double val,
          int nbinx, double lbinx, double ubinx)
 {
+  TString title = name;
+  if(name.Contains(';')) name.Remove(name.First(';'));
   if(auto h1 = gFile->Get<TH1F>(name)){
     h1->Fill(val);
   }else{
-    h1 = new TH1F(name, name, nbinx, lbinx, ubinx);
+    h1 = new TH1F(name, title, nbinx, lbinx, ubinx);
     h1->Fill(val);
   }
 }

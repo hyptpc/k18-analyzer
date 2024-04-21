@@ -1,8 +1,13 @@
+// -*- C++ -*-
+
 #ifndef RAW_DATA_HH
 #define RAW_DATA_HH
 
-#include "DetectorID.hh"
 #include <vector>
+
+#include <TString.h>
+
+#include "DetectorID.hh"
 
 class SDDRawHit;
 class HodoRawHit;
@@ -14,16 +19,17 @@ typedef std::vector<SDDRawHit*>  SDDRHitContainer;
 typedef std::vector<HodoRawHit*> HodoRHitContainer;
 typedef std::vector<DCRawHit*>   DCRHitContainer;
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class RawData
 {
 public:
+  static TString& ClassName();
   RawData();
   virtual ~RawData();
 
-// private:
-//   RawData( const RawData& );
-//   RawData& operator=( const RawData& );
+private:
+  RawData(const RawData&);
+  RawData& operator=(const RawData&);
 
 protected:
   bool              m_is_decoded;
@@ -225,10 +231,19 @@ RawData::GetDCRawHC( const int &detid, int layer ) const
   return m_BLC1aRawHC[0];
 }
 
+//_____________________________________________________________________________
 inline const HodoRHitContainer&
 RawData::GetVmeCalibRawHC() const
 {
   return m_VmeCalibRawHC;
+}
+
+//_____________________________________________________________________________
+inline TString&
+RawData::ClassName()
+{
+  static TString s_name("RawData");
+  return s_name;
 }
 
 #endif

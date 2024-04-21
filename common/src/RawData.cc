@@ -12,6 +12,7 @@
 #include "DebugCounter.hh"
 #include "DeleteUtility.hh"
 #include "DetectorID.hh"
+#include "FuncName.hh"
 #include "MTDCRawHit.hh"
 #include "HodoRawHit.hh"
 #include "SDDRawHit.hh"
@@ -25,8 +26,7 @@
 namespace
 {
 using namespace hddaq::unpacker;
-const std::string& class_name("RawData");
-const UnpackerManager& gUnpacker = GUnpacker::get_instance();
+const auto& gUnpacker = GUnpacker::get_instance();
 //  const UserParamMan&    gUser     = UserParamMan::GetInstance();
 enum EUorD { kOneSide=1, kBothSide=2 };
 enum EDCDataType { kLeading, kTrailing, kNDCDataType };
@@ -34,13 +34,12 @@ enum EDCDataType { kLeading, kTrailing, kNDCDataType };
 const int  MaxMultiHitDC  = 16;
 #endif
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline bool
-AddHodoRawHit( HodoRHitContainer& cont,
-               int id, int plane, int seg, int UorD, int AorT, int data, bool DEBUG=false )
+AddHodoRawHit(HodoRHitContainer& cont,
+              int id, int plane, int seg, int UorD, int AorT,
+              int data, bool DEBUG=false)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   HodoRawHit *p = 0;
   for( std::size_t i=0, n=cont.size(); i<n; ++i ){
     HodoRawHit *q = cont[i];
@@ -73,7 +72,7 @@ AddHodoRawHit( HodoRHitContainer& cont,
     else          p->SetTdcDown(data);
     break;
   default:
-    hddaq::cerr << func_name << " wrong AorT " << std::endl
+    hddaq::cerr << "wrong AorT " << std::endl
                 << "DetectorId = " << id    << std::endl
                 << "PlaneId    = " << plane << std::endl
                 << "SegId      = " << seg   << std::endl
@@ -83,12 +82,11 @@ AddHodoRawHit( HodoRHitContainer& cont,
   }
   return true;
 }
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline bool
 AddSDDRawHit( SDDRHitContainer& cont,
               int id, int port, int unit, int type, int data )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
   SDDRawHit *p = 0;
   for( std::size_t i=0, n=cont.size(); i<n; ++i ){
     SDDRawHit *q = cont[i];
@@ -128,13 +126,11 @@ AddSDDRawHit( SDDRHitContainer& cont,
   }
   return true;
 }
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline bool
 AddACRawHit( HodoRHitContainer& cont,
              int id, int plane, int seg, int type, int data, bool DEBUG=false )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   HodoRawHit *p = 0;
   for( std::size_t i=0, n=cont.size(); i<n; ++i ){
     HodoRawHit *q = cont[i];
@@ -159,7 +155,7 @@ AddACRawHit( HodoRHitContainer& cont,
     p->SetTdcUp(data);
     break;
   default:
-    hddaq::cerr << func_name << " wrong type " << std::endl
+    hddaq::cerr << " wrong type " << std::endl
                 << "DetectorId = " << id    << std::endl
                 << "PlaneId    = " << plane << std::endl
                 << "SegId      = " << seg   << std::endl
@@ -168,12 +164,11 @@ AddACRawHit( HodoRHitContainer& cont,
   }
   return true;
 }
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline bool
 AddDCRawHit( DCRHitContainer& cont,
              int plane, int wire, int tdc, int type=kLeading )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
   DCRawHit *p = 0;
   for( std::size_t i=0, n=cont.size(); i<n; ++i ){
     DCRawHit *q = cont[i];
@@ -195,7 +190,7 @@ AddDCRawHit( DCRHitContainer& cont,
     p->SetTrailing(tdc);
     break;
   default:
-    hddaq::cerr << func_name << " wrong data type " << std::endl
+    hddaq::cerr << " wrong data type " << std::endl
                 << "PlaneId    = " << plane << std::endl
                 << "WireId     = " << wire  << std::endl
                 << "DataType   = " << type  << std::endl;
@@ -204,12 +199,11 @@ AddDCRawHit( DCRHitContainer& cont,
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline bool
 AddMTDCRawHit( MTDCRHitContainer& cont,
                int id, int seg, int type, int data )
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
   MTDCRawHit *p = 0;
   for( std::size_t i=0, n=cont.size(); i<n; ++i ){
     MTDCRawHit *q = cont[i];
@@ -230,7 +224,7 @@ AddMTDCRawHit( MTDCRHitContainer& cont,
     p->SetTrailing(data);
     break;
   default:
-    hddaq::cerr << func_name << " wrong data type " << std::endl
+    hddaq::cerr << " wrong data type " << std::endl
                 << "SegmentId  = " << seg  << std::endl
                 << "DataType   = " << type  << std::endl;
     return false;
@@ -238,7 +232,7 @@ AddMTDCRawHit( MTDCRHitContainer& cont,
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline void
 DecodeHodo( int id, int plane, int nseg, int nch, HodoRHitContainer& cont, bool DEBUG=false )
 {
@@ -255,7 +249,7 @@ DecodeHodo( int id, int plane, int nseg, int nch, HodoRHitContainer& cont, bool 
     }
   }
 }
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline void
 DecodeBHT( int id, int plane, int nseg, int nch, HodoRHitContainer& cont, bool DEBUG=false )
 {
@@ -276,7 +270,7 @@ DecodeBHT( int id, int plane, int nseg, int nch, HodoRHitContainer& cont, bool D
     }
   }
 }
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline void
 DecodeSDD( int id, int nport, SDDRHitContainer& cont )
 {
@@ -305,14 +299,14 @@ DecodeAC( int id, int nadc, HodoRHitContainer& cont )
     }
   }
 }
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline void
 DecodeMTDC( int id, int nseg, MTDCRHitContainer& cont )
 {
   for( int seg=0; seg<nseg; ++seg ){
     for( int type=0; type<2; ++type ){
       int nhit = gUnpacker.get_entries( id, 0, seg, 0, type );
-      //	std::cout<<"DecodeMTDC  "<<id<<"  "<<seg<<"  "<<type<<"  "<<nhit<<std::endl;
+      // std::cout<<"DecodeMTDC  "<<id<<"  "<<seg<<"  "<<type<<"  "<<nhit<<std::endl;
       if( nhit<=0 ) continue;
       for(int ihit=0;ihit<nhit;++ihit){
         int data = gUnpacker.get(id, 0, seg, 0, type, ihit );
@@ -321,7 +315,7 @@ DecodeMTDC( int id, int nseg, MTDCRHitContainer& cont )
     }
   }
 }
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline void
 DecodeDC( int id, int layer, int nwire, DCRHitContainer& cont)
 {
@@ -350,7 +344,7 @@ DecodeDC( int id, int layer, int nwire, DCRHitContainer& cont)
   }
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline void
 DecodeHodo( int id, int nseg, int nch, HodoRHitContainer& cont )
 {
@@ -359,7 +353,7 @@ DecodeHodo( int id, int nseg, int nch, HodoRHitContainer& cont )
 
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 RawData::RawData()
   : m_is_decoded(false),
     m_BHDRawHC(),
@@ -420,22 +414,20 @@ RawData::RawData()
 #endif
     m_VmeCalibRawHC()
 {
-  debug::ObjectCounter::increase(class_name);
+  debug::ObjectCounter::increase(ClassName());
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 RawData::~RawData()
 {
   ClearAll();
-  debug::ObjectCounter::decrease(class_name);
+  debug::ObjectCounter::decrease(ClassName());
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 RawData::ClearAll()
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-
   del::ClearContainer( m_SDDRawHC );
   del::ClearContainer( m_TrigRawHC );
   del::ClearContainer( m_BHDRawHC );
@@ -494,22 +486,20 @@ RawData::ClearAll()
 #endif
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
 RawData::DecodeMTDCHits()
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
   del::ClearContainer( m_TrigRawHC );
   DecodeMTDC( DetIdTrigFlag, 32 , m_TrigRawHC);
   return true;
 }
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
 RawData::DecodeHits()
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
   if( m_is_decoded ){
-    hddaq::cout << "#D " << func_name << " "
+    hddaq::cout << "#D " << FUNC_NAME << " "
 		<< "already decoded!" << std::endl;
     return false;
   }
@@ -521,11 +511,10 @@ RawData::DecodeHits()
   m_is_decoded = true;
   return true;
 }
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
 RawData::DecodeHodoHits()
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
 #if T98
   DecodeBHT(	DetIdBHD	,  0, 63, kBothSide, m_BHDRawHC );
 #elif E73_2024
@@ -577,11 +566,10 @@ RawData::DecodeHodoHits()
 #endif
   return true;
 }
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
 RawData::DecodeDCHits()
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
   for(int i=0;i<8;i++){
     DecodeDC( DetIdBLC1a, i, 32, m_BLC1aRawHC[i] );
     DecodeDC( DetIdBLC1b, i, 32, m_BLC1bRawHC[i] );
@@ -613,11 +601,10 @@ RawData::DecodeDCHits()
   }
   return true;
 }
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
 RawData::DecodeCDCHits()
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
 #ifdef CDS
   for(int i=0;i<118;i++){
     DecodeDC( DetIdCDC  , i, 16, m_CDCRawHC[i] );
@@ -625,14 +612,14 @@ RawData::DecodeCDCHits()
 #endif
   return true;
 }
-//______________________________________________________________________________
+//_____________________________________________________________________________
 bool
 RawData::DecodeCalibHits()
 {
   return true;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 RawData::PrintHodo( const int &detid )
 {
