@@ -35,6 +35,7 @@ z = p[2] + p[4]*p[3]*(theta);
 1-2. Straight-line fitting on the vertical plane
 
 2. Helix fitting (track chisqr minimization in the 3-D)
+
 */
 
 //#include <chrono>
@@ -65,12 +66,14 @@ z = p[2] + p[4]*p[3]*(theta);
 #include "MathTools.hh"
 #include "PrintHelper.hh"
 #include "UserParamMan.hh"
-#define PtPlane 1
+
 #define DebugDisp 0
 #define IterativeResolution 1
 #define InvertChargeTest 0
-#define CircCross 1
-using namespace std;
+//Byungmin's new method for residual definition
+#define PtPlane 0
+#define CircCross 0
+
 namespace
 {
   const auto& gUser = UserParamMan::GetInstance();
@@ -99,10 +102,11 @@ namespace
   static Bool_t gMultiLoop = false;
   static Int_t gBadHits;
   static Int_t gMinuitStatus;
-  const Double_t MaxChisqr = 500.;
+  const Double_t MaxChisqr = 400.;
   //const Double_t MaxChisqr = 1000.;
   //const Int_t MaxTryMinuit = 0;
   const Int_t MaxTryMinuit = 3;
+
   //cx, cy, z0, r, dz
   //const Double_t FitStep[5] = { 1.0e-4, 1.0e-4, 1.0e-4, 1.0e-4, 1.0e-5 };
   const Double_t FitStep[5] = {0.1, 0.1, 0.1, 0.1, 0.0001};
@@ -115,20 +119,15 @@ namespace
   //Add hits into the track within the window.
   //(ResidualWindowPull > residual/resolution), (ResidualWindowXZ > residualXZ)
   //const Double_t ResidualWindowPullXZ = 10.; //bad
-  const Double_t ResidualWindowPullXZ = 4.; //ref
-  const Double_t ResidualWindowPullY = 4.; //ref
-  //const Double_t ResidualWindowPullY = 10.;
-  //const Double_t ResidualWindowPullY = 3.;
-	const Double_t PullWindow = 3;
+  const Double_t ResidualWindowPullXZ = 6.; //ref
+  const Double_t ResidualWindowPullY = 6.; //ref
+
   const Double_t ResidualWindowUnderTgtXZ = 5; //[mm]
-  //const Double_t ResidualWindowUnderTgtXZ = 10; //[mm]
-
-  //const Double_t ResidualWindowInXZ = 5; //[mm]
   const Double_t ResidualWindowInXZ = 10; //[mm]
-
-  //const Double_t ResidualWindowOutXZ = 5; //[mm]
-  //const Double_t ResidualWindowOutXZ = 7; //[mm]
   const Double_t ResidualWindowOutXZ = 10; //[mm]
+
+  //for good hit selection, hypot(pull_t,pull_y) < PullWindow
+  const Double_t PullWindow = 3;
 
   //For theta calculation
   const Double_t ThetaWindow = 10; //[mm]
@@ -138,7 +137,6 @@ namespace
   //x : alpha(track-pad angle), y : y pos of cluster (y+300 : Drift length)
   //[0] : Intrinsic XZ resolution, [1] : Attenuation term, [2] : Diffusion coefficient, [3] : Effective # of signal electrons, [4] : Pad length, [5] : Effective # of electron clusters
   static TString eq_horizontal="TMath::Sqrt(TMath::Power([0],2)+TMath::Power([2],2)*(y+300.)/([3]*TMath::Exp(-[1]*(y+300.)))+TMath::Power([4]*TMath::Tan(x),2)/(12.*[5]))";
-//  static TString eq_horizontal="TMath::Sqrt(TMath::Power([0],2)+TMath::Power([2]/TMath::Cos(x),2)*(y+300.)/([3]*TMath::Exp(-[1]*(y+300.)))+TMath::Power([4]*TMath::Tan(x),2)/(12.*[5]))";
   static TF2 *f_horizontal = new TF2("f_horizontal", eq_horizontal.Data(), -4., 4., -300., 300.);
 
   //Vertical resolution function
@@ -151,7 +149,6 @@ namespace
   //[0]~[4] are the Helix parameters,
   //([5],[6],[7]) = (x, y, z)
   static std::string s_tmp="pow([5]-([0]+([3]*cos(x))),2)+pow([6]-([1]+([3]*sin(x))),2)+pow([7]-([2]+([3]*[4]*x)),2)";
-//  static std::string s_tmp="pow([5]-([0]+([3]*cos(x))),2)+pow([6]-([1]+([3]*sin(x))),2)+0*pow([7]-([2]+([3]*[4]*x)),2)";
   static TF1 fint("fint", s_tmp.c_str(), -10.*TMath::Pi(), 10.*TMath::Pi());
 
   static std::string circ_cross="pow([2]*[2]+[2]*([0]*cos(x)+[1]*sin(x)) +[0]*[0]+[1]*[1]-[3]*[3] ,2)";
@@ -215,48 +212,27 @@ static inline Double_t EvalTheta(Double_t par[5], TVector3 pos, Double_t window_
   fint.SetParameters(fpar);
   fint.SetNpx(steps);
   Double_t min_t = fint.GetMinimumX();
-	if(hypot(localpos.X(),localpos.Z())<105) return min_t;
-#if PtPlane
-	min_t = (window_low+window_up)/2;
-#endif
 
 #if CircCross
-	fcir_cross.SetRange(window_low,window_up);
-	double cpar[4];
-	cpar[0] = par[0];
-	cpar[1] = par[1];
-	cpar[2] = par[3];
-	cpar[3] = hypot(localpos.X(),localpos.Y());
+  if(hypot(localpos.X(),localpos.Z())<105) return min_t;
+#if PtPlane
+  min_t = (window_low+window_up)/2;
+#endif
+  fcir_cross.SetRange(window_low,window_up);
+  double cpar[4];
+  cpar[0] = par[0];
+  cpar[1] = par[1];
+  cpar[2] = par[3];
+  cpar[3] = hypot(localpos.X(),localpos.Y());
   fcir_cross.SetParameters(cpar);
   fcir_cross.SetNpx(steps);
-	double min_t_temp = fcir_cross.GetMinimumX();
-	if(min_t_temp == window_low or min_t_temp == window_up) return min_t;
-	else min_t = min_t_temp;
+  double min_t_temp = fcir_cross.GetMinimumX();
+  if(min_t_temp == window_low or min_t_temp == window_up) return min_t;
+  else min_t = min_t_temp;
 #endif
-  return min_t;
-}
-/*
-static inline Double_t EvalThetaCD(Double_t par[5], TVector3 pos, Double_t window_low, Double_t window_up){
-
-  fint.SetRange(window_low, window_up);
-  Double_t fpar[8];
-  TVector3 localpos = GlobalToLocal(pos);
-  for(Int_t ip=0; ip<5; ++ip){
-    fpar[ip] = par[ip];
-  }
-  fpar[5] = localpos.X();
-  fpar[6] = localpos.Y();
-  fpar[7] = localpos.Z();
-
-  Int_t steps = 1440;
-  //Int_t steps = TMath::Min((window_up-window_low)*par[3]*10., 200.);
-  fint.SetParameters(fpar);
-  fint.SetNpx(steps);
-  Double_t min_t = fint.GetMinimumX();
 
   return min_t;
 }
-*/
 /*
 //______________________________________________________________________________
 static inline TVector3 ExpectedPosRow(Double_t par[5], TVector3 pos){ //pad horizontal residual vector
@@ -330,7 +306,7 @@ static inline TVector3 ResidualVect(Double_t par[5], TVector3 pos, Double_t thet
   //[0]~[4] are the Helix parameters,
   //([5],[6],[7]) = (x, y, z)
   Double_t theta = EvalTheta(par, pos, theta_min, theta_max);
-	TVector3 calpos = GlobalPosition(par, theta);
+  TVector3 calpos = GlobalPosition(par, theta);
   TVector3 d = pos - calpos;
   //std::cout<<"reidual pos "<<pos<<" calpos "<<calpos<<std::endl;
   return d;
@@ -349,7 +325,7 @@ static inline TVector3 ResidualVectXZ(Double_t par[5], TVector3 pos){ //Closest 
 }
 
 //______________________________________________________________________________
-static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos, Double_t padTheta, std::vector<Double_t> resparam, Bool_t vetoBadClusters){
+static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos, Double_t padTheta, Double_t theta, std::vector<Double_t> resparam, Bool_t vetoBadClusters){
 
   Double_t cosPad = TMath::Cos(padTheta);
   Double_t sinPad = TMath::Sin(padTheta);
@@ -379,9 +355,21 @@ static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos
   f_drift -> SetParameters(param_y);
   Double_t res_drift = f_drift -> Eval(pos.y());
 
-  //TVector3 res_row(res_horizontal*TMath::Max(TMath::Abs(cosPad), 0.05), res_drift, res_horizontal*TMath::Max(TMath::Abs(sinPad), 0.05));
-  TVector3 res_row(res_horizontal*TMath::Abs(cosPad), res_drift, res_horizontal*TMath::Abs(sinPad));
-  return res_row;
+  TVector3 res(res_horizontal*TMath::Abs(cosPad), res_drift, res_horizontal*TMath::Abs(sinPad));
+
+  //Residual/resolution < window
+  if(vetoBadClusters){
+    TVector3 resi = ResidualVect(par, pos, theta);
+    Double_t residual_vertical = resi.y();
+    Double_t residual_horizontal = TMath::Hypot(resi.x(), resi.z());
+    Double_t resolution_vertical = res.y();
+    Double_t resolution_horizontal = TMath::Hypot(res.x(), res.z());
+    Double_t pull_t = residual_horizontal/resolution_horizontal;
+    Double_t pull_y = residual_vertical/resolution_vertical;
+    if(TMath::Hypot(pull_t, pull_y) > PullWindow) return TVector3(2.e+10, 2.e+10, 2.e+10);
+  }
+
+  return res;
 }
 
 //______________________________________________________________________________
@@ -392,19 +380,9 @@ static inline void fcn_helix(Int_t &npar, Double_t *gin, Double_t &f, Double_t *
   for(Int_t i=0; i<gNumOfHits; ++i){
     TVector3 d = ResidualVect(par, gHitPos[i], gHelixTheta[i]);
     if(gRes[i].x() > 0.9e+10 && gRes[i].y() > 0.9e+10 && gRes[i].z() > 0.9e+10) continue; // exclude dummy hits
-    //chisqr += pow(d.x()/gRes[i].x(), 2) + pow(d.y()/gRes[i].y(), 2) + pow(d.z()/gRes[i].z(), 2);
-		auto res = gRes[i];
-		double res_t = hypot(res.x(),res.z());
-		double cx = par[0];
-		double cy = par[1];
-		double r = par[3];
-		double hit_r = hypot(gHitPos[i].z()-tpc::ZTarget - cy, -gHitPos[i].x() - cx);
-		double dr = hit_r - r;
-
-	  chisqr += 1.*TMath::Power(TMath::Hypot(d.x(), d.z())/TMath::Hypot(gRes[i].x(), gRes[i].z()), 2) + TMath::Power(d.y()/gRes[i].y(), 2);
-//		chisqr += TMath::Power( hypot(dr/res_t,d.y()/res.y())  ,2 );
+    chisqr += TMath::Power(TMath::Hypot(d.x(), d.z())/TMath::Hypot(gRes[i].x(), gRes[i].z()), 2) + TMath::Power(d.y()/gRes[i].y(), 2);
     dof++;
-    dof++;//Define Chisqr
+    dof++;
   }
   if(gMomConstraint) dof += 1; //if there is a momentum constraint
   f = chisqr/(Double_t)(dof - 5);
@@ -471,20 +449,11 @@ static inline Double_t CalcChi2(Double_t *HelixPar, Int_t &ndf, Bool_t vetoBadCl
   ndf = 0; Double_t chisqr = 0.;
   for(Int_t i=0; i<gNumOfHits; ++i){
     TVector3 d = ResidualVect(HelixPar, gHitPos[i], gHelixTheta[i]);
-    TVector3 res = CalcResolution(HelixPar, gLayer[i], gHitPos[i], gPadTheta[i], gResParam[i], vetoBadClusters);
+    TVector3 res = CalcResolution(HelixPar, gLayer[i], gHitPos[i], gPadTheta[i], gHelixTheta[i], gResParam[i], vetoBadClusters);
     if(res.x() > 0.9e+10 && res.y() > 0.9e+10 && res.z() > 0.9e+10) continue; // exclude bad clusters
-    //chisqr += TMath::Power(d.x()/res.x(), 2) + TMath::Power(d.y()/res.y(), 2) + TMath::Power(d.z()/res.z(), 2);
-		
-		double res_t = hypot(res.x(),res.z());
-		double cx = HelixPar[0];
-		double cy = HelixPar[1];
-		double r = HelixPar[3];
-		double hit_r = hypot(gHitPos[i].z()-tpc::ZTarget - cy, -gHitPos[i].x() - cx);
-		double dr = hit_r - r;
-		chisqr += 1.*TMath::Power(TMath::Hypot(d.x(), d.z())/TMath::Hypot(res.x(), res.z()), 2) + TMath::Power(d.y()/res.y(), 2);
-//		chisqr += TMath::Power( hypot(dr/res_t,d.y()/res.y())  ,2 );
+    chisqr += TMath::Power(TMath::Hypot(d.x(), d.z())/TMath::Hypot(res.x(), res.z()), 2) + TMath::Power(d.y()/res.y(), 2);
     ndf++;
-    ndf++;//Define Chisqr
+    ndf++;
   }
   if(gMomConstraint) ndf += 1; //if there is a momentum constraint
   if(ndf < 6) return 1.e+10;
@@ -683,7 +652,7 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters, Bool_t Exclu
 
   gRes.clear();
   for(Int_t i=0; i<gNumOfHits; i++){
-    TVector3 res = CalcResolution(gPar, gLayer[i], gHitPos[i], gPadTheta[i], gResParam[i], vetoBadClusters);
+    TVector3 res = CalcResolution(gPar, gLayer[i], gHitPos[i], gPadTheta[i], gHelixTheta[i], gResParam[i], vetoBadClusters);
     gRes.push_back(res);
   }
 
@@ -694,7 +663,10 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters, Bool_t Exclu
     gBadHits = gNumOfHits - 0.5*ndf;
     if(TMath::Abs(gChisqr-1.e+10)<0.1) return false;
   }
-	if(ExclusiveFlag) gChisqr = 1e10;
+
+  //for exclusive tracking, previous fitting result should not affect current fitting
+  if(ExclusiveFlag) gChisqr = 1e+10;
+
   TMinuit *minuit = new TMinuit(5);
   minuit->SetPrintLevel(-1);
   minuit->SetFCN(fcn_helix);
@@ -762,7 +734,7 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters, Bool_t Exclu
     ++itry;
   }
   delete minuit;
-  if(IsBeam==1 && !status && gChisqr < 6.0) status = true;
+  if(IsBeam==1 && !status && gChisqr < 4.5) status = true;
 
 #if DebugDisp
   std::cout<<"HelixFit() status="<<status<<" gChisqr "<<gChisqr<<" isBeam "<<IsBeam<<std::endl;
@@ -837,7 +809,7 @@ static inline Double_t CircleFit(Int_t IsBeam)
   Double_t bnd1_circ, bnd2_circ;
 
   minuit->mnexcm("MIGRAD", arglist_circ, 2, ierflg_circ);
-  for(int i=0; i<3; i++){
+  for(Int_t i=0; i<3; i++){
     minuit->mnpout(i, name[i], par_circ[i], err_circ[i], bnd1_circ, bnd2_circ, Err_circ);
   }
   //std::cout<<"circlefit "<<par_circ[0]<<" "<<par_circ[1]<<" "<<par_circ[2]<<std::endl;
@@ -972,17 +944,16 @@ TPCLocalTrackHelix::ClearHits()
 
 //______________________________________________________________________________
 Int_t
-TPCLocalTrackHelix::GetNHitsEffective()
-const {
-	int n = 0;
-	for(auto h:m_hit_array){
-		auto ResV = h->GetResolutionVect();
-		if(!h->IsGoodForTracking()) continue;
-		++n;
-	}
-	return n;
-}
+TPCLocalTrackHelix::GetNHitsEffective() const
+{
 
+  Int_t n = 0;
+  for(auto h:m_hit_array){
+    if(!h->IsGoodForTracking()) continue;
+    ++n;
+  }
+  return n;
+}
 
 //______________________________________________________________________________
 void
@@ -1024,7 +995,9 @@ TPCLocalTrackHelix::Calculate()
     hitp->SetCalHelix(m_cx, m_cy, m_z0, m_r, m_dz);
     hitp->SetTheta(m_hit_t[i]);
     hitp->SetCalPosition(hitp->GetLocalCalPosHelix());
-    if(m_is_fitted) hitp->SetResolution(GetResolutionVect(i, true));
+    if(m_is_fitted){
+      hitp->SetResolution(GetResolutionVect(i, true));
+    }
   }
   m_is_calculated = true;
 
@@ -1053,9 +1026,7 @@ TPCLocalTrackHelix::CalculateExclusive()
     hitp->SetCalHelixExclusive(m_cx_exclusive[i], m_cy_exclusive[i],
 			       m_z0_exclusive[i], m_r_exclusive[i],
 			       m_dz_exclusive[i]);
-		auto res = hitp->GetResolutionVect();
-	//	std::cout<<Form("Hit %d,Res %g, Rad,ExRad,Diff = %g,%g,%g",i,res.Mag(),m_r,m_r_exclusive[i],m_r_exclusive[i] - m_r)<<std::endl;
-		hitp->SetThetaExclusive(m_t_exclusive[i]);
+    hitp->SetThetaExclusive(m_t_exclusive[i]);
     hitp->SetCalPositionExclusive(hitp->GetLocalCalPosHelixExclusive());
   }
 }
@@ -1109,7 +1080,6 @@ TPCLocalTrackHelix::CalcClosestDistTgt()
   TVector3 tgt(0., 0., tpc::ZTarget);
   Double_t scantheta = 0.5*TMath::Pi();
   Double_t theta_tgt = EvalTheta(par, tgt, m_min_t - scantheta, m_max_t + scantheta);
-//  Double_t theta_tgt = EvalThetaCD(par, tgt, m_min_t - scantheta, m_max_t + scantheta);
   TVector3 closest_point = GlobalPosition(par, theta_tgt);
   TVector3 dist = closest_point - tgt;
   m_closedist = dist;
@@ -1117,26 +1087,25 @@ TPCLocalTrackHelix::CalcClosestDistTgt()
 
 //_____________________________________________________________________________
 TVector3
-TPCLocalTrackHelix::GetResolutionVect(TPCHit* hit, Bool_t vetoBadClusters){
+TPCLocalTrackHelix::GetResolutionVect(TPCLTrackHit* hit, Bool_t vetoBadClusters){
 
   if(!m_is_theta_calculated){
     std::cout<<FUNC_NAME+" Fatal error : No helix theta information!!! CalcHelixTheta() should be run in front of this"<<std::endl;
     return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
   }
 
-  hit->GetParentCluster();
-  if(vetoBadClusters && hit->GetParentCluster()->IsOnTheFrame()) return TVector3(3.e+10, 3.e+10, 3.e+10);
+  if(vetoBadClusters && hit->GetHit()->GetParentCluster()->IsOnTheFrame()) return TVector3(3.e+10, 3.e+10, 3.e+10);
 
-  TVector3 pos = hit->GetPosition();
+  TVector3 pos = hit->GetLocalHitPos();
   Int_t layer = hit->GetLayer();
   Double_t padTheta = hit->GetPadTheta();
+  Double_t theta = hit->GetTheta();
   std::vector<Double_t> resParam = hit->GetResolutionParams();
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
 
   //Convert resolution along the row direction into closets point's x, y, z resolutions
-  TVector3 res = CalcResolution(par, layer, pos, padTheta, resParam, vetoBadClusters);
-//  return TVector3(1,1,1);
-	return res;
+  TVector3 res = CalcResolution(par, layer, pos, padTheta, theta, resParam, vetoBadClusters);
+  return res;
 }
 
 //_____________________________________________________________________________
@@ -1148,8 +1117,7 @@ TPCLocalTrackHelix::GetResolutionVect(Int_t i, Bool_t vetoBadClusters){
     return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
   }
 
-  TPCHit *hit = m_hit_array[i] -> GetHit();
-  return GetResolutionVect(hit, vetoBadClusters);
+  return GetResolutionVect(m_hit_array[i], vetoBadClusters);
 }
 
 //_____________________________________________________________________________
@@ -1376,6 +1344,7 @@ TPCLocalTrackHelix::DoHelixTrackFit(Double_t RKpar[5]) //for beam track fitting
   gLayer.clear();
   gPadTheta.clear();
   gResParam.clear();
+  gHelixTheta.clear();
   gBadHits = 0;
   gMinuitStatus = 0;
   gChisqr = 1.e+10;
@@ -1538,7 +1507,7 @@ TPCLocalTrackHelix::DoFit(Double_t RKCharge, Int_t MinHits)
   return status;
 }
 
-//_____________________________________________________________________________ 
+//_____________________________________________________________________________
 void
 TPCLocalTrackHelix::EraseHits(std::vector<Int_t> delete_hits)
 {
@@ -1719,7 +1688,8 @@ TPCLocalTrackHelix::DoStraightLineFit(Double_t *par)
   Bool_t vetoBadClusters = false;
   gRes.clear();
   for(Int_t i=0; i<gNumOfHits; i++){
-    TVector3 res = CalcResolution(gPar, gLayer[i], gHitPos[i], gPadTheta[i], gResParam[i], vetoBadClusters);
+    Double_t dummy_theta = 0;
+    TVector3 res = CalcResolution(gPar, gLayer[i], gHitPos[i], gPadTheta[i], dummy_theta, gResParam[i], vetoBadClusters);
     gRes.push_back(res);
   }
 
@@ -1825,7 +1795,7 @@ TPCLocalTrackHelix::DoHelixFit(Double_t *par, Bool_t vetoBadClusters)
     Double_t window = ThetaWindow/gPar[3];
     for(Int_t i=0; i<gNumOfHits; ++i){
       Double_t theta = EvalTheta(gPar, gHitPos[i], gHelixTheta[i] - 0.5*window, gHelixTheta[i] + 0.5*window);
-			m_hit_t[i] = theta;
+      m_hit_t[i] = theta;
       gHelixTheta[i] = theta;
     }
   }
@@ -1958,8 +1928,7 @@ TPCLocalTrackHelix::ResidualCheck(Int_t i, Double_t &residual)
 
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 position = m_hit_array[i] -> GetLocalHitPos();
-  TVector3 res = CalcResolution(par, layer, position, padTheta, resparam, false);
-
+  TVector3 res = CalcResolution(par, layer, position, padTheta, gHelixTheta[i], resparam, false);
   TVector3 resi = ResidualVect(par, position, gHelixTheta[i]); //Closest distance
   residual = resi.Mag();
 
@@ -1979,12 +1948,9 @@ TPCLocalTrackHelix::ResidualCheck(Int_t i, Double_t &residual)
   Double_t residual_horizontal = TMath::Hypot(resi.x(), resi.z());
   Double_t resolution_vertical = res.y();
   Double_t resolution_horizontal = TMath::Hypot(res.x(), res.z());
-  double pull_t = residual_horizontal/resolution_horizontal;
-  double pull_y = residual_vertical/resolution_vertical;
-	if(TMath::Abs(residual_vertical) > resolution_vertical*ResidualWindowPullY) return false;
+  if(TMath::Abs(residual_vertical) > resolution_vertical*ResidualWindowPullY) return false;
   if(TMath::Abs(residual_horizontal) > resolution_horizontal*ResidualWindowPullXZ) return false;
-	if(hypot(pull_t,pull_y)>PullWindow) return false;
-	return true;
+  return true;
 }
 
 //______________________________________________________________________________
@@ -2003,7 +1969,8 @@ TPCLocalTrackHelix::IsGoodHitToAdd(TPCHit *hit, Double_t &residual)
 
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 position = hit->GetPosition();
-  TVector3 res = CalcResolution(par, layer, position, padTheta, resparam, false);
+  Double_t dummy_theta = 0;
+  TVector3 res = CalcResolution(par, layer, position, padTheta, dummy_theta, resparam, false);
 
   Int_t upstream_tgt = -1;
   if(TMath::Abs(position.x()) < 25. &&
@@ -2162,6 +2129,7 @@ TPCLocalTrackHelix::Side(TVector3 hitpos)
 Double_t
 TPCLocalTrackHelix::CalcThetaExclusive(Int_t ith) const
 {
+
   if(!m_is_fitted_exclusive){
     std::cout<<FUNC_NAME+" Fatal error : Do exclusive fitting first!"<<std::endl;
     return TMath::QuietNaN();
@@ -2174,7 +2142,7 @@ TPCLocalTrackHelix::CalcThetaExclusive(Int_t ith) const
   Double_t window = ThetaWindow/par[3];
   Double_t theta = EvalTheta(par, pos, m_hit_t[ith] - 0.5*window, m_hit_t[ith] + 0.5*window);
 
-	return theta;
+  return theta;
 }
 
 //______________________________________________________________________________
@@ -2261,10 +2229,8 @@ void
 TPCLocalTrackHelix::DoFitExclusive()
 {
   const std::size_t n = m_hit_array.size();
-  if(m_hit_t.size() <= 1 || !m_is_fitted || !m_is_calculated){
-		std::cout<<FUNC_NAME+" Fatal error : Wrong track. Please check"<<std::endl;
-		std::cout<<Form("HitSize = %d, fitted = %d, calculated = %d",m_hit_t.size(),m_is_fitted,m_is_calculated)<<std::endl;
-	}
+
+  if(m_hit_t.size() <= 1 || !m_is_fitted || !m_is_calculated) std::cout<<FUNC_NAME+" Fatal error : Wrong track. Please check"<<std::endl;
 
   gMultiLoop = m_is_multiloop;
 
@@ -2282,14 +2248,14 @@ TPCLocalTrackHelix::DoFitExclusive()
     gHitPos.clear();
     gLayer.clear();
     gPadTheta.clear();
-    gHelixTheta.clear();
     gResParam.clear();
+    gHelixTheta.clear();
     gHitPos.resize(n-1);
     gLayer.resize(n-1);
     gPadTheta.resize(n-1);
-    gHelixTheta.resize(n-1);//
     gResParam.resize(n-1);
-		
+    gHelixTheta.resize(n-1);
+
     gChisqr = 1.e+10;
     gPar[0] = m_cx;
     gPar[1] = m_cy;
@@ -2315,8 +2281,8 @@ TPCLocalTrackHelix::DoFitExclusive()
 
     //Helix fitting
     Bool_t vetoBadClusters = true;
-		
-    HelixFit(m_isBeam, vetoBadClusters,true);
+    Bool_t exclusive = true;
+    HelixFit(m_isBeam, vetoBadClusters, exclusive);
     m_chisqr_exclusive[ihit] = gChisqr;
     m_cx_exclusive[ihit] = gPar[0];
     m_cy_exclusive[ihit] = gPar[1];
@@ -2662,9 +2628,7 @@ TPCLocalTrackHelix::FinalizeTrack(Int_t &delete_hit)
   if(m_hit_array.size()==0) return -1;
   for(std::size_t i=0; i<m_hit_array.size(); ++i){
     Double_t resi = 0.;
-    if(!ResidualCheck(i, resi)){
-			++false_layer;
-		}
+    if(!ResidualCheck(i, resi)) ++false_layer;
     if(Max_residual<resi){
       Max_residual = resi;
       delete_hit = i;
@@ -3018,7 +2982,8 @@ TPCLocalTrackHelix::TestMergedTrack()
     gPadTheta.push_back(padTheta);
     std::vector<Double_t> resparam = hitp->GetResolutionParams();
     gResParam.push_back(resparam);
-    TVector3 res = CalcResolution(gPar, layer, pos, padTheta, resparam, vetoBadClusters);
+    Double_t dummy_theta = 0;
+    TVector3 res = CalcResolution(gPar, layer, pos, padTheta, dummy_theta, resparam, vetoBadClusters);
     gRes.push_back(res);
   }
   CalcHelixTheta();
@@ -3129,6 +3094,80 @@ TPCLocalTrackHelix::CheckIsAccidental()
   if(nhit_upstream_tgt>1 && nhit_downstream_tgt>=5){m_isAccidental=1; m_isBeam=1;}
 }
 
+//Functions for momentum resolution
+//_____________________________________________________________________________
+TVector3
+TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale){
+
+  /*
+    For a Multivaraible function F(M), the Covariance is given as V(F) = JV(M)J^T, where J = dFdM is a Jacobian matrix.
+    We will calculate the momentum resolution from pt, theta, and dZ resolution.
+  */
+
+  Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  Double_t p_t = m_r*(tpc::ConstC*dMagneticField)*0.001;
+  //Double_t pz = p_t*(cos(t));
+  //Double_t py = p_t*m_dz;
+  //Double_t px = p_t*(sin(t));
+
+  Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
+  TVector3 calcmom = CalcHelixMom(par, t);
+  Double_t ddZ = dZScale * GetdZResolution();
+  Double_t dt = PhiScale * GetTransverseAngularResolution(t);
+  Double_t dp_t = MomScale * GetTransverseMomentumResolution();
+  Double_t Vp_t = dp_t*dp_t;
+  Double_t Vt = dt*dt;
+  Double_t VdZ = ddZ*ddZ;
+  /*
+    p_x = p_t*sin(t);
+    p_y = p_t*dZ;
+    p_z = p_t*cos(t);
+
+    Cov(px,pz,py) = J V(p_t,t,dZ)J^T
+    **Note! Cov(pt,t) = res_pt*res_t, because res_t ~ res_pt!
+  */
+  Double_t cov_pt_t = MomScale * PhiScale * GetTransverseMomentumAngularCovariance(t);
+  Double_t V[3][3] =
+    { Vp_t,     cov_pt_t,  0,
+      cov_pt_t, Vt,        0,
+      0,        0,         VdZ};
+  Double_t J[3][3] =
+    { sin(t),   p_t*cos(t), 0,
+      m_dz,     0,          p_t,
+      cos(t), -p_t*sin(t), 0};
+
+  Double_t JT[3][3]={0};
+  for(Int_t row=0;row<3;++row){
+    for(Int_t col=0;col<3;++col){
+      JT[row][col] = J[col][row];
+    }
+  }
+  Double_t VJT[3][3]={0};
+  for(Int_t row=0;row<3;++row){
+    for(Int_t col=0;col<3;++col){
+      for(Int_t itr=0;itr<3;++itr){
+	VJT[row][col]+=V[row][itr]*JT[itr][col];
+      }
+    }
+  }
+  Double_t JVJT[3][3]={0};
+  for(Int_t row=0;row<3;++row){
+    for(Int_t col=0;col<3;++col){
+      for(Int_t itr=0;itr<3;++itr){
+	JVJT[row][col]+=J[row][itr]*VJT[itr][col];
+      }
+    }
+  }
+  Double_t Vpx = JVJT[0][0];
+  Double_t Vpy = JVJT[1][1];
+  Double_t Vpz = JVJT[2][2];
+  if(Vpx<0 || Vpy<0 || Vpz < 0 || isnan(Vpx) || isnan(Vpy) || isnan(Vpz)){
+    std::cout<<Form("MomVar = (%g,%g,%g)",Vpx,Vpy,Vpz)<<std::endl;
+    std::cout<<Form("dPt, dt,ddZ = (%g,%g,%g)",dp_t,dt,ddZ)<<std::endl;
+  }
+  return TVector3(sqrt(Vpx), sqrt(Vpy), sqrt(Vpz));
+}
+
 //_____________________________________________________________________________
 TVector3
 TPCLocalTrackHelix::GetMomentumResolutionVect(Int_t i, Double_t MomScale, Double_t PhiScale, Double_t dZScale){
@@ -3139,8 +3178,41 @@ TPCLocalTrackHelix::GetMomentumResolutionVect(Int_t i, Double_t MomScale, Double
 
 //_____________________________________________________________________________
 TVector3
-TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale){
-  if(t == -9999) t = m_min_t;
+TPCLocalTrackHelix::GetMomentumResolutionVect(){
+
+  Double_t t0 = GetHitInOrder(0) -> GetTheta();
+  return GetMomentumResolutionVectT(t0, tpc::MomentumScale, tpc::PhiScale, tpc::dZScale);
+}
+
+//_____________________________________________________________________________
+double
+TPCLocalTrackHelix::GetTransverseMomentumAngularCovariance(Double_t t){
+
+  Double_t t_avg = 0.5*(m_max_t + m_min_t);
+  Double_t t_dif = (t-t_avg);
+  Double_t sign = 1;
+  if(t_dif>0)sign = -1;
+  else sign = 1;
+  Double_t dp_t =  GetTransverseMomentumResolution();
+  Double_t dt = GetTransverseAngularResolution(t,0);
+  return sign * dp_t * dt;
+}
+
+//_____________________________________________________________________________
+double
+TPCLocalTrackHelix::GetMomentumPitchAngleCovariance(){
+  Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  Double_t p_t = m_r*(tpc::ConstC*B)*0.001;
+  Double_t pitch = atan2(1,m_dz);//dYdZ angle, dZ= 0 -> should return pi/2
+  Double_t res_pitch = GetThetaResolution();
+  return p_t*cos(pitch)/sin(pitch)/sin(pitch)*res_pitch*res_pitch;
+
+}
+
+//_____________________________________________________________________________
+TVector3
+TPCLocalTrackHelix::GetMomentumCovarianceVectT(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale){
+
   /*
     For a Multivaraible function F(M), the Covariance is given as V(F) = JV(M)J^T, where J = dFdM is a Jacobian matrix.
     We will calculate the momentum resolution from pt, theta, and dZ resolution.
@@ -3153,10 +3225,6 @@ TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Do
 
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 calcmom = CalcHelixMom(par, t);
-
-  Double_t t_avg = 0.5*(m_max_t + m_min_t);
-  Double_t t_dif = (t-t_avg);
-
   Double_t ddZ = dZScale * GetdZResolution();
   Double_t dt = PhiScale * GetTransverseAngularResolution(t);
   Double_t dp_t = MomScale * GetTransverseMomentumResolution();
@@ -3164,70 +3232,52 @@ TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Do
   Double_t Vt = dt*dt;
   Double_t VdZ = ddZ*ddZ;
   /*
-		p_x = p_t*sin(t);	
-		p_y = p_t*dZ;	
-		p_z = p_t*cos(t);	
+    p_x = p_t*sin(t);
+    p_y = p_t*dZ;
+    p_z = p_t*cos(t);
 
-		Cov(px,pz,py) = J V(p_t,t,dZ)J^T
+    Cov(px,pz,py) = J V(p_t,t,dZ)J^T
     **Note! Cov(pt,t) = res_pt*res_t, because res_t ~ res_pt!
-
-		Differentiate row with coloumn.
-								y
-i.e. J = x	| dy/dx
-
-							pt			t				dZ
-				px	|	sint	pt*cost		0
-		J = py	|	dZ			0				pt
-				pz	|	cost	-pt*sint	0
-							
-				|	rpt^2,	c(pt,t)	,		0
-		V = |	c(pt,t),	rt^2		,		0
-				|		0		,		0			,	rdZ^2
   */
-  Double_t cov_pt_t = MomScale * PhiScale * GetTransverseMomentumAngularCovariance(t); 
- 	double V[3][3] = 
-	{	Vp_t,		cov_pt_t,		0,
-		cov_pt_t,	Vt,			0,
-		0,					0,		VdZ};	
-	
- 	double J[3][3] = 
-	{	sin(t),		p_t*cos(t),		0,
-		m_dz	,		0,					p_t,
-		cos(t),		-p_t*sin(t),	0
-	};
-	double JT[3][3]={0};
-	for(int row=0;row<3;++row){
-	for(int col=0;col<3;++col){
-		JT[row][col] = J[col][row];	
-	}
-	}
-	double VJT[3][3]={0};
-	for(int row=0;row<3;++row){
-	for(int col=0;col<3;++col){
-		for(int itr=0;itr<3;++itr){
-			VJT[row][col]+=V[row][itr]*JT[itr][col];	
-		}
-	}
-	}
- 	double JVJT[3][3]={0};
-	for(int row=0;row<3;++row){
-	for(int col=0;col<3;++col){
-		for(int itr=0;itr<3;++itr){
-			JVJT[row][col]+=J[row][itr]*VJT[itr][col];	
-		}
-	}
-	}
-	double Vpx = JVJT[0][0];
-	double Vpy = JVJT[1][1];
-	double Vpz = JVJT[2][2];
-	if(Vpx<0 or Vpy<0 or Vpz < 0 or isnan(Vpx) or isnan(Vpy) or isnan(Vpz)){
-		cout<<Form("MomVar = (%g,%g,%g)",Vpx,Vpy,Vpz)<<endl;
-		cout<<Form("dPt, dt,ddZ = (%g,%g,%g)",dp_t,dt,ddZ)<<endl;	
-	
-	}
-  return TVector3(sqrt(Vpx), sqrt(Vpy), sqrt(Vpz));
+  Double_t cov_pt_t = MomScale*PhiScale*GetTransverseMomentumAngularCovariance(t);
+  Double_t V[3][3] =
+    { Vp_t,     cov_pt_t,     0,
+      cov_pt_t, Vt,           0,
+      0,        0,            VdZ};
+  Double_t J[3][3] =
+    { sin(t),   p_t*cos(t),   0,
+      m_dz,     0,            p_t,
+      cos(t),   -p_t*sin(t),  0};
+
+  Double_t JT[3][3]={0};
+  for(Int_t row=0;row<3;++row){
+    for(Int_t col=0;col<3;++col){
+      JT[row][col] = J[col][row];
+    }
+  }
+  Double_t VJT[3][3]={0};
+  for(Int_t row=0;row<3;++row){
+    for(Int_t col=0;col<3;++col){
+      for(Int_t itr=0;itr<3;++itr){
+	VJT[row][col]+=V[row][itr]*JT[itr][col];
+      }
+    }
+  }
+  Double_t JVJT[3][3]={0};
+  for(Int_t row=0;row<3;++row){
+    for(Int_t col=0;col<3;++col){
+      for(Int_t itr=0;itr<3;++itr){
+	JVJT[row][col]+=J[row][itr]*VJT[itr][col];
+      }
+    }
+  }
+  Double_t Cxy = JVJT[0][1];
+  Double_t Cyz = JVJT[1][2];
+  Double_t Czx = JVJT[2][0];
+  return TVector3((Cxy), (Cyz), (Czx));
 }
 
+//_____________________________________________________________________________
 TVector3
 TPCLocalTrackHelix::GetMomentumCovarianceVect(Int_t i, Double_t MomScale, Double_t PhiScale, Double_t dZScale){
 
@@ -3235,118 +3285,14 @@ TPCLocalTrackHelix::GetMomentumCovarianceVect(Int_t i, Double_t MomScale, Double
   return GetMomentumCovarianceVectT(t, MomScale, PhiScale, dZScale);
 }
 
-
-double
-TPCLocalTrackHelix::GetTransverseMomentumAngularCovariance(Double_t t){
-  if(t == -9999) t = m_min_t;
-  Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t p_t = m_r*(tpc::ConstC*B)*0.001;
-  Double_t t_avg = 0.5*(m_max_t + m_min_t);
-  Double_t t_dif = (t-t_avg);
-  double sign = 1;
-	if(t_dif>0)sign = -1;
-  else sign = 1;
-  Double_t dp_t =  GetTransverseMomentumResolution();
-  Double_t dt = GetTransverseAngularResolution(t,0);
-	return sign * dp_t * dt;
-}
-double
-TPCLocalTrackHelix::GetMomentumPitchAngleCovariance(){
-  Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t p_t = m_r*(tpc::ConstC*B)*0.001;
-	double pitch = atan2(1,m_dz);//dYdZ angle, dZ= 0 -> should return pi/2
-	double res_pitch = GetThetaResolution();
-	return p_t*cos(pitch)/sin(pitch)/sin(pitch)*res_pitch*res_pitch;
-
-}
+//_____________________________________________________________________________
 TVector3
-TPCLocalTrackHelix::GetMomentumCovarianceVectT(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale){
-  if(t == -9999) t = m_min_t;
-  /*
-    For a Multivaraible function F(M), the Covariance is given as V(F) = JV(M)J^T, where J = dFdM is a Jacobian matrix.
-    We will calculate the momentum resolution from pt, theta, and dZ resolution.
-  */
-  Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t p_t = m_r*(tpc::ConstC*B)*0.001;
-  //Double_t pz = p_t*(cos(t));
-  //Double_t py = p_t*m_dz;
-  //Double_t px = p_t*(sin(t));
+TPCLocalTrackHelix::GetMomentumCovarianceVect(){
 
-  Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
-  TVector3 calcmom = CalcHelixMom(par, t);
+  Double_t t0 = GetHitInOrder(0) -> GetTheta();
+  return GetMomentumCovarianceVectT(t0, tpc::MomentumScale, tpc::PhiScale, tpc::dZScale);
 
-  Double_t t_avg = 0.5*(m_max_t + m_min_t);
-  Double_t t_dif = (t-t_avg);
-
-  Double_t ddZ = dZScale * GetdZResolution();
-  Double_t dt = PhiScale * GetTransverseAngularResolution(t);
-  Double_t dp_t = MomScale * GetTransverseMomentumResolution();
-  Double_t Vp_t = dp_t*dp_t;
-  Double_t Vt = dt*dt;
-  Double_t VdZ = ddZ*ddZ;
-  /*
-		p_x = p_t*sin(t);	
-		p_y = p_t*dZ;	
-		p_z = p_t*cos(t);	
-
-		Cov(px,pz,py) = J V(p_t,t,dZ)J^T
-    **Note! Cov(pt,t) = res_pt*res_t, because res_t ~ res_pt!
-		
-		Differentiate row with coloumn.
-								y
-i.e. J = x	| dy/dx
-
-							pt			t				dZ
-				px	|	sint	pt*cost		0
-		J = py	|	dZ			0				pt
-				pz	|	cost	-pt*sint	0
-							
-				|	rpt^2,	c(pt,t)	,		0
-		V = |	c(pt,t),	rt^2	,		0
-				|		0		,		0			,	rdZ^2
-	*/
-  Double_t cov_pt_t = MomScale * PhiScale * GetTransverseMomentumAngularCovariance(t); 
- 	double V[3][3] = 
-	{	Vp_t,		cov_pt_t,		0,
-		cov_pt_t,	Vt,			0,
-		0,					0,		VdZ};
-	
- 	double J[3][3] = 
-	{	sin(t),		p_t*cos(t),		0,
-		m_dz	,		0,					p_t,
-		cos(t),		-p_t*sin(t),	0
-	};
-	double JT[3][3]={0};
-	for(int row=0;row<3;++row){
-	for(int col=0;col<3;++col){
-		JT[row][col] = J[col][row];	
-	}
-	}
-	double VJT[3][3]={0};
-	for(int row=0;row<3;++row){
-	for(int col=0;col<3;++col){
-		for(int itr=0;itr<3;++itr){
-			VJT[row][col]+=V[row][itr]*JT[itr][col];	
-		}
-	}
-	}
- 	double JVJT[3][3]={0};
-	for(int row=0;row<3;++row){
-	for(int col=0;col<3;++col){
-		for(int itr=0;itr<3;++itr){
-			JVJT[row][col]+=J[row][itr]*VJT[itr][col];	
-		}
-	}
-	}
-	double Cxy = JVJT[0][1]; 
-	double Cyz = JVJT[1][2]; 
-	double Czx = JVJT[2][0]; 
-  return TVector3((Cxy), (Cyz), (Czx));
 }
-
-
-
-
 
 //_____________________________________________________________________________
 Double_t
@@ -3354,7 +3300,7 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
   Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
   Double_t dt = abs(m_max_t - m_min_t);
   if(dt > 2*acos(-1) )dt = 2*acos(-1);
-  Double_t path = m_r * dt;
+
   Double_t L = 2 * sin(0.5*dt)*m_r;//String length, not Arc length
   L*=0.001;//mm->m;
   Double_t res = 0;
@@ -3364,7 +3310,7 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
     TPCLTrackHit *hitp = m_hit_array[id];
     auto ResV = hitp -> GetResolutionVect();
     Double_t res_T = hypot(ResV.X(),ResV.Z());
-    if(ResV.X()>0.9e10 && ResV.Y()>0.9e10 && ResV.Z()>0.9e10){
+    if(!hitp -> IsGoodForTracking()){
       nh--;
       continue;
     }
@@ -3374,16 +3320,16 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
   if(nh<4) return pt*0.1;
   res = sqrt(3./2) * sqrt(res / nh)* 0.001;//mm-> m
   Double_t dPOverP = pt / (0.3*L*L*B)*sqrt(720./(nh+4))*res;
-	if(isnan(dPOverP) or dPOverP < 0){
-		cout<<Form("dPt error! nh = %d, res = %g",nh,res)<<endl;
-	}
-	return pt*dPOverP;
+  if(isnan(dPOverP) || dPOverP < 0){
+    std::cout<<Form("dPt error! nh = %d, res = %g",nh,res)<<std::endl;
+  }
+  return pt*dPOverP;
 }
 
 //_____________________________________________________________________________
 Double_t
 TPCLocalTrackHelix::GetTransverseAngularResolution(Double_t t, Double_t sig0){
-  if(t == -9999)t = m_min_t;
+
   Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
   Double_t pt = m_r*(tpc::ConstC*B)*0.001;
   Double_t dp = GetTransverseMomentumResolution();
@@ -3398,6 +3344,15 @@ TPCLocalTrackHelix::GetTransverseAngularResolution(Double_t t, Double_t sig0){
 
 //_____________________________________________________________________________
 Double_t
+TPCLocalTrackHelix::GetTransverseAngularResolution(){
+
+  Double_t t0 = GetHitInOrder(0) -> GetTheta();
+  Double_t sig0 = 0.01;
+  return GetTransverseAngularResolution(t0, sig0);
+}
+
+//_____________________________________________________________________________
+Double_t
 TPCLocalTrackHelix::GetdZResolution(){
   Double_t res2 = 0;
   Int_t nh = m_hit_array.size();
@@ -3406,27 +3361,27 @@ TPCLocalTrackHelix::GetdZResolution(){
     TPCLTrackHit *hitp = m_hit_array[id];
     auto ResV = hitp -> GetResolutionVect();
     Double_t res_Y = ResV.Y();
-    if(ResV.X()>0.9e10 && ResV.Y()>0.9e10 && ResV.Z()>0.9e10){
+    if(!hitp -> IsGoodForTracking()){
       nh--;
       continue;
     }
     res2 += res_Y*res_Y;
   }
   Double_t dt = abs(m_max_t - m_min_t);
-//  if(dt > 2*acos(-1)) dt = 2*acos(-1);
+  //  if(dt > 2*acos(-1)) dt = 2*acos(-1);
   Double_t path = m_r * dt;
   Double_t path_dev = path*path*nh/12;
-	if(nh < 3) return 0.01;
+  if(nh < 3) return 0.01;
   Double_t d_slope = 1./(nh-2)*res2/path_dev;
- 	if(isnan(d_slope) or isinf(d_slope)){
-		cout<<Form("Nan or inf dZ resol! nh = %d, dt = %g, res = %g", nh,dt,res2)<<endl;
-	}
-	return d_slope;
+  if(isnan(d_slope) || isinf(d_slope)){
+    std::cout<<Form("Nan || inf dZ resol! nh = %d, dt = %g, res = %g", nh,dt,res2)<<std::endl;
+  }
+  return d_slope;
 }
 
 //_____________________________________________________________________________
 Double_t
 TPCLocalTrackHelix::GetThetaResolution(){
-  double d_slope = GetdZResolution();
+  Double_t d_slope = GetdZResolution();
   return d_slope / (1+m_dz*m_dz);
 }

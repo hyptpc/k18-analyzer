@@ -142,23 +142,26 @@ public:
 
   TVector3 GetMom0() const { return m_mom0; }// Momentum at Y = 0
 
-  TVector3 GetResolutionVect(TPCHit *hit, Bool_t vetoBadClusters);
+  //TVector3 GetResolutionVect(TPCHit *hit, Bool_t vetoBadClusters);
+  TVector3 GetResolutionVect(TPCLTrackHit *hit, Bool_t vetoBadClusters);
   TVector3 GetResolutionVect(Int_t i, Bool_t vetoBadClusters);
   Double_t GetResolutionY(TPCHit *hit);
   Double_t GetResolutionY(Int_t i);
-  
-	TVector3 GetMomentumResolutionVectT(double t = -9999.,double MomScale =1, double PhiScale=1. , double dZScale =1.);
-	TVector3 GetMomentumCovarianceVectT(double t = -9999.,double MomScale =1, double PhiScale=1. , double dZScale =1.);
-	TVector3 GetMomentumResolutionVect(int i=0,double MomScale =1., double PhiScale=1. , double dZScale=1. );
-	TVector3 GetMomentumCovarianceVect(int i=0,double MomScale =1., double PhiScale=1. , double dZScale=1. );
-	double GetTransverseMomentumResolution();//returns dP, not dP/P;
-	double GetTransverseAngularResolution(double t = -9999,double sig0 = 0.01);//returns angular resolution on pad plane
-	double GetdZResolution();//returns pitch resolution. 
-	double GetThetaResolution();//returns pitch angle resolution. 
-	double GetTransverseMomentumAngularCovariance(double t = -9999); 
-	double GetMomentumPitchAngleCovariance(); 
 
+  TVector3 GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale);
+  TVector3 GetMomentumResolutionVect(Int_t i, Double_t MomScale, Double_t PhiScale, Double_t dZScale);
+  TVector3 GetMomentumResolutionVect();
+  TVector3 GetMomentumCovarianceVectT(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale);
+  TVector3 GetMomentumCovarianceVect(Int_t i, Double_t MomScale, Double_t PhiScale, Double_t dZScale);
+  TVector3 GetMomentumCovarianceVect();
+  Double_t GetTransverseMomentumAngularCovariance(Double_t t);
+  Double_t GetTransverseMomentumResolution();//returns dP, not dP/P;
+  Double_t GetTransverseAngularResolution(Double_t t, Double_t sig0 = 0.01); //returns angular resolution on pad plane
+  Double_t GetTransverseAngularResolution();
 
+  Double_t GetdZResolution();//returns pitch resolution.
+  Double_t GetThetaResolution();//returns pitch angle resolution.
+  Double_t GetMomentumPitchAngleCovariance();
 
   TVector3 CalcResidual(TVector3 position);
 
@@ -225,8 +228,8 @@ public:
   Bool_t       DoFit(Double_t RKpar[5], Int_t MinHits=0); //momentum constraint
   Bool_t       DoFit(Double_t RKCharge, Int_t MinHits); //charge constraint
   Bool_t       DoFit(Double_t RKCharge, Double_t RKpar[5], Int_t MinHits=0); //charge&&momoentum constraint
-  Bool_t       ResidualCheck(TVector3 pos, Double_t xzwindow, Double_t ywindow, Double_t &resi); //ws
-  Bool_t       ResidualCheck(TVector3 pos, Double_t xzwindow, Double_t ywindow); //ws
+  Bool_t       ResidualCheck(TVector3 pos, Double_t xzwindow, Double_t ywindow, Double_t &resi);
+  Bool_t       ResidualCheck(TVector3 pos, Double_t xzwindow, Double_t ywindow);
   void         AddVPHit(TVector3 vp);
   Bool_t       DoVPFit();
   Int_t        GetVPNHit() const { return m_vp.size(); }
