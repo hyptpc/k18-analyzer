@@ -38,8 +38,8 @@
 #include "HypTPCTask.hh"
 
 #define SaveTPCK18 0
-#define MMcut_Xi 0
-#define SkipGenfit 0
+#define MMcut_Xi 1
+
 namespace
 {
 using namespace root;
@@ -52,25 +52,19 @@ const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gCounter = debug::ObjectCounter::GetInstance();
 
 //For GenFit Setting
-const Bool_t Const_field = true; //Must be false for linear tracking
-const Int_t verbosity = -1;//0~3;
+const Bool_t Const_field = false; //Must be false for linear tracking
+const Int_t verbosity = 0;//0~3;
 //const Int_t verbosity = 1;
 const auto& tpcGeo = ConfMan::Get<TString>("TPCGDML");
 
-//const Double_t xi_masscut = 0.15; //ref
-//const Double_t xi_masscut = 0.05;
-const Double_t xi_masscut = 0.03;
-//const Double_t lambda_masscut = 0.1; //ref
-//const Double_t lambda_masscut = 0.05;
-const Double_t lambda_masscut = 0.03;
+const Double_t xi_masscut = 0.15; const Double_t lambda_masscut = 0.1;
+//const Double_t xi_masscut = 0.03; const Double_t lambda_masscut = 0.03;
 const Double_t p_vtx_distcut = 300;
 const Double_t pi_vtx_distcut = 300;
 const Double_t pi2_vtx_distcut = 300;
 //const Double_t xi_vtx_distcut = 100;
-//const Double_t ppi_distcut = 10.;
-//const Double_t lpi_distcut = 10.;
-const Double_t ppi_distcut = 20.;//ref
-const Double_t lpi_distcut = 20.;//ref
+const Double_t ppi_distcut = 10.;
+const Double_t lpi_distcut = 10.;
 const Double_t vtx_scan_range = 150.;
 //const Double_t vtx_scan_range = 50.;
 //const Double_t vtx_scan_rangeInsideL = 50.;
@@ -85,20 +79,6 @@ const Double_t GFlpi_distcut = 100.;
 const Double_t& HS_field_0 = ConfMan::Get<Double_t>("HSFLDCALIB");
 const Double_t& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
 const Double_t& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
-TLorentzVector ToHelix(TLorentzVector GlobalLV){
-	double E = GlobalLV.E();
-	double X = -GlobalLV.X();
-	double Y = GlobalLV.Z();
-	double Z = GlobalLV.Y();
-	return TLorentzVector(X,Y,Z,E);
-}
-TLorentzVector ToGlobal(TLorentzVector HelixLV){
-	return ToHelix(HelixLV);
-}
-const Int_t KFMaxStep = 2;
-double ScaleMomRes = 1.4;
-double ScalePhiRes = 1.4;
-double ScaledZRes = 1.5;
 }
 
 namespace dst
@@ -144,7 +124,7 @@ struct Event
   std::vector<Double_t> chisqrKurama;
   std::vector<Double_t> pKurama;
   std::vector<Double_t> qKurama;
-  std::vector<Double_t> m2Kurama;
+  std::vector<Double_t> m2;
   std::vector<Double_t> xtgtKurama;
   std::vector<Double_t> ytgtKurama;
   std::vector<Double_t> utgtKurama;
@@ -282,13 +262,7 @@ struct Event
   std::vector<std::vector<Double_t>> vtxmom_y;
   std::vector<std::vector<Double_t>> vtxmom_z;
 
-
-	int best;
-	Double_t pvalSph;
-	Double_t pvalCart;
   Bool_t xiflag;
-	Double_t pvalXiSph;
-	Double_t pvalXiCart;
   Double_t ximass;
   Double_t xidecayvtx_x;
   Double_t xidecayvtx_y;
@@ -299,8 +273,6 @@ struct Event
   Double_t lpi_dist;
 
   Bool_t lflag;
-	Double_t pvalLdSph;
-	Double_t pvalLdCart;
   Double_t lmass;
   Double_t ldecayvtx_x;
   Double_t ldecayvtx_y;
@@ -325,72 +297,6 @@ struct Event
   std::vector<Double_t> decays_cov_mom_yz;
   std::vector<Double_t> decays_cov_mom_zx;
 
-
-	int bestKFSph;
-	Double_t pvalKFSph;
-	Double_t pvalXiKFSph;
-  Double_t ximassKFSph;//MassBeforeKF;
-  Double_t xidecayvtx_xKFSph;
-  Double_t xidecayvtx_yKFSph;
-  Double_t xidecayvtx_zKFSph;
-  Double_t ximom_xKFSph;
-  Double_t ximom_yKFSph;
-  Double_t ximom_zKFSph;
-  Double_t lpi_distKFSph;
-  
-	Double_t pvalLdKFSph;
-	Double_t lmassKFSph;//MassBeforeKF;
-  Double_t ldecayvtx_xKFSph;
-  Double_t ldecayvtx_yKFSph;
-  Double_t ldecayvtx_zKFSph;
-  Double_t lmom_xKFSph;
-  Double_t lmom_yKFSph;
-  Double_t lmom_zKFSph;
-  Double_t ppi_distKFSph;
-  vector<Int_t> decays_idKFSph;
-  vector<Double_t> decays_momKFSph;
-  vector<Double_t> decays_mom_xKFSph;
-  vector<Double_t> decays_mom_yKFSph;
-  vector<Double_t> decays_mom_zKFSph;
-  vector<vector<Double_t>> decays_pull_KFSph;
-
-
-	int bestKFCart;
-	Double_t pvalKFCart;
-	Double_t pvalXiKFCart;
-  Double_t ximassKFCart;//MassBeforeKF;
-  Double_t xidecayvtx_xKFCart;
-  Double_t xidecayvtx_yKFCart;
-  Double_t xidecayvtx_zKFCart;
-  Double_t ximom_xKFCart;
-  Double_t ximom_yKFCart;
-  Double_t ximom_zKFCart;
-  Double_t lpi_distKFCart;
-  
-	Double_t pvalLdKFCart;
-	Double_t lmassKFCart;//MassBeforeKF;
-  Double_t ldecayvtx_xKFCart;
-  Double_t ldecayvtx_yKFCart;
-  Double_t ldecayvtx_zKFCart;
-  Double_t lmom_xKFCart;
-  Double_t lmom_yKFCart;
-  Double_t lmom_zKFCart;
-  Double_t ppi_distKFCart;
-  vector<Int_t> decays_idKFCart;
-  vector<Double_t> decays_momKFCart;
-  vector<Double_t> decays_mom_xKFCart;
-  vector<Double_t> decays_mom_yKFCart;
-  vector<Double_t> decays_mom_zKFCart;
-  vector<vector<Double_t>> decays_pull_KFCart;
-
-
-
-
-
-
-
-
-
   Bool_t GFxiflag;
   Double_t GFximass;
   Double_t GFxidecayvtx_x;
@@ -411,7 +317,7 @@ struct Event
   Double_t GFlmom_y;
   Double_t GFlmom_z;
   Double_t GFppi_dist;
-  std::vector<Double_t> GFdecays_mass;
+  std::vector<Double_t> GFdecays_m2;
   std::vector<Double_t> GFdecays_mom;
   std::vector<Double_t> GFdecays_mom_x;
   std::vector<Double_t> GFdecays_mom_y;
@@ -459,6 +365,30 @@ struct Event
   std::vector<std::vector<Double_t>> GFpull_py;
   std::vector<std::vector<Double_t>> GFpull_pz;
 
+
+  Double_t ximassKFCart;//MassBeforeKF;
+  Double_t xidecayvtx_xKFCart;
+  Double_t xidecayvtx_yKFCart;
+  Double_t xidecayvtx_zKFCart;
+  Double_t ximom_xKFCart;
+  Double_t ximom_yKFCart;
+  Double_t ximom_zKFCart;
+  Double_t lpi_distKFCart;
+
+  Double_t ldecayvtx_xKFCart;
+  Double_t ldecayvtx_yKFCart;
+  Double_t ldecayvtx_zKFCart;
+  Double_t lmom_xKFCart;
+  Double_t lmom_yKFCart;
+  Double_t lmom_zKFCart;
+  Double_t ppi_distKFCart;
+  vector<Int_t> decays_idKFCart;
+  vector<Double_t> decays_momKFCart;
+  vector<Double_t> decays_mom_xKFCart;
+  vector<Double_t> decays_mom_yKFCart;
+  vector<Double_t> decays_mom_zKFCart;
+  vector<vector<Double_t>> decays_pull_KFCart;
+
   void clear( void )
   {
     runnum = 0;
@@ -486,7 +416,7 @@ struct Event
     chisqrKurama.clear();
     pKurama.clear();
     qKurama.clear();
-    m2Kurama.clear();
+    m2.clear();
     xtgtKurama.clear();
     ytgtKurama.clear();
     utgtKurama.clear();
@@ -624,13 +554,7 @@ struct Event
     vtxmom_y.clear();
     vtxmom_z.clear();
 
-
-		best = -1;
-		pvalSph = -1;
-		pvalCart = -1;
     xiflag = false;
-		pvalXiSph = -1;
-		pvalXiCart = -1;
     ximass = qnan;
     xidecayvtx_x = qnan;
     xidecayvtx_y = qnan;
@@ -641,9 +565,6 @@ struct Event
     lpi_dist = qnan;
 
     lflag = false;
-		pvalLdSph = -1;
-		pvalLdCart = -1;
-    ximass = qnan;
     lmass = qnan;
     ldecayvtx_x = qnan;
     ldecayvtx_y = qnan;
@@ -662,78 +583,11 @@ struct Event
     decays_res_mom_y.clear();
     decays_res_mom_z.clear();
     decays_res_mom_t.clear();
+    decays_res_th.clear();
+    decays_res_ph.clear();
     decays_cov_mom_xy.clear();
     decays_cov_mom_yz.clear();
     decays_cov_mom_zx.clear();
-    decays_res_th.clear();
-    decays_res_ph.clear();
-
-		bestKFSph = -1;
-		pvalKFSph = -1;
-		pvalXiKFSph = -1;
-    ximassKFSph = qnan;
-    xidecayvtx_xKFSph = qnan;
-    xidecayvtx_yKFSph = qnan;
-    xidecayvtx_zKFSph = qnan;
-    ximom_xKFSph = qnan;
-    ximom_yKFSph = qnan;
-    ximom_zKFSph = qnan;
-    lpi_distKFSph = qnan;
-
-		pvalLdKFSph = -1;
-    lmassKFSph = qnan;
-    ldecayvtx_xKFSph = qnan;
-    ldecayvtx_yKFSph = qnan;
-    ldecayvtx_zKFSph = qnan;
-    lmom_xKFSph = qnan;
-    lmom_yKFSph = qnan;
-    lmom_zKFSph = qnan;
-    ppi_distKFSph = qnan;
-    decays_idKFSph.clear();
-    decays_momKFSph.clear();
-    decays_mom_xKFSph.clear();
-    decays_mom_yKFSph.clear();
-    decays_mom_zKFSph.clear();
-		decays_pull_KFSph.clear();
-		
-		bestKFCart = -1;
-		pvalKFCart = -1;
-		pvalXiKFCart = -1;
-    ximassKFCart = qnan;
-    xidecayvtx_xKFCart = qnan;
-    xidecayvtx_yKFCart = qnan;
-    xidecayvtx_zKFCart = qnan;
-    ximom_xKFCart = qnan;
-    ximom_yKFCart = qnan;
-    ximom_zKFCart = qnan;
-    lpi_distKFCart = qnan;
-
-		pvalLdKFCart = -1;
-    lmassKFCart = qnan;
-    ldecayvtx_xKFCart = qnan;
-    ldecayvtx_yKFCart = qnan;
-    ldecayvtx_zKFCart = qnan;
-    lmom_xKFCart = qnan;
-    lmom_yKFCart = qnan;
-    lmom_zKFCart = qnan;
-    ppi_distKFCart = qnan;
-    decays_idKFCart.clear();
-    decays_momKFCart.clear();
-    decays_mom_xKFCart.clear();
-    decays_mom_yKFCart.clear();
-    decays_mom_zKFCart.clear();
-		decays_pull_KFCart.clear();
-
-
-
-
-
-
-
-
-
-
-
 
     GFxiflag = false;
     GFximass = qnan;
@@ -756,7 +610,7 @@ struct Event
     GFlmom_z = qnan;
     GFppi_dist = qnan;
 
-    GFdecays_mass.clear();
+    GFdecays_m2.clear();
     GFdecays_mom.clear();
     GFdecays_mom_x.clear();
     GFdecays_mom_y.clear();
@@ -803,6 +657,56 @@ struct Event
     GFpull_px.clear();
     GFpull_py.clear();
     GFpull_pz.clear();
+
+    /*
+      ximassKFSph = qnan;
+      xidecayvtx_xKFSph = qnan;
+      xidecayvtx_yKFSph = qnan;
+      xidecayvtx_zKFSph = qnan;
+      ximom_xKFSph = qnan;
+      ximom_yKFSph = qnan;
+      ximom_zKFSph = qnan;
+      lpi_distKFSph = qnan;
+
+      lmassKFSph = qnan;
+      ldecayvtx_xKFSph = qnan;
+      ldecayvtx_yKFSph = qnan;
+      ldecayvtx_zKFSph = qnan;
+      lmom_xKFSph = qnan;
+      lmom_yKFSph = qnan;
+      lmom_zKFSph = qnan;
+      ppi_distKFSph = qnan;
+      decays_idKFSph.clear();
+      decays_momKFSph.clear();
+      decays_mom_xKFSph.clear();
+      decays_mom_yKFSph.clear();
+      decays_mom_zKFSph.clear();
+      decays_pull_KFSph.clear();
+
+      ximassKFCart = qnan;
+      xidecayvtx_xKFCart = qnan;
+      xidecayvtx_yKFCart = qnan;
+      xidecayvtx_zKFCart = qnan;
+      ximom_xKFCart = qnan;
+      ximom_yKFCart = qnan;
+      ximom_zKFCart = qnan;
+      lpi_distKFCart = qnan;
+
+      lmassKFCart = qnan;
+      ldecayvtx_xKFCart = qnan;
+      ldecayvtx_yKFCart = qnan;
+      ldecayvtx_zKFCart = qnan;
+      lmom_xKFCart = qnan;
+      lmom_yKFCart = qnan;
+      lmom_zKFCart = qnan;
+      ppi_distKFCart = qnan;
+      decays_idKFCart.clear();
+      decays_momKFCart.clear();
+      decays_mom_xKFCart.clear();
+      decays_mom_yKFCart.clear();
+      decays_mom_zKFCart.clear();
+      decays_pull_KFCart.clear();
+    */
   }
 };
 
@@ -1001,17 +905,6 @@ main( int argc, char **argv )
   Int_t skip = gUnpacker.get_skip();
   if (skip < 0) skip = 0;
   Int_t max_loop = gUnpacker.get_max_loop();
-  //skip = 7317; max_loop = 1;
-  //skip = 86977; max_loop = 1;
-  //skip = 121736; max_loop = 1; //OK
-  //skip = 149509; max_loop = 1;
-  //skip = 154855; max_loop = 1; //Xi longlived
-  //skip = 160987; max_loop = 1;
-  //skip = 182144; max_loop = 1;
-  //skip = 190588; max_loop = 1;
-  //skip = 191493; max_loop = 1;
-  //skip = 235272; max_loop = 1;
-  //skip = 250092; max_loop = 1;
   Int_t nevent = GetEntries( TTreeCont );
   if (max_loop > 0) nevent = skip + max_loop;
 
@@ -1033,10 +926,7 @@ main( int argc, char **argv )
   for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
     gCounter.check();
     InitializeEvent();
-    if( DstRead( ievent ) ){
-			if(event.xiflag) cout<<"Filling tree"<<endl;
-			tree->Fill();
-		}
+    if( DstRead( ievent ) ) tree->Fill();
   }
 
   std::cout << "#D Event Number: " << std::setw(6)
@@ -1089,8 +979,7 @@ dst::DstRead( Int_t ievent )
   static const auto XiMinusMass = pdg::XiMinusMass();
 
   //if( ievent%1000==0 ){
-  if( ievent%10000==0 ){
-  //if( ievent%100000==0 ){
+  if( ievent%1==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
@@ -1138,6 +1027,7 @@ dst::DstRead( Int_t ievent )
 #endif
 
   event.ntKurama = **src.ntKurama;
+  event.chisqrKurama = **src.chisqrKurama;
   event.pKurama = **src.pKurama;
   event.qKurama = **src.qKurama;
   event.xtgtKurama = **src.xtgtKurama;
@@ -1178,9 +1068,7 @@ dst::DstRead( Int_t ievent )
   event.pCalcTPC = **src.pCalcTPC;
   event.pCorrTPC = **src.pCorrTPC;
   event.pCorrDETPC = **src.pCorrDETPC;
-  //event.thetaTPC = **src.thetaTPC;
-  //event.thetaCMTPC = **src.thetaCMTPC;
-  //event.costCMTPC = **src.costCMTPC;
+  event.thetaTPC = **src.thetaTPC;
   event.ubTPC = **src.ubTPC;
   event.vbTPC = **src.vbTPC;
   event.usTPC = **src.usTPC;
@@ -1222,26 +1110,8 @@ dst::DstRead( Int_t ievent )
   event.deHtof = **src.deHtof;
   event.posHtof = **src.posHtof;
 
-
-
   Int_t ntTpc = **src.ntTpc;
-  event.nvtxTpc = **src.nvtxTpc;
-  event.vtx_x = **src.vtx_x;
-  event.vtx_y = **src.vtx_y;
-  event.vtx_z = **src.vtx_z;
-  event.vtx_dist = **src.vtx_dist;
-  event.vtx_angle = **src.vtx_angle;
-  event.vtxid = **src.vtxid;
-  event.vtxmom_theta = **src.vtxmom_theta;
-  event.vtxpos_x = **src.vtxpos_x;
-  event.vtxpos_y = **src.vtxpos_y;
-  event.vtxpos_z = **src.vtxpos_z;
-  event.vtxmom_x = **src.vtxmom_x;
-  event.vtxmom_y = **src.vtxmom_y;
-  event.vtxmom_z = **src.vtxmom_z;
-  
-	
-	if( ntTpc == 0 ) return true;
+  if( ntTpc == 0 ) return true;
   HF1( 1, event.status++ );
 
   event.ntTpc = ntTpc;
@@ -1284,6 +1154,22 @@ dst::DstRead( Int_t ievent )
   event.track_cluster_de = **src.track_cluster_de;
   event.track_cluster_mrow = **src.track_cluster_mrow;
 
+  event.ntTpc = **src.ntTpc;
+  event.nvtxTpc = **src.nvtxTpc;
+  event.vtx_x = **src.vtx_x;
+  event.vtx_y = **src.vtx_y;
+  event.vtx_z = **src.vtx_z;
+  event.vtx_dist = **src.vtx_dist;
+  event.vtx_angle = **src.vtx_angle;
+  event.vtxid = **src.vtxid;
+  event.vtxmom_theta = **src.vtxmom_theta;
+  event.vtxpos_x = **src.vtxpos_x;
+  event.vtxpos_y = **src.vtxpos_y;
+  event.vtxpos_z = **src.vtxpos_z;
+  event.vtxmom_x = **src.vtxmom_x;
+  event.vtxmom_y = **src.vtxmom_y;
+  event.vtxmom_z = **src.vtxmom_z;
+
   //Xi candidates searching
   Int_t xi_candidates = 0;
 
@@ -1294,22 +1180,6 @@ dst::DstRead( Int_t ievent )
   std::vector<Double_t> xi_mass_container, lambda_mass_container;
   std::vector<TVector3> p_mom_container, pi_mom_container, pi2_mom_container;
   std::vector<Double_t> ppi_closedist; std::vector<Double_t> lpi_closedist;
-
-
-
-
-  TPCAnalyzer TPCAna;
-  TPCAna.ReCalcTPCTracks(**src.ntTpc, **src.isK18, **src.isKurama,
-			 **src.charge, **src.nhtrack, **src.helix_cx,
-			 **src.helix_cy, **src.helix_z0, **src.helix_r,
-			 **src.helix_dz, **src.hitlayer, **src.track_cluster_mrow,
-			 **src.helix_t, **src.track_cluster_de, **src.resolution_x,
-			 **src.resolution_y, **src.resolution_z, **src.hitpos_x,
-			 **src.hitpos_y, **src.hitpos_z);
-  HF1( 1, event.status++ );
-
-
-
 
   for(Int_t it1=0;it1<ntTpc;it1++){
     //std::cout<<"it1 "<<it1<<" pid "<<event.pid[it1]<<" charge "<<event.charge[it1]<<std::endl;
@@ -1388,8 +1258,8 @@ dst::DstRead( Int_t ievent )
       if(ppi_dist > ppi_distcut) continue;
       Double_t pi_vertex_dist; Double_t p_vertex_dist;
       /*
-      Kinematics::HelixDirection(lambda_vert, p_start, p_end, p_vertex_dist);
-      Kinematics::HelixDirection(lambda_vert, pi_start, pi_end, pi_vertex_dist);
+	Kinematics::HelixDirection(lambda_vert, p_start, p_end, p_vertex_dist);
+	Kinematics::HelixDirection(lambda_vert, pi_start, pi_end, pi_vertex_dist);
       */
       //std::cout<<"before helix direction"<<std::endl;
       if(!Kinematics::HelixDirection(lambda_vert, p_start, p_end, p_vertex_dist) ||
@@ -1404,7 +1274,7 @@ dst::DstRead( Int_t ievent )
       event.lflag = true;
       //std::cout<<"!!!recon L mass "<<Llambda.M()<<" diff "<<TMath::Abs(Llambda.M() - LambdaMass)<<" id "<<it1<<" "<<it2<<" "<<std::endl;
       //std::cout<<"!!! L reconstructed!!! "<<it1<<" "<<it2<<" "<<std::endl;
-      for(int it3=0;it3<ntTpc;it3++){
+      for(Int_t it3=0;it3<ntTpc;it3++){
 	if(it3==it2 || it3==it1) continue;
 	if(event.isK18[it3]==1 || event.isKurama[it3]==1) continue;
 	//if(event.isK18[it3]==1 || event.isgoodTPCKurama[it3]==1) continue;
@@ -1484,7 +1354,7 @@ dst::DstRead( Int_t ievent )
 	xi_candidates++;
 	event.xiflag = true;
 	//std::cout<<"!!! recon Xi mass "<<Lxi.M()<<" id "<<it1<<" "<<it2<<" "<<it3<<std::endl;
-			} //it3
+      } //it3
     } //it2
   } //it1
 
@@ -1497,7 +1367,6 @@ dst::DstRead( Int_t ievent )
       best = candi;
     }
   }
-
 #else //Select the best Xi mass combination
   Int_t best = -1; Double_t prev_massdiff = 9999.;
   for(Int_t candi=0;candi<xi_candidates;candi++){
@@ -1509,13 +1378,10 @@ dst::DstRead( Int_t ievent )
   }
 #endif
 
-
-
   if( event.lflag) HF1( 7, event.MissMass[0] );
 
   if( !event.xiflag ) return true;
 
-	event.best = best;
   event.ximass = xi_mass_container[best];
   event.xidecayvtx_x = xi_vert_container[best].x();
   event.xidecayvtx_y = xi_vert_container[best].y();
@@ -1534,92 +1400,87 @@ dst::DstRead( Int_t ievent )
   event.lmom_z = l_mom_container[best].z();
   event.ppi_dist = ppi_closedist[best];
 
+  event.decays_id.push_back(xi_p_container[best]);
   event.decays_mom.push_back(p_mom_container[best].Mag());
   event.decays_mom_x.push_back(p_mom_container[best].x());
   event.decays_mom_y.push_back(p_mom_container[best].y());
   event.decays_mom_z.push_back(p_mom_container[best].z());
 
+  event.decays_id.push_back(xi_pi_container[best]);
+  event.decays_mom.push_back(pi_mom_container[best].Mag());
   event.decays_mom_x.push_back(pi_mom_container[best].x());
   event.decays_mom_y.push_back(pi_mom_container[best].y());
   event.decays_mom_z.push_back(pi_mom_container[best].z());
- 
-	event.decays_mom.push_back(pi2_mom_container[best].Mag());
+
+  event.decays_id.push_back(xi_pi2_container[best]);
+  event.decays_mom.push_back(pi2_mom_container[best].Mag());
   event.decays_mom_x.push_back(pi2_mom_container[best].x());
   event.decays_mom_y.push_back(pi2_mom_container[best].y());
   event.decays_mom_z.push_back(pi2_mom_container[best].z());
-  event.decays_id.push_back(xi_p_container[best]);
-  event.decays_id.push_back(xi_pi_container[best]);
-  event.decays_id.push_back(xi_pi2_container[best]);
 
-	
+  TPCAnalyzer TPCAna;
+  TPCAna.ReCalcTPCTracks(**src.ntTpc, **src.isK18, **src.isKurama,
+			 **src.charge, **src.nhtrack, **src.helix_cx,
+			 **src.helix_cy, **src.helix_z0, **src.helix_r,
+			 **src.helix_dz, **src.hitlayer, **src.track_cluster_mrow,
+			 **src.helix_t, **src.track_cluster_de, **src.resolution_x,
+			 **src.resolution_y, **src.resolution_z, **src.hitpos_x,
+			 **src.hitpos_y, **src.hitpos_z);
+  HF1( 1, event.status++ );
 
+  Int_t id_p = xi_p_container[best];
+  Int_t id_pi = xi_pi_container[best];
+  Int_t id_pi2 = xi_pi2_container[best];
+  auto Track_p = TPCAna.GetTrackTPCHelix(id_p);
+  auto Track_pi = TPCAna.GetTrackTPCHelix(id_pi);
+  auto Track_pi2 = TPCAna.GetTrackTPCHelix(id_pi2);
+  for(Int_t ih=0;ih<Track_p->GetNHit();++ih){
+    auto pos = Track_p->GetHitInOrder(ih)->GetLocalHitPos();
+    HF2(1001,pos.z(),pos.x());
+  }
+  for(Int_t ih=0;ih<Track_pi->GetNHit();++ih){
+    auto pos = Track_pi->GetHitInOrder(ih)->GetLocalHitPos();
+    HF2(1002,pos.z(),pos.x());
+  }
+  for(Int_t ih=0;ih<Track_pi2->GetNHit();++ih){
+    auto pos = Track_pi2->GetHitInOrder(ih)->GetLocalHitPos();
+    HF2(1003,pos.z(),pos.x());
+  }
 
+  event.decays_res_mom.push_back(Track_p->GetMomentumResolutionVect().Mag());
+  event.decays_res_mom_x.push_back(Track_p->GetMomentumResolutionVect().X());
+  event.decays_res_mom_y.push_back(Track_p->GetMomentumResolutionVect().Y());
+  event.decays_res_mom_z.push_back(Track_p->GetMomentumResolutionVect().Z());
+  event.decays_res_mom_t.push_back(Track_p->GetTransverseMomentumResolution());
+  event.decays_res_th.push_back(Track_p->GetThetaResolution());
+  event.decays_res_ph.push_back(Track_p->GetTransverseAngularResolution());
+  event.decays_cov_mom_xy.push_back(Track_p->GetMomentumCovarianceVect().x());
+  event.decays_cov_mom_yz.push_back(Track_p->GetMomentumCovarianceVect().y());
+  event.decays_cov_mom_zx.push_back(Track_p->GetMomentumCovarianceVect().z());
 
+  event.decays_res_mom.push_back(Track_pi->GetMomentumResolutionVect().Mag());
+  event.decays_res_mom_x.push_back(Track_pi->GetMomentumResolutionVect().X());
+  event.decays_res_mom_y.push_back(Track_pi->GetMomentumResolutionVect().Y());
+  event.decays_res_mom_z.push_back(Track_pi->GetMomentumResolutionVect().Z());
+  event.decays_res_mom_t.push_back(Track_pi->GetTransverseMomentumResolution());
+  event.decays_res_th.push_back(Track_pi->GetThetaResolution());
+  event.decays_res_ph.push_back(Track_pi->GetTransverseAngularResolution());
+  event.decays_cov_mom_xy.push_back(Track_pi->GetMomentumCovarianceVect().x());
+  event.decays_cov_mom_yz.push_back(Track_pi->GetMomentumCovarianceVect().y());
+  event.decays_cov_mom_zx.push_back(Track_pi->GetMomentumCovarianceVect().z());
 
-	
-	
-	
-	int id_p = xi_p_container[best];
-	int id_pi = xi_pi_container[best];
-	int id_pi2 = xi_pi2_container[best];
-	
-	
-	auto Track_p = TPCAna.GetTrackTPCHelix(id_p); 
-	auto Track_pi = TPCAna.GetTrackTPCHelix(id_pi); 
-	auto Track_pi2 = TPCAna.GetTrackTPCHelix(id_pi2); 
-	for(int ih=0;ih<Track_p->GetNHit();++ih){
-		auto pos = Track_p->GetHitInOrder(ih)->GetLocalHitPos();
-		HF2(1001,pos.z(),pos.x());
-	}
-	for(int ih=0;ih<Track_pi->GetNHit();++ih){
-		auto pos = Track_pi->GetHitInOrder(ih)->GetLocalHitPos();
-		HF2(1002,pos.z(),pos.x());
-	}
-	for(int ih=0;ih<Track_pi2->GetNHit();++ih){
-		auto pos = Track_pi2->GetHitInOrder(ih)->GetLocalHitPos();
-		HF2(1003,pos.z(),pos.x());
-	}
+  event.decays_res_mom.push_back(Track_pi2->GetMomentumResolutionVect().Mag());
+  event.decays_res_mom_x.push_back(Track_pi2->GetMomentumResolutionVect().X());
+  event.decays_res_mom_y.push_back(Track_pi2->GetMomentumResolutionVect().Y());
+  event.decays_res_mom_z.push_back(Track_pi2->GetMomentumResolutionVect().Z());
+  event.decays_res_mom_t.push_back(Track_pi2->GetTransverseMomentumResolution());
+  event.decays_res_th.push_back(Track_pi2->GetThetaResolution());
+  event.decays_res_ph.push_back(Track_pi2->GetTransverseAngularResolution());
+  event.decays_cov_mom_xy.push_back(Track_pi2->GetMomentumCovarianceVect().x());
+  event.decays_cov_mom_yz.push_back(Track_pi2->GetMomentumCovarianceVect().y());
+  event.decays_cov_mom_zx.push_back(Track_pi2->GetMomentumCovarianceVect().z());
 
-	event.decays_res_mom.push_back(Track_p->GetMomentumResolutionVect().Mag());
-	event.decays_res_mom_x.push_back(Track_p->GetMomentumResolutionVect().X());
-	event.decays_res_mom_y.push_back(Track_p->GetMomentumResolutionVect().Y());
-	event.decays_res_mom_z.push_back(Track_p->GetMomentumResolutionVect().Z());
-	event.decays_res_mom_t.push_back(Track_p->GetTransverseMomentumResolution());
-	event.decays_res_th.push_back(Track_p->GetThetaResolution());
-	event.decays_res_ph.push_back(Track_p->GetTransverseAngularResolution());
-	event.decays_cov_mom_xy.push_back(Track_p->GetMomentumCovarianceVect().x());
-	event.decays_cov_mom_yz.push_back(Track_p->GetMomentumCovarianceVect().y());
-	event.decays_cov_mom_zx.push_back(Track_p->GetMomentumCovarianceVect().z());
-
-	event.decays_res_mom.push_back(Track_pi->GetMomentumResolutionVect().Mag());
-	event.decays_res_mom_x.push_back(Track_pi->GetMomentumResolutionVect().X());
-	event.decays_res_mom_y.push_back(Track_pi->GetMomentumResolutionVect().Y());
-	event.decays_res_mom_z.push_back(Track_pi->GetMomentumResolutionVect().Z());
-	event.decays_res_mom_t.push_back(Track_pi->GetTransverseMomentumResolution());
-	event.decays_res_th.push_back(Track_pi->GetThetaResolution());
-	event.decays_res_ph.push_back(Track_pi->GetTransverseAngularResolution());
-	event.decays_cov_mom_xy.push_back(Track_pi->GetMomentumCovarianceVect().x());
-	event.decays_cov_mom_yz.push_back(Track_pi->GetMomentumCovarianceVect().y());
-	event.decays_cov_mom_zx.push_back(Track_pi->GetMomentumCovarianceVect().z());
-	
-	event.decays_res_mom.push_back(Track_pi2->GetMomentumResolutionVect().Mag());
-	event.decays_res_mom_x.push_back(Track_pi2->GetMomentumResolutionVect().X());
-	event.decays_res_mom_y.push_back(Track_pi2->GetMomentumResolutionVect().Y());
-	event.decays_res_mom_z.push_back(Track_pi2->GetMomentumResolutionVect().Z());
-	event.decays_res_mom_t.push_back(Track_pi2->GetTransverseMomentumResolution());
-	event.decays_res_th.push_back(Track_pi2->GetThetaResolution());
-	event.decays_res_ph.push_back(Track_pi2->GetTransverseAngularResolution());
-	event.decays_cov_mom_xy.push_back(Track_pi2->GetMomentumCovarianceVect().x());
-	event.decays_cov_mom_yz.push_back(Track_pi2->GetMomentumCovarianceVect().y());
-	event.decays_cov_mom_zx.push_back(Track_pi2->GetMomentumCovarianceVect().z());
-
-
-
-
-#if SkipGenfit
-	return true;
-#endif
-
+  HypTPCTask& GFTrackCont = HypTPCTask::GetInstance();
 
   HF1( 10, event.MissMass[0] );
   HF1( 11, event.lmass );
@@ -1635,14 +1496,12 @@ dst::DstRead( Int_t ievent )
 			event.ximom_z*event.ximom_z) );
   HF1( 18, event.ppi_dist);
   HF1( 19, event.lpi_dist);
-  
-	HypTPCTask& GFTrackCont = HypTPCTask::GetInstance();
 
   for( Int_t it=0; it<ntTpc; ++it ){
     TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix(it);
     if( !tp ) continue;
-//		if(it != id_p or it != id_pi or it != id_pi2) continue;
-    int dedxPID = Kinematics::HypTPCdEdxPID_temp(event.dEdx[it], event.mom0[it]*event.charge[it]);
+
+    Int_t dedxPID = Kinematics::HypTPCdEdxPID_temp(event.dEdx[it], event.mom0[it]*event.charge[it]);
     event.pid[it]=dedxPID;
 
     std::vector<Int_t> pdgcode;
@@ -1659,9 +1518,7 @@ dst::DstRead( Int_t ievent )
     std::cout<<"# of Tracks in Genfit Track Container != # of TPC Tracks"<<std::endl;
     return true;
   }
-	for(int i=0;i<GFntTpc;++i){
-		
-	}
+
   HF1( 2, event.GFstatus++ );
   HF1( 1, event.status++ );
 
@@ -1687,7 +1544,7 @@ dst::DstRead( Int_t ievent )
   std::vector<Double_t> GFlpi_closedist_container(xi_candidates, qnan);
 
   Int_t gfbest = -1; prev_massdiff = 9999.;
-	for(Int_t candi=0;candi<xi_candidates;candi++){
+  for(Int_t candi=0;candi<xi_candidates;candi++){
 
     Int_t trackid_p = xi_p_container[candi];
     Int_t trackid_pi = xi_pi_container[candi];
@@ -1702,8 +1559,8 @@ dst::DstRead( Int_t ievent )
     Int_t repid_pi = 0; Int_t repid_pi2 = 0;
 
     Double_t GFextrapolation_decays[3];
-    Double_t GFmass_decays[3]; TVector3 GFmom_decays[3]; TVector3 GFlambda_vert; double GFppi_dist=qnan;
- 		cout<<"GF Vertexing p_pi"<<endl;
+    Double_t GFmass2_decays[3] = {qnan, qnan, qnan};
+    TVector3 GFmom_decays[3]; TVector3 GFlambda_vert; double GFppi_dist=qnan;
     if(!GFTrackCont.FindVertex(trackid_p, trackid_pi,
 			       repid_p, repid_pi,
 			       GFextrapolation_decays[0], GFextrapolation_decays[1],
@@ -1718,27 +1575,33 @@ dst::DstRead( Int_t ievent )
     TVector3 GFlambda_mom = GFmom_decays[0] + GFmom_decays[1];
     TLorentzVector GFLlambda_fixed(GFlambda_mom, TMath::Sqrt(GFlambda_mom.Mag()*GFlambda_mom.Mag() + LambdaMass*LambdaMass));
 
+    TVector3 GFxi_vert; Double_t GFlpi_dist = qnan; Double_t GFlambda_tracklen;
+    if(!GFTrackCont.FindVertexXi(trackid_pi2, repid_pi2,
+				 GFlambda_vert, GFlambda_mom, GFlambda_tracklen,
+				 GFextrapolation_decays[2], GFmom_decays[2],
+				 GFlpi_dist, GFxi_vert,
+				 vtx_scan_range)
+       || GFlpi_dist > GFlpi_distcut) continue;
+
+    Double_t GFlambda_tof = Kinematics::CalcTimeOfFlight(GFlambda_mom.Mag(), GFlambda_tracklen, pdg::LambdaMass());
+
     Int_t htofhitid_p; Double_t tracklen_p; Double_t tof; TVector3 pos; TVector3 vtx;
-    Bool_t htofextrapolation_p = GFTrackCont.TPCHTOFTrackMatching(trackid_p, repid_p, event.HtofSeg, event.posHtof,htofhitid_p, tof, tracklen_p, pos, vtx);
+    Bool_t htofextrapolation_p = GFTrackCont.TPCHTOFTrackMatching(trackid_p, repid_p, event.HtofSeg, event.posHtof, htofhitid_p, tof, tracklen_p, pos, vtx);
     if(htofextrapolation_p){
-      GFmass_decays[0] = Kinematics::MassSquare(GFmom_decays[0].Mag(), tracklen_p, event.tHtof[htofhitid_p]);
-      if(GFmass_decays[0] < 0.25) continue;
+      GFmass2_decays[0] = Kinematics::MassSquare(GFmom_decays[0].Mag(),
+						 tracklen_p  - GFextrapolation_decays[0],
+						 event.tHtof[htofhitid_p] - GFlambda_tof);
+      //if(GFmass2_decays[0] < 0.25) continue;
     }
 
     Int_t htofhitid_pi; Double_t tracklen_pi;
     Bool_t htofextrapolation_pi = GFTrackCont.TPCHTOFTrackMatching(trackid_pi, repid_pi,event.HtofSeg, event.posHtof,htofhitid_pi, tof, tracklen_pi, pos, vtx);
     if(htofextrapolation_pi){
-      GFmass_decays[1] = Kinematics::MassSquare(GFmom_decays[1].Mag(), tracklen_pi, event.tHtof[htofhitid_pi]);
-      if(GFmass_decays[1] > 0.25) continue;
+      GFmass2_decays[1] = Kinematics::MassSquare(GFmom_decays[1].Mag(),
+						 tracklen_pi - GFextrapolation_decays[1],
+						 event.tHtof[htofhitid_pi] - GFlambda_tof);
+      //if(GFmass2_decays[1] > 0.25) continue;
     }
-
-    TVector3 GFxi_vert; Double_t GFlpi_dist = qnan; Double_t GFlambda_Ltracklen;
- 		cout<<"GF Vertexing l_pi"<<endl;
-    if(!GFTrackCont.FindVertexXi(trackid_pi2, repid_pi2,
-				 GFlambda_vert, GFlambda_mom, GFlambda_Ltracklen,
-				 GFextrapolation_decays[0], GFmom_decays[2], GFlpi_dist, GFxi_vert,
-				 vtx_scan_range)
-       || GFlpi_dist > GFlpi_distcut) continue;
 
     TLorentzVector GFLpi2(GFmom_decays[2], TMath::Sqrt(GFmom_decays[2].Mag()*GFmom_decays[2].Mag() + PionMass*PionMass));
     TLorentzVector GFLxi = GFLlambda_fixed + GFLpi2;
@@ -1747,8 +1610,10 @@ dst::DstRead( Int_t ievent )
     Int_t htofhitid_pi2; Double_t tracklen_pi2;
     Bool_t htofextrapolation_pi2 = GFTrackCont.TPCHTOFTrackMatching(trackid_pi2, repid_pi2, event.HtofSeg, event.posHtof, htofhitid_pi2, tof, tracklen_pi2, pos, vtx);
     if(htofextrapolation_pi2){
-      GFmass_decays[2] = Kinematics::MassSquare(GFmom_decays[2].Mag(), tracklen_pi2, event.tHtof[htofhitid_pi2]);
-      if(GFmass_decays[2] > 0.25) continue;
+      GFmass2_decays[2] = Kinematics::MassSquare(GFmom_decays[2].Mag(),
+						 tracklen_pi2 - GFextrapolation_decays[2],
+						 event.tHtof[htofhitid_pi2]);
+      //if(GFmass2_decays[2] > 0.25) continue;
     }
 
     event.GFxiflag = true;
@@ -1767,9 +1632,9 @@ dst::DstRead( Int_t ievent )
     GFl_vert_container[candi] = GFlambda_vert;
     GFxi_mass_container[candi] = GFLxi.M();
     GFl_mass_container[candi] = GFLlambda.M();
-    GFp_mass_container[candi] = GFmass_decays[0];
-    GFpi_mass_container[candi] = GFmass_decays[1];
-    GFpi2_mass_container[candi] = GFmass_decays[2];
+    GFp_mass_container[candi] = GFmass2_decays[0];
+    GFpi_mass_container[candi] = GFmass2_decays[1];
+    GFpi2_mass_container[candi] = GFmass2_decays[2];
     GFppi_closedist_container[candi] = GFppi_dist;
     GFlpi_closedist_container[candi] = GFlpi_dist;
 
@@ -1819,7 +1684,7 @@ dst::DstRead( Int_t ievent )
   event.GFlmom_z = GFl_mom_container[gfbest].z();
   event.GFppi_dist = GFppi_closedist_container[gfbest];
 
-  event.GFdecays_mass.resize(3);
+  event.GFdecays_m2.resize(3);
   event.GFdecays_mom.resize(3);
   event.GFdecays_mom_x.resize(3);
   event.GFdecays_mom_y.resize(3);
@@ -1867,29 +1732,26 @@ dst::DstRead( Int_t ievent )
   event.GFpull_pz.resize(3);
 
   for( Int_t j=0; j<3; ++j ){
-		
-		
-		
-		Int_t igf = GFxi_p_id_container[gfbest];
+    Int_t igf = GFxi_p_id_container[gfbest];
     if(j==1) igf = GFxi_pi_id_container[gfbest];
     if(j==2) igf = GFxi_pi2_id_container[gfbest];
 
-    event.GFfitstatus[j] = (Int_t) GFTrackCont.TrackCheck(igf);
-    HF1( 3, event.GFfitstatus[j]);
-    if(!GFTrackCont.TrackCheck(igf)) continue;
-    Int_t nh = GFTrackCont.GetNHits(igf);
     Int_t repid = GFxi_p_rep_container[gfbest];
     if(j==1) repid = GFxi_pi_rep_container[gfbest];
     if(j==2) repid = GFxi_pi2_rep_container[gfbest];
 
+    event.GFfitstatus[j] = (Int_t) GFTrackCont.TrackCheck(igf, repid);
+    HF1( 3, event.GFfitstatus[j]);
+    if(!event.GFfitstatus[j]) continue;
+
+    Int_t nh = GFTrackCont.GetNHits(igf);
     event.GFnhtrack[j] = nh;
     event.GFchisqr[j] = GFTrackCont.GetChi2NDF(igf, repid);
     event.GFcharge[j] = GFTrackCont.GetCharge(igf, repid);
     event.GFtof[j] = GFTrackCont.GetTrackTOF(igf, 0, -1, repid);
     event.GFtracklen[j] = GFTrackCont.GetTrackLength(igf, 0, -1, repid);
     event.GFpval[j] = GFTrackCont.GetPvalue(igf, repid);
-		event.GFpdgcode[j] = GFTrackCont.GetPDGcode(igf, repid);
-		HF1(600,event.GFpval[j]);
+    event.GFpdgcode[j] = GFTrackCont.GetPDGcode(igf, repid);
 
     TVector3 GFmom_decays = GFp_mom_container[gfbest];
     if(j==1) GFmom_decays = GFpi_mom_container[gfbest];
@@ -1899,7 +1761,7 @@ dst::DstRead( Int_t ievent )
     if(j==1) GFmass_decays = GFpi_mass_container[gfbest];
     if(j==2) GFmass_decays = GFpi2_mass_container[gfbest];
 
-    event.GFdecays_mass[j] = GFmass_decays;
+    event.GFdecays_m2[j] = GFmass_decays;
     event.GFdecays_mom[j] = GFmom_decays.Mag();
     event.GFdecays_mom_x[j] = GFmom_decays.x();
     event.GFdecays_mom_y[j] = GFmom_decays.y();
@@ -1938,28 +1800,33 @@ dst::DstRead( Int_t ievent )
     event.GFpull_py[j].resize(nh);
     event.GFpull_pz[j].resize(nh);
 
+    HF1( 600, event.GFpval[j]);
+
     Int_t id = GFxi_p_id_container[gfbest];
     if(j==1) id = GFxi_pi_id_container[gfbest];
     if(j==2) id = GFxi_pi2_id_container[gfbest];
 
+    Int_t ihit = 0;
     TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix( id );
-    for( Int_t ihit=0; ihit<nh; ++ihit ){
-      Int_t layer = (Int_t) event.hitlayer[id][ihit];
-      TPCLTrackHit *helix_point = tp -> GetHitInOrder(ihit);
+    for( Int_t ih=0; ih<tp -> GetNHit(); ++ih ){
+      Int_t layer = (Int_t) event.hitlayer[id][ih];
+      TPCLTrackHit *helix_point = tp -> GetHitInOrder(ih);
+      if(!helix_point -> IsGoodForTracking()) continue;
+
       const TVector3 &hit0 = helix_point -> GetLocalHitPos();
       TVector3 mom0 = helix_point -> GetMomentumHelix(event.GFcharge[j]);
       TVector3 hit = GFTrackCont.GetPos(igf, ihit, repid);
       TVector3 mom = GFTrackCont.GetMom(igf, ihit, repid);
 
-			double residual_[5];
-			double pull_[5];
-			double GFresidual6D[6];
-			double GFresolution6D[6];
-			double GFpull6D[6];
-			TVector3 dumV;
-			double dumd;
-			GFTrackCont.GetTrackPull(igf,event.GFpdgcode[j],dumV,dumd,mom0,hit0,residual_,pull_,GFresidual6D,GFpull6D);		
-
+      Double_t residual_[5];
+      Double_t pull_[5];
+      Double_t GFresidual6D[6];
+      Double_t GFpull6D[6];
+      TVector3 dumV;
+      Double_t dumd;
+      GFTrackCont.GetTrackPull(igf, event.GFpdgcode[j], dumV,
+			       dumd, mom0, hit0, residual_,
+			       pull_, GFresidual6D, GFpull6D);
 
       event.GFlayer[j][ihit] = layer;
       event.GFmom_x[j][ihit] = mom.x();
@@ -1976,34 +1843,36 @@ dst::DstRead( Int_t ievent )
       event.GFresidual_px[j][ihit] = mom.x() - mom0.x();
       event.GFresidual_py[j][ihit] = mom.y() - mom0.y();
       event.GFresidual_pz[j][ihit] = mom.z() - mom0.z();
-   	
-			event.GFresolution_x[j][ihit] = GFresidual6D[0]/GFpull6D[0]; 
-   		event.GFresolution_y[j][ihit] = GFresidual6D[1]/GFpull6D[1]; 
-   		event.GFresolution_z[j][ihit] = GFresidual6D[2]/GFpull6D[2]; 
-   		event.GFresolution_px[j][ihit] = GFresidual6D[3]/GFpull6D[3]; 
-   		event.GFresolution_py[j][ihit] = GFresidual6D[4]/GFpull6D[4]; 
-   		event.GFresolution_pz[j][ihit] = GFresidual6D[5]/GFpull6D[5]; 
-			event.GFpull_x[j][ihit] = GFpull6D[0]; 
-   		event.GFpull_y[j][ihit] = GFpull6D[1]; 
-   		event.GFpull_z[j][ihit] = GFpull6D[2]; 
-   		event.GFpull_px[j][ihit] = GFpull6D[3]; 
-   		event.GFpull_py[j][ihit] = GFpull6D[4]; 
-   		event.GFpull_pz[j][ihit] = GFpull6D[5]; 
-    	HF1(601,event.GFpull_x[j][ihit]);
-    	HF1(602,event.GFpull_y[j][ihit]);
-    	HF1(603,event.GFpull_z[j][ihit]);
-    	HF1(604,event.GFpull_px[j][ihit]);
-    	HF1(605,event.GFpull_py[j][ihit]);
-    	HF1(606,event.GFpull_pz[j][ihit]);
-			if(event.GFpval[j]>0.01){
-				HF1(611,event.GFpull_x[j][ihit]);
-				HF1(612,event.GFpull_y[j][ihit]);
-				HF1(613,event.GFpull_z[j][ihit]);
-				HF1(614,event.GFpull_px[j][ihit]);
-				HF1(615,event.GFpull_py[j][ihit]);
-				HF1(616,event.GFpull_pz[j][ihit]);
-			}
-		} //ihit
+
+      event.GFresolution_x[j][ihit] = GFresidual6D[0]/GFpull6D[0];
+      event.GFresolution_y[j][ihit] = GFresidual6D[1]/GFpull6D[1];
+      event.GFresolution_z[j][ihit] = GFresidual6D[2]/GFpull6D[2];
+      event.GFresolution_px[j][ihit] = GFresidual6D[3]/GFpull6D[3];
+      event.GFresolution_py[j][ihit] = GFresidual6D[4]/GFpull6D[4];
+      event.GFresolution_pz[j][ihit] = GFresidual6D[5]/GFpull6D[5];
+      event.GFpull_x[j][ihit] = GFpull6D[0];
+      event.GFpull_y[j][ihit] = GFpull6D[1];
+      event.GFpull_z[j][ihit] = GFpull6D[2];
+      event.GFpull_px[j][ihit] = GFpull6D[3];
+      event.GFpull_py[j][ihit] = GFpull6D[4];
+      event.GFpull_pz[j][ihit] = GFpull6D[5];
+
+      HF1( 601, event.GFpull_x[j][ihit]);
+      HF1( 602, event.GFpull_y[j][ihit]);
+      HF1( 603, event.GFpull_z[j][ihit]);
+      HF1( 604, event.GFpull_px[j][ihit]);
+      HF1( 605, event.GFpull_py[j][ihit]);
+      HF1( 606, event.GFpull_pz[j][ihit]);
+      if(event.GFpval[j]>0.01){
+	HF1( 611, event.GFpull_x[j][ihit]);
+	HF1( 612, event.GFpull_y[j][ihit]);
+	HF1( 613, event.GFpull_z[j][ihit]);
+	HF1( 614, event.GFpull_px[j][ihit]);
+	HF1( 615, event.GFpull_py[j][ihit]);
+	HF1( 616, event.GFpull_pz[j][ihit]);
+      }
+      ihit++;
+    } //ih
   } //igf
 
   HF1( 30, event.MissMass[0]);
@@ -2016,78 +1885,12 @@ dst::DstRead( Int_t ievent )
   HF1( 37, event.GFximom);
   HF1( 38, event.GFppi_dist);
   HF1( 39, event.GFlpi_dist);
-  HF1( 40, event.GFdecays_mass[0]);
-  HF1( 41, event.GFdecays_mass[1]);
-  HF1( 42, event.GFdecays_mass[2]);
+  HF1( 40, event.GFdecays_m2[0]);
+  HF1( 41, event.GFdecays_m2[1]);
+  HF1( 42, event.GFdecays_m2[2]);
   HF1( 2, event.GFstatus++);
   HF1( 1, event.status++ );
 
-#if 0
-  {
-    Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-    Int_t pid = event.decays_id[0];
-    Double_t p_par[5];
-    p_par[0] = event.helix_cx[pid];
-    p_par[1] = event.helix_cy[pid];
-    p_par[2] = event.helix_z0[pid];
-    p_par[3] = event.helix_r[pid];
-    p_par[4] = event.helix_dz[pid];
-
-    TPCLocalTrackHelix *t_p = TPCAna.GetTrackTPCHelix( pid );
-    std::cout<<"p charge "<<event.charge[pid]<<" "<<t_p -> GetCharge()<<std::endl;
-    for(Int_t i=0;i<event.nhtrack[pid];i++){
-      if(i==0 || i==event.nhtrack[pid]-1){
-	TPCLTrackHit *point = t_p -> GetHitInOrder(i);
-	std::cout<<i<<"/"<<t_p->GetNHit()<<" pos local"<<point -> GetLocalHitPos()<<" cal"<<point -> GetLocalCalPosHelix()<<std::endl;
-	std::cout<<"theta "<<point->GetTheta()<<" mom "<<point->GetMomentumHelix(t_p->GetCharge())<<std::endl;
-	std::cout<<" mom2 "<<t_p->CalcHelixMom(p_par, point->GetTheta())<<std::endl;
-      }
-    }
-
-    Int_t pimid = event.decays_id[1];
-    Double_t pim_par[5];
-    pim_par[0] = event.helix_cx[pimid];
-    pim_par[1] = event.helix_cy[pimid];
-    pim_par[2] = event.helix_z0[pimid];
-    pim_par[3] = event.helix_r[pimid];
-    pim_par[4] = event.helix_dz[pimid];
-
-    TPCLocalTrackHelix *t_pim = TPCAna.GetTrackTPCHelix( pimid );
-    std::cout<<std::endl;
-    std::cout<<"pim charge "<<event.charge[pimid]<<" "<<t_pim -> GetCharge()<<std::endl;
-    for(Int_t i=0;i<event.nhtrack[pimid];i++){
-      if(i==0 || i==event.nhtrack[pimid]-1){
-	TPCLTrackHit *point = t_pim -> GetHitInOrder(i);
-	std::cout<<i<<"/"<<t_pim->GetNHit()<<" pos local"<<point -> GetLocalHitPos()<<" cal"<<point -> GetLocalCalPosHelix()<<std::endl;
-	std::cout<<"theta "<<point->GetTheta()<<" mom "<<point->GetMomentumHelix(t_pim->GetCharge())<<std::endl;
-	std::cout<<" mom2 "<<t_pim->CalcHelixMom(pim_par, point->GetTheta())<<std::endl;
-      }
-    }
-
-    Int_t pim2id = event.decays_id[2];
-    Double_t pim2_par[5];
-    pim2_par[0] = event.helix_cx[pim2id];
-    pim2_par[1] = event.helix_cy[pim2id];
-    pim2_par[2] = event.helix_z0[pim2id];
-    pim2_par[3] = event.helix_r[pim2id];
-    pim2_par[4] = event.helix_dz[pim2id];
-
-    TPCLocalTrackHelix *t_pim2 = TPCAna.GetTrackTPCHelix( pim2id );
-    std::cout<<std::endl;
-    std::cout<<"pim2 charge "<<event.charge[pim2id]<<" "<<t_pim2 -> GetCharge()<<std::endl;
-    for(Int_t i=0;i<event.nhtrack[pim2id];i++){
-      if(i==0 || i==event.nhtrack[pim2id]-1){
-	TPCLTrackHit *point = t_pim2 -> GetHitInOrder(i);
-	std::cout<<i<<"/"<<t_pim2->GetNHit()<<" pos local"<<point -> GetLocalHitPos()<<" cal"<<point -> GetLocalCalPosHelix()<<std::endl;
-	std::cout<<"theta "<<point->GetTheta()<<" mom "<<point->GetMomentumHelix(t_pim2->GetCharge())<<std::endl;
-	std::cout<<" mom2 "<<t_pim2->CalcHelixMom(pim2_par, point->GetTheta())<<std::endl;
-      }
-    }
-
-    std::cout<<" ximass "<<event.ximass<<" lmass "<<event.lmass<<std::endl;
-    std::cout<<" GFximass "<<event.GFximass<<" GFlmass "<<event.GFlmass<<std::endl;
-  }
-#endif
   GFTrackCont.Clear();
   return true;
 }
@@ -2154,32 +1957,27 @@ ConfMan::InitializeHistograms( void )
   HB1( 37, "[GenFit] #Xi Momentum; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
   HB1( 38, "[GenFit] Closest Dist. p#pi;Distance [mm]; Counts [/0.1 mm]", 1000, 0., 100.);
   HB1( 39, "[GenFit] Closest Dist. #Lambda#pi;Distance [mm]; Counts [/0.1 mm]", 1000, 0., 100.);
-  HB1( 40, "[GenFit] p_{#Lambda} Mass; M [GeV/#font[12]{c}^{2}]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 750, 0., 1.5);
-  HB1( 41, "[GenFit] pi_{#Lambda} Mass; M [GeV/#font[12]{c}^{2}]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 750, 0., 1.5);
-  HB1( 42, "[GenFit] pi_{#Xi} Mass; M [GeV/#font[12]{c}^{2}]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 750, 0., 1.5);
+  HB1( 40, "[GenFit] p_{#Lambda} Mass; M^{2} [(GeV/#font[12]{c}^{2})^{2}]; Counts [/0.002 (GeV/#font[12]{c}^{2})^{2}]", 750, 0., 1.5);
+  HB1( 41, "[GenFit] pi_{#Lambda} Mass; M^{2} [(GeV/#font[12]{c}^{2})^{2}]; Counts [/0.002 (GeV/#font[12]{c}^{2})^{2}]", 200, -0.1, 0.3);
+  HB1( 42, "[GenFit] pi_{#Xi} Mass; M^{2} [(GeV/#font[12]{c}^{2})^{2}]; Counts [/0.002 (GeV/#font[12]{c}^{2})^{2}]", 200, 0.1, 0.3);
 
+  HB1( 600, "[Genfit] p-value",1000,0,1);
+  HB1( 601, "[Genfit] x Pull",1000,-5,5);
+  HB1( 602, "[Genfit] y Pull",1000,-5,5);
+  HB1( 603, "[Genfit] z Pull",1000,-5,5);
+  HB1( 604, "[Genfit] p_{x} Pull",1000,-5,5);
+  HB1( 605, "[Genfit] p_{y} Pull",1000,-5,5);
+  HB1( 606, "[Genfit] p_{z} Pull",1000,-5,5);
+  HB1( 611, "[Genfit] x Pull pval>0.01",1000,-5,5);
+  HB1( 612, "[Genfit] y Pull pval>0.01",1000,-5,5);
+  HB1( 613, "[Genfit] z Pull pval>0.01",1000,-5,5);
+  HB1( 614, "[Genfit] p_{x} Pull pval>0.01",1000,-5,5);
+  HB1( 615, "[Genfit] p_{y} Pull pval>0.01",1000,-5,5);
+  HB1( 616, "[Genfit] p_{z} Pull pval>0.01",1000,-5,5);
 
-	HB1(600,"GF p-value",1000,0,1);	
-	HB1(601,"GFx Pull",1000,-5,5);	
-	HB1(602,"GFy Pull",1000,-5,5);	
-	HB1(603,"GFz Pull",1000,-5,5);	
-	HB1(604,"GFp_{x} Pull",1000,-5,5);	
-	HB1(605,"GFp_{y} Pull",1000,-5,5);	
-	HB1(606,"GFp_{z} Pull",1000,-5,5);	
-	HB1(611,"GFx Pull pval>0.01",1000,-5,5);	
-	HB1(612,"GFy Pull pval>0.01",1000,-5,5);	
-	HB1(613,"GFz Pull pval>0.01",1000,-5,5);	
-	HB1(614,"GFp_{x} Pull pval>0.01",1000,-5,5);	
-	HB1(615,"GFp_{y} Pull pval>0.01",1000,-5,5);	
-	HB1(616,"GFp_{z} Pull pval>0.01",1000,-5,5);	
-
-
-
-
-	HB2(1001, "p hit pattern",100,-250,250,100,-250,250); 
-	HB2(1002, "#pi_{#Lambda} hit pattern",100,-250,250,100,-250,250); 
-	HB2(1003, "#pi_{#Xi} hit pattern",100,-250,250,100,-250,250); 
-
+  HB2(1001, "#Xi^{-} decay, p hit pattern",100,-250,250,100,-250,250);
+  HB2(1002, "#Xi^{-} decay, #pi_{#Lambda} hit pattern",100,-250,250,100,-250,250);
+  HB2(1003, "#Xi^{-} decay, #pi_{#Xi} hit pattern",100,-250,250,100,-250,250);
 
   HBTree( "tpc", "tree of DstTPCTracking" );
   tree->Branch( "status", &event.status );
@@ -2217,7 +2015,27 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "path", &event.path );
   tree->Branch( "helix_t", &event.helix_t );
 
-  tree->Branch("ntK18",      &event.ntK18);
+  tree->Branch( "hitlayer", &event.hitlayer );
+  tree->Branch( "hitpos_x", &event.hitpos_x );
+  tree->Branch( "hitpos_y", &event.hitpos_y );
+  tree->Branch( "hitpos_z", &event.hitpos_z );
+  tree->Branch( "calpos_x", &event.calpos_x );
+  tree->Branch( "calpos_y", &event.calpos_y );
+  tree->Branch( "calpos_z", &event.calpos_z );
+  tree->Branch( "residual", &event.residual );
+  tree->Branch( "residual_x", &event.residual_x );
+  tree->Branch( "residual_y", &event.residual_y );
+  tree->Branch( "residual_z", &event.residual_z );
+  tree->Branch( "resolution_x", &event.resolution_x);
+  tree->Branch( "resolution_y", &event.resolution_y);
+  tree->Branch( "resolution_z", &event.resolution_z);
+  tree->Branch( "helix_t", &event.helix_t );
+  tree->Branch( "alpha", &event.alpha);
+  tree->Branch( "pathhit", &event.pathhit);
+  tree->Branch( "track_cluster_de", &event.track_cluster_de);
+  tree->Branch( "track_cluster_mrow", &event.track_cluster_mrow);
+
+  tree->Branch(" ntK18", &event.ntK18);
   tree->Branch( "chisqrK18", &event.chisqrK18);
   tree->Branch( "pK18", &event.pK18);
   tree->Branch( "xtgtK18", &event.xtgtK18);
@@ -2247,7 +2065,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "chisqrKurama", &event.chisqrKurama);
   tree->Branch( "pKurama", &event.pKurama);
   tree->Branch( "qKurama", &event.qKurama);
-  tree->Branch( "m2Kurama", &event.m2Kurama);
+  tree->Branch( "m2Kurama", &event.m2);
   tree->Branch( "xtgtKurama", &event.xtgtKurama);
   tree->Branch( "ytgtKurama", &event.ytgtKurama);
   tree->Branch( "utgtKurama", &event.utgtKurama);
@@ -2294,29 +2112,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "pCalcTPC", &event.pCalcTPC);
   tree->Branch( "pCorrTPC", &event.pCorrTPC);
   tree->Branch( "pCorrDETPC", &event.pCorrDETPC);
-  
-	tree->Branch( "nvtxTpc", &event.nvtxTpc );
-  tree->Branch( "vtx_x", &event.vtx_x );
-  tree->Branch( "vtx_y", &event.vtx_y );
-  tree->Branch( "vtx_z", &event.vtx_z );
-  tree->Branch( "vtx_dist", &event.vtx_dist );
-  tree->Branch( "vtx_angle", &event.vtx_angle );
-  tree->Branch( "vtxid", &event.vtxid );
-  tree->Branch( "vtxmom_theta", &event.vtxmom_theta );
-  tree->Branch( "vtxpos_x", &event.vtxpos_x );
-  tree->Branch( "vtxpos_y", &event.vtxpos_y );
-  tree->Branch( "vtxpos_z", &event.vtxpos_z );
-  tree->Branch( "vtxmom_x", &event.vtxmom_x );
-  tree->Branch( "vtxmom_y", &event.vtxmom_y );
-  tree->Branch( "vtxmom_z", &event.vtxmom_z );
 
   tree->Branch("Lflag", &event.lflag);
   tree->Branch("Xiflag", &event.xiflag);
-  tree->Branch("best", &event.best);
-  tree->Branch("pvalSph", &event.pvalSph);
-  tree->Branch("pvalCart", &event.pvalCart);
-  tree->Branch("pvalXiCart", &event.pvalXiCart);
-  tree->Branch("pvalXiSph", &event.pvalXiSph);
   tree->Branch("XiMass", &event.ximass);
   tree->Branch("XiDecayVtx_x", &event.xidecayvtx_x);
   tree->Branch("XiDecayVtx_y", &event.xidecayvtx_y);
@@ -2325,9 +2123,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("XiMom_y", &event.ximom_y);
   tree->Branch("XiMom_z", &event.ximom_z);
   tree->Branch("XiVtxCloseDist", &event.lpi_dist);
-  
-	tree->Branch("pvalLdCart", &event.pvalLdCart);
-	tree->Branch("pvalLdSph", &event.pvalLdSph);
   tree->Branch("LambdaMass", &event.lmass);
   tree->Branch("LambdaDecayVtx_x", &event.ldecayvtx_x);
   tree->Branch("LambdaDecayVtx_y", &event.ldecayvtx_y);
@@ -2352,8 +2147,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("DecaysMomCov_yz", &event.decays_cov_mom_yz);
   tree->Branch("DecaysMomCov_zx", &event.decays_cov_mom_zx);
 
-
-
   tree->Branch("GFXiflag", &event.GFxiflag);
   tree->Branch("GFXiMass", &event.GFximass);
   tree->Branch("GFXiDecayVtx_x", &event.GFxidecayvtx_x);
@@ -2371,7 +2164,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFLambdaMom_y", &event.GFlmom_y);
   tree->Branch("GFLambdaMom_z", &event.GFlmom_z);
   tree->Branch("GFLambdaVtxCloseDist", &event.GFppi_dist);
-  tree->Branch("GFDecaysMass", &event.GFdecays_mass);
+  tree->Branch("GFDecaysMassSquare", &event.GFdecays_m2);
   tree->Branch("GFDecaysMom", &event.GFdecays_mom);
   tree->Branch("GFDecaysMom_x", &event.GFdecays_mom_x);
   tree->Branch("GFDecaysMom_y", &event.GFdecays_mom_y);
@@ -2574,14 +2367,14 @@ ConfMan::InitializeHistograms( void )
   src.pCalcTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pCalcTPC" );
   src.pCorrTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pCorrTPC" );
   src.pCorrDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pCorrDETPC" );
-  //src.thetaTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "thetaTPC" );
+  src.thetaTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "thetaTPC" );
   //src.thetaCMTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "thetaCMTPC" );
   //src.costCMTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "costCMTPC" );
   src.ubTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "ubTPC" );
   src.vbTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vbTPC" );
   src.usTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "usTPC" );
   src.vsTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vsTPC" );
-	src.nvtxTpc = new TTreeReaderValue<Int_t>(*reader,"nvtxTpc");
+  src.nvtxTpc = new TTreeReaderValue<Int_t>(*reader,"nvtxTpc");
   src.vtx_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_x" );
   src.vtx_y = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_y" );
   src.vtx_z = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_z" );
