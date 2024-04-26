@@ -403,7 +403,6 @@ CorrElossOut(const TVector3& Pout, const TVector3& Xout,
 
   TVector3 CorPout = Pout;
   Double_t mom = Pout.Mag();
-  std::cout<<" corpout "<<CorPout.x()<<" "<<CorPout.y()<<" "<<CorPout.z()<<std::endl;
   if (std::abs(vtx.z()-TARGETcenter) < TARGETsizeZ)
     length =  CalcLengthScat(Pout, Xout, vtx);
   else if (vtx.z() < -TARGETsizeZ-TARGETcenter){
@@ -439,7 +438,6 @@ CorrElossOut(const TVector3& Pout, const TVector3& Xout,
   }
 
   Double_t energy_new = E;
-  std::cout<<"e "<<energy_new<<" mass "<<mass<<std::endl;
   Double_t mom_new = TMath::Sqrt(energy_new*energy_new-mass*mass);
 
   CorPout = mom_new/mom*Pout;
@@ -1045,7 +1043,7 @@ Double_t HypTPCBethe(Double_t *x, Double_t *p){
 Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq){
 
   //Double_t conversion_factor = 10452;
-  Double_t conversion_factor = 11073.3;
+  Double_t conversion_factor = 12015.2;
   Double_t limit = 0.6; //GeV/c
   Double_t mpi = 139.57039;
   Double_t mk  = 493.677;

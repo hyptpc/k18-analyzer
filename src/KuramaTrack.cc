@@ -446,7 +446,16 @@ KuramaTrack::CalcChiSqr(const RKHitPointContainer &hpCont) const
     Double_t wp   = thp->GetWirePosition();
     Double_t ss   = wp+(hitpos-wp)/coss;
     Double_t res  = (ss-calpos)*coss;
+#if 0 //Checking L/R ambiguity again with RK tracking result.
+    Double_t ss_pair   = wp-(hitpos-wp)/coss;
+    Double_t res_pair  = (ss_pair-calpos)*coss;
+    if(res_pair*res_pair<res*res){
+      res = res_pair;
+      thp->SetLocalHitPos(wp - (hitpos-wp)/coss);
+    }
+#endif
     chisqr += w*res*res;
+
     ++n;
   }
   chisqr /= Double_t(n-5);

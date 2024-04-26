@@ -29,6 +29,7 @@ private:
 
 public:
   Bool_t          IsHoneycomb() const { return m_dcltrack_hit->IsHoneycomb(); }
+  void            SetLocalHitPos(Double_t pos) { m_dcltrack_hit->SetLocalHitPos(pos); }
   void            SetCalGMom(const TVector3 &mom) { m_cal_global_mom = mom; }
   void            SetCalGPos(const TVector3 &pos) { m_cal_global_pos = pos; }
   void            SetCalLPos(Double_t pos) { m_cal_local_pos=pos; }
