@@ -45,7 +45,9 @@ struct Event
   // VMEEASIROC raw
   Int_t    vmeeasiroc_nhits[NumOfPlaneVMEEASIROC];
   Int_t    vmeeasiroc_hitpat[NumOfPlaneVMEEASIROC][NumOfSegVMEEASIROC];
-  Double_t vmeeasiroc_tdc[NumOfPlaneVMEEASIROC][NumOfSegVMEEASIROC][MaxDepth];
+  Double_t vmeeasiroc_tdc_l[NumOfPlaneVMEEASIROC][NumOfSegVMEEASIROC][MaxDepth];
+  Double_t vmeeasiroc_tdc_t[NumOfPlaneVMEEASIROC][NumOfSegVMEEASIROC][MaxDepth];
+  Double_t vmeeasiroc_tot[NumOfPlaneVMEEASIROC][NumOfSegVMEEASIROC][MaxDepth];
   Double_t vmeeasiroc_adc_high[NumOfPlaneVMEEASIROC][NumOfSegVMEEASIROC];
   Double_t vmeeasiroc_adc_low[NumOfPlaneVMEEASIROC][NumOfSegVMEEASIROC];
 
@@ -69,7 +71,9 @@ Event::clear()
       vmeeasiroc_adc_high[p][seg] = qnan;
       vmeeasiroc_adc_low[p][seg] = qnan;
       for(Int_t i=0; i<MaxDepth; i++){
-	vmeeasiroc_tdc[p][seg][i] = qnan;
+	vmeeasiroc_tdc_l[p][seg][i] = qnan;
+	vmeeasiroc_tdc_t[p][seg][i] = qnan;
+	vmeeasiroc_tot[p][seg][i] = qnan;
       }
     }
   }
@@ -127,7 +131,6 @@ ProcessingNormal()
 
   // if(trigger_flag[trigger::kSpillEnd])
   //   return true;
-
   HF1(1, 1);
 
   ////////// VMEEASIROC
@@ -144,12 +147,31 @@ ProcessingNormal()
     HF1(VMEEASIROCHid+plane*1000+9, adc_low);
     HF2(VMEEASIROCHid+plane*1000+15, seg, adc_high);
     HF2(VMEEASIROCHid+plane*1000+17, seg, adc_low);
-    for(Int_t i=0, n=hit->GetSizeTdcLeading(); i<n; ++i){
-      auto tdc = hit->GetTdc(U, i);
-      event.vmeeasiroc_tdc[plane][seg][i] = tdc;
+    Int_t nhit_l = hit->GetSizeTdcLeading();
+    for(Int_t i=0; i<nhit_l; ++i){
+      auto tdc = hit->GetTdcLeading(U, i);
+      event.vmeeasiroc_tdc_l[plane][seg][i] = tdc;
       HF1(VMEEASIROCHid+plane*1000+3, tdc);
       HF2(VMEEASIROCHid+plane*1000+11, seg, tdc);
       // HF1(AFTHid+plane*1000+seg+100+ud*100, tdc);
+    }
+    Int_t nhit_t = hit->GetSizeTdcTrailing();
+    for(Int_t i=0; i<nhit_t; ++i){
+      auto tdc = hit->GetTdcTrailing(U, i);
+      event.vmeeasiroc_tdc_t[plane][seg][i] = tdc;
+      HF1(VMEEASIROCHid+plane*1000+4, tdc);
+      HF2(VMEEASIROCHid+plane*1000+12, seg, tdc);
+      // HF1(AFTHid+plane*1000+seg+100+ud*100, tdc);
+    }
+    if( nhit_l == nhit_t ){
+      for( Int_t i=0; i<nhit_l; ++i ){
+	auto tdc_l = hit->GetTdcLeading(U, i);
+	auto tdc_t = hit->GetTdcTrailing(U, i);
+	auto tot = tdc_l - tdc_t;
+	event.vmeeasiroc_tot[plane][seg][i] = tot;
+	HF1(VMEEASIROCHid+plane*1000+5, tot);
+	HF2(VMEEASIROCHid+plane*1000+13, seg, tot);
+      }
     }
   }
 
@@ -244,7 +266,9 @@ ConfMan::InitializeHistograms()
 	NumOfSegVMEEASIROC, 0., NumOfSegVMEEASIROC);
     HB1(VMEEASIROCHid+plane*1000+2, Form("VMEEASIROC Hitpat Plane#%d", plane),
 	NumOfSegVMEEASIROC, 0., NumOfSegVMEEASIROC);
-    HB1(VMEEASIROCHid+plane*1000+3, Form("VMEEASIROC Tdc Plane#%d", plane),
+    HB1(VMEEASIROCHid+plane*1000+3, Form("VMEEASIROC Tdc-l Plane#%d", plane),
+	NbinTdc, MinTdc, MaxTdc);
+    HB1(VMEEASIROCHid+plane*1000+4, Form("VMEEASIROC Tdc-t Plane#%d", plane),
 	NbinTdc, MinTdc, MaxTdc);
     HB1(VMEEASIROCHid+plane*1000+5, Form("VMEEASIROC Tot Plane#%d", plane),
 	NbinTdc, MinTdc, MaxTdc);
@@ -252,7 +276,9 @@ ConfMan::InitializeHistograms()
 	NbinAdc, MinAdc, MaxAdc);
     HB1(VMEEASIROCHid+plane*1000+9, Form("VMEEASIROC AdcLow Plane#%d", plane),
 	NbinAdc, MinAdc, MaxAdc);
-    HB2(VMEEASIROCHid+plane*1000+11, Form("VMEEASIROC Tdc %%Seg Plane#%d", plane),
+    HB2(VMEEASIROCHid+plane*1000+11, Form("VMEEASIROC Tdc-l %%Seg Plane#%d", plane),
+	NumOfSegVMEEASIROC, 0., NumOfSegVMEEASIROC, NbinTdc, MinTdc, MaxTdc);
+    HB2(VMEEASIROCHid+plane*1000+12, Form("VMEEASIROC Tdc-t %%Seg Plane#%d", plane),
 	NumOfSegVMEEASIROC, 0., NumOfSegVMEEASIROC, NbinTdc, MinTdc, MaxTdc);
     HB2(VMEEASIROCHid+plane*1000+13, Form("VMEEASIROC Tot %%Seg Plane#%d", plane),
 	NumOfSegVMEEASIROC, 0., NumOfSegVMEEASIROC, NbinTot, MinTot, MaxTot);
@@ -273,13 +299,19 @@ ConfMan::InitializeHistograms()
 	       Form("vmeeasiroc_nhits[%d]/I", NumOfPlaneVMEEASIROC));
   tree->Branch("vmeeasiroc_hitpat", event.vmeeasiroc_hitpat,
                Form("vmeeasiroc_hitpat[%d][%d]/I", NumOfPlaneVMEEASIROC, NumOfSegVMEEASIROC));
+  tree->Branch("vmeeasiroc_tdc_l", event.vmeeasiroc_tdc_l,
+               Form("vmeeasiroc_tdc_l[%d][%d][%d]/D",
+                    NumOfPlaneVMEEASIROC, NumOfSegVMEEASIROC, MaxDepth));
+  tree->Branch("vmeeasiroc_tdc_t", event.vmeeasiroc_tdc_t,
+               Form("vmeeasiroc_tdc_t[%d][%d][%d]/D",
+                    NumOfPlaneVMEEASIROC, NumOfSegVMEEASIROC, MaxDepth));
+  tree->Branch("vmeeasiroc_tot", event.vmeeasiroc_tot,
+               Form("vmeeasiroc_tot[%d][%d][%d]/D",
+                    NumOfPlaneVMEEASIROC, NumOfSegVMEEASIROC, MaxDepth));
   tree->Branch("vmeeasiroc_adc_high", event.vmeeasiroc_adc_high,
                Form("vmeeasiroc_adc_high[%d][%d]/D", NumOfPlaneVMEEASIROC, NumOfSegVMEEASIROC));
   tree->Branch("vmeeasiroc_adc_low", event.vmeeasiroc_adc_low,
                Form("vmeeasiroc_adc_low[%d][%d]/D", NumOfPlaneVMEEASIROC, NumOfSegVMEEASIROC));
-  tree->Branch("vmeeasiroc_tdc", event.vmeeasiroc_tdc,
-               Form("vmeeasiroc_tdc[%d][%d][%d]/D",
-                    NumOfPlaneVMEEASIROC, NumOfSegVMEEASIROC, MaxDepth));
 
   // HPrint();
   return true;

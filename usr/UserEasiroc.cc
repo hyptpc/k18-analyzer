@@ -88,7 +88,7 @@ struct Event
   Double_t aft_adc_low[NumOfPlaneAFT][NumOfSegAFT][kUorD];
   Double_t aft_ltime[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
   Double_t aft_ttime[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
-  Double_t aft_tot[NumOfSegBFT][NumOfSegAFT][kUorD][MaxDepth];
+  Double_t aft_tot[NumOfPlaneAFT][NumOfSegAFT][kUorD][MaxDepth];
 
   // AFT normalized
   Double_t aft_mt[NumOfPlaneAFT][NumOfSegAFT][MaxDepth];
@@ -446,7 +446,7 @@ ProcessingNormal()
 
   ////////// AFT
   for(const auto& hit: rawData.GetHodoRawHC("AFT")){
-    // hit->Print();
+    //    hit->Print();
     Int_t plane = hit->PlaneId();
     Int_t seg = hit->SegmentId();
     for(Int_t ud=0; ud<kUorD; ++ud){
@@ -467,7 +467,6 @@ ProcessingNormal()
       }
     }
   }
-
   hodoAna.DecodeHits<FiberHit>("AFT");
   for(Int_t i=0, n=hodoAna.GetNHits("AFT"); i<n; ++i){
     const auto& hit = hodoAna.GetHit<FiberHit>("AFT", i);
