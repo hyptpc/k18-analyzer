@@ -521,10 +521,13 @@ ProcessingNormal()
   //****************** RawData
 
   // Trigger Flag
+  rawData.DecodeHits("TFlag");
   std::bitset<NumOfSegTrig> trigger_flag;
   for(const auto& hit: rawData.GetHodoRawHC("TFlag")){
+  //for(const auto& hit: rawData.GetHodoRawHitContainer("TFlag")){
     Int_t seg = hit->SegmentId();
     Int_t tdc = hit->GetTdc();
+    //    std::cout<<"TFlag, seg:"<<seg<<", tdc:"<<tdc<<std::endl;
     if(tdc > 0){
       event.trigpat[trigger_flag.count()] = seg;
       event.trigflag[seg] = tdc;
