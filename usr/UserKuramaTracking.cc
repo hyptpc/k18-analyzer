@@ -36,6 +36,16 @@ const auto& gUnpacker = GUnpacker::get_instance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& zTOF = gGeom.LocalZ("TOF");
+
+const Int_t &IdHTOF = gGeom.DetectorId("VPHTOF");
+const Double_t &zHTOF = gGeom.LocalZ("VPHTOF");
+const Int_t &IdVPTPC1 = gGeom.DetectorId("VPTPC1");
+const Double_t& zVPTPC1 = gGeom.LocalZ("VPTPC1");
+const Double_t& zVPTPC2 = gGeom.LocalZ("VPTPC2");
+const Double_t& zVPTPC3 = gGeom.LocalZ("VPTPC3");
+const Double_t& zVPTPC4 = gGeom.LocalZ("VPTPC4");
+const Double_t& zVPTPC5 = gGeom.LocalZ("VPTPC5");
+const Int_t &IdVP1 = gGeom.DetectorId("VP1");
 }
 
 //_____________________________________________________________________________
@@ -140,6 +150,15 @@ struct Event
   Double_t resP[MaxHits];
   Double_t vpx[NumOfLayersVP];
   Double_t vpy[NumOfLayersVP];
+  Double_t vppx[NumOfLayersVP];
+  Double_t vppy[NumOfLayersVP];
+  Double_t vppz[NumOfLayersVP];
+  Double_t vpxtpc[MaxHits][NumOfLayersVP];
+  Double_t vpytpc[MaxHits][NumOfLayersVP];
+  Double_t vpztpc[MaxHits][NumOfLayersVP];
+  Double_t vpxhtof[MaxHits];
+  Double_t vpyhtof[MaxHits];
+  Double_t vpzhtof[MaxHits];
 
   Double_t xtgtKurama[MaxHits];
   Double_t ytgtKurama[MaxHits];
@@ -167,7 +186,26 @@ struct Event
   Double_t tofua[NumOfSegTOF];
   Double_t tofda[NumOfSegTOF];
 
-  void clear();
+  // For TPC + Kurama RK
+  Int_t nh[MaxHits];
+  Double_t xout[MaxHits];
+  Double_t yout[MaxHits];
+  Double_t zout[MaxHits];
+  Double_t pxout[MaxHits];
+  Double_t pyout[MaxHits];
+  Double_t pzout[MaxHits];
+  Double_t xtof[MaxHits];
+  Double_t ytof[MaxHits];
+  Double_t ztof[MaxHits];
+  Double_t pxtof[MaxHits];
+  Double_t pytof[MaxHits];
+  Double_t pztof[MaxHits];
+  Int_t layer[MaxHits][22];
+  Double_t wire[MaxHits][22];
+  Double_t localhitpos[MaxHits][22];
+  Double_t wpos[MaxHits][22];
+  
+	void clear();
 };
 
 //_____________________________________________________________________________
@@ -191,6 +229,20 @@ Event::clear()
   for(Int_t i = 0; i<NumOfLayersVP; ++i){
     vpx[i] = qnan;
     vpy[i] = qnan;
+    vppx[i] = qnan;
+    vppy[i] = qnan;
+    vppz[i] = qnan;
+  }
+
+  for(Int_t it=0; it<MaxHits; ++it){
+    vpxhtof[it] = qnan;
+    vpyhtof[it] = qnan;
+    vpzhtof[it] = qnan;
+    for(Int_t il = 0; il<NumOfLayersVP; ++il){
+      vpxtpc[it][il] = qnan;
+      vpytpc[it][il] = qnan;
+      vpztpc[it][il] = qnan;
+    }
   }
 
   for(Int_t it=0; it<NumOfSegTrig; it++){
@@ -257,6 +309,28 @@ Event::clear()
     tofsegKurama[it] = qnan;
   }
 
+  for(Int_t it=0; it<MaxHits; it++){
+    nh[it] = qnan;
+    xout[it] = qnan;
+    yout[it] = qnan;
+    zout[it] = qnan;
+    pxout[it] = qnan;
+    pyout[it] = qnan;
+    pzout[it] = qnan;
+    xtof[it] = qnan;
+    ytof[it] = qnan;
+    ztof[it] = qnan;
+    pxtof[it] = qnan;
+    pytof[it] = qnan;
+    pztof[it] = qnan;
+
+    for(Int_t i=0; i<NumOfLayersSdcIn+NumOfLayersSdcOut+4; ++i){
+      layer[it][i] = -1;
+      wire[it][i] = qnan;
+      localhitpos[it][i] = qnan;
+      wpos[it][i] = qnan;
+    }
+  }
   for(Int_t i=0; i<NumOfLayersSdcIn+NumOfLayersSdcOut+4; ++i){
     resL[i].clear();
     resG[i].clear();
@@ -762,12 +836,33 @@ UserKuramaTracking::ProcessingNormal()
     if(ntKurama == 1){
       for(Int_t l = 0; l<NumOfLayersVP; ++l){
 	Double_t x, y;
-	track->GetTrajectoryLocalPosition(21 + l, x, y);
+	TVector3 Mom;
+	track->GetTrajectoryLocalPositionMomentum(IdVP1 + l, x, y,Mom);
 	event.vpx[l] = x;
 	event.vpy[l] = y;
+	event.vppx[l] = Mom.X();
+	event.vppy[l] = Mom.Y();
+	event.vppz[l] = Mom.Z();
       }// for(l)
     }
-    const auto& posTof = track->TofPos();
+    Double_t x, y;
+    for(Int_t l = 0; l<NumOfLayersVPTPC; ++l){
+      track->GetTrajectoryLocalPosition(IdVPTPC1 + l, x, y);
+      event.vpxtpc[i][l] = x;
+      event.vpytpc[i][l] = y;
+    }// for(l)
+    event.vpztpc[i][0] = zVPTPC1;
+    event.vpztpc[i][1] = zVPTPC2;
+    event.vpztpc[i][2] = zVPTPC3;
+    event.vpztpc[i][3] = zVPTPC4;
+    event.vpztpc[i][4] = zVPTPC5;
+
+    track->GetTrajectoryLocalPosition(IdHTOF, x, y);
+    event.vpxhtof[i] = x;
+    event.vpyhtof[i] = y;
+    event.vpzhtof[i] = zHTOF;
+    
+		const auto& posTof = track->TofPos();
     const auto& momTof = track->TofMom();
     event.xtofKurama[i] = posTof.x();
     event.ytofKurama[i] = posTof.y();
@@ -825,8 +920,31 @@ UserKuramaTracking::ProcessingNormal()
       std::cout.precision(pre_precision);
 # endif
     }
+    
+		static const auto gposTOFDX = gGeom.GetGlobalPosition("TOF-DX");
+    const Double_t xOut = track->GetLocalTrackOut()->GetX(gposTOFDX.z());
+    const Double_t yOut = track->GetLocalTrackOut()->GetY(gposTOFDX.z());
+    const Double_t uOut = track->GetLocalTrackOut()->GetU0();
+    const Double_t vOut = track->GetLocalTrackOut()->GetV0();
+    const Double_t pzOut = track->GetInitialMomentum()/std::sqrt(1.+uOut*uOut+vOut*vOut);
+    const ThreeVector posOut(xOut, yOut, gposTOFDX.z());
+    const ThreeVector momOut(pzOut*uOut, pzOut*vOut, pzOut);
 
-    for(Int_t j=0; j<nh; ++j){
+    event.nh[i]=nh;
+    event.xout[i]=posOut.x();
+    event.yout[i]=posOut.y();
+    event.zout[i]=posOut.z();
+    event.pxout[i]=momOut.x();
+    event.pyout[i]=momOut.y();
+    event.pzout[i]=momOut.z();
+    event.xtof[i]=posTof.x();
+    event.ytof[i]=posTof.y();
+    event.ztof[i]=posTof.z();
+    event.pxtof[i]=momTof.x();
+    event.pytof[i]=momTof.y();
+    event.pztof[i]=momTof.z();
+    
+		for(Int_t j=0; j<nh; ++j){
       TrackHit *hit=track->GetHit(j);
       if(!hit) continue;
       Int_t layerId = hit->GetLayer();
@@ -848,6 +966,10 @@ UserKuramaTracking::ProcessingNormal()
       HF1(100*layerId+13, dl);
       HF1(100*layerId+14, pos);
 
+      event.layer[i][j] = hit->GetLayer();
+      event.wire[i][j] = wire;
+      event.localhitpos[i][j] = lhit -> GetLocalHitPos();
+      event.wpos[i][j] = wp;
       if(nh>17 && q<=0. && chisqr<200.){
       	HF1(100*layerId+15, res);
 	HF2(100*layerId+16, pos, res);
@@ -1316,6 +1438,15 @@ ConfMan:: InitializeHistograms()
 
   tree->Branch("vpx",          event.vpx,          Form("vpx[%d]/D", NumOfLayersVP));
   tree->Branch("vpy",          event.vpy,          Form("vpy[%d]/D", NumOfLayersVP));
+  tree->Branch("vppx",          event.vppx,          Form("vppx[%d]/D", NumOfLayersVP));
+  tree->Branch("vppy",          event.vppy,          Form("vppy[%d]/D", NumOfLayersVP));
+  tree->Branch("vppz",          event.vppz,          Form("vppz[%d]/D", NumOfLayersVP));
+  tree->Branch("vpxtpc",       event.vpxtpc,       Form("vpxtpc[ntKurama][%d]/D", NumOfLayersVP));
+  tree->Branch("vpytpc",       event.vpytpc,       Form("vpytpc[ntKurama][%d]/D", NumOfLayersVP));
+  tree->Branch("vpztpc",       event.vpztpc,       Form("vpztpc[ntKurama][%d]/D", NumOfLayersVP));
+  tree->Branch("vpxhtof",      event.vpxhtof,      "vpxhtof[ntKurama]/D");
+  tree->Branch("vpyhtof",      event.vpyhtof,      "vpyhtof[ntKurama]/D");
+  tree->Branch("vpzhtof",      event.vpzhtof,      "vpzhtof[ntKurama]/D");
   
   event.resL.resize(NumOfLayersSdcIn+NumOfLayersSdcOut+4);
   event.resG.resize(NumOfLayersSdcIn+NumOfLayersSdcOut+4);
@@ -1354,6 +1485,24 @@ ConfMan:: InitializeHistograms()
   tree->Branch("ddeTofSeg", event.ddeTofSeg, Form("ddeTofSeg[%d]/D", NumOfSegTOF));
   tree->Branch("tofua",     event.tofua,     Form("tofua[%d]/D", NumOfSegTOF));
   tree->Branch("tofda",     event.tofda,     Form("tofda[%d]/D", NumOfSegTOF));
+  
+	tree->Branch("nh", event.nh, "[ntKurama]/I");
+  tree->Branch("xout", event.xout, "[ntKurama]/D");
+  tree->Branch("yout", event.yout, "[ntKurama]/D");
+  tree->Branch("zout", event.zout, "[ntKurama]/D");
+  tree->Branch("pxout", event.pxout, "[ntKurama]/D");
+  tree->Branch("pyout", event.pyout, "[ntKurama]/D");
+  tree->Branch("pzout", event.pzout, "[ntKurama]/D");
+  tree->Branch("xtof", event.xtof, "[ntKurama]/D");
+  tree->Branch("ytof", event.ytof, "[ntKurama]/D");
+  tree->Branch("ztof", event.ztof, "[ntKurama]/D");
+  tree->Branch("pxtof", event.pxtof, "[ntKurama]/D");
+  tree->Branch("pytof", event.pytof, "[ntKurama]/D");
+  tree->Branch("pztof", event.pztof, "[ntKurama]/D");
+  tree->Branch("layer", event.layer, "[ntKurama][22]/I");
+  tree->Branch("wire", event.wire, "[ntKurama][22]/D");
+  tree->Branch("localhitpos", event.localhitpos, "[ntKurama][22]/D");
+  tree->Branch("wpos", event.wpos, "[ntKurama][22]/D");
 
   HPrint();
   return true;

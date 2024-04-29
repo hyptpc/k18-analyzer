@@ -3124,13 +3124,22 @@ TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Do
     p_z = p_t*cos(t);
 
     Cov(px,pz,py) = J V(p_t,t,dZ)J^T
-    **Note! Cov(pt,t) = res_pt*res_t, because res_t ~ res_pt!
-  */
-  Double_t cov_pt_t = MomScale * PhiScale * GetTransverseMomentumAngularCovariance(t);
+    **Note! Cov(pt,t) = res_pt*res_t, because res_t ~ res_pt! 
+
+             f
+		 J = x| dx/df|
+		
+		    p_t    t     dZ	
+    px| sin  pt*cos   0 |;
+  J=py|  dZ    0     pt |;
+    pz| cos -pt*sin   0 |;
+ */
+	
+	Double_t cov_pt_t = MomScale * PhiScale * GetTransverseMomentumAngularCovariance(t);
   Double_t V[3][3] =
-    { Vp_t,     cov_pt_t,  0,
+    { Vp_t,   cov_pt_t,    0,
       cov_pt_t, Vt,        0,
-      0,        0,         VdZ};
+      0,         0,       VdZ};
   Double_t J[3][3] =
     { sin(t),   p_t*cos(t), 0,
       m_dz,     0,          p_t,
@@ -3161,7 +3170,7 @@ TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Do
   Double_t Vpx = JVJT[0][0];
   Double_t Vpy = JVJT[1][1];
   Double_t Vpz = JVJT[2][2];
-  if(Vpx<0 || Vpy<0 || Vpz < 0 || isnan(Vpx) || isnan(Vpy) || isnan(Vpz)){
+  if(Vpx<0 or Vpy<0 or Vpz < 0 or isnan(Vpx) or isnan(Vpy) or isnan(Vpz)){
     std::cout<<Form("MomVar = (%g,%g,%g)",Vpx,Vpy,Vpz)<<std::endl;
     std::cout<<Form("dPt, dt,ddZ = (%g,%g,%g)",dp_t,dt,ddZ)<<std::endl;
   }
@@ -3171,7 +3180,6 @@ TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Do
 //_____________________________________________________________________________
 TVector3
 TPCLocalTrackHelix::GetMomentumResolutionVect(Int_t i, Double_t MomScale, Double_t PhiScale, Double_t dZScale){
-
   Double_t t = GetHitInOrder(i) -> GetTheta();
   return GetMomentumResolutionVectT(t, MomScale, PhiScale, dZScale);
 }
@@ -3329,7 +3337,7 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
 //_____________________________________________________________________________
 Double_t
 TPCLocalTrackHelix::GetTransverseAngularResolution(Double_t t, Double_t sig0){
-
+	//Transverse Angle Definition: atan2(pz,px);
   Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
   Double_t pt = m_r*(tpc::ConstC*B)*0.001;
   Double_t dp = GetTransverseMomentumResolution();
