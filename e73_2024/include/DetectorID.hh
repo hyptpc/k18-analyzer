@@ -2,6 +2,7 @@
 #define DETECTOR_ID_HH
 
 #include <iostream>
+#include <Rtypes.h>
 
 // Counters ___________________________________________________________
 const int DetIdCDH    =   0;
@@ -23,6 +24,8 @@ const int DetIdBVC    =  33;
 const int DetIdPC     =  35;
 const int DetIdIH     =  42;
 const int DetIdVFT    =  53;
+
+const Int_t NumOfSegAC = 1;
 
 const int DetIdPbG    =  29;
 const int DetIdPbF2   =  30;
@@ -55,6 +58,7 @@ const int DetIdBD     =  90;
 const int DetIdVmeRm     =  81;
 const int DetIdScaler    =  91;
 const int DetIdTrigFlag  =  99;
+const Int_t NumOfSegTrigFlag = 32;
 
 // Chambers
 const int DetIdCDC    = 100;

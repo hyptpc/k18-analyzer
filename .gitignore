@@ -16,3 +16,4 @@ bin
 lib
 .build
 usr
+Makefile

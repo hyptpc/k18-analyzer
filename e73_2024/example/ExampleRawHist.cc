@@ -77,8 +77,8 @@ ProcessNormal()
       int seg = raw->SegmentId();
       TString tmpname="TriggerFlag";
       for(int it=0;it<ntu;it++){
-	double tu  = raw->GetLeading(it);
-	hist::H1(Form("%s_TDC_%d",tmpname.Data(),seg),tu,mtdcbins);
+	double tu = raw->GetLeading(it);
+	hist::H1(Form("%s_TDC_%d", tmpname.Data(),seg), tu, mtdcbins);
       }
       if(ntu>0) {
 	hist::H1(Form("%s_Pat",tmpname.Data()),seg,patbins);
