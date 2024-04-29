@@ -889,3 +889,20 @@ KuramaTrack::GetTrajectoryLocalPosition(Int_t layer,
     return false;
   }
 }
+Bool_t
+KuramaTrack::GetTrajectoryLocalPositionMomentum(Int_t layer,
+                                        Double_t& x, Double_t& y, TVector3& Mom) const
+{
+  try {
+    const RKcalcHitPoint& HP   = m_HitPointCont.HitPointOfLayer(layer);
+    const ThreeVector&    gpos = HP.PositionInGlobal();
+    ThreeVector lpos = gGeom.Global2LocalPos(layer,gpos);
+    x = lpos.x();
+    y = lpos.y();
+    Mom = HP.MomentumInGlobal(); 
+		return true;
+  }
+  catch(const std::out_of_range&) {
+    return false;
+  }
+}

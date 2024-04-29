@@ -160,7 +160,8 @@ struct Event
   std::vector<Double_t> vtgtKurama;
   std::vector<Double_t> thetaKurama;
   std::vector<Double_t> phiKurama;
-  std::vector<std::vector<Double_t>> xvpKurama;
+
+	std::vector<std::vector<Double_t>> xvpKurama;
   std::vector<std::vector<Double_t>> yvpKurama;
   std::vector<std::vector<Double_t>> zvpKurama;
   std::vector<Double_t> xhtofKurama;
