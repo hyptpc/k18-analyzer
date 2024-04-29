@@ -14,7 +14,7 @@
 #include "TPCHit.hh"
 #include "TPCCluster.hh"
 #include "TPCLTrackHit.hh"
-
+#include "TPCPadHelper.hh"
 class TPCHit;
 class TPCCluster;
 
@@ -149,7 +149,7 @@ public:
   Double_t GetResolutionY(Int_t i);
 
   TVector3 GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale);
-  TVector3 GetMomentumResolutionVect(Int_t i, Double_t MomScale, Double_t PhiScale, Double_t dZScale);
+  TVector3 GetMomentumResolutionVect(Int_t i, Double_t MomScale = tpc::MomentumScale, Double_t PhiScale = tpc::PhiScale, Double_t dZScale= tpc::dZScale);
   TVector3 GetMomentumResolutionVect();
   TVector3 GetMomentumCovarianceVectT(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale);
   TVector3 GetMomentumCovarianceVect(Int_t i, Double_t MomScale, Double_t PhiScale, Double_t dZScale);
