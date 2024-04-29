@@ -155,6 +155,11 @@ class RunlistManager(metaclass=classimpl.Singleton):
       return None
 
   #____________________________________________________________________________
+  def get_run_list(self):
+    ''' Get run list. '''
+    return self.__runlist
+
+  #____________________________________________________________________________
   def get_tag(self):
     ''' Get tag (filehead of run list yaml). '''
     return self.__basename
@@ -389,6 +394,8 @@ class RunlistManager(metaclass=classimpl.Singleton):
       # else:
       #   logger.error('Cannot decide buffer file path')
       #   exit(1)
+      if 'fig' in item[1] and os.path.isdir(item[1]['fig']):
+        run['fig'] = item[1]['fig']
       self.__runlist.append(run)
       self.__keys.append(run['key'])
     os.chdir(self.__work_dir)
