@@ -195,6 +195,7 @@ struct Event
   std::vector<Int_t> raw_row;
 
   Int_t nclTpc;
+  Int_t remain_nclTpc;
   std::vector<Double_t> cluster_x;
   std::vector<Double_t> cluster_y;
   std::vector<Double_t> cluster_z;
@@ -553,6 +554,7 @@ struct Event
     raw_row.clear();
 
     nclTpc = 0;
+    remain_nclTpc = 0;
     cluster_x.clear();
     cluster_y.clear();
     cluster_z.clear();
@@ -989,33 +991,19 @@ const Double_t vb_off = 0.000;
   {
     //Angular dependence correction
     Double_t pCorr = pOrg;
-#if 0
-    Double_t par_dxdz[4] = {0.0018862, 0.0773571, 0.850594, 2.40498};
-    Double_t par_dydz[5] = {-0.00873693, -0.00682061, 2.01249, -2.30144, -59.5173};
+#if 1
+    //Double_t par_dxdz[5] = {0}; Double_t par_dydz[5] = {0};
+    Double_t par_dxdz[4] = {0.00275904, -0.0109868, -0.297941, -0.450059};
+    Double_t par_dydz[5] = {-0.00589528, -0.0279985, 0.878368, 2.32815, 18.2985};
 
-    if(u<-0.285) pCorr -= -0.0067444;
-    else if(u>0.035) pCorr -= 0.0057388;
+    if(u<-0.285) pCorr -= -0.0010442;
+    else if(u>0.035) pCorr -= 0.00883752;
     else{
       for(Int_t i=0; i<4; ++i) pCorr -= par_dxdz[i]*TMath::Power(u, i);
     }
 
-    if(v<-0.135) pCorr -= 0.0147552;
-    else if(v>0.105) pCorr -= 0.00283606;
-    else{
-      for(Int_t i=0; i<5; ++i) pCorr -= par_dydz[i]*TMath::Power(v, i);
-    }
-#else //+0.07 T
-    Double_t par_dxdz[4] = {0.00442601, 0.0519612, 0.460214, 1.57326};
-    Double_t par_dydz[5] = {-0.00637859, -0.0384845, 1.54179, 2.11753, -27.7824};
-
-    if(u<-0.285) pCorr -= -0.00550492;
-    else if(u>0.035) pCorr -= 0.0107927;
-    else{
-      for(Int_t i=0; i<4; ++i) pCorr -= par_dxdz[i]*TMath::Power(u, i);
-    }
-
-    if(v<-0.135) pCorr -= 0.012478;
-    else if(v>0.105) pCorr -= 0.00565307;
+    if(v<-0.135) pCorr -= 0.0142425;
+    else if(v>0.105) pCorr -= 0.0057682;
     else{
       for(Int_t i=0; i<5; ++i) pCorr -= par_dydz[i]*TMath::Power(v, i);
     }
@@ -1024,11 +1012,8 @@ const Double_t vb_off = 0.000;
     //momentum correction
     //P_measured = p2*P^2 + p1*P + p0
 #if 0
-    Double_t p0 = 0.; Double_t p1 = 0.973483; Double_t p2 = -0.00397917;
-    if(p1*p1+4.*(pCorr-p0)*p2<0) pCorr = 0.001; //temporary
-    else pCorr = 0.5*(-p1+TMath::Sqrt(p1*p1+4.*(pCorr-p0)*p2))/p2;
-#else //+0.07 T
-    Double_t p0 = 0.; Double_t p1 = 1.0102; Double_t p2 = -0.00406451;
+    //Double_t p0 = -0.0189692; Double_t p1 = 0.997634; Double_t p2 = -0.0112748; //ref1
+    Double_t p0 = 0.; Double_t p1 = 0.973483; Double_t p2 = -0.00397917; //ref2
     if(p1*p1+4.*(pCorr-p0)*p2<0) pCorr = 0.001; //temporary
     else pCorr = 0.5*(-p1+TMath::Sqrt(p1*p1+4.*(pCorr-p0)*p2))/p2;
 #endif
@@ -2434,6 +2419,7 @@ dst::DstRead( int ievent )
 
 #if RawCluster
   Int_t nclTpc = 0;
+  Int_t remain_nclTpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
     auto hc = TPCAna.GetTPCClCont( layer );
     for( const auto& cl : hc ){
@@ -2466,9 +2452,12 @@ dst::DstRead( int ievent )
       event.cluster_row_center.push_back(centerRow);
       event.cluster_houghflag.push_back(houghflag);
       ++nclTpc;
+
+      if(houghflag==0) ++remain_nclTpc; //Clusters without track
     }
   }
   event.nclTpc = nclTpc;
+  event.remain_nclTpc = remain_nclTpc;
   HF1( 1, event.status++ );
 #endif
 
@@ -3646,8 +3635,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "raw_row", &event.raw_row );
 #endif
 
-#if RawCluster
   tree->Branch( "nclTpc", &event.nclTpc );
+  tree->Branch( "remain_nclTpc", &event.remain_nclTpc );
+#if RawCluster
   tree->Branch( "cluster_x", &event.cluster_x );
   tree->Branch( "cluster_y", &event.cluster_y );
   tree->Branch( "cluster_z", &event.cluster_z );

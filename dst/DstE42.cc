@@ -38,13 +38,7 @@
 #define TrigD 0
 
 #define KKEvent 1
-
-#define SaveK18 1
-#define SaveTPCK18 1
-#define SaveKurama 1
-#define SaveTPCKurama 1
-#define SaveKK 1
-#define SaveKKTPC 1
+#define SaveHistograms 1
 
 namespace
 {
@@ -55,6 +49,7 @@ const auto qnan = TMath::QuietNaN();
 const auto& gUnpacker = GUnpacker::get_instance();
 auto&       gConf = ConfMan::GetInstance();
 const auto& gCounter = debug::ObjectCounter::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
 }
 
 namespace dst
@@ -81,6 +76,9 @@ struct Event
   Int_t evnum;
   std::vector<Int_t> trigpat;
   std::vector<Int_t> trigflag;
+
+  Int_t nclTpc; // Number of clusters
+  Int_t remain_nclTpc; // Number of clusters without tracks
 
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
@@ -122,6 +120,7 @@ struct Event
   std::vector<std::vector<Double_t>> alpha;
   std::vector<std::vector<Double_t>> track_cluster_de;
   std::vector<std::vector<Double_t>> track_cluster_mrow;
+
   Int_t nvtxTpc;
   std::vector<Double_t> vtx_x;
   std::vector<Double_t> vtx_y;
@@ -159,8 +158,24 @@ struct Event
   std::vector<Double_t> utgtKurama;
   std::vector<Double_t> vtgtKurama;
   std::vector<Double_t> thetaKurama;
+  std::vector<Double_t> pathKurama;
   std::vector<Double_t> xhtofKurama;
   std::vector<Double_t> yhtofKurama;
+  std::vector<Double_t> cstof;
+  std::vector<Double_t> tofsegKurama;
+  std::vector<Double_t> pathwcKurama;
+  std::vector<Double_t> xin;
+  std::vector<Double_t> yin;
+  std::vector<Double_t> zin;
+  std::vector<Double_t> pxin;
+  std::vector<Double_t> pyin;
+  std::vector<Double_t> pzin;
+  std::vector<Double_t> xout;
+  std::vector<Double_t> yout;
+  std::vector<Double_t> zout;
+  std::vector<Double_t> pxout;
+  std::vector<Double_t> pyout;
+  std::vector<Double_t> pzout;
 
   Int_t nKm;
   Int_t nKp;
@@ -236,12 +251,24 @@ struct Event
   std::vector<Double_t> MissMassCorrTPC;
   std::vector<Double_t> MissMassCorrDETPC;
   std::vector<Double_t> pOrgTPC;
-  std::vector<Double_t> pCalcTPC;
   std::vector<Double_t> pCorrTPC;
   std::vector<Double_t> pCorrDETPC;
-  std::vector<Double_t> thetaTPC;
+  std::vector<Double_t> pCalcTPC;
   std::vector<Double_t> thetaCMTPC;
   std::vector<Double_t> costCMTPC;
+  std::vector<Double_t> pCalcDETPC;
+  std::vector<Double_t> thetaCMDETPC;
+  std::vector<Double_t> costCMDETPC;
+  std::vector<Double_t> xistarpCalcDETPC;
+  std::vector<Double_t> xistarthetaCMDETPC;
+  std::vector<Double_t> xistarcostCMDETPC;
+  std::vector<Double_t> kpscatpCalcTPC;
+  std::vector<Double_t> kpscatthetaCMTPC;
+  std::vector<Double_t> kpscatcostCMTPC;
+  std::vector<Double_t> kpscatpCalcDETPC;
+  std::vector<Double_t> kpscatthetaCMDETPC;
+  std::vector<Double_t> kpscatcostCMDETPC;
+  std::vector<Double_t> thetaTPC;
   std::vector<Double_t> xbTPC;
   std::vector<Double_t> ybTPC;
   std::vector<Double_t> ubTPC;
@@ -266,6 +293,9 @@ struct Event
     runnum = 0;
     evnum = 0;
     status = 0;
+
+    nclTpc = 0;
+    remain_nclTpc = 0;
 
     ntTpc = 0;
     nhtrack.clear();
@@ -308,8 +338,8 @@ struct Event
     alpha.clear();
     track_cluster_de.clear();
     track_cluster_mrow.clear();
-    
-		nvtxTpc = 0;
+
+    nvtxTpc = 0;
     vtx_x.clear();
     vtx_y.clear();
     vtx_z.clear();
@@ -346,8 +376,24 @@ struct Event
     utgtKurama.clear();
     vtgtKurama.clear();
     thetaKurama.clear();
+    pathKurama.clear();
     xhtofKurama.clear();
     yhtofKurama.clear();
+    cstof.clear();
+    tofsegKurama.clear();
+    pathwcKurama.clear();
+    xin.clear();
+    yin.clear();
+    zin.clear();
+    pxin.clear();
+    pyin.clear();
+    pzin.clear();
+    xout.clear();
+    yout.clear();
+    zout.clear();
+    pxout.clear();
+    pyout.clear();
+    pzout.clear();
 
     nKm = 0;
     nKp = 0;
@@ -422,12 +468,24 @@ struct Event
     MissMassCorrTPC.clear();
     MissMassCorrDETPC.clear();
     pOrgTPC.clear();
-    pCalcTPC.clear();
     pCorrTPC.clear();
     pCorrDETPC.clear();
-    thetaTPC.clear();
+    pCalcTPC.clear();
     thetaCMTPC.clear();
     costCMTPC.clear();
+    pCalcDETPC.clear();
+    thetaCMDETPC.clear();
+    costCMDETPC.clear();
+    xistarpCalcDETPC.clear();
+    xistarthetaCMDETPC.clear();
+    xistarcostCMDETPC.clear();
+    kpscatpCalcTPC.clear();
+    kpscatthetaCMTPC.clear();
+    kpscatcostCMTPC.clear();
+    kpscatpCalcDETPC.clear();
+    kpscatthetaCMDETPC.clear();
+    kpscatcostCMDETPC.clear();
+    thetaTPC.clear();
     xbTPC.clear();
     ybTPC.clear();
     ubTPC.clear();
@@ -454,8 +512,11 @@ struct Src
   TTreeReaderValue<std::vector<Int_t>>* trigpat;
   TTreeReaderValue<std::vector<Int_t>>* trigflag;
 
-  TTreeReaderValue<Int_t>* ntTpc; // Number of Tracks
-  TTreeReaderValue<std::vector<Int_t>>* nhtrack; // Number of Hits (in 1 tracks)
+  TTreeReaderValue<Int_t>* nclTpc; // Number of clusters
+  TTreeReaderValue<Int_t>* remain_nclTpc; // Number of clusters without tracks
+
+  TTreeReaderValue<Int_t>* ntTpc; // Number of tracks
+  TTreeReaderValue<std::vector<Int_t>>* nhtrack; // Number of hits (in 1 tracks)
   TTreeReaderValue<std::vector<Int_t>>* trackid; //for Kurama K1.8 tracks
   TTreeReaderValue<std::vector<Int_t>>* isBeam;
   TTreeReaderValue<std::vector<Int_t>>* isKurama;
@@ -494,6 +555,21 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* alpha;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_de;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_mrow;
+
+  TTreeReaderValue<Int_t>* nvtxTpc;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_x;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_y;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_z;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_dist;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_angle;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxid;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_theta;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_z;
 
   TTreeReaderValue<Int_t>* ntTPCK18; // Number of Tracks
   TTreeReaderValue<std::vector<Int_t>>* tpcidTPCK18;
@@ -548,33 +624,28 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* MissMassCorrTPC;
   TTreeReaderValue<std::vector<Double_t>>* MissMassCorrDETPC;
   TTreeReaderValue<std::vector<Double_t>>* pOrgTPC;
-  TTreeReaderValue<std::vector<Double_t>>* pCalcTPC;
   TTreeReaderValue<std::vector<Double_t>>* pCorrTPC;
   TTreeReaderValue<std::vector<Double_t>>* pCorrDETPC;
-  TTreeReaderValue<std::vector<Double_t>>* thetaTPC;
+  TTreeReaderValue<std::vector<Double_t>>* pCalcTPC;
   TTreeReaderValue<std::vector<Double_t>>* thetaCMTPC;
   TTreeReaderValue<std::vector<Double_t>>* costCMTPC;
+  TTreeReaderValue<std::vector<Double_t>>* pCalcDETPC;
+  TTreeReaderValue<std::vector<Double_t>>* thetaCMDETPC;
+  TTreeReaderValue<std::vector<Double_t>>* costCMDETPC;
+  TTreeReaderValue<std::vector<Double_t>>* xistarpCalcDETPC;
+  TTreeReaderValue<std::vector<Double_t>>* xistarthetaCMDETPC;
+  TTreeReaderValue<std::vector<Double_t>>* xistarcostCMDETPC;
+  TTreeReaderValue<std::vector<Double_t>>* kpscatpCalcTPC;
+  TTreeReaderValue<std::vector<Double_t>>* kpscatthetaCMTPC;
+  TTreeReaderValue<std::vector<Double_t>>* kpscatcostCMTPC;
+  TTreeReaderValue<std::vector<Double_t>>* kpscatpCalcDETPC;
+  TTreeReaderValue<std::vector<Double_t>>* kpscatthetaCMDETPC;
+  TTreeReaderValue<std::vector<Double_t>>* kpscatcostCMDETPC;
+  TTreeReaderValue<std::vector<Double_t>>* thetaTPC;
   TTreeReaderValue<std::vector<Double_t>>* ubTPC;
   TTreeReaderValue<std::vector<Double_t>>* vbTPC;
   TTreeReaderValue<std::vector<Double_t>>* usTPC;
   TTreeReaderValue<std::vector<Double_t>>* vsTPC;
-  
-	TTreeReaderValue<Int_t>* nvtxTpc;
-  TTreeReaderValue<std::vector<Double_t>>* vtx_x;
-  TTreeReaderValue<std::vector<Double_t>>* vtx_y;
-  TTreeReaderValue<std::vector<Double_t>>* vtx_z;
-  TTreeReaderValue<std::vector<Double_t>>* vtx_dist;
-  TTreeReaderValue<std::vector<Double_t>>* vtx_angle;
-  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxid;
-  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_theta;
-  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_x;
-  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_y;
-  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_z;
-  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_x;
-  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_y;
-  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_z;
-
-
 
   Int_t    ntK18;
   Double_t chisqrK18[MaxHits];
@@ -596,6 +667,22 @@ struct Src
   Double_t utgtKurama[MaxHits];
   Double_t vtgtKurama[MaxHits];
   Double_t thetaKurama[MaxHits];
+  Double_t pathKurama[MaxHits];
+  Double_t cstof[MaxHits];
+  Double_t tofsegKurama[MaxHits];
+  Double_t pathwcKurama[MaxHits];
+  Double_t xin[MaxHits];
+  Double_t yin[MaxHits];
+  Double_t zin[MaxHits];
+  Double_t pxin[MaxHits];
+  Double_t pyin[MaxHits];
+  Double_t pzin[MaxHits];
+  Double_t xout[MaxHits];
+  Double_t yout[MaxHits];
+  Double_t zout[MaxHits];
+  Double_t pxout[MaxHits];
+  Double_t pyout[MaxHits];
+  Double_t pzout[MaxHits];
 
   Int_t    nhHtof;
   Double_t HtofSeg[MaxHits];
@@ -641,6 +728,7 @@ TTree *tree;
   enum eDetHid {
     TPCHid    = 100000,
   };
+  Double_t tofaddjustment[24] = {0};
 }
 
 //_____________________________________________________________________________
@@ -715,9 +803,11 @@ dst::DstOpen( std::vector<std::string> arg )
 Bool_t
 dst::DstRead( int ievent )
 {
+  static const auto MaxChisqrBcOut = gUser.GetParameter("MaxChisqrBcOut");
+  static const auto MaxChisqrKurama = gUser.GetParameter("MaxChisqrKurama");
 
   //if( ievent%1000==0 ){
-  if( ievent%100==0 ){
+  if( ievent%1==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
@@ -729,23 +819,7 @@ dst::DstRead( int ievent )
   event.trigflag = **src.trigflag;
 
   event.nhHtof = src.nhHtof;
-
-  event.nvtxTpc = **src.nvtxTpc;
-  event.vtx_x = **src.vtx_x;
-  event.vtx_y = **src.vtx_y;
-  event.vtx_z = **src.vtx_z;
-  event.vtx_dist = **src.vtx_dist;
-  event.vtx_angle = **src.vtx_angle;
-  event.vtxid = **src.vtxid;
-  event.vtxmom_theta = **src.vtxmom_theta;
-  event.vtxpos_x = **src.vtxpos_x;
-  event.vtxpos_y = **src.vtxpos_y;
-  event.vtxpos_z = **src.vtxpos_z;
-  event.vtxmom_x = **src.vtxmom_x;
-  event.vtxmom_y = **src.vtxmom_y;
-  event.vtxmom_z = **src.vtxmom_z;
-  
-	for(Int_t it=0; it<event.nhHtof; it++){
+  for(Int_t it=0; it<event.nhHtof; it++){
     event.HtofSeg.push_back(src.HtofSeg[it]);
     event.tHtof.push_back(src.tHtof[it]);
     event.dtHtof.push_back(src.dtHtof[it]);
@@ -766,11 +840,14 @@ dst::DstRead( int ievent )
   if(event.trigflag[23]<0) return true;
 #endif
 
+  if(src.nKK != 1) return true;
+  if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut || src.inside[0] != 1) return true;
 #if KKEvent
-  if(src.nKK != 1 || src.Kflag[0] != 1) return true;
-  if(src.chisqrKurama[0] > 200. || src.chisqrK18[0] > 20. || src.inside[0] != 1) return true;
+  if(src.Kflag[0] != 1) return true;
 #endif
+
   std::cout<<"ntKurama : "<<src.ntKurama<<" ntK18 "<<src.ntK18<<std::endl;
+  std::cout<<"ntKurama : "<<**src.ntTPCKurama<<" ntK18 "<<**src.ntTPCK18<<std::endl;
   if(src.ntKurama != **src.ntTPCKurama)
     std::cerr << "Kurama Event Missmatching : DstTPCKuramaK18Tracking <-> DstKScat" << std::endl;
   if(src.ntK18 != **src.ntTPCK18)
@@ -790,7 +867,6 @@ dst::DstRead( int ievent )
   event.xhtofK18 = **src.xhtofK18;
   event.yhtofK18 = **src.yhtofK18;
 
-#if SaveTPCK18
   event.tpcidTPCK18 = **src.tpcidTPCK18;
   event.isgoodTPCK18 = **src.isgoodTPCK18;
   event.chisqrTPCK18 = **src.chisqrTPCK18;
@@ -807,7 +883,6 @@ dst::DstRead( int ievent )
   event.lvpTPCK18 = **src.lvpTPCK18;
   event.xvpTPCK18 = **src.xvpTPCK18;
   event.yvpTPCK18 = **src.yvpTPCK18;
-#endif
 
   event.ntKurama = src.ntKurama;
   event.tpcidTPCKurama = **src.tpcidTPCKurama;
@@ -816,7 +891,7 @@ dst::DstRead( int ievent )
   event.chisqrTPCKurama = **src.chisqrTPCKurama;
   event.pTPCKurama = **src.pTPCKurama;
   event.qTPCKurama = **src.qTPCKurama;
-  event.m2TPCKurama = **src.m2TPCKurama;
+  //event.m2TPCKurama = **src.m2TPCKurama;
   event.xtgtTPCKurama = **src.xtgtTPCKurama;
   event.ytgtTPCKurama = **src.ytgtTPCKurama;
   event.utgtTPCKurama = **src.utgtTPCKurama;
@@ -831,6 +906,7 @@ dst::DstRead( int ievent )
   event.yvpTPCKurama = **src.yvpTPCKurama;
   event.xhtofKurama = **src.xhtofKurama;
   event.yhtofKurama = **src.yhtofKurama;
+  event.m2TPCKurama.resize(src.ntKurama);
   for(Int_t it=0; it<src.ntKurama; ++it){
     event.chisqrKurama.push_back(src.chisqrKurama[it]);
     event.pKurama.push_back(src.pKurama[it]);
@@ -842,6 +918,26 @@ dst::DstRead( int ievent )
     event.utgtKurama.push_back(src.utgtKurama[it]);
     event.vtgtKurama.push_back(src.vtgtKurama[it]);
     event.thetaKurama.push_back(src.thetaKurama[it]);
+    event.pathKurama.push_back(src.pathKurama[it]);
+    event.tofsegKurama.push_back(src.tofsegKurama[it]);
+    event.cstof.push_back(src.cstof[it]);
+    event.pathwcKurama.push_back(src.pathwcKurama[it]);
+    event.xin.push_back(src.xin[it]);
+    event.yin.push_back(src.yin[it]);
+    event.zin.push_back(src.zin[it]);
+    event.pxin.push_back(src.pxin[it]);
+    event.pyin.push_back(src.pyin[it]);
+    event.pzin.push_back(src.pzin[it]);
+    event.xout.push_back(src.xout[it]);
+    event.yout.push_back(src.yout[it]);
+    event.zout.push_back(src.zout[it]);
+    event.pxout.push_back(src.pxout[it]);
+    event.pyout.push_back(src.pyout[it]);
+    event.pzout.push_back(src.pzout[it]);
+
+    int seg = src.tofsegKurama[it] - 1;
+    if(event.cstof[it] + tofaddjustment[seg] > 0.) event.m2TPCKurama[it] = Kinematics::MassSquare(event.pTPCKurama[it], event.pathTPCKurama[it], event.cstof[it] + tofaddjustment[seg]);
+    else event.m2TPCKurama[it] = TMath::QuietNaN();
   }
 
   if( src.nKK == 0 )
@@ -885,12 +981,24 @@ dst::DstRead( int ievent )
   event.MissMassCorrTPC = **src.MissMassCorrTPC;
   event.MissMassCorrDETPC = **src.MissMassCorrDETPC;
   event.pOrgTPC = **src.pOrgTPC;
-  event.pCalcTPC = **src.pCalcTPC;
   event.pCorrTPC = **src.pCorrTPC;
   event.pCorrDETPC = **src.pCorrDETPC;
-  event.thetaTPC = **src.thetaTPC;
+  event.pCalcTPC = **src.pCalcTPC;
   event.thetaCMTPC = **src.thetaCMTPC;
   event.costCMTPC = **src.costCMTPC;
+  event.pCalcDETPC = **src.pCalcDETPC;
+  event.thetaCMDETPC = **src.thetaCMDETPC;
+  event.costCMDETPC = **src.costCMDETPC;
+  event.xistarpCalcDETPC = **src.xistarpCalcDETPC;
+  event.xistarthetaCMDETPC = **src.xistarthetaCMDETPC;
+  event.xistarcostCMDETPC = **src.xistarcostCMDETPC;
+  event.kpscatpCalcTPC = **src.kpscatpCalcTPC;
+  event.kpscatthetaCMTPC = **src.kpscatthetaCMTPC;
+  event.kpscatcostCMTPC = **src.kpscatcostCMTPC;
+  event.kpscatpCalcDETPC = **src.kpscatpCalcDETPC;
+  event.kpscatthetaCMDETPC = **src.kpscatthetaCMDETPC;
+  event.kpscatcostCMDETPC = **src.kpscatcostCMDETPC;
+  event.thetaTPC = **src.thetaTPC;
   event.ubTPC = **src.ubTPC;
   event.vbTPC = **src.vbTPC;
   event.usTPC = **src.usTPC;
@@ -904,7 +1012,6 @@ dst::DstRead( int ievent )
   event.usTPC.resize(src.nKK);
   event.vsTPC.resize(src.nKK);
 
-#if SaveKK
   for(Int_t idScat=0; idScat<event.ntKurama; ++idScat){
     for(Int_t idKm=0; idKm<event.ntK18; ++idKm){
       Int_t id = idScat*src.ntK18 + idKm;
@@ -915,6 +1022,7 @@ dst::DstRead( int ievent )
       Double_t kkvertx = event.vtx[id];
       Double_t kkverty = event.vty[id];
       Double_t kkvertz = event.vtz[id];
+
       Double_t KaonMom = event.pCalc[id];
       Double_t pScat = event.pOrg[id];
       Double_t pScatCorr = event.pCorr[id];
@@ -923,29 +1031,21 @@ dst::DstRead( int ievent )
       Double_t MissMassCorr = event.MissMassCorr[id];
       Double_t MissMassCorrDE = event.MissMassCorrDE[id];
 
-      if(event.chisqrK18[idKm] < 20. && event.chisqrKurama[idScat] < 200.){
-#if SaveTPCK18
+      if(event.chisqrK18[idKm] < MaxChisqrBcOut && event.chisqrKurama[idScat] < MaxChisqrKurama){
 	HF1(12, event.isgoodTPCK18[idKm]);
-#endif
 	HF1(13, event.isgoodTPCKurama[idScat]);
 	HF1(14, event.isgoodTPC[id]);
 	if(inside==1){
-#if SaveTPCK18
 	  HF1(22, event.isgoodTPCK18[idKm]);
-#endif
 	  HF1(23, event.isgoodTPCKurama[idScat]);
 	  HF1(24, event.isgoodTPC[id]);
 	  if(event.qKurama[idScat] > 0 &&
 	     event.m2[idScat] > 0.12 && event.m2[idScat] < 0.3){
-#if SaveTPCK18
 	    HF1(32, event.isgoodTPCK18[idKm]);
-#endif
 	    HF1(33, event.isgoodTPCKurama[idScat]);
 	    HF1(34, event.isgoodTPC[id]);
 	    if(event.pKurama[idScat] < 1.4 && event.pKurama[idScat] > 1.1){
-#if SaveTPCK18
 	      HF1(42, event.isgoodTPCK18[idKm]);
-#endif
 	      HF1(43, event.isgoodTPCKurama[idScat]);
 	      HF1(44, event.isgoodTPC[id]);
 	    }
@@ -1070,47 +1170,46 @@ dst::DstRead( int ievent )
 	  if(event.qTPCKurama[idScat] > 0 &&
 	     event.m2TPCKurama[idScat] > 0.5 && event.m2TPCKurama[idScat] < 1.5){
 
-	    HF1(3201, event.pK18[idKm]);
-	    HF1(3202, event.pKurama[idScat]);
-	    HF1(3203, event.qKurama[idScat]*TMath::Sqrt(event.m2[idScat]));
-	    HF2(3204, event.qKurama[idScat]*TMath::Sqrt(event.m2[idScat]), event.pKurama[idScat]);
-	    HF1(3210, closeDist);
-	    HF1(3211, kkvertx);
-	    HF1(3212, kkverty);
-	    HF1(3213, kkvertz);
-	    HF1(3214, MissMassCorr);
-	    HF1(3215, MissMassCorrDE);
-	    HF2(3216, us, pScat - KaonMom);
-	    HF2(3217, us, pScatCorr - KaonMom);
-	    HF2(3218, us, pScatCorrDE - KaonMom);
-	    HF2(3219, us, MissMass);
-	    HF2(3220, us, MissMassCorr);
-	    HF2(3221, us, MissMassCorrDE);
-	    HF2(3222, vs, pScat - KaonMom);
-	    HF2(3223, vs, pScatCorr - KaonMom);
-	    HF2(3224, vs, pScatCorrDE - KaonMom);
-	    HF2(3225, vs, MissMass);
-	    HF2(3226, vs, MissMassCorr);
-	    HF2(3227, vs, MissMassCorrDE);
+	    HF1(4201, event.pK18[idKm]);
+	    HF1(4202, event.pKurama[idScat]);
+	    HF1(4203, event.qKurama[idScat]*TMath::Sqrt(event.m2[idScat]));
+	    HF2(4204, event.qKurama[idScat]*TMath::Sqrt(event.m2[idScat]), event.pKurama[idScat]);
+	    HF1(4210, closeDist);
+	    HF1(4211, kkvertx);
+	    HF1(4212, kkverty);
+	    HF1(4213, kkvertz);
+	    HF1(4214, MissMassCorr);
+	    HF1(4215, MissMassCorrDE);
+	    //HF2(4216, us, pScat - ProtonMom);
+	    //HF2(4217, us, pScatCorr - ProtonMom);
+	    //HF2(4218, us, pScatCorrDE - ProtonMom);
+	    HF2(4219, us, MissMass);
+	    HF2(4220, us, MissMassCorr);
+	    HF2(4221, us, MissMassCorrDE);
+	    //HF2(4222, vs, pScat - ProtonMom);
+	    //HF2(4223, vs, pScatCorr - ProtonMom);
+	    //HF2(4224, vs, pScatCorrDE - ProtonMom);
+	    HF2(4225, vs, MissMass);
+	    HF2(4226, vs, MissMassCorr);
+	    HF2(4227, vs, MissMassCorrDE);
 
-	    HFProf(3316, us, pScat - KaonMom);
-	    HFProf(3317, us, pScatCorr - KaonMom);
-	    HFProf(3318, us, pScatCorrDE - KaonMom);
-	    HFProf(3319, us, MissMass);
-	    HFProf(3320, us, MissMassCorr);
-	    HFProf(3321, us, MissMassCorrDE);
-	    HFProf(3322, vs, pScat - KaonMom);
-	    HFProf(3323, vs, pScatCorr - KaonMom);
-	    HFProf(3324, vs, pScatCorrDE - KaonMom);
-	    HFProf(3325, vs, MissMass);
-	    HFProf(3326, vs, MissMassCorr);
-	    HFProf(3327, vs, MissMassCorrDE);
+	    //HFProf(4316, us, pScat - ProtonMom);
+	    //HFProf(4317, us, pScatCorr - ProtonMom);
+	    //HFProf(4318, us, pScatCorrDE - ProtonMom);
+	    HFProf(4319, us, MissMass);
+	    HFProf(4320, us, MissMassCorr);
+	    HFProf(4321, us, MissMassCorrDE);
+	    //HFProf(4322, vs, pScat - ProtonMom);
+	    //HFProf(4323, vs, pScatCorr - ProtonMom);
+	    //HFProf(4324, vs, pScatCorrDE - ProtonMom);
+	    HFProf(4325, vs, MissMass);
+	    HFProf(4326, vs, MissMassCorr);
+	    HFProf(4327, vs, MissMassCorrDE);
 	  }
  	}
       }
     }
   }
-#endif
 
   for(Int_t idScat=0; idScat<event.ntKurama; ++idScat){
     if(event.isgoodTPCKurama[idScat]!=1) continue;
@@ -1143,19 +1242,20 @@ dst::DstRead( int ievent )
       Double_t kkvertx = event.vtxTPC[id];
       Double_t kkverty = event.vtyTPC[id];
       Double_t kkvertz = event.vtzTPC[id];
-      Double_t KaonMom = event.pCalcTPC[id];
+      Double_t KaonMom = event.pCalcDETPC[id];
+      Double_t KaonMomCorrDE = event.pCalcDETPC[id];
       Double_t pScat = event.pOrgTPC[id];
       Double_t pScatCorr = event.pCorrTPC[id];
       Double_t pScatCorrDE = event.pCorrDETPC[id];
       Double_t MissMass = event.MissMassTPC[id];
       Double_t MissMassCorr = event.MissMassCorrTPC[id];
       Double_t MissMassCorrDE = event.MissMassCorrDETPC[id];
+      Double_t XiStarKaonMomCorrDE = event.xistarpCalcDETPC[id];
+      Double_t ProtonMom = event.kpscatpCalcDETPC[id];
+      Double_t ProtonMomCorrDE = event.kpscatpCalcDETPC[id];
 
-      if(event.chisqrK18[idKm] < 20. && event.chisqrKurama[idScat] < 200.){
-
-#if SaveTPCK18
+      if(event.chisqrK18[idKm] < MaxChisqrBcOut && event.chisqrKurama[idScat] < MaxChisqrKurama){
 	HF1(5001, event.pTPCK18[idKm]);
-#endif
 	HF1(5002, event.pTPCKurama[idScat]);
 	HF1(5003, event.qTPCKurama[idScat]*TMath::Sqrt(event.m2TPCKurama[idScat]));
 	HF2(5004, event.qTPCKurama[idScat]*TMath::Sqrt(event.m2TPCKurama[idScat]), event.pTPCKurama[idScat]);
@@ -1166,9 +1266,7 @@ dst::DstRead( int ievent )
 	HF1(5013, kkverty);
 	HF1(5014, kkvertz);
 	if(inside==1){
-#if SaveTPCK18
 	  HF1(6001, event.pTPCK18[idKm]);
-#endif
 	  HF1(6002, event.pTPCKurama[idScat]);
 	  HF1(6003, event.qTPCKurama[idScat]*TMath::Sqrt(event.m2TPCKurama[idScat]));
 	  HF2(6004, event.qTPCKurama[idScat]*TMath::Sqrt(event.m2TPCKurama[idScat]), event.pTPCKurama[idScat]);
@@ -1188,9 +1286,7 @@ dst::DstRead( int ievent )
 	  //K+
 	  if(event.qTPCKurama[idScat] > 0 && event.pTPCKurama[idScat] < 1.4 &&
 	     event.m2TPCKurama[idScat] > 0.15 && event.m2TPCKurama[idScat] < 0.35){
-#if SaveTPCK18
 	    HF1(7001, event.pTPCK18[idKm]);
-#endif
 	    HF1(7002, event.pTPCKurama[idScat]);
 	    HF1(7003, event.qTPCKurama[idScat]*TMath::Sqrt(event.m2TPCKurama[idScat]));
 	    HF2(7004, event.qTPCKurama[idScat]*TMath::Sqrt(event.m2TPCKurama[idScat]), event.pTPCKurama[idScat]);
@@ -1202,19 +1298,24 @@ dst::DstRead( int ievent )
 	    HF1(7015, MissMassCorrDE);
 	    HF2(7016, us, pScat - KaonMom);
 	    HF2(7017, us, pScatCorr - KaonMom);
-	    HF2(7018, us, pScatCorrDE - KaonMom);
+	    HF2(7018, us, pScatCorrDE - KaonMomCorrDE);
 	    HF2(7019, us, MissMass);
 	    HF2(7020, us, MissMassCorr);
 	    HF2(7021, us, MissMassCorrDE);
 	    HF2(7022, vs, pScat - KaonMom);
 	    HF2(7023, vs, pScatCorr - KaonMom);
-	    HF2(7024, vs, pScatCorrDE - KaonMom);
+	    HF2(7024, vs, pScatCorrDE - KaonMomCorrDE);
 	    HF2(7025, vs, MissMass);
 	    HF2(7026, vs, MissMassCorr);
 	    HF2(7027, vs, MissMassCorrDE);
 	    HF2(7028, KaonMom, pScat - KaonMom);
 	    HF2(7029, KaonMom, pScatCorr - KaonMom);
-	    HF2(7030, KaonMom, pScatCorrDE - KaonMom);
+	    HF2(7030, KaonMomCorrDE, pScatCorrDE - KaonMomCorrDE);
+	    HF2(7031, KaonMom, MissMass);
+	    HF2(7032, KaonMom, MissMassCorr);
+	    HF2(7033, KaonMomCorrDE, MissMassCorrDE);
+	    HF2(7036, XiStarKaonMomCorrDE, pScatCorrDE - XiStarKaonMomCorrDE);
+	    HF2(7039, XiStarKaonMomCorrDE, MissMassCorrDE);
 
 	    HF2(7041, src.xkm[idKm], event.xbTPC[id]);
 	    HF2(7042, src.ykm[idKm], event.ybTPC[id]);
@@ -1227,24 +1328,27 @@ dst::DstRead( int ievent )
 
 	    HFProf(7116, us, pScat - KaonMom);
 	    HFProf(7117, us, pScatCorr - KaonMom);
-	    HFProf(7118, us, pScatCorrDE - KaonMom);
+	    HFProf(7118, us, pScatCorrDE - KaonMomCorrDE);
 	    HFProf(7119, us, MissMass);
 	    HFProf(7120, us, MissMassCorr);
 	    HFProf(7121, us, MissMassCorrDE);
 	    HFProf(7122, vs, pScat - KaonMom);
 	    HFProf(7123, vs, pScatCorr - KaonMom);
-	    HFProf(7124, vs, pScatCorrDE - KaonMom);
+	    HFProf(7124, vs, pScatCorrDE - KaonMomCorrDE);
 	    HFProf(7125, vs, MissMass);
 	    HFProf(7126, vs, MissMassCorr);
 	    HFProf(7127, vs, MissMassCorrDE);
 	    HFProf(7128, KaonMom, pScat - KaonMom);
 	    HFProf(7129, KaonMom, pScatCorr - KaonMom);
-	    HFProf(7130, KaonMom, pScatCorrDE - KaonMom);
+	    HFProf(7130, KaonMomCorrDE, pScatCorrDE - KaonMomCorrDE);
+	    HFProf(7131, KaonMom, MissMass);
+	    HFProf(7132, KaonMom, MissMassCorr);
+	    HFProf(7133, KaonMomCorrDE, MissMassCorrDE);
+	    HFProf(7136, XiStarKaonMomCorrDE, pScatCorrDE - XiStarKaonMomCorrDE);
+	    HFProf(7139, XiStarKaonMomCorrDE, MissMassCorrDE);
 
 	    if(event.pTPCKurama[idScat] > 1.1){
-#if SaveTPCK18
 	      HF1(8001, event.pTPCK18[idKm]);
-#endif
 	      HF1(8002, event.pTPCKurama[idScat]);
 	      HF1(8003, event.qTPCKurama[idScat]*TMath::Sqrt(event.m2TPCKurama[idScat]));
 	      HF2(8004, event.qTPCKurama[idScat]*TMath::Sqrt(event.m2TPCKurama[idScat]), event.pTPCKurama[idScat]);
@@ -1256,19 +1360,41 @@ dst::DstRead( int ievent )
 	      HF1(8015, MissMassCorrDE);
 	      HF2(8016, us, pScat - KaonMom);
 	      HF2(8017, us, pScatCorr - KaonMom);
-	      HF2(8018, us, pScatCorrDE - KaonMom);
+	      HF2(8018, us, pScatCorrDE - KaonMomCorrDE);
 	      HF2(8019, us, MissMass);
 	      HF2(8020, us, MissMassCorr);
 	      HF2(8021, us, MissMassCorrDE);
 	      HF2(8022, vs, pScat - KaonMom);
 	      HF2(8023, vs, pScatCorr - KaonMom);
-	      HF2(8024, vs, pScatCorrDE - KaonMom);
+	      HF2(8024, vs, pScatCorrDE - KaonMomCorrDE);
 	      HF2(8025, vs, MissMass);
 	      HF2(8026, vs, MissMassCorr);
 	      HF2(8027, vs, MissMassCorrDE);
 	      HF2(8028, KaonMom, pScat - KaonMom);
 	      HF2(8029, KaonMom, pScatCorr - KaonMom);
-	      HF2(8030, KaonMom, pScatCorrDE - KaonMom);
+	      HF2(8030, KaonMomCorrDE, pScatCorrDE - KaonMomCorrDE);
+	      HF2(8031, KaonMom, MissMass);
+	      HF2(8032, KaonMom, MissMassCorr);
+	      HF2(8033, KaonMomCorrDE, MissMassCorrDE);
+
+	      HFProf(8116, us, pScat - KaonMom);
+	      HFProf(8117, us, pScatCorr - KaonMom);
+	      HFProf(8118, us, pScatCorrDE - KaonMomCorrDE);
+	      HFProf(8119, us, MissMass);
+	      HFProf(8120, us, MissMassCorr);
+	      HFProf(8121, us, MissMassCorrDE);
+	      HFProf(8122, vs, pScat - KaonMom);
+	      HFProf(8123, vs, pScatCorr - KaonMom);
+	      HFProf(8124, vs, pScatCorrDE - KaonMomCorrDE);
+	      HFProf(8125, vs, MissMass);
+	      HFProf(8126, vs, MissMassCorr);
+	      HFProf(8127, vs, MissMassCorrDE);
+	      HFProf(8128, KaonMom, pScat - KaonMom);
+	      HFProf(8129, KaonMom, pScatCorr - KaonMom);
+	      HFProf(8130, KaonMomCorrDE, pScatCorrDE - KaonMomCorrDE);
+	      HFProf(8131, KaonMom, MissMass);
+	      HFProf(8132, KaonMom, MissMassCorr);
+	      HFProf(8133, KaonMomCorrDE, MissMassCorrDE);
 
 	      HF2(8041, src.xkm[idKm], event.xbTPC[id]);
 	      HF2(8042, src.ykm[idKm], event.ybTPC[id]);
@@ -1278,31 +1404,20 @@ dst::DstRead( int ievent )
 	      HF2(8046, src.ykp[idKm], event.ysTPC[id]);
 	      HF2(8047, src.ukp[idKm], event.usTPC[id]);
 	      HF2(8048, src.vkp[idKm], event.vsTPC[id]);
+	    }
+	    else{
+	      HF2(8036, XiStarKaonMomCorrDE, pScatCorrDE - XiStarKaonMomCorrDE);
+	      HF2(8039, XiStarKaonMomCorrDE, MissMassCorrDE);
 
-	      HFProf(8116, us, pScat - KaonMom);
-	      HFProf(8117, us, pScatCorr - KaonMom);
-	      HFProf(8118, us, pScatCorrDE - KaonMom);
-	      HFProf(8119, us, MissMass);
-	      HFProf(8120, us, MissMassCorr);
-	      HFProf(8121, us, MissMassCorrDE);
-	      HFProf(8122, vs, pScat - KaonMom);
-	      HFProf(8123, vs, pScatCorr - KaonMom);
-	      HFProf(8124, vs, pScatCorrDE - KaonMom);
-	      HFProf(8125, vs, MissMass);
-	      HFProf(8126, vs, MissMassCorr);
-	      HFProf(8127, vs, MissMassCorrDE);
-	      HFProf(8128, KaonMom, pScat - KaonMom);
-	      HFProf(8129, KaonMom, pScatCorr - KaonMom);
-	      HFProf(8130, KaonMom, pScatCorrDE - KaonMom);
+	      HFProf(8136, XiStarKaonMomCorrDE, pScatCorrDE - XiStarKaonMomCorrDE);
+	      HFProf(8139, XiStarKaonMomCorrDE, MissMassCorrDE);
 	    }
 	  }
 
 	  //Proton
 	  if(event.qTPCKurama[idScat] > 0 &&
 	     event.m2TPCKurama[idScat] > 0.5 && event.m2TPCKurama[idScat] < 1.5){
-#if SaveTPCK18
 	    HF1(8201, event.pTPCK18[idKm]);
-#endif
 	    HF1(8202, event.pTPCKurama[idScat]);
 	    HF1(8203, event.qTPCKurama[idScat]*TMath::Sqrt(event.m2TPCKurama[idScat]));
 	    HF2(8204, event.qTPCKurama[idScat]*TMath::Sqrt(event.m2TPCKurama[idScat]), event.pTPCKurama[idScat]);
@@ -1312,18 +1427,43 @@ dst::DstRead( int ievent )
 	    HF1(8213, kkvertz);
 	    HF1(8214, MissMassCorr);
 	    HF1(8215, MissMassCorrDE);
-	    HF2(8216, us, pScat - KaonMom);
-	    HF2(8217, us, pScatCorr - KaonMom);
-	    HF2(8218, us, pScatCorrDE - KaonMom);
+	    HF2(8216, us, pScat - ProtonMom);
+	    HF2(8217, us, pScatCorr - ProtonMom);
+	    HF2(8218, us, pScatCorrDE - ProtonMomCorrDE);
 	    HF2(8219, us, MissMass);
 	    HF2(8220, us, MissMassCorr);
 	    HF2(8221, us, MissMassCorrDE);
-	    HF2(8222, vs, pScat - KaonMom);
-	    HF2(8223, vs, pScatCorr - KaonMom);
-	    HF2(8224, vs, pScatCorrDE - KaonMom);
+	    HF2(8222, vs, pScat - ProtonMom);
+	    HF2(8223, vs, pScatCorr - ProtonMom);
+	    HF2(8224, vs, pScatCorrDE - ProtonMomCorrDE);
 	    HF2(8225, vs, MissMass);
 	    HF2(8226, vs, MissMassCorr);
 	    HF2(8227, vs, MissMassCorrDE);
+	    HF2(8228, ProtonMom, pScat - ProtonMom);
+	    HF2(8229, ProtonMom, pScatCorr - ProtonMom);
+	    HF2(8230, ProtonMomCorrDE, pScatCorrDE - ProtonMomCorrDE);
+	    HF2(8231, ProtonMom, MissMass);
+	    HF2(8232, ProtonMom, MissMassCorr);
+	    HF2(8233, ProtonMomCorrDE, MissMassCorrDE);
+
+	    HFProf(8316, us, pScat - ProtonMom);
+	    HFProf(8317, us, pScatCorr - ProtonMom);
+	    HFProf(8318, us, pScatCorrDE - ProtonMomCorrDE);
+	    HFProf(8319, us, MissMass);
+	    HFProf(8320, us, MissMassCorr);
+	    HFProf(8321, us, MissMassCorrDE);
+	    HFProf(8322, vs, pScat - ProtonMom);
+	    HFProf(8323, vs, pScatCorr - ProtonMom);
+	    HFProf(8324, vs, pScatCorrDE - ProtonMomCorrDE);
+	    HFProf(8325, vs, MissMass);
+	    HFProf(8326, vs, MissMassCorr);
+	    HFProf(8327, vs, MissMassCorrDE);
+	    HFProf(8328, ProtonMom, pScat - ProtonMom);
+	    HFProf(8329, ProtonMom, pScatCorr - ProtonMom);
+	    HFProf(8330, ProtonMomCorrDE, pScatCorrDE - ProtonMomCorrDE);
+	    HFProf(8331, ProtonMom, MissMass);
+	    HFProf(8332, ProtonMom, MissMassCorr);
+	    HFProf(8333, ProtonMomCorrDE, MissMassCorrDE);
 
 	    HF2(8241, src.xkm[idKm], event.xbTPC[id]);
 	    HF2(8242, src.ykm[idKm], event.ybTPC[id]);
@@ -1333,19 +1473,6 @@ dst::DstRead( int ievent )
 	    HF2(8246, src.ykp[idKm], event.ysTPC[id]);
 	    HF2(8247, src.ukp[idKm], event.usTPC[id]);
 	    HF2(8248, src.vkp[idKm], event.vsTPC[id]);
-
-	    HFProf(8316, us, pScat - KaonMom);
-	    HFProf(8317, us, pScatCorr - KaonMom);
-	    HFProf(8318, us, pScatCorrDE - KaonMom);
-	    HFProf(8319, us, MissMass);
-	    HFProf(8320, us, MissMassCorr);
-	    HFProf(8321, us, MissMassCorrDE);
-	    HFProf(8322, vs, pScat - KaonMom);
-	    HFProf(8323, vs, pScatCorr - KaonMom);
-	    HFProf(8324, vs, pScatCorrDE - KaonMom);
-	    HFProf(8325, vs, MissMass);
-	    HFProf(8326, vs, MissMassCorr);
-	    HFProf(8327, vs, MissMassCorrDE);
 	  }
 	}
       }
@@ -1355,6 +1482,9 @@ dst::DstRead( int ievent )
     return true;
 
   HF1( 1, event.status++ );
+
+  event.nclTpc = **src.nclTpc;
+  event.remain_nclTpc = **src.remain_nclTpc;
 
   Int_t ntTpc = **src.ntTpc;
   event.ntTpc = ntTpc;
@@ -1398,6 +1528,21 @@ dst::DstRead( int ievent )
   event.track_cluster_de = **src.track_cluster_de;
   event.track_cluster_mrow = **src.track_cluster_mrow;
 
+  event.nvtxTpc = **src.nvtxTpc;
+  event.vtx_x = **src.vtx_x;
+  event.vtx_y = **src.vtx_y;
+  event.vtx_z = **src.vtx_z;
+  event.vtx_dist = **src.vtx_dist;
+  event.vtx_angle = **src.vtx_angle;
+  event.vtxid = **src.vtxid;
+  event.vtxmom_theta = **src.vtxmom_theta;
+  event.vtxpos_x = **src.vtxpos_x;
+  event.vtxpos_y = **src.vtxpos_y;
+  event.vtxpos_z = **src.vtxpos_z;
+  event.vtxmom_x = **src.vtxmom_x;
+  event.vtxmom_y = **src.vtxmom_y;
+  event.vtxmom_z = **src.vtxmom_z;
+
   return true;
 }
 
@@ -1423,6 +1568,7 @@ Bool_t
 ConfMan::InitializeHistograms( void )
 {
 
+#if SaveHistograms
   HB1(1, "Status", 21, 0., 21. );
   HB1(12, "K18 TPC tagging", 2, 0., 2. );
   HB1(13, "Kurama TPC tagging", 2, 0., 2. );
@@ -1437,10 +1583,9 @@ ConfMan::InitializeHistograms( void )
   HB1(43, "Kurama TPC tagging", 2, 0., 2. );
   HB1(44, "KK TPC tagging", 2, 0., 2. );
 
-#if SaveKK
   HB1(1001, "P K18", 800, 1.4, 2.2);
   HB1(1002, "P Kurama", 600, 0, 3);
-  HB1(1003, "Charge*Mass", 600, -1., 2.);
+  HB1(1003, "Charge*Mass", 600, -1., 2.5);
   HB2(1004, "P Kurama%Charge*Mass", 400, -0.8, 2.2, 400, 0, 2.5);
   HB1(1005, "Sqaured Mass", 200, -0.2, 1.2);
   HB1(1006, "Sqaured Mass [P Corrected]", 200, -0.2, 1.2);
@@ -1451,7 +1596,7 @@ ConfMan::InitializeHistograms( void )
   HB1(1014, "Vertex Z", 200, -200, 200);
   HB1(2001, "P K18", 800, 1.4, 2.2);
   HB1(2002, "P Kurama", 600, 0, 3);
-  HB1(2003, "Charge*Mass", 600, -1., 2.);
+  HB1(2003, "Charge*Mass", 600, -1., 2.5);
   HB2(2004, "P Kurama%Charge*Mass", 400, -0.8, 2.2, 400, 0, 2.5);
   HB2(2010, "Vertex", 400, -500, 500, 400, -150, 150);
   HB1(2011, "Closest distance", 50, 0., 50.);
@@ -1507,42 +1652,6 @@ ConfMan::InitializeHistograms( void )
   HBProf(3132, "MissingMass%P_{calc.} Prof ", 160, 1.1, 1.5, 1., 1.8);
   HBProf(3133, "MissingMass%P_{calc.} Prof ", 160, 1.1, 1.5, 1., 1.8);
 
-  HB1(3201, "P K18", 800, 1.4, 2.2);
-  HB1(3202, "P Kurama", 600, 0, 3);
-  HB1(3203, "Charge*Mass", 600, -1., 2.);
-  HB2(3204, "P Kurama%Charge*Mass", 400, -0.8, 2.2, 400, 0, 2.5);
-  HB1(3210, "Closest distance", 50, 0., 50.);
-  HB1(3211, "Vertex X", 200, -100, 100);
-  HB1(3212, "Vertex Y", 200, -100, 100);
-  HB1(3213, "Vertex Z", 200, -200, 200);
-  HB1(3214, "MissingMass K^{+}", 140, 1.1, 1.8);
-  HB1(3215, "MissingMass K^{+}", 140, 1.1, 1.8);
-  HB2(3216, "#DeltaP%U ", 160, -0.4, 0.4, 200, -1., 1.);
-  HB2(3217, "#DeltaP%U ", 160, -0.4, 0.4, 200, -1., 1.);
-  HB2(3218, "#DeltaP%U ", 160, -0.4, 0.4, 200, -1., 1.);
-  HB2(3219, "MissingMass%U ", 160, -0.4, 0.4, 200, 1., 1.8);
-  HB2(3220, "MissingMass%U ", 160, -0.4, 0.4, 200, 1., 1.8);
-  HB2(3221, "MissingMass%U ", 160, -0.4, 0.4, 200, 1., 1.8);
-  HB2(3222, "#DeltaP%V ", 160, -0.4, 0.4, 200, -1., 1.);
-  HB2(3223, "#DeltaP%V ", 160, -0.4, 0.4, 200, -1., 1.);
-  HB2(3224, "#DeltaP%V ", 160, -0.4, 0.4, 200, -1., 1.);
-  HB2(3225, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
-  HB2(3226, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
-  HB2(3227, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
-
-  HBProf(3316, "#DeltaP%U Prof ", 160, -0.4, 0.4, -1., 1.);
-  HBProf(3317, "#DeltaP%U Prof ", 160, -0.4, 0.4, -1., 1.);
-  HBProf(3318, "#DeltaP%U Prof ", 160, -0.4, 0.4, -1., 1.);
-  HBProf(3319, "MissingMass%U Prof ", 160, -0.4, 0.4, 1., 1.8);
-  HBProf(3320, "MissingMass%U Prof ", 160, -0.4, 0.4, 1., 1.8);
-  HBProf(3321, "MissingMass%U Prof ", 160, -0.4, 0.4, 1., 1.8);
-  HBProf(3322, "#DeltaP%V Prof ", 160, -0.5, 0.5, -1., 1.);
-  HBProf(3323, "#DeltaP%V Prof ", 160, -0.5, 0.5, -1., 1.);
-  HBProf(3324, "#DeltaP%V Prof ", 160, -0.5, 0.5, -1., 1.);
-  HBProf(3325, "MissingMass%V Prof ", 160, -0.4, 0.4, 1., 1.8);
-  HBProf(3326, "MissingMass%V Prof ", 160, -0.4, 0.4, 1., 1.8);
-  HBProf(3327, "MissingMass%V Prof ", 160, -0.4, 0.4, 1., 1.8);
-
   HB1(4001, "P K18", 800, 1.4, 2.2);
   HB1(4002, "P Kurama", 600, 0, 3);
   HB1(4003, "Charge*Mass", 600, -1., 2.);
@@ -1591,7 +1700,42 @@ ConfMan::InitializeHistograms( void )
   HBProf(4132, "MissingMass%P_{calc.} Prof ", 160, 1.1, 1.5, 1., 1.8);
   HBProf(4133, "MissingMass%P_{calc.} Prof ", 160, 1.1, 1.5, 1., 1.8);
 
-#endif
+  HB1(4201, "P K18", 800, 1.4, 2.2);
+  HB1(4202, "P Kurama", 600, 0, 3);
+  HB1(4203, "Charge*Mass", 700, -1., 2.5);
+  HB2(4204, "P Kurama%Charge*Mass", 400, -0.8, 2.2, 400, 0, 2.5);
+  HB1(4210, "Closest distance", 50, 0., 50.);
+  HB1(4211, "Vertex X", 200, -100, 100);
+  HB1(4212, "Vertex Y", 200, -100, 100);
+  HB1(4213, "Vertex Z", 200, -200, 200);
+  HB1(4214, "MissingMass P", 200, 0.3, 1.3);
+  HB1(4215, "MissingMass P", 200, 0.3, 1.3);
+  HB2(4216, "#DeltaP%U ", 160, -0.4, 0.4, 200, -1., 1.);
+  HB2(4217, "#DeltaP%U ", 160, -0.4, 0.4, 200, -1., 1.);
+  HB2(4218, "#DeltaP%U ", 160, -0.4, 0.4, 200, -1., 1.);
+  HB2(4219, "MissingMass%U ", 160, -0.4, 0.4, 200, 0.3, 1.3);
+  HB2(4220, "MissingMass%U ", 160, -0.4, 0.4, 200, 0.3, 1.3);
+  HB2(4221, "MissingMass%U ", 160, -0.4, 0.4, 200, 0.3, 1.3);
+  HB2(4222, "#DeltaP%V ", 160, -0.4, 0.4, 200, -1., 1.);
+  HB2(4223, "#DeltaP%V ", 160, -0.4, 0.4, 200, -1., 1.);
+  HB2(4224, "#DeltaP%V ", 160, -0.4, 0.4, 200, -1., 1.);
+  HB2(4225, "MissingMass%V ", 160, -0.4, 0.4, 200, 0.3, 1.3);
+  HB2(4226, "MissingMass%V ", 160, -0.4, 0.4, 200, 0.3, 1.3);
+  HB2(4227, "MissingMass%V ", 160, -0.4, 0.4, 200, 0.3, 1.3);
+
+  HBProf(4316, "#DeltaP%U Prof ", 160, -0.4, 0.4, -1., 1.);
+  HBProf(4317, "#DeltaP%U Prof ", 160, -0.4, 0.4, -1., 1.);
+  HBProf(4318, "#DeltaP%U Prof ", 160, -0.4, 0.4, -1., 1.);
+  HBProf(4319, "MissingMass%U Prof ", 160, -0.4, 0.4, 0.3, 1.3);
+  HBProf(4320, "MissingMass%U Prof ", 160, -0.4, 0.4, 0.3, 1.3);
+  HBProf(4321, "MissingMass%U Prof ", 160, -0.4, 0.4, 0.3, 1.3);
+  HBProf(4322, "#DeltaP%V Prof ", 160, -0.5, 0.5, -1., 1.);
+  HBProf(4323, "#DeltaP%V Prof ", 160, -0.5, 0.5, -1., 1.);
+  HBProf(4324, "#DeltaP%V Prof ", 160, -0.5, 0.5, -1., 1.);
+  HBProf(4325, "MissingMass%V Prof ", 160, -0.4, 0.4, 0.3, 1.3);
+  HBProf(4326, "MissingMass%V Prof ", 160, -0.4, 0.4, 0.3, 1.3);
+  HBProf(4327, "MissingMass%V Prof ", 160, -0.4, 0.4, 0.3, 1.3);
+
   HB1(5001, "P K18", 800, 1.4, 2.2);
   HB1(5002, "P Kurama", 600, 0, 3);
   HB1(5003, "Charge*Mass", 600, -1., 2.);
@@ -1649,6 +1793,8 @@ ConfMan::InitializeHistograms( void )
   HB2(7031, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
   HB2(7032, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
   HB2(7033, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
+  HB2(7036, "#DeltaP%P_{calc.} ", 160, 0.3, 1.1, 200, -1., 1.);
+  HB2(7039, "MissingMass%P_{calc.} ", 160, 0.3, 1.1, 140, 1.1, 1.8);
 
   HB2(7041, "K-, Xtgt w/ vs w/o TPC", 200, -100., 100., 200, -100., 100.);
   HB2(7042, "K-, Ytgt w/ vs w/o TPC", 200, -100., 100., 200, -100., 100.);
@@ -1677,6 +1823,8 @@ ConfMan::InitializeHistograms( void )
   HBProf(7131, "MissingMass%P_{calc.} Prof ", 160, 1.1, 1.5, 1., 1.8);
   HBProf(7132, "MissingMass%P_{calc.} Prof ", 160, 1.1, 1.5, 1., 1.8);
   HBProf(7133, "MissingMass%P_{calc.} Prof ", 160, 1.1, 1.5, 1., 1.8);
+  HBProf(7136, "#DeltaP%P_{calc.} Prof ", 160, 0.3, 1.1, -1., 1.);
+  HBProf(7139, "MissingMass%P_{calc.} Prof ", 160, 0.3, 1.1, 1.1, 1.8);
 
   HB1(8001, "P K18", 800, 1.4, 2.2);
   HB1(8002, "P Kurama", 600, 0, 3);
@@ -1706,6 +1854,8 @@ ConfMan::InitializeHistograms( void )
   HB2(8031, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
   HB2(8032, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
   HB2(8033, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
+  HB2(8036, "#DeltaP%P_{calc.} ", 160, 0.3, 1.1, 200, -1., 1.);
+  HB2(8039, "MissingMass%P_{calc.} ", 160, 0.3, 1.1, 140, 1.1, 1.8);
 
   HB2(8041, "K-, Xtgt w/ vs w/o TPC", 200, -100., 100., 200, -100., 100.);
   HB2(8042, "K-, Ytgt w/ vs w/o TPC", 200, -100., 100., 200, -100., 100.);
@@ -1734,6 +1884,8 @@ ConfMan::InitializeHistograms( void )
   HBProf(8131, "MissingMass%P_{calc.} Prof ", 160, 1.1, 1.5, 1., 1.8);
   HBProf(8132, "MissingMass%P_{calc.} Prof ", 160, 1.1, 1.5, 1., 1.8);
   HBProf(8133, "MissingMass%P_{calc.} Prof ", 160, 1.1, 1.5, 1., 1.8);
+  HBProf(8136, "#DeltaP%P_{calc.} Prof ", 160, 0.3, 1.1, -1., 1.);
+  HBProf(8139, "MissingMass%P_{calc.} Prof ", 160, 0.3, 1.1, 1.1, 1.8);
 
   HB1(8201, "P K18", 800, 1.4, 2.2);
   HB1(8202, "P Kurama", 600, 0, 3);
@@ -1743,20 +1895,45 @@ ConfMan::InitializeHistograms( void )
   HB1(8211, "Vertex X", 200, -100, 100);
   HB1(8212, "Vertex Y", 200, -100, 100);
   HB1(8213, "Vertex Z", 200, -200, 200);
-  HB1(8214, "MissingMass p", 140, 1.1, 1.8);
-  HB1(8215, "MissingMass p", 140, 1.1, 1.8);
+  HB1(8214, "MissingMass p", 200, 0.3, 1.3);
+  HB1(8215, "MissingMass p", 200, 0.3, 1.3);
   HB2(8216, "#DeltaP%U ", 160, -0.4, 0.4, 200, -1., 1.);
   HB2(8217, "#DeltaP%U ", 160, -0.4, 0.4, 200, -1., 1.);
   HB2(8218, "#DeltaP%U ", 160, -0.4, 0.4, 200, -1., 1.);
-  HB2(8219, "MissingMass%U ", 160, -0.4, 0.4, 200, 1., 1.8);
-  HB2(8220, "MissingMass%U ", 160, -0.4, 0.4, 200, 1., 1.8);
-  HB2(8221, "MissingMass%U ", 160, -0.4, 0.4, 200, 1., 1.8);
+  HB2(8219, "MissingMass%U ", 160, -0.4, 0.4, 200, 0.3, 1.3);
+  HB2(8220, "MissingMass%U ", 160, -0.4, 0.4, 200, 0.3, 1.3);
+  HB2(8221, "MissingMass%U ", 160, -0.4, 0.4, 200, 0.3, 1.3);
   HB2(8222, "#DeltaP%V ", 160, -0.4, 0.4, 200, -1., 1.);
   HB2(8223, "#DeltaP%V ", 160, -0.4, 0.4, 200, -1., 1.);
   HB2(8224, "#DeltaP%V ", 160, -0.4, 0.4, 200, -1., 1.);
-  HB2(8225, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
-  HB2(8226, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
-  HB2(8227, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
+  HB2(8225, "MissingMass%V ", 160, -0.4, 0.4, 200, 0.3, 1.3);
+  HB2(8226, "MissingMass%V ", 160, -0.4, 0.4, 200, 0.3, 1.3);
+  HB2(8227, "MissingMass%V ", 160, -0.4, 0.4, 200, 0.3, 1.3);
+  HB2(8228, "#DeltaP%P_{calc.} ", 440, 0.3, 2.5, 200, -1., 1.);
+  HB2(8229, "#DeltaP%P_{calc.} ", 440, 0.3, 2.5, 200, -1., 1.);
+  HB2(8230, "#DeltaP%P_{calc.} ", 440, 0.3, 2.5, 200, -1., 1.);
+  HB2(8231, "MissingMass%P_{calc.} ", 440, 0.3, 2.5, 200, 0.3, 1.3);
+  HB2(8232, "MissingMass%P_{calc.} ", 440, 0.3, 2.5, 200, 0.3, 1.3);
+  HB2(8233, "MissingMass%P_{calc.} ", 440, 0.3, 2.5, 200, 0.3, 1.3);
+
+  HBProf(8316, "#DeltaP%U ", 160, -0.4, 0.4, -1., 1.);
+  HBProf(8317, "#DeltaP%U ", 160, -0.4, 0.4, -1., 1.);
+  HBProf(8318, "#DeltaP%U ", 160, -0.4, 0.4, -1., 1.);
+  HBProf(8319, "MissingMass%U ", 160, -0.4, 0.4, 0.3, 1.3);
+  HBProf(8320, "MissingMass%U ", 160, -0.4, 0.4, 0.3, 1.3);
+  HBProf(8321, "MissingMass%U ", 160, -0.4, 0.4, 0.3, 1.3);
+  HBProf(8322, "#DeltaP%V ", 160, -0.4, 0.4, -1., 1.);
+  HBProf(8323, "#DeltaP%V ", 160, -0.4, 0.4, -1., 1.);
+  HBProf(8324, "#DeltaP%V ", 160, -0.4, 0.4, -1., 1.);
+  HBProf(8325, "MissingMass%V ", 160, -0.4, 0.4, 0.3, 1.3);
+  HBProf(8326, "MissingMass%V ", 160, -0.4, 0.4, 0.3, 1.3);
+  HBProf(8327, "MissingMass%V ", 160, -0.4, 0.4, 0.3, 1.3);
+  HBProf(8328, "#DeltaP%P_{calc.} ", 440, 0.3, 2.5, -1., 1.);
+  HBProf(8329, "#DeltaP%P_{calc.} ", 440, 0.3, 2.5, -1., 1.);
+  HBProf(8330, "#DeltaP%P_{calc.} ", 440, 0.3, 2.5, -1., 1.);
+  HBProf(8331, "MissingMass%P_{calc.} ", 440, 0.3, 2.5, 0.3, 1.3);
+  HBProf(8332, "MissingMass%P_{calc.} ", 440, 0.3, 2.5, 0.3, 1.3);
+  HBProf(8333, "MissingMass%P_{calc.} ", 440, 0.3, 2.5, 0.3, 1.3);
 
   HB2(8241, "K-, Xtgt w/ vs w/o TPC", 200, -100., 100., 200, -100., 100.);
   HB2(8242, "K-, Ytgt w/ vs w/o TPC", 200, -100., 100., 200, -100., 100.);
@@ -1766,19 +1943,7 @@ ConfMan::InitializeHistograms( void )
   HB2(8246, "K+, Ytgt w/ vs w/o TPC", 200, -100., 100., 200, -100., 100.);
   HB2(8247, "K+, Utgt w/ vs w/o TPC", 200, -0.5, 0.5, 200, -0.5, 0.5);
   HB2(8248, "K+, Vtgt w/ vs w/o TPC", 200, -0.4, 0.4, 200, -0.4, 0.4);
-
-  HBProf(8316, "#DeltaP%U Prof ", 160, -0.4, 0.4, -1., 1.);
-  HBProf(8317, "#DeltaP%U Prof ", 160, -0.4, 0.4, -1., 1.);
-  HBProf(8318, "#DeltaP%U Prof ", 160, -0.4, 0.4, -1., 1.);
-  HBProf(8319, "MissingMass%U Prof ", 160, -0.4, 0.4, 1., 1.8);
-  HBProf(8320, "MissingMass%U Prof ", 160, -0.4, 0.4, 1., 1.8);
-  HBProf(8321, "MissingMass%U Prof ", 160, -0.4, 0.4, 1., 1.8);
-  HBProf(8322, "#DeltaP%V Prof ", 160, -0.5, 0.5, -1., 1.);
-  HBProf(8323, "#DeltaP%V Prof ", 160, -0.5, 0.5, -1., 1.);
-  HBProf(8324, "#DeltaP%V Prof ", 160, -0.5, 0.5, -1., 1.);
-  HBProf(8325, "MissingMass%V Prof ", 160, -0.4, 0.4, 1., 1.8);
-  HBProf(8326, "MissingMass%V Prof ", 160, -0.4, 0.4, 1., 1.8);
-  HBProf(8327, "MissingMass%V Prof ", 160, -0.4, 0.4, 1., 1.8);
+#endif
 
   HBTree( "tpc", "tree of E42" );
   tree->Branch( "status", &event.status );
@@ -1793,6 +1958,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dtHtof", &event.dtHtof );
   tree->Branch( "deHtof", &event.deHtof );
   tree->Branch( "posHtof", &event.posHtof );
+
+  tree->Branch( "nclTpc", &event.nclTpc );
+  tree->Branch( "remain_nclTpc", &event.nclTpc );
 
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
@@ -1835,19 +2003,32 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_de", &event.track_cluster_de);
   tree->Branch( "track_cluster_mrow", &event.track_cluster_mrow);
 
-  tree->Branch("ntK18",      &event.ntK18);
-#if SaveK18
-  tree->Branch("chisqrK18",  &event.chisqrK18);
-  tree->Branch("pK18",       &event.pK18);
-  tree->Branch("xtgtK18",    &event.xtgtK18);
-  tree->Branch("ytgtK18",    &event.ytgtK18);
-  tree->Branch("utgtK18",    &event.utgtK18);
-  tree->Branch("vtgtK18",    &event.vtgtK18);
-  tree->Branch("thetaK18",   &event.thetaK18);
+  tree->Branch( "nvtxTpc", &event.nvtxTpc );
+  tree->Branch( "vtx_x", &event.vtx_x );
+  tree->Branch( "vtx_y", &event.vtx_y );
+  tree->Branch( "vtx_z", &event.vtx_z );
+  tree->Branch( "vtx_dist", &event.vtx_dist );
+  tree->Branch( "vtx_angle", &event.vtx_angle );
+  tree->Branch( "vtxid", &event.vtxid );
+  tree->Branch( "vtxmom_theta", &event.vtxmom_theta );
+  tree->Branch( "vtxpos_x", &event.vtxpos_x );
+  tree->Branch( "vtxpos_y", &event.vtxpos_y );
+  tree->Branch( "vtxpos_z", &event.vtxpos_z );
+  tree->Branch( "vtxmom_x", &event.vtxmom_x );
+  tree->Branch( "vtxmom_y", &event.vtxmom_y );
+  tree->Branch( "vtxmom_z", &event.vtxmom_z );
+
+  tree->Branch( "ntK18", &event.ntK18);
+  tree->Branch( "chisqrK18", &event.chisqrK18);
+  tree->Branch( "pK18", &event.pK18);
+  tree->Branch( "xtgtK18", &event.xtgtK18);
+  tree->Branch( "ytgtK18", &event.ytgtK18);
+  tree->Branch( "utgtK18", &event.utgtK18);
+  tree->Branch( "vtgtK18", &event.vtgtK18);
+  tree->Branch( "thetaK18", &event.thetaK18);
   tree->Branch( "xhtofK18", &event.xhtofK18);
   tree->Branch( "yhtofK18", &event.yhtofK18);
-#endif
-#if SaveTPCK18
+
   tree->Branch( "tpcidTPCK18", &event.tpcidTPCK18);
   tree->Branch( "isgoodTPCK18", &event.isgoodTPCK18);
   tree->Branch( "chisqrTPCK18", &event.chisqrTPCK18);
@@ -1864,10 +2045,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "lvpTPCK18", &event.lvpTPCK18);
   tree->Branch( "xvpTPCK18", &event.xvpTPCK18);
   tree->Branch( "yvpTPCK18", &event.yvpTPCK18);
-#endif
 
   tree->Branch("ntKurama",     &event.ntKurama);
-#if SaveKurama
   tree->Branch( "chisqrKurama", &event.chisqrKurama);
   tree->Branch( "pKurama",      &event.pKurama);
   tree->Branch( "qKurama",      &event.qKurama);
@@ -1878,10 +2057,22 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "utgtKurama",   &event.utgtKurama);
   tree->Branch( "vtgtKurama",   &event.vtgtKurama);
   tree->Branch( "thetaKurama",  &event.thetaKurama);
+  tree->Branch( "pathKurama",  &event.pathKurama);
+  tree->Branch( "pathwcKurama",  &event.pathwcKurama);
+  tree->Branch( "xin",  &event.xin);
+  tree->Branch( "yin",  &event.yin);
+  tree->Branch( "zin",  &event.zin);
+  tree->Branch( "pxin",  &event.pxin);
+  tree->Branch( "pyin",  &event.pyin);
+  tree->Branch( "pzin",  &event.pzin);
+  tree->Branch( "xout",  &event.xout);
+  tree->Branch( "yout",  &event.yout);
+  tree->Branch( "zout",  &event.zout);
+  tree->Branch( "pxout",  &event.pxout);
+  tree->Branch( "pyout",  &event.pyout);
+  tree->Branch( "pzout",  &event.pzout);
   tree->Branch( "xhtofKurama", &event.xhtofKurama);
   tree->Branch( "yhtofKurama", &event.yhtofKurama);
-#endif
-#if SaveTPCKurama
   tree->Branch( "tpcidTPCKurama", &event.tpcidTPCKurama);
   tree->Branch( "isgoodTPCKurama", &event.isgoodTPCKurama);
   tree->Branch( "kflagTPCKurama", &event.kflagTPCKurama);
@@ -1901,7 +2092,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "lvpTPCKurama", &event.lvpTPCKurama);
   tree->Branch( "xvpTPCKurama", &event.xvpTPCKurama);
   tree->Branch( "yvpTPCKurama", &event.yvpTPCKurama);
-#endif
 
   tree->Branch("nKm",           &event.nKm);
   tree->Branch("nKp",           &event.nKp);
@@ -1927,22 +2117,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("us",         &event.ukp);
   tree->Branch("vs",         &event.vkp);
   tree->Branch("Kflag",      &event.Kflag);
-	tree->Branch( "nvtxTpc", &event.nvtxTpc );
-  tree->Branch( "vtx_x", &event.vtx_x );
-  tree->Branch( "vtx_y", &event.vtx_y );
-  tree->Branch( "vtx_z", &event.vtx_z );
-  tree->Branch( "vtx_dist", &event.vtx_dist );
-  tree->Branch( "vtx_angle", &event.vtx_angle );
-  tree->Branch( "vtxid", &event.vtxid );
-  tree->Branch( "vtxmom_theta", &event.vtxmom_theta );
-  tree->Branch( "vtxpos_x", &event.vtxpos_x );
-  tree->Branch( "vtxpos_y", &event.vtxpos_y );
-  tree->Branch( "vtxpos_z", &event.vtxpos_z );
-  tree->Branch( "vtxmom_x", &event.vtxmom_x );
-  tree->Branch( "vtxmom_y", &event.vtxmom_y );
-  tree->Branch( "vtxmom_z", &event.vtxmom_z );
 
-#if SaveKKTPC
   tree->Branch( "isgoodTPC", &event.isgoodTPC);
   tree->Branch( "insideTPC", &event.insideTPC);
   tree->Branch( "vtxTPC", &event.vtxTPC);
@@ -1953,12 +2128,24 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "MissMassCorrTPC", &event.MissMassCorrTPC);
   tree->Branch( "MissMassCorrDETPC", &event.MissMassCorrDETPC);
   tree->Branch( "pOrgTPC", &event.pOrgTPC);
-  tree->Branch( "pCalcTPC", &event.pCalcTPC);
   tree->Branch( "pCorrTPC", &event.pCorrTPC);
   tree->Branch( "pCorrDETPC", &event.pCorrDETPC);
-  tree->Branch( "thetaTPC", &event.thetaTPC);
+  tree->Branch( "pCalcTPC", &event.pCalcTPC);
   tree->Branch( "thetaCMTPC", &event.thetaCMTPC);
   tree->Branch( "costCMTPC", &event.costCMTPC);
+  tree->Branch( "pCalcDETPC", &event.pCalcDETPC);
+  tree->Branch( "thetaCMDETPC", &event.thetaCMDETPC);
+  tree->Branch( "costCMDETPC", &event.costCMDETPC);
+  tree->Branch( "xistarpCalcDETPC", &event.xistarpCalcDETPC);
+  tree->Branch( "xistarthetaCMDETPC", &event.xistarthetaCMDETPC);
+  tree->Branch( "xistarcostCMDETPC", &event.xistarcostCMDETPC);
+  tree->Branch( "kpscatpCalcTPC", &event.kpscatpCalcTPC);
+  tree->Branch( "kpscatthetaCMTPC", &event.kpscatthetaCMTPC);
+  tree->Branch( "kpscatcostCMTPC", &event.kpscatcostCMTPC);
+  tree->Branch( "kpscatpCalcDETPC", &event.kpscatpCalcDETPC);
+  tree->Branch( "kpscatthetaCMDETPC", &event.kpscatthetaCMDETPC);
+  tree->Branch( "kpscatcostCMDETPC", &event.kpscatcostCMDETPC);
+  tree->Branch( "thetaTPC", &event.thetaTPC);
   tree->Branch( "xbTPC", &event.xbTPC);
   tree->Branch( "ybTPC", &event.ybTPC);
   tree->Branch( "ubTPC", &event.ubTPC);
@@ -1967,7 +2154,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "ysTPC", &event.ysTPC);
   tree->Branch( "usTPC", &event.usTPC);
   tree->Branch( "vsTPC", &event.vsTPC);
-#endif
 
   TTreeReaderCont[kTpc] = new TTreeReader( "tpc", TFileCont[kTpc] );
   const auto& reader = TTreeReaderCont[kTpc];
@@ -1976,6 +2162,9 @@ ConfMan::InitializeHistograms( void )
   src.evnum = new TTreeReaderValue<Int_t>( *reader, "evnum" );
   src.trigpat = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trigpat" );
   src.trigflag = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trigflag" );
+
+  src.nclTpc = new TTreeReaderValue<Int_t>( *reader, "nclTpc" );
+  src.remain_nclTpc = new TTreeReaderValue<Int_t>( *reader, "remain_nclTpc" );
 
   src.ntTpc = new TTreeReaderValue<Int_t>( *reader, "ntTpc" );
   src.nhtrack = new TTreeReaderValue<std::vector<Int_t>>( *reader, "nhtrack" );
@@ -2017,6 +2206,21 @@ ConfMan::InitializeHistograms( void )
   src.alpha = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "alpha" );
   src.track_cluster_de = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_de" );
   src.track_cluster_mrow = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_mrow" );
+
+  src.nvtxTpc = new TTreeReaderValue<Int_t>(*reader,"nvtxTpc");
+  src.vtx_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_x" );
+  src.vtx_y = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_y" );
+  src.vtx_z = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_z" );
+  src.vtx_dist = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_dist" );
+  src.vtx_angle = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_angle" );
+  src.vtxid = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxid" );
+  src.vtxmom_theta = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_theta" );
+  src.vtxpos_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_x" );
+  src.vtxpos_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_y" );
+  src.vtxpos_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_z" );
+  src.vtxmom_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_x" );
+  src.vtxmom_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_y" );
+  src.vtxmom_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_z" );
 
   src.ntTPCK18 = new TTreeReaderValue<Int_t>( *reader, "ntK18" );
   src.tpcidTPCK18 = new TTreeReaderValue<std::vector<Int_t>>( *reader, "tpcidTPCK18" );
@@ -2071,30 +2275,28 @@ ConfMan::InitializeHistograms( void )
   src.MissMassCorrTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "MissMassCorrTPC" );
   src.MissMassCorrDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "MissMassCorrDETPC" );
   src.pOrgTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pOrgTPC" );
-  src.pCalcTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pCalcTPC" );
   src.pCorrTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pCorrTPC" );
   src.pCorrDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pCorrDETPC" );
-  src.thetaTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "thetaTPC" );
+  src.pCalcTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pCalcTPC" );
   src.thetaCMTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "thetaCMTPC" );
   src.costCMTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "costCMTPC" );
+  src.pCalcDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pCalcDETPC" );
+  src.thetaCMDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "thetaCMDETPC" );
+  src.costCMDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "costCMDETPC" );
+  src.xistarpCalcDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "xistarpCalcDETPC" );
+  src.xistarthetaCMDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "xistarthetaCMDETPC" );
+  src.xistarcostCMDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "xistarcostCMDETPC" );
+  src.kpscatpCalcTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "kpscatpCalcTPC" );
+  src.kpscatthetaCMTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "kpscatthetaCMTPC" );
+  src.kpscatcostCMTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "kpscatcostCMTPC" );
+  src.kpscatpCalcDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "kpscatpCalcDETPC" );
+  src.kpscatthetaCMDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "kpscatthetaCMDETPC" );
+  src.kpscatcostCMDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "kpscatcostCMDETPC" );
+  src.thetaTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "thetaTPC" );
   src.ubTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "ubTPC" );
   src.vbTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vbTPC" );
   src.usTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "usTPC" );
   src.vsTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vsTPC" );
-	src.nvtxTpc = new TTreeReaderValue<Int_t>(*reader,"nvtxTpc");
-  src.vtx_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_x" );
-  src.vtx_y = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_y" );
-  src.vtx_z = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_z" );
-  src.vtx_dist = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_dist" );
-  src.vtx_angle = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_angle" );
-  src.vtxid = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxid" );
-  src.vtxmom_theta = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_theta" );
-  src.vtxpos_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_x" );
-  src.vtxpos_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_y" );
-  src.vtxpos_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_z" );
-  src.vtxmom_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_x" );
-  src.vtxmom_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_y" );
-  src.vtxmom_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_z" );
 
   TTreeCont[kKScat]->SetBranchStatus("*", 0);
   TTreeCont[kKScat]->SetBranchStatus("ntK18",          1);
@@ -2116,6 +2318,23 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKScat]->SetBranchStatus("utgtKurama",     1);
   TTreeCont[kKScat]->SetBranchStatus("vtgtKurama",     1);
   TTreeCont[kKScat]->SetBranchStatus("thetaKurama",    1);
+  TTreeCont[kKScat]->SetBranchStatus("tofsegKurama",   1);
+  TTreeCont[kKScat]->SetBranchStatus("path",           1);
+  TTreeCont[kKScat]->SetBranchStatus("pathwcKurama",   1);
+  TTreeCont[kKScat]->SetBranchStatus("xout",        1);
+  TTreeCont[kKScat]->SetBranchStatus("yout",        1);
+  TTreeCont[kKScat]->SetBranchStatus("zout",        1);
+  TTreeCont[kKScat]->SetBranchStatus("pxout",       1);
+  TTreeCont[kKScat]->SetBranchStatus("pyout",       1);
+  TTreeCont[kKScat]->SetBranchStatus("pzout",       1);
+  TTreeCont[kKScat]->SetBranchStatus("xin",        1);
+  TTreeCont[kKScat]->SetBranchStatus("yin",        1);
+  TTreeCont[kKScat]->SetBranchStatus("zin",        1);
+  TTreeCont[kKScat]->SetBranchStatus("pxin",       1);
+  TTreeCont[kKScat]->SetBranchStatus("pyin",       1);
+  TTreeCont[kKScat]->SetBranchStatus("pzin",       1);
+
+  TTreeCont[kKScat]->SetBranchStatus("cstof",          1);
   TTreeCont[kKScat]->SetBranchStatus("nhHtof",         1);
   TTreeCont[kKScat]->SetBranchStatus("HtofSeg",        1);
   TTreeCont[kKScat]->SetBranchStatus("tHtof",          1);
@@ -2167,6 +2386,22 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKScat]->SetBranchAddress("utgtKurama",   src.utgtKurama);
   TTreeCont[kKScat]->SetBranchAddress("vtgtKurama",   src.vtgtKurama);
   TTreeCont[kKScat]->SetBranchAddress("thetaKurama",  src.thetaKurama);
+  TTreeCont[kKScat]->SetBranchAddress("tofsegKurama", src.tofsegKurama);
+  TTreeCont[kKScat]->SetBranchAddress("path",         src.pathKurama);
+  TTreeCont[kKScat]->SetBranchAddress("pathwcKurama", src.pathwcKurama);
+  TTreeCont[kKScat]->SetBranchAddress("cstof",        src.cstof);
+  TTreeCont[kKScat]->SetBranchAddress("xout",  src.xout);
+  TTreeCont[kKScat]->SetBranchAddress("yout",  src.yout);
+  TTreeCont[kKScat]->SetBranchAddress("zout",  src.zout);
+  TTreeCont[kKScat]->SetBranchAddress("pxout", src.pxout);
+  TTreeCont[kKScat]->SetBranchAddress("pyout", src.pyout);
+  TTreeCont[kKScat]->SetBranchAddress("pzout", src.pzout);
+  TTreeCont[kKScat]->SetBranchAddress("xin",  src.xin);
+  TTreeCont[kKScat]->SetBranchAddress("yin",  src.yin);
+  TTreeCont[kKScat]->SetBranchAddress("zin",  src.zin);
+  TTreeCont[kKScat]->SetBranchAddress("pxin", src.pxin);
+  TTreeCont[kKScat]->SetBranchAddress("pyin", src.pyin);
+  TTreeCont[kKScat]->SetBranchAddress("pzin", src.pzin);
 
   TTreeCont[kKScat]->SetBranchAddress("nhHtof", &src.nhHtof);
   TTreeCont[kKScat]->SetBranchAddress("HtofSeg", src.HtofSeg);
