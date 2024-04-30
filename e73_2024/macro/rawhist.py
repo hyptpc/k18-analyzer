@@ -19,11 +19,11 @@ sys.path.append(os.path.join(
   os.path.dirname(macro_dir), 'runmanager', 'module'))
 
 import runlist
-# import histtool as h
 
 #______________________________________________________________________________
 def draw(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
          totdiv=None, ud=False):
+  logger.info(f'name={name}, nseg={nseg}, adcdiv={adcdiv}, tdcdiv={tdcdiv}, totdiv={totdiv}, ud={ud}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   hitmulti = ['_OR', '_AND'] if ud else ['']
@@ -52,15 +52,15 @@ def draw(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
         if h1: h1.Draw()
       c1.Print(fig_path)
 
-  if trailingdiv is not None:
-    for s in ud:
-      c1.Clear()
-      c1.Divide(trailingdiv[0], trailingdiv[1])
-      for i in range(nseg):
-        c1.cd(i+1)
-        h1 = ROOT.gFile.Get(name + f'_Trailing_seg{i}{s}')
-        if h1: h1.Draw()
-      c1.Print(fig_path)
+  # if trailingdiv is not None:
+  #   for s in ud:
+  #     c1.Clear()
+  #     c1.Divide(trailingdiv[0], trailingdiv[1])
+  #     for i in range(nseg):
+  #       c1.cd(i+1)
+  #       h1 = ROOT.gFile.Get(name + f'_Trailing_seg{i}{s}')
+  #       if h1: h1.Draw()
+  #     c1.Print(fig_path)
 
   if totdiv is not None:
     for s in ud:
