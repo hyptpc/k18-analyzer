@@ -21,9 +21,23 @@ sys.path.append(os.path.join(
 import runlist
 
 #______________________________________________________________________________
+def daq():
+  logger.info('daq')
+  c1 = ROOT.gROOT.GetListOfCanvases()[0]
+  fig_path = c1.GetTitle()
+  c1.Clear()
+  c1.Divide(2, 2)
+  for i, head in enumerate(['EB', 'FE_VME', 'FE_HUL', 'FE_VEASIROC']):
+    c1.cd(i+1)
+    h1 = ROOT.gFile.Get(f'{head}_DataSize')
+    if h1:
+      h1.Draw('colz')
+  c1.Print(fig_path)
+
+#______________________________________________________________________________
 def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
          totdiv=None, ud=True):
-  logger.info(f'name={name}, nseg={nseg}, adcdiv={adcdiv}, tdcdiv={tdcdiv}, '+
+  logger.info(f'hodo name={name}, nseg={nseg}, adcdiv={adcdiv}, tdcdiv={tdcdiv}, '+
               f'totdiv={totdiv}, ud={ud}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
@@ -93,7 +107,7 @@ def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
 
 #______________________________________________________________________________
 def dc(name, nlayer=0, tdcdiv=None):
-  logger.info(f'name={name}, nlayer={nlayer}, tdcdiv={tdcdiv}')
+  logger.info(f'dc name={name}, nlayer={nlayer}, tdcdiv={tdcdiv}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
 
@@ -153,6 +167,7 @@ def run(run_info):
   dc('BPC1', nlayer=8, tdcdiv=(4, 2))
   dc('BPC2', nlayer=8, tdcdiv=(4, 2))
   dc('VFT', nlayer=14, tdcdiv=(5, 3))
+  daq()
   c1.Print(fig_path+']')
 
 #______________________________________________________________________________

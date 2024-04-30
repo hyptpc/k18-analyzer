@@ -66,7 +66,9 @@ main(int argc, char **argv)
     ("git", ("\n"+gSystem->GetFromPipe("git log -1")).Data());
   git->Write();
 
-  if(!gConf.Initialize(conf_file) || !gConf.InitializeUnpacker())
+  if(!gConf.Initialize(conf_file) ||
+     !gConf.InitializeUnpacker()  ||
+     !gConf.InitializeHistograms())
     return EXIT_FAILURE;
 
   gUnpacker.set_istream(in_file.Data());

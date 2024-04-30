@@ -6,6 +6,7 @@
 
 #include <TString.h>
 
+#include <Unpacker.hh>
 #include <UnpackerManager.hh>
 #include <DAQNode.hh>
 
@@ -271,46 +272,31 @@ ProcessNormal()
   }
 
   // DAQ
-  int evnum=gUnpacker.get_event_number();
-  static const int k_eb      = gUnpacker.get_fe_id("k18breb");
-  static const int k_vme     = gUnpacker.get_fe_id("vme_qdc1");
-  static const int k_sca     = gUnpacker.get_fe_id("hulscaler-139");
-  static const int k_flag    = gUnpacker.get_fe_id("hulmhtdc-138");
-  static const int k_hr      = gUnpacker.get_fe_id("hulhrtdc-121");
-  static const int k_cdc1    = 1650;
-  static const int k_cdc2    = 1660;
-  static const int k_bldc    = gUnpacker.get_fe_id("hulmhtdc-101");
-  {
-    int data_size = gUnpacker.get_node_header( k_eb, DAQNode::k_data_size);
-    hist::H1("DataSize; Words; Counts",data_size,10000,0,20000);
-    hist::H2("DataSize_vs_EvNum",evnum,data_size,300,0,3e6,200,0,20000);
-  }
-  { // VME node
-    for( int i=0; i<2; ++i ){
-      int node_id = k_vme+i;
-      int data_size = gUnpacker.get_node_header( node_id, DAQNode::k_data_size);
-      hist::H1(Form("DataSize_node%04d",node_id),data_size,1000,0,1000);
-      hist::H2(Form("DataSize_node%04d_vs_EvNum",node_id),
-	       evnum,data_size,300,0,3e6,100,0,2000);
-      hist::H2(Form("DataSize_vme"),
-	       i,data_size,2,-0.5,1.5,1000,0,2000);
+  Int_t vme_index = 0;
+  Int_t hul_index = 0;
+  Int_t vea0c_index = 0;
+  for(auto&& c : gUnpacker.get_root()->get_child_list()){
+    if (!c.second) continue;
+    TString name = c.second->get_name();
+    auto node_id = c.second->get_id();
+    auto data_size = gUnpacker.get_node_header(node_id, DAQNode::k_data_size);
+    if(name.Contains("vme")){
+      root::HF2("FE_VME_DataSize", vme_index++, data_size);
+    }
+    if(name.Contains("hul")){
+      root::HF2("FE_HUL_DataSize", hul_index++, data_size);
+    }
+    if(name.Contains("veasiroc")){
+      root::HF2("FE_VEASIROC_DataSize", vea0c_index++, data_size);
     }
   }
 
-  { // HUL
-    for( int i=0; i<50; ++i ){
-      int node_id = k_bldc+i;
-      int data_size = gUnpacker.get_node_header( node_id, DAQNode::k_data_size);
-      hist::H1(Form("DataSize_node%04d",node_id),data_size,1000,0,1000);
-      hist::H2(Form("DataSize_node%04d_vs_EvNum",node_id),
-	       evnum,data_size,300,0,3e6,100,0,2000);
-      hist::H2(Form("DataSize_hul"),
-	       i,data_size,50,-0.5,49.5,1000,0,2000);
-    }
+  {
+    auto node_id = gUnpacker.get_fe_id("k18breb");
+    auto data_size = gUnpacker.get_node_header(node_id, DAQNode::k_data_size);
+    root::HF1("EB_DataSize", data_size);
   }
-#if DEBUG
-  std::cout << __FILE__ << " " << __LINE__ << std::endl;
-#endif
+
   return true;
 }
 
@@ -339,8 +325,6 @@ ConfMan::InitializeHistograms()
     Int_t nseg = NumOfSegBHT;
     for(Int_t i=0; i<nseg; ++i){
       for(const auto& ud : std::vector<TString>{"U", "D"}){
-        // root::HB1(Form("%s_ADC_seg%d%s", name, i, ud.Data()), adcbins);
-        // root::HB1(Form("%s_AWT_seg%d%s", name, i, ud.Data()), adcbins);
         root::HB1(Form("%s_TDC_seg%d%s", name, i, ud.Data()), tdcbins);
         root::HB1(Form("%s_Trailing_seg%d%s", name, i, ud.Data()), tdcbins);
         root::HB1(Form("%s_TOT_seg%d%s", name, i, ud.Data()), totbins);
@@ -388,10 +372,6 @@ ConfMan::InitializeHistograms()
     const Char_t* name = NameDC[idc].Data();
     Int_t nlayer = NumOfLayerDC[idc];
     Int_t nwire = NumOfWireDC[idc];
-    // double mulbins[3]={nw,-0.5,nw+0.5};
-    // double mulbins2[3]={10,-0.5,9.5};
-    // double patbins[3]={nw,-0.5,nw-0.5};
-    // double lpatbins[3]={nlayer,0.5,nlayer+0.5};
     for(Int_t layer=0; layer<nlayer; ++layer){
       root::HB1(Form("%s_TDC_layer%d", name, layer), mtdcbins);
       root::HB1(Form("%s_TDC1st_layer%d", name, layer), mtdcbins);
@@ -401,9 +381,42 @@ ConfMan::InitializeHistograms()
       root::HB1(Form("%s_TOT1st_layer%d", name, layer), mtdcbins);
       root::HB1(Form("%s_HitPat_layer%d", name, layer), nwire, -0.5, nwire - 0.5);
       root::HB1(Form("%s_Multi_layer%d", name, layer), nwire + 1, -0.5, nwire + 0.5);
-      // for(Int_t wire=0; wire<nwire; ++wire){
-      // }
     }
+  }
+
+  // DAQ
+  std::vector<Int_t> vme_fe_id;
+  std::vector<Int_t> hul_fe_id;
+  std::vector<Int_t> vea0c_fe_id;
+  root::HB1("EB_DataSize; words", 2000, 0, 20000);
+  for(auto&& c : gUnpacker.get_root()->get_child_list()){
+    if (!c.second) continue;
+    TString name = c.second->get_name();
+    auto node_id = c.second->get_id();
+    if(name.Contains("vme"))
+      vme_fe_id.push_back(node_id);
+    if(name.Contains("hul"))
+      hul_fe_id.push_back(node_id);
+    if(name.Contains("veasiroc"))
+      vea0c_fe_id.push_back(node_id);
+  }
+  root::HB2("FE_VME_DataSize; ; words",
+            vme_fe_id.size(), 0, vme_fe_id.size(), 100, 0, 1000);
+  for(Int_t i=0, n=vme_fe_id.size(); i<n; ++i){
+    auto h1 = gDirectory->Get<TH2>("FE_VME_DataSize");
+    h1->GetXaxis()->SetBinLabel(i+1, "0x"+TString::Itoa(vme_fe_id[i], 16));
+  }
+  root::HB2("FE_HUL_DataSize; ; words",
+            hul_fe_id.size(), 0, hul_fe_id.size(), 100, 0, 2000);
+  for(Int_t i=0, n=hul_fe_id.size(); i<n; ++i){
+    auto h1 = gDirectory->Get<TH2>("FE_HUL_DataSize");
+    h1->GetXaxis()->SetBinLabel(i+1, "0x"+TString::Itoa(hul_fe_id[i], 16));
+  }
+  root::HB2("FE_VEASIROC_DataSize; ; words",
+            vea0c_fe_id.size(), 0, vea0c_fe_id.size(), 100, 0, 1000);
+  for(Int_t i=0, n=hul_fe_id.size(); i<n; ++i){
+    auto h1 = gDirectory->Get<TH2>("FE_VEASIROC_DataSize");
+    h1->GetXaxis()->SetBinLabel(i+1, "0x"+TString::Itoa(vea0c_fe_id[i], 16));
   }
 
   return true;

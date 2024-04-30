@@ -107,7 +107,7 @@ ConfMan::Initialize()
 
   AddObject();
 
-  if(!InitializeParameterFiles() || !InitializeHistograms()){
+  if(!InitializeParameterFiles()){
     return false;
   }
 

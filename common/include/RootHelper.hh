@@ -58,32 +58,32 @@ const Int_t MaxHist  = 100000000;
 extern TH1   *h[MaxHist];
 extern TTree *tree;
 
-//_____________________________________________________________________________
-inline void
-HB1(Int_t i, const Char_t* title,
-    Int_t nbinx, Double_t xlow, Double_t xhigh)
-{
-  if(i<0 || MaxHist<=i)
-    throw Exception(Form("HB1() invalid HistId : %d/%d", i, MaxHist));
-  if(h[i]){
-#if ThrowError
-    throw Exception(Form("h%d (%s) is already exist", i, title));
-#endif
-#if OverWrite
-    delete h[i];
-    h[i] = nullptr;
-#endif
-  }
-  h[i] = new TH1D(Form("h%d", i), title, nbinx, xlow, xhigh);
-}
+// //_____________________________________________________________________________
+// inline void
+// HB1(Int_t i, const Char_t* title,
+//     Int_t nbinx, Double_t xlow, Double_t xhigh)
+// {
+//   if(i<0 || MaxHist<=i)
+//     throw Exception(Form("HB1() invalid HistId : %d/%d", i, MaxHist));
+//   if(h[i]){
+// #if ThrowError
+//     throw Exception(Form("h%d (%s) is already exist", i, title));
+// #endif
+// #if OverWrite
+//     delete h[i];
+//     h[i] = nullptr;
+// #endif
+//   }
+//   h[i] = new TH1D(Form("h%d", i), title, nbinx, xlow, xhigh);
+// }
 
-//_____________________________________________________________________________
-inline void
-HB1(Int_t i, const TString& title,
-    Int_t nbinx, Double_t xlow, Double_t xhigh)
-{
-  HB1(i, title.Data(), nbinx, xlow, xhigh);
-}
+// //_____________________________________________________________________________
+// inline void
+// HB1(Int_t i, const TString& title,
+//     Int_t nbinx, Double_t xlow, Double_t xhigh)
+// {
+//   HB1(i, title.Data(), nbinx, xlow, xhigh);
+// }
 
 //_____________________________________________________________________________
 inline void
@@ -120,35 +120,73 @@ HB1(const TString& name, Double_t* bins)
   HB1(name, name, (Int_t)bins[0], bins[1], bins[2]);
 }
 
+// //_____________________________________________________________________________
+// inline void
+// HB2(Int_t i, const Char_t* title,
+//     Int_t nbinx, Double_t xlow, Double_t xhigh,
+//     Int_t nbiny, Double_t ylow, Double_t yhigh)
+// {
+//   if(i<0 || MaxHist<=i)
+//     throw Exception(Form("HB2() invalid HistId : %d/%d", i, MaxHist));
+//   if(h[i]){
+// #if ThrowError
+//     throw Exception(Form("h%d (%s) is already exist", i, title));
+// #endif
+// #if OverWrite
+//     delete h[i];
+//     h[i] = nullptr;
+// #endif
+//   }
+//   h[i] = new TH2D(Form("h%d", i), title,
+//                   nbinx, xlow, xhigh,
+//                   nbiny, ylow, yhigh);
+// }
+
+// //_____________________________________________________________________________
+// inline void
+// HB2(Int_t i, const TString& title,
+//     Int_t nbinx, Double_t xlow, Double_t xhigh,
+//     Int_t nbiny, Double_t ylow, Double_t yhigh)
+// {
+//   HB2(i, title.Data(), nbinx, xlow, xhigh, nbiny, ylow, yhigh);
+// }
+
 //_____________________________________________________________________________
 inline void
-HB2(Int_t i, const Char_t* title,
+HB2(const TString& name, const TString& title,
     Int_t nbinx, Double_t xlow, Double_t xhigh,
     Int_t nbiny, Double_t ylow, Double_t yhigh)
 {
-  if(i<0 || MaxHist<=i)
-    throw Exception(Form("HB2() invalid HistId : %d/%d", i, MaxHist));
-  if(h[i]){
+  TString tmp = name;
+  if(tmp.Contains(';')) tmp.Remove(tmp.First(';'));
+  auto h1 = gDirectory->Get<TH2>(tmp);
+  if(h1){
 #if ThrowError
-    throw Exception(Form("h%d (%s) is already exist", i, title));
+    throw Exception(Form("TH2 %s is already exist", tmp.Data()));
 #endif
 #if OverWrite
-    delete h[i];
-    h[i] = nullptr;
+    delete h1;
+    h1 = nullptr;
 #endif
   }
-  h[i] = new TH2D(Form("h%d", i), title,
-                  nbinx, xlow, xhigh,
-                  nbiny, ylow, yhigh);
+  // hddaq::cout << "new name:" << tmp << " title:" << title << std::endl;
+  new TH2D(tmp, title, nbinx, xlow, xhigh, nbiny, ylow, yhigh);
 }
 
 //_____________________________________________________________________________
 inline void
-HB2(Int_t i, const TString& title,
-    Int_t nbinx, Double_t xlow, Double_t xhigh,
+HB2(const TString& name, Int_t nbinx, Double_t xlow, Double_t xhigh,
     Int_t nbiny, Double_t ylow, Double_t yhigh)
 {
-  HB2(i, title.Data(), nbinx, xlow, xhigh, nbiny, ylow, yhigh);
+  HB2(name, name, nbinx, xlow, xhigh, nbiny, ylow, yhigh);
+}
+
+//_____________________________________________________________________________
+inline void
+HB2(const TString& name, Double_t* bins)
+{
+  HB2(name, name, (Int_t)bins[0], bins[1], bins[2],
+      (Int_t)bins[3], bins[4], bins[5]);
 }
 
 //_____________________________________________________________________________
@@ -206,17 +244,17 @@ HC2Poly(Int_t i)
   if(h[i]) dynamic_cast<TH2Poly*>(h[i])->Reset("");
 }
 
-//_____________________________________________________________________________
-inline void
-HF1(Int_t i, Double_t x)
-{
-  if(i<0 || MaxHist<=i)
-    throw Exception(Form("HF1() invalid HistId : %d/%d", i, MaxHist));
-  if(h[i]) h[i]->Fill(x);
-#if NoExist
-  else     throw Exception(Form("HF1() h%d does not exist", i));
-#endif
-}
+// //_____________________________________________________________________________
+// inline void
+// HF1(Int_t i, Double_t x)
+// {
+//   if(i<0 || MaxHist<=i)
+//     throw Exception(Form("HF1() invalid HistId : %d/%d", i, MaxHist));
+//   if(h[i]) h[i]->Fill(x);
+// #if NoExist
+//   else     throw Exception(Form("HF1() h%d does not exist", i));
+// #endif
+// }
 
 //_____________________________________________________________________________
 inline void
@@ -229,15 +267,26 @@ HF1(const TString& name, Double_t x)
 #endif
 }
 
+// //_____________________________________________________________________________
+// inline void
+// HF2(Int_t i, Double_t x, Double_t y)
+// {
+//   if(i<0 || MaxHist<=i)
+//     throw Exception(Form("HF2() invalid HistId : %d/%d", i, MaxHist));
+//   if(h[i]) h[i]->Fill(x, y);
+// #if NoExist
+//   else     throw Exception(Form("HF2() h%d does not exist", i));
+// #endif
+// }
+
 //_____________________________________________________________________________
 inline void
-HF2(Int_t i, Double_t x, Double_t y)
+HF2(const TString& name, Double_t x, Double_t y)
 {
-  if(i<0 || MaxHist<=i)
-    throw Exception(Form("HF2() invalid HistId : %d/%d", i, MaxHist));
-  if(h[i]) h[i]->Fill(x, y);
+  auto h1 = gDirectory->Get<TH2>(name);
+  if(h1) h1->Fill(x, y);
 #if NoExist
-  else     throw Exception(Form("HF2() h%d does not exist", i));
+  else throw Exception(Form("HF2() %s does not exist", name.Data()));
 #endif
 }
 
