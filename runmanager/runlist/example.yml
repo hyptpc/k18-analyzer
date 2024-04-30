@@ -38,6 +38,8 @@ DEFAULT:
   conf:  ./param/conf/analyzer_default.conf
   data:  ../data
   root:  ../rootfile
+  # only for macro
+  fig:   fig/hodo
 
 #____________________________________________________
 # Individual settings
