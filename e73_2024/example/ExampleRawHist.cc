@@ -29,35 +29,14 @@
 namespace
 {
 using namespace e73_2024;
-using namespace root;
-using namespace hddaq::unpacker;
-using namespace hddaq;
-const auto& gUnpacker = GUnpacker::get_instance();
+const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
-}
-
-//_____________________________________________________________________________
-namespace root
-{
-TH1   *h[MaxHist];
-double tdcbins[3]={5000,0,2e6};
-double totbins[3]={5000,0,5e4};
-double adcbins[3]={4096,-0.5,4095.5};
-double mtdcbins[3]={2000,0,2000};
-double diffbins[3]={2000,-10000,10000};
-}
-
-//_____________________________________________________________________________
-void
-InitializeEvent()
-{
 }
 
 //_____________________________________________________________________________
 Bool_t
 ProcessBegin()
 {
-  InitializeEvent();
   return true;
 }
 
@@ -272,6 +251,7 @@ ProcessNormal()
   }
 
   // DAQ
+  static const auto k_data_size = hddaq::unpacker::DAQNode::k_data_size;
   Int_t vme_index = 0;
   Int_t hul_index = 0;
   Int_t vea0c_index = 0;
@@ -279,7 +259,7 @@ ProcessNormal()
     if (!c.second) continue;
     TString name = c.second->get_name();
     auto node_id = c.second->get_id();
-    auto data_size = gUnpacker.get_node_header(node_id, DAQNode::k_data_size);
+    auto data_size = gUnpacker.get_node_header(node_id, k_data_size);
     if(name.Contains("vme")){
       root::HF2("FE_VME_DataSize", vme_index++, data_size);
     }
@@ -293,7 +273,7 @@ ProcessNormal()
 
   {
     auto node_id = gUnpacker.get_fe_id("k18breb");
-    auto data_size = gUnpacker.get_node_header(node_id, DAQNode::k_data_size);
+    auto data_size = gUnpacker.get_node_header(node_id, k_data_size);
     root::HF1("EB_DataSize", data_size);
   }
 
@@ -311,6 +291,11 @@ ProcessEnd()
 Bool_t
 ConfMan::InitializeHistograms()
 {
+  Double_t tdcbins[3] = {5000, 0, 2e6};
+  Double_t totbins[3] = {5000, 0, 5e4};
+  Double_t adcbins[3] = {4096, -0.5, 4095.5};
+  Double_t mtdcbins[3] = {2000, 0, 2000};
+
   { // TriggerFlag
     const Char_t* name = "TriggerFlag";
     Double_t patbins[3]={NumOfSegTrigFlag, -0.5, NumOfSegTrigFlag-0.5};
@@ -414,7 +399,7 @@ ConfMan::InitializeHistograms()
   }
   root::HB2("FE_VEASIROC_DataSize; ; words",
             vea0c_fe_id.size(), 0, vea0c_fe_id.size(), 100, 0, 1000);
-  for(Int_t i=0, n=hul_fe_id.size(); i<n; ++i){
+  for(Int_t i=0, n=vea0c_fe_id.size(); i<n; ++i){
     auto h1 = gDirectory->Get<TH2>("FE_VEASIROC_DataSize");
     h1->GetXaxis()->SetBinLabel(i+1, "0x"+TString::Itoa(vea0c_fe_id[i], 16));
   }
