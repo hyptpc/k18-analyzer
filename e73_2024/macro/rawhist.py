@@ -21,9 +21,10 @@ sys.path.append(os.path.join(
 import runlist
 
 #______________________________________________________________________________
-def draw(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
+def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
          totdiv=None, ud=True):
-  logger.info(f'name={name}, nseg={nseg}, adcdiv={adcdiv}, tdcdiv={tdcdiv}, totdiv={totdiv}, ud={ud}')
+  logger.info(f'name={name}, nseg={nseg}, adcdiv={adcdiv}, tdcdiv={tdcdiv}, '+
+              f'totdiv={totdiv}, ud={ud}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   hitmulti = ['_OR', '_AND'] if ud else ['']
@@ -91,6 +92,28 @@ def draw(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
   c1.Print(fig_path)
 
 #______________________________________________________________________________
+def dc(name, nlayer=0, tdcdiv=None):
+  logger.info(f'name={name}, nlayer={nlayer}, tdcdiv={tdcdiv}')
+  c1 = ROOT.gROOT.GetListOfCanvases()[0]
+  fig_path = c1.GetTitle()
+
+  if tdcdiv is not None:
+    for htype in ['TDC', 'Trailing', 'TOT', 'HitPat', 'Multi']:
+      c1.Clear()
+      c1.Divide(tdcdiv[0], tdcdiv[1])
+      for i in range(nlayer):
+        c1.cd(i+1) #.SetLogy()
+        h1 = ROOT.gFile.Get(f'{name}_{htype}_layer{i}')
+        if h1:
+          h1.Draw()
+        # if htype == 'TDC' or htype == 'Trailing' or htype == 'TOT':
+        #   h2 = ROOT.gFile.Get(f'{name}_{htype}1st_layer{i}')
+        #   if h2:
+        #     h2.SetLineColor(ROOT.kRed+1)
+        #     h2.Draw('same')
+      c1.Print(fig_path)
+
+#______________________________________________________________________________
 def run(run_info):
   logger.debug(run_info)
   try:
@@ -109,20 +132,27 @@ def run(run_info):
   logger.info(f'root_path = {root_path}')
   logger.info(f'fig_path = {fig_path}')
   c1.Print(fig_path+'[')
-  draw('TriggerFlag', nseg=32, tdcdiv=(8, 4), ud=False)
-  draw('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8))
-  draw('AC', nseg=1, adcdiv=(2, 2), tdcdiv=(2, 2), ud=False)
-  draw('T1', nseg=1, adcdiv=(2, 2), tdcdiv=(2, 2))
-  draw('T0', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
-  draw('T0new', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
-  draw('DEF', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
-  draw('Veto', nseg=4, adcdiv=(2, 2), tdcdiv=(2, 2))
-  draw('BTC', nseg=4, adcdiv=(2, 2), tdcdiv=(2, 2))
-  draw('CDH', nseg=36, adcdiv=(6, 6), tdcdiv=(6, 6))
-  # draw('PbG', nseg=40, adcdiv=(7, 6), tdcdiv=(7, 6))
-  # draw('PbF2', nseg=40, adcdiv=(7, 6), tdcdiv=(7, 6))
-  draw('CVC', nseg=9, adcdiv=(3, 3), tdcdiv=(3, 3))
-  draw('NC', nseg=6, adcdiv=(3, 2), tdcdiv=(3, 2))
+  hodo('TriggerFlag', nseg=32, tdcdiv=(8, 4), ud=False)
+  hodo('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8))
+  hodo('AC', nseg=1, adcdiv=(2, 2), tdcdiv=(2, 2), ud=False)
+  hodo('T1', nseg=1, adcdiv=(2, 2), tdcdiv=(2, 2))
+  hodo('T0', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
+  hodo('T0new', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
+  hodo('DEF', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
+  hodo('Veto', nseg=4, adcdiv=(2, 2), tdcdiv=(2, 2))
+  hodo('BTC', nseg=4, adcdiv=(2, 2), tdcdiv=(2, 2))
+  hodo('CDH', nseg=36, adcdiv=(6, 6), tdcdiv=(6, 6))
+  # hodo('PbG', nseg=40, adcdiv=(7, 6), tdcdiv=(7, 6))
+  # hodo('PbF2', nseg=40, adcdiv=(7, 6), tdcdiv=(7, 6))
+  hodo('CVC', nseg=9, adcdiv=(3, 3), tdcdiv=(3, 3))
+  hodo('NC', nseg=6, adcdiv=(3, 2), tdcdiv=(3, 2))
+  dc('BLC1a', nlayer=8, tdcdiv=(4, 2))
+  dc('BLC1b', nlayer=8, tdcdiv=(4, 2))
+  dc('BLC2a', nlayer=8, tdcdiv=(4, 2))
+  dc('BLC2b', nlayer=8, tdcdiv=(4, 2))
+  dc('BPC1', nlayer=8, tdcdiv=(4, 2))
+  dc('BPC2', nlayer=8, tdcdiv=(4, 2))
+  dc('VFT', nlayer=14, tdcdiv=(5, 3))
   c1.Print(fig_path+']')
 
 #______________________________________________________________________________

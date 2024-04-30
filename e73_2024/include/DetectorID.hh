@@ -110,6 +110,31 @@ const int DetIdBLC1   = 111;
 const int DetIdBLC2   = 112;
 const int DetIdBPC0   = 113;
 
+enum EDC
+{
+  kBLC1a, kBLC1b, kBLC2a, kBLC2b, kBPC1, kBPC2, kVFT,
+  kCDC,
+  kBLC1, kBLC2, kBPC0, kNumDC
+};
+
+const Int_t DetIdDC[kNumDC] = {
+  DetIdBLC1a, DetIdBLC1b, DetIdBLC2a, DetIdBLC2b, DetIdBPC1, DetIdBPC2,
+  DetIdVFT, DetIdCDC, DetIdBLC1, DetIdBLC2, DetIdBPC0
+};
+
+const TString NameDC[kNumDC] = {
+  "BLC1a", "BLC1b", "BLC2a", "BLC2b", "BPC1", "BPC2",
+  "VFT", "CDC", "BLC1", "BLC2", "BPC0"
+};
+
+const int  NumOfLayerDC[kNumDC] = {
+  8, 8, 8, 8, 8, 8, 14, 118, 16, 16, 16
+};
+
+const int  NumOfWireDC[kNumDC] = {
+  32, 32, 32, 32, 15, 32, 64, 16, 32, 32, 32
+};
+
 // Hall etc.
 const int DetIdHall       	= 200;
 const int DetIdFloor		= 201;

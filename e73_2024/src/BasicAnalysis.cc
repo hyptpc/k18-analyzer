@@ -449,8 +449,8 @@ bool BasicAnalysis::FillHodo1Decoded(HodoAnalyzer* hodo,int kHodo,std::vector<TS
 
 bool BasicAnalysis::AnaDC(DCAnalyzer* dc,int kDC,double tmin,double tmax,double chi2)
 {
-  int cid=chmid[kDC];
-  TString name=chmname[kDC];
+  int cid=DetIdDC[kDC];
+  TString name=NameDC[kDC];
   int status=dc->TrackSearch(cid,!isMC);
   int ntra=dc->GetNTracks(cid);
   for( int i=0; i<ntra; i++ ){

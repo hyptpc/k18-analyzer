@@ -52,7 +52,7 @@ private:
   int TriggerMode;
   TVector3 position[kNumHodo];
   std::vector<HodoEvent> hodo_container[kNumHodo];
-  std::vector<int> good_trackid[kNumChm];
+  std::vector<int> good_trackid[kNumDC];
   std::vector<int> neutralCDH;
 
 public:
@@ -82,19 +82,19 @@ public:
   int    hodoseg(  int khodo,int i=0) { return nhit(khodo)>i ? hodo_container[khodo][i].seg : -1; }
   double hodotime( int khodo,int i=0) { return nhit(khodo)>i ? hodo_container[khodo][i].time: -999; }
   double hodoctime(int khodo,int i=0) { return nhit(khodo)>i ? hodo_container[khodo][i].ctime: -999;}
-  double hododeu(  int khodo,int i=0) { return nhit(khodo)>i ? hodo_container[khodo][i].deu : -999; } 
+  double hododeu(  int khodo,int i=0) { return nhit(khodo)>i ? hodo_container[khodo][i].deu : -999; }
   double hododed(  int khodo,int i=0) { return nhit(khodo)>i ? hodo_container[khodo][i].ded : -999; }
   double hodode(   int khodo,int i=0) { return nhit(khodo)>i ? sqrt(hododeu(khodo,i)*hododed(khodo,i)) : -999; }
 
-  double hodotu(  int khodo,int i=0) { return nhit(khodo)>i ? hodo_container[khodo][i].tu : -999; } 
+  double hodotu(  int khodo,int i=0) { return nhit(khodo)>i ? hodo_container[khodo][i].tu : -999; }
   double hodotd(  int khodo,int i=0) { return nhit(khodo)>i ? hodo_container[khodo][i].td : -999; }
-  double hodoctu(  int khodo,int i=0) { return nhit(khodo)>i ? hodo_container[khodo][i].ctu : -999; } 
+  double hodoctu(  int khodo,int i=0) { return nhit(khodo)>i ? hodo_container[khodo][i].ctu : -999; }
   double hodoctd(  int khodo,int i=0) { return nhit(khodo)>i ? hodo_container[khodo][i].ctd : -999; }
 
   double ngood(  int kchm          ){ return good_trackid[kchm].size(); }
   double goodid( int kchm, int i=0 ){ return good_trackid[kchm][i]; }
   double ncdh_neutral(){ return neutralCDH.size(); }
- 
+
   void SetEvNum(int evnum){ EventNumber=evnum; }
 
   bool AnaInit(MTDCAnalyzer* mtdc, HodoAnalyzer *hodo,bool mc=false,bool slewing=false,bool yamaga=true);
@@ -112,11 +112,11 @@ public:
   bool AnaBHT(HodoAnalyzer* hodo, int kHodo=kBHT);
   bool AnaHodo1(HodoAnalyzer* hodo, int kHodo);
   bool AnaPbF2(HodoAnalyzer* hodo,std::vector<TString> add);
-  void SetPos(int khodo, TVector3 tmppos) { position[khodo]=tmppos; } 
+  void SetPos(int khodo, TVector3 tmppos) { position[khodo]=tmppos; }
   bool AnaCDHneutral(Particle* particle);
 
-  SlewEvent get_slewevent();  
-  DeuteronEvent get_devent(HodoAnalyzer* hodo);  
-  CDHEvent get_cdhevent();  
+  SlewEvent get_slewevent();
+  DeuteronEvent get_devent(HodoAnalyzer* hodo);
+  CDHEvent get_cdhevent();
 };
 #endif

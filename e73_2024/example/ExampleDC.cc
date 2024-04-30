@@ -229,10 +229,10 @@ ProcessNormal()
 #endif
 	//    DCAna.DecodeRawHits( rawData, hodotime[kT1],hodotime[kDEF] );
 	int kChm=kchm[ichm];
-	TString tmpname=chmname[kChm];
-	int    cid     =chmid[kChm];
-	double nl      =nlayers[kChm];
-	double nw      =nwires[kChm];
+	TString tmpname=NameDC[kChm];
+	int    cid     =DetIdDC[kChm];
+	double nl      =NumOfLayerDC[kChm];
+	double nw      =NumOfWireDC[kChm];
 	double mulbins[3] ={nw,-0.5,nw+0.5};
 	double mulbins2[3]={10,-0.5,9.5};
 	double patbins[3] ={nw,-0.5,nw-0.5};
@@ -348,8 +348,8 @@ ProcessNormal()
   {
     for(int ichm=0;ichm<nchm2;ichm++){
       int kChm=kchm[ichm];
-      TString tmpname=chmname[kChm];
-      int     cid    =chmid[kChm];
+      TString tmpname=NameDC[kChm];
+      int     cid    =DetIdDC[kChm];
       //      if(cid==DetIdBPC&&!GoodBeam) continue;
       //    DCAna.MakePairs(cid);
       int status=DCAna.TrackSearch(cid,true,0);

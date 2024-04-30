@@ -228,40 +228,48 @@ ProcessNormal()
     root::HF1(Form("%s_Multi_AND", name), multi_and);
   }
 
-  return true;
-  // Chamber ------------------------------------------------------------
-  {
-    for(int ichm=0;ichm<kCDC;ichm++){
-      TString name=chmname[ichm];
-      int cid=chmid[ichm];
-      double nl=nlayers[ichm];
-      double nw=nwires[ichm];
-      double mulbins[3]={nw,-0.5,nw+0.5};
-      double mulbins2[3]={10,-0.5,9.5};
-      double patbins[3]={nw,-0.5,nw-0.5};
-      double lpatbins[3]={nl,0.5,nl+0.5};
-      for( int layer=0; layer<nl; ++layer ){
-	const auto& RHitCont = rawData.GetDCRawHC(cid, layer);
-	int nh = RHitCont.size();
-	hist::H1(Form("%s_Mul_layer%d",name.Data(),layer),nh,mulbins);
-	for( int i=0; i<nh; ++i ){
-	  DCRawHit *hit  = RHitCont[i];
-	  int hw      = hit->WireId();
-	  int mul_wire= hit->GetTdcSize();
-	  hist::H1(Form("%s_HitPat_layer%d",name.Data(),layer),hw,patbins);
-	  hist::H2(Form("%s_HitPat_2d",name.Data()),layer,hw,lpatbins,patbins);
-	  hist::H1(Form("%s_Mul_layer%d_wire%d",name.Data(),layer,hw),mul_wire,mulbins);
-	  hist::H2(Form("%s_Mul_layer%d_2d",name.Data(),layer),hw,mul_wire,patbins,mulbins2);
-	  for(int i=0;i<mul_wire;i++){
-	    hist::H1(Form("%s_Leading_layer%d",name.Data(),layer),hit->GetTdc(i),mtdcbins);
-	  }
-	  // for(int i=0;i<hit->GetTrailingSize();i++){
-	  //   hist::H1(Form("%s_Trailing_layer%d",name.Data(),layer),hit->GetTrailing(i),mtdcbins);
-	  // }
-	}//ihit
-      } //layer
-    } // ichm
-  }// chamber analysis
+  // DC
+  for(Int_t idc=0; idc<kCDC; ++idc){
+    const Char_t* name = NameDC[idc].Data();
+    Int_t nlayer = NumOfLayerDC[idc];
+    for(Int_t layer=0; layer<nlayer; ++layer){
+      const auto& cont = rawData.GetDCRawHC(DetIdDC[idc], layer);
+      // hist::H1(Form("%s_Mul_layer%d",name,layer),nh,mulbins);
+      Int_t multi = 0;
+      for(Int_t i=0, n=cont.size(); i<n; ++i){
+        auto hit = cont[i];
+        if(!hit) continue;
+        Int_t wire = hit->WireId();
+        Bool_t in_range = false;
+        for(Int_t j=0, m=hit->GetTdcSize(); j<m; ++j){
+          Double_t t = hit->GetTdc(j);
+          root::HF1(Form("%s_TDC_layer%d", name, layer), t);
+          in_range = true;
+          if(j == 0)
+            root::HF1(Form("%s_TDC1st_layer%d", name, layer), t);
+        }
+        for(Int_t j=0, m=hit->GetTrailingSize(); j<m; ++j){
+          Double_t t = hit->GetTrailing(j);
+          root::HF1(Form("%s_Trailing_layer%d", name, layer), t);
+          if(j == 0)
+            root::HF1(Form("%s_Trailing1st_layer%d", name, layer), t);
+          if(m == hit->GetTdcSize()){
+            Double_t l = hit->GetTdc(j);
+            Double_t tot = l - t;
+            root::HF1(Form("%s_TOT_layer%d", name, layer), tot);
+            if(j == 0)
+              root::HF1(Form("%s_TOT1st_layer%d", name, layer), tot);
+          }
+        }
+        if(in_range){
+          root::HF1(Form("%s_HitPat_layer%d", name, layer), wire);
+          ++multi;
+        }
+      }
+      root::HF1(Form("%s_Multi_layer%d", name, layer), multi);
+    }
+  }
+
   // DAQ
   int evnum=gUnpacker.get_event_number();
   static const int k_eb      = gUnpacker.get_fe_id("k18breb");
@@ -356,6 +364,7 @@ ConfMan::InitializeHistograms()
     root::HB1(Form("%s_Multi", name), nseg + 1, -0.5, nseg + 0.5);
   }
 
+  // Hodoscope
   for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
     auto name = NameHodo[ihodo].Data();
     Int_t nseg = NumOfSegHodo[ihodo];
@@ -371,6 +380,29 @@ ConfMan::InitializeHistograms()
       auto ud = uord.Data();
       root::HB1(Form("%s_HitPat_%s", name, ud), nseg, -0.5, nseg - 0.5);
       root::HB1(Form("%s_Multi_%s", name, ud), nseg + 1, -0.5, nseg + 0.5);
+    }
+  }
+
+  // DC
+  for(Int_t idc=0; idc<kCDC; ++idc){
+    const Char_t* name = NameDC[idc].Data();
+    Int_t nlayer = NumOfLayerDC[idc];
+    Int_t nwire = NumOfWireDC[idc];
+    // double mulbins[3]={nw,-0.5,nw+0.5};
+    // double mulbins2[3]={10,-0.5,9.5};
+    // double patbins[3]={nw,-0.5,nw-0.5};
+    // double lpatbins[3]={nlayer,0.5,nlayer+0.5};
+    for(Int_t layer=0; layer<nlayer; ++layer){
+      root::HB1(Form("%s_TDC_layer%d", name, layer), mtdcbins);
+      root::HB1(Form("%s_TDC1st_layer%d", name, layer), mtdcbins);
+      root::HB1(Form("%s_Trailing_layer%d", name, layer), mtdcbins);
+      root::HB1(Form("%s_Trailing1st_layer%d", name, layer), mtdcbins);
+      root::HB1(Form("%s_TOT_layer%d", name, layer), mtdcbins);
+      root::HB1(Form("%s_TOT1st_layer%d", name, layer), mtdcbins);
+      root::HB1(Form("%s_HitPat_layer%d", name, layer), nwire, -0.5, nwire - 0.5);
+      root::HB1(Form("%s_Multi_layer%d", name, layer), nwire + 1, -0.5, nwire + 0.5);
+      // for(Int_t wire=0; wire<nwire; ++wire){
+      // }
     }
   }
 
