@@ -102,7 +102,7 @@ HB1(const TString& name, const TString& title,
     h1 = nullptr;
 #endif
   }
-  std::cout << "new name:" << tmp << " title:" << title << std::endl;
+  // hddaq::cout << "new name:" << tmp << " title:" << title << std::endl;
   new TH1D(tmp, title, nbinx, xlow, xhigh);
 }
 

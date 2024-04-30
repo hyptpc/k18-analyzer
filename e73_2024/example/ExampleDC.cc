@@ -156,12 +156,12 @@ ProcessNormal()
     int kHodo=khodo[ihodo];
     hodoseg[kHodo]=-1;
     hodomul[kHodo]=0;
-    int cid=hodoid[kHodo];
-    TString tmpname=hodoname[kHodo];
+    int cid=DetIdHodo[kHodo];
+    TString tmpname=NameHodo[kHodo];
     int mul=0,mulgate=0;
-    double mulbins[3]={nsegs[kHodo]+1,-0.5,nsegs[kHodo]+0.5};
+    double mulbins[3]={NumOfSegHodo[kHodo]+1,-0.5,NumOfSegHodo[kHodo]+0.5};
     double mulbins2[3]={10,-0.5,9.5};
-    double patbins[3]={nsegs[kHodo],-0.5,nsegs[kHodo]-0.5};
+    double patbins[3]={NumOfSegHodo[kHodo],-0.5,NumOfSegHodo[kHodo]-0.5};
     int nh = hodoAna.GetNHits(cid);
     for( int i=0; i<nh; ++i ){
       Hodo2Hit *hit = hodoAna.GetHit(cid,i);

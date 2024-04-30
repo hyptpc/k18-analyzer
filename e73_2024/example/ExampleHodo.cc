@@ -170,10 +170,10 @@ ProcessNormal()
   Int_t hodoseg[kNumHodo];
   Double_t hodotime[kNumHodo];
   for(Int_t ihodo=0;ihodo<kNumHodo;++ihodo){
-    Int_t cid=hodoid[ihodo];
-    TString name=hodoname[ihodo];
-    Double_t mulbins[3]={nsegs[ihodo]+1,-0.5,nsegs[ihodo]+0.5};
-    Double_t patbins[3]={nsegs[ihodo],-0.5,nsegs[ihodo]-0.5};
+    Int_t cid=DetIdHodo[ihodo];
+    TString name=NameHodo[ihodo];
+    Double_t mulbins[3]={NumOfSegHodo[ihodo]+1,-0.5,NumOfSegHodo[ihodo]+0.5};
+    Double_t patbins[3]={NumOfSegHodo[ihodo],-0.5,NumOfSegHodo[ihodo]-0.5};
     Double_t mulbins2[3]={10,-0.5,9.5};
 
     // rawhit
@@ -396,10 +396,10 @@ ProcessNormal()
     Int_t kCalori[2]={kPbF2,kPbG};
     for(Int_t i=0;i<2;i++){
       Int_t kHodo=kCalori[i];
-      Int_t cid=hodoid[kHodo];
-      TString tmpname=hodoname[kHodo];
-      Double_t mulbins[3]={nsegs[kHodo]+1,-0.5,nsegs[kHodo]+0.5};
-      Double_t patbins[3]={nsegs[kHodo],-0.5,nsegs[kHodo]-0.5};
+      Int_t cid=DetIdHodo[kHodo];
+      TString tmpname=NameHodo[kHodo];
+      Double_t mulbins[3]={NumOfSegHodo[kHodo]+1,-0.5,NumOfSegHodo[kHodo]+0.5};
+      Double_t patbins[3]={NumOfSegHodo[kHodo],-0.5,NumOfSegHodo[kHodo]-0.5};
       Double_t mulbins2[3]={10,-0.5,9.5};
       Int_t mul=0;
       Int_t adcsum=0;

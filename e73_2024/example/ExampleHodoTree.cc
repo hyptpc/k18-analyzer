@@ -234,10 +234,10 @@ ProcessNormal()
   Int_t hodoseg[kNumHodo];
   Double_t hodotime[kNumHodo];
   for(Int_t ihodo=0;ihodo<kNumHodo;++ihodo){
-    Int_t cid=hodoid[ihodo];
-    TString name=hodoname[ihodo];
-    Double_t mulbins[3]={nsegs[ihodo]+1,-0.5,nsegs[ihodo]+0.5};
-    Double_t patbins[3]={nsegs[ihodo],-0.5,nsegs[ihodo]-0.5};
+    Int_t cid=DetIdHodo[ihodo];
+    TString name=NameHodo[ihodo];
+    Double_t mulbins[3]={NumOfSegHodo[ihodo]+1,-0.5,NumOfSegHodo[ihodo]+0.5};
+    Double_t patbins[3]={NumOfSegHodo[ihodo],-0.5,NumOfSegHodo[ihodo]-0.5};
     Double_t mulbins2[3]={10,-0.5,9.5};
 
     // rawhit

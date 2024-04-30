@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <Rtypes.h>
+#include <TString.h>
 
 // Counters ___________________________________________________________
 const int DetIdCDH    =   0;
@@ -60,6 +61,38 @@ const int DetIdVmeRm     =  81;
 const int DetIdScaler    =  91;
 const int DetIdTrigFlag  =  99;
 const Int_t NumOfSegTrigFlag = 32;
+
+enum EHodoscope {
+  kBHT, kT1, kT0, kT0new, kDEF,
+  kVeto, kBTC,
+  kCDH, kPbG, kPbF2,
+  kCVC, kNC,
+  // kRC,
+  kNumHodo
+};
+
+const Int_t DetIdHodo[kNumHodo] = {
+  DetIdBHT, DetIdT1, DetIdT0, DetIdT0new, DetIdDEF,
+  DetIdVeto, DetIdBTC,
+  DetIdCDH, DetIdPbG, DetIdPbF2,
+  DetIdCVC, DetIdNC,
+  // DetIdRC
+};
+
+const TString NameHodo[kNumHodo] = {
+  "BHT", "T1", "T0", "T0new", "DEF",
+  "Veto", "BTC",
+  "CDH", "PbG", "PbF2",
+  "CVC", "NC",
+  // "RC"
+};
+
+const double  NumOfSegHodo[kNumHodo] = {
+  63, 1, 5, 4, 4,
+  4, 4,
+  36, 40, 40,
+  35, 6,
+};
 
 // Chambers
 const int DetIdCDC    = 100;

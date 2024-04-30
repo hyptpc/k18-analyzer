@@ -72,7 +72,7 @@ ProcessNormal()
 
   // Trigger flag
   {
-    static const TString name = "TriggerFlag";
+    static const Char_t* name = "TriggerFlag";
     const auto& cont = rawData.GetMTDCRawHC(DetIdTrigFlag);
     for(Int_t i=0, n=cont.size(); i<n; ++i){
       auto raw = cont[i];
@@ -80,17 +80,76 @@ ProcessNormal()
       auto seg = raw->SegmentId();
       for(Int_t it=0; it<ntu; ++it){
 	Double_t tu = raw->GetLeading(it);
-	root::HF1(Form("%s_TDC_seg%d", name.Data(), seg), tu);
+	root::HF1(Form("%s_TDC_seg%d", name, seg), tu);
       }
       if(ntu>0){
-	root::HF1(Form("%s_HitPat", name.Data()), seg);
+	root::HF1(Form("%s_HitPat", name), seg);
       }
     }
   }
 
+  // BHT
+  {
+    static const Char_t* name = "BHT";
+    const auto& cont = rawData.GetHodoRawHC(DetIdBHT);
+    Int_t multi_or = 0;
+    Int_t multi_and = 0;
+    for(Int_t i=0, n=cont.size(); i<n; ++i){
+      auto raw = cont[i];
+      if(!raw) continue;
+      auto seg = raw->SegmentId();
+      // Up
+      Bool_t u_in_range = false;
+      for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
+	Double_t t = raw->GetTdcUp(j);
+        if(gUser.IsInRange(Form("%s_TDC", name), t))
+          u_in_range = true;
+	root::HF1(Form("%s_TDC_seg%dU", name, seg), t);
+      }
+      for(Int_t j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
+	Double_t t = raw->GetAdcUp(j); // trailing
+	root::HF1(Form("%s_Trailing_seg%dU", name, seg), t);
+	if(m == raw->GetSizeTdcUp()){
+	  Double_t l = raw->GetTdcUp(j);
+          if(gUser.IsInRange(Form("%s_TDC", name), l)){
+            root::HF1(Form("%s_TOT_seg%dU", name, seg), l - t);
+          }
+	}
+      }
+      // Down
+      Bool_t d_in_range = false;
+      for(Int_t j=0, m=raw->GetSizeTdcDown(); j<m; ++j){
+	Double_t t = raw->GetTdcDown(j);
+        if(gUser.IsInRange(Form("%s_TDC", name), t))
+          d_in_range = true;
+	root::HF1(Form("%s_TDC_seg%dD", name, seg), t);
+      }
+      for(Int_t j=0, m=raw->GetSizeAdcDown(); j<m; ++j){
+	Double_t t = raw->GetAdcDown(j); // trailing
+	root::HF1(Form("%s_Trailing_seg%dD", name, seg), t);
+	if(m == raw->GetSizeTdcDown()){
+	  Double_t l = raw->GetTdcDown(j);
+          if(gUser.IsInRange(Form("%s_TDC", name), l)){
+            root::HF1(Form("%s_TOT_seg%dD", name, seg), l - t);
+          }
+	}
+      }
+      if(u_in_range || d_in_range){
+        root::HF1(Form("%s_HitPat_OR", name), seg);
+        ++multi_or;
+      }
+      if(u_in_range && d_in_range){
+        root::HF1(Form("%s_HitPat_AND", name), seg);
+        ++multi_and;
+      }
+    }
+    root::HF1(Form("%s_Multi_OR", name), multi_or);
+    root::HF1(Form("%s_Multi_AND", name), multi_and);
+  }
+
   // AC
   {
-    static const TString name = "AC";
+    static const Char_t* name = "AC";
     const auto& cont = rawData.GetHodoRawHC(DetIdAC);
     Int_t multi = 0;
     for(Int_t i=0, n=cont.size(); i<n; ++i){
@@ -98,137 +157,78 @@ ProcessNormal()
       if(!raw) continue;
       Int_t seg = raw->SegmentId();
       Bool_t in_range = false;
-      for(int j=0, n=raw->GetSizeTdcUp(); j<n; ++j){
+      for(int j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
 	Double_t t = raw->GetTdcUp(j);
-        if(gUser.IsInRange(name + "_TDC", t))
+        if(gUser.IsInRange(Form("%s_TDC", name), t))
           in_range = true;
-	root::HF1(Form("%s_TDC_seg%d", name.Data(), seg), t);
+	root::HF1(Form("%s_TDC_seg%d", name, seg), t);
       }
-      for(int j=0, n=raw->GetSizeAdcUp(); j<n; ++j){
+      for(int j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
 	Double_t a = raw->GetAdcUp(j);
-	root::HF1(Form("%s_ADC_seg%d", name.Data(), seg), a);
+	root::HF1(Form("%s_ADC_seg%d", name, seg), a);
         if(in_range)
-          root::HF1(Form("%s_AWT_seg%d", name.Data(), seg), a);
+          root::HF1(Form("%s_AWT_seg%d", name, seg), a);
       }
       if(in_range){
-        root::HF1(Form("%s_HitPat", name.Data()), seg);
+        root::HF1(Form("%s_HitPat", name), seg);
         multi++;
       }
     }
-    root::HF1(Form("%s_Multi", name.Data()), multi);
+    root::HF1(Form("%s_Multi", name), multi);
   }
 
-  // BHT
-  {
-    static const TString name = "BHT";
-    const auto& cont = rawData.GetHodoRawHC(DetIdBHT);
+  // Hodoscope
+  for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
+    const Char_t* name = NameHodo[ihodo];
     Int_t multi_or = 0;
     Int_t multi_and = 0;
-    for(Int_t i=0, nh=cont.size(); i<nh; ++i){
+    const auto& cont = rawData.GetHodoRawHC(DetIdHodo[ihodo]);
+    for(Int_t i=0, n=cont.size(); i<n; ++i){
       auto raw = cont[i];
       if(!raw) continue;
       auto seg = raw->SegmentId();
       // Up
       Bool_t u_in_range = false;
-      for(Int_t j=0, n=raw->GetSizeTdcUp(); j<n; ++j){
+      for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
 	Double_t t = raw->GetTdcUp(j);
-        if(gUser.IsInRange(name + "_TDC", t))
+        if(gUser.IsInRange(Form("%s_TDC", name), t))
           u_in_range = true;
-	root::HF1(Form("%s_TDC_seg%dU",name.Data(), seg), t);
+	root::HF1(Form("%s_TDC_seg%dU", name, seg), t);
       }
-      for(Int_t j=0, n=raw->GetSizeAdcUp(); j<n; ++j){
-	Double_t t = raw->GetAdcUp(j); // trailing
-	root::HF1(Form("%s_Trailing_seg%dU", name.Data(), seg), t);
-	if(n == raw->GetSizeTdcUp()){
-	  Double_t l = raw->GetTdcUp(j);
-          if(gUser.IsInRange(name + "_TDC", l)){
-            root::HF1(Form("%s_TOT_seg%dU", name.Data(), seg), l - t);
-          }
-	}
+      for(Int_t j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
+	Double_t a = raw->GetAdcUp(j);
+	root::HF1(Form("%s_ADC_seg%dU", name, seg), a);
+	if(u_in_range)
+          root::HF1(Form("%s_AWT_seg%dU", name, seg), a);
       }
       // Down
       Bool_t d_in_range = false;
-      for(Int_t j=0, n=raw->GetSizeTdcDown(); j<n; ++j){
+      for(Int_t j=0, m=raw->GetSizeTdcDown(); j<m; ++j){
 	Double_t t = raw->GetTdcDown(j);
-        if(gUser.IsInRange(name + "_TDC", t))
+        if(gUser.IsInRange(Form("%s_TDC", name), t))
           d_in_range = true;
-	root::HF1(Form("%s_TDC_seg%dD",name.Data(), seg), t);
+	root::HF1(Form("%s_TDC_seg%dD", name, seg), t);
       }
-      for(Int_t j=0, n=raw->GetSizeAdcDown(); j<n; ++j){
-	Double_t t = raw->GetAdcDown(j); // trailing
-	root::HF1(Form("%s_Trailing_seg%dD", name.Data(), seg), t);
-	if(n == raw->GetSizeTdcDown()){
-	  Double_t l = raw->GetTdcDown(j);
-          if(gUser.IsInRange(name + "_TDC", l)){
-            root::HF1(Form("%s_TOT_seg%dD", name.Data(), seg), l - t);
-          }
-	}
+      for(Int_t j=0, m=raw->GetSizeAdcDown(); j<m; ++j){
+	Double_t a = raw->GetAdcDown(j);
+	root::HF1(Form("%s_ADC_seg%dD", name, seg), a);
+	if(d_in_range)
+          root::HF1(Form("%s_AWT_seg%dD", name, seg), a);
       }
       if(u_in_range || d_in_range){
-        root::HF1(name + "_HitPat_OR", seg);
+        root::HF1(Form("%s_HitPat_OR", name), seg);
         ++multi_or;
       }
       if(u_in_range && d_in_range){
-        root::HF1(name + "_HitPat_AND", seg);
+        root::HF1(Form("%s_HitPat_AND", name), seg);
         ++multi_and;
       }
     }
-    root::HF1(name + "_Multi_OR", multi_or);
-    root::HF1(name + "_Multi_AND", multi_and);
+    root::HF1(Form("%s_Multi_OR", name), multi_or);
+    root::HF1(Form("%s_Multi_AND", name), multi_and);
   }
 
   return true;
-
-  // hodoscopes
-  for(int ihodo=0;ihodo<kNumHodo;++ihodo){
-    int cid=hodoid[ihodo];
-    if(cid==DetIdBHT) continue;
-    TString name=hodoname[ihodo];
-    int mul=0,mulu=0,muld=0;
-    double mulbins[3]={nsegs[ihodo]+1,-0.5,nsegs[ihodo]+0.5};
-    double mulbins2[3]={10,-0.5,9.5};
-    double patbins[3]={nsegs[ihodo],-0.5,nsegs[ihodo]-0.5};
-    const auto& cont = rawData.GetHodoRawHC(cid);
-    int nh = cont.size();
-    for( int i=0; i<nh; ++i ){
-      auto raw = cont[i];
-      if(!raw) continue;
-      int seg = raw->SegmentId();
-      double au  = raw->GetAdcUp();
-      double ad  = raw->GetAdcDown();
-      // std::cout<<name<<"  "<<seg<<"  "<<au<<"  "<<ad<<std::endl;
-      hist::H1(Form("%s_ADCu_seg%d",name.Data(),seg),au,adcbins);
-      hist::H1(Form("%s_ADCd_seg%d",name.Data(),seg),ad,adcbins);
-      int ntu=raw->GetSizeTdcUp();
-      int ntd=raw->GetSizeTdcDown();
-      hist::H1(Form("%s_Mulu_seg%d",name.Data(),seg),ntu,mulbins2);
-      hist::H1(Form("%s_Muld_seg%d",name.Data(),seg),ntd,mulbins2);
-      hist::H2(Form("%s_Mulu_Muld_seg%d",name.Data(),seg),ntu,ntd,mulbins2,mulbins2);
-      hist::H2(Form("%s_Mulu_pat",name.Data()),seg,ntu,patbins,mulbins2);
-      hist::H2(Form("%s_Muld_pat",name.Data()),seg,ntd,patbins,mulbins2);
-      if(ntu>0){
-	hist::H1(Form("%s_Patu",name.Data()),seg,patbins);
-	hist::H1(Form("%s_ADCwTu_seg%d",name.Data(),seg),au,adcbins);
-	mulu++;
-      }
-      if(ntd>0){
-	hist::H1(Form("%s_Patd",name.Data()),seg,patbins);
-	hist::H1(Form("%s_ADCwTd_seg%d",name.Data(),seg),ad,adcbins);
-	muld++;
-      }
-      for(int it=0;it<ntu;it++){
-	double tu  = raw->GetTdcUp(it);
-	hist::H1(Form("%s_TDCu_seg%d",name.Data(),seg),tu,tdcbins);
-      }
-      for(int it=0;it<ntd;it++){
-	double td  = raw->GetTdcDown(it);
-	hist::H1(Form("%s_TDCd_seg%d",name.Data(),seg),td,tdcbins);
-      }
-    }//for(i)
-    hist::H1(Form("%s_Mulu",name.Data()),mulu,mulbins);
-    hist::H1(Form("%s_Muld",name.Data()),muld,mulbins);
-  }
-
   // Chamber ------------------------------------------------------------
   {
     for(int ichm=0;ichm<kCDC;ichm++){
@@ -318,106 +318,60 @@ Bool_t
 ConfMan::InitializeHistograms()
 {
   { // TriggerFlag
-    TString name = "TriggerFlag";
+    const Char_t* name = "TriggerFlag";
     Double_t patbins[3]={NumOfSegTrigFlag, -0.5, NumOfSegTrigFlag-0.5};
     for(Int_t i=0; i<NumOfSegTrigFlag; ++i){
-      root::HB1(Form("%s_TDC_seg%d", name.Data(), i), mtdcbins);
+      root::HB1(Form("%s_TDC_seg%d", name, i), mtdcbins);
     }
-    root::HB1(Form("%s_HitPat; Segment; Counts", name.Data()), patbins);
+    root::HB1(Form("%s_HitPat; Segment; Counts", name), patbins);
   }
 
-  // BHT
-  // {
-  //   int ihodo=kBHT;
-  //   int cid=hodoid[ihodo];
-  //   TString name=hodoname[ihodo];
-  //   int mul=0,mulu=0,muld=0;
-  //   double mulbins[3]={nsegs[ihodo]+1,-0.5,nsegs[ihodo]+0.5};
-  //   double mulbins2[3]={10,-0.5,9.5};
-  //   double patbins[3]={nsegs[ihodo],-0.5,nsegs[ihodo]-0.5};
-  //   const HodoRHitContainer &cont = rawData.GetHodoRawHC(cid);
-  //   int nh = cont.size();
-  //   for( int i=0; i<nh; ++i ){
-  //     HodoRawHit *raw = cont[i];
-  //     if(!raw) continue;
-  //     int seg = raw->SegmentId();
-  //     int ntu=raw->GetSizeTdcUp();
-  //     int ntd=raw->GetSizeTdcDown();
-  //     hist::H1(Form("%s_Mulu_seg%d",name.Data(),seg),ntu,mulbins2);
-  //     hist::H1(Form("%s_Muld_seg%d",name.Data(),seg),ntd,mulbins2);
-  //     hist::H2(Form("%s_Mulu_Muld_seg%d",name.Data(),seg),ntu,ntd,mulbins2,mulbins2);
-  //     hist::H2(Form("%s_Mulu_pat",name.Data()),seg,ntu,patbins,mulbins2);
-  //     hist::H2(Form("%s_Muld_pat",name.Data()),seg,ntd,patbins,mulbins2);
-  //     if(ntu>0){
-  //       hist::H1(Form("%s_Patu",name.Data()),seg,patbins);
-  //       mulu++;
-  //     }
-  //     if(ntd>0){
-  //       hist::H1(Form("%s_Patd",name.Data()),seg,patbins);
-  //       muld++;
-  //     }
-  //     for(int it=0;it<ntu;it++){
-  //       double tu  = raw->GetTdcUp(it);
-  //       hist::H1(Form("%s_TDCu_seg%d",name.Data(),seg),tu,tdcbins);
-  //     }
-  //     for( int it=0; it<raw->GetSizeAdcUp(); ++it ){
-  //       double tu  = raw->GetAdcUp(it);
-  //       hist::H1(Form("%s_Trailingu_seg%d",name.Data(),seg),tu,tdcbins);
-  //       if(it<ntu){
-  //         double tl=raw->GetTdcUp(it);
-  //         double tot=tl-tu;
-  //         //	  std::cout<<raw->GetTdcUp(it)<<"  "<<tu<<"  "<<tot<<std::endl;
-  //         hist::H1(Form("%s_TOTu_seg%d",name.Data(),seg),tot,totbins);
-  //         hist::H2(Form("%s_TOTvsTDCu_seg%d",name.Data(),seg),tl,tot,200,1e6,2e6,200,0,2e4);
-  //       }
-  //     }
-  //     for(int it=0;it<ntd;it++){
-  //       double td  = raw->GetTdcDown(it);
-  //       hist::H1(Form("%s_TDCd_seg%d",name.Data(),seg),td,tdcbins);
-  //     }
-  //     for( int it=0; it<raw->GetSizeAdcDown(); ++it ){
-  //       double td  = raw->GetAdcDown(it);
-  //       hist::H1(Form("%s_Trailingd_seg%d",name.Data(),seg),td,tdcbins);
-  //       if(it<ntd){
-  //         double tl=raw->GetTdcDown(it);
-  //         double tot=tl-td;
-  //         hist::H1(Form("%s_TOTd_seg%d",name.Data(),seg),tot,totbins);
-  //         hist::H2(Form("%s_TOTvsTDCd_seg%d",name.Data(),seg),tl,tot,200,1e6,2e6,200,0,2e4);
-  //       }
-  //     }
-  //   }//for(i)
-  //   hist::H1(Form("%s_Mulu",name.Data()),mulu,mulbins);
-  //   hist::H1(Form("%s_Muld",name.Data()),muld,mulbins);
-  // }
   { // BHT
-    TString name = "BHT";
+    const Char_t* name = "BHT";
     Int_t nseg = NumOfSegBHT;
     for(Int_t i=0; i<nseg; ++i){
       for(const auto& ud : std::vector<TString>{"U", "D"}){
-        // root::HB1(Form("%s_ADC_seg%d%s", name.Data(), i, ud.Data()), adcbins);
-        // root::HB1(Form("%s_AWT_seg%d%s", name.Data(), i, ud.Data()), adcbins);
-        root::HB1(Form("%s_TDC_seg%d%s", name.Data(), i, ud.Data()), tdcbins);
-        root::HB1(Form("%s_Trailing_seg%d%s", name.Data(), i, ud.Data()), tdcbins);
-        root::HB1(Form("%s_TOT_seg%d%s", name.Data(), i, ud.Data()), totbins);
+        // root::HB1(Form("%s_ADC_seg%d%s", name, i, ud.Data()), adcbins);
+        // root::HB1(Form("%s_AWT_seg%d%s", name, i, ud.Data()), adcbins);
+        root::HB1(Form("%s_TDC_seg%d%s", name, i, ud.Data()), tdcbins);
+        root::HB1(Form("%s_Trailing_seg%d%s", name, i, ud.Data()), tdcbins);
+        root::HB1(Form("%s_TOT_seg%d%s", name, i, ud.Data()), totbins);
       }
     }
-    root::HB1(Form("%s_HitPat_OR", name.Data()), nseg, -0.5, nseg - 0.5);
-    root::HB1(Form("%s_Multi_OR", name.Data()), nseg + 1, -0.5, nseg + 0.5);
-    root::HB1(Form("%s_HitPat_AND", name.Data()), nseg, -0.5, nseg - 0.5);
-    root::HB1(Form("%s_Multi_AND", name.Data()), nseg + 1, -0.5, nseg + 0.5);
+    root::HB1(Form("%s_HitPat_OR", name), nseg, -0.5, nseg - 0.5);
+    root::HB1(Form("%s_Multi_OR", name), nseg + 1, -0.5, nseg + 0.5);
+    root::HB1(Form("%s_HitPat_AND", name), nseg, -0.5, nseg - 0.5);
+    root::HB1(Form("%s_Multi_AND", name), nseg + 1, -0.5, nseg + 0.5);
   }
 
-
   { // AC
-    TString name = "AC";
+    const Char_t* name = "AC";
     Int_t nseg = NumOfSegAC;
     for(Int_t i=0; i<nseg; ++i){
-      root::HB1(Form("%s_ADC_seg%d", name.Data(), i), adcbins);
-      root::HB1(Form("%s_AWT_seg%d", name.Data(), i), adcbins);
-      root::HB1(Form("%s_TDC_seg%d", name.Data(), i), tdcbins);
+      root::HB1(Form("%s_ADC_seg%d", name, i), adcbins);
+      root::HB1(Form("%s_AWT_seg%d", name, i), adcbins);
+      root::HB1(Form("%s_TDC_seg%d", name, i), tdcbins);
     }
-    root::HB1(Form("%s_HitPat", name.Data()), nseg, -0.5, nseg - 0.5);
-    root::HB1(Form("%s_Multi", name.Data()), nseg + 1, -0.5, nseg + 0.5);
+    root::HB1(Form("%s_HitPat", name), nseg, -0.5, nseg - 0.5);
+    root::HB1(Form("%s_Multi", name), nseg + 1, -0.5, nseg + 0.5);
+  }
+
+  for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
+    auto name = NameHodo[ihodo].Data();
+    Int_t nseg = NumOfSegHodo[ihodo];
+    for(const auto& uord: std::vector<TString>{"U", "D"} ){
+      auto ud = uord.Data();
+      for(Int_t i=0; i<nseg; ++i){
+        root::HB1(Form("%s_ADC_seg%d%s", name, i, ud), adcbins);
+        root::HB1(Form("%s_AWT_seg%d%s", name, i, ud), adcbins);
+        root::HB1(Form("%s_TDC_seg%d%s", name, i, ud), tdcbins);
+      }
+    }
+    for(const auto& uord: std::vector<TString>{"OR", "AND"} ){
+      auto ud = uord.Data();
+      root::HB1(Form("%s_HitPat_%s", name, ud), nseg, -0.5, nseg - 0.5);
+      root::HB1(Form("%s_Multi_%s", name, ud), nseg + 1, -0.5, nseg + 0.5);
+    }
   }
 
   return true;

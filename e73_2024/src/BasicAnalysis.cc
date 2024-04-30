@@ -243,10 +243,10 @@ bool BasicAnalysis::AnaAC(RawData* raw)
 bool BasicAnalysis::FillHodoRaw(RawData* raw,int kHodo)
 {
   int mulu=0,muld=0;
-  int cid=hodoid[kHodo];
-  TString name=hodoname[kHodo];
-  double mulbins[3]={nsegs[kHodo]+1,-0.5,nsegs[kHodo]+0.5};
-  double patbins[3]={nsegs[kHodo],-0.5,nsegs[kHodo]-0.5};
+  int cid=DetIdHodo[kHodo];
+  TString name=NameHodo[kHodo];
+  double mulbins[3]={NumOfSegHodo[kHodo]+1,-0.5,NumOfSegHodo[kHodo]+0.5};
+  double patbins[3]={NumOfSegHodo[kHodo],-0.5,NumOfSegHodo[kHodo]-0.5};
   const HodoRHitContainer &cont = raw->GetHodoRawHC(cid);
   int nh = cont.size();
   int hitsegu=-1,hitsegd=-1;
@@ -314,10 +314,10 @@ bool BasicAnalysis::FillHodoDecoded(HodoAnalyzer* hodo,int kHodo,std::vector<TSt
   if(kHodo==kPbF2||kHodo==kPbF2)
     return FillHodo1Decoded(hodo,kHodo,trig_add);
   int mul=0;
-  int cid=hodoid[kHodo];
-  TString name=hodoname[kHodo];
-  double mulbins[3]={nsegs[kHodo]+1,-0.5,nsegs[kHodo]+0.5};
-  double patbins[3]={nsegs[kHodo],-0.5,nsegs[kHodo]-0.5};
+  int cid=DetIdHodo[kHodo];
+  TString name=NameHodo[kHodo];
+  double mulbins[3]={NumOfSegHodo[kHodo]+1,-0.5,NumOfSegHodo[kHodo]+0.5};
+  double patbins[3]={NumOfSegHodo[kHodo],-0.5,NumOfSegHodo[kHodo]-0.5};
   int nh = hodo->GetNHits(cid);
   for( int i=0; i<nh; ++i ){
     Hodo2Hit *hit = hodo->GetHit(cid,i);
@@ -406,10 +406,10 @@ bool BasicAnalysis::FillHodoDecoded(HodoAnalyzer* hodo,int kHodo,std::vector<TSt
 bool BasicAnalysis::FillHodo1Decoded(HodoAnalyzer* hodo,int kHodo,std::vector<TString> trig_add)
 {
   int mul=0;
-  int cid=hodoid[kHodo];
-  TString name=hodoname[kHodo];
-  double mulbins[3]={nsegs[kHodo]+1,-0.5,nsegs[kHodo]+0.5};
-  double patbins[3]={nsegs[kHodo],-0.5,nsegs[kHodo]-0.5};
+  int cid=DetIdHodo[kHodo];
+  TString name=NameHodo[kHodo];
+  double mulbins[3]={NumOfSegHodo[kHodo]+1,-0.5,NumOfSegHodo[kHodo]+0.5};
+  double patbins[3]={NumOfSegHodo[kHodo],-0.5,NumOfSegHodo[kHodo]-0.5};
   int nh = hodo->GetNHits(cid);
   for( int i=0; i<nh; ++i ){
     Hodo1Hit *hit = hodo->Get1Hit(cid,i);
@@ -506,8 +506,8 @@ bool BasicAnalysis::AnaHodo(HodoAnalyzer* hodo,int kHodo)
     return AnaHodo1(hodo,kHodo);
   if(kHodo==kBHT)
     return AnaBHT(hodo);
-  int cid=hodoid[kHodo];
-  TString name=hodoname[kHodo];
+  int cid=DetIdHodo[kHodo];
+  TString name=NameHodo[kHodo];
   int nh = hodo->GetNHits(cid);
   //  std::cout<<kHodo<<"  "<<cid<<"  "<<name<<std::endl;
   for( int i=0; i<nh; ++i ){
@@ -548,8 +548,8 @@ bool BasicAnalysis::AnaHodo(HodoAnalyzer* hodo,int kHodo)
 
 bool BasicAnalysis::AnaBHT(HodoAnalyzer* hodo,int kHodo)
 {
-  int cid=hodoid[kHodo];
-  TString name=hodoname[kHodo];
+  int cid=DetIdHodo[kHodo];
+  TString name=NameHodo[kHodo];
   int nh = hodo->GetNHits(cid);
   //Clustering
   //  std::cout<<"clustering"<<std::endl;
@@ -623,8 +623,8 @@ bool BasicAnalysis::AnaBHT(HodoAnalyzer* hodo,int kHodo)
 
 bool BasicAnalysis::AnaHodo1(HodoAnalyzer* hodo,int kHodo)
 {
-  int cid=hodoid[kHodo];
-  TString name=hodoname[kHodo];
+  int cid=DetIdHodo[kHodo];
+  TString name=NameHodo[kHodo];
   int nh = hodo->GetNHits(cid);
   for( int i=0; i<nh; ++i ){
     Hodo1Hit *hit = hodo->Get1Hit(cid,i);
@@ -657,8 +657,8 @@ bool BasicAnalysis::AnaHodo1(HodoAnalyzer* hodo,int kHodo)
 
 bool BasicAnalysis::AnaPbF2(HodoAnalyzer* hodo,std::vector<TString> add)
 {
-  int cid=hodoid[kPbF2];
-  TString name=hodoname[kPbF2];
+  int cid=DetIdHodo[kPbF2];
+  TString name=NameHodo[kPbF2];
   int nh = hodo->GetNHits(cid);
   std::vector<int> tmphit;
   PbF2_AdcSum=0;

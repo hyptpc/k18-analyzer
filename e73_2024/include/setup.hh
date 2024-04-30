@@ -7,33 +7,6 @@
 
 namespace e73_2024
 {
-enum param_hodo {
-  kT1, kBHT, kT0, kT0new, kDEF, kVeto, kBTC,
-  kCDH, kPbG, kPbF2,
-  kCVC, kNC,
-  // kRC,
-  kNumHodo
-};
-
-const int     hodoid[kNumHodo] = {
-  DetIdT1, DetIdBHT, DetIdT0, DetIdT0new, DetIdDEF, DetIdVeto, DetIdBTC,
-  DetIdCDH, DetIdPbG, DetIdPbF2,
-  DetIdCVC, DetIdNC,
-  // DetIdRC
-};
-
-const TString hodoname[kNumHodo] = {
-  "T1", "BHT", "T0", "T0new", "DEF", "Veto", "BTC",
-  "CDH", "PbG", "PbF2",
-  "CVC", "NC",
-  // "RC"
-};
-
-const double  nsegs[kNumHodo] = {
-  1, 63, 5, 4, 4, 2, 36,
-  40, 36, 10,
-  6, 30,
-};
 
 enum param_chm{
   kBLC1a, kBLC1b, kBLC2a, kBLC2b, kBPC1, kBPC2, kVFT, kCDC,

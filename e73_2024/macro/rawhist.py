@@ -22,7 +22,7 @@ import runlist
 
 #______________________________________________________________________________
 def draw(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
-         totdiv=None, ud=False):
+         totdiv=None, ud=True):
   logger.info(f'name={name}, nseg={nseg}, adcdiv={adcdiv}, tdcdiv={tdcdiv}, totdiv={totdiv}, ud={ud}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
@@ -47,7 +47,7 @@ def draw(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
       c1.Clear()
       c1.Divide(tdcdiv[0], tdcdiv[1])
       for i in range(nseg):
-        c1.cd(i+1)
+        c1.cd(i+1).SetLogy()
         h1 = ROOT.gFile.Get(name + f'_TDC_seg{i}{s}')
         if h1: h1.Draw()
       c1.Print(fig_path)
@@ -105,9 +105,20 @@ def run(run_info):
   logger.info(f'root_path = {root_path}')
   logger.info(f'fig_path = {fig_path}')
   c1.Print(fig_path+'[')
-  draw('TriggerFlag', nseg=32, tdcdiv=(8, 4))
-  draw('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8), ud=True)
-  draw('AC', nseg=1, adcdiv=(2, 2), tdcdiv=(2, 2))
+  draw('TriggerFlag', nseg=32, tdcdiv=(8, 4), ud=False)
+  draw('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8))
+  draw('AC', nseg=1, adcdiv=(2, 2), tdcdiv=(2, 2), ud=True)
+  draw('T1', nseg=1, adcdiv=(2, 2), tdcdiv=(2, 2))
+  draw('T0', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
+  draw('T0new', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
+  draw('DEF', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
+  draw('Veto', nseg=4, adcdiv=(2, 2), tdcdiv=(2, 2))
+  draw('BTC', nseg=4, adcdiv=(2, 2), tdcdiv=(2, 2))
+  draw('CDH', nseg=36, adcdiv=(6, 6), tdcdiv=(6, 6))
+  draw('PbG', nseg=40, adcdiv=(7, 6), tdcdiv=(7, 6))
+  draw('PbF2', nseg=40, adcdiv=(7, 6), tdcdiv=(7, 6))
+  draw('CVC', nseg=35, adcdiv=(6, 6), tdcdiv=(6, 6))
+  draw('NC', nseg=6, adcdiv=(3, 2), tdcdiv=(3, 2))
   c1.Print(fig_path+']')
 
 #______________________________________________________________________________
