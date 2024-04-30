@@ -140,8 +140,10 @@ ProcessNormal()
 	Double_t t = raw->GetAdcUp(j); // trailing
 	root::HF1(Form("%s_Trailing_seg%dU", name.Data(), seg), t);
 	if(n == raw->GetSizeTdcUp()){
-	  Double_t tot = raw->GetTdcUp(j) - t;
-	  root::HF1(Form("%s_TOT_seg%dU", name.Data(), seg), tot);
+	  Double_t l = raw->GetTdcUp(j);
+          if(gUser.IsInRange(name + "_TDC", l)){
+            root::HF1(Form("%s_TOT_seg%dU", name.Data(), seg), l - t);
+          }
 	}
       }
       // Down
@@ -156,8 +158,10 @@ ProcessNormal()
 	Double_t t = raw->GetAdcDown(j); // trailing
 	root::HF1(Form("%s_Trailing_seg%dD", name.Data(), seg), t);
 	if(n == raw->GetSizeTdcDown()){
-	  Double_t tot = raw->GetTdcDown(j) - t;
-	  root::HF1(Form("%s_TOT_seg%dD", name.Data(), seg), tot);
+	  Double_t l = raw->GetTdcDown(j);
+          if(gUser.IsInRange(name + "_TDC", l)){
+            root::HF1(Form("%s_TOT_seg%dD", name.Data(), seg), l - t);
+          }
 	}
       }
       if(u_in_range || d_in_range){
