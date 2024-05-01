@@ -42,8 +42,14 @@ changeps1: False
 
 ## Build and Run analyzer
 
+By default, usr is empty and is created by copying from example.
+User part is removed from git management because it will be changed frequently by each user.
+First, run the script that copies from example to usr. And make.
+To use the same runmanager, the runtime arguments are the same structure as in K1.8.
+
 ```sh
 cd e73_2024
+cp Makefile.org Makefile
 sh script/copy-example-to-user.sh
 make
 ./bin/RawHist param/conf/analyzer_e73_2024.conf /group/had/knucl/e15/e73_data/run91/run00117.dat.gz tmp.root
