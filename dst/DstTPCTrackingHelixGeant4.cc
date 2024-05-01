@@ -33,7 +33,7 @@
 #include "DebugCounter.hh"
 
 #define ExclusiveResidual 0
-#define Kurama 0
+#define KuramaK18 0
 
 namespace
 {
@@ -1181,7 +1181,7 @@ dst::DstRead( int ievent )
     TPCAna->DecodeTPCHitsGeant4(src.nhittpc,
       			       src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc);
   }
-	
+#if KuramaK18	
 	event.ntK18 = **src.ntK18;
 	event.xvpHS = **src.xvpHS;
 	event.yvpHS = **src.yvpHS;
@@ -1197,25 +1197,7 @@ dst::DstRead( int ievent )
 	event.layerK18 = **src.layerK18;
 	event.wireK18 = **src.wireK18;
 	event.localhitposK18 = **src.localhitposK18;
-	event.ntKurama = **src.ntKurama;
-	event.xvpKurama = **src.xvpKurama;
-	event.yvpKurama = **src.yvpKurama;
-	event.zvpKurama = **src.zvpKurama;
-	event.xtgtKurama = **src.xtgtKurama;
-	event.ytgtKurama = **src.ytgtKurama;
-	event.xout = **src.xout;
-	event.yout = **src.yout;
-	event.zout = **src.zout;
-	event.pxout = **src.pxout;
-	event.pyout = **src.pyout;
-	event.pzout = **src.pzout;
-	event.layer = **src.layer;
-	event.wire = **src.wire;
-	event.localhitpos = **src.localhitpos;
-
-
-
-
+	
 	vector<vector<TVector3>>vpK18;
 	vpK18.resize(event.ntK18);
 	vector<TVector3> initPosK18;
@@ -1239,6 +1221,21 @@ dst::DstRead( int ievent )
     initMomK18.push_back(momOut);
 	
 	}
+	event.ntKurama = **src.ntKurama;
+	event.xvpKurama = **src.xvpKurama;
+	event.yvpKurama = **src.yvpKurama;
+	event.zvpKurama = **src.zvpKurama;
+	event.xtgtKurama = **src.xtgtKurama;
+	event.ytgtKurama = **src.ytgtKurama;
+	event.xout = **src.xout;
+	event.yout = **src.yout;
+	event.zout = **src.zout;
+	event.pxout = **src.pxout;
+	event.pyout = **src.pyout;
+	event.pzout = **src.pzout;
+	event.layer = **src.layer;
+	event.wire = **src.wire;
+	event.localhitpos = **src.localhitpos;
   vector<Int_t> pidKurama;
   vector<TVector3> initPosKurama;
   vector<TVector3> initMomKurama;
@@ -1259,16 +1256,22 @@ dst::DstRead( int ievent )
     initPosKurama.push_back(posOut);
     initMomKurama.push_back(momOut);
 	}
-#if Kurama
-#if ExclusiveResidual
-  TPCAna->TrackSearchTPCHelix(vpK18, vpKurama,true);
-#else
-  TPCAna->TrackSearchTPCHelix(vpK18, vpKurama);
 #endif
+
+#if KuramaK18
+	#if ExclusiveResidual
+  TPCAna->TrackSearchTPCHelix(vpK18, vpKurama,true);
+	#else
+  TPCAna->TrackSearchTPCHelix(vpK18, vpKurama);
+	#endif
   TPCAna->TrackSearchTPCKurama(pidKurama, initPosKurama, initMomKurama, intlayer, event.wire, event.localhitpos);
   TPCAna->TrackSearchTPCK18(initPosK18, initMomK18, intlayerK18, event.wireK18, event.localhitposK18);
 #else
+#if ExclusiveResidual
+	TPCAna->TrackSearchTPCHelix(true);
+	#else
 	TPCAna->TrackSearchTPCHelix();
+	#endif
 #endif
 
 	int ntTpc = TPCAna->GetNTracksTPCHelix();
