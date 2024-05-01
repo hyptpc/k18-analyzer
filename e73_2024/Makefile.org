@@ -27,7 +27,7 @@ root_include	= $(shell $(root_config) --cflags)
 root_libs	= $(shell $(root_config) --libs) -lMinuit -lEG -lGeom -lGui
 #
 # HDDAQ Unpacker
-unpacker_config		= unpacker-config
+unpacker_config		= /group/had/sks/software/unpacker/s2s/bin/unpacker-config
 unpacker_include	= $(shell $(unpacker_config) --include)
 unpacker_libs		= $(shell $(unpacker_config) --libs)
 #
@@ -113,7 +113,7 @@ white		= \033[0;37;1m
 endif
 
 #______________________________________________________________________________
-.PHONY: all dst usr exmaple lib clean distclean show help
+.PHONY: all dst usr example lib clean distclean show help
 
 all: lib usr
 

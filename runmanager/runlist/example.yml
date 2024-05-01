@@ -12,6 +12,7 @@
 #   conf   <- path to conf directory/file from the work directory
 #   data   <- path to data directory/file
 #   root   <- path to the output ROOT output directory/file
+#   fig    <- path to figure pdf/png files only used for macro
 #
 # Be careful of the indent rule because YAML format is sensitive to it.
 # Some problems will happen if there is no default setting declaration.
@@ -38,7 +39,6 @@ DEFAULT:
   conf:  ./param/conf/analyzer_default.conf
   data:  ../data
   root:  ../rootfile
-  # only for macro
   fig:   fig/hodo
 
 #____________________________________________________
