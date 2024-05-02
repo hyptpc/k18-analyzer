@@ -20,6 +20,9 @@ sys.path.append(os.path.join(
 
 import runlist
 
+ROOT.gROOT.SetBatch()
+ROOT.gStyle.SetOptStat(1110)
+
 #______________________________________________________________________________
 def daq():
   logger.info('daq')
@@ -120,6 +123,12 @@ def dc(name, nlayer=0, tdcdiv=None):
         h1 = ROOT.gFile.Get(f'{name}_{htype}_layer{i}')
         if h1:
           h1.Draw()
+        h2 = ROOT.gFile.Get(f'{name}_C{htype}_layer{i}')
+        if h2:
+          h2.SetLineColor(ROOT.kRed+1)
+          h1.GetYaxis().SetRangeUser(
+            0, max(h1.GetMaximum(), h2.GetMaximum())*1.05)
+          h2.Draw('same')
         # if htype == 'TDC' or htype == 'Trailing' or htype == 'TOT':
         #   h2 = ROOT.gFile.Get(f'{name}_{htype}1st_layer{i}')
         #   if h2:
@@ -137,7 +146,6 @@ def run(run_info):
   except KeyError as e:
     logger.error(f'KeyError: {e} not found in {run_info}')
     return
-  ROOT.gROOT.SetBatch()
   c1 = ROOT.TCanvas('c1', fig_path, 1200, 800)
   f1 = ROOT.TFile(root_path)
   if not f1.IsOpen():

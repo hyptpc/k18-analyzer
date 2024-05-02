@@ -79,11 +79,11 @@ ProcessNormal()
       if(!raw) continue;
       auto seg = raw->SegmentId();
       // Up
-      Bool_t u_in_range = false;
+      Bool_t u_is_good = false;
       for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
 	Double_t t = raw->GetTdcUp(j);
         if(gUser.IsInRange(Form("%s_TDC", name), t))
-          u_in_range = true;
+          u_is_good = true;
 	root::HF1(Form("%s_TDC_seg%dU", name, seg), t);
       }
       for(Int_t j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
@@ -97,11 +97,11 @@ ProcessNormal()
 	}
       }
       // Down
-      Bool_t d_in_range = false;
+      Bool_t d_is_good = false;
       for(Int_t j=0, m=raw->GetSizeTdcDown(); j<m; ++j){
 	Double_t t = raw->GetTdcDown(j);
         if(gUser.IsInRange(Form("%s_TDC", name), t))
-          d_in_range = true;
+          d_is_good = true;
 	root::HF1(Form("%s_TDC_seg%dD", name, seg), t);
       }
       for(Int_t j=0, m=raw->GetSizeAdcDown(); j<m; ++j){
@@ -114,11 +114,11 @@ ProcessNormal()
           }
 	}
       }
-      if(u_in_range || d_in_range){
+      if(u_is_good || d_is_good){
         root::HF1(Form("%s_HitPat_OR", name), seg);
         ++multi_or;
       }
-      if(u_in_range && d_in_range){
+      if(u_is_good && d_is_good){
         root::HF1(Form("%s_HitPat_AND", name), seg);
         ++multi_and;
       }
@@ -136,20 +136,20 @@ ProcessNormal()
       auto raw = cont[i];
       if(!raw) continue;
       Int_t seg = raw->SegmentId();
-      Bool_t in_range = false;
+      Bool_t is_good = false;
       for(int j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
 	Double_t t = raw->GetTdcUp(j);
         if(gUser.IsInRange(Form("%s_TDC", name), t))
-          in_range = true;
+          is_good = true;
 	root::HF1(Form("%s_TDC_seg%d", name, seg), t);
       }
       for(int j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
 	Double_t a = raw->GetAdcUp(j);
 	root::HF1(Form("%s_ADC_seg%d", name, seg), a);
-        if(in_range)
+        if(is_good)
           root::HF1(Form("%s_AWT_seg%d", name, seg), a);
       }
-      if(in_range){
+      if(is_good){
         root::HF1(Form("%s_HitPat", name), seg);
         multi++;
       }
@@ -168,38 +168,38 @@ ProcessNormal()
       if(!raw) continue;
       auto seg = raw->SegmentId();
       // Up
-      Bool_t u_in_range = false;
+      Bool_t u_is_good = false;
       for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
 	Double_t t = raw->GetTdcUp(j);
         if(gUser.IsInRange(Form("%s_TDC", name), t))
-          u_in_range = true;
+          u_is_good = true;
 	root::HF1(Form("%s_TDC_seg%dU", name, seg), t);
       }
       for(Int_t j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
 	Double_t a = raw->GetAdcUp(j);
 	root::HF1(Form("%s_ADC_seg%dU", name, seg), a);
-	if(u_in_range)
+	if(u_is_good)
           root::HF1(Form("%s_AWT_seg%dU", name, seg), a);
       }
       // Down
-      Bool_t d_in_range = false;
+      Bool_t d_is_good = false;
       for(Int_t j=0, m=raw->GetSizeTdcDown(); j<m; ++j){
 	Double_t t = raw->GetTdcDown(j);
         if(gUser.IsInRange(Form("%s_TDC", name), t))
-          d_in_range = true;
+          d_is_good = true;
 	root::HF1(Form("%s_TDC_seg%dD", name, seg), t);
       }
       for(Int_t j=0, m=raw->GetSizeAdcDown(); j<m; ++j){
 	Double_t a = raw->GetAdcDown(j);
 	root::HF1(Form("%s_ADC_seg%dD", name, seg), a);
-	if(d_in_range)
+	if(d_is_good)
           root::HF1(Form("%s_AWT_seg%dD", name, seg), a);
       }
-      if(u_in_range || d_in_range){
+      if(u_is_good || d_is_good){
         root::HF1(Form("%s_HitPat_OR", name), seg);
         ++multi_or;
       }
-      if(u_in_range && d_in_range){
+      if(u_is_good && d_is_good){
         root::HF1(Form("%s_HitPat_AND", name), seg);
         ++multi_and;
       }
@@ -209,44 +209,51 @@ ProcessNormal()
   }
 
   // DC
-  for(Int_t idc=0; idc<kCDC; ++idc){
+  for(Int_t idc=0; idc<=kVFT; ++idc){
     const Char_t* name = NameDC[idc].Data();
     Int_t nlayer = NumOfLayerDC[idc];
     for(Int_t layer=0; layer<nlayer; ++layer){
       const auto& cont = rawData.GetDCRawHC(DetIdDC[idc], layer);
       // hist::H1(Form("%s_Mul_layer%d",name,layer),nh,mulbins);
       Int_t multi = 0;
+      Int_t cmulti = 0;
       for(Int_t i=0, n=cont.size(); i<n; ++i){
         auto hit = cont[i];
         if(!hit) continue;
         Int_t wire = hit->WireId();
-        Bool_t in_range = false;
+        Bool_t is_good = false;
         for(Int_t j=0, m=hit->GetTdcSize(); j<m; ++j){
-          Double_t t = hit->GetTdc(j);
-          root::HF1(Form("%s_TDC_layer%d", name, layer), t);
-          in_range = true;
-          if(j == 0)
-            root::HF1(Form("%s_TDC1st_layer%d", name, layer), t);
-        }
-        for(Int_t j=0, m=hit->GetTrailingSize(); j<m; ++j){
+          if(m != hit->GetTrailingSize()) break;
+          Double_t l = hit->GetTdc(j);
           Double_t t = hit->GetTrailing(j);
-          root::HF1(Form("%s_Trailing_layer%d", name, layer), t);
-          if(j == 0)
-            root::HF1(Form("%s_Trailing1st_layer%d", name, layer), t);
-          if(m == hit->GetTdcSize()){
-            Double_t l = hit->GetTdc(j);
-            Double_t tot = l - t;
-            root::HF1(Form("%s_TOT_layer%d", name, layer), tot);
-            if(j == 0)
-              root::HF1(Form("%s_TOT1st_layer%d", name, layer), tot);
+          Double_t tot = l - t;
+          if(gUser.IsInRange(Form("%s_TOT", name), tot))
+            is_good = true;
+          for(const auto& totcut: std::vector<TString>{"", "C"}){
+            if(totcut == "C" && !gUser.IsInRange(Form("%s_TOT", name), tot))
+              continue;
+            auto c = totcut.Data();
+            root::HF1(Form("%s_%sTDC_layer%d", name, c, layer), l);
+            root::HF1(Form("%s_%sTrailing_layer%d", name, c, layer), t);
+            root::HF1(Form("%s_%sTOT_layer%d", name, c, layer), tot);
+            if(j == 0){
+              root::HF1(Form("%s_%sTDC1st_layer%d", name, c, layer), l);
+              root::HF1(Form("%s_%sTrailing1st_layer%d", name, c, layer), t);
+              root::HF1(Form("%s_%sTOT1st_layer%d", name, c, layer), tot);
+            }
           }
         }
-        if(in_range){
+        if(hit->GetTdcSize() > 0){
           root::HF1(Form("%s_HitPat_layer%d", name, layer), wire);
           ++multi;
         }
+        if(is_good){
+          root::HF1(Form("%s_CHitPat_layer%d", name, layer), wire);
+          ++cmulti;
+        }
       }
       root::HF1(Form("%s_Multi_layer%d", name, layer), multi);
+      root::HF1(Form("%s_CMulti_layer%d", name, layer), cmulti);
     }
   }
 
@@ -291,16 +298,17 @@ ProcessEnd()
 Bool_t
 ConfMan::InitializeHistograms()
 {
-  Double_t tdcbins[3] = {5000, 0, 2e6};
-  Double_t totbins[3] = {5000, 0, 5e4};
+  Double_t hrtdcbins[3] = {5000, 0, 2e6};
+  Double_t hrtotbins[3] = {5000, 0, 5e4};
   Double_t adcbins[3] = {4096, -0.5, 4095.5};
-  Double_t mtdcbins[3] = {2000, 0, 2000};
+  Double_t mhtdcbins[3] = {2000, 0, 2000};
+  Double_t mhtotbins[3] = {1000, 0, 1000};
 
   { // TriggerFlag
     const Char_t* name = "TriggerFlag";
     Double_t patbins[3]={NumOfSegTrigFlag, -0.5, NumOfSegTrigFlag-0.5};
     for(Int_t i=0; i<NumOfSegTrigFlag; ++i){
-      root::HB1(Form("%s_TDC_seg%d", name, i), mtdcbins);
+      root::HB1(Form("%s_TDC_seg%d", name, i), mhtdcbins);
     }
     root::HB1(Form("%s_HitPat; Segment; Counts", name), patbins);
   }
@@ -310,9 +318,9 @@ ConfMan::InitializeHistograms()
     Int_t nseg = NumOfSegBHT;
     for(Int_t i=0; i<nseg; ++i){
       for(const auto& ud : std::vector<TString>{"U", "D"}){
-        root::HB1(Form("%s_TDC_seg%d%s", name, i, ud.Data()), tdcbins);
-        root::HB1(Form("%s_Trailing_seg%d%s", name, i, ud.Data()), tdcbins);
-        root::HB1(Form("%s_TOT_seg%d%s", name, i, ud.Data()), totbins);
+        root::HB1(Form("%s_TDC_seg%d%s", name, i, ud.Data()), hrtdcbins);
+        root::HB1(Form("%s_Trailing_seg%d%s", name, i, ud.Data()), hrtdcbins);
+        root::HB1(Form("%s_TOT_seg%d%s", name, i, ud.Data()), hrtotbins);
       }
     }
     root::HB1(Form("%s_HitPat_OR", name), nseg, -0.5, nseg - 0.5);
@@ -327,7 +335,7 @@ ConfMan::InitializeHistograms()
     for(Int_t i=0; i<nseg; ++i){
       root::HB1(Form("%s_ADC_seg%d", name, i), adcbins);
       root::HB1(Form("%s_AWT_seg%d", name, i), adcbins);
-      root::HB1(Form("%s_TDC_seg%d", name, i), tdcbins);
+      root::HB1(Form("%s_TDC_seg%d", name, i), hrtdcbins);
     }
     root::HB1(Form("%s_HitPat", name), nseg, -0.5, nseg - 0.5);
     root::HB1(Form("%s_Multi", name), nseg + 1, -0.5, nseg + 0.5);
@@ -342,10 +350,10 @@ ConfMan::InitializeHistograms()
       for(Int_t i=0; i<nseg; ++i){
         root::HB1(Form("%s_ADC_seg%d%s", name, i, ud), adcbins);
         root::HB1(Form("%s_AWT_seg%d%s", name, i, ud), adcbins);
-        root::HB1(Form("%s_TDC_seg%d%s", name, i, ud), tdcbins);
+        root::HB1(Form("%s_TDC_seg%d%s", name, i, ud), hrtdcbins);
       }
     }
-    for(const auto& uord: std::vector<TString>{"OR", "AND"} ){
+    for(const auto& uord: std::vector<TString>{"OR", "AND"}){
       auto ud = uord.Data();
       root::HB1(Form("%s_HitPat_%s", name, ud), nseg, -0.5, nseg - 0.5);
       root::HB1(Form("%s_Multi_%s", name, ud), nseg + 1, -0.5, nseg + 0.5);
@@ -353,19 +361,22 @@ ConfMan::InitializeHistograms()
   }
 
   // DC
-  for(Int_t idc=0; idc<kCDC; ++idc){
+  for(Int_t idc=0; idc<=kVFT; ++idc){
     const Char_t* name = NameDC[idc].Data();
     Int_t nlayer = NumOfLayerDC[idc];
     Int_t nwire = NumOfWireDC[idc];
     for(Int_t layer=0; layer<nlayer; ++layer){
-      root::HB1(Form("%s_TDC_layer%d", name, layer), mtdcbins);
-      root::HB1(Form("%s_TDC1st_layer%d", name, layer), mtdcbins);
-      root::HB1(Form("%s_Trailing_layer%d", name, layer), mtdcbins);
-      root::HB1(Form("%s_Trailing1st_layer%d", name, layer), mtdcbins);
-      root::HB1(Form("%s_TOT_layer%d", name, layer), mtdcbins);
-      root::HB1(Form("%s_TOT1st_layer%d", name, layer), mtdcbins);
-      root::HB1(Form("%s_HitPat_layer%d", name, layer), nwire, -0.5, nwire - 0.5);
-      root::HB1(Form("%s_Multi_layer%d", name, layer), nwire + 1, -0.5, nwire + 0.5);
+      for(const auto& totcut: std::vector<TString>{"", "C"}){
+        auto c = totcut.Data();
+        root::HB1(Form("%s_%sTDC_layer%d", name, c, layer), mhtdcbins);
+        root::HB1(Form("%s_%sTDC1st_layer%d", name, c, layer), mhtdcbins);
+        root::HB1(Form("%s_%sTrailing_layer%d", name, c, layer), mhtdcbins);
+        root::HB1(Form("%s_%sTrailing1st_layer%d", name, c, layer), mhtdcbins);
+        root::HB1(Form("%s_%sTOT_layer%d", name, c, layer), mhtotbins);
+        root::HB1(Form("%s_%sTOT1st_layer%d", name, c, layer), mhtotbins);
+        root::HB1(Form("%s_%sHitPat_layer%d", name, c, layer), nwire, -0.5, nwire - 0.5);
+        root::HB1(Form("%s_%sMulti_layer%d", name, c, layer), nwire + 1, -0.5, nwire + 0.5);
+      }
     }
   }
 

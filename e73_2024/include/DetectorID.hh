@@ -118,29 +118,51 @@ const int DetIdBLC1   = 111;
 const int DetIdBLC2   = 112;
 const int DetIdBPC0   = 113;
 
-enum EDC
-{
-  kBLC1a, kBLC1b, kBLC2a, kBLC2b, kBPC1, kBPC2, kVFT,
+enum EDC {
+  kBLC1a, kBLC1b, kBLC2a, kBLC2b,
+  kBPC1, kBPC2, kVFT,
+#ifdef CDS
   kCDC,
+#endif
   kBLC1, kBLC2, kBPC0, kNumDC
 };
 
 const Int_t DetIdDC[kNumDC] = {
-  DetIdBLC1a, DetIdBLC1b, DetIdBLC2a, DetIdBLC2b, DetIdBPC1, DetIdBPC2,
-  DetIdVFT, DetIdCDC, DetIdBLC1, DetIdBLC2, DetIdBPC0
+  DetIdBLC1a, DetIdBLC1b, DetIdBLC2a, DetIdBLC2b,
+  DetIdBPC1, DetIdBPC2,
+  DetIdVFT,
+#ifdef CDS
+  DetIdCDC,
+#endif
+  DetIdBLC1, DetIdBLC2, DetIdBPC0
 };
 
 const TString NameDC[kNumDC] = {
-  "BLC1a", "BLC1b", "BLC2a", "BLC2b", "BPC1", "BPC2",
-  "VFT", "CDC", "BLC1", "BLC2", "BPC0"
+  "BLC1a", "BLC1b", "BLC2a", "BLC2b",
+  "BPC1", "BPC2",
+  "VFT",
+#ifdef CDS
+  "CDC",
+#endif
+  "BLC1", "BLC2", "BPC0"
 };
 
 const int  NumOfLayerDC[kNumDC] = {
-  8, 8, 8, 8, 8, 8, 14, 118, 16, 16, 16
+  8, 8, 8, 8,
+  8, 8, 14,
+#ifdef CDS
+  118,
+#endif
+  16, 16, 16
 };
 
 const int  NumOfWireDC[kNumDC] = {
-  32, 32, 32, 32, 15, 32, 64, 16, 32, 32, 32
+  32, 32, 32, 32,
+  15, 32, 64,
+#ifdef CDS
+  16,
+#endif
+  32, 32, 32
 };
 
 // Hall etc.
@@ -181,6 +203,17 @@ const int DetIdCellFlange	= 253;
 const int DetIdFiducial		= 260;
 
 const int NumOfPlaneVmeRm=3;
+
+enum ETriggerFlag {
+  kStart, kStop, kBeam, kPion, kKaon2, kKaon3, //5
+  kKCDH1, kKCDH2, kKCDH3, //8
+  kKCDH1Gamma, kKGamma, kPiCDH, //11
+  kBeamPbF2, kPiPbF2=kBeamPbF2, //12
+  kCDHCosmic, kElectronPbF2=kCDHCosmic, //13
+  kPbF2Cosmic, kCosmic=kPbF2Cosmic, //14
+  kProtonTrig, kDeuteron=kProtonTrig, //15
+  kNumTrig
+};
 
 // enum eTriggerFlag
 //   {

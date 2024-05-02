@@ -69,7 +69,7 @@ int khodo[nhodo]={kT1,kBHT,kT0,kDEF};
 
 const int nchm=9;
 const int nchm2=6;
-int kchm[nchm]={kBLC1a,kBLC1b,kBLC2a,kBLC2b,kBPC1,kBPC2,kBLC1,kBLC2,kBPC0};
+// int kchm[nchm]={kBLC1a,kBLC1b,kBLC2a,kBLC2b,kBPC1,kBPC2,kBLC1,kBLC2,kBPC0};
 
 double tdcbins[3]={5000,0,2e6};
 double adcbins[3]={4096,-0.5,4095.5};
@@ -228,7 +228,7 @@ ProcessNormal()
 	if(hodomul[kDEF]!=1) continue;
 #endif
 	//    DCAna.DecodeRawHits( rawData, hodotime[kT1],hodotime[kDEF] );
-	int kChm=kchm[ichm];
+	int kChm= 0; //kchm[ichm];
 	TString tmpname=NameDC[kChm];
 	int    cid     =DetIdDC[kChm];
 	double nl      =NumOfLayerDC[kChm];
@@ -347,7 +347,7 @@ ProcessNormal()
   DCAna.MakePairsAll();
   {
     for(int ichm=0;ichm<nchm2;ichm++){
-      int kChm=kchm[ichm];
+      int kChm= 0; //kchm[ichm];
       TString tmpname=NameDC[kChm];
       int     cid    =DetIdDC[kChm];
       //      if(cid==DetIdBPC&&!GoodBeam) continue;
