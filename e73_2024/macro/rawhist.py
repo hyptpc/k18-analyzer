@@ -104,7 +104,9 @@ def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
     i = i + 1
     c1.cd(i)
     h1 = ROOT.gFile.Get(f'{name}_Multi{s}')
-    if h1: h1.Draw()
+    if h1:
+      h1.Draw()
+      efficiency(h1)
     i = i + 1
   c1.Print(fig_path)
 
@@ -113,7 +115,6 @@ def dc(name, nlayer=0, tdcdiv=None):
   logger.info(f'dc name={name}, nlayer={nlayer}, tdcdiv={tdcdiv}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
-
   if tdcdiv is not None:
     for htype in ['TDC', 'Trailing', 'TOT', 'HitPat', 'Multi']:
       c1.Clear()
@@ -123,18 +124,36 @@ def dc(name, nlayer=0, tdcdiv=None):
         h1 = ROOT.gFile.Get(f'{name}_{htype}_layer{i}')
         if h1:
           h1.Draw()
+          if htype == 'Multi':
+            efficiency(h1)
         h2 = ROOT.gFile.Get(f'{name}_C{htype}_layer{i}')
         if h2:
           h2.SetLineColor(ROOT.kRed+1)
           h1.GetYaxis().SetRangeUser(
             0, max(h1.GetMaximum(), h2.GetMaximum())*1.05)
           h2.Draw('same')
+          if htype == 'Multi':
+            efficiency(h2)
         # if htype == 'TDC' or htype == 'Trailing' or htype == 'TOT':
         #   h2 = ROOT.gFile.Get(f'{name}_{htype}1st_layer{i}')
         #   if h2:
         #     h2.SetLineColor(ROOT.kRed+1)
         #     h2.Draw('same')
       c1.Print(fig_path)
+
+#______________________________________________________________________________
+def efficiency(h1):
+  nof0 = h1.GetBinContent(1)
+  nall = h1.GetEntries()
+  eff = 1 - nof0/nall
+  tex = ROOT.TLatex()
+  tex.SetNDC()
+  tex.SetTextAlign(11)
+  tex.SetTextColor(h1.GetLineColor())
+  tex.SetTextSize(0.08)
+  x = 0.45
+  y = 0.70 if h1.GetLineColor() == 602 else 0.62
+  tex.DrawLatex(x, y, f'eff. {eff:.3f}')
 
 #______________________________________________________________________________
 def run(run_info):
