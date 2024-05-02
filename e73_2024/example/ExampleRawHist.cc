@@ -137,19 +137,24 @@ ProcessNormal()
       if(!raw) continue;
       Int_t seg = raw->SegmentId();
       Bool_t is_good = false;
-      for(int j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
+      for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
 	Double_t t = raw->GetTdcUp(j);
         if(gUser.IsInRange(Form("%s_TDC", name), t))
           is_good = true;
 	root::HF1(Form("%s_TDC_seg%d", name, seg), t);
       }
-      for(int j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
+      Double_t suma = 0;
+      for(Int_t j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
 	Double_t a = raw->GetAdcUp(j);
-	root::HF1(Form("%s_ADC_seg%d", name, seg), a);
+        suma += a;
+	root::HF1(Form("%s_ADC_seg%d", name, j+1), a);
         if(is_good)
-          root::HF1(Form("%s_AWT_seg%d", name, seg), a);
+          root::HF1(Form("%s_AWT_seg%d", name, j+1), a);
       }
+      // SUM
+      root::HF1(Form("%s_ADC_seg%d", name, 0), suma);
       if(is_good){
+        root::HF1(Form("%s_AWT_seg%d", name, 0), suma);
         root::HF1(Form("%s_HitPat", name), seg);
         multi++;
       }
@@ -335,7 +340,7 @@ ConfMan::InitializeHistograms()
     for(Int_t i=0; i<nseg; ++i){
       root::HB1(Form("%s_ADC_seg%d", name, i), adcbins);
       root::HB1(Form("%s_AWT_seg%d", name, i), adcbins);
-      root::HB1(Form("%s_TDC_seg%d", name, i), hrtdcbins);
+      root::HB1(Form("%s_TDC_seg%d", name, i), mhtdcbins);
     }
     root::HB1(Form("%s_HitPat", name), nseg, -0.5, nseg - 0.5);
     root::HB1(Form("%s_Multi", name), nseg + 1, -0.5, nseg + 0.5);

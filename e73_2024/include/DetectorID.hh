@@ -27,7 +27,7 @@ const int DetIdIH     =  42;
 const int DetIdVFT    =  53;
 
 const Int_t NumOfSegBHT = 63;
-const Int_t NumOfSegAC  = 1;
+const Int_t NumOfSegAC  = 5;
 
 const int DetIdPbG    =  29;
 const int DetIdPbF2   =  30;

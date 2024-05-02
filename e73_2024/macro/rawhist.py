@@ -175,7 +175,7 @@ def run(run_info):
   c1.Print(fig_path+'[')
   hodo('TriggerFlag', nseg=32, tdcdiv=(8, 4), ud=False)
   hodo('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8))
-  hodo('AC', nseg=1, adcdiv=(2, 2), tdcdiv=(2, 2), ud=False)
+  hodo('AC', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), ud=False)
   hodo('T1', nseg=1, adcdiv=(2, 2), tdcdiv=(2, 2))
   hodo('T0', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
   hodo('T0new', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
