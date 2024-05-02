@@ -155,7 +155,7 @@ def run(run_info):
   hodo('DEF', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
   hodo('Veto', nseg=4, adcdiv=(2, 2), tdcdiv=(2, 2))
   hodo('BTC', nseg=4, adcdiv=(2, 2), tdcdiv=(2, 2))
-  hodo('CDH', nseg=36, adcdiv=(6, 6), tdcdiv=(6, 6))
+  # hodo('CDH', nseg=36, adcdiv=(6, 6), tdcdiv=(6, 6))
   # hodo('PbG', nseg=40, adcdiv=(7, 6), tdcdiv=(7, 6))
   # hodo('PbF2', nseg=40, adcdiv=(7, 6), tdcdiv=(7, 6))
   hodo('CVC', nseg=9, adcdiv=(3, 3), tdcdiv=(3, 3))

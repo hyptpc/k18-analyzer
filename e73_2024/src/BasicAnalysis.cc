@@ -311,8 +311,10 @@ bool BasicAnalysis::FillHodoRaw(RawData* raw,int kHodo)
 
 bool BasicAnalysis::FillHodoDecoded(HodoAnalyzer* hodo,int kHodo,std::vector<TString> trig_add)
 {
+#ifdef CDS
   if(kHodo==kPbF2||kHodo==kPbF2)
     return FillHodo1Decoded(hodo,kHodo,trig_add);
+#endif
   int mul=0;
   int cid=DetIdHodo[kHodo];
   TString name=NameHodo[kHodo];
@@ -502,8 +504,10 @@ bool BasicAnalysis::AnaDC(DCAnalyzer* dc,int kDC,double tmin,double tmax,double 
 
 bool BasicAnalysis::AnaHodo(HodoAnalyzer* hodo,int kHodo)
 {
+#ifdef CDS
   if(kHodo==kPbG||kHodo==kPbF2)
     return AnaHodo1(hodo,kHodo);
+#endif
   if(kHodo==kBHT)
     return AnaBHT(hodo);
   int cid=DetIdHodo[kHodo];
@@ -519,9 +523,14 @@ bool BasicAnalysis::AnaHodo(HodoAnalyzer* hodo,int kHodo)
       double cmt  = hit->CMeanTime(ii)-ctime0();
       hist::H1(name+"_Time_all" ,mt,timebins);
       hist::H1(name+"_CTime_all" ,cmt,timebins);
-      if(cid==DetIdCDH){
+      if(false){
+      }
+#ifdef CDS
+      else if(cid==DetIdCDH){
 	if(!gUser.IsInRange("CDHTOF",mt)) continue;
-      }else if(cid==DetIdVeto){
+      }
+#endif
+      else if(cid==DetIdVeto){
 	if(!gUser.IsInRange("VetoTOF",mt)) continue;
       }else{
 	if(!gUser.IsInRange("HodoGATE",mt)) continue;
@@ -576,7 +585,8 @@ bool BasicAnalysis::AnaBHT(HodoAnalyzer* hodo,int kHodo)
 	  if( seg2>(seg1+j+1) ) break;
 	  int nind2= hit2->GetIndex();
 	  for(int i2=0;i2<nind2;i2++){
-	    if(std::find(UsedFlag.at(i+j).begin(), UsedFlag.at(i+j).end(), i2) != UsedFlag.at(i+j).end()) continue;	      double mt2  = hit2->MeanTime(i2);
+	    if(std::find(UsedFlag.at(i+j).begin(), UsedFlag.at(i+j).end(), i2) != UsedFlag.at(i+j).end()) continue;
+            double mt2  = hit2->MeanTime(i2);
 	    if(TMath::Abs(mt-mt2)<15){
 	      clu->AddHit(hit2,i2);
 	      UsedFlag.at(i+j).push_back(i2);
@@ -657,6 +667,7 @@ bool BasicAnalysis::AnaHodo1(HodoAnalyzer* hodo,int kHodo)
 
 bool BasicAnalysis::AnaPbF2(HodoAnalyzer* hodo,std::vector<TString> add)
 {
+#ifdef CDS
   int cid=DetIdHodo[kPbF2];
   TString name=NameHodo[kPbF2];
   int nh = hodo->GetNHits(cid);
@@ -763,6 +774,7 @@ bool BasicAnalysis::AnaPbF2(HodoAnalyzer* hodo,std::vector<TString> add)
       }
     }
   }
+#endif
   return true;
 }
 SlewEvent BasicAnalysis::get_slewevent()
@@ -849,6 +861,7 @@ CDHEvent BasicAnalysis::get_cdhevent()
   ev.ded_t0=hododed(  kT0,0);
   ev.seg_t0=hodoseg(  kT0,0);
 
+#ifdef CDS
   ev.mt_cdh =hodotime( kCDH,0);
   ev.cmt_cdh=hodoctime(kCDH,0);
   ev.deu_cdh=hododeu(  kCDH,0);
@@ -858,7 +871,7 @@ CDHEvent BasicAnalysis::get_cdhevent()
   ev.td_cdh =hodotd(   kCDH,0);
   ev.ctu_cdh=hodoctu(  kCDH,0);
   ev.ctd_cdh=hodoctd(  kCDH,0);
-
+#endif
   ev.mt_def =hodotime( kDEF,0);
   ev.cmt_def=hodoctime(kDEF,0);
   ev.deu_def=hododeu(  kDEF,0);

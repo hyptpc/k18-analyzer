@@ -65,7 +65,9 @@ const Int_t NumOfSegTrigFlag = 32;
 enum EHodoscope {
   kBHT, kT1, kT0, kT0new, kDEF,
   kVeto, kBTC,
+#ifdef CDS
   kCDH, kPbG, kPbF2,
+#endif
   kCVC, kNC,
   // kRC,
   kNumHodo
@@ -74,7 +76,9 @@ enum EHodoscope {
 const Int_t DetIdHodo[kNumHodo] = {
   DetIdBHT, DetIdT1, DetIdT0, DetIdT0new, DetIdDEF,
   DetIdVeto, DetIdBTC,
+#ifdef CDS
   DetIdCDH, DetIdPbG, DetIdPbF2,
+#endif
   DetIdCVC, DetIdNC,
   // DetIdRC
 };
@@ -82,7 +86,9 @@ const Int_t DetIdHodo[kNumHodo] = {
 const TString NameHodo[kNumHodo] = {
   "BHT", "T1", "T0", "T0new", "DEF",
   "Veto", "BTC",
+#ifdef CDS
   "CDH", "PbG", "PbF2",
+#endif
   "CVC", "NC",
   // "RC"
 };
@@ -90,7 +96,9 @@ const TString NameHodo[kNumHodo] = {
 const double  NumOfSegHodo[kNumHodo] = {
   63, 1, 5, 4, 4,
   4, 4,
+#ifdef CDS
   36, 40, 40,
+#endif
   35, 6,
 };
 

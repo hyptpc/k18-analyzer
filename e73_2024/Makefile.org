@@ -2,7 +2,7 @@
 
 #______________________________________________________________________________
 EXPERIMENT	:= E73_2024
-DFLAGS		+= -DMemoryLeak -DCDS -D$(EXPERIMENT)
+DFLAGS		+= -DMemoryLeak -D$(EXPERIMENT) # -DCDS
 # Colorize
 color		= 1
 #
