@@ -36,7 +36,9 @@
 #define HodoCut 0 // with BH1/BH2
 #define TimeCut 1 // in cluster analysis
 #define Chi2Cut 1 // for BcOut tracking
-#define SaveBft 0
+#define SaveBft 1
+#define BH1MatchCut 0
+#define BH2MatchCut 0
 
 namespace
 {
@@ -105,6 +107,18 @@ struct Event
   Double_t Time0;
   Double_t CTime0;
 
+  // Btof0 BH1
+  Double_t Btof0Seg;
+  Double_t deBtof0;
+  Double_t Btof0;
+  Double_t CBtof0;
+
+  //BH1
+  Int_t    nhBh1;
+
+  //BH2
+  Int_t    nhBh2;
+
   // BFT
   Int_t    bft_ncl;
   Int_t    bft_ncl_bh1mth;
@@ -168,6 +182,14 @@ struct Event
   Double_t zbh2HS[MaxHits];
   Double_t ubh2HS[MaxHits];
   Double_t vbh2HS[MaxHits];
+  Double_t pbh2HS[MaxHits];
+
+  Double_t xgasvesselHS[MaxHits];
+  Double_t ygasvesselHS[MaxHits];
+  Double_t zgasvesselHS[MaxHits];
+  Double_t ugasvesselHS[MaxHits];
+  Double_t vgasvesselHS[MaxHits];
+  Double_t pgasvesselHS[MaxHits];
 
   Double_t xvp1HS[MaxHits];
   Double_t yvp1HS[MaxHits];
@@ -227,6 +249,12 @@ Event::clear()
   deTime0        = qnan;
   Time0          = qnan;
   CTime0         = qnan;
+  nhBh1          = 0;
+  nhBh2          = 0;
+  Btof0Seg       = -1;
+  deBtof0        = qnan;
+  Btof0          = qnan;
+  CBtof0         = qnan;
 
   for(Int_t it=0; it<NumOfSegTrig; it++){
     trigpat[it]  = -1;
@@ -270,11 +298,20 @@ Event::clear()
 
     //qHS[i] = qnan;
     initmomHS[i] = qnan;
+
     xbh2HS[i] = qnan;
     ybh2HS[i] = qnan;
     zbh2HS[i] = qnan;
     ubh2HS[i] = qnan;
     vbh2HS[i] = qnan;
+    pbh2HS[i] = qnan;
+
+    xgasvesselHS[i] = qnan;
+    ygasvesselHS[i] = qnan;
+    zgasvesselHS[i] = qnan;
+    ugasvesselHS[i] = qnan;
+    vgasvesselHS[i] = qnan;
+    pgasvesselHS[i] = qnan;
 
     xvp1HS[i] = qnan;
     yvp1HS[i] = qnan;
@@ -412,8 +449,10 @@ UserK18HSTracking::ProcessingNormal()
   HF1(1, 2);
 
   //////////////BH2 Analysis
+  Double_t t0_seg = -1;
   BH2Cluster *cl_time0 = hodoAna->GetTime0BH2Cluster();
   if(cl_time0){
+    t0_seg = cl_time0->MeanSeg();
     event.Time0Seg = cl_time0->MeanSeg()+1;
     event.deTime0  = cl_time0->DeltaE();
     event.Time0    = cl_time0->Time0();
@@ -421,6 +460,7 @@ UserK18HSTracking::ProcessingNormal()
   }else{
     return true;
   }
+  event.nhBh2 = hodoAna->GetNClustersBH2();
 
   HF1(1, 3);
 
@@ -436,7 +476,12 @@ UserK18HSTracking::ProcessingNormal()
   HodoCluster* cl_btof0 = event.Time0Seg > 0? hodoAna->GetBtof0BH1Cluster(event.CTime0) : NULL;
   if(cl_btof0){
     btof0_seg = cl_btof0->MeanSeg();
+    event.Btof0Seg = cl_btof0->MeanSeg()+1;
+    event.deBtof0 = cl_btof0->DeltaE();
+    event.Btof0 = cl_btof0->MeanTime() - event.Time0;
+    event.CBtof0 = cl_btof0->CMeanTime() - event.CTime0;
   }
+  event.nhBh1 = hodoAna->GetNClustersBH1();
 
   HF1(1, 5);
 
@@ -448,6 +493,12 @@ UserK18HSTracking::ProcessingNormal()
     hodoAna->DecodeBFTHits(rawData);
     // Fiber Cluster
     Int_t ncl_raw = hodoAna->GetNClustersBFT();
+    for(Int_t i=0; i<ncl_raw; ++i){
+      FiberCluster *cl = hodoAna->GetClusterBFT(i);
+      if(!cl) continue;
+      Double_t ctime  = cl->CMeanTime();
+      HF1(BFTHid +103, ctime);
+    }
 #if TimeCut
     hodoAna->TimeCutBFT(MinTimeBFT, MaxTimeBFT);
 #endif
@@ -466,7 +517,15 @@ UserK18HSTracking::ProcessingNormal()
       event.bft_clsize[i] = clsize;
       event.bft_ctime[i]  = ctime;
       event.bft_clpos[i]  = pos;
-
+#if BH1MatchCut
+      //Veto events which BH1-BFT are not matched
+      if(btof0_seg > 0 && ncl != 0){
+	if(gBH1Mth.Judge(pos, btof0_seg)){
+	  event.bft_bh1mth[i] = 1;
+	  xCand.push_back(pos);
+	}
+      }
+#else
       if(btof0_seg > 0 && ncl != 1){
 	if(gBH1Mth.Judge(pos, btof0_seg)){
 	  event.bft_bh1mth[i] = 1;
@@ -475,14 +534,14 @@ UserK18HSTracking::ProcessingNormal()
       }else{
 	xCand.push_back(pos);
       }
-
+#endif
       HF1(BFTHid +102, clsize);
-      HF1(BFTHid +103, ctime);
-      HF1(BFTHid +104, pos);
+      HF1(BFTHid +104, ctime);
+      HF1(BFTHid +105, pos);
     }
 
     event.bft_ncl_bh1mth = xCand.size();
-    HF1(BFTHid + 105, event.bft_ncl_bh1mth);
+    HF1(BFTHid + 106, event.bft_ncl_bh1mth);
   }
 
   HF1(1, 7.);
@@ -515,8 +574,13 @@ UserK18HSTracking::ProcessingNormal()
   // gFilter.Apply((Int_t)event.Time0Seg-1, *DCAna, cands);
   //DCAna->TrackSearchBcOut(cands, event.Time0Seg-1);
   //  DCAna->TrackSearchBcOut(-1);
-
+#if BH2MatchCut
+  if(t0_seg<0) return true;
+  DCAna->TrackSearchBcOut(t0_seg);
+#else
   DCAna->TrackSearchBcOut();
+#endif
+
  #if Chi2Cut
   DCAna->ChiSqrCutBcOut(MaxChisqrBcOut);
  #endif
@@ -594,8 +658,6 @@ UserK18HSTracking::ProcessingNormal()
     Double_t theta = track->GetTheta();
     Double_t phi   = track->GetPhi();
 
-    HF1(74, xt); HF1(75, yt); HF1(76, ut); HF1(77,vt);
-    HF2(78, xt, ut); HF2(79, yt, vt); HF2(80, xt, yt);
     HF1(81, p_3rd); HF1(82, delta_3rd);
 
     event.p_2nd[i] = p_2nd;
@@ -652,10 +714,14 @@ UserK18HSTracking::ProcessingNormal()
     Double_t phiHS = TMath::ATan2(utgt, vtgt);
     Double_t initial_momentum = trHS->GetInitialMomentum();
 
+    HF1(74, xtgt); HF1(75, ytgt); HF1(76, utgt); HF1(77, vtgt);
+    HF2(78, xtgt, utgt); HF2(79, ytgt, vtgt); HF2(80, xtgt, ytgt);
+
     const auto& PosBH2 = trHS->BH2Position();
     const auto& MomBH2 = trHS->BH2Momentum();
     Double_t xBH2 = PosBH2.x(), yBH2 = PosBH2.y(), zBH2 = PosBH2.z();
     Double_t uBH2 = MomBH2.x()/MomBH2.z(), vBH2 = MomBH2.y()/MomBH2.z();
+    Double_t pBH2HS = MomBH2.Mag();
 
     const auto& PosVP1 = trHS->VP1Position();
     const auto& MomVP1 = trHS->VP1Momentum();
@@ -681,13 +747,12 @@ UserK18HSTracking::ProcessingNormal()
     const auto& MomHtof = trHS->HtofMomentum();
     Double_t xHtof = PosHtof.x(), yHtof = PosHtof.y(), zHtof = PosHtof.z();
     Double_t uHtof = MomHtof.x()/MomHtof.z(), vHtof = MomHtof.y()/MomHtof.z();
-    Double_t path = trHS->PathLength();
-    Double_t m2 = Kinematics::MassSquare(pHS, path, StofOffset);
 
     const auto& PosGasVesselU = trHS->GasVesselUPosition();
     const auto& MomGasVesselU = trHS->GasVesselUMomentum();
     Double_t xGasVesselU = PosGasVesselU.x(), yGasVesselU = PosGasVesselU.y(), zGasVesselU = PosGasVesselU.z();
     Double_t uGasVesselU = MomGasVesselU.x()/MomGasVesselU.z(), vGasVesselU = MomGasVesselU.y()/MomGasVesselU.z();
+    Double_t pGasVesselUHS = MomGasVesselU.Mag();
 
     const auto& PosGasVesselD = trHS->GasVesselDPosition();
     const auto& MomGasVesselD = trHS->GasVesselDMomentum();
@@ -711,11 +776,23 @@ UserK18HSTracking::ProcessingNormal()
       event.vbcHS[i][j] = vBC;
     }
 
+    //BH2 - Tgt
+    Double_t path = trHS->PathLength();
+    Double_t m2 = Kinematics::MassSquare(pHS, path, StofOffset);
+
     event.xbh2HS[i] = xBH2;
     event.ybh2HS[i] = yBH2;
     event.zbh2HS[i] = zBH2;
     event.ubh2HS[i] = uBH2;
     event.vbh2HS[i] = vBH2;
+    event.pbh2HS[i] = pBH2HS;
+
+    event.xgasvesselHS[i] = xGasVesselU;
+    event.ygasvesselHS[i] = yGasVesselU;
+    event.zgasvesselHS[i] = zGasVesselU;
+    event.ugasvesselHS[i] = uGasVesselU;
+    event.vgasvesselHS[i] = vGasVesselU;
+    event.pgasvesselHS[i] = pGasVesselUHS;
 
     event.xvp1HS[i] = xVP1;
     event.yvp1HS[i] = yVP1;
@@ -788,9 +865,9 @@ ConfMan::InitializeHistograms()
   const Int_t    NbinTot =  136;
   const Double_t MinTot  =   -8.;
   const Double_t MaxTot  =  128.;
-  const Int_t    NbinTime = 1000;
-  const Double_t MinTime  = -500.;
-  const Double_t MaxTime  =  500.;
+  const Int_t    NbinTime = 200;
+  const Double_t MinTime  = -10.;
+  const Double_t MaxTime  =  10.;
 
   HB1(1, "Status",  30,   0., 30.);
   HB1(10, "Trigger HitPat", NumOfSegTrig, 0, NumOfSegTrig);
@@ -808,10 +885,11 @@ ConfMan::InitializeHistograms()
   HB1(BFTHid +100, "BFT NCluster [Raw]", 100, 0, 100);
   HB1(BFTHid +101, "BFT NCluster [TimeCut]", 10, 0, 10);
   HB1(BFTHid +102, "BFT Cluster Size", 5, 0, 5);
-  HB1(BFTHid +103, "BFT CTime (Cluster)", NbinTime, MinTime, MaxTime);
-  HB1(BFTHid +104, "BFT Cluster Position",
+  HB1(BFTHid +103, "BFT CTime (Cluster) [Raw]", NbinTime, MinTime, MaxTime);
+  HB1(BFTHid +104, "BFT CTime (Cluster) [TimeCut]", NbinTime, MinTime, MaxTime);
+  HB1(BFTHid +105, "BFT Cluster Position",
       NumOfSegBFT, -0.5*(Double_t)NumOfSegBFT, 0.5*(Double_t)NumOfSegBFT);
-  HB1(BFTHid +105, "BFT NCluster [TimeCut && BH1Matching]", 10, 0, 10);
+  HB1(BFTHid +106, "BFT NCluster [TimeCut && BH1Matching]", 10, 0, 10);
 #endif
 
   // BcOut
@@ -857,6 +935,14 @@ ConfMan::InitializeHistograms()
   tree->Branch("deTime0",  &event.deTime0,   "deTime0/D");
   tree->Branch("Time0",    &event.Time0,     "Time0/D");
   tree->Branch("CTime0",   &event.CTime0,    "CTime0/D");
+
+  tree->Branch("Btof0Seg", &event.Btof0Seg,  "Btof0Seg/D");
+  tree->Branch("deBtof0",  &event.deBtof0,   "deBtof0/D");
+  tree->Branch("Btof0",    &event.Btof0,     "Btof0/D");
+  tree->Branch("CBtof0",   &event.CBtof0,    "CBtof0/D");
+
+  tree->Branch("nhBh1",    &event.nhBh1,     "nhBh1/I");
+  tree->Branch("nhBh2",    &event.nhBh2,     "nhBh2/I");
 
 #if SaveBft
   //BFT
@@ -908,7 +994,6 @@ ConfMan::InitializeHistograms()
 
   // HS Propagation
   //tree->Branch("qHS",   event.qHS, "qHS[ntK18]/D");
-  tree->Branch("initmomHS",   event.initmomHS, "initmomHS[ntK18]/D");
   tree->Branch("xbcHS",   event.xbcHS, "xbcHS[ntK18][12]/D");
   tree->Branch("ybcHS",   event.ybcHS, "ybcHS[ntK18][12]/D");
   tree->Branch("zbcHS",   event.zbcHS, "zbcHS[ntK18][12]/D");
@@ -920,6 +1005,14 @@ ConfMan::InitializeHistograms()
   tree->Branch("zbh2HS",   event.zbh2HS, "zbh2HS[ntK18]/D");
   tree->Branch("ubh2HS",   event.ubh2HS, "ubh2HS[ntK18]/D");
   tree->Branch("vbh2HS",   event.vbh2HS, "vbh2HS[ntK18]/D");
+  tree->Branch("pbh2HS",   event.pbh2HS, "pbh2HS[ntK18]/D");
+
+  tree->Branch("xgasvesselHS",   event.xgasvesselHS, "xgasvesselHS[ntK18]/D");
+  tree->Branch("ygasvesselHS",   event.ygasvesselHS, "ygasvesselHS[ntK18]/D");
+  tree->Branch("zgasvesselHS",   event.zgasvesselHS, "zgasvesselHS[ntK18]/D");
+  tree->Branch("ugasvesselHS",   event.ugasvesselHS, "ugasvesselHS[ntK18]/D");
+  tree->Branch("vgasvesselHS",   event.vgasvesselHS, "vgasvesselHS[ntK18]/D");
+  tree->Branch("pgasvesselHS",   event.pgasvesselHS, "pgasvesselHS[ntK18]/D");
 
   tree->Branch("xvp1HS",   event.xvp1HS, "xvp1HS[ntK18]/D");
   tree->Branch("yvp1HS",   event.yvp1HS, "yvp1HS[ntK18]/D");
@@ -960,8 +1053,8 @@ ConfMan::InitializeHistograms()
   tree->Branch("thetaHS",  event.thetaHS,"thetaHS[ntK18]/D");
   tree->Branch("phiHS",    event.phiHS,  "phiHS[ntK18]/D");
   tree->Branch("pathHS",   event.pathHS, "pathHS[ntK18]/D");
-  tree->Branch("m2",   event.m2, "m2[ntK18]/D");
-
+  tree->Branch("m2",       event.m2, "m2[ntK18]/D");
+  tree->Branch("initmomHS", event.initmomHS, "initmomHS[ntK18]/D");
   HPrint();
   return true;
 }
