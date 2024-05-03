@@ -33,8 +33,6 @@
 #include "LocalTrack.hh"
 #include "HistTools.hh"
 
-#include "setup.hh"
-
 #define BEAMONLY 0
 #define TRACKING 1
 #define GLOBAL 0
@@ -44,7 +42,6 @@
 
 namespace
 {
-using namespace e73_2024;
 using namespace root;
 using namespace hddaq::unpacker;
 const auto& gUser = UserParamMan::GetInstance();

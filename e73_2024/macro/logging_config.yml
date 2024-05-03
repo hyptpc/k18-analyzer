@@ -2,6 +2,9 @@
 version: 1
 disable_existing_loggers: false
 formatters:
+  rich:
+    format: '%(funcName)s() %(message)s'
+    # format: '%(name)s %(funcName)s : %(message)s'
   simple:
     format: '[%(levelname)s] %(message)s'
   detailed:
@@ -20,6 +23,7 @@ handlers:
   #   formatter: simple
   rich:
     class: rich.logging.RichHandler
+    formatter: rich
     rich_tracebacks: True
 loggers:
   __main__:

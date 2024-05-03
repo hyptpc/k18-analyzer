@@ -28,12 +28,9 @@
 #include "HistTools.hh"
 #include "UnpackerManager.hh"
 
-#include "setup.hh"
-
 #define DEBUG 0
 namespace
 {
-using namespace e73_2024;
 using namespace root;
 using namespace hddaq::unpacker;
 const auto& gUnpacker = GUnpacker::get_instance();
@@ -165,6 +162,7 @@ ProcessNormal()
   }
 
   // AC
+  Bool_t ac_hit = false;
   {
     static const Char_t* name = "AC";
     const auto& cont = rawData.GetHodoRawHC(DetIdAC);
@@ -192,6 +190,7 @@ ProcessNormal()
       }
     }
     root::HF1(Form("%s_Multi", name), multi);
+    ac_hit = (multi > 0);
   }
 
   // Hodoscope
@@ -562,16 +561,18 @@ ProcessEnd()
 Bool_t
 ConfMan::InitializeHistograms()
 {
-  Double_t tdcbins[3] = {5000, 0, 2e6};
-  Double_t totbins[3] = {5000, 0, 5e4};
+  Double_t hrtdcbins1[3] = {45000, 950000, 1400000};
+  Double_t hrtdcbins2[3] = {50000, 0, 1000000}; // for CVC, NC
+  Double_t hrtotbins[3] = {5000, 0, 50000};
   Double_t adcbins[3] = {4096, -0.5, 4095.5};
-  Double_t mtdcbins[3] = {2000, 0, 2000};
+  Double_t mhtdcbins[3] = {2000, 0, 2000};
+  Double_t mhtotbins[3] = {1000, 0, 1000};
 
   { // TriggerFlag
     const Char_t* name = "TriggerFlag";
     Double_t patbins[3]={NumOfSegTrigFlag, -0.5, NumOfSegTrigFlag-0.5};
     for(Int_t i=0; i<NumOfSegTrigFlag; ++i){
-      root::HB1(Form("%s_TDC_seg%d", name, i), mtdcbins);
+      root::HB1(Form("%s_TDC_seg%d", name, i), mhtdcbins);
     }
     root::HB1(Form("%s_HitPat; Segment; Counts", name), patbins);
   }
@@ -581,9 +582,9 @@ ConfMan::InitializeHistograms()
     Int_t nseg = NumOfSegBHT;
     for(Int_t i=0; i<nseg; ++i){
       for(const auto& ud : std::vector<TString>{"U", "D"}){
-        root::HB1(Form("%s_TDC_seg%d%s", name, i, ud.Data()), tdcbins);
-        root::HB1(Form("%s_Trailing_seg%d%s", name, i, ud.Data()), tdcbins);
-        root::HB1(Form("%s_TOT_seg%d%s", name, i, ud.Data()), totbins);
+        root::HB1(Form("%s_TDC_seg%d%s", name, i, ud.Data()), hrtdcbins1);
+        root::HB1(Form("%s_Trailing_seg%d%s", name, i, ud.Data()), hrtdcbins1);
+        root::HB1(Form("%s_TOT_seg%d%s", name, i, ud.Data()), hrtotbins);
       }
     }
     root::HB1(Form("%s_HitPat_OR", name), nseg, -0.5, nseg - 0.5);
@@ -598,7 +599,7 @@ ConfMan::InitializeHistograms()
     for(Int_t i=0; i<nseg; ++i){
       root::HB1(Form("%s_ADC_seg%d", name, i), adcbins);
       root::HB1(Form("%s_AWT_seg%d", name, i), adcbins);
-      root::HB1(Form("%s_TDC_seg%d", name, i), tdcbins);
+      root::HB1(Form("%s_TDC_seg%d", name, i), mhtdcbins);
     }
     root::HB1(Form("%s_HitPat", name), nseg, -0.5, nseg - 0.5);
     root::HB1(Form("%s_Multi", name), nseg + 1, -0.5, nseg + 0.5);
@@ -607,13 +608,20 @@ ConfMan::InitializeHistograms()
   // Hodoscope
   for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
     auto name = NameHodo[ihodo].Data();
+    Double_t* hrtdcbins;
+    if(NameHodo[ihodo].Contains("CVC") ||
+       NameHodo[ihodo].Contains("NC")){
+      hrtdcbins = hrtdcbins2;
+    }else{
+      hrtdcbins = hrtdcbins1;
+    }
     Int_t nseg = NumOfSegHodo[ihodo];
     for(const auto& uord: std::vector<TString>{"U", "D"} ){
       auto ud = uord.Data();
       for(Int_t i=0; i<nseg; ++i){
         root::HB1(Form("%s_ADC_seg%d%s", name, i, ud), adcbins);
         root::HB1(Form("%s_AWT_seg%d%s", name, i, ud), adcbins);
-        root::HB1(Form("%s_TDC_seg%d%s", name, i, ud), tdcbins);
+        root::HB1(Form("%s_TDC_seg%d%s", name, i, ud), hrtdcbins);
       }
     }
     for(const auto& uord: std::vector<TString>{"OR", "AND"} ){

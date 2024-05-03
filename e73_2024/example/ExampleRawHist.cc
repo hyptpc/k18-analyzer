@@ -22,13 +22,8 @@
 #include "VEvent.hh"
 #include "HistTools.hh"
 
-
-#include "setup.hh"
-
-#define DEBUG 0
 namespace
 {
-using namespace e73_2024;
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
 }
@@ -44,9 +39,6 @@ ProcessBegin()
 Bool_t
 ProcessNormal()
 {
-#if DEBUG
-  std::cout << __FILE__ << " " << __LINE__ << std::endl;
-#endif
   RawData rawData;
   rawData.DecodeHits();
 
@@ -303,8 +295,9 @@ ProcessEnd()
 Bool_t
 ConfMan::InitializeHistograms()
 {
-  Double_t hrtdcbins[3] = {5000, 0, 2e6};
-  Double_t hrtotbins[3] = {5000, 0, 5e4};
+  Double_t hrtdcbins1[3] = {45000, 950000, 1400000};
+  Double_t hrtdcbins2[3] = {50000, 0, 1000000}; // for CVC, NC
+  Double_t hrtotbins[3] = {5000, 0, 50000};
   Double_t adcbins[3] = {4096, -0.5, 4095.5};
   Double_t mhtdcbins[3] = {2000, 0, 2000};
   Double_t mhtotbins[3] = {1000, 0, 1000};
@@ -323,8 +316,8 @@ ConfMan::InitializeHistograms()
     Int_t nseg = NumOfSegBHT;
     for(Int_t i=0; i<nseg; ++i){
       for(const auto& ud : std::vector<TString>{"U", "D"}){
-        root::HB1(Form("%s_TDC_seg%d%s", name, i, ud.Data()), hrtdcbins);
-        root::HB1(Form("%s_Trailing_seg%d%s", name, i, ud.Data()), hrtdcbins);
+        root::HB1(Form("%s_TDC_seg%d%s", name, i, ud.Data()), hrtdcbins1);
+        root::HB1(Form("%s_Trailing_seg%d%s", name, i, ud.Data()), hrtdcbins1);
         root::HB1(Form("%s_TOT_seg%d%s", name, i, ud.Data()), hrtotbins);
       }
     }
@@ -349,6 +342,13 @@ ConfMan::InitializeHistograms()
   // Hodoscope
   for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
     auto name = NameHodo[ihodo].Data();
+    Double_t* hrtdcbins;
+    if(NameHodo[ihodo].Contains("CVC") ||
+       NameHodo[ihodo].Contains("NC")){
+      hrtdcbins = hrtdcbins2;
+    }else{
+      hrtdcbins = hrtdcbins1;
+    }
     Int_t nseg = NumOfSegHodo[ihodo];
     for(const auto& uord: std::vector<TString>{"U", "D"} ){
       auto ud = uord.Data();

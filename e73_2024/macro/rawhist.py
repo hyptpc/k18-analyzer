@@ -9,7 +9,8 @@ import ROOT
 import pandas as pd
 import yaml
 
-logger = logging.getLogger(__name__)
+# myname = os.path.splitext(os.path.basename(__file__))[0]
+logger = logging.getLogger(__name__) # .getChild(myname)
 
 macro_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(macro_dir)
@@ -25,12 +26,13 @@ ROOT.gStyle.SetOptStat(1110)
 
 #______________________________________________________________________________
 def daq():
-  logger.info('daq')
+  node_list = ['EB', 'FE_VME', 'FE_HUL', 'FE_VEASIROC']
+  logger.info(f'node_list={node_list}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   c1.Clear()
   c1.Divide(2, 2)
-  for i, head in enumerate(['EB', 'FE_VME', 'FE_HUL', 'FE_VEASIROC']):
+  for i, head in enumerate(node_list):
     c1.cd(i+1)
     h1 = ROOT.gFile.Get(f'{head}_DataSize')
     if h1:
@@ -40,8 +42,8 @@ def daq():
 #______________________________________________________________________________
 def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
          totdiv=None, ud=True):
-  logger.info(f'hodo name={name}, nseg={nseg}, adcdiv={adcdiv}, tdcdiv={tdcdiv}, '+
-              f'totdiv={totdiv}, ud={ud}')
+  logger.info(f'name={name}, nseg={nseg}, adcdiv={adcdiv}, '
+              +'tdcdiv={tdcdiv}, totdiv={totdiv}, ud={ud}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   hitmulti = ['_OR', '_AND'] if ud else ['']
@@ -112,7 +114,7 @@ def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
 
 #______________________________________________________________________________
 def dc(name, nlayer=0, tdcdiv=None):
-  logger.info(f'dc name={name}, nlayer={nlayer}, tdcdiv={tdcdiv}')
+  logger.info(f'name={name}, nlayer={nlayer}, tdcdiv={tdcdiv}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   if tdcdiv is not None:
@@ -154,9 +156,22 @@ def efficiency(h1):
   x = 0.45
   y = 0.70 if h1.GetLineColor() == 602 else 0.62
   tex.DrawLatex(x, y, f'eff. {eff:.3f}')
+  logger.debug(f'{h1.GetTitle()} eff.={eff:.3f}')
 
 #______________________________________________________________________________
-def run(run_info):
+def run(run_list):
+  logger.debug(f'set {run_list}')
+  # logger.info(f'run={yaml.safe_load(open(run_list, "r"))["RUN"].keys()}')
+  runlist_manager = runlist.RunlistManager()
+  runlist_manager.set_run_list(run_list)
+  run_list = runlist_manager.get_run_list()
+  logger.debug(f'run_list={run_list}')
+  for run_info in runlist_manager.get_run_list():
+    single_run(run_info)
+  logger.info('done')
+
+#______________________________________________________________________________
+def single_run(run_info):
   logger.debug(run_info)
   try:
     root_path = run_info['root']
@@ -170,8 +185,7 @@ def run(run_info):
   if not f1.IsOpen():
     logger.error('root file is not open.')
     return
-  logger.info(f'root_path = {root_path}')
-  logger.info(f'fig_path = {fig_path}')
+  logger.info(f'open {root_path}')
   c1.Print(fig_path+'[')
   hodo('TriggerFlag', nseg=32, tdcdiv=(8, 4), ud=False)
   hodo('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8))
@@ -196,6 +210,7 @@ def run(run_info):
   dc('VFT', nlayer=14, tdcdiv=(5, 3))
   daq()
   c1.Print(fig_path+']')
+  logger.info(f'save {fig_path}')
 
 #______________________________________________________________________________
 if __name__ == "__main__":
@@ -205,7 +220,4 @@ if __name__ == "__main__":
   log_conf = os.path.join(macro_dir, 'logging_config.yml')
   with open(log_conf, 'r') as f:
     logging.config.dictConfig(yaml.safe_load(f))
-  runlist_manager = runlist.RunlistManager()
-  runlist_manager.set_run_list(parsed.run_list)
-  for run_info in runlist_manager.get_run_list():
-    run(run_info)
+  run(parsed.run_list)

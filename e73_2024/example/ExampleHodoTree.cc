@@ -23,13 +23,10 @@
 #include "HistTools.hh"
 #include "UnpackerManager.hh"
 
-#include "setup.hh"
-
 #define DEBUG 0
 
 namespace
 {
-using namespace e73_2024;
 using namespace root;
 using namespace hddaq::unpacker;
 const auto& gUser = UserParamMan::GetInstance();

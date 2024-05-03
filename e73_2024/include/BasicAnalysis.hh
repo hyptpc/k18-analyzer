@@ -11,12 +11,10 @@
 #include "MTDCAnalyzer.hh"
 #include "Particle.hh"
 
-#include "setup.hh"
 #include "Event.hh"
 
 #include "TString.h"
 
-using namespace e73_2024;
 class BasicAnalysis
 {
 public:
