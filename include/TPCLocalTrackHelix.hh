@@ -14,7 +14,7 @@
 #include "TPCHit.hh"
 #include "TPCCluster.hh"
 #include "TPCLTrackHit.hh"
-#include "TPCPadHelper.hh"
+
 class TPCHit;
 class TPCCluster;
 
@@ -69,12 +69,7 @@ private:
   Double_t m_max_t;
   Double_t m_path;
   Double_t m_transverse_path;
-  
-	Double_t m_MomResScale;//Scaling factor for all tracks.
-  Double_t m_dZResScale;
-  Double_t m_PhResScale;
-
-	Int_t m_charge;
+  Int_t m_charge;
   Int_t m_fitflag;
   Int_t m_vtxflag; //for track seperation around the target
   Int_t m_isBeam;
@@ -86,7 +81,11 @@ private:
   Int_t m_searchtime; //millisec
   Int_t m_fittime; //millisec
 
-
+  //scaling factor applied to momentum resolution
+  //common for all tracks
+  Double_t m_MomResScale;
+  Double_t m_dZResScale;
+  Double_t m_PhResScale;
 
   //exclusive
   std::vector<Double_t> m_cx_exclusive;
