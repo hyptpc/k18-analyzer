@@ -69,7 +69,12 @@ private:
   Double_t m_max_t;
   Double_t m_path;
   Double_t m_transverse_path;
-  Int_t m_charge;
+  
+	Double_t m_MomResScale;//Scaling factor for all tracks.
+  Double_t m_dZResScale;
+  Double_t m_PhResScale;
+
+	Int_t m_charge;
   Int_t m_fitflag;
   Int_t m_vtxflag; //for track seperation around the target
   Int_t m_isBeam;
@@ -80,6 +85,8 @@ private:
   Int_t m_ncl_beforetgt; //for k18 track
   Int_t m_searchtime; //millisec
   Int_t m_fittime; //millisec
+
+
 
   //exclusive
   std::vector<Double_t> m_cx_exclusive;
@@ -149,12 +156,12 @@ public:
   Double_t GetResolutionY(Int_t i);
 
   TVector3 GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale);
-  TVector3 GetMomentumResolutionVect(Int_t i, Double_t MomScale = tpc::MomentumScale, Double_t PhiScale = tpc::PhiScale, Double_t dZScale= tpc::dZScale);
+  TVector3 GetMomentumResolutionVect(Int_t i, Double_t MomScale = 1, Double_t PhiScale = 1, Double_t dZScale= 1);//These scale factors are for scaling the resolution of individual track.
   TVector3 GetMomentumResolutionVect();
   TVector3 GetMomentumCovarianceVectT(Double_t t, Double_t MomScale, Double_t PhiScale, Double_t dZScale);
-  TVector3 GetMomentumCovarianceVect(Int_t i, Double_t MomScale, Double_t PhiScale, Double_t dZScale);
+  TVector3 GetMomentumCovarianceVect(Int_t i, Double_t MomScale = 1, Double_t PhiScale = 1, Double_t dZScale = 1);
   TVector3 GetMomentumCovarianceVect();
-  Double_t GetTransverseMomentumAngularCovariance(Double_t t);
+  Double_t GetTransverseMomentumAngularCovariance(Double_t t = -9999);
   Double_t GetTransverseMomentumResolution();//returns dP, not dP/P;
   Double_t GetTransverseAngularResolution(Double_t t, Double_t sig0 = 0.01); //returns angular resolution on pad plane
   Double_t GetTransverseAngularResolution();

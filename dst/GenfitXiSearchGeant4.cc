@@ -73,8 +73,8 @@ const Double_t pi2_vtx_distcut = 300;
 //const Double_t l_vtx_distcut = 100;
 //const Double_t ppi_distcut = 10.;
 //const Double_t lpi_distcut = 10.;
-const Double_t ppi_distcut = 20.;//ref
-const Double_t lpi_distcut = 20.;//ref
+const Double_t ppi_distcut = 10.;//ref
+const Double_t lpi_distcut = 10.;//ref
 const Double_t vtx_scan_range = 150.;
 //const Double_t vtx_scan_range = 50.;
 //const Double_t vtx_scan_rangeInsideL = 50.;
@@ -153,9 +153,6 @@ TLorentzVector ToGlobal(TLorentzVector HelixLV){
 	return ToHelix(HelixLV);
 }
 const Int_t KFMaxStep = 20;
-double ScaleMomRes = 1.;
-double ScalePhiRes = 1.;
-double ScaledZRes = 1.5;
 
 }
 

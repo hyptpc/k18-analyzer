@@ -51,7 +51,7 @@ class KinematicFitter{
 		KinematicFitter(){};
 		//Setters
 		void SetVariance(double* var);
-		void AddDiagonals(TMatrixD Cov);
+		void AddDiagonals(TMatrixD Cov);//Naming is wrong... It should be "AddCovaraince" or "AddOffdiagonals".
 		void SetChi2DifCut(double cut){
 			Chi2_cut = cut; }
 		void SetMaximumStep(int max){
@@ -69,7 +69,7 @@ class KinematicFitter{
 			return Lambdas.at(ent);
 		}
 		void Clear();
-		virtual double DoKinematicFit(bool Do);
+		virtual double DoKinematicFit(bool Do = true);
 		int GetNStep(){
 			return step;
 		}

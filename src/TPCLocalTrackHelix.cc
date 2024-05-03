@@ -846,6 +846,9 @@ TPCLocalTrackHelix::TPCLocalTrackHelix()
     m_isBeam(0), m_isK18(0), m_isKurama(0), m_isAccidental(0),
     m_trackid(-1),
     m_ncl_beforetgt(-1),
+    m_MomResScale(tpc::MomentumScale),
+    m_dZResScale(tpc::dZScale),
+    m_PhResScale(tpc::PhiScale),
     m_searchtime(0), m_fittime(0),
     m_cx_exclusive(), m_cy_exclusive(), m_z0_exclusive(),
     m_r_exclusive(), m_dz_exclusive(),
@@ -3196,11 +3199,14 @@ TPCLocalTrackHelix::GetMomentumResolutionVect(){
 double
 TPCLocalTrackHelix::GetTransverseMomentumAngularCovariance(Double_t t){
 
+	
   Double_t t_avg = 0.5*(m_max_t + m_min_t);
-  Double_t t_dif = (t-t_avg);
+  if(t == -9999){
+		t = GetHitInOrder(0)->GetTheta();
+	}
+	Double_t t_dif = (t-t_avg);
   Double_t sign = 1;
-  if(t_dif>0)sign = -1;
-  else sign = 1;
+  if(m_charge>0)sign = -1;
   Double_t dp_t =  GetTransverseMomentumResolution();
   Double_t dt = GetTransverseAngularResolution(t,0);
   return sign * dp_t * dt;
@@ -3331,7 +3337,7 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
   if(isnan(dPOverP) || dPOverP < 0){
     std::cout<<Form("dPt error! nh = %d, res = %g",nh,res)<<std::endl;
   }
-  return pt*dPOverP;
+  return m_MomResScale*pt*dPOverP;
 }
 
 //_____________________________________________________________________________
@@ -3347,7 +3353,7 @@ TPCLocalTrackHelix::GetTransverseAngularResolution(Double_t t, Double_t sig0){
   if(dt >acos(-1))dt = acos(-1);
   Double_t path = m_r * abs(dt);
 
-  return hypot(path * dr / m_r / m_r,sig0);
+  return hypot(m_PhResScale*path * dr / m_r / m_r,sig0);
 }
 
 //_____________________________________________________________________________
@@ -3355,7 +3361,7 @@ Double_t
 TPCLocalTrackHelix::GetTransverseAngularResolution(){
 
   Double_t t0 = GetHitInOrder(0) -> GetTheta();
-  Double_t sig0 = 0.01;
+  Double_t sig0 = 0.001;
   return GetTransverseAngularResolution(t0, sig0);
 }
 
@@ -3384,7 +3390,7 @@ TPCLocalTrackHelix::GetdZResolution(){
   if(isnan(d_slope) || isinf(d_slope)){
     std::cout<<Form("Nan || inf dZ resol! nh = %d, dt = %g, res = %g", nh,dt,res2)<<std::endl;
   }
-  return d_slope;
+  return m_dZResScale*d_slope;
 }
 
 //_____________________________________________________________________________

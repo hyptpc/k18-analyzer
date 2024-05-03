@@ -1,4 +1,5 @@
 #include "KinFit.hh"
+#include <iostream>
 #ifndef KinFit_cc
 #define KinFit_cc
 #define Debug 0
@@ -7,6 +8,7 @@
 // Author: Kang Byungmin, kangbmw2@naver.com
 // For the mathematics of the fitting, please refer to:
 // https://github.com/kangbm94/Notes-on-Kinematic-Fit
+using namespace std;
 void
 KinematicFitter::SetVariance(double* var){
 	double variance[200];
@@ -45,16 +47,34 @@ KinematicFitter::SetVariance(double* var){
 	CalcVariance(0);
 	ScalingMats.push_back(ScaleUp);
 	ScalingMats.push_back(ScaleDn);
+#if Debug
+	cout<<"Variance, det ="<<Variance.Determinant();
+	Variance.Print();
+#endif
 };
 void
 KinematicFitter::AddDiagonals(TMatrixD Cov){
+#if Debug
+	cout<<"Covariance";
+	Cov.Print();
+#endif
 	if(ScaleParams){
 		auto ScaleUp = ScalingMats.at(0);
 		Cov = Cov * ScaleUp;
 		Cov = ScaleUp * Cov;
 	}
+#if Debug
+	if(ScaleParams){
+		cout<<"Covariance After scaling";
+		Cov.Print();
+	}
+#endif
 	Variancies.at(0)+= Cov;
 //	cout<<"CovarianceMat : ";
+#if Debug
+	cout<<"Variance, det ="<<Variancies.at(0).Determinant();
+	Variancies.at(0).Print();
+#endif
 }
 void KinematicFitter::ProcessStep(){
 	auto Meas = Measurements.at(step); 
@@ -81,6 +101,11 @@ void KinematicFitter::ProcessStep(){
 	TMatrixD dFdM = dFdMs.at(step);
 	TMatrixD dFdMS = dFdM*ScaleDn;
 #if Debug
+	cout<<"Variance, det ="<<VMat.Determinant();
+	VMat.Print();
+#endif
+	
+#if Debug>1
 	cout<<"dFdM";
 	dFdM.Print();
 	cout<<"dFdMScaled";
@@ -295,7 +320,7 @@ void KinematicFitter::Finalize(){
 }
 
 
-double KinematicFitter::DoKinematicFit(bool Do = true){
+double KinematicFitter::DoKinematicFit(bool Do ){
 	int Cnt = 0;
 	if(!Do){
 		Finalize();
