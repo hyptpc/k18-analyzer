@@ -204,7 +204,6 @@ struct Event
   std::vector<Int_t> Kflag;
 
   //TPC RK
-	Int_t ntTPCK18;
   std::vector<Int_t> isgoodTPCK18;
   std::vector<Int_t> tpcidTPCK18;
   std::vector<Double_t> chisqrTPCK18;
@@ -222,7 +221,6 @@ struct Event
   std::vector<std::vector<Double_t>> xvpTPCK18;
   std::vector<std::vector<Double_t>> yvpTPCK18;
 
-	Int_t ntTPCKurama;
   std::vector<Int_t> tpcidTPCKurama;
   std::vector<Int_t> isgoodTPCKurama;
   std::vector<Int_t> kflagTPCKurama;
@@ -423,8 +421,7 @@ struct Event
     vkp.clear();
     Kflag.clear();
 
-    ntTPCK18=0;
-		tpcidTPCK18.clear();
+    tpcidTPCK18.clear();
     isgoodTPCK18.clear();
     chisqrTPCK18.clear();
     qTPCK18.clear();
@@ -441,7 +438,6 @@ struct Event
     xvpTPCK18.clear();
     yvpTPCK18.clear();
 
-    ntTPCKurama=0;
     tpcidTPCKurama.clear();
     isgoodTPCKurama.clear();
     kflagTPCKurama.clear();
@@ -850,8 +846,6 @@ dst::DstRead( int ievent )
   if(src.Kflag[0] != 1) return true;
 #endif
 
-  std::cout<<"ntKurama : "<<src.ntKurama<<" ntK18 "<<src.ntK18<<std::endl;
-  std::cout<<"ntKurama : "<<**src.ntTPCKurama<<" ntK18 "<<**src.ntTPCK18<<std::endl;
   if(src.ntKurama != **src.ntTPCKurama)
     std::cerr << "Kurama Event Missmatching : DstTPCKuramaK18Tracking <-> DstKScat" << std::endl;
   if(src.ntK18 != **src.ntTPCK18)
@@ -871,7 +865,6 @@ dst::DstRead( int ievent )
   event.xhtofK18 = **src.xhtofK18;
   event.yhtofK18 = **src.yhtofK18;
 
-	event.ntTPCK18 = **src.ntTPCK18;
   event.tpcidTPCK18 = **src.tpcidTPCK18;
   event.isgoodTPCK18 = **src.isgoodTPCK18;
   event.chisqrTPCK18 = **src.chisqrTPCK18;
@@ -890,7 +883,6 @@ dst::DstRead( int ievent )
   event.yvpTPCK18 = **src.yvpTPCK18;
 
   event.ntKurama = src.ntKurama;
-	event.ntTPCKurama = **src.ntTPCKurama;
   event.tpcidTPCKurama = **src.tpcidTPCKurama;
   event.isgoodTPCKurama = **src.isgoodTPCKurama;
   event.kflagTPCKurama = **src.kflagTPCKurama;
@@ -2035,7 +2027,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "xhtofK18", &event.xhtofK18);
   tree->Branch( "yhtofK18", &event.yhtofK18);
 
-  tree->Branch( "ntTPCK18", &event.ntTPCK18);
   tree->Branch( "tpcidTPCK18", &event.tpcidTPCK18);
   tree->Branch( "isgoodTPCK18", &event.isgoodTPCK18);
   tree->Branch( "chisqrTPCK18", &event.chisqrTPCK18);
@@ -2081,7 +2072,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "xhtofKurama", &event.xhtofKurama);
   tree->Branch( "yhtofKurama", &event.yhtofKurama);
   tree->Branch( "tpcidTPCKurama", &event.tpcidTPCKurama);
-  tree->Branch( "ntTPCKurama", &event.ntTPCKurama);
   tree->Branch( "isgoodTPCKurama", &event.isgoodTPCKurama);
   tree->Branch( "kflagTPCKurama", &event.kflagTPCKurama);
   tree->Branch( "chisqrTPCKurama", &event.chisqrTPCKurama);
