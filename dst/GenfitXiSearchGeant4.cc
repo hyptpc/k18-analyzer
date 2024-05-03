@@ -5,6 +5,8 @@
 #include <iomanip>
 #include <iostream>
 #include <TLorentzVector.h>
+#include <TMatrixD.h>
+#include <Math/ProbFunc.h>
 
 #include <filesystem_util.hh>
 #include <UnpackerManager.hh>
@@ -41,6 +43,7 @@
 #define MMcut_Xi 1
 #define SkipGenfit 0
 #define WithKurama 0
+#define DoKinematicFitLdXi 1
 namespace
 {
 using namespace root;

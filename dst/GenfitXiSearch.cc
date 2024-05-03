@@ -1959,7 +1959,7 @@ dst::DstRead( Int_t ievent )
   TMatrixD OffdiagLd(6,6,OffdiagElemLd);
   cout<<"KFLd"<<endl;
   KFLd.SetVariance(VarianceLd);
-  KFLd.AddDiagonals(OffdiagLd);//Adds Offdiagonal elements. Function naming is wrong
+  KFLd.AddOffdiagonals(OffdiagLd);
   KFchisqrl = KFLd.DoKinematicFit();
   KFpvall = 1-ROOT::Math::chisquared_cdf(KFchisqrl,KFLd.GetNDF());
   auto HcontLd = KFLd.GetFittedLV();
@@ -1995,7 +1995,7 @@ dst::DstRead( Int_t ievent )
   cout<<"KFXi"<<endl;
 	KFXi.SetMaximumStep(5);
   KFXi.SetVariance(VarianceXi);
-  KFXi.AddDiagonals(OffdiagXi);
+  KFXi.AddOffdiagonals(OffdiagXi);
   KFchisqrxi = KFXi.DoKinematicFit();
   KFpvalxi = 1-ROOT::Math::chisquared_cdf(KFchisqrxi,KFXi.GetNDF());
   auto HcontXi = KFXi.GetFittedLV();

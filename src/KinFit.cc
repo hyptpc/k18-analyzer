@@ -53,7 +53,7 @@ KinematicFitter::SetVariance(double* var){
 #endif
 };
 void
-KinematicFitter::AddDiagonals(TMatrixD Cov){
+KinematicFitter::AddOffdiagonals(TMatrixD Cov){
 #if Debug
 	cout<<"Covariance";
 	Cov.Print();

@@ -51,7 +51,7 @@ class KinematicFitter{
 		KinematicFitter(){};
 		//Setters
 		void SetVariance(double* var);
-		void AddDiagonals(TMatrixD Cov);//Naming is wrong... It should be "AddCovaraince" or "AddOffdiagonals".
+		void AddOffdiagonals(TMatrixD Cov);//AddsCovaraince.
 		void SetChi2DifCut(double cut){
 			Chi2_cut = cut; }
 		void SetMaximumStep(int max){
