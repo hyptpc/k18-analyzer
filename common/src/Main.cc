@@ -62,9 +62,6 @@ main(int argc, char **argv)
 
   hddaq::cout << "[::main()] recreate root file : " << out_file << std::endl;
   new TFile(out_file, "recreate");
-  auto git = new TNamed
-    ("git", ("\n"+gSystem->GetFromPipe("git log -1")).Data());
-  git->Write();
 
   if(!gConf.Initialize(conf_file) ||
      !gConf.InitializeUnpacker()  ||
@@ -74,6 +71,12 @@ main(int argc, char **argv)
   gUnpacker.set_istream(in_file.Data());
   // gUnpacker.enable_istream_bookmark();
   gUnpacker.initialize();
+
+  if(gUnpacker.get_skip() == 0){
+    TNamed git("git", ("\n"+gSystem->GetFromPipe("git log -1")).Data());
+    git.Write();
+    gConf.WriteParameters();
+  }
 
   CatchSignal::Set(SIGINT);
 

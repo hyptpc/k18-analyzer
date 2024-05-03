@@ -34,7 +34,6 @@ private:
   TNamed*  m_object;
 
 public:
-  void     AddObject();
   Bool_t   Has(const TString &key) const;
   Bool_t   Initialize();
   Bool_t   Initialize(const TString& filename);

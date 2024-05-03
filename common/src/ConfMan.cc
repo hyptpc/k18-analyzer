@@ -9,6 +9,8 @@
 #include <sstream>
 #include <vector>
 
+#include <TFile.h>
+#include <TMacro.h>
 #include <TNamed.h>
 
 #include <lexical_cast.hh>
@@ -45,15 +47,6 @@ ConfMan::ConfMan()
 //_____________________________________________________________________________
 ConfMan::~ConfMan()
 {
-}
-
-//_____________________________________________________________________________
-void
-ConfMan::AddObject()
-{
-  if(m_object) delete m_object;
-  m_object = new TNamed("conf", m_buf.Data());
-  m_object->Write();
 }
 
 //_____________________________________________________________________________
@@ -105,18 +98,12 @@ ConfMan::Initialize()
     m_bool[key] = (val.Atoi() == 1);
   }
 
-  AddObject();
-
-  if(!InitializeParameterFiles()){
+  if(!InitializeParameterFiles())
     return false;
-  }
-
-  // if(gMatrix.IsReady()){
+  // if(gMatrix.IsReady())
   //   gMatrix.Print2D();
-  // }
-  if(gUser.IsReady()){
-    gUser.Print();
-  }
+  // if(gUser.IsReady())
+  //   gUser.Print();
 
   m_is_ready = true;
   return true;
@@ -154,4 +141,20 @@ ConfMan::FilePath(const TString& src) const
   std::ifstream tmp(src);
   if(tmp.good()) return src;
   else           return sConfDir + "/" + src;
+}
+
+//_____________________________________________________________________________
+void
+ConfMan::WriteParameters()
+{
+  gFile->mkdir("param");
+  gFile->cd("param");
+  for(const auto& itr: m_file){
+    TMacro paramfile;
+    paramfile.SetName(itr.first);
+    paramfile.SetTitle(itr.second);
+    paramfile.ReadFile(itr.second);
+    paramfile.Write();
+  }
+  gFile->cd();
 }

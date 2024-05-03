@@ -41,15 +41,6 @@ UserParamMan::~UserParamMan()
 }
 
 //_____________________________________________________________________________
-void
-UserParamMan::AddObject()
-{
-  if(m_object) delete m_object;
-  m_object = new TNamed("user", m_buf.Data());
-  m_object->Write();
-}
-
-//_____________________________________________________________________________
 Bool_t
 UserParamMan::Has(const TString &key) const
 {
@@ -83,8 +74,6 @@ UserParamMan::Initialize()
     }
     m_param_map[key] = param_array;
   }
-
-  AddObject();
 
   m_is_ready = true;
   return true;
