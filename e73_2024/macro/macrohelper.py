@@ -3,9 +3,18 @@
 import logging
 import multiprocessing as mp
 import os
+import sys
+
 import ROOT
 
 logger = logging.getLogger('__main__').getChild(__name__)
+
+macro_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(macro_dir)
+sys.path.append(os.path.join(
+  os.path.dirname(macro_dir), 'runmanager'))
+sys.path.append(os.path.join(
+  os.path.dirname(macro_dir), 'runmanager', 'module'))
 
 import runlist
 

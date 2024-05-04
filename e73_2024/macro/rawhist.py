@@ -9,21 +9,9 @@ import yaml
 
 import ROOT
 
-# myname = os.path.splitext(os.path.basename(__file__))[0]
-logger = logging.getLogger(__name__) # .getChild(myname)
-
-macro_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(macro_dir)
-sys.path.append(os.path.join(
-  os.path.dirname(macro_dir), 'runmanager'))
-sys.path.append(os.path.join(
-  os.path.dirname(macro_dir), 'runmanager', 'module'))
-
 import macrohelper
-import runlist
 
-ROOT.gROOT.SetBatch()
-ROOT.gStyle.SetOptStat(1110)
+logger = logging.getLogger(__name__)
 
 #______________________________________________________________________________
 def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
@@ -161,7 +149,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument('run_list', help='run list YAML')
   parsed, unparsed = parser.parse_known_args()
-  log_conf = os.path.join(macro_dir, 'logging_config.yml')
+  log_conf = os.path.join(os.path.dirname(__file__), 'logging_config.yml')
   with open(log_conf, 'r') as f:
     logging.config.dictConfig(yaml.safe_load(f))
   macrohelper.run(parsed.run_list, single_run)
