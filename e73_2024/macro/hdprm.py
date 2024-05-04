@@ -7,7 +7,7 @@ import os
 
 import ROOT
 
-import confparser
+import conf
 
 logger = logging.getLogger('__main__').getChild(__name__)
 tmp_dir = os.path.join(os.path.dirname(__file__), 'tmp')
@@ -16,7 +16,7 @@ os.makedirs(tmp_dir, exist_ok=True)
 #______________________________________________________________________________
 def output_result(run_info, result_dict, is_hrtdc=True, update=False):
   logger.debug(run_info)
-  hdprm_path = confparser.get(run_info, 'HDPRM')
+  hdprm_path = conf.get(run_info, 'HDPRM')
   with open(hdprm_path, 'r') as f:
     rows = [line.split() for line in f]
   output_path = os.path.join(tmp_dir, f'HodoParam_{run_info["key"]:05d}')
@@ -52,3 +52,4 @@ def output_result(run_info, result_dict, is_hrtdc=True, update=False):
     hdprm_dir = os.path.dirname(hdprm_path)
     logger.info(f'update {os.path.join(hdprm_dir, os.path.basename(output_path))}')
     shutil.copy2(output_path, hdprm_dir)
+    conf.replace(run_info, 'HDPRM', f'HodoParam_{run_info["key"]:05d}')
