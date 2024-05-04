@@ -5,9 +5,9 @@ import logging
 import logging.config
 import os
 import sys
-import ROOT
-import pandas as pd
 import yaml
+
+import ROOT
 
 # myname = os.path.splitext(os.path.basename(__file__))[0]
 logger = logging.getLogger(__name__) # .getChild(myname)
@@ -19,25 +19,11 @@ sys.path.append(os.path.join(
 sys.path.append(os.path.join(
   os.path.dirname(macro_dir), 'runmanager', 'module'))
 
+import macrohelper
 import runlist
 
 ROOT.gROOT.SetBatch()
 ROOT.gStyle.SetOptStat(1110)
-
-#______________________________________________________________________________
-def daq():
-  node_list = ['EB', 'FE_VME', 'FE_HUL', 'FE_VEASIROC']
-  logger.info(f'node_list={node_list}')
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  c1.Clear()
-  c1.Divide(2, 2)
-  for i, head in enumerate(node_list):
-    c1.cd(i+1)
-    h1 = ROOT.gFile.Get(f'{head}_DataSize')
-    if h1:
-      h1.Draw('colz')
-  c1.Print(fig_path)
 
 #______________________________________________________________________________
 def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
@@ -108,7 +94,7 @@ def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
     h1 = ROOT.gFile.Get(f'{name}_Multi{s}')
     if h1:
       h1.Draw()
-      efficiency(h1)
+      macrohelper.efficiency(h1)
     i = i + 1
   c1.Print(fig_path)
 
@@ -127,7 +113,7 @@ def dc(name, nlayer=0, tdcdiv=None):
         if h1:
           h1.Draw()
           if htype == 'Multi':
-            efficiency(h1)
+            macrohelper.efficiency(h1)
         h2 = ROOT.gFile.Get(f'{name}_C{htype}_layer{i}')
         if h2:
           h2.SetLineColor(ROOT.kRed+1)
@@ -135,7 +121,7 @@ def dc(name, nlayer=0, tdcdiv=None):
             0, max(h1.GetMaximum(), h2.GetMaximum())*1.05)
           h2.Draw('same')
           if htype == 'Multi':
-            efficiency(h2)
+            macrohelper.efficiency(h2)
         # if htype == 'TDC' or htype == 'Trailing' or htype == 'TOT':
         #   h2 = ROOT.gFile.Get(f'{name}_{htype}1st_layer{i}')
         #   if h2:
@@ -144,52 +130,8 @@ def dc(name, nlayer=0, tdcdiv=None):
       c1.Print(fig_path)
 
 #______________________________________________________________________________
-def efficiency(h1):
-  nof0 = h1.GetBinContent(1)
-  nall = h1.GetEntries()
-  eff = 1 - nof0/nall
-  tex = ROOT.TLatex()
-  tex.SetNDC()
-  tex.SetTextAlign(11)
-  tex.SetTextColor(h1.GetLineColor())
-  tex.SetTextSize(0.08)
-  x = 0.45
-  y = 0.70 if h1.GetLineColor() == 602 else 0.62
-  tex.DrawLatex(x, y, f'eff. {eff:.3f}')
-  logger.debug(f'{h1.GetTitle()} eff.={eff:.3f}')
-
-#______________________________________________________________________________
-def run(run_list):
-  logger.debug(f'set {run_list}')
-  if not os.path.isfile(run_list):
-    logger.error(f'No such file: {run_list}')
-    return
-  # logger.info(f'run={yaml.safe_load(open(run_list, "r"))["RUN"].keys()}')
-  runlist_manager = runlist.RunlistManager()
-  runlist_manager.set_run_list(run_list)
-  run_list = runlist_manager.get_run_list()
-  logger.debug(f'run_list={run_list}')
-  for run_info in runlist_manager.get_run_list():
-    single_run(run_info)
-  logger.info('done')
-
-#______________________________________________________________________________
 def single_run(run_info):
-  logger.debug(run_info)
-  try:
-    root_path = run_info['root']
-    fig_path = os.path.basename(root_path).replace('.root', '.pdf')
-    fig_path = os.path.join(run_info['fig'], fig_path)
-  except KeyError as e:
-    logger.error(f'KeyError: {e} not found in {run_info}')
-    return
-  c1 = ROOT.TCanvas('c1', fig_path, 1200, 800)
-  f1 = ROOT.TFile(root_path)
-  if not f1.IsOpen():
-    logger.error('root file is not open.')
-    return
-  logger.info(f'open {root_path}')
-  c1.Print(fig_path+'[')
+  macrohelper.initialize(run_info)
   hodo('TriggerFlag', nseg=32, tdcdiv=(8, 4), ud=False)
   hodo('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8))
   hodo('AC', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), ud=False)
@@ -211,9 +153,8 @@ def single_run(run_info):
   dc('BPC1', nlayer=8, tdcdiv=(4, 2))
   dc('BPC2', nlayer=8, tdcdiv=(4, 2))
   dc('VFT', nlayer=14, tdcdiv=(5, 3))
-  daq()
-  c1.Print(fig_path+']')
-  logger.info(f'save {fig_path}')
+  macrohelper.daq()
+  macrohelper.finalize()
 
 #______________________________________________________________________________
 if __name__ == "__main__":
@@ -223,4 +164,4 @@ if __name__ == "__main__":
   log_conf = os.path.join(macro_dir, 'logging_config.yml')
   with open(log_conf, 'r') as f:
     logging.config.dictConfig(yaml.safe_load(f))
-  run(parsed.run_list)
+  macrohelper.run(parsed.run_list, single_run)

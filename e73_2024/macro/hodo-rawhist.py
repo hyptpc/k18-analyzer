@@ -3,12 +3,11 @@
 import argparse
 import logging
 import logging.config
-import multiprocessing as mp
 import os
 import sys
-import ROOT
-import pandas as pd
 import yaml
+
+import ROOT
 
 # myname = os.path.splitext(os.path.basename(__file__))[0]
 logger = logging.getLogger(__name__) # .getChild(myname)
@@ -20,13 +19,11 @@ sys.path.append(os.path.join(
 sys.path.append(os.path.join(
   os.path.dirname(macro_dir), 'runmanager', 'module'))
 
+import macrohelper
 import runlist
 
-ROOT.gROOT.SetBatch()
-ROOT.gStyle.SetOptStat(1110)
-
 #______________________________________________________________________________
-def hodo(name, nseg=0, adcdiv=None, adcrange=None,
+def draw(name, nseg=0, adcdiv=None, adcrange=None,
          tdcdiv=None, tdcrange=None, trailingdiv=None,
          totdiv=None, totrange=None, ud=True, ploop=True):
   logger.info(f'name={name}, nseg={nseg}, adcdiv={adcdiv}, '
@@ -106,92 +103,33 @@ def hodo(name, nseg=0, adcdiv=None, adcrange=None,
     h1 = ROOT.gFile.Get(f'{name}_Multi{s}')
     if h1:
       h1.Draw()
-      efficiency(h1)
+      macrohelper.efficiency(h1)
     i = i + 1
   c1.Print(fig_path)
 
 #______________________________________________________________________________
-def efficiency(h1):
-  nof0 = h1.GetBinContent(1)
-  nall = h1.GetEntries()
-  eff = 1 - nof0/nall
-  tex = ROOT.TLatex()
-  tex.SetNDC()
-  tex.SetTextAlign(11)
-  tex.SetTextColor(h1.GetLineColor())
-  tex.SetTextSize(0.08)
-  x = 0.45
-  y = 0.70 if h1.GetLineColor() == 602 else 0.62
-  tex.DrawLatex(x, y, f'eff. {eff:.3f}')
-  logger.debug(f'{h1.GetTitle()} eff.={eff:.3f}')
-
-#______________________________________________________________________________
-def run(run_list):
-  logger.debug(f'set {run_list}')
-  if not os.path.isfile(run_list):
-    logger.error(f'No such file: {run_list}')
-    return
-  # logger.info(f'run={yaml.safe_load(open(run_list, "r"))["RUN"].keys()}')
-  runlist_manager = runlist.RunlistManager()
-  runlist_manager.set_run_list(run_list)
-  run_list = runlist_manager.get_run_list()
-  logger.debug(f'run_list={run_list}')
-  proc_list = list()
-  for run_info in runlist_manager.get_run_list():
-    proc = mp.Process(target=single_run, args=(run_info,))
-    proc.start()
-    proc_list.append(proc)
-  for proc in proc_list:
-    proc.join()
-  logger.info('done')
-
-#______________________________________________________________________________
 def single_run(run_info):
-  logger.debug(run_info)
-  try:
-    root_path = run_info['root']
-    fig_path = os.path.basename(root_path).replace('.root', '.pdf')
-    fig_path = os.path.join(run_info['fig'], fig_path)
-  except KeyError as e:
-    logger.error(f'KeyError: {e} not found in {run_info}')
-    return
-  c1 = ROOT.TCanvas('c1', fig_path, 1200, 800)
-  f1 = ROOT.TFile(root_path)
-  if not f1.IsOpen():
-    logger.error('root file is not open.')
-    return
-  logger.info(f'open {root_path}')
-  c1.Print(fig_path+'[')
-  status()
-  hodo('TriggerFlag', nseg=32, tdcdiv=(8, 4), tdcrange=(800, 1200),
+  macrohelper.initialize(run_info)
+  draw('TriggerFlag', nseg=32, tdcdiv=(8, 4), tdcrange=(800, 1200),
        ud=False, ploop=False)
-  hodo('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8),
+  draw('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8),
        tdcrange=(1.22e6, 1.26e6), totrange=(0, 25e3))
-  hodo('AC', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), ud=False)
-  hodo('T1', nseg=1, adcdiv=(2, 2), adcrange=(0, 2000), tdcdiv=(2, 2))
-  hodo('T0', nseg=5, adcdiv=(3, 2), adcrange=(0, 2000), tdcdiv=(3, 2))
-  hodo('T0new', nseg=5, adcdiv=(3, 2), adcrange=(0, 2000), tdcdiv=(3, 2))
-  hodo('DEF', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
-  hodo('Veto', nseg=4, adcdiv=(2, 2), adcrange=(0, 2000), tdcdiv=(2, 2))
-  hodo('BTC', nseg=4, adcdiv=(2, 2), adcrange=(0, 2000), tdcdiv=(2, 2))
-  hodo('CVC', nseg=9, adcdiv=(3, 3), tdcdiv=(3, 3))
-  hodo('NC', nseg=6, adcdiv=(3, 2), tdcdiv=(3, 2))
-  c1.Print(fig_path+']')
-  logger.info(f'save {fig_path}')
-
-#______________________________________________________________________________
-def status():
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  h1 = ROOT.gFile.Get('Status')
-  if h1:
-    entry = h1.GetBinContent(1)
-    passed = h1.GetBinContent(21)
-    logger.info(f'entry={entry:.0f}, passed={passed:.0f} '
-                + f'({passed/entry:.2f})')
-    c1.Clear()
-    h1.Draw()
-    c1.Print(fig_path)
+  draw('AC', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), tdcrange=(800, 1200),
+       ud=False)
+  draw('T1', nseg=1, adcdiv=(2, 2), adcrange=(0, 2000),
+       tdcdiv=(2, 2), tdcrange=(1.17e6, 1.21e6))
+  draw('T0', nseg=5, adcdiv=(3, 2), adcrange=(0, 2000),
+       tdcdiv=(3, 2), tdcrange=(1.20e6, 1.24e6))
+  draw('T0new', nseg=5, adcdiv=(3, 2), adcrange=(0, 2000),
+       tdcdiv=(3, 2), tdcrange=(1.18e6, 1.22e6))
+  draw('DEF', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), tdcrange=(1.20e6, 1.25e6))
+  draw('Veto', nseg=4, adcdiv=(2, 2), adcrange=(0, 2000),
+       tdcdiv=(2, 2), tdcrange=(1.15e6, 1.20e6))
+  draw('BTC', nseg=4, adcdiv=(2, 2), adcrange=(0, 2000),
+       tdcdiv=(2, 2), tdcrange=(1.15e6, 1.20e6))
+  draw('CVC', nseg=9, adcdiv=(3, 3), tdcdiv=(3, 3), tdcrange=(5e5, 7e5))
+  draw('NC', nseg=6, adcdiv=(3, 2), tdcdiv=(3, 2), tdcrange=(5e5, 7e5))
+  macrohelper.finalize()
 
 #______________________________________________________________________________
 if __name__ == "__main__":
@@ -201,4 +139,4 @@ if __name__ == "__main__":
   log_conf = os.path.join(macro_dir, 'logging_config.yml')
   with open(log_conf, 'r') as f:
     logging.config.dictConfig(yaml.safe_load(f))
-  run(parsed.run_list)
+  macrohelper.run(parsed.run_list, single_run)
