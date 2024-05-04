@@ -32,8 +32,8 @@ def hodo(name, nseg=0, adcdiv=None, adcrange=None,
          tdcdiv=None, tdcrange=None, trailingdiv=None,
          totdiv=None, totrange=None, ud=True, ploop=True):
   logger.info(f'name={name}, nseg={nseg}, adcdiv={adcdiv}, adcrange={adcrange}'
-              +f'tdcdiv={tdcdiv}, tdcrange={tdcrange}, totdiv={totdiv}, '
-              +f'ud={ud}')
+              + f' tdcdiv={tdcdiv}, tdcrange={tdcrange}, totdiv={totdiv},'
+              + f' ud={ud}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   particle = ['', '_Pi', '_K', '_P']
@@ -164,12 +164,12 @@ def single_run(run_info):
   hodo('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8),
        tdcrange=(1.22e6, 1.26e6), totrange=(0, 25e3))
   hodo('AC', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), ud=False)
-  hodo('T1', nseg=1, adcdiv=(2, 2), adcrange(0, 2000), tdcdiv=(2, 2))
-  hodo('T0', nseg=5, adcdiv=(3, 2), adcrange(0, 2000), tdcdiv=(3, 2))
-  hodo('T0new', nseg=5, adcdiv=(3, 2), adcrange(0, 2000), tdcdiv=(3, 2))
+  hodo('T1', nseg=1, adcdiv=(2, 2), adcrange=(0, 2000), tdcdiv=(2, 2))
+  hodo('T0', nseg=5, adcdiv=(3, 2), adcrange=(0, 2000), tdcdiv=(3, 2))
+  hodo('T0new', nseg=5, adcdiv=(3, 2), adcrange=(0, 2000), tdcdiv=(3, 2))
   hodo('DEF', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
-  hodo('Veto', nseg=4, adcdiv=(2, 2), adcrange(0, 2000), tdcdiv=(2, 2))
-  hodo('BTC', nseg=4, adcdiv=(2, 2), adcrange(0, 2000), tdcdiv=(2, 2))
+  hodo('Veto', nseg=4, adcdiv=(2, 2), adcrange=(0, 2000), tdcdiv=(2, 2))
+  hodo('BTC', nseg=4, adcdiv=(2, 2), adcrange=(0, 2000), tdcdiv=(2, 2))
   hodo('CVC', nseg=9, adcdiv=(3, 3), tdcdiv=(3, 3))
   hodo('NC', nseg=6, adcdiv=(3, 2), tdcdiv=(3, 2))
   c1.Print(fig_path+']')
