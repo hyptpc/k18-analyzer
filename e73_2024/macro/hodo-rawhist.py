@@ -25,15 +25,14 @@ import runlist
 ROOT.gROOT.SetBatch()
 ROOT.gStyle.SetOptStat(1110)
 
-options = list()
-
 #______________________________________________________________________________
 def hodo(name, nseg=0, adcdiv=None, adcrange=None,
          tdcdiv=None, tdcrange=None, trailingdiv=None,
          totdiv=None, totrange=None, ud=True, ploop=True):
-  logger.info(f'name={name}, nseg={nseg}, adcdiv={adcdiv}, adcrange={adcrange}'
-              + f' tdcdiv={tdcdiv}, tdcrange={tdcrange}, totdiv={totdiv},'
-              + f' ud={ud}')
+  logger.info(f'name={name}, nseg={nseg}, adcdiv={adcdiv}, '
+              + f'adcrange={adcrange} '
+              + f'tdcdiv={tdcdiv}, tdcrange={tdcrange}, totdiv={totdiv}, '
+              + f'ud={ud}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   particle = ['', '_Pi', '_K', '_P']
@@ -137,8 +136,13 @@ def run(run_list):
   runlist_manager.set_run_list(run_list)
   run_list = runlist_manager.get_run_list()
   logger.debug(f'run_list={run_list}')
+  proc_list = list()
   for run_info in runlist_manager.get_run_list():
-    single_run(run_info)
+    proc = mp.Process(target=single_run, args=(run_info,))
+    proc.start()
+    proc_list.append(proc)
+  for proc in proc_list:
+    proc.join()
   logger.info('done')
 
 #______________________________________________________________________________
@@ -183,7 +187,8 @@ def status():
   if h1:
     entry = h1.GetBinContent(1)
     passed = h1.GetBinContent(21)
-    logger.info(f'entry={entry:.0f}, passed={passed:.0f} ({passed/entry:.2f})')
+    logger.info(f'entry={entry:.0f}, passed={passed:.0f} '
+                + f'({passed/entry:.2f})')
     c1.Clear()
     h1.Draw()
     c1.Print(fig_path)

@@ -3,7 +3,7 @@ version: 1
 disable_existing_loggers: false
 formatters:
   rich:
-    format: '%(funcName)s() %(message)s'
+    format: '%(process)d %(funcName)s() %(message)s'
     # format: '%(name)s %(funcName)s : %(message)s'
   simple:
     format: '[%(levelname)s] %(message)s'
