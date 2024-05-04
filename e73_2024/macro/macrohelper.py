@@ -22,7 +22,6 @@ ROOT.gROOT.SetBatch()
 ROOT.gStyle.SetOptStat(1110)
 
 c1 = None
-f1 = None
 
 #______________________________________________________________________________
 def daq():
@@ -60,20 +59,32 @@ def finalize():
   logger.info(f'save {fig_path}')
 
 #______________________________________________________________________________
-def initialize(run_info):
+def fit_gaus(h1, params, limits=None):
+  f1 = ROOT.TF1('f1', 'gaus')
+  f1.SetParameters(params)
+  if limits is not None:
+    for i, l in enumerate(limits):
+      f1.SetParLimits(i, l[0], l[1])
+  for j in range(3):
+    mean = f1.GetParameter(1)
+    sigma = f1.GetParameter(2)
+    h1.Fit('f1', 'Q', '', mean - 2*sigma, mean + 2*sigma)
+  return f1
+
+#______________________________________________________________________________
+def initialize(run_info, fig_tail=''):
   logger.debug(run_info)
   try:
     root_path = run_info['root']
-    fig_path = os.path.basename(root_path).replace('.root', '.pdf')
+    fig_path = os.path.basename(root_path).replace('.root', fig_tail+'.pdf')
     fig_path = os.path.join(run_info['fig'], fig_path)
   except KeyError as e:
     logger.error(f'KeyError: {e} not found in {run_info}')
     return
   global c1
-  global f1
   c1 = ROOT.TCanvas('c1', fig_path, 1200, 800)
-  f1 = ROOT.TFile(root_path)
-  if not f1.IsOpen():
+  ROOT.gFile = ROOT.TFile.Open(root_path)
+  if not ROOT.gFile.IsOpen():
     logger.error('root file is not open.')
     return
   logger.info(f'open {root_path}')
@@ -130,9 +141,11 @@ def title():
   tex.SetTextAlign(22)
   c1.Clear()
   tex.SetTextSize(0.04)
+  tex.DrawLatex(0.5, 0.64, str(sys.argv))
   tex.DrawLatex(0.5, 0.58, os.path.dirname(name))
   tex.SetTextSize(0.08)
   tex.DrawLatex(0.5, 0.50, os.path.basename(name))
   tex.DrawLatex(0.5, 0.42, 'Creation time: '+now.AsString('s'))
   c1.Print(fig_path)
+  logger.info(sys.argv)
   logger.info(f'time={now.AsString("s")}')

@@ -100,7 +100,7 @@ def draw(name, nseg=0, adcdiv=None, adcrange=None,
 
 #______________________________________________________________________________
 def single_run(run_info):
-  macrohelper.initialize(run_info)
+  macrohelper.initialize(run_info, fig_tail='_rawhist')
   draw('TriggerFlag', nseg=32, tdcdiv=(8, 4), tdcrange=(800, 1200),
        ud=False, ploop=False)
   draw('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8),
