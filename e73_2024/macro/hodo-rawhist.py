@@ -3,6 +3,7 @@
 import argparse
 import logging
 import logging.config
+import multiprocessing as mp
 import os
 import sys
 import ROOT
@@ -24,28 +25,19 @@ import runlist
 ROOT.gROOT.SetBatch()
 ROOT.gStyle.SetOptStat(1110)
 
-#______________________________________________________________________________
-def daq():
-  node_list = ['EB', 'FE_VME', 'FE_HUL', 'FE_VEASIROC']
-  logger.info(f'node_list={node_list}')
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  c1.Clear()
-  c1.Divide(2, 2)
-  for i, head in enumerate(node_list):
-    c1.cd(i+1)
-    h1 = ROOT.gFile.Get(f'{head}_DataSize')
-    if h1:
-      h1.Draw('colz')
-  c1.Print(fig_path)
+options = list()
 
 #______________________________________________________________________________
-def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
-         totdiv=None, ud=True):
-  logger.info(f'name={name}, nseg={nseg}, adcdiv={adcdiv}, '
-              +'tdcdiv={tdcdiv}, totdiv={totdiv}, ud={ud}')
+def hodo(name, nseg=0, adcdiv=None, adcrange=None,
+         tdcdiv=None, tdcrange=None, trailingdiv=None,
+         totdiv=None, totrange=None, ud=True, ploop=True):
+  logger.info(f'name={name}, nseg={nseg}, adcdiv={adcdiv}, adcrange={adcrange}'
+              +f'tdcdiv={tdcdiv}, tdcrange={tdcrange}, totdiv={totdiv}, '
+              +f'ud={ud}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
+  particle = ['', '_Pi', '_K', '_P']
+  pcolor = [ROOT.kBlack, ROOT.kBlue+2, ROOT.kGreen+2, ROOT.kRed+2]
   hitmulti = ['_OR', '_AND'] if ud else ['']
   ud = ['U', 'D'] if ud else ['']
 
@@ -55,13 +47,18 @@ def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
       c1.Divide(adcdiv[0], adcdiv[1])
       for i in range(nseg):
         c1.cd(i+1).SetLogy()
-        h1 = ROOT.gFile.Get(name + f'_ADC_seg{i}{s}')
-        if h1:
-          h1.Draw()
-        h2 = ROOT.gFile.Get(name + f'_AWT_seg{i}{s}')
-        if h2:
-          h2.SetLineColor(ROOT.kRed+1)
-          h2.Draw('same')
+        for j, p in enumerate(particle):
+          h1 = ROOT.gFile.Get(name + f'_ADC_seg{i}{s}{p}')
+          if h1:
+            if adcrange is not None:
+              h1.GetXaxis().SetRangeUser(adcrange[0], adcrange[1])
+            if ploop:
+              h1.SetLineColor(pcolor[j])
+            h1.Draw('same')
+          # h2 = ROOT.gFile.Get(name + f'_AWT_seg{i}{s}{p}')
+          # if h2:
+          #   h2.SetLineColor(ROOT.kRed+1)
+          #   h2.Draw('same')
       c1.Print(fig_path)
 
   if tdcdiv is not None:
@@ -70,21 +67,17 @@ def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
       c1.Divide(tdcdiv[0], tdcdiv[1])
       for i in range(nseg):
         c1.cd(i+1).SetLogy()
-        h1 = ROOT.gFile.Get(name + f'_TDC_seg{i}{s}')
-        if h1:
-          h1.RebinX(4)
-          h1.Draw()
+        for j, p in enumerate(particle):
+          h1 = ROOT.gFile.Get(name + f'_TDC_seg{i}{s}{p}')
+          if h1:
+            if h1.GetXaxis().GetXmax() > 2000:
+              h1.RebinX(4)
+            if tdcrange is not None:
+              h1.GetXaxis().SetRangeUser(tdcrange[0], tdcrange[1])
+            if ploop:
+              h1.SetLineColor(pcolor[j])
+            h1.Draw('same')
       c1.Print(fig_path)
-
-  # if trailingdiv is not None:
-  #   for s in ud:
-  #     c1.Clear()
-  #     c1.Divide(trailingdiv[0], trailingdiv[1])
-  #     for i in range(nseg):
-  #       c1.cd(i+1)
-  #       h1 = ROOT.gFile.Get(name + f'_Trailing_seg{i}{s}')
-  #       if h1: h1.Draw()
-  #     c1.Print(fig_path)
 
   if totdiv is not None:
     for s in ud:
@@ -92,8 +85,14 @@ def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
       c1.Divide(totdiv[0], totdiv[1])
       for i in range(nseg):
         c1.cd(i+1)
-        h1 = ROOT.gFile.Get(name + f'_TOT_seg{i}{s}')
-        if h1: h1.Draw()
+        for j, p in enumerate(particle):
+          h1 = ROOT.gFile.Get(name + f'_TOT_seg{i}{s}{p}')
+          if h1:
+            if totrange is not None:
+              h1.GetXaxis().SetRangeUser(totrange[0], totrange[1])
+            if ploop:
+              h1.SetLineColor(pcolor[j])
+            h1.Draw('same')
       c1.Print(fig_path)
 
   c1.Clear()
@@ -111,37 +110,6 @@ def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
       efficiency(h1)
     i = i + 1
   c1.Print(fig_path)
-
-#______________________________________________________________________________
-def dc(name, nlayer=0, tdcdiv=None):
-  logger.info(f'name={name}, nlayer={nlayer}, tdcdiv={tdcdiv}')
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  if tdcdiv is not None:
-    for htype in ['TDC', 'Trailing', 'TOT', 'HitPat', 'Multi']:
-      c1.Clear()
-      c1.Divide(tdcdiv[0], tdcdiv[1])
-      for i in range(nlayer):
-        c1.cd(i+1) #.SetLogy()
-        h1 = ROOT.gFile.Get(f'{name}_{htype}_layer{i}')
-        if h1:
-          h1.Draw()
-          if htype == 'Multi':
-            efficiency(h1)
-        h2 = ROOT.gFile.Get(f'{name}_C{htype}_layer{i}')
-        if h2:
-          h2.SetLineColor(ROOT.kRed+1)
-          h1.GetYaxis().SetRangeUser(
-            0, max(h1.GetMaximum(), h2.GetMaximum())*1.05)
-          h2.Draw('same')
-          if htype == 'Multi':
-            efficiency(h2)
-        # if htype == 'TDC' or htype == 'Trailing' or htype == 'TOT':
-        #   h2 = ROOT.gFile.Get(f'{name}_{htype}1st_layer{i}')
-        #   if h2:
-        #     h2.SetLineColor(ROOT.kRed+1)
-        #     h2.Draw('same')
-      c1.Print(fig_path)
 
 #______________________________________________________________________________
 def efficiency(h1):
@@ -190,30 +158,35 @@ def single_run(run_info):
     return
   logger.info(f'open {root_path}')
   c1.Print(fig_path+'[')
-  hodo('TriggerFlag', nseg=32, tdcdiv=(8, 4), ud=False)
-  hodo('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8))
+  status()
+  hodo('TriggerFlag', nseg=32, tdcdiv=(8, 4), tdcrange=(800, 1200),
+       ud=False, ploop=False)
+  hodo('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8),
+       tdcrange=(1.22e6, 1.26e6), totrange=(0, 25e3))
   hodo('AC', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), ud=False)
-  hodo('T1', nseg=1, adcdiv=(2, 2), tdcdiv=(2, 2))
-  hodo('T0', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
-  hodo('T0new', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
+  hodo('T1', nseg=1, adcdiv=(2, 2), adcrange(0, 2000), tdcdiv=(2, 2))
+  hodo('T0', nseg=5, adcdiv=(3, 2), adcrange(0, 2000), tdcdiv=(3, 2))
+  hodo('T0new', nseg=5, adcdiv=(3, 2), adcrange(0, 2000), tdcdiv=(3, 2))
   hodo('DEF', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
-  hodo('Veto', nseg=4, adcdiv=(2, 2), tdcdiv=(2, 2))
-  hodo('BTC', nseg=4, adcdiv=(2, 2), tdcdiv=(2, 2))
-  # hodo('CDH', nseg=36, adcdiv=(6, 6), tdcdiv=(6, 6))
-  # hodo('PbG', nseg=40, adcdiv=(7, 6), tdcdiv=(7, 6))
-  # hodo('PbF2', nseg=40, adcdiv=(7, 6), tdcdiv=(7, 6))
+  hodo('Veto', nseg=4, adcdiv=(2, 2), adcrange(0, 2000), tdcdiv=(2, 2))
+  hodo('BTC', nseg=4, adcdiv=(2, 2), adcrange(0, 2000), tdcdiv=(2, 2))
   hodo('CVC', nseg=9, adcdiv=(3, 3), tdcdiv=(3, 3))
   hodo('NC', nseg=6, adcdiv=(3, 2), tdcdiv=(3, 2))
-  dc('BLC1a', nlayer=8, tdcdiv=(4, 2))
-  dc('BLC1b', nlayer=8, tdcdiv=(4, 2))
-  dc('BLC2a', nlayer=8, tdcdiv=(4, 2))
-  dc('BLC2b', nlayer=8, tdcdiv=(4, 2))
-  dc('BPC1', nlayer=8, tdcdiv=(4, 2))
-  dc('BPC2', nlayer=8, tdcdiv=(4, 2))
-  dc('VFT', nlayer=14, tdcdiv=(5, 3))
-  daq()
   c1.Print(fig_path+']')
   logger.info(f'save {fig_path}')
+
+#______________________________________________________________________________
+def status():
+  c1 = ROOT.gROOT.GetListOfCanvases()[0]
+  fig_path = c1.GetTitle()
+  h1 = ROOT.gFile.Get('Status')
+  if h1:
+    entry = h1.GetBinContent(1)
+    passed = h1.GetBinContent(21)
+    logger.info(f'entry={entry:.0f}, passed={passed:.0f} ({passed/entry:.2f})')
+    c1.Clear()
+    h1.Draw()
+    c1.Print(fig_path)
 
 #______________________________________________________________________________
 if __name__ == "__main__":

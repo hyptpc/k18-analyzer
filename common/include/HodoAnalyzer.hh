@@ -11,9 +11,9 @@
 #include "Hodo1Hit.hh"
 #include "Hodo2Hit.hh"
 
-typedef std::vector <Hodo1Hit*> Hodo1HitContainer;
-typedef std::vector <Hodo2Hit*> Hodo2HitContainer;
-typedef std::vector <BHTHit*> BHTHitContainer;
+using Hodo1HitContainer = std::vector<Hodo1Hit*>;
+using Hodo2HitContainer = std::vector<Hodo2Hit*>;
+using BHTHitContainer = std::vector<BHTHit*>;
 
 //_____________________________________________________________________________
 class HodoAnalyzer
@@ -22,11 +22,11 @@ public:
   HodoAnalyzer(const RawData& rawData);
   ~HodoAnalyzer();
 
-  static HodoAnalyzer& GetInstance();
+  static const TString& ClassName();
 
 private:
-  HodoAnalyzer( const HodoAnalyzer& );
-  HodoAnalyzer& operator =( const HodoAnalyzer& );
+  HodoAnalyzer(const HodoAnalyzer&);
+  HodoAnalyzer& operator =(const HodoAnalyzer&);
 
 private:
   const RawData* m_raw_data;
@@ -74,23 +74,32 @@ private:
 #endif
 
 public:
-  bool DecodeRawHits();
-  bool DecodeHodoHits(const int &detid, Hodo2HitContainer &m_Cont);
-  bool DecodeBHTHits(const int &detid, BHTHitContainer &m_Cont);
-  bool DecodeHodo1Hits(const int &detid, Hodo2HitContainer &m_Cont);
+  Bool_t DecodeRawHits();
+  Bool_t DecodeHodoHits(const Int_t &detid, Hodo2HitContainer &m_Cont);
+  Bool_t DecodeBHTHits(const Int_t &detid, BHTHitContainer &m_Cont);
+  Bool_t DecodeHodo1Hits(const Int_t &detid, Hodo2HitContainer &m_Cont);
 
-  inline int  GetNHits( int detID )  const;
-  inline bool AddHit(   int detID, Hodo2Hit* hp );
-  inline bool AddHit(   int detID, BHTHit* hp );
+  inline Int_t  GetNHits(Int_t detID) const;
+  inline Bool_t AddHit(Int_t detID, Hodo2Hit* hp);
+  inline Bool_t AddHit(Int_t detID, BHTHit* hp);
 
-  inline Hodo1Hit * Get1Hit( int detID, std::size_t i )  const;
-  inline Hodo2Hit * GetHit( int detID, std::size_t i )  const;
-  bool ReCalcAll();
+  inline Hodo1Hit* Get1Hit(Int_t detID, Int_t i) const;
+  inline Hodo2Hit* GetHit(Int_t detID, Int_t i) const;
+  Bool_t ReCalcAll();
 
 };
 
-inline int
-HodoAnalyzer::GetNHits( int detID )  const
+//_____________________________________________________________________________
+inline const TString&
+HodoAnalyzer::ClassName()
+{
+  static const TString s_name("HodoAnalyzer");
+  return s_name;
+}
+
+//_____________________________________________________________________________
+inline Int_t
+HodoAnalyzer::GetNHits(Int_t detID) const
 {
   switch(detID){
   case DetIdBHD:    return m_BHDCont.size();
@@ -135,9 +144,10 @@ HodoAnalyzer::GetNHits( int detID )  const
     return 0;
   }
 }
-//______________________________________________________________________________
-inline bool
-HodoAnalyzer::AddHit( int detID, Hodo2Hit* hp )
+
+//_____________________________________________________________________________
+inline Bool_t
+HodoAnalyzer::AddHit(Int_t detID, Hodo2Hit* hp)
 {
   switch(detID){
 #ifndef T98
@@ -186,8 +196,10 @@ HodoAnalyzer::AddHit( int detID, Hodo2Hit* hp )
     return false;
   }
 }
-inline bool
-HodoAnalyzer::AddHit( int detID, BHTHit* hp )
+
+//_____________________________________________________________________________
+inline Bool_t
+HodoAnalyzer::AddHit(Int_t detID, BHTHit* hp)
 {
   switch(detID){
 #if T98
@@ -200,9 +212,9 @@ HodoAnalyzer::AddHit( int detID, BHTHit* hp )
   }
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline Hodo1Hit*
-HodoAnalyzer::Get1Hit( int detID, std::size_t i ) const
+HodoAnalyzer::Get1Hit(Int_t detID, Int_t i) const
 {
   if(GetNHits(detID)<=i) return 0;
   switch(detID){
@@ -227,8 +239,10 @@ HodoAnalyzer::Get1Hit( int detID, std::size_t i ) const
     return 0;
   }
 }
+
+//_____________________________________________________________________________
 inline Hodo2Hit*
-HodoAnalyzer::GetHit( int detID, std::size_t i ) const
+HodoAnalyzer::GetHit(Int_t detID, Int_t i) const
 {
   if(GetNHits(detID)<=i) return 0;
   switch(detID){
@@ -265,5 +279,5 @@ HodoAnalyzer::GetHit( int detID, std::size_t i ) const
     return 0;
   }
 }
-//______________________________________________________________________________
+
 #endif
