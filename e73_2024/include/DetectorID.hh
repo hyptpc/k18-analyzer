@@ -206,6 +206,8 @@ const int DetIdFiducial		= 260;
 
 const int NumOfPlaneVmeRm=3;
 
+namespace trigger
+{
 enum ETriggerFlag {
   kStart, kStop, kBeam, kPion, kKaon2, kKaon3, //5
   kKCDH1, kKCDH2, kKCDH3, //8
@@ -216,6 +218,8 @@ enum ETriggerFlag {
   kProtonTrig, kDeuteron=kProtonTrig, //15
   kNumTrig
 };
+
+}
 
 // enum eTriggerFlag
 //   {

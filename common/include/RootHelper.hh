@@ -115,7 +115,7 @@ HB1(const TString& name, Int_t nbinx, Double_t xlow, Double_t xhigh)
 
 //_____________________________________________________________________________
 inline void
-HB1(const TString& name, Double_t* bins)
+HB1(const TString& name, const Double_t* bins)
 {
   HB1(name, name, (Int_t)bins[0], bins[1], bins[2]);
 }
@@ -183,7 +183,7 @@ HB2(const TString& name, Int_t nbinx, Double_t xlow, Double_t xhigh,
 
 //_____________________________________________________________________________
 inline void
-HB2(const TString& name, Double_t* bins)
+HB2(const TString& name, const Double_t* bins)
 {
   HB2(name, name, (Int_t)bins[0], bins[1], bins[2],
       (Int_t)bins[3], bins[4], bins[5]);

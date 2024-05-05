@@ -10,9 +10,8 @@
 
 #include "ConfMan.hh"
 #include "DetectorID.hh"
+#include "EventAnalyzer.hh"
 #include "RootHelper.hh"
-#include "MTDCAnalyzer.hh"
-#include "MTDCRawHit.hh"
 #include "DCAnalyzer.hh"
 #include "DCCluster.hh"
 #include "DCHit.hh"
@@ -31,32 +30,10 @@
 #define DEBUG 0
 namespace
 {
-using namespace root;
-using namespace hddaq::unpacker;
-const auto& gUnpacker = GUnpacker::get_instance();
+const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
-UInt_t run_number;
+// UInt_t run_number;
 UInt_t event_number;
-}
-
-//_____________________________________________________________________________
-namespace root
-{
-TH1   *h[MaxHist];
-Double_t tdcbins[3]={5000,0,2e6};
-Double_t adcbins[3]={4096,-0.5,4095.5};
-Double_t mtdcbins[3]={2000,0,2000};
-Double_t diffbins[3]={2000,-1e5,1e5};
-Double_t debins[3]={5000,-2,48};
-Double_t debins2[3]={1000,-100,900};
-Double_t deudbins[6]={100,-2,18,100,-2,18};
-Double_t sumbins[3]={4096*4,-0.5,4096*4-0.5};
-Double_t evmulbins[6]={200,0,5e6,11,-0.5,10.5};
-Double_t evudbins[6]={200,0,5e6,21,-10.5,10.5};
-Double_t evdebins[6]={200,0,5e6,200,-2,18};
-Double_t evdebins2[6]={200,0,5e6,100,-100,900};
-Double_t evadcbins[6]={200,0,5e6,100,0,500};
-Double_t evtimebins[6]={200,0,5e6,200,-10,10};
 }
 
 //_____________________________________________________________________________
@@ -71,41 +48,19 @@ ProcessBegin()
 Bool_t
 ProcessNormal()
 {
-#if DEBUG
-  std::cout << __FILE__ << " " << __LINE__ << std::endl;
-#endif
+  using root::HF1;
 
   RawData rawData;
   rawData.DecodeHits();
 
   HodoAnalyzer hodoAna(rawData);
-  hodoAna.DecodeRawHits();
 
-  MTDCAnalyzer MTDCAna(rawData);
-  MTDCAna.DecodeRawHits();
+  EventAnalyzer evAna;
 
-  root::HF1("Status", 0);
+  HF1("Status", 0);
+  evAna.TriggerFlag(rawData);
 
-  // Trigger flag
-  {
-    static const Char_t* name = "TriggerFlag";
-    const auto& cont = rawData.GetMTDCRawHC(DetIdTrigFlag);
-    for(Int_t i=0, n=cont.size(); i<n; ++i){
-      auto raw = cont[i];
-      auto ntu = raw->GetSizeLeading();
-      auto seg = raw->SegmentId();
-      for(Int_t it=0; it<ntu; ++it){
-	Double_t tu = raw->GetLeading(it);
-	root::HF1(Form("%s_TDC_seg%d", name, seg), tu);
-      }
-      if(ntu>0){
-	root::HF1(Form("%s_HitPat", name), seg);
-      }
-    }
-  }
-
-  root::HF1("Status", 1);
-
+  HF1("Status", 1);
   // AC
   Bool_t ac_hit = false;
   {
@@ -124,283 +79,14 @@ ProcessNormal()
   }
 
   // ParticleFlag
-  Bool_t is_pion = ac_hit;
-  Bool_t is_k = !ac_hit;
-  Bool_t is_p = !ac_hit;
+  hist::EParticle particle;
+  if(ac_hit) particle = hist::kPion;
+  else particle = hist::kProton;
 
-  // BHT
-  for(const auto& particle: std::vector<TString>{"", "_Pi", "_K", "_P"}){
-    if(particle == "_Pi" && !is_pion) continue;
-    if(particle == "_K" && !is_k) continue;
-    if(particle == "_P" && !is_p) continue;
-    const Char_t* p = particle.Data();
-    static const Char_t* name = "BHT";
+  evAna.HodoRawHit(rawData);
+  evAna.HodoRawHit(rawData, particle);
 
-    { // RawData
-      const auto& cont = rawData.GetHodoRawHC(DetIdBHT);
-      Int_t multi_or = 0;
-      Int_t multi_and = 0;
-      for(Int_t i=0, n=cont.size(); i<n; ++i){
-        auto raw = cont[i];
-        if(!raw) continue;
-        auto seg = raw->SegmentId();
-        // Up
-        Bool_t u_in_range = false;
-        for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
-          Double_t t = raw->GetTdcUp(j);
-          if(gUser.IsInRange(Form("%s_TDC", name), t))
-            u_in_range = true;
-          root::HF1(Form("%s_TDC_seg%dU%s", name, seg, p), t);
-        }
-        for(Int_t j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
-          Double_t t = raw->GetAdcUp(j); // trailing
-          root::HF1(Form("%s_Trailing_seg%dU%s", name, seg, p), t);
-          if(m == raw->GetSizeTdcUp()){
-            Double_t l = raw->GetTdcUp(j);
-            if(gUser.IsInRange(Form("%s_TDC", name), l)){
-              root::HF1(Form("%s_TOT_seg%dU%s", name, seg, p), l - t);
-            }
-          }
-        }
-        // Down
-        Bool_t d_in_range = false;
-        for(Int_t j=0, m=raw->GetSizeTdcDown(); j<m; ++j){
-          Double_t t = raw->GetTdcDown(j);
-          if(gUser.IsInRange(Form("%s_TDC", name), t))
-            d_in_range = true;
-          root::HF1(Form("%s_TDC_seg%dD%s", name, seg, p), t);
-        }
-        for(Int_t j=0, m=raw->GetSizeAdcDown(); j<m; ++j){
-          Double_t t = raw->GetAdcDown(j); // trailing
-          root::HF1(Form("%s_Trailing_seg%dD%s", name, seg, p), t);
-          if(m == raw->GetSizeTdcDown()){
-            Double_t l = raw->GetTdcDown(j);
-            if(gUser.IsInRange(Form("%s_TDC", name), l)){
-              root::HF1(Form("%s_TOT_seg%dD%s", name, seg, p), l - t);
-            }
-          }
-        }
-        if(u_in_range || d_in_range){
-          root::HF1(Form("%s_HitPat_OR%s", name, p), seg);
-          ++multi_or;
-        }
-        if(u_in_range && d_in_range){
-          root::HF1(Form("%s_HitPat_AND%s", name, p), seg);
-          ++multi_and;
-        }
-      }
-      root::HF1(Form("%s_Multi_OR%s", name, p), multi_or);
-      root::HF1(Form("%s_Multi_AND%s", name, p), multi_and);
-    }
-    { // HodoAna
-      Int_t multi = 0;
-      for(Int_t i=0, nh=hodoAna.GetNHits(DetIdBHT); i<nh; ++i){
-        auto hit = hodoAna.GetHit(DetIdBHT, i);
-        if(!hit) continue;
-        Int_t seg = hit->SegmentId();
-        Int_t nind = hit->GetIndex();
-        for(Int_t j=0; j<nind; ++j){
-          Double_t mt = hit->MeanTime(j);
-          Double_t cmt = hit->CMeanTime(j);
-          if(TMath::Abs(mt) < 1.0)
-            std::cout << mt << std::endl;
-          hist::H1("BHT_Time", mt, 800, -40, 40);
-        }
-        // hit->Print();
-      }
-    //     TString segstr=Form("_seg%d",seg);
-
-    //   hist::H1(name+"_Mul"+segstr,nind,mulbins2);
-    //   hist::H2(name+"_Mul_pat",seg,nind,patbins,mulbins2);
-    //   if(nind>0){
-    //     hist::H1(name+"_Pat",seg,patbins);
-    //     mul++;
-    //   }
-    //   Int_t idx=-1;
-    //   for(Int_t ii=0;ii<nind;ii++){
-    //     Double_t mt  = hit->MeanTime(ii);
-    //     Double_t cmt  =hit->CMeanTime(ii);
-    //     // if(!gUser.IsInRange("BHTTOT",hit->GetAUp(ii)))   continue;
-    //     // if(!gUser.IsInRange("BHTTOT",hit->GetADown(ii))) continue;
-    //     Double_t tof = mt - time0;
-    //     Double_t ctof = cmt - ctime0;
-    //     hist::H1(name+"_MeanTime"        ,mt ,4000,-200,200, trig_add);
-    //     hist::H1(name+"_MeanTime" +segstr,mt ,4000,-200,200, trig_add);
-    //     hist::H1(name+"_CMeanTime"       ,cmt,4000,-200,200, trig_add);
-    //     hist::H1(name+"_CMeanTime"+segstr,cmt,4000,-200,200, trig_add);
-    //     if(time0>-9000){
-    //       hist::H1(name+"_TOF"        ,tof ,2000,-100,100, trig_add);
-    //       hist::H1(name+"_TOF" +segstr,tof ,2000,-100,100, trig_add);
-    //       hist::H1(name+"_cTOF"       ,ctof,2000,-100,100, trig_add);
-    //       hist::H1(name+"_cTOF"+segstr,ctof,2000,-100,100, trig_add);
-    //       Double_t de = hit->DeltaE();
-    //       Double_t demin=-1,demax=19;
-    //       if(cid==DetIdBHT){
-    //         de=hit->DeltaCE(ii);
-    //         demin=0;
-    //         demax=4e4;
-    //       }
-    //       hist::H2(name+"_TOF_dE",tof , de, 200,-50,50, 100, demin, demax, trig_add);
-    //     }
-    //     if(TMath::Abs(mt)>20) continue;
-    //     hist::H2(name+"_EvNum_MeanTime" ,event_number,mt ,evtimebins);
-    //     hist::H2(name+"_EvNum_CMeanTime",event_number,cmt,evtimebins);
-    //     hist::H2(name+"_EvNum_TOF"      ,event_number,tof ,evtimebins);
-    //     hist::H2(name+"_EvNum_cTOF"     ,event_number,ctof,evtimebins);
-    //     TDCHIT=true;
-    //     idx=ii;
-    //     mulgate++;
-    //     hodoseg[ihodo]=seg;
-    //     hodotime[ihodo]=mt;
-    //   } // nindex
-    //   if(cid==DetIdBHT && idx<0) continue;
-    //   Double_t demin=-1,demax=49,demax2=19;
-    //   Double_t au = hit->GetRawHit()->GetAdcUp();
-    //   Double_t ad = hit->GetRawHit()->GetAdcDown();
-    //   Double_t de = hit->DeltaE();
-    //   Double_t deu = hit->GetAUp();
-    //   Double_t ded = hit->GetADown();
-    //   if(cid==DetIdBHT){
-    //     demin=0;demax=1e5;demax2=2e4;
-    //     // au = hit->GetAUp(idx);
-    //     // ad = hit->GetADown(idx);
-    //     // de = hit->DeltaCE(idx);
-    //     // deu = hit->GetCAUp(idx);
-    //     // ded = hit->GetCADown(idx);
-    //   }
-    //   Double_t tmpdebins[3]={1000,demin,demax};
-    //   Double_t tmpdeudbins[6]={100,demin,demax2,100,demin,demax2};
-
-    //   hist::H1(name+"_dE" +segstr,de ,tmpdebins,trig_add);
-    //   hist::H2(name+"_dEud"+segstr,deu,ded,tmpdeudbins,trig_add);
-    //   if(TDCHIT){
-    //     hist::H2(name+"_EvNum_dE",event_number,de,evdebins);
-    //   }
-    //   if(BEAM&&ACHIT){
-    //     if(cid!=DetIdDEF&&!TDCHIT) continue;
-    //     hist::H1(name+"_ADCuwB"+segstr,au,adcbins);
-    //     hist::H1(name+"_ADCdwB"+segstr,ad,adcbins);
-    //     hist::H1(name+"_ADCuwB",au,adcbins);
-    //     hist::H1(name+"_ADCdwB",ad,adcbins);
-    //     hist::H1(name+"_dEuwB"+segstr,deu,tmpdebins);
-    //     hist::H1(name+"_dEdwB"+segstr,ded,tmpdebins);
-    //     hist::H1(name+"_dEuwB",deu,tmpdebins);
-    //     hist::H1(name+"_dEdwB",ded,tmpdebins);
-    //     hist::H2("Run_"+name+"_dEuwB",run_number,deu,400,100,900,100,demin,demax2);
-    //     hist::H2("Run_"+name+"_dEdwB",run_number,ded,400,100,900,100,demin,demax2);
-    //     if(cid==DetIdBHT || cid==DetIdCDH) continue;
-    //     hist::H2("Run_"+name+"_dEuwB"+segstr,run_number,deu,400,100,900,100,demin,demax2);
-    //     hist::H2("Run_"+name+"_dEdwB"+segstr,run_number,ded,400,100,900,100,demin,demax2);
-    //   }
-    // }//for(ihit)
-    // hist::H1(name+"_Mul",mul ,mulbins);
-    // hist::H1(name+"_Mulgate",mulgate,mulbins);
-    // hist::H2(name+"_EvNum_Mul"    ,event_number,mul,evmulbins);
-    // hist::H2(name+"_EvNum_Mulgate",event_number,mulgate,evmulbins);
-    // // decoded hit done
-    }
-  }
-
-  root::HF1("Status", 2);
-
-  // AC
-  for(const auto& particle: std::vector<TString>{"", "_Pi", "_K", "_P"}){
-    if(particle == "_Pi" && !is_pion) continue;
-    if(particle == "_K" && !is_k) continue;
-    if(particle == "_P" && !is_p) continue;
-    const Char_t* p = particle.Data();
-    static const Char_t* name = "AC";
-    const auto& cont = rawData.GetHodoRawHC(DetIdAC);
-    Int_t multi = 0;
-    for(Int_t i=0, n=cont.size(); i<n; ++i){
-      auto raw = cont[i];
-      if(!raw) continue;
-      Int_t seg = raw->SegmentId();
-      Bool_t is_good = false;
-      for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
-	Double_t t = raw->GetTdcUp(j);
-        if(gUser.IsInRange(Form("%s_TDC", name), t))
-          is_good = true;
-	root::HF1(Form("%s_TDC_seg%d%s", name, seg, p), t);
-      }
-      Double_t suma = 0;
-      for(Int_t j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
-	Double_t a = raw->GetAdcUp(j);
-        suma += a;
-	root::HF1(Form("%s_ADC_seg%d%s", name, j+1, p), a);
-        if(is_good)
-          root::HF1(Form("%s_AWT_seg%d%s", name, j+1, p), a);
-      }
-      // SUM
-      root::HF1(Form("%s_ADC_seg%d%s", name, 0, p), suma);
-      if(is_good){
-        root::HF1(Form("%s_AWT_seg%d%s", name, 0, p), suma);
-        root::HF1(Form("%s_HitPat%s", name, p), seg);
-        multi++;
-      }
-    }
-    root::HF1(Form("%s_Multi%s", name, p), multi);
-  }
-
-  root::HF1("Status", 3);
-
-  // Hodoscope
-  for(const auto& particle: std::vector<TString>{"", "_Pi", "_K", "_P"}){
-    if(particle == "_Pi" && !is_pion) continue;
-    if(particle == "_K" && !is_k) continue;
-    if(particle == "_P" && !is_p) continue;
-    const Char_t* p = particle.Data();
-    for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
-      const Char_t* name = NameHodo[ihodo];
-      Int_t multi_or = 0;
-      Int_t multi_and = 0;
-      const auto& cont = rawData.GetHodoRawHC(DetIdHodo[ihodo]);
-      for(Int_t i=0, n=cont.size(); i<n; ++i){
-        auto raw = cont[i];
-        if(!raw) continue;
-        auto seg = raw->SegmentId();
-        // Up
-        Bool_t u_in_range = false;
-        for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
-          Double_t t = raw->GetTdcUp(j);
-          if(gUser.IsInRange(Form("%s_TDC", name), t))
-            u_in_range = true;
-          root::HF1(Form("%s_TDC_seg%dU%s", name, seg, p), t);
-        }
-        for(Int_t j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
-          Double_t a = raw->GetAdcUp(j);
-          root::HF1(Form("%s_ADC_seg%dU%s", name, seg, p), a);
-          if(u_in_range)
-            root::HF1(Form("%s_AWT_seg%dU%s", name, seg, p), a);
-        }
-        // Down
-        Bool_t d_in_range = false;
-        for(Int_t j=0, m=raw->GetSizeTdcDown(); j<m; ++j){
-          Double_t t = raw->GetTdcDown(j);
-          if(gUser.IsInRange(Form("%s_TDC", name), t))
-            d_in_range = true;
-          root::HF1(Form("%s_TDC_seg%dD%s", name, seg, p), t);
-        }
-        for(Int_t j=0, m=raw->GetSizeAdcDown(); j<m; ++j){
-          Double_t a = raw->GetAdcDown(j);
-          root::HF1(Form("%s_ADC_seg%dD%s", name, seg, p), a);
-          if(d_in_range)
-            root::HF1(Form("%s_AWT_seg%dD%s", name, seg, p), a);
-        }
-        if(u_in_range || d_in_range){
-          root::HF1(Form("%s_HitPat_OR%s", name, p), seg);
-          ++multi_or;
-        }
-        if(u_in_range && d_in_range){
-          root::HF1(Form("%s_HitPat_AND%s", name, p), seg);
-          ++multi_and;
-        }
-      }
-      root::HF1(Form("%s_Multi_OR%s", name, p), multi_or);
-      root::HF1(Form("%s_Multi_AND%s", name, p), multi_and);
-    }
-  }
-
+#if 0
   Bool_t BEAM  = MTDCAna.flag(kBeam);
   Bool_t KAON2 = MTDCAna.flag(kKaon2);
   Bool_t KAON3 = MTDCAna.flag(kKaon3);
@@ -479,9 +165,8 @@ ProcessNormal()
   //  if(KCDH1) trig_add.push_back("ifKCDH");
   Int_t ntrig=trig_add.size();
 
-  root::HF1("Status", 4);
+  HF1("Status", 4);
 
-#if 0
   // hodoscopes
   Int_t hodoseg[kNumHodo];
   Double_t hodotime[kNumHodo];
@@ -708,7 +393,7 @@ ProcessNormal()
 
 #endif
 
-  root::HF1("Status", 20);
+  HF1("Status", 20);
 
   return true;
 }
@@ -724,80 +409,10 @@ ProcessEnd()
 Bool_t
 ConfMan::InitializeHistograms()
 {
-  Double_t hrtdcbins1[3] = {45000, 950000, 1400000};
-  Double_t hrtdcbins2[3] = {50000, 0, 1000000}; // for CVC, NC
-  Double_t hrtotbins[3] = {5000, 0, 50000};
-  Double_t adcbins[3] = {4096, -0.5, 4095.5};
-  Double_t mhtdcbins[3] = {2000, 0, 2000};
-  Double_t mhtotbins[3] = {1000, 0, 1000};
-
-  root::HB1("Status", 21, -0.5, 20.5);
-
-  { // TriggerFlag
-    const Char_t* name = "TriggerFlag";
-    Double_t patbins[3]={NumOfSegTrigFlag, -0.5, NumOfSegTrigFlag-0.5};
-    for(Int_t i=0; i<NumOfSegTrigFlag; ++i){
-      root::HB1(Form("%s_TDC_seg%d", name, i), mhtdcbins);
-    }
-    root::HB1(Form("%s_HitPat; Segment; Counts", name), patbins);
-  }
-
-  for(const auto& particle: std::vector<TString>{"", "_Pi", "_K", "_P"}){
-    const Char_t* p = particle.Data();
-    { // AC
-      const Char_t* name = "AC";
-      Int_t nseg = NumOfSegAC;
-      for(Int_t i=0; i<nseg; ++i){
-        root::HB1(Form("%s_ADC_seg%d%s", name, i, p), adcbins);
-        root::HB1(Form("%s_AWT_seg%d%s", name, i, p), adcbins);
-        root::HB1(Form("%s_TDC_seg%d%s", name, i, p), mhtdcbins);
-      }
-      root::HB1(Form("%s_HitPat%s", name, p), nseg, -0.5, nseg - 0.5);
-      root::HB1(Form("%s_Multi%s", name, p), nseg + 1, -0.5, nseg + 0.5);
-    }
-    { // BHT
-      const Char_t* name = "BHT";
-      Int_t nseg = NumOfSegBHT;
-      for(Int_t i=0; i<nseg; ++i){
-        for(const auto& uord: std::vector<TString>{"U", "D"}){
-          const Char_t* ud = uord.Data();
-          root::HB1(Form("%s_TDC_seg%d%s%s", name, i, ud, p), hrtdcbins1);
-          root::HB1(Form("%s_Trailing_seg%d%s%s", name, i, ud, p), hrtdcbins1);
-          root::HB1(Form("%s_TOT_seg%d%s%s", name, i, ud, p), hrtotbins);
-        }
-      }
-      for(const auto& uord: std::vector<TString>{"OR", "AND"} ){
-        auto ud = uord.Data();
-        root::HB1(Form("%s_HitPat_%s%s", name, ud, p), nseg, -0.5, nseg - 0.5);
-        root::HB1(Form("%s_Multi_%s%s", name, ud, p), nseg + 1, -0.5, nseg + 0.5);
-      }
-    }
-    // Hodoscope
-    for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
-      auto name = NameHodo[ihodo].Data();
-      Double_t* hrtdcbins;
-      if(NameHodo[ihodo].Contains("CVC") ||
-         NameHodo[ihodo].Contains("NC")){
-        hrtdcbins = hrtdcbins2;
-      }else{
-        hrtdcbins = hrtdcbins1;
-      }
-      Int_t nseg = NumOfSegHodo[ihodo];
-      for(const auto& uord: std::vector<TString>{"U", "D"} ){
-        auto ud = uord.Data();
-        for(Int_t i=0; i<nseg; ++i){
-          root::HB1(Form("%s_ADC_seg%d%s%s", name, i, ud, p), adcbins);
-          root::HB1(Form("%s_AWT_seg%d%s%s", name, i, ud, p), adcbins);
-          root::HB1(Form("%s_TDC_seg%d%s%s", name, i, ud, p), hrtdcbins);
-        }
-      }
-      for(const auto& uord: std::vector<TString>{"OR", "AND"} ){
-        auto ud = uord.Data();
-        root::HB1(Form("%s_HitPat_%s%s", name, ud, p), nseg, -0.5, nseg - 0.5);
-        root::HB1(Form("%s_Multi_%s%s", name, ud, p), nseg + 1, -0.5, nseg + 0.5);
-      }
-    }
-  }
+  Bool_t flag_particle = true;
+  hist::BuildStatus();
+  hist::BuildTriggerFlag();
+  hist::BuildHodoRaw(flag_particle);
 
   return true;
 }

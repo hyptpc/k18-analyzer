@@ -3,8 +3,18 @@
 
 #include <iostream>
 #include <vector>
-#include "TObject.h"
-#include "TString.h"
+
+#include <TNamed.h>
+#include <TObject.h>
+#include <TString.h>
+
+//_____________________________________________________________________________
+struct EventTriggerFlag : TNamed
+{
+  EventTriggerFlag(const TString& name);
+  Double_t trigger_flag;
+};
+
 
 class HitWire : public TObject
 {
@@ -18,8 +28,8 @@ public:
 
 private:
   Short_t Layer;
-  Short_t Wire;    
-  Short_t Nth;    
+  Short_t Wire;
+  Short_t Nth;
 
 public:
   Int_t layer() const { return Layer; }
@@ -47,9 +57,9 @@ public:
   void get_param(double param[5]) { for(int i=0;i<5;i++) param[i]=Param[i]; }
   int nhits() { return hit.size(); }
   HitWire get_hit(const int &i) { return i<nhits() ? hit[i] : HitWire(-1,-1,-1); }
-  void Print() { 
+  void Print() {
     std::cout<<"---------Track with nhits = "<<nhits()<<std::endl;
-    for(int i=0;i<nhits();i++) get_hit(i).Print(); 
+    for(int i=0;i<nhits();i++) get_hit(i).Print();
   }
   ClassDef(CDCTrackHits,1);
 };
@@ -65,10 +75,10 @@ public:
   void Clear(){ trackContainer.clear(); }
   void add_track(const CDCTrackHits& tra){ trackContainer.push_back(tra); }
   int ntracks() { return trackContainer.size(); }
-  CDCTrackHits get_track(const int &i){ return i<ntracks() ? trackContainer[i]: CDCTrackHits(); }   
-  void Print() { 
+  CDCTrackHits get_track(const int &i){ return i<ntracks() ? trackContainer[i]: CDCTrackHits(); }
+  void Print() {
     std::cout<<"==== Event with ntracks = "<<ntracks()<<std::endl;
-    for(int i=0;i<ntracks();i++) get_track(i).Print(); 
+    for(int i=0;i<ntracks();i++) get_track(i).Print();
   }
   ClassDef(CDCTrackContainer,1);
 };
@@ -110,7 +120,7 @@ inline TString event_tree::get_slewleaf()
   slewleaf+=":deu_t0new/F:deu_bht:deu_t0:deu_veto:deu_def:deu_btc";
   slewleaf+=":ded_t0new/F:ded_bht:ded_t0:ded_veto:ded_def:ded_btc";
   slewleaf+=":seg_t0new/S:seg_bht:seg_t0:seg_veto:seg_def:seg_btc";
-  return slewleaf; 
+  return slewleaf;
 }
 
 
@@ -129,7 +139,7 @@ inline TString event_tree::get_dleaf()
   dleaf+=":de_t0new/F:de_bht:de_t0:de_veto:de_def:de_btc";
   dleaf+=":de_rc[8]";
   dleaf+=":seg_t0new/S:seg_bht:seg_t0:seg_veto:seg_def:seg_btc";
-  return dleaf; 
+  return dleaf;
 }
 
 struct CDHEvent
@@ -167,7 +177,7 @@ inline TString event_tree::get_cdhleaf()
   leaf+=":vcdh_phi_out:vcdh_z_out";
   leaf+=":vbpc_x:vbpc_y:vbpc_z";
   leaf+=":seg_t0/S:seg_cdh:seg_def:pid_cdc:flag_fiducial";
-  return leaf; 
+  return leaf;
 }
 
 #endif

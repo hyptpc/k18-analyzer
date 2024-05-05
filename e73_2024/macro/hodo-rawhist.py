@@ -87,19 +87,29 @@ def draw(name, nseg=0, adcdiv=None, adcrange=None,
   i = 1
   for s in hitmulti:
     c1.cd(i)
-    h1 = ROOT.gFile.Get(f'{name}_HitPat{s}')
-    if h1: h1.Draw()
+    for j, p in enumerate(particle):
+      h1 = ROOT.gFile.Get(f'{name}_HitPat{s}{p}')
+      if h1:
+        if ploop:
+          h1.SetLineColor(pcolor[j])
+        h1.Draw('same')
     i = i + 1
     c1.cd(i)
-    h1 = ROOT.gFile.Get(f'{name}_Multi{s}')
-    if h1:
-      h1.Draw()
-      macrohelper.efficiency(h1)
+    for j, p in enumerate(particle):
+      h1 = ROOT.gFile.Get(f'{name}_Multi{s}{p}')
+      if h1:
+        if ploop:
+          h1.SetLineColor(pcolor[j])
+        h1.Draw('same')
+        macrohelper.efficiency(h1)
     i = i + 1
   c1.Print(fig_path)
 
 #______________________________________________________________________________
 def single_run(run_info):
+  if os.path.basename(run_info['bin']) != 'Hodoscope':
+    logger.error(f'bin must be Hodoscope: run_info={run_info}')
+    return
   macrohelper.initialize(run_info, fig_tail='_rawhist')
   draw('TriggerFlag', nseg=32, tdcdiv=(8, 4), tdcrange=(800, 1200),
        ud=False, ploop=False)
@@ -111,8 +121,6 @@ def single_run(run_info):
        tdcdiv=(2, 2), tdcrange=(1.17e6, 1.21e6))
   draw('T0', nseg=5, adcdiv=(3, 2), adcrange=(0, 2000),
        tdcdiv=(3, 2), tdcrange=(1.20e6, 1.24e6))
-  draw('T0new', nseg=5, adcdiv=(3, 2), adcrange=(0, 2000),
-       tdcdiv=(3, 2), tdcrange=(1.18e6, 1.22e6))
   draw('DEF', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), tdcrange=(1.20e6, 1.25e6))
   draw('Veto', nseg=4, adcdiv=(2, 2), adcrange=(0, 2000),
        tdcdiv=(2, 2), tdcrange=(1.15e6, 1.20e6))

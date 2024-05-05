@@ -16,8 +16,21 @@
 #include "TSystem.h"
 #include "TString.h"
 
+class RawData;
+
 namespace hist
 {
+enum EParticle {
+  kAll, kPion, kKaon, kProton, kNumOfParticle
+};
+const std::vector<TString> particle_list{"", "_Pi", "_K", "_P"};
+
+void BuildStatus();
+void BuildTriggerFlag();
+void BuildHodoRaw(Bool_t flag_particle=false);
+void BuildDCRaw(Bool_t flag_particle=false);
+void BuildDAQ();
+
 inline void H1(TString name,  double val,
                int nbin, double lbin, double ubin);
 inline void H1(TString name,  double val,

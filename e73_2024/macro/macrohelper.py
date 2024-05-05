@@ -51,7 +51,18 @@ def efficiency(h1):
   tex.SetTextColor(h1.GetLineColor())
   tex.SetTextSize(0.08)
   x = 0.45
-  y = 0.70 if h1.GetLineColor() == 602 else 0.62
+  if h1.GetLineColor() == ROOT.kBlack:
+    y = 0.78
+  elif h1.GetLineColor() == ROOT.kBlue+2:
+    y = 0.70
+  elif h1.GetLineColor() == ROOT.kGreen+2:
+    y = 0.62
+  elif h1.GetLineColor() == ROOT.kRed+2:
+    y = 0.54
+  elif h1.GetLineColor() == ROOT.kRed+1:
+    y = 0.62
+  else:
+    y = 0.70
   tex.DrawLatex(x, y, f'eff. {eff:.3f}')
   logger.debug(f'{h1.GetTitle()} eff.={eff:.3f}')
 
@@ -87,7 +98,7 @@ def initialize(run_info, fig_tail=''):
   global c1
   c1 = ROOT.TCanvas('c1', fig_path, 1200, 800)
   ROOT.gFile = ROOT.TFile.Open(root_path)
-  if not ROOT.gFile.IsOpen():
+  if ROOT.gFile == None or not ROOT.gFile.IsOpen():
     logger.error('root file is not open.')
     return
   logger.info(f'open {root_path}')
@@ -125,13 +136,17 @@ def status():
   fig_path = c1.GetTitle()
   h1 = ROOT.gFile.Get('Status')
   if h1:
+    prev_opt = ROOT.gStyle.GetOptStat()
+    ROOT.gStyle.SetOptStat(10)
     entry = h1.GetBinContent(1)
     passed = h1.GetBinContent(h1.GetNbinsX())
+    eff = passed/entry if entry > 0 else ROOT.TMath.QuietNaN()
     logger.info(f'entry={entry:.0f}, passed={passed:.0f} '
-                + f'({passed/entry:.2f})')
+                + f'({eff:.2f})')
     c1.Clear()
     h1.Draw()
     c1.Print(fig_path)
+    ROOT.gStyle.SetOptStat(prev_opt)
 
 #______________________________________________________________________________
 def title():

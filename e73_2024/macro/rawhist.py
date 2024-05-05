@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
          totdiv=None, ud=True):
   logger.info(f'name={name}, nseg={nseg}, adcdiv={adcdiv}, '
-              +'tdcdiv={tdcdiv}, totdiv={totdiv}, ud={ud}')
+              + f'tdcdiv={tdcdiv}, totdiv={totdiv}, ud={ud}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   hitmulti = ['_OR', '_AND'] if ud else ['']
@@ -119,6 +119,9 @@ def dc(name, nlayer=0, tdcdiv=None):
 
 #______________________________________________________________________________
 def single_run(run_info):
+  if os.path.basename(run_info['bin']) != 'RawHist':
+    logger.error(f'bin must be RawHist: run_info={run_info}')
+    return
   macrohelper.initialize(run_info)
   hodo('TriggerFlag', nseg=32, tdcdiv=(8, 4), ud=False)
   hodo('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8))

@@ -35,6 +35,7 @@ const auto& gUnpacker = GUnpacker::get_instance();
 
 typedef std::vector<std::vector<Double_t>> TDCVector;
 typedef std::vector<std::vector<Double_t>> TOTVector;
+
 //_____________________________________________________________________________
 namespace root
 {
