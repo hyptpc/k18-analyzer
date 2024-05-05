@@ -206,6 +206,14 @@ const int DetIdFiducial		= 260;
 
 const int NumOfPlaneVmeRm=3;
 
+namespace beam
+{
+enum EBeamFlag {
+  kAll, kPion, kKaon, kProton, kBeamFlag
+};
+const std::vector<TString> BeamFlagList{"", "_Pi", "_K", "_P"};
+}
+
 namespace trigger
 {
 enum ETriggerFlag {

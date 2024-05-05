@@ -18,19 +18,27 @@ const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 
 namespace hist
 {
+// Raw
 const Double_t hrtdcbins1[3] = {45000, 950000, 1400000};
 const Double_t hrtdcbins2[3] = {50000, 0, 1000000}; // for CVC, NC
 const Double_t hrtotbins[3] = {5000, 0, 50000};
 const Double_t adcbins[3] = {4096, -0.5, 4095.5};
 const Double_t mhtdcbins[3] = {2000, 0, 2000};
 const Double_t mhtotbins[3] = {1000, 0, 1000};
+// HodoHit
+const Double_t hrtimebins[3] = {4000, -200, 200};
+const Double_t mhtimebins[3] = {800, -200, 200};
+const Double_t hrtottimebins[3] = {1000, 0, 200};
+const Double_t debins[3] = {1000, 0, 10};
 
+//_____________________________________________________________________________
 void
 BuildStatus()
 {
   root::HB1("Status", 21, -0.5, 20.5);
 }
 
+//_____________________________________________________________________________
 void
 BuildTriggerFlag()
 {
@@ -42,6 +50,7 @@ BuildTriggerFlag()
   root::HB1(Form("%s_HitPat; Segment; Counts", name), patbins);
 }
 
+//_____________________________________________________________________________
 void
 BuildHodoRaw(Bool_t flag_particle)
 {
@@ -104,6 +113,57 @@ BuildHodoRaw(Bool_t flag_particle)
   }
 }
 
+//_____________________________________________________________________________
+void
+BuildHodoHit(Bool_t flag_particle)
+{
+  for(const auto& particle: std::vector<TString>{"", "_Pi", "_K", "_P"}){
+    const Char_t* p = particle.Data();
+    { // BHT
+      const Char_t* name = "BHT";
+      Int_t nseg = NumOfSegBHT;
+      for(Int_t i=0; i<nseg; ++i){
+        for(const auto& uord : std::vector<TString>{"U", "D"}){
+          const Char_t* ud = uord.Data();
+          root::HB1(Form("%s_Hit_Time_seg%d%s%s", name, i, ud, p), hrtimebins);
+          root::HB1(Form("%s_Hit_CTime_seg%d%s%s", name, i, ud, p), hrtimebins);
+          root::HB1(Form("%s_Hit_TOT_seg%d%s%s", name, i, ud, p), hrtottimebins);
+        }
+      }
+      root::HB1(Form("%s_Hit_HitPat%s", name, p), nseg, -0.5, nseg - 0.5);
+      root::HB1(Form("%s_Hit_Multi%s", name, p), nseg + 1, -0.5, nseg + 0.5);
+    }
+    { // AC
+      const Char_t* name = "AC";
+      Int_t nseg = NumOfSegAC;
+      for(Int_t i=0; i<nseg; ++i){
+        root::HB1(Form("%s_Hit_DeltaE_seg%d%s", name, i, p), debins);
+        root::HB1(Form("%s_Hit_Time_seg%d%s", name, i, p), mhtimebins);
+        root::HB1(Form("%s_Hit_CTime_seg%d%s", name, i, p), mhtimebins);
+      }
+      root::HB1(Form("%s_Hit_HitPat%s", name, p), nseg, -0.5, nseg - 0.5);
+      root::HB1(Form("%s_Hit_Multi%s", name, p), nseg + 1, -0.5, nseg + 0.5);
+    }
+    // Hodoscope
+    for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
+      auto name = NameHodo[ihodo].Data();
+      Int_t nseg = NumOfSegHodo[ihodo];
+      for(const auto& uord: std::vector<TString>{"U", "D"} ){
+        auto ud = uord.Data();
+        for(Int_t i=0; i<nseg; ++i){
+          root::HB1(Form("%s_Hit_DeltaE_seg%d%s%s", name, i, ud, p), debins);
+          root::HB1(Form("%s_Hit_Time_seg%d%s%s", name, i, ud, p), hrtimebins);
+          root::HB1(Form("%s_Hit_CTime_seg%d%s%s", name, i, ud, p), hrtimebins);
+        }
+      }
+      root::HB1(Form("%s_Hit_HitPat_%s", name, p), nseg, -0.5, nseg - 0.5);
+      root::HB1(Form("%s_Hit_Multi_%s", name, p), nseg + 1, -0.5, nseg + 0.5);
+    }
+    if(!flag_particle) break;
+  }
+}
+
+//_____________________________________________________________________________
 void
 BuildDCRaw(Bool_t flag_particle)
 {
@@ -133,6 +193,7 @@ BuildDCRaw(Bool_t flag_particle)
   }
 }
 
+//_____________________________________________________________________________
 void
 BuildDAQ()
 {

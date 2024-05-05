@@ -61,30 +61,12 @@ ProcessNormal()
   evAna.TriggerFlag(rawData);
 
   HF1("Status", 1);
-  // AC
-  Bool_t ac_hit = false;
-  {
-    static const Char_t* name = "AC";
-    const auto& cont = rawData.GetHodoRawHC(DetIdAC);
-    for(Int_t i=0, n=cont.size(); i<n; ++i){
-      auto raw = cont[i];
-      if(!raw) continue;
-      for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
-	Double_t t = raw->GetTdcUp(j);
-        if(gUser.IsInRange(Form("%s_TDC", name), t)){
-          ac_hit = true; break;
-        }
-      }
-    }
-  }
 
-  // ParticleFlag
-  hist::EParticle particle;
-  if(ac_hit) particle = hist::kPion;
-  else particle = hist::kProton;
+  // BeamFlag
+  beam::EBeamFlag beam_flag = evAna.BeamFlag(rawData);
 
   evAna.HodoRawHit(rawData);
-  evAna.HodoRawHit(rawData, particle);
+  evAna.HodoRawHit(rawData, beam_flag);
 
 #if 0
   Bool_t BEAM  = MTDCAna.flag(kBeam);
@@ -409,10 +391,11 @@ ProcessEnd()
 Bool_t
 ConfMan::InitializeHistograms()
 {
-  Bool_t flag_particle = true;
+  Bool_t beam_flag = true;
   hist::BuildStatus();
   hist::BuildTriggerFlag();
-  hist::BuildHodoRaw(flag_particle);
+  hist::BuildHodoRaw(beam_flag);
+  hist::BuildHodoHit(beam_flag);
 
   return true;
 }

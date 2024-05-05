@@ -30,13 +30,12 @@ def output_result(run_info, result_dict, is_hrtdc=True, update=False):
   duplicate = dict()
   with open(output_path, 'w') as f:
     f.write(comment + '\n')
-    result_dict['generator']
     for r in rows:
       if not r[0].isdigit():
         if r[0][0] != '#':
           r[0] = '#' + r[0]
-        # if result_dict['generator'] not in '\t'.join(r):
-        f.write('\t'.join(r) + '\n')
+        if result_dict['generator'] not in r[5]:
+          f.write('\t'.join(r) + '\n')
         continue
       key = (int(r[0]), int(r[1]), int(r[2]), int(r[3]), int(r[4]))
       if key in result_dict and key not in duplicate:

@@ -17,8 +17,6 @@ namespace
 {
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
-using hist::EParticle;
-using hist::particle_list;
 }
 
 //_____________________________________________________________________________
@@ -32,10 +30,35 @@ EventAnalyzer::~EventAnalyzer()
 }
 
 //_____________________________________________________________________________
-void
-EventAnalyzer::HodoRawHit(const RawData& rawData, EParticle particle)
+beam::EBeamFlag
+EventAnalyzer::BeamFlag(const RawData& rawData)
 {
-  const Char_t* p = particle_list.at(particle).Data();
+  Bool_t ac_hit = false;
+  {
+    static const Char_t* name = "AC";
+    const auto& cont = rawData.GetHodoRawHC(DetIdAC);
+    for(Int_t i=0, n=cont.size(); i<n; ++i){
+      auto raw = cont[i];
+      if(!raw) continue;
+      for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
+	Double_t t = raw->GetTdcUp(j);
+        if(gUser.IsInRange(Form("%s_TDC", name), t)){
+          ac_hit = true; break;
+        }
+      }
+    }
+  }
+  if(ac_hit)
+    return beam::kPion;
+  else
+    return beam::kProton;
+}
+
+//_____________________________________________________________________________
+void
+EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
+{
+  const Char_t* p = beam::BeamFlagList.at(beam_flag).Data();
   // BHT
   {
     static const Char_t* name = "BHT";
@@ -137,9 +160,9 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, EParticle particle)
 
 //_____________________________________________________________________________
 void
-EventAnalyzer::DCRawHit(const RawData& rawData, EParticle particle)
+EventAnalyzer::DCRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
 {
-  const Char_t* p = particle_list.at(particle).Data();
+  const Char_t* p = beam::BeamFlagList.at(beam_flag).Data();
   // DC
   for(Int_t idc=0; idc<=kVFT; ++idc){
     const Char_t* name = NameDC[idc].Data();

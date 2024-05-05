@@ -3,6 +3,7 @@
 #ifndef EVENT_ANALYZER_HH
 #define EVENT_ANALYZER_HH
 
+#include "DetectorID.hh"
 #include "Event.hh"
 #include "HistTools.hh"
 
@@ -18,8 +19,9 @@ public:
 private:
 
 public:
-  void HodoRawHit(const RawData& rawData, hist::EParticle particle=hist::kAll);
-  void DCRawHit(const RawData& rawData, hist::EParticle particle=hist::kAll);
+  beam::EBeamFlag BeamFlag(const RawData& rawData);
+  void HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag=beam::kAll);
+  void DCRawHit(const RawData& rawData, beam::EBeamFlag beam_flag=beam::kAll);
   void TriggerFlag(const RawData& rawData);
   void DAQ(const RawData& rawData);
 };
