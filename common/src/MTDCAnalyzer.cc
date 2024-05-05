@@ -11,7 +11,7 @@
 
 #include "DebugCounter.hh"
 #include "DeleteUtility.hh"
-#include "MTDCHit.hh"
+#include "HodoHit.hh"
 #include "RawData.hh"
 
 namespace
@@ -48,14 +48,14 @@ bool
 MTDCAnalyzer::DecodeMTDCHits( const int &detid, MTDCHitContainer &m_Cont)
 {
   del::ClearContainer( m_Cont );
-  const MTDCRHitContainer &cont = m_raw_data->GetMTDCRawHC(detid);
+  const auto& cont = m_raw_data->GetHodoRawHitContainer(detid);
   int nh = cont.size();
   //  std::cout<<"DecodeMTDCHits  "<<detid<<"  "<<nh<<std::endl;
   for( int i=0; i<nh; ++i ){
-    MTDCRawHit *hit = cont[i];
+    auto hit = cont[i];
     if( !hit ) continue;
     //    if( hit->GetTdcUp()<=0 || hit->GetTdcDown()<=0 ) continue;
-    MTDCHit *hp = new MTDCHit( hit );
+    auto hp = new HodoHit( hit );
     if( !hp ) continue;
     if( hp->Calculate() ){
       m_Cont.push_back(hp);

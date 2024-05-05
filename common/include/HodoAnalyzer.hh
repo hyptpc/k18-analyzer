@@ -5,279 +5,287 @@
 
 #include <vector>
 
-#include "DetectorID.hh"
-#include "RawData.hh"
-#include "BHTHit.hh"
-#include "Hodo1Hit.hh"
-#include "Hodo2Hit.hh"
+#include <TString.h>
 
-using Hodo1HitContainer = std::vector<Hodo1Hit*>;
-using Hodo2HitContainer = std::vector<Hodo2Hit*>;
-using BHTHitContainer = std::vector<BHTHit*>;
+#include "DeleteUtility.hh"
+#include "DetectorID.hh"
+#include "FiberCluster.hh"
+#include "FuncName.hh"
+#include "HodoCluster.hh"
+#include "HodoHit.hh"
+#include "RawData.hh"
+#include "UserParamMan.hh"
+
+class RawData;
+class BH2Hit;
+class FiberHit;
+// class BH2Cluster;
+
+using HodoClusterContainer = std::vector<HodoCluster*>;
+using HodoCC = std::vector<HodoCluster*>;
 
 //_____________________________________________________________________________
 class HodoAnalyzer
 {
 public:
-  HodoAnalyzer(const RawData& rawData);
+  static TString ClassName();
+  explicit HodoAnalyzer(const RawData& raw_data);
   ~HodoAnalyzer();
-
-  static const TString& ClassName();
 
 private:
   HodoAnalyzer(const HodoAnalyzer&);
   HodoAnalyzer& operator =(const HodoAnalyzer&);
 
 private:
+  template <typename T> using map_t = std::map<TString, T>;
   const RawData* m_raw_data;
-
-#if T98
-  BHTHitContainer         m_BHDCont;
-#elif E73_2024
-  BHTHitContainer         m_BHDCont;
-#else
-  Hodo2HitContainer       m_BHDCont;
-#endif
-  Hodo2HitContainer       m_T0Cont;
-  Hodo2HitContainer       m_T0newCont;
-  Hodo2HitContainer       m_E0Cont;
-  Hodo2HitContainer       m_DEFCont;
-  Hodo2HitContainer       m_StartCont;
-  Hodo2HitContainer       m_StopCont;
-  Hodo2HitContainer       m_CDHCont;
-#if E73
-  Hodo2HitContainer       m_PbF2Cont;
-  Hodo2HitContainer       m_Veto1Cont;
-  Hodo2HitContainer       m_Veto0Cont;
-  Hodo2HitContainer       m_BTCCont;
-#elif E73_2024
-  Hodo2HitContainer       m_PbGCont;
-  Hodo2HitContainer       m_PbF2Cont;
-  Hodo2HitContainer       m_VetoCont;
-  Hodo2HitContainer       m_BTCCont;
-#elif T98
-  Hodo2HitContainer       m_PbGCont;
-  Hodo2HitContainer       m_PbF2Cont;
-  Hodo2HitContainer       m_VetoCont;
-  Hodo2HitContainer       m_BTCCont;
-  Hodo2HitContainer       m_RCCont;
-#elif E15
-  Hodo2HitContainer       m_BVCCont;
-  Hodo2HitContainer       m_CVCCont;
-  Hodo2HitContainer       m_NCCont;
-  Hodo2HitContainer       m_PCCont;
-  Hodo2HitContainer       m_LBCont;
-  Hodo2HitContainer       m_WVCCont;
-  Hodo2HitContainer       m_BDCont;
-  Hodo2HitContainer       m_BPDCont;
-  Hodo2HitContainer       m_IHCont;
-#endif
+  map_t<HodoHC>  m_hodo_hit_collection;
+  map_t<HodoCC>  m_hodo_cluster_collection;
 
 public:
-  Bool_t DecodeRawHits();
-  Bool_t DecodeHodoHits(const Int_t &detid, Hodo2HitContainer &m_Cont);
-  Bool_t DecodeBHTHits(const Int_t &detid, BHTHitContainer &m_Cont);
-  Bool_t DecodeHodo1Hits(const Int_t &detid, Hodo2HitContainer &m_Cont);
+  template <typename T=HodoHit>
+  Bool_t DecodeHits(const TString& name, Double_t max_time_diff=10.);
 
-  inline Int_t  GetNHits(Int_t detID) const;
-  inline Bool_t AddHit(Int_t detID, Hodo2Hit* hp);
-  inline Bool_t AddHit(Int_t detID, BHTHit* hp);
+  const HodoHC& GetHitContainer(const TString& name) const;
+  const HodoCC& GetClusterContainer(const TString& name) const;
 
-  inline Hodo1Hit* Get1Hit(Int_t detID, Int_t i) const;
-  inline Hodo2Hit* GetHit(Int_t detID, Int_t i) const;
+  Int_t  GetNHits(const TString& name) const
+    { return GetHitContainer(name).size(); };
+  Int_t  GetNClusters(const TString& name) const
+    { return GetClusterContainer(name).size(); };
+
+  template <typename T=HodoHit>
+  const T* GetHit(const TString& name, Int_t i=0) const
+    { return dynamic_cast<T*>(GetHitContainer(name).at(i)); }
+
+  template <typename T=HodoCluster>
+  const T* GetCluster(const TString& name, Int_t i=0) const
+    { return dynamic_cast<T*>(GetClusterContainer(name).at(i)); }
+
+  Bool_t ReCalcHit(const TString& name, Bool_t applyRecursively=false);
+  Bool_t ReCalcCluster(const TString& name, Bool_t applyRecursively=false);
   Bool_t ReCalcAll();
 
+  void TimeCut(const TString& name, Double_t min, Double_t max);
+  void TotCut(const TString& name, Double_t min, Double_t max,
+              Bool_t adopt_nan=true);
+  void DeCut(const TString& name, Double_t min, Double_t max);
+
+  const HodoCluster* GetTime0BH2Cluster() const;
+  const HodoCluster* GetBtof0BH1Cluster() const;
+  Double_t Time0() const;
+  Double_t Btof0() const;
+  Double_t Time0Seg() const;
+  Double_t Btof0Seg() const;
+
+private:
+  void ClearBH1Hits();
+  void ClearBH2Hits();
+  void ClearBACHits();
+  void ClearTOFHits();
+  void ClearLACHits();
+  void ClearWCHits();
+  void ClearWCSUMHits();
+  void ClearBFTHits();
+
+  template <typename T>
+  void TimeCut(std::vector<T>& cont, Double_t min, Double_t max);
+  template <typename T>
+  void TotCut(std::vector<T>& cont,
+              Double_t min, Double_t max, Bool_t adopt_nan);
+  template <typename T>
+  void WidthCutR(std::vector<T>& cont,
+                 Double_t min, Double_t max, Bool_t adopt_nan);
+  template <typename T>
+  void AdcCut(std::vector<T>& cont, Double_t min, Double_t max);
+  template <typename T>
+  void DeCut(std::vector<T>& cont, Double_t min, Double_t max);
+
+  template <typename T>
+  static Int_t MakeUpClusters(const std::vector<T*>& HitCont,
+                              HodoCC& ClusterCont,
+                              Int_t MaxClusterSize,
+                              Double_t MaxTimeDiff);
+  template <typename T>
+  static HodoCluster* AllocateCluster(HodoHC& HitCont,
+                                      index_t index);
+  static Bool_t Connectable(const HodoHit* hitA, Int_t indexA,
+                            const HodoHit* hitB, Int_t indexB,
+                            Double_t MaxTimeDiff);
+  static Bool_t Connectable(const FiberHit* hitA, Int_t indexA,
+                            const FiberHit* hitB, Int_t indexB,
+                            Double_t MaxTimeDiff);
+
+  // static Int_t MakeUpClusters(const BH2HitContainer& HitCont,
+  //                             BH2ClusterContainer& ClusterCont,
+  //                             Double_t maxTimeDif);
+  // static Int_t MakeUpClusters(const FiberHitContainer& cont,
+  //                             FiberClusterContainer& ClusterCont,
+  //                             Double_t maxTimeDif,
+  //                             Int_t DifPairId);
 };
 
 //_____________________________________________________________________________
-inline const TString&
+inline TString
 HodoAnalyzer::ClassName()
 {
-  static const TString s_name("HodoAnalyzer");
+  static TString s_name("HodoAnalyzer");
   return s_name;
 }
 
 //_____________________________________________________________________________
+template <typename T>
+inline Bool_t
+HodoAnalyzer::DecodeHits(const TString& name, Double_t max_time_diff)
+{
+  std::vector<T*> CandCont;
+  for(auto& rhit: m_raw_data->GetHodoRawHitContainer(name)){
+    if(!rhit) continue;
+    auto hit = new T(rhit);
+    if(hit && hit->Calculate()){
+      CandCont.push_back(hit);
+    }else{
+      delete hit;
+    }
+  }
+  std::sort(CandCont.begin(), CandCont.end(), T::Compare);
+
+  // m_hodo_hit_collection[name] = CandCont;
+  auto& cont = m_hodo_hit_collection[name];
+  for(auto& hit: cont)
+    delete hit;
+  cont.clear();
+  for(const auto& hit: CandCont)
+    cont.push_back(hit);
+
+#if 1
+  static const auto& gUser = UserParamMan::GetInstance();
+  const auto MaxClusterSize = gUser.Get("MaxClusterSize"+name);
+  const auto MaxTimeDiff    = gUser.Get("MaxTimeDiff"+name);
+  MakeUpClusters<T>(CandCont, m_hodo_cluster_collection[name],
+                    MaxClusterSize, MaxTimeDiff);
+#endif
+
+  return true;
+}
+
+//_____________________________________________________________________________
+template <typename T>
 inline Int_t
-HodoAnalyzer::GetNHits(Int_t detID) const
+HodoAnalyzer::MakeUpClusters(const std::vector<T*>& HitCont,
+                             HodoCC& ClusterCont,
+                             Int_t MaxClusterSize,
+                             Double_t MaxTimeDiff)
 {
-  switch(detID){
-  case DetIdBHD:    return m_BHDCont.size();
-  case DetIdT0:     return m_T0Cont.size();
-  case DetIdT0new:  return m_T0newCont.size();
-  case DetIdE0:     return m_E0Cont.size();
-  case DetIdDEF:    return m_DEFCont.size();
-  case DetIdStart:  return m_StartCont.size();
-  case DetIdStop:   return m_StopCont.size();
-  case DetIdCDH:    return m_CDHCont.size();
-#if E15
-  case DetIdBVC:    return m_BVCCont.size();
-  case DetIdCVC:    return m_CVCCont.size();
-  case DetIdNC:     return m_NCCont.size();
-  case DetIdPC:     return m_PCCont.size();
-  case DetIdLB:     return m_LBCont.size();
-  case DetIdWVC:    return m_WVCCont.size();
-  case DetIdBD:     return m_BDCont.size();
-  case DetIdBPD:    return m_BPDCont.size();
-  case DetIdIH:     return m_IHCont.size();
-#endif
-#if E73
-  case DetIdPbF2:   return m_PbF2Cont.size();
-  case DetIdVeto1:  return m_Veto1Cont.size();
-  case DetIdVeto0:  return m_Veto0Cont.size();
-  case DetIdBTC:    return m_BTCCont.size();
-#endif
-#if E73_2024
-  case DetIdPbG:    return m_PbGCont.size();
-  case DetIdPbF2:   return m_PbF2Cont.size();
-  case DetIdVeto:   return m_VetoCont.size();
-  case DetIdBTC:    return m_BTCCont.size();
-#endif
-#if T98
-  case DetIdPbG:    return m_PbGCont.size();
-  case DetIdPbF2:   return m_PbF2Cont.size();
-  case DetIdVeto:   return m_VetoCont.size();
-  case DetIdBTC:    return m_BTCCont.size();
-  case DetIdRC:     return m_RCCont.size();
-#endif
-  default:
+  del::ClearContainer(ClusterCont);
+
+  if(HitCont.empty())
     return 0;
+
+  for(Int_t iA=0, n=HitCont.size(); iA<n; ++iA){
+    const auto& hitA = HitCont[iA];
+    if(hitA->IsClusteredAll())
+      continue;
+    T* hitLast = hitA;
+    for(Int_t jA=0, mA=hitA->GetEntries(); jA<mA; ++jA){
+      if(hitA->IsClustered(jA))
+        continue;
+      Int_t jLast = jA;
+      HodoHC CandCont;
+      index_t index;
+      hitA->JoinCluster(jA);
+      CandCont.push_back(hitA);
+      index.push_back(jA);
+      for(Int_t iB=iA+1; iB<n; ++iB){
+        if(CandCont.size() == MaxClusterSize)
+          break;
+        const auto& hitB = HitCont[iB];
+        for(Int_t jB=0, mB=hitB->GetEntries(); jB<mB; ++jB){
+          if(hitB->IsClustered(jB))
+            continue;
+          if(Connectable(hitLast, jLast, hitB, jB, MaxTimeDiff)){
+            hitB->JoinCluster(jB);
+            CandCont.push_back(hitB);
+            index.push_back(jB);
+            hitLast = hitB;
+            jLast = jB;
+            break;
+          }
+        }
+      }
+      auto cluster = AllocateCluster<T>(CandCont, index);
+      if(cluster && cluster->IsGood()){
+        ClusterCont.push_back(cluster);
+      }else{
+        delete cluster;
+      }
+    }
   }
+  return ClusterCont.size();
+}
+
+//_____________________________________________________________________________
+template <typename T>
+inline HodoCluster*
+HodoAnalyzer::AllocateCluster(HodoHC& HitCont,
+                              index_t index)
+{
+  return new HodoCluster(HitCont, index);
+}
+
+//_____________________________________________________________________________
+template <>
+inline HodoCluster*
+HodoAnalyzer::AllocateCluster<FiberHit>(HodoHC& HitCont,
+                                        index_t index)
+{
+  return new FiberCluster(HitCont, index);
 }
 
 //_____________________________________________________________________________
 inline Bool_t
-HodoAnalyzer::AddHit(Int_t detID, Hodo2Hit* hp)
+HodoAnalyzer::Connectable(const HodoHit* hitA, Int_t indexA,
+                          const HodoHit* hitB, Int_t indexB,
+                          Double_t MaxTimeDiff)
 {
-  switch(detID){
-#ifndef T98
-#ifndef E73_2024
-  case DetIdBHD:    m_BHDCont.push_back(hp);   return true;
-#endif
-#endif
-  case DetIdT0:     m_T0Cont.push_back(hp);    return true;
-  case DetIdT0new:  m_T0newCont.push_back(hp); return true;
-  case DetIdE0:     m_E0Cont.push_back(hp);    return true;
-  case DetIdDEF:    m_DEFCont.push_back(hp);   return true;
-  case DetIdStart:  m_StartCont.push_back(hp); return true;
-  case DetIdStop:   m_StopCont.push_back(hp);  return true;
-  case DetIdCDH:    m_CDHCont.push_back(hp);   return true;
-#if E15
-  case DetIdBVC:    m_BVCCont.push_back(hp);   return true;
-  case DetIdCVC:    m_CVCCont.push_back(hp);   return true;
-  case DetIdNC:     m_NCCont.push_back(hp);    return true;
-  case DetIdPC:     m_PCCont.push_back(hp);    return true;
-  case DetIdLB:     m_LBCont.push_back(hp);    return true;
-  case DetIdWVC:    m_WVCCont.push_back(hp);   return true;
-  case DetIdBD:     m_BDCont.push_back(hp);    return true;
-  case DetIdBPD:    m_BPDCont.push_back(hp);   return true;
-  case DetIdIH:     m_IHCont.push_back(hp);    return true;
-#endif
-#if E73
-  case DetIdPbF2:   m_PbF2Cont.push_back(hp);  return true;
-  case DetIdVeto1:  m_Veto1Cont.push_back(hp); return true;
-  case DetIdVeto0:  m_Veto0Cont.push_back(hp); return true;
-  case DetIdBTC:    m_BTCCont.push_back(hp);   return true;
-#endif
-#if T98
-  case DetIdPbG:    m_PbGCont.push_back(hp);   return true;
-  case DetIdPbF2:   m_PbF2Cont.push_back(hp);  return true;
-  case DetIdVeto:   m_VetoCont.push_back(hp);  return true;
-  case DetIdBTC:    m_BTCCont.push_back(hp);   return true;
-  case DetIdRC:     m_RCCont.push_back(hp);    return true;
-#endif
-#if E73_2024
-  case DetIdPbG:    m_PbGCont.push_back(hp);   return true;
-  case DetIdPbF2:   m_PbF2Cont.push_back(hp);  return true;
-  case DetIdVeto:   m_VetoCont.push_back(hp);  return true;
-  case DetIdBTC:    m_BTCCont.push_back(hp);   return true;
-#endif
-  default:
-    return false;
-  }
+  Double_t cmtA = hitA->CMeanTime(indexA);
+  Double_t cmtB = hitB->CMeanTime(indexB);
+  Double_t segA = hitA->SegmentId();
+  Double_t segB = hitB->SegmentId();
+  return (true
+          && TMath::Abs(segA - segB) <= 1
+          && TMath::Abs(cmtA - cmtB) < MaxTimeDiff);
 }
 
 //_____________________________________________________________________________
 inline Bool_t
-HodoAnalyzer::AddHit(Int_t detID, BHTHit* hp)
+HodoAnalyzer::Connectable(const FiberHit* hitA, Int_t indexA,
+                          const FiberHit* hitB, Int_t indexB,
+                          Double_t MaxTimeDiff)
 {
-  switch(detID){
-#if T98
-  case DetIdBHD:    m_BHDCont.push_back(hp);   return true;
-#elif E73_2024
-  case DetIdBHD:    m_BHDCont.push_back(hp);   return true;
+  TString planeA = hitA->PlaneName();
+  if(planeA.Contains("P", TString::kIgnoreCase))
+    planeA.ReplaceAll("P", "");
+  TString planeB = hitB->PlaneName();
+  if(planeB.Contains("P", TString::kIgnoreCase))
+    planeB.ReplaceAll("P", "");
+  Double_t cmtA = hitA->CMeanTime(indexA);
+  Double_t cmtB = hitB->CMeanTime(indexB);
+  Double_t posA = hitA->Position();
+  Double_t posB = hitB->Position();
+#if 0
+  hddaq::cout << FUNC_NAME << << std::endl
+              << " " << planeA << " == " << planeB << std::endl
+              << " " << cmtA << " - " << cmtB << " <= " << MaxTimeDiff
+              << std::endl
+              << " " << posA << " - " << posB << " <= " << hitA->dXdW()
+              << std::endl;
 #endif
-  default:
-    return false;
-  }
-}
-
-//_____________________________________________________________________________
-inline Hodo1Hit*
-HodoAnalyzer::Get1Hit(Int_t detID, Int_t i) const
-{
-  if(GetNHits(detID)<=i) return 0;
-  switch(detID){
-#if E15
-  case DetIdWVC:    return (Hodo1Hit*)m_WVCCont.at(i);
-  case DetIdIH:     return (Hodo1Hit*)m_IHCont.at(i);
-#endif
-#if E73
-  case DetIdPbF2:   return (Hodo1Hit*)m_PbF2Cont.at(i);
-  case DetIdVeto0:  return (Hodo1Hit*)m_Veto0Cont.at(i);
-  case DetIdBTC:    return (Hodo1Hit*)m_BTCCont.at(i);
-#endif
-#if T98
-  case DetIdPbG:    return (Hodo1Hit*)m_PbGCont.at(i);
-  case DetIdPbF2:   return (Hodo1Hit*)m_PbF2Cont.at(i);
-#endif
-#if E73_2024
-  case DetIdPbG:    return (Hodo1Hit*)m_PbGCont.at(i);
-  case DetIdPbF2:   return (Hodo1Hit*)m_PbF2Cont.at(i);
-#endif
-  default:
-    return 0;
-  }
-}
-
-//_____________________________________________________________________________
-inline Hodo2Hit*
-HodoAnalyzer::GetHit(Int_t detID, Int_t i) const
-{
-  if(GetNHits(detID)<=i) return 0;
-  switch(detID){
-  case DetIdBHD:    return m_BHDCont.at(i);
-  case DetIdT0:     return m_T0Cont.at(i);
-  case DetIdT0new:  return m_T0newCont.at(i);
-  case DetIdE0:     return m_E0Cont.at(i);
-  case DetIdDEF:    return m_DEFCont.at(i);
-  case DetIdStart:  return m_StartCont.at(i);
-  case DetIdStop:   return m_StopCont.at(i);
-  case DetIdCDH:    return m_CDHCont.at(i);
-#if E15
-  case DetIdBVC:    return m_BVCCont.at(i);
-  case DetIdCVC:    return m_CVCCont.at(i);
-  case DetIdNC:     return m_NCCont.at(i);
-  case DetIdPC:     return m_PCCont.at(i);
-  case DetIdLB:     return m_LBCont.at(i);
-  case DetIdBD:     return m_BDCont.at(i);
-  case DetIdBPD:    return m_BPDCont.at(i);
-#endif
-#if E73
-  case DetIdVeto1:  return m_Veto1Cont.at(i);
-#endif
-#if T98
-  case DetIdVeto:   return m_VetoCont.at(i);
-  case DetIdBTC:    return m_BTCCont.at(i);
-  case DetIdRC:     return m_RCCont.at(i);
-#endif
-#if E73_2024
-  case DetIdVeto:   return m_VetoCont.at(i);
-  case DetIdBTC:    return m_BTCCont.at(i);
-#endif
-  default:
-    return 0;
-  }
+  return (true
+          && planeA.EqualTo(planeB, TString::kIgnoreCase)
+          && TMath::Abs(cmtA - cmtB) <= MaxTimeDiff
+          && TMath::Abs(posA - posB) <= hitA->dXdW()
+    );
 }
 
 #endif

@@ -19,8 +19,7 @@
 //#include "DCTrackSearch.hh"
 #include "DebugCounter.hh"
 #include "DebugTimer.hh"
-#include "Hodo1Hit.hh"
-#include "Hodo2Hit.hh"
+#include "HodoHit.hh"
 #include "HodoAnalyzer.hh"
 #include "HodoCluster.hh"
 #include "RawData.hh"
@@ -138,7 +137,7 @@ DCAnalyzer::DecodeRawHits(e_type k_det, const int &detid, double retiming )
   ClearDCHits(detid);
   for( int layer=0; layer<8; ++layer ){
     if(detid==DetIdFDC&&layer>5) break;
-    const DCRHitContainer &RHitCont=m_raw_data->GetDCRawHC(detid,layer);
+    const auto& RHitCont = m_raw_data->GetDCRawHC(detid, layer);
     int nh = RHitCont.size();
     //    if(detid==DetIdFDC)    std::cout<<"size of raw hit container "<< detid<<"  "<<layer<<"  "<<nh<<std::endl;
     for( int i=0; i<nh; ++i ){

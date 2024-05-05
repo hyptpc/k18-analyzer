@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<xs:schema 
+<xs:schema
     attributeFormDefault="unqualified"
     elementFormDefault="unqualified"
     xmlns:xs="http://www.w3.org/2001/XMLSchema">
@@ -21,6 +21,7 @@
   <xs:attributeGroup name="digitAttrs">
     <xs:attribute name="id"   type="xs:string" default="0"/>
     <xs:attribute name="name" type="xs:string" use="optional"/>
+    <xs:attribute name="type" type="xs:string" use="optional"/>
   </xs:attributeGroup>
 
 
@@ -94,7 +95,7 @@
       <xs:element  name="for"	  type="forType"/>
     </xs:choice>
   </xs:group>
-	    
+
 
   <!-- ______________________________________________________________________-->
   <!-- ______________________________________________________________________-->

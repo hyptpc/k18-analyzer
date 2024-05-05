@@ -135,60 +135,170 @@ ProcessNormal()
     if(particle == "_P" && !is_p) continue;
     const Char_t* p = particle.Data();
     static const Char_t* name = "BHT";
-    const auto& cont = rawData.GetHodoRawHC(DetIdBHT);
-    Int_t multi_or = 0;
-    Int_t multi_and = 0;
-    for(Int_t i=0, n=cont.size(); i<n; ++i){
-      auto raw = cont[i];
-      if(!raw) continue;
-      auto seg = raw->SegmentId();
-      // Up
-      Bool_t u_in_range = false;
-      for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
-	Double_t t = raw->GetTdcUp(j);
-        if(gUser.IsInRange(Form("%s_TDC", name), t))
-          u_in_range = true;
-	root::HF1(Form("%s_TDC_seg%dU%s", name, seg, p), t);
-      }
-      for(Int_t j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
-	Double_t t = raw->GetAdcUp(j); // trailing
-	root::HF1(Form("%s_Trailing_seg%dU%s", name, seg, p), t);
-	if(m == raw->GetSizeTdcUp()){
-	  Double_t l = raw->GetTdcUp(j);
-          if(gUser.IsInRange(Form("%s_TDC", name), l)){
-            root::HF1(Form("%s_TOT_seg%dU%s", name, seg, p), l - t);
+
+    { // RawData
+      const auto& cont = rawData.GetHodoRawHC(DetIdBHT);
+      Int_t multi_or = 0;
+      Int_t multi_and = 0;
+      for(Int_t i=0, n=cont.size(); i<n; ++i){
+        auto raw = cont[i];
+        if(!raw) continue;
+        auto seg = raw->SegmentId();
+        // Up
+        Bool_t u_in_range = false;
+        for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
+          Double_t t = raw->GetTdcUp(j);
+          if(gUser.IsInRange(Form("%s_TDC", name), t))
+            u_in_range = true;
+          root::HF1(Form("%s_TDC_seg%dU%s", name, seg, p), t);
+        }
+        for(Int_t j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
+          Double_t t = raw->GetAdcUp(j); // trailing
+          root::HF1(Form("%s_Trailing_seg%dU%s", name, seg, p), t);
+          if(m == raw->GetSizeTdcUp()){
+            Double_t l = raw->GetTdcUp(j);
+            if(gUser.IsInRange(Form("%s_TDC", name), l)){
+              root::HF1(Form("%s_TOT_seg%dU%s", name, seg, p), l - t);
+            }
           }
-	}
-      }
-      // Down
-      Bool_t d_in_range = false;
-      for(Int_t j=0, m=raw->GetSizeTdcDown(); j<m; ++j){
-	Double_t t = raw->GetTdcDown(j);
-        if(gUser.IsInRange(Form("%s_TDC", name), t))
-          d_in_range = true;
-	root::HF1(Form("%s_TDC_seg%dD%s", name, seg, p), t);
-      }
-      for(Int_t j=0, m=raw->GetSizeAdcDown(); j<m; ++j){
-	Double_t t = raw->GetAdcDown(j); // trailing
-	root::HF1(Form("%s_Trailing_seg%dD%s", name, seg, p), t);
-	if(m == raw->GetSizeTdcDown()){
-	  Double_t l = raw->GetTdcDown(j);
-          if(gUser.IsInRange(Form("%s_TDC", name), l)){
-            root::HF1(Form("%s_TOT_seg%dD%s", name, seg, p), l - t);
+        }
+        // Down
+        Bool_t d_in_range = false;
+        for(Int_t j=0, m=raw->GetSizeTdcDown(); j<m; ++j){
+          Double_t t = raw->GetTdcDown(j);
+          if(gUser.IsInRange(Form("%s_TDC", name), t))
+            d_in_range = true;
+          root::HF1(Form("%s_TDC_seg%dD%s", name, seg, p), t);
+        }
+        for(Int_t j=0, m=raw->GetSizeAdcDown(); j<m; ++j){
+          Double_t t = raw->GetAdcDown(j); // trailing
+          root::HF1(Form("%s_Trailing_seg%dD%s", name, seg, p), t);
+          if(m == raw->GetSizeTdcDown()){
+            Double_t l = raw->GetTdcDown(j);
+            if(gUser.IsInRange(Form("%s_TDC", name), l)){
+              root::HF1(Form("%s_TOT_seg%dD%s", name, seg, p), l - t);
+            }
           }
-	}
+        }
+        if(u_in_range || d_in_range){
+          root::HF1(Form("%s_HitPat_OR%s", name, p), seg);
+          ++multi_or;
+        }
+        if(u_in_range && d_in_range){
+          root::HF1(Form("%s_HitPat_AND%s", name, p), seg);
+          ++multi_and;
+        }
       }
-      if(u_in_range || d_in_range){
-        root::HF1(Form("%s_HitPat_OR%s", name, p), seg);
-        ++multi_or;
-      }
-      if(u_in_range && d_in_range){
-        root::HF1(Form("%s_HitPat_AND%s", name, p), seg);
-        ++multi_and;
-      }
+      root::HF1(Form("%s_Multi_OR%s", name, p), multi_or);
+      root::HF1(Form("%s_Multi_AND%s", name, p), multi_and);
     }
-    root::HF1(Form("%s_Multi_OR%s", name, p), multi_or);
-    root::HF1(Form("%s_Multi_AND%s", name, p), multi_and);
+    { // HodoAna
+      Int_t multi = 0;
+      for(Int_t i=0, nh=hodoAna.GetNHits(DetIdBHT); i<nh; ++i){
+        auto hit = hodoAna.GetHit(DetIdBHT, i);
+        if(!hit) continue;
+        Int_t seg = hit->SegmentId();
+        Int_t nind = hit->GetIndex();
+        for(Int_t j=0; j<nind; ++j){
+          Double_t mt = hit->MeanTime(j);
+          Double_t cmt = hit->CMeanTime(j);
+          if(TMath::Abs(mt) < 1.0)
+            std::cout << mt << std::endl;
+          hist::H1("BHT_Time", mt, 800, -40, 40);
+        }
+        // hit->Print();
+      }
+    //     TString segstr=Form("_seg%d",seg);
+
+    //   hist::H1(name+"_Mul"+segstr,nind,mulbins2);
+    //   hist::H2(name+"_Mul_pat",seg,nind,patbins,mulbins2);
+    //   if(nind>0){
+    //     hist::H1(name+"_Pat",seg,patbins);
+    //     mul++;
+    //   }
+    //   Int_t idx=-1;
+    //   for(Int_t ii=0;ii<nind;ii++){
+    //     Double_t mt  = hit->MeanTime(ii);
+    //     Double_t cmt  =hit->CMeanTime(ii);
+    //     // if(!gUser.IsInRange("BHTTOT",hit->GetAUp(ii)))   continue;
+    //     // if(!gUser.IsInRange("BHTTOT",hit->GetADown(ii))) continue;
+    //     Double_t tof = mt - time0;
+    //     Double_t ctof = cmt - ctime0;
+    //     hist::H1(name+"_MeanTime"        ,mt ,4000,-200,200, trig_add);
+    //     hist::H1(name+"_MeanTime" +segstr,mt ,4000,-200,200, trig_add);
+    //     hist::H1(name+"_CMeanTime"       ,cmt,4000,-200,200, trig_add);
+    //     hist::H1(name+"_CMeanTime"+segstr,cmt,4000,-200,200, trig_add);
+    //     if(time0>-9000){
+    //       hist::H1(name+"_TOF"        ,tof ,2000,-100,100, trig_add);
+    //       hist::H1(name+"_TOF" +segstr,tof ,2000,-100,100, trig_add);
+    //       hist::H1(name+"_cTOF"       ,ctof,2000,-100,100, trig_add);
+    //       hist::H1(name+"_cTOF"+segstr,ctof,2000,-100,100, trig_add);
+    //       Double_t de = hit->DeltaE();
+    //       Double_t demin=-1,demax=19;
+    //       if(cid==DetIdBHT){
+    //         de=hit->DeltaCE(ii);
+    //         demin=0;
+    //         demax=4e4;
+    //       }
+    //       hist::H2(name+"_TOF_dE",tof , de, 200,-50,50, 100, demin, demax, trig_add);
+    //     }
+    //     if(TMath::Abs(mt)>20) continue;
+    //     hist::H2(name+"_EvNum_MeanTime" ,event_number,mt ,evtimebins);
+    //     hist::H2(name+"_EvNum_CMeanTime",event_number,cmt,evtimebins);
+    //     hist::H2(name+"_EvNum_TOF"      ,event_number,tof ,evtimebins);
+    //     hist::H2(name+"_EvNum_cTOF"     ,event_number,ctof,evtimebins);
+    //     TDCHIT=true;
+    //     idx=ii;
+    //     mulgate++;
+    //     hodoseg[ihodo]=seg;
+    //     hodotime[ihodo]=mt;
+    //   } // nindex
+    //   if(cid==DetIdBHT && idx<0) continue;
+    //   Double_t demin=-1,demax=49,demax2=19;
+    //   Double_t au = hit->GetRawHit()->GetAdcUp();
+    //   Double_t ad = hit->GetRawHit()->GetAdcDown();
+    //   Double_t de = hit->DeltaE();
+    //   Double_t deu = hit->GetAUp();
+    //   Double_t ded = hit->GetADown();
+    //   if(cid==DetIdBHT){
+    //     demin=0;demax=1e5;demax2=2e4;
+    //     // au = hit->GetAUp(idx);
+    //     // ad = hit->GetADown(idx);
+    //     // de = hit->DeltaCE(idx);
+    //     // deu = hit->GetCAUp(idx);
+    //     // ded = hit->GetCADown(idx);
+    //   }
+    //   Double_t tmpdebins[3]={1000,demin,demax};
+    //   Double_t tmpdeudbins[6]={100,demin,demax2,100,demin,demax2};
+
+    //   hist::H1(name+"_dE" +segstr,de ,tmpdebins,trig_add);
+    //   hist::H2(name+"_dEud"+segstr,deu,ded,tmpdeudbins,trig_add);
+    //   if(TDCHIT){
+    //     hist::H2(name+"_EvNum_dE",event_number,de,evdebins);
+    //   }
+    //   if(BEAM&&ACHIT){
+    //     if(cid!=DetIdDEF&&!TDCHIT) continue;
+    //     hist::H1(name+"_ADCuwB"+segstr,au,adcbins);
+    //     hist::H1(name+"_ADCdwB"+segstr,ad,adcbins);
+    //     hist::H1(name+"_ADCuwB",au,adcbins);
+    //     hist::H1(name+"_ADCdwB",ad,adcbins);
+    //     hist::H1(name+"_dEuwB"+segstr,deu,tmpdebins);
+    //     hist::H1(name+"_dEdwB"+segstr,ded,tmpdebins);
+    //     hist::H1(name+"_dEuwB",deu,tmpdebins);
+    //     hist::H1(name+"_dEdwB",ded,tmpdebins);
+    //     hist::H2("Run_"+name+"_dEuwB",run_number,deu,400,100,900,100,demin,demax2);
+    //     hist::H2("Run_"+name+"_dEdwB",run_number,ded,400,100,900,100,demin,demax2);
+    //     if(cid==DetIdBHT || cid==DetIdCDH) continue;
+    //     hist::H2("Run_"+name+"_dEuwB"+segstr,run_number,deu,400,100,900,100,demin,demax2);
+    //     hist::H2("Run_"+name+"_dEdwB"+segstr,run_number,ded,400,100,900,100,demin,demax2);
+    //   }
+    // }//for(ihit)
+    // hist::H1(name+"_Mul",mul ,mulbins);
+    // hist::H1(name+"_Mulgate",mulgate,mulbins);
+    // hist::H2(name+"_EvNum_Mul"    ,event_number,mul,evmulbins);
+    // hist::H2(name+"_EvNum_Mulgate",event_number,mulgate,evmulbins);
+    // // decoded hit done
+    }
   }
 
   root::HF1("Status", 2);

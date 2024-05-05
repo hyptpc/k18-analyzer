@@ -125,7 +125,6 @@ def single_run(run_info):
   hodo('AC', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), ud=False)
   hodo('T1', nseg=1, adcdiv=(2, 2), tdcdiv=(2, 2))
   hodo('T0', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
-  hodo('T0new', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
   hodo('DEF', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2))
   hodo('Veto', nseg=4, adcdiv=(2, 2), tdcdiv=(2, 2))
   hodo('BTC', nseg=4, adcdiv=(2, 2), tdcdiv=(2, 2))
@@ -140,7 +139,7 @@ def single_run(run_info):
   dc('BLC2b', nlayer=8, tdcdiv=(4, 2))
   dc('BPC1', nlayer=8, tdcdiv=(4, 2))
   dc('BPC2', nlayer=8, tdcdiv=(4, 2))
-  dc('VFT', nlayer=14, tdcdiv=(5, 3))
+  # dc('VFT', nlayer=14, tdcdiv=(5, 3))
   macrohelper.daq()
   macrohelper.finalize()
 

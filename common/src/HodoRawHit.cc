@@ -1,162 +1,126 @@
-/**
- *  file: HodoRawHit.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "HodoRawHit.hh"
 
 #include <iterator>
 
+#include <TMath.h>
+
+#include <UnpackerConfig.hh>
+#include <UnpackerManager.hh>
+#include <UnpackerXMLReadDigit.hh>
+
 #include "DebugCounter.hh"
+#include "FuncName.hh"
 
 namespace
 {
-  const std::string class_name("HodoRawHit");
+const auto& gUnpackerConf = hddaq::unpacker::GConfig::get_instance();
 }
 
-//______________________________________________________________________________
-HodoRawHit::HodoRawHit( int detector_id, int plane_id, int segment_id )
-  : m_detector_id(detector_id),
+//_____________________________________________________________________________
+HodoRawHit::HodoRawHit(const TString& detector_name,
+                       Int_t plane_id, Int_t segment_id)
+  : m_detector_name(detector_name),
+    m_detector_id(),
+    m_plane_name(),
     m_plane_id(plane_id),
     m_segment_id(segment_id),
-    m_adc1(1, -1), m_adc2(1, -1),
-    m_tdc1(1, -1), m_tdc2(1, -1),
-    m_nhtdc(0)
+    m_adc_high(kNChannel),
+    m_adc_low(kNChannel),
+    m_tdc_leading(kNChannel),
+    m_tdc_trailing(kNChannel),
+    m_tdc_is_overflow(false)
 {
-  debug::ObjectCounter::increase(class_name);
+  static const auto& digit_info = gUnpackerConf.get_digit_info();
+  m_detector_id = digit_info.get_device_id(detector_name.Data());
+  const auto& plane_names = digit_info.get_name_list(m_detector_id);
+  m_plane_name = plane_names.at(plane_id);
+  debug::ObjectCounter::increase(ClassName());
 }
 
-//______________________________________________________________________________
-HodoRawHit::~HodoRawHit( void )
+//_____________________________________________________________________________
+HodoRawHit::~HodoRawHit()
 {
-  debug::ObjectCounter::decrease(class_name);
+  debug::ObjectCounter::decrease(ClassName());
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-HodoRawHit::SetAdc1( int adc )
+HodoRawHit::Clear()
 {
-  if(-1 == m_adc1.at(0))
-    m_adc1.at(0) = adc;
-  else
-    m_adc1.push_back(adc);
+  m_adc_high.clear();
+  m_adc_low.clear();
+  m_tdc_leading.clear();
+  m_tdc_trailing.clear();
+  m_adc_high.resize(kNChannel);
+  m_adc_low.resize(kNChannel);
+  m_tdc_leading.resize(kNChannel);
+  m_tdc_trailing.resize(kNChannel);
 }
 
-//______________________________________________________________________________
-void
-HodoRawHit::SetAdc2( int adc )
+//_____________________________________________________________________________
+Double_t
+HodoRawHit::GetAdcHigh(Int_t i, Int_t j) const
 {
-  if(-1 == m_adc2.at(0))
-    m_adc2.at(0) = adc;
-  else
-    m_adc2.push_back(adc);
-}
-
-//______________________________________________________________________________
-void
-HodoRawHit::SetTdc1( int tdc )
-{
-  if(-1 == m_tdc1.at(0)){
-    m_tdc1.at(0) = tdc;
-    ++m_nhtdc;
-  }else{
-    m_tdc1.push_back(tdc);
+  try{
+    return m_adc_high.at(i).at(j);
+  }catch(const std::out_of_range&){
+    return TMath::QuietNaN();
   }
 }
 
-//______________________________________________________________________________
-void
-HodoRawHit::SetTdc2( int tdc )
+//_____________________________________________________________________________
+Double_t
+HodoRawHit::GetAdcLow(Int_t i, Int_t j) const
 {
-  if(-1 == m_tdc2.at(0)){
-    m_tdc2.at(0) = tdc;
-    ++m_nhtdc;
-  }else{
-    m_tdc2.push_back(tdc);
+  try{
+    return m_adc_low.at(i).at(j);
+  }catch(const std::out_of_range&){
+    return TMath::QuietNaN();
   }
 }
 
-//______________________________________________________________________________
-int
-HodoRawHit::SizeAdc1( void ) const
+//_____________________________________________________________________________
+Double_t
+HodoRawHit::GetTdcLeading(Int_t i, Int_t j) const
 {
-  if(-1 == m_adc1.at(0))
-    return 0;
-  else
-    return m_adc1.size();
+  try{
+    return m_tdc_leading.at(i).at(j);
+  }catch(const std::out_of_range&){
+    return TMath::QuietNaN();
+  }
 }
 
-//______________________________________________________________________________
-int
-HodoRawHit::SizeAdc2( void ) const
+//_____________________________________________________________________________
+Double_t
+HodoRawHit::GetTdcTrailing(Int_t i, Int_t j) const
 {
-  if(-1 == m_adc2.at(0))
-    return 0;
-  else
-    return m_adc2.size();
+  try{
+    return m_tdc_trailing.at(i).at(j);
+  }catch(const std::out_of_range&){
+    return TMath::QuietNaN();
+  }
 }
 
-//______________________________________________________________________________
-int
-HodoRawHit::SizeTdc1( void ) const
-{
-  if(-1 == m_tdc1.at(0))
-    return 0;
-  else
-    return m_tdc1.size();
-}
-
-//______________________________________________________________________________
-int
-HodoRawHit::SizeTdc2( void ) const
-{
-  if(-1 == m_tdc2.at(0))
-    return 0;
-  else
-    return m_tdc2.size();
-}
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-HodoRawHit::Clear( void )
+HodoRawHit::Print(const TString& arg) const
 {
-  m_nhtdc = 0;
-  m_adc1.clear();
-  m_adc2.clear();
-  m_tdc1.clear();
-  m_tdc2.clear();
-  m_adc1.push_back(-1);
-  m_adc2.push_back(-1);
-  m_tdc1.push_back(-1);
-  m_tdc2.push_back(-1);
-}
-
-//______________________________________________________________________________
-void
-HodoRawHit::Print( const std::string& arg )
-{
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-  hddaq::cerr << func_name << " " << arg << std::endl
-	      << "detector_id = " << m_detector_id << std::endl
-	      << "plane_id    = " << m_plane_id    << std::endl
-	      << "segment_id  = " << m_segment_id   << std::endl;
-
-  std::vector<int>::const_iterator itr, end;
-  hddaq::cout << "adc1        = " << m_adc1.size() << " ";
-  std::copy( m_adc1.begin(), m_adc1.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
-  hddaq::cout << std::endl
-	      << "adc2        = " << m_adc2.size() << " ";
-  std::copy( m_adc2.begin(), m_adc2.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
-  hddaq::cout << std::endl
-	      << "tdc1        = " << m_tdc1.size() << " ";
-  std::copy( m_tdc1.begin(), m_tdc1.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
-  hddaq::cout << std::endl
-	      << "tdc2        = " << m_tdc2.size() << " ";
-  std::copy( m_tdc2.begin(), m_tdc2.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
-  hddaq::cout << std::endl;
+  hddaq::cerr << FUNC_NAME << " " << arg << std::endl
+	      << "detector_name = " << m_detector_name << std::endl
+	      << "detector_id   = " << m_detector_id   << std::endl
+	      << "plane_id      = " << m_plane_id      << std::endl
+	      << "segment_id    = " << m_segment_id    << std::endl;
+  for(const auto& data_map: std::map<TString, data_t>
+        {{"adc-hi", m_adc_high}, {"adc-lo", m_adc_low},
+         {"tdc-l ", m_tdc_leading}, {"tdc-t ", m_tdc_trailing}}){
+    for(const auto& cont: data_map.second){
+      hddaq::cout << " " << data_map.first << ":" << cont.size()
+                  << " ";
+      std::copy(cont.begin(), cont.end(),
+                std::ostream_iterator<UInt_t>(hddaq::cout," "));
+    }
+    hddaq::cout << std::endl;
+  }
 }

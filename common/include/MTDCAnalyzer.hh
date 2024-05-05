@@ -10,9 +10,9 @@
 #include "MTDCHit.hh"
 
 class RawData;
-class MTDCHit;
+class HodoHit;
 
-typedef std::vector <MTDCHit*> MTDCHitContainer;
+typedef std::vector <HodoHit*> MTDCHitContainer;
 
 
 //______________________________________________________________________________
@@ -37,7 +37,7 @@ public:
   bool DecodeRawHits();
   bool DecodeMTDCHits( const int &detid, MTDCHitContainer &m_Cont);
   inline int GetNHits(  int detID )  const;
-  inline const MTDCHit* GetHit( int detid, std::size_t i )  const;
+  inline const HodoHit* GetHit( int detid, std::size_t i )  const;
   bool ReCalcAll();
   bool flag(const int &i) { return m_Flag[i]; }
 };
@@ -53,7 +53,7 @@ MTDCAnalyzer::GetNHits( int detID  )  const
   }
 }
 //______________________________________________________________________________
-inline const MTDCHit*
+inline const HodoHit*
 MTDCAnalyzer::GetHit( int detID, std::size_t i ) const
 {
   switch(detID){

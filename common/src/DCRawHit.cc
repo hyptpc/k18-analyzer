@@ -1,55 +1,65 @@
-/**
- *  file: DCRawHit.cc
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #include "DCRawHit.hh"
 
 #include <iostream>
 #include <iterator>
 
-#include "std_ostream.hh"
+#include <UnpackerConfig.hh>
+#include <UnpackerManager.hh>
+#include <UnpackerXMLReadDigit.hh>
+#include <std_ostream.hh>
 
+#include "DCGeomMan.hh"
 #include "DebugCounter.hh"
+#include "FuncName.hh"
 
 namespace
 {
-  const std::string& class_name("DCRawHit");
+const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
+const auto& gGeom = DCGeomMan::GetInstance();
 }
 
-//______________________________________________________________________________
-DCRawHit::DCRawHit( int plane_id, int wire_id )
-  : m_plane_id(plane_id),
-    m_wire_id(wire_id)
+//_____________________________________________________________________________
+DCRawHit::DCRawHit(const TString& detector_name, Int_t plane_id, Int_t wire_id)
+  : m_detector_name(detector_name),
+    m_detector_id(),
+    m_plane_name(),
+    m_plane_id(plane_id),
+    m_dcgeom_layer(),
+    m_wire_id(wire_id),
+    m_tdc(),
+    m_trailing(),
+    m_oftdc(false)
 {
-  m_tdc.clear();
-  m_trailing.clear();
-  debug::ObjectCounter::increase(class_name);
+  static const auto& digit_info = gUConf.get_digit_info();
+  m_detector_id = digit_info.get_device_id(detector_name.Data());
+  const auto& plane_names = digit_info.get_name_list(m_detector_id);
+  m_plane_name = plane_names.at(plane_id);
+  m_dcgeom_layer = plane_id; // gGeom.GetLayerId(m_detector_name+"-"+m_plane_name);
+  debug::ObjectCounter::increase(ClassName());
 }
 
-//______________________________________________________________________________
-DCRawHit::~DCRawHit( void )
+//_____________________________________________________________________________
+DCRawHit::~DCRawHit()
 {
-  debug::ObjectCounter::decrease(class_name);
+  debug::ObjectCounter::decrease(ClassName());
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
-DCRawHit::Print( const std::string& arg ) const
+DCRawHit::Print(const TString& arg) const
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
-  hddaq::cerr << func_name << " " << arg << std::endl
+  hddaq::cerr << FUNC_NAME << " " << arg << std::endl
 	      << "plane_id = " << m_plane_id    << std::endl
 	      << "wire_id  = " << m_wire_id     << std::endl;
-
-  std::vector<int>::const_iterator itr, end;
+  std::vector<Int_t>::const_iterator itr, end;
   hddaq::cout << "tdc      = " << m_tdc.size() << " ";
-  std::copy( m_tdc.begin(), m_tdc.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
+  std::copy(m_tdc.begin(), m_tdc.end(),
+	     std::ostream_iterator<Int_t>(hddaq::cout," "));
   hddaq::cout << std::endl
 	      << "trailing = " << m_trailing.size() << " ";
-  std::copy( m_trailing.begin(), m_trailing.end(),
-	     std::ostream_iterator<int>(hddaq::cout," ") );
+  std::copy(m_trailing.begin(), m_trailing.end(),
+	     std::ostream_iterator<Int_t>(hddaq::cout," "));
   hddaq::cout << std::endl;
 }

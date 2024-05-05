@@ -19,7 +19,6 @@
     <xs:all>
       <xs:element name="skip"        type="xs:int"/>
       <xs:element name="max_loop"    type="xs:int"/>
-<!--      <xs:element name="fifo_length" type="xs:int"/> -->
       <xs:element name="cout"        type="xs:string"/>
       <xs:element name="cerr"        type="xs:string"/>
       <xs:element name="tout"        type="xs:string"/>

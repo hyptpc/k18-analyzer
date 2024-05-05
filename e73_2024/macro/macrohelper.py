@@ -41,6 +41,9 @@ def daq():
 def efficiency(h1):
   nof0 = h1.GetBinContent(1)
   nall = h1.GetEntries()
+  if nall == 0:
+    logger.warning(f'{h1.GetTitle()} nentries=0')
+    return
   eff = 1 - nof0/nall
   tex = ROOT.TLatex()
   tex.SetNDC()

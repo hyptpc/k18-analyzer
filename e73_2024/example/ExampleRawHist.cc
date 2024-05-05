@@ -11,13 +11,13 @@
 #include <DAQNode.hh>
 
 #include "ConfMan.hh"
+#include "DCGeomMan.hh"
 #include "DetectorID.hh"
 #include "RootHelper.hh"
 #include "MTDCRawHit.hh"
 #include "HodoRawHit.hh"
 #include "DCRawHit.hh"
 #include "RawData.hh"
-#include "CDCWireMapMan.hh"
 #include "UserParamMan.hh"
 #include "VEvent.hh"
 #include "HistTools.hh"
@@ -45,16 +45,16 @@ ProcessNormal()
   // Trigger flag
   {
     static const Char_t* name = "TriggerFlag";
-    const auto& cont = rawData.GetMTDCRawHC(DetIdTrigFlag);
-    for(Int_t i=0, n=cont.size(); i<n; ++i){
-      auto raw = cont[i];
-      auto ntu = raw->GetSizeLeading();
-      auto seg = raw->SegmentId();
-      for(Int_t it=0; it<ntu; ++it){
-	Double_t tu = raw->GetLeading(it);
-	root::HF1(Form("%s_TDC_seg%d", name, seg), tu);
+    for(const auto& hit: rawData.GetHodoRawHC(name)){
+      auto seg = hit->SegmentId();
+      if(seg > NumOfSegTrigFlag)
+        continue;
+      Bool_t is_hit = false;
+      for(const auto& tdc: hit->GetArrayTdcUp()){
+	root::HF1(Form("%s_TDC_seg%d", name, seg), tdc);
+        is_hit = true;
       }
-      if(ntu>0){
+      if(is_hit){
 	root::HF1(Form("%s_HitPat", name), seg);
       }
     }
@@ -63,54 +63,34 @@ ProcessNormal()
   // BHT
   {
     static const Char_t* name = "BHT";
-    const auto& cont = rawData.GetHodoRawHC(DetIdBHT);
     Int_t multi_or = 0;
     Int_t multi_and = 0;
-    for(Int_t i=0, n=cont.size(); i<n; ++i){
-      auto raw = cont[i];
-      if(!raw) continue;
-      auto seg = raw->SegmentId();
-      // Up
-      Bool_t u_is_good = false;
-      for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
-	Double_t t = raw->GetTdcUp(j);
-        if(gUser.IsInRange(Form("%s_TDC", name), t))
-          u_is_good = true;
-	root::HF1(Form("%s_TDC_seg%dU", name, seg), t);
-      }
-      for(Int_t j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
-	Double_t t = raw->GetAdcUp(j); // trailing
-	root::HF1(Form("%s_Trailing_seg%dU", name, seg), t);
-	if(m == raw->GetSizeTdcUp()){
-	  Double_t l = raw->GetTdcUp(j);
-          if(gUser.IsInRange(Form("%s_TDC", name), l)){
-            root::HF1(Form("%s_TOT_seg%dU", name, seg), l - t);
+    for(const auto& hit: rawData.GetHodoRawHC(name)){
+      auto seg = hit->SegmentId();
+      Int_t ud_good = 0;
+      for(Int_t ud=0; ud<2; ++ud){
+        for(Int_t i=0, n=hit->GetSizeTdcLeading(ud); i<n; ++i){
+          Double_t t = hit->GetTdc(ud, i);
+          if(gUser.IsInRange(Form("%s_TDC", name), t))
+            ++ud_good;
+          root::HF1(Form("%s_TDC_seg%d%s", name, seg, UorD[ud]), t);
+        }
+        for(Int_t i=0, n=hit->GetSizeTdcTrailing(ud); i<n; ++i){
+          Double_t t = hit->GetTdcTrailing(ud, i);
+          root::HF1(Form("%s_Trailing_seg%d%s", name, seg, UorD[ud]), t);
+          if(n == hit->GetSizeTdcLeading(ud)){
+            Double_t l = hit->GetTdc(ud, i);
+            if(gUser.IsInRange(Form("%s_TDC", name), l)){
+              root::HF1(Form("%s_TOT_seg%d%s", name, seg, UorD[ud]), l - t);
+            }
           }
-	}
+        }
       }
-      // Down
-      Bool_t d_is_good = false;
-      for(Int_t j=0, m=raw->GetSizeTdcDown(); j<m; ++j){
-	Double_t t = raw->GetTdcDown(j);
-        if(gUser.IsInRange(Form("%s_TDC", name), t))
-          d_is_good = true;
-	root::HF1(Form("%s_TDC_seg%dD", name, seg), t);
-      }
-      for(Int_t j=0, m=raw->GetSizeAdcDown(); j<m; ++j){
-	Double_t t = raw->GetAdcDown(j); // trailing
-	root::HF1(Form("%s_Trailing_seg%dD", name, seg), t);
-	if(m == raw->GetSizeTdcDown()){
-	  Double_t l = raw->GetTdcDown(j);
-          if(gUser.IsInRange(Form("%s_TDC", name), l)){
-            root::HF1(Form("%s_TOT_seg%dD", name, seg), l - t);
-          }
-	}
-      }
-      if(u_is_good || d_is_good){
+      if(ud_good >= 1){
         root::HF1(Form("%s_HitPat_OR", name), seg);
         ++multi_or;
       }
-      if(u_is_good && d_is_good){
+      if(ud_good == 2){
         root::HF1(Form("%s_HitPat_AND", name), seg);
         ++multi_and;
       }
@@ -122,34 +102,25 @@ ProcessNormal()
   // AC
   {
     static const Char_t* name = "AC";
-    const auto& cont = rawData.GetHodoRawHC(DetIdAC);
     Int_t multi = 0;
-    for(Int_t i=0, n=cont.size(); i<n; ++i){
-      auto raw = cont[i];
-      if(!raw) continue;
-      Int_t seg = raw->SegmentId();
-      Bool_t is_good = false;
-      for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
-	Double_t t = raw->GetTdcUp(j);
-        if(gUser.IsInRange(Form("%s_TDC", name), t))
+    Bool_t is_good = false;
+    for(const auto& hit: rawData.GetHodoRawHC(name)){
+      Int_t seg = hit->SegmentId();
+      for(const auto& t: hit->GetArrayTdcLeading()){
+        if(gUser.IsInRange(Form("%s_TDC", name), t)){
           is_good = true;
+          root::HF1(Form("%s_HitPat", name), seg);
+          ++multi;
+        }
 	root::HF1(Form("%s_TDC_seg%d", name, seg), t);
       }
-      Double_t suma = 0;
-      for(Int_t j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
-	Double_t a = raw->GetAdcUp(j);
-        suma += a;
-	root::HF1(Form("%s_ADC_seg%d", name, j+1), a);
-        if(is_good)
-          root::HF1(Form("%s_AWT_seg%d", name, j+1), a);
-      }
-      // SUM
-      root::HF1(Form("%s_ADC_seg%d", name, 0), suma);
-      if(is_good){
-        root::HF1(Form("%s_AWT_seg%d", name, 0), suma);
-        root::HF1(Form("%s_HitPat", name), seg);
-        multi++;
-      }
+    }
+    for(const auto& hit: rawData.GetHodoRawHC(name)){
+      Int_t seg = hit->SegmentId();
+      Double_t a = hit->GetAdc();
+      root::HF1(Form("%s_ADC_seg%d", name, seg), a);
+      if(is_good)
+        root::HF1(Form("%s_AWT_seg%d", name, seg), a);
     }
     root::HF1(Form("%s_Multi", name), multi);
   }
@@ -159,44 +130,28 @@ ProcessNormal()
     const Char_t* name = NameHodo[ihodo];
     Int_t multi_or = 0;
     Int_t multi_and = 0;
-    const auto& cont = rawData.GetHodoRawHC(DetIdHodo[ihodo]);
-    for(Int_t i=0, n=cont.size(); i<n; ++i){
-      auto raw = cont[i];
-      if(!raw) continue;
-      auto seg = raw->SegmentId();
-      // Up
-      Bool_t u_is_good = false;
-      for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
-	Double_t t = raw->GetTdcUp(j);
-        if(gUser.IsInRange(Form("%s_TDC", name), t))
-          u_is_good = true;
-	root::HF1(Form("%s_TDC_seg%dU", name, seg), t);
+    for(const auto& hit: rawData.GetHodoRawHC(name)){
+      auto seg = hit->SegmentId();
+      Int_t ud_good = 0;
+      for(Int_t ud=0; ud<2; ++ud){
+        Bool_t is_good = false;
+        for(const auto& t: hit->GetArrayTdc(ud)){
+          if(gUser.IsInRange(Form("%s_TDC", name), t))
+            is_good = true;
+          root::HF1(Form("%s_TDC_seg%d%s", name, seg, UorD[ud]), t);
+        }
+        for(const auto& a: hit->GetArrayAdc(ud)){
+          root::HF1(Form("%s_ADC_seg%d%s", name, seg, UorD[ud]), a);
+          if(is_good)
+            root::HF1(Form("%s_AWT_seg%d%s", name, seg, UorD[ud]), a);
+        }
+        ud_good += is_good;
       }
-      for(Int_t j=0, m=raw->GetSizeAdcUp(); j<m; ++j){
-	Double_t a = raw->GetAdcUp(j);
-	root::HF1(Form("%s_ADC_seg%dU", name, seg), a);
-	if(u_is_good)
-          root::HF1(Form("%s_AWT_seg%dU", name, seg), a);
-      }
-      // Down
-      Bool_t d_is_good = false;
-      for(Int_t j=0, m=raw->GetSizeTdcDown(); j<m; ++j){
-	Double_t t = raw->GetTdcDown(j);
-        if(gUser.IsInRange(Form("%s_TDC", name), t))
-          d_is_good = true;
-	root::HF1(Form("%s_TDC_seg%dD", name, seg), t);
-      }
-      for(Int_t j=0, m=raw->GetSizeAdcDown(); j<m; ++j){
-	Double_t a = raw->GetAdcDown(j);
-	root::HF1(Form("%s_ADC_seg%dD", name, seg), a);
-	if(d_is_good)
-          root::HF1(Form("%s_AWT_seg%dD", name, seg), a);
-      }
-      if(u_is_good || d_is_good){
+      if(ud_good >= 1){
         root::HF1(Form("%s_HitPat_OR", name), seg);
         ++multi_or;
       }
-      if(u_is_good && d_is_good){
+      if(ud_good == 2){
         root::HF1(Form("%s_HitPat_AND", name), seg);
         ++multi_and;
       }
@@ -427,7 +382,9 @@ ConfMan::InitializeHistograms()
 Bool_t
 ConfMan::InitializeParameterFiles()
 {
-  return InitializeParameter<UserParamMan>("USER");
+  return
+    InitializeParameter<UserParamMan>("USER") &&
+    InitializeParameter<DCGeomMan>("DCGEO");
 }
 
 //_____________________________________________________________________________

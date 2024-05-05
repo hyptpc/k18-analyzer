@@ -5,6 +5,8 @@
 #include <Rtypes.h>
 #include <TString.h>
 
+static const Char_t* const UorD[2] = {"U", "D"};
+
 // Counters ___________________________________________________________
 const int DetIdCDH    =   0;
 const int DetIdBHD    =   1;
@@ -94,7 +96,7 @@ const TString NameHodo[kNumHodo] = {
 };
 
 const double  NumOfSegHodo[kNumHodo] = {
-  63, 1, 5, 4, 4,
+  63, 1, 5, 4, 5,
   4, 4,
 #ifdef CDS
   36, 40, 40,
