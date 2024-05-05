@@ -54,6 +54,8 @@ ProcessNormal()
   rawData.DecodeHits();
 
   HodoAnalyzer hodoAna(rawData);
+  hodoAna.DecodeHits<FiberHit>("BHT");
+  hodoAna.TimeCut("BHT");
 
   EventAnalyzer evAna;
 
@@ -67,6 +69,9 @@ ProcessNormal()
 
   evAna.HodoRawHit(rawData);
   evAna.HodoRawHit(rawData, beam_flag);
+
+  evAna.HodoHit(hodoAna);
+  evAna.HodoHit(hodoAna, beam_flag);
 
 #if 0
   Bool_t BEAM  = MTDCAna.flag(kBeam);

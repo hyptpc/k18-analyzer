@@ -77,8 +77,19 @@ HodoAnalyzer::ReCalcAll()
 
 //_____________________________________________________________________________
 void
+HodoAnalyzer::TimeCut(const TString& name)
+{
+  const Double_t min = gUser.Get(name + "_Time", 0);
+  const Double_t max = gUser.Get(name + "_Time", 1);
+  TimeCut(m_hodo_hit_collection[name], min, max);
+  TimeCut(m_hodo_cluster_collection[name], min, max);
+}
+
+//_____________________________________________________________________________
+void
 HodoAnalyzer::TimeCut(const TString& name, Double_t min, Double_t max)
 {
+  TimeCut(m_hodo_hit_collection[name], min, max);
   TimeCut(m_hodo_cluster_collection[name], min, max);
 }
 

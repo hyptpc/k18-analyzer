@@ -66,9 +66,12 @@ public:
   Bool_t ReCalcCluster(const TString& name, Bool_t applyRecursively=false);
   Bool_t ReCalcAll();
 
+  void TimeCut(const TString& name);
   void TimeCut(const TString& name, Double_t min, Double_t max);
+  void TotCut(const TString& name);
   void TotCut(const TString& name, Double_t min, Double_t max,
               Bool_t adopt_nan=true);
+  void DeCut(const TString& name);
   void DeCut(const TString& name, Double_t min, Double_t max);
 
   const HodoCluster* GetTime0BH2Cluster() const;

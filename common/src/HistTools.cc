@@ -129,6 +129,9 @@ BuildHodoHit(Bool_t flag_particle)
           root::HB1(Form("%s_Hit_CTime_seg%d%s%s", name, i, ud, p), hrtimebins);
           root::HB1(Form("%s_Hit_TOT_seg%d%s%s", name, i, ud, p), hrtottimebins);
         }
+        root::HB1(Form("%s_Hit_MeanTime_seg%d%s", name, i, p), hrtimebins);
+        root::HB1(Form("%s_Hit_CMeanTime_seg%d%s", name, i, p), hrtimebins);
+        root::HB1(Form("%s_Hit_MeanTOT_seg%d%s", name, i, p), hrtottimebins);
       }
       root::HB1(Form("%s_Hit_HitPat%s", name, p), nseg, -0.5, nseg - 0.5);
       root::HB1(Form("%s_Hit_Multi%s", name, p), nseg + 1, -0.5, nseg + 0.5);

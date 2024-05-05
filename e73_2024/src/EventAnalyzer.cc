@@ -8,6 +8,7 @@
 
 #include "DCRawHit.hh"
 #include "DetectorID.hh"
+#include "HodoAnalyzer.hh"
 #include "HodoRawHit.hh"
 #include "RawData.hh"
 #include "RootHelper.hh"
@@ -17,6 +18,7 @@ namespace
 {
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
+using root::HF1;
 }
 
 //_____________________________________________________________________________
@@ -72,30 +74,30 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
           Double_t t = hit->GetTdc(ud, i);
           if(gUser.IsInRange(Form("%s_TDC", name), t))
             ++ud_good;
-          root::HF1(Form("%s_TDC_seg%d%s%s", name, seg, UorD[ud], p), t);
+          HF1(Form("%s_TDC_seg%d%s%s", name, seg, UorD[ud], p), t);
         }
         for(Int_t i=0, n=hit->GetSizeTdcTrailing(ud); i<n; ++i){
           Double_t t = hit->GetTdcTrailing(ud, i);
-          root::HF1(Form("%s_Trailing_seg%d%s%s", name, seg, UorD[ud], p), t);
+          HF1(Form("%s_Trailing_seg%d%s%s", name, seg, UorD[ud], p), t);
           if(n == hit->GetSizeTdcLeading(ud)){
             Double_t l = hit->GetTdc(ud, i);
             if(gUser.IsInRange(Form("%s_TDC", name), l)){
-              root::HF1(Form("%s_TOT_seg%d%s%s", name, seg, UorD[ud], p), l - t);
+              HF1(Form("%s_TOT_seg%d%s%s", name, seg, UorD[ud], p), l - t);
             }
           }
         }
       }
       if(ud_good >= 1){
-        root::HF1(Form("%s_HitPat_OR%s", name, p), seg);
+        HF1(Form("%s_HitPat_OR%s", name, p), seg);
         ++multi_or;
       }
       if(ud_good == 2){
-        root::HF1(Form("%s_HitPat_AND%s", name, p), seg);
+        HF1(Form("%s_HitPat_AND%s", name, p), seg);
         ++multi_and;
       }
     }
-    root::HF1(Form("%s_Multi_OR%s", name, p), multi_or);
-    root::HF1(Form("%s_Multi_AND%s", name, p), multi_and);
+    HF1(Form("%s_Multi_OR%s", name, p), multi_or);
+    HF1(Form("%s_Multi_AND%s", name, p), multi_and);
   }
 
   // AC
@@ -108,18 +110,18 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       for(const auto& t: hit->GetArrayTdcLeading()){
         if(gUser.IsInRange(Form("%s_TDC", name), t))
           is_good = true;
-	root::HF1(Form("%s_TDC_seg%d%s", name, seg, p), t);
+	HF1(Form("%s_TDC_seg%d%s", name, seg, p), t);
       }
       if(is_good && seg == 0){
-        root::HF1(Form("%s_HitPat%s", name, p), seg);
+        HF1(Form("%s_HitPat%s", name, p), seg);
         ++multi;
       }
       Double_t a = hit->GetAdc();
-      root::HF1(Form("%s_ADC_seg%d%s", name, seg, p), a);
+      HF1(Form("%s_ADC_seg%d%s", name, seg, p), a);
       if(is_good)
-        root::HF1(Form("%s_AWT_seg%d%s", name, seg, p), a);
+        HF1(Form("%s_AWT_seg%d%s", name, seg, p), a);
     }
-    root::HF1(Form("%s_Multi%s", name, p), multi);
+    HF1(Form("%s_Multi%s", name, p), multi);
   }
 
   // Hodoscope
@@ -135,26 +137,67 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
         for(const auto& t: hit->GetArrayTdc(ud)){
           if(gUser.IsInRange(Form("%s_TDC", name), t))
             is_good = true;
-          root::HF1(Form("%s_TDC_seg%d%s%s", name, seg, UorD[ud], p), t);
+          HF1(Form("%s_TDC_seg%d%s%s", name, seg, UorD[ud], p), t);
         }
         for(const auto& a: hit->GetArrayAdc(ud)){
-          root::HF1(Form("%s_ADC_seg%d%s%s", name, seg, UorD[ud], p), a);
+          HF1(Form("%s_ADC_seg%d%s%s", name, seg, UorD[ud], p), a);
           if(is_good)
-            root::HF1(Form("%s_AWT_seg%d%s%s", name, seg, UorD[ud], p), a);
+            HF1(Form("%s_AWT_seg%d%s%s", name, seg, UorD[ud], p), a);
         }
         ud_good += is_good;
       }
       if(ud_good >= 1){
-        root::HF1(Form("%s_HitPat_OR%s", name, p), seg);
+        HF1(Form("%s_HitPat_OR%s", name, p), seg);
         ++multi_or;
       }
       if(ud_good == 2){
-        root::HF1(Form("%s_HitPat_AND%s", name, p), seg);
+        HF1(Form("%s_HitPat_AND%s", name, p), seg);
         ++multi_and;
       }
     }
-    root::HF1(Form("%s_Multi_OR%s", name, p), multi_or);
-    root::HF1(Form("%s_Multi_AND%s", name, p), multi_and);
+    HF1(Form("%s_Multi_OR%s", name, p), multi_or);
+    HF1(Form("%s_Multi_AND%s", name, p), multi_and);
+  }
+}
+
+//_____________________________________________________________________________
+void
+EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
+{
+  const Char_t* p = beam::BeamFlagList.at(beam_flag).Data();
+  // BHT
+  {
+    static const Char_t* name = "BHT";
+    Int_t multi = 0;
+    for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
+      const auto& hit = hodoAna.GetHit<FiberHit>(name, i);
+      // hit->Print();
+      auto seg = hit->SegmentId();
+      Bool_t is_good = false;
+      for(Int_t j=0, m=hit->GetEntries(); j<m; ++j){
+        auto mt = hit->MeanTime();
+        auto cmt = hit->CMeanTime();
+        auto mtot = hit->MeanTOT();
+        for(Int_t ud=0; ud<2; ++ud){
+          auto time = hit->GetTimeLeading(ud, j);
+          auto ctime = hit->GetTimeLeading(ud, j);
+          // auto t = hit->GetTimeTrailing(ud, j);
+          auto tot = hit->TOT(ud, j);
+          HF1(Form("%s_Hit_Time_seg%d%s%s", name, seg, UorD[ud], p), time);
+          HF1(Form("%s_Hit_CTime_seg%d%s%s", name, seg, UorD[ud], p), ctime);
+          HF1(Form("%s_Hit_TOT_seg%d%s%s", name, seg, UorD[ud], p), tot);
+        }
+        HF1(Form("%s_Hit_MeanTime_seg%d%s", name, seg, p), mt);
+        HF1(Form("%s_Hit_CMeanTime_seg%d%s", name, seg, p), cmt);
+        HF1(Form("%s_Hit_MeanTOT_seg%d%s", name, seg, p), mtot);
+        is_good = true;
+      }
+      if(is_good){
+        HF1(Form("%s_Hit_HitPat%s", name, p), seg);
+        ++multi;
+      }
+    }
+    HF1(Form("%s_Hit_Multi%s", name, p), multi);
   }
 }
 
@@ -188,27 +231,27 @@ EventAnalyzer::DCRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
             if(totcut == "C" && !gUser.IsInRange(Form("%s_TOT", name), tot))
               continue;
             auto c = totcut.Data();
-            root::HF1(Form("%s_%sTDC_layer%d%s", name, c, layer, p), l);
-            root::HF1(Form("%s_%sTrailing_layer%d%s", name, c, layer, p), t);
-            root::HF1(Form("%s_%sTOT_layer%d%s", name, c, layer, p), tot);
+            HF1(Form("%s_%sTDC_layer%d%s", name, c, layer, p), l);
+            HF1(Form("%s_%sTrailing_layer%d%s", name, c, layer, p), t);
+            HF1(Form("%s_%sTOT_layer%d%s", name, c, layer, p), tot);
             if(j == 0){
-              root::HF1(Form("%s_%sTDC1st_layer%d%s", name, c, layer, p), l);
-              root::HF1(Form("%s_%sTrailing1st_layer%d%s", name, c, layer, p), t);
-              root::HF1(Form("%s_%sTOT1st_layer%d%s", name, c, layer, p), tot);
+              HF1(Form("%s_%sTDC1st_layer%d%s", name, c, layer, p), l);
+              HF1(Form("%s_%sTrailing1st_layer%d%s", name, c, layer, p), t);
+              HF1(Form("%s_%sTOT1st_layer%d%s", name, c, layer, p), tot);
             }
           }
         }
         if(hit->GetTdcSize() > 0){
-          root::HF1(Form("%s_HitPat_layer%d%s", name, layer, p), wire);
+          HF1(Form("%s_HitPat_layer%d%s", name, layer, p), wire);
           ++multi;
         }
         if(is_good){
-          root::HF1(Form("%s_CHitPat_layer%d%s", name, layer, p), wire);
+          HF1(Form("%s_CHitPat_layer%d%s", name, layer, p), wire);
           ++cmulti;
         }
       }
-      root::HF1(Form("%s_Multi_layer%d%s", name, layer, p), multi);
-      root::HF1(Form("%s_CMulti_layer%d%s", name, layer, p), cmulti);
+      HF1(Form("%s_Multi_layer%d%s", name, layer, p), multi);
+      HF1(Form("%s_CMulti_layer%d%s", name, layer, p), cmulti);
     }
   }
 }
@@ -224,11 +267,11 @@ EventAnalyzer::TriggerFlag(const RawData& rawData)
       continue;
     Bool_t is_hit = false;
     for(const auto& tdc: hit->GetArrayTdcUp()){
-      root::HF1(Form("%s_TDC_seg%d", name, seg), tdc);
+      HF1(Form("%s_TDC_seg%d", name, seg), tdc);
       is_hit = true;
     }
     if(is_hit){
-      root::HF1(Form("%s_HitPat", name), seg);
+      HF1(Form("%s_HitPat", name), seg);
     }
   }
 }
@@ -258,5 +301,5 @@ EventAnalyzer::DAQ(const RawData& rawData)
   }
   auto node_id = gUnpacker.get_fe_id("k18breb");
   auto data_size = gUnpacker.get_node_header(node_id, k_data_size);
-  root::HF1("EB_DataSize", data_size);
+  HF1("EB_DataSize", data_size);
 }

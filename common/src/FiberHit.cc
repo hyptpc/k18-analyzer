@@ -82,9 +82,9 @@ FiberHit::Calculate()
   }
   m_time_trailing = trailing;
 
-  Int_t layer = gGeom.GetDetectorId(DetectorName()+"-"+PlaneName());
-  m_position = gGeom.CalcWirePosition(layer, seg);
-  m_dxdw     = gGeom.dXdW(layer);
+  // Int_t layer = gGeom.GetDetectorId(DetectorName()+"-"+PlaneName());
+  // m_position = gGeom.CalcWirePosition(layer, seg);
+  // m_dxdw     = gGeom.dXdW(layer);
 
   return true;
 
