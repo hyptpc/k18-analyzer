@@ -68,6 +68,10 @@ struct Event
   Double_t baca[NumOfSegBAC];
   Double_t bact[NumOfSegBAC][MaxDepth];
 
+  Int_t bac1nhits;
+  Int_t bac2nhits;
+
+
   Int_t tofnhits;
   Int_t tofhitpat[MaxHits];
   Double_t tofua[NumOfSegTOF];
@@ -166,6 +170,8 @@ Event::clear()
   spill      = 0;
   bh1nhits   = 0;
   bacnhits   = 0;
+  bac1nhits   = 0;
+  bac2nhits   = 0;
   bh2nhits   = 0;
   tofnhits   = 0;
   ac1nhits   = 0;
@@ -515,6 +521,7 @@ ProcessingNormal()
   //****************** RawData
 
   // Trigger Flag
+  rawData.DecodeHits("TFlag");
   std::bitset<NumOfSegTrig> trigger_flag;
   for(const auto& hit: rawData.GetHodoRawHC("TFlag")){
     Int_t seg = hit->SegmentId();
@@ -641,6 +648,8 @@ ProcessingNormal()
   rawData.DecodeHits("BAC");
   {
     Int_t bac_nhits = 0;
+    Int_t bac1_nhits = 0;
+    Int_t bac2_nhits = 0;
     const auto& cont = rawData.GetHodoRawHC("BAC");
     Int_t nh = cont.size();
     HF1(BACHid, nh);
@@ -657,7 +666,11 @@ ProcessingNormal()
       for(const auto& T: hit->GetArrayTdcLeading()){
         HF1(BACHid+100*seg+3, T);
         if(m < MaxDepth) event.bact[seg-1][m++] = T;
-        if(MinTdcBAC < T && T < MaxTdcBAC) is_hit = true;
+        if(MinTdcBAC < T && T < MaxTdcBAC){
+	  is_hit = true;
+	  if(seg==1)++bac1_nhits;
+	  if(seg==2)++bac2_nhits;
+	}
       }
       if(is_hit) HF1(BACHid+100*seg+5, A);
       else       HF1(BACHid+100*seg+7, A);
@@ -669,6 +682,8 @@ ProcessingNormal()
     }
     HF1(BACHid+2, nh1);
     event.bacnhits = bac_nhits;
+    event.bac1nhits = bac1_nhits;
+    event.bac2nhits = bac2_nhits;
   }
 
   ///// TOF
@@ -2016,6 +2031,8 @@ ConfMan::InitializeHistograms()
   tree->Branch("bachitpat",   event.bachitpat,  Form("bachitpat[%d]/I", NumOfSegBAC));
   tree->Branch("baca",        event.baca,       Form("baca[%d]/D", NumOfSegBAC));
   tree->Branch("bact",        event.bact,       Form("bact[%d][%d]/D", NumOfSegBAC, MaxDepth));
+  tree->Branch("bac1nhits",   &event.bac1nhits,   "bac1nhits/I");
+  tree->Branch("bac2nhits",   &event.bac2nhits,   "bac2nhits/I");
   //TOF
   tree->Branch("tofnhits",   &event.tofnhits,   "tofnhits/I");
   tree->Branch("tofhitpat",   event.tofhitpat,  Form("tofhitpat[%d]/I", NumOfSegTOF));

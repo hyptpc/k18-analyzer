@@ -135,6 +135,7 @@ HodoHit::Calculate()
   if(m_n_ch == 1){
     m_time_leading.at(U) = leading.at(U);
     m_ctime_leading.at(U) = cleading.at(U);
+    m_is_clustered.resize(leading.at(U).size(), false);
   }
   // two-side readout
   else{
