@@ -71,6 +71,7 @@ struct Event
   Double_t pos[NumOfLayersSdcIn][MaxHits];
 
   Int_t ntrack;
+  Int_t hitlayer[MaxHits][NumOfLayersSdcIn];
   Double_t chisqr[MaxHits];
   Double_t x0[MaxHits];
   Double_t y0[MaxHits];
@@ -113,6 +114,9 @@ Event::clear()
     y0[it]     = qnan;
     u0[it]     = qnan;
     v0[it]     = qnan;
+    for(Int_t jt=0; jt<NumOfLayersSdcIn; jt++){
+      hitlayer[it][jt] = qnan;
+    }
   }
 
   for(Int_t it = 0; it<NumOfLayersSdcIn; it++){
@@ -431,6 +435,7 @@ ProcessingNormal()
       DCLTrackHit *hit=tp->GetHit(ih);
       if(!hit) continue;
       Int_t layerId = hit->GetLayer();
+      event.hitlayer[it][ih] = layerId;
       HF1(13, layerId);
 
       Double_t wire=hit->GetWire();
@@ -680,11 +685,13 @@ ConfMan:: InitializeHistograms()
 
   tree->Branch("nhit", &event.nhit, Form("nhit[%d]/I", NumOfLayersSdcIn));
   tree->Branch("nlayer", &event.nlayer, "nlayer/I");
-  tree->Branch("ntrack", &event.ntrack, "ntrack/I");
   tree->Branch("wirepos",    &event.wirepos, Form("wirepos[%d][%d]/D",
                                           NumOfLayersSdcIn, MaxHits));
   tree->Branch("pos",    &event.pos, Form("pos[%d][%d]/D",
                                           NumOfLayersSdcIn, MaxHits));
+  tree->Branch("ntrack", &event.ntrack, "ntrack/I");
+  tree->Branch("hitlayer", &event.hitlayer, Form("hitlayer[%d][%d]/I",
+						 MaxHits, NumOfLayersSdcIn));
   tree->Branch("chisqr", event.chisqr,   "chisqr[ntrack]/D");
   tree->Branch("x0",     event.x0,       "x0[ntrack]/D");
   tree->Branch("y0",     event.y0,       "y0[ntrack]/D");
