@@ -19,6 +19,7 @@ namespace
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
 using root::HF1;
+using root::HF2;
 }
 
 //_____________________________________________________________________________
@@ -190,6 +191,12 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
         HF1(Form("%s_Hit_MeanTime_seg%d%s", name, seg, p), mt);
         HF1(Form("%s_Hit_CMeanTime_seg%d%s", name, seg, p), cmt);
         HF1(Form("%s_Hit_MeanTOT_seg%d%s", name, seg, p), mtot);
+        HF1(Form("%s_Hit_MeanTime%s", name, p), mt);
+        HF1(Form("%s_Hit_CMeanTime%s", name, p), cmt);
+        HF1(Form("%s_Hit_MeanTOT%s", name, p), mtot);
+        HF2(Form("%s_Hit_MeanTime_vs_HitPat%s", name, p), seg, mt);
+        HF2(Form("%s_Hit_CMeanTime_vs_HitPat%s", name, p), seg, cmt);
+        HF2(Form("%s_Hit_MeanTOT_vs_HitPat%s", name, p), seg, mtot);
         is_good = true;
       }
       if(is_good){

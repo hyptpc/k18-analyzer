@@ -55,7 +55,7 @@ ProcessNormal()
 
   HodoAnalyzer hodoAna(rawData);
   hodoAna.DecodeHits<FiberHit>("BHT");
-  hodoAna.TimeCut("BHT");
+  // hodoAna.TimeCut("BHT");
 
   EventAnalyzer evAna;
 

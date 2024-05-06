@@ -118,7 +118,8 @@ def run(run_list, target):
   logger.debug(f'run_list={run_list}')
   proc_list = list()
   for run_info in runlist_manager.get_run_list():
-    proc = mp.Process(target=target, args=(run_info,))
+    proc = mp.Process(target=target, args=(run_info,),
+                      name=f'[{run_info["key"]:05d}]')
     proc.start()
     proc_list.append(proc)
   try:

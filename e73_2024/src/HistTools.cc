@@ -26,8 +26,8 @@ const Double_t adcbins[3] = {4096, -0.5, 4095.5};
 const Double_t mhtdcbins[3] = {2000, 0, 2000};
 const Double_t mhtotbins[3] = {1000, 0, 1000};
 // HodoHit
-const Double_t hrtimebins[3] = {4000, -200, 200};
-const Double_t mhtimebins[3] = {800, -200, 200};
+const Double_t hrtimebins[3] = {5000, -50, 50};
+const Double_t mhtimebins[3] = {500, -50, 50};
 const Double_t hrtottimebins[3] = {1000, 0, 200};
 const Double_t debins[3] = {1000, 0, 10};
 
@@ -52,37 +52,37 @@ BuildTriggerFlag()
 
 //_____________________________________________________________________________
 void
-BuildHodoRaw(Bool_t flag_particle)
+BuildHodoRaw(Bool_t flag_beam_particle)
 {
-  for(const auto& particle: std::vector<TString>{"", "_Pi", "_K", "_P"}){
-    const Char_t* p = particle.Data();
+  for(const auto& beam: std::vector<TString>{"", "_Pi", "_K", "_P"}){
+    const Char_t* b = beam.Data();
     { // BHT
       const Char_t* name = "BHT";
       Int_t nseg = NumOfSegBHT;
       for(Int_t i=0; i<nseg; ++i){
         for(const auto& uord : std::vector<TString>{"U", "D"}){
           const Char_t* ud = uord.Data();
-          root::HB1(Form("%s_TDC_seg%d%s%s", name, i, ud, p), hrtdcbins1);
-          root::HB1(Form("%s_Trailing_seg%d%s%s", name, i, ud, p), hrtdcbins1);
-          root::HB1(Form("%s_TOT_seg%d%s%s", name, i, ud, p), hrtotbins);
+          root::HB1(Form("%s_TDC_seg%d%s%s", name, i, ud, b), hrtdcbins1);
+          root::HB1(Form("%s_Trailing_seg%d%s%s", name, i, ud, b), hrtdcbins1);
+          root::HB1(Form("%s_TOT_seg%d%s%s", name, i, ud, b), hrtotbins);
         }
       }
       for(const auto& uord: std::vector<TString>{"OR", "AND"} ){
         auto ud = uord.Data();
-        root::HB1(Form("%s_HitPat_%s%s", name, ud, p), nseg, -0.5, nseg - 0.5);
-        root::HB1(Form("%s_Multi_%s%s", name, ud, p), nseg + 1, -0.5, nseg + 0.5);
+        root::HB1(Form("%s_HitPat_%s%s", name, ud, b), nseg, -0.5, nseg - 0.5);
+        root::HB1(Form("%s_Multi_%s%s", name, ud, b), nseg + 1, -0.5, nseg + 0.5);
       }
     }
     { // AC
       const Char_t* name = "AC";
       Int_t nseg = NumOfSegAC;
       for(Int_t i=0; i<nseg; ++i){
-        root::HB1(Form("%s_ADC_seg%d%s", name, i, p), adcbins);
-        root::HB1(Form("%s_AWT_seg%d%s", name, i, p), adcbins);
-        root::HB1(Form("%s_TDC_seg%d%s", name, i, p), mhtdcbins);
+        root::HB1(Form("%s_ADC_seg%d%s", name, i, b), adcbins);
+        root::HB1(Form("%s_AWT_seg%d%s", name, i, b), adcbins);
+        root::HB1(Form("%s_TDC_seg%d%s", name, i, b), mhtdcbins);
       }
-      root::HB1(Form("%s_HitPat%s", name, p), nseg, -0.5, nseg - 0.5);
-      root::HB1(Form("%s_Multi%s", name, p), nseg + 1, -0.5, nseg + 0.5);
+      root::HB1(Form("%s_HitPat%s", name, b), nseg, -0.5, nseg - 0.5);
+      root::HB1(Form("%s_Multi%s", name, b), nseg + 1, -0.5, nseg + 0.5);
     }
     // Hodoscope
     for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
@@ -98,54 +98,64 @@ BuildHodoRaw(Bool_t flag_particle)
       for(const auto& uord: std::vector<TString>{"U", "D"} ){
         auto ud = uord.Data();
         for(Int_t i=0; i<nseg; ++i){
-          root::HB1(Form("%s_ADC_seg%d%s%s", name, i, ud, p), adcbins);
-          root::HB1(Form("%s_AWT_seg%d%s%s", name, i, ud, p), adcbins);
-          root::HB1(Form("%s_TDC_seg%d%s%s", name, i, ud, p), hrtdcbins);
+          root::HB1(Form("%s_ADC_seg%d%s%s", name, i, ud, b), adcbins);
+          root::HB1(Form("%s_AWT_seg%d%s%s", name, i, ud, b), adcbins);
+          root::HB1(Form("%s_TDC_seg%d%s%s", name, i, ud, b), hrtdcbins);
         }
       }
       for(const auto& uord: std::vector<TString>{"OR", "AND"} ){
         auto ud = uord.Data();
-        root::HB1(Form("%s_HitPat_%s%s", name, ud, p), nseg, -0.5, nseg - 0.5);
-        root::HB1(Form("%s_Multi_%s%s", name, ud, p), nseg + 1, -0.5, nseg + 0.5);
+        root::HB1(Form("%s_HitPat_%s%s", name, ud, b), nseg, -0.5, nseg - 0.5);
+        root::HB1(Form("%s_Multi_%s%s", name, ud, b), nseg + 1, -0.5, nseg + 0.5);
       }
     }
-    if(!flag_particle) break;
+    if(!flag_beam_particle) break;
   }
 }
 
 //_____________________________________________________________________________
 void
-BuildHodoHit(Bool_t flag_particle)
+BuildHodoHit(Bool_t flag_beam_particle)
 {
-  for(const auto& particle: std::vector<TString>{"", "_Pi", "_K", "_P"}){
-    const Char_t* p = particle.Data();
+  for(const auto& beam: std::vector<TString>{"", "_Pi", "_K", "_P"}){
+    const Char_t* b = beam.Data();
     { // BHT
       const Char_t* name = "BHT";
-      Int_t nseg = NumOfSegBHT;
+      Double_t nseg = NumOfSegBHT;
       for(Int_t i=0; i<nseg; ++i){
         for(const auto& uord : std::vector<TString>{"U", "D"}){
           const Char_t* ud = uord.Data();
-          root::HB1(Form("%s_Hit_Time_seg%d%s%s", name, i, ud, p), hrtimebins);
-          root::HB1(Form("%s_Hit_CTime_seg%d%s%s", name, i, ud, p), hrtimebins);
-          root::HB1(Form("%s_Hit_TOT_seg%d%s%s", name, i, ud, p), hrtottimebins);
+          root::HB1(Form("%s_Hit_Time_seg%d%s%s", name, i, ud, b), hrtimebins);
+          root::HB1(Form("%s_Hit_CTime_seg%d%s%s", name, i, ud, b), hrtimebins);
+          root::HB1(Form("%s_Hit_TOT_seg%d%s%s", name, i, ud, b), hrtottimebins);
         }
-        root::HB1(Form("%s_Hit_MeanTime_seg%d%s", name, i, p), hrtimebins);
-        root::HB1(Form("%s_Hit_CMeanTime_seg%d%s", name, i, p), hrtimebins);
-        root::HB1(Form("%s_Hit_MeanTOT_seg%d%s", name, i, p), hrtottimebins);
+        root::HB1(Form("%s_Hit_MeanTime_seg%d%s", name, i, b), hrtimebins);
+        root::HB1(Form("%s_Hit_CMeanTime_seg%d%s", name, i, b), hrtimebins);
+        root::HB1(Form("%s_Hit_MeanTOT_seg%d%s", name, i, b), hrtottimebins);
       }
-      root::HB1(Form("%s_Hit_HitPat%s", name, p), nseg, -0.5, nseg - 0.5);
-      root::HB1(Form("%s_Hit_Multi%s", name, p), nseg + 1, -0.5, nseg + 0.5);
+      root::HB1(Form("%s_Hit_MeanTime%s", name, b), hrtimebins);
+      root::HB1(Form("%s_Hit_CMeanTime%s", name, b), hrtimebins);
+      root::HB1(Form("%s_Hit_MeanTOT%s", name, b), hrtottimebins);
+      const Double_t hrtimebins2d[6] = { nseg, -0.5, nseg - 0.5,
+        hrtimebins[0]/10, hrtimebins[1], hrtimebins[2] };
+      const Double_t hrtottimebins2d[6] = { nseg, -0.5, nseg - 0.5,
+        hrtottimebins[0]/5, hrtottimebins[1], hrtottimebins[2] };
+      root::HB2(Form("%s_Hit_MeanTime_vs_HitPat%s", name, b), hrtimebins2d);
+      root::HB2(Form("%s_Hit_CMeanTime_vs_HitPat%s", name, b), hrtimebins2d);
+      root::HB2(Form("%s_Hit_MeanTOT_vs_HitPat%s", name, b), hrtottimebins2d);
+      root::HB1(Form("%s_Hit_HitPat%s", name, b), nseg, -0.5, nseg - 0.5);
+      root::HB1(Form("%s_Hit_Multi%s", name, b), nseg + 1, -0.5, nseg + 0.5);
     }
     { // AC
       const Char_t* name = "AC";
       Int_t nseg = NumOfSegAC;
       for(Int_t i=0; i<nseg; ++i){
-        root::HB1(Form("%s_Hit_DeltaE_seg%d%s", name, i, p), debins);
-        root::HB1(Form("%s_Hit_Time_seg%d%s", name, i, p), mhtimebins);
-        root::HB1(Form("%s_Hit_CTime_seg%d%s", name, i, p), mhtimebins);
+        root::HB1(Form("%s_Hit_DeltaE_seg%d%s", name, i, b), debins);
+        root::HB1(Form("%s_Hit_Time_seg%d%s", name, i, b), mhtimebins);
+        root::HB1(Form("%s_Hit_CTime_seg%d%s", name, i, b), mhtimebins);
       }
-      root::HB1(Form("%s_Hit_HitPat%s", name, p), nseg, -0.5, nseg - 0.5);
-      root::HB1(Form("%s_Hit_Multi%s", name, p), nseg + 1, -0.5, nseg + 0.5);
+      root::HB1(Form("%s_Hit_HitPat%s", name, b), nseg, -0.5, nseg - 0.5);
+      root::HB1(Form("%s_Hit_Multi%s", name, b), nseg + 1, -0.5, nseg + 0.5);
     }
     // Hodoscope
     for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
@@ -154,24 +164,24 @@ BuildHodoHit(Bool_t flag_particle)
       for(const auto& uord: std::vector<TString>{"U", "D"} ){
         auto ud = uord.Data();
         for(Int_t i=0; i<nseg; ++i){
-          root::HB1(Form("%s_Hit_DeltaE_seg%d%s%s", name, i, ud, p), debins);
-          root::HB1(Form("%s_Hit_Time_seg%d%s%s", name, i, ud, p), hrtimebins);
-          root::HB1(Form("%s_Hit_CTime_seg%d%s%s", name, i, ud, p), hrtimebins);
+          root::HB1(Form("%s_Hit_DeltaE_seg%d%s%s", name, i, ud, b), debins);
+          root::HB1(Form("%s_Hit_Time_seg%d%s%s", name, i, ud, b), hrtimebins);
+          root::HB1(Form("%s_Hit_CTime_seg%d%s%s", name, i, ud, b), hrtimebins);
         }
       }
-      root::HB1(Form("%s_Hit_HitPat_%s", name, p), nseg, -0.5, nseg - 0.5);
-      root::HB1(Form("%s_Hit_Multi_%s", name, p), nseg + 1, -0.5, nseg + 0.5);
+      root::HB1(Form("%s_Hit_HitPat%s", name, b), nseg, -0.5, nseg - 0.5);
+      root::HB1(Form("%s_Hit_Multi%s", name, b), nseg + 1, -0.5, nseg + 0.5);
     }
-    if(!flag_particle) break;
+    if(!flag_beam_particle) break;
   }
 }
 
 //_____________________________________________________________________________
 void
-BuildDCRaw(Bool_t flag_particle)
+BuildDCRaw(Bool_t flag_beam_particle)
 {
-  for(const auto& particle: std::vector<TString>{"", "_Pi", "_K", "_P"}){
-    const Char_t* p = particle.Data();
+  for(const auto& beam: std::vector<TString>{"", "_Pi", "_K", "_P"}){
+    const Char_t* b = beam.Data();
     for(Int_t idc=0; idc<=kVFT; ++idc){
       const Char_t* name = NameDC[idc].Data();
       Int_t nlayer = NumOfLayerDC[idc];
@@ -181,18 +191,18 @@ BuildDCRaw(Bool_t flag_particle)
       for(Int_t layer=0; layer<nlayer; ++layer){
         for(const auto& totcut: std::vector<TString>{"", "C"}){
           auto c = totcut.Data();
-          root::HB1(Form("%s_%sTDC_layer%d%s", name, c, layer, p), mhtdcbins);
-          root::HB1(Form("%s_%sTDC1st_layer%d%s", name, c, layer, p), mhtdcbins);
-          root::HB1(Form("%s_%sTrailing_layer%d%s", name, c, layer, p), mhtdcbins);
-          root::HB1(Form("%s_%sTrailing1st_layer%d%s", name, c, layer, p), mhtdcbins);
-          root::HB1(Form("%s_%sTOT_layer%d%s", name, c, layer, p), mhtotbins);
-          root::HB1(Form("%s_%sTOT1st_layer%d%s", name, c, layer, p), mhtotbins);
-          root::HB1(Form("%s_%sHitPat_layer%d%s", name, c, layer, p), patbins);
-          root::HB1(Form("%s_%sMulti_layer%d%s", name, c, layer, p), mulbins);
+          root::HB1(Form("%s_%sTDC_layer%d%s", name, c, layer, b), mhtdcbins);
+          root::HB1(Form("%s_%sTDC1st_layer%d%s", name, c, layer, b), mhtdcbins);
+          root::HB1(Form("%s_%sTrailing_layer%d%s", name, c, layer, b), mhtdcbins);
+          root::HB1(Form("%s_%sTrailing1st_layer%d%s", name, c, layer, b), mhtdcbins);
+          root::HB1(Form("%s_%sTOT_layer%d%s", name, c, layer, b), mhtotbins);
+          root::HB1(Form("%s_%sTOT1st_layer%d%s", name, c, layer, b), mhtotbins);
+          root::HB1(Form("%s_%sHitPat_layer%d%s", name, c, layer, b), patbins);
+          root::HB1(Form("%s_%sMulti_layer%d%s", name, c, layer, b), mulbins);
         }
       }
     }
-    if(!flag_particle) break;
+    if(!flag_beam_particle) break;
   }
 }
 
