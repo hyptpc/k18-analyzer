@@ -339,16 +339,18 @@ RawData::GetDCRawHitContainer(Int_t det_id, Int_t plane) const
 
 //_____________________________________________________________________________
 void
-RawData::Print(Option_t*) const
+RawData::Print(Option_t* arg) const
 {
   for(const auto& p: m_hodo_raw_hit_collection){
     for(const auto& hit: p.second){
-      hit->Print();
+      if(!arg || hit->DetectorName().EqualTo(arg))
+        hit->Print();
     }
   }
   for(const auto& p: m_dc_raw_hit_collection){
     for(const auto& hit: p.second){
-      hit->Print();
+      if(!arg || hit->DetectorName().EqualTo(arg))
+        hit->Print();
     }
   }
 }

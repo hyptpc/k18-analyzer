@@ -22,8 +22,11 @@ NC_TDC		600000	650000
 #______________________________________________________________________________
 # HodoAna
 BHT_Time	-5	5
+T0_Time		-5	5
 MaxClusterSizeBHT	1
+MaxClusterSizeT0	1
 MaxTimeDiffBHT		10
+MaxTimeDiffT0		10
 
 #______________________________________________________________________________
 # DC TDC	min	max

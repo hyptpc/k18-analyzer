@@ -42,7 +42,7 @@ public:
   const DCRHC&   GetDCRawHitContainer(const TString& name) const;
   const DCRHC&   GetDCRawHitContainer(Int_t det_id) const;
   const DCRHC&   GetDCRawHitContainer(Int_t det_id, Int_t plane) const;
-  void           Print(Option_t* arg="") const;
+  void           Print(Option_t* arg=nullptr) const;
 
   // aliases
   const HodoRHC& GetHodoRawHC(const TString& name) const

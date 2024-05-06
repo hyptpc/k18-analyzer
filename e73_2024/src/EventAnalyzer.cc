@@ -65,7 +65,7 @@ EventAnalyzer::BeamFlag(const RawData& rawData)
 void
 EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
 {
-  const Char_t* p = beam::BeamFlagList.at(beam_flag).Data();
+  const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
   // BHT
   {
     static const Char_t* name = "BHT";
@@ -79,30 +79,30 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
           Double_t t = hit->GetTdc(ud, i);
           if(gUser.IsInRange(Form("%s_TDC", name), t))
             ++ud_good;
-          HF1(Form("%s_TDC_seg%d%s%s", name, seg, UorD[ud], p), t);
+          HF1(Form("%s_TDC_seg%d%s%s", name, seg, UorD[ud], b), t);
         }
         for(Int_t i=0, n=hit->GetSizeTdcTrailing(ud); i<n; ++i){
           Double_t t = hit->GetTdcTrailing(ud, i);
-          HF1(Form("%s_Trailing_seg%d%s%s", name, seg, UorD[ud], p), t);
+          HF1(Form("%s_Trailing_seg%d%s%s", name, seg, UorD[ud], b), t);
           if(n == hit->GetSizeTdcLeading(ud)){
             Double_t l = hit->GetTdc(ud, i);
             if(gUser.IsInRange(Form("%s_TDC", name), l)){
-              HF1(Form("%s_TOT_seg%d%s%s", name, seg, UorD[ud], p), l - t);
+              HF1(Form("%s_TOT_seg%d%s%s", name, seg, UorD[ud], b), l - t);
             }
           }
         }
       }
       if(ud_good >= 1){
-        HF1(Form("%s_HitPat_OR%s", name, p), seg);
+        HF1(Form("%s_HitPat_OR%s", name, b), seg);
         ++multi_or;
       }
       if(ud_good == 2){
-        HF1(Form("%s_HitPat_AND%s", name, p), seg);
+        HF1(Form("%s_HitPat_AND%s", name, b), seg);
         ++multi_and;
       }
     }
-    HF1(Form("%s_Multi_OR%s", name, p), multi_or);
-    HF1(Form("%s_Multi_AND%s", name, p), multi_and);
+    HF1(Form("%s_Multi_OR%s", name, b), multi_or);
+    HF1(Form("%s_Multi_AND%s", name, b), multi_and);
   }
 
   // AC
@@ -115,18 +115,18 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       for(const auto& t: hit->GetArrayTdcLeading()){
         if(gUser.IsInRange(Form("%s_TDC", name), t))
           is_good = true;
-	HF1(Form("%s_TDC_seg%d%s", name, seg, p), t);
+	HF1(Form("%s_TDC_seg%d%s", name, seg, b), t);
       }
       if(is_good && seg == 0){
-        HF1(Form("%s_HitPat%s", name, p), seg);
+        HF1(Form("%s_HitPat%s", name, b), seg);
         ++multi;
       }
       Double_t a = hit->GetAdc();
-      HF1(Form("%s_ADC_seg%d%s", name, seg, p), a);
+      HF1(Form("%s_ADC_seg%d%s", name, seg, b), a);
       if(is_good)
-        HF1(Form("%s_AWT_seg%d%s", name, seg, p), a);
+        HF1(Form("%s_AWT_seg%d%s", name, seg, b), a);
     }
-    HF1(Form("%s_Multi%s", name, p), multi);
+    HF1(Form("%s_Multi%s", name, b), multi);
   }
 
   // Hodoscope
@@ -142,26 +142,26 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
         for(const auto& t: hit->GetArrayTdc(ud)){
           if(gUser.IsInRange(Form("%s_TDC", name), t))
             is_good = true;
-          HF1(Form("%s_TDC_seg%d%s%s", name, seg, UorD[ud], p), t);
+          HF1(Form("%s_TDC_seg%d%s%s", name, seg, UorD[ud], b), t);
         }
         for(const auto& a: hit->GetArrayAdc(ud)){
-          HF1(Form("%s_ADC_seg%d%s%s", name, seg, UorD[ud], p), a);
+          HF1(Form("%s_ADC_seg%d%s%s", name, seg, UorD[ud], b), a);
           if(is_good)
-            HF1(Form("%s_AWT_seg%d%s%s", name, seg, UorD[ud], p), a);
+            HF1(Form("%s_AWT_seg%d%s%s", name, seg, UorD[ud], b), a);
         }
         ud_good += is_good;
       }
       if(ud_good >= 1){
-        HF1(Form("%s_HitPat_OR%s", name, p), seg);
+        HF1(Form("%s_HitPat_OR%s", name, b), seg);
         ++multi_or;
       }
       if(ud_good == 2){
-        HF1(Form("%s_HitPat_AND%s", name, p), seg);
+        HF1(Form("%s_HitPat_AND%s", name, b), seg);
         ++multi_and;
       }
     }
-    HF1(Form("%s_Multi_OR%s", name, p), multi_or);
-    HF1(Form("%s_Multi_AND%s", name, p), multi_and);
+    HF1(Form("%s_Multi_OR%s", name, b), multi_or);
+    HF1(Form("%s_Multi_AND%s", name, b), multi_and);
   }
 }
 
@@ -169,7 +169,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
 void
 EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
 {
-  const Char_t* p = beam::BeamFlagList.at(beam_flag).Data();
+  const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
   // BHT
   {
     static const Char_t* name = "BHT";
@@ -188,27 +188,65 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
           auto ctime = hit->GetTimeLeading(ud, j);
           // auto t = hit->GetTimeTrailing(ud, j);
           auto tot = hit->TOT(ud, j);
-          HF1(Form("%s_Hit_Time_seg%d%s%s", name, seg, UorD[ud], p), time);
-          HF1(Form("%s_Hit_CTime_seg%d%s%s", name, seg, UorD[ud], p), ctime);
-          HF1(Form("%s_Hit_TOT_seg%d%s%s", name, seg, UorD[ud], p), tot);
+          HF1(Form("%s_Hit_Time_seg%d%s%s", name, seg, UorD[ud], b), time);
+          HF1(Form("%s_Hit_CTime_seg%d%s%s", name, seg, UorD[ud], b), ctime);
+          HF1(Form("%s_Hit_TOT_seg%d%s%s", name, seg, UorD[ud], b), tot);
         }
-        HF1(Form("%s_Hit_MeanTime_seg%d%s", name, seg, p), mt);
-        HF1(Form("%s_Hit_CMeanTime_seg%d%s", name, seg, p), cmt);
-        HF1(Form("%s_Hit_MeanTOT_seg%d%s", name, seg, p), mtot);
-        HF1(Form("%s_Hit_MeanTime%s", name, p), mt);
-        HF1(Form("%s_Hit_CMeanTime%s", name, p), cmt);
-        HF1(Form("%s_Hit_MeanTOT%s", name, p), mtot);
-        HF2(Form("%s_Hit_MeanTime_vs_HitPat%s", name, p), seg, mt);
-        HF2(Form("%s_Hit_CMeanTime_vs_HitPat%s", name, p), seg, cmt);
-        HF2(Form("%s_Hit_MeanTOT_vs_HitPat%s", name, p), seg, mtot);
+        HF1(Form("%s_Hit_MeanTime_seg%d%s", name, seg, b), mt);
+        HF1(Form("%s_Hit_CMeanTime_seg%d%s", name, seg, b), cmt);
+        HF1(Form("%s_Hit_MeanTOT_seg%d%s", name, seg, b), mtot);
+        HF1(Form("%s_Hit_MeanTime%s", name, b), mt);
+        HF1(Form("%s_Hit_CMeanTime%s", name, b), cmt);
+        HF1(Form("%s_Hit_MeanTOT%s", name, b), mtot);
+        HF2(Form("%s_Hit_MeanTime_vs_HitPat%s", name, b), seg, mt);
+        HF2(Form("%s_Hit_CMeanTime_vs_HitPat%s", name, b), seg, cmt);
+        HF2(Form("%s_Hit_MeanTOT_vs_HitPat%s", name, b), seg, mtot);
         is_good = true;
       }
       if(is_good){
-        HF1(Form("%s_Hit_HitPat%s", name, p), seg);
+        HF1(Form("%s_Hit_HitPat%s", name, b), seg);
         ++multi;
       }
     }
-    HF1(Form("%s_Hit_Multi%s", name, p), multi);
+    HF1(Form("%s_Hit_Multi%s", name, b), multi);
+  }
+  // Hodoscope
+  for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
+    const Char_t* name = NameHodo[ihodo];
+    Int_t multi = 0;
+    for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
+      const auto& hit = hodoAna.GetHit(name, i);
+      auto seg = hit->SegmentId();
+      Double_t de = hit->DeltaE();
+      Double_t ude  = hit->UDeltaE();
+      Double_t dde  = hit->DDeltaE();
+      HF1(Form("%s_Hit_DeltaE_seg%dU%s", name, seg, b), ude);
+      HF1(Form("%s_Hit_DeltaE_seg%dD%s", name, seg, b), dde);
+      HF1(Form("%s_Hit_DeltaE_seg%d%s", name, seg, b), de);
+      HF2(Form("%s_Hit_DeltaE_vs_HitPat%s", name, b), seg, de);
+      Bool_t is_good = false;
+      for(Int_t j=0, m=hit->GetEntries(); j<m; ++j){
+        Double_t tu  = hit->GetTUp(j),   td = hit->GetTDown(j);
+        Double_t ctu = hit->GetCTUp(j), ctd = hit->GetCTDown(j);
+        Double_t mt  = hit->MeanTime(j),cmt = hit->CMeanTime(j);
+        HF1(Form("%s_Hit_Time_seg%dU%s", name, seg, b), tu);
+        HF1(Form("%s_Hit_Time_seg%dD%s", name, seg, b), td);
+        HF1(Form("%s_Hit_CTime_seg%dU%s", name, seg, b), ctu);
+        HF1(Form("%s_Hit_CTime_seg%dD%s", name, seg, b), ctd);
+        HF1(Form("%s_Hit_MeanTime_seg%d%s", name, seg, b), mt);
+        HF1(Form("%s_Hit_CMeanTime_seg%d%s", name, seg, b), cmt);
+        HF1(Form("%s_Hit_MeanTime%s", name, b), mt);
+        HF1(Form("%s_Hit_CMeanTime%s", name, b), cmt);
+        HF2(Form("%s_Hit_MeanTime_vs_HitPat%s", name, b), seg, mt);
+        HF2(Form("%s_Hit_CMeanTime_vs_HitPat%s", name, b), seg, cmt);
+        is_good = true;
+      }
+      if(is_good){
+        HF1(Form("%s_Hit_HitPat%s", name, b), seg);
+        ++multi;
+      }
+    }
+    HF1(Form("%s_Hit_Multi%s", name, b), multi);
   }
 }
 
@@ -216,7 +254,7 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
 void
 EventAnalyzer::DCRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
 {
-  const Char_t* p = beam::BeamFlagList.at(beam_flag).Data();
+  const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
   // DC
   for(Int_t idc=0; idc<=kVFT; ++idc){
     const Char_t* name = NameDC[idc].Data();
@@ -242,27 +280,27 @@ EventAnalyzer::DCRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
             if(totcut == "C" && !gUser.IsInRange(Form("%s_TOT", name), tot))
               continue;
             auto c = totcut.Data();
-            HF1(Form("%s_%sTDC_layer%d%s", name, c, layer, p), l);
-            HF1(Form("%s_%sTrailing_layer%d%s", name, c, layer, p), t);
-            HF1(Form("%s_%sTOT_layer%d%s", name, c, layer, p), tot);
+            HF1(Form("%s_%sTDC_layer%d%s", name, c, layer, b), l);
+            HF1(Form("%s_%sTrailing_layer%d%s", name, c, layer, b), t);
+            HF1(Form("%s_%sTOT_layer%d%s", name, c, layer, b), tot);
             if(j == 0){
-              HF1(Form("%s_%sTDC1st_layer%d%s", name, c, layer, p), l);
-              HF1(Form("%s_%sTrailing1st_layer%d%s", name, c, layer, p), t);
-              HF1(Form("%s_%sTOT1st_layer%d%s", name, c, layer, p), tot);
+              HF1(Form("%s_%sTDC1st_layer%d%s", name, c, layer, b), l);
+              HF1(Form("%s_%sTrailing1st_layer%d%s", name, c, layer, b), t);
+              HF1(Form("%s_%sTOT1st_layer%d%s", name, c, layer, b), tot);
             }
           }
         }
         if(hit->GetTdcSize() > 0){
-          HF1(Form("%s_HitPat_layer%d%s", name, layer, p), wire);
+          HF1(Form("%s_HitPat_layer%d%s", name, layer, b), wire);
           ++multi;
         }
         if(is_good){
-          HF1(Form("%s_CHitPat_layer%d%s", name, layer, p), wire);
+          HF1(Form("%s_CHitPat_layer%d%s", name, layer, b), wire);
           ++cmulti;
         }
       }
-      HF1(Form("%s_Multi_layer%d%s", name, layer, p), multi);
-      HF1(Form("%s_CMulti_layer%d%s", name, layer, p), cmulti);
+      HF1(Form("%s_Multi_layer%d%s", name, layer, b), multi);
+      HF1(Form("%s_CMulti_layer%d%s", name, layer, b), cmulti);
     }
   }
 }

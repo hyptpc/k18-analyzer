@@ -14,36 +14,30 @@ import hdprm
 import macrohelper
 
 logger = logging.getLogger(__name__)
-name = 'BHT'
-bht_cid = 1
-n_seg = 63
+name = 'T0'
+cid = 2
+n_seg = 5
 n_seg_one_page = 16
 beamflag = '_Pi'
 
 ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
-def tdc(start_seg, ud, beamflag='', tdcrange=(1.22e6, 1.26e6), fit=True):
-  logger.info(f'seg={start_seg}-{start_seg+16}, ud={ud}, beamflag={beamflag}')
+def tdc(ud, tdcrange=(1.21e6, 1.24e6), fit=True):
+  logger.info(f'ud={ud}, tdcrange={tdcrange}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   c1.Clear()
-  c1.Divide(4, 4)
+  c1.Divide(3, 2)
   result_dict = dict()
-  for i in range(n_seg_one_page):
-    c1.cd(i+1) #.SetLogy()
-    seg = start_seg + i
-    if seg >= n_seg:
-      continue
-    hname = name + f'_TDC_seg{seg}{ud}{beamflag}'
-    h1 = ROOT.gFile.Get(hname)
+  for seg in range(n_seg):
+    c1.cd(seg+1) #.SetLogy()
+    h1 = ROOT.gFile.Get(name + f'_TDC_seg{seg}{ud}{beamflag}')
     if h1:
-      logger.debug(hname)
+      logger.debug(name + f'_TDC_seg{seg}{ud}{beamflag}')
       h1.RebinX(4)
       if h1.GetEntries() < 1e4:
-        h1.RebinX(5)
-      if h1.GetEntries() < 1e3:
-        h1.RebinX(3)
+        h1.RebinX(2)
       h1.GetXaxis().SetRangeUser(tdcrange[0], tdcrange[1])
       if fit:
         mean = h1.GetBinCenter(h1.GetMaximumBin())
@@ -58,30 +52,25 @@ def tdc(start_seg, ud, beamflag='', tdcrange=(1.22e6, 1.26e6), fit=True):
           (1e2, 1e4)
         ]
         result = macrohelper.fit_gaus(h1, params=params, limits=limits)
-        key = (bht_cid, 0, seg, 1, 0 if ud == 'U' else 1)
+        key = (cid, 0, seg, 1, 0 if ud == 'U' else 1)
         result_dict[key] = result
       else:
         h1.Draw()
-    else:
-      logger.warning(f'cannot find {hname}')
   c1.Modified()
   c1.Update()
   c1.Print(fig_path)
   return result_dict
 
 #______________________________________________________________________________
-def time(start_seg, ud='', timerange=(-20, 20), key='Time'):
-  logger.info(f'seg={start_seg}-{start_seg+16}, ud={ud}, key={key}')
+def time(ud='', timerange=(-10, 10), key='Time'):
+  logger.info(f'ud={ud}, key={key}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   c1.Clear()
-  c1.Divide(4, 4)
+  c1.Divide(3, 2)
   pcolor = [ROOT.kBlack, ROOT.kBlue+2, ROOT.kGreen+2, ROOT.kRed+2]
-  for i in range(n_seg_one_page):
-    c1.cd(i+1) #.SetLogy()
-    seg = start_seg + i
-    if seg >= n_seg:
-      continue
+  for seg in range(n_seg):
+    c1.cd(seg+1) #.SetLogy()
     for j, b in enumerate(['', '_Pi', '_K', '_P']):
       hname = name + f'_Hit_{key}_seg{seg}{ud}{b}'
       h1 = ROOT.gFile.Get(hname)
@@ -102,9 +91,8 @@ def time2d():
   fig_path = c1.GetTitle()
   c1.Clear()
   c1.Divide(2, 2)
-  keys = ('MeanTime', #'CMeanTime', 'MeanTOT'
-          )
-  ranges = ((-10, 10), (-10, 10), (0, 30))
+  keys = ('MeanTime',)
+  ranges = ((-10, 10), (-10, 10))
   for i, key in enumerate(keys):
     c1.cd(i+1) #.SetLogy()
     hname = name + f'_Hit_{key}{beamflag}'
@@ -130,25 +118,16 @@ def time2d():
 
 #______________________________________________________________________________
 def single_run(run_info):
-  macrohelper.initialize(run_info, fig_tail='_bht_tdc')
+  macrohelper.initialize(run_info, fig_tail='_t0_tdc')
   result_dict = {'generator': os.path.basename(__file__)}
   for ud in ['U', 'D']:
-    for seg in range(4):
-      ret = tdc(start_seg=seg*16, ud=ud, beamflag=beamflag)
-      result_dict.update(ret)
-  for key in ['Time', # 'CTime'
-              ]:
-    for ud in ['U', 'D']:
-      for seg in range(4):
-        ret = time(start_seg=seg*16, ud=ud, key=key)
-  for key in ['MeanTime', #'CMeanTime', 'MeanTOT'
-              ]:
-    for seg in range(4):
-      if key == 'MeanTOF':
-        timerange=(0, 20)
-      else:
-        timerange=(-20, 20)
-      ret = time(start_seg=seg*16, timerange=timerange, key=key)
+    ret = tdc(ud=ud)
+    result_dict.update(ret)
+  for key in ['Time',]:
+    for ud in ['U', 'D', '']:
+      if ud == '':
+        key = key.replace('Time', 'MeanTime')
+      ret = time(ud=ud, key=key)
   time2d()
   hdprm.output_result(run_info, result_dict, is_hrtdc=True,
                       update=parsed.update)

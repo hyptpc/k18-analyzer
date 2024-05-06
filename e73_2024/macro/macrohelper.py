@@ -138,7 +138,7 @@ def status():
   h1 = ROOT.gFile.Get('Status')
   if h1:
     prev_opt = ROOT.gStyle.GetOptStat()
-    ROOT.gStyle.SetOptStat(10)
+    ROOT.gStyle.SetOptStat(0)
     entry = h1.GetBinContent(1)
     passed = h1.GetBinContent(h1.GetNbinsX())
     eff = passed/entry if entry > 0 else ROOT.TMath.QuietNaN()

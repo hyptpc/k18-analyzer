@@ -45,17 +45,17 @@ void
 BuildTriggerFlag()
 {
   const Char_t* name = "TriggerFlag";
-  Double_t patbins[3]={NumOfSegTrigFlag, -0.5, NumOfSegTrigFlag-0.5};
+  Double_t patbins[3] = {NumOfSegTrigFlag, -0.5, NumOfSegTrigFlag-0.5};
   for(Int_t i=0; i<NumOfSegTrigFlag; ++i){
     HB1(Form("%s_TDC_seg%d", name, i), mhtdcbins);
   }
   HB1(Form("%s_HitPat; Segment; Counts", name), patbins);
-  HB1("BeamFlag", beam::kBeamFlag, -0.5, beam::kBeamFlag - 0.5);
+  auto h1 = HB1("BeamFlag", beam::kBeamFlag, -0.5, beam::kBeamFlag - 0.5);
   for(Int_t i=0, n=beam::BeamFlagList.size(); i<n; ++i){
     auto label = beam::BeamFlagList.at(i);
     if(label.IsNull()) label = "All";
     else label.ReplaceAll("_", "");
-    gDirectory->Get<TH1>("BeamFlag")->GetXaxis()->SetBinLabel(i+1, label);
+    h1->GetXaxis()->SetBinLabel(i+1, label);
   }
 }
 
@@ -169,15 +169,28 @@ BuildHodoHit(Bool_t flag_beam_particle)
     // Hodoscope
     for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
       auto name = NameHodo[ihodo].Data();
-      Int_t nseg = NumOfSegHodo[ihodo];
-      for(const auto& uord: std::vector<TString>{"U", "D"} ){
-        auto ud = uord.Data();
-        for(Int_t i=0; i<nseg; ++i){
+      Double_t nseg = NumOfSegHodo[ihodo];
+      for(Int_t i=0; i<nseg; ++i){
+        for(const auto& uord: std::vector<TString>{"U", "D"} ){
+          auto ud = uord.Data();
           HB1(Form("%s_Hit_DeltaE_seg%d%s%s", name, i, ud, b), debins);
           HB1(Form("%s_Hit_Time_seg%d%s%s", name, i, ud, b), hrtimebins);
           HB1(Form("%s_Hit_CTime_seg%d%s%s", name, i, ud, b), hrtimebins);
         }
+        HB1(Form("%s_Hit_DeltaE_seg%d%s", name, i, b), debins);
+        HB1(Form("%s_Hit_MeanTime_seg%d%s", name, i, b), hrtimebins);
+        HB1(Form("%s_Hit_CMeanTime_seg%d%s", name, i, b), hrtimebins);
       }
+      HB1(Form("%s_Hit_MeanTime%s", name, b), hrtimebins);
+      HB1(Form("%s_Hit_CMeanTime%s", name, b), hrtimebins);
+      HB1(Form("%s_Hit_DeltaE%s", name, b), hrtottimebins);
+      const Double_t hrtimebins2d[6] = { nseg, -0.5, nseg - 0.5,
+        hrtimebins[0]/10, hrtimebins[1], hrtimebins[2] };
+      const Double_t debins2d[6] = { nseg, -0.5, nseg - 0.5,
+        debins[0]/10, debins[1], debins[2] };
+      HB2(Form("%s_Hit_MeanTime_vs_HitPat%s", name, b), hrtimebins2d);
+      HB2(Form("%s_Hit_CMeanTime_vs_HitPat%s", name, b), hrtimebins2d);
+      HB2(Form("%s_Hit_DeltaE_vs_HitPat%s", name, b), debins2d);
       HB1(Form("%s_Hit_HitPat%s", name, b), nseg, -0.5, nseg - 0.5);
       HB1(Form("%s_Hit_Multi%s", name, b), nseg + 1, -0.5, nseg + 0.5);
     }

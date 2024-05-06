@@ -86,7 +86,7 @@ extern TTree *tree;
 // }
 
 //_____________________________________________________________________________
-inline void
+inline TH1*
 HB1(const TString& name, const TString& title,
     Int_t nbinx, Double_t xlow, Double_t xhigh)
 {
@@ -103,21 +103,21 @@ HB1(const TString& name, const TString& title,
 #endif
   }
   // hddaq::cout << "new name:" << tmp << " title:" << title << std::endl;
-  new TH1D(tmp, title, nbinx, xlow, xhigh);
+  return new TH1D(tmp, title, nbinx, xlow, xhigh);
 }
 
 //_____________________________________________________________________________
-inline void
+inline TH1*
 HB1(const TString& name, Int_t nbinx, Double_t xlow, Double_t xhigh)
 {
-  HB1(name, name, nbinx, xlow, xhigh);
+  return HB1(name, name, nbinx, xlow, xhigh);
 }
 
 //_____________________________________________________________________________
-inline void
+inline TH1*
 HB1(const TString& name, const Double_t* bins)
 {
-  HB1(name, name, (Int_t)bins[0], bins[1], bins[2]);
+  return HB1(name, name, (Int_t)bins[0], bins[1], bins[2]);
 }
 
 // //_____________________________________________________________________________
@@ -152,7 +152,7 @@ HB1(const TString& name, const Double_t* bins)
 // }
 
 //_____________________________________________________________________________
-inline void
+inline TH1*
 HB2(const TString& name, const TString& title,
     Int_t nbinx, Double_t xlow, Double_t xhigh,
     Int_t nbiny, Double_t ylow, Double_t yhigh)
@@ -170,23 +170,23 @@ HB2(const TString& name, const TString& title,
 #endif
   }
   // hddaq::cout << "new name:" << tmp << " title:" << title << std::endl;
-  new TH2D(tmp, title, nbinx, xlow, xhigh, nbiny, ylow, yhigh);
+  return new TH2D(tmp, title, nbinx, xlow, xhigh, nbiny, ylow, yhigh);
 }
 
 //_____________________________________________________________________________
-inline void
+inline TH1*
 HB2(const TString& name, Int_t nbinx, Double_t xlow, Double_t xhigh,
     Int_t nbiny, Double_t ylow, Double_t yhigh)
 {
-  HB2(name, name, nbinx, xlow, xhigh, nbiny, ylow, yhigh);
+  return HB2(name, name, nbinx, xlow, xhigh, nbiny, ylow, yhigh);
 }
 
 //_____________________________________________________________________________
-inline void
+inline TH1*
 HB2(const TString& name, const Double_t* bins)
 {
-  HB2(name, name, (Int_t)bins[0], bins[1], bins[2],
-      (Int_t)bins[3], bins[4], bins[5]);
+  return HB2(name, name, (Int_t)bins[0], bins[1], bins[2],
+             (Int_t)bins[3], bins[4], bins[5]);
 }
 
 //_____________________________________________________________________________

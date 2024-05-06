@@ -10,7 +10,7 @@
 
 #include "ConfMan.hh"
 #include "DetectorID.hh"
-#include "EventAnalyzer.hh"
+#include "UserAnalyzer.hh"
 #include "RootHelper.hh"
 #include "DCAnalyzer.hh"
 #include "DCCluster.hh"
@@ -56,6 +56,7 @@ ProcessNormal()
   HodoAnalyzer hodoAna(rawData);
   hodoAna.DecodeHits<FiberHit>("BHT");
   // hodoAna.TimeCut("BHT");
+  hodoAna.DecodeHits("T0");
 
   EventAnalyzer evAna;
 
