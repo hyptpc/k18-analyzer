@@ -51,10 +51,14 @@ EventAnalyzer::BeamFlag(const RawData& rawData)
       }
     }
   }
+  beam::EBeamFlag flag;
   if(ac_hit)
-    return beam::kPion;
+    flag = beam::kPion;
   else
-    return beam::kProton;
+    flag = beam::kProton;
+  HF1("BeamFlag", beam::kAll);
+  HF1("BeamFlag", flag);
+  return flag;
 }
 
 //_____________________________________________________________________________
@@ -172,7 +176,7 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     Int_t multi = 0;
     for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
       const auto& hit = hodoAna.GetHit<FiberHit>(name, i);
-      // hit->Print();
+      // if(beam_flag == beam::kProton) hit->Print();
       auto seg = hit->SegmentId();
       Bool_t is_good = false;
       for(Int_t j=0, m=hit->GetEntries(); j<m; ++j){

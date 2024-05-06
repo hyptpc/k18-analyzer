@@ -76,7 +76,8 @@ FiberHit::ClassName()
 inline Bool_t
 FiberHit::Compare(const FiberHit* left, const FiberHit* right)
 {
-  return left->Position() < right->Position();
+  return left->SegmentId() < right->SegmentId();
+  // return left->Position() < right->Position();
 }
 
 #endif

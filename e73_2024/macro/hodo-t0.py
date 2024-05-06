@@ -14,13 +14,16 @@ import hdprm
 import macrohelper
 
 logger = logging.getLogger(__name__)
+name = 'T0'
 t0_cid = 2
-t1_cid = 4
+n_seg = 5
+n_seg_one_page = 16
+beamflag = '_Pi'
 
 ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
-def tdc(start_seg, ud, particle='', tdcrange=(1.22e6, 1.26e6), fit=True):
+def tdc( ud, particle='', tdcrange=(1.22e6, 1.26e6), fit=True):
   logger.info(f'seg={start_seg}-{start_seg+16}, ud={ud}, particle={particle}')
   name = 'T0'
   c1 = ROOT.gROOT.GetListOfCanvases()[0]

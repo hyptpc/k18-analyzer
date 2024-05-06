@@ -41,7 +41,8 @@ def output_result(run_info, result_dict, is_hrtdc=True, update=False):
       if key in result_dict and key not in duplicate:
         p0 = result_dict[key].GetParameter(1)
         newline = '\t'.join(r[:5] + [str(p0), str(p1)])
-        logger.debug(f'{float(r[5]), float(r[6])} -> {[p0, p1]}')
+        if (float(r[5]), float(r[6])) != (p0, p1):
+          logger.debug(f'update {key} {float(r[5]), float(r[6])} -> {(p0, p1)}')
         f.write(newline + '\n')
         duplicate[key] = True
       else:

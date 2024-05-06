@@ -23,7 +23,7 @@ def draw(name, nseg=0, adcdiv=None, adcrange=None,
               + f'ud={ud}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
-  particle = ['', '_Pi', '_K', '_P']
+  beamflag = ['', '_Pi', '_K', '_P']
   pcolor = [ROOT.kBlack, ROOT.kBlue+2, ROOT.kGreen+2, ROOT.kRed+2]
   hitmulti = ['_OR', '_AND'] if ud else ['']
   ud = ['U', 'D'] if ud else ['']
@@ -34,15 +34,15 @@ def draw(name, nseg=0, adcdiv=None, adcrange=None,
       c1.Divide(adcdiv[0], adcdiv[1])
       for i in range(nseg):
         c1.cd(i+1).SetLogy()
-        for j, p in enumerate(particle):
-          h1 = ROOT.gFile.Get(name + f'_ADC_seg{i}{s}{p}')
+        for j, b in enumerate(beamflag):
+          h1 = ROOT.gFile.Get(name + f'_ADC_seg{i}{s}{b}')
           if h1:
             if adcrange is not None:
               h1.GetXaxis().SetRangeUser(adcrange[0], adcrange[1])
             if ploop:
               h1.SetLineColor(pcolor[j])
             h1.Draw('same')
-          # h2 = ROOT.gFile.Get(name + f'_AWT_seg{i}{s}{p}')
+          # h2 = ROOT.gFile.Get(name + f'_AWT_seg{i}{s}{b}')
           # if h2:
           #   h2.SetLineColor(ROOT.kRed+1)
           #   h2.Draw('same')
@@ -54,8 +54,8 @@ def draw(name, nseg=0, adcdiv=None, adcrange=None,
       c1.Divide(tdcdiv[0], tdcdiv[1])
       for i in range(nseg):
         c1.cd(i+1).SetLogy()
-        for j, p in enumerate(particle):
-          h1 = ROOT.gFile.Get(name + f'_TDC_seg{i}{s}{p}')
+        for j, b in enumerate(beamflag):
+          h1 = ROOT.gFile.Get(name + f'_TDC_seg{i}{s}{b}')
           if h1:
             if h1.GetXaxis().GetXmax() > 2000:
               h1.RebinX(4)
@@ -72,8 +72,8 @@ def draw(name, nseg=0, adcdiv=None, adcrange=None,
       c1.Divide(totdiv[0], totdiv[1])
       for i in range(nseg):
         c1.cd(i+1)
-        for j, p in enumerate(particle):
-          h1 = ROOT.gFile.Get(name + f'_TOT_seg{i}{s}{p}')
+        for j, b in enumerate(beamflag):
+          h1 = ROOT.gFile.Get(name + f'_TOT_seg{i}{s}{b}')
           if h1:
             if totrange is not None:
               h1.GetXaxis().SetRangeUser(totrange[0], totrange[1])
@@ -87,16 +87,16 @@ def draw(name, nseg=0, adcdiv=None, adcrange=None,
   i = 1
   for s in hitmulti:
     c1.cd(i)
-    for j, p in enumerate(particle):
-      h1 = ROOT.gFile.Get(f'{name}_HitPat{s}{p}')
+    for j, b in enumerate(beamflag):
+      h1 = ROOT.gFile.Get(f'{name}_HitPat{s}{b}')
       if h1:
         if ploop:
           h1.SetLineColor(pcolor[j])
         h1.Draw('same')
     i = i + 1
     c1.cd(i)
-    for j, p in enumerate(particle):
-      h1 = ROOT.gFile.Get(f'{name}_Multi{s}{p}')
+    for j, b in enumerate(beamflag):
+      h1 = ROOT.gFile.Get(f'{name}_Multi{s}{b}')
       if h1:
         if ploop:
           h1.SetLineColor(pcolor[j])
