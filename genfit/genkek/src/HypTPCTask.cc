@@ -278,9 +278,10 @@ double HypTPCTask::GetTrackLength(int trackid, int start, int end, int repid) co
 double HypTPCTask::GetTrackTOF(int trackid, int start, int end, int repid) const{
 
   double TOF = qnan;
-  if(!TrackCheck(trackid)) return TOF;
+  if(!TrackCheck(trackid, repid)) return TOF;
   genfit::Track* fittedTrack = GetFittedTrack(trackid);
   genfit::AbsTrackRep* rep = GetTrackRep(trackid, repid);
+  GetFitState(trackid, 0, repid);
   try{TOF = fittedTrack -> getTOF(rep, start, end);} //ns
   catch(genfit::Exception &e){
     if(verbosity>=2) LogWARNING("failed!");
