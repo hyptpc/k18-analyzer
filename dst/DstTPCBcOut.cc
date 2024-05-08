@@ -489,6 +489,7 @@ dst::DstRead(int ievent)
           HF2(TPCResYCoBoHid+cobo*1000, clock, resy);
           HFProf(TPCResYCoBoHid+cobo*1000+1, clock, resy);
           HF2(TPCResYPosHid+layer*1000, ybc, resy);
+	  HFProf(TPCResYPosHid+cobo*1000+1, ybc, resy);
           HF1(TPCResXHid+layer*1000, resx);
           HF1(TPCResXHid+layer*1000+row+1, resx);
           HF2(TPCResXClkHid+layer*1000, clock, resx);
@@ -801,11 +802,14 @@ ConfMan::InitializeHistograms()
 	400, -50, 50, 400, -50, 50);
     HBProf(1+TPCResYCoBoHid+layer*1000,
 	   //    	Form("TProf ResY%%ClockTime CoBo%d (TPCHit);[ns];[mm];Counts", layer),
-    	Form("Tprof CoBo%d ResY%%ClockTime (TPCHit);[ns];[mm];Counts", layer),
+	   Form("Tprof CoBo%d ResY%%ClockTime (TPCHit);[ns];[mm];Counts", layer),
     	400, -50, 50, -50, 50);
     HB2(TPCResYPosHid+layer*1000,
 	Form("ResY%%YBcOut Layer%d (TPCHit);[mm];[mm];Counts", layer),
-	600, -300, 300, 400, -50, 50);
+	200, -100, 100, 400, -50, 50);
+    HBProf(1+TPCResYPosHid+layer*1000,
+	   Form("Tprof Layer%d ResY%%ClockTime (TPCHit);[ns];[mm];Counts", layer),
+	   400, -50, 50, -50, 50);
     HB1(TPCResXHid+layer*1000,
 	Form("TPC X Residual Layer%d (TPCHit);[mm];Counts", layer),
 	NbinRes, MinRes, MaxRes);

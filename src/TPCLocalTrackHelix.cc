@@ -846,10 +846,10 @@ TPCLocalTrackHelix::TPCLocalTrackHelix()
     m_isBeam(0), m_isK18(0), m_isKurama(0), m_isAccidental(0),
     m_trackid(-1),
     m_ncl_beforetgt(-1),
+    m_searchtime(0), m_fittime(0),
     m_MomResScale(tpc::MomentumScale),
     m_dZResScale(tpc::dZScale),
     m_PhResScale(tpc::PhiScale),
-    m_searchtime(0), m_fittime(0),
     m_cx_exclusive(), m_cy_exclusive(), m_z0_exclusive(),
     m_r_exclusive(), m_dz_exclusive(),
     m_chisqr_exclusive(),
@@ -3127,17 +3127,17 @@ TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Do
     p_z = p_t*cos(t);
 
     Cov(px,pz,py) = J V(p_t,t,dZ)J^T
-    **Note! Cov(pt,t) = res_pt*res_t, because res_t ~ res_pt! 
+    **Note! Cov(pt,t) = res_pt*res_t, because res_t ~ res_pt!
 
              f
 		 J = x| dx/df|
-		
-		    p_t    t     dZ	
+
+		    p_t    t     dZ
     px| sin  pt*cos   0 |;
   J=py|  dZ    0     pt |;
     pz| cos -pt*sin   0 |;
  */
-	
+
 	Double_t cov_pt_t = MomScale * PhiScale * GetTransverseMomentumAngularCovariance(t);
   Double_t V[3][3] =
     { Vp_t,   cov_pt_t,    0,
@@ -3199,12 +3199,12 @@ TPCLocalTrackHelix::GetMomentumResolutionVect(){
 double
 TPCLocalTrackHelix::GetTransverseMomentumAngularCovariance(Double_t t){
 
-	
+
   Double_t t_avg = 0.5*(m_max_t + m_min_t);
   if(t == -9999){
-		t = GetHitInOrder(0)->GetTheta();
-	}
-	Double_t t_dif = (t-t_avg);
+    t = GetHitInOrder(0)->GetTheta();
+  }
+  Double_t t_dif = (t-t_avg);
   Double_t sign = 1;
   if(m_charge>0)sign = -1;
   Double_t dp_t =  GetTransverseMomentumResolution();
@@ -3343,7 +3343,7 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
 //_____________________________________________________________________________
 Double_t
 TPCLocalTrackHelix::GetTransverseAngularResolution(Double_t t, Double_t sig0){
-	//Transverse Angle Definition: atan2(pz,px);
+  //Transverse Angle Definition: atan2(pz,px);
   Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
   Double_t pt = m_r*(tpc::ConstC*B)*0.001;
   Double_t dp = GetTransverseMomentumResolution();
