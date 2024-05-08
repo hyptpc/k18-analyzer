@@ -61,6 +61,7 @@ const Int_t DetIdMtx        = 26;
 const Int_t DetIdVmeRm      = 81;
 const Int_t DetIdMsTRM      = 82;
 const Int_t DetIdHulRM      = 83;
+const Int_t DetIdUnixTime   = 200;
 const Int_t NumOfSegScaler  = 96;
 const Int_t NumOfPlaneVmeRm = 2;
 
@@ -238,7 +239,7 @@ enum dTypesMst
   };
 
 // Scaler ----------------------------------------------
-const Int_t NumOfScaler  = 2;
+const Int_t NumOfScaler  = 3;
 
 // Parasite ___________________________________________________________
 const Int_t DetIdE72BAC      =  501;
