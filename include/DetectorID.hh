@@ -82,9 +82,9 @@ namespace trigger
 
   const std::vector<TString> STriggerFlag =
     {
-     "L1SpillOn",//0
-     "L1SpillOff",//1
-     "SpillEnd",//2
+     "L1SpillOn",
+     "L1SpillOff",
+     "SpillEnd",
      "SpillOnEnd",
      "CommonStopSdcOut",
      "Matrix2D1",
@@ -92,7 +92,7 @@ namespace trigger
      "Matrix3D",
      "BeamA",
      "BeamB",
-     "BeamC",//10
+     "BeamC",
      "BeamD",
      "BeamE",
      "BeamF",
@@ -102,7 +102,7 @@ namespace trigger
      "TrigD",
      "TrigE",
      "TrigF",
-     "TrigA-PS",//20
+     "TrigA-PS",
      "TrigB-PS",
      "TrigC-PS",
      "TrigD-PS",

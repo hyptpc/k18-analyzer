@@ -955,6 +955,8 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   ResetHoughFlag(ClCont, BadForTracking);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
 #endif
+  CalcTracks(TrackCont); //before the VertexSearch() calculation should proceed.
+
   //Vertex finding with tracks in the TrackCont.
   VertexSearch(TrackCont, VertexCont);
 #if FragmentedTrackTest
@@ -967,7 +969,6 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
 #endif
 
-  CalcTracks(TrackCont);
   MarkingAccidentalTracks(TrackCont);
   CalcTracks(TrackContFailed);
   if(Exclusive) ExclusiveTracking(TrackCont);
@@ -1005,6 +1006,8 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
   ResetHoughFlag(ClCont, BadForTracking);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
 #endif
+  CalcTracks(TrackCont); //before the VertexSearch() calculation should proceed.
+
   //Vertex finding with tracks in the TrackCont.
   VertexSearch(TrackCont, VertexCont);
 #if FragmentedTrackTest
@@ -1019,7 +1022,6 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
   std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
 #endif
 
-  CalcTracks(TrackCont);
   MarkingAccidentalTracks(TrackCont);
   CalcTracks(TrackContVP);
   CalcTracks(TrackContFailed); //Tracking failed cases
@@ -1386,12 +1388,12 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
   for(auto& vertex: VertexCont){
     //Threshold conditions of a distance and an angle between two tracks.
     TVector3 vtx = vertex -> GetVertex();
-    Int_t trackid1 = vertex -> GetTrack1Id();
-    Int_t trackid2 = vertex -> GetTrack2Id();
+    Int_t trackid1 = vertex -> GetTrackId(0);
+    Int_t trackid2 = vertex -> GetTrackId(1);
     if(TrackCont[trackid1] -> GetIsK18()==1 ||
        TrackCont[trackid2] -> GetIsK18()==1) continue;
     /*
-    std::cout<<"id "<<vertex -> GetTrack1Id()<<" "<<vertex -> GetTrack2Id()<<std::endl;
+    std::cout<<"id "<<vertex -> GetTrackId(0)<<" "<<vertex -> GetTrackId(1)<<std::endl;
     std::cout<<"vtx "<<TMath::Abs(vtx.x())<<" "<<TMath::Abs(vtx.y())<<" "<<TMath::Abs(vtx.z())<<std::endl;
     std::cout<<"angle "<<0.0833*TMath::Pi()<<" "<<vertex -> GetOpeningAngle()<<" "<<(1. - 0.0833)*TMath::Pi()<<std::endl;
     */
@@ -1416,8 +1418,8 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     //Add two tracks.
     Bool_t order = TrackCont[trackid1] -> GetNHit() >= TrackCont[trackid2] -> GetNHit() ?  true : false;
     if(!order){
-      trackid1 = vertex -> GetTrack2Id();
-      trackid2 = vertex -> GetTrack1Id();
+      trackid1 = vertex -> GetTrackId(0);
+      trackid2 = vertex -> GetTrackId(1);
     }
 
     T *track1 = TrackCont[trackid1];
@@ -1446,15 +1448,15 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     //MergedTrack -> Print(FUNC_NAME+" After fitting the merged track", true);
 #endif
     Int_t post_size = TrackCont.size();
-    if(Exclusive){
-      if(prev_size+1 == post_size){
-	MergedTrack = TrackCont[post_size-1];
-      	MergedTrack -> Calculate();
-      	MergedTrack -> DoFitExclusive();
-      	MergedTrack -> CalculateExclusive();
+    if(prev_size+1 == post_size){
+      MergedTrack = TrackCont[post_size-1];
+      MergedTrack -> Calculate();
+      if(Exclusive){
+	MergedTrack -> DoFitExclusive();
+	MergedTrack -> CalculateExclusive();
       }
-      else std::cout<<"Warning! prev_size != post_size"<<std::endl;
     }
+    else std::cout<<"Warning! prev_size != post_size"<<std::endl;
   }
 
   if(candidates.size()>0){

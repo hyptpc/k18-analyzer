@@ -58,6 +58,7 @@ private:
   Double_t m_r;
   Double_t m_dz;
 
+  Int_t m_pid;
   TVector3 m_closedist; //closest distance from the track to the target
   Double_t m_chisqr;
   Int_t m_minuit; //Minuit output status 0:not calculated at all 1:approximation only, not accurate
@@ -137,6 +138,7 @@ public:
   Double_t   GetChiSquare() const { return m_chisqr; }
   Double_t   GetClosestDist() const { return m_closedist.Mag(); }
   Int_t      GetMinuitStatus() const { return m_minuit; }
+  Int_t      GetPid() const { return m_pid; }
   Int_t      GetNIteration() const { return m_n_iteration; }
   Int_t      GetFitFlag() const { return m_fitflag; }
   Int_t      GetVtxFlag() const { return m_vtxflag; } //vtx is in the target or not

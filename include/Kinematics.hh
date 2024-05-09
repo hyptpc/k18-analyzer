@@ -77,6 +77,7 @@ namespace Kinematics
   //For HypTPC dE/dx pid
   Double_t HypTPCBethe(Double_t *x, Double_t *p);
   Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq);
+  Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq);
   void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg);
 
   //For helix tracking & vertex reconstruction

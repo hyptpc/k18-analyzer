@@ -59,6 +59,7 @@ z = p[2] + p[4]*p[3]*(theta);
 #include "TROOT.h"
 
 #include "TPCPadHelper.hh"
+#include "Kinematics.hh"
 #include "HoughTransform.hh"
 #include "ConfMan.hh"
 #include "DetectorID.hh"
@@ -87,6 +88,7 @@ namespace
   const Double_t MaxGapBtwClusters = 100.;
   const Int_t MaxIteration = 100;
   //const Int_t MaxIteration = 500; //ref
+  const Double_t TruncatedMean = 0.8; //80%
 
   //for minimization
   static Int_t gNumOfHits;
@@ -834,6 +836,7 @@ TPCLocalTrackHelix::TPCLocalTrackHelix()
     m_is_multiloop(false),
     m_hit_order(), m_hit_t(), m_kuramaid_candidate(),
     m_cx(0.), m_cy(0.), m_z0(0.), m_r(0.), m_dz(0.),
+    m_pid(0),
     m_closedist(1.e+10, 1.e+10, 1.e+10),
     m_chisqr(1.e+10),
     m_minuit(0),
@@ -1002,6 +1005,8 @@ TPCLocalTrackHelix::Calculate()
       hitp->SetResolution(GetResolutionVect(i, true));
     }
   }
+
+  m_pid = Kinematics::HypTPCdEdxPID(GetdEdx(TruncatedMean), (Double_t) m_charge*m_mom0.Mag());
   m_is_calculated = true;
 
 }

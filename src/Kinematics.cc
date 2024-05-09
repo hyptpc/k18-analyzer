@@ -32,6 +32,9 @@ const Double_t TARGETsizeZ   = 15.0/2.0;
 const Double_t TARGETcenterX = 0.0;
 const Double_t TARGETcenterY = 0.0;
 const Double_t TARGETradius  = 67.3/2.0; //Legacy (Not E42 target)
+const Double_t conversion_factor = 12015.2; //HypTPC's ADC to <dE/dx>
+const Double_t sigma_dedx_p[3] = {38.19, 31.62, 8.002};
+const Double_t sigma_dedx_pi[3] = {7.546, 6.88, 3.243};
 }
 
 //_____________________________________________________________________________
@@ -719,64 +722,6 @@ Beta(Double_t energy,Double_t mormentum)
   return mormentum/energy;
 }
 
-//_____________________________________________________________________________
-Int_t
-PID_HypTPC_dEdx(const Double_t dEdx, const Double_t mom, const Int_t charge)
-{
-
-  int pid = 0;
-
-  TF1 * fpid_l = new TF1("fpid_l","[0]+[1]/x+[2]/(x*x)",0.,2.);
-  TF1 * fpid_h = new TF1("fpid_h","[0]+[1]/x+[2]/(x*x)",0.,2.);
-  Double_t para_p_l[3]={0.172461, -0.12322, 0.442865};
-  Double_t para_p_h[3]={0.51042, -0.432761, 1.06032};
-  Double_t para_pip_l[3]={0.343343, 0.0584624, 0.};
-  Double_t para_pip_h[3]={0.580406, 0.169202, 0.};
-  Double_t para_pim_l[3]={0.343343, 0.0584624, 0.};
-  Double_t para_pim_h[3]={0.770056, 0.257794, 0.};
-
-  bool is_proton = false;
-  bool is_pip = false;
-  bool is_pim = false;
-  // pip id
-  fpid_l->SetParameters(para_pip_l);
-  fpid_h->SetParameters(para_pip_h);
-  if(fpid_l->Eval(mom)<dEdx
-     &&dEdx<fpid_h->Eval(mom)
-     &&charge==1)
-    is_pip = true;
-
-  // proton id
-  fpid_l->SetParameters(para_p_l);
-  fpid_h->SetParameters(para_p_h);
-  if(fpid_l->Eval(mom)<dEdx
-     &&dEdx<fpid_h->Eval(mom)
-     &&charge==1)
-    is_proton = true;
-
-  // pim id
-  fpid_l->SetParameters(para_pim_l);
-  fpid_h->SetParameters(para_pim_h);
-  if(fpid_l->Eval(mom)<dEdx
-     &&dEdx<fpid_h->Eval(mom)
-     &&charge==-1)
-    is_pim = true;
-
-  if(is_proton&&is_pip)
-    pid = 3;
-  else if(is_pip)
-    pid = 1;
-  else if(is_proton)
-    pid = 2;
-  if(is_pim)
-    pid = -1;
-
-  delete fpid_l;
-  delete fpid_h;
-
-  return pid;
-}
-
 /*
   Correct Energy loss in the Target
   inputs : 1. path length through the target  2.momentum vector at the target crossing point
@@ -785,8 +730,8 @@ PID_HypTPC_dEdx(const Double_t dEdx, const Double_t mom, const Int_t charge)
 //_____________________________________________________________________________
 Double_t DensityEffectCorrection(Double_t betagamma, Double_t *par){
 
-    //reference : Sternheimer’s parameterizatin(PDG)
-    //notation : par[0] : a, par[1] : k, par[2] : x0, par[3] : x1, par[4] : _C, par[5] : delta0
+  //Sternheimer's parameterization from the PDG
+  //notation : par[0] : a, par[1] : k, par[2] : x0, par[3] : x1, par[4] : _C, par[5] : delta0
     Double_t constant = 2*TMath::Log(10);
     Double_t delta = 0.;
     Double_t X = log10(betagamma);
@@ -804,7 +749,7 @@ Double_t HypTPCdEdx(Int_t materialid, Double_t mass/*MeV/c2*/, Double_t beta){
   Double_t rho=0.; //[g cm-3]
   Double_t ZoverA=0.; //[mol g-1]
   Double_t I=0.; //[eV]
-  Double_t density_effect_par[6]={0.}; //Sternheimer’s parameterization
+  Double_t density_effect_par[6]={0.}; //Sternheimer's parameterization form the PDG
   if(materialid==0){  //P10
     rho = TMath::Power(10.,-3)*(0.9*1.662 + 0.1*0.6672);
     ZoverA = 17.2/37.6;
@@ -1039,11 +984,11 @@ Double_t HypTPCBethe(Double_t *x, Double_t *p){
 
   return dedx;
 }
+
 //_____________________________________________________________________________
 Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq){
 
-  //Double_t conversion_factor = 10452;
-  Double_t conversion_factor = 12015.2;
+  //Double_t conversion_factor = 12015.2;
   Double_t limit = 0.6; //GeV/c
   Double_t mpi = 139.57039;
   Double_t mk  = 493.677;
@@ -1094,6 +1039,46 @@ Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq){
   delete f_kp;
   delete f_p;
   delete f_d;
+
+  Int_t output = pid[0] + pid[1]*2 + pid[2]*4;
+  return output;
+}
+
+//_____________________________________________________________________________
+Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
+
+  Double_t mpi = 139.57039;
+  //Double_t mk  = 493.677;
+  Double_t mp  = 938.2720813;
+  //Double_t md  = 1875.612762;
+
+  // 1 sigma of <dE/dx>_pi
+  Double_t par_pi[2] = {conversion_factor, mpi};
+  Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
+  Double_t sigma_pi = (sigma_dedx_pi[0] + sigma_dedx_pi[1]*poq + sigma_dedx_pi[2]*poq*poq);
+
+  // 1 sigma of <dE/dx>_p
+  Double_t par_p[2] = {conversion_factor, mp};
+  Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
+  Double_t sigma_p = (sigma_dedx_p[0] + sigma_dedx_p[1]*poq + sigma_dedx_p[2]*poq*poq);
+
+  //p/pi separation power calculation
+  Double_t avg_sigma = 0.5*(sigma_pi + sigma_p);
+  Double_t dedx_diff = TMath::Abs(dedx_pi - dedx_p);
+  Double_t separation_power = dedx_diff/avg_sigma;
+  Double_t ppi_separation_cut = dedx_pi < dedx_p ? dedx_pi + separation_power*sigma_pi : dedx_p + separation_power*sigma_p;
+
+  Int_t pid[3] = {0};
+  if(separation_power < 3.){ //3 sigma separation limit
+    pid[0]=1; pid[1]=1; pid[2]=1;
+  }
+  else{
+    //p pi separation
+    if(dedx > ppi_separation_cut) pid[2]=1;
+    else pid[0]=1;
+    //for Kaon candidate selection
+    if(dedx_p > dedx) pid[1]=1;
+  }
 
   Int_t output = pid[0] + pid[1]*2 + pid[2]*4;
   return output;
