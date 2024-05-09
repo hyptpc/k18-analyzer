@@ -62,7 +62,8 @@ struct Event
   // scaler 
   Int_t scaler[NumOfScaler][NumOfSegScaler];
   
-  Int_t unixtime[2]; //0:L 1:H
+  Double_t unixtime;
+  Int_t clock10M;
 
   void clear();
 };
@@ -83,15 +84,13 @@ Event::clear()
   hul_datasize = 0;
   aft_datasize = 0;
   cobo_datasize = 0;
+  unixtime      = -0.999;
+  clock10M      = 0;
 
   for(Int_t i=0; i<NumOfScaler; ++i){
     for(Int_t it=0; it<NumOfSegScaler; ++it){
       scaler[i][it]=0;
     }
-  }
-
-  for(Int_t LorH=0; LorH<2; ++LorH){
-    unixtime[LorH] = -1;
   }
 
   for(Int_t it=0; it<NumOfSegTrig; ++it){
@@ -121,7 +120,7 @@ struct Dst
   Int_t trigpat[NumOfSegTrig];
   Int_t trigflag[NumOfSegTrig];
 
-  Int_t unixtime[2]; //L:0 H:1
+  Double_t unixtime;
 
   // scaler 
   Int_t scaler[NumOfScaler][NumOfSegScaler];
@@ -146,15 +145,14 @@ Dst::clear()
   hul_datasize = 0;
   aft_datasize = 0;
   cobo_datasize = 0;
+  unixtime      = -0.999;
 
   for(Int_t i=0; i<NumOfScaler; ++i){
     for(Int_t it=0; it<NumOfSegScaler; ++it){
       scaler[i][it]=0;
     }
   }
-  for(Int_t LorH=0; LorH<2; ++LorH){
-    unixtime[LorH] = -1;
-  }
+
   for(Int_t it=0; it<NumOfSegTrig; ++it){
     trigpat[it]  = -1;
     trigflag[it] = -1;
@@ -314,18 +312,28 @@ ProcessingNormal()
     int nhit  = 0;
     int plane = 0;
     int seg   = 0;
-    int sc_plane = 2;
-    int sc_seg   = 0;
     nhit = gUnpacker.get_entries( DetIdUnixTime, plane, 0, seg, 0 );
     if( nhit>0 ){
-      int lo = gUnpacker.get( DetIdUnixTime, plane, 0, seg, 0);
-      int hi = gUnpacker.get( DetIdUnixTime, plane, 0, seg, 1);
-  	event.unixtime[0] = lo;
-  	dst.unixtime[0] = lo;	
-  	event.unixtime[1] = hi;
-  	dst.unixtime[1] = hi;
-	std::cout << "unixtime " << hi << "." << lo << std::endl;
-	//	std::cout << "10MHz clock " << gUnpacker.get( DetIdScaler, sc_plane, 0, sc_seg, 0) << std::endl;
+      Long_t lo = gUnpacker.get( DetIdUnixTime, plane, 0, seg, 0);
+      Long_t hi = gUnpacker.get( DetIdUnixTime, plane, 0, seg, 1);
+      Double_t ut = Double_t(hi*0xfffffff + lo)/1e6;
+      event.unixtime = ut;
+      dst.unixtime= ut;
+    }
+  }
+  {
+    for(int plane=0; plane<NumOfScaler; ++plane){
+      for(int seg=0; seg<NumOfSegScaler; ++seg){
+	Int_t nhit = gUnpacker.get_entries( DetIdScaler, plane, 0, seg, 0 );
+	if( nhit>0 ){
+	  Int_t data = gUnpacker.get( DetIdScaler, plane, 0, seg, 0);
+	  event.scaler[plane][seg] = data;
+	  dst.scaler[plane][seg] = data;
+	  if(plane==2 and seg==1){
+	    event.clock10M=data;
+	  }
+	}
+      }
     }
   }
 
@@ -394,7 +402,8 @@ ConfMan::InitializeHistograms()
   tree->Branch("L1acc",     &event.L1acc,    "L1acc/I");
   tree->Branch("realtime",     &event.realtime,     "realtime/I");
   tree->Branch("livetime",     &event.livetime,     "livetime/I");
-  tree->Branch("unixtime",     event.unixtime,     "unixtime[2]/I");
+  tree->Branch("unixtime",     &event.unixtime,     "UnixTime/D");
+  tree->Branch("clock10M",     &event.clock10M,     "clock10M/I");
 
   //Trig
   tree->Branch("trigpat",    event.trigpat,   Form("trigpat[%d]/I", NumOfSegTrig));
@@ -416,7 +425,7 @@ ConfMan::InitializeHistograms()
   daq->Branch("L1acc",     &event.L1acc,    "L1acc/I");
   daq->Branch("realtime",     &event.realtime,     "realtime/I");
   daq->Branch("livetime",     &event.livetime,     "livetime/I");
-  daq->Branch("unixtime",     event.unixtime,     "unixtime[2]/I");
+  daq->Branch("unixtime",     &event.unixtime,     "UnixTime/D");
 
   daq->Branch("trigpat",    dst.trigpat,   Form("trigpat[%d]/I", NumOfSegTrig));
   daq->Branch("trigflag",   dst.trigflag,  Form("trigflag[%d]/I", NumOfSegTrig));
