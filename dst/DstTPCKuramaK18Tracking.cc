@@ -160,8 +160,7 @@ struct Event
   std::vector<Double_t> vtgtKurama;
   std::vector<Double_t> thetaKurama;
   std::vector<Double_t> phiKurama;
-
-	std::vector<std::vector<Double_t>> xvpKurama;
+  std::vector<std::vector<Double_t>> xvpKurama;
   std::vector<std::vector<Double_t>> yvpKurama;
   std::vector<std::vector<Double_t>> zvpKurama;
   std::vector<Double_t> xhtofKurama;
@@ -448,6 +447,22 @@ struct Event
   std::vector<std::vector<Double_t>> vtxmom_x;
   std::vector<std::vector<Double_t>> vtxmom_y;
   std::vector<std::vector<Double_t>> vtxmom_z;
+
+  std::vector<Int_t> isLambda;
+  std::vector<Int_t> ncombiLambda;
+  std::vector<std::vector<Double_t>> massLambda;
+  std::vector<std::vector<Double_t>> vtxLambda_x;
+  std::vector<std::vector<Double_t>> vtxLambda_y;
+  std::vector<std::vector<Double_t>> vtxLambda_z;
+  std::vector<std::vector<Double_t>> momLambda;
+  std::vector<std::vector<Double_t>> momLambda_x;
+  std::vector<std::vector<Double_t>> momLambda_y;
+  std::vector<std::vector<Double_t>> momLambda_z;
+  std::vector<std::vector<Double_t>> decaysidLambda;
+  std::vector<std::vector<Double_t>> decaysmomLambda;
+  std::vector<std::vector<Double_t>> decaysmomLambda_x;
+  std::vector<std::vector<Double_t>> decaysmomLambda_y;
+  std::vector<std::vector<Double_t>> decaysmomLambda_z;
 
   void clear( void )
   {
@@ -810,6 +825,22 @@ struct Event
     vtxmom_x.clear();
     vtxmom_y.clear();
     vtxmom_z.clear();
+
+    isLambda.clear();
+    ncombiLambda.clear();
+    massLambda.clear();
+    vtxLambda_x.clear();
+    vtxLambda_y.clear();
+    vtxLambda_z.clear();
+    momLambda.clear();
+    momLambda_x.clear();
+    momLambda_y.clear();
+    momLambda_z.clear();
+    decaysidLambda.clear();
+    decaysmomLambda.clear();
+    decaysmomLambda_x.clear();
+    decaysmomLambda_y.clear();
+    decaysmomLambda_z.clear();
   }
 };
 
@@ -993,18 +1024,17 @@ const Double_t vb_off = 0.000;
     //Angular dependence correction
     Double_t pCorr = pOrg;
 #if 1
-    //Double_t par_dxdz[5] = {0}; Double_t par_dydz[5] = {0};
-    Double_t par_dxdz[4] = {0.00275904, -0.0109868, -0.297941, -0.450059};
-    Double_t par_dydz[5] = {-0.00589528, -0.0279985, 0.878368, 2.32815, 18.2985};
+    Double_t par_dxdz[4] = {0.00167653, 0.0329239, 0.39883, 1.37901};
+    Double_t par_dydz[5] = {-0.00545227, -0.0424615, 1.01906, 1.25306, -11.627};
 
-    if(u<-0.285) pCorr -= -0.0010442;
-    else if(u>0.035) pCorr -= 0.00883752;
+    if(u<-0.275) pCorr -=  -0.00589507;
+    else if(u>0.025) pCorr -= 0.00277044;
     else{
       for(Int_t i=0; i<4; ++i) pCorr -= par_dxdz[i]*TMath::Power(u, i);
     }
 
-    if(v<-0.135) pCorr -= 0.0142425;
-    else if(v>0.105) pCorr -= 0.0057682;
+    if(v<-0.135) pCorr -= 0.0119074;
+    else if(v>0.125) pCorr -= 0.00477157;
     else{
       for(Int_t i=0; i<5; ++i) pCorr -= par_dydz[i]*TMath::Power(v, i);
     }
@@ -1012,14 +1042,45 @@ const Double_t vb_off = 0.000;
 
     //momentum correction
     //P_measured = p2*P^2 + p1*P + p0
-#if 0
-    //Double_t p0 = -0.0189692; Double_t p1 = 0.997634; Double_t p2 = -0.0112748; //ref1
-    Double_t p0 = 0.; Double_t p1 = 0.973483; Double_t p2 = -0.00397917; //ref2
-    if(p1*p1+4.*(pCorr-p0)*p2<0) pCorr = 0.001; //temporary
+#if 1
+    Double_t p0 = 0.00816054; Double_t p1 = 1.00456; Double_t p2 = -2.50295e-05;
+    if(p1*p1+4.*(pCorr-p0)*p2<0) pCorr = 0.001;
     else pCorr = 0.5*(-p1+TMath::Sqrt(p1*p1+4.*(pCorr-p0)*p2))/p2;
 #endif
     return pCorr;
   }
+
+  Double_t pKuramaCorrection_proton(Double_t u, Double_t v, Double_t pOrg)
+  {
+    //Angular dependence correction
+    Double_t pCorr = pOrg;
+#if 1
+    Double_t par_dxdz[4] = {0.00331135, -0.0838977, -0.508636, -0.516439};
+    Double_t par_dydz[5] = {-0.0121156, -0.051397, 3.82854, 0.702847, -142.941};
+
+    if(u<-0.245) pCorr -= 0.000930233;
+    else if(u>0.105) pCorr -=  -0.0117035;
+    else{
+      for(Int_t i=0; i<4; ++i) pCorr -= par_dxdz[i]*TMath::Power(u, i);
+    }
+
+    if(v<-0.135) pCorr -= 0.0153907;
+    else if(v>0.125) pCorr -= 0.00775557;
+    else{
+      for(Int_t i=0; i<5; ++i) pCorr -= par_dydz[i]*TMath::Power(v, i);
+    }
+#endif
+
+    //momentum correction
+    //P_measured = p2*P^2 + p1*P + p0
+#if 1
+    Double_t p0 = 0.00816054; Double_t p1 = 1.00456; Double_t p2 = -2.50295e-05;
+    if(p1*p1+4.*(pCorr-p0)*p2<0) pCorr = 0.001;
+    else pCorr = 0.5*(-p1+TMath::Sqrt(p1*p1+4.*(pCorr-p0)*p2))/p2;
+#endif
+    return pCorr;
+  }
+
 }
 
 //_____________________________________________________________________________
@@ -1511,12 +1572,7 @@ dst::DstRead( int ievent )
     Double_t vCorr = momCorr.y()/momCorr.z();
     Double_t cost = 1./TMath::Sqrt(1.+uCorr*uCorr+vCorr*vCorr);
     Double_t theta = TMath::ACos(cost)*TMath::RadToDeg();
-    /*
-      std::cout<<"path tgt"<<tr_km -> PathLengthToTarget()<<" total "<<tr_km -> PathLengthTotal()<<std::endl;
-      std::cout<<"K18 pHS "<<event.pHS[0]<<" "<<momCorr.Mag()<<std::endl;
-      std::cout<<"K18 tgt "<<event.xtgtHS[id]<<" "<<event.ytgtHS[id]<<" "<<event.utgtHS[id]<<" "<<event.vtgtHS[id]<<std::endl;
-      std::cout<<"K18TPC tgt "<<tgtpos.x()<<" "<<tgtpos.y()<<" "<<utgt<<" "<<vtgt<<std::endl;
-    */
+
     Int_t idtpc = tr_km -> GetTPCTrackID();
     Int_t idk18 = tr_km -> GetTrackID();
     event.isgoodTPCK18[idk18] = 1;
@@ -1636,6 +1692,9 @@ dst::DstRead( int ievent )
   event.yvpTPCKurama.resize( src.ntKurama );
   for(Int_t ittpckurama=0; ittpckurama<TPCAna.GetNTracksTPCKurama(); ++ittpckurama){
     TPCRKTrack* tr_kp = TPCAna.GetTPCKuramaTrack(ittpckurama);
+    Int_t idtpc = tr_kp -> GetTPCTrackID();
+    Int_t idkurama = tr_kp -> GetTrackID();
+
     Int_t niteration = tr_kp -> Niteration();
     Double_t chisqr = tr_kp -> GetChiSquare();
     const TVector3& tgtpos = tr_kp -> TargetPosition();
@@ -1645,38 +1704,29 @@ dst::DstRead( int ievent )
     Double_t vtgt = tgtmom.y()/tgtmom.z();
     Double_t pOrg = tgtmom.Mag();
     Double_t pCorr = pKuramaCorrection(utgt, vtgt, pOrg);
-    ThreeVector momCorr(pCorr/pOrg*tgtmom.x(), pCorr/pOrg*tgtmom.y(), pCorr/pOrg*tgtmom.z());
     Double_t cost = 1./TMath::Sqrt(1.+utgt*utgt+vtgt*vtgt);
     Double_t theta = TMath::ACos(cost)*TMath::RadToDeg();
     Double_t pathtof = tr_kp -> PathLengthToTOF();
-    /*
-    if(event.pHS.size()>0) std::cout<<"Kurama    path "<<src.path[id]<<" mom "<<event.pKurama[id]<<" pHS "<<event.pHS[0]<<std::endl;
-    else std::cout<<"Kurama    path "<<src.path[id]<<" mom "<<event.pKurama[id]<<std::endl;
-    std::cout<<"KuramaTPC path "<<pathtof<<" mom "<<tr_kp -> TofMom().Mag()<<std::endl;
-
-    std::cout<<"Kurama    tgt "<<event.xtgtKurama[id]<<" "<<event.ytgtKurama[id]<<" "<<event.utgtKurama[id]<<" "<<event.vtgtKurama[id]<<std::endl;
-    std::cout<<"KuramaTPC tgt "<<tgtpos.x()<<" "<<tgtpos.y()<<" "<<utgt<<" "<<vtgt<<std::endl;
-    */
-    Int_t idtpc = tr_kp -> GetTPCTrackID();
-    Int_t idkurama = tr_kp -> GetTrackID();
-    event.isgoodTPCKurama[idkurama] = 1;
-    event.tpcidTPCKurama[idkurama] = idtpc;
-    event.niterationTPCKurama[idkurama] = niteration;
-    event.chisqrTPCKurama[idkurama] = chisqr;
-    event.pTPCKurama[idkurama] = pCorr;
-    event.qTPCKurama[idkurama] = q;
 
     Double_t cstof = src.stof[idkurama];
-    //Int_t tofseg = src.tofsegKurama[id];
     if(cstof > 0.){
-      event.m2TPCKurama[idkurama] = Kinematics::MassSquare(momCorr.Mag(), pathtof, cstof);
+      event.m2TPCKurama[idkurama] = Kinematics::MassSquare(pCorr, pathtof, cstof);
       event.m2OrgTPCKurama[idkurama] = Kinematics::MassSquare(pOrg, pathtof, cstof);
+      if(event.m2TPCKurama[idkurama] > 0.4 && event.m2TPCKurama[idkurama] < 1.5){
+	pCorr = pKuramaCorrection_proton(utgt, vtgt, pOrg);
+      }
     }
     else{
       event.m2TPCKurama[idkurama] = TMath::QuietNaN();
       event.m2OrgTPCKurama[idkurama] = TMath::QuietNaN();
     }
 
+    event.isgoodTPCKurama[idkurama] = 1;
+    event.tpcidTPCKurama[idkurama] = idtpc;
+    event.niterationTPCKurama[idkurama] = niteration;
+    event.chisqrTPCKurama[idkurama] = chisqr;
+    event.pTPCKurama[idkurama] = pCorr;
+    event.qTPCKurama[idkurama] = q;
     event.xtgtTPCKurama[idkurama] = tgtpos.x();
     event.ytgtTPCKurama[idkurama] = tgtpos.y();
     event.utgtTPCKurama[idkurama] = utgt;
@@ -1760,7 +1810,7 @@ dst::DstRead( int ievent )
     const TVector3& tgtposScat = trScat -> TargetPosition();
     Double_t us = tgtmomScat.x()/tgtmomScat.z(), vs = tgtmomScat.y()/tgtmomScat.z();
     Double_t pOrg = tgtmomScat.Mag();
-    Double_t pCorr = pKuramaCorrection(us, vs, pOrg);
+    Double_t pCorr = event.pTPCKurama[idScat];
     ThreeVector pScat = tgtmomScat;
     ThreeVector pScatCorr(pCorr/pOrg*tgtmomScat.x(), pCorr/pOrg*tgtmomScat.y(), pCorr/pOrg*tgtmomScat.z());
     ThreeVector xScat(tgtposScat.x(), tgtposScat.y(), tgtposScat.z());
@@ -1773,8 +1823,6 @@ dst::DstRead( int ievent )
       ThreeVector pKm(ptKm*ub, ptKm*vb, ptKm);
       ThreeVector pKmCorr(ptKm*(ub+ub_off), ptKm*(vb+vb_off), ptKm);
       ThreeVector xKm(src.xtgtHS[idKm]+xb_off, src.ytgtHS[idKm]+xb_off, tgtposScat.z());
-      Double_t cost = pKmCorr*pScatCorr/(pKmCorr.Mag()*pScatCorr.Mag());
-      Double_t theta = TMath::ACos(cost)*TMath::RadToDeg();
 
       //PID
       Double_t ScatMass = qnan;
@@ -1818,6 +1866,9 @@ dst::DstRead( int ievent )
       Double_t MissMass = LvRc.Mag();
       Double_t MissMassCorr = LvRcCorr.Mag();
       Double_t MissMassCorrDE = LvRcCorrDE.Mag();//-LvC.Mag();
+
+      Double_t cost = pKmCorr*pScatCorr/(pKmCorr.Mag()*pScatCorr.Mag());
+      Double_t theta = TMath::ACos(cost)*TMath::RadToDeg();
       { //Xi-, dE in the target is not considered
 	//CM
 
@@ -2872,6 +2923,22 @@ dst::DstRead( int ievent )
   event.vtxmom_x.resize(nvtxTpc);
   event.vtxmom_y.resize(nvtxTpc);
   event.vtxmom_z.resize(nvtxTpc);
+
+  event.isLambda.resize(nvtxTpc);
+  event.ncombiLambda.resize(nvtxTpc);
+  event.massLambda.resize(nvtxTpc);
+  event.vtxLambda_x.resize(nvtxTpc);
+  event.vtxLambda_y.resize(nvtxTpc);
+  event.vtxLambda_z.resize(nvtxTpc);
+  event.momLambda.resize(nvtxTpc);
+  event.momLambda_x.resize(nvtxTpc);
+  event.momLambda_y.resize(nvtxTpc);
+  event.momLambda_z.resize(nvtxTpc);
+  event.decaysidLambda.resize(nvtxTpc);
+  event.decaysmomLambda.resize(nvtxTpc);
+  event.decaysmomLambda_x.resize(nvtxTpc);
+  event.decaysmomLambda_y.resize(nvtxTpc);
+  event.decaysmomLambda_z.resize(nvtxTpc);
   for( Int_t it=0; it<nvtxTpc; ++it ){
     TPCVertexHelix *vp = TPCAna.GetTPCVertexHelix( it );
     if( !vp ) continue;
@@ -2890,23 +2957,59 @@ dst::DstRead( int ievent )
     event.vtxmom_y[it].resize(2);
     event.vtxmom_z[it].resize(2);
 
-    event.vtxid[it][0] = vp -> GetTrack1Id();
-    event.vtxmom_theta[it][0] = vp -> GetTrack1Theta();
-    event.vtxpos_x[it][0] = vp -> GetTrack1Pos().x();
-    event.vtxpos_y[it][0] = vp -> GetTrack1Pos().y();
-    event.vtxpos_z[it][0] = vp -> GetTrack1Pos().z();
-    event.vtxmom_x[it][0] = vp -> GetTrack1Mom().x();
-    event.vtxmom_y[it][0] = vp -> GetTrack1Mom().y();
-    event.vtxmom_z[it][0] = vp -> GetTrack1Mom().z();
+    event.vtxid[it][0] = vp -> GetTrackId(0);
+    event.vtxmom_theta[it][0] = vp -> GetTrackTheta(0);
+    event.vtxpos_x[it][0] = vp -> GetTrackPos(0).x();
+    event.vtxpos_y[it][0] = vp -> GetTrackPos(0).y();
+    event.vtxpos_z[it][0] = vp -> GetTrackPos(0).z();
+    event.vtxmom_x[it][0] = vp -> GetTrackMom(0).x();
+    event.vtxmom_y[it][0] = vp -> GetTrackMom(0).y();
+    event.vtxmom_z[it][0] = vp -> GetTrackMom(0).z();
 
-    event.vtxid[it][1] = vp -> GetTrack2Id();
-    event.vtxmom_theta[it][1] = vp -> GetTrack2Theta();
-    event.vtxpos_x[it][1] = vp -> GetTrack2Pos().x();
-    event.vtxpos_y[it][1] = vp -> GetTrack2Pos().y();
-    event.vtxpos_z[it][1] = vp -> GetTrack2Pos().z();
-    event.vtxmom_x[it][1] = vp -> GetTrack2Mom().x();
-    event.vtxmom_y[it][1] = vp -> GetTrack2Mom().y();
-    event.vtxmom_z[it][1] = vp -> GetTrack2Mom().z();
+    event.vtxid[it][1] = vp -> GetTrackId(1);
+    event.vtxmom_theta[it][1] = vp -> GetTrackTheta(1);
+    event.vtxpos_x[it][1] = vp -> GetTrackPos(1).x();
+    event.vtxpos_y[it][1] = vp -> GetTrackPos(1).y();
+    event.vtxpos_z[it][1] = vp -> GetTrackPos(1).z();
+    event.vtxmom_x[it][1] = vp -> GetTrackMom(1).x();
+    event.vtxmom_y[it][1] = vp -> GetTrackMom(1).y();
+    event.vtxmom_z[it][1] = vp -> GetTrackMom(1).z();
+
+    event.isLambda[it] = vp -> GetIsLambda();
+    if(event.isLambda[it]){
+      Int_t ncombi = event.ncombiLambda[it] = vp -> GetNcombiLambda();
+      for( Int_t combi=0; combi<ncombi; ++combi ){
+
+	Double_t lmass = vp -> GetMassLambda(combi);
+	event.massLambda[it].push_back(lmass);
+	TVector3 vtx = vp -> GetVertexLambda(combi);
+	event.vtxLambda_x[it].push_back(vtx.x());
+	event.vtxLambda_y[it].push_back(vtx.y());
+	event.vtxLambda_z[it].push_back(vtx.z());
+
+	TVector3 lmom = vp -> GetMomLambda(combi);
+	event.momLambda[it].push_back(lmom.Mag());
+	event.momLambda_x[it].push_back(lmom.x());
+	event.momLambda_y[it].push_back(lmom.y());
+	event.momLambda_z[it].push_back(lmom.z());
+
+	Int_t pid = vp -> GetProtonIdLambda(combi);
+	TVector3 pmom = vp -> GetProtonMomLambda(combi);
+	event.decaysidLambda[it].push_back(pid);
+	event.decaysmomLambda[it].push_back(pmom.Mag());
+	event.decaysmomLambda_x[it].push_back(pmom.x());
+	event.decaysmomLambda_y[it].push_back(pmom.y());
+	event.decaysmomLambda_z[it].push_back(pmom.z());
+
+	Int_t piid = vp -> GetPionIdLambda(combi);
+	TVector3 pimom = vp -> GetPionMomLambda(combi);
+	event.decaysidLambda[it].push_back(piid);
+	event.decaysmomLambda[it].push_back(pimom.Mag());
+	event.decaysmomLambda_x[it].push_back(pimom.x());
+	event.decaysmomLambda_y[it].push_back(pimom.y());
+	event.decaysmomLambda_z[it].push_back(pimom.z());
+      }
+    }
   }
 
 #if TrackSearchFailed
@@ -3385,12 +3488,12 @@ ConfMan::InitializeHistograms( void )
   HB2(8025, "MissingMass%V ", 160, -0.4, 0.4, 140, 1.1, 1.8);
   HB2(8026, "MissingMass%V ", 160, -0.4, 0.4, 140, 1.1, 1.8);
   HB2(8027, "MissingMass%V ", 160, -0.4, 0.4, 140, 1.1, 1.8);
-  HB2(8028, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(8029, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(8030, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(8031, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 140, 1.1, 1.8);
-  HB2(8032, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 140, 1.1, 1.8);
-  HB2(8033, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 140, 1.1, 1.8);
+  HB2(8028, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(8029, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(8030, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(8031, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 140, 1.1, 1.8);
+  HB2(8032, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 140, 1.1, 1.8);
+  HB2(8033, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 140, 1.1, 1.8);
   HB2(8036, "#DeltaP%P_{calc.} ", 160, 0.3, 1.1, 200, -1., 1.);
   HB2(8039, "MissingMass%P_{calc.} ", 160, 0.3, 1.1, 140, 1.1, 1.8);
 
@@ -3792,7 +3895,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "failed_residual_z", &event.failed_residual_z );
   tree->Branch( "failed_track_cluster_de", &event.failed_track_cluster_de);
   tree->Branch( "failed_track_cluster_size", &event.failed_track_cluster_size);
-  tree->Branch( "failed_track_cluster_mrow", &event.failed_track_cluster_mrow);pppppp
+  tree->Branch( "failed_track_cluster_mrow", &event.failed_track_cluster_mrow);
 #endif
 
   tree->Branch( "nvtxTpc", &event.nvtxTpc );
@@ -3809,6 +3912,22 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "vtxmom_x", &event.vtxmom_x );
   tree->Branch( "vtxmom_y", &event.vtxmom_y );
   tree->Branch( "vtxmom_z", &event.vtxmom_z );
+
+  tree->Branch( "isLambda", &event.isLambda );
+  tree->Branch( "ncombiLambda", &event.ncombiLambda );
+  tree->Branch( "massLambda", &event.massLambda );
+  tree->Branch( "vtxLambda_x", &event.vtxLambda_x );
+  tree->Branch( "vtxLambda_y", &event.vtxLambda_y );
+  tree->Branch( "vtxLambda_z", &event.vtxLambda_z );
+  tree->Branch( "momLambda", &event.momLambda );
+  tree->Branch( "momLambda_x", &event.momLambda_x );
+  tree->Branch( "momLambda_y", &event.momLambda_y );
+  tree->Branch( "momLambda_z", &event.momLambda_z );
+  tree->Branch( "decaysidLambda", &event.decaysidLambda );
+  tree->Branch( "decaysmomLambda", &event.decaysmomLambda );
+  tree->Branch( "decaysmomLambda_x", &event.decaysmomLambda_x );
+  tree->Branch( "decaysmomLambda_y", &event.decaysmomLambda_y );
+  tree->Branch( "decaysmomLambda_z", &event.decaysmomLambda_z );
 
   TTreeReaderCont[kTpcHit] = new TTreeReader( "tpc", TFileCont[kTpcHit] );
   const auto& reader = TTreeReaderCont[kTpcHit];
