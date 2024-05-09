@@ -35,7 +35,7 @@ protected:
   const DCRawHit* m_raw_hit;
   Int_t     m_plane; // by DIGIT
   Int_t     m_layer; // by DCGEO
-  Double_t  m_wire;  // 1-based (ch + 1)
+  Double_t  m_wire;  // 0-based (= ch)
 
   using data_t = std::vector<Double_t>;
   using flag_t = std::deque<Bool_t>;

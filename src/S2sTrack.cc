@@ -56,7 +56,8 @@ S2sTrack::S2sTrack(const DCLocalTrack *track_in,
     m_path_length_total(0.),
     m_tof_pos(ThreeVector(0., 0., 0.)),
     m_tof_mom(ThreeVector(0., 0., 0.)),
-    m_is_good(true)
+    m_is_good(true),
+    m_use_tof(false)
 {
   s_status[kInit]                = "Initialized";
   s_status[kPassed]              = "Passed";
@@ -110,9 +111,9 @@ S2sTrack::FillHitArray()
     if(hit->GetLayer() == IdTOFUX ||
        hit->GetLayer() == IdTOFDX){
       m_tof_seg = hit->GetWire();
+      m_use_tof = true;
     }
   }
-
 }
 
 //_____________________________________________________________________________
@@ -833,12 +834,27 @@ S2sTrack::SaveTrackParameters(const RKCordParameter &cp)
   const RKcalcHitPoint& hpTofU = m_HitPointCont.HitPointOfLayer(IdTOFUX);
   const RKcalcHitPoint& hpTofD = m_HitPointCont.HitPointOfLayer(IdTOFDX);
 
-  if((Int_t)m_tof_seg%2==0){ // upstream
+  if(!m_use_tof){
+    Double_t ux, uy;
+    GetTrajectoryLocalPosition(IdTOFUX, ux, uy);
+    Int_t utof_seg = gGeom.CalcWireNumber(IdTOFUX, ux);
+
+    Double_t dx, dy;
+    GetTrajectoryLocalPosition(IdTOFDX, dx, dy);
+    Int_t dtof_seg = gGeom.CalcWireNumber(IdTOFDX, dx);
+
+    if( utof_seg < 0 || utof_seg >= NumOfSegTOF ||
+	dtof_seg < 0 || dtof_seg >= NumOfSegTOF ) m_tof_seg = -1;
+    else if( utof_seg == dtof_seg ) m_tof_seg = (Double_t)utof_seg;
+    else                            m_tof_seg = (utof_seg+dtof_seg)/2.;
+  }
+
+  if((Int_t)m_tof_seg%2==1){ // upstream
     m_path_length_tof = std::abs(hpTgt.PathLength()-hpTofU.PathLength());
     m_tof_pos = hpTofU.PositionInGlobal();
     m_tof_mom = hpTofU.MomentumInGlobal();
   }
-  else if((Int_t)m_tof_seg%2==1){ // downstream
+  else if((Int_t)m_tof_seg%2==0){ // downstream
     m_path_length_tof = std::abs(hpTgt.PathLength()-hpTofD.PathLength());
     m_tof_pos = hpTofD.PositionInGlobal();
     m_tof_mom = hpTofD.MomentumInGlobal();
@@ -852,6 +868,44 @@ S2sTrack::SaveTrackParameters(const RKCordParameter &cp)
   m_path_length_total = std::abs(hpTgt.PathLength()-hpLast.PathLength());
 
   return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+S2sTrack::TofLocalPos(TVector3& pos) const
+{
+  if( m_tof_seg < 0 ) return false;
+
+  try {
+    Int_t layer = -1;
+    if( (Int_t)m_tof_seg%2==1 ) layer = IdTOFUX;
+    else if( (Int_t)m_tof_seg%2==0 ) layer = IdTOFDX;
+    ThreeVector lpos = gGeom.Global2LocalPos(layer, m_tof_pos);
+    pos.SetXYZ(lpos.x(), lpos.y(), lpos.z());
+    return true;
+  }
+  catch(const std::out_of_range&) {
+    return false;
+  }
+}
+
+//_____________________________________________________________________________
+Bool_t
+S2sTrack::TofLocalMom(TVector3& mom) const
+{
+  if( m_tof_seg < 0 ) return false;
+
+  try {
+    Int_t layer = -1;
+    if( (Int_t)m_tof_seg%2==1 ) layer = IdTOFUX;
+    else if( (Int_t)m_tof_seg%2==0 ) layer = IdTOFDX;
+    ThreeVector lmom = gGeom.Global2LocalDir(layer, m_tof_mom);
+    mom.SetXYZ(lmom.x(), lmom.y(), lmom.z());
+    return true;
+  }
+  catch(const std::out_of_range&) {
+    return false;
+  }
 }
 
 //_____________________________________________________________________________
@@ -889,3 +943,22 @@ S2sTrack::GetTrajectoryLocalDirection(Int_t layer,
     return false;
   }
 }
+
+//_____________________________________________________________________________
+Bool_t
+S2sTrack::GetTrajectoryLocalPosition(const TString& key,
+				     Double_t& x, Double_t& y) const
+{
+  Int_t layer = gGeom.GetLayerId(key);
+  return GetTrajectoryLocalPosition(layer, x, y);
+}
+
+//_____________________________________________________________________________
+Bool_t
+S2sTrack::GetTrajectoryLocalDirection(const TString& key,
+				      Double_t& u, Double_t& v) const
+{
+  Int_t layer = gGeom.GetLayerId(key);
+  return GetTrajectoryLocalDirection(layer, u, v);
+}
+

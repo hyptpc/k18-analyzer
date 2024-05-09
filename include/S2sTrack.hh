@@ -48,7 +48,7 @@ private:
   RKstatus                m_status;
   const DCLocalTrack*     m_track_in;
   const DCLocalTrack*     m_track_out;
-  Double_t                m_tof_seg;
+  Double_t                m_tof_seg; // 0-origin
   Double_t                m_initial_momentum;
   std::vector<TrackHit*>  m_hit_array;
   RKHitPointContainer     m_HitPointCont;
@@ -64,6 +64,7 @@ private:
   TVector3                m_tof_mom;
   RKCordParameter         m_cord_param;
   Bool_t                  m_is_good;
+  Bool_t                  m_use_tof;
 
 public:
   Double_t        ChiSquare() const { return m_chisqr; }
@@ -81,6 +82,10 @@ public:
                                              Double_t& x, Double_t& y) const;
   Bool_t          GetTrajectoryLocalDirection(Int_t layer,
 					      Double_t& u, Double_t& v) const;
+  Bool_t          GetTrajectoryLocalPosition(const TString& key,
+                                             Double_t& x, Double_t& y) const;
+  Bool_t          GetTrajectoryLocalDirection(const TString& key,
+					      Double_t& u, Double_t& v) const;
   Bool_t          GoodForAnalysis() const { return m_is_good; }
   Bool_t          GoodForAnalysis(Bool_t status)
   { m_is_good = status; return status; }
@@ -95,8 +100,10 @@ public:
   Bool_t          ReCalc(Bool_t applyRecursively=false);
   void            SetInitialMomentum(Double_t p) { m_initial_momentum = p; }
   Bool_t          Status() const { return m_status; }
-  const TVector3& TofMom() const { return m_tof_mom; }
   const TVector3& TofPos() const { return m_tof_pos; }
+  const TVector3& TofMom() const { return m_tof_mom; }
+  Bool_t TofLocalPos(TVector3& pos) const;
+  Bool_t TofLocalMom(TVector3& mom) const;
   Double_t        TofSeg() const { return m_tof_seg; }
 
 private:

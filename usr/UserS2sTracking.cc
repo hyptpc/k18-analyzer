@@ -117,6 +117,11 @@ struct Event
   Double_t ytofS2s[MaxHits];
   Double_t utofS2s[MaxHits];
   Double_t vtofS2s[MaxHits];
+
+  Double_t lxtofS2s[MaxHits];
+  Double_t lytofS2s[MaxHits];
+  Double_t lutofS2s[MaxHits];
+  Double_t lvtofS2s[MaxHits];
   Double_t tofsegS2s[MaxHits];
 
   std::vector< std::vector<Double_t> > resL;
@@ -220,6 +225,10 @@ Event::clear()
     ytofS2s[it]  = qnan;
     utofS2s[it]  = qnan;
     vtofS2s[it]  = qnan;
+    lxtofS2s[it]  = qnan;
+    lytofS2s[it]  = qnan;
+    lutofS2s[it]  = qnan;
+    lvtofS2s[it]  = qnan;
     tofsegS2s[it] = qnan;
   }
 
@@ -722,31 +731,35 @@ ProcessingNormal()
     event.thetaS2s[i] = theta;
     event.phiS2s[i] = phi;
     event.resP[i] = p - initial_momentum;
-    for(Int_t i = 0; i<NumOfLayersVP; ++i){
-      Int_t l = PlMinVP + i;
+    for(Int_t j = 0; j<NumOfLayersVP; ++j){
+      Int_t l = PlMinVP + j;
       Double_t vpx, vpy;
       Double_t vpu, vpv;
       track->GetTrajectoryLocalPosition(l, vpx, vpy);
       track->GetTrajectoryLocalDirection(l, vpu, vpv);
-      event.vpx[i] = vpx;
-      event.vpy[i] = vpy;
-      event.vpu[i] = vpu;
-      event.vpv[i] = vpv;
+      event.vpx[j] = vpx;
+      event.vpy[j] = vpy;
+      event.vpu[j] = vpu;
+      event.vpv[j] = vpv;
       HF2(100*l+1, vpx, vpu); HF2(100*l+2, vpy, vpv); HF2(100*l+3, vpx, vpy);
     }
-    const auto& posTof = track->TofPos();
-    const auto& momTof = track->TofMom();
-    event.xtofS2s[i] = posTof.x();
-    event.ytofS2s[i] = posTof.y();
-    event.utofS2s[i] = momTof.x()/momTof.z();
-    event.vtofS2s[i] = momTof.y()/momTof.z();
-#if UseTOF
-    Double_t tof_seg = track->TofSeg();
-    event.tofsegS2s[i] = tof_seg;
-#else
-    Double_t tof_x = track->GetLocalTrackOut()->GetX(zTOF);
-    Double_t tof_seg = MathTools::Round(tof_x/75. + (NumOfSegTOF + 1)*0.5);
-    event.tofsegS2s[i] = tof_seg;
+    Double_t tof_seg = track->TofSeg()+1; // 1-origin
+    if( tof_seg > 0 ){
+      event.tofsegS2s[i] = tof_seg;
+      TVector3 lposTof, lmomTof;
+      track->TofLocalPos(lposTof);
+      track->TofLocalMom(lmomTof);
+      event.lxtofS2s[i] = lposTof.x();
+      event.lytofS2s[i] = lposTof.y();
+      event.lutofS2s[i] = lmomTof.x()/lmomTof.z();
+      event.lvtofS2s[i] = lmomTof.y()/lmomTof.z();
+      const auto& posTof = track->TofPos();
+      const auto& momTof = track->TofMom();
+      event.xtofS2s[i] = posTof.x();
+      event.ytofS2s[i] = posTof.y();
+      event.utofS2s[i] = momTof.x()/momTof.z();
+      event.vtofS2s[i] = momTof.y()/momTof.z();
+    }
 # if 0
     std::cout << "posTof " << posTof << std::endl;
     std::cout << "momTof " << momTof << std::endl;
@@ -755,23 +768,11 @@ ProcessingNormal()
 	      << std::setw(10) << sign*vecTof.Mod()
 	      << std::setw(10) << TofSegS2s << std::endl;
 # endif
-    Double_t minres = 1.0e10;
-#endif
     Double_t time = qnan;
     for(const auto& hit: hodoAna.GetHitContainer("TOF")){
-   if(!hit) continue;
-      Int_t seg = hit->SegmentId() + 1;
-#if UseTOF
-      if((Int_t)tof_seg == seg){
-	time = hit->CMeanTime() - time0 + StofOffset;
-      }
-#else
-      Double_t res = TMath::Abs(tof_seg - seg);
-      if(res < minres){
-	minres = res;
-	time = hit->CMeanTime() - time0 + StofOffset;
-      }
-#endif
+      if(!hit) continue;
+      Int_t seg = hit->SegmentId()+1;
+      if(tof_seg == seg) time = hit->CMeanTime() - time0 + StofOffset;
     }
     event.stof[i] = time;
     if(time > 0.){
@@ -1299,6 +1300,11 @@ ConfMan::InitializeHistograms()
   tree->Branch("ytofS2s",   event.ytofS2s,   "ytofS2s[ntS2s]/D");
   tree->Branch("utofS2s",   event.utofS2s,   "utofS2s[ntS2s]/D");
   tree->Branch("vtofS2s",   event.vtofS2s,   "vtofS2s[ntS2s]/D");
+
+  tree->Branch("lxtofS2s",   event.lxtofS2s,   "lxtofS2s[ntS2s]/D");
+  tree->Branch("lytofS2s",   event.lytofS2s,   "lytofS2s[ntS2s]/D");
+  tree->Branch("lutofS2s",   event.lutofS2s,   "lutofS2s[ntS2s]/D");
+  tree->Branch("lvtofS2s",   event.lvtofS2s,   "lvtofS2s[ntS2s]/D");
   tree->Branch("tofsegS2s", event.tofsegS2s, "tofsegS2s[ntS2s]/D");
 
   tree->Branch("vpx",          event.vpx,          Form("vpx[%d]/D", NumOfLayersVP));

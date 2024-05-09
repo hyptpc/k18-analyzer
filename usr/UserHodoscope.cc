@@ -1533,7 +1533,7 @@ ConfMan::InitializeHistograms()
   HB1(1, "Status", 20, 0., 20.);
   HB1(10, "Trigger HitPat", NumOfSegTrig, 0., Double_t(NumOfSegTrig));
   for(Int_t i=0; i<NumOfSegTrig; ++i){
-    HB1(10+i+1, Form("Trigger Trig %d", i+1), 0x1000, 0, 0x1000);
+    HB1(10+i+1, Form("Trigger Flag %d", i+1), 0x1000, 0, 0x1000);
   }
 
   // BH1

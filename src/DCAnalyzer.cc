@@ -505,20 +505,20 @@ DCAnalyzer::DecodeTOFHits(const HodoHC& HitCont)
       layer_x  = IdTOFDX;
       layer_y  = IdTOFDY;
     }
-    Double_t wpos = gGeom.CalcWirePosition(layer_x, seg);
+    Double_t wpos = gGeom.CalcWirePosition(layer_x, seg-1);
     TVector3 w(wpos, 0., 0.);
     w.RotateY(RA2*TMath::DegToRad()); // for the tilting plane case
     const TVector3 hit_pos = TOFPos[(Int_t)seg%2] + w
       + TVector3(0., dt*TimeDiffToYTOF, 0.);
     // X
-    DCHit *dc_hit_x = new DCHit(layer_x, seg);
+    DCHit *dc_hit_x = new DCHit(layer_x, seg-1);
     dc_hit_x->SetWirePosition(hit_pos.x());
     dc_hit_x->SetZ(hit_pos.z());
     dc_hit_x->SetTiltAngle(0.);
     dc_hit_x->SetDCData();
     m_TOFHC.push_back(dc_hit_x);
     // Y
-    DCHit *dc_hit_y = new DCHit(layer_y, seg);
+    DCHit *dc_hit_y = new DCHit(layer_y, seg-1);
     dc_hit_y->SetWirePosition(hit_pos.y());
     dc_hit_y->SetZ(hit_pos.z());
     dc_hit_y->SetTiltAngle(90.);
@@ -553,20 +553,20 @@ DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
       layer_x  = IdTOFDX;
       layer_y  = IdTOFDY;
     }
-    Double_t wpos = gGeom.CalcWirePosition(layer_x, seg);
+    Double_t wpos = gGeom.CalcWirePosition(layer_x, seg-1);
     TVector3 w(wpos, 0., 0.);
     w.RotateY(RA2*TMath::DegToRad());
     const TVector3& hit_pos = TOFPos[(Int_t)seg%2] + w
       + TVector3(0., dt*TimeDiffToYTOF, 0.);
     // X
-    DCHit *dc_hit_x = new DCHit(layer_x, seg);
+    DCHit *dc_hit_x = new DCHit(layer_x, seg-1);
     dc_hit_x->SetWirePosition(hit_pos.x());
     dc_hit_x->SetZ(hit_pos.z());
     dc_hit_x->SetTiltAngle(0.);
     dc_hit_x->SetDCData();
     m_TOFHC.push_back(dc_hit_x);
     // Y
-    DCHit *dc_hit_y = new DCHit(layer_y, seg);
+    DCHit *dc_hit_y = new DCHit(layer_y, seg-1);
     dc_hit_y->SetWirePosition(hit_pos.y());
     dc_hit_y->SetZ(hit_pos.z());
     dc_hit_y->SetTiltAngle(90.);
@@ -901,7 +901,8 @@ DCAnalyzer::TrackSearchS2s()
       // Double_t p[3] = { 0.08493, 0.2227, 0.01572 };
       // Double_t initial_momentum = p[0] + p[1]/(bending-p[2]);
       Double_t s = valueNMR/TMath::Abs(valueNMR);
-      Double_t initial_momentum = s*pK18;
+      // Double_t initial_momentum = s*pK18;
+      Double_t initial_momentum = 1.4;
       if(false
          && bending>0. && initial_momentum>0.){
         trS2s->SetInitialMomentum(initial_momentum);
