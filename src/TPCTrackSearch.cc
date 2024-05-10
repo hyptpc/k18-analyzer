@@ -1463,6 +1463,7 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     std::sort(candidates.begin(), candidates.end());
     for(Int_t i=0; i<candidates.size(); ++i){
       Int_t trackID = candidates[i] - i;
+      TrackCont[trackID] -> SetIsCalculated(false);
       TrackContFailed.push_back(TrackCont[trackID]);
       TrackCont.erase(TrackCont.begin() + trackID);
     }
