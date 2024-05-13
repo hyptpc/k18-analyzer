@@ -450,6 +450,9 @@ struct Event
 
   std::vector<Int_t> isLambda;
   std::vector<Int_t> ncombiLambda;
+  std::vector<Double_t> distLambda;
+  std::vector<Double_t> angleLambda;
+  std::vector<Double_t> bestmassLambda;
   std::vector<std::vector<Double_t>> massLambda;
   std::vector<std::vector<Double_t>> vtxLambda_x;
   std::vector<std::vector<Double_t>> vtxLambda_y;
@@ -828,6 +831,9 @@ struct Event
 
     isLambda.clear();
     ncombiLambda.clear();
+    distLambda.clear();
+    angleLambda.clear();
+    bestmassLambda.clear();
     massLambda.clear();
     vtxLambda_x.clear();
     vtxLambda_y.clear();
@@ -1158,6 +1164,7 @@ dst::DstRead( int ievent )
   static const auto KaonMass    = pdg::KaonMass();
   static const auto PionMass    = pdg::PionMass();
   static const auto ProtonMass  = pdg::ProtonMass();
+  static const auto LambdaMass  = pdg::LambdaMass();
   static const auto XiMass      = pdg::XiMinusMass();
   static const auto XiStarMass  = 1.5350;
   static const auto MaxChisqrBcOut = gUser.GetParameter("MaxChisqrBcOut");
@@ -2926,6 +2933,9 @@ dst::DstRead( int ievent )
 
   event.isLambda.resize(nvtxTpc);
   event.ncombiLambda.resize(nvtxTpc);
+  event.distLambda.resize(nvtxTpc);
+  event.angleLambda.resize(nvtxTpc);
+  event.bestmassLambda.resize(nvtxTpc);
   event.massLambda.resize(nvtxTpc);
   event.vtxLambda_x.resize(nvtxTpc);
   event.vtxLambda_y.resize(nvtxTpc);
@@ -2976,12 +2986,19 @@ dst::DstRead( int ievent )
     event.vtxmom_z[it][1] = vp -> GetTrackMom(1).z();
 
     event.isLambda[it] = vp -> GetIsLambda();
+    event.distLambda[it] = vp -> GetClosestDistLambda();
+    event.angleLambda[it] = vp -> GetOpeningAngleLambda();
     if(event.isLambda[it]){
       Int_t ncombi = event.ncombiLambda[it] = vp -> GetNcombiLambda();
+      Double_t best_lmass = 9999;
       for( Int_t combi=0; combi<ncombi; ++combi ){
 
 	Double_t lmass = vp -> GetMassLambda(combi);
 	event.massLambda[it].push_back(lmass);
+	Double_t diff = TMath::Abs(lmass - LambdaMass);
+	Double_t best_diff = TMath::Abs(best_lmass - LambdaMass);
+	if(diff > best_diff) best_lmass = lmass;
+
 	TVector3 vtx = vp -> GetVertexLambda(combi);
 	event.vtxLambda_x[it].push_back(vtx.x());
 	event.vtxLambda_y[it].push_back(vtx.y());
@@ -3009,6 +3026,7 @@ dst::DstRead( int ievent )
 	event.decaysmomLambda_y[it].push_back(pimom.y());
 	event.decaysmomLambda_z[it].push_back(pimom.z());
       }
+      event.bestmassLambda[it] = best_lmass;
     }
   }
 
@@ -3915,6 +3933,9 @@ ConfMan::InitializeHistograms( void )
 
   tree->Branch( "isLambda", &event.isLambda );
   tree->Branch( "ncombiLambda", &event.ncombiLambda );
+  tree->Branch( "distLambda", &event.distLambda );
+  tree->Branch( "angleLambda", &event.angleLambda );
+  tree->Branch( "bestmassLambda", &event.bestmassLambda );
   tree->Branch( "massLambda", &event.massLambda );
   tree->Branch( "vtxLambda_x", &event.vtxLambda_x );
   tree->Branch( "vtxLambda_y", &event.vtxLambda_y );
