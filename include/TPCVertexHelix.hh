@@ -34,6 +34,8 @@ private:
   //for Lambda reconstruction
   Bool_t m_is_lambda;
   TVector3 m_lambda_vertex;
+  Double_t m_lambda_distance;
+  Double_t m_lambda_angle;
   std::vector<Double_t> m_lambda_mass;
   std::vector<TVector3> m_lambda_mom;
   std::vector<Int_t> m_proton_id;
@@ -59,10 +61,12 @@ public:
   Double_t GetTrackTheta(Int_t i) const { return m_track_theta.at(i); }
 
   //For particle reconstruction
-  Bool_t IsLambda();
-  Bool_t ReconstructLambda(TPCLocalTrackHelix* track1, TPCLocalTrackHelix* track2);
+  Bool_t ReconstructLambda(TVector3 vertex, TVector3 mom1, TVector3 mom2, Double_t ppi_distance);
+  void ReconstructLambdaWithVertex(TPCLocalTrackHelix* track1, TPCLocalTrackHelix* track2);
 
   Bool_t GetIsLambda() const { return m_is_lambda; }
+  Double_t GetClosestDistLambda() const { return m_lambda_distance; }
+  Double_t GetOpeningAngleLambda() const { return m_lambda_angle; }
   Int_t GetNcombiLambda() const { return m_lambda_mass.size(); }
   TVector3 GetVertexLambda(Int_t i) const { return m_lambda_vertex; }
   Double_t GetMassLambda(Int_t i) const { return m_lambda_mass.at(i); }
