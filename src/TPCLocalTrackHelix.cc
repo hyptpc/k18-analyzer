@@ -98,6 +98,8 @@ namespace
   static std::vector<Int_t> gLayer;
   static std::vector<Double_t> gPadTheta;
   static std::vector<std::vector<Double_t>> gResParam;
+  static TVector3 gVertex;
+  static TVector3 gVertexRes;
   static Double_t gPar[5] = {0};
   static Double_t gChisqr = 1.e+10;
   static Bool_t gMomConstraint = false; //w or w/o momentum constraint
@@ -381,12 +383,33 @@ static inline void fcn_helix(Int_t &npar, Double_t *gin, Double_t &f, Double_t *
   Double_t chisqr=0.; Int_t dof = 0;
   for(Int_t i=0; i<gNumOfHits; ++i){
     TVector3 d = ResidualVect(par, gHitPos[i], gHelixTheta[i]);
-    if(gRes[i].x() > 0.9e+10 && gRes[i].y() > 0.9e+10 && gRes[i].z() > 0.9e+10) continue; // exclude dummy hits
+    if(gRes[i].x() > 0.9e+10 && gRes[i].y() > 0.9e+10 && gRes[i].z() > 0.9e+10) continue; // exclude dummy hits in calculation
     chisqr += TMath::Power(TMath::Hypot(d.x(), d.z())/TMath::Hypot(gRes[i].x(), gRes[i].z()), 2) + TMath::Power(d.y()/gRes[i].y(), 2);
     dof++;
     dof++;
   }
   if(gMomConstraint) dof += 1; //if there is a momentum constraint
+  f = chisqr/(Double_t)(dof - 5);
+}
+
+//______________________________________________________________________________
+static inline void fcn_helixwVertex(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t iflag)
+{
+
+  Double_t chisqr=0.; Int_t dof = 0;
+  for(Int_t i=0; i<gNumOfHits; ++i){
+    TVector3 d = ResidualVect(par, gHitPos[i], gHelixTheta[i]);
+    if(gRes[i].x() > 0.9e+10 && gRes[i].y() > 0.9e+10 && gRes[i].z() > 0.9e+10) continue; // exclude dummy hits in calculation
+    chisqr += TMath::Power(TMath::Hypot(d.x(), d.z())/TMath::Hypot(gRes[i].x(), gRes[i].z()), 2) + TMath::Power(d.y()/gRes[i].y(), 2);
+    dof++;
+    dof++;
+  }
+  TVector3 d = ResidualVect(par, gVertex, -2.*TMath::Pi(), 2.*TMath::Pi());
+  TVector3 res = gVertexRes;
+  chisqr += TMath::Power(TMath::Hypot(d.x(), d.z())/TMath::Hypot(res.x(), res.z()), 2) + TMath::Power(d.y()/res.y(), 2);
+  dof++;
+  dof++;
+
   f = chisqr/(Double_t)(dof - 5);
 }
 
@@ -745,6 +768,132 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters, Bool_t Exclu
   return status;
 }
 
+//______________________________________________________________________________
+static inline Double_t CalcChi2wVertex(Double_t *HelixPar, Int_t &ndf)
+{
+
+  if(gHitPos.size()!=gNumOfHits || gHelixTheta.size()!=gNumOfHits || gLayer.size()!=gNumOfHits || gPadTheta.size()!=gNumOfHits || gResParam.size()!=gNumOfHits){
+    hddaq::cerr << "TPCLocalTrackHelix CalcChi2wVertex() "
+		<< "#hits != # params"
+		<< " # hits " << gHitPos.size()
+		<< " # layer ids " << gLayer.size()
+		<< " # pad angles " << gPadTheta.size()
+		<< " # helix thetas " << gHelixTheta.size()
+		<< " # res params " << gResParam.size()
+		<< std::endl;
+    return TMath::QuietNaN();
+  }
+
+  ndf = 0; Double_t chisqr = 0.;
+  for(Int_t i=0; i<gNumOfHits; ++i){
+    TVector3 d = ResidualVect(HelixPar, gHitPos[i], gHelixTheta[i]);
+    TVector3 res = gRes[i];
+    if(res.x() > 0.9e+10 && res.y() > 0.9e+10 && res.z() > 0.9e+10) continue; // exclude bad clusters
+    chisqr += TMath::Power(TMath::Hypot(d.x(), d.z())/TMath::Hypot(res.x(), res.z()), 2) + TMath::Power(d.y()/res.y(), 2);
+    ndf++;
+    ndf++;
+  }
+  TVector3 d = ResidualVect(HelixPar, gVertex, -2.*TMath::Pi(), 2.*TMath::Pi());
+  TVector3 res = gVertexRes;
+  chisqr += TMath::Power(TMath::Hypot(d.x(), d.z())/TMath::Hypot(res.x(), res.z()), 2) + TMath::Power(d.y()/res.y(), 2);
+  ndf++;
+  ndf++;
+
+  if(ndf < 6) return 1.e+10;
+  return chisqr/(Double_t)(ndf-5);
+}
+
+//______________________________________________________________________________
+static inline Bool_t HelixFitwVertex(){
+
+  if(gHitPos.size()!=gNumOfHits || gHelixTheta.size()!=gNumOfHits || gLayer.size()!=gNumOfHits || gPadTheta.size()!=gNumOfHits || gResParam.size()!=gNumOfHits){
+    hddaq::cerr << " TPCLocalTrackHelix HelixFitwVertex() "
+		<< "#hits != # params"
+		<< " # hits " << gHitPos.size()
+		<< " # layer ids " << gLayer.size()
+		<< " # pad angles " << gPadTheta.size()
+      		<< " # helix thetas " << gHelixTheta.size()
+		<< " # res params " << gResParam.size()
+		<< std::endl;
+    return false;
+  }
+
+  Double_t par[5] = {gPar[0], gPar[1], gPar[2], gPar[3], gPar[4]};
+  Double_t err[5] = {-999., -999., -999., -999., -999.};
+
+  gChisqr = 1e+10;
+
+  TMinuit *minuit = new TMinuit(5);
+  minuit->SetPrintLevel(-1);
+  minuit->SetFCN(fcn_helixwVertex);
+
+  Int_t ierflg = 0;
+  Double_t arglist[10];
+  arglist[0] = 5.89;
+  minuit->mnexcm("SET ERR", arglist, 1, ierflg); //Num of parameter
+  arglist[0] = 1;
+  minuit->mnexcm("SET NOW", arglist, 1, ierflg); // No warnings
+
+  TString name[5] = {"cx", "cy", "z0", "r", "dz"};
+  for(Int_t i=0; i<5; i++){
+    minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
+  }
+
+  minuit->Command("SET STRategy 0");
+  //arglist[0] = 5000.;
+  //arglist[1] = 0.01;
+  arglist[0] = 1000.;
+  arglist[1] = 0.1;
+
+  Int_t Err;
+  Double_t bnd1, bnd2;
+
+  Bool_t status = false;
+  Int_t ndf=0; Int_t itry=0; gMinuitStatus = 0;
+  while(true){
+    if(itry>MaxTryMinuit) break;
+    minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
+    minuit->mnimpr();
+    //minuit->mnexcm("MINOS", arglist, 0, ierflg);
+    //minuit->mnexcm("SET ERR", arglist, 2, ierflg);
+
+    Double_t amin, edm, errdef;
+    Int_t nvpar, nparx, icstat;
+    minuit->mnstat(amin, edm, errdef, nvpar, nparx, icstat);
+
+    //minuit->mnprin(4, amin);
+    for(Int_t i=0; i<5; i++){
+      minuit->mnpout(i, name[i], par[i], err[i], bnd1, bnd2, Err);
+    }
+
+    //Double_t grad[5];
+    //minuit -> Eval(5, grad, Chisqr, par, 0);
+    Double_t Chisqr = CalcChi2wVertex(par, ndf);
+    if(gChisqr>=Chisqr || TMath::Abs(gChisqr-Chisqr) < 0.01){
+      gChisqr = Chisqr;
+      gPar[0] = par[0];
+      gPar[1] = par[1];
+      gPar[2] = par[2];
+      gPar[3] = par[3];
+      gPar[4] = par[4];
+      gMinuitStatus = icstat;
+      //gBadHits = gNumOfHits - 0.5*ndf;
+      gBadHits = gNumOfHits - 0.5*ndf + 1; // +1 by considering the vertex point
+    }
+    arglist[0] = arglist[0]*5;
+    arglist[1] = arglist[1]*0.1;
+    ++itry;
+  }
+  delete minuit;
+
+#if DebugDisp
+  std::cout<<"HelixFitwVertex() status="<<status<<" gChisqr "<<gChisqr<<std::endl;
+  if(gMinuitStatus==0) std::cout<<"HelixFit() icstat==0"<<std::endl;
+#endif
+
+  return true;
+}
+
 //Only for momentum constraint fitting
 //______________________________________________________________________________
 static inline void fcn_circle(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t iflag)
@@ -886,6 +1035,7 @@ TPCLocalTrackHelix::TPCLocalTrackHelix(TPCLocalTrackHelix *init){
   this -> m_z0 = init -> m_z0 ;
   this -> m_r = init -> m_r ;
   this -> m_dz = init -> m_dz ;
+  this -> m_pid = init -> m_pid ;
   this -> m_closedist = init -> m_closedist ;
   this -> m_chisqr = init -> m_chisqr ;
   this -> m_minuit = init -> m_minuit ;
@@ -931,11 +1081,27 @@ TPCLocalTrackHelix::TPCLocalTrackHelix(TPCLocalTrackHelix *init){
     this -> m_dz_exclusive.push_back(init -> m_dz_exclusive[i]);
     this -> m_chisqr_exclusive.push_back(init -> m_chisqr_exclusive[i]);
     this -> m_t_exclusive.push_back(init -> m_t_exclusive[i]);
+
+    this -> m_hit_array[i] -> SetCalHelixExclusive(init -> m_cx_exclusive[i],
+						   init -> m_cy_exclusive[i],
+						   init -> m_z0_exclusive[i],
+						   init -> m_r_exclusive[i],
+						   init -> m_dz_exclusive[i]);
+    this -> m_hit_array[i] -> SetThetaExclusive(init -> m_t_exclusive[i]);
+    this -> m_hit_array[i] -> SetCalPositionExclusive(init -> m_hit_array[i] -> GetLocalCalPosHelixExclusive());
   }
 
   for(Int_t i=0;i<init -> m_vp.size();i++){
     this -> m_vp.push_back(init -> m_vp[i]);
   }
+
+  for(Int_t i=0;i<this -> m_hit_array.size();i++){
+    this -> m_hit_array[i] -> SetCalHelix(init -> m_cx, init -> m_cy, init -> m_z0, init -> m_r, init -> m_dz);
+    this -> m_hit_array[i] -> SetTheta(init -> m_hit_array[i] -> GetTheta());
+    this -> m_hit_array[i] -> SetCalPosition(init -> m_hit_array[i] -> GetLocalCalPosHelix());
+    this -> m_hit_array[i] -> SetResolution(init -> m_hit_array[i] -> GetResolutionVect());
+  }
+
   debug::ObjectCounter::increase(ClassName());
 }
 
@@ -3057,6 +3223,84 @@ TPCLocalTrackHelix::TestMergedTrack()
 }
 
 //______________________________________________________________________________
+Bool_t
+TPCLocalTrackHelix::DoFitTrackwVertex(TVector3 vertex_pos, TVector3 vertex_res)
+{
+
+  Bool_t status = false;
+  if(!IsGoodForTracking()) return status;
+
+#if DebugDisp
+  std::cout<<FUNC_NAME+" Before vertex constraint fitting, track's Helix params"<<std::endl
+	   <<" cx: "<<m_cx
+	   <<", cy: "<<m_cy
+	   <<", z0: "<<m_z0
+	   <<", r: "<<m_r
+	   <<", dz: "<<m_dz<<std::endl;
+#endif
+
+  //Initialization of helix params
+  gPar[0] = m_cx;
+  gPar[1] = m_cy;
+  gPar[2] = m_z0;
+  gPar[3] = m_r;
+  gPar[4] = m_dz;
+
+  DeleteNullHit();
+  const Int_t n = m_hit_array.size();
+
+  //Vertex information
+  gVertex = vertex_pos;
+  gVertexRes = vertex_res;
+
+  gMultiLoop = m_is_multiloop;
+  gNumOfHits = 0;
+  gBadHits = 0;
+  gMinuitStatus = 0;
+  gHitPos.clear();
+  gLayer.clear();
+  gPadTheta.clear();
+  gResParam.clear();
+  gRes.clear();
+  for(Int_t i=0; i<n; ++i){
+    TPCLTrackHit *hitp = m_hit_array[i];
+    gNumOfHits++;
+    TVector3 pos = hitp->GetLocalHitPos();
+    gHitPos.push_back(pos);
+    Int_t layer = hitp->GetLayer();
+    gLayer.push_back(layer);
+    Double_t padTheta = hitp->GetPadTheta();
+    gPadTheta.push_back(padTheta);
+    std::vector<Double_t> resparam = hitp->GetResolutionParams();
+    gResParam.push_back(resparam);
+    const TVector3& res = hitp->GetResolutionVect();
+    gRes.push_back(res);
+  }
+
+  CalcHelixTheta();
+  if(HelixFitwVertex()){
+    status = true;
+    SetParam(gPar);
+    CalcHelixTheta();
+    Bool_t vetoBadClusters = true;
+    Int_t ndf;
+    m_chisqr = CalcChi2(gPar, ndf, vetoBadClusters);
+    m_minuit = gMinuitStatus;
+    Double_t window = ThetaWindow/gPar[3];
+    for(Int_t i=0; i<gNumOfHits; ++i){
+      Double_t theta = EvalTheta(gPar, gHitPos[i], gHelixTheta[i] - 0.5*window, gHelixTheta[i] + 0.5*window);
+      m_hit_t[i] = theta;
+      gHelixTheta[i] = theta;
+    }
+
+    Int_t delete_hit = -1;
+    FinalizeTrack(delete_hit);
+  }
+
+  return status;
+}
+
+//______________________________________________________________________________
 void
 TPCLocalTrackHelix::RecalcTrack()
 {
@@ -3205,11 +3449,10 @@ double
 TPCLocalTrackHelix::GetTransverseMomentumAngularCovariance(Double_t t){
 
 
-  Double_t t_avg = 0.5*(m_max_t + m_min_t);
   if(t == -9999){
     t = GetHitInOrder(0)->GetTheta();
   }
-  Double_t t_dif = (t-t_avg);
+
   Double_t sign = 1;
   if(m_charge>0)sign = -1;
   Double_t dp_t =  GetTransverseMomentumResolution();

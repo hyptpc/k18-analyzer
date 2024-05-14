@@ -136,6 +136,25 @@ struct Event
   std::vector<std::vector<Double_t>> vtxmom_y;
   std::vector<std::vector<Double_t>> vtxmom_z;
 
+  std::vector<Int_t> isLambda;
+  std::vector<Int_t> ncombiLambda;
+  std::vector<Double_t> distLambda;
+  std::vector<Double_t> angleLambda;
+  std::vector<Double_t> bestmassLambda;
+  std::vector<std::vector<Double_t>> massLambda;
+  std::vector<std::vector<Double_t>> vtxLambda_x;
+  std::vector<std::vector<Double_t>> vtxLambda_y;
+  std::vector<std::vector<Double_t>> vtxLambda_z;
+  std::vector<std::vector<Double_t>> momLambda;
+  std::vector<std::vector<Double_t>> momLambda_x;
+  std::vector<std::vector<Double_t>> momLambda_y;
+  std::vector<std::vector<Double_t>> momLambda_z;
+  std::vector<std::vector<Double_t>> decaysidLambda;
+  std::vector<std::vector<Double_t>> decaysmomLambda;
+  std::vector<std::vector<Double_t>> decaysmomLambda_x;
+  std::vector<std::vector<Double_t>> decaysmomLambda_y;
+  std::vector<std::vector<Double_t>> decaysmomLambda_z;
+
   Int_t ntK18;
   std::vector<Double_t> pK18;
   std::vector<Double_t> p_3rd;
@@ -376,6 +395,25 @@ struct Event
     vtxmom_y.clear();
     vtxmom_z.clear();
 
+    isLambda.clear();
+    ncombiLambda.clear();
+    distLambda.clear();
+    angleLambda.clear();
+    bestmassLambda.clear();
+    massLambda.clear();
+    vtxLambda_x.clear();
+    vtxLambda_y.clear();
+    vtxLambda_z.clear();
+    momLambda.clear();
+    momLambda_x.clear();
+    momLambda_y.clear();
+    momLambda_z.clear();
+    decaysidLambda.clear();
+    decaysmomLambda.clear();
+    decaysmomLambda_x.clear();
+    decaysmomLambda_y.clear();
+    decaysmomLambda_z.clear();
+
     ntK18 = 0;
     pK18.clear();
     chisqrK18.clear();
@@ -615,6 +653,25 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_x;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_y;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_z;
+
+  TTreeReaderValue<std::vector<Int_t>>* isLambda;
+  TTreeReaderValue<std::vector<Int_t>>* ncombiLambda;
+  TTreeReaderValue<std::vector<Double_t>>* distLambda;
+  TTreeReaderValue<std::vector<Double_t>>* angleLambda;
+  TTreeReaderValue<std::vector<Double_t>>* bestmassLambda;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* massLambda;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxLambda_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxLambda_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxLambda_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* momLambda;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* momLambda_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* momLambda_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* momLambda_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* decaysidLambda;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* decaysmomLambda;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* decaysmomLambda_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* decaysmomLambda_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* decaysmomLambda_z;
 
   TTreeReaderValue<Int_t>* ntTPCK18; // Number of Tracks
   TTreeReaderValue<std::vector<Int_t>>* tpcidTPCK18;
@@ -978,7 +1035,6 @@ dst::DstRead( int ievent )
   event.chisqrTPCKurama = **src.chisqrTPCKurama;
   event.pTPCKurama = **src.pTPCKurama;
   event.qTPCKurama = **src.qTPCKurama;
-  //event.m2TPCKurama = **src.m2TPCKurama;
   event.xtgtTPCKurama = **src.xtgtTPCKurama;
   event.ytgtTPCKurama = **src.ytgtTPCKurama;
   event.utgtTPCKurama = **src.utgtTPCKurama;
@@ -1639,6 +1695,25 @@ dst::DstRead( int ievent )
   event.vtxmom_y = **src.vtxmom_y;
   event.vtxmom_z = **src.vtxmom_z;
 
+  event.isLambda = **src.isLambda;
+  event.ncombiLambda = **src.ncombiLambda;
+  event.distLambda = **src.distLambda;
+  event.angleLambda = **src.angleLambda;
+  event.bestmassLambda = **src.bestmassLambda;
+  event.massLambda = **src.massLambda;
+  event.vtxLambda_x = **src.vtxLambda_x;
+  event.vtxLambda_y = **src.vtxLambda_y;
+  event.vtxLambda_z = **src.vtxLambda_z;
+  event.momLambda = **src.momLambda;
+  event.momLambda_x = **src.momLambda_x;
+  event.momLambda_y = **src.momLambda_y;
+  event.momLambda_z = **src.momLambda_z;
+  event.decaysidLambda = **src.decaysidLambda;
+  event.decaysmomLambda = **src.decaysmomLambda;
+  event.decaysmomLambda_x = **src.decaysmomLambda_x;
+  event.decaysmomLambda_y = **src.decaysmomLambda_y;
+  event.decaysmomLambda_z = **src.decaysmomLambda_z;
+
   return true;
 }
 
@@ -1722,12 +1797,12 @@ ConfMan::InitializeHistograms( void )
   HB2(3025, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
   HB2(3026, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
   HB2(3027, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
-  HB2(3028, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(3029, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(3030, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(3031, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
-  HB2(3032, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
-  HB2(3033, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
+  HB2(3028, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(3029, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(3030, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(3031, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 200, 1., 1.8);
+  HB2(3032, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 200, 1., 1.8);
+  HB2(3033, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 200, 1., 1.8);
 
   HBProf(3116, "#DeltaP%U Prof ", 160, -0.4, 0.4, -1., 1.);
   HBProf(3117, "#DeltaP%U Prof ", 160, -0.4, 0.4, -1., 1.);
@@ -1770,12 +1845,12 @@ ConfMan::InitializeHistograms( void )
   HB2(4025, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
   HB2(4026, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
   HB2(4027, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
-  HB2(4028, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(4029, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(4030, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(4031, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
-  HB2(4032, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
-  HB2(4033, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
+  HB2(4028, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(4029, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(4030, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(4031, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 200, 1., 1.8);
+  HB2(4032, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 200, 1., 1.8);
+  HB2(4033, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 200, 1., 1.8);
 
   HBProf(4116, "#DeltaP%U Prof ", 160, -0.4, 0.4, -1., 1.);
   HBProf(4117, "#DeltaP%U Prof ", 160, -0.4, 0.4, -1., 1.);
@@ -1883,12 +1958,12 @@ ConfMan::InitializeHistograms( void )
   HB2(7025, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
   HB2(7026, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
   HB2(7027, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
-  HB2(7028, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(7029, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(7030, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(7031, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
-  HB2(7032, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
-  HB2(7033, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
+  HB2(7028, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(7029, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(7030, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(7031, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 200, 1., 1.8);
+  HB2(7032, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 200, 1., 1.8);
+  HB2(7033, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 200, 1., 1.8);
   HB2(7036, "#DeltaP%P_{calc.} ", 160, 0.3, 1.1, 200, -1., 1.);
   HB2(7039, "MissingMass%P_{calc.} ", 160, 0.3, 1.1, 140, 1.1, 1.8);
 
@@ -1944,12 +2019,12 @@ ConfMan::InitializeHistograms( void )
   HB2(8025, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
   HB2(8026, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
   HB2(8027, "MissingMass%V ", 160, -0.4, 0.4, 200, 1., 1.8);
-  HB2(8028, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(8029, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(8030, "#DeltaP%P_{calc.} ", 160, 1.1, 1.5, 200, -1., 1.);
-  HB2(8031, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
-  HB2(8032, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
-  HB2(8033, "MissingMass%P_{calc.} ", 160, 1.1, 1.5, 200, 1., 1.8);
+  HB2(8028, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(8029, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(8030, "#DeltaP%P_{calc.} ", 80, 1.1, 1.5, 200, -1., 1.);
+  HB2(8031, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 200, 1., 1.8);
+  HB2(8032, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 200, 1., 1.8);
+  HB2(8033, "MissingMass%P_{calc.} ", 80, 1.1, 1.5, 200, 1., 1.8);
   HB2(8036, "#DeltaP%P_{calc.} ", 160, 0.3, 1.1, 200, -1., 1.);
   HB2(8039, "MissingMass%P_{calc.} ", 160, 0.3, 1.1, 140, 1.1, 1.8);
 
@@ -2113,6 +2188,25 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "vtxmom_x", &event.vtxmom_x );
   tree->Branch( "vtxmom_y", &event.vtxmom_y );
   tree->Branch( "vtxmom_z", &event.vtxmom_z );
+
+  tree->Branch( "isLambda", &event.isLambda );
+  tree->Branch( "ncombiLambda", &event.ncombiLambda );
+  tree->Branch( "distLambda", &event.distLambda );
+  tree->Branch( "angleLambda", &event.angleLambda );
+  tree->Branch( "bestmassLambda", &event.bestmassLambda );
+  tree->Branch( "massLambda", &event.massLambda );
+  tree->Branch( "vtxLambda_x", &event.vtxLambda_x );
+  tree->Branch( "vtxLambda_y", &event.vtxLambda_y );
+  tree->Branch( "vtxLambda_z", &event.vtxLambda_z );
+  tree->Branch( "momLambda", &event.momLambda );
+  tree->Branch( "momLambda_x", &event.momLambda_x );
+  tree->Branch( "momLambda_y", &event.momLambda_y );
+  tree->Branch( "momLambda_z", &event.momLambda_z );
+  tree->Branch( "decaysidLambda", &event.decaysidLambda );
+  tree->Branch( "decaysmomLambda", &event.decaysmomLambda );
+  tree->Branch( "decaysmomLambda_x", &event.decaysmomLambda_x );
+  tree->Branch( "decaysmomLambda_y", &event.decaysmomLambda_y );
+  tree->Branch( "decaysmomLambda_z", &event.decaysmomLambda_z );
 
   tree->Branch( "ntK18", &event.ntK18);
   tree->Branch( "chisqrK18", &event.chisqrK18);
@@ -2340,6 +2434,26 @@ ConfMan::InitializeHistograms( void )
   src.vtxmom_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_x" );
   src.vtxmom_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_y" );
   src.vtxmom_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_z" );
+
+  src.nvtxTpc = new TTreeReaderValue<Int_t>(*reader,"nvtxTpc");
+  src.isLambda = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isLambda" );
+  src.ncombiLambda = new TTreeReaderValue<std::vector<Int_t>>( *reader, "ncombiLambda" );
+  src.distLambda = new TTreeReaderValue<std::vector<Double_t>>( *reader, "distLambda" );
+  src.angleLambda = new TTreeReaderValue<std::vector<Double_t>>( *reader, "angleLambda" );
+  src.bestmassLambda = new TTreeReaderValue<std::vector<Double_t>>( *reader, "bestmassLambda" );
+  src.massLambda = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "massLambda" );
+  src.vtxLambda_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxLambda_x" );
+  src.vtxLambda_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxLambda_y" );
+  src.vtxLambda_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxLambda_z" );
+  src.momLambda = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "momLambda" );
+  src.momLambda_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "momLambda_x" );
+  src.momLambda_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "momLambda_y" );
+  src.momLambda_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "momLambda_z" );
+  src.decaysidLambda = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "decaysidLambda" );
+  src.decaysmomLambda = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "decaysmomLambda" );
+  src.decaysmomLambda_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "decaysmomLambda_x" );
+  src.decaysmomLambda_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "decaysmomLambda_y" );
+  src.decaysmomLambda_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "decaysmomLambda_z" );
 
   src.ntTPCK18 = new TTreeReaderValue<Int_t>( *reader, "ntK18" );
   src.tpcidTPCK18 = new TTreeReaderValue<std::vector<Int_t>>( *reader, "tpcidTPCK18" );

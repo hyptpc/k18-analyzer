@@ -263,6 +263,9 @@ public:
   Double_t GetrExclusive(Int_t i) const { return m_r_exclusive[i]; }
   Double_t GetdzExclusive(Int_t i) const { return m_dz_exclusive[i]; }
 
+  //Re-fit with the vertex constraint
+  Bool_t DoFitTrackwVertex(TVector3 vertex_pos, TVector3 vertex_res);
+
 };
 
 //_____________________________________________________________________________
