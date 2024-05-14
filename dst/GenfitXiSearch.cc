@@ -2211,11 +2211,11 @@ ConfMan::InitializeHistograms( void )
   HB1(10018,"KF#{Lambda} pull #Lambda_{#phi}",100,-5,5);
 
   HB1(10020,"KF#{Lambda} residual p_{p}",1000,-1,1);
-  HB1(10021,"KF#{Lambda} residual p_{#theta}",1000,-1,1);
-  HB1(10022,"KF#{Lambda} residual p_{#phi}",1000,-1,1);
-  HB1(10023,"KF#{Lambda} residual #pi_{p}",1000,-1,1);
-  HB1(10024,"KF#{Lambda} residual #pi_{#theta}",1000,-1,1);
-  HB1(10025,"KF#{Lambda} residual #pi_{#phi}",1000,-1,1);
+  HB1(10021,"KF#{Lambda} residual p_{#theta}",1000,-0.1,0.1);
+  HB1(10022,"KF#{Lambda} residual p_{#phi}",1000,-0.1,0.1);
+  HB1(10023,"KF#{Lambda} residual #pi_{p}",1000,-0.3,0.3);
+  HB1(10024,"KF#{Lambda} residual #pi_{#theta}",1000,-0.1,0.1);
+  HB1(10025,"KF#{Lambda} residual #pi_{#phi}",1000,-0.1,0.1);
 
 
   HB1(20000,"KF#{Xi}^{-} pvalue",100,0,1);
@@ -2229,14 +2229,14 @@ ConfMan::InitializeHistograms( void )
   HB1(20015,"KF#{Xi}^{-} pull #pi_{#phi}",100,-5,5);
 
   HB1(20020,"KF#{Xi}^{-} residual #Lambda_{p}",1000,-1,1);
-  HB1(20021,"KF#{Xi}^{-} residual #Lambda_{#theta}",1000,-1,1);
-  HB1(20022,"KF#{Xi}^{-} residual #Lambda_{#phi}",1000,-1,1);
-  HB1(20023,"KF#{Xi}^{-} residual #pi_{p}",1000,-1,1);
+  HB1(20021,"KF#{Xi}^{-} residual #Lambda_{#theta}",1000,-0.5,0.5);
+  HB1(20022,"KF#{Xi}^{-} residual #Lambda_{#phi}",1000,-0.5,0.5);
+  HB1(20023,"KF#{Xi}^{-} residual #pi_{p}",1000,-0.3,0.3);
   HB1(20024,"KF#{Xi}^{-} residual #pi_{#theta}",1000,-1,1);
   HB1(20025,"KF#{Xi}^{-} residual #pi_{#phi}",1000,-1,1);
-  HB1(20026,"KF#{Xi}^{-} residual #Xi_{p}",1000,-1,1);
-  HB1(20027,"KF#{Xi}^{-} residual #Xi_{#theta}",1000,-1,1);
-  HB1(20028,"KF#{Xi}^{-} residual #Xi_{#phi}",1000,-1,1);
+  HB1(20026,"KF#{Xi}^{-} residual #Xi_{p}",1000,-0.3,0.3);
+  HB1(20027,"KF#{Xi}^{-} residual #Xi_{#theta}",1000,-0.1,0.1);
+  HB1(20028,"KF#{Xi}^{-} residual #Xi_{#phi}",1000,-0.3,0.3);
 #endif
 
 

@@ -108,7 +108,8 @@ struct Event
   std::vector<Double_t> youtK18;
   std::vector<Double_t> uoutK18;
   std::vector<Double_t> voutK18;
-  std::vector<std::vector<Int_t>> layerK18;
+  std::vector<std::vector<Double_t>> layerK18;
+  std::vector<std::vector<Int_t>> layerK18Int;
   std::vector<std::vector<Double_t>> wireK18;
   std::vector<std::vector<Double_t>> localhitposK18;
   std::vector<std::vector<Double_t>> wposK18;
@@ -160,6 +161,7 @@ struct Event
   std::vector<Double_t> vtgtKurama;
   std::vector<Double_t> thetaKurama;
   std::vector<Double_t> phiKurama;
+  std::vector<Double_t> m2;
   std::vector<std::vector<Double_t>> xvpKurama;
   std::vector<std::vector<Double_t>> yvpKurama;
   std::vector<std::vector<Double_t>> zvpKurama;
@@ -180,7 +182,8 @@ struct Event
   std::vector<Double_t> pxtof;
   std::vector<Double_t> pytof;
   std::vector<Double_t> pztof;
-  std::vector<std::vector<Int_t>> layer;
+  std::vector<std::vector<Double_t>> layer;
+  std::vector<std::vector<Int_t>> layerInt;
   std::vector<std::vector<Double_t>> wire;
   std::vector<std::vector<Double_t>> localhitpos;
   std::vector<std::vector<Double_t>> wpos;
@@ -485,6 +488,7 @@ struct Event
     uoutK18.clear();
     voutK18.clear();
     layerK18.clear();
+    layerK18Int.clear();
     wireK18.clear();
     localhitposK18.clear();
     wposK18.clear();
@@ -529,6 +533,7 @@ struct Event
     chisqrKurama.clear();
     pKurama.clear();
     qKurama.clear();
+    m2.clear();
     xtgtKurama.clear();
     ytgtKurama.clear();
     utgtKurama.clear();
@@ -556,6 +561,7 @@ struct Event
     pytof.clear();
     pztof.clear();
     layer.clear();
+    layerInt.clear();
     wire.clear();
     localhitpos.clear();
     wpos.clear();
@@ -1172,10 +1178,6 @@ dst::DstRead( int ievent )
   const Int_t& IdVPHTOF = gGeom.DetectorId("VPHTOF");
 
   //if( ievent%1000==0 ){
-  if( ievent%1==0 ){
-    std::cout << "#D Event Number: "
-	      << std::setw(6) << ievent << std::endl;
-  }
   GetEntry(ievent);
 
   event.runnum = **src.runnum;
@@ -1207,6 +1209,10 @@ dst::DstRead( int ievent )
   if(src.m2[0] < 0.15 || src.m2[0] > 0.40) return true;
   if(src.qKurama[0] < 0 || src.pKurama[0] > 1.4) return true;
 #endif
+  if( ievent%1==0 ){
+    std::cout << "#D Event Number: "
+	      << std::setw(6) << ievent << std::endl;
+  }
 
   HF1( 1, event.status++ );
   event.ntK18 = src.ntK18;
@@ -1225,6 +1231,7 @@ dst::DstRead( int ievent )
   event.uoutK18.resize(src.ntK18);
   event.voutK18.resize(src.ntK18);
   event.layerK18.resize(src.ntK18);
+  event.layerK18Int.resize(src.ntK18);
   event.wireK18.resize(src.ntK18);
   event.localhitposK18.resize(src.ntK18);
   event.wposK18.resize(src.ntK18);
@@ -1345,6 +1352,7 @@ dst::DstRead( int ievent )
     initMomK18.push_back(momOut);
     for(int il=0; il<src.nhK18[it]; ++il){
       event.layerK18[it].push_back(src.layerK18[it][il]);
+      event.layerK18Int[it].push_back(src.layerK18[it][il]);
       event.wireK18[it].push_back(src.wireK18[it][il]);
       event.localhitposK18[it].push_back(src.localhitposK18[it][il]);
       event.wposK18[it].push_back(src.wposK18[it][il]);
@@ -1373,6 +1381,7 @@ dst::DstRead( int ievent )
     event.vtgtKurama.push_back(src.vtgtKurama[it]);
     event.thetaKurama.push_back(src.thetaKurama[it]);
     event.phiKurama.push_back(src.phiKurama[it]);
+    event.m2.push_back(src.m2[it]);
     event.xvpKurama[it].resize( NumOfLayersVPTPC );
     event.yvpKurama[it].resize( NumOfLayersVPTPC );
     event.zvpKurama[it].resize( NumOfLayersVPTPC );
@@ -1413,6 +1422,7 @@ dst::DstRead( int ievent )
 
   event.ntKurama = src.ntKurama;
   event.layer.resize(event.ntKurama);
+  event.layerInt.resize(event.ntKurama);
   event.wire.resize(event.ntKurama);
   event.localhitpos.resize(event.ntKurama);
   event.wpos.resize(event.ntKurama);
@@ -1439,6 +1449,7 @@ dst::DstRead( int ievent )
 
     for(Int_t j=0; j<event.nh[i]; ++j){
       event.layer[i].push_back(src.layer[i][j]);
+      event.layerInt[i].push_back(src.layer[i][j]);
       event.wire[i].push_back(src.wire[i][j]);
       event.localhitpos[i].push_back(src.localhitpos[i][j]);
       event.wpos[i].push_back(src.wpos[i][j]);
@@ -1465,10 +1476,10 @@ dst::DstRead( int ievent )
 #endif
 
   HF1( 1, event.status++ );
-  TPCAna.TrackSearchTPCKurama(pidKurama, initPosKurama, initMomKurama, event.layer, event.wire, event.localhitpos);
+  TPCAna.TrackSearchTPCKurama(pidKurama, initPosKurama, initMomKurama, event.layerInt, event.wire, event.localhitpos);
 
   HF1( 1, event.status++ );
-  TPCAna.TrackSearchTPCK18(initPosK18, initMomK18, event.layerK18, event.wireK18, event.localhitposK18);
+  TPCAna.TrackSearchTPCK18(initPosK18, initMomK18, event.layerK18Int, event.wireK18, event.localhitposK18);
 
   std::vector<TPCLocalTrackHelix*> vptracks;
   Int_t vpntTpc = TPCAna.GetNTracksTPCVP();
@@ -3627,6 +3638,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "zvpHS",    &event.zvpHS);
   tree->Branch( "uvpHS",    &event.uvpHS);
   tree->Branch( "vvpHS",    &event.vvpHS);
+  tree->Branch("layerK18", &event.layerK18);
+  tree->Branch("wireK18", &event.wireK18);
+  tree->Branch("localhitposK18", &event.localhitposK18);
+  tree->Branch("wposK18", &event.wposK18);
 
   tree->Branch( "tpcidTPCK18", &event.tpcidTPCK18);
   tree->Branch( "isgoodTPCK18", &event.isgoodTPCK18);
@@ -3650,6 +3665,17 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "chisqrKurama",  &event.chisqrKurama);
   tree->Branch( "pKurama",       &event.pKurama);
   tree->Branch( "qKurama",       &event.qKurama);
+  tree->Branch( "xout",          &event.xout);
+  tree->Branch( "yout",          &event.yout);
+  tree->Branch( "zout",          &event.zout);
+  tree->Branch( "pxout",         &event.pxout);
+  tree->Branch( "pyout",         &event.pyout);
+  tree->Branch( "pzout",         &event.pzout);
+  tree->Branch( "layer",         &event.layer);
+  tree->Branch( "wire",          &event.wire);
+  tree->Branch( "localhitpos",   &event.localhitpos);
+  tree->Branch( "wpos",          &event.wpos);
+
   tree->Branch( "xtgtKurama",    &event.xtgtKurama);
   tree->Branch( "ytgtKurama",    &event.ytgtKurama);
   tree->Branch( "utgtKurama",    &event.utgtKurama);

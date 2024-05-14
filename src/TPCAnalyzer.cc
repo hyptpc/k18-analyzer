@@ -253,7 +253,7 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
   static const Double_t MinClusterYPos = gUser.GetParameter("MinClusterYPosTPC");
   static const Double_t MaxClusterYPos = gUser.GetParameter("MaxClusterYPosTPC");
 
-  bool RejectKaonHits = true;
+  bool RejectKaonHits = false;
   ClearTPCHits();
   ClearTPCClusters();
 

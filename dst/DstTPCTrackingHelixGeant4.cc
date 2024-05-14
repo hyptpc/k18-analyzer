@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cmath>
+#include <TLorentzVector.h>
 
 #include <filesystem_util.hh>
 #include <UnpackerManager.hh>
@@ -48,6 +49,7 @@ ConfMan&            gConf = ConfMan::GetInstance();
 const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
 const UserParamMan& gUser = UserParamMan::GetInstance();
 const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
+const auto& gTPC  = TPCParamMan::GetInstance();
 debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
 
 const Int_t MaxTPCHits = 10000;
@@ -74,6 +76,71 @@ std::vector<TString> TreeName =
 std::vector<TFile*> TFileCont;
 std::vector<TTree*> TTreeCont;
 std::vector<TTreeReader*> TTreeReaderCont;
+int TPCToG4TrackID(std::vector<TVector3>TPCHit, int nhG4,int* tidG4, double* xG4,double* yG4,double* zG4 ,int& nhits){
+  std::vector<TVector3> G4Hits;
+  for(int ih=0;ih<nhG4;++ih){
+    TVector3 G4Hit(xG4[ih],yG4[ih],zG4[ih]);
+    G4Hits.push_back(G4Hit);
+  }
+  int MaxTracks = 1000;
+  TH1I Counter("counter","counter",MaxTracks,0,MaxTracks);
+  for(auto hit:TPCHit){
+    double dl = 5000;
+    int G4ID = -1;
+    for(int ih=0;ih<nhG4;++ih){
+      auto G4Hit = G4Hits.at(ih);
+      double dist = (G4Hit - hit).Mag();
+      if(dist < dl){
+        dl = dist;
+        G4ID = tidG4[ih];
+      }
+    }
+    Counter.Fill(G4ID);
+  }
+  nhits = Counter.GetMaximum();
+  int G4id = Counter.GetMaximumBin()-1;
+  return G4id;
+}
+TVector3 GetG4Mom(TVector3 TPCHit, vector<TVector3> G4Hits,vector<TVector3>G4Moms){
+  int nh = G4Hits.size();
+  double dl = 5000;
+  TVector3 mom;
+  for(int ih=0;ih<nh;++ih){
+    auto G4Hit = G4Hits.at(ih);
+    double dist = (G4Hit - TPCHit).Mag();
+    if(dist < dl){
+      dl = dist;
+      mom = G4Moms.at(ih);
+    }
+  }
+  return mom;
+}
+int CountHits(int id, double* posx,double* posz,int* tidG4, int nh){
+  int count = 0;
+  for(int ih=0;ih<nh;++ih){
+    double x = posx[ih],z=posz[ih];
+    int pad = tpc::findPadID(z,x);
+    int layer = tpc::getLayerID(pad);
+    int row = tpc::getRowID(pad);
+    double val = 0;
+    gTPC.GetCDe(layer,row,1,val);
+    if(val==0) continue;
+    if(tidG4[ih] == id) count++;
+  }
+  return count;
+}
+TLorentzVector ToHelix(TLorentzVector GlobalLV){
+  double E = GlobalLV.E();
+  double X = -GlobalLV.X();
+  double Y = GlobalLV.Z();
+  double Z = GlobalLV.Y();
+  return TLorentzVector(X,Y,Z,E);
+}
+TLorentzVector ToGlobal(TLorentzVector HelixLV){
+  return ToHelix(HelixLV);
+}
+
+
 }
 
 //_____________________________________________________________________
@@ -975,6 +1042,19 @@ dst::DstRead( int ievent )
 
   HF1( 1, event.status++ );
 
+
+  vector<TVector3> G4Hits;
+  vector<TVector3> G4Moms;
+  
+  for(int ih=0;ih<src.nhittpc;++ih){
+    TVector3 G4Hit(src.xtpc[ih],src.ytpc[ih],src.ztpc[ih]);
+    TVector3 G4Mom(src.pxtpc[ih],src.pytpc[ih],src.pztpc[ih]);
+    G4Hits.push_back(G4Hit);
+    G4Moms.push_back(G4Mom);
+  }
+
+  int G4idKm = -1;
+  int G4idKp = -1;
   event.evnum = src.evnum;
   event.nhittpc = src.nhittpc;
   //debug  std::cout<<"DstTPCTracking Helix Geant4, nhit="<<event.nhittpc<<std::endl;
@@ -997,18 +1077,23 @@ dst::DstRead( int ievent )
 		int pid_parent = 0;
 		if(parent!= -1) pid_parent = event.PIDOfTrack[parent];
 		if(pid == 11) continue;
-		double px = event.MomentumOfTrack_x[tid];
-		double py = event.MomentumOfTrack_y[tid];
-		double pz = event.MomentumOfTrack_z[tid];
+		double px = event.MomentumOfTrack_x[tid]/1000;//MeV to GeV
+		double py = event.MomentumOfTrack_y[tid]/1000;
+		double pz = event.MomentumOfTrack_z[tid]/1000;
 		double p = hypot(pz,hypot(px,py));
-		if(pid == 321){
+    double vert_x = src.VertexOfTrack_x[it];
+    double vert_y = src.VertexOfTrack_y[it];
+    double vert_z = src.VertexOfTrack_z[it];
+		if(abs(pid) == 321 and parent==0){
 			if(pz < 0){
+        G4idKm = tid;
 				event.PKm = p;
 				event.PKm_x = px;
 				event.PKm_y = py;
 				event.PKm_z = pz;
 			}
 			else{
+        G4idKp = tid;
 				event.PKp = p;
 				event.PKp_x = px;
 				event.PKp_y = py;
@@ -1372,6 +1457,8 @@ dst::DstRead( int ievent )
 	}	
 	
 	
+  vector<int> G4TrackID;
+  vector<int> PureHits;
 	
 	
 	for( int it=0; it<ntTpc; ++it ){
@@ -1450,9 +1537,11 @@ dst::DstRead( int ievent )
 
     //debug     std::cout<<"nh:"<<nh<<std::endl;
     double min_t = 9999,max_t = -9999;
-		for( int ih=0; ih<nh; ++ih ){
+		vector<TVector3> TPCHits;
+    for( int ih=0; ih<nh; ++ih ){
 			TPCLTrackHit *hit = tp -> GetHitInOrder(ih);
       if(!hit) continue;
+      TPCHits.push_back(hit->GetLocalHitPos());
       int order = tp->GetOrder(ih);
 			int layerId = 0;
       layerId = hit->GetLayer();
@@ -1497,6 +1586,10 @@ dst::DstRead( int ievent )
 	}
       }
 
+    int nPureHits;
+    int G4tid = TPCToG4TrackID(TPCHits,src.nhittpc,src.ititpc,src.xtpc,src.ytpc,src.ztpc,nPureHits);
+    if(G4tid == G4idKm)event.isK18[it]=1;
+    if(G4tid == G4idKp)event.isKurama[it]=1;
       event.hitlayer[it][ih] = (double)layerId;
       event.hitpos_x[it][ih] = hitpos.x();
       event.hitpos_y[it][ih] = hitpos.y();

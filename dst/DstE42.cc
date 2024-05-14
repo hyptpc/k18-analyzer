@@ -138,7 +138,12 @@ struct Event
 
   Int_t ntK18;
   std::vector<Double_t> pK18;
+  std::vector<Double_t> p_3rd;
   std::vector<Double_t> chisqrK18;
+  std::vector<Double_t> xoutK18;
+  std::vector<Double_t> youtK18;
+  std::vector<Double_t> uoutK18;
+  std::vector<Double_t> voutK18;
   std::vector<Double_t> xtgtK18;
   std::vector<Double_t> ytgtK18;
   std::vector<Double_t> utgtK18;
@@ -146,6 +151,16 @@ struct Event
   std::vector<Double_t> thetaK18;
   std::vector<Double_t> xhtofK18;
   std::vector<Double_t> yhtofK18;
+  std::vector<std::vector<Double_t>> xvpHS;
+  std::vector<std::vector<Double_t>> yvpHS;
+  std::vector<std::vector<Double_t>> zvpHS;
+  std::vector<Double_t> xtgtHS;
+  std::vector<Double_t> ytgtHS;
+  std::vector<Double_t> ztgtHS;
+  std::vector<std::vector<Double_t>> layerK18;
+  std::vector<std::vector<Double_t>> wireK18;
+  std::vector<std::vector<Double_t>> localhitposK18;
+  std::vector<std::vector<Double_t>> wposK18;
 
   Int_t ntKurama;
   std::vector<Double_t> chisqrKurama;
@@ -164,6 +179,9 @@ struct Event
   std::vector<Double_t> cstof;
   std::vector<Double_t> tofsegKurama;
   std::vector<Double_t> pathwcKurama;
+  std::vector<std::vector<Double_t>> xvpKurama;
+  std::vector<std::vector<Double_t>> yvpKurama;
+  std::vector<std::vector<Double_t>> zvpKurama;
   std::vector<Double_t> xin;
   std::vector<Double_t> yin;
   std::vector<Double_t> zin;
@@ -176,6 +194,10 @@ struct Event
   std::vector<Double_t> pxout;
   std::vector<Double_t> pyout;
   std::vector<Double_t> pzout;
+  std::vector<std::vector<Double_t>> layer;
+  std::vector<std::vector<Double_t>> wire;
+  std::vector<std::vector<Double_t>> localhitpos;
+  std::vector<std::vector<Double_t>> wpos;
 
   Int_t nKm;
   Int_t nKp;
@@ -357,6 +379,7 @@ struct Event
     ntK18 = 0;
     pK18.clear();
     chisqrK18.clear();
+    p_3rd.clear();
     xtgtK18.clear();
     ytgtK18.clear();
     utgtK18.clear();
@@ -364,6 +387,21 @@ struct Event
     thetaK18.clear();
     xhtofK18.clear();
     yhtofK18.clear();
+    xoutK18.clear();
+    youtK18.clear();
+    uoutK18.clear();
+    voutK18.clear();
+    xtgtHS.clear();
+    ytgtHS.clear();
+    ztgtHS.clear();
+    xvpHS.clear();
+    yvpHS.clear();
+    zvpHS.clear();
+    layerK18.clear();
+    wireK18.clear();
+    localhitposK18.clear();
+
+
 
     ntKurama = 0;
     chisqrKurama.clear();
@@ -382,6 +420,13 @@ struct Event
     cstof.clear();
     tofsegKurama.clear();
     pathwcKurama.clear();
+    xvpKurama.clear();
+    yvpKurama.clear();
+    zvpKurama.clear();
+    layer.clear();
+    wire.clear();
+    localhitpos.clear();
+    wpos.clear();
     xin.clear();
     yin.clear();
     zin.clear();
@@ -655,6 +700,22 @@ struct Src
   Double_t utgtK18[MaxHits];
   Double_t vtgtK18[MaxHits];
   Double_t thetaK18[MaxHits];
+  //From TPCKuramaK18Tracking
+  TTreeReaderValue<std::vector<Double_t>>* p_3rd;
+  TTreeReaderValue<std::vector<Double_t>>* xoutK18;
+  TTreeReaderValue<std::vector<Double_t>>* youtK18;
+  TTreeReaderValue<std::vector<Double_t>>* uoutK18;
+  TTreeReaderValue<std::vector<Double_t>>* voutK18;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* xvpHS;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* yvpHS;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* zvpHS;
+  TTreeReaderValue<std::vector<Double_t>>* xtgtHS;
+  TTreeReaderValue<std::vector<Double_t>>* ytgtHS;
+  TTreeReaderValue<std::vector<Double_t>>* ztgtHS;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* layerK18;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* wireK18;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* localhitposK18;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* wposK18;
 
   Int_t    ntKurama;
   Double_t chisqrKurama[MaxHits];
@@ -683,6 +744,17 @@ struct Src
   Double_t pxout[MaxHits];
   Double_t pyout[MaxHits];
   Double_t pzout[MaxHits];
+
+  //From TPCKuramaTracking
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* xvpKurama;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* yvpKurama;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* zvpKurama;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* layer;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* wire;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* localhitpos;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* wpos;
+
+
 
   Int_t    nhHtof;
   Double_t HtofSeg[MaxHits];
@@ -881,6 +953,23 @@ dst::DstRead( int ievent )
   event.lvpTPCK18 = **src.lvpTPCK18;
   event.xvpTPCK18 = **src.xvpTPCK18;
   event.yvpTPCK18 = **src.yvpTPCK18;
+  event.p_3rd = **src.p_3rd;
+  event.xoutK18 = **src.xoutK18;
+  event.youtK18 = **src.youtK18;
+  event.uoutK18 = **src.uoutK18;
+  event.voutK18 = **src.voutK18;
+  event.xtgtHS = **src.xtgtHS;
+  event.ytgtHS = **src.ytgtHS;
+  event.ztgtHS = **src.ztgtHS;
+  event.xvpHS = **src.xvpHS;
+  event.yvpHS = **src.yvpHS;
+  event.zvpHS = **src.zvpHS;
+  event.layerK18 = **src.layerK18;
+  event.wireK18 = **src.wireK18;
+  event.localhitposK18 = **src.localhitposK18;
+  event.wposK18 = **src.wposK18;
+
+
 
   event.ntKurama = src.ntKurama;
   event.tpcidTPCKurama = **src.tpcidTPCKurama;
@@ -904,6 +993,15 @@ dst::DstRead( int ievent )
   event.yvpTPCKurama = **src.yvpTPCKurama;
   event.xhtofKurama = **src.xhtofKurama;
   event.yhtofKurama = **src.yhtofKurama;
+  event.xvpKurama = **src.xvpKurama;
+  event.yvpKurama = **src.yvpKurama;
+  event.zvpKurama = **src.zvpKurama;
+  event.layer = **src.layer;
+  event.wire = **src.wire;
+  event.localhitpos = **src.localhitpos;
+  event.wpos = **src.wpos;
+  
+
   event.m2TPCKurama.resize(src.ntKurama);
   for(Int_t it=0; it<src.ntKurama; ++it){
     event.chisqrKurama.push_back(src.chisqrKurama[it]);
@@ -2019,6 +2117,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "ntK18", &event.ntK18);
   tree->Branch( "chisqrK18", &event.chisqrK18);
   tree->Branch( "pK18", &event.pK18);
+  tree->Branch( "p_3rd" , &event.p_3rd);
+  tree->Branch( "xoutK18", &event.xoutK18);
+  tree->Branch( "youtK18", &event.youtK18);
+  tree->Branch( "uoutK18", &event.uoutK18);
+  tree->Branch( "voutK18", &event.voutK18);
   tree->Branch( "xtgtK18", &event.xtgtK18);
   tree->Branch( "ytgtK18", &event.ytgtK18);
   tree->Branch( "utgtK18", &event.utgtK18);
@@ -2026,6 +2129,16 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "thetaK18", &event.thetaK18);
   tree->Branch( "xhtofK18", &event.xhtofK18);
   tree->Branch( "yhtofK18", &event.yhtofK18);
+  tree->Branch( "xvpHS", &event.xvpHS);
+  tree->Branch( "yvpHS", &event.yvpHS);
+  tree->Branch( "zvpHS", &event.zvpHS);
+  tree->Branch( "xtgtHS", &event.xtgtHS);
+  tree->Branch( "ytgtHS", &event.ytgtHS);
+  tree->Branch( "ztgtHS", &event.ztgtHS);
+  tree->Branch( "layerK18", &event.layerK18);
+  tree->Branch( "wireK18", &event.wireK18);
+  tree->Branch( "localhitposK18", &event.localhitposK18);
+  tree->Branch( "wposK18", &event.wposK18);
 
   tree->Branch( "tpcidTPCK18", &event.tpcidTPCK18);
   tree->Branch( "isgoodTPCK18", &event.isgoodTPCK18);
@@ -2057,6 +2170,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "thetaKurama",  &event.thetaKurama);
   tree->Branch( "pathKurama",  &event.pathKurama);
   tree->Branch( "pathwcKurama",  &event.pathwcKurama);
+  tree->Branch( "xvpKurama",    &event.xvpKurama);
+  tree->Branch( "yvpKurama",    &event.yvpKurama);
+  tree->Branch( "zvpKurama",    &event.zvpKurama);
   tree->Branch( "xin",  &event.xin);
   tree->Branch( "yin",  &event.yin);
   tree->Branch( "zin",  &event.zin);
@@ -2069,6 +2185,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "pxout",  &event.pxout);
   tree->Branch( "pyout",  &event.pyout);
   tree->Branch( "pzout",  &event.pzout);
+  tree->Branch( "layer",  &event.layer);
+  tree->Branch( "wire",  &event.wire);
+  tree->Branch( "localhitpos",  &event.localhitpos);
+  tree->Branch( "wpos",  &event.wpos);
+
   tree->Branch( "xhtofKurama", &event.xhtofKurama);
   tree->Branch( "yhtofKurama", &event.yhtofKurama);
   tree->Branch( "tpcidTPCKurama", &event.tpcidTPCKurama);
@@ -2295,6 +2416,32 @@ ConfMan::InitializeHistograms( void )
   src.vbTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vbTPC" );
   src.usTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "usTPC" );
   src.vsTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vsTPC" );
+
+  //For Kurama + K18 part in G4input
+  src.p_3rd = new TTreeReaderValue<std::vector<Double_t>>( *reader, "p_3rd" );
+  src.xoutK18 = new TTreeReaderValue<std::vector<Double_t>>( *reader, "xoutK18" );
+  src.youtK18 = new TTreeReaderValue<std::vector<Double_t>>( *reader, "youtK18" );
+  src.uoutK18 = new TTreeReaderValue<std::vector<Double_t>>( *reader, "uoutK18" );
+  src.voutK18 = new TTreeReaderValue<std::vector<Double_t>>( *reader, "voutK18" );
+  src.xvpHS  =  new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "xvpHS" );
+  src.yvpHS  =  new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "yvpHS" );
+  src.zvpHS  =  new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "zvpHS" );
+  src.xtgtHS = new TTreeReaderValue<std::vector<Double_t>>( *reader, "xtgtHS" );
+  src.ytgtHS = new TTreeReaderValue<std::vector<Double_t>>( *reader, "ytgtHS" );
+  src.ztgtHS = new TTreeReaderValue<std::vector<Double_t>>( *reader, "ztgtHS" );
+  src.layerK18 = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "layerK18" );
+  src.wireK18 = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "wireK18" );
+  src.localhitposK18 = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "localhitposK18" );
+  src.wposK18 = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "wposK18" );
+
+  src.xvpKurama = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "xvpKurama" );  
+  src.yvpKurama = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "yvpKurama" );
+  src.zvpKurama = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "zvpKurama" );
+  src.layer = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "layer" );
+  src.wire = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "wire" );
+  src.localhitpos = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "localhitpos" );
+  src.wpos = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "wpos" );
+
 
   TTreeCont[kKScat]->SetBranchStatus("*", 0);
   TTreeCont[kKScat]->SetBranchStatus("ntK18",          1);
