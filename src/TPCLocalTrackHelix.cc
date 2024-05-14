@@ -158,6 +158,9 @@ namespace
   static std::string circ_cross="pow([2]*[2]+[2]*([0]*cos(x)+[1]*sin(x)) +[0]*[0]+[1]*[1]-[3]*[3] ,2)";
   static TF1 fcir_cross("fcir_cross", circ_cross.c_str(), -10.*TMath::Pi(), 10.*TMath::Pi());
 
+
+
+
 }
 
 //______________________________________________________________________________
@@ -999,15 +1002,27 @@ TPCLocalTrackHelix::TPCLocalTrackHelix()
     m_trackid(-1),
     m_ncl_beforetgt(-1),
     m_searchtime(0), m_fittime(0),
-    m_MomResScale(tpc::MomentumScale),
-    m_dZResScale(tpc::dZScale),
-    m_PhResScale(tpc::PhiScale),
+    m_MomResScale(-1),
+    m_dZResScale(-1),
+    m_PhResScale(-1),
     m_cx_exclusive(), m_cy_exclusive(), m_z0_exclusive(),
     m_r_exclusive(), m_dz_exclusive(),
     m_chisqr_exclusive(),
     m_t_exclusive(),
     m_vp()
 {
+  static const Double_t MomResScale = gUser.GetParameter("MomResScale") ;
+  static const Double_t dZResScale = gUser.GetParameter("dZResScale") ;
+  static const Double_t PhiResScale = gUser.GetParameter("PhiResScale") ;
+  if(m_MomResScale==-1){
+    m_MomResScale = MomResScale;
+  }
+  if(m_dZResScale==-1){
+    m_dZResScale = dZResScale;
+  }
+  if(m_PhResScale==-1){
+    m_PhResScale = PhiResScale;
+  }
   m_hit_array.reserve(ReservedNumOfHits);
   debug::ObjectCounter::increase(ClassName());
 
@@ -3441,7 +3456,7 @@ TVector3
 TPCLocalTrackHelix::GetMomentumResolutionVect(){
 
   Double_t t0 = GetHitInOrder(0) -> GetTheta();
-  return GetMomentumResolutionVectT(t0, tpc::MomentumScale, tpc::PhiScale, tpc::dZScale);
+  return GetMomentumResolutionVectT(t0, m_MomResScale, m_PhResScale, m_dZResScale);
 }
 
 //_____________________________________________________________________________
@@ -3552,7 +3567,7 @@ TVector3
 TPCLocalTrackHelix::GetMomentumCovarianceVect(){
 
   Double_t t0 = GetHitInOrder(0) -> GetTheta();
-  return GetMomentumCovarianceVectT(t0, tpc::MomentumScale, tpc::PhiScale, tpc::dZScale);
+  return GetMomentumCovarianceVectT(t0, m_MomResScale, m_PhResScale, m_dZResScale);
 
 }
 

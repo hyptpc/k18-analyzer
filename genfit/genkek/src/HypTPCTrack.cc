@@ -111,10 +111,8 @@ void HypTPCTrack::AddHelixTrack(int pdg, TPCLocalTrackHelix *tp){
       covSeed(4, 4) = dPt2*resT*resT/2.;
       covSeed(5, 5) = dPt2*resT*resT/2.;
 #else
-      TVector3 resP = tp -> GetMomentumResolutionVect(i, tpc::MomentumScale,
-						      tpc::PhiScale, tpc::dZScale);
-      TVector3 covP = tp -> GetMomentumCovarianceVect(i, tpc::MomentumScale,
-						      tpc::PhiScale, tpc::dZScale);
+      TVector3 resP = tp -> GetMomentumResolutionVect(i);
+      TVector3 covP = tp -> GetMomentumCovarianceVect(i);
       double resPX = resP.x();
       double resPY = resP.y();
       double resPZ = resP.z();

@@ -153,6 +153,10 @@ TPC_Dt 0.18
 TPC_sigma0 0.204
 ### tmp val
 #TPC_sigma0 0.7
+### TPC Momentum resolution scale
+MomResScale 1.1
+dZResScale 1
+PhiResScale 1
 
 ### TPC
 ##for the beam through
