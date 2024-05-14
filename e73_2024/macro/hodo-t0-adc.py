@@ -23,7 +23,7 @@ beamflag = '_Pi'
 ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
-def adc(ud, adcrange=(0, 1000), head='ADC', fit=True):
+def adc(ud, adcrange=(0, 1000), key='ADC', fit=True):
   logger.info(f'ud={ud}, adcrange={adcrange}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
@@ -32,9 +32,10 @@ def adc(ud, adcrange=(0, 1000), head='ADC', fit=True):
   result_dict = dict()
   for seg in range(n_seg):
     c1.cd(seg+1) #.SetLogy()
-    h1 = ROOT.gFile.Get(name + f'_{head}_seg{seg}{ud}{beamflag}')
+    hname = name + f'_{key}_seg{seg}{ud}{beamflag}'
+    h1 = ROOT.gFile.Get(hname)
     if h1:
-      logger.debug(name + f'_{head}_seg{seg}{ud}{beamflag}')
+      logger.debug(hname)
       if h1.GetEntries() < 1e4:
         h1.RebinX(2)
       h1.GetXaxis().SetRangeUser(adcrange[0], adcrange[1])
@@ -50,29 +51,58 @@ def adc(ud, adcrange=(0, 1000), head='ADC', fit=True):
           (mean - 3*sigma, mean + 3*sigma),
           (1, 100)
         ]
-        fitrange = (-2, 2) if head == 'AwoT' else (-2, 1)
+        fitrange = (-2, 2) if key == 'AwoT' else (-2, 1)
         result = macrohelper.fit_gaus(h1, params=params, limits=limits,
                                       fitrange=fitrange)
-        key = (cid, 0, seg, 0, 0 if ud == 'U' else 1)
-        result_dict[key] = result.GetParameter(1)
+        k = (cid, 0, seg, 0, 0 if ud == 'U' else 1)
+        result_dict[k] = result.GetParameter(1)
       else:
         h1.Draw()
+    else:
+      logger.warning(f'cannot find {hname}')
   c1.Modified()
   c1.Update()
   c1.Print(fig_path)
   return result_dict
 
 #______________________________________________________________________________
+def de(ud='', derange=(0, 5), key='DeltaE'):
+  logger.info(f'ud={ud}, key={key}')
+  c1 = ROOT.gROOT.GetListOfCanvases()[0]
+  fig_path = c1.GetTitle()
+  c1.Clear()
+  c1.Divide(3, 2)
+  pcolor = [ROOT.kBlack, ROOT.kBlue+2, ROOT.kGreen+2, ROOT.kRed+2]
+  for seg in range(n_seg):
+    c1.cd(seg+1) #.SetLogy()
+    for j, b in enumerate(['', '_Pi', '_K', '_P']):
+      hname = name + f'_Hit_{key}_seg{seg}{ud}{b}'
+      h1 = ROOT.gFile.Get(hname)
+      if h1:
+        logger.debug(hname)
+        h1.SetLineColor(pcolor[j])
+        h1.RebinX(5)
+        h1.GetXaxis().SetRangeUser(derange[0], derange[1])
+        h1.Draw('same')
+      else:
+        logger.warning(f'cannot find {hname}')
+  c1.Modified()
+  c1.Update()
+  c1.Print(fig_path)
+
+#______________________________________________________________________________
 def single_run(run_info):
   macrohelper.initialize(run_info, fig_tail='_t0_adc')
   result_dict = {'generator': os.path.basename(__file__)}
   for ud in ['U', 'D']:
-    ret = adc(head='AwoT', ud=ud, adcrange=(0, 250))
+    ret = adc(key='AwoT', ud=ud, adcrange=(0, 250))
     for k, v in ret.items():
       result_dict[k] = [v, 0]
-    ret = adc(head='AwT', ud=ud)
+    ret = adc(key='AwT', ud=ud)
     for k, v in ret.items():
       result_dict[k][1] = v
+  for ud in ['U', 'D', '']:
+    de(ud=ud)
   hdprm.output_result(run_info, result_dict, update=parsed.update)
   macrohelper.finalize()
 
