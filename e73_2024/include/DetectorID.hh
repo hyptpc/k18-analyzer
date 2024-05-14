@@ -13,7 +13,6 @@ const int DetIdBHD    =   1;
 const int DetIdBHT    =   1;
 const int DetIdT0     =   2;
 const int DetIdAC     =   3;
-const int DetIdT0new  =   4;
 const int DetIdT1     =   4;
 const int DetIdE0     =   5;
 const int DetIdDEF    =   6;
@@ -58,14 +57,13 @@ const int DetIdBD     =  90;
 #endif
 // const int NumOfSegBHD    =  11;
 // const int NumOfSegT0     =  5;
-// const int NumOfSegT0new  =  1;
 const int DetIdVmeRm     =  81;
 const int DetIdScaler    =  91;
 const int DetIdTrigFlag  =  99;
 const Int_t NumOfSegTrigFlag = 32;
 
 enum EHodoscope {
-  kBHT, kT1, kT0, kT0new, kDEF,
+  kBHT, kT1, kT0, kDEF,
   kVeto, kBTC,
 #ifdef CDS
   kCDH, kPbG, kPbF2,
@@ -76,7 +74,7 @@ enum EHodoscope {
 };
 
 const Int_t DetIdHodo[kNumHodo] = {
-  DetIdBHT, DetIdT1, DetIdT0, DetIdT0new, DetIdDEF,
+  DetIdBHT, DetIdT1, DetIdT0, DetIdDEF,
   DetIdVeto, DetIdBTC,
 #ifdef CDS
   DetIdCDH, DetIdPbG, DetIdPbF2,
@@ -86,7 +84,7 @@ const Int_t DetIdHodo[kNumHodo] = {
 };
 
 const TString NameHodo[kNumHodo] = {
-  "BHT", "T1", "T0", "T0new", "DEF",
+  "BHT", "T1", "T0", "DEF",
   "Veto", "BTC",
 #ifdef CDS
   "CDH", "PbG", "PbF2",
@@ -96,7 +94,7 @@ const TString NameHodo[kNumHodo] = {
 };
 
 const double  NumOfSegHodo[kNumHodo] = {
-  63, 1, 5, 4, 5,
+  63, 1, 5, 5,
   4, 4,
 #ifdef CDS
   36, 40, 40,

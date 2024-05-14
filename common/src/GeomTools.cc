@@ -9,9 +9,9 @@
 #include "TMath.h"
 
 #define DEBUG 0
-// #if !defined(R__ALPHA) && !defined(R__SOLARIS) && !defined(R__ACC) 
-// NamespaceImp(GeomTools) 
-// #endif 
+// #if !defined(R__ALPHA) && !defined(R__SOLARIS) && !defined(R__ACC)
+// NamespaceImp(GeomTools)
+// #endif
 
 namespace{
   const DetectorList&   dlist = DetectorList::GetInstance();
@@ -21,7 +21,7 @@ namespace{
   enum gGeoParam { kPosX=0,
 		   kPosR=0,
 		   kPosY=1,
-		   kPosPhi=1,	       
+		   kPosPhi=1,
 		   kPosZ=2,
 		   kRotX=3,
 		   kRotY=4,
@@ -37,12 +37,12 @@ namespace{
 		   kMother=10
   };
   //  enum gHelixParam{ };
-  const double mm=0.1; 
-  const double m=1000.*mm; 
-  const double cm=10.*mm; 
-  const double um=1.e-3*mm; 
-  const double degree=1.; 
-  const double deg=1.; 
+  const double mm=0.1;
+  const double m=1000.*mm;
+  const double cm=10.*mm;
+  const double um=1.e-3*mm;
+  const double degree=1.;
+  const double deg=1.;
   const double unit=cm; // unit in parameter file
 }
 void geom::MakeGeometry()
@@ -80,7 +80,7 @@ bool geom::IsSameVolumeHelix(const double param[5],const TVector3 &pos1, const T
   double tmpl;
   TString mat;
   int id;
-  if(!geom::HelixStepToNextVolume(param,pos1,tmppos,tmpl,mat,id)) return false;  
+  if(!geom::HelixStepToNextVolume(param,pos1,tmppos,tmpl,mat,id)) return false;
   double tmpl2=math::CalcHelixArc(param,pos1,pos2);
   if(tmpl2<(tmpl+margin)) return true;
   return false;
@@ -92,7 +92,7 @@ bool geom::HelixStepToNextVolume(const double param[5],const TVector3 &in,TVecto
   std::cout<<"[geom::HelixStepToNextVolume] start!!!"<<std::endl;
 #endif
   double defaultstep=1*cm;
-  double step=defaultstep;  
+  double step=defaultstep;
   length=0;
   TVector3 pos1=in;
   pos2=math::CalcHelixStep(param,pos1,step);
@@ -107,7 +107,7 @@ bool geom::HelixStepToNextVolume(const double param[5],const TVector3 &in,TVecto
     }else{
       step/=10.;
       pos2=math::CalcHelixStep(param,pos1,step);
-    }    
+    }
     if(length>100*cm){
       std::cout<<"[geom::HelixStepToNextVolume] too long"<<std::endl;
       in.Print();
@@ -218,7 +218,7 @@ double geom::CalcLengthinFiducial(const TVector3 &pos,const TVector3 &dir){
 void geom::ConstructHadronHall()
 {
   std::cout<<"["<<__func__<<"]"<<std::endl;
-  // We need to construct hadronhall first 
+  // We need to construct hadronhall first
   ConstructShape(DetIdHall);
   ConstructShape(DetIdFloor);
   ConstructShape(DetIdDoraemon);
@@ -234,7 +234,7 @@ void geom::ConstructTarget()
   ConstructShape(DetIdRadS);
   ConstructShape(DetIdTarCFRP);
   ConstructShape(DetIdTarCap);
-  ConstructShape(DetIdTarCell);  
+  ConstructShape(DetIdTarCell);
   ConstructShape(DetIdTarRing);
   //ConstructShape(DetIdTarget);
   ConstructShape(DetIdCellTube);
@@ -249,7 +249,7 @@ void geom::ConstructHodoscopes(){
   //  ConstructShape(DetIdBHD);
   ConstructShape(DetIdT0);
   ConstructShape(DetIdAC);
-  ConstructShape(DetIdT0new);
+  // ConstructShape(DetIdT0new);
   ConstructShape(DetIdDEF);
   //ConstructShape(DetIdVeto0);
 #ifdef E73
@@ -266,7 +266,7 @@ void geom::ConstructChambers(){
   std::cout<<"["<<__func__<<"]"<<std::endl;
   ConstructShape( DetIdBLC2a );
   ConstructShape( DetIdBLC2b );
-  ConstructShape( DetIdBPC   );  
+  ConstructShape( DetIdBPC   );
   ConstructShape( DetIdCDC   );
 }
 
@@ -297,7 +297,7 @@ TGeoVolume* geom::ConstructShape(Int_t CID,TGeoVolume *mother){
   //  std::cout<<nsegments<<"  "<<name<<"  "<<dlist.GetMaterial(CID)<<std::endl;
   TGeoMedium *medium1= gGeoManager->GetMedium("Air");
   TGeoMedium *medium2= gGeoManager->GetMedium(dlist.GetMaterial(CID).Data());
-  if(nsegments==0) medium1=medium2;  
+  if(nsegments==0) medium1=medium2;
 
   double param[20];
   TGeoVolume* assembly=0;
@@ -334,13 +334,13 @@ TGeoVolume* geom::ConstructShape(Int_t CID,TGeoVolume *mother){
   }
   if(!assembly)
     return 0;
-  
+
   TGeoVolume *segment;
   for (Int_t i=0; i<nsegments; i++){
     TString segname=Form("%s_segment%d",name.Data(),i);
     //    std::cout<<segname<<std::endl;
     if(!geom::GetParam(CID,i,param)) continue;
-    segment = geom::MakeShape(param,segname,medium2); 
+    segment = geom::MakeShape(param,segname,medium2);
     TGeoCombiTrans *segment_trans = geom::MakeTrans(param);
     segment->SetLineColor(kBlue);
     segment->SetTransparency(1);
@@ -368,7 +368,7 @@ TGeoVolume* geom::MakeShape(double *param,const TString &name, TGeoMedium* mediu
     }else{
       return 0;
     }
-  }    
+  }
   return shape;
 }
 
@@ -442,15 +442,15 @@ void geom::ConstructMan(){
   Double_t operator_assembly_x = 60*cm/2.0;
   Double_t operator_assembly_y = 180*cm/2.0;
   Double_t operator_assembly_z = 30.0*cm/2.0;
-  TGeoVolume *operator_assembly = gGeoManager->MakeBox("operator_assembly", 
-						      Air, 
+  TGeoVolume *operator_assembly = gGeoManager->MakeBox("operator_assembly",
+						      Air,
 						      operator_assembly_x,
 						      operator_assembly_y,
 						      operator_assembly_z);
   Double_t operator_assembly_pos_x =  3.0*m;
   Double_t operator_assembly_pos_y = -beam_line_height + operator_assembly_y;
   Double_t operator_assembly_pos_z =  7.0*m;
-  Double_t operator_assembly_angle =  90.0*degree; 
+  Double_t operator_assembly_angle =  90.0*degree;
   TGeoRotation *operator_assembly_rot = new TGeoRotation();
   operator_assembly_rot->RotateY(operator_assembly_angle);
   TGeoCombiTrans *operator_assembly_trans = new TGeoCombiTrans(operator_assembly_pos_x,
@@ -465,7 +465,7 @@ void geom::ConstructMan(){
   Double_t operator_head_thetamax = 180.0*degree;
   Double_t operator_head_phimin   = 0.0*degree;
   Double_t operator_head_phimax   = 360.0*degree;
-  TGeoVolume *operator_head = gGeoManager->MakeSphere("operator_head", 
+  TGeoVolume *operator_head = gGeoManager->MakeSphere("operator_head",
 						     Air,
 						     operator_head_rmin,
 						     operator_head_rmax,
@@ -476,7 +476,7 @@ void geom::ConstructMan(){
   Double_t operator_head_pos_x =  0.0*m;
   Double_t operator_head_pos_y =  0.75*m;
   Double_t operator_head_pos_z =  0.0*m;
-  Double_t operator_head_angle =  0.0*degree; 
+  Double_t operator_head_angle =  0.0*degree;
   TGeoRotation *operator_head_rot = new TGeoRotation();
   operator_head_rot->RotateY(operator_head_angle);
   TGeoCombiTrans *operator_head_trans = new TGeoCombiTrans(operator_head_pos_x,
@@ -488,7 +488,7 @@ void geom::ConstructMan(){
   Double_t operator_body_x = 40.0*cm/2.0;
   Double_t operator_body_y = 50.0*cm/2.0;
   Double_t operator_body_z = 10.0*cm/2.0;
-  TGeoVolume *operator_body = gGeoManager->MakeBox("operator_body", 
+  TGeoVolume *operator_body = gGeoManager->MakeBox("operator_body",
 						  Air,
 						  operator_body_x,
 						  operator_body_y,
@@ -496,7 +496,7 @@ void geom::ConstructMan(){
   Double_t operator_body_pos_x =  0.0*m;
   Double_t operator_body_pos_y =  0.35*m;
   Double_t operator_body_pos_z =  0.0*m;
-  Double_t operator_body_angle =  0.0*degree; 
+  Double_t operator_body_angle =  0.0*degree;
   TGeoRotation *operator_body_rot = new TGeoRotation();
   operator_body_rot->RotateY(operator_body_angle);
   TGeoCombiTrans *operator_body_trans = new TGeoCombiTrans(operator_body_pos_x,
@@ -508,7 +508,7 @@ void geom::ConstructMan(){
   Double_t operator_arm_rmin = 0.0*cm;
   Double_t operator_arm_rmax = 5.0*cm;
   Double_t operator_arm_z    = 70.0*cm/2.0;
-  TGeoVolume *operator_arm = gGeoManager->MakeTube("operator_arm", 
+  TGeoVolume *operator_arm = gGeoManager->MakeTube("operator_arm",
 						  Air,
 						  operator_arm_rmin,
 						  operator_arm_rmax,
@@ -521,7 +521,7 @@ void geom::ConstructMan(){
       operator_arm_pos_x = -20.0*cm - operator_arm_rmax;
     Double_t operator_arm_pos_y =  0.25*m;
     Double_t operator_arm_pos_z =  0.0*m;
-    Double_t operator_arm_angle =  90.0*degree; 
+    Double_t operator_arm_angle =  90.0*degree;
     TGeoRotation *operator_arm_rot = new TGeoRotation();
     operator_arm_rot->RotateX(operator_arm_angle);
     TGeoCombiTrans *operator_arm_trans = new TGeoCombiTrans(operator_arm_pos_x,
@@ -534,7 +534,7 @@ void geom::ConstructMan(){
   Double_t operator_leg_rmin = 0.0*cm;
   Double_t operator_leg_rmax = 10.0*cm;
   Double_t operator_leg_z    = 100.0*cm/2.0;
-  TGeoVolume *operator_leg = gGeoManager->MakeTube("operator_leg", 
+  TGeoVolume *operator_leg = gGeoManager->MakeTube("operator_leg",
 						  Air,
 						  operator_leg_rmin,
 						  operator_leg_rmax,
@@ -547,7 +547,7 @@ void geom::ConstructMan(){
       operator_leg_pos_x = -operator_leg_rmax;
     Double_t operator_leg_pos_y =  -40*cm;
     Double_t operator_leg_pos_z =   0.0*m;
-    Double_t operator_leg_angle =   90.0*degree; 
+    Double_t operator_leg_angle =   90.0*degree;
     TGeoRotation *operator_leg_rot = new TGeoRotation();
     operator_leg_rot->RotateX(operator_leg_angle);
     TGeoCombiTrans *operator_leg_trans = new TGeoCombiTrans(operator_leg_pos_x,
@@ -558,4 +558,3 @@ void geom::ConstructMan(){
     operator_assembly->AddNode(operator_leg, i, operator_leg_trans);
   }
 }
-

@@ -62,10 +62,9 @@ ConfMan::InitializeHistograms()
 {
   hist::BuildStatus();
   hist::BuildTriggerFlag();
+  hist::BuildDAQ();
   hist::BuildHodoRaw();
   hist::BuildDCRaw();
-  hist::BuildDAQ();
-
   return true;
 }
 

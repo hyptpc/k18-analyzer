@@ -122,7 +122,7 @@ ConfMan::InitializeHistograms()
   hist::BuildHodoRaw(beam_flag);
   hist::BuildHodoHit(beam_flag);
 
-  tree = new TTree("hodo","UserHodoscope");
+  tree = new TTree("hodo", "UserHodoscope");
   tree->Branch("run_number", &run_number);
   tree->Branch("event_number", &event_number);
   tree->Branch("t0_raw_seg", &t0_raw_seg);

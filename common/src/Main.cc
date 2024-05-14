@@ -71,12 +71,7 @@ main(int argc, char **argv)
   gUnpacker.set_istream(in_file.Data());
   // gUnpacker.enable_istream_bookmark();
   gUnpacker.initialize();
-
-  if(gUnpacker.get_skip() == 0){
-    TNamed git("git", ("\n"+gSystem->GetFromPipe("git log -1")).Data());
-    git.Write();
-    gConf.WriteParameters();
-  }
+  gConf.WriteParameters();
 
   CatchSignal::Set(SIGINT);
 
