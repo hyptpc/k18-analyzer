@@ -87,7 +87,8 @@ BuildHodoRaw(Bool_t flag_beam_particle)
       Int_t nseg = NumOfSegAC;
       for(Int_t i=0; i<nseg; ++i){
         HB1(Form("%s_ADC_seg%d%s", name, i, b), adcbins);
-        HB1(Form("%s_AWT_seg%d%s", name, i, b), adcbins);
+        HB1(Form("%s_AwT_seg%d%s", name, i, b), adcbins);
+        HB1(Form("%s_AwoT_seg%d%s", name, i, b), adcbins);
         HB1(Form("%s_TDC_seg%d%s", name, i, b), mhtdcbins);
       }
       HB1(Form("%s_HitPat%s", name, b), nseg, -0.5, nseg - 0.5);
@@ -108,7 +109,8 @@ BuildHodoRaw(Bool_t flag_beam_particle)
         auto ud = uord.Data();
         for(Int_t i=0; i<nseg; ++i){
           HB1(Form("%s_ADC_seg%d%s%s", name, i, ud, b), adcbins);
-          HB1(Form("%s_AWT_seg%d%s%s", name, i, ud, b), adcbins);
+          HB1(Form("%s_AwT_seg%d%s%s", name, i, ud, b), adcbins);
+          HB1(Form("%s_AwoT_seg%d%s%s", name, i, ud, b), adcbins);
           HB1(Form("%s_TDC_seg%d%s%s", name, i, ud, b), hrtdcbins);
         }
       }

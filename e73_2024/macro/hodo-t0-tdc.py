@@ -53,7 +53,7 @@ def tdc(ud, tdcrange=(1.21e6, 1.24e6), fit=True):
         ]
         result = macrohelper.fit_gaus(h1, params=params, limits=limits)
         key = (cid, 0, seg, 1, 0 if ud == 'U' else 1)
-        result_dict[key] = result
+        result_dict[key] = (result.GetParameter(1), -0.000939002)
       else:
         h1.Draw()
   c1.Modified()
@@ -129,8 +129,7 @@ def single_run(run_info):
         key = key.replace('Time', 'MeanTime')
       ret = time(ud=ud, key=key)
   time2d()
-  hdprm.output_result(run_info, result_dict, is_hrtdc=True,
-                      update=parsed.update)
+  hdprm.output_result(run_info, result_dict, update=parsed.update)
   macrohelper.finalize()
 
 #______________________________________________________________________________

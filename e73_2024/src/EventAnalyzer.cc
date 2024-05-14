@@ -124,7 +124,9 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       Double_t a = hit->GetAdc();
       HF1(Form("%s_ADC_seg%d%s", name, seg, b), a);
       if(is_good)
-        HF1(Form("%s_AWT_seg%d%s", name, seg, b), a);
+        HF1(Form("%s_AwT_seg%d%s", name, seg, b), a);
+      else
+        HF1(Form("%s_AwoT_seg%d%s", name, seg, b), a);
     }
     HF1(Form("%s_Multi%s", name, b), multi);
   }
@@ -147,7 +149,9 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
         for(const auto& a: hit->GetArrayAdc(ud)){
           HF1(Form("%s_ADC_seg%d%s%s", name, seg, UorD[ud], b), a);
           if(is_good)
-            HF1(Form("%s_AWT_seg%d%s%s", name, seg, UorD[ud], b), a);
+            HF1(Form("%s_AwT_seg%d%s%s", name, seg, UorD[ud], b), a);
+          else
+            HF1(Form("%s_AwoT_seg%d%s%s", name, seg, UorD[ud], b), a);
         }
         ud_good += is_good;
       }

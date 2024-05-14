@@ -32,7 +32,7 @@ def hodo(name, nseg=0, adcdiv=None, tdcdiv=None, trailingdiv=None,
         h1 = ROOT.gFile.Get(name + f'_ADC_seg{i}{s}')
         if h1:
           h1.Draw()
-        h2 = ROOT.gFile.Get(name + f'_AWT_seg{i}{s}')
+        h2 = ROOT.gFile.Get(name + f'_AwT_seg{i}{s}')
         if h2:
           h2.SetLineColor(ROOT.kRed+1)
           h2.Draw('same')

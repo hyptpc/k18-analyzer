@@ -59,7 +59,7 @@ def tdc(start_seg, ud, beamflag='', tdcrange=(1.22e6, 1.26e6), fit=True):
         ]
         result = macrohelper.fit_gaus(h1, params=params, limits=limits)
         key = (bht_cid, 0, seg, 1, 0 if ud == 'U' else 1)
-        result_dict[key] = result
+        result_dict[key] = (result.GetParameter(1), -0.0009390020)
       else:
         h1.Draw()
     else:
@@ -150,8 +150,7 @@ def single_run(run_info):
         timerange=(-20, 20)
       ret = time(start_seg=seg*16, timerange=timerange, key=key)
   time2d()
-  hdprm.output_result(run_info, result_dict, is_hrtdc=True,
-                      update=parsed.update)
+  hdprm.output_result(run_info, result_dict, update=parsed.update)
   macrohelper.finalize()
 
 #______________________________________________________________________________

@@ -42,7 +42,7 @@ def draw(name, nseg=0, adcdiv=None, adcrange=None,
             if ploop:
               h1.SetLineColor(pcolor[j])
             h1.Draw('same')
-          # h2 = ROOT.gFile.Get(name + f'_AWT_seg{i}{s}{b}')
+          # h2 = ROOT.gFile.Get(name + f'_AwT_seg{i}{s}{b}')
           # if h2:
           #   h2.SetLineColor(ROOT.kRed+1)
           #   h2.Draw('same')

@@ -73,7 +73,7 @@ def finalize():
   logger.info(f'save {fig_path}')
 
 #______________________________________________________________________________
-def fit_gaus(h1, params, limits=None):
+def fit_gaus(h1, params, limits=None, fitrange=(-2, 2), autozoom=True):
   f1 = ROOT.TF1('f1', 'gaus')
   f1.SetParameters(params)
   if limits is not None:
@@ -82,7 +82,9 @@ def fit_gaus(h1, params, limits=None):
   for j in range(3):
     mean = f1.GetParameter(1)
     sigma = f1.GetParameter(2)
-    h1.Fit('f1', 'Q', '', mean - 2*sigma, mean + 2*sigma)
+    h1.Fit('f1', 'Q', '', mean + fitrange[0]*sigma, mean + fitrange[1]*sigma)
+  if autozoom:
+    h1.GetXaxis().SetRangeUser(mean-10*sigma, mean+20*sigma)
   return f1
 
 #______________________________________________________________________________
