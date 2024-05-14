@@ -100,7 +100,7 @@ class SingleRun(object):
         self.__staging_process is not None):
       return
     cmd = f'head {self.__data_path}'
-    print(cmd)
+    logger.info(cmd)
     try:
       self.__staging_process = subprocess.Popen(shlex.split(cmd),
                                                 stdout=subprocess.DEVNULL,
