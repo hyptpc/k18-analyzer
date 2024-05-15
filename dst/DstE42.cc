@@ -108,6 +108,9 @@ struct Event
   std::vector<std::vector<Double_t>> calpos_x;
   std::vector<std::vector<Double_t>> calpos_y;
   std::vector<std::vector<Double_t>> calpos_z;
+  std::vector<std::vector<Double_t>> mom_x;
+  std::vector<std::vector<Double_t>> mom_y;
+  std::vector<std::vector<Double_t>> mom_z;
   std::vector<std::vector<Double_t>> residual;
   std::vector<std::vector<Double_t>> residual_x;
   std::vector<std::vector<Double_t>> residual_y;
@@ -367,6 +370,9 @@ struct Event
     calpos_x.clear();
     calpos_y.clear();
     calpos_z.clear();
+    mom_x.clear();
+    mom_y.clear();
+    mom_z.clear();
     residual.clear();
     residual_x.clear();
     residual_y.clear();
@@ -626,6 +632,9 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* calpos_x;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* calpos_y;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* calpos_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* mom_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* mom_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* mom_z;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* residual;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* residual_x;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* residual_y;
@@ -1056,7 +1065,7 @@ dst::DstRead( int ievent )
   event.wire = **src.wire;
   event.localhitpos = **src.localhitpos;
   event.wpos = **src.wpos;
-  
+
 
   event.m2TPCKurama.resize(src.ntKurama);
   for(Int_t it=0; it<src.ntKurama; ++it){
@@ -1667,6 +1676,9 @@ dst::DstRead( int ievent )
   event.calpos_x = **src.calpos_x;
   event.calpos_y = **src.calpos_y;
   event.calpos_z = **src.calpos_z;
+  event.mom_x = **src.mom_x;
+  event.mom_y = **src.mom_y;
+  event.mom_z = **src.mom_z;
   event.residual = **src.residual;
   event.residual_x = **src.residual_x;
   event.residual_y = **src.residual_y;
@@ -2161,6 +2173,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "calpos_x", &event.calpos_x );
   tree->Branch( "calpos_y", &event.calpos_y );
   tree->Branch( "calpos_z", &event.calpos_z );
+  tree->Branch( "mom_x", &event.mom_x );
+  tree->Branch( "mom_y", &event.mom_y );
+  tree->Branch( "mom_z", &event.mom_z );
   tree->Branch( "residual", &event.residual );
   tree->Branch( "residual_x", &event.residual_x );
   tree->Branch( "residual_y", &event.residual_y );
@@ -2407,6 +2422,9 @@ ConfMan::InitializeHistograms( void )
   src.calpos_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "calpos_x" );
   src.calpos_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "calpos_y" );
   src.calpos_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "calpos_z" );
+  src.mom_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "mom_x" );
+  src.mom_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "mom_y" );
+  src.mom_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "mom_z" );
   src.residual = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "residual" );
   src.residual_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "residual_x" );
   src.residual_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "residual_y" );
@@ -2548,7 +2566,7 @@ ConfMan::InitializeHistograms( void )
   src.localhitposK18 = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "localhitposK18" );
   src.wposK18 = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "wposK18" );
 
-  src.xvpKurama = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "xvpKurama" );  
+  src.xvpKurama = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "xvpKurama" );
   src.yvpKurama = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "yvpKurama" );
   src.zvpKurama = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "zvpKurama" );
   src.layer = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "layer" );

@@ -1184,7 +1184,6 @@ dst::DstRead( int ievent )
   const Int_t& IdTPCGasVessel_D = gGeom.DetectorId("VesselD");
   const Int_t& IdVPHTOF = gGeom.DetectorId("VPHTOF");
 
-  //if( ievent%1000==0 ){
   GetEntry(ievent);
 
   event.runnum = **src.runnum;
@@ -2638,6 +2637,7 @@ dst::DstRead( int ievent )
     Int_t isk18 = tp->GetIsK18();
     Int_t isaccidental = tp->GetIsAccidental();
     Int_t charge = tp->GetCharge();
+    Int_t pid = tp->GetPid();
     Int_t iteration = tp->GetNIteration();
     Double_t fittime = tp->GetFitTime();
     Double_t searchtime = tp->GetSearchTime();
@@ -2683,6 +2683,7 @@ dst::DstRead( int ievent )
     event.mom0_y[it] = mom0.y();
     event.mom0_z[it] = mom0.z();
     event.mom0[it] = mom0.Mag();
+    event.pid[it] = pid;
     event.dE[it] = tp->GetTrackdE();
     event.dEdx[it] = tp->GetdEdx(truncatedMean);
     event.dz_factor[it] = sqrt(1.+(pow(helix_dz,2)));
@@ -2691,8 +2692,6 @@ dst::DstRead( int ievent )
 
     HF1(15, event.mom0[it]);
     if(src.ntK18==1) HF1(16, event.mom0[it]-src.pHS[0]);
-    int particleID = Kinematics::HypTPCdEdxPID_temp(event.dEdx[it], event.mom0[it]*event.charge[it]);
-    event.pid[it]=particleID;
 
     event.hitlayer[it].resize( nh );
     event.hitpos_x[it].resize( nh );
