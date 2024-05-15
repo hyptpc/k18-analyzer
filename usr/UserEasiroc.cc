@@ -31,8 +31,8 @@
 #define HodoCut    0 // with BH1/BH2
 #define TIME_CUT   1 // in cluster analysis
 #define DE_CUT     1 // in cluster analysis for aft
-#define FHitBranch 1 // make FiberHit branches (becomes heavy)
-#define RawHitAFTBranch 1 //make AFT RawHit branches 
+#define FHitBranch 0 // make FiberHit branches (becomes heavy)
+#define RawHitAFTBranch 0 //make AFT RawHit branches (becomes heavy)
 #define ClusterHitAFTBranch 1 //make AFTCluster branches
 
 namespace
@@ -159,7 +159,6 @@ Event::clear()
   //aft raw
   for(Int_t p=0; p<NumOfPlaneAFT; p++){
     aft_nhits[p] = 0;
-    aft_nhits[p] = 0;	
     for(Int_t seg=0; seg<NumOfSegAFT; seg++){
       aft_hitpat[p][seg] = -1;
       for(Int_t ud=0; ud<kUorD; ud++){
@@ -446,7 +445,7 @@ ProcessingNormal()
 
   ////////// AFT
   for(const auto& hit: rawData.GetHodoRawHC("AFT")){
-    //    hit->Print();
+    // hit->Print();
     Int_t plane = hit->PlaneId();
     Int_t seg = hit->SegmentId();
     for(Int_t ud=0; ud<kUorD; ++ud){
@@ -493,15 +492,15 @@ ProcessingNormal()
       HF2(AFTHid+plane*1000+33, seg, mtot);
       for(Int_t ud=0; ud<kUorD; ++ud){
         auto tot = hit->TOT(ud, j);
-		auto ltime = hit->GetTimeLeading(ud, j);
-		auto ttime = hit->GetTimeTrailing(ud, j);
-		event.aft_tot[plane][seg][ud][j]   = tot;
-		event.aft_ltime[plane][seg][ud][j] = ltime;
-		event.aft_ttime[plane][seg][ud][j] = ttime;
+	auto ltime = hit->GetTimeLeading(ud, j);
+	auto ttime = hit->GetTimeTrailing(ud, j);
+	event.aft_tot[plane][seg][ud][j]   = tot;
+	event.aft_ltime[plane][seg][ud][j] = ltime;
+	event.aft_ttime[plane][seg][ud][j] = ttime;
         HF1(AFTHid+plane*1000+5+ud, tot);
         HF2(AFTHid+plane*1000+13+ud, seg, tot);
-		HF2(AFTHid+plane*1000+58+ud, seg, ltime);
-		HF1(AFTHid+plane*1000+60+ud, ltime);
+	HF2(AFTHid+plane*1000+58+ud, seg, ltime);
+	HF1(AFTHid+plane*1000+60+ud, ltime);
         // HF1(AFTHid+plane*1000+seg+300+ud*100, tot);
       }
     }
@@ -526,83 +525,83 @@ ProcessingNormal()
   hodoAna.DeCut("AFT", MinDeAFT, MaxDeAFT);
 #endif
   {
-	int nclaft = hodoAna.GetNClusters("AFT");
-	event.aft_ncl = nclaft;
-	double desum = 0;
-	if (nclaft > MaxCluster) nclaft = MaxCluster;
-	for(Int_t i=0; i<nclaft; ++i){
-	  const auto& cl = hodoAna.GetCluster("AFT", i);
-	  if(!cl) continue;
-	  Int_t    plane  = cl->PlaneId();
-	  Double_t clsize = cl->ClusterSize();
-	  Double_t time   = cl->MeanTime();
-	  Double_t tot    = cl->TOT();
-	  Double_t pos    = cl->MeanPosition();
-	  Double_t seg    = cl->MeanSeg();
-	  Double_t de     = cl->DeltaE();
-	  desum = desum + de;
-	  event.aft_clsize[i]  = clsize;
-	  event.aft_clseg[i]   = seg;
-	  event.aft_cltot[i]   = tot;
-	  event.aft_clde[i]    = de;
-	  event.aft_cltime[i]  = time;
-	  event.aft_clplane[i] = plane;
-	  event.aft_clpos[i]   = pos;
-	  HF1(AFTHid + 102, clsize);
-	  HF1(AFTHid + 103, time);
-	  HF1(AFTHid + 104, tot);
-	  HF2(AFTHid + 105, time, tot);
-	  HF1(AFTHid + 106, seg);
-	}
-	HF1(AFTHid + 101, nclaft);
-	HF1(AFTHid + 107, desum);
-	event.aft_desum = desum;
+    int nclaft = hodoAna.GetNClusters("AFT");
+    event.aft_ncl = nclaft;
+    double desum = 0;
+    if (nclaft > MaxCluster) nclaft = MaxCluster;
+    for(Int_t i=0; i<nclaft; ++i){
+      const auto& cl = hodoAna.GetCluster("AFT", i);
+      if(!cl) continue;
+      Int_t    plane  = cl->PlaneId();
+      Double_t clsize = cl->ClusterSize();
+      Double_t time   = cl->MeanTime();
+      Double_t tot    = cl->TOT();
+      Double_t pos    = cl->MeanPosition();
+      Double_t seg    = cl->MeanSeg();
+      Double_t de     = cl->DeltaE();
+      desum = desum + de;
+      event.aft_clsize[i]  = clsize;
+      event.aft_clseg[i]   = seg;
+      event.aft_cltot[i]   = tot;
+      event.aft_clde[i]    = de;
+      event.aft_cltime[i]  = time;
+      event.aft_clplane[i] = plane;
+      event.aft_clpos[i]   = pos;
+      HF1(AFTHid + 102, clsize);
+      HF1(AFTHid + 103, time);
+      HF1(AFTHid + 104, tot);
+      HF2(AFTHid + 105, time, tot);
+      HF1(AFTHid + 106, seg);
+    }
+    HF1(AFTHid + 101, nclaft);
+    HF1(AFTHid + 107, desum);
+    event.aft_desum = desum;
   }
 
 
   //aft_analysis
   int multiplicity_pair[18] = { 0 };
   for(int ud=0; ud<kUorD; ud++){ 
-	for(int plane=0; plane<NumOfPlaneAFT; plane++){
-	  std::vector<std::pair<int,int>> adc_seg_pair;
-	  int multiplicity = 0;
-	  for(int s=0; s<NumOfSegAFTarr.at(plane); s++){
-		//--------------------------------------------------------
-		for(int depth=0; depth<MaxDepth; depth++){
-		  double ltime = event.aft_ltime[plane][s][ud][depth];
-		  double adc   = event.aft_adc_high[plane][s][ud];
-		  double tot   = event.aft_tot[plane][s][ud][depth];
-		  double mt    = event.aft_mt[plane][s][depth];
-		  double de_high = event.aft_de_high[plane][s];
-		  bool Timecut = ( MinTimeAFT<ltime && ltime<MaxTimeAFT);
-		  bool MeanTimecut = ( MinTimeAFT<mt && mt<MaxTimeAFT);
-		  bool Decut   = ( 0.2<de_high );
-		  if( Timecut )  HF2(AFTHid+plane*1000+62+ud, adc, tot);
-		  if (MeanTimecut ) HF2(AFTHid+plane*1000+64+ud, de_high, mt); 
-		  if( MeanTimecut && Decut){
-			multiplicity++;
-			HF1(AFTHid+plane*1000+2, s);
-		  }
-		}
-		//--------------------------------------------------------
-		if(std::isfinite(event.aft_tdc[plane][s][ud][0])){
-		  double adc = event.aft_adc_high[plane][s][ud];
-		  if(1000<adc) adc_seg_pair.push_back( {adc, s} );
-		}
-	  }//for seg
-	  if(ud==0) multiplicity_pair[plane/2] += multiplicity; 
-	  if( ((plane%2)==1) && (ud==0) )  HF1(AFTHid+(plane/2)*1000+1, multiplicity_pair[plane/2]);
-	  if(!adc_seg_pair.empty()){
-		std::sort(adc_seg_pair.rbegin(), adc_seg_pair.rend());
-		int adcmax = adc_seg_pair.at(0).first;
-		int adcmax_seg = adc_seg_pair.at(0).second;
-		int tdc_adcmax_seg = event.aft_tdc[plane][adcmax_seg][ud][0];
-		HF2(AFTHid+plane*1000+50+ud, adcmax_seg, tdc_adcmax_seg);
-		HF1(AFTHid+plane*1000+52+ud, adcmax_seg);
-		HF2(AFTHid+plane*1000+54+ud, adcmax_seg, adcmax);
-		HF1(AFTHid+plane*1000+56+ud, adcmax);
+    for(int plane=0; plane<NumOfPlaneAFT; plane++){
+      std::vector<std::pair<int,int>> adc_seg_pair;
+      int multiplicity = 0;
+      for(int s=0; s<NumOfSegAFTarr.at(plane); s++){
+	//--------------------------------------------------------
+	for(int depth=0; depth<MaxDepth; depth++){
+	  double ltime = event.aft_ltime[plane][s][ud][depth];
+	  double adc   = event.aft_adc_high[plane][s][ud];
+	  double tot   = event.aft_tot[plane][s][ud][depth];
+	  double mt    = event.aft_mt[plane][s][depth];
+	  double de_high = event.aft_de_high[plane][s];
+	  bool Timecut = ( MinTimeAFT<ltime && ltime<MaxTimeAFT);
+	  bool MeanTimecut = ( MinTimeAFT<mt && mt<MaxTimeAFT);
+	  bool Decut   = ( 0.2<de_high );
+	  if( Timecut )  HF2(AFTHid+plane*1000+62+ud, adc, tot);
+	  if (MeanTimecut ) HF2(AFTHid+plane*1000+64+ud, de_high, mt); 
+	  if( MeanTimecut && Decut){
+	    multiplicity++;
+	    HF1(AFTHid+plane*1000+2, s);
 	  }
-	}//for plane
+	}
+	//--------------------------------------------------------
+	if(std::isfinite(event.aft_tdc[plane][s][ud][0])){
+	  double adc = event.aft_adc_high[plane][s][ud];
+	  if(1000<adc) adc_seg_pair.push_back( {adc, s} );
+	}
+      }//for seg
+      if(ud==0) multiplicity_pair[plane/2] += multiplicity; 
+      if( ((plane%2)==1) && (ud==0) )  HF1(AFTHid+(plane/2)*1000+1, multiplicity_pair[plane/2]);
+      if(!adc_seg_pair.empty()){
+	std::sort(adc_seg_pair.rbegin(), adc_seg_pair.rend());
+	int adcmax = adc_seg_pair.at(0).first;
+	int adcmax_seg = adc_seg_pair.at(0).second;
+	int tdc_adcmax_seg = event.aft_tdc[plane][adcmax_seg][ud][0];
+	HF2(AFTHid+plane*1000+50+ud, adcmax_seg, tdc_adcmax_seg);
+	HF1(AFTHid+plane*1000+52+ud, adcmax_seg);
+	HF2(AFTHid+plane*1000+54+ud, adcmax_seg, adcmax);
+	HF1(AFTHid+plane*1000+56+ud, adcmax);
+      }
+    }//for plane
   }//for ud
 
   return true;
