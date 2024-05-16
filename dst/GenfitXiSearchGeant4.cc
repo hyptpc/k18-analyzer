@@ -2062,6 +2062,7 @@ dst::DstRead( Int_t ievent )
   TLorentzVector HLVLd(HTVLd,hypot(LambdaMass,HTVLd.Mag()));
   TLorentzVector HLVXi(HTVXi,hypot(XiMinusMass,HTVXi.Mag()));
 
+
   FourVectorFitter KFLd(HLVP,HLVPi1,HLVLd);
   KFLd.SetInvMass(LambdaMass);
   KFLd.SetMaximumStep(5);
@@ -2090,10 +2091,10 @@ dst::DstRead( Int_t ievent )
   }
   }
   TMatrixD OffdiagLd(6,6,OffdiagElemLd);
-  cout<<"KFLd"<<endl;
   KFLd.SetVariance(VarianceLd);
   KFLd.AddOffdiagonals(OffdiagLd);
   KFchisqrl = KFLd.DoKinematicFit();
+  cout<<Form("KFLambda done:: chi2 = %g",KFchisqrl)<<endl;
   KFpvall = 1-ROOT::Math::chisquared_cdf(KFchisqrl,KFLd.GetNDF());
   auto HcontLd = KFLd.GetFittedLV();
   auto PullLd = KFLd.GetPull();
@@ -2102,7 +2103,7 @@ dst::DstRead( Int_t ievent )
   auto KFHLVLd = HcontLd.at(2);
   auto VLd = KFLd.GetUnmeasuredCovariance();
   double VarianceXi[6] =
-  {VLd(0,0),VLd(1,1),VLd(2,2),
+  {abs(VLd(0,0)),abs(VLd(1,1)),abs(VLd(2,2)),
   pow(event.decays_res_mom.at(2),2),pow(event.decays_res_th.at(2),2),pow(event.decays_res_ph.at(2),2)};
   double OffdiagElemXi[36]={0};
   for(int ic=0;ic<6;++ic){
@@ -2121,15 +2122,36 @@ dst::DstRead( Int_t ievent )
     }
   }
   }
+
   TMatrixD OffdiagXi(6,6,OffdiagElemXi);
   HLVXi = KFHLVLd+HLVPi2;
   FourVectorFitter KFXi(KFHLVLd,HLVPi2,HLVXi);
   KFXi.SetInvMass(XiMinusMass);
-  cout<<"KFXi"<<endl;
   KFXi.SetMaximumStep(5);
   KFXi.SetVariance(VarianceXi);
   KFXi.AddOffdiagonals(OffdiagXi);
   KFchisqrxi = KFXi.DoKinematicFit();
+  if(isnan(KFchisqrxi)){
+    double Pi2Elem[3*3]=
+    {
+      VarianceXi[3],OffdiagElemXi[3*6+4],OffdiagElemXi[3*6+5],
+      OffdiagElemXi[3*6+4],VarianceXi[4],OffdiagElemXi[4*6+5],  
+      OffdiagElemXi[3*6+5],OffdiagElemXi[4*6+5],VarianceXi[5] 
+    };
+    TMatrixD VPi2(3,3,Pi2Elem);
+    cout<<Form("LVPi2 = (%g,%g,%g,%g)",HLVPi2.X(),HLVPi2.Y(),HLVPi2.Z(),HLVPi2.E())<<endl;  
+    cout<<"Pi2 Variance Matrix, Det = "<<VPi2.Determinant()<<endl;
+    VPi2.Print();
+
+    TLorentzVector LVLdTemp(KFHLVLd.X(),KFHLVLd.Z(),KFHLVLd.Y(),KFHLVLd.E());   
+    cout<<Form("LVLambda = (%g,%g,%g,%g)",LVLdTemp.X(),LVLdTemp.Y(),LVLdTemp.Z(),LVLdTemp.E())<<endl; 
+    cout<<"Lambda Variance Matrix, Det = "<<VLd.Determinant()<<endl;
+    VLd.Print();
+    auto VXi = KFXi.GetVariance(0);
+    cout<<"Xi Variance Matrix, Det = "<<VXi.Determinant()<<endl;  
+    VXi.Print();
+  }
+  cout<<Form("KFXi done:: chi2 = %g",KFchisqrxi)<<endl;
   KFpvalxi = 1-ROOT::Math::chisquared_cdf(KFchisqrxi,KFXi.GetNDF());
   auto HcontXi = KFXi.GetFittedLV();
   auto PullXi = KFXi.GetPull();
@@ -2212,8 +2234,84 @@ dst::DstRead( Int_t ievent )
     int num = 20010+i;
     HF1(num,PullXi.at(i));
   }
-#endif
+  TVector3 G4HTVXi(event.G4ximom_x,event.G4ximom_z,event.G4ximom_y); 
+  TVector3 G4HTVLd(event.G4lmom_x,event.G4lmom_z,event.G4lmom_y);
+  TVector3 G4HTVP(event.G4pmom_x,event.G4pmom_z,event.G4pmom_y);
+  TVector3 G4HTVPi1(event.G4pi1mom_x,event.G4pi1mom_z,event.G4pi1mom_y);
+  TVector3 G4HTVPi2(event.G4pi2mom_x,event.G4pi2mom_z,event.G4pi2mom_y);
 
+  auto KFHTVXi = KFHLVXi.Vect();
+  auto KFHTVLd = KFKFHLVLd.Vect();
+  auto KFHTVP = KFHLVP.Vect();
+  auto KFHTVPi1 = KFHLVPi1.Vect();
+  auto KFHTVPi2 = KFHLVPi2.Vect();
+
+  HF1(11010,(KFHTVP.Mag()-G4HTVP.Mag())/event.decays_res_mom.at(0)); 
+  HF1(11011,(KFHTVP.Theta()-G4HTVP.Theta())/event.decays_res_th.at(0));
+  HF1(11012,(KFHTVP.Phi()-G4HTVP.Phi())/event.decays_res_ph.at(0));
+  HF1(11013,(KFHTVPi1.Mag()-G4HTVPi1.Mag())/event.decays_res_mom.at(1));
+  HF1(11014,(KFHTVPi1.Theta()-G4HTVPi1.Theta())/event.decays_res_th.at(1));
+  HF1(11015,(KFHTVPi1.Phi()-G4HTVPi1.Phi())/event.decays_res_ph.at(1));
+  HF1(11016,(KFHTVLd.Mag()-G4HTVLd.Mag())/sqrt(VLd(0,0)));
+  HF1(11017,(KFHTVLd.Theta()-G4HTVLd.Theta())/sqrt(VLd(1,1)));
+  HF1(11018,(KFHTVLd.Phi()-G4HTVLd.Phi())/sqrt(VLd(2,2)));  
+
+  HF1(11020,KFHTVP.Mag()-G4HTVP.Mag()); 
+  HF1(11021,KFHTVP.Theta()-G4HTVP.Theta());
+  HF1(11022,KFHTVP.Phi()-G4HTVP.Phi());
+  HF1(11023,KFHTVPi1.Mag()-G4HTVPi1.Mag());
+  HF1(11024,KFHTVPi1.Theta()-G4HTVPi1.Theta());
+  HF1(11025,KFHTVPi1.Phi()-G4HTVPi1.Phi());
+  HF1(11026,KFHTVLd.Mag()-G4HTVLd.Mag());
+  HF1(11027,KFHTVLd.Theta()-G4HTVLd.Theta());
+  HF1(11028,KFHTVLd.Phi()-G4HTVLd.Phi());
+
+  HF1(21010,(KFHTVLd.Mag()-G4HTVLd.Mag())/sqrt(VLd(0,0)));
+  HF1(21011,(KFHTVLd.Theta()-G4HTVLd.Theta())/sqrt(VLd(1,1)));
+  HF1(21012,(KFHTVLd.Phi()-G4HTVLd.Phi())/sqrt(VLd(2,2)));
+  HF1(21013,(KFHTVPi2.Mag()-G4HTVPi2.Mag())/event.decays_res_mom.at(2));
+  HF1(21014,(KFHTVPi2.Theta()-G4HTVPi2.Theta())/event.decays_res_th.at(2));
+  HF1(21015,(KFHTVPi2.Phi()-G4HTVPi2.Phi())/event.decays_res_ph.at(2));
+
+  HF1(21020,KFHTVLd.Mag()-G4HTVLd.Mag());
+  HF1(21021,KFHTVLd.Theta()-G4HTVLd.Theta());
+  HF1(21022,KFHTVLd.Phi()-G4HTVLd.Phi());
+  HF1(21023,KFHTVPi2.Mag()-G4HTVPi2.Mag());
+  HF1(21024,KFHTVPi2.Theta()-G4HTVPi2.Theta());
+  HF1(21025,KFHTVPi2.Phi()-G4HTVPi2.Phi());
+  HF1(21026,KFHTVXi.Mag()-G4HTVXi.Mag());
+  HF1(21027,KFHTVXi.Theta()-G4HTVXi.Theta());
+  HF1(21028,KFHTVXi.Phi()-G4HTVXi.Phi());
+
+#endif
+  HF1(12010,(HTVP.Mag()-G4HTVP.Mag())/event.decays_res_mom.at(0)); 
+  HF1(12011,(HTVP.Theta()-G4HTVP.Theta())/event.decays_res_th.at(0));
+  HF1(12012,(HTVP.Phi()-G4HTVP.Phi())/event.decays_res_ph.at(0));
+  HF1(12013,(HTVPi1.Mag()-G4HTVPi1.Mag())/event.decays_res_mom.at(1));
+  HF1(12014,(HTVPi1.Theta()-G4HTVPi1.Theta())/event.decays_res_th.at(1));
+  HF1(12015,(HTVPi1.Phi()-G4HTVPi1.Phi())/event.decays_res_ph.at(1));
+  HF1(12020,HTVP.Mag()-G4HTVP.Mag());
+  HF1(12021,HTVP.Theta()-G4HTVP.Theta());
+  HF1(12022,HTVP.Phi()-G4HTVP.Phi());
+  HF1(12023,HTVPi1.Mag()-G4HTVPi1.Mag());
+  HF1(12024,HTVPi1.Theta()-G4HTVPi1.Theta());
+  HF1(12025,HTVPi1.Phi()-G4HTVPi1.Phi());
+  HF1(12026,HTVLd.Mag()-G4HTVLd.Mag());
+  HF1(12027,HTVLd.Theta()-G4HTVLd.Theta());
+  HF1(12028,HTVLd.Phi()-G4HTVLd.Phi());
+
+  HF1(22013,(HTVPi2.Mag()-G4HTVPi2.Mag())/event.decays_res_mom.at(2));  
+  HF1(22014,(HTVPi2.Theta()-G4HTVPi2.Theta())/event.decays_res_th.at(2));
+  HF1(22015,(HTVPi2.Phi()-G4HTVPi2.Phi())/event.decays_res_ph.at(2));
+  HF1(22020,HTVLd.Mag()-G4HTVLd.Mag());
+  HF1(22021,HTVLd.Theta()-G4HTVLd.Theta());
+  HF1(22022,HTVLd.Phi()-G4HTVLd.Phi());
+  HF1(22023,HTVPi2.Mag()-G4HTVPi2.Mag());
+  HF1(22024,HTVPi2.Theta()-G4HTVPi2.Theta());
+  HF1(22025,HTVPi2.Phi()-G4HTVPi2.Phi());
+  HF1(22026,HTVXi.Mag()-G4HTVXi.Mag());
+  HF1(22027,HTVXi.Theta()-G4HTVXi.Theta());
+  HF1(22028,HTVXi.Phi()-G4HTVXi.Phi());
 
   HF1( 31, event.GFlmass);
   HF1( 32, event.GFximass);
@@ -2380,7 +2478,78 @@ ConfMan::InitializeHistograms( void )
   HB1(20026,"KF#{Xi}^{-} residual #Xi_{p}",1000,-0.3,0.3);
   HB1(20027,"KF#{Xi}^{-} residual #Xi_{#theta}",1000,-0.1,0.1);
   HB1(20028,"KF#{Xi}^{-} residual #Xi_{#phi}",1000,-0.3,0.3);
+
+  HB1(11010,"KF#{Lambda} G4pull p_{p} ",100,-5,5);
+  HB1(11011,"KF#{Lambda} G4pull p_{#theta} ",100,-5,5);
+  HB1(11012,"KF#{Lambda} G4pull p_{#phi} ",100,-5,5);
+  HB1(11013,"KF#{Lambda} G4pull #pi_{p} ",100,-5,5);
+  HB1(11014,"KF#{Lambda} G4pull #pi_{#theta} ",100,-5,5);
+  HB1(11015,"KF#{Lambda} G4pull #pi_{#phi} ",100,-5,5);
+  HB1(11016,"KF#{Lambda} G4pull #Lambda_{p} ",100,-5,5);
+  HB1(11017,"KF#{Lambda} G4pull #Lambda_{#theta} ",100,-5,5);
+  HB1(11018,"KF#{Lambda} G4pull #Lambda_{#phi} ",100,-5,5);
+  HB1(11020,"KF#{Lambda} G4residual p_{p}",1000,-1,1);
+  HB1(11021,"KF#{Lambda} G4residual p_{#theta}",1000,-1,1);
+  HB1(11022,"KF#{Lambda} G4residual p_{#phi}",1000,-1,1);
+  HB1(11023,"KF#{Lambda} G4residual #pi_{p}",1000,-1,1);
+  HB1(11024,"KF#{Lambda} G4residual #pi_{#theta}",1000,-1,1);
+  HB1(11025,"KF#{Lambda} G4residual #pi_{#phi}",1000,-1,1);
+  HB1(11026,"KF#{Lambda} G4residual #Lambda_{p}",1000,-1,1);  
+  HB1(11027,"KF#{Lambda} G4residual #Lambda_{#theta}",1000,-1,1);
+  HB1(11028,"KF#{Lambda} G4residual #Lambda_{#phi}",1000,-1,1);
+
+  HB1(21010,"KF#{Xi}^{-} G4pull #Lambda_{p} ",100,-5,5);
+  HB1(21011,"KF#{Xi}^{-} G4pull #Lambda_{#theta} ",100,-5,5);
+  HB1(21012,"KF#{Xi}^{-} G4pull #Lambda_{#phi} ",100,-5,5);
+  HB1(21013,"KF#{Xi}^{-} G4pull #pi_{p} ",100,-5,5);
+  HB1(21014,"KF#{Xi}^{-} G4pull #pi_{#theta} ",100,-5,5);
+  HB1(21015,"KF#{Xi}^{-} G4pull #pi_{#phi} ",100,-5,5);
+  HB1(21020,"KF#{Xi}^{-} G4residual #Lambda_{p}",1000,-1,1);
+  HB1(21021,"KF#{Xi}^{-} G4residual #Lambda_{#theta}",1000,-0.5,0.5);
+  HB1(21022,"KF#{Xi}^{-} G4residual #Lambda_{#phi}",1000,-0.5,0.5);
+  HB1(21023,"KF#{Xi}^{-} G4residual #pi_{p}",1000,-0.3,0.3);
+  HB1(21024,"KF#{Xi}^{-} G4residual #pi_{#theta}",1000,-1,1);
+  HB1(21025,"KF#{Xi}^{-} G4residual #pi_{#phi}",1000,-1,1);
+  HB1(21026,"KF#{Xi}^{-} G4residual #Xi_{p}",1000,-0.3,0.3);
+  HB1(21027,"KF#{Xi}^{-} G4residual #Xi_{#theta}",1000,-0.1,0.1);
+  HB1(21028,"KF#{Xi}^{-} G4residual #Xi_{#phi}",1000,-0.3,0.3);
+
+
 #endif
+  HB1(12010,"#{Lambda} G4pull p_{p} ",100,-5,5);
+  HB1(12011,"#{Lambda} G4pull p_{#theta} ",100,-5,5);
+  HB1(12012,"#{Lambda} G4pull p_{#phi} ",100,-5,5);
+  HB1(12013,"#{Lambda} G4pull #pi_{p} ",100,-5,5);
+  HB1(12014,"#{Lambda} G4pull #pi_{#theta} ",100,-5,5);
+  HB1(12015,"#{Lambda} G4pull #pi_{#phi} ",100,-5,5);
+  HB1(12016,"#{Lambda} G4pull #Lambda_{p} ",100,-5,5);
+  HB1(12017,"#{Lambda} G4pull #Lambda_{#theta} ",100,-5,5);
+  HB1(12018,"#{Lambda} G4pull #Lambda_{#phi} ",100,-5,5);
+  HB1(12020,"#{Lambda} G4residual p_{p}",1000,-1,1);
+  HB1(12021,"#{Lambda} G4residual p_{#theta}",1000,-1,1);
+  HB1(12022,"#{Lambda} G4residual p_{#phi}",1000,-1,1);
+  HB1(12023,"#{Lambda} G4residual #pi_{p}",1000,-1,1);
+  HB1(12024,"#{Lambda} G4residual #pi_{#theta}",1000,-1,1);
+  HB1(12025,"#{Lambda} G4residual #pi_{#phi}",1000,-1,1);
+  HB1(12026,"#{Lambda} G4residual #Lambda_{p}",1000,-1,1);  
+  HB1(12027,"#{Lambda} G4residual #Lambda_{#theta}",1000,-1,1);
+  HB1(12028,"#{Lambda} G4residual #Lambda_{#phi}",1000,-1,1);
+
+  HB1(22010,"#{Xi}^{-} G4pull #Lambda_{p} ",100,-5,5);
+  HB1(22011,"#{Xi}^{-} G4pull #Lambda_{#theta} ",100,-5,5);
+  HB1(22012,"#{Xi}^{-} G4pull #Lambda_{#phi} ",100,-5,5);
+  HB1(22013,"#{Xi}^{-} G4pull #pi_{p} ",100,-5,5);
+  HB1(22014,"#{Xi}^{-} G4pull #pi_{#theta} ",100,-5,5);
+  HB1(22015,"#{Xi}^{-} G4pull #pi_{#phi} ",100,-5,5);
+  HB1(22020,"#{Xi}^{-} G4residual #Lambda_{p}",1000,-1,1);
+  HB1(22021,"#{Xi}^{-} G4residual #Lambda_{#theta}",1000,-0.5,0.5);
+  HB1(22022,"#{Xi}^{-} G4residual #Lambda_{#phi}",1000,-0.5,0.5);
+  HB1(22023,"#{Xi}^{-} G4residual #pi_{p}",1000,-0.3,0.3);
+  HB1(22024,"#{Xi}^{-} G4residual #pi_{#theta}",1000,-1,1);
+  HB1(22025,"#{Xi}^{-} G4residual #pi_{#phi}",1000,-1,1);
+  HB1(22026,"#{Xi}^{-} G4residual #Xi_{p}",1000,-0.3,0.3);
+  HB1(22027,"#{Xi}^{-} G4residual #Xi_{#theta}",1000,-0.1,0.1);
+  HB1(22028,"#{Xi}^{-} G4residual #Xi_{#phi}",1000,-0.3,0.3);
 
 
 
@@ -2630,9 +2799,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFntTpc", &event.GFntTpc);
   tree->Branch("GFcharge", &event.GFcharge);
   tree->Branch("GFchisqr", &event.GFchisqr);
+  tree->Branch("GFchisqrPos", &event.GFchisqrPos);
   tree->Branch("GFtof", &event.GFtof);
   tree->Branch("GFtracklen", &event.GFtracklen);
   tree->Branch("GFpval", &event.GFpval);
+  tree->Branch("GFpvalPos", &event.GFpvalPos);
   tree->Branch("GFfitstatus", &event.GFfitstatus);
   tree->Branch("GFpdgcode", &event.GFpdgcode);
   tree->Branch("GFnhtrack", &event.GFnhtrack);

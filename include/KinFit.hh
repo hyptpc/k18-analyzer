@@ -51,6 +51,9 @@ class KinematicFitter{
 		KinematicFitter(){};
 		//Setters
 		void SetVariance(double* var);
+		TMatrixD GetVariance(int i){
+			return Variancies.at(i);
+		}
 		void AddOffdiagonals(TMatrixD Cov);//AddsCovaraince.
 		void SetChi2DifCut(double cut){
 			Chi2_cut = cut; }
