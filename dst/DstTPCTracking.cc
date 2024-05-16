@@ -654,7 +654,11 @@ dst::DstRead(int ievent)
       event.track_cluster_row_center[it][ih] = centerRow;
 
       HF1(13, layer);
+      HF1(100*(layer+1)+11, centerRow);
+      HF1(100*(layer+1)+14, hitpos.x());
       HF1(100*(layer+1)+15, residual);
+      HF2(100*(layer+1)+16, hitpos.x(), residual);
+      HF2(100*(layer+1)+17, calpos.x(), hitpos.y());
       HF1(100*(layer+1)+31, resi_vect.X());
       HF1(100*(layer+1)+32, resi_vect.Y());
       HF1(100*(layer+1)+33, resi_vect.Z());
