@@ -1,4 +1,5 @@
 #include "KinFit.hh"
+#include "TMatrixDEigen.h"
 #include <iostream>
 #ifndef KinFit_cc
 #define KinFit_cc
@@ -70,6 +71,32 @@ KinematicFitter::AddOffdiagonals(TMatrixD Cov){
 	}
 #endif
 	Variancies.at(0)+= Cov;
+	bool CheckPositiveDefinite = false;
+	while(!CheckPositiveDefinite){
+		bool PositiveDefinate = true;
+		TMatrixDEigen VEig(Variancies.at(0));
+		TVectorD eigenvalue = VEig.GetEigenValuesRe();
+		for(int ie=0;ie<eigenvalue.GetNrows();++ie){
+			if(eigenvalue(ie)<0){
+				PositiveDefinate = false;
+				break;
+			}
+			CheckPositiveDefinite = true;
+		}
+		if(!PositiveDefinate){
+			cout<<"KinematicFit:: Variance not positive-definite"<<endl;
+			cout<<"Reducing Offdiagonals..."<<endl;
+			#if Debug
+			Variancies.at(0).Print();	
+			#endif
+			for(int irow=0;irow < Variancies.at(0).GetNrows();++irow){
+				for(int icol=0;icol < Variancies.at(0).GetNcols();++icol){
+					if(irow == icol) continue;
+					Variancies.at(0)(irow,icol) *=0.9;
+				}
+			}
+		}
+	}
 //	cout<<"CovarianceMat : ";
 #if Debug
 	cout<<"Variance, det ="<<Variancies.at(0).Determinant();
@@ -270,11 +297,14 @@ void KinematicFitter::ProcessStep(){
 		Pull.push_back( dm / dv);
 	}
 	vector<double>UPull;
-	VarianciesU.push_back(UMat);
-	auto UVar = VarianciesU.at(step);
+//	VarianciesU.push_back(UMat);
+	auto JacobiandMdU =  (FuSIFu) * (dFdUT* (sInv)*dFdMS);
+	auto JacobiandMdUT = TransposeMatrix(JacobiandMdU);	
+	auto VarianceU = JacobiandMdU * VMat * JacobiandMdUT;	
+	VarianciesU.push_back(VarianceU);
 	for(int i = 0; i<nUnkn;++i){
 		double du = (Unkn-Unkn0)(i,0); 	
-		double dv = (UVar(i,i));
+		double dv = (VarianceU(i,i));
 //		double dv = (UMat(i,i));
 		dv = sqrt(dv);
 		UPull.push_back( du / dv);

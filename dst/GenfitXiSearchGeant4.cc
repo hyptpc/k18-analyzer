@@ -1511,7 +1511,7 @@ dst::DstRead( Int_t ievent )
     HF2(1003,pos.z(),pos.x());
   }
 
-  event.decays_res_mom.push_back(Track_p->GetMomentumResolutionVect().Mag());
+  event.decays_res_mom.push_back(Track_p->GetMomentumResolution());
   event.decays_res_mom_x.push_back(Track_p->GetMomentumResolutionVect().X());
   event.decays_res_mom_y.push_back(Track_p->GetMomentumResolutionVect().Y());
   event.decays_res_mom_z.push_back(Track_p->GetMomentumResolutionVect().Z());
@@ -1525,7 +1525,7 @@ dst::DstRead( Int_t ievent )
   event.decays_cov_mom_yz.push_back(Track_p->GetMomentumCovarianceVect().y());
   event.decays_cov_mom_zx.push_back(Track_p->GetMomentumCovarianceVect().z());
 
-  event.decays_res_mom.push_back(Track_pi->GetMomentumResolutionVect().Mag());
+  event.decays_res_mom.push_back(Track_pi->GetMomentumResolution());
   event.decays_res_mom_x.push_back(Track_pi->GetMomentumResolutionVect().X());
   event.decays_res_mom_y.push_back(Track_pi->GetMomentumResolutionVect().Y());
   event.decays_res_mom_z.push_back(Track_pi->GetMomentumResolutionVect().Z());
@@ -1539,7 +1539,7 @@ dst::DstRead( Int_t ievent )
   event.decays_cov_mom_yz.push_back(Track_pi->GetMomentumCovarianceVect().y());
   event.decays_cov_mom_zx.push_back(Track_pi->GetMomentumCovarianceVect().z());
 
-  event.decays_res_mom.push_back(Track_pi2->GetMomentumResolutionVect().Mag());
+  event.decays_res_mom.push_back(Track_pi2->GetMomentumResolution());
   event.decays_res_mom_x.push_back(Track_pi2->GetMomentumResolutionVect().X());
   event.decays_res_mom_y.push_back(Track_pi2->GetMomentumResolutionVect().Y());
   event.decays_res_mom_z.push_back(Track_pi2->GetMomentumResolutionVect().Z());
@@ -2103,7 +2103,8 @@ dst::DstRead( Int_t ievent )
   auto KFHLVLd = HcontLd.at(2);
   auto VLd = KFLd.GetUnmeasuredCovariance();
   double VarianceXi[6] =
-  {abs(VLd(0,0)),abs(VLd(1,1)),abs(VLd(2,2)),
+ // {abs(VLd(0,0)),abs(VLd(1,1)),abs(VLd(2,2)),
+  {(VLd(0,0)),(VLd(1,1)),(VLd(2,2)),
   pow(event.decays_res_mom.at(2),2),pow(event.decays_res_th.at(2),2),pow(event.decays_res_ph.at(2),2)};
   double OffdiagElemXi[36]={0};
   for(int ic=0;ic<6;++ic){
