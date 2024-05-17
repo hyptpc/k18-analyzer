@@ -356,7 +356,6 @@ UserBcOutSdcInTracking::ProcessingNormal()
 	      << "multi_SdcIn is too many: " << multi_SdcIn << std::endl;
     return true;
   }
-
   HF1(1, 12.);
 
   //  std::cout << "==========TrackSearch BcOutSdcIn============" << std::endl;
