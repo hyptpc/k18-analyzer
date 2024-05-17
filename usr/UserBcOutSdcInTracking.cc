@@ -430,6 +430,8 @@ UserBcOutSdcInTracking::ProcessingNormal()
       HF2(100*layerId+18, sign*dl, res);
       Double_t xlcal=hit->GetLocalCalPos();
       HF2(100*layerId+19, dt, xlcal-wp);
+      HFProf(100*layerId+20, dt, dl);
+      HF2(100*layerId+22, dt, dl);
       Double_t tot = hit->GetTot();
       HF1(100*layerId+40, tot);
       if (theta>=0 && theta<15)
@@ -574,7 +576,7 @@ ConfMan::InitializeHistograms()
       nbindl = NbinSDC1DL;
       mindl = MinSDC1DL;
       maxdl = MaxSDC1DL;
-    }else if(i <= NumOfLayersBcOut+NumOfLayersSDC1){
+    }else if(i <= NumOfLayersBcOut+NumOfLayersSdcIn){
       tag = "SDC2";
       if(i <= NumOfLayersBcOut+NumOfLayersSDC1+2){
         nwire = MaxWireSDC2X;
