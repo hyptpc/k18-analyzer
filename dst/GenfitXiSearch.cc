@@ -1442,7 +1442,7 @@ dst::DstRead( Int_t ievent )
     HF2(1003,pos.z(),pos.x());
   }
 
-  event.decays_res_mom.push_back(Track_p->GetMomentumResolutionVect().Mag());
+  event.decays_res_mom.push_back(Track_p->GetMomentumResolution());
   event.decays_res_mom_x.push_back(Track_p->GetMomentumResolutionVect().X());
   event.decays_res_mom_y.push_back(Track_p->GetMomentumResolutionVect().Y());
   event.decays_res_mom_z.push_back(Track_p->GetMomentumResolutionVect().Z());
@@ -1456,7 +1456,7 @@ dst::DstRead( Int_t ievent )
   event.decays_cov_mom_yz.push_back(Track_p->GetMomentumCovarianceVect().y());
   event.decays_cov_mom_zx.push_back(Track_p->GetMomentumCovarianceVect().z());
 
-  event.decays_res_mom.push_back(Track_pi->GetMomentumResolutionVect().Mag());
+  event.decays_res_mom.push_back(Track_pi->GetMomentumResolution());
   event.decays_res_mom_x.push_back(Track_pi->GetMomentumResolutionVect().X());
   event.decays_res_mom_y.push_back(Track_pi->GetMomentumResolutionVect().Y());
   event.decays_res_mom_z.push_back(Track_pi->GetMomentumResolutionVect().Z());
@@ -1470,7 +1470,7 @@ dst::DstRead( Int_t ievent )
   event.decays_cov_mom_yz.push_back(Track_pi->GetMomentumCovarianceVect().y());
   event.decays_cov_mom_zx.push_back(Track_pi->GetMomentumCovarianceVect().z());
 
-  event.decays_res_mom.push_back(Track_pi2->GetMomentumResolutionVect().Mag());
+  event.decays_res_mom.push_back(Track_pi2->GetMomentumResolution());
   event.decays_res_mom_x.push_back(Track_pi2->GetMomentumResolutionVect().X());
   event.decays_res_mom_y.push_back(Track_pi2->GetMomentumResolutionVect().Y());
   event.decays_res_mom_z.push_back(Track_pi2->GetMomentumResolutionVect().Z());

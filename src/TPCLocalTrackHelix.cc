@@ -3645,7 +3645,7 @@ TPCLocalTrackHelix::GetdZResolution(){
   if(isnan(d_slope) || isinf(d_slope)){
     std::cout<<Form("Nan || inf dZ resol! nh = %d, dt = %g, res = %g", nh,dt,res2)<<std::endl;
   }
-  return m_dZResScale*d_slope;
+  return m_dZResScale*sqrt(d_slope);
 }
 
 //_____________________________________________________________________________
@@ -3653,4 +3653,9 @@ Double_t
 TPCLocalTrackHelix::GetThetaResolution(){
   Double_t d_slope = GetdZResolution();
   return d_slope / (1+m_dz*m_dz);
+}
+Double_t
+TPCLocalTrackHelix::GetMomentumResolution(){
+  Double_t d_slope = GetdZResolution();
+  return GetTransverseMomentumResolution()*hypot(1,d_slope);
 }
