@@ -38,6 +38,7 @@ HodoCluster::HodoCluster(const HodoHC& cont,
     return;
   }
   std::copy(cont.begin(), cont.end(), m_hit_container.begin());
+  std::copy(index.begin(), index.end(), m_index.begin());
   Calculate();
   debug::ObjectCounter::increase(ClassName());
 }

@@ -58,8 +58,11 @@ public:
   Bool_t            IsCalculated() const { return m_is_calculated; }
 
   Int_t NumOfChannel() const { return m_n_ch; }
-  Int_t GetEntries(Int_t i=0) const
+  Int_t GetEntries(Int_t i) const
     { return m_ctime_leading.at(i).size(); }
+  Int_t GetEntries() const
+  { if(m_n_ch == HodoRawHit::kNChannel) return GetEntries(HodoRawHit::kExtra);
+    else return GetEntries(HodoRawHit::kUp); }
   Double_t GetDeltaEHighGain(Int_t i, Int_t j=0) const
     { return m_de_high.at(i).at(j); }
   Double_t GetDeltaELowGain(Int_t i, Int_t j=0) const

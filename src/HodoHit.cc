@@ -27,6 +27,7 @@ namespace
 const auto U = HodoRawHit::kUp;
 const auto D = HodoRawHit::kDown;
 const auto E = HodoRawHit::kExtra;
+const auto N = HodoRawHit::kNChannel;
 const auto& gUnpackerConf = hddaq::unpacker::GConfig::get_instance();
 const auto& gHodo = HodoParamMan::GetInstance();
 const auto& gPHC = HodoPHCMan::GetInstance();
@@ -135,7 +136,6 @@ HodoHit::Calculate()
   if(m_n_ch == 1){
     m_time_leading.at(U) = leading.at(U);
     m_ctime_leading.at(U) = cleading.at(U);
-    m_is_clustered.resize(leading.at(U).size(), false);
   }
   // two-side readout
   else{
@@ -150,7 +150,6 @@ HodoHit::Calculate()
           m_time_leading.at(D).push_back(ld);
           m_ctime_leading.at(U).push_back(clu);
           m_ctime_leading.at(D).push_back(cld);
-          m_is_clustered.push_back(false);
           break;
         }else{
           ;
@@ -161,12 +160,16 @@ HodoHit::Calculate()
 
   // extra channel remains
   if(m_n_ch == HodoRawHit::kNChannel){
-    m_time_leading.at(E) = leading.at(E);
+    m_time_leading.at(E)  = leading.at(E);
     m_ctime_leading.at(E) = cleading.at(E);
+    m_is_clustered.resize(leading.at(E).size(), false);
+  }
+  else{
+    m_is_clustered.resize(leading.at(U).size(), false);
   }
 
   for(Int_t ch=0; ch<m_n_ch; ++ch){
-    m_time_trailing.at(ch) = trailing.at(ch);
+    m_time_trailing.at(ch)  = trailing.at(ch);
     m_ctime_trailing.at(ch) = trailing.at(ch);
   }
 
@@ -174,9 +177,9 @@ HodoHit::Calculate()
     HodoHit considers only the coinsidence of Up/Down LEADINGs
     and does not care about the presence/absence of TRAILINGs or the counts.
   */
-
   m_is_calculated = true;
-  return (m_ctime_leading.at(U).size() > 0);
+
+  return (m_is_clustered.size() > 0);
 }
 
 //_____________________________________________________________________________
@@ -186,6 +189,8 @@ HodoHit::DeltaEHighGain(Int_t j) const
   try {
     if(m_n_ch == 1){
       return m_de_high.at(U).at(j);
+    }else if(m_n_ch == N){
+      return m_de_high.at(E).at(j);
     }else{
       return TMath::Sqrt(
         TMath::Abs(m_de_high.at(U).at(j) *
@@ -203,6 +208,8 @@ HodoHit::DeltaELowGain(Int_t j) const
   try {
     if(m_n_ch == 1){
       return m_de_low.at(U).at(j);
+    }else if(m_n_ch == N){
+      return m_de_low.at(E).at(j);
     }else{
       return TMath::Sqrt(
         TMath::Abs(m_de_low.at(U).at(j) *
@@ -220,6 +227,8 @@ HodoHit::MeanTime(Int_t j) const
   try {
     if(m_n_ch == 1){
       return m_time_leading.at(U).at(j);
+    }else if(m_n_ch == N){
+      return m_time_leading.at(E).at(j);
     }else{
       return 0.5*(m_time_leading.at(U).at(j) +
                   m_time_leading.at(D).at(j));
@@ -236,6 +245,8 @@ HodoHit::CMeanTime(Int_t j) const
   try {
     if(m_n_ch == 1){
       return m_ctime_leading.at(U).at(j);
+    }else if(m_n_ch == N){
+      return m_ctime_leading.at(E).at(j);
     }else{
       return 0.5*(m_ctime_leading.at(U).at(j) +
                   m_ctime_leading.at(D).at(j));
@@ -251,7 +262,9 @@ HodoHit::TimeDiff(Int_t j) const
 {
   try {
     if(m_n_ch == 1){
-      return TMath::QuietNaN();
+      return 0.;
+    }else if(m_n_ch == N){
+      return 0.;
     }else{
       return (m_time_leading.at(D).at(j) -
               m_time_leading.at(U).at(j));
@@ -267,6 +280,8 @@ HodoHit::CTimeDiff(Int_t j) const
 {
   try {
     if(m_n_ch == 1){
+      return 0.;
+    }else if(m_n_ch == N){
       return 0.;
     }else{
       return (m_ctime_leading.at(D).at(j) -

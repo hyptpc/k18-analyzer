@@ -357,6 +357,12 @@ struct Dst
   Double_t Ac1Seg[NumOfSegAC1*MaxDepth];
   Double_t tAc1[NumOfSegAC1*MaxDepth];
 
+  Int_t    nhWc;
+  Int_t    csWc[NumOfSegWC*MaxDepth];
+  Double_t WcSeg[NumOfSegWC*MaxDepth];
+  Double_t tWc[NumOfSegWC*MaxDepth];
+  Double_t deWc[NumOfSegWC*MaxDepth];
+
   // for HodoParam
   Double_t tofua[NumOfSegTOF];
   Double_t tofut[NumOfSegTOF][MaxDepth];
@@ -1382,9 +1388,6 @@ ProcessingNormal()
     }
   }
 
-  hodoAna.DecodeHits("WC");
-  hodoAna.DecodeHits("AC1");
-
   ////////// Dst
   {
     Int_t nc = hodoAna.GetNClusters("BH1");
@@ -1456,6 +1459,7 @@ ProcessingNormal()
     }
   }
 
+  hodoAna.DecodeHits("AC1");
   {
     Int_t nc = hodoAna.GetNClusters("AC1");
     dst.nhAc1 = nc;
@@ -1467,6 +1471,21 @@ ProcessingNormal()
       dst.tAc1[i]   = cl->CMeanTime();
     }
   }
+
+  hodoAna.DecodeHits("WC");
+  {
+    Int_t nc = hodoAna.GetNClusters("WC");
+    dst.nhWc = nc;
+    for(Int_t i=0; i<nc; ++i){
+      const auto& cl = hodoAna.GetCluster("WC", i);
+      if(!cl) continue;
+      dst.csWc[i]  = cl->ClusterSize();
+      dst.WcSeg[i] = cl->MeanSeg()+1;
+      dst.tWc[i]   = cl->CMeanTime();
+      dst.deWc[i]  = cl->DeltaE();
+    }
+  }
+
 
 #if 0
   // BH1 (for parameter tuning)
@@ -2180,6 +2199,12 @@ ConfMan::InitializeHistograms()
   hodo->Branch("csAc1",      dst.csAc1,     "csAc1[nhAc1]/I");
   hodo->Branch("Ac1Seg",     dst.Ac1Seg,    "Ac1Seg[nhAc1]/D");
   hodo->Branch("tAc1",       dst.tAc1,      "tAc1[nhAc1]/D");
+
+  hodo->Branch("nhWc",     &dst.nhWc,     "nhWc/I");
+  hodo->Branch("csWc",      dst.csWc,     "csWc[nhWc]/I");
+  hodo->Branch("WcSeg",     dst.WcSeg,    "WcSeg[nhWc]/D");
+  hodo->Branch("tWc",       dst.tWc,      "tWc[nhWc]/D");
+  hodo->Branch("deWc",      dst.deWc,     "deWc[nhWc]/D");
 
   // HPrint();
   return true;
