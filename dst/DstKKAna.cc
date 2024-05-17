@@ -94,15 +94,15 @@ namespace dst
 enum kArgc
 {
   kProcess, kConfFile,
-  kS2sTracking, kK18Tracking, kHodoscope,
+  kS2sTracking, kK18Tracking, kHodoscope, kEasiroc,
   kOutFile, nArgc
 };
 std::vector<TString> ArgName =
 { "[Process]", "[ConfFile]", "[S2sTracking]",
-  "[K18Tracking]", "[Hodoscope]",
+  "[K18Tracking]", "[Hodoscope]", "[Easiroc]",
   "[OutFile]" };
 std::vector<TString> TreeName =
-{ "", "", "s2s", "k18track", "hodo", "" };
+{ "", "", "s2s", "k18track", "hodo", "ea0c", "" };
 std::vector<TFile*> TFileCont;
 std::vector<TTree*> TTreeCont;
 std::vector<TTreeReader*> TTreeReaderCont;
@@ -172,13 +172,19 @@ struct Event
   Double_t Ac1Seg[NumOfSegAC1*MaxDepth];
   Double_t tAc1[NumOfSegAC1*MaxDepth];
 
-  // //Fiber
-  // Int_t    nhBft;
-  // Int_t    csBft[NumOfSegBFT];
-  // Double_t tBft[NumOfSegBFT];
-  // Double_t wBft[NumOfSegBFT];
-  // Double_t BftPos[NumOfSegBFT];
-  // Double_t BftSeg[NumOfSegBFT];
+  Int_t    nhWc;
+  Int_t    csWc[NumOfSegWC*MaxDepth];
+  Double_t WcSeg[NumOfSegWC*MaxDepth];
+  Double_t tWc[NumOfSegWC*MaxDepth];
+  Double_t deWc[NumOfSegWC*MaxDepth];
+
+  //Fiber
+  Int_t    nhBft;
+  Int_t    csBft[NumOfSegBFT];
+  Double_t tBft[NumOfSegBFT];
+  Double_t wBft[NumOfSegBFT];
+  Double_t BftPos[NumOfSegBFT];
+  Double_t BftSeg[NumOfSegBFT];
 
   //DC Beam
   Int_t ntBcOut;
@@ -330,13 +336,19 @@ struct Src
   Double_t Ac1Seg[NumOfSegAC1*MaxDepth];
   Double_t tAc1[NumOfSegAC1*MaxDepth];
 
-  // //Fiber
-  // Int_t    nhBft;
-  // Int_t    csBft[NumOfSegBFT];
-  // Double_t tBft[NumOfSegBFT];
-  // Double_t wBft[NumOfSegBFT];
-  // Double_t BftPos[NumOfSegBFT];
-  // Double_t BftSeg[NumOfSegBFT];
+  Int_t    nhWc;
+  Int_t    csWc[NumOfSegWC*MaxDepth];
+  Double_t WcSeg[NumOfSegWC*MaxDepth];
+  Double_t tWc[NumOfSegWC*MaxDepth];
+  Double_t deWc[NumOfSegWC*MaxDepth];
+
+  //Fiber
+  Int_t    nhBft;
+  Int_t    csBft[NumOfSegBFT];
+  Double_t tBft[NumOfSegBFT];
+  Double_t wBft[NumOfSegBFT];
+  Double_t BftPos[NumOfSegBFT];
+  Double_t BftSeg[NumOfSegBFT];
 
   //DC Beam
   Int_t ntBcOut;
@@ -478,6 +490,7 @@ dst::InitializeEvent()
   event.nhBac  = 0;
   event.nhTof  = 0;
   event.nhAc1  = 0;
+  event.nhWc   = 0;
 
   for(Int_t i=0; i<NumOfSegBH1; ++i){
     for(Int_t j=0; j<MaxDepth; ++j){
@@ -521,16 +534,24 @@ dst::InitializeEvent()
       event.tAc1[i*MaxDepth+j]   = qnan;
     }
   }
+  for(Int_t i=0; i<NumOfSegWC; ++i){
+    for(Int_t j=0; j<MaxDepth; ++j){
+      event.csWc[i*MaxDepth+j]  = 0;
+      event.WcSeg[i*MaxDepth+j] = -1;
+      event.tWc[i*MaxDepth+j]   = qnan;
+      event.deWc[i*MaxDepth+j]  = qnan;
+    }
+  }
 
-  // //Fiber
-  // event.nhBft = 0;
-  // for(Int_t it=0; it<NumOfSegBFT; it++){
-  //   event.csBft[it] = 0;
-  //   event.tBft[it] = qnan;
-  //   event.wBft[it] = qnan;
-  //   event.BftPos[it] = qnan;
-  //   event.BftSeg[it] = qnan;
-  // }
+  //Fiber
+  event.nhBft = 0;
+  for(Int_t it=0; it<NumOfSegBFT; it++){
+    event.csBft[it] = 0;
+    event.tBft[it] = qnan;
+    event.wBft[it] = qnan;
+    event.BftPos[it] = qnan;
+    event.BftSeg[it] = qnan;
+  }
 
   //DC
   event.nlBcOut  = 0;
@@ -690,24 +711,26 @@ dst::DstRead(Int_t ievent)
   event.ntSdcOut = src.ntSdcOut;
   event.ntS2s    = src.ntS2s;
   event.ntK18    = src.ntK18;
-  // event.nhBft    = src.nhBft;
+  event.nhBft    = src.nhBft;
   event.nhBh1    = src.nhBh1;
   event.nhBh2    = src.nhBh2;
   event.nhBac    = src.nhBac;
   event.nhTof    = src.nhTof;
   event.nhAc1    = src.nhAc1;
+  event.nhWc     = src.nhWc;
 
   const Int_t ntBcOut  = event.ntBcOut;
   const Int_t ntSdcIn  = event.ntSdcIn;
   const Int_t ntSdcOut = event.ntSdcOut;
   const Int_t ntS2s    = event.ntS2s;
   const Int_t ntK18    = event.ntK18;
-  // const Int_t nhBft    = event.nhBft;
+  const Int_t nhBft    = event.nhBft;
   const Int_t nhBh1    = event.nhBh1;
   const Int_t nhBh2    = event.nhBh2;
   const Int_t nhBac    = event.nhBac;
   const Int_t nhTof    = event.nhTof;
   const Int_t nhAc1    = event.nhAc1;
+  const Int_t nhWc     = event.nhWc;
 
 #if 0
   std::cout << "#D DebugPrint" << std::endl
@@ -717,12 +740,13 @@ dst::DstRead(Int_t ievent)
 	    << " SdcOut : " << std::setw(6) << ntSdcOut << std::endl
 	    << " S2s    : " << std::setw(6) << ntS2s    << std::endl
 	    << " K18    : " << std::setw(6) << ntK18    << std::endl
-	    // << " BFT    : " << std::setw(6) << nhBft    << std::endl
+	    << " BFT    : " << std::setw(6) << nhBft    << std::endl
 	    << " BH1    : " << std::setw(6) << nhBh1    << std::endl
 	    << " BH2    : " << std::setw(6) << nhBh2    << std::endl
 	    << " BAC    : " << std::setw(6) << nhBac    << std::endl
 	    << " TOF    : " << std::setw(6) << nhTof    << std::endl
 	    << " AC1    : " << std::setw(6) << nhAc1    << std::endl
+	    << " WC     : " << std::setw(6) << nhWc     << std::endl
 	    << std::endl;
 #endif
 
@@ -750,14 +774,14 @@ dst::DstRead(Int_t ievent)
   std::vector<ThreeVector> KmPCont, KmXCont;
   std::vector<ThreeVector> KpPCont, KpXCont;
 
-  // // BFT
-  // for(Int_t i=0; i<nhBft; ++i){
-  //   event.csBft[i]  = src.csBft[i];
-  //   event.tBft[i]   = src.tBft[i];
-  //   event.wBft[i]   = src.wBft[i];
-  //   event.BftPos[i] = src.BftPos[i];
-  //   event.BftSeg[i] = src.BftSeg[i];
-  // }
+  // BFT
+  for(Int_t i=0; i<nhBft; ++i){
+    event.csBft[i]  = src.csBft[i];
+    event.tBft[i]   = src.tBft[i];
+    event.wBft[i]   = src.wBft[i];
+    event.BftPos[i] = src.BftPos[i];
+    event.BftSeg[i] = src.BftSeg[i];
+  }
 
   // BH1
   for(Int_t i=0; i<nhBh1; ++i){
@@ -808,6 +832,14 @@ dst::DstRead(Int_t ievent)
     event.csAc1[i]  = src.csAc1[i];
     event.Ac1Seg[i] = src.Ac1Seg[i];
     event.tAc1[i]   = src.tAc1[i];
+  }
+
+  // WC
+  for(Int_t i=0; i<nhWc; ++i){
+    event.csWc[i]  = src.csWc[i];
+    event.WcSeg[i] = src.WcSeg[i];
+    event.tWc[i]   = src.tWc[i];
+    event.deWc[i]  = src.tWc[i];
   }
 
   ////////// BcOut
@@ -1571,13 +1603,19 @@ ConfMan::InitializeHistograms()
   tree->Branch("Ac1Seg",    src.Ac1Seg,  "Ac1Seg[nhAc1]/D");
   tree->Branch("tAc1",      src.tAc1,    "tAc1[nhAc1]/D");
 
-  // //Fiber
-  // tree->Branch("nhBft",  &event.nhBft,  "nhBft/I");
-  // tree->Branch("csBft",   event.csBft,  "csBft[nhBft]/I");
-  // tree->Branch("tBft",    event.tBft,   "tBft[nhBft]/D");
-  // tree->Branch("wBft",    event.wBft,   "wBft[nhBft]/D");
-  // tree->Branch("BftPos",  event.BftPos, "BftPos[nhBft]/D");
-  // tree->Branch("BftSeg",  event.BftSeg, "BftSeg[nhBft]/D");
+  tree->Branch("nhWc",    &src.nhWc,   "nhWc/I");
+  tree->Branch("csWc",     src.csWc,   "csWc[nhWc]/I");
+  tree->Branch("WcSeg",    src.WcSeg,  "WcSeg[nhWc]/D");
+  tree->Branch("tWc",      src.tWc,    "tWc[nhWc]/D");
+  tree->Branch("deWc",     src.deWc,   "deWc[nhWc]/D");
+
+  //Fiber
+  tree->Branch("nhBft",  &event.nhBft,  "nhBft/I");
+  tree->Branch("csBft",   event.csBft,  "csBft[nhBft]/I");
+  tree->Branch("tBft",    event.tBft,   "tBft[nhBft]/D");
+  tree->Branch("wBft",    event.wBft,   "wBft[nhBft]/D");
+  tree->Branch("BftPos",  event.BftPos, "BftPos[nhBft]/D");
+  tree->Branch("BftSeg",  event.BftSeg, "BftSeg[nhBft]/D");
 
   //Beam DC
   tree->Branch("nlBcOut",   &event.nlBcOut,     "nlBcOut/I");
@@ -1715,6 +1753,11 @@ ConfMan::InitializeHistograms()
   TTreeCont[kHodoscope]->SetBranchStatus("csAc1",    1);
   TTreeCont[kHodoscope]->SetBranchStatus("Ac1Seg",   1);
   TTreeCont[kHodoscope]->SetBranchStatus("tAc1",     1);
+  TTreeCont[kHodoscope]->SetBranchStatus("nhWc",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("csWc",    1);
+  TTreeCont[kHodoscope]->SetBranchStatus("WcSeg",   1);
+  TTreeCont[kHodoscope]->SetBranchStatus("tWc",     1);
+  TTreeCont[kHodoscope]->SetBranchStatus("tWc",     1);
 
   TTreeCont[kHodoscope]->SetBranchAddress("evnum",    &src.evnum);
   TTreeCont[kHodoscope]->SetBranchAddress("spill",    &src.spill);
@@ -1755,6 +1798,11 @@ ConfMan::InitializeHistograms()
   TTreeCont[kHodoscope]->SetBranchAddress("csAc1",     src.csAc1);
   TTreeCont[kHodoscope]->SetBranchAddress("Ac1Seg",    src.Ac1Seg);
   TTreeCont[kHodoscope]->SetBranchAddress("tAc1",      src.tAc1);
+  TTreeCont[kHodoscope]->SetBranchAddress("nhWc",     &src.nhWc);
+  TTreeCont[kHodoscope]->SetBranchAddress("csWc",      src.csWc);
+  TTreeCont[kHodoscope]->SetBranchAddress("WcSeg",     src.WcSeg);
+  TTreeCont[kHodoscope]->SetBranchAddress("tWc",       src.tWc);
+  TTreeCont[kHodoscope]->SetBranchAddress("deWc",      src.deWc);
 
   TTreeCont[kS2sTracking]->SetBranchStatus("*", 0);
   TTreeCont[kS2sTracking]->SetBranchStatus("ntSdcIn",      1);
@@ -1864,20 +1912,20 @@ ConfMan::InitializeHistograms()
   TTreeCont[kK18Tracking]->SetBranchAddress("utgtK18", src.utgtK18);
   TTreeCont[kK18Tracking]->SetBranchAddress("vtgtK18", src.vtgtK18);
 
-  // TTreeCont[kEasiroc]->SetBranchStatus("*", 0);
-  // TTreeCont[kEasiroc]->SetBranchStatus("bft_ncl",    1);
-  // TTreeCont[kEasiroc]->SetBranchStatus("bft_clsize", 1);
-  // TTreeCont[kEasiroc]->SetBranchStatus("bft_ctime",  1);
-  // TTreeCont[kEasiroc]->SetBranchStatus("bft_ctot",   1);
-  // TTreeCont[kEasiroc]->SetBranchStatus("bft_clpos",  1);
-  // TTreeCont[kEasiroc]->SetBranchStatus("bft_clseg",  1);
+  TTreeCont[kEasiroc]->SetBranchStatus("*", 0);
+  TTreeCont[kEasiroc]->SetBranchStatus("bft_ncl",    1);
+  TTreeCont[kEasiroc]->SetBranchStatus("bft_clsize", 1);
+  TTreeCont[kEasiroc]->SetBranchStatus("bft_ctime",  1);
+  TTreeCont[kEasiroc]->SetBranchStatus("bft_ctot",   1);
+  TTreeCont[kEasiroc]->SetBranchStatus("bft_clpos",  1);
+  TTreeCont[kEasiroc]->SetBranchStatus("bft_clseg",  1);
 
-  // TTreeCont[kEasiroc]->SetBranchAddress("bft_ncl",    &src.nhBft);
-  // TTreeCont[kEasiroc]->SetBranchAddress("bft_clsize", src.csBft);
-  // TTreeCont[kEasiroc]->SetBranchAddress("bft_ctime",  src.tBft);
-  // TTreeCont[kEasiroc]->SetBranchAddress("bft_ctot",   src.wBft);
-  // TTreeCont[kEasiroc]->SetBranchAddress("bft_clpos",  src.BftPos);
-  // TTreeCont[kEasiroc]->SetBranchAddress("bft_clseg",  src.BftSeg);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_ncl",    &src.nhBft);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_clsize", src.csBft);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_ctime",  src.tBft);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_ctot",   src.wBft);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_clpos",  src.BftPos);
+  TTreeCont[kEasiroc]->SetBranchAddress("bft_clseg",  src.BftSeg);
 
   return true;
 }
