@@ -3645,7 +3645,7 @@ TPCLocalTrackHelix::GetdZResolution(){
   if(isnan(d_slope) || isinf(d_slope)){
     std::cout<<Form("Nan || inf dZ resol! nh = %d, dt = %g, res = %g", nh,dt,res2)<<std::endl;
   }
-  return m_dZResScale*d_slope;
+  return m_dZResScale*sqrt(d_slope);
 }
 
 //_____________________________________________________________________________
