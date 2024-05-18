@@ -83,7 +83,7 @@ const Int_t DetIdHodo[kNumHodo] = {
   // DetIdRC
 };
 
-const TString NameHodo[kNumHodo] = {
+const std::vector<TString> NameHodo = {
   "BHT", "T1", "T0", "DEF",
   "Veto", "BTC",
 #ifdef CDS

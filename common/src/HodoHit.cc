@@ -289,6 +289,28 @@ HodoHit::IsClusteredAll()
 }
 
 //_____________________________________________________________________________
+std::vector<Double_t>
+HodoHit::GetArrayMeanTime() const
+{
+  std::vector<Double_t> ret;
+  for(Int_t j=0, m=GetEntries(); j<m; ++j){
+    ret.push_back(MeanTime(j));
+  }
+  return ret;
+}
+
+//_____________________________________________________________________________
+std::vector<Double_t>
+HodoHit::GetArrayCMeanTime() const
+{
+  std::vector<Double_t> ret;
+  for(Int_t j=0, m=GetEntries(); j<m; ++j){
+    ret.push_back(CMeanTime(j));
+  }
+  return ret;
+}
+
+//_____________________________________________________________________________
 void
 HodoHit::Print(Option_t* arg) const
 {

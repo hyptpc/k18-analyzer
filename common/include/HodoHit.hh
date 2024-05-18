@@ -58,6 +58,16 @@ public:
   Bool_t            IsCalculated() const { return m_is_calculated; }
 
   Int_t NumOfChannel() const { return m_n_ch; }
+
+  const std::vector<Double_t>& GetArrayDeltaE(Int_t i=0) const
+    { return m_de_high.at(i); }
+  const std::vector<Double_t>& GetArrayTime(Int_t i=0) const
+    { return m_time_leading.at(i); }
+  const std::vector<Double_t>& GetArrayCTime(Int_t i=0) const
+    { return m_ctime_leading.at(i); }
+  std::vector<Double_t> GetArrayMeanTime() const;
+  std::vector<Double_t> GetArrayCMeanTime() const;
+
   Int_t GetEntries(Int_t i=0) const
     { return m_ctime_leading.at(i).size(); }
   Double_t GetDeltaEHighGain(Int_t i, Int_t j=0) const
