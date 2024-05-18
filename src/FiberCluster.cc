@@ -46,7 +46,7 @@ FiberCluster::Calculate()
   for(Int_t i=0; i<m_cluster_size; ++i){
     const auto& hit = dynamic_cast<FiberHit*>(m_hit_container[i]);
     const auto& index = m_index[i];
-    m_tot = TMath::Max(m_tot, hit->TOT(index));
+    m_tot = TMath::Max(m_tot, hit->MeanTOT(index));
     // m_tot += hit->TOT(index);
     m_mean_position += hit->Position();
   }

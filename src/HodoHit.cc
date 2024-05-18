@@ -162,10 +162,10 @@ HodoHit::Calculate()
   if(m_n_ch == HodoRawHit::kNChannel){
     m_time_leading.at(E)  = leading.at(E);
     m_ctime_leading.at(E) = cleading.at(E);
-    m_is_clustered.resize(leading.at(E).size(), false);
+    m_is_clustered.resize(m_time_leading.at(E).size(), false);
   }
   else{
-    m_is_clustered.resize(leading.at(U).size(), false);
+    m_is_clustered.resize(m_time_leading.at(U).size(), false);
   }
 
   for(Int_t ch=0; ch<m_n_ch; ++ch){
