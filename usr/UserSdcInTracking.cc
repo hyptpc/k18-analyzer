@@ -22,6 +22,7 @@
 #include "RootHelper.hh"
 
 #define HodoCut     0
+#define TdcCut      1
 #define TotCut      1
 #define Chi2Cut     0
 #define MaxMultiCut 0
@@ -265,6 +266,9 @@ ProcessingNormal()
   HF1(1, 5.);
 
   //////////////BCout
+#if TdcCut
+  rawData.TdcCutBCOut();
+#endif
   DCAna.DecodeBcOutHits();
 
   //BC3&BC4
@@ -305,6 +309,9 @@ ProcessingNormal()
 #endif
 
   //////////////SdcIn number of hit layer
+#if TdcCut
+  rawData.TdcCutSDCIn();
+#endif
   DCAna.DecodeSdcInHits();
 #if TotCut
   DCAna.TotCutSDC1(MinTotSDC1);
@@ -326,8 +333,8 @@ ProcessingNormal()
       for(Int_t i=0; i<nhIn; ++i){
 	const auto& hit=contIn[i];
 	Double_t wire=hit->GetWire();
-	HF1(100*layer+1, wire+0.5);
 	Int_t nhtdc = hit->GetTdcSize();
+	if( nhtdc != 0 ) HF1(100*layer+1, wire+0.5);
 	Int_t tdc1st = -1;
 	for(Int_t k=0; k<nhtdc; k++){
 	  Int_t tdc = hit->GetTdcVal(k);

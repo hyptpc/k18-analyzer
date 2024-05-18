@@ -235,15 +235,10 @@ RawData::AddDCRawHit(const TString& name, Int_t plane, Int_t seg,
     cont.push_back(p);
   }
 
-  const Double_t MinTdc = gUser.GetParameter("Tdc"+name, 0);
-  const Double_t MaxTdc = gUser.GetParameter("Tdc"+name, 1);
-
   if(data == gUnpacker.get_data_id(name, "leading")){
-    if(MinTdc < val && val < MaxTdc)
-      p->SetTdc(val);
+    p->SetTdc(val);
   }else if(data == gUnpacker.get_data_id(name, "trailing")){
-    if(val < MaxTdc)
-      p->SetTrailing(val);
+    p->SetTrailing(val);
   }else if(data == gUnpacker.get_data_id(name, "overflow")){
     p->SetTdcOverflow(val);
   }else{
@@ -255,6 +250,65 @@ RawData::AddDCRawHit(const TString& name, Int_t plane, Int_t seg,
 		<< " Value    = " << val   << std::endl;
   }
   return true;
+}
+
+//_____________________________________________________________________________
+void
+RawData::TdcCutBCOut()
+{
+  for(const auto& name: DCNameList.at("BcOut")){
+    const Double_t MinTdc = gUser.GetParameter("Tdc"+name, 0);
+    const Double_t MaxTdc = gUser.GetParameter("Tdc"+name, 1);
+    TdcCut(name, MinTdc, MaxTdc);
+  }
+}
+
+//_____________________________________________________________________________
+void
+RawData::TdcCutSDCIn()
+{
+  for(const auto& name: DCNameList.at("SdcIn")){
+    const Double_t MinTdc = gUser.GetParameter("Tdc"+name, 0);
+    const Double_t MaxTdc = gUser.GetParameter("Tdc"+name, 1);
+    TdcCut(name, MinTdc, MaxTdc);
+  }
+}
+
+//_____________________________________________________________________________
+void
+RawData::TdcCutSDCOut()
+{
+  for(const auto& name: DCNameList.at("SdcOut")){
+    const Double_t MinTdc = gUser.GetParameter("Tdc"+name, 0);
+    const Double_t MaxTdc = gUser.GetParameter("Tdc"+name, 1);
+    TdcCut(name, MinTdc, MaxTdc);
+  }
+}
+
+//_____________________________________________________________________________
+void
+RawData::TdcCut(const TString& name,
+		Double_t min_tdc, Double_t max_tdc)
+{
+  DCRHC& HitCont = m_dc_raw_hit_collection.at(name);
+  for(auto& hit: HitCont){
+    hit->TdcCut(min_tdc, max_tdc);
+  }
+  EraseEmptyHits(HitCont);
+}
+
+//_____________________________________________________________________________
+void
+RawData::EraseEmptyHits(DCRHC& HitCont)
+{
+  auto i = HitCont.begin();
+  while(i != HitCont.end()){
+    if((*i)->IsEmpty()){
+      delete *i;
+      i = HitCont.erase(i);
+    }
+    else ++i;
+  }
 }
 
 //_____________________________________________________________________________

@@ -22,6 +22,7 @@
 #include "UnpackerManager.hh"
 
 #define HodoCut 0
+#define TdcCut  1
 #define TotCut  0
 #define Chi2Cut 0
 
@@ -245,6 +246,9 @@ ProcessingNormal()
   HF1(1, 5.);
 
   //////////////BC3&4 number of hit layer
+#if TdcCut
+  rawData.TdcCutBCOut();
+#endif
   DCAna.DecodeBcOutHits();
 #if TotCut
   DCAna.TotCutBCOut(MinTotBcOut);
@@ -276,8 +280,8 @@ ProcessingNormal()
       for(Int_t i=0; i<nhOut; ++i){
 	DCHit *hit = contOut[i];
 	Double_t wire = hit->GetWire();
-	HF1(100*layer+1, wire+0.5);
 	Int_t nhtdc = hit->GetTdcSize();
+	if( nhtdc != 0 ) HF1(100*layer+1, wire+0.5);
 	Int_t tdc1st = -1;
 	for(Int_t k=0; k<nhtdc; k++){
 	  Int_t tdc = hit->GetTdcVal(k);

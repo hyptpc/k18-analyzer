@@ -955,7 +955,7 @@ DCAnalyzer::TrackSearchS2s(Double_t initial_momentum)
         m_S2sTC.push_back(trS2s);
       }
       else{
-        trS2s->Print(" in "+FUNC_NAME);
+        // trS2s->Print(" in "+FUNC_NAME);
         delete trS2s;
       }
     }// for(iOut)

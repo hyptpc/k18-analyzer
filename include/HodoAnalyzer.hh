@@ -201,7 +201,7 @@ HodoAnalyzer::MakeUpClusters(const std::vector<T*>& HitCont,
         const auto& hitB = HitCont[iB];
         for(Int_t jB=0, mB=hitB->GetEntries(); jB<mB; ++jB){
           if(hitB->IsClustered(jB))
-            continue;
+	    continue;
           if(Connectable(hitLast, jLast, hitB, jB, MaxTimeDiff)){
             hitB->JoinCluster(jB);
             CandCont.push_back(hitB);

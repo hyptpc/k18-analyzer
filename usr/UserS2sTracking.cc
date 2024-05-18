@@ -454,11 +454,13 @@ ProcessingNormal()
 
   HF1(1, 10.);
 
+  rawData.TdcCutSDCIn();
   DCAna.DecodeSdcInHits();
   DCAna.TotCutSDC1(MinTotSDC1);
   DCAna.TotCutSDC2(MinTotSDC2);
 
   // Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
+  rawData.TdcCutSDCOut();
   DCAna.DecodeSdcOutHits();
   DCAna.TotCutSDC3(MinTotSDC3);
   DCAna.TotCutSDC4(MinTotSDC4);

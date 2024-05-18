@@ -22,6 +22,7 @@
 #include "UnpackerManager.hh"
 
 #define HodoCut 0
+#define TdcCut  1
 #define TotCut  0
 #define Chi2Cut 0
 
@@ -244,6 +245,9 @@ ProcessingNormal()
   HF1(1, 5.);
 
   //////////////BC3&4 number of hit layer
+#if TdcCut
+  rawData.TdcCutBCOut();
+#endif
   DCAna.DecodeBcOutHits();
 #if TotCut
   DCAna.TotCutBCOut(MinTotBcOut);
@@ -263,6 +267,9 @@ ProcessingNormal()
   HF1(1, 11.);
 
   ///// SdcIn number of hit layer
+#if TdcCut
+  rawData.TdcCutSDCIn();
+#endif
   DCAna.DecodeSdcInHits();
 #if TotCut
   DCAna.TotCutSDC1(MinTotSDC1);

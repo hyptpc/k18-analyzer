@@ -39,6 +39,9 @@ public:
   Bool_t         DecodeCalibHits();
   const HodoRHC& GetHodoRawHitContainer(const TString& name) const;
   const DCRHC&   GetDCRawHitContainer(const TString& name) const;
+  void           TdcCutBCOut();
+  void           TdcCutSDCIn();
+  void           TdcCutSDCOut();
   void           Print(Option_t* arg="") const;
 
   // aliases
@@ -62,6 +65,8 @@ private:
                         Int_t UorD, Int_t data, Double_t val);
   Bool_t AddDCRawHit(const TString& name, Int_t plane, Int_t seg,
                      Int_t UorD, Int_t data, Double_t val);
+  void TdcCut(const TString& name, Double_t min_tdc, Double_t max_tdc);
+  void EraseEmptyHits(DCRHC& HitCont);
 };
 
 //_____________________________________________________________________________

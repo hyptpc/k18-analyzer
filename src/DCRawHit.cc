@@ -48,6 +48,22 @@ DCRawHit::~DCRawHit()
 
 //_____________________________________________________________________________
 void
+DCRawHit::TdcCut(Double_t min, Double_t max)
+{
+  for(Int_t i=GetTdcSize()-1; i>=0; --i){
+    if(m_tdc[i] < min || max < m_tdc[i]){
+      m_tdc.erase(m_tdc.begin() + i);
+    }
+  }
+  for(Int_t i=GetTrailingSize()-1; i>=0; --i){
+    if(m_trailing[i] > max){
+      m_trailing.erase(m_trailing.begin() + i);
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void
 DCRawHit::Print(const TString& arg) const
 {
   hddaq::cerr << FUNC_NAME << " " << arg << std::endl
