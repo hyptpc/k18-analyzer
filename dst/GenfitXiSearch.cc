@@ -1507,11 +1507,10 @@ dst::DstRead( Int_t ievent )
     TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix(it);
     if( !tp ) continue;
 
-    Int_t dedxPID = Kinematics::HypTPCdEdxPID_temp(event.dEdx[it], event.mom0[it]*event.charge[it]);
-    event.pid[it]=dedxPID;
+    event.pid[it] = tp -> GetPid();
 
     std::vector<Int_t> pdgcode;
-    Kinematics::HypTPCPID_PDGCode(event.charge[it], dedxPID, pdgcode);
+    Kinematics::HypTPCPID_PDGCode(event.charge[it], tp -> GetPid(), pdgcode);
 
     GFTrackCont.AddHelixTrack(pdgcode, tp);
   }

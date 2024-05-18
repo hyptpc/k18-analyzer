@@ -34,6 +34,7 @@ namespace{
   const TVector3 targetsize(30,20,20);
   const double htof_l = 34.86; //center to HTOF downstream
   const double ztgt = tpc::ZTarget;
+  const TVector3 tgtcenter(0,0,0.1*tpc::ZTarget); //cm
 }
 
 //GenFit Units : GeV/c, ns, cm, kGauss
@@ -52,6 +53,9 @@ HypTPCTask::HypTPCTask() : HypTPCFitProcess() {
     }
     HTOFPlane[i] = genfit::SharedPlanePtr(new genfit::DetPlane(pointRef, normalRef));
   }
+
+  TVector3 tgtnormal(0,0,1.);
+  TgtPlane = genfit::SharedPlanePtr(new genfit::DetPlane(tgtcenter, tgtnormal));
 }
 
 HypTPCTask::~HypTPCTask(){
@@ -382,7 +386,7 @@ bool HypTPCTask::ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, T
 #endif
 
   pos = 10.*fitState.getPos(); //cm -> mm
-  mom = fitState.getMom(); //cm -> mm
+  mom = fitState.getMom();
   tof = fitState.getTime() - time0;
   tracklen = len + tracklength; //cm -> mm
   return true;
@@ -392,6 +396,11 @@ bool HypTPCTask::ExtrapolateToTarget(int trackid, TVector3 &pos, TVector3 &mom, 
 
   TVector3 target(0.,0.,ztgt);
   return ExtrapolateToPoint(trackid, target, pos, mom, tracklen, tof, repid);
+}
+
+bool HypTPCTask::ExtrapolateToTargetCenter(int trackid, TVector3 &pos, TVector3 &mom, double &tracklen, double &tof, int repid) const{
+
+  return ExtrapolateToPlane(trackid, TgtPlane, pos, mom, tracklen, tof, repid);
 }
 
 bool HypTPCTask::IsInsideTarget(int trackid, int repid) const{
@@ -700,8 +709,9 @@ double HypTPCTask::DistLambdaTarget(TVector3 decayvtx_lambda, TVector3 mom_lambd
 
 bool HypTPCTask::XiDecayToProdVertex(int trackid, TVector3 kkvtx, TVector3 &xiprodvtx, TVector3 &mom, double &tracklen, double &tof) const{
 
-  bool extrap = ExtrapolateToPoint(trackid, kkvtx, xiprodvtx, mom, tracklen, tof, -1);
-  bool signmomloss = (tracklen < 0); //Xi track should loss momentum in the target meterial(not gain).
-  if(extrap && signmomloss) return true;
-  else return false;
+  return ExtrapolateToPoint(trackid, kkvtx, xiprodvtx, mom, tracklen, tof, -1);
+  //bool extrap = ExtrapolateToPoint(trackid, kkvtx, xiprodvtx, mom, tracklen, tof, -1);
+  //bool signmomloss = (tracklen < 0); //Xi track should loss momentum in the target meterial(not gain).
+  //if(extrap && signmomloss) return true;
+  //else return false;
 }

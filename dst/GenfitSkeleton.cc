@@ -290,7 +290,6 @@ dst::DstRead( Int_t ievent )
   }
 
   HypTPCTask& GFtracks = HypTPCTask::GetInstance();
-  GFtracks.Clear();
 
   HF1( 2, event.GFstatus++ );
 
@@ -305,8 +304,7 @@ dst::DstRead( Int_t ievent )
 
     //Add tracks into the GenFit TrackCand
 #if 0
-    int particleID = Kinematics::HypTPCdEdxPID_temp(event.dEdx[it], event.mom0[it]*event.charge[it]);
-    event.pid[it]=particleID;
+    event.pid[it]=tpc -> GetPid();
     std::vector<Int_t> pdgcode;
     Kinematics::HypTPCPID_PDGCode(event.charge[it], particleID, pdgcode);
     GFtracks.AddHelixTrack(pdgcode, tp);
@@ -323,8 +321,8 @@ dst::DstRead( Int_t ievent )
     if(!GFtracks.TrackCheck(igf)) continue;
     event.GFntTpc++;
     event.GFchisqr[igf]=GFtracks.GetChi2NDF(igf);
-    event.GFtracklen[igf]=GFtracks.GetTrackLength(igf,0,-1);
-    event.GFtof[igf]=GFtracks.GetTrackTOF(igf,0,-1);
+    event.GFtracklen[igf]=GFtracks.GetTrackLength(igf, 0, -1);
+    event.GFtof[igf]=GFtracks.GetTrackTOF(igf, 0, -1);
     for( Int_t ihit=0; ihit<GFtracks.GetNHits(igf); ++ihit ){
       TVector3 hit = GFtracks.GetPos(igf, ihit);
       TVector3 mom = GFtracks.GetMom(igf, ihit);
@@ -337,8 +335,6 @@ dst::DstRead( Int_t ievent )
       event.GFpos_z[igf][ihit] = hit.z();
     }
   }
-
-  GFtracks.Clear();
   HF1( 2, event.GFstatus++ );
 
 #if 0
@@ -348,6 +344,7 @@ dst::DstRead( Int_t ievent )
 
   HF1( 1, event.status++ );
 
+  GFtracks.Clear();
   return true;
 }
 

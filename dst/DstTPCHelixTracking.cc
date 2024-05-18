@@ -31,7 +31,7 @@
 #include "UserParamMan.hh"
 
 #define TrackSearch 1
-#define TrackCluster 0
+#define TrackCluster 1
 #define TruncatedMean 0
 #define TrigA 0 //if 1, TrigA is required
 #define TrigB 0
@@ -474,13 +474,15 @@ dst::DstRead( int ievent )
     return true;
   }
   Double_t clock = event.clkTpc.at(0);
-  DCAnalyzer DCAna;
-  DCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock);
+  TPCAnalyzer TPCAna;
+  TPCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock);
+
+  const Double_t VertexScanRange = gUser.GetParameter("VertexScanRange"); //mm
 
   HF1(1, event.status++);
   Int_t nh_Tpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
-    auto hc = DCAna.GetTPCHC( layer );
+    auto hc = TPCAna.GetTPCHC( layer );
     for( const auto& hit : hc ){
       if( !hit || !hit->IsGood() )
         continue;
@@ -505,7 +507,7 @@ dst::DstRead( int ievent )
 
   Int_t nclTpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
-    auto hc = DCAna.GetTPCClCont( layer );
+    auto hc = TPCAna.GetTPCClCont( layer );
     for( const auto& cl : hc ){
       if( !cl || !cl->IsGood() )
         continue;
@@ -540,10 +542,10 @@ dst::DstRead( int ievent )
   HF1( 1, event.status++ );
 
 #if TrackSearch
-  DCAna.TrackSearchTPCHelix();
+  TPCAna.TrackSearchTPCHelix();
 #endif
 
-  Int_t ntTpc = DCAna.GetNTracksTPCHelix();
+  Int_t ntTpc = TPCAna.GetNTracksTPCHelix();
   event.ntTpc = ntTpc;
   HF1( 10, ntTpc );
   if( event.ntTpc == 0 )
@@ -622,7 +624,7 @@ dst::DstRead( int ievent )
   event.track_cluster_row_center.resize(ntTpc);
 
   for( Int_t it=0; it<ntTpc; ++it ){
-    TPCLocalTrackHelix *tp = DCAna.GetTrackTPCHelix( it );
+    TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix( it );
     if( !tp ) continue;
     Int_t nh = tp->GetNHit();
     Double_t chisqr = tp->GetChiSquare();
@@ -682,27 +684,41 @@ dst::DstRead( int ievent )
     event.track_cluster_z_center[it].resize(nh);
     event.track_cluster_row_center[it].resize(nh);
 
-    double par1[5]={helix_cx, helix_cy, helix_z0,
+    Double_t par1[5]={helix_cx, helix_cy, helix_z0,
 		    helix_r, helix_dz};
+
+    Double_t scantheta1 = VertexScanRange/par1[3]; //mm -> rad.
+    Double_t range_theta1[2] = {tp -> GetMint() - scantheta1,
+				tp -> GetMaxt() + scantheta1};
+
     for( Int_t it2=0; it2<ntTpc; ++it2 ){
       if(it2==it) continue;
-      TPCLocalTrackHelix *tp2 = DCAna.GetTrackTPCHelix( it2 );
+      TPCLocalTrackHelix *tp2 = TPCAna.GetTrackTPCHelix( it2 );
       if( !tp2 ) continue;
       Double_t helix_cx2 = tp2->Getcx(), helix_cy2 = tp2->Getcy();
       Double_t helix_z02 = tp2->Getz0(), helix_r2 = tp2->Getr();
       Double_t helix_dz2 = tp2->Getdz();
 
-      double par2[5]={helix_cx2, helix_cy2, helix_z02,
-		      helix_r2, helix_dz2};
+      Double_t par2[5]={helix_cx2, helix_cy2, helix_z02,
+			helix_r2, helix_dz2};
+
+      Double_t scantheta2 = VertexScanRange/par2[3]; //mm -> rad.
+      Double_t range_theta2[2] = {tp -> GetMint() - scantheta2,
+				  tp -> GetMaxt() + scantheta2};
+
       double closeDistTpc, t1, t2;
-      TVector3 vert = Kinematics::VertexPointHelix(par1, par2,
-						   closeDistTpc, t1, t2);
+      TVector3 vert
+	= Kinematics::VertexPointHelix(par1, par2,
+				       range_theta1[0], range_theta1[1],
+				       range_theta2[0], range_theta2[1],
+				       t1, t2, closeDistTpc);
+
       event.combi_id[it][it2] = (double)it2;
       event.closeDistTpc[it][it2] = closeDistTpc;
       event.vtxTpc[it][it2] = vert.x();
       event.vtyTpc[it][it2] = vert.y();
       event.vtzTpc[it][it2] = vert.z();
-	
+
       TVector3 mom_vtx = tp->CalcHelixMom(par1, t1);
       event.mom_vtx[it][it2] = mom_vtx.x();
       event.mom_vty[it][it2] = mom_vtx.y();
@@ -737,19 +753,21 @@ dst::DstRead( int ievent )
       Int_t centerRow = centerHit->GetRow();
 
 #if TrackCluster
-      HF1(TPCClHid, clsize);
-      HF1(TPCClHid+(layer+1)*1000, clsize);
-      HF1(TPCClHid+1, clde);
-      HF1(TPCClHid+(layer+1)*1000+1, clde);
-      const TPCHitContainer& hc = cl -> GetHitContainer();
-      for(const auto& hits : hc){
-	if(!hits || !hits->IsGood()) continue;
-	const TVector3& pos = hits->GetPosition();
-	Double_t de = hits->GetCDe();
-	Double_t transDist = TranseverseDistance(hitpos.x(), hitpos.z(), pos.x(), pos.z());
-	Double_t ratio = de/clde;
-	HF2(TPCClHid+2, transDist, ratio);
-	HF2(TPCClHid+(layer+1)*1000+2, transDist, ratio);
+      if(ntTpc==1&&nh>=20){
+	HF1(TPCClHid, clsize);
+	HF1(TPCClHid+(layer+1)*1000, clsize);
+	HF1(TPCClHid+1, clde);
+	HF1(TPCClHid+(layer+1)*1000+1, clde);
+	const TPCHitContainer& hc = cl -> GetHitContainer();
+	for(const auto& hits : hc){
+	  if(!hits || !hits->IsGood()) continue;
+	  const TVector3& pos = hits->GetPosition();
+	  Double_t de = hits->GetCDe();
+	  Double_t transDist = TranseverseDistance(hitpos.x(), hitpos.z(), pos.x(), pos.z());
+	  Double_t ratio = de/clde;
+	  HF2(TPCClHid+2, transDist, ratio);
+	  HF2(TPCClHid+(layer+1)*1000+2, transDist, ratio);
+	}
       }
 #endif
       event.track_cluster_de[it][ih] = clde;
@@ -883,7 +901,7 @@ dst::DstRead( int ievent )
     event.dz_factor[it] = sqrt(1.+(pow(helix_dz,2)));
     HF1(14, event.mom0[it]);
 
-    int particleID= Kinematics::HypTPCdEdxPID_temp(event.dEdx[it], event.mom0[it]*event.charge[it]);
+    int particleID= Kinematics::HypTPCdEdxPID(event.dEdx[it], event.mom0[it]*event.charge[it]);
     event.pid[it]=particleID;
   }
 

@@ -27,6 +27,7 @@
 #include "TPCCluster.hh"
 #include "TPCPadHelper.hh"
 #include "TPCLocalTrackHelix.hh"
+#include "TPCVertexHelix.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
@@ -36,7 +37,6 @@
 #include "HypTPCTask.hh"
 
 #define RawHit 0
-#define RawCluster 0
 #define TrackCluster 1
 
 namespace
@@ -51,10 +51,10 @@ auto&       gConf = ConfMan::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gCounter = debug::ObjectCounter::GetInstance();
 const auto& zHSCenter = gGeom.LocalZ("HS");
-const double truncatedMean = 0.8; //80%
+const Double_t truncatedMean = 0.8; //80%
 
 //For GenFit Setting
-const bool Const_field = false; //Must be false for linear tracking
+const Bool_t Const_field = false; //Must be false for linear tracking
 const Int_t verbosity = 0;//3;
 const auto& tpcGeo = ConfMan::Get<TString>("TPCGDML");
 
@@ -113,6 +113,7 @@ struct Event
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
   std::vector<Int_t> isBeam; // isBeam: 1 = Beam, 0 = Scat
+  std::vector<Int_t> isAccidental;
   std::vector<Int_t> fittime;  //usec
   std::vector<Int_t> searchtime; //usec
   std::vector<Int_t> niteration; //usec
@@ -163,6 +164,21 @@ struct Event
   std::vector<std::vector<Double_t>> track_cluster_z_center;
   std::vector<std::vector<Double_t>> track_cluster_row_center;
 
+  Int_t nvtxTpc;
+  std::vector<Double_t> vtx_x;
+  std::vector<Double_t> vtx_y;
+  std::vector<Double_t> vtx_z;
+  std::vector<Double_t> vtx_dist;
+  std::vector<Double_t> vtx_angle;
+  std::vector<std::vector<Double_t>> vtxid;
+  std::vector<std::vector<Double_t>> vtxmom_theta;
+  std::vector<std::vector<Double_t>> vtxpos_x;
+  std::vector<std::vector<Double_t>> vtxpos_y;
+  std::vector<std::vector<Double_t>> vtxpos_z;
+  std::vector<std::vector<Double_t>> vtxmom_x;
+  std::vector<std::vector<Double_t>> vtxmom_y;
+  std::vector<std::vector<Double_t>> vtxmom_z;
+
   Int_t nhHtof;
   std::vector<Int_t> HtofSeg;
   std::vector<Double_t> tHtof;
@@ -208,12 +224,16 @@ struct Event
   std::vector<Double_t> GFtracklenTgt; //extrapolate to the target
   std::vector<Double_t> GFtofTgt;
 
-  Int_t GFid1Vtx;
-  Int_t GFid2Vtx;
-  Double_t GFxVtx;
-  Double_t GFyVtx;
-  Double_t GFzVtx;
-  Double_t GFcloseDist;
+  Int_t GFnvtxTpc;
+  std::vector<Double_t> GFvtx_x;
+  std::vector<Double_t> GFvtx_y;
+  std::vector<Double_t> GFvtx_z;
+  std::vector<Double_t> GFvtx_dist;
+  std::vector<Double_t> GFvtx_angle;
+  std::vector<std::vector<Double_t>> GFvtxid;
+  std::vector<std::vector<Double_t>> GFvtxmom_x;
+  std::vector<std::vector<Double_t>> GFvtxmom_y;
+  std::vector<std::vector<Double_t>> GFvtxmom_z;
 
   std::vector<Int_t> GFnhHtof; //not real hit, extrapolation candidate.
   std::vector<std::vector<Double_t>> GFsegHtof;
@@ -239,17 +259,6 @@ struct Event
   std::vector<Double_t> GFtracklenTgt_p; //extrapolate to the target
   std::vector<Double_t> GFtofTgt_p;
 
-  std::vector<Double_t> GFxVtx_p;
-  std::vector<Double_t> GFyVtx_p;
-  std::vector<Double_t> GFzVtx_p;
-  std::vector<Double_t> GFmomVtx_p;
-  std::vector<Double_t> GFmomxVtx_p;
-  std::vector<Double_t> GFmomyVtx_p;
-  std::vector<Double_t> GFmomzVtx_p;
-  std::vector<Double_t> GFtracklenVtx_p;
-  std::vector<Double_t> GFtofVtx_p;
-  std::vector<Double_t> GFdistVtx_p;
-
   std::vector<Int_t> GFnhHtof_p;
   std::vector<std::vector<Double_t>> GFsegHtof_p;
   std::vector<std::vector<Double_t>> GFtracklenHtof_p;
@@ -270,17 +279,6 @@ struct Event
   std::vector<Double_t> GFmomzTgt_pi;
   std::vector<Double_t> GFtracklenTgt_pi; //extrapolate to the target
   std::vector<Double_t> GFtofTgt_pi;
-
-  std::vector<Double_t> GFxVtx_pi;
-  std::vector<Double_t> GFyVtx_pi;
-  std::vector<Double_t> GFzVtx_pi;
-  std::vector<Double_t> GFmomVtx_pi;
-  std::vector<Double_t> GFmomxVtx_pi;
-  std::vector<Double_t> GFmomyVtx_pi;
-  std::vector<Double_t> GFmomzVtx_pi;
-  std::vector<Double_t> GFtracklenVtx_pi;
-  std::vector<Double_t> GFtofVtx_pi;
-  std::vector<Double_t> GFdistVtx_pi;
 
   std::vector<Int_t> GFnhHtof_pi;
   std::vector<std::vector<Double_t>> GFsegHtof_pi;
@@ -323,6 +321,7 @@ struct Event
     ntTpc = 0;
     nhtrack.clear();
     isBeam.clear();
+    isAccidental.clear();
     fittime.clear();
     searchtime.clear();
     niteration.clear();
@@ -375,6 +374,21 @@ struct Event
     track_cluster_z_center.clear();
     track_cluster_row_center.clear();
 
+    nvtxTpc = 0;
+    vtx_x.clear();
+    vtx_y.clear();
+    vtx_z.clear();
+    vtx_dist.clear();
+    vtx_angle.clear();
+    vtxid.clear();
+    vtxmom_theta.clear();
+    vtxpos_x.clear();
+    vtxpos_y.clear();
+    vtxpos_z.clear();
+    vtxmom_x.clear();
+    vtxmom_y.clear();
+    vtxmom_z.clear();
+
     nhHtof = 0;
     HtofSeg.clear();
     tHtof.clear();
@@ -419,12 +433,16 @@ struct Event
     GFtracklenTgt.clear();
     GFtofTgt.clear();
 
-    GFid1Vtx = -1;
-    GFid2Vtx = -1;
-    GFxVtx = qnan;
-    GFyVtx = qnan;
-    GFzVtx = qnan;
-    GFcloseDist = qnan;
+    GFnvtxTpc = -1;
+    GFvtx_x.clear();
+    GFvtx_y.clear();
+    GFvtx_z.clear();
+    GFvtx_dist.clear();
+    GFvtx_angle.clear();
+    GFvtxid.clear();
+    GFvtxmom_x.clear();
+    GFvtxmom_y.clear();
+    GFvtxmom_z.clear();
 
     GFnhHtof.clear();
     GFsegHtof.clear();
@@ -450,17 +468,6 @@ struct Event
     GFtracklenTgt_p.clear();
     GFtofTgt_p.clear();
 
-    GFxVtx_p.clear();
-    GFyVtx_p.clear();
-    GFzVtx_p.clear();
-    GFmomVtx_p.clear();
-    GFmomxVtx_p.clear();
-    GFmomyVtx_p.clear();
-    GFmomzVtx_p.clear();
-    GFtracklenVtx_p.clear();
-    GFtofVtx_p.clear();
-    GFdistVtx_p.clear();
-
     GFnhHtof_p.clear();
     GFsegHtof_p.clear();
     GFtofHtof_p.clear();
@@ -481,17 +488,6 @@ struct Event
     GFmomzTgt_pi.clear();
     GFtracklenTgt_pi.clear();
     GFtofTgt_pi.clear();
-
-    GFxVtx_pi.clear();
-    GFyVtx_pi.clear();
-    GFzVtx_pi.clear();
-    GFmomVtx_pi.clear();
-    GFmomxVtx_pi.clear();
-    GFmomyVtx_pi.clear();
-    GFmomzVtx_pi.clear();
-    GFtracklenVtx_pi.clear();
-    GFtofVtx_pi.clear();
-    GFdistVtx_pi.clear();
 
     GFnhHtof_pi.clear();
     GFsegHtof_pi.clear();
@@ -562,7 +558,6 @@ main( int argc, char **argv )
   Int_t skip = gUnpacker.get_skip();
   if (skip < 0) skip = 0;
   Int_t max_loop = gUnpacker.get_max_loop();
-  max_loop = 10;
   Int_t nevent = GetEntries( TTreeCont );
   if (max_loop > 0) nevent = skip + max_loop;
 
@@ -632,6 +627,8 @@ Bool_t
 dst::DstRead( int ievent )
 {
 
+  Double_t vtx_scan_range = gUser.GetParameter("VertexScanRange");
+
   //if( ievent%1000==0 ){
   if( ievent%1==0 ){
     std::cout << "#D Event Number: "
@@ -697,7 +694,6 @@ dst::DstRead( int ievent )
   HF1( 1, event.status++ );
 #endif
 
-#if RawCluster
   Int_t nclTpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
     auto hc = TPCAna.GetTPCClCont( layer );
@@ -735,7 +731,6 @@ dst::DstRead( int ievent )
   }
   event.nclTpc = nclTpc;
   HF1( 1, event.status++ );
-#endif
 
   TPCAna.TrackSearchTPCHelix();
 
@@ -749,6 +744,7 @@ dst::DstRead( int ievent )
 
   event.nhtrack.resize( ntTpc );
   event.isBeam.resize( ntTpc );
+  event.isAccidental.resize( ntTpc );
   event.fittime.resize( ntTpc );
   event.searchtime.resize( ntTpc );
   event.niteration.resize( ntTpc );
@@ -810,6 +806,7 @@ dst::DstRead( int ievent )
     Double_t helix_dz = tp->Getdz();
     TVector3 Mom0 = tp->GetMom0();
     Int_t isbeam = tp->GetIsBeam();
+    Int_t isaccidental = tp->GetIsAccidental();
     double fittime = tp->GetFitTime();
     double searchtime = tp->GetSearchTime();
     Int_t charge = tp->GetCharge();
@@ -818,6 +815,7 @@ dst::DstRead( int ievent )
 
     event.nhtrack[it] = nh;
     event.isBeam[it] = isbeam;
+    event.isAccidental[it] = isaccidental;
     event.fittime[it] = fittime;
     event.charge[it] = charge;
     event.path[it] = pathlen;
@@ -924,14 +922,8 @@ dst::DstRead( int ievent )
       event.houghflag[it][ih] = houghflag;
       event.helix_t[it][ih] = hit->GetTheta();
     }
-    int particleID = Kinematics::HypTPCdEdxPID_temp(event.dEdx[it], event.mom0[it]*event.charge[it]);
-    event.pid[it]=particleID;
+    event.pid[it]=tp->GetPid();
     std::vector<Int_t> pdgcode;
-    /*
-    Kinematics::HypTPCPID_PDGCode(event.charge[it], particleID, pdgcode);
-    if(BeamThroughTPC) GFtracks.AddHelixTrack(pdgbeam, tp);
-    else GFtracks.AddHelixTrack(pdgcode, tp);
-    */
     if(event.charge[it]>0){
       pdgcode.push_back(211);
       pdgcode.push_back(2212);
@@ -942,8 +934,98 @@ dst::DstRead( int ievent )
     GFtracks.AddHelixTrack(pdgcode, tp);
   }
   HF1( 2, event.GFstatus++ );
-  GFtracks.FitTracks();
 
+  Int_t nvtxTpc = TPCAna.GetNVerticesTPCHelix();
+  event.nvtxTpc = nvtxTpc;
+  event.vtx_x.resize(nvtxTpc);
+  event.vtx_y.resize(nvtxTpc);
+  event.vtx_z.resize(nvtxTpc);
+  event.vtx_dist.resize(nvtxTpc);
+  event.vtx_angle.resize(nvtxTpc);
+  event.vtxid.resize(nvtxTpc);
+  event.vtxmom_theta.resize(nvtxTpc);
+  event.vtxpos_x.resize(nvtxTpc);
+  event.vtxpos_y.resize(nvtxTpc);
+  event.vtxpos_z.resize(nvtxTpc);
+  event.vtxmom_x.resize(nvtxTpc);
+  event.vtxmom_y.resize(nvtxTpc);
+  event.vtxmom_z.resize(nvtxTpc);
+
+  for( Int_t it=0; it<nvtxTpc; ++it ){
+    TPCVertexHelix *vp = TPCAna.GetTPCVertexHelix( it );
+    if( !vp ) continue;
+    event.vtx_x[it] = vp -> GetVertex().x();
+    event.vtx_y[it] = vp -> GetVertex().y();
+    event.vtx_z[it] = vp -> GetVertex().z();
+    event.vtx_dist[it] = vp -> GetClosestDist();
+    event.vtx_angle[it] = vp -> GetOpeningAngle();
+
+    event.vtxid[it].resize(2);
+    event.vtxmom_theta[it].resize(2);
+    event.vtxpos_x[it].resize(2);
+    event.vtxpos_y[it].resize(2);
+    event.vtxpos_z[it].resize(2);
+    event.vtxmom_x[it].resize(2);
+    event.vtxmom_y[it].resize(2);
+    event.vtxmom_z[it].resize(2);
+
+    Int_t ivtx1 = vp -> GetTrackId(0);
+    Int_t ivtx2 = vp -> GetTrackId(1);
+    event.vtxid[it][0] = ivtx1;
+    event.vtxmom_theta[it][0] = vp -> GetTrackTheta(0);
+    event.vtxpos_x[it][0] = vp -> GetTrackPos(0).x();
+    event.vtxpos_y[it][0] = vp -> GetTrackPos(0).y();
+    event.vtxpos_z[it][0] = vp -> GetTrackPos(0).z();
+    event.vtxmom_x[it][0] = vp -> GetTrackMom(0).x();
+    event.vtxmom_y[it][0] = vp -> GetTrackMom(0).y();
+    event.vtxmom_z[it][0] = vp -> GetTrackMom(0).z();
+
+    event.vtxid[it][1] = ivtx2;
+    event.vtxmom_theta[it][1] = vp -> GetTrackTheta(1);
+    event.vtxpos_x[it][1] = vp -> GetTrackPos(1).x();
+    event.vtxpos_y[it][1] = vp -> GetTrackPos(1).y();
+    event.vtxpos_z[it][1] = vp -> GetTrackPos(1).z();
+    event.vtxmom_x[it][1] = vp -> GetTrackMom(1).x();
+    event.vtxmom_y[it][1] = vp -> GetTrackMom(1).y();
+    event.vtxmom_z[it][1] = vp -> GetTrackMom(1).z();
+
+    if(TMath::Abs(event.vtx_dist[it]) > 3) continue;
+    if(event.isBeam[ivtx1]==1) continue;
+    if(event.isAccidental[ivtx1]==1) continue;
+    if(event.isBeam[ivtx2]==1) continue;
+    if(event.isAccidental[ivtx2]==1) continue;
+
+    std::vector<Double_t> GFextrapolation_decays(2);
+    std::vector<TVector3> GFmom_decays(2);
+    Double_t GFdist;
+    TVector3 GFvertex;
+    Bool_t vtxcut = GFtracks.FindVertex(ivtx1, ivtx2, -1, -1,
+					GFextrapolation_decays[0],
+					GFextrapolation_decays[1],
+					GFmom_decays[0],
+					GFmom_decays[1],
+					GFdist, GFvertex,
+					vtx_scan_range);
+    if(!vtxcut) continue;
+    if(GFdist > 10.) continue;
+    std::vector<Double_t> vtxid{(Double_t) ivtx1, (Double_t) ivtx2};
+    std::vector<Double_t> vtxmom_x{GFmom_decays[0].x(), GFmom_decays[1].x()};
+    std::vector<Double_t> vtxmom_y{GFmom_decays[0].y(), GFmom_decays[1].y()};
+    std::vector<Double_t> vtxmom_z{GFmom_decays[0].z(), GFmom_decays[1].z()};
+
+    event.GFvtx_x.push_back(GFvertex.x());
+    event.GFvtx_y.push_back(GFvertex.y());
+    event.GFvtx_z.push_back(GFvertex.z());
+    event.GFvtx_dist.push_back(GFdist);
+    event.GFvtx_angle.push_back(GFmom_decays[0].Angle(GFmom_decays[1]));
+    event.GFvtxid.push_back(vtxid);
+    event.GFvtxmom_x.push_back(vtxmom_x);
+    event.GFvtxmom_y.push_back(vtxmom_y);
+    event.GFvtxmom_z.push_back(vtxmom_z);
+  }
+  event.GFnvtxTpc = event.GFvtx_dist.size();
+
+  GFtracks.FitTracks();
   int GFntTpc = GFtracks.GetNTrack();
   if(GFntTpc!=event.ntTpc){
     std::cout<<"# of Tracks in Genfit Track Container != # of TPC Tracks"<<std::endl;
@@ -1016,17 +1098,6 @@ dst::DstRead( int ievent )
   event.GFtracklenHtof_p.resize(GFntTpc);
   event.GFsegHtof_p.resize(GFntTpc);
 
-  event.GFxVtx_p.resize(GFntTpc);
-  event.GFyVtx_p.resize(GFntTpc);
-  event.GFzVtx_p.resize(GFntTpc);
-  event.GFmomVtx_p.resize(GFntTpc);
-  event.GFmomxVtx_p.resize(GFntTpc);
-  event.GFmomyVtx_p.resize(GFntTpc);
-  event.GFmomzVtx_p.resize(GFntTpc);
-  event.GFtracklenVtx_p.resize(GFntTpc);
-  event.GFtofVtx_p.resize(GFntTpc);
-  event.GFdistVtx_p.resize(GFntTpc);
-
   event.GFfitstatus_pi.resize(GFntTpc);
   event.GFmom_pi.resize(GFntTpc);
   event.GFtof_pi.resize(GFntTpc);
@@ -1047,17 +1118,6 @@ dst::DstRead( int ievent )
   event.GFtofHtof_pi.resize(GFntTpc);
   event.GFtracklenHtof_pi.resize(GFntTpc);
   event.GFsegHtof_pi.resize(GFntTpc);
-
-  event.GFxVtx_pi.resize(GFntTpc);
-  event.GFyVtx_pi.resize(GFntTpc);
-  event.GFzVtx_pi.resize(GFntTpc);
-  event.GFmomVtx_pi.resize(GFntTpc);
-  event.GFmomxVtx_pi.resize(GFntTpc);
-  event.GFmomyVtx_pi.resize(GFntTpc);
-  event.GFmomzVtx_pi.resize(GFntTpc);
-  event.GFtracklenVtx_pi.resize(GFntTpc);
-  event.GFtofVtx_pi.resize(GFntTpc);
-  event.GFdistVtx_pi.resize(GFntTpc);
 
   for( Int_t igf=0; igf<GFntTpc; ++igf ){
     event.GFfitstatus[igf] = (int)GFtracks.TrackCheck(igf);
@@ -1182,55 +1242,7 @@ dst::DstRead( int ievent )
     HF1( genfitHid+23, event.GFnhHtof[igf]);
   } //igf
 
-  Int_t candidates_vtx = 0;
-  Double_t angle_vtx = 0;
-  Int_t id1 = -1; Int_t id2 = -1;
-  if(GFntTpc>1){
-    std::vector<Double_t> helix_cx;
-    std::vector<Double_t> helix_cy;
-    for( Int_t igf1=0; igf1<GFntTpc-1; ++igf1 ){
-      std::cout<<"dist "<<TMath::Hypot(event.helix_cx[igf1], event.helix_cy[igf1])<<std::endl;
-      std::cout<<"cx "<<event.helix_cx[igf1]<<" cy "<<event.helix_cy[igf1]<<" r "<<event.helix_r[igf1]<<std::endl;
-      if(TMath::Abs(TMath::Hypot(event.helix_cx[igf1], event.helix_cy[igf1]) - event.helix_r[igf1]) > 30.) continue;
-      if(event.chisqr[igf1] > 5) continue;
-      for( Int_t igf2=igf1+1; igf2<GFntTpc; ++igf2 ){
-	if(TMath::Abs(TMath::Hypot(event.helix_cx[igf2], event.helix_cy[igf2]) - event.helix_r[igf2]) > 30.) continue;
-	if(event.chisqr[igf2] > 5) continue;
-	TVector3 momv1(event.GFmomxTgt[igf1], event.GFmomyTgt[igf1], event.GFmomzTgt[igf1]);
-	TVector3 momv2(event.GFmomxTgt[igf2], event.GFmomyTgt[igf2], event.GFmomzTgt[igf2]);
 
-	double angle = TMath::Abs(momv1.Angle(momv2) - 0.5*TMath::Pi());
-	candidates_vtx++;
-	if(angle_vtx < angle){
-	  angle_vtx = angle;
-	  id1 = igf1; id2 = igf2;
-	}
-      }
-    }
-  }
-
-  std::vector<Double_t> GFextrapolation_decays(2);
-  std::vector<TVector3> GFmom_decays(2);
-
-  TVector3 GFvertex;
-  Double_t GFdist;
-  Bool_t vtxcut = false;
-  if(candidates_vtx > 0){
-    vtxcut = GFtracks.FindVertex(id1, id2, -1, -1,
-				 GFextrapolation_decays[0],
-				 GFextrapolation_decays[1],
-				 GFmom_decays[0],
-				 GFmom_decays[1],
-				 GFdist, GFvertex,
-				 vtx_scan_range);
-
-    event.GFid1Vtx = id1;
-    event.GFid2Vtx = id2;
-    event.GFxVtx = GFvertex.x();
-    event.GFyVtx = GFvertex.y();
-    event.GFzVtx = GFvertex.z();
-    event.GFcloseDist = GFdist;
-  }
 
   for( Int_t igf=0; igf<GFntTpc; ++igf ){
     Int_t repid = 0; //pion
@@ -1264,29 +1276,6 @@ dst::DstRead( int ievent )
 	  event.GFtofHtof_pi[igf][ihit]=htoftof[ihit];
 	}
       }
-
-      if(vtxcut){
-	TVector3 Vertex(event.GFxVtx, event.GFyVtx, event.GFzVtx);
-	TVector3 posVtx; TVector3 momVtx;
-	Double_t lenVtx; Double_t tofVtx;
-	if(GFtracks.ExtrapolateToPoint(igf, Vertex,
-					  posVtx, momVtx,
-					  lenVtx, tofVtx)){
-
-	  event.GFxVtx_pi[igf] = posVtx.x();
-	  event.GFyVtx_pi[igf] = posVtx.y();
-	  event.GFzVtx_pi[igf] = posVtx.z();
-	  event.GFmomVtx_pi[igf] = momVtx.Mag();
-	  event.GFmomxVtx_pi[igf] = momVtx.x();
-	  event.GFmomyVtx_pi[igf] = momVtx.y();
-	  event.GFmomzVtx_pi[igf] = momVtx.z();
-	  event.GFtracklenVtx_pi[igf] = lenVtx;
-	  event.GFtofVtx_pi[igf] = tofVtx;
-
-	  Vertex -= posVtx;
-	  event.GFdistVtx_pi[igf] = Vertex.Mag();
-	}
-      }
     } //pion
 
     if(event.charge[igf]==1){ //proton
@@ -1318,29 +1307,6 @@ dst::DstRead( int ievent )
 	    event.GFsegHtof_p[igf][ihit]=htofid[ihit];
 	    event.GFtracklenHtof_p[igf][ihit]=htoflen[ihit];
 	    event.GFtofHtof_p[igf][ihit]=htoftof[ihit];
-	  }
-	}
-
-	if(vtxcut){
-	  TVector3 Vertex(event.GFxVtx, event.GFyVtx, event.GFzVtx);
-	  TVector3 posVtx; TVector3 momVtx;
-	  Double_t lenVtx; Double_t tofVtx;
-	  if(GFtracks.ExtrapolateToPoint(igf, Vertex,
-					    posVtx, momVtx,
-					    lenVtx, tofVtx)){
-
-	    event.GFxVtx_p[igf] = posVtx.x();
-	    event.GFyVtx_p[igf] = posVtx.y();
-	    event.GFzVtx_p[igf] = posVtx.z();
-	    event.GFmomVtx_p[igf] = momVtx.Mag();
-	    event.GFmomxVtx_p[igf] = momVtx.x();
-	    event.GFmomyVtx_p[igf] = momVtx.y();
-	    event.GFmomzVtx_p[igf] = momVtx.z();
-	    event.GFtracklenVtx_p[igf] = lenVtx;
-	    event.GFtofVtx_p[igf] = tofVtx;
-
-	    Vertex -= posVtx;
-	    event.GFdistVtx_p[igf] = Vertex.Mag();
 	  }
 	}
       }
@@ -1446,7 +1412,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "raw_row", &event.raw_row );
 #endif
 
-#if RawCluster
   tree->Branch( "nclTpc", &event.nclTpc );
   tree->Branch( "cluster_x", &event.cluster_x );
   tree->Branch( "cluster_y", &event.cluster_y );
@@ -1461,11 +1426,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "cluster_y_center", &event.cluster_y_center );
   tree->Branch( "cluster_z_center", &event.cluster_z_center );
   tree->Branch( "cluster_houghflag", &event.cluster_houghflag );
-#endif
 
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
   tree->Branch( "isBeam", &event.isBeam );
+  tree->Branch( "isAccidental", &event.isAccidental );
   tree->Branch( "fittime", &event.fittime );
   tree->Branch( "searchtime", &event.searchtime );
   tree->Branch( "chisqr", &event.chisqr );
@@ -1519,6 +1484,21 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_row_center", &event.track_cluster_row_center);
 #endif
 
+  tree->Branch( "nvtxTpc", &event.nvtxTpc );
+  tree->Branch( "vtx_x", &event.vtx_x );
+  tree->Branch( "vtx_y", &event.vtx_y );
+  tree->Branch( "vtx_z", &event.vtx_z );
+  tree->Branch( "vtx_dist", &event.vtx_dist );
+  tree->Branch( "vtx_angle", &event.vtx_angle );
+  tree->Branch( "vtxid", &event.vtxid );
+  tree->Branch( "vtxmom_theta", &event.vtxmom_theta );
+  tree->Branch( "vtxpos_x", &event.vtxpos_x );
+  tree->Branch( "vtxpos_y", &event.vtxpos_y );
+  tree->Branch( "vtxpos_z", &event.vtxpos_z );
+  tree->Branch( "vtxmom_x", &event.vtxmom_x );
+  tree->Branch( "vtxmom_y", &event.vtxmom_y );
+  tree->Branch( "vtxmom_z", &event.vtxmom_z );
+
   tree->Branch("GFnhHtof", &event.GFnhHtof);
   tree->Branch("GFsegHtof", &event.GFsegHtof);
   tree->Branch("GFxHtof", &event.GFxHtof);
@@ -1565,12 +1545,17 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFmomzTgt", &event.GFmomzTgt);
   tree->Branch("GFtracklenTgt", &event.GFtracklenTgt);
   tree->Branch("GFtofTgt", &event.GFtofTgt);
-  tree->Branch("GFid1Vtx", &event.GFid1Vtx);
-  tree->Branch("GFid2Vtx", &event.GFid2Vtx);
-  tree->Branch("GFxVtx", &event.GFxVtx);
-  tree->Branch("GFyVtx", &event.GFyVtx);
-  tree->Branch("GFzVtx", &event.GFzVtx);
-  tree->Branch("GFcloseDist", &event.GFcloseDist);
+
+  tree->Branch("GFnvtxTpc", &event.GFnvtxTpc);
+  tree->Branch("GFvtx_x", &event.GFvtx_x);
+  tree->Branch("GFvtx_y", &event.GFvtx_y);
+  tree->Branch("GFvtx_z", &event.GFvtx_z);
+  tree->Branch("GFvtx_dist", &event.GFvtx_dist);
+  tree->Branch("GFvtx_angle", &event.GFvtx_angle);
+  tree->Branch("GFvtxid", &event.GFvtxid);
+  tree->Branch("GFvtxmom_x", &event.GFvtxmom_x);
+  tree->Branch("GFvtxmom_y", &event.GFvtxmom_y);
+  tree->Branch("GFvtxmom_z", &event.GFvtxmom_z);
 
   tree->Branch("GFfitstatus_p", &event.GFfitstatus_p);
   tree->Branch("GFtof_p", &event.GFtof_p);
@@ -1587,17 +1572,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFmomzTgt_p", &event.GFmomzTgt_p);
   tree->Branch("GFtracklenTgt_p", &event.GFtracklenTgt_p);
   tree->Branch("GFtofTgt_p", &event.GFtofTgt_p);
-
-  tree->Branch("GFxVtx_p", &event.GFxVtx_p);
-  tree->Branch("GFyVtx_p", &event.GFyVtx_p);
-  tree->Branch("GFzVtx_p", &event.GFzVtx_p);
-  tree->Branch("GFmomVtx_p", &event.GFmomVtx_p);
-  tree->Branch("GFmomxVtx_p", &event.GFmomxVtx_p);
-  tree->Branch("GFmomyVtx_p", &event.GFmomyVtx_p);
-  tree->Branch("GFmomzVtx_p", &event.GFmomzVtx_p);
-  tree->Branch("GFtracklenVtx_p", &event.GFtracklenVtx_p);
-  tree->Branch("GFtofVtx_p", &event.GFtofVtx_p);
-  tree->Branch("GFdistVtx_p", &event.GFdistVtx_p);
 
   tree->Branch("GFnhHtof_p", &event.GFnhHtof_p);
   tree->Branch("GFsegHtof_p", &event.GFsegHtof_p);
@@ -1619,17 +1593,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFmomzTgt_pi", &event.GFmomzTgt_pi);
   tree->Branch("GFtracklenTgt_pi", &event.GFtracklenTgt_pi);
   tree->Branch("GFtofTgt_pi", &event.GFtofTgt_pi);
-
-  tree->Branch("GFxVtx_pi", &event.GFxVtx_pi);
-  tree->Branch("GFyVtx_pi", &event.GFyVtx_pi);
-  tree->Branch("GFzVtx_pi", &event.GFzVtx_pi);
-  tree->Branch("GFmomVtx_pi", &event.GFmomVtx_pi);
-  tree->Branch("GFmomxVtx_pi", &event.GFmomxVtx_pi);
-  tree->Branch("GFmomyVtx_pi", &event.GFmomyVtx_pi);
-  tree->Branch("GFmomzVtx_pi", &event.GFmomzVtx_pi);
-  tree->Branch("GFtracklenVtx_pi", &event.GFtracklenVtx_pi);
-  tree->Branch("GFtofVtx_pi", &event.GFtofVtx_pi);
-  tree->Branch("GFdistVtx_pi", &event.GFdistVtx_pi);
 
   tree->Branch("GFnhHtof_pi", &event.GFnhHtof_pi);
   tree->Branch("GFsegHtof_pi", &event.GFsegHtof_pi);
