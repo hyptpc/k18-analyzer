@@ -2235,11 +2235,11 @@ dst::DstRead( Int_t ievent )
     int num = 20010+i;
     HF1(num,PullXi.at(i));
   }
-  TVector3 G4HTVXi(event.G4ximom_x,event.G4ximom_z,event.G4ximom_y); 
-  TVector3 G4HTVLd(event.G4lmom_x,event.G4lmom_z,event.G4lmom_y);
   TVector3 G4HTVP(event.G4pmom_x,event.G4pmom_z,event.G4pmom_y);
   TVector3 G4HTVPi1(event.G4pi1mom_x,event.G4pi1mom_z,event.G4pi1mom_y);
   TVector3 G4HTVPi2(event.G4pi2mom_x,event.G4pi2mom_z,event.G4pi2mom_y);
+  TVector3 G4HTVLd = G4HTVP + G4HTVPi1;
+  TVector3 G4HTVXi = G4HTVLd + G4HTVPi2;
 
   auto KFHTVXi = KFHLVXi.Vect();
   auto KFHTVLd = KFKFHLVLd.Vect();
