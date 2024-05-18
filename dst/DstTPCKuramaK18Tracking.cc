@@ -3007,7 +3007,7 @@ dst::DstRead( int ievent )
 	event.massLambda[it].push_back(lmass);
 	Double_t diff = TMath::Abs(lmass - LambdaMass);
 	Double_t best_diff = TMath::Abs(best_lmass - LambdaMass);
-	if(diff > best_diff) best_lmass = lmass;
+	if(diff < best_diff) best_lmass = lmass;
 
 	TVector3 vtx = vp -> GetVertexLambda(combi);
 	event.vtxLambda_x[it].push_back(vtx.x());
