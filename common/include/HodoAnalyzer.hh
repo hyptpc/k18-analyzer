@@ -266,6 +266,15 @@ HodoAnalyzer::Connectable(const FiberHit* hitA, Int_t indexA,
                           const FiberHit* hitB, Int_t indexB,
                           Double_t MaxTimeDiff)
 {
+  Double_t cmtA = hitA->CMeanTime(indexA);
+  Double_t cmtB = hitB->CMeanTime(indexB);
+  Double_t segA = hitA->SegmentId();
+  Double_t segB = hitB->SegmentId();
+  return (true
+          && TMath::Abs(segA - segB) <= 1
+          && TMath::Abs(cmtA - cmtB) < MaxTimeDiff);
+
+#if 0
   TString planeA = hitA->PlaneName();
   if(planeA.Contains("P", TString::kIgnoreCase))
     planeA.ReplaceAll("P", "");
@@ -289,6 +298,7 @@ HodoAnalyzer::Connectable(const FiberHit* hitA, Int_t indexA,
           && TMath::Abs(cmtA - cmtB) <= MaxTimeDiff
           && TMath::Abs(posA - posB) <= hitA->dXdW()
     );
+#endif
 }
 
 #endif

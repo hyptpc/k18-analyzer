@@ -249,19 +249,21 @@ HodoAnalyzer::GetTime0Cluster() const
   const HodoCluster* cl_time0 = nullptr;
   Double_t min_mt = DBL_MAX;
   for(const auto& cluster : GetClusterContainer("T0")){
-    Double_t mt = cluster->MeanTime();
-    if(true
-       && TMath::Abs(mt) < TMath::Abs(min_mt)
-       && gUser.IsInRange("T0_Time", mt)
+    // Double_t mt = cluster->MeanTime();
+    for(Int_t j=0, m=cluster->ClusterSize(); j<m; ++j){
+      Double_t mt = cluster->GetHit(j)->MeanTime();
+      if(true
+         && TMath::Abs(mt) < TMath::Abs(min_mt)
+         && gUser.IsInRange("T0_Time", mt)
 #if REQDE
-       && gUser.IsInRange("T0_DeltaE", cluster->DeltaE())
+         && gUser.IsInRange("T0_DeltaE", cluster->DeltaE())
 #endif
-      ){
-      min_mt = mt;
-      cl_time0 = cluster;
+         ){
+        min_mt = mt;
+        cl_time0 = cluster;
+      }
     }
   }
-
   return cl_time0;
 }
 
@@ -275,17 +277,20 @@ HodoAnalyzer::GetBtof0Cluster() const
   Double_t min_btof = DBL_MAX;
   for(Int_t i=0, n=GetNClusters("BHT"); i<n; ++i){
     const auto& cluster = GetCluster<FiberCluster>("BHT", i);
-    Double_t cmt  = cluster->CMeanTime();
-    Double_t btof = cmt - time0;
-    if(true
-       && TMath::Abs(btof) < TMath::Abs(min_btof)
-       && gUser.IsInRange("BTOF", btof)
+    // Double_t cmt  = cluster->CMeanTime();
+    for(Int_t j=0, m=cluster->ClusterSize(); j<m; ++j){
+      Double_t cmt  = cluster->GetHit(j)->CMeanTime();
+      Double_t btof = cmt - time0;
+      if(true
+         && TMath::Abs(btof) < TMath::Abs(min_btof)
+         && gUser.IsInRange("BTOF", btof)
 #if REQDE
-       && gUser.IsInRange("BHT_DeltaE", cluster->DeltaE())
+         && gUser.IsInRange("BHT_DeltaE", cluster->DeltaE())
 #endif
-      ){
-      min_btof = btof;
-      cl_btof0 = cluster;
+         ){
+        min_btof = btof;
+        cl_btof0 = cluster;
+      }
     }// T0 selection
   }// for
 

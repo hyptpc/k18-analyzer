@@ -19,7 +19,7 @@ HodoCluster::HodoCluster(const HodoHC& cont,
                          const index_t& index)
   : m_is_good(false),
     m_hit_container(cont.size()),
-    m_index(index.size()),
+    m_index(index),
     m_cluster_size(cont.size()),
     m_mean_time(),
     m_ctime(),

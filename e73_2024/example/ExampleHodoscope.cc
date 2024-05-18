@@ -38,6 +38,7 @@ const auto& gUser = UserParamMan::GetInstance();
 using seg_t = std::vector<Double_t>;
 using adc_t = std::vector<Double_t>;
 using tdc_t = std::vector<std::vector<Double_t>>;
+using cl_t = std::vector<Double_t>;
 TTree* tree;
 UInt_t run_number;
 UInt_t event_number;
@@ -59,6 +60,11 @@ std::map<TString, tdc_t> time_u;
 std::map<TString, tdc_t> time_d;
 std::map<TString, tdc_t> mt;
 std::map<TString, tdc_t> cmt;
+
+std::map<TString, cl_t> cl_seg;
+std::map<TString, cl_t> cl_de;
+std::map<TString, cl_t> cl_time;
+std::map<TString, cl_t> cl_size;
 
 Double_t time0;
 Double_t btof0;
@@ -88,6 +94,11 @@ ProcessBegin()
   for(auto& p: time_d) p.second.clear();
   for(auto& p: mt) p.second.clear();
   for(auto& p: cmt) p.second.clear();
+
+  for(auto& p: cl_seg) p.second.clear();
+  for(auto& p: cl_de) p.second.clear();
+  for(auto& p: cl_time) p.second.clear();
+  for(auto& p: cl_size) p.second.clear();
 
   time0 = TMath::QuietNaN();
   btof0 = TMath::QuietNaN();
@@ -170,6 +181,19 @@ ProcessNormal()
     }
   }
 
+  HF1("Status", 6);
+
+  for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
+    auto n = NameHodo[ihodo];
+    for(Int_t i=0, nh=hodoAna.GetNClusters(n); i<nh; ++i){
+      const auto& cl = hodoAna.GetCluster(n, i);
+      cl_seg[n].push_back(cl->MeanSeg());
+      cl_de[n].push_back(cl->DeltaE());
+      cl_time[n].push_back(cl->CTime());
+      cl_size[n].push_back(cl->ClusterSize());
+    }
+  }
+
   time0 = hodoAna.Time0();
   btof0 = hodoAna.Btof0();
 
@@ -229,6 +253,15 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_time_d", n.Data()), &time_d[NameHodo[ihodo]]);
     tree->Branch(Form("%s_mt", n.Data()), &mt[NameHodo[ihodo]]);
     tree->Branch(Form("%s_cmt", n.Data()), &cmt[NameHodo[ihodo]]);
+  }
+
+  for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
+    auto n = NameHodo[ihodo];
+    n.ToLower();
+    tree->Branch(Form("%s_cl_seg", n.Data()), &cl_seg[NameHodo[ihodo]]);
+    tree->Branch(Form("%s_cl_de", n.Data()), &cl_de[NameHodo[ihodo]]);
+    tree->Branch(Form("%s_cl_time", n.Data()), &cl_time[NameHodo[ihodo]]);
+    tree->Branch(Form("%s_cl_size", n.Data()), &cl_size[NameHodo[ihodo]]);
   }
 
   tree->Branch("time0", &time0);

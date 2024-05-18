@@ -27,8 +27,8 @@ NC_TDC		600000	650000
 BHT_Time	-5	5
 T0_Time		-5	5
 BTOF		-5	5
-MaxClusterSizeBHT	1
-MaxClusterSizeT0	1
+MaxClusterSizeBHT	2
+MaxClusterSizeT0	2
 MaxTimeDiffBHT		10
 MaxTimeDiffT0		10
 
