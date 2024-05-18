@@ -139,21 +139,27 @@ BuildHodoHit(Bool_t flag_beam_particle)
           HB1(Form("%s_Hit_Time_seg%d%s%s", name, i, ud, b), hrtimebins);
           HB1(Form("%s_Hit_CTime_seg%d%s%s", name, i, ud, b), hrtimebins);
           HB1(Form("%s_Hit_TOT_seg%d%s%s", name, i, ud, b), hrtottimebins);
+          HB1(Form("%s_Hit_DeltaE_seg%d%s%s", name, i, ud, b), debins);
         }
         HB1(Form("%s_Hit_MeanTime_seg%d%s", name, i, b), hrtimebins);
         HB1(Form("%s_Hit_CMeanTime_seg%d%s", name, i, b), hrtimebins);
         HB1(Form("%s_Hit_MeanTOT_seg%d%s", name, i, b), hrtottimebins);
+        HB1(Form("%s_Hit_DeltaE_seg%d%s", name, i, b), debins);
       }
       HB1(Form("%s_Hit_MeanTime%s", name, b), hrtimebins);
       HB1(Form("%s_Hit_CMeanTime%s", name, b), hrtimebins);
       HB1(Form("%s_Hit_MeanTOT%s", name, b), hrtottimebins);
+      HB1(Form("%s_Hit_DeltaE%s", name, b), debins);
       const Double_t hrtimebins2d[6] = { nseg, -0.5, nseg - 0.5,
         hrtimebins[0]/10, hrtimebins[1], hrtimebins[2] };
       const Double_t hrtottimebins2d[6] = { nseg, -0.5, nseg - 0.5,
         hrtottimebins[0]/5, hrtottimebins[1], hrtottimebins[2] };
+      const Double_t debins2d[6] = { nseg, -0.5, nseg - 0.5,
+        debins[0]/10, debins[1], debins[2] };
       HB2(Form("%s_Hit_MeanTime_vs_HitPat%s", name, b), hrtimebins2d);
       HB2(Form("%s_Hit_CMeanTime_vs_HitPat%s", name, b), hrtimebins2d);
       HB2(Form("%s_Hit_MeanTOT_vs_HitPat%s", name, b), hrtottimebins2d);
+      HB2(Form("%s_Hit_DeltaE_vs_HitPat%s", name, b), debins2d);
       HB1(Form("%s_Hit_HitPat%s", name, b), nseg, -0.5, nseg - 0.5);
       HB1(Form("%s_Hit_Multi%s", name, b), nseg + 1, -0.5, nseg + 0.5);
     }

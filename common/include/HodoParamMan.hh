@@ -62,8 +62,8 @@ private:
 public:
   Double_t Pedestal() const { return m_pedestal; }
   Double_t Gain() const { return m_gain; }
-  Double_t DeltaE(Int_t adc) const
-  { return ((Double_t)adc - m_pedestal) / (m_gain - m_pedestal); }
+  Double_t DeltaE(Double_t adc) const
+  { return (adc - m_pedestal) / (m_gain - m_pedestal); }
   Int_t    Adc(Double_t de) const
   { return (Int_t)(m_gain * de + m_pedestal * (1. - de)); }
 };
@@ -134,11 +134,11 @@ public:
   Bool_t   Initialize(const TString& file_name);
   Bool_t   IsReady() const { return m_is_ready; }
   Bool_t   GetTime(Int_t cid, Int_t plid, Int_t seg,
-                   Int_t ud, Int_t tdc, Double_t &time) const;
+                   Int_t ud, Double_t tdc, Double_t &time) const;
   Bool_t   GetDeHighGain(Int_t cid, Int_t plid, Int_t seg,
-                         Int_t ud, Int_t adc, Double_t &de) const;
+                         Int_t ud, Double_t adc, Double_t &de) const;
   Bool_t   GetDeLowGain(Int_t cid, Int_t plid, Int_t seg,
-                        Int_t ud, Int_t adc, Double_t &de) const;
+                        Int_t ud, Double_t adc, Double_t &de) const;
   Bool_t   GetTdc(Int_t cid, Int_t plid, Int_t seg,
                   Int_t ud, Double_t time, Int_t &tdc) const;
   Bool_t   GetAdc(Int_t cid, Int_t plid, Int_t seg,

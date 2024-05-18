@@ -9,6 +9,8 @@
 #include <string>
 #include <limits>
 
+#include <TSystem.h>
+
 #include <std_ostream.hh>
 
 #include "ConfMan.hh"
@@ -74,7 +76,11 @@ FiberHit::Calculate()
       trailing[ch].push_back(buf);
       Double_t ctime = qnan;
       Double_t tot = buf - l;
-      gPHC.DoCorrection(id, plane, seg, ch, l, tot, ctime);
+      // for BHT
+      Double_t de = TMath::QuietNaN();
+      gHodo.GetDeHighGain(id, plane, seg, ch, tot, de);
+      m_de_high.at(ch).push_back(de);
+      gPHC.DoCorrection(id, plane, seg, ch, l, de, ctime);
       m_ctime_leading[ch].push_back(ctime);
       m_ctime_trailing[ch].push_back(ctime + tot); // no use
       m_is_clustered.push_back(false);

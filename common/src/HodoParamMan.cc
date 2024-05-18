@@ -104,7 +104,7 @@ HodoParamMan::Initialize()
     std::istringstream input_line(line.Data());
     Int_t cid=-1, plid=-1, seg=-1, at=-1, ud=-1;
     Double_t p0=qnan, p1=qnan;
-    Double_t p2=qnan, p3=qnan, p4=qnan, p5=qnan;
+    // Double_t p2=qnan, p3=qnan, p4=qnan, p5=qnan;
     if(input_line >> cid >> plid >> seg >> at >> ud >> p0 >> p1){
       Int_t key = KEY(cid, plid, seg, ud);
       if(at == kAdcHigh){
@@ -177,7 +177,7 @@ HodoParamMan::Initialize(const TString& file_name)
 //_____________________________________________________________________________
 Bool_t
 HodoParamMan::GetTime(Int_t cid, Int_t plid, Int_t seg,
-                      Int_t ud, Int_t tdc, Double_t& time) const
+                      Int_t ud, Double_t tdc, Double_t& time) const
 {
   HodoTParam* map = GetTmap(cid, plid, seg, ud);
   if(!map) return false;
@@ -188,7 +188,7 @@ HodoParamMan::GetTime(Int_t cid, Int_t plid, Int_t seg,
 //_____________________________________________________________________________
 Bool_t
 HodoParamMan::GetDeHighGain(Int_t cid, Int_t plid, Int_t seg,
-                            Int_t ud, Int_t adc, Double_t& de) const
+                            Int_t ud, Double_t adc, Double_t& de) const
 {
   const auto& map = GetAHmap(cid, plid, seg, ud);
   if(!map) return false;
@@ -199,7 +199,7 @@ HodoParamMan::GetDeHighGain(Int_t cid, Int_t plid, Int_t seg,
 //_____________________________________________________________________________
 Bool_t
 HodoParamMan::GetDeLowGain(Int_t cid, Int_t plid, Int_t seg,
-                           Int_t ud, Int_t adc, Double_t& de) const
+                           Int_t ud, Double_t adc, Double_t& de) const
 {
   const auto& map = GetALmap(cid, plid, seg, ud);
   if(!map) return false;

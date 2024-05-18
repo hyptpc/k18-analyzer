@@ -184,27 +184,33 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
       auto seg = hit->SegmentId();
       Bool_t is_good = false;
       for(Int_t j=0, m=hit->GetEntries(); j<m; ++j){
-        auto mt = hit->MeanTime();
-        auto cmt = hit->CMeanTime();
-        auto mtot = hit->MeanTOT();
         for(Int_t ud=0; ud<2; ++ud){
           auto time = hit->GetTimeLeading(ud, j);
           auto ctime = hit->GetTimeLeading(ud, j);
           // auto t = hit->GetTimeTrailing(ud, j);
           auto tot = hit->TOT(ud, j);
+          auto de = hit->GetDeltaEHighGain(ud, j);
           HF1(Form("%s_Hit_Time_seg%d%s%s", name, seg, UorD[ud], b), time);
           HF1(Form("%s_Hit_CTime_seg%d%s%s", name, seg, UorD[ud], b), ctime);
           HF1(Form("%s_Hit_TOT_seg%d%s%s", name, seg, UorD[ud], b), tot);
+          HF1(Form("%s_Hit_DeltaE_seg%d%s%s", name, seg, UorD[ud], b), de);
         }
+        auto mt = hit->MeanTime();
+        auto cmt = hit->CMeanTime();
+        auto mtot = hit->MeanTOT();
+        auto de = hit->DeltaE();
         HF1(Form("%s_Hit_MeanTime_seg%d%s", name, seg, b), mt);
         HF1(Form("%s_Hit_CMeanTime_seg%d%s", name, seg, b), cmt);
         HF1(Form("%s_Hit_MeanTOT_seg%d%s", name, seg, b), mtot);
+        HF1(Form("%s_Hit_DeltaE_seg%d%s", name, seg, b), de);
         HF1(Form("%s_Hit_MeanTime%s", name, b), mt);
         HF1(Form("%s_Hit_CMeanTime%s", name, b), cmt);
         HF1(Form("%s_Hit_MeanTOT%s", name, b), mtot);
+        HF1(Form("%s_Hit_DeltaE%s", name, b), de);
         HF2(Form("%s_Hit_MeanTime_vs_HitPat%s", name, b), seg, mt);
         HF2(Form("%s_Hit_CMeanTime_vs_HitPat%s", name, b), seg, cmt);
         HF2(Form("%s_Hit_MeanTOT_vs_HitPat%s", name, b), seg, mtot);
+        HF2(Form("%s_Hit_DeltaE_vs_HitPat%s", name, b), seg, de);
         is_good = true;
       }
       if(is_good){
