@@ -8,6 +8,7 @@
 
 #include <TString.h>
 
+#include "BH2Hit.hh"
 #include "ConfMan.hh"
 #include "DetectorID.hh"
 #include "EventAnalyzer.hh"
@@ -74,7 +75,7 @@ ProcessNormal()
   HodoAnalyzer hodoAna(rawData);
   hodoAna.DecodeHits<FiberHit>("BHT");
   // hodoAna.TimeCut("BHT");
-  hodoAna.DecodeHits("T0");
+  hodoAna.DecodeHits<BH2Hit>("T0");
 
   EventAnalyzer evAna;
 
@@ -89,8 +90,17 @@ ProcessNormal()
   evAna.HodoRawHit(rawData);
   evAna.HodoRawHit(rawData, beam_flag);
 
+  HF1("Status", 2);
+
   evAna.HodoHit(hodoAna);
   evAna.HodoHit(hodoAna, beam_flag);
+
+  HF1("Status", 3);
+
+  evAna.HodoCluster(hodoAna);
+  evAna.HodoCluster(hodoAna, beam_flag);
+
+  HF1("Status", 4);
 
   for(const auto& hit: rawData.GetHodoRawHC("T0")){
     t0_raw_seg.push_back(hit->SegmentId());
@@ -122,6 +132,7 @@ ConfMan::InitializeHistograms()
   hist::BuildTriggerFlag();
   hist::BuildHodoRaw(beam_flag);
   hist::BuildHodoHit(beam_flag);
+  hist::BuildHodoCluster(beam_flag);
 
   tree = new TTree("hodo", "UserHodoscope");
   tree->Branch("run_number", &run_number);

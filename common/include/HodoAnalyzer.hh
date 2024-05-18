@@ -74,8 +74,8 @@ public:
   void DeCut(const TString& name);
   void DeCut(const TString& name, Double_t min, Double_t max);
 
-  const HodoCluster* GetTime0BH2Cluster() const;
-  const HodoCluster* GetBtof0BH1Cluster() const;
+  const HodoCluster* GetTime0Cluster() const;
+  const FiberCluster* GetBtof0Cluster() const;
   Double_t Time0() const;
   Double_t Btof0() const;
   Double_t Time0Seg() const;

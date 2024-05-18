@@ -6,9 +6,13 @@
 #include <UnpackerManager.hh>
 #include <DAQNode.hh>
 
+#include "BH2Hit.hh"
 #include "DCRawHit.hh"
 #include "DetectorID.hh"
+#include "FiberHit.hh"
+#include "FiberCluster.hh"
 #include "HodoAnalyzer.hh"
+#include "HodoCluster.hh"
 #include "HodoRawHit.hh"
 #include "RawData.hh"
 #include "RootHelper.hh"
@@ -44,18 +48,42 @@ EventAnalyzer::BeamFlag(const RawData& rawData)
       auto raw = cont[i];
       if(!raw) continue;
       for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
-	Double_t t = raw->GetTdcUp(j);
+	auto t = raw->GetTdcUp(j);
         if(gUser.IsInRange(Form("%s_TDC", name), t)){
           ac_hit = true; break;
         }
       }
     }
   }
+  Bool_t btof_pi = false;
+  Bool_t btof_k = false;
+  Bool_t btof_p = false;
+  // BHT
+  {
+    static const Char_t* name = "BHT";
+    for(const auto& hit: rawData.GetHodoRawHC(name)){
+      for(Int_t ud=0; ud<2; ++ud){
+        for(Int_t i=0, n=hit->GetSizeTdcLeading(ud); i<n; ++i){
+          auto t = hit->GetTdc(ud, i);
+          if(gUser.IsInRange(Form("%s_TDC_Pi", name), t))
+            btof_pi = true;
+          if(gUser.IsInRange(Form("%s_TDC_K", name), t))
+            btof_k = true;
+          if(gUser.IsInRange(Form("%s_TDC_P", name), t))
+            btof_p = true;
+        }
+      }
+    }
+  }
   beam::EBeamFlag flag;
-  if(ac_hit)
+  if(ac_hit && btof_pi)
     flag = beam::kPion;
-  else
+  else if(!ac_hit && btof_k)
+    flag = beam::kKaon;
+  else if(!ac_hit && btof_p)
     flag = beam::kProton;
+  else
+    flag = beam::kUnknown;
   HF1("BeamFlag", beam::kAll);
   HF1("BeamFlag", flag);
   return flag;
@@ -65,6 +93,7 @@ EventAnalyzer::BeamFlag(const RawData& rawData)
 void
 EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
 {
+  if(beam_flag == beam::kUnknown) return;
   const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
   // BHT
   {
@@ -76,16 +105,16 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       Int_t ud_good = 0;
       for(Int_t ud=0; ud<2; ++ud){
         for(Int_t i=0, n=hit->GetSizeTdcLeading(ud); i<n; ++i){
-          Double_t t = hit->GetTdc(ud, i);
+          auto t = hit->GetTdc(ud, i);
           if(gUser.IsInRange(Form("%s_TDC", name), t))
             ++ud_good;
           HF1(Form("%s_TDC_seg%d%s%s", name, seg, UorD[ud], b), t);
         }
         for(Int_t i=0, n=hit->GetSizeTdcTrailing(ud); i<n; ++i){
-          Double_t t = hit->GetTdcTrailing(ud, i);
+          auto t = hit->GetTdcTrailing(ud, i);
           HF1(Form("%s_Trailing_seg%d%s%s", name, seg, UorD[ud], b), t);
           if(n == hit->GetSizeTdcLeading(ud)){
-            Double_t l = hit->GetTdc(ud, i);
+            auto l = hit->GetTdc(ud, i);
             if(gUser.IsInRange(Form("%s_TDC", name), l)){
               HF1(Form("%s_TOT_seg%d%s%s", name, seg, UorD[ud], b), l - t);
             }
@@ -111,7 +140,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     Int_t multi = 0;
     Bool_t is_good = false;
     for(const auto& hit: rawData.GetHodoRawHC(name)){
-      Int_t seg = hit->SegmentId();
+      auto seg = hit->SegmentId();
       for(const auto& t: hit->GetArrayTdcLeading()){
         if(gUser.IsInRange(Form("%s_TDC", name), t))
           is_good = true;
@@ -121,7 +150,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
         HF1(Form("%s_HitPat%s", name, b), seg);
         ++multi;
       }
-      Double_t a = hit->GetAdc();
+      auto a = hit->GetAdc();
       HF1(Form("%s_ADC_seg%d%s", name, seg, b), a);
       if(is_good)
         HF1(Form("%s_AwT_seg%d%s", name, seg, b), a);
@@ -173,6 +202,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
 void
 EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
 {
+  if(beam_flag == beam::kUnknown) return;
   const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
   // BHT
   {
@@ -227,18 +257,18 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
       const auto& hit = hodoAna.GetHit(name, i);
       auto seg = hit->SegmentId();
-      Double_t de = hit->DeltaE();
-      Double_t ude  = hit->UDeltaE();
-      Double_t dde  = hit->DDeltaE();
+      auto de = hit->DeltaE();
+      auto ude  = hit->UDeltaE();
+      auto dde  = hit->DDeltaE();
       HF1(Form("%s_Hit_DeltaE_seg%dU%s", name, seg, b), ude);
       HF1(Form("%s_Hit_DeltaE_seg%dD%s", name, seg, b), dde);
       HF1(Form("%s_Hit_DeltaE_seg%d%s", name, seg, b), de);
       HF2(Form("%s_Hit_DeltaE_vs_HitPat%s", name, b), seg, de);
       Bool_t is_good = false;
       for(Int_t j=0, m=hit->GetEntries(); j<m; ++j){
-        Double_t tu  = hit->GetTUp(j),   td = hit->GetTDown(j);
-        Double_t ctu = hit->GetCTUp(j), ctd = hit->GetCTDown(j);
-        Double_t mt  = hit->MeanTime(j),cmt = hit->CMeanTime(j);
+        auto tu  = hit->GetTUp(j),   td = hit->GetTDown(j);
+        auto ctu = hit->GetCTUp(j), ctd = hit->GetCTDown(j);
+        auto mt  = hit->MeanTime(j),cmt = hit->CMeanTime(j);
         HF1(Form("%s_Hit_Time_seg%dU%s", name, seg, b), tu);
         HF1(Form("%s_Hit_Time_seg%dD%s", name, seg, b), td);
         HF1(Form("%s_Hit_CTime_seg%dU%s", name, seg, b), ctu);
@@ -258,17 +288,126 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     }
     HF1(Form("%s_Hit_Multi%s", name, b), multi);
   }
+
+  // BTOF
+  {
+    for(Int_t i2=0, n2=hodoAna.GetNHits("T0"); i2<n2; ++i2){
+      const auto& hit2 = hodoAna.GetHit<BH2Hit>("T0", i2);
+      auto seg2 = hit2->SegmentId();
+      auto au2 = hit2->GetAUp(), ad2 = hit2->GetADown(), a2 = hit2->DeltaE();
+      for(Int_t j2=0, m2=hit2->GetEntries(); j2<m2; ++j2){
+        auto tu2 = hit2->GetTUp(j2), td2 = hit2->GetTDown(j2);
+        // auto ctu2 = hit2->GetCTUp(j2), ctd2 = hit2->GetCTDown(j2);
+        auto mt2 = hit2->MeanTime(j2); //, cmt2 = hit2->CMeanTime(j2);
+        auto t0 = hit2->Time0(j2), ct0 = hit2->CTime0(j2);
+        auto tofs = hit2->TimeOffset();
+        for(Int_t i1=0, n1=hodoAna.GetNHits("BHT"); i1<n1; ++i1){
+          const auto& hit1 = hodoAna.GetHit<FiberHit>("BHT", i1);
+          auto seg1 = hit1->SegmentId();
+          auto au1 = hit1->GetAUp(), ad1 = hit1->GetADown(), a1 = hit1->DeltaE();
+          for(Int_t j1=0, m1=hit1->GetEntries(); j1<m1; ++j1){
+            auto tu1 = hit1->GetTUp(j1), td1 = hit1->GetTDown(j1);
+            // auto ctu1 = hit1->GetCTUp(j1), ctd1 = hit1->GetCTDown(j1);
+            auto mt1 = hit1->MeanTime(j1), cmt1 = hit1->CMeanTime(j1);
+            auto cbtof = ct0 - cmt1;
+            if(TMath::Abs(seg1 - NumOfSegBHT/2) < 2) // center seg
+              HF1(Form("T0_seg%d_TimeOffset%s", seg2, b), mt2 - mt1);
+            HF2(Form("BHT_seg%dU_BTOF_vs_DeltaE%s", seg1, b), au1, ct0-tu1);
+            HF2(Form("BHT_seg%dD_BTOF_vs_DeltaE%s", seg1, b), ad1, ct0-td1);
+            HF2(Form("BHT_seg%dU_CBTOF_vs_DeltaE%s", seg1, b), au1, cbtof);
+            HF2(Form("BHT_seg%dD_CBTOF_vs_DeltaE%s", seg1, b), ad1, cbtof);
+            HF2(Form("BHT_BTOF_vs_DeltaE%s", b), a1, ct0-mt1);
+            HF2(Form("BHT_CBTOF_vs_DeltaE%s", b), a1, cbtof);
+            HF2(Form("T0_seg%dU_BTOF_vs_DeltaE%s", seg2, b), au2, cmt1-tofs-tu2);
+            HF2(Form("T0_seg%dD_BTOF_vs_DeltaE%s", seg2, b), ad2, cmt1-tofs-td2);
+            HF2(Form("T0_seg%dU_CBTOF_vs_DeltaE%s", seg2, b), au2, cbtof);
+            HF2(Form("T0_seg%dD_CBTOF_vs_DeltaE%s", seg2, b), ad2, cbtof);
+            HF2(Form("T0_BTOF_vs_DeltaE%s", b), a2, cmt1-t0);
+            HF2(Form("T0_CBTOF_vs_DeltaE%s", b), a2, cbtof);
+            // HF2(Form("CTime0%s", b), ct0);
+            // HF2(Form("CBtof0%s", b), cbtof);
+          }
+        }
+      }
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void
+EventAnalyzer::HodoCluster(const HodoAnalyzer& hodoAna,
+                           beam::EBeamFlag beam_flag)
+{
+  if(beam_flag == beam::kUnknown) return;
+  const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
+  // BHT
+  {
+    static const Char_t* name = "BHT";
+    Int_t multi = 0;
+    for(Int_t i=0, n=hodoAna.GetNClusters(name); i<n; ++i){
+      const auto& cl = hodoAna.GetCluster<FiberCluster>(name, i);
+      auto seg = cl->MeanSeg();
+      auto mt = cl->MeanTime();
+      auto cmt = cl->CMeanTime();
+      auto cs = cl->ClusterSize();
+      auto de = cl->DeltaE();
+      // auto pos = cl->MeanPosition();
+      HF2(Form("%s_Cl_MeanTime_vs_HitPat%s", name, b), seg, mt);
+      HF2(Form("%s_Cl_CMeanTime_vs_HitPat%s", name, b), seg, cmt);
+      HF2(Form("%s_Cl_DeltaE_vs_HitPat%s", name, b), seg, de);
+      HF1(Form("%s_Cl_HitPat%s", name, b), seg);
+      HF1(Form("%s_Cl_Size%s", name, b), cs);
+      ++multi;
+    }
+    HF1(Form("%s_Cl_Multi%s", name, b), multi);
+  }
+  // Hodoscope
+  for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
+    const Char_t* name = NameHodo[ihodo];
+    Int_t multi = 0;
+    for(Int_t i=0, n=hodoAna.GetNClusters(name); i<n; ++i){
+      const auto& cl = hodoAna.GetCluster(name, i);
+      auto seg = cl->MeanSeg();
+      auto mt = cl->MeanTime();
+      auto cmt = cl->CMeanTime();
+      auto cs = cl->ClusterSize();
+      auto de = cl->DeltaE();
+      // auto pos = cl->MeanPosition();
+      HF2(Form("%s_Cl_MeanTime_vs_HitPat%s", name, b), seg, mt);
+      HF2(Form("%s_Cl_CMeanTime_vs_HitPat%s", name, b), seg, cmt);
+      HF2(Form("%s_Cl_DeltaE_vs_HitPat%s", name, b), seg, de);
+      HF1(Form("%s_Cl_HitPat%s", name, b), seg);
+      HF1(Form("%s_Cl_Size%s", name, b), cs);
+      ++multi;
+    }
+    HF1(Form("%s_Cl_Multi%s", name, b), multi);
+  }
+
+  // BTOF
+  {
+    auto time0 = hodoAna.Time0();
+    auto btof0 = hodoAna.Btof0();
+    HF1(Form("CTime0%s", b), time0);
+    HF1(Form("CBtof0%s", b), btof0);
+    const auto& cl_time0 = hodoAna.GetTime0Cluster();
+    const auto& cl_btof0 = hodoAna.GetBtof0Cluster();
+    if(cl_time0)
+      HF2(Form("CBtof0_vs_deT0Seg%s", b), cl_time0->DeltaE(), btof0);
+    if(cl_btof0)
+      HF2(Form("CBtof0_vs_deBtof0Seg%s", b), cl_btof0->DeltaE(), btof0);
+  }
 }
 
 //_____________________________________________________________________________
 void
 EventAnalyzer::DCRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
 {
+  if(beam_flag == beam::kUnknown) return;
   const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
   // DC
   for(Int_t idc=0; idc<=kVFT; ++idc){
     const Char_t* name = NameDC[idc].Data();
-    Int_t nlayer = NumOfLayerDC[idc];
+    auto nlayer = NumOfLayerDC[idc];
     for(Int_t layer=0; layer<nlayer; ++layer){
       const auto& cont = rawData.GetDCRawHC(DetIdDC[idc], layer);
       // hist::H1(Form("%s_Mul_layer%d",name,layer),nh,mulbins);
@@ -277,13 +416,13 @@ EventAnalyzer::DCRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       for(Int_t i=0, n=cont.size(); i<n; ++i){
         auto hit = cont[i];
         if(!hit) continue;
-        Int_t wire = hit->WireId();
+        auto wire = hit->WireId();
         Bool_t is_good = false;
         for(Int_t j=0, m=hit->GetTdcSize(); j<m; ++j){
           if(m != hit->GetTrailingSize()) break;
-          Double_t l = hit->GetTdc(j);
-          Double_t t = hit->GetTrailing(j);
-          Double_t tot = l - t;
+          auto l = hit->GetTdc(j);
+          auto t = hit->GetTrailing(j);
+          auto tot = l - t;
           if(gUser.IsInRange(Form("%s_TOT", name), tot))
             is_good = true;
           for(const auto& totcut: std::vector<TString>{"", "C"}){

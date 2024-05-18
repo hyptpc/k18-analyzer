@@ -244,66 +244,52 @@ HodoAnalyzer::DeCut(std::vector<T>& cont,
 }
 //_____________________________________________________________________________
 const HodoCluster*
-HodoAnalyzer::GetTime0BH2Cluster() const
+HodoAnalyzer::GetTime0Cluster() const
 {
-  static const Double_t MinMt = gUser.GetParameter("MtBH2", 0);
-  static const Double_t MaxMt = gUser.GetParameter("MtBH2", 1);
-#if REQDE
-  static const Double_t MinDe = gUser.GetParameter("DeBH2", 0);
-  static const Double_t MaxDe = gUser.GetParameter("DeBH2", 1);
-#endif
-
-  HodoCluster* time0_cluster = nullptr;
+  const HodoCluster* cl_time0 = nullptr;
   Double_t min_mt = DBL_MAX;
-  for(const auto& cluster : GetClusterContainer("BH2")){
+  for(const auto& cluster : GetClusterContainer("T0")){
     Double_t mt = cluster->MeanTime();
     if(true
        && TMath::Abs(mt) < TMath::Abs(min_mt)
-       && MinMt < mt && mt < MaxMt
+       && gUser.IsInRange("T0_Time", mt)
 #if REQDE
-       && (MinDe < cluster->DeltaE() && cluster->DeltaE() < MaxDe)
+       && gUser.IsInRange("T0_DeltaE", cluster->DeltaE())
 #endif
       ){
-      min_mt        = mt;
-      time0_cluster = cluster;
+      min_mt = mt;
+      cl_time0 = cluster;
     }
   }
 
-  return time0_cluster;
+  return cl_time0;
 }
 
 //_____________________________________________________________________________
-const HodoCluster*
-HodoAnalyzer::GetBtof0BH1Cluster() const
+const FiberCluster*
+HodoAnalyzer::GetBtof0Cluster() const
 {
-  static const Double_t MinBtof = gUser.GetParameter("BTOF",  0);
-  static const Double_t MaxBtof = gUser.GetParameter("BTOF",  1);
-#if REQDE
-  static const Double_t MinDe   = gUser.GetParameter("DeBH1", 0);
-  static const Double_t MaxDe   = gUser.GetParameter("DeBH1", 1);
-#endif
-
-  HodoCluster* btof0_cluster = nullptr;
-
+  const FiberCluster* cl_btof0 = nullptr;
   Double_t time0 = Time0();
   if(TMath::IsNaN(time0)) return nullptr;
   Double_t min_btof = DBL_MAX;
-  for(const auto& cluster : GetClusterContainer("BH1")){
+  for(Int_t i=0, n=GetNClusters("BHT"); i<n; ++i){
+    const auto& cluster = GetCluster<FiberCluster>("BHT", i);
     Double_t cmt  = cluster->CMeanTime();
     Double_t btof = cmt - time0;
     if(true
        && TMath::Abs(btof) < TMath::Abs(min_btof)
-       && MinBtof < btof && btof < MaxBtof
+       && gUser.IsInRange("BTOF", btof)
 #if REQDE
-       && (MinDe < cluster->DeltaE() && cluster->DeltaE() < MaxDe)
+       && gUser.IsInRange("BHT_DeltaE", cluster->DeltaE())
 #endif
       ){
-      min_btof      = btof;
-      btof0_cluster = cluster;
+      min_btof = btof;
+      cl_btof0 = cluster;
     }// T0 selection
   }// for
 
-  return btof0_cluster;
+  return cl_btof0;
 }
 
 //_____________________________________________________________________________
@@ -338,7 +324,7 @@ HodoAnalyzer::GetClusterContainer(const TString& name) const
 Double_t
 HodoAnalyzer::Time0() const
 {
-  const auto& cl = GetTime0BH2Cluster();
+  const auto& cl = GetTime0Cluster();
   if(cl) return cl->CTime0();
   else   return TMath::QuietNaN();
 }
@@ -347,7 +333,7 @@ HodoAnalyzer::Time0() const
 Double_t
 HodoAnalyzer::Btof0() const
 {
-  const auto& cl = GetBtof0BH1Cluster();
+  const auto& cl = GetBtof0Cluster();
   if(cl) return cl->CMeanTime() - Time0();
   else   return TMath::QuietNaN();
 }
@@ -356,7 +342,7 @@ HodoAnalyzer::Btof0() const
 Double_t
 HodoAnalyzer::Time0Seg() const
 {
-  const auto& cl = GetTime0BH2Cluster();
+  const auto& cl = GetTime0Cluster();
   if(cl) return cl->MeanSeg();
   else   return TMath::QuietNaN();
 }
@@ -365,7 +351,7 @@ HodoAnalyzer::Time0Seg() const
 Double_t
 HodoAnalyzer::Btof0Seg() const
 {
-  const auto& cl = GetBtof0BH1Cluster();
+  const auto& cl = GetBtof0Cluster();
   if(cl) return cl->MeanSeg();
   else   return TMath::QuietNaN();
 }

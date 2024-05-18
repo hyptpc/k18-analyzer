@@ -88,6 +88,16 @@ def fit_gaus(h1, params, limits=None, fitrange=(-2, 2), autozoom=True):
   return f1
 
 #______________________________________________________________________________
+def fit_phc(h1, params, limits=None, fitrange=(0.5, 1.5)):
+  f1 = ROOT.TF1('f1', '-[0]/sqrt(x-[1])+[2]', -1, 10);
+  f1.SetParameters(params)
+  if limits is not None:
+    for i, l in enumerate(limits):
+      f1.SetParLimits(i, l[0], l[1])
+  h1.Fit('f1', 'Q', 'same', fitrange[0], fitrange[1])
+  return f1
+
+#______________________________________________________________________________
 def initialize(run_info, fig_tail=''):
   logger.debug(run_info)
   try:

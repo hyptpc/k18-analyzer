@@ -24,6 +24,8 @@ void BuildDAQ();
 
 void BuildHodoRaw(Bool_t flag_beam_particle=false);
 void BuildHodoHit(Bool_t flag_beam_particle=false);
+void BuildHodoCluster(Bool_t flag_beam_particle=false);
+
 void BuildDCRaw(Bool_t flag_beam_particle=false);
 void BuildDCHit(Bool_t flag_beam_particle=false);
 }

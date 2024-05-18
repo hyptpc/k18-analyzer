@@ -5,6 +5,9 @@
 #______________________________________________________________________________
 # Hodo TDC	min	max
 BHT_TDC		1230000	1250000
+BHT_TDC_Pi	1230000	1240000
+BHT_TDC_K	1230000	1230000
+BHT_TDC_P	1240000	1250000
 AC_TDC		980	1080
 #AC_TDC		640000	680000
 T1_TDC		1150000	1200000
@@ -23,6 +26,7 @@ NC_TDC		600000	650000
 # HodoAna
 BHT_Time	-5	5
 T0_Time		-5	5
+BTOF		-5	5
 MaxClusterSizeBHT	1
 MaxClusterSizeT0	1
 MaxTimeDiffBHT		10
