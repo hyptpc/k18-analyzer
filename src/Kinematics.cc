@@ -13,6 +13,7 @@ Material lookup table for HypTPC dEdx calculation
 
 #include <TF2.h>
 #include <TMath.h>
+#include <TMinuit.h>
 
 #include <std_ostream.hh>
 
@@ -36,6 +37,21 @@ const Double_t conversion_factor = 12015.2; //HypTPC's ADC to <dE/dx>
 const Double_t sigma_dedx_p[3] = {38.19, 31.62, 8.002};
 const Double_t sigma_dedx_pi[3] = {7.546, 6.88, 3.243};
 }
+
+static Int_t gNumOfTracks;
+static std::vector<Double_t> gX0;
+static std::vector<Double_t> gY0;
+static std::vector<Double_t> gU0;
+static std::vector<Double_t> gV0;
+static void fcn_vertex(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t iflag){
+
+  Double_t chisqr=0.;
+  for(Int_t i=0; i<gNumOfTracks; ++i){
+    chisqr += TMath::Power(par[0]-gX0[i]-gU0[i]*par[2], 2);
+    chisqr += TMath::Power(par[1]-gY0[i]-gV0[i]*par[2], 2);
+  };
+  f = chisqr;
+};
 
 //_____________________________________________________________________________
 namespace Kinematics
@@ -984,7 +1000,7 @@ Double_t HypTPCBethe(Double_t *x, Double_t *p){
 
   return dedx;
 }
-
+/* Legacy
 //_____________________________________________________________________________
 Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq){
 
@@ -1043,7 +1059,7 @@ Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq){
   Int_t output = pid[0] + pid[1]*2 + pid[2]*4;
   return output;
 }
-
+*/
 //_____________________________________________________________________________
 Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
 
@@ -1113,6 +1129,43 @@ CalcHelixMom(Double_t Bfield, Int_t charge, Double_t par[5], Double_t t){
   TVector3 mom(px, py, pz);
   if(charge < 0) mom *= -1.;
   return mom;
+}
+
+//_____________________________________________________________________________
+void
+CalcHelixParam(Double_t Bfield, Int_t charge, TVector3 mom, TVector3 pos, Double_t *par){
+
+  double q = charge;
+  Double_t tmp_px = -q*1000.*mom.x();
+  Double_t tmp_py = q*1000.*mom.z();
+  Double_t tmp_pz = q*1000.*mom.y();
+  TVector3 pT(tmp_px, tmp_py, 0.);
+  par[3] = pT.Mag()/(tpc::ConstC*Bfield);
+  par[4] = tmp_pz/pT.Mag();
+
+  TVector3 pos_(-pos.x(), pos.z() - tpc::ZTarget, pos.y());
+  TVector3 norm(0., 0., 1.);
+  TVector3 dummy = norm.Cross(pT);
+  dummy.SetMag(par[3]);
+  TVector3 center = pos_ + dummy;
+  par[0] = center.x();
+  par[1] = center.y();
+  double theta = TMath::ATan2(pos_.y() - par[1], pos_.x() - par[0]);
+  par[2] = pos_.z() - (par[4]*par[3]*theta);
+
+}
+
+//______________________________________________________________________________
+TVector3
+CalcHelixPosition(double par[5], double t)
+{
+  //This is the eqation of Helix
+  double x = par[0] + par[3]*cos(t);
+  double y = par[1] + par[3]*sin(t);
+  double z = par[2] + (par[4]*par[3]*t);
+  TVector3 calpos(-x, z, y + tpc::ZTarget); //local to global coordinate
+
+  return calpos;
 }
 
 //_____________________________________________________________________________
@@ -1192,7 +1245,6 @@ TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
 		  TVector3 &Ppi, Double_t &lambdapi_dist){
 
   Double_t lambdavtx_xivtx_cut = 0.;
-  //Double_t lambdavtx_xivtx_cut = 30.;
 
   Double_t xi = -1.*Xlambda.x();
   Double_t yi = Xlambda.z() - tpc::ZTarget;
@@ -1256,15 +1308,232 @@ TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
 }
 
 //_____________________________________________________________________________
-Bool_t HelixDirection(TVector3 vertex, TVector3 start, TVector3 end, Double_t &dist){
+TVector3 CloseDistTargetXi(Double_t Bfield,
+			   TVector3 xi_decayvtx, TVector3 xi_mom,
+			   TVector3 &xi_mom_atTarget, Double_t &dist){
+
+  Double_t xi_par[5];
+  CalcHelixParam(Bfield, -1, xi_mom, xi_decayvtx, xi_par);
+
+  //helix function
+  //x = [0] + [3]*cos(t);
+  //y = [1] + [3]*sin(t);
+  //z = [2] + [3]*[4]*t;
+
+  TF1 fvertex_xi("fvertex_xi", "pow([0]+[3]*cos(x), 2)+pow([1]+[3]*sin(x), 2)+pow([2]+[3]*[4]*x, 2)", -TMath::Pi(), TMath::Pi());
+  fvertex_xi.SetParameter(0, xi_par[0]);
+  fvertex_xi.SetParameter(1, xi_par[1]);
+  fvertex_xi.SetParameter(2, xi_par[2]);
+  fvertex_xi.SetParameter(3, xi_par[3]);
+  fvertex_xi.SetParameter(4, xi_par[4]);
+
+  Double_t helix_t = fvertex_xi.GetMinimumX(-TMath::Pi(), TMath::Pi());
+  dist = TMath::Sqrt(fvertex_xi.GetMinimum());
+  xi_mom_atTarget = CalcHelixMom(Bfield, -1, xi_par, helix_t);
+
+  Double_t vx = xi_par[0]+xi_par[3]*cos(helix_t);
+  Double_t vy = xi_par[1]+xi_par[3]*sin(helix_t);
+  Double_t vz = xi_par[2]+xi_par[3]*xi_par[4]*helix_t;
+
+  Double_t vertx = -1.*vx;
+  Double_t verty = vz;
+  Double_t vertz = vy + tpc::ZTarget;
+
+  return TVector3(vertx, verty, vertz);
+}
+
+//_____________________________________________________________________________
+TVector3
+CloseDistTargetLambda(TVector3 point, TVector3 Xlambda,
+		      TVector3 Plambda, Double_t &dist){
+
+  Double_t lambdavtx_xivtx_cut = 0.;
+
+  Double_t local_xi = -1.*point.x();
+  Double_t local_yi = point.z() - tpc::ZTarget;
+  Double_t local_zi = point.y();
+
+  Double_t xi = -1.*Xlambda.x();
+  Double_t yi = Xlambda.z() - tpc::ZTarget;
+  Double_t zi = Xlambda.y();
+  Double_t pxi = -1.*Plambda.x();
+  Double_t pyi = Plambda.z();
+  Double_t pzi = Plambda.y();
+  Double_t ui = -pxi/pyi, vi = pzi/pyi;
+
+  TVector3 p_L = TVector3(pxi, pyi, pzi);
+  TVector3 p_unit = p_L.Unit();
+
+  Double_t scan_range[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  if(pyi>0) scan_range[1] = yi + lambdavtx_xivtx_cut/(p_unit.y());
+  else scan_range[0] = yi - lambdavtx_xivtx_cut/(p_unit.y());
+
+  TF1 fpoint_linear("fpoint_linear", "pow([0]-([3]+[4]*x), 2)+pow([1]-x, 2)+pow([2]-([5]+[6]*x), 2)", scan_range[0], scan_range[1]);
+  fpoint_linear.SetParameter(0, local_xi);
+  fpoint_linear.SetParameter(1, local_yi);
+  fpoint_linear.SetParameter(2, local_zi);
+  fpoint_linear.SetParameter(3, xi + ui*yi);
+  fpoint_linear.SetParameter(4, -ui);
+  fpoint_linear.SetParameter(5, zi - vi*yi);
+  fpoint_linear.SetParameter(6, vi);
+
+  //straight function
+  //x = [3] + [4]*y;
+  //z = [5] + [6]*y;
+
+  Double_t close_y = fpoint_linear.GetMinimumX(scan_range[0], scan_range[1]);
+  dist = TMath::Sqrt(fpoint_linear.Eval(close_y));
+
+  Double_t xL = xi - ui*(close_y-yi);
+  Double_t yL = close_y;
+  Double_t zL = zi + vi*(close_y-yi);
+  Double_t vertx = -xL;
+  Double_t verty = zL;
+  Double_t vertz = yL + tpc::ZTarget;
+  return TVector3(vertx, verty, vertz);
+}
+
+//_____________________________________________________________________________
+TVector3
+LambdaLambdaVertex(TVector3 Xlambda1, TVector3 Plambda1,
+		   TVector3 Xlambda2, TVector3 Plambda2,
+		   TVector3 &vtxlambda1, TVector3 &vtxlambda2,
+		   Double_t &dist){
+
+  Double_t lambdavtx_xivtx_cut = 0.;
+
+  Double_t xi1 = -1.*Xlambda1.x();
+  Double_t yi1 = Xlambda1.z() - tpc::ZTarget;
+  Double_t zi1 = Xlambda1.y();
+  Double_t pxi1 = -1.*Plambda1.x();
+  Double_t pyi1 = Plambda1.z();
+  Double_t pzi1 = Plambda1.y();
+  Double_t ui1 = -pxi1/pyi1, vi1 = pzi1/pyi1;
+
+  TVector3 p_L1 = TVector3(pxi1, pyi1, pzi1);
+  TVector3 p_unit1 = p_L1.Unit();
+
+  Double_t scan_range1[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  if(pyi1>0) scan_range1[1] = yi1 + lambdavtx_xivtx_cut/(p_unit1.y());
+  else scan_range1[0] = yi1 - lambdavtx_xivtx_cut/(p_unit1.y());
+
+  Double_t xi2 = -2.*Xlambda2.x();
+  Double_t yi2 = Xlambda2.z() - tpc::ZTarget;
+  Double_t zi2 = Xlambda2.y();
+  Double_t pxi2 = -2.*Plambda2.x();
+  Double_t pyi2 = Plambda2.z();
+  Double_t pzi2 = Plambda2.y();
+  Double_t ui2 = -pxi2/pyi2, vi2 = pzi2/pyi2;
+
+  TVector3 p_L2 = TVector3(pxi2, pyi2, pzi2);
+  TVector3 p_unit2 = p_L2.Unit();
+
+  Double_t scan_range2[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  if(pyi2>0) scan_range2[1] = yi2 + lambdavtx_xivtx_cut/(p_unit2.y());
+  else scan_range2[0] = yi2 - lambdavtx_xivtx_cut/(p_unit2.y());
+
+  TF2 fpoint_ll("fpoint_ll", "pow(([0]+[1]*x)-([4]+[5]*y), 2)+pow((x)-(y), 2)+pow(([2]+[3]*x)-([6]+[7]*y), 2)", scan_range1[0], scan_range1[1], scan_range2[0], scan_range2[1]);
+  fpoint_ll.SetParameter(0, xi1 + ui1*yi1);
+  fpoint_ll.SetParameter(1, -ui1);
+  fpoint_ll.SetParameter(2, zi1 - vi1*yi1);
+  fpoint_ll.SetParameter(3, vi1);
+  fpoint_ll.SetParameter(4, xi2 + ui2*yi2);
+  fpoint_ll.SetParameter(5, -ui2);
+  fpoint_ll.SetParameter(6, zi2 - vi2*yi2);
+  fpoint_ll.SetParameter(7, vi2);
+
+  Double_t close_y1, close_y2;
+  fpoint_ll.GetMinimumXY(close_y1, close_y2);
+  dist = TMath::Sqrt(fpoint_ll.Eval(close_y1, close_y2));
+
+  Double_t xL1 = xi1 - ui1*(close_y1-yi1);
+  Double_t yL1 = close_y1;
+  Double_t zL1 = zi1 + vi1*(close_y1-yi1);
+  vtxlambda1 = TVector3(-xL1, zL1, yL1 + tpc::ZTarget);
+
+  Double_t xL2 = xi2 - ui2*(close_y2-yi2);
+  Double_t yL2 = close_y2;
+  Double_t zL2 = zi2 + vi2*(close_y2-yi2);
+  vtxlambda2 = TVector3(-xL2, zL2, yL2 + tpc::ZTarget);
+
+  Double_t vertx = -0.5*(xL1 + xL2);
+  Double_t verty = 0.5*(zL1 + zL2);
+  Double_t vertz = 0.5*(yL1 + yL2) + tpc::ZTarget;
+  return TVector3(vertx, verty, vertz);
+}
+
+//_____________________________________________________________________________
+Bool_t
+HelixDirection(TVector3 vertex, TVector3 start, TVector3 end, Double_t &dist){
 
   Bool_t status = false;
-  Int_t dummy;
   TVector3 dist1 = vertex - start;
   TVector3 dist2 = vertex - end;
   dist = dist1.Mag();
   if(dist1.Mag() < dist2.Mag()) status = true;
   return status;
+}
+
+//_____________________________________________________________________________
+TVector3
+MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0, Double_t *u0, Double_t *v0){
+
+  gNumOfTracks = ntrack;
+  gX0.clear();
+  gY0.clear();
+  gU0.clear();
+  gV0.clear();
+  for(Int_t i=0; i<gNumOfTracks; ++i){
+    gX0.push_back(x0[i]);
+    gY0.push_back(y0[i]);
+    gU0.push_back(u0[i]);
+    gV0.push_back(v0[i]);
+  }
+
+  Double_t par[3] = {0, 0, 0};
+  Double_t err[3] = {999., 999., 999.};
+
+  TMinuit *minuit = new TMinuit(3);
+  minuit->SetPrintLevel(-1);
+  minuit->SetFCN(fcn_vertex);
+
+  Double_t arglist[10];
+  Int_t ierflg = 0;
+
+  arglist[0] = 1; //error level for ch2 minimization
+  minuit->mnexcm("SET ERR", arglist, 1, ierflg);
+  minuit->mnexcm("SET NOW", arglist, 1, ierflg);
+
+  TString name[3] = {"x", "y" ,"z"};
+  const Double_t FitStep[3] = {0.001, 0.001, 0.001};
+  const Double_t LowLimit[3] = {-50., -50., -100};
+  const Double_t UpLimit[3] = {50., 50., 100};
+  for(Int_t i=0; i<3; i++){
+    minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
+  }
+  minuit->Command("SET STRategy 0");
+
+  //arglist[0] = 500.;
+  //arglist[1] = 1;
+  arglist[0] = 1000.;
+  arglist[1] = 0.1;
+
+  Int_t Err;
+  Double_t bnd1, bnd2;
+  minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
+  //minuit->mnimpr();
+  //minuit->mnexcm("MINOS", arglist, 0, ierflg);
+  //minuit->mnexcm("SET ERR", arglist, 2, ierflg);
+
+  Double_t amin, edm, errdef;
+  Int_t nvpar, nparx, icstat;
+  minuit->mnstat(amin, edm, errdef, nvpar, nparx, icstat);
+  for(Int_t i=0; i<3; i++){
+    minuit->mnpout(i, name[i], par[i], err[i], bnd1, bnd2, Err);
+  }
+  delete minuit;
+
+  return TVector3(par[0], par[1], par[2]);
 }
 
 }

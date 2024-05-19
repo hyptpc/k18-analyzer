@@ -76,13 +76,15 @@ namespace Kinematics
 
   //For HypTPC dE/dx pid
   Double_t HypTPCBethe(Double_t *x, Double_t *p);
-  Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq);
   Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq);
   void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg);
 
   //For helix tracking & vertex reconstruction
   TVector3 CalcHelixMom(Double_t Bfield, Int_t charge,
 			Double_t par[5], Double_t t);
+  void CalcHelixParam(Double_t Bfield, Int_t charge,
+		      TVector3 mom, TVector3 pos, Double_t *par);
+  TVector3 CalcHelixPosition(double par[5], double t);
   TVector3 VertexPointHelix(Double_t par1[5], Double_t par2[5],
 			    Double_t t1_start, Double_t t1_end,
 			    Double_t t2_start, Double_t t2_end,
@@ -97,8 +99,20 @@ namespace Kinematics
 		    Double_t t_start, Double_t t_end,
 		    TVector3 Xlambda, TVector3 Plambda,
 		    TVector3 &Ppi, Double_t &lambdapi_dist);
+  TVector3 CloseDistTargetXi(Double_t Bfield,
+			     TVector3 xi_decayvtx, TVector3 xi_mom,
+			     TVector3 &xi_mom_atTarget, Double_t &dist); //Extrapolatr to the target
+  TVector3 LambdaLambdaVertex(TVector3 Xlambda1, TVector3 Plambda1,
+			      TVector3 Xlambda2, TVector3 Plambda2,
+			      TVector3 &vtxlambda1, TVector3 &vtxlambda2,
+			      Double_t &dist);
+  TVector3 CloseDistTargetLambda(TVector3 point, TVector3 Xlambda,
+				 TVector3 Plambda, Double_t &dist); //Extrapolatr to the target
   Bool_t HelixDirection(TVector3 vertex, TVector3 start, TVector3 end,
 			Double_t &dist);
+  TVector3 MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0,
+			    Double_t *u0, Double_t *v0);
+
 }
 
 //_____________________________________________________________________________
