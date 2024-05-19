@@ -228,6 +228,22 @@ BuildHodoHit(Bool_t flag_beam_particle)
       HB2(Form("T0_BTOF_vs_DeltaE%s", b), phcbins2d);
       HB2(Form("T0_CBTOF_vs_DeltaE%s", b), phcbins2d);
     }
+    // FTOF
+    {
+      const Double_t phcbins2d[6] = { 100, -0.5, 4.5, 100, -10., 10. };
+      for(const auto& id: std::vector<Int_t>{kT0, kCVC}){
+        const Char_t* n = NameHodo[id];
+        for(Int_t i=0; i<NumOfSegHodo[id]; ++i){
+          for(const auto& uord : std::vector<TString>{"U", "D"}){
+            const Char_t* ud = uord.Data();
+            HB2(Form("%s_seg%d%s_FTOF_vs_DeltaE%s", n, i, ud, b), phcbins2d);
+            HB2(Form("%s_seg%d%s_CFTOF_vs_DeltaE%s", n, i, ud, b), phcbins2d);
+          }
+        }
+        HB2(Form("%s_FTOF_vs_DeltaE%s", n, b), phcbins2d);
+        HB2(Form("%s_CFTOF_vs_DeltaE%s", n, b), phcbins2d);
+      }
+    }
     if(!flag_beam_particle) break;
   }
 }
@@ -247,6 +263,7 @@ BuildHodoCluster(Bool_t flag_beam_particle)
         debins[0]/10, debins[1], debins[2] };
       HB2(Form("%s_Cl_MeanTime_vs_HitPat%s", name, b), hrtimebins2d);
       HB2(Form("%s_Cl_CMeanTime_vs_HitPat%s", name, b), hrtimebins2d);
+      HB2(Form("%s_Cl_TimeDiff_vs_HitPat%s", name, b), hrtimebins2d);
       HB2(Form("%s_Cl_DeltaE_vs_HitPat%s", name, b), debins2d);
       HB1(Form("%s_Cl_HitPat%s", name, b), nseg, -0.5, nseg - 0.5);
       HB1(Form("%s_Cl_Multi%s", name, b), nseg + 1, -0.5, nseg + 0.5);
@@ -272,6 +289,7 @@ BuildHodoCluster(Bool_t flag_beam_particle)
         debins[0]/10, debins[1], debins[2] };
       HB2(Form("%s_Cl_MeanTime_vs_HitPat%s", name, b), hrtimebins2d);
       HB2(Form("%s_Cl_CMeanTime_vs_HitPat%s", name, b), hrtimebins2d);
+      HB2(Form("%s_Cl_TimeDiff_vs_HitPat%s", name, b), hrtimebins2d);
       HB2(Form("%s_Cl_DeltaE_vs_HitPat%s", name, b), debins2d);
       HB1(Form("%s_Cl_HitPat%s", name, b), nseg, -0.5, nseg - 0.5);
       HB1(Form("%s_Cl_Multi%s", name, b), nseg + 1, -0.5, nseg + 0.5);
@@ -279,9 +297,13 @@ BuildHodoCluster(Bool_t flag_beam_particle)
     }
     // BTOF
     HB1(Form("CTime0%s", b), 400, -4, 4);
-    HB1(Form("CBtof0%s", b), 1000, -10, 10);
+    HB1(Form("CBtof0%s", b), 600, -20, 10);
     HB2(Form("CBtof0_vs_deT0Seg%s", b), 200, 0, 4, 200, -4, 4);
     HB2(Form("CBtof0_vs_deBtof0Seg%s", b), 200, 0, 4, 200, -4, 4);
+    // FTOF
+    HB1(Form("CFtof0%s", b), 600, -10, 30);
+    HB2(Form("CFtof0_vs_deT0Seg%s", b), 200, 0, 4, 200, -4, 4);
+    HB2(Form("CFtof0_vs_deFtof0Seg%s", b), 200, 0, 4, 200, -4, 4);
     if(!flag_beam_particle) break;
   }
 }

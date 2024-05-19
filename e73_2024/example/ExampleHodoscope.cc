@@ -64,10 +64,12 @@ std::map<TString, tdc_t> cmt;
 std::map<TString, cl_t> cl_seg;
 std::map<TString, cl_t> cl_de;
 std::map<TString, cl_t> cl_time;
+std::map<TString, cl_t> cl_tdif;
 std::map<TString, cl_t> cl_size;
 
 Double_t time0;
 Double_t btof0;
+Double_t ftof0;
 }
 
 //_____________________________________________________________________________
@@ -98,10 +100,12 @@ ProcessBegin()
   for(auto& p: cl_seg) p.second.clear();
   for(auto& p: cl_de) p.second.clear();
   for(auto& p: cl_time) p.second.clear();
+  for(auto& p: cl_tdif) p.second.clear();
   for(auto& p: cl_size) p.second.clear();
 
   time0 = TMath::QuietNaN();
   btof0 = TMath::QuietNaN();
+  ftof0 = TMath::QuietNaN();
 
   return true;
 }
@@ -119,6 +123,7 @@ ProcessNormal()
   hodoAna.DecodeHits<FiberHit>("BHT");
   // hodoAna.TimeCut("BHT");
   hodoAna.DecodeHits<BH2Hit>("T0");
+  hodoAna.DecodeHits("CVC");
 
   EventAnalyzer evAna;
 
@@ -190,12 +195,14 @@ ProcessNormal()
       cl_seg[n].push_back(cl->MeanSeg());
       cl_de[n].push_back(cl->DeltaE());
       cl_time[n].push_back(cl->CTime());
+      cl_tdif[n].push_back(cl->TimeDiff());
       cl_size[n].push_back(cl->ClusterSize());
     }
   }
 
   time0 = hodoAna.Time0();
   btof0 = hodoAna.Btof0();
+  ftof0 = hodoAna.Ftof0();
 
   HF1("Status", 20);
 
@@ -261,11 +268,13 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_cl_seg", n.Data()), &cl_seg[NameHodo[ihodo]]);
     tree->Branch(Form("%s_cl_de", n.Data()), &cl_de[NameHodo[ihodo]]);
     tree->Branch(Form("%s_cl_time", n.Data()), &cl_time[NameHodo[ihodo]]);
+    tree->Branch(Form("%s_cl_tdif", n.Data()), &cl_tdif[NameHodo[ihodo]]);
     tree->Branch(Form("%s_cl_size", n.Data()), &cl_size[NameHodo[ihodo]]);
   }
 
   tree->Branch("time0", &time0);
   tree->Branch("btof0", &btof0);
+  tree->Branch("ftof0", &ftof0);
 
   return true;
 }

@@ -268,18 +268,17 @@ HodoAnalyzer::GetTime0Cluster() const
 }
 
 //_____________________________________________________________________________
-const FiberCluster*
+const HodoCluster*
 HodoAnalyzer::GetBtof0Cluster() const
 {
-  const FiberCluster* cl_btof0 = nullptr;
+  const HodoCluster* cl_btof0 = nullptr;
   Double_t time0 = Time0();
   if(TMath::IsNaN(time0)) return nullptr;
   Double_t min_btof = DBL_MAX;
   for(Int_t i=0, n=GetNClusters("BHT"); i<n; ++i){
-    const auto& cluster = GetCluster<FiberCluster>("BHT", i);
-    // Double_t cmt  = cluster->CMeanTime();
-    for(Int_t j=0, m=cluster->ClusterSize(); j<m; ++j){
-      Double_t cmt  = cluster->GetHit(j)->CMeanTime();
+    const auto& cluster = GetCluster("BHT", i);
+    for(const auto& hit: cluster->GetHitContainer()){
+      Double_t cmt  = hit->CMeanTime();
       Double_t btof = cmt - time0;
       if(true
          && TMath::Abs(btof) < TMath::Abs(min_btof)
@@ -291,10 +290,38 @@ HodoAnalyzer::GetBtof0Cluster() const
         min_btof = btof;
         cl_btof0 = cluster;
       }
-    }// T0 selection
-  }// for
-
+    }
+  }
   return cl_btof0;
+}
+
+//_____________________________________________________________________________
+const HodoCluster*
+HodoAnalyzer::GetFtof0Cluster() const
+{
+  const HodoCluster* cl_ftof0 = nullptr;
+  Double_t time0 = Time0();
+  if(TMath::IsNaN(time0)) return nullptr;
+  Double_t min_ftof = DBL_MAX;
+  for(Int_t i=0, n=GetNClusters("CVC"); i<n; ++i){
+    const auto& cluster = GetCluster("CVC", i);
+    for(const auto& hit: cluster->GetHitContainer()){
+      Double_t cmt  = hit->CMeanTime();
+      Double_t ftof = cmt - time0;
+      if(true
+         && TMath::Abs(ftof) < TMath::Abs(min_ftof)
+         && gUser.IsInRange("FTOF", ftof)
+         && gUser.IsInRange("CVC_TimeDiff", hit->TimeDiff())
+#if REQDE
+         && gUser.IsInRange("CVC_DeltaE", cluster->DeltaE())
+#endif
+         ){
+        min_ftof = ftof;
+        cl_ftof0 = cluster;
+      }
+    }
+  }
+  return cl_ftof0;
 }
 
 //_____________________________________________________________________________
@@ -339,8 +366,43 @@ Double_t
 HodoAnalyzer::Btof0() const
 {
   const auto& cl = GetBtof0Cluster();
-  if(cl) return cl->CMeanTime() - Time0();
-  else   return TMath::QuietNaN();
+  if(cl){
+    Double_t btof0 = DBL_MAX;
+    for(const auto& hit: cl->GetHitContainer()){
+      Double_t cmt  = hit->CMeanTime();
+      Double_t btof = cmt - Time0();
+      if(true
+         && TMath::Abs(btof) < TMath::Abs(btof0)
+         ){
+        btof0 = btof;
+      }
+    }
+    return btof0;
+  }else{
+    return TMath::QuietNaN();
+  }
+}
+
+//_____________________________________________________________________________
+Double_t
+HodoAnalyzer::Ftof0() const
+{
+  const auto& cl = GetFtof0Cluster();
+  if(cl){
+    Double_t ftof0 = DBL_MAX;
+    for(const auto& hit: cl->GetHitContainer()){
+      Double_t cmt  = hit->CMeanTime();
+      Double_t ftof = cmt - Time0();
+      if(true
+         && TMath::Abs(ftof) < TMath::Abs(ftof0)
+         ){
+        ftof0 = ftof;
+      }
+    }
+    return ftof0;
+  }else{
+    return TMath::QuietNaN();
+  }
 }
 
 //_____________________________________________________________________________
@@ -357,6 +419,15 @@ Double_t
 HodoAnalyzer::Btof0Seg() const
 {
   const auto& cl = GetBtof0Cluster();
+  if(cl) return cl->MeanSeg();
+  else   return TMath::QuietNaN();
+}
+
+//_____________________________________________________________________________
+Double_t
+HodoAnalyzer::Ftof0Seg() const
+{
+  const auto& cl = GetFtof0Cluster();
   if(cl) return cl->MeanSeg();
   else   return TMath::QuietNaN();
 }

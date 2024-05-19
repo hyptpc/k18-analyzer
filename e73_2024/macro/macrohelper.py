@@ -73,9 +73,10 @@ def finalize():
   logger.info(f'save {fig_path}')
 
 #______________________________________________________________________________
-def fit_gaus(h1, params, limits=None, fitrange=(-2, 2), autozoom=True):
+def fit_gaus(h1, params=None, limits=None, fitrange=(-2, 2), autozoom=True):
   f1 = ROOT.TF1('f1', 'gaus')
-  f1.SetParameters(params)
+  if params is not None:
+    f1.SetParameters(params)
   if limits is not None:
     for i, l in enumerate(limits):
       f1.SetParLimits(i, l[0], l[1])

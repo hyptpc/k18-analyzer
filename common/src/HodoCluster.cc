@@ -29,7 +29,7 @@ HodoCluster::HodoCluster(const HodoHC& cont,
     m_mean_position(),
     m_segment(),
     m_1st_seg(TMath::QuietNaN()),
-    m_1st_time(DBL_MAX),
+    m_1st_time(TMath::QuietNaN()),
     m_time0(),
     m_ctime0()
 {
@@ -63,7 +63,7 @@ HodoCluster::Calculate()
   m_de        = 0.;
   m_segment   = 0.;
   m_1st_seg   = TMath::QuietNaN();
-  m_1st_time  = DBL_MAX;
+  m_1st_time  = (DetectorName() == "BHT") ? DBL_MIN : DBL_MAX;
   m_time0     = 0.;
   m_ctime0    = 0.;
 
@@ -76,22 +76,18 @@ HodoCluster::Calculate()
     m_time0     += hit->Time0(index);
     m_ctime0    += hit->CTime0(index);
     m_time_diff += hit->TimeDiff(index);
-	if(hit->GetName() == "AFT"){
-	  const auto& rawhit = hit->GetRawHit();
-	  bool IsSaturate = ( rawhit->GetAdcHigh(0)>3200 || rawhit->GetAdcHigh(1)>3200 );
-	  if(IsSaturate){
-		m_de += hit->DeltaELowGain();
-		}
-	  else{
-		m_de += hit->DeltaEHighGain();
-	  }
-	}
-    else{
-	  m_de += hit->DeltaE();
-	}
-    if(hit->CMeanTime(index) < m_1st_time){
-      m_1st_seg  = hit->SegmentId();
-      m_1st_time = hit->CMeanTime(index);
+    if(hit->GetName() == "BHT"){
+      m_de = TMath::Max(m_de, hit->DeltaE());
+      if(m_1st_time < hit->CMeanTime(index)){
+        m_1st_seg  = hit->SegmentId();
+        m_1st_time = hit->CMeanTime(index);
+      }
+    }else{
+      m_de += hit->DeltaE();
+      if(hit->CMeanTime(index) < m_1st_time){
+        m_1st_seg  = hit->SegmentId();
+        m_1st_time = hit->CMeanTime(index);
+      }
     }
   }
 
@@ -110,7 +106,7 @@ HodoHit*
 HodoCluster::GetHit(Int_t i) const
 {
   // try {
-    return m_hit_container.at(i);
+  return m_hit_container.at(i);
   // }catch(const std::out_of_range&){
   //   return nullptr;
   // }

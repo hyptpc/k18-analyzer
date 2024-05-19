@@ -61,6 +61,7 @@ public:
   Double_t  FirstSeg() const { return m_1st_seg; }
   Double_t  FirstTime() const { return m_1st_time; }
   HodoHit*  GetHit(Int_t i) const;
+  const HodoHC& GetHitContainer() const { return m_hit_container; }
   void      Print(Option_t* opt="") const;
   Bool_t    ReCalc(Bool_t applyRecusively=false);
 
