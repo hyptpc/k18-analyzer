@@ -123,7 +123,11 @@ ProcessNormal()
   hodoAna.DecodeHits<FiberHit>("BHT");
   // hodoAna.TimeCut("BHT");
   hodoAna.DecodeHits<BH2Hit>("T0");
+  hodoAna.DecodeHits("T1");
+  hodoAna.DecodeHits("AC");
+  hodoAna.DecodeHits("DEF");
   hodoAna.DecodeHits("CVC");
+  hodoAna.DecodeHits("NC");
 
   EventAnalyzer evAna;
 

@@ -32,12 +32,18 @@ BTOF		-15	5
 FTOF		-5	25
 MaxClusterSizeBHT	2
 MaxClusterSizeT0	1
+MaxClusterSizeT1	1
+MaxClusterSizeAC	1
+MaxClusterSizeDEF	1
 MaxClusterSizeCVC	1
 MaxClusterSizeNC	1
 MaxTimeDiffBHT		10
-MaxTimeDiffT0		10
-MaxTimeDiffCVC		10
-MaxTimeDiffNC		10
+MaxTimeDiffT0		-1
+MaxTimeDiffT1		-1
+MaxTimeDiffAC		-1
+MaxTimeDiffDEF		-1
+MaxTimeDiffCVC		-1
+MaxTimeDiffNC		-1
 
 #______________________________________________________________________________
 # DC TDC	min	max
