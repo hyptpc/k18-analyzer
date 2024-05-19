@@ -47,6 +47,7 @@
 #define TrigD 0
 
 #define KKEvent 1
+#define KPEvent 1
 
 #define SaveHistograms 1
 #define RawHit 0
@@ -1214,6 +1215,10 @@ dst::DstRead( int ievent )
 #if KKEvent
   if(src.m2[0] < 0.15 || src.m2[0] > 0.40) return true;
   if(src.qKurama[0] < 0 || src.pKurama[0] > 1.4) return true;
+#endif
+#if KPEvent
+  if(src.m2[0] < 0.5 || src.m2[0] > 1.40) return true;
+  if(src.qKurama[0] < 0) return true;
 #endif
   if( ievent%1==0 ){
     std::cout << "#D Event Number: "
