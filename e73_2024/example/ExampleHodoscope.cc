@@ -43,6 +43,8 @@ TTree* tree;
 UInt_t run_number;
 UInt_t event_number;
 beam::EBeamFlag beam_flag;
+tdc_t trig_flag;
+seg_t trig_pat;
 
 std::map<TString, seg_t> raw_seg;
 std::map<TString, adc_t> adc_u;
@@ -79,6 +81,8 @@ ProcessBegin()
   run_number = gUnpacker.get_run_number();
   event_number = gUnpacker.get_event_number();
   beam_flag = beam::kUnknown;
+  trig_flag.clear();
+  trig_pat.clear();
 
   for(auto& p: raw_seg) p.second.clear();
   for(auto& p: adc_u) p.second.clear();
@@ -153,6 +157,11 @@ ProcessNormal()
   evAna.HodoCluster(hodoAna, beam_flag);
 
   HF1("Status", 4);
+
+  for(const auto& hit: rawData.GetHodoRawHC("TriggerFlag")){
+    trig_flag.push_back(hit->GetArrayTdcUp());
+    trig_pat.push_back(hit->SegmentId());
+  }
 
   for(const auto& hit: rawData.GetHodoRawHC("BHT")){
     raw_seg["BHT"].push_back(hit->SegmentId());
@@ -235,6 +244,8 @@ ConfMan::InitializeHistograms()
   tree->Branch("run_number", &run_number);
   tree->Branch("event_number", &event_number);
   tree->Branch("beam_flag", &beam_flag, "beam_flag/I");
+  tree->Branch("trig_flag", &trig_flag);
+  tree->Branch("trig_pat", &trig_pat);
   tree->Branch("bht_raw_seg", &raw_seg["BHT"]);
   tree->Branch("bht_tdc_u", &tdc_u["BHT"]);
   tree->Branch("bht_tdc_d", &tdc_d["BHT"]);
