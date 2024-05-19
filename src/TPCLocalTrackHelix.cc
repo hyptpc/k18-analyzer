@@ -3654,6 +3654,8 @@ TPCLocalTrackHelix::GetThetaResolution(){
   Double_t d_slope = GetdZResolution();
   return d_slope / (1+m_dz*m_dz);
 }
+
+//_____________________________________________________________________________
 Double_t
 TPCLocalTrackHelix::GetMomentumResolution(){
   Double_t d_slope = GetdZResolution();
