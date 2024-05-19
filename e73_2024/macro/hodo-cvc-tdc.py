@@ -11,7 +11,7 @@ import yaml
 import ROOT
 
 import hdprm
-import macrohelper
+import macrohelper as mh
 
 logger = logging.getLogger(__name__)
 name = 'CVC'
@@ -50,7 +50,7 @@ def tdc(ud, tdcrange=(1.21e6, 1.24e6), fit=True):
           (mean - 3*sigma, mean + 3*sigma),
           (1e2, 1e4)
         ]
-        result = macrohelper.fit_gaus(h1, params=params, limits=limits)
+        result = mh.fit_gaus(h1, params=params, limits=limits)
         key = (cid, 0, seg, 1, 0 if ud == 'U' else 1)
         result_dict[key] = (result.GetParameter(1), -0.000939002)
       else:
@@ -66,11 +66,11 @@ def time(ud='', timerange=(-10, 10), key='Time'):
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   c1.Clear()
-  c1.Divide(3, 2)
+  c1.Divide(5, 2)
   pcolor = [ROOT.kBlack, ROOT.kBlue+2, ROOT.kGreen+2, ROOT.kRed+2]
   for seg in range(n_seg):
     c1.cd(seg+1) #.SetLogy()
-    for j, b in enumerate(['', '_Pi', '_K', '_P']):
+    for j, b in enumerate(mh.beamflag):
       hname = name + f'_Hit_{key}_seg{seg}{ud}{b}'
       h1 = ROOT.gFile.Get(hname)
       if h1:
@@ -117,7 +117,7 @@ def time2d():
 
 #______________________________________________________________________________
 def single_run(run_info):
-  macrohelper.initialize(run_info, fig_tail='_cvc_tdc')
+  mh.initialize(run_info, fig_tail='_cvc_tdc')
   result_dict = {'generator': os.path.basename(__file__)}
   for ud in ['U', 'D']:
     ret = tdc(ud=ud)
@@ -129,7 +129,7 @@ def single_run(run_info):
       ret = time(ud=ud, key=key)
   time2d()
   hdprm.output_result(run_info, result_dict, update=parsed.update)
-  macrohelper.finalize()
+  mh.finalize()
 
 #______________________________________________________________________________
 if __name__ == "__main__":
@@ -141,4 +141,4 @@ if __name__ == "__main__":
   log_conf = os.path.join(os.path.dirname(__file__), 'logging_config.yml')
   with open(log_conf, 'r') as f:
     logging.config.dictConfig(yaml.safe_load(f))
-  macrohelper.run(parsed.run_list, single_run)
+  mh.run(parsed.run_list, single_run)

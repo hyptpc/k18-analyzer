@@ -11,7 +11,7 @@ import yaml
 import ROOT
 
 import hdphc
-import macrohelper
+import macrohelper as mh
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,10 @@ def ftof_cluster():
   for pair in [['CTime0', 'CFtof0'],
                ['CFtof0_vs_deT0Seg', 'CFtof0_vs_deFtof0Seg']]:
     c1.Clear()
-    c1.Divide(4, 2)
+    c1.Divide(3, 2)
     for i, key in enumerate(pair):
-      for j, beamflag in enumerate(['', '_Pi', '_K', '_P']):
-        c1.cd(i*4+j+1).SetLogz()
+      for j, beamflag in enumerate(mh.beamflag):
+        c1.cd(i*3+j+1).SetLogz()
         hname = f'{key}{beamflag}'
         h1 = ROOT.gFile.Get(hname)
         if h1:
@@ -36,8 +36,12 @@ def ftof_cluster():
             h1.Draw('colz')
           else:
             h1.Draw('colz')
-            if h1.GetEntries() > 1e3:
-              macrohelper.fit_gaus(h1)
+            if j > 0 and h1.GetEntries() > 1e3:
+              params = np.ndarray(3, dtype='float64')
+              params[0] = h1.GetMaximum()
+              params[1] = h1.GetBinCenter(h1.GetMaximumBin())
+              params[2] = 0.2
+              mh.fit_gaus(h1, params=params)
         else:
           logger.warning(f'cannot find {hname}')
     c1.Modified()
@@ -50,10 +54,10 @@ def ftof_hit():
   fig_path = c1.GetTitle()
   for name in ['CVC', 'T0']:
     c1.Clear()
-    c1.Divide(4, 2)
+    c1.Divide(3, 2)
     for i, key in enumerate(['FTOF', 'CFTOF']):
-      for j, beamflag in enumerate(['', '_Pi', '_K', '_P']):
-        c1.cd(i*4+j+1).SetLogz()
+      for j, beamflag in enumerate(mh.beamflag):
+        c1.cd(i*3+j+1).SetLogz()
         hname = name + f'_{key}_vs_DeltaE{beamflag}'
         h1 = ROOT.gFile.Get(hname)
         if h1:
@@ -67,10 +71,10 @@ def ftof_hit():
 
 #______________________________________________________________________________
 def single_run(run_info):
-  macrohelper.initialize(run_info, fig_tail='_ftof')
+  mh.initialize(run_info, fig_tail='_ftof')
   ftof_hit()
   ftof_cluster()
-  macrohelper.finalize()
+  mh.finalize()
 
 #______________________________________________________________________________
 if __name__ == "__main__":
@@ -82,4 +86,4 @@ if __name__ == "__main__":
   log_conf = os.path.join(os.path.dirname(__file__), 'logging_config.yml')
   with open(log_conf, 'r') as f:
     logging.config.dictConfig(yaml.safe_load(f))
-  macrohelper.run(parsed.run_list, single_run)
+  mh.run(parsed.run_list, single_run)

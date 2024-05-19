@@ -207,9 +207,9 @@ const int NumOfPlaneVmeRm=3;
 namespace beam
 {
 enum EBeamFlag {
-  kAll, kPion, kKaon, kProton, kUnknown, kBeamFlag
+  kAll, kPion, kKaon, /* kProton, */ kUnknown, kBeamFlag
 };
-const std::vector<TString> BeamFlagList{"", "_Pi", "_K", "_P"};
+const std::vector<TString> BeamFlagList{"", "_Pi", "_K", /* "_P" */};
 }
 
 namespace trigger

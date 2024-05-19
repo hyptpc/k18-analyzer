@@ -57,7 +57,6 @@ EventAnalyzer::BeamFlag(const RawData& rawData)
   }
   Bool_t btof_pi = false;
   Bool_t btof_k = false;
-  Bool_t btof_p = false;
   // BHT
   {
     static const Char_t* name = "BHT";
@@ -69,8 +68,6 @@ EventAnalyzer::BeamFlag(const RawData& rawData)
             btof_pi = true;
           if(gUser.IsInRange(Form("%s_TDC_K", name), t))
             btof_k = true;
-          if(gUser.IsInRange(Form("%s_TDC_P", name), t))
-            btof_p = true;
         }
       }
     }
@@ -80,8 +77,6 @@ EventAnalyzer::BeamFlag(const RawData& rawData)
     flag = beam::kPion;
   else if(!ac_hit && btof_k)
     flag = beam::kKaon;
-  else if(!ac_hit && btof_p)
-    flag = beam::kProton;
   else
     flag = beam::kUnknown;
   HF1("BeamFlag", beam::kAll);
@@ -210,7 +205,6 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     Int_t multi = 0;
     for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
       const auto& hit = hodoAna.GetHit<FiberHit>(name, i);
-      // if(beam_flag == beam::kProton) hit->Print();
       auto seg = hit->SegmentId();
       Bool_t is_good = false;
       for(Int_t j=0, m=hit->GetEntries(); j<m; ++j){

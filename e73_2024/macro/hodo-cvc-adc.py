@@ -11,7 +11,7 @@ import yaml
 import ROOT
 
 import hdprm
-import macrohelper
+import macrohelper as mh
 
 logger = logging.getLogger(__name__)
 name = 'CVC'
@@ -51,8 +51,8 @@ def adc(ud, adcrange=(0, 4000), key='ADC', fit=True):
           (1, 100)
         ]
         fitrange = (-2, 2) if key == 'AwoT' else (-2, 1)
-        result = macrohelper.fit_gaus(h1, params=params, limits=limits,
-                                      fitrange=fitrange)
+        result = mh.fit_gaus(h1, params=params, limits=limits,
+                             fitrange=fitrange)
         k = (cid, 0, seg, 0, 0 if ud == 'U' else 1)
         result_dict[k] = result.GetParameter(1)
       else:
@@ -70,17 +70,16 @@ def de(ud='', derange=(0, 5), key='DeltaE'):
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   c1.Clear()
-  c1.Divide(3, 2)
+  c1.Divide(5, 2)
   pcolor = [ROOT.kBlack, ROOT.kBlue+2, ROOT.kGreen+2, ROOT.kRed+2]
   for seg in range(n_seg):
     c1.cd(seg+1) #.SetLogy()
-    for j, b in enumerate(['', '_Pi', '_K', '_P']):
+    for j, b in enumerate(mh.beamflag):
       hname = name + f'_Hit_{key}_seg{seg}{ud}{b}'
       h1 = ROOT.gFile.Get(hname)
       if h1:
         logger.debug(hname)
         h1.SetLineColor(pcolor[j])
-        h1.RebinX(5)
         h1.GetXaxis().SetRangeUser(derange[0], derange[1])
         h1.Draw('same')
       else:
@@ -91,7 +90,7 @@ def de(ud='', derange=(0, 5), key='DeltaE'):
 
 #______________________________________________________________________________
 def single_run(run_info):
-  macrohelper.initialize(run_info, fig_tail='_cvc_adc')
+  mh.initialize(run_info, fig_tail='_cvc_adc')
   result_dict = {'generator': os.path.basename(__file__)}
   for ud in ['U', 'D']:
     ret = adc(key='AwoT', ud=ud, adcrange=(0, 250))
@@ -103,7 +102,7 @@ def single_run(run_info):
   for ud in ['U', 'D', '']:
     de(ud=ud)
   hdprm.output_result(run_info, result_dict, update=parsed.update)
-  macrohelper.finalize()
+  mh.finalize()
 
 #______________________________________________________________________________
 if __name__ == "__main__":
@@ -115,4 +114,4 @@ if __name__ == "__main__":
   log_conf = os.path.join(os.path.dirname(__file__), 'logging_config.yml')
   with open(log_conf, 'r') as f:
     logging.config.dictConfig(yaml.safe_load(f))
-  macrohelper.run(parsed.run_list, single_run)
+  mh.run(parsed.run_list, single_run)

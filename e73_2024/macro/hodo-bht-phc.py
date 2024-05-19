@@ -11,7 +11,7 @@ import yaml
 import ROOT
 
 import hdphc
-import macrohelper
+import macrohelper as mh
 
 logger = logging.getLogger(__name__)
 name = 'BHT'
@@ -56,8 +56,8 @@ def phc(start_seg, ud, key, beamflag='', fit=True, pfrange=(-2, 2),
         prof = h1.ProfileX('_pfx', h1.GetYaxis().FindBin(pfrange[0]),
                            h1.GetYaxis().FindBin(pfrange[1]))
         prof.RebinX(4)
-        result = macrohelper.fit_phc(prof, params=params, limits=limits,
-                                     fitrange=fitrange)
+        result = mh.fit_phc(prof, params=params, limits=limits,
+                            fitrange=fitrange)
         k = (bht_cid, 0, seg, 0 if ud == 'U' else 1)
         result_dict[k] = (1, 3, result.GetParameter(0),
                           result.GetParameter(1), result.GetParameter(2))
@@ -72,7 +72,7 @@ def phc(start_seg, ud, key, beamflag='', fit=True, pfrange=(-2, 2),
 
 #______________________________________________________________________________
 def single_run(run_info):
-  macrohelper.initialize(run_info, fig_tail='_bht_phc')
+  mh.initialize(run_info, fig_tail='_bht_phc')
   result_dict = {'generator': os.path.basename(__file__)}
   for ud in ['U', 'D']:
     for seg in range(4):
@@ -80,7 +80,7 @@ def single_run(run_info):
       result_dict.update(ret)
       phc(start_seg=seg*16, ud=ud, key='CBTOF', beamflag=beamflag, fit=False)
   hdphc.output_result(run_info, result_dict, update=parsed.update)
-  macrohelper.finalize()
+  mh.finalize()
 
 #______________________________________________________________________________
 if __name__ == "__main__":
@@ -92,4 +92,4 @@ if __name__ == "__main__":
   log_conf = os.path.join(os.path.dirname(__file__), 'logging_config.yml')
   with open(log_conf, 'r') as f:
     logging.config.dictConfig(yaml.safe_load(f))
-  macrohelper.run(parsed.run_list, single_run)
+  mh.run(parsed.run_list, single_run)

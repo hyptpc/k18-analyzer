@@ -11,7 +11,7 @@ import yaml
 import ROOT
 
 import hdphc
-import macrohelper
+import macrohelper as mh
 
 logger = logging.getLogger(__name__)
 name = 'CVC'
@@ -49,8 +49,8 @@ def phc(ud, key, fit=True):
         h1.Draw('colz')
         prof = h1.ProfileX()
         # prof.RebinX(4)
-        result = macrohelper.fit_phc(prof, params=params, limits=limits,
-                                     fitrange=(0.2, 2.0))
+        result = mh.fit_phc(prof, params=params, limits=limits,
+                            fitrange=(0.2, 2.0))
         k = (cid, 0, seg, 0 if ud == 'U' else 1)
         result_dict[k] = (1, 3, result.GetParameter(0),
                           result.GetParameter(1), result.GetParameter(2))
@@ -66,14 +66,14 @@ def phc(ud, key, fit=True):
 
 #______________________________________________________________________________
 def single_run(run_info):
-  macrohelper.initialize(run_info, fig_tail='_cvc_phc')
+  mh.initialize(run_info, fig_tail='_cvc_phc')
   result_dict = {'generator': os.path.basename(__file__)}
   for ud in ['U', 'D']:
     ret = phc(ud=ud, key='FTOF')
     result_dict.update(ret)
     phc(ud=ud, key='CFTOF', fit=False)
   hdphc.output_result(run_info, result_dict, update=parsed.update)
-  macrohelper.finalize()
+  mh.finalize()
 
 #______________________________________________________________________________
 if __name__ == "__main__":
@@ -85,4 +85,4 @@ if __name__ == "__main__":
   log_conf = os.path.join(os.path.dirname(__file__), 'logging_config.yml')
   with open(log_conf, 'r') as f:
     logging.config.dictConfig(yaml.safe_load(f))
-  macrohelper.run(parsed.run_list, single_run)
+  mh.run(parsed.run_list, single_run)

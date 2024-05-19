@@ -22,6 +22,8 @@ ROOT.gROOT.SetBatch()
 ROOT.gStyle.SetOptStat(1110)
 
 c1 = None
+beamflag = ['', '_Pi', '_K']
+beamcolor = [ROOT.kBlack, ROOT.kRed+2, ROOT.kBlue+2]
 
 #______________________________________________________________________________
 def daq():
@@ -51,14 +53,12 @@ def efficiency(h1):
   tex.SetTextColor(h1.GetLineColor())
   tex.SetTextSize(0.08)
   x = 0.45
-  if h1.GetLineColor() == ROOT.kBlack:
+  if h1.GetLineColor() == beamcolor[0]:
     y = 0.78
-  elif h1.GetLineColor() == ROOT.kBlue+2:
+  elif h1.GetLineColor() == beamcolor[1]:
     y = 0.70
-  elif h1.GetLineColor() == ROOT.kGreen+2:
+  elif h1.GetLineColor() == beamcolor[2]:
     y = 0.62
-  elif h1.GetLineColor() == ROOT.kRed+2:
-    y = 0.54
   elif h1.GetLineColor() == ROOT.kRed+1:
     y = 0.62
   else:
@@ -99,7 +99,7 @@ def fit_phc(h1, params, limits=None, fitrange=(0.5, 1.5)):
   return f1
 
 #______________________________________________________________________________
-def initialize(run_info, fig_tail=''):
+def initialize(run_info, fig_tail='', comment=''):
   logger.debug(run_info)
   try:
     root_path = run_info['root']
@@ -116,7 +116,7 @@ def initialize(run_info, fig_tail=''):
     return
   logger.info(f'open {root_path}')
   c1.Print(fig_path+'[')
-  title()
+  title(comment=comment)
   status()
 
 #______________________________________________________________________________
@@ -163,7 +163,7 @@ def status():
     ROOT.gStyle.SetOptStat(prev_opt)
 
 #______________________________________________________________________________
-def title():
+def title(comment):
   fig_path = c1.GetTitle()
   name = ROOT.gFile.GetName()
   now = ROOT.TTimeStamp()
@@ -178,6 +178,8 @@ def title():
   tex.SetTextSize(0.08)
   tex.DrawLatex(0.5, 0.50, os.path.basename(name))
   tex.DrawLatex(0.5, 0.42, 'Creation time: '+now.AsString('s'))
+  tex.SetTextSize(0.04)
+  tex.DrawLatex(0.5, 0.34, comment)
   c1.Print(fig_path)
   logger.info(sys.argv)
   logger.info(f'time={now.AsString("s")}')

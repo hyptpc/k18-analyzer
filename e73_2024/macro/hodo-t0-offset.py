@@ -11,7 +11,7 @@ import yaml
 import ROOT
 
 import hdprm
-import macrohelper
+import macrohelper as mh
 
 logger = logging.getLogger(__name__)
 name = 'T0'
@@ -49,7 +49,7 @@ def offset(offsetrange=(-2, 2), fit=True):
           (mean - 3*sigma, mean + 3*sigma),
           (0.05, 1.0)
         ]
-        result = macrohelper.fit_gaus(h1, params=params, limits=limits)
+        result = mh.fit_gaus(h1, params=params, limits=limits)
         key = (cid, 0, seg, 1, 2)
         result_dict[key] = (result.GetParameter(1), f'{1:.6f}')
       else:
@@ -61,12 +61,12 @@ def offset(offsetrange=(-2, 2), fit=True):
 
 #______________________________________________________________________________
 def single_run(run_info):
-  macrohelper.initialize(run_info, fig_tail='_t0_offset')
+  mh.initialize(run_info, fig_tail='_t0_offset')
   result_dict = {'generator': os.path.basename(__file__)}
   ret = offset()
   result_dict.update(ret)
   hdprm.output_result(run_info, result_dict, update=parsed.update)
-  macrohelper.finalize()
+  mh.finalize()
 
 #______________________________________________________________________________
 if __name__ == "__main__":
@@ -78,4 +78,4 @@ if __name__ == "__main__":
   log_conf = os.path.join(os.path.dirname(__file__), 'logging_config.yml')
   with open(log_conf, 'r') as f:
     logging.config.dictConfig(yaml.safe_load(f))
-  macrohelper.run(parsed.run_list, single_run)
+  mh.run(parsed.run_list, single_run)

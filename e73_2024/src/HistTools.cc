@@ -31,7 +31,7 @@ const Double_t mhtotbins[3] = {1000, 0, 1000};
 const Double_t hrtimebins[3] = {5000, -50, 50};
 const Double_t mhtimebins[3] = {500, -50, 50};
 const Double_t hrtottimebins[3] = {1000, 0, 200};
-const Double_t debins[3] = {200, 0, 10};
+const Double_t debins[3] = {1000, 0, 10};
 
 //_____________________________________________________________________________
 void

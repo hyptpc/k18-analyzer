@@ -11,7 +11,7 @@ import yaml
 import ROOT
 
 import hdprm
-import macrohelper
+import macrohelper as mh
 
 logger = logging.getLogger(__name__)
 name = 'BHT'
@@ -52,7 +52,7 @@ def tot(start_seg, ud, beamflag='', totrange=(0, 40), fit=True):
           (mean - 3*sigma, mean + 3*sigma),
           (1, 100)
         ]
-        result = macrohelper.fit_gaus(h1, params=params, limits=limits)
+        result = mh.fit_gaus(h1, params=params, limits=limits)
         key = (bht_cid, 0, seg, 0, 0 if ud == 'U' else 1)
         result_dict[key] = (0, result.GetParameter(1))
       else:
@@ -77,13 +77,12 @@ def de(start_seg, ud='', derange=(0, 3)):
     seg = start_seg + i
     if seg >= n_seg:
       continue
-    for j, b in enumerate(['', '_Pi', '_K', '_P']):
+    for j, b in enumerate(mh.beamflag):
       hname = name + f'_Hit_DeltaE_seg{seg}{ud}{b}'
       h1 = ROOT.gFile.Get(hname)
       if h1:
         logger.debug(hname)
         h1.SetLineColor(pcolor[j])
-        h1.RebinX(2)
         h1.GetXaxis().SetRangeUser(derange[0], derange[1])
         h1.Draw('same')
       else:
@@ -125,7 +124,7 @@ def time2d():
 
 #______________________________________________________________________________
 def single_run(run_info):
-  macrohelper.initialize(run_info, fig_tail='_bht_tot')
+  mh.initialize(run_info, fig_tail='_bht_tot')
   result_dict = {'generator': os.path.basename(__file__)}
   for ud in ['U', 'D']:
     for seg in range(4):
@@ -136,7 +135,7 @@ def single_run(run_info):
       ret = de(start_seg=seg*16, ud=ud)
   time2d()
   hdprm.output_result(run_info, result_dict, update=parsed.update)
-  macrohelper.finalize()
+  mh.finalize()
 
 #______________________________________________________________________________
 if __name__ == "__main__":
@@ -148,4 +147,4 @@ if __name__ == "__main__":
   log_conf = os.path.join(os.path.dirname(__file__), 'logging_config.yml')
   with open(log_conf, 'r') as f:
     logging.config.dictConfig(yaml.safe_load(f))
-  macrohelper.run(parsed.run_list, single_run)
+  mh.run(parsed.run_list, single_run)
