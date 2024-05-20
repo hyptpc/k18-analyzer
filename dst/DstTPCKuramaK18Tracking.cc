@@ -374,6 +374,7 @@ struct Event
   std::vector<Int_t> tpcidTPCKurama;
   std::vector<Int_t> niterationTPCKurama;
   std::vector<Int_t> kflagTPCKurama;
+  std::vector<Int_t> pflagTPCKurama;
   std::vector<Double_t> chisqrTPCKurama;
   std::vector<Double_t> pTPCKurama;
   std::vector<Double_t> qTPCKurama;
@@ -757,6 +758,7 @@ struct Event
     tpcidTPCKurama.clear();
     niterationTPCKurama.clear();
     kflagTPCKurama.clear();
+    pflagTPCKurama.clear();
     chisqrTPCKurama.clear();
     pTPCKurama.clear();
     qTPCKurama.clear();
@@ -1690,6 +1692,7 @@ dst::DstRead( int ievent )
   event.tpcidTPCKurama.resize( src.ntKurama );
   event.niterationTPCKurama.resize( src.ntKurama );
   event.kflagTPCKurama.resize( src.ntKurama );
+  event.pflagTPCKurama.resize( src.ntKurama );
   event.chisqrTPCKurama.resize( src.ntKurama );
   event.pTPCKurama.resize( src.ntKurama );
   event.qTPCKurama.resize( src.ntKurama );
@@ -1757,6 +1760,8 @@ dst::DstRead( int ievent )
     event.pathTPCKurama[idkurama] = pathtof;
     if(event.m2TPCKurama[idkurama] > 0.15 && event.m2TPCKurama[idkurama] < 0.40)
       event.kflagTPCKurama[idkurama] = 1;
+    if(event.m2TPCKurama[idkurama] > 0.40 && event.m2TPCKurama[idkurama] < 1.50)
+      event.pflagTPCKurama[idkurama] = 1;
 
     Double_t path, x, y;
     TVector3 mom;
@@ -3714,6 +3719,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "isgoodTPCKurama", &event.isgoodTPCKurama);
   tree->Branch( "niterationTPCKurama", &event.niterationTPCKurama);
   tree->Branch( "kflagTPCKurama", &event.kflagTPCKurama);
+  tree->Branch( "pflagTPCKurama", &event.pflagTPCKurama);
   tree->Branch( "chisqrTPCKurama", &event.chisqrTPCKurama);
   tree->Branch( "pTPCKurama", &event.pTPCKurama);
   tree->Branch( "qTPCKurama", &event.qTPCKurama);

@@ -38,6 +38,7 @@
 #define TrigD 0
 
 #define KKEvent 1
+#define KPEvent 0
 #define SaveHistograms 1
 
 namespace
@@ -245,7 +246,8 @@ struct Event
   std::vector<Double_t> ykp;
   std::vector<Double_t> ukp;
   std::vector<Double_t> vkp;
-  std::vector<Int_t> Kflag;
+  std::vector<Int_t> Kflag; 
+  std::vector<Int_t> Pflag;
 
   //TPC RK
   std::vector<Int_t> isgoodTPCK18;
@@ -268,6 +270,7 @@ struct Event
   std::vector<Int_t> tpcidTPCKurama;
   std::vector<Int_t> isgoodTPCKurama;
   std::vector<Int_t> kflagTPCKurama;
+  std::vector<Int_t> pflagTPCKurama;
   std::vector<Double_t> chisqrTPCKurama;
   std::vector<Double_t> pTPCKurama;
   std::vector<Double_t> qTPCKurama;
@@ -509,6 +512,7 @@ struct Event
     ukp.clear();
     vkp.clear();
     Kflag.clear();
+    Pflag.clear();
 
     tpcidTPCK18.clear();
     isgoodTPCK18.clear();
@@ -530,6 +534,7 @@ struct Event
     tpcidTPCKurama.clear();
     isgoodTPCKurama.clear();
     kflagTPCKurama.clear();
+    pflagTPCKurama.clear();
     chisqrTPCKurama.clear();
     pTPCKurama.clear();
     qTPCKurama.clear();
@@ -706,6 +711,7 @@ struct Src
   TTreeReaderValue<std::vector<Int_t>>* tpcidTPCKurama;
   TTreeReaderValue<std::vector<Int_t>>* isgoodTPCKurama;
   TTreeReaderValue<std::vector<Int_t>>* kflagTPCKurama;
+  TTreeReaderValue<std::vector<Int_t>>* pflagTPCKurama;
   TTreeReaderValue<std::vector<Double_t>>* chisqrTPCKurama;
   TTreeReaderValue<std::vector<Double_t>>* pTPCKurama;
   TTreeReaderValue<std::vector<Double_t>>* qTPCKurama;
@@ -854,6 +860,7 @@ struct Src
   Double_t ukp[MaxHits];
   Double_t vkp[MaxHits];
   Int_t Kflag[MaxHits];
+  Int_t Pflag[MaxHits];
 
 };
 
@@ -983,6 +990,9 @@ dst::DstRead( int ievent )
 #if KKEvent
   if(src.Kflag[0] != 1) return true;
 #endif
+#if KPEvent
+  if(src.Pflag[0] != 1) return true;
+#endif
 
   if(src.ntKurama != **src.ntTPCKurama)
     std::cerr << "Kurama Event Missmatching : DstTPCKuramaK18Tracking <-> DstKScat" << std::endl;
@@ -1041,6 +1051,7 @@ dst::DstRead( int ievent )
   event.tpcidTPCKurama = **src.tpcidTPCKurama;
   event.isgoodTPCKurama = **src.isgoodTPCKurama;
   event.kflagTPCKurama = **src.kflagTPCKurama;
+  event.kflagTPCKurama = **src.pflagTPCKurama;
   event.chisqrTPCKurama = **src.chisqrTPCKurama;
   event.pTPCKurama = **src.pTPCKurama;
   event.qTPCKurama = **src.qTPCKurama;
@@ -1131,6 +1142,7 @@ dst::DstRead( int ievent )
     event.ukp.push_back(src.ukp[it]);
     event.vkp.push_back(src.vkp[it]);
     event.Kflag.push_back(src.Kflag[it]);
+    event.Pflag.push_back(src.Pflag[it]);
   }
   event.isgoodTPC = **src.isgoodTPC;
   event.insideTPC = **src.insideTPC;
@@ -2304,6 +2316,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "tpcidTPCKurama", &event.tpcidTPCKurama);
   tree->Branch( "isgoodTPCKurama", &event.isgoodTPCKurama);
   tree->Branch( "kflagTPCKurama", &event.kflagTPCKurama);
+  tree->Branch( "pflagTPCKurama", &event.pflagTPCKurama);
   tree->Branch( "chisqrTPCKurama", &event.chisqrTPCKurama);
   tree->Branch( "pTPCKurama", &event.pTPCKurama);
   tree->Branch( "qTPCKurama", &event.qTPCKurama);
@@ -2345,6 +2358,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("us",         &event.ukp);
   tree->Branch("vs",         &event.vkp);
   tree->Branch("Kflag",      &event.Kflag);
+  tree->Branch("Pflag",      &event.Pflag);
 
   tree->Branch( "isgoodTPC", &event.isgoodTPC);
   tree->Branch( "insideTPC", &event.insideTPC);
@@ -2497,6 +2511,7 @@ ConfMan::InitializeHistograms( void )
   src.tpcidTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "tpcidTPCKurama" );
   src.isgoodTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isgoodTPCKurama" );
   src.kflagTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "kflagTPCKurama" );
+  src.pflagTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "pflagTPCKurama" );
   src.chisqrTPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqrTPCKurama" );
   src.pTPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pTPCKurama" );
   src.qTPCKurama  = new TTreeReaderValue<std::vector<Double_t>>( *reader, "qTPCKurama" );
@@ -2643,6 +2658,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKScat]->SetBranchStatus("ukp",            1);
   TTreeCont[kKScat]->SetBranchStatus("vkp",            1);
   TTreeCont[kKScat]->SetBranchStatus("Kflag",          1);
+  TTreeCont[kKScat]->SetBranchStatus("Pflag",          1);
 
   TTreeCont[kKScat]->SetBranchAddress("ntK18",    &src.ntK18);
   TTreeCont[kKScat]->SetBranchAddress("chisqrK18", src.chisqrK18);
@@ -2711,6 +2727,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKScat]->SetBranchAddress("ukp",       src.ukp);
   TTreeCont[kKScat]->SetBranchAddress("vkp",       src.vkp);
   TTreeCont[kKScat]->SetBranchAddress("Kflag",     src.Kflag);
+  TTreeCont[kKScat]->SetBranchAddress("Pflag",     src.Pflag);
   return true;
 }
 

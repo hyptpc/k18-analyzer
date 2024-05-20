@@ -276,6 +276,7 @@ struct Event
   Double_t thetaCM[MaxHits];
   Double_t costCM[MaxHits];
   Int_t Kflag[MaxHits];
+  Int_t Pflag[MaxHits];
 
   Double_t xkm[MaxHits];
   Double_t ykm[MaxHits];
@@ -686,6 +687,7 @@ dst::InitializeEvent()
     event.MissMassCorr[it] = qnan;
     event.MissMassCorrDE[it] = qnan;
     event.Kflag[it] = 0;
+    event.Pflag[it] = 0;
 
     event.xkm[it] = qnan;
     event.ykm[it] = qnan;
@@ -1029,6 +1031,7 @@ dst::DstRead(Int_t ievent)
 
     ///for Kflag///
     Int_t Kflag=0;
+    Int_t Pflag=0;
     // Double_t dEdx = Mip2MeV*best_de/sqrt(1+utof*utof+vtof*vtof);
     // if(CalcCutLineByTOF(PionCutMass, 1000*p) < dEdx &&
     //    dEdx < CalcCutLineByTOF(ProtonCutMass, 1000*p)){
@@ -1064,6 +1067,7 @@ dst::DstRead(Int_t ievent)
     event.m2[itKurama] = m2;
     event.m2Org[itKurama] = m2Org;
     event.Kflag[itKurama] = Kflag;
+    event.Pflag[itKurama] = Pflag;
     HF1(3002, Double_t(nh));
     HF1(3003, chisqr);
     HF1(3004, xt); HF1(3005, yt);
@@ -1138,6 +1142,7 @@ dst::DstRead(Int_t ievent)
       }
       else if(event.m2Org[iscat] > 0.4 && event.m2Org[iscat] < 1.5){
 	flagScat = 3; ScatMass = ProtonMass;
+	if(event.qKurama[iscat]>0) event.Pflag[iscat] = 1;
       }
       else flagScat = 0;
 
@@ -1686,7 +1691,8 @@ ConfMan::InitializeHistograms()
   tree->Branch("MissMassCorrDE", event.MissMassCorrDE, "MissMassCorrDE[nKK]/D");
   tree->Branch("thetaCM", event.thetaCM,  "thetaCM[nKK]/D");
   tree->Branch("costCM",  event.costCM,   "costCM[nKK]/D");
-  tree->Branch("Kflag" ,  event.Kflag,    "Kflag[nKK]/I");
+  tree->Branch("Kflag" ,  event.Kflag,    "Kflag[nKK]/I");  
+  tree->Branch("Pflag" ,  event.Pflag,    "Pflag[nKK]/I");
 
   tree->Branch("xkm",        event.xkm,      "xkm[nKK]/D");
   tree->Branch("ykm",        event.ykm,      "ykm[nKK]/D");
