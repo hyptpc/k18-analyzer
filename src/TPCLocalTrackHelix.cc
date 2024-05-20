@@ -1109,6 +1109,13 @@ TPCLocalTrackHelix::TPCLocalTrackHelix(TPCLocalTrackHelix *init){
     this -> m_hit_array[i] -> SetResolution(init -> m_hit_array[i] -> GetResolutionVect());
   }
 
+  static const Double_t MomResScale = gUser.GetParameter("MomResScale") ;
+  static const Double_t dZResScale = gUser.GetParameter("dZResScale") ;
+  static const Double_t PhiResScale = gUser.GetParameter("PhiResScale") ;
+  m_MomResScale = MomResScale;
+  m_dZResScale = dZResScale;
+  m_PhResScale = PhiResScale;
+
   debug::ObjectCounter::increase(ClassName());
 }
 
@@ -3394,7 +3401,7 @@ TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Do
     pz| cos -pt*sin   0 |;
  */
 
-	Double_t cov_pt_t = MomScale * PhiScale * GetTransverseMomentumAngularCovariance(t);
+  Double_t cov_pt_t = MomScale * PhiScale * GetTransverseMomentumAngularCovariance(t);
   Double_t V[3][3] =
     { Vp_t,   cov_pt_t,    0,
       cov_pt_t, Vt,        0,
@@ -3431,7 +3438,7 @@ TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Do
   Double_t Vpz = JVJT[2][2];
   if(Vpx<0 or Vpy<0 or Vpz < 0 or isnan(Vpx) or isnan(Vpy) or isnan(Vpz)){
     std::cout<<Form("MomVar = (%g,%g,%g)",Vpx,Vpy,Vpz)<<std::endl;
-    std::cout<<Form("dPt, dt,ddZ = (%g,%g,%g)",dp_t,dt,ddZ)<<std::endl;
+    std::cout<<Form("dPt,dt,ddZ = (%g,%g,%g)",dp_t,dt,ddZ)<<std::endl;
   }
   return TVector3(sqrt(Vpx), sqrt(Vpy), sqrt(Vpz));
 }

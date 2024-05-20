@@ -1228,7 +1228,6 @@ LambdaVertex(Double_t Bfield, Double_t p_par[5], Double_t pi_par[5],
 	     TVector3 &p_mom, TVector3 &pi_mom, TVector3 &lambda_mom,
 	     Double_t& dist){
 
-
   Double_t t1, t2;
   TVector3 vertex = VertexPointHelix(p_par, pi_par, p_theta_min, p_theta_max, pi_theta_min, pi_theta_max, t1, t2, dist);
   p_mom = CalcHelixMom(Bfield, 1, p_par, t1);
@@ -1308,28 +1307,35 @@ TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
 }
 
 //_____________________________________________________________________________
-TVector3 CloseDistTargetXi(Double_t Bfield,
-			   TVector3 xi_decayvtx, TVector3 xi_mom,
-			   TVector3 &xi_mom_atTarget, Double_t &dist){
+TVector3 CalcCloseDistXi(TVector3 point, Double_t Bfield,
+			 TVector3 xi_decayvtx, TVector3 xi_mom_decayvtx,
+			 TVector3 &xi_mom, Double_t &dist){
 
   Double_t xi_par[5];
-  CalcHelixParam(Bfield, -1, xi_mom, xi_decayvtx, xi_par);
+  CalcHelixParam(Bfield, -1, xi_mom_decayvtx, xi_decayvtx, xi_par);
+
+  Double_t xi = -1.*point.x();
+  Double_t yi = point.z() - tpc::ZTarget;
+  Double_t zi = point.y();
 
   //helix function
   //x = [0] + [3]*cos(t);
   //y = [1] + [3]*sin(t);
   //z = [2] + [3]*[4]*t;
 
-  TF1 fvertex_xi("fvertex_xi", "pow([0]+[3]*cos(x), 2)+pow([1]+[3]*sin(x), 2)+pow([2]+[3]*[4]*x, 2)", -TMath::Pi(), TMath::Pi());
+  TF1 fvertex_xi("fvertex_xi", "pow([0]+[3]*cos(x)-[5], 2)+pow([1]+[3]*sin(x)-[6], 2)+pow([2]+[3]*[4]*x-[7], 2)", -TMath::Pi(), TMath::Pi());
   fvertex_xi.SetParameter(0, xi_par[0]);
   fvertex_xi.SetParameter(1, xi_par[1]);
   fvertex_xi.SetParameter(2, xi_par[2]);
   fvertex_xi.SetParameter(3, xi_par[3]);
   fvertex_xi.SetParameter(4, xi_par[4]);
+  fvertex_xi.SetParameter(5, xi);
+  fvertex_xi.SetParameter(6, yi);
+  fvertex_xi.SetParameter(7, zi);
 
   Double_t helix_t = fvertex_xi.GetMinimumX(-TMath::Pi(), TMath::Pi());
   dist = TMath::Sqrt(fvertex_xi.GetMinimum());
-  xi_mom_atTarget = CalcHelixMom(Bfield, -1, xi_par, helix_t);
+  xi_mom = CalcHelixMom(Bfield, -1, xi_par, helix_t);
 
   Double_t vx = xi_par[0]+xi_par[3]*cos(helix_t);
   Double_t vy = xi_par[1]+xi_par[3]*sin(helix_t);
@@ -1344,8 +1350,59 @@ TVector3 CloseDistTargetXi(Double_t Bfield,
 
 //_____________________________________________________________________________
 TVector3
-CloseDistTargetLambda(TVector3 point, TVector3 Xlambda,
-		      TVector3 Plambda, Double_t &dist){
+CloseDistLambda(TVector3 point, TVector3 Xlambda,
+		TVector3 Plambda, Double_t &dist){
+
+  Double_t lambdavtx_xivtx_cut = 0.;
+
+  Double_t local_xi = -1.*point.x();
+  Double_t local_yi = point.z() - tpc::ZTarget;
+  Double_t local_zi = point.y();
+
+  Double_t xi = -1.*Xlambda.x();
+  Double_t yi = Xlambda.z() - tpc::ZTarget;
+  Double_t zi = Xlambda.y();
+  Double_t pxi = -1.*Plambda.x();
+  Double_t pyi = Plambda.z();
+  Double_t pzi = Plambda.y();
+  Double_t ui = -pxi/pyi, vi = pzi/pyi;
+
+  TVector3 p_L = TVector3(pxi, pyi, pzi);
+  TVector3 p_unit = p_L.Unit();
+
+  Double_t scan_range[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  if(pyi>0) scan_range[1] = yi + lambdavtx_xivtx_cut/(p_unit.y());
+  else scan_range[0] = yi - lambdavtx_xivtx_cut/(p_unit.y());
+
+  TF1 fpoint_linear("fpoint_linear", "pow([0]-([3]+[4]*x), 2)+pow([1]-x, 2)+pow([2]-([5]+[6]*x), 2)", scan_range[0], scan_range[1]);
+  fpoint_linear.SetParameter(0, local_xi);
+  fpoint_linear.SetParameter(1, local_yi);
+  fpoint_linear.SetParameter(2, local_zi);
+  fpoint_linear.SetParameter(3, xi + ui*yi);
+  fpoint_linear.SetParameter(4, -ui);
+  fpoint_linear.SetParameter(5, zi - vi*yi);
+  fpoint_linear.SetParameter(6, vi);
+
+  //straight function
+  //x = [3] + [4]*y;
+  //z = [5] + [6]*y;
+
+  Double_t close_y = fpoint_linear.GetMinimumX(scan_range[0], scan_range[1]);
+  dist = TMath::Sqrt(fpoint_linear.Eval(close_y));
+
+  Double_t xL = xi - ui*(close_y-yi);
+  Double_t yL = close_y;
+  Double_t zL = zi + vi*(close_y-yi);
+  Double_t vertx = -xL;
+  Double_t verty = zL;
+  Double_t vertz = yL + tpc::ZTarget;
+  return TVector3(vertx, verty, vertz);
+}
+
+//_____________________________________________________________________________
+TVector3
+CalcCloseDistLambda(TVector3 point, TVector3 Xlambda,
+		    TVector3 Plambda, Double_t &dist){
 
   Double_t lambdavtx_xivtx_cut = 0.;
 
@@ -1533,7 +1590,7 @@ MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0, Double_t *u0, Double_
   }
   delete minuit;
 
-  return TVector3(par[0], par[1], par[2]);
+  return TVector3(par[0], par[1], par[2] + tpc::ZTarget);
 }
 
 }
