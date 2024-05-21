@@ -224,6 +224,11 @@ struct Event
   std::vector<Double_t> GFtracklenTgt; //extrapolate to the target
   std::vector<Double_t> GFtofTgt;
 
+  Int_t GFntTpc_inside;
+  Double_t GFprodvtx_x;
+  Double_t GFprodvtx_y;
+  Double_t GFprodvtx_z;
+
   Int_t GFnvtxTpc;
   std::vector<Double_t> GFvtx_x;
   std::vector<Double_t> GFvtx_y;
@@ -432,6 +437,11 @@ struct Event
     GFmomzTgt.clear();
     GFtracklenTgt.clear();
     GFtofTgt.clear();
+
+    GFntTpc_inside = 0;
+    GFprodvtx_x = qnan;
+    GFprodvtx_y = qnan;
+    GFprodvtx_z = qnan;
 
     GFnvtxTpc = -1;
     GFvtx_x.clear();
@@ -834,6 +844,7 @@ dst::DstRead( int ievent )
     event.dE[it] = tp->GetTrackdE();
     event.dEdx[it] = tp->GetdEdx(truncatedMean);
     event.dz_factor[it] = sqrt(1.+(pow(helix_dz,2)));
+    event.pid[it] = tp -> GetPid();
 
     event.hitlayer[it].resize( nh );
     event.hitpos_x[it].resize( nh );
@@ -922,17 +933,12 @@ dst::DstRead( int ievent )
       event.houghflag[it][ih] = houghflag;
       event.helix_t[it][ih] = hit->GetTheta();
     }
-    event.pid[it]=tp->GetPid();
     std::vector<Int_t> pdgcode;
-    if(event.charge[it]>0){
-      pdgcode.push_back(211);
-      pdgcode.push_back(2212);
-    }
-    else{
-      pdgcode.push_back(-211);
-    }
+    Kinematics::HypTPCPID_PDGCode(event.charge[it], event.pid[it], pdgcode);
     GFtracks.AddHelixTrack(pdgcode, tp);
   }
+  GFtracks.FitTracks();
+
   HF1( 2, event.GFstatus++ );
 
   Int_t nvtxTpc = TPCAna.GetNVerticesTPCHelix();
@@ -1025,7 +1031,6 @@ dst::DstRead( int ievent )
   }
   event.GFnvtxTpc = event.GFvtx_dist.size();
 
-  GFtracks.FitTracks();
   int GFntTpc = GFtracks.GetNTrack();
   if(GFntTpc!=event.ntTpc){
     std::cout<<"# of Tracks in Genfit Track Container != # of TPC Tracks"<<std::endl;
@@ -1119,6 +1124,11 @@ dst::DstRead( int ievent )
   event.GFtracklenHtof_pi.resize(GFntTpc);
   event.GFsegHtof_pi.resize(GFntTpc);
 
+  Int_t ntrack_intarget = 0;
+  Double_t x0[100] = {0};
+  Double_t y0[100] = {0};
+  Double_t u0[100] = {0};
+  Double_t v0[100] = {0};
   for( Int_t igf=0; igf<GFntTpc; ++igf ){
     event.GFfitstatus[igf] = (int)GFtracks.TrackCheck(igf);
     HF1( 3, event.GFfitstatus[igf]);
@@ -1211,6 +1221,14 @@ dst::DstRead( int ievent )
       event.GFmomzTgt[igf] = momv.z();
       event.GFtracklenTgt[igf] = len;
       event.GFtofTgt[igf] = tof;
+
+      if(GFtracks.ExtrapolateToTarget(igf, posv, momv, len, tof)){
+	x0[ntrack_intarget] = posv.x();
+	y0[ntrack_intarget] = posv.y();
+	u0[ntrack_intarget] = momv.x()/momv.z();
+	v0[ntrack_intarget] = momv.y()/momv.z();
+	ntrack_intarget++;
+      }
     }
     else event.GFinside[igf] = 0;
 
@@ -1242,44 +1260,58 @@ dst::DstRead( int ievent )
     HF1( genfitHid+23, event.GFnhHtof[igf]);
   } //igf
 
-
+  TVector3 vertex = Kinematics::MultitrackVertex(ntrack_intarget, x0, y0, u0, v0);
+  event.GFntTpc_inside = ntrack_intarget;
+  event.GFprodvtx_x = vertex.x();
+  event.GFprodvtx_y = vertex.y();
+  event.GFprodvtx_z = vertex.z();
 
   for( Int_t igf=0; igf<GFntTpc; ++igf ){
-    Int_t repid = 0; //pion
-    TVector3 posv; TVector3 momv; double len; double tof;
-    if(GFtracks.TrackCheck(igf, repid) && GFtracks.IsInsideTarget(igf, repid) &&
-       GFtracks.ExtrapolateToTarget(igf, posv, momv, len, tof, repid)){
+    if((event.pid[igf]&1)==1){
+      Int_t repid = 0; //pion
+      TVector3 posv; TVector3 momv; double len; double tof;
+      if(GFtracks.TrackCheck(igf, repid) && GFtracks.IsInsideTarget(igf, repid) &&
+	 GFtracks.ExtrapolateToTarget(igf, posv, momv, len, tof, repid)){
 
-      event.GFxTgt_pi[igf] = posv.x();
-      event.GFyTgt_pi[igf] = posv.y();
-      event.GFzTgt_pi[igf] = posv.z();
-      event.GFmomTgt_pi[igf] = momv.Mag();
-      event.GFmomxTgt_pi[igf] = momv.x();
-      event.GFmomyTgt_pi[igf] = momv.y();
-      event.GFmomzTgt_pi[igf] = momv.z();
-      event.GFtracklenTgt_pi[igf] = len;
-      event.GFtofTgt_pi[igf] = tof;
+	event.GFxTgt_pi[igf] = posv.x();
+	event.GFyTgt_pi[igf] = posv.y();
+	event.GFzTgt_pi[igf] = posv.z();
+	event.GFmomTgt_pi[igf] = momv.Mag();
+	event.GFmomxTgt_pi[igf] = momv.x();
+	event.GFmomyTgt_pi[igf] = momv.y();
+	event.GFmomzTgt_pi[igf] = momv.z();
+	event.GFtracklenTgt_pi[igf] = len;
+	event.GFtofTgt_pi[igf] = tof;
 
-      event.GFtof_pi[igf] = GFtracks.GetTrackTOF(igf, 0, -1, repid);
-      event.GFmom_pi[igf] = GFtracks.GetMom(igf, 0, repid).Mag();
-      event.GFtracklen_pi[igf] = GFtracks.GetTrackLength(igf, 0, -1, repid);
+	event.GFtof_pi[igf] = GFtracks.GetTrackTOF(igf, 0, -1, repid);
+	event.GFmom_pi[igf] = GFtracks.GetMom(igf, 0, repid).Mag();
+	event.GFtracklen_pi[igf] = GFtracks.GetTrackLength(igf, 0, -1, repid);
 
-      int candidates = 0; int htofid[8]; TVector3 htofpos[8]; TVector3 htofmom[8]; double htoflen[8]; double htoftof[8];
-      if(GFtracks.ExtrapolateToHTOF(igf, candidates, htofid, htofpos, htofmom, htoflen, htoftof, repid)){
-	event.GFnhHtof_pi[igf]=candidates;
-	event.GFsegHtof_pi[igf].resize(candidates);
-	event.GFtracklenHtof_pi[igf].resize(candidates);
-	event.GFtofHtof_pi[igf].resize(candidates);
-	for( Int_t ihit=0; ihit<candidates; ++ihit ){
-	  event.GFsegHtof_pi[igf][ihit]=htofid[ihit];
-	  event.GFtracklenHtof_pi[igf][ihit]=htoflen[ihit];
-	  event.GFtofHtof_pi[igf][ihit]=htoftof[ihit];
+	int candidates = 0; int htofid[8]; TVector3 htofpos[8]; TVector3 htofmom[8]; double htoflen[8]; double htoftof[8];
+	if(GFtracks.ExtrapolateToHTOF(igf, candidates, htofid, htofpos, htofmom, htoflen, htoftof, repid)){
+	  event.GFnhHtof_pi[igf]=candidates;
+	  event.GFsegHtof_pi[igf].resize(candidates);
+	  event.GFtracklenHtof_pi[igf].resize(candidates);
+	  event.GFtofHtof_pi[igf].resize(candidates);
+	  for( Int_t ihit=0; ihit<candidates; ++ihit ){
+	    event.GFsegHtof_pi[igf][ihit]=htofid[ihit];
+	    event.GFtracklenHtof_pi[igf][ihit]=htoflen[ihit];
+	    event.GFtofHtof_pi[igf][ihit]=htoftof[ihit];
+	  }
 	}
       }
     } //pion
 
-    if(event.charge[igf]==1){ //proton
-      repid = 1;
+    if(event.charge[igf]==1 && (event.pid[igf]&4)==4){ //proton
+      Int_t repid = 0;
+      Int_t flag = 1;
+      for(Int_t i=0;i<2;i++){
+	Int_t temp = flag&event.pid[igf];
+	if(temp==flag) repid += 1;
+	flag*=2;
+      }
+
+      TVector3 posv; TVector3 momv; double len; double tof;
       if(GFtracks.TrackCheck(igf, repid) && GFtracks.IsInsideTarget(igf, repid) &&
 	 GFtracks.ExtrapolateToTarget(igf, posv, momv, len, tof, repid)){
 
@@ -1545,6 +1577,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFmomzTgt", &event.GFmomzTgt);
   tree->Branch("GFtracklenTgt", &event.GFtracklenTgt);
   tree->Branch("GFtofTgt", &event.GFtofTgt);
+
+  tree->Branch("GFntTpc_inside", &event.GFntTpc_inside);
+  tree->Branch("GFprodvtx_x", &event.GFprodvtx_x);
+  tree->Branch("GFprodvtx_y", &event.GFprodvtx_y);
+  tree->Branch("GFprodvtx_z", &event.GFprodvtx_z);
 
   tree->Branch("GFnvtxTpc", &event.GFnvtxTpc);
   tree->Branch("GFvtx_x", &event.GFvtx_x);
