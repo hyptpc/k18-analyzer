@@ -18,12 +18,11 @@ name = 'BHT'
 bht_cid = 1
 n_seg = 63
 n_seg_one_page = 16
-beamflag = '_Pi'
 
 ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
-def phc(start_seg, ud, key, beamflag='', fit=True, pfrange=(-2, 2),
+def phc(start_seg, ud, key, beamflag='', fit=True, pfrange=(-4, 4),
         fitrange=(0.4, 1.6)):
   logger.info(f'seg={start_seg}-{start_seg+16}, ud={ud}, key={key}, '
               +f'beamflag={beamflag}, fit={fit}, pfrange={pfrange}, '
@@ -72,13 +71,15 @@ def phc(start_seg, ud, key, beamflag='', fit=True, pfrange=(-2, 2),
 
 #______________________________________________________________________________
 def single_run(run_info):
-  mh.initialize(run_info, fig_tail='_bht_phc')
+  mh.initialize(run_info, __file__)
   result_dict = {'generator': os.path.basename(__file__)}
   for ud in ['U', 'D']:
     for seg in range(4):
-      ret = phc(start_seg=seg*16, ud=ud, key='BTOF', beamflag=beamflag)
+      ret = phc(start_seg=seg*16, ud=ud, key='BTOF',
+                beamflag=mh.beamflag_for_param)
       result_dict.update(ret)
-      phc(start_seg=seg*16, ud=ud, key='CBTOF', beamflag=beamflag, fit=False)
+      phc(start_seg=seg*16, ud=ud, key='CBTOF',
+          beamflag=mh.beamflag_for_param, fit=False)
   hdphc.output_result(run_info, result_dict, update=parsed.update)
   mh.finalize()
 

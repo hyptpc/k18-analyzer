@@ -24,6 +24,7 @@ ROOT.gStyle.SetOptStat(1110)
 c1 = None
 beamflag = ['', '_Pi', '_K']
 beamcolor = [ROOT.kBlack, ROOT.kRed+2, ROOT.kBlue+2]
+beamflag_for_param = beamflag[1]
 
 #______________________________________________________________________________
 def daq():
@@ -60,7 +61,7 @@ def efficiency(h1):
   elif h1.GetLineColor() == beamcolor[2]:
     y = 0.62
   elif h1.GetLineColor() == ROOT.kRed+1:
-    y = 0.62
+    y = 0.54
   else:
     y = 0.70
   tex.DrawLatex(x, y, f'eff. {eff:.3f}')
@@ -75,6 +76,7 @@ def finalize():
 #______________________________________________________________________________
 def fit_gaus(h1, params=None, limits=None, fitrange=(-2, 2), autozoom=True):
   f1 = ROOT.TF1('f1', 'gaus')
+  f1.SetLineWidth(1)
   if params is not None:
     f1.SetParameters(params)
   if limits is not None:
@@ -91,6 +93,7 @@ def fit_gaus(h1, params=None, limits=None, fitrange=(-2, 2), autozoom=True):
 #______________________________________________________________________________
 def fit_phc(h1, params, limits=None, fitrange=(0.5, 1.5)):
   f1 = ROOT.TF1('f1', '-[0]/sqrt(x-[1])+[2]', -1, 10);
+  f1.SetLineWidth(1)
   f1.SetParameters(params)
   if limits is not None:
     for i, l in enumerate(limits):
@@ -99,21 +102,29 @@ def fit_phc(h1, params, limits=None, fitrange=(0.5, 1.5)):
   return f1
 
 #______________________________________________________________________________
-def initialize(run_info, fig_tail='', comment=''):
+def initialize(run_info, macro_path, comment=''):
   logger.debug(run_info)
   try:
     root_path = run_info['root']
+    target_bin = os.path.basename(run_info['bin'])
+    macro_path = os.path.basename(macro_path).lower()
+    if target_bin.lower() not in macro_path:
+      logger.error(f'bin must be {target_bin}: run_info={run_info}, '
+                   +f'macro_path={macro_path}')
+      sys.exit(1)
+    fig_tail = (macro_path.replace(target_bin.lower(), '')
+                .replace('.py', '').replace('-', '_'))
     fig_path = os.path.basename(root_path).replace('.root', fig_tail+'.pdf')
     fig_path = os.path.join(run_info['fig'], fig_path)
   except KeyError as e:
     logger.error(f'KeyError: {e} not found in {run_info}')
-    return
+    sys.exit(1)
   global c1
   c1 = ROOT.TCanvas('c1', fig_path, 1200, 800)
   ROOT.gFile = ROOT.TFile.Open(root_path)
-  if ROOT.gFile == None or not ROOT.gFile.IsOpen():
+  if not ROOT.gFile or not ROOT.gFile.IsOpen():
     logger.error('root file is not open.')
-    return
+    sys.exit(1)
   logger.info(f'open {root_path}')
   c1.Print(fig_path+'[')
   title(comment=comment)

@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 name = 'CVC'
 cid = 14
 n_seg = 10
-beamflag = '_Pi'
 
 ROOT.gStyle.SetOptFit(1)
 
@@ -31,7 +30,7 @@ def adc(ud, adcrange=(0, 4000), key='ADC', fit=True):
   result_dict = dict()
   for seg in range(n_seg):
     c1.cd(seg+1) #.SetLogy()
-    hname = name + f'_{key}_seg{seg}{ud}{beamflag}'
+    hname = name + f'_{key}_seg{seg}{ud}{mh.beamflag_for_param}'
     h1 = ROOT.gFile.Get(hname)
     if h1:
       logger.debug(hname)
@@ -90,7 +89,7 @@ def de(ud='', derange=(0, 5), key='DeltaE'):
 
 #______________________________________________________________________________
 def single_run(run_info):
-  mh.initialize(run_info, fig_tail='_cvc_adc')
+  mh.initialize(run_info, __file__)
   result_dict = {'generator': os.path.basename(__file__)}
   for ud in ['U', 'D']:
     ret = adc(key='AwoT', ud=ud, adcrange=(0, 250))

@@ -22,7 +22,7 @@ def btof_cluster():
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   for pair in [['CTime0', 'CBtof0'],
-               ['CBtof0_vs_deT0Seg', 'CBtof0_vs_deBtof0Seg']]:
+               ['CBtof0_vs_deT1Seg', 'CBtof0_vs_deBtof0Seg']]:
     c1.Clear()
     c1.Divide(3, 2)
     for i, key in enumerate(pair):
@@ -52,7 +52,7 @@ def btof_cluster():
 def btof_hit():
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
-  for name in ['BHT', 'T0']:
+  for name in ['BHT', 'T1']:
     c1.Clear()
     c1.Divide(3, 2)
     for i, key in enumerate(['BTOF', 'CBTOF']):
@@ -71,7 +71,7 @@ def btof_hit():
 
 #______________________________________________________________________________
 def single_run(run_info):
-  mh.initialize(run_info, fig_tail='_btof')
+  mh.initialize(run_info, __file__)
   btof_hit()
   btof_cluster()
   mh.finalize()
