@@ -46,15 +46,15 @@
 #define TrigC 0
 #define TrigD 0
 
-#define KKEvent 1
+#define KKEvent 0
 
 #define SaveHistograms 1
-#define RawHit 0
-#define RawCluster 0
-#define TrackClusterHist 0
-#define TruncatedMean 0
-#define TrackSearchFailed 0
-#define ExclusiveTracking 0
+#define RawHit 1
+#define RawCluster 1
+#define TrackClusterHist 1
+#define TruncatedMean 1
+#define TrackSearchFailed 1
+#define ExclusiveTracking 1
 
 namespace
 {
@@ -1210,7 +1210,7 @@ dst::DstRead( int ievent )
 #endif
 
   HF1( 1, event.status++ );
-
+    
   if(src.ntKurama!=1 || src.ntK18!=1) return true;
   if(src.chisqrK18[0] > MaxChisqrBcOut || src.chisqrKurama[0] > MaxChisqrKurama) return true;
 #if KKEvent
@@ -1224,6 +1224,7 @@ dst::DstRead( int ievent )
 
   HF1( 1, event.status++ );
   event.ntK18 = src.ntK18;
+  std::cout << src.ntK18 << std::endl;
   std::vector<std::vector<TVector3>> vpK18;
   vpK18.resize( src.ntK18 );
   std::vector<TVector3> initPosK18;

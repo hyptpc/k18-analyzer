@@ -59,8 +59,12 @@ class BJobManager(metaclass=classimpl.Singleton):
     if (self.__updater_status == 'RUNNING'
         and job_id in self.__status_list
         and len(self.__status_list[job_id]) == 2):
-      logger.debug(f'jobid = {self.__status_list[job_id][0]}')
-      return self.__status_list[job_id][0]
+      if job_id in self.__status_list:
+        logger.debug(f'jobid = {self.__status_list[job_id][0]}')
+        return self.__status_list[job_id][0]
+      else:
+        logger.debug(f'jobid is missing, maybe DONE.')
+        return 'DONE'
     return 'INIT'
 
   #____________________________________________________________________________
