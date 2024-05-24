@@ -38,12 +38,9 @@ def draw(name, nlayer=0):
 
 #______________________________________________________________________________
 def single_run(run_info):
-  if os.path.basename(run_info['bin']) != 'DC':
-    logger.error(f'bin must be DC: run_info={run_info}')
-    return
   comment = (f'#color[{mh.beamcolor[1]}]{{Red}}=Pion, '+
              f'#color[{mh.beamcolor[2]}]{{Blue}}=Kaon')
-  mh.initialize(run_info, fig_tail='_rawhist', comment=comment)
+  mh.initialize(run_info, __file__, comment=comment)
   draw('BLC1a', nlayer=8)
   draw('BLC1b', nlayer=8)
   draw('BLC2a', nlayer=8)
