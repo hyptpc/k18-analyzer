@@ -246,7 +246,6 @@ ConfMan::InitializeHistograms()
   tree->Branch("beam_flag", &beam_flag, "beam_flag/I");
   tree->Branch("trig_flag", &trig_flag);
   tree->Branch("trig_pat", &trig_pat);
-
   tree->Branch("bht_raw_seg", &raw_seg["BHT"]);
   tree->Branch("bht_tdc_u", &tdc_u["BHT"]);
   tree->Branch("bht_tdc_d", &tdc_d["BHT"]);

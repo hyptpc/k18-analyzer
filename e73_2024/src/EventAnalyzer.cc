@@ -406,7 +406,8 @@ EventAnalyzer::DCRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
           auto l = hit->GetTdc(j);
           auto t = hit->GetTrailing(j);
           auto tot = l - t;
-          if(gUser.IsInRange(Form("%s_TOT", name), tot))
+          if(gUser.IsInRange(Form("%s_TOT", name), tot) &&
+             gUser.IsInRange(Form("%s_TDC", name), l))
             is_good = true;
           for(const auto& totcut: std::vector<TString>{"", "C"}){
             if(totcut == "C" && !gUser.IsInRange(Form("%s_TOT", name), tot))

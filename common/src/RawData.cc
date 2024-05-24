@@ -250,10 +250,8 @@ RawData::AddDCRawHit(const TString& name, Int_t plane, Int_t seg,
   }
 
   if(data == gUnpacker.get_data_id(name, "leading")){
-    if(gUser.IsInRange(name + "_TDC", val))
       p->SetTdc(val);
   }else if(data == gUnpacker.get_data_id(name, "trailing")){
-    if(val < gUser.Get(name + "_TDC", 1))
       p->SetTrailing(val);
   }else if(data == gUnpacker.get_data_id(name, "overflow")){
     p->SetTdcOverflow(val);

@@ -25,6 +25,7 @@ NC_TDC		600000	650000
 # HodoAna
 BHT_Time	-15	5
 T0_Time		-5	5
+T1_Time		-5	5
 CVC_Time	-5	25
 CVC_TimeDiff	-1	1
 BTOF		-15	5
@@ -46,12 +47,12 @@ MaxTimeDiffNC		-1
 
 #______________________________________________________________________________
 # DC TDC	min	max
-BLC1a_TDC	0	2000
-BLC1b_TDC	0	2000
-BLC2a_TDC	0	2000
-BLC2b_TDC	0	2000
-BPC1_TDC	0	2000
-BPC2_TDC	0	2000
+BLC1a_TDC	1000	1500
+BLC1b_TDC	1000	1500
+BLC2a_TDC	1000	1500
+BLC2b_TDC	1000	1500
+BPC1_TDC	1000	1500
+BPC2_TDC	1000	1500
 
 # DC TOT	min	max
 BLC1a_TOT	60	2000
