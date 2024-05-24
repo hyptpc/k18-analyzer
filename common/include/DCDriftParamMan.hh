@@ -1,87 +1,92 @@
-/**
- *  file: DCDriftParamMan.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef DC_DRIFT_PARAM_MAN_HH
 #define DC_DRIFT_PARAM_MAN_HH
 
 #include <map>
-#include <string>
 #include <vector>
+#include <TString.h>
 
 struct DCDriftParamRecord;
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 struct DCDriftParamRecord
 {
-  int type, np;
-  std::vector<double> param;
-  DCDriftParamRecord( int t, int n, std::vector<double> p )
+  Int_t type, np;
+  std::vector<Double_t> param;
+  DCDriftParamRecord(Int_t t, Int_t n, const std::vector<Double_t>& p)
     : type(t), np(n), param(p)
-  {}
+    {}
 };
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class DCDriftParamMan
 {
 public:
-  static DCDriftParamMan&   GetInstance( void );
-  static const std::string& ClassName( void );
-  ~DCDriftParamMan( void );
+  static const TString&   ClassName();
+  static DCDriftParamMan& GetInstance();
+  ~DCDriftParamMan();
 
 private:
-  DCDriftParamMan( void );
-  DCDriftParamMan( const DCDriftParamMan& );
-  DCDriftParamMan& operator =( const DCDriftParamMan& );
+  DCDriftParamMan();
+  DCDriftParamMan(const DCDriftParamMan&);
+  DCDriftParamMan& operator =(const DCDriftParamMan&);
 
 private:
-  typedef std::map<unsigned int, DCDriftParamRecord*> DCDriftContainer;
+  typedef std::map<Int_t, DCDriftParamRecord*> DCDriftContainer;
   typedef DCDriftContainer::const_iterator DCDriftIterator;
-  bool             m_is_ready;
-  std::string      m_file_name;
+  Bool_t           m_is_ready;
+  TString          m_file_name;
   DCDriftContainer m_container;
 
 public:
-  bool CalcDrift( int PlaneId, double WireId, double ctime, double & dt, double & dl ) const;
-  bool Initialize( void );
-  bool Initialize( const std::string& file_name );
-  bool IsReady( void ) const { return m_is_ready; }
-  void SetFileName( const std::string& file_name ) { m_file_name = file_name; }
+  Bool_t CalcDrift(Int_t detector_id, Int_t plane_id,
+                   Double_t wire_id, Double_t ctime,
+                   Double_t & dt, Double_t & dl) const;
+  Bool_t Initialize();
+  Bool_t Initialize(const TString& file_name);
+  Bool_t IsReady() const { return m_is_ready; }
+  void   SetFileName(const TString& file_name) { m_file_name = file_name; }
 
 private:
-  void                ClearElements( void );
-  static double       DriftLength1( double dt, double vel );
-  static double       DriftLength2( double dt, double p1, double p2, double p3,
-				    double st, double p5, double p6 );
-  static double       DriftLength3( double dt, double p1, double p2, int PlaneId );
-  static double       DriftLength4( double dt, double p1, double p2, double p3 );
-  static double       DriftLength5( double dt, double p1, double p2, double p3,
-				    double p4, double p5 );
-  static double       DriftLength6( int PlaneId,
-				    double dt, double p1, double p2, double p3,
-				    double p4, double p5 );
-  static double       DriftLength7( int PlaneId,
-				    double dt, double p1, double p2, double p3,
-				    double p4, double p5, double p6 );
-  DCDriftParamRecord* GetParameter( int PlaneId, double WireId ) const;
+  void                ClearElements();
+  static Double_t     DriftLength1(Double_t dt, Double_t vel);
+  static Double_t     DriftLength2(Double_t dt,
+                                   Double_t p1, Double_t p2, Double_t p3,
+                                   Double_t st, Double_t p5, Double_t p6);
+  static Double_t     DriftLength3(Double_t dt, Double_t p1, Double_t p2,
+                                   Int_t PlaneId);
+  static Double_t     DriftLength4(Double_t dt,
+                                   Double_t p1, Double_t p2, Double_t p3);
+  static Double_t     DriftLength5(Double_t dt,
+                                   Double_t p1, Double_t p2, Double_t p3,
+                                   Double_t p4, Double_t p5);
+  static Double_t     DriftLength6(Int_t PlaneId,
+                                   Double_t dt,
+                                   Double_t p1, Double_t p2, Double_t p3,
+                                   Double_t p4, Double_t p5);
+  static Double_t     DriftLength7(Int_t PlaneId,
+                                   Double_t dt,
+                                   Double_t p1, Double_t p2, Double_t p3,
+                                   Double_t p4, Double_t p5, Double_t p6);
+  DCDriftParamRecord* GetParameter(Int_t detector_id,
+                                   Int_t plane_id, Double_t wire_id) const;
 };
 
-//______________________________________________________________________________
-inline DCDriftParamMan&
-DCDriftParamMan::GetInstance( void )
+//_____________________________________________________________________________
+inline const TString&
+DCDriftParamMan::ClassName()
 {
-  static DCDriftParamMan g_instance;
-  return g_instance;
+  static TString s_name("DCDriftParamMan");
+  return s_name;
 }
 
-//______________________________________________________________________________
-inline const std::string&
-DCDriftParamMan::ClassName( void )
+//_____________________________________________________________________________
+inline DCDriftParamMan&
+DCDriftParamMan::GetInstance()
 {
-  static std::string g_name("DCDriftParamMan");
-  return g_name;
+  static DCDriftParamMan s_instance;
+  return s_instance;
 }
 
 #endif
