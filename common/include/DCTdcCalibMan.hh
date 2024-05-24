@@ -5,60 +5,61 @@
 
 #include <map>
 #include <vector>
-
 #include <TString.h>
 
 struct DCTdcCalMap;
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 class DCTdcCalibMan
 {
 public:
-  static DCTdcCalibMan& GetInstance();
   static const TString& ClassName();
+  static DCTdcCalibMan& GetInstance();
   ~DCTdcCalibMan();
 
 private:
   DCTdcCalibMan();
-  DCTdcCalibMan( const DCTdcCalibMan & );
-  DCTdcCalibMan& operator =( const DCTdcCalibMan & );
+  DCTdcCalibMan(const DCTdcCalibMan&);
+  DCTdcCalibMan& operator =(const DCTdcCalibMan&);
 
 private:
-  typedef std::map <unsigned int, DCTdcCalMap*> DCTdcContainer;
-  typedef DCTdcContainer::const_iterator DCTdcIterator;
-  bool           m_is_ready;
-  std::vector<TString>    m_file_names;
+  using DCTdcContainer = std::map<Int_t, DCTdcCalMap*>;
+  using DCTdcIterator = DCTdcContainer::const_iterator;
+  Bool_t         m_is_ready;
+  TString        m_file_name;
   DCTdcContainer m_container;
 
 public:
-  bool Initialize();
-  bool Initialize( const TString& file_name );
-  bool Initialize( const TString& file_name, const TString& file_name2 );
-  bool ReadFile( const TString& file_name );
-  bool IsReady() const { return m_is_ready; }
-  bool GetTime( int det_id, int plane_id, int wire_id, int tdc, double& time ) const;
-  bool GetTdc( int det_id, int plane_id, int wire_id, double time, int& tdc ) const;
-  //  void SetFileName( const TString& file_name ) { m_file_name = file_name; }
+  Bool_t GetParameter(Int_t detector_id, Int_t plane_id, Double_t wire_id,
+                      Double_t &p0, Double_t &p1) const;
+  Bool_t GetTime(Int_t detector_id, Int_t plane_id, Double_t wire_id,
+                 Int_t tdc, Double_t& time) const;
+  Bool_t GetTdc(Int_t detector_id, Int_t plane_id, Double_t wire_id,
+                Double_t time, Int_t& tdc) const;
+  Bool_t Initialize();
+  Bool_t Initialize(const TString& file_name);
+  Bool_t IsReady() const { return m_is_ready; }
+  void   SetFileName(const TString& file_name) { m_file_name = file_name; }
 
 private:
-  DCTdcCalMap* GetMap( int det_id, int plane_id, int wire_id ) const;
   void         ClearElements();
+  DCTdcCalMap* GetMap(Int_t detector_id, Int_t plane_id, Double_t wire_id) const;
 };
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline DCTdcCalibMan&
 DCTdcCalibMan::GetInstance()
 {
-  static DCTdcCalibMan g_instance;
-  return g_instance;
+  static DCTdcCalibMan s_instance;
+  return s_instance;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 inline const TString&
 DCTdcCalibMan::ClassName()
 {
-  static TString g_name("DCTdcCalibMan");
-  return g_name;
+  static TString s_name("DCTdcCalibMan");
+  return s_name;
 }
 
 #endif

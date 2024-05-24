@@ -9,143 +9,121 @@
 #include <iomanip>
 #include <sstream>
 
-#include <TRandom.h>
-
 #include <std_ostream.hh>
 
 #include "DeleteUtility.hh"
 #include "FuncName.hh"
 
-//______________________________________________________________________________
+namespace
+{
+inline Int_t
+MakeKey(Int_t detector_id, Int_t plane_id, Double_t wire_id)
+{
+  return (detector_id<<20 | plane_id<<10 | Int_t(wire_id));
+}
+}
+
+//_____________________________________________________________________________
 struct DCTdcCalMap
 {
-  double p0, p1;
-  DCTdcCalMap( double q0, double q1 )
+  Double_t p0, p1;
+  DCTdcCalMap(Double_t q0, Double_t q1)
     : p0(q0), p1(q1)
-  {}
+    {}
 };
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 DCTdcCalibMan::DCTdcCalibMan()
-  : m_is_ready(false)
+  : m_is_ready(false),
+    m_file_name(),
+    m_container()
 {
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 DCTdcCalibMan::~DCTdcCalibMan()
 {
   ClearElements();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 void
 DCTdcCalibMan::ClearElements()
 {
-  del::ClearMap( m_container );
+  del::ClearMap(m_container);
 }
 
-//______________________________________________________________________________
-inline unsigned int
-MakeKey( int det_id, int plane_id, int wire_id )
-{
-  return (det_id<<20) | (plane_id<<10) | int(wire_id);
-}
-
-//______________________________________________________________________________
-bool
+//_____________________________________________________________________________
+Bool_t
 DCTdcCalibMan::Initialize()
 {
-  if( m_is_ready ){
-    hddaq::cerr << "#W " << FUNC_NAME
-		<< " already initialied" << std::endl;
-    return false;
-  }
-  ClearElements();
-  for(int i=0;i<m_file_names.size();i++){
-    ReadFile(m_file_names.at(i) );
-  }
-  m_is_ready = true;
-  return m_is_ready;
-}
-//______________________________________________________________________________
-bool
-DCTdcCalibMan::ReadFile( const TString& file_name )
-{
-  if(file_name=="") return true;
-  std::ifstream ifs(file_name);
-  if( !ifs.is_open() ){
-    hddaq::cerr << "#E " << FUNC_NAME << " "
-		<< "file open fail : " << file_name << std::endl;
+  if(m_is_ready){
+    hddaq::cerr << FUNC_NAME << " already initialied" << std::endl;
     return false;
   }
 
-  std::string line;
-  while( ifs.good() && std::getline(ifs, line) ){
-    if( line.empty() || line[0]=='#' ) continue;
-    if(TString(line).Contains("cid",TString::ECaseCompare::kIgnoreCase) ) continue;
-    std::istringstream iss( line );
-    int    det_id=-1, plane_id=-1, wire_id=-1;
-    double p0=-9999., p1=-9999.;
-    if( iss >> det_id >> plane_id >> wire_id >> p0 >> p1 ){
-      unsigned int key = MakeKey( det_id, plane_id, wire_id );
-      DCTdcCalMap *tdc_calib = new DCTdcCalMap( p0, p1 );
-      if( m_container[key] ) delete m_container[key];
+  std::ifstream ifs(m_file_name);
+  if(!ifs.is_open()){
+    hddaq::cerr << FUNC_NAME << " "
+		<< "file open fail : " << m_file_name << std::endl;
+    return false;
+  }
+
+  ClearElements();
+
+  TString line;
+  while(ifs.good() && line.ReadLine(ifs)){
+    if(line.IsNull() || line[0]=='#') continue;
+    std::istringstream iss(line.Data());
+    Int_t detector_id, plane_id, wire_id;
+    Double_t p0, p1;
+    if(iss >> detector_id >> plane_id >> wire_id >> p0 >> p1){
+      Int_t key = MakeKey(detector_id, plane_id, wire_id);
+      auto tdc_calib = new DCTdcCalMap(p0, p1);
+      if(m_container[key]) delete m_container[key];
       m_container[key] = tdc_calib;
-    }
-    else{
+    } else {
       hddaq::cerr << FUNC_NAME << ": Bad format => "
 		  << line << std::endl;
     }
   }
-  return true;
+
+  m_is_ready = true;
+  return m_is_ready;
 }
 
-//______________________________________________________________________________
-bool
-DCTdcCalibMan::Initialize( const TString& file_name )
+//_____________________________________________________________________________
+Bool_t
+DCTdcCalibMan::Initialize(const TString& file_name)
 {
-  m_file_names.push_back(file_name);
+  m_file_name = file_name;
   return Initialize();
 }
 
-//______________________________________________________________________________
-bool
-DCTdcCalibMan::Initialize( const TString& file_name,const TString& file_name2 )
-{
-  m_file_names.push_back(file_name);
-  m_file_names.push_back(file_name2);
-  return Initialize();
-}
-
-//______________________________________________________________________________
+//_____________________________________________________________________________
 DCTdcCalMap*
-DCTdcCalibMan::GetMap( int det_id, int plane_id, int wire_id ) const
+DCTdcCalibMan::GetMap(Int_t detector_id, Int_t plane_id, Double_t wire_id) const
 {
-  unsigned int key = MakeKey( det_id, plane_id, wire_id );
-  DCTdcCalMap *map = 0;
+  Int_t key = MakeKey(detector_id, plane_id, wire_id);
   DCTdcIterator itr = m_container.find(key);
-  if( itr!=m_container.end() ) map = itr->second;
-  return map;
+  if(itr != m_container.end())
+    return itr->second;
+  else
+    return nullptr;
 }
 
-//______________________________________________________________________________
-bool
-DCTdcCalibMan::GetTime( int det_id, int plane_id, int wire_id,
-			int tdc, double& time ) const
+//_____________________________________________________________________________
+Bool_t
+DCTdcCalibMan::GetTime(Int_t detector_id, Int_t plane_id, Double_t wire_id,
+                       Int_t tdc, Double_t& time) const
 {
-  DCTdcCalMap *tdc_calib = GetMap( det_id, plane_id, wire_id );
-  if( tdc_calib ){
-    time = ( tdc + gRandom->Uniform(-0.5,0.5) ) * (tdc_calib->p1)  + (tdc_calib->p0);
+  auto tdc_calib = GetMap(detector_id, plane_id, wire_id);
+  if(tdc_calib){
+    time = (tdc - (tdc_calib->p0)) * (tdc_calib->p1);
     return true;
-  }
-  tdc_calib = GetMap( det_id, plane_id, 0 );
-  if( tdc_calib ){
-    time = ( tdc + gRandom->Uniform(-0.5,0.5) ) * (tdc_calib->p1)  + (tdc_calib->p0);
-    return true;
-  }
-  else{
+  } else {
     hddaq::cerr << FUNC_NAME << ": No record. "
-		<< " DetectorId=" << std::setw(3) << std::dec << det_id
+		<< " DetectorId=" << std::setw(3) << std::dec << detector_id
 		<< " PlaneId=" << std::setw(3) << std::dec << plane_id
 		<< " WireId="  << std::setw(3) << std::dec << wire_id
 		<< std::endl;
@@ -153,27 +131,41 @@ DCTdcCalibMan::GetTime( int det_id, int plane_id, int wire_id,
   }
 }
 
-//______________________________________________________________________________
-bool
-DCTdcCalibMan::GetTdc( int det_id, int plane_id, int wire_id,
-		       double time, int &tdc ) const
+//_____________________________________________________________________________
+Bool_t
+DCTdcCalibMan::GetTdc(Int_t detector_id, Int_t plane_id, Double_t wire_id,
+                      Double_t time, Int_t &tdc) const
 {
-  DCTdcCalMap *tdc_calib = GetMap( det_id, plane_id, wire_id );
-  if( tdc_calib ){
-    tdc = int((time-(tdc_calib->p0))/(tdc_calib->p1));
+  auto tdc_calib = GetMap(detector_id, plane_id, wire_id);
+  if(tdc_calib){
+    tdc = Int_t((time+(tdc_calib->p0))/(tdc_calib->p1));
     return true;
-  }
-  tdc_calib = GetMap( det_id, plane_id, 0 );
-  if( tdc_calib ){
-    tdc = int((time-(tdc_calib->p0))/(tdc_calib->p1));
-    return true;
-  }
-  else{
+  } else {
     hddaq::cerr << FUNC_NAME << ": No record. "
-		<< " DetectorId=" << std::setw(3) << std::dec << det_id
+		<< " DetectorId=" << std::setw(3) << std::dec << detector_id
 		<< " PlaneId=" << std::setw(3) << std::dec << plane_id
 		<< " WireId="  << std::setw(3) << std::dec << wire_id
 		<< std::endl;
+    return false;
+  }
+}
+
+//_____________________________________________________________________________
+Bool_t
+DCTdcCalibMan::GetParameter(Int_t detector_id, Int_t plane_id, Double_t wire_id,
+                            Double_t &p0, Double_t &p1) const
+{
+  auto tdc_calib = GetMap(detector_id, plane_id, wire_id);
+  if(tdc_calib){
+    p0 = tdc_calib->p0;
+    p1 = tdc_calib->p1;
+    return true;
+  } else {
+    hddaq::cerr << FUNC_NAME << ": No record. "
+                << " DetectorId=" << std::setw(3) << std::dec << detector_id
+                << " PlaneId=" << std::setw(3) << std::dec << plane_id
+                << " WireId="  << std::setw(3) << std::dec << wire_id
+                << std::endl;
     return false;
   }
 }

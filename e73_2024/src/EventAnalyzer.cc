@@ -7,6 +7,7 @@
 #include <DAQNode.hh>
 
 #include "BH2Hit.hh"
+#include "DCAnalyzer.hh"
 #include "DCRawHit.hh"
 #include "DetectorID.hh"
 #include "FiberHit.hh"
@@ -388,7 +389,7 @@ EventAnalyzer::DCRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
   if(beam_flag == beam::kUnknown) return;
   const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
   // DC
-  for(Int_t idc=0; idc<=kVFT; ++idc){
+  for(Int_t idc=0; idc<=kBPC2; ++idc){
     const Char_t* name = NameDC[idc].Data();
     auto nlayer = NumOfLayerDC[idc];
     for(Int_t layer=0; layer<nlayer; ++layer){
@@ -416,10 +417,16 @@ EventAnalyzer::DCRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
             HF1(Form("%s_%sTDC_layer%d%s", name, c, layer, b), l);
             HF1(Form("%s_%sTrailing_layer%d%s", name, c, layer, b), t);
             HF1(Form("%s_%sTOT_layer%d%s", name, c, layer, b), tot);
+            HF2(Form("%s_%sTDC_vs_HitPat_layer%d%s", name, c, layer, b), wire, l);
+            HF2(Form("%s_%sTrailing_vs_HitPat_layer%d%s", name, c, layer, b), wire, t);
+            HF2(Form("%s_%sTOT_vs_HitPat_layer%d%s", name, c, layer, b), wire, tot);
             if(j == 0){
               HF1(Form("%s_%sTDC1st_layer%d%s", name, c, layer, b), l);
               HF1(Form("%s_%sTrailing1st_layer%d%s", name, c, layer, b), t);
               HF1(Form("%s_%sTOT1st_layer%d%s", name, c, layer, b), tot);
+              HF2(Form("%s_%sTDC1st_vs_HitPat_layer%d%s", name, c, layer, b), wire, l);
+              HF2(Form("%s_%sTrailing1st_vs_HitPat_layer%d%s", name, c, layer, b), wire, t);
+              HF2(Form("%s_%sTOT1st_vs_HitPat_layer%d%s", name, c, layer, b), wire, tot);
             }
           }
         }
@@ -434,6 +441,40 @@ EventAnalyzer::DCRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       }
       HF1(Form("%s_Multi_layer%d%s", name, layer, b), multi);
       HF1(Form("%s_CMulti_layer%d%s", name, layer, b), cmulti);
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void
+EventAnalyzer::DCHit(const DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
+{
+  if(beam_flag == beam::kUnknown) return;
+  const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
+  // DC
+  for(Int_t idc=0; idc<=kBPC2; ++idc){
+    const Char_t* name = NameDC[idc].Data();
+    auto nlayer = NumOfLayerDC[idc];
+    for(Int_t layer=0; layer<nlayer; ++layer){
+      Int_t multi = 0;
+      for(const auto& hit: dcAna.GetDCHC(DetIdDC[idc], layer)){
+        auto wire = hit->GetWire();
+        Bool_t is_good = false;
+        for(Int_t j=0, m=hit->GetDriftTimeSize(); j<m; ++j){
+          auto dt = hit->GetDriftTime(j);
+          auto dl = hit->GetDriftLength(j);
+          HF1(Form("%s_Hit_DriftTime_layer%d%s", name, layer, b), dt);
+          HF1(Form("%s_Hit_DriftLength_layer%d%s", name, layer, b), dl);
+          HF2(Form("%s_Hit_DriftTime_vs_HitPat_layer%d%s", name, layer, b), wire, dt);
+          HF2(Form("%s_Hit_DriftLength_vs_HitPat_layer%d%s", name, layer, b), wire, dl);
+          is_good = true;
+        }
+        if(is_good){
+          HF1(Form("%s_Hit_HitPat_layer%d%s", name, layer, b), wire);
+          ++multi;
+        }
+      }
+      HF1(Form("%s_Hit_Multi_layer%d%s", name, layer, b), multi);
     }
   }
 }

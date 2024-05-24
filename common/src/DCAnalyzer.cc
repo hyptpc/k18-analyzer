@@ -142,7 +142,8 @@ DCAnalyzer::DecodeRawHits(e_type k_det, const int &detid, double retiming )
     //    if(detid==DetIdFDC)    std::cout<<"size of raw hit container "<< detid<<"  "<<layer<<"  "<<nh<<std::endl;
     for( int i=0; i<nh; ++i ){
       DCRawHit *rhit  = RHitCont[i];
-      DCHit    *hit   = new DCHit( detid, rhit->PlaneId(), rhit->WireId() );
+      DCHit    *hit   = new DCHit(rhit);
+      // DCHit    *hit   = new DCHit( detid, rhit->PlaneId(), rhit->WireId() );
       int       nhtdc = rhit->GetTdcSize();
       int       nhtrailing = rhit->GetTrailingSize();
       if(!hit) continue;

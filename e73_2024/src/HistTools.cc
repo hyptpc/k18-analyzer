@@ -314,12 +314,16 @@ BuildDCRaw(Bool_t flag_beam_particle)
 {
   for(const auto& beam: beam::BeamFlagList){
     const Char_t* b = beam.Data();
-    for(Int_t idc=0; idc<=kVFT; ++idc){
+    for(Int_t idc=0; idc<=kBPC2; ++idc){
       const Char_t* name = NameDC[idc].Data();
       Int_t nlayer = NumOfLayerDC[idc];
       Double_t nwire = NumOfWireDC[idc];
       const Double_t patbins[3] = {nwire, -0.5, nwire - 0.5};
       const Double_t mulbins[3] = {nwire + 1, -0.5, nwire + 0.5};
+      const Double_t tdcbins2d[6] = {nwire, -0.5, nwire - 0.5,
+        mhtdcbins[0], mhtdcbins[1], mhtdcbins[2] };
+      const Double_t totbins2d[6] = {nwire, -0.5, nwire - 0.5,
+        mhtotbins[0], mhtotbins[1], mhtotbins[2] };
       for(Int_t layer=0; layer<nlayer; ++layer){
         for(const auto& totcut: std::vector<TString>{"", "C"}){
           auto c = totcut.Data();
@@ -331,7 +335,44 @@ BuildDCRaw(Bool_t flag_beam_particle)
           HB1(Form("%s_%sTOT1st_layer%d%s", name, c, layer, b), mhtotbins);
           HB1(Form("%s_%sHitPat_layer%d%s", name, c, layer, b), patbins);
           HB1(Form("%s_%sMulti_layer%d%s", name, c, layer, b), mulbins);
+          HB2(Form("%s_%sTDC_vs_HitPat_layer%d%s", name, c, layer, b), tdcbins2d);
+          HB2(Form("%s_%sTDC1st_vs_HitPat_layer%d%s", name, c, layer, b), tdcbins2d);
+          HB2(Form("%s_%sTrailing_vs_HitPat_layer%d%s", name, c, layer, b), tdcbins2d);
+          HB2(Form("%s_%sTrailing1st_vs_HitPat_layer%d%s", name, c, layer, b), tdcbins2d);
+          HB2(Form("%s_%sTOT_vs_HitPat_layer%d%s", name, c, layer, b), totbins2d);
+          HB2(Form("%s_%sTOT1st_vs_HitPat_layer%d%s", name, c, layer, b), totbins2d);
         }
+      }
+    }
+    if(!flag_beam_particle) break;
+  }
+}
+
+//_____________________________________________________________________________
+void
+BuildDCHit(Bool_t flag_beam_particle)
+{
+  for(const auto& beam: beam::BeamFlagList){
+    const Char_t* b = beam.Data();
+    for(Int_t idc=0; idc<=kBPC2; ++idc){
+      const Char_t* name = NameDC[idc].Data();
+      Int_t nlayer = NumOfLayerDC[idc];
+      Double_t nwire = NumOfWireDC[idc];
+      const Double_t patbins[3] = {nwire, -0.5, nwire - 0.5};
+      const Double_t mulbins[3] = {nwire + 1, -0.5, nwire + 0.5};
+      const Double_t dtbins[3] = {240, -40., 160.};
+      const Double_t dlbins[3] = {80, -0.5, 3.5};
+      const Double_t dtbins2d[6] = {nwire, -0.5, nwire - 0.5,
+        dtbins[0], dtbins[1], dtbins[2] };
+      const Double_t dlbins2d[6] = {nwire, -0.5, nwire - 0.5,
+        dlbins[0], dlbins[1], dlbins[2] };
+      for(Int_t layer=0; layer<nlayer; ++layer){
+        HB1(Form("%s_Hit_DriftTime_layer%d%s", name, layer, b), dtbins);
+        HB1(Form("%s_Hit_DriftLength_layer%d%s", name, layer, b), dlbins);
+        HB2(Form("%s_Hit_DriftTime_vs_HitPat_layer%d%s", name, layer, b), dtbins2d);
+        HB2(Form("%s_Hit_DriftLength_vs_HitPat_layer%d%s", name, layer, b), dlbins2d);
+        HB1(Form("%s_Hit_HitPat_layer%d%s", name, layer, b), patbins);
+        HB1(Form("%s_Hit_Multi_layer%d%s", name, layer, b), mulbins);
       }
     }
     if(!flag_beam_particle) break;

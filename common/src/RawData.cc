@@ -97,6 +97,9 @@ RawData::DecodeHits(const TString& name)
 
   Clear(name);
 
+  if(name == "VFT")
+    return true; // ignore
+
   Bool_t is_hodo  = type.Contains("Hodo", TString::kIgnoreCase);
   Bool_t is_fiber = type.Contains("Fiber", TString::kIgnoreCase);
   Bool_t is_dc    = type.Contains("DC", TString::kIgnoreCase);

@@ -14,6 +14,7 @@
 #include <std_ostream.hh>
 
 #include "BLDCWireMapMan.hh"
+#include "DCRawHit.hh"
 #include "DCTdcCalibMan.hh"
 #include "XTMapMan.hh"
 #include "UserParamMan.hh"
@@ -44,8 +45,11 @@ namespace
 }
 
 //______________________________________________________________________________
-DCHit::DCHit( void )
-  : m_layer(-1), m_wire(-1),
+DCHit::DCHit(const DCRawHit* rhit)
+  : m_raw_hit(rhit),
+    m_cid(rhit->DetectorId()),
+    m_layer(rhit->PlaneId()),
+    m_wire(rhit->WireId()),
     m_wpos(DEFV), m_wdir(DEFV), m_tilt(0.), m_rotation(0.)
 {
   debug::ObjectCounter::increase(class_name);
@@ -103,12 +107,12 @@ DCHit::DCHit( DetectorHit *mchit)
       m_wdir=aaa;
     }
   }else{
-    if( !gBLDC.IsReady()) return;
-    m_wpos  = gBLDC.CalcWirePosition(  m_cid, m_layer,m_wire );
-    m_wdir  = gBLDC.CalcWireDirection( m_cid, m_layer,m_wire );
-    m_tilt = gBLDC.GetTiltAngle( m_cid, m_layer );
-    m_rotation = gBLDC.GetRotationAngle( m_cid, m_layer );
-    m_xy= gBLDC.GetWireMap(m_cid,m_layer)->GetXY();
+    // if( !gBLDC.IsReady()) return;
+    // m_wpos  = gBLDC.CalcWirePosition(  m_cid, m_layer,m_wire );
+    // m_wdir  = gBLDC.CalcWireDirection( m_cid, m_layer,m_wire );
+    // m_tilt = gBLDC.GetTiltAngle( m_cid, m_layer );
+    // m_rotation = gBLDC.GetRotationAngle( m_cid, m_layer );
+    // m_xy= gBLDC.GetWireMap(m_cid,m_layer)->GetXY();
   }
   gResol.GetResolution(m_cid,m_layer,m_wire,tresol,eresol);
   m_dl.push_back( mchit->dx()*mc_cm + tresol ); //cm
@@ -163,15 +167,15 @@ DCHit::CalcDCObservables( double retiming )
     m_wdir  = gCDC.GetWireDir(  m_layer,m_wire );
 #endif
   }else{
-    if( !gBLDC.IsReady()){
-      std::cout<<" BLDC wire map is not initialized"<<std::endl;
-      return false;
-    }
-    m_wpos  = gBLDC.CalcWirePosition( m_cid, m_layer,m_wire );
-    m_wdir  = gBLDC.CalcWireDirection( m_cid, m_layer,m_wire );
-    m_tilt = gBLDC.GetTiltAngle( m_cid, m_layer );
-    m_rotation = gBLDC.GetRotationAngle( m_cid, m_layer );
-    m_xy= gBLDC.GetWireMap(m_cid,m_layer)->GetXY();
+    // if( !gBLDC.IsReady()){
+    //   std::cout<<" BLDC wire map is not initialized"<<std::endl;
+    //   return false;
+    // }
+    // m_wpos  = gBLDC.CalcWirePosition( m_cid, m_layer,m_wire );
+    // m_wdir  = gBLDC.CalcWireDirection( m_cid, m_layer,m_wire );
+    // m_tilt = gBLDC.GetTiltAngle( m_cid, m_layer );
+    // m_rotation = gBLDC.GetRotationAngle( m_cid, m_layer );
+    // m_xy= gBLDC.GetWireMap(m_cid,m_layer)->GetXY();
   }
   if(m_trailing.size()>0&&m_tdc.size()>0&&m_tdc.front()<m_trailing.front()){
     m_trailing.erase(m_trailing.begin());
@@ -188,8 +192,9 @@ DCHit::CalcDCObservables( double retiming )
   int  nhtdc = m_tdc.size();
   for ( int i=0; i<nhtdc; ++i ) {
     double ctime;
-    if( !gTdc.GetTime( m_cid, m_layer, m_wire, m_tdc[i], ctime ) )
+    if( !gTdc.GetTime( m_cid, m_layer, m_wire, m_tdc[i], ctime ) ){
       return false;
+    }
     double dtime=ctime - retiming;
     double dlength=gXt.CalcDriftLength( m_cid, m_layer, m_wire, dtime );
     // if( m_cid==DetIdBPC)
@@ -203,18 +208,21 @@ DCHit::CalcDCObservables( double retiming )
   CheckRangeHits();
   return status;
 }
-bool DCHit::CheckRangeHits(){
+bool DCHit::CheckRangeHits()
+{
   std::string str1=Form("DCDt%d",m_cid);
   std::string str2=Form("DCTot%dL%d",m_cid,m_layer);
   std::string str3=Form("DCTot%d",m_cid);
   //  std::string str3=Form("DCDl%d",m_cid);
-  for( int index=m_tdc.size()-1; index!=0-1; --index ){
+  const Char_t* name = m_raw_hit->DetectorName().Data();
+  for(Int_t index=m_tdc.size()-1; index!=0-1; --index ){
     if(gUser.IsInRange(str1,m_dt[index])) m_dt_range[index]=true;
-    if(gUser.Has(str2)){
-      if(gUser.IsInRange(str2,m_tot[index])) m_tot_range[index]=true;
-    }else{
-      if(gUser.IsInRange(str3,m_tot[index])) m_tot_range[index]=true;
-    }
+    m_tot_range[index] = gUser.IsInRange(Form("%s_TOT", name), m_tot[index]);
+    // if(gUser.Has(str2)){
+    //   if(gUser.IsInRange(str2,m_tot[index])) m_tot_range[index]=true;
+    // }else{
+    //   if(gUser.IsInRange(str3,m_tot[index])) m_tot_range[index]=true;
+    // }
     //    if(gUser.IsInRange(str3,m_dl[index])) m_dl_range[index]=true;
   }
   return true;
@@ -293,5 +301,5 @@ DCHit::Print( const std::string& arg, std::ostream& ost ) const
   //     << "dlRange" << m_dl_range.size() << " : ";
   // std::copy(m_dl_range.begin(), m_dl_range.end(),
   // 	      std::ostream_iterator<bool>(ost, " "));
-  //   ost << std::endl;
+  ost << std::endl;
 }

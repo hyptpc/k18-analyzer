@@ -9,6 +9,9 @@
 #include <map>
 #include <string>
 
+#include <TSystem.h>
+
+#include "FuncName.hh"
 #include "XTMapMan.hh"
 #include "BLDCWireMapMan.hh"
 #include "DCTdcCalibMan.hh"
@@ -43,13 +46,13 @@ private:
   const RawData*              m_raw_data;
   std::vector<bool>           m_is_decoded;
   std::vector<int>            m_much_combi;
-  std::vector<DCHitContainer>       m_BLC1aHC;
-  std::vector<DCHitContainer>       m_BLC1bHC;
-  std::vector<DCHitContainer>       m_BLC2aHC;
-  std::vector<DCHitContainer>       m_BLC2bHC;
-  std::vector<DCHitContainer>       m_SDCHC;
-  std::vector<DCHitContainer>       m_BPCHC;
-  std::vector<DCHitContainer>       m_FDCHC;
+  std::vector<DCHitContainer> m_BLC1aHC;
+  std::vector<DCHitContainer> m_BLC1bHC;
+  std::vector<DCHitContainer> m_BLC2aHC;
+  std::vector<DCHitContainer> m_BLC2bHC;
+  std::vector<DCHitContainer> m_SDCHC;
+  std::vector<DCHitContainer> m_BPCHC;
+  std::vector<DCHitContainer> m_FDCHC;
 
   DCClusterListContainer m_DCCC;
 
@@ -64,12 +67,16 @@ private:
   LocalTrackContainer m_FDCTC;
 
   inline int MakeKey(int cid,int xy){ return cid<<3 | xy; }
+
 public:
   bool DecodeRawHits(double retiming_t0=0, double retiming_def=0 );
   bool DecodeRawHits(e_type k_type,const int &detid, double retiming=0 );
   bool DecodeDCHits(const int &detid);
 
-  inline DCHitContainer& GetDCHC( const int &detid, int layer );
+  DCHitContainer& GetDCHC( const int &detid, int layer )
+  { return const_cast<DCHitContainer&>(std::as_const(*this).GetDCHC(detid, layer)); }
+  const DCHitContainer& GetDCHC( const int &detid, int layer ) const;
+
   inline DCClusterList& GetDCCL( const int &detid, const int &xy );
   inline LocalTrackContainer& GetTC( const int &detid ) ;
   inline int GetNClusters( const int &detid, const int &xy, const int &i );
@@ -101,25 +108,30 @@ protected:
 };
 
 //______________________________________________________________________________
-inline DCHitContainer&
-DCAnalyzer::GetDCHC( const int &detid,int layer )
+inline const DCHitContainer&
+DCAnalyzer::GetDCHC( const int &detid,int layer ) const
 {
-  static const std::string func_name(std::string("[DCAnalyzer::")+__func__+"()]");
+  static DCHitContainer null_container;
+  // std::cout<<"DCAnalyzer::GetDCHC() "<<detid<<"  "<<layer<<std::endl;
   if( layer>8 ) layer=0;
   switch(detid){
-  case DetIdSDC:    return m_SDCHC[layer];
-  case DetIdBLC1a:  return m_BLC1aHC[layer];
-  case DetIdBLC1b:  return m_BLC1bHC[layer];
-  case DetIdBLC2a:  return m_BLC2aHC[layer];
-  case DetIdBLC2b:  return m_BLC2bHC[layer];
-  case DetIdBPC:    return m_BPCHC[layer];
+  case DetIdSDC:    return m_SDCHC.at(layer);
+  case DetIdBLC1a:  return m_BLC1aHC.at(layer);
+  case DetIdBLC1b:  return m_BLC1bHC.at(layer);
+  case DetIdBLC2a:  return m_BLC2aHC.at(layer);
+  case DetIdBLC2b:  return m_BLC2bHC.at(layer);
+  case DetIdBPC:    return m_BPCHC.at(layer);
   case DetIdFDC:
     if( layer>5 ) layer=0;
     //    std::cout<<"DCAnalyzer::GetDCHC() "<<detid<<"  "<<layer<<std::endl;
-    return m_FDCHC[layer];
+    return m_FDCHC.at(layer);
+  case DetIdVFT:
+    // ignore VFT
+    return null_container;
   default:
-    std::cout<<"E# "<<func_name<<" invalid detector id "<< detid<<std::endl;
-    exit(0);
+    std::cout << "E# invalid detector id "<< detid << std::endl;
+    // gSystem->Exit(1);
+    return null_container;
   }
 }
 

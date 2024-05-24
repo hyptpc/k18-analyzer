@@ -20,13 +20,14 @@ typedef std::deque<bool>    BoolVec;
 typedef std::vector<int>    IntVec;
 typedef std::vector<double> DoubleVec;
 
+class DCRawHit;
 class DetectorHit;
 
 //_____________________________________________________________________________
 class DCHit
 {
 public:
-  DCHit( void );
+  DCHit(const DCRawHit* rhit);
   DCHit( int layer );
   DCHit( int layer, int wire );
   DCHit( int cid, int layer, int wire );
@@ -38,6 +39,7 @@ private:
   DCHit& operator =( const DCHit& );
 
 private:
+  const DCRawHit* m_raw_hit;
   int       m_cid;
   int       m_layer;
   int       m_wire;
