@@ -17,8 +17,6 @@ logger = logging.getLogger(__name__)
 name = 'T0'
 cid = 2
 n_seg = 5
-n_seg_one_page = 16
-beamflag = '_Pi'
 
 ROOT.gStyle.SetOptFit(1)
 
@@ -32,7 +30,7 @@ def offset(offsetrange=(-2, 2), fit=True):
   result_dict = dict()
   for seg in range(n_seg):
     c1.cd(seg+1) #.SetLogy()
-    hname = name + f'_seg{seg}_TimeOffset{beamflag}'
+    hname = name + f'_seg{seg}_TimeOffset{mh.beamflag_for_param}'
     h1 = ROOT.gFile.Get(hname)
     if h1:
       logger.debug(hname)
@@ -61,7 +59,7 @@ def offset(offsetrange=(-2, 2), fit=True):
 
 #______________________________________________________________________________
 def single_run(run_info):
-  mh.initialize(run_info, fig_tail='_t0_offset')
+  mh.initialize(run_info, __file__)
   result_dict = {'generator': os.path.basename(__file__)}
   ret = offset()
   result_dict.update(ret)

@@ -71,7 +71,7 @@ def ftof_hit():
 
 #______________________________________________________________________________
 def single_run(run_info):
-  mh.initialize(run_info, fig_tail='_ftof')
+  mh.initialize(run_info, __file__)
   ftof_hit()
   ftof_cluster()
   mh.finalize()

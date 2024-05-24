@@ -17,13 +17,12 @@ logger = logging.getLogger(__name__)
 name = 'CVC'
 cid = 14
 n_seg = 10
-beamflag = '_Pi'
 
 ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
 def phc(ud, key, fit=True):
-  logger.info(f'ud={ud}, key={key}, beamflag={beamflag}')
+  logger.info(f'ud={ud}, key={key}, beamflag={mh.beamflag_for_param}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   c1.Clear()
@@ -31,10 +30,10 @@ def phc(ud, key, fit=True):
   result_dict = dict()
   for seg in range(n_seg):
     c1.cd(seg+1) #.SetLogy()
-    hname = name + f'_seg{seg}{ud}_{key}_vs_DeltaE{beamflag}'
+    hname = name + f'_seg{seg}{ud}_{key}_vs_DeltaE{mh.beamflag_for_param}'
     h1 = ROOT.gFile.Get(hname)
     if h1:
-      logger.debug(name + f'_PHC_seg{seg}{ud}{beamflag}')
+      logger.debug(name + f'_PHC_seg{seg}{ud}{mh.beamflag_for_param}')
       h1.GetXaxis().SetRangeUser(-0.5, 2.5)
       if fit:
         params = np.ndarray(3, dtype='float64')
@@ -66,7 +65,7 @@ def phc(ud, key, fit=True):
 
 #______________________________________________________________________________
 def single_run(run_info):
-  mh.initialize(run_info, fig_tail='_cvc_phc')
+  mh.initialize(run_info, __file__)
   result_dict = {'generator': os.path.basename(__file__)}
   for ud in ['U', 'D']:
     ret = phc(ud=ud, key='FTOF')

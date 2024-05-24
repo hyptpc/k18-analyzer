@@ -18,13 +18,12 @@ name = 'T0'
 cid = 2
 n_seg = 5
 n_seg_one_page = 16
-beamflag = '_Pi'
 
 ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
 def tdc(ud, tdcrange=(1.21e6, 1.24e6), fit=True):
-  logger.info(f'ud={ud}, tdcrange={tdcrange}')
+  logger.info(f'ud={ud}, tdcrange={tdcrange}, fit={fit}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   c1.Clear()
@@ -32,9 +31,9 @@ def tdc(ud, tdcrange=(1.21e6, 1.24e6), fit=True):
   result_dict = dict()
   for seg in range(n_seg):
     c1.cd(seg+1) #.SetLogy()
-    h1 = ROOT.gFile.Get(name + f'_TDC_seg{seg}{ud}{beamflag}')
+    h1 = ROOT.gFile.Get(name + f'_TDC_seg{seg}{ud}{mh.beamflag_for_param}')
     if h1:
-      logger.debug(name + f'_TDC_seg{seg}{ud}{beamflag}')
+      logger.debug(name + f'_TDC_seg{seg}{ud}{mh.beamflag_for_param}')
       h1.RebinX(4)
       if h1.GetEntries() < 1e4:
         h1.RebinX(2)
@@ -94,7 +93,7 @@ def time2d():
   ranges = ((-10, 10), (-10, 10))
   for i, key in enumerate(keys):
     c1.cd(i+1) #.SetLogy()
-    hname = name + f'_Hit_{key}{beamflag}'
+    hname = name + f'_Hit_{key}{mh.beamflag_for_param}'
     h1 = ROOT.gFile.Get(hname)
     if h1:
       logger.debug(hname)
@@ -103,7 +102,7 @@ def time2d():
     else:
       logger.warning(f'cannot find {hname}')
     c1.cd(i+1+len(keys)).SetLogz()
-    hname = name + f'_Hit_{key}_vs_HitPat{beamflag}'
+    hname = name + f'_Hit_{key}_vs_HitPat{mh.beamflag_for_param}'
     h2 = ROOT.gFile.Get(hname)
     if h2:
       logger.debug(hname)
@@ -117,7 +116,7 @@ def time2d():
 
 #______________________________________________________________________________
 def single_run(run_info):
-  mh.initialize(run_info, fig_tail='_t0_tdc')
+  mh.initialize(run_info, __file__)
   result_dict = {'generator': os.path.basename(__file__)}
   for ud in ['U', 'D']:
     ret = tdc(ud=ud)

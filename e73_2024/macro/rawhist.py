@@ -119,10 +119,7 @@ def dc(name, nlayer=0, tdcdiv=None):
 
 #______________________________________________________________________________
 def single_run(run_info):
-  if os.path.basename(run_info['bin']) != 'RawHist':
-    logger.error(f'bin must be RawHist: run_info={run_info}')
-    return
-  macrohelper.initialize(run_info)
+  macrohelper.initialize(run_info, __file__)
   hodo('TriggerFlag', nseg=32, tdcdiv=(8, 4), ud=False)
   hodo('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8))
   hodo('AC', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), ud=False)

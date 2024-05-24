@@ -109,7 +109,7 @@ def single_run(run_info):
     return
   comment = (f'#color[{mh.beamcolor[1]}]{{Red}}=Pion, '+
              f'#color[{mh.beamcolor[2]}]{{Blue}}=Kaon')
-  mh.initialize(run_info, fig_tail='_rawhist', comment=comment)
+  mh.initialize(run_info, __file__, comment=comment)
   draw('TriggerFlag', nseg=32, tdcdiv=(8, 4), tdcrange=(800, 1200),
        ud=False, ploop=False)
   draw('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8),
