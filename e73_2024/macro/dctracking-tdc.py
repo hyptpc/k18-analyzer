@@ -27,7 +27,8 @@ def tdc(name, cid, n_layer=8, n_wire=32, tdcrange=None):
   result_dict = dict()
   for i in range(n_layer):
     c1.cd(i+1) #.SetLogy()
-    h1 = ROOT.gFile.Get(f'{name}_CTDC_layer{i}{mh.beamflag_for_param}')
+    hname = f'{name}_CTDC_layer{i}{mh.beamflag_for_param}'
+    h1 = ROOT.gFile.Get(hname)
     if h1:
       if tdcrange is None:
         xmax = h1.GetBinCenter(h1.GetMaximumBin())
@@ -45,19 +46,42 @@ def tdc(name, cid, n_layer=8, n_wire=32, tdcrange=None):
       for wid in range(n_wire):
         key = (cid, i, wid)
         result_dict[key] = (t0, -0.8333333333)
+    else:
+      logger.warning(f'cannot find {hname}')
   c1.Print(fig_path)
+  return result_dict
+
+#______________________________________________________________________________
+def drift_time(name, n_layer=8):
+  logger.info(f'name={name}, n_layer={n_layer}')
+  c1 = ROOT.gROOT.GetListOfCanvases()[0]
+  fig_path = c1.GetTitle()
+  for key in ['', '_vs_HitPat']:
+    c1.Clear()
+    c1.Divide(4, 2)
+    result_dict = dict()
+    for i in range(n_layer):
+      c1.cd(i+1) #.SetLogy()
+      if len(key) > 0:
+        ROOT.gPad.SetLogz()
+      hname = f'{name}_Hit_DriftTime{key}_layer{i}{mh.beamflag_for_param}'
+      h1 = ROOT.gFile.Get(hname)
+      if h1:
+        h1.Draw('colz')
+      else:
+        logger.warning(f'cannot find {hname}')
+    c1.Print(fig_path)
   return result_dict
 
 #______________________________________________________________________________
 def single_run(run_info):
   mh.initialize(run_info, __file__)
   result_dict = {'generator': os.path.basename(__file__)}
-  result_dict.update(tdc('BLC1a', cid=101, n_wire=32))
-  result_dict.update(tdc('BLC1b', cid=102, n_wire=32))
-  result_dict.update(tdc('BLC2a', cid=103, n_wire=32))
-  result_dict.update(tdc('BLC2b', cid=104, n_wire=32))
-  result_dict.update(tdc('BPC1', cid=106, n_wire=16))
-  result_dict.update(tdc('BPC2', cid=105, n_wire=32))
+  dclist = ['BLC1a', 'BLC1b', 'BLC2a', 'BLC2b', 'BPC2', 'BPC1']
+  for i, dc in enumerate(dclist):
+    n_wire = 16 if 'BPC1' else 32
+    result_dict.update(tdc(dc, cid=101+i, n_wire=n_wire))
+    drift_time(dc)
   dctdc.output_result(run_info, result_dict, parsed.update)
   mh.finalize()
 

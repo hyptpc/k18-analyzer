@@ -360,7 +360,7 @@ BuildDCHit(Bool_t flag_beam_particle)
       Double_t nwire = NumOfWireDC[idc];
       const Double_t patbins[3] = {nwire, -0.5, nwire - 0.5};
       const Double_t mulbins[3] = {nwire + 1, -0.5, nwire + 0.5};
-      const Double_t dtbins[3] = {240, -40., 160.};
+      const Double_t dtbins[3] = {600, -100., 400.};
       const Double_t dlbins[3] = {80, -0.5, 3.5};
       const Double_t dtbins2d[6] = {nwire, -0.5, nwire - 0.5,
         dtbins[0], dtbins[1], dtbins[2] };

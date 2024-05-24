@@ -35,6 +35,17 @@ def draw(name, nlayer=0):
             if htype == 'Multi':
               mh.efficiency(h1)
       c1.Print(fig_path)
+      if c == 'C' and (htype == 'TDC' or htype == 'TOT'):
+        c1.Clear()
+        c1.Divide(4, 2)
+        for i in range(nlayer):
+          c1.cd(i+1).SetLogz()
+          hname = (f'{name}_{c}{htype}_vs_HitPat_'+
+                   f'layer{i}{mh.beamflag_for_param}')
+          h1 = ROOT.gFile.Get(hname)
+          if h1:
+            h1.Draw('colz')
+        c1.Print(fig_path)
 
 #______________________________________________________________________________
 def single_run(run_info):
