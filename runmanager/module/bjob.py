@@ -19,8 +19,9 @@ class BJob(object):
   ''' BJob class throwing subprocess of "bjobs" and "bkill". '''
 
   #____________________________________________________________________________
-  def __init__(self, job_id):
+  def __init__(self, job_id, start_time):
     self.__job_id = job_id
+    self.__start_time = start_time
     self.__status = 'INIT'
     self.get_status()
 
@@ -36,7 +37,7 @@ class BJob(object):
         self.__status == 'EXIT' or
         self.__status == 'TERMINATED'):
       return self.__status
-    status = bjobmanager.BJobManager().get_job_status(self.__job_id)
+    status = bjobmanager.BJobManager().get_job_status(self.__job_id, self.__start_time)
     logger.debug(f'{self.__job_id} is {status}')
     # cmd = f'bjobs {self.__job_id}'
     # proc = None
