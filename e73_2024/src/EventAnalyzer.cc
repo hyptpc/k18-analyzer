@@ -461,6 +461,7 @@ EventAnalyzer::DCHit(const DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
         auto wire = hit->GetWire();
         Bool_t is_good = false;
         for(Int_t j=0, m=hit->GetDriftTimeSize(); j<m; ++j){
+          if(!hit->IsGood(j)) continue;
           auto dt = hit->GetDriftTime(j);
           auto dl = hit->GetDriftLength(j);
           HF1(Form("%s_Hit_DriftTime_layer%d%s", name, layer, b), dt);

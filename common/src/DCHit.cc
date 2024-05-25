@@ -158,24 +158,25 @@ DCHit::CalcDCObservables( double retiming )
         break;
       }
     }
-    leading.push_back(l);
-    trailing.push_back(buf);
     Double_t ctime = TMath::QuietNaN();
     gTdc.GetTime(m_detector_id, m_plane, m_wire, l, ctime);
     Double_t dt = TMath::QuietNaN();
     Double_t dl = TMath::QuietNaN();
     gDrift.CalcDrift(m_detector_id, m_plane, m_wire, ctime, dt, dl);
 
-    Double_t ctime_trailing = TMath::QuietNaN();
-    gTdc.GetTime(m_detector_id, m_plane, m_wire, buf, ctime_trailing);
+    // Double_t ctime_trailing = TMath::QuietNaN();
+    // gTdc.GetTime(m_detector_id, m_plane, m_wire, buf, ctime_trailing);
     // Double_t tot = ctime - ctime_trailing;
     Double_t tot = l - buf;
 
     const Char_t* name = m_raw_hit->DetectorName().Data();
     Bool_t dt_is_good = gUser.IsInRange(Form("%s_DT", name), dt);
-    Bool_t dl_is_good = dt_is_good;
+    Bool_t tot_is_good = gUser.IsInRange(Form("%s_TOT", name), tot);
+    Bool_t dl_is_good = dt_is_good && tot_is_good;
 
     SetDCData(dt, dl, tot, false, dl_is_good);
+    leading.push_back(l);
+    trailing.push_back(buf);
   }
   m_tdc = leading;
   m_trailing = trailing;

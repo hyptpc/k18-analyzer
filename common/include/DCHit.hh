@@ -74,7 +74,7 @@ public:
   bool CalcDCObservables(Double_t retiming=0);
   void SetDCData(Double_t dt=0, Double_t dl=0, Double_t tot=TMath::QuietNaN(),
                  Bool_t belong_to_track=false, Bool_t is_good=true);
-
+  Bool_t IsGood(Int_t i=0) const { return m_is_good.at(i); }
   void SetDetId( int detid )              { m_detector_id = detid; }
   void SetLayer( int layer )              { m_layer = layer; }
   void SetWire( int wire )             { m_wire  = wire; }
