@@ -593,7 +593,7 @@ UserKuramaTracking::ProcessingNormal()
 
       Bool_t condTof=false;
       for(Int_t j=0; j<ncTof; ++j){
-p	HodoCluster *clTof=hodoAna->GetClusterTOF(j);
+	HodoCluster *clTof=hodoAna->GetClusterTOF(j);
 	if(!clTof || !clTof->GoodForAnalysis()) continue;
 	Double_t ttof=clTof->CMeanTime()-time0;
 	//------------------------Cut
@@ -613,7 +613,7 @@ p	HodoCluster *clTof=hodoAna->GetClusterTOF(j);
 	// tp->GoodForTracking(false);
       }
     }
-p    // if(ntOk<1) return true;
+    // if(ntOk<1) return true;
   }
 #endif
 
