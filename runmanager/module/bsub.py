@@ -156,7 +156,7 @@ class BSub(object):
     if self.__jid is None and self.__process_status == 'DONE':
       buff  = self.__proc.communicate()[0]
       self.__jid = bjob.BJob.read_job_id(buff.decode())
-      self.__bjob = bjob.BJob(self.__jid)
+      self.__bjob = bjob.BJob(self.__jid, time.time())
       self.__bjob_status = 0
       # self.__status   = 1
 
