@@ -1753,8 +1753,15 @@ dst::DstRead( int ievent )
     event.vtgtTPCKurama[idkurama] = vtgt;
     event.thetaTPCKurama[idkurama] = theta;
     event.pathTPCKurama[idkurama] = pathtof;
+<<<<<<< HEAD
     if(q>0 && event.m2TPCKurama[idkurama] > 0.15 && event.m2TPCKurama[idkurama] < 0.40) event.kflagTPCKurama[idkurama] = 1;
     if(q>0 && event.m2TPCKurama[idkurama] > 0.5 && event.m2TPCKurama[idkurama] < 1.4) event.pflagTPCKurama[idkurama] = 1;
+=======
+    if(event.m2TPCKurama[idkurama] > 0.15 && event.m2TPCKurama[idkurama] < 0.40)
+      event.kflagTPCKurama[idkurama] = 1;
+    if(event.m2TPCKurama[idkurama] > 0.40 && event.m2TPCKurama[idkurama] < 1.50)
+      event.pflagTPCKurama[idkurama] = 1;
+>>>>>>> da55b12861006ecfdb998c253ed77cfe68498c14
 
     Double_t path, x, y;
     TVector3 mom;
