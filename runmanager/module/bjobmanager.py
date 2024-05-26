@@ -54,22 +54,24 @@ class BJobManager(metaclass=classimpl.Singleton):
     self.updater_status = 'END'
 
   #______________________________________________________________________________
-  def get_job_status(self, job_id):
+  def get_job_status(self, job_id, start_time):
     ''' Get job status. '''
-    if (self.__updater_status == 'RUNNING'
-        and job_id in self.__status_list
-        and len(self.__status_list[job_id]) == 2):
-      logger.debug(f'jobid = {self.__status_list[job_id][0]}')
-      return self.__status_list[job_id][0]
+    while self.__updater_status == 'UPDATING':
+      time.sleep(0.2)
+    if self.__updater_status == 'RUNNING':
+      s = self.__status_list.get(job_id, None)
+      if s is not None:
+        return s
+      if time.time() - start_time > 3000:
+        logger.debug(f'{job_id} is missing')
+        return 'DONE'
     return 'INIT'
-
-  #____________________________________________________________________________
-  def isrunning(self):
-    return self.__updater_status == 'RUNNING'
 
   #______________________________________________________________________________
   def update_job_status(self):
     ''' Update job status. '''
+    self.__updater_status = 'UPDATING'
+    logger.debug('updating bjob status')
     cmd = 'bjobs -a'
     proc = None
     try:
@@ -90,8 +92,9 @@ class BJobManager(metaclass=classimpl.Singleton):
       if not columns[0].isdigit():
         continue
       job_id = int(columns[0])
-      self.__status_list[job_id] = columns[2:4]
-    logger.debug('update bjob status')
+      self.__status_list[job_id] = columns[2]
+    logger.debug('updated bjob status')
+    self.__updater_status = 'RUNNING'
 
   #____________________________________________________________________________
   def run(self):

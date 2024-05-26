@@ -403,7 +403,7 @@ class SingleRun(object):
       btop_proc = subprocess.run(['btop', str(job_id)],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
-      self.__merging_job = bjob.BJob(job_id)
+      self.__merging_job = bjob.BJob(job_id,time.time())
       self.__dump_log('jid[merge]', self.__merging_job.get_job_id())
       self.__dump_log(None, '_'*80)
       self.__merge_status = 'RUNNING'
