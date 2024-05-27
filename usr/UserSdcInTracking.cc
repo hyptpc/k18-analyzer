@@ -21,7 +21,7 @@
 #include "RootHelper.hh"
 
 #define HodoCut     0
-#define TotCut      0
+#define TotCut      1
 #define Chi2Cut     0
 #define MaxMultiCut 0
 #define BcOutCut    0

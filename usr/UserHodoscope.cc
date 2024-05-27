@@ -1336,7 +1336,7 @@ UserHodoscope::ProcessingNormal()
             HF1(BH1Hid+100*seg1+1100+24+seg2*10, mt1-ct0);
             HF1(BH1Hid+100*seg1+2200+104, mt1-ct0);
             if(seg1==5){
-              HF1(30+seg2, mt1-ct0);
+              HF1(70+seg2, mt1-ct0);
             }
           }// for(m1)
         }// for(bh1:seg)
@@ -1940,7 +1940,6 @@ ConfMan::InitializeHistograms()
   for(Int_t i=0; i<NumOfSegTrig; ++i){
     HB1(10+i+1, Form("Trigger Trig %d", i+1), 0x1000, 0, 0x1000);
   }
-
   // BH1
   // Rawdata
   HB1(BH1Hid +0, "#Hits BH1",        NumOfSegBH1+1, 0., Double_t(NumOfSegBH1+1));
@@ -2164,6 +2163,16 @@ ConfMan::InitializeHistograms()
     HB2(BH2Hid +100*i +28, title28, 100, -10., 10., 100, -0.5, 4.5);
     HB2(BH2Hid +100*i +29, title29, 100, -10., 10., 100, -0.5, 4.5);
     HB2(BH2Hid +100*i +30, title30, 100, -10., 10., 100, -0.5, 4.5);
+  }
+
+  for(Int_t iseg2=1; iseg2<=NumOfSegBH2; ++iseg2){
+    HB1(70+iseg2, Form("BH1MT5-BH2MT%d", iseg2), 400, -5, 5);   
+  }
+  for(Int_t iseg1=1; iseg1<=NumOfSegBH1; ++iseg1){
+    HB1(BH1Hid+100*iseg1+2200+104, Form("BH1MT%d-BH2MT", iseg1), 400, -5, 5);
+    for(Int_t iseg2=1; iseg2<=NumOfSegBH2; ++iseg2){
+      HB1(BH1Hid+100*iseg1+1100+iseg2*10, Form("BH1MT%d-BH2MT%d", iseg1, iseg2), 400, -5, 5);
+    }
   }
 
   HB2(BH2Hid +21, "BH2HitPat%BH2HitPat[HodoGood]", NumOfSegBH2,   0., Double_t(NumOfSegBH2),
