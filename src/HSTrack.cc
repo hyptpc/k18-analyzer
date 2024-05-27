@@ -111,6 +111,15 @@ HSTrack::SaveTrack()
   m_bh2_position.SetZ(zBH2 - zLocalK18HS);
   m_bh2_momentum = gGeom.Global2LocalDir(IdBH2, momBH2);
 
+  const Int_t IdBAC = gGeom.DetectorId("BAC");
+  const Double_t& zBAC = gGeom.LocalZ("BAC");
+  const RKcalcHitPoint& hpBAC = m_HitPointCont.HitPointOfLayer(IdBAC);
+  const ThreeVector &posBAC = hpBAC.PositionInGlobal();
+  const ThreeVector &momBAC = hpBAC.MomentumInGlobal();
+  m_bac_position = gGeom.Global2LocalPos(IdBAC, posBAC);
+  m_bac_position.SetZ(zBAC - zLocalK18HS);
+  m_bac_momentum = gGeom.Global2LocalDir(IdBAC, momBAC);
+
   const Int_t IdVP1 = gGeom.DetectorId("VPHS1");
   const Double_t& zVPHS1 = gGeom.LocalZ("VPHS1");
   const RKcalcHitPoint& hpVP1 = m_HitPointCont.HitPointOfLayer(IdVP1);

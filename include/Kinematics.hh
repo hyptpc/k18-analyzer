@@ -101,13 +101,15 @@ namespace Kinematics
 		    TVector3 &Ppi, Double_t &lambdapi_dist);
   TVector3 CalcCloseDistXi(TVector3 point, Double_t Bfield,
 			   TVector3 xi_decayvtx, TVector3 xi_mom_decayvtx,
-			   TVector3 &xi_mom, Double_t &dist); //Extrapolatr to the target
+			   TVector3 &xi_mom, Double_t &dist); //Extrapolate to the target
   TVector3 LambdaLambdaVertex(TVector3 Xlambda1, TVector3 Plambda1,
 			      TVector3 Xlambda2, TVector3 Plambda2,
 			      TVector3 &vtxlambda1, TVector3 &vtxlambda2,
 			      Double_t &dist);
   TVector3 CalcCloseDistLambda(TVector3 point, TVector3 Xlambda,
-			       TVector3 Plambda, Double_t &dist); //Extrapolatr to the target
+			       TVector3 Plambda, Double_t &dist); //Extrapolate to the target
+  TVector3 LambdaTargetCenter(TVector3 Xlambda,
+			      TVector3 Plambda, Double_t &dist);  //Extrapolate to z=z_target
   Bool_t HelixDirection(TVector3 vertex, TVector3 start, TVector3 end,
 			Double_t &dist);
   TVector3 MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0,

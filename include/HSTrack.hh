@@ -57,6 +57,9 @@ private:
   TVector3                m_tgt_position;
   TVector3                m_tgt_momentum;
 
+  TVector3                m_bac_position;
+  TVector3                m_bac_momentum;
+
   TVector3                m_bh2_position;
   TVector3                m_bh2_momentum;
 
@@ -107,6 +110,9 @@ public:
 
   const TVector3& V0Momentum() const { return m_v0_momentum; }
   const TVector3& V0Position() const { return m_v0_position; }
+
+  const TVector3& BACMomentum() const { return m_bac_momentum; }
+  const TVector3& BACPosition() const { return m_bac_position; }
 
   const TVector3& BH2Momentum() const { return m_bh2_momentum; }
   const TVector3& BH2Position() const { return m_bh2_position; }

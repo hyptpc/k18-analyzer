@@ -60,6 +60,7 @@ const Int_t& IdVPHTOF = gGeom.DetectorId("VPHTOF");
 const Int_t& IdRKINIT = gGeom.DetectorId("RKINIT");
 //K1.8
 const Int_t& IdBH2 = gGeom.DetectorId("BH2");
+const Int_t& IdBAC = gGeom.DetectorId("BAC");
 
   /*
 const Int_t& IdVP1 = gGeom.DetectorId("VPHS1");
@@ -433,41 +434,6 @@ TPCAnalyzer::MakeTPCKuramaHPContainer(TPCLocalTrackHelix *tpctrack,
   //The end point of RK tracking is the target z position.
   //So, clusters before the target center are excluded in the tracking. (Z_cluster < Z_target).
 
-#if 0
-  lnum.clear();
-
-  //Virtual planes on the TPC clusters
-  Int_t nhtpc = tpctrack -> GetNHit();
-  for(int id=0; id<nhtpc; ++id){
-    TPCLTrackHit *thp = tpctrack -> GetHitInOrder(id);
-    if(!thp) continue;
-    //Exclude bad hits
-    const TVector3& resolution = thp->GetResolutionVect();
-    if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) continue;
-    //Exclude clusters before the target
-    const TVector3& localhitpos = thp->GetLocalHitPos();
-    Double_t TGTz = gGeom.GlobalZ("Target") - gGeom.GlobalZ("HS");
-    if(localhitpos.z()<TGTz) continue;
-    lnum.push_back(id + PlOffsTPCHit + 1);
-  }
-
-  //Virtual planes of Kurama detectors
-  // /*** From Upstream ***/
-  lnum.push_back(IdTgt);
-  for(int j=0; j<NumOfLayersVPTPC; ++j){
-    const Int_t& IdVP = gGeom.DetectorId(Form("VPTPC%d",j+1));
-    lnum.push_back(IdVP);
-  }
-  lnum.push_back(IdTPCGasVessel_D);
-  lnum.push_back(IdVPHTOF);
-  for(Int_t i=0; i<NumOfLayersSdcIn; ++i) lnum.push_back(i+PlOffsSdcIn+1);
-  for(Int_t i=0; i<NumOfLayersVP; ++i) lnum.push_back(i+PlOffsVP+1);
-  for(Int_t i=0; i<NumOfLayersSdcOut; ++i) lnum.push_back(i+PlOffsSdcOut+1);
-  lnum.push_back(IdTOFUX);
-  lnum.push_back(IdTOFUY);
-  lnum.push_back(IdTOFDX);
-  lnum.push_back(IdTOFDY);
-#else
   lnum.clear();
 
   //Virtual planes on the TPC clusters
@@ -502,7 +468,6 @@ TPCAnalyzer::MakeTPCKuramaHPContainer(TPCLocalTrackHelix *tpctrack,
   lnum.push_back(IdTOFUY);
   lnum.push_back(IdTOFDX);
   lnum.push_back(IdTOFDY);
-#endif
 
 }
 
@@ -626,38 +591,6 @@ TPCAnalyzer::TrackSearchTPCKurama(const std::vector<Int_t> PID,
 void
 TPCAnalyzer::MakeTPCK18HPContainer(TPCLocalTrackHelix *tpctrack,
 				   std::vector<Int_t> &lnum){
-#if 0
-  lnum.clear();
-
-  //Virtual planes on the TPC clusters
-  Int_t nhtpc = tpctrack -> GetNHit();
-  for(int id=0; id<nhtpc; ++id){
-    TPCLTrackHit *thp = tpctrack -> GetHitInOrder(id);
-    if(!thp) continue;
-    //Exclude bad hits
-    const TVector3& resolution = thp->GetResolutionVect();
-    if(resolution.x() > 0.9e+10 && resolution.y() > 0.9e+10 && resolution.z() > 0.9e+10) continue;
-    //Exclude clusters after the target
-    const TVector3& localhitpos = thp->GetLocalHitPos();
-    Double_t TGTz = gGeom.GlobalZ("Target") - gGeom.GlobalZ("HS");
-    if(localhitpos.z()>TGTz) continue;
-
-    lnum.push_back(id + PlOffsTPCHit + 1);
-  }
-
-  //Virtual planes of Kurama detectors
-  // /*** From Upstream ***/
-  for(Int_t i=0; i<NumOfLayersBcOut; ++i) lnum.push_back(i+PlOffsBcOut+1);
-  lnum.push_back(IdBH2);
-  lnum.push_back(IdTPCGasVessel_U);
-  for(int j=0; j<NumOfLayersVPHS; ++j){
-    const Int_t& IdVP = gGeom.DetectorId(Form("VPHS%d",j+1));
-    lnum.push_back(IdVP);
-  }
-  lnum.push_back(IdTgt);
-  lnum.push_back(IdTPCGasVessel_D);
-  lnum.push_back(IdVPHTOF);
-#else
   lnum.clear();
 
   //Virtual planes on the TPC clusters
@@ -678,7 +611,9 @@ TPCAnalyzer::MakeTPCK18HPContainer(TPCLocalTrackHelix *tpctrack,
 
   //Virtual planes of Kurama detectors
   // /*** From Upstream ***/
-  for(Int_t i=0; i<NumOfLayersBcOut; ++i) lnum.push_back(i+PlOffsBcOut+1);
+  for(Int_t i=0; i<6; ++i) lnum.push_back(i+PlOffsBcOut+1);
+  lnum.push_back(IdBAC);
+  for(Int_t i=6; i<NumOfLayersBcOut; ++i) lnum.push_back(i+PlOffsBcOut+1);
   lnum.push_back(IdBH2);
   lnum.push_back(IdTPCGasVessel_U);
   for(int j=0; j<NumOfLayersVPHS; ++j){
@@ -688,7 +623,6 @@ TPCAnalyzer::MakeTPCK18HPContainer(TPCLocalTrackHelix *tpctrack,
   lnum.push_back(IdTgt);
   lnum.push_back(IdTPCGasVessel_D);
   lnum.push_back(IdVPHTOF);
-#endif
 
 }
 

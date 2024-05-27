@@ -4,6 +4,7 @@
 Material lookup table for HypTPC dEdx calculation
 0:P10, 1:Polyethylene(Target) 2:Diamond(Target) 3:Polyvinyltoluene (old TPC gas-vessel)
 4:Mylar (gas vessel window) 5:Al (gas-vessel frame)
+6:Silica aerogel (AC)
 */
 
 #include "Kinematics.hh"
@@ -34,8 +35,8 @@ const Double_t TARGETcenterX = 0.0;
 const Double_t TARGETcenterY = 0.0;
 const Double_t TARGETradius  = 67.3/2.0; //Legacy (Not E42 target)
 const Double_t conversion_factor = 12015.2; //HypTPC's ADC to <dE/dx>
-const Double_t sigma_dedx_p[3] = {38.19, 31.62, 8.002};
-const Double_t sigma_dedx_pi[3] = {7.546, 6.88, 3.243};
+const Double_t sigma_dedx_p[3] = {38.19, -31.62, 8.002};
+const Double_t sigma_dedx_pi[3] = {7.546, -6.88, 3.243};
 }
 
 static Int_t gNumOfTracks;
@@ -832,6 +833,17 @@ Double_t HypTPCdEdx(Int_t materialid, Double_t mass/*MeV/c2*/, Double_t beta){
     density_effect_par[4] = 4.2395;
     density_effect_par[5] = 0.12;
   }
+  else if(materialid==6){ //Slical aerogel
+    rho = 0.50093;
+    ZoverA = 0.200;
+    I = 139.2;
+    density_effect_par[0] = 0.26675;
+    density_effect_par[1] = 3.0000;
+    density_effect_par[2] = 0.6029;
+    density_effect_par[3] = 3.0000;
+    density_effect_par[4] = 6.4507;
+    density_effect_par[5] = 0.00;
+  }
 
   Double_t Z = 1.;
   Double_t me = 0.5109989461; //[MeV]
@@ -1071,12 +1083,12 @@ Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
   // 1 sigma of <dE/dx>_pi
   Double_t par_pi[2] = {conversion_factor, mpi};
   Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
-  Double_t sigma_pi = (sigma_dedx_pi[0] + sigma_dedx_pi[1]*poq + sigma_dedx_pi[2]*poq*poq);
+  Double_t sigma_pi = (sigma_dedx_pi[0] + sigma_dedx_pi[1]*TMath::Abs(poq) + sigma_dedx_pi[2]*poq*poq);
 
   // 1 sigma of <dE/dx>_p
   Double_t par_p[2] = {conversion_factor, mp};
   Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
-  Double_t sigma_p = (sigma_dedx_p[0] + sigma_dedx_p[1]*poq + sigma_dedx_p[2]*poq*poq);
+  Double_t sigma_p = (sigma_dedx_p[0] + sigma_dedx_p[1]*TMath::Abs(poq) + sigma_dedx_p[2]*poq*poq);
 
   //p/pi separation power calculation
   Double_t avg_sigma = 0.5*(sigma_pi + sigma_p);
@@ -1448,6 +1460,21 @@ CalcCloseDistLambda(TVector3 point, TVector3 Xlambda,
   Double_t verty = zL;
   Double_t vertz = yL + tpc::ZTarget;
   return TVector3(vertx, verty, vertz);
+}
+
+//_____________________________________________________________________________
+TVector3
+LambdaTargetCenter(TVector3 Xlambda, TVector3 Plambda,
+		   Double_t &dist){
+
+  Double_t u = Plambda.x()/Plambda.z();
+  Double_t v = Plambda.y()/Plambda.z();
+  Double_t zdiff = tpc::ZTarget - Xlambda.z();
+  TVector3 track(u*zdiff, v*zdiff, zdiff);
+  TVector3 lpos = track + Xlambda;
+  TVector3 diff(lpos.x(), lpos.y(), lpos.z() - tpc::ZTarget);
+  dist = diff.Mag();
+  return TVector3(lpos.x(), lpos.y(), lpos.z());
 }
 
 //_____________________________________________________________________________

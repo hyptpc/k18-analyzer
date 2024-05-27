@@ -43,6 +43,7 @@ const Int_t& IdTOF_DY = gGeom.DetectorId("TOF-DY");
 const Int_t& IdTarget = gGeom.DetectorId("Target");
 const Int_t& IdVPHTOF = gGeom.DetectorId("VPHTOF");
 const Int_t& IdRKINIT = gGeom.DetectorId("RKINIT");
+const Int_t& IdBAC = gGeom.DetectorId("BAC");
 const Int_t& IdBH2 = gGeom.DetectorId("BH2");
 const Int_t& IdTPCGasVessel_U = gGeom.DetectorId("VesselU");
 const Int_t& IdTPCGasVessel_D = gGeom.DetectorId("VesselD");
@@ -1099,6 +1100,10 @@ RK::ELossCorrection(Int_t lnum, const RKTrajectoryPoint &prevPoint,
     path = 0.5*TMath::Sqrt(1.+u*u+v*v);
     materialid = 3; //Scintillator
   }
+  else if(lnum==IdBAC){
+    path = 0.66*TMath::Sqrt(1.+u*u+v*v);
+    materialid = 6; //Aerogel
+  }
   else if(lnum==IdVPHTOF || lnum==IdHTOF){
     path = 1.*TMath::Sqrt(1.+u*u+v*v);
     materialid = 3; //Scintillator
@@ -2088,7 +2093,11 @@ RK::MakeHSHPContainer()
   RKHitPointContainer cont;
 
   // /*** From Upstream ***/
-  for(int i=0; i< NumOfLayersBcOut; i++){
+  for(int i=0; i< 6; i++){
+    cont.push_back(std::make_pair(i+PlOffsBcOut+1, RKcalcHitPoint()));
+  }
+  cont.push_back(std::make_pair(IdBAC, RKcalcHitPoint()));
+  for(int i=6; i< NumOfLayersBcOut; i++){
     cont.push_back(std::make_pair(i+PlOffsBcOut+1, RKcalcHitPoint()));
   }
   cont.push_back(std::make_pair(IdBH2,RKcalcHitPoint()));

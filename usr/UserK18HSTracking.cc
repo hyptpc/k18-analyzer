@@ -37,8 +37,10 @@
 #define TimeCut 1 // in cluster analysis
 #define Chi2Cut 1 // for BcOut tracking
 #define SaveBft 1
-#define BH1MatchCut 0
-#define BH2MatchCut 0
+#define BH1MatchCut 1
+#define BH2MatchCut 1
+
+#define KmBeam 0 // BeamA event selection
 
 namespace
 {
@@ -177,6 +179,13 @@ struct Event
   Double_t ubcHS[MaxHits][NumOfLayersBcOut];
   Double_t vbcHS[MaxHits][NumOfLayersBcOut];
 
+  Double_t xbacHS[MaxHits];
+  Double_t ybacHS[MaxHits];
+  Double_t zbacHS[MaxHits];
+  Double_t ubacHS[MaxHits];
+  Double_t vbacHS[MaxHits];
+  Double_t pbacHS[MaxHits];
+
   Double_t xbh2HS[MaxHits];
   Double_t ybh2HS[MaxHits];
   Double_t zbh2HS[MaxHits];
@@ -298,6 +307,13 @@ Event::clear()
 
     //qHS[i] = qnan;
     initmomHS[i] = qnan;
+
+    xbacHS[i] = qnan;
+    ybacHS[i] = qnan;
+    zbacHS[i] = qnan;
+    ubacHS[i] = qnan;
+    vbacHS[i] = qnan;
+    pbacHS[i] = qnan;
 
     xbh2HS[i] = qnan;
     ybh2HS[i] = qnan;
@@ -439,6 +455,10 @@ UserK18HSTracking::ProcessingNormal()
   if(trigger_flag[trigger::kSpillEnd]) return true;
 
   HF1(1, 1);
+
+#if KmBeam
+  if(event.trigflag[14] < 0) return false; //Select BeamA events only
+#endif
 
   ////////// BH2 time 0
   hodoAna->DecodeBH2Hits(rawData);
@@ -717,6 +737,12 @@ UserK18HSTracking::ProcessingNormal()
     HF1(74, xtgt); HF1(75, ytgt); HF1(76, utgt); HF1(77, vtgt);
     HF2(78, xtgt, utgt); HF2(79, ytgt, vtgt); HF2(80, xtgt, ytgt);
 
+    const auto& PosBAC = trHS->BACPosition();
+    const auto& MomBAC = trHS->BACMomentum();
+    Double_t xBAC = PosBAC.x(), yBAC = PosBAC.y(), zBAC = PosBAC.z();
+    Double_t uBAC = MomBAC.x()/MomBAC.z(), vBAC = MomBAC.y()/MomBAC.z();
+    Double_t pBACHS = MomBAC.Mag();
+
     const auto& PosBH2 = trHS->BH2Position();
     const auto& MomBH2 = trHS->BH2Momentum();
     Double_t xBH2 = PosBH2.x(), yBH2 = PosBH2.y(), zBH2 = PosBH2.z();
@@ -779,6 +805,13 @@ UserK18HSTracking::ProcessingNormal()
     //BH2 - Tgt
     Double_t path = trHS->PathLength();
     Double_t m2 = Kinematics::MassSquare(pHS, path, StofOffset);
+
+    event.xbacHS[i] = xBAC;
+    event.ybacHS[i] = yBAC;
+    event.zbacHS[i] = zBAC;
+    event.ubacHS[i] = uBAC;
+    event.vbacHS[i] = vBAC;
+    event.pbacHS[i] = pBACHS;
 
     event.xbh2HS[i] = xBH2;
     event.ybh2HS[i] = yBH2;
@@ -862,6 +895,7 @@ ConfMan::EventAllocator()
 Bool_t
 ConfMan::InitializeHistograms()
 {
+#if KmBeam == 0
   const Int_t    NbinTot =  136;
   const Double_t MinTot  =   -8.;
   const Double_t MaxTot  =  128.;
@@ -923,7 +957,7 @@ ConfMan::InitializeHistograms()
   HB2(90, "Y%X@BH2", 150, -150., 150., 150, -150., 150.);
   HB2(91, "Y%X@GasVessel-U", 500, -500., 500., 400, -400., 400.);
   HB2(92, "Y%X@GasVessel-D", 500, -500., 500., 400, -400., 400.);
-
+#endif
   //tree
   HBTree("k18track","Data Summary Table of K18HSTracking");
   // Trigger Flag
@@ -999,6 +1033,13 @@ ConfMan::InitializeHistograms()
   tree->Branch("zbcHS",   event.zbcHS, "zbcHS[ntK18][12]/D");
   tree->Branch("ubcHS",   event.ubcHS, "ubcHS[ntK18][12]/D");
   tree->Branch("vbcHS",   event.vbcHS, "vbcHS[ntK18][12]/D");
+
+  tree->Branch("xbacHS",   event.xbacHS, "xbacHS[ntK18]/D");
+  tree->Branch("ybacHS",   event.ybacHS, "ybacHS[ntK18]/D");
+  tree->Branch("zbacHS",   event.zbacHS, "zbacHS[ntK18]/D");
+  tree->Branch("ubacHS",   event.ubacHS, "ubacHS[ntK18]/D");
+  tree->Branch("vbacHS",   event.vbacHS, "vbacHS[ntK18]/D");
+  tree->Branch("pbacHS",   event.pbacHS, "pbacHS[ntK18]/D");
 
   tree->Branch("xbh2HS",   event.xbh2HS, "xbh2HS[ntK18]/D");
   tree->Branch("ybh2HS",   event.ybh2HS, "ybh2HS[ntK18]/D");
