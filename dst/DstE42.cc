@@ -39,10 +39,7 @@
 
 #define KKEvent 1
 #define KPEvent 0
-<<<<<<< HEAD
 
-=======
->>>>>>> da55b12861006ecfdb998c253ed77cfe68498c14
 #define SaveHistograms 1
 
 namespace
@@ -250,11 +247,7 @@ struct Event
   std::vector<Double_t> ykp;
   std::vector<Double_t> ukp;
   std::vector<Double_t> vkp;
-<<<<<<< HEAD
   std::vector<Int_t> Kflag;
-=======
-  std::vector<Int_t> Kflag; 
->>>>>>> da55b12861006ecfdb998c253ed77cfe68498c14
   std::vector<Int_t> Pflag;
 
   //TPC RK
@@ -1055,11 +1048,7 @@ dst::DstRead( int ievent )
   event.tpcidTPCKurama = **src.tpcidTPCKurama;
   event.isgoodTPCKurama = **src.isgoodTPCKurama;
   event.kflagTPCKurama = **src.kflagTPCKurama;
-<<<<<<< HEAD
   event.pflagTPCKurama = **src.pflagTPCKurama;
-=======
-  event.kflagTPCKurama = **src.pflagTPCKurama;
->>>>>>> da55b12861006ecfdb998c253ed77cfe68498c14
   event.chisqrTPCKurama = **src.chisqrTPCKurama;
   event.pTPCKurama = **src.pTPCKurama;
   event.qTPCKurama = **src.qTPCKurama;
@@ -2735,10 +2724,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKScat]->SetBranchAddress("vkp",       src.vkp);
   TTreeCont[kKScat]->SetBranchAddress("Kflag",     src.Kflag);
   TTreeCont[kKScat]->SetBranchAddress("Pflag",     src.Pflag);
-<<<<<<< HEAD
 
-=======
->>>>>>> da55b12861006ecfdb998c253ed77cfe68498c14
   return true;
 }
 

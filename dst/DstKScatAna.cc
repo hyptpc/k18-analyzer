@@ -1180,12 +1180,7 @@ dst::DstRead(Int_t ievent)
     // event.best_TofSeg[itKurama] = src.TofSeg[correct_num];
 
     ///for Kflag///
-<<<<<<< HEAD
     //Int_t Kflag=0;
-=======
-    Int_t Kflag=0;
-    Int_t Pflag=0;
->>>>>>> da55b12861006ecfdb998c253ed77cfe68498c14
     // Double_t dEdx = Mip2MeV*best_de/sqrt(1+utof*utof+vtof*vtof);
     // if(CalcCutLineByTOF(PionCutMass, 1000*p) < dEdx &&
     //    dEdx < CalcCutLineByTOF(ProtonCutMass, 1000*p)){
@@ -1220,7 +1215,6 @@ dst::DstRead(Int_t ievent)
     event.path[itKurama] = path;
     event.m2[itKurama] = m2;
     event.m2Org[itKurama] = m2Org;
-<<<<<<< HEAD
     //event.Kflag[itKurama] = Kflag;
     event.xwcKurama[itKurama] = xwc;
     event.ywcKurama[itKurama] = ywc;
@@ -1242,10 +1236,6 @@ dst::DstRead(Int_t ievent)
     event.vpyhtof[itKurama] = src.vpyhtof[itKurama];
     event.vpzhtof[itKurama] = src.vpzhtof[itKurama];
 
-=======
-    event.Kflag[itKurama] = Kflag;
-    event.Pflag[itKurama] = Pflag;
->>>>>>> da55b12861006ecfdb998c253ed77cfe68498c14
     HF1(3002, Double_t(nh));
     HF1(3003, chisqr);
     HF1(3004, xt); HF1(3005, yt);
@@ -1317,14 +1307,9 @@ dst::DstRead(Int_t ievent)
 	flagScat = 2; ScatMass = KaonMass;
 	if(event.qKurama[iscat] > 0 && event.pKurama[iscat] < 1.4) event.Kflag[iscat] = 1;
       }
-<<<<<<< HEAD
-      else if(event.qKurama[iscat] > 0 && event.m2Org[iscat] > 0.5 && event.m2Org[iscat] < 1.4){
+      else if(event.qKurama[iscat] > 0 && event.pKurama[iscat] > 0 &&
+	      event.m2Org[iscat] > 0.5 && event.m2Org[iscat] < 1.4){
 	flagScat = 3; ScatMass = ProtonMass; event.Pflag[iscat] = 1;
-=======
-      else if(event.m2Org[iscat] > 0.4 && event.m2Org[iscat] < 1.5){
-	flagScat = 3; ScatMass = ProtonMass;
-	if(event.qKurama[iscat]>0) event.Pflag[iscat] = 1;
->>>>>>> da55b12861006ecfdb998c253ed77cfe68498c14
       }
       else flagScat = 0;
 
@@ -1908,14 +1893,9 @@ ConfMan::InitializeHistograms()
   tree->Branch("MissMassCorrDE", event.MissMassCorrDE, "MissMassCorrDE[nKK]/D");
   tree->Branch("thetaCM", event.thetaCM,  "thetaCM[nKK]/D");
   tree->Branch("costCM",  event.costCM,   "costCM[nKK]/D");
-<<<<<<< HEAD
   tree->Branch("Piflag",  event.Piflag,   "Piflag[nKK]/I");
   tree->Branch("Kflag",   event.Kflag,    "Kflag[nKK]/I");
   tree->Branch("Pflag",   event.Pflag,    "Pflag[nKK]/I");
-=======
-  tree->Branch("Kflag" ,  event.Kflag,    "Kflag[nKK]/I");  
-  tree->Branch("Pflag" ,  event.Pflag,    "Pflag[nKK]/I");
->>>>>>> da55b12861006ecfdb998c253ed77cfe68498c14
 
   tree->Branch("xkm",        event.xkm,      "xkm[nKK]/D");
   tree->Branch("ykm",        event.ykm,      "ykm[nKK]/D");

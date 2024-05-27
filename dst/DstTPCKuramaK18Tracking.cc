@@ -46,16 +46,16 @@
 #define TrigC 0
 #define TrigD 0
 
-#define KKEvent 0
-#define KPEvent 1
+#define KKEvent 1
+#define KPEvent 0
 
 #define SaveHistograms 1
-#define RawHit 1
-#define RawCluster 1
-#define TrackClusterHist 1
-#define TruncatedMean 1
-#define TrackSearchFailed 1
-#define ExclusiveTracking 1
+#define RawHit 0
+#define RawCluster 0
+#define TrackClusterHist 0
+#define TruncatedMean 0
+#define TrackSearchFailed 0
+#define ExclusiveTracking 0
 
 namespace
 {
@@ -1211,7 +1211,7 @@ dst::DstRead( int ievent )
 #endif
 
   HF1( 1, event.status++ );
-    
+
   if(src.ntKurama!=1 || src.ntK18!=1) return true;
   if(src.chisqrK18[0] > MaxChisqrBcOut || src.chisqrKurama[0] > MaxChisqrKurama) return true;
 #if KKEvent
@@ -1222,7 +1222,6 @@ dst::DstRead( int ievent )
   if(src.m2[0] < 0.50 || src.m2[0] > 1.40) return true;
   if(src.qKurama[0] < 0 || src.pKurama[0] < 0.0) return true;
 #endif
-
   if( ievent%1==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
@@ -1230,7 +1229,6 @@ dst::DstRead( int ievent )
 
   HF1( 1, event.status++ );
   event.ntK18 = src.ntK18;
-  std::cout << src.ntK18 << std::endl;
   std::vector<std::vector<TVector3>> vpK18;
   vpK18.resize( src.ntK18 );
   std::vector<TVector3> initPosK18;
@@ -1760,15 +1758,8 @@ dst::DstRead( int ievent )
     event.vtgtTPCKurama[idkurama] = vtgt;
     event.thetaTPCKurama[idkurama] = theta;
     event.pathTPCKurama[idkurama] = pathtof;
-<<<<<<< HEAD
     if(q>0 && event.m2TPCKurama[idkurama] > 0.15 && event.m2TPCKurama[idkurama] < 0.40) event.kflagTPCKurama[idkurama] = 1;
     if(q>0 && event.m2TPCKurama[idkurama] > 0.5 && event.m2TPCKurama[idkurama] < 1.4) event.pflagTPCKurama[idkurama] = 1;
-=======
-    if(event.m2TPCKurama[idkurama] > 0.15 && event.m2TPCKurama[idkurama] < 0.40)
-      event.kflagTPCKurama[idkurama] = 1;
-    if(event.m2TPCKurama[idkurama] > 0.40 && event.m2TPCKurama[idkurama] < 1.50)
-      event.pflagTPCKurama[idkurama] = 1;
->>>>>>> da55b12861006ecfdb998c253ed77cfe68498c14
 
     Double_t path, x, y;
     TVector3 mom;
