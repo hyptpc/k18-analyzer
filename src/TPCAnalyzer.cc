@@ -22,7 +22,7 @@
 #include "DeleteUtility.hh"
 #include "RungeKuttaUtilities.hh"
 #include "TPCPadHelper.hh"
- //#include "TPCParamMan.hh"
+#include "TPCParamMan.hh"
  //#include "TPCPositionCorrector.hh"
 #include "TPCRawHit.hh"
 #include "TPCHit.hh"
@@ -42,7 +42,7 @@ namespace
 {
 
 //const auto& gConf   = ConfMan::GetInstance();
-//const auto& gTPC  = TPCParamMan::GetInstance();
+const auto& gTPC  = TPCParamMan::GetInstance();
 //const auto& gTPCPos = TPCPositionCorrector::GetInstance();
 const auto& gUser   = UserParamMan::GetInstance();
 const auto& gGeom   = DCGeomMan::GetInstance();
@@ -263,6 +263,9 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     Int_t layer = tpc::getLayerID(pad);
     Int_t row = tpc::getRowID(pad);
     if(RejectKaonHits && abs(pid[i])==321) continue;
+    double CheckPad;
+    gTPC.GetCDe(layer, row, 1,CheckPad);
+    if(CheckPad==0) continue;
     auto hit = new TPCHit(layer, row);
     hit->AddHit(TMath::QuietNaN(), TMath::QuietNaN()); // allocate hit
     // tentative treatment

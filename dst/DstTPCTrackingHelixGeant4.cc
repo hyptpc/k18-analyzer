@@ -1266,13 +1266,15 @@ dst::DstRead( int ievent )
     TPCAna->DecodeTPCHitsGeant4(src.nhittpc,
       			       src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc);
   }
+	event.xtgtHS = **src.xtgtHS;
+	event.ytgtHS = **src.ytgtHS;
+	event.xtgtKurama = **src.xtgtKurama;
+	event.ytgtKurama = **src.ytgtKurama;
 #if KuramaK18
 	event.ntK18 = **src.ntK18;
 	event.xvpHS = **src.xvpHS;
 	event.yvpHS = **src.yvpHS;
 	event.zvpHS = **src.zvpHS;
-	event.xtgtHS = **src.xtgtHS;
-	event.ytgtHS = **src.ytgtHS;
 	event.ztgtHS = **src.ztgtHS;
 	event.p_3rd = **src.p_3rd;
 	event.xoutK18 = **src.xoutK18;
@@ -1310,8 +1312,6 @@ dst::DstRead( int ievent )
 	event.xvpKurama = **src.xvpKurama;
 	event.yvpKurama = **src.yvpKurama;
 	event.zvpKurama = **src.zvpKurama;
-	event.xtgtKurama = **src.xtgtKurama;
-	event.ytgtKurama = **src.ytgtKurama;
 	event.xout = **src.xout;
 	event.yout = **src.yout;
 	event.zout = **src.zout;
@@ -1620,7 +1620,7 @@ dst::DstRead( int ievent )
 			double resi_x = resi_vect.x();
 			double resi_y = resi_vect.y();
 			double resi_z = resi_vect.z();
-			if(res_x>1e10 or res_y>1e10 or res_z > 1e10) continue;
+			if(res_x>1e6 or res_y>1e6 or res_z > 1e6) continue;
 			double resi_theta = atan2(resi_z,-resi_x);
 			TVector3 dir_hit(cos(hit->GetTheta()),sin(hit->GetTheta()),0);
 			TVector3 dir_resi(cos(resi_theta),sin(resi_theta),0);
@@ -1907,6 +1907,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("ititpc",event.ititpc,"ititpc[nhittpc]/I");
   tree->Branch("nhittpc_iti",event.nhittpc_iti,"nhittpc_iti[max_ititpc]/I");
 
+  tree->Branch("xtgtHS",&event.xtgtHS);
+  tree->Branch("ytgtHS",&event.ytgtHS);
+  tree->Branch("xtgtKurama",&event.xtgtKurama);
+  tree->Branch("ytgtKurama",&event.ytgtKurama);
+
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
   tree->Branch( "nhtrackEff", &event.nhtrackEff );
@@ -1924,6 +1929,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "helix_r", &event.helix_r );
   tree->Branch( "helix_dz", &event.helix_dz );
   tree->Branch( "dz_factor", &event.dz_factor );
+
 
 	// Momentum at Y = 0
   tree->Branch( "mom0_x", &event.mom0_x );

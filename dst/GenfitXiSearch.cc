@@ -344,6 +344,7 @@ struct Event
   std::vector<Double_t> GFchisqrPos;
   std::vector<Double_t> GFpvalPos;
   std::vector<std::vector<Double_t>> GFlayer;
+  std::vector<std::vector<Double_t>> GFrow;
   std::vector<std::vector<Double_t>> GFpos_x;
   std::vector<std::vector<Double_t>> GFpos_y;
   std::vector<std::vector<Double_t>> GFpos_z;
@@ -402,6 +403,27 @@ struct Event
   vector<Double_t> KFdecays_mom_x;
   vector<Double_t> KFdecays_mom_y;
   vector<Double_t> KFdecays_mom_z;
+
+  bool XiFlight;
+  bool XiProd;
+
+  double xtgtXi;
+  double ytgtXi;
+  double utgtXi;
+  double vtgtXi;
+
+  double vtxKKXi;
+  double vtyKKXi;
+  double vtzKKXi;
+
+  double xiprodvtx_x;
+  double xiprodvtx_y;
+  double xiprodvtx_z;
+
+  double xiprodmom_x;
+  double xiprodmom_y;
+  double xiprodmom_z;
+
 
   void clear( void )
   {
@@ -645,6 +667,7 @@ struct Event
     GFpdgcode.clear();
     GFnhtrack.clear();
     GFlayer.clear();
+    GFrow.clear();
     GFpos_x.clear();
     GFpos_y.clear();
     GFpos_z.clear();
@@ -702,6 +725,22 @@ struct Event
     KFdecays_mom_x.clear();
     KFdecays_mom_y.clear();
     KFdecays_mom_z.clear();
+
+    XiFlight = false;
+    XiProd = false;
+    xtgtXi = qnan;
+    ytgtXi = qnan;
+    utgtXi = qnan;
+    vtgtXi = qnan;
+    vtxKKXi = qnan;
+    vtyKKXi = qnan;
+    vtzKKXi = qnan;
+    xiprodvtx_x = qnan;
+    xiprodvtx_y = qnan;
+    xiprodvtx_z = qnan;
+    xiprodmom_x = qnan;
+    xiprodmom_y = qnan;
+    xiprodmom_z = qnan;
   }
 };
 
@@ -972,7 +1011,7 @@ dst::DstRead( Int_t ievent )
   static const auto ProtonMass  = pdg::ProtonMass();
   static const auto LambdaMass  = pdg::LambdaMass();
   static const auto XiMinusMass = pdg::XiMinusMass();
-
+  static const int XiMinusPdgCode = 3312;
   //if( ievent%1000==0 ){
   if( ievent%100==0 ){
     std::cout << "#D Event Number: "
@@ -1705,6 +1744,7 @@ dst::DstRead( Int_t ievent )
   event.GFfitstatus.resize(3);
   event.GFnhtrack.resize(3);
   event.GFlayer.resize(3);
+  event.GFrow.resize(3);
   event.GFpos_x.resize(3);
   event.GFpos_y.resize(3);
   event.GFpos_z.resize(3);
@@ -1779,6 +1819,7 @@ dst::DstRead( Int_t ievent )
     event.GFeloss[j] = TMath::Sqrt(GFmom_decays.Mag()*GFmom_decays.Mag() + pdgmass[j]*pdgmass[j]) - TMath::Sqrt(GFTrackCont.GetMom(igf, 0, repid).Mag()*GFTrackCont.GetMom(igf, 0, repid).Mag() + pdgmass[j]*pdgmass[j]);
 
     event.GFlayer[j].resize(nh);
+    event.GFrow[j].resize(nh);
     event.GFpos_x[j].resize(nh);
     event.GFpos_y[j].resize(nh);
     event.GFpos_z[j].resize(nh);
@@ -1829,6 +1870,7 @@ dst::DstRead( Int_t ievent )
       if(!helix_point -> IsGoodForTracking()) continue;
 
       const TVector3 &hit0 = helix_point -> GetLocalHitPos();
+      double row = helix_point->GetMRow()+0.5;
       TVector3 mom0 = helix_point -> GetMomentumHelix(event.GFcharge[j]);
       TVector3 hit = GFTrackCont.GetPos(igf, ihit, repid);
       TVector3 mom = GFTrackCont.GetMom(igf, ihit, repid);
@@ -1844,6 +1886,7 @@ dst::DstRead( Int_t ievent )
 			       pull_, GFresidual6D, GFpull6D);
 
       event.GFlayer[j][ihit] = layer;
+      event.GFrow[j][ihit] = row;
       event.GFmom_x[j][ihit] = mom.x();
       event.GFmom_y[j][ihit] = mom.y();
       event.GFmom_z[j][ihit] = mom.z();
@@ -1912,6 +1955,12 @@ dst::DstRead( Int_t ievent )
     event.GFchisqrPos[j]=GFchisqrPos;
     event.GFpvalPos[j]=GFpvalPos;
   } //igf
+TVector3 KKVert(event.vtx[0],event.vty[0],event.vtz[0]);
+TVector3 XiMom = GFxi_mom_container[gfbest];
+TVector3 XiVert = GFxi_vert_container[gfbest];
+if(event.isgoodTPC[0] == 1){
+  KKVert = TVector3(event.vtxTPC[0],event.vtyTPC[0],event.vtzTPC[0]);
+}
 #if DoKinematicFitLdXi
   Double_t KFchisqrxi;
   Double_t KFpvalxi;
@@ -2050,6 +2099,7 @@ dst::DstRead( Int_t ievent )
   HF1(10001,KFchisqrl);
   HF1(10002,KFLVLd.Mag());
 
+  if(KFchisqrxi>-1) XiMom = KFTVXi;
   for(int i=0;i<PullLd.size();++i){
     int num = 10010+i;
     HF1(num,PullLd.at(i));
@@ -2081,8 +2131,47 @@ dst::DstRead( Int_t ievent )
     HF1(num,PullXi.at(i));
   }
 #endif
-
-
+  GFTrackCont.AddReconstructedTrack(XiMinusPdgCode,XiVert,XiMom);
+  GFTrackCont.FitTrack(GFTrackCont.GetNTrack()-1);
+  TVector3 XiTgtVert, XiTgtMom;
+  double XiTgtLen,XiTgtTof;
+  bool XiFlight = GFTrackCont.ExtrapolateToTargetCenter(GFTrackCont.GetNTrack()-1
+  ,XiTgtVert,XiTgtMom,XiTgtLen,XiTgtTof);
+  if(XiFlight){
+    event.xtgtXi = XiTgtVert.x();
+    event.ytgtXi = XiTgtVert.y();
+    event.utgtXi = XiTgtMom.x()/XiTgtMom.Z();
+    event.vtgtXi = XiTgtMom.y()/XiTgtMom.Z();
+  }
+  const int ntrack = 3;
+  double x0track[ntrack]={event.xtgtTPCKurama[0],event.xtgtK18[0],event.xtgtXi};    
+  double y0track[ntrack]={event.ytgtTPCKurama[0],event.ytgtK18[0],event.ytgtXi};  
+  double u0track[ntrack]={event.utgtTPCKurama[0],event.utgtK18[0],event.utgtXi};
+  double v0track[ntrack]={event.vtgtTPCKurama[0],event.vtgtK18[0],event.vtgtXi};  
+  TVector3 KKXiVert = Kinematics::MultitrackVertex(ntrack,x0track,y0track,u0track,v0track); 
+  event.XiFlight = XiFlight; 
+  if(XiFlight){
+    event.vtxKKXi= KKXiVert.x();
+    event.vtyKKXi= KKXiVert.y();
+    event.vtzKKXi= KKXiVert.z();
+  }
+  TVector3 XiProdVert,XiProdMom;
+  double XiProdLen,XiProdTof;
+  bool XiProd = false;
+  if(XiFlight){
+    XiProd = GFTrackCont.XiDecayToProdVertex(GFTrackCont.GetNTrack()-1
+  ,KKXiVert,XiProdVert,XiProdMom,XiProdLen,XiProdTof);
+  }
+  event.XiProd = XiProd;
+  if(XiProd){
+    event.xiprodvtx_x = XiProdVert.x();
+    event.xiprodvtx_y = XiProdVert.y();
+    event.xiprodvtx_z = XiProdVert.z();
+    event.xiprodmom_x = XiProdMom.x();
+    event.xiprodmom_y = XiProdMom.y();
+    event.xiprodmom_z = XiProdMom.z();
+    HF1(100,XiMom.Mag()-XiProdMom.Mag());
+  }
   HF1( 30, event.MissMass[0]);
   HF1( 31, event.GFlmass);
   HF1( 32, event.GFximass);
@@ -2169,6 +2258,7 @@ ConfMan::InitializeHistograms( void )
   HB1( 41, "[GenFit] pi_{#Lambda} Mass; M^{2} [(GeV/#font[12]{c}^{2})^{2}]; Counts [/0.002 (GeV/#font[12]{c}^{2})^{2}]", 200, -0.1, 0.3);
   HB1( 42, "[GenFit] pi_{#Xi} Mass; M^{2} [(GeV/#font[12]{c}^{2})^{2}]; Counts [/0.002 (GeV/#font[12]{c}^{2})^{2}]", 200, 0.1, 0.3);
 
+
   HB1( 600, "[Genfit] p-value",1000,0,1);
   HB1( 601, "[Genfit] x Pull",1000,-5,5);
   HB1( 602, "[Genfit] y Pull",1000,-5,5);
@@ -2190,6 +2280,7 @@ ConfMan::InitializeHistograms( void )
   HB2(2002, "#Xi^{-} decay, #pi_{#Lambda} hit patternGF",100,-250,250,100,-250,250);
   HB2(2003, "#Xi^{-} decay, #pi_{#Xi} hit patternGF",100,-250,250,100,-250,250);
 
+  HB1(3000, "#Xi Decay mom - Prod mom; #Delta p [GeV/#font[12]{c}]; Counts [/ 2MeV/#font[12]{c}]", 300, -0.3, 0.3); 
 
 #if DoKinematicFitLdXi
   HB1(10000,"KF#{Lambda} pvalue",100,0,1);
@@ -2269,7 +2360,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dEdx", &event.dEdx );
   tree->Branch( "mom0", &event.mom0 );
   tree->Branch( "path", &event.path );
-  tree->Branch( "helix_t", &event.helix_t );
 
   tree->Branch( "hitlayer", &event.hitlayer );
   tree->Branch( "hitpos_x", &event.hitpos_x );
@@ -2291,7 +2381,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_de", &event.track_cluster_de);
   tree->Branch( "track_cluster_mrow", &event.track_cluster_mrow);
 
-  tree->Branch(" ntK18", &event.ntK18);
+  tree->Branch( "ntK18", &event.ntK18);
   tree->Branch( "chisqrK18", &event.chisqrK18);
   tree->Branch( "pK18", &event.pK18);
   tree->Branch( "xtgtK18", &event.xtgtK18);
@@ -2444,6 +2534,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFpdgcode", &event.GFpdgcode);
   tree->Branch("GFnhtrack", &event.GFnhtrack);
   tree->Branch("GFlayer", &event.GFlayer);
+  tree->Branch("GFrow", &event.GFrow);
   tree->Branch("GFpos_x", &event.GFpos_x);
   tree->Branch("GFpos_y", &event.GFpos_y);
   tree->Branch("GFpos_z", &event.GFpos_z);
@@ -2497,6 +2588,23 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("KFDecaysMom_x", &event.KFdecays_mom_x);
   tree->Branch("KFDecaysMom_y", &event.KFdecays_mom_y);
   tree->Branch("KFDecaysMom_z", &event.KFdecays_mom_z);
+
+  tree->Branch("XiFlight", &event.XiFlight);
+  tree->Branch("XiProd", &event.XiProd);
+  tree->Branch("xtgtXi", &event.xtgtXi);
+  tree->Branch("ytgtXi", &event.ytgtXi);
+  tree->Branch("utgtXi", &event.utgtXi);
+  tree->Branch("vtgtXi", &event.vtgtXi);
+  tree->Branch("vtxKKXi", &event.vtxKKXi);
+  tree->Branch("vtyKKXi", &event.vtyKKXi);
+  tree->Branch("vtzKKXi", &event.vtzKKXi);
+  tree->Branch("xiprodvtx_x", &event.xiprodvtx_x);  
+  tree->Branch("xiprodvtx_y", &event.xiprodvtx_y);
+  tree->Branch("xiprodvtx_z", &event.xiprodvtx_z);
+  tree->Branch("xiprodmom_x", &event.xiprodmom_x);  
+  tree->Branch("xiprodmom_y", &event.xiprodmom_y);
+  tree->Branch("xiprodmom_z", &event.xiprodmom_z);
+
 
 #endif
   TTreeReaderCont[kE42] = new TTreeReader( "tpc", TFileCont[kE42] );
