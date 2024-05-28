@@ -37,7 +37,7 @@
 #define TrigC 0
 #define TrigD 0
 
-#define KKEvent 1
+#define KKEvent 0
 #define KPEvent 0
 
 #define SaveHistograms 1
