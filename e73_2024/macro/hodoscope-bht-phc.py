@@ -10,37 +10,32 @@ import yaml
 
 import ROOT
 
+from detector import hodoscope_constants as hconst
 import hdphc
 import macrohelper as mh
 
 logger = logging.getLogger(__name__)
 name = 'BHT'
-bht_cid = 1
-n_seg = 63
-n_seg_one_page = 16
-
+nseg = hconst[name]['nseg']
+nseg_one_page = 16
 ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
-def phc(start_seg, ud, key, beamflag='', fit=True, pfrange=(-4, 4),
+@mh.update_canvas(divisions=(4, 4))
+def phc(c1, start_seg, ud, key, beamflag='', fit=True, pfrange=(-4, 4),
         fitrange=(0.4, 1.6)):
   logger.info(f'seg={start_seg}-{start_seg+16}, ud={ud}, key={key}, '
               +f'beamflag={beamflag}, fit={fit}, pfrange={pfrange}, '
               +f'fitrange={fitrange}')
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  c1.Clear()
-  c1.Divide(4, 4)
   result_dict = dict()
-  for i in range(n_seg_one_page):
+  for i in range(nseg_one_page):
     c1.cd(i+1) #.SetLogy()
     seg = start_seg + i
-    if seg >= n_seg:
+    if seg >= nseg:
       continue
-    hname = name + f'_seg{seg}{ud}_{key}_vs_DeltaE{beamflag}'
-    h1 = ROOT.gFile.Get(hname)
+    hname = f'{name}_seg{seg}{ud}_{key}_vs_DeltaE{beamflag}'
+    h1 = mh.get(hname)
     if h1:
-      logger.debug(hname)
       if fit:
         params = np.ndarray(3, dtype='float64')
         params[0] = 2
@@ -57,16 +52,11 @@ def phc(start_seg, ud, key, beamflag='', fit=True, pfrange=(-4, 4),
         prof.RebinX(4)
         result = mh.fit_phc(prof, params=params, limits=limits,
                             fitrange=fitrange)
-        k = (bht_cid, 0, seg, 0 if ud == 'U' else 1)
+        k = (hconst[name]['id'], 0, seg, 0 if ud == 'U' else 1)
         result_dict[k] = (1, 3, result.GetParameter(0),
                           result.GetParameter(1), result.GetParameter(2))
       else:
         h1.Draw('colz')
-    else:
-      logger.warning(f'cannot find {hname}')
-  c1.Modified()
-  c1.Update()
-  c1.Print(fig_path)
   return result_dict
 
 #______________________________________________________________________________

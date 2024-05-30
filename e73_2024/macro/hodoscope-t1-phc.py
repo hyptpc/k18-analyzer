@@ -10,32 +10,27 @@ import yaml
 
 import ROOT
 
+from detector import hodoscope_constants as hconst
 import hdphc
 import macrohelper as mh
 
 logger = logging.getLogger(__name__)
 name = 'T1'
-cid = 4
-n_seg = 1
-
+nseg = hconst[name]['nseg']
 ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
+@mh.update_canvas(divisions=(2, 2))
 def phc(key, fit=True, pfrange=(-4, 4), fitrange=(0.6, 2.0)):
   logger.info(f'key={key}, beamflag={mh.beamflag_for_param}, '
               +f'pfrange={pfrange}')
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  c1.Clear()
-  c1.Divide(2, 2)
   result_dict = dict()
   for iud, ud in enumerate(['U', 'D']):
-    for seg in range(n_seg):
-      c1.cd(iud*n_seg+seg+1) #.SetLogy()
-      hname = name + f'_seg{seg}{ud}_{key}_vs_DeltaE{mh.beamflag_for_param}'
-      h1 = ROOT.gFile.Get(hname)
+    for seg in range(nseg):
+      c1.cd(iud*nseg+seg+1) #.SetLogy()
+      hname = f'{name}_seg{seg}{ud}_{key}_vs_DeltaE{mh.beamflag_for_param}'
+      h1 = mh.get(hname)
       if h1:
-        logger.debug(name + f'_PHC_seg{seg}{ud}{mh.beamflag_for_param}')
         if fit:
           params = np.ndarray(3, dtype='float64')
           params[0] = 2
@@ -52,17 +47,11 @@ def phc(key, fit=True, pfrange=(-4, 4), fitrange=(0.6, 2.0)):
           prof.RebinX(4)
           result = mh.fit_phc(prof, params=params, limits=limits,
                               fitrange=fitrange)
-          k = (cid, 0, seg, 0 if ud == 'U' else 1)
+          k = (hconst[name]['id'], 0, seg, 0 if ud == 'U' else 1)
           result_dict[k] = (1, 3, result.GetParameter(0),
                             result.GetParameter(1), result.GetParameter(2))
-          logger.debug(result_dict[k])
         else:
           h1.Draw('colz')
-      else:
-        logger.warning(f'cannot find {hname}')
-  c1.Modified()
-  c1.Update()
-  c1.Print(fig_path)
   return result_dict
 
 #______________________________________________________________________________

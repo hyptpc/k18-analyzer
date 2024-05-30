@@ -10,40 +10,32 @@ import yaml
 
 import ROOT
 
+from detector import hodoscope_constants as hconst
 import hdprm
 import macrohelper as mh
 
 logger = logging.getLogger(__name__)
 name = 'T1'
-cid = 4
-n_seg = 1
-
+nseg = hconst[name]['nseg']
 ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
-def offset(offsetrange=(-2, 2), fit=True):
+@mh.update_canvas(divisions=(2, 2))
+def offset(c1, offsetrange=(-2, 2), fit=True):
   logger.info(f'offsetrange={offsetrange}')
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  c1.Clear()
-  c1.Divide(2, 2)
   result_dict = dict()
-  for seg in range(n_seg):
+  for seg in range(nseg):
     c1.cd(seg+1) #.SetLogy()
-    hname = name + f'_seg{seg}_TimeOffset{mh.beamflag_for_param}'
-    h1 = ROOT.gFile.Get(hname)
+    hname = f'{name}_seg{seg}_TimeOffset{mh.beamflag_for_param}'
+    h1 = mh.get(hname)
     if h1:
-      logger.debug(hname)
       h1.GetXaxis().SetRangeUser(offsetrange[0], offsetrange[1])
       if fit:
         result = mh.fit_gaus(h1)
-        key = (cid, 0, seg, 1, 2)
+        key = (hconst[name]['id'], 0, seg, 1, 2)
         result_dict[key] = (result.GetParameter(1), f'{1:.6f}')
       else:
         h1.Draw()
-  c1.Modified()
-  c1.Update()
-  c1.Print(fig_path)
   return result_dict
 
 #______________________________________________________________________________

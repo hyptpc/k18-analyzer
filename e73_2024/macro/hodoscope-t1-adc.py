@@ -10,32 +10,27 @@ import yaml
 
 import ROOT
 
+from detector import hodoscope_constants as hconst
 import hdprm
 import macrohelper as mh
 
 logger = logging.getLogger(__name__)
 name = 'T1'
-cid = 4
-n_seg = 1
-
+nseg = hconst[name]['nseg']
 ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
-def adc(adcrange=(0, 1000), key='ADC', fit=True):
+@mh.update_canvas(divisions=(2, 2))
+def adc(c1, adcrange=(0, 1000), key='ADC', fit=True):
   logger.info(f'adcrange={adcrange}, key={key}, fit={fit}')
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  c1.Clear()
-  c1.Divide(2, 2)
   result_dict = dict()
   for iud, ud in enumerate(['U', 'D']):
-    for seg in range(n_seg):
-      c1.cd(iud*n_seg+seg+1) #.SetLogy()
+    for seg in range(nseg):
+      c1.cd(iud*nseg+seg+1) #.SetLogy()
       flag = '' if key == 'AwoT' else mh.beamflag_for_param
-      hname = name + f'_{key}_seg{seg}{ud}{flag}'
-      h1 = ROOT.gFile.Get(hname)
+      hname = f'{name}_{key}_seg{seg}{ud}{flag}'
+      h1 = mh.get(hname)
       if h1:
-        logger.debug(hname)
         if h1.GetEntries() < 1e4:
           h1.RebinX(2)
         h1.GetXaxis().SetRangeUser(adcrange[0], adcrange[1])
@@ -54,41 +49,27 @@ def adc(adcrange=(0, 1000), key='ADC', fit=True):
           fitrange = (-2, 2) if key == 'AwoT' else (-2, 1)
           result = mh.fit_gaus(h1, params=params, limits=limits,
                                fitrange=fitrange)
-          k = (cid, 0, seg, 0, 0 if ud == 'U' else 1)
+          k = (hconst[name]['id'], 0, seg, 0, 0 if ud == 'U' else 1)
           result_dict[k] = result.GetParameter(1)
         else:
           h1.Draw()
-      else:
-        logger.warning(f'cannot find {hname}')
-  c1.Modified()
-  c1.Update()
-  c1.Print(fig_path)
   return result_dict
 
 #______________________________________________________________________________
-def de(derange=(0, 5), key='DeltaE'):
+@mh.update_canvas(divisions=(3, 2))
+def de(c1, derange=(0, 5), key='DeltaE'):
   logger.info(f'derange={derange}, key={key}')
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  c1.Clear()
-  c1.Divide(3, 2)
   for iud, ud in enumerate(['U', 'D', '']):
-    for seg in range(n_seg):
-      c1.cd(iud*n_seg+seg+1) #.SetLogy()
+    for seg in range(nseg):
+      c1.cd(iud*nseg+seg+1) #.SetLogy()
       for j, b in enumerate(mh.beamflag):
-        hname = name + f'_Hit_{key}_seg{seg}{ud}{b}'
-        h1 = ROOT.gFile.Get(hname)
+        hname = f'{name}_Hit_{key}_seg{seg}{ud}{b}'
+        h1 = mh.get(hname)
         if h1:
-          logger.debug(hname)
           h1.SetLineColor(mh.beamcolor[j])
           h1.RebinX(5)
           h1.GetXaxis().SetRangeUser(derange[0], derange[1])
           h1.Draw('same')
-        else:
-          logger.warning(f'cannot find {hname}')
-  c1.Modified()
-  c1.Update()
-  c1.Print(fig_path)
 
 #______________________________________________________________________________
 def single_run(run_info):

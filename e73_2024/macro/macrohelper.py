@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from functools import wraps
 import logging
 import multiprocessing as mp
 import os
@@ -27,18 +28,32 @@ beamcolor = [ROOT.kBlack, ROOT.kRed+2, ROOT.kBlue+2]
 beamflag_for_param = beamflag[1]
 
 #______________________________________________________________________________
-def daq():
+def update_canvas(divisions=None):
+  def decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+      c1 = ROOT.gROOT.GetListOfCanvases()[0]
+      c1.Clear()
+      if divisions is not None:
+        c1.Divide(divisions[0], divisions[1])
+      result = func(c1, *args, **kwargs)
+      c1.Modified()
+      c1.Update()
+      c1.Print(c1.GetTitle())
+      return result
+    return wrapper
+  return decorator
+
+#______________________________________________________________________________
+@update_canvas(divisions=(2, 2))
+def daq(c1):
   node_list = ['EB', 'FE_VME', 'FE_HUL', 'FE_VEASIROC']
   logger.info(f'node_list={node_list}')
-  fig_path = c1.GetTitle()
-  c1.Clear()
-  c1.Divide(2, 2)
   for i, head in enumerate(node_list):
     c1.cd(i+1)
-    h1 = ROOT.gFile.Get(f'{head}_DataSize')
+    h1 = get(f'{head}_DataSize')
     if h1:
       h1.Draw('colz')
-  c1.Print(fig_path)
 
 #______________________________________________________________________________
 def efficiency(h1):
@@ -102,6 +117,14 @@ def fit_phc(h1, params, limits=None, fitrange=(0.5, 1.5)):
   return f1
 
 #______________________________________________________________________________
+def get(hname):
+  logger.debug(hname)
+  h1 = ROOT.gFile.Get(hname)
+  if not h1:
+    logger.warning(f'cannot find {hname}')
+  return h1
+
+#______________________________________________________________________________
 def initialize(run_info, macro_path, comment=''):
   logger.debug(run_info)
   try:
@@ -157,32 +180,27 @@ def run(run_list, target):
     logger.info('terminated')
 
 #______________________________________________________________________________
-def status():
-  fig_path = c1.GetTitle()
-  h1 = ROOT.gFile.Get('Status')
+@update_canvas()
+def status(c1):
+  h1 = get('Status')
   if h1:
-    prev_opt = ROOT.gStyle.GetOptStat()
-    ROOT.gStyle.SetOptStat(0)
     entry = h1.GetBinContent(1)
     passed = h1.GetBinContent(h1.GetNbinsX())
     eff = passed/entry if entry > 0 else ROOT.TMath.QuietNaN()
     logger.info(f'entry={entry:.0f}, passed={passed:.0f} '
                 + f'({eff:.2f})')
-    c1.Clear()
+    h1.SetStats(0)
     h1.Draw()
-    c1.Print(fig_path)
-    ROOT.gStyle.SetOptStat(prev_opt)
 
 #______________________________________________________________________________
-def title(comment):
-  fig_path = c1.GetTitle()
+@update_canvas()
+def title(c1, comment):
   name = ROOT.gFile.GetName()
   now = ROOT.TTimeStamp()
   now.Add(-ROOT.TTimeStamp.GetZoneOffset())
   tex = ROOT.TLatex()
   tex.SetNDC()
   tex.SetTextAlign(22)
-  c1.Clear()
   tex.SetTextSize(0.04)
   tex.DrawLatex(0.5, 0.64, str(sys.argv))
   tex.DrawLatex(0.5, 0.58, os.path.dirname(name))
@@ -191,6 +209,5 @@ def title(comment):
   tex.DrawLatex(0.5, 0.42, 'Creation time: '+now.AsString('s'))
   tex.SetTextSize(0.04)
   tex.DrawLatex(0.5, 0.34, comment)
-  c1.Print(fig_path)
   logger.info(sys.argv)
   logger.info(f'time={now.AsString("s")}')

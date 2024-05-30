@@ -14,38 +14,42 @@ import macrohelper as mh
 logger = logging.getLogger(__name__)
 
 #______________________________________________________________________________
+@mh.update_canvas(divisions=(4, 2))
+def draw_one_data(c1, name, key, nlayer):
+  for i in range(nlayer):
+    c1.cd(i+1) #.SetLogy()
+    for j, b in enumerate(mh.beamflag):
+      h1 = mh.get(f'{name}_{key}_layer{i}{b}')
+      if h1:
+        h1.SetLineColor(mh.beamcolor[j])
+        h1.Draw('same')
+        if 'TDC' in key:
+          h1.GetXaxis().SetRangeUser(1200, 1500)
+        if 'Multi' in key:
+          mh.efficiency(h1)
+
+#______________________________________________________________________________
+@mh.update_canvas(divisions=(4, 2))
+def draw_one_data2d(c1, name, key, nlayer):
+  for i in range(nlayer):
+    c1.cd(i+1).SetLogz()
+    hname = (f'{name}_{key}_vs_HitPat_'+
+             f'layer{i}{mh.beamflag_for_param}')
+    h1 = mh.get(hname)
+    if h1:
+      h1.Draw('colz')
+
+#______________________________________________________________________________
 def draw(name, nlayer=0):
   logger.info(f'name={name}, nlayer={nlayer}')
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
-  for htype in ['TDC', # 'Trailing',
+  for key in ['TDC', # 'Trailing',
                 'TOT', 'HitPat', 'Multi']:
     for c in ['', 'C']:
-      c1.Clear()
-      c1.Divide(4, 2)
-      for i in range(nlayer):
-        c1.cd(i+1) #.SetLogy()
-        for j, b in enumerate(mh.beamflag):
-          h1 = ROOT.gFile.Get(f'{name}_{c}{htype}_layer{i}{b}')
-          if h1:
-            h1.SetLineColor(mh.beamcolor[j])
-            h1.Draw('same')
-            if htype == 'TDC':
-              h1.GetXaxis().SetRangeUser(1200, 1500)
-            if htype == 'Multi':
-              mh.efficiency(h1)
-      c1.Print(fig_path)
-      if c == 'C' and (htype == 'TDC' or htype == 'TOT'):
-        c1.Clear()
-        c1.Divide(4, 2)
-        for i in range(nlayer):
-          c1.cd(i+1).SetLogz()
-          hname = (f'{name}_{c}{htype}_vs_HitPat_'+
-                   f'layer{i}{mh.beamflag_for_param}')
-          h1 = ROOT.gFile.Get(hname)
-          if h1:
-            h1.Draw('colz')
-        c1.Print(fig_path)
+      draw_one_data(name, key=c+key, nlayer=nlayer)
+      if c == 'C' and (key == 'TDC' or key == 'TOT'):
+        draw_one_data2d(name, key=c+key, nlayer=nlayer)
 
 #______________________________________________________________________________
 def single_run(run_info):

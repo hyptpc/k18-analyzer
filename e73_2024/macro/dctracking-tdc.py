@@ -10,25 +10,22 @@ import yaml
 
 import ROOT
 
+from detector import dc_constants as dcconst
 import dctdc
 import macrohelper as mh
 
 logger = logging.getLogger(__name__)
-
 ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
-def tdc(name, cid, n_layer=8, n_wire=32, tdcrange=None):
-  logger.info(f'name={name}, n_layer={n_layer}, n_wire={n_wire}')
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  c1.Clear()
-  c1.Divide(4, 2)
+@mh.update_canvas(divisions=(4, 2))
+def tdc(c1, name, cid, nlayer=8, nwire=32, tdcrange=None):
+  logger.info(f'name={name}, nlayer={nlayer}, nwire={nwire}')
   result_dict = dict()
-  for i in range(n_layer):
+  for i in range(nlayer):
     c1.cd(i+1) #.SetLogy()
     hname = f'{name}_CTDC_layer{i}{mh.beamflag_for_param}'
-    h1 = ROOT.gFile.Get(hname)
+    h1 = mh.get(hname)
     if h1:
       if tdcrange is None:
         xmax = h1.GetBinCenter(h1.GetMaximumBin())
@@ -43,45 +40,35 @@ def tdc(name, cid, n_layer=8, n_wire=32, tdcrange=None):
                 (0, h1.GetMaximum()*0.01)]
       h1.GetXaxis().SetRangeUser(tdcrange[0], tdcrange[1])
       f1, t0 = dctdc.fit(h1, params=params, limits=limits)
-      for wid in range(n_wire):
+      for wid in range(nwire):
         key = (cid, i, wid)
         result_dict[key] = (t0, -0.8333333333)
-    else:
-      logger.warning(f'cannot find {hname}')
-  c1.Print(fig_path)
   return result_dict
 
 #______________________________________________________________________________
-def drift_time(name, n_layer=8):
-  logger.info(f'name={name}, n_layer={n_layer}')
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  for key in ['', '_vs_HitPat']:
-    c1.Clear()
-    c1.Divide(4, 2)
-    result_dict = dict()
-    for i in range(n_layer):
-      c1.cd(i+1) #.SetLogy()
-      if len(key) > 0:
-        ROOT.gPad.SetLogz()
-      hname = f'{name}_Hit_DriftTime{key}_layer{i}{mh.beamflag_for_param}'
-      h1 = ROOT.gFile.Get(hname)
-      if h1:
-        h1.Draw('colz')
-      else:
-        logger.warning(f'cannot find {hname}')
-    c1.Print(fig_path)
+@mh.update_canvas(divisions=(4, 2))
+def drift_time(c1, name, key, nlayer=8):
+  logger.info(f'name={name}, nlayer={nlayer}, key={key}')
+  result_dict = dict()
+  for i in range(nlayer):
+    c1.cd(i+1) #.SetLogy()
+    if len(key) > 0:
+      ROOT.gPad.SetLogz()
+    hname = f'{name}_Hit_DriftTime{key}_layer{i}{mh.beamflag_for_param}'
+    h1 = mh.get(hname)
+    if h1:
+      h1.Draw('colz')
   return result_dict
 
 #______________________________________________________________________________
 def single_run(run_info):
   mh.initialize(run_info, __file__)
   result_dict = {'generator': os.path.basename(__file__)}
-  dclist = ['BLC1a', 'BLC1b', 'BLC2a', 'BLC2b', 'BPC2', 'BPC1']
-  for i, dc in enumerate(dclist):
-    n_wire = 16 if 'BPC1' else 32
-    result_dict.update(tdc(dc, cid=101+i, n_wire=n_wire))
-    drift_time(dc)
+  for n, v in dcconst.items():
+    result_dict.update(tdc(n, cid=v['id'], nlayer=v['nlayer'],
+                           nwire=v['nwire']))
+    for key in ['', '_vs_HitPat']:
+      drift_time(n, key=key)
   dctdc.output_result(run_info, result_dict, parsed.update)
   mh.finalize()
 

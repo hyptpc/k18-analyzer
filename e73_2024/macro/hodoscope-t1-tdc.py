@@ -10,30 +10,26 @@ import yaml
 
 import ROOT
 
+from detector import hodoscope_constants as hconst
 import hdprm
 import macrohelper as mh
 
 logger = logging.getLogger(__name__)
 name = 'T1'
-cid = 4
-n_seg = 1
-
+nseg = hconst[name]['nseg']
 ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
-def tdc(tdcrange=(1.18e6, 1.20e6), fit=True):
+@mh.update_canvas(divisions=(2, 2))
+def tdc(c1, tdcrange=(1.18e6, 1.20e6), fit=True):
   logger.info(f'tdcrange={tdcrange}, fit={fit}')
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  c1.Clear()
-  c1.Divide(2, 2)
   result_dict = dict()
   for iud, ud in enumerate(['U', 'D']):
-    for seg in range(n_seg):
-      c1.cd(iud*n_seg+seg+1) #.SetLogy()
-      h1 = ROOT.gFile.Get(name + f'_TDC_seg{seg}{ud}{mh.beamflag_for_param}')
+    for seg in range(nseg):
+      c1.cd(iud*nseg+seg+1) #.SetLogy()
+      hname = f'{name}_TDC_seg{seg}{ud}{mh.beamflag_for_param}'
+      h1 = mh.get(hname)
       if h1:
-        logger.debug(name + f'_TDC_seg{seg}{ud}{mh.beamflag_for_param}')
         h1.RebinX(4)
         if h1.GetEntries() < 1e4:
           h1.RebinX(2)
@@ -51,70 +47,46 @@ def tdc(tdcrange=(1.18e6, 1.20e6), fit=True):
             (1e2, 1e4)
           ]
           result = mh.fit_gaus(h1, params=params, limits=limits)
-          key = (cid, 0, seg, 1, 0 if ud == 'U' else 1)
+          key = (hconst[name]['id'], 0, seg, 1, 0 if ud == 'U' else 1)
           result_dict[key] = (result.GetParameter(1), -0.000939002)
         else:
           h1.Draw()
-  c1.Modified()
-  c1.Update()
-  c1.Print(fig_path)
   return result_dict
 
 #______________________________________________________________________________
-def time(timerange=(-2, 2), key='Time'):
+@mh.update_canvas(divisions=(3, 2))
+def time(c1, timerange=(-2, 2), key='Time'):
   logger.info(f'key={key}, timerange={timerange}')
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  c1.Clear()
-  c1.Divide(3, 2)
   for iud, ud in enumerate(['U', 'D', '']):
     key = 'MeanTime' if ud == '' else 'Time'
-    for seg in range(n_seg):
-      c1.cd(iud*n_seg+seg+1) #.SetLogy()
+    for seg in range(nseg):
+      c1.cd(iud*nseg+seg+1) #.SetLogy()
       for j, b in enumerate(mh.beamflag):
-        hname = name + f'_Hit_{key}_seg{seg}{ud}{b}'
-        h1 = ROOT.gFile.Get(hname)
+        hname = f'{name}_Hit_{key}_seg{seg}{ud}{b}'
+        h1 = mh.get(hname)
         if h1:
-          logger.debug(hname)
           h1.SetLineColor(mh.beamcolor[j])
           h1.GetXaxis().SetRangeUser(timerange[0], timerange[1])
           h1.Draw('same')
-        else:
-          logger.warning(f'cannot find {hname}')
-  c1.Modified()
-  c1.Update()
-  c1.Print(fig_path)
 
 #______________________________________________________________________________
-def time2d():
-  c1 = ROOT.gROOT.GetListOfCanvases()[0]
-  fig_path = c1.GetTitle()
-  c1.Clear()
-  c1.Divide(2, 2)
+@mh.update_canvas(divisions=(2, 2))
+def time2d(c1):
   keys = ('MeanTime',)
   ranges = ((-10, 10), (-10, 10))
   for i, key in enumerate(keys):
     c1.cd(i+1) #.SetLogy()
-    hname = name + f'_Hit_{key}{mh.beamflag_for_param}'
-    h1 = ROOT.gFile.Get(hname)
+    hname = f'{name}_Hit_{key}{mh.beamflag_for_param}'
+    h1 = mh.get(hname)
     if h1:
-      logger.debug(hname)
       h1.GetXaxis().SetRangeUser(ranges[i][0], ranges[i][1])
       h1.Draw()
-    else:
-      logger.warning(f'cannot find {hname}')
     c1.cd(i+1+len(keys)).SetLogz()
-    hname = name + f'_Hit_{key}_vs_HitPat{mh.beamflag_for_param}'
-    h2 = ROOT.gFile.Get(hname)
+    hname = f'{name}_Hit_{key}_vs_HitPat{mh.beamflag_for_param}'
+    h2 = mh.get(hname)
     if h2:
-      logger.debug(hname)
       h2.GetYaxis().SetRangeUser(ranges[i][0], ranges[i][1])
       h2.Draw('colz')
-    else:
-      logger.warning(f'cannot find {hname}')
-  c1.Modified()
-  c1.Update()
-  c1.Print(fig_path)
 
 #______________________________________________________________________________
 def single_run(run_info):
