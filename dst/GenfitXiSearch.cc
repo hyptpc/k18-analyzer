@@ -1017,6 +1017,9 @@ dst::DstRead( Int_t ievent )
     std::cout << "#D Event Number: "
         << std::setw(6) << ievent << std::endl;
   }
+
+  TVector3 tgtpos(0, 0, tpc::ZTarget);
+
   GetEntry(ievent);
 
   event.runnum = **src.runnum;
@@ -1625,8 +1628,8 @@ dst::DstRead( Int_t ievent )
 
     Double_t GFlambda_tof = Kinematics::CalcTimeOfFlight(GFlambda_mom.Mag(), GFlambda_tracklen, pdg::LambdaMass());
 
-    Int_t htofhitid_p; Double_t tracklen_p; Double_t tof; TVector3 pos; TVector3 vtx;
-    Bool_t htofextrapolation_p = GFTrackCont.TPCHTOFTrackMatching(trackid_p, repid_p, event.HtofSeg, event.posHtof, htofhitid_p, tof, tracklen_p, pos, vtx);
+    Int_t htofhitid_p; Double_t tracklen_p; Double_t tof; TVector3 pos; Double_t track2tgt_dist;
+    Bool_t htofextrapolation_p = GFTrackCont.TPCHTOFTrackMatching(trackid_p, repid_p, GFlambda_vert, event.HtofSeg, event.posHtof, htofhitid_p, tof, tracklen_p, pos, track2tgt_dist);
     if(htofextrapolation_p){
       GFmass2_decays[0] = Kinematics::MassSquare(GFmom_decays[0].Mag(),
 						 tracklen_p  - GFextrapolation_decays[0],
@@ -1635,7 +1638,7 @@ dst::DstRead( Int_t ievent )
     }
 
     Int_t htofhitid_pi; Double_t tracklen_pi;
-    Bool_t htofextrapolation_pi = GFTrackCont.TPCHTOFTrackMatching(trackid_pi, repid_pi,event.HtofSeg, event.posHtof,htofhitid_pi, tof, tracklen_pi, pos, vtx);
+    Bool_t htofextrapolation_pi = GFTrackCont.TPCHTOFTrackMatching(trackid_pi, repid_pi, GFlambda_vert, event.HtofSeg, event.posHtof,htofhitid_pi, tof, tracklen_pi, pos, track2tgt_dist);
     if(htofextrapolation_pi){
       GFmass2_decays[1] = Kinematics::MassSquare(GFmom_decays[1].Mag(),
 						 tracklen_pi - GFextrapolation_decays[1],
@@ -1648,7 +1651,7 @@ dst::DstRead( Int_t ievent )
     TVector3 GFxi_mom = GFlambda_mom + GFmom_decays[2];
 
     Int_t htofhitid_pi2; Double_t tracklen_pi2;
-    Bool_t htofextrapolation_pi2 = GFTrackCont.TPCHTOFTrackMatching(trackid_pi2, repid_pi2, event.HtofSeg, event.posHtof, htofhitid_pi2, tof, tracklen_pi2, pos, vtx);
+    Bool_t htofextrapolation_pi2 = GFTrackCont.TPCHTOFTrackMatching(trackid_pi2, repid_pi2, tgtpos, event.HtofSeg, event.posHtof, htofhitid_pi2, tof, tracklen_pi2, pos, track2tgt_dist);
     if(htofextrapolation_pi2){
       GFmass2_decays[2] = Kinematics::MassSquare(GFmom_decays[2].Mag(),
 						 tracklen_pi2 - GFextrapolation_decays[2],
@@ -2144,12 +2147,12 @@ if(event.isgoodTPC[0] == 1){
     event.vtgtXi = XiTgtMom.y()/XiTgtMom.Z();
   }
   const int ntrack = 3;
-  double x0track[ntrack]={event.xtgtTPCKurama[0],event.xtgtK18[0],event.xtgtXi};    
-  double y0track[ntrack]={event.ytgtTPCKurama[0],event.ytgtK18[0],event.ytgtXi};  
+  double x0track[ntrack]={event.xtgtTPCKurama[0],event.xtgtK18[0],event.xtgtXi};
+  double y0track[ntrack]={event.ytgtTPCKurama[0],event.ytgtK18[0],event.ytgtXi};
   double u0track[ntrack]={event.utgtTPCKurama[0],event.utgtK18[0],event.utgtXi};
-  double v0track[ntrack]={event.vtgtTPCKurama[0],event.vtgtK18[0],event.vtgtXi};  
-  TVector3 KKXiVert = Kinematics::MultitrackVertex(ntrack,x0track,y0track,u0track,v0track); 
-  event.XiFlight = XiFlight; 
+  double v0track[ntrack]={event.vtgtTPCKurama[0],event.vtgtK18[0],event.vtgtXi};
+  TVector3 KKXiVert = Kinematics::MultitrackVertex(ntrack,x0track,y0track,u0track,v0track);
+  event.XiFlight = XiFlight;
   if(XiFlight){
     event.vtxKKXi= KKXiVert.x();
     event.vtyKKXi= KKXiVert.y();
@@ -2280,7 +2283,7 @@ ConfMan::InitializeHistograms( void )
   HB2(2002, "#Xi^{-} decay, #pi_{#Lambda} hit patternGF",100,-250,250,100,-250,250);
   HB2(2003, "#Xi^{-} decay, #pi_{#Xi} hit patternGF",100,-250,250,100,-250,250);
 
-  HB1(3000, "#Xi Decay mom - Prod mom; #Delta p [GeV/#font[12]{c}]; Counts [/ 2MeV/#font[12]{c}]", 300, -0.3, 0.3); 
+  HB1(3000, "#Xi Decay mom - Prod mom; #Delta p [GeV/#font[12]{c}]; Counts [/ 2MeV/#font[12]{c}]", 300, -0.3, 0.3);
 
 #if DoKinematicFitLdXi
   HB1(10000,"KF#{Lambda} pvalue",100,0,1);
@@ -2598,10 +2601,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("vtxKKXi", &event.vtxKKXi);
   tree->Branch("vtyKKXi", &event.vtyKKXi);
   tree->Branch("vtzKKXi", &event.vtzKKXi);
-  tree->Branch("xiprodvtx_x", &event.xiprodvtx_x);  
+  tree->Branch("xiprodvtx_x", &event.xiprodvtx_x);
   tree->Branch("xiprodvtx_y", &event.xiprodvtx_y);
   tree->Branch("xiprodvtx_z", &event.xiprodvtx_z);
-  tree->Branch("xiprodmom_x", &event.xiprodmom_x);  
+  tree->Branch("xiprodmom_x", &event.xiprodmom_x);
   tree->Branch("xiprodmom_y", &event.xiprodmom_y);
   tree->Branch("xiprodmom_z", &event.xiprodmom_z);
 

@@ -710,8 +710,13 @@ HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
 //_____________________________________________________________________________
 void
 KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
+		  const std::vector<TPCClusterContainer>& ClCont,
 		  std::vector<TPCLocalTrackHelix*>& TrackCont,
-		  std::vector<TPCLocalTrackHelix*>& TrackContVP)
+		  std::vector<TPCLocalTrackHelix*>& TrackContFailed,
+		  std::vector<TPCLocalTrackHelix*>& TrackContVP,
+		  std::vector<TPCVertexHelix*>& VertexCont,
+		  Bool_t Exclusive,
+		  Int_t MinNumOfHits)
 {
   static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
 
@@ -748,6 +753,7 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
 
     Int_t Trackflag = 1*0 + 2*0 + 4*1 + 8*0; // isBeam, isK18, isKurama, isAccidental
     Int_t id = 0;
+    std::vector<Int_t> kurama_candidates;
     for(auto& track: TrackCont){
       if(track){
 	Int_t ncl_downstream_tgt = 0; //#cluster after the target.
@@ -765,13 +771,70 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
 	  if(ih==nh-1 && ncl_downstream_tgt>0){
 	    track->AddTrackIDCandidate(nt);
 	    track->SetFlag(Trackflag);
+	    kurama_candidates.push_back(id);
 	  }
 	}
 	id++;
       }
     }
-  } //nt
 
+    //If there is two candidates, checking whether they are a single track or not.
+    if(kurama_candidates.size()==2){
+      Int_t trackid1 = kurama_candidates.at(0);
+      Int_t trackid2 = kurama_candidates.at(1);
+
+      Bool_t order = TrackCont[trackid1] -> GetNHit() >= TrackCont[trackid2] -> GetNHit() ?  true : false;
+      if(!order){
+	trackid1 = kurama_candidates.at(1);
+	trackid2 = kurama_candidates.at(0);
+      }
+
+      TPCLocalTrackHelix *track1 = TrackCont[trackid1];
+      TPCLocalTrackHelix *track2 = TrackCont[trackid2];
+      TPCLocalTrackHelix *MergedTrack = new TPCLocalTrackHelix(track1);
+      for(Int_t hit=0;hit<track2 -> GetNHit();hit++)
+	MergedTrack -> AddTPCHit(new TPCLTrackHit(track2 -> GetHitInOrder(hit) -> GetHit()));
+      //Check whether tracks belong to the same track or not
+      if(!MergedTrack -> TestMergedTrack()){
+	delete MergedTrack;
+	continue;
+      }
+
+      //Two candidates are the same track.
+      //Calulate the track and erase previous two fragmented tracks.
+      std::vector<Int_t> candidates;
+      candidates.push_back(trackid1);
+      candidates.push_back(trackid2);
+
+      Int_t prev_size = TrackCont.size();
+      FitTrack(MergedTrack, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+
+      Int_t post_size = TrackCont.size();
+      if(prev_size+1 == post_size){
+	MergedTrack = TrackCont[post_size-1];
+	MergedTrack -> Calculate();
+	MergedTrack -> AddTrackIDCandidate(nt);
+	MergedTrack -> SetFlag(Trackflag);
+	if(Exclusive){
+	  MergedTrack -> DoFitExclusive();
+	  MergedTrack -> CalculateExclusive();
+	}
+      }
+      else std::cout<<"Warning! KuramaTrackSearch prev_size != post_size"<<std::endl;
+
+      if(candidates.size()>0){
+	std::sort(candidates.begin(), candidates.end());
+	for(Int_t i=0; i<candidates.size(); ++i){
+	  Int_t trackID = candidates[i] - i;
+	  TrackCont.erase(TrackCont.begin() + trackID);
+	}
+
+	//Vertex finding again with new tracks
+	del::ClearContainer(VertexCont);
+	VertexSearch(TrackCont, VertexCont);
+      }
+    } //merging two tracks
+  } //nt
 }
 
 //_____________________________________________________________________________
@@ -1015,7 +1078,7 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
   RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
   //Search Kurama track candidates from the TrackCont.
-  KuramaTrackSearch(KuramaVPs, TrackCont, TrackContVP);
+  KuramaTrackSearch(KuramaVPs, ClCont, TrackCont, TrackContFailed, TrackContVP, VertexCont, Exclusive, MinNumOfHits);
 
 #if DebugDisp
   std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
@@ -1397,13 +1460,29 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     std::cout<<"vtx "<<TMath::Abs(vtx.x())<<" "<<TMath::Abs(vtx.y())<<" "<<TMath::Abs(vtx.z())<<std::endl;
     std::cout<<"angle "<<0.0833*TMath::Pi()<<" "<<vertex -> GetOpeningAngle()<<" "<<(1. - 0.0833)*TMath::Pi()<<std::endl;
     */
-    if(vertex -> GetClosestDist() > 15. ||
-       (vertex -> GetOpeningAngle() > 0.0833*TMath::Pi() &&
-	vertex -> GetOpeningAngle() < (1. - 0.0833)*TMath::Pi())) continue;
 
-    if(TMath::Abs(vtx.x()) < 15. &&
-       TMath::Abs(vtx.y()) < 10. &&
-       TMath::Abs(vtx.z() - tpc::ZTarget) < 10.) continue;
+    //case1. accidental beam crossing the target is splitted into two tracks
+    //case2. merging fragmentations of commom track. for case2. closest point of two parts are not in the track
+    Bool_t is_fragmented_accidental = (TrackCont[trackid1] -> GetIsBeam()==1 || TrackCont[trackid2] -> GetIsBeam()==1);
+    if(is_fragmented_accidental){ //case1
+      //two parts are close.
+      if(vertex -> GetClosestDist() > 5.) continue;
+
+      //closest point is in the target.
+      if(TMath::Abs(vtx.x()) > 20.) continue;
+    }
+    else{ //case2
+      //two parts are close.
+      if(vertex -> GetClosestDist() > 15. ||
+	 (vertex -> GetOpeningAngle() > 0.0833*TMath::Pi() &&
+	  vertex -> GetOpeningAngle() < (1. - 0.0833)*TMath::Pi())) continue;
+
+      //closest point is not in the target.
+      //without this, two scattered tracks with opposite direction frequently wrongly merged.
+      if(TMath::Abs(vtx.x()) < 15. &&
+	 TMath::Abs(vtx.y()) < 10. &&
+	 TMath::Abs(vtx.z() - tpc::ZTarget) < 10.) continue;
+    }
 
 #if DebugDisp
     vertex -> Print(FUNC_NAME+" Vertex candidate for merging tracks");
@@ -1427,8 +1506,14 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     T *MergedTrack = new T(track1);
     for(Int_t hit=0;hit<track2 -> GetNHit();hit++)
       MergedTrack -> AddTPCHit(new TPCLTrackHit(track2 -> GetHitInOrder(hit) -> GetHit()));
+
     //Check whether tracks belong to the same track or not
     if(!MergedTrack -> TestMergedTrack()){
+      delete MergedTrack;
+      continue;
+    }
+    else if(is_fragmented_accidental && MergedTrack -> GetIsAccidental()==0){
+      //for case1. check it is accidental.
       delete MergedTrack;
       continue;
     }

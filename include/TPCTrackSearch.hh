@@ -130,10 +130,12 @@ void HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
 
 //Kurama scattered track finding
 void KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
-		       std::vector<Double_t> KuramaCharge,
 		       const std::vector<TPCClusterContainer>& ClCont,
 		       std::vector<TPCLocalTrackHelix*>& TrackCont,
+		       std::vector<TPCLocalTrackHelix*>& TrackContFailed,
 		       std::vector<TPCLocalTrackHelix*>& TrackContVP,
+		       std::vector<TPCVertexHelix*>& VertexCont,
+		       Bool_t Exclusive,
 		       Int_t MinNumOfHits);
 //K1.8 beam track finding
 void K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
