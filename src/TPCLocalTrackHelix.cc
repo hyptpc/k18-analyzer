@@ -3208,6 +3208,10 @@ TPCLocalTrackHelix::TestMergedTrack()
   CalcClosestDistTgt(); //Distance between the target & the track
   if(VertexAtTarget()){
 
+    //case1. The merged track is not crossing the target. (no problem)
+    //case2. The merged track is an accidental beam crossing the target. (no problem)
+    //case3. The merged track is wrongly merged two individual scattered tracks near the target <- veto
+
     std::vector<Int_t> side1_hits; std::vector<Int_t> side2_hits;
     for(Int_t i=0; i<n; ++i){
       Double_t resi;
@@ -3218,14 +3222,19 @@ TPCLocalTrackHelix::TestMergedTrack()
       else if(Side(pos)==-1) side2_hits.push_back(i);
     }
 
-    //The merged track is close to the target but not crossing the target.
-    //Set the vtxflag 0 to make SeparateTracksAtTarget() off.
     if(side1_hits.size() > 0 && side2_hits.size() > 0){
-      if(TMath::Abs(m_closedist.x())<15. && TMath::Abs(m_closedist.y())<10. && TMath::Abs(m_closedist.z())<10.) return false;
-      else m_isAccidental = 1;
+      CheckIsAccidental(); //check whether it is accidental beam
+
+      if(TMath::Abs(m_closedist.x())<15. &&
+	 TMath::Abs(m_closedist.y())<10. &&
+	 TMath::Abs(m_closedist.z())<10.){
+	if(m_isAccidental!=1 || m_isBeam!=1) return false; //(case3) if it is not accidental beam
+      }
     }
   }
-  else m_vtxflag=0;
+
+  //Set the vtxflag 0 to make SeparateTracksAtTarget() off.
+  m_vtxflag=0;
 
 #if IterativeResolution
   vetoBadClusters = true;
@@ -3343,21 +3352,44 @@ TPCLocalTrackHelix::CheckIsAccidental()
     std::cout<<FUNC_NAME+" Fatal error : No helix theta information!!! CalcHelixTheta() should be run in front of this"<<std::endl;
     return;
   }
-  if(!m_is_fitted) return;
+  //if(!m_is_fitted) return;
+  if(m_is_multiloop) return; //A multiloop track is obviously not accidental beam
 
   static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
   if(BeamThroughTPC || m_isAccidental==1) return;
-  if(TMath::Abs(m_dz)>0.03 || m_r<3300) return;
 
+  Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
+  Double_t t_avg = 0.5*(m_max_t + m_min_t);
+  TVector3 start_point = GlobalPosition(par, m_min_t);
+  TVector3 middle_point = GlobalPosition(par, t_avg);
+  TVector3 end_point = GlobalPosition(par, m_max_t);
+  //check the track is going straight twoward along the Z direction or not.
+  if(TMath::Abs(start_point.x() - end_point.x()) > 200.) return;
+  if(TMath::Abs(start_point.z() - middle_point.z()) < 100. ||
+     TMath::Abs(middle_point.z() - end_point.z()) < 100.) return;
+  if(TMath::Abs(start_point.z() - end_point.z()) < 300.) return;
+
+  Int_t nhit_beamsection = 0;
   Int_t nhit_upstream_tgt = 0; Int_t nhit_downstream_tgt = 0;
   const std::size_t n = m_hit_array.size();
   for(Int_t i=0; i<n; ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp -> GetLocalHitPos();
-    if(TMath::Abs(pos.x()) < 40. && pos.z() < tpc::ZTarget) nhit_upstream_tgt++;
-    if(TMath::Abs(pos.x()) < 40. && pos.z() > tpc::ZTarget) nhit_downstream_tgt++;
+    //if(TMath::Abs(pos.x()) < 40. && pos.z() < tpc::ZTarget) nhit_upstream_tgt++;
+    //if(TMath::Abs(pos.x()) < 40. && pos.z() > tpc::ZTarget) nhit_downstream_tgt++;
+    if(TMath::Abs(pos.x()) < 25. && pos.z() < tpc::ZTarget) nhit_beamsection++;
+    if(pos.z() < tpc::ZTarget) nhit_upstream_tgt++;
+    if(pos.z() > tpc::ZTarget) nhit_downstream_tgt++;
   }
-  if(nhit_upstream_tgt>1 && nhit_downstream_tgt>=5){m_isAccidental=1; m_isBeam=1;}
+
+  if(nhit_upstream_tgt>=1 && nhit_downstream_tgt>=5 && m_r>3000){ //accidental beam
+    if(TMath::Abs(m_dz)<0.05) m_isBeam=1;
+    //if m_dz is large, maybe it's scattered accidental beam
+    m_isAccidental=1;
+  }
+  else if(nhit_beamsection>=2 && nhit_downstream_tgt>=5 && m_r>1200){
+    m_isAccidental=1; //scattered accidental beam crossing near the target
+  }
 }
 
 //Functions for momentum resolution
