@@ -40,7 +40,7 @@
 #include "HypTPCTask.hh"
 
 #define SaveTPCK18 0
-#define MMcut_Xi 0
+#define MMcut_Xi 1
 #define DoKinematicFitLdXi 1
 
 namespace

@@ -11,6 +11,7 @@
 *.stat
 *.swp
 \#*
+dst/GenfitCarbon.cc
 Makefile
 bin
 data*
