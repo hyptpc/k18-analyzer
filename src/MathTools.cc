@@ -12,7 +12,6 @@
 
 #include "FuncName.hh"
 #include "PrintHelper.hh"
-
 #define ERROROUT 1
 
 namespace MathTools
@@ -780,4 +779,27 @@ PrintVector(T *vec, const std::string& arg, const std::size_t size)
   }
   hddaq::cout << std::endl;
 }
+  
+  TMatrixD MergeOffdiagonals(TMatrixD A, TMatrixD B)
+  {
+		int rowA = A.GetNrows();
+		int colA = A.GetNcols();
+		int rowB = B.GetNrows();
+		int colB = B.GetNcols();
+		double elem[500];
+		for(int r=0;r<rowA;++r){
+			for(int c=0;c<colA;++c){
+				if(r == c) continue;
+				elem[c+colA*r] = A(r,c);
+			}
+		}
+		for(int r=0;r<rowB;++r){
+			for(int c=0;c<colB;++c){
+				if(r == c) continue;
+				elem[c+colA*(r+rowA)] = B(r,c);
+			}
+		}
+		return TMatrixD(rowA+rowB,colA+colB,elem);
+	}
+  
 }

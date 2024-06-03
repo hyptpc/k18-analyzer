@@ -5,6 +5,7 @@
 // https://github.com/kangbm94/Notes-on-Kinematic-Fit
 #include <vector>
 #include <TMatrixD.h>
+#include <Math/ProbFunc.h>
 using namespace std;
 class KinematicFitter{
 	protected:
@@ -73,6 +74,9 @@ class KinematicFitter{
 		}
 		void Clear();
 		virtual double DoKinematicFit(bool Do = true);
+		double GetPValue(){
+			return 1-ROOT::Math::chisquared_cdf(Best_Chi2,GetNDF());	
+		};
 		int GetNStep(){
 			return step;
 		}

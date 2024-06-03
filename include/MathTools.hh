@@ -6,6 +6,7 @@
 #include <TMath.h>
 #include <TString.h>
 #include <TVector3.h>
+#include <TMatrixD.h>
 
 //_____________________________________________________________________________
 namespace MathTools
@@ -109,6 +110,7 @@ void PrintMatrix(T *mat, const std::string& arg="",
 template <typename T>
 void PrintVector(T *vec, const std::string& arg="",
                  const std::size_t size=4);
+TMatrixD MergeOffdiagonals(TMatrixD A, TMatrixD B);
 }
 
 //_____________________________________________________________________________

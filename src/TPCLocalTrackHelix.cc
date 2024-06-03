@@ -3668,3 +3668,29 @@ TPCLocalTrackHelix::GetMomentumResolution(){
   Double_t d_slope = GetdZResolution();
   return GetTransverseMomentumResolution()*hypot(1,d_slope);
 }
+TMatrixD
+TPCLocalTrackHelix::GetCovarianceMatrix(){
+  double Elements[3*3]={0};
+  double cov_mom_th = GetTransverseMomentumAngularCovariance(); 
+  double cov_mom_ph = GetMomentumPitchAngleCovariance();  
+  double res_mom = GetMomentumResolution();
+  double res_th = GetThetaResolution();
+  double res_ph = GetTransverseAngularResolution();
+  for(int ir=0;ir<3;++ir){
+    for(int ic=ir;ic<3;++ic){
+      if(ir==0 and ic==1){
+        Elements[ir*3+ic] = cov_mom_th;
+        Elements[ic*3+ir] = cov_mom_th;
+      }
+      if(ir==0 and ic == 2){
+        Elements[ir*3+ic] = cov_mom_ph;
+        Elements[ic*3+ir] = cov_mom_ph;
+      }
+    }
+  }
+  Elements[0+3*0] = res_mom*res_mom;
+  Elements[1+3*1] = res_th*res_th;
+  Elements[2+3*2] = res_ph*res_ph;
+  TMatrixD CovMat(3,3,Elements);
+  return CovMat;
+}

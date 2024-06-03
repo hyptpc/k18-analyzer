@@ -2159,40 +2159,24 @@ TVector3 XiVert = GFxi_vert_container[gfbest];
   TLorentzVector HLVLd(HTVLd,hypot(LambdaMass,HTVLd.Mag()));
   TLorentzVector HLVXi(HTVXi,hypot(XiMinusMass,HTVXi.Mag()));
 
+  auto Vp = Track_p->GetCovarianceMatrix();
+  auto Vpi1 = Track_pi->GetCovarianceMatrix();
+  auto Vpi2 = Track_pi2->GetCovarianceMatrix();
 
   FourVectorFitter KFLd(HLVP,HLVPi1,HLVLd);
   KFLd.SetInvMass(LambdaMass);
   KFLd.SetMaximumStep(5);
+  
   double VarianceLd[6] =
-  {pow(event.decays_res_mom.at(0),2),pow(event.decays_res_th.at(0),2),pow(event.decays_res_ph.at(0),2),
-  pow(event.decays_res_mom.at(1),2),pow(event.decays_res_th.at(1),2),pow(event.decays_res_ph.at(1),2)};
+  {Vp(0,0),Vp(1,1),Vp(2,2),
+  Vpi1(0,0),Vpi1(1,1),Vpi1(2,2)};
   double OffdiagElemLd[36]={0};
-  for(int ic=0;ic<6;++ic){
-  for(int ir=ic+1;ir<6;++ir){
-    if(ic==0 and ir == 1){
-      OffdiagElemLd[ic*6+ir] = event.decays_cov_mom_th.at(0);
-      OffdiagElemLd[ir*6+ic] = event.decays_cov_mom_th.at(0);
-    }
-    if(ic==0 and ir == 2){//cov_th_ph ~ 0
-      OffdiagElemLd[ic*6+ir] = event.decays_cov_mom_ph.at(0);
-      OffdiagElemLd[ir*6+ic] = event.decays_cov_mom_ph.at(0);
-    }
-    if(ic==3 and ir == 4){
-      OffdiagElemLd[ic*6+ir] = event.decays_cov_mom_th.at(1);
-      OffdiagElemLd[ir*6+ic] = event.decays_cov_mom_th.at(1);
-    }
-    if(ic==3 and ir == 5){
-      OffdiagElemLd[ic*6+ir] = event.decays_cov_mom_ph.at(1);
-      OffdiagElemLd[ir*6+ic] = event.decays_cov_mom_ph.at(1);
-    }
-  }
-  }
-  TMatrixD OffdiagLd(6,6,OffdiagElemLd);
+  auto OffdiagLd = MathTools::MergeOffdiagonals(Vp,Vpi1);
   KFLd.SetVariance(VarianceLd);
   KFLd.AddOffdiagonals(OffdiagLd);
   KFchisqrl = KFLd.DoKinematicFit();
   cout<<Form("KFLambda done:: chi2 = %g",KFchisqrl)<<endl;
-  KFpvall = 1-ROOT::Math::chisquared_cdf(KFchisqrl,KFLd.GetNDF());
+  KFpvall = KFLd.GetPValue();
   auto HcontLd = KFLd.GetFittedLV();
   auto PullLd = KFLd.GetPull();
   auto KFHLVP = HcontLd.at(0);
@@ -2200,28 +2184,10 @@ TVector3 XiVert = GFxi_vert_container[gfbest];
   auto KFHLVLd = HcontLd.at(2);
   auto VLd = KFLd.GetUnmeasuredCovariance();
   double VarianceXi[6] =
- // {abs(VLd(0,0)),abs(VLd(1,1)),abs(VLd(2,2)),
-  {(VLd(0,0)),(VLd(1,1)),(VLd(2,2)),
-  pow(event.decays_res_mom.at(2),2),pow(event.decays_res_th.at(2),2),pow(event.decays_res_ph.at(2),2)};
-  double OffdiagElemXi[36]={0};
-  for(int ic=0;ic<6;++ic){
-  for(int ir=ic+1;ir<6;++ir){
-    if(ic<3 and ir < 3){
-      OffdiagElemXi[ic*6+ir]=VLd(ic,ir);
-      OffdiagElemXi[ir*6+ic]=VLd(ic,ir);
-    }
-    if(ic==3 and ir == 4){
-      OffdiagElemXi[ic*6+ir] = event.decays_cov_mom_th.at(2);
-      OffdiagElemXi[ir*6+ic] = event.decays_cov_mom_th.at(2);
-    }
-    if(ic==3 and ir == 5){
-      OffdiagElemXi[ic*6+ir] = event.decays_cov_mom_ph.at(2);
-      OffdiagElemXi[ir*6+ic] = event.decays_cov_mom_ph.at(2);
-    }
-  }
-  }
+  {VLd(0,0),VLd(1,1),VLd(2,2),
+  Vpi2(0,0),Vpi2(1,1),Vpi2(2,2)};
 
-  TMatrixD OffdiagXi(6,6,OffdiagElemXi);
+  auto OffdiagXi = MathTools::MergeOffdiagonals(VLd,Vpi2);  
   HLVXi = KFHLVLd+HLVPi2;
   FourVectorFitter KFXi(KFHLVLd,HLVPi2,HLVXi);
   KFXi.SetInvMass(XiMinusMass);
@@ -2229,28 +2195,8 @@ TVector3 XiVert = GFxi_vert_container[gfbest];
   KFXi.SetVariance(VarianceXi);
   KFXi.AddOffdiagonals(OffdiagXi);
   KFchisqrxi = KFXi.DoKinematicFit();
-  if(isnan(KFchisqrxi)){
-    double Pi2Elem[3*3]=
-    {
-      VarianceXi[3],OffdiagElemXi[3*6+4],OffdiagElemXi[3*6+5],
-      OffdiagElemXi[3*6+4],VarianceXi[4],OffdiagElemXi[4*6+5],
-      OffdiagElemXi[3*6+5],OffdiagElemXi[4*6+5],VarianceXi[5]
-    };
-    TMatrixD VPi2(3,3,Pi2Elem);
-    cout<<Form("LVPi2 = (%g,%g,%g,%g)",HLVPi2.X(),HLVPi2.Y(),HLVPi2.Z(),HLVPi2.E())<<endl;
-    cout<<"Pi2 Variance Matrix, Det = "<<VPi2.Determinant()<<endl;
-    VPi2.Print();
-
-    TLorentzVector LVLdTemp(KFHLVLd.X(),KFHLVLd.Z(),KFHLVLd.Y(),KFHLVLd.E());
-    cout<<Form("LVLambda = (%g,%g,%g,%g)",LVLdTemp.X(),LVLdTemp.Y(),LVLdTemp.Z(),LVLdTemp.E())<<endl;
-    cout<<"Lambda Variance Matrix, Det = "<<VLd.Determinant()<<endl;
-    VLd.Print();
-    auto VXi = KFXi.GetVariance(0);
-    cout<<"Xi Variance Matrix, Det = "<<VXi.Determinant()<<endl;
-    VXi.Print();
-  }
   cout<<Form("KFXi done:: chi2 = %g",KFchisqrxi)<<endl;
-  KFpvalxi = 1-ROOT::Math::chisquared_cdf(KFchisqrxi,KFXi.GetNDF());
+  KFpvalxi = KFXi.GetPValue();  
   auto HcontXi = KFXi.GetFittedLV();
   auto PullXi = KFXi.GetPull();
   auto KFKFHLVLd = HcontXi.at(0);

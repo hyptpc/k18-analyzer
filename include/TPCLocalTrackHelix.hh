@@ -14,7 +14,7 @@
 #include "TPCHit.hh"
 #include "TPCCluster.hh"
 #include "TPCLTrackHit.hh"
-
+#include "TMatrixD.h"
 class TPCHit;
 class TPCCluster;
 
@@ -167,6 +167,7 @@ public:
   Double_t GetTransverseMomentumResolution();//returns dP, not dP/P;
   Double_t GetTransverseAngularResolution(Double_t t, Double_t sig0 = 0.01); //returns angular resolution on pad plane
   Double_t GetTransverseAngularResolution();
+  TMatrixD GetCovarianceMatrix();
 
   Double_t GetdZResolution();//returns pitch resolution.
   Double_t GetThetaResolution();//returns pitch angle resolution.
