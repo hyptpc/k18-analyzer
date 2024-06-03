@@ -786,20 +786,22 @@ PrintVector(T *vec, const std::string& arg, const std::size_t size)
 		int colA = A.GetNcols();
 		int rowB = B.GetNrows();
 		int colB = B.GetNcols();
-		double elem[500];
+		double elem[500]={0};
+    int rowC = rowA+rowB;
+    int colC = colA+colB;
 		for(int r=0;r<rowA;++r){
 			for(int c=0;c<colA;++c){
 				if(r == c) continue;
-				elem[c+colA*r] = A(r,c);
-			}
+        elem[c+colC*r] = A(r,c);
+      }
 		}
 		for(int r=0;r<rowB;++r){
 			for(int c=0;c<colB;++c){
 				if(r == c) continue;
-				elem[c+colA*(r+rowA)] = B(r,c);
+        elem[colA+c+colC*(r+rowA)] = B(r,c);
 			}
 		}
-		return TMatrixD(rowA+rowB,colA+colB,elem);
+		return TMatrixD(rowC,colC,elem);
 	}
   
 }

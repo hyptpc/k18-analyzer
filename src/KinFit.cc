@@ -72,7 +72,8 @@ KinematicFitter::AddOffdiagonals(TMatrixD Cov){
 #endif
 	Variancies.at(0)+= Cov;
 	bool CheckPositiveDefinite = false;
-	while(!CheckPositiveDefinite){
+	int nitr = 0;
+	while(!CheckPositiveDefinite and nitr < 5){
 		bool PositiveDefinate = true;
 		TMatrixDEigen VEig(Variancies.at(0));
 		TVectorD eigenvalue = VEig.GetEigenValuesRe();
@@ -96,6 +97,7 @@ KinematicFitter::AddOffdiagonals(TMatrixD Cov){
 				}
 			}
 		}
+		nitr++;
 	}
 //	cout<<"CovarianceMat : ";
 #if Debug
