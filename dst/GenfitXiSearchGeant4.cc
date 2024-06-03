@@ -354,6 +354,9 @@ struct Event
   std::vector<Int_t> pid;
   std::vector<Double_t> chisqr;
   std::vector<Double_t> pval;
+  std::vector<Double_t> purity;
+  std::vector<Double_t> efficiency;
+  std::vector<Int_t> G4tid;
   std::vector<Double_t> helix_cx;
   std::vector<Double_t> helix_cy;
   std::vector<Double_t> helix_z0;
@@ -405,6 +408,9 @@ struct Event
   Double_t lmom_z;
   Double_t ppi_dist;
   std::vector<Int_t> decays_id;
+  std::vector<Double_t> decays_purity;
+  std::vector<Double_t> decays_efficiency;
+  std::vector<Int_t> decays_G4tid;
   std::vector<Double_t> decays_mom;
   std::vector<Double_t> decays_mom_x;
   std::vector<Double_t> decays_mom_y;
@@ -710,6 +716,9 @@ struct Event
     charge.clear();
     pid.clear();
 
+    purity.clear();
+    efficiency.clear();
+    G4tid.clear();
     chisqr.clear();
     pval.clear();
     helix_cx.clear();
@@ -762,6 +771,9 @@ struct Event
     lmom_z = qnan;
     ppi_dist = qnan;
     decays_id.clear();
+    decays_purity.clear();
+    decays_efficiency.clear();
+    decays_G4tid.clear();
     decays_mom.clear();
     decays_mom_x.clear();
     decays_mom_y.clear();
@@ -956,6 +968,9 @@ struct Src
 
   TTreeReaderValue<std::vector<Int_t>>* charge;//Helix charge
   TTreeReaderValue<std::vector<Int_t>>* pid;
+  TTreeReaderValue<std::vector<Double_t>>* purity;
+  TTreeReaderValue<std::vector<Double_t>>* efficiency;  
+  TTreeReaderValue<std::vector<Int_t>>* G4tid;
   TTreeReaderValue<std::vector<Double_t>>* chisqr;
   TTreeReaderValue<std::vector<Double_t>>* pval;
   TTreeReaderValue<std::vector<Double_t>>* helix_cx;
@@ -1145,6 +1160,9 @@ dst::DstRead( Int_t ievent )
   event.isAccidental = **src.isAccidental;
   event.charge = **src.charge;
   event.pid = **src.pid;
+  event.purity = **src.purity;
+  event.G4tid = **src.G4tid;
+  event.efficiency = **src.efficiency;
   event.chisqr = **src.chisqr;
   event.pval = **src.pval;
   event.helix_cx = **src.helix_cx;
@@ -1536,14 +1554,20 @@ dst::DstRead( Int_t ievent )
   event.lmom_z = l_mom_container[best].z();
   event.ppi_dist = ppi_closedist[best];
 
-  event.decays_mom.push_back(p_mom_container[best].Mag());
   event.decays_id.push_back(xi_p_container[best]);
+  event.decays_purity.push_back(event.purity[xi_p_container[best]]);  
+  event.decays_efficiency.push_back(event.efficiency[xi_p_container[best]]);
+  event.decays_G4tid.push_back(event.G4tid[xi_p_container[best]]);  
+  event.decays_mom.push_back(p_mom_container[best].Mag());
   event.decays_mom_x.push_back(p_mom_container[best].x());
   event.decays_mom_y.push_back(p_mom_container[best].y());
   event.decays_mom_z.push_back(p_mom_container[best].z());
 
 
   event.decays_id.push_back(xi_pi_container[best]);
+  event.decays_purity.push_back(event.purity[xi_pi_container[best]]);
+  event.decays_efficiency.push_back(event.efficiency[xi_pi_container[best]]);  
+  event.decays_G4tid.push_back(event.G4tid[xi_pi_container[best]]);  
   event.decays_mom.push_back(pi_mom_container[best].Mag());
   event.decays_mom_x.push_back(pi_mom_container[best].x());
   event.decays_mom_y.push_back(pi_mom_container[best].y());
@@ -1551,6 +1575,9 @@ dst::DstRead( Int_t ievent )
 
 
   event.decays_id.push_back(xi_pi2_container[best]);
+  event.decays_purity.push_back(event.purity[xi_pi2_container[best]]);
+  event.decays_efficiency.push_back(event.efficiency[xi_pi2_container[best]]);
+  event.decays_G4tid.push_back(event.G4tid[xi_pi2_container[best]]);    
   event.decays_mom.push_back(pi2_mom_container[best].Mag());
   event.decays_mom_x.push_back(pi2_mom_container[best].x());
   event.decays_mom_y.push_back(pi2_mom_container[best].y());
@@ -2703,6 +2730,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "isAccidental", &event.isAccidental );
   tree->Branch( "charge", &event.charge );
   tree->Branch( "pid", &event.pid );
+  tree->Branch( "purity", &event.purity );
+  tree->Branch( "efficiency", &event.efficiency );  
+  tree->Branch(  "G4tid", &event.G4tid ); 
   tree->Branch( "chisqr", &event.chisqr );
   tree->Branch( "pval", &event.pval );
   tree->Branch( "helix_cx", &event.helix_cx );
@@ -2718,7 +2748,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "resolution_x", &event.resolution_x);
   tree->Branch( "resolution_y", &event.resolution_y);
   tree->Branch( "resolution_z", &event.resolution_z);
-
+  
   tree->Branch("G4kmid",&event.G4kmid);
   tree->Branch("G4kmtid",&event.G4kmtid);
   tree->Branch("G4kmvtx_x",&event.G4kmvtx_x);
@@ -2876,6 +2906,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("LambdaMom_z", &event.lmom_z);
   tree->Branch("LambdaVtxCloseDist", &event.ppi_dist);
   tree->Branch("DecaysTrackId", &event.decays_id);
+  tree->Branch("DecaysPurity", &event.decays_purity);
+  tree->Branch("DecaysEfficiency", &event.decays_efficiency);
+  tree->Branch("DecaysG4tid", &event.decays_G4tid);
   tree->Branch("DecaysMom", &event.decays_mom);
   tree->Branch("DecaysMom_x", &event.decays_mom_x);
   tree->Branch("DecaysMom_y", &event.decays_mom_y);
@@ -3044,6 +3077,9 @@ ConfMan::InitializeHistograms( void )
   src.isAccidental = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isAccidental" );
   src.charge = new TTreeReaderValue<std::vector<Int_t>>( *reader, "charge" );
   src.pid = new TTreeReaderValue<std::vector<Int_t>>( *reader, "pid" );
+  src.purity = new TTreeReaderValue<std::vector<Double_t>>( *reader, "purity" );  
+  src.efficiency = new TTreeReaderValue<std::vector<Double_t>>( *reader, "efficiency" );  
+  src.G4tid = new TTreeReaderValue<std::vector<Int_t>>( *reader, "G4tid" ); 
   src.chisqr = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqr" );
   src.pval = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pval" );
   src.helix_cx = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_cx" );

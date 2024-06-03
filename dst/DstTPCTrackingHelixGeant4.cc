@@ -162,6 +162,9 @@ struct Event
   vector<Int_t> isK18;
   vector<Int_t> isAccidental;
   vector<Int_t> flag;
+  vector<Double_t> purity;
+  vector<Double_t> efficiency;
+  vector<Int_t> G4tid;
   vector<Double_t> chisqr;
   vector<Double_t> pval;
   vector<Double_t> helix_cx;
@@ -242,6 +245,8 @@ struct Event
 	Double_t MomentumOfTrack_x[1000];
 	Double_t MomentumOfTrack_y[1000];
 	Double_t MomentumOfTrack_z[1000];
+
+  int G4idKm,G4idKp,G4idP,G4idPi1,G4idPi2;;
 
 	Double_t MomXi_x,MomXi_y,MomXi_z;//At decay vtx
 	Double_t SpinXi_x,SpinXi_y,SpinXi_z;
@@ -444,7 +449,10 @@ struct Event
     isK18.clear();
     isAccidental.clear();
     flag.clear();
-		chisqr.clear();
+    purity.clear();
+    efficiency.clear();
+		G4tid.clear();
+    chisqr.clear();
 		pval.clear();
 		helix_cx.clear();
 		helix_cy.clear();
@@ -848,6 +856,11 @@ dst::InitializeEvent( void )
 		event.MomentumOfTrack_z[i]=qnan;
 	}
 
+  event.G4idKm = -1;
+  event.G4idKp = -1;
+  event.G4idP = -1;
+  event.G4idPi1 = -1;
+  event.G4idPi2 = -1;
 	event.MomXi_x = 0;
 	event.MomXi_y = 0;
 	event.MomXi_z = 0;
@@ -1087,14 +1100,16 @@ dst::DstRead( int ievent )
 		if(abs(pid) == 321 and parent==0){
 			if(pz < 0){
         G4idKm = tid;
+        event.G4idKm = tid;
 				event.PKm = p;
-				event.PKm_x = px;
-				event.PKm_y = py;
-				event.PKm_z = pz;
+				event.PKm_x = -px;
+				event.PKm_y = -py;
+				event.PKm_z = -pz;
 			}
 			else{
         G4idKp = tid;
-				event.PKp = p;
+				event.G4idKp = tid;
+        event.PKp = p;
 				event.PKp_x = px;
 				event.PKp_y = py;
 				event.PKp_z = pz;
@@ -1112,6 +1127,17 @@ dst::DstRead( int ievent )
 				event.PLd_y = py;
 				event.PLd_z = pz;
 		}
+    if(pid == 2212 and pid_parent == 3122){
+        event.G4idP = tid;
+    }
+    if(pid == -211){
+      if (pid_parent == 3122){
+        event.G4idPi1 = tid;
+      }
+      else if(pid_parent == 3312){
+        event.G4idPi2 = tid;
+      }
+    }
 	}
 	event.MomXi_x = src.MomXi_x;
 	event.MomXi_y = src.MomXi_y;
@@ -1243,7 +1269,7 @@ dst::DstRead( int ievent )
 
     if(event.max_ititpc<src.ititpc[ihit])
       event.max_ititpc = src.ititpc[ihit];
-    ++event.nhittpc_iti[src.ititpc[ihit]-1];
+    ++event.nhittpc_iti[src.ititpc[ihit]];
   }
   for(int iti=0; iti<event.max_ititpc; ++iti){
   }
@@ -1374,6 +1400,9 @@ dst::DstRead( int ievent )
   event.isKurama.resize( ntTpc );
   event.isK18.resize( ntTpc );
   event.isAccidental.resize( ntTpc );
+  event.purity.resize( ntTpc );
+  event.efficiency.resize( ntTpc );
+  event.G4tid.resize( ntTpc );
   event.chisqr.resize( ntTpc );
   event.pval.resize( ntTpc );
   event.helix_cx.resize( ntTpc );
@@ -1479,7 +1508,7 @@ dst::DstRead( int ievent )
     Int_t iskurama = tp->GetIsKurama();
     Int_t isk18 = tp->GetIsK18();
     Int_t isaccidental = tp->GetIsAccidental();
-
+    {
     event.nhtrack[it] = nh;
     event.nhtrackEff[it] = nhEff;
     event.flag[it] = flag;
@@ -1529,10 +1558,9 @@ dst::DstRead( int ievent )
     event.helix_t[it].resize( nh );
     event.pathhit[it].resize(nh);
     event.alpha[it].resize(nh);
-
 		event.track_cluster_de[it].resize(nh);
     event.track_cluster_mrow[it].resize(nh);
-
+    }
 
     //debug     std::cout<<"nh:"<<nh<<std::endl;
     double min_t = 9999,max_t = -9999;
@@ -1585,10 +1613,6 @@ dst::DstRead( int ievent )
 	}
       }
 
-    int nPureHits;
-    int G4tid = TPCToG4TrackID(TPCHits,src.nhittpc,src.ititpc,src.xtpc,src.ytpc,src.ztpc,nPureHits);
-    if(G4tid == G4idKm)event.isK18[it]=1;
-    if(G4tid == G4idKp)event.isKurama[it]=1;
       event.hitlayer[it][ih] = (double)layerId;
       event.hitpos_x[it][ih] = hitpos.x();
       event.hitpos_y[it][ih] = hitpos.y();
@@ -1743,9 +1767,17 @@ dst::DstRead( int ievent )
 
 #endif
 		}//ih
+    int nPureHits;
+    int G4tid = TPCToG4TrackID(TPCHits,src.nhittpc,src.ititpc,src.xtpc,src.ytpc,src.ztpc,nPureHits);
+    if(G4tid == G4idKm)event.isK18[it]=1;
+    if(G4tid == G4idKp)event.isKurama[it]=1;
     event.path[it] = r*(max_t - min_t);
+    event.G4tid[it] = G4tid;
+    event.purity[it] = (double)nPureHits/nh;
+    int nG4Hits = event.nhittpc_iti[G4tid];
+    event.efficiency[it] = (double)nPureHits/nG4Hits;
 
-  }
+  }//it
   //debug   std::cout<<"end events"<<std::endl;
   //debug   getchar();
 
@@ -1920,6 +1952,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "isKurama", &event.isKurama );
   tree->Branch( "isK18", &event.isK18 );
   tree->Branch( "isAccidental", &event.isAccidental );
+  tree->Branch( "purity", &event.purity );
+  tree->Branch( "efficiency", &event.efficiency );
+  tree->Branch( "G4tid", &event.G4tid );  
   tree->Branch( "flag", &event.flag );
   tree->Branch( "chisqr", &event.chisqr );
   tree->Branch( "pval", &event.pval );
@@ -2006,7 +2041,11 @@ ConfMan::InitializeHistograms( void )
 	tree->Branch("MomentumOfTrack_x",event.MomentumOfTrack_x,"MomentumOfTrack_x[1000]/D");
 	tree->Branch("MomentumOfTrack_y",event.MomentumOfTrack_y,"MomentumOfTrack_y[1000]/D");
 	tree->Branch("MomentumOfTrack_z",event.MomentumOfTrack_z,"MomentumOfTrack_z[1000]/D");
-
+  tree->Branch("G4TrackIDKm",event.G4idKm);
+  tree->Branch("G4TrackIDKp",event.G4idKp);
+  tree->Branch("G4TrackIDP",event.G4idP);
+  tree->Branch("G4TrackIDPi1",event.G4idPi1);
+  tree->Branch("G4TrackIDPi2",event.G4idPi2);
 
 	tree->Branch("MomXi_x",&event.MomXi_x,"MomXi_x/D");
 	tree->Branch("MomXi_y",&event.MomXi_y,"MomXi_y/D");
