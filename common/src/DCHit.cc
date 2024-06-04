@@ -147,6 +147,8 @@ DCHit::CalcDCObservables( double retiming )
   std::sort(m_tdc.begin(), m_tdc.end(), std::greater<Double_t>());
   std::sort(m_trailing.begin(), m_trailing.end(), std::greater<Double_t>());
 
+  const Char_t* name = m_raw_hit->DetectorName().Data();
+
   data_t leading, trailing;
   for(Int_t il=0, nl=m_tdc.size(); il<nl; ++il){
     Double_t l = m_tdc[il];
@@ -162,14 +164,13 @@ DCHit::CalcDCObservables( double retiming )
     gTdc.GetTime(m_detector_id, m_plane, m_wire, l, ctime);
     Double_t dt = TMath::QuietNaN();
     Double_t dl = TMath::QuietNaN();
-    gDrift.CalcDrift(m_detector_id, m_plane, m_wire, ctime, dt, dl);
+    gDrift.CalcDrift(name, m_plane, m_wire, ctime, dt, dl);
 
     // Double_t ctime_trailing = TMath::QuietNaN();
     // gTdc.GetTime(m_detector_id, m_plane, m_wire, buf, ctime_trailing);
     // Double_t tot = ctime - ctime_trailing;
     Double_t tot = l - buf;
 
-    const Char_t* name = m_raw_hit->DetectorName().Data();
     Bool_t dt_is_good = gUser.IsInRange(Form("%s_DT", name), dt);
     Bool_t tot_is_good = gUser.IsInRange(Form("%s_TOT", name), tot);
     Bool_t dl_is_good = dt_is_good && tot_is_good;

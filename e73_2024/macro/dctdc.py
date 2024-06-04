@@ -33,7 +33,7 @@ def fit(h1, params=None, limits=None, fitrange=(-2.5, 2.5), autozoom=True):
   sigma = abs(f1.GetParameter(2))
   if autozoom:
     h1.GetXaxis().SetRangeUser(mean-10*sigma, mean+20*sigma)
-  t0 = mean + sigma*2.5
+  t0 = mean + sigma*2.0
   line = ROOT.TLine()
   line.SetLineWidth(1)
   line.DrawLine(t0, 0, t0, h1.GetMaximum())

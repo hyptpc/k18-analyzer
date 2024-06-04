@@ -5,19 +5,9 @@
 
 #include <map>
 #include <vector>
+
+#include <TGraph.h>
 #include <TString.h>
-
-struct DCDriftParamRecord;
-
-//_____________________________________________________________________________
-struct DCDriftParamRecord
-{
-  Int_t type, np;
-  std::vector<Double_t> param;
-  DCDriftParamRecord(Int_t t, Int_t n, const std::vector<Double_t>& p)
-    : type(t), np(n), param(p)
-    {}
-};
 
 //_____________________________________________________________________________
 class DCDriftParamMan
@@ -33,16 +23,17 @@ private:
   DCDriftParamMan& operator =(const DCDriftParamMan&);
 
 private:
-  typedef std::map<Int_t, DCDriftParamRecord*> DCDriftContainer;
-  typedef DCDriftContainer::const_iterator DCDriftIterator;
-  Bool_t           m_is_ready;
-  TString          m_file_name;
-  DCDriftContainer m_container;
+  using DCDriftFunctionContainer = std::map<TString, TGraph*>;
+  using DCDFC = DCDriftFunctionContainer;
+  // typedef DCDriftContainer::const_iterator DCDriftIterator;
+  Bool_t  m_is_ready;
+  TString m_file_name;
+  DCDFC   m_container;
 
 public:
-  Bool_t CalcDrift(Int_t detector_id, Int_t plane_id,
+  Bool_t CalcDrift(const TString& detector_name, Int_t plane_id,
                    Double_t wire_id, Double_t ctime,
-                   Double_t & dt, Double_t & dl) const;
+                   Double_t& dt, Double_t& dl) const;
   Bool_t Initialize();
   Bool_t Initialize(const TString& file_name);
   Bool_t IsReady() const { return m_is_ready; }
@@ -50,27 +41,8 @@ public:
 
 private:
   void                ClearElements();
-  static Double_t     DriftLength1(Double_t dt, Double_t vel);
-  static Double_t     DriftLength2(Double_t dt,
-                                   Double_t p1, Double_t p2, Double_t p3,
-                                   Double_t st, Double_t p5, Double_t p6);
-  static Double_t     DriftLength3(Double_t dt, Double_t p1, Double_t p2,
-                                   Int_t PlaneId);
-  static Double_t     DriftLength4(Double_t dt,
-                                   Double_t p1, Double_t p2, Double_t p3);
-  static Double_t     DriftLength5(Double_t dt,
-                                   Double_t p1, Double_t p2, Double_t p3,
-                                   Double_t p4, Double_t p5);
-  static Double_t     DriftLength6(Int_t PlaneId,
-                                   Double_t dt,
-                                   Double_t p1, Double_t p2, Double_t p3,
-                                   Double_t p4, Double_t p5);
-  static Double_t     DriftLength7(Int_t PlaneId,
-                                   Double_t dt,
-                                   Double_t p1, Double_t p2, Double_t p3,
-                                   Double_t p4, Double_t p5, Double_t p6);
-  DCDriftParamRecord* GetParameter(Int_t detector_id,
-                                   Int_t plane_id, Double_t wire_id) const;
+  const TGraph* GetParameter(const TString& detector_name,
+                             Int_t plane_id, Int_t wire_id) const;
 };
 
 //_____________________________________________________________________________
