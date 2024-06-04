@@ -558,7 +558,7 @@ bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2, 
   return true;
 }
 
-bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, TVector3 mom_lambda, double &tracklen_lambda, double &extrap_dist_pi, TVector3 &mom_pi_vertex, double &distance, TVector3 &vertex, double scan_range) const{ //trackid & repid : pi-
+bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, TVector3 mom_lambda, double &tracklen_lambda, double &extrap_dist_pi, TVector3 &mom_pi_vertex, double &distance, TVector3 &vertex, double scan_range, double res1, double res2, double phi) const{ //trackid & repid : pi-
 
   bool status = false;
 
@@ -585,6 +585,15 @@ bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, 
     AI += decayvtx_lambda;
     Double_t lambdavtx_xivtx = (AI - decayvtx_lambda)*u;
     TVector3 diff = pos - AI;
+    double r1= sqrt(2)*res1 / hypot(res1,res2);
+    double r2 = sqrt(2)*res2 / hypot(res1,res2);
+    TVector3 ex(cos(phi),sin(phi),0);
+    TVector3 ey(-sin(phi),cos(phi),0);
+
+    double dz = diff.z();
+    double dx = diff * ex / r1;
+    double dy = diff * ey / r2;
+    diff = TVector3(dx,dy,dz);
     if(distance > diff.Mag() && lambdavtx_xivtx < 0){
       distance = diff.Mag();
       dist = -iStep*StepSize;
@@ -618,6 +627,15 @@ bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, 
     AI += decayvtx_lambda;
     Double_t lambdavtx_xivtx = (AI - decayvtx_lambda)*u;
     TVector3 diff = pos - AI;
+    double r1= sqrt(2)*res1 / hypot(res1,res2);
+    double r2 = sqrt(2)*res2 / hypot(res1,res2);
+    TVector3 ex(cos(phi),sin(phi),0);
+    TVector3 ey(-sin(phi),cos(phi),0);
+
+    double dz = diff.z();
+    double dx = diff * ex / r1;
+    double dy = diff * ey / r2;
+    diff = TVector3(dx,dy,dz);
     if(distance > diff.Mag() && lambdavtx_xivtx < 0){
       distance = diff.Mag();
       vertex = pos + AI;

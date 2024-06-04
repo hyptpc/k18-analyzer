@@ -803,5 +803,16 @@ PrintVector(T *vec, const std::string& arg, const std::size_t size)
 		}
 		return TMatrixD(rowC,colC,elem);
 	}
-  
+  void DecomposeResolution(TMatrixD VLd, double& res1, double& res2, double& phi){
+    double ElemThPh[4] = {
+      VLd(1,1),VLd(1,2),VLd(2,1),VLd(2,2)
+    };
+    TMatrixD VThPh(2,2,ElemThPh);
+    TMatrixDEigen VThPhEigen(VThPh);
+    TVectorD eigenValues = VThPhEigen.GetEigenValuesRe(); 
+    TMatrixD eigenVectors = VThPhEigen.GetEigenVectors(); 
+    res1 = sqrt(eigenValues(0));
+    res2 = sqrt(eigenValues(1));
+    phi = atan2(eigenVectors(1,0),eigenVectors(0,0));
+  }
 }

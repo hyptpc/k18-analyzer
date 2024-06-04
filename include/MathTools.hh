@@ -7,6 +7,7 @@
 #include <TString.h>
 #include <TVector3.h>
 #include <TMatrixD.h>
+#include "TMatrixDEigen.h"
 
 //_____________________________________________________________________________
 namespace MathTools
@@ -111,6 +112,7 @@ template <typename T>
 void PrintVector(T *vec, const std::string& arg="",
                  const std::size_t size=4);
 TMatrixD MergeOffdiagonals(TMatrixD A, TMatrixD B);
+void DecomposeResolution(TMatrixD VLd, double& res1, double& res2, double& phi);
 }
 
 //_____________________________________________________________________________
