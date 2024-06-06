@@ -79,6 +79,8 @@ const Double_t vtx_scan_rangeInsideL = 50.;
 const Double_t vtx_scan_rangeInsidePi = 50.;
 const Double_t GFppi_distcut = 100.;
 const Double_t GFlpi_distcut = 100.;
+const Double_t GFxitarget_distcut = 50.;
+const Double_t GFxitarget_ycut = 20.;
 
 const Double_t& HS_field_0 = ConfMan::Get<Double_t>("HSFLDCALIB");
 const Double_t& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
@@ -404,6 +406,7 @@ struct Event
   vector<Double_t> KFdecays_mom_y;
   vector<Double_t> KFdecays_mom_z;
 
+  bool XiAccidental;
   bool XiFlight;
   bool XiProd;
 
@@ -726,6 +729,7 @@ struct Event
     KFdecays_mom_y.clear();
     KFdecays_mom_z.clear();
 
+    XiAccidental = false;
     XiFlight = false;
     XiProd = false;
     xtgtXi = qnan;
@@ -1585,6 +1589,12 @@ dst::DstRead( Int_t ievent )
   std::vector<Double_t> GFpi2_mass_container(xi_candidates, qnan);
   std::vector<Double_t> GFppi_closedist_container(xi_candidates, qnan);
   std::vector<Double_t> GFlpi_closedist_container(xi_candidates, qnan);
+  std::vector<Double_t> KFchisqrl_container(xi_candidates, qnan); 
+  std::vector<Double_t> KFpvall_container(xi_candidates, qnan);
+  std::vector<std::vector<Double_t>> KFlpull_container(xi_candidates, std::vector<Double_t>(6, qnan));  
+  std::vector<TMatrixD> KFVarianceLd_container(xi_candidates, TMatrixD(3,3)); 
+  std::vector<TVector3> KFp_mom_container(xi_candidates, TVector3(qnan, qnan, qnan));
+  std::vector<TVector3> KFpi_mom_container(xi_candidates, TVector3(qnan, qnan, qnan));
 
   Int_t gfbest = -1; prev_massdiff = 9999.;
   for(Int_t candi=0;candi<xi_candidates;candi++){
@@ -1616,15 +1626,61 @@ dst::DstRead( Int_t ievent )
     TLorentzVector GFLpi(GFmom_decays[1], TMath::Sqrt(GFmom_decays[1].Mag()*GFmom_decays[1].Mag() + PionMass*PionMass));
     TLorentzVector GFLlambda = GFLp + GFLpi;
     TVector3 GFlambda_mom = GFmom_decays[0] + GFmom_decays[1];
+#if DoKinematicFitLdXi
+  Double_t KFchisqrl;
+  Double_t KFpvall;
+  auto Vp = Track_p->GetCovarianceMatrix();
+  auto Vpi1 = Track_pi->GetCovarianceMatrix();
+  auto HLVP = TLorentzVector(GFLp.X(),GFLp.Z(),GFLp.Y(),GFLp.E());  
+  auto HLVPi1 = TLorentzVector(GFLpi.X(),GFLpi.Z(),GFLpi.Y(),GFLpi.E());
+  auto HLVLd = TLorentzVector(GFLlambda.X(),GFLlambda.Z(),GFLlambda.Y(),GFLlambda.E());  
+  FourVectorFitter KFLd(HLVP,HLVPi1,HLVLd);
+  KFLd.SetInvMass(LambdaMass);
+  KFLd.SetMaximumStep(5);
+  double VarianceLd[6] =
+  {Vp(0,0),Vp(1,1),Vp(2,2),
+  Vpi1(0,0),Vpi1(1,1),Vpi1(2,2)};
+  double OffdiagElemLd[36]={0};
+  auto OffdiagLd = MathTools::MergeOffdiagonals(Vp,Vpi1);
+  KFLd.SetVariance(VarianceLd);
+  KFLd.AddOffdiagonals(OffdiagLd);
+  KFchisqrl = KFLd.DoKinematicFit();
+  cout<<Form("KFLambda done:: chi2 = %g",KFchisqrl)<<endl;
+  KFpvall = KFLd.GetPValue();
+  auto HcontLd = KFLd.GetFittedLV();
+  auto PullLd = KFLd.GetPull();
+  auto KFHLVP = HcontLd.at(0);
+  auto KFHLVPi1 = HcontLd.at(1);
+  auto KFHLVLd = HcontLd.at(2);
+  auto VLd = KFLd.GetUnmeasuredCovariance();
+  KFchisqrl_container[candi] = KFchisqrl;
+  KFpvall_container[candi] = KFpvall;
+  for(int i=0;i<6;i++){
+    KFlpull_container[candi][i] = PullLd.at(i);
+  }
+  KFVarianceLd_container[candi] = VLd;
+  KFp_mom_container[candi] = TVector3(KFHLVP.X(),KFHLVP.Z(),KFHLVP.Y());  
+  KFpi_mom_container[candi] = TVector3(KFHLVPi1.X(),KFHLVPi1.Z(),KFHLVPi1.Y());
+  TVector3 KFlambda_mom = TVector3(KFHLVLd.X(),KFHLVLd.Z(),KFHLVLd.Y());  
+  GFlambda_mom = KFlambda_mom;   
+#endif
     TLorentzVector GFLlambda_fixed(GFlambda_mom, TMath::Sqrt(GFlambda_mom.Mag()*GFlambda_mom.Mag() + LambdaMass*LambdaMass));
 
     TVector3 GFxi_vert; Double_t GFlpi_dist = qnan; Double_t GFlambda_tracklen;
+    #if DoKinematicFitLdXi
+    double l_res_x,l_res_y,l_phi;
+    MathTools::DecomposeResolution(VLd,KFlambda_mom,l_res_x,l_res_y,l_phi); 
+    if(!GFTrackCont.FindVertexXi(trackid_pi2, repid_pi2, GFlambda_vert, GFlambda_mom,
+    GFlambda_tracklen, GFextrapolation_decays[2], GFmom_decays[2], GFlpi_dist, GFxi_vert, vtx_scan_range,l_res_x,l_res_y,l_phi) 
+      || GFlpi_dist > GFlpi_distcut) continue;
+    #else
     if(!GFTrackCont.FindVertexXi(trackid_pi2, repid_pi2,
-				 GFlambda_vert, GFlambda_mom, GFlambda_tracklen,
-				 GFextrapolation_decays[2], GFmom_decays[2],
-				 GFlpi_dist, GFxi_vert,
-				 vtx_scan_range)
+         GFlambda_vert, GFlambda_mom, GFlambda_tracklen,
+         GFextrapolation_decays[0], GFmom_decays[2],
+         GFlpi_dist, GFxi_vert,
+         vtx_scan_range)
        || GFlpi_dist > GFlpi_distcut) continue;
+    #endif
 
     Double_t GFlambda_tof = Kinematics::CalcTimeOfFlight(GFlambda_mom.Mag(), GFlambda_tracklen, pdg::LambdaMass());
 
@@ -1686,7 +1742,7 @@ dst::DstRead( Int_t ievent )
       prev_massdiff = diff;
       gfbest = candi;
     }
-  }
+  }//
 
   if(!event.GFxiflag) return true;
   HF1( genfitHid, GFntTpc);
@@ -1965,107 +2021,62 @@ if(event.isgoodTPC[0] == 1){
   KKVert = TVector3(event.vtxTPC[0],event.vtyTPC[0],event.vtzTPC[0]);
 }
 #if DoKinematicFitLdXi
+  Double_t KFchisqrl = KFchisqrl_container[gfbest];
+  Double_t KFpvall = KFpvall_container[gfbest];
+  std::vector<Double_t> PullLd = KFlpull_container[gfbest];  
   Double_t KFchisqrxi;
   Double_t KFpvalxi;
 
-  Double_t KFchisqrl;
-  Double_t KFpvall;
-  TVector3 HTVP(event.GFdecays_mom_x.at(0),event.GFdecays_mom_z.at(0),event.GFdecays_mom_y.at(0));
-  TVector3 HTVPi1(event.GFdecays_mom_x.at(1),event.GFdecays_mom_z.at(1),event.GFdecays_mom_y.at(1));
-  TVector3 HTVPi2(event.GFdecays_mom_x.at(2),event.GFdecays_mom_z.at(2),event.GFdecays_mom_y.at(2));
-  TVector3 HTVLd(event.GFlmom_x,event.GFlmom_z,event.GFlmom_y);
-  TVector3 HTVXi(event.GFximom_x,event.GFximom_z,event.GFximom_y);
 
+  TVector3 KFTVP = KFp_mom_container[gfbest];
+  TVector3 KFTVPi1 = KFpi_mom_container[gfbest];
+  
+  TVector3 KFHTVP = TVector3(KFTVP.X(),KFTVP.Z(),KFTVP.Y());
+  TVector3 KFHTVPi1 = TVector3(KFTVPi1.X(),KFTVPi1.Z(),KFTVPi1.Y());  
+  TVector3 HTVPi2(event.GFdecays_mom_x[2],event.GFdecays_mom_z[2],event.GFdecays_mom_y[2]); 
+  TVector3 KFHTVLd = KFHTVP+KFHTVPi1;  
+  TVector3 HTVXi = KFHTVLd+HTVPi2;
+
+  TVector3 HTVP(event.GFdecays_mom_x[0],event.GFdecays_mom_z[0],event.GFdecays_mom_y[0]);
+  TVector3 HTVPi1(event.GFdecays_mom_x[1],event.GFdecays_mom_z[1],event.GFdecays_mom_y[1]);
+  TVector3 HTVLd = HTVP+HTVPi1;
   TLorentzVector HLVP(HTVP,hypot(ProtonMass,HTVP.Mag()));
   TLorentzVector HLVPi1(HTVPi1,hypot(PionMass,HTVPi1.Mag()));
-  TLorentzVector HLVPi2(HTVPi2,hypot(PionMass,HTVPi2.Mag()));
   TLorentzVector HLVLd(HTVLd,hypot(LambdaMass,HTVLd.Mag()));
+
+  TLorentzVector KFHLVLd(KFHTVLd,hypot(LambdaMass,KFHTVLd.Mag()));
+  TLorentzVector HLVPi2(HTVPi2,hypot(PionMass,HTVPi2.Mag()));
   TLorentzVector HLVXi(HTVXi,hypot(XiMinusMass,HTVXi.Mag()));
 
-  FourVectorFitter KFLd(HLVP,HLVPi1,HLVLd);
-  KFLd.SetInvMass(LambdaMass);
-  KFLd.SetMaximumStep(5);
-  double VarianceLd[6] =
-    {pow(event.decays_res_mom.at(0),2),pow(event.decays_res_th.at(0),2),pow(event.decays_res_ph.at(0),2),
-     pow(event.decays_res_mom.at(1),2),pow(event.decays_res_th.at(1),2),pow(event.decays_res_ph.at(1),2)};
-  double OffdiagElemLd[36]={0};
-  for(int ic=0;ic<6;++ic){
-    for(int ir=ic+1;ir<6;++ir){
-      if(ic==0 and ir == 1){
-	OffdiagElemLd[ic*6+ir] = event.decays_cov_mom_th.at(0);
-	OffdiagElemLd[ir*6+ic] = event.decays_cov_mom_th.at(0);
-      }
-      if(ic==0 and ir == 2){//cov_th_ph ~ 0
-	OffdiagElemLd[ic*6+ir] = event.decays_cov_mom_ph.at(0);
-	OffdiagElemLd[ir*6+ic] = event.decays_cov_mom_ph.at(0);
-      }
-      if(ic==3 and ir == 4){
-	OffdiagElemLd[ic*6+ir] = event.decays_cov_mom_th.at(1);
-	OffdiagElemLd[ir*6+ic] = event.decays_cov_mom_th.at(1);
-      }
-      if(ic==3 and ir == 5){
-	OffdiagElemLd[ic*6+ir] = event.decays_cov_mom_ph.at(1);
-	OffdiagElemLd[ir*6+ic] = event.decays_cov_mom_ph.at(1);
-      }
-    }
-  }
-  TMatrixD OffdiagLd(6,6,OffdiagElemLd);
-  cout<<"KFLd"<<endl;
-  KFLd.SetVariance(VarianceLd);
-  KFLd.AddOffdiagonals(OffdiagLd);
-  KFchisqrl = KFLd.DoKinematicFit();
-  KFpvall = 1-ROOT::Math::chisquared_cdf(KFchisqrl,KFLd.GetNDF());
-  auto HcontLd = KFLd.GetFittedLV();
-  auto PullLd = KFLd.GetPull();
-  auto KFHLVP = HcontLd.at(0);
-  auto KFHLVPi1 = HcontLd.at(1);
-  auto KFHLVLd = HcontLd.at(2);
-  auto VLd = KFLd.GetUnmeasuredCovariance();
+  TMatrixD VLd = KFVarianceLd_container[gfbest]; 
+  auto Vpi2 = Track_pi2->GetCovarianceMatrix();
+  
   double VarianceXi[6] =
-    {VLd(0,0),VLd(1,1),VLd(2,2),
-     pow(event.decays_res_mom.at(2),2),pow(event.decays_res_th.at(2),2),pow(event.decays_res_ph.at(2),2)};
-  double OffdiagElemXi[36]={0};
-  for(int ic=0;ic<6;++ic){
-    for(int ir=ic+1;ir<6;++ir){
-      if(ic<3 and ir < 3){
-	OffdiagElemXi[ic*6+ir]=VLd(ic,ir);
-	OffdiagElemXi[ir*6+ic]=VLd(ic,ir);
-      }
-      if(ic==3 and ir == 4){
-	OffdiagElemXi[ic*6+ir] = event.decays_cov_mom_th.at(2);
-	OffdiagElemXi[ir*6+ic] = event.decays_cov_mom_th.at(2);
-      }
-      if(ic==3 and ir == 5){
-	OffdiagElemXi[ic*6+ir] = event.decays_cov_mom_ph.at(2);
-	OffdiagElemXi[ir*6+ic] = event.decays_cov_mom_ph.at(2);
-      }
-    }
-  }
-  TMatrixD OffdiagXi(6,6,OffdiagElemXi);
+  {VLd(0,0),VLd(1,1),VLd(2,2),
+  Vpi2(0,0),Vpi2(1,1),Vpi2(2,2)};
+
+  auto OffdiagXi = MathTools::MergeOffdiagonals(VLd,Vpi2);  
   HLVXi = KFHLVLd+HLVPi2;
   FourVectorFitter KFXi(KFHLVLd,HLVPi2,HLVXi);
   KFXi.SetInvMass(XiMinusMass);
-  cout<<"KFXi"<<endl;
   KFXi.SetMaximumStep(5);
   KFXi.SetVariance(VarianceXi);
   KFXi.AddOffdiagonals(OffdiagXi);
   KFchisqrxi = KFXi.DoKinematicFit();
-  KFpvalxi = 1-ROOT::Math::chisquared_cdf(KFchisqrxi,KFXi.GetNDF());
+  cout<<Form("KFXi done:: chi2 = %g",KFchisqrxi)<<endl;
+  KFpvalxi = KFXi.GetPValue();  
   auto HcontXi = KFXi.GetFittedLV();
   auto PullXi = KFXi.GetPull();
   auto KFKFHLVLd = HcontXi.at(0);
   auto KFHLVPi2 = HcontXi.at(1);
   auto KFHLVXi = HcontXi.at(2);
 
-
-  auto KFLVP = TLorentzVector(KFHLVP.X(),KFHLVP.Z(),KFHLVP.Y(),KFHLVP.E());
-  auto KFLVPi1 = TLorentzVector(KFHLVPi1.X(),KFHLVPi1.Z(),KFHLVPi1.Y(),KFHLVPi1.E());
+  auto KFHLVP = TLorentzVector(KFHTVP.X(),KFHTVP.Z(),KFHTVP.Y(),hypot(ProtonMass,KFHTVP.Mag()));  
+  auto KFHLVPi1 = TLorentzVector(KFHTVPi1.X(),KFHTVPi1.Z(),KFHTVPi1.Y(),hypot(PionMass,KFHTVPi1.Mag()));
   auto KFLVPi2 = TLorentzVector(KFHLVPi2.X(),KFHLVPi2.Z(),KFHLVPi2.Y(),KFHLVPi2.E());
   auto KFLVLd = TLorentzVector(KFKFHLVLd.X(),KFKFHLVLd.Z(),KFKFHLVLd.Y(),KFKFHLVLd.E());
   auto KFLVXi = TLorentzVector(KFHLVXi.X(),KFHLVXi.Z(),KFHLVXi.Y(),KFHLVXi.E());
 
-  auto KFTVP = KFLVP.Vect();
-  auto KFTVPi1 = KFLVPi1.Vect();
   auto KFTVPi2 = KFLVPi2.Vect();
   auto KFTVLd = KFLVLd.Vect();
   auto KFTVXi = KFLVXi.Vect();
@@ -2146,6 +2157,7 @@ if(event.isgoodTPC[0] == 1){
     event.utgtXi = XiTgtMom.x()/XiTgtMom.Z();
     event.vtgtXi = XiTgtMom.y()/XiTgtMom.Z();
   }
+  if(TMath::Abs(XiTgtVert.y()) > GFxitarget_ycut) event.XiAccidental = true;
   const int ntrack = 3;
   double x0track[ntrack]={event.xtgtTPCKurama[0],event.xtgtK18[0],event.xtgtXi};
   double y0track[ntrack]={event.ytgtTPCKurama[0],event.ytgtK18[0],event.ytgtXi};
@@ -2592,6 +2604,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("KFDecaysMom_y", &event.KFdecays_mom_y);
   tree->Branch("KFDecaysMom_z", &event.KFdecays_mom_z);
 
+  tree->Branch("XiAccidentals", &event.XiAccidental); 
   tree->Branch("XiFlight", &event.XiFlight);
   tree->Branch("XiProd", &event.XiProd);
   tree->Branch("xtgtXi", &event.xtgtXi);

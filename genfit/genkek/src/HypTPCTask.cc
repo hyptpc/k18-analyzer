@@ -587,12 +587,12 @@ bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, 
     TVector3 diff = pos - AI;
     double r1= sqrt(2)*res1 / hypot(res1,res2);
     double r2 = sqrt(2)*res2 / hypot(res1,res2);
-    TVector3 ex(cos(phi),sin(phi),0);
-    TVector3 ey(-sin(phi),cos(phi),0);
+    TVector3 e1(cos(phi),0,sin(phi));
+    TVector3 e2(-sin(phi),0,cos(phi));
 
-    double dz = diff.z();
-    double dx = diff * ex / r1;
-    double dy = diff * ey / r2;
+    double dy = diff.y();
+    double dx = diff * e1 / r1;
+    double dz = diff * e2 / r2;
     diff = TVector3(dx,dy,dz);
     if(distance > diff.Mag() && lambdavtx_xivtx < 0){
       distance = diff.Mag();

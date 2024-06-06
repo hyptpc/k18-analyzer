@@ -803,12 +803,23 @@ PrintVector(T *vec, const std::string& arg, const std::size_t size)
 		}
 		return TMatrixD(rowC,colC,elem);
 	}
-  void DecomposeResolution(TMatrixD VLd, double& res1, double& res2, double& phi){
+  void DecomposeResolution(TMatrixD VLd,TVector3 PLd, double& res1, double& res2, double& phi){
     double ElemThPh[4] = {
       VLd(1,1),VLd(1,2),VLd(2,1),VLd(2,2)
     };
     TMatrixD VThPh(2,2,ElemThPh);
-    TMatrixDEigen VThPhEigen(VThPh);
+    TVector3 HPLd(PLd.X(),PLd.Z(),PLd.Y()); 
+    double ThLd = HPLd.Theta();
+    double PhLd = HPLd.Phi();
+    double ElemJacob[4] = {
+      cos(ThLd)*cos(PhLd),-sin(ThLd)*sin(PhLd),
+      cos(ThLd)*sin(PhLd),sin(ThLd)*cos(PhLd)
+    };
+    TMatrixD J(2,2,ElemJacob);
+    TMatrixD JT = J;
+    JT.Transpose(J);
+    TMatrixD Vxz = J*VThPh*JT;
+    TMatrixDEigen VThPhEigen(Vxz);
     TVectorD eigenValues = VThPhEigen.GetEigenValuesRe(); 
     TMatrixD eigenVectors = VThPhEigen.GetEigenVectors(); 
     res1 = sqrt(eigenValues(0));

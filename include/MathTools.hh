@@ -112,7 +112,7 @@ template <typename T>
 void PrintVector(T *vec, const std::string& arg="",
                  const std::size_t size=4);
 TMatrixD MergeOffdiagonals(TMatrixD A, TMatrixD B);
-void DecomposeResolution(TMatrixD VLd, double& res1, double& res2, double& phi);
+void DecomposeResolution(TMatrixD VLd,TVector3 PLd, double& res1, double& res2, double& phi);
 }
 
 //_____________________________________________________________________________
