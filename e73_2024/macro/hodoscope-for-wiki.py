@@ -148,7 +148,7 @@ def hodo_time(c1, hname, opt, logy=False, label=''):
 @mh.update_canvas()
 def hodo_phc(c1, hname, opt):
   logger.info(f'hname={hname}')
-  # ROOT.gPad.SetLogz()
+  ROOT.gPad.SetLogz()
   h1 = mh.get(hname)
   h1.Draw('colz')
   fig_path = c1.GetTitle().replace('.pdf', f'_{opt}_Cor.png')
@@ -169,6 +169,10 @@ def hodo_phc(c1, hname, opt):
                       fitrange=(0.4, 1.8))
   fig_path = c1.GetTitle().replace('.pdf', f'_{opt}_Cor_HDPHC.png')
   ROOT.gPad.Print(fig_path)
+  h1 = mh.get(hname.replace('BTOF', 'CBTOF'))
+  h1.Draw('colz')
+  fig_path = c1.GetTitle().replace('.pdf', f'_{opt}_CCor.png')
+  ROOT.gPad.Print(fig_path)
 
 #______________________________________________________________________________
 def single_run(run_info):
@@ -187,6 +191,7 @@ def single_run(run_info):
   hodo_de(hname=f'BHT_Hit_DeltaE_seg30{mh.beamflag_for_param}', opt='BHTM')
   hodo_time(hname=f'T0_seg1_TimeOffset{mh.beamflag_for_param}', opt='T0Ofs', label='p1')
   hodo_phc(hname=f'T0_seg2U_BTOF_vs_DeltaE{mh.beamflag_for_param}', opt='T0')
+  hodo_phc(hname=f'BHT_seg31U_BTOF_vs_DeltaE{mh.beamflag_for_param}', opt='BHT')
   mh.finalize()
 
 #______________________________________________________________________________
