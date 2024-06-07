@@ -175,6 +175,34 @@ def hodo_phc(c1, hname, opt):
   ROOT.gPad.Print(fig_path)
 
 #______________________________________________________________________________
+@mh.update_canvas()
+def hodo_tof(c1, key):
+  hname = f'C{key}0_vs_deT0Seg_Pi'
+  logger.info(f'hname={hname}')
+  ROOT.gPad.SetLogz()
+  h1 = mh.get(hname)
+  h1.Draw('colz')
+  fig_path = c1.GetTitle().replace('.pdf', f'_C{key}0_deT0.png')
+  ROOT.gPad.Print(fig_path)
+
+  hname = f'C{key}0_vs_de{key}0Seg_Pi'
+  logger.info(f'hname={hname}')
+  ROOT.gPad.SetLogz()
+  h1 = mh.get(hname)
+  h1.Draw('colz')
+  fig_path = c1.GetTitle().replace('.pdf', f'_C{key}0_de{key}0.png')
+  ROOT.gPad.Print(fig_path)
+
+  hname = f'C{key}0_Pi'
+  logger.info(f'hname={hname}')
+  ROOT.gPad.SetLogz()
+  h1 = mh.get(hname)
+  h1.GetXaxis().SetRangeUser(-4, 4)
+  h1.Draw('colz')
+  fig_path = c1.GetTitle().replace('.pdf', f'_C{key}0.png')
+  ROOT.gPad.Print(fig_path)
+
+#______________________________________________________________________________
 def single_run(run_info):
   mh.initialize(run_info, __file__)
   t0_adc()
@@ -192,6 +220,8 @@ def single_run(run_info):
   hodo_time(hname=f'T0_seg1_TimeOffset{mh.beamflag_for_param}', opt='T0Ofs', label='p1')
   hodo_phc(hname=f'T0_seg2U_BTOF_vs_DeltaE{mh.beamflag_for_param}', opt='T0')
   hodo_phc(hname=f'BHT_seg31U_BTOF_vs_DeltaE{mh.beamflag_for_param}', opt='BHT')
+  hodo_tof(key='Btof')
+  hodo_tof(key='Ftof')
   mh.finalize()
 
 #______________________________________________________________________________
