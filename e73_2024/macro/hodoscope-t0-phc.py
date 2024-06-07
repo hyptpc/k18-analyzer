@@ -21,7 +21,7 @@ ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
 @mh.update_canvas(divisions=(3, 2))
-def phc(c1, ud, key, fit=True):
+def phc(c1, ud, key, fit=True, pfrange=(-4, 4), fitrange=(0.5, 1.8)):
   logger.info(f'ud={ud}, key={key}, beamflag={mh.beamflag_for_param}')
   result_dict = dict()
   for seg in range(nseg):
@@ -40,10 +40,11 @@ def phc(c1, ud, key, fit=True):
           (-0.5, 10)
         ]
         h1.Draw('colz')
-        prof = h1.ProfileX()
+        prof = h1.ProfileX('_pfx', h1.GetYaxis().FindBin(pfrange[0]),
+                           h1.GetYaxis().FindBin(pfrange[1]))
         prof.RebinX(4)
         result = mh.fit_phc(prof, params=params, limits=limits,
-                            fitrange=(0.4, 1.6))
+                            fitrange=fitrange)
         k = (hconst[name]['id'], 0, seg, 0 if ud == 'U' else 1)
         result_dict[k] = (1, 3, result.GetParameter(0),
                           result.GetParameter(1), result.GetParameter(2))

@@ -143,7 +143,8 @@ def initialize(run_info, macro_path, comment=''):
     logger.error(f'KeyError: {e} not found in {run_info}')
     sys.exit(1)
   global c1
-  c1 = ROOT.TCanvas('c1', fig_path, 1200, 800)
+  c1 = ROOT.TCanvas('c1', fig_path# , 1200, 800
+                    )
   ROOT.gFile = ROOT.TFile.Open(root_path)
   if not ROOT.gFile or not ROOT.gFile.IsOpen():
     logger.error('root file is not open.')
