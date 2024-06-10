@@ -56,6 +56,7 @@ Detailed fitting procedures are explained in the TPCLocalTrack/Helix.
 
 #define DebugDisp 0
 #define FragmentedTrackTest 1
+#define ReassignClusterTest 1
 //#define FragmentedTrackTest 0
 //#define RemainingClustersTest 1
 #define RemainingClustersTest 0
@@ -1026,6 +1027,9 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   //Merged fragmented tracks
   RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
+#if ReassignClusterTest
+  ReassignClustersNearTheTarget(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+#endif
 
 #if DebugDisp
   std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
@@ -1077,6 +1081,10 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
   //Merged fragmented tracks
   RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
+#if ReassignClusterTest
+  ReassignClustersNearTheTarget(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+#endif
+
   //Search Kurama track candidates from the TrackCont.
   KuramaTrackSearch(KuramaVPs, ClCont, TrackCont, TrackContFailed, TrackContVP, VertexCont, Exclusive, MinNumOfHits);
 
@@ -1556,6 +1564,149 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     del::ClearContainer(VertexCont);
     VertexSearch(TrackCont, VertexCont);
   }
+}
+
+//_____________________________________________________________________________
+template <typename T> void
+ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
+			      std::vector<T*>& TrackCont,
+			      std::vector<T*>& TrackContFailed,
+			      std::vector<TPCVertexHelix*>& VertexCont,
+			      Bool_t Exclusive,
+			      Int_t MinNumOfHits)
+{
+
+  Int_t testing_layers = 3; //testing layers from 0 to "testing_layers".
+
+  Bool_t status = false;
+
+  Int_t ntracks = TrackCont.size();
+  Int_t k18id = -9999;
+  std::vector<Int_t> candidates_trackid;
+  std::vector<TPCHit*> clusters_fortest;
+  std::vector<T*> newtracks_fortest;
+  for(Int_t trackid=0; trackid<ntracks; trackid++){
+    T *track = TrackCont[trackid];
+    if(track -> GetIsK18()==1) k18id = trackid;
+    if(track -> VertexAtTarget()){ //tracks from the target
+
+      Int_t n = track->GetNHit();
+      if(n <= MinNumOfHits) continue;
+
+      TPCLTrackHit *hitp = track->GetHitInOrder(0); //most inner cluster
+      TPCHit *hit = hitp->GetHit();
+      Int_t layer = hitp->GetLayer();
+      TVector3 pos = hitp->GetLocalHitPos();
+      if(layer>testing_layers) continue;
+
+      //Exclude most inner cluster and dofit.
+      T *CopiedTrack = new T(track);
+      Int_t hitorder = CopiedTrack -> GetOrder(0);
+      CopiedTrack -> EraseHit(hitorder);
+
+      hit -> SetHoughFlag(0);
+      if(CopiedTrack->DoFit(MinNumOfHits)){
+	candidates_trackid.push_back(trackid);
+	newtracks_fortest.push_back(CopiedTrack);
+	clusters_fortest.push_back(hit);
+	status = true;
+      }
+      else delete CopiedTrack;
+    }
+  }
+  if(!status) return;
+
+  T *copiedK18track;
+  if(k18id!=-9999){
+    T *K18track = TrackCont[k18id];
+    copiedK18track = new T(K18track);
+    candidates_trackid.push_back(k18id);
+    newtracks_fortest.push_back(copiedK18track);
+  }
+
+  if(newtracks_fortest.size()!=candidates_trackid.size()) std::cout<<FUNC_NAME+" FATAL Error #of tracks is not matched"<<std::endl;
+
+#if DebugDisp
+  std::cout<<FUNC_NAME+" Finding the best combination between tracks and cludsters"<<std::endl;
+#endif
+
+  Bool_t reassaign = false;
+  std::vector<Int_t> reassaign_candidates;
+  for(Int_t i=0; i<clusters_fortest.size(); i++){
+    TPCHit *hit = clusters_fortest[i]; //cluster for testing
+    TVector3 pos = hit -> GetPosition();
+    Int_t best_track = -9999;
+    Double_t min_residual = 9999;
+    for(Int_t j=0; j<newtracks_fortest.size(); j++){
+      Double_t residual = 0;
+      if(newtracks_fortest[j] -> IsGoodHitToAdd(hit, residual)){
+	if(min_residual > residual){
+	  min_residual = residual;
+	  best_track = j;
+	}
+      }
+    }
+
+    if(i==best_track){ //cluster is suitable for the original track
+      hit -> SetHoughFlag(GoodForTracking);
+    }
+    else{ //cluster is not suitable for the original track
+      reassaign = true;
+      if(best_track==-9999){ //cluster is not suitable for all tracks
+	reassaign_candidates.push_back(candidates_trackid[i]);
+	hit -> SetHoughFlag(0);
+      }
+      else{ //cluster is suitable for the other track not the original track
+	reassaign_candidates.push_back(candidates_trackid[i]);
+	reassaign_candidates.push_back(candidates_trackid[best_track]);
+	newtracks_fortest[best_track] -> AddTPCHit(new TPCLTrackHit(hit));
+      }
+    }
+  }
+
+  std::sort(reassaign_candidates.begin(), reassaign_candidates.end());
+  reassaign_candidates.erase(std::unique(reassaign_candidates.begin(), reassaign_candidates.end()), reassaign_candidates.end());
+
+  if(!reassaign){ //No change
+    if(reassaign_candidates.size()!=0) std::cout<<FUNC_NAME+" FATAL Error #of tracks is not matched"<<std::endl;
+#if DebugDisp
+    std::cout<<FUNC_NAME+" No reassigning happened"<<std::endl;
+#endif
+    for(Int_t i=0; i<newtracks_fortest.size(); i++) delete newtracks_fortest[i];
+  }
+  else{ //Reassaigning happens
+#if DebugDisp
+    std::cout<<FUNC_NAME+" Candidates for reassigning "<<reassaign_candidates.size()<<std::endl;
+#endif
+
+    for(Int_t i=0; i<newtracks_fortest.size(); i++){
+      Int_t trackid = candidates_trackid[i];
+      if(std::find(reassaign_candidates.begin(), reassaign_candidates.end(), trackid)
+	 == reassaign_candidates.end()) delete newtracks_fortest[i];
+      else{
+	Int_t threshold = MinNumOfHits;
+	if(trackid == k18id) threshold = 3;
+
+	if(newtracks_fortest[i] -> DoFit(threshold)){
+	  newtracks_fortest[i] -> Calculate();
+	  if(Exclusive){
+	    newtracks_fortest[i] -> DoFitExclusive();
+	    newtracks_fortest[i] -> CalculateExclusive();
+	  }
+
+	  TrackCont[trackid] -> SetIsCalculated(false);
+	  TrackContFailed.push_back(TrackCont[trackid]);
+	  TrackCont[trackid] = newtracks_fortest[i];
+	}
+	else delete newtracks_fortest[i];
+      }
+    } //for scattered tracks
+
+    //Vertex finding again with new tracks
+    del::ClearContainer(VertexCont);
+    VertexSearch(TrackCont, VertexCont);
+  } //reassaigning process
+
 }
 
 } //namespace tpc

@@ -96,6 +96,15 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
 			Bool_t Exclusive,
 			Int_t MinNumOfHits);
 
+//Iterative process for checking clusters near the target
+template <typename T> void
+ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
+			      std::vector<T*>& TrackCont,
+			      std::vector<T*>& TrackContFailed,
+			      std::vector<TPCVertexHelix*>& VertexCont,
+			      Bool_t Exclusive,
+			      Int_t MinNumOfHits);
+
 //Commom helix track searching
 void HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
 		      const std::vector<TPCClusterContainer>& ClCont,
