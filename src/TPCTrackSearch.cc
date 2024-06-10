@@ -1011,6 +1011,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 		      Bool_t Exclusive,
 		      Int_t MinNumOfHits)
 {
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
 
   //Scattered helix track searching
   HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
@@ -1027,6 +1028,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   //Merged fragmented tracks
   RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
+  if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
 #if ReassignClusterTest
   ReassignClustersNearTheTarget(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
@@ -1036,10 +1038,8 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
 #endif
 
-  MarkingAccidentalTracks(TrackCont);
   CalcTracks(TrackContFailed);
   if(Exclusive) ExclusiveTracking(TrackCont);
-
   return TrackCont.size();
 }
 
@@ -1081,6 +1081,7 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
   //Merged fragmented tracks
   RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
+  if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
 #if ReassignClusterTest
   ReassignClustersNearTheTarget(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
@@ -1093,7 +1094,6 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
   std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
 #endif
 
-  MarkingAccidentalTracks(TrackCont);
   CalcTracks(TrackContVP);
   CalcTracks(TrackContFailed); //Tracking failed cases
   if(Exclusive) ExclusiveTracking(TrackCont);
@@ -1107,7 +1107,7 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
 		   std::vector<TPCLocalTrack*>& TrackCont,
 		   Int_t MinNumOfHits /*=8*/)
 {
-
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
   static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
 
   XZhough_x.clear();
@@ -1195,7 +1195,7 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
   }// tracki
 
   CalcTracks(TrackCont);
-  MarkingAccidentalTracks(TrackCont);
+  if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
 }
 
 //_____________________________________________________________________________
@@ -1204,6 +1204,8 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
 			std::vector<TPCLocalTrackHelix*>& TrackCont,
 			Int_t MinNumOfHits /*=8*/)
 {
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+
   // HoughTransform binning
   static const auto MaxHoughWindow = gUser.GetParameter("MaxHoughWindow");
   static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
@@ -1294,7 +1296,7 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
   }//tracki
 
   CalcTracks(TrackCont);
-  MarkingAccidentalTracks(TrackCont);
+  if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
 }
 
 //_____________________________________________________________________________
@@ -1576,7 +1578,7 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
 			      Int_t MinNumOfHits)
 {
 
-  Int_t testing_layers = 3; //testing layers from 0 to "testing_layers".
+  Int_t testing_layers = 4; //testing layers from 0 to "testing_layers".
 
   Bool_t status = false;
 
@@ -1587,8 +1589,9 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
   std::vector<T*> newtracks_fortest;
   for(Int_t trackid=0; trackid<ntracks; trackid++){
     T *track = TrackCont[trackid];
+    if(track -> GetIsAccidental()==1) continue;
     if(track -> GetIsK18()==1) k18id = trackid;
-    if(track -> VertexAtTarget()){ //tracks from the target
+    if(track -> GetClosestDist() < 50.){ //tracks from the target
 
       Int_t n = track->GetNHit();
       if(n <= MinNumOfHits) continue;
