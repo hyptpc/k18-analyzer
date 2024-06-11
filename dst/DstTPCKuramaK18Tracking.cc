@@ -46,7 +46,7 @@
 #define TrigC 0
 #define TrigD 0
 
-#define KKEvent 1
+#define KKEvent 0
 #define KPEvent 0
 
 #define SaveHistograms 1
@@ -2697,7 +2697,12 @@ dst::DstRead( int ievent )
     event.dz_factor[it] = sqrt(1.+(pow(helix_dz,2)));
 
     HF2(20, event.mom0[it]*event.charge[it], event.dEdx[it]);
-
+    if(event.charge[it]<0){
+      HF2(21, -event.mom0[it]*event.charge[it], event.dEdx[it]);
+    } else {
+      HF2(22, event.mom0[it]*event.charge[it], event.dEdx[it]);
+    }
+    
     HF1(15, event.mom0[it]);
     if(src.ntK18==1) HF1(16, event.mom0[it]-src.pHS[0]);
 
@@ -3224,8 +3229,10 @@ ConfMan::InitializeHistograms( void )
   const Int_t nbindedx = 1000;
   const Double_t mindedx = 0.;
   const Double_t maxdedx = 350.;
-
+  
   HB2(20, "<dE/dx>;p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2(21, "<dE/dx>;-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2(22, "<dE/dx>;+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
   HBProf(100, ";#beta#gamma;<-dE/dx> [MeVg^{-1}cm^{2}]", 1000000, 0.1, 10000, 1., 10. );
   HBProf(101, "#pi, CH_{2}; Momentum [GeV/#font[12]{c}]; Stopping Power [MeVcm^{-1}]", 100000, 0.1, maxpoq, 1., 200. );
   HBProf(102, "K, CH_{2}; Momentum [GeV/#font[12]{c}]; Stopping Power [MeVcm^{-1}]", 100000, 0.1, maxpoq, 1., 200. );

@@ -1221,7 +1221,7 @@ dst::DstRead( int ievent )
 	    }
 	  }
 	}
-
+	
 	HF1(1001, event.pK18[idKm]);
 	HF1(1002, event.pKurama[idScat]);
 	HF1(1003, event.qKurama[idScat]*TMath::Sqrt(event.m2[idScat]));
@@ -1678,6 +1678,11 @@ dst::DstRead( int ievent )
   event.mom0 = **src.mom0;
   event.path = **src.path;
 
+  for(int it=0; it<ntTpc; ++it){
+    for(int ih=0; ih<event.nhHtof; ++ih){
+      HF2(20, event.mom0[it]*event.charge[it], event.path[it]/event.tHtof[ih]/MathTools::C());
+    }
+  }
   event.hitlayer = **src.hitlayer;
   event.hitpos_x = **src.hitpos_x;
   event.hitpos_y = **src.hitpos_y;
@@ -1775,6 +1780,8 @@ ConfMan::InitializeHistograms( void )
   HB1(43, "Kurama TPC tagging", 2, 0., 2. );
   HB1(44, "KK TPC tagging", 2, 0., 2. );
 
+  HB2(20, "1/#beta;p/q [GeV/#font[12]{c}];1/#beta", 1000, -2.0, 2.0, 1000, 0.0, 5.0);
+  
   HB1(1001, "P K18", 800, 1.4, 2.2);
   HB1(1002, "P Kurama", 600, 0, 3);
   HB1(1003, "Charge*Mass", 600, -1., 2.5);
