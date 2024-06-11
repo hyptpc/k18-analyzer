@@ -1127,6 +1127,20 @@ void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg){
 }
 
 //_____________________________________________________________________________
+Bool_t HypTPCdEdxPID_IsKaonTemp(Double_t dedx, Double_t poq){
+
+  Double_t mk  = 493.677;
+  Double_t par_k[2] = {conversion_factor, mk};
+  Double_t dedx_k = HypTPCBethe(&poq, par_k); //P10's <dE/dx>_k
+  // 1 sigma of <dE/dx>_pi
+  Double_t sigma_pi = (sigma_dedx_pi[0] + sigma_dedx_pi[1]*TMath::Abs(poq) + sigma_dedx_pi[2]*poq*poq); //temporary using pi's sigma value
+
+  Bool_t flag = false;
+  if(TMath::Abs((dedx-dedx_k)/sigma_pi) < 3) flag = true;
+  return flag;
+}
+
+//_____________________________________________________________________________
 TVector3
 CalcHelixMom(Double_t Bfield, Int_t charge, Double_t par[5], Double_t t){
 

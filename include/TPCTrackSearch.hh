@@ -96,6 +96,15 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
 			Bool_t Exclusive,
 			Int_t MinNumOfHits);
 
+//Iterative process for checking clusters near the target
+template <typename T> void
+ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
+			      std::vector<T*>& TrackCont,
+			      std::vector<T*>& TrackContFailed,
+			      std::vector<TPCVertexHelix*>& VertexCont,
+			      Bool_t Exclusive,
+			      Int_t MinNumOfHits);
+
 //Commom helix track searching
 void HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
 		      const std::vector<TPCClusterContainer>& ClCont,
@@ -130,10 +139,12 @@ void HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
 
 //Kurama scattered track finding
 void KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
-		       std::vector<Double_t> KuramaCharge,
 		       const std::vector<TPCClusterContainer>& ClCont,
 		       std::vector<TPCLocalTrackHelix*>& TrackCont,
+		       std::vector<TPCLocalTrackHelix*>& TrackContFailed,
 		       std::vector<TPCLocalTrackHelix*>& TrackContVP,
+		       std::vector<TPCVertexHelix*>& VertexCont,
+		       Bool_t Exclusive,
 		       Int_t MinNumOfHits);
 //K1.8 beam track finding
 void K18TrackSearch(std::vector<std::vector<TVector3>> VPs,

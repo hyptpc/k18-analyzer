@@ -78,6 +78,7 @@ namespace Kinematics
   Double_t HypTPCBethe(Double_t *x, Double_t *p);
   Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq);
   void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg);
+  Bool_t HypTPCdEdxPID_IsKaonTemp(Double_t dedx, Double_t poq); //temporary
 
   //For helix tracking & vertex reconstruction
   TVector3 CalcHelixMom(Double_t Bfield, Int_t charge,

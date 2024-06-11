@@ -14,7 +14,7 @@
 #include "TPCHit.hh"
 #include "TPCCluster.hh"
 #include "TPCLTrackHit.hh"
-
+#include "TMatrixD.h"
 class TPCHit;
 class TPCCluster;
 
@@ -167,6 +167,7 @@ public:
   Double_t GetTransverseMomentumResolution();//returns dP, not dP/P;
   Double_t GetTransverseAngularResolution(Double_t t, Double_t sig0 = 0.01); //returns angular resolution on pad plane
   Double_t GetTransverseAngularResolution();
+  TMatrixD GetCovarianceMatrix();
 
   Double_t GetdZResolution();//returns pitch resolution.
   Double_t GetThetaResolution();//returns pitch angle resolution.
@@ -200,6 +201,7 @@ public:
   Int_t GetIsK18() const { return m_isK18; }
   Int_t GetIsKurama() const { return m_isKurama; }
   Int_t GetIsAccidental() const { return m_isAccidental; }
+  Int_t GetIsMultiloop() const { return m_is_multiloop; }
 
   void SetParam(Double_t *par){ m_cx = par[0]; m_cy = par[1]; m_z0 = par[2]; m_r = par[3]; m_dz = par[4]; }
   void SetClustersHoughFlag(Int_t hough_flag);

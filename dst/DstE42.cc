@@ -41,6 +41,7 @@
 #define KPEvent 0
 
 #define SaveHistograms 1
+#define RawCluster 1
 
 namespace
 {
@@ -81,6 +82,19 @@ struct Event
 
   Int_t nclTpc; // Number of clusters
   Int_t remain_nclTpc; // Number of clusters without tracks
+  std::vector<Double_t> cluster_x;
+  std::vector<Double_t> cluster_y;
+  std::vector<Double_t> cluster_z;
+  std::vector<Double_t> cluster_de;
+  std::vector<Int_t> cluster_size;
+  std::vector<Int_t> cluster_layer;
+  std::vector<Double_t> cluster_mrow;
+  std::vector<Double_t> cluster_de_center;
+  std::vector<Double_t> cluster_x_center;
+  std::vector<Double_t> cluster_y_center;
+  std::vector<Double_t> cluster_z_center;
+  std::vector<Int_t> cluster_row_center;
+  std::vector<Int_t> cluster_houghflag;
 
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
@@ -89,6 +103,7 @@ struct Event
   std::vector<Int_t> isKurama;
   std::vector<Int_t> isK18;
   std::vector<Int_t> isAccidental;
+  std::vector<Int_t> isMultiloop;
   std::vector<Int_t> charge; //Helix charge
   std::vector<Int_t> pid;
   std::vector<Double_t> chisqr;
@@ -344,6 +359,19 @@ struct Event
 
     nclTpc = 0;
     remain_nclTpc = 0;
+    cluster_x.clear();
+    cluster_y.clear();
+    cluster_z.clear();
+    cluster_de.clear();
+    cluster_size.clear();
+    cluster_layer.clear();
+    cluster_mrow.clear();
+    cluster_de_center.clear();
+    cluster_x_center.clear();
+    cluster_y_center.clear();
+    cluster_z_center.clear();
+    cluster_row_center.clear();
+    cluster_houghflag.clear();
 
     ntTpc = 0;
     nhtrack.clear();
@@ -352,6 +380,7 @@ struct Event
     isKurama.clear();
     isK18.clear();
     isAccidental.clear();
+    isMultiloop.clear();
     charge.clear();
     pid.clear();
 
@@ -607,6 +636,19 @@ struct Src
 
   TTreeReaderValue<Int_t>* nclTpc; // Number of clusters
   TTreeReaderValue<Int_t>* remain_nclTpc; // Number of clusters without tracks
+  TTreeReaderValue<std::vector<Double_t>>* cluster_x;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_y;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_z;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_de;
+  TTreeReaderValue<std::vector<Int_t>>* cluster_size;
+  TTreeReaderValue<std::vector<Int_t>>* cluster_layer;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_mrow;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_de_center;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_x_center;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_y_center;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_z_center;
+  TTreeReaderValue<std::vector<Int_t>>* cluster_row_center;
+  TTreeReaderValue<std::vector<Int_t>>* cluster_houghflag;
 
   TTreeReaderValue<Int_t>* ntTpc; // Number of tracks
   TTreeReaderValue<std::vector<Int_t>>* nhtrack; // Number of hits (in 1 tracks)
@@ -615,6 +657,7 @@ struct Src
   TTreeReaderValue<std::vector<Int_t>>* isKurama;
   TTreeReaderValue<std::vector<Int_t>>* isK18;
   TTreeReaderValue<std::vector<Int_t>>* isAccidental;
+  TTreeReaderValue<std::vector<Int_t>>* isMultiloop;
   TTreeReaderValue<std::vector<Int_t>>* charge;//Helix charge
   TTreeReaderValue<std::vector<Int_t>>* pid;
   TTreeReaderValue<std::vector<Double_t>>* chisqr;
@@ -1655,6 +1698,21 @@ dst::DstRead( int ievent )
 
   event.nclTpc = **src.nclTpc;
   event.remain_nclTpc = **src.remain_nclTpc;
+#if RawCluster
+  event.cluster_x = **src.cluster_x;
+  event.cluster_y = **src.cluster_y;
+  event.cluster_z = **src.cluster_z;
+  event.cluster_de = **src.cluster_de;
+  event.cluster_size = **src.cluster_size;
+  event.cluster_layer = **src.cluster_layer;
+  event.cluster_mrow = **src.cluster_mrow;
+  event.cluster_de_center = **src.cluster_de_center;
+  event.cluster_x_center = **src.cluster_x_center;
+  event.cluster_y_center = **src.cluster_y_center;
+  event.cluster_z_center = **src.cluster_z_center;
+  event.cluster_row_center = **src.cluster_row_center;
+  event.cluster_houghflag = **src.cluster_houghflag;
+#endif
 
   Int_t ntTpc = **src.ntTpc;
   event.ntTpc = ntTpc;
@@ -1664,6 +1722,7 @@ dst::DstRead( int ievent )
   event.isKurama = **src.isKurama;
   event.isK18 = **src.isK18;
   event.isAccidental = **src.isAccidental;
+  event.isMultiloop = **src.isMultiloop;
   event.charge = **src.charge;
   event.pid = **src.pid;
   event.chisqr = **src.chisqr;
@@ -2160,6 +2219,21 @@ ConfMan::InitializeHistograms( void )
 
   tree->Branch( "nclTpc", &event.nclTpc );
   tree->Branch( "remain_nclTpc", &event.nclTpc );
+#if RawCluster
+  tree->Branch( "cluster_x", &event.cluster_x );
+  tree->Branch( "cluster_y", &event.cluster_y );
+  tree->Branch( "cluster_z", &event.cluster_z );
+  tree->Branch( "cluster_de", &event.cluster_de );
+  tree->Branch( "cluster_size", &event.cluster_size );
+  tree->Branch( "cluster_layer", &event.cluster_layer );
+  tree->Branch( "cluster_row_center", &event.cluster_row_center );
+  tree->Branch( "cluster_mrow", &event.cluster_mrow );
+  tree->Branch( "cluster_de_center", &event.cluster_de_center );
+  tree->Branch( "cluster_x_center", &event.cluster_x_center );
+  tree->Branch( "cluster_y_center", &event.cluster_y_center );
+  tree->Branch( "cluster_z_center", &event.cluster_z_center );
+  tree->Branch( "cluster_houghflag", &event.cluster_houghflag );
+#endif
 
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
@@ -2168,6 +2242,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "isKurama", &event.isKurama );
   tree->Branch( "isK18", &event.isK18 );
   tree->Branch( "isAccidental", &event.isAccidental );
+  tree->Branch( "isMultiloop", &event.isMultiloop );
   tree->Branch( "charge", &event.charge );
   tree->Branch( "pid", &event.pid );
   tree->Branch( "chisqr", &event.chisqr );
@@ -2411,7 +2486,21 @@ ConfMan::InitializeHistograms( void )
 
   src.nclTpc = new TTreeReaderValue<Int_t>( *reader, "nclTpc" );
   src.remain_nclTpc = new TTreeReaderValue<Int_t>( *reader, "remain_nclTpc" );
-
+#if RawCluster
+  src.cluster_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_x" );
+  src.cluster_y = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_y" );
+  src.cluster_z = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_z" );
+  src.cluster_de = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_de" );
+  src.cluster_size = new TTreeReaderValue<std::vector<Int_t>>( *reader, "cluster_size" );
+  src.cluster_layer = new TTreeReaderValue<std::vector<Int_t>>( *reader, "cluster_layer" );
+  src.cluster_mrow = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_mrow" );
+  src.cluster_de_center = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_de_center" );
+  src.cluster_x_center = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_x_center" );
+  src.cluster_y_center = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_y_center" );
+  src.cluster_z_center = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_z_center" );
+  src.cluster_row_center = new TTreeReaderValue<std::vector<Int_t>>( *reader, "cluster_row_center" );
+  src.cluster_houghflag = new TTreeReaderValue<std::vector<Int_t>>( *reader, "cluster_houghflag" );
+#endif
   src.ntTpc = new TTreeReaderValue<Int_t>( *reader, "ntTpc" );
   src.nhtrack = new TTreeReaderValue<std::vector<Int_t>>( *reader, "nhtrack" );
   src.trackid = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trackid" );
@@ -2419,6 +2508,8 @@ ConfMan::InitializeHistograms( void )
   src.isKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isKurama" );
   src.isK18 = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isK18" );
   src.isAccidental = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isAccidental" );
+  src.isMultiloop = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isMultiloop" );
+
   src.charge = new TTreeReaderValue<std::vector<Int_t>>( *reader, "charge" );
   src.pid = new TTreeReaderValue<std::vector<Int_t>>( *reader, "pid" );
   src.chisqr = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqr" );

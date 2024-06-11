@@ -31,7 +31,6 @@ ClassImp(HypTPCTask)
 
 namespace{
   const double qnan = TMath::QuietNaN();
-  const TVector3 targetsize(30,20,20);
   const double htof_l = 34.86; //center to HTOF downstream
   const double ztgt = tpc::ZTarget;
   const TVector3 tgtcenter(0,0,0.1*tpc::ZTarget); //cm
@@ -407,9 +406,11 @@ bool HypTPCTask::IsInsideTarget(int trackid, int repid) const{
 
   TVector3 pos; TVector3 mom; double tracklen; double tof;
   if(ExtrapolateToTarget(trackid, pos, mom, tracklen, tof, repid) &&
-     (TMath::Abs(pos.x()) < 0.5*targetsize.x()) &&
-     (TMath::Abs(pos.y()) < 0.5*targetsize.y()) &&
-     (TMath::Abs(pos.z()-ztgt) < 0.5*targetsize.z())) return true;
+     TMath::Abs(pos.x()) < 50. &&
+     TMath::Abs(pos.y()) < 50. &&
+     TMath::Abs(pos.z()-ztgt) < 50. &&
+     TMath::Sqrt(pos.x()*pos.x()+pos.y()*pos.y()+(pos.z()-ztgt)*(pos.z()-ztgt)) < 50.)
+    return true;
   else return false;
 }
 
@@ -557,7 +558,7 @@ bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2, 
   return true;
 }
 
-bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, TVector3 mom_lambda, double &tracklen_lambda, double &extrap_dist_pi, TVector3 &mom_pi_vertex, double &distance, TVector3 &vertex, double scan_range) const{ //trackid & repid : pi-
+bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, TVector3 mom_lambda, double &tracklen_lambda, double &extrap_dist_pi, TVector3 &mom_pi_vertex, double &distance, TVector3 &vertex, double scan_range, double res1, double res2, double phi) const{ //trackid & repid : pi-
 
   bool status = false;
 
@@ -584,6 +585,15 @@ bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, 
     AI += decayvtx_lambda;
     Double_t lambdavtx_xivtx = (AI - decayvtx_lambda)*u;
     TVector3 diff = pos - AI;
+    double r1 = sqrt(2)*res1 / hypot(res1,res2);
+    double r2 = sqrt(2)*res2 / hypot(res1,res2);
+    TVector3 e1(cos(phi), 0, sin(phi));
+    TVector3 e2(-sin(phi), 0, cos(phi));
+
+    double dy = diff.y();
+    double dx = diff * e1 / r1;
+    double dz = diff * e2 / r2;
+    diff = TVector3(dx,dy,dz);
     if(distance > diff.Mag() && lambdavtx_xivtx < 0){
       distance = diff.Mag();
       dist = -iStep*StepSize;
@@ -617,6 +627,15 @@ bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, 
     AI += decayvtx_lambda;
     Double_t lambdavtx_xivtx = (AI - decayvtx_lambda)*u;
     TVector3 diff = pos - AI;
+    double r1 = sqrt(2)*res1 / hypot(res1,res2);
+    double r2 = sqrt(2)*res2 / hypot(res1,res2);
+    TVector3 e1(cos(phi), 0, sin(phi));
+    TVector3 e2(-sin(phi), 0, cos(phi));
+
+    double dy = diff.y();
+    double dx = diff * e1 / r1;
+    double dz = diff * e2 / r2;
+    diff = TVector3(dx,dy,dz);
     if(distance > diff.Mag() && lambdavtx_xivtx < 0){
       distance = diff.Mag();
       vertex = pos + AI;
@@ -633,18 +652,22 @@ bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, 
   return status;
 }
 
-bool HypTPCTask::TPCHTOFTrackMatching(int trackid, int repid, std::vector<Double_t> HtofSeg, std::vector<Double_t> posHtof, int &htofhitid, double &tof, double &tracklen, TVector3 &pos, TVector3 &vtx) const{
+bool HypTPCTask::TPCHTOFTrackMatching(int trackid, int repid, TVector3 vertex, std::vector<Double_t> HtofSeg, std::vector<Double_t> posHtof, int &htofhitid, double &tof, double &tracklen, TVector3 &pos, double &vertex_dist) const{
 
   bool status = false;
   double PosDiffCut = 60.; //mm
 
-  TVector3 tgtpos; TVector3 tgtmom; double tgtlen; double tgttof;
-  ExtrapolateToTarget(trackid, tgtpos, tgtmom, tgtlen, tgttof, repid);
-  vtx = tgtpos;
+  TVector3 vtx_pos; TVector3 vtx_mom; double vtx_len; double vtx_tof;
+  if(!ExtrapolateToPoint(trackid, vertex, vtx_pos, vtx_mom,
+			 vtx_len, vtx_tof, repid)) return status;
 
-  int candidates; int extrap_id[8]; TVector3 extrap_pos[8]; TVector3 extrap_mom[8]; double extrap_len[8]; double extrap_tof[8];
-  if(!ExtrapolateToHTOF(trackid, candidates, extrap_id, extrap_pos, extrap_mom, extrap_len, extrap_tof, repid))
-    return status;
+  TVector3 diff = vertex - vtx_pos;
+  vertex_dist = diff.Mag();
+
+  int candidates; int extrap_id[8]; TVector3 extrap_pos[8];
+  TVector3 extrap_mom[8]; double extrap_len[8]; double extrap_tof[8];
+  if(!ExtrapolateToHTOF(trackid, candidates, extrap_id, extrap_pos,
+			extrap_mom, extrap_len, extrap_tof, repid)) return status;
 
   double mintof = 10000;
   for(int i=0;i<candidates;i++){
@@ -652,17 +675,24 @@ bool HypTPCTask::TPCHTOFTrackMatching(int trackid, int repid, std::vector<Double
     for(int j=0;j<nhHtof;j++){
       if(extrap_id[i] == (int) HtofSeg[j] &&
 	 TMath::Abs(posHtof[j] - extrap_pos[i].y()) < PosDiffCut){
-	if(mintof > extrap_tof[i]){
+
+	double tof_htof2vtx = extrap_tof[i] - vtx_tof;
+	double tracklen_htof2vtx = extrap_len[i] - vtx_len;
+	if(tof_htof2vtx < 0 || tracklen_htof2vtx < 0) continue;
+
+	if(mintof > tof_htof2vtx){
 	  pos = extrap_pos[i];
-	  tof = extrap_tof[i] - tgttof;
-	  tracklen = extrap_len[i] - tgtlen;
-	  mintof = tof;
+	  tof = tof_htof2vtx;
+	  tracklen = tracklen_htof2vtx;
 	  htofhitid = j;
+
+	  mintof = tof;
 	  status = true;
 	}
       }
     }
   }
+
   return status;
 }
 
