@@ -40,7 +40,7 @@
 
 #define SaveTPCK18 0
 #define MMcut_Xi 1
-#define SkipGenfit 0
+#define SkipGenfit 1
 #define WithKurama 0
 #define DoKinematicFitLdXi 1
 namespace
@@ -549,7 +549,14 @@ struct Event
   vector<double>xtgtKurama;
   vector<double>ytgtKurama;
 
-
+  bool forced_xi;
+  bool K18Kurama_cut;
+  bool pid_cut;
+  bool Xi_vert_z_cut;
+  bool lpi_dist_cut;
+  bool Helix_Direction_cut;
+  bool pi2_vert_dist_cut;
+  bool xi_mass_cut;
 
   void clear( void )
   {
@@ -912,6 +919,15 @@ struct Event
     xtgtKurama.clear();
     ytgtKurama.clear();
 
+    forced_xi = false;
+    K18Kurama_cut = false;
+    pid_cut = false;
+    Xi_vert_z_cut = false;
+    lpi_dist_cut = false;
+    Helix_Direction_cut = false;
+    pi2_vert_dist_cut = false;
+    xi_mass_cut = false;
+    
   }
 };
 
@@ -1059,7 +1075,6 @@ main( int argc, char **argv )
 #if 0
   GFTrackCont.DebugMode();
 #endif
-
   Int_t ievent = skip;
   for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
     gCounter.check();
@@ -1402,8 +1417,6 @@ dst::DstRead( Int_t ievent )
       if(event.isK18[it1]==1 || event.isKurama[it1]==1) continue;
       TPCLocalTrackHelix *tp2 = TPCAna.GetTrackTPCHelix(it2);
       if((event.pid[it2]&1)!=1) continue; //select pi like
-      Bool_t pim_like = false;
-      if(event.charge[it2]==-1) pim_like = true;
 
       Double_t pi_par[5];
       pi_par[0] = event.helix_cx[it2];
@@ -1418,17 +1431,10 @@ dst::DstRead( Int_t ievent )
 
       TVector3 pi_start = TVector3(event.calpos_x[it2][0], event.calpos_y[it2][0], event.calpos_z[it2][0]);
       TVector3 pi_end = TVector3(event.calpos_x[it2][pi_nh-1], event.calpos_y[it2][pi_nh-1], event.calpos_z[it2][pi_nh-1]);
-      if(!pim_like){
-  pi_theta_min = TMath::Max(event.helix_t[it2][pi_nh-1] - vtx_scan_rangeInsideL/pi_par[3], event.helix_t[it2][0]);
-  pi_theta_max = event.helix_t[it2][pi_nh-1] + vtx_scan_range/pi_par[3];
-  pi_start = TVector3(event.calpos_x[it2][pi_nh-1], event.calpos_y[it2][pi_nh-1], event.calpos_z[it2][pi_nh-1]);
-  pi_end = TVector3(event.calpos_x[it2][0], event.calpos_y[it2][0], event.calpos_z[it2][0]);
-      }
       Double_t ppi_dist = 10000.;
       TVector3 p_mom; TVector3 pi_mom; TVector3 lambda_mom;
       TVector3 lambda_vert = Kinematics::LambdaVertex(dMagneticField, p_par, pi_par, p_theta_min, p_theta_max, pi_theta_min, pi_theta_max, p_mom, pi_mom, lambda_mom, ppi_dist);
       if(TMath::IsNaN(ppi_dist)) continue;
-      if(!pim_like) pi_mom = -1.*pi_mom;
       if(!p_like) pi_mom = -1.*p_mom;
       lambda_mom = pi_mom + p_mom;
 
@@ -1461,8 +1467,6 @@ dst::DstRead( Int_t ievent )
   if(it3==it2 || it3==it1) continue;
 	if(event.isK18[it3]==1 || event.isKurama[it3]==1) continue;
 	if((event.pid[it3]&1)!=1) continue; //select pi like
-  Bool_t pim_like2 = false;
-  if(event.charge[it3]==-1) pim_like2 = true;
 
   Double_t pi2_par[5];
   pi2_par[0] = event.helix_cx[it3];
@@ -1478,25 +1482,16 @@ dst::DstRead( Int_t ievent )
 
   TVector3 pi2_start = TVector3(event.calpos_x[it3][0], event.calpos_y[it3][0], event.calpos_z[it3][0]);
   TVector3 pi2_end = TVector3(event.calpos_x[it3][pi2_nh-1], event.calpos_y[it3][pi2_nh-1], event.calpos_z[it3][pi2_nh-1]);
-  if(!pim_like2){
-    pi2_theta_min = TMath::Max(event.helix_t[it3][pi2_nh-1] - vtx_scan_rangeInsidePi/pi2_par[3], event.helix_t[it3][0]);
-    pi2_theta_max = event.helix_t[it3][pi2_nh-1] + vtx_scan_range/pi2_par[3];
-    pi2_start = TVector3(event.calpos_x[it3][pi2_nh-1], event.calpos_y[it3][pi2_nh-1], event.calpos_z[it3][pi2_nh-1]);
-    pi2_end = TVector3(event.calpos_x[it3][0], event.calpos_y[it3][0], event.calpos_z[it3][0]);
-  }
   TVector3 pi2_mom; Double_t lpi_dist;
   TVector3 xi_vert = Kinematics::XiVertex(dMagneticField, pi2_par, pi2_theta_min, pi2_theta_max, lambda_vert, lambda_mom, pi2_mom, lpi_dist);
   //std::cout<<"<<xi vertex "<<xi_vert<<std::endl;
-  if(xi_vert.z() < -200.) continue; //Vertex cut
   if(TMath::IsNaN(lpi_dist)) continue;
 
-  if(!pim_like) pi2_mom = -1.*pi2_mom;
   TLorentzVector Lpi2(pi2_mom, TMath::Sqrt(pi2_mom.Mag()*pi2_mom.Mag() + PionMass*PionMass));
   TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Sqrt(lambda_mom.Mag()*lambda_mom.Mag() + LambdaMass*LambdaMass));
   TLorentzVector Lxi = Llambda_fixedmass + Lpi2;
   TVector3 xi_mom = TVector3(Lxi.Px(), Lxi.Py(), Lxi.Pz());
   Double_t pi2_vertex_dist;
-  //std::cout<<"it3 "<<it3<<" mom "<<pi2_mom.Mag()<<" "<<pi2_mom<<" "<<" lpi_dist "<<lpi_dist<<std::endl;
   if(lpi_dist > lpi_distcut) continue;
   if(!Kinematics::HelixDirection(xi_vert, pi2_start, pi2_end, pi2_vertex_dist)) continue;
   if(pi2_vertex_dist > pi2_vtx_distcut) continue;
@@ -1525,10 +1520,111 @@ dst::DstRead( Int_t ievent )
       } //it3
     } //it2
   } //it1
+  /*
+if(ievent == 9618) return true;
+if(ievent == 23607) return true;
+if(ievent == 25258) return true;
+if(ievent == 30141) return true;
+if(ievent == 33584) return true;
+if(ievent == 36914) return true;
+*/
 if(!event.lflag){
   cout<<"NoLambda"<<endl;
   return true;
 } 
+if( !event.xiflag ){
+  std::cout<<"ForcedXi"<<std::endl;
+  bool ptrack_fail = true;
+  bool pi1track_fail = true;
+  bool pi2track_fail = true;
+  int pi2_id;
+  for(int it=0;it<event.ntTpc;++it){
+    int tid_g4 = event.G4tid.at(it);
+    if(event.G4pi2id== tid_g4){
+      pi2_id = it;
+      pi2track_fail = false;
+    }
+  }
+  if(!pi2track_fail){
+    Int_t best = -1; Double_t prev_massdiff = 9999.;
+    for(Int_t candi=0;candi<l_candidates;candi++){
+      Double_t diff = TMath::Abs(l_mass_container_l[candi] - LambdaMass);
+      if(prev_massdiff > diff){
+       prev_massdiff = diff;
+       best = candi;
+      }
+    }
+    int p_id = l_p_container[best];
+    int pi1_id = l_pi_container[best];
+    int it1 = p_id, it2 = pi1_id, it3 = pi2_id;
+    if(it1 == it3 or it2 == it3) return true;
+		event.forced_xi = true;
+    TPCLocalTrackHelix *tp3 = TPCAna.GetTrackTPCHelix(it3);
+
+	if(event.isK18[it3]==1 || event.isKurama[it3]==1) event.K18Kurama_cut = true; 
+	if((event.pid[it3]&1)!=1) event.pid_cut = true; //select pi like
+  Double_t pi2_par[5];
+  pi2_par[0] = event.helix_cx[it3];
+  pi2_par[1] = event.helix_cy[it3];
+  pi2_par[2] = event.helix_z0[it3];
+  pi2_par[3] = event.helix_r[it3];
+  pi2_par[4] = event.helix_dz[it3];
+  Int_t pi2_nh = event.helix_t[it3].size();
+  Double_t pi2_theta_min = TMath::Max(event.helix_t[it3][0] - vtx_scan_rangeInsidePi/pi2_par[3], event.helix_t[it3][pi2_nh-1]);
+  Double_t pi2_theta_max = event.helix_t[it3][0] + vtx_scan_range/pi2_par[3];
+
+  TVector3 pi2_start = TVector3(event.calpos_x[it3][0], event.calpos_y[it3][0], event.calpos_z[it3][0]);
+  TVector3 pi2_end = TVector3(event.calpos_x[it3][pi2_nh-1], event.calpos_y[it3][pi2_nh-1], event.calpos_z[it3][pi2_nh-1]);
+  TVector3 p_mom = p_mom_container_l[best];
+  TVector3 pi_mom = pi_mom_container_l[best];
+  Double_t ppi_dist = ppi_closedist_l[best];
+  TVector3 lambda_mom = l_mom_container_l[best];
+  TVector3 lambda_vert = l_vert_container_l[best];
+  TLorentzVector Lpi(pi_mom, TMath::Sqrt(pi_mom.Mag() * pi_mom.Mag() + PionMass * PionMass));
+  TLorentzVector Lp(p_mom, TMath::Sqrt(p_mom.Mag() * p_mom.Mag() + ProtonMass * ProtonMass));
+  TLorentzVector Llambda = Lp + Lpi;
+  TVector3 pi2_mom; Double_t lpi_dist;
+  TVector3 xi_vert = Kinematics::XiVertex(dMagneticField, pi2_par, pi2_theta_min, pi2_theta_max, lambda_vert, lambda_mom, pi2_mom, lpi_dist);
+ 
+  if(TMath::IsNaN(lpi_dist)) return true;
+
+  TLorentzVector Lpi2(pi2_mom, TMath::Sqrt(pi2_mom.Mag()*pi2_mom.Mag() + PionMass*PionMass));
+  TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Sqrt(lambda_mom.Mag()*lambda_mom.Mag() + LambdaMass*LambdaMass));
+  TLorentzVector Lxi = Llambda_fixedmass + Lpi2;
+  TVector3 xi_mom = TVector3(Lxi.Px(), Lxi.Py(), Lxi.Pz());
+  Double_t pi2_vertex_dist;
+  if(lpi_dist > lpi_distcut) event.lpi_dist_cut = true; 
+  if(!Kinematics::HelixDirection(xi_vert, pi2_start, pi2_end, pi2_vertex_dist))event.Helix_Direction_cut = true;   
+  if(pi2_vertex_dist > pi2_vtx_distcut) event.pi2_vert_dist_cut = true;
+  if(TMath::Abs(Lxi.M() - XiMinusMass) > xi_masscut) event.xi_mass_cut = true;  
+
+  ppi_closedist.push_back(ppi_dist);
+  lpi_closedist.push_back(lpi_dist);
+
+  xi_p_container.push_back(it1);
+  xi_pi_container.push_back(it2);
+  xi_pi2_container.push_back(it3);
+
+  xi_mass_container.push_back(Lxi.M());
+  lambda_mass_container.push_back(Llambda.M());
+  p_mom_container.push_back(p_mom);
+  pi_mom_container.push_back(pi_mom);
+  pi2_mom_container.push_back(pi2_mom);
+  xi_mom_container.push_back(xi_mom);
+  xi_vert_container.push_back(xi_vert);
+  l_mom_container.push_back(lambda_mom);
+  l_vert_container.push_back(lambda_vert);
+
+  xi_candidates++;
+  event.xiflag = true;
+  
+  
+  
+  }else{
+    cout<<"NoXi"<<endl;
+    return true;
+  } 
+}
 if( !event.xiflag ){
   cout<<"NoXi"<<endl;
   Int_t best = -1; Double_t prev_massdiff = 9999.;
@@ -1608,13 +1704,15 @@ if( !event.xiflag ){
   HypTPCTask& GFTrackCont = HypTPCTask::GetInstance();
   cout<<"Tracks for GF"<<endl;
   for( Int_t it=0; it<ntTpc; ++it ){
+    std::cout<<"GetTrackTPCHelix"<<std::endl;
     TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix(it);
     if( !tp ) continue;
 
 //    event.pid[it] = tp -> GetPid();
     std::vector<Int_t> pdgcode;
+    std::cout<<"HypTPCPID_PDGCode"<<std::endl;
     Kinematics::HypTPCPID_PDGCode(event.charge[it], event.pid[it], pdgcode);
-
+    std::cout<<"AddHelixTrack"<<std::endl;
     GFTrackCont.AddHelixTrack(pdgcode, tp);
   }
   HF1( 2, event.GFstatus++ );
@@ -2201,19 +2299,22 @@ if( !event.xiflag ){
   HypTPCTask& GFTrackCont = HypTPCTask::GetInstance();
   cout<<"Tracks for GF"<<endl;
   for( Int_t it=0; it<ntTpc; ++it ){
+    std::cout<<"Track "<<it<<" / "<<ntTpc<<std::endl;
     TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix(it);
     if( !tp ) continue;
 
 //    event.pid[it] = tp -> GetPid();
     std::vector<Int_t> pdgcode;
+    std::cout<<"HypTPCPID_PDGCode"<<std::endl;
     Kinematics::HypTPCPID_PDGCode(event.charge[it], event.pid[it], pdgcode);
-
+    std::cout<<"AddHelixTrack"<<std::endl;
     GFTrackCont.AddHelixTrack(pdgcode, tp);
   }
   HF1( 2, event.GFstatus++ );
   HF1( 1, event.status++ );
+  std::cout<<"Fitting GF"<<std::endl;
   GFTrackCont.FitTracks();
-
+  std::cout<<"Fitting GF Done"<<std::endl;
   Int_t GFntTpc = GFTrackCont.GetNTrack();
   if(GFntTpc!=event.ntTpc){
     std::cout<<"# of Tracks in Genfit Track Container != # of TPC Tracks"<<std::endl;
@@ -2253,10 +2354,11 @@ if( !event.xiflag ){
 
   Int_t gfbest = -1; prev_massdiff = 9999.;
   for(Int_t candi=0;candi<xi_candidates;candi++){
+    std::cout<<Form("XiCandidate %d/%d",candi,xi_candidates)<<std::endl;  
     Int_t trackid_p = xi_p_container[candi];
     Int_t trackid_pi = xi_pi_container[candi];
     Int_t trackid_pi2 = xi_pi2_container[candi];
-
+    std::cout<<Form("p,pi,pi2 = %d, %d, %d",trackid_p,trackid_pi,trackid_pi2)<<std::endl; 
     Int_t flag = 1; Int_t repid_p = 0;
 
     for(Int_t i=0;i<2;i++){
@@ -2270,6 +2372,7 @@ if( !event.xiflag ){
     Double_t GFextrapolation_decays[3];
     Double_t GFmass2_decays[3] = {qnan, qnan, qnan};
     TVector3 GFmom_decays[3]; TVector3 GFlambda_vert; double GFppi_dist=qnan;
+    std::cout<<"FindingVertex"<<std::endl;
     if(!GFTrackCont.FindVertex(trackid_p, trackid_pi,
              repid_p, repid_pi,
              GFextrapolation_decays[0], GFextrapolation_decays[1],
@@ -2277,7 +2380,7 @@ if( !event.xiflag ){
              GFppi_dist, GFlambda_vert,
              vtx_scan_range)
        || GFppi_dist > GFppi_distcut) continue;
-
+    std::cout<<"Vertex Found"<<std::endl;
     TLorentzVector GFLp(GFmom_decays[0], TMath::Sqrt(GFmom_decays[0].Mag()*GFmom_decays[0].Mag() + ProtonMass*ProtonMass));
     TLorentzVector GFLpi(GFmom_decays[1], TMath::Sqrt(GFmom_decays[1].Mag()*GFmom_decays[1].Mag() + PionMass*PionMass));
     TLorentzVector GFLlambda = GFLp + GFLpi;
@@ -2319,8 +2422,8 @@ if( !event.xiflag ){
   KFpi_mom_container[candi] = TVector3(KFHLVPi1.X(),KFHLVPi1.Z(),KFHLVPi1.Y()); 
   TVector3 GFxi_vert; Double_t GFlpi_dist = qnan; Double_t GFlambda_tracklen;
   if(!GFTrackCont.FindVertexXi(trackid_pi2, repid_pi2, GFlambda_vert, GFlambda_mom,
-  GFlambda_tracklen, GFextrapolation_decays[2], GFmom_decays[2], GFlpi_dist, GFxi_vert, vtx_scan_range) 
-    || GFlpi_dist > GFlpi_distcut) continue;
+  GFlambda_tracklen, GFextrapolation_decays[2], GFmom_decays[2], GFlpi_dist, GFxi_vert, vtx_scan_range)
+  or GFlpi_dist > GFlpi_distcut)continue;
   TVector3 KFlambda_mom = TVector3(KFHLVLd.X(),KFHLVLd.Z(),KFHLVLd.Y());  
   GFlambda_mom = KFlambda_mom;   
 #endif
@@ -2330,15 +2433,14 @@ if( !event.xiflag ){
     double l_res_x,l_res_y,l_phi;
     MathTools::DecomposeResolution(VLd,KFlambda_mom,l_res_x,l_res_y,l_phi); 
     if(!GFTrackCont.FindVertexXi(trackid_pi2, repid_pi2, GFlambda_vert, GFlambda_mom,
-    KFlambda_tracklen, GFextrapolation_decays[2], GFmom_decays[2], GFlpi_dist, KFxi_vert, vtx_scan_range,l_res_x,l_res_y,l_phi) 
-      || KFlpi_dist > GFlpi_distcut) continue;
+    KFlambda_tracklen, GFextrapolation_decays[2], GFmom_decays[2]
+    , GFlpi_dist, KFxi_vert, vtx_scan_range,l_res_x,l_res_y,l_phi))continue; 
     #else
     if(!GFTrackCont.FindVertexXi(trackid_pi2, repid_pi2,
          GFlambda_vert, GFlambda_mom, GFlambda_tracklen,
          GFextrapolation_decays[0], GFmom_decays[2],
          GFlpi_dist, GFxi_vert,
-         vtx_scan_range)
-       || GFlpi_dist > GFlpi_distcut) continue;
+         vtx_scan_range))continue;
     #endif
     Double_t GFlambda_tof = Kinematics::CalcTimeOfFlight(GFlambda_mom.Mag(), KFlambda_tracklen, pdg::LambdaMass());
 
@@ -3486,6 +3588,14 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("xiprodmom_y", &event.xiprodmom_y);
   tree->Branch("xiprodmom_z", &event.xiprodmom_z);
 
+  tree->Branch("forced_xi", &event.forced_xi);
+  tree->Branch("K18Kurama_cut", &event.K18Kurama_cut);  
+  tree->Branch("pid_cut", &event.pid_cut);
+  tree->Branch("Xi_vert_z_cut", &event.Xi_vert_z_cut);  
+  tree->Branch("lpi_dist_cut", &event.lpi_dist_cut);
+  tree->Branch("Helix_Direction_cut", &event.Helix_Direction_cut);
+  tree->Branch("pi2_vert_dist_cut", &event.pi2_vert_dist_cut);
+  tree->Branch("xi_mass_cut", &event.xi_mass_cut);
 #endif
 
   TTreeReaderCont[kE42] = new TTreeReader( "tpc", TFileCont[kE42] );
