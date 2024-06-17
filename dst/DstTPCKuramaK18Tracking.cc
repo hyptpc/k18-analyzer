@@ -46,12 +46,12 @@
 #define TrigC 0
 #define TrigD 0
 
-#define KKEvent 0
+#define KKEvent 1
 #define KPEvent 0
 
 #define SaveHistograms 1
 #define RawHit 0
-#define RawCluster 0
+#define RawCluster 1
 #define TrackClusterHist 0
 #define TruncatedMean 0
 #define TrackSearchFailed 0
@@ -222,6 +222,7 @@ struct Event
   std::vector<Int_t> isKurama;
   std::vector<Int_t> isK18;
   std::vector<Int_t> isAccidental;
+  std::vector<Int_t> isMultiloop;
   std::vector<Int_t> flag;
   std::vector<Int_t> fittime;  //usec
   std::vector<Int_t> searchtime; //usec
@@ -604,6 +605,7 @@ struct Event
     isKurama.clear();
     isK18.clear();
     isAccidental.clear();
+    isMultiloop.clear();
     flag.clear();
     fittime.clear();
     searchtime.clear();
@@ -2530,7 +2532,7 @@ dst::DstRead( int ievent )
       event.cluster_houghflag.push_back(houghflag);
       ++nclTpc;
 
-      if(houghflag==0) ++remain_nclTpc; //Clusters without track
+      if(houghflag!=100&&houghflag!=200) ++remain_nclTpc; //Clusters without track
     }
   }
   event.nclTpc = nclTpc;
@@ -2553,6 +2555,7 @@ dst::DstRead( int ievent )
   event.isKurama.resize( ntTpc );
   event.isK18.resize( ntTpc );
   event.isAccidental.resize( ntTpc );
+  event.isMultiloop.resize( ntTpc );
   event.fittime.resize( ntTpc );
   event.searchtime.resize( ntTpc );
   event.niteration.resize( ntTpc );
@@ -2644,6 +2647,7 @@ dst::DstRead( int ievent )
     Int_t iskurama = tp->GetIsKurama();
     Int_t isk18 = tp->GetIsK18();
     Int_t isaccidental = tp->GetIsAccidental();
+    Int_t ismultiloop = tp->GetIsMultiloop();
     Int_t charge = tp->GetCharge();
     Int_t pid = tp->GetPid();
     Int_t iteration = tp->GetNIteration();
@@ -2674,6 +2678,7 @@ dst::DstRead( int ievent )
     event.isKurama[it] = iskurama;
     event.isK18[it] = isk18;
     event.isAccidental[it] = isaccidental;
+    event.isMultiloop[it] = ismultiloop;
     event.fittime[it] = fittime;
     event.charge[it] = charge;
     event.path[it] = pathlen;
@@ -2702,7 +2707,7 @@ dst::DstRead( int ievent )
     } else {
       HF2(22, event.mom0[it]*event.charge[it], event.dEdx[it]);
     }
-    
+
     HF1(15, event.mom0[it]);
     if(src.ntK18==1) HF1(16, event.mom0[it]-src.pHS[0]);
 
@@ -3229,7 +3234,7 @@ ConfMan::InitializeHistograms( void )
   const Int_t nbindedx = 1000;
   const Double_t mindedx = 0.;
   const Double_t maxdedx = 350.;
-  
+
   HB2(20, "<dE/dx>;p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
   HB2(21, "<dE/dx>;-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
   HB2(22, "<dE/dx>;+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
@@ -3824,6 +3829,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "isKurama", &event.isKurama );
   tree->Branch( "isK18", &event.isK18 );
   tree->Branch( "isAccidental", &event.isAccidental );
+  tree->Branch( "isMultiloop", &event.isMultiloop );
   tree->Branch( "flag", &event.flag );
   tree->Branch( "fittime", &event.fittime );
   tree->Branch( "searchtime", &event.searchtime );
