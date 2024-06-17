@@ -125,6 +125,11 @@ TPCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
     Int_t layer = hit->GetLayer();
     CandCont.push_back(hit);
     joined[i]++;
+    Double_t padlength = hit -> GetPadLength();
+    TVector3 dist2tgt = hit -> GetPosition() - TVector3(0., 0., tpc::ZTarget);
+    Double_t verticalpathlength_forpad =
+      padlength*dist2tgt.y()/TMath::Hypot(dist2tgt.x(), dist2tgt.z());
+    maxdy = TMath::Max(maxdy, verticalpathlength_forpad);
 #if UseTpcCluster
     for(Int_t j=0; j<nh; ++j){
       if(i==j || joined[j]>0) continue;
@@ -450,7 +455,10 @@ TPCAnalyzer::MakeTPCKuramaHPContainer(TPCLocalTrackHelix *tpctrack,
     //Exclude clusters before the target
     const TVector3& localhitpos = thp->GetLocalHitPos();
     Double_t TGTz = gGeom.GlobalZ("Target") - gGeom.GlobalZ("HS");
-    if(localhitpos.z()<TGTz) continue;
+    if(localhitpos.z()<TGTz){
+      tpctrack -> SetIsBeam();
+      continue;
+    }
     lnum.push_back(id + PlOffsTPCHit + 1);
     lnum.push_back(id + 2.*PlOffsTPCHit + 1);
   }
