@@ -1146,8 +1146,8 @@ dst::DstRead(Int_t ievent)
       Int_t inside = 0;
       if(true
          && TMath::Abs(vert.x()+tgtCenterOfs.x()) < tgtSize.x()/2.
-         && TMath::Abs(vert.y()+tgtCenterOfs.x()) < tgtSize.y()/2.
-         && TMath::Abs(vert.z()+tgtCenterOfs.x()) < tgtSize.z()/2.+50.
+         && TMath::Abs(vert.y()+tgtCenterOfs.y()) < tgtSize.y()/2.
+         && TMath::Abs(vert.z()+tgtCenterOfs.z()) < tgtSize.z()/2.+50.
          && closedist < 100.
         ){
         inside = 1;
