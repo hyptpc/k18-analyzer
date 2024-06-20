@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <TROOT.h>
+#include <TTree.h>
 #include <TFile.h>
 #include <TString.h>
 #include <TSystem.h>
@@ -60,6 +61,8 @@ main(int argc, char **argv)
   const TString& in_file   = arg[kArgInFile];
   const TString& out_file  = arg[kArgOutFile];
 
+
+  // TTree::SetMaxTreeSize(1000000000000LL);
   hddaq::cout << "[::main()] recreate root file : " << out_file << std::endl;
   new TFile(out_file, "recreate");
   auto git = new TNamed
