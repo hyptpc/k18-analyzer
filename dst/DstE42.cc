@@ -38,7 +38,7 @@
 #define TrigD 0
 
 #define KKEvent 0
-#define KPEvent 0
+#define KPEvent 1
 
 #define SaveHistograms 1
 #define RawCluster 1
@@ -313,6 +313,9 @@ struct Event
   std::vector<Double_t> MissMassTPC;
   std::vector<Double_t> MissMassCorrTPC;
   std::vector<Double_t> MissMassCorrDETPC;
+  std::vector<Double_t> MissMassNuclTPC;
+  std::vector<Double_t> MissMassNuclCorrTPC;
+  std::vector<Double_t> MissMassNuclCorrDETPC;
   std::vector<Double_t> pOrgTPC;
   std::vector<Double_t> pCorrTPC;
   std::vector<Double_t> pCorrDETPC;
@@ -589,6 +592,9 @@ struct Event
     MissMassTPC.clear();
     MissMassCorrTPC.clear();
     MissMassCorrDETPC.clear();
+    MissMassNuclTPC.clear();
+    MissMassNuclCorrTPC.clear();
+    MissMassNuclCorrDETPC.clear();
     pOrgTPC.clear();
     pCorrTPC.clear();
     pCorrDETPC.clear();
@@ -782,6 +788,9 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* MissMassTPC;
   TTreeReaderValue<std::vector<Double_t>>* MissMassCorrTPC;
   TTreeReaderValue<std::vector<Double_t>>* MissMassCorrDETPC;
+  TTreeReaderValue<std::vector<Double_t>>* MissMassNuclTPC;
+  TTreeReaderValue<std::vector<Double_t>>* MissMassNuclCorrTPC;
+  TTreeReaderValue<std::vector<Double_t>>* MissMassNuclCorrDETPC;
   TTreeReaderValue<std::vector<Double_t>>* pOrgTPC;
   TTreeReaderValue<std::vector<Double_t>>* pCorrTPC;
   TTreeReaderValue<std::vector<Double_t>>* pCorrDETPC;
@@ -1193,6 +1202,9 @@ dst::DstRead( int ievent )
   event.MissMassTPC = **src.MissMassTPC;
   event.MissMassCorrTPC = **src.MissMassCorrTPC;
   event.MissMassCorrDETPC = **src.MissMassCorrDETPC;
+  event.MissMassNuclTPC = **src.MissMassNuclTPC;
+  event.MissMassNuclCorrTPC = **src.MissMassNuclCorrTPC;
+  event.MissMassNuclCorrDETPC = **src.MissMassNuclCorrDETPC;
   event.pOrgTPC = **src.pOrgTPC;
   event.pCorrTPC = **src.pCorrTPC;
   event.pCorrDETPC = **src.pCorrDETPC;
@@ -1463,6 +1475,9 @@ dst::DstRead( int ievent )
       Double_t MissMass = event.MissMassTPC[id];
       Double_t MissMassCorr = event.MissMassCorrTPC[id];
       Double_t MissMassCorrDE = event.MissMassCorrDETPC[id];
+      // Double_t MissMassNucl = event.MissMassNuclTPC[id];
+      // Double_t MissMassNuclCorr = event.MissMassNuclCorrTPC[id];
+      // Double_t MissMassNuclCorrDE = event.MissMassNuclCorrDETPC[id];
       Double_t XiStarKaonMomCorrDE = event.xistarpCalcDETPC[id];
       Double_t ProtonMom = event.kpscatpCalcDETPC[id];
       Double_t ProtonMomCorrDE = event.kpscatpCalcDETPC[id];
@@ -2448,6 +2463,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "MissMassTPC", &event.MissMassTPC);
   tree->Branch( "MissMassCorrTPC", &event.MissMassCorrTPC);
   tree->Branch( "MissMassCorrDETPC", &event.MissMassCorrDETPC);
+  tree->Branch( "MissMassNuclTPC", &event.MissMassNuclTPC);
+  tree->Branch( "MissMassNuclCorrTPC", &event.MissMassNuclCorrTPC);
+  tree->Branch( "MissMassNuclCorrDETPC", &event.MissMassNuclCorrDETPC);
   tree->Branch( "pOrgTPC", &event.pOrgTPC);
   tree->Branch( "pCorrTPC", &event.pCorrTPC);
   tree->Branch( "pCorrDETPC", &event.pCorrDETPC);
@@ -2635,6 +2653,9 @@ ConfMan::InitializeHistograms( void )
   src.MissMassTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "MissMassTPC" );
   src.MissMassCorrTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "MissMassCorrTPC" );
   src.MissMassCorrDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "MissMassCorrDETPC" );
+  src.MissMassNuclTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "MissMassNuclTPC" );
+  src.MissMassNuclCorrTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "MissMassNuclCorrTPC" );
+  src.MissMassNuclCorrDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "MissMassNuclCorrDETPC" );
   src.pOrgTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pOrgTPC" );
   src.pCorrTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pCorrTPC" );
   src.pCorrDETPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pCorrDETPC" );

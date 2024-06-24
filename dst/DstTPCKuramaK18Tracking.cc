@@ -7,6 +7,8 @@
 #include <TLorentzVector.h>
 #include <Math/ProbFunc.h>
 
+#include <TGeoPhysicalConstants.h>
+
 #include <filesystem_util.hh>
 #include <UnpackerManager.hh>
 
@@ -46,8 +48,8 @@
 #define TrigC 0
 #define TrigD 0
 
-#define KKEvent 1
-#define KPEvent 0
+#define KKEvent 0
+#define KPEvent 1
 
 #define SaveHistograms 1
 #define RawHit 0
@@ -415,6 +417,9 @@ struct Event
   std::vector<Double_t> MissMassTPC;
   std::vector<Double_t> MissMassCorrTPC;
   std::vector<Double_t> MissMassCorrDETPC;
+  std::vector<Double_t> MissMassNuclTPC;
+  std::vector<Double_t> MissMassNuclCorrTPC;
+  std::vector<Double_t> MissMassNuclCorrDETPC;
   std::vector<Double_t> pOrgTPC;
   std::vector<Double_t> pCorrTPC;
   std::vector<Double_t> pCorrDETPC;
@@ -800,6 +805,9 @@ struct Event
     MissMassTPC.clear();
     MissMassCorrTPC.clear();
     MissMassCorrDETPC.clear();
+    MissMassNuclTPC.clear();
+    MissMassNuclCorrTPC.clear();
+    MissMassNuclCorrDETPC.clear();
     pOrgTPC.clear();
     pCorrTPC.clear();
     pCorrDETPC.clear();
@@ -1178,6 +1186,9 @@ dst::DstRead( int ievent )
   static const auto LambdaMass  = pdg::LambdaMass();
   static const auto XiMass      = pdg::XiMinusMass();
   static const auto XiStarMass  = 1.5350;
+  static const auto ElectronMass = pdg::ElectronMass();
+  static const Double_t Carbon12Mass = 12.*TGeoUnit::amu_c2 - 6.*ElectronMass;
+  static const Double_t Boron11Mass  = 11.009305167*TGeoUnit::amu_c2 - 5.*ElectronMass;
   static const auto MaxChisqrBcOut = gUser.GetParameter("MaxChisqrBcOut");
   static const auto MaxChisqrKurama = gUser.GetParameter("MaxChisqrKurama");
   static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
@@ -1807,6 +1818,9 @@ dst::DstRead( int ievent )
   event.MissMassTPC.resize(nkk);
   event.MissMassCorrTPC.resize(nkk);
   event.MissMassCorrDETPC.resize(nkk);
+  event.MissMassNuclTPC.resize(nkk);
+  event.MissMassNuclCorrTPC.resize(nkk);
+  event.MissMassNuclCorrDETPC.resize(nkk);
   event.pOrgTPC.resize(nkk);
   event.pCorrTPC.resize(nkk);
   event.pCorrDETPC.resize(nkk);
@@ -1885,6 +1899,7 @@ dst::DstRead( int ievent )
       LorentzVector LvScat(pScat, std::sqrt(ScatMass*ScatMass+pScat.Mag2()));
       LorentzVector LvScatCorr(pScatCorr, std::sqrt(ScatMass*ScatMass+pScatCorr.Mag2()));
       LorentzVector LvScatCorrDE(pScatCorrDE, std::sqrt(ScatMass*ScatMass+pScatCorrDE.Mag2()));
+      // proton
       LorentzVector LvC(0., 0., 0., ProtonMass);
       LorentzVector LvRc = LvKm + LvC - LvScat;
       LorentzVector LvRcCorr = LvKmCorr + LvC - LvScatCorr;
@@ -1893,6 +1908,15 @@ dst::DstRead( int ievent )
       Double_t MissMass = LvRc.Mag();
       Double_t MissMassCorr = LvRcCorr.Mag();
       Double_t MissMassCorrDE = LvRcCorrDE.Mag();//-LvC.Mag();
+
+      // Carbon12 nucleus
+      LorentzVector LvCNucl(0., 0., 0., Carbon12Mass);
+      LorentzVector LvRcNucl = LvKm + LvCNucl - LvScat;
+      LorentzVector LvRcNuclCorr = LvKmCorr + LvCNucl - LvScatCorr;
+      LorentzVector LvRcNuclCorrDE = LvKmCorrDE + LvCNucl - LvScatCorrDE;      
+      Double_t MissMassNucl = LvRcNucl.Mag();
+      Double_t MissMassNuclCorr = LvRcNuclCorr.Mag();
+      Double_t MissMassNuclCorrDE = LvRcNuclCorrDE.Mag();//-LvC.Mag();
 
       Double_t cost = pKmCorr*pScatCorr/(pKmCorr.Mag()*pScatCorr.Mag());
       Double_t theta = TMath::ACos(cost)*TMath::RadToDeg();
@@ -2028,6 +2052,9 @@ dst::DstRead( int ievent )
       event.MissMassTPC[id] = MissMass;
       event.MissMassCorrTPC[id] = MissMassCorr;
       event.MissMassCorrDETPC[id] = MissMassCorrDE;
+      event.MissMassNuclTPC[id] = MissMassNucl;
+      event.MissMassNuclCorrTPC[id] = MissMassNuclCorr;
+      event.MissMassNuclCorrDETPC[id] = MissMassNuclCorrDE;
 
       event.thetaTPC[id] = theta;
       event.pOrgTPC[id] = pOrg;
@@ -3767,7 +3794,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "closeDistTPC", &event.closeDistTPC);
   tree->Branch( "MissMassTPC", &event.MissMassTPC);
   tree->Branch( "MissMassCorrTPC", &event.MissMassCorrTPC);
-  tree->Branch( "MissMassCorrDETPC", &event.MissMassCorrDETPC);
+  tree->Branch( "MissMassCorrDETPC", &event.MissMassNuclCorrDETPC);
+  tree->Branch( "MissMassNuclTPC", &event.MissMassNuclTPC);
+  tree->Branch( "MissMassNuclCorrTPC", &event.MissMassNuclCorrTPC);
+  tree->Branch( "MissMassNuclCorrDETPC", &event.MissMassNuclCorrDETPC);
   tree->Branch( "pOrgTPC", &event.pOrgTPC);
   tree->Branch( "pCorrTPC", &event.pCorrTPC);
   tree->Branch( "pCorrDETPC", &event.pCorrDETPC);

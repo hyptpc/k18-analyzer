@@ -672,6 +672,14 @@ dst::DstRead(Int_t ievent)
   static const Double_t Carbon12Mass = 12.*TGeoUnit::amu_c2 - 6.*ElectronMass;
   static const Double_t Boron11Mass  = 11.009305167*TGeoUnit::amu_c2 - 5.*ElectronMass;
 
+  std::cout << "kaon mass" <<KaonMass << std::endl;
+  std::cout << "proton mass" << ProtonMass << std::endl;
+  std::cout << "electron mass" << ElectronMass << std::endl;
+  std::cout << "carbon 12 mass" << Carbon12Mass << std::endl;
+  std::cout << "boron 11 mass" << Boron11Mass << std::endl;
+  std::cout << "amu_c2" << TGeoUnit::amu_c2 << std::endl;
+
+
   if(ievent%10000 == 0){
     std::cout << FUNC_NAME << " Event Number: "
 	      << std::setw(6) << ievent << std::endl;
