@@ -37,8 +37,8 @@
 #define TrigC 0
 #define TrigD 0
 
-#define KKEvent 0
-#define KPEvent 1
+#define KKEvent 1
+#define KPEvent 0
 
 #define SaveHistograms 1
 #define RawCluster 1
@@ -139,7 +139,13 @@ struct Event
   std::vector<std::vector<Double_t>> pathhit;
   std::vector<std::vector<Double_t>> alpha;
   std::vector<std::vector<Double_t>> track_cluster_de;
+  std::vector<std::vector<Double_t>> track_cluster_size;
   std::vector<std::vector<Double_t>> track_cluster_mrow;
+  std::vector<std::vector<Double_t>> track_cluster_de_center;
+  std::vector<std::vector<Double_t>> track_cluster_x_center;
+  std::vector<std::vector<Double_t>> track_cluster_y_center;
+  std::vector<std::vector<Double_t>> track_cluster_z_center;
+  std::vector<std::vector<Double_t>> track_cluster_row_center;
 
   Int_t nvtxTpc;
   std::vector<Double_t> vtx_x;
@@ -420,7 +426,13 @@ struct Event
     pathhit.clear();
     alpha.clear();
     track_cluster_de.clear();
+    track_cluster_size.clear();
     track_cluster_mrow.clear();
+    track_cluster_de_center.clear();
+    track_cluster_x_center.clear();
+    track_cluster_y_center.clear();
+    track_cluster_z_center.clear();
+    track_cluster_row_center.clear();
 
     nvtxTpc = 0;
     vtx_x.clear();
@@ -699,7 +711,13 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* pathhit;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* alpha;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_de;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_size;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_mrow;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_de_center;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_x_center;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_y_center;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_z_center;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_row_center;
 
   TTreeReaderValue<Int_t>* nvtxTpc;
   TTreeReaderValue<std::vector<Double_t>>* vtx_x;
@@ -1276,7 +1294,7 @@ dst::DstRead( int ievent )
 	    }
 	  }
 	}
-	
+
 	HF1(1001, event.pK18[idKm]);
 	HF1(1002, event.pKurama[idScat]);
 	HF1(1003, event.qKurama[idScat]*TMath::Sqrt(event.m2[idScat]));
@@ -1778,7 +1796,13 @@ dst::DstRead( int ievent )
   event.pathhit = **src.pathhit;
   event.alpha = **src.alpha;
   event.track_cluster_de = **src.track_cluster_de;
+  event.track_cluster_size = **src.track_cluster_size;
   event.track_cluster_mrow = **src.track_cluster_mrow;
+  event.track_cluster_de_center = **src.track_cluster_de_center;
+  event.track_cluster_x_center = **src.track_cluster_x_center;
+  event.track_cluster_y_center = **src.track_cluster_y_center;
+  event.track_cluster_z_center = **src.track_cluster_z_center;
+  event.track_cluster_row_center = **src.track_cluster_row_center;
 
   event.nvtxTpc = **src.nvtxTpc;
   event.vtx_x = **src.vtx_x;
@@ -1855,7 +1879,7 @@ ConfMan::InitializeHistograms( void )
   HB1(44, "KK TPC tagging", 2, 0., 2. );
 
   HB2(20, "1/#beta;p/q [GeV/#font[12]{c}];1/#beta", 1000, -2.0, 2.0, 1000, 0.0, 5.0);
-  
+
   HB1(1001, "P K18", 800, 1.4, 2.2);
   HB1(1002, "P Kurama", 600, 0, 3);
   HB1(1003, "Charge*Mass", 600, -1., 2.5);
@@ -2293,7 +2317,13 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "pathhit", &event.pathhit);
   tree->Branch( "alpha", &event.alpha);
   tree->Branch( "track_cluster_de", &event.track_cluster_de);
+  tree->Branch( "track_cluster_size", &event.track_cluster_size);
   tree->Branch( "track_cluster_mrow", &event.track_cluster_mrow);
+  tree->Branch( "track_cluster_de_center", &event.track_cluster_de_center);
+  tree->Branch( "track_cluster_x_center", &event.track_cluster_x_center);
+  tree->Branch( "track_cluster_y_center", &event.track_cluster_y_center);
+  tree->Branch( "track_cluster_z_center", &event.track_cluster_z_center);
+  tree->Branch( "track_cluster_row_center", &event.track_cluster_row_center);
 
   tree->Branch( "nvtxTpc", &event.nvtxTpc );
   tree->Branch( "vtx_x", &event.vtx_x );
@@ -2563,7 +2593,13 @@ ConfMan::InitializeHistograms( void )
   src.pathhit = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "pathhit" );
   src.alpha = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "alpha" );
   src.track_cluster_de = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_de" );
+  src.track_cluster_size = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_size" );
   src.track_cluster_mrow = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_mrow" );
+  src.track_cluster_de_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_de_center" );
+  src.track_cluster_x_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_x_center" );
+  src.track_cluster_y_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_y_center" );
+  src.track_cluster_z_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_z_center" );
+  src.track_cluster_row_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_row_center" );
 
   src.nvtxTpc = new TTreeReaderValue<Int_t>(*reader,"nvtxTpc");
   src.vtx_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_x" );
