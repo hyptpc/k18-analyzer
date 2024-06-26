@@ -1913,7 +1913,7 @@ dst::DstRead( int ievent )
       LorentzVector LvCNucl(0., 0., 0., Carbon12Mass);
       LorentzVector LvRcNucl = LvKm + LvCNucl - LvScat;
       LorentzVector LvRcNuclCorr = LvKmCorr + LvCNucl - LvScatCorr;
-      LorentzVector LvRcNuclCorrDE = LvKmCorrDE + LvCNucl - LvScatCorrDE;      
+      LorentzVector LvRcNuclCorrDE = LvKmCorrDE + LvCNucl - LvScatCorrDE;
       Double_t MissMassNucl = LvRcNucl.Mag();
       Double_t MissMassNuclCorr = LvRcNuclCorr.Mag();
       Double_t MissMassNuclCorrDE = LvRcNuclCorrDE.Mag();//-LvC.Mag();
@@ -3794,7 +3794,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "closeDistTPC", &event.closeDistTPC);
   tree->Branch( "MissMassTPC", &event.MissMassTPC);
   tree->Branch( "MissMassCorrTPC", &event.MissMassCorrTPC);
-  tree->Branch( "MissMassCorrDETPC", &event.MissMassNuclCorrDETPC);
+  tree->Branch( "MissMassCorrDETPC", &event.MissMassCorrDETPC);
   tree->Branch( "MissMassNuclTPC", &event.MissMassNuclTPC);
   tree->Branch( "MissMassNuclCorrTPC", &event.MissMassNuclCorrTPC);
   tree->Branch( "MissMassNuclCorrDETPC", &event.MissMassNuclCorrDETPC);
