@@ -6,8 +6,10 @@
 #include <vector>
 
 #include "TPCLocalTrackHelix.hh"
+#include "TPCLocalTrack.hh"
 #include <TString.h>
 
+class TPCLocalTrack;
 class TPCLocalTrackHelix;
 
 //_____________________________________________________________________________
@@ -47,6 +49,8 @@ public:
 
   void Calculate(TPCLocalTrackHelix* track1,
 		 TPCLocalTrackHelix* track2);
+  void Calculate(TPCLocalTrack* track1,
+		 TPCLocalTrack* track2);
   Bool_t IsCalculated() const { return m_is_calculated; }
 
   TVector3 GetVertex() const { return m_vertex; }

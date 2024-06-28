@@ -218,6 +218,40 @@ TPCVertexHelix::ReconstructLambdaWithVertex(TPCLocalTrackHelix* track1, TPCLocal
   delete Track2;
 }
 
+//not supported (E42 is not using this)
+//_____________________________________________________________________________
+void
+TPCVertexHelix::Calculate(TPCLocalTrack* track1, TPCLocalTrack* track2)
+{
+
+  /*
+  // For vertex finding (Closest point betweepn helix tracks)
+  // Scanning range (-VertexScanRange, Tracklength + VertexScanRange) for each helix track
+  static const Double_t VertexScanRange = gUser.GetParameter("VertexScanRange"); //mm
+
+  Double_t par1[5];
+  track1 -> GetParam(par1);
+  Double_t par2[5];
+  track2 -> GetParam(par2);
+
+  Double_t dist;
+  TVector3 vertex = Kinematics::VertexPoint();
+
+  if(!TMath::IsNaN(dist) &&
+     TMath::Abs(vertex.x()) < 250. &&
+     TMath::Abs(vertex.z()) < 250. &&
+     TMath::Abs(vertex.y()) < 250.) m_is_calculated = true;
+
+  if(m_is_calculated){
+    m_vertex = vertex;
+    m_track_pos.push_back(track1 -> GetPosition(par1, theta1));
+    m_track_pos.push_back(track2 -> GetPosition(par2, theta2));
+    m_angle = ;
+    m_distance = dist;
+  }
+  */
+}
+
 //_____________________________________________________________________________
 void
 TPCVertexHelix::Print(const TString& arg, Bool_t print_all) const
