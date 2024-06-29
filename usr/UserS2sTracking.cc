@@ -27,11 +27,13 @@
 #include "S2sLib.hh"
 #include "MathTools.hh"
 #include "RawData.hh"
+#include "MatrixParamMan.hh"
 #include "RootHelper.hh"
 #include "UnpackerManager.hh"
 
 #define HodoCut 0
 #define UseTOF  0
+#define Matrix2D 0
 
 namespace
 {
@@ -39,6 +41,7 @@ using namespace root;
 using hddaq::unpacker::GUnpacker;
 const auto qnan = TMath::QuietNaN();
 const auto& gUnpacker = GUnpacker::get_instance();
+const auto& gMatrix = MatrixParamMan::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& zTOF = gGeom.LocalZ("TOF");
@@ -451,6 +454,32 @@ ProcessingNormal()
   if(!common_stop_is_tof) return true;
 
   HF1(1, 6.);
+
+#if Matrix2D
+  Bool_t enable_2d = false;
+  Int_t nctof = hodoAna.GetNClusters("TOF");
+  rawData.DecodeHits("WC");
+  hodoAna.DecodeHits("WC");
+  Int_t ncwc  = hodoAna.GetNClusters("WC");
+  for(Int_t i=0; i<nctof; ++i){
+    for(Int_t j=0; j<ncwc; ++j){
+      const auto& cltof = hodoAna.GetCluster("TOF", i);
+      const auto& clwc  = hodoAna.GetCluster("WC", j);
+      if(!cltof || !clwc) continue;
+      Double_t tofseg = cltof->MeanSeg()+1;
+      Double_t wcseg  = clwc->MeanSeg()+1;
+      if(gMatrix.IsAccept(tofseg-1, wcseg-1)){
+  	enable_2d = true;
+  	break;
+      }
+    }
+    if(enable_2d) break;
+  }
+  if(!enable_2d) return true;
+  // if(enable_2d) return true;
+#endif
+
+  HF1(1, 8.);
 
   HF1(1, 10.);
 
@@ -1341,12 +1370,13 @@ Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return
-    (InitializeParameter<DCGeomMan>("DCGEO")        &&
-     InitializeParameter<DCDriftParamMan>("DCDRFT") &&
-     InitializeParameter<DCTdcCalibMan>("DCTDC")    &&
-     InitializeParameter<HodoParamMan>("HDPRM")     &&
-     InitializeParameter<HodoPHCMan>("HDPHC")       &&
-     InitializeParameter<FieldMan>("FLDMAP") &&
+    (InitializeParameter<DCGeomMan>("DCGEO")          &&
+     InitializeParameter<DCDriftParamMan>("DCDRFT")   &&
+     InitializeParameter<DCTdcCalibMan>("DCTDC")      &&
+     InitializeParameter<HodoParamMan>("HDPRM")       &&
+     InitializeParameter<HodoPHCMan>("HDPHC")         &&
+     InitializeParameter<FieldMan>("FLDMAP")          &&
+     InitializeParameter<MatrixParamMan>("MATRIX2D1") &&
      InitializeParameter<UserParamMan>("USER"));
 }
 

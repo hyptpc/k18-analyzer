@@ -22,7 +22,7 @@ MatrixParamMan::MatrixParamMan()
   // 2D
   m_enable_2d.resize(NumOfSegTOF);
   for(Int_t i=0; i<NumOfSegTOF; ++i){
-    m_enable_2d[i].resize(NumOfSegSCH);
+    m_enable_2d[i].resize(NumOfSegWC);
   }
   // 3D
   m_enable_3d.resize(NumOfSegTOF);
@@ -41,21 +41,31 @@ MatrixParamMan::~MatrixParamMan()
 
 //_____________________________________________________________________________
 Bool_t
-MatrixParamMan::Initialize()
+MatrixParamMan::Initialize(const TString& file_name_2d)
 {
-  return Initialize(m_file_name_2d, m_file_name_3d);
+  m_file_name_2d = file_name_2d;
+  return Initialize();
 }
 
 //_____________________________________________________________________________
 Bool_t
-MatrixParamMan::Initialize(const TString& filename_2d,
-                           const TString& filename_3d)
+MatrixParamMan::Initialize(const TString& file_name_2d,
+                           const TString& file_name_3d)
 {
-  {
-    std::ifstream ifs(filename_2d);
+  m_file_name_2d = file_name_2d;
+  m_file_name_3d = file_name_3d;
+  return Initialize();
+}
+
+//_____________________________________________________________________________
+Bool_t
+MatrixParamMan::Initialize()
+{
+  if(!m_file_name_2d.IsNull()){
+    std::ifstream ifs(m_file_name_2d);
     if(!ifs.is_open()){
       hddaq::cerr << FUNC_NAME << " "
-		  << "No such 2D parameter file : " << filename_2d << std::endl;
+		  << "No such 2D parameter file : " << m_file_name_2d << std::endl;
       std::exit(EXIT_FAILURE);
     }
 
@@ -79,15 +89,15 @@ MatrixParamMan::Initialize(const TString& filename_2d,
       Int_t enable  = std::strtol(param[1].substr(0,1).c_str(), NULL, 0);
 
       m_enable_2d[tofseg][channel] = enable;
-      if(channel==NumOfSegSCH-1) ++tofseg;
+      if(channel==NumOfSegWC-1) ++tofseg;
     }
   }
 
-  {
-    std::ifstream ifs(filename_3d);
+  if(!m_file_name_3d.IsNull()){
+    std::ifstream ifs(m_file_name_3d);
     if(!ifs.is_open()){
       hddaq::cerr << FUNC_NAME << " "
-		  << "No such 3D parameter file : " << filename_3d << std::endl;
+		  << "No such 3D parameter file : " << m_file_name_3d << std::endl;
       std::exit(EXIT_FAILURE);
     }
 
@@ -174,7 +184,7 @@ MatrixParamMan::Print2D(const TString& arg) const
   for(Int_t i=NumOfSegTOF-1; i>=0; --i){
     hddaq::cout << " detA = " << std::setw(2)
 		<< std::right << i << " : ";
-    for(Int_t j=0; j<NumOfSegSCH; ++j){
+    for(Int_t j=0; j<NumOfSegWC; ++j){
       hddaq::cout << m_enable_2d[i][j];
     }
     hddaq::cout << std::endl;

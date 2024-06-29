@@ -32,6 +32,7 @@ private:
 
 public:
   Bool_t Initialize();
+  Bool_t Initialize(const TString& filename_2d);
   Bool_t Initialize(const TString& filename_2d,
                     const TString& filename_3d);
   Bool_t IsAccept(Int_t detA, Int_t detB) const;
@@ -56,7 +57,7 @@ MatrixParamMan::GetInstance()
 inline const TString&
 MatrixParamMan::ClassName()
 {
-  static TString g_name("MatixParamMan");
+  static TString g_name("MatrixParamMan");
   return g_name;
 }
 
