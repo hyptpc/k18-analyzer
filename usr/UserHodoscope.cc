@@ -385,6 +385,7 @@ Dst::clear()
   nhBh2    = 0;
   nhTof    = 0;
   nhAc1    = 0;
+  nhWc    = 0;
   evnum    = 0;
   spill    = 0;
   Time0Seg = qnan;
@@ -456,6 +457,15 @@ Dst::clear()
       csAc1[MaxDepth*it + m]  = 0;
       Ac1Seg[MaxDepth*it + m] = qnan;
       tAc1[MaxDepth*it + m]   = qnan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegWC; it++){
+    for(Int_t m=0; m<MaxDepth; ++m){
+      csWc[MaxDepth*it + m]  = 0;
+      WcSeg[MaxDepth*it + m] = qnan;
+      tWc[MaxDepth*it + m]   = qnan;
+      deWc[MaxDepth*it + m]  = qnan;
     }
   }
 
