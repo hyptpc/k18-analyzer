@@ -25,6 +25,7 @@
 #include "RootHelper.hh"
 #include "TPCAnalyzer.hh"
 #include "TPCCluster.hh"
+#include "TPCVertex.hh"
 #include "TPCPadHelper.hh"
 #include "TPCLocalTrackHelix.hh"
 #include "TPCLTrackHit.hh"
@@ -147,6 +148,17 @@ struct Event
   std::vector<std::vector<Double_t>> track_cluster_z_center;
   std::vector<std::vector<Double_t>> track_cluster_row_center;
 
+  std::vector<Int_t> chargeIndistinguishable;
+  std::vector<Double_t> chisqr_inverted;
+  std::vector<Double_t> pval_inverted;
+  std::vector<Double_t> helix_cx_inverted;
+  std::vector<Double_t> helix_cy_inverted;
+  std::vector<Double_t> helix_z0_inverted;
+  std::vector<Double_t> helix_r_inverted;
+  std::vector<Double_t> helix_dz_inverted;
+  std::vector<Double_t> mom0_inverted;//Helix momentum at Y = 0
+  std::vector<Int_t> pid_inverted;
+
   Int_t nvtxTpc;
   std::vector<Double_t> vtx_x;
   std::vector<Double_t> vtx_y;
@@ -180,6 +192,12 @@ struct Event
   std::vector<std::vector<Double_t>> decaysmomLambda_x;
   std::vector<std::vector<Double_t>> decaysmomLambda_y;
   std::vector<std::vector<Double_t>> decaysmomLambda_z;
+
+  Int_t nvtxTpcClustered;
+  std::vector<Double_t> clusteredVtx_x;
+  std::vector<Double_t> clusteredVtx_y;
+  std::vector<Double_t> clusteredVtx_z;
+  std::vector<std::vector<Double_t>> clusteredVtxid;
 
   Int_t ntK18;
   std::vector<Double_t> pK18;
@@ -434,6 +452,17 @@ struct Event
     track_cluster_z_center.clear();
     track_cluster_row_center.clear();
 
+    chargeIndistinguishable.clear();
+    chisqr_inverted.clear();
+    pval_inverted.clear();
+    helix_cx_inverted.clear();
+    helix_cy_inverted.clear();
+    helix_z0_inverted.clear();
+    helix_r_inverted.clear();
+    helix_dz_inverted.clear();
+    mom0_inverted.clear();
+    pid_inverted.clear();
+
     nvtxTpc = 0;
     vtx_x.clear();
     vtx_y.clear();
@@ -467,6 +496,12 @@ struct Event
     decaysmomLambda_x.clear();
     decaysmomLambda_y.clear();
     decaysmomLambda_z.clear();
+
+    nvtxTpcClustered = 0;
+    clusteredVtx_x.clear();
+    clusteredVtx_y.clear();
+    clusteredVtx_z.clear();
+    clusteredVtxid.clear();
 
     ntK18 = 0;
     pK18.clear();
@@ -719,6 +754,17 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_z_center;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_row_center;
 
+  TTreeReaderValue<std::vector<Int_t>>* chargeIndistinguishable;
+  TTreeReaderValue<std::vector<Int_t>>* pid_inverted;
+  TTreeReaderValue<std::vector<Double_t>>* chisqr_inverted;
+  TTreeReaderValue<std::vector<Double_t>>* pval_inverted;
+  TTreeReaderValue<std::vector<Double_t>>* helix_cx_inverted;
+  TTreeReaderValue<std::vector<Double_t>>* helix_cy_inverted;
+  TTreeReaderValue<std::vector<Double_t>>* helix_z0_inverted;
+  TTreeReaderValue<std::vector<Double_t>>* helix_r_inverted;
+  TTreeReaderValue<std::vector<Double_t>>* helix_dz_inverted;
+  TTreeReaderValue<std::vector<Double_t>>* mom0_inverted;//Helix momentum at Y = 0
+
   TTreeReaderValue<Int_t>* nvtxTpc;
   TTreeReaderValue<std::vector<Double_t>>* vtx_x;
   TTreeReaderValue<std::vector<Double_t>>* vtx_y;
@@ -752,6 +798,12 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* decaysmomLambda_x;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* decaysmomLambda_y;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* decaysmomLambda_z;
+
+  TTreeReaderValue<Int_t>* nvtxTpcClustered;
+  TTreeReaderValue<std::vector<Double_t>>* clusteredVtx_x;
+  TTreeReaderValue<std::vector<Double_t>>* clusteredVtx_y;
+  TTreeReaderValue<std::vector<Double_t>>* clusteredVtx_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* clusteredVtxid;
 
   TTreeReaderValue<Int_t>* ntTPCK18; // Number of Tracks
   TTreeReaderValue<std::vector<Int_t>>* tpcidTPCK18;
@@ -1804,6 +1856,17 @@ dst::DstRead( int ievent )
   event.track_cluster_z_center = **src.track_cluster_z_center;
   event.track_cluster_row_center = **src.track_cluster_row_center;
 
+  event.chargeIndistinguishable = **src.chargeIndistinguishable;
+  event.pid_inverted = **src.pid_inverted;
+  event.chisqr_inverted = **src.chisqr_inverted;
+  event.pval_inverted = **src.pval_inverted;
+  event.helix_cx_inverted = **src.helix_cx_inverted;
+  event.helix_cy_inverted = **src.helix_cy_inverted;
+  event.helix_z0_inverted = **src.helix_z0_inverted;
+  event.helix_r_inverted = **src.helix_r_inverted;
+  event.helix_dz_inverted = **src.helix_dz_inverted;
+  event.mom0_inverted = **src.mom0_inverted;
+
   event.nvtxTpc = **src.nvtxTpc;
   event.vtx_x = **src.vtx_x;
   event.vtx_y = **src.vtx_y;
@@ -1837,6 +1900,12 @@ dst::DstRead( int ievent )
   event.decaysmomLambda_x = **src.decaysmomLambda_x;
   event.decaysmomLambda_y = **src.decaysmomLambda_y;
   event.decaysmomLambda_z = **src.decaysmomLambda_z;
+
+  event.nvtxTpcClustered = **src.nvtxTpcClustered;
+  event.clusteredVtx_x = **src.clusteredVtx_x;
+  event.clusteredVtx_y = **src.clusteredVtx_y;
+  event.clusteredVtx_z = **src.clusteredVtx_z;
+  event.clusteredVtxid = **src.clusteredVtxid;
 
   return true;
 }
@@ -2325,6 +2394,17 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_z_center", &event.track_cluster_z_center);
   tree->Branch( "track_cluster_row_center", &event.track_cluster_row_center);
 
+  tree->Branch( "chargeIndistinguishable", &event.chargeIndistinguishable );
+  tree->Branch( "chisqr_inverted", &event.chisqr_inverted );
+  tree->Branch( "pval_inverted", &event.pval_inverted );
+  tree->Branch( "helix_cx_inverted", &event.helix_cx_inverted );
+  tree->Branch( "helix_cy_inverted", &event.helix_cy_inverted );
+  tree->Branch( "helix_z0_inverted", &event.helix_z0_inverted );
+  tree->Branch( "helix_r_inverted", &event.helix_r_inverted );
+  tree->Branch( "helix_dz_inverted", &event.helix_dz_inverted );
+  tree->Branch( "mom0_inverted", &event.mom0_inverted );
+  tree->Branch( "pid_inverted", &event.pid_inverted );
+
   tree->Branch( "nvtxTpc", &event.nvtxTpc );
   tree->Branch( "vtx_x", &event.vtx_x );
   tree->Branch( "vtx_y", &event.vtx_y );
@@ -2358,6 +2438,12 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "decaysmomLambda_x", &event.decaysmomLambda_x );
   tree->Branch( "decaysmomLambda_y", &event.decaysmomLambda_y );
   tree->Branch( "decaysmomLambda_z", &event.decaysmomLambda_z );
+
+  tree->Branch( "nvtxTpcClustered", &event.nvtxTpcClustered );
+  tree->Branch( "clusteredVtx_x", &event.clusteredVtx_x );
+  tree->Branch( "clusteredVtx_y", &event.clusteredVtx_y );
+  tree->Branch( "clusteredVtx_z", &event.clusteredVtx_z );
+  tree->Branch( "clusteredVtxid", &event.clusteredVtxid );
 
   tree->Branch( "ntK18", &event.ntK18);
   tree->Branch( "chisqrK18", &event.chisqrK18);
@@ -2601,6 +2687,17 @@ ConfMan::InitializeHistograms( void )
   src.track_cluster_z_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_z_center" );
   src.track_cluster_row_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_row_center" );
 
+  src.chargeIndistinguishable = new TTreeReaderValue<std::vector<Int_t>>( *reader, "chargeIndistinguishable" );
+  src.pid_inverted = new TTreeReaderValue<std::vector<Int_t>>( *reader, "pid_inverted" );
+  src.chisqr_inverted = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqr_inverted" );
+  src.pval_inverted = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pval_inverted" );
+  src.helix_cx_inverted = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_cx_inverted" );
+  src.helix_cy_inverted = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_cy_inverted" );
+  src.helix_z0_inverted = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_z0_inverted" );
+  src.helix_r_inverted = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_r_inverted" );
+  src.helix_dz_inverted = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_dz_inverted" );
+  src.mom0_inverted = new TTreeReaderValue<std::vector<Double_t>>( *reader, "mom0_inverted" );
+
   src.nvtxTpc = new TTreeReaderValue<Int_t>(*reader,"nvtxTpc");
   src.vtx_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_x" );
   src.vtx_y = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_y" );
@@ -2616,7 +2713,6 @@ ConfMan::InitializeHistograms( void )
   src.vtxmom_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_y" );
   src.vtxmom_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_z" );
 
-  src.nvtxTpc = new TTreeReaderValue<Int_t>(*reader,"nvtxTpc");
   src.isLambda = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isLambda" );
   src.ncombiLambda = new TTreeReaderValue<std::vector<Int_t>>( *reader, "ncombiLambda" );
   src.distLambda = new TTreeReaderValue<std::vector<Double_t>>( *reader, "distLambda" );
@@ -2635,6 +2731,12 @@ ConfMan::InitializeHistograms( void )
   src.decaysmomLambda_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "decaysmomLambda_x" );
   src.decaysmomLambda_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "decaysmomLambda_y" );
   src.decaysmomLambda_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "decaysmomLambda_z" );
+
+  src.nvtxTpcClustered = new TTreeReaderValue<Int_t>(*reader,"nvtxTpcClustered");
+  src.clusteredVtx_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "clusteredVtx_x" );
+  src.clusteredVtx_y = new TTreeReaderValue<std::vector<Double_t>>( *reader, "clusteredVtx_y" );
+  src.clusteredVtx_z = new TTreeReaderValue<std::vector<Double_t>>( *reader, "clusteredVtx_z" );
+  src.clusteredVtxid = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "clusteredVtxid" );
 
   src.ntTPCK18 = new TTreeReaderValue<Int_t>( *reader, "ntK18" );
   src.tpcidTPCK18 = new TTreeReaderValue<std::vector<Int_t>>( *reader, "tpcidTPCK18" );

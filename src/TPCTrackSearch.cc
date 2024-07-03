@@ -50,7 +50,7 @@ Detailed fitting procedures are explained in the TPCLocalTrack/Helix.
 #include "TPCLTrackHit.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLocalTrackHelix.hh"
-#include "TPCVertexHelix.hh"
+#include "TPCVertex.hh"
 #include "TPCCluster.hh"
 #include "RootHelper.hh"
 #include "DebugCounter.hh"
@@ -76,6 +76,7 @@ namespace
 
   // Closest distance cut for vertex finding
   const Double_t VertexDistCut = 30.;
+  const Double_t ppi_distcut = 10.; //Closest distance for p, pi at the vertex point
 
   // Maximum number of fitting steps
   //const Int_t MaxFitSteps = 5;
@@ -465,8 +466,8 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 #endif
 
   CalcTracks(TrackCont);
-  MarkingAccidentalTracks(TrackCont);
   CalcTracks(TrackContFailed);
+  //MarkingAccidentalTracks(TrackCont);
   if(Exclusive) ExclusiveTracking(TrackCont);
   return TrackCont.size();
 }
@@ -717,7 +718,7 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
 		  std::vector<TPCLocalTrackHelix*>& TrackCont,
 		  std::vector<TPCLocalTrackHelix*>& TrackContFailed,
 		  std::vector<TPCLocalTrackHelix*>& TrackContVP,
-		  std::vector<TPCVertexHelix*>& VertexCont,
+		  std::vector<TPCVertex*>& VertexCont,
 		  Bool_t Exclusive,
 		  Int_t MinNumOfHits)
 {
@@ -1018,8 +1019,10 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 Int_t
 LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 		      std::vector<TPCLocalTrackHelix*>& TrackCont,
+		      std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,
 		      std::vector<TPCLocalTrackHelix*>& TrackContFailed,
-		      std::vector<TPCVertexHelix*>& VertexCont,
+		      std::vector<TPCVertex*>& VertexCont,
+		      std::vector<TPCVertex*>& ClusteredVertexCont,
 		      Bool_t Exclusive,
 		      Int_t MinNumOfHits)
 {
@@ -1028,11 +1031,14 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   //Scattered helix track searching
   HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+
 #if RemainingClustersTest
   ResetHoughFlag(ClCont, BadForTracking);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
 #endif
   CalcTracks(TrackCont); //before the VertexSearch() calculation should proceed.
+
+  if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
 
   //Vertex finding with tracks in the TrackCont.
   VertexSearch(TrackCont, VertexCont);
@@ -1040,10 +1046,14 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   //Merged fragmented tracks
   RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
-  if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
+
 #if ReassignClusterTest
   ReassignClustersNearTheTarget(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
+
+  MarkingAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont);
+
+  TestingCharge(TrackCont, TrackContInvertedCharge, VertexCont, Exclusive);
 
 #if DebugDisp
   std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
@@ -1061,9 +1071,11 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 		      std::vector<std::vector<TVector3>> KuramaVPs,
 		      const std::vector<TPCClusterContainer>& ClCont,
 		      std::vector<TPCLocalTrackHelix*>& TrackCont,
+		      std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,
 		      std::vector<TPCLocalTrackHelix*>& TrackContVP,
 		      std::vector<TPCLocalTrackHelix*>& TrackContFailed,
-		      std::vector<TPCVertexHelix*>& VertexCont,
+		      std::vector<TPCVertex*>& VertexCont,
+		      std::vector<TPCVertex*>& ClusteredVertexCont,
 		      Bool_t Exclusive,
 		      Int_t MinNumOfHits)
 {
@@ -1081,19 +1093,23 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
   //Scattered helix track searching
   HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+
 #if RemainingClustersTest
   ResetHoughFlag(ClCont, BadForTracking);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
 #endif
   CalcTracks(TrackCont); //before the VertexSearch() calculation should proceed.
 
+  if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
+
   //Vertex finding with tracks in the TrackCont.
   VertexSearch(TrackCont, VertexCont);
+
 #if FragmentedTrackTest
   //Merged fragmented tracks
   RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
-  if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
+
 #if ReassignClusterTest
   ReassignClustersNearTheTarget(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
@@ -1101,10 +1117,9 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
   //Search Kurama track candidates from the TrackCont.
   KuramaTrackSearch(KuramaVPs, ClCont, TrackCont, TrackContFailed, TrackContVP, VertexCont, Exclusive, MinNumOfHits);
 
-#if DebugDisp
-  std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
-  std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
-#endif
+  MarkingAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont);
+
+  TestingCharge(TrackCont, TrackContInvertedCharge, VertexCont, Exclusive);
 
   CalcTracks(TrackContVP);
   CalcTracks(TrackContFailed); //Tracking failed cases
@@ -1207,7 +1222,7 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
   }// tracki
 
   CalcTracks(TrackCont);
-  if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
+  //if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
 }
 
 //_____________________________________________________________________________
@@ -1308,7 +1323,7 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
   }//tracki
 
   CalcTracks(TrackCont);
-  if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
+  //if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
 }
 
 //_____________________________________________________________________________
@@ -1432,16 +1447,17 @@ HighMomHelixTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 }
 
 //_____________________________________________________________________________
+template <typename T>
 void
-VertexSearch(std::vector<TPCLocalTrackHelix*>& TrackCont,
-	     std::vector<TPCVertexHelix*>& VertexCont)
+VertexSearch(std::vector<T*>& TrackCont,
+	     std::vector<TPCVertex*>& VertexCont)
 {
   //pair
   for(Int_t trackid1=0; trackid1<TrackCont.size(); trackid1++){
-    TPCLocalTrackHelix *track1 = TrackCont[trackid1];
+    T *track1 = TrackCont[trackid1];
     for(Int_t trackid2=trackid1+1; trackid2<TrackCont.size(); trackid2++){
-      TPCLocalTrackHelix *track2 = TrackCont[trackid2];
-      TPCVertexHelix *vertex = new TPCVertexHelix(trackid1, trackid2);
+      T *track2 = TrackCont[trackid2];
+      TPCVertex *vertex = new TPCVertex(trackid1, trackid2);
       vertex -> Calculate(track1, track2);
 
       Double_t closedist = vertex -> GetClosestDist();
@@ -1456,7 +1472,6 @@ VertexSearch(std::vector<TPCLocalTrackHelix*>& TrackCont,
       else delete vertex;
     } //trackid2
   } //trackid1
-
 }
 
 //_____________________________________________________________________________
@@ -1464,12 +1479,12 @@ template <typename T> void
 RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
 			std::vector<T*>& TrackCont,
 			std::vector<T*>& TrackContFailed,
-			std::vector<TPCVertexHelix*>& VertexCont,
+			std::vector<TPCVertex*>& VertexCont,
 			Bool_t Exclusive,
 			Int_t MinNumOfHits)
 {
 
-  std::vector<TPCVertexHelix*> candidates_VertexCont;
+  std::vector<TPCVertex*> candidates_VertexCont;
   std::vector<Int_t> candidates;
   for(auto& vertex: VertexCont){
     //Threshold conditions of a distance and an angle between two tracks.
@@ -1478,14 +1493,15 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     Int_t trackid2 = vertex -> GetTrackId(1);
     if(TrackCont[trackid1] -> GetIsK18()==1 ||
        TrackCont[trackid2] -> GetIsK18()==1) continue;
+
     /*
       std::cout<<"id "<<vertex -> GetTrackId(0)<<" "<<vertex -> GetTrackId(1)<<std::endl;
       std::cout<<"vtx "<<TMath::Abs(vtx.x())<<" "<<TMath::Abs(vtx.y())<<" "<<TMath::Abs(vtx.z())<<std::endl;
       std::cout<<"angle "<<0.1*TMath::Pi()<<" "<<vertex -> GetOpeningAngle()<<" "<<(1. - 0.1)*TMath::Pi()<<std::endl;
     */
+
     //case1. accidental beam crossing the target is splitted into two tracks
     //case2. merging fragmentations of commom track. for case2. closest point of two parts are not in the track
-    Bool_t is_fragmented_accidental = (TrackCont[trackid1] -> GetIsBeam()==1 || TrackCont[trackid2] -> GetIsBeam()==1);
 
     //two parts are close.
     if(vertex -> GetClosestDist() > 20. ||
@@ -1527,7 +1543,6 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
       delete MergedTrack;
       continue;
     }
-
     candidates.push_back(trackid1);
     candidates.push_back(trackid2);
 
@@ -1538,10 +1553,6 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
 
     Int_t prev_size = TrackCont.size();
     FitTrack(MergedTrack, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
-#if DebugDisp
-    MergedTrack -> Print(FUNC_NAME+" After fitting the merged track");
-    //MergedTrack -> Print(FUNC_NAME+" After fitting the merged track", true);
-#endif
 
     Int_t post_size = TrackCont.size();
     if(prev_size+1 == post_size){
@@ -1551,10 +1562,11 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
 	MergedTrack -> DoFitExclusive();
 	MergedTrack -> CalculateExclusive();
       }
-      if(is_fragmented_accidental){
-	MergedTrack -> SetIsAccidental();
-	MergedTrack -> SetIsBeam();
-      }
+
+#if DebugDisp
+      MergedTrack -> Print(FUNC_NAME+" After fitting the merged track");
+      //MergedTrack -> Print(FUNC_NAME+" After fitting the merged track", true);
+#endif
     }
     else{
       candidates_VertexCont.push_back(vertex);
@@ -1571,7 +1583,6 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     TVector3 vtx = vertex -> GetVertex();
     Int_t trackid1 = vertex -> GetTrackId(0);
     Int_t trackid2 = vertex -> GetTrackId(1);
-    Bool_t is_fragmented_accidental = (TrackCont[trackid1] -> GetIsBeam()==1 || TrackCont[trackid2] -> GetIsBeam()==1);
 
 #if DebugDisp
     vertex -> Print(FUNC_NAME+" Vertex candidate for merging tracks");
@@ -1626,10 +1637,7 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
 	  MergedTrack -> DoFitExclusive();
 	  MergedTrack -> CalculateExclusive();
 	}
-	if(is_fragmented_accidental){
-	  MergedTrack -> SetIsAccidental();
-	  MergedTrack -> SetIsBeam();
-	}
+	MergedTrack -> CheckIsAccidental();
       }
     }
     else{
@@ -1663,7 +1671,7 @@ template <typename T> void
 ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
 			      std::vector<T*>& TrackCont,
 			      std::vector<T*>& TrackContFailed,
-			      std::vector<TPCVertexHelix*>& VertexCont,
+			      std::vector<TPCVertex*>& VertexCont,
 			      Bool_t Exclusive,
 			      Int_t MinNumOfHits)
 {
@@ -1689,6 +1697,7 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
       TPCHit *hit0 = hitp0->GetHit();
       Int_t layer0 = hitp0->GetLayer();
       TVector3 pos0 = hitp0->GetLocalHitPos();
+      if(TMath::Abs(pos0.y()) > 50.) continue;
       if(layer0 > MostInnerlayer_Track) continue;
       status = true;
       candidates_trackid.push_back(trackid);
@@ -1713,6 +1722,7 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
 	TPCHit *hit1 = hitp1->GetHit();
 	Int_t layer1 = hitp1->GetLayer();
 	TVector3 pos1 = hitp1->GetLocalHitPos();
+	if(TMath::Abs(pos1.y()) > 50.) continue;
 	if(n-1 <= MinNumOfHits || layer1 > MostInnerlayer_Cluster) continue;
 
 	//Exclude most inner cluster and dofit.
@@ -1745,6 +1755,9 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
   //After excluding clusters near the target, try to add more clusters
   //Because of clusters near the target, frequently tracking quility becomes worse.
   //So without those clusters, it is better to try to add clusters
+  Bool_t reassaign = false;
+  std::vector<Int_t> reassaign_candidates;
+
   for(Int_t i=0; i<newtracks_fortest.size(); i++){
     Int_t trackid = candidates_trackid[i];
     if(trackid == k18id) continue;
@@ -1758,10 +1771,11 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
     if(prev_size+1 == post_size){ //Fitting is succeeded
       CopiedTrack = TrackCont[post_size-1];
       if(Exclusive) CopiedTrack -> DoFitExclusive();
-
       TrackCont.erase(TrackCont.begin() + TrackCont.size() - 1);
 
       if(CopiedTrack -> GetNHit() >= track -> GetNHit()){
+	reassaign = true;
+	reassaign_candidates.push_back(trackid);
 	newtracks_fortest[i] = CopiedTrack;
 	delete track;
       }
@@ -1771,11 +1785,9 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
   ResetHoughFlag(ClCont); //return Houghflag from "candidate" to "0""
 
 #if DebugDisp
-  std::cout<<FUNC_NAME+" Finding the best combination between tracks and cludsters"<<std::endl;
+  std::cout<<FUNC_NAME+" Finding the best combination between tracks and clusters"<<std::endl;
 #endif
 
-  Bool_t reassaign = false;
-  std::vector<Int_t> reassaign_candidates;
   for(Int_t i=0; i<clusters_fortest.size(); i++){
     TPCHit *hit = clusters_fortest[i]; //cluster for testing
     TVector3 pos = hit -> GetPosition();
@@ -1844,15 +1856,14 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
 	  //update with a new track and delete the previous track
 	  T *prev_track = TrackCont[trackid];
 	  TrackCont[trackid] = newtracks_fortest[i];
-	  if(prev_track -> GetIsBeam()){
-	    std::cout<<"isbeam trackid "<<trackid<<newtracks_fortest[i]->GetIsBeam()<<std::endl;
-	  }
 	  delete prev_track;
 	}
 	else delete newtracks_fortest[i];
       }
     } //for scattered tracks
+  }
 
+  if(reassaign){
     //Vertex finding again with new tracks
     del::ClearContainer(VertexCont);
     VertexSearch(TrackCont, VertexCont);
@@ -1862,6 +1873,234 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
 #endif
     if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
   } //reassaigning process
+}
+
+//_____________________________________________________________________________
+template <typename T> void
+MarkingAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
+				   std::vector<TPCVertex*>& VertexCont,
+				   std::vector<TPCVertex*>& ClusteredVertexCont)
+{
+
+  Double_t tgtXZ_cut = 30.; //mm
+  Double_t target_section = 15; // abs(y)<target_section is not counted in this function
+  //Double_t accidental_section = 30;
+  Double_t accidental_section = 50;
+
+  TVector3 tgt(0., 0., tpc::ZTarget);
+  std::vector<std::vector<TPCVertex*>> clustered_vertices; //Clustered tracks id
+  std::vector<std::vector<Int_t>> clustered_tracks; //Clustered tracks id
+  std::vector<TVector3> accidental_vertices;
+
+  std::vector<Int_t> candidates_trackids;
+
+  Int_t ntracks = TrackCont.size();
+  for(Int_t trackid=0; trackid<ntracks; trackid++){
+    T* ref_track = TrackCont[trackid];
+    if(ref_track -> GetIsK18()==1 || ref_track -> GetIsKurama()==1) continue;
+    if(ref_track -> GetIsBeam()!=1) continue;
+
+    std::vector<TPCVertex*> candidate_clustered_vertices;
+    std::vector<Int_t> candidate_clustered_tracks;
+    std::vector<TVector3> candidate_clustered_pos;
+
+    TVector3 vertex_point(0, 0, 0);
+    candidate_clustered_tracks.push_back(trackid);
+    candidate_clustered_pos.push_back(ref_track -> GetClosestPositionTgtXZ() - tgt);
+    for(auto& vertex: VertexCont){
+      if(vertex -> GetClosestDist() > 15.) continue;
+      //if(vertex -> GetClosestDist() > 20.) continue;
+      TVector3 vtx = vertex -> GetVertex() - tgt;
+      if(TMath::Hypot(vtx.x(), vtx.z()) > tgtXZ_cut) continue;
+
+      Int_t trackid1 = vertex -> GetTrackId(0);
+      Int_t trackid2 = vertex -> GetTrackId(1);
+      if(trackid2 == trackid){
+	trackid1 = vertex -> GetTrackId(1);
+	trackid2 = vertex -> GetTrackId(0);
+      }
+      else if(trackid1 != trackid) continue;
+
+      T* coin_track = TrackCont[trackid2];
+      if(coin_track -> GetIsK18()==1 || coin_track -> GetIsKurama()==1) continue;
+      TVector3 residual_tgt = coin_track -> GetClosestPositionTgtXZ() - tgt;
+      Double_t distXZ = TMath::Hypot(residual_tgt.x(), residual_tgt.z());
+      if(distXZ > tgtXZ_cut) continue;
+
+      candidate_clustered_vertices.push_back(vertex);
+      candidate_clustered_tracks.push_back(trackid2);
+      candidate_clustered_pos.push_back(residual_tgt);
+
+      vertex_point += residual_tgt;
+      candidates_trackids.push_back(trackid2);
+    }
+
+    if(candidate_clustered_tracks.size() < 2) continue;
+    candidates_trackids.push_back(trackid);
+
+    Double_t nvtx = candidate_clustered_tracks.size();
+
+    clustered_vertices.push_back(candidate_clustered_vertices);
+    clustered_tracks.push_back(candidate_clustered_tracks);
+    accidental_vertices.push_back(TVector3(vertex_point.x()/nvtx,
+					   vertex_point.y()/nvtx,
+					   vertex_point.z()/nvtx));
+  } //trackid
+
+  std::sort(candidates_trackids.begin(), candidates_trackids.end());
+  candidates_trackids.erase(std::unique(candidates_trackids.begin(), candidates_trackids.end()), candidates_trackids.end());
+
+  for(Int_t trackid=0; trackid<ntracks; trackid++){
+    if(find(candidates_trackids.begin(), candidates_trackids.end(), trackid) != candidates_trackids.end()) continue;
+
+    T* ref_track = TrackCont[trackid];
+    if(ref_track -> GetIsK18()==1 || ref_track -> GetIsKurama()==1) continue;
+    if(ref_track -> GetIsBeam()==1) continue;
+
+    TVector3 ref_residual_tgt = ref_track -> GetClosestPositionTgtXZ() - tgt;
+    Double_t ref_distXZ = TMath::Hypot(ref_residual_tgt.x(), ref_residual_tgt.z());
+    if(ref_distXZ > tgtXZ_cut) continue;
+
+    std::vector<TPCVertex*> candidate_clustered_vertices;
+    std::vector<Int_t> candidate_clustered_tracks;
+    std::vector<TVector3> candidate_clustered_pos;
+
+    TVector3 vertex_point(0, 0, 0);
+    candidate_clustered_tracks.push_back(trackid);
+    candidate_clustered_pos.push_back(ref_residual_tgt);
+    for(auto& vertex: VertexCont){
+      if(vertex -> GetClosestDist() > 15.) continue;
+      TVector3 vtx = vertex -> GetVertex() - tgt;
+      if(TMath::Hypot(vtx.x(), vtx.z()) > tgtXZ_cut) continue;
+
+      Int_t trackid1 = vertex -> GetTrackId(0);
+      Int_t trackid2 = vertex -> GetTrackId(1);
+
+      if(trackid2 == trackid){
+	trackid1 = vertex -> GetTrackId(1);
+	trackid2 = vertex -> GetTrackId(0);
+      }
+      else if(trackid1 != trackid) continue;
+
+      T* coin_track = TrackCont[trackid2];
+      if(coin_track -> GetIsK18()==1 || coin_track -> GetIsKurama()==1) continue;
+      if(coin_track -> GetIsBeam()==1) continue;
+      TVector3 residual_tgt = coin_track -> GetClosestPositionTgtXZ() - tgt;
+      Double_t distXZ = TMath::Hypot(residual_tgt.x(), residual_tgt.z());
+      if(distXZ > tgtXZ_cut) continue;
+
+      Double_t nvtx = candidate_clustered_tracks.size();
+      TVector3 vertexpos(vertex_point.x()/nvtx,
+			 vertex_point.y()/nvtx,
+			 vertex_point.z()/nvtx);
+      TVector3 resi = vertexpos - residual_tgt;
+      candidate_clustered_vertices.push_back(vertex);
+      candidate_clustered_tracks.push_back(trackid2);
+      candidate_clustered_pos.push_back(residual_tgt);
+
+      candidates_trackids.push_back(trackid2);
+
+      vertex_point += residual_tgt;
+    }
+
+    if(candidate_clustered_tracks.size() < 2) continue;
+    candidates_trackids.push_back(trackid);
+
+    Double_t nvtx = candidate_clustered_tracks.size();
+
+    clustered_vertices.push_back(candidate_clustered_vertices);
+    clustered_tracks.push_back(candidate_clustered_tracks);
+    accidental_vertices.push_back(TVector3(vertex_point.x()/nvtx,
+					   vertex_point.y()/nvtx,
+					   vertex_point.z()/nvtx));
+  } //trackid
+
+  for(Int_t id=0; id<accidental_vertices.size(); id++){
+    if(TMath::Abs(accidental_vertices[id].y()) < target_section) continue;
+    else if(TMath::Abs(accidental_vertices[id].y()) > accidental_section){
+      for(Int_t candi=0; candi<clustered_tracks[id].size(); candi++){
+	int trackid = clustered_tracks[id][candi];
+	TrackCont[trackid] -> SetIsAccidental();
+      }
+    }
+    for(auto& vertex: clustered_vertices[id]) vertex -> SetIsAccidental();
+
+    TPCVertex *clustered_vtx = new TPCVertex(accidental_vertices[id], clustered_tracks[id]);
+    ClusteredVertexCont.push_back(clustered_vtx);
+  }
+
+}
+
+//_____________________________________________________________________________
+template <typename T> void
+TestingCharge(std::vector<T*>& TrackCont,
+	      std::vector<T*>& TrackContInvertedCharge,
+	      std::vector<TPCVertex*>& VertexCont,
+	      Bool_t Exclusive)
+{
+
+  Bool_t flag = false;
+  TrackContInvertedCharge.resize(TrackCont.size());
+  for(Int_t trackid=0; trackid<TrackCont.size(); trackid++){
+    T *track = TrackCont[trackid];
+    if(track -> GetIsAccidental()==1 || track -> GetIsK18()==1 || track -> GetIsBeam()==1 || track -> GetIsKurama()==1) continue;
+
+    T *InvertedTrack = new T(track);
+    Bool_t test = InvertedTrack -> TestInvertCharge();
+    if(!test || (track -> GetCharge() == InvertedTrack -> GetCharge())){
+      delete InvertedTrack;
+      continue;
+    }
+
+    flag = true;
+    InvertedTrack -> Calculate();
+    if(Exclusive) InvertedTrack -> DoFitExclusive();
+
+    Int_t pid = track -> GetPid();
+    Bool_t proton = ((pid&4)==4 && (pid&1)!=1);
+    Bool_t pion = ((pid&4)!=4 && (pid&1)==1);
+
+    Bool_t invert = false;
+    if(!invert && track -> GetChiSquare() > InvertedTrack -> GetChiSquare()) invert = true;
+    else if(proton && InvertedTrack -> GetCharge()>0) invert = true;
+    else if(pion && InvertedTrack -> GetCharge()<0) invert = true;
+    else{
+      for(Int_t i=0; i<VertexCont.size(); i++){
+	TPCVertex *vertex = VertexCont[i];
+	Double_t closedist = vertex -> GetClosestDist();
+	if(closedist < ppi_distcut){
+	  Int_t trackid1 = vertex -> GetTrackId(0);
+	  Int_t trackid2 = vertex -> GetTrackId(1);
+	  if(trackid1 != trackid && trackid2 != trackid) continue;
+
+	  T *track1 = TrackCont[trackid1];
+	  T *track2 = TrackCont[trackid2];
+	  if(trackid1 == trackid) track1 = InvertedTrack;
+	  else if(trackid2 == trackid) track2 = InvertedTrack;
+
+	  TPCVertex *newvertex = new TPCVertex(trackid1, trackid2);
+	  newvertex -> Calculate(track1, track2);
+	  if(newvertex -> GetIsLambda()) invert = true;
+	  delete newvertex;
+	}
+      }
+    }
+
+    if(invert){
+      TrackCont[trackid] = InvertedTrack;
+      TrackContInvertedCharge[trackid] = track;
+    }
+    else{
+      TrackCont[trackid] = track;
+      TrackContInvertedCharge[trackid] = InvertedTrack;
+    }
+  }
+
+  if(flag){
+    //Vertex finding again with new tracks
+    del::ClearContainer(VertexCont);
+    VertexSearch(TrackCont, VertexCont);
+  }
 }
 
 } //namespace tpc

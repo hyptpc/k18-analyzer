@@ -326,7 +326,7 @@ TPCAnalyzer::TrackSearchTPCHelix(Bool_t exclusive)
   }
 
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
-  tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixFailed, m_TPCVCHelix, exclusive, MinLayer);
+  tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixInverted, m_TPCTCHelixFailed, m_TPCVC, m_TPCVCClustered, exclusive, MinLayer);
 
   m_is_decoded[kTPCTracking] = true;
   return true;
@@ -345,7 +345,7 @@ TPCAnalyzer::TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
   }
 
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
-  tpc::LocalTrackSearchHelix(K18VPs, KuramaVPs, m_TPCClCont, m_TPCTCHelix, m_TPCTCVP, m_TPCTCHelixFailed, m_TPCVCHelix, exclusive, MinLayer);
+  tpc::LocalTrackSearchHelix(K18VPs, KuramaVPs, m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixInverted, m_TPCTCVP, m_TPCTCHelixFailed, m_TPCVC, m_TPCVCClustered, exclusive, MinLayer);
 
   m_is_decoded[kTPCTracking] = true;
   return true;
@@ -408,6 +408,7 @@ TPCAnalyzer::ClearTPCTracks()
   del::ClearContainer(m_TPCTC);
   del::ClearContainer(m_TPCTCFailed);
   del::ClearContainer(m_TPCTCHelix);
+  del::ClearContainer(m_TPCTCHelixInverted);
   del::ClearContainer(m_TPCTCVP);
   del::ClearContainer(m_TPCTCHelixFailed);
 }
@@ -416,7 +417,8 @@ TPCAnalyzer::ClearTPCTracks()
 void
 TPCAnalyzer::ClearTPCVertices()
 {
-  del::ClearContainer(m_TPCVCHelix);
+  del::ClearContainer(m_TPCVC);
+  del::ClearContainer(m_TPCVCClustered);
 }
 
 //_____________________________________________________________________________
@@ -541,7 +543,6 @@ TPCAnalyzer::DoFitTPCKuramaTrack(Int_t KuramaTrackID,
     track -> SetPID(PID);
     track -> SetTPCTrackID(ittpc);
     if(track->DoFit(initPos, initMom, U2D) && track->ChiSquare()<MaxChiSqrTrack){
-      //if(track->DoFit(initPos, initMom, U2D)){
       tempKuramaTC.push_back(track);
       gChisqr.push_back(track -> ChiSquare());
       status = true;
@@ -682,7 +683,6 @@ TPCAnalyzer::DoFitTPCK18Track(Int_t K18TrackID,
     //After track matching of a K18Track and a TPC track
     TPCRKTrack* track = MakeTPCK18Track(tpctrack, layerID, wire, localHitPos);
     if(track->DoFit(initPos, initMom, U2D) && track->ChiSquare()<MaxChiSqrTrack){
-      //if(track->DoFit(initPos, initMom, U2D)){
       tempK18TC.push_back(track);
       gChisqr.push_back(track -> ChiSquare());
       track -> SetTPCTrackID(ittpc);

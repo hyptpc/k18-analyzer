@@ -36,7 +36,7 @@
 #include "TPCCluster.hh"
 #include "TPCPadHelper.hh"
 #include "TPCLocalTrackHelix.hh"
-#include "TPCVertexHelix.hh"
+#include "TPCVertex.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
@@ -48,8 +48,8 @@
 #define TrigC 0
 #define TrigD 0
 
-#define KKEvent 0
-#define KPEvent 1
+#define KKEvent 1
+#define KPEvent 0
 
 #define SaveHistograms 1
 #define RawHit 0
@@ -299,6 +299,21 @@ struct Event
   std::vector<std::vector<Double_t>> intrinsic_residual_y;
   std::vector<std::vector<Double_t>> intrinsic_residual_z;
 
+  //Inverted charge track
+  std::vector<Int_t> chargeIndistinguishable;
+  std::vector<Double_t> chisqr_inverted;
+  std::vector<Double_t> pval_inverted;
+  std::vector<Double_t> helix_cx_inverted;
+  std::vector<Double_t> helix_cy_inverted;
+  std::vector<Double_t> helix_z0_inverted;
+  std::vector<Double_t> helix_r_inverted;
+  std::vector<Double_t> helix_dz_inverted;
+  std::vector<Double_t> mom0_x_inverted;//Helix momentum at Y = 0
+  std::vector<Double_t> mom0_y_inverted;//Helix momentum at Y = 0
+  std::vector<Double_t> mom0_z_inverted;//Helix momentum at Y = 0
+  std::vector<Double_t> mom0_inverted;//Helix momentum at Y = 0
+  std::vector<Int_t> pid_inverted;
+
   Int_t vpntTpc; // Number of Tracks
   std::vector<Int_t> vpnhtrack;
   std::vector<Int_t> vptrackid; //for Kurama K1.8 tracks
@@ -477,6 +492,12 @@ struct Event
   std::vector<std::vector<Double_t>> decaysmomLambda_x;
   std::vector<std::vector<Double_t>> decaysmomLambda_y;
   std::vector<std::vector<Double_t>> decaysmomLambda_z;
+
+  Int_t nvtxTpcClustered;
+  std::vector<Double_t> Clusteredvtx_x;
+  std::vector<Double_t> Clusteredvtx_y;
+  std::vector<Double_t> Clusteredvtx_z;
+  std::vector<std::vector<Double_t>> Clusteredvtxid;
 
   void clear( void )
   {
@@ -686,6 +707,20 @@ struct Event
     intrinsic_residual_y.clear();
     intrinsic_residual_z.clear();
 
+    chargeIndistinguishable.clear();
+    chisqr_inverted.clear();
+    pval_inverted.clear();
+    helix_cx_inverted.clear();
+    helix_cy_inverted.clear();
+    helix_z0_inverted.clear();
+    helix_r_inverted.clear();
+    helix_dz_inverted.clear();
+    mom0_x_inverted.clear();
+    mom0_y_inverted.clear();
+    mom0_z_inverted.clear();
+    mom0_inverted.clear();
+    pid_inverted.clear();
+
     vpntTpc = 0;
     vpnhtrack.clear();
     vptrackid.clear();
@@ -847,6 +882,12 @@ struct Event
     vtxmom_x.clear();
     vtxmom_y.clear();
     vtxmom_z.clear();
+
+    nvtxTpcClustered = 0;
+    Clusteredvtx_x.clear();
+    Clusteredvtx_y.clear();
+    Clusteredvtx_z.clear();
+    Clusteredvtxid.clear();
 
     isLambda.clear();
     ncombiLambda.clear();
@@ -2657,6 +2698,20 @@ dst::DstRead( int ievent )
   event.intrinsic_residual_y.resize( ntTpc );
   event.intrinsic_residual_z.resize( ntTpc );
 
+  event.chargeIndistinguishable.resize( ntTpc );
+  event.chisqr_inverted.resize( ntTpc );
+  event.pval_inverted.resize( ntTpc );
+  event.helix_cx_inverted.resize( ntTpc );
+  event.helix_cy_inverted.resize( ntTpc );
+  event.helix_z0_inverted.resize( ntTpc );
+  event.helix_r_inverted.resize( ntTpc );
+  event.helix_dz_inverted.resize( ntTpc );
+  event.mom0_x_inverted.resize( ntTpc );
+  event.mom0_y_inverted.resize( ntTpc );
+  event.mom0_z_inverted.resize( ntTpc );
+  event.mom0_inverted.resize( ntTpc );
+  event.pid_inverted.resize( ntTpc );
+
   for( Int_t it=0; it<ntTpc; ++it ){
     TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix( it );
     if( !tp ) continue;
@@ -2968,9 +3023,38 @@ dst::DstRead( int ievent )
       HF2(TPCIntrinsicHid+1300+10000,layer,intrinsic_resi_z/res_vect.z());
 #endif
     }
+
+    //Inverted charge tracks
+    TPCLocalTrackHelix *tp_inverted = TPCAna.GetTrackTPCHelixChargeInverted( it );
+    if( !tp_inverted ) event.chargeIndistinguishable[it] = 0;
+    else{
+      Double_t chisqr = tp_inverted->GetChiSquare();
+      Double_t pval = 1-ROOT::Math::chisquared_cdf(chisqr*(2*nhEff-5), 2*nhEff-5);
+      Double_t helix_cx = tp_inverted->Getcx(), helix_cy = tp_inverted->Getcy();
+      Double_t helix_z0 = tp_inverted->Getz0(), helix_r = tp_inverted->Getr();
+      Double_t helix_dz = tp_inverted->Getdz();
+      TVector3 mom0 = tp_inverted->GetMom0();
+      Int_t charge = tp_inverted->GetCharge();
+      Int_t pid = tp_inverted->GetPid();
+
+      event.chargeIndistinguishable[it] = 1;
+      event.chisqr_inverted[it] = chisqr;
+      event.pval_inverted[it] = pval;
+      event.helix_cx_inverted[it] = helix_cx;
+      event.helix_cy_inverted[it] = helix_cy;
+      event.helix_z0_inverted[it] = helix_z0;
+      event.helix_r_inverted[it] = helix_r ;
+      event.helix_dz_inverted[it] = helix_dz;
+      event.mom0_x_inverted[it] = mom0.x();
+      event.mom0_y_inverted[it] = mom0.y();
+      event.mom0_z_inverted[it] = mom0.z();
+      event.mom0_inverted[it] = mom0.Mag();
+      event.pid_inverted[it] = pid;
+      continue;
+    }
   }
 
-  Int_t nvtxTpc = TPCAna.GetNVerticesTPCHelix();
+  Int_t nvtxTpc = TPCAna.GetNVerticesTPC();
   event.nvtxTpc = nvtxTpc;
   event.vtx_x.resize(nvtxTpc);
   event.vtx_y.resize(nvtxTpc);
@@ -3005,7 +3089,7 @@ dst::DstRead( int ievent )
   event.decaysmomLambda_y.resize(nvtxTpc);
   event.decaysmomLambda_z.resize(nvtxTpc);
   for( Int_t it=0; it<nvtxTpc; ++it ){
-    TPCVertexHelix *vp = TPCAna.GetTPCVertexHelix( it );
+    TPCVertex *vp = TPCAna.GetTPCVertex( it );
     if( !vp ) continue;
     event.vtx_x[it] = vp -> GetVertex().x();
     event.vtx_y[it] = vp -> GetVertex().y();
@@ -3082,6 +3166,26 @@ dst::DstRead( int ievent )
 	event.decaysmomLambda_z[it].push_back(pimom.z());
       }
       event.bestmassLambda[it] = best_lmass;
+    }
+  }
+
+  Int_t nvtxTpcClustered = TPCAna.GetNVerticesTPCClustered();
+  event.nvtxTpcClustered = nvtxTpcClustered;
+  event.Clusteredvtx_x.resize(nvtxTpcClustered);
+  event.Clusteredvtx_y.resize(nvtxTpcClustered);
+  event.Clusteredvtx_z.resize(nvtxTpcClustered);
+  event.Clusteredvtxid.resize(nvtxTpcClustered);
+  for( Int_t ivtx=0; ivtx<nvtxTpcClustered; ++ivtx ){
+    TPCVertex *vp = TPCAna.GetTPCVertexClustered( ivtx );
+    if( !vp ) continue;
+    event.Clusteredvtx_x[ivtx] = vp -> GetVertex().x();
+    event.Clusteredvtx_y[ivtx] = vp -> GetVertex().y();
+    event.Clusteredvtx_z[ivtx] = vp -> GetVertex().z();
+
+    Int_t ntracks = vp -> GetNTracks(ivtx);
+    event.Clusteredvtxid[ivtx].resize(ntracks);
+    for( Int_t it=0; it<ntracks; ++it ){
+      event.Clusteredvtxid[ivtx][it] = vp -> GetTrackId(it);
     }
   }
 
@@ -3934,6 +4038,20 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "intrinsic_residual_z", &event.intrinsic_residual_z );
 #endif
 
+  tree->Branch( "chargeIndistinguishable", &event.chargeIndistinguishable );
+  tree->Branch( "chisqr_inverted", &event.chisqr_inverted );
+  tree->Branch( "pval_inverted", &event.pval_inverted );
+  tree->Branch( "helix_cx_inverted", &event.helix_cx_inverted );
+  tree->Branch( "helix_cy_inverted", &event.helix_cy_inverted );
+  tree->Branch( "helix_z0_inverted", &event.helix_z0_inverted );
+  tree->Branch( "helix_r_inverted", &event.helix_r_inverted );
+  tree->Branch( "helix_dz_inverted", &event.helix_dz_inverted );
+  tree->Branch( "mom0_x_inverted", &event.mom0_x_inverted );
+  tree->Branch( "mom0_y_inverted", &event.mom0_y_inverted );
+  tree->Branch( "mom0_z_inverted", &event.mom0_z_inverted );
+  tree->Branch( "mom0_inverted", &event.mom0_inverted );
+  tree->Branch( "pid_inverted", &event.pid_inverted );
+
   tree->Branch( "vpntTpc", &event.vpntTpc );
   tree->Branch( "vpnhtrack", &event.vpnhtrack );
   tree->Branch( "vptrackid", &event.vptrackid );
@@ -4026,6 +4144,12 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "decaysmomLambda_x", &event.decaysmomLambda_x );
   tree->Branch( "decaysmomLambda_y", &event.decaysmomLambda_y );
   tree->Branch( "decaysmomLambda_z", &event.decaysmomLambda_z );
+
+  tree->Branch( "nvtxTpcClustered", &event.nvtxTpcClustered );
+  tree->Branch( "clusteredVtx_x", &event.Clusteredvtx_x );
+  tree->Branch( "clusteredVtx_y", &event.Clusteredvtx_y );
+  tree->Branch( "clusteredVtx_z", &event.Clusteredvtx_z );
+  tree->Branch( "clusteredVtxid", &event.Clusteredvtxid );
 
   TTreeReaderCont[kTpcHit] = new TTreeReader( "tpc", TFileCont[kTpcHit] );
   const auto& reader = TTreeReaderCont[kTpcHit];

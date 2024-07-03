@@ -14,14 +14,14 @@ class TPCHit;
 class TPCCluster;
 class TPCLocalTrack;
 class TPCLocalTrackHelix;
-class TPCVertexHelix;
+class TPCVertex;
 class TPCRKTrack;
 
 typedef std::vector<TPCHit*>        TPCHitContainer;
 typedef std::vector<TPCCluster*>    TPCClusterContainer;
 typedef std::vector<TPCLocalTrack*> TPCLocalTrackContainer;
 typedef std::vector<TPCLocalTrackHelix*> TPCLocalTrackHelixContainer;
-typedef std::vector<TPCVertexHelix*> TPCVertexHelixContainer;
+typedef std::vector<TPCVertex*> TPCVertexContainer;
 typedef std::vector<TPCRKTrack*>    TPCRKTrackContainer;
 
 //_____________________________________________________________________________
@@ -45,11 +45,13 @@ private:
   TPCLocalTrackContainer             m_TPCTC;
   TPCLocalTrackContainer             m_TPCTCFailed;
   TPCLocalTrackHelixContainer        m_TPCTCHelix;
+  TPCLocalTrackHelixContainer        m_TPCTCHelixInverted;
   TPCLocalTrackHelixContainer        m_TPCTCVP; //Reconstucted K1.8, Kurama RK track's hits on virtual plane
   TPCLocalTrackHelixContainer        m_TPCTCHelixFailed;
   TPCRKTrackContainer                m_TPCKuramaTC;
   TPCRKTrackContainer                m_TPCK18TC;
-  TPCVertexHelixContainer            m_TPCVCHelix;
+  TPCVertexContainer                 m_TPCVC; //vertex between two tracks
+  TPCVertexContainer                 m_TPCVCClustered; //clusted position of multi-tracks
 
 public:
 
@@ -134,10 +136,12 @@ public:
 			     std::vector<std::vector<TVector3>> KuramaVPs,
 			     Bool_t exclusive=false);
   Int_t GetNTracksTPCHelix() const { return m_TPCTCHelix.size(); }
+  Int_t GetNTracksTPCHelixChargeInverted() const { return m_TPCTCHelixInverted.size(); }
   Int_t GetNTracksTPCVP() const { return m_TPCTCVP.size(); }
   Int_t GetNTracksTPCHelixFailed() const { return m_TPCTCHelixFailed.size(); }
   TPCLocalTrackHelix* GetTrackTPCHelix(Int_t l) const { return m_TPCTCHelix.at(l); }
   TPCLocalTrackHelix* GetTrackTPCVP(Int_t l) const { return m_TPCTCVP.at(l); }
+  TPCLocalTrackHelix* GetTrackTPCHelixChargeInverted(Int_t l) const { return m_TPCTCHelixInverted.at(l); }
   TPCLocalTrackHelix* GetTrackTPCHelixFailed(Int_t l) const { return m_TPCTCHelixFailed.at(l); }
   Bool_t TestHoughTransformHelix();
 
@@ -199,9 +203,13 @@ public:
 			     TVector3 &KmMomVtx, TVector3 &KpMomVtx);
 
   //Vertices between tracks
-  Int_t GetNVerticesTPCHelix() const { return m_TPCVCHelix.size(); }
-  TPCVertexHelix* GetTPCVertexHelix(Int_t l) const { return m_TPCVCHelix.at(l); }
-  const TPCVertexHelixContainer& GetTPCVerticesHelix() const { return m_TPCVCHelix; }
+  Int_t GetNVerticesTPC() const { return m_TPCVC.size(); }
+  TPCVertex* GetTPCVertex(Int_t l) const { return m_TPCVC.at(l); }
+  const TPCVertexContainer& GetTPCVertices() const { return m_TPCVC; }
+
+  Int_t GetNVerticesTPCClustered() const { return m_TPCVCClustered.size(); }
+  TPCVertex* GetTPCVertexClustered(Int_t l) const { return m_TPCVCClustered.at(l); }
+  const TPCVertexContainer& GetTPCVerticesClustered() const { return m_TPCVCClustered; }
 
 protected:
 
