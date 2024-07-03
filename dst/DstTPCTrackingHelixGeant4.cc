@@ -115,6 +115,25 @@ TVector3 GetG4Mom(TVector3 TPCHit, vector<TVector3> G4Hits,vector<TVector3>G4Mom
   }
   return mom;
 }
+Int_t GetHitG4Tid(TVector3 TPCHit, int nhG4,int* tidG4, double* xG4,double* yG4,double* zG4){
+  std::vector<TVector3> G4Hits;
+  for(int ih=0;ih<nhG4;++ih){
+    TVector3 G4Hit(xG4[ih],yG4[ih],zG4[ih]);
+    G4Hits.push_back(G4Hit);
+  }
+  double dl = 5000;
+  int G4ID = -1;
+  int ih=0;
+  for(auto g4hit:G4Hits){
+    double dist = (g4hit - TPCHit).Mag();
+    if(dist < dl){
+      dl = dist;
+      G4ID = tidG4[ih];
+    }
+    ih++;
+  }
+  return G4ID;
+}
 int CountHits(int id, double* posx,double* posz,int* tidG4, int nh){
   int count = 0;
   for(int ih=0;ih<nh;++ih){
@@ -150,10 +169,31 @@ struct Event
   Int_t status;
   Int_t evnum;
   Int_t nhittpc;                 // Number of Hits
-  Int_t ntTpc;                   // Number of Tracks
   Int_t max_ititpc;
   Int_t ititpc[MaxTPCHits];
   Int_t nhittpc_iti[MaxTPCHits];
+  
+  
+  
+  Int_t nclTpc;
+  Int_t remain_nclTpc;
+  std::vector<Double_t> cluster_x;
+  std::vector<Double_t> cluster_y;
+  std::vector<Double_t> cluster_z;
+  std::vector<Double_t> cluster_de;
+  std::vector<Int_t> cluster_size;
+  std::vector<Int_t> cluster_layer;
+  std::vector<Double_t> cluster_mrow;
+  std::vector<Double_t> cluster_de_center;
+  std::vector<Double_t> cluster_x_center;
+  std::vector<Double_t> cluster_y_center;
+  std::vector<Double_t> cluster_z_center;
+  std::vector<Int_t> cluster_row_center;
+  std::vector<Int_t> cluster_houghflag;
+  std::vector<Int_t> cluster_G4tid;
+  
+  
+  Int_t ntTpc;                   // Number of Tracks
   vector<Int_t> nhtrack;
   vector<Int_t> nhtrackEff;
   vector<Int_t> trackid; //for Kurama & K1.8 tracks
@@ -209,6 +249,7 @@ struct Event
   vector<vector<Double_t>> resolution_z;
   vector<vector<Double_t>> pathhit;
   vector<vector<Double_t>> alpha;
+  vector<vector<Double_t>> track_cluster_size;
   vector<vector<Double_t>> track_cluster_de;
   vector<vector<Double_t>> track_cluster_mrow;
 
@@ -434,6 +475,26 @@ struct Event
 
 
 	void Clear(){
+
+
+    nclTpc = 0;
+    remain_nclTpc = 0;
+    cluster_x.clear();
+    cluster_y.clear();
+    cluster_z.clear();
+    cluster_de.clear();
+    cluster_size.clear();
+    cluster_layer.clear();
+    cluster_mrow.clear();
+    cluster_de_center.clear();
+    cluster_x_center.clear();
+    cluster_y_center.clear();
+    cluster_z_center.clear();
+    cluster_row_center.clear();
+    cluster_houghflag.clear();
+    cluster_G4tid.clear();
+
+
 		PKm = qnan;PKm_x=qnan;PKm_y=qnan;PKm_z=qnan;
 		PKp = qnan;PKp_x=qnan;PKp_y=qnan;PKp_z=qnan;
 		PXi = qnan;PXi_x=qnan;PXi_y=qnan;PXi_z=qnan;
@@ -492,6 +553,7 @@ struct Event
 		pull_z.clear();
 		helix_t.clear();
 
+		track_cluster_size.clear();
 		track_cluster_de.clear();
     track_cluster_mrow.clear();
 		ntK18 = 0;
@@ -1286,11 +1348,11 @@ dst::DstRead( int ievent )
 
   if(IsWithRes){
     TPCAna->DecodeTPCHitsGeant4(src.nhittpc,
-			       src.xtpc, src.ytpc, src.ztpc, src.edeptpc, src.idtpc);
+			       src.xtpc, src.ytpc, src.ztpc, src.edeptpc, src.idtpc, G4Moms);
   }
   else{
     TPCAna->DecodeTPCHitsGeant4(src.nhittpc,
-      			       src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc);
+      			       src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc, G4Moms);
   }
 	event.xtgtHS = **src.xtgtHS;
 	event.ytgtHS = **src.ytgtHS;
@@ -1368,7 +1430,6 @@ dst::DstRead( int ievent )
     initMomKurama.push_back(momOut);
 	}
 #endif
-
 #if KuramaK18
 	#if ExclusiveResidual
   TPCAna->TrackSearchTPCHelix(vpK18, vpKurama,true);
@@ -1384,6 +1445,63 @@ dst::DstRead( int ievent )
 	TPCAna->TrackSearchTPCHelix();
 	#endif
 #endif
+  Int_t nclTpc = 0;
+  Int_t remain_nclTpc = 0;
+  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
+    auto hc = TPCAna->GetTPCClCont( layer );
+    int ic=0;
+    for( const auto& cl : hc ){
+      ic++;
+      if( !cl || !cl->IsGood() )
+        continue;
+      Double_t x = cl->GetX();
+      Double_t y = cl->GetY();
+      Double_t z = cl->GetZ();
+      int pad = tpc::findPadID(z,x);
+      int layer = tpc::getLayerID(pad);
+      int row = tpc::getRowID(pad);
+      double val = 0;
+      gTPC.GetCDe(layer,row,1,val);
+      if(val == 0){
+        continue;
+      }
+      Double_t de = cl->GetDe();
+      Int_t cl_size = cl->GetClusterSizeG4();
+      Double_t mrow = cl->MeanRow();
+      
+      TPCHit* meanHit = cl->GetMeanHit();
+      Int_t houghflag = meanHit->GetHoughFlag();
+/*
+      TPCHit* centerHit = cl->GetCenterHit();
+      const TVector3& centerPos = centerHit->GetPosition();
+      Double_t centerDe = centerHit->GetCDe();
+      Int_t centerRow = centerHit->GetRow();
+      */
+      TVector3 hitpos(x,y,z);
+      event.cluster_x.push_back(x);
+      event.cluster_y.push_back(y);
+      event.cluster_z.push_back(z);
+      event.cluster_de.push_back(de);
+      event.cluster_size.push_back(cl_size);
+      event.cluster_layer.push_back(layer);
+      event.cluster_mrow.push_back(mrow);
+      /*
+      event.cluster_de_center.push_back(centerDe);
+      event.cluster_x_center.push_back(centerPos.X());
+      event.cluster_y_center.push_back(centerPos.Y());
+      event.cluster_z_center.push_back(centerPos.Z());
+      event.cluster_row_center.push_back(centerRow);
+      */
+      event.cluster_houghflag.push_back(houghflag);
+      event.cluster_G4tid.push_back(GetHitG4Tid(hitpos,src.nhittpc,src.ititpc,src.xtpc,src.ytpc,src.ztpc));
+      ++nclTpc;
+
+      if(houghflag!=100&&houghflag!=200) ++remain_nclTpc; //Clusters without track
+    }
+  event.nclTpc = nclTpc;
+  event.remain_nclTpc = remain_nclTpc;
+  }
+
 
 	int ntTpc = TPCAna->GetNTracksTPCHelix();
   if( 1000<ntTpc ){
@@ -1447,6 +1565,7 @@ dst::DstRead( int ievent )
   event.helix_t.resize( ntTpc );
   event.pathhit.resize(ntTpc);
   event.alpha.resize(ntTpc);
+  event.track_cluster_size.resize(ntTpc);
   event.track_cluster_de.resize(ntTpc);
   event.track_cluster_mrow.resize(ntTpc);
 
@@ -1558,6 +1677,7 @@ dst::DstRead( int ievent )
     event.helix_t[it].resize( nh );
     event.pathhit[it].resize(nh);
     event.alpha[it].resize(nh);
+		event.track_cluster_size[it].resize(nh);
 		event.track_cluster_de[it].resize(nh);
     event.track_cluster_mrow[it].resize(nh);
     }
@@ -1570,11 +1690,13 @@ dst::DstRead( int ievent )
       if(!hit) continue;
       TPCHits.push_back(hit->GetLocalHitPos());
       int order = tp->GetOrder(ih);
-			int layerId = 0;
-      layerId = hit->GetLayer();
+			int layerId = layerId = hit->GetLayer();
       const TVector3& resi_vect = hit->GetResidualVect();
       const TVector3& res_vect = hit->GetResolutionVect();
       const TVector3& hitpos = hit->GetLocalHitPos();
+      TPCHit *clhit = hit->GetHit();
+      TPCCluster *cl = clhit->GetParentCluster();
+      Double_t clsize = cl->GetClusterSizeG4();
       Double_t clde = hit->GetDe();
       Double_t mrow = hit->GetMRow();
 			const TVector3& calpos = hit->GetLocalCalPosHelix();
@@ -1630,6 +1752,7 @@ dst::DstRead( int ievent )
       event.residual_x[it][ih] = resi_vect.x();
       event.residual_y[it][ih] = resi_vect.y();
       event.residual_z[it][ih] = resi_vect.z();
+      event.track_cluster_size[it][ih] = clsize;
       event.track_cluster_de[it][ih] = clde;
       event.track_cluster_mrow[it][ih] = mrow;
       event.alpha[it][ih] = tp->GetAlpha(ih);
@@ -1943,6 +2066,23 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("ytgtHS",&event.ytgtHS);
   tree->Branch("xtgtKurama",&event.xtgtKurama);
   tree->Branch("ytgtKurama",&event.ytgtKurama);
+  
+  tree->Branch( "nclTpc", &event.nclTpc );
+  tree->Branch( "remain_nclTpc", &event.remain_nclTpc );
+  tree->Branch( "cluster_x", &event.cluster_x );
+  tree->Branch( "cluster_y", &event.cluster_y );
+  tree->Branch( "cluster_z", &event.cluster_z );
+  tree->Branch( "cluster_de", &event.cluster_de );
+  tree->Branch( "cluster_size", &event.cluster_size );
+  tree->Branch( "cluster_layer", &event.cluster_layer );
+  tree->Branch( "cluster_row_center", &event.cluster_row_center );
+  tree->Branch( "cluster_mrow", &event.cluster_mrow );
+  tree->Branch( "cluster_de_center", &event.cluster_de_center );
+  tree->Branch( "cluster_x_center", &event.cluster_x_center );
+  tree->Branch( "cluster_y_center", &event.cluster_y_center );
+  tree->Branch( "cluster_z_center", &event.cluster_z_center );
+  tree->Branch( "cluster_G4tid", &event.cluster_G4tid );
+  tree->Branch( "cluster_houghflag", &event.cluster_houghflag );
 
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
@@ -1986,6 +2126,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "calpos_y", &event.calpos_y );
   tree->Branch( "calpos_z", &event.calpos_z );
   tree->Branch( "alpha", &event.alpha);
+  tree->Branch( "track_cluster_size", &event.track_cluster_size);
   tree->Branch( "track_cluster_de", &event.track_cluster_de);
   tree->Branch( "track_cluster_mrow", &event.track_cluster_mrow);
 

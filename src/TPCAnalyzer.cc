@@ -34,6 +34,7 @@
 #include "TrackHit.hh"
 #include "TPCRKTrack.hh"
 #include "PrintHelper.hh"
+#include "TRandom3.h"
 
  /* TPCTracking */
 #define UseTpcCluster 1 // 1 : Common clustering method, 0 : Cluster size=1 no clustering
@@ -248,7 +249,7 @@ Bool_t
 TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
 				 const Double_t *x, const Double_t *y,
 				 const Double_t *z, const Double_t *de,
-				 const Int_t *pid)
+				 const Int_t *pid, std::vector<TVector3> Mom)
 {
   if(m_is_decoded[kTPC]){
     hddaq::cout << FUNC_NAME << " "
@@ -262,7 +263,11 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
   bool RejectKaonHits = false;
   ClearTPCHits();
   ClearTPCClusters();
-
+  if(nhits != Mom.size()){
+    hddaq::cerr << FUNC_NAME << " vector size mismatch" << std::endl;
+    hddaq::cerr << FUNC_NAME << " nhits = " << nhits << " Mom.size() = " << Mom.size() << std::endl;
+    Mom = std::vector<TVector3>(nhits, TVector3(0., 0., 0.));
+  }
   for(Int_t i=0; i<nhits; i++){
     Int_t pad = tpc::findPadID(z[i], x[i]);
     Int_t layer = tpc::getLayerID(pad);
@@ -271,6 +276,10 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     double CheckPad;
     gTPC.GetCDe(layer, row, 1,CheckPad);
     if(CheckPad==0) continue;
+    TVector3 hitpos = TVector3(x[i], y[i], z[i]);
+    double Eff = GetDetectionEfficiency(hitpos, pid[i], Mom[i], de[i]);
+    double rndm = gRandom->Uniform(0., 1.);
+    if(rndm > Eff) continue;
     auto hit = new TPCHit(layer, row);
     hit->AddHit(TMath::QuietNaN(), TMath::QuietNaN()); // allocate hit
     // tentative treatment
@@ -280,13 +289,23 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
       hit->SetDe(de[i]);
     }
     // end of tentative treatment
-    hit->SetPosition(TVector3(x[i], y[i], z[i]));
+    int cl_size = GetClusterSize(hitpos, pid[i], Mom[i], de[i]);
+    if (cl_size == 1){
+      auto PadPos = tpc::getPosition(pad);
+      PadPos.SetY(y[i]);
+      hit->SetPosition(PadPos);
+//      hit->SetPosition(TVector3(x[i], y[i], z[i]));
+    }
+    else{
+      hit->SetPosition(TVector3(x[i], y[i], z[i]));
+    }
 
     TPCHitContainer CandCont;
     CandCont.push_back(hit);
     TPCCluster* cluster = new TPCCluster(layer, CandCont);
     if(!cluster) continue;
     if(cluster->Calculate() && cluster->GetY()>=MinClusterYPos && cluster->GetY()<=MaxClusterYPos){
+      cluster->SetClusterSizeG4(cl_size); 
       m_TPCClCont[layer].push_back(cluster);
     }
     else delete cluster;
@@ -296,6 +315,36 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
   m_is_decoded[kTPC] = true;
   return true;
 }
+Double_t
+TPCAnalyzer::GetDetectionEfficiency(TVector3 pos, Int_t pid, TVector3 mom, Double_t de){
+  return tpc::GetDetectionEfficiency(pos, pid, mom, de);  
+}
+Int_t
+TPCAnalyzer::GetClusterSize(TVector3 pos, Int_t pid, TVector3 mom, Double_t de){
+  Int_t pad = tpc::findPadID(pos.z(), pos.x());
+  Int_t layer = tpc::getLayerID(pad);
+  Int_t row = tpc::getRowID(pad);
+  bool Inner = false;
+  if(layer < 10)Inner = true;
+  int pidflag = 0;// 0 -> pion, 1 -> kaon, 2 -> proton or any other baryons.
+  if(abs(pid)== 211) pidflag = 0;
+  else if(abs(pid)== 321) pidflag = 1;
+  else if(abs(pid)== 2212 or abs(pid)> 3000) pidflag = 2;
+  double Mom = mom.Mag();
+  TRandom3 RandGen;
+  double Cl1Prob = 0;
+  if(pidflag == 0){
+    Cl1Prob =tpc::GetClSize1Prob(Mom, pid, layer);  
+  }
+  else if(pidflag == 2){
+    Cl1Prob =tpc::GetClSize1Prob(Mom, pid, layer);  
+  }
+  else Cl1Prob = sqrt(tpc::GetClSize1Prob(Mom,211,layer)* tpc::GetClSize1Prob(Mom,2212,layer)); 
+  int ncl=1;
+  if(RandGen.Uniform(0., 1.) > Cl1Prob)ncl = 2;
+  return ncl;
+}
+
 
 //_____________________________________________________________________________
 Bool_t

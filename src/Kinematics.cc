@@ -44,12 +44,16 @@ static std::vector<Double_t> gX0;
 static std::vector<Double_t> gY0;
 static std::vector<Double_t> gU0;
 static std::vector<Double_t> gV0;
+static std::vector<Double_t> gSX0;
+static std::vector<Double_t> gSY0;
+static std::vector<Double_t> gSU0;
+static std::vector<Double_t> gSV0;
 static void fcn_vertex(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t iflag){
 
   Double_t chisqr=0.;
   for(Int_t i=0; i<gNumOfTracks; ++i){
-    chisqr += TMath::Power(par[0]-gX0[i]-gU0[i]*par[2], 2);
-    chisqr += TMath::Power(par[1]-gY0[i]-gV0[i]*par[2], 2);
+    chisqr += TMath::Power(par[0]-gX0[i]-gU0[i]*par[2], 2) / (gSX0[i]*gSX0[i]+par[2]*par[2]*gSU0[i]*gSU0[i]);
+    chisqr += TMath::Power(par[1]-gY0[i]-gV0[i]*par[2], 2) / (gSY0[i]*gSY0[i]+par[2]*par[2]*gSV0[i]*gSV0[i]);
   };
   f = chisqr;
 };
@@ -1574,19 +1578,55 @@ HelixDirection(TVector3 vertex, TVector3 start, TVector3 end, Double_t &dist){
 
 //_____________________________________________________________________________
 TVector3
-MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0, Double_t *u0, Double_t *v0){
+MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0, Double_t *u0, Double_t *v0,
+std::vector<Double_t> Res_x0,std::vector<Double_t> Res_y0,std::vector<Double_t> Res_u0,std::vector<Double_t> Res_v0){
 
   gNumOfTracks = ntrack;
   gX0.clear();
   gY0.clear();
   gU0.clear();
   gV0.clear();
+  gSX0.clear();
+  gSY0.clear();
+  gSU0.clear();
+  gSV0.clear();
   for(Int_t i=0; i<gNumOfTracks; ++i){
     gX0.push_back(x0[i]);
     gY0.push_back(y0[i]);
     gU0.push_back(u0[i]);
     gV0.push_back(v0[i]);
   }
+  bool ResFlag = true;
+  if(Res_x0.size() == 0){
+    ResFlag = false;
+  }
+  else if(Res_x0.size() != ntrack or Res_y0.size() != ntrack 
+  or Res_u0.size() != ntrack or Res_v0.size() != ntrack){
+    std::cout<<"MultitrackVertex:: Resolution not set"<<std::endl;
+    std::cout<<"ntracks = "<<ntrack<<std::endl;
+    std::cout<<"Res_x0.size() = "<<Res_x0.size()<<std::endl;  
+    std::cout<<"Res_y0.size() = "<<Res_y0.size()<<std::endl;
+    std::cout<<"Res_u0.size() = "<<Res_u0.size()<<std::endl;
+    std::cout<<"Res_v0.size() = "<<Res_v0.size()<<std::endl;
+    ResFlag = false;
+  }
+  if(ResFlag){
+    for(Int_t i=0; i<gNumOfTracks; ++i){
+      gSX0.push_back(Res_x0[i]);
+      gSY0.push_back(Res_y0[i]);
+      gSU0.push_back(Res_u0[i]);
+      gSV0.push_back(Res_v0[i]);
+    }
+  }
+  else{
+    for(Int_t i=0;i<gNumOfTracks;++i){
+      gSX0.push_back(1.);
+      gSY0.push_back(1.);
+      gSU0.push_back(0.);
+      gSV0.push_back(0.);
+    }
+  }  
+
 
   Double_t par[3] = {0, 0, 0};
   Double_t err[3] = {999., 999., 999.};

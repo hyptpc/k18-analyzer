@@ -57,7 +57,9 @@ public:
   Bool_t DecodeTPCHitsGeant4(const Int_t nhits,
                              const Double_t *x, const Double_t *y,
                              const Double_t *z, const Double_t *de,
-			     const Int_t *pid);
+			     const Int_t *pid, std::vector<TVector3> Mom = std::vector<TVector3>());
+  Double_t GetDetectionEfficiency(TVector3 pos, Int_t pid, TVector3 mom = TVector3(0,0,0),Double_t de=0);			 
+  Int_t GetClusterSize(TVector3 pos, Int_t pid, TVector3 mom = TVector3(0,0,0),Double_t de=0);			 
   Bool_t DecodeTPCHits(RawData* rawData, Double_t clock=0.);
   Bool_t ReCalcTPCHits(const Int_t nhits,
                        const std::vector<Int_t>& pad,
@@ -202,9 +204,9 @@ public:
   Int_t GetNVerticesTPCHelix() const { return m_TPCVCHelix.size(); }
   TPCVertexHelix* GetTPCVertexHelix(Int_t l) const { return m_TPCVCHelix.at(l); }
   const TPCVertexHelixContainer& GetTPCVerticesHelix() const { return m_TPCVCHelix; }
-
+  
 protected:
-
+  
   void ClearTPCHits();
   void ClearTPCClusters();
   void ClearTPCTracks();

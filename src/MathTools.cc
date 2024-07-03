@@ -811,9 +811,13 @@ PrintVector(T *vec, const std::string& arg, const std::size_t size)
     TVector3 HPLd(PLd.X(),PLd.Z(),PLd.Y()); 
     double ThLd = HPLd.Theta();
     double PhLd = HPLd.Phi();
+    double dXdTh = cos(ThLd)*cos(PhLd);
+    double dXdPh = -sin(ThLd)*sin(PhLd);
+    double dYdTh = cos(ThLd)*sin(PhLd);
+    double dYdPh = sin(ThLd)*cos(PhLd);
     double ElemJacob[4] = {
-      cos(ThLd)*cos(PhLd),-sin(ThLd)*sin(PhLd),
-      cos(ThLd)*sin(PhLd),sin(ThLd)*cos(PhLd)
+      dXdTh,dXdPh,
+      dYdTh,dYdPh
     };
     TMatrixD J(2,2,ElemJacob);
     TMatrixD JT = J;
@@ -825,5 +829,32 @@ PrintVector(T *vec, const std::string& arg, const std::size_t size)
     res1 = sqrt(eigenValues(0));
     res2 = sqrt(eigenValues(1));
     phi = atan2(eigenVectors(1,0),eigenVectors(0,0));
+  }
+  void DecomposeResolutionUV(TMatrixD VXi, TVector3 PXi, double& resU, double& resV){
+    double ElemThPh[4]= {
+      VXi(1,1),VXi(1,2),VXi(2,1),VXi(2,2)
+    };
+    TMatrixD VThPh(2,2,ElemThPh);
+    TVector3 HTVXi(PXi.X(),PXi.Z(),PXi.Y());
+    double Th = HTVXi.Theta();
+    double Phi = HTVXi.Phi();
+    double U = HTVXi.X()/HTVXi.Y();//= tan(Phi);
+    double V = HTVXi.Z()/HTVXi.Y();//= cos(Th)/sin(Th)/sin(Phi); 
+    double dUdPhi = 1 + tan(Phi)*tan(Phi);
+    double dUdTh = 0.;
+    double dVdPhi = cos(Th)/sin(Th)*(-cos(Phi)/sin(Phi)/sin(Phi));   
+    double dVdTh = -1./sin(Th)/sin(Th)/sin(Phi); 
+    double ElemJacob[4] = {
+      dUdPhi,dUdTh,
+      dVdPhi,dVdTh
+    };
+    TMatrixD J(2,2,ElemJacob);
+    TMatrixD JT = J;
+    JT.Transpose(J);
+    TMatrixD Vuv = J*VThPh*JT;
+    resU = sqrt(Vuv(0,0));
+    resV = sqrt(Vuv(1,1));
+    if(!(resU < 0.1)) resU = 0.1;
+    if(!(resV < 0.1)) resV = 0.1;
   }
 }

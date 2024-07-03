@@ -32,6 +32,7 @@ private:
   Double_t        m_mean_row;
   Double_t        m_mean_theta; // in XZ plane
   Int_t           m_center_hitid;
+  Int_t           m_clsize_g4;
   TPCHit*         m_mean_hit; // representative hit for tracking
 
 public:
@@ -41,6 +42,7 @@ public:
   Bool_t   Calculate();
   void     ClearTPCHits();
   Int_t    GetClusterSize() const { return m_hit_array.size(); }
+  Int_t    GetClusterSizeG4() const { return m_clsize_g4; }
   Double_t GetDe() const { return m_cluster_de; }
   TPCHit*  GetHit(Int_t i) const { return m_hit_array.at(i); }
   Double_t GetPadTheta() { return m_mean_theta; }
@@ -56,6 +58,7 @@ public:
   Int_t    GetHoughFlag() const { return m_mean_hit->GetHoughFlag(); }
   const std::vector<Double_t>& GetResolutionParams() const { return m_mean_hit -> GetResolutionParams(); }
   void     Print(Option_t* opt="") const;
+  void     SetClusterSizeG4(int clsize) { m_clsize_g4 = clsize; }
 };
 
 //_____________________________________________________________________________
