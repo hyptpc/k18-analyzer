@@ -1,26 +1,30 @@
 // -*- C++ -*-
 
-#ifndef TPC_VERTEX_HELIX_HH
-#define TPC_VERTEX_HELIX_HH
+#ifndef TPC_VERTEX_HH
+#define TPC_VERTEX_HH
 
 #include <vector>
 
 #include "TPCLocalTrackHelix.hh"
+#include "TPCLocalTrack.hh"
 #include <TString.h>
 
+class TPCLocalTrack;
 class TPCLocalTrackHelix;
 
 //_____________________________________________________________________________
-class TPCVertexHelix
+class TPCVertex
 {
 public:
   static const TString& ClassName();
-  TPCVertexHelix(Int_t id1, Int_t id2);
-  ~TPCVertexHelix();
+  TPCVertex(Int_t id1, Int_t id2);
+  TPCVertex(TVector3 vertex, std::vector<Int_t> trackid);
+  ~TPCVertex();
 
 private:
 
   Bool_t m_is_calculated; // flag of Calculate() m_vertex;
+  Int_t m_is_accidental;
   TVector3 m_vertex;
   Double_t m_angle;
   Double_t m_distance;
@@ -47,7 +51,11 @@ public:
 
   void Calculate(TPCLocalTrackHelix* track1,
 		 TPCLocalTrackHelix* track2);
+  void Calculate(TPCLocalTrack* track1,
+		 TPCLocalTrack* track2);
   Bool_t IsCalculated() const { return m_is_calculated; }
+  Int_t GetIsAccidental() const { return m_is_accidental; }
+  void SetIsAccidental(Int_t flag=1) { m_is_accidental=flag; }
 
   TVector3 GetVertex() const { return m_vertex; }
   Double_t GetOpeningAngle() const { return m_angle; }
@@ -76,14 +84,17 @@ public:
   TVector3 GetProtonMomLambda(Int_t i) const { return m_proton_mom.at(i); }
   TVector3 GetPionMomLambda(Int_t i) const { return m_pion_mom.at(i); }
 
+  //For clustered tracks
+  Int_t GetNTracks(Int_t i) const { return m_track_id.size(); }
+
   void Print(const TString& arg="", Bool_t print_all=false) const;
 };
 
 //_____________________________________________________________________________
 inline const TString&
-TPCVertexHelix::ClassName()
+TPCVertex::ClassName()
 {
-  static TString s_name("TPCVertexHelix");
+  static TString s_name("TPCVertex");
   return s_name;
 }
 

@@ -27,7 +27,7 @@
 #include "TPCCluster.hh"
 #include "TPCPadHelper.hh"
 #include "TPCLocalTrackHelix.hh"
-#include "TPCVertexHelix.hh"
+#include "TPCVertex.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
@@ -855,7 +855,7 @@ dst::DstRead( int ievent )
 
   HF1( 2, event.GFstatus++ );
 
-  Int_t nvtxTpc = TPCAna.GetNVerticesTPCHelix();
+  Int_t nvtxTpc = TPCAna.GetNVerticesTPC();
   event.nvtxTpc = nvtxTpc;
   event.vtx_x.resize(nvtxTpc);
   event.vtx_y.resize(nvtxTpc);
@@ -872,7 +872,7 @@ dst::DstRead( int ievent )
   event.vtxmom_z.resize(nvtxTpc);
 
   for( Int_t it=0; it<nvtxTpc; ++it ){
-    TPCVertexHelix *vp = TPCAna.GetTPCVertexHelix( it );
+    TPCVertex *vp = TPCAna.GetTPCVertex( it );
     if( !vp ) continue;
     event.vtx_x[it] = vp -> GetVertex().x();
     event.vtx_y[it] = vp -> GetVertex().y();

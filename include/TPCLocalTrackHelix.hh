@@ -60,6 +60,7 @@ private:
 
   Int_t m_pid;
   TVector3 m_closedist; //closest distance from the track to the target
+  TVector3 m_closedistXZ; //closest distance from the track to the target XZ position
   Double_t m_chisqr;
   Int_t m_minuit; //Minuit output status 0:not calculated at all 1:approximation only, not accurate
   //2:full matrix, but forced positive-definite 3:full accurate covariance matrix
@@ -137,6 +138,9 @@ public:
 
   Double_t   GetChiSquare() const { return m_chisqr; }
   Double_t   GetClosestDist() const { return m_closedist.Mag(); }
+  TVector3   GetClosestPositionTgt();
+  TVector3   GetClosestPositionTgtXZ();
+
   Int_t      GetMinuitStatus() const { return m_minuit; }
   Int_t      GetPid() const { return m_pid; }
   Int_t      GetNIteration() const { return m_n_iteration; }
@@ -231,6 +235,7 @@ public:
   Bool_t SeparateTracksAtTarget();
   Bool_t SeparateClustersWithGap();
   Bool_t TestMergedTrack();
+  Bool_t TestInvertCharge();
   void RecalcTrack();
 
   //for K1.8 & Kurama tracking

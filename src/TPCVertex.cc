@@ -1,6 +1,14 @@
 // -*- C++ -*-
+/*
+  //comment by wooseung
 
-#include "TPCVertexHelix.hh"
+  This class has two purposes.
+  The first purpose is to find the vertex between two tracks, which is used in Lambda reconstruction and the tracking process.
+  The second purpose is for clustering in multitrack for accidental concidence evnet veto.
+  These two cases are distinguished by using different constructors.
+ */
+
+#include "TPCVertex.hh"
 
 #include <iostream>
 #include <iterator>
@@ -14,7 +22,7 @@
 #include "DatabasePDG.hh"
 #include "UserParamMan.hh"
 
-#define refit_wVertex 1
+#define refit_wVertex 0
 
 namespace
 {
@@ -23,8 +31,8 @@ const Double_t ppi_distcut = 10.; //Closest distance for p, pi at the vertex poi
 }
 
 //_____________________________________________________________________________
-TPCVertexHelix::TPCVertexHelix(Int_t id1, Int_t id2)
-  : m_is_calculated(false),
+TPCVertex::TPCVertex(Int_t id1, Int_t id2)
+  : m_is_calculated(false), m_is_accidental(),
     m_vertex(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN()),
     m_angle(TMath::QuietNaN()), m_distance(1.e+10),
     m_track_id(), m_track_pid(), m_track_charge(),
@@ -41,18 +49,36 @@ TPCVertexHelix::TPCVertexHelix(Int_t id1, Int_t id2)
   m_track_id.push_back(id1);
   m_track_id.push_back(id2);
 
-
 }
 
 //_____________________________________________________________________________
-TPCVertexHelix::~TPCVertexHelix()
+TPCVertex::TPCVertex(TVector3 vertex, std::vector<Int_t> trackid)
+  : m_is_calculated(false), m_is_accidental(),
+    m_vertex(vertex.x(), vertex.y(), vertex.z()),
+    m_angle(TMath::QuietNaN()), m_distance(1.e+10),
+    m_track_id(), m_track_pid(), m_track_charge(),
+    m_track_pos(), m_track_mom(), m_track_theta(),
+    m_is_lambda(false),
+    m_lambda_vertex(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN()),
+    m_lambda_distance(TMath::QuietNaN()), m_lambda_angle(TMath::QuietNaN()),
+    m_lambda_mass(), m_lambda_mom(),
+    m_proton_id(), m_proton_mom(),
+    m_pion_id(), m_pion_mom()
+
+{
+  debug::ObjectCounter::increase(ClassName());
+  for(Int_t i=0;i<trackid.size();i++) m_track_id.push_back(trackid[i]);
+}
+
+//_____________________________________________________________________________
+TPCVertex::~TPCVertex()
 {
   debug::ObjectCounter::decrease(ClassName());
 }
 
 //_____________________________________________________________________________
 void
-TPCVertexHelix::Calculate(TPCLocalTrackHelix* track1, TPCLocalTrackHelix* track2)
+TPCVertex::Calculate(TPCLocalTrackHelix* track1, TPCLocalTrackHelix* track2)
 {
 
   // For vertex finding (Closest point betweepn helix tracks)
@@ -113,7 +139,7 @@ TPCVertexHelix::Calculate(TPCLocalTrackHelix* track1, TPCLocalTrackHelix* track2
 
 //_____________________________________________________________________________
 Bool_t
-TPCVertexHelix::ReconstructLambda(TVector3 vertex, TVector3 mom1, TVector3 mom2, Double_t ppi_distance)
+TPCVertex::ReconstructLambda(TVector3 vertex, TVector3 mom1, TVector3 mom2, Double_t ppi_distance)
 {
 
   Double_t lambda_masscut = 0.1; //ref
@@ -153,8 +179,14 @@ TPCVertexHelix::ReconstructLambda(TVector3 vertex, TVector3 mom1, TVector3 mom2,
     TLorentzVector Lp(p_mom, TMath::Hypot(p_mom.Mag(), ProtonMass));
     TLorentzVector Llambda = Lp + Lpi;
     TVector3 lambda_mom = pi_mom + p_mom;
-
+    /*
+    std::cout<<"lambda candidate "<<p_id<<" "<<pi_id;
+    std::cout<<" lmass "<<TMath::Abs(Llambda.M())<<" vertex "<<vertex<<std::endl;
+    std::cout<<" mom "<<p_mom.Mag()<<" "<<pi_mom.Mag();
+    */
     if(TMath::Abs(Llambda.M() - LambdaMass) > lambda_masscut) continue;
+    //std::cout<<" l reconstructed "<<p_id<<" "<<pi_id<<std::endl;
+
     m_is_lambda = true;
     m_lambda_mass.push_back(Llambda.M());
     m_lambda_mom.push_back(lambda_mom);
@@ -169,7 +201,7 @@ TPCVertexHelix::ReconstructLambda(TVector3 vertex, TVector3 mom1, TVector3 mom2,
 
 //_____________________________________________________________________________
 void
-TPCVertexHelix::ReconstructLambdaWithVertex(TPCLocalTrackHelix* track1, TPCLocalTrackHelix* track2)
+TPCVertex::ReconstructLambdaWithVertex(TPCLocalTrackHelix* track1, TPCLocalTrackHelix* track2)
 {
 
   if(!IsCalculated()) return;
@@ -218,9 +250,43 @@ TPCVertexHelix::ReconstructLambdaWithVertex(TPCLocalTrackHelix* track1, TPCLocal
   delete Track2;
 }
 
+//not supported (E42 is not using this)
 //_____________________________________________________________________________
 void
-TPCVertexHelix::Print(const TString& arg, Bool_t print_all) const
+TPCVertex::Calculate(TPCLocalTrack* track1, TPCLocalTrack* track2)
+{
+
+  /*
+  // For vertex finding (Closest point betweepn helix tracks)
+  // Scanning range (-VertexScanRange, Tracklength + VertexScanRange) for each helix track
+  static const Double_t VertexScanRange = gUser.GetParameter("VertexScanRange"); //mm
+
+  Double_t par1[5];
+  track1 -> GetParam(par1);
+  Double_t par2[5];
+  track2 -> GetParam(par2);
+
+  Double_t dist;
+  TVector3 vertex = Kinematics::VertexPoint();
+
+  if(!TMath::IsNaN(dist) &&
+     TMath::Abs(vertex.x()) < 250. &&
+     TMath::Abs(vertex.z()) < 250. &&
+     TMath::Abs(vertex.y()) < 250.) m_is_calculated = true;
+
+  if(m_is_calculated){
+    m_vertex = vertex;
+    m_track_pos.push_back(track1 -> GetPosition(par1, theta1));
+    m_track_pos.push_back(track2 -> GetPosition(par2, theta2));
+    m_angle = ;
+    m_distance = dist;
+  }
+  */
+}
+
+//_____________________________________________________________________________
+void
+TPCVertex::Print(const TString& arg, Bool_t print_all) const
 {
   hddaq::cerr << arg << std::endl
 	      << "Vertex point = " << m_vertex << std::endl

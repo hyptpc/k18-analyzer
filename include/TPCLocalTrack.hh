@@ -128,6 +128,7 @@ public:
   void SetFlag(Int_t flag) { return; } //Dummy function for the template(E42 is not using this)
   void FinalizeTrack() { return; } //Dummy function for the template (E42 is not using this)
   bool DetermineCharge() { return false; } //Dummy function for the template (E42 is not using this)
+  Bool_t TestInvertCharge() { return false; } //Dummy function for the template (E42 is not using this)
   void SetFitFlag(Int_t flag) { m_fitflag = flag; }
   void SetVtxFlag(Int_t flag) { m_vtxflag = flag; }
   void SetSearchTime(Int_t time) { m_searchtime = time; }

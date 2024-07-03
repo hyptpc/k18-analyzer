@@ -11,12 +11,12 @@
 #include <TVector3.h>
 #include "TPCLocalTrack.hh"
 #include "TPCLocalTrackHelix.hh"
-#include "TPCVertexHelix.hh"
+#include "TPCVertex.hh"
 
 class TPCCluster;
 class TPCLocalTrack;
 class TPCLocalTrackHelix;
-class TPCVertexHelix;
+class TPCVertex;
 
 namespace tpc
 {
@@ -39,8 +39,10 @@ Int_t LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 //w/o K1.8, Kurama tracking information
 Int_t LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 			    std::vector<TPCLocalTrackHelix*>& TrackCont,
+			    std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,
 			    std::vector<TPCLocalTrackHelix*>& TrackContFailed,
-			    std::vector<TPCVertexHelix*>& VertexCont,
+			    std::vector<TPCVertex*>& VertexCont,
+			    std::vector<TPCVertex*>& ClusteredVertexCont,
 			    Bool_t Exclusive,
 			    Int_t MinNumOfHits);
 
@@ -49,9 +51,11 @@ Int_t LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 			    std::vector<std::vector<TVector3>> KuramaVPs,
 			    const std::vector<TPCClusterContainer>& ClCont,
 			    std::vector<TPCLocalTrackHelix*>& TrackCont,
+			    std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,
 			    std::vector<TPCLocalTrackHelix*>& TrackContVP,
 			    std::vector<TPCLocalTrackHelix*>& TrackContFailed,
-			    std::vector<TPCVertexHelix*>& VertexCont,
+			    std::vector<TPCVertex*>& VertexCont,
+			    std::vector<TPCVertex*>& ClusteredVertexCont,
 			    Bool_t Exclusive,
 			    Int_t MinNumOfHits);
 
@@ -84,15 +88,16 @@ Bool_t MakeHelixTrack(TPCLocalTrackHelix *Track, Bool_t &VtxFlag,
 		      Double_t MaxHoughWindow,
 		      Double_t MaxHoughWindowY);
 //Vertex finding
-void VertexSearch(std::vector<TPCLocalTrackHelix*>& TrackCont,
-		  std::vector<TPCVertexHelix*>& VertexCont);
+template <typename T>
+void VertexSearch(std::vector<T*>& TrackCont,
+		  std::vector<TPCVertex*>& VertexCont);
 
 //Merge fragmented tracks
 template <typename T> void
 RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
 			std::vector<T*>& TrackCont,
 			std::vector<T*>& TrackContFailed,
-			std::vector<TPCVertexHelix*>& VertexCont,
+			std::vector<TPCVertex*>& VertexCont,
 			Bool_t Exclusive,
 			Int_t MinNumOfHits);
 
@@ -101,9 +106,22 @@ template <typename T> void
 ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
 			      std::vector<T*>& TrackCont,
 			      std::vector<T*>& TrackContFailed,
-			      std::vector<TPCVertexHelix*>& VertexCont,
+			      std::vector<TPCVertex*>& VertexCont,
 			      Bool_t Exclusive,
 			      Int_t MinNumOfHits);
+
+//Checking charge
+template <typename T> void
+TestingCharge(std::vector<T*>& TrackCont,
+	      std::vector<T*>& TrackContInvertedCharge,
+	      std::vector<TPCVertex*>& VertexCont,
+	      Bool_t Exclusive);
+
+//Marking accidental coincidence tracks
+template <typename T> void
+MarkingAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
+				   std::vector<TPCVertex*>& VertexCont,
+				   std::vector<TPCVertex*>& ClusteredVertexCont);
 
 //Commom helix track searching
 void HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
@@ -143,7 +161,7 @@ void KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
 		       std::vector<TPCLocalTrackHelix*>& TrackCont,
 		       std::vector<TPCLocalTrackHelix*>& TrackContFailed,
 		       std::vector<TPCLocalTrackHelix*>& TrackContVP,
-		       std::vector<TPCVertexHelix*>& VertexCont,
+		       std::vector<TPCVertex*>& VertexCont,
 		       Bool_t Exclusive,
 		       Int_t MinNumOfHits);
 //K1.8 beam track finding
