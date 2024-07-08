@@ -11,7 +11,7 @@ Example setting in .bashrc.
 module load gcc/830
 module load git/2260
 . /opt/python-3.7/etc/profile.d/conda.sh
-. /group/had/sks/software/root/6.22.08/bin/thisroot.sh
+. /group/had/sks/software/root/6.30.06/bin/thisroot.sh
 ```
 
 Since PATH to unpacker is specified in Makefile, it is unnecessary to be set.
