@@ -16,7 +16,8 @@ tmp_dir = os.path.join(os.path.dirname(__file__), 'tmp')
 os.makedirs(tmp_dir, exist_ok=True)
 
 #______________________________________________________________________________
-def fit(h1, params=None, limits=None, fitrange=(-2.5, 2.5), autozoom=True):
+def fit(h1, params=None, limits=None, fitrange=(-2.5, 2.5), autozoom=True,
+        drawline=True, drawtext=True):
   f1 = ROOT.TF1('f1', '[0]*TMath::Freq((x-[1])/[2])+TMath::Abs([3])')
   f1.SetLineWidth(1)
   if params is not None:
@@ -34,16 +35,18 @@ def fit(h1, params=None, limits=None, fitrange=(-2.5, 2.5), autozoom=True):
   if autozoom:
     h1.GetXaxis().SetRangeUser(mean-10*sigma, mean+20*sigma)
   t0 = mean + sigma*2.0
-  line = ROOT.TLine()
-  line.SetLineWidth(1)
-  line.DrawLine(t0, 0, t0, h1.GetMaximum())
-  tex = ROOT.TLatex()
-  tex.SetNDC()
-  tex.SetTextAlign(11)
-  tex.SetTextColor(h1.GetLineColor())
-  tex.SetTextSize(0.07)
-  x = 0.48; y = 0.40
-  tex.DrawLatex(x, y, f'{t0:.3f}')
+  if drawline:
+    line = ROOT.TLine()
+    line.SetLineWidth(1)
+    line.DrawLine(t0, 0, t0, h1.GetMaximum())
+  if drawtext:
+    tex = ROOT.TLatex()
+    tex.SetNDC()
+    tex.SetTextAlign(11)
+    tex.SetTextColor(h1.GetLineColor())
+    tex.SetTextSize(0.07)
+    x = 0.48; y = 0.40
+    tex.DrawLatex(x, y, f'{t0:.3f}')
   return f1, t0
 
 #______________________________________________________________________________

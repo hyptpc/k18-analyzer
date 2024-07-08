@@ -14,6 +14,7 @@
 #include "RootHelper.hh"
 #include "DCAnalyzer.hh"
 #include "DCCluster.hh"
+#include "DCDriftParamMan.hh"
 #include "DCHit.hh"
 #include "HodoAnalyzer.hh"
 #include "HodoRawHit.hh"
@@ -560,6 +561,7 @@ ConfMan::InitializeParameterFiles()
     (InitializeParameter<HodoParamMan>("HDPRM")) &&
     (InitializeParameter<HodoPHCMan>("HDPHC")) &&
     (InitializeParameter<DCTdcCalibMan>("DCTDC")) &&
+    (InitializeParameter<DCDriftParamMan>("DCDRFT")) &&
     (InitializeParameter<XTMapMan>("XTMap")) &&
     (InitializeParameter<GeomMapMan>("GeomBL","GeomHall")) &&
     (InitializeParameter<UserParamMan>("USER")) &&

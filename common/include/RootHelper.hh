@@ -3,6 +3,7 @@
 #ifndef ROOT_HELPER_HH
 #define ROOT_HELPER_HH
 
+#include <iomanip>
 #include <stdexcept>
 
 #include <TApplication.h>
