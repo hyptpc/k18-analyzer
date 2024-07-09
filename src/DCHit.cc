@@ -120,6 +120,8 @@ DCHit::ClearDCData()
 void
 DCHit::EraseDCData(Int_t i)
 {
+  m_tdc.erase(m_tdc.begin() + i);
+  m_trailing.erase(m_trailing.begin() + i);
   m_drift_time.erase(m_drift_time.begin() + i);
   m_drift_length.erase(m_drift_length.begin() + i);
   m_tot.erase(m_tot.begin() + i);

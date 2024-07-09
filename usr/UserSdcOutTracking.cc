@@ -395,11 +395,11 @@ ProcessingNormal()
       Int_t tdc1st = -1;
       for(Int_t k=0; k<nhtdc; k++){
         Int_t tdc = hit->GetTdcVal(k);
-        // Int_t tot_1 = hit->GetTot(k);
+        Int_t tot_1 = hit->GetTot(k);
         HF1(100*layer+2, tdc);
         HF1(10000*layer+Int_t(wire), tdc);
         HF2(100*layer+51, tdc, wire+0.5);
-        // HF2(100*layer+53, tdc, tot_1);
+        HF2(100*layer+53, tdc, tot_1);
         if(tdc > tdc1st){
           tdc1st = tdc;
           fl_valid_sig = true;
