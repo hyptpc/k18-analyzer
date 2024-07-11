@@ -6,24 +6,29 @@
 #include <cmath>
 #include <TLorentzVector.h>
 
+#include <TGeoPhysicalConstants.h>
+
 #include <filesystem_util.hh>
 #include <UnpackerManager.hh>
 
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
-#include "Kinematics.hh"
-#include "DCGeomMan.hh"
+#include "FieldMan.hh"
 #include "DatabasePDG.hh"
 #include "DetectorID.hh"
 #include "MathTools.hh"
 #include "RootHelper.hh"
 #include "UserParamMan.hh"
 #include "HodoPHCMan.hh"
+#include "Kinematics.hh"
+#include "MathTools.hh"
 #include "TPCAnalyzer.hh"
 #include "TPCParamMan.hh"
 #include "DCAnalyzer.hh"
+#include "DCGeomMan.hh"
 #include "DCHit.hh"
 #include "TPCLocalTrackHelix.hh"
+#include "TPCVertex.hh"
 #include "TPCRKTrack.hh"
 #include "TPCHit.hh"
 #include "TPCPadHelper.hh"
@@ -214,14 +219,17 @@ struct Event
   vector<Double_t> helix_dz;
   vector<Double_t> dE;
   vector<Double_t> dEdx; //reference dedx
+
+
   vector<Double_t> dz_factor;
-  vector<Int_t> charge;
-  vector<Double_t> path;
-  vector<Int_t> pid;
   vector<Double_t> mom0;//Helix momentum at Y = 0
   vector<Double_t> mom0_x;//Helix momentum at Y = 0
   vector<Double_t> mom0_y;
   vector<Double_t> mom0_z;
+  vector<Int_t> charge;
+  vector<Double_t> path;
+
+  vector<Int_t> pid;
   vector<vector<Double_t>> hitlayer;
   vector<vector<Double_t>> hitpos_x;
   vector<vector<Double_t>> hitpos_y;
@@ -233,27 +241,138 @@ struct Event
   vector<vector<Double_t>> mom_x;
   vector<vector<Double_t>> mom_y;
   vector<vector<Double_t>> mom_z;
-
   vector<vector<Double_t>> residual;
   vector<vector<Double_t>> residual_t;
   vector<vector<Double_t>> residual_x;
   vector<vector<Double_t>> residual_y;
   vector<vector<Double_t>> residual_z;
-  vector<vector<Double_t>> pull_t;
-  vector<vector<Double_t>> pull_x;
-  vector<vector<Double_t>> pull_y;
-  vector<vector<Double_t>> pull_z;
   vector<vector<Double_t>> resolution;
   vector<vector<Double_t>> resolution_x;
   vector<vector<Double_t>> resolution_y;
   vector<vector<Double_t>> resolution_z;
+  vector<vector<Double_t>> pull_t;
+  vector<vector<Double_t>> pull_x;
+  vector<vector<Double_t>> pull_y;
+  vector<vector<Double_t>> pull_z;
   vector<vector<Double_t>> pathhit;
   vector<vector<Double_t>> alpha;
+  vector<vector<Double_t>> houghflag;
   vector<vector<Double_t>> track_cluster_size;
   vector<vector<Double_t>> track_cluster_de;
   vector<vector<Double_t>> track_cluster_mrow;
 
-	//Geant4
+  std::vector<Int_t> chargeIndistinguishable;
+  std::vector<Double_t> chisqr_inverted;
+  std::vector<Double_t> pval_inverted;
+  std::vector<Double_t> helix_cx_inverted;
+  std::vector<Double_t> helix_cy_inverted;
+  std::vector<Double_t> helix_z0_inverted;
+  std::vector<Double_t> helix_r_inverted;
+  std::vector<Double_t> helix_dz_inverted;
+  std::vector<Double_t> mom0_x_inverted;//Helix momentum at Y = 0
+  std::vector<Double_t> mom0_y_inverted;//Helix momentum at Y = 0
+  std::vector<Double_t> mom0_z_inverted;//Helix momentum at Y = 0
+  std::vector<Double_t> mom0_inverted;//Helix momentum at Y = 0
+  std::vector<Int_t> pid_inverted;
+
+  Int_t vpntTpc; // Number of Tracks
+  std::vector<Int_t> vpnhtrack;
+  std::vector<Int_t> vptrackid; //for Kurama K1.8 tracks
+  std::vector<Int_t> vpisKurama; // isKurama: 1 = Beam, 0 = Scat
+  std::vector<Int_t> vpisK18;
+  std::vector<Double_t> vphelix_cx;
+  std::vector<Double_t> vphelix_cy;
+  std::vector<Double_t> vphelix_z0;
+  std::vector<Double_t> vphelix_r;
+  std::vector<Double_t> vphelix_dz;
+  std::vector<Double_t> vpmom0;//Helix momentum at Y = 0
+  std::vector<Int_t> vpcharge;//Helix charge
+  std::vector<std::vector<Double_t>> vphelix_t;
+  std::vector<std::vector<Double_t>> vppos_x;
+  std::vector<std::vector<Double_t>> vppos_y;
+  std::vector<std::vector<Double_t>> vppos_z;
+  std::vector<std::vector<Double_t>> residual_vppos_x;
+  std::vector<std::vector<Double_t>> residual_vppos_y;
+  std::vector<std::vector<Double_t>> residual_vppos_z;
+
+  Int_t failed_ntTpc; // Number of Tracks
+  std::vector<Int_t> failed_nhtrack;
+  std::vector<Int_t> failed_trackid; //for Kurama K1.8 tracks
+  std::vector<Int_t> failed_isBeam; // isBeam: 1 = Beam, 0 = Scat
+  std::vector<Int_t> failed_isKurama; // isKurama: 1 = Beam, 0 = Scat
+  std::vector<Int_t> failed_isK18;
+  std::vector<Int_t> failed_nclbeforetgt;
+  std::vector<Int_t> failed_isAccidental;
+  std::vector<Int_t> failed_flag;
+  std::vector<Int_t> failed_fittime; //usec
+  std::vector<Int_t> failed_searchtime; //usec
+  std::vector<Int_t> failed_niteration; //usec
+  std::vector<Double_t> failed_helix_cx;
+  std::vector<Double_t> failed_helix_cy;
+  std::vector<Double_t> failed_helix_z0;
+  std::vector<Double_t> failed_helix_r;
+  std::vector<Double_t> failed_helix_dz;
+  std::vector<Double_t> failed_mom0;//Helix momentum at Y = 0
+  std::vector<Int_t> failed_charge;//Helix charge
+
+  std::vector<std::vector<Double_t>> failed_hitlayer;
+  std::vector<std::vector<Double_t>> failed_hitpos_x;
+  std::vector<std::vector<Double_t>> failed_hitpos_y;
+  std::vector<std::vector<Double_t>> failed_hitpos_z;
+  std::vector<std::vector<Double_t>> failed_calpos_x;
+  std::vector<std::vector<Double_t>> failed_calpos_y;
+  std::vector<std::vector<Double_t>> failed_calpos_z;
+  std::vector<std::vector<Double_t>> failed_helix_t;
+  std::vector<std::vector<Double_t>> failed_residual;
+  std::vector<std::vector<Double_t>> failed_residual_x;
+  std::vector<std::vector<Double_t>> failed_residual_y;
+  std::vector<std::vector<Double_t>> failed_residual_z;
+  std::vector<std::vector<Double_t>> failed_track_cluster_de;
+  std::vector<std::vector<Double_t>> failed_track_cluster_size;
+  std::vector<std::vector<Double_t>> failed_track_cluster_mrow;
+	
+  
+  Int_t nvtxTpc;
+  std::vector<Double_t> vtx_x;
+  std::vector<Double_t> vtx_y;
+  std::vector<Double_t> vtx_z;
+  std::vector<Double_t> vtx_dist;
+  std::vector<Double_t> vtx_angle;
+  std::vector<std::vector<Double_t>> vtxid;
+  std::vector<std::vector<Double_t>> vtxmom_theta;
+  std::vector<std::vector<Double_t>> vtxpos_x;
+  std::vector<std::vector<Double_t>> vtxpos_y;
+  std::vector<std::vector<Double_t>> vtxpos_z;
+  std::vector<std::vector<Double_t>> vtxmom_x;
+  std::vector<std::vector<Double_t>> vtxmom_y;
+  std::vector<std::vector<Double_t>> vtxmom_z;
+
+  std::vector<Int_t> isLambda;
+  std::vector<Int_t> ncombiLambda;
+  std::vector<Double_t> distLambda;
+  std::vector<Double_t> angleLambda;
+  std::vector<Double_t> bestmassLambda;
+  std::vector<std::vector<Double_t>> massLambda;
+  std::vector<std::vector<Double_t>> vtxLambda_x;
+  std::vector<std::vector<Double_t>> vtxLambda_y;
+  std::vector<std::vector<Double_t>> vtxLambda_z;
+  std::vector<std::vector<Double_t>> momLambda;
+  std::vector<std::vector<Double_t>> momLambda_x;
+  std::vector<std::vector<Double_t>> momLambda_y;
+  std::vector<std::vector<Double_t>> momLambda_z;
+  std::vector<std::vector<Double_t>> decaysidLambda;
+  std::vector<std::vector<Double_t>> decaysmomLambda;
+  std::vector<std::vector<Double_t>> decaysmomLambda_x;
+  std::vector<std::vector<Double_t>> decaysmomLambda_y;
+  std::vector<std::vector<Double_t>> decaysmomLambda_z;
+
+  Int_t nvtxTpcClustered;
+  std::vector<Double_t> Clusteredvtx_x;
+  std::vector<Double_t> Clusteredvtx_y;
+  std::vector<Double_t> Clusteredvtx_z;
+  std::vector<std::vector<Double_t>> Clusteredvtxid;
+  
+  //Geant4
   Int_t iti_g[MaxTPCTracks][MaxTPCnHits];
   Int_t idtpc[MaxTPCHits];
   Int_t ID[MaxTPCHits];
@@ -535,9 +654,14 @@ struct Event
 		hitpos_x.clear();
 		hitpos_y.clear();
 		hitpos_z.clear();
+		helix_t.clear();
 		calpos_x.clear();
 		calpos_y.clear();
 		calpos_z.clear();
+    mom_x.clear();
+    mom_y.clear();
+    mom_z.clear();
+
 		resolution.clear();
 		resolution_x.clear();
 		resolution_y.clear();
@@ -551,12 +675,128 @@ struct Event
 		pull_x.clear();
 		pull_y.clear();
 		pull_z.clear();
-		helix_t.clear();
+    pathhit.clear();
+    alpha.clear();
+    houghflag.clear();
 
 		track_cluster_size.clear();
 		track_cluster_de.clear();
     track_cluster_mrow.clear();
-		ntK18 = 0;
+
+
+    chargeIndistinguishable.clear();
+    chisqr_inverted.clear();
+    pval_inverted.clear();
+    helix_cx_inverted.clear();
+    helix_cy_inverted.clear();
+    helix_z0_inverted.clear();
+    helix_r_inverted.clear();
+    helix_dz_inverted.clear();
+    mom0_x_inverted.clear();
+    mom0_y_inverted.clear();
+    mom0_z_inverted.clear();
+    mom0_inverted.clear();
+    pid_inverted.clear();
+
+    vpntTpc = 0;
+    vpnhtrack.clear();
+    vptrackid.clear();
+    vpisKurama.clear();
+    vpisK18.clear();
+    vphelix_cx.clear();
+    vphelix_cy.clear();
+    vphelix_z0.clear();
+    vphelix_r.clear();
+    vphelix_dz.clear();
+    vpmom0.clear();
+    vpcharge.clear();
+    vphelix_t.clear();
+    vppos_x.clear();
+    vppos_y.clear();
+    vppos_z.clear();
+    residual_vppos_x.clear();
+    residual_vppos_y.clear();
+    residual_vppos_z.clear();
+
+    failed_ntTpc = 0;
+    failed_nhtrack.clear();
+    failed_trackid.clear();
+    failed_isBeam.clear();
+    failed_isKurama.clear();
+    failed_isK18.clear();
+    failed_nclbeforetgt.clear();
+    failed_isAccidental.clear();
+    failed_flag.clear();
+    failed_fittime.clear();
+    failed_searchtime.clear();
+    failed_niteration.clear();
+
+    failed_helix_cx.clear();
+    failed_helix_cy.clear();
+    failed_helix_z0.clear();
+    failed_helix_r.clear();
+    failed_helix_dz.clear();
+    failed_mom0.clear();
+    failed_charge.clear();
+
+    failed_hitlayer.clear();
+    failed_hitpos_x.clear();
+    failed_hitpos_y.clear();
+    failed_hitpos_z.clear();
+    failed_calpos_x.clear();
+    failed_calpos_y.clear();
+    failed_calpos_z.clear();
+    failed_helix_t.clear();
+    failed_residual.clear();
+    failed_residual_x.clear();
+    failed_residual_y.clear();
+    failed_residual_z.clear();
+    failed_track_cluster_de.clear();
+    failed_track_cluster_size.clear();
+    failed_track_cluster_mrow.clear();
+
+    nvtxTpc = 0;
+    vtx_x.clear();
+    vtx_y.clear();
+    vtx_z.clear();
+    vtx_dist.clear();
+    vtx_angle.clear();
+    vtxid.clear();
+    vtxmom_theta.clear();
+    vtxpos_x.clear();
+    vtxpos_y.clear();
+    vtxpos_z.clear();
+    vtxmom_x.clear();
+    vtxmom_y.clear();
+    vtxmom_z.clear();
+
+    nvtxTpcClustered = 0;
+    Clusteredvtx_x.clear();
+    Clusteredvtx_y.clear();
+    Clusteredvtx_z.clear();
+    Clusteredvtxid.clear();
+
+    isLambda.clear();
+    ncombiLambda.clear();
+    distLambda.clear();
+    angleLambda.clear();
+    bestmassLambda.clear();
+    massLambda.clear();
+    vtxLambda_x.clear();
+    vtxLambda_y.clear();
+    vtxLambda_z.clear();
+    momLambda.clear();
+    momLambda_x.clear();
+    momLambda_y.clear();
+    momLambda_z.clear();
+    decaysidLambda.clear();
+    decaysmomLambda.clear();
+    decaysmomLambda_x.clear();
+    decaysmomLambda_y.clear();
+    decaysmomLambda_z.clear();
+
+
+    ntK18 = 0;
 		xvpHS.clear();
 		yvpHS.clear();
 		zvpHS.clear();
@@ -823,6 +1063,16 @@ namespace root
   	TPCExclusiveHid = 700000,
   	TPCIntrinsicHid = 800000
 	};
+
+Double_t
+TranseverseDistance(Double_t x_center, Double_t z_center, Double_t x, Double_t z)
+{
+  Double_t dummy = TMath::Sqrt((x-x_center)*(x-x_center) + (z-z_center)*(z-z_center));
+  Double_t dist;
+  if(x_center-x<0) dist=-1.*dummy;
+  else dist=dummy;
+  return dist;
+}
 }
 
 //_____________________________________________________________________
@@ -863,7 +1113,7 @@ main( int argc, char **argv )
   if (max_loop > 0) nevent = skip + max_loop;
 
   CatchSignal::Set();
-
+	gRandom->SetSeed(7);
   Int_t ievent = skip;
   for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
     gCounter.check();
@@ -1097,7 +1347,14 @@ bool
 dst::DstRead( int ievent )
 {
   static const std::string func_name("["+class_name+"::"+__func__+"]");
-
+  static const auto KaonMass    = pdg::KaonMass();
+  static const auto PionMass    = pdg::PionMass();
+  static const auto ProtonMass  = pdg::ProtonMass();
+  static const auto LambdaMass  = pdg::LambdaMass();
+  static const auto XiMass      = pdg::XiMinusMass();
+  static const auto XiStarMass  = 1.5350;
+  static const auto ElectronMass = pdg::ElectronMass();
+  static const Double_t Carbon12Mass = 12.*TGeoUnit::amu_c2 - 6.*ElectronMass;
 	static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
   static const auto yGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Y();
   static const auto zGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Z();
@@ -1565,9 +1822,23 @@ dst::DstRead( int ievent )
   event.helix_t.resize( ntTpc );
   event.pathhit.resize(ntTpc);
   event.alpha.resize(ntTpc);
+  event.houghflag.resize(ntTpc);
   event.track_cluster_size.resize(ntTpc);
   event.track_cluster_de.resize(ntTpc);
   event.track_cluster_mrow.resize(ntTpc);
+  event.chargeIndistinguishable.resize( ntTpc );
+  event.chisqr_inverted.resize( ntTpc );
+  event.pval_inverted.resize( ntTpc );
+  event.helix_cx_inverted.resize( ntTpc );
+  event.helix_cy_inverted.resize( ntTpc );
+  event.helix_z0_inverted.resize( ntTpc );
+  event.helix_r_inverted.resize( ntTpc );
+  event.helix_dz_inverted.resize( ntTpc );
+  event.mom0_x_inverted.resize( ntTpc );
+  event.mom0_y_inverted.resize( ntTpc );
+  event.mom0_z_inverted.resize( ntTpc );
+  event.mom0_inverted.resize( ntTpc );
+  event.pid_inverted.resize( ntTpc );
 
 
 	event.isgoodTPCK18.resize(event.ntK18);
@@ -1677,6 +1948,7 @@ dst::DstRead( int ievent )
     event.helix_t[it].resize( nh );
     event.pathhit[it].resize(nh);
     event.alpha[it].resize(nh);
+    event.houghflag[it].resize(nh);
 		event.track_cluster_size[it].resize(nh);
 		event.track_cluster_de[it].resize(nh);
     event.track_cluster_mrow[it].resize(nh);
@@ -1691,6 +1963,7 @@ dst::DstRead( int ievent )
       TPCHits.push_back(hit->GetLocalHitPos());
       int order = tp->GetOrder(ih);
 			int layerId = layerId = hit->GetLayer();
+      Int_t houghflag = hit->GetHoughFlag();
       const TVector3& resi_vect = hit->GetResidualVect();
       const TVector3& res_vect = hit->GetResolutionVect();
       const TVector3& hitpos = hit->GetLocalHitPos();
@@ -1740,6 +2013,7 @@ dst::DstRead( int ievent )
       event.hitpos_y[it][ih] = hitpos.y();
       event.hitpos_z[it][ih] = hitpos.z();
       event.helix_t[it][ih] = hit->GetTheta();
+      event.houghflag[it][ih] = houghflag;
  //    	if(event.helix_t[it][ih]<min_t) min_t = event.helix_t[it][ih];
 //     	if(event.helix_t[it][ih]>max_t) max_t = event.helix_t[it][ih];
 			event.calpos_x[it][ih] = calpos.x();
@@ -1900,11 +2174,295 @@ dst::DstRead( int ievent )
     int nG4Hits = event.nhittpc_iti[G4tid];
     event.efficiency[it] = (double)nPureHits/nG4Hits;
 
+    //Inverted charge tracks
+    TPCLocalTrackHelix *tp_inverted = TPCAna->GetTrackTPCHelixChargeInverted( it );
+    if( !tp_inverted ) event.chargeIndistinguishable[it] = 0;
+    else{
+      Double_t chisqr = tp_inverted->GetChiSquare();
+      Double_t pval = 1-ROOT::Math::chisquared_cdf(chisqr*(2*nhEff-5), 2*nhEff-5);
+      Double_t helix_cx = tp_inverted->Getcx(), helix_cy = tp_inverted->Getcy();
+      Double_t helix_z0 = tp_inverted->Getz0(), helix_r = tp_inverted->Getr();
+      Double_t helix_dz = tp_inverted->Getdz();
+      TVector3 mom0 = tp_inverted->GetMom0();
+      Int_t charge = tp_inverted->GetCharge();
+      Int_t pid = tp_inverted->GetPid();
+
+      event.chargeIndistinguishable[it] = 1;
+      event.chisqr_inverted[it] = chisqr;
+      event.pval_inverted[it] = pval;
+      event.helix_cx_inverted[it] = helix_cx;
+      event.helix_cy_inverted[it] = helix_cy;
+      event.helix_z0_inverted[it] = helix_z0;
+      event.helix_r_inverted[it] = helix_r ;
+      event.helix_dz_inverted[it] = helix_dz;
+      event.mom0_x_inverted[it] = mom0.x();
+      event.mom0_y_inverted[it] = mom0.y();
+      event.mom0_z_inverted[it] = mom0.z();
+      event.mom0_inverted[it] = mom0.Mag();
+      event.pid_inverted[it] = pid;
+      continue;
+    }
   }//it
-  //debug   std::cout<<"end events"<<std::endl;
-  //debug   getchar();
 
+  Int_t nvtxTpc = TPCAna->GetNVerticesTPC();
+  event.nvtxTpc = nvtxTpc;
+  event.vtx_x.resize(nvtxTpc);
+  event.vtx_y.resize(nvtxTpc);
+  event.vtx_z.resize(nvtxTpc);
+  event.vtx_dist.resize(nvtxTpc);
+  event.vtx_angle.resize(nvtxTpc);
+  event.vtxid.resize(nvtxTpc);
+  event.vtxmom_theta.resize(nvtxTpc);
+  event.vtxpos_x.resize(nvtxTpc);
+  event.vtxpos_y.resize(nvtxTpc);
+  event.vtxpos_z.resize(nvtxTpc);
+  event.vtxmom_x.resize(nvtxTpc);
+  event.vtxmom_y.resize(nvtxTpc);
+  event.vtxmom_z.resize(nvtxTpc);
 
+  event.isLambda.resize(nvtxTpc);
+  event.ncombiLambda.resize(nvtxTpc);
+  event.distLambda.resize(nvtxTpc);
+  event.angleLambda.resize(nvtxTpc);
+  event.bestmassLambda.resize(nvtxTpc);
+  event.massLambda.resize(nvtxTpc);
+  event.vtxLambda_x.resize(nvtxTpc);
+  event.vtxLambda_y.resize(nvtxTpc);
+  event.vtxLambda_z.resize(nvtxTpc);
+  event.momLambda.resize(nvtxTpc);
+  event.momLambda_x.resize(nvtxTpc);
+  event.momLambda_y.resize(nvtxTpc);
+  event.momLambda_z.resize(nvtxTpc);
+  event.decaysidLambda.resize(nvtxTpc);
+  event.decaysmomLambda.resize(nvtxTpc);
+  event.decaysmomLambda_x.resize(nvtxTpc);
+  event.decaysmomLambda_y.resize(nvtxTpc);
+  event.decaysmomLambda_z.resize(nvtxTpc);
+  for( Int_t it=0; it<nvtxTpc; ++it ){
+    TPCVertex *vp = TPCAna->GetTPCVertex( it );
+    if( !vp ) continue;
+    event.vtx_x[it] = vp -> GetVertex().x();
+    event.vtx_y[it] = vp -> GetVertex().y();
+    event.vtx_z[it] = vp -> GetVertex().z();
+    event.vtx_dist[it] = vp -> GetClosestDist();
+    event.vtx_angle[it] = vp -> GetOpeningAngle();
+
+    event.vtxid[it].resize(2);
+    event.vtxmom_theta[it].resize(2);
+    event.vtxpos_x[it].resize(2);
+    event.vtxpos_y[it].resize(2);
+    event.vtxpos_z[it].resize(2);
+    event.vtxmom_x[it].resize(2);
+    event.vtxmom_y[it].resize(2);
+    event.vtxmom_z[it].resize(2);
+
+    event.vtxid[it][0] = vp -> GetTrackId(0);
+    event.vtxmom_theta[it][0] = vp -> GetTrackTheta(0);
+    event.vtxpos_x[it][0] = vp -> GetTrackPos(0).x();
+    event.vtxpos_y[it][0] = vp -> GetTrackPos(0).y();
+    event.vtxpos_z[it][0] = vp -> GetTrackPos(0).z();
+    event.vtxmom_x[it][0] = vp -> GetTrackMom(0).x();
+    event.vtxmom_y[it][0] = vp -> GetTrackMom(0).y();
+    event.vtxmom_z[it][0] = vp -> GetTrackMom(0).z();
+
+    event.vtxid[it][1] = vp -> GetTrackId(1);
+    event.vtxmom_theta[it][1] = vp -> GetTrackTheta(1);
+    event.vtxpos_x[it][1] = vp -> GetTrackPos(1).x();
+    event.vtxpos_y[it][1] = vp -> GetTrackPos(1).y();
+    event.vtxpos_z[it][1] = vp -> GetTrackPos(1).z();
+    event.vtxmom_x[it][1] = vp -> GetTrackMom(1).x();
+    event.vtxmom_y[it][1] = vp -> GetTrackMom(1).y();
+    event.vtxmom_z[it][1] = vp -> GetTrackMom(1).z();
+
+    event.isLambda[it] = vp -> GetIsLambda();
+    event.distLambda[it] = vp -> GetClosestDistLambda();
+    event.angleLambda[it] = vp -> GetOpeningAngleLambda();
+    if(event.isLambda[it]){
+      Int_t ncombi = event.ncombiLambda[it] = vp -> GetNcombiLambda();
+      Double_t best_lmass = 9999;
+      for( Int_t combi=0; combi<ncombi; ++combi ){
+
+	Double_t lmass = vp -> GetMassLambda(combi);
+	event.massLambda[it].push_back(lmass);
+	Double_t diff = TMath::Abs(lmass - LambdaMass);
+	Double_t best_diff = TMath::Abs(best_lmass - LambdaMass);
+	if(diff < best_diff) best_lmass = lmass;
+
+	TVector3 vtx = vp -> GetVertexLambda(combi);
+	event.vtxLambda_x[it].push_back(vtx.x());
+	event.vtxLambda_y[it].push_back(vtx.y());
+	event.vtxLambda_z[it].push_back(vtx.z());
+
+	TVector3 lmom = vp -> GetMomLambda(combi);
+	event.momLambda[it].push_back(lmom.Mag());
+	event.momLambda_x[it].push_back(lmom.x());
+	event.momLambda_y[it].push_back(lmom.y());
+	event.momLambda_z[it].push_back(lmom.z());
+
+	Int_t pid = vp -> GetProtonIdLambda(combi);
+	TVector3 pmom = vp -> GetProtonMomLambda(combi);
+	event.decaysidLambda[it].push_back(pid);
+	event.decaysmomLambda[it].push_back(pmom.Mag());
+	event.decaysmomLambda_x[it].push_back(pmom.x());
+	event.decaysmomLambda_y[it].push_back(pmom.y());
+	event.decaysmomLambda_z[it].push_back(pmom.z());
+
+	Int_t piid = vp -> GetPionIdLambda(combi);
+	TVector3 pimom = vp -> GetPionMomLambda(combi);
+	event.decaysidLambda[it].push_back(piid);
+	event.decaysmomLambda[it].push_back(pimom.Mag());
+	event.decaysmomLambda_x[it].push_back(pimom.x());
+	event.decaysmomLambda_y[it].push_back(pimom.y());
+	event.decaysmomLambda_z[it].push_back(pimom.z());
+      }
+      event.bestmassLambda[it] = best_lmass;
+    }
+  }
+
+  Int_t nvtxTpcClustered = TPCAna->GetNVerticesTPCClustered();
+  event.nvtxTpcClustered = nvtxTpcClustered;
+  event.Clusteredvtx_x.resize(nvtxTpcClustered);
+  event.Clusteredvtx_y.resize(nvtxTpcClustered);
+  event.Clusteredvtx_z.resize(nvtxTpcClustered);
+  event.Clusteredvtxid.resize(nvtxTpcClustered);
+  for( Int_t ivtx=0; ivtx<nvtxTpcClustered; ++ivtx ){
+    TPCVertex *vp = TPCAna->GetTPCVertexClustered( ivtx );
+    if( !vp ) continue;
+    event.Clusteredvtx_x[ivtx] = vp -> GetVertex().x();
+    event.Clusteredvtx_y[ivtx] = vp -> GetVertex().y();
+    event.Clusteredvtx_z[ivtx] = vp -> GetVertex().z();
+
+    Int_t ntracks = vp -> GetNTracks(ivtx);
+    event.Clusteredvtxid[ivtx].resize(ntracks);
+    for( Int_t it=0; it<ntracks; ++it ){
+      event.Clusteredvtxid[ivtx][it] = vp -> GetTrackId(it);
+    }
+  }
+
+#if TrackSearchFailed
+  Int_t failed_ntTpc = TPCAna.GetNTracksTPCHelixFailed();
+  event.failed_ntTpc = failed_ntTpc;
+  event.failed_nhtrack.resize( failed_ntTpc );
+  event.failed_flag.resize( failed_ntTpc );
+  event.failed_trackid.resize( failed_ntTpc );
+  event.failed_isBeam.resize( failed_ntTpc );
+  event.failed_isKurama.resize( failed_ntTpc );
+  event.failed_isK18.resize( failed_ntTpc );
+  event.failed_nclbeforetgt.resize( failed_ntTpc );
+  event.failed_isAccidental.resize( failed_ntTpc );
+  event.failed_fittime.resize( failed_ntTpc );
+  event.failed_searchtime.resize( failed_ntTpc );
+  event.failed_niteration.resize( failed_ntTpc );
+
+  event.failed_helix_cx.resize( failed_ntTpc );
+  event.failed_helix_cy.resize( failed_ntTpc );
+  event.failed_helix_z0.resize( failed_ntTpc );
+  event.failed_helix_r.resize( failed_ntTpc );
+  event.failed_helix_dz.resize( failed_ntTpc );
+  event.failed_mom0.resize( failed_ntTpc );
+  event.failed_charge.resize( failed_ntTpc );
+
+  event.failed_hitlayer.resize( failed_ntTpc );
+  event.failed_hitpos_x.resize( failed_ntTpc );
+  event.failed_hitpos_y.resize( failed_ntTpc );
+  event.failed_hitpos_z.resize( failed_ntTpc );
+  event.failed_calpos_x.resize( failed_ntTpc );
+  event.failed_calpos_y.resize( failed_ntTpc );
+  event.failed_calpos_z.resize( failed_ntTpc );
+  event.failed_helix_t.resize( failed_ntTpc );
+  event.failed_residual.resize( failed_ntTpc );
+  event.failed_residual_x.resize( failed_ntTpc );
+  event.failed_residual_y.resize( failed_ntTpc );
+  event.failed_residual_z.resize( failed_ntTpc );
+  event.failed_track_cluster_de.resize( failed_ntTpc );
+  event.failed_track_cluster_size.resize( failed_ntTpc );
+  event.failed_track_cluster_mrow.resize( failed_ntTpc );
+
+  for( Int_t it=0; it<failed_ntTpc; ++it ){
+    TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelixFailed( it );
+    if( !tp ) continue;
+    Int_t nh = tp->GetNHit();
+    Double_t helix_cx=tp->Getcx(), helix_cy=tp->Getcy();
+    Double_t helix_z0=tp->Getz0(), helix_r=tp->Getr();
+    Double_t helix_dz=tp->Getdz();
+    TVector3 mom0 = tp->GetMom0();
+    Int_t flag = tp->GetFitFlag();
+    Int_t trackid = tp->GetTrackID();
+    Int_t isbeam = tp->GetIsBeam();
+    Int_t iskurama = tp->GetIsKurama();
+    Int_t isk18 = tp->GetIsK18();
+    Int_t nclbeforetgt = tp->GetNclBeforeTgt();
+    Int_t isaccidental = tp->GetIsAccidental();
+    Int_t fittime = tp->GetFitTime();
+    Int_t charge = tp->GetCharge();
+    Int_t iteration = tp->GetNIteration();
+    event.failed_nhtrack[it] = nh;
+    event.failed_flag[it] = flag;
+    event.failed_trackid[it] = trackid;
+    event.failed_isBeam[it] = isbeam;
+    event.failed_isKurama[it] = iskurama;
+    event.failed_isK18[it] = isk18;
+    event.failed_nclbeforetgt[it] = nclbeforetgt;
+    event.failed_isAccidental[it] = isaccidental;
+    event.failed_fittime[it] = fittime;
+    event.failed_searchtime[it] = fittime;
+    event.failed_niteration[it] = iteration;
+
+    event.failed_helix_cx[it] = helix_cx;
+    event.failed_helix_cy[it] = helix_cy;
+    event.failed_helix_z0[it] = helix_z0;
+    event.failed_helix_r[it] = helix_r ;
+    event.failed_helix_dz[it] = helix_dz;
+    event.failed_mom0[it] = mom0.Mag();
+    event.failed_charge[it] = charge;
+
+    event.failed_hitlayer[it].resize( nh );
+    event.failed_hitpos_x[it].resize( nh );
+    event.failed_hitpos_y[it].resize( nh );
+    event.failed_hitpos_z[it].resize( nh );
+    event.failed_calpos_x[it].resize( nh );
+    event.failed_calpos_y[it].resize( nh );
+    event.failed_calpos_z[it].resize( nh );
+    event.failed_helix_t[it].resize( nh );
+    event.failed_residual[it].resize( nh );
+    event.failed_residual_x[it].resize( nh );
+    event.failed_residual_y[it].resize( nh );
+    event.failed_residual_z[it].resize( nh );
+    event.failed_track_cluster_de[it].resize( nh );
+    event.failed_track_cluster_size[it].resize( nh );
+    event.failed_track_cluster_mrow[it].resize( nh );
+
+    for( int ih=0; ih<nh; ++ih ){
+      TPCLTrackHit *hit = tp->GetHit( ih );
+      if( !hit ) continue;
+      const TVector3& hitpos = hit->GetLocalHitPos();
+      const TVector3& calpos = hit->GetLocalCalPosHelix();
+      const TVector3& res_vect = hit->GetResidualVect();
+      Int_t layer = hit->GetLayer();
+      Double_t residual = hit->GetResidual();
+      Double_t clde = hit->GetDe();
+      Double_t mrow = hit->GetMRow();
+      TPCCluster *cl = hit->GetHit()->GetParentCluster();
+      Int_t clsize = cl->GetClusterSize();
+
+      event.failed_hitlayer[it][ih] = (double)layer;
+      event.failed_hitpos_x[it][ih] = hitpos.x();
+      event.failed_hitpos_y[it][ih] = hitpos.y();
+      event.failed_hitpos_z[it][ih] = hitpos.z();
+      event.failed_calpos_x[it][ih] = calpos.x();
+      event.failed_calpos_y[it][ih] = calpos.y();
+      event.failed_calpos_z[it][ih] = calpos.z();
+
+      event.failed_residual[it][ih] = residual;
+      event.failed_residual_x[it][ih] = res_vect.x();
+      event.failed_residual_y[it][ih] = res_vect.y();
+      event.failed_residual_z[it][ih] = res_vect.z();
+      event.failed_track_cluster_de[it][ih] = clde;
+      event.failed_track_cluster_size[it][ih] = clsize;
+      event.failed_track_cluster_mrow[it][ih] = mrow;
+    }
+  }
+#endif
 #if 0
   std::cout<<"[event]: "<<std::setw(6)<<ievent<<" ";
   std::cout<<"[nhittpc]: "<<std::setw(2)<<src.nhittpc<<" "<<std::endl;
@@ -2130,6 +2688,20 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_de", &event.track_cluster_de);
   tree->Branch( "track_cluster_mrow", &event.track_cluster_mrow);
 
+  tree->Branch( "chargeIndistinguishable", &event.chargeIndistinguishable );
+  tree->Branch( "chisqr_inverted", &event.chisqr_inverted );
+  tree->Branch( "pval_inverted", &event.pval_inverted );
+  tree->Branch( "helix_cx_inverted", &event.helix_cx_inverted );
+  tree->Branch( "helix_cy_inverted", &event.helix_cy_inverted );
+  tree->Branch( "helix_z0_inverted", &event.helix_z0_inverted );
+  tree->Branch( "helix_r_inverted", &event.helix_r_inverted );
+  tree->Branch( "helix_dz_inverted", &event.helix_dz_inverted );
+  tree->Branch( "mom0_x_inverted", &event.mom0_x_inverted );
+  tree->Branch( "mom0_y_inverted", &event.mom0_y_inverted );
+  tree->Branch( "mom0_z_inverted", &event.mom0_z_inverted );
+  tree->Branch( "mom0_inverted", &event.mom0_inverted );
+  tree->Branch( "pid_inverted", &event.pid_inverted );
+
 
 	tree->Branch("momg_x",event.momg_x,"momg_x[nttpc][64]/D");
   tree->Branch("momg_y",event.momg_y,"momg_y[nttpc][64]/D");
@@ -2145,6 +2717,22 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "resolution_y", &event.resolution_y);
   tree->Branch( "resolution_z", &event.resolution_z);
   tree->Branch("residual_p",event.residual_p,"residual_p[nttpc][64]/D");
+
+
+  tree->Branch( "nvtxTpc", &event.nvtxTpc );
+  tree->Branch( "vtx_x", &event.vtx_x );
+  tree->Branch( "vtx_y", &event.vtx_y );
+  tree->Branch( "vtx_z", &event.vtx_z );
+  tree->Branch( "vtx_dist", &event.vtx_dist );
+  tree->Branch( "vtx_angle", &event.vtx_angle );
+  tree->Branch( "vtxid", &event.vtxid );
+  tree->Branch( "vtxmom_theta", &event.vtxmom_theta );
+  tree->Branch( "vtxpos_x", &event.vtxpos_x );
+  tree->Branch( "vtxpos_y", &event.vtxpos_y );
+  tree->Branch( "vtxpos_z", &event.vtxpos_z );
+  tree->Branch( "vtxmom_x", &event.vtxmom_x );
+  tree->Branch( "vtxmom_y", &event.vtxmom_y );
+  tree->Branch( "vtxmom_z", &event.vtxmom_z );
 
 
   tree->Branch("nPrm",&src.nhPrm,"nPrm/I");

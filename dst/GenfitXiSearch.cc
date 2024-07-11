@@ -2064,6 +2064,11 @@ if(event.isgoodTPC[0] == 1){
   KFXi.AddOffdiagonals(OffdiagXi);
   KFchisqrxi = KFXi.DoKinematicFit();
   cout<<Form("KFXi done:: chi2 = %g",KFchisqrxi)<<endl;
+  auto VXi = KFXi.GetUnmeasuredCovariance();
+  double rU,rV;
+  MathTools::DecomposeResolutionUV(VXi,HTVXi,rU,rV);
+  cout<<Form("Resolution U = %g, V = %g",rU,rV)<<endl;
+
   KFpvalxi = KFXi.GetPValue();  
   auto HcontXi = KFXi.GetFittedLV();
   auto PullXi = KFXi.GetPull();

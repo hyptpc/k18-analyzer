@@ -50,6 +50,8 @@ const auto& gUnpacker = GUnpacker::get_instance();
 auto&       gConf = ConfMan::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gCounter = debug::ObjectCounter::GetInstance();
+const auto& gTPC  = TPCParamMan::GetInstance();
+const Int_t MaxTPCHits = 10000;
 
 //For GenFit Setting
 const bool Const_field = false; //Must be false for linear tracking
@@ -157,7 +159,7 @@ enum kArgc
   kE42, kOutFile, nArgc
 };
 std::vector<TString> ArgName =
-{ "[Process]", "[ConfFile]", "[E42]", "[OutFile]" };
+{ "[Process]", "[ConfFile]", "[DstTPCTrackingHelixGeant4]", "[OutFile]" };
 std::vector<TString> TreeName = { "", "", "tpc", "" };
 std::vector<TFile*> TFileCont;
 std::vector<TTree*> TTreeCont;
@@ -179,6 +181,12 @@ struct Event
   std::vector<Double_t> dtHtof;
   std::vector<Double_t> deHtof;
   std::vector<Double_t> posHtof;
+  
+  Int_t nhFtof;
+  std::vector<Double_t> FtofSeg;
+  std::vector<Double_t> tFtof;
+  std::vector<Double_t> deFtof;
+  std::vector<Double_t> posFtof;
 
   int G4kmid;
   int G4kmtid;
@@ -222,7 +230,6 @@ struct Event
   double G4lmom_x;
   double G4lmom_y;
   double G4lmom_z;
-
   double lvtx_x;
   double lvtx_y;
   double lvtx_z;
@@ -249,12 +256,6 @@ struct Event
   double pmom_x;
   double pmom_y;
   double pmom_z;
-  double pres_x;
-  double pres_y;
-  double pres_z;
-  double pcov_xy;
-  double pcov_yz;
-  double pcov_zx;
   double GFpmom;
   double GFpmom_x;
   double GFpmom_y;
@@ -282,12 +283,6 @@ struct Event
   double pi1mom_x;
   double pi1mom_y;
   double pi1mom_z;
-  double pi1res_x;
-  double pi1res_y;
-  double pi1res_z;
-  double pi1cov_xy;
-  double pi1cov_yz;
-  double pi1cov_zx;
   double GFpi1mom;
   double GFpi1mom_x;
   double GFpi1mom_y;
@@ -315,57 +310,11 @@ struct Event
   double pi2mom_x;
   double pi2mom_y;
   double pi2mom_z;
-  double pi2res_x;
-  double pi2res_y;
-  double pi2res_z;
-  double pi2cov_xy;
-  double pi2cov_yz;
-  double pi2cov_zx;
   double GFpi2mom;
   double GFpi2mom_x;
   double GFpi2mom_y;
   double GFpi2mom_z;
 
-  std::vector<Double_t> BE;
-  std::vector<Double_t> BETPC;
-  std::vector<Double_t> BEcorrDE;
-  std::vector<Double_t> BEcorrDETPC;
-  std::vector<Double_t> km_mom_x;
-  std::vector<Double_t> km_mom_y;
-  std::vector<Double_t> km_mom_z;
-  std::vector<Double_t> kp_mom_x;
-  std::vector<Double_t> kp_mom_y;
-  std::vector<Double_t> kp_mom_z;
-
-  Int_t nclTpc; // Number of clusters
-  std::vector<Double_t> cluster_x;
-  std::vector<Double_t> cluster_y;
-  std::vector<Double_t> cluster_z;
-  std::vector<Double_t> cluster_de;
-  std::vector<Int_t> cluster_size;
-  std::vector<Int_t> cluster_layer;
-  std::vector<Double_t> cluster_mrow;
-  std::vector<Double_t> cluster_de_center;
-  std::vector<Double_t> cluster_x_center;
-  std::vector<Double_t> cluster_y_center;
-  std::vector<Double_t> cluster_z_center;
-  std::vector<Int_t> cluster_row_center;
-  std::vector<Int_t> cluster_houghflag;
-
-  Int_t remain_nclTpc; // Number of remain clusters not occupied in the tracks
-  std::vector<Double_t> remain_cluster_x;
-  std::vector<Double_t> remain_cluster_y;
-  std::vector<Double_t> remain_cluster_z;
-  std::vector<Double_t> remain_cluster_de;
-  std::vector<Int_t> remain_cluster_size;
-  std::vector<Int_t> remain_cluster_layer;
-  std::vector<Double_t> remain_cluster_mrow;
-  std::vector<Double_t> remain_cluster_de_center;
-  std::vector<Double_t> remain_cluster_x_center;
-  std::vector<Double_t> remain_cluster_y_center;
-  std::vector<Double_t> remain_cluster_z_center;
-  std::vector<Int_t> remain_cluster_row_center;
-  std::vector<Int_t> remain_cluster_houghflag;
 
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
@@ -378,6 +327,10 @@ struct Event
   std::vector<Int_t> charge; //Helix charge
   std::vector<Int_t> pid;
   std::vector<Double_t> chisqr;
+  std::vector<Double_t> pval;
+  std::vector<Double_t> purity;
+  std::vector<Double_t> efficiency;
+  std::vector<Int_t> G4tid;
   std::vector<Double_t> helix_cx;
   std::vector<Double_t> helix_cy;
   std::vector<Double_t> helix_z0;
@@ -452,7 +405,7 @@ struct Event
 
   Bool_t lpiflag;
   Bool_t lflag;
-
+//
   Bool_t llflag;
   Double_t ltarget_dist1;
   Double_t ltargetvtx_x1;
@@ -537,7 +490,8 @@ struct Event
   Double_t GFllvtx_y;
   Double_t GFllvtx_z;
   Double_t GFlldist;
-
+//
+  int best;
   Bool_t xiflag;
   Double_t ximass;
   Double_t xidecayvtx_x;
@@ -570,7 +524,7 @@ struct Event
   Double_t ltargetvtx_x;
   Double_t ltargetvtx_y;
   Double_t ltargetvtx_z;
-
+//???
   Double_t lmass_vtx;
   Double_t ldecayvtx_x_vtx;
   Double_t ldecayvtx_y_vtx;
@@ -580,7 +534,9 @@ struct Event
   Double_t lmom_y_vtx;
   Double_t lmom_z_vtx;
   Double_t ppi_dist_vtx;
-
+//
+  
+  Bool_t GFxiflag;
   Double_t GFximass;
   Double_t GFxidecayvtx_x;
   Double_t GFxidecayvtx_y;
@@ -708,12 +664,16 @@ struct Event
   std::vector<Double_t> GFtof;
   std::vector<Double_t> GFtracklen;
   std::vector<Double_t> GFpval;
-
+  
   std::vector<Int_t> decays_id;
+  std::vector<Double_t> decays_purity;
+  std::vector<Double_t> decays_efficiency;
+  std::vector<Int_t> decays_G4tid;
   std::vector<Double_t> decays_mom;
   std::vector<Double_t> decays_mom_x;
   std::vector<Double_t> decays_mom_y;
   std::vector<Double_t> decays_mom_z;
+
 
   Bool_t pipiflag;
 
@@ -735,21 +695,93 @@ struct Event
 
   Double_t KFlchisqr;
   Double_t KFlpval;
+  std::vector<Double_t> KFlpull;
+  Double_t KFlmass;//MassBefore;
+  Double_t KFlmom;
+  Double_t KFlmom_x;
+  Double_t KFlmom_y;
+  Double_t KFlmom_z;
+  Double_t KFlpi_dist;
+  
   Double_t KFxichisqr;
   Double_t KFxipval;
-
-  Double_t KFximass;
-  Double_t KFlpi_dist;
-
-  std::vector<Double_t> KFlpull;
   std::vector<Double_t> KFxipull;
+  Double_t KFximass;
+  Double_t KFximom_x;
+  Double_t KFximom_y;
+  Double_t KFximom_z;
+  
+  vector<Double_t> KFdecays_mom;
+  vector<Double_t> KFdecays_mom_x;
+  vector<Double_t> KFdecays_mom_y;
+  vector<Double_t> KFdecays_mom_z;
+
   void clear( void )
   {
+    status = 0;
     runnum = 0;
     evnum = 0;
-    status = 0;
     trigpat.clear();
     trigflag.clear();
+    
+    nhHtof = 0;
+    HtofSeg.clear();
+    tHtof.clear();
+    deHtof.clear();
+    posHtof.clear();
+
+    nhFtof = 0;
+    FtofSeg.clear();
+    tFtof.clear();
+    deFtof.clear();
+    posFtof.clear();
+    
+    G4kmid = -1;
+    G4kmtid = -1;
+    G4kmvtx_x = qnan;
+    G4kmvtx_y = qnan;
+    G4kmvtx_z = qnan;
+    G4kmmom = qnan;
+    G4kmmom_x = qnan;
+    G4kmmom_y = qnan;
+    G4kmmom_z = qnan;
+    
+    G4kpid = -1;
+    G4kptid = -1;
+    G4kpvtx_x = qnan;
+    G4kpvtx_y = qnan;
+    G4kpvtx_z = qnan;
+    G4kpmom = qnan;
+    G4kpmom_x = qnan;
+    G4kpmom_y = qnan;
+    G4kpmom_z = qnan;
+    
+    
+    G4xiid = -1;
+    G4xivtx_x = qnan;
+    G4xivtx_y = qnan;
+    G4xivtx_z = qnan;
+    G4ximom = qnan;
+    G4ximom_x = qnan;
+    G4ximom_y = qnan;
+    G4ximom_z = qnan;
+    xivtx_x = qnan;
+    xivtx_y = qnan;
+    xivtx_z = qnan;
+    ximom = qnan;
+
+    G4lid = -1;
+    G4lvtx_x = qnan;
+    G4lvtx_y = qnan;
+    G4lvtx_z = qnan;
+    G4lmom = qnan;
+    G4lmom_x = qnan;
+    G4lmom_y = qnan;
+    G4lmom_z = qnan;
+    lvtx_x = qnan;
+    lvtx_y = qnan;
+    lvtx_z = qnan;
+    lmom = qnan;
     
     G4pid = -1;
     G4ptid = -1;
@@ -771,12 +803,6 @@ struct Event
     pmom_x = qnan;
     pmom_y = qnan;
     pmom_z = qnan;
-    pres_x = qnan;
-    pres_y = qnan;
-    pres_z = qnan;
-    pcov_xy = qnan;
-    pcov_yz = qnan;
-    pcov_zx = qnan;
     GFpmom = qnan;
     GFpmom_x = qnan;
     GFpmom_y = qnan;
@@ -850,48 +876,6 @@ struct Event
     dtHtof.clear();
     deHtof.clear();
     posHtof.clear();
-
-
-    BE.clear();
-    BETPC.clear();
-    BEcorrDE.clear();
-    BEcorrDETPC.clear();
-    km_mom_x.clear();
-    km_mom_y.clear();
-    km_mom_z.clear();
-    kp_mom_x.clear();
-    kp_mom_y.clear();
-    kp_mom_z.clear();
-
-    nclTpc = 0;
-    cluster_x.clear();
-    cluster_y.clear();
-    cluster_z.clear();
-    cluster_de.clear();
-    cluster_size.clear();
-    cluster_layer.clear();
-    cluster_mrow.clear();
-    cluster_de_center.clear();
-    cluster_x_center.clear();
-    cluster_y_center.clear();
-    cluster_z_center.clear();
-    cluster_row_center.clear();
-    cluster_houghflag.clear();
-
-    remain_nclTpc = 0;
-    remain_cluster_x.clear();
-    remain_cluster_y.clear();
-    remain_cluster_z.clear();
-    remain_cluster_de.clear();
-    remain_cluster_size.clear();
-    remain_cluster_layer.clear();
-    remain_cluster_mrow.clear();
-    remain_cluster_de_center.clear();
-    remain_cluster_x_center.clear();
-    remain_cluster_y_center.clear();
-    remain_cluster_z_center.clear();
-    remain_cluster_row_center.clear();
-    remain_cluster_houghflag.clear();
 
     ntTpc = 0;
     nhtrack.clear();

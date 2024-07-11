@@ -222,7 +222,16 @@ static const Int_t FrameHighEdge[NumOfLayersTPC][5] =
   {-1,-100,-100,-100,-100}, //30
   {-1,-100,-100,-100,-100}
 };
-
+static const Double_t ClusterSizeInner[2][10] ={
+  {0.12912,0.12912,0.129121,0.164862,0.211372,0.256798,0.33125,0.315186,0.27439,0.303371},//proton
+  {0.274143,0.550639,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333}//pion
+  //0.0 - 0.1 , 0.1 - 0.2, ... 0.9 - 1.0 GeV/c
+};
+static const Double_t ClusterSizeOuter[2][10] ={
+  {0.285714,0.285714,0.326683,0.280962,0.243775,0.234132,0.217313,0.256798,0.293478,0.285319},//proton
+  {0.257669,0.348881,0.308642,0.308642,0.308642,0.308642,0.308642,0.308642,0.308642,0.308642}//pion
+  //0.0 - 0.1 , 0.1 - 0.2, ... 0.9 - 1.0 GeV/c
+};
 //_____________________________________________________________________________
 inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
 {
@@ -1360,5 +1369,77 @@ inline Bool_t Dead(Int_t layer, Int_t row){
   Int_t padID = GetPadId(layer, row);
   return Dead(padID);
 }
+
+
+//Functions for G4 simulation
+inline Double_t GetClSize1Prob(double mom, int pid, int layer){
+    bool inner = false;
+    if(layer < 10) inner = true;
+    int pidflag = 0;
+    if(abs(pid)== 211) pidflag = 0;
+    else if(abs(pid)== 2212 or abs(pid)> 3000) pidflag = 1;
+    int mom_flag = (int)(mom/0.1);
+    double prob = 0;
+    if(mom_flag > 9){
+      mom_flag = 10;
+      if(inner){
+        prob = ClusterSizeInner[pidflag][mom_flag];
+      }
+      else{
+        prob = ClusterSizeOuter[pidflag][mom_flag];
+      }
+    }
+    else{
+      double resi = (mom )/0.1 - mom_flag;
+      if(inner){
+        prob = ClusterSizeInner[pidflag][mom_flag]*(1-resi) + ClusterSizeInner[pidflag][mom_flag+1]*resi; 
+      }
+      else{
+        prob = ClusterSizeOuter[pidflag][mom_flag]*(1-resi) + ClusterSizeOuter[pidflag][mom_flag+1]*resi; 
+      }
+    }
+    return prob; 
+  }
+  inline Double_t GetDetectionEfficiency(TVector3 pos, Int_t pid, TVector3 mom, Double_t de){
+    Int_t pad = findPadID(pos.z(), pos.x());
+    Int_t layer = getLayerID(pad);
+    Int_t row = getRowID(pad);
+    bool Inner = false;
+    if(layer < 10)Inner = true;
+    int pidflag = 0;// 0 -> pion, 1 -> kaon, 2 -> proton or any other baryons.
+    if(abs(pid)== 211) pidflag = 0;
+    else if(abs(pid)== 321) pidflag = 1;
+    else if(abs(pid)== 2212 or abs(pid)> 3000) pidflag = 2;
+    double eff = 0.;
+    if(Inner){
+      if(pidflag == 0 or pidflag == 1){
+        eff = 1;
+        if(layer>4){
+          eff = 1 - 0.02*(layer-4);
+        }
+      }
+      else if (pidflag == 2){
+        eff = 1;
+      }
+    }
+    else {
+      if(pidflag == 0 or pidflag == 1){
+        eff = 1;
+        if(layer > 15 and layer < 29){
+          eff = 1 - 0.1*(layer-15)/13;
+        }
+        else if (layer > 28 and layer < 31){
+          eff = 0.9 - 0.05*(layer-28);
+        }
+        else if(layer > 30){
+          eff = 0.8 + 0.1 *(layer - 30);
+        }
+      }
+      else if (pidflag == 2){
+        eff = 1;
+      }
+    }
+    return eff;
+  }
 }
 #endif

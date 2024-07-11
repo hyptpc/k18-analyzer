@@ -1884,8 +1884,11 @@ MarkingAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
 
   Double_t tgtXZ_cut = 30.; //mm
   Double_t target_section = 15; // abs(y)<target_section is not counted in this function
-  //Double_t accidental_section = 30;
-  Double_t accidental_section = 50;
+  //Double_t accidental_section = 20;
+//  Double_t accidental_section = 20;
+  Double_t accidental_section = 30;
+  //Double_t accidental_section = 50;
+  //Double_t accidental_section = 200;
 
   TVector3 tgt(0., 0., tpc::ZTarget);
   std::vector<std::vector<TPCVertex*>> clustered_vertices; //Clustered tracks id
@@ -2044,7 +2047,6 @@ TestingCharge(std::vector<T*>& TrackCont,
   for(Int_t trackid=0; trackid<TrackCont.size(); trackid++){
     T *track = TrackCont[trackid];
     if(track -> GetIsAccidental()==1 || track -> GetIsK18()==1 || track -> GetIsBeam()==1 || track -> GetIsKurama()==1) continue;
-
     T *InvertedTrack = new T(track);
     Bool_t test = InvertedTrack -> TestInvertCharge();
     if(!test || (track -> GetCharge() == InvertedTrack -> GetCharge())){
