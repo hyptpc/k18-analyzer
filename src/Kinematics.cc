@@ -53,7 +53,7 @@ static void fcn_vertex(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, I
   Double_t chisqr=0.;
   for(Int_t i=0; i<gNumOfTracks; ++i){
     chisqr += TMath::Power(par[0]-gX0[i]-gU0[i]*par[2], 2) / (gSX0[i]*gSX0[i]+par[2]*par[2]*gSU0[i]*gSU0[i]);
-    chisqr += TMath::Power(par[1]-gY0[i]-gV0[i]*par[2], 2) / (gSY0[i]*gSY0[i]+par[2]*par[2]*gSV0[i]*gSV0[i]);
+    chisqr += TMath::Power(par[1]-gY0[i]-gV0[i]*par[2], 2) / (gSY0[i]*gSY0[i]+par[3]*par[3]*gSV0[i]*gSV0[i]);
   };
   f = chisqr;
 };
@@ -1600,11 +1600,11 @@ std::vector<Double_t> Res_x0,std::vector<Double_t> Res_y0,std::vector<Double_t> 
   if(Res_x0.size() == 0){
     ResFlag = false;
   }
-  else if(Res_x0.size() != ntrack or Res_y0.size() != ntrack 
+  else if(Res_x0.size() != ntrack or Res_y0.size() != ntrack
   or Res_u0.size() != ntrack or Res_v0.size() != ntrack){
     std::cout<<"MultitrackVertex:: Resolution not set"<<std::endl;
     std::cout<<"ntracks = "<<ntrack<<std::endl;
-    std::cout<<"Res_x0.size() = "<<Res_x0.size()<<std::endl;  
+    std::cout<<"Res_x0.size() = "<<Res_x0.size()<<std::endl;
     std::cout<<"Res_y0.size() = "<<Res_y0.size()<<std::endl;
     std::cout<<"Res_u0.size() = "<<Res_u0.size()<<std::endl;
     std::cout<<"Res_v0.size() = "<<Res_v0.size()<<std::endl;
@@ -1625,8 +1625,7 @@ std::vector<Double_t> Res_x0,std::vector<Double_t> Res_y0,std::vector<Double_t> 
       gSU0.push_back(0.);
       gSV0.push_back(0.);
     }
-  }  
-
+  }
 
   Double_t par[3] = {0, 0, 0};
   Double_t err[3] = {999., 999., 999.};

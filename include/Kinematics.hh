@@ -115,8 +115,8 @@ namespace Kinematics
 			Double_t &dist);
   TVector3 MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0,
 			    Double_t *u0, Double_t *v0,
-          std::vector<Double_t> Res_x0 = {}, std::vector<Double_t> Res_y0 = {},
-          std::vector<Double_t> Res_u0 = {}, std::vector<Double_t> Res_v0 = {});  
+			    std::vector<Double_t> Res_x0 = {}, std::vector<Double_t> Res_y0 = {},
+			    std::vector<Double_t> Res_u0 = {}, std::vector<Double_t> Res_v0 = {});
 
 }
 
