@@ -1295,13 +1295,15 @@ struct Event
 struct Src
 {
   TTreeReaderValue<Int_t>* evnum;
-  int nhHtof;
-  int didHtof[500];
-  double tHtof[500];
-  double deHtof[500];
-  double yHtof[500];//->posHtof
-
-  int nhFtof;
+  
+  TTreeReaderValue<Int_t>* nhHtof;
+  TTreeReaderValue<std::vector<Double_t>>* HtofSeg;
+  TTreeReaderValue<std::vector<Double_t>>* tHtof;
+  TTreeReaderValue<std::vector<Double_t>>* dtHtof;
+  TTreeReaderValue<std::vector<Double_t>>* deHtof;
+  TTreeReaderValue<std::vector<Double_t>>* posHtof;
+  
+	int nhFtof;
   int didFtof[500];
   double tFtof[500];
   double deFtof[500];
@@ -1513,13 +1515,12 @@ dst::DstRead( Int_t ievent )
 
   HF1( 1, event.status++ );
 
-  event.nhHtof = src.nhHtof;
-  for(int ih=0;ih<event.nhHtof;++ih){
-    event.HtofSeg.push_back(src.didHtof[ih]);
-    event.tHtof.push_back(src.tHtof[ih]);
-    event.deHtof.push_back(src.deHtof[ih]);
-    event.posHtof.push_back(src.yHtof[ih]);
-  }
+  event.nhHtof = **src.nhHtof;
+  event.HtofSeg = **src.HtofSeg;
+  event.tHtof = **src.tHtof;
+  event.dtHtof = **src.dtHtof;
+  event.deHtof = **src.deHtof;
+  event.posHtof = **src.posHtof;
 
   event.nhFtof = src.nhFtof;
   for(int ih=0;ih<event.nhFtof;++ih){
@@ -4912,11 +4913,6 @@ ConfMan::InitializeHistograms( void )
   const auto& reader = TTreeReaderCont[kE42];
   src.evnum = new TTreeReaderValue<Int_t>( *reader, "evnum" );
 
-  TTreeCont[kE42]->SetBranchAddress("nhHtof",&src.nhHtof);
-  TTreeCont[kE42]->SetBranchAddress("didHtof",src.didHtof);
-  TTreeCont[kE42]->SetBranchAddress("tHtof",src.tHtof);
-  TTreeCont[kE42]->SetBranchAddress("deHtof",src.deHtof);
-  TTreeCont[kE42]->SetBranchAddress("yHtof",src.yHtof);
   TTreeCont[kE42]->SetBranchAddress("nhFtof",&src.nhFtof);
   TTreeCont[kE42]->SetBranchAddress("didFtof",src.didFtof);
   TTreeCont[kE42]->SetBranchAddress("tFtof",src.tFtof);

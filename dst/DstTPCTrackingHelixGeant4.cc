@@ -427,20 +427,12 @@ struct Event
 
 	//HToF
   Int_t nhHtof;
-  Int_t tidHtof[MaxG4Hits];
-  Int_t pidHtof[MaxG4Hits];
-  Int_t didHtof[MaxG4Hits];
-  Int_t prtHtof[MaxG4Hits];
-  Int_t qHtof[MaxG4Hits];
-  Double_t xHtof[MaxG4Hits];
-  Double_t yHtof[MaxG4Hits];
-  Double_t zHtof[MaxG4Hits];
-  Double_t pxHtof[MaxG4Hits];
-  Double_t pyHtof[MaxG4Hits];
-  Double_t pzHtof[MaxG4Hits];
-  Double_t ppHtof[MaxG4Hits];
-  Double_t deHtof[MaxG4Hits];
-  Double_t tHtof[MaxG4Hits];
+  std::vector<Double_t> HtofSeg;
+  std::vector<Double_t> tHtof;
+  std::vector<Double_t> dtHtof;
+  std::vector<Double_t> deHtof;
+  std::vector<Double_t> posHtof;
+  
 	//
 
 
@@ -595,6 +587,11 @@ struct Event
 
 	void Clear(){
 
+    HtofSeg.clear();
+    tHtof.clear();
+    dtHtof.clear();
+    deHtof.clear();
+    posHtof.clear();
 
     nclTpc = 0;
     remain_nclTpc = 0;
@@ -1211,20 +1208,6 @@ dst::InitializeEvent( void )
     event.pytpc[i]=qnan;
     event.pztpc[i]=qnan;
 
-		event.tidHtof[i]=qnan;
-		event.pidHtof[i]=qnan;
-		event.didHtof[i]=qnan;
-		event.prtHtof[i]=qnan;
-		event.qHtof[i]=qnan;
-		event.xHtof[i]=qnan;
-		event.yHtof[i]=qnan;
-		event.zHtof[i]=qnan;
-		event.pxHtof[i]=qnan;
-		event.pyHtof[i]=qnan;
-		event.pzHtof[i]=qnan;
-		event.ppHtof[i]=qnan;
-		event.deHtof[i]=qnan;
-		event.tHtof[i]=qnan;
 
 		event.tidSch[i]=qnan;
 		event.pidSch[i]=qnan;
@@ -1387,7 +1370,7 @@ dst::DstRead( int ievent )
 
   int G4idKm = -1;
   int G4idKp = -1;
-  event.evnum = src.evnum;
+  event.evnum = src.evnum -1;
   event.nhittpc = src.nhittpc;
   //debug  std::cout<<"DstTPCTracking Helix Geant4, nhit="<<event.nhittpc<<std::endl;
  	event.NumberOfTracks = src.NumberOfTracks;
@@ -1472,23 +1455,13 @@ dst::DstRead( int ievent )
 	event.SpinLd_y = src.SpinLd_y;
 	event.SpinLd_z = src.SpinLd_z;
 	event.ThLd_CM = src.ThLd_CM;
-	event.nhHtof = src.nhHtof;
-	for(int ihit=0;ihit<event.nhHtof;++ihit){
-		event.tidHtof[ihit]=src.tidHtof[ihit];
-		event.pidHtof[ihit]=src.pidHtof[ihit];
-		event.didHtof[ihit]=src.didHtof[ihit];
-		event.prtHtof[ihit]=src.prtHtof[ihit];
-		event.qHtof[ihit]=src.qHtof[ihit];
-		event.xHtof[ihit]=src.xHtof[ihit];
-		event.yHtof[ihit]=src.yHtof[ihit];
-		event.zHtof[ihit]=src.zHtof[ihit];
-		event.pxHtof[ihit]=src.pxHtof[ihit];
-		event.pyHtof[ihit]=src.pyHtof[ihit];
-		event.pzHtof[ihit]=src.pzHtof[ihit];
-		event.ppHtof[ihit]=src.ppHtof[ihit];
-		event.deHtof[ihit]=src.deHtof[ihit];
-		event.tHtof[ihit]=src.tHtof[ihit];
-	}
+  event.nhHtof = src.nhHtof;
+  for(int ih=0;ih<event.nhHtof;++ih){
+    event.HtofSeg.push_back(src.didHtof[ih]);
+    event.tHtof.push_back(src.tHtof[ih]);
+    event.deHtof.push_back(src.deHtof[ih]);
+    event.posHtof.push_back(src.yHtof[ih]);
+  }
 
 	event.nhSch = src.nhSch;
 	for(int ihit=0;ihit<event.nhSch;++ihit){
@@ -2792,22 +2765,13 @@ ConfMan::InitializeHistograms( void )
 	tree->Branch("SpinLd_z",&event.SpinLd_z,"SpinLd_z/D");
 	tree->Branch("ThLd_CM",&event.ThLd_CM,"ThLd_CM/D");
 
-	tree->Branch("nhHtof", &event.nhHtof,"nhHtof/I");
-  tree->Branch("tidHtof", event.tidHtof,"tidHtof[500]/I");
-  tree->Branch("pidHtof", event.pidHtof,"pidHtof[500]/I");
-  tree->Branch("didHtof", event.didHtof,"didHtof[500]/I");
-  tree->Branch("prtHtof", event.prtHtof,"prtHtof[500]/I");
-  tree->Branch("qHtof", event.qHtof,"qHtof[500]/I");
-  tree->Branch("xHtof", event.xHtof,"xHtof[500]/D");
-  tree->Branch("yHtof", event.yHtof,"yHtof[500]/D");
-  tree->Branch("zHtof", event.zHtof,"zHtof[500]/D");
-  tree->Branch("pxHtof", event.pxHtof,"pxHtof[500]/D");
-  tree->Branch("pyHtof", event.pyHtof,"pyHtof[500]/D");
-  tree->Branch("pzHtof", event.pzHtof,"pzHtof[500]/D");
-  tree->Branch("ppHtof", event.ppHtof,"ppHtof[500]/D");
-  tree->Branch("deHtof", event.deHtof,"deHtof[500]/D");
-  tree->Branch("tHtof", event.tHtof,"tHtof[500]/D");
 
+  tree->Branch( "nhHtof", &event.nhHtof );
+  tree->Branch( "HtofSeg", &event.HtofSeg );
+  tree->Branch( "tHtof", &event.tHtof );
+  tree->Branch( "dtHtof", &event.dtHtof );
+  tree->Branch( "deHtof", &event.deHtof );
+  tree->Branch( "posHtof", &event.posHtof );
   tree->Branch("nhSch", &event.nhSch,"nhSch/I");
   tree->Branch("tidSch", event.tidSch,"tidSch[500]/I");
   tree->Branch("pidSch", event.pidSch,"pidSch[500]/I");
