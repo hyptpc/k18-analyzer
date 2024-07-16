@@ -51,7 +51,7 @@
 #define KKEvent 1
 #define KPEvent 0
 
-#define SaveHistograms 1
+#define SaveHistograms 0
 #define RawHit 0
 #define RawCluster 1
 #define TrackClusterHist 0
@@ -216,7 +216,9 @@ struct Event
   std::vector<Int_t> cluster_row_center;
   std::vector<Int_t> cluster_houghflag;
 
-  Int_t ntTpc; // Number of Tracks
+  Int_t ntTpc; // Number of tracks
+  Int_t ntKuramaCandidate; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
+  std::vector<Int_t> isKuramaCandidate;
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
   std::vector<Int_t> nhtrackEff; // Number of Hits actually used in tracking.
   std::vector<Int_t> trackid; //for Kurama & K1.8 tracks
@@ -624,6 +626,8 @@ struct Event
     cluster_houghflag.clear();
 
     ntTpc = 0;
+    ntKuramaCandidate = 0; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
+    isKuramaCandidate.clear();
     nhtrack.clear();
     nhtrackEff.clear();
     trackid.clear();
@@ -1269,11 +1273,12 @@ dst::DstRead( int ievent )
   if(src.ntKurama!=1 || src.ntK18!=1) return true;
   if(src.chisqrK18[0] > MaxChisqrBcOut || src.chisqrKurama[0] > MaxChisqrKurama) return true;
 #if KKEvent
-  if(src.m2[0] < 0.15 || src.m2[0] > 0.40) return true;
+  //if(src.m2[0] < 0.15 || src.m2[0] > 0.40) return true;
+  if(src.m2[0] < 0.08 || src.m2[0] > 0.60) return true;
   if(src.qKurama[0] < 0 || src.pKurama[0] > 1.4) return true;
 #endif
 #if KPEvent
-  if(src.m2[0] < 0.50 || src.m2[0] > 1.40) return true;
+  if(src.m2[0] < 0.60 || src.m2[0] > 1.40) return true;
   if(src.qKurama[0] < 0 || src.pKurama[0] < 0.0) return true;
 #endif
   if( ievent%1==0 ){
@@ -1481,8 +1486,8 @@ dst::DstRead( int ievent )
     initMomKurama.push_back(momOut);
     */
     Int_t pikp = -1;
-    if(src.m2[it] > 0. && src.m2[it] < 0.12) pikp=0;
-    else if(src.m2[it] > 0.15 && src.m2[it] < 0.4) pikp=1;
+    if(src.m2[it] > 0. && src.m2[it] < 0.10) pikp=0;
+    else if(src.m2[it] > 0.10 && src.m2[it] < 0.4) pikp=1;
     else if(src.m2[it] > 0.4 && src.m2[it] < 1.5)  pikp=2;
     pidKurama.push_back(pikp);
   }
@@ -1541,6 +1546,20 @@ dst::DstRead( int ievent )
 #else
   TPCAna.TrackSearchTPCHelix(vpK18, vpKurama);
 #endif
+
+  Int_t ntTpc = TPCAna.GetNTracksTPCHelix();
+  event.ntTpc = ntTpc;
+
+  Int_t nkurama_candidates = 0;
+  event.isKuramaCandidate.resize(ntTpc);
+  for( Int_t it=0; it<ntTpc; ++it ){
+    TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix( it );
+    if( !tp ) continue;
+    Int_t iskurama = tp->GetIsKurama();
+    if(iskurama==1) nkurama_candidates++;
+    event.isKuramaCandidate[it] = iskurama;
+  }
+  event.ntKuramaCandidate = nkurama_candidates;
 
   HF1( 1, event.status++ );
   TPCAna.TrackSearchTPCKurama(pidKurama, initPosKurama, initMomKurama, event.layerInt, event.wire, event.localhitpos);
@@ -1812,7 +1831,8 @@ dst::DstRead( int ievent )
     event.vtgtTPCKurama[idkurama] = vtgt;
     event.thetaTPCKurama[idkurama] = theta;
     event.pathTPCKurama[idkurama] = pathtof;
-    if(q>0 && event.m2TPCKurama[idkurama] > 0.15 && event.m2TPCKurama[idkurama] < 0.40) event.kflagTPCKurama[idkurama] = 1;
+    //if(q>0 && event.m2TPCKurama[idkurama] > 0.15 && event.m2TPCKurama[idkurama] < 0.40) event.kflagTPCKurama[idkurama] = 1;
+    if(q>0 && event.m2TPCKurama[idkurama] > 0.10 && event.m2TPCKurama[idkurama] < 0.40) event.kflagTPCKurama[idkurama] = 1;
     if(q>0 && event.m2TPCKurama[idkurama] > 0.5 && event.m2TPCKurama[idkurama] < 1.4) event.pflagTPCKurama[idkurama] = 1;
 
     Double_t path, x, y;
@@ -1909,8 +1929,8 @@ dst::DstRead( int ievent )
       //PID
       Double_t ScatMass = qnan;
       if(event.m2TPCKurama[idScat] > 0. &&
-	 event.m2TPCKurama[idScat] < 0.12) ScatMass = PionMass;
-      else if(event.m2TPCKurama[idScat] > 0.15 &&
+	 event.m2TPCKurama[idScat] < 0.10) ScatMass = PionMass;
+      else if(event.m2TPCKurama[idScat] > 0.10 &&
 	      event.m2TPCKurama[idScat] < 0.4) ScatMass = KaonMass;
       else if(event.m2TPCKurama[idScat] > 0.4 &&
 	      event.m2TPCKurama[idScat] < 1.5) ScatMass = ProtonMass;
@@ -2607,9 +2627,6 @@ dst::DstRead( int ievent )
   event.remain_nclTpc = remain_nclTpc;
   HF1( 1, event.status++ );
 #endif
-
-  Int_t ntTpc = TPCAna.GetNTracksTPCHelix();
-  event.ntTpc = ntTpc;
 
   HF1( 10, ntTpc );
   //if( event.ntTpc == 0 ) return true;
@@ -3956,6 +3973,8 @@ ConfMan::InitializeHistograms( void )
 #endif
 
   tree->Branch( "ntTpc", &event.ntTpc );
+  tree->Branch( "ntKuramaCandidate", &event.ntKuramaCandidate );
+  tree->Branch( "isKuramaCandidate", &event.isKuramaCandidate );
   tree->Branch( "nhtrack", &event.nhtrack );
   tree->Branch( "nhtrackEff", &event.nhtrackEff );
   tree->Branch( "trackid", &event.trackid );
