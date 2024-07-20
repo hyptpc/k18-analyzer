@@ -24,7 +24,7 @@
 #include "UserParamMan.hh"
 
 #define Cluster 1
-#define REQDE   1
+#define REQDE   0
 
 namespace
 {
