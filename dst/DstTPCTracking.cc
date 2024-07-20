@@ -146,6 +146,11 @@ struct Event
   std::vector<std::vector<Double_t>> exresidual_horizontal;
   std::vector<std::vector<Double_t>> exresidual_vertical;
 
+  Int_t ntTpc_inside;
+  Double_t prodvtx_x;
+  Double_t prodvtx_y;
+  Double_t prodvtx_z;
+
   //failed track container
   Int_t failed_ntTpc;
   std::vector<Int_t> failed_nhtrack;
@@ -235,6 +240,11 @@ struct Event
     track_cluster_y_center.clear();
     track_cluster_z_center.clear();
     track_cluster_row_center.clear();
+
+    ntTpc_inside = 0;
+    prodvtx_x = TMath::QuietNaN();
+    prodvtx_y = TMath::QuietNaN();
+    prodvtx_z = TMath::QuietNaN();
 
     exresidual.clear();
     exresidual_x.clear();
@@ -532,6 +542,12 @@ dst::DstRead(int ievent)
   event.track_cluster_z_center.resize(ntTpc);
   event.track_cluster_row_center.resize(ntTpc);
 
+  Int_t ntrack_intarget = 0;
+  Double_t x0_vtx[100] = {0};
+  Double_t y0_vtx[100] = {0};
+  Double_t u0_vtx[100] = {0};
+  Double_t v0_vtx[100] = {0};
+
   for(Int_t it=0; it<ntTpc; ++it){
     auto track = TPCAna.GetTrackTPC(it);
     if(!track) continue;
@@ -540,6 +556,13 @@ dst::DstRead(int ievent)
     Double_t x0=track->GetX0(), y0=track->GetY0();
     Double_t u0=track->GetU0(), v0=track->GetV0();
     Double_t theta = track->GetTheta();
+    if(TMath::Abs(x0)<50. && TMath::Abs(y0)<50.){
+      x0_vtx[ntrack_intarget] = x0;
+      y0_vtx[ntrack_intarget] = y0;
+      u0_vtx[ntrack_intarget] = u0;
+      v0_vtx[ntrack_intarget] = v0;
+      ntrack_intarget++;
+    }
 
     //Tracking information
     Int_t niter = track->GetNIteration();
@@ -707,6 +730,17 @@ dst::DstRead(int ievent)
     }
     event.dEdx[it]/=(double)n_truncated;
   }
+
+  TVector3 vertex = Kinematics::MultitrackVertex(ntrack_intarget,
+						 x0_vtx,
+						 y0_vtx,
+						 u0_vtx,
+						 v0_vtx);
+
+  event.ntTpc_inside = ntrack_intarget;
+  event.prodvtx_x = vertex.x();
+  event.prodvtx_y = vertex.y();
+  event.prodvtx_z = vertex.z();
 
 #if TrackSearchFailed
   Int_t failed_ntTpc = TPCAna.GetNTracksTPCFailed();
@@ -928,6 +962,11 @@ ConfMan::InitializeHistograms()
   tree->Branch("track_cluster_y_center", &event.track_cluster_y_center);
   tree->Branch("track_cluster_z_center", &event.track_cluster_z_center);
   tree->Branch("track_cluster_row_center", &event.track_cluster_row_center);
+
+  tree->Branch("ntTpc_target", &event.ntTpc_inside);
+  tree->Branch("prodvtx_x", &event.prodvtx_x);
+  tree->Branch("prodvtx_y", &event.prodvtx_y);
+  tree->Branch("prodvtx_z", &event.prodvtx_z);
 
 #if Exclusive
   tree->Branch("exresidual", &event.exresidual);

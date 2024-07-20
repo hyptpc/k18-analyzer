@@ -223,6 +223,7 @@ struct Event
   std::vector<Int_t> nhtrackEff; // Number of Hits actually used in tracking.
   std::vector<Int_t> trackid; //for Kurama & K1.8 tracks
   std::vector<Int_t> isBeam;
+  std::vector<Int_t> isXi;
   std::vector<Int_t> isKurama;
   std::vector<Int_t> isK18;
   std::vector<Int_t> isAccidental;
@@ -632,6 +633,7 @@ struct Event
     nhtrackEff.clear();
     trackid.clear();
     isBeam.clear();
+    isXi.clear();
     isKurama.clear();
     isK18.clear();
     isAccidental.clear();
@@ -1274,7 +1276,7 @@ dst::DstRead( int ievent )
   if(src.chisqrK18[0] > MaxChisqrBcOut || src.chisqrKurama[0] > MaxChisqrKurama) return true;
 #if KKEvent
   //if(src.m2[0] < 0.15 || src.m2[0] > 0.40) return true;
-  if(src.m2[0] < 0.08 || src.m2[0] > 0.60) return true;
+  if(src.m2[0] < 0.05 || src.m2[0] > 0.60) return true;
   if(src.qKurama[0] < 0 || src.pKurama[0] > 1.4) return true;
 #endif
 #if KPEvent
@@ -1542,9 +1544,9 @@ dst::DstRead( int ievent )
 
   HF1( 1, event.status++ );
 #if ExclusiveTracking
-  TPCAna.TrackSearchTPCHelix(vpK18, vpKurama, true);
+  TPCAna.TrackSearchTPCHelix(vpK18, vpKurama, event.qKurama, true);
 #else
-  TPCAna.TrackSearchTPCHelix(vpK18, vpKurama);
+  TPCAna.TrackSearchTPCHelix(vpK18, vpKurama, event.qKurama);
 #endif
 
   Int_t ntTpc = TPCAna.GetNTracksTPCHelix();
@@ -2637,6 +2639,7 @@ dst::DstRead( int ievent )
   event.flag.resize( ntTpc );
   event.trackid.resize( ntTpc );
   event.isBeam.resize( ntTpc );
+  event.isXi.resize( ntTpc );
   event.isKurama.resize( ntTpc );
   event.isK18.resize( ntTpc );
   event.isAccidental.resize( ntTpc );
@@ -2743,6 +2746,7 @@ dst::DstRead( int ievent )
     Int_t flag = tp->GetFitFlag();
     Int_t trackid = tp->GetTrackID();
     Int_t isbeam = tp->GetIsBeam();
+    Int_t isxi = tp->GetIsXi();
     Int_t iskurama = tp->GetIsKurama();
     Int_t isk18 = tp->GetIsK18();
     Int_t isaccidental = tp->GetIsAccidental();
@@ -2774,6 +2778,7 @@ dst::DstRead( int ievent )
     event.flag[it] = flag;
     event.trackid[it] = trackid;
     event.isBeam[it] = isbeam;
+    event.isXi[it] = isxi;
     event.isKurama[it] = iskurama;
     event.isK18[it] = isk18;
     event.isAccidental[it] = isaccidental;
@@ -3979,6 +3984,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "nhtrackEff", &event.nhtrackEff );
   tree->Branch( "trackid", &event.trackid );
   tree->Branch( "isBeam", &event.isBeam );
+  tree->Branch( "isXi", &event.isXi );
   tree->Branch( "isKurama", &event.isKurama );
   tree->Branch( "isK18", &event.isK18 );
   tree->Branch( "isAccidental", &event.isAccidental );

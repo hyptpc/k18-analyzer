@@ -37,15 +37,18 @@ Detailed fitting procedures are explained in the TPCLocalTrack/Helix.
 #include <string>
 #include <TH2D.h>
 #include <TH3D.h>
+#include <TLorentzVector.h>
 
 #include "DebugTimer.hh"
 #include "DetectorID.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
+#include "DatabasePDG.hh"
 #include "UserParamMan.hh"
 #include "DeleteUtility.hh"
 #include "ConfMan.hh"
 #include "HoughTransform.hh"
+#include "Kinematics.hh"
 #include "TPCPadHelper.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCLocalTrack.hh"
@@ -58,7 +61,8 @@ Detailed fitting procedures are explained in the TPCLocalTrack/Helix.
 #define FragmentedTrackTest 1
 #define ReassignClusterTest 1
 //#define RemainingClustersTest 1
-#define RemainingClustersTest 0
+#define RemainingClustersTest 0 //not helpful
+#define RefitXiTrack 1
 
 namespace
 {
@@ -96,6 +100,11 @@ namespace
   std::vector<Double_t> XZhough_z;
   std::vector<Double_t> Yhough_x;
   std::vector<Double_t> Yhough_y;
+
+  // B-field
+  const Double_t& HS_field_0 = ConfMan::Get<Double_t>("HSFLDCALIB");
+  const Double_t& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
+  const Double_t& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
 
   //_____________________________________________________________________________
   // Local Functions
@@ -714,6 +723,7 @@ HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
 //_____________________________________________________________________________
 void
 KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
+		  std::vector<Double_t> KuramaCharge,
 		  const std::vector<TPCClusterContainer>& ClCont,
 		  std::vector<TPCLocalTrackHelix*>& TrackCont,
 		  std::vector<TPCLocalTrackHelix*>& TrackContFailed,
@@ -763,7 +773,8 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
 	Int_t ncl_downstream_tgt = 0; //#cluster after the target.
 
 	//Check whether all track custers within the window along the Kurama track
-	if(BeamThroughTPC || track -> GetIsK18()!=1){
+	if(BeamThroughTPC ||
+	   (track -> GetIsK18()!=1 && KuramaCharge[nt]*track->GetCharge()>0)){
 	  Int_t nh = track->GetNHit();
 	  for(Int_t ih=0; ih<nh; ++ih){
 	    TPCLTrackHit *hit = track -> GetHit( ih );
@@ -1042,6 +1053,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 
   //Vertex finding with tracks in the TrackCont.
   VertexSearch(TrackCont, VertexCont);
+
 #if FragmentedTrackTest
   //Merged fragmented tracks
   RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
@@ -1052,6 +1064,14 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 #endif
 
   MarkingAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont);
+
+#if ReassignClusterTest
+  ReassignClustersVertex(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+#endif
+
+#if RefitXiTrack
+  ReassignClustersXiTrack(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+#endif
 
   TestingCharge(TrackCont, TrackContInvertedCharge, VertexCont, Exclusive);
 
@@ -1069,6 +1089,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 Int_t
 LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 		      std::vector<std::vector<TVector3>> KuramaVPs,
+		      std::vector<Double_t> KuramaCharge,
 		      const std::vector<TPCClusterContainer>& ClCont,
 		      std::vector<TPCLocalTrackHelix*>& TrackCont,
 		      std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,
@@ -1115,9 +1136,17 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 #endif
 
   //Search Kurama track candidates from the TrackCont.
-  KuramaTrackSearch(KuramaVPs, ClCont, TrackCont, TrackContFailed, TrackContVP, VertexCont, Exclusive, MinNumOfHits);
+  KuramaTrackSearch(KuramaVPs, KuramaCharge, ClCont, TrackCont, TrackContFailed, TrackContVP, VertexCont, Exclusive, MinNumOfHits);
 
   MarkingAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont);
+
+#if ReassignClusterTest
+  ReassignClustersVertex(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+#endif
+
+#if RefitXiTrack
+  ReassignClustersXiTrack(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+#endif
 
   TestingCharge(TrackCont, TrackContInvertedCharge, VertexCont, Exclusive);
 
@@ -1494,6 +1523,27 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     if(TrackCont[trackid1] -> GetIsK18()==1 ||
        TrackCont[trackid2] -> GetIsK18()==1) continue;
 
+    Bool_t isbeam1 = true;
+    for(Int_t ihit=0;ihit<TrackCont[trackid1] -> GetNHit();ihit++){
+      TPCHit *hit = TrackCont[trackid1] -> GetHitInOrder(ihit) -> GetHit();
+      TVector3 pos = hit -> GetPosition();
+      if(pos.z() > tpc::ZTarget || TMath::Abs(pos.x()) > 15 || TMath::Abs(pos.y()) > 10.){
+	isbeam1 = false;
+	break;
+      }
+    }
+    if(isbeam1) continue; //veto beam particle
+
+    Bool_t isbeam2 = true;
+    for(Int_t ihit=0;ihit<TrackCont[trackid2] -> GetNHit();ihit++){
+      TPCHit *hit = TrackCont[trackid2] -> GetHitInOrder(ihit) -> GetHit();
+      TVector3 pos = hit -> GetPosition();
+      if(pos.z() > tpc::ZTarget || TMath::Abs(pos.x()) > 15 || TMath::Abs(pos.y()) > 10.){
+	isbeam2 = false;
+	break;
+      }
+    }
+    if(isbeam2) continue; //veto beam particle
     /*
       std::cout<<"id "<<vertex -> GetTrackId(0)<<" "<<vertex -> GetTrackId(1)<<std::endl;
       std::cout<<"vtx "<<TMath::Abs(vtx.x())<<" "<<TMath::Abs(vtx.y())<<" "<<TMath::Abs(vtx.z())<<std::endl;
@@ -1709,9 +1759,8 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
       T *CopiedTrack1 = new T(CopiedTrack0);
       Int_t hitorder0 = CopiedTrack0 -> GetOrder(0);
       CopiedTrack1 -> EraseHit(hitorder0);
-
+      hit0 -> SetHoughFlag(GoodForTracking);
       if(CopiedTrack1->DoFit(MinNumOfHits)){
-	hit0 -> SetHoughFlag(Candidate);
 	clusters_fortest.push_back(hit0);
 	clusters_original_trackid.push_back(trackid);
 
@@ -1729,8 +1778,8 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
 	T *CopiedTrack2 = new T(CopiedTrack1);
 	Int_t hitorder1 = CopiedTrack2 -> GetOrder(0);
 	CopiedTrack2 -> EraseHit(hitorder1);
+	hit1 -> SetHoughFlag(GoodForTracking);
 	if(CopiedTrack2->DoFit(MinNumOfHits)){
-	  hit1 -> SetHoughFlag(Candidate);
 	  clusters_fortest.push_back(hit1);
 	  clusters_original_trackid.push_back(trackid);
 
@@ -1771,9 +1820,9 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
     if(prev_size+1 == post_size){ //Fitting is succeeded
       CopiedTrack = TrackCont[post_size-1];
       if(Exclusive) CopiedTrack -> DoFitExclusive();
-      TrackCont.erase(TrackCont.begin() + TrackCont.size() - 1);
+      TrackCont.erase(TrackCont.begin() + post_size - 1);
 
-      if(CopiedTrack -> GetNHit() >= track -> GetNHit()){
+      if(CopiedTrack -> GetNHit() > track -> GetNHit()){
 	reassaign = true;
 	reassaign_candidates.push_back(trackid);
 	newtracks_fortest[i] = CopiedTrack;
@@ -1782,7 +1831,6 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
       else delete CopiedTrack;
     }
   }
-  ResetHoughFlag(ClCont); //return Houghflag from "candidate" to "0""
 
 #if DebugDisp
   std::cout<<FUNC_NAME+" Finding the best combination between tracks and clusters"<<std::endl;
@@ -1791,33 +1839,36 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
   for(Int_t i=0; i<clusters_fortest.size(); i++){
     TPCHit *hit = clusters_fortest[i]; //cluster for testing
     TVector3 pos = hit -> GetPosition();
-    Int_t best_track = -9999;
+
+    Int_t best = -9999;
+    Int_t best_trackid = -1;
     Double_t min_residual = 9999;
     for(Int_t j=0; j<newtracks_fortest.size(); j++){
       Double_t residual = 0;
       if(newtracks_fortest[j] -> IsGoodHitToAdd(hit, residual)){
 	if(min_residual > residual){
 	  min_residual = residual;
-	  best_track = j;
+	  best = j;
+	  best_trackid = candidates_trackid[j];
 	}
       }
     }
 
-    Int_t best_trackid = candidates_trackid[best_track];
     Int_t id = clusters_original_trackid[i]; //cluster's original id
-    if(id==best_track){ //cluster is suitable for the original track
-      hit -> SetHoughFlag(GoodForTracking);
+    hit -> SetHoughFlag(GoodForTracking);
+    if(id==best_trackid){ //cluster is suitable for the original track
+      newtracks_fortest[best] -> AddTPCHit(new TPCLTrackHit(hit));
     }
     else{ //cluster is not suitable for the original track
       reassaign = true;
-      if(best_track==-9999){ //cluster is not suitable for all tracks
+      if(best_trackid==-1){ //cluster is not suitable for all tracks
 	reassaign_candidates.push_back(id);
 	hit -> SetHoughFlag(0);
       }
       else{ //cluster is suitable for the other track not the original track
 	reassaign_candidates.push_back(id);
 	reassaign_candidates.push_back(best_trackid);
-	newtracks_fortest[best_track] -> AddTPCHit(new TPCLTrackHit(hit));
+	newtracks_fortest[best] -> AddTPCHit(new TPCLTrackHit(hit));
       }
     }
   }
@@ -1837,6 +1888,7 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
 #if DebugDisp
     std::cout<<FUNC_NAME+" Candidates for reassigning "<<reassaign_candidates.size()<<std::endl;
 #endif
+
     for(Int_t i=0; i<newtracks_fortest.size(); i++){
       Int_t trackid = candidates_trackid[i];
       if(std::find(reassaign_candidates.begin(), reassaign_candidates.end(), trackid)
@@ -1862,6 +1914,7 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
       }
     } //for scattered tracks
   }
+  ResetHoughFlag(ClCont);
 
   if(reassaign){
     //Vertex finding again with new tracks
@@ -1877,6 +1930,200 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
 
 //_____________________________________________________________________________
 template <typename T> void
+ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
+		       std::vector<T*>& TrackCont,
+		       std::vector<T*>& TrackContFailed,
+		       std::vector<TPCVertex*>& VertexCont,
+		       Bool_t Exclusive,
+		       Int_t MinNumOfHits)
+{
+
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+
+  Int_t ntracks = TrackCont.size();
+
+  std::vector<std::pair<Int_t, Int_t>> candidate_pairs;
+  Double_t window = 20; //selection cut : cluster <-> track dist < window
+  Bool_t flag = true;
+  while(flag){
+    flag = false;
+
+    for(auto& vertex: VertexCont){
+      TVector3 vtx = vertex -> GetVertex();
+      Int_t trackid1 = vertex -> GetTrackId(0);
+      Int_t trackid2 = vertex -> GetTrackId(1);
+
+      if(std::find(candidate_pairs.begin(), candidate_pairs.end(), std::make_pair(trackid1, trackid2)) != candidate_pairs.end()) continue;
+
+      T *track1 = TrackCont[trackid1];
+      T *track2 = TrackCont[trackid2];
+      //if(vertex -> GetClosestDist() > 5) continue;
+      if(vertex -> GetClosestDist() > 10) continue;
+      if(track1 -> GetIsAccidental()==1 || track2 -> GetIsAccidental()==1) continue;
+      if(track1 -> GetIsK18()==1 || track2 -> GetIsK18()==1) continue;
+
+      Double_t theta1 = vertex -> GetTrackTheta(0);
+      Double_t theta2 = vertex -> GetTrackTheta(1);
+      //vertex point exists outside of both tracks, then it is not a candidate.
+      if((theta1 < track1 -> GetMint() - 10./track1 -> Getr() ||
+	  theta1 > track1 -> GetMaxt() + 10./track1 -> Getr()) ||
+	 (theta2 < track2 -> GetMint() - 10./track2 -> Getr() ||
+	  theta2 > track2 -> GetMaxt() + 10./track2 -> Getr())) continue;
+
+      Int_t closeid1;
+      Double_t minresi1 = 9999;
+      std::vector<Int_t> close_ids1;
+      TVector3 vtx1 = vertex -> GetTrackPos(0);
+      for(Int_t i=0; i<track1 -> GetNHit(); ++i){
+	TVector3 dist = track1 -> GetHitInOrder(i) -> GetLocalCalPosHelix() - vtx1; //distance between the vtx to the cluster
+	if(dist.Mag() < window){
+	  close_ids1.push_back(track1 -> GetOrder(i));
+	}
+	if(dist.Mag() < minresi1){
+	  closeid1 = i;
+	  minresi1 = dist.Mag();
+	}
+      }
+
+      Int_t closeid2;
+      Double_t minresi2 = 9999;
+      std::vector<Int_t> close_ids2;
+      TVector3 vtx2 = vertex -> GetTrackPos(1);
+      for(Int_t i=0; i<track2 -> GetNHit(); ++i){
+	TVector3 dist = track2 -> GetHitInOrder(i) -> GetLocalCalPosHelix() - vtx2; //distance between the vtx to the cluster
+	if(dist.Mag() < window){
+	  close_ids2.push_back(track2 -> GetOrder(i));
+	}
+	if(dist.Mag() < minresi2){
+	  closeid2 = i;
+	  minresi2 = dist.Mag();
+	}
+      }
+      if(closeid1==0 && closeid2==0 && (close_ids2.size()!=1 && close_ids1.size()!=1)) continue; //vertex at the end of two tracks
+
+      //case1
+      std::vector<T*> newtracks_fortest;
+      std::vector<Int_t> candidates_trackid;
+      std::vector<TPCHit*> clusters_fortest;
+      std::vector<Int_t> clusters_original_trackid;
+      if(close_ids2.size() > 0 || close_ids1.size() > 0){
+	T *CopiedTrack1 = new T(track1);
+	CopiedTrack1 -> EraseHits(close_ids1);
+	if(!CopiedTrack1->DoFit(MinNumOfHits)){
+	  delete CopiedTrack1;
+	  continue;
+	}
+
+	T *CopiedTrack2 = new T(track2);
+	CopiedTrack2 -> EraseHits(close_ids2);
+	if(!CopiedTrack2->DoFit(MinNumOfHits)){
+	  delete CopiedTrack2;
+	  continue;
+	}
+
+	newtracks_fortest.push_back(CopiedTrack1);
+	candidates_trackid.push_back(trackid1);
+	for(Int_t i=0; i<close_ids1.size(); ++i){
+	  TPCHit *hit = track1 -> GetHit(close_ids1[i]) -> GetHit();
+	  clusters_fortest.push_back(hit);
+	  clusters_original_trackid.push_back(trackid1);
+	}
+
+	newtracks_fortest.push_back(CopiedTrack2);
+	candidates_trackid.push_back(trackid2);
+	for(Int_t i=0; i<close_ids2.size(); ++i){
+	  TPCHit *hit = track2 -> GetHit(close_ids2[i]) -> GetHit();
+	  clusters_fortest.push_back(hit);
+	  clusters_original_trackid.push_back(trackid2);
+	}
+
+	for(Int_t i=0; i<clusters_fortest.size(); i++){
+	  TPCHit *hit = clusters_fortest[i]; //cluster for testing
+	  hit -> SetHoughFlag(Candidate);
+	  TVector3 pos = hit -> GetPosition();
+
+	  Int_t best = -9999;
+	  Int_t best_trackid = -1;
+	  Double_t min_residual = 9999;
+	  for(Int_t j=0; j<newtracks_fortest.size(); j++){
+	    Double_t residual = 0;
+	    if(newtracks_fortest[j] -> IsGoodHitToAdd(hit, residual)){
+	      if(min_residual > residual){
+		min_residual = residual;
+		best = j;
+		best_trackid = candidates_trackid[j];
+	      }
+	    }
+	  }
+
+	  Int_t id = clusters_original_trackid[i]; //cluster's original id
+	  if(id==best_trackid){ //cluster is suitable for the original track
+	    hit -> SetHoughFlag(GoodForTracking);
+	    newtracks_fortest[best] -> AddTPCHit(new TPCLTrackHit(hit));
+	  }
+	  else{ //cluster is not suitable for the original track
+	    flag = true;
+	    if(best_trackid==-1){ //cluster is not suitable for all tracks
+	      hit -> SetHoughFlag(0);
+	    }
+	    else{ //cluster is suitable for the other track not the original track
+	      newtracks_fortest[best] -> AddTPCHit(new TPCLTrackHit(hit));
+	    }
+	  }
+	} //for(Int_t i=0; i<clusters_fortest.size(); i++){
+
+	if(!flag){ //no change -> checking next track pair
+	  for(Int_t i=0; i<newtracks_fortest.size(); i++) delete newtracks_fortest[i];
+	  track1 -> SetClustersHoughFlag(GoodForTracking);
+	  track2 -> SetClustersHoughFlag(GoodForTracking);
+	}
+	else{ //reassaigning happens
+	  for(Int_t i=0; i<newtracks_fortest.size(); i++){
+	    Int_t trackid = candidates_trackid[i];
+	    T *prev_track = TrackCont[trackid];
+
+	    if(newtracks_fortest[i] -> DoFit(MinNumOfHits)){
+	      newtracks_fortest[i] -> SetClustersHoughFlag(GoodForTracking);
+	      newtracks_fortest[i] -> Calculate();
+	      if(Exclusive){
+		newtracks_fortest[i] -> DoFitExclusive();
+		newtracks_fortest[i] -> CalculateExclusive();
+	      }
+
+	      //update with a new track and delete the previous track
+	      TrackCont[trackid] = newtracks_fortest[i];
+	      delete prev_track;
+	    }
+	    else{
+	      prev_track -> SetClustersHoughFlag(GoodForTracking);
+	      delete newtracks_fortest[i];
+	    }
+	  } //for scattered tracks
+
+	  //Vertex finding again with new tracks
+	  del::ClearContainer(VertexCont);
+	  VertexSearch(TrackCont, VertexCont);
+	  candidate_pairs.push_back(std::make_pair(candidates_trackid[0], candidates_trackid[1]));
+
+	  break;
+	} // else //reassaigning happens
+
+	if(newtracks_fortest.size()!=candidates_trackid.size()) std::cout<<FUNC_NAME+" FATAL Error #of tracks is not matched"<<std::endl;
+      }
+    } //if(close_ids2.size() > 0 || close_ids1.size() > 0) case1
+  }  // while(true)
+  ResetHoughFlag(ClCont);
+
+#if FragmentedTrackTest
+  //Merged fragmented tracks
+  RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+#endif
+  if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
+
+}
+
+//_____________________________________________________________________________
+template <typename T> void
 MarkingAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
 				   std::vector<TPCVertex*>& VertexCont,
 				   std::vector<TPCVertex*>& ClusteredVertexCont)
@@ -1884,11 +2131,8 @@ MarkingAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
 
   Double_t tgtXZ_cut = 30.; //mm
   Double_t target_section = 15; // abs(y)<target_section is not counted in this function
-  //Double_t accidental_section = 20;
-//  Double_t accidental_section = 20;
   Double_t accidental_section = 30;
   //Double_t accidental_section = 50;
-  //Double_t accidental_section = 200;
 
   TVector3 tgt(0., 0., tpc::ZTarget);
   std::vector<std::vector<TPCVertex*>> clustered_vertices; //Clustered tracks id
@@ -1911,8 +2155,8 @@ MarkingAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
     candidate_clustered_tracks.push_back(trackid);
     candidate_clustered_pos.push_back(ref_track -> GetClosestPositionTgtXZ() - tgt);
     for(auto& vertex: VertexCont){
-      if(vertex -> GetClosestDist() > 15.) continue;
-      //if(vertex -> GetClosestDist() > 20.) continue;
+      //if(vertex -> GetClosestDist() > 15.) continue;
+      if(vertex -> GetClosestDist() > 20.) continue;
       TVector3 vtx = vertex -> GetVertex() - tgt;
       if(TMath::Hypot(vtx.x(), vtx.z()) > tgtXZ_cut) continue;
 
@@ -2047,6 +2291,7 @@ TestingCharge(std::vector<T*>& TrackCont,
   for(Int_t trackid=0; trackid<TrackCont.size(); trackid++){
     T *track = TrackCont[trackid];
     if(track -> GetIsAccidental()==1 || track -> GetIsK18()==1 || track -> GetIsBeam()==1 || track -> GetIsKurama()==1) continue;
+
     T *InvertedTrack = new T(track);
     Bool_t test = InvertedTrack -> TestInvertCharge();
     if(!test || (track -> GetCharge() == InvertedTrack -> GetCharge())){
@@ -2064,8 +2309,6 @@ TestingCharge(std::vector<T*>& TrackCont,
 
     Bool_t invert = false;
     if(!invert && track -> GetChiSquare() > InvertedTrack -> GetChiSquare()) invert = true;
-    else if(proton && InvertedTrack -> GetCharge()>0) invert = true;
-    else if(pion && InvertedTrack -> GetCharge()<0) invert = true;
     else{
       for(Int_t i=0; i<VertexCont.size(); i++){
 	TPCVertex *vertex = VertexCont[i];
@@ -2105,4 +2348,448 @@ TestingCharge(std::vector<T*>& TrackCont,
   }
 }
 
-} //namespace tpc
+//_____________________________________________________________________________
+template <typename T> void
+ReassignClustersXiTrack(const std::vector<TPCClusterContainer>& ClCont,
+			std::vector<T*>& TrackCont,
+			std::vector<T*>& TrackContFailed,
+			std::vector<TPCVertex*>& VertexCont,
+			Bool_t Exclusive,
+			Int_t MinNumOfHits)
+{
+
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+  static const auto PionMass    = pdg::PionMass();
+  static const auto LambdaMass  = pdg::LambdaMass();
+  static const auto XiMinusMass = pdg::XiMinusMass();
+  Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  Double_t xi_masscut = 0.15; //ref
+  Double_t lpi_distcut = 15.; //ref
+
+  //Xi- track is merged with p or pi- track (long-lived Xi- track)
+  //Separating this into two tracks
+
+  std::vector<Int_t> adjusted_trackid;
+  std::vector<Int_t> erase_trackid;
+
+  Bool_t flag = false;
+  Int_t ntracks = TrackCont.size();
+  for(Int_t trackid=0; trackid<ntracks; trackid++){
+    if(std::find(adjusted_trackid.begin(), adjusted_trackid.end(), trackid) != adjusted_trackid.end()) continue;
+
+    T *track = TrackCont[trackid];
+    Int_t charge = track -> GetCharge();
+    Int_t nhit = track -> GetNHit();
+
+    if(track -> GetIsAccidental()==1) continue;
+    if(track -> GetIsK18()==1) continue;
+    if(track -> GetIsBeam()==1) continue;
+    if(track -> GetIsKurama()==1) continue;
+
+    //Xi- track is starting from the target
+    Int_t start_section = track -> GetHitInOrder(0) -> GetSection();
+    if(!track -> VertexAtTarget()) continue;
+    if(start_section!=1) continue;
+
+    //Xi- track goes forward
+    TVector3 pos0 = track -> GetHitInOrder(0) -> GetLocalHitPos();
+    if(pos0.z() < tpc::ZTarget) continue;
+
+    std::vector<Int_t> candidates_trackid;
+    std::vector<Int_t> candidates_charge;
+    std::vector<Int_t> candidates_pid;
+    std::vector<Double_t> candidates_helixtheta;
+    std::vector<TVector3> candidates_vtx;
+    for(auto& vertex: VertexCont){
+      //Threshold conditions of a distance and an angle between two tracks.
+      TVector3 vtx = vertex -> GetVertex();
+      Int_t trackid1 = vertex -> GetTrackId(0);
+      Int_t trackid2 = vertex -> GetTrackId(1);
+      Double_t theta = vertex -> GetTrackTheta(0);
+      if(std::find(adjusted_trackid.begin(), adjusted_trackid.end(), trackid1) != adjusted_trackid.end()) continue;
+      if(std::find(adjusted_trackid.begin(), adjusted_trackid.end(), trackid2) != adjusted_trackid.end()) continue;
+
+      if(trackid2==trackid){
+	trackid1 = vertex -> GetTrackId(1);
+	trackid2 = vertex -> GetTrackId(0);
+	theta = vertex -> GetTrackTheta(1);
+      }
+      if(vertex -> GetClosestDist() > 10) continue;
+      if(vtx.z() - tpc::ZTarget < 30) continue; //Xi- goes forward
+
+      //vertex point exists inside of the track
+      if(theta < track -> GetMint() || theta > track -> GetMaxt()) continue;
+
+      T *track1 = TrackCont[trackid1];
+      T *track2 = TrackCont[trackid2];
+      if(track1 -> GetIsAccidental()==1 || track2 -> GetIsAccidental()==1) continue;
+      if(track1 -> GetIsK18()==1 || track2 -> GetIsK18()==1) continue;
+      if(track1 -> GetIsKurama()==1 || track2 -> GetIsKurama()==1) continue;
+      if(track1 -> GetIsBeam()==1 || track2 -> GetIsBeam()==1) continue;
+
+      candidates_trackid.push_back(trackid2);
+      candidates_charge.push_back(track2 -> GetCharge());
+      candidates_pid.push_back(track2 -> GetPid());
+      candidates_helixtheta.push_back(theta); //track1's theta
+      candidates_vtx.push_back(vtx);
+    }
+
+    Int_t segmented_trackid = -1;
+    T *track_segmented;
+    if(candidates_trackid.size()==3){
+
+      Double_t theta_end = track -> GetHitInOrder(track -> GetNHit() - 1) -> GetTheta(); //Xi- track's closest point to the target
+      T *track = TrackCont[trackid];
+
+      for(Int_t candi=0; candi<candidates_vtx.size(); ++candi){
+	Int_t close_hit; Double_t closedist = 9999;
+	for(Int_t ihit=0; ihit<nhit; ++ihit){
+	  //distance between cluster and vertex
+	  TVector3 pos_diff = track->GetHitInOrder(ihit) -> GetLocalHitPos() - candidates_vtx[candi];
+	  if(pos_diff.Mag() < closedist){
+	    close_hit = ihit; closedist = pos_diff.Mag();
+	  }
+	}
+	if(close_hit == nhit-1){
+	  segmented_trackid = candidates_trackid[candi];
+	  candidates_trackid.erase(candidates_trackid.begin() + candi);
+	  candidates_charge.erase(candidates_charge.begin() + candi);
+	  candidates_pid.erase(candidates_pid.begin() + candi);
+	  candidates_helixtheta.erase(candidates_helixtheta.begin() + candi);
+	  candidates_vtx.erase(candidates_vtx.begin() + candi);
+	  track_segmented = TrackCont[segmented_trackid];
+	}
+      }
+    }
+
+    //Xi- track is merged with other track
+    if(candidates_trackid.size()==2){
+      Double_t theta0 = track -> GetHitInOrder(0) -> GetTheta(); //Xi- track's closest point to the target
+      Int_t inner_trackid = candidates_trackid[0];
+      Int_t outer_trackid = candidates_trackid[1];
+      Int_t inner_pid = candidates_pid[0];
+      Int_t outer_pid = candidates_pid[1];
+      Int_t inner_charge = candidates_charge[0];
+      Int_t outer_charge = candidates_charge[1];
+      Double_t inner_theta = candidates_helixtheta[0];
+      Double_t outer_theta = candidates_helixtheta[1];
+      TVector3 inner_vtx = candidates_vtx[0];
+      TVector3 outer_vtx = candidates_vtx[1];
+
+      Double_t dist_track12 = TMath::Abs(track -> Getr()*(inner_theta - outer_theta));
+      if(TMath::Abs(theta0 - candidates_helixtheta[0]) > TMath::Abs(theta0 - candidates_helixtheta[1])){
+	inner_trackid = candidates_trackid[1];
+	outer_trackid = candidates_trackid[0];
+	inner_pid = candidates_pid[1];
+	outer_pid = candidates_pid[0];
+	inner_theta = candidates_helixtheta[1];
+	outer_theta = candidates_helixtheta[0];
+	inner_charge = candidates_charge[1];
+	outer_charge = candidates_charge[0];
+	inner_vtx = candidates_vtx[1];
+	outer_vtx = candidates_vtx[0];
+      }
+
+      //order of tracks should be pi- and L decays
+      if(inner_charge>0 && outer_charge>0) continue; //Two positive tracks are not Xi- decay.
+      else if(inner_charge>0 && outer_charge<0){
+	if(dist_track12 > 10) continue; //order is p, pi-, pi-. it's not a Xi-
+
+	//make track order to pi-, p, pi- (first two tracks are too close)
+	if(inner_trackid == candidates_trackid[0]){
+	  inner_trackid = candidates_trackid[1];
+	  outer_trackid = candidates_trackid[0];
+	  inner_pid = candidates_pid[1];
+	  outer_pid = candidates_pid[0];
+	  inner_theta = candidates_helixtheta[1];
+	  outer_theta = candidates_helixtheta[0];
+	  inner_charge = candidates_charge[1];
+	  outer_charge = candidates_charge[0];
+	  inner_vtx = candidates_vtx[1];
+	  outer_vtx = candidates_vtx[0];
+	}
+	else{
+	  inner_trackid = candidates_trackid[0];
+	  outer_trackid = candidates_trackid[1];
+	  inner_pid = candidates_pid[0];
+	  outer_pid = candidates_pid[1];
+	  inner_theta = candidates_helixtheta[0];
+	  outer_theta = candidates_helixtheta[1];
+	  inner_charge = candidates_charge[0];
+	  outer_charge = candidates_charge[1];
+	  inner_vtx = candidates_vtx[0];
+	  outer_vtx = candidates_vtx[1];
+	}
+
+	Bool_t proton = (outer_pid&4)==4;
+	Bool_t pion = (inner_pid&1)==1;
+	if(!proton || !pion) continue;
+      }
+      else if(inner_charge<0 && outer_charge>0){
+	Bool_t proton = (outer_pid&4)==4;
+	Bool_t pion = (inner_pid&1)==1;
+	if(!proton || !pion) continue;
+      }
+      else{
+	Bool_t pion1 = (inner_pid&1)==1;
+	Bool_t pion2 = (outer_pid&1)==1;
+	if(!pion1 || !pion2) continue;
+      }
+
+      T *track_in = TrackCont[inner_trackid];
+      T *track_out = TrackCont[outer_trackid];
+      std::vector<Int_t> xitrack_clusterids;
+      std::vector<Int_t> ldecay_clusterids;
+      for(Int_t i=0; i<track -> GetNHit(); ++i){
+	TPCHit *hit = track -> GetHitInOrder(i) -> GetHit();
+	Double_t theta = track -> GetHitInOrder(i) -> GetTheta();
+	Int_t clusterid = track -> GetOrder(i);
+
+	Double_t residual = 0;
+	if(charge*theta <= charge*inner_theta || track_in -> IsGoodHitToAdd(hit, residual)) xitrack_clusterids.push_back(clusterid);
+	else if(charge*theta > charge*outer_theta || track_out -> IsGoodHitToAdd(hit, residual)) ldecay_clusterids.push_back(clusterid);
+	else break; //if cluster exists between lambda and pi- tracks, it is not Xi-
+      }
+
+      //if cluster exists between lambda and xi- tracks, it is not Xi-
+      if((xitrack_clusterids.size() + ldecay_clusterids.size()) != track -> GetNHit()) continue;
+
+      T *LdecayTrack = new T(track);
+      LdecayTrack -> EraseHits(xitrack_clusterids);
+
+      if(segmented_trackid != -1){
+	for(Int_t hit=0;hit<track_segmented -> GetNHit();hit++){
+	  LdecayTrack -> AddTPCHit(new TPCLTrackHit(track_segmented -> GetHitInOrder(hit) -> GetHit()));
+	}
+      }
+
+      if(LdecayTrack -> DoFit(MinNumOfHits)){
+	LdecayTrack -> Calculate();
+
+	if(inner_charge<0 && outer_charge<0 && (LdecayTrack -> GetCharge()>0 || LdecayTrack -> TestInvertCharge())){ //pi-, pi-, p
+
+	  Bool_t xi_reconstructed = false;
+	  TPCVertex *Lvertex1 = new TPCVertex(outer_trackid, -1);
+	  Lvertex1 -> Calculate(track_out, LdecayTrack);
+	  if(Lvertex1 -> GetIsLambda()){
+	    TVector3 lambda_vert; TVector3 lambda_mom;
+	    for(int l=0; l<Lvertex1 -> GetNcombiLambda();l++){
+	      if(Lvertex1 -> GetPionIdLambda(l) == outer_trackid){
+		lambda_vert = Lvertex1 -> GetVertexLambda(l);
+		lambda_mom = Lvertex1 -> GetMomLambda(l);
+	      }
+	    }
+
+	    Double_t pi2_par[5];
+	    track_in -> GetParam(pi2_par);
+	    Double_t pi2_theta_min = track_in -> GetMint() - 150./pi2_par[3];
+	    Double_t pi2_theta_max = track_in -> GetMaxt() + 150./pi2_par[3];
+
+	    TVector3 pi2_mom; Double_t lpi_dist;
+	    TVector3 xi_vert = Kinematics::XiVertex(dMagneticField,
+						    pi2_par,
+						    pi2_theta_min,
+						    pi2_theta_max,
+						    lambda_vert,
+						    lambda_mom,
+						    pi2_mom,
+						    lpi_dist);
+
+	    //Reconstructed xi decay vertex <-> pi2 & Xi track vertex
+	    TVector3 check_vtx = inner_vtx - xi_vert;
+
+	    TLorentzVector Lpi2(pi2_mom, TMath::Hypot(pi2_mom.Mag(), PionMass));
+	    TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Hypot(lambda_mom.Mag(), LambdaMass));
+	    TLorentzVector Lxi = Llambda_fixedmass + Lpi2;
+	    if(!TMath::IsNaN(lpi_dist) &&
+	       lpi_dist < lpi_distcut &&
+	       check_vtx.Mag() < lpi_distcut &&
+	       TMath::Abs(Lxi.M() - XiMinusMass) < xi_masscut){
+	      flag = true;
+	      xi_reconstructed = true;
+	    }
+	  }
+	  delete Lvertex1;
+
+	  if(!xi_reconstructed){
+	    if(dist_track12 > 10) continue;
+	    else{
+	      TPCVertex *Lvertex2 = new TPCVertex(inner_trackid, -1);
+	      Lvertex2 -> Calculate(track_in, LdecayTrack);
+	      if(Lvertex2 -> GetIsLambda()){
+
+		TVector3 lambda_vert; TVector3 lambda_mom;
+		for(int l=0; l<Lvertex2 -> GetNcombiLambda();l++){
+		  if(Lvertex2 -> GetPionIdLambda(l) == inner_trackid){
+		    lambda_vert = Lvertex2 -> GetVertexLambda(l);
+		    lambda_mom = Lvertex2 -> GetMomLambda(l);
+		  }
+		}
+
+		Double_t pi2_par[5];
+		track_out -> GetParam(pi2_par);
+		Double_t pi2_theta_min = track_out -> GetMint() - 150./pi2_par[3];
+		Double_t pi2_theta_max = track_out -> GetMaxt() + 150./pi2_par[3];
+
+		TVector3 pi2_mom; Double_t lpi_dist;
+		TVector3 xi_vert = Kinematics::XiVertex(dMagneticField,
+							pi2_par,
+							pi2_theta_min,
+							pi2_theta_max,
+							lambda_vert,
+							lambda_mom,
+							pi2_mom,
+							lpi_dist);
+
+		//Reconstructed xi decay vertex <-> pi2 & Xi track vertex
+		TVector3 check_vtx = outer_vtx - xi_vert;
+
+		TLorentzVector Lpi2(pi2_mom, TMath::Hypot(pi2_mom.Mag(), PionMass));
+		TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Hypot(lambda_mom.Mag(), LambdaMass));
+		TLorentzVector Lxi = Llambda_fixedmass + Lpi2;
+
+		if(!TMath::IsNaN(lpi_dist) &&
+		   lpi_dist < lpi_distcut &&
+		   check_vtx.Mag() < lpi_distcut &&
+		   TMath::Abs(Lxi.M() - XiMinusMass) < xi_masscut){
+		  flag = true;
+		  xi_reconstructed = true;
+		}
+	      }
+	      delete Lvertex2;
+	    }
+	  }
+	}
+	else if(inner_charge<0 && outer_charge>0 && (LdecayTrack -> GetCharge()<0 || LdecayTrack -> TestInvertCharge())){ //pi-, p, pi-
+	  TPCVertex *Lvertex = new TPCVertex(outer_trackid, -1);
+	  Lvertex -> Calculate(track_out, LdecayTrack);
+	  if(Lvertex -> GetIsLambda()){
+
+	    TVector3 lambda_vert; TVector3 lambda_mom;
+	    for(int l=0; l<Lvertex -> GetNcombiLambda();l++){
+	      if(Lvertex -> GetProtonIdLambda(l) == outer_trackid){
+		lambda_vert = Lvertex -> GetVertexLambda(l);
+		lambda_mom = Lvertex -> GetMomLambda(l);
+	      }
+	    }
+
+	    Double_t pi2_par[5];
+	    track_in -> GetParam(pi2_par);
+	    Double_t pi2_theta_min = track_in -> GetMint() - 150./pi2_par[3];
+	    Double_t pi2_theta_max = track_in -> GetMaxt() + 150./pi2_par[3];
+
+	    TVector3 pi2_mom; Double_t lpi_dist;
+	    TVector3 xi_vert = Kinematics::XiVertex(dMagneticField,
+						    pi2_par,
+						    pi2_theta_min,
+						    pi2_theta_max,
+						    lambda_vert,
+						    lambda_mom,
+						    pi2_mom,
+						    lpi_dist);
+
+	    //Reconstructed xi decay vertex <-> pi2 & Xi track vertex
+	    TVector3 check_vtx = inner_vtx - xi_vert;
+	    TLorentzVector Lpi2(pi2_mom, TMath::Hypot(pi2_mom.Mag(), PionMass));
+	    TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Hypot(lambda_mom.Mag(), LambdaMass));
+	    TLorentzVector Lxi = Llambda_fixedmass + Lpi2;
+
+	    if(!TMath::IsNaN(lpi_dist) &&
+	       lpi_dist < lpi_distcut &&
+	       check_vtx.Mag() < lpi_distcut &&
+	       TMath::Abs(Lxi.M() - XiMinusMass) < xi_masscut) flag = true;
+	    else continue;
+	  }
+	  delete Lvertex;
+	}
+	else{
+	  delete LdecayTrack;
+	  continue;
+	}
+      }
+      else{
+	delete LdecayTrack;
+	continue;
+      }
+
+      if(Exclusive){
+	LdecayTrack -> DoFitExclusive();
+	LdecayTrack -> CalculateExclusive();
+      }
+
+      adjusted_trackid.push_back(trackid);
+      adjusted_trackid.push_back(inner_trackid);
+      adjusted_trackid.push_back(outer_trackid);
+
+      track -> SetClustersHoughFlag(Candidate);
+      if(segmented_trackid != -1){
+	adjusted_trackid.push_back(segmented_trackid);
+	erase_trackid.push_back(segmented_trackid);
+	track_segmented -> SetClustersHoughFlag(Candidate);
+      }
+
+      T *XiTrack = new T(track);
+      delete track;
+      if(xitrack_clusterids.size()==0){
+	delete XiTrack;
+	continue;
+      }
+      XiTrack -> EraseHits(ldecay_clusterids);
+      TrackCont[trackid] = LdecayTrack;
+      TrackCont[trackid] -> SetClustersHoughFlag(GoodForTracking);
+
+      Int_t Xidecay_padid = tpc::findPadID(inner_vtx.z(), inner_vtx.x());
+      Int_t Xidecay_layerid = tpc::getLayerID(Xidecay_padid);
+      std::vector<TPCClusterContainer> ClContXi(NumOfLayersTPC);
+      for(Int_t layer=0; layer<Xidecay_layerid+1; layer++){ //inner layers
+	for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
+	  auto cl = ClCont[layer][ci];
+	  TPCHit* hit = cl->GetMeanHit();
+	  if(hit->GetHoughFlag()!=0 && hit->GetHoughFlag()!=1000) continue;
+	  TVector3 pos = cl->GetPosition();
+	  if(pos.Z()<tpc::ZTarget) continue;
+
+	  Double_t xipos_x = inner_vtx.x()/(inner_vtx.z() - tpc::ZTarget)*(pos.z() - tpc::ZTarget);
+	  Double_t xipos_y = inner_vtx.y()/(inner_vtx.z() - tpc::ZTarget)*(pos.z() - tpc::ZTarget);
+	  if(TMath::Abs(xipos_x - pos.x())<20 && TMath::Abs(xipos_y - pos.y())<20) ClContXi[layer].push_back(cl);
+	  if(layer<3 && TMath::Abs(xipos_x - pos.x())<5 && TMath::Abs(xipos_y - pos.y())<5) XiTrack->AddTPCHit(new TPCLTrackHit(hit));
+	  else if(layer>=3 && TMath::Abs(xipos_x - pos.x())<10 && TMath::Abs(xipos_y - pos.y())<10) XiTrack->AddTPCHit(new TPCLTrackHit(hit));
+	} //ci
+      } //layer
+
+      Int_t prev_size = TrackCont.size();
+      FitTrack(XiTrack, GoodForTracking, ClContXi, TrackCont, TrackContFailed, 3);
+      Int_t post_size = TrackCont.size();
+      if(prev_size+1 == post_size){ //Fitting is succeeded
+	adjusted_trackid.push_back(post_size-1);
+	XiTrack = TrackCont[post_size-1];
+	XiTrack -> Calculate();
+	if(Exclusive){
+	  XiTrack -> DoFitExclusive();
+	  XiTrack -> CalculateExclusive();
+	}
+	XiTrack -> SetIsXi();
+      }
+    } // if(candidates_trackid.size()==2)
+    else continue;
+  }
+
+  std::sort(erase_trackid.begin(), erase_trackid.end());
+  for(Int_t i=0; i<erase_trackid.size(); ++i){
+    Int_t id = erase_trackid[i];
+
+    T *track = TrackCont[id];
+    TrackCont.erase(TrackCont.begin() + id-i);
+    delete track;
+  }
+
+  ResetHoughFlag(ClCont);
+
+  if(flag){
+    //Vertex finding again with new tracks
+    del::ClearContainer(VertexCont);
+    VertexSearch(TrackCont, VertexCont);
+  }
+}
+
+} //namespace tp

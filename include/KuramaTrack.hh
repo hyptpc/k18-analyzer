@@ -81,8 +81,6 @@ public:
                                              Double_t& path, Double_t& x, Double_t& y) const;
   Bool_t          GetTrajectoryLocalPosition(Int_t layer,
                                              Double_t& x, Double_t& y) const;
-  Bool_t          GetTrajectoryLocalPositionMomentum(Int_t layer,
-                                            Double_t& x, Double_t& y, TVector3& Mom) const;
   Bool_t          GoodForAnalysis() const { return m_is_good; }
   Bool_t          GoodForAnalysis(Bool_t status)
   { m_is_good = status; return status; }

@@ -810,10 +810,6 @@ static inline Bool_t HelixFitInvertCharge(){
   Double_t par[5] = {gPar[0], gPar[1], gPar[2], gPar[3], gPar[4]};
   Double_t err[5] = {-999., -999., -999., -999., -999.};
 
-  //const Double_t LowLimit[5] = { -50000., -50000., -15000., 0., -15. };
-  //const Double_t UpLimit[5] = { 50000., 50000., 15000., 12000., 15. }; //3.6 GeV/c
-  //Double_t lowLimit[5] = { gPar[0] - gPar[3], gPar[1] - gPar[3], -15000., 0., -15. };
-  //Double_t upLimit[5] = { gPar[0] + gPar[3], gPar[1] + gPar[3], 15000., 40000., 15. }; //12.0 GeV/c
   Double_t lowLimit[5] = { gPar[0] - 0.5*gPar[3], gPar[1] - 0.5*gPar[3], gPar[2] - 5000., 0, gPar[4] - 5.};
   Double_t upLimit[5] = { gPar[0] + 0.5*gPar[3], gPar[1] + 0.5*gPar[3], gPar[2] + 5000., 12000, gPar[4] + 5.}; //12.0 GeV/c
 
@@ -862,8 +858,6 @@ static inline Bool_t HelixFitInvertCharge(){
   gPar[3] = par[3];
   gPar[4] = par[4];
   gChisqr = CalcChi2(gPar, ndf, false);
-  //std::cout<<"helixfitinvertcharge "<<gPar[0]<<" "<<gPar[1]<<" "<<gPar[2]<<" "<<gPar[3]<<" "<<gPar[4]<<std::endl;
-  //std::cout<<"gChisqr "<<gChisqr<<std::endl;
 
   Int_t itry=0;
   Double_t good_chisqr = 1.5;
@@ -1141,7 +1135,7 @@ TPCLocalTrackHelix::TPCLocalTrackHelix()
     m_min_t(0.), m_max_t(0.),
     m_path(0.), m_transverse_path(0.),
     m_charge(0), m_fitflag(0), m_vtxflag(0),
-    m_isBeam(0), m_isK18(0), m_isKurama(0), m_isAccidental(0),
+    m_isBeam(0), m_isK18(0), m_isKurama(0), m_isAccidental(0), m_isXi(0),
     m_trackid(-1),
     m_ncl_beforetgt(-1),
     m_searchtime(0), m_fittime(0),
@@ -1207,6 +1201,7 @@ TPCLocalTrackHelix::TPCLocalTrackHelix(TPCLocalTrackHelix *init){
   this -> m_isK18 = init -> m_isK18 ;
   this -> m_isKurama = init -> m_isKurama ;
   this -> m_isAccidental = init -> m_isAccidental ;
+  this -> m_isXi = init -> m_isXi ;
   this -> m_trackid = init -> m_trackid ;
   this -> m_ncl_beforetgt = init -> m_ncl_beforetgt ;
   this -> m_searchtime = init -> m_searchtime ; //millisec
@@ -1570,10 +1565,22 @@ TPCLocalTrackHelix::CalcHelixMom(Double_t par[5], Double_t theta) const
 TPCLTrackHit*
 TPCLocalTrackHelix::GetHit(std::size_t nth) const
 {
-  if(nth<m_hit_array.size())
+  if(nth<m_hit_array.size() && nth>=0)
     return m_hit_array[nth];
   else
     return 0;
+}
+
+//______________________________________________________________________________
+Int_t
+TPCLocalTrackHelix::GetOrder(Int_t i) const
+{
+  Int_t size = m_hit_order.size();
+  if(i>=size || i<0) return -1;
+  Int_t id = i;
+  if(m_charge<0) id = size - i - 1;
+  Int_t order = m_hit_order[id];
+  return order;
 }
 
 //______________________________________________________________________________
@@ -1584,8 +1591,8 @@ TPCLocalTrackHelix::GetHitInOrder(std::size_t nth) const
   Int_t id = nth;
   if(m_charge<0) id = size - nth - 1;
   Int_t order = m_hit_order[id];
-  if(nth<m_hit_array.size()) return m_hit_array[order];
-  else return 0;
+  if(nth>=m_hit_array.size() || nth<0) return 0;
+  return m_hit_array[order];
 }
 
 //______________________________________________________________________________
@@ -3602,14 +3609,6 @@ TPCLocalTrackHelix::TestInvertCharge()
   gPar[4] = -m_dz;
   SetParam(gPar);
   CalcHelixTheta();
-  /*
-  Double_t tmp_theta_start = TMath::ATan2(localpos_start.y() - gPar[1], localpos_start.x() - gPar[0]);
-  Double_t tmp_theta_end = TMath::ATan2(localpos_end.y() - gPar[1], localpos_end.x() - gPar[0]);
-  std::cout<<"calc start "<<GlobalPosition(gPar, tmp_theta_start)<<" "<<GlobalPosition(gPar, tmp_theta)<<" "<<GlobalPosition(gPar, tmp_theta_end)<<std::endl;
-  std::cout<<"eval start "<<GlobalPosition(gPar, gHelixTheta[0])<<" "<<GlobalPosition(gPar, 0.5*(gHelixTheta[0]+gHelixTheta[n-1]))<<" "<<GlobalPosition(gPar, gHelixTheta[n-1])<<std::endl;
-  Int_t middle = 0.5*n;
-  std::cout<<"hitpos "<<gHitPos[0]<<" "<<gHitPos[middle]<<" "<<gHitPos[n-1]<<std::endl;
-  */
 
   //if(!DoStraightLineFit(gPar)) return false;
   //SetParam(gPar);
@@ -3635,9 +3634,6 @@ TPCLocalTrackHelix::TestInvertCharge()
     SetParam(gPar);
     CalcHelixTheta();
 
-    Int_t ndf;
-    m_chisqr = CalcChi2(gPar, ndf, vetoBadClusters);
-    m_minuit = gMinuitStatus;
     Double_t window = ThetaWindow/gPar[3];
     for(Int_t i=0; i<gNumOfHits; ++i){
       Double_t theta = EvalTheta(gPar, gHitPos[i], gHelixTheta[i] - 0.5*window, gHelixTheta[i] + 0.5*window);
@@ -3645,6 +3641,10 @@ TPCLocalTrackHelix::TestInvertCharge()
       gHelixTheta[i] = theta;
       gRes[i] = CalcResolution(gPar, gLayer[i], gHitPos[i], gPadTheta[i], gHelixTheta[i], gResParam[i], vetoBadClusters);
     }
+
+    Int_t ndf;
+    m_chisqr = CalcChi2(gPar, ndf, vetoBadClusters);
+    m_minuit = gMinuitStatus;
   }
   else return false;
 
@@ -3657,18 +3657,42 @@ TPCLocalTrackHelix::TestInvertCharge()
 	   <<", dz: "<<m_dz<<std::endl;
 #endif
 
-  //std::cout<<"gChisqr "<<gChisqr<<std::endl;
-  //std::cout<<"false_layer "<<false_layer<<std::endl;
   Int_t delete_hit = -1;
   Int_t false_layer = FinalizeTrack(delete_hit);
   if(!DetermineCharge() || prev_charge == m_charge) return false; //charge is not converted
-  //std::cout<<"prev current charge "<<prev_charge<<" "<<m_charge<<std::endl;
 
 #if DebugDisp
   std::cout<<FUNC_NAME+" # of bad clusters : "<<false_layer<<std::endl;
 #endif
 
-  if(false_layer > 2) return false;
+  if(false_layer > 0){
+    Int_t maxloop = 0;
+    while(false_layer > 0 && maxloop < 30){
+      if(!HelixFitInvertCharge()) return false;
+      else{
+	Double_t window = ThetaWindow/gPar[3];
+	for(Int_t i=0; i<gNumOfHits; ++i){
+	  Double_t theta = EvalTheta(gPar, gHitPos[i], gHelixTheta[i] - 0.5*window, gHelixTheta[i] + 0.5*window);
+	  m_hit_t[i] = theta;
+	  gHelixTheta[i] = theta;
+	  gRes[i] = CalcResolution(gPar, gLayer[i], gHitPos[i], gPadTheta[i], gHelixTheta[i], gResParam[i], vetoBadClusters);
+	}
+
+	Int_t ndf;
+	Double_t chisqr = CalcChi2(gPar, ndf, vetoBadClusters);
+	if(chisqr >= m_chisqr) break;
+	SetParam(gPar);
+	CalcHelixTheta();
+	m_chisqr = CalcChi2(gPar, ndf, vetoBadClusters);
+	m_minuit = gMinuitStatus;
+	false_layer = FinalizeTrack(delete_hit);
+      }
+      maxloop++;
+    } //while
+
+    if(false_layer > 2) return false;
+    if(!DetermineCharge() || prev_charge == m_charge) return false;
+  }
 
   //Check whether the track passing the target or not
   CalcClosestDistTgt(); //Distance between the target & the track

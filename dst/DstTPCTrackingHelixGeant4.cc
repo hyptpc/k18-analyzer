@@ -43,126 +43,126 @@
 
 namespace
 {
-using namespace root;
-using namespace dst;
-using namespace std;
-const std::string& class_name("DstTPCTrackingHelixGeant4");
-using hddaq::unpacker::GUnpacker;
-const auto qnan = TMath::QuietNaN();
-const auto& gUnpacker = GUnpacker::get_instance();
-ConfMan&            gConf = ConfMan::GetInstance();
-const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
-const UserParamMan& gUser = UserParamMan::GetInstance();
-const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
-const auto& gTPC  = TPCParamMan::GetInstance();
-debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
+  using namespace root;
+  using namespace dst;
+  using namespace std;
+  const std::string& class_name("DstTPCTrackingHelixGeant4");
+  using hddaq::unpacker::GUnpacker;
+  const auto qnan = TMath::QuietNaN();
+  const auto& gUnpacker = GUnpacker::get_instance();
+  ConfMan&            gConf = ConfMan::GetInstance();
+  const DCGeomMan&    gGeom = DCGeomMan::GetInstance();
+  const UserParamMan& gUser = UserParamMan::GetInstance();
+  const HodoPHCMan&   gPHC  = HodoPHCMan::GetInstance();
+  const auto& gTPC  = TPCParamMan::GetInstance();
+  debug::ObjectCounter& gCounter  = debug::ObjectCounter::GetInstance();
 
-const Int_t MaxTPCHits = 10000;
-const Int_t MaxTPCTracks = 100;
-const Int_t MaxTPCnHits = 50;
-const Int_t MaxG4Hits = 500;
-const double truncatedMean = 0.8; //80%
-const bool IsWithRes = true;
-//const bool IsWithRes = true;
+  const Int_t MaxTPCHits = 10000;
+  const Int_t MaxTPCTracks = 100;
+  const Int_t MaxTPCnHits = 50;
+  const Int_t MaxG4Hits = 500;
+  const double truncatedMean = 0.8; //80%
+  const bool IsWithRes = true;
+  //const bool IsWithRes = true;
 }
 
 namespace dst
 {
-enum kArgc
-{
-  kProcess, kConfFile,
-  kTPCGeant, kOutFile, nArgc
-};
-std::vector<TString> ArgName =
-{ "[Process]", "[ConfFile]", "[TPCGeant]",
-  "[OutFile]" };
-std::vector<TString> TreeName =
-{ "", "", "TPC_g", "" };
-std::vector<TFile*> TFileCont;
-std::vector<TTree*> TTreeCont;
-std::vector<TTreeReader*> TTreeReaderCont;
-int TPCToG4TrackID(std::vector<TVector3>TPCHit, int nhG4,int* tidG4, double* xG4,double* yG4,double* zG4 ,int& nhits){
-  std::vector<TVector3> G4Hits;
-  for(int ih=0;ih<nhG4;++ih){
-    TVector3 G4Hit(xG4[ih],yG4[ih],zG4[ih]);
-    G4Hits.push_back(G4Hit);
-  }
-  int MaxTracks = 1000;
-  TH1I Counter("counter","counter",MaxTracks,0,MaxTracks);
-  for(auto hit:TPCHit){
-    double dl = 5000;
-    int G4ID = -1;
+  enum kArgc
+    {
+      kProcess, kConfFile,
+      kTPCGeant, kOutFile, nArgc
+    };
+  std::vector<TString> ArgName =
+    { "[Process]", "[ConfFile]", "[TPCGeant]",
+      "[OutFile]" };
+  std::vector<TString> TreeName =
+    { "", "", "TPC_g", "" };
+  std::vector<TFile*> TFileCont;
+  std::vector<TTree*> TTreeCont;
+  std::vector<TTreeReader*> TTreeReaderCont;
+  int TPCToG4TrackID(std::vector<TVector3>TPCHit, int nhG4,int* tidG4, double* xG4,double* yG4,double* zG4 ,int& nhits){
+    std::vector<TVector3> G4Hits;
     for(int ih=0;ih<nhG4;++ih){
+      TVector3 G4Hit(xG4[ih],yG4[ih],zG4[ih]);
+      G4Hits.push_back(G4Hit);
+    }
+    int MaxTracks = 1000;
+    TH1I Counter("counter","counter",MaxTracks,0,MaxTracks);
+    for(auto hit:TPCHit){
+      double dl = 5000;
+      int G4ID = -1;
+      for(int ih=0;ih<nhG4;++ih){
+	auto G4Hit = G4Hits.at(ih);
+	double dist = (G4Hit - hit).Mag();
+	if(dist < dl){
+	  dl = dist;
+	  G4ID = tidG4[ih];
+	}
+      }
+      Counter.Fill(G4ID);
+    }
+    nhits = Counter.GetMaximum();
+    int G4id = Counter.GetMaximumBin()-1;
+    return G4id;
+  }
+  TVector3 GetG4Mom(TVector3 TPCHit, vector<TVector3> G4Hits,vector<TVector3>G4Moms){
+    int nh = G4Hits.size();
+    double dl = 5000;
+    TVector3 mom;
+    for(int ih=0;ih<nh;++ih){
       auto G4Hit = G4Hits.at(ih);
-      double dist = (G4Hit - hit).Mag();
+      double dist = (G4Hit - TPCHit).Mag();
       if(dist < dl){
-        dl = dist;
-        G4ID = tidG4[ih];
+	dl = dist;
+	mom = G4Moms.at(ih);
       }
     }
-    Counter.Fill(G4ID);
+    return mom;
   }
-  nhits = Counter.GetMaximum();
-  int G4id = Counter.GetMaximumBin()-1;
-  return G4id;
-}
-TVector3 GetG4Mom(TVector3 TPCHit, vector<TVector3> G4Hits,vector<TVector3>G4Moms){
-  int nh = G4Hits.size();
-  double dl = 5000;
-  TVector3 mom;
-  for(int ih=0;ih<nh;++ih){
-    auto G4Hit = G4Hits.at(ih);
-    double dist = (G4Hit - TPCHit).Mag();
-    if(dist < dl){
-      dl = dist;
-      mom = G4Moms.at(ih);
+  Int_t GetHitG4Tid(TVector3 TPCHit, int nhG4,int* tidG4, double* xG4,double* yG4,double* zG4){
+    std::vector<TVector3> G4Hits;
+    for(int ih=0;ih<nhG4;++ih){
+      TVector3 G4Hit(xG4[ih],yG4[ih],zG4[ih]);
+      G4Hits.push_back(G4Hit);
     }
-  }
-  return mom;
-}
-Int_t GetHitG4Tid(TVector3 TPCHit, int nhG4,int* tidG4, double* xG4,double* yG4,double* zG4){
-  std::vector<TVector3> G4Hits;
-  for(int ih=0;ih<nhG4;++ih){
-    TVector3 G4Hit(xG4[ih],yG4[ih],zG4[ih]);
-    G4Hits.push_back(G4Hit);
-  }
-  double dl = 5000;
-  int G4ID = -1;
-  int ih=0;
-  for(auto g4hit:G4Hits){
-    double dist = (g4hit - TPCHit).Mag();
-    if(dist < dl){
-      dl = dist;
-      G4ID = tidG4[ih];
+    double dl = 5000;
+    int G4ID = -1;
+    int ih=0;
+    for(auto g4hit:G4Hits){
+      double dist = (g4hit - TPCHit).Mag();
+      if(dist < dl){
+	dl = dist;
+	G4ID = tidG4[ih];
+      }
+      ih++;
     }
-    ih++;
+    return G4ID;
   }
-  return G4ID;
-}
-int CountHits(int id, double* posx,double* posz,int* tidG4, int nh){
-  int count = 0;
-  for(int ih=0;ih<nh;++ih){
-    double x = posx[ih],z=posz[ih];
-    int pad = tpc::findPadID(z,x);
-    int layer = tpc::getLayerID(pad);
-    int row = tpc::getRowID(pad);
-    double val = 0;
-    gTPC.GetCDe(layer,row,1,val);
-    if(val==0) continue;
-    if(tidG4[ih] == id) count++;
+  int CountHits(int id, double* posx,double* posz,int* tidG4, int nh){
+    int count = 0;
+    for(int ih=0;ih<nh;++ih){
+      double x = posx[ih],z=posz[ih];
+      int pad = tpc::findPadID(z,x);
+      int layer = tpc::getLayerID(pad);
+      int row = tpc::getRowID(pad);
+      double val = 0;
+      gTPC.GetCDe(layer,row,1,val);
+      if(val==0) continue;
+      if(tidG4[ih] == id) count++;
+    }
+    return count;
   }
-  return count;
-}
-TLorentzVector ToHelix(TLorentzVector GlobalLV){
-  double E = GlobalLV.E();
-  double X = -GlobalLV.X();
-  double Y = GlobalLV.Z();
-  double Z = GlobalLV.Y();
-  return TLorentzVector(X,Y,Z,E);
-}
-TLorentzVector ToGlobal(TLorentzVector HelixLV){
-  return ToHelix(HelixLV);
-}
+  TLorentzVector ToHelix(TLorentzVector GlobalLV){
+    double E = GlobalLV.E();
+    double X = -GlobalLV.X();
+    double Y = GlobalLV.Z();
+    double Z = GlobalLV.Y();
+    return TLorentzVector(X,Y,Z,E);
+  }
+  TLorentzVector ToGlobal(TLorentzVector HelixLV){
+    return ToHelix(HelixLV);
+  }
 
 
 }
@@ -177,9 +177,9 @@ struct Event
   Int_t max_ititpc;
   Int_t ititpc[MaxTPCHits];
   Int_t nhittpc_iti[MaxTPCHits];
-  
-  
-  
+
+
+
   Int_t nclTpc;
   Int_t remain_nclTpc;
   std::vector<Double_t> cluster_x;
@@ -196,8 +196,8 @@ struct Event
   std::vector<Int_t> cluster_row_center;
   std::vector<Int_t> cluster_houghflag;
   std::vector<Int_t> cluster_G4tid;
-  
-  
+
+
   Int_t ntTpc;                   // Number of Tracks
   vector<Int_t> nhtrack;
   vector<Int_t> nhtrackEff;
@@ -330,8 +330,8 @@ struct Event
   std::vector<std::vector<Double_t>> failed_track_cluster_de;
   std::vector<std::vector<Double_t>> failed_track_cluster_size;
   std::vector<std::vector<Double_t>> failed_track_cluster_mrow;
-	
-  
+
+
   Int_t nvtxTpc;
   std::vector<Double_t> vtx_x;
   std::vector<Double_t> vtx_y;
@@ -371,7 +371,7 @@ struct Event
   std::vector<Double_t> Clusteredvtx_y;
   std::vector<Double_t> Clusteredvtx_z;
   std::vector<std::vector<Double_t>> Clusteredvtxid;
-  
+
   //Geant4
   Int_t iti_g[MaxTPCTracks][MaxTPCnHits];
   Int_t idtpc[MaxTPCHits];
@@ -387,57 +387,57 @@ struct Event
   Double_t pxtpc[MaxTPCHits];
   Double_t pytpc[MaxTPCHits];
   Double_t pztpc[MaxTPCHits];
-	Double_t momg_x[MaxTPCTracks][MaxTPCnHits];
-	Double_t momg_y[MaxTPCTracks][MaxTPCnHits];
-	Double_t momg_z[MaxTPCTracks][MaxTPCnHits];
+  Double_t momg_x[MaxTPCTracks][MaxTPCnHits];
+  Double_t momg_y[MaxTPCTracks][MaxTPCnHits];
+  Double_t momg_z[MaxTPCTracks][MaxTPCnHits];
   Double_t residual_p[MaxTPCTracks][MaxTPCnHits];
   Double_t residual_px[MaxTPCTracks][MaxTPCnHits];
   Double_t residual_py[MaxTPCTracks][MaxTPCnHits];
   Double_t residual_pz[MaxTPCTracks][MaxTPCnHits];
 
-	Int_t NumberOfTracks;
-	Int_t PIDOfTrack[1000];
-	Int_t ParentIDOfTrack[1000];
-	Double_t VertexOfTrack_x[1000];
-	Double_t VertexOfTrack_y[1000];
-	Double_t VertexOfTrack_z[1000];
-	Double_t MomentumOfTrack[1000];
-	Double_t MomentumOfTrack_x[1000];
-	Double_t MomentumOfTrack_y[1000];
-	Double_t MomentumOfTrack_z[1000];
+  Int_t NumberOfTracks;
+  Int_t PIDOfTrack[1000];
+  Int_t ParentIDOfTrack[1000];
+  Double_t VertexOfTrack_x[1000];
+  Double_t VertexOfTrack_y[1000];
+  Double_t VertexOfTrack_z[1000];
+  Double_t MomentumOfTrack[1000];
+  Double_t MomentumOfTrack_x[1000];
+  Double_t MomentumOfTrack_y[1000];
+  Double_t MomentumOfTrack_z[1000];
 
   int G4idKm,G4idKp,G4idP,G4idPi1,G4idPi2;;
 
-	Double_t MomXi_x,MomXi_y,MomXi_z;//At decay vtx
-	Double_t SpinXi_x,SpinXi_y,SpinXi_z;
-	Double_t ThXi_CM;
-	Double_t MomLd_x,MomLd_y,MomLd_z;
-	Double_t SpinLd_x,SpinLd_y,SpinLd_z;
-	Double_t ThLd_CM;
+  Double_t MomXi_x,MomXi_y,MomXi_z;//At decay vtx
+  Double_t SpinXi_x,SpinXi_y,SpinXi_z;
+  Double_t ThXi_CM;
+  Double_t MomLd_x,MomLd_y,MomLd_z;
+  Double_t SpinLd_x,SpinLd_y,SpinLd_z;
+  Double_t ThLd_CM;
 
-	//KpXi Kinematics, Momentum at production vtx
-	double PKm,PKm_x,PKm_y,PKm_z;
-	double PKp,PKp_x,PKp_y,PKp_z;
-	double PXi,PXi_x,PXi_y,PXi_z;
-	double PPi2,PPi2_x,PPi2_y,PPi2_z;//Pi from Xi
+  //KpXi Kinematics, Momentum at production vtx
+  double PKm,PKm_x,PKm_y,PKm_z;
+  double PKp,PKp_x,PKp_y,PKp_z;
+  double PXi,PXi_x,PXi_y,PXi_z;
+  double PPi2,PPi2_x,PPi2_y,PPi2_z;//Pi from Xi
 
-	double PLd,PLd_x,PLd_y,PLd_z;
-	double PPi1,PPi1_x,PPi1_y,PPi1_z;//Pi from Ld
-	double PP,PP_x,PP_y,PP_z;
+  double PLd,PLd_x,PLd_y,PLd_z;
+  double PPi1,PPi1_x,PPi1_y,PPi1_z;//Pi from Ld
+  double PP,PP_x,PP_y,PP_z;
 
-	//HToF
+  //HToF
   Int_t nhHtof;
   std::vector<Double_t> HtofSeg;
   std::vector<Double_t> tHtof;
   std::vector<Double_t> dtHtof;
   std::vector<Double_t> deHtof;
   std::vector<Double_t> posHtof;
-  
-	//
+
+  //
 
 
 
-	Int_t nhSch;
+  Int_t nhSch;
   Int_t tidSch[MaxG4Hits];
   Int_t pidSch[MaxG4Hits];
   Int_t didSch[MaxG4Hits];
@@ -453,7 +453,7 @@ struct Event
   Double_t deSch[MaxG4Hits];
   Double_t tSch[MaxG4Hits];
 
-	//Lac
+  //Lac
   Int_t nhLac;
   Int_t tidLac[MaxG4Hits];
   Int_t pidLac[MaxG4Hits];
@@ -470,7 +470,7 @@ struct Event
   Double_t deLac[MaxG4Hits];
   Double_t tLac[MaxG4Hits];
 
-	//FToF
+  //FToF
   Int_t nhFtof;
   Int_t tidFtof[MaxG4Hits];
   Int_t pidFtof[MaxG4Hits];
@@ -487,8 +487,8 @@ struct Event
   Double_t deFtof[MaxG4Hits];
   Double_t tFtof[MaxG4Hits];
 
-	//SDC
-	Int_t nhSdc;
+  //SDC
+  Int_t nhSdc;
   Int_t tidSdc[MaxG4Hits];
   Int_t pidSdc[MaxG4Hits];
   Int_t didSdc[MaxG4Hits];
@@ -504,7 +504,7 @@ struct Event
   Double_t deSdc[MaxG4Hits];
   Double_t tSdc[MaxG4Hits];
 
-	//WC
+  //WC
   Int_t nhWc;
   Int_t tidWc[MaxG4Hits];
   Int_t pidWc[MaxG4Hits];
@@ -521,7 +521,7 @@ struct Event
   Double_t deWc[MaxG4Hits];
   Double_t tWc[MaxG4Hits];
 
-	//BVH
+  //BVH
   Int_t nhBvh;
   Int_t tidBvh[MaxG4Hits];
   Int_t pidBvh[MaxG4Hits];
@@ -538,37 +538,37 @@ struct Event
   Double_t deBvh[MaxG4Hits];
   Double_t tBvh[MaxG4Hits];
 
-	//RealData
-	int ntK18;
-	vector<vector<double>>xvpHS;
-	vector<vector<double>>yvpHS;
-	vector<vector<double>>zvpHS;
-	vector<double>xtgtHS;
-	vector<double>ytgtHS;
-	vector<double>ztgtHS;
-	vector<double>xoutK18;
-	vector<double>youtK18;
-	vector<double>uoutK18;
-	vector<double>voutK18;
-	vector<double>p_3rd;
-	vector<vector<double>> layerK18;
-	vector<vector<double>> wireK18;
-	vector<vector<double>> localhitposK18;
-	int ntKurama;
-	vector<vector<double>>xvpKurama;
-	vector<vector<double>>yvpKurama;
-	vector<vector<double>>zvpKurama;
-	vector<double>xtgtKurama;
-	vector<double>ytgtKurama;
-	vector<double>xout;
-	vector<double>yout;
-	vector<double>zout;
-	vector<double>pxout;
-	vector<double>pyout;
-	vector<double>pzout;
-	vector<vector<double>> wire;
-	vector<vector<double>> layer;
-	vector<vector<double>> localhitpos;
+  //RealData
+  int ntK18;
+  vector<vector<double>>xvpHS;
+  vector<vector<double>>yvpHS;
+  vector<vector<double>>zvpHS;
+  vector<double>xtgtHS;
+  vector<double>ytgtHS;
+  vector<double>ztgtHS;
+  vector<double>xoutK18;
+  vector<double>youtK18;
+  vector<double>uoutK18;
+  vector<double>voutK18;
+  vector<double>p_3rd;
+  vector<vector<double>> layerK18;
+  vector<vector<double>> wireK18;
+  vector<vector<double>> localhitposK18;
+  int ntKurama;
+  vector<vector<double>>xvpKurama;
+  vector<vector<double>>yvpKurama;
+  vector<vector<double>>zvpKurama;
+  vector<double>xtgtKurama;
+  vector<double>ytgtKurama;
+  vector<double>xout;
+  vector<double>yout;
+  vector<double>zout;
+  vector<double>pxout;
+  vector<double>pyout;
+  vector<double>pzout;
+  vector<vector<double>> wire;
+  vector<vector<double>> layer;
+  vector<vector<double>> localhitpos;
 
 
 
@@ -577,7 +577,7 @@ struct Event
   vector<Int_t> niterationTPCK18;
   vector<Double_t> chisqrTPCK18;
 
-	vector<Int_t> isgoodTPCKurama;
+  vector<Int_t> isgoodTPCKurama;
   vector<Int_t> tpcidTPCKurama;
   vector<Int_t> niterationTPCKurama;
   vector<Int_t> kflagTPCKurama;
@@ -585,7 +585,7 @@ struct Event
 
 
 
-	void Clear(){
+  void Clear(){
 
     HtofSeg.clear();
     tHtof.clear();
@@ -611,15 +611,15 @@ struct Event
     cluster_G4tid.clear();
 
 
-		PKm = qnan;PKm_x=qnan;PKm_y=qnan;PKm_z=qnan;
-		PKp = qnan;PKp_x=qnan;PKp_y=qnan;PKp_z=qnan;
-		PXi = qnan;PXi_x=qnan;PXi_y=qnan;PXi_z=qnan;
-		PPi2 = qnan;PPi2_x=qnan;PPi2_y=qnan;PPi2_z=qnan;
-		PLd = qnan;PLd_x=qnan;PLd_y=qnan;PLd_z=qnan;
-		PPi1 = qnan;PPi1_x=qnan;PPi1_y=qnan;PPi1_z=qnan;
-		PP = qnan;PP_x=qnan;PP_y=qnan;PP_z=qnan;
-		nhtrack.clear();
-		nhtrackEff.clear();
+    PKm = qnan;PKm_x=qnan;PKm_y=qnan;PKm_z=qnan;
+    PKp = qnan;PKp_x=qnan;PKp_y=qnan;PKp_z=qnan;
+    PXi = qnan;PXi_x=qnan;PXi_y=qnan;PXi_z=qnan;
+    PPi2 = qnan;PPi2_x=qnan;PPi2_y=qnan;PPi2_z=qnan;
+    PLd = qnan;PLd_x=qnan;PLd_y=qnan;PLd_z=qnan;
+    PPi1 = qnan;PPi1_x=qnan;PPi1_y=qnan;PPi1_z=qnan;
+    PP = qnan;PP_x=qnan;PP_y=qnan;PP_z=qnan;
+    nhtrack.clear();
+    nhtrackEff.clear();
     trackid.clear();
     isBeam.clear();
     isKurama.clear();
@@ -628,56 +628,56 @@ struct Event
     flag.clear();
     purity.clear();
     efficiency.clear();
-		G4tid.clear();
+    G4tid.clear();
     chisqr.clear();
-		pval.clear();
-		helix_cx.clear();
-		helix_cy.clear();
-		helix_z0.clear();
-		helix_r.clear();
-		helix_dz.clear();
-		dz_factor.clear();
+    pval.clear();
+    helix_cx.clear();
+    helix_cy.clear();
+    helix_z0.clear();
+    helix_r.clear();
+    helix_dz.clear();
+    dz_factor.clear();
     dE.clear();
     dEdx.clear();
-		mom0_x.clear();
-		mom0_y.clear();
-		mom0_z.clear();
-		mom0.clear();
-		charge.clear();
-		path.clear();
-		pid.clear();
+    mom0_x.clear();
+    mom0_y.clear();
+    mom0_z.clear();
+    mom0.clear();
+    charge.clear();
+    path.clear();
+    pid.clear();
 
-		hitlayer.clear();
-		hitpos_x.clear();
-		hitpos_y.clear();
-		hitpos_z.clear();
-		helix_t.clear();
-		calpos_x.clear();
-		calpos_y.clear();
-		calpos_z.clear();
+    hitlayer.clear();
+    hitpos_x.clear();
+    hitpos_y.clear();
+    hitpos_z.clear();
+    helix_t.clear();
+    calpos_x.clear();
+    calpos_y.clear();
+    calpos_z.clear();
     mom_x.clear();
     mom_y.clear();
     mom_z.clear();
 
-		resolution.clear();
-		resolution_x.clear();
-		resolution_y.clear();
-		resolution_z.clear();
-		residual.clear();
-		residual_t.clear();
-		residual_x.clear();
-		residual_y.clear();
-		residual_z.clear();
-		pull_t.clear();
-		pull_x.clear();
-		pull_y.clear();
-		pull_z.clear();
+    resolution.clear();
+    resolution_x.clear();
+    resolution_y.clear();
+    resolution_z.clear();
+    residual.clear();
+    residual_t.clear();
+    residual_x.clear();
+    residual_y.clear();
+    residual_z.clear();
+    pull_t.clear();
+    pull_x.clear();
+    pull_y.clear();
+    pull_z.clear();
     pathhit.clear();
     alpha.clear();
     houghflag.clear();
 
-		track_cluster_size.clear();
-		track_cluster_de.clear();
+    track_cluster_size.clear();
+    track_cluster_de.clear();
     track_cluster_mrow.clear();
 
 
@@ -794,43 +794,43 @@ struct Event
 
 
     ntK18 = 0;
-		xvpHS.clear();
-		yvpHS.clear();
-		zvpHS.clear();
-		xoutK18.clear();
-		youtK18.clear();
-		uoutK18.clear();
-		voutK18.clear();
-		p_3rd.clear();
-		layerK18.clear();
-		wireK18.clear();
-		localhitposK18.clear();
-		ntKurama = 0;
-		xvpKurama.clear();
-		yvpKurama.clear();
-		zvpKurama.clear();
-		xout.clear();
-		yout.clear();
-		zout.clear();
-		pxout.clear();
-		pyout.clear();
-		pzout.clear();
-		layer.clear();
-		wire.clear();
-		localhitpos.clear();
+    xvpHS.clear();
+    yvpHS.clear();
+    zvpHS.clear();
+    xoutK18.clear();
+    youtK18.clear();
+    uoutK18.clear();
+    voutK18.clear();
+    p_3rd.clear();
+    layerK18.clear();
+    wireK18.clear();
+    localhitposK18.clear();
+    ntKurama = 0;
+    xvpKurama.clear();
+    yvpKurama.clear();
+    zvpKurama.clear();
+    xout.clear();
+    yout.clear();
+    zout.clear();
+    pxout.clear();
+    pyout.clear();
+    pzout.clear();
+    layer.clear();
+    wire.clear();
+    localhitpos.clear();
 
-		isgoodTPCK18.clear();
+    isgoodTPCK18.clear();
     tpcidTPCK18.clear();
     niterationTPCK18.clear();
     chisqrTPCK18.clear();
 
-		isgoodTPCKurama.clear();
+    isgoodTPCKurama.clear();
     tpcidTPCKurama.clear();
     niterationTPCKurama.clear();
     kflagTPCKurama.clear();
     chisqrTPCKurama.clear();
 
-	};
+  };
 };
 
 //_____________________________________________________________________
@@ -848,29 +848,29 @@ struct Src
   Double_t pzPrm[MaxTPCTracks];
   Double_t ppPrm[MaxTPCTracks];
 
- 	Int_t NumberOfTracks;
-	Int_t PIDOfTrack[1000];
-	Int_t ParentIDOfTrack[1000];
-	Double_t VertexOfTrack_x[1000];
-	Double_t VertexOfTrack_y[1000];
-	Double_t VertexOfTrack_z[1000];
-	Double_t MomentumOfTrack[1000];
-	Double_t MomentumOfTrack_x[1000];
-	Double_t MomentumOfTrack_y[1000];
-	Double_t MomentumOfTrack_z[1000];
-	Double_t MomXi_x,MomXi_y,MomXi_z;
-	Double_t SpinXi_x,SpinXi_y,SpinXi_z;
-	Double_t ThXi_CM;
-	Double_t MomLd_x,MomLd_y,MomLd_z;
-	Double_t SpinLd_x,SpinLd_y,SpinLd_z;
-	Double_t ThLd_CM;
+  Int_t NumberOfTracks;
+  Int_t PIDOfTrack[1000];
+  Int_t ParentIDOfTrack[1000];
+  Double_t VertexOfTrack_x[1000];
+  Double_t VertexOfTrack_y[1000];
+  Double_t VertexOfTrack_z[1000];
+  Double_t MomentumOfTrack[1000];
+  Double_t MomentumOfTrack_x[1000];
+  Double_t MomentumOfTrack_y[1000];
+  Double_t MomentumOfTrack_z[1000];
+  Double_t MomXi_x,MomXi_y,MomXi_z;
+  Double_t SpinXi_x,SpinXi_y,SpinXi_z;
+  Double_t ThXi_CM;
+  Double_t MomLd_x,MomLd_y,MomLd_z;
+  Double_t SpinLd_x,SpinLd_y,SpinLd_z;
+  Double_t ThLd_CM;
 
 
   Int_t ititpc[MaxTPCHits];
   Int_t idtpc[MaxTPCHits];
   Int_t parentID[MaxTPCHits];
 
-	Double_t xtpc[MaxTPCHits];//with resolution
+  Double_t xtpc[MaxTPCHits];//with resolution
   Double_t ytpc[MaxTPCHits];//with resolution
   Double_t ztpc[MaxTPCHits];//with resolution
   Double_t x0tpc[MaxTPCHits];//w/o resolution
@@ -882,14 +882,14 @@ struct Src
   Double_t pztpc[MaxTPCHits];
   Double_t pptpc[MaxTPCHits];   // total mometum
 
-	// Double_t masstpc[MaxTPCHits];   // mass TPC
+  // Double_t masstpc[MaxTPCHits];   // mass TPC
   // Double_t betatpc[MaxTPCHits];
   Double_t edeptpc[MaxTPCHits];
   // Int_t laytpc[MaxTPCHits];
   // Int_t rowtpc[MaxTPCHits];
   // Int_t iPadtpc[MaxTPCHits];//Pad number (0 origin)
 
-	//HToF
+  //HToF
   Int_t nhHtof;
   Int_t tidHtof[MaxG4Hits];
   Int_t pidHtof[MaxG4Hits];
@@ -906,7 +906,7 @@ struct Src
   Double_t deHtof[MaxG4Hits];
   Double_t tHtof[MaxG4Hits];
 
-	//SCH
+  //SCH
   Int_t nhSch;
   Int_t tidSch[MaxG4Hits];
   Int_t pidSch[MaxG4Hits];
@@ -923,7 +923,7 @@ struct Src
   Double_t deSch[MaxG4Hits];
   Double_t tSch[MaxG4Hits];
 
-	//Lac
+  //Lac
   Int_t nhLac;
   Int_t tidLac[MaxG4Hits];
   Int_t pidLac[MaxG4Hits];
@@ -940,7 +940,7 @@ struct Src
   Double_t deLac[MaxG4Hits];
   Double_t tLac[MaxG4Hits];
 
-	//FToF
+  //FToF
   Int_t nhFtof;
   Int_t tidFtof[MaxG4Hits];
   Int_t pidFtof[MaxG4Hits];
@@ -957,8 +957,8 @@ struct Src
   Double_t deFtof[MaxG4Hits];
   Double_t tFtof[MaxG4Hits];
 
-	//SDC
-	Int_t nhSdc;
+  //SDC
+  Int_t nhSdc;
   Int_t tidSdc[MaxG4Hits];
   Int_t pidSdc[MaxG4Hits];
   Int_t didSdc[MaxG4Hits];
@@ -974,7 +974,7 @@ struct Src
   Double_t deSdc[MaxG4Hits];
   Double_t tSdc[MaxG4Hits];
 
-	//WC
+  //WC
   Int_t nhWc;
   Int_t tidWc[MaxG4Hits];
   Int_t pidWc[MaxG4Hits];
@@ -991,7 +991,7 @@ struct Src
   Double_t deWc[MaxG4Hits];
   Double_t tWc[MaxG4Hits];
 
-	//BVH
+  //BVH
   Int_t nhBvh;
   Int_t tidBvh[MaxG4Hits];
   Int_t pidBvh[MaxG4Hits];
@@ -1009,15 +1009,15 @@ struct Src
   Double_t tBvh[MaxG4Hits];
 
 
-	//RealData
+  //RealData
   TTreeReaderValue<int>* ntK18=nullptr;
   TTreeReaderValue<vector<vector<double>>>* xvpHS=nullptr;
   TTreeReaderValue<vector<vector<double>>>* yvpHS=nullptr;
   TTreeReaderValue<vector<vector<double>>>* zvpHS=nullptr;
-	TTreeReaderValue<vector<double>>* xtgtHS=nullptr;
-	TTreeReaderValue<vector<double>>* ytgtHS=nullptr;
-	TTreeReaderValue<vector<double>>* ztgtHS=nullptr;
-	TTreeReaderValue<vector<double>>* xoutK18=nullptr;
+  TTreeReaderValue<vector<double>>* xtgtHS=nullptr;
+  TTreeReaderValue<vector<double>>* ytgtHS=nullptr;
+  TTreeReaderValue<vector<double>>* ztgtHS=nullptr;
+  TTreeReaderValue<vector<double>>* xoutK18=nullptr;
   TTreeReaderValue<vector<double>>* youtK18=nullptr;
   TTreeReaderValue<vector<double>>* uoutK18=nullptr;
   TTreeReaderValue<vector<double>>* voutK18=nullptr;
@@ -1026,15 +1026,15 @@ struct Src
   TTreeReaderValue<vector<vector<double>>>* wireK18=nullptr;
   TTreeReaderValue<vector<vector<double>>>* localhitposK18=nullptr;
   TTreeReaderValue<int>* ntKurama=nullptr;
-	TTreeReaderValue<vector<vector<double>>>* xvpKurama=nullptr;
+  TTreeReaderValue<vector<vector<double>>>* xvpKurama=nullptr;
   TTreeReaderValue<vector<vector<double>>>* yvpKurama=nullptr;
   TTreeReaderValue<vector<vector<double>>>* zvpKurama=nullptr;
-	TTreeReaderValue<vector<double>>* xtgtKurama=nullptr;
-	TTreeReaderValue<vector<double>>* ytgtKurama=nullptr;
-	TTreeReaderValue<vector<double>>* xout=nullptr;
+  TTreeReaderValue<vector<double>>* xtgtKurama=nullptr;
+  TTreeReaderValue<vector<double>>* ytgtKurama=nullptr;
+  TTreeReaderValue<vector<double>>* xout=nullptr;
   TTreeReaderValue<vector<double>>* yout=nullptr;
   TTreeReaderValue<vector<double>>* zout=nullptr;
-	TTreeReaderValue<vector<double>>* pxout=nullptr;
+  TTreeReaderValue<vector<double>>* pxout=nullptr;
   TTreeReaderValue<vector<double>>* pyout=nullptr;
   TTreeReaderValue<vector<double>>* pzout=nullptr;
   TTreeReaderValue<vector<vector<double>>>* layer=nullptr;
@@ -1056,20 +1056,20 @@ namespace root
     TPCK18RKHid = 300000,
     TPCKuramaRKHid = 400000,
     TPCClHid = 500000,
-  	TPCInclusiveHid = 600000,
-  	TPCExclusiveHid = 700000,
-  	TPCIntrinsicHid = 800000
-	};
+    TPCInclusiveHid = 600000,
+    TPCExclusiveHid = 700000,
+    TPCIntrinsicHid = 800000
+  };
 
-Double_t
-TranseverseDistance(Double_t x_center, Double_t z_center, Double_t x, Double_t z)
-{
-  Double_t dummy = TMath::Sqrt((x-x_center)*(x-x_center) + (z-z_center)*(z-z_center));
-  Double_t dist;
-  if(x_center-x<0) dist=-1.*dummy;
-  else dist=dummy;
-  return dist;
-}
+  Double_t
+  TranseverseDistance(Double_t x_center, Double_t z_center, Double_t x, Double_t z)
+  {
+    Double_t dummy = TMath::Sqrt((x-x_center)*(x-x_center) + (z-z_center)*(z-z_center));
+    Double_t dist;
+    if(x_center-x<0) dist=-1.*dummy;
+    else dist=dummy;
+    return dist;
+  }
 }
 
 //_____________________________________________________________________
@@ -1102,15 +1102,15 @@ main( int argc, char **argv )
   // }
   // //  }
 
-
   Int_t skip = gUnpacker.get_skip();
   if (skip < 0) skip = 0;
   Int_t max_loop = gUnpacker.get_max_loop();
+  skip = 79; max_loop = 1;
   Int_t nevent = GetEntries( TTreeCont );
   if (max_loop > 0) nevent = skip + max_loop;
 
   CatchSignal::Set();
-	gRandom->SetSeed(7);
+  gRandom->SetSeed(7);
   Int_t ievent = skip;
   for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
     gCounter.check();
@@ -1131,7 +1131,7 @@ main( int argc, char **argv )
 bool
 dst::InitializeEvent( void )
 {
-	event.Clear();
+  event.Clear();
   event.status   = 0;
   event.evnum = 0;
   event.nhittpc = 0;
@@ -1150,51 +1150,51 @@ dst::InitializeEvent( void )
       event.residual_pz[i][j] =-9999.;
       event.residual_p[i][j] =-9999.;
       event.iti_g[i][j] =0;
-		}
+    }
   }
-	event.NumberOfTracks = -1;
-	for(int i=0;i<1000;++i){
-		event.PIDOfTrack[i]=qnan;
-		event.ParentIDOfTrack[i]=qnan;
-		event.VertexOfTrack_x[i]=qnan;
-		event.VertexOfTrack_y[i]=qnan;
-		event.VertexOfTrack_z[i]=qnan;
-		event.MomentumOfTrack[i]=qnan;
-		event.MomentumOfTrack_x[i]=qnan;
-		event.MomentumOfTrack_y[i]=qnan;
-		event.MomentumOfTrack_z[i]=qnan;
-	}
+  event.NumberOfTracks = -1;
+  for(int i=0;i<1000;++i){
+    event.PIDOfTrack[i]=qnan;
+    event.ParentIDOfTrack[i]=qnan;
+    event.VertexOfTrack_x[i]=qnan;
+    event.VertexOfTrack_y[i]=qnan;
+    event.VertexOfTrack_z[i]=qnan;
+    event.MomentumOfTrack[i]=qnan;
+    event.MomentumOfTrack_x[i]=qnan;
+    event.MomentumOfTrack_y[i]=qnan;
+    event.MomentumOfTrack_z[i]=qnan;
+  }
 
   event.G4idKm = -1;
   event.G4idKp = -1;
   event.G4idP = -1;
   event.G4idPi1 = -1;
   event.G4idPi2 = -1;
-	event.MomXi_x = 0;
-	event.MomXi_y = 0;
-	event.MomXi_z = 0;
-	event.SpinXi_x = 0;
-	event.SpinXi_y = 0;
-	event.SpinXi_z = 0;
-	event.ThXi_CM = 0;
+  event.MomXi_x = 0;
+  event.MomXi_y = 0;
+  event.MomXi_z = 0;
+  event.SpinXi_x = 0;
+  event.SpinXi_y = 0;
+  event.SpinXi_z = 0;
+  event.ThXi_CM = 0;
 
-	event.MomLd_x = 0;
-	event.MomLd_y = 0;
-	event.MomLd_z = 0;
-	event.SpinLd_x = 0;
-	event.SpinLd_y = 0;
-	event.SpinLd_z = 0;
-	event.ThLd_CM = 0;
+  event.MomLd_x = 0;
+  event.MomLd_y = 0;
+  event.MomLd_z = 0;
+  event.SpinLd_x = 0;
+  event.SpinLd_y = 0;
+  event.SpinLd_z = 0;
+  event.ThLd_CM = 0;
 
-	event.nhHtof=-1;
-	event.nhSch = -1;
-	event.nhLac = -1;
-	event.nhFtof=-1;
-	event.nhSdc=-1;
-	event.nhWc =-1;
-	event.nhBvh=-1;
+  event.nhHtof=-1;
+  event.nhSch = -1;
+  event.nhLac = -1;
+  event.nhFtof=-1;
+  event.nhSdc=-1;
+  event.nhWc =-1;
+  event.nhBvh=-1;
   for(int i=0;i<500;++i){
-		event.ititpc[i]=qnan;
+    event.ititpc[i]=qnan;
     event.idtpc[i]=qnan;
     event.ID[i]=qnan;
     event.PID[i]=qnan;
@@ -1209,96 +1209,96 @@ dst::InitializeEvent( void )
     event.pztpc[i]=qnan;
 
 
-		event.tidSch[i]=qnan;
-		event.pidSch[i]=qnan;
-		event.didSch[i]=qnan;
-		event.prtSch[i]=qnan;
-		event.qSch[i]=qnan;
-		event.xSch[i]=qnan;
-		event.ySch[i]=qnan;
-		event.zSch[i]=qnan;
-		event.pxSch[i]=qnan;
-		event.pySch[i]=qnan;
-		event.pzSch[i]=qnan;
-		event.ppSch[i]=qnan;
-		event.deSch[i]=qnan;
-		event.tSch[i]=qnan;
+    event.tidSch[i]=qnan;
+    event.pidSch[i]=qnan;
+    event.didSch[i]=qnan;
+    event.prtSch[i]=qnan;
+    event.qSch[i]=qnan;
+    event.xSch[i]=qnan;
+    event.ySch[i]=qnan;
+    event.zSch[i]=qnan;
+    event.pxSch[i]=qnan;
+    event.pySch[i]=qnan;
+    event.pzSch[i]=qnan;
+    event.ppSch[i]=qnan;
+    event.deSch[i]=qnan;
+    event.tSch[i]=qnan;
 
-		event.tidLac[i]=qnan;
-		event.pidLac[i]=qnan;
-		event.didLac[i]=qnan;
-		event.prtLac[i]=qnan;
-		event.qLac[i]=qnan;
-		event.xLac[i]=qnan;
-		event.yLac[i]=qnan;
-		event.zLac[i]=qnan;
-		event.pxLac[i]=qnan;
-		event.pyLac[i]=qnan;
-		event.pzLac[i]=qnan;
-		event.ppLac[i]=qnan;
-		event.deLac[i]=qnan;
-		event.tLac[i]=qnan;
+    event.tidLac[i]=qnan;
+    event.pidLac[i]=qnan;
+    event.didLac[i]=qnan;
+    event.prtLac[i]=qnan;
+    event.qLac[i]=qnan;
+    event.xLac[i]=qnan;
+    event.yLac[i]=qnan;
+    event.zLac[i]=qnan;
+    event.pxLac[i]=qnan;
+    event.pyLac[i]=qnan;
+    event.pzLac[i]=qnan;
+    event.ppLac[i]=qnan;
+    event.deLac[i]=qnan;
+    event.tLac[i]=qnan;
 
-		event.tidFtof[i]=qnan;
-		event.pidFtof[i]=qnan;
-		event.didFtof[i]=qnan;
-		event.prtFtof[i]=qnan;
-		event.qFtof[i]=qnan;
-		event.xFtof[i]=qnan;
-		event.yFtof[i]=qnan;
-		event.zFtof[i]=qnan;
-		event.pxFtof[i]=qnan;
-		event.pyFtof[i]=qnan;
-		event.pzFtof[i]=qnan;
-		event.ppFtof[i]=qnan;
-		event.deFtof[i]=qnan;
-		event.tFtof[i]=qnan;
+    event.tidFtof[i]=qnan;
+    event.pidFtof[i]=qnan;
+    event.didFtof[i]=qnan;
+    event.prtFtof[i]=qnan;
+    event.qFtof[i]=qnan;
+    event.xFtof[i]=qnan;
+    event.yFtof[i]=qnan;
+    event.zFtof[i]=qnan;
+    event.pxFtof[i]=qnan;
+    event.pyFtof[i]=qnan;
+    event.pzFtof[i]=qnan;
+    event.ppFtof[i]=qnan;
+    event.deFtof[i]=qnan;
+    event.tFtof[i]=qnan;
 
-		event.tidSdc[i]=qnan;
-		event.pidSdc[i]=qnan;
-		event.didSdc[i]=qnan;
-		event.prtSdc[i]=qnan;
-		event.qSdc[i]=qnan;
-		event.xSdc[i]=qnan;
-		event.ySdc[i]=qnan;
-		event.zSdc[i]=qnan;
-		event.pxSdc[i]=qnan;
-		event.pySdc[i]=qnan;
-		event.pzSdc[i]=qnan;
-		event.ppSdc[i]=qnan;
-		event.deSdc[i]=qnan;
-		event.tSdc[i]=qnan;
+    event.tidSdc[i]=qnan;
+    event.pidSdc[i]=qnan;
+    event.didSdc[i]=qnan;
+    event.prtSdc[i]=qnan;
+    event.qSdc[i]=qnan;
+    event.xSdc[i]=qnan;
+    event.ySdc[i]=qnan;
+    event.zSdc[i]=qnan;
+    event.pxSdc[i]=qnan;
+    event.pySdc[i]=qnan;
+    event.pzSdc[i]=qnan;
+    event.ppSdc[i]=qnan;
+    event.deSdc[i]=qnan;
+    event.tSdc[i]=qnan;
 
-		event.tidWc[i]=qnan;
-		event.pidWc[i]=qnan;
-		event.didWc[i]=qnan;
-		event.prtWc[i]=qnan;
-		event.qWc[i]=qnan;
-		event.xWc[i]=qnan;
-		event.yWc[i]=qnan;
-		event.zWc[i]=qnan;
-		event.pxWc[i]=qnan;
-		event.pyWc[i]=qnan;
-		event.pzWc[i]=qnan;
-		event.ppWc[i]=qnan;
-		event.deWc[i]=qnan;
-		event.tWc[i]=qnan;
+    event.tidWc[i]=qnan;
+    event.pidWc[i]=qnan;
+    event.didWc[i]=qnan;
+    event.prtWc[i]=qnan;
+    event.qWc[i]=qnan;
+    event.xWc[i]=qnan;
+    event.yWc[i]=qnan;
+    event.zWc[i]=qnan;
+    event.pxWc[i]=qnan;
+    event.pyWc[i]=qnan;
+    event.pzWc[i]=qnan;
+    event.ppWc[i]=qnan;
+    event.deWc[i]=qnan;
+    event.tWc[i]=qnan;
 
-		event.tidBvh[i]=qnan;
-		event.pidBvh[i]=qnan;
-		event.didBvh[i]=qnan;
-		event.prtBvh[i]=qnan;
-		event.qBvh[i]=qnan;
-		event.xBvh[i]=qnan;
-		event.yBvh[i]=qnan;
-		event.zBvh[i]=qnan;
-		event.pxBvh[i]=qnan;
-		event.pyBvh[i]=qnan;
-		event.pzBvh[i]=qnan;
-		event.ppBvh[i]=qnan;
-		event.deBvh[i]=qnan;
-		event.tBvh[i]=qnan;
-	}
+    event.tidBvh[i]=qnan;
+    event.pidBvh[i]=qnan;
+    event.didBvh[i]=qnan;
+    event.prtBvh[i]=qnan;
+    event.qBvh[i]=qnan;
+    event.xBvh[i]=qnan;
+    event.yBvh[i]=qnan;
+    event.zBvh[i]=qnan;
+    event.pxBvh[i]=qnan;
+    event.pyBvh[i]=qnan;
+    event.pzBvh[i]=qnan;
+    event.ppBvh[i]=qnan;
+    event.deBvh[i]=qnan;
+    event.tBvh[i]=qnan;
+  }
 
   return true;
 }
@@ -1338,7 +1338,7 @@ dst::DstRead( int ievent )
   static const auto XiStarMass  = 1.5350;
   static const auto ElectronMass = pdg::ElectronMass();
   static const Double_t Carbon12Mass = 12.*TGeoUnit::amu_c2 - 6.*ElectronMass;
-	static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
+  static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
   static const auto yGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Y();
   static const auto zGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Z();
   static const auto zLocalBcOut = gGeom.GetLocalZ("BC3-X1");
@@ -1373,64 +1373,64 @@ dst::DstRead( int ievent )
   event.evnum = src.evnum -1;
   event.nhittpc = src.nhittpc;
   //debug  std::cout<<"DstTPCTracking Helix Geant4, nhit="<<event.nhittpc<<std::endl;
- 	event.NumberOfTracks = src.NumberOfTracks;
-	for(int it=0;it<1000;++it){
-		event.PIDOfTrack[it]=src.PIDOfTrack[it];
-		event.ParentIDOfTrack[it]=src.ParentIDOfTrack[it];
-		event.VertexOfTrack_x[it]=src.VertexOfTrack_x[it];
-		event.VertexOfTrack_y[it]=src.VertexOfTrack_y[it];
-		event.VertexOfTrack_z[it]=src.VertexOfTrack_z[it];
-		event.MomentumOfTrack[it]=src.MomentumOfTrack[it];
-		event.MomentumOfTrack_x[it]=src.MomentumOfTrack_x[it];
-		event.MomentumOfTrack_y[it]=src.MomentumOfTrack_y[it];
-		event.MomentumOfTrack_z[it]=src.MomentumOfTrack_z[it];
-	}
-	for(int it=0;it<event.NumberOfTracks;++it){
-		int tid = it + 1;
-		int pid = event.PIDOfTrack[tid];
-		int parent = event.ParentIDOfTrack[tid];
-		int pid_parent = 0;
-		if(parent!= -1) pid_parent = event.PIDOfTrack[parent];
-		if(pid == 11) continue;
-		double px = event.MomentumOfTrack_x[tid]/1000;//MeV to GeV
-		double py = event.MomentumOfTrack_y[tid]/1000;
-		double pz = event.MomentumOfTrack_z[tid]/1000;
-		double p = hypot(pz,hypot(px,py));
+  event.NumberOfTracks = src.NumberOfTracks;
+  for(int it=0;it<1000;++it){
+    event.PIDOfTrack[it]=src.PIDOfTrack[it];
+    event.ParentIDOfTrack[it]=src.ParentIDOfTrack[it];
+    event.VertexOfTrack_x[it]=src.VertexOfTrack_x[it];
+    event.VertexOfTrack_y[it]=src.VertexOfTrack_y[it];
+    event.VertexOfTrack_z[it]=src.VertexOfTrack_z[it];
+    event.MomentumOfTrack[it]=src.MomentumOfTrack[it];
+    event.MomentumOfTrack_x[it]=src.MomentumOfTrack_x[it];
+    event.MomentumOfTrack_y[it]=src.MomentumOfTrack_y[it];
+    event.MomentumOfTrack_z[it]=src.MomentumOfTrack_z[it];
+  }
+  for(int it=0;it<event.NumberOfTracks;++it){
+    int tid = it + 1;
+    int pid = event.PIDOfTrack[tid];
+    int parent = event.ParentIDOfTrack[tid];
+    int pid_parent = 0;
+    if(parent!= -1) pid_parent = event.PIDOfTrack[parent];
+    if(pid == 11) continue;
+    double px = event.MomentumOfTrack_x[tid]/1000;//MeV to GeV
+    double py = event.MomentumOfTrack_y[tid]/1000;
+    double pz = event.MomentumOfTrack_z[tid]/1000;
+    double p = hypot(pz,hypot(px,py));
     double vert_x = src.VertexOfTrack_x[it];
     double vert_y = src.VertexOfTrack_y[it];
     double vert_z = src.VertexOfTrack_z[it];
-		if(abs(pid) == 321 and parent==0){
-			if(pz < 0){
+    if(abs(pid) == 321 and parent==0){
+      if(pz < 0){
         G4idKm = tid;
         event.G4idKm = tid;
-				event.PKm = p;
-				event.PKm_x = -px;
-				event.PKm_y = -py;
-				event.PKm_z = -pz;
-			}
-			else{
+	event.PKm = p;
+	event.PKm_x = -px;
+	event.PKm_y = -py;
+	event.PKm_z = -pz;
+      }
+      else{
         G4idKp = tid;
-				event.G4idKp = tid;
+	event.G4idKp = tid;
         event.PKp = p;
-				event.PKp_x = px;
-				event.PKp_y = py;
-				event.PKp_z = pz;
-			}
-		}
-		if(pid == 3312){
-				event.PXi = p;
-				event.PXi_x = px;
-				event.PXi_y = py;
-				event.PXi_z = pz;
-		}
-		if(pid == 3122 and pid_parent == 3312){
-				event.PLd = p;
-				event.PLd_x = px;
-				event.PLd_y = py;
-				event.PLd_z = pz;
-		}
+	event.PKp_x = px;
+	event.PKp_y = py;
+	event.PKp_z = pz;
+      }
+    }
+    if(pid == 3312){
+      event.PXi = p;
+      event.PXi_x = px;
+      event.PXi_y = py;
+      event.PXi_z = pz;
+    }
+    if(pid == 3122 and pid_parent == 3312){
+      event.PLd = p;
+      event.PLd_x = px;
+      event.PLd_y = py;
+      event.PLd_z = pz;
+    }
     if(pid == 2212 and pid_parent == 3122){
-        event.G4idP = tid;
+      event.G4idP = tid;
     }
     if(pid == -211){
       if (pid_parent == 3122){
@@ -1440,21 +1440,21 @@ dst::DstRead( int ievent )
         event.G4idPi2 = tid;
       }
     }
-	}
-	event.MomXi_x = src.MomXi_x;
-	event.MomXi_y = src.MomXi_y;
-	event.MomXi_z = src.MomXi_z;
-	event.SpinXi_x = src.SpinXi_x;
-	event.SpinXi_y = src.SpinXi_y;
-	event.SpinXi_z = src.SpinXi_z;
-	event.ThXi_CM = src.ThXi_CM;
-	event.MomLd_x = src.MomLd_x;
-	event.MomLd_y = src.MomLd_y;
-	event.MomLd_z = src.MomLd_z;
-	event.SpinLd_x = src.SpinLd_x;
-	event.SpinLd_y = src.SpinLd_y;
-	event.SpinLd_z = src.SpinLd_z;
-	event.ThLd_CM = src.ThLd_CM;
+  }
+  event.MomXi_x = src.MomXi_x;
+  event.MomXi_y = src.MomXi_y;
+  event.MomXi_z = src.MomXi_z;
+  event.SpinXi_x = src.SpinXi_x;
+  event.SpinXi_y = src.SpinXi_y;
+  event.SpinXi_z = src.SpinXi_z;
+  event.ThXi_CM = src.ThXi_CM;
+  event.MomLd_x = src.MomLd_x;
+  event.MomLd_y = src.MomLd_y;
+  event.MomLd_z = src.MomLd_z;
+  event.SpinLd_x = src.SpinLd_x;
+  event.SpinLd_y = src.SpinLd_y;
+  event.SpinLd_z = src.SpinLd_z;
+  event.ThLd_CM = src.ThLd_CM;
   event.nhHtof = src.nhHtof;
   for(int ih=0;ih<event.nhHtof;++ih){
     event.HtofSeg.push_back(src.didHtof[ih]);
@@ -1463,94 +1463,94 @@ dst::DstRead( int ievent )
     event.posHtof.push_back(src.yHtof[ih]);
   }
 
-	event.nhSch = src.nhSch;
-	for(int ihit=0;ihit<event.nhSch;++ihit){
-		event.tidSch[ihit]=src.tidSch[ihit];
-		event.pidSch[ihit]=src.pidSch[ihit];
-		event.didSch[ihit]=src.didSch[ihit];
-		event.prtSch[ihit]=src.prtSch[ihit];
-		event.qSch[ihit]=src.qSch[ihit];
-		event.xSch[ihit]=src.xSch[ihit];
-		event.ySch[ihit]=src.ySch[ihit];
-		event.zSch[ihit]=src.zSch[ihit];
-		event.pxSch[ihit]=src.pxSch[ihit];
-		event.pySch[ihit]=src.pySch[ihit];
-		event.pzSch[ihit]=src.pzSch[ihit];
-		event.ppSch[ihit]=src.ppSch[ihit];
-		event.deSch[ihit]=src.deSch[ihit];
-		event.tSch[ihit]=src.tSch[ihit];
-	}
-	event.nhLac = src.nhLac;
-	for(int ihit=0;ihit<event.nhLac;++ihit){
-		event.tidLac[ihit]=src.tidLac[ihit];
-		event.pidLac[ihit]=src.pidLac[ihit];
-		event.didLac[ihit]=src.didLac[ihit];
-		event.prtLac[ihit]=src.prtLac[ihit];
-		event.qLac[ihit]=src.qLac[ihit];
-		event.xLac[ihit]=src.xLac[ihit];
-		event.yLac[ihit]=src.yLac[ihit];
-		event.zLac[ihit]=src.zLac[ihit];
-		event.pxLac[ihit]=src.pxLac[ihit];
-		event.pyLac[ihit]=src.pyLac[ihit];
-		event.pzLac[ihit]=src.pzLac[ihit];
-		event.ppLac[ihit]=src.ppLac[ihit];
-		event.deLac[ihit]=src.deLac[ihit];
-		event.tLac[ihit]=src.tLac[ihit];
-	}
-	event.nhFtof = src.nhFtof;
-	for(int ihit=0;ihit<event.nhFtof;++ihit){
-		event.tidFtof[ihit]=src.tidFtof[ihit];
-		event.pidFtof[ihit]=src.pidFtof[ihit];
-		event.didFtof[ihit]=src.didFtof[ihit];
-		event.prtFtof[ihit]=src.prtFtof[ihit];
-		event.qFtof[ihit]=src.qFtof[ihit];
-		event.xFtof[ihit]=src.xFtof[ihit];
-		event.yFtof[ihit]=src.yFtof[ihit];
-		event.zFtof[ihit]=src.zFtof[ihit];
-		event.pxFtof[ihit]=src.pxFtof[ihit];
-		event.pyFtof[ihit]=src.pyFtof[ihit];
-		event.pzFtof[ihit]=src.pzFtof[ihit];
-		event.ppFtof[ihit]=src.ppFtof[ihit];
-		event.deFtof[ihit]=src.deFtof[ihit];
-		event.tFtof[ihit]=src.tFtof[ihit];
-	}
-	event.nhSdc = src.nhSdc;
-	for(int ihit=0;ihit<event.nhSdc;++ihit){
-		event.tidSdc[ihit]=src.tidSdc[ihit];
-		event.pidSdc[ihit]=src.pidSdc[ihit];
-		event.didSdc[ihit]=src.didSdc[ihit];
-		event.prtSdc[ihit]=src.prtSdc[ihit];
-		event.qSdc[ihit]=src.qSdc[ihit];
-		event.xSdc[ihit]=src.xSdc[ihit];
-		event.ySdc[ihit]=src.ySdc[ihit];
-		event.zSdc[ihit]=src.zSdc[ihit];
-		event.pxSdc[ihit]=src.pxSdc[ihit];
-		event.pySdc[ihit]=src.pySdc[ihit];
-		event.pzSdc[ihit]=src.pzSdc[ihit];
-		event.ppSdc[ihit]=src.ppSdc[ihit];
-		event.deSdc[ihit]=src.deSdc[ihit];
-		event.tSdc[ihit]=src.tSdc[ihit];
-	}
+  event.nhSch = src.nhSch;
+  for(int ihit=0;ihit<event.nhSch;++ihit){
+    event.tidSch[ihit]=src.tidSch[ihit];
+    event.pidSch[ihit]=src.pidSch[ihit];
+    event.didSch[ihit]=src.didSch[ihit];
+    event.prtSch[ihit]=src.prtSch[ihit];
+    event.qSch[ihit]=src.qSch[ihit];
+    event.xSch[ihit]=src.xSch[ihit];
+    event.ySch[ihit]=src.ySch[ihit];
+    event.zSch[ihit]=src.zSch[ihit];
+    event.pxSch[ihit]=src.pxSch[ihit];
+    event.pySch[ihit]=src.pySch[ihit];
+    event.pzSch[ihit]=src.pzSch[ihit];
+    event.ppSch[ihit]=src.ppSch[ihit];
+    event.deSch[ihit]=src.deSch[ihit];
+    event.tSch[ihit]=src.tSch[ihit];
+  }
+  event.nhLac = src.nhLac;
+  for(int ihit=0;ihit<event.nhLac;++ihit){
+    event.tidLac[ihit]=src.tidLac[ihit];
+    event.pidLac[ihit]=src.pidLac[ihit];
+    event.didLac[ihit]=src.didLac[ihit];
+    event.prtLac[ihit]=src.prtLac[ihit];
+    event.qLac[ihit]=src.qLac[ihit];
+    event.xLac[ihit]=src.xLac[ihit];
+    event.yLac[ihit]=src.yLac[ihit];
+    event.zLac[ihit]=src.zLac[ihit];
+    event.pxLac[ihit]=src.pxLac[ihit];
+    event.pyLac[ihit]=src.pyLac[ihit];
+    event.pzLac[ihit]=src.pzLac[ihit];
+    event.ppLac[ihit]=src.ppLac[ihit];
+    event.deLac[ihit]=src.deLac[ihit];
+    event.tLac[ihit]=src.tLac[ihit];
+  }
+  event.nhFtof = src.nhFtof;
+  for(int ihit=0;ihit<event.nhFtof;++ihit){
+    event.tidFtof[ihit]=src.tidFtof[ihit];
+    event.pidFtof[ihit]=src.pidFtof[ihit];
+    event.didFtof[ihit]=src.didFtof[ihit];
+    event.prtFtof[ihit]=src.prtFtof[ihit];
+    event.qFtof[ihit]=src.qFtof[ihit];
+    event.xFtof[ihit]=src.xFtof[ihit];
+    event.yFtof[ihit]=src.yFtof[ihit];
+    event.zFtof[ihit]=src.zFtof[ihit];
+    event.pxFtof[ihit]=src.pxFtof[ihit];
+    event.pyFtof[ihit]=src.pyFtof[ihit];
+    event.pzFtof[ihit]=src.pzFtof[ihit];
+    event.ppFtof[ihit]=src.ppFtof[ihit];
+    event.deFtof[ihit]=src.deFtof[ihit];
+    event.tFtof[ihit]=src.tFtof[ihit];
+  }
+  event.nhSdc = src.nhSdc;
+  for(int ihit=0;ihit<event.nhSdc;++ihit){
+    event.tidSdc[ihit]=src.tidSdc[ihit];
+    event.pidSdc[ihit]=src.pidSdc[ihit];
+    event.didSdc[ihit]=src.didSdc[ihit];
+    event.prtSdc[ihit]=src.prtSdc[ihit];
+    event.qSdc[ihit]=src.qSdc[ihit];
+    event.xSdc[ihit]=src.xSdc[ihit];
+    event.ySdc[ihit]=src.ySdc[ihit];
+    event.zSdc[ihit]=src.zSdc[ihit];
+    event.pxSdc[ihit]=src.pxSdc[ihit];
+    event.pySdc[ihit]=src.pySdc[ihit];
+    event.pzSdc[ihit]=src.pzSdc[ihit];
+    event.ppSdc[ihit]=src.ppSdc[ihit];
+    event.deSdc[ihit]=src.deSdc[ihit];
+    event.tSdc[ihit]=src.tSdc[ihit];
+  }
 
-	event.nhBvh = src.nhBvh;
-	for(int ihit=0;ihit<event.nhBvh;++ihit){
-		event.tidBvh[ihit]=src.tidBvh[ihit];
-		event.pidBvh[ihit]=src.pidBvh[ihit];
-		event.didBvh[ihit]=src.didBvh[ihit];
-		event.prtBvh[ihit]=src.prtBvh[ihit];
-		event.qBvh[ihit]=src.qBvh[ihit];
-		event.xBvh[ihit]=src.xBvh[ihit];
-		event.yBvh[ihit]=src.yBvh[ihit];
-		event.zBvh[ihit]=src.zBvh[ihit];
-		event.pxBvh[ihit]=src.pxBvh[ihit];
-		event.pyBvh[ihit]=src.pyBvh[ihit];
-		event.pzBvh[ihit]=src.pzBvh[ihit];
-		event.ppBvh[ihit]=src.ppBvh[ihit];
-		event.deBvh[ihit]=src.deBvh[ihit];
-		event.tBvh[ihit]=src.tBvh[ihit];
-	}
+  event.nhBvh = src.nhBvh;
+  for(int ihit=0;ihit<event.nhBvh;++ihit){
+    event.tidBvh[ihit]=src.tidBvh[ihit];
+    event.pidBvh[ihit]=src.pidBvh[ihit];
+    event.didBvh[ihit]=src.didBvh[ihit];
+    event.prtBvh[ihit]=src.prtBvh[ihit];
+    event.qBvh[ihit]=src.qBvh[ihit];
+    event.xBvh[ihit]=src.xBvh[ihit];
+    event.yBvh[ihit]=src.yBvh[ihit];
+    event.zBvh[ihit]=src.zBvh[ihit];
+    event.pxBvh[ihit]=src.pxBvh[ihit];
+    event.pyBvh[ihit]=src.pyBvh[ihit];
+    event.pzBvh[ihit]=src.pzBvh[ihit];
+    event.ppBvh[ihit]=src.ppBvh[ihit];
+    event.deBvh[ihit]=src.deBvh[ihit];
+    event.tBvh[ihit]=src.tBvh[ihit];
+  }
 
-	for(int ihit=0; ihit<event.nhittpc; ++ihit){
+  for(int ihit=0; ihit<event.nhittpc; ++ihit){
     event.ititpc[ihit] = src.ititpc[ihit];
 
     //for debug
@@ -1578,42 +1578,42 @@ dst::DstRead( int ievent )
 
   if(IsWithRes){
     TPCAna->DecodeTPCHitsGeant4(src.nhittpc,
-			       src.xtpc, src.ytpc, src.ztpc, src.edeptpc, src.idtpc, G4Moms);
+				src.xtpc, src.ytpc, src.ztpc, src.edeptpc, src.idtpc, G4Moms);
   }
   else{
     TPCAna->DecodeTPCHitsGeant4(src.nhittpc,
-      			       src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc, G4Moms);
+				src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc, G4Moms);
   }
-	event.xtgtHS = **src.xtgtHS;
-	event.ytgtHS = **src.ytgtHS;
-	event.xtgtKurama = **src.xtgtKurama;
-	event.ytgtKurama = **src.ytgtKurama;
+  event.xtgtHS = **src.xtgtHS;
+  event.ytgtHS = **src.ytgtHS;
+  event.xtgtKurama = **src.xtgtKurama;
+  event.ytgtKurama = **src.ytgtKurama;
 #if KuramaK18
-	event.ntK18 = **src.ntK18;
-	event.xvpHS = **src.xvpHS;
-	event.yvpHS = **src.yvpHS;
-	event.zvpHS = **src.zvpHS;
-	event.ztgtHS = **src.ztgtHS;
-	event.p_3rd = **src.p_3rd;
-	event.xoutK18 = **src.xoutK18;
-	event.youtK18 = **src.youtK18;
-	event.uoutK18 = **src.uoutK18;
-	event.voutK18 = **src.voutK18;
-	event.layerK18 = **src.layerK18;
-	event.wireK18 = **src.wireK18;
-	event.localhitposK18 = **src.localhitposK18;
+  event.ntK18 = **src.ntK18;
+  event.xvpHS = **src.xvpHS;
+  event.yvpHS = **src.yvpHS;
+  event.zvpHS = **src.zvpHS;
+  event.ztgtHS = **src.ztgtHS;
+  event.p_3rd = **src.p_3rd;
+  event.xoutK18 = **src.xoutK18;
+  event.youtK18 = **src.youtK18;
+  event.uoutK18 = **src.uoutK18;
+  event.voutK18 = **src.voutK18;
+  event.layerK18 = **src.layerK18;
+  event.wireK18 = **src.wireK18;
+  event.localhitposK18 = **src.localhitposK18;
 
-	vector<vector<TVector3>>vpK18;
-	vpK18.resize(event.ntK18);
-	vector<TVector3> initPosK18;
-	vector<TVector3> initMomK18;
-	vector<vector<int>> intlayerK18;
-	intlayerK18.resize(event.ntK18);
+  vector<vector<TVector3>>vpK18;
+  vpK18.resize(event.ntK18);
+  vector<TVector3> initPosK18;
+  vector<TVector3> initMomK18;
+  vector<vector<int>> intlayerK18;
+  intlayerK18.resize(event.ntK18);
   for(int it=0; it<event.ntK18; ++it){
     for(Int_t il=0; il<event.xvpHS[it].size(); ++il){
       vpK18[it].push_back(TVector3(event.xvpHS[it][il], event.yvpHS[it][il], event.zvpHS[it][il]));
       intlayerK18[it].push_back(event.layerK18[it][il]);
-		}
+    }
     vpK18[it].push_back(TVector3(event.xtgtHS[it], event.ytgtHS[it], event.ztgtHS[it]));
     TVector3 posOut(xGlobalBcOut + event.xoutK18[it],
 		    yGlobalBcOut + event.youtK18[it],
@@ -1625,55 +1625,55 @@ dst::DstRead( int ievent )
     initPosK18.push_back(posOut);
     initMomK18.push_back(momOut);
 
-	}
-	event.ntKurama = **src.ntKurama;
-	event.xvpKurama = **src.xvpKurama;
-	event.yvpKurama = **src.yvpKurama;
-	event.zvpKurama = **src.zvpKurama;
-	event.xout = **src.xout;
-	event.yout = **src.yout;
-	event.zout = **src.zout;
-	event.pxout = **src.pxout;
-	event.pyout = **src.pyout;
-	event.pzout = **src.pzout;
-	event.layer = **src.layer;
-	event.wire = **src.wire;
-	event.localhitpos = **src.localhitpos;
+  }
+  event.ntKurama = **src.ntKurama;
+  event.xvpKurama = **src.xvpKurama;
+  event.yvpKurama = **src.yvpKurama;
+  event.zvpKurama = **src.zvpKurama;
+  event.xout = **src.xout;
+  event.yout = **src.yout;
+  event.zout = **src.zout;
+  event.pxout = **src.pxout;
+  event.pyout = **src.pyout;
+  event.pzout = **src.pzout;
+  event.layer = **src.layer;
+  event.wire = **src.wire;
+  event.localhitpos = **src.localhitpos;
   vector<Int_t> pidKurama;
   vector<TVector3> initPosKurama;
   vector<TVector3> initMomKurama;
   vector<vector<TVector3>> vpKurama;
-	vector<vector<int>> intlayer;
-	intlayer.resize(event.ntKurama);
-	vpKurama.resize( event.ntKurama );
+  vector<vector<int>> intlayer;
+  intlayer.resize(event.ntKurama);
+  vpKurama.resize( event.ntKurama );
   for(Int_t it=0; it<event.ntKurama; ++it){
     vpKurama[it].push_back(TVector3(event.xtgtKurama[it], event.ytgtKurama[it], tpc::ZTarget));
-		cout<<event.ntKurama<<", "<<event.xvpKurama.size()<<endl;
-		for(Int_t il=0; il<event.xvpKurama[it].size(); ++il){
+    cout<<event.ntKurama<<", "<<event.xvpKurama.size()<<endl;
+    for(Int_t il=0; il<event.xvpKurama[it].size(); ++il){
       vpKurama[it].push_back(TVector3(event.xvpKurama[it][il], event.yvpKurama[it][il], event.zvpKurama[it][il]));
-    	intlayer[it].push_back(event.layer[it][il]);
-		}
+      intlayer[it].push_back(event.layer[it][il]);
+    }
     pidKurama.push_back(1);
     TVector3 posOut(xGlobalSdcOut + event.xout[it], yGlobalSdcOut + event.yout[it], event.zout[it]);
     TVector3 momOut(event.pxout[it], event.pyout[it], event.pzout[it]);
     initPosKurama.push_back(posOut);
     initMomKurama.push_back(momOut);
-	}
+  }
 #endif
 #if KuramaK18
-	#if ExclusiveResidual
+#if ExclusiveResidual
   TPCAna->TrackSearchTPCHelix(vpK18, vpKurama,true);
-	#else
+#else
   TPCAna->TrackSearchTPCHelix(vpK18, vpKurama);
-	#endif
+#endif
   TPCAna->TrackSearchTPCKurama(pidKurama, initPosKurama, initMomKurama, intlayer, event.wire, event.localhitpos);
   TPCAna->TrackSearchTPCK18(initPosK18, initMomK18, intlayerK18, event.wireK18, event.localhitposK18);
 #else
 #if ExclusiveResidual
-	TPCAna->TrackSearchTPCHelix(true);
-	#else
-	TPCAna->TrackSearchTPCHelix();
-	#endif
+  TPCAna->TrackSearchTPCHelix(true);
+#else
+  TPCAna->TrackSearchTPCHelix();
+#endif
 #endif
   Int_t nclTpc = 0;
   Int_t remain_nclTpc = 0;
@@ -1698,14 +1698,14 @@ dst::DstRead( int ievent )
       Double_t de = cl->GetDe();
       Int_t cl_size = cl->GetClusterSizeG4();
       Double_t mrow = cl->MeanRow();
-      
+
       TPCHit* meanHit = cl->GetMeanHit();
       Int_t houghflag = meanHit->GetHoughFlag();
-/*
-      TPCHit* centerHit = cl->GetCenterHit();
-      const TVector3& centerPos = centerHit->GetPosition();
-      Double_t centerDe = centerHit->GetCDe();
-      Int_t centerRow = centerHit->GetRow();
+      /*
+	TPCHit* centerHit = cl->GetCenterHit();
+	const TVector3& centerPos = centerHit->GetPosition();
+	Double_t centerDe = centerHit->GetCDe();
+	Int_t centerRow = centerHit->GetRow();
       */
       TVector3 hitpos(x,y,z);
       event.cluster_x.push_back(x);
@@ -1716,11 +1716,11 @@ dst::DstRead( int ievent )
       event.cluster_layer.push_back(layer);
       event.cluster_mrow.push_back(mrow);
       /*
-      event.cluster_de_center.push_back(centerDe);
-      event.cluster_x_center.push_back(centerPos.X());
-      event.cluster_y_center.push_back(centerPos.Y());
-      event.cluster_z_center.push_back(centerPos.Z());
-      event.cluster_row_center.push_back(centerRow);
+	event.cluster_de_center.push_back(centerDe);
+	event.cluster_x_center.push_back(centerPos.X());
+	event.cluster_y_center.push_back(centerPos.Y());
+	event.cluster_z_center.push_back(centerPos.Z());
+	event.cluster_row_center.push_back(centerRow);
       */
       event.cluster_houghflag.push_back(houghflag);
       event.cluster_G4tid.push_back(GetHitG4Tid(hitpos,src.nhittpc,src.ititpc,src.xtpc,src.ytpc,src.ztpc));
@@ -1728,12 +1728,12 @@ dst::DstRead( int ievent )
 
       if(houghflag!=100&&houghflag!=200) ++remain_nclTpc; //Clusters without track
     }
-  event.nclTpc = nclTpc;
-  event.remain_nclTpc = remain_nclTpc;
+    event.nclTpc = nclTpc;
+    event.remain_nclTpc = remain_nclTpc;
   }
 
 
-	int ntTpc = TPCAna->GetNTracksTPCHelix();
+  int ntTpc = TPCAna->GetNTracksTPCHelix();
   if( 1000<ntTpc ){
     std::cout << "#W " << func_name << " "
       	      << "too many ntTpc " << ntTpc << "/" << 1000 << std::endl;
@@ -1814,10 +1814,10 @@ dst::DstRead( int ievent )
   event.pid_inverted.resize( ntTpc );
 
 
-	event.isgoodTPCK18.resize(event.ntK18);
-	event.tpcidTPCK18.resize(event.ntK18);
-	event.niterationTPCK18.resize(event.ntK18);
-	event.chisqrTPCK18.resize(event.ntK18);
+  event.isgoodTPCK18.resize(event.ntK18);
+  event.tpcidTPCK18.resize(event.ntK18);
+  event.niterationTPCK18.resize(event.ntK18);
+  event.chisqrTPCK18.resize(event.ntK18);
   for(Int_t itk18=0; itk18<TPCAna->GetNTracksTPCK18(); ++itk18){
     TPCRKTrack* tr_km = TPCAna->GetTPCK18Track(itk18);
     Int_t niteration = tr_km -> Niteration();
@@ -1828,7 +1828,7 @@ dst::DstRead( int ievent )
     event.tpcidTPCK18[idk18] = idtpc;
     event.niterationTPCK18[idk18] = niteration;
     event.chisqrTPCK18[idk18] = chisqr;
-	}
+  }
   event.isgoodTPCKurama.resize( event.ntKurama );
   event.tpcidTPCKurama.resize( event.ntKurama );
   event.niterationTPCKurama.resize( event.ntKurama );
@@ -1846,20 +1846,18 @@ dst::DstRead( int ievent )
     event.chisqrTPCKurama[idkurama] = chisqr;
     event.kflagTPCKurama[idkurama] = 1;
 
-	}
-
+  }
 
   vector<int> G4TrackID;
   vector<int> PureHits;
 
-
-	for( int it=0; it<ntTpc; ++it ){
+  for( int it=0; it<ntTpc; ++it ){
     TPCLocalTrackHelix *tp= TPCAna->GetTrackTPCHelix(it);
     if(!tp) continue;
     int nh=tp->GetNHit();
     int nhEff=tp->GetNHitsEffective();
     double chisqr    = tp->GetChiSquare();
-		Double_t pval = 1-ROOT::Math::chisquared_cdf( chisqr*(2*nhEff-5),2*nhEff-5);
+    Double_t pval = 1-ROOT::Math::chisquared_cdf( chisqr*(2*nhEff-5),2*nhEff-5);
 
     double cx=tp->Getcx(), cy=tp->Getcy();
     double z0=tp->Getz0(), r=tp->Getr();
@@ -1872,70 +1870,70 @@ dst::DstRead( int ievent )
     Int_t isk18 = tp->GetIsK18();
     Int_t isaccidental = tp->GetIsAccidental();
     {
-    event.nhtrack[it] = nh;
-    event.nhtrackEff[it] = nhEff;
-    event.flag[it] = flag;
-    event.trackid[it] = trackid;
-    event.isBeam[it] = isbeam;
-    event.isKurama[it] = iskurama;
-    event.isK18[it] = isk18;
-    event.isAccidental[it] = isaccidental;
-    event.chisqr[it] = chisqr;
-    event.pval[it] = pval;
-    event.helix_cx[it] = cx;
-    event.helix_cy[it] = cy;
-    event.helix_z0[it] = z0;
-    event.helix_r[it]  = r;
-    event.helix_dz[it] = dz;
-    event.dz_factor[it] = sqrt(1.+(pow(dz,2)));
-    event.mom0_x[it] = Mom0.X();
-    event.mom0_y[it] = Mom0.Y();
-    event.mom0_z[it] = Mom0.Z();
-    event.mom0[it] = Mom0.Mag();
-    event.dE[it] = tp->GetTrackdE();
-    event.dEdx[it] = tp->GetdEdx(truncatedMean);
-    event.charge[it] = tp->GetCharge();
-    event.pid[it] = tp->GetPid();
-    event.hitlayer[it].resize( nh );
-    event.hitpos_x[it].resize( nh );
-    event.hitpos_y[it].resize( nh );
-    event.hitpos_z[it].resize( nh );
-    event.calpos_x[it].resize( nh );
-    event.calpos_y[it].resize( nh );
-    event.calpos_z[it].resize( nh );
-    event.mom_x[it].resize( nh );
-    event.mom_y[it].resize( nh );
-    event.mom_z[it].resize( nh );
-    event.residual[it].resize( nh );
-    event.residual_t[it].resize( nh );
-    event.residual_x[it].resize( nh );
-    event.residual_y[it].resize( nh );
-    event.residual_z[it].resize( nh );
-    event.pull_t[it].resize( nh );
-    event.pull_x[it].resize( nh );
-    event.pull_y[it].resize( nh );
-    event.pull_z[it].resize( nh );
-    event.resolution_x[it].resize( nh );
-    event.resolution_y[it].resize( nh );
-    event.resolution_z[it].resize( nh );
-    event.helix_t[it].resize( nh );
-    event.pathhit[it].resize(nh);
-    event.alpha[it].resize(nh);
-    event.houghflag[it].resize(nh);
-		event.track_cluster_size[it].resize(nh);
-		event.track_cluster_de[it].resize(nh);
-    event.track_cluster_mrow[it].resize(nh);
+      event.nhtrack[it] = nh;
+      event.nhtrackEff[it] = nhEff;
+      event.flag[it] = flag;
+      event.trackid[it] = trackid;
+      event.isBeam[it] = isbeam;
+      event.isKurama[it] = iskurama;
+      event.isK18[it] = isk18;
+      event.isAccidental[it] = isaccidental;
+      event.chisqr[it] = chisqr;
+      event.pval[it] = pval;
+      event.helix_cx[it] = cx;
+      event.helix_cy[it] = cy;
+      event.helix_z0[it] = z0;
+      event.helix_r[it]  = r;
+      event.helix_dz[it] = dz;
+      event.dz_factor[it] = sqrt(1.+(pow(dz,2)));
+      event.mom0_x[it] = Mom0.X();
+      event.mom0_y[it] = Mom0.Y();
+      event.mom0_z[it] = Mom0.Z();
+      event.mom0[it] = Mom0.Mag();
+      event.dE[it] = tp->GetTrackdE();
+      event.dEdx[it] = tp->GetdEdx(truncatedMean);
+      event.charge[it] = tp->GetCharge();
+      event.pid[it] = tp->GetPid();
+      event.hitlayer[it].resize( nh );
+      event.hitpos_x[it].resize( nh );
+      event.hitpos_y[it].resize( nh );
+      event.hitpos_z[it].resize( nh );
+      event.calpos_x[it].resize( nh );
+      event.calpos_y[it].resize( nh );
+      event.calpos_z[it].resize( nh );
+      event.mom_x[it].resize( nh );
+      event.mom_y[it].resize( nh );
+      event.mom_z[it].resize( nh );
+      event.residual[it].resize( nh );
+      event.residual_t[it].resize( nh );
+      event.residual_x[it].resize( nh );
+      event.residual_y[it].resize( nh );
+      event.residual_z[it].resize( nh );
+      event.pull_t[it].resize( nh );
+      event.pull_x[it].resize( nh );
+      event.pull_y[it].resize( nh );
+      event.pull_z[it].resize( nh );
+      event.resolution_x[it].resize( nh );
+      event.resolution_y[it].resize( nh );
+      event.resolution_z[it].resize( nh );
+      event.helix_t[it].resize( nh );
+      event.pathhit[it].resize(nh);
+      event.alpha[it].resize(nh);
+      event.houghflag[it].resize(nh);
+      event.track_cluster_size[it].resize(nh);
+      event.track_cluster_de[it].resize(nh);
+      event.track_cluster_mrow[it].resize(nh);
     }
 
     //debug     std::cout<<"nh:"<<nh<<std::endl;
     double min_t = 9999,max_t = -9999;
-		vector<TVector3> TPCHits;
+    vector<TVector3> TPCHits;
     for( int ih=0; ih<nh; ++ih ){
-			TPCLTrackHit *hit = tp -> GetHitInOrder(ih);
+      TPCLTrackHit *hit = tp -> GetHitInOrder(ih);
       if(!hit) continue;
       TPCHits.push_back(hit->GetLocalHitPos());
       int order = tp->GetOrder(ih);
-			int layerId = layerId = hit->GetLayer();
+      int layerId = layerId = hit->GetLayer();
       Int_t houghflag = hit->GetHoughFlag();
       const TVector3& resi_vect = hit->GetResidualVect();
       const TVector3& res_vect = hit->GetResolutionVect();
@@ -1945,16 +1943,16 @@ dst::DstRead( int ievent )
       Double_t clsize = cl->GetClusterSizeG4();
       Double_t clde = hit->GetDe();
       Double_t mrow = hit->GetMRow();
-			const TVector3& calpos = hit->GetLocalCalPosHelix();
+      const TVector3& calpos = hit->GetLocalCalPosHelix();
       const TVector3& mom = hit->GetMomentumHelix(tp->GetCharge());
-			double residual = hit->GetResidual();
+      double residual = hit->GetResidual();
       const TVector3& excl_resi_vect = hit->GetResidualVectExclusive();
 #if ExclusiveResidual
-			const TVector3& ex_calpos	= hit->GetLocalCalPosHelixExclusive();
-			double excl_cx=tp->GetcxExclusive(order), excl_cy=tp->GetcyExclusive(order);
-			double excl_z0=tp->Getz0Exclusive(order), excl_r=tp->GetrExclusive(order);
-			double excl_dz = tp->GetdzExclusive(order);
-//      const TVector3& excl_resi_vect = hit->GetResidualVectExclusive();
+      const TVector3& ex_calpos	= hit->GetLocalCalPosHelixExclusive();
+      double excl_cx=tp->GetcxExclusive(order), excl_cy=tp->GetcyExclusive(order);
+      double excl_z0=tp->Getz0Exclusive(order), excl_r=tp->GetrExclusive(order);
+      double excl_dz = tp->GetdzExclusive(order);
+      //      const TVector3& excl_resi_vect = hit->GetResidualVectExclusive();
 #endif
       for( int ih2=0; ih2<src.nhittpc; ++ih2 ){
 	TVector3 setpos;
@@ -1987,9 +1985,9 @@ dst::DstRead( int ievent )
       event.hitpos_z[it][ih] = hitpos.z();
       event.helix_t[it][ih] = hit->GetTheta();
       event.houghflag[it][ih] = houghflag;
- //    	if(event.helix_t[it][ih]<min_t) min_t = event.helix_t[it][ih];
-//     	if(event.helix_t[it][ih]>max_t) max_t = event.helix_t[it][ih];
-			event.calpos_x[it][ih] = calpos.x();
+      //    	if(event.helix_t[it][ih]<min_t) min_t = event.helix_t[it][ih];
+      //     	if(event.helix_t[it][ih]>max_t) max_t = event.helix_t[it][ih];
+      event.calpos_x[it][ih] = calpos.x();
       event.calpos_y[it][ih] = calpos.y();
       event.calpos_z[it][ih] = calpos.z();
       event.mom_x[it][ih] = mom.x();
@@ -2006,137 +2004,137 @@ dst::DstRead( int ievent )
       event.resolution_x[it][ih] = res_vect.x();
       event.resolution_y[it][ih] = res_vect.y();
       event.resolution_z[it][ih] = res_vect.z();
-			double res_t = hypot(res_vect.x(),res_vect.z());
-			double res_x = res_vect.x();
-			double res_y = res_vect.y();
-			double res_z = res_vect.z();
+      double res_t = hypot(res_vect.x(),res_vect.z());
+      double res_x = res_vect.x();
+      double res_y = res_vect.y();
+      double res_z = res_vect.z();
 
-			double resi_x = resi_vect.x();
-			double resi_y = resi_vect.y();
-			double resi_z = resi_vect.z();
-			if(res_x>1e6 or res_y>1e6 or res_z > 1e6) continue;
-			double resi_theta = atan2(resi_z,-resi_x);
-			TVector3 dir_hit(cos(hit->GetTheta()),sin(hit->GetTheta()),0);
-			TVector3 dir_resi(cos(resi_theta),sin(resi_theta),0);
-			double sign = 1.;
-			if(dir_hit*dir_resi<0) sign = -1.;
-//			double hitpos_r = hypot(hitpos.z()-(-143) -cy,-hitpos.x()-cx);
-//			double resi_t = hitpos_r - r;
-			double resi_t = sign*hypot(resi_x,resi_z);
+      double resi_x = resi_vect.x();
+      double resi_y = resi_vect.y();
+      double resi_z = resi_vect.z();
+      if(res_x>1e6 or res_y>1e6 or res_z > 1e6) continue;
+      double resi_theta = atan2(resi_z,-resi_x);
+      TVector3 dir_hit(cos(hit->GetTheta()),sin(hit->GetTheta()),0);
+      TVector3 dir_resi(cos(resi_theta),sin(resi_theta),0);
+      double sign = 1.;
+      if(dir_hit*dir_resi<0) sign = -1.;
+      //			double hitpos_r = hypot(hitpos.z()-(-143) -cy,-hitpos.x()-cx);
+      //			double resi_t = hitpos_r - r;
+      double resi_t = sign*hypot(resi_x,resi_z);
       event.residual_t[it][ih] = resi_t;
       event.pull_t[it][ih] = resi_t/res_t;
       event.pull_x[it][ih] = resi_x/res_x;
       event.pull_y[it][ih] = resi_y/res_y;
       event.pull_z[it][ih] = resi_z/res_z;
 
-			if(pval>0.01) continue;
-			HF1(TPCInclusiveHid+layerId,resi_t);
-			HF1(TPCInclusiveHid+100+layerId,resi_x);
-			HF1(TPCInclusiveHid+200+layerId,resi_y);
-			HF1(TPCInclusiveHid+300+layerId,resi_z);
-			HF1(TPCInclusiveHid+1000+layerId,resi_t/res_t);
-			HF1(TPCInclusiveHid+1100+layerId,resi_x/res_x);
-			HF1(TPCInclusiveHid+1200+layerId,resi_y/res_y);
-			HF1(TPCInclusiveHid+1300+layerId,resi_z/res_z);
-			HF1(TPCInclusiveHid+32,resi_t);
-			HF1(TPCInclusiveHid+100+32,resi_x);
-			HF1(TPCInclusiveHid+200+32,resi_y);
-			HF1(TPCInclusiveHid+300+32,resi_z);
-			HF1(TPCInclusiveHid+1000+32,resi_t/res_t);
-			HF1(TPCInclusiveHid+1100+32,resi_x/res_x);
-			HF1(TPCInclusiveHid+1200+32,resi_y/res_y);
-			HF1(TPCInclusiveHid+1300+32,resi_z/res_z);
+      if(pval>0.01) continue;
+      HF1(TPCInclusiveHid+layerId,resi_t);
+      HF1(TPCInclusiveHid+100+layerId,resi_x);
+      HF1(TPCInclusiveHid+200+layerId,resi_y);
+      HF1(TPCInclusiveHid+300+layerId,resi_z);
+      HF1(TPCInclusiveHid+1000+layerId,resi_t/res_t);
+      HF1(TPCInclusiveHid+1100+layerId,resi_x/res_x);
+      HF1(TPCInclusiveHid+1200+layerId,resi_y/res_y);
+      HF1(TPCInclusiveHid+1300+layerId,resi_z/res_z);
+      HF1(TPCInclusiveHid+32,resi_t);
+      HF1(TPCInclusiveHid+100+32,resi_x);
+      HF1(TPCInclusiveHid+200+32,resi_y);
+      HF1(TPCInclusiveHid+300+32,resi_z);
+      HF1(TPCInclusiveHid+1000+32,resi_t/res_t);
+      HF1(TPCInclusiveHid+1100+32,resi_x/res_x);
+      HF1(TPCInclusiveHid+1200+32,resi_y/res_y);
+      HF1(TPCInclusiveHid+1300+32,resi_z/res_z);
 
-			HF2(TPCInclusiveHid+10000,layerId,resi_t);
-			HF2(TPCInclusiveHid+100+10000,layerId,resi_x);
-			HF2(TPCInclusiveHid+200+10000,layerId,resi_y);
-			HF2(TPCInclusiveHid+300+10000,layerId,resi_z);
-			HF2(TPCInclusiveHid+1000+10000,layerId,resi_t/res_t);
-			HF2(TPCInclusiveHid+1100+10000,layerId,resi_x/res_x);
-			HF2(TPCInclusiveHid+1200+10000,layerId,resi_y/res_y);
-			HF2(TPCInclusiveHid+1300+10000,layerId,resi_z/res_z);
-			double alpha = abs(event.alpha[it][ih]);
-			int bin_alpha = (50*alpha / acos(-1));
-			HF1(TPCInclusiveHid + 20000 + bin_alpha,resi_t);
-			HF1(TPCInclusiveHid +100+ 20000 + bin_alpha,resi_x);
-			HF1(TPCInclusiveHid +300+ 20000 + bin_alpha,resi_z);
+      HF2(TPCInclusiveHid+10000,layerId,resi_t);
+      HF2(TPCInclusiveHid+100+10000,layerId,resi_x);
+      HF2(TPCInclusiveHid+200+10000,layerId,resi_y);
+      HF2(TPCInclusiveHid+300+10000,layerId,resi_z);
+      HF2(TPCInclusiveHid+1000+10000,layerId,resi_t/res_t);
+      HF2(TPCInclusiveHid+1100+10000,layerId,resi_x/res_x);
+      HF2(TPCInclusiveHid+1200+10000,layerId,resi_y/res_y);
+      HF2(TPCInclusiveHid+1300+10000,layerId,resi_z/res_z);
+      double alpha = abs(event.alpha[it][ih]);
+      int bin_alpha = (50*alpha / acos(-1));
+      HF1(TPCInclusiveHid + 20000 + bin_alpha,resi_t);
+      HF1(TPCInclusiveHid +100+ 20000 + bin_alpha,resi_x);
+      HF1(TPCInclusiveHid +300+ 20000 + bin_alpha,resi_z);
 #if ExclusiveResidual
-//			double excl_resi_t = excl_hitpos_r - excl_r;
-			double excl_resi_x = excl_resi_vect.x();
-			double excl_resi_y = excl_resi_vect.y();
-			double excl_resi_z = excl_resi_vect.z();
-			double excl_resi_t = sign*hypot(excl_resi_x,excl_resi_z);
+      //			double excl_resi_t = excl_hitpos_r - excl_r;
+      double excl_resi_x = excl_resi_vect.x();
+      double excl_resi_y = excl_resi_vect.y();
+      double excl_resi_z = excl_resi_vect.z();
+      double excl_resi_t = sign*hypot(excl_resi_x,excl_resi_z);
 
-			HF1(TPCExclusiveHid+layerId,excl_resi_t);
-			HF1(TPCExclusiveHid+100+layerId,excl_resi_x);
-			HF1(TPCExclusiveHid+200+layerId,excl_resi_y);
-			HF1(TPCExclusiveHid+300+layerId,excl_resi_z);
-			HF1(TPCExclusiveHid+1000+layerId,excl_resi_t/res_t);
-			HF1(TPCExclusiveHid+1100+layerId,excl_resi_x/res_x);
-			HF1(TPCExclusiveHid+1200+layerId,excl_resi_y/res_y);
-			HF1(TPCExclusiveHid+1300+layerId,excl_resi_z/res_z);
-			HF1(TPCExclusiveHid+32,excl_resi_t);
-			HF1(TPCExclusiveHid+100+32,excl_resi_x);
-			HF1(TPCExclusiveHid+200+32,excl_resi_y);
-			HF1(TPCExclusiveHid+300+32,excl_resi_z);
-			HF1(TPCExclusiveHid+1000+32,excl_resi_t/res_t);
-			HF1(TPCExclusiveHid+1100+32,excl_resi_x/res_x);
-			HF1(TPCExclusiveHid+1200+32,excl_resi_y/res_y);
-			HF1(TPCExclusiveHid+1300+32,excl_resi_z/res_z);
+      HF1(TPCExclusiveHid+layerId,excl_resi_t);
+      HF1(TPCExclusiveHid+100+layerId,excl_resi_x);
+      HF1(TPCExclusiveHid+200+layerId,excl_resi_y);
+      HF1(TPCExclusiveHid+300+layerId,excl_resi_z);
+      HF1(TPCExclusiveHid+1000+layerId,excl_resi_t/res_t);
+      HF1(TPCExclusiveHid+1100+layerId,excl_resi_x/res_x);
+      HF1(TPCExclusiveHid+1200+layerId,excl_resi_y/res_y);
+      HF1(TPCExclusiveHid+1300+layerId,excl_resi_z/res_z);
+      HF1(TPCExclusiveHid+32,excl_resi_t);
+      HF1(TPCExclusiveHid+100+32,excl_resi_x);
+      HF1(TPCExclusiveHid+200+32,excl_resi_y);
+      HF1(TPCExclusiveHid+300+32,excl_resi_z);
+      HF1(TPCExclusiveHid+1000+32,excl_resi_t/res_t);
+      HF1(TPCExclusiveHid+1100+32,excl_resi_x/res_x);
+      HF1(TPCExclusiveHid+1200+32,excl_resi_y/res_y);
+      HF1(TPCExclusiveHid+1300+32,excl_resi_z/res_z);
 
-			HF2(TPCExclusiveHid+10000,layerId,excl_resi_t);
-			HF2(TPCExclusiveHid+100+10000,layerId,excl_resi_x);
-			HF2(TPCExclusiveHid+200+10000,layerId,excl_resi_y);
-			HF2(TPCExclusiveHid+300+10000,layerId,excl_resi_z);
-			HF2(TPCExclusiveHid+1000+10000,layerId,excl_resi_t/res_t);
-			HF2(TPCExclusiveHid+1100+10000,layerId,excl_resi_x/res_x);
-			HF2(TPCExclusiveHid+1200+10000,layerId,excl_resi_y/res_y);
-			HF2(TPCExclusiveHid+1300+10000,layerId,excl_resi_z/res_z);
+      HF2(TPCExclusiveHid+10000,layerId,excl_resi_t);
+      HF2(TPCExclusiveHid+100+10000,layerId,excl_resi_x);
+      HF2(TPCExclusiveHid+200+10000,layerId,excl_resi_y);
+      HF2(TPCExclusiveHid+300+10000,layerId,excl_resi_z);
+      HF2(TPCExclusiveHid+1000+10000,layerId,excl_resi_t/res_t);
+      HF2(TPCExclusiveHid+1100+10000,layerId,excl_resi_x/res_x);
+      HF2(TPCExclusiveHid+1200+10000,layerId,excl_resi_y/res_y);
+      HF2(TPCExclusiveHid+1300+10000,layerId,excl_resi_z/res_z);
 
-			double intr_resi_t = sqrt(abs(resi_t*excl_resi_t));
-			double intr_resi_x = sqrt(abs(resi_x*excl_resi_x));
-			double intr_resi_y = sqrt(abs(resi_y*excl_resi_y));
-			double intr_resi_z = sqrt(abs(resi_z*excl_resi_z));
-			if(resi_t<0) intr_resi_t*=-1;
-			if(resi_x<0) intr_resi_x*=-1;
-			if(resi_y<0) intr_resi_y*=-1;
-			if(resi_z<0) intr_resi_z*=-1;
+      double intr_resi_t = sqrt(abs(resi_t*excl_resi_t));
+      double intr_resi_x = sqrt(abs(resi_x*excl_resi_x));
+      double intr_resi_y = sqrt(abs(resi_y*excl_resi_y));
+      double intr_resi_z = sqrt(abs(resi_z*excl_resi_z));
+      if(resi_t<0) intr_resi_t*=-1;
+      if(resi_x<0) intr_resi_x*=-1;
+      if(resi_y<0) intr_resi_y*=-1;
+      if(resi_z<0) intr_resi_z*=-1;
 
-			HF1(TPCIntrinsicHid+layerId,intr_resi_t);
-			HF1(TPCIntrinsicHid+100+layerId,intr_resi_x);
-			HF1(TPCIntrinsicHid+200+layerId,intr_resi_y);
-			HF1(TPCIntrinsicHid+300+layerId,intr_resi_z);
-			HF1(TPCIntrinsicHid+1000+layerId,intr_resi_t/res_t);
-			HF1(TPCIntrinsicHid+1100+layerId,intr_resi_x/res_x);
-			HF1(TPCIntrinsicHid+1200+layerId,intr_resi_y/res_y);
-			HF1(TPCIntrinsicHid+1300+layerId,intr_resi_z/res_z);
-			HF1(TPCIntrinsicHid+32,intr_resi_t);
-			HF1(TPCIntrinsicHid+100+32,intr_resi_x);
-			HF1(TPCIntrinsicHid+200+32,intr_resi_y);
-			HF1(TPCIntrinsicHid+300+32,intr_resi_z);
-			HF1(TPCIntrinsicHid+1000+32,intr_resi_t/res_t);
-			HF1(TPCIntrinsicHid+1100+32,intr_resi_x/res_x);
-			HF1(TPCIntrinsicHid+1200+32,intr_resi_y/res_y);
-			HF1(TPCIntrinsicHid+1300+32,intr_resi_z/res_z);
+      HF1(TPCIntrinsicHid+layerId,intr_resi_t);
+      HF1(TPCIntrinsicHid+100+layerId,intr_resi_x);
+      HF1(TPCIntrinsicHid+200+layerId,intr_resi_y);
+      HF1(TPCIntrinsicHid+300+layerId,intr_resi_z);
+      HF1(TPCIntrinsicHid+1000+layerId,intr_resi_t/res_t);
+      HF1(TPCIntrinsicHid+1100+layerId,intr_resi_x/res_x);
+      HF1(TPCIntrinsicHid+1200+layerId,intr_resi_y/res_y);
+      HF1(TPCIntrinsicHid+1300+layerId,intr_resi_z/res_z);
+      HF1(TPCIntrinsicHid+32,intr_resi_t);
+      HF1(TPCIntrinsicHid+100+32,intr_resi_x);
+      HF1(TPCIntrinsicHid+200+32,intr_resi_y);
+      HF1(TPCIntrinsicHid+300+32,intr_resi_z);
+      HF1(TPCIntrinsicHid+1000+32,intr_resi_t/res_t);
+      HF1(TPCIntrinsicHid+1100+32,intr_resi_x/res_x);
+      HF1(TPCIntrinsicHid+1200+32,intr_resi_y/res_y);
+      HF1(TPCIntrinsicHid+1300+32,intr_resi_z/res_z);
 
-			HF2(TPCIntrinsicHid+10000,layerId,intr_resi_t);
-			HF2(TPCIntrinsicHid+100+10000,layerId,intr_resi_x);
-			HF2(TPCIntrinsicHid+200+10000,layerId,intr_resi_y);
-			HF2(TPCIntrinsicHid+300+10000,layerId,intr_resi_z);
-			HF2(TPCIntrinsicHid+1000+10000,layerId,intr_resi_t/res_t);
-			HF2(TPCIntrinsicHid+1100+10000,layerId,intr_resi_x/res_x);
-			HF2(TPCIntrinsicHid+1200+10000,layerId,intr_resi_y/res_y);
-			HF2(TPCIntrinsicHid+1300+10000,layerId,intr_resi_z/res_z);
+      HF2(TPCIntrinsicHid+10000,layerId,intr_resi_t);
+      HF2(TPCIntrinsicHid+100+10000,layerId,intr_resi_x);
+      HF2(TPCIntrinsicHid+200+10000,layerId,intr_resi_y);
+      HF2(TPCIntrinsicHid+300+10000,layerId,intr_resi_z);
+      HF2(TPCIntrinsicHid+1000+10000,layerId,intr_resi_t/res_t);
+      HF2(TPCIntrinsicHid+1100+10000,layerId,intr_resi_x/res_x);
+      HF2(TPCIntrinsicHid+1200+10000,layerId,intr_resi_y/res_y);
+      HF2(TPCIntrinsicHid+1300+10000,layerId,intr_resi_z/res_z);
 
-			HF1(TPCExclusiveHid + 20000 + bin_alpha,resi_t);
-			HF1(TPCExclusiveHid +100+ 20000 + bin_alpha,resi_x);
-			HF1(TPCExclusiveHid +300+ 20000 + bin_alpha,resi_z);
-			HF1(TPCIntrinsicHid + 20000 + bin_alpha,resi_t);
-			HF1(TPCIntrinsicHid +100+ 20000 + bin_alpha,resi_x);
-			HF1(TPCIntrinsicHid +300+ 20000 + bin_alpha,resi_z);
+      HF1(TPCExclusiveHid + 20000 + bin_alpha,resi_t);
+      HF1(TPCExclusiveHid +100+ 20000 + bin_alpha,resi_x);
+      HF1(TPCExclusiveHid +300+ 20000 + bin_alpha,resi_z);
+      HF1(TPCIntrinsicHid + 20000 + bin_alpha,resi_t);
+      HF1(TPCIntrinsicHid +100+ 20000 + bin_alpha,resi_x);
+      HF1(TPCIntrinsicHid +300+ 20000 + bin_alpha,resi_z);
 
 #endif
-		}//ih
+    }//ih
     int nPureHits;
     int G4tid = TPCToG4TrackID(TPCHits,src.nhittpc,src.ititpc,src.xtpc,src.ytpc,src.ztpc,nPureHits);
     if(G4tid == G4idKm)event.isK18[it]=1;
@@ -2483,102 +2481,102 @@ ConfMan::InitializeHistograms( void )
 {
   HB1( 1, "Status", 21, 0., 21. );
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-		HB1(TPCInclusiveHid+layer,	Form("TPC InclusiveResidual T[mm];layer%d",layer),1000,-10,10);
-		HB1(TPCInclusiveHid+100+layer,	Form("TPC InclusiveResidual X[mm];layer%d",layer),1000,-10,10);
-		HB1(TPCInclusiveHid+200+layer,	Form("TPC InclusiveResidual Y[mm];layer%d",layer),1000,-10,10);
-		HB1(TPCInclusiveHid+300+layer,	Form("TPC InclusiveResidual Z[mm];layer%d",layer),1000,-10,10);
-		HB1(TPCInclusiveHid+1000+layer,	Form("TPC InclusivePull T;layer%d",layer),1000,-10,10);
-		HB1(TPCInclusiveHid+1000+100+layer,	Form("TPC InclusivePull X;layer%d",layer),1000,-10,10);
-		HB1(TPCInclusiveHid+1000+200+layer,	Form("TPC InclusivePull Y;layer%d",layer),1000,-10,10);
-		HB1(TPCInclusiveHid+1000+300+layer,	Form("TPC InclusivePull Z;layer%d",layer),1000,-10,10);
+    HB1(TPCInclusiveHid+layer,	Form("TPC InclusiveResidual T[mm];layer%d",layer),1000,-10,10);
+    HB1(TPCInclusiveHid+100+layer,	Form("TPC InclusiveResidual X[mm];layer%d",layer),1000,-10,10);
+    HB1(TPCInclusiveHid+200+layer,	Form("TPC InclusiveResidual Y[mm];layer%d",layer),1000,-10,10);
+    HB1(TPCInclusiveHid+300+layer,	Form("TPC InclusiveResidual Z[mm];layer%d",layer),1000,-10,10);
+    HB1(TPCInclusiveHid+1000+layer,	Form("TPC InclusivePull T;layer%d",layer),1000,-10,10);
+    HB1(TPCInclusiveHid+1000+100+layer,	Form("TPC InclusivePull X;layer%d",layer),1000,-10,10);
+    HB1(TPCInclusiveHid+1000+200+layer,	Form("TPC InclusivePull Y;layer%d",layer),1000,-10,10);
+    HB1(TPCInclusiveHid+1000+300+layer,	Form("TPC InclusivePull Z;layer%d",layer),1000,-10,10);
 
-		HB1(TPCExclusiveHid+layer,	Form("TPC ExclusiveResidual T[mm];layer%d",layer),1000,-10,10);
-		HB1(TPCExclusiveHid+100+layer,	Form("TPC ExclusiveResidual X[mm];layer%d",layer),1000,-10,10);
-		HB1(TPCExclusiveHid+200+layer,	Form("TPC ExclusiveResidual Y[mm];layer%d",layer),1000,-10,10);
-		HB1(TPCExclusiveHid+300+layer,	Form("TPC ExclusiveResidual Z[mm];layer%d",layer),1000,-10,10);
-		HB1(TPCExclusiveHid+1000+layer,	Form("TPC ExclusivePull T;layer%d",layer),1000,-10,10);
-		HB1(TPCExclusiveHid+1000+100+layer,	Form("TPC ExclusivePull X;layer%d",layer),1000,-10,10);
-		HB1(TPCExclusiveHid+1000+200+layer,	Form("TPC ExclusivePull Y;layer%d",layer),1000,-10,10);
-		HB1(TPCExclusiveHid+1000+300+layer,	Form("TPC ExclusivePull Z;layer%d",layer),1000,-10,10);
+    HB1(TPCExclusiveHid+layer,	Form("TPC ExclusiveResidual T[mm];layer%d",layer),1000,-10,10);
+    HB1(TPCExclusiveHid+100+layer,	Form("TPC ExclusiveResidual X[mm];layer%d",layer),1000,-10,10);
+    HB1(TPCExclusiveHid+200+layer,	Form("TPC ExclusiveResidual Y[mm];layer%d",layer),1000,-10,10);
+    HB1(TPCExclusiveHid+300+layer,	Form("TPC ExclusiveResidual Z[mm];layer%d",layer),1000,-10,10);
+    HB1(TPCExclusiveHid+1000+layer,	Form("TPC ExclusivePull T;layer%d",layer),1000,-10,10);
+    HB1(TPCExclusiveHid+1000+100+layer,	Form("TPC ExclusivePull X;layer%d",layer),1000,-10,10);
+    HB1(TPCExclusiveHid+1000+200+layer,	Form("TPC ExclusivePull Y;layer%d",layer),1000,-10,10);
+    HB1(TPCExclusiveHid+1000+300+layer,	Form("TPC ExclusivePull Z;layer%d",layer),1000,-10,10);
 
-		HB1(TPCIntrinsicHid+layer,	Form("TPC IntrinsicResidual T[mm];layer%d",layer),1000,-10,10);
-		HB1(TPCIntrinsicHid+100+layer,	Form("TPC IntrinsicResidual X[mm];layer%d",layer),1000,-10,10);
-		HB1(TPCIntrinsicHid+200+layer,	Form("TPC IntrinsicResidual Y[mm];layer%d",layer),1000,-10,10);
-		HB1(TPCIntrinsicHid+300+layer,	Form("TPC IntrinsicResidual Z[mm];layer%d",layer),1000,-10,10);
-		HB1(TPCIntrinsicHid+1000+layer,	Form("TPC IntrinsicPull T;layer%d",layer),1000,-10,10);
-		HB1(TPCIntrinsicHid+1000+100+layer,	Form("TPC IntrinsicPull X;layer%d",layer),1000,-10,10);
-		HB1(TPCIntrinsicHid+1000+200+layer,	Form("TPC IntrinsicPull Y;layer%d",layer),1000,-10,10);
-		HB1(TPCIntrinsicHid+1000+300+layer,	Form("TPC IntrinsicPull Z;layer%d",layer),1000,-10,10);
+    HB1(TPCIntrinsicHid+layer,	Form("TPC IntrinsicResidual T[mm];layer%d",layer),1000,-10,10);
+    HB1(TPCIntrinsicHid+100+layer,	Form("TPC IntrinsicResidual X[mm];layer%d",layer),1000,-10,10);
+    HB1(TPCIntrinsicHid+200+layer,	Form("TPC IntrinsicResidual Y[mm];layer%d",layer),1000,-10,10);
+    HB1(TPCIntrinsicHid+300+layer,	Form("TPC IntrinsicResidual Z[mm];layer%d",layer),1000,-10,10);
+    HB1(TPCIntrinsicHid+1000+layer,	Form("TPC IntrinsicPull T;layer%d",layer),1000,-10,10);
+    HB1(TPCIntrinsicHid+1000+100+layer,	Form("TPC IntrinsicPull X;layer%d",layer),1000,-10,10);
+    HB1(TPCIntrinsicHid+1000+200+layer,	Form("TPC IntrinsicPull Y;layer%d",layer),1000,-10,10);
+    HB1(TPCIntrinsicHid+1000+300+layer,	Form("TPC IntrinsicPull Z;layer%d",layer),1000,-10,10);
   }
-	HB1(TPCInclusiveHid+32,	Form("TPC InclusiveResidual T[mm];AllLayer"),1000,-10,10);
-	HB1(TPCInclusiveHid+100+32,	Form("TPC InclusiveResidual X[mm];AllLayer"),1000,-10,10);
-	HB1(TPCInclusiveHid+200+32,	Form("TPC InclusiveResidual Y[mm];AllLayer"),1000,-10,10);
-	HB1(TPCInclusiveHid+300+32,	Form("TPC InclusiveResidual Z[mm];AllLayer"),1000,-10,10);
-	HB1(TPCInclusiveHid+1000+32,	Form("TPC InclusivePull T;AllLayer"),1000,-10,10);
-	HB1(TPCInclusiveHid+1000+100+32,	Form("TPC InclusivePull X;AllLayer"),1000,-10,10);
-	HB1(TPCInclusiveHid+1000+200+32,	Form("TPC InclusivePull Y;AllLayer"),1000,-10,10);
-	HB1(TPCInclusiveHid+1000+300+32,	Form("TPC InclusivePull Z;AllLayer"),1000,-10,10);
+  HB1(TPCInclusiveHid+32,	Form("TPC InclusiveResidual T[mm];AllLayer"),1000,-10,10);
+  HB1(TPCInclusiveHid+100+32,	Form("TPC InclusiveResidual X[mm];AllLayer"),1000,-10,10);
+  HB1(TPCInclusiveHid+200+32,	Form("TPC InclusiveResidual Y[mm];AllLayer"),1000,-10,10);
+  HB1(TPCInclusiveHid+300+32,	Form("TPC InclusiveResidual Z[mm];AllLayer"),1000,-10,10);
+  HB1(TPCInclusiveHid+1000+32,	Form("TPC InclusivePull T;AllLayer"),1000,-10,10);
+  HB1(TPCInclusiveHid+1000+100+32,	Form("TPC InclusivePull X;AllLayer"),1000,-10,10);
+  HB1(TPCInclusiveHid+1000+200+32,	Form("TPC InclusivePull Y;AllLayer"),1000,-10,10);
+  HB1(TPCInclusiveHid+1000+300+32,	Form("TPC InclusivePull Z;AllLayer"),1000,-10,10);
 
-	HB1(TPCExclusiveHid+32,	Form("TPC ExclusiveResidual T[mm];AllLayer"),1000,-10,10);
-	HB1(TPCExclusiveHid+100+32,	Form("TPC ExclusiveResidual X[mm];AllLayer"),1000,-10,10);
-	HB1(TPCExclusiveHid+200+32,	Form("TPC ExclusiveResidual Y[mm];AllLayer"),1000,-10,10);
-	HB1(TPCExclusiveHid+300+32,	Form("TPC ExclusiveResidual Z[mm];AllLayer"),1000,-10,10);
-	HB1(TPCExclusiveHid+1000+32,	Form("TPC ExclusivePull T;AllLayer"),1000,-10,10);
-	HB1(TPCExclusiveHid+1000+100+32,	Form("TPC ExclusivePull X;AllLayer"),1000,-10,10);
-	HB1(TPCExclusiveHid+1000+200+32,	Form("TPC ExclusivePull Y;AllLayer"),1000,-10,10);
-	HB1(TPCExclusiveHid+1000+300+32,	Form("TPC ExclusivePull Z;AllLayer"),1000,-10,10);
+  HB1(TPCExclusiveHid+32,	Form("TPC ExclusiveResidual T[mm];AllLayer"),1000,-10,10);
+  HB1(TPCExclusiveHid+100+32,	Form("TPC ExclusiveResidual X[mm];AllLayer"),1000,-10,10);
+  HB1(TPCExclusiveHid+200+32,	Form("TPC ExclusiveResidual Y[mm];AllLayer"),1000,-10,10);
+  HB1(TPCExclusiveHid+300+32,	Form("TPC ExclusiveResidual Z[mm];AllLayer"),1000,-10,10);
+  HB1(TPCExclusiveHid+1000+32,	Form("TPC ExclusivePull T;AllLayer"),1000,-10,10);
+  HB1(TPCExclusiveHid+1000+100+32,	Form("TPC ExclusivePull X;AllLayer"),1000,-10,10);
+  HB1(TPCExclusiveHid+1000+200+32,	Form("TPC ExclusivePull Y;AllLayer"),1000,-10,10);
+  HB1(TPCExclusiveHid+1000+300+32,	Form("TPC ExclusivePull Z;AllLayer"),1000,-10,10);
 
-	HB1(TPCIntrinsicHid+32,	Form("TPC IntrinsicResidual T[mm];AllLayer"),1000,-10,10);
-	HB1(TPCIntrinsicHid+100+32,	Form("TPC IntrinsicResidual X[mm];AllLayer"),1000,-10,10);
-	HB1(TPCIntrinsicHid+200+32,	Form("TPC IntrinsicResidual Y[mm];AllLayer"),1000,-10,10);
-	HB1(TPCIntrinsicHid+300+32,	Form("TPC IntrinsicResidual Z[mm];AllLayer"),1000,-10,10);
-	HB1(TPCIntrinsicHid+1000+32,	Form("TPC IntrinsicPull T;AllLayer"),1000,-10,10);
-	HB1(TPCIntrinsicHid+1000+100+32,	Form("TPC IntrinsicPull X;AllLayer"),1000,-10,10);
-	HB1(TPCIntrinsicHid+1000+200+32,	Form("TPC IntrinsicPull Y;AllLayer"),1000,-10,10);
-	HB1(TPCIntrinsicHid+1000+300+32,	Form("TPC IntrinsicPull Z;AllLayer"),1000,-10,10);
+  HB1(TPCIntrinsicHid+32,	Form("TPC IntrinsicResidual T[mm];AllLayer"),1000,-10,10);
+  HB1(TPCIntrinsicHid+100+32,	Form("TPC IntrinsicResidual X[mm];AllLayer"),1000,-10,10);
+  HB1(TPCIntrinsicHid+200+32,	Form("TPC IntrinsicResidual Y[mm];AllLayer"),1000,-10,10);
+  HB1(TPCIntrinsicHid+300+32,	Form("TPC IntrinsicResidual Z[mm];AllLayer"),1000,-10,10);
+  HB1(TPCIntrinsicHid+1000+32,	Form("TPC IntrinsicPull T;AllLayer"),1000,-10,10);
+  HB1(TPCIntrinsicHid+1000+100+32,	Form("TPC IntrinsicPull X;AllLayer"),1000,-10,10);
+  HB1(TPCIntrinsicHid+1000+200+32,	Form("TPC IntrinsicPull Y;AllLayer"),1000,-10,10);
+  HB1(TPCIntrinsicHid+1000+300+32,	Form("TPC IntrinsicPull Z;AllLayer"),1000,-10,10);
 
 
-	HB2(TPCInclusiveHid+10000,	Form("TPC InclusiveResidual T[mm]:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCInclusiveHid+100+10000,	Form("TPC InclusiveResidual X[mm]:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCInclusiveHid+200+10000,	Form("TPC InclusiveResidual Y[mm]:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCInclusiveHid+300+10000,	Form("TPC InclusiveResidual Z[mm]:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCInclusiveHid+1000+10000,	Form("TPC InclusivePull T:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCInclusiveHid+1000+100+10000,	Form("TPC InclusivePull X:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCInclusiveHid+1000+200+10000,	Form("TPC InclusivePull Y:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCInclusiveHid+1000+300+10000,	Form("TPC InclusivePull Z:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCInclusiveHid+10000,	Form("TPC InclusiveResidual T[mm]:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCInclusiveHid+100+10000,	Form("TPC InclusiveResidual X[mm]:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCInclusiveHid+200+10000,	Form("TPC InclusiveResidual Y[mm]:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCInclusiveHid+300+10000,	Form("TPC InclusiveResidual Z[mm]:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCInclusiveHid+1000+10000,	Form("TPC InclusivePull T:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCInclusiveHid+1000+100+10000,	Form("TPC InclusivePull X:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCInclusiveHid+1000+200+10000,	Form("TPC InclusivePull Y:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCInclusiveHid+1000+300+10000,	Form("TPC InclusivePull Z:Layer"),31,0,31,1000,-10,10);
 
-	HB2(TPCExclusiveHid+10000,	Form("TPC ExclusiveResidual T[mm]:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCExclusiveHid+100+10000,	Form("TPC ExclusiveResidual X[mm]:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCExclusiveHid+200+10000,	Form("TPC ExclusiveResidual Y[mm]:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCExclusiveHid+300+10000,	Form("TPC ExclusiveResidual Z[mm]:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCExclusiveHid+1000+10000,	Form("TPC ExclusivePull T:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCExclusiveHid+1000+100+10000,	Form("TPC ExclusivePull X:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCExclusiveHid+1000+200+10000,	Form("TPC ExclusivePull Y:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCExclusiveHid+1000+300+10000,	Form("TPC ExclusivePull Z:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCExclusiveHid+10000,	Form("TPC ExclusiveResidual T[mm]:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCExclusiveHid+100+10000,	Form("TPC ExclusiveResidual X[mm]:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCExclusiveHid+200+10000,	Form("TPC ExclusiveResidual Y[mm]:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCExclusiveHid+300+10000,	Form("TPC ExclusiveResidual Z[mm]:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCExclusiveHid+1000+10000,	Form("TPC ExclusivePull T:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCExclusiveHid+1000+100+10000,	Form("TPC ExclusivePull X:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCExclusiveHid+1000+200+10000,	Form("TPC ExclusivePull Y:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCExclusiveHid+1000+300+10000,	Form("TPC ExclusivePull Z:Layer"),31,0,31,1000,-10,10);
 
-	HB2(TPCIntrinsicHid+10000,	Form("TPC IntrinsicResidual T[mm]:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCIntrinsicHid+100+10000,	Form("TPC IntrinsicResidual X[mm]:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCIntrinsicHid+200+10000,	Form("TPC IntrinsicResidual Y[mm]:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCIntrinsicHid+300+10000,	Form("TPC IntrinsicResidual Z[mm]:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCIntrinsicHid+1000+10000,	Form("TPC IntrinsicPull T:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCIntrinsicHid+1000+100+10000,	Form("TPC IntrinsicPull X:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCIntrinsicHid+1000+200+10000,	Form("TPC IntrinsicPull Y:Layer"),31,0,31,1000,-10,10);
-	HB2(TPCIntrinsicHid+1000+300+10000,	Form("TPC IntrinsicPull Z:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCIntrinsicHid+10000,	Form("TPC IntrinsicResidual T[mm]:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCIntrinsicHid+100+10000,	Form("TPC IntrinsicResidual X[mm]:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCIntrinsicHid+200+10000,	Form("TPC IntrinsicResidual Y[mm]:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCIntrinsicHid+300+10000,	Form("TPC IntrinsicResidual Z[mm]:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCIntrinsicHid+1000+10000,	Form("TPC IntrinsicPull T:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCIntrinsicHid+1000+100+10000,	Form("TPC IntrinsicPull X:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCIntrinsicHid+1000+200+10000,	Form("TPC IntrinsicPull Y:Layer"),31,0,31,1000,-10,10);
+  HB2(TPCIntrinsicHid+1000+300+10000,	Form("TPC IntrinsicPull Z:Layer"),31,0,31,1000,-10,10);
 
-	for(int ih=0;ih<50;++ih){
-		double dt = acos(-1)*1./50;
-		double alpha_l = dt*ih;
-		double alpha_h = dt*(ih+1);
-		HB1(TPCInclusiveHid + 20000 + ih,Form("TPCInclusiveResidualPt_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
-		HB1(TPCInclusiveHid +100+ 20000 + ih,Form("TPCInclusiveResidualPx_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
-		HB1(TPCInclusiveHid +300+ 20000 + ih,Form("TPCInclusiveResidualPz_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
-		HB1(TPCExclusiveHid + 20000 + ih,Form("TPCExclusiveResidualPt_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
-		HB1(TPCExclusiveHid +100+ 20000 + ih,Form("TPCExclusiveResidualPx_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
-		HB1(TPCExclusiveHid +300+ 20000 + ih,Form("TPCExclusiveResidualPz_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
-		HB1(TPCIntrinsicHid + 20000 + ih,Form("TPCIntrinsicResidualPt_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
-		HB1(TPCIntrinsicHid +100+ 20000 + ih,Form("TPCIntrinsicResidualPx_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
-		HB1(TPCIntrinsicHid +300+ 20000 + ih,Form("TPCIntrinsicResidualPz_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
-	}
+  for(int ih=0;ih<50;++ih){
+    double dt = acos(-1)*1./50;
+    double alpha_l = dt*ih;
+    double alpha_h = dt*(ih+1);
+    HB1(TPCInclusiveHid + 20000 + ih,Form("TPCInclusiveResidualPt_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+    HB1(TPCInclusiveHid +100+ 20000 + ih,Form("TPCInclusiveResidualPx_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+    HB1(TPCInclusiveHid +300+ 20000 + ih,Form("TPCInclusiveResidualPz_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+    HB1(TPCExclusiveHid + 20000 + ih,Form("TPCExclusiveResidualPt_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+    HB1(TPCExclusiveHid +100+ 20000 + ih,Form("TPCExclusiveResidualPx_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+    HB1(TPCExclusiveHid +300+ 20000 + ih,Form("TPCExclusiveResidualPz_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+    HB1(TPCIntrinsicHid + 20000 + ih,Form("TPCIntrinsicResidualPt_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+    HB1(TPCIntrinsicHid +100+ 20000 + ih,Form("TPCIntrinsicResidualPx_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+    HB1(TPCIntrinsicHid +300+ 20000 + ih,Form("TPCIntrinsicResidualPz_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
+  }
 
 
 
@@ -2597,7 +2595,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("ytgtHS",&event.ytgtHS);
   tree->Branch("xtgtKurama",&event.xtgtKurama);
   tree->Branch("ytgtKurama",&event.ytgtKurama);
-  
+
   tree->Branch( "nclTpc", &event.nclTpc );
   tree->Branch( "remain_nclTpc", &event.remain_nclTpc );
   tree->Branch( "cluster_x", &event.cluster_x );
@@ -2625,7 +2623,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "isAccidental", &event.isAccidental );
   tree->Branch( "purity", &event.purity );
   tree->Branch( "efficiency", &event.efficiency );
-  tree->Branch( "G4tid", &event.G4tid );  
+  tree->Branch( "G4tid", &event.G4tid );
   tree->Branch( "flag", &event.flag );
   tree->Branch( "chisqr", &event.chisqr );
   tree->Branch( "pval", &event.pval );
@@ -2637,7 +2635,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dz_factor", &event.dz_factor );
 
 
-	// Momentum at Y = 0
+  // Momentum at Y = 0
   tree->Branch( "mom0_x", &event.mom0_x );
   tree->Branch( "mom0_y", &event.mom0_y );
   tree->Branch( "mom0_z", &event.mom0_z );
@@ -2645,7 +2643,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dE", &event.dE );
   tree->Branch( "dEdx", &event.dEdx );
 
-	tree->Branch( "charge", &event.charge );
+  tree->Branch( "charge", &event.charge );
   tree->Branch( "path", &event.path );
 
   tree->Branch( "pid", &event.pid );
@@ -2676,7 +2674,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "pid_inverted", &event.pid_inverted );
 
 
-	tree->Branch("momg_x",event.momg_x,"momg_x[nttpc][64]/D");
+  tree->Branch("momg_x",event.momg_x,"momg_x[nttpc][64]/D");
   tree->Branch("momg_y",event.momg_y,"momg_y[nttpc][64]/D");
   tree->Branch("momg_z",event.momg_z,"momg_z[nttpc][64]/D");
   tree->Branch("iti_g",event.iti_g,"iti_g[nttpc][64]/I");
@@ -2715,55 +2713,55 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("pxPrm",src.pxPrm,"pxPrm[nPrm]/D");
   tree->Branch("pyPrm",src.pyPrm,"pyPrm[nPrm]/D");
   tree->Branch("pzPrm",src.pzPrm,"pzPrm[nPrm]/D");
-	tree->Branch("ppPrm",src.ppPrm,"ppPrm[nPrm]/D");
+  tree->Branch("ppPrm",src.ppPrm,"ppPrm[nPrm]/D");
 
 
-	tree->Branch("xtpc",src.xtpc,"xtpc[nhittpc]/D");
+  tree->Branch("xtpc",src.xtpc,"xtpc[nhittpc]/D");
   tree->Branch("ytpc",src.ytpc,"ytpc[nhittpc]/D");
   tree->Branch("ztpc",src.ztpc,"ztpc[nhittpc]/D");
 
-	tree->Branch("x0tpc",src.x0tpc,"x0tpc[nhittpc]/D");
+  tree->Branch("x0tpc",src.x0tpc,"x0tpc[nhittpc]/D");
   tree->Branch("y0tpc",src.y0tpc,"y0tpc[nhittpc]/D");
   tree->Branch("z0tpc",src.z0tpc,"z0tpc[nhittpc]/D");
 
-	tree->Branch("pxtpc",src.pxtpc,"pxtpc[nhittpc]/D");
+  tree->Branch("pxtpc",src.pxtpc,"pxtpc[nhittpc]/D");
   tree->Branch("pytpc",src.pytpc,"pytpc[nhittpc]/D");
   tree->Branch("pztpc",src.pztpc,"pztpc[nhittpc]/D");
   tree->Branch("pptpc",src.pptpc,"pptpc[nhittpc]/D");
-	tree->Branch("idtpc",src.idtpc,"idtpc[nhittpc]/I");
-	tree->Branch("parentid",src.parentID,"parentID[nhittpc]/I");
+  tree->Branch("idtpc",src.idtpc,"idtpc[nhittpc]/I");
+  tree->Branch("parentid",src.parentID,"parentID[nhittpc]/I");
 
-	tree->Branch("NumberOfTracks",&event.NumberOfTracks,"NumberOfTracks/I");
-	tree->Branch("PIDOfTrack",event.PIDOfTrack,"PIDOfTrack[1000]/I");
-	tree->Branch("ParentIDOfTrack",event.ParentIDOfTrack,"ParentIDOfTrack[1000]/I");
-	tree->Branch("VertexOfTrack_x",event.VertexOfTrack_x,"VertexOfTrack_x[1000]/D");
-	tree->Branch("VertexOfTrack_y",event.VertexOfTrack_y,"VertexOfTrack_y[1000]/D");
-	tree->Branch("VertexOfTrack_z",event.VertexOfTrack_z,"VertexOfTrack_z[1000]/D");
-	tree->Branch("MomentumOfTrack",event.MomentumOfTrack,"MomentumOfTrack[1000]/D");
-	tree->Branch("MomentumOfTrack_x",event.MomentumOfTrack_x,"MomentumOfTrack_x[1000]/D");
-	tree->Branch("MomentumOfTrack_y",event.MomentumOfTrack_y,"MomentumOfTrack_y[1000]/D");
-	tree->Branch("MomentumOfTrack_z",event.MomentumOfTrack_z,"MomentumOfTrack_z[1000]/D");
+  tree->Branch("NumberOfTracks",&event.NumberOfTracks,"NumberOfTracks/I");
+  tree->Branch("PIDOfTrack",event.PIDOfTrack,"PIDOfTrack[1000]/I");
+  tree->Branch("ParentIDOfTrack",event.ParentIDOfTrack,"ParentIDOfTrack[1000]/I");
+  tree->Branch("VertexOfTrack_x",event.VertexOfTrack_x,"VertexOfTrack_x[1000]/D");
+  tree->Branch("VertexOfTrack_y",event.VertexOfTrack_y,"VertexOfTrack_y[1000]/D");
+  tree->Branch("VertexOfTrack_z",event.VertexOfTrack_z,"VertexOfTrack_z[1000]/D");
+  tree->Branch("MomentumOfTrack",event.MomentumOfTrack,"MomentumOfTrack[1000]/D");
+  tree->Branch("MomentumOfTrack_x",event.MomentumOfTrack_x,"MomentumOfTrack_x[1000]/D");
+  tree->Branch("MomentumOfTrack_y",event.MomentumOfTrack_y,"MomentumOfTrack_y[1000]/D");
+  tree->Branch("MomentumOfTrack_z",event.MomentumOfTrack_z,"MomentumOfTrack_z[1000]/D");
   tree->Branch("G4TrackIDKm",event.G4idKm);
   tree->Branch("G4TrackIDKp",event.G4idKp);
   tree->Branch("G4TrackIDP",event.G4idP);
   tree->Branch("G4TrackIDPi1",event.G4idPi1);
   tree->Branch("G4TrackIDPi2",event.G4idPi2);
 
-	tree->Branch("MomXi_x",&event.MomXi_x,"MomXi_x/D");
-	tree->Branch("MomXi_y",&event.MomXi_y,"MomXi_y/D");
-	tree->Branch("MomXi_z",&event.MomXi_z,"MomXi_z/D");
-	tree->Branch("SpinXi_x",&event.SpinXi_x,"SpinXi_x/D");
-	tree->Branch("SpinXi_y",&event.SpinXi_y,"SpinXi_y/D");
-	tree->Branch("SpinXi_z",&event.SpinXi_z,"SpinXi_z/D");
-	tree->Branch("ThXi_CM",&event.ThXi_CM,"ThXi_CM/D");
+  tree->Branch("MomXi_x",&event.MomXi_x,"MomXi_x/D");
+  tree->Branch("MomXi_y",&event.MomXi_y,"MomXi_y/D");
+  tree->Branch("MomXi_z",&event.MomXi_z,"MomXi_z/D");
+  tree->Branch("SpinXi_x",&event.SpinXi_x,"SpinXi_x/D");
+  tree->Branch("SpinXi_y",&event.SpinXi_y,"SpinXi_y/D");
+  tree->Branch("SpinXi_z",&event.SpinXi_z,"SpinXi_z/D");
+  tree->Branch("ThXi_CM",&event.ThXi_CM,"ThXi_CM/D");
 
-	tree->Branch("MomLd_x",&event.MomLd_x,"MomLd_x/D");
-	tree->Branch("MomLd_y",&event.MomLd_y,"MomLd_y/D");
-	tree->Branch("MomLd_z",&event.MomLd_z,"MomLd_z/D");
-	tree->Branch("SpinLd_x",&event.SpinLd_x,"SpinLd_x/D");
-	tree->Branch("SpinLd_y",&event.SpinLd_y,"SpinLd_y/D");
-	tree->Branch("SpinLd_z",&event.SpinLd_z,"SpinLd_z/D");
-	tree->Branch("ThLd_CM",&event.ThLd_CM,"ThLd_CM/D");
+  tree->Branch("MomLd_x",&event.MomLd_x,"MomLd_x/D");
+  tree->Branch("MomLd_y",&event.MomLd_y,"MomLd_y/D");
+  tree->Branch("MomLd_z",&event.MomLd_z,"MomLd_z/D");
+  tree->Branch("SpinLd_x",&event.SpinLd_x,"SpinLd_x/D");
+  tree->Branch("SpinLd_y",&event.SpinLd_y,"SpinLd_y/D");
+  tree->Branch("SpinLd_z",&event.SpinLd_z,"SpinLd_z/D");
+  tree->Branch("ThLd_CM",&event.ThLd_CM,"ThLd_CM/D");
 
 
   tree->Branch( "nhHtof", &event.nhHtof );
@@ -2804,7 +2802,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("deLac", event.deLac,"deLac[500]/D");
   tree->Branch("tLac", event.tLac,"tLac[500]/D");
 
-	tree->Branch("nhFtof", &event.nhFtof,"nhFtof/I");
+  tree->Branch("nhFtof", &event.nhFtof,"nhFtof/I");
   tree->Branch("tidFtof", event.tidFtof,"tidFtof[500]/I");
   tree->Branch("pidFtof", event.pidFtof,"pidFtof[500]/I");
   tree->Branch("didFtof", event.didFtof,"didFtof[500]/I");
@@ -2820,7 +2818,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("deFtof", event.deFtof,"deFtof[500]/D");
   tree->Branch("tFtof", event.tFtof,"tFtof[500]/D");
 
-	tree->Branch("nhSdc", &event.nhSdc,"nhSdc/I");
+  tree->Branch("nhSdc", &event.nhSdc,"nhSdc/I");
   tree->Branch("tidSdc", event.tidSdc,"tidSdc[500]/I");
   tree->Branch("pidSdc", event.pidSdc,"pidSdc[500]/I");
   tree->Branch("didSdc", event.didSdc,"didSdc[500]/I");
@@ -2837,7 +2835,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("tSdc", event.tSdc,"tSdc[500]/D");
 
 
-	tree->Branch("nhBvh", &event.nhBvh,"nhBvh/I");
+  tree->Branch("nhBvh", &event.nhBvh,"nhBvh/I");
   tree->Branch("tidBvh", event.tidBvh,"tidBvh[500]/I");
   tree->Branch("pidBvh", event.pidBvh,"pidBvh[500]/I");
   tree->Branch("didBvh", event.didBvh,"didBvh[500]/I");
@@ -2858,34 +2856,34 @@ ConfMan::InitializeHistograms( void )
   TTreeReaderCont[kTPCGeant] = new TTreeReader( "TPC_g", TFileCont[kTPCGeant] );
   const auto& reader = TTreeReaderCont[kTPCGeant];
 
-	TTreeCont[kTPCGeant]->SetBranchAddress("evnum", &src.evnum);
+  TTreeCont[kTPCGeant]->SetBranchAddress("evnum", &src.evnum);
   TTreeCont[kTPCGeant]->SetBranchAddress("nhittpc", &src.nhittpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("nhPrm", &src.nhPrm);
 
-	TTreeCont[kTPCGeant]->SetBranchAddress("NumberOfTracks",&src.NumberOfTracks);
-	TTreeCont[kTPCGeant]->SetBranchAddress("PIDOfTrack",src.PIDOfTrack);
-	TTreeCont[kTPCGeant]->SetBranchAddress("ParentIDOfTrack",src.ParentIDOfTrack);
-	TTreeCont[kTPCGeant]->SetBranchAddress("VertexOfTrack_x",src.VertexOfTrack_x);
-	TTreeCont[kTPCGeant]->SetBranchAddress("VertexOfTrack_y",src.VertexOfTrack_y);
-	TTreeCont[kTPCGeant]->SetBranchAddress("VertexOfTrack_z",src.VertexOfTrack_z);
-	TTreeCont[kTPCGeant]->SetBranchAddress("MomentumOfTrack",src.MomentumOfTrack);
-	TTreeCont[kTPCGeant]->SetBranchAddress("MomentumOfTrack_x",src.MomentumOfTrack_x);
-	TTreeCont[kTPCGeant]->SetBranchAddress("MomentumOfTrack_y",src.MomentumOfTrack_y);
-	TTreeCont[kTPCGeant]->SetBranchAddress("MomentumOfTrack_z",src.MomentumOfTrack_z);
-	TTreeCont[kTPCGeant]->SetBranchAddress("MomXi_x",&src.MomXi_x);
-	TTreeCont[kTPCGeant]->SetBranchAddress("MomXi_y",&src.MomXi_y);
-	TTreeCont[kTPCGeant]->SetBranchAddress("MomXi_z",&src.MomXi_z);
-	TTreeCont[kTPCGeant]->SetBranchAddress("SpinXi_x",&src.SpinXi_x);
-	TTreeCont[kTPCGeant]->SetBranchAddress("SpinXi_y",&src.SpinXi_y);
-	TTreeCont[kTPCGeant]->SetBranchAddress("SpinXi_z",&src.SpinXi_z);
-	TTreeCont[kTPCGeant]->SetBranchAddress("ThXi_CM",&src.ThXi_CM);
-	TTreeCont[kTPCGeant]->SetBranchAddress("MomLd_x",&src.MomLd_x);
-	TTreeCont[kTPCGeant]->SetBranchAddress("MomLd_y",&src.MomLd_y);
-	TTreeCont[kTPCGeant]->SetBranchAddress("MomLd_z",&src.MomLd_z);
-	TTreeCont[kTPCGeant]->SetBranchAddress("SpinLd_x",&src.SpinLd_x);
-	TTreeCont[kTPCGeant]->SetBranchAddress("SpinLd_y",&src.SpinLd_y);
-	TTreeCont[kTPCGeant]->SetBranchAddress("SpinLd_z",&src.SpinLd_z);
-	TTreeCont[kTPCGeant]->SetBranchAddress("ThLd_CM",&src.ThLd_CM);
+  TTreeCont[kTPCGeant]->SetBranchAddress("NumberOfTracks",&src.NumberOfTracks);
+  TTreeCont[kTPCGeant]->SetBranchAddress("PIDOfTrack",src.PIDOfTrack);
+  TTreeCont[kTPCGeant]->SetBranchAddress("ParentIDOfTrack",src.ParentIDOfTrack);
+  TTreeCont[kTPCGeant]->SetBranchAddress("VertexOfTrack_x",src.VertexOfTrack_x);
+  TTreeCont[kTPCGeant]->SetBranchAddress("VertexOfTrack_y",src.VertexOfTrack_y);
+  TTreeCont[kTPCGeant]->SetBranchAddress("VertexOfTrack_z",src.VertexOfTrack_z);
+  TTreeCont[kTPCGeant]->SetBranchAddress("MomentumOfTrack",src.MomentumOfTrack);
+  TTreeCont[kTPCGeant]->SetBranchAddress("MomentumOfTrack_x",src.MomentumOfTrack_x);
+  TTreeCont[kTPCGeant]->SetBranchAddress("MomentumOfTrack_y",src.MomentumOfTrack_y);
+  TTreeCont[kTPCGeant]->SetBranchAddress("MomentumOfTrack_z",src.MomentumOfTrack_z);
+  TTreeCont[kTPCGeant]->SetBranchAddress("MomXi_x",&src.MomXi_x);
+  TTreeCont[kTPCGeant]->SetBranchAddress("MomXi_y",&src.MomXi_y);
+  TTreeCont[kTPCGeant]->SetBranchAddress("MomXi_z",&src.MomXi_z);
+  TTreeCont[kTPCGeant]->SetBranchAddress("SpinXi_x",&src.SpinXi_x);
+  TTreeCont[kTPCGeant]->SetBranchAddress("SpinXi_y",&src.SpinXi_y);
+  TTreeCont[kTPCGeant]->SetBranchAddress("SpinXi_z",&src.SpinXi_z);
+  TTreeCont[kTPCGeant]->SetBranchAddress("ThXi_CM",&src.ThXi_CM);
+  TTreeCont[kTPCGeant]->SetBranchAddress("MomLd_x",&src.MomLd_x);
+  TTreeCont[kTPCGeant]->SetBranchAddress("MomLd_y",&src.MomLd_y);
+  TTreeCont[kTPCGeant]->SetBranchAddress("MomLd_z",&src.MomLd_z);
+  TTreeCont[kTPCGeant]->SetBranchAddress("SpinLd_x",&src.SpinLd_x);
+  TTreeCont[kTPCGeant]->SetBranchAddress("SpinLd_y",&src.SpinLd_y);
+  TTreeCont[kTPCGeant]->SetBranchAddress("SpinLd_z",&src.SpinLd_z);
+  TTreeCont[kTPCGeant]->SetBranchAddress("ThLd_CM",&src.ThLd_CM);
 
 
   TTreeCont[kTPCGeant]->SetBranchAddress("xPrm", src.xPrm);
@@ -2926,7 +2924,7 @@ ConfMan::InitializeHistograms( void )
   // TTreeCont[kTPCGeant]->SetBranchAddress("dytpc_pad", src.dytpc_pad);
   // TTreeCont[kTPCGeant]->SetBranchAddress("dztpc_pad", src.dztpc_pad);
 
-	TTreeCont[kTPCGeant]->SetBranchAddress("nhHtof", &src.nhHtof);
+  TTreeCont[kTPCGeant]->SetBranchAddress("nhHtof", &src.nhHtof);
   TTreeCont[kTPCGeant]->SetBranchAddress("tidHtof", src.tidHtof);
   TTreeCont[kTPCGeant]->SetBranchAddress("pidHtof", src.pidHtof);
   TTreeCont[kTPCGeant]->SetBranchAddress("didHtof", src.didHtof);
@@ -2992,7 +2990,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchAddress("deFtof", src.deFtof);
   TTreeCont[kTPCGeant]->SetBranchAddress("tFtof", src.tFtof);
 
-	TTreeCont[kTPCGeant]->SetBranchAddress("nhSdc", &src.nhSdc);
+  TTreeCont[kTPCGeant]->SetBranchAddress("nhSdc", &src.nhSdc);
   TTreeCont[kTPCGeant]->SetBranchAddress("tidSdc", src.tidSdc);
   TTreeCont[kTPCGeant]->SetBranchAddress("pidSdc", src.pidSdc);
   TTreeCont[kTPCGeant]->SetBranchAddress("didSdc", src.didSdc);
@@ -3057,7 +3055,7 @@ ConfMan::InitializeHistograms( void )
   src.localhitpos = new TTreeReaderValue<vector<vector<Double_t>>>( *reader, "localhitpos" );
 
 
-	return true;
+  return true;
 }
 
 //_____________________________________________________________________
@@ -3068,7 +3066,7 @@ ConfMan::InitializeParameterFiles( void )
     ( InitializeParameter<DCGeomMan>("DCGEO")   &&
       InitializeParameter<UserParamMan>("USER") &&
       InitializeParameter<TPCParamMan>("TPCPRM") &&
-	  InitializeParameter<HodoPHCMan>("HDPHC") );
+      InitializeParameter<HodoPHCMan>("HDPHC") );
 }
 
 //_____________________________________________________________________

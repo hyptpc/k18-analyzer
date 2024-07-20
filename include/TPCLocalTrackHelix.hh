@@ -78,6 +78,7 @@ private:
   Int_t m_isK18;
   Int_t m_isKurama;
   Int_t m_isAccidental;
+  Bool_t m_isXi; // xi track
   Int_t m_trackid; //for k18, kurama track
   Int_t m_ncl_beforetgt; //for k18 track
   Int_t m_searchtime; //millisec
@@ -134,7 +135,7 @@ public:
   TPCLTrackHit* GetHitInOrder(std::size_t nth) const;
   Int_t         GetNHit() const { return m_hit_array.size(); }
   Int_t         GetNHitsEffective() const;
-  Int_t         GetOrder(Int_t i) const { return m_hit_order[i]; }
+  Int_t         GetOrder(Int_t i) const;
 
   Double_t   GetChiSquare() const { return m_chisqr; }
   Double_t   GetClosestDist() const { return m_closedist.Mag(); }
@@ -206,6 +207,7 @@ public:
   Int_t GetIsKurama() const { return m_isKurama; }
   Int_t GetIsAccidental() const { return m_isAccidental; }
   Int_t GetIsMultiloop() const { return m_is_multiloop; }
+  Int_t GetIsXi() const { return m_isXi; }
 
   void SetParam(Double_t *par){ m_cx = par[0]; m_cy = par[1]; m_z0 = par[2]; m_r = par[3]; m_dz = par[4]; }
   void SetClustersHoughFlag(Int_t hough_flag);
@@ -218,6 +220,7 @@ public:
   void SetIsK18(Int_t flag=1) { m_isK18 = flag; }
   void SetIsKurama(Int_t flag=1) { m_isKurama = flag; }
   void SetIsAccidental(Int_t flag=1) { m_isAccidental = flag; }
+  void SetIsXi(Int_t flag=1) { m_isXi = flag; }
   void SetIsFitted(Bool_t flag=true) { m_is_fitted = flag; }
   void SetIsCalculated(Bool_t flag=true) { m_is_calculated = flag; }
   void SetIsThetaCalculated(Bool_t flag=true) { m_is_theta_calculated = flag; }

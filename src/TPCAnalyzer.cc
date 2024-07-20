@@ -270,6 +270,7 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
   }
   for(Int_t i=0; i<nhits; i++){
     Int_t pad = tpc::findPadID(z[i], x[i]);
+    if(pad<0) continue;
     Int_t layer = tpc::getLayerID(pad);
     Int_t row = tpc::getRowID(pad);
     if(RejectKaonHits && abs(pid[i])==321) continue;
@@ -305,7 +306,7 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     TPCCluster* cluster = new TPCCluster(layer, CandCont);
     if(!cluster) continue;
     if(cluster->Calculate() && cluster->GetY()>=MinClusterYPos && cluster->GetY()<=MaxClusterYPos){
-      cluster->SetClusterSizeG4(cl_size); 
+      cluster->SetClusterSizeG4(cl_size);
       m_TPCClCont[layer].push_back(cluster);
     }
     else delete cluster;
@@ -317,7 +318,7 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
 }
 Double_t
 TPCAnalyzer::GetDetectionEfficiency(TVector3 pos, Int_t pid, TVector3 mom, Double_t de){
-  return tpc::GetDetectionEfficiency(pos, pid, mom, de);  
+  return tpc::GetDetectionEfficiency(pos, pid, mom, de);
 }
 Int_t
 TPCAnalyzer::GetClusterSize(TVector3 pos, Int_t pid, TVector3 mom, Double_t de){
@@ -334,12 +335,12 @@ TPCAnalyzer::GetClusterSize(TVector3 pos, Int_t pid, TVector3 mom, Double_t de){
   TRandom3 RandGen;
   double Cl1Prob = 0;
   if(pidflag == 0){
-    Cl1Prob =tpc::GetClSize1Prob(Mom, pid, layer);  
+    Cl1Prob =tpc::GetClSize1Prob(Mom, pid, layer);
   }
   else if(pidflag == 2){
-    Cl1Prob =tpc::GetClSize1Prob(Mom, pid, layer);  
+    Cl1Prob =tpc::GetClSize1Prob(Mom, pid, layer);
   }
-  else Cl1Prob = sqrt(tpc::GetClSize1Prob(Mom,211,layer)* tpc::GetClSize1Prob(Mom,2212,layer)); 
+  else Cl1Prob = sqrt(tpc::GetClSize1Prob(Mom,211,layer)* tpc::GetClSize1Prob(Mom,2212,layer));
   int ncl=1;
   if(RandGen.Uniform(0., 1.) > Cl1Prob)ncl = 2;
   return ncl;
@@ -385,6 +386,7 @@ TPCAnalyzer::TrackSearchTPCHelix(Bool_t exclusive)
 Bool_t
 TPCAnalyzer::TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
 				 std::vector<std::vector<TVector3>> KuramaVPs,
+				 std::vector<Double_t> KuramaCharge,
 				 Bool_t exclusive)
 {
   if(m_is_decoded[kTPCTracking]){
@@ -394,7 +396,7 @@ TPCAnalyzer::TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
   }
 
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
-  tpc::LocalTrackSearchHelix(K18VPs, KuramaVPs, m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixInverted, m_TPCTCVP, m_TPCTCHelixFailed, m_TPCVC, m_TPCVCClustered, exclusive, MinLayer);
+  tpc::LocalTrackSearchHelix(K18VPs, KuramaVPs, KuramaCharge, m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixInverted, m_TPCTCVP, m_TPCTCHelixFailed, m_TPCVC, m_TPCVCClustered, exclusive, MinLayer);
 
   m_is_decoded[kTPCTracking] = true;
   return true;

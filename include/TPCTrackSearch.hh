@@ -49,6 +49,7 @@ Int_t LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 //for common runs(w/ K1.8, Kurama tracking information)
 Int_t LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 			    std::vector<std::vector<TVector3>> KuramaVPs,
+			    std::vector<Double_t> KuramaCharge,
 			    const std::vector<TPCClusterContainer>& ClCont,
 			    std::vector<TPCLocalTrackHelix*>& TrackCont,
 			    std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,
@@ -110,6 +111,24 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
 			      Bool_t Exclusive,
 			      Int_t MinNumOfHits);
 
+//Iterative process for checking clusters near vertex
+template <typename T> void
+ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
+		       std::vector<T*>& TrackCont,
+		       std::vector<T*>& TrackContFailed,
+		       std::vector<TPCVertex*>& VertexCont,
+		       Bool_t Exclusive,
+		       Int_t MinNumOfHits);
+
+//Iterative process refit Xi track
+template <typename T> void
+ReassignClustersXiTrack(const std::vector<TPCClusterContainer>& ClCont,
+			std::vector<T*>& TrackCont,
+			std::vector<T*>& TrackContFailed,
+			std::vector<TPCVertex*>& VertexCont,
+			Bool_t Exclusive,
+			Int_t MinNumOfHits);
+
 //Checking charge
 template <typename T> void
 TestingCharge(std::vector<T*>& TrackCont,
@@ -157,6 +176,7 @@ void HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
 
 //Kurama scattered track finding
 void KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
+		       std::vector<Double_t> KuramaCharge,
 		       const std::vector<TPCClusterContainer>& ClCont,
 		       std::vector<TPCLocalTrackHelix*>& TrackCont,
 		       std::vector<TPCLocalTrackHelix*>& TrackContFailed,

@@ -60,8 +60,8 @@ public:
                              const Double_t *x, const Double_t *y,
                              const Double_t *z, const Double_t *de,
 			     const Int_t *pid, std::vector<TVector3> Mom = std::vector<TVector3>());
-  Double_t GetDetectionEfficiency(TVector3 pos, Int_t pid, TVector3 mom = TVector3(0,0,0),Double_t de=0);			 
-  Int_t GetClusterSize(TVector3 pos, Int_t pid, TVector3 mom = TVector3(0,0,0),Double_t de=0);			 
+  Double_t GetDetectionEfficiency(TVector3 pos, Int_t pid, TVector3 mom = TVector3(0,0,0), Double_t de=0);
+  Int_t GetClusterSize(TVector3 pos, Int_t pid, TVector3 mom = TVector3(0,0,0),Double_t de=0);
   Bool_t DecodeTPCHits(RawData* rawData, Double_t clock=0.);
   Bool_t ReCalcTPCHits(const Int_t nhits,
                        const std::vector<Int_t>& pad,
@@ -136,6 +136,7 @@ public:
   Bool_t TrackSearchTPCHelix(Bool_t exclusive=false);
   Bool_t TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
 			     std::vector<std::vector<TVector3>> KuramaVPs,
+			     std::vector<Double_t> KuramaCharge,
 			     Bool_t exclusive=false);
   Int_t GetNTracksTPCHelix() const { return m_TPCTCHelix.size(); }
   Int_t GetNTracksTPCHelixChargeInverted() const { return m_TPCTCHelixInverted.size(); }
@@ -214,7 +215,7 @@ public:
   const TPCVertexContainer& GetTPCVerticesClustered() const { return m_TPCVCClustered; }
 
 protected:
-  
+
   void ClearTPCHits();
   void ClearTPCClusters();
   void ClearTPCTracks();

@@ -104,6 +104,16 @@ struct Src
   Double_t pyPrm[MaxTPCTracks];
   Double_t pzPrm[MaxTPCTracks];
 
+	Int_t NumberOfTracks;
+	Int_t PIDOfTrack[MaxTPCTracks];
+	Double_t VertexOfTrack_x[MaxTPCTracks];
+	Double_t VertexOfTrack_y[MaxTPCTracks];
+	Double_t VertexOfTrack_z[MaxTPCTracks];
+	Double_t MomentumOfTrack_x[MaxTPCTracks];
+	Double_t MomentumOfTrack_y[MaxTPCTracks];
+	Double_t MomentumOfTrack_z[MaxTPCTracks];
+
+
   Int_t ititpc[MaxTPCHits];
   Int_t idtpc[MaxTPCHits];
   Double_t xtpc[MaxTPCHits];//with resolution
@@ -124,7 +134,7 @@ struct Src
   // Double_t slengthtpc[MaxTPCHits];
   // Int_t laytpc[MaxTPCHits];
   // Int_t rowtpc[MaxTPCHits];
-  // Int_t parentID[MaxTPCHits];
+  	 Int_t parentID[MaxTPCHits];
   // Int_t iPadtpc[MaxTPCHits];//Pad number (0 origin)
 
   // Double_t xtpc_pad[MaxTPCHits];//pad center
@@ -282,7 +292,7 @@ dst::DstRead(Int_t ievent)
   // }
 
   DCAna.DecodeTPCHitsGeant4(src.nhittpc,
-                            src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc);
+                            src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc,src.idtpc);
                             // src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
   DCAna.TrackSearchTPC();
 

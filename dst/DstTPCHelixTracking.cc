@@ -739,7 +739,8 @@ dst::DstRead( int ievent )
       Int_t layer = hit->GetLayer();
       const TVector3& hitpos = hit->GetLocalHitPos();
       const TVector3& calpos = hit->GetLocalCalPosHelix();
-      const TVector3& res_vect = hit->GetResidualVect();
+      const TVector3& resi_vect = hit->GetResidualVect();
+
       HF1(13, layer);
 
       TPCHit *clhit = hit -> GetHit();
@@ -760,7 +761,7 @@ dst::DstRead( int ievent )
 	HF1(TPCClHid+(layer+1)*1000+1, clde);
 	const TPCHitContainer& hc = cl -> GetHitContainer();
 	for(const auto& hits : hc){
-	  if(!hits || !hits->IsGood()) continue;
+	  if(!hits || !hits->IsGood() || !hit->IsGoodForTracking()) continue;
 	  const TVector3& pos = hits->GetPosition();
 	  Double_t de = hits->GetCDe();
 	  Double_t transDist = TranseverseDistance(hitpos.x(), hitpos.z(), pos.x(), pos.z());
@@ -817,9 +818,9 @@ dst::DstRead( int ievent )
       event.calpos_y[it][ih] = calpos.y();
       event.calpos_z[it][ih] = calpos.z();
       event.residual[it][ih] = residual;
-      event.residual_x[it][ih] = res_vect.x();
-      event.residual_y[it][ih] = res_vect.y();
-      event.residual_z[it][ih] = res_vect.z();
+      event.residual_x[it][ih] = resi_vect.x();
+      event.residual_y[it][ih] = resi_vect.y();
+      event.residual_z[it][ih] = resi_vect.z();
       event.helix_t[it][ih] = t_cal;
     }
     if(min_layer_t<max_layer_t) event.charge[it] = 1;
