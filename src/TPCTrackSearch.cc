@@ -62,7 +62,7 @@ Detailed fitting procedures are explained in the TPCLocalTrack/Helix.
 #define ReassignClusterTest 1
 //#define RemainingClustersTest 1
 #define RemainingClustersTest 0 //not helpful
-#define RefitXiTrack 1
+#define RefitXiTrack 0
 
 namespace
 {
@@ -2608,56 +2608,53 @@ ReassignClustersXiTrack(const std::vector<TPCClusterContainer>& ClCont,
 	      flag = true;
 	      xi_reconstructed = true;
 	    }
-	  }
+	  } //if(Lvertex1 -> GetIsLambda())
 	  delete Lvertex1;
 
-	  if(!xi_reconstructed){
-	    if(dist_track12 > 10) continue;
-	    else{
-	      TPCVertex *Lvertex2 = new TPCVertex(inner_trackid, -1);
-	      Lvertex2 -> Calculate(track_in, LdecayTrack);
-	      if(Lvertex2 -> GetIsLambda()){
+	  if(!xi_reconstructed && dist_track12 < 10){
+	    TPCVertex *Lvertex2 = new TPCVertex(inner_trackid, -1);
+	    Lvertex2 -> Calculate(track_in, LdecayTrack);
+	    if(Lvertex2 -> GetIsLambda()){
 
-		TVector3 lambda_vert; TVector3 lambda_mom;
-		for(int l=0; l<Lvertex2 -> GetNcombiLambda();l++){
-		  if(Lvertex2 -> GetPionIdLambda(l) == inner_trackid){
-		    lambda_vert = Lvertex2 -> GetVertexLambda(l);
-		    lambda_mom = Lvertex2 -> GetMomLambda(l);
-		  }
-		}
-
-		Double_t pi2_par[5];
-		track_out -> GetParam(pi2_par);
-		Double_t pi2_theta_min = track_out -> GetMint() - 150./pi2_par[3];
-		Double_t pi2_theta_max = track_out -> GetMaxt() + 150./pi2_par[3];
-
-		TVector3 pi2_mom; Double_t lpi_dist;
-		TVector3 xi_vert = Kinematics::XiVertex(dMagneticField,
-							pi2_par,
-							pi2_theta_min,
-							pi2_theta_max,
-							lambda_vert,
-							lambda_mom,
-							pi2_mom,
-							lpi_dist);
-
-		//Reconstructed xi decay vertex <-> pi2 & Xi track vertex
-		TVector3 check_vtx = outer_vtx - xi_vert;
-
-		TLorentzVector Lpi2(pi2_mom, TMath::Hypot(pi2_mom.Mag(), PionMass));
-		TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Hypot(lambda_mom.Mag(), LambdaMass));
-		TLorentzVector Lxi = Llambda_fixedmass + Lpi2;
-
-		if(!TMath::IsNaN(lpi_dist) &&
-		   lpi_dist < lpi_distcut &&
-		   check_vtx.Mag() < lpi_distcut &&
-		   TMath::Abs(Lxi.M() - XiMinusMass) < xi_masscut){
-		  flag = true;
-		  xi_reconstructed = true;
+	      TVector3 lambda_vert; TVector3 lambda_mom;
+	      for(int l=0; l<Lvertex2 -> GetNcombiLambda();l++){
+		if(Lvertex2 -> GetPionIdLambda(l) == inner_trackid){
+		  lambda_vert = Lvertex2 -> GetVertexLambda(l);
+		  lambda_mom = Lvertex2 -> GetMomLambda(l);
 		}
 	      }
-	      delete Lvertex2;
-	    }
+
+	      Double_t pi2_par[5];
+	      track_out -> GetParam(pi2_par);
+	      Double_t pi2_theta_min = track_out -> GetMint() - 150./pi2_par[3];
+	      Double_t pi2_theta_max = track_out -> GetMaxt() + 150./pi2_par[3];
+
+	      TVector3 pi2_mom; Double_t lpi_dist;
+	      TVector3 xi_vert = Kinematics::XiVertex(dMagneticField,
+						      pi2_par,
+						      pi2_theta_min,
+						      pi2_theta_max,
+						      lambda_vert,
+						      lambda_mom,
+						      pi2_mom,
+						      lpi_dist);
+
+	      //Reconstructed xi decay vertex <-> pi2 & Xi track vertex
+	      TVector3 check_vtx = outer_vtx - xi_vert;
+
+	      TLorentzVector Lpi2(pi2_mom, TMath::Hypot(pi2_mom.Mag(), PionMass));
+	      TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Hypot(lambda_mom.Mag(), LambdaMass));
+	      TLorentzVector Lxi = Llambda_fixedmass + Lpi2;
+
+	      if(!TMath::IsNaN(lpi_dist) &&
+		 lpi_dist < lpi_distcut &&
+		 check_vtx.Mag() < lpi_distcut &&
+		 TMath::Abs(Lxi.M() - XiMinusMass) < xi_masscut){
+		flag = true;
+		xi_reconstructed = true;
+	      }
+	    } //if(Lvertex2 -> GetIsLambda())
+	    delete Lvertex2;
 	  }
 	}
 	else if(inner_charge<0 && outer_charge>0 && (LdecayTrack -> GetCharge()<0 || LdecayTrack -> TestInvertCharge())){ //pi-, p, pi-
@@ -2698,15 +2695,18 @@ ReassignClustersXiTrack(const std::vector<TPCClusterContainer>& ClCont,
 	       lpi_dist < lpi_distcut &&
 	       check_vtx.Mag() < lpi_distcut &&
 	       TMath::Abs(Lxi.M() - XiMinusMass) < xi_masscut) flag = true;
-	    else continue;
-	  }
-	  delete Lvertex;
-	}
+	    else{
+	      delete LdecayTrack;
+	      continue;
+	    }
+	    delete Lvertex;
+	  } //if(Lvertex -> GetIsLambda())
+	} //else if(inner_charge<0 && outer_charge>0 && (LdecayTrack -> GetCharge()<0 || LdecayTrack -> TestInvertCharge())){ //pi-, p, pi-
 	else{
 	  delete LdecayTrack;
 	  continue;
 	}
-      }
+      } //if(LdecayTrack -> DoFit(MinNumOfHits))
       else{
 	delete LdecayTrack;
 	continue;
@@ -2776,10 +2776,10 @@ ReassignClustersXiTrack(const std::vector<TPCClusterContainer>& ClCont,
 
   std::sort(erase_trackid.begin(), erase_trackid.end());
   for(Int_t i=0; i<erase_trackid.size(); ++i){
-    Int_t id = erase_trackid[i];
+    Int_t id = erase_trackid[i] - i;
 
     T *track = TrackCont[id];
-    TrackCont.erase(TrackCont.begin() + id-i);
+    TrackCont.erase(TrackCont.begin() + id);
     delete track;
   }
 
