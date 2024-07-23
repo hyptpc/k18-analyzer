@@ -62,7 +62,7 @@ Detailed fitting procedures are explained in the TPCLocalTrack/Helix.
 #define ReassignClusterTest 1
 //#define RemainingClustersTest 1
 #define RemainingClustersTest 0 //not helpful
-#define RefitXiTrack 0
+#define RefitXiTrack 1
 
 namespace
 {
@@ -2017,6 +2017,7 @@ ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
 	T *CopiedTrack2 = new T(track2);
 	CopiedTrack2 -> EraseHits(close_ids2);
 	if(!CopiedTrack2->DoFit(MinNumOfHits)){
+	  delete CopiedTrack1;
 	  delete CopiedTrack2;
 	  continue;
 	}
