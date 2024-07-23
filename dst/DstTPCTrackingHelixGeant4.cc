@@ -1105,7 +1105,6 @@ main( int argc, char **argv )
   Int_t skip = gUnpacker.get_skip();
   if (skip < 0) skip = 0;
   Int_t max_loop = gUnpacker.get_max_loop();
-  skip = 79; max_loop = 1;
   Int_t nevent = GetEntries( TTreeCont );
   if (max_loop > 0) nevent = skip + max_loop;
 
