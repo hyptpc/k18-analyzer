@@ -78,7 +78,7 @@ private:
   Int_t m_isK18;
   Int_t m_isKurama;
   Int_t m_isAccidental;
-  Bool_t m_isXi; // xi track
+  Int_t m_isXi; // xi track
   Int_t m_trackid; //for k18, kurama track
   Int_t m_ncl_beforetgt; //for k18 track
   Int_t m_searchtime; //millisec

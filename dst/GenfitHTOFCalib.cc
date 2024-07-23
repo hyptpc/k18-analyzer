@@ -1062,7 +1062,7 @@ dst::DstRead( int ievent )
     if(event.isAccidental[igf]==1) continue;
     if(GFtracks.IsInsideTarget(igf)){
       event.GFinside[igf] = 1;
-      TVector3 posv; TVector3 momv; double len; double tof;
+      /*
       GFtracks.ExtrapolateToTarget(igf, posv, momv, len, tof);
       HF1( genfitHid+20, posv.x());
       HF1( genfitHid+21, posv.y());
@@ -1076,7 +1076,8 @@ dst::DstRead( int ievent )
       event.GFmomzTgt[igf] = momv.z();
       event.GFtracklenTgt[igf] = len;
       event.GFtofTgt[igf] = tof;
-
+      */
+      TVector3 posv; TVector3 momv; double len; double tof;
       if(GFtracks.ExtrapolateToTargetCenter(igf, posv, momv, len, tof)){
 	x0[ntrack_intarget] = posv.x();
 	y0[ntrack_intarget] = posv.y();
@@ -1365,8 +1366,14 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFresidual_py", &event.GFresidual_py);
   tree->Branch("GFresidual_pz", &event.GFresidual_pz);
 
+  tree->Branch("GFntTpc_target", &event.GFntTpc_inside);
+  tree->Branch("GFprodvtx_x", &event.GFprodvtx_x);
+  tree->Branch("GFprodvtx_y", &event.GFprodvtx_y);
+  tree->Branch("GFprodvtx_z", &event.GFprodvtx_z);
+
   //extrapolation
   tree->Branch("GFinside", &event.GFinside);
+  /*
   tree->Branch("GFxTgt", &event.GFxTgt);
   tree->Branch("GFyTgt", &event.GFyTgt);
   tree->Branch("GFzTgt", &event.GFzTgt);
@@ -1376,7 +1383,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFmomzTgt", &event.GFmomzTgt);
   tree->Branch("GFtracklenTgt", &event.GFtracklenTgt);
   tree->Branch("GFtofTgt", &event.GFtofTgt);
-
+  */
   tree->Branch("GFmom_p", &event.GFmom_p);
   tree->Branch("GFtracklen_p", &event.GFtracklen_p);
   tree->Branch("GFtrack2vtxdist_p", &event.GFtrack2vtxdist_p);
