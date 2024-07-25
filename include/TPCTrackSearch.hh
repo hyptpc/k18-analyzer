@@ -138,9 +138,9 @@ TestingCharge(std::vector<T*>& TrackCont,
 
 //Marking accidental coincidence tracks
 template <typename T> void
-MarkingAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
-				   std::vector<TPCVertex*>& VertexCont,
-				   std::vector<TPCVertex*>& ClusteredVertexCont);
+FindAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
+				std::vector<TPCVertex*>& VertexCont,
+				std::vector<TPCVertex*>& ClusteredVertexCont);
 
 //Commom helix track searching
 void HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,

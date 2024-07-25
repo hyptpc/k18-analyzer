@@ -22,6 +22,10 @@ track -> SeparateTracksAtTraget();
 LocalTrackSearch/Helix are main functions of TPC tracking.
 HoughTransformTest/Helix functions have only track finding algorithm for Hough-transform performace test. (no fitting)
 
+//Veto process for accidental coincidence event
+MarkingAccidentalTracks : find accidental beams
+FindAccidentalCoincidenceTracks &&  MarkingClusteredAccidentalTracks: find accidental cpincidence track cluster for the reacted accidental event(not beam-thorugh)
+
 Detailed fitting procedures are explained in the TPCLocalTrack/Helix.
 */
 
@@ -863,6 +867,8 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
 	    Int_t trackID = candidates[i] - i;
 	    TrackCont.erase(TrackCont.begin() + trackID);
 	  }
+	  delete track1;
+	  delete track2;
 
 	  //Vertex finding again with new tracks
 	  del::ClearContainer(VertexCont);
@@ -1080,7 +1086,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   ReassignClustersNearTheTarget(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
 
-  MarkingAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont);
+  FindAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont);
 
 #if ReassignClusterTest
   ReassignClustersVertex(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
@@ -1157,7 +1163,7 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
   //Search Kurama track candidates from the TrackCont.
   KuramaTrackSearch(KuramaVPs, KuramaCharge, ClCont, TrackCont, TrackContFailed, TrackContVP, VertexCont, Exclusive, MinNumOfHits);
 
-  MarkingAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont);
+  FindAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont);
 
 #if ReassignClusterTest
   ReassignClustersVertex(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
@@ -2146,9 +2152,9 @@ ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
 
 //_____________________________________________________________________________
 template <typename T> void
-MarkingAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
-				   std::vector<TPCVertex*>& VertexCont,
-				   std::vector<TPCVertex*>& ClusteredVertexCont)
+FindAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
+				std::vector<TPCVertex*>& VertexCont,
+				std::vector<TPCVertex*>& ClusteredVertexCont)
 {
 
   Double_t tgtXZ_cut = 30.; //mm
@@ -2711,8 +2717,8 @@ ReassignClustersXiTrack(const std::vector<TPCClusterContainer>& ClCont,
 	      delete LdecayTrack;
 	      continue;
 	    }
-	    delete Lvertex;
 	  } //if(Lvertex -> GetIsLambda())
+	  delete Lvertex;
 	} //else if(inner_charge<0 && outer_charge>0 && (LdecayTrack -> GetCharge()<0 || LdecayTrack -> TestInvertCharge())){ //pi-, p, pi-
 	else{
 	  delete LdecayTrack;
