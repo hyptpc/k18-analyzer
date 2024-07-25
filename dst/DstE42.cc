@@ -69,6 +69,8 @@ std::vector<TString> TreeName = { "", "", "tpc", "kk","" };
 std::vector<TFile*> TFileCont;
 std::vector<TTree*> TTreeCont;
 std::vector<TTreeReader*> TTreeReaderCont;
+Double_t nsigma_m2 = 3.; //M2 cut for TPCKurama RK
+static TString eq_sigmaM2 = "4*TMath::Power([3], 2)*(1.+[3]/(x*x))*[0]+4*TMath::Power([3], 2)*x*x*[1]+4*x*x*(x*x+[3])*[2]";
 }
 
 //_____________________________________________________________________________
@@ -103,6 +105,7 @@ struct Event
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
   std::vector<Int_t> trackid; //for Kurama K1.8 tracks
   std::vector<Int_t> isBeam;
+  std::vector<Int_t> isXi;
   std::vector<Int_t> isKurama;
   std::vector<Int_t> isK18;
   std::vector<Int_t> isAccidental;
@@ -311,6 +314,7 @@ struct Event
 
   std::vector<Int_t> tpcidTPCKurama;
   std::vector<Int_t> isgoodTPCKurama;
+  std::vector<Int_t> piflagTPCKurama;
   std::vector<Int_t> kflagTPCKurama;
   std::vector<Int_t> pflagTPCKurama;
   std::vector<Double_t> chisqrTPCKurama;
@@ -408,6 +412,7 @@ struct Event
     nhtrack.clear();
     trackid.clear();
     isBeam.clear();
+    isXi.clear();
     isKurama.clear();
     isK18.clear();
     isAccidental.clear();
@@ -615,6 +620,7 @@ struct Event
 
     tpcidTPCKurama.clear();
     isgoodTPCKurama.clear();
+    piflagTPCKurama.clear();
     kflagTPCKurama.clear();
     pflagTPCKurama.clear();
     chisqrTPCKurama.clear();
@@ -713,6 +719,7 @@ struct Src
   TTreeReaderValue<std::vector<Int_t>>* nhtrack; // Number of hits (in 1 tracks)
   TTreeReaderValue<std::vector<Int_t>>* trackid; //for Kurama K1.8 tracks
   TTreeReaderValue<std::vector<Int_t>>* isBeam;
+  TTreeReaderValue<std::vector<Int_t>>* isXi;
   TTreeReaderValue<std::vector<Int_t>>* isKurama;
   TTreeReaderValue<std::vector<Int_t>>* isK18;
   TTreeReaderValue<std::vector<Int_t>>* isAccidental;
@@ -834,6 +841,7 @@ struct Src
   TTreeReaderValue<Int_t>* ntTPCKurama; // Number of Tracks
   TTreeReaderValue<std::vector<Int_t>>* tpcidTPCKurama;
   TTreeReaderValue<std::vector<Int_t>>* isgoodTPCKurama;
+  TTreeReaderValue<std::vector<Int_t>>* piflagTPCKurama;
   TTreeReaderValue<std::vector<Int_t>>* kflagTPCKurama;
   TTreeReaderValue<std::vector<Int_t>>* pflagTPCKurama;
   TTreeReaderValue<std::vector<Double_t>>* chisqrTPCKurama;
@@ -1001,6 +1009,58 @@ TTree *tree;
     TPCHid    = 100000,
   };
   Double_t tofaddjustment[24] = {0};
+
+  Bool_t PionSelection(Double_t mass2, Double_t mom, Double_t nsigma)
+  {
+    if(TMath::IsNaN(mass2) || mass2<0) return false;
+
+    Double_t pdgmass2 = pdg::PionMass()*pdg::PionMass(); //(GeV/c2)^2
+
+    //Measured values(sigma of M2 spectrum)
+    TF1 *f_sigmaM2 = new TF1("f_sigmaM2", eq_sigmaM2.Data(), 0., 5.);
+    f_sigmaM2 -> FixParameter(0, 0.00662971);
+    f_sigmaM2 -> FixParameter(1, -0.0246172);
+    f_sigmaM2 -> FixParameter(2, 0.000133958);
+    f_sigmaM2 -> FixParameter(3, pdgmass2);
+
+    Double_t m2cut = nsigma*TMath::Sqrt(f_sigmaM2 -> Eval(mom)); //nsigma cut for M^2
+    return (TMath::Abs(mass2 - pdgmass2) < m2cut);
+  }
+
+  Bool_t KaonSelection(Double_t mass2, Double_t mom, Double_t nsigma)
+  {
+    if(TMath::IsNaN(mass2) || mass2<0) return false;
+
+    Double_t pdgmass2 = pdg::KaonMass()*pdg::KaonMass(); //(GeV/c2)^2
+
+    //Measured values(sigma of M2 spectrum)
+    TF1 *f_sigmaM2 = new TF1("f_sigmaM2", eq_sigmaM2.Data(), 0., 5.);
+    f_sigmaM2 -> FixParameter(0, 0.000193292);
+    f_sigmaM2 -> FixParameter(1, -0.000407003);
+    f_sigmaM2 -> FixParameter(2, 0.000134182);
+    f_sigmaM2 -> FixParameter(3, pdgmass2);
+
+    Double_t m2cut = nsigma*TMath::Sqrt(f_sigmaM2 -> Eval(mom)); //nsigma cut for M^2
+    return (TMath::Abs(mass2 - pdgmass2) < m2cut);
+  }
+
+  Bool_t ProtonSelection(Double_t mass2, Double_t mom, Double_t nsigma)
+  {
+    if(TMath::IsNaN(mass2) || mass2<0) return false;
+
+    Double_t pdgmass2 = pdg::ProtonMass()*pdg::ProtonMass(); //(GeV/c2)^2
+
+    //Measured values(sigma of M2 spectrum)
+    TF1 *f_sigmaM2 = new TF1("f_sigmaM2", eq_sigmaM2.Data(), 0., 5.);
+    f_sigmaM2 -> FixParameter(0, 0.000182219);
+    f_sigmaM2 -> FixParameter(1, -0.000277963);
+    f_sigmaM2 -> FixParameter(2, 0.000182387);
+    f_sigmaM2 -> FixParameter(3, pdgmass2);
+
+    Double_t m2cut = nsigma*TMath::Sqrt(f_sigmaM2 -> Eval(mom)); //nsigma cut for M^2
+    return (TMath::Abs(mass2 - pdgmass2) < m2cut);
+  }
+
 }
 
 //_____________________________________________________________________________
@@ -1115,10 +1175,10 @@ dst::DstRead( int ievent )
   if(src.nKK != 1) return true;
   if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut || src.inside[0] != 1) return true;
 #if KKEvent
-  if(src.Kflag[0] != 1) return true;
+  if(src.Kflag[0] != 1) return true; //precut with Kurama tracking
 #endif
 #if KPEvent
-  if(src.Pflag[0] != 1) return true;
+  if(src.Pflag[0] != 1) return true; //precut with Kurama tracking
 #endif
 
   if(src.ntKurama != **src.ntTPCKurama)
@@ -1175,8 +1235,6 @@ dst::DstRead( int ievent )
   event.ntKurama = src.ntKurama;
   event.tpcidTPCKurama = **src.tpcidTPCKurama;
   event.isgoodTPCKurama = **src.isgoodTPCKurama;
-  event.kflagTPCKurama = **src.kflagTPCKurama;
-  event.pflagTPCKurama = **src.pflagTPCKurama;
   event.chisqrTPCKurama = **src.chisqrTPCKurama;
   event.pTPCKurama = **src.pTPCKurama;
   event.qTPCKurama = **src.qTPCKurama;
@@ -1203,6 +1261,9 @@ dst::DstRead( int ievent )
   event.wpos = **src.wpos;
 
   event.m2TPCKurama.resize(src.ntKurama);
+  event.piflagTPCKurama.resize(src.ntKurama);
+  event.kflagTPCKurama.resize(src.ntKurama);
+  event.pflagTPCKurama.resize(src.ntKurama);
   for(Int_t it=0; it<src.ntKurama; ++it){
     event.chisqrKurama.push_back(src.chisqrKurama[it]);
     event.pKurama.push_back(src.pKurama[it]);
@@ -1234,6 +1295,10 @@ dst::DstRead( int ievent )
     int seg = src.tofsegKurama[it] - 1;
     if(event.cstof[it] + tofaddjustment[seg] > 0.) event.m2TPCKurama[it] = Kinematics::MassSquare(event.pTPCKurama[it], event.pathTPCKurama[it], event.cstof[it] + tofaddjustment[seg]);
     else event.m2TPCKurama[it] = TMath::QuietNaN();
+
+    event.piflagTPCKurama[it] = PionSelection(event.m2TPCKurama[it], event.pTPCKurama[it], nsigma_m2);
+    event.kflagTPCKurama[it] = KaonSelection(event.m2TPCKurama[it], event.pTPCKurama[it], nsigma_m2);
+    event.pflagTPCKurama[it] = ProtonSelection(event.m2TPCKurama[it], event.pTPCKurama[it], nsigma_m2);
   }
 
   if( src.nKK == 0 )
@@ -1811,6 +1876,7 @@ dst::DstRead( int ievent )
   event.nhtrack = **src.nhtrack;
   event.trackid = **src.trackid;
   event.isBeam = **src.isBeam;
+  event.isXi = **src.isXi;
   event.isKurama = **src.isKurama;
   event.isK18 = **src.isK18;
   event.isAccidental = **src.isAccidental;
@@ -2356,6 +2422,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "nhtrack", &event.nhtrack );
   tree->Branch( "trackid", &event.trackid );
   tree->Branch( "isBeam", &event.isBeam );
+  tree->Branch( "isXi", &event.isXi );
   tree->Branch( "isKurama", &event.isKurama );
   tree->Branch( "isK18", &event.isK18 );
   tree->Branch( "isAccidental", &event.isAccidental );
@@ -2534,6 +2601,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "yhtofKurama", &event.yhtofKurama);
   tree->Branch( "tpcidTPCKurama", &event.tpcidTPCKurama);
   tree->Branch( "isgoodTPCKurama", &event.isgoodTPCKurama);
+  tree->Branch( "piflagTPCKurama", &event.piflagTPCKurama);
   tree->Branch( "kflagTPCKurama", &event.kflagTPCKurama);
   tree->Branch( "pflagTPCKurama", &event.pflagTPCKurama);
   tree->Branch( "chisqrTPCKurama", &event.chisqrTPCKurama);
@@ -2650,6 +2718,7 @@ ConfMan::InitializeHistograms( void )
   src.nhtrack = new TTreeReaderValue<std::vector<Int_t>>( *reader, "nhtrack" );
   src.trackid = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trackid" );
   src.isBeam = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isBeam" );
+  src.isXi = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isXi" );
   src.isKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isKurama" );
   src.isK18 = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isK18" );
   src.isAccidental = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isAccidental" );
@@ -2772,8 +2841,6 @@ ConfMan::InitializeHistograms( void )
   src.ntTPCKurama = new TTreeReaderValue<Int_t>( *reader, "ntKurama" );
   src.tpcidTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "tpcidTPCKurama" );
   src.isgoodTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isgoodTPCKurama" );
-  src.kflagTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "kflagTPCKurama" );
-  src.pflagTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "pflagTPCKurama" );
   src.chisqrTPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqrTPCKurama" );
   src.pTPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pTPCKurama" );
   src.qTPCKurama  = new TTreeReaderValue<std::vector<Double_t>>( *reader, "qTPCKurama" );
