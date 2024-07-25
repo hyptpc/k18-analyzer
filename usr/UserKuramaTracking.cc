@@ -26,6 +26,7 @@
 
 #define HodoCut 0
 #define UseTOF  1
+#define Chi2Cut 1 // for Kurama tracking
 
 namespace
 {
@@ -46,6 +47,7 @@ const Double_t& zVPTPC3 = gGeom.LocalZ("VPTPC3");
 const Double_t& zVPTPC4 = gGeom.LocalZ("VPTPC4");
 const Double_t& zVPTPC5 = gGeom.LocalZ("VPTPC5");
 const Int_t &IdVP1 = gGeom.DetectorId("VP1");
+const Int_t &IdWC = gGeom.DetectorId("WC");
 }
 
 //_____________________________________________________________________________
@@ -150,9 +152,6 @@ struct Event
   Double_t resP[MaxHits];
   Double_t vpx[NumOfLayersVP];
   Double_t vpy[NumOfLayersVP];
-  Double_t vppx[NumOfLayersVP];
-  Double_t vppy[NumOfLayersVP];
-  Double_t vppz[NumOfLayersVP];
   Double_t vpxtpc[MaxHits][NumOfLayersVP];
   Double_t vpytpc[MaxHits][NumOfLayersVP];
   Double_t vpztpc[MaxHits][NumOfLayersVP];
@@ -173,6 +172,10 @@ struct Event
   Double_t vtofKurama[MaxHits];
   Double_t tofsegKurama[MaxHits];
 
+  Double_t xwcKurama[MaxHits];
+  Double_t ywcKurama[MaxHits];
+  Double_t pathwcKurama[MaxHits];
+
   std::vector< std::vector<Double_t> > resL;
   std::vector< std::vector<Double_t> > resG;
 
@@ -188,6 +191,12 @@ struct Event
 
   // For TPC + Kurama RK
   Int_t nh[MaxHits];
+  Double_t xin[MaxHits];
+  Double_t yin[MaxHits];
+  Double_t zin[MaxHits];
+  Double_t pxin[MaxHits];
+  Double_t pyin[MaxHits];
+  Double_t pzin[MaxHits];
   Double_t xout[MaxHits];
   Double_t yout[MaxHits];
   Double_t zout[MaxHits];
@@ -204,8 +213,8 @@ struct Event
   Double_t wire[MaxHits][22];
   Double_t localhitpos[MaxHits][22];
   Double_t wpos[MaxHits][22];
-  
-	void clear();
+
+  void clear();
 };
 
 //_____________________________________________________________________________
@@ -229,9 +238,6 @@ Event::clear()
   for(Int_t i = 0; i<NumOfLayersVP; ++i){
     vpx[i] = qnan;
     vpy[i] = qnan;
-    vppx[i] = qnan;
-    vppy[i] = qnan;
-    vppz[i] = qnan;
   }
 
   for(Int_t it=0; it<MaxHits; ++it){
@@ -307,10 +313,19 @@ Event::clear()
     utofKurama[it]  = qnan;
     vtofKurama[it]  = qnan;
     tofsegKurama[it] = qnan;
+    xwcKurama[it]   = qnan;
+    ywcKurama[it]   = qnan;
+    pathwcKurama[it] = qnan;
   }
 
   for(Int_t it=0; it<MaxHits; it++){
     nh[it] = qnan;
+    xin[it] = qnan;
+    yin[it] = qnan;
+    zin[it] = qnan;
+    pxin[it] = qnan;
+    pyin[it] = qnan;
+    pzin[it] = qnan;
     xout[it] = qnan;
     yout[it] = qnan;
     zout[it] = qnan;
@@ -353,6 +368,7 @@ Event::clear()
     tofua[i]     = qnan;
     tofda[i]     = qnan;
   }
+
 }
 
 //_____________________________________________________________________________
@@ -381,7 +397,7 @@ UserKuramaTracking::ProcessingNormal()
   static const auto MaxDeBH2   = gUser.GetParameter("DeBH2", 1);
   static const auto MinDeBH1   = gUser.GetParameter("DeBH1", 0);
   static const auto MaxDeBH1   = gUser.GetParameter("DeBH1", 1);
-  static const auto MinBeamToF = gUser.GetParameter("BTOF", 1);
+  static const auto MinBeamToF = gUser.GetParameter("BTOF", 0);
   static const auto MaxBeamToF = gUser.GetParameter("BTOF", 1);
   static const auto MinDeTOF   = gUser.GetParameter("DeTOF", 0);
   static const auto MaxDeTOF   = gUser.GetParameter("DeTOF", 1);
@@ -392,14 +408,27 @@ UserKuramaTracking::ProcessingNormal()
   static const auto MinStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 0);
   static const auto MaxStopTimingSdcOut = gUser.GetParameter("StopTimingSdcOut", 1);
   // static const auto StopTimeDiffSdcOut = gUser.GetParameter("StopTimeDiffSdcOut");
+
+  static const auto MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
+  static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
+
   static const auto MinTotSDC1 = gUser.GetParameter("MinTotSDC1");
   static const auto MinTotSDC2 = gUser.GetParameter("MinTotSDC2");
   static const auto MinTotSDC3 = gUser.GetParameter("MinTotSDC3");
   static const auto MinTotSDC4 = gUser.GetParameter("MinTotSDC4");
 
-  static const auto MaxMultiHitSdcIn  = gUser.GetParameter("MaxMultiHitSdcIn");
-  static const auto MaxMultiHitSdcOut = gUser.GetParameter("MaxMultiHitSdcOut");
+  static const auto MinDriftTimeSDC1 = gUser.GetParameter("DriftTimeSDC1", 0);
+  static const auto MaxDriftTimeSDC1 = gUser.GetParameter("DriftTimeSDC1", 1);
+  static const auto MinDriftTimeSDC2 = gUser.GetParameter("DriftTimeSDC2", 0);
+  static const auto MaxDriftTimeSDC2 = gUser.GetParameter("DriftTimeSDC2", 1);
+  static const auto MinDriftTimeSDC3 = gUser.GetParameter("DriftTimeSDC3", 0);
+  static const auto MaxDriftTimeSDC3 = gUser.GetParameter("DriftTimeSDC3", 1);
+  static const auto MinDriftTimeSDC4 = gUser.GetParameter("DriftTimeSDC4", 0);
+  static const auto MaxDriftTimeSDC4 = gUser.GetParameter("DriftTimeSDC4", 1);
 
+  static const auto MaxChisqrSdcIn = gUser.GetParameter("MaxChisqrSdcIn");
+  static const auto MaxChisqrSdcOut = gUser.GetParameter("MaxChisqrSdcOut");
+  static const auto MaxChisqrKurama = gUser.GetParameter("MaxChisqrKurama");
   rawData->DecodeHits();
 
   event.evnum = gUnpacker.get_event_number();
@@ -457,6 +486,8 @@ UserKuramaTracking::ProcessingNormal()
       time0    = ct0;
     }
   }
+  BH2Cluster* cl_time0 = hodoAna->GetTime0BH2Cluster();
+  if(cl_time0) time0 = cl_time0->CTime0();
   event.time0 = time0;
 
   //////////////BH1 Analysis
@@ -544,13 +575,17 @@ UserKuramaTracking::ProcessingNormal()
   HF1(1, 10.);
 
   DCAna->DecodeSdcInHits(rawData);
+  DCAna->TotCutSDC1(MinTotSDC1);
+  DCAna->TotCutSDC2(MinTotSDC2);
+  DCAna->DriftTimeCutSDC1(MinDriftTimeSDC1, MaxDriftTimeSDC1);
+  DCAna->DriftTimeCutSDC2(MinDriftTimeSDC2, MaxDriftTimeSDC2);
 
   // Double_t offset = common_stop_is_tof ? 0 : StopTimeDiffSdcOut;
   DCAna->DecodeSdcOutHits(rawData);
-  DCAna->TotCutSDC1(MinTotSDC1);
-  DCAna->TotCutSDC2(MinTotSDC2);
   DCAna->TotCutSDC3(MinTotSDC3);
   DCAna->TotCutSDC4(MinTotSDC4);
+  DCAna->DriftTimeCutSDC3(MinDriftTimeSDC3, MaxDriftTimeSDC3);
+  DCAna->DriftTimeCutSDC4(MinDriftTimeSDC4, MaxDriftTimeSDC4);
 
   Double_t multi_SdcIn  = 0.;
   ////////////// SdcIn number of hit layer
@@ -598,10 +633,10 @@ UserKuramaTracking::ProcessingNormal()
 
   HF1(1, 11.);
 
-
   // std::cout << "==========TrackSearch SdcIn============" << std::endl;
   DCAna->TrackSearchSdcIn();
-  //  DCAna->ChiSqrCutSdcIn(50.);
+  DCAna->ChiSqrCutSdcIn(MaxChisqrSdcIn);
+
   Int_t ntSdcIn = DCAna->GetNtracksSdcIn();
   if(MaxHits<ntSdcIn){
     std::cout << "#W " << FUNC_NAME << " "
@@ -705,8 +740,7 @@ UserKuramaTracking::ProcessingNormal()
 #else
   DCAna->TrackSearchSdcOut();
 #endif
-
-  //  DCAna->ChiSqrCutSdcOut(50.);
+  DCAna->ChiSqrCutSdcOut(MaxChisqrSdcOut);
   Int_t ntSdcOut = DCAna->GetNtracksSdcOut();
   if(MaxHits<ntSdcOut){
     std::cout << "#W " << FUNC_NAME << " "
@@ -787,6 +821,9 @@ UserKuramaTracking::ProcessingNormal()
 
   //////////////KURAMA Tracking
   DCAna->TrackSearchKurama();
+#if Chi2Cut
+  DCAna->ChiSqrCutKurama(MaxChisqrKurama);
+#endif
   Int_t ntKurama = DCAna->GetNTracksKurama();
   if(MaxHits < ntKurama){
     std::cout << "#W " << FUNC_NAME << " "
@@ -834,15 +871,11 @@ UserKuramaTracking::ProcessingNormal()
     event.phiKurama[i] = phi;
     event.resP[i] = p - initial_momentum;
     if(ntKurama == 1){
+      Double_t x, y;
       for(Int_t l = 0; l<NumOfLayersVP; ++l){
-	Double_t x, y;
-	TVector3 Mom;
-	track->GetTrajectoryLocalPositionMomentum(IdVP1 + l, x, y,Mom);
+	track->GetTrajectoryLocalPosition(IdVP1 + l, x, y);
 	event.vpx[l] = x;
 	event.vpy[l] = y;
-	event.vppx[l] = Mom.X();
-	event.vppy[l] = Mom.Y();
-	event.vppz[l] = Mom.Z();
       }// for(l)
     }
     Double_t x, y;
@@ -861,8 +894,14 @@ UserKuramaTracking::ProcessingNormal()
     event.vpxhtof[i] = x;
     event.vpyhtof[i] = y;
     event.vpzhtof[i] = zHTOF;
-    
-		const auto& posTof = track->TofPos();
+
+    Double_t pathwc;
+    track->GetTrajectoryLocalPosition(IdWC, pathwc, x, y);
+    event.xwcKurama[i] = x;
+    event.ywcKurama[i] = y;
+    event.pathwcKurama[i] = pathwc;
+
+    const auto& posTof = track->TofPos();
     const auto& momTof = track->TofMom();
     event.xtofKurama[i] = posTof.x();
     event.ytofKurama[i] = posTof.y();
@@ -920,8 +959,8 @@ UserKuramaTracking::ProcessingNormal()
       std::cout.precision(pre_precision);
 # endif
     }
-    
-		static const auto gposTOFDX = gGeom.GetGlobalPosition("TOF-DX");
+
+    static const auto gposTOFDX = gGeom.GetGlobalPosition("TOF-DX");
     const Double_t xOut = track->GetLocalTrackOut()->GetX(gposTOFDX.z());
     const Double_t yOut = track->GetLocalTrackOut()->GetY(gposTOFDX.z());
     const Double_t uOut = track->GetLocalTrackOut()->GetU0();
@@ -929,6 +968,26 @@ UserKuramaTracking::ProcessingNormal()
     const Double_t pzOut = track->GetInitialMomentum()/std::sqrt(1.+uOut*uOut+vOut*vOut);
     const ThreeVector posOut(xOut, yOut, gposTOFDX.z());
     const ThreeVector momOut(pzOut*uOut, pzOut*vOut, pzOut);
+# if 0
+    std::cout<<" evnum : "<<event.evnum<<std::endl;
+    std::cout<<" kurama "<<i<<"/"<<ntKurama
+	     <<" q : "<<track->Polarity()
+	     <<" mom : "<<Mom.x()<<" "<<Mom.y()<<" "<<Mom.z()<<" mag : "<<Mom.Mag()
+	     <<" init mom : "<<track->GetInitialMomentum()<<" "<<momOut.Mag()<<std::endl;
+    std::cout<<" posOut : "<<posOut.x()<<" "<<posOut.y()<<" "<<posOut.z()<<std::endl;
+    std::cout<<" momOut : "<<momOut.x()<<" "<<momOut.y()<<" "<<momOut.z()<<std::endl;
+    std::cout<<" posTof : "<<posTof.x()<<" "<<posTof.y()<<" "<<posTof.z()<<std::endl;
+    std::cout<<" momTof : "<<momTof.x()<<" "<<momTof.y()<<" "<<momTof.z()<<std::endl;
+# endif
+
+    static const auto gposTgt = gGeom.GetGlobalPosition("Target");
+    const Double_t xIn = track->GetLocalTrackIn()->GetX(gposTgt.z());
+    const Double_t yIn = track->GetLocalTrackIn()->GetY(gposTgt.z());
+    const Double_t uIn = track->GetLocalTrackIn()->GetU0();
+    const Double_t vIn = track->GetLocalTrackIn()->GetV0();
+    const Double_t pzIn = track->GetInitialMomentum()/std::sqrt(1.+uIn*uIn+vIn*vIn);
+    const ThreeVector posIn(xIn, yIn, gposTgt.z());
+    const ThreeVector momIn(pzIn*uIn, pzIn*vIn, pzIn);
 
     event.nh[i]=nh;
     event.xout[i]=posOut.x();
@@ -943,8 +1002,14 @@ UserKuramaTracking::ProcessingNormal()
     event.pxtof[i]=momTof.x();
     event.pytof[i]=momTof.y();
     event.pztof[i]=momTof.z();
-    
-		for(Int_t j=0; j<nh; ++j){
+    event.xin[i]=posIn.x();
+    event.yin[i]=posIn.y();
+    event.zin[i]=posIn.z();
+    event.pxin[i]=momIn.x();
+    event.pyin[i]=momIn.y();
+    event.pzin[i]=momIn.z();
+
+    for(Int_t j=0; j<nh; ++j){
       TrackHit *hit=track->GetHit(j);
       if(!hit) continue;
       Int_t layerId = hit->GetLayer();
@@ -990,6 +1055,7 @@ UserKuramaTracking::ProcessingNormal()
 
     DCLocalTrack *trSdcIn  = track->GetLocalTrackIn();
     DCLocalTrack *trSdcOut = track->GetLocalTrackOut();
+
     if(trSdcIn){
       Int_t nhSdcIn=trSdcIn->GetNHit();
       Double_t x0in=trSdcIn->GetX0(), y0in=trSdcIn->GetY0();
@@ -1106,33 +1172,33 @@ ConfMan::EventAllocator()
 Bool_t
 ConfMan:: InitializeHistograms()
 {
-  const Int_t    NBinDTSDC1 =  90;
-  const Double_t MinDTSDC1  = -10.;
-  const Double_t MaxDTSDC1  =  80.;
-  const Int_t    NBinDLSDC1 =  100;
+  const Int_t    NBinDTSDC1 = 180;
+  const Double_t MinDTSDC1  = -30.;
+  const Double_t MaxDTSDC1  = 120.;
+  const Int_t    NBinDLSDC1 =  80;
   const Double_t MinDLSDC1  = -0.5;
-  const Double_t MaxDLSDC1  =  3.0;
+  const Double_t MaxDLSDC1  =  3.5;
 
-  const Int_t    NBinDTSDC2 =  220;
-  const Double_t MinDTSDC2  = -20.;
-  const Double_t MaxDTSDC2  = 200.;
-  const Int_t    NBinDLSDC2 =  100;
+  const Int_t    NBinDTSDC2 = 360;
+  const Double_t MinDTSDC2  = -50.;
+  const Double_t MaxDTSDC2  = 250.;
+  const Int_t    NBinDLSDC2 = 130;
   const Double_t MinDLSDC2  = -0.5;
-  const Double_t MaxDLSDC2  =  4.5;
+  const Double_t MaxDLSDC2  =  6.;
 
-  const Int_t    NBinDTSDC3 =  400;
-  const Double_t MinDTSDC3  = -100.;
-  const Double_t MaxDTSDC3  =  300.;
-  const Int_t    NBinDLSDC3 =  100;
-  const Double_t MinDLSDC3  = -5.0;
-  const Double_t MaxDLSDC3  = 15.0;
+  const Int_t    NBinDTSDC3 = 360;
+  const Double_t MinDTSDC3  = -50.;
+  const Double_t MaxDTSDC3  = 250.;
+  const Int_t    NBinDLSDC3 = 150;
+  const Double_t MinDLSDC3  = -2.0;
+  const Double_t MaxDLSDC3  =  5.5;
 
-  const Int_t    NBinDTSDC4 =  400;
-  const Double_t MinDTSDC4  = -100.;
-  const Double_t MaxDTSDC4  =  300.;
-  const Int_t    NBinDLSDC4 =  100;
-  const Double_t MinDLSDC4  = -5.0;
-  const Double_t MaxDLSDC4  = 15.0;
+  const Int_t    NBinDTSDC4 = 720;
+  const Double_t MinDTSDC4  = -50.;
+  const Double_t MaxDTSDC4  = 550.;
+  const Int_t    NBinDLSDC4 = 300;
+  const Double_t MinDLSDC4  = -3.0;
+  const Double_t MaxDLSDC4  = 12.0;
 
   HB1(1, "Status", 30, 0., 30.);
 
@@ -1233,12 +1299,16 @@ ConfMan:: InitializeHistograms()
 
   //SDC2
   for(Int_t i=NumOfLayersSDC1+1; i<=NumOfLayersSdcIn; ++i){
-    TString title1 = Form("HitPat Sdc2_%d", i-NumOfLayersSDC1);
-    TString title4 = Form("Position Sdc2_%d", i-NumOfLayersSDC1);
-    TString title5 = Form("Residual Sdc2_%d", i-NumOfLayersSDC1);
-    TString title6 = Form("Resid%%Pos Sdc2_%d", i-NumOfLayersSDC1);
-    TString title7 = Form("Y%%Xcal Sdc2_%d", i-NumOfLayersSDC1);
+    TString title1 = Form("HitPat Sdc2%d", i-NumOfLayersSDC1);
+    TString title2 = Form("DriftTime Sdc2_%d", i-NumOfLayersSDC1);
+    TString title3 = Form("DriftLength Sdc2_%d", i-NumOfLayersSDC1);
+    TString title4 = Form("Position Sdc2%d", i-NumOfLayersSDC1);
+    TString title5 = Form("Residual Sdc2%d", i-NumOfLayersSDC1);
+    TString title6 = Form("Resid%%Pos Sdc2%d", i-NumOfLayersSDC1);
+    TString title7 = Form("Y%%Xcal Sdc2%d", i-NumOfLayersSDC1);
     HB1(100*i+1, title1, 70, 0., 70.);
+    HB1(100*i+2, title2, NBinDTSDC2, MinDTSDC2, MaxDTSDC2);
+    HB1(100*i+3, title3, NBinDLSDC2, MinDLSDC2, MaxDLSDC2);
     HB1(100*i+4, title4, 800, -400., 400.);
     HB1(100*i+5, title5, 500, -5.0, 5.0);
     HB2(100*i+6, title6, 100, -600., 600., 100, -5.0, 5.0);
@@ -1291,7 +1361,7 @@ ConfMan:: InitializeHistograms()
 
   // SDC4
   for(Int_t i=NumOfLayersSdcIn+NumOfLayersSDC3+1;
-      i<=(NumOfLayersSdcIn+NumOfLayersSdcOut) ; ++i){
+      i<=(NumOfLayersSdcIn+NumOfLayersSDC3+NumOfLayersSDC4) ; ++i){
     TString title1 = Form("HitPat Sdc4_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC3));
     TString title2 = Form("DriftTime Sdc4_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC3));
     TString title3 = Form("DriftLength Sdc4_%d", i-(NumOfLayersSdcIn+NumOfLayersSDC3));
@@ -1323,8 +1393,6 @@ ConfMan:: InitializeHistograms()
     HB2(100*i+17, title7, 100, -600., 600., 100, -600., 600.);
     HB2(100*i+22, title22, NBinDTSDC4, MinDTSDC4, MaxDTSDC4, NBinDLSDC4, MinDLSDC4, MaxDLSDC4);
   }
-  /////////////////////
-
 
   // TOF in SdcOut/KuramaTracking
   for(Int_t i=NumOfLayersSdcIn+NumOfLayersSdcOut+1;
@@ -1336,7 +1404,7 @@ ConfMan:: InitializeHistograms()
     TString title7 = Form("Y%%Xcal Tof%d", i-(NumOfLayersSdcIn+NumOfLayersSdcOut));
     HB1(100*i+1, title1, 200, 0., 200.);
     HB1(100*i+4, title4, 1000, -1000., 1000.);
-    HB1(100*i+5, title5, 400, -80., 80.);
+    HB1(100*i+5, title5, 200, -20., 20.);
     HB2(100*i+6, title6, 100, -1000., 1000., 100, -200., 200.);
     HB2(100*i+7, title7, 100, -1000., 1000., 100, -1000., 1000.);
     title1 += " [KuramaTrack]";
@@ -1346,7 +1414,7 @@ ConfMan:: InitializeHistograms()
     title7 += " [KuramaTrack]";
     HB1(100*i+11, title1, 200, 0., 200.);
     HB1(100*i+14, title4, 1000, -1000., 1000.);
-    HB1(100*i+15, title5, 400, -80., 80.);
+    HB1(100*i+15, title5, 200, -20., 20.);
     HB2(100*i+16, title6, 100, -1000., 1000., 100, -200., 200.);
     HB2(100*i+17, title7, 100, -1000., 1000., 100, -1000., 1000.);
   }
@@ -1428,7 +1496,7 @@ ConfMan:: InitializeHistograms()
 
   tree->Branch("thetaKurama",  event.thetaKurama,  "thetaKurama[ntKurama]/D");
   tree->Branch("phiKurama",    event.phiKurama,    "phiKurama[ntKurama]/D");
-  tree->Branch("resP",    event.resP,   "resP[ntKurama]/D");
+  tree->Branch("resP",         event.resP,         "resP[ntKurama]/D");
 
   tree->Branch("xtofKurama",   event.xtofKurama,   "xtofKurama[ntKurama]/D");
   tree->Branch("ytofKurama",   event.ytofKurama,   "ytofKurama[ntKurama]/D");
@@ -1436,22 +1504,21 @@ ConfMan:: InitializeHistograms()
   tree->Branch("vtofKurama",   event.vtofKurama,   "vtofKurama[ntKurama]/D");
   tree->Branch("tofsegKurama", event.tofsegKurama, "tofsegKurama[ntKurama]/D");
 
+  tree->Branch("xwcKurama",    event.xwcKurama,    "xwcKurama[ntKurama]/D");
+  tree->Branch("ywcKurama",    event.ywcKurama,    "ywcKurama[ntKurama]/D");
+  tree->Branch("pathwcKurama", event.pathwcKurama, "pathwcKurama[ntKurama]/D");
+
   tree->Branch("vpx",          event.vpx,          Form("vpx[%d]/D", NumOfLayersVP));
   tree->Branch("vpy",          event.vpy,          Form("vpy[%d]/D", NumOfLayersVP));
-  tree->Branch("vppx",          event.vppx,          Form("vppx[%d]/D", NumOfLayersVP));
-  tree->Branch("vppy",          event.vppy,          Form("vppy[%d]/D", NumOfLayersVP));
-  tree->Branch("vppz",          event.vppz,          Form("vppz[%d]/D", NumOfLayersVP));
   tree->Branch("vpxtpc",       event.vpxtpc,       Form("vpxtpc[ntKurama][%d]/D", NumOfLayersVP));
   tree->Branch("vpytpc",       event.vpytpc,       Form("vpytpc[ntKurama][%d]/D", NumOfLayersVP));
   tree->Branch("vpztpc",       event.vpztpc,       Form("vpztpc[ntKurama][%d]/D", NumOfLayersVP));
   tree->Branch("vpxhtof",      event.vpxhtof,      "vpxhtof[ntKurama]/D");
   tree->Branch("vpyhtof",      event.vpyhtof,      "vpyhtof[ntKurama]/D");
   tree->Branch("vpzhtof",      event.vpzhtof,      "vpzhtof[ntKurama]/D");
-  
+
   event.resL.resize(NumOfLayersSdcIn+NumOfLayersSdcOut+4);
   event.resG.resize(NumOfLayersSdcIn+NumOfLayersSdcOut+4);
-  // tree->Branch("resL", &event.resL);
-  // tree->Branch("resG", &event.resG);
   for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
     tree->Branch(Form("ResL%d",i+1), &event.resL[i]);
   }
@@ -1485,14 +1552,20 @@ ConfMan:: InitializeHistograms()
   tree->Branch("ddeTofSeg", event.ddeTofSeg, Form("ddeTofSeg[%d]/D", NumOfSegTOF));
   tree->Branch("tofua",     event.tofua,     Form("tofua[%d]/D", NumOfSegTOF));
   tree->Branch("tofda",     event.tofda,     Form("tofda[%d]/D", NumOfSegTOF));
-  
-	tree->Branch("nh", event.nh, "[ntKurama]/I");
+
+  tree->Branch("nh", event.nh, "[ntKurama]/I");
   tree->Branch("xout", event.xout, "[ntKurama]/D");
   tree->Branch("yout", event.yout, "[ntKurama]/D");
   tree->Branch("zout", event.zout, "[ntKurama]/D");
   tree->Branch("pxout", event.pxout, "[ntKurama]/D");
   tree->Branch("pyout", event.pyout, "[ntKurama]/D");
   tree->Branch("pzout", event.pzout, "[ntKurama]/D");
+  tree->Branch("xin", event.xin, "[ntKurama]/D");
+  tree->Branch("yin", event.yin, "[ntKurama]/D");
+  tree->Branch("zin", event.zin, "[ntKurama]/D");
+  tree->Branch("pxin", event.pxin, "[ntKurama]/D");
+  tree->Branch("pyin", event.pyin, "[ntKurama]/D");
+  tree->Branch("pzin", event.pzin, "[ntKurama]/D");
   tree->Branch("xtof", event.xtof, "[ntKurama]/D");
   tree->Branch("ytof", event.ytof, "[ntKurama]/D");
   tree->Branch("ztof", event.ztof, "[ntKurama]/D");

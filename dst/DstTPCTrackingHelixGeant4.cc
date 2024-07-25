@@ -2302,7 +2302,7 @@ dst::DstRead( int ievent )
     event.Clusteredvtx_y[ivtx] = vp -> GetVertex().y();
     event.Clusteredvtx_z[ivtx] = vp -> GetVertex().z();
 
-    Int_t ntracks = vp -> GetNTracks(ivtx);
+    Int_t ntracks = vp -> GetNTracks();
     event.Clusteredvtxid[ivtx].resize(ntracks);
     for( Int_t it=0; it<ntracks; ++it ){
       event.Clusteredvtxid[ivtx][it] = vp -> GetTrackId(it);

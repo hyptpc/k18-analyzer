@@ -85,7 +85,7 @@ public:
   TVector3 GetPionMomLambda(Int_t i) const { return m_pion_mom.at(i); }
 
   //For clustered tracks
-  Int_t GetNTracks(Int_t i) const { return m_track_id.size(); }
+  Int_t GetNTracks() const { return m_track_id.size(); }
 
   void Print(const TString& arg="", Bool_t print_all=false) const;
 };

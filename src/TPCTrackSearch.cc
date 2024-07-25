@@ -134,6 +134,23 @@ namespace
       track->CheckIsAccidental();
     }
   }
+
+  template <typename T> void
+  MarkingClusteredAccidentalTracks(std::vector<T*>& TrackCont, std::vector<TPCVertex*>& ClusteredVertexCont)
+  {
+    Double_t signal_section = 30; //within this section, we don't use this veto process.
+    for(auto& vertex: ClusteredVertexCont){
+      if(TMath::Abs(vertex -> GetVertex().y()) < signal_section) continue;
+      vertex -> SetIsAccidental();
+
+      Int_t ntracks = vertex -> GetNTracks();
+      for(Int_t i=0; i<ntracks; i++){
+	Int_t id = vertex -> GetTrackId(i);
+	TrackCont[id] -> SetIsAccidental();
+      }
+    }
+  }
+
   //_____________________________________________________________________________
   //reset houghflag of remain clusters
   void
@@ -1075,6 +1092,8 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 
   TestingCharge(TrackCont, TrackContInvertedCharge, VertexCont, Exclusive);
 
+  MarkingClusteredAccidentalTracks(TrackCont, ClusteredVertexCont);
+
 #if DebugDisp
   std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
   std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
@@ -1149,6 +1168,8 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 #endif
 
   TestingCharge(TrackCont, TrackContInvertedCharge, VertexCont, Exclusive);
+
+  MarkingClusteredAccidentalTracks(TrackCont, ClusteredVertexCont);
 
   CalcTracks(TrackContVP);
   CalcTracks(TrackContFailed); //Tracking failed cases
@@ -2132,8 +2153,6 @@ MarkingAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
 
   Double_t tgtXZ_cut = 30.; //mm
   Double_t target_section = 15; // abs(y)<target_section is not counted in this function
-  Double_t accidental_section = 30;
-  //Double_t accidental_section = 50;
 
   TVector3 tgt(0., 0., tpc::ZTarget);
   std::vector<std::vector<TPCVertex*>> clustered_vertices; //Clustered tracks id
@@ -2265,14 +2284,6 @@ MarkingAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
 
   for(Int_t id=0; id<accidental_vertices.size(); id++){
     if(TMath::Abs(accidental_vertices[id].y()) < target_section) continue;
-    else if(TMath::Abs(accidental_vertices[id].y()) > accidental_section){
-      for(Int_t candi=0; candi<clustered_tracks[id].size(); candi++){
-	int trackid = clustered_tracks[id][candi];
-	TrackCont[trackid] -> SetIsAccidental();
-      }
-    }
-    for(auto& vertex: clustered_vertices[id]) vertex -> SetIsAccidental();
-
     TPCVertex *clustered_vtx = new TPCVertex(accidental_vertices[id], clustered_tracks[id]);
     ClusteredVertexCont.push_back(clustered_vtx);
   }
