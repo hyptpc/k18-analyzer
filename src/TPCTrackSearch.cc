@@ -2568,6 +2568,7 @@ ReassignClustersXiTrack(const std::vector<TPCClusterContainer>& ClCont,
 	else if(charge*theta > charge*outer_theta || track_out -> IsGoodHitToAdd(hit, residual)) ldecay_clusterids.push_back(clusterid);
 	else break; //if cluster exists between lambda and pi- tracks, it is not Xi-
       }
+      if(xitrack_clusterids.size()==0) continue;
 
       //if cluster exists between lambda and xi- tracks, it is not Xi-
       if((xitrack_clusterids.size() + ldecay_clusterids.size()) != track -> GetNHit()) continue;
@@ -2748,10 +2749,6 @@ ReassignClustersXiTrack(const std::vector<TPCClusterContainer>& ClCont,
 
       T *XiTrack = new T(track);
       delete track;
-      if(xitrack_clusterids.size()==0){
-	delete XiTrack;
-	continue;
-      }
       XiTrack -> EraseHits(ldecay_clusterids);
       TrackCont[trackid] = LdecayTrack;
       TrackCont[trackid] -> SetClustersHoughFlag(GoodForTracking);

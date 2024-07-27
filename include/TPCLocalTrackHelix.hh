@@ -118,7 +118,6 @@ public:
   Bool_t       DoHelixFit(Double_t *par, Bool_t vetoBadClusters);
 
   Bool_t       DetermineCharge();
-  void         InvertChargeCheck();
   Int_t        FinalizeTrack(Int_t &delete_hit);
   void         SortHitOrder(); //Sort hits by theta
 

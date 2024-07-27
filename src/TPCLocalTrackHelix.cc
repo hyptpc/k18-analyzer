@@ -70,7 +70,6 @@ z = p[2] + p[4]*p[3]*(theta);
 
 #define DebugDisp 0
 #define IterativeResolution 1
-#define InvertChargeTest 0
 //Byungmin's new method for residual definition
 #define PtPlane 0
 #define CircCross 0
@@ -1650,9 +1649,6 @@ TPCLocalTrackHelix::DoFit(Int_t MinHits)
   m_is_fitted = status;
 
   if(!status || m_chisqr > MaxChisqr) return false;
-#if InvertChargeTest
-  InvertChargeCheck();
-#endif
 
   SeparateTracksAtTarget();
 
@@ -3001,103 +2997,6 @@ TPCLocalTrackHelix::FinalizeTrack(Int_t &delete_hit)
 }
 
 //______________________________________________________________________________
-void
-TPCLocalTrackHelix::InvertChargeCheck()
-{
-
-  // for invert charge fit
-  Double_t test_minlayer_t = 0., test_maxlayer_t = 0.;
-  Int_t test_minlayer = 33, test_maxlayer = -1;
-  for(std::size_t i=0; i<m_hit_array.size(); ++i){
-    TPCLTrackHit *hitp = m_hit_array[i];
-    TVector3 pos = hitp->GetLocalHitPos();
-    Double_t t = m_hit_t[i];
-    Int_t layer = hitp->GetLayer();
-    if(test_minlayer > layer){
-      test_minlayer = layer;
-      test_minlayer_t = t;
-    }
-    if(test_maxlayer < layer){
-      test_maxlayer = layer;
-      test_maxlayer_t = t;
-    }
-  }
-  Double_t mid_t = (test_minlayer_t + test_maxlayer_t)/2.;
-  TVector3 mid_pos = GetPosition(gPar, mid_t);
-  Double_t mid_x = mid_pos.x();
-  Double_t mid_y = mid_pos.y();
-
-  Double_t par[5];
-  par[0] = m_cx - 2.*(m_cx - mid_x);
-  par[1] = m_cy - 2.*(m_cy - mid_y);
-  par[2] = m_z0;
-  par[3] = m_r;
-  par[4] = m_dz;
-  Double_t err[5] = {-999., -999., -999., -999., -999.};
-
-  TMinuit *minuit = new TMinuit(5);
-  minuit->SetPrintLevel(-1);
-  minuit->SetFCN(fcn_helix);
-
-  Int_t ierflg = 0;
-  Double_t arglist[10];
-  arglist[0] = 5.89;
-  minuit->mnexcm("SET ERR", arglist,1,ierflg); //Num of parameter
-  arglist[0] = 1;
-  minuit->mnexcm("SET NOW", arglist,1,ierflg); // No warnings
-
-  TString name[5] = {"cx", "cy", "z0", "r", "dz"};
-  for(Int_t i = 0; i<5; i++){
-    if(GetIsBeam()==1)
-      minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimitBeam[i], UpLimit[i], ierflg);
-    else
-      minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
-  }
-  minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
-
-  Double_t amin, edm, errdef;
-  Int_t nvpar, nparx, icstat;
-  minuit->mnstat(amin, edm, errdef, nvpar, nparx, icstat);
-
-  Int_t Err;
-  Double_t bnd1, bnd2;
-  for(Int_t i=0; i<5; i++){
-    minuit->mnpout(i, name[i], par[i], err[i], bnd1, bnd2, Err);
-  }
-
-  Double_t grad[5]; Double_t Chisqr;
-  minuit -> Eval(5, grad, Chisqr, par, 0);
-  if(gChisqr > Chisqr){
-    gChisqr = Chisqr;
-    gPar[0] = par[0];
-    gPar[1] = par[1];
-    gPar[2] = par[2];
-    gPar[3] = par[3];
-    gPar[4] = par[4];
-    gMinuitStatus = icstat;
-
-    m_chisqr = gChisqr;
-    m_minuit = gMinuitStatus;
-
-    const std::size_t n = m_hit_array.size();
-    Double_t window = ThetaWindow/TMath::Min(gPar[3], 7000.); //p < 2.1 GeV/c
-    gNumOfHits = n;
-    gHitPos.clear();
-    gLayer.clear();
-    gPadTheta.clear();
-    gResParam.clear();
-
-    SetParam(gPar);
-    CalcHelixTheta();
-    for(Int_t i=0; i<gNumOfHits; ++i){
-      Double_t theta = EvalTheta(gPar, gHitPos[i], gHelixTheta[i] - 0.5*window, gHelixTheta[i] + 0.5*window);
-      m_hit_t[i] = theta;
-      gHelixTheta[i] = theta;
-    }
-  }
-}
-
-//______________________________________________________________________________
 Bool_t
 TPCLocalTrackHelix::ConvertParam(Double_t *linear_par)
 {
@@ -3546,7 +3445,7 @@ Bool_t
 TPCLocalTrackHelix::TestInvertCharge()
 {
 
-  if(m_is_multiloop || m_isBeam==1 || m_isK18==1 || m_isAccidental==1) return false;
+  if(m_is_multiloop || m_isBeam==1 || m_isK18==1 || m_isAccidental==1 || m_isXi==1) return false;
 
   if(!m_is_theta_calculated){
     std::cout<<FUNC_NAME+" Fatal error : No helix theta information!!! CalcHelixTheta() should be run in front of this"<<std::endl;
