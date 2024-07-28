@@ -151,7 +151,7 @@ S2sTrack::DoFit()
   m_status = kInit;
 
   if(m_initial_momentum<0){
-    hddaq::cout << FUNC_NAME << " initial momentum must be positive"
+    hddaq::cout << FUNC_NAME << " initial momentum must be positive "
   		<< m_initial_momentum << std::endl;
     m_status = kFatal;
     return false;

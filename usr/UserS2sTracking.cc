@@ -360,9 +360,9 @@ ProcessingNormal()
     Double_t cmt = hit->CMeanTime();
     Double_t ct0 = hit->CTime0();
     Double_t de  = hit->DeltaE();
-    #if HodoCut
-        if(de<MinDeBH2 || MaxDeBH2<de) continue;
-    #endif
+#if HodoCut
+    if(de<MinDeBH2 || MaxDeBH2<de) continue;
+#endif
     event.tBh2[i]   = cmt;
     event.t0Bh2[i]  = ct0;
     event.deBh2[i]  = de;
@@ -716,7 +716,18 @@ ProcessingNormal()
   static const auto StofOffset = gUser.GetParameter("StofOffset");
 
   //////////////S2S Tracking
-  DCAna.TrackSearchS2s();
+  if( nhTof > 0 ){
+    Double_t seg = event.TofSeg[0];
+    Double_t par[3] = {1.59, -3.07e-2, 4.19e-4};
+    Double_t pMag   = par[0]+seg*par[1]+seg*seg*par[2]; // Magnitude
+    Double_t scale  = 1.;
+    Double_t initial_momentum = pMag*scale;
+    DCAna.TrackSearchS2s(initial_momentum);
+  }
+  else{
+    DCAna.TrackSearchS2s(1.4);
+  }
+
   Int_t ntS2s = DCAna.GetNTracksS2s();
   if(MaxHits < ntS2s){
     std::cout << "#W too many ntS2s " << ntS2s << "/" << MaxHits << std::endl;

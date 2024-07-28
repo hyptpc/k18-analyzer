@@ -900,9 +900,7 @@ DCAnalyzer::TrackSearchS2s()
       Double_t bending = u0Out - u0In;
       // Double_t p[3] = { 0.08493, 0.2227, 0.01572 };
       // Double_t initial_momentum = p[0] + p[1]/(bending-p[2]);
-      Double_t s = valueNMR/TMath::Abs(valueNMR);
-      // Double_t initial_momentum = s*pK18;
-      Double_t initial_momentum = 1.4;
+      Double_t initial_momentum = TMath::Abs(pK18);
       if(false
          && bending>0. && initial_momentum>0.){
         trS2s->SetInitialMomentum(initial_momentum);
@@ -937,18 +935,16 @@ DCAnalyzer::TrackSearchS2s(Double_t initial_momentum)
 {
   ClearS2sTracks();
 
-  Int_t nIn  = GetNtracksSdcIn();
-  Int_t nOut = GetNtracksSdcOut();
-
+  auto nIn = m_SdcInTC.size();
+  auto nOut = m_SdcOutTC.size();
   if(nIn==0 || nOut==0) return true;
-
   for(Int_t iIn=0; iIn<nIn; ++iIn){
     const auto& trIn = GetTrackSdcIn(iIn);
-    if(!trIn->GoodForTracking()) continue;
+    if(!trIn || !trIn->GoodForTracking()) continue;
     for(Int_t iOut=0; iOut<nOut; ++iOut){
       const auto& trOut = GetTrackSdcOut(iOut);
-      if(!trOut->GoodForTracking()) continue;
-      S2sTrack *trS2s = new S2sTrack(trIn, trOut);
+      if(!trOut || !trOut->GoodForTracking()) continue;
+      auto trS2s = new S2sTrack(trIn, trOut);
       if(!trS2s) continue;
       trS2s->SetInitialMomentum(initial_momentum);
       if(trS2s->DoFit() && trS2s->ChiSquare()<MaxChiSqrS2sTrack){
