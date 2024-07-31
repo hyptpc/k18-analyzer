@@ -2399,7 +2399,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "posHtof", &event.posHtof );
 
   tree->Branch( "nclTpc", &event.nclTpc );
-  tree->Branch( "remain_nclTpc", &event.nclTpc );
+  tree->Branch( "remain_nclTpc", &event.remain_nclTpc );
 #if RawCluster
   tree->Branch( "cluster_x", &event.cluster_x );
   tree->Branch( "cluster_y", &event.cluster_y );
