@@ -96,6 +96,8 @@ struct Event
   Double_t vpy[NumOfLayersVP*MaxHits];
   Double_t vpu[NumOfLayersVP*MaxHits];
   Double_t vpv[NumOfLayersVP*MaxHits];
+  std::vector< std::vector<Double_t> > resL;
+  std::vector< std::vector<Double_t> > resG;
 
   // Hodoscope
   Int_t trigflag[NumOfSegTrig];
@@ -185,6 +187,8 @@ struct Src
   Double_t vpy[NumOfLayersVP];
   Double_t vpu[NumOfLayersVP];
   Double_t vpv[NumOfLayersVP];
+  std::vector< std::vector<Double_t>* > resL;
+  std::vector< std::vector<Double_t>* > resG;
 
   Int_t    nhBh1;
   Int_t    csBh1[NumOfSegBH1*MaxDepth];
@@ -321,6 +325,11 @@ dst::InitializeEvent()
     event.lutofS2s[i]  = qnan;
     event.lvtofS2s[i]  = qnan;
     event.tofsegS2s[i]  = qnan;
+  }
+
+  for(Int_t i=0; i<PlMaxTOF; ++i){
+    event.resL[i].clear();
+    event.resG[i].clear();
   }
 
   for (Int_t l = 0; l < NumOfLayersVP; ++l) {
@@ -517,6 +526,15 @@ dst::DstRead(Int_t ievent)
     event.Ac1Seg[it] = src.Ac1Seg[it];
     event.tAc1[it]   = src.tAc1[it];
   }
+
+  for(Int_t i=0; i<PlMaxTOF; ++i){
+    if( !src.resL[i] || !src.resG[i] ) continue;
+    event.resL[i].resize((*src.resL[i]).size());
+    event.resG[i].resize((*src.resG[i]).size());
+    std::copy((*src.resL[i]).begin(), (*src.resL[i]).end(), event.resL[i].begin());
+    std::copy((*src.resG[i]).begin(), (*src.resG[i]).end(), event.resG[i].begin());
+  }
+
 
   Int_t m2Combi = event.nhTof*event.ntS2s;
   if(m2Combi>MaxHits || m2Combi<0){
@@ -861,6 +879,17 @@ ConfMan::InitializeHistograms()
   tree->Branch("vpu", event.vpu, Form("vpu[%d]/D", NumOfLayersVP));
   tree->Branch("vpv", event.vpv, Form("vpv[%d]/D", NumOfLayersVP));
 
+  event.resL.resize(PlMaxTOF);
+  event.resG.resize(PlMaxTOF);
+  for( Int_t i = 1; i <= PlMaxTOF; i++ ){
+    if( (PlMinSdcIn  <= i && i <= PlMaxSdcIn) ||
+        (PlMinSdcOut <= i && i <= PlMaxSdcOut) ||
+        (PlMinTOF    <= i && i <= PlMaxTOF) ){
+      tree->Branch(Form("ResL%d", i), &event.resL[i-1]);
+      tree->Branch(Form("ResG%d", i), &event.resG[i-1]);
+    }
+  }
+
   tree->Branch("tTofCalc",  event.tTofCalc,  Form("tTofCalc[%d]/D", Event::nParticle));
 
   tree->Branch("m2Combi", &event.m2Combi, "m2Combi/I");
@@ -973,6 +1002,14 @@ ConfMan::InitializeHistograms()
   TTreeCont[kS2sTracking]->SetBranchStatus("vpy",          1);
   TTreeCont[kS2sTracking]->SetBranchStatus("vpu",          1);
   TTreeCont[kS2sTracking]->SetBranchStatus("vpv",          1);
+  for( Int_t i = 1; i <= PlMaxTOF; i++ ){
+    if( (PlMinSdcIn  <= i && i <= PlMaxSdcIn) ||
+        (PlMinSdcOut <= i && i <= PlMaxSdcOut) ||
+        (PlMinTOF    <= i && i <= PlMaxTOF) ){
+      TTreeCont[kS2sTracking]->SetBranchStatus(Form("ResL%d", i), 1);
+      TTreeCont[kS2sTracking]->SetBranchStatus(Form("ResG%d", i), 1);
+    }
+  }
 
   TTreeCont[kS2sTracking]->SetBranchAddress("ntSdcOut", &src.ntSdcOut);
   TTreeCont[kS2sTracking]->SetBranchAddress("chisqrSdcOut", src.chisqrSdcOut);
@@ -1003,6 +1040,17 @@ ConfMan::InitializeHistograms()
   TTreeCont[kS2sTracking]->SetBranchAddress("vpy",        src.vpy);
   TTreeCont[kS2sTracking]->SetBranchAddress("vpu",        src.vpu);
   TTreeCont[kS2sTracking]->SetBranchAddress("vpv",        src.vpv);
+
+  src.resL.resize(PlMaxTOF);
+  src.resG.resize(PlMaxTOF);
+  for( Int_t i = 1; i <= PlMaxTOF; i++ ){
+    if( (PlMinSdcIn  <= i && i <= PlMaxSdcIn) ||
+        (PlMinSdcOut <= i && i <= PlMaxSdcOut) ||
+        (PlMinTOF    <= i && i <= PlMaxTOF) ){
+      TTreeCont[kS2sTracking]->SetBranchAddress(Form("ResL%d", i), &src.resL[i-1]);
+      TTreeCont[kS2sTracking]->SetBranchAddress(Form("ResG%d", i), &src.resG[i-1]);
+    }
+  }
 
   return true;
 }
