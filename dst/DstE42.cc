@@ -1030,7 +1030,7 @@ TTree *tree;
   Bool_t KaonSelection(Double_t mass2, Double_t mom, Double_t nsigma)
   {
     if(TMath::IsNaN(mass2) || mass2<0) return false;
-
+    if(mom > 1.4) return false;
     Double_t pdgmass2 = pdg::KaonMass()*pdg::KaonMass(); //(GeV/c2)^2
 
     //Measured values(sigma of M2 spectrum)
@@ -1173,7 +1173,8 @@ dst::DstRead( int ievent )
 #endif
 
   if(src.nKK != 1) return true;
-  if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut || src.inside[0] != 1) return true;
+  //if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut || src.inside[0] != 1) return true;
+  if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut) return true;
 #if KKEvent
   if(src.Kflag[0] != 1) return true; //precut with Kurama tracking
 #endif
