@@ -136,6 +136,15 @@ TestingCharge(std::vector<T*>& TrackCont,
 	      std::vector<TPCVertex*>& VertexCont,
 	      Bool_t Exclusive);
 
+//Merge fragmented accidental tracks
+template <typename T> void
+RestoreFragmentedAccidentalTracks(const std::vector<TPCClusterContainer>& ClCont,
+				  std::vector<T*>& TrackCont,
+				  std::vector<T*>& TrackContFailed,
+				  std::vector<TPCVertex*>& VertexCont,
+				  Bool_t Exclusive,
+				  Int_t MinNumOfHits);
+
 //Marking accidental coincidence tracks
 template <typename T> void
 FindAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,

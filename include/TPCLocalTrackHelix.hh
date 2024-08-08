@@ -122,7 +122,7 @@ public:
   void         SortHitOrder(); //Sort hits by theta
 
   Bool_t       ResidualCheck(Int_t i, Double_t &residual);
-  Bool_t       IsGoodHitToAdd(TPCHit *hit, Double_t &residual);
+  Bool_t       IsGoodHitToAdd(TPCHit *hit, Double_t &residual, Bool_t nolimitation=false);
   Int_t        Side(TVector3 hitpos);
   void         Print(const TString& arg="", Bool_t print_allhits=false) const;
   Bool_t       IsGoodForTracking();

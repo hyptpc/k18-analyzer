@@ -2299,7 +2299,7 @@ TPCLocalTrackHelix::ResidualCheck(Int_t i, Double_t &residual)
 
 //______________________________________________________________________________
 Bool_t
-TPCLocalTrackHelix::IsGoodHitToAdd(TPCHit *hit, Double_t &residual)
+TPCLocalTrackHelix::IsGoodHitToAdd(TPCHit *hit, Double_t &residual, Bool_t nolimitation)
 {
 
   if(!m_is_theta_calculated){
@@ -2379,6 +2379,10 @@ TPCLocalTrackHelix::IsGoodHitToAdd(TPCHit *hit, Double_t &residual)
     factor = 1.;
     max_scanrange = 20.;
   }
+  if(nolimitation){
+    max_scanrange = 300;
+    factor = 2;
+  }
   max_scanrange /= m_r;
 
   Double_t theta_range[2];
@@ -2413,7 +2417,11 @@ TPCLocalTrackHelix::IsGoodHitToAdd(TPCHit *hit, Double_t &residual)
   Double_t resolution_horizontal = TMath::Hypot(res.x(), res.z());
 
 #if 1
-  if(m_r < 250.){ //wider cut condition for low-momentum tracks (currently not supported)
+  if(nolimitation){
+    if(TMath::Abs(residual_horizontal) > 5.*resolution_horizontal*ResidualWindowPullXZ) return false;
+    if(TMath::Abs(residual_vertical) > 3.*resolution_vertical*ResidualWindowPullY) return false;
+  }
+  else if(m_r < 250.){ //wider cut condition for low-momentum tracks (currently not supported)
     if(TMath::Abs(residual_horizontal) > factor*resolution_horizontal*ResidualWindowPullXZ) return false;
     if(TMath::Abs(residual_vertical) > factor*resolution_vertical*ResidualWindowPullY) return false;
   }
@@ -3254,6 +3262,7 @@ TPCLocalTrackHelix::TestMergedTrack()
   //Check whether the track passing the target or not
   CalcClosestDistTgt(); //Distance between the target & the track
   CheckIsAccidental(); //check whether it is accidental beam
+
   if(VertexAtTarget()){
     //case1. The merged track is not crossing the target. (no problem)
     //case2. The merged track is an accidental beam crossing the target. (no problem)
@@ -3416,7 +3425,7 @@ TPCLocalTrackHelix::CheckIsAccidental()
   if(TMath::Abs(start_point.x() - end_point.x()) > 200.) return;
   if(TMath::Abs(start_point.z() - middle_point.z()) < 100. ||
      TMath::Abs(middle_point.z() - end_point.z()) < 100.) return;
-  if(TMath::Abs(start_point.z() - end_point.z()) < 300.) return;
+  if(TMath::Abs(start_point.z() - end_point.z()) < 250.) return;
 
   Int_t nhit_beamsection = 0;
   Int_t nhit_upstream_tgt = 0; Int_t nhit_downstream_tgt = 0;

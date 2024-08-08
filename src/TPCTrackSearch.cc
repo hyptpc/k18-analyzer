@@ -135,7 +135,7 @@ namespace
   MarkingAccidentalTracks(std::vector<T*>& TrackCont)
   {
     for(auto& track: TrackCont){
-      track->CheckIsAccidental();
+      if(track->GetIsAccidental()!=1) track->CheckIsAccidental();
     }
   }
 
@@ -1098,7 +1098,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 
   TestingCharge(TrackCont, TrackContInvertedCharge, VertexCont, Exclusive);
 
-  MarkingClusteredAccidentalTracks(TrackCont, ClusteredVertexCont);
+  RestoreFragmentedAccidentalTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 
 #if DebugDisp
   std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
@@ -1163,6 +1163,8 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
   //Search Kurama track candidates from the TrackCont.
   KuramaTrackSearch(KuramaVPs, KuramaCharge, ClCont, TrackCont, TrackContFailed, TrackContVP, VertexCont, Exclusive, MinNumOfHits);
 
+  RestoreFragmentedAccidentalTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+
   FindAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont);
 
 #if ReassignClusterTest
@@ -1174,8 +1176,6 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 #endif
 
   TestingCharge(TrackCont, TrackContInvertedCharge, VertexCont, Exclusive);
-
-  MarkingClusteredAccidentalTracks(TrackCont, ClusteredVertexCont);
 
   CalcTracks(TrackContVP);
   CalcTracks(TrackContFailed); //Tracking failed cases
@@ -1639,6 +1639,7 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
 	MergedTrack -> DoFitExclusive();
 	MergedTrack -> CalculateExclusive();
       }
+      MergedTrack -> CheckIsAccidental();
 
 #if DebugDisp
       MergedTrack -> Print(FUNC_NAME+" After fitting the merged track");
@@ -1846,7 +1847,10 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
     Int_t post_size = TrackCont.size();
     if(prev_size+1 == post_size){ //Fitting is succeeded
       CopiedTrack = TrackCont[post_size-1];
-      if(Exclusive) CopiedTrack -> DoFitExclusive();
+      if(Exclusive){
+	CopiedTrack -> DoFitExclusive();
+	CopiedTrack -> CalculateExclusive();
+      }
       TrackCont.erase(TrackCont.begin() + post_size - 1);
 
       if(CopiedTrack -> GetNHit() > track -> GetNHit()){
@@ -2037,6 +2041,7 @@ ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
 	T *CopiedTrack1 = new T(track1);
 	CopiedTrack1 -> EraseHits(close_ids1);
 	if(!CopiedTrack1->DoFit(MinNumOfHits)){
+	  track1 -> SetClustersHoughFlag(GoodForTracking);
 	  delete CopiedTrack1;
 	  continue;
 	}
@@ -2044,6 +2049,8 @@ ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
 	T *CopiedTrack2 = new T(track2);
 	CopiedTrack2 -> EraseHits(close_ids2);
 	if(!CopiedTrack2->DoFit(MinNumOfHits)){
+	  track1 -> SetClustersHoughFlag(GoodForTracking);
+	  track2 -> SetClustersHoughFlag(GoodForTracking);
 	  delete CopiedTrack1;
 	  delete CopiedTrack2;
 	  continue;
@@ -2294,6 +2301,8 @@ FindAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
     ClusteredVertexCont.push_back(clustered_vtx);
   }
 
+  MarkingClusteredAccidentalTracks(TrackCont, ClusteredVertexCont);
+
 }
 
 //_____________________________________________________________________________
@@ -2319,7 +2328,10 @@ TestingCharge(std::vector<T*>& TrackCont,
 
     flag = true;
     InvertedTrack -> Calculate();
-    if(Exclusive) InvertedTrack -> DoFitExclusive();
+    if(Exclusive){
+      InvertedTrack -> DoFitExclusive();
+      InvertedTrack -> CalculateExclusive();
+    }
 
     Int_t pid = track -> GetPid();
     Bool_t proton = ((pid&4)==4 && (pid&1)!=1);
@@ -2805,6 +2817,226 @@ ReassignClustersXiTrack(const std::vector<TPCClusterContainer>& ClCont,
     del::ClearContainer(VertexCont);
     VertexSearch(TrackCont, VertexCont);
   }
+}
+
+//_____________________________________________________________________________
+template <typename T> void
+RestoreFragmentedAccidentalTracks(const std::vector<TPCClusterContainer>& ClCont,
+				  std::vector<T*>& TrackCont,
+				  std::vector<T*>& TrackContFailed,
+				  std::vector<TPCVertex*>& VertexCont,
+				  Bool_t Exclusive,
+				  Int_t MinNumOfHits)
+{
+
+  Bool_t reassaign = false;
+
+  //case 1: accidental track is divided into a very short track on the upstream of the target and a track on the downstream of the target
+  std::vector<Int_t> erase_trackid;
+  std::vector<Int_t> new_trackid;
+  for(Int_t trackid=0; trackid<TrackCont.size(); trackid++){
+    T *track = TrackCont[trackid];
+    if(track -> GetIsAccidental()==1) continue;
+    if(track -> GetIsBeam()==1) continue;
+    if(track -> GetIsK18()==1) continue;
+    if(track -> GetIsKurama()==1) continue;
+    if(std::find(erase_trackid.begin(), erase_trackid.end(), trackid)
+       != erase_trackid.end()) continue;
+    if(std::find(new_trackid.begin(), new_trackid.end(), trackid)
+       != new_trackid.end()) continue;
+
+    //candidates : negative charge mom > 0.5 or positive charge(flipped charge) with mom > 1.0
+    Double_t slope = track -> Getdz();
+    Double_t helixmom = track -> GetMom0().Mag();
+    Int_t charge = track -> GetCharge();
+    if(TMath::Abs(slope)>0.1 || TMath::Abs(helixmom)<0.5) continue;
+    if(charge>0 && TMath::Abs(helixmom)<1.0) continue;
+
+    for(auto& vertex: VertexCont){
+      //Threshold conditions of a distance and an angle between two tracks.
+      TVector3 vtx = vertex -> GetVertex();
+      Int_t trackid1 = vertex -> GetTrackId(0);
+      Int_t trackid2 = vertex -> GetTrackId(1);
+      if(trackid1!=trackid && trackid2!=trackid) continue;
+      if(trackid2==trackid){
+	trackid2 = vertex -> GetTrackId(0);
+	trackid1 = vertex -> GetTrackId(1);
+      }
+      if(std::find(erase_trackid.begin(), erase_trackid.end(), trackid1)
+	 != erase_trackid.end()) continue;
+      if(std::find(erase_trackid.begin(), erase_trackid.end(), trackid2)
+	 != erase_trackid.end()) continue;
+      if(std::find(new_trackid.begin(), new_trackid.end(), trackid1)
+	 != new_trackid.end()) continue;
+      if(std::find(new_trackid.begin(), new_trackid.end(), trackid2)
+	 != new_trackid.end()) continue;
+
+      T *CandidateTrack = TrackCont[trackid2];
+      if(CandidateTrack -> GetIsK18()==1 ||
+	 CandidateTrack -> GetIsKurama()==1) continue;
+      if(CandidateTrack -> GetNHit()>4) continue; //this constraint has same effect as IsBackward()
+
+      Bool_t cl_added = false;
+      CandidateTrack -> SetClustersHoughFlag(0);
+      TPCLocalTrackHelix *MergedTrack = new TPCLocalTrackHelix(track);
+      for(Int_t hit=0;hit<CandidateTrack -> GetNHit();hit++){
+	TPCHit* cl = CandidateTrack -> GetHitInOrder(hit) -> GetHit();
+
+	Double_t resi=0.;
+	Bool_t nolimitation = true;
+	if(MergedTrack->IsGoodHitToAdd(cl, resi, nolimitation)){
+	  MergedTrack -> AddTPCHit(new TPCLTrackHit(cl));
+	  cl_added = true;
+	}
+      }
+
+      //Check whether tracks belong to the same track or not
+      if(!cl_added ||
+	 (CandidateTrack -> GetNHit() + track -> GetNHit() - MergedTrack -> GetNHit()>2)){
+	CandidateTrack -> SetClustersHoughFlag(GoodForTracking);
+	delete MergedTrack;
+	continue;
+      }
+      else{
+	MergedTrack -> SetIsAccidental(); //it's needed to trun off VertexAtTarget()
+
+	Int_t prev_size = TrackCont.size();
+	FitTrack(MergedTrack, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+
+	Int_t post_size = TrackCont.size();
+	if(prev_size+1 == post_size){ //Fitting is succeeded
+	  MergedTrack = TrackCont[post_size-1];
+	  TrackCont.erase(TrackCont.begin() + post_size - 1);
+	  MergedTrack -> Calculate();
+	  MergedTrack -> CheckIsAccidental();
+	  if(Exclusive){
+	    MergedTrack -> DoFitExclusive();
+	    MergedTrack -> CalculateExclusive();
+	  }
+
+	  if(MergedTrack -> GetNHit() > track -> GetNHit() &&
+	     MergedTrack -> GetIsAccidental()==1){
+	    TrackCont.push_back(MergedTrack);
+	    new_trackid.push_back(post_size - 1);
+
+	    erase_trackid.push_back(trackid1);
+	    erase_trackid.push_back(trackid2);
+	    reassaign = true;
+	  }
+	  else{
+	    track -> SetClustersHoughFlag(GoodForTracking);
+	    CandidateTrack -> SetClustersHoughFlag(GoodForTracking);
+	    delete MergedTrack;
+	  }
+	}
+	else{ //Fitting is failed
+	  track -> SetClustersHoughFlag(GoodForTracking);
+	  CandidateTrack -> SetClustersHoughFlag(GoodForTracking);
+	}
+      }
+    }
+  }
+
+  std::sort(erase_trackid.begin(), erase_trackid.end());
+  for(Int_t i=0; i<erase_trackid.size(); ++i){
+    Int_t id = erase_trackid[i] - i;
+    T *track = TrackCont[id];
+    TrackCont.erase(TrackCont.begin() + id);
+    delete track;
+  }
+
+  //case 2: accidental track is divided into clusters on the upstream of the target and a track on the downstream of the target
+  std::vector<TPCClusterContainer> CandidateClCont(10);
+  for(Int_t layer=0; layer<10; layer++){ //inner layers
+    for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
+      auto cl = ClCont[layer][ci];
+      TPCHit* hit = cl->GetMeanHit();
+      if(hit->GetHoughFlag()==GoodForTracking ||
+	 hit->GetHoughFlag()==K18Tracks) continue;
+      TVector3 pos = cl->GetPosition();
+      if(pos.Z() > tpc::ZTarget) continue;
+      if(TMath::Abs(pos.x()) > 20) continue;
+      CandidateClCont[layer].push_back(cl);
+    } //ci
+  } //layer
+
+  for(Int_t trackid=0; trackid<TrackCont.size(); trackid++){
+    T *track = TrackCont[trackid];
+    if(track -> GetIsAccidental()==1) continue;
+    if(track -> GetIsBeam()==1) continue;
+    if(track -> GetIsK18()==1) continue;
+    if(track -> GetIsKurama()==1) continue;
+    //if(!track -> VertexAtTarget()) continue;
+
+    //candidates : negative charge mom > 0.5 or positive charge(flipped charge) with mom > 1.0
+    Double_t slope = track -> Getdz();
+    Double_t helixmom = track -> GetMom0().Mag();
+    Int_t charge = track -> GetCharge();
+
+    if(TMath::Abs(slope)>0.1 || TMath::Abs(helixmom)<0.5) continue;
+    if(charge>0 && TMath::Abs(helixmom)<1.0) continue;
+
+    T *CopiedTrack = new T(track);
+    std::vector<TPCHit*> clusters_fortest;
+
+    Bool_t cl_added = false;
+    for(Int_t layer=0; layer<10; layer++){ //inner layers
+      for(Int_t ci=0, n=CandidateClCont[layer].size(); ci<n; ci++){
+	auto cl = CandidateClCont[layer][ci];
+	TPCHit* hit = cl->GetMeanHit();
+	if(hit->GetHoughFlag()==GoodForTracking) continue;
+
+	Double_t resi=0.;
+	Bool_t nolimitation = true;
+	if(track->IsGoodHitToAdd(hit, resi, nolimitation)){
+	  CopiedTrack -> AddTPCHit(new TPCLTrackHit(hit));
+	  clusters_fortest.push_back(hit);
+	  cl_added = true;
+	}
+      }
+    } //inner layers
+
+    if(!cl_added) delete CopiedTrack;
+    else{ //clusters are added
+      CopiedTrack -> SetIsAccidental(); //it's needed to trun off VertexAtTarget()
+
+      Int_t prev_size = TrackCont.size();
+      FitTrack(CopiedTrack, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+
+      Int_t post_size = TrackCont.size();
+      if(prev_size+1 == post_size){ //Fitting is succeeded
+	CopiedTrack = TrackCont[post_size-1];
+	if(Exclusive){
+	  CopiedTrack -> DoFitExclusive();
+	  CopiedTrack -> CalculateExclusive();
+	}
+	TrackCont.erase(TrackCont.begin() + post_size - 1);
+	CopiedTrack -> Calculate();
+	CopiedTrack -> CheckIsAccidental();
+	if(CopiedTrack -> GetNHit() > track -> GetNHit() &&
+	   CopiedTrack -> GetIsAccidental()==1){
+	  TrackCont[trackid] = CopiedTrack;
+	  delete track;
+	  reassaign = true;
+	}
+	else{
+	  for(Int_t cl=0; cl<clusters_fortest.size(); cl++) clusters_fortest[cl] -> SetHoughFlag(0);
+	  track -> SetClustersHoughFlag(GoodForTracking);
+	  delete CopiedTrack;
+	}
+      }
+      else{
+	for(Int_t cl=0; cl<clusters_fortest.size(); cl++) clusters_fortest[cl] -> SetHoughFlag(0);
+	track -> SetClustersHoughFlag(GoodForTracking);
+      }
+    } //clusters are added
+  }
+
+  if(reassaign){
+    //Vertex finding again with new tracks
+    del::ClearContainer(VertexCont);
+    VertexSearch(TrackCont, VertexCont);
+  } //reassaigning process
 }
 
 } //namespace tp
