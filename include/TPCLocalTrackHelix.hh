@@ -229,6 +229,10 @@ public:
   void SetMint(Double_t t) { m_min_t = t; }
   void SetMaxt(Double_t t) { m_max_t = t; }
   Bool_t ConvertParam(Double_t *linear_par);
+  void AdjustResolutionScale(Double_t MomScale=1, Double_t PhiScale=1, Double_t dZScale=1){
+    m_MomResScale*=MomScale; m_PhResScale*=PhiScale; m_dZResScale*=dZScale; 
+  }; 
+
 
   Bool_t IsBackward();
   void IsMultiLoop();
