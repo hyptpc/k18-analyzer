@@ -985,6 +985,44 @@ LocalTrackSearchSdcOut(const DCHC& TOFHC,
 }
 
 //_____________________________________________________________________________
+Int_t
+MakeLocalTrackGeant4(const std::vector<DCHC>& HitCont,
+		     DCLocalTC& TrackCont,
+		     Int_t MinNumOfHits /*=6*/)
+{
+
+  DCLocalTrack *track = new DCLocalTrack();
+  for(const auto& hc: HitCont){
+    if(hc.size()!=1) continue;
+    for(const auto& hit: hc){
+      Int_t multi = hit->GetEntries();
+      if(multi!=1 || !hit->IsGood()) continue;
+      const auto& lpos = hit->GetLocalHitPosGeant4();
+      Double_t a  = hit->GetTiltAngle()*TMath::DegToRad();
+      Double_t s  = lpos.x()*TMath::Cos(a) + lpos.y()*TMath::Sin(a);
+      Double_t wp = hit->GetWirePosition();
+      Double_t dl = hit->GetDriftLength(0);
+      Double_t local_hit_pos = s-wp>0 ? wp+dl : wp-dl;
+      DCLTrackHit *hitp = new DCLTrackHit(hit, local_hit_pos, 0);
+      track->AddHit(hitp);
+    }
+  }
+
+  if(track                               &&
+     track->GetNHit()>=MinNumOfHits      &&
+     track->DoFit()                      &&
+     track->GetChiSquare()<MaxChisquare){
+    TrackCont.push_back(track);
+  }
+  else{
+    delete track;
+  }
+
+  CalcTracks(TrackCont);
+  return TrackCont.size();
+}
+
+//_____________________________________________________________________________
 Int_t /* Local Track Search SdcIn w/Fiber */
 LocalTrackSearchSdcInFiber(const std::vector<DCHC>& HC,
                            const DCPairPlaneInfo* PpInfo,

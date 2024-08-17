@@ -19,6 +19,7 @@
 #include "DCRawHit.hh"
 #include "DCTdcCalibMan.hh"
 #include "DCLTrackHit.hh"
+#include "UserParamMan.hh"
 #include "DebugCounter.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
@@ -30,6 +31,7 @@ const Double_t qnan = TMath::QuietNaN();
 const auto& gGeom  = DCGeomMan::GetInstance();
 const auto& gTdc   = DCTdcCalibMan::GetInstance();
 const auto& gDrift = DCDriftParamMan::GetInstance();
+const auto& gUser  = UserParamMan::GetInstance();
 const Bool_t SelectTDC1st = false;
 }
 
@@ -86,11 +88,16 @@ DCHit::DCHit(Int_t layer, Double_t wire)
 }
 
 //_____________________________________________________________________________
-DCHit::DCHit(Int_t plane, Int_t layer, Int_t wire, Double_t wpos) // for Geant4
+DCHit::DCHit(Int_t plane, Int_t layer, Int_t wire) // for Geant4
   : m_plane(plane),
     m_layer(layer),
     m_wire(wire),
-    m_wpos(wpos),
+    m_lpos(),
+    m_de(),
+    m_tot(),
+    m_belong_to_track(),
+    m_is_good(),
+    m_wpos(qnan),
     m_angle(0.),
     m_cluster_size(0.),
     m_mwpc_flag(false)
@@ -139,6 +146,14 @@ DCHit::SetDCData(Double_t dt, Double_t dl, Double_t tot,
   m_tot.push_back(tot);
   m_belong_to_track.push_back(belong_to_track);
   m_is_good.push_back(is_good);
+}
+
+//_____________________________________________________________________________
+void
+DCHit::SetDCDataGeant4(TVector3 lpos, Double_t de)
+{
+  m_lpos.push_back(lpos);
+  m_de.push_back(de);
 }
 
 //_____________________________________________________________________________
@@ -230,45 +245,59 @@ DCHit::CalcDCObservables()
 
 //_____________________________________________________________________________
 Bool_t
-DCHit::SetDCObservablesGeant4(Double_t dl, Double_t tot)
+DCHit::CalcDCObservablesGeant4()
 {
-  // if(false
-  //    || !gGeom.IsReady()
-  //    || !gTdc.IsReady()
-  //    || !gDrift.IsReady()){
-  //   return false;
-  // }
 
-  m_angle = gGeom.GetTiltAngle(m_layer);
-  m_z     = gGeom.GetLocalZ(m_layer);
-
-  Double_t dt = TMath::QuietNaN();
-  Bool_t dl_is_good = false;
-  switch(m_layer){
-    // BC3,4
-  case 113: case 114: case 115: case 116: case 117: case 118:
-  case 119: case 120: case 121: case 122: case 123: case 124:
-    if(MinDLBc[m_layer-100] < dl && dl < MaxDLBc[m_layer-100]){
-      dl_is_good = true;
-    }
-    break;
-    // SDC1,2,3,4,5
-  case 1: case 2: case 3: case 4: case 5: case 6:
-  case 7: case 8: case 9: case 10:
-  case 31: case 32: case 33: case 34:
-  case 35: case 36: case 37: case 38:
-  case 39: case 40: case 41: case 42:
-    if(MinDLSdc[m_layer] < dl && dl < MaxDLSdc[m_layer]){
-      dl_is_good = true;
-    }
-    break;
-  default:
-    hddaq::cout << FUNC_NAME << " "
-		<< "invalid layer id : " << m_layer << std::endl;
+  if(false
+     || !gGeom.IsReady()){
     return false;
   }
 
-  SetDCData(dt, dl, tot, false, dl_is_good);
+  m_wpos  = gGeom.CalcWirePosition(m_layer, m_wire);
+  m_angle = gGeom.GetTiltAngle(m_layer);
+  m_z     = gGeom.GetLocalZ(m_layer);
+
+  gRandom->SetSeed(TDatime().Convert());
+  Double_t res = gUser.GetParameter(Form("ResolutionLayer%d", m_layer));
+  for(Int_t i=0, n=m_lpos.size(); i<n; ++i){
+    Double_t dt = TMath::QuietNaN();
+    Double_t a  = m_angle*TMath::DegToRad();
+    Double_t s  = m_lpos[i].x()*TMath::Cos(a) + m_lpos[i].y()*TMath::Sin(a);
+    Double_t dl = TMath::Abs(s-m_wpos);
+    dl = gRandom->Gaus(dl, res);
+    Double_t tot = m_de[i];
+    Bool_t dl_is_good = false;
+    switch(m_layer){
+      // BC3,4
+    case 113: case 114: case 115: case 116: case 117: case 118:
+    case 119: case 120: case 121: case 122: case 123: case 124:
+      if(MinDLBc[m_layer-100] < dl && dl < MaxDLBc[m_layer-100]){
+	dl_is_good = true;
+      }
+      break;
+      // SDC1,2,3,4,5
+    case 1: case 2: case 3: case 4: case 5: case 6:
+    case 7: case 8: case 9: case 10:
+    case 31: case 32: case 33: case 34:
+    case 35: case 36: case 37: case 38:
+    case 39: case 40: case 41: case 42:
+      if(MinDLSdc[m_layer] < dl && dl < MaxDLSdc[m_layer]){
+	dl_is_good = true;
+      }
+      break;
+    default:
+      hddaq::cout << FUNC_NAME << " "
+		  << "invalid layer id : " << m_layer << std::endl;
+      return false;
+    }
+
+    if(!SelectTDC1st){
+      SetDCData(dt, dl, tot, false, dl_is_good);
+    }else if(dl_is_good){
+      SetDCData(dt, dl, tot, false, dl_is_good);
+      break;
+    }
+  }
 
   return true;
 }

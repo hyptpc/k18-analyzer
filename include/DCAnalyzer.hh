@@ -7,6 +7,8 @@
 #include <vector>
 #include <TString.h>
 #include <TVector3.h>
+#include <TTreeReaderArray.h>
+#include <TParticle.h>
 
 #include "DetectorID.hh"
 
@@ -84,15 +86,14 @@ public:
   Bool_t DecodeBcOutHits();
   Bool_t DecodeSdcInHits();
   Bool_t DecodeSdcOutHits(Double_t ofs_dt=0.);
-  Bool_t DecodeSdcInHitsGeant4(const std::vector<Int_t>& nhit,
-			       const std::vector<std::vector<TVector3>>& pos,
-			       const std::vector<std::vector<Double_t>>& de);
-  Bool_t DecodeSdcOutHitsGeant4(const std::vector<Int_t>& nhit,
-				const std::vector<std::vector<TVector3>>& pos,
-				const std::vector<std::vector<Double_t>>& de);
+  Bool_t DecodeSdcInHitsGeant4(const TTreeReaderArray<TParticle>& sdc1,
+			       const TTreeReaderArray<TParticle>& sdc2);
+  Bool_t DecodeSdcOutHitsGeant4(const TTreeReaderArray<TParticle>& sdc3,
+				const TTreeReaderArray<TParticle>& sdc4,
+				const TTreeReaderArray<TParticle>& sdc5);
   void DecodeHitsGeant4(const TString& name,
-			const std::vector<Int_t>& planeId, const std::vector<Int_t>& layerId,
-			const std::vector<TVector3>& gpos, const std::vector<Double_t>& de);
+			const std::vector<Int_t>& plane, const std::vector<Int_t>& layer,
+			const std::vector<TVector3>& lpos, const std::vector<Double_t>& de);
   Bool_t DecodeTOFHits(const HodoHC& HitCont);
   Bool_t DecodeTOFHits(const HodoCC& ClCont);
   // Bool_t DecodeSimuHits(SimuData *simuData);
@@ -116,6 +117,8 @@ public:
   Bool_t TrackSearchSdcOut();
   Bool_t TrackSearchSdcOut(const HodoHC& HitCont);
   Bool_t TrackSearchSdcOut(const HodoCC& ClCont);
+  Bool_t MakeTrackSdcInGeant4();
+  Bool_t MakeTrackSdcOutGeant4();
 
   Int_t GetNtracksBcIn() const { return m_BcInTC.size(); }
   Int_t GetNtracksBcOut() const { return m_BcOutTC.size(); }

@@ -59,6 +59,9 @@ Int_t LocalTrackSearchSdcOut(const DCHC& TOFHC,
                              Int_t npp,
                              std::vector<DCLocalTrack*>& TrackCont,
                              Int_t MinNumOfHits=6);
+Int_t MakeLocalTrackGeant4(const std::vector<DCHC>& HC,
+			   std::vector<DCLocalTrack*>& TrackCont,
+			   Int_t MinNumOfHits=6);
 Int_t LocalTrackSearchBcOutSdcIn(const std::vector<DCHC>& BcHC,
                                  const DCPairPlaneInfo *BcPpInfo,
                                  const std::vector<DCHC>& SdcHC,

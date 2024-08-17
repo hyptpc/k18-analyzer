@@ -353,36 +353,42 @@ DCAnalyzer::DecodeHits(const TString& name)
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::DecodeSdcInHitsGeant4(const std::vector<Int_t>& nhit,
-				  const std::vector<std::vector<TVector3>>& pos,
-				  const std::vector<std::vector<Double_t>>& de)
+DCAnalyzer::DecodeSdcInHitsGeant4(const TTreeReaderArray<TParticle>& sdc1,
+				  const TTreeReaderArray<TParticle>& sdc2)
 {
   static const auto& digit_info =
     hddaq::unpacker::GConfig::get_instance().get_digit_info();
   m_SdcInHC.clear();
   Int_t plane_offset = 0;
+  // std::map< TString, TTreeReaderArray<TParticle> > SdcInParticleList;
+  // SdcInParticleList["SDC1"] = sdc1;
+  // SdcInParticleList["SDC2"] = sdc2;
   for(const auto& name: DCNameList.at("SdcIn")){
     Int_t id = digit_info.get_device_id(name.Data());
     Int_t n_plane = digit_info.get_n_plane(id);
-    std::vector<Int_t> plane, layer;
-    std::vector<TVector3> gpos;
-    std::vector<Double_t> dE;
-    for( Int_t i = 0; i < n_plane; i++ ){
-      Int_t planeId = plane_offset + i;
-      Int_t layerId = PlMinSdcIn + planeId;
-      for( Int_t ih = 0; ih < nhit[planeId]; ih++ ){
-	plane.push_back(i);
-	layer.push_back(layerId);
-	gpos.push_back(TVector3( pos[planeId][ih].x(),
-				 pos[planeId][ih].y(),
-				 pos[planeId][ih].z() ));
-	dE.push_back(de[planeId][ih]);
-      }
+    std::vector<Int_t> planeArr;
+    std::vector<Int_t> layerArr;
+    std::vector<TVector3> lposArr;
+    std::vector<Double_t> deArr;
+    const auto& particles = (name == "SDC1") ? sdc1 : sdc2;
+    for(const auto& particle: particles){
+      Int_t plane = particle.GetSecondMother() - 101;
+      Int_t layer = PlMinSdcIn + plane_offset + plane;
+      TVector3 lpos( particle.Vx(),
+		     particle.Vy(),
+		     particle.Vz() );
+      Double_t de = particle.Energy();
+      planeArr.push_back(plane);
+      layerArr.push_back(layer);
+      lposArr.push_back(lpos);
+      deArr.push_back(de);
     }
-    DecodeHitsGeant4(name, plane, layer, gpos, dE);
+    DecodeHitsGeant4(name, planeArr, layerArr, lposArr, deArr);
     m_SdcInHC.resize(n_plane + m_SdcInHC.size());
     for(const auto& hit: m_dc_hit_collection.at(name)){
-      m_SdcInHC[hit->PlaneId() + plane_offset].push_back(hit);
+      if(hit && hit->CalcDCObservablesGeant4()){
+	m_SdcInHC[hit->PlaneId() + plane_offset].push_back(hit);
+      }
     }
     plane_offset += n_plane;
   }
@@ -391,36 +397,46 @@ DCAnalyzer::DecodeSdcInHitsGeant4(const std::vector<Int_t>& nhit,
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::DecodeSdcOutHitsGeant4(const std::vector<Int_t>& nhit,
-				   const std::vector<std::vector<TVector3>>& pos,
-				   const std::vector<std::vector<Double_t>>& de)
+DCAnalyzer::DecodeSdcOutHitsGeant4(const TTreeReaderArray<TParticle>& sdc3,
+				   const TTreeReaderArray<TParticle>& sdc4,
+				   const TTreeReaderArray<TParticle>& sdc5)
 {
   static const auto& digit_info =
     hddaq::unpacker::GConfig::get_instance().get_digit_info();
   m_SdcOutHC.clear();
   Int_t plane_offset = 0;
+  // std::map< TString, TTreeReaderArray<TParticle> > SdcOutParticleList;
+  // SdcOutParticleList["SDC3"] = sdc3;
+  // SdcOutParticleList["SDC4"] = sdc4;
+  // SdcOutParticleList["SDC5"] = sdc5;
   for(const auto& name: DCNameList.at("SdcOut")){
     Int_t id = digit_info.get_device_id(name.Data());
     Int_t n_plane = digit_info.get_n_plane(id);
-    std::vector<Int_t> plane, layer;
-    std::vector<TVector3> gpos;
-    std::vector<Double_t> dE;
-    for( Int_t i = 0; i < n_plane; i++ ){
-      Int_t planeId = plane_offset + i;
-      Int_t layerId = PlMinSdcOut + planeId;
-      for( Int_t ih = 0; ih < nhit[planeId]; ih++ ){
-	plane.push_back(i);
-	layer.push_back(layerId);
-	gpos.push_back(TVector3( pos[planeId][ih].x(),
-				 pos[planeId][ih].y(),
-				 pos[planeId][ih].z() ));
-	dE.push_back(de[planeId][ih]);
-      }
+    std::vector<Int_t> planeArr;
+    std::vector<Int_t> layerArr;
+    std::vector<TVector3> lposArr;
+    std::vector<Double_t> deArr;
+    const auto& particles =
+      (name == "SDC3") ? sdc3 :
+      ((name == "SDC4") ? sdc4 : sdc5);
+    for(const auto& particle: particles){
+      Int_t plane = particle.GetSecondMother() - 101;
+      Int_t layer = PlMinSdcOut + plane_offset + plane;
+      TVector3 lpos( particle.Vx(),
+		     particle.Vy(),
+		     particle.Vz() );
+      Double_t de = particle.Energy();
+      planeArr.push_back(plane);
+      layerArr.push_back(layer);
+      lposArr.push_back(lpos);
+      deArr.push_back(de);
     }
-    DecodeHitsGeant4(name, plane, layer, gpos, dE);
+    DecodeHitsGeant4(name, planeArr, layerArr, lposArr, deArr);
     m_SdcOutHC.resize(n_plane + m_SdcOutHC.size());
     for(const auto& hit: m_dc_hit_collection.at(name)){
-      m_SdcOutHC[hit->PlaneId() + plane_offset].push_back(hit);
+      if(hit && hit->CalcDCObservablesGeant4()){
+	m_SdcOutHC[hit->PlaneId() + plane_offset].push_back(hit);
+      }
     }
     plane_offset += n_plane;
   }
@@ -430,8 +446,8 @@ DCAnalyzer::DecodeSdcOutHitsGeant4(const std::vector<Int_t>& nhit,
 //_____________________________________________________________________________
 void
 DCAnalyzer::DecodeHitsGeant4(const TString& name,
-			     const std::vector<Int_t>& planeId, const std::vector<Int_t>& layerId,
-			     const std::vector<TVector3>& gpos, const std::vector<Double_t>& de)
+			     const std::vector<Int_t>& plane, const std::vector<Int_t>& layer,
+			     const std::vector<TVector3>& lpos, const std::vector<Double_t>& de)
 {
   if(m_dc_hit_collection.find(name) != m_dc_hit_collection.end()){
     hddaq::cerr << FUNC_NAME << std::endl
@@ -441,29 +457,28 @@ DCAnalyzer::DecodeHitsGeant4(const TString& name,
   auto& HitCont = m_dc_hit_collection[name];
   del::ClearContainer(HitCont);
   HitCont.clear();
-  for( Int_t ih = 0, nh = planeId.size(); ih < nh; ih++ ){
-    Int_t plane = planeId[ih];
-    Int_t layer = layerId[ih];
-    TVector3 pos  = gGeom.Global2LocalPos(layer, gpos[ih]);
-    Int_t       wire = gGeom.CalcWireNumber(layer, pos.x());
-    Double_t    wpos = gGeom.CalcWirePosition(layer, wire);
-    Double_t    dl   = TMath::Abs(pos.x()-wpos);
+
+  for(Int_t ip=0, np=plane.size(); ip<np; ++ip){
+    Double_t a = gGeom.GetTiltAngle(layer[ip])*TMath::DegToRad();
+    Double_t s = lpos[ip].x()*TMath::Cos(a) + lpos[ip].y()*TMath::Sin(a);
+    Int_t wire = gGeom.CalcWireNumber(layer[ip], s);
     DCHit *p = nullptr;
     for(Int_t i=0, n=HitCont.size(); i<n; ++i){
       DCHit* q = HitCont[i];
       if(true
-	 && q->PlaneId() == plane
-	 && q->LayerId() == layer
+	 && q->PlaneId() == plane[ip]
+	 && q->LayerId() == layer[ip]
 	 && q->WireId()  == wire){
 	p=q; break;
       }
     }
     if(!p){
-      p = new DCHit(plane, layer, wire, wpos);
+      p = new DCHit(plane[ip], layer[ip], wire);
       HitCont.push_back(p);
     }
-    p->SetDCObservablesGeant4(dl, de[ih]);
+    p->SetDCDataGeant4(lpos[ip], de[ip]);
   }
+
   std::sort(HitCont.begin(), HitCont.end(), DCHit::Compare);
 }
 
@@ -688,6 +703,24 @@ DCAnalyzer::TrackSearchSdcOut(const HodoClusterContainer& TOFCont)
   track::LocalTrackSearchSdcOut(m_TOFHC, m_SdcOutHC, PPInfoSdcOut, NPPInfoSdcOut+2,
                                 m_SdcOutTC, MinLayer);
 
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::MakeTrackSdcInGeant4()
+{
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcIn");
+  track::MakeLocalTrackGeant4(m_SdcInHC, m_SdcInTC, MinLayer);
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+DCAnalyzer::MakeTrackSdcOutGeant4()
+{
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerSdcOut");
+  track::MakeLocalTrackGeant4(m_SdcOutHC, m_SdcOutTC, MinLayer);
   return true;
 }
 

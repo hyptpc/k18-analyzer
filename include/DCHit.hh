@@ -10,6 +10,7 @@
 
 #include <TString.h>
 #include <TVector3.h>
+#include <TParticle.h>
 
 #include <std_ostream.hh>
 
@@ -24,7 +25,7 @@ public:
   DCHit(const DCRawHit* rhit);
   DCHit(Int_t layer);
   DCHit(Int_t layer, Double_t wire);
-  DCHit(Int_t plane, Int_t layer, Int_t wire, Double_t wpos); // for Geant4
+  DCHit(Int_t plane, Int_t layer, Int_t wire); // for Geant4
   ~DCHit();
 
 private:
@@ -43,6 +44,10 @@ protected:
   data_t m_tdc;
   data_t m_adc;
   data_t m_trailing;
+
+  // Geant4
+  std::vector<TVector3> m_lpos;
+  data_t m_de;
 
   // DCData normalized
   data_t m_drift_time;
@@ -93,7 +98,7 @@ public:
     else return m_wire;
   }
   Bool_t CalcDCObservables();
-  Bool_t SetDCObservablesGeant4(Double_t dl, Double_t tot);
+  Bool_t CalcDCObservablesGeant4();
   Bool_t CalcFiberObservables();
   Bool_t CalcMWPCObservables();
   Bool_t CalcCFTObservables();
@@ -111,6 +116,7 @@ public:
   Int_t GetTdcTrailingSize() const { return m_trailing.size(); }
   Int_t GetTdc1st() const;
   Double_t GetTiltAngle() const { return m_angle; }
+  TVector3 GetLocalHitPosGeant4(Int_t i=0) const { return m_lpos[i]; }
   Double_t GetWirePosition() const {
     if(m_mwpc_flag) return m_mwpc_wpos;
     else return m_wpos;
@@ -142,6 +148,7 @@ public:
                  Double_t tot=TMath::QuietNaN(),
                  Bool_t belong_to_track=false,
                  Bool_t is_good=true);
+  void SetDCDataGeant4(TVector3 lpos, Double_t de);
   void SetDriftLength(Double_t dl){ m_drift_length.push_back(dl); }
   void SetDriftTime(Double_t dt){ m_drift_time.push_back(dt); }
   void SetTiltAngle(Double_t angleDegree){ m_angle = angleDegree; }
