@@ -1326,7 +1326,7 @@ dst::DstRead( Int_t ievent )
   std::vector<Double_t> ppi_closedist; std::vector<Double_t> lp_closedist;
 
   for(Int_t it1=0;it1<ntTpc;it1++){
-    if(event.isK18[it1]==1 || event.isKurama[it1]==1) continue;
+    if(event.isK18[it1]==1 || event.isKurama[it1]==1 || event.isAccidental[it1]==1 ) continue;
     HF2(120, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
     if(event.charge[it1]<0){
       HF2(121, -event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
@@ -1359,7 +1359,7 @@ dst::DstRead( Int_t ievent )
     
     for(Int_t it2=0;it2<ntTpc;it2++){
       if(it1==it2) continue;
-      if(event.isK18[it2]==1 || event.isKurama[it2]==1) continue;
+      if(event.isK18[it2]==1 || event.isKurama[it2]==1 || event.isAccidental[it2]==1 ) continue;
       //if(event.isK18[it2]==1 || event.isgoodTPCKurama[it2]==1) continue;
       if((event.pid[it2]&1)!=1) continue; //select pi like 
       Bool_t pim_like = false;
@@ -1424,7 +1424,7 @@ dst::DstRead( Int_t ievent )
 
       for(Int_t it3=0;it3<ntTpc;it3++){
       	if(it3==it2 || it3==it1) continue;
-      	if(event.isK18[it3]==1 || event.isKurama[it3]==1) continue;
+      	if(event.isK18[it3]==1 || event.isKurama[it3]==1 || event.isAccidental[it3]==1 ) continue;
       	//if(event.isK18[it3]==1 || event.isgoodTPCKurama[it3]==1) continue;
       	if((event.pid[it3]&4)!=4) continue; //select proton like
       	Bool_t p_like2 = false;
@@ -1454,7 +1454,7 @@ dst::DstRead( Int_t ievent )
       	TVector3 ls_vert = Kinematics::XiVertex(dMagneticField, p2_par, p2_theta_min, p2_theta_max, lambda_vert, lambda_mom, p2_mom, lp_dist); 
       	//std::cout<<"<<xi vertex "<<xi_vert<<std::endl;
       	if(ls_vert.z() < -200.) continue; //Vertex cut
-      	if(TMath::IsNaN(lp_dist)) continue;	
+      	if(TMath::IsNaN(lp_dist)) continue;
       	if(!pim_like) p2_mom = -1.*p2_mom;
       	TLorentzVector Lp2(p2_mom, TMath::Sqrt(p2_mom.Mag()*p2_mom.Mag() + ProtonMass*ProtonMass));
       	TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Sqrt(lambda_mom.Mag()*lambda_mom.Mag() + LambdaMass*LambdaMass));
@@ -1490,6 +1490,7 @@ dst::DstRead( Int_t ievent )
 	ls_p2_mom_container.push_back(p2_mom);
 	//	ls_mom_container.push_back(lambda_mom);
 	//	ls_vert_container.push_back(lambda_vert);
+	event.lsflag = true;
 	ls_candidates++;
       } //it3
       ppi_closedist.push_back(ppi_dist);

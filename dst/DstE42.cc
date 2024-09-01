@@ -38,8 +38,8 @@
 #define TrigC 0
 #define TrigD 0
 
-#define KKEvent 1
-#define KPEvent 0
+#define KKEvent 0
+#define KPEvent 1
 
 #define SaveHistograms 1
 #define RawCluster 1
