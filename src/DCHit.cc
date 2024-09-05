@@ -405,7 +405,7 @@ DCHit::TotCut(Double_t min_tot, Bool_t adopt_nan)
   auto itr_new_end =
     std::remove_if(m_pair_cont.begin(), m_pair_cont.end(),
 		   [min_tot, adopt_nan](data_pair a_pair)->Bool_t
-                     {return(isnan(a_pair.tot) && adopt_nan) ? false : !(a_pair.tot > min_tot);}
+                     {return(std::isnan(a_pair.tot) && adopt_nan) ? false : !(a_pair.tot > min_tot);}
       );
   m_pair_cont.erase(itr_new_end, m_pair_cont.end());
 }

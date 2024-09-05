@@ -106,7 +106,7 @@ FiberCluster::Calculate()
     real_mean_time += m_hit_container.at(i)->GetCTime();
     Double_t time = m_hit_container.at(i)->GetCTime();
 
-    if(isnan(mean_time)){
+    if(std::isnan(mean_time)){
       mean_time = time;
     }else if(std::abs(time) < std::abs(mean_time)){
       mean_time = time;

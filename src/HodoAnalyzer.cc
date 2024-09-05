@@ -1233,7 +1233,7 @@ HodoAnalyzer::WidthCut(std::vector<TypeCluster>& cont,
   std::vector<TypeCluster> ValidCand;
   for(Int_t i=0, n=cont.size(); i<n; ++i){
     Double_t width = cont.at(i)->Width();
-    if(isnan(width) && adopt_nan){
+    if(std::isnan(width) && adopt_nan){
       ValidCand.push_back(cont.at(i));
     }else if(min_width < width && width < max_width){
       ValidCand.push_back(cont.at(i));
@@ -1264,7 +1264,7 @@ HodoAnalyzer::WidthCutR(std::vector<TypeCluster>& cont,
     Double_t width = cont.at(i)->Width();
     //Double_t width = -cont.at(i)->minWidth();//reverse
 
-    if(isnan(width) && adopt_nan){
+    if(std::isnan(width) && adopt_nan){
       ValidCand.push_back(cont.at(i));
     }else if(min_width < width && width < max_width){
       ValidCand.push_back(cont.at(i));

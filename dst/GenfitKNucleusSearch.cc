@@ -1490,7 +1490,7 @@ dst::DstRead( Int_t ievent )
 	ls_p2_mom_container.push_back(p2_mom);
 	//	ls_mom_container.push_back(lambda_mom);
 	//	ls_vert_container.push_back(lambda_vert);
-	event.lsflag = true;
+	event.lflag = true;
 	ls_candidates++;
       } //it3
       ppi_closedist.push_back(ppi_dist);

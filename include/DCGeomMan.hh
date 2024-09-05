@@ -4,6 +4,7 @@
 #define DC_GEOM_MAN_HH
 
 #include "ThreeVector.hh"
+#include <TString.h>
 #include <string>
 #include <vector>
 #include <map>

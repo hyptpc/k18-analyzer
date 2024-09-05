@@ -223,7 +223,10 @@ $(GenFit_build_dir)/%.o: %.cc
 $(lib_dir)/%RootDict.cxx: $(GenFit_includes) %LinkDef.h
 	@ $(echo) "$(red)=== Generating Dictionary $@ $(default_color)"
 	@ $(mkdir) $(lib_dir)
-	$(root_cint) -f $@ -c $(FLAGS) $(GenFit_FLAGS) -p $^
+#	$(root_cint) -f $@ -c $(FLAGS) $(GenFit_FLAGS) -p $^
+	$(root_cint) -f $@ $(unpacker_include)  $(addprefix -I, $(src_dir) $(include_dir) \
+	$(GenFit_src_FLAGS) $(GenFit_include_FLAGS)) $^
+
 
 $(GenFit_build_dir)/%RootDict.o: $(lib_dir)/%RootDict.cxx
 	@ $(echo) "$(green)=== Compiling $@ $(default_color)"
@@ -238,7 +241,9 @@ $(GenKEK_build_dir)/%.o: $(GenKEK_src_dir)/%.cc
 $(lib_dir)/HypTPCRootDict.cxx: $(headers) $(GenKEK_includes) $(GenKEK_src_dir)/HypTPCLinkDef.h
 	@ $(echo) "$(red)=== Generating Dictionary $@ $(default_color)"
 	@ $(mkdir) $(lib_dir)
-	$(root_cint) -f $@ -c $(FLAGS) $(GenFit_FLAGS) $(GenKEK_FLAGS) -p $^
+#	$(root_cint) -f $@ -c $(FLAGS) $(GenFit_FLAGS) $(GenKEK_FLAGS) -p $^
+	$(root_cint) -f $@ $(unpacker_include)  $(addprefix -I, $(src_dir) $(include_dir) \
+	$(GenFit_src_FLAGS) $(GenFit_include_FLAGS)) $^
 
 $(GenKEK_build_dir)/HypTPCRootDict.o: $(lib_dir)/HypTPCRootDict.cxx
 	@ $(echo) "$(green)=== Compiling $@ $(default_color)"

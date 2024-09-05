@@ -100,8 +100,8 @@ struct Event
   std::vector<Int_t> cluster_houghflag;
 
   Int_t ntTpc; // Number of Tracks
-  Int_t ntKuramaCandidate; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
-  std::vector<Int_t> isKuramaCandidate;
+  //  Int_t ntKuramaCandidate; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
+  //  std::vector<Int_t> isKuramaCandidate;
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
   std::vector<Int_t> trackid; //for Kurama K1.8 tracks
   std::vector<Int_t> isBeam;
@@ -407,8 +407,8 @@ struct Event
     cluster_houghflag.clear();
 
     ntTpc = 0;
-    ntKuramaCandidate = 0; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
-    isKuramaCandidate.clear();
+    //    ntKuramaCandidate = 0; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
+    //    isKuramaCandidate.clear();
     nhtrack.clear();
     trackid.clear();
     isBeam.clear();
@@ -714,8 +714,8 @@ struct Src
   TTreeReaderValue<std::vector<Int_t>>* cluster_houghflag;
 
   TTreeReaderValue<Int_t>* ntTpc; // Number of tracks
-  TTreeReaderValue<Int_t>* ntKuramaCandidate; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
-  TTreeReaderValue<std::vector<Int_t>>* isKuramaCandidate;
+  //  TTreeReaderValue<Int_t>* ntKuramaCandidate; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
+  //  TTreeReaderValue<std::vector<Int_t>>* isKuramaCandidate;
   TTreeReaderValue<std::vector<Int_t>>* nhtrack; // Number of hits (in 1 tracks)
   TTreeReaderValue<std::vector<Int_t>>* trackid; //for Kurama K1.8 tracks
   TTreeReaderValue<std::vector<Int_t>>* isBeam;
@@ -1872,8 +1872,8 @@ dst::DstRead( int ievent )
 
   Int_t ntTpc = **src.ntTpc;
   event.ntTpc = ntTpc;
-  event.ntKuramaCandidate = **src.ntKuramaCandidate;
-  event.isKuramaCandidate = **src.isKuramaCandidate;
+  // event.ntKuramaCandidate = **src.ntKuramaCandidate;
+  // event.isKuramaCandidate = **src.isKuramaCandidate;
   event.nhtrack = **src.nhtrack;
   event.trackid = **src.trackid;
   event.isBeam = **src.isBeam;
@@ -2418,8 +2418,8 @@ ConfMan::InitializeHistograms( void )
 #endif
 
   tree->Branch( "ntTpc", &event.ntTpc );
-  tree->Branch( "ntKuramaCandidate", &event.ntKuramaCandidate );
-  tree->Branch( "isKuramaCandidate", &event.isKuramaCandidate );
+  // tree->Branch( "ntKuramaCandidate", &event.ntKuramaCandidate );
+  // tree->Branch( "isKuramaCandidate", &event.isKuramaCandidate );
   tree->Branch( "nhtrack", &event.nhtrack );
   tree->Branch( "trackid", &event.trackid );
   tree->Branch( "isBeam", &event.isBeam );
@@ -2714,8 +2714,8 @@ ConfMan::InitializeHistograms( void )
   src.cluster_houghflag = new TTreeReaderValue<std::vector<Int_t>>( *reader, "cluster_houghflag" );
 #endif
   src.ntTpc = new TTreeReaderValue<Int_t>( *reader, "ntTpc" );
-  src.ntKuramaCandidate = new TTreeReaderValue<Int_t>( *reader, "ntKuramaCandidate" );
-  src.isKuramaCandidate = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isKuramaCandidate" );
+  // src.ntKuramaCandidate = new TTreeReaderValue<Int_t>( *reader, "ntKuramaCandidate" );
+  // src.isKuramaCandidate = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isKuramaCandidate" );
   src.nhtrack = new TTreeReaderValue<std::vector<Int_t>>( *reader, "nhtrack" );
   src.trackid = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trackid" );
   src.isBeam = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isBeam" );

@@ -3733,7 +3733,7 @@ TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Do
   Double_t Vpx = JVJT[0][0];
   Double_t Vpy = JVJT[1][1];
   Double_t Vpz = JVJT[2][2];
-  if(Vpx<0 or Vpy<0 or Vpz < 0 or isnan(Vpx) or isnan(Vpy) or isnan(Vpz)){
+  if(Vpx<0 or Vpy<0 or Vpz < 0 or std::isnan(Vpx) or std::isnan(Vpy) or std::isnan(Vpz)){
     std::cout<<Form("MomVar = (%g,%g,%g)",Vpx,Vpy,Vpz)<<std::endl;
     std::cout<<Form("dPt,dt,ddZ = (%g,%g,%g)",dp_t,dt,ddZ)<<std::endl;
   }
@@ -3893,7 +3893,7 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
   if(nh<4) return pt*0.1;
   res = sqrt(3./2) * sqrt(res / nh)* 0.001;//mm-> m
   Double_t dPOverP = pt / (0.3*L*L*B)*sqrt(720./(nh+4))*res;
-  if(isnan(dPOverP) || dPOverP < 0){
+  if(std::isnan(dPOverP) || dPOverP < 0){
     std::cout<<Form("dPt error! nh = %d, res = %g",nh,res)<<std::endl;
   }
   return m_MomResScale*pt*dPOverP;
@@ -3946,7 +3946,7 @@ TPCLocalTrackHelix::GetdZResolution(){
   Double_t path_dev = path*path*nh/12;
   if(nh < 3) return 0.01;
   Double_t d_slope = 1./(nh-2)*res2/path_dev;
-  if(isnan(d_slope) || isinf(d_slope)){
+  if(std::isnan(d_slope) || std::isinf(d_slope)){
     std::cout<<Form("Nan || inf dZ resol! nh = %d, dt = %g, res = %g", nh,dt,res2)<<std::endl;
   }
   return m_dZResScale*sqrt(d_slope);
