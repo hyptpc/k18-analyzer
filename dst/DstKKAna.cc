@@ -691,7 +691,7 @@ dst::DstRead(Int_t ievent)
 {
   static const auto StofOffset = gUser.GetParameter("StofOffset");
   static const auto KaonMass    = pdg::KaonMass();
-  // static const auto PionMass    = pdg::PionMass();
+  static const auto PionMass    = pdg::PionMass();
   static const auto ProtonMass  = pdg::ProtonMass();
   static const auto XiMass = pdg::XiMinusMass();
 
@@ -1087,25 +1087,26 @@ dst::DstRead(Int_t ievent)
                           pCorr*pkp.y()/pkp.Mag(),
                           pCorr*pkp.z()/pkp.Mag());
 
-      //      ThreeVector pkmCorrDE = Kinematics::CorrElossIn(pkm, xkm, vert, KmonMass);
-      //      ThreeVector pkpCorrDE = Kinematics::CorrElossOut(pkpCorr, xkp, vert, KaonMass);
+      ThreeVector pkmCorrDE = Kinematics::CorrElossIn(pkm, xkm, vert, KaonMass);
+      ThreeVector pkpCorrDE = Kinematics::CorrElossOut(pkpCorr, xkp, vert, KaonMass);
 
-      LorentzVector LvKm(pkm, std::sqrt(KaonMass*KaonMass+pkm.Mag2()));
-      //      LorentzVector LvKmCorrDE(pkmCorrDE, sqrt(KaonMass*KaonMass+pkmCorrDE.Mag2()));
+      LorentzVector LvKm(pkm, std::sqrt(KaonMass*KaonMass+pkm.Mag2())); // Kaon beam
+      //LorentzVector LvKm(pkm, std::sqrt(PionMass*PionMass+pkm.Mag2())); // pion beam
+      LorentzVector LvKmCorrDE(pkmCorrDE, sqrt(KaonMass*KaonMass+pkmCorrDE.Mag2()));
 
       LorentzVector LvKp(pkp, std::sqrt(KaonMass*KaonMass+pkp.Mag2()));
       LorentzVector LvKpCorr(pkpCorr, std::sqrt(KaonMass*KaonMass+pkpCorr.Mag2()));
-      //      LorentzVector LvKpCorrDE(pkpCorrDE, std::sqrt(KaonMass*KaonMass+pkpCorrDE.Mag2()));
+      LorentzVector LvKpCorrDE(pkpCorrDE, std::sqrt(KaonMass*KaonMass+pkpCorrDE.Mag2()));
 
       LorentzVector LvC(0., 0., 0., ProtonMass);
       LorentzVector LvCore(0., 0., 0., 0.);
 
       LorentzVector LvRc       = LvKm+LvC-LvKp;
       LorentzVector LvRcCorr   = LvKm+LvC-LvKpCorr;
-      //      LorentzVector LvRcCorrDE = LvKmCorrDE+LvC-LvKpCorrDE;
+      LorentzVector LvRcCorrDE = LvKmCorrDE+LvC-LvKpCorrDE;
       Double_t MissMass       = LvRc.Mag();//-LvC.Mag();
       Double_t MissMassCorr   = LvRcCorr.Mag();//-LvC.Mag();
-      //      Double_t MissMassCorrDE = LvRcCorrDE.Mag();//-LvC.Mag();
+      Double_t MissMassCorrDE = LvRcCorrDE.Mag();//-LvC.Mag();
 
       //Primary frame
       LorentzVector PrimaryLv = LvKm+LvC;
@@ -1165,8 +1166,8 @@ dst::DstRead(Int_t ievent)
 
 	event.MissMass[nkk]       = MissMass;
 	event.MissMassCorr[nkk]   = MissMassCorr;
-	//	event.MissMassCorrDE[nkk] = MissMassCorrDE;
-	event.MissMassCorrDE[nkk] = 0;
+	event.MissMassCorrDE[nkk] = MissMassCorrDE;
+	//event.MissMassCorrDE[nkk] = 0;
 
 	event.xkp[nkk] = xkp.x();
 	event.ykp[nkk] = xkp.y();
@@ -1179,8 +1180,8 @@ dst::DstRead(Int_t ievent)
 	event.pOrg[nkk] = pk0;
 	event.pCalc[nkk] = pCalc;
 	event.pCorr[nkk] = pCorr;
-	//	event.pCorrDE[nkk] = pkpCorrDE.Mag();
-	event.pCorrDE[nkk] = 0;
+	event.pCorrDE[nkk] = pkpCorrDE.Mag();
+	//event.pCorrDE[nkk] = 0;
 	nkk++;
       }else{
 	std::cout << FUNC_NAME << " nkk("

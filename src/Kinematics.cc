@@ -19,9 +19,9 @@ const Double_t qnan = TMath::QuietNaN();
 const Double_t z_offset      = 0.0;
 const Double_t TARGETcenter  = 0.0;//Z position
 const Double_t TARGEThw      = 15.0/2.0;
-const Double_t TARGETsizeX   = 25.0/2.0;
-const Double_t TARGETsizeY   = 15.0/2.0;
-const Double_t TARGETsizeZ   = 15.0/2.0;
+const Double_t TARGETsizeX   = 100.75/2.0;
+const Double_t TARGETsizeY   = 51.15/2.0;
+const Double_t TARGETsizeZ   = 104.4/2.0;
 const Double_t TARGETradius  = 67.3/2.0;
 const Double_t TARGETcenterX = 0.0;
 const Double_t TARGETcenterY = 0.0;
@@ -540,8 +540,8 @@ CalcDe(Double_t momentum, Double_t mass, Double_t distance,
   Double_t E_0;
   Double_t E;
   Double_t p = momentum*1000.0;
-  //Double_t delta=0.01; /*cm*/
-  Double_t delta=0.1; /*cm*/
+  Double_t delta=0.02; /*cm*/
+  //Double_t delta=0.1; /*cm*/
   Int_t i;
   Double_t length=0.0;
   Double_t total_eloss=0.0;
@@ -595,27 +595,31 @@ Double_t
 CalcDedx(Double_t beta)
 {
   Double_t value;
-  const Double_t C=0.1535; /*MeVcm^2/g*/
+  const Double_t C=0.1535; /* 2pi*Na*r*mc2 MeVcm^2/g*/
   const Double_t m_e=0.511;
   Double_t logterm;
   Double_t gamma_2;
   Double_t W_max;
   Double_t gamma;
+  Double_t eta;
   Double_t X;
   Double_t delta = 0.;
 
-  Double_t rho=0.0709;   /*g/cm^3 (C)*/
-  Double_t I=21.8;     /*eV*/
-  Double_t Z_A=0.99216;
+  Double_t rho=1.032;   /*g/cm^3 polystylene*/
+  Double_t I=64.7;     /*eV  polystyrene*/ 
+  Double_t Z_A=7./13.;
   Int_t z=1;
-  Double_t C0=-3.2632;
-  Double_t X0=0.4759;
-  Double_t X1=1.9215;
-  Double_t a=0.13483;
-  Double_t M=5.6249;
+  Double_t C0=-3.20; 
+  Double_t X0=0.1464;
+  Double_t X1=2.49;
+  Double_t a=0.1610;
+  Double_t M=3.24;
+  Double_t ShellCorr1;
+  Double_t ShellCorr2;
 
   gamma = Gamma(beta);
-  X = log10(beta*gamma);
+  eta = beta*gamma;
+  X = log10(eta);
   if (X<=X0)
     delta=0.0;
   else if (X0<X&& X<X1)
@@ -628,7 +632,10 @@ CalcDedx(Double_t beta)
 
   W_max=2.0*m_e*pow(beta,2.0)*gamma_2;
 
-  logterm=log(2.0*m_e*gamma_2*pow(beta,2.0)*W_max*pow(10.0,12.0)/pow(I,2.0))-2.0*pow(beta,2.0)-delta/2.0;
+  ShellCorr1 = (0.422377/pow(eta,2.0) +0.0304043/pow(eta,4.0)- 0.00038106/pow(eta,6.0))*pow(I,2.0)*1e-6;
+  ShellCorr2 = (3.85019/pow(eta,2.0) -0.1667989/pow(eta,4.0)+ 0.000157955/pow(eta,6.0))*pow(I,3.0)*1e-9;
+
+  logterm=log(2.0*m_e*gamma_2*pow(beta,2.0)*W_max*pow(10.0,12.0)/pow(I,2.0))-2.0*pow(beta,2.0)-delta- 2.0*(ShellCorr1+ ShellCorr2)/7.0;
 
   value=C*rho*Z_A*pow((Double_t)z,2.0)*logterm/pow(beta,2.0);
 
