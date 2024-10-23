@@ -28,11 +28,12 @@ K1.8 analyzer README
 ====================
 
 <div style="text-align: right;">
+Rev. 2024.10.23<br>
 2020.09.06
 </div><br>
 
-It is assumed to work on KEKCC, CentOS 7.7.1908 (Core).
-Use gcc 8.3.0 and root 6.22.02.
+It is assumed to work on KEKCC, Red Hat Enterprise Linux release 9.3 (Plow).
+Use gcc 11.4.1 and root 6.32.04.
 
 ## Environment setting
 
@@ -41,7 +42,7 @@ Anaconda/Python environment is needed to use runmanager.
 
 ## Unpacker
 
-The unpacker compiled with gcc 8.3.0 is placed in the group directory, /group/had/sks/software/unpacker/unpacker.gcc830. This is updated constantly.
+The unpacker compiled with gcc 11.4.1 is placed in the group directory, /group/had/sks/software/unpacker/e70. This is updated constantly.
 
 If you want to install in local, install as follows.
 
@@ -56,7 +57,7 @@ Check if the "unpacker-config" command is available.
 
 ```sh
 $ unpacker-config --version
-2020-01-21
+2024-10-21
 ```
 
 ## K1.8 analyzer
@@ -67,7 +68,7 @@ Install the K1.8 analyzer.
 $ git clone \
 ssh://sks@www-online.kek.jp:8022/~/public_html/git/k18-analyzer.git
 $ cd k18-analyzer
-$ git checkout e40 # choose branch as you like
+$ git checkout e70 # choose branch as you like
 $ cp Makefile.org Makefile
 $ make
 ```
@@ -76,8 +77,8 @@ e.g.) Hodoscope,
 Usage: Hodoscope [analyzer config file] [data input stream] [output root file]
 
 ```sh
-$ ./bin/Hodoscope param/conf/analyzer_2019apr_0.conf \
-/group/had/sks/E40/JPARC2019Feb/e40_2019feb/run07334.dat.gz hoge.root
+$ ./bin/Hodoscope param/conf/analyzer_e70_2024_0429.conf \
+/group/had/sks/E70/JPARC2024May/e70_2024may/run71244.dat hoge.root
 ```
 
 ### runmanager
@@ -92,20 +93,18 @@ Note that the indentation determines the nest depth in yaml.
 #
 # The allowed keys are
 #   queue  <- bsub queue (eg. s, l, etc...)
+#   qmerge <- bsub queue for merging job to command "hadd"
 #   unit   <- dividing event unit
-#   nporc  <- number of process for merging
-#             (must be less than 20)
-#   buff   <- intermediate root files will be placed here
-#             if nproc is more than 2
+#   nporc  <- number of process for merging (up to 18)
+#   buff   <- intermediate root files will be placed here if nproc is more than 2
+#             if not set, use the same "root" directory
 #   bin    <- path to executable binary
 #   conf   <- path to conf directory/file from the work directory
 #   data   <- path to data directory/file
 #   root   <- path to the output ROOT output directory/file
 #
-# Be careful of the indent rule
-# because YAML format is sensitive to it.
-# Some problems will happen
-# if there is no default setting declaration.
+# Be careful of the indent rule because YAML format is sensitive to it.
+# Some problems will happen if there is no default setting declaration.
 #
 
 #____________________________________________________
@@ -122,6 +121,7 @@ WORKDIR: ~/k18analyzer/pro
 
 DEFAULT:
   queue: s
+  qmerge: s
   unit:  100000
   nproc: 1
   buff:  /group/had/sks/Users/user/buffer
@@ -129,6 +129,7 @@ DEFAULT:
   conf:  ./param/conf/analyzer_default.conf
   data:  ../data
   root:  ../rootfile
+
 #____________________________________________________
 # Individual settings
 # If you want to adapt the default setting to some runs,
