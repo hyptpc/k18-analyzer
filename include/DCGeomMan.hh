@@ -55,6 +55,8 @@ public:
   Double_t            GetRotAngle2(const TString& key) const;
   const ThreeVector&  GetGlobalPosition(Int_t lnum) const;
   const ThreeVector&  GetGlobalPosition(const TString& key) const;
+  Double_t            GetOffset(Int_t lnum) const;
+  Double_t            GetOffset(const TString& key) const;
   ThreeVector         NormalVector(Int_t lnum) const;
   ThreeVector         NormalVector(const TString& key) const;
   ThreeVector         UnitVector(Int_t lnum) const;
