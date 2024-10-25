@@ -257,14 +257,14 @@ DCHit::CalcDCObservablesGeant4()
   m_angle = gGeom.GetTiltAngle(m_layer);
   m_z     = gGeom.GetLocalZ(m_layer);
 
-  gRandom->SetSeed(TDatime().Convert());
+  // gRandom->SetSeed(TDatime().Convert());
   Double_t res = gUser.GetParameter(Form("ResolutionLayer%d", m_layer));
   for(Int_t i=0, n=m_lpos.size(); i<n; ++i){
     Double_t dt = TMath::QuietNaN();
     Double_t a  = m_angle*TMath::DegToRad();
     Double_t s  = m_lpos[i].x()*TMath::Cos(a) + m_lpos[i].y()*TMath::Sin(a);
     Double_t dl = TMath::Abs(s-m_wpos);
-    dl = gRandom->Gaus(dl, res);
+    // dl = gRandom->Gaus(dl, res);
     Double_t tot = m_de[i];
     Bool_t dl_is_good = false;
     switch(m_layer){

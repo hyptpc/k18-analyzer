@@ -195,6 +195,7 @@ main(int argc, char **argv)
 {
   std::vector<std::string> arg(argv, argv+argc);
 
+  // TTree::SetMaxTreeSize(1000000000000LL);
   if(!CheckArg(arg))
     return EXIT_FAILURE;
   if(!DstOpen(arg))
@@ -321,6 +322,7 @@ dst::InitializeEvent()
 Bool_t
 dst::DstOpen(std::vector<std::string> arg)
 {
+  gRandom->SetSeed(TDatime().Convert());
   Int_t open_file = 0;
   Int_t open_tree = 0;
   for(std::size_t i=0; i<nArgc; ++i){
@@ -490,7 +492,7 @@ dst::DstRead(Int_t ievent)
       event.resL[layerId-1].push_back(res);
     }
   }
-  if(ntSdcIn<1) return true;
+  // if(ntSdcIn<1) return true;
   //  if(!(ntSdcIn==1)) return true;
 
   HF1(1, 12.);

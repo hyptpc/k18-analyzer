@@ -1000,9 +1000,21 @@ MakeLocalTrackGeant4(const std::vector<DCHC>& HitCont,
       const auto& lpos = hit->GetLocalHitPosGeant4();
       Double_t a  = hit->GetTiltAngle()*TMath::DegToRad();
       Double_t s  = lpos.x()*TMath::Cos(a) + lpos.y()*TMath::Sin(a);
-      Double_t wp = hit->GetWirePosition();
-      Double_t dl = hit->GetDriftLength(0);
-      Double_t local_hit_pos = s-wp>0 ? wp+dl : wp-dl;
+      Int_t layer = hit->LayerId();
+      Double_t res = gUser.GetParameter(Form("ResolutionLayer%d", layer));
+      Double_t local_hit_pos = gRandom->Gaus(s, res);
+#if 0
+      std::cout << "  layer: " << layer << "\t"
+		<< "lpos(" << lpos.x() << ", " << lpos.y() << ", " << lpos.z() << ")  "
+		<< "m_z: " << hit->GetZ() << "\t"
+		<< "ta: " << a << "\t"
+		<< "s: " << s << "\t"
+		<< "lhpos: " << local_hit_pos << "\t"
+		<< "lhpos-s: " << local_hit_pos-s << std::endl;
+#endif
+      // Double_t wp = hit->GetWirePosition();
+      // Double_t dl = hit->GetDriftLength(0);
+      // Double_t local_hit_pos = s-wp>0 ? wp+dl : wp-dl;
       DCLTrackHit *hitp = new DCLTrackHit(hit, local_hit_pos, 0);
       track->AddHit(hitp);
     }
