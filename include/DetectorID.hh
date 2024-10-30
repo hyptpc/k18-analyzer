@@ -9,6 +9,8 @@
 #include <array>
 #include <TString.h>
 
+static const Int_t NumOfSegCaenV792 = 32;
+
 const std::map<TString, std::vector<TString>> DCNameList =
 {
   {"BcOut", { "BC3", "BC4" }},
