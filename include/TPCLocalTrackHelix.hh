@@ -137,7 +137,9 @@ public:
   Int_t         GetOrder(Int_t i) const;
 
   Double_t   GetChiSquare() const { return m_chisqr; }
+  TVector3   GetClosestDistVect() const { return m_closedist; }
   Double_t   GetClosestDist() const { return m_closedist.Mag(); }
+  Double_t   GetClosestDistXZ() const { return m_closedistXZ.Mag(); }
   TVector3   GetClosestPositionTgt();
   TVector3   GetClosestPositionTgtXZ();
 
@@ -230,9 +232,8 @@ public:
   void SetMaxt(Double_t t) { m_max_t = t; }
   Bool_t ConvertParam(Double_t *linear_par);
   void AdjustResolutionScale(Double_t MomScale=1, Double_t PhiScale=1, Double_t dZScale=1){
-    m_MomResScale*=MomScale; m_PhResScale*=PhiScale; m_dZResScale*=dZScale; 
-  }; 
-
+    m_MomResScale*=MomScale; m_PhResScale*=PhiScale; m_dZResScale*=dZScale;
+  };
 
   Bool_t IsBackward();
   void IsMultiLoop();
