@@ -76,11 +76,17 @@ namespace Kinematics
 
   //For HypTPC dE/dx pid
   Double_t HypTPCBethe(Double_t *x, Double_t *p);
+  Bool_t HypTPCdEdxPID_IsKaonTemp(Double_t dedx, Double_t poq); //temporary
+  Double_t HypTPCdEdxNsigmaProton(Double_t dedx, Double_t poq);
+  Double_t HypTPCdEdxNsigmaKaon(Double_t dedx, Double_t poq);
+  Double_t HypTPCdEdxNsigmaPion(Double_t dedx, Double_t poq);
+  Bool_t HypTPCdEdxElectron(Double_t dedx, Double_t poq);
+  Bool_t HypTPCdEdxKaon(Double_t dedx, Double_t poq);
   Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq);
   void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg);
-  Bool_t HypTPCdEdxPID_IsKaonTemp(Double_t dedx, Double_t poq); //temporary
 
   //For helix tracking & vertex reconstruction
+  Double_t CalcHelixCloseDist(TVector3 point, Double_t par[5], Double_t t1_start, Double_t t1_end);
   TVector3 CalcHelixMom(Double_t Bfield, Int_t charge,
 			Double_t par[5], Double_t t);
   void CalcHelixParam(Double_t Bfield, Int_t charge,
@@ -117,6 +123,11 @@ namespace Kinematics
 			    Double_t *u0, Double_t *v0,
 			    std::vector<Double_t> Res_x0 = {}, std::vector<Double_t> Res_y0 = {},
 			    std::vector<Double_t> Res_u0 = {}, std::vector<Double_t> Res_v0 = {});
+  TVector3 MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0,
+			    Double_t *u0, Double_t *v0,
+			    std::vector<Double_t> Res_x0, std::vector<Double_t> Res_y0,
+			    std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0,
+			    Double_t &chisqr);
 
 }
 
