@@ -405,7 +405,7 @@ DCHit::TotCut(Double_t min_tot, Bool_t adopt_nan)
   auto itr_new_end =
     std::remove_if(m_pair_cont.begin(), m_pair_cont.end(),
 		   [min_tot, adopt_nan](data_pair a_pair)->Bool_t
-                     {return(std::isnan(a_pair.tot) && adopt_nan) ? false : !(a_pair.tot > min_tot);}
+		   {return(std::isnan(a_pair.tot) && adopt_nan) ? false : !(a_pair.tot > min_tot);}
       );
   m_pair_cont.erase(itr_new_end, m_pair_cont.end());
 }
@@ -417,7 +417,7 @@ DCHit::GateDriftTime(Double_t min, Double_t max, Bool_t select_1st)
   auto itr_new_end =
     std::remove_if(m_pair_cont.begin(), m_pair_cont.end(),
 		   [min, max](data_pair a_pair)->Bool_t
-                     {return !(min < a_pair.drift_time && a_pair.drift_time < max);}
+		   {return !(min < a_pair.drift_time && a_pair.drift_time < max);}
       );
   m_pair_cont.erase(itr_new_end, m_pair_cont.end());
   if(0 == m_pair_cont.size()) return;

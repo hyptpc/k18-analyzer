@@ -241,7 +241,6 @@ TPCParamMan::TPCResolutionParams(Bool_t HSOn, Bool_t Outer)
   if(!HSOn&&Outer) return GetInstance().m_Res_HSOFF_Outer;
   if(!HSOn&&!Outer) return GetInstance().m_Res_HSOFF_Inner;
   if(HSOn&&Outer) return GetInstance().m_Res_HSON_Outer;
-  //if(HSOn&&!Inner) return GetInstance().m_Res_HSON_Outer;
   return GetInstance().m_Res_HSON_Inner;
 }
 
