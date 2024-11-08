@@ -33,11 +33,6 @@
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
 
-#define TrigA 0 //if 1, TrigA is required
-#define TrigB 0
-#define TrigC 0
-#define TrigD 0
-
 #define KKEvent 0
 #define KPEvent 1
 
@@ -1158,19 +1153,6 @@ dst::DstRead( int ievent )
     event.deHtof.push_back(src.deHtof[it]);
     event.posHtof.push_back(src.posHtof[it]);
   }
-
-#if TrigA
-  if(event.trigflag[20]<0) return true;
-#endif
-#if TrigB
-  if(event.trigflag[21]<0) return true;
-#endif
-#if TrigC
-  if(event.trigflag[22]<0) return true;
-#endif
-#if TrigD
-  if(event.trigflag[23]<0) return true;
-#endif
 
   if(src.nKK != 1) return true;
   //if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut || src.inside[0] != 1) return true;

@@ -43,11 +43,6 @@
 #include "TPCRKTrack.hh"
 #include "UserParamMan.hh"
 
-#define TrigA 0 //if 1, TrigA is required
-#define TrigB 0
-#define TrigC 0
-#define TrigD 0
-
 #define KKEvent 0
 #define KPEvent 1
 
@@ -1256,19 +1251,6 @@ dst::DstRead( int ievent )
   event.clkTpc = **src.clkTpc;
 
   HF1( 1, event.status++ );
-
-#if TrigA
-  if(event.trigflag[20]<0) return true;
-#endif
-#if TrigB
-  if(event.trigflag[21]<0) return true;
-#endif
-#if TrigC
-  if(event.trigflag[22]<0) return true;
-#endif
-#if TrigD
-  if(event.trigflag[23]<0) return true;
-#endif
 
   HF1( 1, event.status++ );
   

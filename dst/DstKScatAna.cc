@@ -31,11 +31,6 @@
 #include "UserParamMan.hh"
 #include "TPCPadHelper.hh"
 
-#define TrigA 0 //if 1, TrigA is required
-#define TrigB 0
-#define TrigC 0
-#define TrigD 0
-
 namespace
 {
 using namespace root;
@@ -923,19 +918,6 @@ dst::DstRead(Int_t ievent)
     event.trigpat[i]  = i;
     event.trigflag[i] = tdc;
   }
-
-#if TrigA
-  if(event.trigflag[20]<0) return true;
-#endif
-#if TrigB
-  if(event.trigflag[21]<0) return true;
-#endif
-#if TrigC
-  if(event.trigflag[22]<0) return true;
-#endif
-#if TrigD
-  if(event.trigflag[23]<0) return true;
-#endif
 
   TPCAnalyzer TPCAna;
   HF1(1, 0.);
