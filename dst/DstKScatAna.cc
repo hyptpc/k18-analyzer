@@ -1303,11 +1303,12 @@ dst::DstRead(Int_t ievent)
       if(event.m2Org[iscat] > 0. && event.m2Org[iscat] < 0.12){
 	flagScat = 1; ScatMass = PionMass; event.Piflag[iscat] = 1;
       }
-      else if(event.m2Org[iscat] > 0.15 && event.m2Org[iscat] < 0.4){
+      else if(event.m2Org[iscat] > 0.05 && event.m2Org[iscat] < 0.6){
 	flagScat = 2; ScatMass = KaonMass;
 	if(event.qKurama[iscat] > 0 && event.pKurama[iscat] < 1.4) event.Kflag[iscat] = 1;
       }
-      else if(event.qKurama[iscat] > 0 && event.pKurama[iscat] > 0 &&
+      //      else if(event.qKurama[iscat] > 0 && event.pKurama[iscat] > 0 &&
+      else if(event.qKurama[iscat] > 0 &&
 	      event.m2Org[iscat] > 0.5 && event.m2Org[iscat] < 1.4){
 	flagScat = 3; ScatMass = ProtonMass; event.Pflag[iscat] = 1;
       }

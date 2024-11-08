@@ -1181,8 +1181,6 @@ dst::DstRead( int ievent )
 #if KPEvent
   if(src.Pflag[0] != 1) return true; //precut with Kurama tracking
 #endif
-  std::cerr << "ntKurama != ntTPCKurama, ntKurama: " << src.ntKurama << ", ntTPCKurama: " << **src.ntTPCKurama << std::endl; // for debug
-  std::cerr << "ntK18 != ntTPCK18, ntK18: " << src.ntK18 << ", ntTPCK18: " << **src.ntTPCK18 << std::endl; // for debug
   if(src.ntKurama != **src.ntTPCKurama)
     std::cerr << "Kurama Event Missmatching : DstTPCKuramaK18Tracking <-> DstKScat" << std::endl;
   if(src.ntK18 != **src.ntTPCK18)
