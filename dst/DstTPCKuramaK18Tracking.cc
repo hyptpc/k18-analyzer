@@ -43,8 +43,8 @@
 #include "TPCRKTrack.hh"
 #include "UserParamMan.hh"
 
-#define KKEvent 0
-#define KPEvent 1
+//#define KKEvent 0
+//#define KPEvent 1
 
 #define SaveHistograms 1
 #define RawHit 0
@@ -52,7 +52,7 @@
 #define TrackClusterHist 0
 #define TruncatedMean 0
 #define TrackSearchFailed 0
-#define ExclusiveTracking 0
+//#define ExclusiveTracking 0
 
 namespace
 {
@@ -1233,6 +1233,9 @@ dst::DstRead( int ievent )
   static const Double_t Boron11Mass  = 11.009305167*TGeoUnit::amu_c2 - 5.*ElectronMass;
   static const auto MaxChisqrBcOut = gUser.GetParameter("MaxChisqrBcOut");
   static const auto MaxChisqrKurama = gUser.GetParameter("MaxChisqrKurama");
+  static const auto KKEvent = gUser.GetParameter("KKEvent");
+  static const auto KPEvent = gUser.GetParameter("KPEvent");
+  static const auto ExclusiveTracking = gUser.GetParameter("ExclusiveTracking");
   static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
   static const auto yGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Y();
   static const auto zGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Z();

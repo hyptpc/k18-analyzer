@@ -33,8 +33,8 @@
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
 
-#define KKEvent 0
-#define KPEvent 1
+// #define KKEvent 0
+// #define KPEvent 1
 
 #define SaveHistograms 1
 #define RawCluster 1
@@ -1132,6 +1132,8 @@ dst::DstRead( int ievent )
 {
   static const auto MaxChisqrBcOut = gUser.GetParameter("MaxChisqrBcOut");
   static const auto MaxChisqrKurama = gUser.GetParameter("MaxChisqrKurama");
+  static const auto KKEvent = gUser.GetParameter("KKEvent");
+  static const auto KPEvent = gUser.GetParameter("KPEvent");
 
   //if( ievent%1000==0 ){
   if( ievent%1==0 ){
