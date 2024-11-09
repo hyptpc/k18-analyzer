@@ -145,6 +145,83 @@ void HypTPCTrack::AddHelixTrack(int pdg, TPCLocalTrackHelix *tp){
   new ((*_genfitTrackArray)[_genfitTrackArray -> GetEntriesFast()]) genfit::Track(trackCand, *_measurementFactory, new genfit::RKTrackRep(pdg));
 }
 
+void HypTPCTrack::AddHelixTrack(int pdg, double initmom, TPCLocalTrackHelix *tp){
+
+  _hitClusterArray -> Delete();
+  genfit::TrackCand trackCand;
+
+  //GenFit Units : GeV/c, ns, cm, kGauss
+  //K1.8Ana Units : GeV/c, ns, mm, T
+  TVector3 posSeed; TVector3 momSeed;
+  TMatrixDSym covSeed(6);
+  covSeed.Zero();
+
+  int hitid = 0;
+  int nMeasurement = tp -> GetNHit();
+  for(int i=0; i<nMeasurement; i++){
+    TPCLTrackHit *point = tp -> GetHitInOrder(i);
+    if(!point) continue;
+    if(!point -> IsGoodForTracking()) continue;
+    new ((*_hitClusterArray)[hitid]) HypTPCHit(*point);
+    trackCand.addHit(TPCDetID, hitid);
+
+    if(hitid==0){
+      posSeed = point -> GetLocalCalPosHelix();
+      posSeed.SetMag(posSeed.Mag()/10.); //mm -> cm
+      Double_t charge = tp -> GetCharge();
+      TVector3 mom = point -> GetMomentumHelix(charge); //GeV/c
+      momSeed = initmom*mom.Unit();
+
+      const TVector3& res_vect = tpc::PositionScale*point -> GetResolutionVect();
+      double resX = 0.1*res_vect.X(); //mm -> cm
+      double resY = 0.1*res_vect.Y(); //mm -> cm
+      double resZ = 0.1*res_vect.Z(); //mm -> cm
+      covSeed(0, 0) = resX*resX;
+      covSeed(1, 1) = resY*resY;
+      covSeed(2, 2) = resZ*resZ;
+#if 0 //Legacy
+      double resT = 0.01*TMath::Sqrt(resX*resX + resZ*resZ); //cm -> m
+      double L = 0.001*tp -> GetTransversePath(); //mm -> m
+      double Pt2 = momSeed.x()*momSeed.x() + momSeed.z()*momSeed.z();
+      double dPt2 = 720./(nMeasurement+4.)*Pt2*Pt2/(0.09*L*L*L*L);
+      covSeed(3, 3) = dPt2*resT*resT/2.;
+      covSeed(4, 4) = dPt2*resT*resT/2.;
+      covSeed(5, 5) = dPt2*resT*resT/2.;
+#else
+      TVector3 resP = tp -> GetMomentumResolutionVect(i);
+      TVector3 covP = tp -> GetMomentumCovarianceVect(i);
+      double resPX = resP.x();
+      double resPY = resP.y();
+      double resPZ = resP.z();
+      double covXY = covP.x();
+      double covYZ = covP.y();
+      double covZX = covP.z();
+      covSeed(3, 3) = resPX*resPX;
+      covSeed(4, 4) = resPY*resPY;
+      covSeed(5, 5) = resPZ*resPZ;
+      if(true){ // AddCovariance
+	covSeed(3, 4)=covXY;
+	covSeed(4, 3)=covXY;
+	covSeed(4, 5)=covYZ;
+	covSeed(5, 4)=covYZ;
+	covSeed(5, 3)=covZX;
+	covSeed(3, 5)=covZX;
+      }
+#endif
+      //covSeed.Print();
+    }
+    hitid++;
+  }
+
+  // set start values and pdg to cand
+  trackCand.setCovSeed(covSeed);
+  trackCand.setPosMomSeedAndPdgCode(posSeed, momSeed, pdg);
+  trackCand.setTimeSeed(0.); //set defualt _time=0.;
+  //trackCand.setPosMomSeed(posSeed, momSeed, helixTrack -> Charge());
+
+  new ((*_genfitTrackArray)[_genfitTrackArray -> GetEntriesFast()]) genfit::Track(trackCand, *_measurementFactory, new genfit::RKTrackRep(pdg));
+}
+
 void HypTPCTrack::AddHelixTrack(std::vector<int> pdg, TPCLocalTrackHelix *tp){
 
   int Ntracks = GetNTrack();
