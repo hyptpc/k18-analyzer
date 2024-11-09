@@ -33,13 +33,8 @@
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
 
-#define TrigA 0 //if 1, TrigA is required
-#define TrigB 0
-#define TrigC 0
-#define TrigD 0
-
-#define KKEvent 0
-#define KPEvent 1
+// #define KKEvent 0
+// #define KPEvent 1
 
 #define SaveHistograms 1
 #define RawCluster 1
@@ -100,8 +95,8 @@ struct Event
   std::vector<Int_t> cluster_houghflag;
 
   Int_t ntTpc; // Number of Tracks
-  //  Int_t ntKuramaCandidate; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
-  //  std::vector<Int_t> isKuramaCandidate;
+  Int_t ntKuramaCandidate; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
+  std::vector<Int_t> isKuramaCandidate;
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
   std::vector<Int_t> trackid; //for Kurama K1.8 tracks
   std::vector<Int_t> isBeam;
@@ -407,8 +402,8 @@ struct Event
     cluster_houghflag.clear();
 
     ntTpc = 0;
-    //    ntKuramaCandidate = 0; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
-    //    isKuramaCandidate.clear();
+    ntKuramaCandidate = 0; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
+    isKuramaCandidate.clear();
     nhtrack.clear();
     trackid.clear();
     isBeam.clear();
@@ -714,8 +709,8 @@ struct Src
   TTreeReaderValue<std::vector<Int_t>>* cluster_houghflag;
 
   TTreeReaderValue<Int_t>* ntTpc; // Number of tracks
-  //  TTreeReaderValue<Int_t>* ntKuramaCandidate; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
-  //  TTreeReaderValue<std::vector<Int_t>>* isKuramaCandidate;
+  TTreeReaderValue<Int_t>* ntKuramaCandidate; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
+  TTreeReaderValue<std::vector<Int_t>>* isKuramaCandidate;
   TTreeReaderValue<std::vector<Int_t>>* nhtrack; // Number of hits (in 1 tracks)
   TTreeReaderValue<std::vector<Int_t>>* trackid; //for Kurama K1.8 tracks
   TTreeReaderValue<std::vector<Int_t>>* isBeam;
@@ -1137,6 +1132,8 @@ dst::DstRead( int ievent )
 {
   static const auto MaxChisqrBcOut = gUser.GetParameter("MaxChisqrBcOut");
   static const auto MaxChisqrKurama = gUser.GetParameter("MaxChisqrKurama");
+  static const auto KKEvent = gUser.GetParameter("KKEvent");
+  static const auto KPEvent = gUser.GetParameter("KPEvent");
 
   //if( ievent%1000==0 ){
   if( ievent%1==0 ){
@@ -1159,19 +1156,6 @@ dst::DstRead( int ievent )
     event.posHtof.push_back(src.posHtof[it]);
   }
 
-#if TrigA
-  if(event.trigflag[20]<0) return true;
-#endif
-#if TrigB
-  if(event.trigflag[21]<0) return true;
-#endif
-#if TrigC
-  if(event.trigflag[22]<0) return true;
-#endif
-#if TrigD
-  if(event.trigflag[23]<0) return true;
-#endif
-
   if(src.nKK != 1) return true;
   //if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut || src.inside[0] != 1) return true;
   if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut) return true;
@@ -1181,12 +1165,11 @@ dst::DstRead( int ievent )
 #if KPEvent
   if(src.Pflag[0] != 1) return true; //precut with Kurama tracking
 #endif
-
   if(src.ntKurama != **src.ntTPCKurama)
     std::cerr << "Kurama Event Missmatching : DstTPCKuramaK18Tracking <-> DstKScat" << std::endl;
   if(src.ntK18 != **src.ntTPCK18)
     std::cerr << "K18 Event Missmatching : DstTPCKuramaK18Tracking <-> DstKScat" << std::endl;
-
+  
   HF1( 1, event.status++ );
   event.ntK18 = src.ntK18;
   for(int it=0; it<src.ntK18; ++it){
@@ -1872,8 +1855,8 @@ dst::DstRead( int ievent )
 
   Int_t ntTpc = **src.ntTpc;
   event.ntTpc = ntTpc;
-  // event.ntKuramaCandidate = **src.ntKuramaCandidate;
-  // event.isKuramaCandidate = **src.isKuramaCandidate;
+  event.ntKuramaCandidate = **src.ntKuramaCandidate;
+  event.isKuramaCandidate = **src.isKuramaCandidate;
   event.nhtrack = **src.nhtrack;
   event.trackid = **src.trackid;
   event.isBeam = **src.isBeam;
@@ -2418,8 +2401,8 @@ ConfMan::InitializeHistograms( void )
 #endif
 
   tree->Branch( "ntTpc", &event.ntTpc );
-  // tree->Branch( "ntKuramaCandidate", &event.ntKuramaCandidate );
-  // tree->Branch( "isKuramaCandidate", &event.isKuramaCandidate );
+  tree->Branch( "ntKuramaCandidate", &event.ntKuramaCandidate );
+  tree->Branch( "isKuramaCandidate", &event.isKuramaCandidate );
   tree->Branch( "nhtrack", &event.nhtrack );
   tree->Branch( "trackid", &event.trackid );
   tree->Branch( "isBeam", &event.isBeam );
@@ -2714,8 +2697,8 @@ ConfMan::InitializeHistograms( void )
   src.cluster_houghflag = new TTreeReaderValue<std::vector<Int_t>>( *reader, "cluster_houghflag" );
 #endif
   src.ntTpc = new TTreeReaderValue<Int_t>( *reader, "ntTpc" );
-  // src.ntKuramaCandidate = new TTreeReaderValue<Int_t>( *reader, "ntKuramaCandidate" );
-  // src.isKuramaCandidate = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isKuramaCandidate" );
+  src.ntKuramaCandidate = new TTreeReaderValue<Int_t>( *reader, "ntKuramaCandidate" );
+  src.isKuramaCandidate = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isKuramaCandidate" );
   src.nhtrack = new TTreeReaderValue<std::vector<Int_t>>( *reader, "nhtrack" );
   src.trackid = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trackid" );
   src.isBeam = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isBeam" );

@@ -41,6 +41,7 @@
 
 namespace
 {
+TRandom3 RandGen;
 
 //const auto& gConf   = ConfMan::GetInstance();
 const auto& gTPC  = TPCParamMan::GetInstance();
@@ -327,22 +328,12 @@ TPCAnalyzer::GetClusterSize(TVector3 pos, Int_t pid, TVector3 mom, Double_t de){
   Int_t row = tpc::getRowID(pad);
   bool Inner = false;
   if(layer < 10)Inner = true;
-  int pidflag = 0;// 0 -> pion, 1 -> kaon, 2 -> proton or any other baryons.
-  if(abs(pid)== 211) pidflag = 0;
-  else if(abs(pid)== 321) pidflag = 1;
-  else if(abs(pid)== 2212 or abs(pid)> 3000) pidflag = 2;
   double Mom = mom.Mag();
-  TRandom3 RandGen;
   double Cl1Prob = 0;
-  if(pidflag == 0){
-    Cl1Prob =tpc::GetClSize1Prob(Mom, pid, layer);
-  }
-  else if(pidflag == 2){
-    Cl1Prob =tpc::GetClSize1Prob(Mom, pid, layer);
-  }
-  else Cl1Prob = sqrt(tpc::GetClSize1Prob(Mom,211,layer)* tpc::GetClSize1Prob(Mom,2212,layer));
+  Cl1Prob =tpc::GetClSize1Prob(Mom, pid, layer);
+  if(abs(pid)==321) Cl1Prob= sqrt(tpc::GetClSize1Prob(Mom,211,layer)* tpc::GetClSize1Prob(Mom,2212,layer));
   int ncl=1;
-  if(RandGen.Uniform(0., 1.) > Cl1Prob)ncl = 2;
+  if(gRandom->Uniform(0., 1.) > Cl1Prob)ncl = 2;
   return ncl;
 }
 

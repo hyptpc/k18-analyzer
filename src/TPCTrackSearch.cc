@@ -801,7 +801,7 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
 	    TPCLTrackHit *hit = track -> GetHit( ih );
 	    if( !hit ) continue;
 	    const TVector3& hitpos = hit->GetLocalHitPos();
-	    if(!trackref->ResidualCheck(hitpos, KuramaXZWindow, KuramaYWindow)) break;
+	    if(hitpos.z()>tpc::ZTarget && !trackref->ResidualCheck(hitpos, KuramaXZWindow, KuramaYWindow)) break;
 	    if(hitpos.Z()>tpc::ZTarget) ncl_downstream_tgt++;
 	    //If all clusters are in the window, mark the track.
 	    if(ih==nh-1 && ncl_downstream_tgt>0){

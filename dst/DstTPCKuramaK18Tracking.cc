@@ -43,21 +43,16 @@
 #include "TPCRKTrack.hh"
 #include "UserParamMan.hh"
 
-#define TrigA 0 //if 1, TrigA is required
-#define TrigB 0
-#define TrigC 0
-#define TrigD 0
+//#define KKEvent 0
+//#define KPEvent 1
 
-#define KKEvent 0
-#define KPEvent 1
-
-#define SaveHistograms 0
+#define SaveHistograms 1
 #define RawHit 0
 #define RawCluster 1
 #define TrackClusterHist 0
 #define TruncatedMean 0
 #define TrackSearchFailed 0
-#define ExclusiveTracking 0
+//#define ExclusiveTracking 0
 
 namespace
 {
@@ -1238,6 +1233,9 @@ dst::DstRead( int ievent )
   static const Double_t Boron11Mass  = 11.009305167*TGeoUnit::amu_c2 - 5.*ElectronMass;
   static const auto MaxChisqrBcOut = gUser.GetParameter("MaxChisqrBcOut");
   static const auto MaxChisqrKurama = gUser.GetParameter("MaxChisqrKurama");
+  static const auto KKEvent = gUser.GetParameter("KKEvent");
+  static const auto KPEvent = gUser.GetParameter("KPEvent");
+  static const auto ExclusiveTracking = gUser.GetParameter("ExclusiveTracking");
   static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
   static const auto yGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Y();
   static const auto zGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Z();
@@ -1257,21 +1255,8 @@ dst::DstRead( int ievent )
 
   HF1( 1, event.status++ );
 
-#if TrigA
-  if(event.trigflag[20]<0) return true;
-#endif
-#if TrigB
-  if(event.trigflag[21]<0) return true;
-#endif
-#if TrigC
-  if(event.trigflag[22]<0) return true;
-#endif
-#if TrigD
-  if(event.trigflag[23]<0) return true;
-#endif
-
   HF1( 1, event.status++ );
-
+  
   if(src.ntKurama!=1 || src.ntK18!=1) return true;
   if(src.chisqrK18[0] > MaxChisqrBcOut || src.chisqrKurama[0] > MaxChisqrKurama) return true;
 #if KKEvent
@@ -1280,14 +1265,14 @@ dst::DstRead( int ievent )
   if(src.qKurama[0] < 0 || src.pKurama[0] > 1.4) return true;
 #endif
 #if KPEvent
-  if(src.m2[0] < 0.60 || src.m2[0] > 1.40) return true;
+  if(src.m2[0] < 0.50 || src.m2[0] > 1.40) return true;
   if(src.qKurama[0] < 0 || src.pKurama[0] < 0.0) return true;
 #endif
   if( ievent%1==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
-
+  
   HF1( 1, event.status++ );
   event.ntK18 = src.ntK18;
   std::vector<std::vector<TVector3>> vpK18;
