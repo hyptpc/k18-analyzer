@@ -1376,12 +1376,12 @@ inline Double_t GetClSize1Prob(double mom, int pid, int layer){
     bool inner = false;
     if(layer < 10) inner = true;
     int pidflag = 0;
-    if(abs(pid)== 211) pidflag = 0;
-    else if(abs(pid)== 2212 or abs(pid)> 3000) pidflag = 1;
+    if(abs(pid)<300) pidflag = 0;
+    else pidflag = 1;
     int mom_flag = (int)(mom/0.1);
     double prob = 0;
     if(mom_flag > 9){
-      mom_flag = 10;
+      mom_flag = 9;
       if(inner){
         prob = ClusterSizeInner[pidflag][mom_flag];
       }
