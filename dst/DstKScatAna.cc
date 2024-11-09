@@ -31,11 +31,6 @@
 #include "UserParamMan.hh"
 #include "TPCPadHelper.hh"
 
-#define TrigA 0 //if 1, TrigA is required
-#define TrigB 0
-#define TrigC 0
-#define TrigD 0
-
 namespace
 {
 using namespace root;
@@ -924,19 +919,6 @@ dst::DstRead(Int_t ievent)
     event.trigflag[i] = tdc;
   }
 
-#if TrigA
-  if(event.trigflag[20]<0) return true;
-#endif
-#if TrigB
-  if(event.trigflag[21]<0) return true;
-#endif
-#if TrigC
-  if(event.trigflag[22]<0) return true;
-#endif
-#if TrigD
-  if(event.trigflag[23]<0) return true;
-#endif
-
   TPCAnalyzer TPCAna;
   HF1(1, 0.);
 
@@ -1303,11 +1285,12 @@ dst::DstRead(Int_t ievent)
       if(event.m2Org[iscat] > 0. && event.m2Org[iscat] < 0.12){
 	flagScat = 1; ScatMass = PionMass; event.Piflag[iscat] = 1;
       }
-      else if(event.m2Org[iscat] > 0.15 && event.m2Org[iscat] < 0.4){
+      else if(event.m2Org[iscat] > 0.05 && event.m2Org[iscat] < 0.6){
 	flagScat = 2; ScatMass = KaonMass;
 	if(event.qKurama[iscat] > 0 && event.pKurama[iscat] < 1.4) event.Kflag[iscat] = 1;
       }
-      else if(event.qKurama[iscat] > 0 && event.pKurama[iscat] > 0 &&
+      //      else if(event.qKurama[iscat] > 0 && event.pKurama[iscat] > 0 &&
+      else if(event.qKurama[iscat] > 0 &&
 	      event.m2Org[iscat] > 0.5 && event.m2Org[iscat] < 1.4){
 	flagScat = 3; ScatMass = ProtonMass; event.Pflag[iscat] = 1;
       }

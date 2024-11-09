@@ -33,13 +33,8 @@
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
 
-#define TrigA 0 //if 1, TrigA is required
-#define TrigB 0
-#define TrigC 0
-#define TrigD 0
-
-#define KKEvent 0
-#define KPEvent 1
+// #define KKEvent 0
+// #define KPEvent 1
 
 #define SaveHistograms 1
 #define RawCluster 1
@@ -1137,6 +1132,8 @@ dst::DstRead( int ievent )
 {
   static const auto MaxChisqrBcOut = gUser.GetParameter("MaxChisqrBcOut");
   static const auto MaxChisqrKurama = gUser.GetParameter("MaxChisqrKurama");
+  static const auto KKEvent = gUser.GetParameter("KKEvent");
+  static const auto KPEvent = gUser.GetParameter("KPEvent");
 
   //if( ievent%1000==0 ){
   if( ievent%1==0 ){
@@ -1159,19 +1156,6 @@ dst::DstRead( int ievent )
     event.posHtof.push_back(src.posHtof[it]);
   }
 
-#if TrigA
-  if(event.trigflag[20]<0) return true;
-#endif
-#if TrigB
-  if(event.trigflag[21]<0) return true;
-#endif
-#if TrigC
-  if(event.trigflag[22]<0) return true;
-#endif
-#if TrigD
-  if(event.trigflag[23]<0) return true;
-#endif
-
   if(src.nKK != 1) return true;
   //if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut || src.inside[0] != 1) return true;
   if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut) return true;
@@ -1181,8 +1165,6 @@ dst::DstRead( int ievent )
 #if KPEvent
   if(src.Pflag[0] != 1) return true; //precut with Kurama tracking
 #endif
-  std::cerr << "ntKurama != ntTPCKurama, ntKurama: " << src.ntKurama << ", ntTPCKurama: " << **src.ntTPCKurama << std::endl; // for debug
-  std::cerr << "ntK18 != ntTPCK18, ntK18: " << src.ntK18 << ", ntTPCK18: " << **src.ntTPCK18 << std::endl; // for debug
   if(src.ntKurama != **src.ntTPCKurama)
     std::cerr << "Kurama Event Missmatching : DstTPCKuramaK18Tracking <-> DstKScat" << std::endl;
   if(src.ntK18 != **src.ntTPCK18)

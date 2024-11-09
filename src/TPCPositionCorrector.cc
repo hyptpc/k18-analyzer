@@ -90,7 +90,7 @@ TPCPositionCorrector::Initialize( void )
   while( ifs.good() ){
     if( line++%1000==0 ) hddaq::cout << "." << std::flush;
     ifs >> layer >> row >> y >> vx >> vz;
-    Int_t iy = Int_t( ( y - m_y0 + m_dy )/m_dy );
+    Int_t iy = Int_t( ( y - m_y0 )/m_dy );
     if( iy >= 0 && iy < m_n_y ){
       m_map[layer][row][iy].SetX( vx );
       m_map[layer][row][iy].SetY( 0. );

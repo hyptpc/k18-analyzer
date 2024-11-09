@@ -277,6 +277,8 @@ struct Event
   std::vector<std::vector<Double_t>> vtxmom_y;
   std::vector<std::vector<Double_t>> vtxmom_z;
 
+  std::vector<Double_t> angleLambda;
+
   Bool_t xiflag;
   Double_t ximass;
   Double_t xidecayvtx_x;
@@ -639,6 +641,8 @@ struct Event
     vtxmom_x.clear();
     vtxmom_y.clear();
     vtxmom_z.clear();
+
+    angleLambda.clear();
 
     xiflag = false;
     ximass = qnan;
@@ -1003,6 +1007,8 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_x;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_y;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_z;
+  
+  TTreeReaderValue<std::vector<Double_t>>* angleLambda;
 
 };
 
@@ -1304,6 +1310,8 @@ dst::DstRead( Int_t ievent )
   event.vtxmom_x = **src.vtxmom_x;
   event.vtxmom_y = **src.vtxmom_y;
   event.vtxmom_z = **src.vtxmom_z;
+
+  event.angleLambda = **src.angleLambda;
 
   const Double_t ub_off = 0.0;
   const Double_t vb_off = 0.0;
@@ -2574,6 +2582,30 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "pCalcTPC", &event.pCalcTPC);
   tree->Branch( "pCorrTPC", &event.pCorrTPC);
   tree->Branch( "pCorrDETPC", &event.pCorrDETPC);
+  tree->Branch( "pCalcTPC", &event.pCalcTPC);
+  tree->Branch( "thetaCMTPC", &event.thetaCMTPC);
+  tree->Branch( "costCMTPC", &event.costCMTPC);
+  //  tree->Branch( "pCalcDETPC", &event.pCalcDETPC);
+  //  tree->Branch( "thetaCMDETPC", &event.thetaCMDETPC);
+  //  tree->Branch( "costCMDETPC", &event.costCMDETPC);
+  //  tree->Branch( "xistarpCalcDETPC", &event.xistarpCalcDETPC);
+  // tree->Branch( "xistarthetaCMDETPC", &event.xistarthetaCMDETPC);
+  // tree->Branch( "xistarcostCMDETPC", &event.xistarcostCMDETPC);
+  // tree->Branch( "kpscatpCalcTPC", &event.kpscatpCalcTPC);
+  // tree->Branch( "kpscatthetaCMTPC", &event.kpscatthetaCMTPC);
+  // tree->Branch( "kpscatcostCMTPC", &event.kpscatcostCMTPC);
+  // tree->Branch( "kpscatpCalcDETPC", &event.kpscatpCalcDETPC);
+  // tree->Branch( "kpscatthetaCMDETPC", &event.kpscatthetaCMDETPC);
+  // tree->Branch( "kpscatcostCMDETPC", &event.kpscatcostCMDETPC);
+  tree->Branch( "thetaTPC", &event.thetaTPC);
+  tree->Branch( "xbTPC", &event.xbTPC);
+  tree->Branch( "ybTPC", &event.ybTPC);
+  tree->Branch( "ubTPC", &event.ubTPC);
+  tree->Branch( "vbTPC", &event.vbTPC);
+  tree->Branch( "xsTPC", &event.xsTPC);
+  tree->Branch( "ysTPC", &event.ysTPC);
+  tree->Branch( "usTPC", &event.usTPC);
+  tree->Branch( "vsTPC", &event.vsTPC);
 
   tree->Branch("Lflag", &event.lflag);
   // tree->Branch("Xiflag", &event.xiflag);
@@ -2610,6 +2642,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("LDecaysMomCov_xy", &event.ldecays_cov_mom_xy);
   tree->Branch("LDecaysMomCov_yz", &event.ldecays_cov_mom_yz);
   tree->Branch("LDecaysMomCov_zx", &event.ldecays_cov_mom_zx);
+  tree->Branch("angleLambda", &event.angleLambda);
 
   tree->Branch("LSflag", &event.lsflag);
   tree->Branch("LambdaMassLS", &event.lmass_ls);
@@ -2935,6 +2968,8 @@ ConfMan::InitializeHistograms( void )
   src.vtxmom_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_x" );
   src.vtxmom_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_y" );
   src.vtxmom_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_z" );
+
+  src.angleLambda = new TTreeReaderValue<std::vector<Double_t>>( *reader, "angleLambda" );
 
   return true;
 }

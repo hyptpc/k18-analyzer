@@ -34,9 +34,18 @@ const Double_t TARGETsizeZ   = 15.0/2.0;
 const Double_t TARGETcenterX = 0.0;
 const Double_t TARGETcenterY = 0.0;
 const Double_t TARGETradius  = 67.3/2.0; //Legacy (Not E42 target)
+/* // w/o Z + 6 mm Correction
 const Double_t conversion_factor = 12015.2; //HypTPC's ADC to <dE/dx>
 const Double_t sigma_dedx_p[3] = {38.19, -31.62, 8.002};
 const Double_t sigma_dedx_pi[3] = {7.546, -6.88, 3.243};
+*/
+// w/ Z + 6 mm Correction
+const Double_t conversion_factor = 11989.6; //HypTPC's ADC to <dE/dx>
+//const Double_t sigma_dedx_p[3] = {36.1372, -44.9693, 17.2572};
+//const Double_t sigma_dedx_pi[3] = {6.52213, -6.1408, 3.32118};
+const Double_t sigma_dedx_p[5] = {5.46764, 8.47708, -4.44913, 229.07, -6.63587};
+const Double_t sigma_dedx_pi[5] = {4.24777, -0.484695, 0.297915, 20.2996, -13.4064};
+const Double_t sigma_dedx_k[5] = {9.82967, -9.5835, 4.16533, 81.4433, -7.71084};
 }
 
 static Int_t gNumOfTracks;
@@ -316,6 +325,31 @@ CloseDist(const TVector3& Xin, const TVector3& Xout,
   Double_t x2=xo+uo*z, y2=yo+vo*z;
 
   return TMath::Sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2));
+}
+
+//_____________________________________________________________________________
+Double_t CalcHelixCloseDist(TVector3 point, Double_t par[5], Double_t t1_start, Double_t t1_end){
+
+  Double_t xi = -1.*point.x();
+  Double_t yi = point.z() - tpc::ZTarget;
+  Double_t zi = point.y();
+
+  //helix function
+  //x = [0] + [3]*cos(t);
+  //y = [1] + [3]*sin(t);
+  //z = [2] + [3]*[4]*t;
+
+  TF1 fvertex("fvertex", "pow([0]+[3]*cos(x)-[5], 2)+pow([1]+[3]*sin(x)-[6], 2)+pow([2]+[3]*[4]*x-[7], 2)", t1_start, t1_end);
+  fvertex.SetParameter(0, par[0]);
+  fvertex.SetParameter(1, par[1]);
+  fvertex.SetParameter(2, par[2]);
+  fvertex.SetParameter(3, par[3]);
+  fvertex.SetParameter(4, par[4]);
+  fvertex.SetParameter(5, xi);
+  fvertex.SetParameter(6, yi);
+  fvertex.SetParameter(7, zi);
+  Double_t helix_t = fvertex.GetMinimumX(t1_start, t1_end);
+  return TMath::Sqrt(fvertex.GetMinimum());
 }
 
 //_____________________________________________________________________________
@@ -1018,65 +1052,6 @@ Double_t HypTPCBethe(Double_t *x, Double_t *p){
 }
 /* Legacy
 //_____________________________________________________________________________
-Int_t HypTPCdEdxPID_temp(Double_t dedx, Double_t poq){
-
-  //Double_t conversion_factor = 12015.2;
-  Double_t limit = 0.6; //GeV/c
-  Double_t mpi = 139.57039;
-  Double_t mk  = 493.677;
-  Double_t mp  = 938.2720813;
-  Double_t md  = 1875.612762;
-
-  TF1 *f_pim = new TF1("f_pim", HypTPCBethe, -3., 0., 3);
-  TF1 *f_km = new TF1("f_km", HypTPCBethe, -3., 0., 3);
-  TF1 *f_pip = new TF1("f_pip", HypTPCBethe, 0., 3., 3);
-  TF1 *f_kp = new TF1("f_kp", HypTPCBethe, 0., 3., 3);
-  TF1 *f_p = new TF1("f_p", HypTPCBethe, 0., 3., 3);
-  TF1 *f_d = new TF1("f_d", HypTPCBethe, 0., 3., 3);
-
-  f_pim -> SetParameters(conversion_factor, mpi);
-  f_km -> SetParameters(conversion_factor, mk);
-  f_pip -> SetParameters(conversion_factor, mpi);
-  f_kp -> SetParameters(conversion_factor, mk);
-  f_p -> SetParameters(conversion_factor, mp);
-  f_d -> SetParameters(conversion_factor, md);
-
-  Int_t pid[3] = {0};
-  if(poq >= limit){
-    pid[0]=1; pid[1]=1; pid[2]=1;
-  }
-  else if(limit > poq && poq >= 0.){
-    Double_t dedx_d = f_d -> Eval(poq); Double_t dedx_p = f_p -> Eval(poq);
-    Double_t dedx_kp = f_kp -> Eval(poq); Double_t dedx_pip = f_pip -> Eval(poq);
-    if(dedx >= dedx_kp) pid[2]=1;
-    if(dedx_p > dedx){
-      pid[0]=1; pid[1]=1;
-    }
-  }
-  else if(0.> poq && poq >= -limit){
-    Double_t dedx_d = f_d -> Eval(-poq); Double_t dedx_p = f_p -> Eval(-poq);
-    Double_t dedx_kp = f_kp -> Eval(-poq); Double_t dedx_pip = f_pip -> Eval(-poq);
-    if(dedx >= dedx_kp) pid[2]=1;
-    if(dedx_p > dedx){
-      pid[0]=1; pid[1]=1;
-    }
-  }
-  else{
-    pid[0]=1; pid[1]=1; pid[2]=1;
-  }
-
-  delete f_pim;
-  delete f_km;
-  delete f_pip;
-  delete f_kp;
-  delete f_p;
-  delete f_d;
-
-  Int_t output = pid[0] + pid[1]*2 + pid[2]*4;
-  return output;
-}
-*/
-//_____________________________________________________________________________
 Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
 
   Double_t mpi = 139.57039;
@@ -1115,6 +1090,131 @@ Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
   Int_t output = pid[0] + pid[1]*2 + pid[2]*4;
   return output;
 }
+*/
+
+//Legacy
+//_____________________________________________________________________________
+Bool_t HypTPCdEdxPID_IsKaonTemp(Double_t dedx, Double_t poq){
+
+  Double_t mk  = 493.677;
+  Double_t par_k[2] = {conversion_factor, mk};
+  Double_t dedx_k = HypTPCBethe(&poq, par_k); //P10's <dE/dx>_k
+  // 1 sigma of <dE/dx>_pi
+  Double_t sigma_pi = (sigma_dedx_pi[0] + sigma_dedx_pi[1]*TMath::Abs(poq) + sigma_dedx_pi[2]*poq*poq); //temporary using pi's sigma value
+
+  Bool_t flag = false;
+  if(TMath::Abs((dedx-dedx_k)/sigma_pi) < 3) flag = true;
+  return flag;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCdEdxNsigmaProton(Double_t dedx, Double_t poq){
+
+  Double_t mp = 938.2720813;
+  // 1 sigma of <dE/dx>_p
+  Double_t par_p[2] = {conversion_factor, mp};
+  Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
+  Double_t sigma_p = (sigma_dedx_p[0] + sigma_dedx_p[1]*TMath::Abs(poq) + sigma_dedx_p[2]*poq*poq + sigma_dedx_p[3]*TMath::Exp(sigma_dedx_p[4]*TMath::Abs(poq)));
+
+  double nsigma = (dedx-dedx_p)/sigma_p;
+  return nsigma;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCdEdxNsigmaKaon(Double_t dedx, Double_t poq){
+
+  Double_t mk = 493.677;
+  Double_t par_k[2] = {conversion_factor, mk};
+  Double_t dedx_k = HypTPCBethe(&poq, par_k); //P10's <dE/dx>_k
+  // 1 sigma of <dE/dx>_k
+  Double_t sigma_k = (sigma_dedx_k[0] + sigma_dedx_k[1]*TMath::Abs(poq) + sigma_dedx_k[2]*poq*poq + sigma_dedx_k[3]*TMath::Exp(sigma_dedx_k[4]*TMath::Abs(poq)));
+
+  double nsigma = (dedx-dedx_k)/sigma_k;
+  return nsigma;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCdEdxNsigmaPion(Double_t dedx, Double_t poq){
+
+  Double_t mpi = 139.57039;
+
+  // 1 sigma of <dE/dx>_pi
+  Double_t par_pi[2] = {conversion_factor, mpi};
+  Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
+  Double_t sigma_pi = (sigma_dedx_pi[0] + sigma_dedx_pi[1]*TMath::Abs(poq) + sigma_dedx_pi[2]*poq*poq + sigma_dedx_pi[3]*TMath::Exp(sigma_dedx_pi[4]*TMath::Abs(poq)));
+
+  double nsigma = (dedx-dedx_pi)/sigma_pi;
+  return nsigma;
+}
+
+//_____________________________________________________________________________
+Bool_t HypTPCdEdxElectron(Double_t dedx, Double_t poq){
+
+  Double_t nsigma_pi = HypTPCdEdxNsigmaPion(dedx, poq);
+
+  Double_t me = 0.5109989461; //[MeV]
+  Double_t par_e[2] = {conversion_factor, me};
+  Double_t dedx_e = HypTPCBethe(&poq, par_e); //P10's <dE/dx>_e
+
+  Bool_t flag = (nsigma_pi < -3.5 &&
+		 TMath::Abs(poq) < 0.1 &&
+		 TMath::Abs(dedx-dedx_e) < 50.);
+  return flag;
+}
+
+//_____________________________________________________________________________
+Bool_t HypTPCdEdxKaon(Double_t dedx, Double_t poq){
+
+  Double_t nsigma = HypTPCdEdxNsigmaKaon(dedx, poq);
+  Double_t window_k[2] = {-3., 5.};
+  Bool_t flag = (nsigma < window_k[1] && nsigma > window_k[0]);
+  return flag;
+}
+
+//_____________________________________________________________________________
+Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
+
+  Double_t mpi = 139.57039;
+  //Double_t mk  = 493.677;
+  Double_t mp  = 938.2720813;
+  //Double_t md  = 1875.612762;
+
+  if(HypTPCdEdxElectron(dedx, poq)) return 0; //electron
+
+  // 1 sigma of <dE/dx>_pi
+  Double_t par_pi[2] = {conversion_factor, mpi};
+  Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
+  Double_t sigma_pi = (sigma_dedx_pi[0] + sigma_dedx_pi[1]*TMath::Abs(poq) + sigma_dedx_pi[2]*poq*poq + sigma_dedx_pi[3]*TMath::Exp(sigma_dedx_pi[4]*TMath::Abs(poq)));
+
+  // 1 sigma of <dE/dx>_p
+  Double_t par_p[2] = {conversion_factor, mp};
+  Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
+  Double_t sigma_p = (sigma_dedx_p[0] + sigma_dedx_p[1]*TMath::Abs(poq) + sigma_dedx_p[2]*poq*poq + sigma_dedx_p[3]*TMath::Exp(sigma_dedx_p[4]*TMath::Abs(poq)));
+
+  //p/pi separation power calculation
+  Double_t avg_sigma = 0.5*(sigma_pi + sigma_p);
+  Double_t dedx_diff = TMath::Abs(dedx_pi - dedx_p);
+  Double_t separation_power = dedx_diff/avg_sigma;
+  Double_t ppi_separation_cut = dedx_pi < dedx_p ? dedx_pi + 0.5*separation_power*sigma_pi : dedx_p + 0.5*separation_power*sigma_p;
+
+  Int_t pid[3] = {0};
+  if(separation_power < 6.){ //3 sigma separation limit
+    pid[0]=1; pid[2]=1;
+  }
+  else{
+    //p pi separation
+    if(dedx > ppi_separation_cut) pid[2]=1;
+    else pid[0]=1;
+  }
+
+  //for Kaon candidate selection
+  Double_t nsigma_k = HypTPCdEdxNsigmaPion(dedx, poq);
+  Double_t window_k[2] = {-3., 5.};
+  if(nsigma_k>window_k[0] && nsigma_k<window_k[1]) pid[1] = 1;
+
+  Int_t output = pid[0] + pid[1]*2 + pid[2]*4;
+  return output;
+}
 
 //_____________________________________________________________________________
 void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg){
@@ -1128,20 +1228,6 @@ void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg){
     if(pid==0) pdg.push_back(charge*pdgcode[i]);
     flag*=2;
   }
-}
-
-//_____________________________________________________________________________
-Bool_t HypTPCdEdxPID_IsKaonTemp(Double_t dedx, Double_t poq){
-
-  Double_t mk  = 493.677;
-  Double_t par_k[2] = {conversion_factor, mk};
-  Double_t dedx_k = HypTPCBethe(&poq, par_k); //P10's <dE/dx>_k
-  // 1 sigma of <dE/dx>_pi
-  Double_t sigma_pi = (sigma_dedx_pi[0] + sigma_dedx_pi[1]*TMath::Abs(poq) + sigma_dedx_pi[2]*poq*poq); //temporary using pi's sigma value
-
-  Bool_t flag = false;
-  if(TMath::Abs((dedx-dedx_k)/sigma_pi) < 3) flag = true;
-  return flag;
 }
 
 //_____________________________________________________________________________
@@ -1579,7 +1665,8 @@ HelixDirection(TVector3 vertex, TVector3 start, TVector3 end, Double_t &dist){
 //_____________________________________________________________________________
 TVector3
 MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0, Double_t *u0, Double_t *v0,
-std::vector<Double_t> Res_x0,std::vector<Double_t> Res_y0,std::vector<Double_t> Res_u0,std::vector<Double_t> Res_v0){
+		 std::vector<Double_t> Res_x0, std::vector<Double_t> Res_y0,
+		 std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0){
 
   gNumOfTracks = ntrack;
   gX0.clear();
@@ -1600,8 +1687,8 @@ std::vector<Double_t> Res_x0,std::vector<Double_t> Res_y0,std::vector<Double_t> 
   if(Res_x0.size() == 0){
     ResFlag = false;
   }
-  else if(Res_x0.size() != ntrack or Res_y0.size() != ntrack
-  or Res_u0.size() != ntrack or Res_v0.size() != ntrack){
+  else if(Res_x0.size() != ntrack || Res_y0.size() != ntrack
+	  || Res_u0.size() != ntrack || Res_v0.size() != ntrack){
     std::cout<<"MultitrackVertex:: Resolution not set"<<std::endl;
     std::cout<<"ntracks = "<<ntrack<<std::endl;
     std::cout<<"Res_x0.size() = "<<Res_x0.size()<<std::endl;
@@ -1668,6 +1755,108 @@ std::vector<Double_t> Res_x0,std::vector<Double_t> Res_y0,std::vector<Double_t> 
   for(Int_t i=0; i<3; i++){
     minuit->mnpout(i, name[i], par[i], err[i], bnd1, bnd2, Err);
   }
+  delete minuit;
+
+  return TVector3(par[0], par[1], par[2] + tpc::ZTarget);
+}
+
+//_____________________________________________________________________________
+TVector3
+MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0, Double_t *u0, Double_t *v0,
+		 std::vector<Double_t> Res_x0, std::vector<Double_t> Res_y0,
+		 std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0, Double_t &chisqr){
+
+  gNumOfTracks = ntrack;
+  gX0.clear();
+  gY0.clear();
+  gU0.clear();
+  gV0.clear();
+  gSX0.clear();
+  gSY0.clear();
+  gSU0.clear();
+  gSV0.clear();
+  for(Int_t i=0; i<gNumOfTracks; ++i){
+    gX0.push_back(x0[i]);
+    gY0.push_back(y0[i]);
+    gU0.push_back(u0[i]);
+    gV0.push_back(v0[i]);
+  }
+  bool ResFlag = true;
+  if(Res_x0.size() == 0){
+    ResFlag = false;
+  }
+  else if(Res_x0.size() != ntrack || Res_y0.size() != ntrack
+	  || Res_u0.size() != ntrack || Res_v0.size() != ntrack){
+    std::cout<<"MultitrackVertex:: Resolution not set"<<std::endl;
+    std::cout<<"ntracks = "<<ntrack<<std::endl;
+    std::cout<<"Res_x0.size() = "<<Res_x0.size()<<std::endl;
+    std::cout<<"Res_y0.size() = "<<Res_y0.size()<<std::endl;
+    std::cout<<"Res_u0.size() = "<<Res_u0.size()<<std::endl;
+    std::cout<<"Res_v0.size() = "<<Res_v0.size()<<std::endl;
+    ResFlag = false;
+  }
+  if(ResFlag){
+    for(Int_t i=0; i<gNumOfTracks; ++i){
+      gSX0.push_back(Res_x0[i]);
+      gSY0.push_back(Res_y0[i]);
+      gSU0.push_back(Res_u0[i]);
+      gSV0.push_back(Res_v0[i]);
+    }
+  }
+  else{
+    for(Int_t i=0;i<gNumOfTracks;++i){
+      gSX0.push_back(1.);
+      gSY0.push_back(1.);
+      gSU0.push_back(0.);
+      gSV0.push_back(0.);
+    }
+  }
+
+  Double_t par[3] = {0, 0, 0};
+  Double_t err[3] = {999., 999., 999.};
+
+  TMinuit *minuit = new TMinuit(3);
+  minuit->SetPrintLevel(-1);
+  minuit->SetFCN(fcn_vertex);
+
+  Double_t arglist[10];
+  Int_t ierflg = 0;
+
+  arglist[0] = 1; //error level for ch2 minimization
+  minuit->mnexcm("SET ERR", arglist, 1, ierflg);
+  minuit->mnexcm("SET NOW", arglist, 1, ierflg);
+
+  TString name[3] = {"x", "y" ,"z"};
+  const Double_t FitStep[3] = {0.001, 0.001, 0.001};
+  const Double_t LowLimit[3] = {-50., -50., -100};
+  const Double_t UpLimit[3] = {50., 50., 100};
+  for(Int_t i=0; i<3; i++){
+    minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
+  }
+  minuit->Command("SET STRategy 0");
+
+  //arglist[0] = 500.;
+  //arglist[1] = 1;
+  arglist[0] = 1000.;
+  arglist[1] = 0.1;
+
+  Int_t Err;
+  Double_t bnd1, bnd2;
+  minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
+  //minuit->mnimpr();
+  //minuit->mnexcm("MINOS", arglist, 0, ierflg);
+  //minuit->mnexcm("SET ERR", arglist, 2, ierflg);
+
+  Double_t amin, edm, errdef;
+  Int_t nvpar, nparx, icstat;
+  minuit->mnstat(amin, edm, errdef, nvpar, nparx, icstat);
+  for(Int_t i=0; i<3; i++){
+    minuit->mnpout(i, name[i], par[i], err[i], bnd1, bnd2, Err);
+  }
+  Double_t grad[3]; Double_t chi;
+  minuit -> Eval(3, grad, chi, par, 0);
+  chisqr = chi;
+
   delete minuit;
 
   return TVector3(par[0], par[1], par[2] + tpc::ZTarget);

@@ -128,6 +128,14 @@ MinLayerTPC 6 #ref
 #MinLayerTPC 5
 BeamThroughTPC 		0
 #BeamThroughTPC 	1
+ExclusiveTracking	0
+#ExclusiveTracking	1
+
+### Reaction
+KKEvent		0
+#KKEvent	1
+KPEvent		0
+#KPEvent	1
 
 ### TPCHit
 #BaselineCorrectionTPC	0
