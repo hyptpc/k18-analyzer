@@ -34,6 +34,7 @@ public:
   void AddReps(int ith, int pdg);
   //single pid hypothesis
   void AddHelixTrack(int pdg, TPCLocalTrackHelix *tp);
+  void AddHelixTrack(int pdg, double initmom, TPCLocalTrackHelix *tp);
   void AddLinearTrack(int pdg, TPCLocalTrack *tp, double momentum);
   void AddReconstructedTrack(int pdg, TVector3 posSeed, TVector3 momSeed); //add recontructed track for extrapolation
   //multiple pid hypotheses
