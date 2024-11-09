@@ -409,8 +409,8 @@ bool HypTPCTask::IsInsideTarget(int trackid, int repid) const{
      TMath::Abs(pos.x()) < 50. &&
      TMath::Abs(pos.y()) < 50. &&
      TMath::Abs(pos.z()-ztgt) < 50. &&
-     TMath::Sqrt(pos.x()*pos.x()+pos.y()*pos.y()+(pos.z()-ztgt)*(pos.z()-ztgt)) < 50.)
-    return true;
+     TMath::Sqrt(pos.x()*pos.x()+pos.y()*pos.y()+(pos.z()-ztgt)*(pos.z()-ztgt)) < 50. &&
+     -100. < tracklen && tracklen < 10.) return true;
   else return false;
 }
 
