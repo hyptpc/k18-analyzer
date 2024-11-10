@@ -2800,6 +2800,7 @@ TPCLocalTrackHelix::ResidualCheck(TVector3 pos, Double_t xzwindow, Double_t ywin
   resi = d.Mag();
   Double_t xz_resi = TMath::Sqrt(d.x()*d.x()+d.z()*d.z());
   Double_t y_resi = TMath::Sqrt(d.y()*d.y());
+
   if(xz_resi<xzwindow && y_resi<ywindow) status = true;
   return status;
 }
@@ -3388,6 +3389,7 @@ TPCLocalTrackHelix::RecalcTrack()
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   m_is_theta_calculated = true;
   m_is_calculated = false;
+  m_mom0 = CalcHelixMom(par, 0.);
   Calculate();
   m_is_fitted = true;
   m_min_t = m_hit_t[0];
@@ -3395,7 +3397,6 @@ TPCLocalTrackHelix::RecalcTrack()
   CalcClosestDistTgt();
   m_path = (m_max_t - m_min_t)*sqrt(m_r*m_r*(1. + m_dz*m_dz));
   m_transverse_path = (m_max_t - m_min_t)*m_r;
-  m_mom0 = CalcHelixMom(par, 0.);
   IsMultiLoop();
 
 }

@@ -35,7 +35,6 @@ private:
 public:
   TVector3 Correct( const TVector3& pos, Int_t layer, Int_t row ) const;
   TVector3 GetCorrectionVector( const TVector3& pos, Int_t layer, Int_t row ) const;
-  TVector3 DriftAdjustment( const TVector3& pos ) const;
   Bool_t   Initialize( void );
   Bool_t   Initialize( const TString& file_name );
   Bool_t   IsReady( void ) const { return m_is_ready; }
