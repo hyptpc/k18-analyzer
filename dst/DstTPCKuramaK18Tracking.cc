@@ -43,7 +43,7 @@
 #include "TPCRKTrack.hh"
 #include "UserParamMan.hh"
 
-//#define KKEvent 0
+//#define KKEvent 1
 //#define KPEvent 1
 
 #define SaveHistograms 1
@@ -1259,15 +1259,16 @@ dst::DstRead( int ievent )
   
   if(src.ntKurama!=1 || src.ntK18!=1) return true;
   if(src.chisqrK18[0] > MaxChisqrBcOut || src.chisqrKurama[0] > MaxChisqrKurama) return true;
-#if KKEvent
+  if(KKEvent){
   //if(src.m2[0] < 0.15 || src.m2[0] > 0.40) return true;
-  if(src.m2[0] < 0.05 || src.m2[0] > 0.60) return true;
-  if(src.qKurama[0] < 0 || src.pKurama[0] > 1.4) return true;
-#endif
-#if KPEvent
-  if(src.m2[0] < 0.50 || src.m2[0] > 1.40) return true;
-  if(src.qKurama[0] < 0 || src.pKurama[0] < 0.0) return true;
-#endif
+	  if(src.m2[0] < 0.05 || src.m2[0] > 0.60) return true;
+    if(src.qKurama[0] < 0 || src.pKurama[0] > 1.4) return true;
+  }
+  else if( KPEvent){
+    if(src.m2[0] < 0.50 || src.m2[0] > 1.40) return true;
+    if(src.qKurama[0] < 0 || src.pKurama[0] < 0.0) return true;
+  }
+
   if( ievent%1==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
@@ -1528,11 +1529,12 @@ dst::DstRead( int ievent )
   TPCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock);
 
   HF1( 1, event.status++ );
-#if ExclusiveTracking
-  TPCAna.TrackSearchTPCHelix(vpK18, vpKurama, event.qKurama, true);
-#else
-  TPCAna.TrackSearchTPCHelix(vpK18, vpKurama, event.qKurama);
-#endif
+  if(ExclusiveTracking){
+    TPCAna.TrackSearchTPCHelix(vpK18, vpKurama, event.qKurama, true);
+	}
+	else{
+    TPCAna.TrackSearchTPCHelix(vpK18, vpKurama, event.qKurama);
+	}
 
   Int_t ntTpc = TPCAna.GetNTracksTPCHelix();
   event.ntTpc = ntTpc;
@@ -2924,7 +2926,7 @@ dst::DstRead( int ievent )
       Double_t res_t = TMath::Hypot(res_vect.x(), res_vect.z());
       event.pull[it][ih] = hypot(resi_t/res_t, resi_vect.y()/resi_vect.y());
 
-#if ExclusiveTracking
+      if(ExclusiveTracking){
       HF1(TPCInclusiveHid+layer,resi_t);
       HF1(TPCInclusiveHid+100+layer,resi_vect.x());
       HF1(TPCInclusiveHid+200+layer,resi_vect.y());
@@ -3028,7 +3030,7 @@ dst::DstRead( int ievent )
       HF2(TPCIntrinsicHid+1100+10000,layer,intrinsic_resi_x/res_vect.x());
       HF2(TPCIntrinsicHid+1200+10000,layer,intrinsic_resi_y/res_vect.y());
       HF2(TPCIntrinsicHid+1300+10000,layer,intrinsic_resi_z/res_vect.z());
-#endif
+			}
     }
 
     //Inverted charge tracks
@@ -3489,7 +3491,8 @@ ConfMan::InitializeHistograms( void )
     HB1(TPCKuramaVPHid+1300+layer, Form("Q<0, TPC - Kurama Z, layer%d;Z residual [mm];Counts",layer), 500, -100, 100);
   }
 
-#if ExclusiveTracking
+// if(ExclusiveTracking){Can't pass boolian token 'ExclusiveTracking' to ConfMan
+ if(1){
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     HB1(TPCExclusiveHid+layer,	Form("TPC ExclusiveResidual T[mm];layer%d",layer),1000,-10,10);
     HB1(TPCExclusiveHid+100+layer,	Form("TPC ExclusiveResidual X[mm];layer%d",layer),1000,-10,10);
@@ -3562,8 +3565,7 @@ ConfMan::InitializeHistograms( void )
   HB2(TPCIntrinsicHid+1000+100+10000,	Form("TPC IntrinsicPull X:Layer"),31,0,31,1000,-10,10);
   HB2(TPCIntrinsicHid+1000+200+10000,	Form("TPC IntrinsicPull Y:Layer"),31,0,31,1000,-10,10);
   HB2(TPCIntrinsicHid+1000+300+10000,	Form("TPC IntrinsicPull Z:Layer"),31,0,31,1000,-10,10);
-#endif
-
+	}
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     HB2(TPCKuramaRKHid+layer+6100, Form("Q>0, X residual, layer%d;(Kurama track - TPC cluster) X [mm];(TPCKurama track - TPC cluster) X [mm]",layer), 1000, -20, 20, 1000, -20, 20);
     HB2(TPCKuramaRKHid+layer+6200, Form("Q>0, X residual, layer%d;(Kurama track - TPC cluster) X [mm];(TPC track - TPC cluster) X [mm]",layer), 1000, -20, 20, 1000, -20, 20);
@@ -4037,7 +4039,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_y_center", &event.track_cluster_y_center);
   tree->Branch( "track_cluster_z_center", &event.track_cluster_z_center);
   tree->Branch( "track_cluster_row_center", &event.track_cluster_row_center);
-#if ExclusiveTracking
+//  if( ExclusiveTracking){
+  if(1){
   tree->Branch( "exresidual_t", &event.exresidual_t );
   tree->Branch( "exresidual_x", &event.exresidual_x );
   tree->Branch( "exresidual_y", &event.exresidual_y );
@@ -4046,8 +4049,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "intrinsic_residual_x", &event.intrinsic_residual_x );
   tree->Branch( "intrinsic_residual_y", &event.intrinsic_residual_y );
   tree->Branch( "intrinsic_residual_z", &event.intrinsic_residual_z );
-#endif
-
+	}
   tree->Branch( "chargeIndistinguishable", &event.chargeIndistinguishable );
   tree->Branch( "chisqr_inverted", &event.chisqr_inverted );
   tree->Branch( "pval_inverted", &event.pval_inverted );
