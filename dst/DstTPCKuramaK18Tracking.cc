@@ -83,6 +83,7 @@ std::vector<TString> TreeName = { "", "", "tpc", "kurama", "k18track","" };
 std::vector<TFile*> TFileCont;
 std::vector<TTree*> TTreeCont;
 std::vector<TTreeReader*> TTreeReaderCont;
+  static bool ExclusiveTracking;
 }
 
 //_____________________________________________________________________________
@@ -3491,8 +3492,7 @@ ConfMan::InitializeHistograms( void )
     HB1(TPCKuramaVPHid+1300+layer, Form("Q<0, TPC - Kurama Z, layer%d;Z residual [mm];Counts",layer), 500, -100, 100);
   }
 
-// if(ExclusiveTracking){Can't pass boolian token 'ExclusiveTracking' to ConfMan
- if(1){
+ if(dst::ExclusiveTracking){
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     HB1(TPCExclusiveHid+layer,	Form("TPC ExclusiveResidual T[mm];layer%d",layer),1000,-10,10);
     HB1(TPCExclusiveHid+100+layer,	Form("TPC ExclusiveResidual X[mm];layer%d",layer),1000,-10,10);
@@ -4039,8 +4039,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_y_center", &event.track_cluster_y_center);
   tree->Branch( "track_cluster_z_center", &event.track_cluster_z_center);
   tree->Branch( "track_cluster_row_center", &event.track_cluster_row_center);
-//  if( ExclusiveTracking){
-  if(1){
+  if(dst:: ExclusiveTracking){
   tree->Branch( "exresidual_t", &event.exresidual_t );
   tree->Branch( "exresidual_x", &event.exresidual_x );
   tree->Branch( "exresidual_y", &event.exresidual_y );
