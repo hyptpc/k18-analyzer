@@ -795,13 +795,9 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
       if(track){
 	Int_t ncl_downstream_tgt = 0; //#cluster after the target.
 	//Check whether all track custers within the window along the Kurama track
-#if KuramaChargeCut	
-	if(BeamThroughTPC ||	   
-	   (track -> GetIsK18()!=1 && KuramaCharge[nt]*track->GetCharge()>0)){
-#else
 	if(BeamThroughTPC ||
-	   (track -> GetIsK18()!=1)){
-#endif	  
+	   (track -> GetIsK18()!=1 && KuramaChargeCut==1 && KuramaCharge[nt]*track->GetCharge()>0) ||
+	   (track -> GetIsK18()!=1 && KuramaChargeCut==0) ){
 	  Int_t nh = track->GetNHit();
 	  for(Int_t ih=0; ih<nh; ++ih){
 	    TPCLTrackHit *hit = track -> GetHit( ih );
