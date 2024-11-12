@@ -130,6 +130,8 @@ BeamThroughTPC 		0
 #BeamThroughTPC 	1
 ExclusiveTracking	0
 #ExclusiveTracking	1
+KuramaChargeCut		0
+#KuramaChargeCut	1
 
 ### Reaction
 KKEvent		0

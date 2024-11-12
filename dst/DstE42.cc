@@ -33,9 +33,6 @@
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
 
-// #define KKEvent 0
-// #define KPEvent 1
-
 #define SaveHistograms 1
 #define RawCluster 1
 

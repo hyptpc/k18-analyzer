@@ -43,16 +43,12 @@
 #include "TPCRKTrack.hh"
 #include "UserParamMan.hh"
 
-//#define KKEvent 1
-//#define KPEvent 1
-
 #define SaveHistograms 1
 #define RawHit 0
 #define RawCluster 1
 #define TrackClusterHist 0
 #define TruncatedMean 0
 #define TrackSearchFailed 0
-//#define ExclusiveTracking 0
 
 namespace
 {
