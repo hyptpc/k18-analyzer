@@ -755,6 +755,7 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
 		  Int_t MinNumOfHits)
 {
   static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+  static const auto KuramaChargeCut = gUser.GetParameter("KuramaChargeCut");
 
   if(VPs.size()==0) return;
   for(Int_t nt=0; nt<VPs.size(); nt++){
