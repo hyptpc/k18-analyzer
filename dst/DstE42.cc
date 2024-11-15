@@ -1156,12 +1156,12 @@ dst::DstRead( int ievent )
   if(src.nKK != 1) return true;
   //if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut || src.inside[0] != 1) return true;
   if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut) return true;
-#if KKEvent
-  if(src.Kflag[0] != 1) return true; //precut with Kurama tracking
-#endif
-#if KPEvent
-  if(src.Pflag[0] != 1) return true; //precut with Kurama tracking
-#endif
+  if(KKEvent && src.Kflag[0] != 1){
+    return true; //precut with Kurama tracking
+  }
+  if(KPEvent && src.Pflag[0] != 1){
+    return true; //precut with Kurama tracking
+  }
   if(src.ntKurama != **src.ntTPCKurama)
     std::cerr << "Kurama Event Missmatching : DstTPCKuramaK18Tracking <-> DstKScat" << std::endl;
   if(src.ntK18 != **src.ntTPCK18)
