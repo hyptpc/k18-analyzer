@@ -655,7 +655,7 @@ bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, 
 bool HypTPCTask::TPCHTOFTrackMatching(int trackid, int repid, TVector3 vertex, std::vector<Double_t> HtofSeg, std::vector<Double_t> posHtof, int &htofhitid, double &tof, double &tracklen, TVector3 &pos, double &vertex_dist) const{
 
   bool status = false;
-  double PosDiffCut = 60.; //mm
+  double PosDiffCut = 100.; //mm
 
   TVector3 vtx_pos; TVector3 vtx_mom; double vtx_len; double vtx_tof;
   if(!ExtrapolateToPoint(trackid, vertex, vtx_pos, vtx_mom,
@@ -699,7 +699,7 @@ bool HypTPCTask::TPCHTOFTrackMatching(int trackid, int repid, TVector3 vertex, s
 bool HypTPCTask::TPCHTOFTrackMatching(int trackid, int repid, std::vector<Double_t> HtofSeg, std::vector<Double_t> posHtof, int &htofhitid, double &tof, double &tracklen, TVector3 &pos) const{
 
   bool status = false;
-  double PosDiffCut = 60.; //mm
+  double PosDiffCut = 100.; //mm
   int candidates; int extrap_id[8]; TVector3 extrap_pos[8]; TVector3 extrap_mom[8]; double extrap_len[8]; double extrap_tof[8];
   if(!ExtrapolateToHTOF(trackid, candidates, extrap_id, extrap_pos, extrap_mom, extrap_len, extrap_tof, repid))
     return status;

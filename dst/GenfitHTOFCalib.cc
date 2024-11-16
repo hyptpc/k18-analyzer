@@ -37,7 +37,6 @@
 #include "HypTPCTask.hh"
 
 #define RawHit 0
-#define TrackCluster 1
 
 namespace
 {
@@ -64,11 +63,11 @@ namespace dst
 enum kArgc
 {
   kProcess, kConfFile,
-  kTpcHit, kHodoscope, kOutFile, nArgc
+  kHTOFCaib, kHodoscope1, kHodoscope2, kOutFile, nArgc
 };
 std::vector<TString> ArgName =
-  { "[Process]", "[ConfFile]", "[TPCHit]", "[Hodoscope]", "[OutFile]" };
-std::vector<TString> TreeName = { "", "", "tpc", "hodo", "" };
+  { "[Process]", "[ConfFile]", "[HTOFCaib]", "[Hodoscope]", "[Hodoscope]", "[OutFile]" };
+std::vector<TString> TreeName = { "", "", "tpc", "hodo", "tree", "" };
 std::vector<TFile*> TFileCont;
 std::vector<TTree*> TTreeCont;
 std::vector<TTreeReader*> TTreeReaderCont;
@@ -82,7 +81,6 @@ struct Event
   Int_t evnum;
   std::vector<Int_t> trigpat;
   std::vector<Int_t> trigflag;
-  std::vector<Double_t> clkTpc;
 
   Int_t nhTpc;
   std::vector<Double_t> raw_hitpos_x;
@@ -130,8 +128,12 @@ struct Event
   std::vector<Double_t> mom0;//Helix momentum at Y = 0
   std::vector<Int_t> charge;//Helix charge
   std::vector<Double_t> path;//Helix path
-
   std::vector<Int_t> pid;
+  std::vector<Int_t> isElectron;
+  std::vector<Double_t> nsigma_proton;
+  std::vector<Double_t> nsigma_kaon;
+  std::vector<Double_t> nsigma_pion;
+
   std::vector<std::vector<Double_t>> hitlayer;
   std::vector<std::vector<Double_t>> hitpos_x;
   std::vector<std::vector<Double_t>> hitpos_y;
@@ -184,6 +186,13 @@ struct Event
   std::vector<Double_t> deHtof;
   std::vector<Double_t> posHtof;
 
+  std::vector<Double_t> utimeHtof;
+  std::vector<Double_t> dtimeHtof;
+  std::vector<Double_t> uctimeHtof;
+  std::vector<Double_t> dctimeHtof;
+  std::vector<Double_t> udeHtof;
+  std::vector<Double_t> ddeHtof;
+
   Int_t GFstatus;
   Int_t GFntTpc;
   std::vector<Int_t> GFfitstatus;
@@ -192,7 +201,7 @@ struct Event
   std::vector<Double_t> GFcharge;
   std::vector<Double_t> GFchisqr;
   std::vector<Double_t> GFtof;
-  std::vector<Double_t> GFtracklen;
+  //std::vector<Double_t> GFtracklen;
   std::vector<Double_t> GFpval;
   std::vector<std::vector<Double_t>> GFlayer;
   std::vector<std::vector<Double_t>> GFpos_x;
@@ -211,20 +220,22 @@ struct Event
   std::vector<std::vector<Double_t>> GFresidual_pz;
 
   std::vector<Int_t> GFinside;
-  std::vector<Double_t> GFxTgt;
-  std::vector<Double_t> GFyTgt;
-  std::vector<Double_t> GFzTgt;
-  std::vector<Double_t> GFmomTgt;
-  std::vector<Double_t> GFmomxTgt;
-  std::vector<Double_t> GFmomyTgt;
-  std::vector<Double_t> GFmomzTgt;
-  std::vector<Double_t> GFtracklenTgt;
-  std::vector<Double_t> GFtofTgt;
 
   Int_t GFntTpc_inside;
   Double_t GFprodvtx_x;
   Double_t GFprodvtx_y;
   Double_t GFprodvtx_z;
+
+  std::vector<Double_t> GFtracklen;
+  std::vector<Double_t> GFtrack2vtxdist;
+  std::vector<Double_t> GFcalctof;
+  std::vector<Double_t> GFsegHtof;
+  std::vector<Double_t> GFtofHtof;
+  std::vector<Double_t> GFtdiffHtof;
+  std::vector<Double_t> GFposHtof;
+  std::vector<Double_t> GFposx;
+  std::vector<Double_t> GFposy;
+  std::vector<Double_t> GFposz;
 
   std::vector<Double_t> GFmom_p;
   std::vector<Double_t> GFtracklen_p;
@@ -257,7 +268,6 @@ struct Event
     status = 0;
     trigpat.clear();
     trigflag.clear();
-    clkTpc.clear();
 
     nhTpc = 0;
     raw_hitpos_x.clear();
@@ -307,6 +317,10 @@ struct Event
     charge.clear();
     path.clear();
     pid.clear();
+    isElectron.clear();
+    nsigma_proton.clear();
+    nsigma_kaon.clear();
+    nsigma_pion.clear();
 
     hitlayer.clear();
     hitpos_x.clear();
@@ -361,6 +375,13 @@ struct Event
     deHtof.clear();
     posHtof.clear();
 
+    utimeHtof.clear();
+    dtimeHtof.clear();
+    uctimeHtof.clear();
+    dctimeHtof.clear();
+    udeHtof.clear();
+    ddeHtof.clear();
+
     GFstatus = 0;
     GFntTpc = 0;
     GFcharge.clear();
@@ -393,6 +414,17 @@ struct Event
     GFprodvtx_x = qnan;
     GFprodvtx_y = qnan;
     GFprodvtx_z = qnan;
+
+    GFtracklen.clear();
+    GFtrack2vtxdist.clear();
+    GFcalctof.clear();
+    GFsegHtof.clear();
+    GFtofHtof.clear();
+    GFtdiffHtof.clear();
+    GFposHtof.clear();
+    GFposx.clear();
+    GFposy.clear();
+    GFposz.clear();
 
     GFmom_p.clear();
     GFtracklen_p.clear();
@@ -427,20 +459,97 @@ struct Src
   TTreeReaderValue<Int_t>* evnum;
   TTreeReaderValue<std::vector<Int_t>>* trigpat;
   TTreeReaderValue<std::vector<Int_t>>* trigflag;
-  TTreeReaderValue<Int_t>* npadTpc;   // number of pads
-  TTreeReaderValue<Int_t>* nhTpc;     // number of hits
-  // vector (size=nhTpc)
-  TTreeReaderValue<std::vector<Int_t>>* layerTpc;     // layer id
-  TTreeReaderValue<std::vector<Int_t>>* rowTpc;       // row id
-  TTreeReaderValue<std::vector<Int_t>>* padTpc;       // pad id
-  TTreeReaderValue<std::vector<Double_t>>* pedTpc;    // pedestal
-  TTreeReaderValue<std::vector<Double_t>>* rmsTpc;    // rms
-  TTreeReaderValue<std::vector<Double_t>>* deTpc;     // dE
-  TTreeReaderValue<std::vector<Double_t>>* cdeTpc;    // cdE
-  TTreeReaderValue<std::vector<Double_t>>* tTpc;      // time
-  TTreeReaderValue<std::vector<Double_t>>* ctTpc;     // time
-  TTreeReaderValue<std::vector<Double_t>>* chisqrTpc; // chi^2 of signal fitting
-  TTreeReaderValue<std::vector<Double_t>>* clkTpc;    // clock time
+
+  TTreeReaderValue<Int_t>* nclTpc; // Number of clusters
+  TTreeReaderValue<std::vector<Double_t>>* cluster_x;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_y;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_z;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_de;
+  TTreeReaderValue<std::vector<Int_t>>* cluster_size;
+  TTreeReaderValue<std::vector<Int_t>>* cluster_layer;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_mrow;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_de_center;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_x_center;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_y_center;
+  TTreeReaderValue<std::vector<Double_t>>* cluster_z_center;
+  TTreeReaderValue<std::vector<Int_t>>* cluster_row_center;
+  TTreeReaderValue<std::vector<Int_t>>* cluster_houghflag;
+
+  TTreeReaderValue<Int_t>* ntTpc; // Number of Tracks
+  TTreeReaderValue<std::vector<Int_t>>* nhtrack; // Number of Hits (in 1 tracks)
+  TTreeReaderValue<std::vector<Int_t>>* isBeam;
+  TTreeReaderValue<std::vector<Int_t>>* isAccidental;
+  TTreeReaderValue<std::vector<Int_t>>* fittime;
+  TTreeReaderValue<std::vector<Int_t>>* searchtime;
+  TTreeReaderValue<std::vector<Int_t>>* niteration;
+  TTreeReaderValue<std::vector<Double_t>>* chisqr;
+  TTreeReaderValue<std::vector<Double_t>>* helix_cx;
+  TTreeReaderValue<std::vector<Double_t>>* helix_cy;
+  TTreeReaderValue<std::vector<Double_t>>* helix_z0;
+  TTreeReaderValue<std::vector<Double_t>>* helix_r;
+  TTreeReaderValue<std::vector<Double_t>>* helix_dz;
+  TTreeReaderValue<std::vector<Double_t>>* dz_factor;
+  TTreeReaderValue<std::vector<Double_t>>* dE;
+  TTreeReaderValue<std::vector<Double_t>>* dEdx; //reference dedx
+  TTreeReaderValue<std::vector<Double_t>>* mom0_x;//Helix momentum at Y = 0
+  TTreeReaderValue<std::vector<Double_t>>* mom0_y;//Helix momentum at Y = 0
+  TTreeReaderValue<std::vector<Double_t>>* mom0_z;//Helix momentum at Y = 0
+  TTreeReaderValue<std::vector<Double_t>>* mom0;//Helix momentum at Y = 0
+  TTreeReaderValue<std::vector<Int_t>>* charge;//Helix charge
+  TTreeReaderValue<std::vector<Double_t>>* path;//Helix path
+  TTreeReaderValue<std::vector<Int_t>>* pid;
+  TTreeReaderValue<std::vector<Int_t>>* isElectron;
+  TTreeReaderValue<std::vector<Double_t>>* nsigma_proton;
+  TTreeReaderValue<std::vector<Double_t>>* nsigma_kaon;
+  TTreeReaderValue<std::vector<Double_t>>* nsigma_pion;
+
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* hitlayer;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* hitpos_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* hitpos_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* hitpos_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* calpos_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* calpos_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* calpos_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* mom_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* mom_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* mom_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* residual;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* residual_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* residual_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* residual_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* resolution_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* resolution_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* resolution_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* helix_t;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* alpha;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* pathhit;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* houghflag;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_de;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_size;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_mrow;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_de_center;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_x_center;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_y_center;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_z_center;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_row_center;
+
+  TTreeReaderValue<Int_t>* nvtxTpc;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_x;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_y;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_z;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_dist;
+  TTreeReaderValue<std::vector<Double_t>>* vtx_angle;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxid;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_theta;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxpos_z;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_x;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_y;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* vtxmom_z;
+
+  Double_t Time0;
+  Double_t CTime0;
 
   Int_t    nhHtof;
   Int_t    csHtof[NumOfSegHTOF*MaxDepth];
@@ -449,6 +558,16 @@ struct Src
   Double_t dtHtof[NumOfSegHTOF*MaxDepth];
   Double_t deHtof[NumOfSegHTOF*MaxDepth];
   Double_t posHtof[NumOfSegHTOF*MaxDepth];
+
+  Double_t htofmt[NumOfSegHTOF][MaxDepth];
+  Double_t htofde[NumOfSegHTOF];
+  Double_t htofutime[NumOfSegHTOF][MaxDepth];
+  Double_t htofuctime[NumOfSegHTOF][MaxDepth];
+  Double_t htofdtime[NumOfSegHTOF][MaxDepth];
+  Double_t htofdctime[NumOfSegHTOF][MaxDepth];
+  Double_t htofhitpos[NumOfSegHTOF][MaxDepth];
+  Double_t htofude[NumOfSegHTOF];
+  Double_t htofdde[NumOfSegHTOF];
 
 };
 
@@ -564,289 +683,164 @@ dst::DstRead( int ievent )
   event.evnum = **src.evnum;
   event.trigpat = **src.trigpat;
   event.trigflag = **src.trigflag;
-  event.clkTpc = **src.clkTpc;
-  event.nhHtof = src.nhHtof;
-  for(Int_t it=0; it<event.nhHtof; it++){
-    event.HtofSeg.push_back(src.HtofSeg[it]);
-    event.tHtof.push_back(src.tHtof[it]);
-    event.dtHtof.push_back(src.dtHtof[it]);
-    event.deHtof.push_back(src.deHtof[it]);
-    event.posHtof.push_back(src.posHtof[it]);
-  }
-  HF1( 1, event.status++ );
 
-  if( **src.nhTpc < 5 ) return true;
+  event.nclTpc = **src.nclTpc;
+  event.cluster_x = **src.cluster_x;
+  event.cluster_y = **src.cluster_y;
+  event.cluster_z = **src.cluster_z;
+  event.cluster_de = **src.cluster_de;
+  event.cluster_size = **src.cluster_size;
+  event.cluster_layer = **src.cluster_layer;
+  event.cluster_mrow = **src.cluster_mrow;
+  event.cluster_de_center = **src.cluster_de_center;
+  event.cluster_x_center = **src.cluster_x_center;
+  event.cluster_y_center = **src.cluster_y_center;
+  event.cluster_z_center = **src.cluster_z_center;
+  event.cluster_row_center = **src.cluster_row_center;
+  event.cluster_houghflag = **src.cluster_houghflag;
 
-  if(event.clkTpc.size() != 1){
-    std::cerr << "something is wrong" << std::endl;
-    return true;
-  }
-
-  HypTPCTask& GFtracks = HypTPCTask::GetInstance();
-  //GFtracks.Init();
-  HF1( 2, event.GFstatus++ );
-  Double_t clock = event.clkTpc.at(0);
-  TPCAnalyzer TPCAna;
-  TPCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock);
-
-  HF1( 1, event.status++ );
-
-#if RawHit
-  Int_t nh_Tpc = 0;
-  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
-    auto hc = TPCAna.GetTPCHC( layer );
-    for( const auto& hit : hc ){
-      if( !hit || !hit->IsGood() )
-        continue;
-      Double_t x = hit->GetX();
-      Double_t y = hit->GetY();
-      Double_t z = hit->GetZ();
-      Double_t de = hit->GetCDe();
-      Double_t pad = hit->GetPad();
-      Int_t row = hit->GetRow();
-      event.raw_hitpos_x.push_back(x);
-      event.raw_hitpos_y.push_back(y);
-      event.raw_hitpos_z.push_back(z);
-      event.raw_de.push_back(de);
-      event.raw_padid.push_back(pad);
-      event.raw_layer.push_back(layer);
-      event.raw_row.push_back(row);
-      ++nh_Tpc;
-    }
-  }
-  event.nhTpc = nh_Tpc;
-  HF1( 1, event.status++ );
-#endif
-
-  Int_t nclTpc = 0;
-  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
-    auto hc = TPCAna.GetTPCClCont( layer );
-    for( const auto& cl : hc ){
-      if( !cl || !cl->IsGood() )
-        continue;
-      Double_t x = cl->GetX();
-      Double_t y = cl->GetY();
-      Double_t z = cl->GetZ();
-      Double_t de = cl->GetDe();
-      Int_t cl_size = cl->GetClusterSize();
-      Double_t mrow = cl->MeanRow();
-      TPCHit* centerHit = cl->GetCenterHit();
-      const TVector3& centerPos = centerHit->GetPosition();
-      TPCHit* meanHit = cl->GetMeanHit();
-      Int_t houghflag = meanHit->GetHoughFlag();
-      Double_t centerDe = centerHit->GetCDe();
-      Int_t centerRow = centerHit->GetRow();
-
-      event.cluster_x.push_back(x);
-      event.cluster_y.push_back(y);
-      event.cluster_z.push_back(z);
-      event.cluster_de.push_back(de);
-      event.cluster_size.push_back(cl_size);
-      event.cluster_layer.push_back(layer);
-      event.cluster_mrow.push_back(mrow);
-      event.cluster_de_center.push_back(centerDe);
-      event.cluster_x_center.push_back(centerPos.X());
-      event.cluster_y_center.push_back(centerPos.Y());
-      event.cluster_z_center.push_back(centerPos.Z());
-      event.cluster_row_center.push_back(centerRow);
-      event.cluster_houghflag.push_back(houghflag);
-      ++nclTpc;
-    }
-  }
-  event.nclTpc = nclTpc;
-  HF1( 1, event.status++ );
-
-  TPCAna.TrackSearchTPCHelix();
-
-  Int_t ntTpc = TPCAna.GetNTracksTPCHelix();
+  int ntTpc = **src.ntTpc;
   event.ntTpc = ntTpc;
+  event.nhtrack = **src.nhtrack;
+  event.isBeam = **src.isBeam;
+  event.isAccidental = **src.isAccidental;
+  event.fittime = **src.fittime;
+  event.searchtime = **src.searchtime;
+  event.niteration = **src.niteration;
+  event.chisqr = **src.chisqr;
+  event.helix_cx = **src.helix_cx;
+  event.helix_cy = **src.helix_cy;
+  event.helix_z0 = **src.helix_z0;
+  event.helix_r = **src.helix_r;
+  event.helix_dz = **src.helix_dz;
+
+  event.dz_factor = **src.dz_factor;
+  event.dE = **src.dE;
+  event.dEdx = **src.dEdx;
+  event.mom0_x = **src.mom0_x;
+  event.mom0_y = **src.mom0_y;
+  event.mom0_z = **src.mom0_z;
+  event.mom0 = **src.mom0;
+  event.charge = **src.charge;
+  event.path = **src.path;
+  event.pid = **src.pid;
+
+  event.hitlayer = **src.hitlayer;
+  event.hitpos_x = **src.hitpos_x;
+  event.hitpos_y = **src.hitpos_y;
+  event.hitpos_z = **src.hitpos_z;
+  event.calpos_x = **src.calpos_x;
+  event.calpos_y = **src.calpos_y;
+  event.calpos_z = **src.calpos_z;
+  event.mom_x = **src.mom_x;
+  event.mom_y = **src.mom_y;
+  event.mom_z = **src.mom_z;
+  event.residual = **src.residual;
+  event.residual_x = **src.residual_x;
+  event.residual_y = **src.residual_y;
+  event.residual_z = **src.residual_z;
+  event.resolution_x = **src.resolution_x;
+  event.resolution_y = **src.resolution_y;
+  event.resolution_z = **src.resolution_z;
+  event.helix_t = **src.helix_t;
+  event.alpha = **src.alpha;
+  event.pathhit = **src.pathhit;
+  event.houghflag = **src.houghflag;
+  event.track_cluster_de = **src.track_cluster_de;
+  event.track_cluster_size = **src.track_cluster_size;
+  event.track_cluster_mrow = **src.track_cluster_mrow;
+  event.track_cluster_de_center = **src.track_cluster_de_center;
+  event.track_cluster_x_center = **src.track_cluster_x_center;
+  event.track_cluster_y_center = **src.track_cluster_y_center;
+  event.track_cluster_z_center = **src.track_cluster_z_center;
+  event.track_cluster_row_center = **src.track_cluster_row_center;
+
+  event.isElectron.resize(ntTpc);
+  event.nsigma_proton.resize(ntTpc);
+  event.nsigma_kaon.resize(ntTpc);
+  event.nsigma_pion.resize(ntTpc);
+  for(int it=0; it<ntTpc; ++it){
+    event.isElectron[it] = Kinematics::HypTPCdEdxElectron(event.dEdx[it], event.mom0[it]);
+    event.nsigma_proton[it] = Kinematics::HypTPCdEdxNsigmaProton(event.dEdx[it], event.mom0[it]);
+    event.nsigma_kaon[it]  = Kinematics::HypTPCdEdxNsigmaKaon(event.dEdx[it], event.mom0[it]);
+    event.nsigma_pion[it] = Kinematics::HypTPCdEdxNsigmaPion(event.dEdx[it], event.mom0[it]);
+  }
+
+  event.nvtxTpc = **src.nvtxTpc;
+  event.vtx_x = **src.vtx_x;
+  event.vtx_y = **src.vtx_y;
+  event.vtx_z = **src.vtx_z;
+  event.vtx_dist = **src.vtx_dist;
+  event.vtx_angle = **src.vtx_angle;
+  event.vtxid = **src.vtxid;
+  event.vtxmom_theta = **src.vtxmom_theta;
+  event.vtxpos_x = **src.vtxpos_x;
+  event.vtxpos_y = **src.vtxpos_y;
+  event.vtxpos_z = **src.vtxpos_z;
+  event.vtxmom_x = **src.vtxmom_x;
+  event.vtxmom_y = **src.vtxmom_y;
+  event.vtxmom_z = **src.vtxmom_z;
+
+  event.nhHtof = src.nhHtof;
+  for(Int_t i=0; i<event.nhHtof; i++){
+    event.HtofSeg.push_back(src.HtofSeg[i]);
+    event.tHtof.push_back(src.tHtof[i]);
+    event.dtHtof.push_back(src.dtHtof[i]);
+    event.deHtof.push_back(src.deHtof[i]);
+    event.posHtof.push_back(src.posHtof[i]);
+
+    double utime = qnan; double dtime = qnan;
+    double uctime = qnan; double dctime = qnan;
+    double ude = qnan; double dde = qnan;
+
+    int j = src.HtofSeg[i] - 1;
+    for(Int_t m=0; m<MaxDepth; ++m){
+      if(TMath::IsNaN(src.htofutime[j][m])) continue;
+      double cmeantime = 0.5*(src.htofuctime[j][m] + src.htofdctime[j][m]);
+      if(TMath::Abs(src.deHtof[i] - src.htofde[j])<0.001 &&
+	 TMath::Abs(src.tHtof[i] - cmeantime)<0.001){
+
+	utime = src.htofutime[j][m];
+	dtime = src.htofdtime[j][m];
+	uctime = src.htofuctime[j][m];
+	dctime = src.htofdctime[j][m];
+	ude = src.htofude[j];
+	dde = src.htofdde[j];
+      }
+    }
+
+    event.utimeHtof.push_back(utime);
+    event.dtimeHtof.push_back(dtime);
+    event.uctimeHtof.push_back(uctime);
+    event.dctimeHtof.push_back(dctime);
+    event.udeHtof.push_back(ude);
+    event.ddeHtof.push_back(dde);
+  }
+
+  HF1( 1, event.status++ );
+
   HF1( 10, ntTpc );
   if( event.ntTpc == 0 )
     return true;
 
+  TPCAnalyzer TPCAna;
+  std::vector<Int_t> isKurama(ntTpc, 0);
+  std::vector<Int_t> isK18(ntTpc, 0);
+  TPCAna.ReCalcTPCTracks(**src.ntTpc, isK18, isKurama,
+			 **src.charge, **src.nhtrack, **src.helix_cx,
+			 **src.helix_cy, **src.helix_z0, **src.helix_r,
+			 **src.helix_dz, **src.hitlayer, **src.track_cluster_mrow,
+			 **src.helix_t, **src.track_cluster_de, **src.resolution_x,
+			 **src.resolution_y, **src.resolution_z, **src.hitpos_x,
+			 **src.hitpos_y, **src.hitpos_z);
+
+  HypTPCTask& GFtracks = HypTPCTask::GetInstance();
+  //GFtracks.Init();
+
   HF1( 1, event.status++ );
-
-  event.nhtrack.resize( ntTpc );
-  event.isBeam.resize( ntTpc );
-  event.isAccidental.resize( ntTpc );
-  event.fittime.resize( ntTpc );
-  event.searchtime.resize( ntTpc );
-  event.niteration.resize( ntTpc );
-  event.chisqr.resize( ntTpc );
-
-  event.helix_cx.resize( ntTpc );
-  event.helix_cy.resize( ntTpc );
-  event.helix_z0.resize( ntTpc );
-  event.helix_r.resize( ntTpc );
-  event.helix_dz.resize( ntTpc );
-  event.mom0_x.resize( ntTpc );
-  event.mom0_y.resize( ntTpc );
-  event.mom0_z.resize( ntTpc );
-  event.mom0.resize( ntTpc );
-  event.dE.resize( ntTpc );
-  event.dEdx.resize( ntTpc );
-  event.dz_factor.resize( ntTpc );
-  event.charge.resize( ntTpc );
-  event.path.resize( ntTpc );
-  event.pid.resize( ntTpc );
-
-  event.hitlayer.resize( ntTpc );
-  event.hitpos_x.resize( ntTpc );
-  event.hitpos_y.resize( ntTpc );
-  event.hitpos_z.resize( ntTpc );
-  event.calpos_x.resize( ntTpc );
-  event.calpos_y.resize( ntTpc );
-  event.calpos_z.resize( ntTpc );
-  event.mom_x.resize( ntTpc );
-  event.mom_y.resize( ntTpc );
-  event.mom_z.resize( ntTpc );
-  event.residual.resize( ntTpc );
-  event.residual_x.resize( ntTpc );
-  event.residual_y.resize( ntTpc );
-  event.residual_z.resize( ntTpc );
-  event.resolution_x.resize( ntTpc );
-  event.resolution_y.resize( ntTpc );
-  event.resolution_z.resize( ntTpc );
-  event.helix_t.resize( ntTpc );
-  event.pathhit.resize( ntTpc );
-  event.alpha.resize(ntTpc);
-  event.houghflag.resize(ntTpc);
-  event.track_cluster_de.resize(ntTpc);
-  event.track_cluster_size.resize(ntTpc);
-  event.track_cluster_mrow.resize(ntTpc);
-  event.track_cluster_de_center.resize(ntTpc);
-  event.track_cluster_x_center.resize(ntTpc);
-  event.track_cluster_y_center.resize(ntTpc);
-  event.track_cluster_z_center.resize(ntTpc);
-  event.track_cluster_row_center.resize(ntTpc);
-
-  for( Int_t it=0; it<ntTpc; ++it ){
-    TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix( it );
+  for(int it=0; it<event.ntTpc; ++it){
+    TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix(it);
     if( !tp ) continue;
-    Int_t nh = tp->GetNHit();
-    Double_t chisqr = tp->GetChiSquare();
-    Double_t helix_cx=tp->Getcx(), helix_cy=tp->Getcy();
-    Double_t helix_z0=tp->Getz0(), helix_r=tp->Getr();
-    Double_t helix_dz = tp->Getdz();
-    TVector3 Mom0 = tp->GetMom0();
-    Int_t isbeam = tp->GetIsBeam();
-    Int_t isaccidental = tp->GetIsAccidental();
-    double fittime = tp->GetFitTime();
-    double searchtime = tp->GetSearchTime();
-    Int_t charge = tp->GetCharge();
-    Double_t pathlen = tp->GetPath();
-    Int_t iteration = tp->GetNIteration();
-
-    event.nhtrack[it] = nh;
-    event.isBeam[it] = isbeam;
-    event.isAccidental[it] = isaccidental;
-    event.fittime[it] = fittime;
-    event.charge[it] = charge;
-    event.path[it] = pathlen;
-    event.chisqr[it] = chisqr;
-    event.niteration[it] = iteration;
-    event.searchtime[it] = searchtime;
-    event.helix_cx[it] = helix_cx;
-    event.helix_cy[it] = helix_cy;
-    event.helix_z0[it] = helix_z0;
-    event.helix_r[it] = helix_r ;
-    event.helix_dz[it] = helix_dz;
-    event.mom0_x[it] = Mom0.x();;
-    event.mom0_y[it] = Mom0.y();;
-    event.mom0_z[it] = Mom0.z();;
-    event.mom0[it] = Mom0.Mag();;
-    event.dE[it] = tp->GetTrackdE();
-    event.dEdx[it] = tp->GetdEdx(truncatedMean);
-    event.dz_factor[it] = sqrt(1.+(pow(helix_dz,2)));
-    event.pid[it] = tp -> GetPid();
-
-    event.hitlayer[it].resize( nh );
-    event.hitpos_x[it].resize( nh );
-    event.hitpos_y[it].resize( nh );
-    event.hitpos_z[it].resize( nh );
-    event.calpos_x[it].resize( nh );
-    event.calpos_y[it].resize( nh );
-    event.calpos_z[it].resize( nh );
-    event.mom_x[it].resize( nh );
-    event.mom_y[it].resize( nh );
-    event.mom_z[it].resize( nh );
-    event.residual[it].resize( nh );
-    event.residual_x[it].resize( nh );
-    event.residual_y[it].resize( nh );
-    event.residual_z[it].resize( nh );
-    event.resolution_x[it].resize( nh );
-    event.resolution_y[it].resize( nh );
-    event.resolution_z[it].resize( nh );
-    event.helix_t[it].resize( nh );
-    event.pathhit[it].resize(nh);
-    event.alpha[it].resize(nh);
-    event.houghflag[it].resize(nh);
-
-    event.track_cluster_de[it].resize(nh);
-    event.track_cluster_size[it].resize(nh);
-    event.track_cluster_mrow[it].resize(nh);
-    event.track_cluster_de_center[it].resize(nh);
-    event.track_cluster_x_center[it].resize(nh);
-    event.track_cluster_y_center[it].resize(nh);
-    event.track_cluster_z_center[it].resize(nh);
-    event.track_cluster_row_center[it].resize(nh);
-
-    for( int ih=0; ih<nh; ++ih ){
-      TPCLTrackHit *hit = tp->GetHitInOrder( ih );
-      if( !hit ) continue;
-      Int_t layer = hit->GetLayer();
-      Int_t houghflag = hit->GetHoughFlag();
-      Double_t residual = hit->GetResidual();
-      const TVector3& resi_vect = hit->GetResidualVect();
-      const TVector3& res_vect = hit->GetResolutionVect();
-      const TVector3& hitpos = hit->GetLocalHitPos();
-      const TVector3& calpos = hit->GetLocalCalPosHelix();
-      const TVector3& mom = hit->GetMomentumHelix(charge);
-
-      Double_t clde = hit->GetDe();
-      Double_t mrow = hit->GetMRow(); // same
-      event.track_cluster_de[it][ih] = clde;
-      event.track_cluster_mrow[it][ih] = mrow;
-      event.alpha[it][ih] = tp->GetAlpha(ih);
-
-#if TrackCluster
-      TPCHit *clhit = hit -> GetHit();
-      TPCCluster *cl = clhit -> GetParentCluster();
-      Int_t clsize = cl->GetClusterSize();
-      TPCHit* centerHit = cl->GetCenterHit();
-      const TVector3& centerPos = centerHit->GetPosition();
-      Double_t centerDe = centerHit->GetCDe();
-      Int_t centerRow = centerHit->GetRow();
-
-      event.track_cluster_size[it][ih] = clsize;
-      event.track_cluster_de_center[it][ih] = centerDe;
-      event.track_cluster_x_center[it][ih] = centerPos.X();
-      event.track_cluster_y_center[it][ih] = centerPos.Y();
-      event.track_cluster_z_center[it][ih] = centerPos.Z();
-      event.track_cluster_row_center[it][ih] = centerRow;
-#endif
-      event.pathhit[it][ih] = hit->GetPathHelix();
-
-      event.hitlayer[it][ih] = (double)layer;
-      event.hitpos_x[it][ih] = hitpos.x();
-      event.hitpos_y[it][ih] = hitpos.y();
-      event.hitpos_z[it][ih] = hitpos.z();
-      event.calpos_x[it][ih] = calpos.x();
-      event.calpos_y[it][ih] = calpos.y();
-      event.calpos_z[it][ih] = calpos.z();
-      event.mom_x[it][ih] = mom.x();
-      event.mom_y[it][ih] = mom.y();
-      event.mom_z[it][ih] = mom.z();
-      event.residual[it][ih] = residual;
-      event.residual_x[it][ih] = resi_vect.x();
-      event.residual_y[it][ih] = resi_vect.y();
-      event.residual_z[it][ih] = resi_vect.z();
-      event.resolution_x[it][ih] = res_vect.x();
-      event.resolution_y[it][ih] = res_vect.y();
-      event.resolution_z[it][ih] = res_vect.z();
-      event.houghflag[it][ih] = houghflag;
-      event.helix_t[it][ih] = hit->GetTheta();
-    }
     std::vector<Int_t> pdgcode;
     Kinematics::HypTPCPID_PDGCode(event.charge[it], event.pid[it], pdgcode);
     GFtracks.AddHelixTrack(pdgcode, tp);
@@ -854,61 +848,6 @@ dst::DstRead( int ievent )
   GFtracks.FitTracks();
 
   HF1( 2, event.GFstatus++ );
-
-  Int_t nvtxTpc = TPCAna.GetNVerticesTPC();
-  event.nvtxTpc = nvtxTpc;
-  event.vtx_x.resize(nvtxTpc);
-  event.vtx_y.resize(nvtxTpc);
-  event.vtx_z.resize(nvtxTpc);
-  event.vtx_dist.resize(nvtxTpc);
-  event.vtx_angle.resize(nvtxTpc);
-  event.vtxid.resize(nvtxTpc);
-  event.vtxmom_theta.resize(nvtxTpc);
-  event.vtxpos_x.resize(nvtxTpc);
-  event.vtxpos_y.resize(nvtxTpc);
-  event.vtxpos_z.resize(nvtxTpc);
-  event.vtxmom_x.resize(nvtxTpc);
-  event.vtxmom_y.resize(nvtxTpc);
-  event.vtxmom_z.resize(nvtxTpc);
-
-  for( Int_t it=0; it<nvtxTpc; ++it ){
-    TPCVertex *vp = TPCAna.GetTPCVertex( it );
-    if( !vp ) continue;
-    event.vtx_x[it] = vp -> GetVertex().x();
-    event.vtx_y[it] = vp -> GetVertex().y();
-    event.vtx_z[it] = vp -> GetVertex().z();
-    event.vtx_dist[it] = vp -> GetClosestDist();
-    event.vtx_angle[it] = vp -> GetOpeningAngle();
-
-    event.vtxid[it].resize(2);
-    event.vtxmom_theta[it].resize(2);
-    event.vtxpos_x[it].resize(2);
-    event.vtxpos_y[it].resize(2);
-    event.vtxpos_z[it].resize(2);
-    event.vtxmom_x[it].resize(2);
-    event.vtxmom_y[it].resize(2);
-    event.vtxmom_z[it].resize(2);
-
-    Int_t ivtx1 = vp -> GetTrackId(0);
-    Int_t ivtx2 = vp -> GetTrackId(1);
-    event.vtxid[it][0] = ivtx1;
-    event.vtxmom_theta[it][0] = vp -> GetTrackTheta(0);
-    event.vtxpos_x[it][0] = vp -> GetTrackPos(0).x();
-    event.vtxpos_y[it][0] = vp -> GetTrackPos(0).y();
-    event.vtxpos_z[it][0] = vp -> GetTrackPos(0).z();
-    event.vtxmom_x[it][0] = vp -> GetTrackMom(0).x();
-    event.vtxmom_y[it][0] = vp -> GetTrackMom(0).y();
-    event.vtxmom_z[it][0] = vp -> GetTrackMom(0).z();
-
-    event.vtxid[it][1] = ivtx2;
-    event.vtxmom_theta[it][1] = vp -> GetTrackTheta(1);
-    event.vtxpos_x[it][1] = vp -> GetTrackPos(1).x();
-    event.vtxpos_y[it][1] = vp -> GetTrackPos(1).y();
-    event.vtxpos_z[it][1] = vp -> GetTrackPos(1).z();
-    event.vtxmom_x[it][1] = vp -> GetTrackMom(1).x();
-    event.vtxmom_y[it][1] = vp -> GetTrackMom(1).y();
-    event.vtxmom_z[it][1] = vp -> GetTrackMom(1).z();
-  }
 
   int GFntTpc = GFtracks.GetNTrack();
   if(GFntTpc!=event.ntTpc){
@@ -922,7 +861,7 @@ dst::DstRead( int ievent )
   event.GFcharge.resize(GFntTpc);
   event.GFchisqr.resize(GFntTpc);
   event.GFtof.resize(GFntTpc);
-  event.GFtracklen.resize(GFntTpc);
+  //event.GFtracklen.resize(GFntTpc);
   event.GFpval.resize(GFntTpc);
   event.GFfitstatus.resize(GFntTpc);
   event.GFpdgcode.resize(GFntTpc);
@@ -943,15 +882,17 @@ dst::DstRead( int ievent )
   event.GFresidual_py.resize(GFntTpc);
   event.GFresidual_pz.resize(GFntTpc);
   event.GFinside.resize(GFntTpc);
-  event.GFxTgt.resize(GFntTpc);
-  event.GFyTgt.resize(GFntTpc);
-  event.GFzTgt.resize(GFntTpc);
-  event.GFmomTgt.resize(GFntTpc);
-  event.GFmomxTgt.resize(GFntTpc);
-  event.GFmomyTgt.resize(GFntTpc);
-  event.GFmomzTgt.resize(GFntTpc);
-  event.GFtracklenTgt.resize(GFntTpc);
-  event.GFtofTgt.resize(GFntTpc);
+
+  event.GFtracklen.resize(GFntTpc);
+  event.GFtrack2vtxdist.resize(GFntTpc);
+  event.GFcalctof.resize(GFntTpc);
+  event.GFsegHtof.resize(GFntTpc);
+  event.GFtofHtof.resize(GFntTpc);
+  event.GFtdiffHtof.resize(GFntTpc);
+  event.GFposHtof.resize(GFntTpc);
+  event.GFposx.resize(GFntTpc);
+  event.GFposy.resize(GFntTpc);
+  event.GFposz.resize(GFntTpc);
 
   event.GFmom_p.resize(GFntTpc);
   event.GFtracklen_p.resize(GFntTpc);
@@ -1006,7 +947,6 @@ dst::DstRead( int ievent )
     event.GFchisqr[igf] = GFtracks.GetChi2NDF(igf);
     event.GFcharge[igf] = GFtracks.GetCharge(igf);
     event.GFtof[igf] = GFtracks.GetTrackTOF(igf, 0, -1);
-    event.GFtracklen[igf] = GFtracks.GetTrackLength(igf, 0, -1);
     event.GFpval[igf] = GFtracks.GetPvalue(igf);
     event.GFnhtrack[igf] = GFtracks.GetNHits(igf);
     event.GFpdgcode[igf] = GFtracks.GetPDGcode(igf);
@@ -1062,21 +1002,6 @@ dst::DstRead( int ievent )
     if(event.isAccidental[igf]==1) continue;
     if(GFtracks.IsInsideTarget(igf)){
       event.GFinside[igf] = 1;
-      /*
-      GFtracks.ExtrapolateToTarget(igf, posv, momv, len, tof);
-      HF1( genfitHid+20, posv.x());
-      HF1( genfitHid+21, posv.y());
-      HF1( genfitHid+22, posv.z());
-      event.GFxTgt[igf] = posv.x();
-      event.GFyTgt[igf] = posv.y();
-      event.GFzTgt[igf] = posv.z();
-      event.GFmomTgt[igf] = momv.Mag();
-      event.GFmomxTgt[igf] = momv.x();
-      event.GFmomyTgt[igf] = momv.y();
-      event.GFmomzTgt[igf] = momv.z();
-      event.GFtracklenTgt[igf] = len;
-      event.GFtofTgt[igf] = tof;
-      */
       TVector3 posv; TVector3 momv; double len; double tof;
       if(GFtracks.ExtrapolateToTargetCenter(igf, posv, momv, len, tof)){
 	x0[ntrack_intarget] = posv.x();
@@ -1117,7 +1042,7 @@ dst::DstRead( int ievent )
 	event.GFsegHtof_pi[igf] = event.HtofSeg[hitid_htof];
 	event.GFtofHtof_pi[igf] = event.tHtof[hitid_htof];
 	event.GFtdiffHtof_pi[igf] = event.dtHtof[hitid_htof];
-	event.GFposHtof_p[igf] = event.posHtof[hitid_htof];
+	event.GFposHtof_pi[igf] = event.posHtof[hitid_htof];
       }
     } //pion
 
@@ -1151,6 +1076,29 @@ dst::DstRead( int ievent )
 	event.GFposHtof_p[igf] = event.posHtof[hitid_htof];
       }
     } //proton
+
+    {
+      Int_t repid = -1;
+      Int_t hitid_htof; Double_t tof; Double_t len;
+      TVector3 pos_htof; Double_t track2tgt_dist;
+      Bool_t htofextrapolation =
+	GFtracks.TPCHTOFTrackMatching(igf, repid, vertex,
+				      event.HtofSeg, event.posHtof,
+				      hitid_htof, tof,
+				      len, pos_htof, track2tgt_dist);
+      if(htofextrapolation){
+	event.GFtracklen[igf] = len;
+	event.GFtrack2vtxdist[igf] = track2tgt_dist;
+	event.GFcalctof[igf] = tof;
+	event.GFposx[igf] = pos_htof.x();
+	event.GFposy[igf] = pos_htof.y();
+	event.GFposz[igf] = pos_htof.z();
+	event.GFsegHtof[igf] = event.HtofSeg[hitid_htof];
+	event.GFtofHtof[igf] = event.tHtof[hitid_htof];
+	event.GFtdiffHtof[igf] = event.dtHtof[hitid_htof];
+	event.GFposHtof[igf] = event.posHtof[hitid_htof];
+      }
+    } //common
   } //igf
 
   HF1( 2, event.GFstatus++);
@@ -1226,14 +1174,13 @@ ConfMan::InitializeHistograms( void )
   HB1(genfitHid+28, "[GenFit] Z (extrapolated to the HTOF); Z [mm]; Counts [/0.1 mm]", 10000, -500, 500 );
   HB1(genfitHid+29, "[GenFit] HTOF ID; #ID ; Counts", 36, 0, 36 );
 */
-  HBTree( "tpc", "tree of DstTPCTracking" );
+  HBTree( "tpc", "tree of GenfitHTOCCalib" );
 
   tree->Branch( "status", &event.status );
   tree->Branch( "runnum", &event.runnum );
   tree->Branch( "evnum", &event.evnum );
   tree->Branch( "trigpat", &event.trigpat );
   tree->Branch( "trigflag", &event.trigflag );
-  tree->Branch( "clkTpc", &event.clkTpc);
 
   tree->Branch( "nhHtof", &event.nhHtof );
   tree->Branch( "HtofSeg", &event.HtofSeg );
@@ -1241,16 +1188,13 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dtHtof", &event.dtHtof );
   tree->Branch( "deHtof", &event.deHtof );
   tree->Branch( "posHtof", &event.posHtof );
-#if RawHit
-  tree->Branch( "nhTpc", &event.nhTpc );
-  tree->Branch( "raw_hitpos_x", &event.raw_hitpos_x );
-  tree->Branch( "raw_hitpos_y", &event.raw_hitpos_y );
-  tree->Branch( "raw_hitpos_z", &event.raw_hitpos_z );
-  tree->Branch( "raw_de", &event.raw_de );
-  tree->Branch( "raw_padid", &event.raw_padid );
-  tree->Branch( "raw_layer", &event.raw_layer );
-  tree->Branch( "raw_row", &event.raw_row );
-#endif
+
+  tree->Branch( "utimeHtof", &event.utimeHtof );
+  tree->Branch( "dtimeHtof", &event.dtimeHtof );
+  tree->Branch( "uctimeHtof", &event.uctimeHtof );
+  tree->Branch( "dctimeHtof", &event.dctimeHtof );
+  tree->Branch( "udeHtof", &event.udeHtof );
+  tree->Branch( "ddeHtof", &event.ddeHtof );
 
   tree->Branch( "nclTpc", &event.nclTpc );
   tree->Branch( "cluster_x", &event.cluster_x );
@@ -1286,7 +1230,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "mom0", &event.mom0 );
   tree->Branch( "dE", &event.dE );
   tree->Branch( "dEdx", &event.dEdx );
-
+  tree->Branch( "isElectron", &event.isElectron );
+  tree->Branch( "nsigma_proton", &event.nsigma_proton );
+  tree->Branch( "nsigma_kaon", &event.nsigma_kaon );
+  tree->Branch( "nsigma_pion", &event.nsigma_pion );
   tree->Branch( "dz_factor", &event.dz_factor );
   tree->Branch( "charge", &event.charge );
   tree->Branch( "path", &event.path );
@@ -1317,12 +1264,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_size", &event.track_cluster_size);
   tree->Branch( "track_cluster_mrow", &event.track_cluster_mrow);
   tree->Branch( "track_cluster_de_center", &event.track_cluster_de_center);
-#if TrackCluster
   tree->Branch( "track_cluster_x_center", &event.track_cluster_x_center);
   tree->Branch( "track_cluster_y_center", &event.track_cluster_y_center);
   tree->Branch( "track_cluster_z_center", &event.track_cluster_z_center);
   tree->Branch( "track_cluster_row_center", &event.track_cluster_row_center);
-#endif
 
   tree->Branch( "nvtxTpc", &event.nvtxTpc );
   tree->Branch( "vtx_x", &event.vtx_x );
@@ -1345,7 +1290,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFcharge", &event.GFcharge);
   tree->Branch("GFchisqr", &event.GFchisqr);
   tree->Branch("GFtof", &event.GFtof);
-  tree->Branch("GFtracklen", &event.GFtracklen);
+  //tree->Branch("GFtracklen", &event.GFtracklen);
   tree->Branch("GFpval", &event.GFpval);
   tree->Branch("GFfitstatus", &event.GFfitstatus);
   tree->Branch("GFpdgcode", &event.GFpdgcode);
@@ -1373,17 +1318,17 @@ ConfMan::InitializeHistograms( void )
 
   //extrapolation
   tree->Branch("GFinside", &event.GFinside);
-  /*
-  tree->Branch("GFxTgt", &event.GFxTgt);
-  tree->Branch("GFyTgt", &event.GFyTgt);
-  tree->Branch("GFzTgt", &event.GFzTgt);
-  tree->Branch("GFmomTgt", &event.GFmomTgt);
-  tree->Branch("GFmomxTgt", &event.GFmomxTgt);
-  tree->Branch("GFmomyTgt", &event.GFmomyTgt);
-  tree->Branch("GFmomzTgt", &event.GFmomzTgt);
-  tree->Branch("GFtracklenTgt", &event.GFtracklenTgt);
-  tree->Branch("GFtofTgt", &event.GFtofTgt);
-  */
+  tree->Branch("GFtracklen", &event.GFtracklen);
+  tree->Branch("GFtrack2vtxdist", &event.GFtrack2vtxdist);
+  tree->Branch("GFcalctof", &event.GFcalctof);
+  tree->Branch("GFsegHtof", &event.GFsegHtof);
+  tree->Branch("GFtofHtof", &event.GFtofHtof);
+  tree->Branch("GFtdiffHtof", &event.GFtdiffHtof);
+  tree->Branch("GFposHtof", &event.GFposHtof);
+  tree->Branch("GFposx", &event.GFposx);
+  tree->Branch("GFposy", &event.GFposy);
+  tree->Branch("GFposz", &event.GFposz);
+
   tree->Branch("GFmom_p", &event.GFmom_p);
   tree->Branch("GFtracklen_p", &event.GFtracklen_p);
   tree->Branch("GFtrack2vtxdist_p", &event.GFtrack2vtxdist_p);
@@ -1408,43 +1353,137 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFposy_pi", &event.GFposy_pi);
   tree->Branch("GFposz_pi", &event.GFposz_pi);
 
-  TTreeReaderCont[kTpcHit] = new TTreeReader( "tpc", TFileCont[kTpcHit] );
-  const auto& reader = TTreeReaderCont[kTpcHit];
+  TTreeReaderCont[kHTOFCaib] = new TTreeReader( "tpc", TFileCont[kHTOFCaib] );
+  const auto& reader = TTreeReaderCont[kHTOFCaib];
   src.runnum = new TTreeReaderValue<Int_t>( *reader, "runnum" );
   src.evnum = new TTreeReaderValue<Int_t>( *reader, "evnum" );
   src.trigpat = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trigpat" );
   src.trigflag = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trigflag" );
-  src.npadTpc = new TTreeReaderValue<Int_t>( *reader, "npadTpc" );
-  src.nhTpc = new TTreeReaderValue<Int_t>( *reader, "nhTpc" );
-  src.layerTpc = new TTreeReaderValue<std::vector<Int_t>>( *reader, "layerTpc" );
-  src.rowTpc = new TTreeReaderValue<std::vector<Int_t>>( *reader, "rowTpc" );
-  src.padTpc = new TTreeReaderValue<std::vector<Int_t>>( *reader, "padTpc" );
-  src.pedTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pedTpc" );
-  src.rmsTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "rmsTpc" );
-  src.deTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "deTpc" );
-  src.cdeTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cdeTpc" );
-  src.tTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "tTpc" );
-  src.ctTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "ctTpc" );
-  src.chisqrTpc = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqrTpc" );
-  src.clkTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "clkTpc");
+
+  src.nclTpc = new TTreeReaderValue<Int_t>( *reader, "nclTpc" );
+  src.cluster_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_x" );
+  src.cluster_y = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_y" );
+  src.cluster_z = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_z" );
+  src.cluster_de = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_de" );
+  src.cluster_size = new TTreeReaderValue<std::vector<Int_t>>( *reader, "cluster_size" );
+  src.cluster_layer = new TTreeReaderValue<std::vector<Int_t>>( *reader, "cluster_layer" );
+  src.cluster_mrow = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_mrow" );
+  src.cluster_de_center = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_de_center" );
+  src.cluster_x_center = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_x_center" );
+  src.cluster_y_center = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_y_center" );
+  src.cluster_z_center = new TTreeReaderValue<std::vector<Double_t>>( *reader, "cluster_z_center" );
+  src.cluster_row_center = new TTreeReaderValue<std::vector<Int_t>>( *reader, "cluster_row_center" );
+  src.cluster_houghflag = new TTreeReaderValue<std::vector<Int_t>>( *reader, "cluster_houghflag" );
+
+  src.ntTpc = new TTreeReaderValue<Int_t>( *reader, "ntTpc" );
+  src.nhtrack = new TTreeReaderValue<std::vector<Int_t>>( *reader, "nhtrack" );
+  src.isBeam = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isBeam" );
+  src.isAccidental = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isAccidental" );
+  src.fittime = new TTreeReaderValue<std::vector<Int_t>>( *reader, "fittime" );
+  src.searchtime = new TTreeReaderValue<std::vector<Int_t>>( *reader, "searchtime" );
+  src.niteration = new TTreeReaderValue<std::vector<Int_t>>( *reader, "niteration" );
+  src.chisqr = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqr" );
+  src.helix_cx = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_cx" );
+  src.helix_cy = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_cy" );
+  src.helix_z0 = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_z0" );
+  src.helix_r = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_r" );
+  src.helix_dz = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_dz" );
+  src.dz_factor = new TTreeReaderValue<std::vector<Double_t>>( *reader, "dz_factor" );
+  src.dE = new TTreeReaderValue<std::vector<Double_t>>( *reader, "dE" );
+  src.dEdx = new TTreeReaderValue<std::vector<Double_t>>( *reader, "dEdx" );
+  src.mom0 = new TTreeReaderValue<std::vector<Double_t>>( *reader, "mom0" );
+  src.mom0_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "mom0_x" );
+  src.mom0_y = new TTreeReaderValue<std::vector<Double_t>>( *reader, "mom0_y" );
+  src.mom0_z = new TTreeReaderValue<std::vector<Double_t>>( *reader, "mom0_z" );
+  src.charge = new TTreeReaderValue<std::vector<Int_t>>( *reader, "charge" );
+  src.path = new TTreeReaderValue<std::vector<Double_t>>( *reader, "path" );
+  src.pid = new TTreeReaderValue<std::vector<Int_t>>( *reader, "pid" );
+
+  src.hitlayer = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "hitlayer" );
+  src.hitpos_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "hitpos_x" );
+  src.hitpos_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "hitpos_y" );
+  src.hitpos_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "hitpos_z" );
+  src.calpos_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "calpos_x" );
+  src.calpos_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "calpos_y" );
+  src.calpos_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "calpos_z" );
+  src.mom_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "mom_x" );
+  src.mom_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "mom_y" );
+  src.mom_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "mom_z" );
+  src.residual = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "residual" );
+  src.residual_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "residual_x" );
+  src.residual_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "residual_y" );
+  src.residual_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "residual_z" );
+  src.resolution_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "resolution_x" );
+  src.resolution_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "resolution_y" );
+  src.resolution_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "resolution_z" );
+  src.helix_t = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "helix_t" );
+  src.alpha = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "alpha" );
+  src.pathhit = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "pathhit" );
+  src.houghflag = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "houghflag" );
+  src.track_cluster_de = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_de" );
+  src.track_cluster_size = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_size" );
+  src.track_cluster_mrow = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_mrow" );
+  src.track_cluster_de_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_de_center" );
+  src.track_cluster_x_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_x_center" );
+  src.track_cluster_y_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_y_center" );
+  src.track_cluster_z_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_z_center" );
+  src.track_cluster_row_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_row_center" );
+
+  src.nvtxTpc = new TTreeReaderValue<Int_t>(*reader,"nvtxTpc");
+  src.vtx_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_x" );
+  src.vtx_y = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_y" );
+  src.vtx_z = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_z" );
+  src.vtx_dist = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_dist" );
+  src.vtx_angle = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_angle" );
+  src.vtxid = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxid" );
+  src.vtxmom_theta = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_theta" );
+  src.vtxpos_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_x" );
+  src.vtxpos_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_y" );
+  src.vtxpos_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxpos_z" );
+  src.vtxmom_x = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_x" );
+  src.vtxmom_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_y" );
+  src.vtxmom_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "vtxmom_z" );
 
   ////////// Bring Address From Dst
-  TTreeCont[kHodoscope]->SetBranchStatus("*", 0);
+  TTreeCont[kHodoscope1]->SetBranchStatus("*", 0);
+  TTreeCont[kHodoscope1]->SetBranchStatus("CTime0",   1);
+  TTreeCont[kHodoscope1]->SetBranchStatus("nhHtof",   1);
+  TTreeCont[kHodoscope1]->SetBranchStatus("csHtof",   1);
+  TTreeCont[kHodoscope1]->SetBranchStatus("HtofSeg",  1);
+  TTreeCont[kHodoscope1]->SetBranchStatus("tHtof",    1);
+  TTreeCont[kHodoscope1]->SetBranchStatus("dtHtof",   1);
+  TTreeCont[kHodoscope1]->SetBranchStatus("deHtof",   1);
+  TTreeCont[kHodoscope1]->SetBranchStatus("posHtof",   1);
 
-  TTreeCont[kHodoscope]->SetBranchStatus("nhHtof",   1);
-  TTreeCont[kHodoscope]->SetBranchStatus("csHtof",   1);
-  TTreeCont[kHodoscope]->SetBranchStatus("HtofSeg",  1);
-  TTreeCont[kHodoscope]->SetBranchStatus("tHtof",    1);
-  TTreeCont[kHodoscope]->SetBranchStatus("dtHtof",   1);
-  TTreeCont[kHodoscope]->SetBranchStatus("deHtof",   1);
-  TTreeCont[kHodoscope]->SetBranchStatus("posHtof",   1);
+  TTreeCont[kHodoscope1]->SetBranchAddress("CTime0",   &src.CTime0);
+  TTreeCont[kHodoscope1]->SetBranchAddress("nhHtof",   &src.nhHtof);
+  TTreeCont[kHodoscope1]->SetBranchAddress("HtofSeg",   src.HtofSeg);
+  TTreeCont[kHodoscope1]->SetBranchAddress("tHtof",     src.tHtof);
+  TTreeCont[kHodoscope1]->SetBranchAddress("dtHtof",    src.dtHtof);
+  TTreeCont[kHodoscope1]->SetBranchAddress("deHtof",    src.deHtof);
+  TTreeCont[kHodoscope1]->SetBranchAddress("posHtof",    src.posHtof);
 
-  TTreeCont[kHodoscope]->SetBranchAddress("nhHtof",   &src.nhHtof);
-  TTreeCont[kHodoscope]->SetBranchAddress("HtofSeg",   src.HtofSeg);
-  TTreeCont[kHodoscope]->SetBranchAddress("tHtof",     src.tHtof);
-  TTreeCont[kHodoscope]->SetBranchAddress("dtHtof",    src.dtHtof);
-  TTreeCont[kHodoscope]->SetBranchAddress("deHtof",    src.deHtof);
-  TTreeCont[kHodoscope]->SetBranchAddress("posHtof",    src.posHtof);
+  TTreeCont[kHodoscope2]->SetBranchStatus("*", 0);
+  TTreeCont[kHodoscope2]->SetBranchStatus("htofmt",   1);
+  TTreeCont[kHodoscope2]->SetBranchStatus("htofde",   1);
+  TTreeCont[kHodoscope2]->SetBranchStatus("htofutime",   1);
+  TTreeCont[kHodoscope2]->SetBranchStatus("htofuctime",   1);
+  TTreeCont[kHodoscope2]->SetBranchStatus("htofdtime",   1);
+  TTreeCont[kHodoscope2]->SetBranchStatus("htofdctime",   1);
+  TTreeCont[kHodoscope2]->SetBranchStatus("htofhitpos",   1);
+  TTreeCont[kHodoscope2]->SetBranchStatus("htofude",   1);
+  TTreeCont[kHodoscope2]->SetBranchStatus("htofdde",   1);
+
+  TTreeCont[kHodoscope2]->SetBranchAddress("htofmt", src.htofmt);
+  TTreeCont[kHodoscope2]->SetBranchAddress("htofde", src.htofde);
+  TTreeCont[kHodoscope2]->SetBranchAddress("htofutime", src.htofutime);
+  TTreeCont[kHodoscope2]->SetBranchAddress("htofuctime", src.htofuctime);
+  TTreeCont[kHodoscope2]->SetBranchAddress("htofdtime", src.htofdtime);
+  TTreeCont[kHodoscope2]->SetBranchAddress("htofdctime", src.htofdctime);
+  TTreeCont[kHodoscope2]->SetBranchAddress("htofhitpos", src.htofhitpos);
+  TTreeCont[kHodoscope2]->SetBranchAddress("htofude", src.htofude);
+  TTreeCont[kHodoscope2]->SetBranchAddress("htofdde", src.htofdde);
+
   return true;
 }
 
