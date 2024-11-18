@@ -63,6 +63,7 @@ public:
   Double_t        Length() const { return m_length; }
   Double_t        Resolution() const { return m_resolution; }
   void            SetResolution(Double_t res) { m_resolution = res; }
+  Double_t        Ofs() const { return m_offset; }
 
   Double_t dsdx() const { return m_dsdx; }
   Double_t dsdy() const { return m_dsdy; }

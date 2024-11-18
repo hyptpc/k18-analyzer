@@ -36,7 +36,7 @@ DCRawHit::DCRawHit(const TString& detector_name, Int_t plane_id, Int_t wire_id)
   m_detector_id = digit_info.get_device_id(detector_name.Data());
   const auto& plane_names = digit_info.get_name_list(m_detector_id);
   m_plane_name = plane_names.at(plane_id);
-  m_dcgeom_layer = plane_id; // gGeom.GetLayerId(m_detector_name+"-"+m_plane_name);
+  m_dcgeom_layer = gGeom.GetLayerId(m_detector_name+"-"+m_plane_name);
   debug::ObjectCounter::increase(ClassName());
 }
 
@@ -44,6 +44,22 @@ DCRawHit::DCRawHit(const TString& detector_name, Int_t plane_id, Int_t wire_id)
 DCRawHit::~DCRawHit()
 {
   debug::ObjectCounter::decrease(ClassName());
+}
+
+//_____________________________________________________________________________
+void
+DCRawHit::TdcCut(Double_t min, Double_t max)
+{
+  for(Int_t i=GetTdcSize()-1; i>=0; --i){
+    if(m_tdc[i] < min || max < m_tdc[i]){
+      m_tdc.erase(m_tdc.begin() + i);
+    }
+  }
+  for(Int_t i=GetTrailingSize()-1; i>=0; --i){
+    if(m_trailing[i] > max){
+      m_trailing.erase(m_trailing.begin() + i);
+    }
+  }
 }
 
 //_____________________________________________________________________________

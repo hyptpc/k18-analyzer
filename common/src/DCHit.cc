@@ -13,87 +13,127 @@
 
 #include <std_ostream.hh>
 
-#include "BLDCWireMapMan.hh"
 #include "DCDriftParamMan.hh"
+#include "DCGeomMan.hh"
+#include "DCParameters.hh"
 #include "DCRawHit.hh"
 #include "DCTdcCalibMan.hh"
-#include "FuncName.hh"
-#include "XTMapMan.hh"
+#include "DCLTrackHit.hh"
 #include "UserParamMan.hh"
-#include "ReslMapMan.hh"
-#include "DetectorID.hh"
 #include "DebugCounter.hh"
+#include "FuncName.hh"
+#include "MathTools.hh"
 #include "RootHelper.hh"
-#include "RootData.hh"
-#ifdef CDS
-#include "CDCWireMapMan.hh"
-#endif
-#include "TRandom.h"
-#include "ThreeVector.hh"
 
 namespace
 {
-const std::string& class_name("DCHit");
-const BLDCWireMapMan& gBLDC = BLDCWireMapMan::GetInstance();
-#ifdef CDS
-const CDCWireMapMan&  gCDC  = CDCWireMapMan::GetInstance();
-#endif
-const UserParamMan&   gUser = UserParamMan::GetInstance();
-const DCTdcCalibMan&  gTdc  = DCTdcCalibMan::GetInstance();
+const Double_t qnan = TMath::QuietNaN();
+const auto& gGeom  = DCGeomMan::GetInstance();
+const auto& gTdc   = DCTdcCalibMan::GetInstance();
 const auto& gDrift = DCDriftParamMan::GetInstance();
-const XTMapMan&       gXt   = XTMapMan::GetInstance();
-const ReslMapMan&   gResol = ReslMapMan::GetInstance();
-//  const bool SelectTDC1st  = true;
-TVector3 DEFV(-999,-999,-999);
-const double mc_cm=0.1; //mm->cm
+const auto& gUser  = UserParamMan::GetInstance();
+const Bool_t SelectTDC1st = false;
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
 DCHit::DCHit(const DCRawHit* rhit)
   : m_raw_hit(rhit),
-    m_detector_id(rhit->DetectorId()),
     m_plane(rhit->PlaneId()),
-    m_layer(),
+    m_layer(rhit->DCGeomLayerId()),
     m_wire(rhit->WireId()),
-    m_tdc(rhit->GetTdcArray()),
+    m_tdc(),
     m_adc(),
-    m_trailing(rhit->GetTrailingArray()),
+    m_trailing(),
     m_drift_time(),
     m_drift_length(),
     m_tot(),
     m_belong_to_track(),
     m_is_good(),
-    m_wpos(DEFV),
-    m_wdir(DEFV),
-    m_tilt_angle(),
-    m_rotation()
+    m_wpos(qnan),
+    m_angle(0.),
+    m_cluster_size(0.),
+    m_mwpc_flag(false)
 {
-  std::sort(m_tdc.begin(), m_tdc.end(), std::greater<Double_t>());
-  std::sort(m_trailing.begin(), m_trailing.end(), std::greater<Double_t>());
-  debug::ObjectCounter::increase(class_name);
+  for(const auto& t: rhit->GetTdcArray())
+    m_tdc.push_back(t);
+  for(const auto& t: rhit->GetTrailingArray())
+    m_trailing.push_back(t);
+  std::sort(m_tdc.begin(), m_tdc.end(), std::greater<Int_t>());
+  std::sort(m_trailing.begin(), m_trailing.end(), std::greater<Int_t>());
+  debug::ObjectCounter::increase(ClassName());
 }
 
-//______________________________________________________________________________
-DCHit::DCHit( int layer )
-  : m_layer( layer ), m_wire(-1),
-    m_wpos(DEFV), m_wdir(DEFV), m_tilt_angle(0.), m_rotation(0.)
+//_____________________________________________________________________________
+DCHit::DCHit(Int_t layer)
+  : m_layer(layer),
+    m_wire(-1),
+    m_wpos(qnan),
+    m_angle(0.),
+    m_cluster_size(0.),
+    m_mwpc_flag(false)
 {
-  debug::ObjectCounter::increase(class_name);
+  debug::ObjectCounter::increase(ClassName());
 }
 
-//______________________________________________________________________________
-DCHit::DCHit( int layer, int wire )
-  : m_layer(layer), m_wire(wire),
-    m_wpos(DEFV), m_wdir(DEFV), m_tilt_angle(0.), m_rotation(0.)
+//_____________________________________________________________________________
+DCHit::DCHit(Int_t layer, Double_t wire)
+  : m_layer(layer),
+    m_wire(wire),
+    m_wpos(qnan),
+    m_angle(0.),
+    m_cluster_size(0.),
+    m_mwpc_flag(false)
 {
-  debug::ObjectCounter::increase(class_name);
+  debug::ObjectCounter::increase(ClassName());
 }
 
-//______________________________________________________________________________
-DCHit::~DCHit( void )
+//_____________________________________________________________________________
+DCHit::DCHit(Int_t plane, Int_t layer, Int_t wire) // for Geant4
+  : m_plane(plane),
+    m_layer(layer),
+    m_wire(wire),
+    m_lpos(),
+    m_de(),
+    m_tot(),
+    m_belong_to_track(),
+    m_is_good(),
+    m_wpos(qnan),
+    m_angle(0.),
+    m_cluster_size(0.),
+    m_mwpc_flag(false)
 {
-  // ClearRegisteredHits();
-  debug::ObjectCounter::decrease(class_name);
+  debug::ObjectCounter::increase(ClassName());
+}
+
+//_____________________________________________________________________________
+DCHit::~DCHit()
+{
+  ClearRegisteredHits();
+  debug::ObjectCounter::decrease(ClassName());
+}
+
+//_____________________________________________________________________________
+void
+DCHit::ClearDCData()
+{
+  m_drift_time.clear();
+  m_drift_length.clear();
+  m_tot.clear();
+  m_belong_to_track.clear();
+  m_is_good.clear();
+}
+
+//_____________________________________________________________________________
+void
+DCHit::EraseDCData(Int_t i)
+{
+  m_tdc.erase(m_tdc.begin() + i);
+  m_trailing.erase(m_trailing.begin() + i);
+  m_drift_time.erase(m_drift_time.begin() + i);
+  m_drift_length.erase(m_drift_length.begin() + i);
+  m_tot.erase(m_tot.begin() + i);
+  m_belong_to_track.erase(m_belong_to_track.begin() + i);
+  m_is_good.erase(m_is_good.begin() + i);
 }
 
 //_____________________________________________________________________________
@@ -108,46 +148,41 @@ DCHit::SetDCData(Double_t dt, Double_t dl, Double_t tot,
   m_is_good.push_back(is_good);
 }
 
-//______________________________________________________________________________
-bool
-DCHit::CalcDCObservables( double retiming )
+//_____________________________________________________________________________
+void
+DCHit::SetDCDataGeant4(TVector3 lpos, Double_t de)
 {
-  static const std::string func_name("["+class_name+"::"+__func__+"()]");
+  m_lpos.push_back(lpos);
+  m_de.push_back(de);
+}
 
-  if( !gTdc.IsReady() ){
-    std::cout<<" DCTdcCalibMan is not initialized"<<std::endl;
+//_____________________________________________________________________________
+void
+DCHit::ClearRegisteredHits()
+{
+  Int_t n = m_register_container.size();
+  for(Int_t i=0; i<n; ++i){
+    delete m_register_container[i];
+  }
+}
+
+//_____________________________________________________________________________
+Bool_t
+DCHit::CalcDCObservables()
+{
+  if(false
+     || !gGeom.IsReady()
+     || !gTdc.IsReady()
+     || !gDrift.IsReady()){
     return false;
   }
-  if( !gDrift.IsReady() ){
-    std::cout<<" DCDriftParamMan is not initialized"<<std::endl;
-    return false;
-  }
 
-  if( m_detector_id==DetIdCDC ){
-#ifdef CDS
-    if( !gCDC.IsReady()){
-      std::cout<<" CDC wire map is not initialized"<<std::endl;
-      return false;
-    }
-    m_wpos  = gCDC.GetWirePos(  m_layer,m_wire );
-    m_wdir  = gCDC.GetWireDir(  m_layer,m_wire );
-#endif
-  }else{
-    // if( !gBLDC.IsReady()){
-    //   std::cout<<" BLDC wire map is not initialized"<<std::endl;
-    //   return false;
-    // }
-    // m_wpos  = gBLDC.CalcWirePosition( m_detector_id, m_layer,m_wire );
-    // m_wdir  = gBLDC.CalcWireDirection( m_detector_id, m_layer,m_wire );
-    // m_tilt_angle = gBLDC.GetTiltAngle( m_detector_id, m_layer );
-    // m_rotation = gBLDC.GetRotationAngle( m_detector_id, m_layer );
-    // m_xy= gBLDC.GetWireMap(m_detector_id,m_layer)->GetXY();
-  }
+  m_wpos  = gGeom.CalcWirePosition(m_layer, m_wire);
+  m_angle = gGeom.GetTiltAngle(m_layer);
+  m_z     = gGeom.GetLocalZ(m_layer);
 
-  std::sort(m_tdc.begin(), m_tdc.end(), std::greater<Double_t>());
-  std::sort(m_trailing.begin(), m_trailing.end(), std::greater<Double_t>());
-
-  const Char_t* name = m_raw_hit->DetectorName().Data();
+  std::sort(m_tdc.begin(), m_tdc.end(), std::greater<Int_t>());
+  std::sort(m_trailing.begin(), m_trailing.end(), std::greater<Int_t>());
 
   data_t leading, trailing;
   for(Int_t il=0, nl=m_tdc.size(); il<nl; ++il){
@@ -160,116 +195,178 @@ DCHit::CalcDCObservables( double retiming )
         break;
       }
     }
-    Double_t ctime = TMath::QuietNaN();
-    gTdc.GetTime(m_detector_id, m_plane, m_wire, l, ctime);
-    Double_t dt = TMath::QuietNaN();
-    Double_t dl = TMath::QuietNaN();
-    gDrift.CalcDrift(name, m_plane, m_wire, ctime, dt, dl);
-
-    // Double_t ctime_trailing = TMath::QuietNaN();
-    // gTdc.GetTime(m_detector_id, m_plane, m_wire, buf, ctime_trailing);
-    // Double_t tot = ctime - ctime_trailing;
-    Double_t tot = l - buf;
-
-    Bool_t dt_is_good = gUser.IsInRange(Form("%s_DT", name), dt);
-    Bool_t tot_is_good = gUser.IsInRange(Form("%s_TOT", name), tot);
-    Bool_t dl_is_good = dt_is_good && tot_is_good;
-
-    SetDCData(dt, dl, tot, false, dl_is_good);
     leading.push_back(l);
     trailing.push_back(buf);
+    Double_t ctime = TMath::QuietNaN();
+    gTdc.GetTime(m_layer, m_wire, l, ctime);
+    Double_t dt = TMath::QuietNaN();
+    Double_t dl = TMath::QuietNaN();
+    // gDrift.CalcDrift(m_layer, m_wire, ctime, dt, dl);
+    Double_t ctime_trailing = TMath::QuietNaN();
+    gTdc.GetTime(m_layer, m_wire, buf, ctime_trailing);
+    // Double_t tot = ctime - ctime_trailing;
+    Double_t tot = l - buf;
+    Bool_t dl_is_good = false;
+    switch(m_layer){
+      // BC3,4
+    case 113: case 114: case 115: case 116: case 117: case 118:
+    case 119: case 120: case 121: case 122: case 123: case 124:
+      if(MinDLBc[m_layer-100] < dl && dl < MaxDLBc[m_layer-100]){
+	dl_is_good = true;
+      }
+      break;
+      // SDC1,2,3,4,5
+    case 1: case 2: case 3: case 4: case 5: case 6:
+    case 7: case 8: case 9: case 10:
+    case 31: case 32: case 33: case 34:
+    case 35: case 36: case 37: case 38:
+    case 39: case 40: case 41: case 42:
+      if(MinDLSdc[m_layer] < dl && dl < MaxDLSdc[m_layer]){
+      	dl_is_good = true;
+      }
+      break;
+    default:
+      hddaq::cout << FUNC_NAME << " "
+		  << "invalid layer id : " << m_layer << std::endl;
+      return false;
+    }
+
+    if(!SelectTDC1st){
+      SetDCData(dt, dl, tot, false, dl_is_good);
+    }else if(dl_is_good){
+      SetDCData(dt, dl, tot, false, dl_is_good);
+      break;
+    }
   }
   m_tdc = leading;
   m_trailing = trailing;
   return true;
-
-
-  // if(m_trailing.size()>0&&m_tdc.size()>0&&m_tdc.front()<m_trailing.front()){
-  //   m_trailing.erase(m_trailing.begin());
-  // }
-  // bool status = true;
-  // int nhtrailing = m_trailing.size();
-  // for ( int i=0; i<nhtrailing; ++i ) {
-  //   double ctime;
-  //   if( !gTdc.GetTime( m_detector_id, m_layer, m_wire, m_trailing[i], ctime ) )
-  //     return false;
-  //   ctime -= retiming;
-  //   m_trailing_time.push_back(ctime);
-  // }
-  // int  nhtdc = m_tdc.size();
-  // for ( int i=0; i<nhtdc; ++i ) {
-  //   const Char_t* n = m_raw_hit->DetectorName();
-  //   if(!gUser.IsInRange(Form("%s_TDC", n), m_tdc[i]))
-  //     return true;
-
-  //   double ctime;
-  //   if( !gTdc.GetTime( m_detector_id, m_layer, m_wire, m_tdc[i], ctime ) ){
-  //     return false;
-  //   }
-  //   ctime -= retiming;
-  //   double dlength=gXt.CalcDriftLength( m_detector_id, m_layer, m_wire, ctime );
-  //   // if( m_detector_id==DetIdBPC)
-  //   //    std::cout<<i<<" / "<<nhtdc<<"  dt:"<<ctime<<" ,dl:"<<dlength<<std::endl;
-  //   Double_t tot = 0;
-  //   if(i<nhtrailing)
-  //     tot = m_trailing_time.at(i) - ctime;
-  //   m_tot.push_back(tot);
-
-  //   m_drift_time.push_back( ctime );
-  //   m_drift_length.push_back( dlength );
-  // }
-
-  // CheckRangeHits();
-  // return status;
 }
-bool DCHit::CheckRangeHits()
+
+//_____________________________________________________________________________
+Bool_t
+DCHit::CalcDCObservablesGeant4()
 {
-  std::string str1=Form("DCDt%d",m_detector_id);
-  std::string str2=Form("DCTot%dL%d",m_detector_id,m_layer);
-  std::string str3=Form("DCTot%d",m_detector_id);
-  //  std::string str3=Form("DCDl%d",m_detector_id);
-  const Char_t* name = m_raw_hit->DetectorName().Data();
-  for(Int_t index=m_tdc.size()-1; index!=0-1; --index ){
-    if(gUser.IsInRange(str1,m_drift_time[index])) m_dt_range[index]=true;
-    m_tot_range[index] = gUser.IsInRange(Form("%s_TOT", name), m_tot[index]);
-    // if(gUser.Has(str2)){
-    //   if(gUser.IsInRange(str2,m_tot[index])) m_tot_range[index]=true;
-    // }else{
-    //   if(gUser.IsInRange(str3,m_tot[index])) m_tot_range[index]=true;
-    // }
-    //    if(gUser.IsInRange(str3,m_drift_length[index])) m_dl_range[index]=true;
+
+  if(false
+     || !gGeom.IsReady()){
+    return false;
+  }
+
+  m_wpos  = gGeom.CalcWirePosition(m_layer, m_wire);
+  m_angle = gGeom.GetTiltAngle(m_layer);
+  m_z     = gGeom.GetLocalZ(m_layer);
+
+  // gRandom->SetSeed(TDatime().Convert());
+  // Double_t res = gUser.GetParameter(Form("ResolutionLayer%d", m_layer));
+  for(Int_t i=0, n=m_lpos.size(); i<n; ++i){
+    Double_t dt = TMath::QuietNaN();
+    Double_t a  = m_angle*TMath::DegToRad();
+    Double_t s  = m_lpos[i].x()*TMath::Cos(a) + m_lpos[i].y()*TMath::Sin(a);
+    Double_t dl = TMath::Abs(s-m_wpos);
+    // dl = gRandom->Gaus(dl, res);
+    Double_t tot = m_de[i];
+    Bool_t dl_is_good = false;
+    switch(m_layer){
+      // BC3,4
+    case 113: case 114: case 115: case 116: case 117: case 118:
+    case 119: case 120: case 121: case 122: case 123: case 124:
+      if(MinDLBc[m_layer-100] < dl && dl < MaxDLBc[m_layer-100]){
+	dl_is_good = true;
+      }
+      break;
+      // SDC1,2,3,4,5
+    case 1: case 2: case 3: case 4: case 5: case 6:
+    case 7: case 8: case 9: case 10:
+    case 31: case 32: case 33: case 34:
+    case 35: case 36: case 37: case 38:
+    case 39: case 40: case 41: case 42:
+      if(MinDLSdc[m_layer] < dl && dl < MaxDLSdc[m_layer]){
+	dl_is_good = true;
+      }
+      break;
+    default:
+      hddaq::cout << FUNC_NAME << " "
+		  << "invalid layer id : " << m_layer << std::endl;
+      return false;
+    }
+
+    if(!SelectTDC1st){
+      SetDCData(dt, dl, tot, false, dl_is_good);
+    }else if(dl_is_good){
+      SetDCData(dt, dl, tot, false, dl_is_good);
+      break;
+    }
+  }
+
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+DCHit::CalcFiberObservables()
+{
+  if(!gGeom.IsReady())
+    return false;
+  m_angle = gGeom.GetTiltAngle(m_layer);
+  m_z     = gGeom.GetLocalZ(m_layer);
+  for(const auto& tdc: m_tdc){
+    m_drift_time.push_back(tdc);
+    m_drift_length.push_back(0.);
+    m_tot.push_back(qnan);
+    m_belong_to_track.push_back(false);
+    m_is_good.push_back(true);
   }
   return true;
 }
-int DCHit::GetNHit(bool DT,bool TOT) const
+
+//_____________________________________________________________________________
+Int_t
+DCHit::GetTdc1st() const
 {
-  int nhit=0;
-  for( int index=0; index<m_tdc.size(); ++index ){
-    if(DT&&!m_dt_range[index]) continue;
-    if(TOT&&!m_tot_range[index]) continue;
-    nhit++;
-  }
-  return nhit;
-}
-int DCHit::GetHitID(int i,bool DT,bool TOT) const
-{
-  int nhit=0;
-  for( int index=0; index<m_tdc.size(); ++index ){
-    if(DT&&!m_dt_range[index]) continue;
-    if(TOT&&!m_tot_range[index]) continue;
-    if(nhit==i) return index;
-    nhit++;
-  }
-  return -1;
-}
-//______________________________________________________________________________
-double DCHit::GetResolution( void ) const
-{
-  return 0.1;
-  //  return gGeom.GetResolution(m_layer);
+  if(m_tdc.empty())
+    return TMath::QuietNaN();
+  else
+    return m_tdc.front();
 }
 
-//______________________________________________________________________________
+//_____________________________________________________________________________
+Double_t
+DCHit::GetResolution() const
+{
+  return gGeom.GetResolution(m_layer);
+}
+
+//_____________________________________________________________________________
+void
+DCHit::DriftTimeCut(Double_t min, Double_t max, Bool_t select_1st)
+{
+  for(Int_t i=GetEntries()-1; i>=0; --i){
+    if(m_drift_time[i] < min || max < m_drift_time[i]){
+      EraseDCData(i);
+    }
+  }
+  if(select_1st){
+    for(Int_t i=GetEntries()-1; i>0; --i){
+      EraseDCData(i);
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void
+DCHit::TotCut(Double_t min, Bool_t keep_nan)
+{
+  for(Int_t i=GetEntries()-1; i>=0; --i){
+    if(keep_nan && TMath::IsNaN(m_tot[i]))
+      continue;
+    if(m_tot[i] < min){
+      EraseDCData(i);
+    }
+  }
+}
+
+//_____________________________________________________________________________
 void
 DCHit::Print(Option_t* arg) const
 {
@@ -281,7 +378,7 @@ DCHit::Print(Option_t* arg) const
               << std::setw(w) << std::left << "layer" << m_layer << std::endl
               << std::setw(w) << std::left << "wire"  << m_wire  << std::endl
               << std::setw(w) << std::left << "wpos"  << m_wpos  << std::endl
-              << std::setw(w) << std::left << "angle" << m_tilt_angle << std::endl
+              << std::setw(w) << std::left << "angle" << m_angle << std::endl
               << std::setw(w) << std::left << "z"     << m_z     << std::endl;
 
   hddaq::cout << std::setw(w) << std::left << "tdc" << m_tdc.size() << " : ";
@@ -314,5 +411,12 @@ DCHit::Print(Option_t* arg) const
     std::copy(cont.begin(), cont.end(),
               std::ostream_iterator<Bool_t>(hddaq::cout, " "));
     hddaq::cout << std::endl;
+  }
+
+  if(m_mwpc_flag){
+    hddaq::cout << std::endl
+                << std::setw(w) << std::left << "clsize" << m_cluster_size << std::endl
+                << std::setw(w) << std::left << "mean wire" << m_mwpc_wire << std::endl
+                << std::setw(w) << std::left << "mean pos"  << m_mwpc_wpos << std::endl;
   }
 }

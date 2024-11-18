@@ -1,4 +1,7 @@
 // BeamSpectrometer.cpp
+
+#if 0
+
 #include <iostream>
 #include "BeamSpectrometer.hh"
 #include "TransferMatrixMan.hh"
@@ -91,7 +94,7 @@ static void ParBLC1toBLC2( Double_t *parblc1, Double_t *parblc2){
   }
   parblc2[1]=TMath::Tan(parblc2[1]/1000.); // mrad to dx/dz
   parblc2[3]=TMath::Tan(parblc2[3]/1000.);
-  parblc2[0]*=cm; 
+  parblc2[0]*=cm;
   parblc2[2]*=cm;
 
   // global -> local
@@ -212,7 +215,7 @@ static void fcn2( Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t 
 
 BeamSpectrometer::BeamSpectrometer()
 {
-  Clear();  
+  Clear();
 
   if( !gTM.IsReady() ){
     std::cerr << "Error in BeamSpectrometer!  Set InitializeParameter<TransferMatrixMan>." << std::endl;
@@ -224,7 +227,7 @@ BeamSpectrometer::BeamSpectrometer()
   }
 
   minuit = new TMinuit(5);
-  TROOT minexam("BeamSpectrometer","Beam fit using TMinuit");  
+  TROOT minexam("BeamSpectrometer","Beam fit using TMinuit");
   MomCenter=gTM.GetCentralMomentum();
   D5Matrix1st.ResizeTo(6,6,-1);
   const double *ele = gTM.GetD5Matrix();
@@ -268,7 +271,7 @@ void BeamSpectrometer::SetTrackParams()
     for( int i=0; i<blc1track()->nhit(xy); i++ ) {
       if(ihit>=MAX_NUM_OF_HITS_BEAM) break;
       TrackHit hit=blc1track()->hit(xy,i);
-      if(xy==0){	
+      if(xy==0){
 	BLC1HitPos[ihit]=hit.hitpos;
       }else{
 	BLC1HitPos[ihit].SetXYZ(hit.hitpos.Y(),hit.hitpos.X(),hit.hitpos.Z());
@@ -308,7 +311,7 @@ void BeamSpectrometer::SetTrackParams()
     for( int i=0; i<blc2track()->nhit(xy); i++ ) {
       if(ihit>=MAX_NUM_OF_HITS_BEAM) break;
       TrackHit hit=blc2track()->hit(xy,i);
-      if(xy==0){	
+      if(xy==0){
 	BLC2HitPos[ihit]=hit.hitpos;//+TVector3(0,0,1300);
       }else{
 	BLC2HitPos[ihit].SetXYZ(hit.hitpos.Y(),hit.hitpos.X(),hit.hitpos.Z());//+130*cm);
@@ -336,8 +339,8 @@ void BeamSpectrometer::Clear()
   FitChi2 = -999.;
   //  MomCenter=-999.;
 
-  BLC1GX=BLC1GY=BLC1GZ=BLC1GdX=BLC1GdY=-999.;  
-  BLC2GX=BLC2GY=BLC2GZ=BLC2GdX=BLC2GdY=-999.;  
+  BLC1GX=BLC1GY=BLC1GZ=BLC1GdX=BLC1GdY=-999.;
+  BLC2GX=BLC2GY=BLC2GZ=BLC2GdX=BLC2GdY=-999.;
   for( int i=0; i<MAX_NUM_OF_HITS_BEAM; i++ ){
     BLC1HitPos[i].SetXYZ(-999,-999,-999);
     BLC1Weight[i] = -999.;
@@ -372,7 +375,7 @@ bool BeamSpectrometer::CalcInitPar()
   Par[3]=TMath::ATan(-d)*1000; //mrad
   double cang=-1./12.5;
   double cplus=3.75/125.;
-  double cminus=-0.11/125.;  
+  double cminus=-0.11/125.;
   double angle=-TMath::ATan(-b)*1000.+TMath::ATan(-b2)*1000.;
   double cmom=cang*angle+cplus*(x+x2)/unit+cminus*(x2-x)/unit;
   cmom *= -1;
@@ -410,7 +413,7 @@ void BeamSpectrometer::SetGlobalVariables()
   gBLC1GZ=BLC1GZ;
   gBLC1GdX=BLC1GdX;
   gBLC1GdY=BLC1GdY;
-  
+
   gBLC2GX=BLC2GX;
   gBLC2GY=BLC2GY;
   gBLC2GZ=BLC2GZ;
@@ -476,12 +479,12 @@ void BeamSpectrometer::fit()
   FitStat = icstat;
   minuit->mnprin(5,amin);
 #endif
-  
+
   Int_t err;
   Double_t bnd1, bnd2;
   for( Int_t i=0; i<5; i++ ){
     minuit->mnpout(i, name[i], Par[i], Err[i], bnd1, bnd2, err);
-  }  
+  }
   CalcChi2();
   //  std::cout<<<<"  "<<FitChi2<<std::endl;
 }
@@ -522,12 +525,12 @@ void BeamSpectrometer::fit2()
   FitStat = icstat;
   minuit->mnprin(5,amin);
 #endif
-  
+
   Int_t err;
   Double_t bnd1, bnd2;
   for( Int_t i=0; i<5; i++ ){
     minuit->mnpout(i, name[i], Par[i], Err[i], bnd1, bnd2, err);
-  }  
+  }
   FitChi2=minuit->fAmin;
   //  std::cout<<minuit->fAmin<<"  "<<FitChi2<<std::endl;
 }
@@ -562,7 +565,7 @@ void BeamSpectrometer::CalcParBLC1toBLC2( double *parblc1, double *parblc2, cons
     TVector3 dir(parblc2[1],parblc2[3],1);
     dir.RotateY(-BLC2GdY);
     dir.RotateX(-BLC2GdX);
-    
+
     parblc2[1]=dir.X()/dir.Z();              //dx
     parblc2[0]=pos.X()-parblc2[1]*pos.Z(); //x
     parblc2[3]=dir.Y()/dir.Z();              //dy
@@ -602,9 +605,9 @@ void BeamSpectrometer::CalcBLC1GtoL( Double_t *in, Double_t *out ){
 }
 
 void BeamSpectrometer::CalcChi2()
-{  
+{
   double chisq=0.;
-  int dof = 0;  
+  int dof = 0;
   double parorg[6]={Par[0],Par[1],Par[2],Par[3],0.,Par[4]};
   double parblc2[6];
   double parblc1[6];
@@ -621,7 +624,7 @@ void BeamSpectrometer::CalcChi2()
     fitx = parblc1[0]+TMath::Tan(parblc1[1]/1000.)*BLC1HitPos[i].z();
     fity = parblc1[2]+TMath::Tan(parblc1[3]/1000.)*BLC1HitPos[i].z();
     TVector2 vec(fitx,fity);
-    TVector2 vec2=vec.Rotate(-BLC1Rotation[i]);    
+    TVector2 vec2=vec.Rotate(-BLC1Rotation[i]);
     double tmp=( (hitx-vec2.X())*(hitx-vec2.X()) )/BLC1Weight[i]/BLC1Weight[i];
     chisq +=tmp;
 #if DEBUG
@@ -653,3 +656,4 @@ void BeamSpectrometer::CalcChi2()
   FitChi2 = chisq / FitDof;
 }
 
+#endif

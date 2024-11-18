@@ -1,340 +1,783 @@
-// MathTools.cc
+// -*- C++ -*-
+
 #include "MathTools.hh"
 
-namespace math
+#include <cmath>
+#include <limits>
+#include <iostream>
+#include <iomanip>
+#include <string>
+
+#include <std_ostream.hh>
+
+#include "FuncName.hh"
+#include "PrintHelper.hh"
+
+#define ERROROUT 1
+
+namespace MathTools
 {
-  bool ChangePivot(const TVector3 &oldpivot, const TVector3 &newpivot,
-		   const double oldpar[5], double newpar[5], const int &charge)
-  {
-    // par[0]=d_rho, par[1]= phi_0, par[2]= kappa/alpha, par[3]=dz, par[4]=tanL
-    TVector3 diff=oldpivot-newpivot;
-    double tmppar[5];
-    for(int i=0;i<5;i++)  tmppar[i]=oldpar[i];
-    double tmpx=diff.X() + (tmppar[0]+1./tmppar[2])*TMath::Cos(tmppar[1]);
-    double tmpy=diff.Y() + (tmppar[0]+1./tmppar[2])*TMath::Sin(tmppar[1]);
-    newpar[1]=TMath::ATan2(tmpy,tmpx) + TMath::Pi()/2.*( 1 - tmppar[2]/TMath::Abs(tmppar[2]) );
+//______________________________________________________________________________
+bool SolveGaussJordan(const std::vector<double>& z,
+                      const std::vector<double>& w,
+                      const std::vector<double>& s,
+                      const std::vector<double>& ct,
+                      const std::vector<double>& st,
+                      double& x0,
+                      double& u0,
+                      double& y0,
+                      double& v0)
+{
+  const std::size_t n = z.size();
+  if(n != w.size()  ||
+     n != s.size()  ||
+     n != ct.size() ||
+     n != st.size()){
+    hddaq::cerr << FUNC_NAME << " wrong vector size" << std::endl
+                << " z.size()="  << n
+                << " w.size()="  << w.size()
+                << " s.size()="  << s.size()
+                << " ct.size()=" << ct.size()
+                << " st.size()=" << st.size() << std::endl;
+    return false;
+  }
 
-    if(newpar[1]-oldpar[1]>TMath::Pi()){
-      newpar[1]-=TMath::TwoPi();
+  double matrx[16] = {};
+  double *mtp[4]   = {};
+  double fitp[4]   = {};
+  mtp[0] = &matrx[ 0];
+  mtp[1] = &matrx[ 4];
+  mtp[2] = &matrx[ 8];
+  mtp[3] = &matrx[12];
+
+  for(int i=0; i<4; ++i)
+    for(int j=0; j<4; ++j)
+      mtp[i][j] = 0.0;
+
+  for(std::size_t i=0; i<n; ++i){
+    double ww=w[i], zz=z[i], ss=s[i], ctt=ct[i], stt=st[i];
+    mtp[0][0] += ww*ctt*ctt;
+    mtp[0][1] += ww*zz*ctt*ctt;
+    mtp[0][2] += ww*ctt*stt;
+    mtp[0][3] += ww*zz*ctt*stt;
+    mtp[1][1] += ww*zz*zz*ctt*ctt;
+    mtp[1][2] += ww*zz*ctt*stt;
+    mtp[1][3] += ww*zz*zz*ctt*stt;
+    mtp[2][2] += ww*stt*stt;
+    mtp[2][3] += ww*zz*stt*stt;
+    mtp[3][3] += ww*zz*zz*stt*stt;
+
+    fitp[0] += ww*ss*ctt;
+    fitp[1] += ww*zz*ss*ctt;
+    fitp[2] += ww*ss*stt;
+    fitp[3] += ww*zz*ss*stt;
+  }
+  mtp[1][0] = mtp[0][1];
+  mtp[2][0] = mtp[0][2];
+  mtp[3][0] = mtp[0][3];
+  mtp[2][1] = mtp[1][2];
+  mtp[3][1] = mtp[1][3];
+  mtp[3][2] = mtp[2][3];
+
+#if 0
+  PrintMatrix(mtp, "Original Matrix: M_ij");
+  PrintVector(fitp, "Original Vector: Q_i");
+#endif
+
+  double Org[4][4]  = {{}};
+  double Org_vec[4] = {};
+  for(int i=0; i<4; ++i){
+    Org_vec[i] = fitp[i];
+    for(int j=0; j<4; ++j){
+      Org[i][j] = mtp[i][j];
     }
-    if(newpar[1]-oldpar[1]<-TMath::Pi()){
-      newpar[1]+=TMath::TwoPi();
+  }
+
+  int indxr[4] = {};
+  int indxc[4] = {};
+  int ipiv[4]  = {};
+  if(!GaussJordan(mtp, 4, fitp, indxr, indxc, ipiv)){
+    hddaq::cerr << FUNC_NAME << " Fitting failed" << std::endl;
+    return false;
+  }
+
+  x0 = fitp[0];
+  u0 = fitp[1];
+  y0 = fitp[2];
+  v0 = fitp[3];
+
+  double Inv[4][4] = {{}};
+  double Sol[4]    = {};
+  for(int i=0; i<4; ++i){
+    for(int j=0; j<4; ++j){
+      Inv[i][j] = mtp[i][j];
+      Sol[i] += Inv[i][j]*Org_vec[j];
     }
-
-    newpar[0]=tmpx*TMath::Cos(newpar[1])+tmpy*TMath::Sin(newpar[1])-1./tmppar[2];
-    newpar[2]=tmppar[2];
-    newpar[3]=diff.Z()+tmppar[3]-1./tmppar[2]*(newpar[1]-tmppar[1])*tmppar[4];
-    newpar[4]=tmppar[4];
-
-    return true;
   }
 
-  bool HelixToHelix(const double *par1, const double  *par2,TVector3 &fitpos1,TVector3 &fitpos2, double &dis )
-  { 
-    double posphi=math::CalcHelixPhi(0,0,par1); 
-    double distmp=9999;
-    TVector3 pos,tmp;
-    for(int scale=0;scale<3;scale++)
-      {
-	double tmpphi=posphi;
-	for(int n=0;n<20;n++)
-	  {	  
-	    double phi=tmpphi+(n-10)*pow(10,-scale)*3*par1[2];
-	    pos=math::GetPosition(phi,par1);
-	    if(!math::PointToHelix(pos,par2,tmp,distmp) ){distmp=9999;}
-	    if(n==0) { dis=distmp; posphi=phi; fitpos2=tmp;}
-	    else if(distmp<dis) { dis=distmp; posphi=phi; fitpos2=tmp;}
-	  }
+  double Final[4][4] = {{}};
+  for(int i=0; i<4; ++i){
+    for(int j=0; j<4; ++j){
+      for(int k=0; k<4; ++k){
+        Final[i][j] += Inv[i][k]*Org[k][j];
       }
-    fitpos1=math::GetPosition(posphi,par1);
-    return true;
+      if(Final[i][j]<1.e-10) Final[i][j]=0.;
+    }
   }
 
-  bool HelixToHelixWresl(const double *par1, const double  *par2,TVector3 &fitpos1,TVector3 &fitpos2, double &dis )
-  { 
-    double posphi=math::CalcHelixPhi(0,0,par1); 
-    double distmp=999;
-    double rdistmp=999;
-    double rdis=999;
-    TVector3 pos,tmp;
-    for(int scale=0;scale<3;scale++)
-      {
-	double tmpphi=posphi;
-	for(int n=0;n<20;n++)
-	  {	  
-	    double phi=tmpphi+(n-10)*pow(10,-scale)*3*par1[2];
-	    pos=math::GetPosition(phi,par1);
-	    if(!math::PointToHelix(pos,par2,tmp,distmp) ){distmp=999;}
-	    TVector3 rpos=pos-tmp;
-	    rdistmp=sqrt( (rpos.X()*rpos.X()+rpos.Y()*rpos.Y())/0.3/0.3+rpos.Z()*rpos.Z()/1.0);
- 
-	    if(n==0) { dis=distmp; posphi=phi; fitpos2=tmp; rdis=rdistmp;}
-	    else if(rdistmp<rdis) { dis=distmp; posphi=phi; fitpos2=tmp; rdis=rdistmp;}
-	  }
-      }
-    fitpos1=math::GetPosition(posphi,par1);
-    return true;
-  }
-  
-  TVector3 NearestPointCircleToLine(const TVector3 &pos, const TVector3 &dir,
-				    const double &rho ,const double &xc, const double &yc)
-  {
-    double aw,bw,cw;
-    // aw*x+bw*y+cw=0	 	    
-    if(TMath::Abs( dir.X() )>0.01)
-      {
-	// y = dy/dx *x + C
-	aw=dir.Y()/dir.X();
-	bw=-1;
-	cw= -(aw*pos.X()+bw*pos.Y() );
-      }
-    else
-      {
-	// check !!
-	bw=dir.X()/dir.Y();
-	aw= -1;
-	cw= -(aw*pos.X()+bw*pos.Y() ); 
-      }
-    double x_p,y_p,x_n,y_n;
-    //    std::cout<<__func__<<"aw,bw,cw,rho,xc,yc: "<<aw<<"  "<<bw<<"  "<<cw<<"  "<<rho<<"  "<<xc<<"  "<<yc<<std::endl;
+#if 0
+  PrintVector(indxr, "indxr[4] Gauss-Jordan");
+  PrintVector(indxc, "indxc[4] Gauss-Jordan");
+  PrintVector(ipiv,  "ipiv[4] Gauss-Jordan");
+  PrintMatrix(Inv,   "Inverse Matrix");
+  PrintVector(fitp,  "Solution from Gauss-Jordan");
+  PrintVector(Sol,   "Solution from (M^-1)*Q_i");
+  PrintMatrix(Final, "(M^-1)*M");
+#endif
 
-    LineToCircle(aw,bw,cw,rho,xc,yc,x_p,y_p,x_n,y_n);
-    //    std::cout<<__func__<<"xp,yp,xn,yn: "<<x_p<<"  "<<y_p<<"  "<<x_n<<"  "<<y_n<<std::endl;
-    TVector3 Pos_p(x_p,y_p,0);
-    TVector3 Pos_n(x_n,y_n,0);
-    if( (Pos_p-pos).Perp() < (Pos_n-pos).Perp() )
-      return Pos_p;
-    return Pos_n;
-  }
-  TVector3 NearestPointLineToLine(const TVector3 &pos, const TVector3 &dir,
-				  const TVector3 &x2, const TVector3 &a2,
-				  const double &dl)
-  {
-    double dist;
-    TVector3 xest, next;
-    TVector3 tmpx2(x2);
-    TVector3 tmpa2(a2);
-    tmpx2.SetZ(0);
-    tmpa2.SetZ(0);
-    LineToLine(pos,dir,tmpx2,tmpa2,dl,dist,xest,next);
-    return xest;
-  }
+  return true;
+}
 
-  bool LineToCircle(const double &a,const double &b, const double &c, 
-		    const double &rho ,const double &xc, const double &yc, 
-		    double &x_p,double &y_p,double &x_n,double &y_n)
-  {
-    // in XY 2 dim 
-    // line (wire) : a * x + b * y + c =0
-    // circle : (x-xc)^2 + (y-yc)^2 = rho^2 
-    // x_p,x_n : 2 soultions
-  
-    //   double dis=fabs(a*xc+b*yc+c)/sqrt(a*a+b*b);
-    //   if(dis>rho){
-    // #if DEBUG
-    //     std::cout<<"no crossing point! rho dis "<<rho<<" "<<dis<<" "<<c<<std::endl;
-    // #endif     
-    //     // should be modified for short track analysis
-    //     // if the hit is at the edge of the wire, it may be killed.
-    //     return false;
-    //   }
+//______________________________________________________________________________
+bool
+GaussElim(double **a, int n, double *b, int *indx, int *ipiv)
+{
+  double big, c, pivinv, sum, c2;
+  int js   = 0;
+  int irow = 0;
 
-    double p[3];
-    if(TMath::Abs(b)>0.001)
-      {
-	p[0]=a*a/(b*b)+1;
-	p[1]=2*a*c/(b*b)-2*xc+2*yc*a/b;
-	p[2]=xc*xc+c*c/(b*b)+2*yc*c/b+yc*yc-rho*rho;
-      
-	x_p=(-p[1]+sqrt(p[1]*p[1]-4*p[0]*p[2]) )/(2*p[0]);
-	x_n=(-p[1]-sqrt(p[1]*p[1]-4*p[0]*p[2]) )/(2*p[0]);
-	y_p= -(a*x_p+c)/b;
-	y_n= -(a*x_n+c)/b;
+  for(int i=0; i<n; ++i) ipiv[i]=0;
+  for(int i=0; i<n; ++i){
+    big = 0.;
+    for(int j=0; j<n; ++j){
+      if(!ipiv[j]){
+        if((c=std::abs(a[j][i]))>=big){ big=c; irow=j; }
       }
-    else if(TMath::Abs(a)>0.001)
-      {
-	p[0]=b*b/(a*a)+1;
-	p[1]=2*b*c/(a*a)-2*yc+2*xc*b/a;
-	p[2]=yc*yc+c*c/(a*a)+2*xc*c/a+xc*xc-rho*rho;
-      
-	y_p=(-p[1]+sqrt(p[1]*p[1]-4*p[0]*p[2]) )/(2*p[0]);
-	y_n=(-p[1]-sqrt(p[1]*p[1]-4*p[0]*p[2]) )/(2*p[0]);
-	x_p= -(b*y_p+c)/a;
-	x_n= -(b*y_n+c)/a;
-
+      else if(ipiv[j]>1){
+#ifdef ERROROUT
+        hddaq::cerr << FUNC_NAME << " Singular Matrix" << std::endl;
+#endif
+        return false;
       }
-    double dis2=sqrt( (x_p-xc)*(x_p-xc)+(y_p-yc)*(y_p-yc) );
-    if(fabs(dis2-rho)>100) {
-      // std::cout<<"not macth rho! missing calc!"<<std::endl; 
-      // std::cout<<a<<"  "<<b<<"  "<<c<<std::endl;
-      // std::cout<<rho<<"  "<<xc<<"  "<<yc<<"  "<<x_p<<"  "<<y_p<<std::endl;
+    }
+    ++(ipiv[irow]); indx[i]=irow;
+    if(a[irow][i]==0.0){
+#ifdef ERROROUT
+      hddaq::cerr << FUNC_NAME << " Singular Matrix" << std::endl;
+#endif
       return false;
     }
-    return true;
+    pivinv=1.0/a[irow][i];
+
+    for(int j=0; j<n; ++j){
+      if(ipiv[j]==0){
+        c=a[j][i]; a[j][i]=0.0;
+        for(int k=i+1; k<n; ++k)
+          a[j][k]-=a[irow][k]*pivinv*c;
+        b[j]-=b[irow]*pivinv*c;
+      }
+    }
   }
 
-
-  double CalcHelixDCA( const double par1[5], const double par2[5], TVector3 &vtx1, TVector3 &vtx2, TVector3 &vtx )
-  {
-    const int NUM = 2;
-    const int npoint = 100;
-    const double initz = 0; //mm
-    double region = 600; //+/-mm
-    TVector3 pos1[npoint+1];
-    TVector3 pos2[npoint+1];
-    int num = 1;
-    TVector3 now_vtx1;
-    TVector3 now_vtx2;
-    TVector3 now_vtx;
-    double nowz = initz;
-    double minl = 999.0;
-    while(num<=NUM){
-      //cerr<<"---"<<num<<endl;
-      for(int i=0; i<npoint+1; i++){
-	double z=nowz+(2*region/npoint)*(-npoint/2+i);
-	//cerr<<z<<endl;
-	pos1[i] = CalcHelixPosatZ(par1,z);
-	pos2[i] = CalcHelixPosatZ(par2,z);
-      }
-      for(int i=0; i<npoint+1; i++){
-	for(int j=0; j<npoint+1; j++){
-	  TVector3 diff = pos1[i]-pos2[j];
-	  double l = diff.Mag();
-	  if(l<minl){
-	    minl = l;
-	    now_vtx1 = pos1[i];
-	    now_vtx2 = pos2[j];
-	    now_vtx = now_vtx1+now_vtx2;
-	    now_vtx *=0.5;
-	    nowz = now_vtx.z();
-	  }
-	}
-      }
-      num++;
-      region = 2*region/10;
-    }
-    vtx1 = now_vtx1;
-    vtx2 = now_vtx2;
-    vtx = now_vtx;
-
-    // fine search by k.t.
-    double step1 = 0.5;
-    double step2 = 0.5;
-    double dl = minl;
-    double dldiff = 9999;
-    TVector3 v1[4],v2[4];
-    double dlp[4];
-    int counter = 0;
-    while( 0.0001<dldiff && counter<10000 ){
-      double z1 = vtx1.Z();
-      double z2 = vtx2.Z();
-      v1[0] = CalcHelixPosatZ( par1, z1+step1 );   v2[0] = CalcHelixPosatZ( par2, z2+step2 );  dlp[0] = (v1[0]-v2[0]).Mag();
-      v1[1] = CalcHelixPosatZ( par1, z1+step1 );   v2[1] = CalcHelixPosatZ( par2, z2-step2 );  dlp[1] = (v1[1]-v2[1]).Mag();
-      v1[2] = CalcHelixPosatZ( par1, z1-step1 );   v2[2] = CalcHelixPosatZ( par2, z2+step2 );  dlp[2] = (v1[2]-v2[2]).Mag();
-      v1[3] = CalcHelixPosatZ( par1, z1-step1 );   v2[3] = CalcHelixPosatZ( par2, z2-step2 );  dlp[3] = (v1[3]-v2[3]).Mag();
-      bool valnewed=false;
-      for( int i=0; i<4; i++ ){
-	if( dlp[i]<dl ){
-	  vtx1 = v1[i]; vtx2 = v2[i];
-	  vtx = (vtx1+vtx2)*0.5;
-	  dldiff = fabs(dl-dlp[i]); dl = dlp[i]; 
-	  valnewed=true;
-	}
-      }
-      if( !valnewed ){
-	step1 *= 0.5; step2 *= 0.5;
-      }
-      counter++;
-    }
-    if( counter==10000 ){
-      std::cout << "!!! too many loops !!! " << std::endl;
-    }
-    return dl;
+  b[indx[n-1]]/=a[indx[n-1]][n-1];
+  for(int i=n-2; i>=0; --i){
+    sum=b[indx[i]];
+    for(int j=i+1; j<n; ++j)
+      sum-=a[indx[i]][j]*b[indx[j]];
+    b[indx[i]]=sum/a[indx[i]][i];
   }
-
-  double dfunc_LTH(const TVector3 &lpos,const TVector3 &dline,const double &helixphi,const double *par)
-  {
-    // function to return the differential (dphi) of 
-    // the distance between Line and a point on Helix which corresponds to helixphi
-    //
-    // lpos  : hit position on the line
-    // dline : direction of the line
-    // helixphi :phi correspondig to hit position
-    // par : parameter of helix
-    // drho=par[0], phi0=par[1], rho=par[2], dz=par[3], tlam=par[4];
-    TVector3 hpos,dhpos;
-    hpos=math::GetPosition(helixphi,par);
-
-    // dhpos: momentum direction on helix
-    dhpos.SetXYZ( (1./par[2])*sin(par[1]+helixphi)  ,
-		  (-1./par[2])*cos(par[1]+helixphi) ,
-		  (-1./par[2])*par[4]                );
-
-    double k=hpos*dline-lpos*dline; // minimum distance point on the line
-    double dk=dhpos*dline; // dk/dphi
-
-    double S = 2.*(lpos+k*dline-hpos)*(dk*dline-dhpos); // d( (lpos+k*dline) -hpos)/d phi
-    return S;
-  }
-  
-  
-  bool LineToHelix(const TVector3 &a, const  TVector3 &dline ,
-		   const double *par, TVector3 &lnest,TVector3 &hnest,
-		   double &dis)
-  {
-    // a: origin of the line
-    // dline: direction of the line
-    // par: helix parameter
-    // lnest: nearest point on the line
-    // hnest: nearest point on the helix
-    TVector3 dlineu=dline.Unit();
-    double phi=0,phi_b=0,phi_a=0;
-    phi=math::CalcHelixPhi(a.x(),a.y(),par);
-
-    double philen=1./par[2]*sqrt(1+par[4]*par[4]);
-    double dist=1.;
-    int trial=14; //sigma_position<1.2 micron 
-
-    // find LTH initial param
-    while(dist<1024)
-      {
-	phi_b=phi-dist/philen;
-	phi_a=phi+dist/philen;
-	double dlen_b=dfunc_LTH(a,dlineu,phi_b,par);
-	double dlen_a=dfunc_LTH(a,dlineu,phi_a,par);
-	if(dlen_b*dlen_a<=0) break;
-	else {dist*=2;trial++;}
+  for(int i=0; i<n; ++i){
+    if(indx[i]!=i){
+      c2=b[i];
+      for(int j=indx[i]; indx[j]!=j; j=js){
+        c=b[j]; b[j]=c2; c2=c; js=indx[j]; indx[j]=j;
       }
-  
-    if(dist>=1024) 
-      {
-#if 0
-	std::cout<<"Can not find LTH inital param!!"<<std::endl;
+    }
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+GaussJordan(double **a, // matrix a[n][n]
+            int n,      // dimension
+            double *b,  // vector b[n]
+            int *indxr, int *indxc, int *ipiv)
+{
+  for(int i=0; i<n; ++i)
+    ipiv[i]=0;
+
+  for(int i=0; i<n; ++i){
+    double big=0.0;
+    int irow=-1, icol=-1;
+    for(int j=0; j<n; ++j)
+      if(ipiv[j]!=1)
+        for(int k=0; k<n; ++k){
+          if(ipiv[k]==0){
+            if(std::abs(a[j][k])>=big){
+              big=std::abs(a[j][k]);
+              irow=j; icol=k;
+            }
+          }
+          else if(ipiv[k]>1){
+#ifdef ERROROUT
+            hddaq::cerr << FUNC_NAME << " Singular Matrix" << std::endl;
 #endif
-	return false;
+            return false;
+          }
+        }
+    ++(ipiv[icol]);
+
+    if(irow!=icol){
+      for(int k=0; k<n; ++k){
+        double ta=a[irow][k];
+        a[irow][k]=a[icol][k];
+        a[icol][k]=ta;
       }
- 
-    //Bisection Method
-    for(int i=0;i<trial;i++)
-      {
-	phi_b=phi-dist/philen;
-	phi_a=phi+dist/philen;
-	double dlen_b=dfunc_LTH(a,dlineu,phi_b,par);
-	//      double dlen_a=dfunc_LTH(a,dlineu,phi_a,par);
-	double dlen=dfunc_LTH(a,dlineu,phi,par);
-	if(dlen*dlen_b<=0 ) {phi=(phi_b+phi)/2.0;dist=dist/2.0;}
-	else  {phi=(phi_a+phi)/2.0;dist=dist/2.0;}      
+      double tb=b[irow];
+      b[irow]=b[icol];
+      b[icol]=tb;
+    }
+
+    indxr[i]=irow; indxc[i]=icol;
+
+    if(a[icol][icol]==0.0){
+#ifdef ERROROUT
+      hddaq::cerr << FUNC_NAME << " Singular Matrix"  << std::endl;
+#endif
+      return false;
+    }
+    double pivinv=1./a[icol][icol];
+    a[icol][icol]=1.;
+    for(int k=0; k<n; ++k) a[icol][k]*=pivinv;
+    b[icol]*=pivinv;
+    for(int k=0; k<n; ++k){
+      if(k!=icol){
+        double d=a[k][icol];
+        a[k][icol]=0.;
+        for(int l=0; l<n; ++l) a[k][l] -= a[icol][l]*d;
+        b[k] -= b[icol]*d;
       }
-    //
-    // helix nearest point
-    hnest=math::GetPosition(phi,par);
-    double k=(hnest-a)*dlineu;
-    // line nearest point
-    lnest=a+k*dlineu;
-    TVector3 tmp;
-    tmp=hnest-lnest;
-    dis=tmp.Mag();
-    return true;
+    }
+  }
+
+  for(int l=n-1; l>=0; --l){
+    if(indxr[l]!=indxc[l]){
+      for(int k=0; k<n; ++k){
+        double t=a[k][indxr[l]];
+        a[k][indxr[l]]=a[k][indxc[l]];
+        a[k][indxc[l]]=t;
+      }
+    }
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+InterpolateRatio(int n, const double *xa, const double *ya,
+                 double *w1, double *w2,
+                 double x, double &y, double &dy)
+{
+  int i, m, ns=1;
+  double w, t, hh, h, dd;
+
+  hh=std::abs(x-xa[0]);
+  for(i=1; i<=n; ++i){
+    h=std::abs(x-xa[i-1]);
+    if(h==0.0) { y=ya[i-1]; dy=0.0; return true; }
+    else if(h<hh){ ns=i; hh=h; }
+    w1[i-1]=ya[i-1]; w2[i-1]=ya[i-1]*(1.+Epsilon());
+  }
+  y=ya[ns-1]; ns--;
+  for(m=1; m<n; ++m){
+    for(i=1; i<=n-m; ++i){
+      w=w1[i]-w2[i-1]; h=xa[i+m-1]-x;
+      t=(xa[i-1]-x)*w2[i-1]/h; dd=t-w1[i];
+      if(dd==0.0){
+#ifdef ERROROUT
+        hddaq::cerr << FUNC_NAME << ": Error" << std::endl;
+#endif
+        y=Infinity(); dy=Infinity(); return false;
+      }
+      dd=w/dd; w2[i-1]=w1[i]*dd; w1[i-1]=t*dd;
+    }
+    if(2*ns < (n-m)) dy=w1[ns];
+    else { dy=w2[ns-1]; ns--; }
+    y+=dy;
+  }
+#if 0
+  hddaq::cout << FUNC_NAME << ": x=" << std::setw(10) << x
+              << " y=" << std::setw(10) << y << std::endl;
+#endif
+  return true;
+}
+
+//______________________________________________________________________________
+bool
+InterpolatePol(int n, const double *xa, const double *ya,
+               double *w1, double *w2,
+               double x, double &y, double &dy)
+{
+  int i, m, ns=1;
+  double den, dif, dift, ho, hp, w;
+
+  dif=std::abs(x-xa[0]);
+  for(i=1; i<=n; ++i){
+    if((dift=std::abs(x-xa[i-1]))<dif){ ns=i; dif=dift; }
+    w1[i-1]=w2[i-1]=ya[i-1];
+  }
+  y=ya[ns-1]; --ns;
+  for(m=1; m<n; ++m){
+    for(i=1; i<=n-m; ++i){
+      ho=xa[i-1]-x; hp=xa[i+m-1]-x;
+      w=w1[i]-w2[i-1];
+      den=ho-hp;
+      if(den==0.0){
+#ifdef ERROROUT
+        hddaq::cerr << FUNC_NAME << ": Error" << std::endl;
+#endif
+        y=Infinity(); dy=Infinity(); return false;
+      }
+      den=w/den;
+      w2[i-1]=hp*den; w1[i-1]=ho*den;
+    }
+    if(2*ns<(n-m)) dy=w1[ns];
+    else           { dy=w2[ns-1]; --ns; }
+    y+=dy;
+  }
+  return false;
+}
+
+//______________________________________________________________________________
+bool
+SVDksb(double **u, const double *w, double **v,
+       int m, int n, const double *b, double *x, double *wv)
+{
+  for(int j=0; j<n; ++j){
+    double s=0.0;
+    if(w[j]!=0.0){
+      for(int i=0; i<m; ++i)
+        s += u[i][j]*b[i];
+      s /= w[j];
+    }
+    wv[j]=s;
+  }
+  for(int i=0; i<n; ++i){
+    double s=0.0;
+    for(int j=0; j<n; ++j)
+      s += v[i][j]*wv[j];
+    x[i]=s;
+  }
+  return true;
+}
+
+//______________________________________________________________________________
+inline double
+pythag(double a, double b)
+{
+  double aa=std::abs(a), ab=std::abs(b);
+  if(aa>ab)
+    return aa*std::sqrt(1.+(ab/aa)*(ab/aa));
+  else if(ab!=0.)
+    return ab*std::sqrt(1.+(aa/ab)*(aa/ab));
+  else
+    return 0.0;
+}
+
+//______________________________________________________________________________
+bool
+SVDcmp(double **a, int m, int n, double *w, double **v, double *wv)
+{
+  double g     = 0.;
+  double scale = 0.;
+  double anorm = 0.;
+  double s, f, h, c;
+  int nm;
+
+#ifdef DebugPrint
+  for(int i=0; i<n; ++i) {
+    w[i]=wv[i]=0.0;
+    for(int j=0; j<n; ++j) v[j][i]=0.0;
+  }
+
+  {
+    PrintHelper helper(3, std::ios::scientific);
+    hddaq::cout << FUNC_NAME << ": A in SVDcmp 1" <<  std::endl;
+    for(int ii=0; ii<m; ++ii){
+      for(int ij=0; ij<n; ++ij){
+        hddaq::cout << std::setw(12) << a[ii][ij];
+        if(ij!=n-1) hddaq::cout << ",";
+      }
+      hddaq::cout << std::endl;
+    }
+    hddaq::cout << FUNC_NAME << ": V in SVDcmp 1" << std::endl;
+    for(int ii=0; ii<n; ++ii){
+      for(int ij=0; ij<n; ++ij){
+        hddaq::cout << std::setw(12) << v[ii][ij];
+        if(ij!=n-1) hddaq::cout << ",";
+      }
+      hddaq::cout << std::endl;
+    }
+    hddaq::cout << FUNC_NAME << ": W in SVDcmp 1" << std::endl;
+    for(int ij=0; ij<n; ++ij){
+      hddaq::cout << std::setw(12) << w[ij];
+      if(ij!=n-1) hddaq::cout << ",";
+    }
+    hddaq::cout << std::endl;
+
+    hddaq::cout << FUNC_NAME << ": WV in SVDcmp 1" << std::endl;
+    for(int ij=0; ij<n; ++ij){
+      hddaq::cout << std::setw(12) << wv[ij];
+      if(ij!=n-1) hddaq::cout << ",";
+    }
+    hddaq::cout << std::endl;
+    hddaq::cout << std::endl;
+  }
+#endif
+
+  // Householder method
+  for(int i=0; i<n; ++i){
+    wv[i]=scale*g;
+    g = scale = 0.0;
+    if(i<m){
+      for(int k=i; k<m; ++k) scale += std::abs(a[k][i]);
+      if(scale!=0.){
+        s = 0;
+        for(int k=i; k<m; ++k){
+          a[k][i] /= scale;
+          s += a[k][i]*a[k][i];
+        }
+        f = a[i][i];
+        g = ((f>0.0) ? -sqrt(s) : sqrt(s));
+        h = f*g-s;
+        a[i][i] = f-g;
+        for(int j=i+1; j<n; ++j){
+          s = 0.0;
+          for(int k=i; k<m; ++k) s += a[k][i]*a[k][j];
+          f = s/h;
+          for(int k=i; k<m; ++k)  a[k][j] += f*a[k][i];
+        }
+        for(int k=i; k<m; ++k) a[k][i] *= scale;
+      }
+    }     /* if(i<m) */
+    w[i] = scale*g;
+    g = s = scale = 0.0;
+
+    if(i<m && i!=n-1){
+      for(int k=i+1; k<n; ++k) scale += std::abs(a[i][k]);
+      if(scale!=0.0){
+        for(int k=i+1; k<n; ++k){
+          a[i][k] /= scale;
+          s += a[i][k]*a[i][k];
+        }
+        f = a[i][i+1];
+        g = ((f>0.0) ? -sqrt(s) : sqrt(s));
+        h = f*g-s;
+        a[i][i+1] = f-g;
+        for(int k=i+1; k<n; ++k) wv[k] = a[i][k]/h;
+        for(int j=i+1; j<m; ++j){
+          s = 0.0;
+          for(int k=i+1; k<n; ++k) s += a[j][k]*a[i][k];
+          for(int k=i+1; k<n; ++k) a[j][k] += s*wv[k];
+        }
+        for(int k=i+1; k<n; ++k) a[i][k] *= scale;
+      }
+    }   /* if(i<m && i!=n-1) */
+    double tmp=std::abs(w[i])+std::abs(wv[i]);
+    if(tmp>anorm) anorm = tmp;
+  }     /* for(int i ...) */
+
+#if DebugPrint
+  {
+    PrintHelper helper(3, std::ios::scientific);
+    hddaq::cout << FUNC_NAME << ": A in SVDcmp 2" <<  std::endl;
+    for(int ii=0; ii<m; ++ii){
+      for(int ij=0; ij<n; ++ij){
+        hddaq::cout << std::setw(12) << a[ii][ij];
+        if(ij!=n-1) hddaq::cout << ",";
+      }
+      hddaq::cout << std::endl;
+    }
+    hddaq::cout << FUNC_NAME << ": V in SVDcmp 2" << std::endl;
+    for(int ii=0; ii<n; ++ii){
+      for(int ij=0; ij<n; ++ij){
+        hddaq::cout << std::setw(12) << v[ii][ij];
+        if(ij!=n-1) hddaq::cout << ",";
+      }
+      hddaq::cout << std::endl;
+    }
+    hddaq::cout << FUNC_NAME << ": W in SVDcmp 2" << std::endl;
+    for(int ij=0; ij<n; ++ij){
+      hddaq::cout << std::setw(12) << w[ij];
+      if(ij!=n-1) hddaq::cout << ",";
+    }
+    hddaq::cout << std::endl;
+
+    hddaq::cout << FUNC_NAME << ": WV in SVDcmp 2" << std::endl;
+    for(int ij=0; ij<n; ++ij){
+      hddaq::cout << std::setw(12) << wv[ij];
+      if(ij!=n-1) hddaq::cout << ",";
+    }
+    hddaq::cout << std::endl;
+    hddaq::cout << std::endl;
+  }
+#endif
+
+  for(int i=n-1; i>=0; --i){
+    if(i<n-1){
+      if(g!=0.0){
+        for(int j=i+1; j<n; ++j) v[j][i] = (a[i][j]/a[i][i+1])/g;
+        for(int j=i+1; j<n; ++j){
+          s = 0.0;
+          for(int k=i+1; k<n; ++k) s += a[i][k]*v[k][j];
+          for(int k=i+1; k<n; ++k) v[k][j] += s*v[k][i];
+        }
+      }
+      for(int j=i+1; j<n; ++j)
+        v[i][j] = v[j][i] = 0.0;
+    }
+    v[i][i]=1.0;  g=wv[i];
+  }   /* for(int i= ...) */
+
+#ifdef DebugPrint
+  {
+    PrintHelper helper(3, std::ios::scientific);
+    hddaq::cout << FUNC_NAME << ": A in SVDcmp 3" <<  std::endl;
+    for(int ii=0; ii<m; ++ii){
+      for(int ij=0; ij<n; ++ij){
+        hddaq::cout << std::setw(12) << a[ii][ij];
+        if(ij!=n-1) hddaq::cout << ",";
+      }
+      hddaq::cout << std::endl;
+    }
+    hddaq::cout << FUNC_NAME << ": V in SVDcmp 3" << std::endl;
+    for(int ii=0; ii<n; ++ii){
+      for(int ij=0; ij<n; ++ij){
+        hddaq::cout << std::setw(12) << v[ii][ij];
+        if(ij!=n-1) hddaq::cout << ",";
+      }
+      hddaq::cout << std::endl;
+    }
+    hddaq::cout << FUNC_NAME << ": W in SVDcmp 3" << std::endl;
+    for(int ij=0; ij<n; ++ij){
+      hddaq::cout << std::setw(12) << w[ij];
+      if(ij!=n-1) hddaq::cout << ",";
+    }
+    hddaq::cout << std::endl;
+
+    hddaq::cout << FUNC_NAME << ": WV in SVDcmp 3" << std::endl;
+    for(int ij=0; ij<n; ++ij){
+      hddaq::cout << std::setw(12) << wv[ij];
+      if(ij!=n-1) hddaq::cout << ",";
+    }
+    hddaq::cout << std::endl;
+    hddaq::cout << std::endl;
+  }
+#endif
+
+  int mn = ((m<n) ? m : n);
+
+  for(int i=mn-1; i>=0; --i){
+    g=w[i];
+    for(int j=i+1; j<n; ++j) a[i][j]=0.0;
+    if(g!=0.0){
+      g = 1./g;
+      for(int j=i+1; j<n; ++j){
+        s = 0.0;
+        for(int k=i+1; k<m; ++k) s += a[k][i]*a[k][j];
+        f = (s/a[i][i])*g;
+        for(int k=i; k<m; ++k) a[k][j] += f*a[k][i];
+      }
+      for(int j=i; j<m; ++j) a[j][i] *= g;
+    }
+    else
+      for(int j=i; j<m; ++j) a[j][i] = 0.0;
+
+    a[i][i] += 1.0;
+  }   /* for(int i= ...) */
+
+#ifdef DebugPrint
+  {
+    PrintHelper helper(3, std::ios::scientific);
+    hddaq::cout << FUNC_NAME << ": A in SVDcmp 4" <<  std::endl;
+    for(int ii=0; ii<m; ++ii){
+      for(int ij=0; ij<n; ++ij){
+        hddaq::cout << std::setw(12) << a[ii][ij];
+        if(ij!=n-1) hddaq::cout << ",";
+      }
+      hddaq::cout << std::endl;
+    }
+    hddaq::cout << FUNC_NAME << ": V in SVDcmp 4" << std::endl;
+    for(int ii=0; ii<n; ++ii){
+      for(int ij=0; ij<n; ++ij){
+        hddaq::cout << std::setw(12) << v[ii][ij];
+        if(ij!=n-1) hddaq::cout << ",";
+      }
+      hddaq::cout << std::endl;
+    }
+    hddaq::cout << FUNC_NAME << ": W in SVDcmp 4" << std::endl;
+    for(int ij=0; ij<n; ++ij){
+      hddaq::cout << std::setw(12) << w[ij];
+      if(ij!=n-1) hddaq::cout << ",";
+    }
+    hddaq::cout << std::endl;
+
+    hddaq::cout << FUNC_NAME << ": WV in SVDcmp 4" << std::endl;
+    for(int ij=0; ij<n; ++ij){
+      hddaq::cout << std::setw(12) << wv[ij];
+      if(ij!=n-1) hddaq::cout << ",";
+    }
+    hddaq::cout << std::endl;
+    hddaq::cout << std::endl;
+  }
+#endif
+
+
+  int ll=1;
+
+  for(int k=n-1; k>=0; --k){
+    for(int its=1; its<=30; ++its){
+      int flag=1; nm=ll;
+      for(ll=k; ll>=0; --ll){
+        nm=ll-1;
+        if(std::abs(wv[ll])+anorm == anorm){
+          flag=0; break;
+        }
+        if(std::abs(w[nm])+anorm == anorm)
+          break;
+      }
+
+      if(flag){
+        c=0.0; s=1.0;
+        for(int i=ll; i<=k; ++i){
+          f = s*wv[i]; wv[i] *= c;
+          if(std::abs(f)+anorm == anorm)
+            break;
+          g=w[i]; h=pythag(f,g); w[i]=h;
+          h=1./h; c=g*h; s=-f*h;
+          for(int j=0; j<m; ++j){
+            double y=a[j][nm], z=a[j][i];
+            a[j][nm]=y*c+z*s; a[j][i]=z*c-y*s;
+          }
+        }
+      }   /* if(flag) */
+
+      double z = w[k];
+      if(ll==k){
+        if(z<0.){
+          w[k]=-z;
+          for(int j=0; j<n; ++j) v[j][k]=-v[j][k];
+        }
+        break;
+      }
+#ifdef ERROROUT
+      if(its==30){
+        // 	hddaq::cerr << FUNC_NAME
+        // 		  << ": -- no convergence in 30 dvdcmp iterations --"
+        // 		  << std::endl;
+        return false;
+      }
+#endif
+      nm=k-1;
+      double x=w[ll], y=w[nm];
+      g=wv[nm]; h=wv[k];
+      f=((y-z)*(y+z)+(g-h)*(g+h))/(2.*h*y);
+      g=pythag(f,1.0);
+      double gtmp = ((f>0.) ? g : -g);
+      f=((x-z)*(x+z)+h*((y/(f+gtmp))-h))/x;
+      c=s=1.0;
+      for(int j=ll; j<=nm; ++j){
+        g=wv[j+1]; y=w[j+1]; h=s*g; g=c*g;
+        z=pythag(f,h);
+        wv[j]=z; c=f/z; s=h/z;
+        f=x*c+g*s; g=g*c-x*s;
+        h=y*s; y=y*c;
+        for(int jj=0; jj<n; ++jj){
+          x=v[jj][j]; z=v[jj][j+1];
+          v[jj][j]=x*c+z*s; v[jj][j+1]=z*c-x*s;
+        }
+        z=pythag(f,h);
+        w[j]=z;
+        if(z!=0.0){ z=1./z; c=f*z; s=h*z; }
+        f=c*g+s*y; x=c*y-s*g;
+        for(int jj=0; jj<m; ++jj){
+          y=a[jj][j]; z=a[jj][j+1];
+          a[jj][j]=y*c+z*s; a[jj][j+1]=z*c-y*s;
+        }
+      }
+      wv[ll]=0.0; wv[k]=f; w[k]=x;
+    }   /* for(int its ...) */
+  }     /* for(int k= ...) */
+
+
+#ifdef DebugPrint
+  {
+    PrintHelper helper(3, std::ios::scientific);
+    hddaq::cout << FUNC_NAME << ": A in SVDcmp 5" <<  std::endl;
+    for(int ii=0; ii<m; ++ii){
+      for(int ij=0; ij<n; ++ij){
+        hddaq::cout << std::setw(12) << a[ii][ij];
+        if(ij!=n-1) hddaq::cout << ",";
+      }
+      hddaq::cout << std::endl;
+    }
+    hddaq::cout << FUNC_NAME << ": V in SVDcmp 5" << std::endl;
+    for(int ii=0; ii<n; ++ii){
+      for(int ij=0; ij<n; ++ij){
+        hddaq::cout << std::setw(12) << v[ii][ij];
+        if(ij!=n-1) hddaq::cout << ",";
+      }
+      hddaq::cout << std::endl;
+    }
+    hddaq::cout << FUNC_NAME << ": W in SVDcmp 5" << std::endl;
+    for(int ij=0; ij<n; ++ij){
+      hddaq::cout << std::setw(12) << w[ij];
+      if(ij!=n-1) hddaq::cout << ",";
+    }
+    hddaq::cout << std::endl;
+
+    hddaq::cout << FUNC_NAME << ": WV in SVDcmp 5" << std::endl;
+    for(int ij=0; ij<n; ++ij){
+      hddaq::cout << std::setw(12) << wv[ij];
+      if(ij!=n-1) hddaq::cout << ",";
+    }
+    hddaq::cout << std::endl;
+    hddaq::cout << std::endl;
+  }
+#endif
+
+  return true;
+}
+
+//______________________________________________________________________________
+template <typename T>
+void
+PrintMatrix(T *mat, const std::string& arg,
+            const int column, const int line)
+{
+  PrintHelper helper(5, std::ios::scientific);
+
+  hddaq::cout << FUNC_NAME << " " << arg << std::endl;
+  for(int l=0; l<line; ++l){
+    for(int c=0; c<line; ++c){
+      hddaq::cout << "  " << std::setw(12) << mat[l][c];
+    }
+    hddaq::cout << std::endl;
   }
 }
 
+//______________________________________________________________________________
+template <typename T>
+void
+PrintVector(T *vec, const std::string& arg, const std::size_t size)
+{
+  PrintHelper helper(5, std::ios::scientific);
+
+  hddaq::cout << FUNC_NAME << " " << arg << std::endl;
+  for(std::size_t i=0; i<size; ++i){
+    hddaq::cout << "  " << std::setw(12) << vec[i];
+  }
+  hddaq::cout << std::endl;
+}
+}

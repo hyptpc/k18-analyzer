@@ -149,6 +149,20 @@ DCGeomMan::GetGlobalPosition(const TString& key) const
 }
 
 //_____________________________________________________________________________
+Double_t
+DCGeomMan::GetOffset(Int_t lnum) const
+{
+  return GetRecord(lnum)->Ofs();
+}
+
+//_____________________________________________________________________________
+Double_t
+DCGeomMan::GetOffset(const TString& key) const
+{
+  return GetOffset(GetDetectorId(key));
+}
+
+//_____________________________________________________________________________
 ThreeVector
 DCGeomMan::NormalVector(Int_t lnum) const
 {

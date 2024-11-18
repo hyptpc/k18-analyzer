@@ -8,32 +8,24 @@
 
 #include <TString.h>
 
+#include <UnpackerManager.hh>
+
 #include "ConfMan.hh"
 #include "DetectorID.hh"
-#include "EventAnalyzer.hh"
-#include "RootHelper.hh"
 #include "DCAnalyzer.hh"
-#include "DCCluster.hh"
 #include "DCDriftParamMan.hh"
+#include "DCGeomMan.hh"
 #include "DCHit.hh"
+#include "DCTdcCalibMan.hh"
+#include "EventAnalyzer.hh"
+#include "HistTools.hh"
 #include "HodoAnalyzer.hh"
 #include "HodoRawHit.hh"
 #include "HodoParamMan.hh"
 #include "HodoPHCMan.hh"
-#include "MTDCAnalyzer.hh"
-#include "MTDCRawHit.hh"
-#include "UserParamMan.hh"
-#include "GeomMapMan.hh"
-#include "XTMapMan.hh"
-#include "BLDCWireMapMan.hh"
-#include "DCTdcCalibMan.hh"
-#include "DCTimeCorrMan.hh"
 #include "RawData.hh"
-#include "UnpackerManager.hh"
-#include "TransferMatrixMan.hh"
-#include "BeamSpectrometer.hh"
-#include "LocalTrack.hh"
-#include "HistTools.hh"
+#include "RootHelper.hh"
+#include "UserParamMan.hh"
 
 #define BEAMONLY 0
 #define TRACKING 1
@@ -102,6 +94,9 @@ ProcessNormal()
 
   evAna.DCHit(dcAna);
   evAna.DCHit(dcAna, beam_flag);
+
+  return true;
+  // dcAna.TrackSearchBLC2();
 
 #if 0
   MTDCAnalyzer MTDCAna(rawData);
@@ -562,12 +557,8 @@ ConfMan::InitializeParameterFiles()
     (InitializeParameter<HodoPHCMan>("HDPHC")) &&
     (InitializeParameter<DCTdcCalibMan>("DCTDC")) &&
     (InitializeParameter<DCDriftParamMan>("DCDRFT")) &&
-    (InitializeParameter<XTMapMan>("XTMap")) &&
-    (InitializeParameter<GeomMapMan>("GeomBL","GeomHall")) &&
-    (InitializeParameter<UserParamMan>("USER")) &&
-    (InitializeParameter<TransferMatrixMan>("TM")) &&
-    (InitializeParameter<DCTimeCorrMan>("DCTC")) &&
-    (InitializeParameter<BLDCWireMapMan>("BLDCWire"));
+    (InitializeParameter<DCGeomMan>("DCGEO")) &&
+    (InitializeParameter<UserParamMan>("USER"));
 }
 
 //_____________________________________________________________________________

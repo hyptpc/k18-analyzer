@@ -17,9 +17,9 @@
 namespace
 {
 inline Int_t
-MakeKey(Int_t detector_id, Int_t plane_id, Double_t wire_id)
+MakeKey(Int_t plane_id, Double_t wire_id)
 {
-  return (detector_id<<20 | plane_id<<10 | Int_t(wire_id));
+  return (plane_id<<10) | Int_t(wire_id);
 }
 }
 
@@ -75,11 +75,11 @@ DCTdcCalibMan::Initialize()
   while(ifs.good() && line.ReadLine(ifs)){
     if(line.IsNull() || line[0]=='#') continue;
     std::istringstream iss(line.Data());
-    Int_t detector_id, plane_id, wire_id;
-    Double_t p0, p1;
-    if(iss >> detector_id >> plane_id >> wire_id >> p0 >> p1){
-      Int_t key = MakeKey(detector_id, plane_id, wire_id);
-      auto tdc_calib = new DCTdcCalMap(p0, p1);
+    Int_t plane_id=-1, wire_id=-1;
+    Double_t p0=-9999., p1=-9999.;
+    if(iss >> plane_id >> wire_id >> p1 >> p0){
+      Int_t key = MakeKey(plane_id, wire_id);
+      DCTdcCalMap* tdc_calib = new DCTdcCalMap(p0, p1);
       if(m_container[key]) delete m_container[key];
       m_container[key] = tdc_calib;
     } else {
@@ -102,9 +102,9 @@ DCTdcCalibMan::Initialize(const TString& file_name)
 
 //_____________________________________________________________________________
 DCTdcCalMap*
-DCTdcCalibMan::GetMap(Int_t detector_id, Int_t plane_id, Double_t wire_id) const
+DCTdcCalibMan::GetMap(Int_t plane_id, Double_t wire_id) const
 {
-  Int_t key = MakeKey(detector_id, plane_id, wire_id);
+  Int_t key = MakeKey(plane_id, wire_id);
   DCTdcIterator itr = m_container.find(key);
   if(itr != m_container.end())
     return itr->second;
@@ -114,16 +114,15 @@ DCTdcCalibMan::GetMap(Int_t detector_id, Int_t plane_id, Double_t wire_id) const
 
 //_____________________________________________________________________________
 Bool_t
-DCTdcCalibMan::GetTime(Int_t detector_id, Int_t plane_id, Double_t wire_id,
+DCTdcCalibMan::GetTime(Int_t plane_id, Double_t wire_id,
                        Int_t tdc, Double_t& time) const
 {
-  auto tdc_calib = GetMap(detector_id, plane_id, wire_id);
+  DCTdcCalMap *tdc_calib = GetMap(plane_id, wire_id);
   if(tdc_calib){
-    time = (tdc - (tdc_calib->p0)) * (tdc_calib->p1);
+    time = (tdc + (tdc_calib->p0)) * (tdc_calib->p1);
     return true;
   } else {
     hddaq::cerr << FUNC_NAME << ": No record. "
-		<< " DetectorId=" << std::setw(3) << std::dec << detector_id
 		<< " PlaneId=" << std::setw(3) << std::dec << plane_id
 		<< " WireId="  << std::setw(3) << std::dec << wire_id
 		<< std::endl;
@@ -133,16 +132,15 @@ DCTdcCalibMan::GetTime(Int_t detector_id, Int_t plane_id, Double_t wire_id,
 
 //_____________________________________________________________________________
 Bool_t
-DCTdcCalibMan::GetTdc(Int_t detector_id, Int_t plane_id, Double_t wire_id,
+DCTdcCalibMan::GetTdc(Int_t plane_id, Double_t wire_id,
                       Double_t time, Int_t &tdc) const
 {
-  auto tdc_calib = GetMap(detector_id, plane_id, wire_id);
+  DCTdcCalMap *tdc_calib = GetMap(plane_id, wire_id);
   if(tdc_calib){
-    tdc = Int_t((time+(tdc_calib->p0))/(tdc_calib->p1));
+    tdc = Int_t((time-(tdc_calib->p0))/(tdc_calib->p1));
     return true;
   } else {
     hddaq::cerr << FUNC_NAME << ": No record. "
-		<< " DetectorId=" << std::setw(3) << std::dec << detector_id
 		<< " PlaneId=" << std::setw(3) << std::dec << plane_id
 		<< " WireId="  << std::setw(3) << std::dec << wire_id
 		<< std::endl;
@@ -152,17 +150,16 @@ DCTdcCalibMan::GetTdc(Int_t detector_id, Int_t plane_id, Double_t wire_id,
 
 //_____________________________________________________________________________
 Bool_t
-DCTdcCalibMan::GetParameter(Int_t detector_id, Int_t plane_id, Double_t wire_id,
+DCTdcCalibMan::GetParameter(Int_t plane_id, Double_t wire_id,
                             Double_t &p0, Double_t &p1) const
 {
-  auto tdc_calib = GetMap(detector_id, plane_id, wire_id);
+  DCTdcCalMap *tdc_calib = GetMap(plane_id, wire_id);
   if(tdc_calib){
     p0 = tdc_calib->p0;
     p1 = tdc_calib->p1;
     return true;
   } else {
     hddaq::cerr << FUNC_NAME << ": No record. "
-                << " DetectorId=" << std::setw(3) << std::dec << detector_id
                 << " PlaneId=" << std::setw(3) << std::dec << plane_id
                 << " WireId="  << std::setw(3) << std::dec << wire_id
                 << std::endl;

@@ -43,6 +43,8 @@ public:
   Int_t       GetTrailing(Int_t nh) const { return m_trailing[nh]; }
   Int_t       GetTrailingSize() const { return m_trailing.size(); }
   Bool_t      IsTdcOverflow() const { return m_oftdc; }
+  Bool_t      IsEmpty() const { return GetTdcSize() == 0; }
+  void        TdcCut(Double_t min, Double_t max);
   void        Print(const TString& arg="") const;
 };
 

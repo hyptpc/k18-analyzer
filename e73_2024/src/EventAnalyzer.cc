@@ -8,6 +8,7 @@
 
 #include "BH2Hit.hh"
 #include "DCAnalyzer.hh"
+#include "DCHit.hh"
 #include "DCRawHit.hh"
 #include "DetectorID.hh"
 #include "FiberHit.hh"
@@ -457,7 +458,8 @@ EventAnalyzer::DCHit(const DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
     auto nlayer = NumOfLayerDC[idc];
     for(Int_t layer=0; layer<nlayer; ++layer){
       Int_t multi = 0;
-      for(const auto& hit: dcAna.GetDCHC(DetIdDC[idc], layer)){
+      // for(const auto& hit: dcAna.GetDCHC(DetIdDC[idc], layer)){
+      for(const auto& hit: dcAna.GetBcOutHC(layer)){
         auto wire = hit->GetWire();
         Bool_t is_good = false;
         for(Int_t j=0, m=hit->GetDriftTimeSize(); j<m; ++j){

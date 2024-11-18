@@ -2,10 +2,18 @@
 #define DETECTOR_ID_HH
 
 #include <iostream>
+#include <map>
+
 #include <Rtypes.h>
 #include <TString.h>
 
 static const Char_t* const UorD[2] = {"U", "D"};
+
+const std::map<TString, std::vector<TString>> DCNameList =
+{
+  {"BcIn", { "BLC1a", "BLC1b" }},
+  {"BcOut", { "BLC2a", "BLC2b" }},
+};
 
 // Counters ___________________________________________________________
 const int DetIdCDH    =   0;
@@ -26,6 +34,10 @@ const int DetIdBVC    =  33;
 const int DetIdPC     =  35;
 const int DetIdIH     =  42;
 const int DetIdVFT    =  53;
+
+const Int_t NumOfSegBH2   =  8;
+const Int_t NumOfSegTOF   = 19;
+
 
 const Int_t NumOfSegBHT = 63;
 const Int_t NumOfSegAC  = 5;
@@ -246,5 +258,37 @@ enum ETriggerFlag {
 //     kStartStop     = 15,
 //     kMisc          = 16
 //   };
+
+// for compatibility
+const Int_t PlMinBcIn        =   1;
+const Int_t PlMaxBcIn        =  12;
+const Int_t PlMinBcOut       = 113;
+const Int_t PlMaxBcOut       = 124;
+const Int_t PlMinSdcIn       =   1;
+const Int_t PlMaxSdcIn       =  10;
+const Int_t PlMinSdcOut      =  31;
+const Int_t PlMaxSdcOut      =  42;
+const Int_t PlMinTOF         =  51; // need to change
+const Int_t PlMaxTOF         =  54; // need to change
+const Int_t PlMinVP          =  16;
+const Int_t PlMaxVP          =  26;
+const Int_t PlOffsBc         = 100;
+const Int_t PlOffsSdcIn      =   0;
+const Int_t PlOffsSdcOut     =  30;
+const Int_t PlOffsTOF        =  50;
+const Int_t PlOffsVP         =  15;
+
+const Int_t NumOfLayersBc     = 6;
+const Int_t NumOfLayersSDC1   = 6;
+const Int_t NumOfLayersSDC2   = 4;
+const Int_t NumOfLayersSDC3   = 4;
+const Int_t NumOfLayersSDC4   = 4;
+const Int_t NumOfLayersSDC5   = 4;
+const Int_t NumOfLayersBcIn   = PlMaxBcIn   - PlMinBcIn   + 1;
+const Int_t NumOfLayersBcOut  = PlMaxBcOut  - PlMinBcOut  + 1;
+const Int_t NumOfLayersSdcIn  = PlMaxSdcIn  - PlMinSdcIn  + 1;
+const Int_t NumOfLayersSdcOut = PlMaxSdcOut - PlMinSdcOut + 1;
+const Int_t NumOfLayersTOF    = PlMaxTOF    - PlMinTOF    + 1;
+const Int_t NumOfLayersVP     = PlMaxVP     - PlMinVP     + 1;
 
 #endif

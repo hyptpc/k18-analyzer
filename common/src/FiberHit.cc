@@ -191,7 +191,7 @@ FiberHit::Print(Option_t* arg) const
               << "mtot          = " << MeanTOT() << std::endl
               << "tdiff/ctdiff  = " << TimeDiff()
               << " / " << CTimeDiff() << std::endl;
-  for(const auto data_map: std::map<TString, data_t>
+  for(const auto& data_map: std::map<TString, data_t>
         {{"de-hi  ", m_de_high},      {"de-lo  ", m_de_low},
          {"time-l ", m_time_leading}, {"time-t ", m_time_trailing},
          {"ctime-l", m_ctime_leading}, {"ctime-t", m_ctime_trailing}

@@ -11,6 +11,7 @@
 *.ps
 *.pdf
 *.png
+*.org
 .DS_Store
 bin
 lib
