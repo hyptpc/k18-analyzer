@@ -261,9 +261,9 @@ enum ETriggerFlag {
 
 // for compatibility
 const Int_t PlMinBcIn        =   1;
-const Int_t PlMaxBcIn        =  12;
-const Int_t PlMinBcOut       = 113;
-const Int_t PlMaxBcOut       = 124;
+const Int_t PlMaxBcIn        =  16;
+const Int_t PlMinBcOut       = 1001;
+const Int_t PlMaxBcOut       = 1016;
 const Int_t PlMinSdcIn       =   1;
 const Int_t PlMaxSdcIn       =  10;
 const Int_t PlMinSdcOut      =  31;
@@ -278,7 +278,7 @@ const Int_t PlOffsSdcOut     =  30;
 const Int_t PlOffsTOF        =  50;
 const Int_t PlOffsVP         =  15;
 
-const Int_t NumOfLayersBc     = 6;
+// const Int_t NumOfLayersBc     = 8;
 const Int_t NumOfLayersSDC1   = 6;
 const Int_t NumOfLayersSDC2   = 4;
 const Int_t NumOfLayersSDC3   = 4;

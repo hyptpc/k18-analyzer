@@ -464,8 +464,8 @@ DCAnalyzer::DecodeRawHits()
   DecodeBcInHits();
 #endif
   DecodeBcOutHits();
-  DecodeSdcInHits();
-  DecodeSdcOutHits();
+  // DecodeSdcInHits();
+  // DecodeSdcOutHits();
   return true;
 }
 

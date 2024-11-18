@@ -77,7 +77,7 @@ DCTdcCalibMan::Initialize()
     std::istringstream iss(line.Data());
     Int_t plane_id=-1, wire_id=-1;
     Double_t p0=-9999., p1=-9999.;
-    if(iss >> plane_id >> wire_id >> p1 >> p0){
+    if(iss >> plane_id >> wire_id >> p0 >> p1){
       Int_t key = MakeKey(plane_id, wire_id);
       DCTdcCalMap* tdc_calib = new DCTdcCalMap(p0, p1);
       if(m_container[key]) delete m_container[key];
@@ -119,7 +119,9 @@ DCTdcCalibMan::GetTime(Int_t plane_id, Double_t wire_id,
 {
   DCTdcCalMap *tdc_calib = GetMap(plane_id, wire_id);
   if(tdc_calib){
-    time = (tdc + (tdc_calib->p0)) * (tdc_calib->p1);
+    time = (tdc - (tdc_calib->p0)) * (tdc_calib->p1);
+    std::cout << FUNC_NAME << " " << tdc_calib->p0 << " " << tdc_calib->p1
+              << std::endl << "\t" << tdc << " " << time << std::endl;
     return true;
   } else {
     hddaq::cerr << FUNC_NAME << ": No record. "
