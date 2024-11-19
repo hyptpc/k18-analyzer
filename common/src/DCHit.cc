@@ -201,7 +201,7 @@ DCHit::CalcDCObservables()
     gTdc.GetTime(m_layer, m_wire, l, ctime);
     Double_t dt = TMath::QuietNaN();
     Double_t dl = TMath::QuietNaN();
-    // gDrift.CalcDrift(m_layer, m_wire, ctime, dt, dl);
+    gDrift.CalcDrift(m_layer, m_wire, ctime, dt, dl);
     Double_t ctime_trailing = TMath::QuietNaN();
     gTdc.GetTime(m_layer, m_wire, buf, ctime_trailing);
     // Double_t tot = ctime - ctime_trailing;

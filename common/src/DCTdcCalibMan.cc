@@ -120,8 +120,6 @@ DCTdcCalibMan::GetTime(Int_t plane_id, Double_t wire_id,
   DCTdcCalMap *tdc_calib = GetMap(plane_id, wire_id);
   if(tdc_calib){
     time = (tdc - (tdc_calib->p0)) * (tdc_calib->p1);
-    std::cout << FUNC_NAME << " " << tdc_calib->p0 << " " << tdc_calib->p1
-              << std::endl << "\t" << tdc << " " << time << std::endl;
     return true;
   } else {
     hddaq::cerr << FUNC_NAME << ": No record. "

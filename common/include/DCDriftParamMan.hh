@@ -25,14 +25,12 @@ private:
 private:
   using DCDriftFunctionContainer = std::map<TString, TGraph*>;
   using DCDFC = DCDriftFunctionContainer;
-  // typedef DCDriftContainer::const_iterator DCDriftIterator;
   Bool_t  m_is_ready;
   TString m_file_name;
   DCDFC   m_container;
 
 public:
-  Bool_t CalcDrift(const TString& detector_name, Int_t plane_id,
-                   Double_t wire_id, Double_t ctime,
+  Bool_t CalcDrift(Int_t layer_id, Double_t wire_id, Double_t ctime,
                    Double_t& dt, Double_t& dl) const;
   Bool_t Initialize();
   Bool_t Initialize(const TString& file_name);
@@ -40,9 +38,8 @@ public:
   void   SetFileName(const TString& file_name) { m_file_name = file_name; }
 
 private:
-  void                ClearElements();
-  const TGraph* GetParameter(const TString& detector_name,
-                             Int_t plane_id, Int_t wire_id) const;
+  void ClearElements();
+  const TGraph* GetParameter(Int_t layer_id, Int_t wire_id) const;
 };
 
 //_____________________________________________________________________________
