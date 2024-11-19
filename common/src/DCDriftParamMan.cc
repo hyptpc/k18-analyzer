@@ -73,11 +73,12 @@ DCDriftParamMan::Initialize()
 
   TIter itr(f->GetListOfKeys());
   for(TKey* key=(TKey*)itr(); itr!=TIter::End(); key=(TKey*)itr()){
-    auto s = dynamic_cast<TObjString*>
-      (TString(key->GetName()).Tokenize("_")->Last())->GetString();
-    auto l = dynamic_cast<TObjString*>
-      (s.Tokenize("layer")->Last())->GetString();
-    m_container[l] = dynamic_cast<TGraph*>(key->ReadObj());
+    auto array = TString(key->GetName()).Tokenize("_");
+    TString k;
+    k += dynamic_cast<TObjString*>(array->First())->GetString();
+    k += "_";
+    k += dynamic_cast<TObjString*>(array->Last())->GetString();
+    m_container[k] = dynamic_cast<TGraph*>(key->ReadObj());
   }
 
   f->Close();
@@ -97,17 +98,19 @@ DCDriftParamMan::Initialize(const TString& file_name)
 
 //_____________________________________________________________________________
 const TGraph*
-DCDriftParamMan::GetParameter(Int_t layer_id, Int_t wire_id) const
+DCDriftParamMan::GetParameter(const TString& detector_name,
+                              Int_t plane_id, Int_t /* wire_id */) const
 {
-  return m_container.at(TString::Format("%d", layer_id));
+  return m_container.at(Form("%s_plane%d", detector_name.Data(), plane_id));
 }
 
 //_____________________________________________________________________________
 Bool_t
-DCDriftParamMan::CalcDrift(Int_t layer_id, Double_t wire_id, Double_t ctime,
+DCDriftParamMan::CalcDrift(const TString& detector_name, Int_t plane_id,
+                           Double_t wire_id, Double_t ctime,
                            Double_t& dt, Double_t& dl) const
 {
-  auto g1 = GetParameter(layer_id, wire_id);
+  auto g1 = GetParameter(detector_name, plane_id, wire_id);
   dt = ctime;
   dl = g1->Eval(dt, nullptr, "S");
   return true;

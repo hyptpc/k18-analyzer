@@ -11,7 +11,7 @@ import yaml
 import ROOT
 
 from detector import dc_constants as dcconst
-import dcdrft
+import dctdc
 import macrohelper as mh
 
 logger = logging.getLogger(__name__)
@@ -19,50 +19,42 @@ ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
 @mh.update_canvas(divisions=(4, 2))
-def drift_time(c1, name, key, nlayer=8):
-  logger.info(f'name={name}, key={key}, nlayer={nlayer}')
+def tdc(c1, name, cid, nplane=8, nwire=32, tdcrange=None):
+  logger.info(f'name={name}, nplane={nplane}, nwire={nwire}')
   result_dict = dict()
-  for i in range(nlayer):
+  for i in range(nplane):
     c1.cd(i+1) #.SetLogy()
-    if key != '':
-      ROOT.gPad.SetLogz()
-    hname = f'{name}_Hit_DriftTime{key}_layer{i}{mh.beamflag_for_param}'
+    hname = f'{name}_CTDC_plane{i}{mh.beamflag_for_param}'
     h1 = mh.get(hname)
     if h1:
-      h1.Draw('colz')
+      if tdcrange is None:
+        xmax = h1.GetBinCenter(h1.GetMaximumBin())
+        stddev = h1.GetStdDev()
+        tdcrange = (xmax - stddev, xmax + stddev)
+      params = np.ndarray(4, dtype='float64')
+      params[0] = h1.GetMaximum(); params[1] = xmax + 20;
+      params[2] = -10; params[3] = 0
+      limits = [(h1.GetMaximum()*0.95, h1.GetMaximum()*1.05),
+                (xmax, xmax+50),
+                (-20, -1),
+                (0, h1.GetMaximum()*0.1)]
+      h1.GetXaxis().SetRangeUser(tdcrange[0], tdcrange[1])
+      f1, t0 = dctdc.fit(h1, params=params, limits=limits)
+      for wid in range(nwire):
+        key = (cid, i, wid)
+        result_dict[key] = (t0, -0.8333333333)
   return result_dict
 
 #______________________________________________________________________________
 @mh.update_canvas(divisions=(4, 2))
-def drift_time_integral(c1, name, cid, nlayer=8):
-  logger.info(f'name={name}, cid={cid}, nlayer={nlayer}')
-  statx = ROOT.gStyle.GetStatX()
-  staty = ROOT.gStyle.GetStatY()
-  ROOT.gStyle.SetStatX(0.88)
-  ROOT.gStyle.SetStatY(0.6)
+def drift_time(c1, name, key, nplane=8):
+  logger.info(f'name={name}, nplane={nplane}, key={key}')
   result_dict = dict()
-  for i in range(nlayer):
-    c1.cd(i+1) #.SetLogy()
-    hname = f'{name}_Hit_DriftTime_layer{i}{mh.beamflag_for_param}'
-    h1 = mh.get(hname)
-    if h1:
-      ret = dcdrft.fit_integral(h1)
-      key = (cid, i, 0)
-      result_dict[key] = ret
-  ROOT.gStyle.SetStatX(statx)
-  ROOT.gStyle.SetStatY(staty)
-  return result_dict
-
-#______________________________________________________________________________
-@mh.update_canvas(divisions=(4, 2))
-def drift_length(c1, name, key, nlayer=8):
-  logger.info(f'name={name}, key={key}, nlayer={nlayer}')
-  result_dict = dict()
-  for i in range(nlayer):
+  for i in range(nplane):
     c1.cd(i+1) #.SetLogy()
     if len(key) > 0:
       ROOT.gPad.SetLogz()
-    hname = f'{name}_Hit_DriftLength{key}_layer{i}{mh.beamflag_for_param}'
+    hname = f'{name}_Hit_DriftTime{key}_plane{i}{mh.beamflag_for_param}'
     h1 = mh.get(hname)
     if h1:
       h1.Draw('colz')
@@ -72,13 +64,12 @@ def drift_length(c1, name, key, nlayer=8):
 def single_run(run_info):
   mh.initialize(run_info, __file__)
   result_dict = {'generator': os.path.basename(__file__)}
-  for n, v in dcconst.items():
+  for n, v in dcconst['BcOut'].items():
+    result_dict.update(tdc(n, cid=v['id'], nplane=v['nplane'],
+                           nwire=v['nwire']))
     for key in ['', '_vs_HitPat']:
       drift_time(n, key=key)
-    result_dict.update(drift_time_integral(n, v['id']))
-    for key in ['', '_vs_HitPat']:
-      drift_length(n, key=key)
-  dcdrft.output_result(run_info, result_dict, parsed.update)
+  dctdc.output_result(run_info, result_dict, parsed.update)
   mh.finalize()
 
 #______________________________________________________________________________

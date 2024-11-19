@@ -5,7 +5,9 @@
 #include <TString.h>
 
 #include <Unpacker.hh>
+#include <UnpackerConfig.hh>
 #include <UnpackerManager.hh>
+#include <UnpackerXMLReadDigit.hh>
 #include <DAQNode.hh>
 
 #include "DetectorID.hh"
@@ -14,6 +16,7 @@
 namespace
 {
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
+const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
 using root::HB1;
 using root::HB2;
 }
@@ -310,37 +313,45 @@ BuildHodoCluster(Bool_t flag_beam_particle)
 
 //_____________________________________________________________________________
 void
-BuildDCRaw(Bool_t flag_beam_particle)
+BuildDCRaw(const TString& dcname, Bool_t flag_beam_particle)
 {
+  const auto& digit_info = gUConf.get_digit_info();
+  // const auto& plane_names = digit_info.get_name_list(m_detector_id);
+  // m_plane_name = plane_names.at(plane_id);
+  // m_dcgeom_layer = gGeom.GetLayerId(m_detector_name+"-"+m_plane_name);
+
   for(const auto& beam: beam::BeamFlagList){
     const Char_t* b = beam.Data();
-    for(Int_t idc=0; idc<=kBPC2; ++idc){
-      const Char_t* name = NameDC[idc].Data();
-      Int_t nlayer = NumOfLayerDC[idc];
-      Double_t nwire = NumOfWireDC[idc];
+    // for(Int_t idc=0; idc<=kBPC2; ++idc){
+    //   const Char_t* name = NameDC[idc].Data();
+    for (const auto& name_str : DCNameList.at(dcname)) {
+      const auto name = name_str.Data();
+      auto detector_id = digit_info.get_device_id(name);
+      Int_t nplane = digit_info.get_n_plane(detector_id);
+      Double_t nwire = digit_info.get_n_ch(detector_id);
       const Double_t patbins[3] = {nwire, -0.5, nwire - 0.5};
       const Double_t mulbins[3] = {nwire + 1, -0.5, nwire + 0.5};
       const Double_t tdcbins2d[6] = {nwire, -0.5, nwire - 0.5,
         mhtdcbins[0], mhtdcbins[1], mhtdcbins[2] };
       const Double_t totbins2d[6] = {nwire, -0.5, nwire - 0.5,
         mhtotbins[0], mhtotbins[1], mhtotbins[2] };
-      for(Int_t layer=0; layer<nlayer; ++layer){
+      for(Int_t plane=0; plane<nplane; ++plane){
         for(const auto& totcut: std::vector<TString>{"", "C"}){
           auto c = totcut.Data();
-          HB1(Form("%s_%sTDC_layer%d%s; channel; count", name, c, layer, b), mhtdcbins);
-          HB1(Form("%s_%sTDC1st_layer%d%s; channel; count", name, c, layer, b), mhtdcbins);
-          HB1(Form("%s_%sTrailing_layer%d%s; channel; count", name, c, layer, b), mhtdcbins);
-          HB1(Form("%s_%sTrailing1st_layer%d%s; channel; count", name, c, layer, b), mhtdcbins);
-          HB1(Form("%s_%sTOT_layer%d%s; channel; count", name, c, layer, b), mhtotbins);
-          HB1(Form("%s_%sTOT1st_layer%d%s; channel; count", name, c, layer, b), mhtotbins);
-          HB1(Form("%s_%sHitPat_layer%d%s; wire; count", name, c, layer, b), patbins);
-          HB1(Form("%s_%sMulti_layer%d%s; multiplicity; count", name, c, layer, b), mulbins);
-          HB2(Form("%s_%sTDC_vs_HitPat_layer%d%s; segment; channel", name, c, layer, b), tdcbins2d);
-          HB2(Form("%s_%sTDC1st_vs_HitPat_layer%d%s; segment; channel", name, c, layer, b), tdcbins2d);
-          HB2(Form("%s_%sTrailing_vs_HitPat_layer%d%s; segment; channel", name, c, layer, b), tdcbins2d);
-          HB2(Form("%s_%sTrailing1st_vs_HitPat_layer%d%s; segment; channel", name, c, layer, b), tdcbins2d);
-          HB2(Form("%s_%sTOT_vs_HitPat_layer%d%s; segment; channel", name, c, layer, b), totbins2d);
-          HB2(Form("%s_%sTOT1st_vs_HitPat_layer%d%s; segment; channel", name, c, layer, b), totbins2d);
+          HB1(Form("%s_%sTDC_plane%d%s; channel; count", name, c, plane, b), mhtdcbins);
+          HB1(Form("%s_%sTDC1st_plane%d%s; channel; count", name, c, plane, b), mhtdcbins);
+          HB1(Form("%s_%sTrailing_plane%d%s; channel; count", name, c, plane, b), mhtdcbins);
+          HB1(Form("%s_%sTrailing1st_plane%d%s; channel; count", name, c, plane, b), mhtdcbins);
+          HB1(Form("%s_%sTOT_plane%d%s; channel; count", name, c, plane, b), mhtotbins);
+          HB1(Form("%s_%sTOT1st_plane%d%s; channel; count", name, c, plane, b), mhtotbins);
+          HB1(Form("%s_%sHitPat_plane%d%s; wire; count", name, c, plane, b), patbins);
+          HB1(Form("%s_%sMulti_plane%d%s; multiplicity; count", name, c, plane, b), mulbins);
+          HB2(Form("%s_%sTDC_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
+          HB2(Form("%s_%sTDC1st_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
+          HB2(Form("%s_%sTrailing_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
+          HB2(Form("%s_%sTrailing1st_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
+          HB2(Form("%s_%sTOT_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), totbins2d);
+          HB2(Form("%s_%sTOT1st_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), totbins2d);
         }
       }
     }
@@ -350,14 +361,16 @@ BuildDCRaw(Bool_t flag_beam_particle)
 
 //_____________________________________________________________________________
 void
-BuildDCHit(Bool_t flag_beam_particle)
+BuildDCHit(const TString& dcname, Bool_t flag_beam_particle)
 {
+  const auto& digit_info = gUConf.get_digit_info();
   for(const auto& beam: beam::BeamFlagList){
     const Char_t* b = beam.Data();
-    for(Int_t idc=0; idc<=kBPC2; ++idc){
-      const Char_t* name = NameDC[idc].Data();
-      Int_t nlayer = NumOfLayerDC[idc];
-      Double_t nwire = NumOfWireDC[idc];
+    for (const auto& name_str : DCNameList.at(dcname)) {
+      const auto name = name_str.Data();
+      auto detector_id = digit_info.get_device_id(name);
+      Int_t nplane = digit_info.get_n_plane(detector_id);
+      Double_t nwire = digit_info.get_n_ch(detector_id);
       const Double_t patbins[3] = {nwire, -0.5, nwire - 0.5};
       const Double_t mulbins[3] = {nwire + 1, -0.5, nwire + 0.5};
       const Double_t dtbins[3] = {600, -100., 400.};
@@ -366,13 +379,13 @@ BuildDCHit(Bool_t flag_beam_particle)
         dtbins[0], dtbins[1], dtbins[2] };
       const Double_t dlbins2d[6] = {nwire, -0.5, nwire - 0.5,
         dlbins[0], dlbins[1], dlbins[2] };
-      for(Int_t layer=0; layer<nlayer; ++layer){
-        HB1(Form("%s_Hit_DriftTime_layer%d%s; ns; count", name, layer, b), dtbins);
-        HB1(Form("%s_Hit_DriftLength_layer%d%s; mm; count", name, layer, b), dlbins);
-        HB2(Form("%s_Hit_DriftTime_vs_HitPat_layer%d%s; segment; ns", name, layer, b), dtbins2d);
-        HB2(Form("%s_Hit_DriftLength_vs_HitPat_layer%d%s; segment; mm", name, layer, b), dlbins2d);
-        HB1(Form("%s_Hit_HitPat_layer%d%s; wire; count", name, layer, b), patbins);
-        HB1(Form("%s_Hit_Multi_layer%d%s; multiplicity; count", name, layer, b), mulbins);
+      for(Int_t plane=0; plane<nplane; ++plane){
+        HB1(Form("%s_Hit_DriftTime_plane%d%s; ns; count", name, plane, b), dtbins);
+        HB1(Form("%s_Hit_DriftLength_plane%d%s; mm; count", name, plane, b), dlbins);
+        HB2(Form("%s_Hit_DriftTime_vs_HitPat_plane%d%s; segment; ns", name, plane, b), dtbins2d);
+        HB2(Form("%s_Hit_DriftLength_vs_HitPat_plane%d%s; segment; mm", name, plane, b), dlbins2d);
+        HB1(Form("%s_Hit_HitPat_plane%d%s; wire; count", name, plane, b), patbins);
+        HB1(Form("%s_Hit_Multi_plane%d%s; multiplicity; count", name, plane, b), mulbins);
       }
     }
     if(!flag_beam_particle) break;

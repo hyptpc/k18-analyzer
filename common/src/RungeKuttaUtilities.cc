@@ -820,7 +820,7 @@ RK::Trace(const RKCordParameter &initial, RKHitPointContainer &hitContainer)
       --iPlane;
       if(iPlane<0) {
 	if(gEvDisp.IsReady()){
-	  Double_t q = hitContainer[0].second.MomentumInGlobal().z();
+	  // Double_t q = hitContainer[0].second.MomentumInGlobal().z();
 	  // gEvDisp.DrawS2sTrack(iStep, StepPoint, q);
         }
 	return S2sTrack::kPassed;
@@ -896,7 +896,7 @@ RK::TraceToLast(RKHitPointContainer& hitContainer)
                             hitContainer[iPlane].second)){
       if(++iPlane>=nPlane){
 	if(gEvDisp.IsReady()){
-	  Double_t q = hitContainer[0].second.MomentumInGlobal().z();
+	  // Double_t q = hitContainer[0].second.MomentumInGlobal().z();
 	  // gEvDisp.DrawS2sTrackToLast(iStep, StepPoint, q);
 	}
 	return true;
@@ -924,13 +924,13 @@ RK::MakeHPContainer()
   container.push_back(std::make_pair(IdTarget, RKcalcHitPoint()));
 
   for(Int_t i=0; i<NumOfLayersSdcIn; ++i){
-    container.push_back(std::make_pair(i+PlMinSdcIn, RKcalcHitPoint()));
+    container.push_back(std::make_pair(i+LayerMinSdcIn, RKcalcHitPoint()));
   }
   for(Int_t i=0; i<NumOfLayersVP-1; ++i){
-    container.push_back(std::make_pair(i+PlMinVP, RKcalcHitPoint()));
+    container.push_back(std::make_pair(i+LayerMinVP, RKcalcHitPoint()));
   }
   for(Int_t i=0; i<NumOfLayersSdcOut; ++i){
-    container.push_back(std::make_pair(i+PlMinSdcOut, RKcalcHitPoint()));
+    container.push_back(std::make_pair(i+LayerMinSdcOut, RKcalcHitPoint()));
   }
 
   container.push_back(std::make_pair(IdTOF_UX, RKcalcHitPoint()));

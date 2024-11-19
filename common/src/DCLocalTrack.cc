@@ -100,7 +100,7 @@ DCLocalTrack::Calculate()
   }
 
   for(auto& hit: m_hit_array){
-    Int_t lnum = hit->GetLayer();
+    // Int_t lnum = hit->GetLayer();
     Double_t z0 = hit->GetZ();
     // if(m_is_bcsdc && lnum >= 1 && lnum <= 10){ // SdcIn
     //   z0 += zK18tgt - zTgt;
@@ -366,7 +366,7 @@ DCLocalTrack::DoFitBcSdc()
 	s[i] = ss;
 	z[i] = z0[i];
       }
-      if(lnum >= PlMinSdcIn && lnum <= PlMaxSdcIn){ // SdcIn
+      if(lnum >= LayerMinSdcIn && lnum <= LayerMaxSdcIn){ // SdcIn
         s[i] += SdcInXoffset*TMath::Cos(aa);
       }
     }
@@ -609,7 +609,7 @@ DCLocalTrack::Print(const TString& arg, std::ostream& ost) const
     Double_t res = hitp->GetResidual();
     Double_t aa = hitp->GetTiltAngle()*TMath::DegToRad();
     // Double_t scal=GetX(zz)*TMath::Cos(aa)+GetY(zz)*TMath::Sin(aa);
-    if(m_is_bcsdc && lnum >= PlMinSdcIn && lnum <= PlMaxSdcIn){
+    if(m_is_bcsdc && lnum >= LayerMinSdcIn && lnum <= LayerMaxSdcIn){
       res += SdcInXoffset*TMath::Cos(aa);
     }
     const TString& h = hitp->IsHoneycomb() ? "+" : "-";

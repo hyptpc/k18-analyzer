@@ -3,7 +3,9 @@
 #include "EventAnalyzer.hh"
 
 #include <Unpacker.hh>
+#include <UnpackerConfig.hh>
 #include <UnpackerManager.hh>
+#include <UnpackerXMLReadDigit.hh>
 #include <DAQNode.hh>
 
 #include "BH2Hit.hh"
@@ -23,6 +25,7 @@
 namespace
 {
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
+const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
 using root::HF1;
 using root::HF2;
@@ -385,17 +388,19 @@ EventAnalyzer::HodoCluster(const HodoAnalyzer& hodoAna,
 
 //_____________________________________________________________________________
 void
-EventAnalyzer::DCRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
+EventAnalyzer::DCRawHit(const TString& dcname, const RawData& rawData,
+                        beam::EBeamFlag beam_flag)
 {
+  static const auto& digit_info = gUConf.get_digit_info();
   if(beam_flag == beam::kUnknown) return;
   const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
-  // DC
-  for(Int_t idc=0; idc<=kBPC2; ++idc){
-    const Char_t* name = NameDC[idc].Data();
-    auto nlayer = NumOfLayerDC[idc];
-    for(Int_t layer=0; layer<nlayer; ++layer){
-      const auto& cont = rawData.GetDCRawHC(DetIdDC[idc], layer);
-      // hist::H1(Form("%s_Mul_layer%d",name,layer),nh,mulbins);
+  for (const auto& name_str : DCNameList.at(dcname)) {
+    const auto name = name_str.Data();
+    Int_t detector_id = digit_info.get_device_id(name);
+    Int_t nplane = digit_info.get_n_plane(detector_id);
+    for(Int_t plane=0; plane<nplane; ++plane){
+      const auto& cont = rawData.GetDCRawHC(detector_id, plane);
+      // hist::H1(Form("%s_Mul_plane%d",name,plane),nh,mulbins);
       Int_t multi = 0;
       Int_t cmulti = 0;
       for(Int_t i=0, n=cont.size(); i<n; ++i){
@@ -415,69 +420,71 @@ EventAnalyzer::DCRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
             if(totcut == "C" && !gUser.IsInRange(Form("%s_TOT", name), tot))
               continue;
             auto c = totcut.Data();
-            HF1(Form("%s_%sTDC_layer%d%s", name, c, layer, b), l);
-            HF1(Form("%s_%sTrailing_layer%d%s", name, c, layer, b), t);
-            HF1(Form("%s_%sTOT_layer%d%s", name, c, layer, b), tot);
-            HF2(Form("%s_%sTDC_vs_HitPat_layer%d%s", name, c, layer, b), wire, l);
-            HF2(Form("%s_%sTrailing_vs_HitPat_layer%d%s", name, c, layer, b), wire, t);
-            HF2(Form("%s_%sTOT_vs_HitPat_layer%d%s", name, c, layer, b), wire, tot);
+            HF1(Form("%s_%sTDC_plane%d%s", name, c, plane, b), l);
+            HF1(Form("%s_%sTrailing_plane%d%s", name, c, plane, b), t);
+            HF1(Form("%s_%sTOT_plane%d%s", name, c, plane, b), tot);
+            HF2(Form("%s_%sTDC_vs_HitPat_plane%d%s", name, c, plane, b), wire, l);
+            HF2(Form("%s_%sTrailing_vs_HitPat_plane%d%s", name, c, plane, b), wire, t);
+            HF2(Form("%s_%sTOT_vs_HitPat_plane%d%s", name, c, plane, b), wire, tot);
             if(j == 0){
-              HF1(Form("%s_%sTDC1st_layer%d%s", name, c, layer, b), l);
-              HF1(Form("%s_%sTrailing1st_layer%d%s", name, c, layer, b), t);
-              HF1(Form("%s_%sTOT1st_layer%d%s", name, c, layer, b), tot);
-              HF2(Form("%s_%sTDC1st_vs_HitPat_layer%d%s", name, c, layer, b), wire, l);
-              HF2(Form("%s_%sTrailing1st_vs_HitPat_layer%d%s", name, c, layer, b), wire, t);
-              HF2(Form("%s_%sTOT1st_vs_HitPat_layer%d%s", name, c, layer, b), wire, tot);
+              HF1(Form("%s_%sTDC1st_plane%d%s", name, c, plane, b), l);
+              HF1(Form("%s_%sTrailing1st_plane%d%s", name, c, plane, b), t);
+              HF1(Form("%s_%sTOT1st_plane%d%s", name, c, plane, b), tot);
+              HF2(Form("%s_%sTDC1st_vs_HitPat_plane%d%s", name, c, plane, b), wire, l);
+              HF2(Form("%s_%sTrailing1st_vs_HitPat_plane%d%s", name, c, plane, b), wire, t);
+              HF2(Form("%s_%sTOT1st_vs_HitPat_plane%d%s", name, c, plane, b), wire, tot);
             }
           }
         }
         if(hit->GetTdcSize() > 0){
-          HF1(Form("%s_HitPat_layer%d%s", name, layer, b), wire);
+          HF1(Form("%s_HitPat_plane%d%s", name, plane, b), wire);
           ++multi;
         }
         if(is_good){
-          HF1(Form("%s_CHitPat_layer%d%s", name, layer, b), wire);
+          HF1(Form("%s_CHitPat_plane%d%s", name, plane, b), wire);
           ++cmulti;
         }
       }
-      HF1(Form("%s_Multi_layer%d%s", name, layer, b), multi);
-      HF1(Form("%s_CMulti_layer%d%s", name, layer, b), cmulti);
+      HF1(Form("%s_Multi_plane%d%s", name, plane, b), multi);
+      HF1(Form("%s_CMulti_plane%d%s", name, plane, b), cmulti);
     }
   }
 }
 
 //_____________________________________________________________________________
 void
-EventAnalyzer::DCHit(const DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
+EventAnalyzer::DCHit(const TString& dcname, const DCAnalyzer& dcAna,
+                     beam::EBeamFlag beam_flag)
 {
+  static const auto& digit_info = gUConf.get_digit_info();
   if(beam_flag == beam::kUnknown) return;
   const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
   // DC
-  for(Int_t idc=0; idc<=kBPC2; ++idc){
-    const Char_t* name = NameDC[idc].Data();
-    auto nlayer = NumOfLayerDC[idc];
-    for(Int_t layer=0; layer<nlayer; ++layer){
+  for (const auto& name_str : DCNameList.at(dcname)) {
+    const auto name = name_str.Data();
+    auto detector_id = digit_info.get_device_id(name);
+    Int_t nplane = digit_info.get_n_plane(detector_id);
+    for(Int_t plane=0; plane<nplane; ++plane){
       Int_t multi = 0;
-      // for(const auto& hit: dcAna.GetDCHC(DetIdDC[idc], layer)){
-      for(const auto& hit: dcAna.GetBcOutHC(layer)){
+      for(const auto& hit: dcAna.GetBcOutHC(plane)){
         auto wire = hit->GetWire();
         Bool_t is_good = false;
         for(Int_t j=0, m=hit->GetDriftTimeSize(); j<m; ++j){
           if(!hit->IsGood(j)) continue;
           auto dt = hit->GetDriftTime(j);
           auto dl = hit->GetDriftLength(j);
-          HF1(Form("%s_Hit_DriftTime_layer%d%s", name, layer, b), dt);
-          HF1(Form("%s_Hit_DriftLength_layer%d%s", name, layer, b), dl);
-          HF2(Form("%s_Hit_DriftTime_vs_HitPat_layer%d%s", name, layer, b), wire, dt);
-          HF2(Form("%s_Hit_DriftLength_vs_HitPat_layer%d%s", name, layer, b), wire, dl);
+          HF1(Form("%s_Hit_DriftTime_plane%d%s", name, plane, b), dt);
+          HF1(Form("%s_Hit_DriftLength_plane%d%s", name, plane, b), dl);
+          HF2(Form("%s_Hit_DriftTime_vs_HitPat_plane%d%s", name, plane, b), wire, dt);
+          HF2(Form("%s_Hit_DriftLength_vs_HitPat_plane%d%s", name, plane, b), wire, dl);
           is_good = true;
         }
         if(is_good){
-          HF1(Form("%s_Hit_HitPat_layer%d%s", name, layer, b), wire);
+          HF1(Form("%s_Hit_HitPat_plane%d%s", name, plane, b), wire);
           ++multi;
         }
       }
-      HF1(Form("%s_Hit_Multi_layer%d%s", name, layer, b), multi);
+      HF1(Form("%s_Hit_Multi_plane%d%s", name, plane, b), multi);
     }
   }
 }

@@ -360,7 +360,7 @@ DCAnalyzer::DecodeSdcInHitsGeant4(const TTreeReaderArray<TParticle>& sdc1,
   m_SdcInPC.clear();
   m_SdcInPC["SDC1"] = &sdc1;
   m_SdcInPC["SDC2"] = &sdc2;
-  DecodeSdcHitsGeant4("SdcIn", PlMinSdcIn, m_SdcInHC, m_SdcInPC);
+  DecodeSdcHitsGeant4("SdcIn", LayerMinSdcIn, m_SdcInHC, m_SdcInPC);
   return true;
 }
 
@@ -374,13 +374,13 @@ DCAnalyzer::DecodeSdcOutHitsGeant4(const TTreeReaderArray<TParticle>& sdc3,
   m_SdcOutPC["SDC3"] = &sdc3;
   m_SdcOutPC["SDC4"] = &sdc4;
   m_SdcOutPC["SDC5"] = &sdc5;
-  DecodeSdcHitsGeant4("SdcOut", PlMinSdcOut, m_SdcOutHC, m_SdcOutPC);
+  DecodeSdcHitsGeant4("SdcOut", LayerMinSdcOut, m_SdcOutHC, m_SdcOutPC);
   return true;
 }
 
 //_____________________________________________________________________________
 Bool_t
-DCAnalyzer::DecodeSdcHitsGeant4(TString SdcName, Int_t PlMinSdc,
+DCAnalyzer::DecodeSdcHitsGeant4(TString SdcName, Int_t LayerMinSdc,
 				std::vector<DCHC>& HC, map_t<const DCPC*>& PC)
 {
   static const auto& digit_info =
@@ -397,7 +397,7 @@ DCAnalyzer::DecodeSdcHitsGeant4(TString SdcName, Int_t PlMinSdc,
     for(const auto& particle: *PC.at(name)){
       if(particle.GetFirstMother()!=0) continue;
       Int_t plane = particle.GetSecondMother() - 101;
-      Int_t layer = PlMinSdc + plane_offset + plane;
+      Int_t layer = LayerMinSdc + plane_offset + plane;
       TVector3 lpos( particle.Vx(), particle.Vy(), particle.Vz() );
       Double_t de = particle.Energy();
       planeArr.push_back(plane);

@@ -30,7 +30,8 @@ private:
   DCDFC   m_container;
 
 public:
-  Bool_t CalcDrift(Int_t layer_id, Double_t wire_id, Double_t ctime,
+  Bool_t CalcDrift(const TString& detector_name,
+                   Int_t plane_id, Double_t wire_id, Double_t ctime,
                    Double_t& dt, Double_t& dl) const;
   Bool_t Initialize();
   Bool_t Initialize(const TString& file_name);
@@ -39,7 +40,8 @@ public:
 
 private:
   void ClearElements();
-  const TGraph* GetParameter(Int_t layer_id, Int_t wire_id) const;
+  const TGraph* GetParameter(const TString& detector_name,
+                             Int_t plane_id, Int_t wire_id) const;
 };
 
 //_____________________________________________________________________________

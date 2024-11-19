@@ -184,6 +184,8 @@ DCHit::CalcDCObservables()
   std::sort(m_tdc.begin(), m_tdc.end(), std::greater<Int_t>());
   std::sort(m_trailing.begin(), m_trailing.end(), std::greater<Int_t>());
 
+  const auto detector_id = m_raw_hit->DetectorId();
+
   data_t leading, trailing;
   for(Int_t il=0, nl=m_tdc.size(); il<nl; ++il){
     Double_t l = m_tdc[il];
@@ -198,12 +200,13 @@ DCHit::CalcDCObservables()
     leading.push_back(l);
     trailing.push_back(buf);
     Double_t ctime = TMath::QuietNaN();
-    gTdc.GetTime(m_layer, m_wire, l, ctime);
+    gTdc.GetTime(detector_id, m_plane, m_wire, l, ctime);
     Double_t dt = TMath::QuietNaN();
     Double_t dl = TMath::QuietNaN();
-    gDrift.CalcDrift(m_layer, m_wire, ctime, dt, dl);
+    gDrift.CalcDrift(m_raw_hit->DetectorName(),
+                     m_plane, m_wire, ctime, dt, dl);
     Double_t ctime_trailing = TMath::QuietNaN();
-    gTdc.GetTime(m_layer, m_wire, buf, ctime_trailing);
+    gTdc.GetTime(detector_id, m_plane, m_wire, buf, ctime_trailing);
     // Double_t tot = ctime - ctime_trailing;
     Double_t tot = l - buf;
     Bool_t dl_is_good = true;

@@ -107,12 +107,12 @@ bool DCTimeCorrMan::Initialize()
   TGraph* gr;
   for(int ic=0;ic<nchamber;ic++){
     for(int lay=0;lay<8;lay++){
-      gr=(TGraph*)f->Get(Form("DCTimeCorr_%s_%d",NameDC[ic].Data(),lay+1));
-      if(!gr) continue;
-      //      std::cout<<Form("DCTimeCorr_%s_%d",NameDC[ic].Data(),lay+1)<<std::endl;
-      key = KEY(DetIdDC[ic],lay,0);
-      dctimecorrContainer[key] = *gr;
-      gROOT->Append(gr);
+      // gr=(TGraph*)f->Get(Form("DCTimeCorr_%s_%d",NameDC[ic].Data(),lay+1));
+      // if(!gr) continue;
+      // //      std::cout<<Form("DCTimeCorr_%s_%d",NameDC[ic].Data(),lay+1)<<std::endl;
+      // key = KEY(DetIdDC[ic],lay,0);
+      // dctimecorrContainer[key] = *gr;
+      // gROOT->Append(gr);
     }
   }
   f->Close();

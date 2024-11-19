@@ -63,14 +63,13 @@ main(int argc, char **argv)
   hddaq::cout << "[::main()] recreate root file : " << out_file << std::endl;
   new TFile(out_file, "recreate");
 
-  if(!gConf.Initialize(conf_file) ||
-     !gConf.InitializeUnpacker()  ||
-     !gConf.InitializeHistograms())
+  if (!gConf.Initialize(conf_file) || !gConf.InitializeUnpacker())
     return EXIT_FAILURE;
 
   gUnpacker.set_istream(in_file.Data());
   // gUnpacker.enable_istream_bookmark();
   gUnpacker.initialize();
+  gConf.InitializeHistograms();
   gConf.WriteParameters();
 
   CatchSignal::Set(SIGINT);

@@ -30,12 +30,12 @@ private:
   DCTdcContainer m_container;
 
 public:
-  Bool_t GetParameter(Int_t plane_id, Double_t wire_id,
+  Bool_t GetParameter(Int_t detector_id, Int_t plane_id, Double_t wire_id,
                       Double_t &p0, Double_t &p1) const;
-  Bool_t GetTime(Int_t plane_id, Double_t wire_id, Int_t tdc,
-                 Double_t& time) const;
-  Bool_t GetTdc(Int_t plane_id, Double_t wire_id, Double_t time,
-                Int_t& tdc) const;
+  Bool_t GetTime(Int_t detector_id, Int_t plane_id, Double_t wire_id,
+                 Int_t tdc, Double_t& time) const;
+  Bool_t GetTdc(Int_t detector_id, Int_t plane_id, Double_t wire_id,
+                Double_t time, Int_t& tdc) const;
   Bool_t Initialize();
   Bool_t Initialize(const TString& file_name);
   Bool_t IsReady() const { return m_is_ready; }
@@ -43,7 +43,7 @@ public:
 
 private:
   void         ClearElements();
-  DCTdcCalMap* GetMap(Int_t plane_id, Double_t wire_id) const;
+  DCTdcCalMap* GetMap(Int_t detector_id, Int_t plane_id, Double_t wire_id) const;
 };
 
 //_____________________________________________________________________________

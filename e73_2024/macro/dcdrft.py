@@ -33,10 +33,22 @@ MaxDriftLength = {
   'BPC1': 3.0,
 }
 
+# DCGeomLayerId = {
+#   'BLC1a': [1, 2, 3, 4, 5, 6, 7, 8],
+#   'BLC1b': [9, 10, 11, 12, 13, 14, 15, 16],
+#   'BLC2a': [1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008],
+#   'BLC2b': [1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016],
+#   'BPC1': [2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008],
+#   'BPC2': [2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016],
+# }
+
 #______________________________________________________________________________
 def fit_integral(h1, params=None, limits=None):
   name = h1.GetName().split('_')[0]
-  layer = h1.GetName().split('layer')[1].split('_')[0]
+  plane = h1.GetName().split('plane')[1].split('_')[0]
+  # name.replace('layer' + str(layer), '')
+  # layer = DCGeomLayerId[name][int(plane)]
+  # name += 'layer' + str(layer)
   max_dt = MaxDriftTime[name]
   max_dl = MaxDriftLength[name]
   bin1 = h1.FindBin(-1)
@@ -53,8 +65,9 @@ def fit_integral(h1, params=None, limits=None):
   g1.GetXaxis().SetLimits(-max_dt*0.1, max_dt*1.2)
   g1.GetYaxis().SetRangeUser(-max_dl*0.1, max_dl*1.2)
   g1.SetNameTitle(h1.GetName().replace('DriftTime', 'DriftFunction')
+                  # .replace('layer' + str(plane), 'layer' + str(layer))
                   .replace(mh.beamflag_for_param, ''),
-                  f'DriftFunction {name} L{layer}; '
+                  f'DriftFunction {name} plane{plane}; '
                   +f'Drift Time [ns]; Drift Length [mm]')
   g1.SetMarkerStyle(8)
   g1.SetMarkerSize(0.4)
@@ -86,7 +99,16 @@ def output_result(run_info, result_dict, update=False):
   f.Close()
   if update:
     dcdrft_dir = os.path.dirname(dcdrft_path)
-    logger.info(
-      f'update {os.path.join(dcdrft_dir, os.path.basename(output_path))}')
-    shutil.copy2(output_path, dcdrft_dir)
-    conf.replace(run_info, 'DCDRFT', os.path.basename(output_path))
+    base_path = os.path.join(dcdrft_dir, os.path.basename(output_path))
+    logger.info(f'update {base_path}')
+    f = ROOT.gFile.Open(base_path, 'update')
+    if not f:
+      f = ROOT.gFile.Open(base_path, 'create')
+    ROOT.TNamed('datetime', str(datetime.datetime.now())).Write(
+      '', ROOT.TObject.kOverwrite)
+    ROOT.TNamed('reference', ref_path).Write(
+      '', ROOT.TObject.kOverwrite)
+    for k, g in result_dict.items():
+      if k != 'generator':
+        g.Write('', ROOT.TObject.kOverwrite)
+    f.Close()

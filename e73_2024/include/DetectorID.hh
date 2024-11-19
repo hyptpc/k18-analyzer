@@ -149,34 +149,6 @@ const Int_t DetIdDC[kNumDC] = {
   DetIdBLC1, DetIdBLC2, DetIdBPC0
 };
 
-const TString NameDC[kNumDC] = {
-  "BLC1a", "BLC1b", "BLC2a", "BLC2b",
-  "BPC1", "BPC2",
-  "VFT",
-#ifdef CDS
-  "CDC",
-#endif
-  "BLC1", "BLC2", "BPC0"
-};
-
-const int  NumOfLayerDC[kNumDC] = {
-  8, 8, 8, 8,
-  8, 8, 14,
-#ifdef CDS
-  118,
-#endif
-  16, 16, 16
-};
-
-const int  NumOfWireDC[kNumDC] = {
-  32, 32, 32, 32,
-  15, 32, 64,
-#ifdef CDS
-  16,
-#endif
-  32, 32, 32
-};
-
 // Hall etc.
 const int DetIdHall       	= 200;
 const int DetIdFloor		= 201;
@@ -260,18 +232,18 @@ enum ETriggerFlag {
 //   };
 
 // for compatibility
-const Int_t PlMinBcIn        =   1;
-const Int_t PlMaxBcIn        =  16;
-const Int_t PlMinBcOut       = 1001;
-const Int_t PlMaxBcOut       = 1016;
-const Int_t PlMinSdcIn       =   1;
-const Int_t PlMaxSdcIn       =  10;
-const Int_t PlMinSdcOut      =  31;
-const Int_t PlMaxSdcOut      =  42;
-const Int_t PlMinTOF         =  51; // need to change
-const Int_t PlMaxTOF         =  54; // need to change
-const Int_t PlMinVP          =  16;
-const Int_t PlMaxVP          =  26;
+const Int_t LayerMinBcIn        =   1;
+const Int_t LayerMaxBcIn        =  16;
+const Int_t LayerMinBcOut       = 1001;
+const Int_t LayerMaxBcOut       = 1016;
+const Int_t LayerMinSdcIn       =   1;
+const Int_t LayerMaxSdcIn       =  10;
+const Int_t LayerMinSdcOut      =  31;
+const Int_t LayerMaxSdcOut      =  42;
+const Int_t LayerMinTOF         =  51; // need to change
+const Int_t LayerMaxTOF         =  54; // need to change
+const Int_t LayerMinVP          =  16;
+const Int_t LayerMaxVP          =  26;
 const Int_t PlOffsBc         = 100;
 const Int_t PlOffsSdcIn      =   0;
 const Int_t PlOffsSdcOut     =  30;
@@ -284,11 +256,11 @@ const Int_t NumOfLayersSDC2   = 4;
 const Int_t NumOfLayersSDC3   = 4;
 const Int_t NumOfLayersSDC4   = 4;
 const Int_t NumOfLayersSDC5   = 4;
-const Int_t NumOfLayersBcIn   = PlMaxBcIn   - PlMinBcIn   + 1;
-const Int_t NumOfLayersBcOut  = PlMaxBcOut  - PlMinBcOut  + 1;
-const Int_t NumOfLayersSdcIn  = PlMaxSdcIn  - PlMinSdcIn  + 1;
-const Int_t NumOfLayersSdcOut = PlMaxSdcOut - PlMinSdcOut + 1;
-const Int_t NumOfLayersTOF    = PlMaxTOF    - PlMinTOF    + 1;
-const Int_t NumOfLayersVP     = PlMaxVP     - PlMinVP     + 1;
+const Int_t NumOfLayersBcIn   = LayerMaxBcIn   - LayerMinBcIn   + 1;
+const Int_t NumOfLayersBcOut  = LayerMaxBcOut  - LayerMinBcOut  + 1;
+const Int_t NumOfLayersSdcIn  = LayerMaxSdcIn  - LayerMinSdcIn  + 1;
+const Int_t NumOfLayersSdcOut = LayerMaxSdcOut - LayerMinSdcOut + 1;
+const Int_t NumOfLayersTOF    = LayerMaxTOF    - LayerMinTOF    + 1;
+const Int_t NumOfLayersVP     = LayerMaxVP     - LayerMinVP     + 1;
 
 #endif
