@@ -121,7 +121,7 @@ ConfMan::InitializeHistograms()
   hist::BuildDCRaw("BcOut", true);
   hist::BuildDCHit("BcOut", true);
 
-  tree = new TTree("hodo", "UserHodoscope");
+  tree = new TTree("bcout", "UserBcOutTracking");
   tree->Branch("run_number", &run_number);
   tree->Branch("event_number", &event_number);
   tree->Branch("beam_flag", &beam_flag, "beam_flag/I");
