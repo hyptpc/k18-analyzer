@@ -160,6 +160,7 @@ public:
   void TotCutSDC3(Double_t min_tot);
   void TotCutSDC4(Double_t min_tot);
   void TotCutSDC5(Double_t min_tot);
+  void TotCut(const TString& name);
 
   void DriftTimeCutBC34(Double_t min_dt, Double_t max_dt);
   void DriftTimeCutSDC1(Double_t min_dt, Double_t max_dt);
@@ -167,6 +168,7 @@ public:
   void DriftTimeCutSDC3(Double_t min_dt, Double_t max_dt);
   void DriftTimeCutSDC4(Double_t min_dt, Double_t max_dt);
   void DriftTimeCutSDC5(Double_t min_dt, Double_t max_dt);
+  void DriftTimeCut(const TString& name);
 
   Int_t GetNTracksK18U2D() const { return m_K18U2DTC.size(); }
   Int_t GetNTracksK18D2U() const { return m_K18D2UTC.size(); }
@@ -239,7 +241,7 @@ protected:
   void ChiSqrCut(DCLocalTC& cont, Double_t chisqr);
   void EraseEmptyHits(const TString& name);
   void EraseEmptyHits(std::vector<DCHC>& HitCont);
-  void TotCut(const TString& name, Double_t min_tot, Bool_t keep_nan);
+  void TotCut(const TString& name, Double_t min_tot, Bool_t keep_nan=true);
   void DriftTimeCut(const TString& name, Double_t min_dt, Double_t max_dt, Bool_t select_1st);
   static Int_t MakeUpMWPCClusters(const DCHC& HitCont,
                                   MWPCClusterContainer& ClusterCont,

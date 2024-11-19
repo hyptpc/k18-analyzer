@@ -207,30 +207,6 @@ DCHit::CalcDCObservables()
     // Double_t tot = ctime - ctime_trailing;
     Double_t tot = l - buf;
     Bool_t dl_is_good = true;
-    // switch(m_layer){
-    //   // BC3,4
-    // case 113: case 114: case 115: case 116: case 117: case 118:
-    // case 119: case 120: case 121: case 122: case 123: case 124:
-    //   if(MinDLBc[m_layer-100] < dl && dl < MaxDLBc[m_layer-100]){
-    //     dl_is_good = true;
-    //   }
-    //   break;
-    //   // SDC1,2,3,4,5
-    // case 1: case 2: case 3: case 4: case 5: case 6:
-    // case 7: case 8: case 9: case 10:
-    // case 31: case 32: case 33: case 34:
-    // case 35: case 36: case 37: case 38:
-    // case 39: case 40: case 41: case 42:
-    //   if(MinDLSdc[m_layer] < dl && dl < MaxDLSdc[m_layer]){
-    //   	dl_is_good = true;
-    //   }
-    //   break;
-    // default:
-    //   hddaq::cout << FUNC_NAME << " "
-    //     	  << "invalid layer id : " << m_layer << std::endl;
-    //   return false;
-    // }
-
     if(!SelectTDC1st){
       SetDCData(dt, dl, tot, false, dl_is_good);
     }else if(dl_is_good){

@@ -95,8 +95,14 @@ ProcessNormal()
   evAna.DCHit(dcAna);
   evAna.DCHit(dcAna, beam_flag);
 
+  dcAna.TotCut("BLC2a");
+  dcAna.TotCut("BLC2b");
+  dcAna.DriftTimeCut("BLC2a");
+  dcAna.DriftTimeCut("BLC2b");
+
+  dcAna.TrackSearchBcOut();
+
   return true;
-  // dcAna.TrackSearchBLC2();
 
 #if 0
   MTDCAnalyzer MTDCAna(rawData);

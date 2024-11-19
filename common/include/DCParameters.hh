@@ -14,7 +14,7 @@ struct DCPairPlaneInfo
   Bool_t honeycomb;
   Bool_t fiber;
   Int_t  id1, id2;
-  Double_t CellSize;
+  Double_t CellSize; // sense wire spacing, NOT max drift length
   void Print(const TString& arg="", std::ostream& ost=hddaq::cout) const
   {
     ost << "[DCPairPlaneInfo::Print()] " << arg << std::endl
@@ -33,10 +33,10 @@ extern const Int_t NPPInfoBcOut, NPPInfoSdcIn, NPPInfoSdcOut;
 #ifdef DefStatic
 const DCPairPlaneInfo PPInfoBcOut[] = {
   // { pair_plane, honeycomb, fiber, id1, id2, CellSize }
-  { true, false, false, 0,  1,  3.0 }, { true, false, false,  2,  3,  3.0 },
-  { true, false, false, 4,  5,  3.0 }, { true, false, false,  6,  7,  3.0 },
-  { true, false, false, 8, 9,  3.0 }, { true, false, false, 10, 11,  3.0 },
-  // { false, false, false, 12, 12, 10.0 }
+  { true, false, false,  0,  1,  8.0 }, { true, false, false,  2,  3,  8.0 },
+  { true, false, false,  4,  5,  8.0 }, { true, false, false,  6,  7,  8.0 },
+  { true, false, false,  8,  9,  8.0 }, { true, false, false, 10, 11,  8.0 },
+  { true, false, false, 12, 13,  8.0 }, { true, false, false, 14, 15,  8.0 }
 };
 
 const DCPairPlaneInfo PPInfoSdcIn[] = {

@@ -24,6 +24,7 @@
 #include "DCTrackSearch.hh"
 #include "DebugCounter.hh"
 #include "DebugTimer.hh"
+#include "Exception.hh"
 #include "FiberCluster.hh"
 #include "FuncName.hh"
 #include "HodoHit.hh"
@@ -1505,13 +1506,32 @@ DCAnalyzer::TotCutSDC5(Double_t min_tot)
 
 //_____________________________________________________________________________
 void
+DCAnalyzer::TotCut(const TString& name)
+{
+  Double_t min_tot = gUser.Get(Form("%s_TOT", name.Data()));
+  TotCut(name, min_tot);
+}
+
+//_____________________________________________________________________________
+void
 DCAnalyzer::TotCut(const TString& name, Double_t min_tot, Bool_t keep_nan)
 {
-  DCHC& HitCont = m_dc_hit_collection.at(name);
-  for(auto& hit: HitCont){
-    hit->TotCut(min_tot, keep_nan);
+  try {
+    DCHC& HitCont = m_dc_hit_collection.at(name);
+    for(auto& hit: HitCont){
+      hit->TotCut(min_tot, keep_nan);
+    }
+    EraseEmptyHits(name);
+  } catch (const std::exception& e) {
+    std::stringstream err;
+    err << " " << e.what() << "(" << name << "), "
+        << min_tot << ", " << keep_nan << std::endl
+        << "\tnot listed in dc_hit_collection? : ";
+    for (const auto& n : m_dc_hit_collection) {
+      err << n.first << " ";
+    }
+    throw Exception(FUNC_NAME + err.str());
   }
-  EraseEmptyHits(name);
 }
 
 //_____________________________________________________________________________
@@ -1556,6 +1576,15 @@ void
 DCAnalyzer::DriftTimeCutSDC5(Double_t min_dt, Double_t max_dt)
 {
   DriftTimeCut("SDC5", min_dt, max_dt, true);
+}
+
+//_____________________________________________________________________________
+void
+DCAnalyzer::DriftTimeCut(const TString& name)
+{
+  Double_t min_dt = gUser.Get(Form("%s_DT", name.Data()), 0);
+  Double_t max_dt = gUser.Get(Form("%s_DT", name.Data()), 1);
+  DriftTimeCut(name, min_dt, max_dt, false);
 }
 
 //_____________________________________________________________________________

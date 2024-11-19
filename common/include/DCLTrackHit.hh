@@ -35,6 +35,7 @@ public:
   void     SetCalUV(Double_t u, Double_t v) { m_ucal = u; m_vcal = v; }
   void     SetHoneycomb(Bool_t flag=true) { m_honeycomb = flag; }
   Bool_t   IsHoneycomb() const { return m_honeycomb; }
+  Int_t    GetIndex() const { return m_nth_hit; }
   Int_t    GetLayer() const { return m_hit->GetLayer(); }
   Int_t    LayerId() const { return m_hit->LayerId(); }
   // Int_t    GetMeanSeg() const { return m_hit->GetMeanSeg(); }

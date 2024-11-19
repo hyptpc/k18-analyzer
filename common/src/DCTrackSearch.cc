@@ -11,6 +11,9 @@
 #include <TH2D.h>
 #include <TH3D.h>
 
+#include <escape_sequence.hh>
+#include <std_ostream.hh>
+
 #include "DCGeomMan.hh"
 #include "DCLocalTrack.hh"
 #include "DCLTrackHit.hh"
@@ -39,7 +42,7 @@ const auto& zK18Target = gGeom.LocalZ("K18Target");
 const auto& zBH2       = gGeom.LocalZ("BH2");
 const Double_t MaxChisquare       = 2000.; // Set to be More than 30
 const Double_t MaxChisquareSdcIn  = 5000.; // Set to be More than 30
-const Double_t MaxNumOfCluster = 20.;    // Set to be Less than 30
+const Double_t MaxNumOfCluster = 10.;    // Set to be Less than 30
 const Double_t MaxCombi = 1.0e6;    // Set to be Less than 10^6
 // SdcIn & BcOut for XUV Tracking routine
 const Double_t MaxChisquareVXU = 50.;//
@@ -293,9 +296,20 @@ DebugPrint(const IndexList& nCombi,
     hddaq::cout << "[" << std::setw(3) << i << "]: "
                 << std::setw(3) << n << " ";
     for(Int_t j=0; j<n; ++j){
-      hddaq::cout << ((DCLTrackHit *)CandCont[i][j]->GetHit(0))->GetWire()
-                  << "(" << CandCont[i][j]->NumberOfHits() << ")"
-                  << " ";
+      const auto pair = CandCont[i][j];
+      const auto nh = pair->NumberOfHits();
+      hddaq::cout << "{";
+      for(Int_t k=0; k<nh; ++k){
+        const auto hit = pair->GetHit(k);
+        hddaq::cout << hit->GetLayer()
+                    << ":" << hit->GetWire() << " ";
+                    // << "(" << hit->GetIndex() << ") ";
+                    // << "," << hit->DriftTime()
+                    // << "," << hit->DriftLength()
+                    // << "," << hit->TOT()
+                    // << ", ";
+      }
+      hddaq::cout << "} ";
     }
     hddaq::cout << std::endl;
   }
@@ -647,8 +661,12 @@ MakeIndex(Int_t ndim, const Int_t *index1, Bool_t& status)
       Int_t size1=index.size();
       if(size1>MaxCombi){
         status = false;
-#if 1
-        hddaq::cout << FUNC_NAME << " too much combinations... " << n2 << std::endl;
+#if 0
+        hddaq::cout
+          // << hddaq::unpacker::esc::k_yellow
+          << FUNC_NAME << " too much combinations... " << n2
+          // << hddaq::unpacker::esc::k_default_color
+          << std::endl;
 #endif
         return std::vector<IndexList>(0);
       }
@@ -776,6 +794,7 @@ LocalTrackSearch(const std::vector<DCHC>& HC,
 
   Bool_t status = true;
   std::vector<IndexList> CombiIndex = MakeIndex(npp, nCombi, status);
+  if (!status) DebugPrint(nCombi, CandCont, FUNC_NAME);
 
   for(Int_t i=0, n=CombiIndex.size(); i<n; ++i){
     DCLocalTrack *track = MakeTrack(CandCont, CombiIndex[i]);
@@ -783,14 +802,11 @@ LocalTrackSearch(const std::vector<DCHC>& HC,
     if(track->GetNHit()>=MinNumOfHits
        && track->DoFit()
        && track->GetChiSquare()<MaxChisquare){
-
       if(T0Seg>=0 && T0Seg<NumOfSegBH2) {
         Double_t xbh2=track->GetX(zBH2), ybh2=track->GetY(zBH2);
         Double_t difPosBh2 = localPosBh2X[T0Seg] - xbh2;
-
         //   Double_t xtgt=track->GetX(zTarget), ytgt=track->GetY(zTarget);
         //   Double_t ytgt=track->GetY(zTarget);
-
         if(true
            && fabs(difPosBh2)<Bh2SegXAcc[T0Seg]
            && (-10 < ybh2 && ybh2 < 40)
