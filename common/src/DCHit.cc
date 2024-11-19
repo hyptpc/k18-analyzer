@@ -240,7 +240,6 @@ DCHit::CalcDCObservables()
   }
   m_tdc = leading;
   m_trailing = trailing;
-  Print();
   return true;
 }
 
