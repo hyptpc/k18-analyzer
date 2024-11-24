@@ -1327,6 +1327,8 @@ TPCLocalTrackHelix::Calculate()
     }
   }
 
+  Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
+  m_mom0 = CalcHelixMom(par, 0.);
   m_pid = Kinematics::HypTPCdEdxPID(GetdEdx(TruncatedMean), (Double_t) m_charge*m_mom0.Mag());
   m_is_calculated = true;
 
