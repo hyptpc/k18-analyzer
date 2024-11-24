@@ -93,7 +93,7 @@ FiberCluster::Calculate()
   Double_t max_de_lg      = 0.;
 
   for(Int_t i=0; i<m_cluster_size; ++i){
-    if(reject_nan && TMath::IsNaN(m_hit_container.at(i)->GetWidth())){
+    if(reject_nan && std::isnan(m_hit_container.at(i)->GetWidth())){
       --m_cluster_size;
       continue;
     }
