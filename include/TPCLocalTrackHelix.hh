@@ -17,7 +17,6 @@
 #include "TMatrixD.h"
 class TPCHit;
 class TPCCluster;
-
 //______________________________________________________________________________
 class TPCLocalTrackHelix
 {
@@ -102,6 +101,7 @@ private:
 
 public:
 
+	void         SetCircularCrossTracking(bool flag );
   void         AddTPCHit(TPCLTrackHit *hit);
   void         EraseHits(std::vector<Int_t> delete_hits);
   void         EraseHit(Int_t delete_hit);

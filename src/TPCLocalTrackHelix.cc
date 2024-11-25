@@ -72,12 +72,11 @@ z = p[2] + p[4]*p[3]*(theta);
 #define IterativeResolution 1
 //Byungmin's new method for residual definition
 #define PtPlane 0
-#define CircCross 0
-
 namespace
 {
   const auto& gUser = UserParamMan::GetInstance();
-
+	static bool CircCross = 0;
+	
   // B-field
   const Double_t& HS_field_0 = ConfMan::Get<Double_t>("HSFLDCALIB");
   const Double_t& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
@@ -131,7 +130,6 @@ namespace
 
   //for good hit selection, hypot(pull_t,pull_y) < PullWindow
   const Double_t PullWindow = 3;
-
   //For theta calculation
   const Double_t ThetaWindow = 10; //[mm]
   const Double_t ThetaNSigma = 5;
@@ -157,7 +155,8 @@ namespace
   static TF1 fintXZ("fintXZ", s_tmpXZ.c_str(), -10.*TMath::Pi(), 10.*TMath::Pi());
 
   static std::string circ_cross="pow([2]*[2]+[2]*([0]*cos(x)+[1]*sin(x)) +[0]*[0]+[1]*[1]-[3]*[3] ,2)";
-  static TF1 fcir_cross("fcir_cross", circ_cross.c_str(), -10.*TMath::Pi(), 10.*TMath::Pi());
+  static std::string circ_cd="pow([3]-([0]+[2]*cos(x)),2) + pow([4]-([1]+[2]*sin(x)),2)";
+  static TF1 fcir_cross("fcir_cross", circ_cd.c_str(), -10.*TMath::Pi(), 10.*TMath::Pi());
 
 }
 
@@ -218,24 +217,23 @@ static inline Double_t EvalTheta(Double_t par[5], TVector3 pos, Double_t window_
   fint.SetNpx(steps);
   Double_t min_t = fint.GetMinimumX();
 
-#if CircCross
-  if(hypot(localpos.X(),localpos.Z())<105) return min_t;
+if(CircCross){
 #if PtPlane
   min_t = (window_low+window_up)/2;
 #endif
-  fcir_cross.SetRange(window_low,window_up);
-  double cpar[4];
+	fcir_cross.SetRange(window_low,window_up);
+  double cpar[5];
   cpar[0] = par[0];
   cpar[1] = par[1];
   cpar[2] = par[3];
-  cpar[3] = hypot(localpos.X(),localpos.Y());
+  cpar[3] = localpos.X(); 
+  cpar[4] = localpos.Y();
   fcir_cross.SetParameters(cpar);
   fcir_cross.SetNpx(steps);
   double min_t_temp = fcir_cross.GetMinimumX();
-  if(min_t_temp == window_low or min_t_temp == window_up) return min_t;
+  if(min_t_temp < window_low or min_t_temp > window_up) return min_t;
   else min_t = min_t_temp;
-#endif
-
+	}
   return min_t;
 }
 
@@ -1165,6 +1163,7 @@ TPCLocalTrackHelix::~TPCLocalTrackHelix()
   debug::ObjectCounter::decrease(ClassName());
 }
 
+
 //______________________________________________________________________________
 TPCLocalTrackHelix::TPCLocalTrackHelix(TPCLocalTrackHelix *init){
 
@@ -1280,6 +1279,10 @@ TPCLocalTrackHelix::GetNHitsEffective() const
     ++n;
   }
   return n;
+}
+void
+TPCLocalTrackHelix::SetCircularCrossTracking(bool flag){
+	CircCross = 1;	
 }
 
 //______________________________________________________________________________
