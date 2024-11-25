@@ -59,10 +59,10 @@ namespace
   const Int_t MaxPeaks = 20;
   const Double_t MaxChisqr = 1000.;
   const Double_t& HSfield_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
-  const auto& ResParamInnerLayerHSOn = gTPC.TPCResolutionParams(true, 0); //B=1 T, Inner layers
-  const auto& ResParamOuterLayerHSOn = gTPC.TPCResolutionParams(true, 1); //B=1 T, Outer layers
-  const auto& ResParamInnerLayerHSOff = gTPC.TPCResolutionParams(false, 0); //B=0, Inner layers
-  const auto& ResParamOuterLayerHSOff = gTPC.TPCResolutionParams(false, 1); //B=0, Outer layers
+  const auto& ResParamInnerLayerHSOn = gTPC.TPCResolutionParams(true, false); //B=1 T, Inner layers
+  const auto& ResParamOuterLayerHSOn = gTPC.TPCResolutionParams(true, true); //B=1 T, Outer layers
+  const auto& ResParamInnerLayerHSOff = gTPC.TPCResolutionParams(false, false); //B=0, Inner layers
+  const auto& ResParamOuterLayerHSOff = gTPC.TPCResolutionParams(false, true); //B=0, Outer layers
 }
 
 //_____________________________________________________________________________
