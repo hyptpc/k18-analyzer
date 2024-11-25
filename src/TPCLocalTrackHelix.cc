@@ -75,7 +75,7 @@ z = p[2] + p[4]*p[3]*(theta);
 namespace
 {
   const auto& gUser = UserParamMan::GetInstance();
-	static bool CircCross = 0;
+	static bool CircCross = 0;//By defining TPCLocalTrackHelix object in Dst, and setting 'SetCircularCrossTracking', CalcHit definition can be modified. 
 	
   // B-field
   const Double_t& HS_field_0 = ConfMan::Get<Double_t>("HSFLDCALIB");
