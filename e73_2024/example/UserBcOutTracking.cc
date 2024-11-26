@@ -8,7 +8,9 @@
 
 #include <TString.h>
 
+#include <UnpackerConfig.hh>
 #include <UnpackerManager.hh>
+#include <UnpackerXMLReadDigit.hh>
 
 #include "ConfMan.hh"
 #include "DetectorID.hh"
@@ -16,6 +18,7 @@
 #include "DCDriftParamMan.hh"
 #include "DCGeomMan.hh"
 #include "DCHit.hh"
+#include "DCRawHit.hh"
 #include "DCTdcCalibMan.hh"
 #include "EventAnalyzer.hh"
 #include "HistTools.hh"
@@ -51,8 +54,7 @@ beam::EBeamFlag beam_flag;
 tdc_t trig_flag;
 seg_t trig_pat;
 
-std::ofstream ofsk;
-std::ofstream ofspi;
+std::map<TString, seg_t> wire;
 }
 
 //_____________________________________________________________________________
@@ -64,6 +66,8 @@ ProcessBegin()
   beam_flag = beam::kUnknown;
   trig_flag.clear();
   trig_pat.clear();
+
+  for(auto& p: wire) p.second.clear();
 
   return true;
 }
@@ -102,6 +106,17 @@ ProcessNormal()
 
   // dcAna.TrackSearchBcOut();
 
+  for (Int_t plane=0; plane<NumOfLayersBcOut; ++plane) {
+    for (const auto& hit : dcAna.GetBcOutHC(plane)) {
+      const auto& rhit = hit->GetRawHit();
+      Double_t w = hit->GetWire();
+      TString name = rhit->DetectorName() + "_" + rhit->PlaneName();
+      name.ToLower();
+      wire[name].push_back(w);
+      // std::cout << name << std::endl;
+    }
+  }
+
   return true;
 }
 
@@ -109,6 +124,7 @@ ProcessNormal()
 Bool_t
 ProcessEnd()
 {
+  tree->Fill();
   return true;
 }
 
@@ -127,6 +143,21 @@ ConfMan::InitializeHistograms()
   tree->Branch("beam_flag", &beam_flag, "beam_flag/I");
   tree->Branch("trig_flag", &trig_flag);
   tree->Branch("trig_pat", &trig_pat);
+
+  const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
+  const auto& digit_info = gUConf.get_digit_info();
+  for (const auto& name_str : DCNameList.at("BcOut")) {
+    const auto name = name_str.Data();
+    Int_t detector_id = digit_info.get_device_id(name);
+    Int_t nplane = digit_info.get_n_plane(detector_id);
+    for (Int_t plane=0; plane<nplane; ++plane) {
+      TString n = (name_str + "_" +
+                   digit_info.get_name_list(detector_id).at(plane));
+      n.ToLower();
+      std::cout << n << std::endl;
+      tree->Branch(Form("%s_wire", n.Data()), &wire[n]);
+    }
+  }
 
   return true;
 }
@@ -148,7 +179,5 @@ ConfMan::InitializeParameterFiles()
 Bool_t
 ConfMan::FinalizeProcess()
 {
-  ofsk.close();
-  ofspi.close();
   return true;
 }
