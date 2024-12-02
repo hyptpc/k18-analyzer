@@ -78,12 +78,21 @@ namespace Kinematics
   Double_t HypTPCBethe(Double_t *x, Double_t *p);
   Bool_t HypTPCdEdxPID_IsKaonTemp(Double_t dedx, Double_t poq); //temporary
   Double_t HypTPCdEdxNsigmaProton(Double_t dedx, Double_t poq);
+  Double_t HypTPCdEdxNsigmaDeutron(Double_t dedx, Double_t poq);
   Double_t HypTPCdEdxNsigmaKaon(Double_t dedx, Double_t poq);
   Double_t HypTPCdEdxNsigmaPion(Double_t dedx, Double_t poq);
+  Double_t HypTPCdEdxNsigmaElectron(Double_t dedx, Double_t poq);
   Bool_t HypTPCdEdxElectron(Double_t dedx, Double_t poq);
   Bool_t HypTPCdEdxKaon(Double_t dedx, Double_t poq);
   Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq);
   void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg);
+
+  //For HTOF pid
+  Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t tracklength, Double_t tof);
+  Double_t HypTPCHTOFNsigmaDeutron(Double_t poq, Double_t tracklength, Double_t tof);
+  Double_t HypTPCHTOFNsigmaKaon(Double_t poq, Double_t tracklength, Double_t tof);
+  Double_t HypTPCHTOFNsigmaPion(Double_t poq, Double_t tracklength, Double_t tof);
+  Double_t HypTPCHTOFNsigmaElectron(Double_t poq, Double_t tracklength, Double_t tof);
 
   //For helix tracking & vertex reconstruction
   Double_t CalcHelixCloseDist(TVector3 point, Double_t par[5], Double_t t1_start, Double_t t1_end);
