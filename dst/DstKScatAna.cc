@@ -309,6 +309,7 @@ struct Event
   Int_t Piflag[MaxHits];
   Int_t Kflag[MaxHits];
   Int_t Pflag[MaxHits];
+  Int_t Heavyflag[MaxHits];
 
   Double_t xkm[MaxHits];
   Double_t ykm[MaxHits];
@@ -509,18 +510,12 @@ TTree *tree;
   Double_t pKuramaCorrection(Double_t u, Double_t v, Double_t pOrg)
   {
     //momentum scaling
-    //Double_t p0 = 0.0;
-    //Double_t p1 = 1.0;
     Double_t p0 = 0.0;
     Double_t p1 = 1.0;
 
     //Angular dependence correction
-    //Double_t par_dxdz[5] = {0};
-    //Double_t par_dydz[5] = {0};
-    //Double_t par_dxdz[5] = {-0.00596382, 0.0703225, 0.0679613, -1.42977, -7.33378};
-    //Double_t par_dydz[5] = {-0.0191313, 0.0592294, 3.01932, -6.64204, -127.575};
-    Double_t par_dxdz[5] = {-0.00596382 + 0.0113333, 0.0703225 + 0.0226288, 0.0679613 + 0.147213, -1.42977 + 0.440687, -7.33378 + 0.477398};
-    Double_t par_dydz[5] = {-0.0191313 + 0.000857336, 0.0592294 - 0.0467794, 3.01932 - 1.13846, -6.64204 + 4.88029, -127.575 + 80.2392};
+    Double_t par_dxdz[5] = {0};
+    Double_t par_dydz[5] = {0};
 
     //Correction : pCorr = p1*[pOrg-p0] - f(dx/dz) - g(dy/dz)
     Double_t pCorr = pOrg;
@@ -799,6 +794,7 @@ dst::InitializeEvent()
     event.Piflag[it] = 0;
     event.Kflag[it] = 0;
     event.Pflag[it] = 0;
+    event.Heavyflag[it] = 0;
 
     event.xkm[it] = qnan;
     event.ykm[it] = qnan;
@@ -1282,19 +1278,24 @@ dst::DstRead(Int_t ievent)
 
     for(Int_t ikm=0; ikm<nKm; ++ikm){
       Double_t ScatMass = qnan;
-      if(event.m2Org[iscat] > 0. && event.m2Org[iscat] < 0.12){
-	flagScat = 1; ScatMass = PionMass; event.Piflag[iscat] = 1;
-      }
-      else if(event.m2Org[iscat] > 0.05 && event.m2Org[iscat] < 0.6){
+      if(event.m2Org[iscat] > 0.10 && event.m2Org[iscat] < 0.4){
 	flagScat = 2; ScatMass = KaonMass;
-	if(event.qKurama[iscat] > 0 && event.pKurama[iscat] < 1.4) event.Kflag[iscat] = 1;
       }
-      //      else if(event.qKurama[iscat] > 0 && event.pKurama[iscat] > 0 &&
-      else if(event.qKurama[iscat] > 0 &&
-	      event.m2Org[iscat] > 0.5 && event.m2Org[iscat] < 1.4){
-	flagScat = 3; ScatMass = ProtonMass; event.Pflag[iscat] = 1;
+      else if(event.m2Org[iscat] > 0. && event.m2Org[iscat] < 0.10){
+	flagScat = 1; ScatMass = PionMass;
+      }
+      else if(event.qKurama[iscat] > 0 && event.m2Org[iscat] > 0.4 && event.m2Org[iscat] < 1.5){
+	flagScat = 3; ScatMass = ProtonMass;
       }
       else flagScat = 0;
+
+      if(event.m2Org[iscat] > 0. && event.m2Org[iscat] < 0.12) event.Piflag[iscat] = 1;
+      if(event.qKurama[iscat] > 0 && event.pKurama[iscat] < 1.4 &&
+	 event.m2Org[iscat] > 0.05 && event.m2Org[iscat] < 0.7) event.Kflag[iscat] = 1;
+      if(event.qKurama[iscat] > 0  && event.pKurama[iscat] > 0 &&
+	 event.m2Org[iscat] > 0.5 && event.m2Org[iscat] < 1.4) event.Pflag[iscat] = 1;
+      if(event.qKurama[iscat] > 0  && event.pKurama[iscat] > 0 &&
+	 event.m2Org[iscat] > 2.5 && event.cstof[iscat] <= 45.) event.Heavyflag[iscat] = 1;
 
       ThreeVector pkm  = KmPCont[ikm], xkm = KmXCont[ikm];
       ThreeVector vert = Kinematics::VertexPoint(xkm, xScat, pkm, pScat);
@@ -1382,11 +1383,21 @@ dst::DstRead(Int_t ievent)
       Double_t KaonMom = TotalMomCM*sintCM/std::sqrt(1.-costLab*costLab);
 
       Int_t inside = 0;
+      /*
       if(true
          && TMath::Abs(vert.x()) < 30.
          && TMath::Abs(vert.y()) < 25.
          && TMath::Abs(vert.z()) < 160
          && closedist < 100.
+        ){
+        inside = 1;
+      }
+      */
+      if(true
+         && TMath::Abs(vert.x()) < 50.
+         && TMath::Abs(vert.y()) < 50.
+         && TMath::Abs(vert.z()) < 400.
+	 && closedist < 100.
         ){
         inside = 1;
       }
@@ -1879,7 +1890,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("Piflag",  event.Piflag,   "Piflag[nKK]/I");
   tree->Branch("Kflag",   event.Kflag,    "Kflag[nKK]/I");
   tree->Branch("Pflag",   event.Pflag,    "Pflag[nKK]/I");
-
+  tree->Branch("Heavyflag",   event.Heavyflag,    "Heavyflag[nKK]/I");
   tree->Branch("xkm",        event.xkm,      "xkm[nKK]/D");
   tree->Branch("ykm",        event.ykm,      "ykm[nKK]/D");
   tree->Branch("ukm",        event.ukm,      "ukm[nKK]/D");
