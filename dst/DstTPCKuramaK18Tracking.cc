@@ -43,7 +43,7 @@
 #include "TPCRKTrack.hh"
 #include "UserParamMan.hh"
 
-#define SaveHistograms 1
+#define SaveHistograms 0
 #define RawHit 0
 #define RawCluster 1
 #define TrackClusterHist 0
@@ -79,7 +79,6 @@ std::vector<TString> TreeName = { "", "", "tpc", "kurama", "k18track","" };
 std::vector<TFile*> TFileCont;
 std::vector<TTree*> TTreeCont;
 std::vector<TTreeReader*> TTreeReaderCont;
-  static bool ExclusiveTracking;
 }
 
 //_____________________________________________________________________________
@@ -1083,68 +1082,147 @@ const Double_t yb_off = 0.000;
 const Double_t ub_off = 0.000;
 const Double_t vb_off = 0.000;
 
-  Double_t pKuramaCorrection(Double_t u, Double_t v, Double_t pOrg)
-  {
-    //Angular dependence correction
-    Double_t pCorr = pOrg;
-#if 1
-    Double_t par_dxdz[4] = {0.00167653, 0.0329239, 0.39883, 1.37901};
-    Double_t par_dydz[5] = {-0.00545227, -0.0424615, 1.01906, 1.25306, -11.627};
+Double_t pKuramaCorrection(Double_t u, Double_t v, Double_t pOrg)
+{
+  //Angular dependence correction
+  Double_t pCorr = pOrg;
+  //#if 1 // w/o Z + 6 mm correction
+#if 0
+  Double_t par_dxdz[4] = {0.00167653, 0.0329239, 0.39883, 1.37901};
+  Double_t par_dydz[5] = {-0.00545227, -0.0424615, 1.01906, 1.25306, -11.627};
 
-    if(u<-0.275) pCorr -=  -0.00589507;
-    else if(u>0.025) pCorr -= 0.00277044;
-    else{
-      for(Int_t i=0; i<4; ++i) pCorr -= par_dxdz[i]*TMath::Power(u, i);
-    }
-
-    if(v<-0.135) pCorr -= 0.0119074;
-    else if(v>0.125) pCorr -= 0.00477157;
-    else{
-      for(Int_t i=0; i<5; ++i) pCorr -= par_dydz[i]*TMath::Power(v, i);
-    }
-#endif
-
-    //momentum correction
-    //P_measured = p2*P^2 + p1*P + p0
-#if 1
-    Double_t p0 = 0.00816054; Double_t p1 = 1.00456; Double_t p2 = -2.50295e-05;
-    if(p1*p1+4.*(pCorr-p0)*p2<0) pCorr = 0.001;
-    else pCorr = 0.5*(-p1+TMath::Sqrt(p1*p1+4.*(pCorr-p0)*p2))/p2;
-#endif
-    return pCorr;
+  if(u<-0.275) pCorr -=  -0.00589507;
+  else if(u>0.025) pCorr -= 0.00277044;
+  else{
+    for(Int_t i=0; i<4; ++i) pCorr -= par_dxdz[i]*TMath::Power(u, i);
   }
 
-  Double_t pKuramaCorrection_proton(Double_t u, Double_t v, Double_t pOrg)
-  {
-    //Angular dependence correction
-    Double_t pCorr = pOrg;
-#if 1
-    Double_t par_dxdz[4] = {0.00331135, -0.0838977, -0.508636, -0.516439};
-    Double_t par_dydz[5] = {-0.0121156, -0.051397, 3.82854, 0.702847, -142.941};
+  if(v<-0.135) pCorr -= 0.0119074;
+  else if(v>0.125) pCorr -= 0.00477157;
+  else{
+    for(Int_t i=0; i<5; ++i) pCorr -= par_dydz[i]*TMath::Power(v, i);
+  }
+#elif 0 // w/ Z + 6 mm correction before TPC resolution debugging
+  Double_t par_dxdz[4] = {0.00598859, 0.184888, 1.91559, 6.0048};
+  Double_t par_dydz[5] = {-0.004968, -0.0187119, 0.956009, -0.620882, -10.637};
 
-    if(u<-0.245) pCorr -= 0.000930233;
-    else if(u>0.105) pCorr -=  -0.0117035;
-    else{
-      for(Int_t i=0; i<4; ++i) pCorr -= par_dxdz[i]*TMath::Power(u, i);
-    }
-
-    if(v<-0.135) pCorr -= 0.0153907;
-    else if(v>0.125) pCorr -= 0.00775557;
-    else{
-      for(Int_t i=0; i<5; ++i) pCorr -= par_dydz[i]*TMath::Power(v, i);
-    }
-#endif
-
-    //momentum correction
-    //P_measured = p2*P^2 + p1*P + p0
-#if 1
-    Double_t p0 = 0.00816054; Double_t p1 = 1.00456; Double_t p2 = -2.50295e-05;
-    if(p1*p1+4.*(pCorr-p0)*p2<0) pCorr = 0.001;
-    else pCorr = 0.5*(-p1+TMath::Sqrt(p1*p1+4.*(pCorr-p0)*p2))/p2;
-#endif
-    return pCorr;
+  if(u<-0.275) pCorr -= -0.02487;
+  else if(u>0.025) pCorr -= 0.0119018;
+  else{
+    for(Int_t i=0; i<4; ++i) pCorr -= par_dxdz[i]*TMath::Power(u, i);
   }
 
+  if(v<-0.135) pCorr -= 0.0129759;
+  else if(v>0.125) pCorr -= 0.00382108;
+  else{
+    for(Int_t i=0; i<5; ++i) pCorr -= par_dydz[i]*TMath::Power(v, i);
+  }
+#else // w/ Z + 6 mm correction after TPC resolution debugging
+  Double_t par_dxdz[4] = {0.00783981, 0.0858266, 0.511154, 2.10857};
+  Double_t par_dydz[5] = {-0.00593035, -0.0209602, 1.1396, -0.269324, -23.126};
+
+  if(u<-0.275) pCorr -= -0.0209581;
+  else if(u>0.025) pCorr -= 0.0103379;
+  else{
+    for(Int_t i=0; i<4; ++i) pCorr -= par_dxdz[i]*TMath::Power(u, i);
+  }
+
+  if(v<-0.135) pCorr -= 0.0106498;
+  else if(v>0.125) pCorr -= 0.00308382;
+  else{
+    for(Int_t i=0; i<5; ++i) pCorr -= par_dydz[i]*TMath::Power(v, i);
+  }
+#endif
+
+  //momentum correction
+  //P_measured = p2*P^2 + p1*P + p0
+  //#if 1 // w/o Z + 6 mm correction
+#if 0
+  Double_t p0 = 0.00816054; Double_t p1 = 1.00456; Double_t p2 = -2.50295e-05;
+  if(p1*p1+4.*(pCorr-p0)*p2<0) pCorr = 0.001;
+  else pCorr = 0.5*(-p1+TMath::Sqrt(p1*p1+4.*(pCorr-p0)*p2))/p2;
+#elif 0 // w/ Z + 6 mm correction
+  Double_t p0 = 0.0412952; Double_t p1 = 0.955566; Double_t p2 = 0.017896;
+  if(p1*p1+4.*(pCorr-p0)*p2<0) pCorr = 0.001;
+  else pCorr = 0.5*(-p1+TMath::Sqrt(p1*p1+4.*(pCorr-p0)*p2))/p2;
+#else // w/ Z + 6 mm correction after TPC resolution debugging
+  Double_t p0 = 0.0463731; Double_t p1 = 0.955957; Double_t p2 = 0.0178651;
+  if(p1*p1+4.*(pCorr-p0)*p2<0) pCorr = 0.001;
+  else pCorr = 0.5*(-p1+TMath::Sqrt(p1*p1+4.*(pCorr-p0)*p2))/p2;
+#endif
+  return pCorr;
+}
+
+Double_t pKuramaCorrection_proton(Double_t u, Double_t v, Double_t pOrg)
+{
+  //Angular dependence correction
+  Double_t pCorr = pOrg;
+  //#if 1 // w/o Z + 6 mm correction
+#if 0
+  Double_t par_dxdz[4] = {0.00331135, -0.0838977, -0.508636, -0.516439};
+  Double_t par_dydz[5] = {-0.0121156, -0.051397, 3.82854, 0.702847, -142.941};
+
+  if(u<-0.245) pCorr -= 0.000930233;
+  else if(u>0.105) pCorr -=  -0.0117035;
+  else{
+    for(Int_t i=0; i<4; ++i) pCorr -= par_dxdz[i]*TMath::Power(u, i);
+  }
+
+  if(v<-0.135) pCorr -= 0.0153907;
+  else if(v>0.125) pCorr -= 0.00775557;
+  else{
+    for(Int_t i=0; i<5; ++i) pCorr -= par_dydz[i]*TMath::Power(v, i);
+  }
+#elif 0 // w/ Z + 6 mm correction before TPC resolution debugging
+  Double_t par_dxdz[4] = {0.00889138, 0.0178901, -0.540299, -0.456336};
+  Double_t par_dydz[5] = {-0.0137751, -0.0461785, 3.77421, -0.407101, -139.886};
+
+  if(u<-0.245) pCorr -= -0.0212122;
+  else if(u>0.105) pCorr -= 0.00428478;
+  else{
+    for(Int_t i=0; i<4; ++i) pCorr -= par_dxdz[i]*TMath::Power(u, i);
+  }
+
+  if(v<-0.135) pCorr -= 0.0157823;
+  else if(v>0.125) pCorr -= 0.0044776;
+  else{
+    for(Int_t i=0; i<5; ++i) pCorr -= par_dydz[i]*TMath::Power(v, i);
+  }
+#else // w/ Z + 6 mm correction after TPC resolution debugging
+  Double_t par_dxdz[4] = {0.00961677, 0.0628218, -0.251013, 0.262886};
+  Double_t par_dydz[5] = {-0.0134842, -0.053486, 3.89929, -0.230734, -147.784};
+
+  if(u<-0.245) pCorr -= -0.0247077;
+  else if(u>0.105) pCorr -= 0.01375;
+  else{
+    for(Int_t i=0; i<4; ++i) pCorr -= par_dxdz[i]*TMath::Power(u, i);
+  }
+
+  if(v<-0.135) pCorr -= 0.0162822;
+  else if(v>0.125) pCorr -= 0.00422581;
+  else{
+    for(Int_t i=0; i<5; ++i) pCorr -= par_dydz[i]*TMath::Power(v, i);
+  }
+#endif
+
+  //momentum correction
+  //P_measured = p2*P^2 + p1*P + p0
+  //#if 1
+#if 0 // w/o Z + 6 mm correction
+  Double_t p0 = 0.00816054; Double_t p1 = 1.00456; Double_t p2 = -2.50295e-05;
+  if(p1*p1+4.*(pCorr-p0)*p2<0) pCorr = 0.001;
+  else pCorr = 0.5*(-p1+TMath::Sqrt(p1*p1+4.*(pCorr-p0)*p2))/p2;
+#elif 0 // w/ Z + 6 mm correction before TPC resolution debugging
+  Double_t p0 = 0.0412952; Double_t p1 = 0.955566; Double_t p2 = 0.017896;
+  if(p1*p1+4.*(pCorr-p0)*p2<0) pCorr = 0.001;
+  else pCorr = 0.5*(-p1+TMath::Sqrt(p1*p1+4.*(pCorr-p0)*p2))/p2;
+#else // w/ Z + 6 mm correction after TPC resolution debugging
+  Double_t p0 = 0.0463731; Double_t p1 = 0.955957; Double_t p2 = 0.0178651;
+  if(p1*p1+4.*(pCorr-p0)*p2<0) pCorr = 0.001;
+  else pCorr = 0.5*(-p1+TMath::Sqrt(p1*p1+4.*(pCorr-p0)*p2))/p2;
+#endif
+  return pCorr;
+}
 }
 
 //_____________________________________________________________________________
@@ -1230,9 +1308,10 @@ dst::DstRead( int ievent )
   static const Double_t Boron11Mass  = 11.009305167*TGeoUnit::amu_c2 - 5.*ElectronMass;
   static const auto MaxChisqrBcOut = gUser.GetParameter("MaxChisqrBcOut");
   static const auto MaxChisqrKurama = gUser.GetParameter("MaxChisqrKurama");
-  static const auto KKEvent = gUser.GetParameter("KKEvent");
-  static const auto KPEvent = gUser.GetParameter("KPEvent");
-  static const auto ExclusiveTracking = gUser.GetParameter("ExclusiveTracking");
+  static const Bool_t KKEvent = gUser.GetParameter("KKEvent");
+  static const Bool_t KPEvent = gUser.GetParameter("KPEvent");
+  static const Bool_t KHeavyEvent = gUser.GetParameter("KHeavyEvent");
+  static const Bool_t ExclusiveTracking = gUser.GetParameter("ExclusiveTracking");
   static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
   static const auto yGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Y();
   static const auto zGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Z();
@@ -1252,17 +1331,20 @@ dst::DstRead( int ievent )
 
   HF1( 1, event.status++ );
 
-  HF1( 1, event.status++ );
-  
   if(src.ntKurama!=1 || src.ntK18!=1) return true;
   if(src.chisqrK18[0] > MaxChisqrBcOut || src.chisqrKurama[0] > MaxChisqrKurama) return true;
+
   if(KKEvent){
-  //if(src.m2[0] < 0.15 || src.m2[0] > 0.40) return true;
-	  if(src.m2[0] < 0.05 || src.m2[0] > 0.60) return true;
+    if(src.m2[0] < 0.05 || src.m2[0] > 0.70) return true;
     if(src.qKurama[0] < 0 || src.pKurama[0] > 1.4) return true;
   }
-  else if( KPEvent){
+  if(KPEvent){
     if(src.m2[0] < 0.50 || src.m2[0] > 1.40) return true;
+    if(src.qKurama[0] < 0 || src.pKurama[0] < 0.0) return true;
+  }
+  if(KHeavyEvent){
+    if(src.m2[0] < 2.50) return true;
+    if(src.stof[0] > 45) return true;
     if(src.qKurama[0] < 0 || src.pKurama[0] < 0.0) return true;
   }
 
@@ -1270,7 +1352,7 @@ dst::DstRead( int ievent )
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
-  
+
   HF1( 1, event.status++ );
   event.ntK18 = src.ntK18;
   std::vector<std::vector<TVector3>> vpK18;
@@ -1453,23 +1535,7 @@ dst::DstRead( int ievent )
     event.xhtofKurama[it] = src.vpxhtof[it];
     event.yhtofKurama[it] = src.vpyhtof[it];
     event.zhtofKurama[it] = src.vpzhtof[it] - zHSCenter;
-    /*
-    Double_t tofdz = gGeom.GetGlobalPosition("TOF-DX").z();
-    TVector3 posOut(xGlobalSdcOut + src.xtofKurama[it], yGlobalSdcOut + src.ytofKurama[it], tofdz);
-    TVector3 momOut(src.utofKurama[it], src.vtofKurama[it], 1.);
-    Int_t tofseg = src.tofsegKurama[it];
-    if(tofseg%2 == 0){
-      Double_t tofuz = gGeom.GetGlobalPosition("TOF-UX").z();
-      posOut = TVector3(src.xtofKurama[it] + src.utofKurama[it]*(tofdz - tofuz),
-			src.ytofKurama[it] + src.vtofKurama[it]*(tofdz - tofuz),
-			tofdz);
-    }
-    momOut *= 1./momOut.Mag();
-    momOut *= event.pKurama[it];
-    //std::cout<<"Kurama posOut "<<posOut<<" momOut "<<momOut<<std::endl;
-    initPosKurama.push_back(posOut);
-    initMomKurama.push_back(momOut);
-    */
+
     Int_t pikp = -1;
     if(src.m2[it] > 0. && src.m2[it] < 0.10) pikp=0;
     else if(src.m2[it] > 0.10 && src.m2[it] < 0.4) pikp=1;
@@ -1500,7 +1566,6 @@ dst::DstRead( int ievent )
 
     TVector3 posOut(xGlobalSdcOut + event.xout[i], yGlobalSdcOut + event.yout[i], event.zout[i]);
     TVector3 momOut(event.pxout[i], event.pyout[i], event.pzout[i]);
-    //std::cout<<"posOut "<<posOut<<" momOut "<<momOut<<std::endl;
     initPosKurama.push_back(posOut);
     initMomKurama.push_back(momOut);
 
@@ -1526,12 +1591,7 @@ dst::DstRead( int ievent )
   TPCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, clock);
 
   HF1( 1, event.status++ );
-  if(ExclusiveTracking){
-    TPCAna.TrackSearchTPCHelix(vpK18, vpKurama, event.qKurama, true);
-	}
-	else{
-    TPCAna.TrackSearchTPCHelix(vpK18, vpKurama, event.qKurama);
-	}
+  TPCAna.TrackSearchTPCHelix(vpK18, vpKurama, event.qKurama, ExclusiveTracking);
 
   Int_t ntTpc = TPCAna.GetNTracksTPCHelix();
   event.ntTpc = ntTpc;
@@ -1689,12 +1749,6 @@ dst::DstRead( int ievent )
       if(tr_km -> GetTrajectoryResidual(i+PlOffsBcOut+1, resolution, residual)){
 	HF1(TPCK18RKHid+100+i, residual/resolution);
 	HF1(TPCK18RKHid+200+i, residual);
-	/*
-	  TVector3 gpos;
-	  tr_km -> GetTrajectoryGlobalPosition(i+PlOffsBcOut+1, gpos);
-	  std::cout<<"K18RK, BcOut L"<<i<<" gPos "<<gpos<<std::endl
-	  <<" residual "<<residual<<std::endl;
-	*/
       }
     }
 
@@ -1712,15 +1766,6 @@ dst::DstRead( int ievent )
 	HF1(TPCK18RKHid+layer+700, resi_vect.x());
 	HF1(TPCK18RKHid+layer+800, resi_vect.y());
 	HF1(TPCK18RKHid+layer+900, resi_vect.z());
-	/*
-	  TVector3 gpos;
-	  tr_km -> GetTrajectoryGlobalPositionTPC(i, gpos);
-	  std::cout<<"K18RK, order "<<i<<" TPC L"<<tr_km -> GetTPCTrack() -> GetHitInOrder(i) ->  GetLayer()<<std::endl
-	  <<" pos "<<gpos
-	  <<" "<<tr_km -> GetTPCTrack() -> GetHitInOrder(i) ->  GetLocalHitPos()<<std::endl
-	  <<" residual "<<residual
-	  <<"  "<<tr_km -> GetTPCTrack() -> GetHitInOrder(i) ->  GetResidualVect()<<std::endl;
-	*/
       }
     }
 
@@ -1817,7 +1862,6 @@ dst::DstRead( int ievent )
     event.vtgtTPCKurama[idkurama] = vtgt;
     event.thetaTPCKurama[idkurama] = theta;
     event.pathTPCKurama[idkurama] = pathtof;
-    //if(q>0 && event.m2TPCKurama[idkurama] > 0.15 && event.m2TPCKurama[idkurama] < 0.40) event.kflagTPCKurama[idkurama] = 1;
     if(q>0 && event.m2TPCKurama[idkurama] > 0.10 && event.m2TPCKurama[idkurama] < 0.40) event.kflagTPCKurama[idkurama] = 1;
     if(q>0 && event.m2TPCKurama[idkurama] > 0.5 && event.m2TPCKurama[idkurama] < 1.4) event.pflagTPCKurama[idkurama] = 1;
 
@@ -2208,12 +2252,6 @@ dst::DstRead( int ievent )
 		HF1(TPCKuramaRKHid+1100+i, residual/resolution);
 		HF1(TPCKuramaRKHid+1200+i, residual);
 	      }
-	      /*
-	      TVector3 gpos;
-	      trScat -> GetTrajectoryGlobalPosition(i+PlOffsSdcIn+1, gpos);
-	      std::cout<<"KuramaRK, SDCIn L"<<i<<" gPos "<<gpos<<std::endl
-		       <<" residual "<<residual<<" resolution "<<resolution<<std::endl;
-	      */
 	    }
 	  }
 	  for(Int_t i=0; i<NumOfLayersSdcOut; ++i){
@@ -2227,12 +2265,6 @@ dst::DstRead( int ievent )
 		HF1(TPCKuramaRKHid+1300+i, residual/resolution);
 		HF1(TPCKuramaRKHid+1400+i, residual);
 	      }
-	      /*
-	      TVector3 gpos;
-	      trScat -> GetTrajectoryGlobalPosition(i+PlOffsSdcOut+1,  gpos);
-	      std::cout<<"KuramaRK, SDCOut L"<<i<<" gPos "<<gpos<<std::endl
-		       <<" residual "<<residual<<" resolution "<<resolution<<std::endl;
-	      */
 	    }
 	  }
 
@@ -2263,16 +2295,6 @@ dst::DstRead( int ievent )
 		HF1(TPCKuramaRKHid+layer+5200, resi_vect.y());
 		HF1(TPCKuramaRKHid+layer+5300, resi_vect.z());
 	      }
-	      /*
-	      TVector3 gpos;
-	      trScat -> GetTrajectoryGlobalPositionTPC(i,  gpos);
-	      std::cout<<"KuramaRK, order"<<i<<" gPos "<<gpos<<std::endl<<" residual "<<residual<<" resolution "<<resolution<<std::endl;
-	      std::cout<<"helix, TPC L"<<trScat -> GetTPCTrack() -> GetHitInOrder(i) ->  GetLayer()
-		       <<" pos "<<trScat -> GetTPCTrack() -> GetHitInOrder(i) ->  GetLocalHitPos()
-		       <<" alpha "<<trScat -> GetTPCTrack() -> GetAlpha(trScat -> GetTPCTrack() -> GetOrder(i))<<std::endl
-		       <<" residual "<<trScat -> GetTPCTrack() -> GetHitInOrder(i) ->  GetResidualVect()
-		       <<" resolution "<<trScat -> GetTPCTrack() -> GetHitInOrder(i) ->  GetResolutionVect()<<std::endl;
-	      */
 	    }
 	  }
 
@@ -2543,7 +2565,6 @@ dst::DstRead( int ievent )
   }
   HF1( 1, event.status++ );
 
-#if RawHit
   Int_t nh_Tpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
     auto hc = TPCAna.GetTPCHC( layer );
@@ -2566,9 +2587,8 @@ dst::DstRead( int ievent )
       ++nh_Tpc;
     }
   }
-  event.nhTpc = nh_Tpc;
   HF1(1, event.status++);
-#endif
+  event.nhTpc = nh_Tpc;
 
 #if RawCluster
   Int_t nclTpc = 0;
@@ -2745,8 +2765,7 @@ dst::DstRead( int ievent )
 
     HF1(11, nh);
     HF1(12, chisqr);
-    //std::cout<<"nt "<<it<<" "<<tp->GetClosestDist()<<std::endl;
-    //std::cout<<"nt "<<it<<" "<<tp->GetVtxFlag()<<std::endl;
+
 #if TruncatedMean
     event.dEdx_0[it]=tp->GetdEdx(1.0);
     event.dEdx_10[it]=tp->GetdEdx(0.9);
@@ -2923,7 +2942,6 @@ dst::DstRead( int ievent )
       Double_t res_t = TMath::Hypot(res_vect.x(), res_vect.z());
       event.pull[it][ih] = hypot(resi_t/res_t, resi_vect.y()/resi_vect.y());
 
-      if(ExclusiveTracking){
       HF1(TPCInclusiveHid+layer,resi_t);
       HF1(TPCInclusiveHid+100+layer,resi_vect.x());
       HF1(TPCInclusiveHid+200+layer,resi_vect.y());
@@ -2950,84 +2968,84 @@ dst::DstRead( int ievent )
       HF2(TPCInclusiveHid+1100+10000,layer,resi_vect.x()/res_vect.x());
       HF2(TPCInclusiveHid+1200+10000,layer,resi_vect.y()/res_vect.y());
       HF2(TPCInclusiveHid+1300+10000,layer,resi_vect.z()/res_vect.z());
+      if(ExclusiveTracking){
+	const TVector3& exresi_vect = hit->GetResidualVectExclusive();
+	Double_t exresi_x = exresi_vect.x();
+	Double_t exresi_y = exresi_vect.y();
+	Double_t exresi_z = exresi_vect.z();
+	Double_t exresi_t = sign*hypot(exresi_x,exresi_z);
+	event.exresidual_t[it][ih] = exresi_t;
+	event.exresidual_x[it][ih] = exresi_x;
+	event.exresidual_y[it][ih] = exresi_y;
+	event.exresidual_z[it][ih] = exresi_z;
 
-      const TVector3& exresi_vect = hit->GetResidualVectExclusive();
-      Double_t exresi_x = exresi_vect.x();
-      Double_t exresi_y = exresi_vect.y();
-      Double_t exresi_z = exresi_vect.z();
-      Double_t exresi_t = sign*hypot(exresi_x,exresi_z);
-      event.exresidual_t[it][ih] = exresi_t;
-      event.exresidual_x[it][ih] = exresi_x;
-      event.exresidual_y[it][ih] = exresi_y;
-      event.exresidual_z[it][ih] = exresi_z;
+	HF1(TPCExclusiveHid+layer,exresi_t);
+	HF1(TPCExclusiveHid+100+layer,exresi_x);
+	HF1(TPCExclusiveHid+200+layer,exresi_y);
+	HF1(TPCExclusiveHid+300+layer,exresi_z);
+	HF1(TPCExclusiveHid+1000+layer,exresi_t/res_t);
+	HF1(TPCExclusiveHid+1100+layer,exresi_x/res_vect.x());
+	HF1(TPCExclusiveHid+1200+layer,exresi_y/res_vect.y());
+	HF1(TPCExclusiveHid+1300+layer,exresi_z/res_vect.z());
 
-      Double_t intrinsic_resi_t = sqrt(abs(resi_t*exresi_t));
-      Double_t intrinsic_resi_x = sqrt(abs(resi_vect.x()*exresi_x));
-      Double_t intrinsic_resi_y = sqrt(abs(resi_vect.y()*exresi_y));
-      Double_t intrinsic_resi_z = sqrt(abs(resi_vect.z()*exresi_z));
-      if(resi_t<0) intrinsic_resi_t*=-1;
-      if(resi_vect.x()<0) intrinsic_resi_x*=-1;
-      if(resi_vect.y()<0) intrinsic_resi_y*=-1;
-      if(resi_vect.z()<0) intrinsic_resi_z*=-1;
-      event.intrinsic_residual_t[it][ih] = intrinsic_resi_t;
-      event.intrinsic_residual_x[it][ih] = intrinsic_resi_x;
-      event.intrinsic_residual_y[it][ih] = intrinsic_resi_y;
-      event.intrinsic_residual_z[it][ih] = intrinsic_resi_z;
+	HF1(TPCExclusiveHid+32,exresi_t);
+	HF1(TPCExclusiveHid+100+32,exresi_x);
+	HF1(TPCExclusiveHid+200+32,exresi_y);
+	HF1(TPCExclusiveHid+300+32,exresi_z);
+	HF1(TPCExclusiveHid+1000+32,exresi_t/res_t);
+	HF1(TPCExclusiveHid+1100+32,exresi_x/res_vect.x());
+	HF1(TPCExclusiveHid+1200+32,exresi_y/res_vect.y());
+	HF1(TPCExclusiveHid+1300+32,exresi_z/res_vect.z());
 
-      HF1(TPCExclusiveHid+layer,exresi_t);
-      HF1(TPCExclusiveHid+100+layer,exresi_x);
-      HF1(TPCExclusiveHid+200+layer,exresi_y);
-      HF1(TPCExclusiveHid+300+layer,exresi_z);
-      HF1(TPCExclusiveHid+1000+layer,exresi_t/res_t);
-      HF1(TPCExclusiveHid+1100+layer,exresi_x/res_vect.x());
-      HF1(TPCExclusiveHid+1200+layer,exresi_y/res_vect.y());
-      HF1(TPCExclusiveHid+1300+layer,exresi_z/res_vect.z());
+	HF2(TPCExclusiveHid+10000,layer,exresi_t);
+	HF2(TPCExclusiveHid+100+10000,layer,exresi_x);
+	HF2(TPCExclusiveHid+200+10000,layer,exresi_y);
+	HF2(TPCExclusiveHid+300+10000,layer,exresi_z);
+	HF2(TPCExclusiveHid+1000+10000,layer,exresi_t/res_t);
+	HF2(TPCExclusiveHid+1100+10000,layer,exresi_x/res_vect.x());
+	HF2(TPCExclusiveHid+1200+10000,layer,exresi_y/res_vect.y());
+	HF2(TPCExclusiveHid+1300+10000,layer,exresi_z/res_vect.z());
 
-      HF1(TPCExclusiveHid+32,exresi_t);
-      HF1(TPCExclusiveHid+100+32,exresi_x);
-      HF1(TPCExclusiveHid+200+32,exresi_y);
-      HF1(TPCExclusiveHid+300+32,exresi_z);
-      HF1(TPCExclusiveHid+1000+32,exresi_t/res_t);
-      HF1(TPCExclusiveHid+1100+32,exresi_x/res_vect.x());
-      HF1(TPCExclusiveHid+1200+32,exresi_y/res_vect.y());
-      HF1(TPCExclusiveHid+1300+32,exresi_z/res_vect.z());
+	Double_t intrinsic_resi_t = sqrt(abs(resi_t*exresi_t));
+	Double_t intrinsic_resi_x = sqrt(abs(resi_vect.x()*exresi_x));
+	Double_t intrinsic_resi_y = sqrt(abs(resi_vect.y()*exresi_y));
+	Double_t intrinsic_resi_z = sqrt(abs(resi_vect.z()*exresi_z));
+	if(resi_t<0) intrinsic_resi_t*=-1;
+	if(resi_vect.x()<0) intrinsic_resi_x*=-1;
+	if(resi_vect.y()<0) intrinsic_resi_y*=-1;
+	if(resi_vect.z()<0) intrinsic_resi_z*=-1;
+	event.intrinsic_residual_t[it][ih] = intrinsic_resi_t;
+	event.intrinsic_residual_x[it][ih] = intrinsic_resi_x;
+	event.intrinsic_residual_y[it][ih] = intrinsic_resi_y;
+	event.intrinsic_residual_z[it][ih] = intrinsic_resi_z;
 
-      HF2(TPCExclusiveHid+10000,layer,exresi_t);
-      HF2(TPCExclusiveHid+100+10000,layer,exresi_x);
-      HF2(TPCExclusiveHid+200+10000,layer,exresi_y);
-      HF2(TPCExclusiveHid+300+10000,layer,exresi_z);
-      HF2(TPCExclusiveHid+1000+10000,layer,exresi_t/res_t);
-      HF2(TPCExclusiveHid+1100+10000,layer,exresi_x/res_vect.x());
-      HF2(TPCExclusiveHid+1200+10000,layer,exresi_y/res_vect.y());
-      HF2(TPCExclusiveHid+1300+10000,layer,exresi_z/res_vect.z());
+	HF1(TPCIntrinsicHid+layer,intrinsic_resi_t);
+	HF1(TPCIntrinsicHid+100+layer,intrinsic_resi_x);
+	HF1(TPCIntrinsicHid+200+layer,intrinsic_resi_y);
+	HF1(TPCIntrinsicHid+300+layer,intrinsic_resi_z);
+	HF1(TPCIntrinsicHid+1000+layer,intrinsic_resi_t/res_t);
+	HF1(TPCIntrinsicHid+1100+layer,intrinsic_resi_x/res_vect.x());
+	HF1(TPCIntrinsicHid+1200+layer,intrinsic_resi_y/res_vect.y());
+	HF1(TPCIntrinsicHid+1300+layer,intrinsic_resi_z/res_vect.z());
 
-      HF1(TPCIntrinsicHid+layer,intrinsic_resi_t);
-      HF1(TPCIntrinsicHid+100+layer,intrinsic_resi_x);
-      HF1(TPCIntrinsicHid+200+layer,intrinsic_resi_y);
-      HF1(TPCIntrinsicHid+300+layer,intrinsic_resi_z);
-      HF1(TPCIntrinsicHid+1000+layer,intrinsic_resi_t/res_t);
-      HF1(TPCIntrinsicHid+1100+layer,intrinsic_resi_x/res_vect.x());
-      HF1(TPCIntrinsicHid+1200+layer,intrinsic_resi_y/res_vect.y());
-      HF1(TPCIntrinsicHid+1300+layer,intrinsic_resi_z/res_vect.z());
+	HF1(TPCIntrinsicHid+32,intrinsic_resi_t);
+	HF1(TPCIntrinsicHid+100+32,intrinsic_resi_x);
+	HF1(TPCIntrinsicHid+200+32,intrinsic_resi_y);
+	HF1(TPCIntrinsicHid+300+32,intrinsic_resi_z);
+	HF1(TPCIntrinsicHid+1000+32,intrinsic_resi_t/res_t);
+	HF1(TPCIntrinsicHid+1100+32,intrinsic_resi_x/res_vect.x());
+	HF1(TPCIntrinsicHid+1200+32,intrinsic_resi_y/res_vect.y());
+	HF1(TPCIntrinsicHid+1300+32,intrinsic_resi_z/res_vect.z());
 
-      HF1(TPCIntrinsicHid+32,intrinsic_resi_t);
-      HF1(TPCIntrinsicHid+100+32,intrinsic_resi_x);
-      HF1(TPCIntrinsicHid+200+32,intrinsic_resi_y);
-      HF1(TPCIntrinsicHid+300+32,intrinsic_resi_z);
-      HF1(TPCIntrinsicHid+1000+32,intrinsic_resi_t/res_t);
-      HF1(TPCIntrinsicHid+1100+32,intrinsic_resi_x/res_vect.x());
-      HF1(TPCIntrinsicHid+1200+32,intrinsic_resi_y/res_vect.y());
-      HF1(TPCIntrinsicHid+1300+32,intrinsic_resi_z/res_vect.z());
-
-      HF2(TPCIntrinsicHid+10000,layer,intrinsic_resi_t);
-      HF2(TPCIntrinsicHid+100+10000,layer,intrinsic_resi_x);
-      HF2(TPCIntrinsicHid+200+10000,layer,intrinsic_resi_y);
-      HF2(TPCIntrinsicHid+300+10000,layer,intrinsic_resi_z);
-      HF2(TPCIntrinsicHid+1000+10000,layer,intrinsic_resi_t/res_t);
-      HF2(TPCIntrinsicHid+1100+10000,layer,intrinsic_resi_x/res_vect.x());
-      HF2(TPCIntrinsicHid+1200+10000,layer,intrinsic_resi_y/res_vect.y());
-      HF2(TPCIntrinsicHid+1300+10000,layer,intrinsic_resi_z/res_vect.z());
-			}
+	HF2(TPCIntrinsicHid+10000,layer,intrinsic_resi_t);
+	HF2(TPCIntrinsicHid+100+10000,layer,intrinsic_resi_x);
+	HF2(TPCIntrinsicHid+200+10000,layer,intrinsic_resi_y);
+	HF2(TPCIntrinsicHid+300+10000,layer,intrinsic_resi_z);
+	HF2(TPCIntrinsicHid+1000+10000,layer,intrinsic_resi_t/res_t);
+	HF2(TPCIntrinsicHid+1100+10000,layer,intrinsic_resi_x/res_vect.x());
+	HF2(TPCIntrinsicHid+1200+10000,layer,intrinsic_resi_y/res_vect.y());
+	HF2(TPCIntrinsicHid+1300+10000,layer,intrinsic_resi_z/res_vect.z());
+      }
     }
 
     //Inverted charge tracks
@@ -3488,7 +3506,6 @@ ConfMan::InitializeHistograms( void )
     HB1(TPCKuramaVPHid+1300+layer, Form("Q<0, TPC - Kurama Z, layer%d;Z residual [mm];Counts",layer), 500, -100, 100);
   }
 
- if(dst::ExclusiveTracking){
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     HB1(TPCExclusiveHid+layer,	Form("TPC ExclusiveResidual T[mm];layer%d",layer),1000,-10,10);
     HB1(TPCExclusiveHid+100+layer,	Form("TPC ExclusiveResidual X[mm];layer%d",layer),1000,-10,10);
@@ -3508,6 +3525,7 @@ ConfMan::InitializeHistograms( void )
     HB1(TPCIntrinsicHid+1000+200+layer,	Form("TPC IntrinsicPull Y;layer%d",layer),1000,-10,10);
     HB1(TPCIntrinsicHid+1000+300+layer,	Form("TPC IntrinsicPull Z;layer%d",layer),1000,-10,10);
   }
+
   HB1(TPCInclusiveHid+32,	Form("TPC InclusiveResidual T[mm];AllLayer"),1000,-10,10);
   HB1(TPCInclusiveHid+100+32,	Form("TPC InclusiveResidual X[mm];AllLayer"),1000,-10,10);
   HB1(TPCInclusiveHid+200+32,	Form("TPC InclusiveResidual Y[mm];AllLayer"),1000,-10,10);
@@ -3525,15 +3543,6 @@ ConfMan::InitializeHistograms( void )
   HB1(TPCExclusiveHid+1000+100+32,	Form("TPC ExclusivePull X;AllLayer"),1000,-10,10);
   HB1(TPCExclusiveHid+1000+200+32,	Form("TPC ExclusivePull Y;AllLayer"),1000,-10,10);
   HB1(TPCExclusiveHid+1000+300+32,	Form("TPC ExclusivePull Z;AllLayer"),1000,-10,10);
-
-  HB1(TPCIntrinsicHid+32,	Form("TPC IntrinsicResidual T[mm];AllLayer"),1000,-10,10);
-  HB1(TPCIntrinsicHid+100+32,	Form("TPC IntrinsicResidual X[mm];AllLayer"),1000,-10,10);
-  HB1(TPCIntrinsicHid+200+32,	Form("TPC IntrinsicResidual Y[mm];AllLayer"),1000,-10,10);
-  HB1(TPCIntrinsicHid+300+32,	Form("TPC IntrinsicResidual Z[mm];AllLayer"),1000,-10,10);
-  HB1(TPCIntrinsicHid+1000+32,	Form("TPC IntrinsicPull T;AllLayer"),1000,-10,10);
-  HB1(TPCIntrinsicHid+1000+100+32,	Form("TPC IntrinsicPull X;AllLayer"),1000,-10,10);
-  HB1(TPCIntrinsicHid+1000+200+32,	Form("TPC IntrinsicPull Y;AllLayer"),1000,-10,10);
-  HB1(TPCIntrinsicHid+1000+300+32,	Form("TPC IntrinsicPull Z;AllLayer"),1000,-10,10);
 
   HB2(TPCInclusiveHid+10000,	Form("TPC InclusiveResidual T[mm]:Layer"),31,0,31,1000,-10,10);
   HB2(TPCInclusiveHid+100+10000,	Form("TPC InclusiveResidual X[mm]:Layer"),31,0,31,1000,-10,10);
@@ -3561,7 +3570,7 @@ ConfMan::InitializeHistograms( void )
   HB2(TPCIntrinsicHid+1000+100+10000,	Form("TPC IntrinsicPull X:Layer"),31,0,31,1000,-10,10);
   HB2(TPCIntrinsicHid+1000+200+10000,	Form("TPC IntrinsicPull Y:Layer"),31,0,31,1000,-10,10);
   HB2(TPCIntrinsicHid+1000+300+10000,	Form("TPC IntrinsicPull Z:Layer"),31,0,31,1000,-10,10);
-	}
+
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     HB2(TPCKuramaRKHid+layer+6100, Form("Q>0, X residual, layer%d;(Kurama track - TPC cluster) X [mm];(TPCKurama track - TPC cluster) X [mm]",layer), 1000, -20, 20, 1000, -20, 20);
     HB2(TPCKuramaRKHid+layer+6200, Form("Q>0, X residual, layer%d;(Kurama track - TPC cluster) X [mm];(TPC track - TPC cluster) X [mm]",layer), 1000, -20, 20, 1000, -20, 20);
@@ -3754,8 +3763,8 @@ ConfMan::InitializeHistograms( void )
   for(Int_t i=0; i<NumOfSegTOF; ++i){
     for(Int_t ip=0; ip<3; ++ip){
       HB1(10000+(i+1)*100+ip+1,
-          Form("%s, TofTime-%sTime", name[ip].Data(), name[ip].Data()),
-          200, -3., 3.);
+	  Form("%s, TofTime-%sTime", name[ip].Data(), name[ip].Data()),
+	  200, -3., 3.);
     }
   }
 #endif
@@ -3931,8 +3940,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "usTPC", &event.usTPC);
   tree->Branch( "vsTPC", &event.vsTPC);
 
-#if RawHit
   tree->Branch( "nhTpc", &event.nhTpc );
+#if RawHit
   tree->Branch( "raw_hitpos_x", &event.raw_hitpos_x );
   tree->Branch( "raw_hitpos_y", &event.raw_hitpos_y );
   tree->Branch( "raw_hitpos_z", &event.raw_hitpos_z );
@@ -4035,7 +4044,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_y_center", &event.track_cluster_y_center);
   tree->Branch( "track_cluster_z_center", &event.track_cluster_z_center);
   tree->Branch( "track_cluster_row_center", &event.track_cluster_row_center);
-  if(dst:: ExclusiveTracking){
   tree->Branch( "exresidual_t", &event.exresidual_t );
   tree->Branch( "exresidual_x", &event.exresidual_x );
   tree->Branch( "exresidual_y", &event.exresidual_y );
@@ -4044,7 +4052,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "intrinsic_residual_x", &event.intrinsic_residual_x );
   tree->Branch( "intrinsic_residual_y", &event.intrinsic_residual_y );
   tree->Branch( "intrinsic_residual_z", &event.intrinsic_residual_z );
-	}
+
   tree->Branch( "chargeIndistinguishable", &event.chargeIndistinguishable );
   tree->Branch( "chisqr_inverted", &event.chisqr_inverted );
   tree->Branch( "pval_inverted", &event.pval_inverted );
