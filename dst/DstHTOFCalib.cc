@@ -102,6 +102,8 @@ struct Event
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
   std::vector<Int_t> isBeam; // isBeam: 1 = Beam, 0 = Scat
+  std::vector<Int_t> isKurama; // isBeam: 1 = Beam, 0 = Scat
+  std::vector<Int_t> isK18; // isBeam: 1 = Beam, 0 = Scat
   std::vector<Int_t> isAccidental;
   std::vector<Int_t> fittime;  //usec
   std::vector<Int_t> searchtime; //usec
@@ -122,9 +124,11 @@ struct Event
   std::vector<Int_t> charge;//Helix charge
   std::vector<Double_t> path;//Helix path
   std::vector<Int_t> isElectron;
+  std::vector<Double_t> nsigma_deutron;
   std::vector<Double_t> nsigma_proton;
   std::vector<Double_t> nsigma_kaon;
   std::vector<Double_t> nsigma_pion;
+  std::vector<Double_t> nsigma_electron;
 
   std::vector<Int_t> pid;
   std::vector<std::vector<Double_t>> hitlayer;
@@ -156,6 +160,9 @@ struct Event
   std::vector<std::vector<Double_t>> track_cluster_y_center;
   std::vector<std::vector<Double_t>> track_cluster_z_center;
   std::vector<std::vector<Double_t>> track_cluster_row_center;
+
+  std::vector<Int_t> isgoodTPCKurama;
+  std::vector<Double_t> m2TPCKurama;
 
   Int_t nvtxTpc;
   std::vector<Double_t> vtx_x;
@@ -208,6 +215,8 @@ struct Event
     ntTpc = 0;
     nhtrack.clear();
     isBeam.clear();
+    isKurama.clear();
+    isK18.clear();
     isAccidental.clear();
     fittime.clear();
     searchtime.clear();
@@ -230,9 +239,11 @@ struct Event
     path.clear();
     pid.clear();
     isElectron.clear();
+    nsigma_deutron.clear();
     nsigma_proton.clear();
     nsigma_kaon.clear();
     nsigma_pion.clear();
+    nsigma_electron.clear();
 
     hitlayer.clear();
     hitpos_x.clear();
@@ -264,6 +275,9 @@ struct Event
     track_cluster_y_center.clear();
     track_cluster_z_center.clear();
     track_cluster_row_center.clear();
+
+    isgoodTPCKurama.clear();
+    m2TPCKurama.clear();
 
     nvtxTpc = 0;
     vtx_x.clear();
@@ -498,6 +512,8 @@ dst::DstRead( int ievent )
 
   event.nhtrack.resize( ntTpc );
   event.isBeam.resize( ntTpc );
+  event.isKurama.resize( ntTpc );
+  event.isK18.resize( ntTpc );
   event.isAccidental.resize( ntTpc );
   event.fittime.resize( ntTpc );
   event.searchtime.resize( ntTpc );
@@ -520,9 +536,11 @@ dst::DstRead( int ievent )
   event.path.resize( ntTpc );
   event.pid.resize( ntTpc );
   event.isElectron.resize(ntTpc);
+  event.nsigma_deutron.resize(ntTpc);
   event.nsigma_proton.resize(ntTpc);
   event.nsigma_kaon.resize(ntTpc);
   event.nsigma_pion.resize(ntTpc);
+  event.nsigma_electron.resize(ntTpc);
 
   event.hitlayer.resize( ntTpc );
   event.hitpos_x.resize( ntTpc );
@@ -573,6 +591,8 @@ dst::DstRead( int ievent )
 
     event.nhtrack[it] = nh;
     event.isBeam[it] = isbeam;
+    event.isKurama[it] = 0;
+    event.isK18[it] = 0;
     event.isAccidental[it] = isaccidental;
     event.fittime[it] = fittime;
     event.charge[it] = charge;
@@ -595,9 +615,11 @@ dst::DstRead( int ievent )
     event.pid[it] = tp -> GetPid();
     for(int it=0; it<ntTpc; ++it){
       event.isElectron[it] = Kinematics::HypTPCdEdxElectron(event.dEdx[it], event.mom0[it]);
+      event.nsigma_deutron[it] = Kinematics::HypTPCdEdxNsigmaDeutron(event.dEdx[it], event.mom0[it]);
       event.nsigma_proton[it] = Kinematics::HypTPCdEdxNsigmaProton(event.dEdx[it], event.mom0[it]);
       event.nsigma_kaon[it]  = Kinematics::HypTPCdEdxNsigmaKaon(event.dEdx[it], event.mom0[it]);
       event.nsigma_pion[it] = Kinematics::HypTPCdEdxNsigmaPion(event.dEdx[it], event.mom0[it]);
+      event.nsigma_electron[it] = Kinematics::HypTPCdEdxNsigmaElectron(event.dEdx[it], event.mom0[it]);
     }
 
     event.hitlayer[it].resize( nh );
@@ -807,6 +829,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
   tree->Branch( "isBeam", &event.isBeam );
+  tree->Branch( "isKurama", &event.isKurama );
+  tree->Branch( "isK18", &event.isK18 );
   tree->Branch( "isAccidental", &event.isAccidental );
   tree->Branch( "fittime", &event.fittime );
   tree->Branch( "searchtime", &event.searchtime );
@@ -824,9 +848,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dE", &event.dE );
   tree->Branch( "dEdx", &event.dEdx );
   tree->Branch( "isElectron", &event.isElectron );
+  tree->Branch( "nsigma_deutron", &event.nsigma_deutron );
   tree->Branch( "nsigma_proton", &event.nsigma_proton );
   tree->Branch( "nsigma_kaon", &event.nsigma_kaon );
   tree->Branch( "nsigma_pion", &event.nsigma_pion );
+  tree->Branch( "nsigma_electron", &event.nsigma_electron );
 
   tree->Branch( "dz_factor", &event.dz_factor );
   tree->Branch( "charge", &event.charge );
@@ -862,6 +888,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_y_center", &event.track_cluster_y_center);
   tree->Branch( "track_cluster_z_center", &event.track_cluster_z_center);
   tree->Branch( "track_cluster_row_center", &event.track_cluster_row_center);
+
+  tree->Branch( "isgoodTPCKurama", &event.isgoodTPCKurama);
+  tree->Branch( "m2TPCKurama", &event.m2TPCKurama);
 
   tree->Branch( "nvtxTpc", &event.nvtxTpc );
   tree->Branch( "vtx_x", &event.vtx_x );
