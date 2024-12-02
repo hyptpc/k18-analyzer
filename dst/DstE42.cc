@@ -1956,7 +1956,7 @@ dst::DstRead( int ievent )
     event.nsigma_proton[it] = Kinematics::HypTPCdEdxNsigmaProton(event.dEdx[it], event.mom0[it]);
     event.nsigma_kaon[it]  = Kinematics::HypTPCdEdxNsigmaKaon(event.dEdx[it], event.mom0[it]);
     event.nsigma_pion[it] = Kinematics::HypTPCdEdxNsigmaPion(event.dEdx[it], event.mom0[it]);
-    event.nsigma_electron[it] = Kinematics::HypTPCdEdxNsigmaElecton(event.dEdx[it], event.mom0[it]);
+    event.nsigma_electron[it] = Kinematics::HypTPCdEdxNsigmaElectron(event.dEdx[it], event.mom0[it]);
 
     for(int ih=0; ih<event.nhHtof; ++ih){
       HF2(20, event.mom0[it]*event.charge[it], event.path[it]/event.tHtof[ih]/MathTools::C());
@@ -2504,9 +2504,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "mom0", &event.mom0 );
   tree->Branch( "path", &event.path );
   tree->Branch( "isElectron", &event.isElectron );
+  tree->Branch( "nsigma_deutron", &event.nsigma_deutron );
   tree->Branch( "nsigma_proton", &event.nsigma_proton );
   tree->Branch( "nsigma_kaon", &event.nsigma_kaon );
   tree->Branch( "nsigma_pion", &event.nsigma_pion );
+  tree->Branch( "nsigma_electron", &event.nsigma_electron );
 
   tree->Branch( "hitlayer", &event.hitlayer );
   tree->Branch( "hitpos_x", &event.hitpos_x );
