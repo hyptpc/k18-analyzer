@@ -33,14 +33,6 @@
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
 
-#define TrigA 0 //if 1, TrigA is required
-#define TrigB 0
-#define TrigC 0
-#define TrigD 0
-
-#define KKEvent 0
-#define KPEvent 0
-
 #define SaveHistograms 1
 #define RawCluster 1
 
@@ -126,9 +118,11 @@ struct Event
   std::vector<Double_t> mom0; //Helix momentum at Y = 0
   std::vector<Double_t> path; //Helix path
   std::vector<Int_t> isElectron;
+  std::vector<Double_t> nsigma_deutron;
   std::vector<Double_t> nsigma_proton;
   std::vector<Double_t> nsigma_kaon;
   std::vector<Double_t> nsigma_pion;
+  std::vector<Double_t> nsigma_electron;
 
   std::vector<std::vector<Double_t>> hitlayer;
   std::vector<std::vector<Double_t>> hitpos_x;
@@ -299,6 +293,7 @@ struct Event
   std::vector<Double_t> vkp;
   std::vector<Int_t> Kflag;
   std::vector<Int_t> Pflag;
+  std::vector<Int_t> Heavyflag;
 
   //TPC RK
   std::vector<Int_t> isgoodTPCK18;
@@ -442,9 +437,11 @@ struct Event
     mom0.clear();
     path.clear();
     isElectron.clear();
+    nsigma_deutron.clear();
     nsigma_proton.clear();
     nsigma_kaon.clear();
     nsigma_pion.clear();
+    nsigma_electron.clear();
 
     hitlayer.clear();
     hitpos_x.clear();
@@ -614,6 +611,7 @@ struct Event
     vkp.clear();
     Kflag.clear();
     Pflag.clear();
+    Heavyflag.clear();
 
     tpcidTPCK18.clear();
     isgoodTPCK18.clear();
@@ -1017,6 +1015,7 @@ struct Src
   Double_t vkp[MaxHits];
   Int_t Kflag[MaxHits];
   Int_t Pflag[MaxHits];
+  Int_t Heavyflag[MaxHits];
 
 };
 
@@ -1176,6 +1175,9 @@ dst::DstRead( int ievent )
 {
   static const auto MaxChisqrBcOut = gUser.GetParameter("MaxChisqrBcOut");
   static const auto MaxChisqrKurama = gUser.GetParameter("MaxChisqrKurama");
+  static const auto KKEvent = gUser.GetParameter("KKEvent");
+  static const auto KPEvent = gUser.GetParameter("KPEvent");
+  static const auto KHeavyEvent = gUser.GetParameter("KHeavyEvent");
 
   if( ievent%1000==0 ){
     //if( ievent%1==0 ){
@@ -1198,28 +1200,17 @@ dst::DstRead( int ievent )
     event.posHtof.push_back(src.posHtof[it]);
   }
 
-#if TrigA
-  if(event.trigflag[20]<0) return true;
-#endif
-#if TrigB
-  if(event.trigflag[21]<0) return true;
-#endif
-#if TrigC
-  if(event.trigflag[22]<0) return true;
-#endif
-#if TrigD
-  if(event.trigflag[23]<0) return true;
-#endif
-
   if(src.nKK != 1) return true;
-  //if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut || src.inside[0] != 1) return true;
   if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut) return true;
-#if KKEvent
-  if(src.Kflag[0] != 1) return true; //precut with Kurama tracking
-#endif
-#if KPEvent
-  if(src.Pflag[0] != 1) return true; //precut with Kurama tracking
-#endif
+  if(KKEvent && src.Kflag[0] != 1){
+    return true; //precut with Kurama tracking
+  }
+  if(KPEvent && src.Pflag[0] != 1){
+    return true; //precut with Kurama tracking
+  }
+  if(KHeavyEvent && src.Heavyflag[0] != 1){
+    return true; //precut with Kurama tracking
+  }
 
   if(src.ntKurama != **src.ntTPCKurama)
     std::cerr << "Kurama Event Missmatching : DstTPCKuramaK18Tracking <-> DstKScat" << std::endl;
@@ -1382,6 +1373,7 @@ dst::DstRead( int ievent )
     event.vkp.push_back(src.vkp[it]);
     event.Kflag.push_back(src.Kflag[it]);
     event.Pflag.push_back(src.Pflag[it]);
+    event.Heavyflag.push_back(src.Heavyflag[it]);
   }
   event.isgoodTPC = **src.isgoodTPC;
 
@@ -1953,14 +1945,18 @@ dst::DstRead( int ievent )
   event.path = **src.path;
 
   event.isElectron.resize(ntTpc);
+  event.nsigma_deutron.resize(ntTpc);
   event.nsigma_proton.resize(ntTpc);
   event.nsigma_kaon.resize(ntTpc);
   event.nsigma_pion.resize(ntTpc);
+  event.nsigma_electron.resize(ntTpc);
   for(int it=0; it<ntTpc; ++it){
     event.isElectron[it] = Kinematics::HypTPCdEdxElectron(event.dEdx[it], event.mom0[it]);
+    event.nsigma_deutron[it] = Kinematics::HypTPCdEdxNsigmaDeutron(event.dEdx[it], event.mom0[it]);
     event.nsigma_proton[it] = Kinematics::HypTPCdEdxNsigmaProton(event.dEdx[it], event.mom0[it]);
     event.nsigma_kaon[it]  = Kinematics::HypTPCdEdxNsigmaKaon(event.dEdx[it], event.mom0[it]);
     event.nsigma_pion[it] = Kinematics::HypTPCdEdxNsigmaPion(event.dEdx[it], event.mom0[it]);
+    event.nsigma_electron[it] = Kinematics::HypTPCdEdxNsigmaElecton(event.dEdx[it], event.mom0[it]);
 
     for(int ih=0; ih<event.nhHtof; ++ih){
       HF2(20, event.mom0[it]*event.charge[it], event.path[it]/event.tHtof[ih]/MathTools::C());
@@ -2721,6 +2717,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("vs",         &event.vkp);
   tree->Branch("Kflag",      &event.Kflag);
   tree->Branch("Pflag",      &event.Pflag);
+  tree->Branch("Heavyflag",  &event.Heavyflag);
 
   tree->Branch( "isgoodTPC", &event.isgoodTPC);
   tree->Branch( "insideTPC", &event.insideTPC);
@@ -3069,6 +3066,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKScat]->SetBranchStatus("vkp",            1);
   TTreeCont[kKScat]->SetBranchStatus("Kflag",          1);
   TTreeCont[kKScat]->SetBranchStatus("Pflag",          1);
+  TTreeCont[kKScat]->SetBranchStatus("Heavyflag",      1);
 
   TTreeCont[kKScat]->SetBranchAddress("ntK18",    &src.ntK18);
   TTreeCont[kKScat]->SetBranchAddress("chisqrK18", src.chisqrK18);
@@ -3138,6 +3136,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKScat]->SetBranchAddress("vkp",       src.vkp);
   TTreeCont[kKScat]->SetBranchAddress("Kflag",     src.Kflag);
   TTreeCont[kKScat]->SetBranchAddress("Pflag",     src.Pflag);
+  TTreeCont[kKScat]->SetBranchAddress("Heavyflag", src.Heavyflag);
 
   return true;
 }
