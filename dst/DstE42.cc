@@ -33,6 +33,14 @@
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
 
+#define TrigA 0 //if 1, TrigA is required
+#define TrigB 0
+#define TrigC 0
+#define TrigD 0
+
+#define KKEvent 0
+#define KPEvent 0
+
 #define SaveHistograms 1
 #define RawCluster 1
 
@@ -63,6 +71,7 @@ std::vector<TTree*> TTreeCont;
 std::vector<TTreeReader*> TTreeReaderCont;
 Double_t nsigma_m2 = 3.; //M2 cut for TPCKurama RK
 static TString eq_sigmaM2 = "4*TMath::Power([3], 2)*(1.+[3]/(x*x))*[0]+4*TMath::Power([3], 2)*x*x*[1]+4*x*x*(x*x+[3])*[2]";
+static TString eq_M2 = "x*x*[2]+x*[1]+[0]";
 }
 
 //_____________________________________________________________________________
@@ -75,6 +84,7 @@ struct Event
   std::vector<Int_t> trigpat;
   std::vector<Int_t> trigflag;
 
+  Int_t nhTpc; // Number of clusters
   Int_t nclTpc; // Number of clusters
   Int_t remain_nclTpc; // Number of clusters without tracks
   std::vector<Double_t> cluster_x;
@@ -115,6 +125,10 @@ struct Event
   std::vector<Double_t> dEdx; //reference dedx
   std::vector<Double_t> mom0; //Helix momentum at Y = 0
   std::vector<Double_t> path; //Helix path
+  std::vector<Int_t> isElectron;
+  std::vector<Double_t> nsigma_proton;
+  std::vector<Double_t> nsigma_kaon;
+  std::vector<Double_t> nsigma_pion;
 
   std::vector<std::vector<Double_t>> hitlayer;
   std::vector<std::vector<Double_t>> hitpos_x;
@@ -322,6 +336,9 @@ struct Event
   std::vector<Double_t> lhtofTPCKurama;
   std::vector<Double_t> xhtofTPCKurama;
   std::vector<Double_t> yhtofTPCKurama;
+  std::vector<Double_t> lgasvesselTPCKurama;
+  std::vector<Double_t> xgasvesselTPCKurama;
+  std::vector<Double_t> ygasvesselTPCKurama;
   std::vector<std::vector<Double_t>> lvpTPCKurama;
   std::vector<std::vector<Double_t>> xvpTPCKurama;
   std::vector<std::vector<Double_t>> yvpTPCKurama;
@@ -382,6 +399,7 @@ struct Event
     evnum = 0;
     status = 0;
 
+    nhTpc = 0;
     nclTpc = 0;
     remain_nclTpc = 0;
     cluster_x.clear();
@@ -423,6 +441,10 @@ struct Event
     dEdx.clear();
     mom0.clear();
     path.clear();
+    isElectron.clear();
+    nsigma_proton.clear();
+    nsigma_kaon.clear();
+    nsigma_pion.clear();
 
     hitlayer.clear();
     hitpos_x.clear();
@@ -628,6 +650,9 @@ struct Event
     lhtofTPCKurama.clear();
     xhtofTPCKurama.clear();
     yhtofTPCKurama.clear();
+    lgasvesselTPCKurama.clear();
+    xgasvesselTPCKurama.clear();
+    ygasvesselTPCKurama.clear();
     lvpTPCKurama.clear();
     xvpTPCKurama.clear();
     yvpTPCKurama.clear();
@@ -689,6 +714,7 @@ struct Src
   TTreeReaderValue<std::vector<Int_t>>* trigpat;
   TTreeReaderValue<std::vector<Int_t>>* trigflag;
 
+  TTreeReaderValue<Int_t>* nhTpc; // Number of clusters
   TTreeReaderValue<Int_t>* nclTpc; // Number of clusters
   TTreeReaderValue<Int_t>* remain_nclTpc; // Number of clusters without tracks
   TTreeReaderValue<std::vector<Double_t>>* cluster_x;
@@ -849,6 +875,9 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* lhtofTPCKurama;
   TTreeReaderValue<std::vector<Double_t>>* xhtofTPCKurama;
   TTreeReaderValue<std::vector<Double_t>>* yhtofTPCKurama;
+  TTreeReaderValue<std::vector<Double_t>>* lgasvesselTPCKurama;
+  TTreeReaderValue<std::vector<Double_t>>* xgasvesselTPCKurama;
+  TTreeReaderValue<std::vector<Double_t>>* ygasvesselTPCKurama;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* lvpTPCKurama;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* xvpTPCKurama;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* yvpTPCKurama;
@@ -1010,13 +1039,19 @@ TTree *tree;
 
     //Measured values(sigma of M2 spectrum)
     TF1 *f_sigmaM2 = new TF1("f_sigmaM2", eq_sigmaM2.Data(), 0., 5.);
-    f_sigmaM2 -> FixParameter(0, 0.00662971);
-    f_sigmaM2 -> FixParameter(1, -0.0246172);
-    f_sigmaM2 -> FixParameter(2, 0.000133958);
+    f_sigmaM2 -> FixParameter(0, 0.00924299);
+    f_sigmaM2 -> FixParameter(1, -0.0240778);
+    f_sigmaM2 -> FixParameter(2, 0.000131628);
     f_sigmaM2 -> FixParameter(3, pdgmass2);
 
+    TF1 *f_M2 = new TF1("f_M2", eq_M2.Data(), 0., 1.5);
+    f_M2 -> FixParameter(0, 0.0231275);
+    f_M2 -> FixParameter(1, -0.00924397);
+    f_M2 -> FixParameter(2, 0.0123458);
+
     Double_t m2cut = nsigma*TMath::Sqrt(f_sigmaM2 -> Eval(mom)); //nsigma cut for M^2
-    return (TMath::Abs(mass2 - pdgmass2) < m2cut);
+    Double_t measured_m2 = f_M2 -> Eval(mom); //Measured M^2
+    return (TMath::Abs(mass2 - measured_m2) < m2cut);
   }
 
   Bool_t KaonSelection(Double_t mass2, Double_t mom, Double_t nsigma)
@@ -1027,13 +1062,19 @@ TTree *tree;
 
     //Measured values(sigma of M2 spectrum)
     TF1 *f_sigmaM2 = new TF1("f_sigmaM2", eq_sigmaM2.Data(), 0., 5.);
-    f_sigmaM2 -> FixParameter(0, 0.000193292);
-    f_sigmaM2 -> FixParameter(1, -0.000407003);
-    f_sigmaM2 -> FixParameter(2, 0.000134182);
+    f_sigmaM2 -> FixParameter(0, 0.000336597);
+    f_sigmaM2 -> FixParameter(1, -0.000127907);
+    f_sigmaM2 -> FixParameter(2, 0.000117044);
     f_sigmaM2 -> FixParameter(3, pdgmass2);
 
+    TF1 *f_M2 = new TF1("f_M2", eq_M2.Data(), 0., 1.5);
+    f_M2 -> FixParameter(0, 0.262835);
+    f_M2 -> FixParameter(1, -0.0481169);
+    f_M2 -> FixParameter(2, 0.0316721);
+
     Double_t m2cut = nsigma*TMath::Sqrt(f_sigmaM2 -> Eval(mom)); //nsigma cut for M^2
-    return (TMath::Abs(mass2 - pdgmass2) < m2cut);
+    Double_t measured_m2 = f_M2 -> Eval(mom); //Measured M^2
+    return (TMath::Abs(mass2 - measured_m2) < m2cut);
   }
 
   Bool_t ProtonSelection(Double_t mass2, Double_t mom, Double_t nsigma)
@@ -1044,13 +1085,19 @@ TTree *tree;
 
     //Measured values(sigma of M2 spectrum)
     TF1 *f_sigmaM2 = new TF1("f_sigmaM2", eq_sigmaM2.Data(), 0., 5.);
-    f_sigmaM2 -> FixParameter(0, 0.000182219);
-    f_sigmaM2 -> FixParameter(1, -0.000277963);
-    f_sigmaM2 -> FixParameter(2, 0.000182387);
+    f_sigmaM2 -> FixParameter(0, 0.000239995);
+    f_sigmaM2 -> FixParameter(1, -0.000192965);
+    f_sigmaM2 -> FixParameter(2, 0.000149545);
     f_sigmaM2 -> FixParameter(3, pdgmass2);
 
+    TF1 *f_M2 = new TF1("f_M2", eq_M2.Data(), 0., 1.5);
+    f_M2 -> FixParameter(0, 1.02115);
+    f_M2 -> FixParameter(1, -0.281017);
+    f_M2 -> FixParameter(2, 0.136075);
+
     Double_t m2cut = nsigma*TMath::Sqrt(f_sigmaM2 -> Eval(mom)); //nsigma cut for M^2
-    return (TMath::Abs(mass2 - pdgmass2) < m2cut);
+    Double_t measured_m2 = f_M2 -> Eval(mom); //Measured M^2
+    return (TMath::Abs(mass2 - measured_m2) < m2cut);
   }
 
 }
@@ -1129,11 +1176,9 @@ dst::DstRead( int ievent )
 {
   static const auto MaxChisqrBcOut = gUser.GetParameter("MaxChisqrBcOut");
   static const auto MaxChisqrKurama = gUser.GetParameter("MaxChisqrKurama");
-  static const auto KKEvent = gUser.GetParameter("KKEvent");
-  static const auto KPEvent = gUser.GetParameter("KPEvent");
 
-  //if( ievent%1000==0 ){
-  if( ievent%1==0 ){
+  if( ievent%1000==0 ){
+    //if( ievent%1==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
@@ -1153,20 +1198,34 @@ dst::DstRead( int ievent )
     event.posHtof.push_back(src.posHtof[it]);
   }
 
+#if TrigA
+  if(event.trigflag[20]<0) return true;
+#endif
+#if TrigB
+  if(event.trigflag[21]<0) return true;
+#endif
+#if TrigC
+  if(event.trigflag[22]<0) return true;
+#endif
+#if TrigD
+  if(event.trigflag[23]<0) return true;
+#endif
+
   if(src.nKK != 1) return true;
   //if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut || src.inside[0] != 1) return true;
   if(src.chisqrKurama[0] > MaxChisqrKurama || src.chisqrK18[0] > MaxChisqrBcOut) return true;
-  if(KKEvent && src.Kflag[0] != 1){
-    return true; //precut with Kurama tracking
-  }
-  if(KPEvent && src.Pflag[0] != 1){
-    return true; //precut with Kurama tracking
-  }
+#if KKEvent
+  if(src.Kflag[0] != 1) return true; //precut with Kurama tracking
+#endif
+#if KPEvent
+  if(src.Pflag[0] != 1) return true; //precut with Kurama tracking
+#endif
+
   if(src.ntKurama != **src.ntTPCKurama)
     std::cerr << "Kurama Event Missmatching : DstTPCKuramaK18Tracking <-> DstKScat" << std::endl;
   if(src.ntK18 != **src.ntTPCK18)
     std::cerr << "K18 Event Missmatching : DstTPCKuramaK18Tracking <-> DstKScat" << std::endl;
-  
+
   HF1( 1, event.status++ );
   event.ntK18 = src.ntK18;
   for(int it=0; it<src.ntK18; ++it){
@@ -1228,6 +1287,9 @@ dst::DstRead( int ievent )
   event.lhtofTPCKurama = **src.lhtofTPCKurama;
   event.xhtofTPCKurama = **src.xhtofTPCKurama;
   event.yhtofTPCKurama = **src.yhtofTPCKurama;
+  event.lgasvesselTPCKurama = **src.lgasvesselTPCKurama;
+  event.xgasvesselTPCKurama = **src.xgasvesselTPCKurama;
+  event.ygasvesselTPCKurama = **src.ygasvesselTPCKurama;
   event.lvpTPCKurama = **src.lvpTPCKurama;
   event.xvpTPCKurama = **src.xvpTPCKurama;
   event.yvpTPCKurama = **src.yvpTPCKurama;
@@ -1240,6 +1302,8 @@ dst::DstRead( int ievent )
   event.wire = **src.wire;
   event.localhitpos = **src.localhitpos;
   event.wpos = **src.wpos;
+
+  event.insideTPC = **src.insideTPC;
 
   event.m2TPCKurama.resize(src.ntKurama);
   event.piflagTPCKurama.resize(src.ntKurama);
@@ -1287,6 +1351,11 @@ dst::DstRead( int ievent )
 
   HF1( 1, event.status++ );
 
+  event.vtxTPC = **src.vtxTPC;
+  event.vtyTPC = **src.vtyTPC;
+  event.vtzTPC = **src.vtzTPC;
+  event.closeDistTPC = **src.closeDistTPC;
+
   event.nKm = src.nKm;
   event.nKp = src.nKp;
   event.nKK = src.nKK;
@@ -1315,11 +1384,7 @@ dst::DstRead( int ievent )
     event.Pflag.push_back(src.Pflag[it]);
   }
   event.isgoodTPC = **src.isgoodTPC;
-  event.insideTPC = **src.insideTPC;
-  event.vtxTPC = **src.vtxTPC;
-  event.vtyTPC = **src.vtyTPC;
-  event.vtzTPC = **src.vtzTPC;
-  event.closeDistTPC = **src.closeDistTPC;
+
   event.MissMassTPC = **src.MissMassTPC;
   event.MissMassCorrTPC = **src.MissMassCorrTPC;
   event.MissMassCorrDETPC = **src.MissMassCorrDETPC;
@@ -1357,7 +1422,6 @@ dst::DstRead( int ievent )
   event.ysTPC.resize(src.nKK);
   event.usTPC.resize(src.nKK);
   event.vsTPC.resize(src.nKK);
-
   for(Int_t idScat=0; idScat<event.ntKurama; ++idScat){
     for(Int_t idKm=0; idKm<event.ntK18; ++idKm){
       Int_t id = idScat*src.ntK18 + idKm;
@@ -1827,10 +1891,19 @@ dst::DstRead( int ievent )
       }
     }
   }
-  if( **src.ntTpc == 0 )
-    return true;
 
   HF1( 1, event.status++ );
+
+  for(Int_t it=0; it<src.nKK; ++it){
+    Int_t inside = 0;
+    if(event.inside[it]==1 && event.isgoodTPCKurama[it]==1){
+      if(TMath::Abs(event.vtzTPC[it]) < 150.) inside = 1;
+    }
+    event.insideTPC[it] = inside;
+  }
+
+  event.nhTpc = **src.nhTpc;
+  //if( **src.nhTpc == 0 ) return true;
 
   event.nclTpc = **src.nclTpc;
   event.remain_nclTpc = **src.remain_nclTpc;
@@ -1849,6 +1922,9 @@ dst::DstRead( int ievent )
   event.cluster_row_center = **src.cluster_row_center;
   event.cluster_houghflag = **src.cluster_houghflag;
 #endif
+
+  if( **src.ntTpc == 0 )
+    return true;
 
   Int_t ntTpc = **src.ntTpc;
   event.ntTpc = ntTpc;
@@ -1876,7 +1952,16 @@ dst::DstRead( int ievent )
   event.mom0 = **src.mom0;
   event.path = **src.path;
 
+  event.isElectron.resize(ntTpc);
+  event.nsigma_proton.resize(ntTpc);
+  event.nsigma_kaon.resize(ntTpc);
+  event.nsigma_pion.resize(ntTpc);
   for(int it=0; it<ntTpc; ++it){
+    event.isElectron[it] = Kinematics::HypTPCdEdxElectron(event.dEdx[it], event.mom0[it]);
+    event.nsigma_proton[it] = Kinematics::HypTPCdEdxNsigmaProton(event.dEdx[it], event.mom0[it]);
+    event.nsigma_kaon[it]  = Kinematics::HypTPCdEdxNsigmaKaon(event.dEdx[it], event.mom0[it]);
+    event.nsigma_pion[it] = Kinematics::HypTPCdEdxNsigmaPion(event.dEdx[it], event.mom0[it]);
+
     for(int ih=0; ih<event.nhHtof; ++ih){
       HF2(20, event.mom0[it]*event.charge[it], event.path[it]/event.tHtof[ih]/MathTools::C());
     }
@@ -2379,6 +2464,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "deHtof", &event.deHtof );
   tree->Branch( "posHtof", &event.posHtof );
 
+  tree->Branch( "nhTpc", &event.nhTpc );
   tree->Branch( "nclTpc", &event.nclTpc );
   tree->Branch( "remain_nclTpc", &event.remain_nclTpc );
 #if RawCluster
@@ -2421,6 +2507,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dEdx", &event.dEdx );
   tree->Branch( "mom0", &event.mom0 );
   tree->Branch( "path", &event.path );
+  tree->Branch( "isElectron", &event.isElectron );
+  tree->Branch( "nsigma_proton", &event.nsigma_proton );
+  tree->Branch( "nsigma_kaon", &event.nsigma_kaon );
+  tree->Branch( "nsigma_pion", &event.nsigma_pion );
 
   tree->Branch( "hitlayer", &event.hitlayer );
   tree->Branch( "hitpos_x", &event.hitpos_x );
@@ -2545,7 +2635,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "xvpTPCK18", &event.xvpTPCK18);
   tree->Branch( "yvpTPCK18", &event.yvpTPCK18);
 
-  tree->Branch("ntKurama",     &event.ntKurama);
+  tree->Branch( "ntKurama",     &event.ntKurama);
   tree->Branch( "chisqrKurama", &event.chisqrKurama);
   tree->Branch( "pKurama",      &event.pKurama);
   tree->Branch( "qKurama",      &event.qKurama);
@@ -2557,6 +2647,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "vtgtKurama",   &event.vtgtKurama);
   tree->Branch( "thetaKurama",  &event.thetaKurama);
   tree->Branch( "pathKurama",  &event.pathKurama);
+  tree->Branch( "cstof",  &event.cstof);
   tree->Branch( "pathwcKurama",  &event.pathwcKurama);
   tree->Branch( "xvpKurama",    &event.xvpKurama);
   tree->Branch( "yvpKurama",    &event.yvpKurama);
@@ -2598,6 +2689,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "lhtofTPCKurama", &event.lhtofTPCKurama);
   tree->Branch( "xhtofTPCKurama", &event.xhtofTPCKurama);
   tree->Branch( "yhtofTPCKurama", &event.yhtofTPCKurama);
+  tree->Branch( "lgasvesselTPCKurama", &event.lgasvesselTPCKurama);
+  tree->Branch( "xgasvesselTPCKurama", &event.xgasvesselTPCKurama);
+  tree->Branch( "ygasvesselTPCKurama", &event.ygasvesselTPCKurama);
   tree->Branch( "lvpTPCKurama", &event.lvpTPCKurama);
   tree->Branch( "xvpTPCKurama", &event.xvpTPCKurama);
   tree->Branch( "yvpTPCKurama", &event.yvpTPCKurama);
@@ -2676,6 +2770,7 @@ ConfMan::InitializeHistograms( void )
   src.trigpat = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trigpat" );
   src.trigflag = new TTreeReaderValue<std::vector<Int_t>>( *reader, "trigflag" );
 
+  src.nhTpc = new TTreeReaderValue<Int_t>( *reader, "nhTpc" );
   src.nclTpc = new TTreeReaderValue<Int_t>( *reader, "nclTpc" );
   src.remain_nclTpc = new TTreeReaderValue<Int_t>( *reader, "remain_nclTpc" );
 #if RawCluster
@@ -2835,6 +2930,9 @@ ConfMan::InitializeHistograms( void )
   src.lhtofTPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "lhtofTPCKurama" );
   src.xhtofTPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "xhtofTPCKurama" );
   src.yhtofTPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "yhtofTPCKurama" );
+  src.lgasvesselTPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "lgasvesselTPCKurama" );
+  src.xgasvesselTPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "xgasvesselTPCKurama" );
+  src.ygasvesselTPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "ygasvesselTPCKurama" );
   src.lvpTPCKurama = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "lvpTPCKurama" );
   src.xvpTPCKurama = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "xvpTPCKurama" );
   src.yvpTPCKurama = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "yvpTPCKurama" );
