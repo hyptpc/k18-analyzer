@@ -34,24 +34,23 @@ const Double_t TARGETsizeZ   = 15.0/2.0;
 const Double_t TARGETcenterX = 0.0;
 const Double_t TARGETcenterY = 0.0;
 const Double_t TARGETradius  = 67.3/2.0; //Legacy (Not E42 target)
-/* // w/o Z + 6 mm Correction
-const Double_t conversion_factor = 12015.2; //HypTPC's ADC to <dE/dx>
-const Double_t sigma_dedx_p[3] = {38.19, -31.62, 8.002};
-const Double_t sigma_dedx_pi[3] = {7.546, -6.88, 3.243};
-*/
-// w/ Z + 6 mm Correction
+
 const Double_t conversion_factor = 12171.3; //HypTPC's ADC to <dE/dx>
 const Double_t sigma_dedx_pi[5] = {3.94842, 0.0138502, -0.110281, 12.6065, -10.9347};
 const Double_t sigma_dedx_k[5] = {11.6236, -13.0881, 5.87474, 79.3014, -8.1508};
 const Double_t sigma_dedx_p[5] = {12.9717, -8.43799, 3.10608, 166.494, -6.56123};
-const Double_t sigma_dedx_d[5] = {129.749, -193.443, 81.294, 0, 0};
+const Double_t sigma_dedx_d[5] = {27.8118, -14.2482, 2.36752, 399.575, -4.65145};
+const Double_t sigma_dedx_t[5] = {62.8747, -42.0368, 9.58947, 0, 0};
+const Double_t offset_dedx_d = 6.89672;
+const Double_t offset_dedx_t = 19.4474;
 const Double_t sigma_dedx_ep = 7.8511;
 const Double_t sigma_dedx_em = 8.45029;
 
-const Double_t sigma_tof_pi[5] = {-0.757751, -0.505989, -0.370075, 0.889185, 0.683582};
+const Double_t sigma_tof_pi[5] = {0.450116, 0.0918938, 2.46676e-06, -0.294671, 0.33648};
 const Double_t sigma_tof_k[5] = {0.182332, 0.034016, 0.00205111, -1.22288e-07, 8.16343};
 const Double_t sigma_tof_p[5] = {0.150481, -0.0433547, 0.0221499, 1.90992, -10.1773};
-const Double_t sigma_tof_d[5] = {0.535988, -0.593612, 0.302649, 0, 0};
+const Double_t sigma_tof_d[5] = {0.355095, -0.143393, 0.0360795, 0, 0};
+const Double_t sigma_tof_t[5] = {0.555571, -0.414357, 0.136707, 0, 0};
 const Double_t sigma_tof_ep = 0.129776;
 const Double_t sigma_tof_em = 0.14181;
 const Double_t offset_tof_ep = -0.237853;
@@ -1123,7 +1122,8 @@ Double_t HypTPCdEdxNsigmaProton(Double_t dedx, Double_t poq){
   Double_t par_p[2] = {conversion_factor, mp};
   Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
   // 1 sigma of <dE/dx>_p
-  Double_t sigma_p = (sigma_dedx_p[0] + sigma_dedx_p[1]*TMath::Abs(poq) + sigma_dedx_p[2]*poq*poq + sigma_dedx_p[3]*TMath::Exp(sigma_dedx_p[4]*TMath::Abs(poq)));
+  Double_t sigma_p = (sigma_dedx_p[0] + sigma_dedx_p[1]*TMath::Abs(poq) +
+		      sigma_dedx_p[2]*poq*poq + sigma_dedx_p[3]*TMath::Exp(sigma_dedx_p[4]*TMath::Abs(poq)));
 
   Double_t nsigma = (dedx-dedx_p)/sigma_p;
   return nsigma;
@@ -1134,11 +1134,26 @@ Double_t HypTPCdEdxNsigmaDeutron(Double_t dedx, Double_t poq){
 
   Double_t md = 1875.612762;
   Double_t par_d[2] = {conversion_factor, md};
-  Double_t dedx_d = HypTPCBethe(&poq, par_d); //P10's <dE/dx>_d
+  Double_t dedx_d = HypTPCBethe(&poq, par_d) + offset_dedx_d; //P10's <dE/dx>_d
   // 1 sigma of <dE/dx>_d
-  Double_t sigma_d = (sigma_dedx_d[0] + sigma_dedx_d[1]*TMath::Abs(poq) + sigma_dedx_d[2]*poq*poq + sigma_dedx_d[3]*TMath::Exp(sigma_dedx_d[4]*TMath::Abs(poq)));
+  Double_t sigma_d = (sigma_dedx_d[0] + sigma_dedx_d[1]*TMath::Abs(poq) +
+		      sigma_dedx_d[2]*poq*poq + sigma_dedx_d[3]*TMath::Exp(sigma_dedx_d[4]*TMath::Abs(poq)));
 
   Double_t nsigma = (dedx-dedx_d)/sigma_d;
+  return nsigma;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCdEdxNsigmaTriton(Double_t dedx, Double_t poq){
+
+  Double_t mt = 2808.921112;
+  Double_t par_t[2] = {conversion_factor, mt};
+  Double_t dedx_t = HypTPCBethe(&poq, par_t) + offset_dedx_t; //P10's <dE/dx>_t
+  // 1 sigma of <dE/dx>_t
+  Double_t sigma_t = (sigma_dedx_t[0] + sigma_dedx_t[1]*TMath::Abs(poq) +
+		      sigma_dedx_t[2]*poq*poq + sigma_dedx_t[3]*TMath::Exp(sigma_dedx_t[4]*TMath::Abs(poq)));
+
+  Double_t nsigma = (dedx-dedx_t)/sigma_t;
   return nsigma;
 }
 
@@ -1149,7 +1164,8 @@ Double_t HypTPCdEdxNsigmaKaon(Double_t dedx, Double_t poq){
   Double_t par_k[2] = {conversion_factor, mk};
   Double_t dedx_k = HypTPCBethe(&poq, par_k); //P10's <dE/dx>_k
   // 1 sigma of <dE/dx>_k
-  Double_t sigma_k = (sigma_dedx_k[0] + sigma_dedx_k[1]*TMath::Abs(poq) + sigma_dedx_k[2]*poq*poq + sigma_dedx_k[3]*TMath::Exp(sigma_dedx_k[4]*TMath::Abs(poq)));
+  Double_t sigma_k = (sigma_dedx_k[0] + sigma_dedx_k[1]*TMath::Abs(poq) +
+		      sigma_dedx_k[2]*poq*poq + sigma_dedx_k[3]*TMath::Exp(sigma_dedx_k[4]*TMath::Abs(poq)));
 
   Double_t nsigma = (dedx-dedx_k)/sigma_k;
   return nsigma;
@@ -1159,10 +1175,11 @@ Double_t HypTPCdEdxNsigmaKaon(Double_t dedx, Double_t poq){
 Double_t HypTPCdEdxNsigmaPion(Double_t dedx, Double_t poq){
 
   Double_t mpi = 139.57039;
-  // 1 sigma of <dE/dx>_pi
   Double_t par_pi[2] = {conversion_factor, mpi};
   Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
-  Double_t sigma_pi = (sigma_dedx_pi[0] + sigma_dedx_pi[1]*TMath::Abs(poq) + sigma_dedx_pi[2]*poq*poq + sigma_dedx_pi[3]*TMath::Exp(sigma_dedx_pi[4]*TMath::Abs(poq)));
+  // 1 sigma of <dE/dx>_pi
+  Double_t sigma_pi = (sigma_dedx_pi[0] + sigma_dedx_pi[1]*TMath::Abs(poq) +
+		       sigma_dedx_pi[2]*poq*poq + sigma_dedx_pi[3]*TMath::Exp(sigma_dedx_pi[4]*TMath::Abs(poq)));
 
   Double_t nsigma = (dedx-dedx_pi)/sigma_pi;
   return nsigma;
@@ -1171,10 +1188,10 @@ Double_t HypTPCdEdxNsigmaPion(Double_t dedx, Double_t poq){
 //_____________________________________________________________________________
 Double_t HypTPCdEdxNsigmaElectron(Double_t dedx, Double_t poq){
 
-  // 1 sigma of <dE/dx>_e
   Double_t me = 0.5109989461; //[MeV]
   Double_t par_e[2] = {conversion_factor, me};
   Double_t dedx_e = HypTPCBethe(&poq, par_e); //P10's <dE/dx>_e
+  // 1 sigma of <dE/dx>_e
   Double_t sigma_dedx_e = poq>0 ? sigma_dedx_ep : sigma_dedx_em;
 
   Double_t nsigma = (dedx-dedx_e)/sigma_dedx_e;
@@ -1188,7 +1205,8 @@ Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t tracklength, Double_t tof
   Double_t mp = 0.001*938.2720813;
   Double_t invert_beta = tof*MathTools::C()/tracklength;
   Double_t invert_beta_p = TMath::Sqrt(mp*mp + mom*mom)/mom;
-  Double_t sigma_p = (sigma_tof_p[0] + sigma_tof_p[1]*TMath::Abs(mom) + sigma_tof_p[2]*mom*mom + sigma_tof_p[3]*TMath::Exp(sigma_tof_p[4]*TMath::Abs(mom)));
+  Double_t sigma_p = (sigma_tof_p[0] + sigma_tof_p[1]*TMath::Abs(mom) +
+		      sigma_tof_p[2]*mom*mom + sigma_tof_p[3]*TMath::Exp(sigma_tof_p[4]*TMath::Abs(mom)));
 
   double nsigma = (invert_beta-invert_beta_p)/sigma_p;
   return nsigma;
@@ -1201,9 +1219,24 @@ Double_t HypTPCHTOFNsigmaDeutron(Double_t poq, Double_t tracklength, Double_t to
   Double_t md = 0.001*1875.612762;
   Double_t invert_beta = tof*MathTools::C()/tracklength;
   Double_t invert_beta_d = TMath::Sqrt(md*md + mom*mom)/mom;
-  Double_t sigma_d = (sigma_tof_d[0] + sigma_tof_d[1]*TMath::Abs(mom) + sigma_tof_d[2]*mom*mom + sigma_tof_d[3]*TMath::Exp(sigma_tof_d[4]*TMath::Abs(mom)));
+  Double_t sigma_d = (sigma_tof_d[0] + sigma_tof_d[1]*TMath::Abs(mom) +
+		      sigma_tof_d[2]*mom*mom + sigma_tof_d[3]*TMath::Exp(sigma_tof_d[4]*TMath::Abs(mom)));
 
   double nsigma = (invert_beta-invert_beta_d)/sigma_d;
+  return nsigma;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCHTOFNsigmaTriton(Double_t poq, Double_t tracklength, Double_t tof){
+
+  Double_t mom = TMath::Abs(poq);
+  Double_t mt = 0.001*2808.921112;
+  Double_t invert_beta = tof*MathTools::C()/tracklength;
+  Double_t invert_beta_t = TMath::Sqrt(mt*mt + mom*mom)/mom;
+  Double_t sigma_t = (sigma_tof_t[0] + sigma_tof_t[1]*TMath::Abs(mom) +
+		      sigma_tof_t[2]*mom*mom + sigma_tof_t[3]*TMath::Exp(sigma_tof_t[4]*TMath::Abs(mom)));
+
+  double nsigma = (invert_beta-invert_beta_t)/sigma_t;
   return nsigma;
 }
 
@@ -1214,7 +1247,8 @@ Double_t HypTPCHTOFNsigmaKaon(Double_t poq, Double_t tracklength, Double_t tof){
   Double_t mk = 0.001*493.677;
   Double_t invert_beta = tof*MathTools::C()/tracklength;
   Double_t invert_beta_k = TMath::Sqrt(mk*mk + mom*mom)/mom;
-  Double_t sigma_k = (sigma_tof_k[0] + sigma_tof_k[1]*TMath::Abs(mom) + sigma_tof_k[2]*mom*mom + sigma_tof_k[3]*TMath::Exp(sigma_tof_k[4]*TMath::Abs(mom)));
+  Double_t sigma_k = (sigma_tof_k[0] + sigma_tof_k[1]*TMath::Abs(mom) +
+		      sigma_tof_k[2]*mom*mom + sigma_tof_k[3]*TMath::Exp(sigma_tof_k[4]*TMath::Abs(mom)));
 
   double nsigma = (invert_beta-invert_beta_k)/sigma_k;
   return nsigma;
@@ -1227,7 +1261,8 @@ Double_t HypTPCHTOFNsigmaPion(Double_t poq, Double_t tracklength, Double_t tof){
   Double_t mpi = 0.001*139.57039;
   Double_t invert_beta = tof*MathTools::C()/tracklength;
   Double_t invert_beta_pi = TMath::Sqrt(mpi*mpi + mom*mom)/mom;
-  Double_t sigma_pi = (sigma_tof_pi[0] + sigma_tof_pi[1]*TMath::Abs(mom) + sigma_tof_pi[2]*mom*mom + sigma_tof_pi[3]*TMath::Exp(sigma_tof_pi[4]*TMath::Abs(mom)));
+  Double_t sigma_pi = (sigma_tof_pi[0] + sigma_tof_pi[1]*TMath::Abs(mom) +
+		       sigma_tof_pi[2]*mom*mom + sigma_tof_pi[3]*TMath::Exp(sigma_tof_pi[4]*TMath::Abs(mom)));
 
   double nsigma = (invert_beta-invert_beta_pi)/sigma_pi;
   return nsigma;

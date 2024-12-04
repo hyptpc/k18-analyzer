@@ -79,6 +79,7 @@ namespace Kinematics
   Bool_t HypTPCdEdxPID_IsKaonTemp(Double_t dedx, Double_t poq); //temporary
   Double_t HypTPCdEdxNsigmaProton(Double_t dedx, Double_t poq);
   Double_t HypTPCdEdxNsigmaDeutron(Double_t dedx, Double_t poq);
+  Double_t HypTPCdEdxNsigmaTriton(Double_t dedx, Double_t poq);
   Double_t HypTPCdEdxNsigmaKaon(Double_t dedx, Double_t poq);
   Double_t HypTPCdEdxNsigmaPion(Double_t dedx, Double_t poq);
   Double_t HypTPCdEdxNsigmaElectron(Double_t dedx, Double_t poq);
@@ -90,6 +91,7 @@ namespace Kinematics
   //For HTOF pid
   Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t tracklength, Double_t tof);
   Double_t HypTPCHTOFNsigmaDeutron(Double_t poq, Double_t tracklength, Double_t tof);
+  Double_t HypTPCHTOFNsigmaTriton(Double_t poq, Double_t tracklength, Double_t tof);
   Double_t HypTPCHTOFNsigmaKaon(Double_t poq, Double_t tracklength, Double_t tof);
   Double_t HypTPCHTOFNsigmaPion(Double_t poq, Double_t tracklength, Double_t tof);
   Double_t HypTPCHTOFNsigmaElectron(Double_t poq, Double_t tracklength, Double_t tof);
