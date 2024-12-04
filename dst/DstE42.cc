@@ -118,6 +118,7 @@ struct Event
   std::vector<Double_t> mom0; //Helix momentum at Y = 0
   std::vector<Double_t> path; //Helix path
   std::vector<Int_t> isElectron;
+  std::vector<Double_t> nsigma_triton;
   std::vector<Double_t> nsigma_deutron;
   std::vector<Double_t> nsigma_proton;
   std::vector<Double_t> nsigma_kaon;
@@ -437,6 +438,7 @@ struct Event
     mom0.clear();
     path.clear();
     isElectron.clear();
+    nsigma_triton.clear();
     nsigma_deutron.clear();
     nsigma_proton.clear();
     nsigma_kaon.clear();
@@ -1945,6 +1947,7 @@ dst::DstRead( int ievent )
   event.path = **src.path;
 
   event.isElectron.resize(ntTpc);
+  event.nsigma_triton.resize(ntTpc);
   event.nsigma_deutron.resize(ntTpc);
   event.nsigma_proton.resize(ntTpc);
   event.nsigma_kaon.resize(ntTpc);
@@ -1952,6 +1955,7 @@ dst::DstRead( int ievent )
   event.nsigma_electron.resize(ntTpc);
   for(int it=0; it<ntTpc; ++it){
     event.isElectron[it] = Kinematics::HypTPCdEdxElectron(event.dEdx[it], event.mom0[it]);
+    event.nsigma_triton[it] = Kinematics::HypTPCdEdxNsigmaTriton(event.dEdx[it], event.mom0[it]);
     event.nsigma_deutron[it] = Kinematics::HypTPCdEdxNsigmaDeutron(event.dEdx[it], event.mom0[it]);
     event.nsigma_proton[it] = Kinematics::HypTPCdEdxNsigmaProton(event.dEdx[it], event.mom0[it]);
     event.nsigma_kaon[it]  = Kinematics::HypTPCdEdxNsigmaKaon(event.dEdx[it], event.mom0[it]);
@@ -2504,6 +2508,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "mom0", &event.mom0 );
   tree->Branch( "path", &event.path );
   tree->Branch( "isElectron", &event.isElectron );
+  tree->Branch( "nsigma_triton", &event.nsigma_triton );
   tree->Branch( "nsigma_deutron", &event.nsigma_deutron );
   tree->Branch( "nsigma_proton", &event.nsigma_proton );
   tree->Branch( "nsigma_kaon", &event.nsigma_kaon );

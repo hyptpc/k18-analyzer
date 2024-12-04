@@ -36,8 +36,6 @@
 #include "HypTPCFitter.hh"
 #include "HypTPCTask.hh"
 
-#define RawHit 0
-
 namespace
 {
 using namespace root;
@@ -108,7 +106,9 @@ struct Event
 
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
-  std::vector<Int_t> isBeam; // isBeam: 1 = Beam, 0 = Scat
+  std::vector<Int_t> isBeam;
+  std::vector<Int_t> isKurama;
+  std::vector<Int_t> isK18;
   std::vector<Int_t> isAccidental;
   std::vector<Int_t> fittime;  //usec
   std::vector<Int_t> searchtime; //usec
@@ -130,9 +130,12 @@ struct Event
   std::vector<Double_t> path;//Helix path
   std::vector<Int_t> pid;
   std::vector<Int_t> isElectron;
+  std::vector<Double_t> nsigma_triton;
+  std::vector<Double_t> nsigma_deutron;
   std::vector<Double_t> nsigma_proton;
   std::vector<Double_t> nsigma_kaon;
   std::vector<Double_t> nsigma_pion;
+  std::vector<Double_t> nsigma_electron;
 
   std::vector<std::vector<Double_t>> hitlayer;
   std::vector<std::vector<Double_t>> hitpos_x;
@@ -163,6 +166,9 @@ struct Event
   std::vector<std::vector<Double_t>> track_cluster_y_center;
   std::vector<std::vector<Double_t>> track_cluster_z_center;
   std::vector<std::vector<Double_t>> track_cluster_row_center;
+
+  std::vector<Int_t> isgoodTPCKurama;
+  std::vector<Double_t> m2TPCKurama;
 
   Int_t nvtxTpc;
   std::vector<Double_t> vtx_x;
@@ -236,6 +242,14 @@ struct Event
   std::vector<Double_t> GFposx;
   std::vector<Double_t> GFposy;
   std::vector<Double_t> GFposz;
+  std::vector<Double_t> GFinvbeta;
+  std::vector<Double_t> GFm2;
+  std::vector<Double_t> nsigma_tritonHtof;
+  std::vector<Double_t> nsigma_deutronHtof;
+  std::vector<Double_t> nsigma_protonHtof;
+  std::vector<Double_t> nsigma_kaonHtof;
+  std::vector<Double_t> nsigma_pionHtof;
+  std::vector<Double_t> nsigma_electronHtof;
 
   std::vector<Double_t> GFmom_p;
   std::vector<Double_t> GFtracklen_p;
@@ -248,6 +262,8 @@ struct Event
   std::vector<Double_t> GFposx_p;
   std::vector<Double_t> GFposy_p;
   std::vector<Double_t> GFposz_p;
+  std::vector<Double_t> GFinvbeta_p;
+  std::vector<Double_t> GFm2_p;
 
   std::vector<Double_t> GFmom_pi;
   std::vector<Double_t> GFtracklen_pi;
@@ -260,6 +276,8 @@ struct Event
   std::vector<Double_t> GFposx_pi;
   std::vector<Double_t> GFposy_pi;
   std::vector<Double_t> GFposz_pi;
+  std::vector<Double_t> GFinvbeta_pi;
+  std::vector<Double_t> GFm2_pi;
 
   void clear( void )
   {
@@ -296,6 +314,8 @@ struct Event
     ntTpc = 0;
     nhtrack.clear();
     isBeam.clear();
+    isKurama.clear();
+    isK18.clear();
     isAccidental.clear();
     fittime.clear();
     searchtime.clear();
@@ -318,9 +338,12 @@ struct Event
     path.clear();
     pid.clear();
     isElectron.clear();
+    nsigma_triton.clear();
+    nsigma_deutron.clear();
     nsigma_proton.clear();
     nsigma_kaon.clear();
     nsigma_pion.clear();
+    nsigma_electron.clear();
 
     hitlayer.clear();
     hitpos_x.clear();
@@ -352,6 +375,9 @@ struct Event
     track_cluster_y_center.clear();
     track_cluster_z_center.clear();
     track_cluster_row_center.clear();
+
+    isgoodTPCKurama.clear();
+    m2TPCKurama.clear();
 
     nvtxTpc = 0;
     vtx_x.clear();
@@ -425,6 +451,14 @@ struct Event
     GFposx.clear();
     GFposy.clear();
     GFposz.clear();
+    GFinvbeta.clear();
+    GFm2.clear();
+    nsigma_tritonHtof.clear();
+    nsigma_deutronHtof.clear();
+    nsigma_protonHtof.clear();
+    nsigma_kaonHtof.clear();
+    nsigma_pionHtof.clear();
+    nsigma_electronHtof.clear();
 
     GFmom_p.clear();
     GFtracklen_p.clear();
@@ -437,6 +471,8 @@ struct Event
     GFposx_p.clear();
     GFposy_p.clear();
     GFposz_p.clear();
+    GFinvbeta_p.clear();
+    GFm2_p.clear();
 
     GFmom_pi.clear();
     GFtracklen_pi.clear();
@@ -449,6 +485,8 @@ struct Event
     GFposx_pi.clear();
     GFposy_pi.clear();
     GFposz_pi.clear();
+    GFinvbeta_pi.clear();
+    GFm2_pi.clear();
   }
 };
 
@@ -478,6 +516,8 @@ struct Src
   TTreeReaderValue<Int_t>* ntTpc; // Number of Tracks
   TTreeReaderValue<std::vector<Int_t>>* nhtrack; // Number of Hits (in 1 tracks)
   TTreeReaderValue<std::vector<Int_t>>* isBeam;
+  TTreeReaderValue<std::vector<Int_t>>* isKurama;
+  TTreeReaderValue<std::vector<Int_t>>* isK18;
   TTreeReaderValue<std::vector<Int_t>>* isAccidental;
   TTreeReaderValue<std::vector<Int_t>>* fittime;
   TTreeReaderValue<std::vector<Int_t>>* searchtime;
@@ -498,10 +538,6 @@ struct Src
   TTreeReaderValue<std::vector<Int_t>>* charge;//Helix charge
   TTreeReaderValue<std::vector<Double_t>>* path;//Helix path
   TTreeReaderValue<std::vector<Int_t>>* pid;
-  TTreeReaderValue<std::vector<Int_t>>* isElectron;
-  TTreeReaderValue<std::vector<Double_t>>* nsigma_proton;
-  TTreeReaderValue<std::vector<Double_t>>* nsigma_kaon;
-  TTreeReaderValue<std::vector<Double_t>>* nsigma_pion;
 
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* hitlayer;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* hitpos_x;
@@ -532,6 +568,9 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_y_center;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_z_center;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_row_center;
+
+  TTreeReaderValue<std::vector<Int_t>>* isgoodTPCKurama;
+  TTreeReaderValue<std::vector<Double_t>>* m2TPCKurama;
 
   TTreeReaderValue<Int_t>* nvtxTpc;
   TTreeReaderValue<std::vector<Double_t>>* vtx_x;
@@ -703,6 +742,8 @@ dst::DstRead( int ievent )
   event.ntTpc = ntTpc;
   event.nhtrack = **src.nhtrack;
   event.isBeam = **src.isBeam;
+  event.isKurama = **src.isKurama;
+  event.isK18 = **src.isK18;
   event.isAccidental = **src.isAccidental;
   event.fittime = **src.fittime;
   event.searchtime = **src.searchtime;
@@ -755,15 +796,24 @@ dst::DstRead( int ievent )
   event.track_cluster_z_center = **src.track_cluster_z_center;
   event.track_cluster_row_center = **src.track_cluster_row_center;
 
+  event.isgoodTPCKurama = **src.isgoodTPCKurama;
+  event.m2TPCKurama = **src.m2TPCKurama;
+
   event.isElectron.resize(ntTpc);
+  event.nsigma_triton.resize(ntTpc);
+  event.nsigma_deutron.resize(ntTpc);
   event.nsigma_proton.resize(ntTpc);
   event.nsigma_kaon.resize(ntTpc);
   event.nsigma_pion.resize(ntTpc);
+  event.nsigma_electron.resize(ntTpc);
   for(int it=0; it<ntTpc; ++it){
     event.isElectron[it] = Kinematics::HypTPCdEdxElectron(event.dEdx[it], event.mom0[it]);
+    event.nsigma_triton[it] = Kinematics::HypTPCdEdxNsigmaTriton(event.dEdx[it], event.mom0[it]);
+    event.nsigma_deutron[it] = Kinematics::HypTPCdEdxNsigmaDeutron(event.dEdx[it], event.mom0[it]);
     event.nsigma_proton[it] = Kinematics::HypTPCdEdxNsigmaProton(event.dEdx[it], event.mom0[it]);
     event.nsigma_kaon[it]  = Kinematics::HypTPCdEdxNsigmaKaon(event.dEdx[it], event.mom0[it]);
     event.nsigma_pion[it] = Kinematics::HypTPCdEdxNsigmaPion(event.dEdx[it], event.mom0[it]);
+    event.nsigma_electron[it] = Kinematics::HypTPCdEdxNsigmaElectron(event.dEdx[it], event.mom0[it]);
   }
 
   event.nvtxTpc = **src.nvtxTpc;
@@ -824,9 +874,7 @@ dst::DstRead( int ievent )
     return true;
 
   TPCAnalyzer TPCAna;
-  std::vector<Int_t> isKurama(ntTpc, 0);
-  std::vector<Int_t> isK18(ntTpc, 0);
-  TPCAna.ReCalcTPCTracks(**src.ntTpc, isK18, isKurama,
+  TPCAna.ReCalcTPCTracks(**src.ntTpc, **src.isK18, **src.isKurama,
 			 **src.charge, **src.nhtrack, **src.helix_cx,
 			 **src.helix_cy, **src.helix_z0, **src.helix_r,
 			 **src.helix_dz, **src.hitlayer, **src.track_cluster_mrow,
@@ -893,6 +941,14 @@ dst::DstRead( int ievent )
   event.GFposx.resize(GFntTpc);
   event.GFposy.resize(GFntTpc);
   event.GFposz.resize(GFntTpc);
+  event.GFinvbeta.resize(GFntTpc);
+  event.GFm2.resize(GFntTpc);
+  event.nsigma_tritonHtof.resize(ntTpc);
+  event.nsigma_deutronHtof.resize(ntTpc);
+  event.nsigma_protonHtof.resize(ntTpc);
+  event.nsigma_kaonHtof.resize(ntTpc);
+  event.nsigma_pionHtof.resize(ntTpc);
+  event.nsigma_electronHtof.resize(ntTpc);
 
   event.GFmom_p.resize(GFntTpc);
   event.GFtracklen_p.resize(GFntTpc);
@@ -905,6 +961,8 @@ dst::DstRead( int ievent )
   event.GFposx_p.resize(GFntTpc);
   event.GFposy_p.resize(GFntTpc);
   event.GFposz_p.resize(GFntTpc);
+  event.GFinvbeta_p.resize(GFntTpc);
+  event.GFm2_p.resize(GFntTpc);
 
   event.GFmom_pi.resize(GFntTpc);
   event.GFtracklen_pi.resize(GFntTpc);
@@ -917,6 +975,8 @@ dst::DstRead( int ievent )
   event.GFposx_pi.resize(GFntTpc);
   event.GFposy_pi.resize(GFntTpc);
   event.GFposz_pi.resize(GFntTpc);
+  event.GFinvbeta_pi.resize(GFntTpc);
+  event.GFm2_pi.resize(GFntTpc);
 
   Int_t ntrack_intarget = 0;
   Double_t x0[100] = {0};
@@ -999,6 +1059,7 @@ dst::DstRead( int ievent )
 
     //Extrapolation
     if(event.isBeam[igf]==1) continue;
+    if(event.isK18[igf]==1) continue;
     if(event.isAccidental[igf]==1) continue;
     if(GFtracks.IsInsideTarget(igf)){
       event.GFinside[igf] = 1;
@@ -1043,6 +1104,11 @@ dst::DstRead( int ievent )
 	event.GFtofHtof_pi[igf] = event.tHtof[hitid_htof];
 	event.GFtdiffHtof_pi[igf] = event.dtHtof[hitid_htof];
 	event.GFposHtof_pi[igf] = event.posHtof[hitid_htof];
+
+	Double_t beta = len/event.tHtof[hitid_htof]/MathTools::C();
+	event.GFinvbeta_pi[igf] = 1./beta;
+	Double_t mass2 = Kinematics::MassSquare(event.GFmom_pi[igf], len, event.tHtof[hitid_htof]);
+	event.GFm2_pi[igf] = mass2;
       }
     } //pion
 
@@ -1074,6 +1140,11 @@ dst::DstRead( int ievent )
 	event.GFtofHtof_p[igf] = event.tHtof[hitid_htof];
 	event.GFtdiffHtof_p[igf] = event.dtHtof[hitid_htof];
 	event.GFposHtof_p[igf] = event.posHtof[hitid_htof];
+
+	Double_t beta = len/event.tHtof[hitid_htof]/MathTools::C();
+	event.GFinvbeta_p[igf] = 1./beta;
+	Double_t mass2 = Kinematics::MassSquare(event.GFmom_p[igf], len, event.tHtof[hitid_htof]);
+	event.GFm2_p[igf] = mass2;
       }
     } //proton
 
@@ -1097,6 +1168,18 @@ dst::DstRead( int ievent )
 	event.GFtofHtof[igf] = event.tHtof[hitid_htof];
 	event.GFtdiffHtof[igf] = event.dtHtof[hitid_htof];
 	event.GFposHtof[igf] = event.posHtof[hitid_htof];
+
+	Double_t beta = len/event.tHtof[hitid_htof]/MathTools::C();
+	event.GFinvbeta[igf] = 1./beta;
+	Double_t mass2 = Kinematics::MassSquare(event.GFmom[igf][0], len, event.tHtof[hitid_htof]);
+	event.GFm2[igf] = mass2;
+
+	event.nsigma_tritonHtof[igf] = Kinematics::HypTPCHTOFNsigmaTriton(event.GFmom[igf][0], len, event.tHtof[hitid_htof]);
+	event.nsigma_deutronHtof[igf] = Kinematics::HypTPCHTOFNsigmaDeutron(event.GFmom[igf][0], len, event.tHtof[hitid_htof]);
+	event.nsigma_protonHtof[igf] = Kinematics::HypTPCHTOFNsigmaProton(event.GFmom[igf][0], len, event.tHtof[hitid_htof]);
+	event.nsigma_kaonHtof[igf] = Kinematics::HypTPCHTOFNsigmaKaon(event.GFmom[igf][0], len, event.tHtof[hitid_htof]);
+	event.nsigma_pionHtof[igf] = Kinematics::HypTPCHTOFNsigmaPion(event.GFmom[igf][0], len, event.tHtof[hitid_htof]);
+	event.nsigma_electronHtof[igf] = Kinematics::HypTPCHTOFNsigmaElectron(event.GFmom[igf][0], len, event.tHtof[hitid_htof]);
       }
     } //common
   } //igf
@@ -1174,7 +1257,7 @@ ConfMan::InitializeHistograms( void )
   HB1(genfitHid+28, "[GenFit] Z (extrapolated to the HTOF); Z [mm]; Counts [/0.1 mm]", 10000, -500, 500 );
   HB1(genfitHid+29, "[GenFit] HTOF ID; #ID ; Counts", 36, 0, 36 );
 */
-  HBTree( "tpc", "tree of GenfitHTOCCalib" );
+  HBTree( "tpc", "tree of GenfitHTOFCalib" );
 
   tree->Branch( "status", &event.status );
   tree->Branch( "runnum", &event.runnum );
@@ -1214,6 +1297,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
   tree->Branch( "isBeam", &event.isBeam );
+  tree->Branch( "isK18", &event.isK18 );
+  tree->Branch( "isKurama", &event.isKurama );
   tree->Branch( "isAccidental", &event.isAccidental );
   tree->Branch( "fittime", &event.fittime );
   tree->Branch( "searchtime", &event.searchtime );
@@ -1231,9 +1316,12 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dE", &event.dE );
   tree->Branch( "dEdx", &event.dEdx );
   tree->Branch( "isElectron", &event.isElectron );
+  tree->Branch( "nsigma_triton", &event.nsigma_triton );
+  tree->Branch( "nsigma_deutron", &event.nsigma_deutron );
   tree->Branch( "nsigma_proton", &event.nsigma_proton );
   tree->Branch( "nsigma_kaon", &event.nsigma_kaon );
   tree->Branch( "nsigma_pion", &event.nsigma_pion );
+  tree->Branch( "nsigma_electron", &event.nsigma_electron );
   tree->Branch( "dz_factor", &event.dz_factor );
   tree->Branch( "charge", &event.charge );
   tree->Branch( "path", &event.path );
@@ -1268,6 +1356,9 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_y_center", &event.track_cluster_y_center);
   tree->Branch( "track_cluster_z_center", &event.track_cluster_z_center);
   tree->Branch( "track_cluster_row_center", &event.track_cluster_row_center);
+
+  tree->Branch( "isgoodTPCKurama", &event.isgoodTPCKurama);
+  tree->Branch( "m2TPCKurama", &event.m2TPCKurama);
 
   tree->Branch( "nvtxTpc", &event.nvtxTpc );
   tree->Branch( "vtx_x", &event.vtx_x );
@@ -1328,6 +1419,14 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFposx", &event.GFposx);
   tree->Branch("GFposy", &event.GFposy);
   tree->Branch("GFposz", &event.GFposz);
+  tree->Branch("GFinvbeta", &event.GFinvbeta);
+  tree->Branch("GFm2", &event.GFm2);
+  tree->Branch("nsigma_tritonHtof", &event.nsigma_tritonHtof);
+  tree->Branch("nsigma_deutronHtof", &event.nsigma_deutronHtof);
+  tree->Branch("nsigma_protonHtof", &event.nsigma_protonHtof);
+  tree->Branch("nsigma_kaonHtof", &event.nsigma_kaonHtof);
+  tree->Branch("nsigma_pionHtof", &event.nsigma_pionHtof);
+  tree->Branch("nsigma_electronHtof", &event.nsigma_electronHtof);
 
   tree->Branch("GFmom_p", &event.GFmom_p);
   tree->Branch("GFtracklen_p", &event.GFtracklen_p);
@@ -1340,6 +1439,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFposx_p", &event.GFposx_p);
   tree->Branch("GFposy_p", &event.GFposy_p);
   tree->Branch("GFposz_p", &event.GFposz_p);
+  tree->Branch("GFinvbeta_p", &event.GFinvbeta_p);
+  tree->Branch("GFm2_p", &event.GFm2_p);
 
   tree->Branch("GFmom_pi", &event.GFmom_pi);
   tree->Branch("GFtracklen_pi", &event.GFtracklen_pi);
@@ -1352,6 +1453,8 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFposx_pi", &event.GFposx_pi);
   tree->Branch("GFposy_pi", &event.GFposy_pi);
   tree->Branch("GFposz_pi", &event.GFposz_pi);
+  tree->Branch("GFinvbeta_pi", &event.GFinvbeta_pi);
+  tree->Branch("GFm2_pi", &event.GFm2_pi);
 
   TTreeReaderCont[kHTOFCaib] = new TTreeReader( "tpc", TFileCont[kHTOFCaib] );
   const auto& reader = TTreeReaderCont[kHTOFCaib];
@@ -1378,6 +1481,8 @@ ConfMan::InitializeHistograms( void )
   src.ntTpc = new TTreeReaderValue<Int_t>( *reader, "ntTpc" );
   src.nhtrack = new TTreeReaderValue<std::vector<Int_t>>( *reader, "nhtrack" );
   src.isBeam = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isBeam" );
+  src.isK18 = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isK18" );
+  src.isKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isKurama" );
   src.isAccidental = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isAccidental" );
   src.fittime = new TTreeReaderValue<std::vector<Int_t>>( *reader, "fittime" );
   src.searchtime = new TTreeReaderValue<std::vector<Int_t>>( *reader, "searchtime" );
@@ -1428,6 +1533,9 @@ ConfMan::InitializeHistograms( void )
   src.track_cluster_y_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_y_center" );
   src.track_cluster_z_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_z_center" );
   src.track_cluster_row_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_row_center" );
+
+  src.isgoodTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isgoodTPCKurama" );
+  src.m2TPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "m2TPCKurama" );
 
   src.nvtxTpc = new TTreeReaderValue<Int_t>(*reader,"nvtxTpc");
   src.vtx_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_x" );
