@@ -4,7 +4,7 @@ K1.8 analyzer
 ## Install
 
 ```sh
-git clone -r -b tohoku-counter git@github.com:hyptpc/k18-analyzer.git <dir-name>
+git clone --recursive -b tohoku-counter git@github.com:hyptpc/k18-analyzer.git <dir-name>
 cd <dir-name>
 cp Makefile.org Makefile
 make
