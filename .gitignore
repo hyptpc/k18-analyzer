@@ -19,5 +19,5 @@ runmanager/log
 runmanager/stat
 runmanager/tmp
 set_links.sh
-param
+#param
 fig

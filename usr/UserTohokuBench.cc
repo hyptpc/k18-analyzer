@@ -46,7 +46,7 @@ struct Event
   Int_t evnum;
   Int_t spill;
 
-  std::vector<Double_t> v792;
+  std::vector<Double_t> adc;
 
   void clear();
 };
@@ -57,8 +57,8 @@ Event::clear()
 {
   evnum      = 0;
   spill      = 0;
-  v792.clear();
-  v792.resize(NumOfSegCaenV792);
+  adc.clear();
+  adc.resize(NumOfSegHODO);
 }
 
 //_____________________________________________________________________________
@@ -68,7 +68,7 @@ Event  event;
 TH1*   h[MaxHist];
 TTree* tree;
 enum eDetHid {
-  CaenV792Hid = 10000,
+  HODOHid = 10000,
 };
 }
 
@@ -94,16 +94,16 @@ ProcessingNormal()
 
   HF1(1, 0);
 
-  { ///// CaenV792
-    static const auto device_id = gUnpacker.get_device_id("CaenV792");
-    static const auto adc_id = gUnpacker.get_data_id("CaenV792", "adc");
+  { ///// HODO
+    static const auto device_id = gUnpacker.get_device_id("HODO");
+    static const auto adc_id = gUnpacker.get_data_id("HODO", "adc");
     static const Int_t n_seg = 32;
     for(Int_t seg=0; seg<n_seg; ++seg){
       auto nhit = gUnpacker.get_entries(device_id, 0, seg, 0, adc_id);
       if (nhit != 0) {
 	UInt_t adc = gUnpacker.get(device_id, 0, seg, 0, adc_id);
-        HF1(CaenV792Hid+seg, adc);
-        event.v792[seg] = adc;
+        HF1(HODOHid+seg, adc);
+        event.adc[seg] = adc;
       }
     }
     // gUnpacker.dump_data_device(k_device);
@@ -142,16 +142,16 @@ ConfMan::InitializeHistograms()
 {
   HB1(1, "Status", 20, 0., 20.);
 
-  // CaenV792
+  // HODO
   for(Int_t i=0; i<NumOfSegTrig; ++i){
-    HB1(CaenV792Hid+i, Form("CaenV792 ADC %d", i), NbinAdc, MinAdc, MaxAdc);
+    HB1(HODOHid+i, Form("HODO ADC %d", i), NbinAdc, MinAdc, MaxAdc);
   }
 
   //Tree
   HBTree("tree","tree of Counter");
   tree->Branch("evnum",     &event.evnum,     "evnum/I");
   tree->Branch("spill",     &event.spill,     "spill/I");
-  tree->Branch("v792", &event.v792);
+  tree->Branch("adc", &event.adc);
 
   return true;
 }
