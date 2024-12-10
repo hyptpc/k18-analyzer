@@ -43,7 +43,8 @@ libs		= $(root_libs) $(unpacker_libs) -lrt
 #
 core_srcs	= $(wildcard $(src_dir)/*.cc)
 headers		= $(wildcard $(include_dir)/*.hh)
-usr_srcs	= $(wildcard $(usr_dir)/*.cc)
+# usr_srcs	= $(wildcard $(usr_dir)/*.cc)
+usr_srcs	= $(usr_dir)/UserSkeleton.cc $(usr_dir)/UserTohokuBench.cc
 dst_srcs	= $(wildcard $(dst_dir)/*.cc)
 #
 core_deps	= $(core_srcs:$(src_dir)/%.cc=$(src_build_dir)/%.d)
@@ -78,7 +79,7 @@ endif
 #_______________________________________________________________________________
 .PHONY: all dst usr lib clean distclean show help
 
-all: lib usr dst
+all: lib usr # dst
 
 -include $(core_deps) $(usr_deps) $(dst_deps)
 
