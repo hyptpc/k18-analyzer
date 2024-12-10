@@ -12,7 +12,6 @@ Makefile
 bin
 data*
 lib
-macro
 fieldmap
 rootfile*
 runmanager/log
