@@ -180,7 +180,7 @@ Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return
-    (InitializeParameter<DCGeomMan>("DCGEO") &&
+    (//InitializeParameter<DCGeomMan>("DCGEO") &&
      InitializeParameter<HodoParamMan>("HDPRM") &&
      InitializeParameter<HodoPHCMan>("HDPHC")   &&
      InitializeParameter<UserParamMan>("USER"));
