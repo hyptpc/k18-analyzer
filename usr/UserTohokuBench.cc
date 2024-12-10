@@ -47,6 +47,7 @@ struct Event
   Int_t spill;
 
   std::vector<Double_t> adc;
+  std::vector<std::vector<Double_t>> tdc;
 
   void clear();
 };
@@ -58,7 +59,9 @@ Event::clear()
   evnum      = 0;
   spill      = 0;
   adc.clear();
+  tdc.clear();
   adc.resize(NumOfSegHODO);
+  tdc.resize(NumOfSegHODO);
 }
 
 //_____________________________________________________________________________
@@ -97,16 +100,29 @@ ProcessingNormal()
   { ///// HODO
     static const auto device_id = gUnpacker.get_device_id("HODO");
     static const auto adc_id = gUnpacker.get_data_id("HODO", "adc");
-    static const Int_t n_seg = 32;
-    for(Int_t seg=0; seg<n_seg; ++seg){
+    static const auto tdc_id = gUnpacker.get_data_id("HODO", "tdc");
+    for(Int_t seg=0; seg<NumOfSegHODO; ++seg){
       auto nhit = gUnpacker.get_entries(device_id, 0, seg, 0, adc_id);
+      UInt_t adc = 0;
       if (nhit != 0) {
-	UInt_t adc = gUnpacker.get(device_id, 0, seg, 0, adc_id);
-        HF1(HODOHid+seg, adc);
+	adc = gUnpacker.get(device_id, 0, seg, 0, adc_id);
+        HF1(HODOHid+1000+seg, adc);
         event.adc[seg] = adc;
       }
+      Bool_t hit_flag = false;
+      for(Int_t m=0, n=gUnpacker.get_entries(device_id, 0, seg, 0, tdc_id);
+          m<n; ++m) {
+        auto tdc = gUnpacker.get(device_id, 0, seg, 0, tdc_id, m);
+        if (tdc != 0) {
+          event.tdc[seg].push_back(tdc);
+          HF1(HODOHid+3000+seg, tdc);
+          hit_flag = true;
+        }
+        if (hit_flag) {
+          HF1(HODOHid+2000+seg, adc);
+        }
+      }
     }
-    // gUnpacker.dump_data_device(k_device);
   }
 
   return true;
@@ -144,7 +160,9 @@ ConfMan::InitializeHistograms()
 
   // HODO
   for(Int_t i=0; i<NumOfSegTrig; ++i){
-    HB1(HODOHid+i, Form("HODO ADC %d", i), NbinAdc, MinAdc, MaxAdc);
+    HB1(HODOHid+1000+i, Form("HODO ADC %d", i), NbinAdc, MinAdc, MaxAdc);
+    HB1(HODOHid+2000+i, Form("HODO ADCwTDC %d", i), NbinAdc, MinAdc, MaxAdc);
+    HB1(HODOHid+3000+i, Form("HODO TDC %d", i), NbinTdcHr, MinTdcHr, MaxTdcHr);
   }
 
   //Tree
@@ -152,6 +170,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("evnum",     &event.evnum,     "evnum/I");
   tree->Branch("spill",     &event.spill,     "spill/I");
   tree->Branch("adc", &event.adc);
+  tree->Branch("tdc", &event.tdc);
 
   return true;
 }
