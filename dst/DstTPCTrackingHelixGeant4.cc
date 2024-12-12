@@ -199,22 +199,24 @@ struct Event
 
 
   Int_t ntTpc;                   // Number of Tracks
+  Int_t ntKuramaCandidate; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
+  std::vector<Int_t> isKuramaCandidate;
   vector<Int_t> nhtrack;
   vector<Int_t> nhtrackEff;
   vector<Int_t> trackid; //for Kurama & K1.8 tracks
   vector<Int_t> isBeam;
-  std::vector<Int_t> isXi;
+  vector<Int_t> isXi;
   vector<Int_t> isKurama;
   vector<Int_t> isK18;
   vector<Int_t> isAccidental;
-  std::vector<Int_t> isMultiloop;
+  vector<Int_t> isMultiloop;
   vector<Int_t> flag;
   vector<Double_t> purity;
   vector<Double_t> efficiency;
   vector<Int_t> G4tid;
   vector<Double_t> chisqr;
   vector<Double_t> pval;
-  std::vector<Double_t> distTgt;
+  vector<Double_t> distTgt;
   vector<Double_t> helix_cx;
   vector<Double_t> helix_cy;
   vector<Double_t> helix_z0;
@@ -222,17 +224,23 @@ struct Event
   vector<Double_t> helix_dz;
   vector<Double_t> dE;
   vector<Double_t> dEdx; //reference dedx
-
-
   vector<Double_t> dz_factor;
   vector<Double_t> mom0;//Helix momentum at Y = 0
   vector<Double_t> mom0_x;//Helix momentum at Y = 0
   vector<Double_t> mom0_y;
   vector<Double_t> mom0_z;
   vector<Int_t> charge;
-  vector<Double_t> path;
-
   vector<Int_t> pid;
+  vector<Double_t> path;
+  std::vector<Int_t> isElectron;
+  std::vector<Double_t> nsigma_triton;
+  std::vector<Double_t> nsigma_deutron;
+  std::vector<Double_t> nsigma_proton;
+  std::vector<Double_t> nsigma_kaon;
+  std::vector<Double_t> nsigma_pion;
+  std::vector<Double_t> nsigma_electron;
+
+
   vector<vector<Double_t>> hitlayer;
   vector<vector<Double_t>> hitpos_x;
   vector<vector<Double_t>> hitpos_y;
@@ -252,18 +260,18 @@ struct Event
   vector<vector<Double_t>> resolution_x;
   vector<vector<Double_t>> resolution_y;
   vector<vector<Double_t>> resolution_z;
-  std::vector<std::vector<Double_t>> pull;
+  vector<vector<Double_t>> pull;
   vector<vector<Double_t>> helix_t;
   vector<vector<Double_t>> pathhit;
   vector<vector<Double_t>> alpha;
   vector<vector<Double_t>> houghflag;
+  vector<vector<Double_t>> track_cluster_size;
+  vector<vector<Double_t>> track_cluster_de;
+  vector<vector<Double_t>> track_cluster_mrow;
   vector<vector<Double_t>> pull_t;
   vector<vector<Double_t>> pull_x;
   vector<vector<Double_t>> pull_y;
   vector<vector<Double_t>> pull_z;
-  vector<vector<Double_t>> track_cluster_size;
-  vector<vector<Double_t>> track_cluster_de;
-  vector<vector<Double_t>> track_cluster_mrow;
 
   std::vector<Int_t> chargeIndistinguishable;
   std::vector<Double_t> chisqr_inverted;
@@ -653,6 +661,13 @@ struct Event
     charge.clear();
     path.clear();
     pid.clear();
+    isElectron.clear();
+    nsigma_triton.clear();
+    nsigma_deutron.clear();
+    nsigma_proton.clear();
+    nsigma_kaon.clear();
+    nsigma_pion.clear();
+    nsigma_electron.clear();
 
     hitlayer.clear();
     hitpos_x.clear();
@@ -1777,6 +1792,13 @@ dst::DstRead( int ievent )
   event.charge.resize( ntTpc );
   event.path.resize( ntTpc );
   event.pid.resize( ntTpc );
+  event.isElectron.resize(ntTpc);
+  event.nsigma_triton.resize(ntTpc);
+  event.nsigma_deutron.resize(ntTpc);
+  event.nsigma_proton.resize(ntTpc);
+  event.nsigma_kaon.resize(ntTpc);
+  event.nsigma_pion.resize(ntTpc);
+  event.nsigma_electron.resize(ntTpc);
 
   event.hitlayer.resize( ntTpc );
   event.hitpos_x.resize( ntTpc );
@@ -1917,6 +1939,17 @@ dst::DstRead( int ievent )
       event.dE[it] = tp->GetTrackdE();
       event.dEdx[it] = tp->GetdEdx(truncatedMean);
       event.dz_factor[it] = sqrt(1.+(pow(helix_dz,2)));
+      event.isElectron[it] = Kinematics::HypTPCdEdxElectron(event.dEdx[it], event.mom0[it]);
+      event.nsigma_triton[it] = Kinematics::HypTPCdEdxNsigmaTriton(event.dEdx[it], event.mom0[it]);
+      event.nsigma_deutron[it] = Kinematics::HypTPCdEdxNsigmaDeutron(event.dEdx[it], event.mom0[it]);
+      event.nsigma_proton[it] = Kinematics::HypTPCdEdxNsigmaProton(event.dEdx[it], event.mom0[it]);
+      event.nsigma_kaon[it]  = Kinematics::HypTPCdEdxNsigmaKaon(event.dEdx[it], event.mom0[it]);
+      event.nsigma_pion[it] = Kinematics::HypTPCdEdxNsigmaPion(event.dEdx[it], event.mom0[it]);
+      event.nsigma_electron[it] = Kinematics::HypTPCdEdxNsigmaElectron(event.dEdx[it], event.mom0[it]);
+
+
+
+
       event.hitlayer[it].resize( nh );
       event.hitpos_x[it].resize( nh );
       event.hitpos_y[it].resize( nh );

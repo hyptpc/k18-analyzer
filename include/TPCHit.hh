@@ -59,7 +59,7 @@ protected:
   Double_t              m_hough_dist;
   Double_t              m_hough_disty;
   std::vector<Double_t> m_res_param;
-  TPCCluster*           m_parent_cluster;
+  TPCCluster*           m_parent_cluster = nullptr;
 
   std::vector<TPCLTrackHit*> m_register_container;
 
@@ -123,7 +123,6 @@ public:
   void            SetHoughYnum(Int_t houghY_num);
   void            SetHoughDist(Double_t hough_dist) { m_hough_dist = hough_dist; }
   void            SetHoughDistY(Double_t hough_disty) { m_hough_disty = hough_disty; }
-
 protected:
   void ClearRegisteredHits();
 };
