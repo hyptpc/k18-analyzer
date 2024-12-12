@@ -2701,6 +2701,14 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "dz_factor", &event.dz_factor );
   tree->Branch( "charge", &event.charge );
   tree->Branch( "path", &event.path );
+  tree->Branch( "isElectron", &event.isElectron );
+  tree->Branch( "nsigma_triton", &event.nsigma_triton );
+  tree->Branch( "nsigma_deutron", &event.nsigma_deutron );
+  tree->Branch( "nsigma_proton", &event.nsigma_proton );
+  tree->Branch( "nsigma_kaon", &event.nsigma_kaon );
+  tree->Branch( "nsigma_pion", &event.nsigma_pion );
+  tree->Branch( "nsigma_electron", &event.nsigma_electron );
+
 
   tree->Branch( "pid", &event.pid );
   tree->Branch( "hitlayer", &event.hitlayer );
