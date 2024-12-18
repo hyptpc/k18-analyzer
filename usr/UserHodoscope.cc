@@ -452,6 +452,13 @@ struct Dst
   Int_t    csLac[NumOfSegLAC*MaxDepth];
   Double_t LacSeg[NumOfSegLAC*MaxDepth];
   Double_t tLac[NumOfSegLAC*MaxDepth];
+  Double_t deLac[NumOfSegLAC*MaxDepth];
+
+  Int_t    nhWc;
+  Int_t    csWc[NumOfSegWC*MaxDepth];
+  Double_t WcSeg[NumOfSegWC*MaxDepth];
+  Double_t tWc[NumOfSegWC*MaxDepth];
+  Double_t deWc[NumOfSegWC*MaxDepth];
 
   // for HodoParam
   Double_t tofua[NumOfSegTOF];
@@ -477,6 +484,7 @@ Dst::clear()
   nhTof    = 0;
   nhBvh    = 0;
   nhLac    = 0;
+  nhWc     = 0;
   evnum    = 0;
   spill    = 0;
   Time0Seg = qnan;
@@ -567,6 +575,16 @@ Dst::clear()
       csLac[MaxDepth*it + m]  = 0;
       LacSeg[MaxDepth*it + m] = qnan;
       tLac[MaxDepth*it + m]   = qnan;
+      deLac[MaxDepth*it + m]  = qnan;
+    }
+  }
+
+  for(Int_t it=0; it<NumOfSegWC; it++){
+    for(Int_t m=0; m<MaxDepth; ++m){
+      csWc[MaxDepth*it + m]  = 0;
+      WcSeg[MaxDepth*it + m] = qnan;
+      tWc[MaxDepth*it + m]   = qnan;
+      deWc[MaxDepth*it + m]  = qnan;
     }
   }
 }
@@ -1754,6 +1772,7 @@ UserHodoscope::ProcessingNormal()
 
   hodoAna->DecodeBVHHits(rawData);
   hodoAna->DecodeLACHits(rawData);
+  hodoAna->DecodeWCHits(rawData);
 
   ////////// Dst
   {
@@ -1863,6 +1882,20 @@ UserHodoscope::ProcessingNormal()
       dst.csLac[i]  = cl->ClusterSize();
       dst.LacSeg[i] = cl->MeanSeg()+1;
       dst.tLac[i]   = cl->CMeanTime();
+      dst.deLac[i]  = cl->DeltaE();
+    }
+  }
+
+  {
+    Int_t nc = hodoAna->GetNClustersWC();
+    dst.nhWc = nc;
+    for(Int_t i=0; i<nc; ++i){
+      HodoCluster *cl = hodoAna->GetClusterWC(i);
+      if(!cl) continue;
+      dst.csWc[i]  = cl->ClusterSize();
+      dst.WcSeg[i] = cl->MeanSeg()+1;
+      dst.tWc[i]   = cl->CMeanTime();
+      dst.deWc[i]  = cl->DeltaE();
     }
   }
 
@@ -2166,7 +2199,7 @@ ConfMan::InitializeHistograms()
   }
 
   for(Int_t iseg2=1; iseg2<=NumOfSegBH2; ++iseg2){
-    HB1(70+iseg2, Form("BH1MT5-BH2MT%d", iseg2), 400, -5, 5);   
+    HB1(70+iseg2, Form("BH1MT5-BH2MT%d", iseg2), 400, -5, 5);
   }
   for(Int_t iseg1=1; iseg1<=NumOfSegBH1; ++iseg1){
     HB1(BH1Hid+100*iseg1+2200+104, Form("BH1MT%d-BH2MT", iseg1), 400, -5, 5);
@@ -2803,6 +2836,13 @@ ConfMan::InitializeHistograms()
   hodo->Branch("csLac",      dst.csLac,     "csLac[nhLac]/I");
   hodo->Branch("LacSeg",     dst.LacSeg,    "LacSeg[nhLac]/D");
   hodo->Branch("tLac",       dst.tLac,      "tLac[nhLac]/D");
+  hodo->Branch("deLac",      dst.deLac,     "deLac[nhLac]/D");
+
+  hodo->Branch("nhWc",     &dst.nhWc,     "nhWc/I");
+  hodo->Branch("csWc",      dst.csWc,     "csWc[nhWc]/I");
+  hodo->Branch("WcSeg",     dst.WcSeg,    "WcSeg[nhWc]/D");
+  hodo->Branch("tWc",       dst.tWc,      "tWc[nhWc]/D");
+  hodo->Branch("deWc",      dst.deWc,     "deWc[nhWc]/D");
 
   // HPrint();
   return true;
