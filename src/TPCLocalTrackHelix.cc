@@ -59,6 +59,7 @@ z = p[2] + p[4]*p[3]*(theta);
 #include "TROOT.h"
 
 #include "TPCPadHelper.hh"
+#include "TPCParamMan.hh"
 #include "Kinematics.hh"
 #include "HoughTransform.hh"
 #include "ConfMan.hh"
@@ -75,12 +76,13 @@ z = p[2] + p[4]*p[3]*(theta);
 namespace
 {
   const auto& gUser = UserParamMan::GetInstance();
-	static bool CircCross = 0;//By defining TPCLocalTrackHelix object in Dst, and setting 'SetCircularCrossTracking', CalcHit definition can be modified. 
+  static bool CircCross = 0;//By defining TPCLocalTrackHelix object in Dst, and setting 'SetCircularCrossTracking', CalcHit definition can be modified. 
 	
   // B-field
   const Double_t& HS_field_0 = ConfMan::Get<Double_t>("HSFLDCALIB");
   const Double_t& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
   const Double_t& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
+  Int_t nStaticParams;
 
   const Int_t ReservedNumOfHits = 32*10;
   const Double_t MaxGapBtwClusters = 100.;
@@ -98,7 +100,7 @@ namespace
   static std::vector<std::vector<Double_t>> gResParam;
   static TVector3 gVertex;
   static TVector3 gVertexRes;
-  static Double_t gPar[5] = {0};
+  static Double_t gPar[10] = {0};
   static Double_t gChisqr = 1.e+10;
   static Bool_t gMomConstraint = false; //w or w/o momentum constraint
   static Bool_t gMultiLoop = false;
@@ -145,6 +147,10 @@ namespace
   //[0] : Intrinsic Y resolution, [1] : Attenuation term, [2] : Diffusion coefficient, [3] : Effective # of signal electrons
   static TString eq_vertical="TMath::Sqrt(TMath::Power([0],2)+TMath::Power([2],2)*(x+300.)/([3]*TMath::Exp(-[1]*(x+300.))))";
   static TF1 *f_drift = new TF1("f_drift", eq_vertical.Data(), -300., 300.);
+  
+ // static TString eq_res_y="TMath::Sqrt(TMath::Power([0],2) + [1]*abs(x)+[2]*x*x)";
+  static TString eq_res_y="TMath::Sqrt(TMath::Power([0],2) + TMath::Power([1],2)*tanh([2]*x*x))"; 
+  static TF1 *f_res_y = new TF1("f_res_y", eq_res_y.Data(), -300., 300.);
 
   //for Helix tracking
   //[0]~[4] are the Helix parameters,
@@ -350,6 +356,25 @@ static inline TVector3 ResidualVectXZ(Double_t par[5], TVector3 pos){ //Closest 
 
 //______________________________________________________________________________
 static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos, Double_t padTheta, Double_t theta, std::vector<Double_t> resparam, Bool_t vetoBadClusters){
+  
+  int npar = resparam.size();
+	double ncl = 1;
+	double dE = -1;
+  #if DebugDisp
+    std::cout<<"TPCLocalTrackHelix::CalcResolution() : Res params :";
+    for(int i = 0; i < resparam.size(); i++){
+//      std::cout<<resparam[i]<<" ";
+    }
+  #endif
+  if(npar>nStaticParams+1){
+    ncl = resparam.at(nStaticParams);
+    dE = resparam.at(nStaticParams+1);
+    resparam.at(nStaticParams);
+    resparam.at(nStaticParams+1);
+  }
+  else{
+    std::cout<<"TPCLocalTrackHelix::CalcResolution() : No cluster information"<<std::endl;  
+  }
 
   Double_t cosPad = TMath::Cos(padTheta);
   Double_t sinPad = TMath::Sin(padTheta);
@@ -370,18 +395,48 @@ static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos
 
   //Calculate resolution
   //horizontal resolution
-  Double_t param_horizontal[6] = {resparam[0], resparam[1], resparam[2], resparam[3], resparam[4], resparam[5]};
+
+  std::vector<double> res_param_hit;
+  for(int i = 0; i < nStaticParams/2; i++){
+    if(ncl<1.5){//single cluster
+      res_param_hit.push_back(resparam.at(i));
+    }
+    else{
+      res_param_hit.push_back(resparam.at(i+ nStaticParams/2));
+    }
+  }  
+
+
+	Double_t param_horizontal[6] = {res_param_hit[0], res_param_hit[1], res_param_hit[2], res_param_hit[3], res_param_hit[4], res_param_hit[5]};
   f_horizontal -> SetParameters(param_horizontal);
   Double_t res_horizontal = f_horizontal -> Eval(alpha, pos.y());
 
   //vertical resolution
-  Double_t param_y[4] = {resparam[6], resparam[1], resparam[7], resparam[8]};
-  f_drift -> SetParameters(param_y);
-  Double_t res_drift = f_drift -> Eval(pos.y());
+  Double_t param_y[3] = {res_param_hit[6], res_param_hit[7], res_param_hit[8]};
+  Double_t param_de[3] = {res_param_hit[9], res_param_hit[10], res_param_hit[11]};  
+//  f_drift -> SetParameters(param_y);
+//  Double_t res_drift = f_drift -> Eval(pos.y());
+  f_res_y -> SetParameters(param_y);
+	Double_t pitch = abs(par[4]);
+	if(pitch>1)pitch = 1;
+  Double_t res_drift = f_res_y -> Eval(pitch);
 
+	double yres_scale = sqrt(param_de[0] + 1./(param_de[1] + param_de[2]*dE));
+  if(dE == -1) yres_scale = 1;
+	res_drift *= yres_scale;
   TVector3 res(res_horizontal*TMath::Abs(cosPad), res_drift, res_horizontal*TMath::Abs(sinPad));
-
   //Residual/resolution < window
+  #if DebugDisp
+  if(res.Mag()>10 or std::isnan(res.Mag())){
+    std::cout<<"Large resolution : "<<Form("pitch, tan(a) = (%g,%g)  Resolution = (%.4g, %.4g, %.4g)",pitch,tan(alpha),  res.x(), res.y(), res.z())<<std::endl;
+    std::cout<<"Prarameters : ";
+    for(int i = 0; i < res_param_hit.size(); i++){
+      std::cout<<res_param_hit[i]<<" ";
+    }
+
+    std::cout<<std::endl;
+  }
+  #endif
   if(vetoBadClusters){
     TVector3 resi = ResidualVect(par, pos, theta);
     Double_t residual_vertical = resi.y();
@@ -392,7 +447,7 @@ static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos
     Double_t pull_y = residual_vertical/resolution_vertical;
     if(TMath::Hypot(pull_t, pull_y) > PullWindow) return TVector3(2.e+10, 2.e+10, 2.e+10);
   }
-
+//  std::cout<<Form("Resolution = (%.2g, %.2g, %.2g)", res.x(), res.y(), res.z())<<std::endl; 
   return res;
 }
 
@@ -1281,8 +1336,8 @@ TPCLocalTrackHelix::GetNHitsEffective() const
   return n;
 }
 void
-TPCLocalTrackHelix::SetCircularCrossTracking(bool flag){
-	CircCross = 1;	
+TPCLocalTrackHelix::SetCircularCrossTracking(bool flag ){
+	CircCross = flag;	
 }
 
 //______________________________________________________________________________
@@ -1293,6 +1348,22 @@ TPCLocalTrackHelix::AddTPCHit(TPCLTrackHit *hit)
 
   if(hit->IsGood()){
     m_hit_order.push_back(m_hit_array.size());
+    auto res_param = hit->GetResolutionParams();
+    auto hit0 = hit->GetHit();
+    auto res_param0 = hit0->GetResolutionParams();
+    nStaticParams = res_param0.size(); 
+    if(res_param.size() == nStaticParams){
+      auto cl = hit0->GetParentCluster();
+      double de = hit0->GetDe();
+      if(cl){
+	      double ncl = cl->GetClusterSize();
+ 	     hit->PushResolutionParam(ncl);
+      }
+      else{
+ 	     hit->PushResolutionParam(1);
+      }
+      hit->PushResolutionParam(de);
+    }
     m_hit_array.push_back(hit);
     if(m_is_theta_calculated){
       //Calculate Atan2(y,x) and turns of helix. And convert them into the theta of helix
@@ -2202,6 +2273,9 @@ TPCLocalTrackHelix::DoHelixTrackFit()
 	   <<", z0: "<<gPar[2]
 	   <<", r: "<<gPar[3]
 	   <<", dz: "<<gPar[4]<<std::endl;
+     if(gResParam.size()>0){
+      std::cout<<"gResParam_size: "<<gResParam[0].size()<<std::endl;
+     }
 #endif
 
   //Helix fitting
@@ -2215,10 +2289,13 @@ TPCLocalTrackHelix::DoHelixTrackFit()
 	   <<", z0: "<<gPar[2]
 	   <<", r: "<<gPar[3]
 	   <<", dz: "<<gPar[4]<<std::endl;
+     if(gResParam.size()>0){
+      std::cout<<"gResParam_size: "<<gResParam[0].size()<<std::endl;
+     }
 #endif
 
   Int_t delete_hit = -1;
-  Int_t false_layer = FinalizeTrack(delete_hit);
+  Int_t false_layer = FinalizeTrack(delete_hit);//Here?
   Bool_t goodtrack = true;
   if(false_layer > 0 || m_chisqr > MaxChisqr){
     goodtrack = false;
@@ -2229,6 +2306,9 @@ TPCLocalTrackHelix::DoHelixTrackFit()
 	     <<pos.x()<<", "
 	     <<pos.y()<<", "
 	     <<pos.z()<<")"<<std::endl;
+     if(gResParam.size()>0){
+      std::cout<<"gResParam_size: "<<gResParam[0].size()<<std::endl;
+     }
 #endif
 
     EraseHit(delete_hit);
@@ -2264,6 +2344,9 @@ TPCLocalTrackHelix::DoHelixTrackFit()
 Bool_t
 TPCLocalTrackHelix::ResidualCheck(Int_t i, Double_t &residual)
 {
+  #if DebugDisp
+  std::cout<<FUNC_NAME+" ResidualCheck"<<std::endl;
+  #endif
 
   if(!m_is_theta_calculated){
     std::cout<<FUNC_NAME+" Fatal error : No helix theta information!!! CalcHelixTheta() should be run in front of this"<<std::endl;
@@ -2273,7 +2356,7 @@ TPCLocalTrackHelix::ResidualCheck(Int_t i, Double_t &residual)
   TPCHit *hit = m_hit_array[i] -> GetHit();
   Int_t layer = hit->GetLayer();
   Double_t padTheta = hit->GetPadTheta();
-  std::vector<Double_t> resparam = hit->GetResolutionParams();
+  std::vector<Double_t> resparam = m_hit_array[i]->GetResolutionParams();
 
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 position = m_hit_array[i] -> GetLocalHitPos();
@@ -2315,6 +2398,11 @@ TPCLocalTrackHelix::IsGoodHitToAdd(TPCHit *hit, Double_t &residual, Bool_t nolim
   Int_t layer = hit->GetLayer();
   Double_t padTheta = hit->GetPadTheta();
   std::vector<Double_t> resparam = hit->GetResolutionParams();
+  auto cl = hit->GetParentCluster();
+  double ncl = cl->GetClusterSize();
+  double de = hit ->GetDe();
+  resparam.push_back(ncl);
+  resparam.push_back(de);
 
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 position = hit->GetPosition();
@@ -2963,6 +3051,9 @@ TPCLocalTrackHelix::IsMultiLoop()
 Int_t
 TPCLocalTrackHelix::FinalizeTrack(Int_t &delete_hit)
 {
+  #if DebugDisp
+  std::cout<<FUNC_NAME+" FinalizeTrack"<<std::endl;
+  #endif
 
   if(!m_is_theta_calculated){
     std::cout<<FUNC_NAME+" Fatal error : No helix theta information!!! CalcHelixTheta() should be run in front of this"<<std::endl;

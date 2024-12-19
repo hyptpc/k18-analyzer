@@ -112,7 +112,7 @@ TPCParamMan::Initialize()
     if(line.IsNull() || line[0]=='#') continue;
     std::istringstream input_line(line.Data());
     Int_t layer, row, aty;
-    Double_t p0, p1, p2, p3, p4, p5, p6, p7, p8;
+    Double_t p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11;
     if(input_line >> layer >> row >> aty >> p0 >> p1){
       Int_t key = MakeKey(layer, row);
       switch(aty){
@@ -183,17 +183,23 @@ TPCParamMan::Initialize()
         break;
       }
       case kRes: {
-	if(input_line >> p2 >> p3 >> p4 >> p5 >> p6 >> p7 >> p8){
+	if(input_line >> p2 >> p3 >> p4 >> p5 >> p6 >> p7 >> p8 >> p9 >> p10 >>p11){
 	  TPCResParam *pre_param = m_ResContainer[key];
-	  std::vector<Double_t> params{ p0, p1, p2, p3, p4, p5, p6, p7, p8 };
+	  std::vector<Double_t> params{ p0, p1, p2, p3, p4, p5, p6, p7, p8 ,p9, p10, p11};
 	  TPCResParam *param = new TPCResParam(params);
 	  m_ResContainer[key] = param;
 
 	  Int_t HS = layer; Int_t InOut = row;
 	  if(HS==0&&InOut==0) m_Res_HSOFF_Inner = params;
 	  else if(HS==0&&InOut==1) m_Res_HSOFF_Outer = params;
+	  else if(HS==0&&InOut==2) m_ResCl_HSOFF_Inner = params;
+	  else if(HS==0&&InOut==3) m_ResCl_HSOFF_Outer = params;
 	  else if(HS==1&&InOut==0) m_Res_HSON_Inner = params;
 	  else if(HS==1&&InOut==1) m_Res_HSON_Outer = params;
+	  else if(HS==1&&InOut==2) m_ResCl_HSON_Inner = params;
+	  else if(HS==1&&InOut==3){
+      m_ResCl_HSON_Outer = params;
+    }
 	  else hddaq::cerr << FUNC_NAME << ": Invalid TPC resolution parameter"
 			   << std::endl << " p0, 1: HS On 0 : HS Off"
 			   << std::endl << " p1, 1: Outer layers 0 : inner layers "
@@ -219,6 +225,7 @@ TPCParamMan::Initialize()
     } else {
       hddaq::cerr << FUNC_NAME << ": Invalid Input" << std::endl
 		  << " ===> L" << line_number << " " << line << std::endl;
+
     }
   } // while
 

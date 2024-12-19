@@ -64,6 +64,17 @@ TPCLTrackHit::TPCLTrackHit(TPCHit *hit)
     m_t_exclusive(TMath::QuietNaN())
 {
 
+  auto cl = hit->GetParentCluster();
+  double de = hit ->GetDe();
+  if(cl){
+  auto hc = cl->GetHitContainer();
+  double ncl = hc.size();
+  m_res_param.push_back(ncl);
+  }
+  else{
+    m_res_param.push_back(1);
+  }
+  m_res_param.push_back(de);
   if((m_local_hit_pos.z() + m_local_hit_pos.x()) < 0 && (m_local_hit_pos.z() - m_local_hit_pos.x()) < 0) m_section = 1;
   if((m_local_hit_pos.z() + m_local_hit_pos.x()) < 0 && (m_local_hit_pos.z() - m_local_hit_pos.x()) > 0) m_section = 2;
   if((m_local_hit_pos.z() + m_local_hit_pos.x()) > 0 && (m_local_hit_pos.z() - m_local_hit_pos.x()) > 0) m_section = 3;
