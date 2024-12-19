@@ -162,7 +162,20 @@ struct Event
   std::vector<std::vector<Double_t>> track_cluster_row_center;
 
   std::vector<Int_t> isgoodTPCKurama;
+  std::vector<Int_t> insideTPC;
+  std::vector<Double_t> pTPCKurama;
+  std::vector<Double_t> qTPCKurama;
   std::vector<Double_t> m2TPCKurama;
+  std::vector<Double_t> xsTPC;
+  std::vector<Double_t> ysTPC;
+  std::vector<Double_t> usTPC;
+  std::vector<Double_t> vsTPC;
+
+  std::vector<Double_t> pK18;
+  std::vector<Double_t> xbTPC;
+  std::vector<Double_t> ybTPC;
+  std::vector<Double_t> ubTPC;
+  std::vector<Double_t> vbTPC;
 
   Int_t nvtxTpc;
   std::vector<Double_t> vtx_x;
@@ -277,7 +290,20 @@ struct Event
     track_cluster_row_center.clear();
 
     isgoodTPCKurama.clear();
+    insideTPC.clear();
+    pTPCKurama.clear();
+    qTPCKurama.clear();
     m2TPCKurama.clear();
+    xsTPC.clear();
+    ysTPC.clear();
+    usTPC.clear();
+    vsTPC.clear();
+
+    pK18.clear();
+    xbTPC.clear();
+    ybTPC.clear();
+    ubTPC.clear();
+    vbTPC.clear();
 
     nvtxTpc = 0;
     vtx_x.clear();
@@ -890,7 +916,19 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_row_center", &event.track_cluster_row_center);
 
   tree->Branch( "isgoodTPCKurama", &event.isgoodTPCKurama);
+  tree->Branch( "insideTPC", &event.insideTPC);
+  tree->Branch( "pTPCKurama", &event.pTPCKurama);
+  tree->Branch( "qTPCKurama", &event.qTPCKurama);
   tree->Branch( "m2TPCKurama", &event.m2TPCKurama);
+  tree->Branch( "xsTPC", &event.xsTPC);
+  tree->Branch( "ysTPC", &event.ysTPC);
+  tree->Branch( "usTPC", &event.usTPC);
+  tree->Branch( "vsTPC", &event.vsTPC);
+  tree->Branch( "pK18", &event.pK18);
+  tree->Branch( "xbTPC", &event.xbTPC);
+  tree->Branch( "ybTPC", &event.ybTPC);
+  tree->Branch( "ubTPC", &event.ubTPC);
+  tree->Branch( "vbTPC", &event.vbTPC);
 
   tree->Branch( "nvtxTpc", &event.nvtxTpc );
   tree->Branch( "vtx_x", &event.vtx_x );

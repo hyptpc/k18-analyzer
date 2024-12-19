@@ -64,7 +64,7 @@ enum kArgc
   kHTOFCaib, kHodoscope1, kHodoscope2, kOutFile, nArgc
 };
 std::vector<TString> ArgName =
-  { "[Process]", "[ConfFile]", "[HTOFCaib]", "[Hodoscope]", "[Hodoscope]", "[OutFile]" };
+  { "[Process]", "[ConfFile]", "[HTOFCaib]"/* or DstE42*/, "[Hodoscope]", "[Hodoscope]", "[OutFile]" };
 std::vector<TString> TreeName = { "", "", "tpc", "hodo", "tree", "" };
 std::vector<TFile*> TFileCont;
 std::vector<TTree*> TTreeCont;
@@ -110,21 +110,14 @@ struct Event
   std::vector<Int_t> isKurama;
   std::vector<Int_t> isK18;
   std::vector<Int_t> isAccidental;
-  std::vector<Int_t> fittime;  //usec
-  std::vector<Int_t> searchtime; //usec
-  std::vector<Int_t> niteration; //usec
   std::vector<Double_t> chisqr;
   std::vector<Double_t> helix_cx;
   std::vector<Double_t> helix_cy;
   std::vector<Double_t> helix_z0;
   std::vector<Double_t> helix_r;
   std::vector<Double_t> helix_dz;
-  std::vector<Double_t> dz_factor;
   std::vector<Double_t> dE;
   std::vector<Double_t> dEdx;
-  std::vector<Double_t> mom0_x;//Helix momentum at Y = 0
-  std::vector<Double_t> mom0_y;//Helix momentum at Y = 0
-  std::vector<Double_t> mom0_z;//Helix momentum at Y = 0
   std::vector<Double_t> mom0;//Helix momentum at Y = 0
   std::vector<Int_t> charge;//Helix charge
   std::vector<Double_t> path;//Helix path
@@ -157,7 +150,6 @@ struct Event
   std::vector<std::vector<Double_t>> helix_t;
   std::vector<std::vector<Double_t>> pathhit;
   std::vector<std::vector<Double_t>> alpha;
-  std::vector<std::vector<Double_t>> houghflag;
   std::vector<std::vector<Double_t>> track_cluster_de;
   std::vector<std::vector<Double_t>> track_cluster_size;
   std::vector<std::vector<Double_t>> track_cluster_mrow;
@@ -168,7 +160,20 @@ struct Event
   std::vector<std::vector<Double_t>> track_cluster_row_center;
 
   std::vector<Int_t> isgoodTPCKurama;
+  std::vector<Int_t> insideTPC;
+  std::vector<Double_t> pTPCKurama;
+  std::vector<Double_t> qTPCKurama;
   std::vector<Double_t> m2TPCKurama;
+  std::vector<Double_t> xsTPC;
+  std::vector<Double_t> ysTPC;
+  std::vector<Double_t> usTPC;
+  std::vector<Double_t> vsTPC;
+
+  std::vector<Double_t> pK18;
+  std::vector<Double_t> xbTPC;
+  std::vector<Double_t> ybTPC;
+  std::vector<Double_t> ubTPC;
+  std::vector<Double_t> vbTPC;
 
   Int_t nvtxTpc;
   std::vector<Double_t> vtx_x;
@@ -317,9 +322,6 @@ struct Event
     isKurama.clear();
     isK18.clear();
     isAccidental.clear();
-    fittime.clear();
-    searchtime.clear();
-    niteration.clear();
     chisqr.clear();
     helix_cx.clear();
     helix_cy.clear();
@@ -329,10 +331,6 @@ struct Event
     dE.clear();
     dEdx.clear();
 
-    dz_factor.clear();
-    mom0_x.clear();
-    mom0_y.clear();
-    mom0_z.clear();
     mom0.clear();
     charge.clear();
     path.clear();
@@ -365,7 +363,6 @@ struct Event
     helix_t.clear();
     pathhit.clear();
     alpha.clear();
-    houghflag.clear();
 
     track_cluster_de.clear();
     track_cluster_size.clear();
@@ -377,7 +374,20 @@ struct Event
     track_cluster_row_center.clear();
 
     isgoodTPCKurama.clear();
+    insideTPC.clear();
+    pTPCKurama.clear();
+    qTPCKurama.clear();
     m2TPCKurama.clear();
+    xsTPC.clear();
+    ysTPC.clear();
+    usTPC.clear();
+    vsTPC.clear();
+
+    pK18.clear();
+    xbTPC.clear();
+    ybTPC.clear();
+    ubTPC.clear();
+    vbTPC.clear();
 
     nvtxTpc = 0;
     vtx_x.clear();
@@ -519,21 +529,14 @@ struct Src
   TTreeReaderValue<std::vector<Int_t>>* isKurama;
   TTreeReaderValue<std::vector<Int_t>>* isK18;
   TTreeReaderValue<std::vector<Int_t>>* isAccidental;
-  TTreeReaderValue<std::vector<Int_t>>* fittime;
-  TTreeReaderValue<std::vector<Int_t>>* searchtime;
-  TTreeReaderValue<std::vector<Int_t>>* niteration;
   TTreeReaderValue<std::vector<Double_t>>* chisqr;
   TTreeReaderValue<std::vector<Double_t>>* helix_cx;
   TTreeReaderValue<std::vector<Double_t>>* helix_cy;
   TTreeReaderValue<std::vector<Double_t>>* helix_z0;
   TTreeReaderValue<std::vector<Double_t>>* helix_r;
   TTreeReaderValue<std::vector<Double_t>>* helix_dz;
-  TTreeReaderValue<std::vector<Double_t>>* dz_factor;
   TTreeReaderValue<std::vector<Double_t>>* dE;
   TTreeReaderValue<std::vector<Double_t>>* dEdx; //reference dedx
-  TTreeReaderValue<std::vector<Double_t>>* mom0_x;//Helix momentum at Y = 0
-  TTreeReaderValue<std::vector<Double_t>>* mom0_y;//Helix momentum at Y = 0
-  TTreeReaderValue<std::vector<Double_t>>* mom0_z;//Helix momentum at Y = 0
   TTreeReaderValue<std::vector<Double_t>>* mom0;//Helix momentum at Y = 0
   TTreeReaderValue<std::vector<Int_t>>* charge;//Helix charge
   TTreeReaderValue<std::vector<Double_t>>* path;//Helix path
@@ -559,7 +562,6 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* helix_t;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* alpha;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* pathhit;
-  TTreeReaderValue<std::vector<std::vector<Double_t>>>* houghflag;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_de;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_size;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_mrow;
@@ -570,7 +572,20 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_row_center;
 
   TTreeReaderValue<std::vector<Int_t>>* isgoodTPCKurama;
+  TTreeReaderValue<std::vector<Int_t>>* insideTPC;
+  TTreeReaderValue<std::vector<Double_t>>* pTPCKurama;
+  TTreeReaderValue<std::vector<Double_t>>* qTPCKurama;
   TTreeReaderValue<std::vector<Double_t>>* m2TPCKurama;
+  TTreeReaderValue<std::vector<Double_t>>* xsTPC;
+  TTreeReaderValue<std::vector<Double_t>>* ysTPC;
+  TTreeReaderValue<std::vector<Double_t>>* usTPC;
+  TTreeReaderValue<std::vector<Double_t>>* vsTPC;
+
+  TTreeReaderValue<std::vector<Double_t>>* pK18;
+  TTreeReaderValue<std::vector<Double_t>>* xbTPC;
+  TTreeReaderValue<std::vector<Double_t>>* ybTPC;
+  TTreeReaderValue<std::vector<Double_t>>* ubTPC;
+  TTreeReaderValue<std::vector<Double_t>>* vbTPC;
 
   TTreeReaderValue<Int_t>* nvtxTpc;
   TTreeReaderValue<std::vector<Double_t>>* vtx_x;
@@ -745,9 +760,6 @@ dst::DstRead( int ievent )
   event.isKurama = **src.isKurama;
   event.isK18 = **src.isK18;
   event.isAccidental = **src.isAccidental;
-  event.fittime = **src.fittime;
-  event.searchtime = **src.searchtime;
-  event.niteration = **src.niteration;
   event.chisqr = **src.chisqr;
   event.helix_cx = **src.helix_cx;
   event.helix_cy = **src.helix_cy;
@@ -755,12 +767,8 @@ dst::DstRead( int ievent )
   event.helix_r = **src.helix_r;
   event.helix_dz = **src.helix_dz;
 
-  event.dz_factor = **src.dz_factor;
   event.dE = **src.dE;
   event.dEdx = **src.dEdx;
-  event.mom0_x = **src.mom0_x;
-  event.mom0_y = **src.mom0_y;
-  event.mom0_z = **src.mom0_z;
   event.mom0 = **src.mom0;
   event.charge = **src.charge;
   event.path = **src.path;
@@ -786,7 +794,6 @@ dst::DstRead( int ievent )
   event.helix_t = **src.helix_t;
   event.alpha = **src.alpha;
   event.pathhit = **src.pathhit;
-  event.houghflag = **src.houghflag;
   event.track_cluster_de = **src.track_cluster_de;
   event.track_cluster_size = **src.track_cluster_size;
   event.track_cluster_mrow = **src.track_cluster_mrow;
@@ -797,7 +804,20 @@ dst::DstRead( int ievent )
   event.track_cluster_row_center = **src.track_cluster_row_center;
 
   event.isgoodTPCKurama = **src.isgoodTPCKurama;
+  event.insideTPC = **src.insideTPC;
+  event.pTPCKurama = **src.pTPCKurama;
+  event.qTPCKurama = **src.qTPCKurama;
   event.m2TPCKurama = **src.m2TPCKurama;
+  event.xsTPC = **src.xsTPC;
+  event.ysTPC = **src.ysTPC;
+  event.usTPC = **src.usTPC;
+  event.vsTPC = **src.vsTPC;
+
+  event.pK18 = **src.pK18;
+  event.xbTPC = **src.xbTPC;
+  event.ybTPC = **src.ybTPC;
+  event.ubTPC = **src.ubTPC;
+  event.vbTPC = **src.vbTPC;
 
   event.isElectron.resize(ntTpc);
   event.nsigma_triton.resize(ntTpc);
@@ -1300,18 +1320,12 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "isK18", &event.isK18 );
   tree->Branch( "isKurama", &event.isKurama );
   tree->Branch( "isAccidental", &event.isAccidental );
-  tree->Branch( "fittime", &event.fittime );
-  tree->Branch( "searchtime", &event.searchtime );
   tree->Branch( "chisqr", &event.chisqr );
-  tree->Branch( "niteration", &event.niteration );
   tree->Branch( "helix_cx", &event.helix_cx );
   tree->Branch( "helix_cy", &event.helix_cy );
   tree->Branch( "helix_z0", &event.helix_z0 );
   tree->Branch( "helix_r", &event.helix_r );
   tree->Branch( "helix_dz", &event.helix_dz );
-  tree->Branch( "mom0_x", &event.mom0_x );
-  tree->Branch( "mom0_y", &event.mom0_y );
-  tree->Branch( "mom0_z", &event.mom0_z );
   tree->Branch( "mom0", &event.mom0 );
   tree->Branch( "dE", &event.dE );
   tree->Branch( "dEdx", &event.dEdx );
@@ -1322,7 +1336,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "nsigma_kaon", &event.nsigma_kaon );
   tree->Branch( "nsigma_pion", &event.nsigma_pion );
   tree->Branch( "nsigma_electron", &event.nsigma_electron );
-  tree->Branch( "dz_factor", &event.dz_factor );
   tree->Branch( "charge", &event.charge );
   tree->Branch( "path", &event.path );
   tree->Branch( "pid", &event.pid );
@@ -1347,7 +1360,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "helix_t", &event.helix_t );
   tree->Branch( "alpha", &event.alpha);
   tree->Branch( "pathhit", &event.pathhit);
-  tree->Branch( "houghflag", &event.houghflag );
   tree->Branch( "track_cluster_de", &event.track_cluster_de);
   tree->Branch( "track_cluster_size", &event.track_cluster_size);
   tree->Branch( "track_cluster_mrow", &event.track_cluster_mrow);
@@ -1358,7 +1370,19 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_row_center", &event.track_cluster_row_center);
 
   tree->Branch( "isgoodTPCKurama", &event.isgoodTPCKurama);
+  tree->Branch( "insideTPC", &event.insideTPC);
+  tree->Branch( "pTPCKurama", &event.pTPCKurama);
+  tree->Branch( "qTPCKurama", &event.qTPCKurama);
   tree->Branch( "m2TPCKurama", &event.m2TPCKurama);
+  tree->Branch( "xsTPC", &event.xsTPC);
+  tree->Branch( "ysTPC", &event.ysTPC);
+  tree->Branch( "usTPC", &event.usTPC);
+  tree->Branch( "vsTPC", &event.vsTPC);
+  tree->Branch( "pK18", &event.pK18);
+  tree->Branch( "xbTPC", &event.xbTPC);
+  tree->Branch( "ybTPC", &event.ybTPC);
+  tree->Branch( "ubTPC", &event.ubTPC);
+  tree->Branch( "vbTPC", &event.vbTPC);
 
   tree->Branch( "nvtxTpc", &event.nvtxTpc );
   tree->Branch( "vtx_x", &event.vtx_x );
@@ -1484,22 +1508,15 @@ ConfMan::InitializeHistograms( void )
   src.isK18 = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isK18" );
   src.isKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isKurama" );
   src.isAccidental = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isAccidental" );
-  src.fittime = new TTreeReaderValue<std::vector<Int_t>>( *reader, "fittime" );
-  src.searchtime = new TTreeReaderValue<std::vector<Int_t>>( *reader, "searchtime" );
-  src.niteration = new TTreeReaderValue<std::vector<Int_t>>( *reader, "niteration" );
   src.chisqr = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqr" );
   src.helix_cx = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_cx" );
   src.helix_cy = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_cy" );
   src.helix_z0 = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_z0" );
   src.helix_r = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_r" );
   src.helix_dz = new TTreeReaderValue<std::vector<Double_t>>( *reader, "helix_dz" );
-  src.dz_factor = new TTreeReaderValue<std::vector<Double_t>>( *reader, "dz_factor" );
   src.dE = new TTreeReaderValue<std::vector<Double_t>>( *reader, "dE" );
   src.dEdx = new TTreeReaderValue<std::vector<Double_t>>( *reader, "dEdx" );
   src.mom0 = new TTreeReaderValue<std::vector<Double_t>>( *reader, "mom0" );
-  src.mom0_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "mom0_x" );
-  src.mom0_y = new TTreeReaderValue<std::vector<Double_t>>( *reader, "mom0_y" );
-  src.mom0_z = new TTreeReaderValue<std::vector<Double_t>>( *reader, "mom0_z" );
   src.charge = new TTreeReaderValue<std::vector<Int_t>>( *reader, "charge" );
   src.path = new TTreeReaderValue<std::vector<Double_t>>( *reader, "path" );
   src.pid = new TTreeReaderValue<std::vector<Int_t>>( *reader, "pid" );
@@ -1524,7 +1541,6 @@ ConfMan::InitializeHistograms( void )
   src.helix_t = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "helix_t" );
   src.alpha = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "alpha" );
   src.pathhit = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "pathhit" );
-  src.houghflag = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "houghflag" );
   src.track_cluster_de = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_de" );
   src.track_cluster_size = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_size" );
   src.track_cluster_mrow = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_mrow" );
@@ -1535,7 +1551,20 @@ ConfMan::InitializeHistograms( void )
   src.track_cluster_row_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_row_center" );
 
   src.isgoodTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isgoodTPCKurama" );
-  src.m2TPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "m2TPCKurama" );
+  src.insideTPC = new TTreeReaderValue<std::vector<Int_t>>( *reader, "insideTPC" );
+  src.pTPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pTPCKurama" );
+  src.qTPCKurama  = new TTreeReaderValue<std::vector<Double_t>>( *reader, "qTPCKurama" );
+  src.m2TPCKurama  = new TTreeReaderValue<std::vector<Double_t>>( *reader, "m2TPCKurama" );
+  src.xsTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "xsTPC" );
+  src.ysTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "ysTPC" );
+  src.usTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "usTPC" );
+  src.vsTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vsTPC" );
+
+  src.pK18 = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pK18" );
+  src.xbTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "xbTPC" );
+  src.ybTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "ybTPC" );
+  src.ubTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "ubTPC" );
+  src.vbTPC = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vbTPC" );
 
   src.nvtxTpc = new TTreeReaderValue<Int_t>(*reader,"nvtxTpc");
   src.vtx_x = new TTreeReaderValue<std::vector<Double_t>>( *reader, "vtx_x" );
