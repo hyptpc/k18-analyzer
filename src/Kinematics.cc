@@ -1203,12 +1203,12 @@ Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t tracklength, Double_t tof
 
   Double_t mom = TMath::Abs(poq);
   Double_t mp = 0.001*938.2720813;
-  Double_t invert_beta = tof*MathTools::C()/tracklength;
-  Double_t invert_beta_p = TMath::Sqrt(mp*mp + mom*mom)/mom;
+  Double_t inverse_beta = tof*MathTools::C()/tracklength;
+  Double_t inverse_beta_p = TMath::Sqrt(mp*mp + mom*mom)/mom;
   Double_t sigma_p = (sigma_tof_p[0] + sigma_tof_p[1]*TMath::Abs(mom) +
 		      sigma_tof_p[2]*mom*mom + sigma_tof_p[3]*TMath::Exp(sigma_tof_p[4]*TMath::Abs(mom)));
 
-  double nsigma = (invert_beta-invert_beta_p)/sigma_p;
+  double nsigma = (inverse_beta-inverse_beta_p)/sigma_p;
   return nsigma;
 }
 
@@ -1217,12 +1217,12 @@ Double_t HypTPCHTOFNsigmaDeutron(Double_t poq, Double_t tracklength, Double_t to
 
   Double_t mom = TMath::Abs(poq);
   Double_t md = 0.001*1875.612762;
-  Double_t invert_beta = tof*MathTools::C()/tracklength;
-  Double_t invert_beta_d = TMath::Sqrt(md*md + mom*mom)/mom;
+  Double_t inverse_beta = tof*MathTools::C()/tracklength;
+  Double_t inverse_beta_d = TMath::Sqrt(md*md + mom*mom)/mom;
   Double_t sigma_d = (sigma_tof_d[0] + sigma_tof_d[1]*TMath::Abs(mom) +
 		      sigma_tof_d[2]*mom*mom + sigma_tof_d[3]*TMath::Exp(sigma_tof_d[4]*TMath::Abs(mom)));
 
-  double nsigma = (invert_beta-invert_beta_d)/sigma_d;
+  double nsigma = (inverse_beta-inverse_beta_d)/sigma_d;
   return nsigma;
 }
 
@@ -1231,12 +1231,12 @@ Double_t HypTPCHTOFNsigmaTriton(Double_t poq, Double_t tracklength, Double_t tof
 
   Double_t mom = TMath::Abs(poq);
   Double_t mt = 0.001*2808.921112;
-  Double_t invert_beta = tof*MathTools::C()/tracklength;
-  Double_t invert_beta_t = TMath::Sqrt(mt*mt + mom*mom)/mom;
+  Double_t inverse_beta = tof*MathTools::C()/tracklength;
+  Double_t inverse_beta_t = TMath::Sqrt(mt*mt + mom*mom)/mom;
   Double_t sigma_t = (sigma_tof_t[0] + sigma_tof_t[1]*TMath::Abs(mom) +
 		      sigma_tof_t[2]*mom*mom + sigma_tof_t[3]*TMath::Exp(sigma_tof_t[4]*TMath::Abs(mom)));
 
-  double nsigma = (invert_beta-invert_beta_t)/sigma_t;
+  double nsigma = (inverse_beta-inverse_beta_t)/sigma_t;
   return nsigma;
 }
 
@@ -1245,12 +1245,12 @@ Double_t HypTPCHTOFNsigmaKaon(Double_t poq, Double_t tracklength, Double_t tof){
 
   Double_t mom = TMath::Abs(poq);
   Double_t mk = 0.001*493.677;
-  Double_t invert_beta = tof*MathTools::C()/tracklength;
-  Double_t invert_beta_k = TMath::Sqrt(mk*mk + mom*mom)/mom;
+  Double_t inverse_beta = tof*MathTools::C()/tracklength;
+  Double_t inverse_beta_k = TMath::Sqrt(mk*mk + mom*mom)/mom;
   Double_t sigma_k = (sigma_tof_k[0] + sigma_tof_k[1]*TMath::Abs(mom) +
 		      sigma_tof_k[2]*mom*mom + sigma_tof_k[3]*TMath::Exp(sigma_tof_k[4]*TMath::Abs(mom)));
 
-  double nsigma = (invert_beta-invert_beta_k)/sigma_k;
+  double nsigma = (inverse_beta-inverse_beta_k)/sigma_k;
   return nsigma;
 }
 
@@ -1259,12 +1259,12 @@ Double_t HypTPCHTOFNsigmaPion(Double_t poq, Double_t tracklength, Double_t tof){
 
   Double_t mom = TMath::Abs(poq);
   Double_t mpi = 0.001*139.57039;
-  Double_t invert_beta = tof*MathTools::C()/tracklength;
-  Double_t invert_beta_pi = TMath::Sqrt(mpi*mpi + mom*mom)/mom;
+  Double_t inverse_beta = tof*MathTools::C()/tracklength;
+  Double_t inverse_beta_pi = TMath::Sqrt(mpi*mpi + mom*mom)/mom;
   Double_t sigma_pi = (sigma_tof_pi[0] + sigma_tof_pi[1]*TMath::Abs(mom) +
 		       sigma_tof_pi[2]*mom*mom + sigma_tof_pi[3]*TMath::Exp(sigma_tof_pi[4]*TMath::Abs(mom)));
 
-  double nsigma = (invert_beta-invert_beta_pi)/sigma_pi;
+  double nsigma = (inverse_beta-inverse_beta_pi)/sigma_pi;
   return nsigma;
 }
 
@@ -1273,12 +1273,90 @@ Double_t HypTPCHTOFNsigmaElectron(Double_t poq, Double_t tracklength, Double_t t
 
   Double_t mom = TMath::Abs(poq);
   Double_t me = 0.001*0.5109989461; //[MeV]
-  Double_t invert_beta = tof*MathTools::C()/tracklength;
-  Double_t invert_beta_e = TMath::Sqrt(me*me + mom*mom)/mom;
+  Double_t inverse_beta = tof*MathTools::C()/tracklength;
+  Double_t inverse_beta_e = TMath::Sqrt(me*me + mom*mom)/mom;
   Double_t sigma_e = poq>0 ? sigma_tof_ep : sigma_tof_em;
 
-  double nsigma = (invert_beta-invert_beta_e)/sigma_e;
-  if(poq>0) nsigma = (invert_beta-invert_beta_e-offset_tof_ep)/sigma_e;
+  double nsigma = (inverse_beta-inverse_beta_e)/sigma_e;
+  if(poq>0) nsigma = (inverse_beta-inverse_beta_e-offset_tof_ep)/sigma_e;
+  return nsigma;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t inverse_beta){
+
+  Double_t mom = TMath::Abs(poq);
+  Double_t mp = 0.001*938.2720813;
+  Double_t inverse_beta_p = TMath::Sqrt(mp*mp + mom*mom)/mom;
+  Double_t sigma_p = (sigma_tof_p[0] + sigma_tof_p[1]*TMath::Abs(mom) +
+		      sigma_tof_p[2]*mom*mom + sigma_tof_p[3]*TMath::Exp(sigma_tof_p[4]*TMath::Abs(mom)));
+
+  double nsigma = (inverse_beta-inverse_beta_p)/sigma_p;
+  return nsigma;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCHTOFNsigmaDeutron(Double_t poq, Double_t inverse_beta){
+
+  Double_t mom = TMath::Abs(poq);
+  Double_t md = 0.001*1875.612762;
+  Double_t inverse_beta_d = TMath::Sqrt(md*md + mom*mom)/mom;
+  Double_t sigma_d = (sigma_tof_d[0] + sigma_tof_d[1]*TMath::Abs(mom) +
+		      sigma_tof_d[2]*mom*mom + sigma_tof_d[3]*TMath::Exp(sigma_tof_d[4]*TMath::Abs(mom)));
+
+  double nsigma = (inverse_beta-inverse_beta_d)/sigma_d;
+  return nsigma;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCHTOFNsigmaTriton(Double_t poq, Double_t inverse_beta){
+
+  Double_t mom = TMath::Abs(poq);
+  Double_t mt = 0.001*2808.921112;
+  Double_t inverse_beta_t = TMath::Sqrt(mt*mt + mom*mom)/mom;
+  Double_t sigma_t = (sigma_tof_t[0] + sigma_tof_t[1]*TMath::Abs(mom) +
+		      sigma_tof_t[2]*mom*mom + sigma_tof_t[3]*TMath::Exp(sigma_tof_t[4]*TMath::Abs(mom)));
+
+  double nsigma = (inverse_beta-inverse_beta_t)/sigma_t;
+  return nsigma;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCHTOFNsigmaKaon(Double_t poq, Double_t inverse_beta){
+
+  Double_t mom = TMath::Abs(poq);
+  Double_t mk = 0.001*493.677;
+  Double_t inverse_beta_k = TMath::Sqrt(mk*mk + mom*mom)/mom;
+  Double_t sigma_k = (sigma_tof_k[0] + sigma_tof_k[1]*TMath::Abs(mom) +
+		      sigma_tof_k[2]*mom*mom + sigma_tof_k[3]*TMath::Exp(sigma_tof_k[4]*TMath::Abs(mom)));
+
+  double nsigma = (inverse_beta-inverse_beta_k)/sigma_k;
+  return nsigma;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCHTOFNsigmaPion(Double_t poq, Double_t inverse_beta){
+
+  Double_t mom = TMath::Abs(poq);
+  Double_t mpi = 0.001*139.57039;
+  Double_t inverse_beta_pi = TMath::Sqrt(mpi*mpi + mom*mom)/mom;
+  Double_t sigma_pi = (sigma_tof_pi[0] + sigma_tof_pi[1]*TMath::Abs(mom) +
+		       sigma_tof_pi[2]*mom*mom + sigma_tof_pi[3]*TMath::Exp(sigma_tof_pi[4]*TMath::Abs(mom)));
+
+  double nsigma = (inverse_beta-inverse_beta_pi)/sigma_pi;
+  return nsigma;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCHTOFNsigmaElectron(Double_t poq, Double_t inverse_beta){
+
+  Double_t mom = TMath::Abs(poq);
+  Double_t me = 0.001*0.5109989461; //[MeV]
+  Double_t inverse_beta_e = TMath::Sqrt(me*me + mom*mom)/mom;
+  Double_t sigma_e = poq>0 ? sigma_tof_ep : sigma_tof_em;
+
+  double nsigma = (inverse_beta-inverse_beta_e)/sigma_e;
+  if(poq>0) nsigma = (inverse_beta-inverse_beta_e-offset_tof_ep)/sigma_e;
   return nsigma;
 }
 
