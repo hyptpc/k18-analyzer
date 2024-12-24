@@ -76,8 +76,8 @@ z = p[2] + p[4]*p[3]*(theta);
 namespace
 {
   const auto& gUser = UserParamMan::GetInstance();
-  static bool CircCross = 0;//By defining TPCLocalTrackHelix object in Dst, and setting 'SetCircularCrossTracking', CalcHit definition can be modified. 
-	
+  static bool CircCross = 0;//By defining TPCLocalTrackHelix object in Dst, and setting 'SetCircularCrossTracking', CalcHit definition can be modified.
+
   // B-field
   const Double_t& HS_field_0 = ConfMan::Get<Double_t>("HSFLDCALIB");
   const Double_t& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
@@ -100,7 +100,7 @@ namespace
   static std::vector<std::vector<Double_t>> gResParam;
   static TVector3 gVertex;
   static TVector3 gVertexRes;
-  static Double_t gPar[10] = {0};
+  static Double_t gPar[5] = {0};
   static Double_t gChisqr = 1.e+10;
   static Bool_t gMomConstraint = false; //w or w/o momentum constraint
   static Bool_t gMultiLoop = false;
@@ -147,9 +147,9 @@ namespace
   //[0] : Intrinsic Y resolution, [1] : Attenuation term, [2] : Diffusion coefficient, [3] : Effective # of signal electrons
   static TString eq_vertical="TMath::Sqrt(TMath::Power([0],2)+TMath::Power([2],2)*(x+300.)/([3]*TMath::Exp(-[1]*(x+300.))))";
   static TF1 *f_drift = new TF1("f_drift", eq_vertical.Data(), -300., 300.);
-  
+
  // static TString eq_res_y="TMath::Sqrt(TMath::Power([0],2) + [1]*abs(x)+[2]*x*x)";
-  static TString eq_res_y="TMath::Sqrt(TMath::Power([0],2) + TMath::Power([1],2)*tanh([2]*x*x))"; 
+  static TString eq_res_y="TMath::Sqrt(TMath::Power([0],2) + TMath::Power([1],2)*tanh([2]*x*x))";
   static TF1 *f_res_y = new TF1("f_res_y", eq_res_y.Data(), -300., 300.);
 
   //for Helix tracking
@@ -232,7 +232,7 @@ if(CircCross){
   cpar[0] = par[0];
   cpar[1] = par[1];
   cpar[2] = par[3];
-  cpar[3] = localpos.X(); 
+  cpar[3] = localpos.X();
   cpar[4] = localpos.Y();
   fcir_cross.SetParameters(cpar);
   fcir_cross.SetNpx(steps);
@@ -356,7 +356,7 @@ static inline TVector3 ResidualVectXZ(Double_t par[5], TVector3 pos){ //Closest 
 
 //______________________________________________________________________________
 static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos, Double_t padTheta, Double_t theta, std::vector<Double_t> resparam, Bool_t vetoBadClusters){
-  
+
   int npar = resparam.size();
 	double ncl = 1;
 	double dE = -1;
@@ -373,7 +373,7 @@ static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos
     resparam.at(nStaticParams+1);
   }
   else{
-    std::cout<<"TPCLocalTrackHelix::CalcResolution() : No cluster information"<<std::endl;  
+    std::cout<<"TPCLocalTrackHelix::CalcResolution() : No cluster information"<<std::endl;
   }
 
   Double_t cosPad = TMath::Cos(padTheta);
@@ -404,7 +404,7 @@ static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos
     else{
       res_param_hit.push_back(resparam.at(i+ nStaticParams/2));
     }
-  }  
+  }
 
 
 	Double_t param_horizontal[6] = {res_param_hit[0], res_param_hit[1], res_param_hit[2], res_param_hit[3], res_param_hit[4], res_param_hit[5]};
@@ -413,7 +413,7 @@ static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos
 
   //vertical resolution
   Double_t param_y[3] = {res_param_hit[6], res_param_hit[7], res_param_hit[8]};
-  Double_t param_de[3] = {res_param_hit[9], res_param_hit[10], res_param_hit[11]};  
+  Double_t param_de[3] = {res_param_hit[9], res_param_hit[10], res_param_hit[11]};
 //  f_drift -> SetParameters(param_y);
 //  Double_t res_drift = f_drift -> Eval(pos.y());
   f_res_y -> SetParameters(param_y);
@@ -447,7 +447,7 @@ static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos
     Double_t pull_y = residual_vertical/resolution_vertical;
     if(TMath::Hypot(pull_t, pull_y) > PullWindow) return TVector3(2.e+10, 2.e+10, 2.e+10);
   }
-//  std::cout<<Form("Resolution = (%.2g, %.2g, %.2g)", res.x(), res.y(), res.z())<<std::endl; 
+//  std::cout<<Form("Resolution = (%.2g, %.2g, %.2g)", res.x(), res.y(), res.z())<<std::endl;
   return res;
 }
 
@@ -1337,7 +1337,7 @@ TPCLocalTrackHelix::GetNHitsEffective() const
 }
 void
 TPCLocalTrackHelix::SetCircularCrossTracking(bool flag ){
-	CircCross = flag;	
+	CircCross = flag;
 }
 
 //______________________________________________________________________________
@@ -1351,7 +1351,7 @@ TPCLocalTrackHelix::AddTPCHit(TPCLTrackHit *hit)
     auto res_param = hit->GetResolutionParams();
     auto hit0 = hit->GetHit();
     auto res_param0 = hit0->GetResolutionParams();
-    nStaticParams = res_param0.size(); 
+    nStaticParams = res_param0.size();
     if(res_param.size() == nStaticParams){
       auto cl = hit0->GetParentCluster();
       double de = hit0->GetDe();

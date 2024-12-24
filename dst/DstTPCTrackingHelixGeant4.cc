@@ -814,7 +814,6 @@ struct Event
     decaysmomLambda_y.clear();
     decaysmomLambda_z.clear();
 
-
     ntK18 = 0;
     xvpHS.clear();
     yvpHS.clear();
@@ -1775,7 +1774,7 @@ dst::DstRead( int ievent )
   event.chisqr.resize( ntTpc );
   event.pval.resize( ntTpc );
   event.distTgt.resize( ntTpc );
-  
+
   event.helix_cx.resize( ntTpc );
   event.helix_cy.resize( ntTpc );
   event.helix_z0.resize( ntTpc );
@@ -1784,7 +1783,7 @@ dst::DstRead( int ievent )
   event.mom0_x.resize( ntTpc );
   event.mom0_y.resize( ntTpc );
   event.mom0_z.resize( ntTpc );
-  
+
   event.dE.resize( ntTpc );
   event.dEdx.resize( ntTpc );
   event.dz_factor.resize( ntTpc );
@@ -2634,9 +2633,6 @@ ConfMan::InitializeHistograms( void )
     HB1(TPCIntrinsicHid +300+ 20000 + ih,Form("TPCIntrinsicResidualPz_#alpha=[%g,%g)",alpha_l,alpha_h),1000,-10,10);
   }
 
-
-
-
   HBTree( "tpc", "tree of DstTPC_g" );
 
   tree->Branch("status", &event.status, "status/I" );
@@ -2709,7 +2705,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "nsigma_pion", &event.nsigma_pion );
   tree->Branch( "nsigma_electron", &event.nsigma_electron );
 
-
   tree->Branch( "pid", &event.pid );
   tree->Branch( "hitlayer", &event.hitlayer );
   tree->Branch( "hitpos_x", &event.hitpos_x );
@@ -2751,14 +2746,11 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "mom0_inverted", &event.mom0_inverted );
   tree->Branch( "pid_inverted", &event.pid_inverted );
 
-
   tree->Branch("momg_x",event.momg_x,"momg_x[nttpc][64]/D");
   tree->Branch("momg_y",event.momg_y,"momg_y[nttpc][64]/D");
   tree->Branch("momg_z",event.momg_z,"momg_z[nttpc][64]/D");
   tree->Branch("iti_g",event.iti_g,"iti_g[nttpc][64]/I");
   tree->Branch("residual_p",event.residual_p,"residual_p[nttpc][64]/D");
-
-
 
   tree->Branch( "nvtxTpc", &event.nvtxTpc );
   tree->Branch( "vtx_x", &event.vtx_x );
@@ -2775,7 +2767,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "vtxmom_y", &event.vtxmom_y );
   tree->Branch( "vtxmom_z", &event.vtxmom_z );
 
-
   tree->Branch("nPrm",&src.nhPrm,"nPrm/I");
   tree->Branch("xPrm",src.xPrm,"xPrm[nPrm]/D");
   tree->Branch("yPrm",src.yPrm,"yPrm[nPrm]/D");
@@ -2784,7 +2775,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("pyPrm",src.pyPrm,"pyPrm[nPrm]/D");
   tree->Branch("pzPrm",src.pzPrm,"pzPrm[nPrm]/D");
   tree->Branch("ppPrm",src.ppPrm,"ppPrm[nPrm]/D");
-
 
   tree->Branch("xtpc",src.xtpc,"xtpc[nhittpc]/D");
   tree->Branch("ytpc",src.ytpc,"ytpc[nhittpc]/D");
@@ -2921,6 +2911,31 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("ppBvh", event.ppBvh,"ppBvh[500]/D");
   tree->Branch("deBvh", event.deBvh,"deBvh[500]/D");
   tree->Branch("tBvh", event.tBvh,"tBvh[500]/D");
+
+  tree->Branch( "isLambda", &event.isLambda );
+  tree->Branch( "ncombiLambda", &event.ncombiLambda );
+  tree->Branch( "distLambda", &event.distLambda );
+  tree->Branch( "angleLambda", &event.angleLambda );
+  tree->Branch( "bestmassLambda", &event.bestmassLambda );
+  tree->Branch( "massLambda", &event.massLambda );
+  tree->Branch( "vtxLambda_x", &event.vtxLambda_x );
+  tree->Branch( "vtxLambda_y", &event.vtxLambda_y );
+  tree->Branch( "vtxLambda_z", &event.vtxLambda_z );
+  tree->Branch( "momLambda", &event.momLambda );
+  tree->Branch( "momLambda_x", &event.momLambda_x );
+  tree->Branch( "momLambda_y", &event.momLambda_y );
+  tree->Branch( "momLambda_z", &event.momLambda_z );
+  tree->Branch( "decaysidLambda", &event.decaysidLambda );
+  tree->Branch( "decaysmomLambda", &event.decaysmomLambda );
+  tree->Branch( "decaysmomLambda_x", &event.decaysmomLambda_x );
+  tree->Branch( "decaysmomLambda_y", &event.decaysmomLambda_y );
+  tree->Branch( "decaysmomLambda_z", &event.decaysmomLambda_z );
+
+  tree->Branch( "nvtxTpcClustered", &event.nvtxTpcClustered );
+  tree->Branch( "clusteredVtx_x", &event.Clusteredvtx_x );
+  tree->Branch( "clusteredVtx_y", &event.Clusteredvtx_y );
+  tree->Branch( "clusteredVtx_z", &event.Clusteredvtx_z );
+  tree->Branch( "clusteredVtxid", &event.Clusteredvtxid );
 
 
   ////////// Bring Address From Dst

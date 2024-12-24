@@ -95,6 +95,12 @@ namespace Kinematics
   Double_t HypTPCHTOFNsigmaKaon(Double_t poq, Double_t tracklength, Double_t tof);
   Double_t HypTPCHTOFNsigmaPion(Double_t poq, Double_t tracklength, Double_t tof);
   Double_t HypTPCHTOFNsigmaElectron(Double_t poq, Double_t tracklength, Double_t tof);
+  Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t inverse_beta);
+  Double_t HypTPCHTOFNsigmaDeutron(Double_t poq, Double_t inverse_beta);
+  Double_t HypTPCHTOFNsigmaTriton(Double_t poq, Double_t inverse_beta);
+  Double_t HypTPCHTOFNsigmaKaon(Double_t poq, Double_t inverse_beta);
+  Double_t HypTPCHTOFNsigmaPion(Double_t poq, Double_t inverse_beta);
+  Double_t HypTPCHTOFNsigmaElectron(Double_t poq,Double_t inverse_beta);
 
   //For helix tracking & vertex reconstruction
   Double_t CalcHelixCloseDist(TVector3 point, Double_t par[5], Double_t t1_start, Double_t t1_end);
