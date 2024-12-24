@@ -1315,6 +1315,7 @@ dst::DstRead( int ievent )
   static const Bool_t KPEvent = gUser.GetParameter("KPEvent");
   static const Bool_t KHeavyEvent = gUser.GetParameter("KHeavyEvent");
   static const Bool_t ExclusiveTracking = gUser.GetParameter("ExclusiveTracking");
+	static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
   static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
   static const auto yGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Y();
   static const auto zGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Z();
@@ -1334,7 +1335,7 @@ dst::DstRead( int ievent )
 
   HF1( 1, event.status++ );
 
-  if(src.ntKurama!=1 || src.ntK18!=1) return true;
+  if((src.ntKurama!=1 and !BeamThroughTPC)|| src.ntK18!=1) return true;
   if(src.chisqrK18[0] > MaxChisqrBcOut || src.chisqrKurama[0] > MaxChisqrKurama) return true;
 
   if(KKEvent){
