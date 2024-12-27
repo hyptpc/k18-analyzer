@@ -1180,6 +1180,7 @@ dst::DstRead( int ievent )
   static const auto KKEvent = gUser.GetParameter("KKEvent");
   static const auto KPEvent = gUser.GetParameter("KPEvent");
   static const auto KHeavyEvent = gUser.GetParameter("KHeavyEvent");
+  static const Bool_t ScatMomCut = gUser.GetParameter("ScatMomCut");  
 
   if( ievent%1000==0 ){
     //if( ievent%1==0 ){
@@ -1213,6 +1214,7 @@ dst::DstRead( int ievent )
   if(KHeavyEvent && src.Heavyflag[0] != 1){
     return true; //precut with Kurama tracking
   }
+  if(ScatMomCut && src.pKurama[0]<1.8) return true;
 
   if(src.ntKurama != **src.ntTPCKurama)
     std::cerr << "Kurama Event Missmatching : DstTPCKuramaK18Tracking <-> DstKScat" << std::endl;
@@ -1434,6 +1436,10 @@ dst::DstRead( int ievent )
       Double_t MissMass = event.MissMass[id];
       Double_t MissMassCorr = event.MissMassCorr[id];
       Double_t MissMassCorrDE = event.MissMassCorrDE[id];
+      Double_t MissMassNuclTPC = event.MissMassNuclTPC[id];
+      Double_t MissMassNuclCorrTPC = event.MissMassNuclCorrTPC[id];
+      Double_t MissMassNuclCorrDETPC = event.MissMassNuclCorrDETPC[id];      
+      Double_t thetaTPC = event.thetaTPC[id];      
 
       if(event.chisqrK18[idKm] < MaxChisqrBcOut && event.chisqrKurama[idScat] < MaxChisqrKurama){
 	HF1(12, event.isgoodTPCK18[idKm]);
@@ -1609,6 +1615,20 @@ dst::DstRead( int ievent )
 	    HFProf(4325, vs, MissMass);
 	    HFProf(4326, vs, MissMassCorr);
 	    HFProf(4327, vs, MissMassCorrDE);
+	    // HF1( 101, MissMassNucl );
+	    // HF2( 102, MissMassNuclCorr );
+	    // HF2( 103, MissMassNuclCorrDE );
+	    HF1( 104, MissMassNuclTPC );
+	    HF1( 105, MissMassNuclCorrTPC );
+	    HF1( 106, MissMassNuclCorrDETPC );
+	    if(thetaTPC>3.5 && thetaTPC<4.5){
+	      HF1(106, MissMassNuclTPC);
+	      // std::cout << "MissMassNuclTPC: " << MissMassNuclTPC << std::endl;
+	      HF1(107, MissMassNuclCorrTPC);
+	      // std::cout << "MissMassNuclCorrTPC: " << MissMassNuclCorrTPC << std::endl;      
+  	      HF1(108, MissMassNuclCorrDETPC);
+	      // std::cout << "MissMassNuclCorrDETPC: " << MissMassNuclCorrDETPC << std::endl;
+	    }
 	  }
  	}
       }
@@ -1654,9 +1674,9 @@ dst::DstRead( int ievent )
       Double_t MissMass = event.MissMassTPC[id];
       Double_t MissMassCorr = event.MissMassCorrTPC[id];
       Double_t MissMassCorrDE = event.MissMassCorrDETPC[id];
-      // Double_t MissMassNucl = event.MissMassNuclTPC[id];
-      // Double_t MissMassNuclCorr = event.MissMassNuclCorrTPC[id];
-      // Double_t MissMassNuclCorrDE = event.MissMassNuclCorrDETPC[id];
+      Double_t MissMassNucl = event.MissMassNuclTPC[id];
+      Double_t MissMassNuclCorr = event.MissMassNuclCorrTPC[id];
+      Double_t MissMassNuclCorrDE = event.MissMassNuclCorrDETPC[id];
       Double_t XiStarKaonMomCorrDE = event.xistarpCalcDETPC[id];
       Double_t ProtonMom = event.kpscatpCalcDETPC[id];
       Double_t ProtonMomCorrDE = event.kpscatpCalcDETPC[id];
@@ -2045,7 +2065,7 @@ dst::DstRead( int ievent )
   event.clusteredVtx_y = **src.clusteredVtx_y;
   event.clusteredVtx_z = **src.clusteredVtx_z;
   event.clusteredVtxid = **src.clusteredVtxid;
-
+  
   return true;
 }
 
@@ -2085,8 +2105,19 @@ ConfMan::InitializeHistograms( void )
   HB1(42, "K18 TPC tagging", 2, 0., 2. );
   HB1(43, "Kurama TPC tagging", 2, 0., 2. );
   HB1(44, "KK TPC tagging", 2, 0., 2. );
-
-  HB2(20, "1/#beta;p/q [GeV/#font[12]{c}];1/#beta", 1000, -2.0, 2.0, 1000, 0.0, 5.0);
+  
+  HB2(20, "1/#beta;p/q [GeV/#font[12]{c}];1/#beta", 1000, -2.0, 2.0, 1000, 0.0, 5.0); 
+  
+  // missing mass with scat angle, vtx, 
+  HB1(100, "MissMass", 3600, -1.0, 17. );
+  HB1(101, "MissMassCorr", 3600, -1.0, 17. );
+  HB1(102, "MissMassCorrDE", 3600, -1.0, 17. );
+  HB1(103, "MissMassTPC", 3600, -1.0, 17. );
+  HB1(104, "MissMassCorrTPC", 3600, -1.0, 17. );
+  HB1(105, "MissMassCorrDETPC", 3600, -1.0, 17. );
+  HB1(106, "MissMassNuclTPC (3.5<thetaTPC<4.5)", 3600, -1.0, 17. );
+  HB1(107, "MissMassNuclCorrTPC (3.5<thetaTPC<4.5)", 3600, -1.0, 17. );
+  HB1(108, "MissMassNuclCorrDETPC (3.5<thetaTPC<4.5)", 3600, -1.0, 17. );  
 
   HB1(1001, "P K18", 800, 1.4, 2.2);
   HB1(1002, "P Kurama", 600, 0, 3);
