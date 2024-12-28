@@ -1312,11 +1312,8 @@ dst::DstRead( int ievent )
   static const Bool_t KPEvent = gUser.GetParameter("KPEvent");
   static const Bool_t KHeavyEvent = gUser.GetParameter("KHeavyEvent");
   static const Bool_t ExclusiveTracking = gUser.GetParameter("ExclusiveTracking");
-<<<<<<< HEAD
-	static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
-=======
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
   static const Bool_t ScatMomCut = gUser.GetParameter("ScatMomCut");
->>>>>>> ee75a6b (Add ScatMomCut USER param and Modify Lp search part in GenfitKNucleusSearch)
   static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
   static const auto yGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Y();
   static const auto zGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Z();
