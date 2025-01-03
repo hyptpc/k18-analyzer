@@ -1392,7 +1392,6 @@ Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
   //Double_t mk  = 493.677;
   Double_t mp  = 938.2720813;
   //Double_t md  = 1875.612762;
-  std::cout<<"dedx "<<dedx<<" poq "<<poq<<std::endl;
   if(HypTPCdEdxElectron(dedx, poq)) return 0; //electron
 
   // 1 sigma of <dE/dx>_pi
