@@ -308,7 +308,11 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
       hit->SetPosition(TVector3(x[i], y[i], z[i]));
       hit->SetDe(de[i]/2);
       m_TPCHitCont[layer].push_back(hit);
-      m_TPCHitCont[layer].push_back(hit);
+      auto hit2 = new TPCHit(layer, row);
+      hit2->AddHit(TMath::QuietNaN(), TMath::QuietNaN()); // allocate hit
+      hit2->SetPosition(TVector3(x[i], y[i], z[i]));
+      hit2->SetDe(de[i]/2);
+      m_TPCHitCont[layer].push_back(hit2);
     }
   }
   static const Double_t MaxYDif = gUser.GetParameter("MaxYDifClusterTPC");

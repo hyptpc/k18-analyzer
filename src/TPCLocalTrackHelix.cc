@@ -360,12 +360,6 @@ static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos
   int npar = resparam.size();
 	double ncl = 1;
 	double dE = -1;
-  #if DebugDisp
-    std::cout<<"TPCLocalTrackHelix::CalcResolution() : Res params :";
-    for(int i = 0; i < resparam.size(); i++){
-//      std::cout<<resparam[i]<<" ";
-    }
-  #endif
   if(npar>nStaticParams+1){
     ncl = resparam.at(nStaticParams);
     dE = resparam.at(nStaticParams+1);
@@ -2344,9 +2338,6 @@ TPCLocalTrackHelix::DoHelixTrackFit()
 Bool_t
 TPCLocalTrackHelix::ResidualCheck(Int_t i, Double_t &residual)
 {
-  #if DebugDisp
-  std::cout<<FUNC_NAME+" ResidualCheck"<<std::endl;
-  #endif
 
   if(!m_is_theta_calculated){
     std::cout<<FUNC_NAME+" Fatal error : No helix theta information!!! CalcHelixTheta() should be run in front of this"<<std::endl;
