@@ -204,6 +204,7 @@ struct Src
 
   Int_t ititpc[MaxTPCTracks];
   Int_t idtpc[MaxTPCTracks];
+  Int_t ncltpc[MaxTPCTracks];
   Double_t xtpc[MaxTPCHits];//with resolution
   Double_t ytpc[MaxTPCHits];//with resolution
   Double_t ztpc[MaxTPCHits];//with resolution
@@ -495,8 +496,8 @@ dst::DstRead( Int_t ievent )
   HF1( 2, event.GFstatus++ );
 
   TPCAnalyzer *TPCAna = new TPCAnalyzer();
-  if(IsWithRes) TPCAna->DecodeTPCHitsGeant4(src.nhittpc, src.xtpc, src.ytpc, src.ztpc, src.edeptpc, src.idtpc);
-  else TPCAna->DecodeTPCHitsGeant4(src.nhittpc, src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc);
+  if(IsWithRes) TPCAna->DecodeTPCHitsGeant4(src.nhittpc, src.xtpc, src.ytpc, src.ztpc, src.edeptpc, src.idtpc, src.ncltpc);
+  else TPCAna->DecodeTPCHitsGeant4(src.nhittpc, src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc, src.ncltpc);
   TPCAna->TrackSearchTPCHelix();
   HF1( 1, event.status++ );
   HF1( 2, event.GFstatus++ );
@@ -905,6 +906,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchStatus("nhittpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("ititpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("idtpc", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("ncltpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("xtpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("ytpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("ztpc", 1);
@@ -922,6 +924,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("nhittpc",&src.nhittpc,"nhittpc/I");
   tree->Branch("ititpc",&src.ititpc,"ititpc/I");
   tree->Branch("idtpc",&src.idtpc,"idtpc/I");
+  tree->Branch("ncltpc",&src.ncltpc,"ncltpc/I");
   tree->Branch("xtpc",&src.xtpc,"xtpc/D");
   tree->Branch("ytpc",&src.ytpc,"ytpc/D");
   tree->Branch("ztpc",&src.ztpc,"ztpc/D");
@@ -942,6 +945,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchStatus("nhittpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("ititpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("idtpc", 1);
+  TTreeCont[kTPCGeant]->SetBranchStatus("ncltpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("xtpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("ytpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("ztpc", 1);
@@ -999,6 +1003,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchAddress("nhittpc", &src.nhittpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("ititpc", src.ititpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("idtpc", src.idtpc);
+  TTreeCont[kTPCGeant]->SetBranchAddress("ncltpc", src.ncltpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("xtpc", src.xtpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("ytpc", src.ytpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("ztpc", src.ztpc);

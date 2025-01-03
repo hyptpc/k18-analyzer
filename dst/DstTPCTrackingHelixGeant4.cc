@@ -387,6 +387,7 @@ struct Event
   //Geant4
   Int_t iti_g[MaxTPCTracks][MaxTPCnHits];
   Int_t idtpc[MaxTPCHits];
+  Int_t ncltpc[MaxTPCHits];
   Int_t ID[MaxTPCHits];
   Int_t PID[MaxTPCHits];
   Double_t xtpc[MaxTPCHits];//with resolution
@@ -889,6 +890,7 @@ struct Src
 
   Int_t ititpc[MaxTPCHits];
   Int_t idtpc[MaxTPCHits];
+  Int_t ncltpc[MaxTPCHits];
   Int_t parentID[MaxTPCHits];
 
   Double_t xtpc[MaxTPCHits];//with resolution
@@ -1214,8 +1216,9 @@ dst::InitializeEvent( void )
   event.nhWc =-1;
   event.nhBvh=-1;
   for(int i=0;i<500;++i){
-    event.ititpc[i]=qnan;
-    event.idtpc[i]=qnan;
+    event.ititpc[i]=-1;
+    event.idtpc[i]=-1;
+    event.ncltpc[i]=-1;
     event.ID[i]=qnan;
     event.PID[i]=qnan;
     event.xtpc[i]=qnan;
@@ -1597,11 +1600,11 @@ dst::DstRead( int ievent )
 
   if(IsWithRes){
     TPCAna->DecodeTPCHitsGeant4(src.nhittpc,
-				src.xtpc, src.ytpc, src.ztpc, src.edeptpc, src.idtpc, G4Moms);
+				src.xtpc, src.ytpc, src.ztpc, src.edeptpc, src.idtpc, src.ncltpc, G4Moms);
   }
   else{
     TPCAna->DecodeTPCHitsGeant4(src.nhittpc,
-				src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc, G4Moms);
+				src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc, src.ncltpc, G4Moms);
   }
   event.xtgtHS = **src.xtgtHS;
   event.ytgtHS = **src.ytgtHS;
@@ -1715,7 +1718,7 @@ dst::DstRead( int ievent )
         continue;
       }
       Double_t de = cl->GetDe();
-      Int_t cl_size = cl->GetClusterSizeG4();
+      Int_t cl_size = cl->GetClusterSize();
       Double_t mrow = cl->MeanRow();
       TPCHit* meanHit = cl->GetMeanHit();
       Int_t houghflag = meanHit->GetHoughFlag();
@@ -1996,7 +1999,7 @@ dst::DstRead( int ievent )
       const TVector3& hitpos = hit->GetLocalHitPos();
       TPCHit *clhit = hit->GetHit();
       TPCCluster *cl = clhit->GetParentCluster();
-      Double_t clsize = cl->GetClusterSizeG4();
+      Double_t clsize = cl->GetClusterSize();
       Double_t clde = hit->GetDe();
       Double_t mrow = hit->GetMRow();
       const TVector3& calpos = hit->GetLocalCalPosHelix();
@@ -2789,6 +2792,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("pztpc",src.pztpc,"pztpc[nhittpc]/D");
   tree->Branch("pptpc",src.pptpc,"pptpc[nhittpc]/D");
   tree->Branch("idtpc",src.idtpc,"idtpc[nhittpc]/I");
+  tree->Branch("ncltpc",src.ncltpc,"ncltpc[nhittpc]/I");
   tree->Branch("parentid",src.parentID,"parentID[nhittpc]/I");
 
   tree->Branch("NumberOfTracks",&event.NumberOfTracks,"NumberOfTracks/I");
@@ -2982,6 +2986,7 @@ ConfMan::InitializeHistograms( void )
 
   TTreeCont[kTPCGeant]->SetBranchAddress("ititpc", src.ititpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("idtpc", src.idtpc);
+  TTreeCont[kTPCGeant]->SetBranchAddress("ncltpc", src.ncltpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("parentID", src.parentID);
   TTreeCont[kTPCGeant]->SetBranchAddress("xtpc", src.xtpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("ytpc", src.ytpc);

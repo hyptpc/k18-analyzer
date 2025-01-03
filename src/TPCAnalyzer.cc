@@ -250,7 +250,8 @@ Bool_t
 TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
 				 const Double_t *x, const Double_t *y,
 				 const Double_t *z, const Double_t *de,
-				 const Int_t *pid, std::vector<TVector3> Mom)
+				 const Int_t *pid, const Int_t *clsize,
+         std::vector<TVector3> Mom)
 {
   if(m_is_decoded[kTPC]){
     hddaq::cout << FUNC_NAME << " "
@@ -260,6 +261,7 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
 
   static const Double_t MinClusterYPos = gUser.GetParameter("MinClusterYPosTPC");
   static const Double_t MaxClusterYPos = gUser.GetParameter("MaxClusterYPosTPC");
+  static const Double_t MinCDe = gUser.GetParameter("MinCDeTPC");
 
   bool RejectKaonHits = false;
   ClearTPCHits();
@@ -283,35 +285,35 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     double rndm = gRandom->Uniform(0., 1.);
     if(rndm > Eff) continue;
     auto hit = new TPCHit(layer, row);
-    hit->AddHit(TMath::QuietNaN(), TMath::QuietNaN()); // allocate hit
     // tentative treatment
-    if(de[i] == 0. || de[i] == TMath::QuietNaN()){
-      hit->SetDe(1.e-3);
+    if(de[i] == 0. or de[i] == TMath::QuietNaN() or de[i] < MinCDe){
+      continue;
     }else{
-      hit->SetDe(de[i]);
     }
+    hit->AddHit(TMath::QuietNaN(), TMath::QuietNaN()); // allocate hit
     // end of tentative treatment
     int cl_size = GetClusterSize(hitpos, pid[i], Mom[i], de[i]);
+    if(clsize[0] == 1 or clsize[0] == 2){
+      cl_size = clsize[i];
+    }
     if (cl_size == 1){
       auto PadPos = tpc::getPosition(pad);
       PadPos.SetY(y[i]);
       hit->SetPosition(PadPos);
+      m_TPCHitCont[layer].push_back(hit);
+      hit->SetDe(de[i]);
 //      hit->SetPosition(TVector3(x[i], y[i], z[i]));
     }
     else{
       hit->SetPosition(TVector3(x[i], y[i], z[i]));
+      hit->SetDe(de[i]/2);
+      m_TPCHitCont[layer].push_back(hit);
+      m_TPCHitCont[layer].push_back(hit);
     }
-
-    TPCHitContainer CandCont;
-    CandCont.push_back(hit);
-    TPCCluster* cluster = new TPCCluster(layer, CandCont);
-    if(!cluster) continue;
-    if(cluster->Calculate() && cluster->GetY()>=MinClusterYPos && cluster->GetY()<=MaxClusterYPos){
-      cluster->SetClusterSizeG4(cl_size);
-      m_TPCClCont[layer].push_back(cluster);
-    }
-    else delete cluster;
-    m_TPCHitCont[layer].push_back(hit);
+  }
+  static const Double_t MaxYDif = gUser.GetParameter("MaxYDifClusterTPC");
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    MakeUpTPCClusters(m_TPCHitCont[layer], m_TPCClCont[layer], MaxYDif);
   }
 
   m_is_decoded[kTPC] = true;
