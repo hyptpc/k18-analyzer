@@ -284,12 +284,8 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     double Eff = GetDetectionEfficiency(hitpos, pid[i], Mom[i], de[i]);
     double rndm = gRandom->Uniform(0., 1.);
     if(rndm > Eff) continue;
+    if(de[i] == 0. || de[i] == TMath::QuietNaN() || de[i] < MinCDe) continue;
     auto hit = new TPCHit(layer, row);
-    // tentative treatment
-    if(de[i] == 0. or de[i] == TMath::QuietNaN() or de[i] < MinCDe){
-      continue;
-    }else{
-    }
     hit->AddHit(TMath::QuietNaN(), TMath::QuietNaN()); // allocate hit
     // end of tentative treatment
     int cl_size = GetClusterSize(hitpos, pid[i], Mom[i], de[i]);
