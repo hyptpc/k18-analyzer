@@ -68,6 +68,7 @@ z = p[2] + p[4]*p[3]*(theta);
 #include "MathTools.hh"
 #include "PrintHelper.hh"
 #include "UserParamMan.hh"
+#include "DatabasePDG.hh"
 
 #define DebugDisp 0
 #define IterativeResolution 1
@@ -4053,6 +4054,34 @@ TPCLocalTrackHelix::GetMomentumResolution(){
   Double_t d_slope = GetdZResolution();
   return GetTransverseMomentumResolution()*hypot(1,d_slope);
 }
+Double_t
+TPCLocalTrackHelix::GetMomentumResolutionScat(int pid){
+	double X0 = 268;//[m], P10 gas,
+	double L = m_path* 0.001;//mm -> m
+	double L0 = L/hypot(1,m_dz);
+  double B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  double mpi = 0.13957039;
+  double mk  = 0.493677;
+  double mp  = 0.9382720813;
+	double mass = 0;
+	if(pid == 0){
+		mass = mpi;
+	}
+	else if(pid == 1){
+		mass = mk;
+	}
+	else if (pid == 2){
+		mass = mp;
+	}
+	else{
+		mass = mp;
+		std::cout<<FUNC_NAME<<" PID wrong! "<<pid<<std::endl; 
+	}
+	double Energy = hypot(mass,m_mom0.Mag());
+	double beta = m_mom0.Mag()/Energy;	
+	return 0.0136 / (0.3 * beta * B * L0) * sqrt(L0 / X0 );
+
+}
 TMatrixD
 TPCLocalTrackHelix::GetCovarianceMatrix(){
   double Elements[3*3]={0};
@@ -4062,6 +4091,26 @@ TPCLocalTrackHelix::GetCovarianceMatrix(){
   double res_th = GetThetaResolution();
   double res_ph = GetTransverseAngularResolution();
   Elements[0+3*0] = res_mom*res_mom;
+  Elements[1+3*1] = res_th*res_th;
+  Elements[2+3*2] = res_ph*res_ph;
+  Elements[0*3+1] = cov_mom_th;
+  Elements[1*3+0] = cov_mom_th;
+  Elements[0*3+2] = cov_mom_ph;
+  Elements[2*3+0] = cov_mom_ph;
+  TMatrixD CovMat(3,3,Elements);
+  return CovMat;
+}
+TMatrixD
+TPCLocalTrackHelix::GetCovarianceMatrix(int pid){
+  double Elements[3*3]={0};
+  double cov_mom_th = GetMomentumPitchAngleCovariance();
+  double cov_mom_ph = GetTransverseMomentumAngularCovariance();
+  double res_mom = GetMomentumResolution();
+  double res_scat = GetMomentumResolutionScat(pid);
+  double res_th = GetThetaResolution();
+  double res_ph = GetTransverseAngularResolution();
+  double res_mom_tot = hypot(res_mom,res_scat); 
+	Elements[0+3*0] = res_mom_tot*res_mom_tot;
   Elements[1+3*1] = res_th*res_th;
   Elements[2+3*2] = res_ph*res_ph;
   Elements[0*3+1] = cov_mom_th;
