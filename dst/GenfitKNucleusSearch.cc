@@ -1507,7 +1507,7 @@ dst::DstRead( Int_t ievent )
     // proton1 loop
     for(Int_t it1=0;it1<ntTpc;it1++){
       HF1( 1051, event.nhtrack[it1] );
-      Bool_t p2lambda = false;
+      Bool_t p2fromLambda = false;
       if(event.isK18[it1]==1 || event.isKurama[it1]==1 || event.isAccidental[it1]==1 ) continue;
       for(int iKK=0; iKK<event.nKK; ++iKK){
 	Double_t bek = event.BEkaonTPC[iKK];
@@ -1636,12 +1636,27 @@ dst::DstRead( Int_t ievent )
 	if(p_vertex_dist > p_vtx_distcut) continue;
 	if(TMath::Abs(Llambda.M() - LambdaMass) > lambda_masscut) continue;
 	event.lflag = true;
-	Double_t thetap1 = p_mom.Theta()*TMath::RadToDeg();
+	Double_t thetap1 = p_mom.Theta()*TMath::RadToDeg();	
 	HF2( 2601, thetap1, p_mom.Mag() );
 	Double_t thetapi = pi_mom.Theta()*TMath::RadToDeg();
 	HF2( 2602, thetapi, pi_mom.Mag() );	
 	Double_t thetaL = lambda_mom.Theta()*TMath::RadToDeg();
-	HF2( 2603, thetaL, lambda_mom.Mag() );	
+	HF2( 2603, thetaL, lambda_mom.Mag() );
+	// theta corr
+	HF2( 2411, thetap1, thetap1 );
+	HF2( 2412, thetap1, thetapi );
+	HF2( 2413, thetap1, thetaL );
+	HF2( 2421, thetapi, thetapi );
+	HF2( 2422, thetapi, thetaL );
+	HF2( 2431, thetaL, thetaL );
+	//mom corr
+	HF2( 2211, p_mom.Mag(), p_mom.Mag() );
+	HF2( 2212, p_mom.Mag(), pi_mom.Mag() );
+	HF2( 2213, p_mom.Mag(), lambda_mom.Mag() );
+	HF2( 2221, pi_mom.Mag(), pi_mom.Mag() );
+	HF2( 2222, pi_mom.Mag(), lambda_mom.Mag() );
+	HF2( 2231, lambda_mom.Mag(), lambda_mom.Mag());
+	
 	for(int itKurama=0; itKurama<event.ntKurama; itKurama++){
 	  Double_t thetap0 = momKurama[itKurama].Theta()*TMath::RadToDeg();
 	  HF2( 2604, thetap0, momKurama[itKurama].Mag() );
@@ -1651,6 +1666,16 @@ dst::DstRead( Int_t ievent )
 	  HF1( 1161, anglep0pi );
 	  Double_t anglep0L = lambda_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
 	  HF1( 1162, anglep0L );
+	  // theta corr
+	  HF2( 2401, thetap0, thetap0);
+	  HF2( 2402, thetap0, thetap1);
+	  HF2( 2403, thetap0, thetapi);
+	  HF2( 2404, thetap0, thetaL);
+	  // mom corr
+	  HF2( 2201, momKurama[itKurama].Mag(), momKurama[itKurama].Mag());
+	  HF2( 2202, momKurama[itKurama].Mag(), p_mom.Mag());
+	  HF2( 2203, momKurama[itKurama].Mag(), pi_mom.Mag());
+	  HF2( 2204, momKurama[itKurama].Mag(),  lambda_mom.Mag());	  
 	}
 	{
 	  Double_t anglep1pi = p_mom.Angle(pi_mom)*TMath::RadToDeg();
@@ -1686,7 +1711,7 @@ dst::DstRead( Int_t ievent )
 	    HF2(148, -event.mom0[it3]*event.charge[it3], event.dEdx[it3]);
 	  } else {
 	    HF2(149, event.mom0[it3]*event.charge[it3], event.dEdx[it3]);
-	  }	
+	  }
 	  if((event.pid[it3]&4)!=4) continue; //select proton like
 	  HF1( 1054, event.nhtrack[it3] );      	
 	  HF1( 1, 5 );  // status 5
@@ -1731,7 +1756,7 @@ dst::DstRead( Int_t ievent )
 	  TVector3 lambda2_vert
 	    = Kinematics::LambdaVertex(dMagneticField, p2_par, pi_par, p2_theta_min, p2_theta_max, pi_theta_min, pi_theta_max, p2_mom, pi_mom2, lambda2_mom, p2pi_dist);
 	  //	std::cout << "debug " << __LINE__ << std::endl;	
-	  if(TMath::IsNaN(p2pi_dist)) continue;
+	  // if(TMath::IsNaN(p2pi_dist)) continue; // check
 	  //	HF1( 1, event.status++ );// for debug // status 7
 	  HF1( 1, 7 );// for debug // status 7
 	  if(!pim_like) pi_mom2 = -1.*pi_mom2;
@@ -1763,7 +1788,7 @@ dst::DstRead( Int_t ievent )
 		}
 	      }
 	    }
-	  }
+	  } 
 	  if( TMath::Abs(lambda2_vert.x()) < 250. && TMath::Abs(lambda2_vert.z()) < 250. && TMath::Abs(lambda2_vert.y()) < 250. //Vertex Cut
 	      && p2pi_dist < ppi_distcut // p2 Pi closest distance cut
 	      && Kinematics::HelixDirection(lambda2_vert, p2_start, p2_end, p2_vertex_dist)
@@ -1775,8 +1800,9 @@ dst::DstRead( Int_t ievent )
 	    //	    std::cout << "debug " << __LINE__ << std::endl;
 	    //	    HF1( 1, event.status++ );// for debug // status 9
 	    //	    HF1( 1, 9 );// for debug // status 9
-	    p2lambda = true;
+	    p2fromLambda = true;
 	    TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Sqrt(lambda_mom.Mag()*lambda_mom.Mag() + LambdaMass*LambdaMass));
+	    // lambda_mom should be debugged because lambda_mom is made from p1 and pi (should be p2 and pi)
 	    TLorentzVector Llp = Llambda_fixedmass + Lp;
 	    std::cout << "Lp invariant mass : " << Llp.M() << std::endl;
 	    TVector3 lp_mom = TVector3(Llp.Px(), Llp.Py(), Llp.Pz());
@@ -1787,13 +1813,13 @@ dst::DstRead( Int_t ievent )
 	    lp_dist=0.;
 	    Double_t p_vertex_dist;
 	    Double_t lp_opening_angle;
-	    lp_vert = Kinematics::XiVertex(dMagneticField, p_par, p_theta_min, p_theta_max, lambda_vert, lambda_mom, p_mom, lp_dist);
-	    if(!Kinematics::HelixDirection(lp_vert, p_start, p_end, p_vertex_dist)) continue;
+	    lp_vert = Kinematics::XiVertex(dMagneticField, p_par, p_theta_min, p_theta_max, lambda_vert, lambda_mom, p_mom, lp_dist); // check
+	    if(!Kinematics::HelixDirection(lp_vert, p_start, p_end, p_vertex_dist)) continue; // check
 	    //	    HF1( 1, event.status++ );// for debug // status 10
 	    //	    HF1( 1, 10 );// for debug // status  10
-	    //	    std::cout << "debug " << __LINE__ << std::endl;	    
+	    //	    std::cout << "debug " << __LINE__ << std::endl;
 	    std::cout << "p2_vertex_dist : " << p_vertex_dist  << std::endl;	    
-	    if(p_vertex_dist > p_vtx_distcut) continue;
+	    //	    if(p_vertex_dist > p_vtx_distcut) continue; // check
 	    //	    HF1( 1, event.status++ ); // for debug // status 11
 	    //	    HF1( 1, 11 );// for debug // status  11
 	    lp_opening_angle = lambda_mom.Angle(p_mom);
@@ -1825,7 +1851,29 @@ dst::DstRead( Int_t ievent )
 	    Double_t thetapi = pi_mom.Theta()*TMath::RadToDeg();
 	    HF2( 2602, thetapi, pi_mom.Mag() );	
 	    Double_t thetaL = lambda_mom.Theta()*TMath::RadToDeg();
-	    HF2( 2603, thetaL, lambda_mom.Mag() );		    
+	    //	    HF2( 2603, thetaL, lambda_mom.Mag() );
+	    // theta corr 
+	    HF2( 2461, thetap2, thetap1 );
+	    HF2( 2462, thetap2, thetapi );
+	    HF2( 2463, thetap2, thetaL );
+	    HF2( 2464, thetap2, thetap1 );	    
+	    HF2( 2471, thetap2, thetapi );
+	    HF2( 2472, thetapi, thetaL );
+	    HF2( 2473, thetapi, thetap1 );
+	    HF2( 2481, thetaL, thetaL );
+	    HF2( 2482, thetaL, thetap1 );
+	    HF2( 2491, thetap1, thetap1 );
+	    // mom corr
+	    HF2( 2261, p2_mom.Mag(), p2_mom.Mag() );
+	    HF2( 2262, p2_mom.Mag(), pi_mom.Mag() );
+	    HF2( 2263, p2_mom.Mag(), lambda_mom.Mag() );
+	    HF2( 2264, p2_mom.Mag(), p_mom.Mag() );	    
+	    HF2( 2271, pi_mom.Mag(), pi_mom.Mag() );
+	    HF2( 2272, pi_mom.Mag(), lambda_mom.Mag() );
+	    HF2( 2273, pi_mom.Mag(), p_mom.Mag() );
+	    HF2( 2281, lambda_mom.Mag(), lambda_mom.Mag() );
+	    HF2( 2282, lambda_mom.Mag(), p_mom.Mag() );
+	    HF2( 2291, p_mom.Mag(), p_mom.Mag() );
 	    for(int itKurama=0; itKurama<event.ntKurama; itKurama++){
 	      Double_t thetap0 = momKurama[itKurama].Theta()*TMath::RadToDeg();
 	      HF2( 2615, thetap0, momKurama[itKurama].Mag() );
@@ -1836,7 +1884,19 @@ dst::DstRead( Int_t ievent )
 	      Double_t anglep0p2 = p_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
 	      HF1( 1172, anglep0p2 );
 	      Double_t anglep0L = lambda2_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
-	      HF1( 1173, anglep0p2 );	  	      
+	      HF1( 1173, anglep0p2 );
+	      // theta corr
+	      HF2( 2451, thetap0, thetap0);
+	      HF2( 2452, thetap0, thetap2);
+	      HF2( 2453, thetap0, thetapi);
+	      HF2( 2454, thetap0, thetaL);
+	      HF2( 2455, thetap0, thetap1);
+	      // mom corr
+	      HF2( 2251, momKurama[itKurama].Mag(), momKurama[itKurama].Mag());
+	      HF2( 2252, momKurama[itKurama].Mag(), p2_mom.Mag());
+	      HF2( 2253, momKurama[itKurama].Mag(), pi_mom.Mag());
+	      HF2( 2254, momKurama[itKurama].Mag(),  lambda_mom.Mag());
+	      HF2( 2255, momKurama[itKurama].Mag(), p_mom.Mag());	      	      
 	    }
 	    {
 	      Double_t anglep1pi = p2_mom.Angle(pi_mom)*TMath::RadToDeg();
@@ -1850,7 +1910,7 @@ dst::DstRead( Int_t ievent )
 	      Double_t anglepiL = pi_mom.Angle(lambda2_mom)*TMath::RadToDeg();
 	      HF1( 1178, anglepiL );
 	      Double_t anglep2L = p_mom.Angle(lambda2_mom)*TMath::RadToDeg();
-	      HF1( 1179, anglepiL );	      	      	    	      
+	      HF1( 1179, anglep2L );	      	      	    	      
 	    }
 	  } else {
 	    HF1( 1, 15 );// for debug // status 15
@@ -1859,16 +1919,16 @@ dst::DstRead( Int_t ievent )
 	    HF2( 2511, thetap1, event.nhtrack[it1] );
 	    HF2( 2512, thetapi, event.nhtrack[it2] );
 	    HF2( 2513, thetap2, event.nhtrack[it3] );
-	    p2lambda = false;
+	    p2fromLambda = false;
 	    TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Sqrt(lambda_mom.Mag()*lambda_mom.Mag() + LambdaMass*LambdaMass));
 	    TLorentzVector Llp = Llambda_fixedmass + Lp2;
 	    std::cout << "Lp invariant mass : " << Llp.M() << std::endl;
 	    TVector3 lp_mom = TVector3(Llp.Px(), Llp.Py(), Llp.Pz());
 	    Double_t p2_vertex_dist;
 	    Double_t lp_opening_angle;
-	    if(!Kinematics::HelixDirection(lp_vert, p2_start, p2_end, p2_vertex_dist)) continue;
+	    if(!Kinematics::HelixDirection(lp_vert, p2_start, p2_end, p2_vertex_dist)) continue; // check
 	    std::cout << "p2_vertex_dist : " << p2_vertex_dist  << std::endl;
-	    if(p2_vertex_dist > p2_vtx_distcut) continue;
+	    // if(p2_vertex_dist > p2_vtx_distcut) continue; // check
 	    lp_opening_angle = lambda_mom.Angle(p2_mom);
 	    lp_p_container.push_back(it1);
 	    lp_pi_container.push_back(it2);
@@ -1878,12 +1938,40 @@ dst::DstRead( Int_t ievent )
 	    lp_p_mom_container.push_back(p_mom);
 	    lp_pi_mom_container.push_back(pi_mom);
 	    lp_p2_mom_container.push_back(p2_mom);
-	    lp_l_mom_container.push_back(lambda_mom);	  	  
+	    lp_l_mom_container.push_back(lambda_mom);
 	    lp_mom_container.push_back(lp_mom);
 	    lp_closedist.push_back(lp_dist);
 	    lp_vert_container.push_back(lp_vert);
 	    lpangle_container.push_back(lp_opening_angle);
+	    //	    Double_t thetap2 = p2_mom.Theta()*TMath::RadToDeg();
+	    HF2( 2611, thetap2, p2_mom.Mag() );
+	    Double_t thetapi = pi_mom.Theta()*TMath::RadToDeg();
+	    HF2( 2602, thetapi, pi_mom.Mag() );	
+	    Double_t thetaL = lambda_mom.Theta()*TMath::RadToDeg();	    
+	    HF2( 2461, thetap1, thetap1 );
+	    HF2( 2462, thetap1, thetapi );
+	    HF2( 2463, thetap1, thetaL );
+	    HF2( 2464, thetap1, thetap2 );	    
+	    HF2( 2471, thetap1, thetapi );
+	    HF2( 2472, thetapi, thetaL );
+	    HF2( 2473, thetapi, thetap2 );
+	    HF2( 2481, thetaL, thetaL );
+	    HF2( 2482, thetaL, thetap2 );
+	    HF2( 2491, thetap2, thetap2 );
+	    // mom corr
+	    HF2( 2261, p_mom.Mag(), p_mom.Mag() );
+	    HF2( 2262, p_mom.Mag(), pi_mom.Mag() );
+	    HF2( 2263, p_mom.Mag(), lambda_mom.Mag() );
+	    HF2( 2264, p_mom.Mag(), p2_mom.Mag() );
+	    HF2( 2271, pi_mom.Mag(), pi_mom.Mag() );
+	    HF2( 2272, pi_mom.Mag(), lambda_mom.Mag() );
+	    HF2( 2273, pi_mom.Mag(), p2_mom.Mag() );
+	    HF2( 2281, lambda_mom.Mag(), lambda_mom.Mag() );
+	    HF2( 2282, lambda_mom.Mag(), p2_mom.Mag() );
+	    HF2( 2291, p2_mom.Mag(), p2_mom.Mag() );	    
 	    for(int itKurama=0; itKurama<event.ntKurama; itKurama++){
+	      Double_t thetap0 = momKurama[itKurama].Theta()*TMath::RadToDeg();
+	      HF2( 2615, thetap0, momKurama[itKurama].Mag() );	      
 	      Double_t anglep0p1 = p_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
 	      HF1( 1170, anglep0p1 );
 	      Double_t anglep0pi = pi_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
@@ -1891,7 +1979,18 @@ dst::DstRead( Int_t ievent )
 	      Double_t anglep0p2 = p2_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
 	      HF1( 1172, anglep0p2 );
 	      Double_t anglep0L = lambda2_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
-	      HF1( 1173, anglep0p2 );	  	      
+	      HF1( 1173, anglep0p2 );
+	      HF2( 2451, thetap0, thetap0);
+	      HF2( 2452, thetap0, thetap1);
+	      HF2( 2453, thetap0, thetapi);
+	      HF2( 2454, thetap0, thetaL);
+	      HF2( 2455, thetap0, thetap2);
+	      // mom corr
+	      HF2( 2251, momKurama[itKurama].Mag(), momKurama[itKurama].Mag());
+	      HF2( 2252, momKurama[itKurama].Mag(), p_mom.Mag());
+	      HF2( 2253, momKurama[itKurama].Mag(), pi_mom.Mag());
+	      HF2( 2254, momKurama[itKurama].Mag(), lambda_mom.Mag());
+	      HF2( 2255, momKurama[itKurama].Mag(), p2_mom.Mag());	      	      	      
 	    }
 	    {
 	      Double_t anglep1pi = p_mom.Angle(pi_mom)*TMath::RadToDeg();
@@ -1905,21 +2004,21 @@ dst::DstRead( Int_t ievent )
 	      Double_t anglepiL = pi_mom.Angle(lambda2_mom)*TMath::RadToDeg();
 	      HF1( 1178, anglepiL );
 	      Double_t anglep2L = p2_mom.Angle(lambda2_mom)*TMath::RadToDeg();
-	      HF1( 1179, anglepiL );	      	      	    	      
+	      HF1( 1179, anglep2L );	      	      	    	      
 	    }
 	  }
 	  //	std::cout << "debug " << __LINE__ << std::endl;
 	  event.lpflag = true;
 	  lp_candidates++;
-	  // dEdx with Lambda and proton measured
-	  HF2(160, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	  if(event.charge[it1]<0){
-	    HF2(161, -event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	  } else {
-	    HF2(162, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	  }
+	  // dEdx with Lambda and proton measured 
+	  // HF2(160, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
+	  // if(event.charge[it1]<0){
+	  //   HF2(161, -event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
+	  // } else {
+	  //   HF2(162, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
+	  // }
 	}//it3
-	if(!p2lambda){
+	if(!p2fromLambda){
 	  ppi_closedist.push_back(ppi_dist);
 	  l_p_container.push_back(it1);
 	  l_pi_container.push_back(it2);
@@ -2094,6 +2193,7 @@ dst::DstRead( Int_t ievent )
     HF1( 1471, lp_l_mom_container[best_lp].Mag() );
     HF1( 1101, event.lpangle );
     HF1( 1217, event.lpmass );
+    HF1( 1231, event.lmass );
     Double_t thetaP1 = lp_p_mom_container[best_lp].Theta()*TMath::RadToDeg();
     Double_t thetaPi = lp_pi_mom_container[best_lp].Theta()*TMath::RadToDeg();
     Double_t thetaP2 = lp_p2_mom_container[best_lp].Theta()*TMath::RadToDeg();    
@@ -2105,9 +2205,10 @@ dst::DstRead( Int_t ievent )
     for(int i=0; i<event.nKK; ++i){
       Double_t bek = event.BEkaonTPC[i];
       Double_t theta = event.thetaTPC[i];
-      if( bek<-0.1 ){
+      if( bek<-0.1 ){	
 	HF1( 1102, event.lpangle );
 	HF1( 1218, event.lpmass );
+	HF1( 1232, event.lmass );	
 	HF1( 1126, thetaP1 );
 	HF1( 1132, thetaPi );
 	HF1( 1138, thetaP2 );
@@ -2119,6 +2220,7 @@ dst::DstRead( Int_t ievent )
       } else if ( bek<0. ){
 	HF1( 1103, event.lpangle );
 	HF1( 1219, event.lpmass );
+	HF1( 1233, event.lmass );		
 	HF1( 1127, thetaP1 );
 	HF1( 1133, thetaPi );
 	HF1( 1139, thetaP2 );
@@ -2130,6 +2232,7 @@ dst::DstRead( Int_t ievent )
       } else if ( bek<0.1 ){
 	HF1( 1104, event.lpangle );
 	HF1( 1220, event.lpmass );
+	HF1( 1234, event.lmass );			
 	HF1( 1128, thetaP1 );
 	HF1( 1134, thetaPi );
 	HF1( 1140, thetaP2 );
@@ -2140,9 +2243,10 @@ dst::DstRead( Int_t ievent )
 	HF1( 1474, lp_l_mom_container[best_lp].Mag() ); 		
       } else if ( bek<0.2 ){
 	HF1( 1105, event.lpangle );
-	HF1( 1220, event.lpmass );
+	HF1( 1221, event.lpmass );
+	HF1( 1235, event.lmass );				
 	HF1( 1129, thetaP1 );
-	HF1( 1134, thetaPi );
+	HF1( 1135, thetaPi );
 	HF1( 1141, thetaP2 );
 	HF1( 1147, thetaL );
 	HF1( 1445, event.lpdecays_mom[0] );
@@ -2151,7 +2255,8 @@ dst::DstRead( Int_t ievent )
 	HF1( 1475, lp_l_mom_container[best_lp].Mag() );
       } else if ( bek<0.3 ){
 	HF1( 1106, event.lpangle );
-	HF1( 1224, event.lpmass );
+	HF1( 1222, event.lpmass );
+	HF1( 1236, event.lmass );
 	HF1( 1130, thetaP1 );
 	HF1( 1136, thetaPi );
 	HF1( 1142, thetaP2 );
@@ -2458,7 +2563,7 @@ dst::DstRead( Int_t ievent )
     TLorentzVector GFLp(GFmom_decays[0], TMath::Sqrt(GFmom_decays[0].Mag()*GFmom_decays[0].Mag() + ProtonMass*ProtonMass));
     TLorentzVector GFLpi(GFmom_decays[1], TMath::Sqrt(GFmom_decays[1].Mag()*GFmom_decays[1].Mag() + PionMass*PionMass));
     TLorentzVector GFLp2(GFmom_decays[2], TMath::Sqrt(GFmom_decays[2].Mag()*GFmom_decays[2].Mag() + ProtonMass*ProtonMass));
-    std::cout << "debug GFmom_decays[2].Mag() " << GFmom_decays[2].Mag() << std::endl;
+    //    std::cout << "debug GFmom_decays[2].Mag() " << GFmom_decays[2].Mag() << std::endl;
     TLorentzVector GFLlambda = GFLp + GFLpi;
     TVector3 GFlambda_mom = GFmom_decays[0] + GFmom_decays[1];
     TLorentzVector GFLlambda_fixed(GFlambda_mom, TMath::Sqrt(GFlambda_mom.Mag()*GFlambda_mom.Mag() + LambdaMass*LambdaMass));
@@ -3310,7 +3415,14 @@ ConfMan::InitializeHistograms( void )
   HB1( 1219, "#LambdaP Invariant Mass [-0.1<-BEk<0(GeV)] ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 350, 1.8, 2.5);
   HB1( 1220, "#LambdaP Invariant Mass [0<-BEk<0.1(GeV)]  ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 350, 1.8, 2.5);
   HB1( 1221, "#LambdaP Invariant Mass [0.1<-BEk<0.2(GeV)]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 350, 1.8, 2.5);
-  HB1( 1222, "#LambdaP Invariant Mass [0.2<-BEk<0.3(GeV)]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 350, 1.8, 2.5);  
+  HB1( 1222, "#LambdaP Invariant Mass [0.2<-BEk<0.3(GeV)]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 350, 1.8, 2.5);
+  HB1( 1231, "#Lambda Invariant Mass [one more p]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 1232, "#Lambda Invariant Mass [one more p][-BEk<-0.1(GeV)]   ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 1233, "#Lambda Invariant Mass [one more p][-0.1<-BEk<0(GeV)] ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 1234, "#Lambda Invariant Mass [one more p][0<-BEk<0.1(GeV)]  ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 1235, "#Lambda Invariant Mass [one more p][0.1<-BEk<0.2(GeV)]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 1236, "#Lambda Invariant Mass [one more p][0.2<-BEk<0.3(GeV)]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  
   
   HB1( 1301, "Momentum Transfer; Momentum Transfer [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
   HB1( 1302, "#Lambda p Momentum [#Lambdap decay]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
@@ -3376,47 +3488,71 @@ ConfMan::InitializeHistograms( void )
   HB2( 2104, "LPOpAngle:MomL ; LPOpAngle[degree]; Momentum #Lambda [GeV/#font[12]{c}]", 360, 0.0, 180., 50, 0., 1.0);
   HB2( 2111, "LPOpAngle:BEkaonTPC; LPOpAngle[degree]; Binding Energy [GeV/#font[12]{c}^2]", 360, 0.0, 180., 200, -0.5, 0.5);
   
-  // Mom p1,pi,p2,L : mom of p1,pi,p2,L  
-  HB2( 2201, "MomCorr [#Lambda tagged]; Mom p1[GeV/#font[12]{c}]; Mom p1[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2202, "MomCorr [#Lambda tagged]; Mom p1[GeV/#font[12]{c}]; Mom pi[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2203, "MomCorr [#Lambda tagged]; Mom p1[GeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2204, "MomCorr [#Lambda tagged]; Mom p1[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2205, "MomCorr [#Lambda tagged]; Mom pi[GeV/#font[12]{c}]; Mom pi[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2206, "MomCorr [#Lambda tagged]; Mom pi[GeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2207, "MomCorr [#Lambda tagged]; Mom pi[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2208, "MomCorr [#Lambda tagged]; Mom p2[GeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2209, "MomCorr [#Lambda tagged]; Mom p2[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2210, "MomCorr [#Lambda tagged]; Mom #Lambda[MeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2211, "MomCorr [#Lambdap tagged]; Mom p1[GeV/#font[12]{c}]; Mom p1[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2212, "MomCorr [#Lambdap tagged]; Mom p1[GeV/#font[12]{c}]; Mom pi[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2213, "MomCorr [#Lambdap tagged]; Mom p1[GeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2214, "MomCorr [#Lambdap tagged]; Mom p1[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2215, "MomCorr [#Lambdap tagged]; Mom pi[GeV/#font[12]{c}]; Mom pi[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2216, "MomCorr [#Lambdap tagged]; Mom pi[GeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2217, "MomCorr [#Lambdap tagged]; Mom pi[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2218, "MomCorr [#Lambdap tagged]; Mom p2[GeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2219, "MomCorr [#Lambdap tagged]; Mom p2[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 2220, "MomCorr [#Lambdap tagged]; Mom #Lambda[MeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-
+  // Mom p1,pi,p2,L : mom of p1,pi,p2,L
+  HB2( 2201, "MomCorr p0 and p0 [#Lambda tagged]; Mom p0[GeV/#font[12]{c}]; Mom p0[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2202, "MomCorr p0 and p1 [#Lambda tagged]; Mom p0[GeV/#font[12]{c}]; Mom p1[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0); 
+  HB2( 2203, "MomCorr p0 and #pi [#Lambda tagged]; Mom p0[GeV/#font[12]{c}]; Mom #pi[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2204, "MomCorr p0 and #Lambda [#Lambda tagged]; Mom p0[MeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2205, "MomCorr p0 and p2 [#Lambda tagged]; Mom p0[GeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2211, "MomCorr p1 and p1 [#Lambda tagged]; Mom p1[GeV/#font[12]{c}]; Mom p1[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2212, "MomCorr p1 and #pi [#Lambda tagged]; Mom p1[GeV/#font[12]{c}]; Mom #pi[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);  
+  HB2( 2213, "MomCorr p1 and #Lambda [#Lambda tagged]; Mom p1[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]",100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2214, "MomCorr p1 and p2 [#Lambda tagged]; Mom p1[MeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2221, "MomCorr #pi and pi [#Lambda tagged]; Mom #pi[GeV/#font[12]{c}]; Mom #pi[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2222, "MomCorr #pi and #Lambda [#Lambda tagged]; Mom #pi[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2223, "MomCorr #pi and p2 [#Lambda tagged]; Mom #pi[MeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2231, "MomCorr #Lambda and #Lambda [#Lambda tagged]; Mom #Lambda[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2232, "MomCorr #Lambda and p2 [#Lambda tagged]; Mom #Lambda[MeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2241, "MomCorr p2 and p2 [#Lambda tagged]; Mom p2[MeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2251, "MomCorr p0 and p0 [#Lambdap tagged]; Mom p0[GeV/#font[12]{c}]; Mom p0[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2252, "MomCorr p0 and p1 [#Lambdap tagged]; Mom p0[GeV/#font[12]{c}]; Mom p1[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2253, "MomCorr p0 and #pi [#Lambdap tagged]; Mom p0[GeV/#font[12]{c}]; Mom #pi[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2254, "MomCorr p0 and #Lambda [#Lambdap tagged]; Mom p0[MeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2255, "MomCorr p0 and p2 [#Lambdap tagged]; Mom p0[GeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2261, "MomCorr p1 and p1 [#Lambdap tagged]; Mom p1[GeV/#font[12]{c}]; Mom p1[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2262, "MomCorr p1 and #pi [#Lambdap tagged]; Mom p1[GeV/#font[12]{c}]; Mom #pi[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);  
+  HB2( 2263, "MomCorr p1 and #Lambda [#Lambdap tagged]; Mom p1[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2264, "MomCorr p1 and p2 [#Lambdap tagged]; Mom p1[MeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2271, "MomCorr #pi and pi [#Lambdap tagged]; Mom #pi[GeV/#font[12]{c}]; Mom #pi[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2272, "MomCorr #pi and #Lambda [#Lambdap tagged]; Mom #pi[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2273, "MomCorr #pi and p2 [#Lambdap tagged]; Mom #pi[MeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2281, "MomCorr #Lambda and #Lambda [#Lambdap tagged]; Mom #Lambda[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2282, "MomCorr #Lambda and p2 [#Lambdap tagged]; Mom #Lambda[MeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 2291, "MomCorr p2 and p2 [#Lambdap tagged]; Mom p2[MeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  
   HB2( 2301, "MomCorr; Mom #Lambdap[GeV/#font[12]{c}]; Mom Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
 
-  HB2( 2401, "TheataCorr [#Lambda tagged]; theta p0 [degree]; theta p1 [degree]", 360, 0., 180, 360, 0., 180);
-  HB2( 2402, "TheataCorr [#Lambda tagged]; theta p0 [degree]; theta #pi [degree]", 360, 0., 180, 360, 0., 180);  
-  HB2( 2404, "TheataCorr [#Lambda tagged]; theta p0 [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);  
-  HB2( 2405, "TheataCorr [#Lambda tagged]; theta p1 [degree]; theta #pi [degree]", 360, 0., 180, 360, 0., 180);  
-  HB2( 2407, "TheataCorr [#Lambda tagged]; theta p1 [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);
-  HB2( 2408, "TheataCorr [#Lambda tagged]; theta #pi [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2401, "TheataCorr p0 and p0 [#Lambda tagged]; theta p0 [degree]; theta p0 [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2402, "TheataCorr p0 and p1 [#Lambda tagged]; theta p0 [degree]; theta p1 [degree]", 360, 0., 180, 360, 0., 180);  
+  HB2( 2403, "TheataCorr p0 and #pi [#Lambda tagged]; theta p0 [degree]; theta #pi [degree]", 360, 0., 180, 360, 0., 180);  
+  HB2( 2404, "TheataCorr p0 and #Lambda [#Lambda tagged]; theta p0 [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2405, "TheataCorr p0 and p2 [#Lambda tagged]; theta p0 [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2411, "TheataCorr p1 and p1 [#Lambda tagged]; theta p1 [degree]; theta p1 [degree]", 360, 0., 180, 360, 0., 180);  
+  HB2( 2412, "TheataCorr p1 and #pi [#Lambda tagged]; theta p1 [degree]; theta #pi [degree]", 360, 0., 180, 360, 0., 180);  
+  HB2( 2413, "TheataCorr p1 and #Lambda [#Lambda tagged]; theta p1 [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2414, "TheataCorr p1 and p2 [#Lambda tagged]; theta p1 [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);    
+  HB2( 2421, "TheataCorr #pi and #pi [#Lambda tagged]; theta #pi [degree]; theta #pi [degree]", 360, 0., 180, 360, 0., 180);  
+  HB2( 2422, "TheataCorr #pi and #Lambda [#Lambda tagged]; theta #pi [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2423, "TheataCorr #pi and p2 [#Lambda tagged]; theta #pi [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);    
+  HB2( 2431, "TheataCorr #Lambda and #Lambda [#Lambda tagged]; theta #Lambda [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2432, "TheataCorr #Lambda and p2 [#Lambda tagged]; theta #Lambda [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);    
+  HB2( 2441, "TheataCorr p2 and p2 [#Lambda tagged]; theta p2 [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2451, "TheataCorr p0 and p0 [#Lambdap tagged]; theta p0 [degree]; theta p0 [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2452, "TheataCorr p0 and p1 [#Lambdap tagged]; theta p0 [degree]; theta p1 [degree]", 360, 0., 180, 360, 0., 180);  
+  HB2( 2453, "TheataCorr p0 and #pi [#Lambdap tagged]; theta p0 [degree]; theta #pi [degree]", 360, 0., 180, 360, 0., 180);  
+  HB2( 2454, "TheataCorr p0 and #Lambda [#Lambdap tagged]; theta p0 [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2455, "TheataCorr p0 and p2 [#Lambdap tagged]; theta p0 [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2461, "TheataCorr p1 and p1 [#Lambdap tagged]; theta p1 [degree]; theta p1 [degree]", 360, 0., 180, 360, 0., 180);  
+  HB2( 2462, "TheataCorr p1 and #pi [#Lambdap tagged]; theta p1 [degree]; theta #pi [degree]", 360, 0., 180, 360, 0., 180);  
+  HB2( 2463, "TheataCorr p1 and #Lambda [#Lambdap tagged]; theta p1 [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2464, "TheataCorr p1 and p2 [#Lambdap tagged]; theta p1 [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);    
+  HB2( 2471, "TheataCorr #pi and #pi [#Lambdap tagged]; theta #pi [degree]; theta #pi [degree]", 360, 0., 180, 360, 0., 180);  
+  HB2( 2472, "TheataCorr #pi and #Lambda [#Lambdap tagged]; theta #pi [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2473, "TheataCorr #pi and p2 [#Lambdap tagged]; theta #pi [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);    
+  HB2( 2481, "TheataCorr #Lambda and #Lambda [#Lambdap tagged]; theta #Lambda [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);
+  HB2( 2482, "TheataCorr #Lambda and p2 [#Lambdap tagged]; theta #Lambda [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);    
+  HB2( 2491, "TheataCorr p2 and p2 [#Lambdap tagged]; theta p2 [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);
   
-  HB2( 2411, "TheataCorr [#Lambdap tagged]; theta p0 [degree]; theta p1 [degree]", 360, 0., 180, 360, 0., 180);
-  HB2( 2412, "TheataCorr [#Lambdap tagged]; theta p0 [degree]; theta #pi [degree]", 360, 0., 180, 360, 0., 180);  
-  HB2( 2413, "TheataCorr [#Lambdap tagged]; theta p0 [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);
-  HB2( 2414, "TheataCorr [#Lambdap tagged]; theta p0 [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);  
-  HB2( 2415, "TheataCorr [#Lambdap tagged]; theta p1 [degree]; theta #pi [degree]", 360, 0., 180, 360, 0., 180);  
-  HB2( 2416, "TheataCorr [#Lambdap tagged]; theta p1 [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);
-  HB2( 2417, "TheataCorr [#Lambdap tagged]; theta p1 [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);
-  HB2( 2418, "TheataCorr [#Lambdap tagged]; theta #pi [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);  
-  HB2( 2419, "TheataCorr [#Lambdap tagged]; theta #pi [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);
-  HB2( 2420, "TheataCorr [#Lambdap tagged]; theta p2 [degree]; theta #Lambda [degree]", 360, 0., 180, 360, 0., 180);
 
   HB2( 2501, "Theata:nhtrack [#Lambda tagged]; theta p1 [degree]; nhtrack ", 360, 0., 180, 50, 0, 50);
   HB2( 2502, "Theata:nhtrack [#Lambda tagged]; theta #pi [degree]; nhtrack ", 360, 0., 180, 50, 0, 50);
