@@ -319,37 +319,37 @@ struct Event
   std::vector<Double_t> ldecays_cov_mom_yz;
   std::vector<Double_t> ldecays_cov_mom_zx;
 
-  Bool_t lpflag;
-  Double_t lmass_lp;
-  Double_t lpmass;
-  Double_t lpdecayvtx_x;
-  Double_t lpdecayvtx_y;
-  Double_t lpdecayvtx_z;
-  Double_t lpmom_x;
-  Double_t lpmom_y;
-  Double_t lpmom_z;
-  Double_t lmom_lp_x;
-  Double_t lmom_lp_y;
-  Double_t lmom_lp_z;  
-  Double_t lp_dist;
-  Double_t lpangle;  
-  std::vector<Int_t> lpdecays_id;
-  std::vector<Double_t> lpdecays_mom;
-  std::vector<Double_t> lpdecays_mom_x;
-  std::vector<Double_t> lpdecays_mom_y;
-  std::vector<Double_t> lpdecays_mom_z;
-  std::vector<Double_t> lpdecays_res_mom;
-  std::vector<Double_t> lpdecays_res_mom_x;
-  std::vector<Double_t> lpdecays_res_mom_y;
-  std::vector<Double_t> lpdecays_res_mom_z;
-  std::vector<Double_t> lpdecays_res_mom_t;
-  std::vector<Double_t> lpdecays_res_th;
-  std::vector<Double_t> lpdecays_res_ph;
-  std::vector<Double_t> lpdecays_cov_mom_th;
-  std::vector<Double_t> lpdecays_cov_mom_ph;
-  std::vector<Double_t> lpdecays_cov_mom_xy;
-  std::vector<Double_t> lpdecays_cov_mom_yz;
-  std::vector<Double_t> lpdecays_cov_mom_zx;
+  Bool_t lp2flag;
+  Double_t lmass_lp2;
+  Double_t lp2mass;
+  Double_t lp2decayvtx_x;
+  Double_t lp2decayvtx_y;
+  Double_t lp2decayvtx_z;
+  Double_t lp2mom_x;
+  Double_t lp2mom_y;
+  Double_t lp2mom_z;
+  Double_t lmom_lp2_x;
+  Double_t lmom_lp2_y;
+  Double_t lmom_lp2_z;  
+  Double_t lp2_dist;
+  Double_t lp2angle;  
+  std::vector<Int_t> lp2decays_id;
+  std::vector<Double_t> lp2decays_mom;
+  std::vector<Double_t> lp2decays_mom_x;
+  std::vector<Double_t> lp2decays_mom_y;
+  std::vector<Double_t> lp2decays_mom_z;
+  std::vector<Double_t> lp2decays_res_mom;
+  std::vector<Double_t> lp2decays_res_mom_x;
+  std::vector<Double_t> lp2decays_res_mom_y;
+  std::vector<Double_t> lp2decays_res_mom_z;
+  std::vector<Double_t> lp2decays_res_mom_t;
+  std::vector<Double_t> lp2decays_res_th;
+  std::vector<Double_t> lp2decays_res_ph;
+  std::vector<Double_t> lp2decays_cov_mom_th;
+  std::vector<Double_t> lp2decays_cov_mom_ph;
+  std::vector<Double_t> lp2decays_cov_mom_xy;
+  std::vector<Double_t> lp2decays_cov_mom_yz;
+  std::vector<Double_t> lp2decays_cov_mom_zx;
 
 			 
 
@@ -421,74 +421,74 @@ struct Event
   std::vector<std::vector<Double_t>> GFpull_py;
   std::vector<std::vector<Double_t>> GFpull_pz;  
 
-  Bool_t GFlpflag;
-  Double_t GFlpmass;
-  Double_t GFlpdecayvtx_x;
-  Double_t GFlpdecayvtx_y;
-  Double_t GFlpdecayvtx_z;
-  Double_t GFlpmom;
-  Double_t GFlpmom_x;
-  Double_t GFlpmom_y;
-  Double_t GFlpmom_z;
-  Double_t GFlp_dist;
-  Double_t GFlp_angle;
+  Bool_t GFlp2flag;
+  Double_t GFlp2mass;
+  Double_t GFlp2decayvtx_x;
+  Double_t GFlp2decayvtx_y;
+  Double_t GFlp2decayvtx_z;
+  Double_t GFlp2mom;
+  Double_t GFlp2mom_x;
+  Double_t GFlp2mom_y;
+  Double_t GFlp2mom_z;
+  Double_t GFlp2_dist;
+  Double_t GFlp2_angle;
 
-  std::vector<Double_t> GFdecays_m2_lp;
-  std::vector<Double_t> GFdecays_mom_lp;
-  std::vector<Double_t> GFdecays_mom_x_lp;
-  std::vector<Double_t> GFdecays_mom_y_lp;
-  std::vector<Double_t> GFdecays_mom_z_lp;
-  std::vector<Double_t> GFmomloss_lp;
-  std::vector<Double_t> GFeloss_lp;
+  std::vector<Double_t> GFdecays_m2_lp2;
+  std::vector<Double_t> GFdecays_mom_lp2;
+  std::vector<Double_t> GFdecays_mom_x_lp2;
+  std::vector<Double_t> GFdecays_mom_y_lp2;
+  std::vector<Double_t> GFdecays_mom_z_lp2;
+  std::vector<Double_t> GFmomloss_lp2;
+  std::vector<Double_t> GFeloss_lp2;
 
-  Int_t GFstatus_lp;
-  Int_t GFntTpc_lp;
-  std::vector<Int_t> GFfitstatus_lp;
-  std::vector<Int_t> GFpdgcode_lp;
-  std::vector<Int_t> GFnhtrack_lp;
-  std::vector<Double_t> GFcharge_lp;
-  std::vector<Double_t> GFchisqr_lp;
-  std::vector<Double_t> GFtof_lp;
-  std::vector<Double_t> GFtracklen_lp;
-  std::vector<Double_t> GFpval_lp;
-  std::vector<Double_t> GFchisqrPos_lp;
-  std::vector<Double_t> GFpvalPos_lp;
-  std::vector<std::vector<Double_t>> GFlayer_lp;
-  std::vector<std::vector<Double_t>> GFrow_lp;
-  std::vector<std::vector<Double_t>> GFpos_x_lp;
-  std::vector<std::vector<Double_t>> GFpos_y_lp;
-  std::vector<std::vector<Double_t>> GFpos_z_lp;
-  std::vector<std::vector<Double_t>> GFmom_lp;
-  std::vector<std::vector<Double_t>> GFmom_x_lp;
-  std::vector<std::vector<Double_t>> GFmom_y_lp;
-  std::vector<std::vector<Double_t>> GFmom_z_lp;
-  std::vector<std::vector<Double_t>> GFresidual_x_lp;
-  std::vector<std::vector<Double_t>> GFresidual_y_lp;
-  std::vector<std::vector<Double_t>> GFresidual_z_lp;
-  std::vector<std::vector<Double_t>> GFresidual_px_lp;
-  std::vector<std::vector<Double_t>> GFresidual_py_lp;
-  std::vector<std::vector<Double_t>> GFresidual_pz_lp;
-  std::vector<std::vector<Double_t>> GFresidual_p_lp;
-  std::vector<std::vector<Double_t>> GFresidual6D_x_lp;
-  std::vector<std::vector<Double_t>> GFresidual6D_y_lp;
-  std::vector<std::vector<Double_t>> GFresidual6D_z_lp;
-  std::vector<std::vector<Double_t>> GFresidual6D_px_lp;
-  std::vector<std::vector<Double_t>> GFresidual6D_py_lp;
-  std::vector<std::vector<Double_t>> GFresidual6D_pz_lp;
-  std::vector<std::vector<Double_t>> GFresolution_x_lp;
-  std::vector<std::vector<Double_t>> GFresolution_y_lp;
-  std::vector<std::vector<Double_t>> GFresolution_z_lp;
-  std::vector<std::vector<Double_t>> GFresolution_p_lp;
-  std::vector<std::vector<Double_t>> GFresolution_px_lp;
-  std::vector<std::vector<Double_t>> GFresolution_py_lp;
-  std::vector<std::vector<Double_t>> GFresolution_pz_lp;
-  std::vector<std::vector<Double_t>> GFpull_x_lp;
-  std::vector<std::vector<Double_t>> GFpull_y_lp;
-  std::vector<std::vector<Double_t>> GFpull_z_lp;
-  std::vector<std::vector<Double_t>> GFpull_p_lp;
-  std::vector<std::vector<Double_t>> GFpull_px_lp;
-  std::vector<std::vector<Double_t>> GFpull_py_lp;
-  std::vector<std::vector<Double_t>> GFpull_pz_lp;
+  Int_t GFstatus_lp2;
+  Int_t GFntTpc_lp2;
+  std::vector<Int_t> GFfitstatus_lp2;
+  std::vector<Int_t> GFpdgcode_lp2;
+  std::vector<Int_t> GFnhtrack_lp2;
+  std::vector<Double_t> GFcharge_lp2;
+  std::vector<Double_t> GFchisqr_lp2;
+  std::vector<Double_t> GFtof_lp2;
+  std::vector<Double_t> GFtracklen_lp2;
+  std::vector<Double_t> GFpval_lp2;
+  std::vector<Double_t> GFchisqrPos_lp2;
+  std::vector<Double_t> GFpvalPos_lp2;
+  std::vector<std::vector<Double_t>> GFlayer_lp2;
+  std::vector<std::vector<Double_t>> GFrow_lp2;
+  std::vector<std::vector<Double_t>> GFpos_x_lp2;
+  std::vector<std::vector<Double_t>> GFpos_y_lp2;
+  std::vector<std::vector<Double_t>> GFpos_z_lp2;
+  std::vector<std::vector<Double_t>> GFmom_lp2;
+  std::vector<std::vector<Double_t>> GFmom_x_lp2;
+  std::vector<std::vector<Double_t>> GFmom_y_lp2;
+  std::vector<std::vector<Double_t>> GFmom_z_lp2;
+  std::vector<std::vector<Double_t>> GFresidual_x_lp2;
+  std::vector<std::vector<Double_t>> GFresidual_y_lp2;
+  std::vector<std::vector<Double_t>> GFresidual_z_lp2;
+  std::vector<std::vector<Double_t>> GFresidual_px_lp2;
+  std::vector<std::vector<Double_t>> GFresidual_py_lp2;
+  std::vector<std::vector<Double_t>> GFresidual_pz_lp2;
+  std::vector<std::vector<Double_t>> GFresidual_p_lp2;
+  std::vector<std::vector<Double_t>> GFresidual6D_x_lp2;
+  std::vector<std::vector<Double_t>> GFresidual6D_y_lp2;
+  std::vector<std::vector<Double_t>> GFresidual6D_z_lp2;
+  std::vector<std::vector<Double_t>> GFresidual6D_px_lp2;
+  std::vector<std::vector<Double_t>> GFresidual6D_py_lp2;
+  std::vector<std::vector<Double_t>> GFresidual6D_pz_lp2;
+  std::vector<std::vector<Double_t>> GFresolution_x_lp2;
+  std::vector<std::vector<Double_t>> GFresolution_y_lp2;
+  std::vector<std::vector<Double_t>> GFresolution_z_lp2;
+  std::vector<std::vector<Double_t>> GFresolution_p_lp2;
+  std::vector<std::vector<Double_t>> GFresolution_px_lp2;
+  std::vector<std::vector<Double_t>> GFresolution_py_lp2;
+  std::vector<std::vector<Double_t>> GFresolution_pz_lp2;
+  std::vector<std::vector<Double_t>> GFpull_x_lp2;
+  std::vector<std::vector<Double_t>> GFpull_y_lp2;
+  std::vector<std::vector<Double_t>> GFpull_z_lp2;
+  std::vector<std::vector<Double_t>> GFpull_p_lp2;
+  std::vector<std::vector<Double_t>> GFpull_px_lp2;
+  std::vector<std::vector<Double_t>> GFpull_py_lp2;
+  std::vector<std::vector<Double_t>> GFpull_pz_lp2;
   
   Double_t KFchisqrxi;
   Double_t KFpvalxi;  
@@ -737,20 +737,20 @@ struct Event
     lmom_z = qnan;
     ppi_dist = qnan;
 
-    lpflag = false;
-    lmass_lp = qnan;
-    lpmass = qnan;
-    lpdecayvtx_x = qnan;
-    lpdecayvtx_y = qnan;
-    lpdecayvtx_z = qnan;
-    lpmom_x = qnan;
-    lpmom_y = qnan;
-    lpmom_z = qnan;
-    lmom_lp_x = qnan;
-    lmom_lp_y = qnan;
-    lmom_lp_z = qnan;    
-    lp_dist = qnan;
-    lpangle = qnan;
+    lp2flag = false;
+    lmass_lp2 = qnan;
+    lp2mass = qnan;
+    lp2decayvtx_x = qnan;
+    lp2decayvtx_y = qnan;
+    lp2decayvtx_z = qnan;
+    lp2mom_x = qnan;
+    lp2mom_y = qnan;
+    lp2mom_z = qnan;
+    lmom_lp2_x = qnan;
+    lmom_lp2_y = qnan;
+    lmom_lp2_z = qnan;    
+    lp2_dist = qnan;
+    lp2angle = qnan;
     
     ldecays_id.clear();
     ldecays_mom.clear();
@@ -770,23 +770,23 @@ struct Event
     ldecays_cov_mom_yz.clear();
     ldecays_cov_mom_zx.clear();
 
-    lpdecays_id.clear();
-    lpdecays_mom.clear();
-    lpdecays_mom_x.clear();
-    lpdecays_mom_y.clear();
-    lpdecays_mom_z.clear();
-    lpdecays_res_mom.clear();
-    lpdecays_res_mom_x.clear();
-    lpdecays_res_mom_y.clear();
-    lpdecays_res_mom_z.clear();
-    lpdecays_res_mom_t.clear();
-    lpdecays_res_th.clear();
-    lpdecays_res_ph.clear();
-    lpdecays_cov_mom_th.clear();
-    lpdecays_cov_mom_ph.clear();
-    lpdecays_cov_mom_xy.clear();
-    lpdecays_cov_mom_yz.clear();
-    lpdecays_cov_mom_zx.clear();
+    lp2decays_id.clear();
+    lp2decays_mom.clear();
+    lp2decays_mom_x.clear();
+    lp2decays_mom_y.clear();
+    lp2decays_mom_z.clear();
+    lp2decays_res_mom.clear();
+    lp2decays_res_mom_x.clear();
+    lp2decays_res_mom_y.clear();
+    lp2decays_res_mom_z.clear();
+    lp2decays_res_mom_t.clear();
+    lp2decays_res_th.clear();
+    lp2decays_res_ph.clear();
+    lp2decays_cov_mom_th.clear();
+    lp2decays_cov_mom_ph.clear();
+    lp2decays_cov_mom_xy.clear();
+    lp2decays_cov_mom_yz.clear();
+    lp2decays_cov_mom_zx.clear();
 
      
     GFlflag = false;
@@ -855,72 +855,72 @@ struct Event
     GFpull_py.clear();
     GFpull_pz.clear();
 
-    GFlpflag = false;
-    GFlpmass = qnan;
-    GFlpdecayvtx_x = qnan;
-    GFlpdecayvtx_y = qnan;
-    GFlpdecayvtx_z = qnan;
-    GFlpmom = qnan;
-    GFlpmom_x = qnan;
-    GFlpmom_y = qnan;
-    GFlpmom_z = qnan;
-    GFlp_dist = qnan;
-    GFlp_angle = qnan;
+    GFlp2flag = false;
+    GFlp2mass = qnan;
+    GFlp2decayvtx_x = qnan;
+    GFlp2decayvtx_y = qnan;
+    GFlp2decayvtx_z = qnan;
+    GFlp2mom = qnan;
+    GFlp2mom_x = qnan;
+    GFlp2mom_y = qnan;
+    GFlp2mom_z = qnan;
+    GFlp2_dist = qnan;
+    GFlp2_angle = qnan;
 
-    GFdecays_m2_lp.clear();
-    GFdecays_mom_lp.clear();
-    GFdecays_mom_x_lp.clear();
-    GFdecays_mom_y_lp.clear();
-    GFdecays_mom_z_lp.clear();
-    GFmomloss_lp.clear();
-    GFeloss_lp.clear();
+    GFdecays_m2_lp2.clear();
+    GFdecays_mom_lp2.clear();
+    GFdecays_mom_x_lp2.clear();
+    GFdecays_mom_y_lp2.clear();
+    GFdecays_mom_z_lp2.clear();
+    GFmomloss_lp2.clear();
+    GFeloss_lp2.clear();
 
-    GFstatus_lp = 0;
-    GFntTpc_lp = 0;
-    GFcharge_lp.clear();
-    GFchisqr_lp.clear();
-    GFtof_lp.clear();
-    GFtracklen_lp.clear();
-    GFpval_lp.clear();
-    GFfitstatus_lp.clear();
-    GFpdgcode_lp.clear();
-    GFnhtrack_lp.clear();
-    GFlayer_lp.clear();
-    GFrow_lp.clear();
-    GFpos_x_lp.clear();
-    GFpos_y_lp.clear();
-    GFpos_z_lp.clear();
-    GFmom_lp.clear();
-    GFmom_x_lp.clear();
-    GFmom_y_lp.clear();
-    GFmom_z_lp.clear();
-    GFresidual_x_lp.clear();
-    GFresidual_y_lp.clear();
-    GFresidual_z_lp.clear();
-    GFresidual_px_lp.clear();
-    GFresidual_py_lp.clear();
-    GFresidual_pz_lp.clear();
-    GFresidual_p_lp.clear();
-    GFresidual6D_x_lp.clear();
-    GFresidual6D_y_lp.clear();
-    GFresidual6D_z_lp.clear();
-    GFresidual6D_px_lp.clear();
-    GFresidual6D_py_lp.clear();
-    GFresidual6D_pz_lp.clear();
-    GFresolution_x_lp.clear();
-    GFresolution_y_lp.clear();
-    GFresolution_z_lp.clear();
-    GFresolution_p_lp.clear();
-    GFresolution_px_lp.clear();
-    GFresolution_py_lp.clear();
-    GFresolution_pz_lp.clear();
-    GFpull_x_lp.clear();
-    GFpull_y_lp.clear();
-    GFpull_z_lp.clear();
-    GFpull_p_lp.clear();
-    GFpull_px_lp.clear();
-    GFpull_py_lp.clear();
-    GFpull_pz_lp.clear();    
+    GFstatus_lp2 = 0;
+    GFntTpc_lp2 = 0;
+    GFcharge_lp2.clear();
+    GFchisqr_lp2.clear();
+    GFtof_lp2.clear();
+    GFtracklen_lp2.clear();
+    GFpval_lp2.clear();
+    GFfitstatus_lp2.clear();
+    GFpdgcode_lp2.clear();
+    GFnhtrack_lp2.clear();
+    GFlayer_lp2.clear();
+    GFrow_lp2.clear();
+    GFpos_x_lp2.clear();
+    GFpos_y_lp2.clear();
+    GFpos_z_lp2.clear();
+    GFmom_lp2.clear();
+    GFmom_x_lp2.clear();
+    GFmom_y_lp2.clear();
+    GFmom_z_lp2.clear();
+    GFresidual_x_lp2.clear();
+    GFresidual_y_lp2.clear();
+    GFresidual_z_lp2.clear();
+    GFresidual_px_lp2.clear();
+    GFresidual_py_lp2.clear();
+    GFresidual_pz_lp2.clear();
+    GFresidual_p_lp2.clear();
+    GFresidual6D_x_lp2.clear();
+    GFresidual6D_y_lp2.clear();
+    GFresidual6D_z_lp2.clear();
+    GFresidual6D_px_lp2.clear();
+    GFresidual6D_py_lp2.clear();
+    GFresidual6D_pz_lp2.clear();
+    GFresolution_x_lp2.clear();
+    GFresolution_y_lp2.clear();
+    GFresolution_z_lp2.clear();
+    GFresolution_p_lp2.clear();
+    GFresolution_px_lp2.clear();
+    GFresolution_py_lp2.clear();
+    GFresolution_pz_lp2.clear();
+    GFpull_x_lp2.clear();
+    GFpull_y_lp2.clear();
+    GFpull_z_lp2.clear();
+    GFpull_p_lp2.clear();
+    GFpull_px_lp2.clear();
+    GFpull_py_lp2.clear();
+    GFpull_pz_lp2.clear();    
 
     // KFchisqrxi = qnan;
     // KFpvalxi = qnan;
@@ -1476,36 +1476,37 @@ dst::DstRead( Int_t ievent )
 
   //Xi candidates searching
   Int_t l_candidates = 0;
-  Int_t lp_candidates = 0;
+  Int_t lp2_candidates = 0;
 
   Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  std::vector<Int_t> lp_p_container, lp_pi_container, lp_p2_container;
+  std::vector<Int_t> lp2_p_container, lp2_pi_container, lp2_p2_container;
   std::vector<Int_t> l_p_container, l_pi_container;
-  std::vector<TVector3> lp_mom_container, lp_vert_container;
+  std::vector<TVector3> lp2_mom_container, lp2_vert_container;
   std::vector<TVector3> l_mom_container, l_vert_container;
   //  std::vector<Double_t> xi_mass_container, lambda_mass_container;
-  std::vector<Double_t> lambda_mass_container, lpmass_container, lambda_lp_mass_container;
-  std::vector<Double_t> lpangle_container;
+  std::vector<Double_t> lambda_mass_container, lp2mass_container, lambda_lp2_mass_container;
+  std::vector<Double_t> lp2angle_container;
   std::vector<TVector3> l_p_mom_container, l_pi_mom_container, l_l_mom_container,
-    lp_p_mom_container, lp_pi_mom_container, lp_p2_mom_container, lp_l_mom_container;
+    lp2_p_mom_container, lp2_pi_mom_container, lp2_p2_mom_container, lp2_l_mom_container;
   std::vector<TVector3> kurama_p_mom_container[event.ntKurama];
-  std::vector<Double_t> ppi_closedist; std::vector<Double_t> lp_closedist;
+  std::vector<Double_t> ppi_closedist; std::vector<Double_t> lp2_closedist;
   // Kurama proton loop
   for(Int_t it0=0; it0<ntTpc; it0++){
     if(event.isKurama[it0]!=1) continue;
-    TVector3 momKurama[event.ntKurama];    
+    TVector3 momKurama[event.ntKurama];
     for(int itKurama=0; itKurama<event.ntKurama; itKurama++){
       Double_t pmag = event.pTPCKurama[itKurama];
       Double_t theta = event.thetaTPCKurama[itKurama];
       Double_t u = event.utgtTPCKurama[itKurama];
-      Double_t v = event.vtgtTPCKurama[itKurama];      
+      Double_t v = event.vtgtTPCKurama[itKurama];
       momKurama[itKurama].SetXYZ(pmag*TMath::Cos(theta)*u,
 				 pmag*TMath::Cos(theta)*v,
 				 pmag*TMath::Cos(theta)*1.0);
       kurama_p_mom_container[itKurama].push_back(momKurama[itKurama]);
-    }
+    } 
     // proton1 loop
     for(Int_t it1=0;it1<ntTpc;it1++){
+      if(it1==it0) continue;
       HF1( 1051, event.nhtrack[it1] );
       Bool_t p2fromLambda = false;
       if(event.isK18[it1]==1 || event.isKurama[it1]==1 || event.isAccidental[it1]==1 ) continue;
@@ -1585,7 +1586,7 @@ dst::DstRead( Int_t ievent )
       }
       // pion1 loop
       for(Int_t it2=0;it2<ntTpc;it2++){
-	if(it1==it2) continue;
+	if(it1==it2 || it2==it0) continue;
 	if(event.isK18[it2]==1 || event.isKurama[it2]==1 || event.isAccidental[it2]==1 ) continue;
 	if((event.pid[it2]&1)!=1) continue; //select pi like
 	HF1( 1053, event.nhtrack[it2] );      
@@ -1618,7 +1619,9 @@ dst::DstRead( Int_t ievent )
 
 	Double_t ppi_dist = 10000.;
 	TVector3 p_mom; TVector3 pi_mom; TVector3 lambda_mom;
+	std::cout << __LINE__ std::endl;
 	TVector3 lambda_vert = Kinematics::LambdaVertex(dMagneticField, p_par, pi_par, p_theta_min, p_theta_max, pi_theta_min, pi_theta_max, p_mom, pi_mom, lambda_mom, ppi_dist);
+	std::cout << __LINE__ std::endl;	
 	if(TMath::IsNaN(ppi_dist)) continue;
 	if(!pim_like) pi_mom = -1.*pi_mom;
 	if(!p_like) pi_mom = -1.*p_mom;
@@ -1689,7 +1692,7 @@ dst::DstRead( Int_t ievent )
 	HF2( 2502, thetapi, event.nhtrack[it2] );
 	// dEdx one proton and pion 
 	HF2(150, event.mom0[it2]*event.charge[it2], event.dEdx[it2]);
-	HF2(150, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);      
+	HF2(150, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
 	if(event.charge[it2]<0){
 	  HF2(151, -event.mom0[it2]*event.charge[it2], event.dEdx[it2]);
 	} else if (event.charge[it2]>0){
@@ -1698,11 +1701,11 @@ dst::DstRead( Int_t ievent )
 	  HF2(151, -event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
 	} else if (event.charge[it1]>0){
 	  HF2(152, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	}       
+	}
 	// proton2 loop
 	for(Int_t it3=0;it3<ntTpc;it3++){
 	  HF1( 1, 2 );  // status 2
-	  if(it3==it2 || it3==it1) continue;
+	  if(it3==it2 || it3==it1 || it3==it0) continue;
 	  HF1( 1, 3 );  // for debug // status 3
 	  if(event.isK18[it3]==1 || event.isKurama[it3]==1 || event.isAccidental[it3]==1 ) continue;
 	  HF1( 1, 4 );  // status 4
@@ -1743,29 +1746,35 @@ dst::DstRead( Int_t ievent )
 	    p2_start = TVector3(event.calpos_x[it3][p2_nh-1], event.calpos_y[it3][p2_nh-1], event.calpos_z[it3][p2_nh-1]);
 	    p2_end = TVector3(event.calpos_x[it3][0], event.calpos_y[it3][0], event.calpos_z[it3][0]);
 	  }
-	  TVector3 p2_mom; Double_t lp_dist;
-	  TVector3 lp_vert = Kinematics::XiVertex(dMagneticField, p2_par, p2_theta_min, p2_theta_max, lambda_vert, lambda_mom, p2_mom, lp_dist);
-	  //	std::cout << "debug " << __LINE__ << std::endl;
+	  TVector3 p2_mom; Double_t lp2_dist;
+	  std::cout << __LINE__ std::endl;
+	  TVector3 lp2_vert = Kinematics::XiVertex(dMagneticField, p2_par, p2_theta_min, p2_theta_max, lambda_vert, lambda_mom, p2_mom, lp2_dist);	  
+	  std::cout << "debug " << __LINE__ << std::endl;
 	  // if(lp_vert.z() < -200.) continue; //Vertex cut
-	  if(TMath::IsNaN(lp_dist)) continue;
-	  //	HF1( 1, event.status++ );// for debug // status 6
-	  HF1( 1, 6 );	// for debug // status 6
+	  if(TMath::IsNaN(lp2_dist)) continue;
+	  TLorentzVector Lp2(p2_mom, TMath::Sqrt(p2_mom.Mag()*p2_mom.Mag() + ProtonMass*ProtonMass));
+	  TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Sqrt(lambda_mom.Mag()*lambda_mom.Mag() + LambdaMass*LambdaMass));
+	  // lambda_mom should be debugged because lambda_mom is made from p1 and pi (should be p2 and pi)
+	  TLorentzVector Llp2 = Llambda_fixedmass + Lp2;
+	  TVector3 lp2_mom = TVector3(Llp2.Px(), Llp2.Py(), Llp2.Pz());
+	  std::cout << "Lambda1 momentum mag : " << Llambda_fixedmass.P() << std::endl;
+	  std::cout << "p2 mom mag : " << Lp2.P() << std::endl;
+	  std::cout << "Lp2 invariant mass : " << Llp2.M() << std::endl;
+	  std::cout << "lp2_opening_angle " << lambda_mom.Angle(p2_mom)*TMath::RadToDeg() << std::endl;
+
 	  // compare the invariant masses of Lp1 and Lp2
 	  Double_t p2pi_dist = 10000.;
-	  TVector3 pi_mom2; TVector3 lambda2_mom;
+	  TVector3 pi_mom2; TVector3 lambda2_mom; TVector3 p2_mom_lambda;
 	  TVector3 lambda2_vert
-	    = Kinematics::LambdaVertex(dMagneticField, p2_par, pi_par, p2_theta_min, p2_theta_max, pi_theta_min, pi_theta_max, p2_mom, pi_mom2, lambda2_mom, p2pi_dist);
-	  //	std::cout << "debug " << __LINE__ << std::endl;	
-	  // if(TMath::IsNaN(p2pi_dist)) continue; // check
-	  //	HF1( 1, event.status++ );// for debug // status 7
+	    = Kinematics::LambdaVertex(dMagneticField, p2_par, pi_par, p2_theta_min, p2_theta_max, pi_theta_min, pi_theta_max,
+				       p2_mom_lambda, pi_mom2, lambda2_mom, p2pi_dist);
 	  HF1( 1, 7 );// for debug // status 7
 	  if(!pim_like) pi_mom2 = -1.*pi_mom2;
-	  //	if(!p_like2) pi_mom2 = -1.*p2_mom;
-	  if(!p_like2) p2_mom = -1.*p2_mom;
-	  lambda2_mom = pi_mom2 + p2_mom;	
+	  if(!p_like2) p2_mom_lambda = -1.*p2_mom_lambda;
+	  lambda2_mom = pi_mom2 + p2_mom_lambda;
 	  TLorentzVector Lpi_2(pi_mom2, TMath::Sqrt(pi_mom2.Mag()*pi_mom2.Mag() + PionMass*PionMass)); // the same pion
-	  TLorentzVector Lp2(p2_mom, TMath::Sqrt(p2_mom.Mag()*p2_mom.Mag() + ProtonMass*ProtonMass));
-	  TLorentzVector Llambda2 = Lp2 + Lpi_2;
+	  TLorentzVector Lp2l(p2_mom_lambda, TMath::Sqrt(p2_mom_lambda.Mag()*p2_mom_lambda.Mag() + ProtonMass*ProtonMass));
+	  TLorentzVector Llambda2 = Lp2l + Lpi_2;
 	  Double_t pi_2_vertex_dist; Double_t p2_vertex_dist;
 	  // check status
 	  if( TMath::Abs(lambda2_vert.x()) < 250. && TMath::Abs(lambda2_vert.z()) < 250. && TMath::Abs(lambda2_vert.y()) < 250. ){
@@ -1797,157 +1806,147 @@ dst::DstRead( Int_t ievent )
 	      && p2_vertex_dist < p_vtx_distcut
 	      && TMath::Abs(Llambda2.M() - LambdaMass) < lambda_masscut
 	      && TMath::Abs(Llambda2.M() - LambdaMass) < TMath::Abs(Llambda.M() - LambdaMass) ){
-	    //	    std::cout << "debug " << __LINE__ << std::endl;
-	    //	    HF1( 1, event.status++ );// for debug // status 9
-	    //	    HF1( 1, 9 );// for debug // status 9
 	    p2fromLambda = true;
-	    TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Sqrt(lambda_mom.Mag()*lambda_mom.Mag() + LambdaMass*LambdaMass));
-	    // lambda_mom should be debugged because lambda_mom is made from p1 and pi (should be p2 and pi)
-	    TLorentzVector Llp = Llambda_fixedmass + Lp;
+	    TLorentzVector Llambda2_fixedmass(lambda2_mom, TMath::Sqrt(lambda2_mom.Mag()*lambda2_mom.Mag() + LambdaMass*LambdaMass));
+	    TLorentzVector Llp = Llambda2_fixedmass + Lp;
+	    std::cout << "Lambda2 invariant mass : " << Llambda2_fixedmass.M() << std::endl;
 	    std::cout << "Lp invariant mass : " << Llp.M() << std::endl;
 	    TVector3 lp_mom = TVector3(Llp.Px(), Llp.Py(), Llp.Pz());
-	    HF1( 1302, lp_mom.Mag() );
+	    //	    HF1( 1302, lp_mom.Mag() );
 	    for(int iKK=0; iKK<event.nKK; iKK++){
-	      //	    HF2( 2301, lp_mom.Mag(), event.momTransfer[iKK].Mag() );
 	    }
-	    lp_dist=0.;
+	    Double_t lp_dist=0.;
 	    Double_t p_vertex_dist;
 	    Double_t lp_opening_angle;
-	    lp_vert = Kinematics::XiVertex(dMagneticField, p_par, p_theta_min, p_theta_max, lambda_vert, lambda_mom, p_mom, lp_dist); // check
-	    if(!Kinematics::HelixDirection(lp_vert, p_start, p_end, p_vertex_dist)) continue; // check
-	    //	    HF1( 1, event.status++ );// for debug // status 10
-	    //	    HF1( 1, 10 );// for debug // status  10
-	    //	    std::cout << "debug " << __LINE__ << std::endl;
-	    std::cout << "p2_vertex_dist : " << p_vertex_dist  << std::endl;	    
-	    //	    if(p_vertex_dist > p_vtx_distcut) continue; // check
-	    //	    HF1( 1, event.status++ ); // for debug // status 11
-	    //	    HF1( 1, 11 );// for debug // status  11
-	    lp_opening_angle = lambda_mom.Angle(p_mom);
-	    lp_p_container.push_back(it3);
-	    lp_pi_container.push_back(it2);
-	    lp_p2_container.push_back(it1);
-	    lpmass_container.push_back(Llp.M());
-	    lambda_lp_mass_container.push_back(Llambda2.M());
-	    lp_p_mom_container.push_back(p2_mom);
-	    lp_pi_mom_container.push_back(pi_mom); 
-	    lp_p2_mom_container.push_back(p_mom);
-	    lp_l_mom_container.push_back(lambda2_mom);	  
-	    lp_mom_container.push_back(lp_mom);
-	    lp_closedist.push_back(lp_dist);	  
-	    lp_vert_container.push_back(lp_vert);
-	    lpangle_container.push_back(lp_opening_angle);
-	    ppi_closedist.push_back(p2pi_dist);	    
-	    // lambda 
-	    l_p_container.push_back(it3);
-	    l_pi_container.push_back(it2);
-	    lambda_mass_container.push_back(Llambda2.M());
-	    l_p_mom_container.push_back(p2_mom);
-	    l_pi_mom_container.push_back(pi_mom);
+	    //	    lp_vert = Kinematics::XiVertex(dMagneticField, p_par, p_theta_min, p_theta_max, lambda_vert, lambda_mom, p_mom, lp_dist); // check
+	    //	    if(!Kinematics::HelixDirection(lp_vert, p_start, p_end, p_vertex_dist)) continue; // check
+	    //	    std::cout << "p2_vertex_dist : " << p_vertex_dist  << std::endl;
+	    // lp_opening_angle = lambda_mom.Angle(p_mom);
+	    // lp_p_container.push_back(it3);
+	    // lp_pi_container.push_back(it2);
+	    // lp_p2_container.push_back(it1);
+	    // lpmass_container.push_back(Llp.M());
+	    // lambda_lp_mass_container.push_back(Llambda2.M());
+	    // lp_p_mom_container.push_back(p2_mom);
+	    // lp_pi_mom_container.push_back(pi_mom); 
+	    // lp_p2_mom_container.push_back(p_mom);
+	    // lp_l_mom_container.push_back(lambda2_mom);	  
+	    // lp_mom_container.push_back(lp_mom);
+	    // lp_closedist.push_back(lp_dist);	  
+	    // lp_vert_container.push_back(lp_vert);
+	    // lpangle_container.push_back(lp_opening_angle);
+	    // ppi_closedist.push_back(p2pi_dist);	    
+	    // // lambda 
+	    // l_p_container.push_back(it3);
+	    // l_pi_container.push_back(it2);
+	    // lambda_mass_container.push_back(Llambda2.M());
+	    // l_p_mom_container.push_back(p2_mom);
+	    // l_pi_mom_container.push_back(pi_mom);
 	    //      l_p2_mom_container.push_back(p2_mom);
-	    l_mom_container.push_back(lambda2_mom);
-	    l_vert_container.push_back(lambda2_vert);
-	    Double_t thetap2 = p2_mom.Theta()*TMath::RadToDeg();
-	    HF2( 2611, thetap2, p2_mom.Mag() );
-	    Double_t thetapi = pi_mom.Theta()*TMath::RadToDeg();
-	    HF2( 2602, thetapi, pi_mom.Mag() );	
-	    Double_t thetaL = lambda_mom.Theta()*TMath::RadToDeg();
-	    //	    HF2( 2603, thetaL, lambda_mom.Mag() );
-	    // theta corr 
-	    HF2( 2461, thetap2, thetap1 );
-	    HF2( 2462, thetap2, thetapi );
-	    HF2( 2463, thetap2, thetaL );
-	    HF2( 2464, thetap2, thetap1 );	    
-	    HF2( 2471, thetap2, thetapi );
-	    HF2( 2472, thetapi, thetaL );
-	    HF2( 2473, thetapi, thetap1 );
-	    HF2( 2481, thetaL, thetaL );
-	    HF2( 2482, thetaL, thetap1 );
-	    HF2( 2491, thetap1, thetap1 );
-	    // mom corr
-	    HF2( 2261, p2_mom.Mag(), p2_mom.Mag() );
-	    HF2( 2262, p2_mom.Mag(), pi_mom.Mag() );
-	    HF2( 2263, p2_mom.Mag(), lambda_mom.Mag() );
-	    HF2( 2264, p2_mom.Mag(), p_mom.Mag() );	    
-	    HF2( 2271, pi_mom.Mag(), pi_mom.Mag() );
-	    HF2( 2272, pi_mom.Mag(), lambda_mom.Mag() );
-	    HF2( 2273, pi_mom.Mag(), p_mom.Mag() );
-	    HF2( 2281, lambda_mom.Mag(), lambda_mom.Mag() );
-	    HF2( 2282, lambda_mom.Mag(), p_mom.Mag() );
-	    HF2( 2291, p_mom.Mag(), p_mom.Mag() );
-	    for(int itKurama=0; itKurama<event.ntKurama; itKurama++){
-	      Double_t thetap0 = momKurama[itKurama].Theta()*TMath::RadToDeg();
-	      HF2( 2615, thetap0, momKurama[itKurama].Mag() );
-	      Double_t anglep0p1 = p2_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
-	      HF1( 1170, anglep0p1 );
-	      Double_t anglep0pi = pi_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
-	      HF1( 1171, anglep0pi );
-	      Double_t anglep0p2 = p_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
-	      HF1( 1172, anglep0p2 );
-	      Double_t anglep0L = lambda2_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
-	      HF1( 1173, anglep0p2 );
-	      // theta corr
-	      HF2( 2451, thetap0, thetap0);
-	      HF2( 2452, thetap0, thetap2);
-	      HF2( 2453, thetap0, thetapi);
-	      HF2( 2454, thetap0, thetaL);
-	      HF2( 2455, thetap0, thetap1);
-	      // mom corr
-	      HF2( 2251, momKurama[itKurama].Mag(), momKurama[itKurama].Mag());
-	      HF2( 2252, momKurama[itKurama].Mag(), p2_mom.Mag());
-	      HF2( 2253, momKurama[itKurama].Mag(), pi_mom.Mag());
-	      HF2( 2254, momKurama[itKurama].Mag(),  lambda_mom.Mag());
-	      HF2( 2255, momKurama[itKurama].Mag(), p_mom.Mag());	      	      
-	    }
-	    {
-	      Double_t anglep1pi = p2_mom.Angle(pi_mom)*TMath::RadToDeg();
-	      HF1( 1174, anglep1pi );
-	      Double_t anglep1p2 = p2_mom.Angle(p_mom)*TMath::RadToDeg();
-	      HF1( 1175, anglep1p2 );
-	      Double_t anglep1L = p2_mom.Angle(lambda2_mom)*TMath::RadToDeg();
-	      HF1( 1176, anglep1L );
-	      Double_t anglepip2 = pi_mom.Angle(p_mom)*TMath::RadToDeg();
-	      HF1( 1177, anglepip2 );
-	      Double_t anglepiL = pi_mom.Angle(lambda2_mom)*TMath::RadToDeg();
-	      HF1( 1178, anglepiL );
-	      Double_t anglep2L = p_mom.Angle(lambda2_mom)*TMath::RadToDeg();
-	      HF1( 1179, anglep2L );	      	      	    	      
-	    }
+	    // l_mom_container.push_back(lambda2_mom);
+	    // l_vert_container.push_back(lambda2_vert);
+	    // Double_t thetap2 = p2_mom.Theta()*TMath::RadToDeg();
+	    // HF2( 2611, thetap2, p2_mom.Mag() );
+	    // Double_t thetapi = pi_mom.Theta()*TMath::RadToDeg();
+	    // HF2( 2602, thetapi, pi_mom.Mag() );	
+	    // Double_t thetaL = lambda_mom.Theta()*TMath::RadToDeg();
+	    // //	    HF2( 2603, thetaL, lambda_mom.Mag() );
+	    // // theta corr 
+	    // HF2( 2461, thetap2, thetap1 );
+	    // HF2( 2462, thetap2, thetapi );
+	    // HF2( 2463, thetap2, thetaL );
+	    // HF2( 2464, thetap2, thetap1 );	    
+	    // HF2( 2471, thetap2, thetapi );
+	    // HF2( 2472, thetapi, thetaL );
+	    // HF2( 2473, thetapi, thetap1 );
+	    // HF2( 2481, thetaL, thetaL );
+	    // HF2( 2482, thetaL, thetap1 );
+	    // HF2( 2491, thetap1, thetap1 );
+	    // // mom corr
+	    // HF2( 2261, p2_mom.Mag(), p2_mom.Mag() );
+	    // HF2( 2262, p2_mom.Mag(), pi_mom.Mag() );
+	    // HF2( 2263, p2_mom.Mag(), lambda_mom.Mag() );
+	    // HF2( 2264, p2_mom.Mag(), p_mom.Mag() );	    
+	    // HF2( 2271, pi_mom.Mag(), pi_mom.Mag() );
+	    // HF2( 2272, pi_mom.Mag(), lambda_mom.Mag() );
+	    // HF2( 2273, pi_mom.Mag(), p_mom.Mag() );
+	    // HF2( 2281, lambda_mom.Mag(), lambda_mom.Mag() );
+	    // HF2( 2282, lambda_mom.Mag(), p_mom.Mag() );
+	    // HF2( 2291, p_mom.Mag(), p_mom.Mag() );
+	    // for(int itKurama=0; itKurama<event.ntKurama; itKurama++){
+	    //   Double_t thetap0 = momKurama[itKurama].Theta()*TMath::RadToDeg();
+	    //   HF2( 2615, thetap0, momKurama[itKurama].Mag() );
+	    //   Double_t anglep0p1 = p2_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
+	    //   HF1( 1170, anglep0p1 );
+	    //   Double_t anglep0pi = pi_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
+	    //   HF1( 1171, anglep0pi );
+	    //   Double_t anglep0p2 = p_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
+	    //   HF1( 1172, anglep0p2 );
+	    //   Double_t anglep0L = lambda2_mom.Angle(momKurama[itKurama])*TMath::RadToDeg();
+	    //   HF1( 1173, anglep0p2 );
+	    //   // theta corr
+	    //   HF2( 2451, thetap0, thetap0);
+	    //   HF2( 2452, thetap0, thetap2);
+	    //   HF2( 2453, thetap0, thetapi);
+	    //   HF2( 2454, thetap0, thetaL);
+	    //   HF2( 2455, thetap0, thetap1);
+	    //   // mom corr
+	    //   HF2( 2251, momKurama[itKurama].Mag(), momKurama[itKurama].Mag());
+	    //   HF2( 2252, momKurama[itKurama].Mag(), p2_mom.Mag());
+	    //   HF2( 2253, momKurama[itKurama].Mag(), pi_mom.Mag());
+	    //   HF2( 2254, momKurama[itKurama].Mag(),  lambda_mom.Mag());
+	    //   HF2( 2255, momKurama[itKurama].Mag(), p_mom.Mag());	      	      
+	    // }
+	    // {
+	    //   Double_t anglep1pi = p2_mom.Angle(pi_mom)*TMath::RadToDeg();
+	    //   HF1( 1174, anglep1pi );
+	    //   Double_t anglep1p2 = p2_mom.Angle(p_mom)*TMath::RadToDeg();
+	    //   HF1( 1175, anglep1p2 );
+	    //   Double_t anglep1L = p2_mom.Angle(lambda2_mom)*TMath::RadToDeg();
+	    //   HF1( 1176, anglep1L );
+	    //   Double_t anglepip2 = pi_mom.Angle(p_mom)*TMath::RadToDeg();
+	    //   HF1( 1177, anglepip2 );
+	    //   Double_t anglepiL = pi_mom.Angle(lambda2_mom)*TMath::RadToDeg();
+	    //   HF1( 1178, anglepiL );
+	    //   Double_t anglep2L = p_mom.Angle(lambda2_mom)*TMath::RadToDeg();
+	    //   HF1( 1179, anglep2L );	      	      	    	      
+	    // }
 	  } else {
 	    HF1( 1, 15 );// for debug // status 15
 	    Double_t thetap2 = p2_mom.Theta()*TMath::RadToDeg();
-	    // Double_t thetapi = pi_mom.Theta()*TMath::RadToDeg();
 	    HF2( 2511, thetap1, event.nhtrack[it1] );
 	    HF2( 2512, thetapi, event.nhtrack[it2] );
 	    HF2( 2513, thetap2, event.nhtrack[it3] );
 	    p2fromLambda = false;
-	    TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Sqrt(lambda_mom.Mag()*lambda_mom.Mag() + LambdaMass*LambdaMass));
-	    TLorentzVector Llp = Llambda_fixedmass + Lp2;
-	    std::cout << "Lp invariant mass : " << Llp.M() << std::endl;
-	    TVector3 lp_mom = TVector3(Llp.Px(), Llp.Py(), Llp.Pz());
+	    //	    TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Sqrt(lambda_mom.Mag()*lambda_mom.Mag() + LambdaMass*LambdaMass));
+	    //	    TLorentzVector Llp2 = Llambda_fixedmass + Lp2;
+	    //	    TVector3 lp_mom = TVector3(Llp.Px(), Llp.Py(), Llp.Pz());
 	    Double_t p2_vertex_dist;
-	    Double_t lp_opening_angle;
-	    if(!Kinematics::HelixDirection(lp_vert, p2_start, p2_end, p2_vertex_dist)) continue; // check
+	    Double_t lp2_opening_angle;
+	    if(!Kinematics::HelixDirection(lp2_vert, p2_start, p2_end, p2_vertex_dist)) continue; // check
 	    std::cout << "p2_vertex_dist : " << p2_vertex_dist  << std::endl;
 	    // if(p2_vertex_dist > p2_vtx_distcut) continue; // check
-	    lp_opening_angle = lambda_mom.Angle(p2_mom);
-	    lp_p_container.push_back(it1);
-	    lp_pi_container.push_back(it2);
-	    lp_p2_container.push_back(it3);
-	    lpmass_container.push_back(Llp.M());
-	    lambda_lp_mass_container.push_back(Llambda.M());
-	    lp_p_mom_container.push_back(p_mom);
-	    lp_pi_mom_container.push_back(pi_mom);
-	    lp_p2_mom_container.push_back(p2_mom);
-	    lp_l_mom_container.push_back(lambda_mom);
-	    lp_mom_container.push_back(lp_mom);
-	    lp_closedist.push_back(lp_dist);
-	    lp_vert_container.push_back(lp_vert);
-	    lpangle_container.push_back(lp_opening_angle);
-	    //	    Double_t thetap2 = p2_mom.Theta()*TMath::RadToDeg();
-	    HF2( 2611, thetap2, p2_mom.Mag() );
+	    lp2_opening_angle = lambda_mom.Angle(p2_mom)*TMath::RadToDeg();;
+	    lp2_p_container.push_back(it1);
+	    lp2_pi_container.push_back(it2);
+	    lp2_p2_container.push_back(it3);
+	    lp2mass_container.push_back(Llp2.M());
+	    lambda_lp2_mass_container.push_back(Llambda.M());
+	    lp2_p_mom_container.push_back(p_mom);
+	    lp2_pi_mom_container.push_back(pi_mom);
+	    lp2_p2_mom_container.push_back(p2_mom);
+	    lp2_l_mom_container.push_back(lambda_mom);
+	    lp2_mom_container.push_back(lp2_mom);
+	    lp2_closedist.push_back(lp2_dist);
+	    lp2_vert_container.push_back(lp2_vert);
+	    lp2angle_container.push_back(lp2_opening_angle);
 	    Double_t thetapi = pi_mom.Theta()*TMath::RadToDeg();
 	    HF2( 2602, thetapi, pi_mom.Mag() );	
-	    Double_t thetaL = lambda_mom.Theta()*TMath::RadToDeg();	    
+	    Double_t thetaL = lambda_mom.Theta()*TMath::RadToDeg();
+	    HF2( 2611, thetap1, p_mom.Mag() );
+	    HF2( 2612, thetapi, pi_mom.Mag() );
+	    HF2( 2613, thetap2, p2_mom.Mag() );
+	    HF2( 2614, thetaL, lambda_mom.Mag() );	    	    	    	    
 	    HF2( 2461, thetap1, thetap1 );
 	    HF2( 2462, thetap1, thetapi );
 	    HF2( 2463, thetap1, thetaL );
@@ -2001,15 +2000,15 @@ dst::DstRead( Int_t ievent )
 	      HF1( 1176, anglep1L );
 	      Double_t anglepip2 = pi_mom.Angle(p2_mom)*TMath::RadToDeg();
 	      HF1( 1177, anglepip2 );
-	      Double_t anglepiL = pi_mom.Angle(lambda2_mom)*TMath::RadToDeg();
+	      Double_t anglepiL = pi_mom.Angle(lambda_mom)*TMath::RadToDeg();
 	      HF1( 1178, anglepiL );
-	      Double_t anglep2L = p2_mom.Angle(lambda2_mom)*TMath::RadToDeg();
+	      Double_t anglep2L = p2_mom.Angle(lambda_mom)*TMath::RadToDeg();
 	      HF1( 1179, anglep2L );	      	      	    	      
 	    }
+	    event.lp2flag = true;
+	    lp2_candidates++;
 	  }
 	  //	std::cout << "debug " << __LINE__ << std::endl;
-	  event.lpflag = true;
-	  lp_candidates++;
 	  // dEdx with Lambda and proton measured 
 	  // HF2(160, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
 	  // if(event.charge[it1]<0){
@@ -2026,15 +2025,17 @@ dst::DstRead( Int_t ievent )
 	  l_p_mom_container.push_back(p_mom);
 	  l_pi_mom_container.push_back(pi_mom);
 	  //      l_p2_mom_container.push_back(p2_mom);
-	  l_mom_container.push_back(lambda_mom);
-	
+	  l_mom_container.push_back(lambda_mom);	  
 	  l_vert_container.push_back(lambda_vert);
+	  l_candidates++;	  
 	}
-	l_candidates++;
+	//	l_candidates++; 
       } //it2
     } //it1
   } //it0
-
+  std::cout << "debug " << __LINE__ << std::endl;  
+  std::cout << "Lambda candidate: " << l_candidates << " and LambdaP candidate: " << lp2_candidates << std::endl;
+  
 #if 1 //Select the best L mass combination
   Int_t best = -1; Double_t prev_massdiff = 9999.;
   for(Int_t candi=0;candi<l_candidates;candi++){
@@ -2045,20 +2046,23 @@ dst::DstRead( Int_t ievent )
       std::cout << "best lambda: " << best << std::endl;
     }
   }
-  Int_t best_lp = -1; Double_t prev_massdiff_lp = 9999.;
-  for(Int_t candi=0;candi<lp_candidates;candi++){
-    Double_t diff = TMath::Abs(lambda_lp_mass_container[candi] - LambdaMass);
-    std::cout << "invariant mass Lp : "
-	      << lpmass_container[candi]
+#endif
+  std::cout << "debug " << __LINE__ << std::endl;  
+#if 0
+  Int_t best_lp2 = -1; Double_t prev_massdiff_lp2 = 9999.;
+  for(Int_t candi=0;candi<lp2_candidates;candi++){
+    Double_t diff = TMath::Abs(lambda_lp2_mass_container[candi] - LambdaMass);
+    std::cout << "invariant mass Lp2 : "
+	      << lp2mass_container[candi]
 	      << std::endl;
-    if(prev_massdiff_lp > diff){
-      prev_massdiff_lp = diff;
-      best_lp = candi;
-      std::cout << "best lambda proton: " << best_lp << std::endl;
+    if(prev_massdiff_lp2 > diff){
+      prev_massdiff_lp2 = diff;
+      best_lp2 = candi;
+      std::cout << "best lambda proton: " << best_lp2 << std::endl;
     }
   }
 #endif
-
+  std::cout << "debug " << __LINE__ << std::endl;
   
   //  std::cout << "best entry: " << best << std::endl;
   if(best==-1) return true;
@@ -2152,52 +2156,51 @@ dst::DstRead( Int_t ievent )
   }
 
   //
-  if(best_lp != -1){
-    event.lmass_lp = lambda_lp_mass_container[best_lp];
-    event.lpmass = lpmass_container[best_lp];
-    event.lpdecayvtx_x = lp_vert_container[best_lp].x();
-    event.lpdecayvtx_y = lp_vert_container[best_lp].y();
-    event.lpdecayvtx_z = lp_vert_container[best_lp].z();
-    event.lpmom_x = lp_mom_container[best_lp].x();
-    event.lpmom_y = lp_mom_container[best_lp].y();
-    event.lpmom_z = lp_mom_container[best_lp].z();
-    event.lmom_lp_x = lp_l_mom_container[best_lp].x();
-    event.lmom_lp_y = lp_l_mom_container[best_lp].y();
-    event.lmom_lp_z = lp_l_mom_container[best_lp].z();    
-    event.lp_dist = lp_closedist[best_lp];
-    event.lpangle = lpangle_container[best_lp];
-    event.lpdecays_id.push_back(lp_p_container[best_lp]);
-    event.lpdecays_mom.push_back(lp_p_mom_container[best_lp].Mag());
-    event.lpdecays_mom_x.push_back(lp_p_mom_container[best_lp].x());
-    event.lpdecays_mom_y.push_back(lp_p_mom_container[best_lp].y());
-    event.lpdecays_mom_z.push_back(lp_p_mom_container[best_lp].z());
-
-    event.lpdecays_id.push_back(lp_pi_container[best_lp]);
-    event.lpdecays_mom.push_back(lp_pi_mom_container[best_lp].Mag());
-    event.lpdecays_mom_x.push_back(lp_pi_mom_container[best_lp].x());
-    event.lpdecays_mom_y.push_back(lp_pi_mom_container[best_lp].y());
-    event.lpdecays_mom_z.push_back(lp_pi_mom_container[best_lp].z());
-    
-    event.lpdecays_id.push_back(lp_p2_container[best_lp]);
-    event.lpdecays_mom.push_back(lp_p2_mom_container[best_lp].Mag());
-    event.lpdecays_mom_x.push_back(lp_p2_mom_container[best_lp].x());
-    event.lpdecays_mom_y.push_back(lp_p2_mom_container[best_lp].y());
-    event.lpdecays_mom_z.push_back(lp_p2_mom_container[best_lp].z());
+  //  if(best_lp2 != -1){
+  for(int best_lp2=0; best_lp2<lp2_candidates; best_lp2++){
+    event.lmass_lp2 = lambda_lp2_mass_container[best_lp2];
+    event.lp2mass = lp2mass_container[best_lp2];
+    event.lp2decayvtx_x = lp2_vert_container[best_lp2].x();
+    event.lp2decayvtx_y = lp2_vert_container[best_lp2].y();
+    event.lp2decayvtx_z = lp2_vert_container[best_lp2].z();
+    event.lp2mom_x = lp2_mom_container[best_lp2].x();
+    event.lp2mom_y = lp2_mom_container[best_lp2].y();
+    event.lp2mom_z = lp2_mom_container[best_lp2].z();
+    event.lmom_lp2_x = lp2_l_mom_container[best_lp2].x();
+    event.lmom_lp2_y = lp2_l_mom_container[best_lp2].y();
+    event.lmom_lp2_z = lp2_l_mom_container[best_lp2].z();
+    event.lp2_dist = lp2_closedist[best_lp2];
+    event.lp2angle = lp2angle_container[best_lp2];
+    event.lp2decays_id.push_back(lp2_p_container[best_lp2]);
+    event.lp2decays_mom.push_back(lp2_p_mom_container[best_lp2].Mag());
+    event.lp2decays_mom_x.push_back(lp2_p_mom_container[best_lp2].x());
+    event.lp2decays_mom_y.push_back(lp2_p_mom_container[best_lp2].y());
+    event.lp2decays_mom_z.push_back(lp2_p_mom_container[best_lp2].z());
+    event.lp2decays_id.push_back(lp2_pi_container[best_lp2]);
+    event.lp2decays_mom.push_back(lp2_pi_mom_container[best_lp2].Mag());
+    event.lp2decays_mom_x.push_back(lp2_pi_mom_container[best_lp2].x());
+    event.lp2decays_mom_y.push_back(lp2_pi_mom_container[best_lp2].y());
+    event.lp2decays_mom_z.push_back(lp2_pi_mom_container[best_lp2].z());
+    event.lp2decays_id.push_back(lp2_p2_container[best_lp2]);
+    event.lp2decays_mom.push_back(lp2_p2_mom_container[best_lp2].Mag());
+    event.lp2decays_mom_x.push_back(lp2_p2_mom_container[best_lp2].x());
+    event.lp2decays_mom_y.push_back(lp2_p2_mom_container[best_lp2].y());
+    event.lp2decays_mom_z.push_back(lp2_p2_mom_container[best_lp2].z());    
     // Fill histograms    
-    HF1( 113, event.lpdecays_mom[0] );
-    HF1( 114, event.lpdecays_mom[1] );
-    HF1( 115, event.lpdecays_mom[2] );
-    HF1( 1441, event.lpdecays_mom[0] );
-    HF1( 1451, event.lpdecays_mom[1] );
-    HF1( 1461, event.lpdecays_mom[2] );
-    HF1( 1471, lp_l_mom_container[best_lp].Mag() );
-    HF1( 1101, event.lpangle );
-    HF1( 1217, event.lpmass );
+    HF1( 113, event.lp2decays_mom[0] );
+    HF1( 114, event.lp2decays_mom[1] );
+    HF1( 115, event.lp2decays_mom[2] );
+    HF1( 1441, event.lp2decays_mom[0] );
+    HF1( 1451, event.lp2decays_mom[1] );
+    HF1( 1461, event.lp2decays_mom[2] );
+    HF1( 1471, lp2_l_mom_container[best_lp2].Mag() );
+    HF1( 1101, event.lp2angle );
+    HF1( 1217, event.lp2mass );
     HF1( 1231, event.lmass );
-    Double_t thetaP1 = lp_p_mom_container[best_lp].Theta()*TMath::RadToDeg();
-    Double_t thetaPi = lp_pi_mom_container[best_lp].Theta()*TMath::RadToDeg();
-    Double_t thetaP2 = lp_p2_mom_container[best_lp].Theta()*TMath::RadToDeg();    
-    Double_t thetaL = lp_mom_container[best_lp].Theta()*TMath::RadToDeg();
+    Double_t thetaP1 = lp2_p_mom_container[best_lp2].Theta()*TMath::RadToDeg();
+    Double_t thetaPi = lp2_pi_mom_container[best_lp2].Theta()*TMath::RadToDeg();
+    Double_t thetaP2 = lp2_p2_mom_container[best_lp2].Theta()*TMath::RadToDeg();    
+    Double_t thetaL = lp2_mom_container[best_lp2].Theta()*TMath::RadToDeg();
     HF1( 1125, thetaP1 );
     HF1( 1131, thetaPi );
     HF1( 1137, thetaP2 );
@@ -2206,76 +2209,79 @@ dst::DstRead( Int_t ievent )
       Double_t bek = event.BEkaonTPC[i];
       Double_t theta = event.thetaTPC[i];
       if( bek<-0.1 ){	
-	HF1( 1102, event.lpangle );
-	HF1( 1218, event.lpmass );
+	HF1( 1102, event.lp2angle );
+	HF1( 1218, event.lp2mass );
 	HF1( 1232, event.lmass );	
 	HF1( 1126, thetaP1 );
 	HF1( 1132, thetaPi );
 	HF1( 1138, thetaP2 );
 	HF1( 1144, thetaL );
-	HF1( 1442, event.lpdecays_mom[0] );
-	HF1( 1452, event.lpdecays_mom[1] );
-	HF1( 1462, event.lpdecays_mom[2] );
-	HF1( 1472, lp_l_mom_container[best_lp].Mag() );    
+	HF1( 1442, event.lp2decays_mom[0] );
+	HF1( 1452, event.lp2decays_mom[1] );
+	HF1( 1462, event.lp2decays_mom[2] );
+	HF1( 1472, lp2_l_mom_container[best_lp2].Mag() );    
       } else if ( bek<0. ){
-	HF1( 1103, event.lpangle );
-	HF1( 1219, event.lpmass );
+	HF1( 1103, event.lp2angle );
+	HF1( 1219, event.lp2mass );
 	HF1( 1233, event.lmass );		
 	HF1( 1127, thetaP1 );
 	HF1( 1133, thetaPi );
 	HF1( 1139, thetaP2 );
 	HF1( 1145, thetaL );
-	HF1( 1443, event.lpdecays_mom[0] );
-	HF1( 1453, event.lpdecays_mom[1] );
-	HF1( 1463, event.lpdecays_mom[2] );
-	HF1( 1473, lp_l_mom_container[best_lp].Mag() );	
+	HF1( 1443, event.lp2decays_mom[0] );
+	HF1( 1453, event.lp2decays_mom[1] );
+	HF1( 1463, event.lp2decays_mom[2] );
+	HF1( 1473, lp2_l_mom_container[best_lp2].Mag() );	
       } else if ( bek<0.1 ){
-	HF1( 1104, event.lpangle );
-	HF1( 1220, event.lpmass );
+	HF1( 1104, event.lp2angle );
+	HF1( 1220, event.lp2mass );
 	HF1( 1234, event.lmass );			
 	HF1( 1128, thetaP1 );
 	HF1( 1134, thetaPi );
 	HF1( 1140, thetaP2 );
 	HF1( 1146, thetaL );
-	HF1( 1444, event.lpdecays_mom[0] );
-	HF1( 1454, event.lpdecays_mom[1] );
-	HF1( 1464, event.lpdecays_mom[2] );
-	HF1( 1474, lp_l_mom_container[best_lp].Mag() ); 		
+	HF1( 1444, event.lp2decays_mom[0] );
+	HF1( 1454, event.lp2decays_mom[1] );
+	HF1( 1464, event.lp2decays_mom[2] );
+	HF1( 1474, lp2_l_mom_container[best_lp2].Mag() ); 		
       } else if ( bek<0.2 ){
-	HF1( 1105, event.lpangle );
-	HF1( 1221, event.lpmass );
+	HF1( 1105, event.lp2angle );
+	HF1( 1221, event.lp2mass );
 	HF1( 1235, event.lmass );				
 	HF1( 1129, thetaP1 );
 	HF1( 1135, thetaPi );
 	HF1( 1141, thetaP2 );
 	HF1( 1147, thetaL );
-	HF1( 1445, event.lpdecays_mom[0] );
-	HF1( 1455, event.lpdecays_mom[1] );
-	HF1( 1465, event.lpdecays_mom[2] );
-	HF1( 1475, lp_l_mom_container[best_lp].Mag() );
+	HF1( 1445, event.lp2decays_mom[0] );
+	HF1( 1455, event.lp2decays_mom[1] );
+	HF1( 1465, event.lp2decays_mom[2] );
+	HF1( 1475, lp2_l_mom_container[best_lp2].Mag() );
       } else if ( bek<0.3 ){
-	HF1( 1106, event.lpangle );
-	HF1( 1222, event.lpmass );
+	HF1( 1106, event.lp2angle );
+	HF1( 1222, event.lp2mass );
 	HF1( 1236, event.lmass );
 	HF1( 1130, thetaP1 );
 	HF1( 1136, thetaPi );
 	HF1( 1142, thetaP2 );
 	HF1( 1148, thetaL );
-	HF1( 1446, event.lpdecays_mom[0] );
-	HF1( 1456, event.lpdecays_mom[1] );
-	HF1( 1466, event.lpdecays_mom[2] );
-	HF1( 1476, lp_l_mom_container[best_lp].Mag() );
+	HF1( 1446, event.lp2decays_mom[0] );
+	HF1( 1456, event.lp2decays_mom[1] );
+	HF1( 1466, event.lp2decays_mom[2] );
+	HF1( 1476, lp2_l_mom_container[best_lp2].Mag() );
+	std::cout << "debug " << __LINE__ << std::endl;	
       }    
       HF1( 1207, bek );
       if( theta<5. ) HF1( 1208, bek );
       if( theta<10. ) HF1( 1209, bek );
-      HF2( 2101, event.lpangle, lp_p_mom_container[best_lp].Mag() );
-      HF2( 2102, event.lpangle, lp_pi_mom_container[best_lp].Mag() );
-      HF2( 2103, event.lpangle, lp_p2_mom_container[best_lp].Mag() );
-      HF2( 2104, event.lpangle, l_mom_container[best].Mag() );
-      HF2( 2111, event.lpangle, bek );
+      HF2( 2101, event.lp2angle, lp2_p_mom_container[best_lp2].Mag() );
+      HF2( 2102, event.lp2angle, lp2_pi_mom_container[best_lp2].Mag() );
+      HF2( 2103, event.lp2angle, lp2_p2_mom_container[best_lp2].Mag() );
+      HF2( 2104, event.lp2angle, l_mom_container[best_lp2].Mag() );
+      HF2( 2111, event.lp2angle, bek );
     }
+    std::cout << "debug " << __LINE__ << std::endl;    
   }
+  // }
   TPCAnalyzer TPCAna;
   TPCAna.ReCalcTPCTracks(**src.ntTpc, **src.isK18, **src.isKurama,
 			 **src.charge, **src.nhtrack, **src.helix_cx,
@@ -2328,74 +2334,78 @@ dst::DstRead( Int_t ievent )
   event.ldecays_cov_mom_xy.push_back(Track_pi->GetMomentumCovarianceVect().x());
   event.ldecays_cov_mom_yz.push_back(Track_pi->GetMomentumCovarianceVect().y());
   event.ldecays_cov_mom_zx.push_back(Track_pi->GetMomentumCovarianceVect().z());
+  
+  std::cout << "debug " << __LINE__ << std::endl;
+  //  if(best_lp2 != -1){
+  for(int best_lp2=0; best_lp2<lp2_candidates; best_lp2++){
+    Int_t id_p_lp2 = lp2_p_container[best_lp2];
+    Int_t id_pi_lp2 = lp2_pi_container[best_lp2];
+    Int_t id_p2_lp2 = lp2_p2_container[best_lp2];
 
-  if(best_lp != -1){
-    Int_t id_p_lp = lp_p_container[best_lp];
-    Int_t id_pi_lp = lp_pi_container[best_lp];
-    Int_t id_p2_lp = lp_p2_container[best_lp];
-
-    auto Track_p_lp = TPCAna.GetTrackTPCHelix(id_p_lp);
-    auto Track_pi_lp = TPCAna.GetTrackTPCHelix(id_pi_lp);
-    auto Track_p2_lp = TPCAna.GetTrackTPCHelix(id_p2_lp);
-    for(Int_t ih=0;ih<Track_p_lp->GetNHit();++ih){
-      auto pos = Track_p_lp->GetHitInOrder(ih)->GetLocalHitPos();
+    auto Track_p_lp2 = TPCAna.GetTrackTPCHelix(id_p_lp2);
+    auto Track_pi_lp2 = TPCAna.GetTrackTPCHelix(id_pi_lp2);
+    auto Track_p2_lp2 = TPCAna.GetTrackTPCHelix(id_p2_lp2);
+    for(Int_t ih=0;ih<Track_p_lp2->GetNHit();++ih){
+      auto pos = Track_p_lp2->GetHitInOrder(ih)->GetLocalHitPos();
       //    HF2(1001,pos.z(),pos.x());
     }
-    for(Int_t ih=0;ih<Track_pi_lp->GetNHit();++ih){
-      auto pos = Track_pi_lp->GetHitInOrder(ih)->GetLocalHitPos();
+    for(Int_t ih=0;ih<Track_pi_lp2->GetNHit();++ih){
+      auto pos = Track_pi_lp2->GetHitInOrder(ih)->GetLocalHitPos();
       //    HF2(1002,pos.z(),pos.x());
     }
-    for(Int_t ih=0;ih<Track_p2_lp->GetNHit();++ih){
-      auto pos = Track_p2_lp->GetHitInOrder(ih)->GetLocalHitPos();
+    for(Int_t ih=0;ih<Track_p2_lp2->GetNHit();++ih){
+      auto pos = Track_p2_lp2->GetHitInOrder(ih)->GetLocalHitPos();
       //    HF2(1001,pos.z(),pos.x());
     }
-  
-    event.lpdecays_res_mom.push_back(Track_p_lp->GetMomentumResolution());
-    event.lpdecays_res_mom_x.push_back(Track_p_lp->GetMomentumResolutionVect().X());
-    event.lpdecays_res_mom_y.push_back(Track_p_lp->GetMomentumResolutionVect().Y());
-    event.lpdecays_res_mom_z.push_back(Track_p_lp->GetMomentumResolutionVect().Z());
-    event.lpdecays_res_mom_t.push_back(Track_p_lp->GetTransverseMomentumResolution());
-    event.lpdecays_res_th.push_back(Track_p_lp->GetThetaResolution());
-    event.lpdecays_res_ph.push_back(Track_p_lp->GetTransverseAngularResolution());
+    std::cout << "debug " << __LINE__ << std::endl;
+    event.lp2decays_res_mom.push_back(Track_p_lp2->GetMomentumResolution());
+    event.lp2decays_res_mom_x.push_back(Track_p_lp2->GetMomentumResolutionVect().X());
+    event.lp2decays_res_mom_y.push_back(Track_p_lp2->GetMomentumResolutionVect().Y());
+    event.lp2decays_res_mom_z.push_back(Track_p_lp2->GetMomentumResolutionVect().Z());
+    event.lp2decays_res_mom_t.push_back(Track_p_lp2->GetTransverseMomentumResolution());
+    event.lp2decays_res_th.push_back(Track_p_lp2->GetThetaResolution());
+    event.lp2decays_res_ph.push_back(Track_p_lp2->GetTransverseAngularResolution());
 
-    event.lpdecays_cov_mom_ph.push_back(Track_p_lp->GetTransverseMomentumAngularCovariance());
-    event.lpdecays_cov_mom_th.push_back(Track_p_lp->GetMomentumPitchAngleCovariance());
-    event.lpdecays_cov_mom_xy.push_back(Track_p_lp->GetMomentumCovarianceVect().x());
-    event.lpdecays_cov_mom_yz.push_back(Track_p_lp->GetMomentumCovarianceVect().y());
-    event.lpdecays_cov_mom_zx.push_back(Track_p_lp->GetMomentumCovarianceVect().z());
+    event.lp2decays_cov_mom_ph.push_back(Track_p_lp2->GetTransverseMomentumAngularCovariance());
+    event.lp2decays_cov_mom_th.push_back(Track_p_lp2->GetMomentumPitchAngleCovariance());
+    event.lp2decays_cov_mom_xy.push_back(Track_p_lp2->GetMomentumCovarianceVect().x());
+    event.lp2decays_cov_mom_yz.push_back(Track_p_lp2->GetMomentumCovarianceVect().y());
+    event.lp2decays_cov_mom_zx.push_back(Track_p_lp2->GetMomentumCovarianceVect().z());
 
-    event.lpdecays_res_mom.push_back(Track_pi_lp->GetMomentumResolution());
-    event.lpdecays_res_mom_x.push_back(Track_pi_lp->GetMomentumResolutionVect().X());
-    event.lpdecays_res_mom_y.push_back(Track_pi_lp->GetMomentumResolutionVect().Y());
-    event.lpdecays_res_mom_z.push_back(Track_pi_lp->GetMomentumResolutionVect().Z());
-    event.lpdecays_res_mom_t.push_back(Track_pi_lp->GetTransverseMomentumResolution());
-    event.lpdecays_res_th.push_back(Track_pi_lp->GetThetaResolution());
-    event.lpdecays_res_ph.push_back(Track_pi_lp->GetTransverseAngularResolution());
+    event.lp2decays_res_mom.push_back(Track_pi_lp2->GetMomentumResolution());
+    event.lp2decays_res_mom_x.push_back(Track_pi_lp2->GetMomentumResolutionVect().X());
+    event.lp2decays_res_mom_y.push_back(Track_pi_lp2->GetMomentumResolutionVect().Y());
+    event.lp2decays_res_mom_z.push_back(Track_pi_lp2->GetMomentumResolutionVect().Z());
+    event.lp2decays_res_mom_t.push_back(Track_pi_lp2->GetTransverseMomentumResolution());
+    event.lp2decays_res_th.push_back(Track_pi_lp2->GetThetaResolution());
+    event.lp2decays_res_ph.push_back(Track_pi_lp2->GetTransverseAngularResolution());
 
-    event.lpdecays_cov_mom_ph.push_back(Track_pi_lp->GetTransverseMomentumAngularCovariance());
-    event.lpdecays_cov_mom_th.push_back(Track_pi_lp->GetMomentumPitchAngleCovariance());
-    event.lpdecays_cov_mom_xy.push_back(Track_pi_lp->GetMomentumCovarianceVect().x());
-    event.lpdecays_cov_mom_yz.push_back(Track_pi_lp->GetMomentumCovarianceVect().y());
-    event.lpdecays_cov_mom_zx.push_back(Track_pi_lp->GetMomentumCovarianceVect().z());
+    event.lp2decays_cov_mom_ph.push_back(Track_pi_lp2->GetTransverseMomentumAngularCovariance());
+    event.lp2decays_cov_mom_th.push_back(Track_pi_lp2->GetMomentumPitchAngleCovariance());
+    event.lp2decays_cov_mom_xy.push_back(Track_pi_lp2->GetMomentumCovarianceVect().x());
+    event.lp2decays_cov_mom_yz.push_back(Track_pi_lp2->GetMomentumCovarianceVect().y());
+    event.lp2decays_cov_mom_zx.push_back(Track_pi_lp2->GetMomentumCovarianceVect().z());
 
-    event.lpdecays_res_mom.push_back(Track_p2_lp->GetMomentumResolution());
-    event.lpdecays_res_mom_x.push_back(Track_p2_lp->GetMomentumResolutionVect().X());
-    event.lpdecays_res_mom_y.push_back(Track_p2_lp->GetMomentumResolutionVect().Y());
-    event.lpdecays_res_mom_z.push_back(Track_p2_lp->GetMomentumResolutionVect().Z());
-    event.lpdecays_res_mom_t.push_back(Track_p2_lp->GetTransverseMomentumResolution());
-    event.lpdecays_res_th.push_back(Track_p2_lp->GetThetaResolution());
-    event.lpdecays_res_ph.push_back(Track_p2_lp->GetTransverseAngularResolution());
+    event.lp2decays_res_mom.push_back(Track_p2_lp2->GetMomentumResolution());
+    event.lp2decays_res_mom_x.push_back(Track_p2_lp2->GetMomentumResolutionVect().X());
+    event.lp2decays_res_mom_y.push_back(Track_p2_lp2->GetMomentumResolutionVect().Y());
+    event.lp2decays_res_mom_z.push_back(Track_p2_lp2->GetMomentumResolutionVect().Z());
+    event.lp2decays_res_mom_t.push_back(Track_p2_lp2->GetTransverseMomentumResolution());
+    event.lp2decays_res_th.push_back(Track_p2_lp2->GetThetaResolution());
+    event.lp2decays_res_ph.push_back(Track_p2_lp2->GetTransverseAngularResolution());
 
-    event.lpdecays_cov_mom_ph.push_back(Track_p2_lp->GetTransverseMomentumAngularCovariance());
-    event.lpdecays_cov_mom_th.push_back(Track_p2_lp->GetMomentumPitchAngleCovariance());
-    event.lpdecays_cov_mom_xy.push_back(Track_p2_lp->GetMomentumCovarianceVect().x());
-    event.lpdecays_cov_mom_yz.push_back(Track_p2_lp->GetMomentumCovarianceVect().y());
-    event.lpdecays_cov_mom_zx.push_back(Track_p2_lp->GetMomentumCovarianceVect().z());
+    event.lp2decays_cov_mom_ph.push_back(Track_p2_lp2->GetTransverseMomentumAngularCovariance());
+    event.lp2decays_cov_mom_th.push_back(Track_p2_lp2->GetMomentumPitchAngleCovariance());
+    event.lp2decays_cov_mom_xy.push_back(Track_p2_lp2->GetMomentumCovarianceVect().x());
+    event.lp2decays_cov_mom_yz.push_back(Track_p2_lp2->GetMomentumCovarianceVect().y());
+    event.lp2decays_cov_mom_zx.push_back(Track_p2_lp2->GetMomentumCovarianceVect().z());
   }
+    // }
+    
   HypTPCTask& GFTrackCont = HypTPCTask::GetInstance();
   HF1( 10, event.MissMass[0] );
   HF1( 11, event.lmass );
-  HF1( 12, event.lpmass );
+  HF1( 12, event.lp2mass );
   HF1( 13, event.ldecays_mom[0] );
   HF1( 14, event.ldecays_mom[1] );
   HF1( 15, event.ldecays_mom[2] );
@@ -2409,7 +2419,7 @@ dst::DstRead( Int_t ievent )
   // 			event.ximom_y*event.ximom_y +
   // 			event.ximom_z*event.ximom_z) );
   HF1( 18, event.ppi_dist);
-  //  HF1( 19, event.lpi_dist);
+  //  HF1( 19, event.lp2i_dist);
   for( Int_t it=0; it<ntTpc; ++it ){
     TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix(it);
     if( !tp ) continue;
@@ -2442,23 +2452,23 @@ dst::DstRead( Int_t ievent )
   std::vector<Double_t> GFpi_mass_container(l_candidates, qnan);
   std::vector<Double_t> GFppi_closedist_container(l_candidates, qnan);
   // lambda proton
-  std::vector<Int_t> GFlp_p_id_container(lp_candidates, -1);
-  std::vector<Int_t> GFlp_pi_id_container(lp_candidates, -1);
-  std::vector<Int_t> GFlp_p2_id_container(lp_candidates, -1);
-  std::vector<Int_t> GFlp_p_rep_container(lp_candidates, -1);
-  std::vector<Int_t> GFlp_pi_rep_container(lp_candidates, -1);
-  std::vector<Int_t> GFlp_p2_rep_container(lp_candidates, -1);
-  std::vector<TVector3> GFlp_mom_container(lp_candidates, TVector3(qnan, qnan, qnan));
-  std::vector<TVector3> GFlp_p_mom_container(lp_candidates, TVector3(qnan, qnan, qnan));
-  std::vector<TVector3> GFlp_pi_mom_container(lp_candidates, TVector3(qnan, qnan, qnan));
-  std::vector<TVector3> GFlp_p2_mom_container(lp_candidates, TVector3(qnan, qnan, qnan));
-  std::vector<TVector3> GFlp_vert_container(lp_candidates, TVector3(qnan, qnan, qnan));
-  std::vector<Double_t> GFl_lp_mass_container(lp_candidates, qnan);
-  std::vector<Double_t> GFlp_mass_container(lp_candidates, qnan);
-  std::vector<Double_t> GFlp_p_mass_container(lp_candidates, qnan);
-  std::vector<Double_t> GFlp_pi_mass_container(lp_candidates, qnan);
-  std::vector<Double_t> GFlp_p2_mass_container(lp_candidates, qnan);
-  std::vector<Double_t> GFlp_closedist_container(lp_candidates, qnan);
+  std::vector<Int_t> GFlp2_p_id_container(lp2_candidates, -1);
+  std::vector<Int_t> GFlp2_pi_id_container(lp2_candidates, -1);
+  std::vector<Int_t> GFlp2_p2_id_container(lp2_candidates, -1);
+  std::vector<Int_t> GFlp2_p_rep_container(lp2_candidates, -1);
+  std::vector<Int_t> GFlp2_pi_rep_container(lp2_candidates, -1);
+  std::vector<Int_t> GFlp2_p2_rep_container(lp2_candidates, -1);
+  std::vector<TVector3> GFlp2_mom_container(lp2_candidates, TVector3(qnan, qnan, qnan));
+  std::vector<TVector3> GFlp2_p_mom_container(lp2_candidates, TVector3(qnan, qnan, qnan));
+  std::vector<TVector3> GFlp2_pi_mom_container(lp2_candidates, TVector3(qnan, qnan, qnan));
+  std::vector<TVector3> GFlp2_p2_mom_container(lp2_candidates, TVector3(qnan, qnan, qnan));
+  std::vector<TVector3> GFlp2_vert_container(lp2_candidates, TVector3(qnan, qnan, qnan));
+  std::vector<Double_t> GFl_lp2_mass_container(lp2_candidates, qnan);
+  std::vector<Double_t> GFlp2_mass_container(lp2_candidates, qnan);
+  std::vector<Double_t> GFlp2_p_mass_container(lp2_candidates, qnan);
+  std::vector<Double_t> GFlp2_pi_mass_container(lp2_candidates, qnan);
+  std::vector<Double_t> GFlp2_p2_mass_container(lp2_candidates, qnan);
+  std::vector<Double_t> GFlp2_closedist_container(lp2_candidates, qnan);
   // kinematical fitting
   std::vector<Double_t> KFchisqrl_container(l_candidates, qnan);
   std::vector<Double_t> KFpvall_container(l_candidates, qnan);
@@ -2537,12 +2547,12 @@ dst::DstRead( Int_t ievent )
 
   }
   // lambda proton 
-  Int_t gfbest_lp = -1;
+  Int_t gfbest_lp2 = -1;
   prev_massdiff = 9999.;
-  for(Int_t candi=0;candi<lp_candidates;candi++){
-    Int_t trackid_p = lp_p_container[candi];
-    Int_t trackid_pi = lp_pi_container[candi];
-    Int_t trackid_p2 = lp_p2_container[candi];
+  for(Int_t candi=0;candi<lp2_candidates;candi++){
+    Int_t trackid_p = lp2_p_container[candi];
+    Int_t trackid_pi = lp2_pi_container[candi];
+    Int_t trackid_p2 = lp2_p2_container[candi];
     Int_t flag = 1; Int_t repid_p = 0;
     for(Int_t i=0;i<2;i++){
       Int_t temp = flag&event.pid[trackid_p];
@@ -2567,11 +2577,11 @@ dst::DstRead( Int_t ievent )
     TLorentzVector GFLlambda = GFLp + GFLpi;
     TVector3 GFlambda_mom = GFmom_decays[0] + GFmom_decays[1];
     TLorentzVector GFLlambda_fixed(GFlambda_mom, TMath::Sqrt(GFlambda_mom.Mag()*GFlambda_mom.Mag() + LambdaMass*LambdaMass));
-    TLorentzVector GFLlp = GFLlambda_fixed + GFLp2;
-    TVector3 GFlp_mom = GFmom_decays[0] + GFmom_decays[1] + GFmom_decays[2];
+    TLorentzVector GFLlp2 = GFLlambda_fixed + GFLp2;
+    TVector3 GFlp2_mom = GFmom_decays[0] + GFmom_decays[1] + GFmom_decays[2];
 
-    TVector3 GFlp_vert; Double_t GFlp_dist = qnan; Double_t GFlp_tracklen;
-    Double_t GFlambda_tof = Kinematics::CalcTimeOfFlight(GFlambda_mom.Mag(), GFlp_tracklen, pdg::LambdaMass());
+    TVector3 GFlp2_vert; Double_t GFlp2_dist = qnan; Double_t GFlp2_tracklen;
+    Double_t GFlambda_tof = Kinematics::CalcTimeOfFlight(GFlambda_mom.Mag(), GFlp2_tracklen, pdg::LambdaMass());
 
     Int_t htofhitid_p; Double_t tracklen_p; Double_t tof; TVector3 pos; Double_t track2tgt_dist;
     Bool_t htofextrapolation_p = GFTrackCont.TPCHTOFTrackMatching(trackid_p, repid_p, GFlambda_vert, event.HtofSeg, event.posHtof, htofhitid_p, tof, tracklen_p, pos, track2tgt_dist);
@@ -2599,28 +2609,28 @@ dst::DstRead( Int_t ievent )
       //if(GFmass2_decays[0] < 0.25) continue;
     }
 
-    event.GFlpflag = true;
-    GFlp_p_id_container[candi] = trackid_p;
-    GFlp_pi_id_container[candi] = trackid_pi;
-    GFlp_p2_id_container[candi] = trackid_p2;
-    GFlp_p_rep_container[candi] = repid_p;
-    GFlp_pi_rep_container[candi] = repid_pi;
-    GFlp_p2_rep_container[candi] = repid_p2;
-    GFlp_mom_container[candi] = GFlp_mom; // 
-    GFlp_p_mom_container[candi] = GFmom_decays[0]; 
-    GFlp_pi_mom_container[candi] = GFmom_decays[1]; 
-    GFlp_p2_mom_container[candi] = GFmom_decays[2];
-    GFlp_vert_container[candi] = GFlp_vert;
-    GFl_lp_mass_container[candi] = GFLlambda.M();
-    GFlp_mass_container[candi] = GFLlp.M();
-    GFlp_p_mass_container[candi] = GFmass2_decays[0];
-    GFlp_pi_mass_container[candi] = GFmass2_decays[1];
-    GFlp_p2_mass_container[candi] = GFmass2_decays[2];
-    GFlp_closedist_container[candi] = GFlp_dist;
+    event.GFlp2flag = true;
+    GFlp2_p_id_container[candi] = trackid_p;
+    GFlp2_pi_id_container[candi] = trackid_pi;
+    GFlp2_p2_id_container[candi] = trackid_p2;
+    GFlp2_p_rep_container[candi] = repid_p;
+    GFlp2_pi_rep_container[candi] = repid_pi;
+    GFlp2_p2_rep_container[candi] = repid_p2;
+    GFlp2_mom_container[candi] = GFlp2_mom; // 
+    GFlp2_p_mom_container[candi] = GFmom_decays[0]; 
+    GFlp2_pi_mom_container[candi] = GFmom_decays[1]; 
+    GFlp2_p2_mom_container[candi] = GFmom_decays[2];
+    GFlp2_vert_container[candi] = GFlp2_vert;
+    GFl_lp2_mass_container[candi] = GFLlambda.M();
+    GFlp2_mass_container[candi] = GFLlp2.M();
+    GFlp2_p_mass_container[candi] = GFmass2_decays[0];
+    GFlp2_pi_mass_container[candi] = GFmass2_decays[1];
+    GFlp2_p2_mass_container[candi] = GFmass2_decays[2];
+    GFlp2_closedist_container[candi] = GFlp2_dist;
     Double_t diff = TMath::Abs(lambda_mass_container[candi] - LambdaMass); // to be changed
     if(prev_massdiff > diff){
       prev_massdiff = diff;
-      gfbest_lp = candi;
+      gfbest_lp2 = candi;
     }
   }//
   if(!event.GFlflag) return true;
@@ -2628,84 +2638,84 @@ dst::DstRead( Int_t ievent )
 
   HF1( 20, event.MissMass[0] );
   HF1( 21, event.lmass );
-  HF1( 22, event.lpmass );
+  HF1( 22, event.lp2mass );
   HF1( 23, event.ldecays_mom[0] );
   HF1( 24, event.ldecays_mom[1] );
   HF1( 26, TMath::Sqrt( event.lmom_x*event.lmom_x +
 			event.lmom_y*event.lmom_y +
 			event.lmom_z*event.lmom_z) );
-  HF1( 27, TMath::Sqrt( event.lpmom_x*event.lpmom_x +
-			event.lpmom_y*event.lpmom_y +
-			event.lpmom_z*event.lpmom_z) );
+  HF1( 27, TMath::Sqrt( event.lp2mom_x*event.lp2mom_x +
+			event.lp2mom_y*event.lp2mom_y +
+			event.lp2mom_z*event.lp2mom_z) );
   HF1( 28, event.ppi_dist);
   event.GFntTpc = 2; // is this correct? 
-  if(gfbest_lp != -1){
-    event.GFlpmass = GFlp_mass_container[gfbest_lp];
-    event.GFlpdecayvtx_x = GFlp_vert_container[gfbest_lp].x();
-    event.GFlpdecayvtx_y = GFlp_vert_container[gfbest_lp].y();
-    event.GFlpdecayvtx_z = GFlp_vert_container[gfbest_lp].z();
-    event.GFlpmom = GFlp_mom_container[gfbest_lp].Mag();
-    event.GFlpmom_x = GFlp_mom_container[gfbest_lp].x();
-    event.GFlpmom_y = GFlp_mom_container[gfbest_lp].y();
-    event.GFlpmom_z = GFlp_mom_container[gfbest_lp].z();
-    event.GFlp_dist = GFlp_closedist_container[gfbest_lp];
-    event.GFlp_angle = GFl_mom_container[gfbest_lp].Angle(GFlp_p2_mom_container[gfbest_lp]);
+  if(gfbest_lp2 != -1){
+    event.GFlp2mass = GFlp2_mass_container[gfbest_lp2];
+    event.GFlp2decayvtx_x = GFlp2_vert_container[gfbest_lp2].x();
+    event.GFlp2decayvtx_y = GFlp2_vert_container[gfbest_lp2].y();
+    event.GFlp2decayvtx_z = GFlp2_vert_container[gfbest_lp2].z();
+    event.GFlp2mom = GFlp2_mom_container[gfbest_lp2].Mag();
+    event.GFlp2mom_x = GFlp2_mom_container[gfbest_lp2].x();
+    event.GFlp2mom_y = GFlp2_mom_container[gfbest_lp2].y();
+    event.GFlp2mom_z = GFlp2_mom_container[gfbest_lp2].z();
+    event.GFlp2_dist = GFlp2_closedist_container[gfbest_lp2];
+    event.GFlp2_angle = GFl_mom_container[gfbest_lp2].Angle(GFlp2_p2_mom_container[gfbest_lp2]);
 
-    event.GFdecays_m2_lp.resize(3);
-    event.GFdecays_mom_lp.resize(3);
-    event.GFdecays_mom_x_lp.resize(3);
-    event.GFdecays_mom_y_lp.resize(3);
-    event.GFdecays_mom_z_lp.resize(3);
-    event.GFmomloss_lp.resize(3);
-    event.GFeloss_lp.resize(3);
+    event.GFdecays_m2_lp2.resize(3);
+    event.GFdecays_mom_lp2.resize(3);
+    event.GFdecays_mom_x_lp2.resize(3);
+    event.GFdecays_mom_y_lp2.resize(3);
+    event.GFdecays_mom_z_lp2.resize(3);
+    event.GFmomloss_lp2.resize(3);
+    event.GFeloss_lp2.resize(3);
 
-    event.GFcharge_lp.resize(3);
-    event.GFchisqr_lp.resize(3);
-    event.GFtof_lp.resize(3);
-    event.GFtracklen_lp.resize(3);
-    event.GFpval_lp.resize(3);
-    event.GFchisqrPos_lp.resize(3);
-    event.GFpvalPos_lp.resize(3);
-    event.GFpdgcode_lp.resize(3);
+    event.GFcharge_lp2.resize(3);
+    event.GFchisqr_lp2.resize(3);
+    event.GFtof_lp2.resize(3);
+    event.GFtracklen_lp2.resize(3);
+    event.GFpval_lp2.resize(3);
+    event.GFchisqrPos_lp2.resize(3);
+    event.GFpvalPos_lp2.resize(3);
+    event.GFpdgcode_lp2.resize(3);
 
-    event.GFfitstatus_lp.resize(3);
-    event.GFnhtrack_lp.resize(3);
-    event.GFlayer_lp.resize(3);
-    event.GFrow_lp.resize(3);
-    event.GFpos_x_lp.resize(3);
-    event.GFpos_y_lp.resize(3);
-    event.GFpos_z_lp.resize(3);
-    event.GFmom_lp.resize(3);
-    event.GFmom_x_lp.resize(3);
-    event.GFmom_y_lp.resize(3);
-    event.GFmom_z_lp.resize(3);
-    event.GFresidual_x_lp.resize(3);
-    event.GFresidual_y_lp.resize(3);
-    event.GFresidual_z_lp.resize(3);
-    event.GFresidual_px_lp.resize(3);
-    event.GFresidual_py_lp.resize(3);
-    event.GFresidual_pz_lp.resize(3);
-    event.GFresidual_p_lp.resize(3);
-    event.GFresidual6D_x_lp.resize(3);
-    event.GFresidual6D_y_lp.resize(3);
-    event.GFresidual6D_z_lp.resize(3);
-    event.GFresidual6D_px_lp.resize(3);
-    event.GFresidual6D_py_lp.resize(3);
-    event.GFresidual6D_pz_lp.resize(3);
-    event.GFresolution_x_lp.resize(3);
-    event.GFresolution_y_lp.resize(3);
-    event.GFresolution_z_lp.resize(3);
-    event.GFresolution_p_lp.resize(3);
-    event.GFresolution_px_lp.resize(3);
-    event.GFresolution_py_lp.resize(3);
-    event.GFresolution_pz_lp.resize(3);
-    event.GFpull_x_lp.resize(3);
-    event.GFpull_y_lp.resize(3);
-    event.GFpull_z_lp.resize(3);
-    event.GFpull_p_lp.resize(3);
-    event.GFpull_px_lp.resize(3);
-    event.GFpull_py_lp.resize(3);
-    event.GFpull_pz_lp.resize(3);
+    event.GFfitstatus_lp2.resize(3);
+    event.GFnhtrack_lp2.resize(3);
+    event.GFlayer_lp2.resize(3);
+    event.GFrow_lp2.resize(3);
+    event.GFpos_x_lp2.resize(3);
+    event.GFpos_y_lp2.resize(3);
+    event.GFpos_z_lp2.resize(3);
+    event.GFmom_lp2.resize(3);
+    event.GFmom_x_lp2.resize(3);
+    event.GFmom_y_lp2.resize(3);
+    event.GFmom_z_lp2.resize(3);
+    event.GFresidual_x_lp2.resize(3);
+    event.GFresidual_y_lp2.resize(3);
+    event.GFresidual_z_lp2.resize(3);
+    event.GFresidual_px_lp2.resize(3);
+    event.GFresidual_py_lp2.resize(3);
+    event.GFresidual_pz_lp2.resize(3);
+    event.GFresidual_p_lp2.resize(3);
+    event.GFresidual6D_x_lp2.resize(3);
+    event.GFresidual6D_y_lp2.resize(3);
+    event.GFresidual6D_z_lp2.resize(3);
+    event.GFresidual6D_px_lp2.resize(3);
+    event.GFresidual6D_py_lp2.resize(3);
+    event.GFresidual6D_pz_lp2.resize(3);
+    event.GFresolution_x_lp2.resize(3);
+    event.GFresolution_y_lp2.resize(3);
+    event.GFresolution_z_lp2.resize(3);
+    event.GFresolution_p_lp2.resize(3);
+    event.GFresolution_px_lp2.resize(3);
+    event.GFresolution_py_lp2.resize(3);
+    event.GFresolution_pz_lp2.resize(3);
+    event.GFpull_x_lp2.resize(3);
+    event.GFpull_y_lp2.resize(3);
+    event.GFpull_z_lp2.resize(3);
+    event.GFpull_p_lp2.resize(3);
+    event.GFpull_px_lp2.resize(3);
+    event.GFpull_py_lp2.resize(3);
+    event.GFpull_pz_lp2.resize(3);
   }
   
   event.GFlmass = GFl_mass_container[gfbest];
@@ -2950,87 +2960,87 @@ dst::DstRead( Int_t ievent )
   } //igf
   
   // lambda proton
-  if(gfbest_lp != -1){
+  if(gfbest_lp2 != -1){
     for( Int_t j=0; j<3; ++j ){
-      Int_t igf = GFlp_p_id_container[gfbest_lp];
-      if(j==1) igf = GFlp_pi_id_container[gfbest_lp];
-      if(j==2) igf = GFlp_p2_id_container[gfbest_lp];
+      Int_t igf = GFlp2_p_id_container[gfbest_lp2];
+      if(j==1) igf = GFlp2_pi_id_container[gfbest_lp2];
+      if(j==2) igf = GFlp2_p2_id_container[gfbest_lp2];
 
-      Int_t repid = GFlp_p_rep_container[gfbest_lp];
-      if(j==1) repid = GFlp_pi_rep_container[gfbest_lp];
-      if(j==2) repid = GFlp_p2_rep_container[gfbest_lp];
+      Int_t repid = GFlp2_p_rep_container[gfbest_lp2];
+      if(j==1) repid = GFlp2_pi_rep_container[gfbest_lp2];
+      if(j==2) repid = GFlp2_p2_rep_container[gfbest_lp2];
 
-      event.GFfitstatus_lp[j] = (Int_t) GFTrackCont.TrackCheck(igf, repid);
+      event.GFfitstatus_lp2[j] = (Int_t) GFTrackCont.TrackCheck(igf, repid);
       //    HF1( 3, event.GFfitstatus[j]);
-      if(!event.GFfitstatus_lp[j]) continue;
+      if(!event.GFfitstatus_lp2[j]) continue;
 
       Int_t nh = GFTrackCont.GetNHits(igf);
-      event.GFnhtrack_lp[j] = nh;
-      event.GFchisqr_lp[j] = GFTrackCont.GetChi2NDF(igf, repid);
-      event.GFcharge_lp[j] = GFTrackCont.GetCharge(igf, repid);
-      event.GFtof_lp[j] = GFTrackCont.GetTrackTOF(igf, 0, -1, repid);
-      event.GFtracklen_lp[j] = GFTrackCont.GetTrackLength(igf, 0, -1, repid);
-      event.GFpval_lp[j] = GFTrackCont.GetPvalue(igf, repid);
-      event.GFpdgcode_lp[j] = GFTrackCont.GetPDGcode(igf, repid);
+      event.GFnhtrack_lp2[j] = nh;
+      event.GFchisqr_lp2[j] = GFTrackCont.GetChi2NDF(igf, repid);
+      event.GFcharge_lp2[j] = GFTrackCont.GetCharge(igf, repid);
+      event.GFtof_lp2[j] = GFTrackCont.GetTrackTOF(igf, 0, -1, repid);
+      event.GFtracklen_lp2[j] = GFTrackCont.GetTrackLength(igf, 0, -1, repid);
+      event.GFpval_lp2[j] = GFTrackCont.GetPvalue(igf, repid);
+      event.GFpdgcode_lp2[j] = GFTrackCont.GetPDGcode(igf, repid);
 
-      TVector3 GFmom_decays = GFlp_p_mom_container[gfbest_lp];
-      if(j==1) GFmom_decays = GFlp_pi_mom_container[gfbest_lp];
-      if(j==2) GFmom_decays = GFlp_p2_mom_container[gfbest_lp];
+      TVector3 GFmom_decays = GFlp2_p_mom_container[gfbest_lp2];
+      if(j==1) GFmom_decays = GFlp2_pi_mom_container[gfbest_lp2];
+      if(j==2) GFmom_decays = GFlp2_p2_mom_container[gfbest_lp2];
 
-      Double_t GFmass_decays = GFlp_p_mass_container[gfbest_lp];
-      if(j==1) GFmass_decays = GFlp_pi_mass_container[gfbest_lp];
-      if(j==2) GFmass_decays = GFlp_p2_mass_container[gfbest_lp];
+      Double_t GFmass_decays = GFlp2_p_mass_container[gfbest_lp2];
+      if(j==1) GFmass_decays = GFlp2_pi_mass_container[gfbest_lp2];
+      if(j==2) GFmass_decays = GFlp2_p2_mass_container[gfbest_lp2];
     
-      event.GFdecays_m2_lp[j] = GFmass_decays;
-      event.GFdecays_mom_lp[j] = GFmom_decays.Mag();
-      event.GFdecays_mom_x_lp[j] = GFmom_decays.x();
-      event.GFdecays_mom_y_lp[j] = GFmom_decays.y();
-      event.GFdecays_mom_z_lp[j] = GFmom_decays.z();
-      event.GFmomloss_lp[j] = GFmom_decays.Mag() - GFTrackCont.GetMom(igf, 0, repid).Mag();
+      event.GFdecays_m2_lp2[j] = GFmass_decays;
+      event.GFdecays_mom_lp2[j] = GFmom_decays.Mag();
+      event.GFdecays_mom_x_lp2[j] = GFmom_decays.x();
+      event.GFdecays_mom_y_lp2[j] = GFmom_decays.y();
+      event.GFdecays_mom_z_lp2[j] = GFmom_decays.z();
+      event.GFmomloss_lp2[j] = GFmom_decays.Mag() - GFTrackCont.GetMom(igf, 0, repid).Mag();
       Double_t pdgmass[3] = {ProtonMass, PionMass, PionMass};
-      event.GFeloss_lp[j] = TMath::Sqrt(GFmom_decays.Mag()*GFmom_decays.Mag() + pdgmass[j]*pdgmass[j]) - TMath::Sqrt(GFTrackCont.GetMom(igf, 0, repid).Mag()*GFTrackCont.GetMom(igf, 0, repid).Mag() + pdgmass[j]*pdgmass[j]);
+      event.GFeloss_lp2[j] = TMath::Sqrt(GFmom_decays.Mag()*GFmom_decays.Mag() + pdgmass[j]*pdgmass[j]) - TMath::Sqrt(GFTrackCont.GetMom(igf, 0, repid).Mag()*GFTrackCont.GetMom(igf, 0, repid).Mag() + pdgmass[j]*pdgmass[j]);
     
-      event.GFlayer_lp[j].resize(nh);
-      event.GFrow_lp[j].resize(nh);
-      event.GFpos_x_lp[j].resize(nh);
-      event.GFpos_y_lp[j].resize(nh);
-      event.GFpos_z_lp[j].resize(nh);
-      event.GFmom_lp[j].resize(nh);
-      event.GFmom_x_lp[j].resize(nh);
-      event.GFmom_y_lp[j].resize(nh);
-      event.GFmom_z_lp[j].resize(nh);
-      event.GFresidual_x_lp[j].resize(nh);
-      event.GFresidual_y_lp[j].resize(nh);
-      event.GFresidual_z_lp[j].resize(nh);
-      event.GFresidual_px_lp[j].resize(nh);
-      event.GFresidual_py_lp[j].resize(nh);
-      event.GFresidual_pz_lp[j].resize(nh);
-      event.GFresidual_p_lp[j].resize(nh);
-      event.GFresidual6D_x_lp[j].resize(nh);
-      event.GFresidual6D_y_lp[j].resize(nh);
-      event.GFresidual6D_z_lp[j].resize(nh);
-      event.GFresidual6D_px_lp[j].resize(nh);
-      event.GFresidual6D_py_lp[j].resize(nh);
-      event.GFresidual6D_pz_lp[j].resize(nh);
-      event.GFresolution_x_lp[j].resize(nh);
-      event.GFresolution_y_lp[j].resize(nh);
-      event.GFresolution_z_lp[j].resize(nh);
-      event.GFresolution_p_lp[j].resize(nh);
-      event.GFresolution_px_lp[j].resize(nh);
-      event.GFresolution_py_lp[j].resize(nh);
-      event.GFresolution_pz_lp[j].resize(nh);
-      event.GFpull_x_lp[j].resize(nh);
-      event.GFpull_y_lp[j].resize(nh);
-      event.GFpull_z_lp[j].resize(nh);
-      event.GFpull_p_lp[j].resize(nh);
-      event.GFpull_px_lp[j].resize(nh);
-      event.GFpull_py_lp[j].resize(nh);
-      event.GFpull_pz_lp[j].resize(nh);
-      //    HF1( 600, event.GFpval_lp[j]);
+      event.GFlayer_lp2[j].resize(nh);
+      event.GFrow_lp2[j].resize(nh);
+      event.GFpos_x_lp2[j].resize(nh);
+      event.GFpos_y_lp2[j].resize(nh);
+      event.GFpos_z_lp2[j].resize(nh);
+      event.GFmom_lp2[j].resize(nh);
+      event.GFmom_x_lp2[j].resize(nh);
+      event.GFmom_y_lp2[j].resize(nh);
+      event.GFmom_z_lp2[j].resize(nh);
+      event.GFresidual_x_lp2[j].resize(nh);
+      event.GFresidual_y_lp2[j].resize(nh);
+      event.GFresidual_z_lp2[j].resize(nh);
+      event.GFresidual_px_lp2[j].resize(nh);
+      event.GFresidual_py_lp2[j].resize(nh);
+      event.GFresidual_pz_lp2[j].resize(nh);
+      event.GFresidual_p_lp2[j].resize(nh);
+      event.GFresidual6D_x_lp2[j].resize(nh);
+      event.GFresidual6D_y_lp2[j].resize(nh);
+      event.GFresidual6D_z_lp2[j].resize(nh);
+      event.GFresidual6D_px_lp2[j].resize(nh);
+      event.GFresidual6D_py_lp2[j].resize(nh);
+      event.GFresidual6D_pz_lp2[j].resize(nh);
+      event.GFresolution_x_lp2[j].resize(nh);
+      event.GFresolution_y_lp2[j].resize(nh);
+      event.GFresolution_z_lp2[j].resize(nh);
+      event.GFresolution_p_lp2[j].resize(nh);
+      event.GFresolution_px_lp2[j].resize(nh);
+      event.GFresolution_py_lp2[j].resize(nh);
+      event.GFresolution_pz_lp2[j].resize(nh);
+      event.GFpull_x_lp2[j].resize(nh);
+      event.GFpull_y_lp2[j].resize(nh);
+      event.GFpull_z_lp2[j].resize(nh);
+      event.GFpull_p_lp2[j].resize(nh);
+      event.GFpull_px_lp2[j].resize(nh);
+      event.GFpull_py_lp2[j].resize(nh);
+      event.GFpull_pz_lp2[j].resize(nh);
+      //    HF1( 600, event.GFpval_lp2[j]);
 
-      Int_t id = GFlp_p_id_container[gfbest_lp];
-      if(j==1) id = GFlp_pi_id_container[gfbest_lp];
-      if(j==2) id = GFlp_p2_id_container[gfbest_lp];    
+      Int_t id = GFlp2_p_id_container[gfbest_lp2];
+      if(j==1) id = GFlp2_pi_id_container[gfbest_lp2];
+      if(j==2) id = GFlp2_p2_id_container[gfbest_lp2];    
       Int_t ihit = 0;
       TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix( id );
       double GFchisqrPos=0;
@@ -3041,7 +3051,7 @@ dst::DstRead( Int_t ievent )
 
 	const TVector3 &hit0 = helix_point -> GetLocalHitPos();
 	double row = helix_point->GetMRow()+0.5;
-	TVector3 mom0 = helix_point -> GetMomentumHelix(event.GFcharge_lp[j]);
+	TVector3 mom0 = helix_point -> GetMomentumHelix(event.GFcharge_lp2[j]);
 	TVector3 hit = GFTrackCont.GetPos(igf, ihit, repid);
 	TVector3 mom = GFTrackCont.GetMom(igf, ihit, repid);
 
@@ -3051,65 +3061,65 @@ dst::DstRead( Int_t ievent )
 	Double_t GFpull6D[6];
 	TVector3 dumV;
 	Double_t dumd;
-	GFTrackCont.GetTrackPull(igf, event.GFpdgcode_lp[j], dumV,
+	GFTrackCont.GetTrackPull(igf, event.GFpdgcode_lp2[j], dumV,
 				 dumd, mom0, hit0, residual_,
 				 pull_, GFresidual6D, GFpull6D);
 
-	event.GFlayer_lp[j][ihit] = layer;
-	event.GFrow_lp[j][ihit] = row;
-	event.GFmom_x_lp[j][ihit] = mom.x();
-	event.GFmom_y_lp[j][ihit] = mom.y();
-	event.GFmom_z_lp[j][ihit] = mom.z();
-	event.GFmom_lp[j][ihit] = mom.Mag();
-	event.GFpos_x_lp[j][ihit] = hit.x();
-	event.GFpos_y_lp[j][ihit] = hit.y();
-	event.GFpos_z_lp[j][ihit] = hit.z();
-	event.GFresidual_x_lp[j][ihit] = hit.x() - hit0.x();
-	event.GFresidual_y_lp[j][ihit] = hit.y() - hit0.y();
-	event.GFresidual_z_lp[j][ihit] = hit.z() - hit0.z();
-	event.GFresidual_px_lp[j][ihit] = mom.x() - mom0.x();
-	event.GFresidual_py_lp[j][ihit] = mom.y() - mom0.y();
-	event.GFresidual_pz_lp[j][ihit] = mom.z() - mom0.z();
-	event.GFresidual_p_lp[j][ihit] = mom.Mag() - mom0.Mag();
+	event.GFlayer_lp2[j][ihit] = layer;
+	event.GFrow_lp2[j][ihit] = row;
+	event.GFmom_x_lp2[j][ihit] = mom.x();
+	event.GFmom_y_lp2[j][ihit] = mom.y();
+	event.GFmom_z_lp2[j][ihit] = mom.z();
+	event.GFmom_lp2[j][ihit] = mom.Mag();
+	event.GFpos_x_lp2[j][ihit] = hit.x();
+	event.GFpos_y_lp2[j][ihit] = hit.y();
+	event.GFpos_z_lp2[j][ihit] = hit.z();
+	event.GFresidual_x_lp2[j][ihit] = hit.x() - hit0.x();
+	event.GFresidual_y_lp2[j][ihit] = hit.y() - hit0.y();
+	event.GFresidual_z_lp2[j][ihit] = hit.z() - hit0.z();
+	event.GFresidual_px_lp2[j][ihit] = mom.x() - mom0.x();
+	event.GFresidual_py_lp2[j][ihit] = mom.y() - mom0.y();
+	event.GFresidual_pz_lp2[j][ihit] = mom.z() - mom0.z();
+	event.GFresidual_p_lp2[j][ihit] = mom.Mag() - mom0.Mag();
 
-	event.GFresidual6D_x_lp[j][ihit] =GFresidual6D[0];
-	event.GFresidual6D_y_lp[j][ihit] =GFresidual6D[1];
-	event.GFresidual6D_z_lp[j][ihit] =GFresidual6D[2];
-	event.GFresidual6D_px_lp[j][ihit] =GFresidual6D[3];
-	event.GFresidual6D_py_lp[j][ihit] =GFresidual6D[4];
-	event.GFresidual6D_pz_lp[j][ihit] =GFresidual6D[5];
+	event.GFresidual6D_x_lp2[j][ihit] =GFresidual6D[0];
+	event.GFresidual6D_y_lp2[j][ihit] =GFresidual6D[1];
+	event.GFresidual6D_z_lp2[j][ihit] =GFresidual6D[2];
+	event.GFresidual6D_px_lp2[j][ihit] =GFresidual6D[3];
+	event.GFresidual6D_py_lp2[j][ihit] =GFresidual6D[4];
+	event.GFresidual6D_pz_lp2[j][ihit] =GFresidual6D[5];
 
-	event.GFresolution_x_lp[j][ihit] = GFresidual6D[0]/GFpull6D[0];
-	event.GFresolution_y_lp[j][ihit] = GFresidual6D[1]/GFpull6D[1];
-	event.GFresolution_z_lp[j][ihit] = GFresidual6D[2]/GFpull6D[2];
-	event.GFresolution_px_lp[j][ihit] = GFresidual6D[3]/GFpull6D[3];
-	event.GFresolution_py_lp[j][ihit] = GFresidual6D[4]/GFpull6D[4];
-	event.GFresolution_pz_lp[j][ihit] = GFresidual6D[5]/GFpull6D[5];
-	event.GFpull_x_lp[j][ihit] = GFpull6D[0];
-	event.GFpull_y_lp[j][ihit] = GFpull6D[1];
-	event.GFpull_z_lp[j][ihit] = GFpull6D[2];
-	event.GFpull_px_lp[j][ihit] = GFpull6D[3];
-	event.GFpull_py_lp[j][ihit] = GFpull6D[4];
-	event.GFpull_pz_lp[j][ihit] = GFpull6D[5];
-	double GFresolution_t = hypot(event.GFresolution_x_lp[j][ihit],event.GFresolution_z_lp[j][ihit]);
-	double GFresidual_t = hypot(event.GFresidual_x_lp[j][ihit],event.GFresidual_z_lp[j][ihit]);
-	GFchisqrPos+= hypot(GFresidual_t/GFresolution_t,event.GFresidual_y_lp[j][ihit]/(event.GFresolution_y_lp[j][ihit]));
+	event.GFresolution_x_lp2[j][ihit] = GFresidual6D[0]/GFpull6D[0];
+	event.GFresolution_y_lp2[j][ihit] = GFresidual6D[1]/GFpull6D[1];
+	event.GFresolution_z_lp2[j][ihit] = GFresidual6D[2]/GFpull6D[2];
+	event.GFresolution_px_lp2[j][ihit] = GFresidual6D[3]/GFpull6D[3];
+	event.GFresolution_py_lp2[j][ihit] = GFresidual6D[4]/GFpull6D[4];
+	event.GFresolution_pz_lp2[j][ihit] = GFresidual6D[5]/GFpull6D[5];
+	event.GFpull_x_lp2[j][ihit] = GFpull6D[0];
+	event.GFpull_y_lp2[j][ihit] = GFpull6D[1];
+	event.GFpull_z_lp2[j][ihit] = GFpull6D[2];
+	event.GFpull_px_lp2[j][ihit] = GFpull6D[3];
+	event.GFpull_py_lp2[j][ihit] = GFpull6D[4];
+	event.GFpull_pz_lp2[j][ihit] = GFpull6D[5];
+	double GFresolution_t = hypot(event.GFresolution_x_lp2[j][ihit],event.GFresolution_z_lp2[j][ihit]);
+	double GFresidual_t = hypot(event.GFresidual_x_lp2[j][ihit],event.GFresidual_z_lp2[j][ihit]);
+	GFchisqrPos+= hypot(GFresidual_t/GFresolution_t,event.GFresidual_y_lp2[j][ihit]/(event.GFresolution_y_lp2[j][ihit]));
 
 	int hn = 2001 + j;
 	HF2(hn,hit.z(),hit.x());
-	HF1( 601, event.GFpull_x_lp[j][ihit]);  
-	HF1( 602, event.GFpull_y_lp[j][ihit]);
-	HF1( 603, event.GFpull_z_lp[j][ihit]);
-	HF1( 604, event.GFpull_px_lp[j][ihit]);
-	HF1( 605, event.GFpull_py_lp[j][ihit]);
-	HF1( 606, event.GFpull_pz_lp[j][ihit]);
-	if(event.GFpval_lp[j]>0.01){
-	  HF1( 611, event.GFpull_x_lp[j][ihit]);
-	  HF1( 612, event.GFpull_y_lp[j][ihit]);
-	  HF1( 613, event.GFpull_z_lp[j][ihit]);
-	  HF1( 614, event.GFpull_px_lp[j][ihit]);
-	  HF1( 615, event.GFpull_py_lp[j][ihit]);
-	  HF1( 616, event.GFpull_pz_lp[j][ihit]);
+	HF1( 601, event.GFpull_x_lp2[j][ihit]);  
+	HF1( 602, event.GFpull_y_lp2[j][ihit]);
+	HF1( 603, event.GFpull_z_lp2[j][ihit]);
+	HF1( 604, event.GFpull_px_lp2[j][ihit]);
+	HF1( 605, event.GFpull_py_lp2[j][ihit]);
+	HF1( 606, event.GFpull_pz_lp2[j][ihit]);
+	if(event.GFpval_lp2[j]>0.01){
+	  HF1( 611, event.GFpull_x_lp2[j][ihit]);
+	  HF1( 612, event.GFpull_y_lp2[j][ihit]);
+	  HF1( 613, event.GFpull_z_lp2[j][ihit]);
+	  HF1( 614, event.GFpull_px_lp2[j][ihit]);
+	  HF1( 615, event.GFpull_py_lp2[j][ihit]);
+	  HF1( 616, event.GFpull_pz_lp2[j][ihit]);
 	}
 	ihit++;
       } //ih
@@ -3122,12 +3132,12 @@ dst::DstRead( Int_t ievent )
       }
       else GFchisqrPos = -1;
 
-      event.GFchisqrPos_lp[j]=GFchisqrPos;
-      event.GFpvalPos_lp[j]=GFpvalPos;
-    } //igf Lp
+      event.GFchisqrPos_lp2[j]=GFchisqrPos;
+      event.GFpvalPos_lp2[j]=GFpvalPos;
+    } //igf Lp2
     TVector3 KPVert(event.vtx[0],event.vty[0],event.vtz[0]);
-    TVector3 LPMom = GFlp_mom_container[gfbest_lp];
-    TVector3 LPVert = GFlp_vert_container[gfbest_lp];
+    TVector3 LP2Mom = GFlp2_mom_container[gfbest_lp2];
+    TVector3 LP2Vert = GFlp2_vert_container[gfbest_lp2];
     if(event.isgoodTPC[0] == 1){
       KPVert = TVector3(event.vtxTPC[0],event.vtyTPC[0],event.vtzTPC[0]);
     }
@@ -3481,7 +3491,7 @@ ConfMan::InitializeHistograms( void )
   // - Vtx xyz w/ thetaTPC<10 w/ Lambda
   // 2D
 
-  // LPOpeningAngle:mom of p1,pi,p2,L
+  // LP2OpeningAngle:mom of p1,pi,p2,L
   HB2( 2101, "LPOpAngle:MomP1; LPOpAngle[degree]; Momentum p1  [GeV/#font[12]{c}]", 360, 0.0, 180., 50, 0., 1.0);
   HB2( 2102, "LPOpAngle:MomPi; LPOpAngle[degree]; Momentum #pi [GeV/#font[12]{c}]", 360, 0.0, 180., 50, 0., 1.0);
   HB2( 2103, "LPOpAngle:MomP2; LPOpAngle[degree]; Momentum p2  [GeV/#font[12]{c}]", 360, 0.0, 180., 50, 0., 1.0);
@@ -3893,34 +3903,34 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("LDecaysMomCov_zx", &event.ldecays_cov_mom_zx);
   tree->Branch("angleLambda", &event.angleLambda);
 
-  tree->Branch("LPflag", &event.lpflag);
-  tree->Branch("LambdaMassLP", &event.lmass_lp);
-  tree->Branch("LPDecayVtx_x", &event.lpdecayvtx_x);
-  tree->Branch("LPDecayVtx_y", &event.lpdecayvtx_y);
-  tree->Branch("LPDecayVtx_z", &event.lpdecayvtx_z);
-  tree->Branch("LPMom_x", &event.lpmom_x);
-  tree->Branch("LPMom_y", &event.lpmom_y);
-  tree->Branch("LPMom_z", &event.lpmom_z);
-  tree->Branch("LPVtxCloseDist", &event.lp_dist);
-  tree->Branch("LPDecaysTrackId", &event.lpdecays_id);
-  tree->Branch("LPDecaysMom", &event.lpdecays_mom);
-  tree->Branch("LPDecaysMom_x", &event.lpdecays_mom_x);
-  tree->Branch("LPDecaysMom_y", &event.lpdecays_mom_y);
-  tree->Branch("LPDecaysMom_z", &event.lpdecays_mom_z);
-  tree->Branch("LPDecaysMomRes", &event.lpdecays_res_mom);
-  tree->Branch("LPDecaysMomRes_x", &event.lpdecays_res_mom_x);
-  tree->Branch("LPDecaysMomRes_y", &event.lpdecays_res_mom_y);
-  tree->Branch("LPDecaysMomRes_z", &event.lpdecays_res_mom_z);
-  tree->Branch("LPDecaysMomRes_t", &event.lpdecays_res_mom_t);
-  tree->Branch("LPDecaysThRes", &event.lpdecays_res_th);
-  tree->Branch("LPDecaysPhRes", &event.lpdecays_res_ph);
-  tree->Branch("LPDecaysThCov", &event.lpdecays_cov_mom_th);
-  tree->Branch("LPDecaysPhCov", &event.lpdecays_cov_mom_ph);
-  tree->Branch("LPDecaysMomCov_xy", &event.lpdecays_cov_mom_xy);
-  tree->Branch("LPDecaysMomCov_yz", &event.lpdecays_cov_mom_yz);
-  tree->Branch("LPDecaysMomCov_zx", &event.lpdecays_cov_mom_zx);
-  tree->Branch("LPOpeningAngle", &event.lpangle);
-  tree->Branch("LPMass", &event.lpmass);
+  tree->Branch("LPflag", &event.lp2flag);
+  tree->Branch("LambdaMassLP", &event.lmass_lp2);
+  tree->Branch("LPDecayVtx_x", &event.lp2decayvtx_x);
+  tree->Branch("LPDecayVtx_y", &event.lp2decayvtx_y);
+  tree->Branch("LPDecayVtx_z", &event.lp2decayvtx_z);
+  tree->Branch("LPMom_x", &event.lp2mom_x);
+  tree->Branch("LPMom_y", &event.lp2mom_y);
+  tree->Branch("LPMom_z", &event.lp2mom_z);
+  tree->Branch("LPVtxCloseDist", &event.lp2_dist);
+  tree->Branch("LPDecaysTrackId", &event.lp2decays_id);
+  tree->Branch("LPDecaysMom", &event.lp2decays_mom);
+  tree->Branch("LPDecaysMom_x", &event.lp2decays_mom_x);
+  tree->Branch("LPDecaysMom_y", &event.lp2decays_mom_y);
+  tree->Branch("LPDecaysMom_z", &event.lp2decays_mom_z);
+  tree->Branch("LPDecaysMomRes", &event.lp2decays_res_mom);
+  tree->Branch("LPDecaysMomRes_x", &event.lp2decays_res_mom_x);
+  tree->Branch("LPDecaysMomRes_y", &event.lp2decays_res_mom_y);
+  tree->Branch("LPDecaysMomRes_z", &event.lp2decays_res_mom_z);
+  tree->Branch("LPDecaysMomRes_t", &event.lp2decays_res_mom_t);
+  tree->Branch("LPDecaysThRes", &event.lp2decays_res_th);
+  tree->Branch("LPDecaysPhRes", &event.lp2decays_res_ph);
+  tree->Branch("LPDecaysThCov", &event.lp2decays_cov_mom_th);
+  tree->Branch("LPDecaysPhCov", &event.lp2decays_cov_mom_ph);
+  tree->Branch("LPDecaysMomCov_xy", &event.lp2decays_cov_mom_xy);
+  tree->Branch("LPDecaysMomCov_yz", &event.lp2decays_cov_mom_yz);
+  tree->Branch("LPDecaysMomCov_zx", &event.lp2decays_cov_mom_zx);
+  tree->Branch("LPOpeningAngle", &event.lp2angle);
+  tree->Branch("LPMass", &event.lp2mass);
 
   // tree->Branch("GFXiflag", &event.GFxiflag);
   // tree->Branch("GFXiMass", &event.GFximass);
@@ -3947,21 +3957,21 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFMomLoss", &event.GFmomloss);
   tree->Branch("GFELoss", &event.GFeloss);
 
-  tree->Branch("GFLambdaPMass", &event.GFlpmass);
-  tree->Branch("GFLambdaPDecayVtx_x", &event.GFlpdecayvtx_x);
-  tree->Branch("GFLambdaPDecayVtx_y", &event.GFlpdecayvtx_y);
-  tree->Branch("GFLambdaPDecayVtx_z", &event.GFlpdecayvtx_z);
-  tree->Branch("GFLambdaPMom_x", &event.GFlpmom_x);
-  tree->Branch("GFLambdaPMom_y", &event.GFlpmom_y);
-  tree->Branch("GFLambdaPMom_z", &event.GFlpmom_z);
-  tree->Branch("GFLambdaPVtxCloseDist", &event.GFlp_dist);
-  tree->Branch("GFDecaysMassSquareLP", &event.GFdecays_m2_lp);
-  tree->Branch("GFDecaysMomLP", &event.GFdecays_mom_lp);
-  tree->Branch("GFDecaysMom_x_LP", &event.GFdecays_mom_x_lp);
-  tree->Branch("GFDecaysMom_y_LP", &event.GFdecays_mom_y_lp);
-  tree->Branch("GFDecaysMom_z_LP", &event.GFdecays_mom_z_lp);
-  tree->Branch("GFMomLossLP", &event.GFmomloss_lp);
-  tree->Branch("GFELossLP", &event.GFeloss_lp);
+  tree->Branch("GFLambdaPMass", &event.GFlp2mass);
+  tree->Branch("GFLambdaPDecayVtx_x", &event.GFlp2decayvtx_x);
+  tree->Branch("GFLambdaPDecayVtx_y", &event.GFlp2decayvtx_y);
+  tree->Branch("GFLambdaPDecayVtx_z", &event.GFlp2decayvtx_z);
+  tree->Branch("GFLambdaPMom_x", &event.GFlp2mom_x);
+  tree->Branch("GFLambdaPMom_y", &event.GFlp2mom_y);
+  tree->Branch("GFLambdaPMom_z", &event.GFlp2mom_z);
+  tree->Branch("GFLambdaPVtxCloseDist", &event.GFlp2_dist);
+  tree->Branch("GFDecaysMassSquareLP", &event.GFdecays_m2_lp2);
+  tree->Branch("GFDecaysMomLP", &event.GFdecays_mom_lp2);
+  tree->Branch("GFDecaysMom_x_LP", &event.GFdecays_mom_x_lp2);
+  tree->Branch("GFDecaysMom_y_LP", &event.GFdecays_mom_y_lp2);
+  tree->Branch("GFDecaysMom_z_LP", &event.GFdecays_mom_z_lp2);
+  tree->Branch("GFMomLossLP", &event.GFmomloss_lp2);
+  tree->Branch("GFELossLP", &event.GFeloss_lp2);
 
   //track fitting results
   tree->Branch("GFstatus", &event.GFstatus);
@@ -4014,54 +4024,54 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFpull_pz", &event.GFpull_pz);
 
   //track fitting results
-  tree->Branch("GFstatusLP", &event.GFstatus_lp);
-  tree->Branch("GFntTpcLP", &event.GFntTpc_lp);
-  tree->Branch("GFchargeLP", &event.GFcharge_lp);
-  tree->Branch("GFchisqrLP", &event.GFchisqr_lp);
-  tree->Branch("GFtofLP", &event.GFtof_lp);
-  tree->Branch("GFtracklenLP", &event.GFtracklen_lp);
-  tree->Branch("GFpvalLP", &event.GFpval_lp);
-  tree->Branch("GFchisqrPosLP", &event.GFchisqrPos_lp);
-  tree->Branch("GFpvalPosLP", &event.GFpvalPos_lp);
-  tree->Branch("GFfitstatusLP", &event.GFfitstatus_lp);
-  tree->Branch("GFpdgcodeLP", &event.GFpdgcode_lp);
-  tree->Branch("GFnhtrackLP", &event.GFnhtrack_lp);
-  tree->Branch("GFlayerLP", &event.GFlayer_lp);
-  tree->Branch("GFrowLP", &event.GFrow_lp);
-  tree->Branch("GFposLP_x", &event.GFpos_x_lp);
-  tree->Branch("GFposLP_y", &event.GFpos_y_lp);
-  tree->Branch("GFposLP_z", &event.GFpos_z_lp);
-  tree->Branch("GFmomLP", &event.GFmom_lp);
-  tree->Branch("GFmomLP_x", &event.GFmom_x_lp);
-  tree->Branch("GFmomLP_y", &event.GFmom_y_lp);
-  tree->Branch("GFmomLP_z", &event.GFmom_z_lp);
-  tree->Branch("GFresidualLP_x", &event.GFresidual_x_lp);
-  tree->Branch("GFresidualLP_y", &event.GFresidual_y_lp);
-  tree->Branch("GFresidualLP_z", &event.GFresidual_z_lp);
-  tree->Branch("GFresidualLP_px", &event.GFresidual_px_lp);
-  tree->Branch("GFresidualLP_py", &event.GFresidual_py_lp);
-  tree->Branch("GFresidualLP_pz", &event.GFresidual_pz_lp);
-  tree->Branch("GFresidualLP_p", &event.GFresidual_p_lp);
-  tree->Branch("GFresidual6DLP_x", &event.GFresidual6D_x_lp);
-  tree->Branch("GFresidual6DLP_y", &event.GFresidual6D_y_lp);
-  tree->Branch("GFresidual6DLP_z", &event.GFresidual6D_z_lp);
-  tree->Branch("GFresidual6DLP_px", &event.GFresidual6D_px_lp);
-  tree->Branch("GFresidual6DLP_py", &event.GFresidual6D_py_lp);
-  tree->Branch("GFresidual6DLP_pz", &event.GFresidual6D_pz_lp);
-  tree->Branch("GFresolutionLP_x", &event.GFresolution_x_lp);
-  tree->Branch("GFresolutionLP_y", &event.GFresolution_y_lp);
-  tree->Branch("GFresolutionLP_z", &event.GFresolution_z_lp);
-  tree->Branch("GFresolutionLP_p", &event.GFresolution_p_lp);
-  tree->Branch("GFresolutionLP_px", &event.GFresolution_px_lp);
-  tree->Branch("GFresolutionLP_py", &event.GFresolution_py_lp);
-  tree->Branch("GFresolutionLP_pz", &event.GFresolution_pz_lp);
-  tree->Branch("GFpullLP_x", &event.GFpull_x_lp);
-  tree->Branch("GFpullLP_y", &event.GFpull_y_lp);
-  tree->Branch("GFpullLP_z", &event.GFpull_z_lp);
-  tree->Branch("GFpullLP_p", &event.GFpull_p_lp);
-  tree->Branch("GFpullLP_px", &event.GFpull_px_lp);
-  tree->Branch("GFpullLP_py", &event.GFpull_py_lp);
-  tree->Branch("GFpullLP_pz", &event.GFpull_pz_lp);
+  tree->Branch("GFstatusLP", &event.GFstatus_lp2);
+  tree->Branch("GFntTpcLP", &event.GFntTpc_lp2);
+  tree->Branch("GFchargeLP", &event.GFcharge_lp2);
+  tree->Branch("GFchisqrLP", &event.GFchisqr_lp2);
+  tree->Branch("GFtofLP", &event.GFtof_lp2);
+  tree->Branch("GFtracklenLP", &event.GFtracklen_lp2);
+  tree->Branch("GFpvalLP", &event.GFpval_lp2);
+  tree->Branch("GFchisqrPosLP", &event.GFchisqrPos_lp2);
+  tree->Branch("GFpvalPosLP", &event.GFpvalPos_lp2);
+  tree->Branch("GFfitstatusLP", &event.GFfitstatus_lp2);
+  tree->Branch("GFpdgcodeLP", &event.GFpdgcode_lp2);
+  tree->Branch("GFnhtrackLP", &event.GFnhtrack_lp2);
+  tree->Branch("GFlayerLP", &event.GFlayer_lp2);
+  tree->Branch("GFrowLP", &event.GFrow_lp2);
+  tree->Branch("GFposLP_x", &event.GFpos_x_lp2);
+  tree->Branch("GFposLP_y", &event.GFpos_y_lp2);
+  tree->Branch("GFposLP_z", &event.GFpos_z_lp2);
+  tree->Branch("GFmomLP", &event.GFmom_lp2);
+  tree->Branch("GFmomLP_x", &event.GFmom_x_lp2);
+  tree->Branch("GFmomLP_y", &event.GFmom_y_lp2);
+  tree->Branch("GFmomLP_z", &event.GFmom_z_lp2);
+  tree->Branch("GFresidualLP_x", &event.GFresidual_x_lp2);
+  tree->Branch("GFresidualLP_y", &event.GFresidual_y_lp2);
+  tree->Branch("GFresidualLP_z", &event.GFresidual_z_lp2);
+  tree->Branch("GFresidualLP_px", &event.GFresidual_px_lp2);
+  tree->Branch("GFresidualLP_py", &event.GFresidual_py_lp2);
+  tree->Branch("GFresidualLP_pz", &event.GFresidual_pz_lp2);
+  tree->Branch("GFresidualLP_p", &event.GFresidual_p_lp2);
+  tree->Branch("GFresidual6DLP_x", &event.GFresidual6D_x_lp2);
+  tree->Branch("GFresidual6DLP_y", &event.GFresidual6D_y_lp2);
+  tree->Branch("GFresidual6DLP_z", &event.GFresidual6D_z_lp2);
+  tree->Branch("GFresidual6DLP_px", &event.GFresidual6D_px_lp2);
+  tree->Branch("GFresidual6DLP_py", &event.GFresidual6D_py_lp2);
+  tree->Branch("GFresidual6DLP_pz", &event.GFresidual6D_pz_lp2);
+  tree->Branch("GFresolutionLP_x", &event.GFresolution_x_lp2);
+  tree->Branch("GFresolutionLP_y", &event.GFresolution_y_lp2);
+  tree->Branch("GFresolutionLP_z", &event.GFresolution_z_lp2);
+  tree->Branch("GFresolutionLP_p", &event.GFresolution_p_lp2);
+  tree->Branch("GFresolutionLP_px", &event.GFresolution_px_lp2);
+  tree->Branch("GFresolutionLP_py", &event.GFresolution_py_lp2);
+  tree->Branch("GFresolutionLP_pz", &event.GFresolution_pz_lp2);
+  tree->Branch("GFpullLP_x", &event.GFpull_x_lp2);
+  tree->Branch("GFpullLP_y", &event.GFpull_y_lp2);
+  tree->Branch("GFpullLP_z", &event.GFpull_z_lp2);
+  tree->Branch("GFpullLP_p", &event.GFpull_p_lp2);
+  tree->Branch("GFpullLP_px", &event.GFpull_px_lp2);
+  tree->Branch("GFpullLP_py", &event.GFpull_py_lp2);
+  tree->Branch("GFpullLP_pz", &event.GFpull_pz_lp2);
   
 #if DoKinematicFitLdXi
   // tree->Branch("KFchisqrXi",&event.KFchisqrxi);
