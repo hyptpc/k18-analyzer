@@ -290,7 +290,6 @@ VertexPointHelix(const Double_t par1[5], const Double_t par2[5],
   fvert_helix.GetMinimumXY(close_zin, close_zout);
   t1 = close_zin;
   t2 = close_zout;
-  dist = TMath::Sqrt(fvert_helix.GetMinimum());
 
   Double_t xin = par1[0]+par1[3]*cos(close_zin);
   Double_t xout = par2[0]+par2[3]*cos(close_zout);
@@ -1633,6 +1632,77 @@ TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
   Double_t vx = 0.5*(xPi+xL);
   Double_t vy = 0.5*(yPi+yL);
   Double_t vz = 0.5*(zPi+zL);
+
+  Double_t vertx = -1.*vx;
+  Double_t verty = vz;
+  Double_t vertz = vy + tpc::ZTarget;
+  return TVector3(vertx, verty, vertz);
+}
+
+//_____________________________________________________________________________
+TVector3 LambdaPVertex(Double_t Bfield, Double_t p2_par[5],
+		  Double_t theta_min, Double_t theta_max,
+		  TVector3 Xlambda, TVector3 Plambda,
+		  TVector3 &Pp2, Double_t &lambdap_dist){
+  
+  // Note that p2 represents another proton, separate from the proton from the Lambda decay
+
+  Double_t lambdavtx_xivtx_cut = 0.;
+
+  Double_t xi = -1.*Xlambda.x();
+  Double_t yi = Xlambda.z() - tpc::ZTarget;
+  Double_t zi = Xlambda.y();
+  Double_t pxi = -1.*Plambda.x();
+  Double_t pyi = Plambda.z();
+  Double_t pzi = Plambda.y();
+  Double_t ui = -pxi/pyi, vi = pzi/pyi;
+
+  TVector3 p_L = TVector3(pxi, pyi, pzi);
+  TVector3 p_unit = p_L.Unit();
+
+  //helix function
+  //x = [0] + [3]*cos(t);
+  //y = [1] + [3]*sin(t);
+  //z = [2] + [3]*[4]*t;
+
+  //straight function
+  //x = [5] + [6]*y;
+  //z = [7] + [8]*y;
+
+  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::ZTarget, 250.-tpc::ZTarget);
+
+  Double_t scan_range[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  if(pyi>0) scan_range[1] = yi + lambdavtx_xivtx_cut/(p_unit.y());
+  else scan_range[0] = yi - lambdavtx_xivtx_cut/(p_unit.y());
+  TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, scan_range[0], scan_range[1]);
+  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::ZTarget, 250.-tpc::ZTarget);
+
+  fvertex_helix_linear.SetParameter(0, p2_par[0]);
+  fvertex_helix_linear.SetParameter(1, p2_par[1]);
+  fvertex_helix_linear.SetParameter(2, p2_par[2]);
+  fvertex_helix_linear.SetParameter(3, p2_par[3]);
+  fvertex_helix_linear.SetParameter(4, p2_par[4]);
+  fvertex_helix_linear.SetParameter(5, xi + ui*yi);
+  fvertex_helix_linear.SetParameter(6, -ui);
+  fvertex_helix_linear.SetParameter(7, zi - vi*yi);
+  fvertex_helix_linear.SetParameter(8, vi);
+
+  Double_t helix_t, close_y;
+  fvertex_helix_linear.GetMinimumXY(helix_t, close_y);
+  //lambdapi_dist = TMath::Sqrt(fvertex_helix_linear.GetMinimum());
+  lambdap_dist = TMath::Sqrt(fvertex_helix_linear.Eval(helix_t, close_y));
+
+  Pp2 = CalcHelixMom(Bfield, 1, p2_par, helix_t);
+
+  Double_t xP2 = p2_par[0]+p2_par[3]*cos(helix_t);
+  Double_t yP2 = p2_par[1]+p2_par[3]*sin(helix_t);
+  Double_t zP2 = p2_par[2]+p2_par[3]*p2_par[4]*helix_t;
+  Double_t xL = xi - ui*(close_y-yi);
+  Double_t yL = close_y;
+  Double_t zL = zi + vi*(close_y-yi);
+  Double_t vx = 0.5*(xP2+xL);
+  Double_t vy = 0.5*(yP2+yL);
+  Double_t vz = 0.5*(zP2+zL);
 
   Double_t vertx = -1.*vx;
   Double_t verty = vz;

@@ -1619,9 +1619,9 @@ dst::DstRead( Int_t ievent )
 
 	Double_t ppi_dist = 10000.;
 	TVector3 p_mom; TVector3 pi_mom; TVector3 lambda_mom;
-	std::cout << __LINE__ std::endl;
+	std::cout << __LINE__ << std::endl;
 	TVector3 lambda_vert = Kinematics::LambdaVertex(dMagneticField, p_par, pi_par, p_theta_min, p_theta_max, pi_theta_min, pi_theta_max, p_mom, pi_mom, lambda_mom, ppi_dist);
-	std::cout << __LINE__ std::endl;	
+	std::cout << __LINE__ << std::endl;	
 	if(TMath::IsNaN(ppi_dist)) continue;
 	if(!pim_like) pi_mom = -1.*pi_mom;
 	if(!p_like) pi_mom = -1.*p_mom;
@@ -1747,11 +1747,11 @@ dst::DstRead( Int_t ievent )
 	    p2_end = TVector3(event.calpos_x[it3][0], event.calpos_y[it3][0], event.calpos_z[it3][0]);
 	  }
 	  TVector3 p2_mom; Double_t lp2_dist;
-	  std::cout << __LINE__ std::endl;
-	  TVector3 lp2_vert = Kinematics::XiVertex(dMagneticField, p2_par, p2_theta_min, p2_theta_max, lambda_vert, lambda_mom, p2_mom, lp2_dist);	  
+	  std::cout << __LINE__ <<std::endl;
+	  TVector3 lp2_vert = Kinematics::LambdaPVertex(dMagneticField, p2_par, p2_theta_min, p2_theta_max, lambda_vert, lambda_mom, p2_mom, lp2_dist);	  
 	  std::cout << "debug " << __LINE__ << std::endl;
 	  // if(lp_vert.z() < -200.) continue; //Vertex cut
-	  if(TMath::IsNaN(lp2_dist)) continue;
+	  // if(TMath::IsNaN(lp2_dist)) continue;
 	  TLorentzVector Lp2(p2_mom, TMath::Sqrt(p2_mom.Mag()*p2_mom.Mag() + ProtonMass*ProtonMass));
 	  TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Sqrt(lambda_mom.Mag()*lambda_mom.Mag() + LambdaMass*LambdaMass));
 	  // lambda_mom should be debugged because lambda_mom is made from p1 and pi (should be p2 and pi)
@@ -1818,7 +1818,7 @@ dst::DstRead( Int_t ievent )
 	    Double_t lp_dist=0.;
 	    Double_t p_vertex_dist;
 	    Double_t lp_opening_angle;
-	    //	    lp_vert = Kinematics::XiVertex(dMagneticField, p_par, p_theta_min, p_theta_max, lambda_vert, lambda_mom, p_mom, lp_dist); // check
+	    //	    lp_vert = Kinematics::LambdaPVertex(dMagneticField, p_par, p_theta_min, p_theta_max, lambda_vert, lambda_mom, p_mom, lp_dist); // check
 	    //	    if(!Kinematics::HelixDirection(lp_vert, p_start, p_end, p_vertex_dist)) continue; // check
 	    //	    std::cout << "p2_vertex_dist : " << p_vertex_dist  << std::endl;
 	    // lp_opening_angle = lambda_mom.Angle(p_mom);
