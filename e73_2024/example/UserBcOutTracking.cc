@@ -113,7 +113,6 @@ ProcessNormal()
       TString name = rhit->DetectorName() + "_" + rhit->PlaneName();
       name.ToLower();
       wire[name].push_back(w);
-      // std::cout << name << std::endl;
     }
   }
 
@@ -154,7 +153,6 @@ ConfMan::InitializeHistograms()
       TString n = (name_str + "_" +
                    digit_info.get_name_list(detector_id).at(plane));
       n.ToLower();
-      std::cout << n << std::endl;
       tree->Branch(Form("%s_wire", n.Data()), &wire[n]);
     }
   }
