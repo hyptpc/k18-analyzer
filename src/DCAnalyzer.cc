@@ -614,12 +614,12 @@ DCAnalyzer::TrackSearchBcOut(const std::vector<std::vector<DCHC> >& hc, Int_t T0
 
 #if BcOut_Pair //Pair Plane Tracking Routine for BcOut
   Int_t ntrack = track::LocalTrackSearch(hc, PPInfoBcOut, NPPInfoBcOut, m_BcOutTC, MinLayer, T0Seg);
-  return ntrack == -1 ? false : true;
+  return (ntrack >= 0);
 #endif
 
 #if BcOut_XUV  //XUV Tracking Routine for BcOut
   Int_t ntrack = track::LocalTrackSearchVUX(hc, PPInfoBcOut, NPPInfoBcOut, m_BcOutTC, MinLayer);
-  return ntrack == -1 ? false : true;
+  return (ntrack >= 0);
 #endif
 
   return false;

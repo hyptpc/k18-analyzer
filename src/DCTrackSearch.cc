@@ -11,8 +11,7 @@
 #include <TH2D.h>
 #include <TH3D.h>
 
-#include <escape_sequence.hh>
-#include <std_ostream.hh>
+#include <spdlog/spdlog.h>
 
 #include "DCGeomMan.hh"
 #include "DCLocalTrack.hh"
@@ -264,17 +263,14 @@ DebugPrint(const DCLocalTC& trackCont,
            const TString& arg="")
 {
   const Int_t nn = trackCont.size();
-  hddaq::cout << arg << " " << nn << std::endl;
+  spdlog::debug("{} {}", arg.Data(), nn);
   for(Int_t i=0; i<nn; ++i){
     const DCLocalTrack * const track=trackCont[i];
     if(!track) continue;
     Int_t    nh     = track->GetNHit();
     Double_t chisqr = track->GetChiSquare();
-    hddaq::cout << std::setw(4) << i
-                << "  #Hits : " << std::setw(2) << nh
-                << "  ChiSqr : " << chisqr << std::endl;
+    spdlog::debug("{:4}  #Hits : {:2}  ChiSqr : {}", i, nh, chisqr);
   }
-  hddaq::cout << std::endl;
 }
 
 //_____________________________________________________________________________
@@ -283,35 +279,39 @@ DebugPrint(const IndexList& nCombi,
            const std::vector<ClusterList>& CandCont,
            const TString& arg="")
 {
-  hddaq::cout << arg << " #Hits of each group" << std::endl;
+  if(SPDLOG_ACTIVE_LEVEL > spdlog::level::debug) return;
+  spdlog::debug("{} #Hits of each group", arg.Data());
   Int_t np = nCombi.size();
   Int_t nn = 1;
+  std::stringstream ss;
   for(Int_t i=0; i<np; ++i){
-    hddaq::cout << std::setw(4) << nCombi[i];
+    ss << std::setw(4) << nCombi[i];
     nn *= nCombi[i] + 1;
   }
-  hddaq::cout << " -> " << nn-1 << " Combinations" << std::endl;
+  ss << " -> " << nn-1 << " Combinations";
+  spdlog::debug(ss.str());
   for(Int_t i=0; i<np; ++i){
     Int_t n=CandCont[i].size();
-    hddaq::cout << "[" << std::setw(3) << i << "]: "
-                << std::setw(3) << n << " ";
+    ss.str("");
+    ss << "[" << std::setw(3) << i << "]: "
+       << std::setw(3) << n << " ";
     for(Int_t j=0; j<n; ++j){
       const auto pair = CandCont[i][j];
       const auto nh = pair->NumberOfHits();
-      hddaq::cout << "{";
+      ss << "{";
       for(Int_t k=0; k<nh; ++k){
         const auto hit = pair->GetHit(k);
-        hddaq::cout << hit->GetLayer()
-                    << ":" << hit->GetWire() << " ";
-                    // << "(" << hit->GetIndex() << ") ";
-                    // << "," << hit->DriftTime()
-                    // << "," << hit->DriftLength()
-                    // << "," << hit->TOT()
-                    // << ", ";
+        ss << hit->GetLayer()
+           << ":" << hit->GetWire() << " ";
+        // << "(" << hit->GetIndex() << ") ";
+        // << "," << hit->DriftTime()
+        // << "," << hit->DriftLength()
+        // << "," << hit->TOT()
+        // << ", ";
       }
-      hddaq::cout << "} ";
+      ss << "} ";
     }
-    hddaq::cout << std::endl;
+    spdlog::debug(ss.str());
   }
 }
 
@@ -331,7 +331,6 @@ FinalizeTrack(const TString& arg,
 #endif
 
   std::stable_sort(trackCont.begin(), trackCont.end(), DCLTrackComp_Nhit());
-
 
 #if 0
   DebugPrint(trackCont, arg+" After Sorting (Nhit) ");
@@ -827,7 +826,7 @@ LocalTrackSearch(const std::vector<DCHC>& HC,
   }
 
   FinalizeTrack(FUNC_NAME, TrackCont, DCLTrackComp(), CandCont);
-  return status? TrackCont.size() : -1;
+  return status ? TrackCont.size() : -1;
 }
 
 //_____________________________________________________________________________

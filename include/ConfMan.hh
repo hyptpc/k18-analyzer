@@ -10,7 +10,7 @@
 
 #include <TString.h>
 
-#include <std_ostream.hh>
+#include <spdlog/spdlog.h>
 
 class TNamed;
 
@@ -124,11 +124,9 @@ inline Bool_t
 ConfMan::ShowResult(Bool_t s, const TString& name) const
 {
   if(s)
-    hddaq::cout << std::setw(24) << std::left << " ["+name+"]"
-		<< "-> Initialized" << std::endl;
+    spdlog::info(" [{}] -> initialized", name.Data());
   else
-    hddaq::cout << std::setw(24) << std::left << " ["+name+"]"
-		<< "-> Failed" << std::endl;
+    spdlog::warn(" [{}] -> failed", name.Data());
   return s;
 }
 

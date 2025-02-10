@@ -13,6 +13,8 @@
 
 #include <std_ostream.hh>
 
+#include <spdlog/spdlog.h>
+
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
 #include "DebugCounter.hh"
@@ -43,24 +45,26 @@ TROOT theROOT("k18analyzer", "k18analyzer");
 int
 main(int argc, char **argv)
 {
+  spdlog::set_level((spdlog::level::level_enum)SPDLOG_ACTIVE_LEVEL);
+  spdlog::set_pattern("%^#%L%$ %v");
+  // spdlog::set_pattern("%^%L%$ %v");
+  // spdlog::set_pattern("[%Y-%m-%d %H:%M:%S] [%^%L%$] %v");
+
   std::vector<TString> arg(argv, argv + argc);
-  const TString& process = arg[kArgProcess];
+  const TString& process = gSystem->BaseName(arg[kArgProcess]);
   if(argc!=kArgc){
-    hddaq::cout << "#D Usage: " << gSystem->BaseName(process)
-  		<< " [analyzer config file]"
-  		<< " [data input stream]"
-  		<< " [output root file]"
-  		<< std::endl;
+    spdlog::info("Usage: {} [conf-file] [input-stream] [output-file]",
+                 process.Data());
     return EXIT_SUCCESS;
   }
 
-  debug::Timer timer("[::main()] End of Analyzer");
+  debug::Timer timer("End of Analyzer");
 
   const TString& conf_file = arg[kArgConfFile];
   const TString& in_file   = arg[kArgInFile];
   const TString& out_file  = arg[kArgOutFile];
 
-  hddaq::cout << "[::main()] recreate root file : " << out_file << std::endl;
+  spdlog::info("recreate root file : {}", out_file.Data());
   new TFile(out_file, "recreate");
 
   if (!gConf.Initialize(conf_file) || !gConf.InitializeUnpacker())

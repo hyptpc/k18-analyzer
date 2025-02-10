@@ -17,7 +17,8 @@
 #include <lexical_cast.hh>
 #include <filesystem_util.hh>
 #include <replace_string.hh>
-#include <std_ostream.hh>
+
+#include <spdlog/spdlog.h>
 
 #include "FuncName.hh"
 #include "UnpackerManager.hh"
@@ -55,18 +56,18 @@ Bool_t
 ConfMan::Initialize()
 {
   if(m_is_ready){
-    hddaq::cerr << FUNC_NAME << " already initialied" << std::endl;
+    spdlog::error("{} already initialied", FUNC_NAME.Data());
     return false;
   }
 
   std::ifstream ifs(m_file[kConfFile]);
   if(!ifs.is_open()){
-    hddaq::cerr << FUNC_NAME << " cannot open file : "
-                << m_file[kConfFile] << std::endl;
+    spdlog::error("{} cannot open file : {}", FUNC_NAME.Data(),
+                  m_file[kConfFile].Data());
     return false;
   }
 
-  hddaq::cout << FUNC_NAME << " " << m_file[kConfFile] << std::endl;
+  spdlog::info((FUNC_NAME+" "+m_file[kConfFile]).Data());
   sConfDir = hddaq::dirname(m_file[kConfFile].Data());
 
   m_buf = "\n";
@@ -88,9 +89,10 @@ ConfMan::Initialize()
 
     TString key = v[0];
     TString val = v[1];
-    hddaq::cout << " key = "   << std::setw(10) << std::left << key
-		<< " value = " << std::setw(30) << std::left << val
-		<< std::endl;
+    std::stringstream ss;
+    ss << " key = "   << std::setw(10) << std::left << key
+       << " value = " << std::setw(30) << std::left << val;
+    spdlog::info(ss.str());
 
     m_file[key] = FilePath(val);
     m_string[key] = val;
