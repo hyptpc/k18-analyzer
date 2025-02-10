@@ -48,7 +48,6 @@ First, run the script that copies from example to usr. And make.
 To use the same runmanager, the runtime arguments are the same structure as in K1.8.
 
 ```sh
-cd e73_2024
 cp Makefile.org Makefile
 sh script/copy-example-to-user.sh
 make

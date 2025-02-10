@@ -36,19 +36,15 @@ spdlog_dir		= submodule/spdlog
 include_dir		+= $(spdlog_dir)/include
 spdlog_build_dir	= $(spdlog_dir)/build
 spdlog_lib		= $(spdlog_build_dir)/libspdlog.a
+SPDLOG_LEVEL		?= $(shell echo $${SPDLOG_LEVEL:-SPDLOG_LEVEL_INFO})
 #
 CXX	= g++
-ifeq ($(shell hostname),Ag.riken.jp)
-CC =/usr/bin/gcc
-CXX=/usr/bin/g++
-endif
 CFLAGS	= -g -O3 -fPIC -Wall
 CFLAGS	+= -Wno-sign-compare
-# CFLAGS	+= -std=c++0x
-# CFLAGS	+= -Wno-unused-variable -Wno-unused-but-set-variable
 FLAGS	= $(CFLAGS) $(DFLAGS) -I. $(root_include) $(unpacker_include)
 FLAGS	+=$(addprefix -I,$(src_dir) $(include_dir))
-FLAGS	+=$(knucl_include)
+FLAGS	+= -DSPDLOG_ACTIVE_LEVEL=$(SPDLOG_LEVEL)
+# FLAGS	+=$(knucl_include)
 #
 LD	= $(CXX)
 SOFLAGS = -shared
