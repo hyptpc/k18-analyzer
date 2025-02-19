@@ -123,7 +123,7 @@ public:
   { Bool_t ret = m_good_for_tracking; m_good_for_tracking = status; return ret; }
   Bool_t   ReCalc(Bool_t ApplyRecursively=false);
   Double_t GetDe() const { return m_de; }
-  void   Print(const TString& arg="", std::ostream& ost=hddaq::cout) const;
+  void   Print(const TString& arg="") const;
   void   PrintVXU(const TString& arg="") const;
 };
 
@@ -136,14 +136,14 @@ DCLocalTrack::ClassName()
 }
 
 //_____________________________________________________________________________
-inline
-std::ostream&
-operator <<(std::ostream& ost,
-            const DCLocalTrack& track)
-{
-  track.Print("", ost);
-  return ost;
-}
+// inline
+// std::ostream&
+// operator <<(std::ostream& ost,
+//             const DCLocalTrack& track)
+// {
+//   track.Print("", ost);
+//   return ost;
+// }
 
 //_____________________________________________________________________________
 struct DCLTrackComp

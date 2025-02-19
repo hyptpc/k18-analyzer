@@ -419,7 +419,7 @@ MakePairPlaneHitCluster(const DCHC & HC1,
     for(Int_t i2=0; i2<nh2; ++i2){
       DCHit *hit2=HC2[i2];
       Double_t wp2=hit2->GetWirePosition();
-      if(std::abs(wp1-wp2)<CellSize){
+      if(std::abs(wp1-wp2)<=CellSize){
         Int_t multi1 = hit1->GetEntries();
         Int_t multi2 = hit2->GetEntries();
         for(Int_t m1=0; m1<multi1; ++m1) {
@@ -815,7 +815,6 @@ LocalTrackSearch(const std::vector<DCHC>& HC,
         }else{
           delete track;
         }
-
       }else{
         TrackCont.push_back(track);
       }

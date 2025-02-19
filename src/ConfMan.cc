@@ -67,10 +67,11 @@ ConfMan::Initialize()
     return false;
   }
 
-  spdlog::info((FUNC_NAME+" "+m_file[kConfFile]).Data());
   sConfDir = hddaq::dirname(m_file[kConfFile].Data());
-
   m_buf = "\n";
+
+  std::ostringstream oss;
+  oss << FUNC_NAME << " " << m_file[kConfFile] << std::endl;
 
   TString line;
   while(ifs.good() && line.ReadLine(ifs)){
@@ -89,10 +90,8 @@ ConfMan::Initialize()
 
     TString key = v[0];
     TString val = v[1];
-    std::stringstream ss;
-    ss << " key = "   << std::setw(10) << std::left << key
-       << " value = " << std::setw(30) << std::left << val;
-    spdlog::info(ss.str());
+    oss << " key = "   << std::setw(10) << std::left << key
+        << " value = " << std::setw(30) << std::left << val << std::endl;
 
     m_file[key] = FilePath(val);
     m_string[key] = val;
@@ -100,6 +99,7 @@ ConfMan::Initialize()
     m_int[key] = val.Atoi();
     m_bool[key] = (val.Atoi() == 1);
   }
+  spdlog::info(oss.str());
 
   if(!InitializeParameterFiles())
     return false;

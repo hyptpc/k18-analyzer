@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <sstream>
 
-#include <std_ostream.hh>
+#include <spdlog/spdlog.h>
 
 #include "DCAnalyzer.hh"
 #include "DCLTrackHit.hh"
@@ -94,8 +94,7 @@ void
 DCLocalTrack::Calculate()
 {
   if(m_is_calculated){
-    hddaq::cerr << FUNC_NAME << " "
-		<< "already called" << std::endl;
+    spdlog::warn("{} already called", FUNC_NAME.Data());
     return;
   }
 
@@ -193,8 +192,7 @@ DCLocalTrack::DeleteNullHit()
   for(Int_t i=0; i<m_hit_array.size(); ++i){
     DCLTrackHit *hitp = m_hit_array[i];
     if(!hitp){
-      hddaq::cout << FUNC_NAME << " "
-		  << "null hit is deleted" << std::endl;
+      spdlog::warn("{} null hit is deleted", FUNC_NAME.Data());
       m_hit_array.erase(m_hit_array.begin()+i);
       --i;
     }
@@ -206,17 +204,18 @@ Bool_t
 DCLocalTrack::DoFit()
 {
   if(m_is_fitted){
-    hddaq::cerr << FUNC_NAME << " "
-		<< "already called" << std::endl;
+    spdlog::warn("{} already called", FUNC_NAME.Data());
     return false;
   }
+
+  // spdlog::debug("{}", FUNC_NAME.Data());
 
   DeleteNullHit();
 
   const Int_t n = m_hit_array.size();
   if(n < DCLocalMinNHits){
-    hddaq::cout << FUNC_NAME << " "
-		<< "the number of layers is too small : " << n << std::endl;
+    spdlog::warn("{} the number of layers is too small : {}",
+                 FUNC_NAME.Data(), n);
     return false;
   }
 
@@ -258,7 +257,8 @@ DCLocalTrack::DoFit()
     Double_t x0, u0, y0, v0;
     if(!MathTools::SolveGaussJordan(z, w, s, ct, st,
                                     x0, u0, y0, v0)){
-      hddaq::cerr << FUNC_NAME << " Fitting failed" << std::endl;
+      std::ostringstream oss; oss << FUNC_NAME << " Fitting failed.";
+      spdlog::warn(oss.str());
       return false;
     }
 
@@ -286,16 +286,15 @@ DCLocalTrack::DoFit()
 
     // judge convergence
     if(prev_chisqr-chisqr<MaxChisqrDiff){
-#if 0
+#if 1
       // if(chisqr<200. && GetTheta()>4.)
-      if(chisqr<20.)
+      // if(chisqr<20.)
+      if(true)
       {
 	if(iItr==0) hddaq::cout << "=============" << std::endl;
-	hddaq::cout << FUNC_NAME << " NIteration : " << iItr << " "
-		    << "chisqr = " << std::setw(10) << std::setprecision(4)
-		    << m_chisqr << " "
-		    << "diff = " << std::setw(20) << std::left
-		    << m_chisqr-m_chisqr1st << " ndf = " << GetNDF() << std::endl;
+        spdlog::debug("{} NIteration : {}  chisqr = {>10.4}  diff = {>20}  ndf = {}",
+                      FUNC_NAME.Data(), iItr, m_chisqr,
+                      m_chisqr-m_chisqr1st, GetNDF());
       }
 #endif
       m_n_iteration = iItr;
@@ -586,18 +585,19 @@ DCLocalTrack::ReCalc(Bool_t applyRecursively)
 
 //_____________________________________________________________________________
 void
-DCLocalTrack::Print(const TString& arg, std::ostream& ost) const
+DCLocalTrack::Print(const TString& arg) const
 {
-  PrintHelper helper(3, std::ios::fixed, ost);
+  std::ostringstream oss;
+  PrintHelper helper(3, std::ios::fixed, oss);
 
   const Int_t w = 8;
-  ost << FUNC_NAME << " " << arg << std::endl
+  oss << FUNC_NAME << " " << arg << std::endl
       << " X0 : " << std::setw(w) << std::left << m_x0
       << " Y0 : " << std::setw(w) << std::left << m_y0
       << " U0 : " << std::setw(w) << std::left << m_u0
       << " V0 : " << std::setw(w) << std::left << m_v0;
   // helper.setf(std::ios::scientific);
-  ost << " Chisqr : " << std::setw(w) << m_chisqr << std::endl;
+  oss << " Chisqr : " << std::setw(w) << m_chisqr << std::endl;
   helper.setf(std::ios::fixed);
   const Int_t n = m_hit_array.size();
   for(Int_t i=0; i<n; ++i){
@@ -613,7 +613,7 @@ DCLocalTrack::Print(const TString& arg, std::ostream& ost) const
       res += SdcInXoffset*TMath::Cos(aa);
     }
     const TString& h = hitp->IsHoneycomb() ? "+" : "-";
-    ost << "[" << std::setw(2) << i << "]"
+    oss << "[" << std::setw(2) << i << "]"
 	<< " #"  << std::setw(2) << lnum << h
 	<< " S " << std::setw(w) << s
 	<< " (" << std::setw(w) << GetX(zz)
@@ -624,7 +624,7 @@ DCLocalTrack::Print(const TString& arg, std::ostream& ost) const
 	<< " -> " << std::setw(w) << res << std::endl;
     // << " -> " << std::setw(w) << s-scal << std::endl;
   }
-  ost << std::endl;
+  spdlog::info(oss.str());
 }
 
 //_____________________________________________________________________________

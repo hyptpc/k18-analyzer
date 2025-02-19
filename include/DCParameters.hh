@@ -33,10 +33,10 @@ extern const Int_t NPPInfoBcOut, NPPInfoSdcIn, NPPInfoSdcOut;
 #ifdef DefStatic
 const DCPairPlaneInfo PPInfoBcOut[] = {
   // { pair_plane, honeycomb, fiber, id1, id2, CellSize }
-  { true, false, false,  0,  1,  8.0 }, { true, false, false,  2,  3,  8.0 },
-  { true, false, false,  4,  5,  8.0 }, { true, false, false,  6,  7,  8.0 },
-  { true, false, false,  8,  9,  8.0 }, { true, false, false, 10, 11,  8.0 },
-  { true, false, false, 12, 13,  8.0 }, { true, false, false, 14, 15,  8.0 }
+  { true, false, false,  0,  1,  2.5 }, { true, false, false,  2,  3,  2.5 },
+  { true, false, false,  4,  5,  2.5 }, { true, false, false,  6,  7,  2.5 },
+  { true, false, false,  8,  9,  2.5 }, { true, false, false, 10, 11,  2.5 },
+  { true, false, false, 12, 13,  2.5 }, { true, false, false, 14, 15,  2.5 }
 };
 
 const DCPairPlaneInfo PPInfoSdcIn[] = {

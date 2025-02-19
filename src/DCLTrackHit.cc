@@ -8,6 +8,7 @@
 #include <sstream>
 #include <stdexcept>
 
+#include <spdlog/spdlog.h>
 #include <std_ostream.hh>
 
 #include "DCAnalyzer.hh"
@@ -76,6 +77,8 @@ DCLTrackHit::GetResidual() const
   Double_t scal = GetLocalCalPos();
   Double_t wp   = GetWirePosition();
   Double_t ss   = wp+(m_local_hit_pos-wp)/coss;
+  // spdlog::debug("a={}, dsdz={}, coss={}, scal={}, wp={}, ss={}, res={}",
+  //               a, dsdz, coss, scal, wp, ss, (ss-scal)*coss);
   return (ss-scal)*coss;
 }
 

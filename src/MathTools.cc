@@ -8,7 +8,7 @@
 #include <iomanip>
 #include <string>
 
-#include <std_ostream.hh>
+#include <spdlog/spdlog.h>
 
 #include "FuncName.hh"
 #include "PrintHelper.hh"
@@ -33,12 +33,14 @@ bool SolveGaussJordan(const std::vector<double>& z,
      n != s.size()  ||
      n != ct.size() ||
      n != st.size()){
-    hddaq::cerr << FUNC_NAME << " wrong vector size" << std::endl
-                << " z.size()="  << n
-                << " w.size()="  << w.size()
-                << " s.size()="  << s.size()
-                << " ct.size()=" << ct.size()
-                << " st.size()=" << st.size() << std::endl;
+    std::ostringstream oss;
+    oss << FUNC_NAME << " wrong vector size" << std::endl
+        << " z.size()="  << n
+        << " w.size()="  << w.size()
+        << " s.size()="  << s.size()
+        << " ct.size()=" << ct.size()
+        << " st.size()=" << st.size();
+    spdlog::warn(oss.str());
     return false;
   }
 
@@ -155,7 +157,9 @@ GaussElim(double **a, int n, double *b, int *indx, int *ipiv)
       }
       else if(ipiv[j]>1){
 #ifdef ERROROUT
-        hddaq::cerr << FUNC_NAME << " Singular Matrix" << std::endl;
+        std::ostringstream oss;
+        oss << FUNC_NAME << " Singular Matrix" << std::endl;
+        spdlog::warn(oss.str());
 #endif
         return false;
       }
@@ -163,7 +167,9 @@ GaussElim(double **a, int n, double *b, int *indx, int *ipiv)
     ++(ipiv[irow]); indx[i]=irow;
     if(a[irow][i]==0.0){
 #ifdef ERROROUT
-      hddaq::cerr << FUNC_NAME << " Singular Matrix" << std::endl;
+      std::ostringstream oss;
+      oss << FUNC_NAME << " Singular Matrix" << std::endl;
+      spdlog::warn(oss.str());
 #endif
       return false;
     }
@@ -221,7 +227,9 @@ GaussJordan(double **a, // matrix a[n][n]
           }
           else if(ipiv[k]>1){
 #ifdef ERROROUT
-            hddaq::cerr << FUNC_NAME << " Singular Matrix" << std::endl;
+            std::ostringstream oss;
+            oss << FUNC_NAME << " Singular Matrix" << std::endl;
+            spdlog::warn(oss.str());
 #endif
             return false;
           }
@@ -243,7 +251,9 @@ GaussJordan(double **a, // matrix a[n][n]
 
     if(a[icol][icol]==0.0){
 #ifdef ERROROUT
-      hddaq::cerr << FUNC_NAME << " Singular Matrix"  << std::endl;
+      std::ostringstream oss;
+      oss << FUNC_NAME << " Singular Matrix" << std::endl;
+      spdlog::warn(oss.str());
 #endif
       return false;
     }
@@ -296,7 +306,9 @@ InterpolateRatio(int n, const double *xa, const double *ya,
       t=(xa[i-1]-x)*w2[i-1]/h; dd=t-w1[i];
       if(dd==0.0){
 #ifdef ERROROUT
-        hddaq::cerr << FUNC_NAME << ": Error" << std::endl;
+        std::ostringstream oss;
+        oss << FUNC_NAME << " : Error" << std::endl;
+        spdlog::warn(oss.str());
 #endif
         y=Infinity(); dy=Infinity(); return false;
       }
@@ -335,7 +347,9 @@ InterpolatePol(int n, const double *xa, const double *ya,
       den=ho-hp;
       if(den==0.0){
 #ifdef ERROROUT
-        hddaq::cerr << FUNC_NAME << ": Error" << std::endl;
+        std::ostringstream oss;
+        oss << FUNC_NAME << " : Error" << std::endl;
+        spdlog::warn(oss.str());
 #endif
         y=Infinity(); dy=Infinity(); return false;
       }
