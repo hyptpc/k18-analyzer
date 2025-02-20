@@ -57,6 +57,8 @@ public:
   Bool_t  InitializeParameterFiles();
   Bool_t  InitializeUnpacker();
   Bool_t  IsReady() const { return m_is_ready; }
+  void    WriteParameters();
+  
   // templates
   template <typename T>
   static const T& Get(const TString& key) { return T(); }

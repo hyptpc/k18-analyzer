@@ -9,7 +9,10 @@
 #include <sstream>
 #include <vector>
 
+#include <TSystem.h>
+#include <TFile.h>
 #include <TNamed.h>
+#include <TMacro.h>
 
 #include <lexical_cast.hh>
 #include <filesystem_util.hh>
@@ -155,6 +158,10 @@ ConfMan::InitializeUnpacker()
   gUnpacker.set_config_file(m_file["UNPACK"].Data(),
                             m_file["DIGIT"].Data(),
                             m_file["CMAP"].Data());
+  if(gUnpacker.get_skip() == 0){
+    TNamed git("git", ("\n"+gSystem->GetFromPipe("git log -1")).Data());
+    git.Write();
+  }  
   return true;
 }
 
@@ -172,4 +179,21 @@ ConfMan::FilePath(const TString& src) const
   std::ifstream tmp(src);
   if(tmp.good()) return src;
   else           return sConfDir + "/" + src;
+}
+//_____________________________________________________________________________
+void
+ConfMan::WriteParameters()
+{
+  if(gUnpacker.get_skip() == 0){
+    gFile->mkdir("param");
+    gFile->cd("param");
+    for(const auto& itr: m_file){
+      TMacro paramfile;
+      paramfile.SetName(itr.first);
+      paramfile.SetTitle(itr.second);
+      paramfile.ReadFile(itr.second);
+      paramfile.Write();
+    }
+    gFile->cd();
+  }
 }

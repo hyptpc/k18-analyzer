@@ -7,6 +7,8 @@
 #include <TLorentzVector.h>
 #include <TMatrixD.h>
 #include <string>
+#include <fstream>
+#include <filesystem>
 #include <Math/ProbFunc.h>
 
 #include <TGeoPhysicalConstants.h>
@@ -42,10 +44,13 @@
 #include "HypTPCFitter.hh"
 #include "HypTPCTask.hh"
 
+
 #define SaveTPCK18 1
 #define MMcut_Xi 0
-#define DoKinematicFitLdXi 0
-#define Debug 0
+#define DoKinematicFitLd 0
+#define Debug 1
+#define WriteOutput 0
+#define SelectEvents 0
 
 namespace
 {
@@ -70,7 +75,7 @@ const Double_t pi_vtx_distcut = 300;
 const Double_t p2_vtx_distcut = 300;
 //const Double_t xi_vtx_distcut = 100;
 const Double_t ppi_distcut = 10.;
-const Double_t lp2_distcut = 100.;
+const Double_t lp2_distcut = 10.;
 const Double_t vtx_scan_range = 150.;
 //const Double_t vtx_scan_range = 50.;
 //const Double_t vtx_scan_rangeInsideL = 50.;
@@ -81,6 +86,7 @@ const Double_t vtx_scan_rangeInsideL = 50.;
 const Double_t vtx_scan_rangeInsidePi = 50.;
 const Double_t GFppi_distcut = 100.;
 const Double_t GFlpi_distcut = 100.;
+const Double_t GFlp2_distcut = 100.;  
 const Double_t GFxitarget_distcut = 50.;
 const Double_t GFltarget_distcut = 50.;
 const Double_t GFxitarget_ycut = 20.;
@@ -433,6 +439,7 @@ struct Event
 
   Bool_t GFlp2flag;
   Double_t GFlp2mass;
+  Double_t GFlmass_lp2;  
   Double_t GFlp2decayvtx_x;
   Double_t GFlp2decayvtx_y;
   Double_t GFlp2decayvtx_z;
@@ -440,6 +447,7 @@ struct Event
   Double_t GFlp2mom_x;
   Double_t GFlp2mom_y;
   Double_t GFlp2mom_z;
+  Double_t GFlmom_lp2;  
   Double_t GFlp2_dist;
   Double_t GFlp2_angle;
 
@@ -868,6 +876,7 @@ struct Event
 
     GFlp2flag = false;
     GFlp2mass = qnan;
+    GFlmass_lp2 = qnan;    
     GFlp2decayvtx_x = qnan;
     GFlp2decayvtx_y = qnan;
     GFlp2decayvtx_z = qnan;
@@ -875,6 +884,7 @@ struct Event
     GFlp2mom_x = qnan;
     GFlp2mom_y = qnan;
     GFlp2mom_z = qnan;
+    GFlmom_lp2 = qnan;    
     GFlp2_dist = qnan;
     GFlp2_angle = qnan;
 
@@ -1173,6 +1183,38 @@ TTree *tree;
 }
 
 //_____________________________________________________________________________
+Bool_t SelectEvent( Int_t event )
+{
+  // input file
+  std::stringstream file;
+  file.str("");
+  file << "output/tpc/proHws/run05588_GenfitKNucleusSearch_output.txt";
+  std::string inputfile = file.str().c_str();
+  std::vector<std::vector<int>> values;
+  std::ifstream ifs(inputfile);
+  if(!ifs){
+    std::cerr << "Failed to open file: " << file.str().c_str() << std::endl;
+    return true;
+  }
+  std::string line;
+  while ( std::getline(ifs, line) ) {
+    std::stringstream ss(line);
+    std::vector<int> rowValues;
+    int value;
+    while ( ss >> value ) {
+      rowValues.push_back(value);
+    }
+    values.push_back(rowValues);
+  }
+  
+  for(const auto& row: values){
+    if( row[0]==event ) return true;
+  }
+  
+  return false;
+}
+
+//_____________________________________________________________________________
 int
 main( int argc, char **argv )
 {
@@ -1206,11 +1248,23 @@ main( int argc, char **argv )
 #if 0
   GFTrackCont.DebugMode();
 #endif
-
+  
+#if WriteOutput
+  std::cout << "Write output file mode" << std::endl;
+#endif
+#if SelectEvents
+  std::cout << "select event mode" << std::endl;
+#endif
+  
   Int_t ievent = skip;
   for( ; ievent<nevent && !CatchSignal::Stop(); ++ievent ){
     gCounter.check();
     InitializeEvent();
+#if SelectEvents
+    if( !SelectEvent( ievent ) ) continue;
+    std::cout << "Selected Event : event " << std::setw(6)
+	      << ievent << std::endl;
+#endif   
     if( DstRead( ievent ) ) tree->Fill();
   }
 
@@ -1270,7 +1324,7 @@ dst::DstRead( Int_t ievent )
   if( ievent%10==0 ){
     std::cout << "#D Event Number: "
         << std::setw(6) << ievent << std::endl;
-  }
+  }  
 
   TVector3 tgtpos(0, 0, tpc::ZTarget);
 
@@ -1375,6 +1429,31 @@ dst::DstRead( Int_t ievent )
   event.usTPC = **src.usTPC;
   event.vsTPC = **src.vsTPC;
 
+
+  Bool_t FlagOutput = false;
+  std::stringstream file;
+  file.str("");
+  std::filesystem::path full_path = __FILE__;
+  std::string file_name = full_path.stem().string();
+  
+  file << "output/tpc/proHws/run0" << event.runnum << "_" << file_name << "_output.txt"; 
+  std::string outputfile = file.str().c_str();
+#if WriteOutput
+  FlagOutput = true;
+#endif
+  if(FlagOutput){
+    if(ievent==0){
+      std::ofstream ofs(outputfile);
+      ofs.open(outputfile);
+      if(!ofs.is_open()){
+	std::cerr << "Failed to open file: " << file.str().c_str() << std::endl;
+	//return 1;
+      }
+      ofs << __FILE__ << " run:" << event.runnum <<" output file" << std::endl;
+      ofs.close();
+    }
+  }
+
   if( event.nKK != 1 || event.Pflag[0]!=1 ) return true;
   HF1( 4, event.MissMassTPC[0] );
   HF1( 5, event.MissMass[0] );
@@ -1404,35 +1483,33 @@ dst::DstRead( Int_t ievent )
   event.momTransfer.resize(event.nKK);
   TVector3 momKurama[event.nKK];
   TVector3 momK18[event.nKK];
-  TVector3 momTrans[event.nKK];  
+  TVector3 momTrans[event.nKK];
+  //  Double_t momTransMag[event.nKK];
+  std::vector<Double_t> momTransMag;
   for(int itK18=0; itK18<event.ntK18; itK18++){
-      Double_t pmagK18 = event.pTPCK18[itK18];
-      Double_t thetaK18 = event.thetaTPCK18[itK18];
-      Double_t uK18 = event.utgtTPCK18[itK18];
-      Double_t vK18 = event.vtgtTPCK18[itK18];
-      momK18[itK18].SetXYZ(pmagK18*TMath::Cos(thetaK18)*uK18,
+    Double_t pmagK18 = event.pTPCK18[itK18];
+    HF1(50,pmagK18);
+    Double_t thetaK18 = event.thetaTPCK18[itK18];
+    Double_t uK18 = event.utgtTPCK18[itK18];
+    Double_t vK18 = event.vtgtTPCK18[itK18];
+    for(int itKurama=0; itKurama<event.ntKurama; itKurama++){
+      momK18[itK18*event.ntKurama+itKurama].SetXYZ(pmagK18*TMath::Cos(thetaK18)*uK18,
 			   pmagK18*TMath::Cos(thetaK18)*vK18,
-			   pmagK18*TMath::Cos(thetaK18)*1.0);      
-      for(int itKurama=0; itKurama<event.ntKurama; itKurama++){	
-	Double_t pmagKrm = event.pTPCKurama[itKurama];
-	if(pmagKrm<1.8) continue;
-	Double_t thetaKrm = event.thetaTPCKurama[itKurama];
-	Double_t uKrm = event.utgtTPCKurama[itKurama];
-	Double_t vKrm = event.vtgtTPCKurama[itKurama];
-	momKurama[itKurama].SetXYZ(pmagKrm*TMath::Cos(thetaKrm)*uKrm,
-				   pmagKrm*TMath::Cos(thetaKrm)*vKrm,
-				   pmagKrm*TMath::Cos(thetaKrm)*1.0);
-	momTrans[itK18*event.ntKurama+itKurama] = momK18[itK18] - momKurama[itKurama];
-	double momTransMag = momTrans[itK18*event.ntKurama+itKurama].Mag();
-	std::cout << "momTransMag: " << momTransMag << std::endl;
-	//kurama_p_mom_container[itKurama].push_back(momPKurama[itKurama]);
-	//	std::vector<double> momtransfer = event.pKurama[itKurama] - event.pK18[itK18];
-      
-	//      event.momTransfer[itK18*event.ntKurama+itKurama] = momtransfer;
-	//	double momMag = TMath::Sqrt(momtransfer[0]*momtransfere[0]+momtransfer[1]*momtransfer[1]+moomtransfer[2]*momtransfer[2]);
-	//	std::cout << " MomMag: " << momMag << std::endl;
-      //      HF1( 1301, momtransfer.Mag());
-      }
+			   pmagK18*TMath::Cos(thetaK18)*1.0);            
+      Double_t pmagKrm = event.pTPCKurama[itKurama];
+      if(itK18==0) HF1(51,pmagKrm);
+      // if(pmagKrm<1.8) continue;
+      Double_t thetaKrm = event.thetaTPCKurama[itKurama];
+      Double_t uKrm = event.utgtTPCKurama[itKurama];
+      Double_t vKrm = event.vtgtTPCKurama[itKurama];
+      momKurama[itK18*event.ntKurama+itKurama].SetXYZ(pmagKrm*TMath::Cos(thetaKrm)*uKrm,
+				 pmagKrm*TMath::Cos(thetaKrm)*vKrm,
+				 pmagKrm*TMath::Cos(thetaKrm)*1.0);
+      momTrans[itK18*event.ntKurama+itKurama] = momK18[itK18*event.ntKurama+itKurama] - momKurama[itK18*event.ntKurama+itKurama];
+      double mt = momTrans[itK18*event.ntKurama+itKurama].Mag();      
+      momTransMag.push_back(mt);
+      HF1(52,mt);
+    }
   }
   
   event.nhHtof = **src.nhHtof;
@@ -1536,70 +1613,23 @@ dst::DstRead( Int_t ievent )
 
   Bool_t FlagKuramaProton = false;
   // proton1 loop
-  Int_t tempcount1 = 0;
-  Int_t tempcount2 = 0;
-  Int_t tempcount3 = 0;
   for(Int_t it1=0;it1<ntTpc;it1++){
-    if(FlagDebug) std::cout << "debug: push [Enter] " << std::endl;	
-    if(FlagDebug) getchar();	            
-   
+    Int_t itp1 = it1;
+    Int_t itpi = -1;
+    Int_t itp2 = -1;      
     HF1( 1051, event.nhtrack[it1] );
     Bool_t p2fromLambda = false;
     if(event.isK18[it1]==1 || event.isKurama[it1]==1 || event.isAccidental[it1]==1 ) continue;
-    for(int iKK=0; iKK<event.nKK; ++iKK){
-      Double_t bek = event.BEkaonTPC[iKK];
-      if( bek<-0.1 ){ // RegA
-	HF2(132, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	if ( event.charge[it1]<0 ){
-	  HF2(133, -event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	} else {
-	  HF2(134, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	}	
-      } else if ( bek<0. ){ // RegB
-	HF2(135, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	if(event.charge[it1]<0){
-	  HF2(136, -event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	} else {
-	  HF2(137, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	}	      
-      } else if ( bek<0.1 ){ // RegC
-	HF2(138, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	if(event.charge[it1]<0){
-	  HF2(139, -event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	} else {
-	  HF2(140, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	}	            
-      } else if ( bek<0.2 ){ // RegD
-	HF2(141, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	if(event.charge[it1]<0){
-	  HF2(142, -event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	} else {
-	  HF2(143, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	}
-      } else if ( bek<0.3 ){ // RegE
-	HF2(144, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	if(event.charge[it1]<0){
-	  HF2(145, -event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	} else {
-	  HF2(146, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-	}
-      }
-    }
-    HF2(120, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-    if(event.charge[it1]<0){
-      HF2(121, -event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-    } else {
-      HF2(122, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-    }
+    
     if((event.pid[it1]&4)!=4) continue; // proton like
     Bool_t p_like = false;
     if(event.charge[it1]==1) p_like = true; // select proton like
     // dEdx with one proton meaured
-    HF2(123, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
+    HF2(140, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
     if(event.charge[it1]<0){
-      HF2(124, -event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
+      HF2(141, -event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
     } else {
-      HF2(125, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
+      HF2(142, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
     }    
     HF1( 1052, event.nhtrack[it1] );
     
@@ -1622,8 +1652,7 @@ dst::DstRead( Int_t ievent )
     }
     // pion1 loop
     for(Int_t it2=0;it2<ntTpc;it2++){
-      if(FlagDebug) std::cout << "debug: push [Enter] " << std::endl;	
-      if(FlagDebug) getchar();	      
+      itpi = it2;
       if(it1==it2) continue;
       if(event.isK18[it2]==1 || event.isKurama[it2]==1 || event.isAccidental[it2]==1 ) continue;
       if((event.pid[it2]&1)!=1) continue; //select pi like
@@ -1631,11 +1660,11 @@ dst::DstRead( Int_t ievent )
       Bool_t pim_like = false;
       if(event.charge[it2]==-1) pim_like = true;
       // dEdx with one proton meaured and one pion 
-      HF2(126, event.mom0[it2]*event.charge[it2], event.dEdx[it2]);
+      HF2(150, event.mom0[it2]*event.charge[it2], event.dEdx[it2]);
       if(event.charge[it2]<0){
-	HF2(127, -event.mom0[it2]*event.charge[it2], event.dEdx[it2]);
+	HF2(151, -event.mom0[it2]*event.charge[it2], event.dEdx[it2]);
       } else {
-	HF2(128, event.mom0[it2]*event.charge[it2], event.dEdx[it2]);
+	HF2(152, event.mom0[it2]*event.charge[it2], event.dEdx[it2]);
       }
       Double_t pi_par[5];
       pi_par[0] = event.helix_cx[it2];
@@ -1679,25 +1708,25 @@ dst::DstRead( Int_t ievent )
       event.lflag = true;
       if(FlagDebug) std::cout << "debug: Lambda reconstructed " << std::endl;
       Double_t thetap1 = p_mom.Theta()*TMath::RadToDeg();
-      HF2( 2601, thetap1, p_mom.Mag() );
       Double_t thetapi = pi_mom.Theta()*TMath::RadToDeg();
-      HF2( 2602, thetapi, pi_mom.Mag() );	
       Double_t thetaL = lambda_mom.Theta()*TMath::RadToDeg();
-      HF2( 2603, thetaL, lambda_mom.Mag() );
-      // theta corr
-      HF2( 2411, thetap1, thetap1 );
-      HF2( 2412, thetap1, thetapi );
-      HF2( 2413, thetap1, thetaL );
-      HF2( 2421, thetapi, thetapi );
-      HF2( 2422, thetapi, thetaL );
-      HF2( 2431, thetaL, thetaL );
-      //mom corr
-      HF2( 2211, p_mom.Mag(), p_mom.Mag() );
-      HF2( 2212, p_mom.Mag(), pi_mom.Mag() );
-      HF2( 2213, p_mom.Mag(), lambda_mom.Mag() );
-      HF2( 2221, pi_mom.Mag(), pi_mom.Mag() );
-      HF2( 2222, pi_mom.Mag(), lambda_mom.Mag() );
-      HF2( 2231, lambda_mom.Mag(), lambda_mom.Mag());
+      // HF2( 2601, thetap1, p_mom.Mag() );
+      // HF2( 2602, thetapi, pi_mom.Mag() );      
+      // HF2( 2603, thetaL, lambda_mom.Mag() );
+      // // theta corr
+      // HF2( 2411, thetap1, thetap1 );
+      // HF2( 2412, thetap1, thetapi );
+      // HF2( 2413, thetap1, thetaL );
+      // HF2( 2421, thetapi, thetapi );
+      // HF2( 2422, thetapi, thetaL );
+      // HF2( 2431, thetaL, thetaL );
+      // //mom corr
+      // HF2( 2211, p_mom.Mag(), p_mom.Mag() );
+      // HF2( 2212, p_mom.Mag(), pi_mom.Mag() );
+      // HF2( 2213, p_mom.Mag(), lambda_mom.Mag() );
+      // HF2( 2221, pi_mom.Mag(), pi_mom.Mag() );
+      // HF2( 2222, pi_mom.Mag(), lambda_mom.Mag() );
+      // HF2( 2231, lambda_mom.Mag(), lambda_mom.Mag());
       if(FlagKuramaProton){
 	// for(int itKurama=0; itKurama<event.ntKurama; itKurama++){
 	//   Double_t thetap0 = momPKurama[itKurama].Theta()*TMath::RadToDeg();
@@ -1722,55 +1751,37 @@ dst::DstRead( Int_t ievent )
       }
       {
 	Double_t anglep1pi = p_mom.Angle(pi_mom)*TMath::RadToDeg();
-	HF1( 1163, anglep1pi );
 	Double_t anglep1L = p_mom.Angle(lambda_mom)*TMath::RadToDeg();
-	HF1( 1164, anglep1L );
 	Double_t anglepiL = pi_mom.Angle(lambda_mom)*TMath::RadToDeg();
-	HF1( 1165, anglepiL );
+	// HF1( 1163, anglep1pi );
+	// HF1( 1164, anglep1L );	
+	// HF1( 1165, anglepiL );
 	// 
       }
-      HF2( 2501, thetap1, event.nhtrack[it1] );
-      HF2( 2502, thetapi, event.nhtrack[it2] );
+      // HF2( 2501, thetap1, event.nhtrack[it1] );
+      // HF2( 2502, thetapi, event.nhtrack[it2] );
       // dEdx one proton and pion 
-      HF2(150, event.mom0[it2]*event.charge[it2], event.dEdx[it2]);
-      HF2(150, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-      if(event.charge[it2]<0){
-	HF2(151, -event.mom0[it2]*event.charge[it2], event.dEdx[it2]);
-      } else if (event.charge[it2]>0){
-	HF2(152, event.mom0[it2]*event.charge[it2], event.dEdx[it2]);
-      } else if (event.charge[it1]<0){
-	HF2(151, -event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-      } else if (event.charge[it1]>0){
-	HF2(152, event.mom0[it1]*event.charge[it1], event.dEdx[it1]);
-      }
       // proton2 loop
       for(Int_t it3=0;it3<ntTpc;it3++){
-	if(FlagDebug) std::cout << "debug: push [Enter] " << std::endl;	
-	if(FlagDebug) getchar();	
-	if(FlagDebug) std::cout << "debug: " << __FILE__ << " line " << __LINE__ << std::endl;
+	p2fromLambda = false;
+	itp2=it3;
 	HF1( 1, 2 );  // status 2
 	if(it3==it2 || it3==it1) continue;	
 	HF1( 1, 3 );  // for debug // status 3
 	if(event.isK18[it3]==1 || event.isKurama[it3]==1 || event.isAccidental[it3]==1 ) continue;
 	HF1( 1, 4 );  // status 4
-	HF2(147, event.mom0[it3]*event.charge[it3], event.dEdx[it3]);
-	if(event.charge[it3]<0){
-	  HF2(148, -event.mom0[it3]*event.charge[it3], event.dEdx[it3]);
-	} else {
-	  HF2(149, event.mom0[it3]*event.charge[it3], event.dEdx[it3]);
-	}
 	if((event.pid[it3]&4)!=4) continue; //select proton like
 	if(FlagDebug) std::cout << "debug: selected p2 " << std::endl;
 	HF1( 1054, event.nhtrack[it3] );
 	HF1( 1, 5 );  // status 5
 	Bool_t p_like2 = false;
-	if(event.charge[it3]==1) p_like2 = true;	  
+	if(event.charge[it3]==1) p_like2 = true;
 	// dEdx with two protons and one pion measured
-	HF2(129, event.mom0[it3]*event.charge[it3], event.dEdx[it3]);
+	HF2(160, event.mom0[it3]*event.charge[it3], event.dEdx[it3]);
 	if(event.charge[it3]<0){
-	  HF2(130, -event.mom0[it3]*event.charge[it3], event.dEdx[it3]);
+	  HF2(161, -event.mom0[it3]*event.charge[it3], event.dEdx[it3]);
 	} else {
-	  HF2(131, event.mom0[it3]*event.charge[it3], event.dEdx[it3]);
+	  HF2(162, event.mom0[it3]*event.charge[it3], event.dEdx[it3]);
 	}
 	// ------- proton2 -------	
 	Double_t p2_par[5];
@@ -1790,7 +1801,6 @@ dst::DstRead( Int_t ievent )
 	  p2_start = TVector3(event.calpos_x[it3][p2_nh-1], event.calpos_y[it3][p2_nh-1], event.calpos_z[it3][p2_nh-1]);
 	  p2_end = TVector3(event.calpos_x[it3][0], event.calpos_y[it3][0], event.calpos_z[it3][0]);
 	}
-	if(FlagDebug) std::cout << "debug: " << __FILE__ << " line " << __LINE__ << std::endl;
 	TVector3 p2_mom; Double_t lp2_dist;
 	TVector3 lp2_vert
 	  = Kinematics::LambdaPVertex(dMagneticField, p2_par, p2_theta_min, p2_theta_max,
@@ -1802,6 +1812,13 @@ dst::DstRead( Int_t ievent )
 	TVector3 lambda2_vert
 	  = Kinematics::LambdaVertex(dMagneticField, p2_par, pi_par, p2_theta_min, p2_theta_max, pi_theta_min, pi_theta_max,
 				     p2_mom_lambda, pi_mom2, lambda2_mom, p2pi_dist);
+	Double_t angp1p2 = p2_mom.Angle(p_mom)*TMath::RadToDeg();
+	Double_t angp1p2l = p2_mom_lambda.Angle(p_mom)*TMath::RadToDeg();	    
+	if( FlagDebug ) std::cout << "Before checking p2 froma Lambda or not" << std::endl;	
+	if( FlagDebug ) std::cout << "angle b/w p1p2 " << angp1p2 << ", angle b/w p1p2L " << angp1p2l << std::endl;
+	if( FlagDebug ) std::cout << "Mag of momenta,  p1:" << p_mom.Mag() << "  p2:" << p2_mom.Mag() << std::endl;
+	if( FlagDebug ) std::cout << "track id p1:" << it1 << " p2:" << it3 << std::endl;
+	
 	if(!TMath::IsNaN(p2pi_dist)){
 	  if(FlagDebug) std::cout << "debug: NOT IsNaN(p2pi_dist) " << std::endl;
 	  HF1( 1, 7 );// for debug // status 7
@@ -1820,15 +1837,40 @@ dst::DstRead( Int_t ievent )
 	      && p2_vertex_dist < p_vtx_distcut
 	      && TMath::Abs(Llambda2.M() - LambdaMass) < lambda_masscut
 	      && TMath::Abs(Llambda2.M() - LambdaMass) < TMath::Abs(Llambda.M() - LambdaMass) ){
-	    if(FlagDebug) std::cout << "debug: p2 from Lambda " << std::endl;	    
-	    p2fromLambda = true;	    
+	    if(FlagDebug) std::cout << "debug: p2 from Lambda " << std::endl;
+	    p2fromLambda = true;
+	    Bool_t smallanglep1p2 = false;
+	    angp1p2 = p2_mom.Angle(p_mom)*TMath::RadToDeg();
+	    angp1p2l = p2_mom_lambda.Angle(p_mom)*TMath::RadToDeg();	    	    
+	    if( FlagDebug ) std::cout << "anlge b/w p1p2 " << angp1p2 << ", angle b/w p1p2L " << angp1p2l << std::endl;
+	    if( FlagDebug ) std::cout << "Mag of momenta,  p1:" << p_mom.Mag() << "  p2:" << p2_mom.Mag() << std::endl;
+	    if( FlagDebug ) std::cout << "track id p1:" << it1 << " p2:" << it3 << std::endl;
+	    if( FlagDebug ) std::cout << "p2_mom_lambda.Angle(p_mom)*TMath::RadToDeg()<0.01 : "
+				      << smallanglep1p2 << std::endl;
+	    if(p2_mom_lambda.Angle(p_mom)*TMath::RadToDeg()<0.01) smallanglep1p2 = true;
+	    if(FlagDebug&&p2fromLambda&&smallanglep1p2){
+	      std::cout << " p2 Misidentifcation. p1 track can be segemented into two. skipped this proton. " << std::endl;
+	      std::cout << " Please push [Enter] " << std::endl;
+	      // getchar();
+	      //	      continue; // temporary
+	    }
 	    // replace p1 and p2
 	    {
+	      Int_t itp1temp=itp2;
+	      Int_t itp2temp=itp1;
+	      itp1=itp1temp;
+	      itp2=itp2temp;	      
 	      // Mom
+	      if( FlagDebug ) std::cout << "Mom mag p_mom:" << p_mom.Mag()
+					<< " p2_mom:" << p2_mom.Mag() << std::endl;	      	      
 	      TVector3 p2_mom_temp = p_mom;
 	      TVector3 p_mom_temp = p2_mom_lambda;
-	      p2_mom = p2_mom_temp;
+	      if( FlagDebug ) std::cout << "Mom mag p_mom_temp:" << p_mom_temp.Mag()
+					<< " p2_mom_temp:" << p2_mom_temp.Mag() << std::endl;
 	      p_mom = p_mom_temp;
+	      p2_mom = p2_mom_temp;	      
+	      std::cout << "Mom mag p_mom:" << p_mom.Mag()
+			<< " p2_mom:" << p2_mom.Mag() << std::endl;	      
 	      pi_mom = pi_mom2;
 	      lambda_mom = lambda2_mom;
 	      // LorentzVector
@@ -1837,29 +1879,35 @@ dst::DstRead( Int_t ievent )
 	      Llambda=Llambda2;	    
 	      // vertex
 	      Double_t p_vertex_dist_temp = p2_vertex_dist;
+	      Double_t p2_vertex_dist_temp = p_vertex_dist;
 	      p_vertex_dist = p_vertex_dist_temp;
+	      p2_vertex_dist = p2_vertex_dist_temp;	      
 	      pi_vertex_dist = pi_2_vertex_dist;
 	      lambda_vert = lambda2_vert;
 	      // distance 
 	      ppi_dist = p2pi_dist;
 	      // helix parameter
 	      Double_t p_par_temp[5];
+	      Double_t p2_par_temp[5];	      
 	      std::copy(std::begin(p2_par),std::end(p2_par),std::begin(p_par_temp));
-	      std::copy(std::begin(p_par_temp),std::end(p_par_temp),std::begin(p_par));
+	      std::copy(std::begin(p_par),std::end(p_par),std::begin(p2_par_temp));
+	      
+	      std::copy(std::begin(p_par_temp),std::end(p_par_temp),std::begin(p_par));	      
+	      std::copy(std::begin(p2_par_temp),std::end(p2_par_temp),std::begin(p2_par));
 	    	    
 	      TVector3 p_start_temp = p2_start;
 	      TVector3 p_end_temp = p2_end;
-	      p_start = p_start_temp;
-	      p_end = p_end_temp;
-
-	      Double_t p2_par_temp[5];
-	      std::copy(std::begin(p_par),std::end(p_par),std::begin(p2_par_temp));
-	      std::copy(std::begin(p2_par_temp),std::end(p2_par_temp),std::begin(p2_par));
-
 	      TVector3 p2_start_temp = p_start;
-	      TVector3 p2_end_temp = p_end;
+	      TVector3 p2_end_temp = p_end;	      
+	      p_start = p_start_temp;
+	      p_end = p_end_temp;	      
 	      p2_start = p2_start_temp;
-	      p2_end = p2_end_temp;	    
+	      p2_end = p2_end_temp;
+
+	      Double_t p2_theta_min_temp = p_theta_min;
+	      Double_t p2_theta_max_temp = p_theta_max;
+	      p2_theta_min = p2_theta_min_temp;
+	      p2_theta_max = p2_theta_max_temp;
 	    }
 	    {
 	      Double_t lp_dist;
@@ -1873,7 +1921,7 @@ dst::DstRead( Int_t ievent )
 	    }
 	  }
 	}
-	if(FlagDebug) std::cout << "debug: p2 from LambdaP " << std::endl;
+	if(FlagDebug&&!p2fromLambda) std::cout << "debug: p2 not from Lambda" << std::endl;
 	if(TMath::IsNaN(lp2_dist)) continue;
 	if(FlagDebug) std::cout << "debug: NOT IsNaN(lp2_dist)" << std::endl;
 	if(lp2_dist>lp2_distcut) continue;
@@ -1885,14 +1933,13 @@ dst::DstRead( Int_t ievent )
 	if(FlagDebug) std::cout << "debug: vertex cut applied" << std::endl;
 	if(lp2_vert.z() < -200.) continue;
 	if(FlagDebug) std::cout << "debug: vertex Z cut applied" << std::endl;
-	
+
 	TLorentzVector Lp2(p2_mom, TMath::Sqrt(p2_mom.Mag()*p2_mom.Mag() + ProtonMass*ProtonMass));
 	TLorentzVector Llambda_fixedmass(lambda_mom, TMath::Sqrt(lambda_mom.Mag()*lambda_mom.Mag() + LambdaMass*LambdaMass));
 	TLorentzVector Llp2 = Llambda_fixedmass + Lp2;
 	TVector3 lp2_mom = TVector3(Llp2.Px(), Llp2.Py(), Llp2.Pz());
 	Double_t p2_vertex_dist = 1000;
-	Double_t lp2_opening_angle;
-	
+	Double_t lp2_opening_angle;	
 	if(!Kinematics::HelixDirection(lp2_vert, p2_start, p2_end, p2_vertex_dist)) continue;
 	if(FlagDebug) std::cout << "debug: vertex Z cut applied" << std::endl;	    					
 	if(p2_vertex_dist > p2_vtx_distcut) continue;
@@ -1901,25 +1948,33 @@ dst::DstRead( Int_t ievent )
 	Double_t thetap2 = p2_mom.Theta()*TMath::RadToDeg();
 	
 	HF1( 1302, lp2_mom.Mag() );
-	p2fromLambda = false;
 	
 	lp2_opening_angle = lambda_mom.Angle(p2_mom)*TMath::RadToDeg();
 	lp2_l_container.push_back(l_candidates);
-	if(!p2fromLambda){
-	  lp2_p_container.push_back(it1);
-	  lp2_pi_container.push_back(it2);
-	  lp2_p2_container.push_back(it3);
-	  HF2( 2511, thetap1, event.nhtrack[it1] );
-	  HF2( 2512, thetapi, event.nhtrack[it2] );
-	  HF2( 2513, thetap2, event.nhtrack[it3] );	  
+	
+	lp2_p_container.push_back(itp1);
+	lp2_pi_container.push_back(itpi);
+	lp2_p2_container.push_back(itp2);
+	
+	HF2(130, event.mom0[itp1]*event.charge[itp1], event.dEdx[itp1]);
+	HF2(130, event.mom0[itpi]*event.charge[itpi], event.dEdx[itpi]);
+	HF2(130, event.mom0[itp2]*event.charge[itp2], event.dEdx[itp2]);		
+	if(event.charge[itp1]<0){
+	  HF2(131, -event.mom0[itp1]*event.charge[itp1], event.dEdx[itp1]);
 	} else {
-	  lp2_p_container.push_back(it3);
-	  lp2_pi_container.push_back(it2);
-	  lp2_p2_container.push_back(it1);
-	  HF2( 2511, thetap1, event.nhtrack[it3] );
-	  HF2( 2512, thetapi, event.nhtrack[it2] );
-	  HF2( 2513, thetap2, event.nhtrack[it1] );	  	  
+	  HF2(132, event.mom0[itp1]*event.charge[itp1], event.dEdx[itp1]);
 	}
+	if(event.charge[itpi]<0){
+	  HF2(131, -event.mom0[itpi]*event.charge[itpi], event.dEdx[itpi]);
+	} else {
+	  HF2(132, event.mom0[itpi]*event.charge[itpi], event.dEdx[itpi]);
+	}
+	if(event.charge[itp2]<0){
+	  HF2(131, -event.mom0[itp2]*event.charge[itp2], event.dEdx[itp2]);
+	} else {
+	  HF2(132, event.mom0[itp2]*event.charge[itp2], event.dEdx[itp2]);
+	}
+	
 	lp2mass_container.push_back(Llp2.M());
 	lambda_lp2_mass_container.push_back(Llambda.M());
 	lp2_p_mom_container.push_back(p_mom);
@@ -1931,33 +1986,33 @@ dst::DstRead( Int_t ievent )
 	lp2_vert_container.push_back(lp2_vert);
 	lp2angle_container.push_back(lp2_opening_angle);
 	Double_t thetapi = pi_mom.Theta()*TMath::RadToDeg();
-	HF2( 2602, thetapi, pi_mom.Mag() );	
-	Double_t thetaL = lambda_mom.Theta()*TMath::RadToDeg();
-	HF2( 2611, thetap1, p_mom.Mag() );
-	HF2( 2612, thetapi, pi_mom.Mag() );
-	HF2( 2613, thetap2, p2_mom.Mag() );
-	HF2( 2614, thetaL, lambda_mom.Mag() );	    	    	    	    
-	HF2( 2461, thetap1, thetap1 );
-	HF2( 2462, thetap1, thetapi );
-	HF2( 2463, thetap1, thetaL );
-	HF2( 2464, thetap1, thetap2 );	    
-	HF2( 2471, thetap1, thetapi );
-	HF2( 2472, thetapi, thetaL );
-	HF2( 2473, thetapi, thetap2 );
-	HF2( 2481, thetaL, thetaL );
-	HF2( 2482, thetaL, thetap2 );
-	HF2( 2491, thetap2, thetap2 );
-	// mom corr
-	HF2( 2261, p_mom.Mag(), p_mom.Mag() );
-	HF2( 2262, p_mom.Mag(), pi_mom.Mag() );
-	HF2( 2263, p_mom.Mag(), lambda_mom.Mag() );
-	HF2( 2264, p_mom.Mag(), p2_mom.Mag() );
-	HF2( 2271, pi_mom.Mag(), pi_mom.Mag() );
-	HF2( 2272, pi_mom.Mag(), lambda_mom.Mag() );
-	HF2( 2273, pi_mom.Mag(), p2_mom.Mag() );
-	HF2( 2281, lambda_mom.Mag(), lambda_mom.Mag() );
-	HF2( 2282, lambda_mom.Mag(), p2_mom.Mag() );
-	HF2( 2291, p2_mom.Mag(), p2_mom.Mag() );
+	Double_t thetaL = lambda_mom.Theta()*TMath::RadToDeg();	
+	// HF2( 2602, thetapi, pi_mom.Mag() );	
+	// HF2( 2611, thetap1, p_mom.Mag() );
+	// HF2( 2612, thetapi, pi_mom.Mag() );
+	// HF2( 2613, thetap2, p2_mom.Mag() );
+	// HF2( 2614, thetaL, lambda_mom.Mag() );	    	    	    	    
+	// HF2( 2461, thetap1, thetap1 );
+	// HF2( 2462, thetap1, thetapi );
+	// HF2( 2463, thetap1, thetaL );
+	// HF2( 2464, thetap1, thetap2 );	    
+	// HF2( 2471, thetap1, thetapi );
+	// HF2( 2472, thetapi, thetaL );
+	// HF2( 2473, thetapi, thetap2 );
+	// HF2( 2481, thetaL, thetaL );
+	// HF2( 2482, thetaL, thetap2 );
+	// HF2( 2491, thetap2, thetap2 );
+	// // mom corr
+	// HF2( 2261, p_mom.Mag(), p_mom.Mag() );
+	// HF2( 2262, p_mom.Mag(), pi_mom.Mag() );
+	// HF2( 2263, p_mom.Mag(), lambda_mom.Mag() );
+	// HF2( 2264, p_mom.Mag(), p2_mom.Mag() );
+	// HF2( 2271, pi_mom.Mag(), pi_mom.Mag() );
+	// HF2( 2272, pi_mom.Mag(), lambda_mom.Mag() );
+	// HF2( 2273, pi_mom.Mag(), p2_mom.Mag() );
+	// HF2( 2281, lambda_mom.Mag(), lambda_mom.Mag() );
+	// HF2( 2282, lambda_mom.Mag(), p2_mom.Mag() );
+	// HF2( 2291, p2_mom.Mag(), p2_mom.Mag() );
 	if(FlagKuramaProton){	    
 	  // for(int itKurama=0; itKurama<event.ntKurama; itKurama++){
 	  //   Double_t thetap0 = momPKurama[itKurama].Theta()*TMath::RadToDeg();
@@ -1985,17 +2040,35 @@ dst::DstRead( Int_t ievent )
 	}
 	{
 	  Double_t anglep1pi = p_mom.Angle(pi_mom)*TMath::RadToDeg();
-	  HF1( 1174, anglep1pi );
 	  Double_t anglep1p2 = p_mom.Angle(p2_mom)*TMath::RadToDeg();
-	  HF1( 1175, anglep1p2 );
 	  Double_t anglep1L = p_mom.Angle(lambda_mom)*TMath::RadToDeg();
-	  HF1( 1176, anglep1L );
 	  Double_t anglepip2 = pi_mom.Angle(p2_mom)*TMath::RadToDeg();
-	  HF1( 1177, anglepip2 );
 	  Double_t anglepiL = pi_mom.Angle(lambda_mom)*TMath::RadToDeg();
-	  HF1( 1178, anglepiL );
 	  Double_t anglep2L = p2_mom.Angle(lambda_mom)*TMath::RadToDeg();
-	  HF1( 1179, anglep2L );	      	      	    	      
+	  Double_t diffP1P2 = TMath::Abs(p_mom.Mag()-p2_mom.Mag());
+	  if( FlagDebug ) std::cout << "Mag of momenta,  p1:" << p_mom.Mag() << "  p2:" << p2_mom.Mag() << std::endl;
+	  if( FlagDebug ) std::cout << "track id p1:" << itp1 << " p2:" << itp2 << std::endl;	    
+	  if( FlagDebug ) std::cout << " |p1-p2|=" << diffP1P2 << std::endl;
+	  if( FlagDebug ) std::cout << " anglep1p2=" << anglep1p2 << std::endl;	    
+	  if( FlagDebug ) std::cout << "p2fromLambda:" << p2fromLambda << std::endl;
+	  if( FlagDebug ) std::cout << "p1track:" << itp1 << " p2track:" << itp2 << std::endl;
+	  if( FlagDebug ) std::cout << "lp2OpAngle:" << lp2_opening_angle << std::endl;
+	  if( FlagDebug ) std::cout << "anglep1L:" << anglep1L << std::endl;
+	  if( FlagDebug && p2fromLambda ){
+	    std::cout << "FlagDebug&&p2fromLambda=true" << std::endl;
+	    std::cout << "push [Enter] " << std::endl;
+	    //	    getchar();		    
+	  }
+	  if( FlagDebug && diffP1P2<0.01 ){	    
+	    std::cout << "push [Enter] " << std::endl;
+	    //	    getchar();
+	  }	  
+	  // HF1( 1174, anglep1pi );
+	  // HF1( 1175, anglep1p2 );	  	  
+	  // HF1( 1176, anglep1L );
+	  // HF1( 1177, anglepip2 );
+	  // HF1( 1178, anglepiL );	  
+	  // HF1( 1179, anglep2L );
 	}
 	event.lp2flag = true;
 	lp2_candidates++;
@@ -2004,8 +2077,8 @@ dst::DstRead( Int_t ievent )
       Double_t ppi_opening_angle = p_mom.Angle(pi_mom)*TMath::RadToDeg();;	  
       ppi_closedist.push_back(ppi_dist);
       ppiangle_container.push_back(ppi_opening_angle);
-      l_p_container.push_back(it1);
-      l_pi_container.push_back(it2);
+      l_p_container.push_back(itp1);
+      l_pi_container.push_back(itpi);
       lambda_mass_container.push_back(Llambda.M());
       l_p_mom_container.push_back(p_mom);
       l_pi_mom_container.push_back(pi_mom);
@@ -2186,11 +2259,18 @@ dst::DstRead( Int_t ievent )
   event.ldecays_mom_z.push_back(l_pi_mom_container[best].z());
   //  event.ldecays_theta.push_back(l_pi_mom_container[best].Theta()*TMath::RadToDeg());
   
-  Double_t thetaP = l_p_mom_container[best].Theta()*TMath::RadToDeg();
+  Double_t thetaP1 = l_p_mom_container[best].Theta()*TMath::RadToDeg();
   Double_t thetaPi = l_pi_mom_container[best].Theta()*TMath::RadToDeg();
   Double_t thetaL = l_mom_container[best].Theta()*TMath::RadToDeg();
+  Double_t angleP1Pi = l_p_mom_container[best].Angle(l_pi_mom_container[best])*TMath::RadToDeg();
+  Double_t angleP1L = l_p_mom_container[best].Angle(l_mom_container[best])*TMath::RadToDeg();
+  Double_t anglePiL = l_pi_mom_container[best].Angle(l_mom_container[best])*TMath::RadToDeg();    
+  Double_t momP1 = l_p_mom_container[best].Mag();
+  Double_t momPi = l_pi_mom_container[best].Mag();
+  Double_t momL = l_mom_container[best].Mag();
+  
   //HF1( 1106, thetaP );
-  HF1( 1107, thetaP );
+  HF1( 1107, thetaP1 );
   //  HF1( 1111, thetaPi );
   HF1( 1113, thetaPi );  
   //  HF1( 1116, thetaL );
@@ -2199,14 +2279,37 @@ dst::DstRead( Int_t ievent )
   HF1( 211, event.ldecayvtx_x);
   HF1( 212, event.ldecayvtx_y);
   HF1( 213, event.ldecayvtx_z);
+
+  HF2( 2601, thetaP1, momP1 );    
+  HF2( 2602, thetaPi, momPi );
+  HF2( 2603, thetaL, momL );        
+
+  HF1( 1163, angleP1Pi );
+  HF1( 1164, angleP1L );
+  HF1( 1165, anglePiL );
   
-  for(int i=0; i<event.nKK; ++i){    
+  HF2( 2411, thetaP1, thetaP1 );
+  HF2( 2412, thetaP1, thetaPi );
+  HF2( 2413, thetaP1, thetaL );  
+  HF2( 2421, thetaPi, thetaPi );
+  HF2( 2422, thetaPi, thetaL );
+  HF2( 2431, thetaL, thetaL );
+  
+  HF2( 2211, momP1, momP1 );
+  HF2( 2212, momP1, momPi );
+  HF2( 2213, momP1, momL );  
+  HF2( 2221, momPi, momPi );
+  HF2( 2222, momPi, momL );
+  HF2( 2231, momL, momL );
+  
+  for(int i=0; i<event.nKK; ++i){
     Double_t bek = event.BEkaonTPC[i];
     Double_t theta = event.thetaTPC[i];
     HF1( 1204, bek );
     HF1( 1401, event.ldecays_mom[0] );
     HF1( 1411, event.ldecays_mom[1] );
     HF1( 1431, l_mom_container[best].Mag() );
+    HF1( 62, momTransMag.at(i) );
     HF2( 2001, event.ppiangle, l_p_mom_container[best].Mag() );
     HF2( 2002, event.ppiangle, l_pi_mom_container[best].Mag() );
     HF2( 2003, event.ppiangle, l_mom_container[best].Mag() );
@@ -2218,7 +2321,7 @@ dst::DstRead( Int_t ievent )
     HF1( 1211, event.lmass );
     if ( bek<-0.1 ){
       //  HF1( 1107, thetaP );
-      HF1( 1108, thetaP );      
+      HF1( 1108, thetaP1 );      
       //      HF1( 1112, thetaPi );
       HF1( 1114, thetaPi );      
       //      HF1( 1117, thetaL );
@@ -2228,7 +2331,7 @@ dst::DstRead( Int_t ievent )
       HF1( 1412, event.ldecays_mom[1] );
       HF1( 1432, l_mom_container[best].Mag() );
     } else if ( bek<0. ){
-      HF1( 1109, thetaP );      
+      HF1( 1109, thetaP1 );      
       HF1( 1115, thetaPi );
       HF1( 1121, thetaL );                
       HF1( 1213, event.lmass );
@@ -2236,7 +2339,7 @@ dst::DstRead( Int_t ievent )
       HF1( 1413, event.ldecays_mom[1] );
       HF1( 1433, l_mom_container[best].Mag() );
     } else if ( bek<0.1 ){
-      HF1( 1110, thetaP );
+      HF1( 1110, thetaP1 );
       HF1( 1116, thetaPi );
       HF1( 1122, thetaL );      
       HF1( 1214, event.lmass );
@@ -2244,7 +2347,7 @@ dst::DstRead( Int_t ievent )
       HF1( 1414, event.ldecays_mom[1] );
       HF1( 1434, l_mom_container[best].Mag() );                
     } else if ( bek<0.2 ){
-      HF1( 1111, thetaP );
+      HF1( 1111, thetaP1 );
       HF1( 1117, thetaPi );
       HF1( 1123, thetaL );          
       HF1( 1215, event.lmass );
@@ -2252,7 +2355,7 @@ dst::DstRead( Int_t ievent )
       HF1( 1415, event.ldecays_mom[1] );
       HF1( 1435, l_mom_container[best].Mag() );                
     } else if ( bek<0.3 ){
-      HF1( 1112, thetaP );
+      HF1( 1112, thetaP1 );
       HF1( 1118, thetaPi );
       HF1( 1124, thetaL );          
       HF1( 1216, event.lmass );
@@ -2272,6 +2375,8 @@ dst::DstRead( Int_t ievent )
     event.lp2mom_x = lp2_mom_container[best_lp2].x();
     event.lp2mom_y = lp2_mom_container[best_lp2].y();
     event.lp2mom_z = lp2_mom_container[best_lp2].z();
+
+    //    event.lmom_lp2 = lp2_l_mom_container[best_lp2].Mag();
     event.lmom_lp2_x = lp2_l_mom_container[best_lp2].x();
     event.lmom_lp2_y = lp2_l_mom_container[best_lp2].y();
     event.lmom_lp2_z = lp2_l_mom_container[best_lp2].z();
@@ -2311,6 +2416,74 @@ dst::DstRead( Int_t ievent )
     Double_t thetaPi = lp2_pi_mom_container[best_lp2].Theta()*TMath::RadToDeg();
     Double_t thetaP2 = lp2_p2_mom_container[best_lp2].Theta()*TMath::RadToDeg();
     Double_t thetaL = lp2_l_mom_container[best_lp2].Theta()*TMath::RadToDeg();
+
+    Double_t angleP1Pi = lp2_p_mom_container[best].Angle(lp2_pi_mom_container[best])*TMath::RadToDeg();
+    Double_t angleP1P2 = lp2_p_mom_container[best].Angle(lp2_p2_mom_container[best])*TMath::RadToDeg();    
+    Double_t angleP1L = lp2_p_mom_container[best].Angle(lp2_l_mom_container[best])*TMath::RadToDeg();
+    Double_t anglePiP2 = lp2_pi_mom_container[best].Angle(lp2_p2_mom_container[best])*TMath::RadToDeg();    
+    Double_t anglePiL = lp2_pi_mom_container[best].Angle(lp2_l_mom_container[best])*TMath::RadToDeg();    
+    Double_t angleP2L = lp2_p2_mom_container[best].Angle(lp2_l_mom_container[best])*TMath::RadToDeg();    
+    Double_t momP1 = lp2_p_mom_container[best].Mag();
+    Double_t momPi = lp2_pi_mom_container[best].Mag();
+    Double_t momP2 = lp2_p2_mom_container[best].Mag();        
+    Double_t momL = lp2_l_mom_container[best].Mag();
+
+    if(FlagOutput&&angleP1P2<0.01){
+      std::ofstream appendfile(outputfile, std::ios::app);
+      if (!appendfile.is_open()) {
+	std::cerr << "Failed to open file for appending!" << std::endl;
+	return 1;
+      }
+      std::cout << "start writing to " << outputfile << std::endl;      
+      std::cout  << ievent
+		 << " " << lp2_p_container[best_lp2]
+		 << " " << lp2_pi_container[best_lp2]
+		 << " " << lp2_p2_container[best_lp2]
+		 << " " << event.lp2angle
+		 << std::endl;
+      appendfile << ievent
+		 << " " << lp2_p_container[best_lp2]
+		 << " " << lp2_pi_container[best_lp2]
+		 << " " << lp2_p2_container[best_lp2]
+		 << std::endl;
+      appendfile.close();
+    }    
+
+  
+    HF1( 1174, angleP1Pi );
+    HF1( 1175, angleP1P2 );  
+    HF1( 1176, angleP1L );
+    HF1( 1177, anglePiP2 );  
+    HF1( 1178, anglePiL );
+    HF1( 1179, angleP2L );  
+
+    HF2( 2611, thetaP1, momP1 );    
+    HF2( 2612, thetaPi, momPi );
+    HF2( 2613, thetaP2, momP2 );
+    HF2( 2614, thetaL, momL );        
+    
+    HF2( 2461, thetaP1, thetaP1 );
+    HF2( 2462, thetaP1, thetaPi );
+    HF2( 2463, thetaP1, thetaL );
+    HF2( 2464, thetaP1, thetaP2 );
+    HF2( 2471, thetaPi, thetaPi );
+    HF2( 2472, thetaPi, thetaL );
+    HF2( 2473, thetaPi, thetaP2 );
+    HF2( 2481, thetaL, thetaL );
+    HF2( 2482, thetaL, thetaP2 );
+    HF2( 2491, thetaP2, thetaP2 );
+  
+    HF2( 2261, momP1, momP1 );
+    HF2( 2262, momP1, momPi );
+    HF2( 2263, momP1, momL );
+    HF2( 2264, momP1, momP2 );      
+    HF2( 2271, momPi, momPi );
+    HF2( 2272, momPi, momL );
+    HF2( 2273, momPi, momP2 );    
+    HF2( 2281, momL, momL );
+    HF2( 2282, momL, momP2 );
+    HF2( 2291, momP2, momP2 );        
+
     HF1( 1125, thetaP1 );
     HF1( 1131, thetaPi );
     HF1( 1137, thetaP2 );
@@ -2318,6 +2491,13 @@ dst::DstRead( Int_t ievent )
     for(int i=0; i<event.nKK; ++i){
       Double_t bek = event.BEkaonTPC[i];
       Double_t theta = event.thetaTPC[i];
+      TVector3 diffMomtrfMomLp = momTrans[i] - lp2_mom_container[best_lp2];
+      HF2( 4001, bek, angleP1P2 );        
+      HF1( 72, momTransMag.at(i) );
+      HF1( 1481, diffMomtrfMomLp.Mag() );
+      HF2( 3000, event.lp2angle, lp2_mom_container[best_lp2].Mag() );
+      HF2( 3010, event.lp2angle, event.lp2mass );      
+      HF2( 3020, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );
       if( bek<-0.1 ){	
 	HF1( 1102, event.lp2angle );
 	HF1( 1218, event.lp2mass );
@@ -2329,7 +2509,11 @@ dst::DstRead( Int_t ievent )
 	HF1( 1442, event.lp2decays_mom[0] );
 	HF1( 1452, event.lp2decays_mom[1] );
 	HF1( 1462, event.lp2decays_mom[2] );
-	HF1( 1472, lp2_l_mom_container[best_lp2].Mag() );    
+	HF1( 1472, lp2_l_mom_container[best_lp2].Mag() );
+	HF1( 1482, diffMomtrfMomLp.Mag() );	
+	HF2( 3001, event.lp2angle, lp2_mom_container[best_lp2].Mag() );
+	HF2( 3011, event.lp2angle, event.lp2mass );
+	HF2( 3021, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );	
       } else if ( bek<0. ){
 	HF1( 1103, event.lp2angle );
 	HF1( 1219, event.lp2mass );
@@ -2341,7 +2525,11 @@ dst::DstRead( Int_t ievent )
 	HF1( 1443, event.lp2decays_mom[0] );
 	HF1( 1453, event.lp2decays_mom[1] );
 	HF1( 1463, event.lp2decays_mom[2] );
-	HF1( 1473, lp2_l_mom_container[best_lp2].Mag() );	
+	HF1( 1473, lp2_l_mom_container[best_lp2].Mag() );
+	HF1( 1483, diffMomtrfMomLp.Mag() );		
+	HF2( 3002, event.lp2angle, lp2_mom_container[best_lp2].Mag() );
+	HF2( 3012, event.lp2angle, event.lp2mass );
+	HF2( 3022, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );		
       } else if ( bek<0.1 ){
 	HF1( 1104, event.lp2angle );
 	HF1( 1220, event.lp2mass );
@@ -2353,7 +2541,11 @@ dst::DstRead( Int_t ievent )
 	HF1( 1444, event.lp2decays_mom[0] );
 	HF1( 1454, event.lp2decays_mom[1] );
 	HF1( 1464, event.lp2decays_mom[2] );
-	HF1( 1474, lp2_l_mom_container[best_lp2].Mag() ); 		
+	HF1( 1474, lp2_l_mom_container[best_lp2].Mag() );
+	HF1( 1484, diffMomtrfMomLp.Mag() );			
+	HF2( 3003, event.lp2angle, lp2_mom_container[best_lp2].Mag() );
+	HF2( 3013, event.lp2angle, event.lp2mass );
+	HF2( 3023, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );			
       } else if ( bek<0.2 ){
 	HF1( 1105, event.lp2angle );
 	HF1( 1221, event.lp2mass );
@@ -2366,6 +2558,10 @@ dst::DstRead( Int_t ievent )
 	HF1( 1455, event.lp2decays_mom[1] );
 	HF1( 1465, event.lp2decays_mom[2] );
 	HF1( 1475, lp2_l_mom_container[best_lp2].Mag() );
+	HF1( 1485, diffMomtrfMomLp.Mag() );				
+	HF2( 3004, event.lp2angle, lp2_mom_container[best_lp2].Mag() );
+	HF2( 3014, event.lp2angle, event.lp2mass );
+	HF2( 3024, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );			
       } else if ( bek<0.3 ){
 	HF1( 1106, event.lp2angle );
 	HF1( 1222, event.lp2mass );
@@ -2378,39 +2574,144 @@ dst::DstRead( Int_t ievent )
 	HF1( 1456, event.lp2decays_mom[1] );
 	HF1( 1466, event.lp2decays_mom[2] );
 	HF1( 1476, lp2_l_mom_container[best_lp2].Mag() );
+	HF1( 1486, diffMomtrfMomLp.Mag() );					
+	HF2( 3005, event.lp2angle, lp2_mom_container[best_lp2].Mag() );
+	HF2( 3015, event.lp2angle, event.lp2mass );
+	HF2( 3025, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );				
       }    
       HF1( 1207, bek );
       HF1( 1250, bek );
+      HF1( 1260, momTransMag.at(i) );
+      HF1( 1270, lp2_mom_container[best_lp2].Mag() );
+      HF1( 1280, diffMomtrfMomLp.Mag() );
+      
+      HF2( 3040, bek, momTransMag.at(i) );
+      HF2( 3050, bek, event.lp2mass );
+      HF1( 1240, event.lp2mass );      
       if( theta<5. ) HF1( 1208, bek );
       if( theta<10. ) HF1( 1209, bek );
-      Double_t lpAngle = event.lp2angle;
-      if( lpAngle<20.0 ){
+      if( event.lp2angle<20.0 ){
+	HF1( 1241, event.lp2mass );      	
 	HF1( 1251, bek );
-      }	else if( lpAngle<40.0 ){
+	HF1( 1261, momTransMag.at(i) );
+	HF1( 1271, lp2_mom_container[best_lp2].Mag() );
+	HF1( 1281, diffMomtrfMomLp.Mag() );	
+	HF2( 3031, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );
+	HF2( 3041, bek, momTransMag.at(i) );
+	HF2( 3051, bek, event.lp2mass );      
+      }	else if( event.lp2angle<40.0 ){
+	HF1( 1242, event.lp2mass );      		
 	HF1( 1252, bek );
-      }	else if( lpAngle<60.0 ){
+	HF1( 1262, momTransMag.at(i) );	
+	HF1( 1272, lp2_mom_container[best_lp2].Mag() );
+	HF1( 1282, diffMomtrfMomLp.Mag() );
+	HF2( 3032, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );
+	HF2( 3042, bek, momTransMag.at(i) );
+	HF2( 3052, bek, event.lp2mass );      	
+      }	else if( event.lp2angle<60.0 ){
+	HF1( 1243, event.lp2mass );      			
 	HF1( 1253, bek );
-      }	else if( lpAngle<80.0 ){
+	HF1( 1263, momTransMag.at(i) );
+	HF1( 1273, lp2_mom_container[best_lp2].Mag() );
+	HF1( 1283, diffMomtrfMomLp.Mag() );
+	HF2( 3033, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );
+	HF2( 3043, bek, momTransMag.at(i) );
+	HF2( 3053, bek, event.lp2mass );      	
+      }	else if( event.lp2angle<80.0 ){
+	HF1( 1244, event.lp2mass );      			
 	HF1( 1254, bek );
-      }	else if( lpAngle<100.0 ){
-	HF1( 1255, bek );	
-      }	else if( lpAngle<120.0 ){
+	HF1( 1264, momTransMag.at(i) );
+	HF1( 1274, lp2_mom_container[best_lp2].Mag() );
+	HF1( 1284, diffMomtrfMomLp.Mag() );			
+	HF2( 3034, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );
+	HF2( 3044, bek, momTransMag.at(i) );
+	HF2( 3054, bek, event.lp2mass );      	
+      }	else if( event.lp2angle<100.0 ){
+	HF1( 1245, event.lp2mass );      			
+	HF1( 1255, bek );
+	HF1( 1265, momTransMag.at(i) );
+	HF1( 1275, lp2_mom_container[best_lp2].Mag() );
+	HF1( 1285, diffMomtrfMomLp.Mag() );			
+	HF2( 3035, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );
+	HF2( 3045, bek, momTransMag.at(i) );
+	HF2( 3055, bek, event.lp2mass );      	
+      }	else if( event.lp2angle<120.0 ){
+	HF1( 1246, event.lp2mass );      			
 	HF1( 1256, bek );
-      }	else if( lpAngle<140.0 ){
-	HF1( 1257, bek );		
-      }	else if( lpAngle<160.0 ){
-	HF1( 1258, bek );		
-      }	else if( lpAngle<180.0 ){
-	HF1( 1259, bek );		
+	HF1( 1266, momTransMag.at(i) );
+	HF1( 1276, lp2_mom_container[best_lp2].Mag() );
+	HF1( 1286, diffMomtrfMomLp.Mag() );				
+	HF2( 3036, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );
+	HF2( 3046, bek, momTransMag.at(i) );
+	HF2( 3056, bek, event.lp2mass );      	
+      }	else if( event.lp2angle<140.0 ){
+	HF1( 1247, event.lp2mass );      			
+	HF1( 1257, bek );
+	HF1( 1267, momTransMag.at(i) );
+	HF1( 1277, lp2_mom_container[best_lp2].Mag() );
+	HF1( 1287, diffMomtrfMomLp.Mag() );					
+	HF2( 3037, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );
+	HF2( 3047, bek, momTransMag.at(i) );
+	HF2( 3057, bek, event.lp2mass );      	
+      }	else if( event.lp2angle<160.0 ){
+	HF1( 1248, event.lp2mass );      			
+	HF1( 1258, bek );
+	HF1( 1268, momTransMag.at(i) );
+	HF1( 1278, lp2_mom_container[best_lp2].Mag() );
+	HF1( 1288, diffMomtrfMomLp.Mag() );						
+	HF2( 3038, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );
+	HF2( 3048, bek, momTransMag.at(i) );
+	HF2( 3058, bek, event.lp2mass );      
+      }	else if( event.lp2angle<180.0 ){
+	HF1( 1249, event.lp2mass );      			
+	HF1( 1259, bek );
+	HF1( 1269, momTransMag.at(i) );
+	HF1( 1279, lp2_mom_container[best_lp2].Mag() );
+	HF1( 1289, diffMomtrfMomLp.Mag() );
+	HF2( 3039, lp2_mom_container[best_lp2].Mag(), momTransMag.at(i) );
+	HF2( 3049, bek, momTransMag.at(i) );
+	HF2( 3059, bek, event.lp2mass );      	
       }
       HF2( 2101, event.lp2angle, lp2_p_mom_container[best_lp2].Mag() );
       HF2( 2102, event.lp2angle, lp2_pi_mom_container[best_lp2].Mag() );
       HF2( 2103, event.lp2angle, lp2_p2_mom_container[best_lp2].Mag() );
       HF2( 2104, event.lp2angle, l_mom_container[best_lp2].Mag() );
+      HF2( 2105, event.lp2angle, lp2_mom_container[best_lp2].Mag() );
       HF2( 2111, event.lp2angle, bek );
       HF2( 2112, event.lp2angle, event.lmass );
       HF2( 2113, event.lp2angle, event.lp2mass );
-    }
+
+      Int_t itP1 = lp2_p_container[best_lp2];
+      Int_t itPi = lp2_pi_container[best_lp2];
+      Int_t itP2 = lp2_p2_container[best_lp2];
+      HF2(230, event.mom0[itP1]*event.charge[itP1], event.dEdx[itP1]);      
+      HF2(230, event.mom0[itPi]*event.charge[itPi], event.dEdx[itPi]);
+      HF2(230, event.mom0[itP2]*event.charge[itP2], event.dEdx[itP2]);
+      HF2(240, event.mom0[itP1]*event.charge[itP1], event.dEdx[itP1]);
+      HF2(250, event.mom0[itPi]*event.charge[itPi], event.dEdx[itPi]);
+      HF2(260, event.mom0[itP2]*event.charge[itP2], event.dEdx[itP2]);
+      if ( event.charge[itP1]<0 ){
+	HF2(231, -event.mom0[itP1]*event.charge[itP1], event.dEdx[itP1]);
+	HF2(241, -event.mom0[itP1]*event.charge[itP1], event.dEdx[itP1]);	
+      } else {
+	HF2(232, event.mom0[itP1]*event.charge[itP1], event.dEdx[itP1]);
+	HF2(242, event.mom0[itP1]*event.charge[itP1], event.dEdx[itP1]);	
+      }
+      if ( event.charge[itPi]<0 ){
+	HF2(231, -event.mom0[itPi]*event.charge[itPi], event.dEdx[itPi]);
+	HF2(251, -event.mom0[itPi]*event.charge[itPi], event.dEdx[itPi]);	
+      } else {
+	HF2(232, event.mom0[itPi]*event.charge[itPi], event.dEdx[itPi]);
+	HF2(252, event.mom0[itPi]*event.charge[itPi], event.dEdx[itPi]);	
+      }
+      if ( event.charge[itP2]<0 ){
+	HF2(231, -event.mom0[itP2]*event.charge[itP2], event.dEdx[itP2]);
+	HF2(261, -event.mom0[itP2]*event.charge[itP2], event.dEdx[itP2]);	
+      } else {
+	HF2(232, event.mom0[itP2]*event.charge[itP2], event.dEdx[itP2]);
+	HF2(262, event.mom0[itP2]*event.charge[itP2], event.dEdx[itP2]);	
+      }      
+    } // nKK
   }
   // }
   TPCAnalyzer TPCAna;
@@ -2590,6 +2891,7 @@ dst::DstRead( Int_t ievent )
   std::vector<TVector3> GFlp2_p_mom_container(lp2_candidates, TVector3(qnan, qnan, qnan));
   std::vector<TVector3> GFlp2_pi_mom_container(lp2_candidates, TVector3(qnan, qnan, qnan));
   std::vector<TVector3> GFlp2_p2_mom_container(lp2_candidates, TVector3(qnan, qnan, qnan));
+  std::vector<TVector3> GFlp2_l_mom_container(lp2_candidates, TVector3(qnan, qnan, qnan));  
   std::vector<TVector3> GFlp2_vert_container(lp2_candidates, TVector3(qnan, qnan, qnan));
   std::vector<Double_t> GFl_lp2_mass_container(lp2_candidates, qnan);
   std::vector<Double_t> GFlp2_mass_container(lp2_candidates, qnan);
@@ -2597,6 +2899,7 @@ dst::DstRead( Int_t ievent )
   std::vector<Double_t> GFlp2_pi_mass_container(lp2_candidates, qnan);
   std::vector<Double_t> GFlp2_p2_mass_container(lp2_candidates, qnan);
   std::vector<Double_t> GFlp2_closedist_container(lp2_candidates, qnan);
+  std::vector<Double_t> GFlp2_opangle_container(lp2_candidates, qnan);
   // kinematical fitting
   std::vector<Double_t> KFchisqrl_container(l_candidates, qnan);
   std::vector<Double_t> KFpvall_container(l_candidates, qnan);
@@ -2616,7 +2919,8 @@ dst::DstRead( Int_t ievent )
       if(temp==flag) repid_p += 1;
       flag*=2;
     }
-    Int_t repid_pi = 0; Int_t repid_pi2 = 0;
+    //    Int_t repid_pi = 0; Int_t repid_pi2 = 0;
+    Int_t repid_pi = 0; Int_t repid_p2 = 0;    
 
     Double_t GFextrapolation_decays[3];
     Double_t GFmass2_decays[3] = {qnan, qnan, qnan};
@@ -2634,7 +2938,8 @@ dst::DstRead( Int_t ievent )
     TLorentzVector GFLlambda = GFLp + GFLpi;
     TVector3 GFlambda_mom = GFmom_decays[0] + GFmom_decays[1];
     TLorentzVector GFLlambda_fixed(GFlambda_mom, TMath::Sqrt(GFlambda_mom.Mag()*GFlambda_mom.Mag() + LambdaMass*LambdaMass));
-    TVector3 GFxi_vert; Double_t GFlpi_dist = qnan; Double_t GFlambda_tracklen;
+    //    TVector3 GFxi_vert; Double_t GFlpi_dist = qnan; Double_t GFlambda_tracklen;
+    TVector3 GFlp_vert; Double_t GFlp_dist = qnan; Double_t GFlambda_tracklen;
     Double_t GFlambda_tof = Kinematics::CalcTimeOfFlight(GFlambda_mom.Mag(), GFlambda_tracklen, pdg::LambdaMass());
     Int_t htofhitid_p; Double_t tracklen_p; Double_t tof; TVector3 pos; Double_t track2tgt_dist;
     Bool_t htofextrapolation_p = GFTrackCont.TPCHTOFTrackMatching(trackid_p, repid_p, GFlambda_vert, event.HtofSeg, event.posHtof, htofhitid_p, tof, tracklen_p, pos, track2tgt_dist);
@@ -2675,7 +2980,8 @@ dst::DstRead( Int_t ievent )
   }
   // lambda proton 
   Int_t gfbest_lp2 = -1;
-  prev_massdiff = 9999.;
+  //  prev_massdiff = 9999.;
+  Double_t gfprev_distdiff_lp2 = 9999.;  
   for(Int_t candi=0;candi<lp2_candidates;candi++){
     Int_t trackid_p = lp2_p_container[candi];
     Int_t trackid_pi = lp2_pi_container[candi];
@@ -2699,17 +3005,67 @@ dst::DstRead( Int_t ievent )
        || GFppi_dist > GFppi_distcut) continue;
     TLorentzVector GFLp(GFmom_decays[0], TMath::Sqrt(GFmom_decays[0].Mag()*GFmom_decays[0].Mag() + ProtonMass*ProtonMass));
     TLorentzVector GFLpi(GFmom_decays[1], TMath::Sqrt(GFmom_decays[1].Mag()*GFmom_decays[1].Mag() + PionMass*PionMass));
-    TLorentzVector GFLp2(GFmom_decays[2], TMath::Sqrt(GFmom_decays[2].Mag()*GFmom_decays[2].Mag() + ProtonMass*ProtonMass));
     //    std::cout << "debug GFmom_decays[2].Mag() " << GFmom_decays[2].Mag() << std::endl;
     TLorentzVector GFLlambda = GFLp + GFLpi;
     TVector3 GFlambda_mom = GFmom_decays[0] + GFmom_decays[1];
+#if DoKinematicFitLd
+    Double_t KFchisqrl;
+    Double_t KFpvall;
+    auto Vp = Track_p->GetCovarianceMatrix();
+    auto Vpi1 = Track_pi->GetCovarianceMatrix();
+    auto HLVP = TLorentzVector(GFLp.X(),GFLp.Z(),GFLp.Y(),GFLp.E());  
+    auto HLVPi1 = TLorentzVector(GFLpi.X(),GFLpi.Z(),GFLpi.Y(),GFLpi.E());
+    auto HLVLd = TLorentzVector(GFLlambda.X(),GFLlambda.Z(),GFLlambda.Y(),GFLlambda.E());  
+    FourVectorFitter KFLd(HLVP,HLVPi1,HLVLd);
+    KFLd.SetInvMass(LambdaMass);
+    KFLd.SetMaximumStep(5);
+    double VarianceLd[6] =
+      {Vp(0,0),Vp(1,1),Vp(2,2),
+       Vpi1(0,0),Vpi1(1,1),Vpi1(2,2)};
+    double OffdiagElemLd[36]={0};
+    auto OffdiagLd = MathTools::MergeOffdiagonals(Vp,Vpi1);
+    KFLd.SetVariance(VarianceLd);
+    KFLd.AddOffdiagonals(OffdiagLd);
+    KFchisqrl = KFLd.DoKinematicFit();
+    cout<<Form("KFLambda done:: chi2 = %g",KFchisqrl)<<endl;
+    KFpvall = KFLd.GetPValue();
+    auto HcontLd = KFLd.GetFittedLV();
+    auto PullLd = KFLd.GetPull();
+    auto KFHLVP = HcontLd.at(0);
+    auto KFHLVPi1 = HcontLd.at(1);
+    auto KFHLVLd = HcontLd.at(2);
+    auto VLd = KFLd.GetUnmeasuredCovariance();
+    KFchisqrl_container[candi] = KFchisqrl;
+    KFpvall_container[candi] = KFpvall;
+    for(int i=0;i<6;i++){
+      KFlpull_container[candi][i] = PullLd.at(i);
+    }
+    KFVarianceLd_container[candi] = VLd;
+    KFp_mom_container[candi] = TVector3(KFHLVP.X(),KFHLVP.Z(),KFHLVP.Y());  
+    KFpi_mom_container[candi] = TVector3(KFHLVPi1.X(),KFHLVPi1.Z(),KFHLVPi1.Y());
+    TVector3 KFlambda_mom = TVector3(KFHLVLd.X(),KFHLVLd.Z(),KFHLVLd.Y());  
+    GFlambda_mom = KFlambda_mom;   
+#endif
     TLorentzVector GFLlambda_fixed(GFlambda_mom, TMath::Sqrt(GFlambda_mom.Mag()*GFlambda_mom.Mag() + LambdaMass*LambdaMass));
-    TLorentzVector GFLlp2 = GFLlambda_fixed + GFLp2;
-    TVector3 GFlp2_mom = GFmom_decays[0] + GFmom_decays[1] + GFmom_decays[2];
-
-    TVector3 GFlp2_vert; Double_t GFlp2_dist = qnan; Double_t GFlp2_tracklen;
-    Double_t GFlambda_tof = Kinematics::CalcTimeOfFlight(GFlambda_mom.Mag(), GFlp2_tracklen, pdg::LambdaMass());
-
+    TVector3 GFlp2_vert; Double_t GFlp2_dist = qnan; Double_t GFlambda_tracklen;
+    #if DoKinematicFitLd
+    double l_res_x,l_res_y,l_phi;
+    MathTools::DecomposeResolution(VLd,KFlambda_mom,l_res_x,l_res_y,l_phi); 
+    if(!GFTrackCont.FindVertexXi(trackid_pi2, repid_pi2,
+				 GFlambda_vert, GFlambda_mom, GFlambda_tracklen,
+				 GFextrapolation_decays[2], GFmom_decays[2],
+				 GFlp2_dist, GFlp2_vert, vtx_scan_range,l_res_x,l_res_y,l_phi)
+      || GFlp2_dist > GFlp2_distcut) continue;
+    #else
+    if(!GFTrackCont.FindVertexXi(trackid_p2, repid_p2,
+				 GFlambda_vert, GFlambda_mom, GFlambda_tracklen,
+				 GFextrapolation_decays[2], GFmom_decays[2],
+				 GFlp2_dist, GFlp2_vert, vtx_scan_range)
+       || GFlp2_dist > GFlp2_distcut) continue;
+    #endif
+    
+    Double_t GFlambda_tof = Kinematics::CalcTimeOfFlight(GFlambda_mom.Mag(), GFlambda_tracklen, pdg::LambdaMass());
+    
     Int_t htofhitid_p; Double_t tracklen_p; Double_t tof; TVector3 pos; Double_t track2tgt_dist;
     Bool_t htofextrapolation_p = GFTrackCont.TPCHTOFTrackMatching(trackid_p, repid_p, GFlambda_vert, event.HtofSeg, event.posHtof, htofhitid_p, tof, tracklen_p, pos, track2tgt_dist);
     if(htofextrapolation_p){
@@ -2718,7 +3074,6 @@ dst::DstRead( Int_t ievent )
 						 event.tHtof[htofhitid_p] - GFlambda_tof);
       //if(GFmass2_decays[0] < 0.25) continue;
     }
-
     Int_t htofhitid_pi; Double_t tracklen_pi;
     Bool_t htofextrapolation_pi = GFTrackCont.TPCHTOFTrackMatching(trackid_pi, repid_pi, GFlambda_vert, event.HtofSeg, event.posHtof,htofhitid_pi, tof, tracklen_pi, pos, track2tgt_dist);
     if(htofextrapolation_pi){
@@ -2727,15 +3082,20 @@ dst::DstRead( Int_t ievent )
 						 event.tHtof[htofhitid_pi] - GFlambda_tof);
       // if(GFmass2_decays[1] > 0.25) continue;
     }
+    
+    TLorentzVector GFLp2(GFmom_decays[2], TMath::Sqrt(GFmom_decays[2].Mag()*GFmom_decays[2].Mag() + ProtonMass*ProtonMass));    
+    TLorentzVector GFLlp2 = GFLlambda_fixed + GFLp2;
+    TVector3 GFlp2_mom = GFmom_decays[0] + GFmom_decays[1] + GFmom_decays[2];
+    
     Int_t htofhitid_p2; Double_t tracklen_p2; 
     Bool_t htofextrapolation_p2 = GFTrackCont.TPCHTOFTrackMatching(trackid_p2, repid_p2, GFlambda_vert, event.HtofSeg, event.posHtof, htofhitid_p2, tof, tracklen_p2, pos, track2tgt_dist);
     if(htofextrapolation_p2){
       GFmass2_decays[2] = Kinematics::MassSquare(GFmom_decays[2].Mag(),
 						 tracklen_p2  - GFextrapolation_decays[2],
-						 event.tHtof[htofhitid_p2] - GFlambda_tof);
+						 event.tHtof[htofhitid_p2]);
       //if(GFmass2_decays[0] < 0.25) continue;
     }
-
+    Double_t lp2_opening_angle = GFlambda_mom.Angle(GFmom_decays[2])*TMath::RadToDeg();    
     event.GFlp2flag = true;
     GFlp2_p_id_container[candi] = trackid_p;
     GFlp2_pi_id_container[candi] = trackid_pi;
@@ -2747,6 +3107,7 @@ dst::DstRead( Int_t ievent )
     GFlp2_p_mom_container[candi] = GFmom_decays[0]; 
     GFlp2_pi_mom_container[candi] = GFmom_decays[1]; 
     GFlp2_p2_mom_container[candi] = GFmom_decays[2];
+    GFlp2_l_mom_container[candi] = GFlambda_mom;
     GFlp2_vert_container[candi] = GFlp2_vert;
     GFl_lp2_mass_container[candi] = GFLlambda.M();
     GFlp2_mass_container[candi] = GFLlp2.M();
@@ -2754,12 +3115,16 @@ dst::DstRead( Int_t ievent )
     GFlp2_pi_mass_container[candi] = GFmass2_decays[1];
     GFlp2_p2_mass_container[candi] = GFmass2_decays[2];
     GFlp2_closedist_container[candi] = GFlp2_dist;
-    Double_t diff = TMath::Abs(lambda_mass_container[candi] - LambdaMass); // to be changed
-    if(prev_massdiff > diff){
-      prev_massdiff = diff;
+    GFlp2_opangle_container[candi] = lp2_opening_angle;
+    //    Double_t diff = TMath::Abs(lambda_mass_container[candi] - LambdaMass); // to be changed
+    Double_t diff = TMath::Abs(GFlp2_closedist_container.at(candi));
+    if(gfprev_distdiff_lp2 > diff){
+      gfprev_distdiff_lp2 = diff;
       gfbest_lp2 = candi;
+      std::cout << "GFbest lambda proton: " << best_lp2 << std::endl;      
     }
   }//
+  
   if(!event.GFlflag) return true;
   HF1( genfitHid, GFntTpc);
 
@@ -2775,9 +3140,10 @@ dst::DstRead( Int_t ievent )
 			event.lp2mom_y*event.lp2mom_y +
 			event.lp2mom_z*event.lp2mom_z) );
   HF1( 28, event.ppi_dist);
-  event.GFntTpc = 2; // is this correct? 
+  event.GFntTpc = 3; // is this correct? 
   if(gfbest_lp2 != -1){
     event.GFlp2mass = GFlp2_mass_container[gfbest_lp2];
+    event.GFlmass_lp2 = GFl_lp2_mass_container[gfbest_lp2];
     event.GFlp2decayvtx_x = GFlp2_vert_container[gfbest_lp2].x();
     event.GFlp2decayvtx_y = GFlp2_vert_container[gfbest_lp2].y();
     event.GFlp2decayvtx_z = GFlp2_vert_container[gfbest_lp2].z();
@@ -2785,9 +3151,10 @@ dst::DstRead( Int_t ievent )
     event.GFlp2mom_x = GFlp2_mom_container[gfbest_lp2].x();
     event.GFlp2mom_y = GFlp2_mom_container[gfbest_lp2].y();
     event.GFlp2mom_z = GFlp2_mom_container[gfbest_lp2].z();
+    event.GFlmom_lp2 = GFlp2_l_mom_container[gfbest_lp2].Mag();
     event.GFlp2_dist = GFlp2_closedist_container[gfbest_lp2];
-    event.GFlp2_angle = GFl_mom_container[gfbest_lp2].Angle(GFlp2_p2_mom_container[gfbest_lp2]);
-
+    event.GFlp2_angle = GFlp2_opangle_container[gfbest_lp2];
+    
     event.GFdecays_m2_lp2.resize(3);
     event.GFdecays_mom_lp2.resize(3);
     event.GFdecays_mom_x_lp2.resize(3);
@@ -2940,7 +3307,7 @@ dst::DstRead( Int_t ievent )
 
     event.GFdecays_m2[j] = GFmass_decays;
     event.GFdecays_mom[j] = GFmom_decays.Mag();
-    HF1( 10103+j, GFmom_decays.Mag() );
+
     //    if(j==1) HF2( )
     event.GFdecays_mom_x[j] = GFmom_decays.x();
     event.GFdecays_mom_y[j] = GFmom_decays.y();
@@ -3084,6 +3451,9 @@ dst::DstRead( Int_t ievent )
 
     event.GFchisqrPos[j]=GFchisqrPos;
     event.GFpvalPos[j]=GFpvalPos;
+
+    HF1( 10103+j, GFmom_decays.Mag() );
+    
   } //igf
   
   // lambda proton
@@ -3092,7 +3462,7 @@ dst::DstRead( Int_t ievent )
       Int_t igf = GFlp2_p_id_container[gfbest_lp2];
       if(j==1) igf = GFlp2_pi_id_container[gfbest_lp2];
       if(j==2) igf = GFlp2_p2_id_container[gfbest_lp2];
-
+      
       Int_t repid = GFlp2_p_rep_container[gfbest_lp2];
       if(j==1) repid = GFlp2_pi_rep_container[gfbest_lp2];
       if(j==2) repid = GFlp2_p2_rep_container[gfbest_lp2];
@@ -3100,13 +3470,13 @@ dst::DstRead( Int_t ievent )
       event.GFfitstatus_lp2[j] = (Int_t) GFTrackCont.TrackCheck(igf, repid);
       //    HF1( 3, event.GFfitstatus[j]);
       if(!event.GFfitstatus_lp2[j]) continue;
-
+      
       Int_t nh = GFTrackCont.GetNHits(igf);
       event.GFnhtrack_lp2[j] = nh;
       event.GFchisqr_lp2[j] = GFTrackCont.GetChi2NDF(igf, repid);
       event.GFcharge_lp2[j] = GFTrackCont.GetCharge(igf, repid);
-      event.GFtof_lp2[j] = GFTrackCont.GetTrackTOF(igf, 0, -1, repid);
-      event.GFtracklen_lp2[j] = GFTrackCont.GetTrackLength(igf, 0, -1, repid);
+      event.GFtof_lp2[j] = GFTrackCont.GetTrackTOF(igf, 0, -1, repid); // to be checked  3rd argument is true or not
+      event.GFtracklen_lp2[j] = GFTrackCont.GetTrackLength(igf, 0, -1, repid); // to be checked  3rd argument is true or not
       event.GFpval_lp2[j] = GFTrackCont.GetPvalue(igf, repid);
       event.GFpdgcode_lp2[j] = GFTrackCont.GetPDGcode(igf, repid);
 
@@ -3117,14 +3487,14 @@ dst::DstRead( Int_t ievent )
       Double_t GFmass_decays = GFlp2_p_mass_container[gfbest_lp2];
       if(j==1) GFmass_decays = GFlp2_pi_mass_container[gfbest_lp2];
       if(j==2) GFmass_decays = GFlp2_p2_mass_container[gfbest_lp2];
-    
+      
       event.GFdecays_m2_lp2[j] = GFmass_decays;
       event.GFdecays_mom_lp2[j] = GFmom_decays.Mag();
       event.GFdecays_mom_x_lp2[j] = GFmom_decays.x();
       event.GFdecays_mom_y_lp2[j] = GFmom_decays.y();
       event.GFdecays_mom_z_lp2[j] = GFmom_decays.z();
       event.GFmomloss_lp2[j] = GFmom_decays.Mag() - GFTrackCont.GetMom(igf, 0, repid).Mag();
-      Double_t pdgmass[3] = {ProtonMass, PionMass, PionMass};
+      Double_t pdgmass[3] = {ProtonMass, PionMass, ProtonMass};
       event.GFeloss_lp2[j] = TMath::Sqrt(GFmom_decays.Mag()*GFmom_decays.Mag() + pdgmass[j]*pdgmass[j]) - TMath::Sqrt(GFTrackCont.GetMom(igf, 0, repid).Mag()*GFTrackCont.GetMom(igf, 0, repid).Mag() + pdgmass[j]*pdgmass[j]);
     
       event.GFlayer_lp2[j].resize(nh);
@@ -3249,8 +3619,7 @@ dst::DstRead( Int_t ievent )
 	  HF1( 616, event.GFpull_pz_lp2[j][ihit]);
 	}
 	ihit++;
-      } //ih
-
+      } //ih            
       double GFndf = 2*ihit - 5; //Effective number of clusters
       double GFpvalPos = -1;
       if(GFndf > 0){
@@ -3261,14 +3630,80 @@ dst::DstRead( Int_t ievent )
 
       event.GFchisqrPos_lp2[j]=GFchisqrPos;
       event.GFpvalPos_lp2[j]=GFpvalPos;
-    } //igf Lp2
+
+      HF1( 10131+j, event.GFdecays_m2_lp2[j] );
+      for(int i=0; i<event.nKK; ++i){
+	Double_t bek = event.BEkaonTPC[i];
+	Double_t theta = event.thetaTPC[i];
+	TVector3 diffMomtrfMomLp = momTrans[i] - GFlp2_mom_container[gfbest_lp2];
+	HF1( 10113+j, event.GFdecays_mom_lp2[j] );
+	HF1( 11441+j*10, event.GFdecays_mom_lp2[j] );
+	for( Int_t i_bek=0; i_bek<5; i_bek++){
+	  if( bek<-0.1+0.1*i_bek ){
+	    HF1( 11442+j*10+i_bek, event.GFdecays_mom_lp2[j] );
+	    continue;
+	  }
+	}
+      } // nKp
+    } //igf Lp2    
     TVector3 KPVert(event.vtx[0],event.vty[0],event.vtz[0]);
     TVector3 LP2Mom = GFlp2_mom_container[gfbest_lp2];
     TVector3 LP2Vert = GFlp2_vert_container[gfbest_lp2];
     if(event.isgoodTPC[0] == 1){
       KPVert = TVector3(event.vtxTPC[0],event.vtyTPC[0],event.vtzTPC[0]);
     }
+    
+    for(int i=0; i<event.nKK; ++i){
+      Double_t bek = event.BEkaonTPC[i];
+      Double_t theta = event.thetaTPC[i];
+      TVector3 diffMomtrfMomLp = momTrans[i] - GFlp2_mom_container[gfbest_lp2];
+      HF1( 11101, event.GFlp2_angle );
+      HF1( 11211, event.GFlp2mass ); HF1( 11240, event.GFlp2mass );
+      HF1( 11231, event.GFlmass_lp2 );
+      HF1( 11471, event.GFlmom_lp2 );
+      HF1( 11481, diffMomtrfMomLp.Mag() );
+      HF2( 13000, event.GFlp2_angle, event.GFlmom_lp2 );
+      HF2( 13010, event.GFlp2_angle, event.GFlp2mass );
+      HF2( 13020, event.GFlmom_lp2, momTransMag.at(i) );
+      for(Int_t i_bek=0; i_bek<5; i_bek++){
+	if( bek<-0.1+0.1*i_bek ){
+	  HF1( 11102+i_bek, event.GFlp2_angle );
+	  HF1( 11218+i_bek, event.GFlp2mass );
+	  HF1( 11232+i_bek, event.GFlmass_lp2 );	
+	  HF1( 11472+i_bek, event.GFlmom_lp2 );
+	  HF1( 11482+i_bek, diffMomtrfMomLp.Mag() );	
+	  HF2( 13001+i_bek, event.GFlp2_angle, event.GFlp2mom );
+	  HF2( 13011+i_bek, event.GFlp2_angle, event.GFlp2mass );
+	  HF2( 13021+i_bek, event.GFlp2mom, momTransMag.at(i) );
+	  continue;
+	}
+      }
+      HF1( 11207, bek );
+      HF1( 11250, bek );
+      HF1( 11260, momTransMag.at(i) );
+      HF1( 11270, event.GFlp2mom );
+      HF1( 11280, diffMomtrfMomLp.Mag() );
+      HF2( 13040, bek, momTransMag.at(i) );
+      HF2( 13050, bek, event.GFlp2mass );
+      HF1( 11240, event.GFlp2mass );
+      if( theta<5. )  HF1( 11208, bek );
+      if( theta<10. ) HF1( 11209, bek );
+      for(Int_t i_angle=0; i_angle<9; i_angle++){
+	if( event.GFlp2_angle<20.0*(i_angle+1) ){
+	  HF1( 11241+i_angle, event.GFlp2mass );
+	  HF1( 11251+i_angle, bek );
+	  HF1( 11261+i_angle, momTransMag.at(i) );
+	  HF1( 11271+i_angle, event.GFlp2mom );
+	  HF1( 11281+i_angle, diffMomtrfMomLp.Mag() );	
+	  HF2( 13031+i_angle, event.GFlp2mom, momTransMag.at(i) );
+	  HF2( 13041+i_angle, bek, momTransMag.at(i) );
+	  HF2( 13051+i_angle, bek, event.GFlp2mass );
+	  continue;
+	}
+      }      
+    } // nKp
   }
+      
   //  GFTrackCont.AddReconstructedTrack(XiMinusPdgCode,XiVert,XiMom);
   // GFTrackCont.FitTrack(GFTrackCont.GetNTrack()-1);
   // TVector3 XiTgtVert, XiTgtMom;
@@ -3389,6 +3824,16 @@ ConfMan::InitializeHistograms( void )
   HB1( 28, "Closest Dist. p#pi;Distance [mm]; Counts [/0.1 mm]", 1000, 0., 100.);
   HB1( 29, "Closest Dist. p#Lambda;Distance [mm]; Counts [/0.1 mm]", 1000, 0., 100.);
 
+  HB1( 50, "beam momentum; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
+  HB1( 51, "scattered momentum; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 150, 0., 3.0);
+  HB1( 52, "momentum transfer; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 150, 0., 3.0);
+  HB1( 60, "beam momentum[#Lambda]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
+  HB1( 61, "scattered momentum[#Lambda]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 150, 0., 3.0);
+  HB1( 62, "momentum transfer[#Lambda]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 150, 0., 3.0);
+  HB1( 70, "beam momentum [#Lambdap]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
+  HB1( 71, "scattered momentum [#Lambdap]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 150, 0., 3.0);
+  HB1( 72, "momentum transfer [#Lambdap]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 150, 0., 3.0);
+
   const Int_t nbinpoq = 1000;
   const Double_t minpoq = -2.0;
   const Double_t maxpoq = 2.0;
@@ -3422,6 +3867,19 @@ ConfMan::InitializeHistograms( void )
   HB1( 115, "p2 Momentum [#Lambdap decay]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 50, 0., 1.0);
   //  HB1( 116, "#Lambda p Momentum [#Lambdap decay]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 50, 0., 1.0);
 
+  HB2( 130, "<dE/dx> [p1,pi,p2];p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 131, "<dE/dx> [p1,pi,p2];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 132, "<dE/dx> [p1,pi,p2];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 140, "<dE/dx> [p1]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 141, "<dE/dx> [p1];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 142, "<dE/dx> [p1];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);  
+  HB2( 150, "<dE/dx> [pi];p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 151, "<dE/dx> [pi];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 152, "<dE/dx> [pi];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 160, "<dE/dx> [p2];p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 161, "<dE/dx> [p2];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 162, "<dE/dx> [p2];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+
   HB1( 200, "Closest Dist. #Lambda#p2;Distance [mm]; Counts [/0.1 mm]", 1000, 0., 1000.);
   HB1( 201, "VertexX #Lambdap2;Distance [mm]; Counts [/0.1 mm]", 1000, -500, 500);
   HB1( 202, "VertexY #Lambdap2;Distance [mm]; Counts [/0.1 mm]", 1000, -500, 500);
@@ -3431,43 +3889,21 @@ ConfMan::InitializeHistograms( void )
   HB1( 213, "VertexZ p#pi;Distance [mm]; Counts [/0.1 mm]", 1000, -500, 500);
   HB1( 221, "VertexX Kp;Distance [mm]; Counts [/0.1 mm]", 1000, -500, 500);
   HB1( 222, "VertexY Kp;Distance [mm]; Counts [/0.1 mm]", 1000, -500, 500);
-  HB1( 223, "VertexZ Kp;Distance [mm]; Counts [/0.1 mm]", 1000, -500, 500);
- 
+  HB1( 223, "VertexZ Kp;Distance [mm]; Counts [/0.1 mm]", 1000, -500, 500);   
 
-  HB2( 120, "<dE/dx> [decay particles];p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 121, "<dE/dx> [decay particles];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 122, "<dE/dx> [decay particles];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 123, "<dE/dx> [p1];p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 124, "<dE/dx> [p1];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 125, "<dE/dx> [p1];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);  
-  HB2( 126, "<dE/dx> [p1,pi1];p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 127, "<dE/dx> [p1,pi1];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 128, "<dE/dx> [p1,pi1];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 129, "<dE/dx> [p1,pi1,p2];p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 130, "<dE/dx> [p1,pi1,p2];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 131, "<dE/dx> [p1,pi1,p2];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 132, "<dE/dx> [-BEk<-0.1(GeV)];p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 133, "<dE/dx> [-BEk<-0.1(GeV)];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 134, "<dE/dx> [-BEk<-0.1(GeV)];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 135, "<dE/dx> [-0.1<-BEk<0(GeV)];p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 136, "<dE/dx> [-0.1<-BEk<0(GeV)];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 137, "<dE/dx> [-0.1<-BEk<0(GeV)];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 138, "<dE/dx> [0<-BEk<0.1(GeV)];p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 139, "<dE/dx> [0<-BEk<0.1(GeV)];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 140, "<dE/dx> [0<-BEk<0.1(GeV)];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 141, "<dE/dx> [0.1<-BEk<0.2(GeV)];p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 142, "<dE/dx> [0.1<-BEk<0.2(GeV)];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 143, "<dE/dx> [0.1<-BEk<0.2(GeV)];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 144, "<dE/dx> [0.2<-BEk<0.3(GeV)];p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 145, "<dE/dx> [0.2<-BEk<0.3(GeV)];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 146, "<dE/dx> [0.2<-BEk<0.3(GeV)];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 147, "<dE/dx> [p1,pi,and one+]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 148, "<dE/dx> [p1,pi,and one+]; -p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 149, "<dE/dx> [p1,pi,and one+]; +p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 150, "<dE/dx> [#Lambda reconstructed]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 151, "<dE/dx> [#Lambda reconstructed]; -p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  HB2( 152, "<dE/dx> [#Lambda reconstructed]; +p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
-  
+  HB2( 230, "<dE/dx> [p1,pi,p2] [#Lambdap]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 231, "<dE/dx> [p1,pi,p2] [#Lambdap];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 232, "<dE/dx> [p1,pi,p2] [#Lambdap];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 240, "<dE/dx> [p1] [#Lambdap]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 241, "<dE/dx> [p1] [#Lambdap];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 242, "<dE/dx> [p1] [#Lambdap];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 250, "<dE/dx> [pi] [#Lambdap]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 251, "<dE/dx> [pi] [#Lambdap];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 252, "<dE/dx> [pi] [#Lambdap];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 260, "<dE/dx> [p2] [#Lambdap]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 261, "<dE/dx> [p2] [#Lambdap];-p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+  HB2( 262, "<dE/dx> [p2] [#Lambdap];+p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq/2, 0.0, maxpoq, nbindedx, mindedx, maxdedx);
+
   HB1( 1001, "Binding Energy of Kaon with TPC; B_{K} [GeV/c^{2}]; Counts [/5 MeV/#font[12]{c}^{2}]", 200, -0.5, 0.5);
   HB1( 1002, "Binding Energy of Kaon with TPC; B_{K} [GeV/c^{2}]; Counts [/5 MeV/#font[12]{c}^{2}]", 200, -0.5, 0.5);
   HB1( 1003, "Kp scattering angle; Kp scattering angle [degree]; Counts ", 360., 0., 180.);
@@ -3559,19 +3995,30 @@ ConfMan::InitializeHistograms( void )
   HB1( 1214, "#Lambda Invariant Mass [0<-BEk<0.1(GeV)]  ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
   HB1( 1215, "#Lambda Invariant Mass [0.1<-BEk<0.2(GeV)]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
   HB1( 1216, "#Lambda Invariant Mass [0.2<-BEk<0.3(GeV)]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
-  HB1( 1217, "#LambdaP Invariant Mass ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 350, 1.8, 2.5);
-  HB1( 1218, "#LambdaP Invariant Mass [-BEk<-0.1(GeV)]   ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 350, 1.8, 2.5);
-  HB1( 1219, "#LambdaP Invariant Mass [-0.1<-BEk<0(GeV)] ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 350, 1.8, 2.5);
-  HB1( 1220, "#LambdaP Invariant Mass [0<-BEk<0.1(GeV)]  ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 350, 1.8, 2.5);
-  HB1( 1221, "#LambdaP Invariant Mass [0.1<-BEk<0.2(GeV)]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 350, 1.8, 2.5);
-  HB1( 1222, "#LambdaP Invariant Mass [0.2<-BEk<0.3(GeV)]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 350, 1.8, 2.5);
+  HB1( 1217, "#LambdaP Invariant Mass ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1218, "#LambdaP Invariant Mass [-BEk<-0.1(GeV)]   ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1219, "#LambdaP Invariant Mass [-0.1<-BEk<0(GeV)] ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1220, "#LambdaP Invariant Mass [0<-BEk<0.1(GeV)]  ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1221, "#LambdaP Invariant Mass [0.1<-BEk<0.2(GeV)]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1222, "#LambdaP Invariant Mass [0.2<-BEk<0.3(GeV)]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
   HB1( 1231, "#Lambda Invariant Mass [one more p]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
   HB1( 1232, "#Lambda Invariant Mass [one more p][-BEk<-0.1(GeV)]   ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
   HB1( 1233, "#Lambda Invariant Mass [one more p][-0.1<-BEk<0(GeV)] ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
   HB1( 1234, "#Lambda Invariant Mass [one more p][0<-BEk<0.1(GeV)]  ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
   HB1( 1235, "#Lambda Invariant Mass [one more p][0.1<-BEk<0.2(GeV)]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
   HB1( 1236, "#Lambda Invariant Mass [one more p][0.2<-BEk<0.3(GeV)]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
-
+  
+  HB1( 1240, "#LambdaP Invariant Mass ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1241, "#LambdaP Invariant Mass [0#circ<LPOpAngle<20#circ]   ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1242, "#LambdaP Invariant Mass [20#circ<LPOpAngle<40#circ]  ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1243, "#LambdaP Invariant Mass [40#circ<LPOpAngle<60#circ]  ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1244, "#LambdaP Invariant Mass [60#circ<LPOpAngle<80#circ]  ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1245, "#LambdaP Invariant Mass [80#circ<LPOpAngle<100#circ] ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1246, "#LambdaP Invariant Mass [100#circ<LPOpAngle<120#circ]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1247, "#LambdaP Invariant Mass [120#circ<LPOpAngle<140#circ]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1248, "#LambdaP Invariant Mass [140#circ<LPOpAngle<160#circ]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 1249, "#LambdaP Invariant Mass [160#circ<LPOpAngle<180#circ]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);    
+  
   HB1( 1250, "Binding Energy of Kaon ; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
   HB1( 1251, "Binding Energy of Kaon [0#circ<LPOpAngle<20#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
   HB1( 1252, "Binding Energy of Kaon [20#circ<LPOpAngle<40#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
@@ -3582,6 +4029,36 @@ ConfMan::InitializeHistograms( void )
   HB1( 1257, "Binding Energy of Kaon [120#circ<LPOpAngle<140#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
   HB1( 1258, "Binding Energy of Kaon [140#circ<LPOpAngle<160#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
   HB1( 1259, "Binding Energy of Kaon [160#circ<LPOpAngle<180#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 1260, "mom transfer ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1261, "mom transfer [0#circ<LPOpAngle<20#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1262, "mom transfer [20#circ<LPOpAngle<40#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1263, "mom transfer [40#circ<LPOpAngle<60#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1264, "mom transfer [60#circ<LPOpAngle<80#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1265, "mom transfer [80#circ<LPOpAngle<100#circ];  Mom [GeV/#font[12]{c}];  Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1266, "mom transfer [100#circ<LPOpAngle<120#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1267, "mom transfer [120#circ<LPOpAngle<140#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1268, "mom transfer [140#circ<LPOpAngle<160#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1269, "mom transfer [160#circ<LPOpAngle<180#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);  
+  HB1( 1270, "Lp Mom; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1271, "Lp Mom [0#circ<LPOpAngle<20#circ]   ;  Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1272, "Lp Mom [20#circ<LPOpAngle<40#circ]  ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1273, "Lp Mom [40#circ<LPOpAngle<60#circ]  ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1274, "Lp Mom [60#circ<LPOpAngle<80#circ]  ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1275, "Lp Mom [80#circ<LPOpAngle<100#circ] ;  Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1276, "Lp Mom [100#circ<LPOpAngle<120#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1277, "Lp Mom [120#circ<LPOpAngle<140#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1278, "Lp Mom [140#circ<LPOpAngle<160#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1279, "Lp Mom [160#circ<LPOpAngle<180#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 1280, "mom transfer - Lp mom; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 1281, "mom transfer - Lp mom [0#circ<LPOpAngle<20#circ]   ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 1282, "mom transfer - Lp mom [20#circ<LPOpAngle<40#circ]  ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 1283, "mom transfer - Lp mom [40#circ<LPOpAngle<60#circ]  ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);    
+  HB1( 1284, "mom transfer - Lp mom [60#circ<LPOpAngle<80#circ]  ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 1285, "mom transfer - Lp mom [80#circ<LPOpAngle<100#circ] ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 1286, "mom transfer - Lp mom [100#circ<LPOpAngle<120#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 1287, "mom transfer - Lp mom [120#circ<LPOpAngle<140#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 1288, "mom transfer - Lp mom [140#circ<LPOpAngle<160#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 1289, "mom transfer - Lp mom [160#circ<LPOpAngle<180#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
   
   
   HB1( 1301, "Momentum Transfer; Momentum Transfer [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
@@ -3629,7 +4106,13 @@ ConfMan::InitializeHistograms( void )
   HB1( 1474, "#Lambda Momentum [#Lambdap decay] [0<-BEk<0.1(GeV)]  ; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
   HB1( 1475, "#Lambda Momentum [#Lambdap decay] [0.1<-BEk<0.2(GeV)]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
   HB1( 1476, "#Lambda Momentum [#Lambdap decay] [0.2<-BEk<0.3(GeV)]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
-    
+  HB1( 1481, "Mom transfer - #Lambdap Momentum [#Lambdap decay]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 200, -2.0, 2.0);
+  HB1( 1482, "Mom transfer - #Lambdap Momentum [#Lambdap decay] [-BEk<-0.1(GeV)]   ; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 200, -2.0, 2.0);
+  HB1( 1483, "Mom transfer - #Lambdap Momentum [#Lambdap decay] [-0.1<-BEk<0(GeV)] ; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 200, -2.0, 2.0);  
+  HB1( 1484, "Mom transfer - #Lambdap Momentum [#Lambdap decay] [0<-BEk<0.1(GeV)]  ; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 200, -2.0, 2.0);
+  HB1( 1485, "Mom transfer - #Lambdap Momentum [#Lambdap decay] [0.1<-BEk<0.2(GeV)]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 200, -2.0, 2.0);
+  HB1( 1486, "Mom transfer - #Lambdap Momentum [#Lambdap decay] [0.2<-BEk<0.3(GeV)]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 200, -2.0, 2.0);
+  
   // vtx
   //  HB1(1301, " ; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
   // - thetaTPC
@@ -3652,10 +4135,11 @@ ConfMan::InitializeHistograms( void )
   HB2( 2102, "LPOpAngle:MomPi; LPOpAngle[degree]; Momentum #pi [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);  
   HB2( 2103, "LPOpAngle:MomP2; LPOpAngle[degree]; Momentum p2  [GeV/#font[12]{c}]", 360, 0.0, 180.,  100, 0., 2.0);  
   HB2( 2104, "LPOpAngle:MomL ; LPOpAngle[degree]; Momentum #Lambda [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);
+  HB2( 2105, "LPOpAngle:MomLp ; LPOpAngle[degree]; Momentum #Lambdap [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);  
   HB2( 2111, "LPOpAngle:BEkaonTPC; LPOpAngle[degree]; Binding Energy [GeV/#font[12]{c}^2]", 360, 0.0, 180., 200, -0.5, 0.5);
   HB2( 2112, "LPOpAngle:LambdaInvariantMass; PPiOpAngle[degree]; Invariant Mass #Lambda [/0.002 GeV/#font[12]{c}^{2}]", 360, 0.0, 180., 180, 1.04, 1.4);
-  HB2( 2113, "LPOpAngle:LPInvariantMass; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 360, 0.0, 180., 350, 1.8, 2.5);
-  
+  HB2( 2113, "LPOpAngle:LPInvariantMass; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 360, 0.0, 180., 1750, 2.0, 5.5);
+  HB2( 2114, "LPOpAngle:LPMom; LPOpAngle[degree]; Mom #Lambdap [GeV/#font[12]{c}^2]", 360, 0.0, 180., 150, 0., 3.0);  
     
   // Mom p1,pi,p2,L : mom of p1,pi,p2,L
   HB2( 2201, "MomCorr p0 and p0 [#Lambda tagged]; Mom p0[GeV/#font[12]{c}]; Mom p0[GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
@@ -3722,25 +4206,76 @@ ConfMan::InitializeHistograms( void )
   HB2( 2482, "TheataCorr #Lambda and p2 [#Lambdap tagged]; theta #Lambda [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);    
   HB2( 2491, "TheataCorr p2 and p2 [#Lambdap tagged]; theta p2 [degree]; theta p2 [degree]", 360, 0., 180, 360, 0., 180);
   
-
   HB2( 2501, "Theata:nhtrack [#Lambda tagged]; theta p1 [degree]; nhtrack ", 360, 0., 180, 50, 0, 50);
   HB2( 2502, "Theata:nhtrack [#Lambda tagged]; theta #pi [degree]; nhtrack ", 360, 0., 180, 50, 0, 50);
   HB2( 2511, "Theata:nhtrack [#Lambdap tagged]; theta p1 [degree]; nhtrack ", 360, 0., 180, 50, 0, 50);
   HB2( 2512, "Theata:nhtrack [#Lambdap tagged]; theta #pi [degree]; nhtrack ", 360, 0., 180, 50, 0, 50);
   HB2( 2513, "Theata:nhtrack [#Lambdap tagged]; theta p2 [degree]; nhtrack ", 360, 0., 180, 50, 0, 50);
-
+  
   HB2( 2601, "Theata:Mom p1 [#Lambda tagged]; #theta [degree]; Mom [GeV/#font[12]{c}]", 360, 0., 180, 100, 0, 2.0);
   HB2( 2602, "Theata:Mom #pi [#Lambda tagged]; #theta [degree]; Mom [GeV/#font[12]{c}]", 360, 0., 180, 100, 0, 2.0);
   HB2( 2603, "Theata:Mom #Lambda [#Lambda tagged]; #theta [degree]; Mom [GeV/#font[12]{c}]", 360, 0., 180, 100, 0, 2.0);
-  HB2( 2604, "Theata:Mom p0 [#Lambda tagged]; #theta [degree]; Mom [GeV/#font[12]{c}]", 360, 0., 180, 100, 0, 2.0);  
+  HB2( 2604, "Theata:Mom p0 [#Lambda tagged]; #theta [degree]; Mom [GeV/#font[12]{c}]", 360, 0., 180, 100, 0, 2.0);
   HB2( 2611, "Theata:Mom p1 [#Lambdap tagged]; #theta [degree]; Mom [GeV/#font[12]{c}]", 360, 0., 180, 100, 0, 2.0);
   HB2( 2612, "Theata:Mom #pi [#Lambdap tagged]; #theta [degree]; Mom [GeV/#font[12]{c}]", 360, 0., 180, 100, 0, 2.0);
-  HB2( 2613, "Theata:Mom p2 [#Lambdap tagged]; #theta [degree]; Mom [GeV/#font[12]{c}]", 360, 0., 180, 100, 0, 2.0);  
-  HB2( 2614, "Theata:Mom #Lambda [#Lambdap tagged]; #theta [degree]; Mom [GeV/#font[12]{c}]", 360, 0., 180, 100, 0, 2.0);  
+  HB2( 2613, "Theata:Mom p2 [#Lambdap tagged]; #theta [degree]; Mom [GeV/#font[12]{c}]", 360, 0., 180, 100, 0, 2.0);
+  HB2( 2614, "Theata:Mom #Lambda [#Lambdap tagged]; #theta [degree]; Mom [GeV/#font[12]{c}]", 360, 0., 180, 100, 0, 2.0);
   HB2( 2615, "Theata:Mom p0 [#Lambdap tagged]; #theta [degree]; Mom [GeV/#font[12]{c}]", 360, 0., 180, 100, 0, 2.0);
 
+  HB2( 3000, "LPOpAngle:MomLp ; LPOpAngle[degree]; Momentum #Lambdap [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);    
+  HB2( 3001, "LPOpAngle:MomLp [-BEk<-0.1(GeV)]   ; LPOpAngle[degree]; Momentum #Lambdap [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);
+  HB2( 3002, "LPOpAngle:MomLp [-0.1<-BEk<0(GeV)] ; LPOpAngle[degree]; Momentum #Lambdap [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);
+  HB2( 3003, "LPOpAngle:MomLp [0<-BEk<0.1(GeV)]  ; LPOpAngle[degree]; Momentum #Lambdap [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);
+  HB2( 3004, "LPOpAngle:MomLp [0.1<-BEk<0.2(GeV)]; LPOpAngle[degree]; Momentum #Lambdap [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);
+  HB2( 3005, "LPOpAngle:MomLp [0.2<-BEk<0.3(GeV)]; LPOpAngle[degree]; Momentum #Lambdap [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);
   
+  HB2( 3010, "LPOpAngle:LPInvMass ; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]",360, 0.0, 180., 1750, 2.0, 5.5);
+  HB2( 3011, "LPOpAngle:LPInvMass [-BEk<-0.1(GeV)]   ; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]",360, 0.0, 180., 1750, 2.0, 5.5);
+  HB2( 3012, "LPOpAngle:LPInvMass [-0.1<-BEk<0(GeV)] ; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]",360, 0.0, 180., 1750, 2.0, 5.5);
+  HB2( 3013, "LPOpAngle:LPInvMass [0<-BEk<0.1(GeV)]  ; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]",360, 0.0, 180., 1750, 2.0, 5.5);
+  HB2( 3014, "LPOpAngle:LPInvMass [0.1<-BEk<0.2(GeV)]; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]",360, 0.0, 180., 1750, 2.0, 5.5);
+  HB2( 3015, "LPOpAngle:LPInvMass [0.2<-BEk<0.3(GeV)]; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]",360, 0.0, 180., 1750, 2.0, 5.5);
   
+  HB2( 3020, "MomTransfer:MomLp ; Momentum #Lambdap [GeV/#font[12]{c}] ;Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 3021, "MomTransfer:MomLp [-BEk<-0.1(GeV)]  ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 3022, "MomTransfer:MomLp [-0.1<-BEk<0(GeV)]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);  
+  HB2( 3023, "MomTransfer:MomLp [0<-BEk<0.1(GeV)] ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 3024, "MomTransfer:MomLp [0.1<-BEk<0.2(GeV)]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 3025, "MomTransfer:MomLp [0.2<-BEk<0.3(GeV)]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 3031, "MomTransfer:MomLp [0#circ<LPOpAngle<20#circ]   ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 3032, "MomTransfer:MomLp [20#circ<LPOpAngle<40#circ]  ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 3033, "MomTransfer:MomLp [40#circ<LPOpAngle<60#circ]  ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 3034, "MomTransfer:MomLp [60#circ<LPOpAngle<80#circ]  ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 3035, "MomTransfer:MomLp [80#circ<LPOpAngle<100#circ] ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 3036, "MomTransfer:MomLp [100#circ<LPOpAngle<120#circ]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 3037, "MomTransfer:MomLp [120#circ<LPOpAngle<140#circ]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 3038, "MomTransfer:MomLp [140#circ<LPOpAngle<160#circ]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);  
+  HB2( 3039, "MomTransfer:MomLp [160#circ<LPOpAngle<180#circ]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+
+  HB2( 3040, "BE_{K}:MomTransfer; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 3041, "BE_{K}:MomTransfer [0#circ<LPOpAngle<20#circ]   ; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 3042, "BE_{K}:MomTransfer [20#circ<LPOpAngle<40#circ]  ; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 3043, "BE_{K}:MomTransfer [40#circ<LPOpAngle<60#circ]  ; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 3044, "BE_{K}:MomTransfer [60#circ<LPOpAngle<80#circ]  ; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 3045, "BE_{K}:MomTransfer [80#circ<LPOpAngle<100#circ] ; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 3046, "BE_{K}:MomTransfer [100#circ<LPOpAngle<120#circ]; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 3047, "BE_{K}:MomTransfer [120#circ<LPOpAngle<140#circ]; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 3048, "BE_{K}:MomTransfer [140#circ<LPOpAngle<160#circ]; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 3049, "BE_{K}:MomTransfer [160#circ<LPOpAngle<180#circ]; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+
+  HB2( 3050, "BE_{K}:LPInvMass; B_{K} [GeV]; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 3051, "BE_{K}:LPInvMass [0#circ<LPOpAngle<20#circ]   ; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 3052, "BE_{K}:LPInvMass [20#circ<LPOpAngle<40#circ]  ; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 3053, "BE_{K}:LPInvMass [40#circ<LPOpAngle<60#circ]  ; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 3054, "BE_{K}:LPInvMass [60#circ<LPOpAngle<80#circ]  ; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 3055, "BE_{K}:LPInvMass [80#circ<LPOpAngle<100#circ] ; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 3056, "BE_{K}:LPInvMass [100#circ<LPOpAngle<120#circ]; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 3057, "BE_{K}:LPInvMass [120#circ<LPOpAngle<140#circ]; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 3058, "BE_{K}:LPInvMass [140#circ<LPOpAngle<160#circ]; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 3059, "BE_{K}:LPInvMass [160#circ<LPOpAngle<180#circ]; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+
+  HB2( 4001, "BE_{K}:angleP1P2; B_{K} [GeV]; angle p1-p2", 200,-0.5,0.5,360,0.,180. );
+    
   HB1( 600, "[Genfit] p-value",1000,0,1);
   HB1( 601, "[Genfit] x Pull",1000,-5,5);
   HB1( 602, "[Genfit] y Pull",1000,-5,5);
@@ -3775,6 +4310,100 @@ ConfMan::InitializeHistograms( void )
   HB1( 10113, "[Genfit] p Momentum [#Lambdap decay]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
   HB1( 10114, "[Genfit] #pi Momentum [#Lambdap decay]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 50, 0., 1.0);
   HB1( 10115, "[Genfit] p2 Momentum [#Lambdap decay]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 50, 0., 1.0);
+  
+  HB1( 10121, "[Genfit] p m2   [#Lambda decay];  M2 [GeV/#font[12]{c}^{2}]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 630, 0., 1.26);
+  HB1( 10122, "[Genfit] #pi m2 [#Lambda decay];  M2 [GeV/#font[12]{c}^{2}]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 630, 0., 1.26);
+  HB1( 10123, "[Genfit] p2 m2  [#Lambda decay];  M2 [GeV/#font[12]{c}^{2}]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 630, 0., 1.26);
+  HB1( 10131, "[Genfit] p m2   [#Lambdap decay]; M2 [GeV/#font[12]{c}^{2}]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 630, 0., 1.26);
+  HB1( 10132, "[Genfit] #pi m2 [#Lambdap decay]; M2 [GeV/#font[12]{c}^{2}]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 630, 0., 1.26);
+  HB1( 10133, "[Genfit] p2 m2  [#Lambdap decay]; M2 [GeV/#font[12]{c}^{2}]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 630, 0., 1.26);
+  
+  HB1( 11101, "[Genfit] #Lambda p opening angle; #Lambda p opening angle [degree]; Counts ", 360., 0., 180.);
+  HB1( 11102, "[Genfit] #Lambda p opening angle [-BEk<-0.1(GeV)]; #Lambda p opening angle [degree]; Counts ", 360., 0., 180.);
+  HB1( 11103, "[Genfit] #Lambda p opening angle [-0.1<-BEk<0(GeV)]; #Lambda p opening angle [degree]; Counts ", 360., 0., 180.);
+  HB1( 11104, "[Genfit] #Lambda p opening angle [0<-BEk<0.1(GeV)]; #Lambda p opening angle [degree]; Counts ", 360., 0., 180.);
+  HB1( 11105, "[Genfit] #Lambda p opening angle [0.1<-BEk<0.2(GeV)]; #Lambda p opening angle [degree]; Counts ", 360., 0., 180.);
+  HB1( 11106, "[Genfit] #Lambda p opening angle [0.2<-BEk<0.3(GeV)]; #Lambda p opening angle [degree]; Counts ", 360., 0., 180.);
+
+  HB1( 11201, "[Genfit] Binding Energy of Kaon ; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11202, "[Genfit] Binding Energy of Kaon [thetaTPC<5#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11203, "[Genfit] Binding Energy of Kaon [thetaTPC<10#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11204, "[Genfit] Binding Energy of Kaon [w/ #Lambda]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11205, "[Genfit] Binding Energy of Kaon [thetaTPC<5#circ && w/ #Lambda]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11206, "[Genfit] Binding Energy of Kaon [thetaTPC<10#circ && w/ #Lambda]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11207, "[Genfit] Binding Energy of Kaon [w/ #Lambdap]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);  
+  HB1( 11208, "[Genfit] Binding Energy of Kaon [thetaTPC<5#circ && w/ #Lambdap]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11209, "[Genfit] Binding Energy of Kaon [thetaTPC<10#circ && w/ #Lambdap]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11211, "[Genfit] #Lambda Invariant Mass ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 11212, "[Genfit] #Lambda Invariant Mass [-BEk<-0.1(GeV)]   ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 11213, "[Genfit] #Lambda Invariant Mass [-0.1<-BEk<0(GeV)] ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 11214, "[Genfit] #Lambda Invariant Mass [0<-BEk<0.1(GeV)]  ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 11215, "[Genfit] #Lambda Invariant Mass [0.1<-BEk<0.2(GeV)]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 11216, "[Genfit] #Lambda Invariant Mass [0.2<-BEk<0.3(GeV)]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 11217, "[Genfit] #LambdaP Invariant Mass ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11218, "[Genfit] #LambdaP Invariant Mass [-BEk<-0.1(GeV)]   ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11219, "[Genfit] #LambdaP Invariant Mass [-0.1<-BEk<0(GeV)] ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11220, "[Genfit] #LambdaP Invariant Mass [0<-BEk<0.1(GeV)]  ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11221, "[Genfit] #LambdaP Invariant Mass [0.1<-BEk<0.2(GeV)]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11222, "[Genfit] #LambdaP Invariant Mass [0.2<-BEk<0.3(GeV)]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11231, "[Genfit] #Lambda Invariant Mass [one more p]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 11232, "[Genfit] #Lambda Invariant Mass [one more p][-BEk<-0.1(GeV)]   ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 11233, "[Genfit] #Lambda Invariant Mass [one more p][-0.1<-BEk<0(GeV)] ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 11234, "[Genfit] #Lambda Invariant Mass [one more p][0<-BEk<0.1(GeV)]  ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 11235, "[Genfit] #Lambda Invariant Mass [one more p][0.1<-BEk<0.2(GeV)]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 11236, "[Genfit] #Lambda Invariant Mass [one more p][0.2<-BEk<0.3(GeV)]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+
+  HB1( 11250, "[Genfit] Binding Energy of Kaon ; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11251, "[Genfit] Binding Energy of Kaon [0#circ<LPOpAngle<20#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11252, "[Genfit] Binding Energy of Kaon [20#circ<LPOpAngle<40#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11253, "[Genfit] Binding Energy of Kaon [40#circ<LPOpAngle<60#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11254, "[Genfit] Binding Energy of Kaon [60#circ<LPOpAngle<80#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11255, "[Genfit] Binding Energy of Kaon [80#circ<LPOpAngle<100#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11256, "[Genfit] Binding Energy of Kaon [100#circ<LPOpAngle<120#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11257, "[Genfit] Binding Energy of Kaon [120#circ<LPOpAngle<140#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11258, "[Genfit] Binding Energy of Kaon [140#circ<LPOpAngle<160#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11259, "[Genfit] Binding Energy of Kaon [160#circ<LPOpAngle<180#circ]; B_{K} [GeV]; Counts [/5 MeV]", 200, -0.5, 0.5);
+  HB1( 11260, "[Genfit] mom transfer ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11261, "[Genfit] mom transfer [0#circ<LPOpAngle<20#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11262, "[Genfit] mom transfer [20#circ<LPOpAngle<40#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11263, "[Genfit] mom transfer [40#circ<LPOpAngle<60#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11264, "[Genfit] mom transfer [60#circ<LPOpAngle<80#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11265, "[Genfit] mom transfer [80#circ<LPOpAngle<100#circ];  Mom [GeV/#font[12]{c}];  Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11266, "[Genfit] mom transfer [100#circ<LPOpAngle<120#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11267, "[Genfit] mom transfer [120#circ<LPOpAngle<140#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11268, "[Genfit] mom transfer [140#circ<LPOpAngle<160#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11269, "[Genfit] mom transfer [160#circ<LPOpAngle<180#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);  
+  HB1( 11270, "[Genfit] Lp Mom; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11271, "[Genfit] Lp Mom [0#circ<LPOpAngle<20#circ]   ;  Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11272, "[Genfit] Lp Mom [20#circ<LPOpAngle<40#circ]  ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11273, "[Genfit] Lp Mom [40#circ<LPOpAngle<60#circ]  ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11274, "[Genfit] Lp Mom [60#circ<LPOpAngle<80#circ]  ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11275, "[Genfit] Lp Mom [80#circ<LPOpAngle<100#circ] ;  Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11276, "[Genfit] Lp Mom [100#circ<LPOpAngle<120#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11277, "[Genfit] Lp Mom [120#circ<LPOpAngle<140#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11278, "[Genfit] Lp Mom [140#circ<LPOpAngle<160#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11279, "[Genfit] Lp Mom [160#circ<LPOpAngle<180#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0, 2.0);
+  HB1( 11280, "[Genfit] mom transfer - Lp mom; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 11281, "[Genfit] mom transfer - Lp mom [0#circ<LPOpAngle<20#circ]   ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 11282, "[Genfit] mom transfer - Lp mom [20#circ<LPOpAngle<40#circ]  ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 11283, "[Genfit] mom transfer - Lp mom [40#circ<LPOpAngle<60#circ]  ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);    
+  HB1( 11284, "[Genfit] mom transfer - Lp mom [60#circ<LPOpAngle<80#circ]  ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 11285, "[Genfit] mom transfer - Lp mom [80#circ<LPOpAngle<100#circ] ; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 11286, "[Genfit] mom transfer - Lp mom [100#circ<LPOpAngle<120#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 11287, "[Genfit] mom transfer - Lp mom [120#circ<LPOpAngle<140#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 11288, "[Genfit] mom transfer - Lp mom [140#circ<LPOpAngle<160#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  HB1( 11289, "[Genfit] mom transfer - Lp mom [160#circ<LPOpAngle<180#circ]; Mom [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 300, -2.0, 4.0);
+  
+  HB1( 11240, "[Genfit] #LambdaP Invariant Mass ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11241, "[Genfit] #LambdaP Invariant Mass [0#circ<LPOpAngle<20#circ]   ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11242, "[Genfit] #LambdaP Invariant Mass [20#circ<LPOpAngle<40#circ]  ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11243, "[Genfit] #LambdaP Invariant Mass [40#circ<LPOpAngle<60#circ]  ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11244, "[Genfit] #LambdaP Invariant Mass [60#circ<LPOpAngle<80#circ]  ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11245, "[Genfit] #LambdaP Invariant Mass [80#circ<LPOpAngle<100#circ] ; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11246, "[Genfit] #LambdaP Invariant Mass [100#circ<LPOpAngle<120#circ]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11247, "[Genfit] #LambdaP Invariant Mass [120#circ<LPOpAngle<140#circ]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11248, "[Genfit] #LambdaP Invariant Mass [140#circ<LPOpAngle<160#circ]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
+  HB1( 11249, "[Genfit] #LambdaP Invariant Mass [160#circ<LPOpAngle<180#circ]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);    
   
   HB1( 11401, "[Genfit] p Momentum [#Lambda decay]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
   HB1( 11402, "[Genfit] p Momentum [#Lambda decay] [-BEk<-0.1(GeV)]   ; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
@@ -3818,6 +4447,13 @@ ConfMan::InitializeHistograms( void )
   HB1( 11474, "[Genfit] #Lambda Momentum [#Lambdap decay] [0<-BEk<0.1(GeV)]  ; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
   HB1( 11475, "[Genfit] #Lambda Momentum [#Lambdap decay] [0.1<-BEk<0.2(GeV)]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
   HB1( 11476, "[Genfit] #Lambda Momentum [#Lambdap decay] [0.2<-BEk<0.3(GeV)]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 100, 0., 2.0);
+  HB1( 11481, "[Genfit] Mom transfer - #Lambdap Momentum [#Lambdap decay]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 200, -2.0, 2.0);
+  HB1( 11482, "[Genfit] Mom transfer - #Lambdap Momentum [#Lambdap decay] [-BEk<-0.1(GeV)]   ; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 200, -2.0, 2.0);
+  HB1( 11483, "[Genfit] Mom transfer - #Lambdap Momentum [#Lambdap decay] [-0.1<-BEk<0(GeV)] ; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 200, -2.0, 2.0);  
+  HB1( 11484, "[Genfit] Mom transfer - #Lambdap Momentum [#Lambdap decay] [0<-BEk<0.1(GeV)]  ; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 200, -2.0, 2.0);
+  HB1( 11485, "[Genfit] Mom transfer - #Lambdap Momentum [#Lambdap decay] [0.1<-BEk<0.2(GeV)]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 200, -2.0, 2.0);
+  HB1( 11486, "[Genfit] Mom transfer - #Lambdap Momentum [#Lambdap decay] [0.2<-BEk<0.3(GeV)]; Momentum [GeV/#font[12]{c}]; Counts [/0.02 GeV/#font[12]{c}]", 200, -2.0, 2.0);
+  
   
   // 2D 
   // LPOpeningAngle:mom of p1,pi,p2,L
@@ -3846,9 +4482,56 @@ ConfMan::InitializeHistograms( void )
   HB2( 12217, "[Genfit] MomCorr [#Lambdap tagged]; Mom pi[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
   HB2( 12218, "[Genfit] MomCorr [#Lambdap tagged]; Mom p2[GeV/#font[12]{c}]; Mom p2[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
   HB2( 12219, "[Genfit] MomCorr [#Lambdap tagged]; Mom p2[GeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  HB2( 12220, "[Genfit] MomCorr [#Lambdap tagged]; Mom #Lambda[MeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);
-  
-  HB2( 12301, "[Genfit] MomCorr; Mom #Lambdap[GeV/#font[12]{c}]; Mom Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);  
+  HB2( 12220, "[Genfit] MomCorr [#Lambdap tagged]; Mom #Lambda[MeV/#font[12]{c}]; Mom #Lambda[GeV/#font[12]{c}]", 50, 0., 1.0, 50, 0., 1.0);  
+  HB2( 12301, "[Genfit] MomCorr; Mom #Lambdap[GeV/#font[12]{c}]; Mom Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0); 
+
+  HB2( 13000, "[Genfit] LPOpAngle:MomLp ; LPOpAngle[degree]; Momentum #Lambdap [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);
+  HB2( 13001, "[Genfit] LPOpAngle:MomLp [-BEk<-0.1(GeV)]   ; LPOpAngle[degree]; Momentum #Lambdap [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);
+  HB2( 13002, "[Genfit] LPOpAngle:MomLp [-0.1<-BEk<0(GeV)] ; LPOpAngle[degree]; Momentum #Lambdap [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);
+  HB2( 13003, "[Genfit] LPOpAngle:MomLp [0<-BEk<0.1(GeV)]  ; LPOpAngle[degree]; Momentum #Lambdap [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);
+  HB2( 13004, "[Genfit] LPOpAngle:MomLp [0.1<-BEk<0.2(GeV)]; LPOpAngle[degree]; Momentum #Lambdap [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);
+  HB2( 13005, "[Genfit] LPOpAngle:MomLp [0.2<-BEk<0.3(GeV)]; LPOpAngle[degree]; Momentum #Lambdap [GeV/#font[12]{c}]", 360, 0.0, 180., 100, 0., 2.0);  
+  HB2( 13010, "[Genfit] LPOpAngle:LPInvMass ; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]",360, 0.0, 180., 1750, 2.0, 5.5);
+  HB2( 13011, "[Genfit] LPOpAngle:LPInvMass [-BEk<-0.1(GeV)]   ; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]",360, 0.0, 180., 1750, 2.0, 5.5);
+  HB2( 13012, "[Genfit] LPOpAngle:LPInvMass [-0.1<-BEk<0(GeV)] ; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]",360, 0.0, 180., 1750, 2.0, 5.5);
+  HB2( 13013, "[Genfit] LPOpAngle:LPInvMass [0<-BEk<0.1(GeV)]  ; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]",360, 0.0, 180., 1750, 2.0, 5.5);
+  HB2( 13014, "[Genfit] LPOpAngle:LPInvMass [0.1<-BEk<0.2(GeV)]; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]",360, 0.0, 180., 1750, 2.0, 5.5);
+  HB2( 13015, "[Genfit] LPOpAngle:LPInvMass [0.2<-BEk<0.3(GeV)]; LPOpAngle[degree]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]",360, 0.0, 180., 1750, 2.0, 5.5); 
+  HB2( 13020, "[Genfit] MomTransfer:MomLp ; Momentum #Lambdap [GeV/#font[12]{c}] ;Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 100, 0., 2.0);
+  HB2( 13021, "[Genfit] MomTransfer:MomLp [-BEk<-0.1(GeV)]  ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 13022, "[Genfit] MomTransfer:MomLp [-0.1<-BEk<0(GeV)]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);  
+  HB2( 13023, "[Genfit] MomTransfer:MomLp [0<-BEk<0.1(GeV)] ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 13024, "[Genfit] MomTransfer:MomLp [0.1<-BEk<0.2(GeV)]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 13025, "[Genfit] MomTransfer:MomLp [0.2<-BEk<0.3(GeV)]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 13031, "[Genfit] MomTransfer:MomLp [0#circ<LPOpAngle<20#circ]   ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 13032, "[Genfit] MomTransfer:MomLp [20#circ<LPOpAngle<40#circ]  ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 13033, "[Genfit] MomTransfer:MomLp [40#circ<LPOpAngle<60#circ]  ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 13034, "[Genfit] MomTransfer:MomLp [60#circ<LPOpAngle<80#circ]  ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 13035, "[Genfit] MomTransfer:MomLp [80#circ<LPOpAngle<100#circ] ; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 13036, "[Genfit] MomTransfer:MomLp [100#circ<LPOpAngle<120#circ]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 13037, "[Genfit] MomTransfer:MomLp [120#circ<LPOpAngle<140#circ]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 13038, "[Genfit] MomTransfer:MomLp [140#circ<LPOpAngle<160#circ]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);  
+  HB2( 13039, "[Genfit] MomTransfer:MomLp [160#circ<LPOpAngle<180#circ]; Momentum #Lambdap [GeV/#font[12]{c}]; Momentum Transfer [GeV/#font[12]{c}]", 100, 0., 2.0, 150, 0., 3.0);
+  HB2( 13040, "[Genfit] BE_{K}:MomTransfer; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 13041, "[Genfit] BE_{K}:MomTransfer [0#circ<LPOpAngle<20#circ]   ; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 13042, "[Genfit] BE_{K}:MomTransfer [20#circ<LPOpAngle<40#circ]  ; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 13043, "[Genfit] BE_{K}:MomTransfer [40#circ<LPOpAngle<60#circ]  ; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 13044, "[Genfit] BE_{K}:MomTransfer [60#circ<LPOpAngle<80#circ]  ; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 13045, "[Genfit] BE_{K}:MomTransfer [80#circ<LPOpAngle<100#circ] ; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 13046, "[Genfit] BE_{K}:MomTransfer [100#circ<LPOpAngle<120#circ]; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 13047, "[Genfit] BE_{K}:MomTransfer [120#circ<LPOpAngle<140#circ]; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 13048, "[Genfit] BE_{K}:MomTransfer [140#circ<LPOpAngle<160#circ]; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 13049, "[Genfit] BE_{K}:MomTransfer [160#circ<LPOpAngle<180#circ]; B_{K} [GeV]; Momentum Transfer [GeV/#font[12]{c}]", 200, -0.5, 0.5, 100, 0., 2.0);
+  HB2( 13050, "[Genfit] BE_{K}:LPInvMass; B_{K} [GeV]; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 13051, "[Genfit] BE_{K}:LPInvMass [0#circ<LPOpAngle<20#circ]   ; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 13052, "[Genfit] BE_{K}:LPInvMass [20#circ<LPOpAngle<40#circ]  ; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 13053, "[Genfit] BE_{K}:LPInvMass [40#circ<LPOpAngle<60#circ]  ; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 13054, "[Genfit] BE_{K}:LPInvMass [60#circ<LPOpAngle<80#circ]  ; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 13055, "[Genfit] BE_{K}:LPInvMass [80#circ<LPOpAngle<100#circ] ; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 13056, "[Genfit] BE_{K}:LPInvMass [100#circ<LPOpAngle<120#circ]; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 13057, "[Genfit] BE_{K}:LPInvMass [120#circ<LPOpAngle<140#circ]; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 13058, "[Genfit] BE_{K}:LPInvMass [140#circ<LPOpAngle<160#circ]; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
+  HB2( 13059, "[Genfit] BE_{K}:LPInvMass [160#circ<LPOpAngle<180#circ]; B_{K} [GeV]; Invariant Mass #Lambdap [/0.002 GeV/#font[12]{c}^{2}]", 200, -0.5, 0.5,  1750, 2.0, 5.5);
 
   // HB2(1001, "#Xi^{-} decay, p hit pattern",100,-250,250,100,-250,250);
   // HB2(1002, "#Xi^{-} decay, #pi_{#Lambda} hit pattern",100,-250,250,100,-250,250);
@@ -4235,7 +4918,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFpullLP_py", &event.GFpull_py_lp2);
   tree->Branch("GFpullLP_pz", &event.GFpull_pz_lp2);
   
-#if DoKinematicFitLdXi
+#if DoKinematicFitLd
   // tree->Branch("KFchisqrXi",&event.KFchisqrxi);
   // tree->Branch("KFpvalXi",&event.KFpvalxi);
   // tree->Branch("KFXimom",&event.KFximom);

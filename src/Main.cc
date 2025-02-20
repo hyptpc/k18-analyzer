@@ -68,6 +68,7 @@ main(int argc, char **argv)
 
   gUnpacker.set_istream(in_file.Data());
   gUnpacker.initialize();
+  gConf.WriteParameters();
 
   CatchSignal::Set(SIGINT);
 
