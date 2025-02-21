@@ -587,6 +587,7 @@ DCLocalTrack::ReCalc(Bool_t applyRecursively)
 void
 DCLocalTrack::Print(const TString& arg) const
 {
+  if(SPDLOG_ACTIVE_LEVEL > spdlog::level::debug) return;
   std::ostringstream oss;
   PrintHelper helper(3, std::ios::fixed, oss);
 
@@ -624,7 +625,7 @@ DCLocalTrack::Print(const TString& arg) const
 	<< " -> " << std::setw(w) << res << std::endl;
     // << " -> " << std::setw(w) << s-scal << std::endl;
   }
-  spdlog::info(oss.str());
+  spdlog::debug(oss.str());
 }
 
 //_____________________________________________________________________________

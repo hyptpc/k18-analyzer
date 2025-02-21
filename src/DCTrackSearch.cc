@@ -801,23 +801,24 @@ LocalTrackSearch(const std::vector<DCHC>& HC,
     if(track->GetNHit()>=MinNumOfHits
        && track->DoFit()
        && track->GetChiSquare()<MaxChisquare){
-      if(T0Seg>=0 && T0Seg<NumOfSegBH2) {
-        Double_t xbh2=track->GetX(zBH2), ybh2=track->GetY(zBH2);
-        Double_t difPosBh2 = localPosBh2X[T0Seg] - xbh2;
-        //   Double_t xtgt=track->GetX(zTarget), ytgt=track->GetY(zTarget);
-        //   Double_t ytgt=track->GetY(zTarget);
-        if(true
-           && fabs(difPosBh2)<Bh2SegXAcc[T0Seg]
-           && (-10 < ybh2 && ybh2 < 40)
-           //       && fabs(ytgt)<21.
-          ){
-          TrackCont.push_back(track);
-        }else{
-          delete track;
-        }
-      }else{
-        TrackCont.push_back(track);
-      }
+      // if(T0Seg>=0 && T0Seg<NumOfSegBH2) {
+      //   Double_t xbh2=track->GetX(zBH2), ybh2=track->GetY(zBH2);
+      //   Double_t difPosBh2 = localPosBh2X[T0Seg] - xbh2;
+      //   //   Double_t xtgt=track->GetX(zTarget), ytgt=track->GetY(zTarget);
+      //   //   Double_t ytgt=track->GetY(zTarget);
+      //   if(true
+      //      && fabs(difPosBh2)<Bh2SegXAcc[T0Seg]
+      //      && (-10 < ybh2 && ybh2 < 40)
+      //      //       && fabs(ytgt)<21.
+      //     ){
+      //     TrackCont.push_back(track);
+      //   }else{
+      //     delete track;
+      //   }
+      // }else{
+      track->Print();
+      TrackCont.push_back(track);
+      // }
     }
     else{
       delete track;

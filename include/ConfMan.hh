@@ -126,7 +126,7 @@ ConfMan::ShowResult(Bool_t s, const TString& name) const
   if(s)
     spdlog::info(" [{}] -> initialized", name.Data());
   else
-    spdlog::warn(" [{}] -> failed", name.Data());
+    spdlog::error(" [{}] -> failed", name.Data());
   return s;
 }
 

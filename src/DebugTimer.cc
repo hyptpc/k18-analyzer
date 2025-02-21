@@ -3,6 +3,8 @@
 #include "DebugTimer.hh"
 
 #include <ctime>
+#include <iomanip>
+#include <sstream>
 
 #include <spdlog/spdlog.h>
 
@@ -75,11 +77,15 @@ void
 Timer::print_verbose(const std::string& arg) const
 {
   const std::clock_t& time = m_stop->tv_sec - m_start->tv_sec;
-  spdlog::info("{} {}", m_msg, arg);
-  spdlog::info("   Process Start   : {}\r", m_cstart);
-  spdlog::info("   Process Stop    : {}", m_cstop);
-  spdlog::info("   Processing Time : {}:{:02}:{:02}",
-               time/3600, (time/60)%60, time%60);
+  std::ostringstream oss;
+  oss << m_msg << " " << arg << std::endl
+      << "   Process Start   : " << m_cstart << std::endl
+      << "   Process Stop    : " << m_cstop << std::endl
+      << "   Processing Time : "
+      << std::setw(2) << std::setfill('0') << time/3600 << ":"
+      << std::setw(2) << std::setfill('0') << (time/60)%60 << ":"
+      << std::setw(2) << std::setfill('0') << time%60;
+  spdlog::info(oss.str());
 }
 
 //______________________________________________________________________________
