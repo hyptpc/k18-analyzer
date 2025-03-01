@@ -3,15 +3,32 @@ k18-analyzer
 
 K1.8(BR) analyzer
 
+## Install and build
+
+By default, usr is empty and is created by copying from example.
+User part is removed from git management because it will be changed frequently by each user.
+First, copy files from example to usr. And make.
+
+```sh
+git clone --branch e72 --recurse-submodules git@github.com:hyptpc/k18-analyzer.git e72
+cd e72
+cp Makefile.org Makefile
+cp -pr example usr
+make
+```
+
 ## Environment variables
 
 Example setting in .bashrc.
 
 ```sh
-module load gcc/830
-module load git/2260
-. /opt/python-3.7/etc/profile.d/conda.sh
-. /group/had/sks/software/root/6.30.06/bin/thisroot.sh
+. /sw/packages/root/6.34.38/bin/thisroot.sh
+. /sw/packages/geant4/11.2.2/bin/geant4.sh
+. /sw/packages/geant4/11.2.2/share/Geant4/geant4make/geant4make.sh
+conda activate myenv
+export G4WORKDIR=$HOME/work/geant4 # set as you like
+export PATH=/group/had/sks/software/unpacker/e70/bin:$PATH
+export PATH=$G4WORKDIR/bin/Linux-g++:$PATH
 ```
 
 Since PATH to unpacker is specified in Makefile, it is unnecessary to be set.
@@ -23,15 +40,15 @@ it is necessary to build the Anaconda local environment once using the `conda` c
 Note that it is recommended to use `conda install` instead of `pip install` in the anaconda environment.
 
 ```sh
-$ conda create -n py37 python=3.7 # py37 is an example name
-$ conda activate py37
+$ conda create -n myenv python=3.9 # myenv is an example name
+$ conda activate myenv
 $ conda install numpy psutil pyyaml rich
 ```
 
 Add the following line in .bashrc to activate your environment.
 
 ```sh
-conda activate py37
+conda activate myenv
 ```
 
 If the prompt header of conda is annoying, add the following line in .condarc.
@@ -40,17 +57,9 @@ If the prompt header of conda is annoying, add the following line in .condarc.
 changeps1: False
 ```
 
-## Build and Run analyzer
-
-By default, usr is empty and is created by copying from example.
-User part is removed from git management because it will be changed frequently by each user.
-First, run the script that copies from example to usr. And make.
-To use the same runmanager, the runtime arguments are the same structure as in K1.8.
+## Run analyzer
 
 ```sh
-cp Makefile.org Makefile
-sh script/copy-example-to-user.sh
-make
 ./bin/RawHist param/conf/analyzer_e73_2024.conf /group/had/knucl/e15/e73_data/run91/run00117.dat.gz tmp.root
 ```
 
