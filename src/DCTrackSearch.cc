@@ -816,7 +816,6 @@ LocalTrackSearch(const std::vector<DCHC>& HC,
       //     delete track;
       //   }
       // }else{
-      track->Print();
       TrackCont.push_back(track);
       // }
     }

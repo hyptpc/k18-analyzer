@@ -114,6 +114,8 @@ DCLocalTrack::Calculate()
       hit->SetLocalHitPos(ss);
     }
   }
+
+  Print();
   m_is_calculated = true;
 }
 

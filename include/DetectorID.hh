@@ -35,6 +35,7 @@ const int DetIdPC     =  35;
 const int DetIdIH     =  42;
 const int DetIdVFT    =  53;
 
+const Int_t NumOfSegT0 = 5;
 const Int_t NumOfSegBH2   =  8;
 const Int_t NumOfSegTOF   = 19;
 
