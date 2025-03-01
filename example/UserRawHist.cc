@@ -39,7 +39,7 @@ ProcessNormal()
   evAna.HodoRawHit(rawData);
 
   root::HF1("Status", 2);
-  evAna.DCRawHit(rawData);
+  evAna.DCRawHit("BcOut", rawData);
 
   root::HF1("Status", 3);
   evAna.DAQ(rawData);
@@ -64,7 +64,7 @@ ConfMan::InitializeHistograms()
   hist::BuildTriggerFlag();
   hist::BuildDAQ();
   hist::BuildHodoRaw();
-  hist::BuildDCRaw();
+  hist::BuildDCRaw("BcOut");
   return true;
 }
 
