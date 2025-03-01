@@ -59,6 +59,15 @@ changeps1: False
 
 ## Run analyzer
 
+The data directory at kekcc is as below.
+
+| Period | Path |
+| -- | -- |
+| E73 in Run91 (2024) | /group/had/knucl/e15/e73_data/run91 |
+| E72 in Run92 (2025) | /hsm/had/sks/E72/JPARC2025Feb/rawdata |
+
+The following is run command.
+
 ```sh
 ./bin/RawHist param/conf/analyzer_e73_2024.conf /group/had/knucl/e15/e73_data/run91/run00117.dat.gz tmp.root
 ```
