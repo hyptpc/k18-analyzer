@@ -22,7 +22,7 @@ make
 Example setting in .bashrc.
 
 ```sh
-. /sw/packages/root/6.34.38/bin/thisroot.sh
+. /sw/packages/root/6.32.04/bin/thisroot.sh
 . /sw/packages/geant4/11.2.2/bin/geant4.sh
 . /sw/packages/geant4/11.2.2/share/Geant4/geant4make/geant4make.sh
 conda activate myenv
