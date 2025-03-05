@@ -437,7 +437,7 @@ struct Src
   Double_t ytgtK18[MaxHits];
   Double_t utgtK18[MaxHits];
   Double_t vtgtK18[MaxHits];
-  Double_t thetaK18[MaxHits];
+  Double_t thetaHS[MaxHits];
 
   //DC KURAMA
   Int_t much;
@@ -1240,6 +1240,7 @@ dst::DstRead(Int_t ievent)
     Double_t y = src.ytgtK18[itK18];
     Double_t u = src.utgtK18[itK18];
     Double_t v = src.vtgtK18[itK18];
+    Double_t theta = src.thetaHS[itK18];        
     event.nhK18[itK18]     = nh;
     event.chisqrK18[itK18] = chisqr;
     event.pK18[itK18]      = p;
@@ -1247,6 +1248,7 @@ dst::DstRead(Int_t ievent)
     event.ytgtK18[itK18]   = y;
     event.utgtK18[itK18]   = u;
     event.vtgtK18[itK18]   = v;
+    event.thetaK18[itK18] = theta;
     Double_t pt=p/std::sqrt(1.+u*u+v*v);
     ThreeVector Pos(x, y, 0.);
     ThreeVector Mom(pt*u, pt*v, pt);
@@ -2148,7 +2150,8 @@ ConfMan::InitializeHistograms()
   TTreeCont[kK18HSTracking]->SetBranchStatus("ytgtHS",     1);
   TTreeCont[kK18HSTracking]->SetBranchStatus("utgtHS",     1);
   TTreeCont[kK18HSTracking]->SetBranchStatus("vtgtHS",     1);
-
+  TTreeCont[kK18HSTracking]->SetBranchStatus("thetaHS",  1);
+  
   TTreeCont[kK18HSTracking]->SetBranchAddress("ntBcOut",     &src.ntBcOut    );
   TTreeCont[kK18HSTracking]->SetBranchAddress("nlBcOut",     &src.nlBcOut    );
   TTreeCont[kK18HSTracking]->SetBranchAddress("nhBcOut",      src.nhBcOut    );
@@ -2166,6 +2169,7 @@ ConfMan::InitializeHistograms()
   TTreeCont[kK18HSTracking]->SetBranchAddress("ytgtHS", src.ytgtK18);
   TTreeCont[kK18HSTracking]->SetBranchAddress("utgtHS", src.utgtK18);
   TTreeCont[kK18HSTracking]->SetBranchAddress("vtgtHS", src.vtgtK18);
+  TTreeCont[kK18HSTracking]->SetBranchAddress("thetaHS",  src.thetaHS);  
 
   TTreeCont[kEasiroc]->SetBranchStatus("*", 0);
   TTreeCont[kEasiroc]->SetBranchStatus("bft_ncl",    1);

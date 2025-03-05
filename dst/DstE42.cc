@@ -3113,7 +3113,8 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKScat]->SetBranchAddress("ytgtK18",   src.ytgtK18);
   TTreeCont[kKScat]->SetBranchAddress("utgtK18",   src.utgtK18);
   TTreeCont[kKScat]->SetBranchAddress("vtgtK18",   src.vtgtK18);
-
+  TTreeCont[kKScat]->SetBranchAddress("thetaK18",  src.thetaK18);
+  
   TTreeCont[kKScat]->SetBranchAddress("ntKurama",    &src.ntKurama);
   TTreeCont[kKScat]->SetBranchAddress("chisqrKurama", src.chisqrKurama);
   TTreeCont[kKScat]->SetBranchAddress("pKurama",      src.pKurama);
