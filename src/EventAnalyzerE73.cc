@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-#if ! defined E73_2024
+#ifdef E73_2024
 
 #include "EventAnalyzer.hh"
 
@@ -49,7 +49,7 @@ EventAnalyzer::BeamFlag(const RawData& rawData)
 {
   Bool_t ac_hit = false;
   {
-    static const Char_t* name = "BAC";
+    static const Char_t* name = "AC";
     const auto& cont = rawData.GetHodoRawHC(DetIdAC);
     for(Int_t i=0, n=cont.size(); i<n; ++i){
       auto raw = cont[i];
@@ -138,7 +138,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
 
   // AC
   {
-    static const Char_t* name = "BAC";
+    static const Char_t* name = "AC";
     Int_t multi = 0;
     Bool_t is_good = false;
     for(const auto& hit: rawData.GetHodoRawHC(name)){
@@ -163,7 +163,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
   }
 
   // Hodoscope
-  for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
+  for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
     const Char_t* name = NameHodo[ihodo];
     Int_t multi_or = 0;
     Int_t multi_and = 0;
@@ -252,7 +252,7 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Hit_Multi%s", name, b), multi);
   }
   // Hodoscope
-  for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
+  for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
     const Char_t* name = NameHodo[ihodo];
     Int_t multi = 0;
     for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){

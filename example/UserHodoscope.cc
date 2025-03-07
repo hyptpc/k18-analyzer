@@ -47,6 +47,7 @@ std::map<TString, adc_t> adc_u;
 std::map<TString, adc_t> adc_d;
 std::map<TString, tdc_t> tdc_u;
 std::map<TString, tdc_t> tdc_d;
+std::map<TString, tdc_t> tdc_s;
 std::map<TString, tdc_t> trailing_u;
 std::map<TString, tdc_t> trailing_d;
 
@@ -85,6 +86,7 @@ ProcessBegin()
   for(auto& p: adc_d) p.second.clear();
   for(auto& p: tdc_u) p.second.clear();
   for(auto& p: tdc_d) p.second.clear();
+  for(auto& p: tdc_s) p.second.clear();
   for(auto& p: trailing_u) p.second.clear();
   for(auto& p: trailing_d) p.second.clear();
 
@@ -123,11 +125,10 @@ ProcessNormal()
   hodoAna.DecodeHits<FiberHit>("BHT");
   // hodoAna.TimeCut("BHT");
   hodoAna.DecodeHits<BH2Hit>("T0");
-  hodoAna.DecodeHits("T1");
-  hodoAna.DecodeHits("AC");
-  hodoAna.DecodeHits("DEF");
-  hodoAna.DecodeHits("CVC");
-  hodoAna.DecodeHits("NC");
+  hodoAna.DecodeHits("BAC");
+  hodoAna.DecodeHits("KVC");
+  hodoAna.DecodeHits("SAC");
+  hodoAna.DecodeHits("BH2");
 
   EventAnalyzer evAna;
 
@@ -167,7 +168,7 @@ ProcessNormal()
     trailing_d["BHT"].push_back(hit->GetArrayTdcTrailing(1));
   }
 
-  for(Int_t ihodo=kT1; ihodo<kNumHodo + 1; ++ihodo){
+  for(Int_t ihodo=kT0; ihodo<kNumHodo + 1; ++ihodo){
     auto n = (ihodo < kNumHodo) ? NameHodo[ihodo] : "AC";
     for(const auto& hit: rawData.GetHodoRawHC(n)){
       raw_seg[n].push_back(hit->SegmentId());
@@ -175,6 +176,10 @@ ProcessNormal()
       adc_d[n].push_back(hit->GetAdcDown());
       tdc_u[n].push_back(hit->GetArrayTdcUp());
       tdc_d[n].push_back(hit->GetArrayTdcDown());
+      tdc_s[n].push_back(hit->GetArrayTdcExtra());
+      if(n == "KVC"){
+        hit->Print();
+      }
     }
   }
 
@@ -247,7 +252,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("bht_tdc_d", &tdc_d["BHT"]);
   tree->Branch("bht_trailing_u", &trailing_u["BHT"]);
   tree->Branch("bht_trailing_d", &trailing_d["BHT"]);
-  for(Int_t ihodo=kT1; ihodo<kNumHodo; ++ihodo){
+  for(Int_t ihodo=kT0; ihodo<kNumHodo; ++ihodo){
     auto n = NameHodo[ihodo];
     n.ToLower();
     tree->Branch(Form("%s_raw_seg", n.Data()), &raw_seg[NameHodo[ihodo]]);
@@ -255,6 +260,7 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_adc_d", n.Data()), &adc_d[NameHodo[ihodo]]);
     tree->Branch(Form("%s_tdc_u", n.Data()), &tdc_u[NameHodo[ihodo]]);
     tree->Branch(Form("%s_tdc_d", n.Data()), &tdc_d[NameHodo[ihodo]]);
+    tree->Branch(Form("%s_tdc_s", n.Data()), &tdc_s[NameHodo[ihodo]]);
   }
   tree->Branch("bac_raw_seg", &raw_seg["AC"]);
   tree->Branch("bac_adc", &adc_u["AC"]);

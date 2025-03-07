@@ -1,0 +1,117 @@
+#
+# UserParam_0
+#
+
+#______________________________________________________________________________
+# Hodo TDC	min	max
+BHT_TDC		1230000	1250000
+BHT_TDC_Pi	1230000	1240000
+BHT_TDC_K	1240000	1250000
+T0_TDC		1200000	1250000
+BAC_TDC		640000	680000
+KVC_TDC		1200000	1250000
+SAC_TDC		1140000	1200000
+BH2_TDC		600000	650000
+
+#______________________________________________________________________________
+# HodoAna
+BHT_Time	-15	5
+T0_Time		-5	5
+T1_Time		-5	5
+CVC_Time	-5	25
+CVC_TimeDiff	-1	1
+BTOF		-15	5
+FTOF		-5	25
+MaxClusterSizeBHT	2
+MaxClusterSizeT0	1
+MaxClusterSizeBAC	1
+MaxClusterSizeKVC	1
+MaxClusterSizeSAC	1
+MaxClusterSizeBH2	1
+MaxTimeDiffBHT		10
+MaxTimeDiffT0		-1
+MaxTimeDiffBAC		-1
+MaxTimeDiffKVC		-1
+MaxTimeDiffSAC		-1
+MaxTimeDiffBH2		-1
+
+#______________________________________________________________________________
+# DC TDC	min	max
+BLC1a_TDC	1000	1500
+BLC1b_TDC	1000	1500
+BLC2a_TDC	1000	1500
+BLC2b_TDC	1000	1500
+BPC1_TDC	1000	1500
+BPC2_TDC	1000	1500
+
+# DC TOT	min	max	(channel)
+BLC1a_TOT	60	2000
+BLC1b_TOT	60	2000
+BLC2a_TOT	60	2000
+BLC2b_TOT	60	2000
+BPC1_TOT	100	2000
+BPC2_TOT	40	2000
+VFT_TOT		10	2000
+
+# DriftTime	min	max (ns)
+BLC1a_DT	-50	400
+BLC1b_DT	-50	250
+BLC2a_DT	-50	250
+BLC2b_DT	-50	150
+BPC1_DT		-50	150
+BPC2_DT		-50	200
+VFT_DT		-50	200
+
+
+##
+CDSFIELD	-0.715
+CDCTOTPID	0.9	-0.004
+###
+TRIGTDC	800	1000
+#HODOTDC	1150e3	1250e3
+HODOTDC	1100e3	1300e3
+BHTTOT	8e3	40e3
+BHDTDC	1150e3	1250e3
+#TriggerFlag	-20	20
+TriggerFlag	-5	5
+Time0		-10	10
+PbF2TOF		-10	10
+#CDHTOF		-10	30
+CDHTOF		-50	30
+VetoTOF		-40	40
+#HodoGATE	-10	10
+HodoGATE	-50	100
+TOFK	-4	-1.8
+#TOFK	-12 	-9
+TOFP	-12 	-8
+TOFD	-32 	-28
+TOFPi	-1.5	1.5
+### Drift Chamber ######################
+# Tdc		min	max
+DCDt100		-50	400
+DCDt101		-50	250
+DCDt102		-50	250
+DCDt103		-50	150
+DCDt104		-50	150
+DCDt105		-50	200
+DCDt106		-50	200
+# TOT		min	max
+DCTot100	70	500
+DCTot100L0	50	500
+DCTot100L1	50	500
+DCTot100L2	50	500
+#
+DCTot101	60	500
+DCTot102	60	500
+DCTot103	60	500
+DCTot104	60	500
+DCTot105	20	200
+DCTot106	60	500
+# DCCL		min	max
+DCCL100		630	700
+DCCL101		630	700
+DCCL102		630	700
+DCCL103		630	700
+DCCL104		630	700
+DCCL105		550	800
+DCCL106		550	800

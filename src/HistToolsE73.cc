@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-#if ! defined E73_2024
+#ifdef E73_2024
 
 #include "HistTools.hh"
 
@@ -88,9 +88,9 @@ BuildHodoRaw(Bool_t flag_beam_particle)
         HB1(Form("%s_Multi_%s%s; multiplicity; count", name, ud, b), nseg + 1, -0.5, nseg + 0.5);
       }
     }
-    { // BAC
-      const Char_t* name = "BAC";
-      Int_t nseg = NumOfSegBAC;
+    { // AC
+      const Char_t* name = "AC";
+      Int_t nseg = NumOfSegAC;
       for(Int_t i=0; i<nseg; ++i){
         HB1(Form("%s_ADC_seg%d%s; channel; count", name, i, b), adcbins);
         HB1(Form("%s_AwT_seg%d%s; channel; count", name, i, b), adcbins);
@@ -101,7 +101,7 @@ BuildHodoRaw(Bool_t flag_beam_particle)
       HB1(Form("%s_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
     }
     // Hodoscope
-    for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
+    for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
       auto name = NameHodo[ihodo].Data();
       const Double_t* hrtdcbins;
       if(NameHodo[ihodo].Contains("CVC") ||
@@ -181,7 +181,7 @@ BuildHodoHit(Bool_t flag_beam_particle)
       HB1(Form("%s_Hit_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
     }
     // Hodoscope
-    for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
+    for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
       auto name = NameHodo[ihodo].Data();
       Double_t nseg = NumOfSegHodo[ihodo];
       for(Int_t i=0; i<nseg; ++i){
@@ -285,7 +285,7 @@ BuildHodoCluster(Bool_t flag_beam_particle)
       HB1(Form("%s_Cl_Size%s; size; count", name, b), 10 + 1, -0.5, 10 + 0.5);
     }
     // Hodoscope
-    for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
+    for(Int_t ihodo=kT1; ihodo<kNumHodo;++ihodo){
       auto name = NameHodo[ihodo].Data();
       Double_t nseg = NumOfSegHodo[ihodo];
       const Double_t hrtimebins2d[6] = { nseg, -0.5, nseg - 0.5,

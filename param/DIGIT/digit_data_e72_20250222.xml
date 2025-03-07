@@ -2,21 +2,22 @@
 
 <digit_data xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	    xsi:noNamespaceSchemaLocation="schema/digit.xsd">
-  
+
   <device id="0xff" name="null"/>
   <!--________________________________________________________________-->
-  <device id="1" name="BHT"><for var="seg" from="0" to="63">
+  <device id="1" name="BHT" type="Hodo"><for var="seg" from="0" to="63">
     <segment id="seg"><for var="UorD" from="0" to="1">
       <ch id="UorD">
         <data id="0" name="leading"/>
         <data id="1" name="trailing"/>
 	<data id="2" name="commonstop"/>
 	<data id="3" name="overflow"/>
+        <data id="4" name="adc"/>
       </ch></for>
     </segment></for>
   </device>
   <!--________________________________________________________________-->
-  <device id="2" name="T0"><for var="seg" from="0" to="4">
+  <device id="2" name="T0" type="Hodo"><for var="seg" from="0" to="4">
     <segment id="seg"><for var="UorD" from="0" to="1">
       <ch id="UorD">
         <data id="0" name="adc"/>
@@ -28,7 +29,7 @@
     </segment></for>
   </device>
   <!--________________________________________________________________-->
-  <device id="3" name="BAC">
+  <device id="3" name="BAC" type="Hodo">
     <for var="seg" from="0" to="4">
       <segment id="seg">
         <ch id="0">
@@ -41,7 +42,7 @@
     </segment></for>
   </device>
   <!--________________________________________________________________-->
-  <device id="4" name="KVC">
+  <device id="4" name="KVC" type="Hodo">
     <for var="seg" from="0" to="4">
       <segment id="seg"><for var="UorD" from="0" to="2">
         <ch id="UorD">
@@ -54,7 +55,7 @@
     </segment></for>
   </device>
   <!--________________________________________________________________-->
-  <device id="5" name="SAC"><for var="seg" from="0" to="8">
+  <device id="5" name="SAC" type="Hodo"><for var="seg" from="0" to="8">
       <segment id="seg"><for var="UorD" from="0" to="0">
 	  <ch id="UorD">
             <data id="0" name="adc"/>
@@ -66,7 +67,7 @@
     </segment></for>
   </device>
   <!--________________________________________________________________-->
-  <device id="6" name="BH2"><for var="seg" from="0" to="11">
+  <device id="6" name="BH2" type="Hodo"><for var="seg" from="0" to="11">
       <segment id="seg"><for var="UorD" from="0" to="2">
 	  <ch id="UorD">
             <data id="0" name="adc"/>
@@ -78,7 +79,7 @@
     </segment></for>
   </device>
   <!--________________________________________________________________-->
-  <device id="14" name="CVC"><for var="seg" from="0" to="34">
+  <device id="14" name="CVC" type="Hodo"><for var="seg" from="0" to="34">
     <segment id="seg"><for var="UorD" from="0" to="1">
       <ch id="UorD">
         <data id="0" name="adc"/>
@@ -90,7 +91,7 @@
     </segment></for>
   </device>
   <!--________________________________________________________________-->
-  <device id="32" name="NC"><for var="seg" from="0" to="5">
+  <device id="32" name="NC" type="Hodo"><for var="seg" from="0" to="5">
     <segment id="seg"><for var="UorD" from="0" to="1">
       <ch id="UorD">
         <data id="0" name="adc"/>
@@ -190,7 +191,7 @@
     <segment id="seg">
       <data id="0" name="leading"/>
       <data id="1" name="trailing"/>
-      <data id="2" name="hitnum"/>      
+      <data id="2" name="hitnum"/>
     </segment></for>
   </device>
   <!--________________________________________________________________-->

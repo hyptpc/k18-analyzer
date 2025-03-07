@@ -1,3 +1,5 @@
+// -*- C++ -*-
+
 #ifndef DETECTOR_ID_HH
 #define DETECTOR_ID_HH
 
@@ -16,15 +18,22 @@ const std::map<TString, std::vector<TString>> DCNameList =
 };
 
 // Counters ___________________________________________________________
-const int DetIdBHT    =   1;
-const int DetIdT0     =   2;
-const int DetIdCVC    =  14;
-const int DetIdNC     =  32;
-const Int_t DegIdBAC  = 5;
-const Int_t NumOfSegBHT  = 63;
-const Int_t NumOfSegT0    =  5;
-const Int_t NumOfSegBH2   =  8;
-const Int_t NumOfSegBAC  = 5;
+const Int_t DetIdBHT =  1;
+const Int_t DetIdT0  =  2;
+const Int_t DetIdBAC =  3;
+const Int_t DetIdKVC =  4;
+const Int_t DetIdSAC =  5;
+const Int_t DetIdBH2 =  6;
+const Int_t DetIdCVC = 14;
+const Int_t DetIdNC  = 32;
+const Int_t NumOfSegBHT = 63;
+const Int_t NumOfSegT0  =  5;
+const Int_t NumOfSegBAC =  5;
+const Int_t NumOfSegKVC =  5;
+const Int_t NumOfSegSAC =  9;
+const Int_t NumOfSegBH2 = 12;
+const Int_t NumOfSegCVC = 35;
+const Int_t NumOfSegNC  =  6;
 
 // E73-2024
 const int DetIdAC     =   3;
@@ -38,12 +47,36 @@ const int DetIdScaler    =  91;
 const int DetIdTrigFlag  =  99;
 const Int_t NumOfSegTrigFlag = 32;
 
+#if defined E72
+enum EHodoscope {
+  kBHT, kT0, kBAC,
+  kKVC, kSAC, kBH2,
+  kCVC, kNC,
+  kNumHodo
+};
+
+const Int_t DetIdHodo[kNumHodo] = {
+  DetIdBHT, DetIdT0, DetIdBAC,
+  DetIdKVC, DetIdSAC, DetIdBH2,
+  DetIdCVC, DetIdNC,
+};
+
+const std::vector<TString> NameHodo = {
+  "BHT", "T0", "BAC",
+  "KVC", "SAC", "BH2",
+  "CVC", "NC",
+};
+
+const double  NumOfSegHodo[kNumHodo] = {
+  NumOfSegBHT, NumOfSegT0, NumOfSegBAC,
+  NumOfSegKVC, NumOfSegSAC, NumOfSegBH2,
+  NumOfSegCVC, NumOfSegNC,
+};
+
+#elif defined E73_2024
 enum EHodoscope {
   kBHT, kT1, kT0, kDEF,
   // kVeto, kBTC,
-#ifdef CDS
-  kCDH, kPbG, kPbF2,
-#endif
   kCVC, kNC,
   // kRC,
   kNumHodo
@@ -52,9 +85,6 @@ enum EHodoscope {
 const Int_t DetIdHodo[kNumHodo] = {
   DetIdBHT, DetIdT1, DetIdT0, DetIdDEF,
   // DetIdVeto, DetIdBTC,
-#ifdef CDS
-  DetIdCDH, DetIdPbG, DetIdPbF2,
-#endif
   DetIdCVC, DetIdNC,
   // DetIdRC
 };
@@ -62,9 +92,6 @@ const Int_t DetIdHodo[kNumHodo] = {
 const std::vector<TString> NameHodo = {
   "BHT", "T1", "T0", "DEF",
   // "Veto", "BTC",
-#ifdef CDS
-  "CDH", "PbG", "PbF2",
-#endif
   "CVC", "NC",
   // "RC"
 };
@@ -72,11 +99,9 @@ const std::vector<TString> NameHodo = {
 const double  NumOfSegHodo[kNumHodo] = {
   63, 1, 5, 5,
   // 4, 4,
-#ifdef CDS
-  36, 40, 40,
-#endif
   35, 6,
 };
+#endif
 
 // Chambers
 const int DetIdCDC    = 100;
@@ -98,9 +123,6 @@ enum EDC {
   kBLC1a, kBLC1b, kBLC2a, kBLC2b,
   kBPC1, kBPC2,
   // kVFT,
-#ifdef CDS
-  kCDC,
-#endif
   kBLC1, kBLC2, kBPC0, kNumDC
 };
 
@@ -108,9 +130,6 @@ const Int_t DetIdDC[kNumDC] = {
   DetIdBLC1a, DetIdBLC1b, DetIdBLC2a, DetIdBLC2b,
   DetIdBPC1, DetIdBPC2,
   // DetIdVFT,
-#ifdef CDS
-  DetIdCDC,
-#endif
   DetIdBLC1, DetIdBLC2, DetIdBPC0
 };
 
