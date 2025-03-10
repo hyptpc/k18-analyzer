@@ -45,6 +45,7 @@ seg_t trig_pat;
 std::map<TString, seg_t> raw_seg;
 std::map<TString, adc_t> adc_u;
 std::map<TString, adc_t> adc_d;
+std::map<TString, adc_t> adc_s;
 std::map<TString, tdc_t> tdc_u;
 std::map<TString, tdc_t> tdc_d;
 std::map<TString, tdc_t> tdc_s;
@@ -84,6 +85,7 @@ ProcessBegin()
   for(auto& p: raw_seg) p.second.clear();
   for(auto& p: adc_u) p.second.clear();
   for(auto& p: adc_d) p.second.clear();
+  for(auto& p: adc_s) p.second.clear();
   for(auto& p: tdc_u) p.second.clear();
   for(auto& p: tdc_d) p.second.clear();
   for(auto& p: tdc_s) p.second.clear();
@@ -169,17 +171,16 @@ ProcessNormal()
   }
 
   for(Int_t ihodo=kT0; ihodo<kNumHodo + 1; ++ihodo){
-    auto n = (ihodo < kNumHodo) ? NameHodo[ihodo] : "AC";
+    auto n = NameHodo[ihodo];
     for(const auto& hit: rawData.GetHodoRawHC(n)){
       raw_seg[n].push_back(hit->SegmentId());
       adc_u[n].push_back(hit->GetAdcUp());
       adc_d[n].push_back(hit->GetAdcDown());
+      adc_s[n].push_back(hit->GetAdcExtra());
       tdc_u[n].push_back(hit->GetArrayTdcUp());
       tdc_d[n].push_back(hit->GetArrayTdcDown());
       tdc_s[n].push_back(hit->GetArrayTdcExtra());
-      if(n == "KVC"){
-        hit->Print();
-      }
+      // hit->Print();
     }
   }
 
@@ -258,13 +259,11 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_raw_seg", n.Data()), &raw_seg[NameHodo[ihodo]]);
     tree->Branch(Form("%s_adc_u", n.Data()), &adc_u[NameHodo[ihodo]]);
     tree->Branch(Form("%s_adc_d", n.Data()), &adc_d[NameHodo[ihodo]]);
+    tree->Branch(Form("%s_adc_s", n.Data()), &adc_s[NameHodo[ihodo]]);
     tree->Branch(Form("%s_tdc_u", n.Data()), &tdc_u[NameHodo[ihodo]]);
     tree->Branch(Form("%s_tdc_d", n.Data()), &tdc_d[NameHodo[ihodo]]);
     tree->Branch(Form("%s_tdc_s", n.Data()), &tdc_s[NameHodo[ihodo]]);
   }
-  tree->Branch("bac_raw_seg", &raw_seg["AC"]);
-  tree->Branch("bac_adc", &adc_u["AC"]);
-  tree->Branch("bac_tdc", &tdc_u["AC"]);
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
     auto n = NameHodo[ihodo];
