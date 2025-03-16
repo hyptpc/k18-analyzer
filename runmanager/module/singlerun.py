@@ -433,7 +433,7 @@ class SingleRun(object):
       self.__status = 'UNKNOWN'
     if self.__bjob_status is None: # initial
       pass
-    elif self.__bjob_status is 0: # running
+    elif self.__bjob_status == 0: # running
       self.__status = 'BJOB-RUNNING'
     elif self.__bjob_status is True: # complete
       self.__status = 'BJOB-DONE'
@@ -646,11 +646,11 @@ class SingleRun(object):
       stat = job.get_status()
       if stat is True:
         n_complete += 1
-        if self.__jobstat_list[i] is 1:
+        if self.__jobstat_list[i] == 1:
           self.__dump_log(f'time[bjob({i})]',
                          self.decode_time(job.get_run_time()))
           self.__dump_log(None, '_'*80)
-      elif stat is False and self.__jobstat_list[i] is 1:
+      elif stat is False and self.__jobstat_list[i] == 1:
         self.__bjob_status = False
         self.__dump_log('error', f'error at {job.get_tag()}')
         self.__dump_log(None, '_'*80)
