@@ -1180,7 +1180,7 @@ dst::DstRead( int ievent )
   static const auto KKEvent = gUser.GetParameter("KKEvent");
   static const auto KPEvent = gUser.GetParameter("KPEvent");
   static const auto KHeavyEvent = gUser.GetParameter("KHeavyEvent");
-  static const Bool_t ScatMomCut = gUser.GetParameter("ScatMomCut");  
+  static const Double_t ScatMomCut = gUser.GetParameter("ScatMomCut");  
 
   if( ievent%1000==0 ){
     //if( ievent%1==0 ){
@@ -1214,7 +1214,7 @@ dst::DstRead( int ievent )
   if(KHeavyEvent && src.Heavyflag[0] != 1){
     return true; //precut with Kurama tracking
   }
-  if(ScatMomCut && src.pKurama[0]<1.8) return true;
+  if(ScatMomCut>0 && src.pKurama[0]<ScatMomCut) return true;
 
   if(src.ntKurama != **src.ntTPCKurama)
     std::cerr << "Kurama Event Missmatching : DstTPCKuramaK18Tracking <-> DstKScat" << std::endl;

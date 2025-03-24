@@ -1315,7 +1315,7 @@ dst::DstRead( int ievent )
   static const Bool_t KHeavyEvent = gUser.GetParameter("KHeavyEvent");
   static const Bool_t ExclusiveTracking = gUser.GetParameter("ExclusiveTracking");
   static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
-  static const Bool_t ScatMomCut = gUser.GetParameter("ScatMomCut");
+  static const Double_t ScatMomCut = gUser.GetParameter("ScatMomCut");
   static const auto xGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").X();
   static const auto yGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Y();
   static const auto zGlobalBcOut = gGeom.GetGlobalPosition("BC3-X1").Z();
@@ -1337,7 +1337,7 @@ dst::DstRead( int ievent )
 
   if((src.ntKurama!=1 and !BeamThroughTPC)|| src.ntK18!=1) return true;
   if(src.chisqrK18[0] > MaxChisqrBcOut || src.chisqrKurama[0] > MaxChisqrKurama) return true;
-  if(ScatMomCut && src.pKurama[0]<1.8) return true;
+  if(ScatMomCut>0 && src.pKurama[0]<ScatMomCut) return true;
   
   if(KKEvent){
     if(src.m2[0] < 0.05 || src.m2[0] > 0.70) return true;
@@ -2015,6 +2015,9 @@ dst::DstRead( int ievent )
       Double_t MissMassNucl = LvRcNucl.Mag();
       Double_t MissMassNuclCorr = LvRcNuclCorr.Mag();
       Double_t MissMassNuclCorrDE = LvRcNuclCorrDE.Mag();//-LvC.Mag();
+      if(src.pKurama[0]<1.6){
+	std::cout << "-BEk=" << KaonMass + Boron11Mass - MissMassNuclCorrDE << std::endl;;
+      }
 
       Double_t cost = pKmCorr*pScatCorr/(pKmCorr.Mag()*pScatCorr.Mag());
       Double_t theta = TMath::ACos(cost)*TMath::RadToDeg();
