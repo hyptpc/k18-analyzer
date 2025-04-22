@@ -48,12 +48,14 @@ public:
   bool ExtrapolateTrack(int trackid, double distance, TVector3 &pos, TVector3 &mom, int repid=-1) const;
   bool ExtrapolateToPoint(int trackid, TVector3 point, TVector3 &pos, TVector3 &mom, double &tracklen, double &tof, int repid=-1) const;
   bool ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, TVector3 &pos, TVector3 &mom, double &tracklen, double &tof, int repid=-1) const;
-  bool IsInsideTarget(int trackid, int repid=-1) const;
+  bool IsInsideTarget(int trackid, int repid=-1, bool Beamthrough = 0) const;
   bool ExtrapolateToHTOF(int trackid, int &candidates, int *ID, TVector3 *pos, TVector3 *mom, double *tracklen, double *tof, int repid=-1) const;
   bool ExtrapolateToTarget(int trackid, TVector3 &pos, TVector3 &mom, double &tracklen, double &tof, int repid=-1) const;
   bool ExtrapolateToTargetCenter(int trackid, TVector3 &pos, TVector3 &mom, double &tracklen, double &tof, int repid=-1) const;
   bool FindVertex(int trackid1, int trackid2, int repid1, int repid2, double &extrap_dist1, double &extrap_dist2, TVector3 &mom_vertex1, TVector3 &mom_vertex2, double &distance, TVector3 &vertex, double scan_range=100.) const;
+  bool FindVertex(int trackid1, int trackid2, int repid1, int repid2, double &extrap_dist1, double &extrap_dist2, TVector3 &mom_vertex1, TVector3 &mom_vertex2, double &distance, TVector3 &vertex, double scan_range, TVector3 &track1_vertex, TVector3& track2_vertex) const;
   bool FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, TVector3 mom_lambda, double &tracklen_lambda, double &extrap_dist_pi, TVector3 &mom_pi_vertex, double &distance, TVector3 &vertex, double scan_range=100., double res1 = 1,double res2 = 1, double phi = 0) const;
+  bool FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, TVector3 mom_lambda, double &tracklen_lambda, double &extrap_dist_pi, TVector3 &mom_pi_vertex, double &distance, TVector3 &vertex, double scan_range, double res1 ,double res2 , double phi , TVector3& track1_vertex,TVector3& track2_vertex) const;
   bool TPCHTOFTrackMatching(int trackid, int repid, TVector3 vertex, std::vector<Double_t> HtofSeg, std::vector<Double_t> posHtof, int &htofhitid, double &tof, double &tracklen, TVector3 &pos, double &vertex_dist) const;
   bool TPCHTOFTrackMatching(int trackid, int repid, std::vector<Double_t> HtofSeg, std::vector<Double_t> posHtof, int &htofhitid, double &tof, double &tracklen, TVector3 &pos) const;
   double DistLambdaTarget(TVector3 decayvtx_lambda, TVector3 mom_lambda) const;

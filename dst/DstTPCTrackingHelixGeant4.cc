@@ -240,7 +240,6 @@ struct Event
   std::vector<Double_t> nsigma_pion;
   std::vector<Double_t> nsigma_electron;
 
-
   vector<vector<Double_t>> hitlayer;
   vector<vector<Double_t>> hitpos_x;
   vector<vector<Double_t>> hitpos_y;
@@ -436,6 +435,16 @@ struct Event
   double PLd,PLd_x,PLd_y,PLd_z;
   double PPi1,PPi1_x,PPi1_y,PPi1_z;//Pi from Ld
   double PP,PP_x,PP_y,PP_z;
+  
+  //Prm
+  Int_t nhPrm;
+  std::vector<Double_t> xPrm;
+  std::vector<Double_t> yPrm;
+  std::vector<Double_t> zPrm;
+  std::vector<Double_t> pxPrm;
+  std::vector<Double_t> pyPrm;
+  std::vector<Double_t> pzPrm;
+  std::vector<Double_t> ppPrm;
 
   //HToF
   Int_t nhHtof;
@@ -446,8 +455,22 @@ struct Event
   std::vector<Double_t> posHtof;
   std::vector<Int_t> G4tidHtof;
 
-  //
-
+  //nhHSVp
+  Int_t nhHSVp;
+  std::vector<Int_t> tidHSVp;
+  std::vector<Int_t> pidHSVp;
+  std::vector<Int_t> didHSVp;
+  std::vector<Int_t> prtHSVp;
+  std::vector<Int_t> qHSVp;
+  std::vector<Double_t> xHSVp;
+  std::vector<Double_t> yHSVp;
+  std::vector<Double_t> zHSVp;
+  std::vector<Double_t> pxHSVp;
+  std::vector<Double_t> pyHSVp;
+  std::vector<Double_t> pzHSVp;
+  std::vector<Double_t> ppHSVp;
+  std::vector<Double_t> deHSVp;
+  std::vector<Double_t> tHSVp;
 
 
   Int_t nhSch;
@@ -606,6 +629,32 @@ struct Event
     deHtof.clear();
     posHtof.clear();
     G4tidHtof.clear();
+
+    nhPrm = 0;
+    xPrm.clear();
+    yPrm.clear();
+    zPrm.clear();
+    pxPrm.clear();
+    pyPrm.clear();
+    pzPrm.clear();
+    ppPrm.clear();
+
+    nhHSVp = 0;
+    tidHSVp.clear();
+    pidHSVp.clear();
+    didHSVp.clear();
+    prtHSVp.clear();
+    qHSVp.clear();
+    xHSVp.clear();
+    yHSVp.clear();
+    zHSVp.clear();
+    pxHSVp.clear();
+    pyHSVp.clear();
+    pzHSVp.clear();
+    ppHSVp.clear();
+    deHSVp.clear();
+    tHSVp.clear();
+
 
     nclTpc = 0;
     remain_nclTpc = 0;
@@ -1029,6 +1078,23 @@ struct Src
   Double_t deBvh[MaxG4Hits];
   Double_t tBvh[MaxG4Hits];
 
+  //HSVp;
+  Int_t nhHSVp;
+  Int_t tidHSVp[MaxG4Hits];
+  Int_t pidHSVp[MaxG4Hits];
+  Int_t didHSVp[MaxG4Hits];
+  Int_t prtHSVp[MaxG4Hits];
+  Int_t qHSVp[MaxG4Hits];
+  Double_t xHSVp[MaxG4Hits];
+  Double_t yHSVp[MaxG4Hits];
+  Double_t zHSVp[MaxG4Hits];
+  Double_t pxHSVp[MaxG4Hits];
+  Double_t pyHSVp[MaxG4Hits];
+  Double_t pzHSVp[MaxG4Hits];
+  Double_t ppHSVp[MaxG4Hits];
+  Double_t deHSVp[MaxG4Hits];
+  Double_t tHSVp[MaxG4Hits];
+
 
   //RealData
   TTreeReaderValue<int>* ntK18=nullptr;
@@ -1423,18 +1489,18 @@ dst::DstRead( int ievent )
       if(pz < 0){
         G4idKm = tid;
         event.G4idKm = tid;
-	event.PKm = p;
-	event.PKm_x = -px;
-	event.PKm_y = -py;
-	event.PKm_z = -pz;
+        event.PKm = p;
+        event.PKm_x = -px;
+        event.PKm_y = -py;
+        event.PKm_z = -pz;
       }
-      else{
+      else if(tid == 2){
         G4idKp = tid;
-	event.G4idKp = tid;
+        event.G4idKp = tid;
         event.PKp = p;
-	event.PKp_x = px;
-	event.PKp_y = py;
-	event.PKp_z = pz;
+        event.PKp_x = px;
+        event.PKp_y = py;
+        event.PKp_z = pz;
       }
     }
     if(pid == 3312){
@@ -1475,6 +1541,16 @@ dst::DstRead( int ievent )
   event.SpinLd_y = src.SpinLd_y;
   event.SpinLd_z = src.SpinLd_z;
   event.ThLd_CM = src.ThLd_CM;
+
+  event.nhPrm = 1;
+  for(int ih=0;ih<event.nhPrm;++ih){
+    event.xPrm.push_back(src.xPrm[ih]);
+    event.yPrm.push_back(src.yPrm[ih]);
+    event.zPrm.push_back(src.zPrm[ih]);
+  }
+
+
+
   event.nhHtof = src.nhHtof;
   for(int ih=0;ih<event.nhHtof;++ih){
     event.HtofSeg.push_back(src.didHtof[ih]);
@@ -1483,6 +1559,26 @@ dst::DstRead( int ievent )
     event.posHtof.push_back(src.yHtof[ih]);
     event.G4tidHtof.push_back(src.tidHtof[ih]);
   }
+
+  event.nhHSVp = src.nhHSVp;
+  for(int ih=0;ih<event.nhHSVp;++ih){
+    event.tidHSVp.push_back(src.tidHSVp[ih]);
+    event.pidHSVp.push_back(src.pidHSVp[ih]);
+    event.didHSVp.push_back(src.didHSVp[ih]);
+    event.prtHSVp.push_back(src.prtHSVp[ih]);
+    event.qHSVp.push_back(src.qHSVp[ih]);
+    event.xHSVp.push_back(src.xHSVp[ih]);
+    event.yHSVp.push_back(src.yHSVp[ih]);
+    event.zHSVp.push_back(src.zHSVp[ih]);
+    event.pxHSVp.push_back(src.pxHSVp[ih]);
+    event.pyHSVp.push_back(src.pyHSVp[ih]);
+    event.pzHSVp.push_back(src.pzHSVp[ih]);
+    event.ppHSVp.push_back(src.ppHSVp[ih]);
+    event.deHSVp.push_back(src.deHSVp[ih]);
+    event.tHSVp.push_back(src.tHSVp[ih]);
+  }
+
+
 
   event.nhSch = src.nhSch;
   for(int ihit=0;ihit<event.nhSch;++ihit){
@@ -1607,6 +1703,18 @@ dst::DstRead( int ievent )
   event.ytgtHS = **src.ytgtHS;
   event.xtgtKurama = **src.xtgtKurama;
   event.ytgtKurama = **src.ytgtKurama;
+  std::vector<std::vector<TVector3>> vpK18s;
+  int nhK18 = 0;
+  std::vector<TVector3> vpK18;
+  for(int ih=0; ih<event.nhHSVp; ++ih){
+    if(event.pidHSVp[ih] == 321 and event.pzHSVp[ih] < 0){
+      ++nhK18;
+      vpK18.push_back(TVector3(event.xHSVp[ih], event.yHSVp[ih], event.zHSVp[ih]));
+    }
+  }
+  std::sort(vpK18.begin(), vpK18.end(), [](const TVector3& a, const TVector3& b){return a.Z() < b.Z();});
+  vpK18.push_back(TVector3(src.xPrm[0], src.yPrm[0], tpc::ZTarget));
+  vpK18s.push_back(vpK18);
 #if KuramaK18
   event.ntK18 = **src.ntK18;
   event.xvpHS = **src.xvpHS;
@@ -1691,7 +1799,7 @@ dst::DstRead( int ievent )
 #if ExclusiveResidual
   TPCAna->TrackSearchTPCHelix(true);
 #else
-  TPCAna->TrackSearchTPCHelix();
+  TPCAna->TrackSearchTPCHelix(vpK18s);
 #endif
 #endif
   Int_t nclTpc = 0;
@@ -2192,7 +2300,7 @@ dst::DstRead( int ievent )
     }//ih
     int nPureHits;
     int G4tid = TPCToG4TrackID(TPCHits,src.nhittpc,src.ititpc,src.xtpc,src.ytpc,src.ztpc,nPureHits);
-    if(G4tid == G4idKm)event.isK18[it]=1;
+//    if(G4tid == G4idKm)event.isK18[it]=1;
     if(G4tid == G4idKp)event.isKurama[it]=1;
     event.path[it] = helix_r*(max_t - min_t);
     event.G4tid[it] = G4tid;
@@ -2648,6 +2756,23 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("xtgtKurama",&event.xtgtKurama);
   tree->Branch("ytgtKurama",&event.ytgtKurama);
 
+  tree->Branch("nhHSVp",&event.nhHSVp);
+  tree->Branch("tidHSVp",&event.tidHSVp);
+  tree->Branch("pidHSVp",&event.pidHSVp);
+  tree->Branch("didHSVp",&event.didHSVp);
+  tree->Branch("prtHSVp",&event.prtHSVp);
+  tree->Branch("qHSVp",&event.qHSVp);
+  tree->Branch("xHSVp",&event.xHSVp);
+  tree->Branch("yHSVp",&event.yHSVp);
+  tree->Branch("zHSVp",&event.zHSVp);
+  tree->Branch("pxHSVp",&event.pxHSVp);
+  tree->Branch("pyHSVp",&event.pyHSVp);
+  tree->Branch("pzHSVp",&event.pzHSVp);
+  tree->Branch("ppHSVp",&event.ppHSVp);
+  tree->Branch("deHSVp",&event.deHSVp);
+  tree->Branch("tHSVp",&event.tHSVp);
+
+
   tree->Branch( "nclTpc", &event.nclTpc );
   tree->Branch( "remain_nclTpc", &event.remain_nclTpc );
   tree->Branch( "cluster_x", &event.cluster_x );
@@ -2824,6 +2949,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("ThLd_CM",&event.ThLd_CM,"ThLd_CM/D");
 
 
+
   tree->Branch( "nhHtof", &event.nhHtof );
   tree->Branch( "HtofSeg", &event.HtofSeg );
   tree->Branch( "tHtof", &event.tHtof );
@@ -2945,6 +3071,13 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchAddress("evnum", &src.evnum);
   TTreeCont[kTPCGeant]->SetBranchAddress("nhittpc", &src.nhittpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("nhPrm", &src.nhPrm);
+  TTreeCont[kTPCGeant]->SetBranchAddress("xPrm", src.xPrm);
+  TTreeCont[kTPCGeant]->SetBranchAddress("yPrm", src.yPrm);
+  TTreeCont[kTPCGeant]->SetBranchAddress("zPrm", src.zPrm);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pxPrm", src.pxPrm);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pyPrm", src.pyPrm);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pzPrm", src.pzPrm);
+  TTreeCont[kTPCGeant]->SetBranchAddress("ppPrm", src.ppPrm);
 
   TTreeCont[kTPCGeant]->SetBranchAddress("NumberOfTracks",&src.NumberOfTracks);
   TTreeCont[kTPCGeant]->SetBranchAddress("PIDOfTrack",src.PIDOfTrack);
@@ -2972,13 +3105,6 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchAddress("ThLd_CM",&src.ThLd_CM);
 
 
-  TTreeCont[kTPCGeant]->SetBranchAddress("xPrm", src.xPrm);
-  TTreeCont[kTPCGeant]->SetBranchAddress("yPrm", src.yPrm);
-  TTreeCont[kTPCGeant]->SetBranchAddress("zPrm", src.zPrm);
-  TTreeCont[kTPCGeant]->SetBranchAddress("pxPrm", src.pxPrm);
-  TTreeCont[kTPCGeant]->SetBranchAddress("pyPrm", src.pyPrm);
-  TTreeCont[kTPCGeant]->SetBranchAddress("pzPrm", src.pzPrm);
-  TTreeCont[kTPCGeant]->SetBranchAddress("ppPrm", src.ppPrm);
 
   TTreeCont[kTPCGeant]->SetBranchAddress("ititpc", src.ititpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("idtpc", src.idtpc);
@@ -3107,6 +3233,24 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchAddress("ppBvh", src.ppBvh);
   TTreeCont[kTPCGeant]->SetBranchAddress("deBvh", src.deBvh);
   TTreeCont[kTPCGeant]->SetBranchAddress("tBvh", src.tBvh);
+
+  TTreeCont[kTPCGeant]->SetBranchAddress("nhHSVp", &src.nhHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("tidHSVp", src.tidHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pidHSVp", src.pidHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("didHSVp", src.didHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("prtHSVp", src.prtHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("qHSVp", src.qHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("xHSVp", src.xHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("yHSVp", src.yHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("zHSVp", src.zHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pxHSVp", src.pxHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pyHSVp", src.pyHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("pzHSVp", src.pzHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("ppHSVp", src.ppHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("deHSVp", src.deHSVp);
+  TTreeCont[kTPCGeant]->SetBranchAddress("tHSVp", src.tHSVp);
+
+
 
   src.ntK18 = new TTreeReaderValue<Int_t>( *reader, "ntK18" );
   src.xvpHS = new TTreeReaderValue<vector<vector<double>>>( *reader, "xvpHS" );

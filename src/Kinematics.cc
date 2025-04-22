@@ -37,20 +37,20 @@ const Double_t TARGETradius  = 67.3/2.0; //Legacy (Not E42 target)
 
 const Double_t conversion_factor = 12171.3; //HypTPC's ADC to <dE/dx>
 const Double_t sigma_dedx_pi[5] = {3.94842, 0.0138502, -0.110281, 12.6065, -10.9347};
-const Double_t sigma_dedx_k[5] = {12.113, -13.6737, 6.0326, 148.399, -10.988};
+const Double_t sigma_dedx_k[5] = {6.24543, -3.21037, 1.52683, 127.099, -9.1004};
 const Double_t sigma_dedx_p[5] = {12.9717, -8.43799, 3.10608, 166.494, -6.56123};
-const Double_t sigma_dedx_d[5] = {27.8118, -14.2482, 2.36752, 399.575, -4.65145};
-const Double_t sigma_dedx_t[5] = {62.8747, -42.0368, 9.58947, 0, 0};
-const Double_t offset_dedx_d = 6.89672;
-const Double_t offset_dedx_t = 19.4474;
+const Double_t sigma_dedx_d[5] = {29.0934, -15.2229, 2.6452, 500.909, -5.07974};
+const Double_t sigma_dedx_t[5] = {28.3878, 3.69034, -4.49067, 0, 0};
+const Double_t offset_dedx_d = 5.84462;
+const Double_t offset_dedx_t = 14.4277;
 const Double_t sigma_dedx_ep = 7.8511;
 const Double_t sigma_dedx_em = 8.45029;
 
 const Double_t sigma_tof_pi[5] = {0.450116, 0.0918938, 2.46676e-06, -0.294671, 0.33648};
-const Double_t sigma_tof_k[5] = {0.179273, 0.151792, -0.0750191, 2.59449, -11.7986};
+const Double_t sigma_tof_k[5] = {-0.959259, 1.35794, -0.427667, 1.53197, -1.82723};
 const Double_t sigma_tof_p[5] = {0.150481, -0.0433547, 0.0221499, 1.90992, -10.1773};
-const Double_t sigma_tof_d[5] = {0.355095, -0.143393, 0.0360795, 0, 0};
-const Double_t sigma_tof_t[5] = {0.555571, -0.414357, 0.136707, 0, 0};
+const Double_t sigma_tof_d[5] = {0.376134, -0.193213, 0.0527238, 0, 0};
+const Double_t sigma_tof_t[5] = {0.492751, -0.305449, 0.10159, 0, 0};
 const Double_t sigma_tof_ep = 0.129776;
 const Double_t sigma_tof_em = 0.14181;
 const Double_t offset_tof_ep = -0.237853;
@@ -1370,7 +1370,7 @@ Bool_t HypTPCdEdxElectron(Double_t dedx, Double_t poq){
   Double_t par_e[2] = {conversion_factor, me};
   Double_t dedx_e = HypTPCBethe(&poq, par_e); //P10's <dE/dx>_e
 
-  Bool_t flag = (nsigma_pi < -3.5 &&
+  Bool_t flag = (nsigma_pi < -4 &&
 		 TMath::Abs(nsigma_e) < 3.5 &&
 		 TMath::Abs(poq) < 0.1);
   return flag;
@@ -1400,14 +1400,14 @@ Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
   Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
   Double_t sigma_pi = (sigma_dedx_pi[0] + sigma_dedx_pi[1]*TMath::Abs(poq) + sigma_dedx_pi[2]*poq*poq + sigma_dedx_pi[3]*TMath::Exp(sigma_dedx_pi[4]*TMath::Abs(poq)));
   Double_t nsigma_pi = HypTPCdEdxNsigmaPion(dedx, poq);
-  Double_t window_pi[2] = {-4., 6.};
+  Double_t window_pi[2] = {-3., 3.};
 
   // 1 sigma of <dE/dx>_p
   Double_t par_p[2] = {conversion_factor, mp};
   Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
   Double_t sigma_p = (sigma_dedx_p[0] + sigma_dedx_p[1]*TMath::Abs(poq) + sigma_dedx_p[2]*poq*poq + sigma_dedx_p[3]*TMath::Exp(sigma_dedx_p[4]*TMath::Abs(poq)));
   Double_t nsigma_p = HypTPCdEdxNsigmaProton(dedx, poq);
-  Double_t window_p[2] = {-4., 6.};
+  Double_t window_p[2] = {-3., 6.};
 
   //p/pi separation power calculation
   Double_t avg_sigma = 0.5*(sigma_pi + sigma_p);

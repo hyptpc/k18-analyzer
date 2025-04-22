@@ -38,7 +38,7 @@
 
  /* TPCTracking */
 #define UseTpcCluster 1 // 1 : Common clustering method, 0 : Cluster size=1 no clustering
-
+#define RejectUpstream 0
 namespace
 {
 TRandom3 RandGen;
@@ -207,6 +207,7 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
 			   const std::vector<Double_t>& de,
 			   Double_t clock)
 {
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
   if(m_is_decoded[kTPC]){
     hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;
     return false;
@@ -225,7 +226,12 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
   for(Int_t ih=0; ih<nhits; ih++){
     const Int_t layer = tpc::getLayerID(pad[ih]);
     const Double_t row = tpc::getRowID(pad[ih]);
-    auto hit = new TPCHit(layer, row);
+		TVector3 hit_pos = tpc::getPosition(layer, row);
+		if(	BeamThroughTPC and
+				layer < 10 and hit_pos.z()<tpc::ZTarget
+				) continue; 
+
+		auto hit = new TPCHit(layer, row);
     hit->AddHit(de[ih], time[ih]);
     if(hit->Calculate(clock) && hit->GetCDe()>=MinCDe && hit->IsGood()){
       m_TPCHitCont[layer].push_back(hit);
@@ -274,7 +280,7 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     if(pad<0) continue;
     Int_t layer = tpc::getLayerID(pad);
     Int_t row = tpc::getRowID(pad);
-    if(RejectKaonHits && abs(pid[i])==321) continue;
+    if(RejectKaonHits && pid[i]==-321) continue;
     double CheckPad;
     gTPC.GetCDe(layer, row, 1,CheckPad);
     if(CheckPad==0) continue;
@@ -373,6 +379,23 @@ TPCAnalyzer::TrackSearchTPCHelix(Bool_t exclusive)
   return true;
 }
 
+//_____________________________________________________________________________
+Bool_t
+TPCAnalyzer::TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
+				 Bool_t exclusive)
+{
+  if(m_is_decoded[kTPCTracking]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
+    return true;
+  }
+
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
+  tpc::LocalTrackSearchHelix(K18VPs, m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixInverted, m_TPCTCVP, m_TPCTCHelixFailed, m_TPCVC, m_TPCVCClustered, exclusive, MinLayer);
+
+  m_is_decoded[kTPCTracking] = true;
+  return true;
+}
 //_____________________________________________________________________________
 Bool_t
 TPCAnalyzer::TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,

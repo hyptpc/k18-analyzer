@@ -64,6 +64,7 @@ Detailed fitting procedures are explained in the TPCLocalTrack/Helix.
 #define DebugDisp 0
 #define FragmentedTrackTest 1
 #define ReassignClusterTest 1
+#define TempFlag 0
 //#define RemainingClustersTest 1
 #define RemainingClustersTest 0 //not helpful
 #define RefitXiTrack 1
@@ -401,7 +402,6 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 {
 
   static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
-  static const auto KuramaChargeCut = gUser.GetParameter("KuramaChargeCut");
 
   XZhough_x.clear();
   XZhough_y.clear();
@@ -791,10 +791,10 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
     Int_t Trackflag = 1*0 + 2*0 + 4*1 + 8*0; // isBeam, isK18, isKurama, isAccidental
     Int_t id = 0;
     std::vector<Int_t> kurama_candidates;
-    
     for(auto& track: TrackCont){
       if(track){
 	Int_t ncl_downstream_tgt = 0; //#cluster after the target.
+	
 	//Check whether all track custers within the window along the Kurama track
 	if(BeamThroughTPC ||
 	   (track -> GetIsK18()!=1 && KuramaChargeCut==1 && KuramaCharge[nt]*track->GetCharge()>0) ||
@@ -1079,7 +1079,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 
   //Vertex finding with tracks in the TrackCont.
   VertexSearch(TrackCont, VertexCont);
-
+//
 #if FragmentedTrackTest
   //Merged fragmented tracks
   RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
@@ -1088,7 +1088,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 #if ReassignClusterTest
   ReassignClustersNearTheTarget(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
-
+  
   FindAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont);
 
 #if ReassignClusterTest
@@ -1109,6 +1109,74 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 #endif
 
   CalcTracks(TrackContFailed);
+  if(Exclusive) ExclusiveTracking(TrackCont);
+  return TrackCont.size();
+}
+//_____________________________________________________________________________
+Int_t
+LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
+		      const std::vector<TPCClusterContainer>& ClCont,
+		      std::vector<TPCLocalTrackHelix*>& TrackCont,
+		      std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,
+		      std::vector<TPCLocalTrackHelix*>& TrackContVP,
+		      std::vector<TPCLocalTrackHelix*>& TrackContFailed,
+		      std::vector<TPCVertex*>& VertexCont,
+		      std::vector<TPCVertex*>& ClusteredVertexCont,
+		      Bool_t Exclusive,
+		      Int_t MinNumOfHits)
+{
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+
+  XZhough_x.clear();
+  XZhough_y.clear();
+  XZhough_z.clear();
+  Yhough_x.clear();
+  Yhough_y.clear();
+
+  //Track finding and fitting
+  //for K1.8 track searching
+  if(!BeamThroughTPC) K18TrackSearch(K18VPs, ClCont, TrackCont, TrackContVP); //default NimNumOfHits = 2
+  //Scattered helix track searching
+  HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+//  HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, 15);
+  HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+
+#if RemainingClustersTest
+  ResetHoughFlag(ClCont, BadForTracking);
+  HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+#endif
+  CalcTracks(TrackCont); //before the VertexSearch() calculation should proceed.
+
+  if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
+
+  //Vertex finding with tracks in the TrackCont.
+  VertexSearch(TrackCont, VertexCont);
+
+#if FragmentedTrackTest
+  //Merged fragmented tracks
+  RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+#endif
+
+#if ReassignClusterTest
+  ReassignClustersNearTheTarget(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+#endif
+
+  RestoreFragmentedAccidentalTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+
+  FindAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont);
+
+#if ReassignClusterTest
+  ReassignClustersVertex(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+#endif
+
+#if RefitXiTrack
+  ReassignClustersXiTrack(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+#endif
+
+  TestingCharge(TrackCont, TrackContInvertedCharge, VertexCont, Exclusive);
+
+  CalcTracks(TrackContVP);
+  CalcTracks(TrackContFailed); //Tracking failed cases
   if(Exclusive) ExclusiveTracking(TrackCont);
   return TrackCont.size();
 }
@@ -1141,6 +1209,7 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
   if(!BeamThroughTPC) K18TrackSearch(K18VPs, ClCont, TrackCont, TrackContVP); //default NimNumOfHits = 2
   //Scattered helix track searching
   HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+//  HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, 15);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
 
 #if RemainingClustersTest

@@ -111,7 +111,8 @@ void PrintMatrix(T *mat, const std::string& arg="",
 template <typename T>
 void PrintVector(T *vec, const std::string& arg="",
                  const std::size_t size=4);
-TMatrixD MergeOffdiagonals(TMatrixD A, TMatrixD B);
+TMatrixD MergeOffdiagonals(TMatrixD A, TMatrixD B);//Merges OFFDIAGONAL elements of two square matrices A and B.
+TMatrixD VertexCovarianceLinear(TMatrixD V,TVector3 P, double sigR, double sigZ, double extrap);//Vertex covaraince matrix for linear extrapolation 
 void DecomposeResolution(TMatrixD VLd,TVector3 PLd, double& res1, double& res2, double& phi);
 void DecomposeResolutionUV(TMatrixD VXi,TVector3 PLd, double& resU, double& resV);
 }

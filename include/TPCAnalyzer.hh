@@ -135,6 +135,8 @@ public:
   //HS-On
   Bool_t TrackSearchTPCHelix(Bool_t exclusive=false);
   Bool_t TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
+			     Bool_t exclusive=false);
+  Bool_t TrackSearchTPCHelix(std::vector<std::vector<TVector3>> K18VPs,
 			     std::vector<std::vector<TVector3>> KuramaVPs,
 			     std::vector<Double_t> KuramaCharge,
 			     Bool_t exclusive=false);

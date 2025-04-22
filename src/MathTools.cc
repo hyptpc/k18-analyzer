@@ -803,6 +803,97 @@ TMatrixD MergeOffdiagonals(TMatrixD A, TMatrixD B)
   }
   return TMatrixD(rowC,colC,elem);
 }
+TMatrixD VertexCovarianceLinear(TMatrixD V, TVector3 P, double sig_R0, double sig_Z0, double extrap){ 
+/*
+Variables
+V->Input Covariance Matrix
+P->Input Momentum Vector
+sigR->Input sigma_R
+sigZ->Input sigma_Z
+extrap->Extrapolation distance
+
+p = momentum
+Th = theta (angle along the B field)
+Ph = phi (angle perpendicular to the B field)
+R = position perpendicular to the B field
+Z = position along to the B field
+
+Input Covariance Matrix Convention
+
+| sig_p,    cov_pTh,  cov_pPh  |
+| cov_pTh,  sig_Th,   cov_ThPh |
+| cov_pPh,  cov_ThPh, sig_Th   |
+
+Resulting Covariance Matrix Convention
+| sig_p,    cov_pTh,  cov_pPh,  cov_pR,  cov_pZ  |
+| cov_pTh,  sig_Th,   cov_ThPh, cov_ThR, cov_ThZ |
+| cov_pPh,  cov_ThPh, sig_Ph,   cov_PhR, cov_PhZ |
+| cov_pR,   cov_ThR,  cov_PhR, sig_R,    cov_RZ  |
+| cov_pZ,   cov_ThZ,  cov_PhZ, cov_RZ,   sig_Z   | 
+
+
+Initial vertex parameter, R0 and Z0 is assumed to be independent random varaible
+
+<del_R0> = sigR
+<del_Z0> = sigZ
+<del_R0 del_Z0> = cov_R0Z0 = 0
+
+del_R = del_R0 + extrap*del_Ph
+del_Z = del_Z0 + extrap*sin(Th)*del_Th
+
+sig^2_R = del_R0^2 + extrap^2*del_Ph^2
+sig^2_Z = del_Z0^2 + extrap^2*sin(Th)^2*del_Th^2
+
+cov_Rp = <del_R del_p>
+       = extrap*<del_Ph del_p>
+       = extrap*cov_Ph
+cov_RTh = <del_R del_Th>
+        = extrap*<del_Ph del_Th>
+        = extrap*sin(Th)*cov_PhTh
+cov_RPh = <del_R del_Ph>
+       = extrap*<del_Ph del_Ph> = extrap*sig^2_Ph
+cov_RZ = <del_R del_Z> 
+       = extrap^2 sin(Th)<del_Ph del_Th>
+       = extrap^2*sin(Th)*cov_PhTh
+
+cov_Zp = <del_Z del_p>
+       = extrap*sin(Th)*<del_Th del_p>
+       = extrap*sin(Th)*cov_Thp
+cov_ZTh = <del_Z del_Th>
+        = extrap*sin(Th)*<del_Th del_Th>
+        = extrap*sin(Th)*sig^2_Th
+cov_ZPh = <del_Z del_Ph>
+        = extrap*sin(Th)*<del_Th del_Ph>
+        = extrap*sin(Th)*cov_ThPh
+*/
+  double sig_p = sqrt(V(0,0));
+  double sig_Th = sqrt(V(1,1));
+  double sig_Ph = sqrt(V(2,2));
+  double cov_pTh = V(0,1);
+  double cov_pPh = V(0,2);
+  double cov_ThPh = V(1,2);
+
+  double sig_R = sqrt(sig_R0*sig_R0 + extrap*extrap*sig_Ph*sig_Ph);
+  double sig_Z = sqrt(sig_Z0*sig_Z0 + extrap*extrap*sin(P.Theta())*sin(P.Theta())*sig_Th*sig_Th);
+
+  double cov_Rp = extrap*cov_pPh;
+  double cov_RTh = extrap*sin(P.Theta())*cov_ThPh;
+  double cov_RPh = extrap*sig_Ph*sig_Ph;
+  double cov_RZ = extrap*extrap*sin(P.Theta())*cov_ThPh;
+  double cov_Zp = extrap*sin(P.Theta())*cov_pTh;
+  double cov_ZTh = extrap*sin(P.Theta())*sig_Th*sig_Th;
+  double cov_ZPh = extrap*sin(P.Theta())*cov_ThPh;
+
+  double CovElem[25] = 
+  {
+    sig_p*sig_p, cov_pTh,       cov_pPh,       cov_Rp,      cov_Zp,
+    cov_pTh,     sig_Th*sig_Th, cov_ThPh,      cov_RTh,     cov_ZTh,
+    cov_pPh,     cov_ThPh,      sig_Ph*sig_Ph, cov_RPh,     cov_ZPh,
+    cov_Rp,      cov_RTh,       cov_RPh,       sig_R*sig_R, cov_RZ,
+    cov_Zp,      cov_ZTh,       cov_ZPh,       cov_RZ,      sig_Z*sig_Z
+  };
+  return TMatrixD(5,5,CovElem);
+}
 void DecomposeResolution(TMatrixD VLd,TVector3 PLd, double& res1, double& res2, double& phi){
   double ElemThPh[4] = {
     VLd(1,1),VLd(1,2),VLd(2,1),VLd(2,2)

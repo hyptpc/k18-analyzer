@@ -68,6 +68,7 @@ z = p[2] + p[4]*p[3]*(theta);
 #include "MathTools.hh"
 #include "PrintHelper.hh"
 #include "UserParamMan.hh"
+#include "DatabasePDG.hh"
 
 #define DebugDisp 0
 #define IterativeResolution 1
@@ -161,8 +162,9 @@ namespace
   static TF1 fintXZ("fintXZ", s_tmpXZ.c_str(), -10.*TMath::Pi(), 10.*TMath::Pi());
 
   static std::string circ_cross="pow([2]*[2]+[2]*([0]*cos(x)+[1]*sin(x)) +[0]*[0]+[1]*[1]-[3]*[3] ,2)";
+  static TF1 fcir_cross("fcir_cross", circ_cross.c_str(), -10.*TMath::Pi(), 10.*TMath::Pi());
   static std::string circ_cd="pow([3]-([0]+[2]*cos(x)),2) + pow([4]-([1]+[2]*sin(x)),2)";
-  static TF1 fcir_cross("fcir_cross", circ_cd.c_str(), -10.*TMath::Pi(), 10.*TMath::Pi());
+  static TF1 fcir_cd("fcir_cd", circ_cd.c_str(), -10.*TMath::Pi(), 10.*TMath::Pi());
 
 }
 
@@ -227,18 +229,31 @@ if(CircCross){
 #if PtPlane
   min_t = (window_low+window_up)/2;
 #endif
-	fcir_cross.SetRange(window_low,window_up);
+	fcir_cd.SetRange(window_low,window_up);
   double cpar[5];
   cpar[0] = par[0];
   cpar[1] = par[1];
   cpar[2] = par[3];
   cpar[3] = localpos.X();
   cpar[4] = localpos.Y();
-  fcir_cross.SetParameters(cpar);
-  fcir_cross.SetNpx(steps);
-  double min_t_temp = fcir_cross.GetMinimumX();
+  fcir_cd.SetParameters(cpar);
+  fcir_cd.SetNpx(steps);
+  double min_t_temp = fcir_cd.GetMinimumX();
   if(min_t_temp < window_low or min_t_temp > window_up) return min_t;
   else min_t = min_t_temp;
+	}	
+	else{
+    fcir_cd.SetRange(window_low,window_up);
+    double cpar[4];
+    cpar[0] = par[0];
+    cpar[1] = par[1];
+    cpar[2] = par[3];
+    cpar[3] = hypot(localpos.X(),localpos.Y());
+    fcir_cd.SetParameters(cpar);
+    fcir_cd.SetNpx(steps);
+    double min_t_temp = fcir_cd.GetMinimumX();
+    if(min_t_temp == window_low or min_t_temp == window_up) return min_t;
+    else min_t = min_t_temp;
 	}
   return min_t;
 }
@@ -360,12 +375,6 @@ static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos
   int npar = resparam.size();
 	double ncl = 1;
 	double dE = -1;
-  #if DebugDisp
-    std::cout<<"TPCLocalTrackHelix::CalcResolution() : Res params :";
-    for(int i = 0; i < resparam.size(); i++){
-//      std::cout<<resparam[i]<<" ";
-    }
-  #endif
   if(npar>nStaticParams+1){
     ncl = resparam.at(nStaticParams);
     dE = resparam.at(nStaticParams+1);
@@ -2344,9 +2353,6 @@ TPCLocalTrackHelix::DoHelixTrackFit()
 Bool_t
 TPCLocalTrackHelix::ResidualCheck(Int_t i, Double_t &residual)
 {
-  #if DebugDisp
-  std::cout<<FUNC_NAME+" ResidualCheck"<<std::endl;
-  #endif
 
   if(!m_is_theta_calculated){
     std::cout<<FUNC_NAME+" Fatal error : No helix theta information!!! CalcHelixTheta() should be run in front of this"<<std::endl;
@@ -3979,7 +3985,11 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
     Int_t id = m_hit_order[ih];
     TPCLTrackHit *hitp = m_hit_array[id];
     auto ResV = hitp -> GetResolutionVect();
-    Double_t res_T = hypot(ResV.X(),ResV.Z());
+    TVector3 ResT(-ResV.X(),ResV.Z(),0);
+    double theta = hitp -> GetTheta();
+    TVector3 radial(cos(theta), sin(theta), 0);
+    double res_T = ResT.Dot(radial);//consider only radial component of resolution... maybe this should be right?
+    if(res_T < 0) res_T = -res_T;
     if(!hitp -> IsGoodForTracking()){
       nh--;
       continue;
@@ -3988,7 +3998,7 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
   }
   Double_t pt = m_r*(tpc::ConstC*B)*0.001;
   if(nh<4) return pt*0.1;
-  res = sqrt(3./2) * sqrt(res / nh)* 0.001;//mm-> m
+  res = sqrt(res / nh)* 0.001;//mm-> m
   Double_t dPOverP = pt / (0.3*L*L*B)*sqrt(720./(nh+4))*res;
   if(std::isnan(dPOverP) || dPOverP < 0){
     std::cout<<Form("dPt error! nh = %d, res = %g",nh,res)<<std::endl;
@@ -4062,15 +4072,44 @@ TPCLocalTrackHelix::GetMomentumResolution(){
   Double_t d_slope = GetdZResolution();
   return GetTransverseMomentumResolution()*hypot(1,d_slope);
 }
+Double_t
+TPCLocalTrackHelix::GetMomentumResolutionScat(int pid){
+	double X0 = 268;//[m], P10 gas,
+	double L = m_path* 0.001;//mm -> m
+	double L0 = L/hypot(1,m_dz);
+  double B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  double mpi = 0.13957039;
+  double mk  = 0.493677;
+  double mp  = 0.9382720813;
+	double mass = 0;
+	if(pid == 0){
+		mass = mpi;
+	}
+	else if(pid == 1){
+		mass = mk;
+	}
+	else if (pid == 2){
+		mass = mp;
+	}
+	else{
+    return 0;
+  }
+	double Energy = hypot(mass,m_mom0.Mag());
+	double beta = m_mom0.Mag()/Energy;	
+	return 0.0136 / (0.3 * beta * B * L0) * sqrt(L0 / X0 ) * m_MomResScale;
+
+}
 TMatrixD
-TPCLocalTrackHelix::GetCovarianceMatrix(){
+TPCLocalTrackHelix::GetCovarianceMatrix(int pid){
   double Elements[3*3]={0};
   double cov_mom_th = GetMomentumPitchAngleCovariance();
   double cov_mom_ph = GetTransverseMomentumAngularCovariance();
   double res_mom = GetMomentumResolution();
+  double res_scat = GetMomentumResolutionScat(pid);
   double res_th = GetThetaResolution();
   double res_ph = GetTransverseAngularResolution();
-  Elements[0+3*0] = res_mom*res_mom;
+  double res_mom_tot = hypot(res_mom,res_scat); 
+	Elements[0+3*0] = res_mom_tot*res_mom_tot;
   Elements[1+3*1] = res_th*res_th;
   Elements[2+3*2] = res_ph*res_ph;
   Elements[0*3+1] = cov_mom_th;
@@ -4080,3 +4119,115 @@ TPCLocalTrackHelix::GetCovarianceMatrix(){
   TMatrixD CovMat(3,3,Elements);
   return CovMat;
 }
+
+TMatrixD
+TPCLocalTrackHelix::GetVertexCovarianceMatrix(TVector3 vert, double l, int pid){
+
+  vert = GlobalToLocal(vert);
+  double x0 = vert.x();
+  double y0 = vert.y();
+  int in_out = 0;
+  if(hypot(x0-m_cx,y0-m_cy) < m_r){
+    in_out = 1; //If the vertex is inside the circle, radius will have negative correlation with the distance.
+  }
+  else{
+    in_out = -1;
+  }
+
+  Double_t res = 0;
+  Double_t dt = abs(m_max_t - m_min_t);
+  Double_t L = dt*m_r;
+  Double_t t0 = GetHitInOrder(0) -> GetTheta();
+  Double_t sign = 1;
+  if(m_charge>0)sign = -1;
+
+// Transverse Part
+  if(dt > 2*acos(-1) )dt = 2*acos(-1);
+  Int_t nh = m_hit_array.size();
+  for(Int_t ih=0;ih<m_hit_array.size();++ih){
+    Int_t id = m_hit_order[ih];
+    TPCLTrackHit *hitp = m_hit_array[id];
+    auto ResV = hitp -> GetResolutionVect();
+    TVector3 ResT(-ResV.X(),ResV.Z(),0);
+    double theta = hitp -> GetTheta();
+    TVector3 radial(cos(theta), sin(theta), 0);
+    double res_T = ResT.Dot(radial);
+    if(res_T < 0) res_T = -res_T;
+    if(!hitp -> IsGoodForTracking()){
+      nh--;
+      continue;
+    }
+    res+=res_T*res_T;
+  }
+  res = sqrt(res / nh);
+  double l_t = l * 1./sqrt(1 + m_dz*m_dz);
+
+  double sig_pt = GetTransverseMomentumResolution();
+  double sig_ph = GetTransverseAngularResolution(t0,0);//Take only geometric terms
+  double sig_th = GetThetaResolution();
+
+  double sig_R = hypot(res, (l_t + 0.5 * L )*sig_ph );//mm
+  double cov_Rp = in_out*(l_t + 0.5 * L)*sig_pt*sig_ph;
+  double cov_Rph = in_out*sign*(l_t + 0.5 * L)*sig_ph*sig_ph;
+
+
+  //Vertical Part
+  Double_t res2 = 0;
+  for(Int_t ih=0;ih<m_hit_array.size();++ih){
+    Int_t id = m_hit_order[ih];
+    TPCLTrackHit *hitp = m_hit_array[id];
+    auto ResV = hitp -> GetResolutionVect();
+    Double_t res_Y = ResV.Y();
+    if(!hitp -> IsGoodForTracking()){
+      nh--;
+      continue;
+    }
+    res2 += res_Y*res_Y;
+  }
+  res2 = sqrt(res2 / nh);
+  double l_z = l * m_dz / sqrt(1 + m_dz*m_dz);
+  
+
+  double th = atan2(1,m_dz);
+  //  if(dt > 2*acos(-1)) dt = 2*acos(-1);
+  double sig_Z = hypot(res2 , (l_z + 0.5 * L )*sin(th)*sig_th);//mm
+  double cov_Zth = sign*(l_z + 0.5 * L)*sin(th)*sig_th*sig_th;
+
+  auto Cov = GetCovarianceMatrix(pid);
+//  std::cout<<"Cov0 Det : "<<Cov.Determinant();
+//  Cov.Print();
+  double sig2_p = Cov[0][0];
+  double cov_pth = Cov[0][1];
+  double cov_pph = Cov[0][2];
+  double cov_pR = cov_Rp;
+  double cov_pZ = 0;
+
+  double sig2_th = Cov[1][1];
+  double cov_thph = Cov[1][2];
+  double cov_thR = 0;
+  double cov_thZ = cov_Zth;
+
+  double sig2_ph = Cov[2][2];
+  double cov_phR = cov_Rph;
+  double cov_phZ = 0;
+  
+  double sig2_R = sig_R*sig_R;
+  double cov_RZ = 0;
+
+  double sig2_Z = sig_Z*sig_Z;
+
+  double elements[5*5] =
+  {
+    sig2_p,  cov_pth,  cov_pph,  cov_pR,  cov_pZ,
+    cov_pth, sig2_th,  cov_thph, cov_thR, cov_thZ,
+    cov_pph, cov_thph, sig2_ph,  cov_phR, cov_phZ,
+    cov_pR,  cov_thR,  cov_phR,  sig2_R,  cov_RZ,
+    cov_pZ,  cov_thZ,  cov_phZ,  cov_RZ,  sig2_Z
+  };
+  TMatrixD CovMat(5,5,elements);
+//  std::cout<<"Det : "<<CovMat.Determinant();
+//  CovMat.Print();
+  return CovMat;
+}
+
+

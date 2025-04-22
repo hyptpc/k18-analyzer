@@ -33,4 +33,4 @@ include/back
 usr/back
 tmp
 tools*
-*.vscode/c_cpp_properties.json
+*.vscode

@@ -20,6 +20,7 @@ KinematicFitter::SetVariance(double* var){
 		variance[i]=0;
 		varianceInv[i]=0;
 	}
+//	ScaleParams = 0;
 	for(int i = 0;i<nMeas;++i){
 		variance[i+i*nMeas] = var[i];
 		varianceInv[i+i*nMeas] = 1./var[i];
@@ -64,13 +65,17 @@ KinematicFitter::AddOffdiagonals(TMatrixD Cov){
 		Cov = Cov * ScaleUp;
 		Cov = ScaleUp * Cov;
 	}
+	Variancies.at(0)+= Cov;
 #if Debug
 	if(ScaleParams){
-		cout<<"Covariance After scaling";
-		Cov.Print();
+		cout<<"Variance Matrix After scaling";
+		Variancies.at(0).Print();
+	}
+	else{
+		cout<<"Variance Matrix";
+		Variancies.at(0).Print();
 	}
 #endif
-	Variancies.at(0)+= Cov;
 	bool CheckPositiveDefinite = false;
 	int nitr = 0;
 	while(!CheckPositiveDefinite and nitr < 5){
@@ -87,15 +92,16 @@ KinematicFitter::AddOffdiagonals(TMatrixD Cov){
 		if(!PositiveDefinate){
 			cout<<"KinematicFit:: Variance not positive-definite"<<endl;
 			cout<<"Reducing Offdiagonals..."<<endl;
-			#if Debug
-			Variancies.at(0).Print();	
-			#endif
 			for(int irow=0;irow < Variancies.at(0).GetNrows();++irow){
 				for(int icol=0;icol < Variancies.at(0).GetNcols();++icol){
 					if(irow == icol) continue;
 					Variancies.at(0)(irow,icol) *=0.9;
 				}
 			}
+			#if Debug
+			cout<<"Det ="<<Variancies.at(0).Determinant();
+			Variancies.at(0).Print();	
+			#endif
 		}
 		nitr++;
 	}
@@ -130,8 +136,10 @@ void KinematicFitter::ProcessStep(){
 	TMatrixD dFdM = dFdMs.at(step);
 	TMatrixD dFdMS = dFdM*ScaleDn;
 #if Debug
-	cout<<"Variance, det ="<<VMat.Determinant();
-	VMat.Print();
+	if(step == 0){
+		cout<<"Variance, det ="<<VMat.Determinant();
+		VMat.Print();
+	}
 #endif
 	
 #if Debug>1

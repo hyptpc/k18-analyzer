@@ -46,6 +46,17 @@ Int_t LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 			    Bool_t Exclusive,
 			    Int_t MinNumOfHits);
 
+Int_t LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
+			    const std::vector<TPCClusterContainer>& ClCont,
+			    std::vector<TPCLocalTrackHelix*>& TrackCont,
+			    std::vector<TPCLocalTrackHelix*>& TrackContInvertedCharge,
+			    std::vector<TPCLocalTrackHelix*>& TrackContVP,
+			    std::vector<TPCLocalTrackHelix*>& TrackContFailed,
+			    std::vector<TPCVertex*>& VertexCont,
+			    std::vector<TPCVertex*>& ClusteredVertexCont,
+			    Bool_t Exclusive,
+			    Int_t MinNumOfHits);
+
 //for common runs(w/ K1.8, Kurama tracking information)
 Int_t LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 			    std::vector<std::vector<TVector3>> KuramaVPs,
