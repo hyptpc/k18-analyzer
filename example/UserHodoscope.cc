@@ -201,7 +201,7 @@ ProcessNormal()
       adc_d[n].push_back(hit->GetAdc(3));
       adc_s[n].push_back(hit->GetAdc(4));
       tdc_s[n].push_back(hit->GetArrayTdc(4));
-      hit->Print();
+      // hit->Print();
     }
   }
 
