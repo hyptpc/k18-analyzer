@@ -50,7 +50,7 @@ EventAnalyzer::BeamFlag(const RawData& rawData)
   Bool_t ac_hit = false;
   {
     static const Char_t* name = "BAC";
-    const auto& cont = rawData.GetHodoRawHC(DetIdAC);
+    const auto& cont = rawData.GetHodoRawHC(DetIdBAC);
     for(Int_t i=0, n=cont.size(); i<n; ++i){
       auto raw = cont[i];
       if(!raw) continue;
@@ -172,17 +172,18 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       Int_t ud_good = 0;
       for(Int_t ud=0; ud<2; ++ud){
         Bool_t is_good = false;
+        const auto ud_str = UorD[ud];
         for(const auto& t: hit->GetArrayTdc(ud)){
           if(gUser.IsInRange(Form("%s_TDC", name), t))
             is_good = true;
-          HF1(Form("%s_TDC_seg%d%s%s", name, seg, UorD[ud], b), t);
+          HF1(Form("%s_TDC_seg%d%s%s", name, seg, ud_str, b), t);
         }
         for(const auto& a: hit->GetArrayAdc(ud)){
-          HF1(Form("%s_ADC_seg%d%s%s", name, seg, UorD[ud], b), a);
+          HF1(Form("%s_ADC_seg%d%s%s", name, seg, ud_str, b), a);
           if(is_good)
-            HF1(Form("%s_AwT_seg%d%s%s", name, seg, UorD[ud], b), a);
+            HF1(Form("%s_AwT_seg%d%s%s", name, seg, ud_str, b), a);
           else
-            HF1(Form("%s_AwoT_seg%d%s%s", name, seg, UorD[ud], b), a);
+            HF1(Form("%s_AwoT_seg%d%s%s", name, seg, ud_str, b), a);
         }
         ud_good += is_good;
       }

@@ -75,7 +75,7 @@ BuildHodoRaw(Bool_t flag_beam_particle)
       const Char_t* name = "BHT";
       Int_t nseg = NumOfSegBHT;
       for(Int_t i=0; i<nseg; ++i){
-        for(const auto& uord : std::vector<TString>{"U", "D"}){
+        for(const auto& uord : std::vector<TString>{"U", "D"} ){
           const Char_t* ud = uord.Data();
           HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins1);
           HB1(Form("%s_Trailing_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins1);
@@ -104,14 +104,17 @@ BuildHodoRaw(Bool_t flag_beam_particle)
     for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
       auto name = NameHodo[ihodo].Data();
       const Double_t* hrtdcbins;
-      if(NameHodo[ihodo].Contains("CVC") ||
-         NameHodo[ihodo].Contains("NC")){
-        hrtdcbins = hrtdcbins2;
-      }else{
+      // if(NameHodo[ihodo].Contains("CVC") ||
+      //    NameHodo[ihodo].Contains("NC")){
+      //   hrtdcbins = hrtdcbins2;
+      // }else{
         hrtdcbins = hrtdcbins1;
-      }
+      // }
       Int_t nseg = NumOfSegHodo[ihodo];
-      for(const auto& uord: std::vector<TString>{"U", "D"} ){
+      for(const auto& uord: TString(name).Contains("KVC2")
+            ? std::vector<TString>{"A", "B", "C", "D"}
+            : std::vector<TString>{"U", "D"}){
+      // for(const auto& uord: std::vector<TString>{"U", "D"} ){
         auto ud = uord.Data();
         for(Int_t i=0; i<nseg; ++i){
           HB1(Form("%s_ADC_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
@@ -169,23 +172,15 @@ BuildHodoHit(Bool_t flag_beam_particle)
       HB1(Form("%s_Hit_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
       HB1(Form("%s_Hit_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
     }
-    { // AC
-      const Char_t* name = "AC";
-      Int_t nseg = NumOfSegAC;
-      for(Int_t i=0; i<nseg; ++i){
-        HB1(Form("%s_Hit_DeltaE_seg%d%s; mip; count", name, i, b), debins);
-        HB1(Form("%s_Hit_Time_seg%d%s; ns; count", name, i, b), mhtimebins);
-        HB1(Form("%s_Hit_CTime_seg%d%s; ns; count", name, i, b), mhtimebins);
-      }
-      HB1(Form("%s_Hit_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
-      HB1(Form("%s_Hit_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
-    }
     // Hodoscope
     for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
       auto name = NameHodo[ihodo].Data();
       Double_t nseg = NumOfSegHodo[ihodo];
       for(Int_t i=0; i<nseg; ++i){
-        for(const auto& uord: std::vector<TString>{"U", "D"} ){
+        for(const auto& uord: TString(name).Contains("KVC2")
+              ? std::vector<TString>{"A", "B", "C", "D"}
+              : std::vector<TString>{"U", "D"}){
+        // for(const auto& uord: std::vector<TString>{"U", "D"} ){
           auto ud = uord.Data();
           HB1(Form("%s_Hit_DeltaE_seg%d%s%s; mip; count", name, i, ud, b), debins);
           HB1(Form("%s_Hit_Time_seg%d%s%s; ns; count", name, i, ud, b), hrtimebins);
@@ -236,7 +231,8 @@ BuildHodoHit(Bool_t flag_beam_particle)
     // FTOF
     {
       const Double_t phcbins2d[6] = { 100, -0.5, 4.5, 100, -10., 10. };
-      for(const auto& id: std::vector<Int_t>{kT0, kCVC}){
+      for(const auto& id: std::vector<Int_t>{kT0// , kCVC
+        }){
         const Char_t* n = NameHodo[id];
         for(Int_t i=0; i<NumOfSegHodo[id]; ++i){
           for(const auto& uord : std::vector<TString>{"U", "D"}){
@@ -270,16 +266,6 @@ BuildHodoCluster(Bool_t flag_beam_particle)
       HB2(Form("%s_Cl_CMeanTime_vs_HitPat%s; segment; ns", name, b), hrtimebins2d);
       HB2(Form("%s_Cl_TimeDiff_vs_HitPat%s; segment; ns", name, b), hrtimebins2d);
       HB2(Form("%s_Cl_DeltaE_vs_HitPat%s; segment; mip", name, b), debins2d);
-      HB1(Form("%s_Cl_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
-      HB1(Form("%s_Cl_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
-      HB1(Form("%s_Cl_Size%s; size; count", name, b), 10 + 1, -0.5, 10 + 0.5);
-    }
-    { // AC
-      const Char_t* name = "AC";
-      Int_t nseg = NumOfSegAC;
-      HB1(Form("%s_Cl_DeltaE%s; mip; count", name, b), debins);
-      HB1(Form("%s_Cl_Time%s; ns; count", name, b), mhtimebins);
-      HB1(Form("%s_Cl_CTime%s; ns; count", name, b), mhtimebins);
       HB1(Form("%s_Cl_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
       HB1(Form("%s_Cl_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
       HB1(Form("%s_Cl_Size%s; size; count", name, b), 10 + 1, -0.5, 10 + 0.5);

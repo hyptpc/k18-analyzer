@@ -18,29 +18,22 @@ const std::map<TString, std::vector<TString>> DCNameList =
 };
 
 // Counters ___________________________________________________________
-const Int_t DetIdBHT =  1;
-const Int_t DetIdT0  =  2;
-const Int_t DetIdBAC =  3;
-const Int_t DetIdKVC =  4;
-const Int_t DetIdSAC =  5;
-const Int_t DetIdBH2 =  6;
-const Int_t DetIdCVC = 14;
-const Int_t DetIdNC  = 32;
-const Int_t NumOfSegBHT = 63;
-const Int_t NumOfSegT0  =  5;
-const Int_t NumOfSegBAC =  5;
-const Int_t NumOfSegKVC =  5;
-const Int_t NumOfSegSAC =  9;
-const Int_t NumOfSegBH2 = 12;
-const Int_t NumOfSegCVC = 35;
-const Int_t NumOfSegNC  =  6;
-
-// E73-2024
-const int DetIdAC     =   3;
-const int DetIdT1     =   4;
-const int DetIdDEF    =   6;
-const Int_t NumOfSegTOF   = 19;
-const Int_t NumOfSegAC  = 5;
+const Int_t DetIdBHT  =  1;
+const Int_t DetIdT0   =  2;
+const Int_t DetIdBAC  =  3;
+const Int_t DetIdKVC1 =  4;
+const Int_t DetIdSAC  =  5;
+const Int_t DetIdBH2  =  6;
+const Int_t DetIdHTOF =  7;
+const Int_t DetIdKVC2 =  8;
+const Int_t NumOfSegBHT  = 63;
+const Int_t NumOfSegT0   =  5;
+const Int_t NumOfSegBAC  =  5;
+const Int_t NumOfSegKVC1 =  5;
+const Int_t NumOfSegSAC  =  9;
+const Int_t NumOfSegBH2  = 16;
+const Int_t NumOfSegHTOF = 34;
+const Int_t NumOfSegKVC2 =  5;
 
 const int DetIdVmeRm     =  81;
 const int DetIdScaler    =  91;
@@ -50,27 +43,30 @@ const Int_t NumOfSegTrigFlag = 32;
 #if defined E72
 enum EHodoscope {
   kBHT, kT0, kBAC,
-  kKVC, kSAC, kBH2,
-  kCVC, kNC,
+  kKVC1, kSAC, kBH2,
+  kHTOF,
+  // kCVC, kNC,
   kNumHodo
 };
 
 const Int_t DetIdHodo[kNumHodo] = {
   DetIdBHT, DetIdT0, DetIdBAC,
-  DetIdKVC, DetIdSAC, DetIdBH2,
-  DetIdCVC, DetIdNC,
+  DetIdKVC1, DetIdSAC, DetIdBH2,
+  DetIdHTOF,
+  // DetIdCVC, DetIdNC,
 };
 
 const std::vector<TString> NameHodo = {
   "BHT", "T0", "BAC",
-  "KVC", "SAC", "BH2",
-  "CVC", "NC",
+  "KVC1", "SAC", "BH2", "HTOF",
+  // "CVC", "NC",
 };
 
 const double  NumOfSegHodo[kNumHodo] = {
   NumOfSegBHT, NumOfSegT0, NumOfSegBAC,
-  NumOfSegKVC, NumOfSegSAC, NumOfSegBH2,
-  NumOfSegCVC, NumOfSegNC,
+  NumOfSegKVC1, NumOfSegSAC, NumOfSegBH2,
+  NumOfSegHTOF,
+  // NumOfSegCVC, NumOfSegNC,
 };
 
 #elif defined E73_2024

@@ -843,10 +843,10 @@ S2sTrack::SaveTrackParameters(const RKCordParameter &cp)
     GetTrajectoryLocalPosition(IdTOFDX, dx, dy);
     Int_t dtof_seg = gGeom.CalcWireNumber(IdTOFDX, dx);
 
-    if( utof_seg < 0 || utof_seg >= NumOfSegTOF ||
-	dtof_seg < 0 || dtof_seg >= NumOfSegTOF ) m_tof_seg = -1;
-    else if( utof_seg == dtof_seg ) m_tof_seg = (Double_t)utof_seg;
-    else                            m_tof_seg = (utof_seg+dtof_seg)/2.;
+    // if( utof_seg < 0 || utof_seg >= NumOfSegTOF ||
+    //     dtof_seg < 0 || dtof_seg >= NumOfSegTOF ) m_tof_seg = -1;
+    // else if( utof_seg == dtof_seg ) m_tof_seg = (Double_t)utof_seg;
+    // else                            m_tof_seg = (utof_seg+dtof_seg)/2.;
   }
 
   if((Int_t)m_tof_seg%2==1){ // upstream
@@ -961,4 +961,3 @@ S2sTrack::GetTrajectoryLocalDirection(const TString& key,
   Int_t layer = gGeom.GetLayerId(key);
   return GetTrajectoryLocalDirection(layer, u, v);
 }
-

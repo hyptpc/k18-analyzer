@@ -14,7 +14,7 @@ public:
   static const TString& ClassName();
   HodoRawHit(const TString& detector_name, Int_t plane_id, Int_t segment_id);
   ~HodoRawHit();
-  enum EChannel { kUp, kDown, kExtra, kNChannel };
+  enum EChannel { kUp, kDown, kExtra, kExtra2, kExtra3, kNChannel };
 
 private:
   using data_t = std::vector<std::vector<Double_t>>; // [ch][mhit]

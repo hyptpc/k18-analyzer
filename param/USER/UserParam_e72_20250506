@@ -1,0 +1,68 @@
+#
+# UserParam_0
+#
+
+#______________________________________________________________________________
+# Hodo TDC	min	max
+BHT_TDC		700000	800000
+BHT_TDC_Pi	1230000	1240000
+BHT_TDC_K	1240000	1250000
+T0_TDC		1200000	1250000
+BAC_TDC		400000	600000
+KVC1_TDC	1200000	1250000
+KVC2_TDC	1200000	1250000
+SAC_TDC		1140000	1200000
+BH2_TDC		600000	800000
+HTOF_TDC	600000	800000
+
+#______________________________________________________________________________
+# HodoAna
+BHT_Time	-15	5
+T0_Time		-5	5
+T1_Time		-5	5
+CVC_Time	-5	25
+CVC_TimeDiff	-1	1
+BTOF		-15	5
+FTOF		-5	25
+MaxClusterSizeBHT	2
+MaxClusterSizeT0	1
+MaxClusterSizeBAC	1
+MaxClusterSizeKVC	1
+MaxClusterSizeSAC	1
+MaxClusterSizeBH2	1
+MaxTimeDiffBHT		10
+MaxTimeDiffT0		-1
+MaxTimeDiffBAC		-1
+MaxTimeDiffKVC		-1
+MaxTimeDiffSAC		-1
+MaxTimeDiffBH2		-1
+
+#______________________________________________________________________________
+# DC TDC	min	max
+BLC1a_TDC	1000	1500
+BLC1b_TDC	1000	1500
+BLC2a_TDC	1000	1500
+BLC2b_TDC	1000	1500
+BPC1_TDC	1000	1500
+BPC2_TDC	1000	1500
+
+# DC TOT	min	max	(channel)
+BLC1a_TOT	60	2000
+BLC1b_TOT	60	2000
+BLC2a_TOT	60	2000
+BLC2b_TOT	60	2000
+BPC1_TOT	100	2000
+BPC2_TOT	40	2000
+VFT_TOT		10	2000
+
+# DriftTime	min	max (ns)
+BLC1a_DT	-50	400
+BLC1b_DT	-50	250
+BLC2a_DT	-50	250
+BLC2b_DT	-50	150
+BPC1_DT		-50	150
+BPC2_DT		-50	200
+VFT_DT		-50	200
+
+# Tracking
+MinLayerBcOut	16
