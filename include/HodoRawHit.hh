@@ -128,7 +128,7 @@ public:
     { m_tdc_is_overflow = static_cast<Bool_t>(flag); }
 
   void Clear();
-  void Print(const TString& arg="") const;
+  void Print(Option_t* option="") const;
 };
 
 //_____________________________________________________________________________

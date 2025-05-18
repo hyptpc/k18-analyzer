@@ -3,8 +3,11 @@
 #include "HodoRawHit.hh"
 
 #include <iterator>
+#include <sstream>
 
 #include <TMath.h>
+
+#include <spdlog/spdlog.h>
 
 #include <UnpackerConfig.hh>
 #include <UnpackerManager.hh>
@@ -105,22 +108,24 @@ HodoRawHit::GetTdcTrailing(Int_t i, Int_t j) const
 
 //_____________________________________________________________________________
 void
-HodoRawHit::Print(const TString& arg) const
+HodoRawHit::Print(Option_t* option) const
 {
-  hddaq::cerr << FUNC_NAME << " " << arg << std::endl
-	      << "detector_name = " << m_detector_name << std::endl
-	      << "detector_id   = " << m_detector_id   << std::endl
-	      << "plane_id      = " << m_plane_id      << std::endl
-	      << "segment_id    = " << m_segment_id    << std::endl;
+  std::ostringstream oss;
+  oss << FUNC_NAME << std::endl
+      << "detector_name = " << m_detector_name << std::endl
+      << "detector_id   = " << m_detector_id   << std::endl
+      << "plane_id      = " << m_plane_id      << std::endl
+      << "segment_id    = " << m_segment_id    << std::endl;
   for(const auto& data_map: std::map<TString, data_t>
         {{"adc-hi", m_adc_high}, {"adc-lo", m_adc_low},
          {"tdc-l ", m_tdc_leading}, {"tdc-t ", m_tdc_trailing}}){
     for(const auto& cont: data_map.second){
-      hddaq::cout << " " << data_map.first << ":" << cont.size()
-                  << " ";
+      oss << " " << data_map.first << ":" << cont.size()
+          << " ";
       std::copy(cont.begin(), cont.end(),
-                std::ostream_iterator<UInt_t>(hddaq::cout," "));
+                std::ostream_iterator<UInt_t>(oss, " "));
     }
-    hddaq::cout << std::endl;
+    oss << std::endl;
   }
+  spdlog::info("{}", oss.str());
 }
