@@ -24,7 +24,8 @@ def draw_one_data(c1, name, key, nplane):
         h1.SetLineColor(mh.beamcolor[j])
         h1.Draw('same')
         if 'TDC' in key:
-          h1.GetXaxis().SetRangeUser(1200, 1500)
+          h1.GetXaxis().SetRangeUser(600, 1300)
+          # h1.GetXaxis().SetRangeUser(1200, 1500)
         if 'Multi' in key:
           mh.efficiency(h1)
 

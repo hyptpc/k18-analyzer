@@ -22,7 +22,7 @@ ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
 @mh.update_canvas(divisions=(4, 4))
-def tdc(c1, start_seg, ud, beamflag='', tdcrange=(1.22e6, 1.26e6), fit=True):
+def tdc(c1, start_seg, ud, beamflag='', tdcrange=(0.7e6, 0.80e6), fit=True):
   logger.info(f'seg={start_seg}-{start_seg+16}, ud={ud}, beamflag={beamflag}')
   result_dict = dict()
   for i in range(nseg_one_page):
@@ -34,6 +34,8 @@ def tdc(c1, start_seg, ud, beamflag='', tdcrange=(1.22e6, 1.26e6), fit=True):
     h1 = mh.get(hname)
     if h1:
       h1.RebinX(4)
+      if h1.GetEntries() < 5e4:
+        h1.RebinX(2)
       if h1.GetEntries() < 1e4:
         h1.RebinX(5)
       if h1.GetEntries() < 1e3:
@@ -51,9 +53,13 @@ def tdc(c1, start_seg, ud, beamflag='', tdcrange=(1.22e6, 1.26e6), fit=True):
           (mean - 3*sigma, mean + 3*sigma),
           (1e2, 1e4)
         ]
-        result = mh.fit_gaus(h1, params=params, limits=limits)
+        result = mh.fit_gaus(h1, params=params, limits=limits, autozoom=False)
         key = (hconst[name]['id'], 0, seg, 1, 0 if ud == 'U' else 1)
-        result_dict[key] = (result.GetParameter(1), -0.0009390020)
+        if abs(result.GetParameter(1) - 735676) < 20000:
+          mean = result.GetParameter(1)
+        else:
+          mean = 735676
+        result_dict[key] = (mean, -0.0009765625)
       else:
         h1.Draw()
   return result_dict

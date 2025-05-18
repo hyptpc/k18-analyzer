@@ -21,7 +21,7 @@ ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
 @mh.update_canvas(divisions=(3, 2))
-def tdc(c1, ud, tdcrange=(1.21e6, 1.24e6), fit=True):
+def tdc(c1, ud, tdcrange=(0.70e6, 0.72e6), fit=True):
   logger.info(f'ud={ud}, tdcrange={tdcrange}, fit={fit}')
   result_dict = dict()
   for seg in range(nseg):
@@ -45,9 +45,9 @@ def tdc(c1, ud, tdcrange=(1.21e6, 1.24e6), fit=True):
           (mean - 3*sigma, mean + 3*sigma),
           (1e2, 1e4)
         ]
-        result = mh.fit_gaus(h1, params=params, limits=limits)
+        result = mh.fit_gaus(h1, params=params, limits=limits, autozoom=False)
         key = (hconst[name]['id'], 0, seg, 1, 0 if ud == 'U' else 1)
-        result_dict[key] = (result.GetParameter(1), -0.000939002)
+        result_dict[key] = (result.GetParameter(1), -0.0009765625)
       else:
         h1.Draw()
   return result_dict

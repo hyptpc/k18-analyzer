@@ -47,17 +47,17 @@ EventAnalyzer::~EventAnalyzer()
 beam::EBeamFlag
 EventAnalyzer::BeamFlag(const RawData& rawData)
 {
-  Bool_t ac_hit = false;
+  Bool_t bac_hit = false;
   {
     static const Char_t* name = "BAC";
-    const auto& cont = rawData.GetHodoRawHC(DetIdBAC);
+    const auto& cont = rawData.GetHodoRawHC(name);
     for(Int_t i=0, n=cont.size(); i<n; ++i){
       auto raw = cont[i];
       if(!raw) continue;
       for(Int_t j=0, m=raw->GetSizeTdcUp(); j<m; ++j){
 	auto t = raw->GetTdcUp(j);
         if(gUser.IsInRange(Form("%s_TDC", name), t)){
-          ac_hit = true; break;
+          bac_hit = true; break;
         }
       }
     }
@@ -80,9 +80,9 @@ EventAnalyzer::BeamFlag(const RawData& rawData)
     }
   }
   beam::EBeamFlag flag;
-  if(ac_hit && btof_pi)
+  if(bac_hit && btof_pi)
     flag = beam::kPion;
-  else if(!ac_hit && btof_k)
+  else if(!bac_hit && btof_k)
     flag = beam::kKaon;
   else
     flag = beam::kUnknown;
@@ -136,7 +136,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Multi_AND%s", name, b), multi_and);
   }
 
-  // AC
+  // BAC
   {
     static const Char_t* name = "BAC";
     Int_t multi = 0;
@@ -160,6 +160,21 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
         HF1(Form("%s_AwoT_seg%d%s", name, seg, b), a);
     }
     HF1(Form("%s_Multi%s", name, b), multi);
+  }
+
+  ///// BHT-BAC
+  {
+    for(const auto& bht_hit: rawData.GetHodoRawHC("BHT")){
+      // auto bht_seg = bht_hit->SegmentId();
+      if (bht_hit->GetSizeTdcLeading(0) == 1 &&
+          bht_hit->GetSizeTdcLeading(1) == 1 ){
+        auto bht_tdc = 0.5*(bht_hit->GetTdc(0) + bht_hit->GetTdc(1));
+        for(const auto& bac_hit: rawData.GetHodoRawHC("BAC")){
+          auto bac_adc = bac_hit->GetAdc();
+          HF2(Form("BAC_ADC_vs_BHT_TDC%s", b), bht_tdc, bac_adc);
+        }
+      }
+    }
   }
 
   // Hodoscope

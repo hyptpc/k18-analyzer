@@ -114,19 +114,12 @@ def single_run(run_info):
        ud=False, ploop=False)
   draw('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8),
        tdcrange=(1.22e6, 1.26e6), totrange=(0, 25e3))
-  draw('AC', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), tdcrange=(800, 1200),
-       ud=False)
-  draw('T1', nseg=1, adcdiv=(2, 2), adcrange=(0, 2000),
-       tdcdiv=(2, 2), tdcrange=(1.17e6, 1.21e6))
   draw('T0', nseg=5, adcdiv=(3, 2), adcrange=(0, 2000),
        tdcdiv=(3, 2), tdcrange=(1.20e6, 1.24e6))
-  draw('DEF', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), tdcrange=(1.20e6, 1.25e6))
-  draw('Veto', nseg=4, adcdiv=(2, 2), adcrange=(0, 2000),
-       tdcdiv=(2, 2), tdcrange=(1.15e6, 1.20e6))
-  draw('BTC', nseg=4, adcdiv=(2, 2), adcrange=(0, 2000),
-       tdcdiv=(2, 2), tdcrange=(1.15e6, 1.20e6))
-  draw('CVC', nseg=9, adcdiv=(3, 3), tdcdiv=(3, 3), tdcrange=(5e5, 7e5))
-  draw('NC', nseg=6, adcdiv=(3, 2), tdcdiv=(3, 2), tdcrange=(5e5, 7e5))
+  draw('BAC', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), tdcrange=(0.e6, 2.e6),
+       ud=False)
+  draw('BH2', nseg=11, adcdiv=(4, 3), adcrange=(0, 2000),
+       tdcdiv=(4, 3), tdcrange=(0.17e6, 2.21e6))
   mh.finalize()
 
 #______________________________________________________________________________

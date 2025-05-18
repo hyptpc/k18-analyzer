@@ -26,7 +26,7 @@ using root::HB2;
 namespace hist
 {
 // Raw
-const Double_t hrtdcbins1[3] = {45000, 950000, 1400000};
+const Double_t hrtdcbins1[3] = {20000, 600000, 800000};
 const Double_t hrtdcbins2[3] = {50000, 0, 1000000}; // for CVC, NC
 const Double_t hrtotbins[3] = {5000, 0, 50000};
 const Double_t adcbins[3] = {4096, -0.5, 4095.5};
@@ -95,10 +95,15 @@ BuildHodoRaw(Bool_t flag_beam_particle)
         HB1(Form("%s_ADC_seg%d%s; channel; count", name, i, b), adcbins);
         HB1(Form("%s_AwT_seg%d%s; channel; count", name, i, b), adcbins);
         HB1(Form("%s_AwoT_seg%d%s; channel; count", name, i, b), adcbins);
-        HB1(Form("%s_TDC_seg%d%s; channel; count", name, i, b), mhtdcbins);
+        HB1(Form("%s_TDC_seg%d%s; channel; count", name, i, b), hrtdcbins1);
       }
       HB1(Form("%s_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
       HB1(Form("%s_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
+    }
+    ///// BHT-BAC
+    {
+      HB2(Form("BAC_ADC_vs_BHT_TDC%s", b),
+          200, 720000., 750000., 200, 0., 2000.);
     }
     // Hodoscope
     for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
