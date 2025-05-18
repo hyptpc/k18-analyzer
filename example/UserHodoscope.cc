@@ -67,6 +67,14 @@ std::map<TString, cl_t> cl_time;
 std::map<TString, cl_t> cl_tdif;
 std::map<TString, cl_t> cl_size;
 
+///// KVC2
+std::map<TString, adc_t> adc_a;
+std::map<TString, adc_t> adc_b;
+std::map<TString, adc_t> adc_c;
+std::map<TString, adc_t> de_a;
+std::map<TString, adc_t> de_b;
+std::map<TString, adc_t> de_c;
+
 Double_t time0;
 Double_t btof0;
 Double_t ftof0;
@@ -183,6 +191,19 @@ ProcessNormal()
       // hit->Print();
     }
   }
+  { ///// KVC2
+    static const TString n("KVC2");
+    for(const auto& hit: rawData.GetHodoRawHC(n)){
+      raw_seg[n].push_back(hit->SegmentId());
+      adc_a[n].push_back(hit->GetAdc(0));
+      adc_b[n].push_back(hit->GetAdc(1));
+      adc_c[n].push_back(hit->GetAdc(2));
+      adc_d[n].push_back(hit->GetAdc(3));
+      adc_s[n].push_back(hit->GetAdc(4));
+      tdc_s[n].push_back(hit->GetArrayTdc(4));
+      hit->Print();
+    }
+  }
 
   HF1("Status", 5);
 
@@ -264,6 +285,17 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_tdc_d", n.Data()), &tdc_d[NameHodo[ihodo]]);
     tree->Branch(Form("%s_tdc_s", n.Data()), &tdc_s[NameHodo[ihodo]]);
   }
+  { ///// KVC2
+    const TString n("KVC2");
+    const Char_t* nn = "kvc2";
+    tree->Branch(Form("%s_raw_seg", nn), &raw_seg[n]);
+    tree->Branch(Form("%s_adc_a", nn), &adc_a[n]);
+    tree->Branch(Form("%s_adc_b", nn), &adc_b[n]);
+    tree->Branch(Form("%s_adc_c", nn), &adc_c[n]);
+    tree->Branch(Form("%s_adc_d", nn), &adc_d[n]);
+    tree->Branch(Form("%s_adc_s", nn), &adc_s[n]);
+    tree->Branch(Form("%s_tdc_s", nn), &tdc_s[n]);
+  }
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
     auto n = NameHodo[ihodo];
@@ -276,6 +308,18 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_time_d", n.Data()), &time_d[NameHodo[ihodo]]);
     tree->Branch(Form("%s_mt", n.Data()), &mt[NameHodo[ihodo]]);
     tree->Branch(Form("%s_cmt", n.Data()), &cmt[NameHodo[ihodo]]);
+  }
+  { ///// KVC2
+    const TString n("KVC2");
+    const Char_t* nn = "kvc2";
+    tree->Branch(Form("%s_hit_seg", nn), &hit_seg[n]);
+    tree->Branch(Form("%s_de_a", nn), &de_a[n]);
+    tree->Branch(Form("%s_de_b", nn), &de_b[n]);
+    tree->Branch(Form("%s_de_c", nn), &de_c[n]);
+    tree->Branch(Form("%s_de_d", nn), &de_d[n]);
+    tree->Branch(Form("%s_de", nn), &de[n]);
+    tree->Branch(Form("%s_mt", nn), &mt[n]);
+    tree->Branch(Form("%s_cmt", nn), &cmt[n]);
   }
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){

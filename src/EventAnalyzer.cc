@@ -199,6 +199,44 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Multi_OR%s", name, b), multi_or);
     HF1(Form("%s_Multi_AND%s", name, b), multi_and);
   }
+
+  { ///// KVC2
+    const Char_t* name = "KVC2";
+    Int_t multi_or = 0;
+    Int_t multi_and = 0;
+    for(const auto& hit: rawData.GetHodoRawHC(name)){
+      auto seg = hit->SegmentId();
+      Int_t ud_good = 0;
+      const std::vector<TString> ud_str{"a", "b", "c", "d"};
+      for(Int_t ud=0; ud<4; ++ud){
+        Bool_t is_good = false;
+        const auto abcd = ud_str[ud].Data();
+        for(const auto& t: hit->GetArrayTdc(ud)){
+          if(gUser.IsInRange(Form("%s_TDC", name), t))
+            is_good = true;
+          HF1(Form("%s_TDC_seg%d%s%s", name, seg, abcd, b), t);
+        }
+        for(const auto& a: hit->GetArrayAdc(ud)){
+          HF1(Form("%s_ADC_seg%d%s%s", name, seg, abcd, b), a);
+          if(is_good)
+            HF1(Form("%s_AwT_seg%d%s%s", name, seg, abcd, b), a);
+          else
+            HF1(Form("%s_AwoT_seg%d%s%s", name, seg, abcd, b), a);
+        }
+        ud_good += is_good;
+      }
+      if(ud_good >= 1){
+        HF1(Form("%s_HitPat_OR%s", name, b), seg);
+        ++multi_or;
+      }
+      if(ud_good == 2){
+        HF1(Form("%s_HitPat_AND%s", name, b), seg);
+        ++multi_and;
+      }
+    }
+    HF1(Form("%s_Multi_OR%s", name, b), multi_or);
+    HF1(Form("%s_Multi_AND%s", name, b), multi_and);
+  }
 }
 
 //_____________________________________________________________________________

@@ -111,10 +111,7 @@ BuildHodoRaw(Bool_t flag_beam_particle)
         hrtdcbins = hrtdcbins1;
       // }
       Int_t nseg = NumOfSegHodo[ihodo];
-      for(const auto& uord: TString(name).Contains("KVC2")
-            ? std::vector<TString>{"A", "B", "C", "D"}
-            : std::vector<TString>{"U", "D"}){
-      // for(const auto& uord: std::vector<TString>{"U", "D"} ){
+      for(const auto& uord: std::vector<TString>{"U", "D"}){
         auto ud = uord.Data();
         for(Int_t i=0; i<nseg; ++i){
           HB1(Form("%s_ADC_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
@@ -129,6 +126,27 @@ BuildHodoRaw(Bool_t flag_beam_particle)
         HB1(Form("%s_Multi_%s%s; multiplicity; count", name, ud, b), nseg + 1, -0.5, nseg + 0.5);
       }
     }
+
+    { ///// KVC2
+      auto name = "KVC2";
+      const Double_t* hrtdcbins = hrtdcbins1;
+      Int_t nseg = NumOfSegKVC2;
+      for(const auto& uord: std::vector<TString>{"a", "b", "c", "d"}){
+        auto ud = uord.Data();
+        for(Int_t i=0; i<nseg; ++i){
+          HB1(Form("%s_ADC_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
+          HB1(Form("%s_AwT_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
+          HB1(Form("%s_AwoT_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
+          HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins);
+        }
+      }
+      for(const auto& uord: std::vector<TString>{"OR", "AND"} ){
+        auto ud = uord.Data();
+        HB1(Form("%s_HitPat_%s%s; segment; count", name, ud, b), nseg, -0.5, nseg - 0.5);
+        HB1(Form("%s_Multi_%s%s; multiplicity; count", name, ud, b), nseg + 1, -0.5, nseg + 0.5);
+      }
+    }
+
     if(!flag_beam_particle) break;
   }
 }
@@ -177,10 +195,7 @@ BuildHodoHit(Bool_t flag_beam_particle)
       auto name = NameHodo[ihodo].Data();
       Double_t nseg = NumOfSegHodo[ihodo];
       for(Int_t i=0; i<nseg; ++i){
-        for(const auto& uord: TString(name).Contains("KVC2")
-              ? std::vector<TString>{"A", "B", "C", "D"}
-              : std::vector<TString>{"U", "D"}){
-        // for(const auto& uord: std::vector<TString>{"U", "D"} ){
+        for(const auto& uord: std::vector<TString>{"U", "D"} ){
           auto ud = uord.Data();
           HB1(Form("%s_Hit_DeltaE_seg%d%s%s; mip; count", name, i, ud, b), debins);
           HB1(Form("%s_Hit_Time_seg%d%s%s; ns; count", name, i, ud, b), hrtimebins);
