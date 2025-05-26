@@ -34,7 +34,7 @@ def btof_cluster(c1, pair):
             params[0] = h1.GetMaximum()
             params[1] = h1.GetBinCenter(h1.GetMaximumBin())
             params[2] = 0.2
-            mh.fit_gaus(h1, params=params)
+            mh.fit_gaus(h1, params=params, autozoom=False)
 
 #______________________________________________________________________________
 @mh.update_canvas(divisions=(3, 2))

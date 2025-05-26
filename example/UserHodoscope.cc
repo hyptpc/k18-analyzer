@@ -10,6 +10,7 @@
 
 #include "BH2Hit.hh"
 #include "ConfMan.hh"
+#include "DCGeomMan.hh"
 #include "DetectorID.hh"
 #include "EventAnalyzer.hh"
 #include "RootHelper.hh"
@@ -115,6 +116,13 @@ ProcessBegin()
   for(auto& p: cl_tdif) p.second.clear();
   for(auto& p: cl_size) p.second.clear();
 
+  for(auto& p: adc_a) p.second.clear();
+  for(auto& p: adc_b) p.second.clear();
+  for(auto& p: adc_c) p.second.clear();
+  for(auto& p: de_a) p.second.clear();
+  for(auto& p: de_b) p.second.clear();
+  for(auto& p: de_c) p.second.clear();
+
   time0 = TMath::QuietNaN();
   btof0 = TMath::QuietNaN();
   ftof0 = TMath::QuietNaN();
@@ -136,9 +144,12 @@ ProcessNormal()
   // hodoAna.TimeCut("BHT");
   hodoAna.DecodeHits<BH2Hit>("T0");
   hodoAna.DecodeHits("BAC");
-  hodoAna.DecodeHits("KVC");
+  hodoAna.DecodeHits("KVC1");
   hodoAna.DecodeHits("SAC");
   hodoAna.DecodeHits("BH2");
+  hodoAna.DecodeHits<FiberHit>("BVH");
+  hodoAna.DecodeHits("T1");
+  hodoAna.DecodeHits("T2");
 
   EventAnalyzer evAna;
 
@@ -346,6 +357,7 @@ ConfMan::InitializeParameterFiles()
   return
     (InitializeParameter<HodoParamMan>("HDPRM")) &&
     (InitializeParameter<HodoPHCMan>("HDPHC")) &&
+    (InitializeParameter<DCGeomMan>("DCGEO")) &&
     (InitializeParameter<UserParamMan>("USER"));
 }
 
