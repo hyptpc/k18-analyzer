@@ -90,7 +90,7 @@ EventAnalyzer::BeamFlag(const RawData& rawData)
   HF1("BeamFlag", flag);
   return flag;
 }
-
+// 
 //_____________________________________________________________________________
 void
 EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
@@ -344,6 +344,38 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Hit_Multi%s", name, b), multi);
   }
 
+  // TOF
+  {
+    for(Int_t i2=0, n2=hodoAna.GetNHits("T0"); i2<n2; ++i2){
+      const auto& hit2 = hodoAna.GetHit<BH2Hit>("T0", i2);
+      auto seg2 = hit2->SegmentId();
+      for(Int_t j2=0, m2=hit2->GetEntries(); j2<m2; ++j2){
+        auto t0 = hit2->Time0(j2), ct0 = hit2->CTime0(j2);
+        // auto tofs = hit2->TimeOffset();
+        for(const auto& name: std::vector<TString>{"BH2", "HTOF"}){
+          const Char_t* n = name.Data();
+          for(Int_t i1=0, n1=hodoAna.GetNHits(name); i1<n1; ++i1){
+            const auto& hit1 = hodoAna.GetHit(name, i1);
+            auto seg1 = hit1->SegmentId();
+            auto au1 = hit1->GetAUp(), ad1 = hit1->GetADown(), a1 = hit1->DeltaE();
+            for(Int_t j1=0, m1=hit1->GetEntries(); j1<m1; ++j1){
+              auto tu1 = hit1->GetTUp(j1), td1 = hit1->GetTDown(j1);
+              auto mt1 = hit1->MeanTime(j1), cmt1 = hit1->CMeanTime(j1);
+              auto ctof = ct0-cmt1;
+              HF2(Form("%s_seg%dU_TOF_vs_DeltaE%s", n, seg1, b), au1, ct0-tu1);
+              HF2(Form("%s_seg%dD_TOF_vs_DeltaE%s", n, seg1, b), ad1, ct0-td1);
+              HF2(Form("%s_seg%dU_CTOF_vs_DeltaE%s", n, seg1, b), au1, ctof);
+              HF2(Form("%s_seg%dD_CTOF_vs_DeltaE%s", n, seg1, b), ad1, ctof);
+              HF2(Form("%s_TOF_vs_DeltaE%s", n, b), a1, ct0-mt1);
+              HF2(Form("%s_CTOF_vs_DeltaE%s", n, b), a1, ctof);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  
   // BTOF / FTOF
   {
     for(Int_t i2=0, n2=hodoAna.GetNHits("T0"); i2<n2; ++i2){
@@ -392,6 +424,7 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
       }
     }
   }
+  
 }
 
 //_____________________________________________________________________________
