@@ -202,6 +202,7 @@ ProcessNormal()
       // hit->Print();
     }
   }
+
   { ///// KVC2
     static const TString n("KVC2");
     for(const auto& hit: rawData.GetHodoRawHC(n)){
@@ -214,6 +215,14 @@ ProcessNormal()
       tdc_s[n].push_back(hit->GetArrayTdc(4));
       // hit->Print();
     }
+  }
+
+  for(const auto& hit: rawData.GetHodoRawHC("BVH")){
+    raw_seg["BVH"].push_back(hit->SegmentId());
+    tdc_u["BVH"].push_back(hit->GetArrayTdcUp());
+    tdc_d["BVH"].push_back(hit->GetArrayTdcDown());
+    trailing_u["BVH"].push_back(hit->GetArrayTdcTrailing(0));
+    trailing_d["BVH"].push_back(hit->GetArrayTdcTrailing(1));
   }
 
   HF1("Status", 5);
@@ -280,11 +289,13 @@ ConfMan::InitializeHistograms()
   tree->Branch("beam_flag", &beam_flag, "beam_flag/I");
   tree->Branch("trig_flag", &trig_flag);
   tree->Branch("trig_pat", &trig_pat);
+
   tree->Branch("bht_raw_seg", &raw_seg["BHT"]);
   tree->Branch("bht_tdc_u", &tdc_u["BHT"]);
   tree->Branch("bht_tdc_d", &tdc_d["BHT"]);
   tree->Branch("bht_trailing_u", &trailing_u["BHT"]);
   tree->Branch("bht_trailing_d", &trailing_d["BHT"]);
+
   for(Int_t ihodo=kT0; ihodo<kNumHodo; ++ihodo){
     auto n = NameHodo[ihodo];
     n.ToLower();
@@ -307,6 +318,12 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_adc_s", nn), &adc_s[n]);
     tree->Branch(Form("%s_tdc_s", nn), &tdc_s[n]);
   }
+
+  tree->Branch("bvh_raw_seg", &raw_seg["BVH"]);
+  tree->Branch("bvh_tdc_u", &tdc_u["BVH"]);
+  tree->Branch("bvh_tdc_d", &tdc_d["BVH"]);
+  tree->Branch("bvh_trailing_u", &trailing_u["BVH"]);
+  tree->Branch("bvh_trailing_d", &trailing_d["BVH"]);
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
     auto n = NameHodo[ihodo];

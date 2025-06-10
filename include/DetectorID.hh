@@ -51,7 +51,8 @@ enum EHodoscope {
   kBHT, kT0, kBAC,
   kKVC1, kSAC, kBH2,
   kHTOF,
-  kBVH, kT1, kT2,
+  // kBVH,
+  kT1, kT2,
   // kCVC, kNC,
   kNumHodo
 };
@@ -60,14 +61,16 @@ const Int_t DetIdHodo[kNumHodo] = {
   DetIdBHT, DetIdT0, DetIdBAC,
   DetIdKVC1, DetIdSAC, DetIdBH2,
   DetIdHTOF,
-  DetIdBVH, DetIdT1, DetIdT2,
+  // DetIdBVH,
+  DetIdT1, DetIdT2,
   // DetIdCVC, DetIdNC,
 };
 
 const std::vector<TString> NameHodo = {
   "BHT", "T0", "BAC",
   "KVC1", "SAC", "BH2", "HTOF",
-  "BVH", "T1", "T2",
+  // "BVH",
+  "T1", "T2",
   // "CVC", "NC",
 };
 
@@ -75,7 +78,8 @@ const double  NumOfSegHodo[kNumHodo] = {
   NumOfSegBHT, NumOfSegT0, NumOfSegBAC,
   NumOfSegKVC1, NumOfSegSAC, NumOfSegBH2,
   NumOfSegHTOF,
-  NumOfSegBVH, NumOfSegT1, NumOfSegT2
+  // NumOfSegBVH,
+  NumOfSegT1, NumOfSegT2
   // NumOfSegCVC, NumOfSegNC,
 };
 
