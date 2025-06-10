@@ -212,7 +212,7 @@
     </plane>
   </device>
   <!--________________________________________________________________-->
-  <device id="99" name="TriggerFlag"><for var="seg" from="0" to="127">
+  <device id="99" name="TriggerFlag" type="Hodo"><for var="seg" from="0" to="127">
     <segment id="seg">
       <data id="0" name="adc"/>
       <data id="1" name="leading"/>
