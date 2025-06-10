@@ -244,7 +244,7 @@ BuildHodoHit(Bool_t flag_beam_particle)
       }
       HB2(Form("HTOF_TOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
       HB2(Form("HTOF_CTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
-    }   
+    }
     // BTOF
     {
       for(Int_t i=0; i<NumOfSegHodo[kT0]; ++i){
@@ -269,7 +269,7 @@ BuildHodoHit(Bool_t flag_beam_particle)
       }
       HB2(Form("T0_BTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
       HB2(Form("T0_CBTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
-    }      
+    }
     // FTOF
     {
       const Double_t phcbins2d[6] = { 100, -0.5, 4.5, 100, -10., 10. };
@@ -416,6 +416,45 @@ BuildDCHit(const TString& dcname, Bool_t flag_beam_particle)
         HB2(Form("%s_Hit_DriftLength_vs_HitPat_plane%d%s; segment; mm", name, plane, b), dlbins2d);
         HB1(Form("%s_Hit_HitPat_plane%d%s; wire; count", name, plane, b), patbins);
         HB1(Form("%s_Hit_Multi_plane%d%s; multiplicity; count", name, plane, b), mulbins);
+      }
+    }
+    if(!flag_beam_particle) break;
+  }
+}
+
+//_____________________________________________________________________________
+void
+BuildDCTrack(const TString& dcname, Bool_t flag_beam_particle)
+{
+  const auto& digit_info = gUConf.get_digit_info();
+  for(const auto& beam: beam::BeamFlagList){
+    const Char_t* b = beam.Data();
+    HB1(Form("%sTrack_NHit%s; ; count", dcname.Data(), b), 20, -0.5, 19.5);
+    HB1(Form("%sTrack_ChiSquare%s; ; count", dcname.Data(), b), 200, 0, 40);
+    HB1(Form("%sTrack_X0%s; ; count", dcname.Data(), b), 200, -500, 500);
+    HB1(Form("%sTrack_Y0%s; ; count", dcname.Data(), b), 200, -500, 500);
+    HB1(Form("%sTrack_U0%s; ; count", dcname.Data(), b), 200, -.5, .5);
+    HB1(Form("%sTrack_V0%s; ; count", dcname.Data(), b), 200, -.5, .5);
+    for (const auto& name_str : DCNameList.at(dcname)) {
+      const auto name = name_str.Data();
+      auto detector_id = digit_info.get_device_id(name);
+      Int_t nplane = digit_info.get_n_plane(detector_id);
+      Double_t nwire = digit_info.get_n_ch(detector_id);
+      const Double_t patbins[3] = {nwire, -0.5, nwire - 0.5};
+      const Double_t dtbins[3] = {600, -100., 400.};
+      const Double_t dlbins[3] = {120/2, -1.0, 5.0};
+      const Double_t dtbins2d[6] = {nwire, -0.5, nwire - 0.5,
+        dtbins[0], dtbins[1], dtbins[2] };
+      const Double_t dlbins2d[6] = {nwire, -0.5, nwire - 0.5,
+        dlbins[0], dlbins[1], dlbins[2] };
+      const Double_t resbins[3] = {400, -2.0, 2.0};
+      for(Int_t plane=0; plane<nplane; ++plane){
+        HB1(Form("%s_Track_DriftTime_plane%d%s; ns; count", name, plane, b), dtbins);
+        HB1(Form("%s_Track_DriftLength_plane%d%s; mm; count", name, plane, b), dlbins);
+        HB2(Form("%s_Track_DriftTime_vs_HitPat_plane%d%s; segment; ns", name, plane, b), dtbins2d);
+        HB2(Form("%s_Track_DriftLength_vs_HitPat_plane%d%s; segment; mm", name, plane, b), dlbins2d);
+        HB1(Form("%s_Track_HitPat_plane%d%s; wire; count", name, plane, b), patbins);
+        HB1(Form("%s_Track_Residual_plane%d%s; mm; count", name, plane, b), resbins);
       }
     }
     if(!flag_beam_particle) break;

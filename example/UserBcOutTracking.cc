@@ -134,6 +134,8 @@ ProcessNormal()
   }
 
   dcAna.TrackSearchBcOut();
+  evAna.BcOutTracking(dcAna);
+  evAna.BcOutTracking(dcAna, event.beam_flag);
 
   for(const auto& track : dcAna.GetBcOutTrackContainer()){
     track->Print();
@@ -164,6 +166,7 @@ ConfMan::InitializeHistograms()
   hist::BuildTriggerFlag();
   hist::BuildDCRaw("BcOut", true);
   hist::BuildDCHit("BcOut", true);
+  hist::BuildDCTrack("BcOut", true);
 
   tree = new TTree("bcout", "UserBcOutTracking");
   tree->Branch("run_number", &event.run_number);

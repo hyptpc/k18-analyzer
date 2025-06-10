@@ -28,6 +28,7 @@ void BuildHodoCluster(Bool_t flag_beam_particle=false);
 
 void BuildDCRaw(const TString& dcname, Bool_t flag_beam_particle=false);
 void BuildDCHit(const TString& dcname, Bool_t flag_beam_particle=false);
+void BuildDCTrack(const TString& dcname, Bool_t flag_beam_particle=false);
 }
 
 #endif

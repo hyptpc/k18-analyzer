@@ -13,6 +13,7 @@
 #include "BH2Hit.hh"
 #include "DCAnalyzer.hh"
 #include "DCHit.hh"
+#include "DCLocalTrack.hh"
 #include "DCRawHit.hh"
 #include "DetectorID.hh"
 #include "FiberHit.hh"
@@ -90,7 +91,7 @@ EventAnalyzer::BeamFlag(const RawData& rawData)
   HF1("BeamFlag", flag);
   return flag;
 }
-// 
+//
 //_____________________________________________________________________________
 void
 EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
@@ -348,9 +349,10 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
   {
     for(Int_t i2=0, n2=hodoAna.GetNHits("T0"); i2<n2; ++i2){
       const auto& hit2 = hodoAna.GetHit<BH2Hit>("T0", i2);
-      auto seg2 = hit2->SegmentId();
+      // auto seg2 = hit2->SegmentId();
       for(Int_t j2=0, m2=hit2->GetEntries(); j2<m2; ++j2){
-        auto t0 = hit2->Time0(j2), ct0 = hit2->CTime0(j2);
+        // auto t0 = hit2->Time0(j2);
+        auto ct0 = hit2->CTime0(j2);
         // auto tofs = hit2->TimeOffset();
         for(const auto& name: std::vector<TString>{"BH2", "HTOF"}){
           const Char_t* n = name.Data();
@@ -375,7 +377,7 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     }
   }
 
-  
+
   // BTOF / FTOF
   {
     for(Int_t i2=0, n2=hodoAna.GetNHits("T0"); i2<n2; ++i2){
@@ -424,7 +426,7 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
       }
     }
   }
-  
+
 }
 
 //_____________________________________________________________________________
@@ -574,6 +576,46 @@ EventAnalyzer::DCHit(const TString& dcname, const DCAnalyzer& dcAna,
         }
       }
       HF1(Form("%s_Hit_Multi_plane%d%s", name, plane, b), multi);
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void
+EventAnalyzer::BcOutTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
+{
+  // static const auto& digit_info = gUConf.get_digit_info();
+  if(beam_flag == beam::kUnknown) return;
+  const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
+  for (const auto& track : dcAna.GetBcOutTrackContainer()) {
+    Int_t nh = track->GetNHit();
+    Double_t chisqr = track->GetChiSquare();
+    Double_t x0 = track->GetX0();
+    Double_t y0 = track->GetY0();
+    Double_t u0 = track->GetU0();
+    Double_t v0 = track->GetV0();
+    // Double_t theta = track->GetTheta();
+    HF1(Form("BcOutTrack_NHit%s", b), nh);
+    HF1(Form("BcOutTrack_ChiSquare%s", b), chisqr);
+    HF1(Form("BcOutTrack_X0%s", b), x0);
+    HF1(Form("BcOutTrack_Y0%s", b), y0);
+    HF1(Form("BcOutTrack_U0%s", b), u0);
+    HF1(Form("BcOutTrack_V0%s", b), v0);
+
+    for (const auto& lthit : track->GetHitArray()) {
+      const auto hit = lthit->GetHit();
+      const auto name = hit->GetRawHit()->DetectorName().Data();
+      auto plane = hit->PlaneId();
+      auto wire = lthit->GetWire();
+      auto dt = lthit->DriftTime();
+      auto dl = lthit->DriftLength();
+      HF1(Form("%s_Track_DriftTime_plane%d%s", name, plane, b), dt);
+      HF1(Form("%s_Track_DriftLength_plane%d%s", name, plane, b), dl);
+      HF2(Form("%s_Track_DriftTime_vs_HitPat_plane%d%s", name, plane, b), wire, dt);
+      HF2(Form("%s_Track_DriftLength_vs_HitPat_plane%d%s", name, plane, b), wire, dl);
+      HF1(Form("%s_Track_HitPat_plane%d%s", name, plane, b), wire);
+      auto res = lthit->GetResidual();
+      HF1(Form("%s_Track_Residual_plane%d%s", name, plane, b), res);
     }
   }
 }

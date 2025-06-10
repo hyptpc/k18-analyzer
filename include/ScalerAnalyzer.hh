@@ -1,98 +1,167 @@
-/**
- *  file: ScalerAnalyzer.hh
- *  date: 2017.04.10
- *
- */
+// -*- C++ -*-
 
 #ifndef SCALER_ANALYZER_HH
 #define SCALER_ANALYZER_HH
 
-#include "DetectorID.hh"
-
 #include <iomanip>
 #include <iostream>
 #include <vector>
-#include <Rtypes.h>
 
-typedef unsigned long long Scaler;
+#include <TString.h>
 
-//______________________________________________________________________________
+#include "std_ostream.hh"
+#include "DetectorID.hh"
+
+class TCanvas;
+struct ScalerInfo;
+
+typedef Long64_t                               Scaler;
+typedef std::vector< std::vector<ScalerInfo> > ScalerList;
+typedef std::pair<Int_t, Int_t>                Channel;
+
+//_____________________________________________________________________________
+struct ScalerInfo
+{
+  TString name;
+  Int_t   module_id;
+  Int_t   channel;
+  Bool_t  flag_disp;
+  Scaler  data; // integral value in a spill
+  Scaler  curr; // current value
+  Scaler  prev; // previous value
+
+  ScalerInfo() {}
+  ScalerInfo(TString n, Int_t m, Int_t c, Bool_t f=true)
+    : name(n), module_id(m), channel(c), flag_disp(f),
+      data(0), curr(0), prev(0)
+  {
+  }
+
+  inline void Print() const
+  {
+    hddaq::cout << std::setw(8)  << name
+                << std::setw(2)  << module_id
+                << std::setw(2)  << channel
+                << std::setw(2)  << flag_disp
+                << std::setw(10) << data << std::endl;
+  }
+};
+
+//_____________________________________________________________________________
 class ScalerAnalyzer
 {
 public:
-  static ScalerAnalyzer& GetInstance( void );
-  ~ScalerAnalyzer( void );
+  static TString ClassName();
+  static ScalerAnalyzer& GetInstance();
+  ScalerAnalyzer(); // for both spill on/off at the same time
+  ~ScalerAnalyzer();
 
 private:
-  ScalerAnalyzer( void );
-  ScalerAnalyzer( const ScalerAnalyzer& );
-  ScalerAnalyzer& operator=( const ScalerAnalyzer& );
+  // ScalerAnalyzer();
+  ScalerAnalyzer(const ScalerAnalyzer&);
+  ScalerAnalyzer& operator=(const ScalerAnalyzer&);
 
 public:
-  struct ScalerInfo
-  {
-    std::string name;
-    int         module_id;
-    int         channel;
-    bool        flag_disp;
-    Scaler      data; // integral value in a spill
-    Scaler      curr; // current value
-    Scaler      prev; // previous value
-
-    ScalerInfo( void ) {}
-    ScalerInfo( std::string n, int m, int c, bool f=true )
-      : name(n), module_id(m), channel(c), flag_disp(f),
-	data(0), curr(0), prev(0)
-    {
-    }
-    inline void Print( void ) const
-    {
-      std::cout << std::setw(8)  << name
-		<< std::setw(2)  << module_id
-		<< std::setw(2)  << channel
-		<< std::setw(2)  << flag_disp
-		<< std::setw(10) << data << std::endl;
-    }
+  static const Int_t MaxRow = 80;
+  enum eDisp {
+    kLeft,
+    kCenter,
+    kRight,
+    MaxColumn
+  };
+  enum eFlag {
+    kSeparateComma,
+    kSpillBySpill,
+    kSemiOnline,
+    kScalerSheet,
+    kScalerText,
+    kScalerSch,
+    kScalerDaq,
+    kScalerE42,
+    kSpillOn,
+    kSpillOff,
+    kScalerHBX,
+    nFlag
+  };
+  const std::vector<TString> sFlag = {
+    "SeparateComma",
+    "SpillBySpill",
+    "SemiOnline",
+    "ScalerSheet",
+    "ScalerText",
+    "ScalerSch",
+    "ScalerDaq",
+    "ScalerE42",
+    "SpillOn",
+    "SpillOff",
+    "ScalerHBX",
   };
 
 private:
-  // for Phase1
   enum eScaler { kScaler1, kScaler2, kScaler3, nScaler };
 
-  typedef std::vector< std::vector<ScalerInfo> > ScalerList;
-
-  std::ostream& m_ost;
-  ScalerList    m_info;
-
-  bool          m_spill_increment;
-  bool          m_separate_comma;
-  bool          m_init;
+  std::ostream&       m_ost;
+  ScalerList          m_info;
+  std::vector<Bool_t> m_flag;
+  Bool_t              m_spill_increment;
+  Bool_t              m_is_spill_end;
+  Bool_t              m_is_spill_on_end;
+  Int_t               m_run_number;
+  TCanvas*            m_canvas;
 
 public:
-  void        Clear( void );
-  bool        Decode( void );
-  bool        FlagDisp( int i, int j ) const { return m_info.at(i).at(j).flag_disp; }
-  Scaler      Get( int i, int j ) const { return m_info.at(i).at(j).data; }
-  Scaler      GetPreviousValue( int i, int j ) const { return m_info.at(i).at(j).prev; }
-  Scaler      GetCurrentValue( int i, int j ) const { return m_info.at(i).at(j).curr; }
-  Scaler      Get( const std::string& name ) const;
-  std::string GetName( int i, int j ) const { return m_info.at(i).at(j).name; }
-  ScalerInfo  GetScalerInfo( int i, int j ) const { return m_info.at(i).at(j); }
-  bool        Initialize( void );
-  bool        Setup_RunNum( int run_number );
-  bool        Setup( const std::string& filename );
-  int         ModuleId( int i, int j ) const { return m_info.at(i).at(j).module_id; }
-  void        Print( const std::string& arg="" ) const;
-  bool        SpillIncrement( void ) const { return m_spill_increment; }
-  std::string SeparateComma( Scaler number ) const;
-  void        SetComma( bool flag=true ) { m_separate_comma = flag; }
-  void        Set( Int_t i, Int_t j, const ScalerInfo& info );
-  void        WriteToFile(std::ofstream &ofs);
+  void       Clear(Option_t* option="");
+  Bool_t     Decode();
+  Double_t   Duty() const;
+  Channel    Find(const TString& name) const;
+  Bool_t     FlagDisp(Int_t i, Int_t j) const
+  { return m_info.at(i).at(j).flag_disp; }
+  Double_t   Fraction(const TString& num, const TString& den) const;
+  Scaler     Get(Int_t i, Int_t j) const { return m_info.at(i).at(j).data; }
+  Scaler     Get(const TString& name) const;
+  Bool_t     GetFlag(Int_t i) const { return m_flag[i]; }
+  Int_t      GetRunNumber() const { return m_run_number; }
+  ScalerInfo GetScalerInfo(Int_t i, Int_t j) const
+  { return m_info.at(i).at(j); }
+  TString    GetScalerName(Int_t i, Int_t j) const
+  { return m_info.at(i).at(j).name; }
+  Bool_t     Has(const TString& key) const;
+  Bool_t     IsSpillEnd() const { return m_is_spill_end; }
+  Bool_t     MakeScalerText() const;
+  Int_t      ModuleId(Int_t i, Int_t j) const
+  { return m_info.at(i).at(j).module_id; }
+  void       Print(Option_t* option="") const;
+  void       PrintFlags() const;
+  void       PrintScalerSheet();
+  TString    SeparateComma(Scaler number) const;
+  void       Set(Int_t i, Int_t j, const ScalerInfo& info);
+  void       SetFlag(Int_t i, Bool_t flag=true) { m_flag.at(i) = flag; }
+  void       SetRunNumber(Int_t n) { m_run_number = n; }
+  void       SetSpillEnd(Bool_t flag=true) { m_is_spill_end = flag; }
+  Bool_t     SpillIncrement() const { return m_spill_increment; }
+
+private:
+  void DrawOneBox(Double_t x, Double_t y,
+                  const TString& title1, const TString& val1);
+  void DrawOneLine(const TString& title1, const TString& val1,
+                   const TString& title2, const TString& val2,
+                   const TString& title3, const TString& val3);
+  void DrawOneLine(const TString& title1,
+                   const TString& title2,
+                   const TString& title3);
 };
 
 //______________________________________________________________________________
+inline TString
+ScalerAnalyzer::ClassName()
+{
+  static TString g_name("ScalerAnalyzer");
+  return g_name;
+}
+
+//______________________________________________________________________________
 inline ScalerAnalyzer&
-ScalerAnalyzer::GetInstance( void )
+ScalerAnalyzer::GetInstance()
 {
   static ScalerAnalyzer g_instance;
   return g_instance;
