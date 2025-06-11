@@ -33,6 +33,17 @@ export PATH=$G4WORKDIR/bin/Linux-g++:$PATH
 
 Since PATH to unpacker is specified in Makefile, it is unnecessary to be set.
 
+### spdlog
+
+We've started using `spdlog` to control some of the log output.
+By default, the log level is set to `INFO`.
+If you want to enable `DEBUG` messages, please set the environment variable and rebuild:
+
+```sh
+export SPDLOG_LEVEL=SPDLOG_LEVEL_DEBUG
+make
+```
+
 ## Anaconda setting
 
 To use Python,
@@ -172,5 +183,5 @@ The job status is updated in the "stat" directory, using the same name as the ru
 Macro to list RawHist histograms in single pdf.
 
 ```sh
-python3 ./macro/rawhist.py runmanager/runlist/foo.yml
+python ./macro/rawhist.py runmanager/runlist/foo.yml
 ```
