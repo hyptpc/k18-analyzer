@@ -174,7 +174,7 @@ public:
   Double_t GetTransverseMomentumResolution();//returns dP, not dP/P;
   Double_t GetTransverseAngularResolution(Double_t t, Double_t sig0 = 0.01); //returns angular resolution on pad plane
   Double_t GetTransverseAngularResolution();
-  TMatrixD GetCovarianceMatrix(int pid = -1);
+  TMatrixD GetCovarianceMatrix(int pid = -1, double MomScale = 1, double PhiScale = 1, double dZScale = 1);
   TMatrixD GetVertexCovarianceMatrix(TVector3 vert, double l, int pid = -1);
 
 

@@ -72,8 +72,6 @@ z = p[2] + p[4]*p[3]*(theta);
 
 #define DebugDisp 0
 #define IterativeResolution 1
-//Byungmin's new method for residual definition
-#define PtPlane 0
 namespace
 {
   const auto& gUser = UserParamMan::GetInstance();
@@ -225,36 +223,20 @@ static inline Double_t EvalTheta(Double_t par[5], TVector3 pos, Double_t window_
   fint.SetNpx(steps);
   Double_t min_t = fint.GetMinimumX();
 
-if(CircCross){
-#if PtPlane
-  min_t = (window_low+window_up)/2;
-#endif
-	fcir_cd.SetRange(window_low,window_up);
-  double cpar[5];
-  cpar[0] = par[0];
-  cpar[1] = par[1];
-  cpar[2] = par[3];
-  cpar[3] = localpos.X();
-  cpar[4] = localpos.Y();
-  fcir_cd.SetParameters(cpar);
-  fcir_cd.SetNpx(steps);
-  double min_t_temp = fcir_cd.GetMinimumX();
-  if(min_t_temp < window_low or min_t_temp > window_up) return min_t;
-  else min_t = min_t_temp;
-	}	
-	else{
+  if(CircCross){
     fcir_cd.SetRange(window_low,window_up);
-    double cpar[4];
-    cpar[0] = par[0];
-    cpar[1] = par[1];
-    cpar[2] = par[3];
-    cpar[3] = hypot(localpos.X(),localpos.Y());
+    //(x - (cx + r cos(t)))^2 + (y - (cy + r sin(t)))^2
+    double cpar[5];
+    cpar[0] = par[0];//cx
+    cpar[1] = par[1];//cy
+    cpar[2] = par[3];//r
+    cpar[3] = localpos.X();
+    cpar[4] = localpos.Y();
     fcir_cd.SetParameters(cpar);
     fcir_cd.SetNpx(steps);
-    double min_t_temp = fcir_cd.GetMinimumX();
-    if(min_t_temp == window_low or min_t_temp == window_up) return min_t;
-    else min_t = min_t_temp;
-	}
+    min_t = fcir_cd.GetMinimumX();
+    return min_t;
+  }
   return min_t;
 }
 
@@ -3985,11 +3967,15 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
     Int_t id = m_hit_order[ih];
     TPCLTrackHit *hitp = m_hit_array[id];
     auto ResV = hitp -> GetResolutionVect();
+#if 0
     TVector3 ResT(-ResV.X(),ResV.Z(),0);
     double theta = hitp -> GetTheta();
-    TVector3 radial(cos(theta), sin(theta), 0);
+    TVector3 radial(sin(theta), -cos(theta), 0);
     double res_T = ResT.Dot(radial);//consider only radial component of resolution... maybe this should be right?
     if(res_T < 0) res_T = -res_T;
+#else
+		Double_t res_T = hypot(ResV.X(),ResV.Z());
+#endif
     if(!hitp -> IsGoodForTracking()){
       nh--;
       continue;
@@ -4074,7 +4060,7 @@ TPCLocalTrackHelix::GetMomentumResolution(){
 }
 Double_t
 TPCLocalTrackHelix::GetMomentumResolutionScat(int pid){
-	double X0 = 268;//[m], P10 gas,
+	double X0 = 268;//[m], P10 gas,Radiation length
 	double L = m_path* 0.001;//mm -> m
 	double L0 = L/hypot(1,m_dz);
   double B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
@@ -4091,16 +4077,21 @@ TPCLocalTrackHelix::GetMomentumResolutionScat(int pid){
 	else if (pid == 2){
 		mass = mp;
 	}
+	else if (pid == -1){
+		return 0;
+	}
 	else{
-    return 0;
-  }
+		mass = mp;
+		std::cout<<FUNC_NAME<<" PID Flag Wrong! "<<pid<<std::endl; 
+	}
 	double Energy = hypot(mass,m_mom0.Mag());
-	double beta = m_mom0.Mag()/Energy;	
-	return 0.0136 / (0.3 * beta * B * L0) * sqrt(L0 / X0 ) * m_MomResScale;
+	double beta = m_mom0.Mag()/Energy;
+	double p_t = hypot(m_mom0.x(),m_mom0.z());
+	return 0.0136 / ( beta * p_t) * sqrt(L0 / X0 )*(1 - 0.038 * log(L0/X0));
 
 }
 TMatrixD
-TPCLocalTrackHelix::GetCovarianceMatrix(int pid){
+TPCLocalTrackHelix::GetCovarianceMatrix(int pid, double MomScale, double PhiScale, double dZScale){
   double Elements[3*3]={0};
   double cov_mom_th = GetMomentumPitchAngleCovariance();
   double cov_mom_ph = GetTransverseMomentumAngularCovariance();
@@ -4109,6 +4100,11 @@ TPCLocalTrackHelix::GetCovarianceMatrix(int pid){
   double res_th = GetThetaResolution();
   double res_ph = GetTransverseAngularResolution();
   double res_mom_tot = hypot(res_mom,res_scat); 
+  res_mom_tot *= MomScale;
+  res_th *= dZScale;
+  res_ph *= PhiScale;
+  cov_mom_th *= MomScale*dZScale;
+  cov_mom_ph *= MomScale*PhiScale;//Additional scaling factor for momentum resolution is applied.
 	Elements[0+3*0] = res_mom_tot*res_mom_tot;
   Elements[1+3*1] = res_th*res_th;
   Elements[2+3*2] = res_ph*res_ph;
