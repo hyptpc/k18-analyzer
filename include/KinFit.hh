@@ -6,6 +6,7 @@
 #include <vector>
 #include <TMatrixD.h>
 #include <Math/ProbFunc.h>
+#include <iostream>
 using namespace std;
 class KinematicFitter{
 	protected:
@@ -47,6 +48,7 @@ class KinematicFitter{
 		vector<double>	initial_constraints;
 		bool UpdateVariancies = false;
 		bool ScaleParams = true;
+		bool Initialized = false;
 
 	public:
 		KinematicFitter(){};
@@ -67,8 +69,12 @@ class KinematicFitter{
 		void ScaleParameters(bool status = true){
 			ScaleParams = status;
 		}
+		bool IsInitialized(){
+			return Initialized;
+		}
 		//Getters
 		double GetLambda(int ent = -1){
+			//This is Lagrange multiplier, not Lambda baryon.
 			if(ent == -1) ent = step;
 			return Lambdas.at(ent);
 		}

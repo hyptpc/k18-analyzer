@@ -1,5 +1,6 @@
 #include "KinFit.hh"
 #include "TMatrixDEigen.h"
+#include "TString.h"
 #include <iostream>
 #ifndef KinFit_cc
 #define KinFit_cc
@@ -112,6 +113,13 @@ KinematicFitter::AddOffdiagonals(TMatrixD Cov){
 #endif
 }
 void KinematicFitter::ProcessStep(){
+	#if Debug
+	std::cout<<"KinematicFitter::ProcessStep"<<std::endl;
+	std::cout<<"Loading Varaibles"<<std::endl;
+	std::cout<<"nMeas = "<<Measurements.size()<<std::endl;
+	std::cout<<"nUnkn = "<<Unknowns.size()<<std::endl;
+	std::cout<<"ScaleUp = "<<ScalingMats.size()<<std::endl;
+	#endif
 	auto Meas = Measurements.at(step); 
 	auto Unkn = Unknowns.at(step); 
 	auto Meas0 = Measurements.at(0);
@@ -130,6 +138,10 @@ void KinematicFitter::ProcessStep(){
 	auto VInv = VMat;
 	VInv.SetTol(1e-26);
 	VInv.Invert();
+#if Debug
+	std::cout<<"Setting Constraints"<<std::endl;
+#endif
+
 	SetConstraints();
 
 	TMatrixD FMat = FMats.at(step);
@@ -362,15 +374,16 @@ void KinematicFitter::Finalize(){
 
 double KinematicFitter::DoKinematicFit(bool Do ){
 	int Cnt = 0;
+	std::cout<<"Doing..."<<std::endl;
 	if(!Do){
 		Finalize();
 		return -1;
 	}
 	while(1){
-		ProcessStep();
 #if Debug
 		cout<<"Processing step "<<step<<endl;
 #endif
+		ProcessStep();
 		double Chi2 = Chi2s.at(step);
 		double Chi2_prev = Chi2s.at(step-1);
 		if(Cnt > 3){

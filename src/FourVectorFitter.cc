@@ -69,6 +69,7 @@ void FourVectorFitter::Initialize(){
   UPulls.push_back(UPull);
   Chi2s.push_back(-1);
   MassDiffs.push_back(1e9);
+  Initialized = true;
 }
 void FourVectorFitter::SetConstraints(){
   auto Meas = Measurements.at(step); 
