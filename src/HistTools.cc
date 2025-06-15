@@ -448,6 +448,7 @@ BuildDCTrack(const TString& dcname, Bool_t flag_beam_particle)
       const Double_t dlbins2d[6] = {nwire, -0.5, nwire - 0.5,
         dlbins[0], dlbins[1], dlbins[2] };
       const Double_t resbins[3] = {400, -2.0, 2.0};
+      const Double_t resdlbins2d[6] = {200, -3., 3., 200, -2.0, 2.0};
       for(Int_t plane=0; plane<nplane; ++plane){
         HB1(Form("%s_Track_DriftTime_plane%d%s; ns; count", name, plane, b), dtbins);
         HB1(Form("%s_Track_DriftLength_plane%d%s; mm; count", name, plane, b), dlbins);
@@ -455,6 +456,7 @@ BuildDCTrack(const TString& dcname, Bool_t flag_beam_particle)
         HB2(Form("%s_Track_DriftLength_vs_HitPat_plane%d%s; segment; mm", name, plane, b), dlbins2d);
         HB1(Form("%s_Track_HitPat_plane%d%s; wire; count", name, plane, b), patbins);
         HB1(Form("%s_Track_Residual_plane%d%s; mm; count", name, plane, b), resbins);
+        HB2(Form("%s_Track_Residual_vs_DriftLength_plane%d%s; mm; count", name, plane, b), resdlbins2d);
       }
     }
     if(!flag_beam_particle) break;

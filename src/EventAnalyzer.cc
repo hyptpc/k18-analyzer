@@ -615,7 +615,11 @@ EventAnalyzer::BcOutTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
       HF2(Form("%s_Track_DriftLength_vs_HitPat_plane%d%s", name, plane, b), wire, dl);
       HF1(Form("%s_Track_HitPat_plane%d%s", name, plane, b), wire);
       auto res = lthit->GetResidual();
+      auto wp = lthit->GetWirePosition();
+      auto pos = lthit->GetLocalHitPos();
+      auto sign = (pos - wp > 0.) ? 1 : -1;
       HF1(Form("%s_Track_Residual_plane%d%s", name, plane, b), res);
+      HF2(Form("%s_Track_Residual_vs_DriftLength_plane%d%s", name, plane, b), sign*dl, res);
     }
   }
 }
