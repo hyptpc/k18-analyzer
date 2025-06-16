@@ -2,7 +2,7 @@
 #define KEKKinematicFit_h
 #include "FourVectorFitter.hh"
 #include "MassVertexFitter.hh"
-//#include "CascadeFitter.hh"
+#include "CascadeFitter.hh"
 #include "TPCLocalTrackHelix.hh"
 #include "MathTools.hh"
 class KEKKinematicFitter{
@@ -79,6 +79,35 @@ class KEKFourVectorFitter: virtual public KEKKinematicFitter{
 			return std::vector<TLorentzVector>{LV1Cor, LV2Cor, LV3Cor};
 		}
 		~KEKFourVectorFitter(){
+		}
+};
+class KEKCascadeFitter: virtual public KEKKinematicFitter{
+	private:
+		TLorentzVector LV1Cor;
+		TLorentzVector LV2Cor;
+		TLorentzVector LV3Cor;//Decay products, eg: p,pi_L, pi_Xi
+		TLorentzVector LV4Cor;//Intermediate products, eg: Lambda
+		TLorentzVector LV5Cor;//Initial state, eg: Xi
+	public:
+		KEKCascadeFitter(){}
+		CascadeFitter* ThisFitter(){
+			return dynamic_cast<CascadeFitter*>(Fitter);
+		}
+		KEKCascadeFitter(
+		TLorentzVector LV1, TMatrixD Cov1,
+		TLorentzVector LV2, TMatrixD Cov2,
+		TLorentzVector LV3, TMatrixD Cov3,
+		double Mass1, double Mass2);
+		std::vector<TLorentzVector> GetFittedLV(){
+			auto HLVs = ThisFitter()->GetFittedLV();
+			LV1Cor = TLorentzVector(HLVs.at(0).Px(), HLVs.at(0).Pz(), HLVs.at(0).Py(), HLVs.at(0).E());
+			LV2Cor = TLorentzVector(HLVs.at(1).Px(), HLVs.at(1).Pz(), HLVs.at(1).Py(), HLVs.at(1).E());
+			LV3Cor = TLorentzVector(HLVs.at(2).Px(), HLVs.at(2).Pz(), HLVs.at(2).Py(), HLVs.at(2).E());
+			LV4Cor = TLorentzVector(HLVs.at(3).Px(), HLVs.at(3).Pz(), HLVs.at(3).Py(), HLVs.at(3).E());
+			LV5Cor = TLorentzVector(HLVs.at(4).Px(), HLVs.at(4).Pz(), HLVs.at(4).Py(), HLVs.at(4).E());
+			return std::vector<TLorentzVector>{LV1Cor, LV2Cor, LV3Cor, LV4Cor,LV5Cor};
+		}
+		~KEKCascadeFitter(){
 		}
 };
 #endif

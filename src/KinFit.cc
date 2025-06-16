@@ -13,6 +13,9 @@
 using namespace std;
 void
 KinematicFitter::SetVariance(double* var){
+#if Debug
+	cout<<"KinematicFitter::SetVariance"<<endl;
+#endif
 	double variance[200];
 	double varianceInv[200];
 	TMatrixD ScaleUp(nMeas,nMeas);
@@ -47,7 +50,7 @@ KinematicFitter::SetVariance(double* var){
 	TMatrixD UHessian(nUnkn,nUnkn);
 	UHessians.push_back(UHessian);
 	dVMats.push_back(ZeroMat);
-	CalcVariance(0);
+//	CalcVariance(0);
 	ScalingMats.push_back(ScaleUp);
 	ScalingMats.push_back(ScaleDn);
 #if Debug
@@ -143,7 +146,6 @@ void KinematicFitter::ProcessStep(){
 #endif
 
 	SetConstraints();
-
 	TMatrixD FMat = FMats.at(step);
 	TMatrixD dFdM = dFdMs.at(step);
 	TMatrixD dFdMS = dFdM*ScaleDn;
@@ -161,7 +163,7 @@ void KinematicFitter::ProcessStep(){
 	dFdMS.Print();
 #endif
 	TMatrixD dFdU = dFdUs.at(step);
-	vector<TMatrixD> d2Fd2U = d2Fd2Us.at(step);
+//	vector<TMatrixD> d2Fd2U = d2Fd2Us.at(step);
 	double det_dFdM=0,det_dFdU=0;
 	auto dFdMT = TransposeMatrix(dFdMS);
 	auto dFdUT = TransposeMatrix(dFdU);
@@ -184,14 +186,12 @@ void KinematicFitter::ProcessStep(){
 	auto dMT = TransposeMatrix(dM);
 	auto UHessian = TMatrixD(nUnkn,nUnkn);
 	for(int ic =0; ic < nConst;++ic){
-		UHessian+= 2*Lambda(ic,0)*d2Fd2U.at(ic);
+//		UHessian+= 2*Lambda(ic,0)*d2Fd2U.at(ic);
 	}
 #if DebugHessian
 	cout<<Form("Step %d Hessian",step);
 	UHessian.Print();
 	cout<<Form("Step %d UVariance",step);
-	UVMat.Print();
-	cin.ignore();
 #endif
 	Unknowns.push_back(Unkn_next);	
 	Measurements.push_back(ScaleDn*Meas_next);	
@@ -212,6 +212,9 @@ void KinematicFitter::ProcessStep(){
 	UVMat.Invert();
 	VInv_next.SetTol(1e-26);
 	VInv_next.Invert();
+#if Debug
+	std::cout<<"Calculating Chi2"<<std::endl;
+#endif
 	
 	double Chi2 = (dMT* (VInv)*dM)(0,0) + 2 * (LambdaT * FMat )(0,0);
 	Chi2s.push_back(Chi2);
@@ -309,7 +312,7 @@ void KinematicFitter::ProcessStep(){
 	VarianceInvs.push_back(VInv_next);
 	SampleStepPoint(step);
 	step++;
-	CalcVariance(step);	
+//	CalcVariance(step);	
 	int ip = 0;
 	vector<double>Pull;
 	for(int i = 0; i<nMeas;++i){
@@ -374,7 +377,6 @@ void KinematicFitter::Finalize(){
 
 double KinematicFitter::DoKinematicFit(bool Do ){
 	int Cnt = 0;
-	std::cout<<"Doing..."<<std::endl;
 	if(!Do){
 		Finalize();
 		return -1;
@@ -445,11 +447,4 @@ KinematicFitter::RotateVariance(TMatrixD J){
 	VMat = TransposeMatrix(J)*VMat*J;
 	Variancies.push_back(VMat);
 }
-
-
-
-
-
-
-
 #endif
