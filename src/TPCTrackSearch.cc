@@ -401,7 +401,6 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 {
 
   static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
-  static const auto KuramaChargeCut = gUser.GetParameter("KuramaChargeCut");
 
   XZhough_x.clear();
   XZhough_y.clear();
@@ -791,10 +790,10 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
     Int_t Trackflag = 1*0 + 2*0 + 4*1 + 8*0; // isBeam, isK18, isKurama, isAccidental
     Int_t id = 0;
     std::vector<Int_t> kurama_candidates;
-    
     for(auto& track: TrackCont){
       if(track){
 	Int_t ncl_downstream_tgt = 0; //#cluster after the target.
+
 	//Check whether all track custers within the window along the Kurama track
 	if(BeamThroughTPC ||
 	   (track -> GetIsK18()!=1 && KuramaChargeCut==1 && KuramaCharge[nt]*track->GetCharge()>0) ||
@@ -817,8 +816,8 @@ KuramaTrackSearch(std::vector<std::vector<TVector3>> VPs,
 	id++;
       }
     }
-  
-  //If there is two candidates, checking whether they are a single track or not.
+
+    //If there is two candidates, checking whether they are a single track or not.
     if(kurama_candidates.size()==2){
       Int_t trackid1 = kurama_candidates.at(0);
       Int_t trackid2 = kurama_candidates.at(1);
