@@ -1,0 +1,1 @@
+This branch is for the E42 analysis. The commit used for the first publication of E42 can be found in the k18analyzer.git repository (https://www-online.kek.jp/~sks/gitweb/?p=k18-analyzer.git;a=summary). As of June 20, 2025, version 1.1 is a temporary version where HTOF particle identification and kinematic fitting are being finalized.
