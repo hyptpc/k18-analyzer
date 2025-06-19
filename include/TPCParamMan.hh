@@ -6,6 +6,7 @@
 #include <map>
 #include <TMath.h>
 #include <TString.h>
+
 //_____________________________________________________________________________
 class TPCAParam
 {
@@ -162,7 +163,7 @@ private:
 
 private:
   //  enum eAorT { kAdc, kTdc, kY, kATY };
-  enum eAorT { kAdc, kTdc, kY, kCobo, kRes };//kRes -> Single Cluster, kResCl -> Multiple Cluster
+  enum eAorT { kAdc, kTdc, kY, kCobo, kRes };
   typedef std::map<Int_t, TPCAParam*> AContainer;
   typedef std::map<Int_t, TPCTParam*> TContainer;
   typedef std::map<Int_t, TPCYParam*> YContainer;
@@ -184,10 +185,6 @@ private:
   std::vector<Double_t> m_Res_HSON_Outer;
   std::vector<Double_t> m_Res_HSOFF_Inner;
   std::vector<Double_t> m_Res_HSOFF_Outer;
-  std::vector<Double_t> m_ResCl_HSON_Inner;
-  std::vector<Double_t> m_ResCl_HSON_Outer;
-  std::vector<Double_t> m_ResCl_HSOFF_Inner;
-  std::vector<Double_t> m_ResCl_HSOFF_Outer;
 
 public:
   Bool_t GetCDe(Int_t layer, Int_t row, Double_t de, Double_t &cde) const;
@@ -218,7 +215,6 @@ private:
 
 public:
   static const std::vector<Double_t>& TPCResolutionParams(Bool_t HSOn, Bool_t Inner);
-  static const std::vector<Double_t>& TPCResolutionParamsCl(Bool_t HSOn, Bool_t Inner);
 
 };
 
@@ -246,15 +242,6 @@ TPCParamMan::TPCResolutionParams(Bool_t HSOn, Bool_t Outer)
   if(!HSOn&&!Outer) return GetInstance().m_Res_HSOFF_Inner;
   if(HSOn&&Outer) return GetInstance().m_Res_HSON_Outer;
   return GetInstance().m_Res_HSON_Inner;
-}
-//______________________________________________________________________________
-inline const std::vector<Double_t>&
-TPCParamMan::TPCResolutionParamsCl(Bool_t HSOn, Bool_t Outer)
-{
-  if(!HSOn&&Outer) return GetInstance().m_ResCl_HSOFF_Outer;
-  if(!HSOn&&!Outer) return GetInstance().m_ResCl_HSOFF_Inner;
-  if(HSOn&&Outer) return GetInstance().m_ResCl_HSON_Outer;
-  return GetInstance().m_ResCl_HSON_Inner;
 }
 
 #endif

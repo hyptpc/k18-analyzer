@@ -437,7 +437,7 @@ struct Src
   Double_t ytgtK18[MaxHits];
   Double_t utgtK18[MaxHits];
   Double_t vtgtK18[MaxHits];
-  Double_t thetaHS[MaxHits];
+  Double_t thetaK18[MaxHits];
 
   //DC KURAMA
   Int_t much;
@@ -1240,7 +1240,7 @@ dst::DstRead(Int_t ievent)
     Double_t y = src.ytgtK18[itK18];
     Double_t u = src.utgtK18[itK18];
     Double_t v = src.vtgtK18[itK18];
-    Double_t theta = src.thetaHS[itK18];        
+    Double_t theta = src.thetaK18[itK18];
     event.nhK18[itK18]     = nh;
     event.chisqrK18[itK18] = chisqr;
     event.pK18[itK18]      = p;
@@ -1291,11 +1291,11 @@ dst::DstRead(Int_t ievent)
       }
       else flagScat = 0;
 
-      if(event.m2Org[iscat] > 0. && event.m2Org[iscat] < 0.12) event.Piflag[iscat] = 1;
+      if(event.m2Org[iscat] > 0. && event.m2Org[iscat] < 0.12 && event.cstof[iscat] <= 45.) event.Piflag[iscat] = 1;
       if(event.qKurama[iscat] > 0 && event.pKurama[iscat] < 1.4 &&
-	 event.m2Org[iscat] > 0.05 && event.m2Org[iscat] < 0.7) event.Kflag[iscat] = 1;
+	 event.m2Org[iscat] > 0.05 && event.m2Org[iscat] < 0.7 && event.cstof[iscat] <= 45.) event.Kflag[iscat] = 1;
       if(event.qKurama[iscat] > 0  && event.pKurama[iscat] > 0 &&
-	 event.m2Org[iscat] > 0.5 && event.m2Org[iscat] < 1.4) event.Pflag[iscat] = 1;
+	 event.m2Org[iscat] > 0.5 && event.m2Org[iscat] < 1.4 && event.cstof[iscat] <= 45.) event.Pflag[iscat] = 1;
       if(event.qKurama[iscat] > 0  && event.pKurama[iscat] > 0 &&
 	 event.m2Org[iscat] > 2.5 && event.cstof[iscat] <= 45.) event.Heavyflag[iscat] = 1;
 
@@ -2150,8 +2150,8 @@ ConfMan::InitializeHistograms()
   TTreeCont[kK18HSTracking]->SetBranchStatus("ytgtHS",     1);
   TTreeCont[kK18HSTracking]->SetBranchStatus("utgtHS",     1);
   TTreeCont[kK18HSTracking]->SetBranchStatus("vtgtHS",     1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("thetaHS",  1);
-  
+  TTreeCont[kK18HSTracking]->SetBranchStatus("thetaHS",    1);
+
   TTreeCont[kK18HSTracking]->SetBranchAddress("ntBcOut",     &src.ntBcOut    );
   TTreeCont[kK18HSTracking]->SetBranchAddress("nlBcOut",     &src.nlBcOut    );
   TTreeCont[kK18HSTracking]->SetBranchAddress("nhBcOut",      src.nhBcOut    );
@@ -2169,7 +2169,7 @@ ConfMan::InitializeHistograms()
   TTreeCont[kK18HSTracking]->SetBranchAddress("ytgtHS", src.ytgtK18);
   TTreeCont[kK18HSTracking]->SetBranchAddress("utgtHS", src.utgtK18);
   TTreeCont[kK18HSTracking]->SetBranchAddress("vtgtHS", src.vtgtK18);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("thetaHS",  src.thetaHS);  
+  TTreeCont[kK18HSTracking]->SetBranchAddress("thetaHS", src.thetaK18);
 
   TTreeCont[kEasiroc]->SetBranchStatus("*", 0);
   TTreeCont[kEasiroc]->SetBranchStatus("bft_ncl",    1);

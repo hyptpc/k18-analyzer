@@ -132,7 +132,7 @@ ExclusiveTracking	0
 #ExclusiveTracking	1
 KuramaChargeCut		0
 #KuramaChargeCut	1
-ScatMomCut		0
+ScatMomCut		0 #off
 
 ### Reaction
 KKEvent		0 #(K-,K+)
@@ -141,8 +141,6 @@ KPEvent		0 #(K-,p)
 #KPEvent	1
 KHeavyEvent	0 # d, t, 3He, 4He and so on
 #KHeavyEvent	1
-
-
 
 ### TPCHit
 #BaselineCorrectionTPC	0

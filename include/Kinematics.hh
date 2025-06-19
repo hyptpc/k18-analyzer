@@ -126,7 +126,7 @@ namespace Kinematics
   TVector3 LambdaPVertex(Double_t Bfield, Double_t p2_par[5],
 		    Double_t t_start, Double_t t_end,
 		    TVector3 Xlambda, TVector3 Plambda,
-		    TVector3 &Pp2, Double_t &lambdap_dist);  
+		    TVector3 &Pp2, Double_t &lambdap_dist);
   TVector3 CalcCloseDistXi(TVector3 point, Double_t Bfield,
 			   TVector3 xi_decayvtx, TVector3 xi_mom_decayvtx,
 			   TVector3 &xi_mom, Double_t &dist); //Extrapolate to the target

@@ -240,7 +240,6 @@ struct Event
   std::vector<Double_t> nsigma_pion;
   std::vector<Double_t> nsigma_electron;
 
-
   vector<vector<Double_t>> hitlayer;
   vector<vector<Double_t>> hitpos_x;
   vector<vector<Double_t>> hitpos_y;
@@ -387,7 +386,6 @@ struct Event
   //Geant4
   Int_t iti_g[MaxTPCTracks][MaxTPCnHits];
   Int_t idtpc[MaxTPCHits];
-  Int_t ncltpc[MaxTPCHits];
   Int_t ID[MaxTPCHits];
   Int_t PID[MaxTPCHits];
   Double_t xtpc[MaxTPCHits];//with resolution
@@ -446,10 +444,6 @@ struct Event
   std::vector<Double_t> deHtof;
   std::vector<Double_t> posHtof;
   std::vector<Int_t> G4tidHtof;
-
-  //
-
-
 
   Int_t nhSch;
   Int_t tidSch[MaxG4Hits];
@@ -890,7 +884,6 @@ struct Src
 
   Int_t ititpc[MaxTPCHits];
   Int_t idtpc[MaxTPCHits];
-  Int_t ncltpc[MaxTPCHits];
   Int_t parentID[MaxTPCHits];
 
   Double_t xtpc[MaxTPCHits];//with resolution
@@ -1216,9 +1209,8 @@ dst::InitializeEvent( void )
   event.nhWc =-1;
   event.nhBvh=-1;
   for(int i=0;i<500;++i){
-    event.ititpc[i]=-1;
-    event.idtpc[i]=-1;
-    event.ncltpc[i]=-1;
+    event.ititpc[i]=qnan;
+    event.idtpc[i]=qnan;
     event.ID[i]=qnan;
     event.PID[i]=qnan;
     event.xtpc[i]=qnan;
@@ -1480,7 +1472,7 @@ dst::DstRead( int ievent )
   event.ThLd_CM = src.ThLd_CM;
   event.nhHtof = src.nhHtof;
   for(int ih=0;ih<event.nhHtof;++ih){
-    event.HtofSeg.push_back(src.didHtof[ih]);
+    event.HtofSeg.push_back(src.didHtof[ih]+1);
     event.tHtof.push_back(src.tHtof[ih]);
     event.deHtof.push_back(src.deHtof[ih]);
     event.posHtof.push_back(src.yHtof[ih]);
@@ -1587,24 +1579,17 @@ dst::DstRead( int ievent )
       event.max_ititpc = src.ititpc[ihit];
     ++event.nhittpc_iti[src.ititpc[ihit]];
   }
-
-
   if(src.nhittpc<5)
     return true;
 
-
-
-
   TPCAnalyzer *TPCAna = new TPCAnalyzer();
-
-
   if(IsWithRes){
     TPCAna->DecodeTPCHitsGeant4(src.nhittpc,
-				src.xtpc, src.ytpc, src.ztpc, src.edeptpc, src.idtpc, src.ncltpc, G4Moms);
+				src.xtpc, src.ytpc, src.ztpc, src.edeptpc, src.idtpc, G4Moms);
   }
   else{
     TPCAna->DecodeTPCHitsGeant4(src.nhittpc,
-				src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc, src.ncltpc, G4Moms);
+				src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc, src.idtpc, G4Moms);
   }
   event.xtgtHS = **src.xtgtHS;
   event.ytgtHS = **src.ytgtHS;
@@ -1718,7 +1703,7 @@ dst::DstRead( int ievent )
         continue;
       }
       Double_t de = cl->GetDe();
-      Int_t cl_size = cl->GetClusterSize();
+      Int_t cl_size = cl->GetClusterSizeG4();
       Double_t mrow = cl->MeanRow();
       TPCHit* meanHit = cl->GetMeanHit();
       Int_t houghflag = meanHit->GetHoughFlag();
@@ -1949,9 +1934,6 @@ dst::DstRead( int ievent )
       event.nsigma_pion[it] = Kinematics::HypTPCdEdxNsigmaPion(event.dEdx[it], event.mom0[it]);
       event.nsigma_electron[it] = Kinematics::HypTPCdEdxNsigmaElectron(event.dEdx[it], event.mom0[it]);
 
-
-
-
       event.hitlayer[it].resize( nh );
       event.hitpos_x[it].resize( nh );
       event.hitpos_y[it].resize( nh );
@@ -1999,7 +1981,7 @@ dst::DstRead( int ievent )
       const TVector3& hitpos = hit->GetLocalHitPos();
       TPCHit *clhit = hit->GetHit();
       TPCCluster *cl = clhit->GetParentCluster();
-      Double_t clsize = cl->GetClusterSize();
+      Double_t clsize = cl->GetClusterSizeG4();
       Double_t clde = hit->GetDe();
       Double_t mrow = hit->GetMRow();
       const TVector3& calpos = hit->GetLocalCalPosHelix();
@@ -2197,7 +2179,7 @@ dst::DstRead( int ievent )
     int G4tid = TPCToG4TrackID(TPCHits,src.nhittpc,src.ititpc,src.xtpc,src.ytpc,src.ztpc,nPureHits);
     if(G4tid == G4idKm)event.isK18[it]=1;
     if(G4tid == G4idKp)event.isKurama[it]=1;
-    event.path[it] = helix_r*(max_t - min_t);
+
     event.G4tid[it] = G4tid;
     event.purity[it] = (double)nPureHits/nh;
     int nG4Hits = event.nhittpc_iti[G4tid];
@@ -2792,7 +2774,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("pztpc",src.pztpc,"pztpc[nhittpc]/D");
   tree->Branch("pptpc",src.pptpc,"pptpc[nhittpc]/D");
   tree->Branch("idtpc",src.idtpc,"idtpc[nhittpc]/I");
-  tree->Branch("ncltpc",src.ncltpc,"ncltpc[nhittpc]/I");
   tree->Branch("parentid",src.parentID,"parentID[nhittpc]/I");
 
   tree->Branch("NumberOfTracks",&event.NumberOfTracks,"NumberOfTracks/I");
@@ -2826,7 +2807,6 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("SpinLd_y",&event.SpinLd_y,"SpinLd_y/D");
   tree->Branch("SpinLd_z",&event.SpinLd_z,"SpinLd_z/D");
   tree->Branch("ThLd_CM",&event.ThLd_CM,"ThLd_CM/D");
-
 
   tree->Branch( "nhHtof", &event.nhHtof );
   tree->Branch( "HtofSeg", &event.HtofSeg );
@@ -2986,7 +2966,6 @@ ConfMan::InitializeHistograms( void )
 
   TTreeCont[kTPCGeant]->SetBranchAddress("ititpc", src.ititpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("idtpc", src.idtpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("ncltpc", src.ncltpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("parentID", src.parentID);
   TTreeCont[kTPCGeant]->SetBranchAddress("xtpc", src.xtpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("ytpc", src.ytpc);

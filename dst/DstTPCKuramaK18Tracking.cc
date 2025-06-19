@@ -43,7 +43,7 @@
 #include "TPCRKTrack.hh"
 #include "UserParamMan.hh"
 
-#define SaveHistograms 1
+#define SaveHistograms 0
 #define RawHit 0
 #define RawCluster 1
 #define TrackClusterHist 0
@@ -133,7 +133,7 @@ struct Event
   std::vector<Double_t> uhtofHS;
   std::vector<Double_t> vhtofHS;
   std::vector<Double_t> initmomHS;
-  std::vector<Double_t> thetaK18;  
+  std::vector<Double_t> thetaHS;
   std::vector<std::vector<Double_t>> xvpHS;
   std::vector<std::vector<Double_t>> yvpHS;
   std::vector<std::vector<Double_t>> zvpHS;
@@ -519,7 +519,7 @@ struct Event
     wireK18.clear();
     localhitposK18.clear();
     wposK18.clear();
-    thetaK18.clear();
+    thetaHS.clear();
     initmomHS.clear();
     xtgtHS.clear();
     ytgtHS.clear();
@@ -951,7 +951,7 @@ struct Src
   Double_t utgtHS[MaxHits];
   Double_t vtgtHS[MaxHits];
   Double_t initmomHS[MaxHits];
-  Double_t thetaHS[MaxHits];  
+  Double_t thetaHS[MaxHits];
 
   Double_t xbh2HS[MaxHits];
   Double_t ybh2HS[MaxHits];
@@ -1335,10 +1335,10 @@ dst::DstRead( int ievent )
 
   HF1( 1, event.status++ );
 
-  if((src.ntKurama!=1 and !BeamThroughTPC)|| src.ntK18!=1) return true;
+  if((src.ntKurama!=1 && !BeamThroughTPC) || src.ntK18!=1) return true;
   if(src.chisqrK18[0] > MaxChisqrBcOut || src.chisqrKurama[0] > MaxChisqrKurama) return true;
   if(ScatMomCut>0 && src.pKurama[0]<ScatMomCut) return true;
-  
+
   if(KKEvent){
     if(src.m2[0] < 0.05 || src.m2[0] > 0.70) return true;
     if(src.qKurama[0] < 0 || src.pKurama[0] > 1.4) return true;
@@ -1386,7 +1386,7 @@ dst::DstRead( int ievent )
   event.utgtHS.resize(src.ntK18);
   event.vtgtHS.resize(src.ntK18);
   event.initmomHS.resize(src.ntK18);
-  event.thetaK18.resize(src.ntK18);
+  event.thetaHS.resize(src.ntK18);
 
   event.xbh2HS.resize(src.ntK18);
   event.ybh2HS.resize(src.ntK18);
@@ -1434,7 +1434,7 @@ dst::DstRead( int ievent )
     event.utgtHS[it] = src.utgtHS[it];
     event.vtgtHS[it] = src.vtgtHS[it];
     event.initmomHS[it] = src.initmomHS[it];
-    event.thetaK18[it] = src.thetaHS[it];
+    event.thetaHS[it] = src.thetaHS[it];
     event.xbh2HS[it] = src.xbh2HS[it];
     event.ybh2HS[it] = src.ybh2HS[it];
     event.zbh2HS[it] = src.zbh2HS[it];
@@ -1479,7 +1479,7 @@ dst::DstRead( int ievent )
       event.ubcHS[it].push_back(src.ubcHS[it][il]);
       event.vbcHS[it].push_back(src.vbcHS[it][il]);
     }
-    
+
     for(Int_t il=0; il<NumOfLayersVPHS; ++il){
       vpK18[it].push_back(TVector3(event.xvpHS[it][il], event.yvpHS[it][il], event.zvpHS[it][il]));
     }
@@ -3262,7 +3262,7 @@ dst::DstRead( int ievent )
   event.failed_track_cluster_de.resize( failed_ntTpc );
   event.failed_track_cluster_size.resize( failed_ntTpc );
   event.failed_track_cluster_mrow.resize( failed_ntTpc );
-  
+
   for( Int_t it=0; it<failed_ntTpc; ++it ){
     TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelixFailed( it );
     if( !tp ) continue;
@@ -3799,7 +3799,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "uoutK18",    &event.uoutK18);
   tree->Branch( "voutK18",    &event.voutK18);
   tree->Branch( "initmomHS", &event.initmomHS);
-  tree->Branch( "thetaK18",   &event.thetaK18);
+  tree->Branch( "thetaHS",   &event.thetaHS);
   tree->Branch( "xtgtHS",    &event.xtgtHS);
   tree->Branch( "ytgtHS",    &event.ytgtHS);
   tree->Branch( "ztgtHS",    &event.ztgtHS);
@@ -4219,7 +4219,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kK18HSTracking]->SetBranchStatus("utgtHS",      1);
   TTreeCont[kK18HSTracking]->SetBranchStatus("vtgtHS",      1);
   TTreeCont[kK18HSTracking]->SetBranchStatus("initmomHS",   1);
-  TTreeCont[kK18HSTracking]->SetBranchStatus("thetaHS",    1);  
+  TTreeCont[kK18HSTracking]->SetBranchStatus("thetaHS",    1);
 
   TTreeCont[kK18HSTracking]->SetBranchStatus("xvp1HS",      1);
   TTreeCont[kK18HSTracking]->SetBranchStatus("yvp1HS",      1);
@@ -4285,7 +4285,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kK18HSTracking]->SetBranchAddress("utgtHS",   src.utgtHS);
   TTreeCont[kK18HSTracking]->SetBranchAddress("vtgtHS",   src.vtgtHS);
   TTreeCont[kK18HSTracking]->SetBranchAddress("initmomHS",  src.initmomHS);
-  TTreeCont[kK18HSTracking]->SetBranchAddress("thetaHS",  src.thetaHS);  
+  TTreeCont[kK18HSTracking]->SetBranchAddress("thetaHS",  src.thetaHS);
 
   TTreeCont[kK18HSTracking]->SetBranchAddress("xvp1HS",   src.xvp1HS);
   TTreeCont[kK18HSTracking]->SetBranchAddress("yvp1HS",   src.yvp1HS);

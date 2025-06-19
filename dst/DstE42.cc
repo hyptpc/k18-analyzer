@@ -1040,15 +1040,15 @@ TTree *tree;
 
     //Measured values(sigma of M2 spectrum)
     TF1 *f_sigmaM2 = new TF1("f_sigmaM2", eq_sigmaM2.Data(), 0., 5.);
-    f_sigmaM2 -> FixParameter(0, 0.00924299);
-    f_sigmaM2 -> FixParameter(1, -0.0240778);
-    f_sigmaM2 -> FixParameter(2, 0.000131628);
+    f_sigmaM2 -> FixParameter(0, 0.00427278);
+    f_sigmaM2 -> FixParameter(1, -0.00916854);
+    f_sigmaM2 -> FixParameter(2, 0.000130298);
     f_sigmaM2 -> FixParameter(3, pdgmass2);
 
     TF1 *f_M2 = new TF1("f_M2", eq_M2.Data(), 0., 1.5);
-    f_M2 -> FixParameter(0, 0.0231275);
-    f_M2 -> FixParameter(1, -0.00924397);
-    f_M2 -> FixParameter(2, 0.0123458);
+    f_M2 -> FixParameter(0, 0.0233145);
+    f_M2 -> FixParameter(1, -0.0100331);
+    f_M2 -> FixParameter(2, 0.013772);
 
     Double_t m2cut = nsigma*TMath::Sqrt(f_sigmaM2 -> Eval(mom)); //nsigma cut for M^2
     Double_t measured_m2 = f_M2 -> Eval(mom); //Measured M^2
@@ -1063,15 +1063,15 @@ TTree *tree;
 
     //Measured values(sigma of M2 spectrum)
     TF1 *f_sigmaM2 = new TF1("f_sigmaM2", eq_sigmaM2.Data(), 0., 5.);
-    f_sigmaM2 -> FixParameter(0, 0.000336597);
-    f_sigmaM2 -> FixParameter(1, -0.000127907);
-    f_sigmaM2 -> FixParameter(2, 0.000117044);
+    f_sigmaM2 -> FixParameter(0, 0.000216333);
+    f_sigmaM2 -> FixParameter(1, -0.00036971);
+    f_sigmaM2 -> FixParameter(2, 0.000144059);
     f_sigmaM2 -> FixParameter(3, pdgmass2);
 
     TF1 *f_M2 = new TF1("f_M2", eq_M2.Data(), 0., 1.5);
-    f_M2 -> FixParameter(0, 0.262835);
-    f_M2 -> FixParameter(1, -0.0481169);
-    f_M2 -> FixParameter(2, 0.0316721);
+    f_M2 -> FixParameter(0, 0.246792);
+    f_M2 -> FixParameter(1, -0.0192738);
+    f_M2 -> FixParameter(2, 0.0206932);
 
     Double_t m2cut = nsigma*TMath::Sqrt(f_sigmaM2 -> Eval(mom)); //nsigma cut for M^2
     Double_t measured_m2 = f_M2 -> Eval(mom); //Measured M^2
@@ -1086,15 +1086,15 @@ TTree *tree;
 
     //Measured values(sigma of M2 spectrum)
     TF1 *f_sigmaM2 = new TF1("f_sigmaM2", eq_sigmaM2.Data(), 0., 5.);
-    f_sigmaM2 -> FixParameter(0, 0.000239995);
-    f_sigmaM2 -> FixParameter(1, -0.000192965);
-    f_sigmaM2 -> FixParameter(2, 0.000149545);
+    f_sigmaM2 -> FixParameter(0, 0.000184038);
+    f_sigmaM2 -> FixParameter(1, 9.99371e-05);
+    f_sigmaM2 -> FixParameter(2, 6.91217e-05);
     f_sigmaM2 -> FixParameter(3, pdgmass2);
 
     TF1 *f_M2 = new TF1("f_M2", eq_M2.Data(), 0., 1.5);
-    f_M2 -> FixParameter(0, 1.02115);
-    f_M2 -> FixParameter(1, -0.281017);
-    f_M2 -> FixParameter(2, 0.136075);
+    f_M2 -> FixParameter(0, 0.988934);
+    f_M2 -> FixParameter(1, -0.226358);
+    f_M2 -> FixParameter(2, 0.113411);
 
     Double_t m2cut = nsigma*TMath::Sqrt(f_sigmaM2 -> Eval(mom)); //nsigma cut for M^2
     Double_t measured_m2 = f_M2 -> Eval(mom); //Measured M^2
@@ -1180,7 +1180,7 @@ dst::DstRead( int ievent )
   static const auto KKEvent = gUser.GetParameter("KKEvent");
   static const auto KPEvent = gUser.GetParameter("KPEvent");
   static const auto KHeavyEvent = gUser.GetParameter("KHeavyEvent");
-  static const Double_t ScatMomCut = gUser.GetParameter("ScatMomCut");  
+  static const Double_t ScatMomCut = gUser.GetParameter("ScatMomCut");
 
   if( ievent%1000==0 ){
     //if( ievent%1==0 ){
@@ -1438,8 +1438,8 @@ dst::DstRead( int ievent )
       Double_t MissMassCorrDE = event.MissMassCorrDE[id];
       Double_t MissMassNuclTPC = event.MissMassNuclTPC[id];
       Double_t MissMassNuclCorrTPC = event.MissMassNuclCorrTPC[id];
-      Double_t MissMassNuclCorrDETPC = event.MissMassNuclCorrDETPC[id];      
-      Double_t thetaTPC = event.thetaTPC[id];      
+      Double_t MissMassNuclCorrDETPC = event.MissMassNuclCorrDETPC[id];
+      Double_t thetaTPC = event.thetaTPC[id];
 
       if(event.chisqrK18[idKm] < MaxChisqrBcOut && event.chisqrKurama[idScat] < MaxChisqrKurama){
 	HF1(12, event.isgoodTPCK18[idKm]);
@@ -1625,7 +1625,7 @@ dst::DstRead( int ievent )
 	      HF1(106, MissMassNuclTPC);
 	      // std::cout << "MissMassNuclTPC: " << MissMassNuclTPC << std::endl;
 	      HF1(107, MissMassNuclCorrTPC);
-	      // std::cout << "MissMassNuclCorrTPC: " << MissMassNuclCorrTPC << std::endl;      
+	      // std::cout << "MissMassNuclCorrTPC: " << MissMassNuclCorrTPC << std::endl;
   	      HF1(108, MissMassNuclCorrDETPC);
 	      // std::cout << "MissMassNuclCorrDETPC: " << MissMassNuclCorrDETPC << std::endl;
 	    }
@@ -2065,7 +2065,7 @@ dst::DstRead( int ievent )
   event.clusteredVtx_y = **src.clusteredVtx_y;
   event.clusteredVtx_z = **src.clusteredVtx_z;
   event.clusteredVtxid = **src.clusteredVtxid;
-  
+
   return true;
 }
 
@@ -2105,10 +2105,10 @@ ConfMan::InitializeHistograms( void )
   HB1(42, "K18 TPC tagging", 2, 0., 2. );
   HB1(43, "Kurama TPC tagging", 2, 0., 2. );
   HB1(44, "KK TPC tagging", 2, 0., 2. );
-  
-  HB2(20, "1/#beta;p/q [GeV/#font[12]{c}];1/#beta", 1000, -2.0, 2.0, 1000, 0.0, 5.0); 
-  
-  // missing mass with scat angle, vtx, 
+
+  HB2(20, "1/#beta;p/q [GeV/#font[12]{c}];1/#beta", 1000, -2.0, 2.0, 1000, 0.0, 5.0);
+
+  // missing mass with scat angle, vtx,
   HB1(100, "MissMass", 3600, -1.0, 17. );
   HB1(101, "MissMassCorr", 3600, -1.0, 17. );
   HB1(102, "MissMassCorrDE", 3600, -1.0, 17. );
@@ -2117,7 +2117,7 @@ ConfMan::InitializeHistograms( void )
   HB1(105, "MissMassCorrDETPC", 3600, -1.0, 17. );
   HB1(106, "MissMassNuclTPC (3.5<thetaTPC<4.5)", 3600, -1.0, 17. );
   HB1(107, "MissMassNuclCorrTPC (3.5<thetaTPC<4.5)", 3600, -1.0, 17. );
-  HB1(108, "MissMassNuclCorrDETPC (3.5<thetaTPC<4.5)", 3600, -1.0, 17. );  
+  HB1(108, "MissMassNuclCorrDETPC (3.5<thetaTPC<4.5)", 3600, -1.0, 17. );
 
   HB1(1001, "P K18", 800, 1.4, 2.2);
   HB1(1002, "P Kurama", 600, 0, 3);
@@ -3114,7 +3114,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kKScat]->SetBranchAddress("utgtK18",   src.utgtK18);
   TTreeCont[kKScat]->SetBranchAddress("vtgtK18",   src.vtgtK18);
   TTreeCont[kKScat]->SetBranchAddress("thetaK18",  src.thetaK18);
-  
+
   TTreeCont[kKScat]->SetBranchAddress("ntKurama",    &src.ntKurama);
   TTreeCont[kKScat]->SetBranchAddress("chisqrKurama", src.chisqrKurama);
   TTreeCont[kKScat]->SetBranchAddress("pKurama",      src.pKurama);

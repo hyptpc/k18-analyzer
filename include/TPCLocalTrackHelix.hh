@@ -17,6 +17,7 @@
 #include "TMatrixD.h"
 class TPCHit;
 class TPCCluster;
+
 //______________________________________________________________________________
 class TPCLocalTrackHelix
 {
@@ -101,7 +102,6 @@ private:
 
 public:
 
-	void         SetCircularCrossTracking(bool flag );
   void         AddTPCHit(TPCLTrackHit *hit);
   void         EraseHits(std::vector<Int_t> delete_hits);
   void         EraseHit(Int_t delete_hit);
@@ -169,13 +169,11 @@ public:
   TVector3 GetMomentumCovarianceVect(Int_t i, Double_t MomScale = 1, Double_t PhiScale = 1, Double_t dZScale = 1);
   TVector3 GetMomentumCovarianceVect();
   Double_t GetMomentumResolution();
-  Double_t GetMomentumResolutionScat(int pid);
   Double_t GetTransverseMomentumAngularCovariance(Double_t t = -9999);
   Double_t GetTransverseMomentumResolution();//returns dP, not dP/P;
   Double_t GetTransverseAngularResolution(Double_t t, Double_t sig0 = 0.01); //returns angular resolution on pad plane
   Double_t GetTransverseAngularResolution();
   TMatrixD GetCovarianceMatrix();
-  TMatrixD GetCovarianceMatrix(int pid);
 
   Double_t GetdZResolution();//returns pitch resolution.
   Double_t GetThetaResolution();//returns pitch angle resolution.

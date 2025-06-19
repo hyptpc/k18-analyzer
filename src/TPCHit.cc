@@ -63,10 +63,6 @@ namespace
   const auto& ResParamOuterLayerHSOn = gTPC.TPCResolutionParams(true, true); //B=1 T, Outer layers
   const auto& ResParamInnerLayerHSOff = gTPC.TPCResolutionParams(false, false); //B=0, Inner layers
   const auto& ResParamOuterLayerHSOff = gTPC.TPCResolutionParams(false, true); //B=0, Outer layers
-  const auto& ResClParamInnerLayerHSOn = gTPC.TPCResolutionParamsCl(true, false); //B=1 T, Inner layers
-  const auto& ResClParamOuterLayerHSOn = gTPC.TPCResolutionParamsCl(true, true); //B=1 T, Outer layers
-  const auto& ResClParamInnerLayerHSOff = gTPC.TPCResolutionParamsCl(false, false); //B=0, Inner layers
-  const auto& ResClParamOuterLayerHSOff = gTPC.TPCResolutionParamsCl(false, true); //B=0, Outer layers
 }
 
 //_____________________________________________________________________________
@@ -98,28 +94,10 @@ TPCHit::TPCHit(TPCRawHit* rhit)
 {
   debug::ObjectCounter::increase(ClassName());
 
-  if(HSfield_Hall<0.1&&m_layer<10){ 
-    m_res_param = ResParamInnerLayerHSOff;
-    for(auto p:ResClParamInnerLayerHSOff){
-      m_res_param.push_back(p);
-    }
-  }else if(HSfield_Hall<0.1&&m_layer>=10){
-    m_res_param = ResParamOuterLayerHSOff;
-    for(auto p:ResClParamOuterLayerHSOff){
-      m_res_param.push_back(p);
-    }
-  }else if(m_layer<10){
-    m_res_param = ResParamInnerLayerHSOn;
-    for(auto p:ResClParamInnerLayerHSOn){
-      m_res_param.push_back(p);
-    }
-  }else{
-    m_res_param = ResParamOuterLayerHSOn;
-    for(auto p:ResClParamOuterLayerHSOn){
-      m_res_param.push_back(p);
-    }
-  }
-
+  if(HSfield_Hall<0.1&&m_layer<10) m_res_param = ResParamInnerLayerHSOff;
+  else if(HSfield_Hall<0.1&&m_layer>=10) m_res_param = ResParamOuterLayerHSOff;
+  else if(m_layer<10) m_res_param = ResParamInnerLayerHSOn;
+  else m_res_param = ResParamOuterLayerHSOn;
 }
 
 //_____________________________________________________________________________
@@ -151,27 +129,10 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
 
   debug::ObjectCounter::increase(ClassName());
 
-  if(HSfield_Hall<0.1&&m_layer<10){ 
-    m_res_param = ResParamInnerLayerHSOff;
-    for(auto p:ResClParamInnerLayerHSOff){
-      m_res_param.push_back(p);
-    }
-  }else if(HSfield_Hall<0.1&&m_layer>=10){
-    m_res_param = ResParamOuterLayerHSOff;
-    for(auto p:ResClParamOuterLayerHSOff){
-      m_res_param.push_back(p);
-    }
-  }else if(m_layer<10){
-    m_res_param = ResParamInnerLayerHSOn;
-    for(auto p:ResClParamInnerLayerHSOn){
-      m_res_param.push_back(p);
-    }
-  }else{
-    m_res_param = ResParamOuterLayerHSOn;
-    for(auto p:ResClParamOuterLayerHSOn){
-      m_res_param.push_back(p);
-    }
-  }
+  if(HSfield_Hall<0.1&&m_layer<10) m_res_param = ResParamInnerLayerHSOff;
+  else if(HSfield_Hall<0.1&&m_layer>=10) m_res_param = ResParamOuterLayerHSOff;
+  else if(m_layer<10) m_res_param = ResParamInnerLayerHSOn;
+  else m_res_param = ResParamOuterLayerHSOn;
 }
 
 

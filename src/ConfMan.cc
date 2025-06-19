@@ -161,7 +161,7 @@ ConfMan::InitializeUnpacker()
   if(gUnpacker.get_skip() == 0){
     TNamed git("git", ("\n"+gSystem->GetFromPipe("git log -1")).Data());
     git.Write();
-  }  
+  }
   return true;
 }
 

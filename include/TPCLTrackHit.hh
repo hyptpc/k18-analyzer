@@ -121,7 +121,6 @@ public:
   {m_cx_exclusive = cx; m_cy_exclusive = cy; m_z0_exclusive = z0; m_r_exclusive = r, m_dz_exclusive = dz;}
   TVector3 GetResidualVectExclusive() const;
   Double_t GetResidualExclusive() const;
-  void PushResolutionParam(Double_t param) { m_res_param.push_back(param); }
 
   friend class TPCHit;
 };

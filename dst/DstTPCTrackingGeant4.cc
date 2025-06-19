@@ -116,7 +116,6 @@ struct Src
 
   Int_t ititpc[MaxTPCHits];
   Int_t idtpc[MaxTPCHits];
-  Int_t ncltpc[MaxTPCHits];
   Double_t xtpc[MaxTPCHits];//with resolution
   Double_t ytpc[MaxTPCHits];//with resolution
   Double_t ztpc[MaxTPCHits];//with resolution
@@ -293,7 +292,7 @@ dst::DstRead(Int_t ievent)
   // }
 
   DCAna.DecodeTPCHitsGeant4(src.nhittpc,
-                            src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc,src.idtpc, src.ncltpc);
+                            src.x0tpc, src.y0tpc, src.z0tpc, src.edeptpc,src.idtpc);
                             // src.xtpc, src.ytpc, src.ztpc, src.edeptpc);
   DCAna.TrackSearchTPC();
 
@@ -486,7 +485,6 @@ ConfMan::InitializeHistograms()
 
   TTreeCont[kTPCGeant]->SetBranchStatus("ititpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("idtpc", 1);
-  TTreeCont[kTPCGeant]->SetBranchStatus("ncltpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("xtpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("ytpc", 1);
   TTreeCont[kTPCGeant]->SetBranchStatus("ztpc", 1);
@@ -528,7 +526,6 @@ ConfMan::InitializeHistograms()
 
   TTreeCont[kTPCGeant]->SetBranchAddress("ititpc", src.ititpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("idtpc", src.idtpc);
-  TTreeCont[kTPCGeant]->SetBranchAddress("ncltpc", src.ncltpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("xtpc", src.xtpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("ytpc", src.ytpc);
   TTreeCont[kTPCGeant]->SetBranchAddress("ztpc", src.ztpc);
