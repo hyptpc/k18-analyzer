@@ -21,23 +21,26 @@ jobs:
           AVATAR_URL: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
         run: |
           curl -X POST -H "Content-Type: application/json" \
-               -d @- "$DISCORD_WEBHOOK_E72" <<EOF
-          {
-            "username": "GitHub",
-            "avatar_url": "${AVATAR_URL}",
-            "embeds": [{
-              "title": "Push to ${BRANCH}",
-              "url": "${COMMIT_URL}",
-              "description": "${COMMIT_MSG}",
-              "color": 7506394,
-              "author": {
-                "name": "${AUTHOR}",
-                "url": "https://github.com/${AUTHOR}"
-              },
-              "footer": {
-                "text": "${REPO}"
-              },
-              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            }]
-          }
-EOF
+            -d "$(jq -nc \
+              --arg username "GitHub" \
+              --arg avatar_url "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" \
+              --arg title "Push to ${BRANCH}" \
+              --arg url "${COMMIT_URL}" \
+              --arg description "${COMMIT_MSG}" \
+              --arg author_name "${AUTHOR}" \
+              --arg footer_text "${REPO}" \
+              --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              '{
+                username: $username,
+                avatar_url: $avatar_url,
+                embeds: [{
+                  title: $title,
+                  url: $url,
+                  description: $description,
+                  color: 7506394,
+                  author: { name: $author_name },
+                  footer: { text: $footer_text },
+                  timestamp: $timestamp
+                }]
+              }')" \
+            "$DISCORD_WEBHOOK_E72"
