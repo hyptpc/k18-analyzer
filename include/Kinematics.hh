@@ -76,6 +76,9 @@ namespace Kinematics
 
   //For HypTPC dE/dx pid
   Double_t HypTPCBethe(Double_t *x, Double_t *p);
+  Double_t HypTPCdEdxPion(Double_t poq);
+  Double_t HypTPCdEdxKaon(Double_t poq);
+  Double_t HypTPCdEdxProton(Double_t poq);  
   Bool_t HypTPCdEdxPID_IsKaonTemp(Double_t dedx, Double_t poq); //temporary
   Double_t HypTPCdEdxNsigmaProton(Double_t dedx, Double_t poq);
   Double_t HypTPCdEdxNsigmaDeutron(Double_t dedx, Double_t poq);
@@ -84,7 +87,6 @@ namespace Kinematics
   Double_t HypTPCdEdxNsigmaPion(Double_t dedx, Double_t poq);
   Double_t HypTPCdEdxNsigmaElectron(Double_t dedx, Double_t poq);
   Bool_t HypTPCdEdxElectron(Double_t dedx, Double_t poq);
-  Bool_t HypTPCdEdxKaon(Double_t dedx, Double_t poq);
   Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq);
   void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg);
 
@@ -126,7 +128,7 @@ namespace Kinematics
   TVector3 LambdaPVertex(Double_t Bfield, Double_t p2_par[5],
 		    Double_t t_start, Double_t t_end,
 		    TVector3 Xlambda, TVector3 Plambda,
-		    TVector3 &Pp2, Double_t &lambdap_dist);
+		    TVector3 &Pp2, Double_t &lambdap_dist);  
   TVector3 CalcCloseDistXi(TVector3 point, Double_t Bfield,
 			   TVector3 xi_decayvtx, TVector3 xi_mom_decayvtx,
 			   TVector3 &xi_mom, Double_t &dist); //Extrapolate to the target

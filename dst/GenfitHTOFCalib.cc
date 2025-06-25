@@ -197,6 +197,10 @@ struct Event
   std::vector<Double_t> deHtof;
   std::vector<Double_t> posHtof;
 
+  std::vector<Double_t> bh2de;
+  std::vector<Double_t> bh2ude;
+  std::vector<Double_t> bh2dde;      
+
   std::vector<Double_t> utimeHtof;
   std::vector<Double_t> dtimeHtof;
   std::vector<Double_t> uctimeHtof;
@@ -269,6 +273,20 @@ struct Event
   std::vector<Double_t> GFposz_p;
   std::vector<Double_t> GFinvbeta_p;
   std::vector<Double_t> GFm2_p;
+
+  std::vector<Double_t> GFmom_k;
+  std::vector<Double_t> GFtracklen_k;
+  std::vector<Double_t> GFtrack2vtxdist_k;
+  std::vector<Double_t> GFcalctof_k;
+  std::vector<Double_t> GFsegHtof_k;
+  std::vector<Double_t> GFtofHtof_k;
+  std::vector<Double_t> GFtdiffHtof_k;
+  std::vector<Double_t> GFposHtof_k;
+  std::vector<Double_t> GFposx_k;
+  std::vector<Double_t> GFposy_k;
+  std::vector<Double_t> GFposz_k;
+  std::vector<Double_t> GFinvbeta_k;
+  std::vector<Double_t> GFm2_k;  
 
   std::vector<Double_t> GFmom_pi;
   std::vector<Double_t> GFtracklen_pi;
@@ -410,6 +428,10 @@ struct Event
     dtHtof.clear();
     deHtof.clear();
     posHtof.clear();
+    
+    bh2de.clear();
+    bh2ude.clear();
+    bh2dde.clear();            
 
     utimeHtof.clear();
     dtimeHtof.clear();
@@ -483,6 +505,20 @@ struct Event
     GFposz_p.clear();
     GFinvbeta_p.clear();
     GFm2_p.clear();
+
+    GFmom_k.clear();
+    GFtracklen_k.clear();
+    GFtrack2vtxdist_k.clear();
+    GFcalctof_k.clear();
+    GFsegHtof_k.clear();
+    GFtofHtof_k.clear();
+    GFtdiffHtof_k.clear();
+    GFposHtof_k.clear();
+    GFposx_k.clear();
+    GFposy_k.clear();
+    GFposz_k.clear();
+    GFinvbeta_k.clear();
+    GFm2_k.clear();    
 
     GFmom_pi.clear();
     GFtracklen_pi.clear();
@@ -612,6 +648,10 @@ struct Src
   Double_t dtHtof[NumOfSegHTOF*MaxDepth];
   Double_t deHtof[NumOfSegHTOF*MaxDepth];
   Double_t posHtof[NumOfSegHTOF*MaxDepth];
+  
+  Double_t bh2de[NumOfSegBH2];
+  Double_t bh2ude[NumOfSegBH2];
+  Double_t bh2dde[NumOfSegBH2];      
 
   Double_t htofmt[NumOfSegHTOF][MaxDepth];
   Double_t htofde[NumOfSegHTOF];
@@ -886,10 +926,19 @@ dst::DstRead( int ievent )
     event.udeHtof.push_back(ude);
     event.ddeHtof.push_back(dde);
   }
+  for(int i=0; i<NumOfSegBH2; i++){
+    event.bh2de.push_back(src.bh2de[i]);
+    event.bh2ude.push_back(src.bh2ude[i]);
+    event.bh2dde.push_back(src.bh2dde[i]);
+  }
+  // for(int i=0; i<NumOfSegBH2; i++){
+  //   event.bh2de[i] = src.bh2de[i];
+  //   event.bh2ude[i] = src.bh2ude[i];
+  //   event.bh2dde[i] = src.bh2dde[i];
+  // }
 
   HF1( 1, event.status++ );
-
-  HF1( 10, ntTpc );
+  HF1( 10, ntTpc );  
   if( event.ntTpc == 0 )
     return true;
 
@@ -983,6 +1032,20 @@ dst::DstRead( int ievent )
   event.GFposz_p.resize(GFntTpc);
   event.GFinvbeta_p.resize(GFntTpc);
   event.GFm2_p.resize(GFntTpc);
+
+  event.GFmom_k.resize(GFntTpc);
+  event.GFtracklen_k.resize(GFntTpc);
+  event.GFtrack2vtxdist_k.resize(GFntTpc);
+  event.GFcalctof_k.resize(GFntTpc);
+  event.GFsegHtof_k.resize(GFntTpc);
+  event.GFtofHtof_k.resize(GFntTpc);
+  event.GFtdiffHtof_k.resize(GFntTpc);
+  event.GFposHtof_k.resize(GFntTpc);
+  event.GFposx_k.resize(GFntTpc);
+  event.GFposy_k.resize(GFntTpc);
+  event.GFposz_k.resize(GFntTpc);
+  event.GFinvbeta_k.resize(GFntTpc);
+  event.GFm2_k.resize(GFntTpc);  
 
   event.GFmom_pi.resize(GFntTpc);
   event.GFtracklen_pi.resize(GFntTpc);
@@ -1131,6 +1194,36 @@ dst::DstRead( int ievent )
 	event.GFm2_pi[igf] = mass2;
       }
     } //pion
+
+    if((event.pid[igf]&2)==2){ // kaon
+      Int_t repid = 0;
+
+      Int_t hitid_htof; Double_t tof; Double_t len;
+      TVector3 pos_htof; Double_t track2tgt_dist;
+      Bool_t htofextrapolation =
+	GFtracks.TPCHTOFTrackMatching(igf, repid, vertex,
+				      event.HtofSeg, event.posHtof,
+				      hitid_htof, tof,
+				      len, pos_htof, track2tgt_dist);
+      if(htofextrapolation){
+	event.GFmom_k[igf] = GFtracks.GetMom(igf, 0, repid).Mag();
+	event.GFtracklen_k[igf] = len;
+	event.GFtrack2vtxdist_k[igf] = track2tgt_dist;
+	event.GFcalctof_k[igf] = tof;
+	event.GFposx_k[igf] = pos_htof.x();
+	event.GFposy_k[igf] = pos_htof.y();
+	event.GFposz_k[igf] = pos_htof.z();
+	event.GFsegHtof_k[igf] = event.HtofSeg[hitid_htof];
+	event.GFtofHtof_k[igf] = event.tHtof[hitid_htof];
+	event.GFtdiffHtof_k[igf] = event.dtHtof[hitid_htof];
+	event.GFposHtof_k[igf] = event.posHtof[hitid_htof];
+
+	Double_t beta = len/event.tHtof[hitid_htof]/MathTools::C();
+	event.GFinvbeta_k[igf] = 1./beta;
+	Double_t mass2 = Kinematics::MassSquare(event.GFmom_k[igf], len, event.tHtof[hitid_htof]);
+	event.GFm2_k[igf] = mass2;
+      }
+    } //kaon
 
     if(event.charge[igf]==1 && (event.pid[igf]&4)==4){ //proton
       Int_t repid = 0;
@@ -1292,6 +1385,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "deHtof", &event.deHtof );
   tree->Branch( "posHtof", &event.posHtof );
 
+  tree->Branch( "bh2de", &event.bh2de );
+  tree->Branch( "bh2ude", &event.bh2ude );
+  tree->Branch( "bh2dde", &event.bh2dde );      
+
   tree->Branch( "utimeHtof", &event.utimeHtof );
   tree->Branch( "dtimeHtof", &event.dtimeHtof );
   tree->Branch( "uctimeHtof", &event.uctimeHtof );
@@ -1426,7 +1523,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFresidual_py", &event.GFresidual_py);
   tree->Branch("GFresidual_pz", &event.GFresidual_pz);
 
-  tree->Branch("GFntTpc_target", &event.GFntTpc_inside);
+  tree->Branch("GFntTpc_inside", &event.GFntTpc_inside);
   tree->Branch("GFprodvtx_x", &event.GFprodvtx_x);
   tree->Branch("GFprodvtx_y", &event.GFprodvtx_y);
   tree->Branch("GFprodvtx_z", &event.GFprodvtx_z);
@@ -1465,6 +1562,20 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFposz_p", &event.GFposz_p);
   tree->Branch("GFinvbeta_p", &event.GFinvbeta_p);
   tree->Branch("GFm2_p", &event.GFm2_p);
+
+  tree->Branch("GFmom_k", &event.GFmom_k);
+  tree->Branch("GFtracklen_k", &event.GFtracklen_k);
+  tree->Branch("GFtrack2vtxdist_k", &event.GFtrack2vtxdist_k);
+  tree->Branch("GFcalctof_k", &event.GFcalctof_k);
+  tree->Branch("GFsegHtof_k", &event.GFsegHtof_k);
+  tree->Branch("GFtofHtof_k", &event.GFtofHtof_k);
+  tree->Branch("GFtdiffHtof_k", &event.GFtdiffHtof_k);
+  tree->Branch("GFposHtof_k", &event.GFposHtof_k);
+  tree->Branch("GFposx_k", &event.GFposx_k);
+  tree->Branch("GFposy_k", &event.GFposy_k);
+  tree->Branch("GFposz_k", &event.GFposz_k);
+  tree->Branch("GFinvbeta_k", &event.GFinvbeta_k);
+  tree->Branch("GFm2_k", &event.GFm2_k);  
 
   tree->Branch("GFmom_pi", &event.GFmom_pi);
   tree->Branch("GFtracklen_pi", &event.GFtracklen_pi);
@@ -1591,14 +1702,14 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kHodoscope1]->SetBranchStatus("dtHtof",   1);
   TTreeCont[kHodoscope1]->SetBranchStatus("deHtof",   1);
   TTreeCont[kHodoscope1]->SetBranchStatus("posHtof",   1);
-
+  
   TTreeCont[kHodoscope1]->SetBranchAddress("CTime0",   &src.CTime0);
   TTreeCont[kHodoscope1]->SetBranchAddress("nhHtof",   &src.nhHtof);
   TTreeCont[kHodoscope1]->SetBranchAddress("HtofSeg",   src.HtofSeg);
   TTreeCont[kHodoscope1]->SetBranchAddress("tHtof",     src.tHtof);
   TTreeCont[kHodoscope1]->SetBranchAddress("dtHtof",    src.dtHtof);
   TTreeCont[kHodoscope1]->SetBranchAddress("deHtof",    src.deHtof);
-  TTreeCont[kHodoscope1]->SetBranchAddress("posHtof",    src.posHtof);
+  TTreeCont[kHodoscope1]->SetBranchAddress("posHtof",   src.posHtof);  
 
   TTreeCont[kHodoscope2]->SetBranchStatus("*", 0);
   TTreeCont[kHodoscope2]->SetBranchStatus("htofmt",   1);
@@ -1610,6 +1721,9 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kHodoscope2]->SetBranchStatus("htofhitpos",   1);
   TTreeCont[kHodoscope2]->SetBranchStatus("htofude",   1);
   TTreeCont[kHodoscope2]->SetBranchStatus("htofdde",   1);
+  TTreeCont[kHodoscope2]->SetBranchStatus("bh2dde",   1);
+  TTreeCont[kHodoscope2]->SetBranchStatus("bh2ude",   1);
+  TTreeCont[kHodoscope2]->SetBranchStatus("bh2de",   1);  
 
   TTreeCont[kHodoscope2]->SetBranchAddress("htofmt", src.htofmt);
   TTreeCont[kHodoscope2]->SetBranchAddress("htofde", src.htofde);
@@ -1620,6 +1734,9 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kHodoscope2]->SetBranchAddress("htofhitpos", src.htofhitpos);
   TTreeCont[kHodoscope2]->SetBranchAddress("htofude", src.htofude);
   TTreeCont[kHodoscope2]->SetBranchAddress("htofdde", src.htofdde);
+  TTreeCont[kHodoscope2]->SetBranchStatus("bh2de",      src.bh2de);
+  TTreeCont[kHodoscope2]->SetBranchStatus("bh2ude",     src.bh2ude);
+  TTreeCont[kHodoscope2]->SetBranchStatus("bh2dde",     src.bh2dde);    
 
   return true;
 }

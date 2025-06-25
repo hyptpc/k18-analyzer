@@ -1196,6 +1196,31 @@ Double_t HypTPCdEdxNsigmaElectron(Double_t dedx, Double_t poq){
   Double_t nsigma = (dedx-dedx_e)/sigma_dedx_e;
   return nsigma;
 }
+//_____________________________________________________________________________
+Double_t HypTPCdEdxPion(Double_t poq){
+
+  Double_t mpi = 139.57039;
+  Double_t par_pi[2] = {conversion_factor, mpi};
+  Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
+  return dedx_pi;
+}
+//_____________________________________________________________________________
+Double_t HypTPCdEdxKaon(Double_t poq){
+
+  Double_t mk = 493.677;
+  Double_t par_k[2] = {conversion_factor, mk};
+  Double_t dedx_k = HypTPCBethe(&poq, par_k); //P10's <dE/dx>_k
+  return dedx_k;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCdEdxProton(Double_t poq){
+
+  Double_t mp = 938.2720813;
+  Double_t par_p[2] = {conversion_factor, mp};
+  Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
+  return dedx_p;
+}
 
 //_____________________________________________________________________________
 Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t tracklength, Double_t tof){
@@ -1369,20 +1394,20 @@ Bool_t HypTPCdEdxElectron(Double_t dedx, Double_t poq){
   Double_t par_e[2] = {conversion_factor, me};
   Double_t dedx_e = HypTPCBethe(&poq, par_e); //P10's <dE/dx>_e
 
-  Bool_t flag = (nsigma_pi < -4 &&
+  Bool_t flag = (nsigma_pi < -3.5 &&
 		 TMath::Abs(nsigma_e) < 3.5 &&
 		 TMath::Abs(poq) < 0.1);
   return flag;
 }
 
 //_____________________________________________________________________________
-Bool_t HypTPCdEdxKaon(Double_t dedx, Double_t poq){
+// Bool_t HypTPCdEdxKaon(Double_t dedx, Double_t poq){
 
-  Double_t nsigma = HypTPCdEdxNsigmaKaon(dedx, poq);
-  Double_t window_k[2] = {-3., 3.};
-  Bool_t flag = (nsigma < window_k[1] && nsigma > window_k[0]);
-  return flag;
-}
+//   Double_t nsigma = HypTPCdEdxNsigmaKaon(dedx, poq);
+//   Double_t window_k[2] = {-3., 3.};
+//   Bool_t flag = (nsigma < window_k[1] && nsigma > window_k[0]);
+//   return flag;
+// }
 
 //_____________________________________________________________________________
 Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
@@ -1405,7 +1430,7 @@ Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
   Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
   Double_t sigma_p = (sigma_dedx_p[0] + sigma_dedx_p[1]*TMath::Abs(poq) + sigma_dedx_p[2]*poq*poq + sigma_dedx_p[3]*TMath::Exp(sigma_dedx_p[4]*TMath::Abs(poq)));
   Double_t nsigma_p = HypTPCdEdxNsigmaProton(dedx, poq);
-  Double_t window_p[2] = {-3., 6.};
+  Double_t window_p[2] = {-4., 6.};
 
   //p/pi separation power calculation
   Double_t avg_sigma = 0.5*(sigma_pi + sigma_p);
@@ -1644,7 +1669,7 @@ TVector3 LambdaPVertex(Double_t Bfield, Double_t p2_par[5],
 		  Double_t theta_min, Double_t theta_max,
 		  TVector3 Xlambda, TVector3 Plambda,
 		  TVector3 &Pp2, Double_t &lambdap_dist){
-
+  
   // Note that p2 represents another proton, separate from the proton from the Lambda decay
 
   Double_t lambdavtx_xivtx_cut = 0.;
