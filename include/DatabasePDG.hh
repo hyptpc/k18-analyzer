@@ -21,6 +21,7 @@ Double_t KaonMass();
 Double_t PionMass();
 Double_t ProtonMass();
 Double_t NeutronMass();
+Double_t DeutronMass();
 Double_t LambdaMass();
 Double_t SigmaNMass();
 Double_t SigmaPMass();
