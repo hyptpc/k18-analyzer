@@ -1,6 +1,7 @@
 // -*- C++ -*-
 #ifndef PIDCOMMON_HH
 #define PIDCOMMON_HH
+#include <TF1.h>
 #include <TF2.h>
 #include <TH1D.h>
 #include <TH2D.h>
@@ -16,11 +17,12 @@
 //#include "PidData.hh"
 
 namespace pidlikeli {
-  enum class DType { General, Lmd, K0, resoKqfK, COUNT }; // { no cut, Lambda->ppi reconstructed, K0->pipi reconstructed, BE region cut for Kstar/quasifreeK-
+  enum class DType { General, Lmd, K0, Km, COUNT }; // { no cut, Lambda->ppi reconstructed, K0->pipi reconstructed, BE region cut for Kstar/quasifreeK-
   enum class Pid { Pi, K, P, D, E, COUNT }; // pi,kaon,proton,deutron,electron
   enum class Chg { Plus, Minus, COUNT }; // charge
-  enum class BE { Index0, resoK, qfK, COUNT }; // binding energy region, not prepared yet
+  enum class BE { All, QfK, RsK, COUNT }; // binding energy region, not prepared yet
 
+  //num
   inline constexpr size_t kNtype = static_cast<size_t>(DType::COUNT);
   inline const TString type[kNtype] = {"general","Lmd","K0","rsKqfK"};
   inline constexpr size_t kNpid = static_cast<size_t>(Pid::COUNT);
@@ -28,21 +30,33 @@ namespace pidlikeli {
   inline constexpr size_t kNchg = static_cast<size_t>(Chg::COUNT);
   inline const TString clist[kNchg] = {"+","-"};
   inline constexpr size_t kNbe = static_cast<size_t>(BE::COUNT);
+  inline constexpr int kDimBin = 5; // type,pid,charge,be,mom
+
+  //id
+  inline constexpr int kTGen = 0; // type lambdda  
+  inline constexpr int kTLmd = 1; // type lambdda
+  inline constexpr int kTK0  = 2; // type k0
+  inline constexpr int kTKm  = 3; // type km
   
-  inline constexpr int kPion = 0;
-  inline constexpr int kKaon = 1;
-  inline constexpr int kProton = 2;
+  inline constexpr int kPion = 0; // pid pi
+  inline constexpr int kKaon = 1; // pid k
+  inline constexpr int kProton = 2; // pid p
   inline constexpr int kDeutron = 3;
   inline constexpr int kElectron = 4;
   inline constexpr int kAllParticles = 5; 
   inline constexpr int kPlus = 0; 
   inline constexpr int kMinus = 1;
+  inline constexpr int kBEall = 0;
+  inline constexpr int kBEqfK = 1;
+  inline constexpr int kBErsK = 2;
+
+  // region, step
   inline constexpr double kBEmin = -1.0; // GeV
   inline constexpr double kBEmax = 1.0; // GeV
   inline constexpr double kDBE  = 0.2; // GeV, energy step
   inline constexpr double kPmin = 0.0; // GeV/c
   inline constexpr double kPmax = 1.5; // GeV/c
-  inline constexpr double kDP  = 0.01; // GeV/c, mom step
+  inline constexpr double kDP  = 0.01; // GeV/c, mom step 
   inline constexpr int kNmom = (kPmax-kPmin)/kDP; // should be less than 1000
   // for HistId
   constexpr int fac_t = 10'000'000; // datatype
@@ -60,26 +74,32 @@ namespace pidlikeli {
   inline constexpr int nbindedx = 350; 
   inline constexpr double mindedx = 0.;
   inline constexpr double maxdedx = 350.;
-  inline constexpr int nbinm2 = 200;
+  inline constexpr int nbinm2 = 300;
   inline constexpr double minm2 = -1.5;
   inline constexpr double maxm2 = 1.5;
   inline constexpr double binwpoq = (maxpoq-minpoq)/Double_t(nbinpoq);
   inline constexpr double binwdedx = (maxdedx-mindedx)/Double_t(nbindedx);
   inline constexpr double binwm2 = (maxm2-minm2)/Double_t(nbinm2);
+
+  // cut 
   inline constexpr double cutm2min[kNpid] = {-0.1, 0.15, 0.7, 1.0, -0.1};
   inline constexpr double cutm2max[kNpid] = { 0.1 , 0.5,  1.1, 2.0,  0.1};
-  inline constexpr double cutdedxmin[kNpid] = {-0.01, 0.15, 0.7, 1.0, -0.01};
-  inline constexpr double cutdedxmax[kNpid] = { 0.1 , 0.5,  1.1, 2.0,  0.01};
+  inline constexpr double cutdedxmin[kNpid] = {0.01, 0.01, 0.01, 0.01, 0.01}; 
+  inline constexpr double cutdedxmax[kNpid] = {200., 200., 200., 200., 200.}; 
   inline constexpr double cutm2sigmamax[kNpid] = {0.1, 0.1, 0.4, 0.0,  0.00};
-  inline constexpr double cutdedxsigmamax[kNpid] = {20, 0.1, 0.4, 0.0,  0.00};
-
+  inline constexpr double cutdedxsigmamax[kNpid] = {20, 0.1, 0.4, 0.0,  0.00};  
+  inline constexpr double cutbemin[kNbe] = {kBEmin, 0.  , 0.32}; // all, Quasi-free K-K, K892-
+  inline constexpr double cutbemax[kNbe] = {kBEmax, 0.13, 0.45};
+  
+  // mass 
   static const auto PionMass    = pdg::PionMass();
   static const auto KaonMass    = pdg::KaonMass();
   static const auto ProtonMass  = pdg::ProtonMass();
   static const auto ElectronMass = pdg::ElectronMass();
   static const auto DeutronMass = pdg::DeutronMass();
   static const auto np = pidlikeli::kNpid;  
-  static const Double_t mass[np] = {PionMass,KaonMass,ProtonMass,DeutronMass,ElectronMass};      
+  static const Double_t mass[np] = {PionMass,KaonMass,ProtonMass,DeutronMass,ElectronMass};
+  //id
   static constexpr int idPi = kPion;
   static constexpr int idK  = kKaon;
   static constexpr int idP  = kProton;

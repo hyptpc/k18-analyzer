@@ -94,7 +94,8 @@ const int piHid = pidlikeli::kPion;
 const int kHid = pidlikeli::kKaon;
 const int pHid = pidlikeli::kProton;  
 const int dHid = pidlikeli::kDeutron;
-const int eHid = pidlikeli::kElectron;      
+const int eHid = pidlikeli::kElectron;
+const int allHid = pidlikeli::kAllParticles;      
 const int kNchg = pidlikeli::kNchg;
 const int plusHid = pidlikeli::kPlus;
 const int minusHid = pidlikeli::kMinus;
@@ -1696,6 +1697,7 @@ dst::DstRead( int ievent )
   if(debug) std::cout << "debug " << __FILE__ << " " << __LINE__ << std::endl;                  
   {
     for(Int_t it1=0;it1<ntTpc;it1++){ // pi+
+      if(!KPEvent) continue;
       if(event.isElectron[it1]==1) continue;
       if(event.isK18[it1]==1) continue;
       if(event.isKurama[it1]==1) continue;
@@ -2404,29 +2406,34 @@ dst::DstRead( int ievent )
     Bool_t flag_k=false;         //should be better written in USER param
     Bool_t flag_p=false;         //should be better written in USER param
     Bool_t flag_d=false;         //should be better written in USER param    
-    Bool_t flag_e=false;         //should be better written in USER param 
+    Bool_t flag_e=false;         //should be better written in USER param
+    Bool_t flagp[kNpid+1] = {};
     if( nsigmaHtof_pi > -cut_tofpid_min && nsigmaHtof_pi < cut_tofpid_max
 	&& nsigma_pi > -cut_dedxpid_min && nsigma_pi < cut_dedxpid_max
 	&& !event.isElectron[itTpc] ){	
-      flag_pi = true;
+      flagp[piHid] = true;
     }
     if( nsigmaHtof_k > -cut_tofpid_min && nsigmaHtof_k < cut_tofpid_max
 	&& nsigma_k > -cut_dedxpid_min && nsigma_k < cut_dedxpid_max
 	&& !event.isElectron[itTpc] ){	
       flag_k = true;
+      flagp[kHid] = true;  
     }
     if( nsigmaHtof_p > -cut_tofpid_min && nsigmaHtof_p < cut_tofpid_max
 	&& nsigma_p > -cut_dedxpid_min && nsigma_p < cut_dedxpid_max
 	&& !event.isElectron[itTpc] ){
-      flag_p = true;
+      flagp[pHid] = true;            
     }
     if( nsigmaHtof_d > -cut_tofpid_min && nsigmaHtof_d < cut_tofpid_max
 	&& nsigma_d > -cut_dedxpid_min && nsigma_d < cut_dedxpid_max
 	&& !event.isElectron[itTpc] ){
-      flag_d = true;
+      flagp[dHid] = true;            
     }    
     if( event.isElectron[itTpc] ){
-      flag_e = true;
+      flagp[eHid] = true;                  
+    }
+    if( !event.isElectron[itTpc] ){
+      flagp[allHid] = true;
     }
     double GFmom = event.GFmom[itTpc][0];
     // if(dist > dist_cut) continue;
@@ -2458,45 +2465,12 @@ dst::DstRead( int ievent )
     Int_t pid=-1;
     int chargeid = (charge>0) ? 0 : (charge<0) ? 1 : -2;
     if(chargeid==-2) continue;
-    if(flag_pi){
-      pid=0;
-      // std::cout << type*pdfHid+pid*100000+chargeid*10000+beid*100+momid
-      // 		<< " " << invbeta << " " <<  dEdxtpc << std::endl;
-      HF2(type*fac_t+pid*fac_p+chargeid*fac_c+beid*fac_b+momid*fac_m, m2, dEdxtpc);
-    }
-    if(flag_k){
-      pid=1;
-      HF2(type*fac_t+pid*fac_p+chargeid*fac_c+beid*fac_b+momid*fac_m, m2*charge, dEdxtpc);
-      if( (seghtof>=12&&seghtof<=19) ){
-	HF2(typetpcxm*fac_t+pid*fac_p+chargeid*fac_c+beid*fac_b+momid*fac_m, m2*charge, dEdxtpc);
-      } else if( (seghtof>=20&&seghtof<=27) ){
-	// for TPC +x/-x study	
-	//HF2(typetpcxp*fac_t+pid*fac_p+chargeid*fac_c+beid*fac_b+momid*fac_m, m2*charge, dEdxtpc);
-      }      
-    }
-    if(flag_p){
-      pid=2;
-      HF2(type*fac_t+pid*fac_p+chargeid*fac_c+beid*fac_b+momid*fac_m, m2*charge, dEdxtpc);
-      if( (seghtof>=12&&seghtof<=19) ){
-	HF2(typetpcxm*fac_t+pid*fac_p+chargeid*fac_c+beid*fac_b+momid*fac_m, m2*charge, dEdxtpc);
-      } else if( (seghtof>=20&&seghtof<=27) ){
-	// for TPC +x/-x study		
-	//HF2(typetpcxp*fac_t+pid*fac_p+chargeid*fac_c+beid*fac_b+momid*fac_m, m2*charge, dEdxtpc);
+    for(int ip=0; ip<kNpid+1; ip++){
+      if(flagp[ip]){
+	HF2(type*fac_t+ip*fac_p+chargeid*fac_c+beid*fac_b+momid*fac_m, m2, dEdxtpc);
       }
-    }
-    if(flag_d){
-      pid=3;
-      HF2(type*fac_t+pid*fac_p+chargeid*fac_c+beid*fac_b+momid*fac_m, m2*charge, dEdxtpc);
-    }
-    if(flag_e){
-      pid=4;
-      HF2(type*fac_t+pid*fac_p+chargeid*fac_c+beid*fac_b+momid*fac_m, m2*charge, dEdxtpc);
-    }
-    if(!flag_e){
-      pid=5; // all but e
-      HF2(type*fac_t+pid*fac_p+chargeid*fac_c+beid*fac_b+momid*fac_m, m2*charge, dEdxtpc);
-    }
-  }  
+    }    
+  }
   HF1( 2, event.GFstatus++);
   HF1( 1, event.status++ );
 
@@ -2524,6 +2498,7 @@ dst::DstClose( void )
 Bool_t
 ConfMan::InitializeHistograms( void )
 {
+  static const auto KPEvent = gUser.GetParameter("KPEvent");  
   /*
     HB1( 1, "Status", 21, 0., 21. );
     HB1( 2, "Genfit Status", 20, 0., 20. );
@@ -2570,50 +2545,30 @@ ConfMan::InitializeHistograms( void )
   HB1(genfitHid+28, "[GenFit] Z (extrapolated to the HTOF); Z [mm]; Counts [/0.1 mm]", 10000, -500, 500 );
   HB1(genfitHid+29, "[GenFit] HTOF ID; #ID ; Counts", 36, 0, 36 );
 */
-  // PDF for pi,K,p for each momentum region
-  // int nbinpoq = 1000;
-  // double minpoq = -1.5;
-  // double maxpoq = 1.5; //GeV/c
-  // int nbininvbeta = 100;
-  // double mininvbeta = 0.;
-  // double maxinvbeta = 5.;
-  // int nbindedx = 1000;
-  // double mindedx = 0.;
-  // double maxdedx = 350.;
-  // int nbinbe = 400;
-  // double minbe = -0.5; //GeV
-  // double maxbe = 0.5;
-  // int pdfHid = 1000000;
-  // double momstep = 0.05; //GeV/c
-  // int momId = (Int_t)(maxpoq/momstep); // 0.05 GeV/c step?
-  // double bestep = 0.20; //GeV // should be chaged to USER parameter
-  // int BEId = (Int_t)((maxbe-minbe)/bestep); // should be less than
   
-  //  TString pid[kNpid+1] = {"pi", "K", "p", "e", "d", "all"};
-  //  TString pid[kNpid+1] = {"pi", "K", "p","all"};  
-  //  TString charge[kNchg] = {"+", "-"};
-  //  TString type[kNtype] = {"general", "KP"};
-  
-  for(int itype=0; itype<kNtype; itype++){//1:general, 2:Lambda reconstruct,3:K0 reconstruct,
-    if(itype>3) continue;
+  for(int itype=0; itype<kNtype; itype++){//0:general, 1:Lambda reconstruct, 2:K0 reconstruct, 3: K- 
+    if(!KPEvent) continue;
+    if(itype>pidlikeli::kTKm) continue;
     for(int ipid=0; ipid<kNpid+1; ipid++){ // pi,K,p,d,e,all
       for(int icharge=0; icharge<kNchg; icharge++){ // posi,nega
-	if( itype==3||itype==4 ){
-	  if( !( (ipid==1&&icharge==1)||(ipid==2&&icharge==0) ) ) continue;
-	}	
-        for(int ibe=0; ibe<kNbe; ibe++){ // default: beid=0
+	//if( !( (ipid==1&&icharge==1)||(ipid==2&&icharge==0) ) ) continue; 
+        for(int ibe=0; ibe<kNbe; ibe++){ // default: beid=0	  
+ 	  if( !( (itype==pidlikeli::kTKm&&ibe==0) || (itype!=pidlikeli::kTKm&&ibe!=0) ) ) continue;
+	  if( !( ( itype==pidlikeli::kTGen&&ipid==pidlikeli::kAllParticles ) // 1
+		 || ( itype==pidlikeli::kTLmd&&((ipid==pidlikeli::kPion&&icharge==pidlikeli::kMinus)||(ipid==pidlikeli::kProton&&icharge==pidlikeli::kPlus)) ) // 2
+		 || ( itype==pidlikeli::kTK0&&ipid==pidlikeli::kPion ) // 2
+		 || ( itype==pidlikeli::kTKm&&ipid==pidlikeli::kKaon&&icharge==pidlikeli::kMinus) //1
+		 ) 
+	      ) continue; // total=7
+	  
           for(int imom=0; imom<kNmom; imom++){
 	    if(ipid<kNpid){
-	      if(itype==typeLHid&&(ipid==kHid||ipid==dHid||ipid==eHid)) continue;
-	      if(itype==typeK0Hid&&(ipid==pHid||ipid==kHid||ipid==dHid||ipid==eHid)) continue;	      
 	      HB2( (itype+1)*fac_t + ipid*fac_p + icharge*fac_c + ibe*fac_b + imom*fac_m,
 		   Form("PDF %s %s %s BE=%.3fGeV mom=%.4fGeV/c; mass2 ; dEdx",
 			type[itype].Data(), plist[ipid].Data(),clist[icharge].Data(),
 			minbe+bestep*(double)(ibe),kMomstep*(Double_t(imom))),
 		   nbinm2, minm2, maxm2, nbindedx, mindedx, maxdedx);
 	    } else {
-	      if(itype==typeLHid&&(ipid==kHid||ipid==dHid||ipid==eHid)) continue;
-	      if(itype==typeK0Hid&&(ipid==pHid||ipid==kHid||ipid==dHid||ipid==eHid)) continue;
 	      HB2( (itype+1)*fac_t + ipid*fac_p + icharge*fac_c + ibe*fac_b + imom*fac_m,
 		   Form("PDF %s %s %s BE=%.3fGeV mom=%.4fGeV/c; mass2 ; dEdx",
 			type[itype].Data(), "all", clist[icharge].Data(),
@@ -2626,6 +2581,33 @@ ConfMan::InitializeHistograms( void )
     }
   }
 
+  for(int itype=0; itype<kNtype; itype++){//0:general, 1:Lambda reconstruct, 2:K0 reconstruct, 3: K- 
+    if(KPEvent) continue;
+    if(itype>0) continue;
+    for(int ipid=0; ipid<kNpid+1; ipid++){ // pi,K,p,d,e,all
+      for(int icharge=0; icharge<kNchg; icharge++){ // posi,nega
+        for(int ibe=0; ibe<kNbe; ibe++){ // default: beid=0
+	  if(ibe!=0) continue;
+          for(int imom=0; imom<kNmom; imom++){
+	    if(ipid<kNpid){
+	      HB2( (itype+1)*fac_t + ipid*fac_p + icharge*fac_c + ibe*fac_b + imom*fac_m,
+		   Form("PDF %s %s %s BE=%.3fGeV mom=%.4fGeV/c; mass2 ; dEdx",
+			type[itype].Data(), plist[ipid].Data(),clist[icharge].Data(),
+			minbe+bestep*(double)(ibe),kMomstep*(Double_t(imom))),
+		   nbinm2, minm2, maxm2, nbindedx, mindedx, maxdedx);
+	    } else {
+	      HB2( (itype+1)*fac_t + ipid*fac_p + icharge*fac_c + ibe*fac_b + imom*fac_m,
+		   Form("PDF %s %s %s BE=%.3fGeV mom=%.4fGeV/c; mass2 ; dEdx",
+			type[itype].Data(), "all", clist[icharge].Data(),
+			minbe+bestep*(double)(ibe),kMomstep*(Double_t(imom))),
+		   nbinm2, minm2, maxm2, nbindedx, mindedx, maxdedx);
+	    }
+          }
+        }
+      }
+    }
+  }
+  
   HB1(20001, "GF#Lambda mass",1000,pdg::LambdaMass()-0.2,pdg::LambdaMass()+0.2);
   HB1(20002, "GF#Lambda mass selected",1000,pdg::LambdaMass()-0.2,pdg::LambdaMass()+0.2);  
   HB1(20011, "GF#Lambda vtx",100,-5.,5.);
