@@ -14,7 +14,6 @@
 #include "Kinematics.hh"
 #include "DatabasePDG.hh"
 #include "TGraphErrors.h"
-//#include "PidData.hh"
 
 namespace pidlikeli {
   enum class DType { General, Lmd, K0, Km, COUNT }; // { no cut, Lambda->ppi reconstructed, K0->pipi reconstructed, BE region cut for Kstar/quasifreeK-
@@ -26,17 +25,19 @@ namespace pidlikeli {
   inline constexpr size_t kNtype = static_cast<size_t>(DType::COUNT);
   inline const TString type[kNtype] = {"general","Lmd","K0","rsKqfK"};
   inline constexpr size_t kNpid = static_cast<size_t>(Pid::COUNT);
+  inline constexpr int kNpidAll = kNpid+1;
   inline const TString plist[kNpid] = {"pi","k","p","d","e"};
   inline constexpr size_t kNchg = static_cast<size_t>(Chg::COUNT);
   inline const TString clist[kNchg] = {"+","-"};
   inline constexpr size_t kNbe = static_cast<size_t>(BE::COUNT);
   inline constexpr int kDimBin = 5; // type,pid,charge,be,mom
+  inline const TString typebe[kNbe] = {"NoCut","QfK","RsK"};
 
   //id
-  inline constexpr int kTGen = 0; // type lambdda  
-  inline constexpr int kTLmd = 1; // type lambdda
-  inline constexpr int kTK0  = 2; // type k0
-  inline constexpr int kTKm  = 3; // type km
+  inline constexpr int kTypeGen = 0; // type lambdda  
+  inline constexpr int kTypeLmd = 1; // type lambdda
+  inline constexpr int kTypeK0  = 2; // type k0
+  inline constexpr int kTypeKm  = 3; // type km
   
   inline constexpr int kPion = 0; // pid pi
   inline constexpr int kKaon = 1; // pid k
@@ -82,7 +83,7 @@ namespace pidlikeli {
   inline constexpr double binwm2 = (maxm2-minm2)/Double_t(nbinm2);
 
   // cut 
-  inline constexpr double cutm2min[kNpid] = {-0.1, 0.15, 0.7, 1.0, -0.1};
+  inline constexpr double cutm2min[kNpid] = {-0.1, 0.1, 0.7, 1.0, -0.1};
   inline constexpr double cutm2max[kNpid] = { 0.1 , 0.5,  1.1, 2.0,  0.1};
   inline constexpr double cutdedxmin[kNpid] = {0.01, 0.01, 0.01, 0.01, 0.01}; 
   inline constexpr double cutdedxmax[kNpid] = {200., 200., 200., 200., 200.}; 
@@ -90,6 +91,7 @@ namespace pidlikeli {
   inline constexpr double cutdedxsigmamax[kNpid] = {20, 0.1, 0.4, 0.0,  0.00};  
   inline constexpr double cutbemin[kNbe] = {kBEmin, 0.  , 0.32}; // all, Quasi-free K-K, K892-
   inline constexpr double cutbemax[kNbe] = {kBEmax, 0.13, 0.45};
+  
   
   // mass 
   static const auto PionMass    = pdg::PionMass();
@@ -104,14 +106,43 @@ namespace pidlikeli {
   static constexpr int idK  = kKaon;
   static constexpr int idP  = kProton;
   static constexpr int idD  = kDeutron;
-  static constexpr int idE  = kElectron;    
+  static constexpr int idE  = kElectron;
+
+  // For correction function
+  // sigma M2
+  constexpr std::array<double, 4> sigmaM2paramPi
+  = {3.00403e-07, 12.9047, 0.00714599, 0.00760768};
+  constexpr std::array<double, 4> sigmaM2paramK
+  = {3.00403e-07, 12.9047, 0.00714599, 0.00760768}; // same as pi
+  constexpr std::array<double, 4> sigmaM2paramP
+  = {0.858821, 2.31424, -0.0130576, -4.74344};
+  constexpr std::array<double, 4> sigmaM2paramD     // same as p
+  = {0.858821, 2.31424, -0.0130576, -4.74344};     
+  constexpr std::array<double, 4> sigmaM2paramE    
+  = {3.00403e-07, 12.9047, 0.00714599, 0.00760768}; // same as pi
+  // sigma dEdx
+  constexpr std::array<double, 2> sigmaDedxparamPi = {2.07569, 4.12828};
+  constexpr std::array<double, 2> sigmaDedxparamK = {2.07569, 4.12828};
+  constexpr std::array<double, 2> sigmaDedxparamP = {2.07569, 4.12828};
+  constexpr std::array<double, 2> sigmaDedxparamD = {2.07569, 4.12828};
+  constexpr std::array<double, 2> sigmaDedxparamE = {2.07569, 4.12828};  
+  
+
+  // constexpr std::array<double, 2> sigmaDedxparamPi = {
+  //     // {p0, p1, p2, p3}
+  //     {2.07569, 4.12828},  // sigmaDedx[0] : Pion
+  //     {2.07569, 4.12828},  // sigmaDedx[1] : Kaon
+  //     {2.07569, 4.12828},  // sigmaDedx[2] : Proton
+  //     {2.07569, 4.12828},  // sigmaDedx[3] : Deutron
+  //     {2.07569, 4.12828}   // sigmaDedx[4] : Electron
+  // };
 
   // general helper
   template<typename E>
   static constexpr size_t scast(E e) {
     return static_cast<size_t>(e);
   }
-
+  
   inline Double_t MomToBeta(Double_t mom, Double_t m2){
     double mom2 = mom*mom;
     double ene2 = mom2 + m2;
@@ -177,10 +208,12 @@ namespace pidlikeli {
     //  return (idx < 0 || idx >= kNbe) ? -1 : idx;
     return binBE;
   }
-  
 }
 
 namespace pidfunc {
+  const Int_t kNparamGauss = 6;
+  const Int_t kNparamDGauss = 2*kNparamGauss;
+  
   Double_t RotGauss2D(Double_t* xy, Double_t* par);
   Double_t RotGauss2DFit(Double_t* xy, Double_t* par);  
   Double_t RotGauss2DProjX(Double_t* x, Double_t* par);
@@ -188,9 +221,11 @@ namespace pidfunc {
   Double_t RotGauss2DProjY(Double_t* x, Double_t* par);
   Double_t RotGauss2DProjYFit(Double_t* x, Double_t* par);
   Double_t RotGauss2DBeta(Double_t* xy, Double_t* par);
-  Double_t RotTwoGauss2D(Double_t* xy, Double_t* par);  
-  Double_t SigmaDedx(Double_t* x, Double_t* par);  
-  Double_t SigmaM2Pid(Double_t* x, int pid);
+  Double_t RotDoubleGauss2D(Double_t* xy, Double_t* par);  
+  Double_t SigmaDedx(Double_t* beta, Double_t* par);
+  Double_t SigmaM2Pid(Double_t* beta, int pid);
+  Double_t CalcSigM2(double mom, int pid);
+  Double_t CalcSigdEdx(double mom, int pid);
 
   Double_t SigmaInvBeta(Double_t* x, Double_t* par);
   Double_t ExpPlusPol3(Double_t *x, Double_t *p);  
