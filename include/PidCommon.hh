@@ -140,15 +140,26 @@ namespace pidlikeli {
   constexpr std::array<double, 2> sigmaDedxparamD = {2.07569, 4.12828};
   constexpr std::array<double, 2> sigmaDedxparamE = {2.07569, 4.12828};  
   
+  struct ParticleFitConfig {
+    pidlikeli::Pid pid;
+    const char* name;
+    pidlikeli::DType source_type;
+    pidlikeli::Chg source_chg;
+    pidlikeli::BE source_be;
+    pidlikeli::Pid sigma_source_pid;
+  };
 
-  // constexpr std::array<double, 2> sigmaDedxparamPi = {
-  //     // {p0, p1, p2, p3}
-  //     {2.07569, 4.12828},  // sigmaDedx[0] : Pion
-  //     {2.07569, 4.12828},  // sigmaDedx[1] : Kaon
-  //     {2.07569, 4.12828},  // sigmaDedx[2] : Proton
-  //     {2.07569, 4.12828},  // sigmaDedx[3] : Deutron
-  //     {2.07569, 4.12828}   // sigmaDedx[4] : Electron
-  // };
+  // for setting fit config
+  const int kNparamConfig = 5;
+  const std::array<ParticleFitConfig, kNparamConfig> gFitConfigs = {{
+      // { PID, name, Parameter configuration source (type, chg, be), sigma source (pid) }
+      { pidlikeli::Pid::Pi, "Pi", pidlikeli::DType::K0, pidlikeli::Chg::Minus, pidlikeli::BE::All, pidlikeli::Pid::Pi },
+      { pidlikeli::Pid::K,  "K",  pidlikeli::DType::Km, pidlikeli::Chg::Minus, pidlikeli::BE::RsK, pidlikeli::Pid::K  },
+      { pidlikeli::Pid::P,  "P",  pidlikeli::DType::Lmd,pidlikeli::Chg::Plus,  pidlikeli::BE::All, pidlikeli::Pid::P  },
+      { pidlikeli::Pid::D,  "D",  pidlikeli::DType::General, pidlikeli::Chg::Plus, pidlikeli::BE::All, pidlikeli::Pid::P },
+      { pidlikeli::Pid::E,  "E",  pidlikeli::DType::General, pidlikeli::Chg::Minus, pidlikeli::BE::All, pidlikeli::Pid::Pi}
+    }};
+  
 
   // general helper
   template<typename E>
@@ -229,12 +240,14 @@ namespace pidlikeli {
 namespace pidfunc {
   const Int_t kNparamGauss     = 6;
   const Int_t kNparamDGauss    = 2*kNparamGauss;
+  const Int_t kNparamYield     = 1;       
   const Int_t kParamIdM2       = 0;
   const Int_t kParamIddEdx     = 1;
   const Int_t kParamIdSigM2    = 2;
   const Int_t kParamIdSigdEdx  = 3;
   const Int_t kParamIdRotAngle = 4;
-  const Int_t kParamIdYield    = 5;         
+  const Int_t kParamIdYield    = 5;
+
   
   Double_t RotGauss2D(Double_t* xy, Double_t* par);
   Double_t RotGauss2DFit(Double_t* xy, Double_t* par);  

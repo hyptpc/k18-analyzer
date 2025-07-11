@@ -10,14 +10,14 @@
 #include "THn.h"
 #include "PidCommon.hh"
 
-struct ParticleFitConfig {
-  pidlikeli::Pid pid;
-  const char* name;
-  pidlikeli::DType source_type;
-  pidlikeli::Chg source_chg;
-  pidlikeli::BE source_be;
-  pidlikeli::Pid sigma_source_pid;
-};
+// struct ParticleFitConfig {
+//   pidlikeli::Pid pid;
+//   const char* name;
+//   pidlikeli::DType source_type;
+//   pidlikeli::Chg source_chg;
+//   pidlikeli::BE source_be;
+//   pidlikeli::Pid sigma_source_pid;
+// };
 
 struct PdfBin {
   TF2* f2d = nullptr; // 2D gauss

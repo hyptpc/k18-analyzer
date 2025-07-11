@@ -140,7 +140,7 @@ public:
   bool FitGEPoint(int t,int p,int c,int b);    
   std::array<double, pidfunc::kNparamGauss> GetCalcParameters(int t, int pid, int c, int b, int m) const;
   std::array<double, pidfunc::kNparamGauss> GetCalcParametersRef(int pid, int momid) const;
-  const FitResultPars& GetStoredFitParamsOfRefPdf(const ParticleFitConfig& config, int momid) const;
+  const FitResultPars& GetStoredFitParamsOfRefPdf(const pidlikeli::ParticleFitConfig& config, int momid) const;
   double InterpYield(int t,int p,int c,int b,int momid) const;
    
   Long64_t WriteToRootfile(TFile* fout);
@@ -174,7 +174,7 @@ private:
   static PidPdfMan* s_instance;
   bool m_is_ready = false;
   std::unique_ptr<PidData> m_data;  
-  std::array<double, pidfunc::kNparamGauss> GetCalcParametersRef(const ParticleFitConfig& config, int momid) const;
+  std::array<double, pidfunc::kNparamGauss> GetCalcParametersRef(const pidlikeli::ParticleFitConfig& config, int momid) const;
 
 private:
   bool LoadAllHists();

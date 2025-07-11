@@ -69,17 +69,6 @@ namespace {
   inline constexpr double cutgm2 = cutgraph[0];
   inline constexpr double cutgdedx = cutgraph[1]; 
 
-  // for setting fit config
-  const int kNparamYield = 1;
-  const int n = pidfunc::kNparamGauss-kNparamYield;
-  const std::array<ParticleFitConfig, n> gFitConfigs = {{
-      // { PID, name, Parameter configuration source (type, chg, be), sigma source (pid) }
-      { pidlikeli::Pid::Pi, "Pi", pidlikeli::DType::K0, pidlikeli::Chg::Minus, pidlikeli::BE::All, pidlikeli::Pid::Pi },
-      { pidlikeli::Pid::K,  "K",  pidlikeli::DType::Km, pidlikeli::Chg::Minus, pidlikeli::BE::RsK, pidlikeli::Pid::K  },
-      { pidlikeli::Pid::P,  "P",  pidlikeli::DType::Lmd,pidlikeli::Chg::Plus,  pidlikeli::BE::All, pidlikeli::Pid::P  },
-      { pidlikeli::Pid::D,  "D",  pidlikeli::DType::General, pidlikeli::Chg::Plus, pidlikeli::BE::All, pidlikeli::Pid::P },
-      { pidlikeli::Pid::E,  "E",  pidlikeli::DType::General, pidlikeli::Chg::Minus, pidlikeli::BE::All, pidlikeli::Pid::Pi}
-    }};
   
 }
 
@@ -274,7 +263,7 @@ void PidPdfMan::MakeGoodPdfPiKP(int runmode)
   } else if(runmode==pidlikeli::kDCarbonKK){ // KK on Carbon
     
     return;    
-  } else if(runmode==runmode==pidlikeli::kDCarbonKP){ // Kp on Carbon
+  } else if(runmode==pidlikeli::kDCarbonKP){ // Kp on Carbon
     GetParam(kPion);
     GetParam(kProton);
     MakeGoodPdf(kPion);
@@ -691,7 +680,7 @@ TFitResultPtr PidPdfMan::ExecFitFive2DGauss(int chg, int be, int momid)
 
   std::cout<<"debug "<<__FILE__<<__LINE__<<" "<<__func__<<std::endl;
   
-  for(const auto& config: gFitConfigs) {
+  for(const auto& config: pidlikeli::gFitConfigs) {
     int pid = static_cast<int>(config.pid);
     const TString& particle_name = pidlikeli::plist[pid];
     int param_offset = pid * pidfunc::kNparamGauss;
@@ -730,7 +719,7 @@ TFitResultPtr PidPdfMan::ExecFitFive2DGauss(int chg, int be, int momid)
       params[pidfunc::kParamIdM2] = std::abs(params[pidfunc::kParamIdM2]);
     }
     
-    int n = pidfunc::kNparamGauss-kNparamYield;
+    int n = pidfunc::kNparamGauss-pidfunc::kNparamYield;
     for(int iparam=0; iparam<n; iparam++){
       std::cout<<"debug "<<__FILE__<<__LINE__<<" "<<__func__
 	       << " SetParameter " <<std::endl;	          
@@ -1574,8 +1563,8 @@ std::array<double, pidfunc::kNparamGauss> PidPdfMan::GetCalcParameters(int t, in
 std::array<double, pidfunc::kNparamGauss> 
 PidPdfMan::GetCalcParametersRef(int pid, int momid) const
 {
-  const ParticleFitConfig* current_config = nullptr;
-  for (const auto& cfg : gFitConfigs) {
+  const pidlikeli::ParticleFitConfig* current_config = nullptr;
+  for (const auto& cfg : pidlikeli::gFitConfigs) {
     if (static_cast<int>(cfg.pid) == pid) {
       current_config = &cfg;
       break;
@@ -1591,7 +1580,7 @@ PidPdfMan::GetCalcParametersRef(int pid, int momid) const
 }
 
 std::array<double, pidfunc::kNparamGauss> 
-PidPdfMan::GetCalcParametersRef(const ParticleFitConfig& config, int momid) const
+PidPdfMan::GetCalcParametersRef(const pidlikeli::ParticleFitConfig& config, int momid) const
 {
   int pid = static_cast<int>(config.pid);
   int chg = static_cast<int>(config.source_chg);
@@ -1680,7 +1669,7 @@ double PidPdfMan::InterpYield(int t_int, int p_int, int c_int, int b_int, int m)
 }
 
 const FitResultPars&
-PidPdfMan::GetStoredFitParamsOfRefPdf(const ParticleFitConfig& config, int momid) const
+PidPdfMan::GetStoredFitParamsOfRefPdf(const pidlikeli::ParticleFitConfig& config, int momid) const
 {
   // get index from source config
   int type_idx = static_cast<int>(config.source_type);
