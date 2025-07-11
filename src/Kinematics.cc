@@ -1223,6 +1223,23 @@ Double_t HypTPCdEdxProton(Double_t poq){
 }
 
 //_____________________________________________________________________________
+Double_t HypTPCdEdxDeutron(Double_t poq){
+
+  Double_t md = 0.001*1875.612762;
+  Double_t par_d[2] = {conversion_factor, md};
+  Double_t dedx_p = HypTPCBethe(&poq, par_d); //P10's <dE/dx>_d
+  return dedx_p;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCdEdxElectron(Double_t poq){
+  Double_t me = 0.5109989461; //[MeV]
+  Double_t par_e[2] = {conversion_factor, me};
+  Double_t dedx_e = HypTPCBethe(&poq, par_e); //P10's <dE/dx>_e
+  return dedx_e;
+}
+
+//_____________________________________________________________________________
 Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t tracklength, Double_t tof){
 
   Double_t mom = TMath::Abs(poq);

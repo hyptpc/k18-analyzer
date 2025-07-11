@@ -19,8 +19,21 @@ namespace pidlikeli {
   enum class DType { General, Lmd, K0, Km, COUNT }; // { no cut, Lambda->ppi reconstructed, K0->pipi reconstructed, BE region cut for Kstar/quasifreeK-
   enum class Pid { Pi, K, P, D, E, COUNT }; // pi,kaon,proton,deutron,electron
   enum class Chg { Plus, Minus, COUNT }; // charge
-  enum class BE { All, QfK, RsK, COUNT }; // binding energy region, not prepared yet
+  enum class BE { All, QfK, RsK, COUNT }; // binding energy region, ALL: nocut, QfK: quasi-free K- selection, RsK: K star selection
 
+  // data selection
+  inline constexpr int kDGeneral     = 0;
+  inline constexpr int kDCarbonKK    = 1;  // scat K, diamond tgt
+  inline constexpr int kDCarbonKP    = 2;  // scat P, diamond tgt
+  inline constexpr int kDCarbonKPi   = 3;  // scat Pi,diamond tgt
+  inline constexpr int kDCarbon      = 4;  // no selection, diamond tgt
+  inline constexpr int kDCH2KK       = 11; // scat K, ch2 tgt
+  inline constexpr int kDCH2KP       = 12; // scat P, ch2 tgt
+  inline constexpr int kDCH2KPi      = 13; // scat Pi,ch2 tgt
+  inline constexpr int kDCH2         = 14; // no selection, ch2 tgt   
+  inline constexpr int kDHtofCalib   = 21; // htof calib
+  
+  
   //num
   inline constexpr size_t kNtype = static_cast<size_t>(DType::COUNT);
   inline const TString type[kNtype] = {"general","Lmd","K0","rsKqfK"};
@@ -178,8 +191,11 @@ namespace pidlikeli {
     if(pid==idPi) return Kinematics::HypTPCdEdxPion(mom);
     else if(pid==idK) return Kinematics::HypTPCdEdxKaon(mom);
     else if(pid==idP) return Kinematics::HypTPCdEdxProton(mom);
+    else if(pid==idD) return Kinematics::HypTPCdEdxDeutron(mom);
+    else if(pid==idE) return Kinematics::HypTPCdEdxElectron(mom);        
     else return std::numeric_limits<double>::quiet_NaN();
   }
+  
   inline int MomToBin(double pGeV)
   {
     int idx = int( std::round( (pGeV - kPmin) / kDP ) );
@@ -211,8 +227,14 @@ namespace pidlikeli {
 }
 
 namespace pidfunc {
-  const Int_t kNparamGauss = 6;
-  const Int_t kNparamDGauss = 2*kNparamGauss;
+  const Int_t kNparamGauss     = 6;
+  const Int_t kNparamDGauss    = 2*kNparamGauss;
+  const Int_t kParamIdM2       = 0;
+  const Int_t kParamIddEdx     = 1;
+  const Int_t kParamIdSigM2    = 2;
+  const Int_t kParamIdSigdEdx  = 3;
+  const Int_t kParamIdRotAngle = 4;
+  const Int_t kParamIdYield    = 5;         
   
   Double_t RotGauss2D(Double_t* xy, Double_t* par);
   Double_t RotGauss2DFit(Double_t* xy, Double_t* par);  
@@ -221,7 +243,8 @@ namespace pidfunc {
   Double_t RotGauss2DProjY(Double_t* x, Double_t* par);
   Double_t RotGauss2DProjYFit(Double_t* x, Double_t* par);
   Double_t RotGauss2DBeta(Double_t* xy, Double_t* par);
-  Double_t RotDoubleGauss2D(Double_t* xy, Double_t* par);  
+  Double_t RotDoubleGauss2D(Double_t* xy, Double_t* par);
+  Double_t RotFiveGauss2D(Double_t* xy, Double_t* par);    
   Double_t SigmaDedx(Double_t* beta, Double_t* par);
   Double_t SigmaM2Pid(Double_t* beta, int pid);
   Double_t CalcSigM2(double mom, int pid);

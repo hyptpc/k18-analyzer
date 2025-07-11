@@ -78,7 +78,9 @@ namespace Kinematics
   Double_t HypTPCBethe(Double_t *x, Double_t *p);
   Double_t HypTPCdEdxPion(Double_t poq);
   Double_t HypTPCdEdxKaon(Double_t poq);
-  Double_t HypTPCdEdxProton(Double_t poq);  
+  Double_t HypTPCdEdxProton(Double_t poq);
+  Double_t HypTPCdEdxDeutron(Double_t poq);
+  Double_t HypTPCdEdxElectron(Double_t poq);      
   Bool_t HypTPCdEdxPID_IsKaonTemp(Double_t dedx, Double_t poq); //temporary
   Double_t HypTPCdEdxNsigmaProton(Double_t dedx, Double_t poq);
   Double_t HypTPCdEdxNsigmaDeutron(Double_t dedx, Double_t poq);

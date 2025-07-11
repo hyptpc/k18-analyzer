@@ -63,7 +63,9 @@ Double_t
 DeutronMass()
 {
   constexpr int kDeutron = 1000010020;
-  return Mass(kDeutron);
+  double mass_deutron = 1.87561; // GeV/c
+  //  return Mass(kDeutron);
+  return mass_deutron;
 }  
 
 //_____________________________________________________________________________
