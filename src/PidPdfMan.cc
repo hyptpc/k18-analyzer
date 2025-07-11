@@ -1240,8 +1240,6 @@ void PidPdfMan::StorePriorProbs()
   std::cout << "debug " << __FILE__ << __LINE__ << " " << __func__ << std::endl;  
   std::cout << "Starting generation of prior probabilities..." << std::endl;
   if (!m_data || !m_data->m_h5_priors) {
-    if(!m_data) std::cout << 2 << std::endl;
-    if(!m_data->m_h5_priors) std::cout << 3 << std::endl;
     std::cerr << "Error: Cannot generate priors, PidPdfMan not ready." << std::endl;
     return;
   }
@@ -1258,7 +1256,7 @@ void PidPdfMan::StorePriorProbs()
 	std::vector<double> priors = CalculatePriorProb(fit_res);
 	
 	if (!priors.empty()) {
-	  int type_idx = pidlikeli::kTypeGen; 
+	  int type_idx = pidlikeli::kTypeForPrior; 
 	  for (int ip = 0; ip < kNpid; ++ip) {
 	    int bin_coords[5] = {type_idx + 1, ip + 1, ic + 1, ib + 1, im + 1};
 	    long long global_bin = m_data->m_h5_priors->GetBin(bin_coords);
