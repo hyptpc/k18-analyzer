@@ -34,6 +34,8 @@
 #include "PidData.hh"
 #include "PidPdfMan.hh"
 
+#define DrawHistToPdf 1
+
 namespace {
 
   // for writing objects to rootfile
@@ -733,9 +735,21 @@ TFitResultPtr PidPdfMan::ExecFitFive2DGauss(int chg, int be, int momid)
       std::cout<<"debug "<<__FILE__<<__LINE__<<" "<<__func__
 	       << " SetParameter " <<std::endl;	          
       fitmodel->FixParameter(param_offset+iparam,params[iparam]);
-	}
-    fitmodel->SetParameter(param_offset+n, h->GetEntries() / pidlikeli::kNpid);
-    fitmodel->SetParLimits(param_offset+n, 0, h->GetEntries() * 2);
+    }
+    // Integral in ROI
+    double m2min_roi = params[pidfunc::kParamIdM2]-2.0*params[pidfunc::kParamIdSigM2];
+    double m2max_roi = params[pidfunc::kParamIdM2]+2.0*params[pidfunc::kParamIdSigM2];
+    double dedxmin_roi = params[pidfunc::kParamIddEdx]-2.0*params[pidfunc::kParamIdSigdEdx];
+    double dedxmax_roi = params[pidfunc::kParamIddEdx]+2.0*params[pidfunc::kParamIdSigdEdx];
+    int binxmin = h->GetXaxis()->FindBin(m2min_roi);
+    int binxmax = h->GetXaxis()->FindBin(m2max_roi);
+    int binymin = h->GetYaxis()->FindBin(dedxmin_roi);
+    int binymax = h->GetYaxis()->FindBin(dedxmax_roi);
+    double yield_init = h->Integral(binxmin,binxmax,binymin,binymax);
+    if(yield_init<1.0) yield_init = 1.0;
+    // Set yield parameter
+    fitmodel->SetParameter(param_offset+n, yield_init); 
+    fitmodel->SetParLimits(param_offset+n, 0.0, h->GetEntries() * 2);
   }
   std::cout<<"debug "<<__FILE__<<__LINE__<<" "<<__func__<<std::endl;	    
   TFitResultPtr fit_result = h->Fit(fitmodel, "LS");
@@ -1586,9 +1600,6 @@ PidPdfMan::GetCalcParametersRef(const ParticleFitConfig& config, int momid) cons
 
   //m2 calc
   double m2 = pidlikeli::mass[pid] * pidlikeli::mass[pid];
-  if(pid==kDeutron) {
-    std::cout << "M2 of Deutron: " << m2 << std::endl;
-  }
   if (chg == pidlikeli::kMinus) {
     m2 *= -1.0;
   }
@@ -1794,12 +1805,8 @@ void PidPdfMan::DrawResultsToPdf(const std::string& output_filename)
 	      << m_file_name.Data() << std::endl;
     return;
   }
-  
-  // if (!m_is_ready || !m_data) {
-  //   std::cerr << "Error in DrawResultsToPdf: PidPdfMan is not ready." << std::endl;
-  //   return;
-  // }
-  
+
+#if DrawHistToPdf
     std::cout << "Drawing results to " << output_filename << " ..." << std::endl;
     
     gROOT->SetBatch(true);
@@ -1929,4 +1936,5 @@ void PidPdfMan::DrawResultsToPdf(const std::string& output_filename)
     }
     dummy_canvas.Print((output_filename + "]").c_str());
     std::cout << "Drawing results finished." << std::endl;
+#endif    
 }
