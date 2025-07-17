@@ -239,16 +239,9 @@ bool PidPdfMan::LoadAllHists()
 }
 
 bool PidPdfMan::Run(){
-  // GetParam(kPion);
-  // GetParam(kProton);
-  // MakeGoodPdf(kPion);
-  // MakeGoodPdf(kProton);
-  // GetParamKaonUsingOtherParticles();
-  // MakeGoodPdfKm();
   MakeGoodPdfPiKP(pidlikeli::kDCarbonKP);
   StoreGoodPdfAll();
   StorePriorProbs();
-  //CalculateAndStorePriorProbs();  
   return true;
 }
 
@@ -316,7 +309,6 @@ bool PidPdfMan::GetParamKaonUsingOtherParticles()
       for(int ibe_int = 0; ibe_int < kNbe; ++ibe_int){
 	if( !( (it_int==pidlikeli::kTypeGen&&chg_int==kMinus&&ibe_int==0)
 	       || (it_int==pidlikeli::kTypeKm&&chg_int==kMinus) )) continue;
-	//if(!(it_int==pidlikeli::kTypeGen&&chg_int==kMinus&&ibe_int==0)) continue;
 	if( it_int==pidlikeli::kTypeGen ){
 	  pid_int=kKaon;
 	  fit_pid_int=kAllParticles;
@@ -650,11 +642,6 @@ bool PidPdfMan::SetInitFitParsProj(int type, int pid, int chg, int be, int momid
       f->SetParLimits(2,0.01,0.5);
       f->SetParLimits(3,0,50.);
       f->SetParLimits(5,0.1,10*tot);      
-      //f->SetParLimits(4,0,TMath::Pi()/2.);
-      //f->SetParLimits(5,tot*0.5,2*tot);
-      //f->FixParameter(0,meanx);
-      // f->FixParameter(0,meanx);
-      // f->FixParameter(2,sigx);                                  
     }
     if(pid==kProton){
       f->SetParLimits(1,meany-10,meany+10);        
@@ -1380,115 +1367,6 @@ std::vector<double> PidPdfMan::CalculatePriorProb(const TFitResultPtr& fit_resul
   return ratios;
 }
 
-// void PidPdfMan::StorePriorProbs()
-// {
-//   std::cout << "Starting generation of prior probabilities..." << std::endl;
-
-//   int it_gen = pidlikeli::kTypeGen;
-//   if (!m_data || !m_data->m_h5_priors) {
-//     std::cerr << "Error: Cannot generate priors, PidPdfMan not ready." << std::endl;
-//     return;
-//   }
-//   for (int ic = 0; ic < pidlikeli::kNchg; ++ic) {
-//     for (int ib = 0; ib < pidlikeli::kNbe; ++ib) {
-//       if(ib!=0) continue;
-//       std::map<int, std::vector<double>> fit_params_map;
-//       std::map<int, std::vector<double>> fit_errors_map;
-//       std::map<int, bool> fit_success_map;
-      
-//       for (int im = 0; im < pidlikeli::kNmom; ++im) {
-// 	std::vector<double> temp_params, temp_errors;
-// 	fit_success_map[im] = ExecFitProj1DGaussForYield(ic, ib, im, temp_params, temp_errors);
-// 	if (fit_success_map[im]) {
-// 	  fit_params_map[im] = temp_params;
-// 	  fit_errors_map[im] = temp_errors;
-// 	}
-//       }
-//       for (int im = 0; im < pidlikeli::kNmom; ++im) {
-// 	if (fit_success_map[im]) {
-// 	  const auto& params_vec = fit_params_map[im];
-// 	  const auto& errors_vec = fit_errors_map[im];
-// 	  for (int ip = 0; ip < kNpid; ++ip) {
-// 	    auto& cell_pid = PidPdfMan::at(it_gen, ip, ic, ib, im);
-// 	    int offset = ip * pidfunc::kNparamGauss;
-// 	    for (int i_param = 0; i_param < pidfunc::kNparamGauss; ++i_param) {
-// 	      cell_pid.p[i_param] = params_vec[offset + i_param];
-// 	      cell_pid.perr[i_param] = errors_vec[offset + i_param];
-// 	    }
-// 	    cell_pid.valid = true;
-// 	  }
-// 	}
-// 	if (fit_success_map[im]) {
-// 	  double yieldfac_e  = pidlikeli::yieldfac_e;
-// 	  double yieldfac_d  = pidlikeli::yieldfac_d;	  
-// 	  auto& cell_pi = PidPdfMan::at(it_gen, pidlikeli::kPion, ic, ib, im);
-// 	  auto& cell_p  = PidPdfMan::at(it_gen, pidlikeli::kProton, ic, ib, im);
-// 	  auto& cell_e = PidPdfMan::at(it_gen, pidlikeli::kElectron, ic, ib, im);
-// 	  auto& cell_d = PidPdfMan::at(it_gen, pidlikeli::kDeutron, ic, ib, im);
-// 	  if(scaleEleDeu){
-// 	    cell_e.p[pidfunc::kParamIdYield] = cell_pi.p[pidfunc::kParamIdYield]*yieldfac_e;
-// 	    cell_e.perr[pidfunc::kParamIdYield] = cell_pi.perr[pidfunc::kParamIdYield]*yieldfac_e;
-// 	    if (ic == pidlikeli::kPlus) {
-// 	      cell_d.p[pidfunc::kParamIdYield] = cell_p.p[pidfunc::kParamIdYield]*yieldfac_d;
-// 	      cell_d.perr[pidfunc::kParamIdYield] = cell_p.perr[pidfunc::kParamIdYield]*yieldfac_d;
-// 	    } else {
-// 	      cell_d.p[pidfunc::kParamIdYield] = 0.0;
-// 	      cell_d.perr[pidfunc::kParamIdYield] = 0.0;
-// 	    }
-// 	  }
-// 	}	
-//       }
-//       for (int im = 0; im < pidlikeli::kNmom; ++im) {
-// 	printf("\n--- Processing: Chg=%d, BE=%d, Mom=%.2f GeV/c ---\n", ic, ib, pidlikeli::BinToMom(im));
-// 	double total_yield_this_mom = 0;
-// 	std::vector<double> yields(kNpid);
-// 	for (int ip = 0; ip < kNpid; ++ip) {
-// 	  auto& cell_pid = PidPdfMan::at(it_gen, ip, ic, ib, im);
-// 	  double yield_val = 0.0;
-// 	  bool was_good_fit = cell_pid.valid && CheckGoodFitM2dEdx(it_gen, ip, ic, ib, im);
-
-// 	  if (was_good_fit) {
-// 	    yield_val = cell_pid.p[pidfunc::kParamIdYield];
-// 	  } else {	  
-// 	    yield_val = InterpYield(it_gen, ip, ic, ib, im);
-// 	    if ( extrapHighP && ip==pidlikeli::kProton && ic==pidlikeli::kPlus ) {
-// 	      std::cout << yield_val << std::endl;
-// 	      getchar();
-// 	      cell_pid.p[pidfunc::kParamIdYield] = yield_val;
-// 	      cell_pid.perr[pidfunc::kParamIdYield] = 0.1*yield_val;
-// 	      cell_pid.valid = true;
-// 	    }
-// 	  }
-// 	  if (yield_val < 0 || std::isnan(yield_val)) yield_val = 0;
-                    
-// 	  yields[ip] = yield_val;
-// 	  total_yield_this_mom += yields[ip];
-
-// 	  printf("  PID: %-8s | Yield: %10.2f (%s)\n",
-// 		 pidlikeli::plist[ip].Data(),
-// 		 yield_val,
-// 		 was_good_fit ? "Fit" : "Interpolated");
-// 	  SetYieldGEPoint(it_gen, ip, ic, ib, im);
-// 	}
-
-// 	if (total_yield_this_mom > 1e-9) {
-// 	  printf("  --------------------------------------------------\n");
-// 	  for (int ip = 0; ip < kNpid; ++ip) {
-// 	    double prior = yields[ip] / total_yield_this_mom;
-
-// 	    printf("  PID: %-8s | Prior Probability: %.4f\n",
-// 		   pidlikeli::plist[ip].Data(), prior);
-                        
-// 	    int bin_coords[5] = {pidlikeli::kTypeForPrior + 1, ip + 1, ic + 1, ib + 1, im + 1};
-// 	    m_data->m_h5_priors->SetBinContent(m_data->m_h5_priors->GetBin(bin_coords), prior);
-// 	  }	
-// 	}   
-//       }
-//     }
-//     std::cout << "Finished generation of prior probabilities." << std::endl;
-//   }
-// }
-
 void PidPdfMan::StorePriorProbs()
 {
   std::cout << "Starting generation of prior probabilities..." << std::endl;
@@ -1794,20 +1672,6 @@ bool PidPdfMan::SetGEPoint(int t_int, int p_int, int c_int, int b_int, int momid
     double beta = pidlikeli::MomToBetaPid(mom,p_int);
 
     using Gr = CorrGraph::Graph;
-    // for (size_t i = 0; i < static_cast<size_t>(Gr::COUNT); ++i) {
-    //   auto graph_type = static_cast<Gr>(i);
-    //   auto cgigraph = cgi.graphs[pidlikeli::scast(graph_type)];
-    //   int n = cgigraph->GetN();
-    //   TString graph_name = CorrGraph::GraphNames[i];      
-    //   double p = getFitValue(t_int, p_int, c_int, b_int, momid, i);
-    //   double perr = getFitErrValue(t_int, p_int, c_int, b_int, momid, i);
-    //   double x_value = graph_name.EndsWith("Mom") ? mom : beta;
-    //   double x_err = graph_name.EndsWith("Mom") ? kDP : 0.01;
-    //   cgigraph->SetPoint(n,x_value,p);
-    //   cgigraph->SetPointError(n,x_err,perr);
-    //  // 	<< " " << cgigraph->GetName() << " SetPoint " << std::endl;      
-    // }
-
     for (const auto& pair : param_map) {
         CorrGraph::Graph graph_type = pair.first;
         int param_id = pair.second;

@@ -83,11 +83,6 @@ public:
   bool CheckFitFunc() const;
   bool CheckFitFunc(int type, int pid, int chg, int be, int mom) const;  
   void  SetFileName(const TString& file_name) { m_file_name = file_name; }
-  // int  MomToBin(double pGeV) const; // convert p [GeV/c] → mom index
-  // double BinToMom(int momBin) const;
-  // int  ChgToBin(int charge) const;
-  // int BEToBin(double beGeV) const;
-  // int BEToBinTEMP(double beGeV) const;
   bool GetParam(int pid, int chgmode=-1 /* -1:all, 0:+, 1:- */ );
   bool GetParamKaonUsingOtherParticles();
   bool CreateFitFunction(int it_int, int pid_int, int chg_int, int ibe_int, int m);
@@ -160,13 +155,6 @@ public:
   // ---- Getter ----
   TF2*  GetFit2D (int itype, int pid, int chg, int ibe, int mom) const;
   
-  // ---- fitting result ----
-  // struct FitResultPars{
-  //   double p[pidfunc::kNparamGauss]{}, perr[pidfunc::kNparamGauss]{};
-  //   double chi2ndf{};
-  //   int    status{};
-  //   bool   valid{false};
-  // };
   bool StoreResult(int type,int pid,int chg,int beid,int momid) const;
   static FitResultPars& at (int type,int pid,int chg,int beid,int momid)
   {
@@ -187,8 +175,6 @@ private:
 
 private:
   bool LoadAllHists();
-  //  bool FitAllHistsProjection();
-  //bool FitAllHists2DRotGauss();
   Bool_t CdMainFile();
   Bool_t ResetParamFile();
   bool OpenParamFile();
