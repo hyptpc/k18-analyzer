@@ -25,7 +25,6 @@
 #include "DCHit.hh"
 #include "DstHelper.hh"
 #include "HodoPHCMan.hh"
-//#include "PidLikelihoodMan.hh"
 #include "Kinematics.hh"
 #include "MathTools.hh"
 #include "RootHelper.hh"
@@ -1502,11 +1501,11 @@ dst::DstRead( int ievent )
   HF1( 2, event.GFstatus++ );  
   HF1( genfitHid, GFntTpc);
   event.GFntTpc = GFntTpc;
+  event.GFfitstatus.resize(GFntTpc);    
   event.GFcharge.resize(GFntTpc);
   event.GFchisqr.resize(GFntTpc);
   event.GFtof.resize(GFntTpc);
   event.GFpval.resize(GFntTpc);
-  event.GFfitstatus.resize(GFntTpc);
   event.GFpdgcode.resize(GFntTpc);
   event.GFnhtrack.resize(GFntTpc);
   event.GFlayer.resize(GFntTpc);
@@ -1545,7 +1544,6 @@ dst::DstRead( int ievent )
   event.nsigma_kaonHtof.resize(ntTpc);
   event.nsigma_pionHtof.resize(ntTpc);
   event.nsigma_electronHtof.resize(ntTpc);  
-
   //for Lambda
   std::vector<Int_t> L_p_id_container, L_pi_id_container;
   std::vector<Int_t> L_p_repid_container, L_pi_repid_container;
@@ -1632,7 +1630,7 @@ dst::DstRead( int ievent )
 	   !Kinematics::HelixDirection(lambda_vert, pi_start, pi_end, pi_vertex_dist)) continue;
 
 	if(pi_vertex_dist > pi_vtx_distcut) continue;
- 	if(p_vertex_dist > p_vtx_distcut) continue;
+	if(p_vertex_dist > p_vtx_distcut) continue;
 	if(ppi_dist > ppi_distcut || TMath::Abs(Llambda.M() - LambdaMass) > lambda_masscut) continue;
 	event.lflag = true;
 	Double_t ltarget_dist;
@@ -1839,95 +1837,125 @@ dst::DstRead( int ievent )
   Double_t u0[100] = {0};
   Double_t v0[100] = {0};
   for( Int_t igf=0; igf<GFntTpc; ++igf ){
+    if(debug) std::cout << "debug " << __FILE__ << " " << __LINE__ << std::endl;                      	      
     event.GFfitstatus[igf] = (int)GFtrackCont.TrackCheck(igf);
+    if(debug) std::cout << "debug " << __FILE__ << " " << __LINE__ << std::endl;                      	      
     HF1( 3, event.GFfitstatus[igf]);
-    if(!GFtrackCont.TrackCheck(igf)) continue;
-    int nh = GFtrackCont.GetNHits(igf);
-    event.GFlayer[igf].resize(nh);
-    event.GFpos_x[igf].resize(nh);
-    event.GFpos_y[igf].resize(nh);
-    event.GFpos_z[igf].resize(nh);
-    event.GFmom[igf].resize(nh);
-    event.GFmom_x[igf].resize(nh);
-    event.GFmom_y[igf].resize(nh);
-    event.GFmom_z[igf].resize(nh);
-    event.GFresidual_x[igf].resize(nh);
-    event.GFresidual_y[igf].resize(nh);
-    event.GFresidual_z[igf].resize(nh);
-    event.GFresidual_p[igf].resize(nh);
-    event.GFresidual_px[igf].resize(nh);
-    event.GFresidual_py[igf].resize(nh);
-    event.GFresidual_pz[igf].resize(nh);
+    if(GFtrackCont.TrackCheck(igf)) {
+      int nh = GFtrackCont.GetNHits(igf);
+      event.GFlayer[igf].resize(nh);
+      event.GFpos_x[igf].resize(nh);
+      event.GFpos_y[igf].resize(nh);
+      event.GFpos_z[igf].resize(nh);
+      event.GFmom[igf].resize(nh);
+      event.GFmom_x[igf].resize(nh);
+      event.GFmom_y[igf].resize(nh);
+      event.GFmom_z[igf].resize(nh);
+      event.GFresidual_x[igf].resize(nh);
+      event.GFresidual_y[igf].resize(nh);
+      event.GFresidual_z[igf].resize(nh);
+      event.GFresidual_p[igf].resize(nh);
+      event.GFresidual_px[igf].resize(nh);
+      event.GFresidual_py[igf].resize(nh);
+      event.GFresidual_pz[igf].resize(nh);
 
-    event.GFchisqr[igf] = GFtrackCont.GetChi2NDF(igf);
-    event.GFcharge[igf] = GFtrackCont.GetCharge(igf);
-    event.GFtof[igf] = GFtrackCont.GetTrackTOF(igf, 0, -1);
-    event.GFpval[igf] = GFtrackCont.GetPvalue(igf);
-    event.GFnhtrack[igf] = GFtrackCont.GetNHits(igf);
-    event.GFpdgcode[igf] = GFtrackCont.GetPDGcode(igf);
+      event.GFchisqr[igf] = GFtrackCont.GetChi2NDF(igf);
+      event.GFcharge[igf] = GFtrackCont.GetCharge(igf);
+      event.GFtof[igf] = GFtrackCont.GetTrackTOF(igf, 0, -1);
+      event.GFpval[igf] = GFtrackCont.GetPvalue(igf);
+      event.GFnhtrack[igf] = GFtrackCont.GetNHits(igf);
+      event.GFpdgcode[igf] = GFtrackCont.GetPDGcode(igf);
 
-    HF1( genfitHid+1, event.GFchisqr[igf]);
-    HF1( genfitHid+2, event.GFpval[igf]);
-    HF1( genfitHid+3, event.GFcharge[igf]);
-    HF1( genfitHid+4, event.GFnhtrack[igf]);
-    HF1( genfitHid+5, event.GFtracklen[igf]);
-    HF1( genfitHid+6, event.GFtof[igf]);
-    for( Int_t ihit=0; ihit<nh; ++ihit ){
-      TVector3 hit = GFtrackCont.GetPos(igf, ihit);
-      TVector3 mom = GFtrackCont.GetMom(igf, ihit);
-      Int_t layer = (int)event.hitlayer[igf][ihit];
-      event.GFlayer[igf][ihit] = layer;
-      event.GFmom_x[igf][ihit] = mom.x();
-      event.GFmom_y[igf][ihit] = mom.y();
-      event.GFmom_z[igf][ihit] = mom.z();
-      event.GFmom[igf][ihit] = mom.Mag();
-      event.GFpos_x[igf][ihit] = hit.x();
-      event.GFpos_y[igf][ihit] = hit.y();
-      event.GFpos_z[igf][ihit] = hit.z();
+      HF1( genfitHid+1, event.GFchisqr[igf]);
+      HF1( genfitHid+2, event.GFpval[igf]);
+      HF1( genfitHid+3, event.GFcharge[igf]);
+      HF1( genfitHid+4, event.GFnhtrack[igf]);
+      HF1( genfitHid+5, event.GFtracklen[igf]);
+      HF1( genfitHid+6, event.GFtof[igf]);
+      for( Int_t ihit=0; ihit<nh; ++ihit ){
+	TVector3 hit = GFtrackCont.GetPos(igf, ihit);
+	TVector3 mom = GFtrackCont.GetMom(igf, ihit);
+	Int_t layer = (int)event.hitlayer[igf][ihit];
+	event.GFlayer[igf][ihit] = layer;
+	event.GFmom_x[igf][ihit] = mom.x();
+	event.GFmom_y[igf][ihit] = mom.y();
+	event.GFmom_z[igf][ihit] = mom.z();
+	event.GFmom[igf][ihit] = mom.Mag();
+	event.GFpos_x[igf][ihit] = hit.x();
+	event.GFpos_y[igf][ihit] = hit.y();
+	event.GFpos_z[igf][ihit] = hit.z();
 
-      event.GFresidual_x[igf][ihit] = hit.x() - event.hitpos_x[igf][ihit];
-      event.GFresidual_y[igf][ihit] = hit.y() - event.hitpos_y[igf][ihit];
-      event.GFresidual_z[igf][ihit] = hit.z() - event.hitpos_z[igf][ihit];
+	event.GFresidual_x[igf][ihit] = hit.x() - event.hitpos_x[igf][ihit];
+	event.GFresidual_y[igf][ihit] = hit.y() - event.hitpos_y[igf][ihit];
+	event.GFresidual_z[igf][ihit] = hit.z() - event.hitpos_z[igf][ihit];
 
-      double chargetest = event.GFcharge[igf]*event.charge[igf];
-      event.GFresidual_p[igf][ihit] = mom.Mag() - event.mom0[igf];
-      event.GFresidual_px[igf][ihit] = mom.x() - chargetest*event.mom_x[igf][ihit];
-      event.GFresidual_py[igf][ihit] = mom.y() - chargetest*event.mom_y[igf][ihit];
-      event.GFresidual_pz[igf][ihit] = mom.z() - chargetest*event.mom_z[igf][ihit];
-      if(ihit==0) HF1( genfitHid+7, event.GFmom[igf][0]);
-      HF1( genfitHid+8, event.GFlayer[igf][ihit]);
-      HF1( genfitHid+10, event.GFresidual_x[igf][ihit]);
-      HF1( genfitHid+11, event.GFresidual_y[igf][ihit]);
-      HF1( genfitHid+12, event.GFresidual_z[igf][ihit]);
-      HF1( genfitHid+13, event.GFresidual_p[igf][ihit]);
-      HF1( genfitHid+14, event.GFresidual_px[igf][ihit]);
-      HF1( genfitHid+15, event.GFresidual_py[igf][ihit]);
-      HF1( genfitHid+16, event.GFresidual_pz[igf][ihit]);
-      HF1( genfitHid+1000*(layer+1), event.GFresidual_x[igf][ihit]);
-      HF1( genfitHid+1000*(layer+1)+1, event.GFresidual_y[igf][ihit]);
-      HF1( genfitHid+1000*(layer+1)+2, event.GFresidual_z[igf][ihit]);
-      HF1( genfitHid+1000*(layer+1)+3, event.GFresidual_p[igf][ihit]);
-      HF1( genfitHid+1000*(layer+1)+4, event.GFresidual_px[igf][ihit]);
-      HF1( genfitHid+1000*(layer+1)+5, event.GFresidual_py[igf][ihit]);
-      HF1( genfitHid+1000*(layer+1)+6, event.GFresidual_pz[igf][ihit]);
-    } //ihit
-    if(debug) std::cout << "debug " << __FILE__ << " " << __LINE__ << std::endl;                      	    
-    //Extrapolation
-    if(event.isBeam[igf]==1) continue;
-    if(event.isK18[igf]==1) continue;
-    if(event.isAccidental[igf]==1) continue;
-    if(GFtrackCont.IsInsideTarget(igf)){
-      event.GFinside[igf] = 1;
-      TVector3 posv; TVector3 momv; double len; double tof;
-      if(GFtrackCont.ExtrapolateToTargetCenter(igf, posv, momv, len, tof)){
-	x0[ntrack_intarget] = posv.x();
-	y0[ntrack_intarget] = posv.y();
-	u0[ntrack_intarget] = momv.x()/momv.z();
-	v0[ntrack_intarget] = momv.y()/momv.z();
-	ntrack_intarget++;
+	double chargetest = event.GFcharge[igf]*event.charge[igf];
+	event.GFresidual_p[igf][ihit] = mom.Mag() - event.mom0[igf];
+	event.GFresidual_px[igf][ihit] = mom.x() - chargetest*event.mom_x[igf][ihit];
+	event.GFresidual_py[igf][ihit] = mom.y() - chargetest*event.mom_y[igf][ihit];
+	event.GFresidual_pz[igf][ihit] = mom.z() - chargetest*event.mom_z[igf][ihit];
+	if(ihit==0) HF1( genfitHid+7, event.GFmom[igf][0]);
+	HF1( genfitHid+8, event.GFlayer[igf][ihit]);
+	HF1( genfitHid+10, event.GFresidual_x[igf][ihit]);
+	HF1( genfitHid+11, event.GFresidual_y[igf][ihit]);
+	HF1( genfitHid+12, event.GFresidual_z[igf][ihit]);
+	HF1( genfitHid+13, event.GFresidual_p[igf][ihit]);
+	HF1( genfitHid+14, event.GFresidual_px[igf][ihit]);
+	HF1( genfitHid+15, event.GFresidual_py[igf][ihit]);
+	HF1( genfitHid+16, event.GFresidual_pz[igf][ihit]);
+	HF1( genfitHid+1000*(layer+1), event.GFresidual_x[igf][ihit]);
+	HF1( genfitHid+1000*(layer+1)+1, event.GFresidual_y[igf][ihit]);
+	HF1( genfitHid+1000*(layer+1)+2, event.GFresidual_z[igf][ihit]);
+	HF1( genfitHid+1000*(layer+1)+3, event.GFresidual_p[igf][ihit]);
+	HF1( genfitHid+1000*(layer+1)+4, event.GFresidual_px[igf][ihit]);
+	HF1( genfitHid+1000*(layer+1)+5, event.GFresidual_py[igf][ihit]);
+	HF1( genfitHid+1000*(layer+1)+6, event.GFresidual_pz[igf][ihit]);
+      } //ihit    
+      if(debug) std::cout << "debug " << __FILE__ << " " << __LINE__ << std::endl;                      	    
+      //Extrapolation
+      if(event.isBeam[igf]==1) continue;
+      if(event.isK18[igf]==1) continue;
+      if(event.isAccidental[igf]==1) continue;
+      if(GFtrackCont.IsInsideTarget(igf)){
+	event.GFinside[igf] = 1;
+	TVector3 posv; TVector3 momv; double len; double tof;
+	if(GFtrackCont.ExtrapolateToTargetCenter(igf, posv, momv, len, tof)){
+	  x0[ntrack_intarget] = posv.x();
+	  y0[ntrack_intarget] = posv.y();
+	  u0[ntrack_intarget] = momv.x()/momv.z();
+	  v0[ntrack_intarget] = momv.y()/momv.z();
+	  ntrack_intarget++;
+	}
+      } else {
+	event.GFinside[igf] = 0;
       }
-    } else {
-      event.GFinside[igf] = 0;
+    } else { // when fit failed
+      event.GFnhtrack[igf] = 0;
+      event.GFnhtrack[igf] = 0;
+      event.GFpdgcode[igf] = -9999;
+        
+      event.GFchisqr[igf] = TMath::QuietNaN();
+      event.GFcharge[igf] = TMath::QuietNaN();
+      event.GFtof[igf]    = TMath::QuietNaN();
+      event.GFpval[igf]   = TMath::QuietNaN();
+
+      event.GFlayer[igf].clear();
+      event.GFpos_x[igf].clear();
+      event.GFpos_y[igf].clear();
+      event.GFpos_z[igf].clear();
+      event.GFmom[igf].clear();
+      event.GFmom_x[igf].clear();
+      event.GFmom_y[igf].clear();
+      event.GFmom_z[igf].clear();
+      event.GFresidual_x[igf].clear();
+      event.GFresidual_y[igf].clear();
+      event.GFresidual_z[igf].clear();
+      event.GFresidual_p[igf].clear();
+      event.GFresidual_px[igf].clear();
+      event.GFresidual_py[igf].clear();
+      event.GFresidual_pz[igf].clear();
+
+      event.GFinside[igf] = -1;
     }
   }
   if(debug) std::cout << "debug " << __FILE__ << " " << __LINE__ << std::endl;                      	
@@ -1961,6 +1989,7 @@ dst::DstRead( int ievent )
   if(l_candidates>0){
     //Reconstructed real Lambdas
     for(int idp=0;idp<l_candidates;idp++){
+      if( !(event.GFfitstatus[idp] && event.GFfitstatus[idp]) ) continue;
       if(L_targetdist_container[idp] > ltarget_distcut) continue;
       Int_t p_id = L_p_id_container[idp];
       Int_t pi_id = L_pi_id_container[idp];
