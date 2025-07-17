@@ -10,27 +10,34 @@
 #include "THn.h"
 #include "PidCommon.hh"
 
-// struct ParticleFitConfig {
-//   pidlikeli::Pid pid;
-//   const char* name;
-//   pidlikeli::DType source_type;
-//   pidlikeli::Chg source_chg;
-//   pidlikeli::BE source_be;
-//   pidlikeli::Pid sigma_source_pid;
-// };
+enum class PdfFuncType {
+    F2D,      // original fitting func
+    F2DCORR,  // corrected(good) fitting func
+    FX_PROJ,  // projectX
+    FY_PROJ,  // projectY
+    FD2D,     // double gaussian
+    FFIVE2D,  // penta gaussian
+    F1D_M2,   // 1D Fit function for m2
+    F1D_DEDX, // 1D Fit function for dEdx
+    PDF,      // final pdf    
+    COUNT     // counts of enum elements
+};
 
-struct PdfBin {
-  TF2* f2d = nullptr; // 2D gauss
-  TF2* f2dc = nullptr;
-  TF2* fd2d = nullptr; // double2D gauss for K-pi- (p+pi+ in Kp reaction)
-  TF2* f2dkm = nullptr; // K- obtained by fitting with pi- and by selecting BE 
-  //  TF2* f2dkmbe = nullptr; // K- obtained
-  TF2* ff2d = nullptr; // five 2d gauss
-  TF2* pdf = nullptr;
+const char* const PdfFuncName[static_cast<size_t>(PdfFuncType::COUNT)] = {
+  "f2d", "f2dc", "fx", "fy", "fd2d", "ff2d", "f1dm2", "f1ddedx", "pdf"
+};
+
+struct PdfBin {  
+  std::array<TObject*, static_cast<size_t>(PdfFuncType::COUNT)> funcs{};
+  template <typename T>
+    T* get_func(PdfFuncType type) const {
+        return static_cast<T*>(funcs[static_cast<size_t>(type)]);
+    }
+  template <typename T>
+    void set_func(PdfFuncType type, T* func_ptr) {
+        funcs[static_cast<size_t>(type)] = func_ptr;
+    }
   
-  TF1* fx = nullptr;
-  TF1* fy = nullptr;
-
   bool functions_created = false;
   bool five2dgauss_created = false; 
   
@@ -70,6 +77,7 @@ struct PidData {
   std::array<CFTypeArr, pidlikeli::kNtype> m_f_good;
   
   std::unique_ptr<THnD> m_h5_priors;
+  std::unique_ptr<THnD> m_h5_good_yields;
   
   PidData();
   inline PdfBin& at_bin(pidlikeli::DType t, pidlikeli::Pid p, pidlikeli::Chg c, pidlikeli::BE b, int m) {

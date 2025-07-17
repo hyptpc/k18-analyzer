@@ -131,7 +131,7 @@ const Double_t ppi_distcut = 10.; //ref
 //const Double_t lpi_distcut = 10.;
 const Double_t ltarget_distcut = 25.;
 //
-const Double_t pip_vtx_distcut = 300;
+  const Double_t pip_vtx_distcut = 300;
 const Double_t pim_vtx_distcut = 300;
 const Double_t pipi_distcut = 10.; //ref  
 const Double_t k0target_distcut = 25.;
@@ -1557,7 +1557,7 @@ dst::DstRead( int ievent )
   std::vector<Double_t> L_targetdist_container;
   std::vector<TVector3> L_targetvtx_container;
   //L candidates searching
-  Int_t l_candidates = 0;  
+  Int_t l_candidates = 0;
   std::vector<Int_t> p_repid_container, pi_repid_container, pi2_repid_container;
 
   {
@@ -2867,7 +2867,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "ncombiLambda", &event.ncombiLambda );
   tree->Branch( "distLambda", &event.distLambda );
   tree->Branch( "angleLambda", &event.angleLambda );
-  tree->Branch( "bestmassLambda", &event.bestmassLambda );
+   tree->Branch( "bestmassLambda", &event.bestmassLambda );
   tree->Branch( "massLambda", &event.massLambda );
   tree->Branch( "vtxLambda_x", &event.vtxLambda_x );
   tree->Branch( "vtxLambda_y", &event.vtxLambda_y );

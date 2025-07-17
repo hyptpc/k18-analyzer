@@ -159,7 +159,14 @@ namespace pidlikeli {
       { pidlikeli::Pid::D,  "D",  pidlikeli::DType::General, pidlikeli::Chg::Plus, pidlikeli::BE::All, pidlikeli::Pid::P },
       { pidlikeli::Pid::E,  "E",  pidlikeli::DType::General, pidlikeli::Chg::Minus, pidlikeli::BE::All, pidlikeli::Pid::Pi}
     }};
-  
+
+  // for prior prob
+  constexpr int kTypeForPrior = kTypeGen;
+  constexpr int kBEForPrior = kBEall;
+  constexpr double yieldfac_e = 0.1; 
+  constexpr double yieldfac_d = 0.05;
+  constexpr double extrapolateHighMomProton = 1.00;
+  constexpr double extrapolateLowMomProton = 0.25;    
 
   // general helper
   template<typename E>
@@ -235,6 +242,9 @@ namespace pidlikeli {
     //  return (idx < 0 || idx >= kNbe) ? -1 : idx;
     return binBE;
   }
+
+  int LHPidToGFPidFlag(Pid pid);
+  
 }
 
 namespace pidfunc {
@@ -250,6 +260,7 @@ namespace pidfunc {
 
   
   Double_t RotGauss2D(Double_t* xy, Double_t* par);
+  Double_t LogRotGauss2D(Double_t* xy, Double_t* par);  
   Double_t RotGauss2DFit(Double_t* xy, Double_t* par);  
   Double_t RotGauss2DProjX(Double_t* x, Double_t* par);
   Double_t RotGauss2DProjXFit(Double_t* x, Double_t* par);
@@ -257,7 +268,11 @@ namespace pidfunc {
   Double_t RotGauss2DProjYFit(Double_t* x, Double_t* par);
   Double_t RotGauss2DBeta(Double_t* xy, Double_t* par);
   Double_t RotDoubleGauss2D(Double_t* xy, Double_t* par);
-  Double_t RotFiveGauss2D(Double_t* xy, Double_t* par);    
+  Double_t RotFiveGauss2D(Double_t* xy, Double_t* par);
+  Double_t Penta1DGaussForM2(Double_t* x, Double_t* par);
+  Double_t Penta1DGaussFordEdx(Double_t* x, Double_t* par);
+  Double_t Single1DGaussForM2(Double_t* x, Double_t* par);
+  Double_t Single1DGaussFordEdx(Double_t* x, Double_t* par);  
   Double_t SigmaDedx(Double_t* beta, Double_t* par);
   Double_t SigmaM2Pid(Double_t* beta, int pid);
   Double_t CalcSigM2(double mom, int pid);

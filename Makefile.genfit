@@ -80,7 +80,7 @@ FLAGS	= $(CFLAGS) $(DFLAGS) -I. $(root_include) \
 #
 lib_objs	= $(lib_dir)/libK18Analyzer.a
 k18lib		= -L$(lib_dir) -lK18Analyzer
-libs		= $(root_libs) $(unpacker_libs) -lrt
+libs		= $(root_libs) $(unpacker_libs) -lRooFit -lRooFitCore -lrt
 #
 core_srcs	= $(wildcard $(src_dir)/*.cc)
 headers		= $(wildcard $(include_dir)/*.hh)

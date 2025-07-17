@@ -17,7 +17,11 @@ PidData::PidData() {
   m_h5_priors = std::make_unique<THnD>(
 				      "h5_priors", "Prior Probabilities",
 				      n_dimensions, n_bins, x_min, x_max
-				      );
+				       );
+  m_h5_good_yields = std::make_unique<THnD>(
+					    "h5_good_yields", "Good Yields from Fit",
+					    n_dimensions, n_bins, x_min, x_max
+					    );  
 }
 
 const std::array<TString, static_cast<size_t>(CorrGraph::Graph::COUNT)>

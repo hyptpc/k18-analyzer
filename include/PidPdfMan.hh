@@ -20,7 +20,8 @@
 #include "PidCommon.hh"
 
 struct FitResultPars {
-  double p[6]{}, perr[6]{};
+  double p[pidlikeli::kNpid*pidfunc::kNparamGauss]{},
+    perr[pidlikeli::kNpid*pidfunc::kNparamGauss]{};
   double chi2ndf{};
   int    status{};
   bool   valid{false};
@@ -100,13 +101,18 @@ public:
   bool SetInitFitParsProj(int type,int pid,int chg,int be,int momid);
   bool SetInitFitPars2D(int type,int pid, int chg,int be,int momid,TH2D*h,TF2*f);  
   bool SetInitFitParsDoubleGauss(int type,int pid,int chg,int be,int momid);
-  TFitResultPtr ExecFitFive2DGauss(int chg,int be,int momid);  
+  bool ExecFitFive2DGauss(int chg,int be,int momid);
+  //bool ExecFitSimultaneous1DGauss(int chg,int be,int momid);
+  //bool ExecFitProj1DGaussForYield(int chg,int be,int momid);
+  bool ExecFitProj1DGaussForYield(int chg, int be, int momid, 
+				  std::vector<double>& params, std::vector<double>& errors);
+  void ProcessFitResultsAndSetGEPointForYield(int chg, int be);
   //bool StoreFitResult(int t,int p,int c,int b,int momid,TF2* f);
   bool StoreFitResultProj(int t,int p,int c,int b,int momid);
   bool StoreFitResultKaon(int t,int p,int c,int b,int momid);  
   bool CheckGoodFitM2(int t,int p,int c,int b,int momid);
   bool CheckGoodFitdEdx(int t,int p,int c,int b,int momid);
-  bool CheckGoodFitM2dEdx(int t,int p,int c,int b,int momid);
+  bool CheckGoodFitM2dEdx(int t,int p,int c,int b,int momid) const;
   bool MakeGoodPdf(int pid);
   bool MakeGoodPdfKm();
   void MakeGoodPdfPiKP(int runmode=pidlikeli::kDGeneral);  
@@ -116,8 +122,10 @@ public:
   bool FillPriorHist(int it_int, int ip_int, int ic_int, int ib_int, int im);
   double GetYield(int it, int ip, int ic, int ib, int im);
   double GetTotalYield(int it, int ic, int ib, int im);
+  //  std::vector<double> CalculatePriorProb(const TFitResultPtr& fit_result) const;
   std::vector<double> CalculatePriorProb(const TFitResultPtr& fit_result) const;
   void StorePriorProbs();
+  void CalculateAndStorePriorProbs();  
   void GetPriorProb();
   double GetPriorProb(int it, int ip, int ic, int ib, int im);
   
@@ -137,7 +145,8 @@ public:
   double getFitErrValue(int t,int p,int c,int b,int momid, int paramid);
   
   bool SetGEPoint(int t,int p,int c,int b,int momid);
-  bool FitGEPoint(int t,int p,int c,int b);    
+  bool FitGEPoint(int t,int p,int c,int b);
+  bool SetYieldGEPoint(int t,int p,int c,int b,int momid);  
   std::array<double, pidfunc::kNparamGauss> GetCalcParameters(int t, int pid, int c, int b, int m) const;
   std::array<double, pidfunc::kNparamGauss> GetCalcParametersRef(int pid, int momid) const;
   const FitResultPars& GetStoredFitParamsOfRefPdf(const pidlikeli::ParticleFitConfig& config, int momid) const;

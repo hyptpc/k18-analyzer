@@ -1,7 +1,6 @@
 
 // -*- C++ -*-
 #include "PidCommon.hh"
-#include "PidData.hh"
 
 #include <TMath.h>
 #include <iostream>
@@ -24,17 +23,23 @@
 #include "FuncName.hh"
 #include "DeleteUtility.hh"
 
-const std::array<TString, static_cast<size_t>(CorrGraph::Graph::COUNT)>
-CorrGraph::GraphNames = {
-  "gMeanM2", "gMeandEdx", "gSigM2", "gSigdEdx", "gRotAngle", "gYield",
-  "gMeanM2Mom", "gMeandEdxMom", "gSigM2Mom", "gSigdEdxMom", "gRotAngleMom", "gYieldMom"
-};
-
-const std::array<TString, static_cast<size_t>(CorrFunc::Func::COUNT)>
-CorrFunc::FuncNames = {
-  "fMeanM2", "fMeandEdx", "fSigM2", "fSigdEdx", "fRotAngle", "fYield",
-  "fMeanM2Mom", "fMeandEdxMom", "fSigM2Mom", "fSigdEdxMom", "fRotAngleMom", "fYieldMom"
-};
+int pidlikeli::LHPidToGFPidFlag(pidlikeli::Pid pid)
+{
+    switch (pid) {
+        case pidlikeli::Pid::Pi:
+	  return 1; // 2^0 pion
+        case pidlikeli::Pid::K:
+	  return 2; // 2^1 kaon
+        case pidlikeli::Pid::P:
+	  return 4; // 2^2 proton
+        case pidlikeli::Pid::D:
+	  return 8; // 2^3 deutron
+        case pidlikeli::Pid::E:
+	  return 16;  // 2^4 electron
+        default:
+            return 0;
+    }
+}
 
 Double_t pidfunc::RotGauss2D(Double_t* xy, Double_t* par){
   const Double_t x    = xy[0];
@@ -59,6 +64,33 @@ Double_t pidfunc::RotGauss2D(Double_t* xy, Double_t* par){
   // normalization  1/(2pi*sigmax*sigmagy)
   const Double_t norm = 1.0 / (2.0 * TMath::Pi() * sigx * sigy);
   return tot * norm * e;
+}
+
+Double_t pidfunc::LogRotGauss2D(Double_t* xy, Double_t* par) {
+  const Double_t x    = xy[0];
+  const Double_t y    = xy[1];
+  const Double_t x0   = par[0];
+  const Double_t y0   = par[1];
+  const Double_t sigx = par[2];
+  const Double_t sigy = par[3];
+  const Double_t th   = par[4];
+
+  if (sigx <= 1e-9 || sigy <= 1e-9) {
+    return -1e30; 
+  }
+
+  const Double_t u = (x - x0) / sigx;
+  const Double_t v = (y - y0) / sigy;
+  const Double_t cost = TMath::Cos(th);
+  const Double_t sint = TMath::Sin(th);
+  const Double_t up =  u * cost + v * sint;    
+  const Double_t vp = -u * sint + v * cost;
+
+  // log( 1/(2π*σx*σy) * exp(-0.5*...)) = -log(2π*σx*σy) - 0.5*...
+  double log_norm = -TMath::Log(2.0 * TMath::Pi() * sigx * sigy);
+  double exponent = -0.5 * (up * up + vp * vp);
+  
+  return log_norm + exponent;
 }
 
 Double_t pidfunc::RotGauss2DFit(Double_t* xy, Double_t* par){
@@ -243,6 +275,66 @@ Double_t pidfunc::RotFiveGauss2D(Double_t* xy, Double_t* par){
   return val;
 }
 
+Double_t pidfunc::Penta1DGaussForM2(Double_t* x, Double_t* par) {
+    Double_t val = 0.0;
+    for (int i = 0; i < pidlikeli::kNpid; ++i) {
+      int offset = i * pidfunc::kNparamGauss;
+      Double_t m2mean  = par[offset+pidfunc::kParamIdM2];
+      Double_t demean  = par[offset+pidfunc::kParamIddEdx];
+      Double_t m2sig   = par[offset+pidfunc::kParamIdSigM2];
+      Double_t desig   = par[offset+pidfunc::kParamIdSigdEdx];
+      Double_t rotangl   = par[offset+pidfunc::kParamIdRotAngle];      
+      Double_t norm  = par[offset+pidfunc::kParamIdYield];
+      if (m2sig > 1e-9) {
+	val += norm * TMath::Gaus(x[0], m2mean, m2sig, true);
+      }
+    }
+    return val;
+}
+
+Double_t pidfunc::Penta1DGaussFordEdx(Double_t* x, Double_t* par) {
+    Double_t val = 0.0;
+    for (int i = 0; i < pidlikeli::kNpid; ++i) {
+      int offset = i * pidfunc::kNparamGauss;
+      Double_t m2mean  = par[offset+pidfunc::kParamIdM2];
+      Double_t demean  = par[offset+pidfunc::kParamIddEdx];
+      Double_t m2sig   = par[offset+pidfunc::kParamIdSigM2];
+      Double_t desig   = par[offset+pidfunc::kParamIdSigdEdx];
+      Double_t rotangl   = par[offset+pidfunc::kParamIdRotAngle];      
+      Double_t norm  = par[offset+pidfunc::kParamIdYield];
+      if (desig > 1e-9) {
+	val += norm * TMath::Gaus(x[0], demean, desig, true);
+      }
+    }
+    return val;
+}
+
+Double_t pidfunc::Single1DGaussForM2(Double_t* x, Double_t* par)
+{
+    Double_t mean  = par[0]; //m2 
+    Double_t sigma = par[2]; //m2
+    Double_t yield = par[5]; //m2
+    // dummy
+    Double_t demean = par[1];
+    Double_t desigma = par[3];
+    
+    if (sigma < 1e-9) return 0.0;
+    return yield * TMath::Gaus(x[0], mean, sigma, true);
+}
+
+Double_t pidfunc::Single1DGaussFordEdx(Double_t* x, Double_t* par)
+{
+    Double_t mean  = par[1]; //de
+    Double_t sigma = par[3]; //de
+    Double_t yield = par[5]; //de
+    //dummy
+    Double_t m2mean = par[0];
+    Double_t m2sigma = par[2];
+    
+    if (sigma < 1e-9) return 0.0;
+    return yield * TMath::Gaus(x[0], mean, sigma, true);
+}
+
 Double_t pidfunc::SigmaDedx(Double_t* x, Double_t* par){
   const Double_t beta = x[0];
   Double_t c = par[0];
@@ -258,9 +350,10 @@ double pidfunc::CalcSigM2(double mom, int pid)
 {
   std::cout << "debug " << __FILE__ << " " << __LINE__ << " " << __func__ << std::endl;  
   Double_t beta = pidlikeli::MomToBetaPid(mom,pid);
-  if (beta < 1e-9) { 
-        return 0.1; 
+  if (beta < 0.1) { 
+        return 1e-6; 
   }
+  double sigm2=0.01;
   std::array<double, 4> sigmaM2param;
   if(pid==pidlikeli::kPion)
     sigmaM2param = pidlikeli::sigmaM2paramPi;
@@ -273,17 +366,20 @@ double pidfunc::CalcSigM2(double mom, int pid)
   else if(pid==pidlikeli::kElectron)
     sigmaM2param = pidlikeli::sigmaM2paramE;
   else
-    sigmaM2param = {0.01,0.01,0.01,0.01};
-  return ExpPlusPol1(&beta,sigmaM2param.data());  
+    sigm2 = 1e-6;
+  sigm2 = ExpPlusPol1(&beta,sigmaM2param.data());
+  if(sigm2<1e-6) sigm2 = 1e-6;
+  return sigm2;
 }
 
 double pidfunc::CalcSigdEdx(double mom, int pid)
 {
   std::cout << "debug " << __FILE__ << " " << __LINE__ << " " << __func__ << std::endl;  
   Double_t beta = pidlikeli::MomToBetaPid(mom,pid);
-  if (beta < 1e-9) { 
-        return 0.1; 
-  }  
+  if (beta < 0.1) { 
+    return 1e-6;
+  }
+  double sigdedx=0.01;
   std::array<double, 2> sigmaDedxparam;
   if(pid==pidlikeli::kPion)
     sigmaDedxparam = pidlikeli::sigmaDedxparamPi;
@@ -296,8 +392,10 @@ double pidfunc::CalcSigdEdx(double mom, int pid)
   else if(pid==pidlikeli::kElectron)
     sigmaDedxparam = pidlikeli::sigmaDedxparamE;
   else
-    sigmaDedxparam = {0.01,0.01};    
-  return SigmaDedx(&beta,sigmaDedxparam.data());
+    sigdedx = 1e-6;
+  if(sigdedx<1e-6) sigdedx = 1e-6;
+  sigdedx = SigmaDedx(&beta,sigmaDedxparam.data());
+  return sigdedx;
 }  
 
 Double_t pidfunc::SigmaInvBeta(Double_t* x, Double_t* par){
@@ -338,23 +436,3 @@ Double_t pidfunc::LogiFunc1(Double_t *x, Double_t *p) {
   return m2/deno + p[3];
 }
 
-// struct CorrFunc
-CorrFunc::CorrFunc() {
-  using Func = CorrFunc::Func;
-  functions[pidlikeli::scast(Func::MeanM2)]
-    = new TF1("fMeanM2", pidfunc::Pol1, 0., pidlikeli::maxpoq, 2);
-  functions[pidlikeli::scast(Func::MeandEdx)]
-    = new TF1("fMeandEdx", pidfunc::Pol1, 0, pidlikeli::maxpoq, 2);
-  functions[pidlikeli::scast(Func::SigM2)]
-    = new TF1("fSigM2", pidfunc::ExpPlusPol1, 0, pidlikeli::maxpoq, 4);
-  functions[pidlikeli::scast(Func::SigdEdx)]
-    = new TF1("fSigdEdx", pidfunc::SigmaInvBeta, 0, pidlikeli::maxpoq, 4);
-  functions[pidlikeli::scast(Func::Yield)]
-    = new TF1("fYield", pidfunc::Pol1, 0, pidlikeli::maxpoq, 2);
-}
-CorrGraph::CorrGraph() {
-  using Graph = CorrGraph::Graph;
-  for (size_t i = 0; i < static_cast<size_t>(Graph::COUNT); ++i) {
-    graphs[i] = new TGraphErrors();
-  }    
-}
