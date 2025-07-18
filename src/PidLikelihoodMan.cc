@@ -110,13 +110,13 @@ Bool_t PidLikelihoodMan::Initialize(const TString& file_name)
 // === Posterior prob calculation ===
 std::vector<double> PidLikelihoodMan::CalculatePosterior(int charge, double momentum, double m2, double dedx) const
 {
-  if ( !(std::isnan(m2) || std::isnan(dedx)) ) return {};
-  
+  if ( (std::isnan(m2) || std::isnan(dedx)) ) return {};
   if( !m_is_ready ) return {};
+  std::cout << " debug " << __FILE__ << " " << __LINE__ << " " << __func__ << std::endl;
   int mom_bin = pidlikeli::MomToBin(momentum);
   int chg_bin = pidlikeli::ChgToBin(charge);
   if( mom_bin<0||chg_bin<0 ) return {};
-
+  std::cout << " debug " << __FILE__ << " " << __LINE__ << " " << __func__ << std::endl;
   std::vector<double> log_posteriors;
   log_posteriors.reserve(pidlikeli::kNpid);
   double total_posterior_sum = 0.0;
@@ -148,7 +148,7 @@ std::vector<double> PidLikelihoodMan::CalculatePosterior(int charge, double mome
     double log_likelihood = pidfunc::LogRotGauss2D(xy_vals, temp_params);
     log_posteriors.push_back(log_likelihood + log_prior);
   }
-
+  std::cout << " debug " << __FILE__ << " " << __LINE__ << " " << __func__ << std::endl;
   double max_log_post = -1e10;
   for (double lp : log_posteriors) {
     if (lp > max_log_post) max_log_post = lp;
@@ -157,7 +157,7 @@ std::vector<double> PidLikelihoodMan::CalculatePosterior(int charge, double mome
   if (max_log_post <= -1e9) {
         return std::vector<double>(pidlikeli::kNpid, 0.0);
   }
-
+  std::cout << " debug " << __FILE__ << " " << __LINE__ << " " << __func__ << std::endl;
   double posterior_sum_exp = 0.0;
   for (double lp : log_posteriors) {
     posterior_sum_exp += TMath::Exp(lp - max_log_post);
@@ -176,9 +176,10 @@ std::vector<double> PidLikelihoodMan::CalculatePosterior(int charge, double mome
       final_posteriors.push_back(TMath::Exp(lp - max_log_post) / posterior_sum_exp);
     }
   } else {
+    std::cout << " debug " << __FILE__ << " " << __LINE__ << " " << __func__ << std::endl;
     return std::vector<double>(pidlikeli::kNpid, 0.0);
   }
-
+  std::cout << " debug " << __FILE__ << " " << __LINE__ << " " << __func__ << std::endl;
   return final_posteriors;
 }
 
