@@ -5,6 +5,7 @@
 #ifndef KinFit_cc
 #define KinFit_cc
 #define Debug 0
+#define UseHessian 0
 #define ShowChi2 0
 #define DebugHessian 0
 // Author: Kang Byungmin, kangbmw2@naver.com
@@ -139,6 +140,9 @@ void KinematicFitter::ProcessStep(){
 	*/
 	auto VMat = Variancies.at(step);
 	auto VInv = VMat;
+#if Debug
+	std::cout<<"Inverting VMat"<<std::endl;
+#endif
 	VInv.SetTol(1e-26);
 	VInv.Invert();
 #if Debug
@@ -170,8 +174,14 @@ void KinematicFitter::ProcessStep(){
 	auto rMat = FMat + dFdMS*(MS0-MS);
 	auto sMat =dFdMS*VMat*dFdMT;
 	auto sInv = sMat;
+#if Debug
+	std::cout<<"Inverting SMat"<<std::endl;
+#endif
 	sInv.Invert();
 	auto FuSIFu =	dFdUT*sInv*dFdU;
+#if Debug
+	std::cout<<"Inverting FuS-1Fu"<<std::endl;
+#endif
 	FuSIFu.Invert();
 	auto dU = (FuSIFu) * (dFdUT* (sInv) * rMat) ;
 	dU = dU -dU - dU;
@@ -200,6 +210,9 @@ void KinematicFitter::ProcessStep(){
 	auto GMat = dFdMT*sInv*dFdMS;
 	auto HMat = dFdMT*sInv*dFdU;
 	auto UMat = dFdUT*sInv*dFdU;
+#if Debug
+	std::cout<<"Inverting UMat"<<std::endl;
+#endif
 	UMat.Invert();
 	UHessians.push_back(UHessian);
 	auto HMatT = TransposeMatrix(HMat);
@@ -208,8 +221,9 @@ void KinematicFitter::ProcessStep(){
 	dVMats.push_back(dV);
 	auto VMat_next = VMat- VMat * (GMat - HUH)*VMat - VMat * (GMat - HUH)*VMat + dV;
 	auto VInv_next = VMat_next;
-	auto UVMat = UHessian;
-	UVMat.Invert();
+#if Debug
+	std::cout<<"Inverting Next VMat"<<std::endl;
+#endif
 	VInv_next.SetTol(1e-26);
 	VInv_next.Invert();
 #if Debug
@@ -222,8 +236,14 @@ void KinematicFitter::ProcessStep(){
 	for(int iu=0;iu<nUnkn;++iu){
 		CHI2_U(iu,iu)=Chi2;
 	}
+#if UseHessian
+	auto UVMat = UHessian;
+#if Debug
+	std::cout<<"Inverting UHessian"<<std::endl;
+#endif
+	UVMat.Invert();
 	UVMat=UVMat*CHI2_U;
-
+#endif
 
 #if Debug>1
 	TString StepIndi = Form("[Step::%d]",step);
@@ -232,8 +252,10 @@ void KinematicFitter::ProcessStep(){
 	VMat.Print();
 	cout<<"V Mat_next : Determinant = "<<VMat_next.Determinant();
 	VMat_next.Print();
+#if UseHessian
 	cout<<"U Cov";
 	UVMat.Print();
+#endif
 	cout<<"V*VInv : Determinant = "<<(VMat*VInv).Determinant();
 	(VMat*VInv).Print();
 	cout<<"V*VInv_next : Determinant = "<<(VMat_next*VInv_next).Determinant();

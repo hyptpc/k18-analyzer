@@ -290,7 +290,6 @@ VertexPointHelix(const Double_t par1[5], const Double_t par2[5],
   fvert_helix.GetMinimumXY(close_zin, close_zout);
   t1 = close_zin;
   t2 = close_zout;
-  dist = TMath::Sqrt(fvert_helix.GetMinimum());
 
   Double_t xin = par1[0]+par1[3]*cos(close_zin);
   Double_t xout = par2[0]+par2[3]*cos(close_zout);
@@ -1197,6 +1196,31 @@ Double_t HypTPCdEdxNsigmaElectron(Double_t dedx, Double_t poq){
   Double_t nsigma = (dedx-dedx_e)/sigma_dedx_e;
   return nsigma;
 }
+//_____________________________________________________________________________
+Double_t HypTPCdEdxPion(Double_t poq){
+
+  Double_t mpi = 139.57039;
+  Double_t par_pi[2] = {conversion_factor, mpi};
+  Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
+  return dedx_pi;
+}
+//_____________________________________________________________________________
+Double_t HypTPCdEdxKaon(Double_t poq){
+
+  Double_t mk = 493.677;
+  Double_t par_k[2] = {conversion_factor, mk};
+  Double_t dedx_k = HypTPCBethe(&poq, par_k); //P10's <dE/dx>_k
+  return dedx_k;
+}
+
+//_____________________________________________________________________________
+Double_t HypTPCdEdxProton(Double_t poq){
+
+  Double_t mp = 938.2720813;
+  Double_t par_p[2] = {conversion_factor, mp};
+  Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
+  return dedx_p;
+}
 
 //_____________________________________________________________________________
 Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t tracklength, Double_t tof){
@@ -1370,20 +1394,20 @@ Bool_t HypTPCdEdxElectron(Double_t dedx, Double_t poq){
   Double_t par_e[2] = {conversion_factor, me};
   Double_t dedx_e = HypTPCBethe(&poq, par_e); //P10's <dE/dx>_e
 
-  Bool_t flag = (nsigma_pi < -4 &&
+  Bool_t flag = (nsigma_pi < -3.5 &&
 		 TMath::Abs(nsigma_e) < 3.5 &&
 		 TMath::Abs(poq) < 0.1);
   return flag;
 }
 
 //_____________________________________________________________________________
-Bool_t HypTPCdEdxKaon(Double_t dedx, Double_t poq){
+ Bool_t HypTPCdEdxKaon(Double_t dedx, Double_t poq){
 
-  Double_t nsigma = HypTPCdEdxNsigmaKaon(dedx, poq);
-  Double_t window_k[2] = {-3., 3.};
-  Bool_t flag = (nsigma < window_k[1] && nsigma > window_k[0]);
-  return flag;
-}
+   Double_t nsigma = HypTPCdEdxNsigmaKaon(dedx, poq);
+   Double_t window_k[2] = {-3., 3.};
+   Bool_t flag = (nsigma < window_k[1] && nsigma > window_k[0]);
+   return flag;
+ }
 
 //_____________________________________________________________________________
 Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
@@ -1392,7 +1416,6 @@ Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
   //Double_t mk  = 493.677;
   Double_t mp  = 938.2720813;
   //Double_t md  = 1875.612762;
-
   if(HypTPCdEdxElectron(dedx, poq)) return 0; //electron
 
   // 1 sigma of <dE/dx>_pi
@@ -1407,7 +1430,7 @@ Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
   Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
   Double_t sigma_p = (sigma_dedx_p[0] + sigma_dedx_p[1]*TMath::Abs(poq) + sigma_dedx_p[2]*poq*poq + sigma_dedx_p[3]*TMath::Exp(sigma_dedx_p[4]*TMath::Abs(poq)));
   Double_t nsigma_p = HypTPCdEdxNsigmaProton(dedx, poq);
-  Double_t window_p[2] = {-3., 6.};
+  Double_t window_p[2] = {-4., 6.};
 
   //p/pi separation power calculation
   Double_t avg_sigma = 0.5*(sigma_pi + sigma_p);
@@ -1634,6 +1657,76 @@ TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
   Double_t vx = 0.5*(xPi+xL);
   Double_t vy = 0.5*(yPi+yL);
   Double_t vz = 0.5*(zPi+zL);
+
+  Double_t vertx = -1.*vx;
+  Double_t verty = vz;
+  Double_t vertz = vy + tpc::ZTarget;
+  return TVector3(vertx, verty, vertz);
+}
+
+TVector3 LambdaPVertex(Double_t Bfield, Double_t p2_par[5],
+		  Double_t theta_min, Double_t theta_max,
+		  TVector3 Xlambda, TVector3 Plambda,
+		  TVector3 &Pp2, Double_t &lambdap_dist){
+  
+  // Note that p2 represents another proton, separate from the proton from the Lambda decay
+
+  Double_t lambdavtx_xivtx_cut = 0.;
+
+  Double_t xi = -1.*Xlambda.x();
+  Double_t yi = Xlambda.z() - tpc::ZTarget;
+  Double_t zi = Xlambda.y();
+  Double_t pxi = -1.*Plambda.x();
+  Double_t pyi = Plambda.z();
+  Double_t pzi = Plambda.y();
+  Double_t ui = -pxi/pyi, vi = pzi/pyi;
+
+  TVector3 p_L = TVector3(pxi, pyi, pzi);
+  TVector3 p_unit = p_L.Unit();
+
+  //helix function
+  //x = [0] + [3]*cos(t);
+  //y = [1] + [3]*sin(t);
+  //z = [2] + [3]*[4]*t;
+
+  //straight function
+  //x = [5] + [6]*y;
+  //z = [7] + [8]*y;
+
+  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::ZTarget, 250.-tpc::ZTarget);
+
+  Double_t scan_range[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  if(pyi>0) scan_range[1] = yi + lambdavtx_xivtx_cut/(p_unit.y());
+  else scan_range[0] = yi - lambdavtx_xivtx_cut/(p_unit.y());
+  TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, scan_range[0], scan_range[1]);
+  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::ZTarget, 250.-tpc::ZTarget);
+
+  fvertex_helix_linear.SetParameter(0, p2_par[0]);
+  fvertex_helix_linear.SetParameter(1, p2_par[1]);
+  fvertex_helix_linear.SetParameter(2, p2_par[2]);
+  fvertex_helix_linear.SetParameter(3, p2_par[3]);
+  fvertex_helix_linear.SetParameter(4, p2_par[4]);
+  fvertex_helix_linear.SetParameter(5, xi + ui*yi);
+  fvertex_helix_linear.SetParameter(6, -ui);
+  fvertex_helix_linear.SetParameter(7, zi - vi*yi);
+  fvertex_helix_linear.SetParameter(8, vi);
+
+  Double_t helix_t, close_y;
+  fvertex_helix_linear.GetMinimumXY(helix_t, close_y);
+  //lambdapi_dist = TMath::Sqrt(fvertex_helix_linear.GetMinimum());
+  lambdap_dist = TMath::Sqrt(fvertex_helix_linear.Eval(helix_t, close_y));
+
+  Pp2 = CalcHelixMom(Bfield, 1, p2_par, helix_t);
+
+  Double_t xP2 = p2_par[0]+p2_par[3]*cos(helix_t);
+  Double_t yP2 = p2_par[1]+p2_par[3]*sin(helix_t);
+  Double_t zP2 = p2_par[2]+p2_par[3]*p2_par[4]*helix_t;
+  Double_t xL = xi - ui*(close_y-yi);
+  Double_t yL = close_y;
+  Double_t zL = zi + vi*(close_y-yi);
+  Double_t vx = 0.5*(xP2+xL);
+  Double_t vy = 0.5*(yP2+yL);
+  Double_t vz = 0.5*(zP2+zL);
 
   Double_t vertx = -1.*vx;
   Double_t verty = vz;

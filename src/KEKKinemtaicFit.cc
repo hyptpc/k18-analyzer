@@ -34,11 +34,13 @@ KEKCascadeFitter::KEKCascadeFitter(
 	};
 	auto Cov12 = MathTools::MergeOffdiagonals(Cov1,Cov2);
 	auto Offdiagonals = MathTools::MergeOffdiagonals(Cov12,Cov3);
+/*
 	cout<<"Dims of Cov1: "<<Cov1.GetNrows()<<"x"<<Cov1.GetNcols()<<endl;
 	cout<<"Dims of Cov2: "<<Cov2.GetNrows()<<"x"<<Cov2.GetNcols()<<endl;
 	cout<<"Dims of Cov3: "<<Cov3.GetNrows()<<"x"<<Cov3.GetNcols()<<endl;
 	cout<<"Dims of Cov12: "<<Cov12.GetNrows()<<"x"<<Cov12.GetNcols()<<endl;
 	cout<<"Dims of Offdiagonals: "<<Offdiagonals.GetNrows()<<"x"<<Offdiagonals.GetNcols()<<endl;
+	*/
 	auto HLV1 = TLorentzVector(LV1.Px(), LV1.Pz(), LV1.Py(), LV1.E());
 	auto HLV2 = TLorentzVector(LV2.Px(), LV2.Pz(), LV2.Py(), LV2.E());
 	auto HLV3 = TLorentzVector(LV3.Px(), LV3.Pz(), LV3.Py(), LV3.E());

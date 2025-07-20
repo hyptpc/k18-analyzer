@@ -38,7 +38,6 @@
 
  /* TPCTracking */
 #define UseTpcCluster 1 // 1 : Common clustering method, 0 : Cluster size=1 no clustering
-#define RejectUpstream 0
 namespace
 {
 TRandom3 RandGen;
@@ -266,8 +265,9 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
 
   static const Double_t MinClusterYPos = gUser.GetParameter("MinClusterYPosTPC");
   static const Double_t MaxClusterYPos = gUser.GetParameter("MaxClusterYPosTPC");
+  static const Double_t MinCDe = gUser.GetParameter("MinCDeTPC");
 
-  bool RejectKaonHits = false;
+  static bool RejectKaonHits = gUser.GetParameter("RejectAccidentals");
   ClearTPCHits();
   ClearTPCClusters();
   if(nhits != Mom.size()){
@@ -288,14 +288,11 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     double Eff = GetDetectionEfficiency(hitpos, pid[i], Mom[i], de[i]);
     double rndm = gRandom->Uniform(0., 1.);
     if(rndm > Eff) continue;
+    if(de[i] == 0. || de[i] == TMath::QuietNaN() || de[i] < MinCDe) continue;
     auto hit = new TPCHit(layer, row);
+    // end of tentative treatment
     hit->AddHit(TMath::QuietNaN(), TMath::QuietNaN()); // allocate hit
-    // tentative treatment
-    if(de[i] == 0. || de[i] == TMath::QuietNaN()){
-      hit->SetDe(1.e-3);
-    }else{
-      hit->SetDe(de[i]);
-    }
+    hit->SetDe(de[i]);
     // end of tentative treatment
     int cl_size = GetClusterSize(hitpos, pid[i], Mom[i], de[i]);
     if (cl_size == 1){

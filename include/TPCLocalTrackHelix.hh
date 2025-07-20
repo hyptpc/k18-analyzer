@@ -169,11 +169,14 @@ public:
   TVector3 GetMomentumCovarianceVect(Int_t i, Double_t MomScale = 1, Double_t PhiScale = 1, Double_t dZScale = 1);
   TVector3 GetMomentumCovarianceVect();
   Double_t GetMomentumResolution();
-  Double_t GetMomentumResolutionScat(int pid);
   Double_t GetTransverseMomentumAngularCovariance(Double_t t = -9999);
   Double_t GetTransverseMomentumResolution();//returns dP, not dP/P;
-  Double_t GetTransverseAngularResolution(Double_t t, Double_t sig0 = 0.01); //returns angular resolution on pad plane
-  Double_t GetTransverseAngularResolution();
+  Double_t GetTransverseAngularResolution(Double_t t); //returns angular resolution on pad plane
+  Double_t GetTransverseAngularResolution();//for 1st hit
+  Double_t GetMomentumResolutionScat(int pid);
+  Double_t GetAngularResolutionScat(int pid);
+  Double_t GetTransverseAngularResolutionScat(int pid);
+  Double_t GetVerticalAngularResolutionScat(int pid);
   TMatrixD GetCovarianceMatrix(int pid = -1, double MomScale = 1, double PhiScale = 1, double dZScale = 1);
   TMatrixD GetVertexCovarianceMatrix(TVector3 vert, double l, int pid = -1);
 

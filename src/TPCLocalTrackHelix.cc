@@ -3852,7 +3852,7 @@ TPCLocalTrackHelix::GetTransverseMomentumAngularCovariance(Double_t t){
   Double_t sign = 1;
   if(m_charge>0)sign = -1;
   Double_t dp_t =  GetTransverseMomentumResolution();
-  Double_t dt = GetTransverseAngularResolution(t,0);
+  Double_t dt = GetTransverseAngularResolution(t);
   return sign * dp_t * dt;
 }
 
@@ -3961,7 +3961,7 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
 
   Double_t L = 2 * sin(0.5*dt)*m_r;//String length, not Arc length
   L*=0.001;//mm->m;
-  Double_t res = 0;
+  Double_t res2_inv = 0;
   Int_t nh = m_hit_array.size();
   for(Int_t ih=0;ih<m_hit_array.size();++ih){
     Int_t id = m_hit_order[ih];
@@ -3980,32 +3980,47 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
       nh--;
       continue;
     }
-    res+=res_T*res_T;
+    res2_inv+=1./(res_T*res_T);
   }
+	Double_t res2 = nh/res2_inv;// sigma definition: Mean -> Harmonic Mean
   Double_t pt = m_r*(tpc::ConstC*B)*0.001;
   if(nh<4) return pt*0.1;
-  res = sqrt(res / nh)* 0.001;//mm-> m
+  Double_t res = sqrt(res2)* 0.001;//mm-> m
   Double_t dPOverP = pt / (0.3*L*L*B)*sqrt(720./(nh+4))*res;
   if(std::isnan(dPOverP) || dPOverP < 0){
     std::cout<<Form("dPt error! nh = %d, res = %g",nh,res)<<std::endl;
   }
   return m_MomResScale*pt*dPOverP;
 }
-
 //_____________________________________________________________________________
 Double_t
-TPCLocalTrackHelix::GetTransverseAngularResolution(Double_t t, Double_t sig0){
+TPCLocalTrackHelix::GetTransverseAngularResolution(Double_t t){
   //Transverse Angle Definition: atan2(pz,px);
   Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
   Double_t pt = m_r*(tpc::ConstC*B)*0.001;
   Double_t dp = GetTransverseMomentumResolution();
-  Double_t dr = m_r * dp/pt;
+  Double_t dr = m_r * dp/pt;// r ~ p_t, hence dr / r ~ dp / p_t
   Double_t t_avg = 0.5*(m_max_t + m_min_t);
   Double_t dt = (t-t_avg);
   if(dt >acos(-1))dt = acos(-1);
-  Double_t path = m_r * abs(dt);
-
-  return hypot(m_PhResScale*path * dr / m_r / m_r,sig0);
+  Double_t half_path = m_r * abs(dt); //sigma_phi = sigma_p * path / r / p_t
+  Double_t res = m_PhResScale* half_path/m_r  * dr/m_r;// = m_PhResScale * abs(dt) * dp/pt;
+  return res;
+}
+//_____________________________________________________________________________
+Double_t
+TPCLocalTrackHelix::GetTransverseAngularResolutionScat(int pid){
+  if(pid > -1){
+    return GetAngularResolutionScat(pid)* sqrt(1./(1 + m_dz*m_dz));//Transverse component of angular resolution
+  }
+  else return 3e-5;//requried to avoid singularity in covariance. Typical angular scat. order ~ e-5;
+}
+Double_t
+TPCLocalTrackHelix::GetVerticalAngularResolutionScat(int pid){
+  if(pid > -1){
+    return GetAngularResolutionScat(pid)* sqrt(m_dz*m_dz/(1 + m_dz*m_dz));//Vertical component of angular resolution
+  }
+  else return 3e-5;//requried to avoid singularity in covariance. Typical angular scat. order ~ e-5;
 }
 
 //_____________________________________________________________________________
@@ -4013,14 +4028,24 @@ Double_t
 TPCLocalTrackHelix::GetTransverseAngularResolution(){
 
   Double_t t0 = GetHitInOrder(0) -> GetTheta();
-  Double_t sig0 = 0.001;
-  return GetTransverseAngularResolution(t0, sig0);
+  return GetTransverseAngularResolution(t0);
 }
 
 //_____________________________________________________________________________
 Double_t
 TPCLocalTrackHelix::GetdZResolution(){
-  Double_t res2 = 0;
+
+  /*
+   assume a set of hits, (r_i,y_i). r_i = r t_i, y_i is corresponding y position.
+   The equation to fit is Y = z0 + dz * r_i.
+   This function evaluates the sigma of dz from y resolution.
+   The resolution of slope parameter from linear fit of the function f(r_i) = z0 + dz * r_i is given by:
+   sigma_slope = sqrt( 1/(n-2) *  Sum[(y_i - f(r_i))^2] / Sum[(r_i - <r_i>)^2] )
+   The numerator is the sum of the variance, which equals to the n times the average resolution squard.
+    The denominator is the sum of the variance of r_i. If we assume relatively uniform hit distribution,
+    this summation is just n times the varaince of uniform distribution with track length L, which is L^2/12. 
+  */
+  Double_t res2_inv = 0;
   Int_t nh = m_hit_array.size();
   for(Int_t ih=0;ih<m_hit_array.size();++ih){
     Int_t id = m_hit_order[ih];
@@ -4031,23 +4056,29 @@ TPCLocalTrackHelix::GetdZResolution(){
       nh--;
       continue;
     }
-    res2 += res_Y*res_Y;
+    res2_inv += 1./(res_Y*res_Y);
   }
+	Double_t res2 = nh/res2_inv;
+	Double_t res = sqrt(res2);
   Double_t dt = abs(m_max_t - m_min_t);
   //  if(dt > 2*acos(-1)) dt = 2*acos(-1);
   Double_t path = m_r * dt;
-  Double_t path_dev = path*path*nh/12;
+  Double_t path_var = nh * path*path/12;
   if(nh < 3) return 0.01;
-  Double_t d_slope = 1./(nh-2)*res2/path_dev;
+  Double_t d2_slope = 1./(nh-2)* nh*res*res/path_var;
+  Double_t d_slope = sqrt(d2_slope);
   if(std::isnan(d_slope) || std::isinf(d_slope)){
     std::cout<<Form("Nan || inf dZ resol! nh = %d, dt = %g, res = %g", nh,dt,res2)<<std::endl;
   }
-  return m_dZResScale*sqrt(d_slope);
+  return m_dZResScale*d_slope;
 }
 
 //_____________________________________________________________________________
 Double_t
 TPCLocalTrackHelix::GetThetaResolution(){
+  // theta is the angle between the momentum and the Y axis.(Axis along the B field)
+  // Hence dz = tan(pi/2 - theta), theta = pi/2 - atan(dz).
+  // sigma_theta  = d (dz) / d theta * sigma dz = 1./(1+dz^2) * sigma dz
   Double_t d_slope = GetdZResolution();
   return d_slope / (1+m_dz*m_dz);
 }
@@ -4060,6 +4091,9 @@ TPCLocalTrackHelix::GetMomentumResolution(){
 }
 Double_t
 TPCLocalTrackHelix::GetMomentumResolutionScat(int pid){
+  /*
+  https://arxiv.org/abs/1805.12014
+  */
 	double X0 = 268;//[m], P10 gas,Radiation length
 	double L = m_path* 0.001;//mm -> m
 	double L0 = L/hypot(1,m_dz);
@@ -4068,6 +4102,9 @@ TPCLocalTrackHelix::GetMomentumResolutionScat(int pid){
   double mk  = 0.493677;
   double mp  = 0.9382720813;
 	double mass = 0;
+  Int_t nh = m_hit_array.size();
+
+  double res0_angle = 0.0136;// GeV/c. G.R. Lynch and O.I Dahl, Nucl. Instrum. Methods B58, 6 (1991).
 	if(pid == 0){
 		mass = mpi;
 	}
@@ -4087,27 +4124,71 @@ TPCLocalTrackHelix::GetMomentumResolutionScat(int pid){
 	double Energy = hypot(mass,m_mom0.Mag());
 	double beta = m_mom0.Mag()/Energy;
 	double p_t = hypot(m_mom0.x(),m_mom0.z());
-	return 0.0136 / ( beta * p_t) * sqrt(L0 / X0 )*(1 - 0.038 * log(L0/X0));
-
+	return res0_angle / (0.3* beta * B * L) * sqrt(L0 / X0 )*(1 + 0.038 * log(L0/X0/nh)) * p_t;
+}
+Double_t
+TPCLocalTrackHelix::GetAngularResolutionScat(int pid){
+  /*
+  https://arxiv.org/abs/1805.12014
+  */
+	double X0 = 268;//[m], P10 gas,Radiation length
+	double L = m_path* 0.001;//mm -> m
+	double L0 = L/hypot(1,m_dz);
+  double B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  double mpi = 0.13957039;
+  double mk  = 0.493677;
+  double mp  = 0.9382720813;
+	double mass = 0;
+  Int_t nh = m_hit_array.size();
+  double res0_angle = 0.0136;// GeV/c. G.R. Lynch and O.I Dahl, Nucl. Instrum. Methods B58, 6 (1991).
+	if(pid == 0){
+		mass = mpi;
+	}
+	else if(pid == 1){
+		mass = mk;
+	}
+	else if (pid == 2){
+		mass = mp;
+	}
+	else if (pid == -1){
+		return 0;
+	}
+	else{
+		mass = mp;
+		std::cout<<FUNC_NAME<<" PID Flag Wrong! "<<pid<<std::endl; 
+	}
+	double Energy = hypot(mass,m_mom0.Mag());
+	double beta = m_mom0.Mag()/Energy;
+	double p_t = hypot(m_mom0.x(),m_mom0.z());
+	return res0_angle / (beta * p_t) * sqrt(L0 / X0 /nh)*(1 + 0.038 * log(L0/X0/nh)) * p_t;
 }
 TMatrixD
 TPCLocalTrackHelix::GetCovarianceMatrix(int pid, double MomScale, double PhiScale, double dZScale){
   double Elements[3*3]={0};
   double cov_mom_th = GetMomentumPitchAngleCovariance();
   double cov_mom_ph = GetTransverseMomentumAngularCovariance();
+
   double res_mom = GetMomentumResolution();
   double res_scat = GetMomentumResolutionScat(pid);
+
   double res_th = GetThetaResolution();
+  double res_scat_th = GetVerticalAngularResolutionScat(pid);
+
   double res_ph = GetTransverseAngularResolution();
+  double res_scat_ph = GetTransverseAngularResolutionScat(pid);
+
   double res_mom_tot = hypot(res_mom,res_scat); 
+  double res_ph_tot = hypot(res_ph,res_scat_ph); 
+  double res_th_tot = hypot(res_th,res_scat_th); 
+
   res_mom_tot *= MomScale;
-  res_th *= dZScale;
-  res_ph *= PhiScale;
+  res_th_tot *= dZScale;
+  res_ph_tot *= PhiScale;
   cov_mom_th *= MomScale*dZScale;
   cov_mom_ph *= MomScale*PhiScale;//Additional scaling factor for momentum resolution is applied.
 	Elements[0+3*0] = res_mom_tot*res_mom_tot;
-  Elements[1+3*1] = res_th*res_th;
-  Elements[2+3*2] = res_ph*res_ph;
+  Elements[1+3*1] = res_th_tot*res_th_tot;
+  Elements[2+3*2] = res_ph_tot*res_ph_tot;
   Elements[0*3+1] = cov_mom_th;
   Elements[1*3+0] = cov_mom_th;
   Elements[0*3+2] = cov_mom_ph;
@@ -4159,7 +4240,7 @@ TPCLocalTrackHelix::GetVertexCovarianceMatrix(TVector3 vert, double l, int pid){
   double l_t = l * 1./sqrt(1 + m_dz*m_dz);
 
   double sig_pt = GetTransverseMomentumResolution();
-  double sig_ph = GetTransverseAngularResolution(t0,0);//Take only geometric terms
+  double sig_ph = GetTransverseAngularResolution(t0);//Take only geometric terms
   double sig_th = GetThetaResolution();
 
   double sig_R = hypot(res, (l_t + 0.5 * L )*sig_ph );//mm
