@@ -222,14 +222,23 @@ static const Int_t FrameHighEdge[NumOfLayersTPC][5] =
   {-1,-100,-100,-100,-100}, //30
   {-1,-100,-100,-100,-100}
 };
-static const Double_t ClusterSizeInner[2][10] ={
-  {0.12912,0.12912,0.129121,0.164862,0.211372,0.256798,0.33125,0.315186,0.27439,0.303371},//proton
-  {0.274143,0.550639,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333}//pion
+static const Double_t SingleClusterProbInner[2][10] ={
+  {
+		0.365306,0.647167,0.653409,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333
+	},//pion
+  {
+		0.249064,0.249064,0.167145,0.236829,0.319018,0.423105,0.515685,0.56682,0.70229,0.70229
+	}//proton
   //0.0 - 0.1 , 0.1 - 0.2, ... 0.9 - 1.0 GeV/c
 };
-static const Double_t ClusterSizeOuter[2][10] ={
-  {0.285714,0.285714,0.326683,0.280962,0.243775,0.234132,0.217313,0.256798,0.293478,0.285319},//proton
-  {0.257669,0.348881,0.308642,0.308642,0.308642,0.308642,0.308642,0.308642,0.308642,0.308642}//pion
+static const Double_t SingleClusterProbOuter[2][10] ={
+  {
+		0.268342,0.456443,0.646027,0.646027,0.646027,0.646027,0.646027,0.646027,0.646027,0.646027
+
+	},//pion
+  {
+		0.424191,0.424191,0.34039,0.263538,0.273977,0.309987,0.356402,0.377678,0.446131,0.446131
+	},//proton
   //0.0 - 0.1 , 0.1 - 0.2, ... 0.9 - 1.0 GeV/c
 };
 //_____________________________________________________________________________
@@ -1383,19 +1392,19 @@ inline Double_t GetClSize1Prob(double mom, int pid, int layer){
     if(mom_flag > 9){
       mom_flag = 9;
       if(inner){
-        prob = ClusterSizeInner[pidflag][mom_flag];
+        prob = SingleClusterProbInner[pidflag][mom_flag];
       }
       else{
-        prob = ClusterSizeOuter[pidflag][mom_flag];
+        prob = SingleClusterProbOuter[pidflag][mom_flag];
       }
     }
     else{
       double resi = (mom )/0.1 - mom_flag;
       if(inner){
-        prob = ClusterSizeInner[pidflag][mom_flag]*(1-resi) + ClusterSizeInner[pidflag][mom_flag+1]*resi; 
+        prob = SingleClusterProbInner[pidflag][mom_flag]*(1-resi) + SingleClusterProbInner[pidflag][mom_flag+1]*resi; 
       }
       else{
-        prob = ClusterSizeOuter[pidflag][mom_flag]*(1-resi) + ClusterSizeOuter[pidflag][mom_flag+1]*resi; 
+        prob = SingleClusterProbOuter[pidflag][mom_flag]*(1-resi) + SingleClusterProbOuter[pidflag][mom_flag+1]*resi; 
       }
     }
     return prob; 
