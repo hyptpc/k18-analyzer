@@ -71,7 +71,7 @@ void HypTPCTrack::AddReps(int ith, int pdg){
 
 void HypTPCTrack::AddHelixTrack(int pdg, TPCLocalTrackHelix *tp){
 
-  _hitClusterArray -> Delete();
+  //_hitClusterArray -> Delete();
   genfit::TrackCand trackCand;
 
   //GenFit Units : GeV/c, ns, cm, kGauss
@@ -147,7 +147,7 @@ void HypTPCTrack::AddHelixTrack(int pdg, TPCLocalTrackHelix *tp){
 
 void HypTPCTrack::AddHelixTrack(int pdg, double initmom, TPCLocalTrackHelix *tp){
 
-  _hitClusterArray -> Delete();
+  //_hitClusterArray -> Delete();
   genfit::TrackCand trackCand;
 
   //GenFit Units : GeV/c, ns, cm, kGauss
@@ -235,7 +235,7 @@ void HypTPCTrack::AddHelixTrack(std::vector<int> pdg, TPCLocalTrackHelix *tp){
 
 void HypTPCTrack::AddLinearTrack(int pdg, TPCLocalTrack *tp, double momentum){
 
-  _hitClusterArray -> Delete();
+  //_hitClusterArray -> Delete();
   genfit::TrackCand trackCand;
 
   //GenFit Units : GeV/c, ns, cm, kGauss
@@ -297,7 +297,7 @@ void HypTPCTrack::AddLinearTrack(std::vector<int> pdg, TPCLocalTrack *tp, double
 
 void HypTPCTrack::AddReconstructedTrack(int pdg, TVector3 posSeed, TVector3 momSeed){
 
-  _hitClusterArray -> Delete();
+  //_hitClusterArray -> Delete();
   genfit::TrackCand trackCand;
   TVector3 resVect(0.0001, 0.0001, 0.0001);
   TPCHit *hit = new TPCHit(0, 0);
@@ -330,6 +330,6 @@ void HypTPCTrack::AddReconstructedTrack(int pdg, TVector3 posSeed, TVector3 momS
   trackCand.setTimeSeed(0.); //set defualt _time=0.;
 
   new ((*_genfitTrackArray)[_genfitTrackArray -> GetEntriesFast()]) genfit::Track(trackCand, *_measurementFactory, new genfit::RKTrackRep(pdg));
-  delete track;
+  //delete track;
   delete hit;
 }
