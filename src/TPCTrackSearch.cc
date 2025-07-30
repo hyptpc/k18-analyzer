@@ -199,12 +199,12 @@ namespace
   Bool_t
   ConvertTrack(TPCLocalTrack *LinearTrack, TPCLocalTrackHelix *HelixTrack)
   {
-
     Int_t n = LinearTrack->GetNHit();
     for(Int_t i=0; i<n; ++i){
       TPCLTrackHit *hitp = LinearTrack->GetHit(i);
-      HelixTrack->AddTPCHit(hitp);
+      HelixTrack->AddTPCHit(new TPCLTrackHit(hitp->GetHit())); 
     }
+    LinearTrack->ClearHits();
     Double_t LinearPar[4];
     LinearTrack->GetParam(LinearPar);
     Bool_t status = HelixTrack->ConvertParam(LinearPar);

@@ -7,6 +7,7 @@
 #include <functional>
 
 #include <std_ostream.hh>
+#include "AbsTrackRep.h"
 
 #include "TVector3.h"
 #include "ThreeVector.hh"
@@ -127,8 +128,8 @@ public:
   void         Print(const TString& arg="", Bool_t print_allhits=false) const;
   Bool_t       IsGoodForTracking();
 
-  TVector3 CalcHelixMom(Double_t par[5], Double_t theta) const;
-  TVector3 CalcHelixMomCenter(Double_t par[5]) const;
+  TVector3 CalcHelixMom(const Double_t par[5], Double_t theta) const;
+  TVector3 CalcHelixMomCenter(const Double_t par[5]) const;
 
   TPCLTrackHit* GetHit(std::size_t nth) const;
   TPCLTrackHit* GetHitInOrder(std::size_t nth) const;
@@ -199,7 +200,7 @@ public:
 
   Int_t    GetNPad() const;
   Int_t    GetNDF() const;
-  TVector3 GetPosition(Double_t par[5], Double_t t) const;
+  TVector3 GetPosition(const Double_t par[5], Double_t t) const;
   Double_t GetAlpha(Int_t i) const; //alpha : pad - track angle
   Double_t GetAlpha(TPCHit *hit) const; //alpha : pad - track angle
 
@@ -210,6 +211,40 @@ public:
   Int_t GetIsMultiloop() const { return m_is_multiloop; }
   Int_t GetIsXi() const { return m_isXi; }
 
+
+  // extrapolation
+  // bool ExtrapolateToPlane(const double par[5], int charge, double mint, double maxt,
+  // 			  genfit::SharedPlanePtr plane,
+  // 			  TVector3& pos_on_plane, TVector3& mom_on_plane,
+  // 			  double& track_len) const;
+  // bool ExtrapolateToPoint(const double par[5], int charge, double mint, double maxt,
+  //                                const TVector3& point,
+  //                                TVector3& pos_on_track, TVector3& mom_on_track,
+  //                                double& track_len, double& closest_dist) const;
+  // bool ExtrapolateToTarget(const double par[5], int charge, double mint, double maxt,
+  // 			   TVector3& pos_on_track,TVector3& mom_on_track,
+  // 			   double& track_len,double& closest_dist) const;
+  // bool ExtrapolateToTargetCenter(const double par[5], int charge, double mint, double maxt,
+  // 				 TVector3& pos_on_track,TVector3& mom_on_track,
+  // 				 double& track_len,double& closest_dist) const;
+  // bool IsInsideTarget(const double par[5], int charge, double mint, double maxt) const;
+  // bool ExtrapolateToHTOF(const double par[5], int charge, double mint, double maxt,
+  // 			 int &candidates, int *ID,
+  // 			 TVector3 *pos, TVector3 *mom, double *tracklen) const;
+  bool ExtrapolateToPlane(const genfit::SharedPlanePtr& plane,
+                          TVector3& pos_on_plane, TVector3& mom_on_plane,
+                          double& track_len) const;
+  bool ExtrapolateToPoint(const TVector3& point,
+                          TVector3& pos_on_track, TVector3& mom_on_track,
+                          double& track_len, double& closest_dist) const;
+  bool ExtrapolateToTarget(TVector3& pos_on_track, TVector3& mom_on_track,
+			   double& track_len, double& closest_dist) const;
+  // bool ExtrapolateToTargetCenter(TVector3& pos_on_track, TVector3& mom_on_track,
+  // 				 double& track_len, double& closest_dist) const;
+  // bool ExtrapolateToHTOF(int &candidates, int *ID,
+  // 			 TVector3& pos_on_htof, TVector3& mom_on_htof, double& track_len) const;  
+  // bool IsInsideTarget() const;
+  
   void SetParam(Double_t *par){ m_cx = par[0]; m_cy = par[1]; m_z0 = par[2]; m_r = par[3]; m_dz = par[4]; }
   void SetClustersHoughFlag(Int_t hough_flag);
 
@@ -281,6 +316,10 @@ public:
   //Re-fit with the vertex constraint
   Bool_t DoFitTrackwVertex(TVector3 vertex_pos, TVector3 vertex_res);
 
+private:
+  genfit::SharedPlanePtr HTOFPlane[8];
+  genfit::SharedPlanePtr TgtPlane;
+  
 };
 
 //_____________________________________________________________________________

@@ -67,6 +67,9 @@ z = p[2] + p[4]*p[3]*(theta);
 #include "MathTools.hh"
 #include "PrintHelper.hh"
 #include "UserParamMan.hh"
+#include "DetPlane.h"
+#include <iomanip>
+
 
 #define DebugDisp 0
 #define IterativeResolution 1
@@ -159,6 +162,7 @@ namespace
   static std::string circ_cross="pow([2]*[2]+[2]*([0]*cos(x)+[1]*sin(x)) +[0]*[0]+[1]*[1]-[3]*[3] ,2)";
   static TF1 fcir_cross("fcir_cross", circ_cross.c_str(), -10.*TMath::Pi(), 10.*TMath::Pi());
 
+  const double ztgt = tpc::ZTarget;
 }
 
 //______________________________________________________________________________
@@ -182,7 +186,7 @@ static inline TVector3 LocalToGlobal(TVector3 pos){
 }
 
 //______________________________________________________________________________
-static inline TVector3 LocalPosition(Double_t par[5], Double_t t){
+static inline TVector3 LocalPosition(const Double_t par[5], Double_t t){
 
   //TPC local coordinate
   //This is the eqation of Helix
@@ -193,12 +197,11 @@ static inline TVector3 LocalPosition(Double_t par[5], Double_t t){
 }
 
 //______________________________________________________________________________
-static inline TVector3 GlobalPosition(Double_t par[5], Double_t t){
+static inline TVector3 GlobalPosition(const Double_t par[5], Double_t t){
 
   TVector3 pos = LocalPosition(par, t);
   return LocalToGlobal(pos);
 }
-
 //______________________________________________________________________________
 static inline Double_t EvalTheta(Double_t par[5], TVector3 pos, Double_t window_low, Double_t window_up){
 
@@ -258,60 +261,6 @@ static inline Double_t EvalThetaXZ(Double_t par[5], TVector3 pos, Double_t windo
   Double_t min_t = fintXZ.GetMinimumX();
   return min_t;
 }
-
-/*
-//______________________________________________________________________________
-static inline TVector3 ExpectedPosRow(Double_t par[5], TVector3 pos){ //pad horizontal residual vector
-
-  if(gHelixTheta.size()!=gNumOfHits){
-  hddaq::cerr<< "TPCLocalTrackHelix ExpectedPosRow() "<<" Fatal error : No helix theta information!!! CalcHelixTheta() should be run in front of this"<<std::endl;
-  }
-
-  TVector3 localpos = GlobalToLocal(pos);
-  Double_t x = localpos.x(); Double_t y = localpos.y();
-  Double_t theta0 = gHelixTheta[0];
-  Double_t k = x*x + y*y - x*par[0] - y*par[1];
-  k /= par[3];
-
-  //Two candidates exist
-  Double_t cost1 = x*k + y*TMath::Sqrt(TMath::Hypot(x, y) - k*k);
-  cost1 /= TMath::Hypot(x, y);
-  Double_t sint1 = y*k - x*TMath::Sqrt(TMath::Hypot(x, y) - k*k);
-  sint1 /= TMath::Hypot(x, y);
-  Double_t x1 = par[0] + par[3]*cost1;
-  Double_t y1 = par[1] + par[3]*sint1;
-  Double_t theta1 = TMath::ATan2(y1 - par[1], x1 - par[0]);
-  if(TMath::Abs(theta1 - theta0) > TMath::Pi()){
-  if(theta0>0 && theta1<0) theta1 += 2.*TMath::Pi();
-  if(theta0<0 && theta1>0) theta1 -= 2.*TMath::Pi();
-  }
-  Double_t z1 = par[2] + par[3]*par[4]*theta1;
-
-  Double_t cost2 = x*k - y*TMath::Sqrt(TMath::Hypot(x, y) - k*k);
-  cost2 /= TMath::Hypot(x, y);
-  Double_t sint2 = y*k + x*TMath::Sqrt(TMath::Hypot(x, y) - k*k);
-  sint2 /= TMath::Hypot(x, y);
-  Double_t x2 = par[0] + par[3]*cost2;
-  Double_t y2 = par[1] + par[3]*sint2;
-  Double_t theta2 = TMath::ATan2(y2 - par[1], x2 - par[0]);
-  if(TMath::Abs(theta2 - theta0) > TMath::Pi()){
-  if(theta0>0 && theta2<0) theta2 += 2.*TMath::Pi();
-  if(theta0<0 && theta2>0) theta2 -= 2.*TMath::Pi();
-  }
-  Double_t z2 = par[2] + par[3]*par[4]*theta2;
-
-  TVector3 calpos_row = TMath::Hypot(x - x1, y - y1) < TMath::Hypot(x - x2, y - y2) ? TVector3(x1, y1, z1) : TVector3(x2, y2, z2);
-  return LocalToGlobal(calpos_row);
-  }
-
-  //______________________________________________________________________________
-  static inline TVector3 ResidualVectRow(Double_t par[5], TVector3 pos){ //pad horizontal residual vector
-
-  TVector3 calpos_row = ExpectedPosRow(par, pos);
-  return pos - calpos_row;
-  }
-*/
-
 //______________________________________________________________________________
 static inline TVector3 ResidualVect(Double_t par[5], TVector3 pos, double theta){ //Closest distance on
 
@@ -1257,6 +1206,19 @@ TPCLocalTrackHelix::TPCLocalTrackHelix(TPCLocalTrackHelix *init){
   m_dZResScale = dZResScale;
   m_PhResScale = PhiResScale;
 
+  // TVector3 pointRef(0,0,-htof_l);
+  // TVector3 normalRef(0,0,-1.);  
+  // for(int i=0; i<8; i++){
+  //   if(i!=0){
+  //     double angle = 0.25*TMath::Pi();
+  //     pointRef.RotateY(angle);
+  //     normalRef.RotateY(angle);
+  //   }
+  //   HTOFPlane[i] = genfit::SharedPlanePtr(new genfit::DetPlane(pointRef, normalRef));
+  // }
+  // TVector3 tgtnormal(0,0,1.);
+  // TgtPlane = genfit::SharedPlanePtr(new genfit::DetPlane(tgtcenter, tgtnormal));
+
   debug::ObjectCounter::increase(ClassName());
 }
 
@@ -1392,7 +1354,7 @@ TPCLocalTrackHelix::GetNDF() const
 
 //______________________________________________________________________________
 TVector3
-TPCLocalTrackHelix::GetPosition(Double_t par[5], Double_t t) const
+TPCLocalTrackHelix::GetPosition(const Double_t par[5], Double_t t) const
 {
   return GlobalPosition(par, t);
 }
@@ -1461,7 +1423,6 @@ TPCLocalTrackHelix::GetResolutionVect(Int_t i, Bool_t vetoBadClusters){
 //_____________________________________________________________________________
 Double_t
 TPCLocalTrackHelix::GetResolutionY(TPCHit* hit){
-
   //vertical resolution
   std::vector<Double_t> resparam = hit->GetResolutionParams();
   Double_t param_y[4] = {resparam[6], resparam[1], resparam[7], resparam[8]};
@@ -1474,7 +1435,6 @@ TPCLocalTrackHelix::GetResolutionY(TPCHit* hit){
 //_____________________________________________________________________________
 Double_t
 TPCLocalTrackHelix::GetResolutionY(Int_t i){
-
   TPCHit *hit = m_hit_array[i] -> GetHit();
   return GetResolutionY(hit);
 }
@@ -1523,7 +1483,7 @@ TPCLocalTrackHelix::CalcResidual(TVector3 pos)
 
 //______________________________________________________________________________
 TVector3
-TPCLocalTrackHelix::CalcHelixMomCenter(Double_t par[5]) const
+TPCLocalTrackHelix::CalcHelixMomCenter(const Double_t par[5]) const
 {
 
   Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
@@ -1544,7 +1504,7 @@ TPCLocalTrackHelix::CalcHelixMomCenter(Double_t par[5]) const
 
 //______________________________________________________________________________
 TVector3
-TPCLocalTrackHelix::CalcHelixMom(Double_t par[5], Double_t theta) const
+TPCLocalTrackHelix::CalcHelixMom(const Double_t par[5], Double_t theta) const
 {
 
   Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
@@ -2698,6 +2658,135 @@ TPCLocalTrackHelix::GetTrackdE()
 }
 
 //______________________________________________________________________________
+bool TPCLocalTrackHelix::ExtrapolateToPlane(const genfit::SharedPlanePtr& plane,
+                                              TVector3& pos_on_plane, TVector3& mom_on_plane,
+                                              double& track_len) const
+{
+  if (!m_is_theta_calculated) return false;
+
+  double par[5];
+  GetParam(par);
+  const int charge = m_charge;
+  const double mint = m_min_t;
+  const double maxt = m_max_t;
+
+  const TVector3 plane_pos = 10. * plane->getO(); // cm->mm 
+  const TVector3 plane_normal = plane->getNormal(); 
+
+  TVector3 pos_at_mint = GlobalPosition(par, mint);
+  TVector3 pos_at_maxt = GlobalPosition(par, maxt);
+ 
+  TVector3 start_point = pos_at_mint;
+  TVector3 track_direction = pos_at_maxt - pos_at_mint;
+  if (charge < 0){
+    track_direction *= -1.0;
+    start_point = pos_at_maxt;
+  } 
+  TVector3 start_to_plane = plane_pos - start_point;
+  double start_theta, step, dir;
+
+  if (start_to_plane.Dot(track_direction) > 0) {
+    dir = 1.0;
+    if (charge>0) {
+      start_theta = mint;
+      step = +0.02;
+    } else {
+      start_theta = maxt;
+      step = -0.02;
+    }
+    // start_theta = (charge > 0) ? maxt: mint;
+    // step = (charge > 0) ? 0.02: -0.02;    
+  } else {
+    dir = -1.0;
+    if (charge>0) {
+      start_theta = mint;
+      step = -0.02;
+    } else {
+      start_theta = maxt;
+      step = +0.02;
+    }    
+    // start_theta = (charge > 0) ? mint: maxt;
+    // step = (charge > 0) ? -0.02: 0.02;        
+  }
+  
+  double current_theta = start_theta; 
+  
+  TVector3 current_pos;
+  double prev_sign = (GlobalPosition(par, start_theta) - plane_pos).Dot(plane_normal);  
+
+  for (int i = 0; i < 1000; ++i) { // 1000 steps at max
+    current_pos = GlobalPosition(par, current_theta);
+    double current_sign = (current_pos - plane_pos).Dot(plane_normal);
+    double current_path_len = dir*TMath::Abs(current_theta - start_theta) * par[3] * TMath::Sqrt(1. + par[4]*par[4]);
+    //double current_path_len = dir*(current_theta - start_theta) * par[3] * TMath::Sqrt(1. + par[4]*par[4]);
+
+    // =======================================    
+    // if (i < 10) {
+    //   std::cout << "  [DEBUG] Step " << i 
+    // 		<< " | Theta: " << std::fixed << std::setprecision(4) << current_theta
+    // 		<< " | PathLen: " << std::fixed << std::setprecision(2) << current_path_len << " mm"	
+    // 		<< " | Pos: (" << std::fixed << std::setprecision(2) << current_pos.X() 
+    // 		<< ", " << current_pos.Y() << ", " << current_pos.Z() << ")"
+    // 		<< " | Sign: " << current_sign << std::endl;
+    // }
+    // =======================================
+    if (current_sign * prev_sign <= 1e-6) break;     
+    prev_sign = current_sign;
+    current_theta += step;
+  }
+  // no intersection
+  if ( (GlobalPosition(par, current_theta) - plane_pos).Dot(plane_normal) * prev_sign > 0) {
+    return false;
+  }
+  
+  pos_on_plane = current_pos;
+  mom_on_plane = CalcHelixMom(par, current_theta);
+  track_len = dir*TMath::Abs(current_theta - start_theta) * par[3] * TMath::Sqrt(1. + par[4]*par[4]);
+  //track_len = dir*(current_theta - mint) * par[3] * TMath::Sqrt(1. + par[4]*par[4]);
+
+  return true;
+}
+
+//______________________________________________________________________________
+bool TPCLocalTrackHelix::ExtrapolateToPoint(const TVector3& point,
+					    TVector3& pos_on_track, TVector3& mom_on_track,
+					    double& track_len, double& closest_dist) const
+{
+  if (!m_is_theta_calculated) return false;
+
+  double par[5];
+  GetParam(par);
+  const int charge = m_charge;
+  const double mint = m_min_t;
+  const double maxt = m_max_t;
+
+  TVector3 start_pos = GlobalPosition(par, mint);
+  if(charge<0) start_pos = GlobalPosition(par, maxt);
+  TVector3 plane_normal = (point - start_pos).Unit();
+  
+  genfit::SharedPlanePtr plane(new genfit::DetPlane(0.1 * point, plane_normal));
+  
+  if (!this->ExtrapolateToPlane(plane, pos_on_track, mom_on_track, track_len)) {
+    return false;
+  }
+  
+  closest_dist = (pos_on_track - point).Mag();
+  
+  return true;
+}
+
+bool TPCLocalTrackHelix::ExtrapolateToTarget(TVector3& pos_on_track, TVector3& mom_on_track,
+                                              double& track_len, double& closest_dist) const
+{
+  const TVector3 target_point(0., 0., ztgt);
+
+  return this->ExtrapolateToPoint(target_point,
+				  pos_on_track, mom_on_track,
+                                  track_len, closest_dist);
+}
+
+
+//______________________________________________________________________________
 void
 TPCLocalTrackHelix::AddVPHit(TVector3 vp)
 {
@@ -2925,27 +3014,24 @@ TPCLocalTrackHelix::IsBackward()
 void
 TPCLocalTrackHelix::IsMultiLoop()
 {
-
   if(!m_is_theta_calculated){
     std::cout<<FUNC_NAME+" Fatal error : No helix theta information!!! CalcHelixTheta() should be run in front of this"<<std::endl;
     return ;
   }
-
   //High pT spiral-like track
   //Pitch > NSigma * y_resolution
   //Radius < 250.mm (TPC radius)
   //loop is larger then half circle
   Double_t pitch = TMath::Abs(2.*TMath::Pi()*m_r*m_dz);
   if(!m_is_multiloop){
-    if(pitch > ThetaNSigma*GetResolutionY(0) &&
+    if(pitch > ThetaNSigma*GetResolutionY(0) &&       
        m_r < 250. &&
-       (m_max_t - m_min_t) > TMath::Pi())
+       (m_max_t - m_min_t) > TMath::Pi())      
       m_is_multiloop = true;
 #if DebugDisp
     if(m_is_multiloop) std::cout<< " Multi-loop track!!"<<std::endl;
 #endif
   }
-
   if(m_is_multiloop){
     if(pitch < ThetaNSigma*GetResolutionY(0) || m_r > 250.) m_is_multiloop = false;
 #if DebugDisp
@@ -2953,7 +3039,6 @@ TPCLocalTrackHelix::IsMultiLoop()
 #endif
   }
   gMultiLoop = m_is_multiloop;
-
 }
 
 //______________________________________________________________________________
@@ -3387,7 +3472,9 @@ TPCLocalTrackHelix::DoFitTrackwVertex(TVector3 vertex_pos, TVector3 vertex_res)
 void
 TPCLocalTrackHelix::RecalcTrack()
 {
-
+  if (m_hit_array.empty() || m_hit_t.empty()) {
+    return;
+  }
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   m_is_theta_calculated = true;
   m_is_calculated = false;
@@ -3400,7 +3487,6 @@ TPCLocalTrackHelix::RecalcTrack()
   m_path = (m_max_t - m_min_t)*sqrt(m_r*m_r*(1. + m_dz*m_dz));
   m_transverse_path = (m_max_t - m_min_t)*m_r;
   IsMultiLoop();
-
 }
 
 //_____________________________________________________________________________

@@ -316,7 +316,6 @@ bool HypTPCTask::ExtrapolateTrack(int trackid, double distance, TVector3 &pos, T
 }
 
 bool HypTPCTask::ExtrapolateToPoint(int trackid, TVector3 point, TVector3 &pos, TVector3 &mom, double &tracklen, double &tof, int repid) const{
-
   double tracklength = GetTrackLength(trackid, 0, -1, repid);
   if(TMath::IsNaN(tracklength)) return false;
   genfit::RKTrackRep *rep = (genfit::RKTrackRep *) GetTrackRep(trackid, repid);
@@ -355,7 +354,6 @@ bool HypTPCTask::ExtrapolateToPoint(int trackid, TVector3 point, TVector3 &pos, 
 }
 
 bool HypTPCTask::ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, TVector3 &pos, TVector3 &mom, double &tracklen, double &tof, int repid) const{
-
   double tracklength = GetTrackLength(trackid, 0, -1, repid);
   if(TMath::IsNaN(tracklength)) return false;
   genfit::RKTrackRep *rep = (genfit::RKTrackRep *) GetTrackRep(trackid, repid);
@@ -383,6 +381,34 @@ bool HypTPCTask::ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, T
     std::cout<<"mean excitation energy [eV] : "<<steps.at(i).material_.mEE<<std::endl;
   }
 #endif
+
+  if(0){
+    std::cout << "\n--- ExtrapolateToPlane Debug (TrackID: " << trackid << ") ---" << std::endl;
+    std::vector<genfit::MatStep> steps = rep->getSteps();
+    std::cout << "RK Extrapolation finished with " << steps.size() << " steps." << std::endl;
+
+    genfit::StateOnPlane tempState = GetFitState(trackid, 0, repid);
+
+    double cum_step = 0.0;
+    for(size_t i=0; i < steps.size(); ++i){
+      tempState.extrapolateBy(steps.at(i).stepSize_);
+      cum_step += steps.at(i).stepSize_;
+      
+      const TVector3& current_pos = tempState.getPos(); // cm
+      const TVector3& current_mom = tempState.getMom(); // GeV/c
+
+      std::cout << __FILE__ << " " << __LINE__ << " " << __func__ 
+		<< "  Step " << std::setw(3) << i << ":"
+		<< " StepSize: " << std::fixed << std::setprecision(4) << 10. * steps.at(i).stepSize_ << " mm,"
+		<< " PathLen: " << std::fixed << std::setprecision(2) << 10. * cum_step << " mm,"
+		<< " Pos_X: " << std::fixed << std::setprecision(2) << 10. * current_pos.X() << " mm,"	
+		<< " Pos_Y: " << std::fixed << std::setprecision(2) << 10. * current_pos.Y() << " mm,"
+		<< " Pos_Z: " << std::fixed << std::setprecision(2) << 10. * current_pos.Z() << " mm,"		
+		<< " MomMag: " << std::fixed << std::setprecision(4) << current_mom.Mag() << " GeV/c"
+		<< std::endl;
+    }
+    std::cout << "----------------------------------------------------" << std::endl;
+  }
 
   pos = 10.*fitState.getPos(); //cm -> mm
   mom = fitState.getMom();
@@ -414,9 +440,9 @@ bool HypTPCTask::IsInsideTarget(int trackid, int repid) const{
   else return false;
 }
 
-bool HypTPCTask::ExtrapolateToHTOF(int trackid, int &candidates, int *ID, TVector3 *pos, TVector3 *mom, double *tracklen, double *tof, int repid) const{
-
-  for(int i=0;i<8;i++){
+bool HypTPCTask::ExtrapolateToHTOF(int trackid, int &candidates, int *ID, TVector3 *pos, TVector3 *mom, double *tracklen, double *tof, int repid) const
+{
+  for ( int i=0;i<8;i++ ){
     ID[i] = -1;
     pos[i] = TVector3(qnan, qnan, qnan);
     mom[i] = TVector3(qnan, qnan, qnan);
@@ -463,7 +489,6 @@ bool HypTPCTask::ExtrapolateToHTOF(int trackid, int &candidates, int *ID, TVecto
       mom[candidates] = mom0;
       tracklen[candidates] = tracklen0;
       tof[candidates] = tof0;
-
       candidates++;
     }
   }
@@ -656,7 +681,7 @@ bool HypTPCTask::TPCHTOFTrackMatching(int trackid, int repid, TVector3 vertex, s
 
   bool status = false;
   double PosDiffCut = 100.; //mm
-
+  
   TVector3 vtx_pos; TVector3 vtx_mom; double vtx_len; double vtx_tof;
   if(!ExtrapolateToPoint(trackid, vertex, vtx_pos, vtx_mom,
 			 vtx_len, vtx_tof, repid)) return status;

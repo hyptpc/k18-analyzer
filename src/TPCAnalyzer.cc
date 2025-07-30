@@ -36,6 +36,10 @@
 #include "PrintHelper.hh"
 #include "TRandom3.h"
 
+#include "TPCLocalTrackHelix.hh"
+#include "DetPlane.h"
+
+
  /* TPCTracking */
 #define UseTpcCluster 1 // 1 : Common clustering method, 0 : Cluster size=1 no clustering
 
@@ -74,6 +78,13 @@ const Int_t& IdHTOF = gGeom.DetectorId("HTOF");
 
 const Double_t MaxChiSqrTrack = 1000.;
 static std::vector<Double_t> gChisqr;
+
+
+const double qnan = TMath::QuietNaN();
+const double htof_l = 34.86; //center to HTOF downstream (copied from genfit/genkek/HypTPCTask.cc)
+const double ztgt = tpc::ZTarget;
+const TVector3 tgtcenter(0,0,0.1*tpc::ZTarget); //cm  
+  
 }
 
 static inline Bool_t CompareChisqr(const Int_t a, const Int_t b){
@@ -86,6 +97,20 @@ TPCAnalyzer::TPCAnalyzer()
     m_TPCHitCont(NumOfLayersTPC+1),
     m_TPCClCont(NumOfLayersTPC)
 {
+  TVector3 pointRef(0,0,-htof_l);
+  TVector3 normalRef(0,0,-1.);
+  
+  for(int i=0; i<8; i++){
+    if(i!=0){
+      double angle = 0.25*TMath::Pi();
+      pointRef.RotateY(angle);
+      normalRef.RotateY(angle);
+    }
+    m_HTOFPlane[i] = genfit::SharedPlanePtr(new genfit::DetPlane(pointRef, normalRef));
+  }
+  TVector3 tgtnormal(0,0,1.);  
+  m_TgtPlane = genfit::SharedPlanePtr(new genfit::DetPlane(tgtcenter, tgtnormal));
+  
   for(Int_t i=0; i<n_type; ++i){
     m_is_decoded[i] = false;
   }
@@ -862,7 +887,7 @@ TPCAnalyzer::ReCalcTPCTracks(const Int_t ntracks,
       hit -> SetDe(de[it][ih]);
       hit -> SetPosition(TVector3(localpos_x[it][ih], localpos_y[it][ih], localpos_z[it][ih]));
       m_TPCHitCont[l].push_back(hit);
-
+      
       TPCLTrackHit *hitp = new TPCLTrackHit(hit);
       track->AddTPCHit(hitp);
     }
@@ -901,12 +926,10 @@ TPCAnalyzer::ReCalcTPCTracks(const Int_t ntracks,
     hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;
     return false;
   }
-
   ClearTPCHits();
   //ClearTPCClusters();
   ClearTPCTracks();
   ClearTPCVertices();
-
   if(ntracks != nhits.size() ||
      ntracks != cx.size() ||
      ntracks != cy.size() ||
@@ -930,7 +953,6 @@ TPCAnalyzer::ReCalcTPCTracks(const Int_t ntracks,
     hddaq::cerr << FUNC_NAME << " track params vector size mismatch" << std::endl;
     return false;
   }
-
   for(Int_t it=0; it<ntracks; it++){
     if(layer[it].size() != nhits[it] ||
        mrow[it].size() != nhits[it] ||
@@ -946,7 +968,6 @@ TPCAnalyzer::ReCalcTPCTracks(const Int_t ntracks,
       hddaq::cerr << FUNC_NAME << " track params vector size mismatch" << std::endl;
       return false;
     }
-
     TPCLocalTrackHelix *track = new TPCLocalTrackHelix();
     Double_t HelixPar[5] = {cx[it], cy[it], z0[it], r[it], dz[it]};
     track -> SetParam(HelixPar);
@@ -954,6 +975,9 @@ TPCAnalyzer::ReCalcTPCTracks(const Int_t ntracks,
     track -> SetIsKurama(isKurama[it]);
     track -> SetCharge(charge[it]);
     for(Int_t ih=0; ih<nhits[it]; ih++){
+      if(nhits[it] == 0){
+        std::cout << "!!! WARNING: Track with 0 hits found, track index " << it << std::endl;
+      }
       Int_t id = ih;
       if(charge[it] < 0) id = nhits[it] -ih -1;
       Int_t l = layer[it][id];
@@ -963,7 +987,6 @@ TPCAnalyzer::ReCalcTPCTracks(const Int_t ntracks,
       hit -> SetDe(de[it][id]);
       hit -> SetPosition(TVector3(localpos_x[it][id], localpos_y[it][id], localpos_z[it][id]));
       m_TPCHitCont[l].push_back(hit);
-
       TPCLTrackHit *hitp = new TPCLTrackHit(hit);
       hitp -> SetResolution(TVector3(res_x[it][id], res_y[it][id], res_z[it][id]));
       hitp -> SetTheta(helix_t[it][id]);
@@ -972,7 +995,6 @@ TPCAnalyzer::ReCalcTPCTracks(const Int_t ntracks,
     track -> RecalcTrack();
     m_TPCTCHelix.push_back(track);
   }
-
   m_is_decoded[kTPC] = true;
   return true;
 }
@@ -1072,4 +1094,149 @@ TPCAnalyzer::ReCalcTPCTracksGeant4(const Int_t ntracks,
 
   m_is_decoded[kTPC] = true;
   return true;
+}
+
+bool TPCAnalyzer::ExtrapolateToTarget(const TPCLocalTrackHelix* track,
+                                      TVector3& pos, TVector3& mom,
+                                      double& len, double& dist) const
+{
+  if (!track) return false;
+  return track->ExtrapolateToTarget(pos, mom, len, dist);
+}
+
+bool TPCAnalyzer::ExtrapolateToTargetCenter(const TPCLocalTrackHelix* track,
+                                            TVector3& pos, TVector3& mom,
+                                            double& len) const
+{
+  if (!track) return false;
+  return track->ExtrapolateToPlane(m_TgtPlane, pos, mom, len);
+}
+
+//_____________________________________________________________________________
+bool TPCAnalyzer::IsInsideTarget(const TPCLocalTrackHelix* track) const
+{
+  if (!track) return false;
+  TVector3 pos, mom;
+  double tracklen, dist;
+  if (this->ExtrapolateToTarget(track, pos, mom, tracklen, dist)) {    
+    if (TMath::Abs(pos.x()) < 50. &&
+        TMath::Abs(pos.y()) < 50. &&
+        TMath::Abs(pos.z() - ztgt) < 50. &&
+        dist < 50. &&
+        -100. < tracklen && tracklen < 10.) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+//std::vector<HtofCandidate>
+std::vector<HtofCandidate>
+TPCAnalyzer::ExtrapolateToHTOF(const TPCLocalTrackHelix* track) const
+{  
+  std::vector<HtofCandidate> hit_candidates; 
+  bool status = false;
+  if (!track) return hit_candidates;;
+
+  for (int i = 0; i < 8; ++i) {
+    TVector3 pos0;
+    TVector3 mom0;
+    double tracklen0;
+    if (track->ExtrapolateToPlane(m_HTOFPlane[i], pos0, mom0, tracklen0)) {
+      const TVector3 center = 10. * m_HTOFPlane[i]->getO(); // cm -> mm
+      TVector3 diff = pos0 - center;
+      double xzdist = TMath::Sqrt(diff.x() * diff.x() + diff.z() * diff.z());
+      TVector3 cross = center.Cross(diff);
+      
+      if (TMath::Abs(pos0.y() - 12) > 400. || xzdist > 142.) continue;
+      
+      int segmentID = -1;
+      if (i == 0) {
+        if (TMath::Abs(pos0.x()) < 71. && pos0.y() < 62. && pos0.y() > -50.) continue; // window
+        else if (cross.y() < 0) {
+          if (TMath::Abs(xzdist) >= 71.) segmentID = 1;
+          else if (pos0.y() < 0.) segmentID = 3;
+          else segmentID = 2;
+        } else {
+          if (TMath::Abs(xzdist) >= 71.) segmentID = 6;
+          else if (pos0.y() < 0.) segmentID = 5;
+          else segmentID = 4;
+        }
+      } else {
+        if (cross.y() < 0) {
+          if (TMath::Abs(xzdist) >= 71.) segmentID = 3 + 4 * i;
+          else segmentID = 4 + 4 * i;
+        } else {
+          if (TMath::Abs(xzdist) < 71.) segmentID = 5 + 4 * i;
+          else segmentID = 6 + 4 * i;
+        }
+      }
+
+      HtofCandidate candi;
+      candi.pos = pos0;
+      candi.mom = mom0;
+      candi.tracklen = tracklen0;
+      candi.segid = segmentID;
+      hit_candidates.push_back(candi);
+    }
+  }
+
+  return hit_candidates;
+}
+
+bool TPCAnalyzer::TPCHTOFTrackMatching(int trackid, TVector3 vertex,
+				       std::vector<Double_t>HtofSeg,std::vector<Double_t> posHtof,
+				       int &htofhitid,double &tracklen,TVector3 &pos) const
+{
+  bool status = false;
+  TPCLocalTrackHelix *tp = GetTrackTPCHelix(trackid);
+  double PosDiffCut = 50.; //mm 
+  TVector3 vtx_pos; TVector3 vtx_mom; double vtx_len; double vtx_dist;
+  if(!tp->ExtrapolateToPoint(vertex,vtx_pos,vtx_mom,vtx_len,vtx_dist)) return status;
+  std::vector<HtofCandidate> candi = ExtrapolateToHTOF(tp);
+  
+  if( !(candi.size()>0) ) return status;
+  int candidates = candi.size();
+  double min_distance = 1.0e6;
+  bool candidate_found = false;
+  int    best_htofhitid = -1;  
+  double best_tracklen  = -1.0;
+  double best_posy  = -1.0;
+  double best_posyHtof  = -1.0;    
+  TVector3 best_pos;
+  int    best_candi = -1;
+  double best_dist  = -1.0; 
+  for ( int i=0;i<candi.size();i++ ) { 
+    int nhHtof = HtofSeg.size(); 
+    for ( int j=0;j<nhHtof;j++ ) { 
+      if ( candi[i].segid == (int) HtofSeg[j] && 
+	   TMath::Abs(posHtof[j] - candi[i].pos.y()) < PosDiffCut ) { 
+	double distance = TMath::Abs(posHtof[j] - candi[i].pos.y()); 
+	if ( distance>min_distance ) continue;
+	//TVector3 vtx_to_htof = candi[i].pos - vtx_pos;
+	TVector3 vtx_to_htof = candi[i].pos - vtx_pos;
+	double dot_product = vtx_to_htof.Dot(vtx_mom);
+	if ( dot_product < 0 ) continue;
+	min_distance = distance;
+        best_pos = candi[i].pos;
+	best_tracklen = candi[i].tracklen - vtx_len;
+	//best_tracklen = (candi[i].tracklen + vtx_len + 26.)/1.12 ;
+        candidate_found = true;
+	best_candi = i;
+	best_htofhitid = j;
+	best_dist = distance;
+	best_posy = candi[i].pos.y();
+	best_posyHtof = posHtof[j];
+      }
+    }
+  }
+  
+  if(candidate_found){
+    pos = best_pos;
+    tracklen = best_tracklen;
+    htofhitid = best_htofhitid;
+    status = true;
+  }  
+  return status;
 }

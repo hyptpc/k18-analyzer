@@ -6,6 +6,7 @@
 #include <vector>
 #include <TString.h>
 #include <TVector3.h>
+#include "SharedPlanePtr.h"
 
 #include "DetectorID.hh"
 
@@ -23,6 +24,15 @@ typedef std::vector<TPCLocalTrack*> TPCLocalTrackContainer;
 typedef std::vector<TPCLocalTrackHelix*> TPCLocalTrackHelixContainer;
 typedef std::vector<TPCVertex*> TPCVertexContainer;
 typedef std::vector<TPCRKTrack*>    TPCRKTrackContainer;
+
+struct HtofCandidate
+{
+  TVector3 pos;      
+  TVector3 mom;      
+  double   tracklen;
+  int      segid;
+  bool     status;      
+};
 
 //_____________________________________________________________________________
 class TPCAnalyzer
@@ -209,11 +219,26 @@ public:
   Int_t GetNVerticesTPC() const { return m_TPCVC.size(); }
   TPCVertex* GetTPCVertex(Int_t l) const { return m_TPCVC.at(l); }
   const TPCVertexContainer& GetTPCVertices() const { return m_TPCVC; }
-
   Int_t GetNVerticesTPCClustered() const { return m_TPCVCClustered.size(); }
   TPCVertex* GetTPCVertexClustered(Int_t l) const { return m_TPCVCClustered.at(l); }
-  const TPCVertexContainer& GetTPCVerticesClustered() const { return m_TPCVCClustered; }
+  const TPCVertexContainer& GetTPCVerticesClustered() const { return m_TPCVCClustered; }  
 
+  //extrapolate track
+  bool ExtrapolateToTarget(const TPCLocalTrackHelix* track,
+			   TVector3& pos, TVector3& mom, double& len, double& dist) const;
+  bool ExtrapolateToTargetCenter(const TPCLocalTrackHelix* track,
+				 TVector3& pos, TVector3& mom, double& len) const;
+  bool IsInsideTarget(const TPCLocalTrackHelix* track) const;
+  std::vector<HtofCandidate> ExtrapolateToHTOF(const TPCLocalTrackHelix* track) const;
+  
+  // Check extrapolated track matching with htof
+  bool TPCHTOFTrackMatching(int trackid, TVector3 vertex,
+			    std::vector<Double_t>HtofSeg,std::vector<Double_t> posHtof,
+			    int &htofhitid,double &tracklen,TVector3 &pos) const;
+
+private:
+  genfit::SharedPlanePtr m_HTOFPlane[8];
+  genfit::SharedPlanePtr m_TgtPlane;  
 protected:
 
   void ClearTPCHits();
