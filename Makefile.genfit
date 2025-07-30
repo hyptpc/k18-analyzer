@@ -57,7 +57,7 @@ vpath %LinkDef.h $(GenFit_src_FLAGS)
 # ROOT
 root_config	= root-config
 root_include	= $(shell $(root_config) --cflags)
-root_libs	= $(shell $(root_config) --libs) -lMinuit -lEG -lSpectrum -lGeom -lEve
+root_libs	= $(shell $(root_config) --libs) -lMinuit -lEG -lSpectrum -lGeom -lEve -lGui
 root_ldflag	= $(shell $(root_config) --ldflags)
 root_cint	= rootcling
 #
@@ -192,12 +192,12 @@ $(lib_objs): $(core_objs)
 $(bin_dir)/Dst%: $(dst_build_dir)/Dst%.o $(lib_objs)
 	@ $(echo) "$(magenta)=== Linking $@ $(default_color)"
 	@ $(mkdir) $(bin_dir)
-	$(CXX) $(FLAGS) -o $@ $< $(k18lib) $(libs)
+	$(CXX) $(FLAGS) -o $@ $< $(k18lib) $(GenFit_k18lib) $(libs)
 
 $(bin_dir)/%: $(usr_build_dir)/User%.o $(lib_objs)
 	@ $(echo) "$(magenta)=== Linking $@ $(default_color)"
 	@ $(mkdir) $(bin_dir)
-	$(CXX) $(FLAGS) -o $@ $< $(k18lib) $(libs)
+	$(CXX) $(FLAGS) -o $@ $< $(k18lib) $(GenFit_k18lib) $(libs)
 
 $(src_build_dir)/%.o: $(src_dir)/%.cc
 	@ $(echo) "$(green)=== Compiling $@ $(default_color)"
