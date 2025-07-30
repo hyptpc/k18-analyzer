@@ -147,7 +147,7 @@ public:
   const FitResultPars& GetStoredFitParamsOfRefPdf(const pidlikeli::ParticleFitConfig& config, int momid) const;
   double InterpYield(int t,int p,int c,int b,int momid) const;
    
-  Long64_t WriteToRootfile(TFile* fout);
+  Long64_t WriteToRootfile(TFile* fout, const char* dirName = "pidpdfs");
   Bool_t WritePDFToRootfile();
   void DrawResultsToPdf(const std::string& output_filename);
   void DrawResultsToPdf();  

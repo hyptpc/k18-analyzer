@@ -48,7 +48,7 @@ namespace {
     auto clone = static_cast<T*>(obj_to_clone->Clone());
     if (!clone) return;
     clone->SetName(Form(name_format, id));
-    output_file->WriteObject(clone, clone->GetName());
+    clone->Write(nullptr, TObject::kOverwrite);
     delete clone;
   }
   
@@ -59,7 +59,7 @@ namespace {
     clone->SetName(final_name);
     clone->SetTitle(final_name);    
     if (!clone) return;
-    output_file->WriteObject(clone, clone->GetName());    
+    clone->Write(nullptr, TObject::kOverwrite);
     delete clone;
   }
 
@@ -2027,10 +2027,16 @@ PidPdfMan::GetStoredFitParamsOfRefPdf(const pidlikeli::ParticleFitConfig& config
   return PidPdfMan::at(type_idx, pid_idx, chg_idx, be_idx, momid);
 }
 
-Long64_t PidPdfMan::WriteToRootfile(TFile* fout)
+Long64_t PidPdfMan::WriteToRootfile(TFile* fout, const char* dirName)
 {
   if(!fout || !fout->IsOpen()) return -1;
-  fout->cd();
+
+  TDirectory* savedir = gDirectory;
+  
+  if (!fout->GetDirectory(dirName)) {
+      fout->mkdir(dirName);
+  }
+  fout->cd(dirName);
 
   //  TTree  
   constexpr int be = 0;
@@ -2132,6 +2138,9 @@ Long64_t PidPdfMan::WriteToRootfile(TFile* fout)
     nWritten++;
   }
   std::cout << "nWritten: " << nWritten << std::endl;
+
+  savedir->cd();
+  
   return nWritten;
     //  }
 }
