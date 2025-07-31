@@ -47,6 +47,7 @@ def residual(c1, name, key, nplane=8, fit=True):
 
       result = mh.fit_gaus(h1, params=params, limits=limits, autozoom=False)
       plane_suffix = ['U1', 'UP1', 'V1', 'VP1', 'U2', 'UP2', 'V2', 'VP2'][i]
+        
       namekey = f'{name}-{plane_suffix}'
       if namekey == 'BLC2a-U1':
         residual.ref_off = result.GetParameter(1)

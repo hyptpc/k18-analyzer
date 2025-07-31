@@ -306,6 +306,12 @@ DCLocalTrack::DoFit()
     prev_chisqr = chisqr;
   }
 
+  //include x,y offset
+  const Int_t lid = gGeom.GetDetectorId("BLC2a-U1");
+  ThreeVector blc_global = gGeom.GetGlobalPosition(lid);
+  m_x0 -= blc_global.x();
+  m_y0 -= blc_global.y();
+
   m_is_fitted = true;
   return true;
 }

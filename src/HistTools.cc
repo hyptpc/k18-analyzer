@@ -402,6 +402,8 @@ BuildDCHit(const TString& dcname, Bool_t flag_beam_particle)
       Int_t nplane = digit_info.get_n_plane(detector_id);
       Double_t nwire = digit_info.get_n_ch(detector_id);
       const Double_t patbins[3] = {nwire, -0.5, nwire - 0.5};
+      const Double_t patbins2d[6] = {nwire, -0.5, nwire - 0.5, nwire, -0.5, nwire - 0.5};
+      const Double_t dpatbins[3] = {nwire*2,-1*nwire-0.5,nwire-0.5};
       const Double_t mulbins[3] = {nwire + 1, -0.5, nwire + 0.5};
       const Double_t dtbins[3] = {600, -100., 400.};
       const Double_t dlbins[3] = {120/2, -1.0, 5.0};
@@ -415,6 +417,10 @@ BuildDCHit(const TString& dcname, Bool_t flag_beam_particle)
         HB2(Form("%s_Hit_DriftTime_vs_HitPat_plane%d%s; segment; ns", name, plane, b), dtbins2d);
         HB2(Form("%s_Hit_DriftLength_vs_HitPat_plane%d%s; segment; mm", name, plane, b), dlbins2d);
         HB1(Form("%s_Hit_HitPat_plane%d%s; wire; count", name, plane, b), patbins);
+	if(plane%2 == 0){
+	  HB2(Form("%s_Hit_HitPat_Pairplane%d%d%s; wire [plane %d]; wire [plane %d]", name, plane, plane + 1, b,plane,plane+1), patbins2d);
+	  HB1(Form("%s_Hit_HitPat_PP_Sub%d%d%s; wire of plane %d-wire of plane %d;count",name, plane, plane+1, b, plane, plane+1),dpatbins);
+	}
         HB1(Form("%s_Hit_Multi_plane%d%s; multiplicity; count", name, plane, b), mulbins);
       }
     }

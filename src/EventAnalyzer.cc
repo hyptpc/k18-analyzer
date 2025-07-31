@@ -557,6 +557,18 @@ EventAnalyzer::DCHit(const TString& dcname, const DCAnalyzer& dcAna,
     Int_t nplane = digit_info.get_n_plane(detector_id);
     for(Int_t plane=0; plane<nplane; ++plane){
       Int_t multi = 0;
+      if(plane%2 == 0) { //pair plnae hit pattern start
+	int wire1, wire2;
+	for(const auto &hit: dcAna.GetBcOutHC(plane)){
+	  wire1 = hit->GetWire();
+	  for(const auto &hit: dcAna.GetBcOutHC(plane+1)){
+	    wire2 = hit->GetWire();
+	    HF2(Form("%s_Hit_HitPat_Pairplane%d%d%s", name, plane, plane+1, b), wire1,wire2);
+	    HF1(Form("%s_Hit_HitPat_PP_Sub%d%d%s", name, plane, plane+1, b), wire1 - wire2);
+	    
+	  }
+	}
+      } //pair plnae hit pattern end
       for(const auto& hit: dcAna.GetBcOutHC(plane)){
         auto wire = hit->GetWire();
         Bool_t is_good = false;
@@ -602,6 +614,7 @@ EventAnalyzer::BcOutTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
     HF1(Form("BcOutTrack_U0%s", b), u0);
     HF1(Form("BcOutTrack_V0%s", b), v0);
 
+    
     for (const auto& lthit : track->GetHitArray()) {
       const auto hit = lthit->GetHit();
       const auto name = hit->GetRawHit()->DetectorName().Data();
