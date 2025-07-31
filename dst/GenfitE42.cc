@@ -611,7 +611,6 @@ struct Event
   Double_t GFximom_x;
   Double_t GFximom_y;
   Double_t GFximom_z;
-
   Double_t GFxikkvtx_x;
   Double_t GFxikkvtx_y;
   Double_t GFxikkvtx_z;
@@ -620,7 +619,6 @@ struct Event
   Double_t GFxikkmom_y;
   Double_t GFxikkmom_z;
   Double_t GFxikkvtx_dist;
-
   Double_t GFxiprodvtx_x;
   Double_t GFxiprodvtx_y;
   Double_t GFxiprodvtx_z;
@@ -634,7 +632,6 @@ struct Event
   Double_t GFlpi_dist;
   Double_t GFximomloss;
   Double_t GFxiexcitation;
-
   Double_t GFxitargetvtx_x;
   Double_t GFxitargetvtx_y;
   Double_t GFxitargetvtx_z;
@@ -643,7 +640,6 @@ struct Event
   Double_t GFxitargetmom_y;
   Double_t GFxitargetmom_z;
   Double_t GFxitarget_dist;
-
   Double_t GFxitargetcenter_x;
   Double_t GFxitargetcenter_y;
   Double_t GFxitargetcenter_z;
@@ -1089,7 +1085,76 @@ struct Event
     GFk0decays_id.clear();    
     GFk0decays_mass2.clear();
     GFk0decays_invbeta.clear();
-    GFk0decays_mom.clear();            
+    GFk0decays_mom.clear();
+
+    GFximass = qnan; 
+    GFxidecayvtx_x = qnan;
+    GFxidecayvtx_y = qnan;
+    GFxidecayvtx_z = qnan;
+    GFximom = qnan;
+    GFximom_x = qnan;
+    GFximom_y = qnan;
+    GFximom_z = qnan;
+    GFxikkvtx_x = qnan;
+    GFxikkvtx_y = qnan;
+    GFxikkvtx_z = qnan;
+    GFxikkmom = qnan;
+    GFxikkmom_x = qnan;
+    GFxikkmom_y = qnan;
+    GFxikkmom_z = qnan;
+    GFxikkvtx_dist = qnan;
+    GFxiprodvtx_x = qnan;
+    GFxiprodvtx_y = qnan;
+    GFxiprodvtx_z = qnan;
+    GFxiprodmom = qnan;
+    GFxiprodmom_x = qnna;
+    GFxiprodmom_y = qnna;
+    GFxiprodmom_z = qnna;
+    GFxiprodvtx_dist = qnan;
+    GFxitracklen = qnan;
+    GFxitof = qnan;
+    GFlpi_dist = qnan;
+    GFximomloss = qnan;
+    GFxiexcitation = qnan;
+    GFxitargetvtx_x = qnan;
+    GFxitargetvtx_y = qnan;
+    GFxitargetvtx_z = qnan;
+    GFxitargetmom = qnan;
+    GFxitargetmom_x = qnan;
+    GFxitargetmom_y = qnan;
+    GFxitargetmom_z = qnan;
+    GFxitarget_dist = qnan;
+    GFxitargetcenter_x = qnan;
+    GFxitargetcenter_y = qnan;
+    GFxitargetcenter_z = qnan;
+    GFxitargetcentermom = qnan;
+    GFxitargetcentermom_x = qnan;
+    GFxitargetcentermom_y = qnan;
+    GFxitargetcentermom_z = qnan;
+    GFxitargetcenter_dist = qnan;
+
+    GFxidecays_pdgcode.clear();
+    GFxidecays_nhtrack.clear();
+    GFxidecays_charge.clear();
+    GFxidecays_chisqr.clear();
+    GFxidecays_tracktof.clear();
+    GFxidecays_pval.clear();
+    GFxidecays_htofid.clear();
+    GFxidecays_tracklen.clear();
+    GFxidecays_tof.clear();
+    GFxidecays_mass2.clear();
+    GFxidecays_invbeta.clear();
+    GFxidecays_mom.clear();
+    GFxidecays_mom_x.clear();
+    GFxidecays_mom_y.clear();
+    GFxidecays_mom_z.clear();
+    GFxidecays_CMmom.clear();
+    GFxidecays_CMmom_x.clear();
+    GFxidecays_CMmom_y.clear();
+    GFxidecays_CMmom_z.clear();
+    GFxidecays_momloss.clear();
+    GFxidecays_eloss.clear();  
+  
 
     GFinside.clear();
     GFfromVtx.clear();    
