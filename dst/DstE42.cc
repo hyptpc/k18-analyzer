@@ -480,7 +480,7 @@ struct Event
   std::vector<Double_t> posHtof_z;
   std::vector<Double_t> distVtx;
 
-  Bool_t lflag;
+  Int_t lflag;
   Double_t lmass;
   Double_t ldecayvtx_x;
   Double_t ldecayvtx_y;
@@ -1440,12 +1440,6 @@ dst::DstRead( int ievent )
     event.deHtof.push_back(src.deHtof[it]);
     event.posHtof.push_back(src.posHtof[it]);
   }
-  event.nsigma_tritonHtof.resize(event.ntTpc);
-  event.nsigma_deutronHtof.resize(event.ntTpc);
-  event.nsigma_protonHtof.resize(event.ntTpc);
-  event.nsigma_kaonHtof.resize(event.ntTpc);
-  event.nsigma_pionHtof.resize(event.ntTpc);
-  event.nsigma_electronHtof.resize(event.ntTpc);    
 
   if(src.nKK != 1) return true;
   //if(event.nKK != 1) return true;
@@ -1551,7 +1545,8 @@ dst::DstRead( int ievent )
   event.wpos = **src.wpos;
 
   event.insideTPC = **src.insideTPC;
-  event.m2TPCKurama.resize(src.ntKurama);
+  event.m2TPCKurama = **src.m2TPCKurama;
+  
   //event.piflagTPCKurama.resize(src.ntKurama);
   event.kflagTPCKurama.resize(src.ntKurama);
   event.pflagTPCKurama.resize(src.ntKurama);
@@ -1582,34 +1577,34 @@ dst::DstRead( int ievent )
   event.pxout.resize(nKurama);
   event.pyout.resize(nKurama);
   event.pzout.resize(nKurama);
-  //getchar();
   for(Int_t it=0; it<src.ntKurama; ++it){
-    event.chisqrKurama.push_back(src.chisqrKurama[it]);
-    event.pKurama.push_back(src.pKurama[it]);
-    event.qKurama.push_back(src.qKurama[it]);
-    event.m2.push_back(src.m2[it]);
-    event.m2Org.push_back(src.m2Org[it]);
-    event.xtgtKurama.push_back(src.xtgtKurama[it]);
-    event.ytgtKurama.push_back(src.ytgtKurama[it]);
-    event.utgtKurama.push_back(src.utgtKurama[it]);
-    event.vtgtKurama.push_back(src.vtgtKurama[it]);
-    event.thetaKurama.push_back(src.thetaKurama[it]);
-    event.pathKurama.push_back(src.pathKurama[it]);
-    event.tofsegKurama.push_back(src.tofsegKurama[it]);
-    event.cstof.push_back(src.cstof[it]);
-    event.pathwcKurama.push_back(src.pathwcKurama[it]);
-    event.xin.push_back(src.xin[it]);
-    event.yin.push_back(src.yin[it]);
-    event.zin.push_back(src.zin[it]);
-    event.pxin.push_back(src.pxin[it]);
-    event.pyin.push_back(src.pyin[it]);
-    event.pzin.push_back(src.pzin[it]);
-    event.xout.push_back(src.xout[it]);
-    event.yout.push_back(src.yout[it]);
-    event.zout.push_back(src.zout[it]);
-    event.pxout.push_back(src.pxout[it]);
-    event.pyout.push_back(src.pyout[it]);
-    event.pzout.push_back(src.pzout[it]);
+    event.chisqrKurama[it] = src.chisqrKurama[it];
+    event.pKurama[it] = src.pKurama[it];
+    event.qKurama[it] = src.qKurama[it];
+    event.m2[it] = src.m2[it];
+    event.m2Org[it] = src.m2Org[it];
+    event.xtgtKurama[it] = src.xtgtKurama[it];
+    event.ytgtKurama[it] = src.ytgtKurama[it];
+    event.utgtKurama[it] = src.utgtKurama[it];
+    event.vtgtKurama[it] = src.vtgtKurama[it];
+    event.thetaKurama[it] = src.thetaKurama[it];
+    event.pathKurama[it] = src.pathKurama[it];
+    event.tofsegKurama[it] = src.tofsegKurama[it];
+    event.cstof[it] = src.cstof[it];
+    std::cout << __LINE__ << " " << event.cstof[it] << std::endl;
+    event.pathwcKurama[it] = src.pathwcKurama[it];
+    event.xin[it] = src.xin[it];
+    event.yin[it] = src.yin[it];
+    event.zin[it] = src.zin[it];
+    event.pxin[it] = src.pxin[it];
+    event.pyin[it] = src.pyin[it];
+    event.pzin[it] = src.pzin[it];
+    event.xout[it] = src.xout[it];
+    event.yout[it] = src.yout[it];
+    event.zout[it] = src.zout[it];
+    event.pxout[it] = src.pxout[it];
+    event.pyout[it] = src.pyout[it];
+    event.pzout[it] = src.pzout[it];
     int seg = src.tofsegKurama[it] - 1;
     if(event.cstof[it] + tofaddjustment[seg] > 0.)
       event.m2TPCKurama[it]
@@ -1619,6 +1614,9 @@ dst::DstRead( int ievent )
     //   = PionSelection(event.m2TPCKurama[it], event.pTPCKurama[it], nsigma_m2);
     event.kflagTPCKurama[it]
       = KaonSelection(event.m2TPCKurama[it], event.pTPCKurama[it], nsigma_m2);
+    std::cout << __FILE__ << " " << __LINE__
+	      << " m2TPCKurama:" << event.m2TPCKurama[it] << " event.pTPCKurama[it]:" << event.pTPCKurama[it]  << " kflag:" <<  event.kflagTPCKurama[it] << std::endl;
+
     event.pflagTPCKurama[it]
       = ProtonSelection(event.m2TPCKurama[it], event.pTPCKurama[it], nsigma_m2);
   }
@@ -2370,15 +2368,24 @@ dst::DstRead( int ievent )
   event.hitidHtof.resize(event.ntTpc);
   event.tracklenHtof.resize(event.ntTpc);
   event.m2HtofVtx.resize(event.ntTpc);
+  event.m2Htof.resize(event.ntTpc);
   event.extrapTgt.resize(event.ntTpc);
   event.extrapVtx.resize(event.ntTpc);
   event.tofHtof.resize(event.ntTpc);
+  event.segHtof.resize(event.ntTpc);  
   event.invbetaHtof.resize(event.ntTpc);
   event.tracklenHtof.resize(event.ntTpc);
   event.posHtof_x.resize(event.ntTpc);
   event.posHtof_y.resize(event.ntTpc);
   event.posHtof_z.resize(event.ntTpc);
-
+  event.insideTgt.resize(event.ntTpc);
+  event.nsigma_tritonHtof.resize(event.ntTpc);
+  event.nsigma_deutronHtof.resize(event.ntTpc);
+  event.nsigma_protonHtof.resize(event.ntTpc);
+  event.nsigma_kaonHtof.resize(event.ntTpc);
+  event.nsigma_pionHtof.resize(event.ntTpc);
+  event.nsigma_electronHtof.resize(event.ntTpc);      
+  std::cout << __FILE__ << " " << __LINE__ << std::endl;
   Int_t ntrack_intarget = 0;
   Double_t x0[100] = {0};
   Double_t y0[100] = {0};
@@ -2406,8 +2413,9 @@ dst::DstRead( int ievent )
     double tracklen_htof = -1.0;
     TVector3 pos_htof;
     bool isInsideTarget = false;
+    std::cout << __FILE__ << " " << __LINE__ << std::endl;
     if ( TPCAna.IsInsideTarget(track) ) {      
-      event.insideTgt[itTpc] = 1;
+      event.insideTgt[itTpc] = true;
       //TVector3 reaction_vertex(event.vtxTPC[itTpc],event.vtyTPC[itTpc],event.vtzTPC[itTpc]+tpc::ZTarget);
       TVector3 post; TVector3 momt; double lentgt; double toftgt;      
       if ( TPCAna.ExtrapolateToTargetCenter(track, post, momt, lentgt) ){
@@ -2439,35 +2447,45 @@ dst::DstRead( int ievent )
 	  event.hitidHtof[itTpc] = ih;
 	  event.tracklenHtof[itTpc] = len_htof;
 	  std::cout << __FILE__ << " " << __LINE__ << " m2:" << m2Htof << " ih:" << ih << " tracklen:" << tracklen_htof << std::endl;
-          //event.GFfromVtx[igf] = 1;
           event.tracklenHtof[itTpc] = len_htof;
+	  std::cout << __FILE__ << " " << __LINE__ << std::endl;	  
           //event.GFtrack2vtxdist[igf] = track2tgt_dist;
-          //event.GFcalctof[igf] = tof;
 	  event.posHtof_x[itTpc] = pos_htof.x();
+	  std::cout << __FILE__ << " " << __LINE__ << std::endl;	  	  
           event.posHtof_y[itTpc] = pos_htof.y();
+	  std::cout << __FILE__ << " " << __LINE__ << std::endl;	  	  
           event.posHtof_z[itTpc] = pos_htof.z();
+	  std::cout << __FILE__ << " " << __LINE__ << std::endl;	  	  
           event.segHtof[itTpc] = event.HtofSeg[hitid_htof];
+	  std::cout << __FILE__ << " " << __LINE__ << std::endl;	  	  
           event.tofHtof[itTpc] = event.tHtof[hitid_htof];
-          event.posHtof[itTpc] = event.posHtof[hitid_htof];
+	  std::cout << __FILE__ << " " << __LINE__ << std::endl;	  	  
           Double_t beta = len_htof/event.tHtof[hitid_htof]/MathTools::C();
+	  std::cout << __FILE__ << " " << __LINE__ << std::endl;	  	  
 	  Double_t tof = event.tofHtof[itTpc];
+	  std::cout << __FILE__ << " " << __LINE__ << std::endl;	  	  
           event.invbetaHtof[itTpc] = 1./beta;
-	  event.m2Htof[itTpc] = Kinematics::MassSquare(mom, len_htof, tof);	  
+	  std::cout << __FILE__ << " " << __LINE__ << std::endl;	  	  
+	  event.m2Htof[itTpc] = Kinematics::MassSquare(mom, len_htof, tof);
+	  std::cout << __FILE__ << " " << __LINE__ << std::endl;	  	  
           //Double_t mass2 = Kinematics::MassSquare(event.GFmom[itTpc][0], len_htof, event.tHtof[hitid_htof]);
 	  //          event.m2Htof[itTpc] = mass2;
+	  std::cout << __FILE__ << " " << __LINE__ << std::endl;	  	  
           event.nsigma_tritonHtof[itTpc] = Kinematics::HypTPCHTOFNsigmaTriton(mom, len_htof, event.tHtof[hitid_htof]);
           event.nsigma_deutronHtof[itTpc] = Kinematics::HypTPCHTOFNsigmaDeutron(mom, len_htof, event.tHtof[hitid_htof]);
           event.nsigma_protonHtof[itTpc] = Kinematics::HypTPCHTOFNsigmaProton(mom, len_htof, event.tHtof[hitid_htof]);
           event.nsigma_kaonHtof[itTpc] = Kinematics::HypTPCHTOFNsigmaKaon(mom, len_htof, event.tHtof[hitid_htof]);
           event.nsigma_pionHtof[itTpc] = Kinematics::HypTPCHTOFNsigmaPion(mom, len_htof, event.tHtof[hitid_htof]);
-          event.nsigma_electronHtof[itTpc] = Kinematics::HypTPCHTOFNsigmaElectron(mom, len_htof, event.tHtof[hitid_htof]);	  
+          event.nsigma_electronHtof[itTpc] = Kinematics::HypTPCHTOFNsigmaElectron(mom, len_htof, event.tHtof[hitid_htof]);
+	  std::cout << __FILE__ << " " << __LINE__ << std::endl;	  
 	  break;
 	}
       }	
     }
+    std::cout << __FILE__ << " " << __LINE__ << std::endl;    
     //event.tgt2htofflag[itTpc] = isInsideTarget;
     if(!isInsideTarget) continue;
-
+    std::cout << __FILE__ << " " << __LINE__ << std::endl;
     int seghtof = event.HtofSeg[itTpc];
     Int_t charge = event.charge[itTpc];
     double dEdxtpc = event.dEdx[itTpc];
@@ -2524,7 +2542,6 @@ dst::DstRead( int ievent )
     if(KPEvent){
       for(int ibe=0; ibe<kNbe; ibe++){ // for selecting quasi-free Kaon and K star short
 	std::cout << __FILE__ << " " << __LINE__ << " ibe:" << ibe << " BE:" << BE << " m2*charge:" << m2Htof*charge <<  " dEdx:" << dEdxtpc << std::endl;
-	getchar();	
 	if(ibe==0) continue;
 	if(flagp[kPidK]&&BE>pidlikeli::cutbemin[ibe]&&BE<pidlikeli::cutbemax[ibe]){
 	  type=typeKmHid;
@@ -2535,7 +2552,7 @@ dst::DstRead( int ievent )
       }
     }
   }
-  
+  std::cout << __FILE__ << " " << __LINE__ << std::endl;  
   //Lambda reconstruction
   std::vector<Int_t> L_p_id_container, L_pi_id_container;
   std::vector<TVector3> L_p_mom_container, L_pi_mom_container;
@@ -2693,6 +2710,7 @@ dst::DstRead( int ievent )
       } //it2
     } //it1
   }
+  std::cout << __FILE__ << " " << __LINE__ << std::endl;  
   Int_t best_l = -1; Double_t prev_massdiff_l = 9999.;
   for(Int_t candi=0;candi<l_candidates;candi++){
     Double_t diff = TMath::Abs(L_mass_container[candi] - LambdaMass);
@@ -2800,7 +2818,7 @@ dst::DstRead( int ievent )
       }    
     }
   }
-  
+  std::cout << __FILE__ << " " << __LINE__ << std::endl;  
   //K0 reconstruction   
   std::vector<Int_t> K0_pip_id_container, K0_pim_id_container;
   std::vector<TVector3> K0_pip_mom_container, K0_pim_mom_container;
@@ -3007,7 +3025,7 @@ dst::DstRead( int ievent )
       HF2( (type+1)*fac_t + PID*fac_p + chargeid*fac_c + 0*fac_b + momid*fac_m, mass2pim*charge,dedx); 
     }                
   }
-
+    std::cout << __FILE__ << " " << __LINE__ << std::endl;
   
   return true;
 }

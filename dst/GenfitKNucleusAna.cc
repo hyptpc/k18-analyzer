@@ -223,6 +223,10 @@ struct Event
   std::vector<std::vector<Double_t>> track_cluster_row_center;
 
   std::vector<Int_t> isgoodTPCKurama;
+  std::vector<Int_t> tpcidTPCKurama;
+  std::vector<Int_t> kflagTPCKurama;
+  std::vector<Int_t> pflagTPCKurama;
+  std::vector<Double_t> chisqrTPCKurama;  
   std::vector<Double_t> pTPCKurama;
   std::vector<Double_t> qTPCKurama;
   std::vector<Double_t> m2TPCKurama;
@@ -353,11 +357,12 @@ struct Event
   std::vector<std::vector<Double_t>> decaysmomLambda_y;
   std::vector<std::vector<Double_t>> decaysmomLambda_z;
 
-  Bool_t lflag;
+  Int_t lflag;
   Double_t lmass;
   Double_t ldecayvtx_x;
   Double_t ldecayvtx_y;
   Double_t ldecayvtx_z;
+  Double_t lmom;  
   Double_t lmom_x;
   Double_t lmom_y;
   Double_t lmom_z;
@@ -376,7 +381,7 @@ struct Event
   std::vector<Double_t> ldecays_htofpos_y;
   std::vector<Double_t> ldecays_htofpos_z;   
 
-  Bool_t k0flag;
+  Int_t k0flag;
   Double_t k0mass;
   Double_t k0decayvtx_x;
   Double_t k0decayvtx_y;
@@ -390,9 +395,47 @@ struct Event
   std::vector<Double_t> k0decays_mom;
   std::vector<Double_t> k0decays_mom_x;
   std::vector<Double_t> k0decays_mom_y;
-  std::vector<Double_t> k0decays_mom_z;    
+  std::vector<Double_t> k0decays_mom_z;
 
-  Bool_t GFlflag;  
+  Int_t xiflag;
+  Double_t ximass;
+  Double_t xidecayvtx_x;
+  Double_t xidecayvtx_y;
+  Double_t xidecayvtx_z;
+  Double_t ximom;  
+  Double_t ximom_x;
+  Double_t ximom_y;
+  Double_t ximom_z;
+  Double_t xi_lpi_dist;
+  Double_t xitargetvtx_x;
+  Double_t xitargetvtx_y;
+  Double_t xitargetvtx_z;
+  Double_t xitargetmom;
+  Double_t xitargetmom_x;
+  Double_t xitargetmom_y;
+  Double_t xitargetmom_z;
+  Double_t xitarget_dist;  
+  Int_t   xi_lflag;
+  Double_t xi_lmass;
+  Double_t xi_ldecayvtx_x;
+  Double_t xi_ldecayvtx_y;
+  Double_t xi_ldecayvtx_z;
+  Double_t xi_lmom;  
+  Double_t xi_lmom_x;
+  Double_t xi_lmom_y;
+  Double_t xi_lmom_z;
+  Double_t xi_ppi_dist;
+  Double_t xi_ltarget_dist;
+  Double_t xi_ltargetvtx_x;
+  Double_t xi_ltargetvtx_y;
+  Double_t xi_ltargetvtx_z;  
+  std::vector<Int_t> xidecays_id;
+  std::vector<Double_t> xidecays_mom;
+  std::vector<Double_t> xidecays_mom_x;
+  std::vector<Double_t> xidecays_mom_y;
+  std::vector<Double_t> xidecays_mom_z;
+
+  Int_t GFlflag;  
   Double_t GFlmass;
   Double_t GFldecayvtx_x;
   Double_t GFldecayvtx_y;
@@ -415,8 +458,7 @@ struct Event
   Double_t GFlprodvtx_z;
   Double_t GFlprodvtx_dist;
   Double_t GFltracklen;
-  Double_t GFltof;  
-  
+  Double_t GFltof;    
   std::vector<Int_t> GFldecays_id;
   std::vector<Double_t> GFldecays_mom;
   std::vector<Double_t> GFldecays_mom_x;
@@ -441,6 +483,74 @@ struct Event
   std::vector<Double_t> GFk0decays_mass2;
   std::vector<Double_t> GFk0decays_invbeta;
   std::vector<Double_t> GFk0decays_mom;
+
+  Double_t GFximass;
+  Double_t GFxidecayvtx_x;
+  Double_t GFxidecayvtx_y;
+  Double_t GFxidecayvtx_z;
+  Double_t GFximom;
+  Double_t GFximom_x;
+  Double_t GFximom_y;
+  Double_t GFximom_z;
+  Double_t GFxikkvtx_x;
+  Double_t GFxikkvtx_y;
+  Double_t GFxikkvtx_z;
+  Double_t GFxikkmom;
+  Double_t GFxikkmom_x;
+  Double_t GFxikkmom_y;
+  Double_t GFxikkmom_z;
+  Double_t GFxikkvtx_dist;
+  Double_t GFxiprodvtx_x;
+  Double_t GFxiprodvtx_y;
+  Double_t GFxiprodvtx_z;
+  Double_t GFxiprodmom;
+  Double_t GFxiprodmom_x;
+  Double_t GFxiprodmom_y;
+  Double_t GFxiprodmom_z;
+  Double_t GFxiprodvtx_dist;
+  Double_t GFxitracklen;
+  Double_t GFxitof;
+  Double_t GFlpi_dist;
+  Double_t GFximomloss;
+  Double_t GFxiexcitation;
+  Double_t GFxitargetvtx_x;
+  Double_t GFxitargetvtx_y;
+  Double_t GFxitargetvtx_z;
+  Double_t GFxitargetmom;
+  Double_t GFxitargetmom_x;
+  Double_t GFxitargetmom_y;
+  Double_t GFxitargetmom_z;
+  Double_t GFxitarget_dist;
+  Double_t GFxitargetcenter_x;
+  Double_t GFxitargetcenter_y;
+  Double_t GFxitargetcenter_z;
+  Double_t GFxitargetcentermom;
+  Double_t GFxitargetcentermom_x;
+  Double_t GFxitargetcentermom_y;
+  Double_t GFxitargetcentermom_z;
+  Double_t GFxitargetcenter_dist;
+
+  std::vector<Int_t> GFxidecays_pdgcode;
+  std::vector<Int_t> GFxidecays_nhtrack;
+  std::vector<Double_t> GFxidecays_charge;
+  std::vector<Double_t> GFxidecays_chisqr;
+  std::vector<Double_t> GFxidecays_tracktof;
+  std::vector<Double_t> GFxidecays_pval;
+  std::vector<Int_t> GFxidecays_htofid;
+  std::vector<Double_t> GFxidecays_tracklen;
+  std::vector<Double_t> GFxidecays_tof;
+  std::vector<Double_t> GFxidecays_mass2;
+  std::vector<Double_t> GFxidecays_invbeta;
+  std::vector<Double_t> GFxidecays_mom;
+  std::vector<Double_t> GFxidecays_mom_x;
+  std::vector<Double_t> GFxidecays_mom_y;
+  std::vector<Double_t> GFxidecays_mom_z;
+  std::vector<Double_t> GFxidecays_CMmom;
+  std::vector<Double_t> GFxidecays_CMmom_x;
+  std::vector<Double_t> GFxidecays_CMmom_y;
+  std::vector<Double_t> GFxidecays_CMmom_z;
+  std::vector<Double_t> GFxidecays_momloss;
+  std::vector<Double_t> GFxidecays_eloss;    
 
   void clear( void )
   {
@@ -548,6 +658,10 @@ struct Event
     track_cluster_row_center.clear();
 
     isgoodTPCKurama.clear();
+    tpcidTPCKurama.clear();
+    kflagTPCKurama.clear();
+    pflagTPCKurama.clear();
+    chisqrTPCKurama.clear();    
     pTPCKurama.clear();
     qTPCKurama.clear();
     m2TPCKurama.clear();
@@ -681,6 +795,7 @@ struct Event
     ldecayvtx_x = qnan;
     ldecayvtx_y = qnan;
     ldecayvtx_z = qnan;
+    lmom = qnan;    
     lmom_x = qnan;
     lmom_y = qnan;
     lmom_z = qnan;
@@ -714,6 +829,40 @@ struct Event
     k0decays_mom_x.clear();
     k0decays_mom_y.clear();
     k0decays_mom_z.clear();
+
+    xiflag = false;
+    ximass = qnan;
+    xidecayvtx_x = qnan;
+    xidecayvtx_y = qnan;
+    xidecayvtx_z = qnan;
+    ximom   = qnan;    
+    ximom_x = qnan;
+    ximom_y = qnan;
+    ximom_z = qnan;
+    xitargetvtx_x = qnan;
+    xitargetvtx_y = qnan;
+    xitargetvtx_z = qnan;
+    xitargetmom = qnan;
+    xitargetmom_x = qnan;
+    xitargetmom_y = qnan;
+    xitargetmom_z = qnan;
+    xitarget_dist = qnan;    
+    xi_lpi_dist = qnan;
+    xi_lflag = false;
+    xi_lmass = qnan;
+    xi_ldecayvtx_x = qnan;
+    xi_ldecayvtx_y = qnan;
+    xi_ldecayvtx_z = qnan;
+    xi_lmom   = qnan;    
+    xi_lmom_x = qnan;
+    xi_lmom_y = qnan;
+    xi_lmom_z = qnan;
+    xi_ppi_dist = qnan;    
+    xidecays_id.clear();
+    xidecays_mom.clear();
+    xidecays_mom_x.clear();
+    xidecays_mom_y.clear();
+    xidecays_mom_z.clear();    
 
     GFlflag = false;    
     GFlmass = qnan;
@@ -763,6 +912,75 @@ struct Event
     GFk0decays_mass2.clear();
     GFk0decays_invbeta.clear();
     GFk0decays_mom.clear();
+
+    GFximass = qnan; 
+    GFxidecayvtx_x = qnan;
+    GFxidecayvtx_y = qnan;
+    GFxidecayvtx_z = qnan;
+    GFximom = qnan;
+    GFximom_x = qnan;
+    GFximom_y = qnan;
+    GFximom_z = qnan;
+    GFxikkvtx_x = qnan;
+    GFxikkvtx_y = qnan;
+    GFxikkvtx_z = qnan;
+    GFxikkmom = qnan;
+    GFxikkmom_x = qnan;
+    GFxikkmom_y = qnan;
+    GFxikkmom_z = qnan;
+    GFxikkvtx_dist = qnan;
+    GFxiprodvtx_x = qnan;
+    GFxiprodvtx_y = qnan;
+    GFxiprodvtx_z = qnan;
+    GFxiprodmom = qnan;
+    GFxiprodmom_x = qnan;
+    GFxiprodmom_y = qnan;
+    GFxiprodmom_z = qnan;
+    GFxiprodvtx_dist = qnan;
+    GFxitracklen = qnan;
+    GFxitof = qnan;
+    GFlpi_dist = qnan;
+    GFximomloss = qnan;
+    GFxiexcitation = qnan;
+    GFxitargetvtx_x = qnan;
+    GFxitargetvtx_y = qnan;
+    GFxitargetvtx_z = qnan;
+    GFxitargetmom = qnan;
+    GFxitargetmom_x = qnan;
+    GFxitargetmom_y = qnan;
+    GFxitargetmom_z = qnan;
+    GFxitarget_dist = qnan;
+    GFxitargetcenter_x = qnan;
+    GFxitargetcenter_y = qnan;
+    GFxitargetcenter_z = qnan;
+    GFxitargetcentermom = qnan;
+    GFxitargetcentermom_x = qnan;
+    GFxitargetcentermom_y = qnan;
+    GFxitargetcentermom_z = qnan;
+    GFxitargetcenter_dist = qnan;
+
+    GFxidecays_pdgcode.clear();
+    GFxidecays_nhtrack.clear();
+    GFxidecays_charge.clear();
+    GFxidecays_chisqr.clear();
+    GFxidecays_tracktof.clear();
+    GFxidecays_pval.clear();
+    GFxidecays_htofid.clear();
+    GFxidecays_tracklen.clear();
+    GFxidecays_tof.clear();
+    GFxidecays_mass2.clear();
+    GFxidecays_invbeta.clear();
+    GFxidecays_mom.clear();
+    GFxidecays_mom_x.clear();
+    GFxidecays_mom_y.clear();
+    GFxidecays_mom_z.clear();
+    GFxidecays_CMmom.clear();
+    GFxidecays_CMmom_x.clear();
+    GFxidecays_CMmom_y.clear();
+    GFxidecays_CMmom_z.clear();
+    GFxidecays_momloss.clear();
+    GFxidecays_eloss.clear();  
+    
   }
 };
 
@@ -853,6 +1071,10 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_row_center;
 
   TTreeReaderValue<std::vector<Int_t>>* isgoodTPCKurama;
+  TTreeReaderValue<std::vector<Int_t>>* tpcidTPCKurama;
+  TTreeReaderValue<std::vector<Int_t>>* kflagTPCKurama;
+  TTreeReaderValue<std::vector<Int_t>>* pflagTPCKurama;
+  TTreeReaderValue<std::vector<Double_t>>* chisqrTPCKurama;  
   TTreeReaderValue<std::vector<Double_t>>* pTPCKurama;
   TTreeReaderValue<std::vector<Double_t>>* qTPCKurama;
   TTreeReaderValue<std::vector<Double_t>>* m2TPCKurama;
@@ -914,7 +1136,7 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* posHtof;
 
   TTreeReaderValue<std::vector<Int_t>>            *isLambda;
-  TTreeReaderValue<Bool_t>                        *Lflag;
+  TTreeReaderValue<Int_t>                        *Lflag;
   TTreeReaderValue<Double_t>                      *LambdaMass;
   //  TTreeReaderValue<std::vector<Double_t>>         *LDecaysMom;
   TTreeReaderValue<std::vector<Int_t>>            *ncombiLambda;
@@ -941,7 +1163,7 @@ struct Src
   // TTreeReaderValue<std::vector<Int_t>>* K0DecaysTrackId;
   // TTreeReaderValue<std::vector<Double_t>>* K0DecaysMom;
 
-  TTreeReaderValue<Bool_t>*   lflag;
+  TTreeReaderValue<Int_t>*   lflag;
   TTreeReaderValue<Double_t>* lmass;
   TTreeReaderValue<Double_t>* ldecayvtx_x;
   TTreeReaderValue<Double_t>* ldecayvtx_y;
@@ -979,7 +1201,7 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* ldecays_htofpos_y;
   TTreeReaderValue<std::vector<Double_t>>* ldecays_htofpos_z;                   
   
-  TTreeReaderValue<Bool_t>*         k0flag;
+  TTreeReaderValue<Int_t>*         k0flag;
   TTreeReaderValue<Double_t>*       k0mass;
   TTreeReaderValue<Double_t>*       k0decayvtx_x;
   TTreeReaderValue<Double_t>*       k0decayvtx_y;
@@ -994,6 +1216,44 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* k0decays_mom_x;
   TTreeReaderValue<std::vector<Double_t>>* k0decays_mom_y;
   TTreeReaderValue<std::vector<Double_t>>* k0decays_mom_z;
+
+  TTreeReaderValue<Int_t>* xiflag;
+  TTreeReaderValue<Double_t>* ximass;
+  TTreeReaderValue<Double_t>* xidecayvtx_x;
+  TTreeReaderValue<Double_t>* xidecayvtx_y;
+  TTreeReaderValue<Double_t>* xidecayvtx_z;
+  TTreeReaderValue<Double_t>* ximom;  
+  TTreeReaderValue<Double_t>* ximom_x;
+  TTreeReaderValue<Double_t>* ximom_y;
+  TTreeReaderValue<Double_t>* ximom_z;
+  TTreeReaderValue<Double_t>* xi_lpi_dist;
+  TTreeReaderValue<Double_t>* xitargetvtx_x;
+  TTreeReaderValue<Double_t>* xitargetvtx_y;
+  TTreeReaderValue<Double_t>* xitargetvtx_z;
+  TTreeReaderValue<Double_t>* xitargetmom;
+  TTreeReaderValue<Double_t>* xitargetmom_x;
+  TTreeReaderValue<Double_t>* xitargetmom_y;
+  TTreeReaderValue<Double_t>* xitargetmom_z;
+  TTreeReaderValue<Double_t>* xitarget_dist;  
+  TTreeReaderValue<Int_t>* xi_lflag;
+  TTreeReaderValue<Double_t>* xi_lmass;
+  TTreeReaderValue<Double_t>* xi_ldecayvtx_x;
+  TTreeReaderValue<Double_t>* xi_ldecayvtx_y;
+  TTreeReaderValue<Double_t>* xi_ldecayvtx_z;
+  TTreeReaderValue<Double_t>* xi_lmom;  
+  TTreeReaderValue<Double_t>* xi_lmom_x;
+  TTreeReaderValue<Double_t>* xi_lmom_y;
+  TTreeReaderValue<Double_t>* xi_lmom_z;
+  TTreeReaderValue<Double_t>* xi_ppi_dist;
+  TTreeReaderValue<Double_t>* xi_ltarget_dist;
+  TTreeReaderValue<Double_t>* xi_ltargetvtx_x;
+  TTreeReaderValue<Double_t>* xi_ltargetvtx_y;
+  TTreeReaderValue<Double_t>* xi_ltargetvtx_z;  
+  TTreeReaderValue<std::vector<Int_t>>* xidecays_id;
+  TTreeReaderValue<std::vector<Double_t>>* xidecays_mom;
+  TTreeReaderValue<std::vector<Double_t>>* xidecays_mom_x;
+  TTreeReaderValue<std::vector<Double_t>>* xidecays_mom_y;
+  TTreeReaderValue<std::vector<Double_t>>* xidecays_mom_z;
 
   TTreeReaderValue<Double_t>* GFK0Mass; // Branch: "GFK0Mass"
   TTreeReaderValue<Double_t>* GFK0DecayVtx_x;
@@ -1079,7 +1339,7 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* nsigma_pionHtof;
   TTreeReaderValue<std::vector<Double_t>>* nsigma_electronHtof;
 
-  TTreeReaderValue<Bool_t>*   GFlflag;
+  TTreeReaderValue<Int_t>*   GFlflag;
   TTreeReaderValue<Double_t>* GFlmass;
   TTreeReaderValue<Double_t>* GFldecayvtx_x;
   TTreeReaderValue<Double_t>* GFldecayvtx_y;
@@ -1116,7 +1376,75 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* GFldecays_tracklen;
   TTreeReaderValue<std::vector<Double_t>>* GFldecays_htofpos_x;
   TTreeReaderValue<std::vector<Double_t>>* GFldecays_htofpos_y;
-  TTreeReaderValue<std::vector<Double_t>>* GFldecays_htofpos_z;                 
+  TTreeReaderValue<std::vector<Double_t>>* GFldecays_htofpos_z;
+
+  TTreeReaderValue<Double_t>* GFximass;
+  TTreeReaderValue<Double_t>* GFxidecayvtx_x;
+  TTreeReaderValue<Double_t>* GFxidecayvtx_y;
+  TTreeReaderValue<Double_t>* GFxidecayvtx_z;
+  TTreeReaderValue<Double_t>* GFximom;
+  TTreeReaderValue<Double_t>* GFximom_x;
+  TTreeReaderValue<Double_t>* GFximom_y;
+  TTreeReaderValue<Double_t>* GFximom_z;
+  TTreeReaderValue<Double_t>* GFxikkvtx_x;
+  TTreeReaderValue<Double_t>* GFxikkvtx_y;
+  TTreeReaderValue<Double_t>* GFxikkvtx_z;
+  TTreeReaderValue<Double_t>* GFxikkmom;
+  TTreeReaderValue<Double_t>* GFxikkmom_x;
+  TTreeReaderValue<Double_t>* GFxikkmom_y;
+  TTreeReaderValue<Double_t>* GFxikkmom_z;
+  TTreeReaderValue<Double_t>* GFxikkvtx_dist;
+  TTreeReaderValue<Double_t>* GFxiprodvtx_x;
+  TTreeReaderValue<Double_t>* GFxiprodvtx_y;
+  TTreeReaderValue<Double_t>* GFxiprodvtx_z;
+  TTreeReaderValue<Double_t>* GFxiprodmom;
+  TTreeReaderValue<Double_t>* GFxiprodmom_x;
+  TTreeReaderValue<Double_t>* GFxiprodmom_y;
+  TTreeReaderValue<Double_t>* GFxiprodmom_z;
+  TTreeReaderValue<Double_t>* GFxiprodvtx_dist;
+  TTreeReaderValue<Double_t>* GFxitracklen;
+  TTreeReaderValue<Double_t>* GFxitof;
+  TTreeReaderValue<Double_t>* GFlpi_dist;
+  TTreeReaderValue<Double_t>* GFximomloss;
+  TTreeReaderValue<Double_t>* GFxiexcitation;
+  TTreeReaderValue<Double_t>* GFxitargetvtx_x;
+  TTreeReaderValue<Double_t>* GFxitargetvtx_y;
+  TTreeReaderValue<Double_t>* GFxitargetvtx_z;
+  TTreeReaderValue<Double_t>* GFxitargetmom;
+  TTreeReaderValue<Double_t>* GFxitargetmom_x;
+  TTreeReaderValue<Double_t>* GFxitargetmom_y;
+  TTreeReaderValue<Double_t>* GFxitargetmom_z;
+  TTreeReaderValue<Double_t>* GFxitarget_dist;
+  TTreeReaderValue<Double_t>* GFxitargetcenter_x;
+  TTreeReaderValue<Double_t>* GFxitargetcenter_y;
+  TTreeReaderValue<Double_t>* GFxitargetcenter_z;
+  TTreeReaderValue<Double_t>* GFxitargetcentermom;
+  TTreeReaderValue<Double_t>* GFxitargetcentermom_x;
+  TTreeReaderValue<Double_t>* GFxitargetcentermom_y;
+  TTreeReaderValue<Double_t>* GFxitargetcentermom_z;
+  TTreeReaderValue<Double_t>* GFxitargetcenter_dist;
+  
+  TTreeReaderValue<std::vector<Int_t>>* GFxidecays_pdgcode;
+  TTreeReaderValue<std::vector<Int_t>>* GFxidecays_nhtrack;
+  TTreeReaderValue<std::vector<Int_t>>* GFxidecays_htofid;  
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_charge;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_chisqr;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_tracktof;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_pval;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_tracklen;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_tof;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_mass2;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_invbeta;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_mom;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_mom_x;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_mom_y;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_mom_z;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_CMmom;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_CMmom_x;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_CMmom_y;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_CMmom_z;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_momloss;
+  TTreeReaderValue<std::vector<Double_t>>*  GFxidecays_eloss;     
   
 };
 
@@ -1250,7 +1578,7 @@ dst::DstRead( int ievent )
   }
 
   GetEntry(ievent);
-  if(debugflag) std::cout << __FILE__ << " " << __LINE__ << std::endl;; 
+  if(debugflag) std::cout << __FILE__ << " " << __LINE__ << std::endl;
   event.runnum = **src.runnum;
   event.evnum = **src.evnum;
   event.trigpat = **src.trigpat;
@@ -1324,6 +1652,10 @@ dst::DstRead( int ievent )
   event.track_cluster_row_center = **src.track_cluster_row_center;
 
   event.isgoodTPCKurama = **src.isgoodTPCKurama;
+  //event.tpcidTPCKurama = **src.tpcidTPCKurama;
+  event.kflagTPCKurama = **src.kflagTPCKurama;
+  event.pflagTPCKurama = **src.pflagTPCKurama;
+  //event.chisqrTPCKurama = **src.chisqrTPCKurama;  
   event.pTPCKurama = **src.pTPCKurama;
   event.qTPCKurama = **src.qTPCKurama;
   event.m2TPCKurama = **src.m2TPCKurama;
@@ -1472,15 +1804,55 @@ dst::DstRead( int ievent )
   // event.ldecayvtx_x = **src.LambdaDecayVtx_x;
   // event.ldecayvtx_y = **src.LambdaDecayVtx_y;
   // event.ldecayvtx_z = **src.LambdaDecayVtx_z;
-  // event.lmom_x = **src.LambdaMom_x;
-  // event.lmom_y = **src.LambdaMom_y;
-  // event.lmom_z = **src.LambdaMom_z;
+  event.lmom   = **src.lmom;  
+  event.lmom_x = **src.lmom_x;
+  event.lmom_y = **src.lmom_y;
+  event.lmom_z = **src.lmom_z;
   //event.ppi_dist = **src.LambdaVtxCloseDist;
   //  event.ppiangle = **src.LambdaPPiAngle;
-  //event.ldecays_mom = **src.LDecaysMom;
+  event.ldecays_mom = **src.ldecays_mom;
   event.ldecays_mom_x = **src.ldecays_mom_x;
   event.ldecays_mom_y = **src.ldecays_mom_y;
   event.ldecays_mom_z = **src.ldecays_mom_z;
+
+
+  event.xiflag          = **src.xiflag         ;
+  event.ximass	        = **src.ximass	       ;
+  // event.xidecayvtx_x    = **src.xidecayvtx_x   ;
+  // event.xidecayvtx_y    = **src.xidecayvtx_y   ;
+  // event.xidecayvtx_z    = **src.xidecayvtx_z   ;
+  // event.ximom  	        = **src.ximom  	       ;
+  // event.ximom_x	        = **src.ximom_x	       ;
+  // event.ximom_y	        = **src.ximom_y	       ;
+  // event.ximom_z	        = **src.ximom_z	       ;
+  // event.xi_lpi_dist     = **src.xi_lpi_dist    ;
+  // event.xitargetvtx_x   = **src.xitargetvtx_x  ;
+  // event.xitargetvtx_y   = **src.xitargetvtx_y  ;
+  // event.xitargetvtx_z   = **src.xitargetvtx_z  ;
+  // event.xitargetmom     = **src.xitargetmom    ;
+  // event.xitargetmom_x   = **src.xitargetmom_x  ;
+  // event.xitargetmom_y   = **src.xitargetmom_y  ;
+  // event.xitargetmom_z   = **src.xitargetmom_z  ;
+  // event.xitarget_dist   = **src.xitarget_dist  ;
+  // event.xi_lflag        = **src.xi_lflag       ;
+  // event.xi_lmass        = **src.xi_lmass       ;
+  // event.xi_ldecayvtx_x  = **src.xi_ldecayvtx_x ;
+  // event.xi_ldecayvtx_y  = **src.xi_ldecayvtx_y ;
+  // event.xi_ldecayvtx_z  = **src.xi_ldecayvtx_z ;
+  // event.xi_lmom         = **src.xi_lmom        ;
+  // event.xi_lmom_x       = **src.xi_lmom_x      ;
+  // event.xi_lmom_y       = **src.xi_lmom_y      ;
+  // event.xi_lmom_z       = **src.xi_lmom_z      ;
+  // event.xi_ppi_dist     = **src.xi_ppi_dist    ;
+  // event.xi_ltarget_dist = **src.xi_ltarget_dist;
+  // event.xi_ltargetvtx_x = **src.xi_ltargetvtx_x;
+  // event.xi_ltargetvtx_y = **src.xi_ltargetvtx_y;
+  // event.xi_ltargetvtx_z = **src.xi_ltargetvtx_z;   
+  // event.xidecays_id     = **src.xidecays_id   ;
+  // event.xidecays_mom    = **src.xidecays_mom  ;
+  // event.xidecays_mom_x  = **src.xidecays_mom_x;
+  // event.xidecays_mom_y  = **src.xidecays_mom_y;
+  // event.xidecays_mom_z  = **src.xidecays_mom_z;
   
   event.k0flag = **src.k0flag;
   event.k0mass = **src.k0mass;
@@ -1533,14 +1905,84 @@ dst::DstRead( int ievent )
   event.GFldecays_mom_x     = **src.GFldecays_mom_x     ;
   event.GFldecays_mom_y     = **src.GFldecays_mom_y     ;
   event.GFldecays_mom_z     = **src.GFldecays_mom_z     ;      
-  event.GFldecays_htofpos_x = **src.GFldecays_htofpos_x ;
-  event.GFldecays_htofpos_y = **src.GFldecays_htofpos_y ;
-  event.GFldecays_htofpos_z = **src.GFldecays_htofpos_z ;
+  // event.GFldecays_htofpos_x = **src.GFldecays_htofpos_x ;
+  // event.GFldecays_htofpos_y = **src.GFldecays_htofpos_y ;
+  // event.GFldecays_htofpos_z = **src.GFldecays_htofpos_z ;
   
   event.GFk0mass = **src.GFK0Mass;
   event.GFk0decayvtx_x = **src.GFK0DecayVtx_x;
   event.GFk0decayvtx_y = **src.GFK0DecayVtx_y;
   event.GFk0decayvtx_z = **src.GFK0DecayVtx_z;
+
+  event.GFximass              = **src.GFximass             ;
+  // event.GFxidecayvtx_x 	      = **src.GFxidecayvtx_x 	   ;
+  // event.GFxidecayvtx_y	      = **src.GFxidecayvtx_y	   ;
+  // event.GFxidecayvtx_z	      = **src.GFxidecayvtx_z	   ;
+  // event.GFximom		      = **src.GFximom		   ;
+  // event.GFximom_x	      = **src.GFximom_x	           ;
+  // event.GFximom_y	      = **src.GFximom_y	           ;
+  // event.GFximom_z	      = **src.GFximom_z	           ;
+  // event.GFxikkvtx_x	      = **src.GFxikkvtx_x	   ;
+  // event.GFxikkvtx_y	      = **src.GFxikkvtx_y	   ;
+  // event.GFxikkvtx_z	      = **src.GFxikkvtx_z	   ;
+  // event.GFxikkmom	      = **src.GFxikkmom	           ;
+  // event.GFxikkmom_x	      = **src.GFxikkmom_x	   ;
+  // event.GFxikkmom_y	      = **src.GFxikkmom_y	   ;
+  // event.GFxikkmom_z	      = **src.GFxikkmom_z	   ;
+  // event.GFxikkvtx_dist	      = **src.GFxikkvtx_dist	   ;
+  // event.GFxiprodvtx_x	      = **src.GFxiprodvtx_x	   ;
+  // event.GFxiprodvtx_y	      = **src.GFxiprodvtx_y	   ;
+  // event.GFxiprodvtx_z	      = **src.GFxiprodvtx_z	   ;
+  // event.GFxiprodmom	      = **src.GFxiprodmom	   ;
+  // event.GFxiprodmom_x	      = **src.GFxiprodmom_x	   ;
+  // event.GFxiprodmom_y	      = **src.GFxiprodmom_y	   ;
+  // event.GFxiprodmom_z	      = **src.GFxiprodmom_z	   ;
+  // event.GFxiprodvtx_dist      = **src.GFxiprodvtx_dist     ;
+  // event.GFxitracklen 	      = **src.GFxitracklen 	   ;
+  // event.GFxitof		      = **src.GFxitof		   ;
+  
+  // event.GFlpi_dist	      = **src.GFlpi_dist	   ;
+  // event.GFximomloss	      = **src.GFximomloss	   ;
+  // event.GFxiexcitation	      = **src.GFxiexcitation	   ;
+  // event.GFxitargetvtx_x	      = **src.GFxitargetvtx_x	   ;
+  // event.GFxitargetvtx_y	      = **src.GFxitargetvtx_y	   ;
+  // event.GFxitargetvtx_z	      = **src.GFxitargetvtx_z	   ;
+  // event.GFxitargetmom	      = **src.GFxitargetmom	   ;
+  // event.GFxitargetmom_x	      = **src.GFxitargetmom_x	   ;
+  // event.GFxitargetmom_y	      = **src.GFxitargetmom_y	   ;
+  // event.GFxitargetmom_z	      = **src.GFxitargetmom_z	   ;
+  // event.GFxitarget_dist	      = **src.GFxitarget_dist	   ;
+  // event.GFxitargetcenter_x    = **src.GFxitargetcenter_x   ;
+  // event.GFxitargetcenter_y    = **src.GFxitargetcenter_y   ;
+  // event.GFxitargetcenter_z    = **src.GFxitargetcenter_z   ;
+  // event.GFxitargetcentermom   = **src.GFxitargetcentermom  ;
+  // event.GFxitargetcentermom_x = **src.GFxitargetcentermom_x;
+  // event.GFxitargetcentermom_y = **src.GFxitargetcentermom_y;
+  // event.GFxitargetcentermom_z = **src.GFxitargetcentermom_z;
+  // event.GFxitargetcenter_dist = **src.GFxitargetcenter_dist;
+
+  // event.GFxidecays_pdgcode  = **src.GFxidecays_pdgcode ;
+  // event.GFxidecays_nhtrack  = **src.GFxidecays_nhtrack ;
+  // event.GFxidecays_htofid   = **src.GFxidecays_htofid  ;
+  // event.GFxidecays_charge   = **src.GFxidecays_charge  ;
+  // event.GFxidecays_chisqr   = **src.GFxidecays_chisqr  ;
+  // event.GFxidecays_tracktof = **src.GFxidecays_tracktof;
+  // event.GFxidecays_pval	    = **src.GFxidecays_pval    ;
+  // event.GFxidecays_tracklen = **src.GFxidecays_tracklen;
+  // event.GFxidecays_tof	    = **src.GFxidecays_tof     ;
+  // event.GFxidecays_mass2    = **src.GFxidecays_mass2   ;
+  // event.GFxidecays_invbeta  = **src.GFxidecays_invbeta ;
+  // event.GFxidecays_mom	    = **src.GFxidecays_mom     ;
+  // event.GFxidecays_mom_x    = **src.GFxidecays_mom_x   ;
+  // event.GFxidecays_mom_y    = **src.GFxidecays_mom_y   ;
+  // event.GFxidecays_mom_z    = **src.GFxidecays_mom_z   ;
+  // event.GFxidecays_CMmom    = **src.GFxidecays_CMmom   ;
+  // event.GFxidecays_CMmom_x  = **src.GFxidecays_CMmom_x ;
+  // event.GFxidecays_CMmom_y  = **src.GFxidecays_CMmom_y ;
+  // event.GFxidecays_CMmom_z  = **src.GFxidecays_CMmom_z ;
+  // event.GFxidecays_momloss  = **src.GFxidecays_momloss ;
+  // event.GFxidecays_eloss    = **src.GFxidecays_eloss   ;
+  
   //event.GFk0decays_id = **src.GFk0decays_id;
   // event.GFk0decays_mass2 = **src.GFk0decays_mass2;
   // event.GFk0decays_invbeta = **src.GFk0decays_invbeta;
@@ -1554,14 +1996,19 @@ dst::DstRead( int ievent )
     std::cout<<"# of Tracks in Genfit Track Container != # of TPC Tracks"<<std::endl;
     return true;    
   }
+
+
   HF1( 1, event.status++ );  
   if( event.nKK != 1 ) return true;
   HF1( 1, event.status++ );    
   double BEkaon = 0.;
-  double thetaTPC = 0.;  
+  double thetaTPC = 0.;
+  double MissMass = 0.;
   for(Int_t iKK=0; iKK<event.nKK; iKK++){
+    if(KKEvent&&event.kflagTPCKurama[iKK]!=1) return true;
     BEkaon = event.MissMassNuclCorrDETPC[iKK] - KaonMass - Boron11Mass - 0.075;
     thetaTPC = event.thetaTPC[0];
+    MissMass = event.MissMassCorrDETPC[iKK];
   }
 
   Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);  
@@ -1922,7 +2369,11 @@ dst::DstRead( int ievent )
     }
   }
   std::cout << " debug " << __FILE__ << " " << __LINE__ << std::endl;
-  
+
+  if(KKEvent){
+    HF1(50001, MissMass);
+    if(event.xiflag) HF1(40001, event.GFximass);
+  }
   //std::vector<Double_t> GFL_mass_container(l_candidates_LH, qnan);
     
   HF1( genfitHid, GFntTpc);
@@ -1956,6 +2407,11 @@ dst::DstClose( void )
 Bool_t
 ConfMan::InitializeHistograms( void )
 {
+
+  static const auto KKEvent = gUser.GetParameter("KKEvent");
+  static const auto KPEvent = gUser.GetParameter("KPEvent");
+  static const auto KHeavyEvent = gUser.GetParameter("KHeavyEvent");
+  
   if(debugflag) std::cout << __FILE__ << " " << __LINE__ << __func__ << std::endl;;
   Int_t nbinpoq = 1000;
   Int_t minpoq = -1.5;
@@ -2111,6 +2567,8 @@ ConfMan::InitializeHistograms( void )
   HB1( 13249, "[Genfit] #LambdaP Invariant Mass [160#circ<LPOpAngle<180#circ]; #LambdaP IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 1750, 2.0, 5.5);
   
   //  HB1(10000, )
+  HB1( 40001, "[Genfit] #Xi Invariant Mass ; #Xi IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 380, 1.04, 1.8);  
+  HB1( 50001, "MissMass KK on H(CH2); MissMass [GeV]; Counts [/5 MeV]", 600, 0., 3.0);
 
   if(debugflag) std::cout << __FILE__ << " " << __LINE__ << std::endl;;
   
@@ -2208,8 +2666,12 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "track_cluster_y_center", &event.track_cluster_y_center);
   tree->Branch( "track_cluster_z_center", &event.track_cluster_z_center);
   tree->Branch( "track_cluster_row_center", &event.track_cluster_row_center);
-
+  
+  //tree->Branch( "tpcidTPCKurama", &event.tpcidTPCKurama);  
   tree->Branch( "isgoodTPCKurama", &event.isgoodTPCKurama);
+  tree->Branch( "kflagTPCKurama", &event.kflagTPCKurama);
+  tree->Branch( "pflagTPCKurama", &event.pflagTPCKurama);
+  tree->Branch( "chisqrTPCKurama", &event.chisqrTPCKurama);  
   tree->Branch( "pTPCKurama", &event.pTPCKurama);
   tree->Branch( "qTPCKurama", &event.qTPCKurama);
   tree->Branch( "m2TPCKurama", &event.m2TPCKurama);
@@ -2258,6 +2720,68 @@ ConfMan::InitializeHistograms( void )
   tree->Branch( "vtxmom_x", &event.vtxmom_x );
   tree->Branch( "vtxmom_y", &event.vtxmom_y );
   tree->Branch( "vtxmom_z", &event.vtxmom_z );
+
+  tree->Branch("Lflag", &event.lflag);
+  tree->Branch("LambdaMass", &event.lmass);
+  tree->Branch("LambdaDecayVtx_x", &event.ldecayvtx_x);
+  tree->Branch("LambdaDecayVtx_y", &event.ldecayvtx_y);
+  tree->Branch("LambdaDecayVtx_z", &event.ldecayvtx_z);
+  tree->Branch("LambdaMom",   &event.lmom);  
+  tree->Branch("LambdaMom_x", &event.lmom_x);
+  tree->Branch("LambdaMom_y", &event.lmom_y);
+  tree->Branch("LambdaMom_z", &event.lmom_z);
+  tree->Branch("LambdaVtxCloseDist", &event.ppi_dist);
+  tree->Branch("LambdaPPiAngle", &event.ppiangle);  
+  tree->Branch("LDecaysTrackId", &event.ldecays_id);
+  tree->Branch("LDecaysMom", &event.ldecays_mom);
+  tree->Branch("LDecaysMom_x", &event.ldecays_mom_x);
+  tree->Branch("LDecaysMom_y", &event.ldecays_mom_y);
+  tree->Branch("LDecaysMom_z", &event.ldecays_mom_z);
+  tree->Branch("LDecaysHtofHitId", &event.ldecays_htofhitid);
+  tree->Branch("LDecaysHtofSeg", &event.ldecays_htofhitid);    
+  tree->Branch("LDecaysMass2", &event.ldecays_mass2);  
+  tree->Branch("LDecaysTrackLen", &event.ldecays_tracklen);
+  tree->Branch("LDecaysHtofPos_x", &event.ldecays_htofpos_x);
+  tree->Branch("LDecaysHtofPos_y", &event.ldecays_htofpos_y);
+  tree->Branch("LDecaysHtofPos_z", &event.ldecays_htofpos_z);
+
+  tree->Branch("Xiflag", &event.xiflag); 
+  tree->Branch("XiMass", &event.ximass); 
+  tree->Branch("XiDecayVtx_x", &event.xidecayvtx_x);
+  tree->Branch("XiDecayVtx_y", &event.xidecayvtx_y);
+  tree->Branch("XiDecayVtx_z", &event.xidecayvtx_z);
+  tree->Branch("XiMom_x", &event.ximom);  
+  tree->Branch("XiMom_x", &event.ximom_x);
+  tree->Branch("XiMom_y", &event.ximom_y);
+  tree->Branch("XiMom_z", &event.ximom_z);
+  tree->Branch("XiVtxCloseDist", &event.xi_lpi_dist);
+  tree->Branch("XiTarget_x", &event.xitargetvtx_x);
+  tree->Branch("XiTarget_y", &event.xitargetvtx_y);
+  tree->Branch("XiTarget_z", &event.xitargetvtx_z);
+  tree->Branch("XiTargetMom", &event.xitargetmom);
+  tree->Branch("XiTargetMom_x", &event.xitargetmom_x);
+  tree->Branch("XiTargetMom_y", &event.xitargetmom_y);
+  tree->Branch("XiTargetMom_z", &event.xitargetmom_z);
+  tree->Branch("XiTargetCloseDist", &event.xitarget_dist);  
+  tree->Branch("XiLambdaflag", &event.xi_lflag);    
+  tree->Branch("XiLambdaMass", &event.xi_lmass);
+  tree->Branch("XiLambdaDecayVtx_x", &event.xi_ldecayvtx_x);
+  tree->Branch("XiLambdaDecayVtx_y", &event.xi_ldecayvtx_y);
+  tree->Branch("XiLambdaDecayVtx_z", &event.xi_ldecayvtx_z);
+  tree->Branch("XiLambdaMom", &event.xi_lmom);  
+  tree->Branch("XiLambdaMom_x", &event.xi_lmom_x);
+  tree->Branch("XiLambdaMom_y", &event.xi_lmom_y);
+  tree->Branch("XiLambdaMom_z", &event.xi_lmom_z);
+  tree->Branch("XiLambdaVtxCloseDist", &event.xi_ppi_dist);
+  tree->Branch("XiLambdaTgtDist",&event.xi_ltarget_dist);
+  tree->Branch("XiLambdaVtx_x",&event.xi_ltargetvtx_x);
+  tree->Branch("XiLambdaVtx_y",&event.xi_ltargetvtx_y);
+  tree->Branch("XiLambdaVtx_z",&event.xi_ltargetvtx_z);  
+  tree->Branch("XiDecaysTrackId", &event.xidecays_id);
+  tree->Branch("XiDecaysMom", &event.xidecays_mom);
+  tree->Branch("XiDecaysMom_x", &event.xidecays_mom_x);
+  tree->Branch("XiDecaysMom_y", &event.xidecays_mom_y);
+  tree->Branch("XiDecaysMom_z", &event.xidecays_mom_z);
 
   //track fitting results
   tree->Branch("GFstatus", &event.GFstatus);
@@ -2352,6 +2876,58 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("GFLambdaDecaysHtofPos_x", &event.GFldecays_htofpos_x);
   tree->Branch("GFLambdaDecaysHtofPos_y", &event.GFldecays_htofpos_y);
   tree->Branch("GFLambdaDecaysHtofPos_z", &event.GFldecays_htofpos_z);
+  
+  tree->Branch("GFXiMass", &event.GFximass);
+  tree->Branch("GFXiDecayVtx_x", &event.GFxidecayvtx_x);
+  tree->Branch("GFXiDecayVtx_y", &event.GFxidecayvtx_y);
+  tree->Branch("GFXiDecayVtx_z", &event.GFxidecayvtx_z);
+  tree->Branch("GFXiMom", &event.GFximom);
+  tree->Branch("GFXiMom_x", &event.GFximom_x);
+  tree->Branch("GFXiMom_y", &event.GFximom_y);
+  tree->Branch("GFXiMom_z", &event.GFximom_z);
+  tree->Branch("GFXiVtxCloseDist", &event.GFlpi_dist);
+
+  //extrapolation
+  //to the K, K vertex
+  tree->Branch("GFXiKKVtx_x", &event.GFxikkvtx_x);
+  tree->Branch("GFXiKKVtx_y", &event.GFxikkvtx_y);
+  tree->Branch("GFXiKKVtx_z", &event.GFxikkvtx_z);
+  tree->Branch("GFXiKKVtxMom", &event.GFxikkmom);
+  tree->Branch("GFXiKKVtxMom_x", &event.GFxikkmom_x);
+  tree->Branch("GFXiKKVtxMom_y", &event.GFxikkmom_y);
+  tree->Branch("GFXiKKVtxMom_z", &event.GFxikkmom_z);
+  tree->Branch("GFXiKKVtxCloseDist", &event.GFxikkvtx_dist);
+  //to the production vertex
+  tree->Branch("GFXiProductionVtx_x", &event.GFxiprodvtx_x);
+  tree->Branch("GFXiProductionVtx_y", &event.GFxiprodvtx_y);
+  tree->Branch("GFXiProductionVtx_z", &event.GFxiprodvtx_z);
+  tree->Branch("GFXiProductionVtxMom", &event.GFxiprodmom);
+  tree->Branch("GFXiProductionVtxMom_x", &event.GFxiprodmom_x);
+  tree->Branch("GFXiProductionVtxMom_y", &event.GFxiprodmom_y);
+  tree->Branch("GFXiProductionVtxMom_z", &event.GFxiprodmom_z);
+  tree->Branch("GFXiProductionVtxCloseDist", &event.GFxiprodvtx_dist);
+  tree->Branch("GFXiTrackLen", &event.GFxitracklen);
+  tree->Branch("GFXiTof", &event.GFxitof);
+  tree->Branch("GFXiMomLoss", &event.GFximomloss);
+  tree->Branch("GFXiExcitation", &event.GFxiexcitation);
+  //closest point to the target
+  tree->Branch("GFXiTarget_x", &event.GFxitargetvtx_x);
+  tree->Branch("GFXiTarget_y", &event.GFxitargetvtx_y);
+  tree->Branch("GFXiTarget_z", &event.GFxitargetvtx_z);
+  tree->Branch("GFXiTargetMom", &event.GFxitargetmom);
+  tree->Branch("GFXiTargetMom_x", &event.GFxitargetmom_x);
+  tree->Branch("GFXiTargetMom_y", &event.GFxitargetmom_y);
+  tree->Branch("GFXiTargetMom_z", &event.GFxitargetmom_z);
+  tree->Branch("GFXiTargetCloseDist", &event.GFxitarget_dist);
+  //at z=z_target
+  tree->Branch("GFXiTargetCenter_x", &event.GFxitargetcenter_x);
+  tree->Branch("GFXiTargetCenter_y", &event.GFxitargetcenter_y);
+  tree->Branch("GFXiTargetCenter_z", &event.GFxitargetcenter_z);
+  tree->Branch("GFXiTargetCenterMom", &event.GFxitargetcentermom);
+  tree->Branch("GFXiTargetCenterMom_x", &event.GFxitargetcentermom_x);
+  tree->Branch("GFXiTargetCenterMom_y", &event.GFxitargetcentermom_y);
+  tree->Branch("GFXiTargetCenterMom_z", &event.GFxitargetcentermom_z);
+  tree->Branch("GFXiTargetCenterCloseDist", &event.GFxitargetcenter_dist);  
 
   
   TTreeReaderCont[kGenfitE42] = new TTreeReader( "tpc", TFileCont[kGenfitE42] );
@@ -2447,6 +3023,10 @@ ConfMan::InitializeHistograms( void )
   src.track_cluster_row_center = new TTreeReaderValue<std::vector<std::vector<Double_t>>>( *reader, "track_cluster_row_center" );
 
   src.isgoodTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "isgoodTPCKurama" );
+  src.kflagTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "kflagTPCKurama" );
+  src.pflagTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "pflagTPCKurama" );
+  //src.tpcidTPCKurama = new TTreeReaderValue<std::vector<Int_t>>( *reader, "pflagTPCKurama" );  
+  //src.chisqrTPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "chisqrTPCKurama" );  
   src.pTPCKurama = new TTreeReaderValue<std::vector<Double_t>>( *reader, "pTPCKurama" );
   src.qTPCKurama  = new TTreeReaderValue<std::vector<Double_t>>( *reader, "qTPCKurama" );
   src.m2TPCKurama  = new TTreeReaderValue<std::vector<Double_t>>( *reader, "m2TPCKurama" );
@@ -2517,7 +3097,7 @@ ConfMan::InitializeHistograms( void )
   src.decaysmomLambda_y = new TTreeReaderValue<std::vector<std::vector<Double_t>>> (*reader, "decaysmomLambda_y");
   src.decaysmomLambda_z = new TTreeReaderValue<std::vector<std::vector<Double_t>>> (*reader, "decaysmomLambda_z");
 
-  src.lflag		  = new TTreeReaderValue<Bool_t>(*reader,"Lflag");			
+  src.lflag		  = new TTreeReaderValue<Int_t>(*reader,"Lflag");			
   src.lmass		  = new TTreeReaderValue<Double_t>(*reader,"LambdaMass");			
   src.ldecayvtx_x	  = new TTreeReaderValue<Double_t>(*reader,"LambdaDecayVtx_x");		
   src.ldecayvtx_y	  = new TTreeReaderValue<Double_t>(*reader,"LambdaDecayVtx_y");		
@@ -2529,9 +3109,9 @@ ConfMan::InitializeHistograms( void )
   src.ppi_dist          = new TTreeReaderValue<Double_t>(*reader,"LambdaVtxCloseDist");		  
   src.ldecays_id        = new TTreeReaderValue<std::vector<Int_t>>(*reader,"LDecaysTrackId");
   src.ldecays_mom       = new TTreeReaderValue<std::vector<Double_t>>(*reader,"LDecaysMom");
-  src.ldecays_mom_x     = new TTreeReaderValue<std::vector<Double_t>>(*reader,"LambdaDecaysMom_x");
-  src.ldecays_mom_y     = new TTreeReaderValue<std::vector<Double_t>>(*reader,"LambdaDecaysMom_y");
-  src.ldecays_mom_z     = new TTreeReaderValue<std::vector<Double_t>>(*reader,"LambdaDecaysMom_z");    
+  src.ldecays_mom_x     = new TTreeReaderValue<std::vector<Double_t>>(*reader,"LDecaysMom_x");
+  src.ldecays_mom_y     = new TTreeReaderValue<std::vector<Double_t>>(*reader,"LDecaysMom_y");
+  src.ldecays_mom_z     = new TTreeReaderValue<std::vector<Double_t>>(*reader,"LDecaysMom_z");    
   src.ldecays_htofhitid = new TTreeReaderValue<std::vector<Int_t>>(*reader,"LDecaysHtofHitId");
   src.ldecays_htofseg   = new TTreeReaderValue<std::vector<Int_t>>(*reader,"LDecaysHtofSeg");    
   src.ldecays_tracklen  = new TTreeReaderValue<std::vector<Double_t>>(*reader,"LDecaysTrackLen");
@@ -2541,7 +3121,7 @@ ConfMan::InitializeHistograms( void )
   src.ldecays_htofpos_y = new TTreeReaderValue<std::vector<Double_t>>(*reader,"LDecaysHtofPos_y");
   src.ldecays_htofpos_z = new TTreeReaderValue<std::vector<Double_t>>(*reader,"LDecaysHtofPos_z");  
   
-  src.k0flag        = new TTreeReaderValue<Bool_t>       (*reader, "K0flag");
+  src.k0flag        = new TTreeReaderValue<Int_t>       (*reader, "K0flag");
   src.k0mass        = new TTreeReaderValue<Double_t>     (*reader, "K0Mass");
   src.k0decayvtx_x  = new TTreeReaderValue<Double_t>     (*reader, "K0DecayVtx_x");
   src.k0decayvtx_y  = new TTreeReaderValue<Double_t>     (*reader, "K0DecayVtx_y");
@@ -2556,6 +3136,45 @@ ConfMan::InitializeHistograms( void )
   src.k0decays_mom_x= new TTreeReaderValue<std::vector<Double_t>>(*reader, "K0DecaysMom_x");
   src.k0decays_mom_y= new TTreeReaderValue<std::vector<Double_t>>(*reader, "K0DecaysMom_y");
   src.k0decays_mom_z= new TTreeReaderValue<std::vector<Double_t>>(*reader, "K0DecaysMom_z");
+
+  src.xiflag           = new TTreeReaderValue<Int_t>       (*reader, "Xiflag");
+  src.ximass	       = new TTreeReaderValue<Double_t>     (*reader, "XiMass");
+  // src.xidecayvtx_x     = new TTreeReaderValue<Double_t>     (*reader, "XiDecayVtx_x");
+  // src.xidecayvtx_y     = new TTreeReaderValue<Double_t>     (*reader, "XiDecayVtx_y");
+  // src.xidecayvtx_z     = new TTreeReaderValue<Double_t>     (*reader, "XiDecayVtx_z");
+  // src.ximom	       = new TTreeReaderValue<Double_t>     (*reader, "XiMom_x");
+  // src.ximom_x	       = new TTreeReaderValue<Double_t>     (*reader, "XiMom_x");
+  // src.ximom_y	       = new TTreeReaderValue<Double_t>     (*reader, "XiMom_y");
+  // src.ximom_z	       = new TTreeReaderValue<Double_t>     (*reader, "XiMom_z");
+  // src.xi_lpi_dist      = new TTreeReaderValue<Double_t>     (*reader, "XiVtxCloseDist");
+  // src.xitargetvtx_x    = new TTreeReaderValue<Double_t>     (*reader, "XiTarget_x");
+  // src.xitargetvtx_y    = new TTreeReaderValue<Double_t>     (*reader, "XiTarget_y");
+  // src.xitargetvtx_z    = new TTreeReaderValue<Double_t>     (*reader, "XiTarget_z");
+  // src.xitargetmom      = new TTreeReaderValue<Double_t>     (*reader, "XiTargetMom");
+  // src.xitargetmom_x    = new TTreeReaderValue<Double_t>     (*reader, "XiTargetMom_x");
+  // src.xitargetmom_y    = new TTreeReaderValue<Double_t>     (*reader, "XiTargetMom_y");
+  // src.xitargetmom_z    = new TTreeReaderValue<Double_t>     (*reader, "XiTargetMom_z");
+  // src.xitarget_dist    = new TTreeReaderValue<Double_t>     (*reader, "XiTargetCloseDist");
+  // src.xi_lflag	       = new TTreeReaderValue<Int_t>       (*reader, "XiLambdaflag");
+  // src.xi_lmass	       = new TTreeReaderValue<Double_t>     (*reader, "XiLambdaMass");
+  // src.xi_ldecayvtx_x   = new TTreeReaderValue<Double_t>     (*reader, "XiLambdaDecayVtx_x");
+  // src.xi_ldecayvtx_y   = new TTreeReaderValue<Double_t>     (*reader, "XiLambdaDecayVtx_y");
+  // src.xi_ldecayvtx_z   = new TTreeReaderValue<Double_t>     (*reader, "XiLambdaDecayVtx_z");
+  // src.xi_lmom	       = new TTreeReaderValue<Double_t>     (*reader, "XiLambdaMom");
+  // src.xi_lmom_x	       = new TTreeReaderValue<Double_t>     (*reader, "XiLambdaMom_x");
+  // src.xi_lmom_y	       = new TTreeReaderValue<Double_t>     (*reader, "XiLambdaMom_y");
+  // src.xi_lmom_z	       = new TTreeReaderValue<Double_t>     (*reader, "XiLambdaMom_z");
+  // src.xi_ppi_dist      = new TTreeReaderValue<Double_t>     (*reader, "XiLambdaVtxCloseDist");
+  // src.xi_ltarget_dist  = new TTreeReaderValue<Double_t>     (*reader, "XiLambdaTgtDist");
+  // src.xi_ltargetvtx_x  = new TTreeReaderValue<Double_t>     (*reader, "XiLambdaVtx_x");
+  // src.xi_ltargetvtx_y  = new TTreeReaderValue<Double_t>     (*reader, "XiLambdaVtx_y");
+  // src.xi_ltargetvtx_z  = new TTreeReaderValue<Double_t>     (*reader, "XiLambdaVtx_z");
+    
+  // src.xidecays_id         = new TTreeReaderValue<std::vector<Int_t>>      (*reader, "XiDecaysTrackId");
+  // src.xidecays_mom	  = new TTreeReaderValue<std::vector<Double_t>>   (*reader, "XiDecaysMom");
+  // src.xidecays_mom_x	  = new TTreeReaderValue<std::vector<Double_t>>   (*reader, "XiDecaysMom_x");
+  // src.xidecays_mom_y	  = new TTreeReaderValue<std::vector<Double_t>>   (*reader, "XiDecaysMom_y");
+  // src.xidecays_mom_z	  = new TTreeReaderValue<std::vector<Double_t>>   (*reader, "XiDecaysMom_z");
 
   src.GFK0Mass             = new TTreeReaderValue<Double_t>     (*reader, "GFK0Mass");
   src.GFK0DecayVtx_x       = new TTreeReaderValue<Double_t>     (*reader, "GFK0DecayVtx_x");
@@ -2630,7 +3249,7 @@ ConfMan::InitializeHistograms( void )
   src.nsigma_pionHtof = new TTreeReaderValue<std::vector<Double_t>>( *reader, "nsigma_pionHtof" );
   src.nsigma_electronHtof = new TTreeReaderValue<std::vector<Double_t>>( *reader, "nsigma_electronHtof" );
   
-  src.GFlflag		  = new TTreeReaderValue<Bool_t>(*reader,"GFLflag");			
+  src.GFlflag		  = new TTreeReaderValue<Int_t>(*reader,"GFLflag");			
   src.GFlmass		  = new TTreeReaderValue<Double_t>(*reader,"GFLambdaMass");			
   src.GFldecayvtx_x	  = new TTreeReaderValue<Double_t>(*reader,"GFLambdaDecayVtx_x");		
   src.GFldecayvtx_y	  = new TTreeReaderValue<Double_t>(*reader,"GFLambdaDecayVtx_y");		
@@ -2656,9 +3275,9 @@ ConfMan::InitializeHistograms( void )
   src.GFltof              = new TTreeReaderValue<Double_t>(*reader,"GFLambdaTof");                     
   src.GFldecays_id        = new TTreeReaderValue<std::vector<Int_t>>(*reader,"GFLambdaDecaysTrackId");
   src.GFldecays_mom       = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysMom");
-  // src.GFldecays_mom_x     = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysMom_x");
-  // src.GFldecays_mom_y     = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysMom_y");
-  // src.GFldecays_mom_z     = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysMom_z");  
+  src.GFldecays_mom_x     = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysMom_x");
+  src.GFldecays_mom_y     = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysMom_y");
+  src.GFldecays_mom_z     = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysMom_z");  
   src.GFldecays_htofhitid = new TTreeReaderValue<std::vector<Int_t>>(*reader,"GFLambdaDecaysHtofHitId");
   src.GFldecays_htofextrap= new TTreeReaderValue<std::vector<Int_t>>(*reader,"GFLambdaDecaysHtofExtrapolation");
   src.GFldecays_htofseg   = new TTreeReaderValue<std::vector<Int_t>>(*reader,"GFLambdaDecaysHtofSeg");
@@ -2668,6 +3287,74 @@ ConfMan::InitializeHistograms( void )
   src.GFldecays_htofpos_x = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_x");
   src.GFldecays_htofpos_y = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_y");
   src.GFldecays_htofpos_z = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+                                                                      
+  src.GFximass	             = new TTreeReaderValue<Double_t>(*reader, "GFXiMass");
+  // src.GFxidecayvtx_x	     = new TTreeReaderValue<Double_t>(*reader, "GFXiDecayVtx_x");
+  // src.GFxidecayvtx_y	     = new TTreeReaderValue<Double_t>(*reader, "GFXiDecayVtx_y");	
+  // src.GFxidecayvtx_z	     = new TTreeReaderValue<Double_t>(*reader, "GFXiDecayVtx_z"); 	
+  // src.GFximom 		     = new TTreeReaderValue<Double_t>(*reader, "GFXiMom");	
+  // src.GFximom_x		     = new TTreeReaderValue<Double_t>(*reader, "GFXiMom_x");
+  // src.GFximom_y		     = new TTreeReaderValue<Double_t>(*reader, "GFXiMom_y");
+  // src.GFximom_z		     = new TTreeReaderValue<Double_t>(*reader, "GFXiMom_z");//	"GFXiVtxCloseDist");
+  // src.GFxikkvtx_x	     = new TTreeReaderValue<Double_t>(*reader, "GFXiKKVtx_x"); 	     
+  // src.GFxikkvtx_y	     = new TTreeReaderValue<Double_t>(*reader, "GFXiKKVtx_y");	     
+  // src.GFxikkvtx_z	     = new TTreeReaderValue<Double_t>(*reader, "GFXiKKVtx_z");	     
+  // src.GFxikkmom	 	     = new TTreeReaderValue<Double_t>(*reader, "GFXiKKVtxMom");	     
+  // src.GFxikkmom_x	     = new TTreeReaderValue<Double_t>(*reader, "GFXiKKVtxMom_x");    
+  // src.GFxikkmom_y	     = new TTreeReaderValue<Double_t>(*reader, "GFXiKKVtxMom_y");    
+  // src.GFxikkmom_z	     = new TTreeReaderValue<Double_t>(*reader, "GFXiKKVtxMom_z");    	 
+  // src.GFxikkvtx_dist	     = new TTreeReaderValue<Double_t>(*reader, "GFXiKKVtxCloseDist");
+  // src.GFxiprodvtx_x	     = new TTreeReaderValue<Double_t>(*reader, "GFXiProductionVtx_x");
+  // src.GFxiprodvtx_y	     = new TTreeReaderValue<Double_t>(*reader, "GFXiProductionVtx_y");
+  // src.GFxiprodvtx_z	     = new TTreeReaderValue<Double_t>(*reader, "GFXiProductionVtx_z");
+  // src.GFxiprodmom	     = new TTreeReaderValue<Double_t>(*reader, "GFXiProductionVtxMom");
+  // src.GFxiprodmom_x	     = new TTreeReaderValue<Double_t>(*reader, "GFXiProductionVtxMom_x");
+  // src.GFxiprodmom_y	     = new TTreeReaderValue<Double_t>(*reader, "GFXiProductionVtxMom_y");
+  // src.GFxiprodmom_z	     = new TTreeReaderValue<Double_t>(*reader, "GFXiProductionVtxMom_z");
+  // src.GFxiprodvtx_dist	     = new TTreeReaderValue<Double_t>(*reader, "GFXiProductionVtxCloseDist");	
+  // src.GFxitracklen	     = new TTreeReaderValue<Double_t>(*reader, "GFXiTrackLen");
+  // src.GFxitof	 	     = new TTreeReaderValue<Double_t>(*reader, "GFXiTof");
+  // //src.GFlpi_dist	     = new TTreeReaderValue<Double_t>(*reader, 
+  // src.GFximomloss	     = new TTreeReaderValue<Double_t>(*reader, "GFXiMomLoss"); 		
+  // src.GFxiexcitation	     = new TTreeReaderValue<Double_t>(*reader, "GFXiExcitation"); 	
+  // src.GFxitargetvtx_x	     = new TTreeReaderValue<Double_t>(*reader, "GFXiTarget_x");		
+  // src.GFxitargetvtx_y	     = new TTreeReaderValue<Double_t>(*reader, "GFXiTarget_y");		
+  // src.GFxitargetvtx_z	     = new TTreeReaderValue<Double_t>(*reader, "GFXiTarget_z");		
+  // src.GFxitargetmom	     = new TTreeReaderValue<Double_t>(*reader, "GFXiTargetMom");	
+  // src.GFxitargetmom_x	     = new TTreeReaderValue<Double_t>(*reader, "GFXiTargetMom_x");	
+  // src.GFxitargetmom_y	     = new TTreeReaderValue<Double_t>(*reader, "GFXiTargetMom_y");	
+  // src.GFxitargetmom_z	     = new TTreeReaderValue<Double_t>(*reader, "GFXiTargetMom_z");	
+  // src.GFxitarget_dist	     = new TTreeReaderValue<Double_t>(*reader, "GFXiTargetCloseDist");		
+  // src.GFxitargetcenter_x     = new TTreeReaderValue<Double_t>(*reader, "GFXiTargetCenter_x");
+  // src.GFxitargetcenter_y     = new TTreeReaderValue<Double_t>(*reader, "GFXiTargetCenter_y");	 
+  // src.GFxitargetcenter_z     = new TTreeReaderValue<Double_t>(*reader, "GFXiTargetCenter_z");
+  // src.GFxitargetcentermom    = new TTreeReaderValue<Double_t>(*reader, "GFXiTargetCenterMom");
+  // src.GFxitargetcentermom_x  = new TTreeReaderValue<Double_t>(*reader, "GFXiTargetCenterMom_x");
+  // src.GFxitargetcentermom_y  = new TTreeReaderValue<Double_t>(*reader, "GFXiTargetCenterMom_y");
+  // src.GFxitargetcentermom_z  = new TTreeReaderValue<Double_t>(*reader, "GFXiTargetCenterMom_z");
+  // src.GFxitargetcenter_dist  = new TTreeReaderValue<Double_t>(*reader, "GFXiTargetCenterCloseDist");
+
+  // src.GFxidecays_pdgcode   = new TTreeReaderValue<std::vector<Int_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_nhtrack   = new TTreeReaderValue<std::vector<Int_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_htofid    = new TTreeReaderValue<std::vector<Int_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_charge	   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_chisqr	   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_tracktof  = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_pval	   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_tracklen  = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_tof	   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_mass2	   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_invbeta   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_mom	   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_mom_x	   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_mom_y	   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_mom_z	   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_CMmom	   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_CMmom_x   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_CMmom_y   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_CMmom_z   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_momloss   = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
+  // src.GFxidecays_eloss     = new TTreeReaderValue<std::vector<Double_t>>(*reader,"GFLambdaDecaysHtofPos_z");
   
   return true;
 }
