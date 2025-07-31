@@ -2129,10 +2129,10 @@ dst::DstRead( int ievent )
       if(event.isBeam[it1]==1) continue;
       if(event.isAccidental[it1]==1) continue;
       {
-	if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4) HF2(1100, poq1, dedx1);
-	if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.0) HF2(1101, poq1, dedx1);
-	if(thetaTPC<tTPCcut&&BE> 0.0&&BE<1.2) HF2(1102, poq1, dedx1);
-	if(thetaTPC<tTPCcut&&BE>0.12&&BE<0.4) HF2(1103, poq1, dedx1);
+	if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4) HF2(1200, poq1, dedx1);
+	if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.0) HF2(1201, poq1, dedx1);
+	if(thetaTPC<tTPCcut&&BE> 0.0&&BE<1.2) HF2(1202, poq1, dedx1);
+	if(thetaTPC<tTPCcut&&BE>0.12&&BE<0.4) HF2(1203, poq1, dedx1);
       }
       if(event.charge[it1]!=1) continue;
       std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -2206,8 +2206,6 @@ dst::DstRead( int ievent )
 	//if ( !match1 ) continue;
 	bool match2 = TPCAna.TPCHTOFTrackMatching(it2,l_vertex,event.HtofSeg,event.posHtof,hitidHtof2,tracklenHtof2,posHtof2);
 	//if ( !match2 ) continue;
-	// if((event.pid[it1]&4)!=4) continue;
-	// if((event.pid[it2]&1)!=1) continue; //select pi-like
 	bool pidcondP = event.nsigma_proton[it1]<3&&event.nsigma_proton[it1]>-3&&event.nsigma_pion[it1]>2;
 	bool pidcondPi = event.nsigma_pion[it2]<3&&event.nsigma_pion[it2]>-3;	
 	l_mom = pi_mom + p_mom;	
@@ -2235,24 +2233,36 @@ dst::DstRead( int ievent )
 	
 	if(pi_vertex_dist > pi_vtx_distcut) continue;
 	if(p_vertex_dist > p_vtx_distcut) continue;
-	if(ppi_dist > ppi_distcut) continue;	
+	if(ppi_dist > ppi_distcut) continue;
 	
-	{
-	  double lm = Llambda.M();
-	  if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4) { HF1(52001,lm); HF2(1100,poq1,dedx1); HF2(1100,poq2,dedx2); }	
-	  if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.) { HF1(52002,lm); HF2(1101,poq1,dedx1); HF2(1101,poq2,dedx2); }	
-	  else if (thetaTPC<tTPCcut&&BE<0.12) { HF1(52003,lm); HF2(1102,poq1,dedx1); HF2(1102,poq2,dedx2); }	
-	  else if (thetaTPC<tTPCcut&&BE<0.4){ HF1(52004,lm); HF2(1103,poq1,dedx1); HF2(1103,poq2,dedx2); }
-	  if(!pidcondP) continue;
-	  if(!pidcondPi) continue;	
-	  if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4){ HF1(52101,lm); HF2(1110,poq1,dedx1); HF2(1110,poq2,dedx2); }	
-	  if (thetaTPC<tTPCcut&&BE>-0.2&&BE<0.) { HF1(52102,lm); HF2(1111,poq1,dedx1); HF2(1111,poq2,dedx2); }	
-	  else if (thetaTPC<tTPCcut&&BE<0.12) { HF1(52103,lm); HF2(1112, poq1, dedx1); HF2(1112, poq2, dedx2); }	
-	  else if (thetaTPC<tTPCcut&&BE<0.4){ HF1(52104, lm ); HF2(1113, poq1, dedx1); HF2(1113, poq2, dedx2); }
-	}
+	if(!pidcondP) continue;
+	if(!pidcondPi) continue;
 	
 	if( TMath::Abs(Llambda.M() - LambdaMass) > lambda_masscut) continue;
 	event.lflag = true;
+	{
+	  double lm = Llambda.M();
+	  if(pidcondP&&pidcondPi){
+	    if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4){
+	      HF1(52001, lm);	      
+	      HF2(1100,poq1,dedx1); HF2(1100,poq2,dedx2);
+	      HF2(1101,poq1,dedx1); HF2(1102,poq2,dedx2);
+	      if(tTPCcut&&BE>-0.2&&BE<0.) HF1(52002,lm);
+	      else if(tTPCcut&&BE>0.&&BE<0.12) HF1(52003,lm);
+	      else if(tTPCcut&&BE>0.12&&BE<0.4) HF1(52004,lm);	      
+	    }
+	  }
+	  if(match1&&match2){
+	    if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4){	    
+	      HF1(52101,lm);
+	      HF2(1110,poq1,dedx1); HF2(1110,poq2,dedx2);
+	      HF2(1111,poq1,dedx1); HF2(1112,poq2,dedx2);	      
+	      if (BE>-0.2&&BE<0.) { HF1(52102,lm); }	
+	      else if (BE<0.12) { HF1(52103,lm); }
+	      else if (BE<0.4){ HF1(52104, lm ); }
+	    }
+	  }	  
+	}	
 
 	Double_t ltarget_dist;
 	TVector3 ltarget_vtx =
@@ -2458,15 +2468,22 @@ dst::DstRead( int ievent )
     event.ldecays_mom.push_back(mompi);
     event.ldecays_mom_x.push_back(L_pi_mom_container[best_l].x());
     event.ldecays_mom_y.push_back(L_pi_mom_container[best_l].y());
-    event.ldecays_mom_z.push_back(L_pi_mom_container[best_l].z());    
-    double lm = event.lmass;
-    if (thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4) HF1( 42201, lm );
-    if (thetaTPC<tTPCcut&&BE>-0.2&&BE<0.) HF1( 42202, lm );
-    else if (thetaTPC<tTPCcut&&BE<0.12) HF1( 42203, lm );
-    else if (thetaTPC<tTPCcut&&BE<0.4) HF1( 42204, lm );
-    std::cout << __FILE__ << " " << __LINE__ << " " << std::endl;		      
+    event.ldecays_mom_z.push_back(L_pi_mom_container[best_l].z());
+    
+    { // hist
+      double poq1 = momp*1.0;
+      double poq2 = momp*(-1.0);
+      double dedx1 = event.dEdx[event.ldecays_id[0]];
+      double dedx2 = event.dEdx[event.ldecays_id[1]];      
+      double lm = event.lmass;
+      if (thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4){ HF1( 52201, lm ); HF2(1400, poq1, dedx1); HF2(1400,poq1,dedx1);};
+      if (thetaTPC<tTPCcut&&BE>-0.2&&BE<0.){ HF1( 52202, lm ); HF2(1401, poq1, dedx1); HF2(1401,poq1,dedx1);}
+      else if (thetaTPC<tTPCcut&&BE<0.12){ HF1( 52203, lm ); HF2(1402, poq1, dedx1); HF2(1402,poq2,dedx2);}
+      else if (thetaTPC<tTPCcut&&BE<0.4){ HF1( 52204, lm ); HF2(1403, poq1, dedx1); HF2(1403,poq2,dedx2);};
+    }
+    event.ldecays_htofextrap.push_back(L_p_htofextrap_container[best_l]);
+    event.ldecays_htofextrap.push_back(L_pi_htofextrap_container[best_l]);	        
     if(L_p_htofextrap_container[best_l]&&L_pi_htofextrap_container[best_l]){
-      std::cout << __FILE__ << " " << __LINE__ << " " << std::endl;		        
       double mass2p  = L_p_mass2_container[best_l];
       double mass2pi = L_pi_mass2_container[best_l];
       event.ldecays_mass2.push_back(mass2p);
@@ -2483,8 +2500,6 @@ dst::DstRead( int ievent )
       Int_t htofhit2 = L_pi_htofhitid_container[best_l];
       Int_t htofseg1 = L_p_htofseg_container[best_l];
       Int_t htofseg2 = L_pi_htofseg_container[best_l];
-      event.ldecays_htofextrap.push_back(L_p_htofextrap_container[best_l]);
-      event.ldecays_htofextrap.push_back(L_pi_htofextrap_container[best_l]);	    
       event.ldecays_htofhitid.push_back(htofhit1);
       event.ldecays_htofhitid.push_back(htofhit2);
       event.ldecays_htofseg.push_back(htofseg1);
@@ -2507,13 +2522,23 @@ dst::DstRead( int ievent )
     if(event.isKurama[it]==1) continue;
     if(event.isBeam[it]==1) continue;
     if(event.isAccidental[it]==1) continue;    
-    if(it==event.ldecays_id[0]||it==event.ldecays_id[0]) continue;
+    if(it==event.ldecays_id[0]||it==event.ldecays_id[1]) continue;
     double dedx = event.dEdx[it];
-    double mom = event.mom0[it];    
-    if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4) HF2( 1300, mom, dedx );
-    if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.) HF2( 1301, mom, dedx );
-    else if(thetaTPC<tTPCcut&&BE<0.12) HF2( 1302, mom, dedx );
-    else if(thetaTPC<tTPCcut&&BE<0.4) HF2( 1303, mom, dedx );    
+    double poq = event.mom0[it]*event.charge[it];
+    if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4) HF2( 1300, poq, dedx );
+    if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.) HF2( 1301, poq, dedx );
+    else if(thetaTPC<tTPCcut&&BE<0.12) HF2( 1302, poq, dedx );
+    else if(thetaTPC<tTPCcut&&BE<0.4) HF2( 1303, poq, dedx );
+
+    if(event.ldecays_htofextrap[0]&&event.ldecays_htofextrap[1]){
+      for(int i=0; it<2; it++){
+	double m2 = event.ldecays_mass2[i];
+	if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4) HF2( 3300, poq, m2 );
+	if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.) HF2( 3301, poq, m2 );
+	else if(thetaTPC<tTPCcut&&BE<0.12) HF2( 2302, poq, m2 );
+	else if(thetaTPC<tTPCcut&&BE<0.4) HF2( 2303, poq, m2 );	
+      }
+    }
   }
   std::cout << __FILE__ << " " << __LINE__ << " " << std::endl;		      
   std::vector<Double_t> GFL_mass_container(l_candidates, qnan);
@@ -2698,8 +2723,22 @@ dst::DstRead( int ievent )
       GFL_targetcenterdist_container[idp] = l_targetcenter_dist;
       GFL_targetcentervtx_container[idp] = l_pos_tgtcenter;
       event.GFlflag = true;
-      double lim  = GFL_mass_container[idp];
-      HF1( 20001, lim );            
+      double lm  = GFL_mass_container[idp];
+      HF1( 20001, lm );
+      {
+	double poq1 = p_mom.Mag()*event.charge[p_id];
+	double poq2 = pi_mom.Mag()*event.charge[pi_id];
+	double dedx1 = event.dEdx[p_id];
+	double dedx2 = event.dEdx[pi_id];
+	if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4) { HF1(53001,lm); }
+	if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.) { HF1(53002,lm);}	
+	else if (thetaTPC<tTPCcut&&BE<0.12) { HF1(53003,lm); }	
+	else if (thetaTPC<tTPCcut&&BE<0.4){ HF1(53004,lm); }
+	if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4){ HF1(53101,lm); }
+	if (thetaTPC<tTPCcut&&BE>-0.2&&BE<0.) { HF1(53102,lm); }
+	else if (thetaTPC<tTPCcut&&BE<0.12) { HF1(53103,lm); }
+	else if (thetaTPC<tTPCcut&&BE<0.4){ HF1(53104, lm ); }
+      }      
     }
   }
   {
@@ -2718,7 +2757,7 @@ dst::DstRead( int ievent )
 	std::cout << __FILE__ << " " << __LINE__ << " " << std::endl;
       }
     }
-    if(gfbest_l!=-1){
+    if(gfbest_l!=-1){ 
       Int_t id = gfbest_l;
       event.GFlmass = GFL_mass_container[id];
       event.GFldecayvtx_x = GFL_vert_container[id].x();
@@ -2760,17 +2799,25 @@ dst::DstRead( int ievent )
       event.GFldecays_invbeta.push_back(GFL_p_invbeta_container[id]);
       event.GFldecays_invbeta.push_back(GFL_pi_invbeta_container[id]);
       double lmom = GFL_mom_container[id].Mag();
-      double lim  = GFL_mass_container[id];
+      double lm  = GFL_mass_container[id];
       double mass2p = GFL_p_mass2_container[id];
       double momp = GFL_p_mom_container[id].Mag();      
       double mass2pi = GFL_pi_mass2_container[id];
       double mompi = GFL_pi_mom_container[id].Mag();            
-      HF1( 20002, lim );
+      HF1( 20002, lm );
       HF1( 20101, lmom );      
       HF1( 22001, momp );
       HF1( 22011, mass2p );      
       HF1( 23001, mompi );
-      HF1( 23011, mass2pi );            
+      HF1( 23011, mass2pi );
+
+      { // hist	
+	if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.4) HF1( 53201, lm );
+	if(thetaTPC<tTPCcut&&BE>-0.2&&BE<0.) HF1( 53202, lm );
+	else if (thetaTPC<tTPCcut&&BE<0.12) HF1( 53203, lm );
+	else if (thetaTPC<tTPCcut&&BE<0.4) HF1( 53204, lm );
+      }
+      
       std::cout << __FILE__ << " " << __LINE__ << std::endl;
 #if MakePidFig      
       {	
@@ -3258,7 +3305,16 @@ ConfMan::InitializeHistograms( void )
     HB2( 2300, "<m2> Except #Lambda [-0.2<BE<0.4 GeV]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbinmass2, minmass2, maxmass2);    
     HB2( 2301, "<m2> Except #Lambda [-0.2<BE<0 GeV]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbinmass2, minmass2, maxmass2);
     HB2( 2302, "<m2> Except #Lambda [0.<BE<0.12 GeV]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbinmass2, minmass2, maxmass2);
-    HB2( 2303, "<m2> Except #Lambda [0.12<BE<0.40 GeV]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbinmass2, minmass2, maxmass2);    
+    HB2( 2303, "<m2> Except #Lambda [0.12<BE<0.40 GeV]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbinmass2, minmass2, maxmass2);
+
+    HB2( 1400, "<dE/dx> best #Lambda [-0.2<BE<0.4 GeV]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);    
+    HB2( 1401, "<dE/dx> best #Lambda [-0.2<BE<0 GeV]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
+    HB2( 1402, "<dE/dx> best #Lambda [0.<BE<0.12 GeV]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
+    HB2( 1403, "<dE/dx> best #Lambda [0.12<BE<0.40 GeV]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbindedx, mindedx, maxdedx);
+    HB2( 2400, "<m2> best #Lambda [-0.2<BE<0.4 GeV]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbinmass2, minmass2, maxmass2);    
+    HB2( 2401, "<m2> best #Lambda [-0.2<BE<0 GeV]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbinmass2, minmass2, maxmass2);
+    HB2( 2402, "<m2> best #Lambda [0.<BE<0.12 GeV]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbinmass2, minmass2, maxmass2);
+    HB2( 2403, "<m2> best #Lambda [0.12<BE<0.40 GeV]; p/q [GeV/#font[12]{c}];<dE/dx> [arb.]", nbinpoq, minpoq, maxpoq, nbinmass2, minmass2, maxmass2);        
   }
   
   HB1(10011, "GFfromVtx vtx",100,-5.,5.);
@@ -3303,22 +3359,37 @@ ConfMan::InitializeHistograms( void )
   HB1(43011, "GF#Xi #pi m2; Mom[GeV/c]",nbinm2,minm2,maxm2);  
   HB1(44001, "GF#Xi #pi2 mom; Mom[GeV/c]",nbinpoq,0.,maxpoq);
   HB1(44011, "GF#Xi #pi2 m2; Mom[GeV/c]",nbinm2,minm2,maxm2);  
-
+  
   // before final cut
   HB1( 52001, "#Lambda Invariant Mass [b/f cut]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
   HB1( 52002, "#Lambda Invariant Mass [b/f cut][-0.2<-BE<0(GeV)]   ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
   HB1( 52003, "#Lambda Invariant Mass [b/f cut][ 0<-BE<0.12(GeV)] ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
   HB1( 52004, "#Lambda Invariant Mass [b/f cut][0.12<-BE<0.40(GeV)]  ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
-  // before final cut and m2 cut  
-  HB1( 52101, "#Lambda Invariant Mass [m2cut][a/f cut]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
-  HB1( 52102, "#Lambda Invariant Mass [m2cut][a/f cut][-0.2<-BE<0(GeV)]   ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
-  HB1( 52103, "#Lambda Invariant Mass [m2cut][a/f cut][ 0<-BE<0.12(GeV)] ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
-  HB1( 52104, "#Lambda Invariant Mass [m2cut][a/f cut][0.12<-BE<0.40(GeV)]  ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);    
+  // before final cut, with m2 cut  
+  HB1( 52101, "#Lambda Invariant Mass [m2cut][b/f cut]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 52102, "#Lambda Invariant Mass [m2cut][b/f cut][-0.2<-BE<0(GeV)]   ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 52103, "#Lambda Invariant Mass [m2cut][b/f cut][ 0<-BE<0.12(GeV)] ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 52104, "#Lambda Invariant Mass [m2cut][b/f cut][0.12<-BE<0.40(GeV)]  ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);    
   // after final cut    
   HB1( 52201, "#Lambda Invariant Mass [a/f cut]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
   HB1( 52202, "#Lambda Invariant Mass [a/f cut][-0.2<-BE<0(GeV)]   ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
   HB1( 52203, "#Lambda Invariant Mass [a/f cut][ 0<-BE<0.12(GeV)] ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
   HB1( 52204, "#Lambda Invariant Mass [a/f cut][0.12<-BE<0.40(GeV)]  ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  // before final cut
+  HB1( 53001, "[Genfit] #Lambda Invariant Mass [b/f cut]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 53002, "[Genfit] #Lambda Invariant Mass [b/f cut][-0.2<-BE<0(GeV)]   ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 53003, "[Genfit] #Lambda Invariant Mass [b/f cut][ 0<-BE<0.12(GeV)] ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 53004, "[Genfit] #Lambda Invariant Mass [b/f cut][0.12<-BE<0.40(GeV)]  ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  // before final cut, with m2 cut  
+  HB1( 53101, "[Genfit] #Lambda Invariant Mass [m2cut][b/f cut]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 53102, "[Genfit] #Lambda Invariant Mass [m2cut][b/f cut][-0.2<-BE<0(GeV)]   ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 53103, "[Genfit] #Lambda Invariant Mass [m2cut][b/f cut][ 0<-BE<0.12(GeV)] ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 53104, "[Genfit] #Lambda Invariant Mass [m2cut][b/f cut][0.12<-BE<0.40(GeV)]  ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);    
+  // after final cut    
+  HB1( 53201, "[Genfit] #Lambda Invariant Mass [a/f cut]; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 53202, "[Genfit] #Lambda Invariant Mass [a/f cut][-0.2<-BE<0(GeV)]   ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 53203, "[Genfit] #Lambda Invariant Mass [a/f cut][ 0<-BE<0.12(GeV)] ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
+  HB1( 53204, "[Genfit] #Lambda Invariant Mass [a/f cut][0.12<-BE<0.40(GeV)]  ; #Lambda IM [GeV]; Counts [/0.002 GeV/#font[12]{c}^{2}]", 180, 1.04, 1.4);
 
 #if MakePidFig  
   for(int itype=0; itype<kNtype; itype++){//0:general, 1:Lambda reconstruct, 2:K0 reconstruct, 3: K- 

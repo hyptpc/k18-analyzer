@@ -2015,17 +2015,17 @@ dst::DstRead( int ievent )
   std::cout << " debug " << __FILE__ << " " << __LINE__
 	    << " ntTpc: " << ntTpc << std::endl;
   double mint = 3.5;
-  double maxt = 4.5;  
+  double maxt = 4.5;
   int lcandi = 1;
   {
     HF1(11201,BEkaon);
-    if(thetaTPC>mint&&thetaTPC<maxt) HF1(11202,BEkaon);
-    if(thetaTPC<10) HF1(11203,BEkaon);
-    HF1(12001,event.GFlmass);
-    if(BEkaon<-0.1) HF1(12002,event.GFlmass);
-    else if(BEkaon<0.) HF1(12003,event.GFlmass);
-    else if(BEkaon<0.1) HF1(12004,event.GFlmass);        
-    else if(BEkaon<0.2) HF1(12005,event.GFlmass);
+    if(thetaTPC>mint&&thetaTPC<maxt) HF1(11202,BEkaon); 
+    if(thetaTPC<10) HF1(11203,BEkaon);            
+    HF1(12001,event.GFlmass);                    
+    if(BEkaon<-0.1) HF1(12002,event.GFlmass);     
+    else if(BEkaon<0.) HF1(12003,event.GFlmass);  
+    else if(BEkaon<0.1) HF1(12004,event.GFlmass);         
+    else if(BEkaon<0.2) HF1(12005,event.GFlmass); 
     else if(BEkaon<0.3) HF1(12006,event.GFlmass);              
   }
   for(int icandi=0; icandi<lcandi; icandi++){
@@ -2034,18 +2034,18 @@ dst::DstRead( int ievent )
     HF1(11204,BEkaon);
     if(thetaTPC>mint&&thetaTPC<maxt) HF1(11205,BEkaon);
     if(thetaTPC<10) HF1(11206,BEkaon);
-    // if(event.GFldecays_mass2[0]<min_mass2_p||event.GFldecays_mass2[0]>max_mass2_p) continue;
-    // if(event.GFldecays_mass2[1]<min_mass2_pi||event.GFldecays_mass2[1]>max_mass2_pi) continue;
-    for(int it=0; it<ntTpc; it++){ // proton
-      if(!event.GFfitstatus[it]) continue; 
-      if(event.isElectron[it]==1) continue; 
-      if(event.isK18[it]==1) continue; 
-      if(event.isKurama[it]==1) continue;
-      if(event.isBeam[it]==1) continue;
-      if(event.isAccidental[it]==1) continue;
-      if(event.charge[it]!=1) continue;
-      if(it==event.GFldecays_id[0]) continue;
-      if((event.pid[it]&4)!=4) continue;
+    // if(event.GFldecays_mass2[0]<min_mass2_p||event.GFldecays_mass2[0]>max_mass2_p) continue; 
+    // if(event.GFldecays_mass2[1]<min_mass2_pi||event.GFldecays_mass2[1]>max_mass2_pi) continue; 
+    for(int it=0; it<ntTpc; it++){ // proton 
+      if ( !event.GFfitstatus[it] ) continue; 
+      if ( event.isElectron[it]==1 ) continue; 
+      if ( event.isK18[it]==1 ) continue; 
+      if ( event.isKurama[it]==1 ) continue;
+      if ( event.isBeam[it]==1 ) continue;
+      if ( event.isAccidental[it]==1 ) continue;
+      if ( event.charge[it]!=1 ) continue;
+      if ( it==event.GFldecays_id[0] ) continue;
+      if ( (event.pid[it]&4)!=4 ) continue;
       HF1(11207,BEkaon);
       if(thetaTPC>mint&&thetaTPC<maxt) HF1(11208,BEkaon);
       if(thetaTPC<10) HF1(11209,BEkaon);
@@ -2073,7 +2073,7 @@ dst::DstRead( int ievent )
       else if(BEkaon<0.3) HF1(12026,lp2mass);      
     }
   }
-  // with m2 cut
+  // with m2 cut 
   for(int icandi=0; icandi<lcandi; icandi++){
     std::cout << __FILE__ << " " << __LINE__ << " GFlflag:" << event.GFlflag << std::endl;
     if(!event.GFlflag) continue;
@@ -2083,7 +2083,7 @@ dst::DstRead( int ievent )
     if(thetaTPC>mint&&thetaTPC<maxt) HF1(11305,BEkaon);
     if(thetaTPC<10) HF1(11306,BEkaon);
     for(int it=0; it<ntTpc; it++){ // proton
-      if(!event.GFfitstatus[it]) continue; 
+      if(!event.GFfitstatus[it]) continue;
       if(event.isElectron[it]==1) continue; 
       if(event.isK18[it]==1) continue; 
       if(event.isKurama[it]==1) continue;
@@ -2100,11 +2100,10 @@ dst::DstRead( int ievent )
       HF1(11307,BEkaon);
       if(thetaTPC>mint&&thetaTPC<maxt) HF1(11308,BEkaon);
       if(thetaTPC<10) HF1(11309,BEkaon);
-      std::cout << __FILE__ << " " << __LINE__ << " GFlmass:" << event.GFlmass << std::endl;
       HF1(12311,event.GFlmass);
       if(BEkaon<-0.1) HF1(12312,event.GFlmass);
       else if(BEkaon<0. ) HF1(12313,event.GFlmass);
-      else if(BEkaon<0.1) HF1(12314,event.GFlmass);        
+      else if(BEkaon<0.1) HF1(12314,event.GFlmass);
       else if(BEkaon<0.2) HF1(12315,event.GFlmass);
       else if(BEkaon<0.3) HF1(12316,event.GFlmass);
       // TVector3 lmom(event.GFldecays_mom_x[0]+event.GFldecays_mom_x[1],
@@ -2112,7 +2111,7 @@ dst::DstRead( int ievent )
       // 		    event.GFldecays_mom_z[0]+event.GFldecays_mom_z[1]);
       TVector3 lmom(event.ldecays_mom_x[0]+event.ldecays_mom_x[1],
 		    event.ldecays_mom_y[0]+event.ldecays_mom_y[1],
-		    event.ldecays_mom_z[0]+event.ldecays_mom_z[1]);            
+		    event.ldecays_mom_z[0]+event.ldecays_mom_z[1]);
       TLorentzVector GFLlmd(lmom, LambdaMass);
       TVector3 p2mom(event.GFmom_x[it][0],event.GFmom_y[it][0],event.GFmom_z[it][0]);
       TLorentzVector GFLp2(p2mom, ProtonMass);
@@ -2124,7 +2123,7 @@ dst::DstRead( int ievent )
       else if(BEkaon<0.2) HF1(12325,lp2mass);
       else if(BEkaon<0.3) HF1(12326,lp2mass);            
     }
-  }  
+  }
     
   if(use_pidlikeli){ // Helix,dEdx Pid
     for (int it1 = 0; it1 < ntTpc; ++it1) { // proton loop
@@ -2134,10 +2133,10 @@ dst::DstRead( int ievent )
       if(event.isKurama[it1]==1) continue;
       if(event.isBeam[it1]==1) continue;
       if(event.isAccidental[it1]==1) continue;
-      if (event.charge[it1] != 1) continue;
-      if ((event.pid[it1] & 4) != 4) continue; // check proton-like
+      if(event.charge[it1] != 1) continue;
+      if((event.pid[it1] & 4) != 4) continue; // check proton-like
       for (int it2 = 0; it2 < ntTpc; ++it2) { // pion loop
-	if(!event.GFfitstatus[it2]) continue;	
+	if(!event.GFfitstatus[it2]) continue;
 	if (it1 == it2) continue;
 	std::cout << " debug " << __FILE__ << " " << __LINE__ << std::endl;
 	if (event.charge[it2] != -1) continue;
@@ -2163,23 +2162,16 @@ dst::DstRead( int ievent )
     // Helix,LikelihoodPid
     std::vector<Double_t> L_mass_container_LH;
     std::vector<Int_t> l_p_container_LH, l_pi_container_LH;    
-    Int_t l_candidates_LH = 0; 
-    const double pid_threshold = 0.80; //
+    Int_t l_candidates_LH = 0;
+    const double pid_threshold = 0.80;
     for (int it1 = 0; it1 < ntTpc; ++it1) { // proton candidate
-      std::cout << " debug " << __FILE__ << " " << __LINE__ << std::endl;                   	      
       if(!event.GFfitstatus[it1]) continue;
-      std::cout << " debug " << __FILE__ << " " << __LINE__ << std::endl;                   	      
       if(event.isElectron[it1]==1) continue;
-      std::cout << " debug " << __FILE__ << " " << __LINE__ << std::endl;                   	      
       if(event.isK18[it1]==1) continue;
-      std::cout << " debug " << __FILE__ << " " << __LINE__ << std::endl;                   	      
       if(event.isKurama[it1]==1) continue;
-      std::cout << " debug " << __FILE__ << " " << __LINE__ << std::endl;                   	      
       if(event.isBeam[it1]==1) continue;
-      std::cout << " debug " << __FILE__ << " " << __LINE__ << std::endl;                   	      
       if(event.isAccidental[it1]==1) continue;
-      std::cout << " debug " << __FILE__ << " " << __LINE__ << std::endl;                   	      
-      if (event.charge[it1] != 1) continue;
+      if(event.charge[it1] != 1) continue;
       //auto prob1 = gPidLike.CalculatePosterior(event.charge[it1], event.mom0[it1], event.GFm2[it1], event.dEdx[it1]);
       //if (event.GFmom[it1].empty()) continue;
       std::cout << " debug " << __FILE__ << " " << __LINE__
@@ -2358,11 +2350,11 @@ dst::DstRead( int ievent )
 	if(!prob_p.empty() && !prob_pi.empty() &&
 	   prob_p[ kPidP ] >= pid_thresh &&
 	   prob_pi[kPidPi] >= pid_thresh) {
-	  Double_t lamM = **src.GFlmass;
-	  HF1(42300, lamM);
-	  HF2(2300, mom1*event.charge[pId], event.dEdx[pId]);
-	  HF2(2300, mom2*event.charge[piId], event.dEdx[piId]);
-	  HF2(2301, mom1*event.charge[pId], event.dEdx[pId]);
+	  Double_t lamM = **src.GFlmass; 
+	  HF1(42300, lamM); 
+	  HF2(2300, mom1*event.charge[pId], event.dEdx[pId]);   
+	  HF2(2300, mom2*event.charge[piId], event.dEdx[piId]); 
+	  HF2(2301, mom1*event.charge[pId], event.dEdx[pId]);   
 	  HF2(2302, mom2*event.charge[piId], event.dEdx[piId]);  
 	}
       }
@@ -2427,7 +2419,7 @@ ConfMan::InitializeHistograms( void )
   Int_t maxinvbeta = 5;
   double th95 = 0.95;
   double th90 = 0.90;
-  double th85 = 0.85;  
+  double th85 = 0.85;
   
   HB1( 1, "Status", 21, 0., 21. );
   HB1( 2, "Genfit Status", 20, 0., 20. );
