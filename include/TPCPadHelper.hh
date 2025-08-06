@@ -1389,7 +1389,7 @@ inline Double_t GetClSize1Prob(double mom, int pid, int layer){
     else pidflag = 1;
     int mom_flag = (int)(mom/0.1);
     double prob = 0;
-    if(mom_flag > 9){
+    if(mom_flag > 8){
       mom_flag = 9;
       if(inner){
         prob = SingleClusterProbInner[pidflag][mom_flag];

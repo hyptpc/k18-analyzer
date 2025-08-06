@@ -12,6 +12,7 @@
 *.swp
 \#*
 *GenfitCarbon*.cc
+GenfitDoublePhiGeant4.cc
 Makefile
 bin
 data*
