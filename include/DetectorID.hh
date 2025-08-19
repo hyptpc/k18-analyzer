@@ -167,6 +167,7 @@ const Int_t NumOfLayersVP     = 5;
 const Int_t NumOfLayersVPTPC  = 5;
 const Int_t NumOfLayersVPHS   = 4;
 const Int_t NumOfLayersTPC    = 32;
+const Int_t NumOfASADTPC      = 31;
 const Int_t NumOfPadTPC       = 5768;
 //const Int_t NumOfTimeBucket   = 170;
 

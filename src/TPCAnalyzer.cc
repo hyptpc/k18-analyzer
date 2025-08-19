@@ -285,7 +285,26 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     gTPC.GetCDe(layer, row, 1,CheckPad);
     if(CheckPad==0) continue;
     TVector3 hitpos = TVector3(x[i], y[i], z[i]);
-    double Eff = GetDetectionEfficiency(hitpos, pid[i], Mom[i], de[i]);
+//    double Eff = GetDetectionEfficiency(hitpos, pid[i], Mom[i], de[i]);
+    double Eff;
+    int particle = 0;
+    if(abs(pid[i]) == 211){
+      particle = 0;//pi +-
+    }
+    else if(pid[i] == 321){
+      particle = 1;// K+ (Kurama)
+    }
+    else if(pid[i] >= 2212){
+      particle = 2;
+    }
+    if(gTPC.GetDetectionEfficiency(layer, row, particle,Eff)){
+    }
+    else{
+      hddaq::cerr << FUNC_NAME << " "
+                  << "Failed to get detection efficiency for layer "
+                  << layer << ", row " << row << ", pid " << pid[i] << ", part "<< particle<< std::endl;
+      continue;
+    }
     double rndm = gRandom->Uniform(0., 1.);
     if(rndm > Eff) continue;
     if(de[i] == 0. || de[i] == TMath::QuietNaN() || de[i] < MinCDe) continue;

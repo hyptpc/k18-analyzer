@@ -147,6 +147,26 @@ public:
   const std::vector<Double_t>& Params() const { return m_params; }
 };
 
+class TPCEffParam
+{
+public:
+  TPCEffParam(Double_t eff)
+    : m_eff(eff)
+    {}
+  ~TPCEffParam()
+    {}
+
+private:
+  TPCEffParam();
+  TPCEffParam(const TPCEffParam&);
+  TPCEffParam& operator =(const TPCEffParam&);
+
+private:
+  Double_t m_eff;
+
+public:
+  Double_t GetEfficiency() const { return m_eff; }
+};
 //_____________________________________________________________________________
 class TPCParamMan
 {
@@ -162,17 +182,20 @@ private:
 
 private:
   //  enum eAorT { kAdc, kTdc, kY, kATY };
-  enum eAorT { kAdc, kTdc, kY, kCobo, kRes };//kRes -> Single Cluster, kResCl -> Multiple Cluster
+  //enum eAorT { kAdc, kTdc, kY, kCobo, kRes };
+  enum eAorT { kAdc, kTdc, kY, kCobo, kRes, kEff };
   typedef std::map<Int_t, TPCAParam*> AContainer;
   typedef std::map<Int_t, TPCTParam*> TContainer;
   typedef std::map<Int_t, TPCYParam*> YContainer;
   typedef std::map<Int_t, TPCCoboParam*> CoboContainer;
   typedef std::map<Int_t, TPCResParam*> ResContainer;
+  typedef std::map<Int_t, TPCEffParam*> EffContainer;
   typedef AContainer::const_iterator AIterator;
   typedef TContainer::const_iterator TIterator;
   typedef YContainer::const_iterator YIterator;
   typedef CoboContainer::const_iterator CoboIterator;
   typedef ResContainer::const_iterator ResIterator;
+  typedef EffContainer::const_iterator EffIterator;
   Bool_t        m_is_ready;
   TString       m_file_name;
   AContainer    m_APContainer;
@@ -180,6 +203,7 @@ private:
   YContainer    m_YPContainer;
   CoboContainer m_CoboContainer;
   ResContainer  m_ResContainer;
+  EffContainer  m_EffContainer;
   std::vector<Double_t> m_Res_HSON_Inner;
   std::vector<Double_t> m_Res_HSON_Outer;
   std::vector<Double_t> m_Res_HSOFF_Inner;
@@ -202,6 +226,7 @@ public:
   Bool_t Initialize();
   Bool_t Initialize(const TString& file_name);
   Bool_t IsReady() const { return m_is_ready; }
+  Bool_t GetDetectionEfficiency(Int_t layer, Int_t row, Int_t pid, Double_t& eff) const;
   void   SetFileName(const TString& file_name) { m_file_name = file_name; }
 
 private:
@@ -215,6 +240,7 @@ private:
   TPCYParam*    GetYmap(Int_t layer, Int_t row) const;
   TPCCoboParam* GetCobomap(Int_t Cobo) const;
   TPCResParam*  GetResmap(Int_t B, Int_t InnerOrOuter) const;
+  TPCEffParam*    GetEffmap(Int_t layer, Int_t row) const;
 
 public:
   static const std::vector<Double_t>& TPCResolutionParams(Bool_t HSOn, Bool_t Inner);

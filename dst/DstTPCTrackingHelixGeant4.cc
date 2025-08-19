@@ -1823,7 +1823,7 @@ dst::DstRead( int ievent )
         continue;
       }
       Double_t de = cl->GetDe();
-      Int_t cl_size = cl->GetClusterSizeG4();
+      Int_t cl_size = cl->GetClusterSize();
       Double_t mrow = cl->MeanRow();
       TPCHit* meanHit = cl->GetMeanHit();
       Int_t houghflag = meanHit->GetHoughFlag();

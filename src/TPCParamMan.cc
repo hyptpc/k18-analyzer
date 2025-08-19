@@ -217,8 +217,25 @@ TPCParamMan::Initialize()
 	  break;
 	}
       }
+      case kEff: {
+
+        TPCEffParam *pre_param = m_EffContainer[key];
+        TPCEffParam* param = new TPCEffParam(p0);
+        m_EffContainer[key] = param;
+        if(pre_param){
+          hddaq::cerr << FUNC_NAME << ": duplicated key "
+                      << " following record is deleted." << std::endl
+                      << " ASAD = " << layer << ","
+                      << " pid = " << row
+                      << " aty = " << aty
+                      << std::endl;
+          delete pre_param;
+        }
+        break;
+      }
       default:
         hddaq::cerr << FUNC_NAME << ": Invalid Input" << std::endl
+                    << " ===> ATY : " << aty << " " << std::endl
                     << " ===> L" << line_number << " " << line << std::endl;
         break;
       } // switch
@@ -311,6 +328,34 @@ TPCParamMan::GetY(Int_t layer, Int_t row, Double_t time, Double_t& y) const
 		<< std::endl;
     return false;
   }
+}
+
+Bool_t
+TPCParamMan::GetDetectionEfficiency(Int_t layer, Int_t row, Int_t pid, Double_t& eff) const{
+  Int_t ASAD = tpc::GetASADId(layer, row);
+  TPCEffParam* map = GetEffmap(pid, ASAD);
+  if(map){
+    eff = map->GetEfficiency();
+    return 1;
+  } else {
+    hddaq::cerr << FUNC_NAME << ": No record for"
+    << " pid=" << std::setw(3) << std::dec << pid
+    << " ASADId=" << std::setw(3) << std::dec << ASAD
+    <<std::endl;
+    return 0;
+  }
+}
+
+
+TPCEffParam*
+TPCParamMan::GetEffmap(Int_t pid, Int_t ASAD) const
+{
+  Int_t key = MakeKey(pid, ASAD);
+  EffIterator itr = m_EffContainer.find(key);
+  if(itr != m_EffContainer.end())
+    return itr->second;
+  else
+    return nullptr;
 }
 
 //_____________________________________________________________________________

@@ -1040,15 +1040,16 @@ TTree *tree;
 
     //Measured values(sigma of M2 spectrum)
     TF1 *f_sigmaM2 = new TF1("f_sigmaM2", eq_sigmaM2.Data(), 0., 5.);
-    f_sigmaM2 -> FixParameter(0, 0.00924299);
-    f_sigmaM2 -> FixParameter(1, -0.0240778);
-    f_sigmaM2 -> FixParameter(2, 0.000131628);
+    f_sigmaM2 -> FixParameter(0, 0.00427278);
+    f_sigmaM2 -> FixParameter(1, -0.00916854);
+    f_sigmaM2 -> FixParameter(2, 0.000130298);
     f_sigmaM2 -> FixParameter(3, pdgmass2);
 
     TF1 *f_M2 = new TF1("f_M2", eq_M2.Data(), 0., 1.5);
-    f_M2 -> FixParameter(0, 0.0231275);
-    f_M2 -> FixParameter(1, -0.00924397);
-    f_M2 -> FixParameter(2, 0.0123458);
+    f_M2 -> FixParameter(0, 0.0233145);
+    f_M2 -> FixParameter(1, -0.0100331);
+    f_M2 -> FixParameter(2, 0.013772);
+
 
     Double_t m2cut = nsigma*TMath::Sqrt(f_sigmaM2 -> Eval(mom)); //nsigma cut for M^2
     Double_t measured_m2 = f_M2 -> Eval(mom); //Measured M^2
@@ -1063,15 +1064,15 @@ TTree *tree;
 
     //Measured values(sigma of M2 spectrum)
     TF1 *f_sigmaM2 = new TF1("f_sigmaM2", eq_sigmaM2.Data(), 0., 5.);
-    f_sigmaM2 -> FixParameter(0, 0.000336597);
-    f_sigmaM2 -> FixParameter(1, -0.000127907);
-    f_sigmaM2 -> FixParameter(2, 0.000117044);
+    f_sigmaM2 -> FixParameter(0, 0.000216333);
+    f_sigmaM2 -> FixParameter(1, -0.00036971);
+    f_sigmaM2 -> FixParameter(2, 0.000144059);
     f_sigmaM2 -> FixParameter(3, pdgmass2);
 
     TF1 *f_M2 = new TF1("f_M2", eq_M2.Data(), 0., 1.5);
-    f_M2 -> FixParameter(0, 0.262835);
-    f_M2 -> FixParameter(1, -0.0481169);
-    f_M2 -> FixParameter(2, 0.0316721);
+    f_M2 -> FixParameter(0, 0.246792);
+    f_M2 -> FixParameter(1, -0.0192738);
+    f_M2 -> FixParameter(2, 0.0206932);
 
     Double_t m2cut = nsigma*TMath::Sqrt(f_sigmaM2 -> Eval(mom)); //nsigma cut for M^2
     Double_t measured_m2 = f_M2 -> Eval(mom); //Measured M^2
@@ -1086,15 +1087,15 @@ TTree *tree;
 
     //Measured values(sigma of M2 spectrum)
     TF1 *f_sigmaM2 = new TF1("f_sigmaM2", eq_sigmaM2.Data(), 0., 5.);
-    f_sigmaM2 -> FixParameter(0, 0.000239995);
-    f_sigmaM2 -> FixParameter(1, -0.000192965);
-    f_sigmaM2 -> FixParameter(2, 0.000149545);
+    f_sigmaM2 -> FixParameter(0, 0.000184038);
+    f_sigmaM2 -> FixParameter(1, 9.99371e-05);
+    f_sigmaM2 -> FixParameter(2, 6.91217e-05);
     f_sigmaM2 -> FixParameter(3, pdgmass2);
 
     TF1 *f_M2 = new TF1("f_M2", eq_M2.Data(), 0., 1.5);
-    f_M2 -> FixParameter(0, 1.02115);
-    f_M2 -> FixParameter(1, -0.281017);
-    f_M2 -> FixParameter(2, 0.136075);
+    f_M2 -> FixParameter(0, 0.988934);
+    f_M2 -> FixParameter(1, -0.226358);
+    f_M2 -> FixParameter(2, 0.113411);
 
     Double_t m2cut = nsigma*TMath::Sqrt(f_sigmaM2 -> Eval(mom)); //nsigma cut for M^2
     Double_t measured_m2 = f_M2 -> Eval(mom); //Measured M^2
