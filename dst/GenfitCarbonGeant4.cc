@@ -1126,11 +1126,9 @@ struct Event
   Double_t KFlmom_x;
   Double_t KFlmom_y;
   Double_t KFlmom_z;
-  Double_t KFldecayvtx_x;
-  Double_t KFldecayvtx_y;
-  Double_t KFldecayvtx_z;
   Double_t KFlchisqr;
   Double_t KFlpval;
+  std::vector<std::vector<Double_t>> KFlCovMatrix;
   Double_t KFlpi_dist;
   Double_t KFximom;
   Double_t KFximom_x;
@@ -1138,6 +1136,7 @@ struct Event
   Double_t KFximom_z;
   Double_t KFxichisqr;
   Double_t KFxipval;
+  std::vector<std::vector<Double_t>> KFxiCovMatrix;
   Double_t KFximass;
   Double_t G4KFximass;
   Double_t KFxidecayvtx_x;
@@ -2536,11 +2535,9 @@ struct Event
     KFlmom_x = qnan;
     KFlmom_y = qnan;
     KFlmom_z = qnan;
-    KFldecayvtx_x = qnan;
-    KFldecayvtx_y = qnan;
-    KFldecayvtx_z = qnan;
     KFlchisqr = qnan;
     KFlpval = qnan;
+    KFlCovMatrix.clear();
     KFlpi_dist = qnan;
     KFximom = qnan;
     KFximom_x = qnan;
@@ -2548,6 +2545,7 @@ struct Event
     KFximom_z = qnan;
     KFxichisqr = qnan;
     KFxipval = qnan;
+    KFxiCovMatrix.clear();
     KFximass = qnan;
     G4KFximass = qnan;
     KFxidecayvtx_x = qnan;
@@ -3115,7 +3113,7 @@ dst::DstRead( Int_t ievent )
         event.G4kmmom_y = -mom_y;
         event.G4kmmom_z = -mom_z;
       }
-      else {
+      else if(it == 2){
         event.G4kpid = it;
         event.G4kpvtx_x = vert_x;
         event.G4kpvtx_y = vert_y;
@@ -6159,7 +6157,6 @@ dst::DstRead( Int_t ievent )
 
   std::vector<Int_t> KFxi_gfid_container(xi_candidates, -1);
   std::vector<TVector3> KFxi_l_mom_container0(xi_candidates, qnan_vec);
-  std::vector<TVector3> KFxi_l_decayvertex_container(xi_candidates, qnan_vec);
   std::vector<TVector3> KFxi_decayvertex_container(xi_candidates, qnan_vec);
   std::vector<TVector3> KFxi_mom_container(xi_candidates, qnan_vec);
   std::vector<TVector3> KFxi_l_mom_container(xi_candidates, qnan_vec);
@@ -6180,6 +6177,8 @@ dst::DstRead( Int_t ievent )
   std::vector<TVector3> KFxi_p_mom_container(xi_candidates, qnan_vec);
   std::vector<TVector3> KFxi_pi_mom_container(xi_candidates, qnan_vec);
   std::vector<TVector3> KFxi_pi2_mom_container(xi_candidates, qnan_vec);
+  std::vector<std::vector<std::vector<Double_t>>> KFxi_l_covmatrix_container(xi_candidates,std::vector<std::vector<Double_t>>(6,std::vector<Double_t>(6,qnan))); 
+  std::vector<std::vector<std::vector<Double_t>>> KFxi_covmatrix_container(xi_candidates,std::vector<std::vector<Double_t>>(6,std::vector<Double_t>(6,qnan))); 
 
 #if DebugDisp
   if(xi_candidates > 0) std::cout<<"5. Detemine the best Xi candidate and save all"<<std::endl;
@@ -6252,9 +6251,9 @@ dst::DstRead( Int_t ievent )
     Double_t KFchisqrl = -1;
     Double_t KFpvall = -1;
     TPCLocalTrackHelix *track_p = TPCAna.GetTrackTPCHelix(trackid_p);
-    auto Vp = track_p->GetCovarianceMatrix(2);
+    auto Vp = track_p->GetCovarianceMatrix(-1,1.9,1,1);
     TPCLocalTrackHelix *track_pi = TPCAna.GetTrackTPCHelix(trackid_pi);
-    auto Vpi1 = track_pi->GetCovarianceMatrix(0);
+    auto Vpi1 = track_pi->GetCovarianceMatrix(-1,1.9,1,1);
     double Diag_ppi1[6]={
       Vp(0,0),Vp(1,1),Vp(2,2),Vpi1(0,0),Vpi1(1,1),Vpi1(2,2)
     };
@@ -6268,12 +6267,20 @@ dst::DstRead( Int_t ievent )
     TLorentzVector HLVLd(HTVLd,hypot(LambdaMass,HTVLd.Mag()));
 
     FourVectorFitter KFLd(HLVP,HLVPi1,HLVLd);
+//    KFLd.ScaleParameters(false);
     KFLd.SetInvMass(LambdaMass);
     KFLd.SetMaximumStep(5);
     KFLd.SetVariance(Diag_ppi1);
     KFLd.AddOffdiagonals(Offdiag_ppi1);
     KFchisqrl = KFLd.DoKinematicFit();
     KFpvall = KFLd.GetPValue();
+    auto KFLd_cov_matrix = KFLd.GetVariance(0);
+    std::vector<std::vector<Double_t>> KFLd_covmatrix(6,std::vector<Double_t>(6,qnan));
+    for(Int_t i=0;i<6;i++){
+      for(Int_t j=0;j<6;j++){
+	KFLd_covmatrix[i][j] = KFLd_cov_matrix(i,j);
+      }
+    }
     auto HcontLd = KFLd.GetFittedLV();
     auto PullLd = KFLd.GetPull();
     auto KFHLVP = HcontLd.at(0);
@@ -6300,7 +6307,7 @@ dst::DstRead( Int_t ievent )
     //TVector3 KFxi_mom = KFlambda_mom + GFmom_decays[2];
 
     auto* track_pi2 = TPCAna.GetTrackTPCHelix(trackid_pi2);
-    auto VPi2 = track_pi2->GetCovarianceMatrix(0);
+    auto VPi2 = track_pi2->GetCovarianceMatrix(-1,2.,1,1);
     double Diag_lpi2[6] =
       {VLd(0,0),VLd(1,1),VLd(2,2),VPi2(0,0),VPi2(1,1),VPi2(2,2)};
     auto Offdiag_lpi2 = MathTools::MergeOffdiagonals(VLd,VPi2);
@@ -6309,6 +6316,7 @@ dst::DstRead( Int_t ievent )
     TLorentzVector HLVPi2(HTVPi2,hypot(PionMass,HTVPi2.Mag()));
     auto HLVXi = KFHLVLd + HLVPi2;
     FourVectorFitter KFXi(KFHLVLd,HLVPi2,HLVXi);
+//    KFXi.ScaleParameters(false);
     KFXi.SetInvMass(XiMinusMass);
 
 #if DebugDisp
@@ -6319,6 +6327,13 @@ dst::DstRead( Int_t ievent )
     KFXi.AddOffdiagonals(Offdiag_lpi2);
     KFchisqrxi = KFXi.DoKinematicFit();
     KFpvalxi = KFXi.GetPValue();
+    auto KFXi_cov_matrix = KFXi.GetVariance(0);
+    std::vector<std::vector<Double_t>> KFXi_covmatrix(6,std::vector<Double_t>(6,qnan));
+    for(Int_t i=0;i<6;i++){
+      for(Int_t j=0;j<6;j++){
+	KFXi_covmatrix[i][j] = KFXi_cov_matrix(i,j);
+      }
+    }
     auto HcontXi = KFXi.GetFittedLV();
     auto PullXi = KFXi.GetPull();
     auto KFKFHLVLd = HcontXi.at(0);
@@ -6365,7 +6380,6 @@ dst::DstRead( Int_t ievent )
     KFxi_lpull_container[candi] = PullLd;
     KFxi_l_mom_container0[candi] = KFlambda_mom;
     KFxi_l_mom_container[candi] = KFlambda_mom_KFXi;
-    KFxi_l_decayvertex_container[candi] = GFlambda_vert;
     KFxi_lchisqr_container[candi] = KFchisqrl;
     KFxi_lpval_container[candi] = KFpvall;
     KFxi_mom_container[candi] = KFxi_mom;
@@ -6380,6 +6394,8 @@ dst::DstRead( Int_t ievent )
     KFxi_p_mom_container[candi] = KFTVP;
     KFxi_pi_mom_container[candi] = KFTVPi1;
     KFxi_pi2_mom_container[candi] = KFTVPi2;
+    KFxi_l_covmatrix_container[candi] = KFLd_covmatrix;
+    KFxi_covmatrix_container[candi] = KFXi_covmatrix;
 
     Double_t GFlambda_tof =
       Kinematics::CalcTimeOfFlight(GFlambda_mom.Mag(), GFlambda_tracklen, pdg::LambdaMass());
@@ -6781,12 +6797,10 @@ dst::DstRead( Int_t ievent )
     event.KFlmom_x = KFxi_l_mom_container[best_xi].x();
     event.KFlmom_y = KFxi_l_mom_container[best_xi].y();
     event.KFlmom_z = KFxi_l_mom_container[best_xi].z();
-    event.KFldecayvtx_x = KFxi_l_decayvertex_container[best_xi].x();
-    event.KFldecayvtx_y = KFxi_l_decayvertex_container[best_xi].y();
-    event.KFldecayvtx_z = KFxi_l_decayvertex_container[best_xi].z();
     event.KFlchisqr = KFxi_lchisqr_container[best_xi];
     event.KFlpval = KFxi_lpval_container[best_xi];
     event.KFlpull = KFxi_lpull_container[best_xi];
+    event.KFlCovMatrix = KFxi_l_covmatrix_container[best_xi];
     event.KFlpi_dist = KFxi_lpi_closedist_container[best_xi];
     event.KFximom = KFxi_mom_container[best_xi].Mag();
     event.KFximom_x = KFxi_mom_container[best_xi].x();
@@ -6794,6 +6808,7 @@ dst::DstRead( Int_t ievent )
     event.KFximom_z = KFxi_mom_container[best_xi].z();
     event.KFxichisqr = KFxi_chisqr_container[best_xi];
     event.KFxipval = KFxi_pval_container[best_xi];
+    event.KFxiCovMatrix = KFxi_covmatrix_container[best_xi];
     event.KFximass = KFxi_mass_container[best_xi];
     event.G4KFximass = G4KFxi_mass_container[best_xi];
     event.KFxidecayvtx_x = KFxi_decayvertex_container[best_xi].x();
@@ -9892,12 +9907,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("KFLambdaMom_x", &event.KFlmom_x);
   tree->Branch("KFLambdaMom_y", &event.KFlmom_y);
   tree->Branch("KFLambdaMom_z", &event.KFlmom_z);
-  tree->Branch("KFLambdaDecayVtx_x", &event.KFldecayvtx_x);
-  tree->Branch("KFLambdaDecayVtx_y", &event.KFldecayvtx_y);
-  tree->Branch("KFLambdaDecayVtx_z", &event.KFldecayvtx_z);
   tree->Branch("KFLambdaChisqr", &event.KFlchisqr);
   tree->Branch("KFLambdaPval", &event.KFlpval);
   tree->Branch("KFLambdaPull",&event.KFlpull);
+  tree->Branch("KFLambdaCovMatrix", &event.KFlCovMatrix);
 
   tree->Branch("KFXiVtxCloseDist", &event.KFlpi_dist);
   tree->Branch("KFXiMom", &event.KFximom);
@@ -9906,6 +9919,7 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("KFXiMom_z", &event.KFximom_z);
   tree->Branch("KFXiChisqr", &event.KFxichisqr);
   tree->Branch("KFXiPval", &event.KFxipval);
+  tree->Branch("KFXiCovMatrix", &event.KFxiCovMatrix);
   tree->Branch("KFXiMass",&event.KFximass);
   tree->Branch("G4KFXiMass",&event.G4KFximass);
   tree->Branch("KFXiDecayVtx_x", &event.KFxidecayvtx_x);

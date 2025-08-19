@@ -1660,7 +1660,7 @@ dst::DstRead( Int_t ievent )
     TLorentzVector LVpipi1 = LVpip1 + LVpim1;
     TLorentzVector LVpipi2 = LVpip2 + LVpim2;
 
-    event.delM4Pi = LVpipi1.Mag() + LVpipi2.Mag() - (LVphi1 + LVphi2).Mag();
+    event.delM4Pi = LVevent.Mag() - (LVpipi1 + LVpipi2).Mag();
 
   }
 
