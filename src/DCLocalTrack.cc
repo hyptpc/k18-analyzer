@@ -115,7 +115,6 @@ DCLocalTrack::Calculate()
     }
   }
 
-  Print();
   m_is_calculated = true;
 }
 

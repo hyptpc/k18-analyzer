@@ -523,7 +523,12 @@ DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
 Bool_t
 DCAnalyzer::TrackSearchBcIn()
 {
-  return true;
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerBcIn");
+
+  Int_t ntrack = track::LocalTrackSearch(m_BcInHC, PPInfoBcIn, NPPInfoBcIn,
+                                         m_BcInTC, MinLayer);
+
+  return ntrack == -1 ? false : true;
 }
 
 //_____________________________________________________________________________
