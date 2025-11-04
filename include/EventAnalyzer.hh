@@ -32,6 +32,7 @@ public:
                 beam::EBeamFlag beam_flag=beam::kAll);
   void DCHit(const TString& dcname, const DCAnalyzer& dcAna,
              beam::EBeamFlag beam_flag=beam::kAll);
+  void BcInTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag=beam::kAll);
   void BcOutTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag=beam::kAll);
 
   void TriggerFlag(const RawData& rawData);

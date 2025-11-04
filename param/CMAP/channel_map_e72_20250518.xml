@@ -360,7 +360,7 @@
       <for var="ch" from="96" to="127"><for var="data" from="0" to="2">
     	<FE ch="ch" data="data"><D Device="BLC1a" plane="7" ch="ch - 96" data="data"/></FE>
       </for></for>
-    </HulMHTdc> 
+    </HulMHTdc>
     <!--BLC1b____________________________________________________________ -->
     <HulMHTdc node_id="1644" name="hulmhtdc-108">
       <for var="ch" from="0" to="31"><for var="data" from="0" to="2">
@@ -466,5 +466,5 @@
         <FE ch="31" data="data"><D Device="BVH" segment="0" data="data"/></FE> <!-- BVH1 -->
       </for>
     </Easiroc>
-  </DAQNode>    
+  </DAQNode>
 </channel_map>

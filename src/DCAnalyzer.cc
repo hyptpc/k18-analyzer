@@ -46,7 +46,7 @@
 
 // Tracking routine selection __________________________________________________
 /* BcInTracking */
-#define UseBcIn    0 // not supported
+// #define UseBcIn    0 // not supported
 /* BcOutTracking */
 #define BcOut_XUV  0 // XUV Tracking (slow but accerate)
 #define BcOut_Pair 1 // Pair plane Tracking (fast but bad for large angle track)
@@ -170,10 +170,8 @@ DCAnalyzer::~DCAnalyzer()
     del::ClearContainer(elem.second);
 
   ClearS2sTracks();
-#if UseBcIn
-  ClearK18TracksU2D();
+  // ClearK18TracksU2D();
   ClearTracksBcIn();
-#endif
   ClearK18TracksD2U();
   ClearTracksSdcOut();
   ClearTracksSdcIn();
@@ -203,68 +201,25 @@ DCAnalyzer::PrintS2s(const TString& arg) const
 }
 
 //_____________________________________________________________________________
-#if UseBcIn
 Bool_t
 DCAnalyzer::DecodeBcInHits()
 {
-  ClearBcInHits();
-
-  for(Int_t layer=1; layer<=NumOfLayersBcIn; ++layer){
-    const DCRHitContainer &RHitCont = m_raw_data->GetBcInRawHC(layer);
-    Int_t nh = RHitCont.size();
-    for(Int_t i=0; i<nh; ++i){
-      DCRawHit *rhit  = RHitCont[i];
-      DCHit    *thit  = new DCHit(rhit->PlaneId()+PlOffsBc, rhit->WireId());
-      Int_t       nhtdc = rhit->GetTdcSize();
-      if(!thit) continue;
-      for(Int_t j=0; j<nhtdc; ++j){
-        thit->SetTdcVal(rhit->GetTdc(j));
-        thit->SetTdcTrailing(rhit->GetTrailing(j));
-      }
-
-      if(thit->CalcMWPCObservables())
-        m_TempBcInHC[layer].push_back(thit);
-      else
-        delete thit;
+  static const auto& digit_info =
+    hddaq::unpacker::GConfig::get_instance().get_digit_info();
+  m_BcInHC.clear();
+  Int_t plane_offset = 0;
+  for(const auto& name: DCNameList.at("BcIn")){
+    Int_t id = digit_info.get_device_id(name.Data());
+    Int_t n_plane = digit_info.get_n_plane(id);
+    m_BcInHC.resize(n_plane + m_BcInHC.size());
+    DecodeHits(name);
+    for(const auto& hit: m_dc_hit_collection.at(name)){
+      m_BcInHC[hit->PlaneId() + plane_offset].push_back(hit);
     }
-
-    // hddaq::cout<<"*************************************"<<std::endl;
-    Int_t ncl = clusterizeMWPCHit(m_TempBcInHC[layer], m_MWPCClCont[layer]);
-    // hddaq::cout<<"numCl="<< ncl << std::endl;
-    for(Int_t i=0; i<ncl; ++i){
-      MWPCCluster *p = m_MWPCClCont[layer][i];
-      if(!p) continue;
-
-      const MWPCCluster::Statistics& mean  = p->GetMean();
-      const MWPCCluster::Statistics& first = p->GetFirst();
-      Double_t mwire    = mean.m_wire;
-      Double_t mwirepos = mean.m_wpos;
-      Double_t mtime    = mean.m_leading;
-      Double_t mtrail   = mean.m_trailing;
-
-      DCHit *hit = new DCHit(layer+PlOffsBc, mwire);
-      if(!hit) continue;
-      hit->SetClusterSize(p->GetClusterSize());
-      hit->SetMWPCFlag(true);
-      hit->SetWire(mwire);
-      hit->SetMeanWire(mwire);
-      hit->SetMeanWirePosition(mwirepos);
-      hit->SetTrailing(mtrail);
-      hit->SetNomalizedData();
-      hit->SetTdcVal(0);
-      hit->SetTdcTrailing(0);
-
-      if(hit->CalcMWPCObservables())
-        m_BcInHC[layer].push_back(hit);
-      else
-        delete hit;
-    }
-    // hddaq::cout << "nh="<< m_BcInHC[layer].size() <<std::endl;
+    plane_offset += n_plane;
   }
-
   return true;
 }
-#endif
 
 //_____________________________________________________________________________
 Bool_t
@@ -461,9 +416,7 @@ Bool_t
 DCAnalyzer::DecodeRawHits()
 {
   ClearDCHits();
-#if UseBcIn
   DecodeBcInHits();
-#endif
   DecodeBcOutHits();
   // DecodeSdcInHits();
   // DecodeSdcOutHits();
@@ -567,22 +520,11 @@ DCAnalyzer::DecodeTOFHits(const HodoClusterContainer& ClCont)
 }
 
 //_____________________________________________________________________________
-#if UseBcIn
 Bool_t
 DCAnalyzer::TrackSearchBcIn()
 {
-  track::MWPCLocalTrackSearch(&(m_BcInHC[1]), m_BcInTC);
   return true;
 }
-
-//_____________________________________________________________________________
-Bool_t
-DCAnalyzer::TrackSearchBcIn(const std::vector<std::vector<DCHC> >& hc)
-{
-  track::MWPCLocalTrackSearch(hc, m_BcInTC);
-  return true;
-}
-#endif
 
 //_____________________________________________________________________________
 Bool_t
@@ -1031,13 +973,11 @@ DCAnalyzer::ClearTOFHits()
 }
 
 //_____________________________________________________________________________
-#if UseBcIn
 void
 DCAnalyzer::ClearTracksBcIn()
 {
   del::ClearContainer(m_BcInTC);
 }
-#endif
 
 //_____________________________________________________________________________
 void

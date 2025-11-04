@@ -556,20 +556,23 @@ EventAnalyzer::DCHit(const TString& dcname, const DCAnalyzer& dcAna,
     auto detector_id = digit_info.get_device_id(name);
     Int_t nplane = digit_info.get_n_plane(detector_id);
     for(Int_t plane=0; plane<nplane; ++plane){
+      auto hc1 = dcname == "BcIn" ?
+        dcAna.GetBcInHC(plane) : dcAna.GetBcOutHC(plane);
       Int_t multi = 0;
       if(plane%2 == 0) { //pair plnae hit pattern start
 	int wire1, wire2;
-	for(const auto &hit: dcAna.GetBcOutHC(plane)){
-	  wire1 = hit->GetWire();
-	  for(const auto &hit: dcAna.GetBcOutHC(plane+1)){
-	    wire2 = hit->GetWire();
+	for(const auto &hit1: hc1){
+	  wire1 = hit1->GetWire();
+          auto hc2 = dcname == "BcIn" ?
+            dcAna.GetBcInHC(plane+1) : dcAna.GetBcOutHC(plane+1);
+	  for(const auto &hit2: hc2){
+	    wire2 = hit2->GetWire();
 	    HF2(Form("%s_Hit_HitPat_Pairplane%d%d%s", name, plane, plane+1, b), wire1,wire2);
 	    HF1(Form("%s_Hit_HitPat_PP_Sub%d%d%s", name, plane, plane+1, b), wire1 - wire2);
-	    
 	  }
 	}
       } //pair plnae hit pattern end
-      for(const auto& hit: dcAna.GetBcOutHC(plane)){
+      for(const auto& hit: hc1){
         auto wire = hit->GetWire();
         Bool_t is_good = false;
         for(Int_t j=0, m=hit->GetDriftTimeSize(); j<m; ++j){
@@ -588,6 +591,51 @@ EventAnalyzer::DCHit(const TString& dcname, const DCAnalyzer& dcAna,
         }
       }
       HF1(Form("%s_Hit_Multi_plane%d%s", name, plane, b), multi);
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void
+EventAnalyzer::BcInTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
+{
+  // static const auto& digit_info = gUConf.get_digit_info();
+  if(beam_flag == beam::kUnknown) return;
+  const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
+  for (const auto& track : dcAna.GetBcInTrackContainer()) {
+    Int_t nh = track->GetNHit();
+    Double_t chisqr = track->GetChiSquare();
+    Double_t x0 = track->GetX0();
+    Double_t y0 = track->GetY0();
+    Double_t u0 = track->GetU0();
+    Double_t v0 = track->GetV0();
+    // Double_t theta = track->GetTheta();
+    HF1(Form("BcInTrack_NHit%s", b), nh);
+    HF1(Form("BcInTrack_ChiSquare%s", b), chisqr);
+    HF1(Form("BcInTrack_X0%s", b), x0);
+    HF1(Form("BcInTrack_Y0%s", b), y0);
+    HF1(Form("BcInTrack_U0%s", b), u0);
+    HF1(Form("BcInTrack_V0%s", b), v0);
+
+
+    for (const auto& lthit : track->GetHitArray()) {
+      const auto hit = lthit->GetHit();
+      const auto name = hit->GetRawHit()->DetectorName().Data();
+      auto plane = hit->PlaneId();
+      auto wire = lthit->GetWire();
+      auto dt = lthit->DriftTime();
+      auto dl = lthit->DriftLength();
+      HF1(Form("%s_Track_DriftTime_plane%d%s", name, plane, b), dt);
+      HF1(Form("%s_Track_DriftLength_plane%d%s", name, plane, b), dl);
+      HF2(Form("%s_Track_DriftTime_vs_HitPat_plane%d%s", name, plane, b), wire, dt);
+      HF2(Form("%s_Track_DriftLength_vs_HitPat_plane%d%s", name, plane, b), wire, dl);
+      HF1(Form("%s_Track_HitPat_plane%d%s", name, plane, b), wire);
+      auto res = lthit->GetResidual();
+      auto wp = lthit->GetWirePosition();
+      auto pos = lthit->GetLocalHitPos();
+      auto sign = (pos - wp > 0.) ? 1 : -1;
+      HF1(Form("%s_Track_Residual_plane%d%s", name, plane, b), res);
+      HF2(Form("%s_Track_Residual_vs_DriftLength_plane%d%s", name, plane, b), sign*dl, res);
     }
   }
 }
@@ -614,7 +662,7 @@ EventAnalyzer::BcOutTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
     HF1(Form("BcOutTrack_U0%s", b), u0);
     HF1(Form("BcOutTrack_V0%s", b), v0);
 
-    
+
     for (const auto& lthit : track->GetHitArray()) {
       const auto hit = lthit->GetHit();
       const auto name = hit->GetRawHit()->DetectorName().Data();

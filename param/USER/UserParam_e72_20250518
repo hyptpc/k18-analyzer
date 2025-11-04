@@ -78,4 +78,4 @@ BPC2_DT		-50	200
 VFT_DT		-50	200
 
 # Tracking
-MinLayerBcOut	16
+MinLayerBcOut	15

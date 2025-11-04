@@ -101,7 +101,11 @@ const TGraph*
 DCDriftParamMan::GetParameter(const TString& detector_name,
                               Int_t plane_id, Int_t /* wire_id */) const
 {
-  return m_container.at(Form("%s_plane%d", detector_name.Data(), plane_id));
+  auto it = m_container.find(Form("%s_plane%d", detector_name.Data(), plane_id));
+  if (it != m_container.end())
+    return it->second;
+  else
+    return nullptr;
 }
 
 //_____________________________________________________________________________
@@ -111,6 +115,7 @@ DCDriftParamMan::CalcDrift(const TString& detector_name, Int_t plane_id,
                            Double_t& dt, Double_t& dl) const
 {
   auto g1 = GetParameter(detector_name, plane_id, wire_id);
+  if (!g1) return false;
   dt = ctime;
   dl = g1->Eval(dt, nullptr, "S");
   return true;

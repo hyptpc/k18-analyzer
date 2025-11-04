@@ -127,6 +127,8 @@ public:
   Bool_t MakeTrackSdcInGeant4();
   Bool_t MakeTrackSdcOutGeant4();
 
+  const DCLocalTC& GetBcInTrackContainer() const
+    { return m_BcInTC; }
   const DCLocalTC& GetBcOutTrackContainer() const
     { return m_BcOutTC; }
 
