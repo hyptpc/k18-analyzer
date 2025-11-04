@@ -201,7 +201,7 @@ DCHit::CalcDCObservables()
     trailing.push_back(buf);
     Double_t ctime = TMath::QuietNaN();
     gTdc.GetTime(detector_id, m_plane, m_wire, l, ctime);
-    Double_t dt = TMath::QuietNaN();
+    Double_t dt = ctime; // TMath::QuietNaN();
     Double_t dl = TMath::QuietNaN();
     gDrift.CalcDrift(m_raw_hit->DetectorName(),
                      m_plane, m_wire, ctime, dt, dl);

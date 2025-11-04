@@ -117,7 +117,6 @@ ProcessNormal()
   dcAna.DecodeBcInHits();
 
   evAna.DCHit("BcIn", dcAna);
-  return true;
   evAna.DCHit("BcIn", dcAna, event.beam_flag);
   dcAna.TotCut("BLC1a");
   dcAna.TotCut("BLC1b");
