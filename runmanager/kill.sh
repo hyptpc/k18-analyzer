@@ -6,7 +6,7 @@ bjobs | while read jid buff; do
 	continue
     fi
 
-    bkill $jid
+    bkill -r $jid
 
 done
 

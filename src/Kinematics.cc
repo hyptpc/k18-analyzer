@@ -776,6 +776,13 @@ Gamma(Double_t beta)
 {
   return 1./TMath::Sqrt(1.-beta*beta);
 }
+//_____________________________________________________________________________
+Double_t
+Gamma(Double_t mom, Double_t mass)
+{
+  Double_t x = mom/mass;
+  return TMath::Sqrt(1.+x*x);
+}
 
 //_____________________________________________________________________________
 Double_t
@@ -1212,6 +1219,14 @@ Double_t HypTPCdEdxKaon(Double_t poq){
   Double_t dedx_k = HypTPCBethe(&poq, par_k); //P10's <dE/dx>_k
   return dedx_k;
 }
+//_____________________________________________________________________________
+Bool_t HypTPCdEdxKaon(Double_t dedx, Double_t poq){
+
+   Double_t nsigma = HypTPCdEdxNsigmaKaon(dedx, poq);
+   Double_t window_k[2] = {-3., 3.};
+   Bool_t flag = (nsigma < window_k[1] && nsigma > window_k[0]);
+   return flag;
+ }
 
 //_____________________________________________________________________________
 Double_t HypTPCdEdxProton(Double_t poq){

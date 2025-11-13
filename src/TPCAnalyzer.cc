@@ -1191,7 +1191,7 @@ bool TPCAnalyzer::TPCHTOFTrackMatching(int trackid, TVector3 vertex,
 {
   bool status = false;
   TPCLocalTrackHelix *tp = GetTrackTPCHelix(trackid);
-  double PosDiffCut = 50.; //mm 
+  double PosDiffCut = 150.; //mm 
   TVector3 vtx_pos; TVector3 vtx_mom; double vtx_len; double vtx_dist;
   if(!tp->ExtrapolateToPoint(vertex,vtx_pos,vtx_mom,vtx_len,vtx_dist)) return status;
   std::vector<HtofCandidate> candi = ExtrapolateToHTOF(tp);
@@ -1207,27 +1207,30 @@ bool TPCAnalyzer::TPCHTOFTrackMatching(int trackid, TVector3 vertex,
   TVector3 best_pos;
   int    best_candi = -1;
   double best_dist  = -1.0; 
-  for ( int i=0;i<candi.size();i++ ) { 
-    int nhHtof = HtofSeg.size(); 
-    for ( int j=0;j<nhHtof;j++ ) { 
-      if ( candi[i].segid == (int) HtofSeg[j] && 
-	   TMath::Abs(posHtof[j] - candi[i].pos.y()) < PosDiffCut ) { 
-	double distance = TMath::Abs(posHtof[j] - candi[i].pos.y()); 
+  for ( int i=0;i<candi.size();i++ ) {
+    int nhHtof = HtofSeg.size();
+    for ( int j=0;j<nhHtof;j++ ) {
+      if ( candi[i].segid == (int) HtofSeg[j] &&
+	   TMath::Abs(posHtof[j] - candi[i].pos.y()) < PosDiffCut ) {
+	double distance = TMath::Abs(posHtof[j] - candi[i].pos.y());
 	if ( distance>min_distance ) continue;
 	//TVector3 vtx_to_htof = candi[i].pos - vtx_pos;
 	TVector3 vtx_to_htof = candi[i].pos - vtx_pos;
 	double dot_product = vtx_to_htof.Dot(vtx_mom);
 	if ( dot_product < 0 ) continue;
+	double current_tracklen = (candi[i].tracklen - vtx_len -17.5286)/1.0083; 
+	if (current_tracklen <= 0) continue;
 	min_distance = distance;
         best_pos = candi[i].pos;
-	best_tracklen = candi[i].tracklen - vtx_len;
-	//best_tracklen = (candi[i].tracklen + vtx_len + 26.)/1.12 ;
+	best_tracklen = current_tracklen;
+	//best_tracklen = (candi[i].tracklen - vtx_len - 17.5286)/1.0083;
         candidate_found = true;
 	best_candi = i;
 	best_htofhitid = j;
 	best_dist = distance;
 	best_posy = candi[i].pos.y();
 	best_posyHtof = posHtof[j];
+	std::cout << __FILE__ << " " << __LINE__ << " tracklen: " << tracklen << std::endl;	
       }
     }
   }
@@ -1235,8 +1238,14 @@ bool TPCAnalyzer::TPCHTOFTrackMatching(int trackid, TVector3 vertex,
   if(candidate_found){
     pos = best_pos;
     tracklen = best_tracklen;
-    htofhitid = best_htofhitid;
+    htofhitid = best_htofhitid;    
     status = true;
-  }  
+    std::cout << __FILE__ << " " << __LINE__ << " tracklen: " << tracklen << std::endl;
+  } else {
+    tracklen = -999;
+    htofhitid = -1;
+    status = false;
+  }
+  
   return status;
 }

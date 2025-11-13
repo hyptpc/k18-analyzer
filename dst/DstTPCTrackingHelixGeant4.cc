@@ -178,8 +178,6 @@ struct Event
   Int_t ititpc[MaxTPCHits];
   Int_t nhittpc_iti[MaxTPCHits];
 
-
-
   Int_t nclTpc;
   Int_t remain_nclTpc;
   std::vector<Double_t> cluster_x;
@@ -196,7 +194,6 @@ struct Event
   std::vector<Int_t> cluster_row_center;
   std::vector<Int_t> cluster_houghflag;
   std::vector<Int_t> cluster_G4tid;
-
 
   Int_t ntTpc;                   // Number of Tracks
   Int_t ntKuramaCandidate; //Numer of tracks which are kurama track candidates(before TPCKurama tracking)
@@ -417,7 +414,7 @@ struct Event
   Double_t MomentumOfTrack_y[1000];
   Double_t MomentumOfTrack_z[1000];
 
-  int G4idKm,G4idKp,G4idP,G4idPi1,G4idPi2;;
+  int G4idKm,G4idKp,G4idScatKm,G4idP,G4idPi1,G4idPi2,G4idPim,G4idPip;
 
   Double_t MomXi_x,MomXi_y,MomXi_z;//At decay vtx
   Double_t SpinXi_x,SpinXi_y,SpinXi_z;
@@ -429,6 +426,7 @@ struct Event
   //KpXi Kinematics, Momentum at production vtx
   double PKm,PKm_x,PKm_y,PKm_z;
   double PKp,PKp_x,PKp_y,PKp_z;
+  double PScatKm,PScatKm_x,PScatKm_y,PScatKm_z;  
   double PXi,PXi_x,PXi_y,PXi_z;
   double PPi2,PPi2_x,PPi2_y,PPi2_z;//Pi from Xi
 
@@ -589,6 +587,7 @@ struct Event
   vector<Int_t> tpcidTPCKurama;
   vector<Int_t> niterationTPCKurama;
   vector<Int_t> kflagTPCKurama;
+  vector<Int_t> pflagTPCKurama;
   vector<Double_t> chisqrTPCKurama;
 
 
@@ -622,6 +621,7 @@ struct Event
 
     PKm = qnan;PKm_x=qnan;PKm_y=qnan;PKm_z=qnan;
     PKp = qnan;PKp_x=qnan;PKp_y=qnan;PKp_z=qnan;
+    PScatKm = qnan;PScatKm_x=qnan;PScatKm_y=qnan;PScatKm_z=qnan;    
     PXi = qnan;PXi_x=qnan;PXi_y=qnan;PXi_z=qnan;
     PPi2 = qnan;PPi2_x=qnan;PPi2_y=qnan;PPi2_z=qnan;
     PLd = qnan;PLd_x=qnan;PLd_y=qnan;PLd_z=qnan;
@@ -1152,10 +1152,12 @@ dst::InitializeEvent( void )
   event.nhittpc = 0;
   event.ntTpc = 0;
   event.max_ititpc = 0;
-
-  for(int i=0; i<MaxTPCTracks; ++i){
+  
+  for(int i=0; i<MaxTPCHits; ++i){
     event.ititpc[i] =0;
-    event.nhittpc_iti[i] =0;
+    event.nhittpc_iti[i] =0;    
+  }
+  for(int i=0; i<MaxTPCTracks; ++i){
     for(int j=0; j<MaxTPCnHits; ++j){
       event.momg_x[i][j] =-9999.;
       event.momg_y[i][j] =-9999.;
@@ -1182,6 +1184,7 @@ dst::InitializeEvent( void )
 
   event.G4idKm = -1;
   event.G4idKp = -1;
+  event.G4idScatKm = -1;  
   event.G4idP = -1;
   event.G4idPi1 = -1;
   event.G4idPi2 = -1;
@@ -1359,11 +1362,10 @@ dst::DstRead( int ievent )
   static const auto zLocalBcOut = gGeom.GetLocalZ("BC3-X1");
   static const auto xGlobalSdcOut = gGeom.GetGlobalPosition("SDC4-X2").X();
   static const auto yGlobalSdcOut = gGeom.GetGlobalPosition("SDC4-X2").Y();
+  static const Bool_t KKEvent = gUser.GetParameter("KKEvent");
+  static const Bool_t KPEvent = gUser.GetParameter("KPEvent");
 
-
-
-
-  if( ievent%1==0 ){
+  if( ievent%1000==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
@@ -1371,7 +1373,6 @@ dst::DstRead( int ievent )
   GetEntry(ievent);
 
   HF1( 1, event.status++ );
-
 
   vector<TVector3> G4Hits;
   vector<TVector3> G4Moms;
@@ -1384,6 +1385,7 @@ dst::DstRead( int ievent )
   }
 
   int G4idKm = -1;
+  int G4idScatKm = -1;  
   int G4idKp = -1;
   event.evnum = src.evnum -1;
   event.nhittpc = src.nhittpc;
@@ -1414,45 +1416,79 @@ dst::DstRead( int ievent )
     double vert_x = src.VertexOfTrack_x[it];
     double vert_y = src.VertexOfTrack_y[it];
     double vert_z = src.VertexOfTrack_z[it];
-    if(abs(pid) == 321 and parent==0){
-      if(pz < 0){
-        G4idKm = tid;
-        event.G4idKm = tid;
-	event.PKm = p;
-	event.PKm_x = -px;
-	event.PKm_y = -py;
-	event.PKm_z = -pz;
+    if(!KPEvent){
+      if(abs(pid) == 321 and parent==0){
+	if(pz < 0){
+	  G4idKm = tid;
+	  event.G4idKm = tid;
+	  event.PKm = p;
+	  event.PKm_x = -px;
+	  event.PKm_y = -py;
+	  event.PKm_z = -pz;
+	}
+	else{
+	  G4idKp = tid;
+	  event.G4idKp = tid;
+	  event.PKp = p;
+	  event.PKp_x = px;
+	  event.PKp_y = py;
+	  event.PKp_z = pz;
+	}
       }
-      else{
-        G4idKp = tid;
-	event.G4idKp = tid;
-        event.PKp = p;
-	event.PKp_x = px;
-	event.PKp_y = py;
-	event.PKp_z = pz;
+      if(pid == 3312){
+	event.PXi = p;
+	event.PXi_x = px;
+	event.PXi_y = py;
+	event.PXi_z = pz;
       }
-    }
-    if(pid == 3312){
-      event.PXi = p;
-      event.PXi_x = px;
-      event.PXi_y = py;
-      event.PXi_z = pz;
-    }
-    if(pid == 3122 and pid_parent == 3312){
-      event.PLd = p;
-      event.PLd_x = px;
-      event.PLd_y = py;
-      event.PLd_z = pz;
-    }
-    if(pid == 2212 and pid_parent == 3122){
-      event.G4idP = tid;
-    }
-    if(pid == -211){
-      if (pid_parent == 3122){
-        event.G4idPi1 = tid;
+      if(pid == 3122 and pid_parent == 3312){
+	event.PLd = p;
+	event.PLd_x = px;
+	event.PLd_y = py;
+	event.PLd_z = pz;
       }
-      else if(pid_parent == 3312){
-        event.G4idPi2 = tid;
+      if(pid == 2212 and pid_parent == 3122){
+	event.G4idP = tid;
+      }
+      if(pid == -211){
+	if (pid_parent == 3122){
+	  event.G4idPi1 = tid;
+	}
+	else if(pid_parent == 3312){
+	  event.G4idPi2 = tid;
+	}
+      }
+    } else { // KP reaction
+      if(parent==0){
+	if(abs(pid) == 321){
+	  if(tid==1){ // beam K-
+	    G4idKm = tid;
+	    event.G4idKm = tid;
+	    event.PKm = p;
+	    event.PKm_x = -px;
+	    event.PKm_y = -py;
+	    event.PKm_z = -pz;
+	    std::cout << " beamk mom: " << p << std::endl;	    
+	  } else if(tid==2){ // scattered P
+	    G4idKp = tid;
+	    event.G4idKp = tid;
+	    event.PKp = p;
+	    event.PKp_x = px;
+	    event.PKp_y = py;
+	    event.PKp_z = pz;
+	    std::cout << " scatp mom: " << p << std::endl;
+	  }
+	} else if(pid==2212){
+	  if(tid==3){
+	    G4idScatKm = tid;
+	    event.G4idScatKm = tid;
+	    event.PScatKm = p;
+	    event.PScatKm_x = px;
+	    event.PScatKm_y = py;
+	    event.PScatKm_z = pz;
+	    std::cout << " scatkm mom: " << p << std::endl;
+	  }	 
+	}
       }
     }
   }
@@ -1567,6 +1603,7 @@ dst::DstRead( int ievent )
   }
 
   for(int ihit=0; ihit<event.nhittpc; ++ihit){
+    if(ihit>=MaxHits) break;
     event.ititpc[ihit] = src.ititpc[ihit];
 
     //for debug
@@ -1575,8 +1612,10 @@ dst::DstRead( int ievent )
     //debug     <<src.ytpc[ihit]<<", "
     //debug     <<src.ztpc[ihit]<<")"<<std::endl;
 
-    if(event.max_ititpc<src.ititpc[ihit])
-      event.max_ititpc = src.ititpc[ihit];
+    if(event.max_ititpc<src.ititpc[ihit]+1)
+      event.max_ititpc = src.ititpc[ihit]+1;
+    // std::cout << " debug " << __FILE__ << " " << __LINE__ << " ihit/nhittpc=" << ihit << "/" << event.nhittpc << " ititpc[ihit]:" << event.ititpc[ihit]
+    // 	      << " max_ititpc:" << event.max_ititpc << " nhittpc_iti[ititpc[ihit]]:" << event.nhittpc_iti[src.ititpc[ihit]] << std::endl;
     ++event.nhittpc_iti[src.ititpc[ihit]];
   }
   if(src.nhittpc<5)
@@ -1865,7 +1904,6 @@ dst::DstRead( int ievent )
     event.niterationTPCKurama[idkurama] = niteration;
     event.chisqrTPCKurama[idkurama] = chisqr;
     event.kflagTPCKurama[idkurama] = 1;
-
   }
 
   vector<int> G4TrackID;
@@ -2177,8 +2215,8 @@ dst::DstRead( int ievent )
     }//ih
     int nPureHits;
     int G4tid = TPCToG4TrackID(TPCHits,src.nhittpc,src.ititpc,src.xtpc,src.ytpc,src.ztpc,nPureHits);
-    if(G4tid == G4idKm)event.isK18[it]=1;
-    if(G4tid == G4idKp)event.isKurama[it]=1;
+    if(G4tid == G4idKm) event.isK18[it]=1;
+    if(G4tid == G4idKp) event.isKurama[it]=1;
 
     event.G4tid[it] = G4tid;
     event.purity[it] = (double)nPureHits/nh;
@@ -2626,7 +2664,8 @@ ConfMan::InitializeHistograms( void )
 
   tree->Branch("max_ititpc",&event.max_ititpc,"max_ititpc/I");
   tree->Branch("ititpc",event.ititpc,"ititpc[nhittpc]/I");
-  tree->Branch("nhittpc_iti",event.nhittpc_iti,"nhittpc_iti[max_ititpc]/I");
+  const int len = std::min(event.max_ititpc, MaxTPCHits);
+  tree->Branch("nhittpc_iti",event.nhittpc_iti,Form("nhittpc_iti[%d]/I",len));
 
   tree->Branch("xtgtHS",&event.xtgtHS);
   tree->Branch("ytgtHS",&event.ytgtHS);
@@ -2788,9 +2827,10 @@ ConfMan::InitializeHistograms( void )
   tree->Branch("MomentumOfTrack_z",event.MomentumOfTrack_z,"MomentumOfTrack_z[1000]/D");
   tree->Branch("G4TrackIDKm",event.G4idKm);
   tree->Branch("G4TrackIDKp",event.G4idKp);
+  tree->Branch("G4TrackIDScatKm",event.G4idScatKm);  
   tree->Branch("G4TrackIDP",event.G4idP);
   tree->Branch("G4TrackIDPi1",event.G4idPi1);
-  tree->Branch("G4TrackIDPi2",event.G4idPi2);
+  tree->Branch("G4TrackIDPi2",event.G4idPi2);  
 
   tree->Branch("MomXi_x",&event.MomXi_x,"MomXi_x/D");
   tree->Branch("MomXi_y",&event.MomXi_y,"MomXi_y/D");
@@ -2940,7 +2980,7 @@ ConfMan::InitializeHistograms( void )
   TTreeCont[kTPCGeant]->SetBranchAddress("MomentumOfTrack_x",src.MomentumOfTrack_x);
   TTreeCont[kTPCGeant]->SetBranchAddress("MomentumOfTrack_y",src.MomentumOfTrack_y);
   TTreeCont[kTPCGeant]->SetBranchAddress("MomentumOfTrack_z",src.MomentumOfTrack_z);
-  TTreeCont[kTPCGeant]->SetBranchAddress("MomXi_x",&src.MomXi_x);
+  TTreeCont[kTPCGeant]->SetBranchAddress("MomXi_x",&src.MomXi_x); 
   TTreeCont[kTPCGeant]->SetBranchAddress("MomXi_y",&src.MomXi_y);
   TTreeCont[kTPCGeant]->SetBranchAddress("MomXi_z",&src.MomXi_z);
   TTreeCont[kTPCGeant]->SetBranchAddress("SpinXi_x",&src.SpinXi_x);

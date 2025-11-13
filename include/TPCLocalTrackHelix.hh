@@ -176,6 +176,14 @@ public:
   Double_t GetTransverseAngularResolution();
   TMatrixD GetCovarianceMatrix();
 
+  TMatrixD GetCovarianceMatrix(int pid, double& nomres_scale, double& threes_scale, double& phres_scale);
+  TMatrixD GetVertexCovarianceMatrix(TVector3 vert, double l, int pid = -1);
+
+  Double_t GetMomentumResolutionScat(int pid);
+  Double_t GetAngularResolutionScat(int pid);
+  Double_t GetTransverseAngularResolutionScat(int pid);
+  Double_t GetVerticalAngularResolutionScat(int pid);  
+
   Double_t GetdZResolution();//returns pitch resolution.
   Double_t GetThetaResolution();//returns pitch angle resolution.
   Double_t GetMomentumPitchAngleCovariance();

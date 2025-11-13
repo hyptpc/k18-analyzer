@@ -57,6 +57,7 @@ namespace Kinematics
 		  Double_t *momentum_cor, Double_t *energy_cor);
   Double_t CalcDedx(Double_t beta);
   Double_t Gamma(Double_t beta);
+  Double_t Gamma(Double_t mom, Double_t mass);  
   Double_t Beta(Double_t energy, Double_t mormentum);
 
   //For HypTPC dE calculation
@@ -78,6 +79,7 @@ namespace Kinematics
   Double_t HypTPCBethe(Double_t *x, Double_t *p);
   Double_t HypTPCdEdxPion(Double_t poq);
   Double_t HypTPCdEdxKaon(Double_t poq);
+  Bool_t HypTPCdEdxKaon(Double_t dedx, Double_t poq);  
   Double_t HypTPCdEdxProton(Double_t poq);
   Double_t HypTPCdEdxDeutron(Double_t poq);
   Double_t HypTPCdEdxElectron(Double_t poq);      
