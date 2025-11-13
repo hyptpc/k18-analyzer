@@ -25,6 +25,7 @@ public:
   explicit TPCLocalTrackHelix();
   ~TPCLocalTrackHelix();
   TPCLocalTrackHelix(TPCLocalTrackHelix *init); //deep copy
+  TPCLocalTrackHelix(TVector3 vertex, TVector3 momentum, Int_t charge); //Construct from vertex and momentum
 
 private:
   TPCLocalTrackHelix & operator =(const TPCLocalTrackHelix &init);
@@ -135,6 +136,7 @@ public:
   Int_t         GetNHit() const { return m_hit_array.size(); }
   Int_t         GetNHitsEffective() const;
   Int_t         GetOrder(Int_t i) const;
+  Int_t         GetNOrder() const { return m_hit_order.size(); }
 
   Double_t   GetChiSquare() const { return m_chisqr; }
   TVector3   GetClosestDistVect() const { return m_closedist; }
@@ -219,6 +221,7 @@ public:
 
   void SetParam(Double_t *par){ m_cx = par[0]; m_cy = par[1]; m_z0 = par[2]; m_r = par[3]; m_dz = par[4]; }
   void SetClustersHoughFlag(Int_t hough_flag);
+  int GetClusterHoughFlag(Int_t hid = 0);
 
   void SetFlag(Int_t flag);
   void SetCharge(Int_t flag) { m_charge = flag; }

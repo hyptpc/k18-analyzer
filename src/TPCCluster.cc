@@ -15,7 +15,7 @@
 #include "TPCPadHelper.hh"
 #include "TPCPositionCorrector.hh"
 #include "ThreeVector.hh"
-
+#define DebugMode 0
 namespace
 {
 const auto& gTPCPos = TPCPositionCorrector::GetInstance();
@@ -142,6 +142,16 @@ TPCCluster::Calculate()
   TVector2 xz_vector = xz_vectorHS + target_center;
   m_cluster_position.SetXYZ(xz_vector.X(), mean_y, xz_vector.Y());
   m_mean_row = tpc::getMrow(m_layer, m_mean_theta*TMath::RadToDeg());
+  if(DebugMode){
+    hddaq::cout << FUNC_NAME << " Layer " << m_layer
+                << " Cluster position (x,y,z)=(" << m_cluster_position.X()
+                << "," << m_cluster_position.Y() << ","
+                << m_cluster_position.Z() << ")"
+                << " mean_row=" << m_mean_row
+                << " mean_theta=" << m_mean_theta*TMath::RadToDeg()
+                << " de=" << m_cluster_de << std::endl;
+    hddaq::cout<<"Mean Hit? "<< (m_mean_hit)<<std::endl;
+  }
   m_mean_hit->AddHit(0., 0.);
   m_mean_hit->SetMRow(m_mean_row);
   m_mean_hit->SetPadLength(tpc::padParameter[m_layer][5]);

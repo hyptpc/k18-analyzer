@@ -70,7 +70,7 @@ z = p[2] + p[4]*p[3]*(theta);
 #include "UserParamMan.hh"
 #include "DatabasePDG.hh"
 
-#define DebugDisp 0
+#define DebugDisp 1
 #define IterativeResolution 1
 namespace
 {
@@ -185,6 +185,18 @@ static inline TVector3 GlobalToLocal(TVector3 pos){
 static inline TVector3 LocalToGlobal(TVector3 pos){
   return TVector3(-pos.X(), pos.Z(), pos.Y() + tpc::ZTarget);
 }
+
+//______________________________________________________________________________
+static inline TVector3 GlobalToLocalMomentum(TVector3 mom){
+  return TVector3(-mom.X(), mom.Z(), mom.Y());
+}
+
+//______________________________________________________________________________
+static inline TVector3 LocalToGlobalMomentum(TVector3 mom){
+  return GlobalToLocalMomentum(mom);//Conversion is the same
+}
+
+
 
 //______________________________________________________________________________
 static inline TVector3 LocalPosition(Double_t par[5], Double_t t){
@@ -1306,6 +1318,69 @@ TPCLocalTrackHelix::TPCLocalTrackHelix(TPCLocalTrackHelix *init){
 }
 
 //______________________________________________________________________________
+TPCLocalTrackHelix::TPCLocalTrackHelix(TVector3 vertex, TVector3 momentum, Int_t charge)
+  : m_is_fitted(false),
+    m_is_calculated(false),
+    m_is_theta_calculated(false),
+    m_is_fitted_exclusive(false),
+    m_is_multiloop(false),
+    m_hit_order(), m_hit_t(), m_kuramaid_candidate(),
+    m_pid(0),
+    m_closedist(1.e+10, 1.e+10, 1.e+10),
+    m_closedistXZ(1.e+10, 1.e+10, 1.e+10),
+    m_chisqr(1.e+10),
+    m_minuit(0),
+    m_n_iteration(0),
+    m_mom0(0.,0.,0.),
+    m_edgepoint(0.,0.,-143.),
+    m_min_t(0.), m_max_t(0.),
+    m_path(0.), m_transverse_path(0.),
+    m_charge(0), m_fitflag(0), m_vtxflag(0),
+    m_isBeam(0), m_isK18(0), m_isKurama(0), m_isAccidental(0), m_isXi(0),
+    m_trackid(-1),
+    m_ncl_beforetgt(-1),
+    m_searchtime(0), m_fittime(0),
+    m_MomResScale(-1),
+    m_dZResScale(-1),
+    m_PhResScale(-1),
+    m_cx_exclusive(), m_cy_exclusive(), m_z0_exclusive(),
+    m_r_exclusive(), m_dz_exclusive(),
+    m_chisqr_exclusive(),
+    m_t_exclusive(),
+    m_vp()
+{
+
+  static const Double_t MomResScale = gUser.GetParameter("MomResScale") ;
+  static const Double_t dZResScale = gUser.GetParameter("dZResScale") ;
+  static const Double_t PhiResScale = gUser.GetParameter("PhiResScale") ;
+  m_MomResScale = MomResScale;
+  m_dZResScale = dZResScale;
+  m_PhResScale = PhiResScale;
+
+  momentum = GlobalToLocalMomentum(momentum);
+  momentum = momentum * (Double_t)charge;
+  Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  Double_t pt = hypot(momentum.x(), momentum.y());
+  m_r = pt /(tpc::ConstC* dMagneticField);
+  Double_t theta_mom = atan2(momentum.Y(),momentum.X());
+  Double_t theta_pos = theta_mom - M_PI/2;
+
+  vertex = GlobalToLocal(vertex);
+  m_cx = vertex.x() - m_r * cos(theta_pos);
+  m_cy = vertex.y() - m_r * sin(theta_pos);
+  m_dz = momentum.z() / pt;
+  m_z0 = vertex.z() - m_dz * m_r * theta_pos;
+  m_charge = charge;
+
+
+
+
+
+  m_hit_array.reserve(ReservedNumOfHits);
+  debug::ObjectCounter::increase(ClassName());
+}
+
+//______________________________________________________________________________
 void
 TPCLocalTrackHelix::ClearHits()
 {
@@ -1380,16 +1455,21 @@ TPCLocalTrackHelix::Calculate()
 		<< "already called" << std::endl;
     return;
   }
-
   const std::size_t n = m_hit_array.size();
+  if(DebugDisp) std::cout<<FUNC_NAME+ "hit size "<<n<<std::endl;
   for(std::size_t i=0; i<n; ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
+    if(DebugDisp) std::cout<<FUNC_NAME+ "hit "<<i<<" SetCalHelix"<<std::endl;
     hitp->SetCalHelix(m_cx, m_cy, m_z0, m_r, m_dz);
+    if(DebugDisp) std::cout<<FUNC_NAME+ "hit "<<i<<" SetTheta"<<std::endl;
     hitp->SetTheta(m_hit_t[i]);
+    if(DebugDisp) std::cout<<FUNC_NAME+ "hit "<<i<<" SetCalPosition"<<std::endl;
     hitp->SetCalPosition(hitp->GetLocalCalPosHelix());
     if(m_is_fitted){
+      if(DebugDisp) std::cout<<FUNC_NAME+ "hit "<<i<<" SetResolution"<<std::endl;
       hitp->SetResolution(GetResolutionVect(i, true));
     }
+    if(DebugDisp) std::cout<<FUNC_NAME+ "hit "<<i<<" processed"<<std::endl;
   }
 
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
@@ -1497,17 +1577,23 @@ TPCLocalTrackHelix::GetResolutionVect(TPCLTrackHit* hit, Bool_t vetoBadClusters)
     return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
   }
 
-  if(vetoBadClusters && hit->GetHit()->GetParentCluster()->IsOnTheFrame()) return TVector3(3.e+10, 3.e+10, 3.e+10);
+  if(vetoBadClusters and hit->GetHit()->GetParentCluster()){
+    if(hit->GetHit()->GetParentCluster()->IsOnTheFrame()) return TVector3(3.e+10, 3.e+10, 3.e+10);
+  }
 
   TVector3 pos = hit->GetLocalHitPos();
   Int_t layer = hit->GetLayer();
   Double_t padTheta = hit->GetPadTheta();
   Double_t theta = hit->GetTheta();
+  if(DebugDisp) std::cout<<FUNC_NAME+" Getting ResParams..."<<std::endl;
   std::vector<Double_t> resParam = hit->GetResolutionParams();
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
 
   //Convert resolution along the row direction into closets point's x, y, z resolutions
+  if(DebugDisp) std::cout<<FUNC_NAME+" Calculating Resolution..."<<std::endl;
   TVector3 res = CalcResolution(par, layer, pos, padTheta, theta, resParam, vetoBadClusters);
+
+  if(DebugDisp) std::cout<<FUNC_NAME+" Returning Resolution..."<<std::endl;
   return res;
 }
 
@@ -1519,7 +1605,7 @@ TPCLocalTrackHelix::GetResolutionVect(Int_t i, Bool_t vetoBadClusters){
     std::cout<<FUNC_NAME+" Fatal error : No helix theta information!!! CalcHelixTheta() should be run in front of this"<<std::endl;
     return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
   }
-
+  if(DebugDisp) std::cout<<FUNC_NAME+" Getting Res Vect "<<i<<" of "<<m_hit_array.size()<<std::endl;
   return GetResolutionVect(m_hit_array[i], vetoBadClusters);
 }
 
@@ -1690,6 +1776,14 @@ TPCLocalTrackHelix::SetClustersHoughFlag(Int_t hough_flag)
     if( !hit ) continue;
     hit->SetHoughFlag(hough_flag);
   }
+}
+
+//______________________________________________________________________________
+int
+TPCLocalTrackHelix::GetClusterHoughFlag(Int_t hid){
+  auto hit = m_hit_array[hid]->GetHit();
+  if( !hit ) return -1;
+  return hit->GetHoughFlag();
 }
 
 //______________________________________________________________________________
@@ -3469,12 +3563,15 @@ TPCLocalTrackHelix::DoFitTrackwVertex(TVector3 vertex_pos, TVector3 vertex_res)
 void
 TPCLocalTrackHelix::RecalcTrack()
 {
-
+  if(DebugDisp) hddaq::cout<<FUNC_NAME+" RecalcTrack"<<std::endl;
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   m_is_theta_calculated = true;
   m_is_calculated = false;
+  if(DebugDisp) hddaq::cout<<FUNC_NAME+" Recalculating momentum..."<<std::endl;
   m_mom0 = CalcHelixMom(par, 0.);
+  if(DebugDisp) hddaq::cout<<FUNC_NAME+" Calculating..."<<std::endl;
   Calculate();
+  if(DebugDisp) hddaq::cout<<FUNC_NAME+ "Size of hit_t: "<<m_hit_t.size()<<std::endl; 
   m_is_fitted = true;
   m_min_t = m_hit_t[0];
   m_max_t = m_hit_t[m_hit_t.size() - 1];
