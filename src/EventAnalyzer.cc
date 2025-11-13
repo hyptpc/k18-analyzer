@@ -180,6 +180,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
 
   // Hodoscope
   for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
+    if (ihodo == kKVC) continue;
     const Char_t* name = NameHodo[ihodo];
     Int_t multi_or = 0;
     Int_t multi_and = 0;
@@ -216,8 +217,8 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Multi_AND%s", name, b), multi_and);
   }
 
-  { ///// KVC2
-    const Char_t* name = "KVC2";
+  { ///// KVC
+    const Char_t* name = "KVC";
     Int_t multi_or = 0;
     Int_t multi_and = 0;
     for(const auto& hit: rawData.GetHodoRawHC(name)){
@@ -347,8 +348,8 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
 
   // TOF
   {
-    for(Int_t i2=0, n2=hodoAna.GetNHits("T0"); i2<n2; ++i2){
-      const auto& hit2 = hodoAna.GetHit<BH2Hit>("T0", i2);
+    for(Int_t i2=0, n2=hodoAna.GetNHits("BH2"); i2<n2; ++i2){
+      const auto& hit2 = hodoAna.GetHit<BH2Hit>("BH2", i2);
       // auto seg2 = hit2->SegmentId();
       for(Int_t j2=0, m2=hit2->GetEntries(); j2<m2; ++j2){
         // auto t0 = hit2->Time0(j2);
@@ -380,8 +381,8 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
 
   // BTOF / FTOF
   {
-    for(Int_t i2=0, n2=hodoAna.GetNHits("T0"); i2<n2; ++i2){
-      const auto& hit2 = hodoAna.GetHit<BH2Hit>("T0", i2);
+    for(Int_t i2=0, n2=hodoAna.GetNHits("BH2"); i2<n2; ++i2){
+      const auto& hit2 = hodoAna.GetHit<BH2Hit>("BH2", i2);
       auto seg2 = hit2->SegmentId();
       auto au2 = hit2->GetAUp(), ad2 = hit2->GetADown(), a2 = hit2->DeltaE();
       for(Int_t j2=0, m2=hit2->GetEntries(); j2<m2; ++j2){

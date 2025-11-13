@@ -132,10 +132,10 @@ BuildHodoRaw(Bool_t flag_beam_particle)
       }
     }
 
-    { ///// KVC2
-      auto name = "KVC2";
+    { ///// KVC
+      auto name = "KVC";
       const Double_t* hrtdcbins = hrtdcbins1;
-      Int_t nseg = NumOfSegKVC2;
+      Int_t nseg = NumOfSegKVC;
       for(const auto& uord: std::vector<TString>{"a", "b", "c", "d"}){
         auto ud = uord.Data();
         for(Int_t i=0; i<nseg; ++i){
@@ -144,11 +144,6 @@ BuildHodoRaw(Bool_t flag_beam_particle)
           HB1(Form("%s_AwoT_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
           HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins);
         }
-      }
-      for(const auto& uord: std::vector<TString>{"OR", "AND"} ){
-        auto ud = uord.Data();
-        HB1(Form("%s_HitPat_%s%s; segment; count", name, ud, b), nseg, -0.5, nseg - 0.5);
-        HB1(Form("%s_Multi_%s%s; multiplicity; count", name, ud, b), nseg + 1, -0.5, nseg + 0.5);
       }
     }
 

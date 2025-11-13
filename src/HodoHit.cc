@@ -11,6 +11,7 @@
 #include <string>
 
 #include "DebugCounter.hh"
+#include "DetectorID.hh"
 #include "FuncName.hh"
 #include "HodoParamMan.hh"
 #include "HodoPHCMan.hh"
@@ -86,10 +87,12 @@ HodoHit::Calculate()
 
   for(Int_t ch=0; ch<m_n_ch; ++ch){
     // adc
-    for(const auto& adc: m_raw->GetArrayAdcHigh(ch)){
-      Double_t de = TMath::QuietNaN();
-      if(gHodo.GetDeHighGain(id, plane, seg, ch, adc, de)){
-        m_de_high.at(ch).push_back(de);
+    if (id != DetIdT0 && id != DetIdSFV ) {
+      for(const auto& adc: m_raw->GetArrayAdcHigh(ch)){
+	Double_t de = TMath::QuietNaN();
+	if(gHodo.GetDeHighGain(id, plane, seg, ch, adc, de)){
+	  m_de_high.at(ch).push_back(de);
+	}
       }
     }
     for(const auto& adc: m_raw->GetArrayAdcLow(ch)){

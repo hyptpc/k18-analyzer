@@ -68,7 +68,7 @@ std::map<TString, cl_t> cl_time;
 std::map<TString, cl_t> cl_tdif;
 std::map<TString, cl_t> cl_size;
 
-///// KVC2
+///// KVC
 std::map<TString, adc_t> adc_a;
 std::map<TString, adc_t> adc_b;
 std::map<TString, adc_t> adc_c;
@@ -141,15 +141,14 @@ ProcessNormal()
 
   HodoAnalyzer hodoAna(rawData);
   hodoAna.DecodeHits<FiberHit>("BHT");
-  // hodoAna.TimeCut("BHT");
-  hodoAna.DecodeHits<BH2Hit>("T0");
+  hodoAna.DecodeHits<BH2Hit>("BH2");
   hodoAna.DecodeHits("BAC");
-  hodoAna.DecodeHits("KVC1");
-  hodoAna.DecodeHits("SAC");
-  hodoAna.DecodeHits("BH2");
-  hodoAna.DecodeHits<FiberHit>("BVH");
+  hodoAna.DecodeHits("HTOF");
+  hodoAna.DecodeHits("KVC");
   hodoAna.DecodeHits("T1");
-  hodoAna.DecodeHits("T2");
+  hodoAna.DecodeHits("CVC");
+  hodoAna.DecodeHits("SAC3");
+  hodoAna.DecodeHits("SFV");
 
   EventAnalyzer evAna;
 
@@ -189,7 +188,6 @@ ProcessNormal()
     trailing_d["BHT"].push_back(hit->GetArrayTdcTrailing(1));
   }
 
-  //  for(Int_t ihodo=kT0; ihodo<kNumHodo + 1; ++ihodo){
   for(Int_t ihodo=kBAC; ihodo<kNumHodo + 1; ++ihodo){
     auto n = NameHodo[ihodo];
     for(const auto& hit: rawData.GetHodoRawHC(n)){      
@@ -231,8 +229,8 @@ ProcessNormal()
     }
   }
 
-  { ///// KVC2
-    static const TString n("KVC2");
+  { ///// KVC
+    static const TString n("KVC");
     for(const auto& hit: rawData.GetHodoRawHC(n)){
       raw_seg[n].push_back(hit->SegmentId());
       adc_a[n].push_back(hit->GetAdc(0));
@@ -243,14 +241,6 @@ ProcessNormal()
       tdc_s[n].push_back(hit->GetArrayTdc(4));
       // hit->Print();
     }
-  }
-
-  for(const auto& hit: rawData.GetHodoRawHC("BVH")){
-    raw_seg["BVH"].push_back(hit->SegmentId());
-    tdc_u["BVH"].push_back(hit->GetArrayTdcUp());
-    tdc_d["BVH"].push_back(hit->GetArrayTdcDown());
-    trailing_u["BVH"].push_back(hit->GetArrayTdcTrailing(0));
-    trailing_d["BVH"].push_back(hit->GetArrayTdcTrailing(1));
   }
 
   HF1("Status", 5);
@@ -336,9 +326,9 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_tdc_d", n.Data()), &tdc_d[NameHodo[ihodo]]);
     tree->Branch(Form("%s_tdc_s", n.Data()), &tdc_s[NameHodo[ihodo]]);
   }
-  { ///// KVC2
-    const TString n("KVC2");
-    const Char_t* nn = "kvc2";
+  { ///// KVC
+    const TString n("KVC");
+    const Char_t* nn = "kvc";
     tree->Branch(Form("%s_raw_seg", nn), &raw_seg[n]);
     tree->Branch(Form("%s_adc_a", nn), &adc_a[n]);
     tree->Branch(Form("%s_adc_b", nn), &adc_b[n]);
@@ -366,9 +356,9 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_mt", n.Data()), &mt[NameHodo[ihodo]]);
     tree->Branch(Form("%s_cmt", n.Data()), &cmt[NameHodo[ihodo]]);
   }
-  { ///// KVC2
-    const TString n("KVC2");
-    const Char_t* nn = "kvc2";
+  { ///// KVC
+    const TString n("KVC");
+    const Char_t* nn = "kvc";
     tree->Branch(Form("%s_hit_seg", nn), &hit_seg[n]);
     tree->Branch(Form("%s_de_a", nn), &de_a[n]);
     tree->Branch(Form("%s_de_b", nn), &de_b[n]);

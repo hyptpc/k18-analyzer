@@ -20,26 +20,25 @@ const std::map<TString, std::vector<TString>> DCNameList =
 // Counters ___________________________________________________________
 const Int_t DetIdBHT  =  1;
 const Int_t DetIdT0   =  2;
-const Int_t DetIdBAC  =  3;
-const Int_t DetIdKVC1 =  4;
-const Int_t DetIdSAC  =  5;
-const Int_t DetIdBH2  =  6;
-const Int_t DetIdHTOF =  7;
-const Int_t DetIdKVC2 =  8;
-const Int_t DetIdBVH  = 20;
-const Int_t DetIdT1   = 21;
-const Int_t DetIdT2   = 22;
+const Int_t DetIdBH2  =  3;
+const Int_t DetIdBAC  =  4;
+const Int_t DetIdHTOF =  5;
+const Int_t DetIdKVC  =  6;
+const Int_t DetIdT1   =  7;
+const Int_t DetIdCVC  =  8;
+const Int_t DetIdSAC3 =  9;
+const Int_t DetIdSFV  = 10;
+
 const Int_t NumOfSegBHT  = 63;
 const Int_t NumOfSegT0   =  5;
+const Int_t NumOfSegBH2  = 15;
 const Int_t NumOfSegBAC  =  5;
-const Int_t NumOfSegKVC1 =  5;
-const Int_t NumOfSegSAC  =  9;
-const Int_t NumOfSegBH2  = 16;
 const Int_t NumOfSegHTOF = 34;
-const Int_t NumOfSegKVC2 =  5;
-const Int_t NumOfSegBVH  =  4;
+const Int_t NumOfSegKVC  =  8;
 const Int_t NumOfSegT1   =  1;
-const Int_t NumOfSegT2   =  1;
+const Int_t NumOfSegCVC  =  8;
+const Int_t NumOfSegSAC3 =  1;
+const Int_t NumOfSegSFV  =  5;
 
 const int DetIdVmeRm     =  81;
 const int DetIdScaler    =  91;
@@ -48,39 +47,28 @@ const Int_t NumOfSegTrigFlag = 32;
 
 #if defined E72
 enum EHodoscope {
-  kBHT, kT0, kBAC,
-  kKVC1, kSAC, kBH2,
-  kHTOF,
-  // kBVH,
-  kT1, kT2,
-  // kCVC, kNC,
+  kBHT, kT0, kBH2,
+  kBAC, kHTOF, kKVC,
+  kT1, kCVC, kSAC3, kSFV,
   kNumHodo
 };
 
 const Int_t DetIdHodo[kNumHodo] = {
-  DetIdBHT, DetIdT0, DetIdBAC,
-  DetIdKVC1, DetIdSAC, DetIdBH2,
-  DetIdHTOF,
-  // DetIdBVH,
-  DetIdT1, DetIdT2,
-  // DetIdCVC, DetIdNC,
+  DetIdBHT, DetIdT0, DetIdBH2,
+  DetIdBAC, DetIdHTOF, DetIdKVC,
+  DetIdT1, DetIdCVC, DetIdSAC3, DetIdSFV,  
 };
 
 const std::vector<TString> NameHodo = {
-  "BHT", "T0", "BAC",
-  "KVC1", "SAC", "BH2", "HTOF",
-  // "BVH",
-  "T1", "T2",
-  // "CVC", "NC",
+  "BHT", "T0", "BH2",
+  "BAC", "HTOF", "KVC",
+  "T1", "CVC", "SAC3", "SFV"
 };
 
 const double  NumOfSegHodo[kNumHodo] = {
-  NumOfSegBHT, NumOfSegT0, NumOfSegBAC,
-  NumOfSegKVC1, NumOfSegSAC, NumOfSegBH2,
-  NumOfSegHTOF,
-  // NumOfSegBVH,
-  NumOfSegT1, NumOfSegT2
-  // NumOfSegCVC, NumOfSegNC,
+  NumOfSegBHT, NumOfSegT0, NumOfSegBH2,
+  NumOfSegBAC,NumOfSegHTOF, NumOfSegKVC,
+  NumOfSegT1, NumOfSegCVC, NumOfSegSAC3, NumOfSegSFV
 };
 
 #elif defined E73_2024
