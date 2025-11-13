@@ -28,6 +28,7 @@ namespace hist
 // Raw
 const Double_t hrtdcbins1[3] = {20000, 600000, 800000};
 const Double_t hrtdcbins2[3] = {50000, 0, 1000000}; // for CVC, NC
+const Double_t hrtdcbins3[3] = {20000, 1200000, 1600000}; // for BHT
 const Double_t hrtotbins[3] = {5000, 0, 50000};
 const Double_t adcbins[3] = {4096, -0.5, 4095.5};
 const Double_t mhtdcbins[3] = {2000, 0, 2000};
@@ -77,8 +78,8 @@ BuildHodoRaw(Bool_t flag_beam_particle)
       for(Int_t i=0; i<nseg; ++i){
         for(const auto& uord : std::vector<TString>{"U", "D"} ){
           const Char_t* ud = uord.Data();
-          HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins1);
-          HB1(Form("%s_Trailing_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins1);
+          HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins3);
+          HB1(Form("%s_Trailing_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins3);
           HB1(Form("%s_TOT_seg%d%s%s; channel; count", name, i, ud, b), hrtotbins);
         }
       }
