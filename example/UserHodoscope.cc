@@ -188,7 +188,7 @@ ProcessNormal()
     trailing_d["BHT"].push_back(hit->GetArrayTdcTrailing(1));
   }
 
-  for(Int_t ihodo=kBAC; ihodo<kNumHodo + 1; ++ihodo){
+  for(Int_t ihodo=kBH2; ihodo<kNumHodo + 1; ++ihodo){
     auto n = NameHodo[ihodo];
     for(const auto& hit: rawData.GetHodoRawHC(n)){      
       if(ihodo == kHTOF){
