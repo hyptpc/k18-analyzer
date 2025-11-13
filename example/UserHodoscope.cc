@@ -191,18 +191,43 @@ ProcessNormal()
 
   //  for(Int_t ihodo=kT0; ihodo<kNumHodo + 1; ++ihodo){
   for(Int_t ihodo=kBAC; ihodo<kNumHodo + 1; ++ihodo){
-    //std::cout<<"ihodo:"<<ihodo<<std::endl;
     auto n = NameHodo[ihodo];
-    for(const auto& hit: rawData.GetHodoRawHC(n)){
-      //std::cout<<"decode hit:"<<ihodo<<std::endl;
-      raw_seg[n].push_back(hit->SegmentId());
-      adc_u[n].push_back(hit->GetAdcUp());
-      adc_d[n].push_back(hit->GetAdcDown());
-      adc_s[n].push_back(hit->GetAdcExtra());
-      tdc_u[n].push_back(hit->GetArrayTdcUp());
-      tdc_d[n].push_back(hit->GetArrayTdcDown());
-      tdc_s[n].push_back(hit->GetArrayTdcExtra());
-      // hit->Print();
+    for(const auto& hit: rawData.GetHodoRawHC(n)){      
+      if(ihodo == kHTOF){
+	auto tu = hit->GetArrayTdcUp();
+	auto td = hit->GetArrayTdcDown();
+        auto tu_size = tu.size();
+	auto td_size = td.size();
+	if(tu_size>0&&td_size>0){
+	  // std::cout<<"Seg: "<<hit->SegmentId()
+	  // 	   <<", tdc_u: "<<tu[0]
+	  // 	   <<", tdc_d: "<<td[0]<<std::endl;
+	  size_t n_tdc = std::min(tu_size, td_size);
+	  double tdc_min = gUser.GetParameter("HTOF_TDC",0);
+	  double tdc_max = gUser.GetParameter("HTOF_TDC",1);
+	  for(int it=0; it<n_tdc; ++it){
+	    if(tdc_min<tu[it]&&tu[it]<tdc_max
+	       &&tdc_min<td[it]&&td[it]<tdc_max)
+	      raw_seg[n].push_back(hit->SegmentId());
+	  }
+	}
+	adc_u[n].push_back(hit->GetAdcUp());
+	adc_d[n].push_back(hit->GetAdcDown());
+	adc_s[n].push_back(hit->GetAdcExtra());
+	tdc_u[n].push_back(hit->GetArrayTdcUp());
+	tdc_d[n].push_back(hit->GetArrayTdcDown());
+	tdc_s[n].push_back(hit->GetArrayTdcExtra());
+      }
+      else{
+	raw_seg[n].push_back(hit->SegmentId());
+	adc_u[n].push_back(hit->GetAdcUp());
+	adc_d[n].push_back(hit->GetAdcDown());
+	adc_s[n].push_back(hit->GetAdcExtra());
+	tdc_u[n].push_back(hit->GetArrayTdcUp());
+	tdc_d[n].push_back(hit->GetArrayTdcDown());
+	tdc_s[n].push_back(hit->GetArrayTdcExtra());
+	// hit->Print();
+      }
     }
   }
 
