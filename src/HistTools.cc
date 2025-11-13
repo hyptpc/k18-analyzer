@@ -106,7 +106,7 @@ BuildHodoRaw(Bool_t flag_beam_particle)
           200, 720000., 750000., 200, 0., 2000.);
     }
     // Hodoscope
-    for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
+    for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
       auto name = NameHodo[ihodo].Data();
       const Double_t* hrtdcbins;
       // if(NameHodo[ihodo].Contains("CVC") ||
@@ -191,7 +191,7 @@ BuildHodoHit(Bool_t flag_beam_particle)
       HB1(Form("%s_Hit_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
     }
     // Hodoscope
-    for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
+    for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
       auto name = NameHodo[ihodo].Data();
       Double_t nseg = NumOfSegHodo[ihodo];
       for(Int_t i=0; i<nseg; ++i){
@@ -242,7 +242,7 @@ BuildHodoHit(Bool_t flag_beam_particle)
     }
     // BTOF
     {
-      for(Int_t i=0; i<NumOfSegHodo[kT0]; ++i){
+      for(Int_t i=0; i<NumOfSegHodo[kBH2]; ++i){
         HB1(Form("T0_seg%d_TimeOffset%s; ns; count", i, b), 2000, -10, 10);
       }
       const Double_t phcbins2d[6] = { 100, -0.5, 4.5, 100, -10., 10. };
@@ -255,7 +255,7 @@ BuildHodoHit(Bool_t flag_beam_particle)
       }
       HB2(Form("BHT_BTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
       HB2(Form("BHT_CBTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
-      for(Int_t i=0; i<NumOfSegHodo[kT0]; ++i){
+      for(Int_t i=0; i<NumOfSegHodo[kBH2]; ++i){
         for(const auto& uord : std::vector<TString>{"U", "D"}){
           const Char_t* ud = uord.Data();
           HB2(Form("T0_seg%d%s_BTOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
@@ -268,7 +268,7 @@ BuildHodoHit(Bool_t flag_beam_particle)
     // FTOF
     {
       const Double_t phcbins2d[6] = { 100, -0.5, 4.5, 100, -10., 10. };
-      for(const auto& id: std::vector<Int_t>{kT0// , kCVC
+      for(const auto& id: std::vector<Int_t>{kBH2// , kCVC
         }){
         const Char_t* n = NameHodo[id];
         for(Int_t i=0; i<NumOfSegHodo[id]; ++i){
@@ -308,7 +308,7 @@ BuildHodoCluster(Bool_t flag_beam_particle)
       HB1(Form("%s_Cl_Size%s; size; count", name, b), 10 + 1, -0.5, 10 + 0.5);
     }
     // Hodoscope
-    for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
+    for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
       auto name = NameHodo[ihodo].Data();
       Double_t nseg = NumOfSegHodo[ihodo];
       const Double_t hrtimebins2d[6] = { nseg, -0.5, nseg - 0.5,

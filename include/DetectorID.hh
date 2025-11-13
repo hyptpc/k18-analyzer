@@ -45,61 +45,30 @@ const int DetIdScaler    =  91;
 const int DetIdTrigFlag  =  99;
 const Int_t NumOfSegTrigFlag = 32;
 
-#if defined E72
 enum EHodoscope {
-  kBHT, kT0, kBH2,
-  kBAC, kHTOF, kKVC,
-  kT1, kCVC, kSAC3, kSFV,
+  kBHT, kBH2, kBAC,
+  kHTOF, kKVC, kT1,
+  kCVC, kSAC3, kSFV,
   kNumHodo
 };
 
 const Int_t DetIdHodo[kNumHodo] = {
-  DetIdBHT, DetIdT0, DetIdBH2,
-  DetIdBAC, DetIdHTOF, DetIdKVC,
-  DetIdT1, DetIdCVC, DetIdSAC3, DetIdSFV,  
+  DetIdBHT, DetIdBH2, DetIdBAC,
+  DetIdHTOF, DetIdKVC, DetIdT1,
+  DetIdCVC, DetIdSAC3, DetIdSFV,  
 };
 
 const std::vector<TString> NameHodo = {
-  "BHT", "T0", "BH2",
-  "BAC", "HTOF", "KVC",
-  "T1", "CVC", "SAC3", "SFV"
+  "BHT", "BH2", "BAC",
+  "HTOF", "KVC", "T1",
+  "CVC", "SAC3", "SFV"
 };
 
 const double  NumOfSegHodo[kNumHodo] = {
-  NumOfSegBHT, NumOfSegT0, NumOfSegBH2,
-  NumOfSegBAC,NumOfSegHTOF, NumOfSegKVC,
-  NumOfSegT1, NumOfSegCVC, NumOfSegSAC3, NumOfSegSFV
+  NumOfSegBHT, NumOfSegBH2, NumOfSegBAC,
+  NumOfSegHTOF, NumOfSegKVC, NumOfSegT1,
+  NumOfSegCVC, NumOfSegSAC3, NumOfSegSFV
 };
-
-#elif defined E73_2024
-enum EHodoscope {
-  kBHT, kT1, kT0, kDEF,
-  // kVeto, kBTC,
-  kCVC, kNC,
-  // kRC,
-  kNumHodo
-};
-
-const Int_t DetIdHodo[kNumHodo] = {
-  DetIdBHT, DetIdT1, DetIdT0, DetIdDEF,
-  // DetIdVeto, DetIdBTC,
-  DetIdCVC, DetIdNC,
-  // DetIdRC
-};
-
-const std::vector<TString> NameHodo = {
-  "BHT", "T1", "T0", "DEF",
-  // "Veto", "BTC",
-  "CVC", "NC",
-  // "RC"
-};
-
-const double  NumOfSegHodo[kNumHodo] = {
-  63, 1, 5, 5,
-  // 4, 4,
-  35, 6,
-};
-#endif
 
 // Chambers
 const int DetIdCDC    = 100;

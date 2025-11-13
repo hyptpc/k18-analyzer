@@ -87,7 +87,7 @@ HodoHit::Calculate()
 
   for(Int_t ch=0; ch<m_n_ch; ++ch){
     // adc
-    if (id != DetIdT0 && id != DetIdSFV ) {
+    if (id != DetIdSFV ) {
       for(const auto& adc: m_raw->GetArrayAdcHigh(ch)){
 	Double_t de = TMath::QuietNaN();
 	if(gHodo.GetDeHighGain(id, plane, seg, ch, adc, de)){

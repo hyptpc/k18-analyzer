@@ -314,8 +314,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("bht_trailing_u", &trailing_u["BHT"]);
   tree->Branch("bht_trailing_d", &trailing_d["BHT"]);
 
-  //  for(Int_t ihodo=kT0; ihodo<kNumHodo; ++ihodo){
-    for(Int_t ihodo=kBAC; ihodo<kNumHodo; ++ihodo){
+  for(Int_t ihodo=kBH2; ihodo<kNumHodo; ++ihodo){
     auto n = NameHodo[ihodo];
     n.ToLower();
     tree->Branch(Form("%s_raw_seg", n.Data()), &raw_seg[NameHodo[ihodo]]);
@@ -337,12 +336,6 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_adc_s", nn), &adc_s[n]);
     tree->Branch(Form("%s_tdc_s", nn), &tdc_s[n]);
   }
-
-  tree->Branch("bvh_raw_seg", &raw_seg["BVH"]);
-  tree->Branch("bvh_tdc_u", &tdc_u["BVH"]);
-  tree->Branch("bvh_tdc_d", &tdc_d["BVH"]);
-  tree->Branch("bvh_trailing_u", &trailing_u["BVH"]);
-  tree->Branch("bvh_trailing_d", &trailing_d["BVH"]);
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
     auto n = NameHodo[ihodo];

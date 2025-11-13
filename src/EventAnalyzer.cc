@@ -179,7 +179,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
   }
 
   // Hodoscope
-  for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
+  for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
     if (ihodo == kKVC) continue;
     const Char_t* name = NameHodo[ihodo];
     Int_t multi_or = 0;
@@ -308,7 +308,7 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Hit_Multi%s", name, b), multi);
   }
   // Hodoscope
-  for(Int_t ihodo=kT0; ihodo<kNumHodo;++ihodo){
+  for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
     const Char_t* name = NameHodo[ihodo];
     Int_t multi = 0;
     for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
