@@ -189,9 +189,12 @@ ProcessNormal()
     trailing_d["BHT"].push_back(hit->GetArrayTdcTrailing(1));
   }
 
-  for(Int_t ihodo=kT0; ihodo<kNumHodo + 1; ++ihodo){
+  //  for(Int_t ihodo=kT0; ihodo<kNumHodo + 1; ++ihodo){
+  for(Int_t ihodo=kBAC; ihodo<kNumHodo + 1; ++ihodo){
+    //std::cout<<"ihodo:"<<ihodo<<std::endl;
     auto n = NameHodo[ihodo];
     for(const auto& hit: rawData.GetHodoRawHC(n)){
+      //std::cout<<"decode hit:"<<ihodo<<std::endl;
       raw_seg[n].push_back(hit->SegmentId());
       adc_u[n].push_back(hit->GetAdcUp());
       adc_d[n].push_back(hit->GetAdcDown());
@@ -296,7 +299,8 @@ ConfMan::InitializeHistograms()
   tree->Branch("bht_trailing_u", &trailing_u["BHT"]);
   tree->Branch("bht_trailing_d", &trailing_d["BHT"]);
 
-  for(Int_t ihodo=kT0; ihodo<kNumHodo; ++ihodo){
+  //  for(Int_t ihodo=kT0; ihodo<kNumHodo; ++ihodo){
+    for(Int_t ihodo=kBAC; ihodo<kNumHodo; ++ihodo){
     auto n = NameHodo[ihodo];
     n.ToLower();
     tree->Branch(Form("%s_raw_seg", n.Data()), &raw_seg[NameHodo[ihodo]]);
