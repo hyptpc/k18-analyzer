@@ -269,8 +269,7 @@ BuildHodoHit(Bool_t flag_beam_particle)
     // FTOF
     {
       const Double_t phcbins2d[6] = { 100, -0.5, 4.5, 100, -10., 10. };
-      for(const auto& id: std::vector<Int_t>{kBH2// , kCVC
-        }){
+      for(const auto& id: std::vector<Int_t>{kCVC}){
         const Char_t* n = NameHodo[id];
         for(Int_t i=0; i<NumOfSegHodo[id]; ++i){
           for(const auto& uord : std::vector<TString>{"U", "D"}){
@@ -282,6 +281,15 @@ BuildHodoHit(Bool_t flag_beam_particle)
         HB2(Form("%s_FTOF_vs_DeltaE%s; mip; ns", n, b), phcbins2d);
         HB2(Form("%s_CFTOF_vs_DeltaE%s; mip; ns", n, b), phcbins2d);
       }
+      for(Int_t i=0; i<NumOfSegHodo[kBH2]; ++i){
+	for(const auto& uord : std::vector<TString>{"U", "D"}){
+	  const Char_t* ud = uord.Data();
+	  HB2(Form("T0_seg%d%s_FTOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
+	  HB2(Form("T0_seg%d%s_CFTOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
+	}
+      }
+      HB2(Form("T0_FTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
+      HB2(Form("T0_CFTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
     }
     if(!flag_beam_particle) break;
   }

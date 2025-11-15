@@ -223,7 +223,7 @@
     <HulHRTdc node_id="1661" name="hul-hrtdc-125">
       <for var="data" from="0" to="3">
 	<!-- null -->
-	<for var="ch" from="32" to="63">
+	<for var="ch" from="0" to="63">
 	  <FE ch="ch" data="data"><D Device="null"/></FE>
     	</for>
       </for>

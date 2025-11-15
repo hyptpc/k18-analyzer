@@ -187,48 +187,21 @@ ProcessNormal()
     trailing_u["BHT"].push_back(hit->GetArrayTdcTrailing(0));
     trailing_d["BHT"].push_back(hit->GetArrayTdcTrailing(1));
   }
-
+  
   for(Int_t ihodo=kBH2; ihodo<kNumHodo + 1; ++ihodo){
     auto n = NameHodo[ihodo];
     for(const auto& hit: rawData.GetHodoRawHC(n)){      
-      if(ihodo == kHTOF){
-	auto tu = hit->GetArrayTdcUp();
-	auto td = hit->GetArrayTdcDown();
-        auto tu_size = tu.size();
-	auto td_size = td.size();
-	if(tu_size>0&&td_size>0){
-	  // std::cout<<"Seg: "<<hit->SegmentId()
-	  // 	   <<", tdc_u: "<<tu[0]
-	  // 	   <<", tdc_d: "<<td[0]<<std::endl;
-	  size_t n_tdc = std::min(tu_size, td_size);
-	  double tdc_min = gUser.GetParameter("HTOF_TDC",0);
-	  double tdc_max = gUser.GetParameter("HTOF_TDC",1);
-	  for(int it=0; it<n_tdc; ++it){
-	    if(tdc_min<tu[it]&&tu[it]<tdc_max
-	       &&tdc_min<td[it]&&td[it]<tdc_max)
-	      raw_seg[n].push_back(hit->SegmentId());
-	  }
-	}
-	adc_u[n].push_back(hit->GetAdcUp());
-	adc_d[n].push_back(hit->GetAdcDown());
-	adc_s[n].push_back(hit->GetAdcExtra());
-	tdc_u[n].push_back(hit->GetArrayTdcUp());
-	tdc_d[n].push_back(hit->GetArrayTdcDown());
-	tdc_s[n].push_back(hit->GetArrayTdcExtra());
-      }
-      else{
-	raw_seg[n].push_back(hit->SegmentId());
-	adc_u[n].push_back(hit->GetAdcUp());
-	adc_d[n].push_back(hit->GetAdcDown());
-	adc_s[n].push_back(hit->GetAdcExtra());
-	tdc_u[n].push_back(hit->GetArrayTdcUp());
-	tdc_d[n].push_back(hit->GetArrayTdcDown());
-	tdc_s[n].push_back(hit->GetArrayTdcExtra());
-	// hit->Print();
-      }
+      raw_seg[n].push_back(hit->SegmentId());
+      adc_u[n].push_back(hit->GetAdcUp());
+      adc_d[n].push_back(hit->GetAdcDown());
+      adc_s[n].push_back(hit->GetAdcExtra());
+      tdc_u[n].push_back(hit->GetArrayTdcUp());
+      tdc_d[n].push_back(hit->GetArrayTdcDown());
+      tdc_s[n].push_back(hit->GetArrayTdcExtra());
+      // hit->Print();
     }
   }
-
+  
   { ///// KVC
     static const TString n("KVC");
     for(const auto& hit: rawData.GetHodoRawHC(n)){
