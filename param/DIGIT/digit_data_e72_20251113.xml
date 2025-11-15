@@ -246,13 +246,15 @@
     </plane>
   </device>
   <!--________________________________________________________________-->
-  <device id="99" name="TriggerFlag"><for var="seg" from="0" to="127">
-    <segment id="seg">
-      <data id="0" name="adc"/>
-      <data id="1" name="leading"/>
-      <data id="2" name="trailing"/>
-      <data id="3" name="commonstop"/>
-      <data id="4" name="overflow"/>
+  <device id="99" name="TriggerFlag" type="Hodo"><for var="seg" from="0" to="24">
+    <segment id="seg"><for var="UorD" from="0" to="1">
+      <ch id="UorD">
+	<data id="0" name="adc"/>
+	<data id="1" name="leading"/>
+	<data id="2" name="trailing"/>
+	<data id="3" name="commonstop"/>
+	<data id="4" name="overflow"/>
+      </ch></for>
     </segment></for>
   </device>
   <!--________________________________________________________________-->
