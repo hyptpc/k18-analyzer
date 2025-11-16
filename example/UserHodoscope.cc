@@ -189,6 +189,7 @@ ProcessNormal()
   }
   
   for(Int_t ihodo=kBH2; ihodo<kNumHodo + 1; ++ihodo){
+    if (ihodo == kKVC) continue;
     auto n = NameHodo[ihodo];
     for(const auto& hit: rawData.GetHodoRawHC(n)){      
       raw_seg[n].push_back(hit->SegmentId());
