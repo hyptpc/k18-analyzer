@@ -222,15 +222,6 @@ BuildHodoHit(Bool_t flag_beam_particle)
     // TOF
     {
       const Double_t phcbins2d[6] = { 100, -0.5, 4.5, 100, -10., 10. };
-      for(Int_t i=0; i<NumOfSegBH2; ++i){
-        for(const auto& uord : std::vector<TString>{"U", "D"}){
-          const Char_t* ud = uord.Data();
-          HB2(Form("BH2_seg%d%s_TOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
-          HB2(Form("BH2_seg%d%s_CTOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
-        }
-      }
-      HB2(Form("BH2_TOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
-      HB2(Form("BH2_CTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
       for(Int_t i=0; i<NumOfSegHTOF; ++i){
         for(const auto& uord : std::vector<TString>{"U", "D"}){
           const Char_t* ud = uord.Data();

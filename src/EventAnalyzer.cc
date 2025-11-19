@@ -355,7 +355,7 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
         // auto t0 = hit2->Time0(j2);
         auto ct0 = hit2->CTime0(j2);
         // auto tofs = hit2->TimeOffset();
-        for(const auto& name: std::vector<TString>{"BH2", "HTOF"}){
+        for(const auto& name: std::vector<TString>{"HTOF"}){
           const Char_t* n = name.Data();
           for(Int_t i1=0, n1=hodoAna.GetNHits(name); i1<n1; ++i1){
             const auto& hit1 = hodoAna.GetHit(name, i1);
