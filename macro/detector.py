@@ -3,7 +3,7 @@ hodoscope_constants = {'BHT': {'id': 1, 'nseg': 63,},
                        'BAC': {'id': 3, 'nseg': 5,},
                        'KVC1': {'id': 4, 'nseg': 5,},
                        'SAC': {'id': 5, 'nseg': 8,},
-                       'BH2': {'id': 6, 'nseg': 16,},
+                       'BH2': {'id': 6, 'nseg': 15,},
                        'HTOF': {'id': 7, 'nseg': 34,},
                        'KVC2': {'id': 8, 'nseg': 5,},
                        }

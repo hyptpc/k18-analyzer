@@ -15,31 +15,23 @@ import hdprm
 import macrohelper as mh
 
 logger = logging.getLogger(__name__)
-name = 'BHT'
+name = 'BH2'
 nseg = hconst[name]['nseg']
-nseg_one_page = 16
 ROOT.gStyle.SetOptFit(1)
 
 #______________________________________________________________________________
-@mh.update_canvas(divisions=(4, 4))
-def tdc(c1, start_seg, ud, beamflag='', tdcrange=(1.41e6, 1.42e6), fit=True):
-  logger.info(f'seg={start_seg}-{start_seg+16}, ud={ud}, beamflag={beamflag}')
+@mh.update_canvas(divisions=(5, 3))
+def tdc(c1, ud, tdcrange=(0.71e6, 0.76e6), fit=True):
+  logger.info(f'ud={ud}, tdcrange={tdcrange}, fit={fit}')
   result_dict = dict()
-  for i in range(nseg_one_page):
-    c1.cd(i+1) #.SetLogy()
-    seg = start_seg + i
-    if seg >= nseg:
-      continue
-    hname = f'{name}_TDC_seg{seg}{ud}{beamflag}'
+  for seg in range(nseg):
+    c1.cd(seg+1) #.SetLogy()
+    hname = f'{name}_TDC_seg{seg}{ud}{mh.beamflag_for_param}'
     h1 = mh.get(hname)
     if h1:
-      h1.RebinX(4)
-      if h1.GetEntries() < 5e4:
-        h1.RebinX(2)
+      h1.RebinX(10)
       if h1.GetEntries() < 1e4:
-        h1.RebinX(5)
-      if h1.GetEntries() < 1e3:
-        h1.RebinX(3)
+        h1.RebinX(2)
       h1.GetXaxis().SetRangeUser(tdcrange[0], tdcrange[1])
       if fit:
         mean = h1.GetBinCenter(h1.GetMaximumBin())
@@ -55,26 +47,23 @@ def tdc(c1, start_seg, ud, beamflag='', tdcrange=(1.41e6, 1.42e6), fit=True):
         ]
         result = mh.fit_gaus(h1, params=params, limits=limits, autozoom=False)
         key = (hconst[name]['id'], 0, seg, 1, 0 if ud == 'U' else 1)
-        if abs(result.GetParameter(1) - 1416500) < 20000:
+        if abs(result.GetParameter(1) - 723500) < 20000:
           mean = result.GetParameter(1)
         else:
-          mean = 1416500
-        result_dict[key] = (mean, -0.0009765625)
+          mean = 723500
+        result_dict[key] = (result.GetParameter(1), -0.0009765625)
       else:
         h1.Draw()
   return result_dict
 
 #______________________________________________________________________________
-@mh.update_canvas(divisions=(4, 4))
-def time(c1, start_seg, ud='', timerange=(-20, 20), key='Time'):
-  logger.info(f'seg={start_seg}-{start_seg+16}, ud={ud}, key={key}')
-  for i in range(nseg_one_page):
-    c1.cd(i+1) #.SetLogy()
-    seg = start_seg + i
-    if seg >= nseg:
-      continue
+@mh.update_canvas(divisions=(5, 3))
+def time(c1, ud='', timerange=(-20, 20), key='Time'):
+  logger.info(f'ud={ud}, key={key}')
+  for seg in range(nseg):
+    c1.cd(seg+1) #.SetLogy()
     for j, b in enumerate(mh.beamflag):
-      hname = name + f'_Hit_{key}_seg{seg}{ud}{b}'
+      hname = f'{name}_Hit_{key}_seg{seg}{ud}{b}'
       h1 = mh.get(hname)
       if h1:
         h1.SetLineColor(mh.beamcolor[j])
@@ -82,20 +71,19 @@ def time(c1, start_seg, ud='', timerange=(-20, 20), key='Time'):
         h1.Draw('same')
 
 #______________________________________________________________________________
-@mh.update_canvas(divisions=(2, 2))
+@mh.update_canvas(divisions=(5, 3))
 def time2d(c1):
-  keys = ('MeanTime', #'CMeanTime', 'MeanTOT'
-          )
-  ranges = ((-10, 10), (-10, 10), (0, 30))
+  keys = ('MeanTime',)
+  ranges = ((-10, 10), (-10, 10))
   for i, key in enumerate(keys):
     c1.cd(i+1) #.SetLogy()
-    hname = name + f'_Hit_{key}{mh.beamflag_for_param}'
+    hname = f'{name}_Hit_{key}{mh.beamflag_for_param}'
     h1 = mh.get(hname)
     if h1:
       h1.GetXaxis().SetRangeUser(ranges[i][0], ranges[i][1])
       h1.Draw()
     c1.cd(i+1+len(keys)).SetLogz()
-    hname = name + f'_Hit_{key}_vs_HitPat{mh.beamflag_for_param}'
+    hname = f'{name}_Hit_{key}_vs_HitPat{mh.beamflag_for_param}'
     h2 = mh.get(hname)
     if h2:
       h2.GetYaxis().SetRangeUser(ranges[i][0], ranges[i][1])
@@ -106,22 +94,13 @@ def single_run(run_info):
   mh.initialize(run_info, __file__)
   result_dict = {'generator': os.path.basename(__file__)}
   for ud in ['U', 'D']:
-    for seg in range(4):
-      ret = tdc(start_seg=seg*16, ud=ud, beamflag=mh.beamflag_for_param)
-      result_dict.update(ret)
-  for key in ['Time', # 'CTime'
-              ]:
-    for ud in ['U', 'D']:
-      for seg in range(4):
-        ret = time(start_seg=seg*16, ud=ud, key=key)
-  for key in ['MeanTime', #'CMeanTime', 'MeanTOT'
-              ]:
-    for seg in range(4):
-      if key == 'MeanTOF':
-        timerange=(0, 20)
-      else:
-        timerange=(-20, 20)
-      ret = time(start_seg=seg*16, timerange=timerange, key=key)
+    ret = tdc(ud=ud)
+    result_dict.update(ret)
+  for key in ['Time',]:
+    for ud in ['U', 'D', '']:
+      if ud == '':
+        key = key.replace('Time', 'MeanTime')
+      ret = time(ud=ud, key=key)
   time2d()
   hdprm.output_result(run_info, result_dict, update=parsed.update)
   mh.finalize()
