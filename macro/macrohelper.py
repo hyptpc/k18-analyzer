@@ -93,7 +93,7 @@ def fit_gaus(h1, params=None, limits=None, fitrange=(-2, 2), autozoom=True):
   f1 = ROOT.TF1('f1', 'gaus')
   f1.SetLineWidth(1)
   if params is not None:
-    f1.SetParameters(params)
+    f1.SetParameters(*params)
   if limits is not None:
     for i, l in enumerate(limits):
       f1.SetParLimits(i, l[0], l[1])
