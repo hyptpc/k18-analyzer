@@ -240,52 +240,18 @@ public:
 				const std::vector<std::vector<Double_t>>& localpos_x,
 				const std::vector<std::vector<Double_t>>& localpos_y,
 				const std::vector<std::vector<Double_t>>& localpos_z,
-				std::vector<Int_t>& trackid_map,
-				std::vector<Double_t>& remaining_layers,
-				std::vector<Double_t>& remaining_mrows,
-				std::vector<Double_t>& remaining_de,
-				std::vector<TVector3>& remaining_hits
+				const std::vector<Int_t>& remaining_layers,
+				const std::vector<Double_t>& remaining_mrows,
+				const std::vector<Double_t>& remaining_de,
+				const std::vector<Double_t>& remaining_cluster_x,
+				const std::vector<Double_t>& remaining_cluster_y,
+				const std::vector<Double_t>& remaining_cluster_z,
+				std::vector<Int_t>& trackid_map
 	);//Reconstruct tracks except for residual tracks.
-  Bool_t RefitVertexTracks(TPCLocalTrackHelix* track1,TPCLocalTrackHelix* track2,const TVector3 vertex,
-				const std::vector<Double_t>& layer,
-				const std::vector<Double_t>& mrow,
-				const std::vector<Double_t>& de,
-				const std::vector<TVector3>& localpos,
-				std::vector<Double_t>& remaining_layers,
-				std::vector<Double_t>& remaining_mrows,
-				std::vector<Double_t>& remaining_de,
-				std::vector<TVector3>& remaining_hits
-  );//Assign hits between vertex and first hit to the track and refit it.
-  Bool_t RefitVertexTracks(TPCLocalTrackHelix* track1,const TVector3 vertex,
-				const std::vector<Double_t>& layer,
-				const std::vector<Double_t>& mrow,
-				const std::vector<Double_t>& de,
-				const std::vector<TVector3>& localpos,
-				std::vector<Double_t>& remaining_layers,
-				std::vector<Double_t>& remaining_mrows,
-				std::vector<Double_t>& remaining_de,
-				std::vector<TVector3>& remaining_hits
-  );//Same as above but for vertex with neutral particle and charged particle. e.g., L + pi -> Xi vertex
-  TPCLocalTrackHelix* ConstructXiTrack(const TVector3 XiDecayVtx, const TVector3 XiDecayMom,
-				const std::vector<Double_t>& layer,
-				const std::vector<Double_t>& mrow,
-				const std::vector<Double_t>& de,
-				const std::vector<TVector3>& localpos,
-				std::vector<Double_t>& remaining_layers,
-				std::vector<Double_t>& remaining_mrows,
-				std::vector<Double_t>& remaining_de,
-				std::vector<TVector3>& remaining_hits
-  );//Reconstruct Xi track from decay vertex to production vertex.
-  Int_t RetrackRemainingHits(
-			const std::vector<Double_t>& layer,
-			const std::vector<Double_t>& mrow,
-			const std::vector<Double_t>& de,
-			const std::vector<TVector3>& localpos,
-			std::vector<Double_t>& remaining_layers,
-			std::vector<Double_t>& remaining_mrows,
-			std::vector<Double_t>& remaining_de,
-			std::vector<TVector3>& remaining_hits
-  );
+  Bool_t RefitVertexTracks(TPCLocalTrackHelix* track1,TPCLocalTrackHelix* track2,const TVector3 vertex);//Assign hits between vertex and first hit to the track and refit it.
+  Bool_t RefitVertexTracks(TPCLocalTrackHelix* track1,const TVector3 vertex);//Same as above but for vertex with neutral particle and charged particle. e.g., L + pi -> Xi vertex
+  TPCLocalTrackHelix* ConstructXiTrack(const TVector3 XiDecayVtx, const TVector3 XiDecayMom);//Reconstruct Xi track from decay vertex to production vertex.
+  Int_t RetrackRemainingHits();
 
 protected:
 

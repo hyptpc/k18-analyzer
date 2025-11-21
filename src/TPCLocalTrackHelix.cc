@@ -70,7 +70,7 @@ z = p[2] + p[4]*p[3]*(theta);
 #include "UserParamMan.hh"
 #include "DatabasePDG.hh"
 
-#define DebugDisp 1
+#define DebugDisp 0
 #define IterativeResolution 1
 namespace
 {
@@ -1772,7 +1772,8 @@ TPCLocalTrackHelix::SetClustersHoughFlag(Int_t hough_flag)
 {
   for(std::size_t i=0; i<m_hit_array.size(); ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
-    TPCHit *hit = hitp->GetHit();
+    TPCHit *hit = hitp->GetHit()->GetParentCluster()->GetMeanHit();
+    
     if( !hit ) continue;
     hit->SetHoughFlag(hough_flag);
   }

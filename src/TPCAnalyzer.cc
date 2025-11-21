@@ -251,49 +251,14 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
 }
 //_____________________________________________________________________________
 Int_t
-TPCAnalyzer::RetrackRemainingHits(
-			const std::vector<Double_t>& layer,
-			const std::vector<Double_t>& mrow,
-			const std::vector<Double_t>& de,
-			const std::vector<TVector3>& localpos,
-			std::vector<Double_t>& remaining_layers,
-			std::vector<Double_t>& remaining_mrows,
-			std::vector<Double_t>& remaining_de,
-			std::vector<TVector3>& remaining_hits){
-//  ClearTPCHits();
-//  ClearTPCClusters();
-  int nhits = layer.size();
-  struct HitInfo{
-    double layer;
-    double mrow;
-    double de;
-    int remaining;
-    TVector3 position;
-  };
+TPCAnalyzer::RetrackRemainingHits(){
+  int nhits = 0;
+  for(int il=0;il<NumOfLayersTPC;++il){
+    nhits += m_TPCClCont[il].size();
+  }
   if(nhits < 5){
     if(DebugMode) hddaq::cout << FUNC_NAME << " Not enough hits to retrack: " << nhits << std::endl;
     return 0;
-  }
-  std::vector<HitInfo> HitContainer;
-  for(int ih = 0; ih < nhits;++ih){
-    HitInfo hinfo;
-    hinfo.layer = layer[ih];
-    hinfo.mrow = mrow[ih];
-    hinfo.de = de[ih];
-    hinfo.position = localpos[ih];
-    hinfo.remaining = 1;
-    HitContainer.push_back(hinfo);
- 
-    auto hit = new TPCHit(hinfo.layer, hinfo.mrow);
-    hit->AddHit(0,0);
-    hit->SetDe(hinfo.de);
-    hit->SetPosition(hinfo.position);
-    m_TPCHitCont[hinfo.layer].push_back(hit);
-    TPCHitContainer CandCont;
-    CandCont.push_back(hit);
-    TPCCluster* cluster = new TPCCluster(hinfo.layer, CandCont);
-    cluster->Calculate();
-    m_TPCClCont[hinfo.layer].push_back(cluster);
   }
   static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
   if(DebugMode > 1){
@@ -304,23 +269,6 @@ TPCAnalyzer::RetrackRemainingHits(
   }
   int nt = tpc::LocalTrackSearchRefitHelix(m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixInverted, m_TPCTCHelixFailed, m_TPCVC, m_TPCVCClustered, 0, MinLayer);
   if(DebugMode) hddaq::cout << FUNC_NAME << "Checking remaining hits after tracking"<< m_TPCTCHelix.size() << std::endl;
-  for(auto h:HitContainer){
-    for(auto t : m_TPCTCHelix){
-      for(int ihit =0; ihit < t->GetNHit(); ++ihit){
-        TVector3 hit_pos = t->GetHit(ihit)->GetLocalHitPos();
-        if((hit_pos-h.position).Mag()<1e-3){
-          h.remaining = 0;
-        }
-      }
-    }
-    if(h.remaining==1){
-      remaining_layers.push_back(h.layer);
-      remaining_mrows.push_back(h.mrow);
-      remaining_de.push_back(h.de);
-      remaining_hits.push_back(h.position);
-    }
-  }
-  if(DebugMode) hddaq::cout << FUNC_NAME << "Remaining hits found: " << remaining_layers.size() << std::endl;
   return nt;
 }
 
@@ -1215,11 +1163,13 @@ TPCAnalyzer::ConstructEventTracks(const Int_t ntracks,
 			     const std::vector<std::vector<Double_t>>& localpos_x,
 			     const std::vector<std::vector<Double_t>>& localpos_y,
 			     const std::vector<std::vector<Double_t>>& localpos_z,
-           std::vector<Int_t>& trackid_map,
-           std::vector<Double_t>& remaining_layers,
-           std::vector<Double_t>& remaining_mrows,
-           std::vector<Double_t>& remaining_de,
-           std::vector<TVector3>& remaining_hits
+           const std::vector<Int_t>& remaining_layers,
+           const std::vector<Double_t>& remaining_mrows,
+           const std::vector<Double_t>& remaining_de,
+           const std::vector<Double_t>& remaining_cluster_x,
+           const std::vector<Double_t>& remaining_cluster_y,
+           const std::vector<Double_t>& remaining_cluster_z,
+           std::vector<Int_t>& trackid_map
           )
 {
   if(m_is_decoded[kTPC]){
@@ -1255,6 +1205,37 @@ TPCAnalyzer::ConstructEventTracks(const Int_t ntracks,
     hddaq::cerr << FUNC_NAME << " track params vector size mismatch" << std::endl;
     return false;
   }
+  int n_remaining = remaining_layers.size();
+  if(n_remaining != remaining_mrows.size() or
+     n_remaining != remaining_de.size() or
+     n_remaining != remaining_cluster_x.size() or
+     n_remaining != remaining_cluster_y.size() or
+     n_remaining != remaining_cluster_z.size()){
+    hddaq::cerr << FUNC_NAME << " remaining hits vector size mismatch" << std::endl;
+    return false;
+  }
+  for(int ih = 0; ih < n_remaining; ih++){
+    Int_t l = remaining_layers[ih];
+    auto hit = new TPCHit(l, remaining_mrows[ih]);
+    hit -> AddHit(0, 0.);
+    hit -> SetIsGood();
+    hit -> SetDe(remaining_de[ih]);
+    hit -> SetPosition(TVector3(remaining_cluster_x[ih], remaining_cluster_y[ih], remaining_cluster_z[ih]));
+    hit -> SetHoughFlag(0);
+    TPCHitContainer CandCont;
+    CandCont.push_back(hit);
+    TPCCluster* cluster = new TPCCluster(l, CandCont);
+    cluster->Calculate();
+    if(cluster->GetHit(0)->GetPosition().Mag() == 0 or std::isnan(cluster->GetHit(0)->GetPosition().Mag())){
+      hddaq::cerr << FUNC_NAME << " Remaining hit cluster calculation failed at layer " << l << " mrow " << remaining_mrows[ih] << std::endl;
+      delete hit;
+      delete cluster;
+      continue;
+    }
+    cluster->GetMeanHit()->SetHoughFlag(0);
+    m_TPCHitCont[l].push_back(hit);
+    m_TPCClCont[l].push_back(cluster);
+  }
   if(DebugMode) hddaq::cout << FUNC_NAME << " Input track number: " << ntracks << std::endl;
   trackid_map.clear();
   for(Int_t it=0; it<ntracks; it++){
@@ -1273,9 +1254,11 @@ TPCAnalyzer::ConstructEventTracks(const Int_t ntracks,
       return false;
     }
     bool RejectTrack = 1;
+    bool isDaughter = 0;
     for(auto did: DecaysTrackId){
       if(it == did){
         RejectTrack = 0;
+        isDaughter = 1;
         break;
       }
     }
@@ -1283,12 +1266,22 @@ TPCAnalyzer::ConstructEventTracks(const Int_t ntracks,
       RejectTrack = 0;
     }
     if(RejectTrack){
-      for(int ih = 0; ih < nhits[it]; ih++){
-        TVector3 hitpos(localpos_x[it][ih], localpos_y[it][ih], localpos_z[it][ih]);
-        remaining_hits.push_back(hitpos);
-        remaining_layers.push_back(layer[it][ih]);
-        remaining_mrows.push_back(mrow[it][ih]);
-        remaining_de.push_back(de[it][ih]);
+      for(int id = 0; id < nhits[it]; id++){
+        Int_t l = layer[it][id];
+        auto hit = new TPCHit(l, mrow[it][id]);
+        hit -> AddHit(0, 0.);
+        hit -> SetIsGood();
+        hit -> SetDe(de[it][id]);
+        hit -> SetPosition(TVector3(localpos_x[it][id], localpos_y[it][id], localpos_z[it][id]));
+        hit -> SetHoughFlag(0);
+        n_remaining++;
+        m_TPCHitCont[l].push_back(hit);
+        TPCHitContainer CandCont;
+        CandCont.push_back(hit);
+        TPCCluster* cluster = new TPCCluster(l, CandCont);
+        cluster->Calculate();
+        cluster->GetMeanHit()->SetHoughFlag(0);
+        m_TPCClCont[l].push_back(cluster);
       }
       if(DebugMode) hddaq::cout << FUNC_NAME << " Track " << it << " rejected from the event track list." << std::endl;
       continue;
@@ -1321,51 +1314,35 @@ TPCAnalyzer::ConstructEventTracks(const Int_t ntracks,
       hitp -> SetResolution(TVector3(res_x[it][id], res_y[it][id], res_z[it][id]));
       hitp -> SetTheta(helix_t[it][id]);
       track -> AddTPCHit(hitp);
+      if(isK18[it]){
+        cluster -> GetMeanHit() -> SetHoughFlag(200);//K18Tracks
+      }
+      else if (it == isDaughter){
+        cluster -> GetMeanHit() -> SetHoughFlag(13210);//DecayDaughter
+      }
+      else{
+        cluster -> GetMeanHit() -> SetHoughFlag(100);//GoodForTracking
+      }
     }
-    if(isK18[it]){
-      track -> SetClustersHoughFlag(200);//K18Tracks
-    }
-    track -> SetClustersHoughFlag(100);//GoodForTracking
-
     track -> RecalcTrack();
     m_TPCTCHelix.push_back(track);
     trackid_map.push_back(it);
   }
   if(DebugMode > 1){
     hddaq::cout << FUNC_NAME << " Recalculated TPC track number: " << m_TPCTCHelix.size() << std::endl;
-    hddaq::cout << FUNC_NAME << " Remaining hit number: " << remaining_hits.size() << std::endl;
-    for(int il=0;il<remaining_layers.size();++il){
-      hddaq::cout << FUNC_NAME << " Remaining hit " << il << " Layer: " << remaining_layers[il]
-        << " MRow: " << remaining_mrows[il]
-        << " DE: " << remaining_de[il]
-        << " Position: (" << remaining_hits[il].x() << ", "
-        << remaining_hits[il].y() << ", "
-        << remaining_hits[il].z() << ")" << std::endl;
-    }
+    hddaq::cout << FUNC_NAME << " Remaining hit number: " << n_remaining << std::endl;
   }
   return true;
 }
 Bool_t
-TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track1,TPCLocalTrackHelix* track2,const TVector3 vertex,
-      const std::vector<Double_t>& layer,
-      const std::vector<Double_t>& mrow,
-      const std::vector<Double_t>& de,
-      const std::vector<TVector3>& localpos,
-      std::vector<Double_t>& remaining_layers,
-      std::vector<Double_t>& remaining_mrows,
-      std::vector<Double_t>& remaining_de,
-      std::vector<TVector3>& remaining_hits
-){
+TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track1, TPCLocalTrackHelix* track2, const TVector3 vertex){
   if(DebugMode) hddaq::cout << FUNC_NAME << " Recalculating vertex tracks..." << std::endl;
   const Double_t XZWindow = 5;//mm
   const Double_t YWindow = 10;//mm 
   struct HitInfo {
-    double layer;
-    double mrow;
-    double de;
+    TPCCluster* hit;
     double d1=-1;
     double d2=-1;
-    TVector3 position;
   };
   int nh1_0 = track1->GetNHit();
   int nh2_0 = track2->GetNHit();
@@ -1374,51 +1351,42 @@ TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track1,TPCLocalTrackHelix* tr
   Int_t first_layer1 = first_hit1->GetHit()->GetLayer();
   auto first_hit2 = track2->GetHitInOrder(0); 
   Int_t first_layer2 = first_hit2->GetHit()->GetLayer();
+  std::map<int,std::vector<HitInfo>> HitContainer;
 
   TVector3 vertex_pad(vertex.x(),vertex.y(),vertex.z() + 6 + 6./250 * (vertex.y()));
   int vtx_layer = tpc::getLayerID(tpc::findPadID(vertex_pad.z(),vertex_pad.x()));
-  if(layer.size() != localpos.size()){
-    hddaq::cerr << FUNC_NAME << " layer/localpos size mismatch" << std::endl;
-    return false;
-  }
-
-  std::map<int,std::vector<HitInfo>> HitContainer;
-  for(int ih = 0; ih < layer.size();++ih){
-    if(layer[ih] < vtx_layer) continue;
-    double d1 = -1 , d2 = 1;
-    bool t1 = 0, t2 = 0;
-    if(layer[ih]< first_layer1 and vtx_layer <= layer[ih] and
-      track1->ResidualCheck(localpos[ih],XZWindow,YWindow,d1)){
-      t1 = 1;
-      if(DebugMode) hddaq::cout << FUNC_NAME << " Track 1 hit candidate" << ih << " residual: " << d1 << std::endl;
-    }
-    else {
-      d1 = -1;
-    }
-    if(layer[ih]< first_layer2 and vtx_layer <= layer[ih] and
-      track2->ResidualCheck(localpos[ih],XZWindow,YWindow,d2)){
-      t2 = 1;
-      if(DebugMode) hddaq::cout << FUNC_NAME << " Track 2 hit candidate" << ih << " residual: " << d2 << std::endl;
-    }
-    else {
-      d2 = -1;
-    }
-    if(t1 or t2){
-      HitInfo hitinfo;
-      hitinfo.layer = layer[ih];
-      hitinfo.mrow = mrow[ih];
-      hitinfo.de = de[ih];
-      hitinfo.d1 = d1;
-      hitinfo.d2 = d2;
-      hitinfo.position = localpos[ih];
-      HitContainer[layer[ih]].push_back(hitinfo);
-      if(DebugMode) hddaq::cout << FUNC_NAME << " Track hit candidate" << ih << " added to the hit container." << std::endl;
-    }
-    else{
-      remaining_layers.push_back(layer[ih]);
-      remaining_mrows.push_back(mrow[ih]);
-      remaining_de.push_back(de[ih]);
-      remaining_hits.push_back(localpos[ih]);
+  for(int il=0;il<NumOfLayersTPC;++il){
+    if(il < vtx_layer) continue;
+    auto clconts = m_TPCClCont[il];
+    for(auto cl:clconts){
+      if(cl->GetHoughFlag() != 0) continue;
+      double d1 = -1 , d2 = 1;
+      bool t1 = 0, t2 = 0;
+      TVector3 pos = cl -> GetPosition();
+      if(il< first_layer1 and vtx_layer <= il and
+        track1->ResidualCheck(pos,XZWindow,YWindow,d1)){
+        t1 = 1;
+        if(DebugMode) hddaq::cout << FUNC_NAME << " Track 1 hit residual: " << d1 << std::endl;
+      }
+      else {
+        d1 = -1;
+      }
+      if(il< first_layer2 and vtx_layer <= il and
+        track2->ResidualCheck(pos,XZWindow,YWindow,d2)){
+        t2 = 1;
+        if(DebugMode) hddaq::cout << FUNC_NAME << " Track 2 hit residual: " << d2 << std::endl;
+      }
+      else {
+        d2 = -1;
+      }
+      if(t1 or t2){
+        HitInfo hitinfo;
+        hitinfo.hit = cl;
+        hitinfo.d1 = d1;
+        hitinfo.d2 = d2;
+        HitContainer[il].push_back(hitinfo);
+        if(DebugMode) hddaq::cout << FUNC_NAME << " Track hit candidate added to the hit container." << std::endl;
+      }
     }
   }
   bool t1 = 0, t2 = 0;
@@ -1426,12 +1394,12 @@ TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track1,TPCLocalTrackHelix* tr
     if(DebugMode) hddaq::cout << FUNC_NAME << "Layer" << hc.first << " Total hit candidates: " << hc.second.size() << std::endl;
     double d1_min = 1e6, d2_min = 1e6;
     for(auto h:hc.second){
-      h.d1 > 0 and h.d1 < d1_min ? d1_min = h.d1 : 0;
-      h.d2 > 0 and h.d2 < d2_min ? d2_min = h.d2 : 0;
+      h.d1 > 0 and h.d1 < d1_min ? d1_min = h.d1 : d1_min;
+      h.d2 > 0 and h.d2 < d2_min ? d2_min = h.d2 : d2_min;
     }
     for(auto h:hc.second){//only closest hits will be selected.
-      h.d1 != d1_min ? h.d1 = -1 : 0;
-      h.d2 != d2_min ? h.d2 = -1 : 0;
+      h.d1 != d1_min ? h.d1 = -1 : h.d1;
+      h.d2 != d2_min ? h.d2 = -1 : h.d2;
     }
     for(auto h:hc.second){//No double assignments. 
       if(h.d1 > 0 and h.d2 > 0){
@@ -1439,33 +1407,16 @@ TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track1,TPCLocalTrackHelix* tr
       }
     }
     for(auto h:hc.second){
-      h.d1 < 0 and h.d2 < 0 ?
-      [&,h](){
-        remaining_layers.push_back(h.layer);
-        remaining_mrows.push_back(h.mrow);
-        remaining_de.push_back(h.de);
-        remaining_hits.push_back(h.position);
-      }():(void)0;
-    }
-    for(auto h:hc.second){
       if(h.d1 < 0 and h.d2 < 0) continue; 
-      auto hit = new TPCHit(h.layer, h.mrow);
-      hit -> AddHit(0, 0.);
-      hit -> SetIsGood();
-      hit -> SetDe(h.de);
-      hit -> SetPosition(h.position);
-      m_TPCHitCont[h.layer].push_back(hit);
-      TPCHitContainer CandCont;
-      CandCont.push_back(hit);
-      TPCCluster* cluster = new TPCCluster(h.layer, CandCont);
-      cluster->Calculate();
-      m_TPCClCont[h.layer].push_back(cluster);
+      auto hit = h.hit->GetHit(0);
       if(h.d2 < 0){
+        h.hit->GetMeanHit()->SetHoughFlag(1321);
         track1->AddTPCHit( new TPCLTrackHit(hit) );
         t1 = 1;
         if(DebugMode) hddaq::cout << FUNC_NAME << " Track 1 hit candidate" << " added to the hit container." << std::endl;
       }
       else if(h.d1 < 0){
+        h.hit->GetMeanHit()->SetHoughFlag(1321);
         track2->AddTPCHit( new TPCLTrackHit(hit) );
         t2 = 1;
         if(DebugMode) hddaq::cout << FUNC_NAME << " Track 2 hit candidate" << " added to the hit container." << std::endl;
@@ -1486,7 +1437,6 @@ TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track1,TPCLocalTrackHelix* tr
       << std::endl;
     }
     track1 ->DoFit();
-    track1 ->SetClustersHoughFlag(1321);
     if(DebugMode){
       double par[5];
       track1->GetParam(par);
@@ -1509,7 +1459,6 @@ TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track1,TPCLocalTrackHelix* tr
       << std::endl;
     }
     track2 ->DoFit();
-    track2 ->SetClustersHoughFlag(1321);
     if(DebugMode){
       double par[5];
       track2->GetParam(par);
@@ -1519,15 +1468,6 @@ TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track1,TPCLocalTrackHelix* tr
     }
   }
   if(DebugMode){
-    hddaq::cout << FUNC_NAME << " Remaining hit number: " << remaining_hits.size() << std::endl;
-    for(int il=0;il<remaining_layers.size();++il){
-      hddaq::cout << FUNC_NAME << " Remaining hit " << il << " Layer: " << remaining_layers[il]
-        << " MRow: " << remaining_mrows[il]
-        << " DE: " << remaining_de[il]
-        << " Position: (" << remaining_hits[il].x() << ", "
-        << remaining_hits[il].y() << ", "
-        << remaining_hits[il].z() << ")" << std::endl;
-    }
     hddaq::cout << FUNC_NAME << " Track 1 hit number before refit: " << nh1_0 << ", after refit: " << track1->GetNHit() << std::endl;
     hddaq::cout << FUNC_NAME << " Track 2 hit number before refit: " << nh2_0 << ", after refit: " << track2->GetNHit() << std::endl;
   }
@@ -1535,66 +1475,44 @@ TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track1,TPCLocalTrackHelix* tr
   return true;
 }
 Bool_t
-TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track,const TVector3 vertex,
-      const std::vector<Double_t>& layer,
-      const std::vector<Double_t>& mrow,
-      const std::vector<Double_t>& de,
-      const std::vector<TVector3>& localpos,
-      std::vector<Double_t>& remaining_layers,
-      std::vector<Double_t>& remaining_mrows,
-      std::vector<Double_t>& remaining_de,
-      std::vector<TVector3>& remaining_hits
-){
+TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track,const TVector3 vertex){
   if(DebugMode) hddaq::cout << FUNC_NAME << " Recalculating vertex tracks..." << std::endl;
   const Double_t XZWindow = 5;//mm
   const Double_t YWindow = 10;//mm 
   struct HitInfo {
-    double layer;
-    double mrow;
-    double de;
+    TPCCluster* hit;
     double d;
-    TVector3 position;
   };
   int nh_0 = track->GetNHit();
   if(DebugMode) hddaq::cout << FUNC_NAME << " Vertex position: (" << vertex.x() << ", " << vertex.y() << ", " << vertex.z() << ")" << std::endl;
   auto first_hit = track->GetHitInOrder(0); 
   Int_t first_layer = first_hit->GetHit()->GetLayer();
+  std::map<int,std::vector<HitInfo>> HitContainer;
 
   TVector3 vertex_pad(vertex.x(),vertex.y(),vertex.z() + 6 + 6./250 * (vertex.y()));
   int vtx_layer = tpc::getLayerID(tpc::findPadID(vertex_pad.z(),vertex_pad.x()));
-  if(layer.size() != localpos.size()){
-    hddaq::cerr << FUNC_NAME << " layer/localpos size mismatch" << std::endl;
-    return false;
-  }
-
-  std::map<int,std::vector<HitInfo>> HitContainer;
-  for(int ih = 0; ih < layer.size();++ih){
-    if(layer[ih] < vtx_layer) continue;
-    double d = -1;
-    bool t = 0;
-    if(layer[ih]< first_layer and vtx_layer <= layer[ih] and
-      track->ResidualCheck(localpos[ih],XZWindow,YWindow,d)){
-      t = 1;
-      if(DebugMode) hddaq::cout << FUNC_NAME << " Track hit candidate" << ih << " residual: " << d << std::endl;
-    }
-    else {
-      d = -1;
-    }
-    if(t){
-      HitInfo hitinfo;
-      hitinfo.layer = layer[ih];
-      hitinfo.mrow = mrow[ih];
-      hitinfo.de = de[ih];
-      hitinfo.d = d;
-      hitinfo.position = localpos[ih];
-      HitContainer[layer[ih]].push_back(hitinfo);
-      if(DebugMode) hddaq::cout << FUNC_NAME << " Track hit candidate" << ih << " added to the hit container." << std::endl;
-    }
-    else{
-      remaining_layers.push_back(layer[ih]);
-      remaining_mrows.push_back(mrow[ih]);
-      remaining_de.push_back(de[ih]);
-      remaining_hits.push_back(localpos[ih]);
+  for(int il=0;il<NumOfLayersTPC;++il){
+    if(il < vtx_layer) continue;
+    auto clconts = m_TPCClCont[il];
+    for(auto cl:clconts){
+      double d = -1;
+      bool t = 0;
+      TVector3 pos = cl -> GetPosition();
+      if(il< first_layer and vtx_layer <= il and
+        track->ResidualCheck(pos,XZWindow,YWindow,d)){
+        t = 1;
+        if(DebugMode) hddaq::cout << FUNC_NAME << " Track hit residual: " << d << std::endl;
+      }
+      else {
+        d = -1;
+      }
+      if(t){
+        HitInfo hitinfo;
+        hitinfo.hit = cl;
+        hitinfo.d = d;
+        HitContainer[il].push_back(hitinfo);
+        if(DebugMode) hddaq::cout << FUNC_NAME << " Track hit candidate added to the hit container." << std::endl;
+      }
     }
   }
   bool t = 0;
@@ -1602,31 +1520,18 @@ TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track,const TVector3 vertex,
     if(DebugMode) hddaq::cout << FUNC_NAME << "Layer" << hc.first << " Total hit candidates: " << hc.second.size() << std::endl;
     double d_min = 1e6;
     for(auto h:hc.second){
-      h.d > 0 and h.d < d_min ? d_min = h.d : 0;
+      h.d > 0 and h.d < d_min ? d_min = h.d : d_min;
     }
     for(auto h:hc.second){
-      h.d != d_min ?[&,h](){
-        remaining_layers.push_back(h.layer);
-        remaining_mrows.push_back(h.mrow);
-        remaining_de.push_back(h.de);
-        remaining_hits.push_back(h.position);
-      }() : [&,h](){
-        auto hit = new TPCHit(h.layer, h.mrow);
-        hit -> AddHit(0, 0.);
-        hit -> SetIsGood();
-        hit -> SetDe(h.de);
-        hit -> SetPosition(h.position);
-        m_TPCHitCont[h.layer].push_back(hit);
-        track->AddTPCHit( new TPCLTrackHit(hit) );
-        TPCHitContainer CandCont;
-        CandCont.push_back(hit);
-        TPCCluster* cluster = new TPCCluster(h.layer, CandCont);
-        cluster->Calculate();
-        m_TPCClCont[h.layer].push_back(cluster);
-        
-        t = 1;
-        if(DebugMode) hddaq::cout << FUNC_NAME << " Track 1 hit candidate" << " added to the hit container." << std::endl;
-      }();
+      h.d != d_min ? h.d = -1 : h.d;
+    }
+    for(auto h:hc.second){
+      if(h.d < 0) continue;
+      h.hit->GetMeanHit()->SetHoughFlag(1321);
+      auto hit = h.hit->GetHit(0);
+      track->AddTPCHit( new TPCLTrackHit(hit) );
+      t = 1;
+      if(DebugMode) hddaq::cout << FUNC_NAME << " Track 1 hit candidate" << " added to the hit container." << std::endl;
     }
   }
   if(t){
@@ -1643,7 +1548,6 @@ TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track,const TVector3 vertex,
       << std::endl;
     }
     track ->DoFit();
-    track ->SetClustersHoughFlag(1321);
     if(DebugMode){
       double par[5];
       track->GetParam(par);
@@ -1653,127 +1557,78 @@ TPCAnalyzer::RefitVertexTracks(TPCLocalTrackHelix* track,const TVector3 vertex,
     }
   }
   if(DebugMode){
-    hddaq::cout << FUNC_NAME << " Recalculated TPC track number: " << m_TPCTCHelix.size() << std::endl;
-    hddaq::cout << FUNC_NAME << " Remaining hit number: " << remaining_hits.size() << std::endl;
-    for(int il=0;il<remaining_layers.size();++il){
-      hddaq::cout << FUNC_NAME << " Remaining hit " << il << " Layer: " << remaining_layers[il]
-        << " MRow: " << remaining_mrows[il]
-        << " DE: " << remaining_de[il]
-        << " Position: (" << remaining_hits[il].x() << ", "
-        << remaining_hits[il].y() << ", "
-        << remaining_hits[il].z() << ")" << std::endl;
-    }
     hddaq::cout << FUNC_NAME << " Track hit number before refit: " << nh_0 << ", after refit: " << track->GetNHit() << std::endl;
   }
   return true;
 }
 
 TPCLocalTrackHelix*
-TPCAnalyzer::ConstructXiTrack(const TVector3 XiDecayVtx, const TVector3 XiDecayMom,
-      const std::vector<Double_t>& layer,
-      const std::vector<Double_t>& mrow,
-      const std::vector<Double_t>& de,
-      const std::vector<TVector3>& localpos,
-      std::vector<Double_t>& remaining_layers,
-      std::vector<Double_t>& remaining_mrows,
-      std::vector<Double_t>& remaining_de,
-      std::vector<TVector3>& remaining_hits
-){
+TPCAnalyzer::ConstructXiTrack(const TVector3 XiDecayVtx, const TVector3 XiDecayMom){
   if(DebugMode) hddaq::cout << FUNC_NAME << " Constructing Xi tracks..." << std::endl;
   const Double_t XZWindow = 5;//mm
   const Double_t YWindow = 10;//mm 
-  TPCLocalTrackHelix* XiDecayTrack = new TPCLocalTrackHelix(XiDecayVtx, XiDecayMom, -1);
-  XiDecayTrack->SetIsXi();
+  TPCLocalTrackHelix* XiTrack = new TPCLocalTrackHelix(XiDecayVtx, XiDecayMom, -1);
+  XiTrack->SetIsXi();
   struct HitInfo {
-    double layer;
-    double mrow;
-    double de;
+    TPCCluster* hit;
     double d=-1;
-    TVector3 position;
   };
   int vtx_layer = tpc::getLayerID(tpc::findPadID(XiDecayVtx.z() + 6,XiDecayVtx.x()));
   std::map<int,std::vector<HitInfo>> HitContainer;
-  for(int ih = 0; ih < layer.size();++ih){
-    if(layer[ih] > vtx_layer) continue;
-    double d = -1 ;
-    bool t = 0;
-    if(layer[ih]>= vtx_layer and
-      XiDecayTrack->ResidualCheck(localpos[ih],XZWindow,YWindow,d)){
-      t = 1;
-      if(DebugMode) hddaq::cout << FUNC_NAME << " Xi Decay track hit candidate" << ih << " residual: " << d << std::endl;
-    }
-    if(t){
-      HitInfo hitinfo;
-      hitinfo.layer = layer[ih];
-      hitinfo.mrow = mrow[ih];
-      hitinfo.de = de[ih];
-      hitinfo.d = d;
-      hitinfo.position = localpos[ih];
-      HitContainer[layer[ih]].push_back(hitinfo);
-      if(DebugMode) hddaq::cout << FUNC_NAME << " Xi Decay track hit candidate" << ih << " added to the hit container." << std::endl;
-    }
-    else{
-      remaining_layers.push_back(layer[ih]);
-      remaining_mrows.push_back(mrow[ih]);
-      remaining_de.push_back(de[ih]);
-      remaining_hits.push_back(localpos[ih]);
+  for(int il=0;il<NumOfLayersTPC;++il){
+    if(il < vtx_layer) continue;
+    auto clconts = m_TPCClCont[il];
+    for(auto cl:clconts){
+      double d = -1 ;
+      bool t = 0;
+      TVector3 pos = cl -> GetPosition();
+      if(pos.z() < tpc::ZTarget) continue;
+      if(il>= vtx_layer and
+        XiTrack->ResidualCheck(pos,XZWindow,YWindow,d)){
+        t = 1;
+        if(DebugMode) hddaq::cout << FUNC_NAME << " Xi Decay track hit residual: " << d << std::endl;
+      }
+      if(t){
+        HitInfo hitinfo;
+        hitinfo.d = d;
+        hitinfo.hit = cl;
+        HitContainer[il].push_back(hitinfo);
+        if(DebugMode) hddaq::cout << FUNC_NAME << " Xi Decay track hit added to the hit container." << std::endl;
+      }
     }
   }
   int nh = 0;
-  for(auto hset: HitContainer){//For each layer, pick the hit with the smallest residual
-    double d = 1e6; 
-    for(auto h:hset.second){
-      if(h.d < d){
-        d = h.d;
-      }
+  for(auto hc: HitContainer){//For each layer, pick the hit with the smallest residual
+    double d_min = 1e6; 
+    for(auto h:hc.second){
+      h.d > 0 and h.d < d_min ? d_min = h.d : d_min;
     }
-    for(auto h:hset.second){
-      if(h.d == d){
-        auto hit = new TPCHit(hset.first, h.mrow);
-        hit -> AddHit(0, 0.);
-        hit -> SetIsGood();
-        hit -> SetDe(h.de);
-        hit -> SetPosition(h.position);
-        m_TPCHitCont[hset.first].push_back(hit);
-        TPCHitContainer CandCont;
-        CandCont.push_back(hit);
-        TPCCluster* cluster = new TPCCluster(hset.first, CandCont);
-        cluster->Calculate();
-        m_TPCClCont[hset.first].push_back(cluster);
-        XiDecayTrack->AddTPCHit( new TPCLTrackHit(hit) );
-        hit -> SetHoughFlag(300);//XiDecayTrackHit
-        if(DebugMode) hddaq::cout << FUNC_NAME << " Xi Decay track hit candidate" << " added to the hit container." << std::endl;
-        nh++;
-      }
-      else{
-        remaining_layers.push_back(h.layer);
-        remaining_mrows.push_back(h.mrow);
-        remaining_de.push_back(h.de);
-        remaining_hits.push_back(h.position);
-      }
+    for(auto h:hc.second){
+      h.d != d_min ? h.d = -1 : h.d;
+    }
+    for(auto h:hc.second){
+      if(h.d < 0) continue;
+      h.hit->GetMeanHit()->SetHoughFlag(132100);
+      auto hit = h.hit->GetHit(0);
+      TPCLTrackHit* lhit = new TPCLTrackHit(hit);
+      lhit -> SetResolution(TVector3(3,3,10));//Arbitrary values. Fitting for Xi track is meaningless anyway.
+      XiTrack->AddTPCHit( lhit );
+      nh++;
+      if(DebugMode) hddaq::cout << FUNC_NAME << " Track 1 hit candidate" << " added to the hit container." << std::endl;
     }
   }
   if(DebugMode > 1){
     hddaq::cout << FUNC_NAME << " Recalculated TPC track number: " << m_TPCTCHelix.size() << std::endl;
-    hddaq::cout << FUNC_NAME << " Remaining hit number: " << remaining_hits.size() << std::endl;
-    for(int il=0;il<remaining_layers.size();++il){
-      hddaq::cout << FUNC_NAME << " Remaining hit " << il << " Layer: " << remaining_layers[il]
-        << " MRow: " << remaining_mrows[il]
-        << " DE: " << remaining_de[il]
-        << " Position: (" << remaining_hits[il].x() << ", "
-        << remaining_hits[il].y() << ", "
-        << remaining_hits[il].z() << ")" << std::endl;
-    }
   }
-  if(nh < 2){
-    delete XiDecayTrack;
+  if(nh < 3){
+    delete XiTrack;
     return nullptr;
   }
   else{
-    XiDecayTrack->CalcHelixTheta();
-    XiDecayTrack->RecalcTrack();
-    XiDecayTrack->SetClustersHoughFlag(300);
-    m_TPCTCHelix.push_back(XiDecayTrack);
+    XiTrack->CalcHelixTheta();
+    XiTrack->SetIsXi();
+    XiTrack->RecalcTrack();
+    m_TPCTCHelix.push_back(XiTrack);
   }
-  return XiDecayTrack;
+  return XiTrack;
 }

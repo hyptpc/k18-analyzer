@@ -370,7 +370,6 @@ bool HypTPCTask::ExtrapolateToPlane(int trackid, genfit::SharedPlanePtr plane, T
     if(verbosity>=1) std::cerr << e.what();
     return false;
   }
-
 #if 0
   std::vector<genfit::MatStep> steps = rep->getSteps();
   std::cout<<"RK number of steps : "<<steps.size()<<std::endl;
@@ -410,7 +409,10 @@ bool HypTPCTask::IsInsideTarget(int trackid, int repid, bool Beamthrough) const{
      TMath::Abs(pos.y()) < 50. &&
      TMath::Abs(pos.z()-ztgt) < 50. &&
      TMath::Sqrt(pos.x()*pos.x()+pos.y()*pos.y()+(pos.z()-ztgt)*(pos.z()-ztgt)) < 50. &&
-     ((-100. < tracklen && tracklen < 10.) or Beamthrough)) return true;
+     ((-100. < tracklen && tracklen < 10.) or Beamthrough)){ 
+      std::cout<<"Track ID "<<trackid<<" len "<< tracklen<<" pos "<<pos<<std::endl;
+      return true;
+    }
   else return false;
 }
 
@@ -484,12 +486,12 @@ bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2, 
   while(iStep2 < MaxStep){
     iStep1 = 0;
     while(iStep1 < MaxStep){
-      //std::cout<<"istep "<<iStep1<<" "<<iStep2<<std::endl;
+  //    std::cout<<"istep "<<iStep1<<" "<<iStep2<<std::endl;
       TVector3 pos1; TVector3 mom1; TVector3 pos2; TVector3 mom2;
       bool extrapol1 = ExtrapolateTrack(trackid1, -iStep1*StepSize, pos1, mom1, repid1);
-      //if(extrapol1) std::cout<<"extrapolate id "<<trackid1<<", step size "<<-iStep1*StepSize<<" mm, mom "<<mom1.Mag()<<" GeV/c, pos "<<pos1<<std::endl;
+   //   if(extrapol1) std::cout<<"extrapolate id "<<trackid1<<", step size "<<-iStep1*StepSize<<" mm, mom "<<mom1.Mag()<<" GeV/c, pos "<<pos1<<std::endl;
       bool extrapol2 = ExtrapolateTrack(trackid2, -iStep2*StepSize, pos2, mom2, repid2);
-      //if(extrapol2) std::cout<<"extrapolate id "<<trackid2<<", step size "<<-iStep2*StepSize<<" mm, mom "<<mom2.Mag()<<" GeV/c, pos "<<pos2<<std::endl;
+    //  if(extrapol2) std::cout<<"extrapolate id "<<trackid2<<", step size "<<-iStep2*StepSize<<" mm, mom "<<mom2.Mag()<<" GeV/c, pos "<<pos2<<std::endl;
       if(!extrapol1 || !extrapol2){
 	std::cout<<"extrapolation failed"<<std::endl;
 	return false;
@@ -514,7 +516,6 @@ bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2, 
     if(iStep2*StepSize >= scan_range) break;
     iStep2++;
   } //while(++iStep2 < MaxStep){
-
   iStep1 = 0; iStep2 = 0;
   while(iStep2 < MaxStep){
     iStep1 = 0;
