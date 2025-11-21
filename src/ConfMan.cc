@@ -76,8 +76,9 @@ ConfMan::Initialize()
   TString line;
   while(ifs.good() && line.ReadLine(ifs)){
     m_buf += line + "\n";
+    std::cout<<"line "<<line.Data()<<std::endl;
     if(line.IsNull() || line[0]=='#') continue;
-
+    std::cout<<"line "<<line.Data()<<std::endl;
     line.ReplaceAll(",",  ""); // remove ,
     line.ReplaceAll(":",  ""); // remove :
     line.ReplaceAll("\"",  ""); // remove "

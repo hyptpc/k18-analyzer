@@ -8,16 +8,15 @@
 
 #include "FieldElements.hh"
 #include "FuncName.hh"
-#include "S2sFieldMap.hh"
+#include "FieldMap.hh"
 #include "ConfMan.hh"
 
 namespace
 {
 const auto& gConf = ConfMan::GetInstance();
-const auto& valueNMR  = ConfMan::Get<Double_t>("FLDNMR");
-const auto& valueCalc = ConfMan::Get<Double_t>("FLDCALC");
 const auto& valueHSHall = ConfMan::Get<Double_t>("HSFLDHALL");
 const auto& valueHSCalc = ConfMan::Get<Double_t>("HSFLDCALC");
+const auto& valueHSCalib = ConfMan::Get<Double_t>("HSFLDCALIB");
 }
 
 namespace
@@ -28,7 +27,6 @@ const Double_t Delta = 0.1;
 //_____________________________________________________________________________
 FieldMan::FieldMan()
   : m_is_ready(false),
-    m_s2s_map(nullptr),
     m_shs_map(nullptr)
 {
 }
@@ -36,7 +34,6 @@ FieldMan::FieldMan()
 //_____________________________________________________________________________
 FieldMan::~FieldMan()
 {
-  if(m_s2s_map) delete m_s2s_map;
   if(m_shs_map)    delete m_shs_map;
 }
 
@@ -49,45 +46,26 @@ FieldMan::Initialize()
     return false;
   }
 
-  if(m_s2s_map)
-    delete m_s2s_map;
-
-  if(!m_file_name_s2s.IsNull()){
-    m_s2s_map = new S2sFieldMap(m_file_name_s2s, valueNMR, valueCalc);
-    if(!m_s2s_map->Initialize())
-      return false;
-  }
-
   if(m_shs_map)
     delete m_shs_map;
 
-  std::cout << m_file_name_shs << " " << m_file_name_shs.IsNull() << std::endl;
-  if(!m_file_name_shs.IsNull()){
-    std::cout << m_file_name_shs << " " << m_file_name_shs.IsNull() << std::endl;
-    m_shs_map = new S2sFieldMap(m_file_name_shs, valueHSHall, valueHSCalc);
-    if(!m_shs_map->Initialize())
-      return false;
+  m_shs_map = new FieldMap(m_file_name_shs,
+			   valueHSHall*valueHSCalib,
+			   valueHSCalc);
+  if(m_shs_map){
+    m_is_ready = m_shs_map->Initialize();
   }
+  else
+    m_is_ready = false;
 
-  m_is_ready = (m_s2s_map || m_shs_map);
   return m_is_ready;
 }
 
 //_____________________________________________________________________________
 Bool_t
-FieldMan::Initialize(const TString& file_name_s2s)
+FieldMan::Initialize(const TString& file_name_shs)
 {
-  m_file_name_s2s = file_name_s2s;
-  return Initialize();
-}
-
-//_____________________________________________________________________________
-Bool_t
-FieldMan::Initialize(const TString& file_name_s2s,
-                     const TString& file_name_shs)
-{
-  m_file_name_s2s = file_name_s2s;
-  m_file_name_shs    = file_name_shs;
+  m_file_name_shs = file_name_shs;
   return Initialize();
 }
 
@@ -96,18 +74,16 @@ TVector3
 FieldMan::GetField(const TVector3& position) const
 {
   TVector3 field(0., 0., 0.);
-  if(m_s2s_map // && m_shs_map
-    ){
-    Double_t p[3], b_s2s[3]; //, b_shs[3];
+  if(m_shs_map){
+    Double_t p[3], b_shs[3];
+    //mm -> cm
     p[0] = position.x()*0.1;
     p[1] = position.y()*0.1;
     p[2] = position.z()*0.1;
-    if(m_s2s_map->GetFieldValue(p, b_s2s)//  &&
-       // m_shs_map->GetFieldValue(p, b_shs)
-      ){
-      field.SetX(b_s2s[0]);
-      field.SetY(b_s2s[1]);
-      field.SetZ(b_s2s[2]);
+    if(m_shs_map->GetFieldValue(p, b_shs)){
+      field.SetX(b_shs[0]);
+      field.SetY(b_shs[1]);
+      field.SetZ(b_shs[2]);
     }
   }
 

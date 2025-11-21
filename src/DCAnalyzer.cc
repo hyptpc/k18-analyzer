@@ -33,7 +33,7 @@
 #include "K18Parameters.hh"
 //#include "K18TrackU2D.hh"
 #include "K18TrackD2U.hh"
-#include "S2sTrack.hh"
+//#include "S2sTrack.hh"
 #include "MathTools.hh"
 #include "MWPCCluster.hh"
 #include "RawData.hh"
@@ -74,7 +74,7 @@ const Int_t& IdTOFDY = gGeom.DetectorId("TOF-DY");
 
 const Double_t TimeDiffToYTOF = 77.3511; // [mm/ns]
 
-const Double_t MaxChiSqrS2sTrack = 10000.;
+  //const Double_t MaxChiSqrS2sTrack = 10000.;
 const Double_t MaxTimeDifMWPC       =   100.;
 
 const Double_t kMWPCClusteringWireExtension =  1.0; // [mm]
@@ -169,7 +169,7 @@ DCAnalyzer::~DCAnalyzer()
   for(auto& elem: m_dc_hit_collection)
     del::ClearContainer(elem.second);
 
-  ClearS2sTracks();
+  //ClearS2sTracks();
   // ClearK18TracksU2D();
   ClearTracksBcIn();
   ClearK18TracksD2U();
@@ -183,7 +183,7 @@ DCAnalyzer::~DCAnalyzer()
   debug::ObjectCounter::decrease(ClassName());
 }
 
-
+/*
 //_____________________________________________________________________________
 void
 DCAnalyzer::PrintS2s(const TString& arg) const
@@ -199,7 +199,7 @@ DCAnalyzer::PrintS2s(const TString& arg) const
                 << std::endl;
   }
 }
-
+*/
 //_____________________________________________________________________________
 Bool_t
 DCAnalyzer::DecodeBcInHits()
@@ -829,7 +829,7 @@ DCAnalyzer::TrackSearchK18D2U(const std::vector<Double_t>& XinCont)
 
   return true;
 }
-
+/*
 //_____________________________________________________________________________
 Bool_t
 DCAnalyzer::TrackSearchS2s()
@@ -919,7 +919,7 @@ DCAnalyzer::TrackSearchS2s(Double_t initial_momentum)
 
   return true;
 }
-
+*/
 //_____________________________________________________________________________
 void
 DCAnalyzer::ClearDCHits()
@@ -1022,14 +1022,14 @@ DCAnalyzer::ClearK18TracksD2U()
 {
   del::ClearContainer(m_K18D2UTC);
 }
-
+/*
 //_____________________________________________________________________________
 void
 DCAnalyzer::ClearS2sTracks()
 {
   del::ClearContainer(m_S2sTC);
 }
-
+*/
 //_____________________________________________________________________________
 void
 DCAnalyzer::ClearTracksBcOutSdcIn()
@@ -1120,7 +1120,7 @@ DCAnalyzer::ReCalcTrack(K18TC& cont, Bool_t applyRecursively)
   }
   return true;
 }
-
+/*
 //_____________________________________________________________________________
 Bool_t
 DCAnalyzer::ReCalcTrack(S2sTC& cont,
@@ -1133,7 +1133,7 @@ DCAnalyzer::ReCalcTrack(S2sTC& cont,
   }
   return true;
 }
-
+*/
 //_____________________________________________________________________________
 #if UseBcIn
 Bool_t
@@ -1184,14 +1184,14 @@ DCAnalyzer::ReCalcK18TrackD2U(Bool_t applyRecursively)
 {
   return ReCalcTrack(m_K18D2UTC, applyRecursively);
 }
-
+/*
 //_____________________________________________________________________________
 Bool_t
 DCAnalyzer::ReCalcS2sTrack(Bool_t applyRecursively)
 {
   return ReCalcTrack(m_S2sTC, applyRecursively);
 }
-
+*/
 //_____________________________________________________________________________
 Bool_t
 DCAnalyzer::ReCalcAll()
@@ -1206,7 +1206,7 @@ DCAnalyzer::ReCalcAll()
   ReCalcTrackSdcOut();
 
   //ReCalcK18TrackD2U();
-  ReCalcS2sTrack();
+  //ReCalcS2sTrack();
 
   return true;
 }

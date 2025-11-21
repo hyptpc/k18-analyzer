@@ -16,7 +16,7 @@ class DCHit;
 class DCLocalTrack;
 class K18TrackU2D;
 class K18TrackD2U;
-class S2sTrack;
+//class S2sTrack;
 class RawData;
 class MWPCCluster;
 class FiberCluster;
@@ -28,7 +28,7 @@ class HodoAnalyzer;
 using DCHC = std::vector<DCHit*>;
 using DCLocalTC = std::vector<DCLocalTrack*>;
 using K18TC = std::vector<K18TrackD2U*>;
-using S2sTC = std::vector<S2sTrack*>;
+//using S2sTC = std::vector<S2sTrack*>;
 
 using HodoHC = std::vector<HodoHit*>;
 using HodoCC = std::vector<HodoCluster*>;
@@ -69,7 +69,7 @@ private:
   DCLocalTC              m_SdcInTC;
   DCLocalTC              m_SdcOutTC;
   K18TC                  m_K18D2UTC;
-  S2sTC                  m_S2sTC;
+  //  S2sTC                  m_S2sTC;
   DCLocalTC              m_BcOutSdcInTC;
   DCLocalTC              m_SdcInSdcOutTC;
   std::vector<DCLocalTC> m_SdcInExTC;
@@ -152,8 +152,8 @@ public:
 
   Bool_t TrackSearchK18U2D();
   Bool_t TrackSearchK18D2U(const std::vector<Double_t>& XinCont);
-  Bool_t TrackSearchS2s(Double_t initial_momentum);
-  Bool_t TrackSearchS2s();
+  //  Bool_t TrackSearchS2s(Double_t initial_momentum);
+  //  Bool_t TrackSearchS2s();
 
   void ChiSqrCutBcOut(Double_t chisqr);
   void ChiSqrCutSdcIn(Double_t chisqr);
@@ -177,19 +177,19 @@ public:
 
   Int_t GetNTracksK18U2D() const { return m_K18U2DTC.size(); }
   Int_t GetNTracksK18D2U() const { return m_K18D2UTC.size(); }
-  Int_t GetNTracksS2s() const { return m_S2sTC.size(); }
+  //  Int_t GetNTracksS2s() const { return m_S2sTC.size(); }
 
   const K18TrackU2D* GetK18TrackU2D(Int_t l) const { return m_K18U2DTC.at(l); }
   const K18TrackD2U* GetK18TrackD2U(Int_t l) const { return m_K18D2UTC.at(l); }
-  const S2sTrack* GetS2sTrack(Int_t l) const { return m_S2sTC.at(l); }
+  //  const S2sTrack* GetS2sTrack(Int_t l) const { return m_S2sTC.at(l); }
   const K18TC& GetK18TracksD2U() const { return m_K18D2UTC; }
-  const S2sTC& GetS2sTracks() const { return m_S2sTC; }
+  //  const S2sTC& GetS2sTracks() const { return m_S2sTC; }
 
   Int_t GetNClustersMWPC(Int_t l) const { return m_MWPCClCont.at(l).size(); };
 
   const MWPCClusterContainer& GetClusterMWPC(Int_t l) const
     { return m_MWPCClCont.at(l); }
-  void PrintS2s(const TString& arg="") const;
+  //void PrintS2s(const TString& arg="") const;
 
   Bool_t ReCalcMWPCHits(std::vector<DCHC>& cont,
                         Bool_t applyRecursively=false);
@@ -199,7 +199,7 @@ public:
   void HoughYCut(Double_t min_y, Double_t max_y);
   Bool_t ReCalcTrack(DCLocalTC& cont, Bool_t applyRecursively=false);
   Bool_t ReCalcTrack(K18TC& cont, Bool_t applyRecursively=false);
-  Bool_t ReCalcTrack(S2sTC& cont, Bool_t applyRecursively=false);
+  //Bool_t ReCalcTrack(S2sTC& cont, Bool_t applyRecursively=false);
 
   Bool_t ReCalcTrackBcIn(Bool_t applyRecursively=false);
   Bool_t ReCalcTrackBcOut(Bool_t applyRecursively=false);
@@ -208,7 +208,7 @@ public:
 
   Bool_t ReCalcK18TrackD2U(Bool_t applyRecursively=false);
   // Bool_t ReCalcK18TrackU2D(Bool_t applyRecursively=false);
-  Bool_t ReCalcS2sTrack(Bool_t applyRecursively=false);
+  //Bool_t ReCalcS2sTrack(Bool_t applyRecursively=false);
   Bool_t ReCalcAll();
   void   SetMaxV0Diff(Double_t deg){ m_max_v0diff = deg; }
   Bool_t TrackSearchBcOutSdcIn();
@@ -242,7 +242,7 @@ protected:
   void ClearTracksSdcInSdcOut();
   void ClearK18TracksU2D();
   void ClearK18TracksD2U();
-  void ClearS2sTracks();
+  //void ClearS2sTracks();
   void ChiSqrCut(DCLocalTC& cont, Double_t chisqr);
   void EraseEmptyHits(const TString& name);
   void EraseEmptyHits(std::vector<DCHC>& HitCont);

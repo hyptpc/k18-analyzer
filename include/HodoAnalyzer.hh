@@ -45,6 +45,7 @@ private:
 public:
   template <typename T=HodoHit>
   Bool_t DecodeHits(const TString& name, Double_t max_time_diff=10.);
+  Bool_t DecodeTPCClock(const TString& name);
 
   const HodoHC& GetHitContainer(const TString& name) const;
   const HodoCC& GetClusterContainer(const TString& name) const;
@@ -85,14 +86,6 @@ public:
   Double_t Ftof0Seg() const;
 
 private:
-  void ClearBH1Hits();
-  void ClearBH2Hits();
-  void ClearBACHits();
-  void ClearTOFHits();
-  void ClearLACHits();
-  void ClearWCHits();
-  void ClearWCSUMHits();
-  void ClearBFTHits();
 
   template <typename T>
   void TimeCut(std::vector<T>& cont, Double_t min, Double_t max);
@@ -229,6 +222,33 @@ HodoAnalyzer::MakeUpClusters(const std::vector<T*>& HitCont,
   }
   return ClusterCont.size();
 }
+
+//_____________________________________________________________________________
+inline Bool_t
+HodoAnalyzer::DecodeTPCClock(const TString& name)
+{
+  std::vector<HodoHit*> CandCont;
+  for(auto& rhit: m_raw_data->GetHodoRawHitContainer(name)){
+    if(!rhit) continue;
+    auto hit = new HodoHit(rhit);
+    if(hit && hit->Calculate()){
+      CandCont.push_back(hit);
+    }else{
+      delete hit;
+    }
+  }
+  std::sort(CandCont.begin(), CandCont.end(), HodoHit::Compare);
+
+  auto& cont = m_hodo_hit_collection[name];
+  for(auto& hit: cont)
+    delete hit;
+  cont.clear();
+  for(const auto& hit: CandCont)
+    cont.push_back(hit);
+
+  return true;
+}
+
 
 //_____________________________________________________________________________
 template <typename T>

@@ -28,6 +28,7 @@ const Int_t DetIdT1   =  7;
 const Int_t DetIdCVC  =  8;
 const Int_t DetIdSAC3 =  9;
 const Int_t DetIdSFV  = 10;
+const Int_t DetIdCOBO = 11;
 
 const Int_t NumOfSegBHT  = 63;
 const Int_t NumOfSegT0   =  5;
@@ -39,6 +40,7 @@ const Int_t NumOfSegT1   =  1;
 const Int_t NumOfSegCVC  =  8;
 const Int_t NumOfSegSAC3 =  1;
 const Int_t NumOfSegSFV  =  5;
+const Int_t NumOfCOBO    = 15;
 
 const int DetIdVmeRm     =  81;
 const int DetIdScaler    =  91;
@@ -49,25 +51,28 @@ enum EHodoscope {
   kBHT, kBH2, kBAC,
   kHTOF, kKVC, kT1,
   kCVC, kSAC3, kSFV,
-  kNumHodo
+  kCOBO, kNumHodo
 };
 
 const Int_t DetIdHodo[kNumHodo] = {
   DetIdBHT, DetIdBH2, DetIdBAC,
   DetIdHTOF, DetIdKVC, DetIdT1,
-  DetIdCVC, DetIdSAC3, DetIdSFV,  
+  DetIdCVC, DetIdSAC3, DetIdSFV,
+  DetIdCOBO,
 };
 
 const std::vector<TString> NameHodo = {
   "BHT", "BH2", "BAC",
   "HTOF", "KVC", "T1",
-  "CVC", "SAC3", "SFV"
+  "CVC", "SAC3", "SFV",
+  "COBO"
 };
 
 const double  NumOfSegHodo[kNumHodo] = {
   NumOfSegBHT, NumOfSegBH2, NumOfSegBAC,
   NumOfSegHTOF, NumOfSegKVC, NumOfSegT1,
-  NumOfSegCVC, NumOfSegSAC3, NumOfSegSFV
+  NumOfSegCVC, NumOfSegSAC3, NumOfSegSFV,
+  NumOfCOBO
 };
 
 // Chambers
@@ -196,10 +201,13 @@ const Int_t LayerMaxTOF         =  54; // need to change
 const Int_t LayerMinVP          =  16;
 const Int_t LayerMaxVP          =  26;
 const Int_t PlOffsBc         = 100;
+const Int_t PlOffsBcOut      = 1000;
 const Int_t PlOffsSdcIn      =   0;
 const Int_t PlOffsSdcOut     =  30;
 const Int_t PlOffsTOF        =  50;
 const Int_t PlOffsVP         =  15;
+const Int_t PlOffsVPHS       = 207; //K1.8 Beam Tracking
+const Int_t PlOffsTPCHit     = 700; //K1.8 w/ TPC Tracking
 
 // const Int_t NumOfLayersBc     = 8;
 const Int_t NumOfLayersSDC1   = 6;
@@ -213,5 +221,9 @@ const Int_t NumOfLayersSdcIn  = LayerMaxSdcIn  - LayerMinSdcIn  + 1;
 const Int_t NumOfLayersSdcOut = LayerMaxSdcOut - LayerMinSdcOut + 1;
 const Int_t NumOfLayersTOF    = LayerMaxTOF    - LayerMinTOF    + 1;
 const Int_t NumOfLayersVP     = LayerMaxVP     - LayerMinVP     + 1;
+const Int_t NumOfLayersVPTPC  = 5;
+const Int_t NumOfLayersVPHS   = 4;
+const Int_t NumOfLayersTPC    = 32;
+const Int_t NumOfPadTPC       = 5768;
 
 #endif

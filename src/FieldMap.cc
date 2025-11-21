@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-#include "S2sFieldMap.hh"
+#include "FieldMap.hh"
 
 #include <cmath>
 #include <cstdlib>
@@ -21,15 +21,8 @@
 #include <TH2.h>
 #endif
 
-//namespace
-//{
-//const auto& gConf = ConfMan::GetInstance();
-//const auto& valueNMR  = ConfMan::Get<Double_t>("FLDNMR");
-//const auto& valueCalc = ConfMan::Get<Double_t>("FLDCALC");
-//}
-
 //_____________________________________________________________________________
-S2sFieldMap::S2sFieldMap(const TString& file_name)
+FieldMap::FieldMap(const TString& file_name)
   : m_is_ready(false),
     m_file_name(file_name),
     B(),
@@ -46,7 +39,7 @@ S2sFieldMap::S2sFieldMap(const TString& file_name)
 }
 
 //_____________________________________________________________________________
-S2sFieldMap::S2sFieldMap(const TString& file_name, const Double_t measure, const Double_t calc)
+FieldMap::FieldMap(const TString& file_name, const Double_t measure, const Double_t calc)
   : m_is_ready(false),
     m_file_name(file_name),
     B(),
@@ -66,14 +59,14 @@ S2sFieldMap::S2sFieldMap(const TString& file_name, const Double_t measure, const
 
 
 //_____________________________________________________________________________
-S2sFieldMap::~S2sFieldMap()
+FieldMap::~FieldMap()
 {
   ClearField();
 }
 
 //_____________________________________________________________________________
 Bool_t
-S2sFieldMap::Initialize()
+FieldMap::Initialize()
 {
   std::ifstream ifs(m_file_name);
   if(!ifs.is_open()){
@@ -110,7 +103,7 @@ S2sFieldMap::Initialize()
 
   if(valueCalc==0. || !std::isfinite(valueCalc) ||
      valueMeasure==0.  || !std::isfinite(valueMeasure) ){
-    hddaq::cout << FUNC_NAME << " S2sField is zero : "
+    hddaq::cout << FUNC_NAME << " Field is zero : "
                 << " Calc = " << valueCalc
                 << " Measure = " << valueMeasure << std::endl
                 << " -> skip reading fieldmap" << std::endl;
@@ -153,7 +146,7 @@ S2sFieldMap::Initialize()
 #if DebugDisp
   auto c1 = new TCanvas("c1", "c1", 900, 800);
   h1->Draw("colz");
-  c1->Print("c1.pdf");
+  c1->Print("FieldMap.pdf");
 #endif
 
   hddaq::cout << " done" << std::endl;
@@ -163,7 +156,7 @@ S2sFieldMap::Initialize()
 
 //_____________________________________________________________________________
 Bool_t
-S2sFieldMap::GetFieldValue(const Double_t pointCM[3],
+FieldMap::GetFieldValue(const Double_t pointCM[3],
                               Double_t* BfieldTesla) const
 {
   Double_t xt = pointCM[0];
@@ -184,7 +177,7 @@ S2sFieldMap::GetFieldValue(const Double_t pointCM[3],
   else if(iy1>=Ny-1) { iy1=iy2=Ny-1; wy1=1.; wy2=0.; }
   else { iy2=iy1+1; wy1=(Y0+dY*iy2-yt)/dY; wy2=1.-wy1; }
 
-  if(iz1<0) { iz1=iz2=0; wz1=1.; wz2=0.; }
+  if(iz1<0) { iz1=iz2=0; wz1=0.; wz2=0.; }
   else if(iz1>=Nz-1) { iz1=iz2=Nz-1; wz1=1.; wz2=0.; }
   else { iz2=iz1+1; wz1=(Z0+dZ*iz2-zt)/dZ; wz2=1.-wz1; }
 
@@ -216,7 +209,7 @@ S2sFieldMap::GetFieldValue(const Double_t pointCM[3],
 
 //_____________________________________________________________________________
 void
-S2sFieldMap::ClearField()
+FieldMap::ClearField()
 {
   for(Int_t ix=0; ix<Nx; ++ix){
     for(Int_t iy=0; iy<Ny; ++iy){

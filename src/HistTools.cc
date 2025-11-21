@@ -14,6 +14,7 @@
 
 #include "DetectorID.hh"
 #include "RootHelper.hh"
+#include "TPCPadHelper.hh"
 
 namespace
 {
@@ -21,6 +22,7 @@ const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
 using root::HB1;
 using root::HB2;
+using root::HB2Poly;
 }
 
 namespace hist
@@ -222,15 +224,6 @@ BuildHodoHit(Bool_t flag_beam_particle)
     // TOF
     {
       const Double_t phcbins2d[6] = { 100, -0.5, 4.5, 100, -10., 10. };
-      for(Int_t i=0; i<NumOfSegBH2; ++i){
-        for(const auto& uord : std::vector<TString>{"U", "D"}){
-          const Char_t* ud = uord.Data();
-          HB2(Form("BH2_seg%d%s_TOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
-          HB2(Form("BH2_seg%d%s_CTOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
-        }
-      }
-      HB2(Form("BH2_TOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
-      HB2(Form("BH2_CTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
       for(Int_t i=0; i<NumOfSegHTOF; ++i){
         for(const auto& uord : std::vector<TString>{"U", "D"}){
           const Char_t* ud = uord.Data();
@@ -510,6 +503,102 @@ BuildDAQ()
     auto h1 = gDirectory->Get<TH2>("FE_VEASIROC_DataSize");
     h1->GetXaxis()->SetBinLabel(i+1, "0x"+TString::Itoa(vea0c_fe_id[i], 16));
   }
+}
+
+//_____________________________________________________________________________
+void
+BuildTPCHist()
+{
+  const Int_t    NbinAdc     = 4096;
+  const Double_t MinAdc      =    0.;
+  const Double_t MaxAdc      = 4096.;
+  const Int_t    NbinRms     = 1000;
+  const Double_t MinRms      =    0.;
+  const Double_t MaxRms      = 1000.;
+  const Int_t    NbinDe      = 1000;
+  const Double_t MinDe       =    0.;
+  const Double_t MaxDe       = 1000.;
+  const Int_t    NbinChisqr  = 1000;
+  const Double_t MinChisqr   =    0.;
+  const Double_t MaxChisqr   = 1000.;
+  const Int_t    NbinTime    = 1000;
+  const Double_t MinTime     = -8000.;
+  const Double_t MaxTime     =  8000.;
+  const Int_t    NbinDL      = 800;
+  const Double_t MinDL       = -400.;
+  const Double_t MaxDL       =  400.;
+  const Int_t    NbinSigma   = 500;
+  const Double_t MinSigma    =    0.;
+  const Double_t MaxSigma    =   50.;
+  const Int_t    NTimeBucket = 170;
+
+  // 1D histograms
+  HB1("TPC Multiplicity (Raw)", NumOfPadTPC+1, 0,  NumOfPadTPC+1);
+  HB1("TPC FADC Mean",          NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC FADC Max",           NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC FADC RMS",           NbinRms,       MinRms,          MaxRms);
+  HB1("TPC FADC LocMax",        NTimeBucket+1, 0,   NTimeBucket+1);
+  HB1("TPC FADC Min",           NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC FADC Mean Cor",      NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC FADC Max Cor",       NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC FADC RMS Cor",       NbinRms,       MinRms,          MaxRms);
+  HB1("TPC FADC LocMax Cor",    NTimeBucket+1, 0,   NTimeBucket+1);
+  HB1("TPC FADC Min Cor",       NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC FADC Baseline p0",   NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC FADC Baseline p1",   120,           -6,              6);
+  HB1("TPC FADC Baseline p2",   120,           -12,             12);
+
+  // 2D
+  HB2("TPC FADC Baseline",
+      NTimeBucket+1, 0, NTimeBucket+1,
+      NbinAdc, MinAdc, MaxAdc);
+
+  // TPCHit
+  HB1("TPC Multiplicity (TPCHit)", NumOfPadTPC+1, 0,  NumOfPadTPC+1);
+  HB1("TPC Pedestal",              NbinAdc,      MinAdc,  MaxAdc);
+  HB1("TPC DeltaE",                NbinDe,       MinDe,   MaxDe);
+  HB1("TPC RMS",                   NbinRms,      MinRms,  MaxRms);
+  HB1("TPC Time",                 (NTimeBucket+1)*30, 0, NTimeBucket+1);
+  HB1("TPC Chisqr",                NbinChisqr,   MinChisqr, MaxChisqr);
+  HB1("TPC CDeltaE",               NbinDe,       MinDe,   MaxDe);
+  HB1("TPC CTime",                 NbinTime,     MinTime, MaxTime);
+  HB1("TPC DriftLength",           NbinDL,       MinDL,   MaxDL);
+  HB1("TPC sigma",                 NbinSigma,    MinSigma, MaxSigma);
+
+  HB2("TPC sigma%%de",
+      NbinDe, MinDe, MaxDe,
+      NbinSigma, MinSigma, MaxSigma);
+
+  HB2("TPC time%%de",
+      NbinDe, MinDe, MaxDe,
+      NbinTime, MinTime, MaxTime);
+
+  // FADC waveforms
+  HB2("TPC FADC (Before)",
+      NTimeBucket+1, 0, NTimeBucket+1,
+      NbinAdc, MinAdc, MaxAdc);
+
+  HB2("TPC FADC (After)",
+      NTimeBucket+1, 0, NTimeBucket+1,
+      NbinAdc, MinAdc-500., MaxAdc-500.);
+
+  HB2("TPC FADC (Good)",
+      NTimeBucket+1, 0, NTimeBucket+1,
+      NbinAdc, MinAdc, MaxAdc);
+
+  // Clock
+  HB1("TPC Clock TDC",   100000, 0.,    1000000.);
+  HB1("TPC Clock Time",  20000, -100.,  100.);
+  /*
+    HB2Poly(1001, "TPC HitPat");
+    for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
+    for(Int_t r=0; r<NumOfRow; ++r){
+    HB1(10000 + layer*1000 + r, "TPC Time_padid%d%s", layer*1000 + r, b), (NTimeBucket+1)*30, 0, NTimeBucket+1);
+    HB1(20000 + layer*1000 + r, "TPC DeltaE_padid%d%s", layer*1000 + r, b), NbinDe, MinDe, MaxDe);
+    }
+    }
+  */
 }
 }
 
