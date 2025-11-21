@@ -507,7 +507,7 @@ BuildDAQ()
 
 //_____________________________________________________________________________
 void
-BuildTPCHist()
+BuildTPCHit()
 {
   const Int_t    NbinAdc     = 4096;
   const Double_t MinAdc      =    0.;
