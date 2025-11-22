@@ -1,5 +1,5 @@
 #
-# UserParam_0
+# UserParam_e72_735
 #
 
 #______________________________________________________________________________
@@ -80,3 +80,65 @@ VFT_DT		-50	200
 # Tracking
 MinLayerBcIn	14
 MinLayerBcOut	14
+
+#______________________________________________________________________________
+
+### TPC
+MinLayerTPC 8
+#MinLayerTPC 6 #E42 ref
+BeamThroughTPC 		0
+#BeamThroughTPC 	1
+ExclusiveTracking 	0
+
+### TPCHit
+#BaselineCorrectionTPC	0
+BaselineCorrectionTPC	1
+MaxMultiHitTPC		2000
+MinDeTPC		20
+#MinDeTPC		60
+MinCDeTPC		90
+#MinCDeTPC		60
+MinRmsTPC		10
+MinBaseRmsTPC		10
+#TimeBucketTPC		10 140 # before change num of tbi
+TimeBucketTPC		25 155 # after change num of tbi
+#NumOfTimeBucket	140 # before change num of tbi (E42)
+NumOfTimeBucket		170 # after change num of tbi (E42)
+
+### TPC Clustering cut
+#MaxYDifClusterTPC 3
+MaxYDifClusterTPC 10
+#MinClusterDeTPC 60
+MinClusterDeTPC 90
+MinClusterSizeTPC 1
+MaxClusterYPosTPC 300
+MinClusterYPosTPC -250
+
+### TPC Hough Window cut
+MaxHoughWindow 10
+#MaxHoughWindowY 30
+MaxHoughWindowY 10
+
+#VertexScanRange 50
+VertexScanRange 100
+
+### TPC resolution parameter
+### at 1T
+TPC_Dt 0.18
+### at 0T
+#TPC_Dt 0.57
+### HIMAC val
+TPC_sigma0 0.204
+### tmp val
+#TPC_sigma0 0.7
+### TPC Momentum resolution scale
+MomResScale 1.35
+dZResScale 1.5
+PhiResScale 1
+
+#GenFit
+Fitter 0 #KalmanFitterRefTrack
+#Fitter 1 #KalmanFitter
+#Fitter 2 #DAF w/ RefTrack
+#Fitter 3 #DAF w/o RefTrack
+nIteration 5 20
