@@ -180,7 +180,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
 
   // Hodoscope
   for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
-    if (ihodo == kKVC) continue;
+    if (ihodo == kKVC || ihodo == kCOBO) continue;
     const Char_t* name = NameHodo[ihodo];
     Int_t multi_or = 0;
     Int_t multi_and = 0;
@@ -254,6 +254,19 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Multi_OR%s", name, b), multi_or);
     HF1(Form("%s_Multi_AND%s", name, b), multi_and);
   }
+
+  { ///// COBO
+    const Char_t* name = "COBO";
+    for(const auto& hit: rawData.GetHodoRawHC(name)){
+      auto seg = hit->SegmentId();
+      Int_t ud = 0;
+      const auto ud_str = UorD[ud];
+      for(const auto& t: hit->GetArrayTdc(ud)){
+	HF1(Form("%s_TDC_seg%d%s%s", name, seg, ud_str, b), t);
+	break;
+      }
+    }
+  }
 }
 
 //_____________________________________________________________________________
@@ -307,6 +320,7 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     }
     HF1(Form("%s_Hit_Multi%s", name, b), multi);
   }
+
   // Hodoscope
   for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
     const Char_t* name = NameHodo[ihodo];
@@ -337,6 +351,7 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
         HF2(Form("%s_Hit_MeanTime_vs_HitPat%s", name, b), seg, mt);
         HF2(Form("%s_Hit_CMeanTime_vs_HitPat%s", name, b), seg, cmt);
         is_good = true;
+	if (ihodo == kCOBO) break;
       }
       if(is_good){
         HF1(Form("%s_Hit_HitPat%s", name, b), seg);

@@ -127,8 +127,8 @@
     </segment></for>
   </device>
   <!--________________________________________________________________-->
-  <device id="11" name="COBO"><for var="seg" from="0" to="15">
-      <segment id="seg"><for var="UorD" from="0" to="0">
+  <device id="11" name="COBO" type="Hodo"><for var="seg" from="0" to="7">
+      <segment id="seg"><for var="UorD" from="0" to="1">
 	  <ch id="UorD">
             <data id="0" name="adc"/>
             <data id="1" name="leading"/>
@@ -140,7 +140,7 @@
   </device>
 
   <!--________________________________________________________________-->
-  <device id="70" name="TPC">
+  <device id="70" name="TPC" type="TPC">
     <for var="plane" from="0" to="31"><plane id="plane">
       <for var="ch" from="0" to="271">
 	<ch id="ch">
