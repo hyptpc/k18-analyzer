@@ -40,7 +40,7 @@ const Int_t NumOfSegT1   =  1;
 const Int_t NumOfSegCVC  =  8;
 const Int_t NumOfSegSAC3 =  1;
 const Int_t NumOfSegSFV  =  5;
-const Int_t NumOfCOBO    = 15;
+const Int_t NumOfCOBO    =  8;
 
 const int DetIdVmeRm     =  81;
 const int DetIdScaler    =  91;
