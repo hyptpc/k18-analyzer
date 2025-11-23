@@ -88,15 +88,15 @@ ExclusiveTracking 	0
 ### TPCHit
 #BaselineCorrectionTPC	0
 BaselineCorrectionTPC	1
-MaxMultiHitTPC		2000
-MinDeTPC		20
+MaxMultiHitTPC		10000
+MinDeTPC		0
 #MinDeTPC		60
 MinCDeTPC		90
 #MinCDeTPC		60
-MinRmsTPC		10
-MinBaseRmsTPC		10
+MinRmsTPC		0
+MinBaseRmsTPC		0
 #TimeBucketTPC		10 140 # before change num of tbi
-TimeBucketTPC		25 155 # after change num of tbi
+TimeBucketTPC		0 170 # after change num of tbi
 #NumOfTimeBucket	140 # before change num of tbi (E42)
 NumOfTimeBucket		170 # after change num of tbi (E42)
 
