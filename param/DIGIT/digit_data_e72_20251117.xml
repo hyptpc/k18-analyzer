@@ -92,7 +92,7 @@
   </device>
   <!--________________________________________________________________-->
   <device id="8" name="CVC" type="Hodo"><for var="seg" from="0" to="7">
-    <segment id="seg"><for var="UorD" from="0" to="2">
+    <segment id="seg"><for var="UorD" from="0" to="1">
       <ch id="UorD">
         <data id="0" name="adc"/>
         <data id="1" name="leading"/>
@@ -115,7 +115,7 @@
     </segment></for>
   </device>
   <!--________________________________________________________________-->
-  <device id="10" name="SFV" type="Hodo"><for var="seg" from="0" to="4">
+  <device id="10" name="SFV" type="Hodo"><for var="seg" from="0" to="0">
       <segment id="seg"><for var="UorD" from="0" to="1">
 	  <ch id="UorD">
             <data id="0" name="adc"/>
