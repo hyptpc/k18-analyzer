@@ -102,8 +102,11 @@ ConfMan::Initialize()
   }
   spdlog::info(oss.str());
 
+  //if(!InitializeParameterFiles())
   if(!InitializeParameterFiles())
     return false;
+
+  if(!InitializeHistograms())
   // if(gMatrix.IsReady())
   //   gMatrix.Print2D();
   // if(gUser.IsReady())
