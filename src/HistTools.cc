@@ -110,7 +110,6 @@ BuildHodoRaw(Bool_t flag_beam_particle)
     // Hodoscope
     for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
       auto name = NameHodo[ihodo].Data();
-      std::cout << name << std::endl;
       const Double_t* hrtdcbins;
       if ( ihodo == kCOBO ) {
         hrtdcbins = hrtdcbins4;
