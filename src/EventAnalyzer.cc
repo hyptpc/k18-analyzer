@@ -219,6 +219,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
 
   { ///// HTOF SUM
     const Char_t* name = "HTOF";
+    Int_t multi_ht = 0;
     for(const auto& hit: rawData.GetHodoRawHC(name)){
       auto seg = hit->SegmentId();
       Bool_t is_good = false;
@@ -235,7 +236,12 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
         else
           HF1(Form("%s_AwoT_seg%d%s%s", name, seg, ud_str, b), a);
       }
+      if(is_good){
+        HF1(Form("%s_HitPat_HT%s", name, b), seg);
+        ++multi_ht;
+      }
     }
+    HF1(Form("%s_Multi_HT%s", name, b), multi_ht);
   }
   
   { ///// KVC

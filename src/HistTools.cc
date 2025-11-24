@@ -148,6 +148,8 @@ BuildHodoRaw(Bool_t flag_beam_particle)
           HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins);
         }
       }
+      HB1(Form("%s_HitPat_HT%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
+      HB1(Form("%s_Multi_HT%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
     }
     
     { ///// KVC
