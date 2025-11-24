@@ -217,6 +217,27 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Multi_AND%s", name, b), multi_and);
   }
 
+  { ///// HTOF SUM
+    const Char_t* name = "HTOF";
+    for(const auto& hit: rawData.GetHodoRawHC(name)){
+      auto seg = hit->SegmentId();
+      Bool_t is_good = false;
+      const Char_t* ud_str = "S";
+      for(const auto& t: hit->GetArrayTdcExtra()){
+        if(gUser.IsInRange(Form("%s_TDC", name), t))
+          is_good = true;
+          HF1(Form("%s_TDC_seg%d%s%s", name, seg, ud_str, b), t);
+        }
+      for(const auto& a: hit->GetArrayAdcExtra()){
+        HF1(Form("%s_ADC_seg%d%s%s", name, seg, ud_str, b), a);
+        if(is_good)
+          HF1(Form("%s_AwT_seg%d%s%s", name, seg, ud_str, b), a);
+        else
+          HF1(Form("%s_AwoT_seg%d%s%s", name, seg, ud_str, b), a);
+      }
+    }
+  }
+  
   { ///// KVC
     const Char_t* name = "KVC";
     Int_t multi_or = 0;
@@ -224,8 +245,8 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     for(const auto& hit: rawData.GetHodoRawHC(name)){
       auto seg = hit->SegmentId();
       Int_t ud_good = 0;
-      const std::vector<TString> ud_str{"a", "b", "c", "d"};
-      for(Int_t ud=0; ud<4; ++ud){
+      const std::vector<TString> ud_str{"a", "b", "c", "d", "S"};
+      for(Int_t ud=0; ud<5; ++ud){
         Bool_t is_good = false;
         const auto abcd = ud_str[ud].Data();
         for(const auto& t: hit->GetArrayTdc(ud)){
