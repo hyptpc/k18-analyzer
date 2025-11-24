@@ -26,8 +26,8 @@ using root::HB2;
 namespace hist
 {
 // Raw
-const Double_t hrtdcbins1[3] = {20000, 600000, 800000};
-const Double_t hrtdcbins2[3] = {50000, 0, 1000000}; // for CVC, NC
+const Double_t hrtdcbins1[3] = {20000,  600000,  800000};
+const Double_t hrtdcbins2[3] = {20000,  200000,  600000}; // for FTOF
 const Double_t hrtdcbins3[3] = {20000, 1200000, 1600000}; // for BHT
 const Double_t hrtdcbins4[3] = {10000, 1500000, 1650000}; // for COBO
 const Double_t hrtotbins[3] = {5000, 0, 50000};
@@ -110,12 +110,15 @@ BuildHodoRaw(Bool_t flag_beam_particle)
     // Hodoscope
     for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
       auto name = NameHodo[ihodo].Data();
+      std::cout << name << std::endl;
       const Double_t* hrtdcbins;
-      if ( NameHodo[ihodo].Contains("COBO") ) {
+      if ( ihodo == kCOBO ) {
         hrtdcbins = hrtdcbins4;
-      }else{
-	  hrtdcbins = hrtdcbins1;
-	}
+      } else if ( ihodo == kCVC || ihodo == kSFV || ihodo == kSAC3 ) {
+        hrtdcbins = hrtdcbins2;
+      } else {
+        hrtdcbins = hrtdcbins1;
+      }
       Int_t nseg = NumOfSegHodo[ihodo];
       for(const auto& uord: std::vector<TString>{"U", "D"}){
         auto ud = uord.Data();
