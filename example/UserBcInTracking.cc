@@ -31,21 +31,11 @@
 #include "RootHelper.hh"
 #include "UserParamMan.hh"
 
-#define BEAMONLY 0
-#define TRACKING 1
-#define GLOBAL 0
-#define CLUSTER 0
-#define SOURCE 0
-#define DEBUG 0
-
 namespace
 {
 const auto& gUser = UserParamMan::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
-
-const double mm=0.1;
-const double cm=10*mm;
 
 using seg_t = std::vector<Double_t>;
 using tdc_t = std::vector<std::vector<Double_t>>;
@@ -116,12 +106,12 @@ ProcessNormal()
   DCAnalyzer dcAna(rawData);
   dcAna.DecodeBcInHits();
 
-  evAna.DCHit("BcIn", dcAna);
-  evAna.DCHit("BcIn", dcAna, event.beam_flag);
   dcAna.TotCut("BLC1a");
   dcAna.TotCut("BLC1b");
   dcAna.DriftTimeCut("BLC1a");
   dcAna.DriftTimeCut("BLC1b");
+  evAna.DCHit("BcIn", dcAna);
+  evAna.DCHit("BcIn", dcAna, event.beam_flag);
 
   for (Int_t plane=0; plane<NumOfLayersBcIn; ++plane) {
     for (const auto& hit : dcAna.GetBcInHC(plane)) {
@@ -136,19 +126,6 @@ ProcessNormal()
   dcAna.TrackSearchBcIn();
   evAna.BcInTracking(dcAna);
   evAna.BcInTracking(dcAna, event.beam_flag);
-
-  const Int_t lid = gGeom.GetDetectorId("BLC1a-U1");
-  ThreeVector blc_global = gGeom.GetGlobalPosition(lid);
-
-  for(const auto& track : dcAna.GetBcInTrackContainer()){
-    track->Print();
-    event.ntrack++;
-    event.chisqr.push_back(track->GetChiSquare());
-    event.x0.push_back(track->GetX0()+blc_global.x());
-    event.y0.push_back(track->GetY0()+blc_global.y());
-    event.u0.push_back(track->GetU0());
-    event.v0.push_back(track->GetV0());
-  }
 
   return true;
 }
