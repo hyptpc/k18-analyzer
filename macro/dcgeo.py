@@ -48,6 +48,15 @@ def output_result(run_info, result_dict, update=False):
                     f.write('\t'.join(new_fields) + '\n')
                 else:
                     f.write(line)
+            elif name_field.startswith('BLC1a-') or name_field.startswith('BLC1b-'):
+                if name_field in result_dict:
+                    ofs, res = result_dict[name_field]
+                    new_fields = fields[:]
+                    new_fields[-4] = f'{res:.5f}'
+                    new_fields[-1] = f'{ofs:.5f}'
+                    f.write('\t'.join(new_fields) + '\n')
+                else:
+                    f.write(line)
             else:
                 f.write(line)
 
