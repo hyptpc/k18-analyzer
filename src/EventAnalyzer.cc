@@ -227,7 +227,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       for(const auto& t: hit->GetArrayTdcExtra()){
         if(gUser.IsInRange(Form("%s_TDC", name), t))
           is_good = true;
-          HF1(Form("%s_TDC_seg%d%s%s", name, seg, ud_str, b), t);
+        HF1(Form("%s_TDC_seg%d%s%s", name, seg, ud_str, b), t);
         }
       for(const auto& a: hit->GetArrayAdcExtra()){
         HF1(Form("%s_ADC_seg%d%s%s", name, seg, ud_str, b), a);
@@ -243,7 +243,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     }
     HF1(Form("%s_Multi_HT%s", name, b), multi_ht);
   }
-  
+
   { ///// KVC
     const Char_t* name = "KVC";
     Int_t multi_or = 0;
@@ -252,8 +252,8 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       auto seg = hit->SegmentId();
       Int_t ud_good = 0;
       const std::vector<TString> ud_str{"a", "b", "c", "d", "S"};
-      for(Int_t ud=0; ud<5; ++ud){
-        Bool_t is_good = false;
+      Bool_t is_good = false;
+      for(Int_t ud=ud_str.size()-1; ud>=0; --ud){
         const auto abcd = ud_str[ud].Data();
         for(const auto& t: hit->GetArrayTdc(ud)){
           if(gUser.IsInRange(Form("%s_TDC", name), t))
@@ -600,7 +600,7 @@ EventAnalyzer::DCHit(const TString& dcname, const DCAnalyzer& dcAna,
     Int_t nplane = digit_info.get_n_plane(detector_id);
     for(Int_t plane=0; plane<nplane; ++plane){
       Int_t plane_idx = plane;
-      if(detector_id == 102 || detector_id == 104) plane_idx = plane + nplane; 
+      if(detector_id == 102 || detector_id == 104) plane_idx = plane + nplane;
       auto hc1 = dcname == "BcIn" ?
 	dcAna.GetBcInHC(plane_idx) : dcAna.GetBcOutHC(plane_idx);
       Int_t multi = 0;
@@ -619,7 +619,7 @@ EventAnalyzer::DCHit(const TString& dcname, const DCAnalyzer& dcAna,
       } //pair plane hit pattern end
       for(const auto& hit: hc1){
         auto wire = hit->GetWire();
-	
+
         Bool_t is_good = false;
         for(Int_t j=0, m=hit->GetDriftTimeSize(); j<m; ++j){
           if(!hit->IsGood(j)) continue;
@@ -716,8 +716,8 @@ EventAnalyzer::BcOutTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
       auto wire = lthit->GetWire();
       auto dt = lthit->DriftTime();
       auto dl = lthit->DriftLength();
-      
-      
+
+
       HF1(Form("%s_Track_DriftTime_plane%d%s", name, plane, b), dt);
       HF1(Form("%s_Track_DriftLength_plane%d%s", name, plane, b), dl);
       HF2(Form("%s_Track_DriftTime_vs_HitPat_plane%d%s", name, plane, b), wire, dt);

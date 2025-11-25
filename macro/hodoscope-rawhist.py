@@ -13,6 +13,8 @@ import macrohelper as mh
 
 logger = logging.getLogger(__name__)
 
+mh.beamflag = [''] #
+
 #______________________________________________________________________________
 def draw(name, nseg=0, adcdiv=None, adcrange=None,
          tdcdiv=None, tdcrange=None, trailingdiv=None,
@@ -25,6 +27,8 @@ def draw(name, nseg=0, adcdiv=None, adcrange=None,
   fig_path = c1.GetTitle()
   hitmulti = ['_OR', '_AND'] if ud else ['']
   ud = ['U', 'D'] if ud else ['']
+  if name == 'HTOF':
+    ud = ['U', 'D', 'S']
   if name == 'KVC':
     ud = ['a', 'b', 'c', 'd', 'S']
   if adcdiv is not None:
@@ -41,10 +45,10 @@ def draw(name, nseg=0, adcdiv=None, adcrange=None,
             if ploop:
               h1.SetLineColor(mh.beamcolor[j])
             h1.Draw('same')
-          # h2 = ROOT.gFile.Get(name + f'_AwT_seg{i}{s}{b}')
-          # if h2:
-          #   h2.SetLineColor(ROOT.kRed+1)
-          #   h2.Draw('same')
+          h2 = ROOT.gFile.Get(name + f'_AwT_seg{i}{s}{b}')
+          if h2:
+            h2.SetLineColor(ROOT.kRed+1)
+            h2.Draw('same')
       c1.Print(fig_path)
 
   if tdcdiv is not None:
@@ -109,8 +113,10 @@ def single_run(run_info):
   if os.path.basename(run_info['bin']) != 'Hodoscope':
     logger.error(f'bin must be Hodoscope: run_info={run_info}')
     return
-  comment = (f'#color[{mh.beamcolor[1]}]{{Red}}=Pion, '+
-             f'#color[{mh.beamcolor[2]}]{{Blue}}=Kaon')
+  # comment = (f'#color[{mh.beamcolor[1]}]{{Red}}=Pion, '+
+  #            f'#color[{mh.beamcolor[2]}]{{Blue}}=Kaon')
+  comment = (f'#color[{ROOT.kBlack}]{{Black}}=Raw, '+
+             f'#color[{ROOT.kRed+1}]{{Red}}=ADCwTDC')
   mh.initialize(run_info, __file__, comment=comment)
   draw('TriggerFlag', nseg=32, tdcdiv=(8, 4), tdcrange=(0e6, 1e6),
        ud=False, ploop=False)
