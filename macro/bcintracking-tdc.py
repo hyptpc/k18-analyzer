@@ -52,9 +52,9 @@ def drift_time(c1, name, key, nplane=8):
   result_dict = dict()
   for i in range(nplane):
     c1.cd(i+1) #.SetLogy()
-    if len(key) > 0:
+    if 'vs' in key:
       ROOT.gPad.SetLogz()
-    hname = f'{name}_Hit_DriftTime{key}_plane{i}{mh.beamflag_for_param}'
+    hname = f'{name}_Hit_{key}_plane{i}{mh.beamflag_for_param}'
     h1 = mh.get(hname)
     if h1:
       h1.Draw('colz')
@@ -67,7 +67,7 @@ def single_run(run_info):
   for n, v in dcconst['BcIn'].items():
     result_dict.update(tdc(n, cid=v['id'], nplane=v['nplane'],
                            nwire=v['nwire']))
-    for key in ['', '_vs_HitPat']:
+    for key in ['DriftTime', 'TOT_vs_DriftTime', 'DriftTime_vs_HitPat']:
       drift_time(n, key=key)
   dctdc.output_result(run_info, result_dict, parsed.update)
   mh.finalize()

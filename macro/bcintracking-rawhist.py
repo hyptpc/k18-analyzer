@@ -46,7 +46,7 @@ def draw(name, nplane=0):
   c1 = ROOT.gROOT.GetListOfCanvases()[0]
   fig_path = c1.GetTitle()
   for key in ['TDC', # 'Trailing',
-                'TOT', 'HitPat', 'Multi']:
+              'TOT', 'TOT_vs_TDC', 'HitPat', 'Multi',]:
     for c in ['', 'C']:
       draw_one_data(name, key=c+key, nplane=nplane)
       if c == 'C' and (key == 'TDC' or key == 'TOT'):

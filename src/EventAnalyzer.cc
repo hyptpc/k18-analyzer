@@ -557,6 +557,7 @@ EventAnalyzer::DCRawHit(const TString& dcname, const RawData& rawData,
             HF1(Form("%s_%sTDC_plane%d%s", name, c, plane, b), l);
             HF1(Form("%s_%sTrailing_plane%d%s", name, c, plane, b), t);
             HF1(Form("%s_%sTOT_plane%d%s", name, c, plane, b), tot);
+            HF2(Form("%s_%sTOT_vs_TDC_plane%d%s", name, c, plane, b), l, tot);
             HF2(Form("%s_%sTDC_vs_HitPat_plane%d%s", name, c, plane, b), wire, l);
             HF2(Form("%s_%sTrailing_vs_HitPat_plane%d%s", name, c, plane, b), wire, t);
             HF2(Form("%s_%sTOT_vs_HitPat_plane%d%s", name, c, plane, b), wire, tot);
@@ -625,8 +626,10 @@ EventAnalyzer::DCHit(const TString& dcname, const DCAnalyzer& dcAna,
           if(!hit->IsGood(j)) continue;
           auto dt = hit->GetDriftTime(j);
           auto dl = hit->GetDriftLength(j);
+          auto tot = hit->GetTot(j);
           HF1(Form("%s_Hit_DriftTime_plane%d%s", name, plane, b), dt);
           HF1(Form("%s_Hit_DriftLength_plane%d%s", name, plane, b), dl);
+          HF2(Form("%s_Hit_TOT_vs_DriftTime_plane%d%s", name, plane, b), dt, tot);
           HF2(Form("%s_Hit_DriftTime_vs_HitPat_plane%d%s", name, plane, b), wire, dt);
           HF2(Form("%s_Hit_DriftLength_vs_HitPat_plane%d%s", name, plane, b), wire, dl);
           is_good = true;

@@ -190,7 +190,7 @@ DCHit::CalcDCObservables()
   for(Int_t il=0, nl=m_tdc.size(); il<nl; ++il){
     Double_t l = m_tdc[il];
     Double_t l_next = (il+1) != nl ? m_tdc[il+1] : DBL_MIN;
-    Double_t buf = TMath::QuietNaN();
+    Double_t buf = INT_MAX; // TMath::QuietNaN();
     for(const auto& t: m_trailing){
       if(l_next<t && t<l){
         buf = t;

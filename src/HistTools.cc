@@ -380,6 +380,9 @@ BuildDCRaw(const TString& dcname, Bool_t flag_beam_particle)
         mhtdcbins[0], mhtdcbins[1], mhtdcbins[2] };
       const Double_t totbins2d[6] = {nwire, -0.5, nwire - 0.5,
         mhtotbins[0], mhtotbins[1], mhtotbins[2] };
+      const Double_t tdctotbins2d[6] = {
+        mhtdcbins[0], mhtdcbins[1], mhtdcbins[2],
+        mhtotbins[0], mhtotbins[1], mhtotbins[2] };
       for(Int_t plane=0; plane<nplane; ++plane){
         for(const auto& totcut: std::vector<TString>{"", "C"}){
           auto c = totcut.Data();
@@ -391,6 +394,7 @@ BuildDCRaw(const TString& dcname, Bool_t flag_beam_particle)
           HB1(Form("%s_%sTOT1st_plane%d%s; channel; count", name, c, plane, b), mhtotbins);
           HB1(Form("%s_%sHitPat_plane%d%s; wire; count", name, c, plane, b), patbins);
           HB1(Form("%s_%sMulti_plane%d%s; multiplicity; count", name, c, plane, b), mulbins);
+          HB2(Form("%s_%sTOT_vs_TDC_plane%d%s; segment; channel", name, c, plane, b), tdctotbins2d);
           HB2(Form("%s_%sTDC_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
           HB2(Form("%s_%sTDC1st_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
           HB2(Form("%s_%sTrailing_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
@@ -426,9 +430,14 @@ BuildDCHit(const TString& dcname, Bool_t flag_beam_particle)
         dtbins[0], dtbins[1], dtbins[2] };
       const Double_t dlbins2d[6] = {nwire, -0.5, nwire - 0.5,
         dlbins[0], dlbins[1], dlbins[2] };
+      const Double_t dttotbins2d[6] = {
+        dtbins[0], dtbins[1], dtbins[2],
+        mhtotbins[0], mhtotbins[1], mhtotbins[2]
+      };
       for(Int_t plane=0; plane<nplane; ++plane){
         HB1(Form("%s_Hit_DriftTime_plane%d%s; ns; count", name, plane, b), dtbins);
         HB1(Form("%s_Hit_DriftLength_plane%d%s; mm; count", name, plane, b), dlbins);
+        HB2(Form("%s_Hit_TOT_vs_DriftTime_plane%d%s; segment; ns", name, plane, b), dttotbins2d);
         HB2(Form("%s_Hit_DriftTime_vs_HitPat_plane%d%s; segment; ns", name, plane, b), dtbins2d);
         HB2(Form("%s_Hit_DriftLength_vs_HitPat_plane%d%s; segment; mm", name, plane, b), dlbins2d);
         HB1(Form("%s_Hit_HitPat_plane%d%s; wire; count", name, plane, b), patbins);
