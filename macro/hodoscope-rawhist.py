@@ -25,6 +25,8 @@ def draw(name, nseg=0, adcdiv=None, adcrange=None,
   fig_path = c1.GetTitle()
   hitmulti = ['_OR', '_AND'] if ud else ['']
   ud = ['U', 'D'] if ud else ['']
+  if name == 'KVC':
+    ud = ['a', 'b', 'c', 'd', 'S']
   if adcdiv is not None:
     for s in ud:
       c1.Clear()
@@ -110,16 +112,26 @@ def single_run(run_info):
   comment = (f'#color[{mh.beamcolor[1]}]{{Red}}=Pion, '+
              f'#color[{mh.beamcolor[2]}]{{Blue}}=Kaon')
   mh.initialize(run_info, __file__, comment=comment)
-  draw('TriggerFlag', nseg=32, tdcdiv=(8, 4), tdcrange=(800, 1200),
+  draw('TriggerFlag', nseg=32, tdcdiv=(8, 4), tdcrange=(0e6, 1e6),
        ud=False, ploop=False)
   draw('BHT', nseg=63, tdcdiv=(8, 8), totdiv=(8, 8),
-       tdcrange=(1.22e6, 1.26e6), totrange=(0, 25e3))
-  draw('T0', nseg=5, adcdiv=(3, 2), adcrange=(0, 2000),
-       tdcdiv=(3, 2), tdcrange=(1.20e6, 1.24e6))
-  draw('BAC', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), tdcrange=(0.e6, 2.e6),
+       tdcrange=(1.2e6, 1.6e6), totrange=(0, 25e3))
+  draw('BH2', nseg=15, adcdiv=(5, 3), adcrange=(0, 2000),
+       tdcdiv=(5, 3), tdcrange=(0.60e6, 0.80e6))
+  draw('BAC', nseg=5, adcdiv=(3, 2), tdcdiv=(3, 2), tdcrange=(0.6e6, 0.8e6),
        ud=False)
-  draw('BH2', nseg=11, adcdiv=(4, 3), adcrange=(0, 2000),
-       tdcdiv=(4, 3), tdcrange=(0.17e6, 2.21e6))
+  draw('HTOF', nseg=34, adcdiv=(6, 6), adcrange=(0, 4000),
+       tdcdiv=(6, 6), tdcrange=(0.60e6, 0.80e6))
+  draw('KVC', nseg=8, adcdiv=(4, 2), adcrange=(0, 4000),
+       tdcdiv=(4, 2), tdcrange=(0.60e6, 0.80e6))
+  draw('T1', nseg=1, adcdiv=(2, 2), adcrange=(0, 2000),
+       tdcdiv=(2, 2), tdcrange=(0.60e6, 0.80e6))
+  draw('CVC', nseg=8, adcdiv=(4, 2), adcrange=(0, 4000),
+       tdcdiv=(4, 2), tdcrange=(0.20e6, 0.60e6))
+  draw('SAC3', nseg=1, adcdiv=(2, 2), adcrange=(0, 4000),
+       tdcdiv=(2, 2), tdcrange=(0.20e6, 0.60e6))
+  draw('SFV', nseg=1, adcdiv=(4, 2), adcrange=(0, 4000),
+       tdcdiv=(4, 2), tdcrange=(0.20e6, 0.60e6))
   mh.finalize()
 
 #______________________________________________________________________________

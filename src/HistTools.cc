@@ -30,6 +30,7 @@ const Double_t hrtdcbins1[3] = {20000,  600000,  800000};
 const Double_t hrtdcbins2[3] = {20000,  200000,  600000}; // for FTOF
 const Double_t hrtdcbins3[3] = {20000, 1200000, 1600000}; // for BHT
 const Double_t hrtdcbins4[3] = {10000, 1500000, 1650000}; // for COBO
+const Double_t hrtdcbins5[3] = {10000,       0, 2000000}; // TriggerFlag
 const Double_t hrtotbins[3] = {5000, 0, 50000};
 const Double_t adcbins[3] = {4096, -0.5, 4095.5};
 const Double_t mhtdcbins[3] = {2000, 0, 2000};
@@ -54,7 +55,7 @@ BuildTriggerFlag()
   const Char_t* name = "TriggerFlag";
   Double_t patbins[3] = {NumOfSegTrigFlag, -0.5, NumOfSegTrigFlag-0.5};
   for(Int_t i=0; i<NumOfSegTrigFlag; ++i){
-    HB1(Form("%s_TDC_seg%d", name, i), mhtdcbins);
+    HB1(Form("%s_TDC_seg%d", name, i), hrtdcbins5);
   }
   HB1(Form("%s_HitPat; Segment; Counts", name), patbins);
   auto h1 = HB1("BeamFlag", beam::kBeamFlag, -0.5, beam::kBeamFlag - 0.5);
@@ -151,7 +152,7 @@ BuildHodoRaw(Bool_t flag_beam_particle)
       HB1(Form("%s_HitPat_HT%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
       HB1(Form("%s_Multi_HT%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
     }
-    
+
     { ///// KVC
       auto name = "KVC";
       const Double_t* hrtdcbins = hrtdcbins1;
@@ -166,7 +167,7 @@ BuildHodoRaw(Bool_t flag_beam_particle)
         }
       }
     }
-    
+
     if(!flag_beam_particle) break;
   }
 }
