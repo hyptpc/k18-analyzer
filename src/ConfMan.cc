@@ -106,7 +106,7 @@ ConfMan::Initialize()
   if(!InitializeParameterFiles())
     return false;
 
-  if(!InitializeHistograms())
+  //if(!InitializeHistograms())
   // if(gMatrix.IsReady())
   //   gMatrix.Print2D();
   // if(gUser.IsReady())
