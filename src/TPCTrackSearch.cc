@@ -1123,40 +1123,49 @@ LocalTrackSearchRefitHelix(const std::vector<TPCClusterContainer>& ClCont,
 		      Bool_t Exclusive,
 		      Int_t MinNumOfHits)
 {
+  std::vector<TPCLocalTrackHelix*> TempTrackCont;//I don't want to touch existing hits. This function will only deal with new tracks from retracking process, stored in TempTrackCont.
   static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
   //Scattered helix track searching
-  HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
-  HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
+  HighMomHelixTrackSearch(ClCont, TempTrackCont, TrackContFailed, MinNumOfHits);
+  HelixTrackSearch(0, GoodForTracking, ClCont, TempTrackCont, TrackContFailed, MinNumOfHits);
 #if RemainingClustersTest
   ResetHoughFlag(ClCont, BadForTracking);
   HelixTrackSearch(0, GoodForTracking, ClCont, TrackCont, TrackContFailed, MinNumOfHits);
 #endif
-  CalcTracks(TrackCont); //before the VertexSearch() calculation should proceed.
-  if(!BeamThroughTPC) MarkingAccidentalTracks(TrackCont);
+  CalcTracks(TempTrackCont); //before the VertexSearch() calculation should proceed.
+  if(!BeamThroughTPC) MarkingAccidentalTracks(TempTrackCont);
   //Vertex finding with tracks in the TrackCont.
-//  VertexSearch(TrackCont, VertexCont);
+  VertexSearch(TempTrackCont, VertexCont);
 #if FragmentedTrackTest
   //Merged fragmented tracks
-//  RestoreFragmentedTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+  RestoreFragmentedTracks(ClCont, TempTrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
 #if ReassignClusterTest
 //  ReassignClustersNearTheTarget(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits); -> Already done
 #endif
-//  FindAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont); -> Al`
+//  FindAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont); -> Al
 #if ReassignClusterTest
 //  ReassignClustersVertex(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
 #if RefitXiTrack
 // ReassignClustersXiTrack(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
-//  TestingCharge(TrackCont, TrackContInvertedCharge, VertexCont, Exclusive);
 //  RestoreFragmentedAccidentalTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #if DebugDisp
   std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
   std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
 #endif
   CalcTracks(TrackContFailed);
-  if(Exclusive) ExclusiveTracking(TrackCont);
+  std::vector<TPCLocalTrackHelix*> TempTrackContInvertedCharge;
+  TestingCharge(TempTrackCont, TempTrackContInvertedCharge, VertexCont, Exclusive);
+  if(Exclusive) ExclusiveTracking(TempTrackCont);
+  TrackContInvertedCharge.resize(TrackCont.size());
+  for(auto t: TempTrackCont) {
+      TrackCont.push_back(t);//retracked new tracks are added to existing TrackCont
+  }
+  for(auto t: TempTrackContInvertedCharge) {
+      TrackContInvertedCharge.push_back(t);
+  }
   return TrackCont.size();
 }
 //_____________________________________________________________________________

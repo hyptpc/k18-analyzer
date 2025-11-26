@@ -83,6 +83,7 @@ private:
   Int_t m_ncl_beforetgt; //for k18 track
   Int_t m_searchtime; //millisec
   Int_t m_fittime; //millisec
+  Bool_t m_good_theta = 0;     // flag of DoFit()
 
   //scaling factor applied to momentum resolution
   //common for all tracks
@@ -254,6 +255,8 @@ public:
   Bool_t TestMergedTrack();
   Bool_t TestInvertCharge();
   void RecalcTrack();
+  void CheckThetaSanity();
+
 
   //for K1.8 & Kurama tracking
   Bool_t       DoCircleFitwMomConstraint(Double_t *par);
@@ -261,6 +264,7 @@ public:
   Bool_t       DoFit(Double_t RKpar[5], Int_t MinHits=0); //momentum constraint
   Bool_t       DoFit(Double_t RKCharge, Int_t MinHits); //charge constraint
   Bool_t       DoFit(Double_t RKCharge, Double_t RKpar[5], Int_t MinHits=0); //charge&&momoentum constraint
+  Bool_t       ResidualCheck(TVector3 pos, Double_t xzwindow, Double_t ywindow, Double_t &resi_xz, Double_t &resi_y);
   Bool_t       ResidualCheck(TVector3 pos, Double_t xzwindow, Double_t ywindow, Double_t &resi);
   Bool_t       ResidualCheck(TVector3 pos, Double_t xzwindow, Double_t ywindow);
   void         AddVPHit(TVector3 vp);

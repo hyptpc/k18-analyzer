@@ -1357,20 +1357,22 @@ TPCLocalTrackHelix::TPCLocalTrackHelix(TVector3 vertex, TVector3 momentum, Int_t
   m_dZResScale = dZResScale;
   m_PhResScale = PhiResScale;
 
-  momentum = GlobalToLocalMomentum(momentum);
-  momentum = momentum * (Double_t)charge;
+  TVector3 momentum_local = GlobalToLocalMomentum(momentum);
+  momentum_local = momentum_local * (Double_t)charge;
   Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t pt = hypot(momentum.x(), momentum.y());
-  m_r = pt /(tpc::ConstC* dMagneticField);
-  Double_t theta_mom = atan2(momentum.Y(),momentum.X());
+  Double_t pt = hypot(momentum_local.y(), momentum_local.x());
+  m_r = pt /(tpc::ConstC* dMagneticField)* 1000; // m -> mm
+  Double_t theta_mom = atan2(momentum_local.Y(),momentum_local.X());
   Double_t theta_pos = theta_mom - M_PI/2;
 
-  vertex = GlobalToLocal(vertex);
-  m_cx = vertex.x() - m_r * cos(theta_pos);
-  m_cy = vertex.y() - m_r * sin(theta_pos);
-  m_dz = momentum.z() / pt;
-  m_z0 = vertex.z() - m_dz * m_r * theta_pos;
+  TVector3 vertex_local = GlobalToLocal(vertex);
+  m_cx = vertex_local.x() - m_r * cos(theta_pos);
+  m_cy = vertex_local.y() - m_r * sin(theta_pos);
+  m_dz = momentum_local.z() / pt;
+  m_z0 = vertex_local.z() - m_dz * m_r * theta_pos;
   m_charge = charge;
+  m_min_t = theta_pos - 0.5 * M_PI;
+  m_max_t = theta_pos + 0.5 * M_PI;
 
 
 
@@ -1772,8 +1774,7 @@ TPCLocalTrackHelix::SetClustersHoughFlag(Int_t hough_flag)
 {
   for(std::size_t i=0; i<m_hit_array.size(); ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
-    TPCHit *hit = hitp->GetHit()->GetParentCluster()->GetMeanHit();
-    
+    TPCHit *hit = hitp->GetHit();
     if( !hit ) continue;
     hit->SetHoughFlag(hough_flag);
   }
@@ -2961,6 +2962,24 @@ TPCLocalTrackHelix::DoVPFit()
 #endif
 
   return true;
+}
+
+//______________________________________________________________________________
+Bool_t
+TPCLocalTrackHelix::ResidualCheck(TVector3 pos, Double_t xzwindow, Double_t ywindow, Double_t &resi_xz, Double_t &resi_y)
+{
+
+  Bool_t status = false;
+  Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
+  Double_t theta = EvalTheta(par, pos, m_min_t - 0.5*TMath::Pi(), m_max_t + 0.5*TMath::Pi());
+  TVector3 fittmp = GlobalPosition(par, theta);
+  TVector3 d = pos - fittmp;
+  Double_t xz_resi = TMath::Sqrt(d.x()*d.x()+d.z()*d.z());
+  Double_t y_resi = TMath::Sqrt(d.y()*d.y());
+  resi_xz = xz_resi;
+  resi_y = y_resi;
+  if(xz_resi<xzwindow && y_resi<ywindow) status = true;
+  return status;
 }
 
 //______________________________________________________________________________
@@ -4405,4 +4424,88 @@ TPCLocalTrackHelix::GetVertexCovarianceMatrix(TVector3 vert, double l, int pid){
   return CovMat;
 }
 
+void
+TPCLocalTrackHelix::CheckThetaSanity(){
+  const Int_t n = m_hit_array.size();
+  gNumOfHits = n;
+  gHitPos.clear();
+  gLayer.clear();
+  gPadTheta.clear();
+  gResParam.clear();
+  gHelixTheta.clear();
+  gPar[0] = m_cx;
+  gPar[1] = m_cy;
+  gPar[2] = m_z0;
+  gPar[3] = m_r;
+  gPar[4] = m_dz;
+  std::vector<Double_t> HelixTheta_0;
+  std::vector<Double_t> Chisqrs;
+  for(int i=0;i<n;++i){
+    TPCLTrackHit *hitp = m_hit_array[m_hit_order[i]];
+    HelixTheta_0.push_back(m_hit_t[m_hit_order[i]]);
+  }
+  if(!m_is_multiloop){
+    double theta_ref = HelixTheta_0[0];
+    for(int i=0;i<n;++i){
+      TPCLTrackHit *hit = m_hit_array[m_hit_order[i]];
+      double th0 = hit->GetTheta();
+      double th = th0;
+      double delta = abs(th - theta_ref);
+      double delta_min = delta;
+      for(int nitr = -2; nitr <= 2;++nitr){
+        double th_shifted = th0 + nitr * 2 * M_PI;
+        double d = abs(th_shifted - theta_ref);
+        if(d < delta_min){
+          delta_min = d;
+          th = th_shifted;
+        }
+      }
+      hit->SetTheta(th);
+      m_hit_t[m_hit_order[i]] = th;
+    }
+  } 
+  HelixTheta_0.clear();
+  SortHitOrder();
+  for(int i=0;i<n;++i){
+    TPCLTrackHit *hitp = m_hit_array[m_hit_order[i]];
+    TVector3 pos = hitp -> GetLocalHitPos();
+    gHitPos.push_back(pos);
+    gLayer.push_back(hitp -> GetLayer());
+    gPadTheta.push_back(hitp -> GetPadTheta());
+    gResParam.push_back(hitp -> GetResolutionParams());
+    HelixTheta_0.push_back(m_hit_t[m_hit_order[i]]);
+  }
+  for(int i = -3; i <= 3; ++i){
+    gHelixTheta.clear();
+    for(int j=0;j<n;++j){
+      Double_t theta = HelixTheta_0[j] + i * 2 * M_PI;
+      gHelixTheta.push_back(theta);
+    }
+    Int_t ndf;
+    Double_t chisqr = CalcChi2(gPar, ndf, 1);
+    Chisqrs.push_back(chisqr);
+  }
+  Double_t min_chi2 = Chisqrs[0];
+  Int_t min_index = -3;
+  for(int i=0;i<Chisqrs.size();++i){
+    if(Chisqrs[i] < min_chi2){
+      min_chi2 = Chisqrs[i];
+      min_index = i - 3;
+    }
+  }
+  
+  if(min_index == 0){
+    m_good_theta = 1;
+  }
+  else{
+    for(int j=0;j<n;++j){
+      Double_t theta = HelixTheta_0[j] + min_index * 2 * M_PI;
+      m_hit_t[m_hit_order[j]] = theta;
+      m_hit_array[m_hit_order[j]] -> SetTheta(theta);
+    }
+    m_min_t += min_index * 2 * M_PI;
+    m_max_t += min_index * 2 * M_PI;
+    m_good_theta = 0;
+  }
 
+}

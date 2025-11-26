@@ -248,9 +248,13 @@ public:
 				const std::vector<Double_t>& remaining_cluster_z,
 				std::vector<Int_t>& trackid_map
 	);//Reconstruct tracks except for residual tracks.
-  Bool_t RefitVertexTracks(TPCLocalTrackHelix* track1,TPCLocalTrackHelix* track2,const TVector3 vertex);//Assign hits between vertex and first hit to the track and refit it.
-  Bool_t RefitVertexTracks(TPCLocalTrackHelix* track1,const TVector3 vertex);//Same as above but for vertex with neutral particle and charged particle. e.g., L + pi -> Xi vertex
-  TPCLocalTrackHelix* ConstructXiTrack(const TVector3 XiDecayVtx, const TVector3 XiDecayMom);//Reconstruct Xi track from decay vertex to production vertex.
+  Bool_t RefitVertexTracks(int tid1, int tid2,const TVector3 vertex,
+							std::vector<Double_t>& d1_xz,std::vector<Double_t>& d1_y,
+							std::vector<Double_t>& d2_xz,std::vector<Double_t>& d2_y);//Assign hits between vertex and first hit to the track and refit it.
+  Bool_t RefitVertexTracks(int tid,const TVector3 vertex,
+							std::vector<Double_t>& d_xz, std::vector<Double_t>& d_y);//Same as above but for vertex with neutral particle and charged particle. e.g., L + pi -> Xi vertex
+  TPCLocalTrackHelix* ConstructXiTrack(const TVector3 XiDecayVtx, const TVector3 XiDecayMom,
+						std::vector<Double_t>& d_xz, std::vector<Double_t>& d_y);//Reconstruct Xi track from decay vertex to production vertex.
   Int_t RetrackRemainingHits();
 
 protected:
