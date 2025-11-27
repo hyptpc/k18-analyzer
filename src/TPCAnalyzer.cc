@@ -1388,7 +1388,7 @@ TPCAnalyzer::RefitVertexTracks(int tid1, int tid2, const TVector3 vertex,
   std::map<int,std::vector<HitInfo>> HitContainer;
 
   TVector3 vertex_pad(vertex.x(),vertex.y(),vertex.z() - 6 - 6./250 * (vertex.y()));
-  int vtx_layer = tpc::getLayerID(tpc::findPadID(vertex_pad.z(),vertex_pad.x()));
+  int vtx_layer = tpc::findLayerID(vertex_pad.z(),vertex_pad.x());
   for(int il=0;il<NumOfLayersTPC;++il){
     if(il < vtx_layer) continue;//For Lambda, hits near vertex will be counted
     auto clconts = m_TPCClCont[il];
@@ -1401,8 +1401,8 @@ TPCAnalyzer::RefitVertexTracks(int tid1, int tid2, const TVector3 vertex,
       TVector3 pos = cl -> GetPosition();
       if(il< first_layer1 and vtx_layer <= il and
         track1->ResidualCheck(pos,XZWindow,YWindow,d1_xz,d1_y)){
-        t1 = 1;
         d1 = hypot(d1_xz,d1_y);
+        t1 = 1;
         if(DebugMode) hddaq::cout << FUNC_NAME << " Track 1 hit residual: " << d1 << std::endl;
       }
       else {
@@ -1543,7 +1543,7 @@ TPCAnalyzer::RefitVertexTracks(int tid,const TVector3 vertex,
   std::map<int,std::vector<HitInfo>> HitContainer;
 
   TVector3 vertex_pad(vertex.x(),vertex.y(),vertex.z() - 6 - 6./250 * (vertex.y()));
-  int vtx_layer = tpc::getLayerID(tpc::findPadID(vertex_pad.z(),vertex_pad.x()));
+  int vtx_layer = tpc::findLayerID(vertex_pad.z(),vertex_pad.x());
   for(int il=0;il<NumOfLayersTPC;++il){
     if(il <= vtx_layer) continue;//For Xi, hits near vertex will be considred as Xi hits
     auto clconts = m_TPCClCont[il];
@@ -1627,8 +1627,8 @@ TPCLocalTrackHelix*
 TPCAnalyzer::ConstructXiTrack(const TVector3 XiDecayVtx, const TVector3 XiDecayMom,
 						std::vector<Double_t>& d_xzs, std::vector<Double_t>& d_ys){
   if(DebugMode) hddaq::cout << FUNC_NAME << " Constructing Xi tracks..." << std::endl;
-  const Double_t XZWindow = 2.5;//mm
-  const Double_t YWindow = 6;//mm 
+  const Double_t XZWindow = 5;//mm 2.5 -> 5, Maybe looser than Lambda case
+  const Double_t YWindow = 8;//mm 5 -> 8, Maybe looser than Lambda case
   TPCLocalTrackHelix* XiTrack = new TPCLocalTrackHelix(XiDecayVtx, XiDecayMom, -1);
   if(DebugMode){
     hddaq::cout<< FUNC_NAME << " Xi Track params";
@@ -1646,7 +1646,7 @@ TPCAnalyzer::ConstructXiTrack(const TVector3 XiDecayVtx, const TVector3 XiDecayM
     double d_y=-1;
   };
   
-  int vtx_layer = tpc::getLayerID(tpc::findPadID(XiDecayVtx.z() - 6 - 6./250 * (XiDecayVtx.y()),XiDecayVtx.x()));
+  int vtx_layer = tpc::findLayerID(XiDecayVtx.z() - 6 - 6./250 * (XiDecayVtx.y()),XiDecayVtx.x());
   std::map<int,std::vector<HitInfo>> HitContainer;
   if(DebugMode){
     hddaq::cout << FUNC_NAME << " Xi Decay vertex layer: " << vtx_layer << std::endl;
@@ -1672,7 +1672,7 @@ TPCAnalyzer::ConstructXiTrack(const TVector3 XiDecayVtx, const TVector3 XiDecayM
         if(DebugMode) hddaq::cout << FUNC_NAME << " Xi Decay track hit residual: " << d << std::endl;
       }
       if(DebugMode){
-        if(!t) hddaq::cout<< FUNC_NAME << " Cluster rejected for Xi track at layer " << il << Form(" Residual = %.3g,%.3g") << std::endl;
+        if(!t) hddaq::cout<< FUNC_NAME << " Cluster rejected for Xi track at layer " << il << Form(" Residual = %.3g,%.3g",d_xz,d_y) << std::endl;
       }
       if(t){
         HitInfo hitinfo;

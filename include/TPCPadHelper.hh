@@ -1254,17 +1254,18 @@ inline Int_t findPadID(Double_t z, Double_t x)
   for (layer = 0; layer<NumOfLayersTPC;layer++)
   {
     if (layer != 0)
-    {
+    {    
       if (padParameter[layer][2] - padParameter[layer][5] * 0.5 >= radius &&
           padParameter[layer - 1][2] + padParameter[layer - 1][5] * 0.5 <= radius) return -layer;
-    }
-		double rad_in= padParameter[layer][2]-padParameter[layer][5]*0.5;
-		double rad_out= padParameter[layer][2]+padParameter[layer][5]*0.5;
-  	if(rad_in<=radius and rad_out>=radius){
-			break;
-		}
-		if(layer==NumOfLayersTPC-1 && rad_out<radius) return -1000;
-	}
+    }    
+    double rad_in= padParameter[layer][2]-padParameter[layer][5]*0.5;
+    double rad_out= padParameter[layer][2]+padParameter[layer][5]*0.5;
+    if(rad_in<=radius and rad_out>=radius){
+      break;
+    }    
+    if(layer==NumOfLayersTPC-1 && rad_out<radius) return -1000;
+  }
+
   //cout << " layer: " << layer << endl;
 
   Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
@@ -1281,6 +1282,27 @@ inline Int_t findPadID(Double_t z, Double_t x)
   //return GetPadId(layer, row)+1;
   //Please check
   return GetPadId(layer, row);
+}
+
+inline Int_t findLayerID(Double_t z, Double_t x)
+{
+  z -= ZTarget;
+  Double_t radius = sqrt(x*x + z*z);
+  Int_t layer;
+  for (layer = 0; layer<NumOfLayersTPC;layer++)
+  {
+    double rad_in = 0;
+    double rad_out= padParameter[layer][2]+padParameter[layer][5]*0.5;
+    if (layer != 0)
+    {
+      rad_in= padParameter[layer-1][2]+padParameter[layer-1][5]*0.5;
+    }
+  	if(rad_in<=radius and rad_out>=radius){
+			break;
+		}
+		if(layer==NumOfLayersTPC-1 && rad_out<radius) return -1000;
+	}
+  return layer;
 }
 
 //_____________________________________________________________________________
