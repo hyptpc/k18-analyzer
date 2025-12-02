@@ -128,15 +128,12 @@ ProcessNormal()
   evAna.BcOutTracking(dcAna, event.beam_flag);
 
 #if 0
-  const Int_t lid = gGeom.GetDetectorId("BLC2a-U1");
-  ThreeVector blc_global = gGeom.GetGlobalPosition(lid);
-
   for(const auto& track : dcAna.GetBcOutTrackContainer()){
     track->Print();
     event.ntrack++;
     event.chisqr.push_back(track->GetChiSquare());
-    event.x0.push_back(track->GetX0()+blc_global.x());
-    event.y0.push_back(track->GetY0()+blc_global.y());
+    event.x0.push_back(track->GetX0());
+    event.y0.push_back(track->GetY0());
     event.u0.push_back(track->GetU0());
     event.v0.push_back(track->GetV0());
   }
