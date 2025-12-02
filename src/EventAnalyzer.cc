@@ -556,15 +556,17 @@ EventAnalyzer::DCHit(const TString& dcname, const DCAnalyzer& dcAna,
     auto detector_id = digit_info.get_device_id(name);
     Int_t nplane = digit_info.get_n_plane(detector_id);
     for(Int_t plane=0; plane<nplane; ++plane){
+      Int_t plane_idx = plane;
+      if(detector_id == 102 || detector_id == 104) plane_idx = plane + nplane;
       auto hc1 = dcname == "BcIn" ?
-        dcAna.GetBcInHC(plane) : dcAna.GetBcOutHC(plane);
+        dcAna.GetBcInHC(plane_idx) : dcAna.GetBcOutHC(plane_idx);
       Int_t multi = 0;
       if(plane%2 == 0) { //pair plnae hit pattern start
 	int wire1, wire2;
 	for(const auto &hit1: hc1){
 	  wire1 = hit1->GetWire();
           auto hc2 = dcname == "BcIn" ?
-            dcAna.GetBcInHC(plane+1) : dcAna.GetBcOutHC(plane+1);
+            dcAna.GetBcInHC(plane_idx) : dcAna.GetBcOutHC(plane_idx);
 	  for(const auto &hit2: hc2){
 	    wire2 = hit2->GetWire();
 	    HF2(Form("%s_Hit_HitPat_Pairplane%d%d%s", name, plane, plane+1, b), wire1,wire2);
