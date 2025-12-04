@@ -137,7 +137,7 @@ ProcessNormal()
     for(const auto& hit: rawData.GetHodoRawHC(n)){
       for(const auto& tdc: hit->GetArrayTdc()){
 	//hit->Print();
-	HF1("TPC Clock TDC", tdc);
+	HF1("TPC_Clock_TDC", tdc);
       }
     }
 
@@ -146,7 +146,7 @@ ProcessNormal()
       cobo_id.push_back(hit->SegmentId());
       auto clock_timing = hit->GetArrayTime().at(0);
       clkTpc.push_back(clock_timing);
-      HF1("TPC Clock Time", clock_timing);
+      HF1("TPC_Clock_Time", clock_timing);
     }
   }
 
@@ -163,15 +163,15 @@ ProcessNormal()
       auto rms     = rhit->RMS(0, NumOfTimeBucket);
       auto loc_max = rhit->LocMax(0, NumOfTimeBucket);
 
-      HF1("TPC FADC Mean", mean);
-      HF1("TPC FADC Max", max_adc);
-      HF1("TPC FADC RMS", rms);
-      HF1("TPC FADC LocMax", loc_max);
-      HF1("TPC FADC Min", min_adc);
+      HF1("TPC_FADC_Mean", mean);
+      HF1("TPC_FADC_Max", max_adc);
+      HF1("TPC_FADC_RMS", rms);
+      HF1("TPC_FADC_LocMax", loc_max);
+      HF1("TPC_FADC_Min", min_adc);
 
       auto fadc = rhit->Fadc();
       for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-	HF2("TPC FADC (Before)", tb, fadc.at(tb));
+	HF2("TPC_FADC_Before", tb, fadc.at(tb));
       }
     }
   }
@@ -188,7 +188,7 @@ ProcessNormal()
 
     auto fadc = baseline->Fadc();
     for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-      HF2("TPC FADC Baseline", tb, fadc.at(tb));
+      HF2("TPC_FADC_Baseline", tb, fadc.at(tb));
     }
   }
 
@@ -205,24 +205,24 @@ ProcessNormal()
       auto loc_max = rhit->LocMax(0, NumOfTimeBucket);
       auto pars    = rhit->GetParameters();
 
-      HF1("TPC FADC Mean Cor", mean);
-      HF1("TPC FADC Max Cor", max_adc);
-      HF1("TPC FADC RMS Cor", rms);
-      HF1("TPC FADC LocMax Cor", loc_max);
-      HF1("TPC FADC Min Cor", min_adc);
-      HF1("TPC FADC Baseline p0", pars.at(0));
-      HF1("TPC FADC Baseline p1", pars.at(1));
-      HF1("TPC FADC Baseline p2", pars.at(2));
+      HF1("TPC_FADC_Mean_Cor", mean);
+      HF1("TPC_FADC_Max_Cor", max_adc);
+      HF1("TPC_FADC_RMS_Cor", rms);
+      HF1("TPC_FADC_LocMax_Cor", loc_max);
+      HF1("TPC_FADC_Min_Cor", min_adc);
+      HF1("TPC_FADC_Baseline_p0", pars.at(0));
+      HF1("TPC_FADC_Baseline_p1", pars.at(1));
+      HF1("TPC_FADC_Baseline_p2", pars.at(2));
 
       // 2D FADC waveform after correction
       auto fadc = rhit->Fadc();
       for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-	HF2("TPC FADC (After)", tb, fadc.at(tb));
+	HF2("TPC_FADC_After", tb, fadc.at(tb));
       }
     }
   }
 
-  HF1("TPC Multiplicity (Raw)", npadTpc);
+  HF1("TPC_Multiplicity_Raw", npadTpc);
   HF1("Status", 4);
 
   //________________________________________________________
@@ -248,8 +248,8 @@ ProcessNormal()
       Double_t rms = hit->GetRMS();
       Double_t rawrms = hit->GetRawRMS();
 
-      HF1("TPC Pedestal", ped);
-      HF1("TPC RMS", rms);
+      HF1("TPC_Pedestal", ped);
+      HF1("TPC_RMS", rms);
 
       const auto& vec = tpc::getPosition(pad);
       //HF2Poly(1001, vec.Z(), vec.X());
@@ -277,15 +277,15 @@ ProcessNormal()
         dlTpc.push_back(dl);
 	sigmaTpc.push_back(sigma);
 
-	HF1("TPC DeltaE", de);
-	HF1("TPC Time", time);
-	HF1("TPC Chisqr", chisqr);
-	HF1("TPC CDeltaE", cde);
-	HF1("TPC CTime", ctime);
-	HF1("TPC DriftLength", dl);
-	HF1("TPC sigma", sigma);
-	HF2("TPC sigma%%de", de, sigma);
-	HF2("TPC time%%de", de, time);
+	HF1("TPC_DeltaE", de);
+	HF1("TPC_Time", time);
+	HF1("TPC_Chisqr", chisqr);
+	HF1("TPC_CDeltaE", cde);
+	HF1("TPC_CTime", ctime);
+	HF1("TPC_DriftLength", dl);
+	HF1("TPC_sigma", sigma);
+	HF2("TPC_sigma%%de", de, sigma);
+	HF2("TPC_time%%de", de, time);
 
 	good_for_analysis = true;
         ++nhTpc;
@@ -293,7 +293,7 @@ ProcessNormal()
       if(good_for_analysis){
 	auto fadc = hit->GetRawHit()->Fadc();
 	for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-	  HF2("TPC FADC (Good)", tb, fadc.at(tb));
+	  HF2("TPC_FADC_Good", tb, fadc.at(tb));
 	}
       }
     }
