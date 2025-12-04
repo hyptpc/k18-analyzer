@@ -112,7 +112,7 @@ endif
 #______________________________________________________________________________
 .PHONY: all dst usr example lib clean distclean show help
 
-all: lib usr
+all: lib usr dst
 
 -include $(deps) $(usr_deps) $(dst_deps) $(ex_deps)
 

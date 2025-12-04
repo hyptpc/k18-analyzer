@@ -89,15 +89,12 @@ ExclusiveTracking 	0
 #BaselineCorrectionTPC	0
 BaselineCorrectionTPC	1
 MaxMultiHitTPC		10000
-MinDeTPC		0
-#MinDeTPC		60
+MinDeTPC		60
 MinCDeTPC		90
 #MinCDeTPC		60
-MinRmsTPC		0
-MinBaseRmsTPC		0
-#TimeBucketTPC		10 140 # before change num of tbi
-TimeBucketTPC		0 170 # after change num of tbi
-#NumOfTimeBucket	140 # before change num of tbi (E42)
+MinRmsTPC		10
+MinBaseRmsTPC		10
+TimeBucketTPC		25 155 # after change num of tbi
 NumOfTimeBucket		170 # after change num of tbi (E42)
 
 ### TPC Clustering cut
@@ -106,8 +103,10 @@ MaxYDifClusterTPC 10
 #MinClusterDeTPC 60
 MinClusterDeTPC 90
 MinClusterSizeTPC 1
-MaxClusterYPosTPC 300
-MinClusterYPosTPC -250
+#MaxClusterYPosTPC 300
+#MinClusterYPosTPC -250
+MaxClusterYPosTPC 3000
+MinClusterYPosTPC -2500
 
 ### TPC Hough Window cut
 MaxHoughWindow 10

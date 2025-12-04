@@ -197,24 +197,18 @@
     <!--________________________________________________________________ -->
     <HulHRTdc node_id="1660" name="hul-hrtdc-124">
       <for var="data" from="0" to="3">
-	<!-- CVC -->
+	<!-- CVC (dummy) -->
 	<for var="ch" from="0" to="7">
     	  <FE ch="32+2*ch" data="data"><D Device="CVC" segment="ch" ch="0" data="data + 1"/></FE>
     	  <FE ch="32+2*ch+1" data="data"><D Device="CVC" segment="ch" ch="1" data="data + 1"/></FE>
     	</for>
-	<!-- CVC MT -->
-	<for var="ch" from="0" to="7">
-    	  <FE ch="ch+48" data="data"><D Device="CVC" segment="ch" ch="2" data="data + 1"/></FE>
-    	</for>
-	<!-- SFV -->
-	<for var="ch" from="0" to="4">
-    	  <FE ch="ch+56" data="data"><D Device="SFV" segment="ch" ch="0" data="data + 1"/></FE>
-    	</for>
+	<!-- SFV (dummy) -->	
+    	<FE ch="48" data="data"><D Device="SFV" segment="0" ch="0" data="data + 1"/></FE>
 	<!-- null -->
 	<for var="ch" from="0" to="31">
 	  <FE ch="ch" data="data"><D Device="null"/></FE>
     	</for>
-	<for var="ch" from="61" to="63">
+	<for var="ch" from="49" to="63">
 	  <FE ch="ch" data="data"><D Device="null"/></FE>
     	</for>
       </for>
@@ -223,8 +217,15 @@
     <HulHRTdc node_id="1661" name="hul-hrtdc-125">
       <for var="data" from="0" to="3">
 	<!-- null -->
-	<for var="ch" from="0" to="63">
+	<for var="ch" from="0" to="31">
 	  <FE ch="ch" data="data"><D Device="null"/></FE>
+    	</for>
+	<for var="ch" from="57" to="63">
+	  <FE ch="ch" data="data"><D Device="null"/></FE>
+    	</for>
+	<!-- trigger flag -->
+	<for var="ch" from="0" to="24">
+    	  <FE ch="ch + 32" data="data"><D Device="TriggerFlag" plane="0" segment="ch" ch="0" data="data"/></FE>
     	</for>
       </for>
     </HulHRTdc>
