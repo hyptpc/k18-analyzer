@@ -533,62 +533,62 @@ BuildTPCHit()
   const Int_t    NTimeBucket = 170;
 
   // 1D histograms
-  HB1("TPC Multiplicity (Raw)", NumOfPadTPC+1, 0,  NumOfPadTPC+1);
-  HB1("TPC FADC Mean",          NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC FADC Max",           NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC FADC RMS",           NbinRms,       MinRms,          MaxRms);
-  HB1("TPC FADC LocMax",        NTimeBucket+1, 0,   NTimeBucket+1);
-  HB1("TPC FADC Min",           NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC FADC Mean Cor",      NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC FADC Max Cor",       NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC FADC RMS Cor",       NbinRms,       MinRms,          MaxRms);
-  HB1("TPC FADC LocMax Cor",    NTimeBucket+1, 0,   NTimeBucket+1);
-  HB1("TPC FADC Min Cor",       NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC FADC Baseline p0",   NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC FADC Baseline p1",   120,           -6,              6);
-  HB1("TPC FADC Baseline p2",   120,           -12,             12);
+  HB1("TPC_Multiplicity_Raw",   NumOfPadTPC+1, 0,  NumOfPadTPC+1);
+  HB1("TPC_FADC_Mean",          NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Max",           NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_RMS",           NbinRms,       MinRms,          MaxRms);
+  HB1("TPC_FADC_LocMax",        NTimeBucket+1, 0,   NTimeBucket+1);
+  HB1("TPC_FADC_Min",           NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Mean_Cor",      NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Max_Cor",       NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_RMS_Cor",       NbinRms,       MinRms,          MaxRms);
+  HB1("TPC_FADC_LocMax_Cor",    NTimeBucket+1, 0,   NTimeBucket+1);
+  HB1("TPC_FADC_Min_Cor",       NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Baseline_p0",   NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Baseline_p1",   120,           -6,              6);
+  HB1("TPC_FADC_Baseline_p2",   120,           -12,             12);
 
   // 2D
-  HB2("TPC FADC Baseline",
+  HB2("TPC_FADC_Baseline",
       NTimeBucket+1, 0, NTimeBucket+1,
       NbinAdc, MinAdc, MaxAdc);
 
   // TPCHit
-  HB1("TPC Multiplicity (TPCHit)", NumOfPadTPC+1, 0,  NumOfPadTPC+1);
-  HB1("TPC Pedestal",              NbinAdc,      MinAdc,  MaxAdc);
-  HB1("TPC DeltaE",                NbinDe,       MinDe,   MaxDe);
-  HB1("TPC RMS",                   NbinRms,      MinRms,  MaxRms);
-  HB1("TPC Time",                 (NTimeBucket+1)*30, 0, NTimeBucket+1);
-  HB1("TPC Chisqr",                NbinChisqr,   MinChisqr, MaxChisqr);
-  HB1("TPC CDeltaE",               NbinDe,       MinDe,   MaxDe);
-  HB1("TPC CTime",                 NbinTime,     MinTime, MaxTime);
-  HB1("TPC DriftLength",           NbinDL,       MinDL,   MaxDL);
-  HB1("TPC sigma",                 NbinSigma,    MinSigma, MaxSigma);
+  HB1("TPC_Multiplicity_TPCHit",   NumOfPadTPC+1, 0,  NumOfPadTPC+1);
+  HB1("TPC_Pedestal",              NbinAdc,      MinAdc,  MaxAdc);
+  HB1("TPC_DeltaE",                NbinDe,       MinDe,   MaxDe);
+  HB1("TPC_RMS",                   NbinRms,      MinRms,  MaxRms);
+  HB1("TPC_Time",                 (NTimeBucket+1)*30, 0, NTimeBucket+1);
+  HB1("TPC_Chisqr",                NbinChisqr,   MinChisqr, MaxChisqr);
+  HB1("TPC_CDeltaE",               NbinDe,       MinDe,   MaxDe);
+  HB1("TPC_CTime",                 NbinTime,     MinTime, MaxTime);
+  HB1("TPC_DriftLength",           NbinDL,       MinDL,   MaxDL);
+  HB1("TPC_sigma",                 NbinSigma,    MinSigma, MaxSigma);
 
-  HB2("TPC sigma%%de",
+  HB2("TPC_sigma%%de",
       NbinDe, MinDe, MaxDe,
       NbinSigma, MinSigma, MaxSigma);
 
-  HB2("TPC time%%de",
+  HB2("TPC_time%%de",
       NbinDe, MinDe, MaxDe,
       NbinTime, MinTime, MaxTime);
 
   // FADC waveforms
-  HB2("TPC FADC (Before)",
+  HB2("TPC_FADC_Before",
       NTimeBucket+1, 0, NTimeBucket+1,
       NbinAdc, MinAdc, MaxAdc);
 
-  HB2("TPC FADC (After)",
+  HB2("TPC_FADC_After",
       NTimeBucket+1, 0, NTimeBucket+1,
       NbinAdc, MinAdc-500., MaxAdc-500.);
 
-  HB2("TPC FADC (Good)",
+  HB2("TPC_FADC_Good",
       NTimeBucket+1, 0, NTimeBucket+1,
       NbinAdc, MinAdc, MaxAdc);
 
   // Clock
-  HB1("TPC Clock TDC",   100000, 0.,    1000000.);
-  HB1("TPC Clock Time",  20000, -100.,  100.);
+  HB1("TPC_Clock_TDC",   100000, 0.,    1000000.);
+  HB1("TPC_Clock_Time",  20000, -100.,  100.);
   /*
     HB2Poly(1001, "TPC HitPat");
     for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
