@@ -118,10 +118,7 @@ RawData::DecodeHits(const TString& name)
           for(Int_t i=0, n=gUnpacker.get_entries(id, plane, seg, ch, data);
               i<n; ++i){
             UInt_t val = gUnpacker.get(id, plane, seg, ch, data, i);
-            if(is_hodo) {
-	      if (id == 11 && i > 0) continue;
-	      AddHodoRawHit(name, plane, seg, ch, data, val);
-            }
+            if(is_hodo)  AddHodoRawHit(name, plane, seg, ch, data, val);
 	    if(is_fiber) AddFiberRawHit(name, plane, seg, ch, data, val);
             if(is_dc)    AddDCRawHit(name, plane, seg, ch, data, val);
           }
