@@ -290,10 +290,10 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       const auto ud_str = UorD[ud];
       for(const auto& t: hit->GetArrayTdc(ud)){
 	HF1(Form("%s_TDC_seg%d%s%s", name, seg, ud_str, b), t);
-	break;
       }
     }
   }
+  
 }
 
 //_____________________________________________________________________________
@@ -354,31 +354,39 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     Int_t multi = 0;
     for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
       const auto& hit = hodoAna.GetHit(name, i);
-      auto seg = hit->SegmentId();
-      auto de = hit->DeltaE();
-      auto ude  = hit->UDeltaE();
-      auto dde  = hit->DDeltaE();
-      HF1(Form("%s_Hit_DeltaE_seg%dU%s", name, seg, b), ude);
-      HF1(Form("%s_Hit_DeltaE_seg%dD%s", name, seg, b), dde);
-      HF1(Form("%s_Hit_DeltaE_seg%d%s", name, seg, b), de);
-      HF2(Form("%s_Hit_DeltaE_vs_HitPat%s", name, b), seg, de);
+      auto n_ch = hit->NumOfChannel();
+      auto seg  = hit->SegmentId();
+      if (ihodo != kSFV && ihodo != kCOBO) {
+        auto de   = hit->DeltaE();
+        auto ude  = hit->UDeltaE();
+        HF1(Form("%s_Hit_DeltaE_seg%dU%s", name, seg, b), ude);
+        HF1(Form("%s_Hit_DeltaE_seg%d%s", name, seg, b), de);
+        HF2(Form("%s_Hit_DeltaE_vs_HitPat%s", name, b), seg, de);
+        if (n_ch > 1) {
+          auto dde  = hit->DDeltaE();
+          HF1(Form("%s_Hit_DeltaE_seg%dD%s", name, seg, b), dde);
+        }
+      }
       Bool_t is_good = false;
       for(Int_t j=0, m=hit->GetEntries(); j<m; ++j){
-        auto tu  = hit->GetTUp(j),   td = hit->GetTDown(j);
-        auto ctu = hit->GetCTUp(j), ctd = hit->GetCTDown(j);
+        auto tu  = hit->GetTUp(j);
+        auto ctu = hit->GetCTUp(j);
         auto mt  = hit->MeanTime(j),cmt = hit->CMeanTime(j);
         HF1(Form("%s_Hit_Time_seg%dU%s", name, seg, b), tu);
-        HF1(Form("%s_Hit_Time_seg%dD%s", name, seg, b), td);
         HF1(Form("%s_Hit_CTime_seg%dU%s", name, seg, b), ctu);
-        HF1(Form("%s_Hit_CTime_seg%dD%s", name, seg, b), ctd);
         HF1(Form("%s_Hit_MeanTime_seg%d%s", name, seg, b), mt);
         HF1(Form("%s_Hit_CMeanTime_seg%d%s", name, seg, b), cmt);
         HF1(Form("%s_Hit_MeanTime%s", name, b), mt);
         HF1(Form("%s_Hit_CMeanTime%s", name, b), cmt);
         HF2(Form("%s_Hit_MeanTime_vs_HitPat%s", name, b), seg, mt);
         HF2(Form("%s_Hit_CMeanTime_vs_HitPat%s", name, b), seg, cmt);
+        if (n_ch > 1) {
+          auto td = hit->GetTDown(j);
+          auto ctd = hit->GetCTDown(j);
+          HF1(Form("%s_Hit_Time_seg%dD%s", name, seg, b), td);
+          HF1(Form("%s_Hit_CTime_seg%dD%s", name, seg, b), ctd);
+        }
         is_good = true;
-	if (ihodo == kCOBO) break;
       }
       if(is_good){
         HF1(Form("%s_Hit_HitPat%s", name, b), seg);
@@ -419,7 +427,6 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
       }
     }
   }
-
 
   // BTOF / FTOF
   {
