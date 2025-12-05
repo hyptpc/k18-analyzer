@@ -97,9 +97,6 @@ RawData::DecodeHits(const TString& name)
 
   Clear(name);
 
-  if(name == "VFT")
-    return true; // ignore
-
   Bool_t is_hodo  = type.Contains("Hodo", TString::kIgnoreCase);
   Bool_t is_fiber = type.Contains("Fiber", TString::kIgnoreCase);
   Bool_t is_dc    = type.Contains("DC", TString::kIgnoreCase);
@@ -131,15 +128,6 @@ RawData::DecodeHits(const TString& name)
   hddaq::cout << FUNC_NAME << std::endl
               << id << " " << name << " " << type <<  " decoded" << std::endl;
 #endif
-
-  // For AC-SUM
-  if(name == "AC"){
-    Double_t suma = 0;
-    for(const auto& hit: GetHodoRawHC(name)){
-      if(hit->SegmentId() != 0) suma += hit->GetAdc();
-    }
-    AddHodoRawHit(name, 0, 0, 0, 0, suma);
-  }
 
   m_is_decoded[name] = true;
   return true;
