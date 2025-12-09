@@ -87,12 +87,10 @@ HodoHit::Calculate()
 
   for(Int_t ch=0; ch<m_n_ch; ++ch){
     // adc
-    if (id != DetIdSFV ) {
-      for(const auto& adc: m_raw->GetArrayAdcHigh(ch)){
-	Double_t de = TMath::QuietNaN();
-	if(gHodo.GetDeHighGain(id, plane, seg, ch, adc, de)){
-	  m_de_high.at(ch).push_back(de);
-	}
+    for(const auto& adc: m_raw->GetArrayAdcHigh(ch)){
+      Double_t de = TMath::QuietNaN();
+      if(gHodo.GetDeHighGain(id, plane, seg, ch, adc, de)){
+        m_de_high.at(ch).push_back(de);
       }
     }
     for(const auto& adc: m_raw->GetArrayAdcLow(ch)){
@@ -129,11 +127,6 @@ HodoHit::Calculate()
     std::sort(ctrailing.at(ch).begin(), ctrailing.at(ch).end());
   }
 
-  // Double_t offset_vtof = 0.;
-  // if(m_name.EqualTo("TOF")){
-  //   gHodo.GetTime(id, plane, seg, 2, 0., offset_vtof);
-  // }
-
   // one-side readout
   if(m_n_ch == 1){
     m_time_leading.at(U) = leading.at(U);
@@ -162,12 +155,18 @@ HodoHit::Calculate()
     }
   }
 
-  // extra channel remains
-  if(m_n_ch == HodoRawHit::kNChannel){
+  // extra channel remains (for KVC)
+  if(id == DetIdKVC){
+    m_time_leading.at(E) = leading.at(HodoRawHit::kSUM);
+    m_ctime_leading.at(E) = cleading.at(HodoRawHit::kSUM);
+  }
+  // extra channel remains (for HTOF)
+  if(id == DetIdHTOF){
     m_time_leading.at(E) = leading.at(E);
     m_ctime_leading.at(E) = cleading.at(E);
   }
 
+  
   for(Int_t ch=0; ch<m_n_ch; ++ch){
     m_time_trailing.at(ch) = trailing.at(ch);
     m_ctime_trailing.at(ch) = trailing.at(ch);
@@ -179,7 +178,10 @@ HodoHit::Calculate()
   */
 
   m_is_calculated = true;
-  return (m_ctime_leading.at(U).size() > 0);
+  if (id != DetIdKVC)
+    return (m_ctime_leading.at(U).size() > 0);
+  else // KVC only has SUM TDC
+    return (m_ctime_leading.at(E).size() > 0);
 }
 
 //_____________________________________________________________________________

@@ -56,9 +56,11 @@ std::map<TString, tdc_t> trailing_d;
 std::map<TString, seg_t> hit_seg;
 std::map<TString, adc_t> de_u;
 std::map<TString, adc_t> de_d;
+std::map<TString, adc_t> de_s;
 std::map<TString, adc_t> de;
 std::map<TString, tdc_t> time_u;
 std::map<TString, tdc_t> time_d;
+std::map<TString, tdc_t> time_s;
 std::map<TString, tdc_t> mt;
 std::map<TString, tdc_t> cmt;
 
@@ -104,9 +106,11 @@ ProcessBegin()
   for(auto& p: hit_seg) p.second.clear();
   for(auto& p: de_u) p.second.clear();
   for(auto& p: de_d) p.second.clear();
+  for(auto& p: de_s) p.second.clear();
   for(auto& p: de) p.second.clear();
   for(auto& p: time_u) p.second.clear();
   for(auto& p: time_d) p.second.clear();
+  for(auto& p: time_s) p.second.clear();
   for(auto& p: mt) p.second.clear();
   for(auto& p: cmt) p.second.clear();
 
@@ -223,14 +227,23 @@ ProcessNormal()
     auto n = NameHodo[ihodo];
     for(Int_t i=0, nh=hodoAna.GetNHits(n); i<nh; ++i){
       const auto& hit = hodoAna.GetHit(n, i);
+      auto n_ch = hit->NumOfChannel();
       hit_seg[n].push_back(hit->SegmentId());
-      de_u[n].push_back(hit->GetAUp());
-      de_d[n].push_back(hit->GetADown());
-      de[n].push_back(hit->DeltaE());
+      if (ihodo != kSFV && ihodo != kCOBO) {
+        de_u[n].push_back(hit->GetAUp());
+        de[n].push_back(hit->DeltaE());
+      }
       time_u[n].push_back(hit->GetArrayTime(0));
-      time_d[n].push_back(hit->GetArrayTime(1));
       mt[n].push_back(hit->GetArrayMeanTime());
       cmt[n].push_back(hit->GetArrayCMeanTime());
+      if (n_ch > 1) {
+        de_d[n].push_back(hit->GetADown());
+        time_d[n].push_back(hit->GetArrayTime(1));
+      }
+      if (ihodo == kHTOF || ihodo == kKVC) {
+        de_s[n].push_back(hit->GetAExtra());
+        time_s[n].push_back(hit->GetArrayTime(2));
+      }
     }
   }
 
@@ -317,9 +330,11 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_hit_seg", n.Data()), &hit_seg[NameHodo[ihodo]]);
     tree->Branch(Form("%s_de_u", n.Data()), &de_u[NameHodo[ihodo]]);
     tree->Branch(Form("%s_de_d", n.Data()), &de_d[NameHodo[ihodo]]);
+    if (ihodo == kHTOF || ihodo == kKVC) tree->Branch(Form("%s_de_s", n.Data()), &de_s[NameHodo[ihodo]]);
     tree->Branch(Form("%s_de", n.Data()), &de[NameHodo[ihodo]]);
     tree->Branch(Form("%s_time_u", n.Data()), &time_u[NameHodo[ihodo]]);
     tree->Branch(Form("%s_time_d", n.Data()), &time_d[NameHodo[ihodo]]);
+    if (ihodo == kHTOF || ihodo == kKVC) tree->Branch(Form("%s_time_s", n.Data()), &time_s[NameHodo[ihodo]]);
     tree->Branch(Form("%s_mt", n.Data()), &mt[NameHodo[ihodo]]);
     tree->Branch(Form("%s_cmt", n.Data()), &cmt[NameHodo[ihodo]]);
   }

@@ -102,8 +102,10 @@ public:
   Double_t GetALeft(Int_t j=0) const { return A(HodoRawHit::kUp, j); }
   Double_t GetADown(Int_t j=0) const { return A(HodoRawHit::kDown, j); }
   Double_t GetARight(Int_t j=0) const { return A(HodoRawHit::kDown, j); }
+  Double_t GetAExtra(Int_t j=0) const { return A(HodoRawHit::kExtra, j); }
   Double_t UDeltaE(Int_t j=0) const { return GetAUp(j); }
   Double_t DDeltaE(Int_t j=0) const { return GetADown(j); }
+  Double_t ExDeltaE(Int_t j=0) const { return GetAExtra(j); }
 
   Double_t T(Int_t i, Int_t j=0) const { return GetTimeLeading(i, j); }
   Double_t GetT(Int_t i, Int_t j=0) const { return T(i, j); }
@@ -111,6 +113,7 @@ public:
   Double_t GetTLeft(Int_t j=0) const { return T(HodoRawHit::kUp, j); }
   Double_t GetTDown(Int_t j=0) const { return T(HodoRawHit::kDown, j); }
   Double_t GetTRight(Int_t j=0) const { return T(HodoRawHit::kDown, j); }
+  Double_t GetTExtra(Int_t j=0) const { return T(HodoRawHit::kExtra, j); }
 
   Double_t CT(Int_t i, Int_t j=0) const { return GetCTimeLeading(i, j); }
   Double_t GetCT(Int_t i, Int_t j=0) const { return CT(i, j); }
@@ -118,6 +121,7 @@ public:
   Double_t GetCTLeft(Int_t j=0) const { return CT(HodoRawHit::kUp, j); }
   Double_t GetCTDown(Int_t j=0) const { return CT(HodoRawHit::kDown, j); }
   Double_t GetCTRight(Int_t j=0) const { return CT(HodoRawHit::kDown, j); }
+  Double_t GetCTExtra(Int_t j=0) const { return CT(HodoRawHit::kExtra, j); }
 
   void   JoinCluster(Int_t m) { m_is_clustered.at(m) = true; }
   Bool_t IsClustered(Int_t m) const { return m_is_clustered.at(m); }

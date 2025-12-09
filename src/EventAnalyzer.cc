@@ -396,6 +396,31 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Hit_Multi%s", name, b), multi);
   }
 
+  // HTOF, KVC Sum
+  for (const auto& ihodo: std::vector<Int_t>{kHTOF, kKVC}) {
+    const Char_t* name = NameHodo[ihodo];
+    Int_t multi = 0;
+    for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
+      const auto& hit = hodoAna.GetHit(name, i);
+      auto seg  = hit->SegmentId();
+      auto sde  = hit->ExDeltaE();
+      HF1(Form("%s_Hit_DeltaE_seg%dS%s", name, seg, b), sde);
+      Bool_t is_good = false;
+      for(Int_t j=0, m=hit->GetEntries(HodoRawHit::kExtra); j<m; ++j){
+        auto ts  = hit->GetTExtra(j);
+        auto cts = hit->GetCTExtra(j);
+        HF1(Form("%s_Hit_Time_seg%dS%s", name, seg, b), ts);
+        HF1(Form("%s_Hit_CTime_seg%dS%s", name, seg, b), cts);
+        is_good = true;
+      }
+      if(is_good){
+        HF1(Form("%sSum_Hit_HitPat%s", name, b), seg);
+        ++multi;
+      }
+    }
+    HF1(Form("%sSum_Hit_Multi%s", name, b), multi);
+  }
+  
   // TOF
   {
     for(Int_t i2=0, n2=hodoAna.GetNHits("BH2"); i2<n2; ++i2){
