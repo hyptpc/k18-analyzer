@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 #include <TF1.h>
+#include <TCanvas.h>
+#include <TStyle.h>
 
 #include <std_ostream.hh>
 #include <UnpackerConfig.hh>
@@ -317,13 +319,15 @@ RawData::CorrectBaselineTPC()
       h_fadc.SetBinContent(i+1, fadc.at(i));
     }
     TF1 f1("f1", f_baseline, 0, NumOfTimeBucket, 3);
-    f1.SetParameter(0, hit->Mean(0, MinTimeBucket));
+    //f1.SetParameter(0, hit->Mean(0, MinTimeBucket));
+    f1.SetParameter(0, hit->Mean(MaxTimeBucket, NumOfTimeBucket));
     f1.SetParameter(1, 1.);
     f1.SetParameter(2, 0.);
     f1.SetParLimits(0, 0, 4000.);
     f1.SetParLimits(1, -5, 5.);
     f1.SetParLimits(2, -10, 10);
-    h_fadc.Fit("f1", "Q", "", 0, MinTimeBucket);
+    //h_fadc.Fit("f1", "Q", "", 0, MinTimeBucket);
+    h_fadc.Fit("f1", "Q", "", MaxTimeBucket, NumOfTimeBucket);
     Double_t max_cadc = -1e10;
     for(Int_t i=0, n=fadc.size(); i<n; ++i){
       Double_t cadc = fadc.at(i) - f1.Eval(i);
@@ -355,7 +359,8 @@ RawData::CorrectBaselineTPC()
 	h_fadc.SetMaximum(max_adc + 100);
 	// h_fadc.SetMaximum(1000);
 	// h_fadc.SetMaximum(2000);
-	TF1 f2("f2", f_baseline, MinTimeBucket, NumOfTimeBucket, 3);
+	//TF1 f2("f2", f_baseline, MinTimeBucket, NumOfTimeBucket, 3);
+	TF1 f2("f2", f_baseline, 0, NumOfTimeBucket, 3);
 	f2.SetParameters(f1.GetParameters());
 	f2.Draw("same");
 	h2.SetLineColor(kGreen+1);

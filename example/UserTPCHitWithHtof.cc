@@ -128,8 +128,8 @@ ProcessBegin()
 Bool_t
 ProcessNormal()
 {
-  using root::HF1;
-  using root::HF2;
+  
+  using namespace root;
 
   static const Int_t MaxMultiHitTPC = gUser.GetParameter("MaxMultiHitTPC");
   static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");
@@ -186,6 +186,8 @@ ProcessNormal()
 
   //________________________________________________________
   //___ TPCRawHit
+  static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
+  static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     auto hc = rawData.GetTPCRawHits(layer);
     for(const auto& rhit : hc){
@@ -194,6 +196,8 @@ ProcessNormal()
       auto min_adc = rhit->MinAdc(0, NumOfTimeBucket);
       auto rms     = rhit->RMS(0, NumOfTimeBucket);
       auto loc_max = rhit->LocMax(0, NumOfTimeBucket);
+      auto row     = rhit->RowId();
+      auto padid   = tpc::GetPadId(layer,row);
 
       HF1("TPC_FADC_Mean", mean);
       HF1("TPC_FADC_Max", max_adc);
@@ -201,9 +205,21 @@ ProcessNormal()
       HF1("TPC_FADC_LocMax", loc_max);
       HF1("TPC_FADC_Min", min_adc);
 
+      auto gate_open_max_adc = rhit->MaxAdc(0,MinTimeBucket);
+      auto noise_rms = rhit->RMS(MinTimeBucket,MaxTimeBucket);
+
+      bool IsNoise = false;
       auto fadc = rhit->Fadc();
+      if(gate_open_max_adc > 600 && noise_rms <30)IsNoise = true;
       for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
 	HF2("TPC_FADC_Before", tb, fadc.at(tb));
+	if(IsNoise){
+	  HF2("TPC_FADC_noise",tb,fadc.at(tb));
+	}
+      }
+      if(IsNoise){
+	double bincont = HG2Poly("TPC_HitPat_noise",padid);
+	HF2Poly("TPC_HitPat_noise",padid,bincont+1.);
       }
     }
   }
@@ -273,7 +289,6 @@ ProcessNormal()
     for(const auto& hit : hc){
       if(!hit || !hit->IsGood())
         continue;
-      //Int_t layer = hit->GetLayer();
       Int_t row = hit->GetWire();
       Int_t pad = tpc::GetPadId(layer, row);
       Double_t ped = hit->GetPedestal();
@@ -284,7 +299,6 @@ ProcessNormal()
       HF1("TPC_RMS", rms);
 
       const auto& vec = tpc::getPosition(pad);
-      //HF2Poly(1001, vec.Z(), vec.X());
       Int_t nhit = hit->GetNHits();
       Bool_t good_for_analysis = false;
       for(Int_t i=0; i<nhit; ++i){
@@ -353,6 +367,7 @@ ConfMan::InitializeHistograms()
   hist::BuildStatus();
   hist::BuildTriggerFlag();
   hist::BuildTPCHit();
+  
 
   tree = new TTree("tpc", "tree of TPCHit");
   tree->Branch("run_number", &run_number);

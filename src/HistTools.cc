@@ -20,11 +20,16 @@ namespace
 {
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
-using root::HB1;
-using root::HB2;
-using root::HB2Poly;
+  //using root::HB1;
+  //using root::HB2;
+  using namespace root;
+  
 }
 
+namespace root
+{
+  TH1   *h[MaxHist];
+}
 namespace hist
 {
 // Raw
@@ -586,9 +591,17 @@ BuildTPCHit()
       NTimeBucket+1, 0, NTimeBucket+1,
       NbinAdc, MinAdc, MaxAdc);
 
+  HB2("TPC_FADC_noise",
+      NTimeBucket+1, 0, NTimeBucket+1,
+      NbinAdc, MinAdc, MaxAdc);
+
   // Clock
   HB1("TPC_Clock_TDC",   100000, 0.,    1000000.);
   HB1("TPC_Clock_Time",  20000, -100.,  100.);
+
+  HB2Poly("TPC_HitPat_noise",-300.,300.,-300.,300.);
+  tpc::InitializeHistograms("TPC_HitPat_noise");
+  
   /*
     HB2Poly(1001, "TPC HitPat");
     for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
@@ -600,6 +613,7 @@ BuildTPCHit()
     }
   */
 }
+
 }
 
 #endif

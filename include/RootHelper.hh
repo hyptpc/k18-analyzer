@@ -43,7 +43,7 @@
 #include <TVector3.h>
 
 #include <std_ostream.hh>
-
+#include "TPCPadHelper.hh"
 #include "Exception.hh"
 
 #define ThrowError 1 // if h[i] already exist, throw error
@@ -211,30 +211,40 @@ HBProf(Int_t i, const Char_t* title,
                       nbinx, xlow, xhigh, ylow, yhigh);
 }
 
+
 //_____________________________________________________________________________
-inline void
-HB2Poly(Int_t i, const Char_t* title,
-        Double_t xmin=-300., Double_t xmax=300.,
-        Double_t ymin=-300., Double_t ymax=300.)
+inline TH2Poly*
+HB2Poly(const TString& name, const TString& title,
+	Double_t xmin=-300., Double_t xmax=300.,
+	Double_t ymin=-300., Double_t ymax=300.)
 {
-  if(i<0 || MaxHist<=i)
-    throw Exception(Form("HB2Poly() invalid HistId : %d/%d", i, MaxHist));
-  if(h[i]){
+  TString tmp = name;
+  if(tmp.Contains(';')) tmp.Remove(tmp.First(';'));
+  auto h1 = gDirectory->Get<TH2Poly>(tmp);
+  if(h1){
 #if ThrowError
-    throw Exception(Form("h%d (%s) is already exist", i, title));
+    throw Exception(Form("TH2Poly %s is already exist", tmp.Data()));
 #endif
 #if OverWrite
-    delete h[i];
-    h[i] = nullptr;
+    delete h1;
+    h1 = nullptr;
 #endif
   }
-  h[i] = new TH2Poly(Form("h%d", i), title,
-                     xmin, xmax, ymin, ymax);
-  gDirectory->Add(h[i]);
-  /*
-   * Bin is set by tpc::InitializeHistograms() in TPCPadHelper.hh
-   */
+
+  h1 = new TH2Poly(tmp, title, xmin, xmax, ymin, ymax);
+  gDirectory->Add(h1);
+  return h1;
+
+  
 }
+
+//_____________________________________________________________________________
+inline TH2Poly*
+HB2Poly(const TString& name, Double_t xmin=-300., Double_t xmax=300., Double_t ymin=-300., Double_t ymax=300.)
+{
+  return HB2Poly(name, name, xmin, xmax, ymin, ymax);
+}
+
 
 //_____________________________________________________________________________
 inline void
@@ -245,17 +255,6 @@ HC2Poly(Int_t i)
   if(h[i]) dynamic_cast<TH2Poly*>(h[i])->Reset("");
 }
 
-// //_____________________________________________________________________________
-// inline void
-// HF1(Int_t i, Double_t x)
-// {
-//   if(i<0 || MaxHist<=i)
-//     throw Exception(Form("HF1() invalid HistId : %d/%d", i, MaxHist));
-//   if(h[i]) h[i]->Fill(x);
-// #if NoExist
-//   else     throw Exception(Form("HF1() h%d does not exist", i));
-// #endif
-// }
 
 //_____________________________________________________________________________
 inline void
@@ -268,17 +267,6 @@ HF1(const TString& name, Double_t x)
 #endif
 }
 
-// //_____________________________________________________________________________
-// inline void
-// HF2(Int_t i, Double_t x, Double_t y)
-// {
-//   if(i<0 || MaxHist<=i)
-//     throw Exception(Form("HF2() invalid HistId : %d/%d", i, MaxHist));
-//   if(h[i]) h[i]->Fill(x, y);
-// #if NoExist
-//   else     throw Exception(Form("HF2() h%d does not exist", i));
-// #endif
-// }
 
 //_____________________________________________________________________________
 inline void
@@ -291,27 +279,37 @@ HF2(const TString& name, Double_t x, Double_t y)
 #endif
 }
 
+
 //_____________________________________________________________________________
 inline void
-HF2Poly(Int_t i, Double_t x, Double_t y, Double_t w=1.)
+HF2Poly(const TString& name, Double_t x, Double_t y, Double_t w=1.)
 {
-  if(i<0 || MaxHist<=i)
-    throw Exception(Form("HF2Poly() invalid HistId : %d/%d", i, MaxHist));
-  if(h[i]) dynamic_cast<TH2Poly*>(h[i])->Fill(x, y, w);
+  auto h1 = gDirectory->Get<TH2Poly>(name);
+  if(h1) h1->Fill(x,y,w);
 #if NoExist
-  else     throw Exception(Form("HF2Poly() h%d does not exist", i));
+  else throw Exception(Form("HF2Poly() %s does not exist", name.Data()));
 #endif
 }
 
 //_____________________________________________________________________________
 inline void
-HF2Poly(Int_t i, Int_t bin, Double_t val)
+HF2Poly(const TString& name, Int_t bin, Double_t val)
 {
-  if(i<0 || MaxHist<=i)
-    throw Exception(Form("HF2Poly() invalid HistId : %d/%d", i, MaxHist));
-  if(h[i]) dynamic_cast<TH2Poly*>(h[i])->SetBinContent(bin, val);
+  auto h1 = gDirectory->Get<TH2Poly>(name);
+  if(h1) h1->SetBinContent(bin,val);
 #if NoExist
-  else     throw Exception(Form("HF2Poly() h%d does not exist", i));
+  else throw Exception(Form("HF2Poly() %s does not exist", name.Data()));
+#endif
+}
+
+//_____________________________________________________________________________
+inline Double_t
+HG2Poly(const TString& name, Int_t bin)
+{
+  auto h1 = gDirectory->Get<TH2Poly>(name);
+  if(h1)return h1->GetBinContent(bin);
+#if NoExist
+  else throw Exception(Form("HG2Poly() %s does not exist", name.Data()));
 #endif
 }
 

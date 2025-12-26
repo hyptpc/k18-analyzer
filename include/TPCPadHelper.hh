@@ -1,5 +1,14 @@
 // -*- C++ -*-
 
+
+/*
+ * Update note:
+ *  - Pad / Layer / Row indices are unified to start from 0
+ *
+ * Author: Haein Lee
+ * Date  : 2025-12-26
+ */
+
 #ifndef TPC_PAD_HELPER_HH
 #define TPC_PAD_HELPER_HH
 
@@ -20,8 +29,10 @@
 namespace tpc
 {
 const Double_t ZTarget = -143.; // Target from center
-  //const Double_t TargetVtxWindow = 25.;
 const Double_t TargetVtxWindow = 30.;
+const Int_t NumOfLayersTPC = 32;
+const Int_t NumOfPadTPC = 5768;
+const Int_t NumOfAsadTPC = 31;
 
 enum EPadParameter
 {
@@ -35,13 +46,16 @@ enum EPadParameter
 };
 
 //for kinematic fitting
+//E42
 static const Double_t PositionScale = 1.;
 
 //for clustering
+//E42
 static const Int_t MaxRowDifTPC = 2;
-//static const Int_t MaxRowDifTPC = 3;
+
 //for helix tracking
 static const Double_t ConstC = 0.299792458; //=c/10^9
+  
 //_____________________________________________________________________________
 //#OfPad #division #radius padLength
 static const Double_t padParameter[NumOfLayersTPC][NPadParameter] =
@@ -78,65 +92,25 @@ static const Double_t padParameter[NumOfLayersTPC][NPadParameter] =
  {30,108,    371.5,837, 0,  12.5},
  {31,90,     384.5,867, 0, 12.5}};
 
-//_____________________________________________________________________________
-static const Int_t noisypad[] =
-{
-  1507,4106,4356,4592,5113,5216
-};
 
 //_____________________________________________________________________________
 static const Int_t padOnCenterFrame[] =
 {
 
 //Pads on the frame
-965,966,967,968,969,970,971,972,973,974,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1177,1178,1179,1180,1181,1182,1183,1184,1185,1186,1187,1188,1189,1190,1191,1192,1193,1194,1195,1196,1197,1198,1199,1200,1201,1202,1203,1204,1205,1206,1207,1208,1209,1210,1211,1212,1237,1238,1239,1240,1241,1242,1243,1244,1245,1246,1247,1248,1249,1250,1251,1252,1253,1254,1255,1256,1257,1258,1259,1260,1261,1262,1263,1264,1265,1266,1267,1268,1269,1270,1271,1272,1395,1396,1397,1398,1399,1400,1401,1405,1406,1407,1408,1409,1410,1411,1412,1413,1414,1415,1416,1417,1418,1419,1420,1421,1422,1423,1424,1425,1426,1427,1428,1429,1430,1431,1432,1436,1437,1438,1439,1440,1441,1442,1455,1456,1457,1458,1459,1460,1461,1465,1466,1467,1468,1469,1470,1471,1472,1473,1474,1475,1476,1477,1478,1479,1480,1481,1482,1483,1484,1485,1486,1487,1488,1489,1490,1491,1492,1496,1497,1498,1499,1500,1501,1502,1595,1596,1597,1598,1604,1605,1606,1607,1608,1647,1648,1649,1650,1651,1652,1658,1659,1660,1663,1664,1665,1671,1672,1673,1674,1675,1676,1715,1716,1717,1718,1719,1725,1726,1727,1728,1807,1808,1809,1810,1811,1812,1813,1814,1815,1816,1817,1818,1879,1880,1881,1882,1889,1890,1891,1892,1953,1954,1955,1956,1957,1958,1959,1960,1961,1962,1963,1964,2018,2019,2020,2025,2026,2027,2028,2100,2101,2102,2103,2104,2111,2112,2113,2114,2115,2187,2188,2189,2190,2195,2196,2197,2219,2220,2221,2222,2223,2224,2225,2226,2227,2228,2309,2310,2311,2317,2318,2323,2324,2330,2331,2332,2413,2414,2415,2416,2417,2418,2419,2420,2421,2422,2427,2428,2429,2430,2518,2519,2520,2521,2522,2523,2524,2525,2526,2527,2540,2541,2542,2543,2544,2545,2546,2547,2548,2549,2637,2638,2639,2640,2732,2733,2739,2740,2761,2762,2768,2769,2950,2951,2952,2953,2954,2955,2956,2957,2958,2987,2988,2989,2990,2991,2992,2993,2994,2995,3174,3175,3176,3177,3178,3179,3180,3181,3182,3219,3220,3221,3222,3223,3224,3225,3226,3227,3405,3406,3407,3408,3409,3410,3411,3412,3413,3458,3459,3460,3461,3462,3463,3464,3465,3466,3642,3643,3644,3645,3646,3647,3648,3649,3650,3703,3704,3705,3706,3707,3708,3709,3710,3711,3877,3878,3879,3880,3881,3882,3883,3884,3945,3946,3947,3948,3949,3950,3951,3952,4098,4099,4105,4174,4180,4181,4308,4309,4310,4311,4312,4313,4314,4315,4316,4391,4392,4393,4394,4395,4396,4397,4398,4399,4512,4513,4520,4603,4610,4611,4713,4714,4715,4716,4717,4718,4719,4720,4811,4812,4813,4814,4815,4816,4817,4818,4910,4911,4912,4913,4914,4915,4916,4917,5016,5017,5018,5019,5020,5021,5022,5023,5104,5105,5108,5111,5112,5217,5218,5221,5224,5225,5287,5288,5289,5290,5291,5292,5293,5294,5295,5408,5409,5410,5411,5412,5413,5414,5415,5416,5441,5442,5443,5444,5445,5566,5567,5568,5569,5570,
+964,965,966,967,968,969,970,971,972,973,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1176,1177,1178,1179,1180,1181,1182,1183,1184,1185,1186,1187,1188,1189,1190,1191,1192,1193,1194,1195,1196,1197,1198,1199,1200,1201,1202,1203,1204,1205,1206,1207,1208,1209,1210,1211,1212,1236,1237,1238,1239,1240,1241,1242,1243,1244,1245,1246,1247,1248,1249,1250,1251,1252,1253,1254,1255,1256,1257,1258,1259,1260,1261,1262,1263,1264,1265,1266,1267,1268,1269,1270,1271,1394,1395,1396,1397,1398,1399,1400,1404,1405,1406,1407,1408,1409,1410,1411,1412,1413,1414,1415,1416,1417,1418,1419,1420,1421,1422,1423,1424,1425,1426,1427,1428,1429,1430,1431,1435,1436,1437,1438,1439,1440,1441,1454,1455,1456,1457,1458,1459,1460,1464,1465,1466,1467,1468,1469,1470,1471,1472,1473,1474,1475,1476,1477,1478,1479,1480,1481,1482,1483,1484,1485,1486,1487,1488,1489,1490,1491,1495,1496,1497,1498,1499,1500,1501,1594,1595,1596,1597,1603,1604,1605,1606,1607,1646,1647,1648,1649,1650,1651,1657,1658,1659,1662,1663,1664,1670,1671,1672,1673,1674,1675,1714,1715,1716,1717,1718,1724,1725,1726,1727,1806,1807,1808,1809,1810,1811,1812,1813,1814,1815,1816,1817,1878,1879,1880,1881,1888,1889,1890,1891,1952,1953,1954,1955,1956,1957,1958,1959,1960,1961,1962,1963,2017,2018,2019,2024,2025,2026,2027,2099,2100,2101,2102,2103,2110,2111,2112,2113,2114,2186,2187,2188,2189,2194,2195,2196,2218,2219,2220,2221,2222,2223,2224,2225,2226,2227,2308,2309,2310,2316,2317,2322,2323,2329,2330,2331,2412,2413,2414,2415,2416,2417,2418,2419,2420,2421,2426,2427,2428,2429,2517,2518,2519,2520,2521,2522,2523,2524,2525,2526,2539,2540,2541,2542,2543,2544,2545,2546,2547,2548,2636,2637,2638,2639,2731,2732,2738,2739,2760,2761,2767,2768,2949,2950,2951,2952,2953,2954,2955,2956,2957,2986,2987,2988,2989,2990,2991,2992,2993,2994,3173,3174,3175,3176,3177,3178,3179,3180,3181,3218,3219,3220,3221,3222,3223,3224,3225,3226,3404,3405,3406,3407,3408,3409,3410,3411,3412,3457,3458,3459,3460,3461,3462,3463,3464,3465,3641,3642,3643,3644,3645,3646,3647,3648,3649,3702,3703,3704,3705,3706,3707,3708,3709,3710,3876,3877,3878,3879,3880,3881,3882,3883,3944,3945,3946,3947,3948,3949,3950,3951,4097,4098,4104,4173,4179,4180,4307,4308,4309,4310,4311,4312,4313,4314,4315,4390,4391,4392,4393,4394,4395,4396,4397,4398,4511,4512,4519,4602,4609,4610,4712,4713,4714,4715,4716,4717,4718,4719,4810,4811,4812,4813,4814,4815,4816,4817,4909,4910,4911,4912,4913,4914,4915,4916,5015,5016,5017,5018,5019,5020,5021,5022,5103,5104,5107,5110,5111,5216,5217,5220,5223,5224,5286,5287,5288,5289,5290,5291,5292,5293,5294,5407,5408,5409,5410,5411,5412,5413,5414,5415,5440,5441,5442,5443,5444,5565,5566,5567,5568,5569,
 
 //Empty Pads
-1017,1018,
-1394,1402,1403,1404,1433,1434,1435,1462,1463,1464,1493,1494,1495,1503,1599,1600,1601,1602,1603,1604,1653,1654,1655,1656,1657,1666,1667,1668,1669,1670,1720,1721,1722,1723,1724,1877,1878,1883,1884,1885,1886,1887,1888,1893,1894,2021,2022,2023,2024,2105,2106,2107,2108,2109,2110,2191,2192,2193,2194,2312,2313,2314,2315,2316,2325,2326,2327,2328,2329,2734,2735,2736,2737,2738,2763,2764,2765,2766,2767,4100,4101,4102,4103,4104,4175,4176,4177,4178,4179,4514,4515,4516,4517,4518,4519,4604,4605,4606,4607,4608,4609,5106,5107,5109,5110,5219,5220,5222,5223
+1016,1017,1393,1401,1402,1403,1432,1433,1434,1461,1462,1463,1492,1493,1494,1502,1598,1599,1600,1601,1602,1652,1653,1654,1655,1656,1665,1666,1667,1668,1669,1719,1720,1721,1722,1723,1876,1877,1882,1883,1884,1885,1886,1887,1892,1893,2020,2021,2022,2023,2104,2105,2106,2107,2108,2109,2190,2191,2192,2193,2311,2312,2313,2314,2315,2324,2325,2326,2327,2328,2733,2734,2735,2736,2737,2762,2763,2764,2765,2766,4099,4100,4101,4102,4103,4174,4175,4176,4177,4178,4513,4514,4515,4516,4517,4518,4603,4604,4605,4606,4607,4608,5105,5106,5108,5109,5218,5219,5221,5222
+
 };
 
 //_____________________________________________________________________________
-static const Int_t deadChannel[NumOfLayersTPC][5] =
+static const Int_t deadChannel[] =
 {
-  //18,179,333,3809, //Dead pads
-  //2748, //Empty pads
-  //Pads on the gem supporing frame
-  //73,135,136,223,333,409,468,627,810,60,111,186,285,556,727,922,1141,1364,1565,1566,1779,1819,1820,2037,2038,2246,2247,2248,2456,2457,2669,2670,2888,3112,3113,3343,3344,3580,3581,3815,4036,1630,1851,2069,2278,2487,2488,2700,2701,2919,3143,3375,3612,3846,4067,4278,4482,4682,4880,5074
-  {18, -1, -1, -1, -1}, //0
-  {60, 73, -1, -1, -1},
-  {111, 135, 136, -1, -1},
-  {179, 186, 223, -1, -1},
-  {285, 333, -1, -1, -1},
-  {409, 468, -1, -1, -1}, //5
-  {556, 627, -1, -1, -1},
-  {727, 810, -1, -1, -1},
-  {922, -1, -1, -1, -1},
-  {1141, -1, -1, -1, -1},
-  {1364, -1, -1, -1, -1}, //10
-  {1565, 1566, 1630, -1, -1},
-  {1779, 1819, 1820, 1851, -1},
-  {2037, 2038, 2069, -1, -1},
-  {2246, 2247, 2248, 2278, -1},
-  {2456, 2457, 2487, 2488, -1}, //15
-  {2669, 2670, 2700, 2701, 2748},
-  {2888, 2919, -1, -1, -1},
-  {3112, 3113, 3143, -1, -1},
-  {3343, 3344, 3375, -1, -1},
-  {3580, 3581, 3612, -1, -1}, //20
-  {3809, 3815, 3846, -1, -1},
-  {4036, 4067, -1, -1, -1},
-  {4278, -1, -1, -1, -1},
-  {4481, 4482, -1, -1, -1},
-  {4682, -1, -1, -1, -1}, //25
-  {4880, -1, -1, -1, -1},
-  {5074, -1, -1, -1, -1},
-  {-1, -1, -1, -1, -1},
-  {-1, -1, -1, -1, -1},
-  {-1, -1, -1, -1, -1}, //30
-  {-1, -1, -1, -1, -1}
-
+  72,134,135,222,332,408,467,626,809,59,110,185,284,555,726,921,1140,1363,1564,1565,1778,1818,1819,2036,2037,2245,2246,2247,2455,2456,2668,2669,2887,3111,3112,3342,3343,3579,3580,3814,4035,1629,1850,2068,2277,2486,2487,2699,2700,2918,3142,3374,3611,3845,4066,4277,4481,4681,4879,5073
 };
+  
 
 //_____________________________________________________________________________
 static const Int_t FrameLowEdge[NumOfLayersTPC][5] =
@@ -153,33 +127,30 @@ static const Int_t FrameLowEdge[NumOfLayersTPC][5] =
   {-100,-100,-100,-100,-100}, //5
   {-100,-100,-100,-100,-100},
   {-100,-100,-100,-100,-100},
-  {76,128,-100,-100,-100},
-  {72,132,-100,-100,-100},
-  {49,110,208,-100,-100}, //10
-  {42,94,110,162,218},
-  {36,106,182,230,-100},
-  {17,99,186,214,-100},
-  {4,94,108,198,212},
-  {91,113,210,-100,-100}, //15
-  {91,120,220,-100,-100},
-  {89,126,224,-100,-100},
-  {89,134,232,-100,-100},
-  {88,141,238,-100,-100},
-  {87,148,244,-100,-100}, //20
-  {78,146,232,-100,-100},
-  {67,143,218,-100,-100},
-  {59,142,210,-100,-100},
-  {53,144,206,-100,-100},
-  {48,146,202,-100,-100}, //25
-  {43,149,200,-100,-100},
-  {37,150,196,-100,-100},
-  {24,145,178,-100,-100},
-  //{83,-100,-100,-100,-100},
-  //{72,-100,-100,-100,-100}, //30
-  //{63,-100,-100,-100,-100}
-  {125,-100,-100,-100,-100},
-  {108,-100,-100,-100,-100}, //30
-  {90,-100,-100,-100,-100}
+  {75,127,-100,-100,-100},
+  {71,131,-100,-100,-100},
+  {48,109,207,-100,-100}, //10
+  {41,93,109,161,217},
+  {35,105,181,229,-100},
+  {16,98,185,213,-100},
+  {3,93,107,197,211},
+  {90,112,209,-100,-100}, //15
+  {90,119,219,-100,-100},
+  {88,125,223,-100,-100},
+  {88,133,231,-100,-100},
+  {87,140,237,-100,-100},
+  {86,147,243,-100,-100}, //20
+  {77,145,231,-100,-100},
+  {66,142,217,-100,-100},
+  {58,141,209,-100,-100},
+  {52,143,205,-100,-100},
+  {47,145,201,-100,-100}, //25
+  {42,148,199,-100,-100},
+  {36,149,195,-100,-100},
+  {23,144,177,-100,-100},
+  {124,-100,-100,-100,-100},
+  {107,-100,-100,-100,-100}, //30
+  {89,-100,-100,-100,-100}
 };
 
 //_____________________________________________________________________________
@@ -197,41 +168,48 @@ static const Int_t FrameHighEdge[NumOfLayersTPC][5] =
   {-100,-100,-100,-100,-100}, //5
   {-100,-100,-100,-100,-100},
   {-100,-100,-100,-100,-100},
-  {85,139,-100,-100,-100},
-  {107,167,-100,-100,-100},
-  {-1,97,158,-100,-100}, //10
-  {-1,55,107,123,175},
-  {-1,49,123,193,-100},
-  {-1,27,114,196,-100},
-  {-1,13,103,117,207},
-  {3,100,122,-100,-100}, //15
-  {-1,99,128,-100,-100},
-  {-1,97,134,-100,-100},
-  {-1,97,142,-100,-100},
-  {-1,96,149,-100,-100},
-  {-1,95,156,-100,-100}, //20
-  {-1,85,153,-100,-100},
-  {-1,74,150,-100,-100},
-  {-1,67,150,-100,-100},
-  {-1,61,152,-100,-100},
-  {-1,55,153,-100,-100}, //25
-  {-1,50,156,-100,-100},
-  {-1,45,158,-100,-100},
-  {-1,32,153,-100,-100},
-  {4,-100,-100,-100,-100},
-  {-1,-100,-100,-100,-100}, //30
-  {-1,-100,-100,-100,-100}
+  {86,140,-100,-100,-100},
+  {108,168,-100,-100,-100},
+  {0,98,159,-100,-100}, //10
+  {0,56,108,124,176},
+  {0,48,124,194,-100},
+  {0,28,115,197,-100},
+  {0,14,104,118,208},
+  {4,101,123,-100,-100}, //15
+  {0,100,129,-100,-100},
+  {0,98,135,-100,-100},
+  {0,98,143,-100,-100},
+  {0,97,150,-100,-100},
+  {0,96,157,-100,-100}, //20
+  {0,86,154,-100,-100},
+  {0,75,151,-100,-100},
+  {0,68,151,-100,-100},
+  {0,62,153,-100,-100},
+  {0,56,154,-100,-100}, //25
+  {0,51,157,-100,-100},
+  {0,46,159,-100,-100},
+  {0,33,154,-100,-100},
+  {5,-100,-100,-100,-100},
+  {0,-100,-100,-100,-100}, //30
+  {0,-100,-100,-100,-100}
 };
+
+//_____________________________________________________________________________
+//E42
 static const Double_t ClusterSizeInner[2][10] ={
   {0.12912,0.12912,0.129121,0.164862,0.211372,0.256798,0.33125,0.315186,0.27439,0.303371},//proton
   {0.274143,0.550639,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333}//pion
   //0.0 - 0.1 , 0.1 - 0.2, ... 0.9 - 1.0 GeV/c
 };
+
+//_____________________________________________________________________________
+//E42
 static const Double_t ClusterSizeOuter[2][10] ={
   {0.285714,0.285714,0.326683,0.280962,0.243775,0.234132,0.217313,0.256798,0.293478,0.285319},//proton
   {0.257669,0.348881,0.308642,0.308642,0.308642,0.308642,0.308642,0.308642,0.308642,0.308642}//pion
   //0.0 - 0.1 , 0.1 - 0.2, ... 0.9 - 1.0 GeV/c
 };
+
 //_____________________________________________________________________________
 inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
 {
@@ -1032,6 +1010,7 @@ inline Int_t GetASADId(Int_t layer, Int_t row) //0~30
   }
 }
 
+
 //_____________________________________________________________________________
 inline Int_t GetCoBoId(Int_t layer, Int_t row)
 {
@@ -1054,80 +1033,69 @@ inline Int_t GetCoBoId(Int_t layer, Int_t row)
 //_____________________________________________________________________________
 inline Int_t GetPadId(Int_t layerID, Int_t rowID)
 {
-  //Original
-  //Int_t padID=0;
-  // Check!!!!!!!
-  Int_t padID=1;
+  Int_t padID=0;
   for(Int_t layi = 0 ; layi<layerID; layi++) padID += padParameter[layi][1];
   padID+=rowID;
   return padID;
 
 }
 
+//_____________________________________________________________________________
 inline Int_t getLayerID(Int_t padID)
 {
   padID-=1;
   Int_t layer;
   Int_t sum = 0;
 
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
+  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID+1; layer++)
   {
     sum += padParameter[layer][1];
   }
   return layer;
 }
 
+//_____________________________________________________________________________
 inline Int_t getRowID(Int_t padID)
 {
   padID-=1;
   Int_t layer, row;
   Int_t sum = 0;
 
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
+  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID+1; layer++)
   {
     sum += padParameter[layer][1];
   }
   row = padID - sum;
   return row;
 }
-/*
-  Double_t getTheta(Int_t layerID, Int_t rowID)
-  {
-  Double_t sTheta = 180.-(360./padParameter[layerID][3])*padParameter[layerID][1]/2.;
-  Double_t theta = sTheta+(rowID+0.5)*(360.-2*sTheta)/padParameter[layerID][1];
-  return theta;
-  }
-*/
 
+//_____________________________________________________________________________
 inline Double_t getTheta(Int_t padID)
 {
   padID-=1;
   Int_t layer, row;
   Int_t sum = 0;
 
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
+  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID+1; layer++)
   {
     sum += padParameter[layer][1];
   }
   row = padID - sum;
-  //std::cout<<"layer="<<layer<<", row="<<row<<std::endl;
   Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
-  //Double_t theta = sTheta+(row+0.5)*(360.-2*sTheta)/padParameter[layer][1];
   Double_t theta = sTheta+(row+0.5)*360./padParameter[layer][3]-180;
-  //std::cout<<"theta="<<theta<<std::endl;
 
   return theta;
 }
 
+//_____________________________________________________________________________
 inline Double_t getTheta(Int_t layer, Double_t m_row)
 {
   Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
-  //Double_t theta = sTheta+(row+0.5)*(360.-2*sTheta)/padParameter[layer][1];
   Double_t theta = sTheta+(m_row+0.5)*360./padParameter[layer][3]-180;
-  //std::cout<<"theta="<<theta<<std::endl;
   return theta;
 }
 
+//_____________________________________________________________________________
 inline Double_t getMrow(Int_t layer, Double_t m_phi)
 {
 
@@ -1138,18 +1106,20 @@ inline Double_t getMrow(Int_t layer, Double_t m_phi)
   return mrow;
 }
 
+//_____________________________________________________________________________
 inline Double_t GetRadius(Int_t layer)
 {
   return padParameter[layer][2];
 }
 
+//_____________________________________________________________________________
 inline Double_t getR(Int_t padID)
 {
   padID-=1;
   Int_t layer;
   Int_t sum = 0;
 
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
+  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID+1; layer++)
   {
     sum += padParameter[layer][1];
   }
@@ -1157,13 +1127,14 @@ inline Double_t getR(Int_t padID)
   return R;
 }
 
+//_____________________________________________________________________________
 inline TVector3 getPosition(Int_t padID)
 {
   padID-=1;
   Int_t layer, row;
   Int_t sum = 0;
 
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID; layer++)
+  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID+1; layer++)
   {
     sum += padParameter[layer][1];
   }
@@ -1177,21 +1148,9 @@ inline TVector3 getPosition(Int_t padID)
   }
   else{
     Double_t x, z;
-    //Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
-
-    //    x = padParameter[layer][2] * -sin((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.);
-    //    z = padParameter[layer][2] * -cos((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.) + ZTarget;
-
-    // x = padParameter[layer][2] * sin(getTheta(padID+1)*TMath::Pi()/180.);
-    // z = padParameter[layer][2] * cos(getTheta(padID+1)*TMath::Pi()/180.) + ZTarget;
-    //std::cout<<"layer="<<layer<<", row"<<row<<std::endl;
     x = padParameter[layer][2] * sin(getTheta(layer,row)*TMath::Pi()/180.);
     z = padParameter[layer][2] * cos(getTheta(layer,row)*TMath::Pi()/180.) + ZTarget;
 
-    // Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
-    // Double_t x_ = padParameter[layer][2] * -sin((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.);
-    // Double_t z_ = padParameter[layer][2] * -cos((360./padParameter[layer][3])*TMath::Pi()/180. * (row + 0.5) + sTheta*TMath::Pi()/180.) + ZTarget;
-    //std::cout<<"x="<<x<<", z="<<z<<", x_="<<x_<<", z_="<<z_<<std::endl;
     result.SetX(x);
     result.SetY(0);
     result.SetZ(z);
@@ -1199,6 +1158,7 @@ inline TVector3 getPosition(Int_t padID)
   return result;
 }
 
+//_____________________________________________________________________________
 inline TVector3 getPosition(Int_t layer, Double_t m_row)
 {
   TVector3 result;
@@ -1213,6 +1173,7 @@ inline TVector3 getPosition(Int_t layer, Double_t m_row)
   }
 }
 
+//_____________________________________________________________________________
 inline Int_t findPadID(Double_t z, Double_t x)
 {
   z -= ZTarget;
@@ -1224,23 +1185,15 @@ inline Int_t findPadID(Double_t z, Double_t x)
     else if (x < 0)   angle = 0.5*TMath::Pi();
     else return -1000; // no padID if (0,0)
   }
-  //  else
-  //  {
-  //    if (z < 0 && x < 0) angle = atan(x / z);
-  //    else if (z > 0 && x < 0) angle = TMath::Pi() - atan(-x / z);
-  //    else if (z > 0 && x > 0) angle = TMath::Pi() + atan(x / z);
-  //    else if (z < 0 && x > 0) angle = 2*TMath::Pi() - atan(-x / z);
-  //  }
-//  else if (z < 0) angle = atan(x / z);
-//  else  angle = TMath::Pi() + atan(x / z);
+
   else{
 		if (z > 0) angle = TMath::Pi()+atan(x / z);
 	  else if( z < 0&&x<0) angle = atan(x / z);
 		  else angle = 2*TMath::Pi()+ atan(x / z);//angle of z<0&&x>0 plane should be [1.5Pi,2Pi], not [-0.5Pi , 0].
 	}
-	//cout << " angle: " << angle*180/TMath::Pi() << endl;
 
   Int_t layer, row;
+  
   // find layer_num.
   for (layer = 0; layer<NumOfLayersTPC;layer++)
   {
@@ -1256,21 +1209,14 @@ inline Int_t findPadID(Double_t z, Double_t x)
 		}
 		if(layer==NumOfLayersTPC-1 && rad_out<radius) return -1000;
 	}
-  //cout << " layer: " << layer << endl;
-
+  
   Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
 
-  // find row_num
   if (angle - (sTheta*TMath::Pi()/180.) < 0) return -1000;
 
-  //Double_t a, b, c;
   row = (int)((angle-(sTheta*TMath::Pi()/180.))/(360./padParameter[layer][3]*TMath::Pi()/180.));
   if (row > padParameter[layer][1]) return -1000;
 
-  //cout << " row: " << row << endl;
-  //This is original one
-  //return GetPadId(layer, row)+1;
-  //Please check
   return GetPadId(layer, row);
 }
 
@@ -1288,20 +1234,9 @@ ArcLength(Int_t layer, Double_t row1, Double_t row2)
 
 //_____________________________________________________________________________
 inline void
-InitializeHistograms()
+InitializeHistograms(const TString &name)
 {
-  std::vector<TH2Poly*> target;
-  TList* list = gDirectory->GetList();
-  TIter itr(list);
-  while(itr.Next()){
-    const TString& name((*itr)->GetName());
-    const TString& cname((*itr)->ClassName());
-    std::cout << " " << std::setw(8) << std::left << name
-              << "(" << cname << ")" << std::endl;
-    if(cname.EqualTo("TH2Poly")){
-      target.push_back(dynamic_cast<TH2Poly*>(*itr));
-    }
-  }
+  auto h1 = gDirectory->Get<TH2Poly>(name);
 
   Double_t X[5];
   Double_t Y[5];
@@ -1326,7 +1261,8 @@ InitializeHistograms()
       Y[4] = (cRad-(pLength/2.))*TMath::Sin(j*dTheta+sTheta);
       Y[0] = Y[4];
       for(Int_t ii=0; ii<5; ++ii) X[ii] += ZTarget;
-      for(auto& h: target) h->AddBin(5, X, Y);
+      //for(auto& h: target) h->AddBin(5, X, Y);
+      h1->AddBin(5,X,Y);
     }
   }
 }
@@ -1339,8 +1275,8 @@ IsClusterable(Int_t layer, Int_t row_a, Int_t row_b)
   Int_t deadpads=0;
   for(Int_t row=TMath::Min(row_a, row_b)+1;row<TMath::Max(row_a, row_b);row++){
     Int_t padID = GetPadId(layer, row);
-    if(std::find(std::begin(deadChannel[layer]), std::end(deadChannel[layer]), padID) != std::end(deadChannel[layer])) deadpads++;
-    if(std::find(std::begin(noisypad), std::end(noisypad), padID) != std::end(noisypad)) deadpads++;
+    if(std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel)) deadpads++;
+    
   }
 
   if(layer < 10){
@@ -1357,9 +1293,8 @@ inline Bool_t Dead(Int_t padID){
 
   Bool_t centerframe = std::find(std::begin(padOnCenterFrame), std::end(padOnCenterFrame), padID) != std::end(padOnCenterFrame);
   Int_t layer = getLayerID(padID);
-  Bool_t dead = std::find(std::begin(deadChannel[layer]), std::end(deadChannel[layer]), padID) != std::end(deadChannel[layer]);
-  Bool_t noisy = std::find(std::begin(noisypad), std::end(noisypad), padID) != std::end(noisypad);
-  if(centerframe||dead||noisy) return true;
+  Bool_t dead = std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel);
+  if(centerframe||dead) return true;
   else return false;
 }
 
@@ -1372,74 +1307,79 @@ inline Bool_t Dead(Int_t layer, Int_t row){
 
 
 //Functions for G4 simulation
+//_____________________________________________________________________________
+//E42
 inline Double_t GetClSize1Prob(double mom, int pid, int layer){
-    bool inner = false;
-    if(layer < 10) inner = true;
-    int pidflag = 0;
-    if(abs(pid)<300) pidflag = 0;
-    else pidflag = 1;
-    int mom_flag = (int)(mom/0.1);
-    double prob = 0;
-    if(mom_flag > 9){
-      mom_flag = 9;
-      if(inner){
-        prob = ClusterSizeInner[pidflag][mom_flag];
-      }
-      else{
-        prob = ClusterSizeOuter[pidflag][mom_flag];
-      }
+  bool inner = false;
+  if(layer < 10) inner = true;
+  int pidflag = 0;
+  if(abs(pid)<300) pidflag = 0;
+  else pidflag = 1;
+  int mom_flag = (int)(mom/0.1);
+  double prob = 0;
+  if(mom_flag > 9){
+    mom_flag = 9;
+    if(inner){
+      prob = ClusterSizeInner[pidflag][mom_flag];
     }
     else{
-      double resi = (mom )/0.1 - mom_flag;
-      if(inner){
-        prob = ClusterSizeInner[pidflag][mom_flag]*(1-resi) + ClusterSizeInner[pidflag][mom_flag+1]*resi; 
-      }
-      else{
-        prob = ClusterSizeOuter[pidflag][mom_flag]*(1-resi) + ClusterSizeOuter[pidflag][mom_flag+1]*resi; 
-      }
+      prob = ClusterSizeOuter[pidflag][mom_flag];
     }
-    return prob; 
   }
-  inline Double_t GetDetectionEfficiency(TVector3 pos, Int_t pid, TVector3 mom, Double_t de){
-    Int_t pad = findPadID(pos.z(), pos.x());
-    Int_t layer = getLayerID(pad);
-    Int_t row = getRowID(pad);
-    bool Inner = false;
-    if(layer < 10)Inner = true;
-    int pidflag = 0;// 0 -> pion, 1 -> kaon, 2 -> proton or any other baryons.
-    if(abs(pid)== 211) pidflag = 0;
-    else if(abs(pid)== 321) pidflag = 1;
-    else if(abs(pid)== 2212 or abs(pid)> 3000) pidflag = 2;
-    double eff = 0.;
-    if(Inner){
-      if(pidflag == 0 or pidflag == 1){
-        eff = 1;
-        if(layer>4){
-          eff = 1 - 0.02*(layer-4);
-        }
-      }
-      else if (pidflag == 2){
-        eff = 1;
-      }
+  else{
+    double resi = (mom )/0.1 - mom_flag;
+    if(inner){
+      prob = ClusterSizeInner[pidflag][mom_flag]*(1-resi) + ClusterSizeInner[pidflag][mom_flag+1]*resi; 
     }
-    else {
-      if(pidflag == 0 or pidflag == 1){
-        eff = 1;
-        if(layer > 15 and layer < 29){
-          eff = 1 - 0.1*(layer-15)/13;
-        }
-        else if (layer > 28 and layer < 31){
-          eff = 0.9 - 0.05*(layer-28);
-        }
-        else if(layer > 30){
-          eff = 0.8 + 0.1 *(layer - 30);
-        }
-      }
-      else if (pidflag == 2){
-        eff = 1;
-      }
+    else{
+      prob = ClusterSizeOuter[pidflag][mom_flag]*(1-resi) + ClusterSizeOuter[pidflag][mom_flag+1]*resi; 
     }
-    return eff;
   }
+  return prob; 
+}
+
+//_____________________________________________________________________________
+//E42
+inline Double_t GetDetectionEfficiency(TVector3 pos, Int_t pid, TVector3 mom, Double_t de){
+  Int_t pad = findPadID(pos.z(), pos.x());
+  Int_t layer = getLayerID(pad);
+  Int_t row = getRowID(pad);
+  bool Inner = false;
+  if(layer < 10)Inner = true;
+  int pidflag = 0;// 0 -> pion, 1 -> kaon, 2 -> proton or any other baryons.
+  if(abs(pid)== 211) pidflag = 0;
+  else if(abs(pid)== 321) pidflag = 1;
+  else if(abs(pid)== 2212 or abs(pid)> 3000) pidflag = 2;
+  double eff = 0.;
+  if(Inner){
+    if(pidflag == 0 or pidflag == 1){
+      eff = 1;
+      if(layer>4){
+	eff = 1 - 0.02*(layer-4);
+      }
+    }
+    else if (pidflag == 2){
+      eff = 1;
+    }
+  }
+  else {
+    if(pidflag == 0 or pidflag == 1){
+      eff = 1;
+      if(layer > 15 and layer < 29){
+	eff = 1 - 0.1*(layer-15)/13;
+      }
+      else if (layer > 28 and layer < 31){
+	eff = 0.9 - 0.05*(layer-28);
+      }
+      else if(layer > 30){
+	eff = 0.8 + 0.1 *(layer - 30);
+      }
+    }
+    else if (pidflag == 2){
+      eff = 1;
+    }
+  }
+  return eff;
+}
 }
 #endif
