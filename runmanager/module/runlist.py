@@ -332,6 +332,8 @@ class RunlistManager(metaclass=classimpl.Singleton):
         run['data'] = pdata
         run['nevents'] = self.get_nevents_recorder(
           os.path.dirname(os.path.abspath(pdata)), runno)
+        if 'nevents' in item[1]:
+          run['nevents'] = int(item[1]['nevents'])
       pconf = None
       if os.path.exists(item[1]['conf']):
         if os.path.isfile(item[1]['conf']):
