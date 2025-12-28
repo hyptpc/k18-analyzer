@@ -141,7 +141,7 @@ ProcessNormal()
   rawData.DecodeTPCHits();
 
   HodoAnalyzer hodoAna(rawData);
-  hodoAna.DecodeTPCClock("COBO");
+  hodoAna.DecodeHits("COBO", false);  
 
   HF1("Status", 0);
   for(const auto& hit: rawData.GetHodoRawHC("TriggerFlag")){

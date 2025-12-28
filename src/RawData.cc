@@ -132,9 +132,6 @@ RawData::DecodeHits(const TString& name)
 
   Clear(name);
 
-  if(name == "VFT")
-    return true; // ignore
-
   Bool_t is_hodo  = type.Contains("Hodo", TString::kIgnoreCase);
   Bool_t is_fiber = type.Contains("Fiber", TString::kIgnoreCase);
   Bool_t is_dc    = type.Contains("DC", TString::kIgnoreCase);
@@ -158,11 +155,11 @@ RawData::DecodeHits(const TString& name)
             if(is_hodo)  AddHodoRawHit(name, plane, seg, ch, data, val);
             if(is_fiber) AddFiberRawHit(name, plane, seg, ch, data, val);
             if(is_dc)    AddDCRawHit(name, plane, seg, ch, data, val);
-	    if(is_tpc){
-	      AddTPCRawHit(name, plane, seg, ch, data, val, nullptr);
-	      //Corrected TPC HC before baseline correction
-	      AddTPCRawHit(nameCorTPC, plane, seg, ch, data, val, nullptr);
-	    }
+            if(is_tpc){
+              AddTPCRawHit(name, plane, seg, ch, data, val, nullptr);
+              //Corrected TPC HC before baseline correction
+              AddTPCRawHit(nameCorTPC, plane, seg, ch, data, val, nullptr);
+            }
           }
         }
       }
