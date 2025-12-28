@@ -67,7 +67,7 @@ inline Bool_t
 OpenFile(TFile*& file, const TString& name)
 {
   file = new TFile(name);
-  if(!file || !file->IsOpen()){
+  if(!file || file->IsZombie()){
     std::cerr << "#E failed to open TFile : " << name << std::endl;
     return false;
   }
