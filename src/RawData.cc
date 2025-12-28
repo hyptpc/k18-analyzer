@@ -171,15 +171,6 @@ RawData::DecodeHits(const TString& name)
               << id << " " << name << " " << type <<  " decoded" << std::endl;
 #endif
 
-  // For AC-SUM
-  if(name == "AC"){
-    Double_t suma = 0;
-    for(const auto& hit: GetHodoRawHC(name)){
-      if(hit->SegmentId() != 0) suma += hit->GetAdc();
-    }
-    AddHodoRawHit(name, 0, 0, 0, 0, suma);
-  }
-
   m_is_decoded[name] = true;
   return true;
 }

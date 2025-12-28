@@ -180,7 +180,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
 
   // Hodoscope
   for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
-    if (ihodo == kKVC) continue;
+    if (ihodo == kKVC || ihodo == kCOBO) continue;
     const Char_t* name = NameHodo[ihodo];
     Int_t multi_or = 0;
     Int_t multi_and = 0;
@@ -217,6 +217,33 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Multi_AND%s", name, b), multi_and);
   }
 
+  { ///// HTOF SUM
+    const Char_t* name = "HTOF";
+    Int_t multi_ht = 0;
+    for(const auto& hit: rawData.GetHodoRawHC(name)){
+      auto seg = hit->SegmentId();
+      Bool_t is_good = false;
+      const Char_t* ud_str = "S";
+      for(const auto& t: hit->GetArrayTdcExtra()){
+        if(gUser.IsInRange(Form("%s_TDC", name), t))
+          is_good = true;
+        HF1(Form("%s_TDC_seg%d%s%s", name, seg, ud_str, b), t);
+        }
+      for(const auto& a: hit->GetArrayAdcExtra()){
+        HF1(Form("%s_ADC_seg%d%s%s", name, seg, ud_str, b), a);
+        if(is_good)
+          HF1(Form("%s_AwT_seg%d%s%s", name, seg, ud_str, b), a);
+        else
+          HF1(Form("%s_AwoT_seg%d%s%s", name, seg, ud_str, b), a);
+      }
+      if(is_good){
+        HF1(Form("%s_HitPat_HT%s", name, b), seg);
+        ++multi_ht;
+      }
+    }
+    HF1(Form("%s_Multi_HT%s", name, b), multi_ht);
+  }
+
   { ///// KVC
     const Char_t* name = "KVC";
     Int_t multi_or = 0;
@@ -224,9 +251,9 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     for(const auto& hit: rawData.GetHodoRawHC(name)){
       auto seg = hit->SegmentId();
       Int_t ud_good = 0;
-      const std::vector<TString> ud_str{"a", "b", "c", "d"};
-      for(Int_t ud=0; ud<4; ++ud){
-        Bool_t is_good = false;
+      const std::vector<TString> ud_str{"a", "b", "c", "d", "S"};
+      Bool_t is_good = false;
+      for(Int_t ud=ud_str.size()-1; ud>=0; --ud){
         const auto abcd = ud_str[ud].Data();
         for(const auto& t: hit->GetArrayTdc(ud)){
           if(gUser.IsInRange(Form("%s_TDC", name), t))
@@ -253,6 +280,18 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     }
     HF1(Form("%s_Multi_OR%s", name, b), multi_or);
     HF1(Form("%s_Multi_AND%s", name, b), multi_and);
+  }
+
+  { ///// COBO
+    const Char_t* name = "COBO";
+    for(const auto& hit: rawData.GetHodoRawHC(name)){
+      auto seg = hit->SegmentId();
+      Int_t ud = 0;
+      const auto ud_str = UorD[ud];
+      for(const auto& t: hit->GetArrayTdc(ud)){
+      	HF1(Form("%s_TDC_seg%d%s%s", name, seg, ud_str, b), t);
+      }
+    }
   }
 }
 
@@ -307,35 +346,45 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     }
     HF1(Form("%s_Hit_Multi%s", name, b), multi);
   }
+
   // Hodoscope
   for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
     const Char_t* name = NameHodo[ihodo];
     Int_t multi = 0;
     for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
       const auto& hit = hodoAna.GetHit(name, i);
-      auto seg = hit->SegmentId();
-      auto de = hit->DeltaE();
-      auto ude  = hit->UDeltaE();
-      auto dde  = hit->DDeltaE();
-      HF1(Form("%s_Hit_DeltaE_seg%dU%s", name, seg, b), ude);
-      HF1(Form("%s_Hit_DeltaE_seg%dD%s", name, seg, b), dde);
-      HF1(Form("%s_Hit_DeltaE_seg%d%s", name, seg, b), de);
-      HF2(Form("%s_Hit_DeltaE_vs_HitPat%s", name, b), seg, de);
+      auto n_ch = hit->NumOfChannel();
+      auto seg  = hit->SegmentId();
+      if (ihodo != kSFV && ihodo != kCOBO) {
+        auto de   = hit->DeltaE();
+        auto ude  = hit->UDeltaE();
+        HF1(Form("%s_Hit_DeltaE_seg%dU%s", name, seg, b), ude);
+        HF1(Form("%s_Hit_DeltaE_seg%d%s", name, seg, b), de);
+        HF2(Form("%s_Hit_DeltaE_vs_HitPat%s", name, b), seg, de);
+        if (n_ch > 1) {
+          auto dde  = hit->DDeltaE();
+          HF1(Form("%s_Hit_DeltaE_seg%dD%s", name, seg, b), dde);
+        }
+      }
       Bool_t is_good = false;
       for(Int_t j=0, m=hit->GetEntries(); j<m; ++j){
-        auto tu  = hit->GetTUp(j),   td = hit->GetTDown(j);
-        auto ctu = hit->GetCTUp(j), ctd = hit->GetCTDown(j);
+        auto tu  = hit->GetTUp(j);
+        auto ctu = hit->GetCTUp(j);
         auto mt  = hit->MeanTime(j),cmt = hit->CMeanTime(j);
         HF1(Form("%s_Hit_Time_seg%dU%s", name, seg, b), tu);
-        HF1(Form("%s_Hit_Time_seg%dD%s", name, seg, b), td);
         HF1(Form("%s_Hit_CTime_seg%dU%s", name, seg, b), ctu);
-        HF1(Form("%s_Hit_CTime_seg%dD%s", name, seg, b), ctd);
         HF1(Form("%s_Hit_MeanTime_seg%d%s", name, seg, b), mt);
         HF1(Form("%s_Hit_CMeanTime_seg%d%s", name, seg, b), cmt);
         HF1(Form("%s_Hit_MeanTime%s", name, b), mt);
         HF1(Form("%s_Hit_CMeanTime%s", name, b), cmt);
         HF2(Form("%s_Hit_MeanTime_vs_HitPat%s", name, b), seg, mt);
         HF2(Form("%s_Hit_CMeanTime_vs_HitPat%s", name, b), seg, cmt);
+        if (n_ch > 1) {
+          auto td = hit->GetTDown(j);
+          auto ctd = hit->GetCTDown(j);
+          HF1(Form("%s_Hit_Time_seg%dD%s", name, seg, b), td);
+          HF1(Form("%s_Hit_CTime_seg%dD%s", name, seg, b), ctd);
+        }
         is_good = true;
       }
       if(is_good){
@@ -344,6 +393,31 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
       }
     }
     HF1(Form("%s_Hit_Multi%s", name, b), multi);
+  }
+
+  // HTOF, KVC Sum
+  for (const auto& ihodo: std::vector<Int_t>{kHTOF, kKVC}) {
+    const Char_t* name = NameHodo[ihodo];
+    Int_t multi = 0;
+    for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
+      const auto& hit = hodoAna.GetHit(name, i);
+      auto seg  = hit->SegmentId();
+      auto sde  = hit->ExDeltaE();
+      HF1(Form("%s_Hit_DeltaE_seg%dS%s", name, seg, b), sde);
+      Bool_t is_good = false;
+      for(Int_t j=0, m=hit->GetEntries(HodoRawHit::kExtra); j<m; ++j){
+        auto ts  = hit->GetTExtra(j);
+        auto cts = hit->GetCTExtra(j);
+        HF1(Form("%s_Hit_Time_seg%dS%s", name, seg, b), ts);
+        HF1(Form("%s_Hit_CTime_seg%dS%s", name, seg, b), cts);
+        is_good = true;
+      }
+      if(is_good){
+        HF1(Form("%sSum_Hit_HitPat%s", name, b), seg);
+        ++multi;
+      }
+    }
+    HF1(Form("%sSum_Hit_Multi%s", name, b), multi);
   }
 
   // TOF
@@ -439,6 +513,7 @@ EventAnalyzer::HodoCluster(const HodoAnalyzer& hodoAna,
   const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
   // Hodoscope
   for(Int_t ihodo=kBHT; ihodo<kNumHodo;++ihodo){
+    if (ihodo == kBAC || ihodo == kT1 || ihodo == kSAC3 || ihodo == kSFV || ihodo == kCOBO) continue;
     const Char_t* name = NameHodo[ihodo];
     Int_t multi = 0;
     for(Int_t i=0, n=hodoAna.GetNClusters(name); i<n; ++i){
@@ -515,6 +590,7 @@ EventAnalyzer::DCRawHit(const TString& dcname, const RawData& rawData,
             HF1(Form("%s_%sTDC_plane%d%s", name, c, plane, b), l);
             HF1(Form("%s_%sTrailing_plane%d%s", name, c, plane, b), t);
             HF1(Form("%s_%sTOT_plane%d%s", name, c, plane, b), tot);
+            HF2(Form("%s_%sTOT_vs_TDC_plane%d%s", name, c, plane, b), l, tot);
             HF2(Form("%s_%sTDC_vs_HitPat_plane%d%s", name, c, plane, b), wire, l);
             HF2(Form("%s_%sTrailing_vs_HitPat_plane%d%s", name, c, plane, b), wire, t);
             HF2(Form("%s_%sTOT_vs_HitPat_plane%d%s", name, c, plane, b), wire, tot);
@@ -583,8 +659,10 @@ EventAnalyzer::DCHit(const TString& dcname, const DCAnalyzer& dcAna,
           if(!hit->IsGood(j)) continue;
           auto dt = hit->GetDriftTime(j);
           auto dl = hit->GetDriftLength(j);
+          auto tot = hit->GetTot(j);
           HF1(Form("%s_Hit_DriftTime_plane%d%s", name, plane, b), dt);
           HF1(Form("%s_Hit_DriftLength_plane%d%s", name, plane, b), dl);
+          HF2(Form("%s_Hit_TOT_vs_DriftTime_plane%d%s", name, plane, b), dt, tot);
           HF2(Form("%s_Hit_DriftTime_vs_HitPat_plane%d%s", name, plane, b), wire, dt);
           HF2(Form("%s_Hit_DriftLength_vs_HitPat_plane%d%s", name, plane, b), wire, dl);
           is_good = true;

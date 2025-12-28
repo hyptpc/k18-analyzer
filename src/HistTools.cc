@@ -33,9 +33,11 @@ namespace root
 namespace hist
 {
 // Raw
-const Double_t hrtdcbins1[3] = {20000, 600000, 800000};
-const Double_t hrtdcbins2[3] = {50000, 0, 1000000}; // for CVC, NC
+const Double_t hrtdcbins1[3] = {20000,  600000,  800000};
+const Double_t hrtdcbins2[3] = {20000,  200000,  600000}; // for FTOF
 const Double_t hrtdcbins3[3] = {20000, 1200000, 1600000}; // for BHT
+const Double_t hrtdcbins4[3] = {10000, 1500000, 1650000}; // for COBO
+const Double_t hrtdcbins5[3] = {10000,       0, 2000000}; // TriggerFlag
 const Double_t hrtotbins[3] = {5000, 0, 50000};
 const Double_t adcbins[3] = {4096, -0.5, 4095.5};
 const Double_t mhtdcbins[3] = {2000, 0, 2000};
@@ -60,7 +62,7 @@ BuildTriggerFlag()
   const Char_t* name = "TriggerFlag";
   Double_t patbins[3] = {NumOfSegTrigFlag, -0.5, NumOfSegTrigFlag-0.5};
   for(Int_t i=0; i<NumOfSegTrigFlag; ++i){
-    HB1(Form("%s_TDC_seg%d", name, i), mhtdcbins);
+    HB1(Form("%s_TDC_seg%d", name, i), hrtdcbins5);
   }
   HB1(Form("%s_HitPat; Segment; Counts", name), patbins);
   auto h1 = HB1("BeamFlag", beam::kBeamFlag, -0.5, beam::kBeamFlag - 0.5);
@@ -117,12 +119,13 @@ BuildHodoRaw(Bool_t flag_beam_particle)
     for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
       auto name = NameHodo[ihodo].Data();
       const Double_t* hrtdcbins;
-      // if(NameHodo[ihodo].Contains("CVC") ||
-      //    NameHodo[ihodo].Contains("NC")){
-      //   hrtdcbins = hrtdcbins2;
-      // }else{
+      if ( ihodo == kCOBO ) {
+        hrtdcbins = hrtdcbins4;
+      } else if ( ihodo == kCVC || ihodo == kSFV || ihodo == kSAC3 ) {
+        hrtdcbins = hrtdcbins2;
+      } else {
         hrtdcbins = hrtdcbins1;
-      // }
+      }
       Int_t nseg = NumOfSegHodo[ihodo];
       for(const auto& uord: std::vector<TString>{"U", "D"}){
         auto ud = uord.Data();
@@ -140,11 +143,28 @@ BuildHodoRaw(Bool_t flag_beam_particle)
       }
     }
 
+    { ///// HTOF
+      auto name = "HTOF";
+      const Double_t* hrtdcbins = hrtdcbins1;
+      Int_t nseg = NumOfSegHTOF;
+      for(const auto& uord: std::vector<TString>{"S"}){
+        auto ud = uord.Data();
+        for(Int_t i=0; i<nseg; ++i){
+          HB1(Form("%s_ADC_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
+          HB1(Form("%s_AwT_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
+          HB1(Form("%s_AwoT_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
+          HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins);
+        }
+      }
+      HB1(Form("%s_HitPat_HT%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
+      HB1(Form("%s_Multi_HT%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
+    }
+
     { ///// KVC
       auto name = "KVC";
       const Double_t* hrtdcbins = hrtdcbins1;
       Int_t nseg = NumOfSegKVC;
-      for(const auto& uord: std::vector<TString>{"a", "b", "c", "d"}){
+      for(const auto& uord: std::vector<TString>{"a", "b", "c", "d", "S"}){
         auto ud = uord.Data();
         for(Int_t i=0; i<nseg; ++i){
           HB1(Form("%s_ADC_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
@@ -226,6 +246,25 @@ BuildHodoHit(Bool_t flag_beam_particle)
       HB1(Form("%s_Hit_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
       HB1(Form("%s_Hit_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
     }
+
+    // HTOF, KVC Sum
+    for (const auto& ihodo: std::vector<Int_t>{kHTOF, kKVC}) {
+      auto name = NameHodo[ihodo].Data();
+      Double_t nseg = NumOfSegHodo[ihodo];
+      for(Int_t i=0; i<nseg; ++i){
+        const Char_t* ud = "S";
+        HB1(Form("%s_Hit_DeltaE_seg%d%s%s; mip; count", name, i, ud, b), debins);
+        HB1(Form("%s_Hit_Time_seg%d%s%s; ns; count", name, i, ud, b), hrtimebins);
+        HB1(Form("%s_Hit_CTime_seg%d%s%s; ns; count", name, i, ud, b), hrtimebins);
+      }
+      const Double_t hrtimebins2d[6] = { nseg, -0.5, nseg - 0.5,
+        hrtimebins[0]/10, hrtimebins[1], hrtimebins[2] };
+      const Double_t debins2d[6] = { nseg, -0.5, nseg - 0.5,
+        debins[0]/10, debins[1], debins[2] };
+      HB1(Form("%sSum_Hit_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
+      HB1(Form("%sSum_Hit_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
+    }
+
     // TOF
     {
       const Double_t phcbins2d[6] = { 100, -0.5, 4.5, 100, -10., 10. };
@@ -316,6 +355,7 @@ BuildHodoCluster(Bool_t flag_beam_particle)
     }
     // Hodoscope
     for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
+      if (ihodo == kBAC || ihodo == kT1 || ihodo == kSAC3 || ihodo == kSFV || ihodo == kCOBO) continue;
       auto name = NameHodo[ihodo].Data();
       Double_t nseg = NumOfSegHodo[ihodo];
       const Double_t hrtimebins2d[6] = { nseg, -0.5, nseg - 0.5,
@@ -367,6 +407,9 @@ BuildDCRaw(const TString& dcname, Bool_t flag_beam_particle)
         mhtdcbins[0], mhtdcbins[1], mhtdcbins[2] };
       const Double_t totbins2d[6] = {nwire, -0.5, nwire - 0.5,
         mhtotbins[0], mhtotbins[1], mhtotbins[2] };
+      const Double_t tdctotbins2d[6] = {
+        mhtdcbins[0], mhtdcbins[1], mhtdcbins[2],
+        mhtotbins[0], mhtotbins[1], mhtotbins[2] };
       for(Int_t plane=0; plane<nplane; ++plane){
         for(const auto& totcut: std::vector<TString>{"", "C"}){
           auto c = totcut.Data();
@@ -378,6 +421,7 @@ BuildDCRaw(const TString& dcname, Bool_t flag_beam_particle)
           HB1(Form("%s_%sTOT1st_plane%d%s; channel; count", name, c, plane, b), mhtotbins);
           HB1(Form("%s_%sHitPat_plane%d%s; wire; count", name, c, plane, b), patbins);
           HB1(Form("%s_%sMulti_plane%d%s; multiplicity; count", name, c, plane, b), mulbins);
+          HB2(Form("%s_%sTOT_vs_TDC_plane%d%s; segment; channel", name, c, plane, b), tdctotbins2d);
           HB2(Form("%s_%sTDC_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
           HB2(Form("%s_%sTDC1st_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
           HB2(Form("%s_%sTrailing_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
@@ -413,9 +457,13 @@ BuildDCHit(const TString& dcname, Bool_t flag_beam_particle)
         dtbins[0], dtbins[1], dtbins[2] };
       const Double_t dlbins2d[6] = {nwire, -0.5, nwire - 0.5,
         dlbins[0], dlbins[1], dlbins[2] };
+      const Double_t dttotbins2d[6] = {
+        dtbins[0], dtbins[1], dtbins[2],
+        mhtotbins[0], mhtotbins[1], mhtotbins[2] };
       for(Int_t plane=0; plane<nplane; ++plane){
         HB1(Form("%s_Hit_DriftTime_plane%d%s; ns; count", name, plane, b), dtbins);
         HB1(Form("%s_Hit_DriftLength_plane%d%s; mm; count", name, plane, b), dlbins);
+        HB2(Form("%s_Hit_TOT_vs_DriftTime_plane%d%s; segment; ns", name, plane, b), dttotbins2d);
         HB2(Form("%s_Hit_DriftTime_vs_HitPat_plane%d%s; segment; ns", name, plane, b), dtbins2d);
         HB2(Form("%s_Hit_DriftLength_vs_HitPat_plane%d%s; segment; mm", name, plane, b), dlbins2d);
         HB1(Form("%s_Hit_HitPat_plane%d%s; wire; count", name, plane, b), patbins);
