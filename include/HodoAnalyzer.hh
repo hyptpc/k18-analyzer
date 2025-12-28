@@ -44,7 +44,7 @@ private:
 
 public:
   template <typename T=HodoHit>
-  Bool_t DecodeHits(const TString& name, Double_t max_time_diff=10.);
+  Bool_t DecodeHits(const TString& name, Bool_t makeCluster = true);
 
   const HodoHC& GetHitContainer(const TString& name) const;
   const HodoCC& GetClusterContainer(const TString& name) const;
@@ -142,7 +142,7 @@ HodoAnalyzer::ClassName()
 //_____________________________________________________________________________
 template <typename T>
 inline Bool_t
-HodoAnalyzer::DecodeHits(const TString& name, Double_t max_time_diff)
+HodoAnalyzer::DecodeHits(const TString& name, Bool_t makeCluster)
 {
   std::vector<T*> CandCont;
   for(auto& rhit: m_raw_data->GetHodoRawHitContainer(name)){
@@ -164,13 +164,13 @@ HodoAnalyzer::DecodeHits(const TString& name, Double_t max_time_diff)
   for(const auto& hit: CandCont)
     cont.push_back(hit);
 
-#if 1
-  static const auto& gUser = UserParamMan::GetInstance();
-  const auto MaxClusterSize = gUser.Get("MaxClusterSize"+name);
-  const auto MaxTimeDiff    = gUser.Get("MaxTimeDiff"+name);
-  MakeUpClusters<T>(CandCont, m_hodo_cluster_collection[name],
-                    MaxClusterSize, MaxTimeDiff);
-#endif
+  if(makeCluster){
+    static const auto& gUser = UserParamMan::GetInstance();
+    const auto MaxClusterSize = gUser.Get("MaxClusterSize"+name);
+    const auto MaxTimeDiff    = gUser.Get("MaxTimeDiff"+name);
+    MakeUpClusters<T>(CandCont, m_hodo_cluster_collection[name],
+                      MaxClusterSize, MaxTimeDiff);
+  }
 
   return true;
 }

@@ -349,6 +349,7 @@ BuildHodoCluster(Bool_t flag_beam_particle)
     }
     // Hodoscope
     for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
+      if (ihodo == kBAC || ihodo == kT1 || ihodo == kSAC3 || ihodo == kSFV || ihodo == kCOBO) continue;
       auto name = NameHodo[ihodo].Data();
       Double_t nseg = NumOfSegHodo[ihodo];
       const Double_t hrtimebins2d[6] = { nseg, -0.5, nseg - 0.5,

@@ -289,7 +289,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       Int_t ud = 0;
       const auto ud_str = UorD[ud];
       for(const auto& t: hit->GetArrayTdc(ud)){
-	HF1(Form("%s_TDC_seg%d%s%s", name, seg, ud_str, b), t);
+      	HF1(Form("%s_TDC_seg%d%s%s", name, seg, ud_str, b), t);
       }
     }
   }
@@ -513,6 +513,7 @@ EventAnalyzer::HodoCluster(const HodoAnalyzer& hodoAna,
   const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
   // Hodoscope
   for(Int_t ihodo=kBHT; ihodo<kNumHodo;++ihodo){
+    if (ihodo == kBAC || ihodo == kT1 || ihodo == kSAC3 || ihodo == kSFV || ihodo == kCOBO) continue;
     const Char_t* name = NameHodo[ihodo];
     Int_t multi = 0;
     for(Int_t i=0, n=hodoAna.GetNClusters(name); i<n; ++i){

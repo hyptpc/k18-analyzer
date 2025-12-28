@@ -143,16 +143,17 @@ ProcessNormal()
   RawData rawData;
   rawData.DecodeHits();
 
+  // hodoAna.DecodeHits<T>(name, makeCluster = true);
   HodoAnalyzer hodoAna(rawData);
   hodoAna.DecodeHits<FiberHit>("BHT");
   hodoAna.DecodeHits<BH2Hit>("BH2");
-  hodoAna.DecodeHits("BAC");
+  hodoAna.DecodeHits("BAC", false);
   hodoAna.DecodeHits("HTOF");
   hodoAna.DecodeHits("KVC");
-  hodoAna.DecodeHits("T1");
+  hodoAna.DecodeHits("T1", false);
   hodoAna.DecodeHits("CVC");
-  hodoAna.DecodeHits("SAC3");
-  hodoAna.DecodeHits("SFV");
+  hodoAna.DecodeHits("SAC3", false);
+  hodoAna.DecodeHits("SFV", false);
 
   EventAnalyzer evAna;
 
