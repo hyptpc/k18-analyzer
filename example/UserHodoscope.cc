@@ -141,8 +141,11 @@ ProcessNormal()
   using root::HF1;
 
   RawData rawData;
-  rawData.DecodeHits();
-
+  for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
+    auto n = NameHodo[ihodo];
+    rawData.DecodeHits(n);
+  }
+  
   // hodoAna.DecodeHits<T>(name, makeCluster = true);
   HodoAnalyzer hodoAna(rawData);
   hodoAna.DecodeHits<FiberHit>("BHT");
@@ -193,7 +196,7 @@ ProcessNormal()
     trailing_d["BHT"].push_back(hit->GetArrayTdcTrailing(1));
   }
   
-  for(Int_t ihodo=kBH2; ihodo<kNumHodo + 1; ++ihodo){
+  for(Int_t ihodo=kBH2; ihodo<kNumHodo; ++ihodo){
     if (ihodo == kKVC) continue;
     auto n = NameHodo[ihodo];
     for(const auto& hit: rawData.GetHodoRawHC(n)){      
