@@ -3,6 +3,7 @@
 #ifndef DETECTOR_ID_HH
 #define DETECTOR_ID_HH
 
+#include <initializer_list>
 #include <iostream>
 #include <map>
 #include <set>
@@ -12,13 +13,13 @@
 
 static const Char_t* const UorD[2] = {"U", "D"};
 
-const std::map<TString, std::vector<TString>> DCNameList =
+inline const std::map<TString, std::vector<TString>> DCNameList =
 {
   {"BcIn", { "BLC1a", "BLC1b" }},
   {"BcOut", { "BLC2a", "BLC2b" }},
 };
 
-// Counters ___________________________________________________________
+// __ Counters ___________________________________________________________
 const Int_t DetIdBHT  =  1;
 const Int_t DetIdT0   =  2;
 const Int_t DetIdBH2  =  3;
@@ -62,7 +63,7 @@ const Int_t DetIdHodo[kNumHodo] = {
   DetIdCOBO,
 };
 
-const std::vector<TString> NameHodo = {
+inline const std::vector<TString> NameHodo = {
   "BHT", "BH2", "BAC",
   "HTOF", "KVC", "T1",
   "CVC", "SAC3", "SFV",
@@ -76,7 +77,42 @@ const Double_t NumOfSegHodo[kNumHodo] = {
   NumOfSegCOBO
 };
 
-// Chambers
+enum class HodoGroup : UInt_t { 
+  None           = 0,
+  NoADC          = 1u << 0,
+  NoCluster      = 1u << 1,
+  OneSideReadout = 1u << 2,
+  Cherenkov      = 1u << 3,
+};
+
+constexpr Bool_t HasHodoGroup(UInt_t mask, HodoGroup g)
+{
+  return (mask & static_cast<UInt_t>(g)) != 0;
+}
+
+constexpr UInt_t MakeHodoMask(std::initializer_list<HodoGroup> gArray)
+{
+  UInt_t m = 0;
+  for (auto g : gArray)
+    m |= static_cast<UInt_t>(g);
+  return m;
+}
+
+inline constexpr UInt_t HodoGroupMask[kNumHodo] = {
+  0, // kBHT
+  0, // kBH2
+  MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout, HodoGroup::Cherenkov}), // kBAC
+  0, // kHTOF
+  MakeHodoMask({HodoGroup::Cherenkov}), // kKVC
+  MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout}), // kT1
+  0, // kCVC
+  MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout, HodoGroup::Cherenkov}), // kSAC3
+  MakeHodoMask({HodoGroup::NoADC, HodoGroup::NoCluster, HodoGroup::OneSideReadout}), // kSFV
+  MakeHodoMask({HodoGroup::NoADC, HodoGroup::NoCluster, HodoGroup::OneSideReadout}), // kCOBO
+};
+
+
+// __ Chambers ___________________________________________________________
 const Int_t DetIdCDC    = 100;
 const Int_t DetIdBLC1a  = 101;
 const Int_t DetIdBLC1b  = 102;
