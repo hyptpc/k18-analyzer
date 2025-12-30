@@ -105,43 +105,6 @@ const Int_t DetIdDC[kNumDC] = {
   DetIdBLC1, DetIdBLC2, DetIdBPC0
 };
 
-// Hall etc.
-const int DetIdHall       	= 200;
-const int DetIdFloor		= 201;
-// const int DetIdBeamDump		= 110;
-// const int DetIdSideDump		= 111;
-// const int DetIdNShield		= 112;
-// const int DetIdSideCon		= 113;
-// const int DetIdDoorCon		= 114;
-// const int DetIdDumpCon		= 115;
-const int DetIdDoraemon		= 220;
-// const int DetIdUSWK		= 121;
-// const int DetIdCDSBobbin	= 125;
-// const int DetIdCDSCoil		= 126;
-const int DetIdCDCCFRP		= 230;
-const int DetIdCDCMylar		= 231;
-// const int DetIdCDCEndCap	= 132;
-// Target etc.
-const int DetIdTarSys		= 240;
-const int DetIdRadS		= 241;
-const int DetIdTarCFRP		= 242;
-const int DetIdTarCap		= 243;
-const int DetIdTarRing		= 244;
-// const int DetIdTarChm		= 145;
-// const int DetIdBeamWindow	= 146;
-// const int DetIdScatWindow	= 147;
-// const int DetIdMagShield	= 148;
-
-const int DetIdTarCell		= 250;
-const int DetIdTarget		= 251;
-const int DetIdCellTube		= 252;
-const int DetIdCellFlange	= 253;
-// const int DetIdBShield		= 154;
-// const int DetIdCellWindow	= 154;
-// const int DetIdBFrange		= 155;
-// const int DetIdCellRing		= 156;
-const int DetIdFiducial		= 260;
-
 const int NumOfPlaneVmeRm=3;
 
 namespace beam
@@ -164,28 +127,7 @@ enum ETriggerFlag {
   kProtonTrig, kDeuteron=kProtonTrig, //15
   kNumTrig
 };
-
 }
-
-// enum eTriggerFlag
-//   {
-//     kSpillStart =  1,
-//     kSpillEnd   =  2,
-//     kBeam1      =  3,
-//     kBeam2      =  4,
-//     kBeam_f     =  5,
-//     kPion       =  6,
-//     kPion_f     =  7,
-//     kKaon1      =  8,
-//     kKaon2      =  9,
-//     kKaon3      =  10,
-//     kKaon1_f       = 11,
-//     kKaon2_f       = 12,
-//     kKaonStart     = 13,
-//     kKaonStartStop = 14,
-//     kStartStop     = 15,
-//     kMisc          = 16
-//   };
 
 // for compatibility
 const Int_t LayerMinBcIn        =   1;
