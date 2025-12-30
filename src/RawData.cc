@@ -391,7 +391,11 @@ RawData::AddHodoRawHit(const TString& name, Int_t plane, Int_t seg,
   if(data == gUnpacker.get_data_id(name, "adc")){
     p->SetAdc(ch, val);
   }else if(data == gUnpacker.get_data_id(name, "leading")){
-    p->SetTdcLeading(ch, val);
+    if (name != "COBO") {
+      p->SetTdcLeading(ch, val);
+    } else if ( TMath::IsNaN(p->GetTdcLeading(ch, 0)) && gUser.IsInRange("COBO_TDC", val)) {
+      p->SetTdcLeading(ch, val);
+    }
   }else if(data == gUnpacker.get_data_id(name, "trailing")){
     p->SetTdcTrailing(ch, val);
   // }else if(data == gUnpacker.get_data_id(name, "cstop")){
