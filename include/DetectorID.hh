@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <map>
+#include <set>
 
 #include <Rtypes.h>
 #include <TString.h>
@@ -42,9 +43,9 @@ const Int_t NumOfSegSAC3 =  1;
 const Int_t NumOfSegSFV  =  1;
 const Int_t NumOfSegCOBO =  8;
 
-const int DetIdVmeRm     =  81;
-const int DetIdScaler    =  91;
-const int DetIdTrigFlag  =  99;
+const Int_t DetIdVmeRm     =  81;
+const Int_t DetIdScaler    =  91;
+const Int_t DetIdTrigFlag  =  99;
 const Int_t NumOfSegTrigFlag = 32;
 
 enum EHodoscope {
@@ -68,7 +69,7 @@ const std::vector<TString> NameHodo = {
   "COBO"
 };
 
-const double  NumOfSegHodo[kNumHodo] = {
+const Double_t NumOfSegHodo[kNumHodo] = {
   NumOfSegBHT, NumOfSegBH2, NumOfSegBAC,
   NumOfSegHTOF, NumOfSegKVC, NumOfSegT1,
   NumOfSegCVC, NumOfSegSAC3, NumOfSegSFV,
@@ -76,20 +77,20 @@ const double  NumOfSegHodo[kNumHodo] = {
 };
 
 // Chambers
-const int DetIdCDC    = 100;
-const int DetIdBLC1a  = 101;
-const int DetIdBLC1b  = 102;
-const int DetIdBLC2a  = 103;
-const int DetIdBLC2b  = 104;
-const int DetIdBPC    = 105;
-const int DetIdBPC2   = 105;
-const int DetIdBPC1   = 106;
-const int DetIdBPCmini= 106;
-const int DetIdSDC    = 106;
-const int DetIdFDC    = 107;
-const int DetIdBLC1   = 111;
-const int DetIdBLC2   = 112;
-const int DetIdBPC0   = 113;
+const Int_t DetIdCDC    = 100;
+const Int_t DetIdBLC1a  = 101;
+const Int_t DetIdBLC1b  = 102;
+const Int_t DetIdBLC2a  = 103;
+const Int_t DetIdBLC2b  = 104;
+const Int_t DetIdBPC    = 105;
+const Int_t DetIdBPC2   = 105;
+const Int_t DetIdBPC1   = 106;
+const Int_t DetIdBPCmini= 106;
+const Int_t DetIdSDC    = 106;
+const Int_t DetIdFDC    = 107;
+const Int_t DetIdBLC1   = 111;
+const Int_t DetIdBLC2   = 112;
+const Int_t DetIdBPC0   = 113;
 
 enum EDC {
   kBLC1a, kBLC1b, kBLC2a, kBLC2b,
@@ -105,7 +106,7 @@ const Int_t DetIdDC[kNumDC] = {
   DetIdBLC1, DetIdBLC2, DetIdBPC0
 };
 
-const int NumOfPlaneVmeRm=3;
+const Int_t NumOfPlaneVmeRm=3;
 
 namespace beam
 {
