@@ -127,7 +127,6 @@ ProcessNormal()
   evAna.BcOutTracking(dcAna);
   evAna.BcOutTracking(dcAna, event.beam_flag);
 
-#if 0
   for(const auto& track : dcAna.GetBcOutTrackContainer()){
     track->Print();
     event.ntrack++;
@@ -137,7 +136,6 @@ ProcessNormal()
     event.u0.push_back(track->GetU0());
     event.v0.push_back(track->GetV0());
   }
-#endif
 
   return true;
 }

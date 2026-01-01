@@ -25,7 +25,7 @@ ROOT.gStyle.SetOptStat(1110)
 c1 = None
 beamflag = ['', '_Pi', '_K']
 beamcolor = [ROOT.kBlack, ROOT.kRed+2, ROOT.kBlue+2]
-beamflag_for_param = beamflag[1]
+beamflag_for_param = beamflag[2]
 
 #______________________________________________________________________________
 def update_canvas(divisions=None):
@@ -167,7 +167,7 @@ def run(run_list, target):
   proc_list = list()
   for run_info in runlist_manager.get_run_list():
     proc = mp.Process(target=target, args=(run_info,),
-                      name=f'[{run_info["key"]:05d}]')
+                      name=f'[{run_info["key"]}]')
     proc.start()
     proc_list.append(proc)
   try:
