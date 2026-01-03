@@ -145,7 +145,7 @@ ProcessNormal()
   TPCrawData.DecodeTPCHits();
 
   HodoAnalyzer hodoAna(rawData);
-  hodoAna.DecodeHits("COBO", false);  
+  hodoAna.DecodeHits("COBO", !HasHodoGroup(HodoGroupMask[kCOBO], HodoGroup::NoCluster));  
 
   HF1("Status", 0);
   for(const auto& hit: rawData.GetHodoRawHC("TriggerFlag")){
@@ -172,8 +172,8 @@ ProcessNormal()
     static const TString n("COBO");
     for(const auto& hit: rawData.GetHodoRawHC(n)){
       for(const auto& tdc: hit->GetArrayTdc()){
-	//hit->Print();
-	HF1("TPC_Clock_TDC", tdc);
+        //hit->Print();
+        HF1("TPC_Clock_TDC", tdc);
       }
     }
 
@@ -212,18 +212,18 @@ ProcessNormal()
       auto gate_open_max_adc = rhit->MaxAdc(0,MinTimeBucket);
       auto noise_rms = rhit->RMS(MinTimeBucket,MaxTimeBucket);
 
-      bool IsNoise = false;
+      Bool_t IsNoise = false;
       auto fadc = rhit->Fadc();
-      if(gate_open_max_adc > 600 && noise_rms <30)IsNoise = true;
+      if(gate_open_max_adc > 600 && noise_rms <30) IsNoise = true;
       for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-	HF2("TPC_FADC_Before", tb, fadc.at(tb));
-	if(IsNoise){
-	  HF2("TPC_FADC_noise",tb,fadc.at(tb));
-	}
+        HF2("TPC_FADC_Before", tb, fadc.at(tb));
+        if(IsNoise){
+          HF2("TPC_FADC_noise",tb,fadc.at(tb));
+        }
       }
       if(IsNoise){
-	double bincont = HG2Poly("TPC_HitPat_noise",padid);
-	HF2Poly("TPC_HitPat_noise",padid+1,bincont+1.);
+        Double_t bincont = HG2Poly("TPC_HitPat_noise",padid);
+        HF2Poly("TPC_HitPat_noise",padid+1,bincont+1.);
       }
     }
   }
@@ -271,7 +271,7 @@ ProcessNormal()
       // 2D FADC waveform after correction
       auto fadc = rhit->Fadc();
       for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-	HF2("TPC_FADC_After", tb, fadc.at(tb));
+      	HF2("TPC_FADC_After", tb, fadc.at(tb));
       }
     }
   }
@@ -308,11 +308,11 @@ ProcessNormal()
       Int_t nhit = hit->GetNHits();
       Bool_t good_for_analysis = false;
       for(Int_t i=0; i<nhit; ++i){
-	Double_t cde = hit->GetCDe(i);
-	Double_t de = hit->GetDe(i);
+        Double_t cde = hit->GetCDe(i);
+        Double_t de = hit->GetDe(i);
         Double_t time = hit->GetTime(i);
         Double_t chisqr = hit->GetChisqr(i);
-	Double_t ctime = hit->GetCTime(i);
+      	Double_t ctime = hit->GetCTime(i);
         Double_t dl = hit->GetDriftLength(i);
         Double_t sigma = hit->GetSigma(i);
         layerTpc.push_back(layer);
@@ -320,33 +320,33 @@ ProcessNormal()
         padTpc.push_back(pad);
         pedTpc.push_back(ped);
         rmsTpc.push_back(rms);
-	rawrmsTpc.push_back(rawrms);
+      	rawrmsTpc.push_back(rawrms);
         deTpc.push_back(de);
         tTpc.push_back(time);
         chisqrTpc.push_back(chisqr);
         cdeTpc.push_back(cde);
         ctTpc.push_back(ctime);
         dlTpc.push_back(dl);
-	sigmaTpc.push_back(sigma);
+      	sigmaTpc.push_back(sigma);
 
-	HF1("TPC_DeltaE", de);
-	HF1("TPC_Time", time);
-	HF1("TPC_Chisqr", chisqr);
-	HF1("TPC_CDeltaE", cde);
-	HF1("TPC_CTime", ctime);
-	HF1("TPC_DriftLength", dl);
-	HF1("TPC_sigma", sigma);
-	HF2("TPC_sigma%%de", de, sigma);
-	HF2("TPC_time%%de", de, time);
+        HF1("TPC_DeltaE", de);
+        HF1("TPC_Time", time);
+        HF1("TPC_Chisqr", chisqr);
+        HF1("TPC_CDeltaE", cde);
+        HF1("TPC_CTime", ctime);
+        HF1("TPC_DriftLength", dl);
+        HF1("TPC_sigma", sigma);
+        HF2("TPC_sigma%%de", de, sigma);
+        HF2("TPC_time%%de", de, time);
 
-	good_for_analysis = true;
+        good_for_analysis = true;
         ++nhTpc;
       }
       if(good_for_analysis){
-	auto fadc = hit->GetRawHit()->Fadc();
-	for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-	  HF2("TPC_FADC_Good", tb, fadc.at(tb));
-	}
+        auto fadc = hit->GetRawHit()->Fadc();
+        for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
+          HF2("TPC_FADC_Good", tb, fadc.at(tb));
+        }
       }
     }
   }
@@ -374,7 +374,6 @@ ConfMan::InitializeHistograms()
   hist::BuildTriggerFlag();
   hist::BuildTPCHit();
   
-
   tree = new TTree("tpc", "tree of TPCHit");
   tree->Branch("run_number", &run_number);
   tree->Branch("event_number", &event_number);
