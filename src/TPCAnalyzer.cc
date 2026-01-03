@@ -201,7 +201,7 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
 			   const std::vector<Int_t>& pad,
 			   const std::vector<Double_t>& time,
 			   const std::vector<Double_t>& de,
-			   const std::vector<Double_t> clock)
+			   const std::vector<Double_t>& clock)
 {
   if(m_is_decoded[kTPC]){
     hddaq::cerr << FUNC_NAME << " already decoded" << std::endl;

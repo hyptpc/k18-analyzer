@@ -99,7 +99,7 @@ public:
                        const std::vector<Int_t>& pad,
                        const std::vector<Double_t>& time,
                        const std::vector<Double_t>& de,
-                       const std::vector<Double_t> clock);
+                       const std::vector<Double_t>& clock);
   Bool_t ReCalcTPCTracks(const Int_t ntracks,
 			 const std::vector<Int_t>& nhits,
 			 const std::vector<Double_t>& x0,
