@@ -11,6 +11,7 @@
 #include "DetectorID.hh"
 
 class RawData;
+class TPCRawData;
 class TPCHit;
 class TPCCluster;
 class TPCLocalTrack;
@@ -93,7 +94,7 @@ public:
 
   //For the real data analysis
   //TPC Hit&Cluster
-  Bool_t DecodeTPCHits(RawData &rawData, const std::vector<Double_t> clock);
+  Bool_t DecodeTPCHits(TPCRawData &TPCrawData, const std::vector<Double_t> clock);
   Bool_t ReCalcTPCHits(const Int_t nhits,
                        const std::vector<Int_t>& pad,
                        const std::vector<Double_t>& time,

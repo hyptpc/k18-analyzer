@@ -21,6 +21,7 @@
 #include "UserParamMan.hh"
 #include "XTMapMan.hh"
 #include "RawData.hh"
+#include "TPCRawData.hh"
 #include "HistTools.hh"
 #include "UnpackerManager.hh"
 #include "TPCAnalyzer.hh"
@@ -53,6 +54,7 @@ Int_t nhTpc;     // number of hits
 
 Int_t browTpc;
 Int_t blayerTpc;
+Int_t bpadTpc; 
 Double_t brmsTpc;//Baseline RMS;
 // vector (size=nhTpc)
 std::vector<Int_t>    layerTpc;  // layer id
@@ -138,7 +140,9 @@ ProcessNormal()
   rawData.DecodeHits("HTOF");
   rawData.DecodeHits("COBO");
   rawData.DecodeHits("TriggerFlag");
-  rawData.DecodeTPCHits();
+
+  TPCRawData TPCrawData;
+  TPCrawData.DecodeTPCHits();
 
   HodoAnalyzer hodoAna(rawData);
   hodoAna.DecodeHits("COBO", false);  
@@ -189,7 +193,7 @@ ProcessNormal()
   static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
   static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    auto hc = rawData.GetTPCRawHits(layer);
+    auto hc = TPCrawData.GetTPCRawHits(layer);
     for(const auto& rhit : hc){
       auto mean    = rhit->Mean(0, NumOfTimeBucket);
       auto max_adc = rhit->MaxAdc(0, NumOfTimeBucket);
@@ -219,7 +223,7 @@ ProcessNormal()
       }
       if(IsNoise){
 	double bincont = HG2Poly("TPC_HitPat_noise",padid);
-	HF2Poly("TPC_HitPat_noise",padid,bincont+1.);
+	HF2Poly("TPC_HitPat_noise",padid+1,bincont+1.);
       }
     }
   }
@@ -228,12 +232,14 @@ ProcessNormal()
 
   //________________________________________________________
   //___ TPCRawHit after baseline correction
-  auto baseline = rawData.GetBaselineTPC();
+  auto baseline = TPCrawData.GetBaselineTPC();
   if(baseline){
     browTpc = baseline->RowId();
     blayerTpc = baseline->LayerId();
     brmsTpc = baseline->RMS(0, NumOfTimeBucket);
+    bpadTpc = tpc::GetPadId(blayerTpc, browTpc);
 
+    HF2Poly("TPC_HitPat_Baseline",bpadTpc+1,1);
     auto fadc = baseline->Fadc();
     for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
       HF2("TPC_FADC_Baseline", tb, fadc.at(tb));
@@ -241,7 +247,7 @@ ProcessNormal()
   }
 
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    auto hc = rawData.GetTPCCorHits(layer);
+    auto hc = TPCrawData.GetTPCCorHits(layer);
     const auto nhit = hc.size();
     npadTpc += nhit;
 
@@ -281,7 +287,7 @@ ProcessNormal()
   }
 
   TPCAnalyzer TPCAna;
-  TPCAna.DecodeTPCHits(rawData, clkTpc);
+  TPCAna.DecodeTPCHits(TPCrawData, clkTpc);
   HF1("Status", 5);
 
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){

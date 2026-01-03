@@ -17,7 +17,7 @@
 #include "DebugTimer.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
-#include "RawData.hh"
+#include "TPCRawData.hh"
 #include "UserParamMan.hh"
 #include "DeleteUtility.hh"
 #include "RungeKuttaUtilities.hh"
@@ -154,7 +154,7 @@ TPCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
 
 //_____________________________________________________________________________
 Bool_t
-TPCAnalyzer::DecodeTPCHits(RawData &rawData,
+TPCAnalyzer::DecodeTPCHits(TPCRawData &TPCrawData,
 			   const std::vector<Double_t> clock)
 {
   if(m_is_decoded[kTPC]){
@@ -167,7 +167,7 @@ TPCAnalyzer::DecodeTPCHits(RawData &rawData,
   ClearTPCClusters();
 
   for(Int_t layer=0; layer<=NumOfLayersTPC; ++layer){
-    for(const auto& rhit: rawData.GetTPCCorHitContainer(layer)){
+    for(const auto& rhit: TPCrawData.GetTPCCorHitContainer(layer)){
       auto hit = new TPCHit(rhit);
       Int_t row  = hit -> GetRow();
       Int_t cobo_id = tpc::GetCoBoId(layer, row);

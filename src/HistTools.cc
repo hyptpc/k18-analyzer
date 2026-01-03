@@ -648,7 +648,9 @@ BuildTPCHit()
   HB1("TPC_Clock_Time",  20000, -100.,  100.);
 
   HB2Poly("TPC_HitPat_noise",-300.,300.,-300.,300.);
+  HB2Poly("TPC_HitPat_Baseline",-300.,300.,-300.,300.);
   tpc::InitializeHistograms("TPC_HitPat_noise");
+  tpc::InitializeHistograms("TPC_HitPat_Baseline");
   
   /*
     HB2Poly(1001, "TPC HitPat");
