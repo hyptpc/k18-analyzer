@@ -147,7 +147,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       for(const auto& t: hit->GetArrayTdcLeading()){
         if(gUser.IsInRange(Form("%s_TDC", name), t))
           is_good = true;
-	HF1(Form("%s_TDC_seg%d%s", name, seg, b), t);
+          HF1(Form("%s_TDC_seg%d%s", name, seg, b), t);
       }
       if(is_good && seg == 0){
         HF1(Form("%s_HitPat%s", name, b), seg);
@@ -356,7 +356,7 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
       const auto& hit = hodoAna.GetHit(name, i);
       auto n_ch = hit->NumOfChannel();
       auto seg  = hit->SegmentId();
-      if (ihodo != kSFV && ihodo != kCOBO) {
+      if (!HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::NoADC)) {
         auto de   = hit->DeltaE();
         auto ude  = hit->UDeltaE();
         HF1(Form("%s_Hit_DeltaE_seg%dU%s", name, seg, b), ude);
@@ -513,7 +513,7 @@ EventAnalyzer::HodoCluster(const HodoAnalyzer& hodoAna,
   const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
   // Hodoscope
   for(Int_t ihodo=kBHT; ihodo<kNumHodo;++ihodo){
-    if (ihodo == kBAC || ihodo == kT1 || ihodo == kSAC3 || ihodo == kSFV || ihodo == kCOBO) continue;
+    if (HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::NoCluster)) continue;
     const Char_t* name = NameHodo[ihodo];
     Int_t multi = 0;
     for(Int_t i=0, n=hodoAna.GetNClusters(name); i<n; ++i){

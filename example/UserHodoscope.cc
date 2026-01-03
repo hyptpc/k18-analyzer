@@ -141,19 +141,19 @@ ProcessNormal()
   using root::HF1;
 
   RawData rawData;
-  rawData.DecodeHits();
-
+  for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
+    auto n = NameHodo[ihodo];
+    rawData.DecodeHits(n);
+  }
+  
   // hodoAna.DecodeHits<T>(name, makeCluster = true);
   HodoAnalyzer hodoAna(rawData);
   hodoAna.DecodeHits<FiberHit>("BHT");
   hodoAna.DecodeHits<BH2Hit>("BH2");
-  hodoAna.DecodeHits("BAC", false);
-  hodoAna.DecodeHits("HTOF");
-  hodoAna.DecodeHits("KVC");
-  hodoAna.DecodeHits("T1", false);
-  hodoAna.DecodeHits("CVC");
-  hodoAna.DecodeHits("SAC3", false);
-  hodoAna.DecodeHits("SFV", false);
+  for(Int_t ihodo=kBAC; ihodo<kNumHodo; ++ihodo){
+    auto n = NameHodo[ihodo];
+    hodoAna.DecodeHits(n, !HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::NoCluster));
+  }
 
   EventAnalyzer evAna;
 
@@ -193,7 +193,7 @@ ProcessNormal()
     trailing_d["BHT"].push_back(hit->GetArrayTdcTrailing(1));
   }
   
-  for(Int_t ihodo=kBH2; ihodo<kNumHodo + 1; ++ihodo){
+  for(Int_t ihodo=kBH2; ihodo<kNumHodo; ++ihodo){
     if (ihodo == kKVC) continue;
     auto n = NameHodo[ihodo];
     for(const auto& hit: rawData.GetHodoRawHC(n)){      
@@ -230,7 +230,7 @@ ProcessNormal()
       const auto& hit = hodoAna.GetHit(n, i);
       auto n_ch = hit->NumOfChannel();
       hit_seg[n].push_back(hit->SegmentId());
-      if (ihodo != kSFV && ihodo != kCOBO) {
+      if (!HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::NoADC)) {
         de_u[n].push_back(hit->GetAUp());
         de[n].push_back(hit->DeltaE());
       }
@@ -251,6 +251,7 @@ ProcessNormal()
   HF1("Status", 6);
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
+    if (HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::NoCluster)) continue;
     auto n = NameHodo[ihodo];
     for(Int_t i=0, nh=hodoAna.GetNClusters(n); i<nh; ++i){
       const auto& cl = hodoAna.GetCluster(n, i);
@@ -289,6 +290,25 @@ ConfMan::InitializeHistograms()
   hist::BuildHodoHit(true);
   hist::BuildHodoCluster(true);
 
+  struct HodoFlags {
+    UInt_t mask;
+    Bool_t has_adc;
+    Bool_t two_side;
+    Bool_t has_sum; // for HTOF and KVC
+    Bool_t no_cluster;
+  };
+
+  auto GetHodoFlags = [&](Int_t ihodo) -> HodoFlags {
+    const UInt_t mask = HodoGroupMask[ihodo];
+    HodoFlags f;
+    f.mask        = mask;
+    f.has_adc     = !HasHodoGroup(mask, HodoGroup::NoADC);
+    f.two_side    = !HasHodoGroup(mask, HodoGroup::OneSideReadout);
+    f.has_sum     = (ihodo == kHTOF || ihodo == kKVC);
+    f.no_cluster  = HasHodoGroup(mask, HodoGroup::NoCluster);
+    return f;
+  };
+
   tree = new TTree("hodo", "UserHodoscope");
   tree->Branch("run_number", &run_number);
   tree->Branch("event_number", &event_number);
@@ -303,15 +323,25 @@ ConfMan::InitializeHistograms()
   tree->Branch("bht_trailing_d", &trailing_d["BHT"]);
 
   for(Int_t ihodo=kBH2; ihodo<kNumHodo; ++ihodo){
+    if (ihodo == kKVC) continue;
     auto n = NameHodo[ihodo];
     n.ToLower();
+    const auto f = GetHodoFlags(ihodo);
     tree->Branch(Form("%s_raw_seg", n.Data()), &raw_seg[NameHodo[ihodo]]);
-    tree->Branch(Form("%s_adc_u", n.Data()), &adc_u[NameHodo[ihodo]]);
-    tree->Branch(Form("%s_adc_d", n.Data()), &adc_d[NameHodo[ihodo]]);
-    tree->Branch(Form("%s_adc_s", n.Data()), &adc_s[NameHodo[ihodo]]);
+    if (f.has_adc) {
+      tree->Branch(Form("%s_adc_u", n.Data()), &adc_u[NameHodo[ihodo]]);
+      if (f.two_side) {
+        tree->Branch(Form("%s_adc_d", n.Data()), &adc_d[NameHodo[ihodo]]);
+        if (f.has_sum) 
+          tree->Branch(Form("%s_adc_s", n.Data()), &adc_s[NameHodo[ihodo]]);
+      }
+    }
     tree->Branch(Form("%s_tdc_u", n.Data()), &tdc_u[NameHodo[ihodo]]);
-    tree->Branch(Form("%s_tdc_d", n.Data()), &tdc_d[NameHodo[ihodo]]);
-    tree->Branch(Form("%s_tdc_s", n.Data()), &tdc_s[NameHodo[ihodo]]);
+    if (f.two_side) {
+      tree->Branch(Form("%s_tdc_d", n.Data()), &tdc_d[NameHodo[ihodo]]);
+      if (f.has_sum || ihodo == kBH2) 
+        tree->Branch(Form("%s_tdc_s", n.Data()), &tdc_s[NameHodo[ihodo]]);
+    }
   }
   { ///// KVC
     const TString n("KVC");
@@ -326,16 +356,26 @@ ConfMan::InitializeHistograms()
   }
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
+    if (ihodo == kKVC) continue;
     auto n = NameHodo[ihodo];
     n.ToLower();
+    const auto f = GetHodoFlags(ihodo);
     tree->Branch(Form("%s_hit_seg", n.Data()), &hit_seg[NameHodo[ihodo]]);
-    tree->Branch(Form("%s_de_u", n.Data()), &de_u[NameHodo[ihodo]]);
-    tree->Branch(Form("%s_de_d", n.Data()), &de_d[NameHodo[ihodo]]);
-    if (ihodo == kHTOF || ihodo == kKVC) tree->Branch(Form("%s_de_s", n.Data()), &de_s[NameHodo[ihodo]]);
-    tree->Branch(Form("%s_de", n.Data()), &de[NameHodo[ihodo]]);
+    if (f.has_adc) {
+      tree->Branch(Form("%s_de_u", n.Data()), &de_u[NameHodo[ihodo]]);
+      if (f.two_side) {
+        tree->Branch(Form("%s_de_d", n.Data()), &de_d[NameHodo[ihodo]]);
+        if (f.has_sum) 
+          tree->Branch(Form("%s_de_s", n.Data()), &de_s[NameHodo[ihodo]]);
+      }
+      tree->Branch(Form("%s_de", n.Data()), &de[NameHodo[ihodo]]);
+    }
     tree->Branch(Form("%s_time_u", n.Data()), &time_u[NameHodo[ihodo]]);
-    tree->Branch(Form("%s_time_d", n.Data()), &time_d[NameHodo[ihodo]]);
-    if (ihodo == kHTOF || ihodo == kKVC) tree->Branch(Form("%s_time_s", n.Data()), &time_s[NameHodo[ihodo]]);
+    if (f.two_side) {
+      tree->Branch(Form("%s_time_d", n.Data()), &time_d[NameHodo[ihodo]]);
+      if (f.has_sum || ihodo == kBH2)
+        tree->Branch(Form("%s_time_s", n.Data()), &time_s[NameHodo[ihodo]]);
+    }
     tree->Branch(Form("%s_mt", n.Data()), &mt[NameHodo[ihodo]]);
     tree->Branch(Form("%s_cmt", n.Data()), &cmt[NameHodo[ihodo]]);
   }
@@ -353,6 +393,8 @@ ConfMan::InitializeHistograms()
   }
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
+    const auto f = GetHodoFlags(ihodo);
+    if (f.no_cluster) continue;
     auto n = NameHodo[ihodo];
     n.ToLower();
     tree->Branch(Form("%s_cl_seg", n.Data()), &cl_seg[NameHodo[ihodo]]);

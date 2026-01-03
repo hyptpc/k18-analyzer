@@ -138,8 +138,6 @@ ProcessBegin()
 Bool_t
 ProcessNormal()
 {
-  using root::HF1;
-
   RawData rawData;
   rawData.DecodeHits("BAC");
   rawData.DecodeHits("KVC");
@@ -187,11 +185,7 @@ ProcessEnd()
 Bool_t
 ConfMan::InitializeHistograms()
 {
-  hist::BuildStatus();
-  hist::BuildTriggerFlag();
-  hist::BuildHodoRaw(true);
-  hist::BuildHodoHit(true);
-  hist::BuildHodoCluster(true);
+  hist::BuildHodoRaw();
 
   tree = new TTree("hodo", "UserHodoscope");
   tree->Branch("run_number", &run_number);

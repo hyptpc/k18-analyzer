@@ -3,21 +3,23 @@
 #ifndef DETECTOR_ID_HH
 #define DETECTOR_ID_HH
 
+#include <initializer_list> 
 #include <iostream>
 #include <map>
+#include <set>
 
 #include <Rtypes.h>
 #include <TString.h>
 
 static const Char_t* const UorD[2] = {"U", "D"};
 
-const std::map<TString, std::vector<TString>> DCNameList =
+inline const std::map<TString, std::vector<TString>> DCNameList =
 {
   {"BcIn", { "BLC1a", "BLC1b" }},
   {"BcOut", { "BLC2a", "BLC2b" }},
 };
 
-// Counters ___________________________________________________________
+// __ Counters ___________________________________________________________
 const Int_t DetIdBHT  =  1;
 const Int_t DetIdT0   =  2;
 const Int_t DetIdBH2  =  3;
@@ -42,9 +44,9 @@ const Int_t NumOfSegSAC3 =  1;
 const Int_t NumOfSegSFV  =  1;
 const Int_t NumOfSegCOBO =  8;
 
-const int DetIdVmeRm     =  81;
-const int DetIdScaler    =  91;
-const int DetIdTrigFlag  =  99;
+const Int_t DetIdVmeRm       = 81;
+const Int_t DetIdScaler      = 91;
+const Int_t DetIdTrigFlag    = 99;
 const Int_t NumOfSegTrigFlag = 32;
 
 enum EHodoscope {
@@ -62,21 +64,55 @@ const Int_t DetIdHodo[kNumHodo] = {
   DetIdCOBO
 };
 
-const std::vector<TString> NameHodo = {
+inline const std::vector<TString> NameHodo = {
   "BHT", "BH2", "BAC",
   "HTOF", "KVC", "T1",
   "CVC", "SAC3", "SFV",
   "COBO"
 };
 
-const double  NumOfSegHodo[kNumHodo] = {
+const Double_t  NumOfSegHodo[kNumHodo] = {
   NumOfSegBHT, NumOfSegBH2, NumOfSegBAC,
   NumOfSegHTOF, NumOfSegKVC, NumOfSegT1,
   NumOfSegCVC, NumOfSegSAC3, NumOfSegSFV,
   NumOfSegCOBO
 };
 
-// Chambers
+enum class HodoGroup : UInt_t { 
+  None           = 0,
+  NoADC          = 1u << 0,
+  NoCluster      = 1u << 1,
+  OneSideReadout = 1u << 2,
+  Cherenkov      = 1u << 3,
+};
+
+constexpr Bool_t HasHodoGroup(UInt_t mask, HodoGroup g)
+{
+  return (mask & static_cast<UInt_t>(g)) != 0;
+}
+
+constexpr UInt_t MakeHodoMask(std::initializer_list<HodoGroup> gArray)
+{
+  UInt_t m = 0;
+  for (auto g : gArray)
+    m |= static_cast<UInt_t>(g);
+  return m;
+}
+
+inline constexpr UInt_t HodoGroupMask[kNumHodo] = {
+  0, // kBHT
+  0, // kBH2
+  MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout, HodoGroup::Cherenkov}), // kBAC
+  0, // kHTOF
+  MakeHodoMask({HodoGroup::Cherenkov}), // kKVC
+  MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout}), // kT1
+  0, // kCVC
+  MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout, HodoGroup::Cherenkov}), // kSAC3
+  MakeHodoMask({HodoGroup::NoADC, HodoGroup::NoCluster, HodoGroup::OneSideReadout}), // kSFV
+  MakeHodoMask({HodoGroup::NoADC, HodoGroup::NoCluster, HodoGroup::OneSideReadout}), // kCOBO
+};
+
+// __ Chambers ___________________________________________________________
 const int DetIdCDC    = 100;
 const int DetIdBLC1a  = 101;
 const int DetIdBLC1b  = 102;
@@ -106,44 +142,7 @@ const Int_t DetIdDC[kNumDC] = {
   DetIdBLC1, DetIdBLC2, DetIdBPC0
 };
 
-// Hall etc.
-const int DetIdHall       	= 200;
-const int DetIdFloor		= 201;
-// const int DetIdBeamDump		= 110;
-// const int DetIdSideDump		= 111;
-// const int DetIdNShield		= 112;
-// const int DetIdSideCon		= 113;
-// const int DetIdDoorCon		= 114;
-// const int DetIdDumpCon		= 115;
-const int DetIdDoraemon		= 220;
-// const int DetIdUSWK		= 121;
-// const int DetIdCDSBobbin	= 125;
-// const int DetIdCDSCoil		= 126;
-const int DetIdCDCCFRP		= 230;
-const int DetIdCDCMylar		= 231;
-// const int DetIdCDCEndCap	= 132;
-// Target etc.
-const int DetIdTarSys		= 240;
-const int DetIdRadS		= 241;
-const int DetIdTarCFRP		= 242;
-const int DetIdTarCap		= 243;
-const int DetIdTarRing		= 244;
-// const int DetIdTarChm		= 145;
-// const int DetIdBeamWindow	= 146;
-// const int DetIdScatWindow	= 147;
-// const int DetIdMagShield	= 148;
-
-const int DetIdTarCell		= 250;
-const int DetIdTarget		= 251;
-const int DetIdCellTube		= 252;
-const int DetIdCellFlange	= 253;
-// const int DetIdBShield		= 154;
-// const int DetIdCellWindow	= 154;
-// const int DetIdBFrange		= 155;
-// const int DetIdCellRing		= 156;
-const int DetIdFiducial		= 260;
-
-const int NumOfPlaneVmeRm=3;
+const Int_t NumOfPlaneVmeRm=3;
 
 namespace beam
 {
@@ -165,28 +164,7 @@ enum ETriggerFlag {
   kProtonTrig, kDeuteron=kProtonTrig, //15
   kNumTrig
 };
-
 }
-
-// enum eTriggerFlag
-//   {
-//     kSpillStart =  1,
-//     kSpillEnd   =  2,
-//     kBeam1      =  3,
-//     kBeam2      =  4,
-//     kBeam_f     =  5,
-//     kPion       =  6,
-//     kPion_f     =  7,
-//     kKaon1      =  8,
-//     kKaon2      =  9,
-//     kKaon3      =  10,
-//     kKaon1_f       = 11,
-//     kKaon2_f       = 12,
-//     kKaonStart     = 13,
-//     kKaonStartStop = 14,
-//     kStartStop     = 15,
-//     kMisc          = 16
-//   };
 
 // for compatibility
 const Int_t LayerMinBcIn        =   1;
@@ -201,11 +179,11 @@ const Int_t LayerMinTOF         =  51; // need to change
 const Int_t LayerMaxTOF         =  54; // need to change
 const Int_t LayerMinVP          =  16;
 const Int_t LayerMaxVP          =  26;
-const Int_t PlOffsBc         = 100;
-const Int_t PlOffsSdcIn      =   0;
-const Int_t PlOffsSdcOut     =  30;
-const Int_t PlOffsTOF        =  50;
-const Int_t PlOffsVP         =  15;
+const Int_t PlOffsBc            = 100;
+const Int_t PlOffsSdcIn         =   0;
+const Int_t PlOffsSdcOut        =  30;
+const Int_t PlOffsTOF           =  50;
+const Int_t PlOffsVP            =  15;
 
 // const Int_t NumOfLayersBc     = 8;
 const Int_t NumOfLayersSDC1   = 6;
