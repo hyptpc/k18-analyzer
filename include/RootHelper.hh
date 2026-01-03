@@ -59,33 +59,6 @@ const Int_t MaxHist  = 100000000;
 extern TH1   *h[MaxHist];
 extern TTree *tree;
 
-// //_____________________________________________________________________________
-// inline void
-// HB1(Int_t i, const Char_t* title,
-//     Int_t nbinx, Double_t xlow, Double_t xhigh)
-// {
-//   if(i<0 || MaxHist<=i)
-//     throw Exception(Form("HB1() invalid HistId : %d/%d", i, MaxHist));
-//   if(h[i]){
-// #if ThrowError
-//     throw Exception(Form("h%d (%s) is already exist", i, title));
-// #endif
-// #if OverWrite
-//     delete h[i];
-//     h[i] = nullptr;
-// #endif
-//   }
-//   h[i] = new TH1D(Form("h%d", i), title, nbinx, xlow, xhigh);
-// }
-
-// //_____________________________________________________________________________
-// inline void
-// HB1(Int_t i, const TString& title,
-//     Int_t nbinx, Double_t xlow, Double_t xhigh)
-// {
-//   HB1(i, title.Data(), nbinx, xlow, xhigh);
-// }
-
 //_____________________________________________________________________________
 inline TH1*
 HB1(const TString& name, const TString& title,
@@ -120,37 +93,6 @@ HB1(const TString& name, const Double_t* bins)
 {
   return HB1(name, name, (Int_t)bins[0], bins[1], bins[2]);
 }
-
-// //_____________________________________________________________________________
-// inline void
-// HB2(Int_t i, const Char_t* title,
-//     Int_t nbinx, Double_t xlow, Double_t xhigh,
-//     Int_t nbiny, Double_t ylow, Double_t yhigh)
-// {
-//   if(i<0 || MaxHist<=i)
-//     throw Exception(Form("HB2() invalid HistId : %d/%d", i, MaxHist));
-//   if(h[i]){
-// #if ThrowError
-//     throw Exception(Form("h%d (%s) is already exist", i, title));
-// #endif
-// #if OverWrite
-//     delete h[i];
-//     h[i] = nullptr;
-// #endif
-//   }
-//   h[i] = new TH2D(Form("h%d", i), title,
-//                   nbinx, xlow, xhigh,
-//                   nbiny, ylow, yhigh);
-// }
-
-// //_____________________________________________________________________________
-// inline void
-// HB2(Int_t i, const TString& title,
-//     Int_t nbinx, Double_t xlow, Double_t xhigh,
-//     Int_t nbiny, Double_t ylow, Double_t yhigh)
-// {
-//   HB2(i, title.Data(), nbinx, xlow, xhigh, nbiny, ylow, yhigh);
-// }
 
 //_____________________________________________________________________________
 inline TH1*
@@ -234,7 +176,6 @@ HB2Poly(const TString& name, const TString& title,
   h1 = new TH2Poly(tmp, title, xmin, xmax, ymin, ymax);
   gDirectory->Add(h1);
   return h1;
-
   
 }
 
