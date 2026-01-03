@@ -21,6 +21,7 @@
 #include "UserParamMan.hh"
 #include "XTMapMan.hh"
 #include "RawData.hh"
+#include "TPCRawData.hh"
 #include "HistTools.hh"
 #include "UnpackerManager.hh"
 #include "TPCAnalyzer.hh"
@@ -120,8 +121,10 @@ ProcessNormal()
 
   RawData rawData;
   rawData.DecodeHits("COBO");
-  rawData.DecodeTPCHits();
 
+  TPCRawData TPCrawData;
+  TPCrawData.DecodeTPCHits();
+  
   HodoAnalyzer hodoAna(rawData);
   hodoAna.DecodeHits("COBO", false);  
 
@@ -155,7 +158,7 @@ ProcessNormal()
   //________________________________________________________
   //___ TPCRawHit
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    auto hc = rawData.GetTPCRawHits(layer);
+    auto hc = TPCrawData.GetTPCRawHits(layer);
     for(const auto& rhit : hc){
       auto mean    = rhit->Mean(0, NumOfTimeBucket);
       auto max_adc = rhit->MaxAdc(0, NumOfTimeBucket);
@@ -180,7 +183,7 @@ ProcessNormal()
 
   //________________________________________________________
   //___ TPCRawHit after baseline correction
-  auto baseline = rawData.GetBaselineTPC();
+  auto baseline = TPCrawData.GetBaselineTPC();
   if(baseline){
     browTpc = baseline->RowId();
     blayerTpc = baseline->LayerId();
@@ -193,7 +196,7 @@ ProcessNormal()
   }
 
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    auto hc = rawData.GetTPCCorHits(layer);
+    auto hc = TPCrawData.GetTPCCorHits(layer);
     const auto nhit = hc.size();
     npadTpc += nhit;
 
@@ -233,7 +236,7 @@ ProcessNormal()
   }
 
   TPCAnalyzer TPCAna;
-  TPCAna.DecodeTPCHits(rawData, clkTpc);
+  TPCAna.DecodeTPCHits(TPCrawData, clkTpc);
   HF1("Status", 5);
 
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
