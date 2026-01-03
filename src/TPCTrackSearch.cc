@@ -514,15 +514,15 @@ MakeLinearTrack(TPCLocalTrack *Track, Bool_t &VtxFlag,
       if(!hit) continue;
       if(hit->GetHoughFlag()>0) continue;
       TVector3 pos = cl->GetPosition();
-      Double_t distXZ = TMath::Abs(LinearPar[2]*(pos.Z() - tpc::ZTarget) - pos.X() +
-				   LinearPar[0])/TMath::Sqrt(TMath::Sq(LinearPar[2])+1.);
-      Double_t distYZ = TMath::Abs(LinearPar[3]*(pos.Z() - tpc::ZTarget) - pos.Y() +
-				   LinearPar[1])/TMath::Sqrt(TMath::Sq(LinearPar[3])+1.);
+      Double_t distXZ = TMath::Abs(LinearPar[2]*(pos.Z() - tpc::ZTarget) - pos.X() + LinearPar[0])
+                        / TMath::Sqrt(TMath::Sq(LinearPar[2])+1.);
+      Double_t distYZ = TMath::Abs(LinearPar[3]*(pos.Z() - tpc::ZTarget) - pos.Y() + LinearPar[1])
+                        / TMath::Sqrt(TMath::Sq(LinearPar[3])+1.);
       if(distXZ < MaxHoughWindowY && distYZ < MaxHoughWindowY){
-	hit->SetHoughDist(distXZ);
-	hit->SetHoughDistY(distYZ);
-	Track->AddTPCHit(new TPCLTrackHit(hit));
-	status = true;
+        hit->SetHoughDist(distXZ);
+        hit->SetHoughDistY(distYZ);
+        Track->AddTPCHit(new TPCLTrackHit(hit));
+        status = true;
       }
     } //ci
   } //layer

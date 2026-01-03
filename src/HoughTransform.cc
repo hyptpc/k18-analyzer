@@ -46,12 +46,12 @@ namespace
   // HoughXZ binning
   //static const Int_t    Li_theta_ndiv = 180;
   static const Int_t    Li_theta_ndiv = 360;
-  static const Double_t Li_theta_min  =   0;
-  static const Double_t Li_theta_max  = 180;
+  static const Double_t Li_theta_min  =   0.;
+  static const Double_t Li_theta_max  = 180.;
   //static const Int_t    Li_rho_ndiv =  180;
   static const Int_t    Li_rho_ndiv =  720;
-  static const Double_t Li_rho_min  = -720;
-  static const Double_t Li_rho_max  =  720;
+  static const Double_t Li_rho_min  = -720.;
+  static const Double_t Li_rho_max  =  720.;
   TH2D *histLinear = new TH2D("histLinear", "; #theta (deg.); #rho (mm)",
 			      Li_theta_ndiv, Li_theta_min, Li_theta_max,
 			      Li_rho_ndiv, Li_rho_min, Li_rho_max);
@@ -61,8 +61,8 @@ namespace
   const Double_t rdiff_min = -110.;
   const Double_t rdiff_max = 110.;
   const Int_t    nBin_theta = 720;
-  const Double_t theta_min = -1.*acos(-1);
-  const Double_t theta_max = acos(-1);
+  const Double_t theta_min = -1.*acos(-1.);
+  const Double_t theta_max = acos(-1.);
   const Int_t    nBin_p = 900;
   //const Double_t pmin = 50.;
   const Double_t pmin = 20.;
@@ -142,7 +142,7 @@ HoughTransformLineXZ(std::vector<TVector3> gHitPos, Int_t *MaxBin,
     for(Int_t ti=0; ti<histY -> GetNbinsX(); ti++){
       Double_t theta = histLinear->GetXaxis()->GetBinCenter(ti+1);
       Double_t rho = TMath::Cos(theta*TMath::DegToRad())*(gHitPos[i].Z() - tpc::ZTarget)
-	+ TMath::Sin(theta*TMath::DegToRad())*gHitPos[i].X();
+                   + TMath::Sin(theta*TMath::DegToRad())*gHitPos[i].X();
       histLinear->Fill(theta, rho);
     } //ti
   } //i
@@ -165,7 +165,7 @@ HoughTransformLineXZ(std::vector<TVector3> gHitPos, Int_t *MaxBin,
   Double_t mr = histLinear->GetYaxis()->GetBinCenter(my);
 
   LinearPar[0] = mr/TMath::Sin(mtheta); //m_x
-  LinearPar[2]  = -TMath::Cos(mtheta)/TMath::Sin(mtheta); //m_u
+  LinearPar[2] = -TMath::Cos(mtheta)/TMath::Sin(mtheta); //m_u
 
 #if DebugDisp
   std::cout<<FUNC_NAME+" (Z, X) hough vote : "<<histLinear->GetBinContent(maxbin)<<"/"<<gHitPos.size()<<std::endl;
@@ -211,14 +211,16 @@ HoughTransformLineYZ(std::vector<TVector3> gHitPos, Int_t *MaxBin,
   //y = p[1] + p[3]*z
   histLinear->Reset();
   for(Int_t i=0; i<gHitPos.size(); ++i){
-    Double_t dist = TMath::Abs(LinearPar[2]*(gHitPos[i].Z() - tpc::ZTarget) - gHitPos[i].X() +
-			       LinearPar[0])/TMath::Sqrt(TMath::Sq(LinearPar[2])+1.);
+    // distance from point (z0, x0) to line x = p0 + p2*z
+    // d = |p2*z0 - x0 + p0| / sqrt(p2^2 + 1)
+    Double_t dist = TMath::Abs(LinearPar[2]*(gHitPos[i].Z()-tpc::ZTarget) - gHitPos[i].X() + LinearPar[0])
+                    / TMath::Sqrt(TMath::Sq(LinearPar[2])+1.);
     if(dist < MaxHoughWindowY){
       for(Int_t ti=0; ti<histY -> GetNbinsX(); ti++){
-	Double_t theta = histLinear->GetXaxis()->GetBinCenter(ti+1);
-	Double_t rho = TMath::Cos(theta*TMath::DegToRad())*(gHitPos[i].Z() - tpc::ZTarget)
-	  + TMath::Sin(theta*TMath::DegToRad())*gHitPos[i].Y();
-	histLinear->Fill(theta, rho);
+        Double_t theta = histLinear->GetXaxis()->GetBinCenter(ti+1);
+        Double_t rho   = TMath::Cos(theta*TMath::DegToRad())*(gHitPos[i].Z() - tpc::ZTarget)
+                       + TMath::Sin(theta*TMath::DegToRad())*gHitPos[i].Y();
+      	histLinear->Fill(theta, rho);
       } //ti
     } //dist
   } //i
@@ -284,14 +286,16 @@ HoughTransformLineYX(std::vector<TVector3> gHitPos, Int_t *MaxBin,
   //y = tmp0 + tmp1*x
   histLinear->Reset();
   for(Int_t i=0; i<gHitPos.size(); ++i){
-    Double_t dist = TMath::Abs(LinearPar[2]*(gHitPos[i].Z() - tpc::ZTarget) - gHitPos[i].X() +
-			       LinearPar[0])/TMath::Sqrt(TMath::Sq(LinearPar[2])+1.);
+    // distance from point (z0, x0) to line x = p0 + p2*z
+    // d = |p2*z0 - x0 + p0| / sqrt(p2^2 + 1)
+    Double_t dist = TMath::Abs(LinearPar[2]*(gHitPos[i].Z() - tpc::ZTarget) - gHitPos[i].X() + LinearPar[0])
+                    / TMath::Sqrt(TMath::Sq(LinearPar[2])+1.);
     if(dist < MaxHoughWindowY){
       for(Int_t ti=0; ti<histY -> GetNbinsX(); ti++){
-	Double_t theta = histLinear->GetXaxis()->GetBinCenter(ti+1);
-	Double_t rho = TMath::Cos(theta*TMath::DegToRad())*gHitPos[i].X()
-	  + TMath::Sin(theta*TMath::DegToRad())*gHitPos[i].Y();
-	histLinear->Fill(theta, rho);
+        Double_t theta = histLinear->GetXaxis()->GetBinCenter(ti+1);
+        Double_t rho   = TMath::Cos(theta*TMath::DegToRad())*gHitPos[i].X()
+                       + TMath::Sin(theta*TMath::DegToRad())*gHitPos[i].Y();
+        histLinear->Fill(theta, rho);
       } //ti
     } //dist
   } //i
@@ -314,6 +318,8 @@ HoughTransformLineYX(std::vector<TVector3> gHitPos, Int_t *MaxBin,
   Double_t mr = histLinear->GetYaxis()->GetBinCenter(my);
   Double_t tmp0 = mr/TMath::Sin(mtheta);
   Double_t tmp1 = -TMath::Cos(mtheta)/TMath::Sin(mtheta);
+  // y = tmp0 + tmp1*(p0 + p2*z)
+  //   = tmp0 + p0*tmp1 + p2*tmp1*z
   LinearPar[1] = tmp0 + LinearPar[0]*tmp1;
   LinearPar[3] = LinearPar[2]*tmp1;
 
