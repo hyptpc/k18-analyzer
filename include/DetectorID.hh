@@ -220,4 +220,8 @@ const Int_t NumOfLayersSdcOut = LayerMaxSdcOut - LayerMinSdcOut + 1;
 const Int_t NumOfLayersTOF    = LayerMaxTOF    - LayerMinTOF    + 1;
 const Int_t NumOfLayersVP     = LayerMaxVP     - LayerMinVP     + 1;
 
+//TPC
+const Int_t NumOfLayersTPC    = 32;
+const Int_t NumOfPadTPC       = 5768;
+
 #endif

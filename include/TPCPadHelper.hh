@@ -30,8 +30,8 @@ namespace tpc
 {
 const Double_t ZTarget = -143.; // Target from center
 const Double_t TargetVtxWindow = 30.;
-const Int_t NumOfLayersTPC = 32;
-const Int_t NumOfPadTPC = 5768;
+  //const Int_t NumOfLayersTPC = 32;
+  //const Int_t NumOfPadTPC = 5768;
 const Int_t NumOfAsadTPC = 31;
 
 enum EPadParameter

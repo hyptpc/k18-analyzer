@@ -14,13 +14,15 @@
 
 #include "DetectorID.hh"
 #include "RootHelper.hh"
+#include "TPCPadHelper.hh"
 
 namespace
 {
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
-using root::HB1;
-using root::HB2;
+  //using root::HB1;
+  //using root::HB2;
+using namespace root;
 }
 
 namespace hist
@@ -552,6 +554,104 @@ BuildDAQ()
     h1->GetXaxis()->SetBinLabel(i+1, "0x"+TString::Itoa(vea0c_fe_id[i], 16));
   }
 }
+
+//_____________________________________________________________________________
+void
+BuildTPCHit()
+{
+  const Int_t    NbinAdc     = 4096;
+  const Double_t MinAdc      =    0.;
+  const Double_t MaxAdc      = 4096.;
+  const Int_t    NbinRms     = 1000;
+  const Double_t MinRms      =    0.;
+  const Double_t MaxRms      = 1000.;
+  const Int_t    NbinDe      = 1000;
+  const Double_t MinDe       =    0.;
+  const Double_t MaxDe       = 1000.;
+  const Int_t    NbinChisqr  = 1000;
+  const Double_t MinChisqr   =    0.;
+  const Double_t MaxChisqr   = 1000.;
+  const Int_t    NbinTime    = 1000;
+  const Double_t MinTime     = -8000.;
+  const Double_t MaxTime     =  8000.;
+  const Int_t    NbinDL      = 800;
+  const Double_t MinDL       = -400.;
+  const Double_t MaxDL       =  400.;
+  const Int_t    NbinSigma   = 500;
+  const Double_t MinSigma    =    0.;
+  const Double_t MaxSigma    =   50.;
+  const Int_t    NTimeBucket = 170;
+
+  // 1D histograms
+  HB1("TPC_Multiplicity_Raw",   NumOfPadTPC+1, 0,  NumOfPadTPC+1);
+  HB1("TPC_FADC_Mean",          NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Max",           NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_RMS",           NbinRms,       MinRms,          MaxRms);
+  HB1("TPC_FADC_LocMax",        NTimeBucket+1, 0,   NTimeBucket+1);
+  HB1("TPC_FADC_Min",           NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Mean_Cor",      NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Max_Cor",       NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_RMS_Cor",       NbinRms,       MinRms,          MaxRms);
+  HB1("TPC_FADC_LocMax_Cor",    NTimeBucket+1, 0,   NTimeBucket+1);
+  HB1("TPC_FADC_Min_Cor",       NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Baseline_p0",   NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Baseline_p1",   120,           -6,              6);
+  HB1("TPC_FADC_Baseline_p2",   120,           -12,             12);
+
+  // 2D
+  HB2("TPC_FADC_Baseline",
+      NTimeBucket+1, 0, NTimeBucket+1,
+      NbinAdc, MinAdc, MaxAdc);
+
+  // TPCHit
+  HB1("TPC_Multiplicity_TPCHit",   NumOfPadTPC+1, 0,  NumOfPadTPC+1);
+  HB1("TPC_Pedestal",              NbinAdc,      MinAdc,  MaxAdc);
+  HB1("TPC_DeltaE",                NbinDe,       MinDe,   MaxDe);
+  HB1("TPC_RMS",                   NbinRms,      MinRms,  MaxRms);
+  HB1("TPC_Time",                 (NTimeBucket+1)*30, 0, NTimeBucket+1);
+  HB1("TPC_Chisqr",                NbinChisqr,   MinChisqr, MaxChisqr);
+  HB1("TPC_CDeltaE",               NbinDe,       MinDe,   MaxDe);
+  HB1("TPC_CTime",                 NbinTime,     MinTime, MaxTime);
+  HB1("TPC_DriftLength",           NbinDL,       MinDL,   MaxDL);
+  HB1("TPC_sigma",                 NbinSigma,    MinSigma, MaxSigma);
+
+  HB2("TPC_sigma%%de",
+      NbinDe, MinDe, MaxDe,
+      NbinSigma, MinSigma, MaxSigma);
+
+  HB2("TPC_time%%de",
+      NbinDe, MinDe, MaxDe,
+      NbinTime, MinTime, MaxTime);
+
+  // FADC waveforms
+  HB2("TPC_FADC_Before",
+      NTimeBucket+1, 0, NTimeBucket+1,
+      NbinAdc, MinAdc, MaxAdc);
+
+  HB2("TPC_FADC_After",
+      NTimeBucket+1, 0, NTimeBucket+1,
+      NbinAdc, MinAdc-500., MaxAdc-500.);
+
+  HB2("TPC_FADC_Good",
+      NTimeBucket+1, 0, NTimeBucket+1,
+      NbinAdc, MinAdc, MaxAdc);
+
+  HB2("TPC_FADC_noise",
+      NTimeBucket+1, 0, NTimeBucket+1,
+      NbinAdc, MinAdc, MaxAdc);
+
+  // Clock
+  HB1("TPC_Clock_TDC",   100000, 0.,    1000000.);
+  HB1("TPC_Clock_Time",  20000, -100.,  100.);
+
+  HB2Poly("TPC_HitPat_noise",-300.,300.,-300.,300.);
+  HB2Poly("TPC_HitPat_Baseline",-300.,300.,-300.,300.);
+  tpc::InitializeHistograms("TPC_HitPat_noise");
+  tpc::InitializeHistograms("TPC_HitPat_Baseline");
+  
+ 
+}
+
 }
 
 #endif
