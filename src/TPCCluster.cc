@@ -116,13 +116,6 @@ TPCCluster::Calculate()
     TVector2 xz_vector(pos.X(), pos.Z());
     xz_vector -= target_center;
 
-#if 0 //Legacy. After position correction, the size of xz_vector can be differ from the layer R.
-    if(TMath::Abs(xz_vector.Mod() - R) > 1e-10){
-      hit->Print();
-      throw Exception(FUNC_NAME + Form(" found invalid radius %lf/%lf",
-                                       R, xz_vector.Mod()));
-    }
-#endif
     const Double_t de = hit->GetCDe();
     mean_y += pos.Y() * de;
     m_cluster_de += de;
@@ -150,7 +143,7 @@ TPCCluster::Calculate()
   m_mean_hit->SetPosition(m_cluster_position);
   m_mean_hit->SetParentCluster(this);
 
-  //center hit determination
+  // center hit determination
   Int_t max_row = tpc::padParameter[m_layer][3];
   Double_t mean_phi0 = xz_vectorHS0.Phi();
   Double_t mean_row0 = tpc::getMrow(m_layer, mean_phi0*TMath::RadToDeg());
@@ -158,9 +151,8 @@ TPCCluster::Calculate()
   Double_t rowdiff = 10; Int_t id = -1;
   for(Int_t i=0; i<m_hit_array.size(); ++i){
     if(!m_hit_array[i]) continue;
-    Double_t row = (double) m_hit_array[i] -> GetRow();
-    Double_t dif_row = std::min(abs(mean_row0-row), abs(mean_row0-row+max_row));
-    dif_row = std::min(dif_row, abs(mean_row0-row-max_row));
+    Double_t row = static_cast<Double_t>(m_hit_array[i]->GetRow());
+    Double_t dif_row = std::min(std::abs(mean_row0-row), max_row-std::abs(mean_row0-row));
     if(dif_row<rowdiff){
       rowdiff = dif_row;
       id = i;

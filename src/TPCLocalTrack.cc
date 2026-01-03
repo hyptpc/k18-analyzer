@@ -55,7 +55,7 @@ namespace
 
   const Int_t ReservedNumOfHits = 32*10;
   //const Double_t MaxGapBtwClusters = 150.; //ref
-  const Double_t MaxGapBtwClusters = 100.;
+  const Double_t MaxGapBtwClusters = 100.; // later check the unit. maybe mm
   //const Int_t MaxLayerdiffBtwClusters = 6;
   const Int_t MaxLayerdiffBtwClusters = 32;
   const Int_t MaxIteration = 50;
@@ -82,7 +82,7 @@ namespace
   //Horizontal resolution function
   //x : alpha(track-pad angle), y : y pos of cluster (y+300 : Drift length)
   //[0] : Intrinsic XZ resolution, [1] : Attenuation term, [2] : Diffusion coefficient, [3] : Effective # of signal electrons, [4] : Pad length, [5] : Effective # of electron clusters
-  static TString eq_horizontal="TMath::Sqrt(TMath::Power([0],2)+TMath::Power([2],2)*(y+300.)/([3]*TMath::Exp(-[1]*(y+300.)))+TMath::Power([4]*TMath::Tan(x),2)/(12.*[5]))";
+  static TString eq_horizontal="TMath::Sqrt(TMath::Power([0],2.)+TMath::Power([2],2.)*(y+300.)/([3]*TMath::Exp(-[1]*(y+300.)))+TMath::Power([4]*TMath::Tan(x),2.)/(12.*[5]))";
   static TF2 *f_horizontal = new TF2("f_horizontal", eq_horizontal.Data(), -4., 4., -300., 300.);
 
   //Vertical resolution function
@@ -119,8 +119,8 @@ static inline TVector3 ResidualVect(Double_t par[4], TVector3 pos){ //Closest di
   TVector3 AP = pos - x0;
   Double_t dist_AX = u.Dot(AP);
   TVector3 AI(x0.x()+(u.x()*dist_AX),
-	      x0.y()+(u.y()*dist_AX),
-	      x0.z()+(u.z()*dist_AX));
+              x0.y()+(u.y()*dist_AX),
+              x0.z()+(u.z()*dist_AX));
   TVector3 d = pos-AI;
   return d;
 }
@@ -134,8 +134,8 @@ static inline TVector3 ResidualVectXZ(Double_t par[4], TVector3 pos){ //Closest 
   TVector3 AP = pos - x0;
   Double_t dist_AX = u.Dot(AP);
   TVector3 AI(x0.x()+(u.x()*dist_AX),
-	      x0.y()+(u.y()*dist_AX),
-	      x0.z()+(u.z()*dist_AX));
+              x0.y()+(u.y()*dist_AX),
+              x0.z()+(u.z()*dist_AX));
   TVector3 d = pos-AI;
   return d;
 }
@@ -146,8 +146,8 @@ static inline TVector3 ResidualVectRow(Double_t par[4], TVector3 pos){ //pad hor
   Double_t z = pos.x()*pos.x()+(pos.z()-tpc::ZTarget)*(pos.z()-tpc::ZTarget)-pos.x()*par[0];
   z /= (pos.z()-tpc::ZTarget + pos.x()*par[2]);
   TVector3 calpos(par[0] + par[2]*z,
-		  par[1] + par[3]*z,
-		  z + tpc::ZTarget);
+                  par[1] + par[3]*z,
+                  z + tpc::ZTarget);
   TVector3 d = pos - calpos;
   return d;
 }
@@ -183,11 +183,9 @@ static inline TVector3 CalcResolution(Double_t par[4], Int_t layer, TVector3 pos
   // 2. For the projected point on the track, calculate a distance from the center (radius of projected position)
   // 3. By using this distance, check whether the projected point and the cluster are in the same layer or not. If not, the cluster is duffused over the layers.
   TVector3 residual_xz = ResidualVectXZ(par, pos);
-  TVector3 point_projected_onTheTrack = pos - residual_xz;
+  TVector3 point_projected_onTheTrack = pos - residual_xz; // = pos - (pos - AI) = AI
   Double_t radius_projected_point = TMath::Hypot(point_projected_onTheTrack.x(), point_projected_onTheTrack.z() - tpc::ZTarget);
-  //if(vetoBadClusters && radius_projected_point < padRadius - 0.5*padL) return TVector3(1.e+10, 1.e+10, 1.e+10);
-  if(vetoBadClusters && radius_projected_point < padRadius - 0.5*padL) return TVector3(2.e+10, 2.e+10, 2.e+10);
-  if(vetoBadClusters && radius_projected_point > padRadius + 0.5*padL) return TVector3(2.e+10, 2.e+10, 2.e+10);
+  if(vetoBadClusters && std::abs(radius_projected_point - padRadius) > 0.5*padL) return TVector3(2.e+10, 2.e+10, 2.e+10);
 
   //Convert resolution along the row direction into x, y, z resolutions
   TVector3 res_row(res_horizontal*TMath::Abs(cosPad), res_drift, res_horizontal*TMath::Abs(sinPad));
@@ -211,15 +209,15 @@ static inline Double_t CalcChi2(Double_t *par, Int_t &ndf, Bool_t vetoBadCluster
 
   ndf = 0; Double_t chisqr = 0.;
   for(Int_t i=0; i<gNumOfHits; ++i){
-    TVector3 d = ResidualVectRow(par, gHitPos[i]);
+    TVector3 d   = ResidualVectRow(par, gHitPos[i]);
     TVector3 res = CalcResolution(par, gLayer[i], gHitPos[i], gPadTheta[i], gResParam[i], vetoBadClusters);
 
     if(res.x() > 0.9e+10 && res.y() > 0.9e+10 && res.z() > 0.9e+10) continue; // exclude bad clusters
-    chisqr += TMath::Power(d.x()/res.x(), 2) + TMath::Power(d.y()/res.y(), 2) + TMath::Power(d.z()/res.z(), 2);
+    chisqr += TMath::Power(d.x()/res.x(), 2.) + TMath::Power(d.y()/res.y(), 2.) + TMath::Power(d.z()/res.z(), 2.);
     ndf++;
   }
   if(ndf < 5) return 2.*MaxChisqr;
-  return chisqr/(Double_t)(ndf - 4);
+  return chisqr / static_cast<Double_t>(ndf - 4);
 }
 
 //_____________________________________________________________________________
@@ -1283,7 +1281,7 @@ TPCLocalTrack::SeparateClustersWithGap()
     TVector3 pos = hitp -> GetLocalHitPos();
     TVector3 tgt(0., 0., tpc::ZTarget);
     TVector3 pos_ = pos - tgt;
-    TVector3 division(1./m_u0, 0., -1.);
+    TVector3 division(1./m_u0, 0., -1.); // orthogonal vector to the x = x0 + u0*z
     TVector3 norm = pos_.Cross(division);
     gComp.push_back(norm.Y());
     m_hit_order.push_back(i);
@@ -1327,15 +1325,15 @@ TPCLocalTrack::SeparateClustersWithGap()
       gPadTheta.clear();
       gResParam.clear();
       for(Int_t i=0; i<n_remain; ++i){
-	TPCLTrackHit *hitp = m_hit_array[i];
-	TVector3 pos = hitp->GetLocalHitPos();
-	gHitPos.push_back(pos);
-	Double_t padTheta = hitp->GetPadTheta();
-	gPadTheta.push_back(padTheta);
-	Int_t layer = hitp->GetLayer();
-	gLayer.push_back(layer);
-	std::vector<Double_t> resparam = hitp->GetResolutionParams();
-	gResParam.push_back(resparam);
+        TPCLTrackHit *hitp = m_hit_array[i];
+        TVector3 pos = hitp->GetLocalHitPos();
+        gHitPos.push_back(pos);
+        Double_t padTheta = hitp->GetPadTheta();
+        gPadTheta.push_back(padTheta);
+        Int_t layer = hitp->GetLayer();
+        gLayer.push_back(layer);
+        std::vector<Double_t> resparam = hitp->GetResolutionParams();
+        gResParam.push_back(resparam);
       }
 
       gPar[0] = m_x0;
