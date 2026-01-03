@@ -5,8 +5,10 @@
 #include <algorithm>
 #include <iostream>
 #include <string>
-
+#include <vector>
 #include <TF1.h>
+#include <TCanvas.h>
+#include <TStyle.h>
 
 #include <std_ostream.hh>
 #include <UnpackerConfig.hh>
@@ -21,6 +23,7 @@
 #include "Exception.hh"
 #include "FuncName.hh"
 #include "HodoRawHit.hh"
+#include "MathTools.hh"
 #include "UserParamMan.hh"
 
 namespace
@@ -28,7 +31,10 @@ namespace
 using namespace hddaq::unpacker;
 const auto& gUnpacker     = GUnpacker::get_instance();
 const auto& gUser         = UserParamMan::GetInstance();
+
 }
+
+
 
 //_____________________________________________________________________________
 RawData::RawData()
@@ -100,9 +106,10 @@ RawData::DecodeHits(const TString& name)
   Bool_t is_hodo  = type.Contains("Hodo", TString::kIgnoreCase);
   Bool_t is_fiber = type.Contains("Fiber", TString::kIgnoreCase);
   Bool_t is_dc    = type.Contains("DC", TString::kIgnoreCase);
+  Bool_t is_dummy = type.Contains("dummy", TString::kIgnoreCase);
 
-  if(!is_hodo && !is_fiber && !is_dc)
-    return false;
+  if(is_dummy) return false;
+  if(!is_hodo && !is_fiber && !is_dc) return false;
 
   for(Int_t plane=0, n_plane=gUnpacker.get_n_plane(id);
       plane<n_plane; ++plane){
@@ -116,7 +123,7 @@ RawData::DecodeHits(const TString& name)
               i<n; ++i){
             UInt_t val = gUnpacker.get(id, plane, seg, ch, data, i);
             if(is_hodo)  AddHodoRawHit(name, plane, seg, ch, data, val);
-	    if(is_fiber) AddFiberRawHit(name, plane, seg, ch, data, val);
+            if(is_fiber) AddFiberRawHit(name, plane, seg, ch, data, val);
             if(is_dc)    AddDCRawHit(name, plane, seg, ch, data, val);
           }
         }
@@ -132,6 +139,7 @@ RawData::DecodeHits(const TString& name)
   m_is_decoded[name] = true;
   return true;
 }
+
 
 //_____________________________________________________________________________
 Bool_t
@@ -157,7 +165,11 @@ RawData::AddHodoRawHit(const TString& name, Int_t plane, Int_t seg,
   if(data == gUnpacker.get_data_id(name, "adc")){
     p->SetAdc(ch, val);
   }else if(data == gUnpacker.get_data_id(name, "leading")){
-    p->SetTdcLeading(ch, val);
+    if (name != "COBO") {
+      p->SetTdcLeading(ch, val);
+    } else if ( TMath::IsNaN(p->GetTdcLeading(ch, 0)) && gUser.IsInRange("COBO_TDC", val)) {
+      p->SetTdcLeading(ch, val);
+    }
   }else if(data == gUnpacker.get_data_id(name, "trailing")){
     p->SetTdcTrailing(ch, val);
   // }else if(data == gUnpacker.get_data_id(name, "cstop")){
@@ -256,6 +268,7 @@ RawData::AddDCRawHit(const TString& name, Int_t plane, Int_t seg,
   }
   return true;
 }
+
 
 //_____________________________________________________________________________
 const HodoRHC&

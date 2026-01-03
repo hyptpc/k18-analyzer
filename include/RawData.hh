@@ -8,6 +8,8 @@
 
 #include <TString.h>
 
+#include "DetectorID.hh"
+
 class HodoRawHit;
 class DCRawHit;
 
@@ -36,7 +38,6 @@ private:
 public:
   void           Clear(const TString& name="");
   Bool_t         DecodeHits(const TString& name="");
-  Bool_t         DecodeCalibHits();
   const HodoRHC& GetHodoRawHitContainer(const TString& name) const;
   const HodoRHC& GetHodoRawHitContainer(Int_t det_id) const;
   const DCRHC&   GetDCRawHitContainer(const TString& name) const;
@@ -70,7 +71,8 @@ private:
   Bool_t AddFiberRawHit(const TString& name, Int_t plane, Int_t seg,
                         Int_t UorD, Int_t data, Double_t val);
   Bool_t AddDCRawHit(const TString& name, Int_t plane, Int_t seg,
-                     Int_t UorD, Int_t data, Double_t val);
+		     Int_t ch, Int_t data, Double_t val);
+		     //Int_t UorD, Int_t data, Double_t val);
 };
 
 //_____________________________________________________________________________
