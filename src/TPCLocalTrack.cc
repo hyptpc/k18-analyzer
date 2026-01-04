@@ -1178,9 +1178,7 @@ TPCLocalTrack::SeparateTracksAtTarget()
       m_hit_order.push_back(i);
     }
 
-    for(std::size_t i=0; i<m_hit_order.size(); ++i){
-      std::sort(m_hit_order.begin(), m_hit_order.end(), CompareDist);
-    }
+    std::sort(m_hit_order.begin(), m_hit_order.end(), CompareDist);
 
     //Exclude the beam hit from the scattered track.
     Bool_t flag = false;
@@ -1287,9 +1285,7 @@ TPCLocalTrack::SeparateClustersWithGap()
     m_hit_order.push_back(i);
   }
 
-  for(std::size_t i=0; i<m_hit_order.size(); ++i){
-    std::sort(m_hit_order.begin(), m_hit_order.end(), CompareDist);
-  }
+  std::sort(m_hit_order.begin(), m_hit_order.end(), CompareDist);
 
   std::vector<Int_t> side1_hits; std::vector<Int_t> side2_hits;
   Int_t prev_layer; TVector3 prev_pos(0, 0, 0); Bool_t flip = false;
