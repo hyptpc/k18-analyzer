@@ -89,7 +89,7 @@ public:
 
   Double_t        GetTime(Int_t i=0) const { return m_time.at(i); }
   Int_t           GetTimeSize() const { return m_time.size(); }
-  // Bool_t          IsGood() const;
+  Bool_t          IsGood() const;
   void            Print(const std::string& arg="", std::ostream& ost=hddaq::cout) const;
 
 protected:

@@ -25,6 +25,8 @@
 #include "TPCRawHit.hh"
 #include "UserParamMan.hh"
 #include "ConfMan.hh"
+#include "TPCParamMan.hh"
+#include "TPCPositionCorrector.hh"
 
 //#define QuickAnalysis  1 // User EventSelectionTPCHits in RawData.cc
 //#define FitPedestal    1
@@ -49,8 +51,8 @@ namespace { TApplication app("DebugApp", nullptr, nullptr); }
 namespace
 {
   const auto& gUser   = UserParamMan::GetInstance();
-  //const auto& gTPC    = TPCParamMan::GetInstance();
-  //const auto& gTPCPos = TPCPositionCorrector::GetInstance();
+  const auto& gTPC    = TPCParamMan::GetInstance();
+  const auto& gTPCPos = TPCPositionCorrector::GetInstance();
   const Int_t MaxADC = 4096;
   const Int_t MaxIteration = 3;
   const Int_t MaxPeaks = 20;
@@ -109,56 +111,55 @@ TPCHit::AddHit(Double_t de, Double_t time, Double_t sigma, Double_t chisqr)
 Bool_t
 TPCHit::Calculate(Double_t clock)
 {
+  if(m_de.size() != m_time.size()){
+    hddaq::cerr << FUNC_NAME << "found size mismatch: "
+                << "m_de.size()=" << m_de.size() << ", "
+                << "m_time.size()=" << m_time.size() << std::endl;
+    return false;
+  }
+
+  if(!gTPC.IsReady()){
+    hddaq::cerr << FUNC_NAME << " TPCParamMan must be initialized" << std::endl;
+    return false;
+  }
+
+  for(Int_t i=0, n=m_de.size(); i<n; ++i){
+    Double_t cde, ctime, dl;
+    if(!gTPC.GetCDe(m_layer, m_row, m_de[i], cde)){
+      hddaq::cerr << FUNC_NAME << " something is wrong at GetCDe("
+                  << m_layer << ", " << m_row << ", " << m_de[i]
+                  << ", " << cde << ")" << std::endl;
+    }
+    if(!gTPC.GetCTime(m_layer, m_row, m_time[i], ctime)){
+      hddaq::cerr << FUNC_NAME << " something is wrong at GetCTime("
+                  << m_layer << ", " << m_row << ", " << m_time[i]
+                  << ", " << ctime << ")" << std::endl;
+    }
+
+    Double_t cclk;
+    if(!gTPC.GetCClock(m_layer, m_row, clock, cclk)){
+      hddaq::cerr << FUNC_NAME << " something is wrong at GetCClock("
+                  << m_layer << ", " << m_row << ", " << m_time[i]
+                  << ", " << ctime << ")" << std::endl;
+    }
+    ctime += cclk;
+
+    if(!gTPC.GetDriftLength(m_layer, m_row, ctime, dl)){
+      hddaq::cerr << FUNC_NAME << " something is wrong at GetDriftLength("
+                  << m_layer << ", " << m_row << ", " << ctime
+                  << ", " << dl << ")" << std::endl;
+    }
+    m_cde[i] = cde;
+    m_ctime[i] = ctime;
+    m_drift_length[i] = dl;
+    auto pos = tpc::getPosition(m_pad);
+    pos.SetY(dl);
+
+    auto cpos = gTPCPos.Correct(pos, m_layer, m_row);
+    m_position[i] = cpos;
+  }
   return true;
 }
-//   if(m_de.size() != m_time.size()){
-//     hddaq::cerr << FUNC_NAME << "found size mismatch: "
-//                 << "m_de.size()=" << m_de.size() << ", "
-//                 << "m_time.size()=" << m_time.size() << std::endl;
-//     return false;
-//   }
-
-//   if(!gTPC.IsReady()){
-//     hddaq::cerr << FUNC_NAME << " TPCParamMan must be initialized" << std::endl;
-//     return false;
-//   }
-
-//   for(Int_t i=0, n=m_de.size(); i<n; ++i){
-//     Double_t cde, ctime, dl;
-//     if(!gTPC.GetCDe(m_layer, m_row, m_de[i], cde)){
-//       hddaq::cerr << FUNC_NAME << " something is wrong at GetCDe("
-//                   << m_layer << ", " << m_row << ", " << m_de[i]
-//                   << ", " << cde << ")" << std::endl;
-//     }
-//     if(!gTPC.GetCTime(m_layer, m_row, m_time[i], ctime)){
-//       hddaq::cerr << FUNC_NAME << " something is wrong at GetCTime("
-//                   << m_layer << ", " << m_row << ", " << m_time[i]
-//                   << ", " << ctime << ")" << std::endl;
-//     }
-
-//     Double_t cclk;
-//     if(!gTPC.GetCClock(m_layer, m_row, clock, cclk)){
-//       hddaq::cerr << FUNC_NAME << " something is wrong at GetCClock("
-//                   << m_layer << ", " << m_row << ", " << m_time[i]
-//                   << ", " << ctime << ")" << std::endl;
-//     }
-//     ctime += cclk;
-
-//     if(!gTPC.GetDriftLength(m_layer, m_row, ctime, dl)){
-//       hddaq::cerr << FUNC_NAME << " something is wrong at GetDriftLength("
-//                   << m_layer << ", " << m_row << ", " << ctime
-//                   << ", " << dl << ")" << std::endl;
-//     }
-//     m_cde[i] = cde;
-//     m_ctime[i] = ctime;
-//     m_drift_length[i] = dl;
-//     auto pos = tpc::getPosition(m_pad);
-//     pos.SetY(dl);
-//     auto cpos = gTPCPos.Correct(pos, m_layer, m_row);
-//     m_position[i] = cpos;
-//   }
-//   return true;
-// }
 
 //_____________________________________________________________________________
 Bool_t
@@ -502,11 +503,11 @@ TPCHit::ClearRegisteredHits()
 }
 
 //_____________________________________________________________________________
-// Bool_t
-// TPCHit::IsGood() const
-// {
-//   return m_is_good;
-// }
+Bool_t
+TPCHit::IsGood() const
+{
+  return m_is_good;
+}
 
 //_____________________________________________________________________________
 void
