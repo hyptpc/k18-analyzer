@@ -25,7 +25,7 @@ dst_build_dir		= $(dst_dir)/build
 # ROOT
 root_config	= root-config
 root_include	= $(shell $(root_config) --cflags)
-root_libs	= $(shell $(root_config) --libs) -lMinuit -lEG -lGeom -lGui
+root_libs	= $(shell $(root_config) --libs) -lMinuit -lEG -lGeom -lGui -lSpectrum
 #
 # HDDAQ Unpacker
 unpacker_config		= /group/had/sks/software/unpacker/e70/bin/unpacker-config
@@ -112,7 +112,7 @@ endif
 #______________________________________________________________________________
 .PHONY: all dst usr example lib clean distclean show help
 
-all: lib usr
+all: lib usr dst
 
 -include $(deps) $(usr_deps) $(dst_deps) $(ex_deps)
 
