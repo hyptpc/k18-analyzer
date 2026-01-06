@@ -1,3 +1,7 @@
 [submodule "submodule/spdlog"]
 	path = submodule/spdlog
 	url = https://github.com/gabime/spdlog.git
+[submodule "submodule/param"]
+	path = submodule/param
+	url = git@github.com:hyptpc/param.git
+	branch = e72
