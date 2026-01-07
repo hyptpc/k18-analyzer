@@ -1,7 +1,7 @@
 // HistTools.h
 
 #ifndef HistTools_h
-#define HistTools_h 1
+#define HistTools_h
 
 #include <string>
 #include <vector>
@@ -31,6 +31,7 @@ void BuildDCHit(const TString& dcname, Bool_t flag_beam_particle=false);
 void BuildDCTrack(const TString& dcname, Bool_t flag_beam_particle=false);
 
 void BuildTPCHit();
+void BuildTPCTracking();
 }
 
 #endif

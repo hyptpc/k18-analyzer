@@ -1,7 +1,5 @@
 // -*- C++ -*-
 
-#if ! defined E73_2024
-
 #include "HistTools.hh"
 
 #include <TString.h>
@@ -664,6 +662,77 @@ BuildTPCHit()
   */
 }
 
+//_____________________________________________________________________________
+void
+BuildTPCTracking()
+{
+
+  // HB1(const TString& name, const TString& title,
+  //     Int_t nbinx, Double_t xlow, Double_t xhigh)
+
+  // HB2(const TString& name, const TString& title,
+  //   Int_t nbinx, Double_t xlow, Double_t xhigh,
+  //   Int_t nbiny, Double_t ylow, Double_t yhigh)
+
+  HB1("Hough_Dist", "Hough_Dist", 500, 0., 50.);
+  HB1("Hough_Dist_Y", "Hough_Dist_Y", 500, 0., 50.);
+  HB1("Num_Tracking_Iterations", 100, 0., 100.);
+  HB1("Fitting_Flag", 10, 0., 10.);
+  HB1("Track_Searching_Time", "Track_Searching_Time;Time [ms];", 100, 0., 100.);
+  HB1("Track_Fitting_Time", "Track_Fitting_Time;Time [ms];", 100, 0., 100.);
+  HB1("Minuit_Output_Status", 5, 0., 5.);
+
+  HB1("Num_Track_TPC", 40, 0., 40.);
+  HB1("Num_Track_TPC_Hits", 50, 0., 50.);
+  HB1("Chisqr_TPC", 500, 0., 100.);
+  HB1("Layer_Id_TPC", 35, 0., 35.);
+  HB1("X0_TPC", 400, -100., 100.);
+  HB1("Y0_TPC", 400, -100., 100.);
+  HB1("U0_TPC", 200, -0.20, 0.20);
+  HB1("V0_TPC", 200, -0.20, 0.20);
+  HB2("U0_X0_TPC", "U0_X0_TPC;X0;U0", 100, -100., 100., 100, -0.20, 0.20);
+  HB2("V0_Y0_TPC", "V0_Y0_TPC;Y0;V0", 100, -100., 100., 100, -0.20, 0.20);
+  HB2("X0_Y0_TPC", "X0_Y0_TPC;Y0;X0", 100, -100., 100., 100, -100., 100.);
+
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    // Tracking Histgrams
+    HB1(Form("HitPat_TPC_Layer%02d", layer), Form("HitPat_TPC_Layer%02d;[Track];", layer), 400, 0., 400.);
+    HB1(Form("Position_TPC_Layer%02d", layer), Form("Position_TPC_Layer%02d", layer), 200, -250., 250.);
+    HB1(Form("Residual_TPC_Layer%02d", layer), Form("Residual_TPC_Layer%02d", layer), 200, 0.0, 10.0);
+    HB2(Form("Resid_vs_Pos_TPC_Layer%02d", layer), Form("Resid_vs_Pos_TPC_Layer%02d", layer), 250, -250., 250., 100, -1.0, 1.0);
+    HB2(Form("Y_vs_Xcal_TPC_Layer%02d", layer), Form("Y_vs_Xcal_TPC_Layer%02d", layer), 100, -250., 250., 100, -250., 250.);
+    HB1(Form("ResidualX_TPC_Layer%02d", layer), Form("ResidualX_TPC_Layer%02d", layer), 200, -2.0, 2.0);
+    HB1(Form("ResidualY_TPC_Layer%02d", layer), Form("ResidualY_TPC_Layer%02d", layer), 200, -2.0, 2.0);
+    HB1(Form("ResidualZ_TPC_Layer%02d", layer), Form("ResidualZ_TPC_Layer%02d", layer), 200, -2.0, 2.0);
+  }
+
+  const Int_t    NbinDe = 1000;
+  const Double_t MinDe  =    0.;
+  const Double_t MaxDe  = 2000.;
+
+  const Int_t NbinClSize = 25;
+  const Double_t MinClSize = 0;
+  const Double_t MaxClSize = 25;
+  const Int_t NbinDist = 60;
+  const Double_t MinDist = -15.;
+  const Double_t MaxDist = 15.;
+  const Int_t NbinRatio = 100;
+  const Double_t MinRatio = 0.;
+  const Double_t MaxRatio = 1.;
+
+  HB1("Cluster_size", "Cluster_size;Cluster size;Counts", NbinClSize, MinClSize, MaxClSize);
+  HB1("Cluster_dE", "Cluster_dE;Cluster dE;Counts", NbinDe, MinDe, MaxDe);
+  HB2("Transverse_diffusion", "Transverse_diffusion;X_{cluster_center}-X_{pad};A/A_{sum}", 
+      NbinDist, MinDist, MaxDist, NbinRatio, MinRatio, MaxRatio);
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    HB1(Form("Cluster_size_layer%2d",layer), Form("Cluster_size_layer%2d;Cluster size;Counts",layer), 
+        NbinClSize, MinClSize, MaxClSize);
+    HB1(Form("Cluster_dE_layer%2d",layer), Form("Cluster_dE_layer%2d;Cluster dE;Counts",layer), 
+        NbinDe, MinDe, MaxDe);
+    HB2(Form("Transverse_diffusion_Layer%02d",layer), 
+        Form("Transverse_diffusion_Layer%02d;X_{cluster_center}-X_{pad};A/A_{sum}",layer),
+        NbinDist, MinDist, MaxDist, NbinRatio, MinRatio, MaxRatio);
+  }
 }
 
-#endif
+}
