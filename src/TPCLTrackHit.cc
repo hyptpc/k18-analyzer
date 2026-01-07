@@ -160,8 +160,8 @@ TPCLTrackHit::GetLocalCalPosExclusive() const
   TVector3 AP = pos-x0;
   double dist_AX = u.Dot(AP);
   TVector3 AI(x0.x()+(u.x()*dist_AX),
-	      x0.y()+(u.y()*dist_AX),
-	      x0.z()+(u.z()*dist_AX));
+              x0.y()+(u.y()*dist_AX),
+              x0.z()+(u.z()*dist_AX));
   return AI;
 }
 

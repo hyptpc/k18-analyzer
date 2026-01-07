@@ -802,9 +802,9 @@ TPCLocalTrack::GetResolutionVect(Int_t i, Bool_t vetoBadClusters){
   TVector3 residual_row = ResidualVectRow(par, pos);
   TVector3 residual = ResidualVect(par, pos);
   TVector3 res_row = CalcResolution(par, layer, pos, padTheta, resParam, vetoBadClusters);
-  double res_x = TMath::Abs(res_row.x()*residual.x()/residual_row.x());
-  double res_y = TMath::Abs(res_row.y()*residual.y()/residual_row.y());
-  double res_z = TMath::Abs(res_row.z()*residual.z()/residual_row.z());
+  Double_t res_x = TMath::Abs(res_row.x()*residual.x()/residual_row.x());
+  Double_t res_y = TMath::Abs(res_row.y()*residual.y()/residual_row.y());
+  Double_t res_z = TMath::Abs(res_row.z()*residual.z()/residual_row.z());
   return TVector3(res_x, res_y, res_z);
 }
 
@@ -1188,9 +1188,9 @@ TPCLocalTrack::SeparateTracksAtTarget()
       Int_t id = m_hit_order[i];
       TPCLTrackHit *hitp = m_hit_array[id];
       TVector3 pos = hitp -> GetLocalHitPos();
-      if(TMath::Abs(pos.x()) < 25. &&
-	 TMath::Abs(pos.y()) < 30. &&
-	 pos.z() < tpc::ZTarget) isBeamHit = true;
+      if (TMath::Abs(pos.x()) < 25. &&
+          TMath::Abs(pos.y()) < 30. &&
+          pos.z() < tpc::ZTarget) isBeamHit = true;
       else isBeamHit = false;
 
       TVector3 gap = pos - prev_pos;
@@ -1222,15 +1222,15 @@ TPCLocalTrack::SeparateTracksAtTarget()
       gPadTheta.clear();
       gResParam.clear();
       for(Int_t i=0; i<n_remain; ++i){
-	TPCLTrackHit *hitp = m_hit_array[i];
-	TVector3 pos = hitp->GetLocalHitPos();
-	gHitPos.push_back(pos);
-	Int_t layer = hitp->GetLayer();
-	gLayer.push_back(layer);
-	Double_t padTheta = hitp->GetPadTheta();
-	gPadTheta.push_back(padTheta);
-	std::vector<Double_t> resparam = hitp->GetResolutionParams();
-	gResParam.push_back(resparam);
+        TPCLTrackHit *hitp = m_hit_array[i];
+        TVector3 pos = hitp->GetLocalHitPos();
+        gHitPos.push_back(pos);
+        Int_t layer = hitp->GetLayer();
+        gLayer.push_back(layer);
+        Double_t padTheta = hitp->GetPadTheta();
+        gPadTheta.push_back(padTheta);
+        std::vector<Double_t> resparam = hitp->GetResolutionParams();
+        gResParam.push_back(resparam);
       }
 
       gPar[0] = m_x0;

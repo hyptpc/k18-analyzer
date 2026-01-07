@@ -102,7 +102,6 @@ ConfMan::Initialize()
   }
   spdlog::info(oss.str());
 
-  //if(!InitializeParameterFiles())
   if(!InitializeParameterFiles())
     return false;
 

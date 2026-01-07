@@ -145,8 +145,8 @@ namespace
 
       Int_t ntracks = vertex -> GetNTracks();
       for(Int_t i=0; i<ntracks; i++){
-	Int_t id = vertex -> GetTrackId(i);
-	TrackCont[id] -> SetIsAccidental();
+        Int_t id = vertex -> GetTrackId(i);
+        TrackCont[id] -> SetIsAccidental();
       }
     }
   }
@@ -159,9 +159,9 @@ namespace
 
     for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
       for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
-	auto cl = ClCont[layer][ci];
-	TPCHit* hit = cl->GetMeanHit();
-	if(hit->GetHoughFlag()==flagID) hit->SetHoughFlag(0);
+        auto cl = ClCont[layer][ci];
+        TPCHit* hit = cl->GetMeanHit();
+        if(hit->GetHoughFlag()==flagID) hit->SetHoughFlag(0);
       } //ci
     } //layer
   }
@@ -219,23 +219,23 @@ namespace
     //Residual check with other hits
     for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
       for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
-	auto cl = ClCont[layer][ci];
-	TPCHit* hit = cl->GetMeanHit();
-	if(hit->GetHoughFlag()!=HoughFlag) continue;
-	Double_t resi=0.;
-	if(Track->IsGoodHitToAdd(hit, resi)){
-	  Int_t vtxflag = Track -> GetVtxFlag();
-	  TVector3 pos = hit -> GetPosition();
-	  Int_t side = Track -> Side(pos);
-	  //Vertex inside the target : vtxflag = -1 or 1 / outside vtxflag = 0
-	  //if track and new cluster are on the same side and vertex in the target : vtxflag*side = 1
-	  //if vertex is outside of the target : vtxflag*side = 0
-	  if(vtxflag*side >= 0){
-	    Track->AddTPCHit(new TPCLTrackHit(hit));
-	    status = true;
-	  }
-	}
-	//else std::cout<<"resi "<<resi<<std::endl;
+        auto cl = ClCont[layer][ci];
+        TPCHit* hit = cl->GetMeanHit();
+        if(hit->GetHoughFlag()!=HoughFlag) continue;
+        Double_t resi=0.;
+        if(Track->IsGoodHitToAdd(hit, resi)){
+          Int_t vtxflag = Track -> GetVtxFlag();
+          TVector3 pos = hit -> GetPosition();
+          Int_t side = Track -> Side(pos);
+          //Vertex inside the target : vtxflag = -1 or 1 / outside vtxflag = 0
+          //if track and new cluster are on the same side and vertex in the target : vtxflag*side = 1
+          //if vertex is outside of the target : vtxflag*side = 0
+          if(vtxflag*side >= 0){
+            Track->AddTPCHit(new TPCLTrackHit(hit));
+            status = true;
+          }
+        }
+        //else std::cout<<"resi "<<resi<<std::endl;
       } //ci
     } //layer
     return status;
@@ -450,14 +450,14 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
       Int_t bindiffXZ = TMath::Abs(MaxBinXZ[0] - XZhough_x[i]) + TMath::Abs(MaxBinXZ[1] - XZhough_y[i]);
       Int_t bindiffY = TMath::Abs(MaxBinY[0] - Yhough_x[i]) + TMath::Abs(MaxBinY[1] - Yhough_y[i]);
       if(bindiffXZ<=1 && bindiffY<=1){
-	hough_flag = false;
+        hough_flag = false;
 #if DebugDisp
-	std::cout<<"Previous hough bin on the XZ plane "<<i<<"th x: "
-		 <<XZhough_x[i]<<", y: "<<XZhough_y[i]<<" on the vertical plane x: "
-		 <<Yhough_x[i]<<", y: "<<Yhough_y[i]<<std::endl;
-	std::cout<<"Current hough bin on the XZ plane "<<i<<"th x: "
-		 <<MaxBinXZ[0]<<", y: "<<MaxBinXZ[1]<<" on the vertical plane x: "
-		 <<MaxBinY[0]<<", y: "<<MaxBinY[1]<<std::endl;
+        std::cout<<"Previous hough bin on the XZ plane "<<i<<"th x: "
+            <<XZhough_x[i]<<", y: "<<XZhough_y[i]<<" on the vertical plane x: "
+            <<Yhough_x[i]<<", y: "<<Yhough_y[i]<<std::endl;
+        std::cout<<"Current hough bin on the XZ plane "<<i<<"th x: "
+            <<MaxBinXZ[0]<<", y: "<<MaxBinXZ[1]<<" on the vertical plane x: "
+            <<MaxBinY[0]<<", y: "<<MaxBinY[1]<<std::endl;
 #endif
       }
     }

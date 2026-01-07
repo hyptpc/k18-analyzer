@@ -1,7 +1,5 @@
 // -*- C++ -*-
 
-#if ! defined E73_2024
-
 #include "EventAnalyzer.hh"
 
 #include <Unpacker.hh>
@@ -815,5 +813,3 @@ EventAnalyzer::DAQ(const RawData& rawData)
   auto data_size = gUnpacker.get_node_header(node_id, k_data_size);
   HF1("EB_DataSize", data_size);
 }
-
-#endif

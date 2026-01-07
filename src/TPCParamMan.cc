@@ -117,33 +117,33 @@ TPCParamMan::Initialize()
       Int_t key = MakeKey(layer, row);
       switch(aty){
       case kAdc: {
-	TPCAParam* pre_param = m_APContainer[key];
-	TPCAParam* param = new TPCAParam(p0, p1);
-	m_APContainer[key] = param;
-	if(pre_param){
-	  hddaq::cerr << FUNC_NAME << ": duplicated key "
-		      << " following record is deleted." << std::endl
-		      << " layer = " << layer << ","
+        TPCAParam* pre_param = m_APContainer[key];
+        TPCAParam* param = new TPCAParam(p0, p1);
+        m_APContainer[key] = param;
+        if(pre_param){
+          hddaq::cerr << FUNC_NAME << ": duplicated key "
+                      << " following record is deleted." << std::endl
+                      << " layer = " << layer << ","
                       << " row = " << row
                       << " aty = " << aty
                       << std::endl;
-	  delete pre_param;
-	}
+          delete pre_param;
+        }
         break;
       }
       case kTdc: {
-	TPCTParam *pre_param = m_TPContainer[key];
-	TPCTParam *param = new TPCTParam(p0, p1);
-	m_TPContainer[key] = param;
-	if(pre_param){
-	  hddaq::cerr << FUNC_NAME << ": duplicated key "
-		      << " following record is deleted." << std::endl
-		      << " layer = " << layer << ","
+        TPCTParam *pre_param = m_TPContainer[key];
+        TPCTParam *param = new TPCTParam(p0, p1);
+        m_TPContainer[key] = param;
+        if(pre_param){
+          hddaq::cerr << FUNC_NAME << ": duplicated key "
+                      << " following record is deleted." << std::endl
+                      << " layer = " << layer << ","
                       << " row = " << row
                       << " aty = " << aty
                       << std::endl;
-	  delete pre_param;
-	}
+          delete pre_param;
+        }
         break;
       }
       case kY: {
@@ -151,9 +151,9 @@ TPCParamMan::Initialize()
         TPCYParam *param = new TPCYParam(p0, p1);
         m_YPContainer[key] = param;
         if(pre_param){
-	  hddaq::cerr << FUNC_NAME << ": duplicated key "
-		      << " following record is deleted." << std::endl
-		      << " layer = " << layer << ","
+          hddaq::cerr << FUNC_NAME << ": duplicated key "
+                      << " following record is deleted." << std::endl
+                      << " layer = " << layer << ","
                       << " row = " << row
                       << " aty = " << aty
                       << std::endl;
@@ -183,33 +183,33 @@ TPCParamMan::Initialize()
         break;
       }
       case kRes: {
-	if(input_line >> p2 >> p3 >> p4 >> p5 >> p6 >> p7 >> p8){
-	  TPCResParam *pre_param = m_ResContainer[key];
-	  std::vector<Double_t> params{ p0, p1, p2, p3, p4, p5, p6, p7, p8 };
-	  TPCResParam *param = new TPCResParam(params);
-	  m_ResContainer[key] = param;
+        if(input_line >> p2 >> p3 >> p4 >> p5 >> p6 >> p7 >> p8){
+          TPCResParam *pre_param = m_ResContainer[key];
+          std::vector<Double_t> params{ p0, p1, p2, p3, p4, p5, p6, p7, p8 };
+          TPCResParam *param = new TPCResParam(params);
+          m_ResContainer[key] = param;
 
-	  Int_t HS = layer; Int_t InOut = row;
-	  if(HS==0&&InOut==0) m_Res_HSOFF_Inner = params;
-	  else if(HS==0&&InOut==1) m_Res_HSOFF_Outer = params;
-	  else if(HS==1&&InOut==0) m_Res_HSON_Inner = params;
-	  else if(HS==1&&InOut==1) m_Res_HSON_Outer = params;
-	  else hddaq::cerr << FUNC_NAME << ": Invalid TPC resolution parameter"
-			   << std::endl << " p0, 1: HS On 0 : HS Off"
-			   << std::endl << " p1, 1: Outer layers 0 : inner layers "
-			   << std::endl;
+          Int_t HS = layer; Int_t InOut = row;
+          if(HS==0&&InOut==0) m_Res_HSOFF_Inner = params;
+          else if(HS==0&&InOut==1) m_Res_HSOFF_Outer = params;
+          else if(HS==1&&InOut==0) m_Res_HSON_Inner = params;
+          else if(HS==1&&InOut==1) m_Res_HSON_Outer = params;
+          else hddaq::cerr << FUNC_NAME << ": Invalid TPC resolution parameter"
+                << std::endl << " p0, 1: HS On 0 : HS Off"
+                << std::endl << " p1, 1: Outer layers 0 : inner layers "
+                << std::endl;
 
-	  if(pre_param){
-	    hddaq::cerr << FUNC_NAME << ": duplicated key "
-			<< " following record is deleted." << std::endl
-			<< " layer = " << layer << ","
-			<< " row = " << row
-			<< " aty = " << aty
-			<< std::endl;
-	    delete pre_param;
-	  }
-	  break;
-	}
+          if(pre_param){
+            hddaq::cerr << FUNC_NAME << ": duplicated key "
+            << " following record is deleted." << std::endl
+            << " layer = " << layer << ","
+            << " row = " << row
+            << " aty = " << aty
+            << std::endl;
+            delete pre_param;
+          }
+          break;
+        }
       }
       default:
         hddaq::cerr << FUNC_NAME << ": Invalid Input" << std::endl
@@ -218,7 +218,7 @@ TPCParamMan::Initialize()
       } // switch
     } else {
       hddaq::cerr << FUNC_NAME << ": Invalid Input" << std::endl
-		  << " ===> L" << line_number << " " << line << std::endl;
+                  << " ===> L" << line_number << " " << line << std::endl;
     }
   } // while
 
