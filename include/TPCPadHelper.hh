@@ -12,12 +12,15 @@
 #ifndef TPC_PAD_HELPER_HH
 #define TPC_PAD_HELPER_HH
 
+#include <algorithm>
+#include <iomanip>
 #include <iostream>
+#include <cmath>
 #include <cstdlib>
+#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sstream>
-#include <iomanip>
+#include <vector>
 
 #include <TDirectory.h>
 #include <TH2Poly.h>
@@ -25,14 +28,12 @@
 #include <TVector3.h>
 
 #include "DetectorID.hh"
+#include "Exception.hh"
 
 namespace tpc
 {
 const Double_t ZTarget = -143.; // Target from center
 const Double_t TargetVtxWindow = 30.;
-const Int_t NumOfLayersTPC = 32;
-const Int_t NumOfPadTPC = 5768;
-const Int_t NumOfAsadTPC = 31;
 
 enum EPadParameter
 {
@@ -211,8 +212,45 @@ static const Double_t ClusterSizeOuter[2][10] ={
 };
 
 //_____________________________________________________________________________
+// Check validity of Layer ID
+inline void ValidateLayer(Int_t layer, const char* funcName)
+{
+  if (layer < 0 || NumOfLayersTPC <= layer) {
+    throw Exception(Form("[tpc::%s] Invalid layerID %d (Max: %d)", 
+                         funcName, layer, NumOfLayersTPC - 1));
+  }
+}
+
+//_____________________________________________________________________________
+// Check validity of Row ID for a specific Layer
+inline void ValidateRow(Int_t layer, Int_t row, const char* funcName)
+{
+  // Ensure layer is valid before accessing array to avoid segfault
+  ValidateLayer(layer, funcName);
+
+  Int_t max_row = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+  if (row < 0 || max_row <= row) {
+    throw Exception(Form("[tpc::%s] Invalid rowID %d for layer %d (Max: %d)", 
+                         funcName, row, layer, max_row - 1));
+  }
+}
+
+//_____________________________________________________________________________
+// Check validity of Pad ID (Global ID)
+inline void ValidatePadID(Int_t padID, const char* funcName)
+{
+  if (padID < 0 || NumOfPadTPC <= padID) {
+    throw Exception(Form("[tpc::%s] Invalid padID %d (Max: %d)", 
+                         funcName, padID, NumOfPadTPC - 1));
+  }
+}
+
+//_____________________________________________________________________________
 inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
 {
+#ifdef PAD_HELPER_DEBUG
+  ValidateRow(layer, row, __func__);
+#endif
   Int_t flag=-1;
   switch(asad){
   case 0:
@@ -973,6 +1011,9 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
 //_____________________________________________________________________________
 inline Int_t GetASADId(Int_t layer, Int_t row) //0~30
 {
+#ifdef PAD_HELPER_DEBUG
+  ValidateRow(layer, row, __func__);
+#endif
   Int_t flag=layer/4;
   Int_t section;
   if(flag==0) section=0; //layer 0~3
@@ -1010,10 +1051,12 @@ inline Int_t GetASADId(Int_t layer, Int_t row) //0~30
   }
 }
 
-
 //_____________________________________________________________________________
 inline Int_t GetCoBoId(Int_t layer, Int_t row)
 {
+#ifdef PAD_HELPER_DEBUG
+  ValidateRow(layer, row, __func__);
+#endif
   switch(layer){
   case 4:
     if(60<=row && row<=99)
@@ -1033,75 +1076,120 @@ inline Int_t GetCoBoId(Int_t layer, Int_t row)
 //_____________________________________________________________________________
 inline Int_t GetPadId(Int_t layerID, Int_t rowID)
 {
-  Int_t padID=0;
-  for(Int_t layi = 0 ; layi<layerID; layi++) padID += padParameter[layi][1];
-  padID+=rowID;
-  return padID;
+  // Return -1 (invalid) for negative rowID to prevent crashes.
+  // This is primarily to handle the INT_MIN(-2147483648) value resulting from (Int_t)NaN
+  // when initializing TPCHit with NaN in TPCCluster as below;
+  //  m_mean_hit(new TPCHit(layer, TMath::QuietNaN())) <- this
+  if (rowID < 0) return -1;
+#ifdef PAD_HELPER_DEBUG
+  ValidateRow(layerID, rowID, __func__);
+#endif
 
+  Int_t padID = 0;
+  for (Int_t layer = 0; layer < layerID; layer++)
+    padID += static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+  padID += rowID;
+  return padID;
 }
 
 //_____________________________________________________________________________
 inline Int_t getLayerID(Int_t padID)
 {
-  padID-=1;
-  Int_t layer;
-  Int_t sum = 0;
+#ifdef PAD_HELPER_DEBUG
+  ValidatePadID(padID, __func__);
+#endif
 
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID+1; layer++)
-  {
-    sum += padParameter[layer][1];
+  Int_t sum = 0;
+  for (Int_t layer = 0; layer < NumOfLayersTPC; layer++) {
+    sum += static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+    if (padID < sum) return layer;
   }
-  return layer;
+  
+  throw Exception(Form("[tpc::%s] Invalid padID %d (Max: %d)", 
+                       __func__, padID, NumOfPadTPC - 1));
 }
 
 //_____________________________________________________________________________
 inline Int_t getRowID(Int_t padID)
 {
-  padID-=1;
-  Int_t layer, row;
-  Int_t sum = 0;
+#ifdef PAD_HELPER_DEBUG
+  ValidatePadID(padID, __func__);
+#endif
 
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID+1; layer++)
-  {
-    sum += padParameter[layer][1];
+  Int_t sum = 0;
+  for (Int_t layer = 0; layer < NumOfLayersTPC; layer++) {
+    Int_t nPad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+    if (padID < sum + nPad) return padID - sum;
+    sum += nPad;
   }
-  row = padID - sum;
-  return row;
+
+  // Theoretically unreachable. Safeguard for parameter inconsistencies.
+  throw Exception(Form("[tpc::%s] Logic Error: padID %d not found in parameter table.", __func__, padID));
 }
 
 //_____________________________________________________________________________
 inline Double_t getTheta(Int_t padID)
 {
-  padID-=1;
-  Int_t layer, row;
+#ifdef PAD_HELPER_DEBUG
+  ValidatePadID(padID, __func__);
+#endif
+
   Int_t sum = 0;
+  for (Int_t layer = 0; layer < NumOfLayersTPC; layer++) {
+    Int_t nPad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
 
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID+1; layer++)
-  {
-    sum += padParameter[layer][1];
+    // Check if padID belongs to this layer
+    if (padID < sum + nPad) {
+      Int_t row = padID - sum;
+      Double_t nDiv = padParameter[layer][kNumOfDivision];
+
+      // Calculate theta
+      Double_t sTheta = 180. - (360. / nDiv) * nPad / 2.;
+      Double_t theta  = sTheta + (row + 0.5) * 360. / nDiv - 180;
+
+      return theta;
+    }
+    sum += nPad;
   }
-  row = padID - sum;
-  Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
-  Double_t theta = sTheta+(row+0.5)*360./padParameter[layer][3]-180;
 
-  return theta;
+  // Theoretically unreachable. Safeguard for parameter inconsistencies.
+  throw Exception(Form("[tpc::%s] Logic Error: padID %d not found.", __func__, padID));
 }
 
 //_____________________________________________________________________________
 inline Double_t getTheta(Int_t layer, Double_t m_row)
 {
-  Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
-  Double_t theta = sTheta+(m_row+0.5)*360./padParameter[layer][3]-180;
+#ifdef PAD_HELPER_DEBUG
+  ValidateLayer(layer, __func__);
+  // Check m_row range explicitly here since ValidateRow is for Int_t
+  Double_t max_row = padParameter[layer][kNumOfPad];
+  Double_t epsilon = -1.e-3; // Allow small epsilon tolerance instead of strict < 0.
+  if (m_row < epsilon || max_row < m_row) {
+    throw Exception(Form("[tpc::%s] Invalid m_row %f for layer %d (Limit: < %f)", 
+                         __func__, m_row, layer, max_row));
+  }
+#endif
+
+  Int_t    nPad   = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+  Double_t nDiv   = padParameter[layer][kNumOfDivision];
+  Double_t sTheta = 180. - (360. / nDiv) * nPad / 2.;
+  Double_t theta  = sTheta + (m_row + 0.5) * 360. / nDiv - 180;
+
   return theta;
 }
 
 //_____________________________________________________________________________
 inline Double_t getMrow(Int_t layer, Double_t m_phi)
 {
+#ifdef PAD_HELPER_DEBUG
+  ValidateLayer(layer, __func__);
+#endif
+  Double_t nPad = padParameter[layer][kNumOfPad];
+  Double_t nDiv = padParameter[layer][kNumOfDivision];
 
-  Double_t mrow = 0.5*(padParameter[layer][1]-1.) + (90.-m_phi)*padParameter[layer][3]/360.;
+  Double_t mrow = 0.5*(nPad-1.) + (90.-m_phi)*nDiv/360.;
   if(mrow<-0.0001){
-    mrow = 0.5*(padParameter[layer][1]-1.) + (450.-m_phi)*padParameter[layer][3]/360.;
+    mrow = 0.5*(nPad-1.) + (450.-m_phi)*nDiv/360.;
   }
   return mrow;
 }
@@ -1109,200 +1197,310 @@ inline Double_t getMrow(Int_t layer, Double_t m_phi)
 //_____________________________________________________________________________
 inline Double_t GetRadius(Int_t layer)
 {
-  return padParameter[layer][2];
+#ifdef PAD_HELPER_DEBUG
+  ValidateLayer(layer, __func__);
+#endif
+  return padParameter[layer][kRadius];
 }
 
 //_____________________________________________________________________________
 inline Double_t getR(Int_t padID)
 {
-  padID-=1;
-  Int_t layer;
-  Int_t sum = 0;
+#ifdef PAD_HELPER_DEBUG
+  ValidatePadID(padID, __func__);
+#endif
 
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID+1; layer++)
-  {
-    sum += padParameter[layer][1];
+  Int_t sum = 0;
+  for (Int_t layer = 0; layer < NumOfLayersTPC; layer++) {
+    Int_t nPad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+
+    // Check if padID belongs to this layer
+    if (padID < sum + nPad) {
+      return padParameter[layer][kRadius];
+    }
+    sum += nPad;
   }
-  Double_t R = padParameter[layer][2];
-  return R;
+
+  // Theoretically unreachable. Safeguard for parameter inconsistencies.
+  throw Exception(Form("[tpc::%s] Logic Error: padID %d not found.", __func__, padID));
 }
 
 //_____________________________________________________________________________
 inline TVector3 getPosition(Int_t padID)
 {
-  padID-=1;
-  Int_t layer, row;
+#ifdef PAD_HELPER_DEBUG
+  ValidatePadID(padID, __func__);
+#endif
+
   Int_t sum = 0;
+  for (Int_t layer = 0; layer < NumOfLayersTPC; layer++) {
+    Int_t nPad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
 
-  for (layer = 0; layer <= 30 && sum + padParameter[layer][1] <= padID+1; layer++)
-  {
-    sum += padParameter[layer][1];
+    // Check if padID belongs to this layer
+    if (padID < sum + nPad) {
+      Int_t row = padID - sum;
+      Double_t theta  = getTheta(layer, static_cast<Double_t>(row))*TMath::DegToRad();
+      Double_t radius = padParameter[layer][kRadius];
+      Double_t x = radius * std::sin(theta);
+      Double_t z = radius * std::cos(theta) + ZTarget;
+      return TVector3(x, 0., z);
+    }
+    sum += nPad;
   }
-  row = padID - sum;
 
-  TVector3 result;
-  if (row > padParameter[layer][1]){ // out of range
-    result.SetX(0);
-    result.SetY(-1);
-    result.SetZ(0);
-  }
-  else{
-    Double_t x, z;
-    x = padParameter[layer][2] * sin(getTheta(layer,row)*TMath::Pi()/180.);
-    z = padParameter[layer][2] * cos(getTheta(layer,row)*TMath::Pi()/180.) + ZTarget;
-
-    result.SetX(x);
-    result.SetY(0);
-    result.SetZ(z);
-  }
-  return result;
+  // return TVector3(0., -1., 0.);
+  return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
 }
 
 //_____________________________________________________________________________
 inline TVector3 getPosition(Int_t layer, Double_t m_row)
 {
-  TVector3 result;
-  if(m_row > padParameter[layer][1]){ // out of range
+#ifdef PAD_HELPER_DEBUG
+  ValidateLayer(layer, __func__);
+#endif
+
+  Double_t nPad = padParameter[layer][kNumOfPad];
+  if (m_row < 0 || nPad < m_row) {
     return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
   }
-  else{
-    return TVector3(
-      padParameter[layer][2] * sin(getTheta(layer, m_row)*TMath::Pi()/180.),
-      0.,
-      padParameter[layer][2] * cos(getTheta(layer, m_row)*TMath::Pi()/180.) + ZTarget);
-  }
+
+  Double_t theta  = getTheta(layer, m_row) * TMath::DegToRad();
+  Double_t radius = padParameter[layer][kRadius];
+  Double_t x = radius * std::sin(theta);
+  Double_t z = radius * std::cos(theta) + ZTarget;
+  return TVector3(x, 0., z);
 }
 
 //_____________________________________________________________________________
+// Find PadID from global position (z, x)
+// Returns:
+//    0 or positive : Valid PadID
+//    -layer        : Hit inside the gap between layer and layer-1
+//    -1000         : Not found (outside detector volume)
 inline Int_t findPadID(Double_t z, Double_t x)
 {
-  z -= ZTarget;
-  Double_t radius = sqrt(x*x + z*z);
-  Double_t angle;
-  if (z == 0)
-  {
-    if (x > 0)   angle = 1.5*TMath::Pi();
-    else if (x < 0)   angle = 0.5*TMath::Pi();
-    else return -1000; // no padID if (0,0)
-  }
+  // 0 <= angle < 360
+  Double_t radius = std::hypot(x, z-ZTarget);
+  Double_t angle  = 180.0 + std::atan2(x, z-ZTarget) * TMath::RadToDeg();
+  if (angle >= 360.0) angle -= 360.0;
+  if (angle <    0.0) angle += 360.0;
 
-  else{
-		if (z > 0) angle = TMath::Pi()+atan(x / z);
-	  else if( z < 0&&x<0) angle = atan(x / z);
-		  else angle = 2*TMath::Pi()+ atan(x / z);//angle of z<0&&x>0 plane should be [1.5Pi,2Pi], not [-0.5Pi , 0].
-	}
-
-  Int_t layer, row;
-  
-  // find layer_num.
-  for (layer = 0; layer<NumOfLayersTPC;layer++)
-  {
-    if (layer != 0)
-    {
-      if (padParameter[layer][2] - padParameter[layer][5] * 0.5 >= radius &&
-          padParameter[layer - 1][2] + padParameter[layer - 1][5] * 0.5 <= radius) return -layer;
+  Int_t hit_layer = -1;
+  for (Int_t layer = 0; layer < NumOfLayersTPC; layer++) {
+    Double_t r_pad = padParameter[layer][kRadius];
+    Double_t l_pad = padParameter[layer][kLength];
+    Double_t r_in  = r_pad - l_pad * 0.5;
+    Double_t r_out = r_pad + l_pad * 0.5;
+    if (r_in <= radius && radius <= r_out) {
+      hit_layer = layer;
+      break;
     }
-		double rad_in= padParameter[layer][2]-padParameter[layer][5]*0.5;
-		double rad_out= padParameter[layer][2]+padParameter[layer][5]*0.5;
-  	if(rad_in<=radius and rad_out>=radius){
-			break;
-		}
-		if(layer==NumOfLayersTPC-1 && rad_out<radius) return -1000;
-	}
-  
-  Double_t sTheta = 180.-(360./padParameter[layer][3])*padParameter[layer][1]/2.;
 
-  if (angle - (sTheta*TMath::Pi()/180.) < 0) return -1000;
+    // Gap check: If the hit falls into the gap between the previous and current layers
+    if (layer > 0) {
+      Double_t r_prev_out = padParameter[layer-1][kRadius] + padParameter[layer-1][kLength] * 0.5;
+      if (r_prev_out < radius && radius < r_in) {
+        return -layer; 
+      }
+    }
+  }
+  if (hit_layer == -1) return -1000;
 
-  row = (int)((angle-(sTheta*TMath::Pi()/180.))/(360./padParameter[layer][3]*TMath::Pi()/180.));
-  if (row > padParameter[layer][1]) return -1000;
+  // Calc row  
+  Double_t nPad = padParameter[hit_layer][kNumOfPad];
+  Double_t nDiv = padParameter[hit_layer][kNumOfDivision];
+  Double_t sTheta = 180. - (360. / nDiv) * nPad / 2.;
+  Double_t dTheta = 360. / nDiv;
 
-  return GetPadId(layer, row);
+  Double_t diff = angle - sTheta;
+  if (std::isnan(diff) || diff < 0) return -1000;
+  Int_t row = static_cast<Int_t>(diff / dTheta);
+  if (row < 0 || static_cast<Int_t>(nPad) <= row) return -1000;
+
+  std::cout << hit_layer << ", " << row << std::endl;
+
+  return GetPadId(hit_layer, row);
 }
 
 //_____________________________________________________________________________
-inline Double_t
-ArcLength(Int_t layer, Double_t row1, Double_t row2)
+inline Double_t ArcLength(Int_t layer, Double_t row1, Double_t row2)
 {
-  const Int_t R = padParameter[layer][2];
-  Double_t theta = getTheta(layer, row1) - getTheta(layer, row2);
-  theta = std::fmod(theta, 2*TMath::Pi());
-  if(theta < 0) theta += 2*TMath::Pi();
-  theta = TMath::Min(theta, 2*TMath::Pi() - theta);
-  return R*theta;
+#ifdef PAD_HELPER_DEBUG
+  ValidateLayer(layer, __func__);
+#endif
+
+  Double_t radius = padParameter[layer][kRadius];
+
+  // Unit: Degree
+  Double_t theta1 = getTheta(layer, row1);
+  Double_t theta2 = getTheta(layer, row2);
+  Double_t diff   = std::abs(theta1 - theta2);
+
+  // diff >= 0, then std::fmod(diff, 360.0) >= 0
+  diff = std::fmod(diff, 360.0);
+
+  // There are two paths between two points on a circle: 
+  // the minor arc (short) and the major arc (long).
+  // We always use the minor arc (shortest distance).
+  if (diff > 180.0) diff = 360.0 - diff;
+
+  return radius * diff * TMath::DegToRad();
 }
 
 //_____________________________________________________________________________
-inline void
-InitializeHistograms(const TString &name)
+inline void 
+InitializeHistograms(const char* name)
 {
   auto h1 = gDirectory->Get<TH2Poly>(name);
+  if (!h1) {
+    std::cerr << "[tpc::InitializeHistograms] Error: TH2Poly '" << name << "' not found in gDirectory" << std::endl;
+    return;
+  }
 
   Double_t X[5];
   Double_t Y[5];
+  for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {    
+    Int_t nPad      = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+    Double_t nDiv   = padParameter[layer][kNumOfDivision];
+    Double_t radius = padParameter[layer][kRadius];
+    Double_t length = padParameter[layer][kLength];
+    Double_t r_min  = radius - length / 2.0;
+    Double_t r_max  = radius + length / 2.0;
+    Double_t dTheta = 360.0 / nDiv;
+    Double_t sTheta = - dTheta * nPad / 2.0;
 
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    Double_t pLength = tpc::padParameter[layer][5];
-    Double_t st = 180.-(360./tpc::padParameter[layer][3])
-      * tpc::padParameter[layer][1]/2.;
-    Double_t sTheta  = (-1+st/180.)*TMath::Pi();
-    Double_t dTheta  = (360./tpc::padParameter[layer][3])/180.*TMath::Pi();
-    Double_t cRad    = tpc::padParameter[layer][2];
-    Int_t    nPad    = tpc::padParameter[layer][1];
-    for(Int_t j=0; j<nPad; ++j){
-      X[1] = (cRad+(pLength/2.))*TMath::Cos(j*dTheta+sTheta);
-      X[2] = (cRad+(pLength/2.))*TMath::Cos((j+1)*dTheta+sTheta);
-      X[3] = (cRad-(pLength/2.))*TMath::Cos((j+1)*dTheta+sTheta);
-      X[4] = (cRad-(pLength/2.))*TMath::Cos(j*dTheta+sTheta);
-      X[0] = X[4];
-      Y[1] = (cRad+(pLength/2.))*TMath::Sin(j*dTheta+sTheta);
-      Y[2] = (cRad+(pLength/2.))*TMath::Sin((j+1)*dTheta+sTheta);
-      Y[3] = (cRad-(pLength/2.))*TMath::Sin((j+1)*dTheta+sTheta);
-      Y[4] = (cRad-(pLength/2.))*TMath::Sin(j*dTheta+sTheta);
-      Y[0] = Y[4];
-      for(Int_t ii=0; ii<5; ++ii) X[ii] += ZTarget;
-      //for(auto& h: target) h->AddBin(5, X, Y);
-      h1->AddBin(5,X,Y);
+    for (Int_t j = 0; j < nPad; ++j) {      
+      Double_t theta1 = (sTheta + j*dTheta)     * TMath::DegToRad();
+      Double_t theta2 = (sTheta + (j+1)*dTheta) * TMath::DegToRad();
+
+      X[0] = r_max * std::cos(theta1);
+      X[1] = r_max * std::cos(theta2);
+      X[2] = r_min * std::cos(theta2);
+      X[3] = r_min * std::cos(theta1);
+      X[4] = X[0];
+      for (Int_t k = 0; k < 5; ++k) X[k] += ZTarget; 
+            
+      Y[0] = r_max * std::sin(theta1);
+      Y[1] = r_max * std::sin(theta2);
+      Y[2] = r_min * std::sin(theta2);
+      Y[3] = r_min * std::sin(theta1);
+      Y[4] = Y[0];
+
+      h1->AddBin(5, X, Y);
     }
   }
 }
 
+
+// //_____________________________________________________________________________
+// inline Bool_t
+// IsClusterable(Int_t layer, Int_t row_a, Int_t row_b)
+// {
+
+//   Int_t deadpads=0;
+//   for(Int_t row=TMath::Min(row_a, row_b)+1;row<TMath::Max(row_a, row_b);row++){
+//     Int_t padID = GetPadId(layer, row);
+//     if(std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel)) deadpads++;
+//   }
+
+//   if(layer < 10){
+//     const Int_t npad = padParameter[layer][kNumOfPad];
+//     return (TMath::Abs(row_a - row_b) <= MaxRowDifTPC + deadpads
+//             || TMath::Abs(row_a - row_b) >= npad - MaxRowDifTPC - deadpads);
+//   }else{
+//     return (TMath::Abs(row_a - row_b) <= MaxRowDifTPC + deadpads);
+//   }
+// }
+
 //_____________________________________________________________________________
-inline Bool_t
-IsClusterable(Int_t layer, Int_t row_a, Int_t row_b)
+inline Bool_t IsClusterable(Int_t layer, Int_t row_a, Int_t row_b)
 {
+#ifdef PAD_HELPER_DEBUG
+  ValidateRow(layer, row_a, __func__);
+  ValidateRow(layer, row_b, __func__);
+#endif
 
-  Int_t deadpads=0;
-  for(Int_t row=TMath::Min(row_a, row_b)+1;row<TMath::Max(row_a, row_b);row++){
-    Int_t padID = GetPadId(layer, row);
-    if(std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel)) deadpads++;
-    
+  // Ensure min < max
+  Int_t min_row = std::min(row_a, row_b);
+  Int_t max_row = std::max(row_a, row_b);
+  Int_t dist_linear = max_row - min_row;
+
+  // ---------------------------------------------------------
+  // Case A: Sector Layers (Layer 10+) - No wrapping
+  // ---------------------------------------------------------
+  if (layer >= 10) {
+    Int_t dead_pads = 0;
+    for (Int_t r = min_row + 1; r < max_row; ++r) {
+      Int_t padID = GetPadId(layer, r);
+      if (std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel)) {
+        dead_pads++;
+      }
+    }
+    return (dist_linear <= MaxRowDifTPC + dead_pads);
   }
 
-  if(layer < 10){
-    const Int_t npad = padParameter[layer][kNumOfPad];
-    return (TMath::Abs(row_a - row_b) <= MaxRowDifTPC + deadpads
-            || TMath::Abs(row_a - row_b) >= npad - MaxRowDifTPC - deadpads);
-  }else{
-    return (TMath::Abs(row_a - row_b) <= MaxRowDifTPC + deadpads);
+  // ---------------------------------------------------------
+  // Case B: Ring Layers (Layer 0-9) - Check Shortest Path
+  // ---------------------------------------------------------
+  Int_t nPad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+  Int_t dist_wrap = nPad - dist_linear; // Distance across the boundary (0)
+
+  // Determine the shortest path
+  // If Linear distance is shorter (or equal), check Linear path
+  if (dist_linear <= dist_wrap) {
+    Int_t dead_pads = 0;
+    // Count dead pads between min_row and max_row
+    for (Int_t r = min_row + 1; r < max_row; ++r) {
+      Int_t padID = GetPadId(layer, r);
+      if (std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel)) {
+        dead_pads++;
+      }
+    }
+    return (dist_linear <= MaxRowDifTPC + dead_pads);
+  }
+  // If Wrap-around distance is shorter, check Wrap path
+  else {
+    Int_t dead_pads = 0;
+    // Count dead pads in the wrap-around path:
+    // 1. [max_row+1, nPad-1] (End of array)
+    for (Int_t r = max_row + 1; r < nPad; ++r) {
+      Int_t padID = GetPadId(layer, r);
+      if (std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel)) {
+        dead_pads++;
+      }
+    }
+    // 2. [0, min_row-1] (Start of array)
+    for (Int_t r = 0; r < min_row; ++r) {
+      Int_t padID = GetPadId(layer, r);
+      if (std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel)) {
+        dead_pads++;
+      }
+    }
+    return (dist_wrap <= MaxRowDifTPC + dead_pads);
   }
 }
 
 //_____________________________________________________________________________
-inline Bool_t Dead(Int_t padID){
+// Check if the pad is considered "Dead" (broken channel or on the structural frame)
+inline Bool_t IsDead(Int_t padID)
+{
+#ifdef PAD_HELPER_DEBUG
+  ValidatePadID(padID, __func__);
+#endif
 
-  Bool_t centerframe = std::find(std::begin(padOnCenterFrame), std::end(padOnCenterFrame), padID) != std::end(padOnCenterFrame);
-  Int_t layer = getLayerID(padID);
-  Bool_t dead = std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel);
-  if(centerframe||dead) return true;
-  else return false;
+  Bool_t on_centerframe = std::find(std::begin(padOnCenterFrame), std::end(padOnCenterFrame), padID) 
+                          != std::end(padOnCenterFrame);
+  if (on_centerframe) return true;
+
+  Bool_t is_dead_channel = std::find(std::begin(deadChannel), std::end(deadChannel), padID) 
+                           != std::end(deadChannel);
+  return is_dead_channel ? true : false;
 }
 
 //_____________________________________________________________________________
-inline Bool_t Dead(Int_t layer, Int_t row){
-
+inline Bool_t IsDead(Int_t layer, Int_t row){
   Int_t padID = GetPadId(layer, row);
-  return Dead(padID);
+  return IsDead(padID);
 }
 
 

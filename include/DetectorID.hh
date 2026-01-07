@@ -202,7 +202,10 @@ const Int_t NumOfLayersTOF    = LayerMaxTOF    - LayerMinTOF    + 1;
 const Int_t NumOfLayersVP     = LayerMaxVP     - LayerMinVP     + 1;
 const Int_t NumOfLayersVPTPC  = 5;
 const Int_t NumOfLayersVPHS   = 4;
+
+// __ TPC ___________________________________________________________
 const Int_t NumOfLayersTPC    = 32;
 const Int_t NumOfPadTPC       = 5768;
+const Int_t NumOfAsadTPC      = 31;
 
 #endif
