@@ -25,6 +25,7 @@
 #include "HistTools.hh"
 #include "UnpackerManager.hh"
 #include "TPCAnalyzer.hh"
+#include "TPCEventAnalyzer.hh"
 #include "TPCHit.hh"
 #include "TPCPadHelper.hh"
 #include "TPCParamMan.hh"
@@ -128,6 +129,8 @@ ProcessNormal()
   HodoAnalyzer hodoAna(rawData);
   hodoAna.DecodeHits("COBO", false);  
 
+  TPCEventAnalyzer tpcevAna;
+  
   HF1("Status", 0);
   for(const auto& hit: rawData.GetHodoRawHC("TriggerFlag")){
     trig_flag.push_back(hit->GetArrayTdc());
@@ -155,77 +158,21 @@ ProcessNormal()
 
   HF1("Status", 2);
 
-  //________________________________________________________
-  //___ TPCRawHit
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    auto hc = TPCrawData.GetTPCRawHits(layer);
-    for(const auto& rhit : hc){
-      auto mean    = rhit->Mean(0, NumOfTimeBucket);
-      auto max_adc = rhit->MaxAdc(0, NumOfTimeBucket);
-      auto min_adc = rhit->MinAdc(0, NumOfTimeBucket);
-      auto rms     = rhit->RMS(0, NumOfTimeBucket);
-      auto loc_max = rhit->LocMax(0, NumOfTimeBucket);
-
-      HF1("TPC_FADC_Mean", mean);
-      HF1("TPC_FADC_Max", max_adc);
-      HF1("TPC_FADC_RMS", rms);
-      HF1("TPC_FADC_LocMax", loc_max);
-      HF1("TPC_FADC_Min", min_adc);
-
-      auto fadc = rhit->Fadc();
-      for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-	HF2("TPC_FADC_Before", tb, fadc.at(tb));
-      }
-    }
-  }
-
+  tpcevAna.TPCRawHit(TPCrawData);
+  
   HF1("Status", 3);
 
   //________________________________________________________
   //___ TPCRawHit after baseline correction
-  auto baseline = TPCrawData.GetBaselineTPC();
-  if(baseline){
-    browTpc = baseline->RowId();
-    blayerTpc = baseline->LayerId();
-    brmsTpc = baseline->RMS(0, NumOfTimeBucket);
-
-    auto fadc = baseline->Fadc();
-    for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-      HF2("TPC_FADC_Baseline", tb, fadc.at(tb));
-    }
+  auto baselineTPC = tpcevAna.TPCBaselineHit(TPCrawData);
+  if(baselineTPC.valid){
+    browTpc = baselineTPC.row;
+    blayerTpc = baselineTPC.layer;
+    brmsTpc = baselineTPC.rms;
   }
 
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    auto hc = TPCrawData.GetTPCCorHits(layer);
-    const auto nhit = hc.size();
-    npadTpc += nhit;
-
-    for(const auto& rhit : hc){
-      auto mean    = rhit->Mean(0, NumOfTimeBucket);
-      auto max_adc = rhit->MaxAdc(0, NumOfTimeBucket);
-      auto min_adc = rhit->MinAdc(0, NumOfTimeBucket);
-      auto rms     = rhit->RMS(0, NumOfTimeBucket);
-      auto loc_max = rhit->LocMax(0, NumOfTimeBucket);
-      auto pars    = rhit->GetParameters();
-
-      HF1("TPC_FADC_Mean_Cor", mean);
-      HF1("TPC_FADC_Max_Cor", max_adc);
-      HF1("TPC_FADC_RMS_Cor", rms);
-      HF1("TPC_FADC_LocMax_Cor", loc_max);
-      HF1("TPC_FADC_Min_Cor", min_adc);
-      HF1("TPC_FADC_Baseline_p0", pars.at(0));
-      HF1("TPC_FADC_Baseline_p1", pars.at(1));
-      HF1("TPC_FADC_Baseline_p2", pars.at(2));
-
-      // 2D FADC waveform after correction
-      auto fadc = rhit->Fadc();
-      for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-	HF2("TPC_FADC_After", tb, fadc.at(tb));
-      }
-    }
-  }
-
-  HF1("TPC_Multiplicity_Raw", npadTpc);
+  npadTpc = tpcevAna.TPCCorHit(TPCrawData);
+  
   HF1("Status", 4);
 
   //________________________________________________________
@@ -238,7 +185,7 @@ ProcessNormal()
   TPCAnalyzer TPCAna;
   TPCAna.DecodeTPCHits(TPCrawData, clkTpc);
   HF1("Status", 5);
-
+  
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     auto hc = TPCAna.GetTPCHC(layer);
     for(const auto& hit : hc){
