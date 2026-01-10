@@ -137,6 +137,7 @@ TPCCluster::Calculate()
   m_mean_row = tpc::getMrow(m_layer, m_mean_theta*TMath::RadToDeg());
   m_mean_hit->AddHit(0., 0.);
   m_mean_hit->SetMRow(m_mean_row);
+  m_mean_hit->SetPad(tpc::findPadID(xz_vector.Y(), xz_vector.X()));
   m_mean_hit->SetPadLength(tpc::padParameter[m_layer][5]);
   m_mean_hit->SetPadTheta(tpc::getTheta(m_layer, m_mean_row)*TMath::DegToRad());
   m_mean_hit->SetDe(m_cluster_de);
