@@ -120,7 +120,7 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
     m_drift_length(),
     m_is_good(true),
     m_is_calculated(false),
-    m_hough_flag(),
+    m_hough_flag(0),
     m_houghY_num(),
     m_hough_dist(),
     m_hough_disty(),
