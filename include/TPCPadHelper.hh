@@ -1317,8 +1317,6 @@ inline Int_t findPadID(Double_t z, Double_t x)
   Int_t row = static_cast<Int_t>(diff / dTheta);
   if (row < 0 || static_cast<Int_t>(nPad) <= row) return -1000;
 
-  std::cout << hit_layer << ", " << row << std::endl;
-
   return GetPadId(hit_layer, row);
 }
 
