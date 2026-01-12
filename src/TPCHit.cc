@@ -223,7 +223,9 @@ TPCHit::DoFit()
 {
   static const Double_t MinDe = gUser.GetParameter("MinDeTPC");
   static const Double_t MinRms = gUser.GetParameter("MinRmsTPC");
+#if DebugEvDisp
   static const Double_t MinRawRms = gUser.GetParameter("MinBaseRmsTPC");
+#endif
   static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
   static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
   static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");

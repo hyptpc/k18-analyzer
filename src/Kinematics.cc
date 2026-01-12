@@ -377,7 +377,7 @@ Double_t CalcHelixCloseDist(TVector3 point, Double_t par[5], Double_t t1_start, 
   fvertex.SetParameter(5, xi);
   fvertex.SetParameter(6, yi);
   fvertex.SetParameter(7, zi);
-  Double_t helix_t = fvertex.GetMinimumX(t1_start, t1_end);
+  // Double_t helix_t = fvertex.GetMinimumX(t1_start, t1_end);
   return TMath::Sqrt(fvertex.GetMinimum());
 }
 
@@ -1414,9 +1414,10 @@ Bool_t HypTPCdEdxElectron(Double_t dedx, Double_t poq){
   Double_t nsigma_pi = HypTPCdEdxNsigmaPion(dedx, poq);
   Double_t nsigma_e = HypTPCdEdxNsigmaElectron(dedx, poq);
 
-  Double_t me = 0.5109989461; //[MeV]
-  Double_t par_e[2] = {conversion_factor, me};
-  Double_t dedx_e = HypTPCBethe(&poq, par_e); //P10's <dE/dx>_e
+  // not used, then just comment out for safety. later reconsider
+  // Double_t me = 0.5109989461; //[MeV]
+  // Double_t par_e[2] = {conversion_factor, me};
+  // Double_t dedx_e = HypTPCBethe(&poq, par_e); //P10's <dE/dx>_e
 
   Bool_t flag = (nsigma_pi < -3.5 &&
 		 TMath::Abs(nsigma_e) < 3.5 &&

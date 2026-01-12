@@ -1505,14 +1505,14 @@ inline Bool_t IsDead(Int_t layer, Int_t row){
 //Functions for G4 simulation
 //_____________________________________________________________________________
 //E42
-inline Double_t GetClSize1Prob(double mom, int pid, int layer){
-  bool inner = false;
+inline Double_t GetClSize1Prob(Double_t mom, Int_t pid, Int_t layer){
+  Bool_t inner = false;
   if(layer < 10) inner = true;
-  int pidflag = 0;
+  Int_t pidflag = 0;
   if(abs(pid)<300) pidflag = 0;
   else pidflag = 1;
-  int mom_flag = (int)(mom/0.1);
-  double prob = 0;
+  Int_t mom_flag = (Int_t)(mom/0.1);
+  Double_t prob = 0;
   if(mom_flag > 9){
     mom_flag = 9;
     if(inner){
@@ -1523,7 +1523,7 @@ inline Double_t GetClSize1Prob(double mom, int pid, int layer){
     }
   }
   else{
-    double resi = (mom )/0.1 - mom_flag;
+    Double_t resi = (mom )/0.1 - mom_flag;
     if(inner){
       prob = ClusterSizeInner[pidflag][mom_flag]*(1-resi) + ClusterSizeInner[pidflag][mom_flag+1]*resi; 
     }
@@ -1539,7 +1539,6 @@ inline Double_t GetClSize1Prob(double mom, int pid, int layer){
 inline Double_t GetDetectionEfficiency(TVector3 pos, Int_t pid, TVector3 mom, Double_t de){
   Int_t pad = findPadID(pos.z(), pos.x());
   Int_t layer = getLayerID(pad);
-  Int_t row = getRowID(pad);
   bool Inner = false;
   if(layer < 10)Inner = true;
   int pidflag = 0;// 0 -> pion, 1 -> kaon, 2 -> proton or any other baryons.

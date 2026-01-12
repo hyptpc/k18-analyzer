@@ -190,8 +190,8 @@ private:
   std::vector<TPolyLine3D*>  m_SdcOutTrack;
   TPolyMarker3D             *m_init_step_mark;
   TPolyMarker3D             *m_hs_step_mark;
-  std::vector<TPolyMarker3D*>  m_s2s_step_mark_tolast;
   std::vector<TPolyMarker3D*>  m_s2s_step_mark;
+  std::vector<TPolyMarker3D*>  m_s2s_step_mark_tolast;
   // vertex
   TBox                      *m_TargetXZ_box;
   TBox                      *m_TargetYZ_box;

@@ -255,10 +255,6 @@ BuildHodoHit(Bool_t flag_beam_particle)
         HB1(Form("%s_Hit_Time_seg%d%s%s; ns; count", name, i, ud, b), hrtimebins);
         HB1(Form("%s_Hit_CTime_seg%d%s%s; ns; count", name, i, ud, b), hrtimebins);
       }
-      const Double_t hrtimebins2d[6] = { nseg, -0.5, nseg - 0.5,
-        hrtimebins[0]/10, hrtimebins[1], hrtimebins[2] };
-      const Double_t debins2d[6] = { nseg, -0.5, nseg - 0.5,
-        debins[0]/10, debins[1], debins[2] };
       HB1(Form("%sSum_Hit_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
       HB1(Form("%sSum_Hit_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
     }

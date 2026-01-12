@@ -29,6 +29,7 @@
 #include "TPCLocalTrack.hh"
 #include "TPCLocalTrackHelix.hh"
 #include "TPCTrackSearch.hh"
+#include "TPCVertex.hh"
 #include "DCHit.hh"
 #include "TrackHit.hh"
 #include "TPCRKTrack.hh"
@@ -326,17 +327,16 @@ TPCAnalyzer::GetDetectionEfficiency(TVector3 pos, Int_t pid, TVector3 mom, Doubl
 
 Int_t
 TPCAnalyzer::GetClusterSize(TVector3 pos, Int_t pid, TVector3 mom, Double_t de){
-  Int_t pad = tpc::findPadID(pos.z(), pos.x());
-  Int_t layer = tpc::getLayerID(pad);
-  Int_t row = tpc::getRowID(pad);
-  bool Inner = false;
-  if(layer < 10)Inner = true;
-  double Mom = mom.Mag();
-  double Cl1Prob = 0;
-  Cl1Prob =tpc::GetClSize1Prob(Mom, pid, layer);
-  if(abs(pid)==321) Cl1Prob= sqrt(tpc::GetClSize1Prob(Mom,211,layer)* tpc::GetClSize1Prob(Mom,2212,layer));
-  int ncl=1;
-  if(gRandom->Uniform(0., 1.) > Cl1Prob)ncl = 2;
+  Int_t pad    = tpc::findPadID(pos.z(), pos.x());
+  Int_t layer  = tpc::getLayerID(pad);
+  Bool_t Inner = false;
+  if(layer < 10) Inner = true;
+  Double_t Mom = mom.Mag();
+  Double_t Cl1Prob = 0;
+  Cl1Prob = tpc::GetClSize1Prob(Mom, pid, layer);
+  if(abs(pid)==321) Cl1Prob= std::sqrt(tpc::GetClSize1Prob(Mom,211,layer)* tpc::GetClSize1Prob(Mom,2212,layer));
+  Int_t ncl=1;
+  if(gRandom->Uniform(0., 1.) > Cl1Prob) ncl = 2;
   return ncl;
 }
 
