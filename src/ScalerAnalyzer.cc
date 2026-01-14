@@ -78,7 +78,7 @@ ScalerAnalyzer::Clear(Option_t* opt)
 Bool_t
 ScalerAnalyzer::Decode()
 {
-  static const auto& digit_info = gUnpackerConf.get_digit_info();
+  // static const auto& digit_info = gUnpackerConf.get_digit_info();
   // digit_info.get_device_id(detector_name.Data());
 
   m_spill_increment = false;
@@ -86,25 +86,25 @@ ScalerAnalyzer::Decode()
   m_is_spill_on_end = false;
 
   //////////////////// Run Number
-  if(m_run_number != gUnpacker.get_root()->get_run_number()){
-    m_run_number = gUnpacker.get_root()->get_run_number();
+  if(m_run_number != gUnpacker.get_run_number()){
+    m_run_number = gUnpacker.get_run_number();
     Clear("all");
   }
 
   //////////////////// Trigger Flag
-  std::bitset<NumOfSegTrigFlag> trigger_flag;
-  {
-    static const auto k_device = gUnpacker.get_device_id("TFlag");
-    static const auto k_tdc    = gUnpacker.get_data_id("TFlag", "tdc");
-    for(Int_t seg=0; seg<NumOfSegTrigFlag; ++seg){
-      for(Int_t i=0, n=gUnpacker.get_entries(k_device, 0, seg, 0, k_tdc);
-	   i<n; ++i){
-	auto tdc = gUnpacker.get(k_device, 0, seg, 0, k_tdc, i);
-	if(tdc>0) trigger_flag.set(seg);
-	if(trigger_flag[seg]) break;
-      }
-    }
-  }
+  // std::bitset<NumOfSegTrigFlag> trigger_flag;
+  // {
+  //   static const auto k_device = gUnpacker.get_device_id("TFlag");
+  //   static const auto k_tdc    = gUnpacker.get_data_id("TFlag", "tdc");
+  //   for(Int_t seg=0; seg<NumOfSegTrigFlag; ++seg){
+  //     for(Int_t i=0, n=gUnpacker.get_entries(k_device, 0, seg, 0, k_tdc);
+  //          i<n; ++i){
+  //       auto tdc = gUnpacker.get(k_device, 0, seg, 0, k_tdc, i);
+  //       if(tdc>0) trigger_flag.set(seg);
+  //       if(trigger_flag[seg]) break;
+  //     }
+  //   }
+  // }
   // if(trigger_flag[trigger::kSpillOnEnd]){
   //   m_is_spill_on_end = true;
   //   m_is_spill_end = true;
@@ -170,31 +170,36 @@ ScalerAnalyzer::Decode()
     }
   }
 
-  //////////////////// for BH1 SUM
-  {
-    static const Int_t id = digit_info.get_device_id("BH1");
-    static const Int_t n_seg = digit_info.get_n_segment(id);
-    if(Has("BH1-SUM")){
-      static Channel ch = Find("BH1-SUM");
-      m_info[ch.first][ch.second].data = 0;
-      for(Int_t i=0; i<n_seg; ++i){
-	m_info[ch.first][ch.second].data += Get(Form("BH1-%02d", i+1));
-      }
-    }
+  if(Has("Beam") && Has("K-Beam") && Has("Pi-Beam")){
+    static const auto ch = Find("Beam");
+    m_info[ch.first][ch.second].data = Get("K-Beam") + Get("Pi-Beam");
   }
 
+  //////////////////// for BH1 SUM
+  // {
+  //   static const Int_t id = digit_info.get_device_id("BH1");
+  //   static const Int_t n_seg = digit_info.get_n_segment(id);
+  //   if(Has("BH1-SUM")){
+  //     static Channel ch = Find("BH1-SUM");
+  //     m_info[ch.first][ch.second].data = 0;
+  //     for(Int_t i=0; i<n_seg; ++i){
+  //       m_info[ch.first][ch.second].data += Get(Form("BH1-%02d", i+1));
+  //     }
+  //   }
+  // }
+
   //////////////////// for BH2 SUM
-  {
-    static const Int_t id = digit_info.get_device_id("BH2");
-    static const Int_t n_seg = digit_info.get_n_segment(id);
-    if(Has("BH2-SUM")){
-      static Channel ch = Find("BH2-SUM");
-      m_info[ch.first][ch.second].data = 0;
-      for(Int_t i=0; i<n_seg; ++i){
-	m_info[ch.first][ch.second].data += Get(Form("BH2-%02d", i+1));
-      }
-    }
-  }
+  // {
+  //   static const Int_t id = digit_info.get_device_id("BH2");
+  //   static const Int_t n_seg = digit_info.get_n_segment(id);
+  //   if(Has("BH2-SUM")){
+  //     static Channel ch = Find("BH2-SUM");
+  //     m_info[ch.first][ch.second].data = 0;
+  //     for(Int_t i=0; i<n_seg; ++i){
+  //       m_info[ch.first][ch.second].data += Get(Form("BH2-%02d", i+1));
+  //     }
+  //   }
+  // }
 
   //////////////////// for SCH SUM
   // {
@@ -387,7 +392,7 @@ ScalerAnalyzer::Has(const TString& name) const
 Bool_t
 ScalerAnalyzer::MakeScalerText() const
 {
-  const Int_t run_number = gUnpacker.get_root()->get_run_number();
+  const Int_t run_number = gUnpacker.get_run_number();
   const TString& bin_dir(hddaq::dirname(hddaq::selfpath()));
   const TString& data_dir(hddaq::dirname(gUnpacker.get_istream()));
 
