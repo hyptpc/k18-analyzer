@@ -110,7 +110,12 @@ static const Int_t deadChannel[] =
 {
   72,134,135,222,332,408,467,626,809,59,110,185,284,555,726,921,1140,1363,1564,1565,1778,1818,1819,2036,2037,2245,2246,2247,2455,2456,2668,2669,2887,3111,3112,3342,3343,3579,3580,3814,4035,1629,1850,2068,2277,2486,2487,2699,2700,2918,3142,3374,3611,3845,4066,4277,4481,4681,4879,5073
 };
-  
+
+//_____________________________________________________________________________
+static const Int_t NoiseChannel[] =
+{
+  58,59,60,71,72,73,109,110,111,133,134,135,136,184,185,186,221,222,223,283,284,285,331,332,333,407,408,409,466,467,468,554,555,556,625,626,627,725,726,727,808,809,810,920,921,922,1139,1140,1141,1362,1363,1364,1563,1564,1565,1566,1628,1629,1630,1777,1778,1779,1817,1818,1819,1820,1849,1850,1851,2035,2036,2037,2038,2067,2068,2069,2244,2245,2246,2247,2248,2276,2277,2278,2454,2455,2456,2457,2485,2486,2487,2488,2667,2668,2669,2670,2698,2699,2700,2701,2886,2887,2888,2917,2918,2919,3110,3111,3112,3113,3141,3142,3143,3341,3342,3343,3344,3373,3374,3375,3578,3579,3580,3581,3610,3611,3612,3813,3814,3815,3844,3845,3846,4034,4035,4036,4065,4066,4067,4276,4277,4278,4480,4481,4482,4680,4681,4682,4878,4879,4880,5072,5073,5074
+};
 
 //_____________________________________________________________________________
 static const Int_t FrameLowEdge[NumOfLayersTPC][5] =
@@ -1043,7 +1048,6 @@ inline Int_t GetPadId(Int_t layerID, Int_t rowID)
 //_____________________________________________________________________________
 inline Int_t getLayerID(Int_t padID)
 {
-  padID-=1;
   Int_t layer;
   Int_t sum = 0;
 
@@ -1057,7 +1061,6 @@ inline Int_t getLayerID(Int_t padID)
 //_____________________________________________________________________________
 inline Int_t getRowID(Int_t padID)
 {
-  padID-=1;
   Int_t layer, row;
   Int_t sum = 0;
 
@@ -1171,6 +1174,33 @@ inline TVector3 getPosition(Int_t layer, Double_t m_row)
       0.,
       padParameter[layer][2] * cos(getTheta(layer, m_row)*TMath::Pi()/180.) + ZTarget);
   }
+}
+
+//_____________________________________________________________________________
+inline Int_t getSection(Int_t padID)
+{
+  TVector3 pad_pos = getPosition(padID);
+  Int_t section = -1;
+  if(pad_pos.x() > pad_pos.z() && pad_pos.x() < pad_pos.z()*-1)section = 1;
+  else if(pad_pos.x() < pad_pos.z() && pad_pos.x() < pad_pos.z()*-1)section = 2;
+  else if(pad_pos.x() < pad_pos.z() && pad_pos.x() > pad_pos.z()*-1)section = 3;
+  else if(pad_pos.x() > pad_pos.z() && pad_pos.x() > pad_pos.z()*-1)section = 4;
+
+  return section;
+}
+
+//_____________________________________________________________________________
+inline Int_t getSection(Int_t layer, Double_t m_row)
+{
+  int padid = GetPadId(layer, m_row);
+  TVector3 pad_pos = getPosition(padid);
+  Int_t section = -1;
+  if(pad_pos.x() > pad_pos.z() && pad_pos.x() < pad_pos.z()*-1)section = 1;
+  else if(pad_pos.x() < pad_pos.z() && pad_pos.x() < pad_pos.z()*-1)section = 2;
+  else if(pad_pos.x() < pad_pos.z() && pad_pos.x() > pad_pos.z()*-1)section = 3;
+  else if(pad_pos.x() > pad_pos.z() && pad_pos.x() > pad_pos.z()*-1)section = 4;
+
+  return section;
 }
 
 //_____________________________________________________________________________
@@ -1304,6 +1334,20 @@ inline Bool_t Dead(Int_t layer, Int_t row){
   return Dead(padID);
 }
 
+//_____________________________________________________________________________
+inline Bool_t Noise(Int_t padID){
+  Bool_t noise = std::find(std::begin(NoiseChannel), std::end(NoiseChannel), padID) != std::end(NoiseChannel);
+  if(noise && getSection(padID) == 2) return true;
+  else return false;
+  
+}
+
+//_____________________________________________________________________________
+inline Bool_t Noise(Int_t layer, Int_t row){
+
+  Int_t padID = GetPadId(layer, row);
+  return Noise(padID);
+}
 
 //Functions for G4 simulation
 //_____________________________________________________________________________
