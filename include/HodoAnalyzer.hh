@@ -85,14 +85,6 @@ public:
   Double_t Ftof0Seg() const;
 
 private:
-  void ClearBH1Hits();
-  void ClearBH2Hits();
-  void ClearBACHits();
-  void ClearTOFHits();
-  void ClearLACHits();
-  void ClearWCHits();
-  void ClearWCSUMHits();
-  void ClearBFTHits();
 
   template <typename T>
   void TimeCut(std::vector<T>& cont, Double_t min, Double_t max);
@@ -156,7 +148,6 @@ HodoAnalyzer::DecodeHits(const TString& name, Bool_t makeCluster)
   }
   std::sort(CandCont.begin(), CandCont.end(), T::Compare);
 
-  // m_hodo_hit_collection[name] = CandCont;
   auto& cont = m_hodo_hit_collection[name];
   for(auto& hit: cont)
     delete hit;

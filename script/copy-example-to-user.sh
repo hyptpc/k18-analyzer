@@ -3,12 +3,17 @@
 work_dir=$(readlink -e $(dirname $0)/..)
 example_dir=$work_dir/example
 usr_dir=$work_dir/usr
+dst_dir=$work_dir/dst
 example_files="$example_dir/*.cc"
 
 mkdir -p $usr_dir
-for example_file in $example_files
-do
-  usr_file=`echo $example_file|sed "s/example/usr/g"`
-  # echo $example_file $usr_file
-  cp -avi $example_file $usr_file
+for file in $example_dir/User*.cc; do
+  [ -e "$file" ] || continue
+  cp -avi "$file" "$usr_dir/"
+done
+
+mkdir -p $dst_dir
+for file in $example_dir/Dst*.cc; do
+  [ -e "$file" ] || continue
+  cp -avi "$file" "$dst_dir/"
 done

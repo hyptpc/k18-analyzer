@@ -1,20 +1,20 @@
 // HistTools.h
 
 #ifndef HistTools_h
-#define HistTools_h 1
+#define HistTools_h
 
+#include <cmath>
+#include <iostream>
 #include <string>
 #include <vector>
-#include <iostream>
-#include <cmath>
 
-#include "TVector3.h"
+#include "TFile.h"
 #include "TH1F.h"
 #include "TH2F.h"
-#include "TFile.h"
 #include "TMacro.h"
-#include "TSystem.h"
 #include "TString.h"
+#include "TSystem.h"
+#include "TVector3.h"
 
 namespace hist
 {
@@ -31,6 +31,7 @@ void BuildDCHit(const TString& dcname, Bool_t flag_beam_particle=false);
 void BuildDCTrack(const TString& dcname, Bool_t flag_beam_particle=false);
 
 void BuildTPCHit();
+void BuildTPCTracking();
 }
 
 #endif

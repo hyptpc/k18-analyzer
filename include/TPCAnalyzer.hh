@@ -4,6 +4,7 @@
 #define TPC_ANALYZER_HH
 
 #include <vector>
+
 #include <TString.h>
 #include <TVector3.h>
 
@@ -11,8 +12,12 @@
 
 class TPCRawData;
 class TPCHit;
+class TPCCluster;
+class TPCLocalTrack;
 
 typedef std::vector<TPCHit*>        TPCHitContainer;
+typedef std::vector<TPCCluster*>    TPCClusterContainer;
+typedef std::vector<TPCLocalTrack*> TPCLocalTrackContainer;
 
 //_____________________________________________________________________________
 class TPCAnalyzer
@@ -31,19 +36,40 @@ private:
   { kTPC, kTPCTracking, kTPCK18, n_type };
   std::vector<Bool_t>                m_is_decoded;
   std::vector<TPCHitContainer>       m_TPCHitCont;
+  std::vector<TPCClusterContainer>   m_TPCClCont;
+  TPCLocalTrackContainer             m_TPCTC;
+  TPCLocalTrackContainer             m_TPCTCFailed;
 
 public:
 
   //TPC Hit&Cluster
   Bool_t DecodeTPCHits(TPCRawData &TPCrawData, const std::vector<Double_t> clock);
+  Bool_t ReCalcTPCHits(const Int_t nhits,
+                       const std::vector<Int_t>& pad,
+                       const std::vector<Double_t>& time,
+                       const std::vector<Double_t>& de,
+                       const std::vector<Double_t>& clock);
+
+  //HS-Off
+  Bool_t TrackSearchTPC(Bool_t exclusive=false);
+  Int_t GetNTracksTPC() const { return m_TPCTC.size(); }
+  Int_t GetNTracksTPCFailed() const { return m_TPCTCFailed.size(); }
+  TPCLocalTrack* GetTrackTPC(Int_t l) const { return m_TPCTC.at(l); }
+  TPCLocalTrack* GetTrackTPCFailed(Int_t l) const { return m_TPCTCFailed.at(l); }
 
   const TPCHitContainer& GetTPCHC(Int_t l) const { return m_TPCHitCont.at(l); }
+  const TPCClusterContainer& GetTPCClCont(Int_t l) const { return m_TPCClCont.at(l); }
 
 private:
 
 protected:
 
   void ClearTPCHits();
+  void ClearTPCClusters();
+  void ClearTPCTracks();
+  static Bool_t MakeUpTPCClusters(const TPCHitContainer& HitCont,
+                                  TPCClusterContainer& ClCont,
+                                  Double_t maxdy);
 
 };
 

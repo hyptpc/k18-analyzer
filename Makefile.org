@@ -1,11 +1,8 @@
 #!/usr/bin/make
 
 #______________________________________________________________________________
-# EXPERIMENT	:= E73_2024
 EXPERIMENT	:= E72
-DFLAGS		+= -DMemoryLeak -D$(EXPERIMENT) # -DCDS
-DFLAGS		+= -DBeamFlag_BAC
-DFLAGS		+= -DBeamFlag_BTOF
+DFLAGS		+= -DMemoryLeak -D$(EXPERIMENT)
 # Colorize
 color		= 1
 #
@@ -137,7 +134,7 @@ $(bin_dir)/Ex%: $(ex_build_dir)/Example%.o $(lib_objs)
 	@ $(mkdir) $(bin_dir)
 	$(CXX) $(FLAGS) -o $@ $< $(libs)
 
-$(lib_objs): $(objs) $(spdlog_lib)
+$(lib_objs): $(objs)
 	@ $(echo) "$(yellow)=== Archiving $@ $(default_color)"
 	@ $(mkdir) $(lib_dir)
 	$(ar) $(lib_objs) $(objs)

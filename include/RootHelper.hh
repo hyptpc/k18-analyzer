@@ -43,7 +43,7 @@
 #include <TVector3.h>
 
 #include <std_ostream.hh>
-
+#include "TPCPadHelper.hh"
 #include "Exception.hh"
 
 #define ThrowError 1 // if h[i] already exist, throw error
@@ -153,6 +153,7 @@ HBProf(Int_t i, const Char_t* title,
                       nbinx, xlow, xhigh, ylow, yhigh);
 }
 
+
 //_____________________________________________________________________________
 inline TH2Poly*
 HB2Poly(const TString& name, const TString& title,
@@ -185,6 +186,7 @@ HB2Poly(const TString& name, Double_t xmin=-300., Double_t xmax=300., Double_t y
   return HB2Poly(name, name, xmin, xmax, ymin, ymax);
 }
 
+
 //_____________________________________________________________________________
 inline void
 HC2Poly(Int_t i)
@@ -193,6 +195,7 @@ HC2Poly(Int_t i)
     throw Exception(Form("HC2Poly() invalid HistId : %d/%d", i, MaxHist));
   if(h[i]) dynamic_cast<TH2Poly*>(h[i])->Reset("");
 }
+
 
 //_____________________________________________________________________________
 inline void
@@ -205,6 +208,7 @@ HF1(const TString& name, Double_t x)
 #endif
 }
 
+
 //_____________________________________________________________________________
 inline void
 HF2(const TString& name, Double_t x, Double_t y)
@@ -215,6 +219,7 @@ HF2(const TString& name, Double_t x, Double_t y)
   else throw Exception(Form("HF2() %s does not exist", name.Data()));
 #endif
 }
+
 
 //_____________________________________________________________________________
 inline void

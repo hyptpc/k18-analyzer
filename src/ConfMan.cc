@@ -14,8 +14,8 @@
 #include <TNamed.h>
 #include <TSystem.h>
 
-#include <lexical_cast.hh>
 #include <filesystem_util.hh>
+#include <lexical_cast.hh>
 #include <replace_string.hh>
 
 #include <spdlog/spdlog.h>
@@ -56,7 +56,7 @@ Bool_t
 ConfMan::Initialize()
 {
   if(m_is_ready){
-    spdlog::error("{} already initialied", FUNC_NAME.Data());
+    spdlog::error("{} already initialized", FUNC_NAME.Data());
     return false;
   }
 
@@ -70,17 +70,17 @@ ConfMan::Initialize()
   sConfDir = hddaq::dirname(m_file[kConfFile].Data());
   m_buf = "\n";
 
-  std::ostringstream oss;
-  oss << FUNC_NAME << " " << m_file[kConfFile] << std::endl;
+  spdlog::info("{} Read {}", FUNC_NAME.Data(), m_file[kConfFile].Data());
 
   TString line;
   while(ifs.good() && line.ReadLine(ifs)){
     m_buf += line + "\n";
     if(line.IsNull() || line[0]=='#') continue;
+    spdlog::debug(" [Load] : \"{}\"", line.Data());
 
-    line.ReplaceAll(",",  ""); // remove ,
-    line.ReplaceAll(":",  ""); // remove :
-    line.ReplaceAll("\"",  ""); // remove "
+    line.ReplaceAll(",",  ""); 
+    line.ReplaceAll(":",  ""); 
+    line.ReplaceAll("\"",  ""); 
 
     std::istringstream iss(line.Data());
     std::istream_iterator<std::string> begin(iss);
@@ -90,19 +90,19 @@ ConfMan::Initialize()
 
     TString key = v[0];
     TString val = v[1];
-    oss << " key = "   << std::setw(10) << std::left << key
-        << " value = " << std::setw(30) << std::left << val << std::endl;
+    spdlog::info(" key = {:<15} value = {:<30}", key.Data(), val.Data());
 
-    m_file[key] = FilePath(val);
+    m_file[key]   = FilePath(val);
     m_string[key] = val;
     m_double[key] = val.Atof();
-    m_int[key] = val.Atoi();
-    m_bool[key] = (val.Atoi() == 1);
+    m_int[key]    = val.Atoi();
+    m_bool[key]   = (val.Atoi() == 1);
   }
-  spdlog::info(oss.str());
 
   if(!InitializeParameterFiles())
     return false;
+
+  //if(!InitializeHistograms())
   // if(gMatrix.IsReady())
   //   gMatrix.Print2D();
   // if(gUser.IsReady())

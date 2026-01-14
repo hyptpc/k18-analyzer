@@ -21,12 +21,13 @@
 #include "DebugCounter.hh"
 #include "MathTools.hh"
 #include "RootHelper.hh"
+#include "TPCLTrackHit.hh"
 #include "TPCPadHelper.hh"
+#include "TPCParamMan.hh"
+#include "TPCPositionCorrector.hh"
 #include "TPCRawHit.hh"
 #include "UserParamMan.hh"
 #include "ConfMan.hh"
-#include "TPCParamMan.hh"
-#include "TPCPositionCorrector.hh"
 
 //#define QuickAnalysis  1 // User EventSelectionTPCHits in RawData.cc
 //#define FitPedestal    1
@@ -58,7 +59,10 @@ namespace
   const Int_t MaxPeaks = 20;
   const Double_t MaxChisqr = 1000.;
   const Double_t& HSfield_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
-
+  const auto& ResParamInnerLayerHSOn = gTPC.TPCResolutionParams(true, false); //B=1 T, Inner layers
+  const auto& ResParamOuterLayerHSOn = gTPC.TPCResolutionParams(true, true); //B=1 T, Outer layers
+  const auto& ResParamInnerLayerHSOff = gTPC.TPCResolutionParams(false, false); //B=0, Inner layers
+  const auto& ResParamOuterLayerHSOff = gTPC.TPCResolutionParams(false, true); //B=0, Outer layers
 }
 
 //_____________________________________________________________________________
@@ -68,7 +72,7 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_layer(rhit->LayerId()),
     m_row(rhit->RowId()),
     m_padtheta(tpc::getTheta(m_layer, m_row)*TMath::DegToRad()),
-    m_padlength(tpc::padParameter[m_layer][5]),
+    m_padlength(tpc::padParameter[m_layer][tpc::kLength]),
     m_mrow(TMath::Nint(m_row)),
     m_pad(tpc::GetPadId(m_layer, m_row)),
     m_pedestal(TMath::QuietNaN()),
@@ -81,10 +85,56 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_ctime(), // [ns]
     m_drift_length(),
     m_is_good(false),
-    m_is_calculated(false)
+    m_is_calculated(false),
+    m_hough_flag(),
+    m_houghY_num(),
+    m_hough_dist(),
+    m_hough_disty(),
+    m_res_param()
 {
   debug::ObjectCounter::increase(ClassName());
+
+  if(HSfield_Hall<0.1&&m_layer<10) m_res_param = ResParamInnerLayerHSOff;
+  else if(HSfield_Hall<0.1&&m_layer>=10) m_res_param = ResParamOuterLayerHSOff;
+  else if(m_layer<10) m_res_param = ResParamInnerLayerHSOn;
+  else m_res_param = ResParamOuterLayerHSOn;
 }
+
+//_____________________________________________________________________________
+TPCHit::TPCHit(Int_t layer, Double_t mrow)
+  : DCHit(layer, mrow),
+    m_rhit(),
+    m_layer(layer),
+    m_row(TMath::Nint(mrow)),
+    m_padtheta(tpc::getTheta(m_layer, mrow)*TMath::DegToRad()),
+    m_padlength(tpc::padParameter[m_layer][tpc::kLength]),
+    m_mrow(mrow),
+    m_pad(tpc::GetPadId(layer, m_row)),
+    m_pedestal(TMath::QuietNaN()),
+    m_rms(TMath::QuietNaN()),
+    m_de(),
+    m_time(), // [time bucket]
+    m_chisqr(),
+    m_cde(),
+    m_ctime(), // [ns]
+    m_drift_length(),
+    m_is_good(true),
+    m_is_calculated(false),
+    m_hough_flag(0),
+    m_houghY_num(),
+    m_hough_dist(),
+    m_hough_disty(),
+    m_res_param()
+{
+
+  debug::ObjectCounter::increase(ClassName());
+
+  if(HSfield_Hall<0.1&&m_layer<10) m_res_param = ResParamInnerLayerHSOff;
+  else if(HSfield_Hall<0.1&&m_layer>=10) m_res_param = ResParamOuterLayerHSOff;
+  else if(m_layer<10) m_res_param = ResParamInnerLayerHSOn;
+  else m_res_param = ResParamOuterLayerHSOn;
+}
+
 
 //_____________________________________________________________________________
 TPCHit::~TPCHit()
@@ -105,6 +155,13 @@ TPCHit::AddHit(Double_t de, Double_t time, Double_t sigma, Double_t chisqr)
   m_ctime.push_back(TMath::QuietNaN());
   m_drift_length.push_back(TMath::QuietNaN());
   m_position.push_back(TVector3());
+}
+
+//_____________________________________________________________________________
+void
+TPCHit::SetHoughYnum(Int_t houghY_num)
+{
+  m_houghY_num.push_back(houghY_num);
 }
 
 //_____________________________________________________________________________
@@ -154,7 +211,6 @@ TPCHit::Calculate(Double_t clock)
     m_drift_length[i] = dl;
     auto pos = tpc::getPosition(m_pad);
     pos.SetY(dl);
-
     auto cpos = gTPCPos.Correct(pos, m_layer, m_row);
     m_position[i] = cpos;
   }
@@ -167,7 +223,9 @@ TPCHit::DoFit()
 {
   static const Double_t MinDe = gUser.GetParameter("MinDeTPC");
   static const Double_t MinRms = gUser.GetParameter("MinRmsTPC");
+#if DebugEvDisp
   static const Double_t MinRawRms = gUser.GetParameter("MinBaseRmsTPC");
+#endif
   static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
   static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
   static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");

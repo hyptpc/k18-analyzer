@@ -3,7 +3,7 @@
 #ifndef DETECTOR_ID_HH
 #define DETECTOR_ID_HH
 
-#include <initializer_list> 
+#include <initializer_list>
 #include <iostream>
 #include <map>
 #include <set>
@@ -44,24 +44,23 @@ const Int_t NumOfSegSAC3 =  1;
 const Int_t NumOfSegSFV  =  1;
 const Int_t NumOfSegCOBO =  8;
 
-const Int_t DetIdVmeRm       = 81;
-const Int_t DetIdScaler      = 91;
-const Int_t DetIdTrigFlag    = 99;
+const Int_t DetIdVmeRm     =  81;
+const Int_t DetIdScaler    =  91;
+const Int_t DetIdTrigFlag  =  99;
 const Int_t NumOfSegTrigFlag = 32;
 
 enum EHodoscope {
   kBHT, kBH2, kBAC,
   kHTOF, kKVC, kT1,
   kCVC, kSAC3, kSFV,
-  kCOBO,
-  kNumHodo
+  kCOBO, kNumHodo
 };
 
 const Int_t DetIdHodo[kNumHodo] = {
   DetIdBHT, DetIdBH2, DetIdBAC,
   DetIdHTOF, DetIdKVC, DetIdT1,
   DetIdCVC, DetIdSAC3, DetIdSFV,
-  DetIdCOBO
+  DetIdCOBO,
 };
 
 inline const std::vector<TString> NameHodo = {
@@ -71,7 +70,7 @@ inline const std::vector<TString> NameHodo = {
   "COBO"
 };
 
-const Double_t  NumOfSegHodo[kNumHodo] = {
+const Double_t NumOfSegHodo[kNumHodo] = {
   NumOfSegBHT, NumOfSegBH2, NumOfSegBAC,
   NumOfSegHTOF, NumOfSegKVC, NumOfSegT1,
   NumOfSegCVC, NumOfSegSAC3, NumOfSegSFV,
@@ -112,21 +111,22 @@ inline constexpr UInt_t HodoGroupMask[kNumHodo] = {
   MakeHodoMask({HodoGroup::NoADC, HodoGroup::NoCluster, HodoGroup::OneSideReadout}), // kCOBO
 };
 
+
 // __ Chambers ___________________________________________________________
-const int DetIdCDC    = 100;
-const int DetIdBLC1a  = 101;
-const int DetIdBLC1b  = 102;
-const int DetIdBLC2a  = 103;
-const int DetIdBLC2b  = 104;
-const int DetIdBPC    = 105;
-const int DetIdBPC2   = 105;
-const int DetIdBPC1   = 106;
-const int DetIdBPCmini= 106;
-const int DetIdSDC    = 106;
-const int DetIdFDC    = 107;
-const int DetIdBLC1   = 111;
-const int DetIdBLC2   = 112;
-const int DetIdBPC0   = 113;
+const Int_t DetIdCDC    = 100;
+const Int_t DetIdBLC1a  = 101;
+const Int_t DetIdBLC1b  = 102;
+const Int_t DetIdBLC2a  = 103;
+const Int_t DetIdBLC2b  = 104;
+const Int_t DetIdBPC    = 105;
+const Int_t DetIdBPC2   = 105;
+const Int_t DetIdBPC1   = 106;
+const Int_t DetIdBPCmini= 106;
+const Int_t DetIdSDC    = 106;
+const Int_t DetIdFDC    = 107;
+const Int_t DetIdBLC1   = 111;
+const Int_t DetIdBLC2   = 112;
+const Int_t DetIdBPC0   = 113;
 
 enum EDC {
   kBLC1a, kBLC1b, kBLC2a, kBLC2b,
@@ -167,25 +167,27 @@ enum ETriggerFlag {
 }
 
 // for compatibility
-const Int_t LayerMinBcIn        =   1;
-const Int_t LayerMaxBcIn        =  16;
-const Int_t LayerMinBcOut       = 1001;
-const Int_t LayerMaxBcOut       = 1016;
-const Int_t LayerMinSdcIn       =   1;
-const Int_t LayerMaxSdcIn       =  10;
-const Int_t LayerMinSdcOut      =  31;
-const Int_t LayerMaxSdcOut      =  42;
-const Int_t LayerMinTOF         =  51; // need to change
-const Int_t LayerMaxTOF         =  54; // need to change
-const Int_t LayerMinVP          =  16;
-const Int_t LayerMaxVP          =  26;
-const Int_t PlOffsBc            = 100;
-const Int_t PlOffsSdcIn         =   0;
-const Int_t PlOffsSdcOut        =  30;
-const Int_t PlOffsTOF           =  50;
-const Int_t PlOffsVP            =  15;
+const Int_t LayerMinBcIn      =   1;
+const Int_t LayerMaxBcIn      =  16;
+const Int_t LayerMinBcOut     = 1001;
+const Int_t LayerMaxBcOut     = 1016;
+const Int_t LayerMinSdcIn     =   1;
+const Int_t LayerMaxSdcIn     =  10;
+const Int_t LayerMinSdcOut    =  31;
+const Int_t LayerMaxSdcOut    =  42;
+const Int_t LayerMinTOF       =  51; // need to change
+const Int_t LayerMaxTOF       =  54; // need to change
+const Int_t LayerMinVP        =  16;
+const Int_t LayerMaxVP        =  26;
+const Int_t PlOffsBc          = 100;
+const Int_t PlOffsBcOut       = 1000;
+const Int_t PlOffsSdcIn       =   0;
+const Int_t PlOffsSdcOut      =  30;
+const Int_t PlOffsTOF         =  50;
+const Int_t PlOffsVP          =  15;
+const Int_t PlOffsVPHS        = 207; //K1.8 Beam Tracking
+const Int_t PlOffsTPCHit      = 700; //K1.8 w/ TPC Tracking
 
-// const Int_t NumOfLayersBc     = 8;
 const Int_t NumOfLayersSDC1   = 6;
 const Int_t NumOfLayersSDC2   = 4;
 const Int_t NumOfLayersSDC3   = 4;
@@ -198,8 +200,11 @@ const Int_t NumOfLayersSdcOut = LayerMaxSdcOut - LayerMinSdcOut + 1;
 const Int_t NumOfLayersTOF    = LayerMaxTOF    - LayerMinTOF    + 1;
 const Int_t NumOfLayersVP     = LayerMaxVP     - LayerMinVP     + 1;
 
-//TPC
+// __ TPC ___________________________________________________________
 const Int_t NumOfLayersTPC    = 32;
 const Int_t NumOfPadTPC       = 5768;
+const Int_t NumOfAsadTPC      = 31;
+const Int_t NumOfLayersVPTPC  = 5;
+const Int_t NumOfLayersVPHS   = 4;
 
 #endif
