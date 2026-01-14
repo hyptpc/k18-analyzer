@@ -945,7 +945,7 @@ void DecomposeResolutionUV(TMatrixD VXi, TVector3 PXi, double& resU, double& res
   TMatrixD Vuv = J*VThPh*JT;
   resU = sqrt(Vuv(0,0));
   resV = sqrt(Vuv(1,1));
-  if(!(resU < 0.1)) resU = 0.1;
-  if(!(resV < 0.1)) resV = 0.1;
+  if(abs(resU) > 0.1 or std::isnan(resU)) resU = 0.1;
+  if(abs(resV) > 0.1 or std::isnan(resV)) resV = 0.1;
 }
 }

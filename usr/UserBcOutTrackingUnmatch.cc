@@ -104,7 +104,6 @@ struct Event
   Int_t nlayer;
   Double_t pos[NumOfLayersBcOut][MaxHits];
   int tdc1st[NumOfLayersBcOut][MaxHits];
-  int nhtdc[NumOfLayersBcOut][MaxHits];
   int tot1st[NumOfLayersBcOut][MaxHits];
   int wire[NumOfLayersBcOut][MaxHits];
 
@@ -160,7 +159,6 @@ Event::clear()
     for(Int_t that=0; that<MaxHits; that++){
       pos[it][that] = qnan;
       tdc1st[it][that] = qnan;
-      nhtdc[it][that] = qnan;
       tot1st[it][that] = qnan;
       wire[it][that] = qnan;
     }
@@ -353,7 +351,6 @@ UserBcOutTracking::ProcessingNormal()
 	}
 	event.tdc1st[layer-1][i] = tdc1st;
 	event.wire[layer-1][i] = (int)wire;
-  event.nhtdc[layer-1][i] = nhtdc;
 
 	HF1(100*layer+6, tdc1st);
 	for(Int_t k=0, n=hit->GetTdcTrailingSize(); k<n; ++k){
@@ -759,8 +756,6 @@ ConfMan::InitializeHistograms()
   tree->Branch("v0",        event.v0,       "v0[ntrack]/D");
   tree->Branch("theta",     event.theta,    "theta[ntrack]/D");
   tree->Branch("tdc1st",    event.tdc1st,   Form("tdc1st[%d][%d]/I",
-						 NumOfLayersBcOut, MaxHits));
-  tree->Branch("nhtdc",    event.nhtdc,   Form("nhtdc[%d][%d]/I",
 						 NumOfLayersBcOut, MaxHits));
   tree->Branch("tot1st",    event.tot1st,   Form("tot1st[%d][%d]/I",
 						 NumOfLayersBcOut, MaxHits));

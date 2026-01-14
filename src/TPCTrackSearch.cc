@@ -1141,16 +1141,16 @@ LocalTrackSearchRefitHelix(const std::vector<TPCClusterContainer>& ClCont,
   RestoreFragmentedTracks(ClCont, TempTrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
 #if ReassignClusterTest
-//  ReassignClustersNearTheTarget(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits); -> Already done
+  ReassignClustersNearTheTarget(ClCont, TempTrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);//After 251201
 #endif
-//  FindAccidentalCoincidenceTracks(TrackCont, VertexCont, ClusteredVertexCont); -> Al
+  FindAccidentalCoincidenceTracks(TempTrackCont, VertexCont, ClusteredVertexCont);//After 251201
 #if ReassignClusterTest
-//  ReassignClustersVertex(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+  ReassignClustersVertex(ClCont, TempTrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);//After 251201
 #endif
 #if RefitXiTrack
 // ReassignClustersXiTrack(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
 #endif
-//  RestoreFragmentedAccidentalTracks(ClCont, TrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);
+  RestoreFragmentedAccidentalTracks(ClCont, TempTrackCont, TrackContFailed, VertexCont, Exclusive, MinNumOfHits);//After 251201
 #if DebugDisp
   std::cout<<FUNC_NAME+" #track : "<<TrackCont.size()<<std::endl;
   std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
