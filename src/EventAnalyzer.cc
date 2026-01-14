@@ -1,7 +1,5 @@
 // -*- C++ -*-
 
-#if ! defined E73_2024
-
 #include "EventAnalyzer.hh"
 
 #include <Unpacker.hh>
@@ -147,7 +145,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       for(const auto& t: hit->GetArrayTdcLeading()){
         if(gUser.IsInRange(Form("%s_TDC", name), t))
           is_good = true;
-          HF1(Form("%s_TDC_seg%d%s", name, seg, b), t);
+        HF1(Form("%s_TDC_seg%d%s", name, seg, b), t);
       }
       if(is_good && seg == 0){
         HF1(Form("%s_HitPat%s", name, b), seg);
@@ -293,7 +291,6 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       }
     }
   }
-  
 }
 
 //_____________________________________________________________________________
@@ -420,7 +417,7 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     }
     HF1(Form("%sSum_Hit_Multi%s", name, b), multi);
   }
-  
+
   // TOF
   {
     for(Int_t i2=0, n2=hodoAna.GetNHits("BH2"); i2<n2; ++i2){
@@ -634,7 +631,7 @@ EventAnalyzer::DCHit(const TString& dcname, const DCAnalyzer& dcAna,
     Int_t nplane = digit_info.get_n_plane(detector_id);
     for(Int_t plane=0; plane<nplane; ++plane){
       Int_t plane_idx = plane;
-      if(detector_id == 102 || detector_id == 104) plane_idx = plane + nplane;
+      if(detector_id == 102 || detector_id == 104) plane_idx = plane + nplane; 
       auto hc1 = dcname == "BcIn" ?
 	dcAna.GetBcInHC(plane_idx) : dcAna.GetBcOutHC(plane_idx);
       Int_t multi = 0;
@@ -653,7 +650,7 @@ EventAnalyzer::DCHit(const TString& dcname, const DCAnalyzer& dcAna,
       } //pair plane hit pattern end
       for(const auto& hit: hc1){
         auto wire = hit->GetWire();
-
+	
         Bool_t is_good = false;
         for(Int_t j=0, m=hit->GetDriftTimeSize(); j<m; ++j){
           if(!hit->IsGood(j)) continue;
@@ -752,8 +749,8 @@ EventAnalyzer::BcOutTracking(DCAnalyzer& dcAna, beam::EBeamFlag beam_flag)
       auto wire = lthit->GetWire();
       auto dt = lthit->DriftTime();
       auto dl = lthit->DriftLength();
-
-
+      
+      
       HF1(Form("%s_Track_DriftTime_plane%d%s", name, plane, b), dt);
       HF1(Form("%s_Track_DriftLength_plane%d%s", name, plane, b), dl);
       HF2(Form("%s_Track_DriftTime_vs_HitPat_plane%d%s", name, plane, b), wire, dt);
@@ -816,5 +813,3 @@ EventAnalyzer::DAQ(const RawData& rawData)
   auto data_size = gUnpacker.get_node_header(node_id, k_data_size);
   HF1("EB_DataSize", data_size);
 }
-
-#endif

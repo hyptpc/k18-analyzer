@@ -1,23 +1,21 @@
 // -*- C++ -*-
 
-#if ! defined E73_2024
-
 #include "TPCEventAnalyzer.hh"
 
+#include <DAQNode.hh>
 #include <Unpacker.hh>
 #include <UnpackerConfig.hh>
 #include <UnpackerManager.hh>
 #include <UnpackerXMLReadDigit.hh>
-#include <DAQNode.hh>
 
 #include "DetectorID.hh"
-#include "TPCHit.hh"
+#include "RootHelper.hh"
 #include "TPCAnalyzer.hh"
-#include "TPCRawHit.hh"
-#include "TPCRawData.hh"
+#include "TPCHit.hh"
 #include "TPCPadHelper.hh"
 // #include "TPCParamMan.hh"
-#include "RootHelper.hh"
+#include "TPCRawData.hh"
+#include "TPCRawHit.hh"
 #include "UserParamMan.hh"
 
 namespace
@@ -28,7 +26,6 @@ const auto& gUser = UserParamMan::GetInstance();
 using root::HF1;
 using root::HF2;
 using root::HF2Poly;
-
 }
 
 //_____________________________________________________________________________
@@ -63,7 +60,7 @@ TPCEventAnalyzer::TPCRawHit(const TPCRawData& TPCrawData)
 
       auto fadc = rhit->Fadc();
       for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-	HF2("TPC_FADC_Before", tb, fadc.at(tb));
+        HF2("TPC_FADC_Before", tb, fadc.at(tb));
       } 
     } 
   }
@@ -122,7 +119,7 @@ TPCEventAnalyzer::TPCCorHit(const TPCRawData &TPCrawData){
       // 2D FADC waveform after correction
       auto fadc = rhit->Fadc();
       for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-	HF2("TPC_FADC_After", tb, fadc.at(tb));
+        HF2("TPC_FADC_After", tb, fadc.at(tb));
       }
     }
   }
@@ -136,5 +133,3 @@ TPCEventAnalyzer::TPCCorHit(const TPCRawData &TPCrawData){
 void
 TPCEventAnalyzer::TPCHit(const TPCAnalyzer& TPCAnalyzer){
 }
-
-#endif

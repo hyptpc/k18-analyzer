@@ -127,7 +127,7 @@ ProcessNormal()
   TPCrawData.DecodeTPCHits();
   
   HodoAnalyzer hodoAna(rawData);
-  hodoAna.DecodeHits("COBO", false);  
+  hodoAna.DecodeHits("COBO", !HasHodoGroup(HodoGroupMask[kCOBO], HodoGroup::NoCluster));
 
   TPCEventAnalyzer tpcevAna;
   
@@ -142,8 +142,8 @@ ProcessNormal()
     static const TString n("COBO");
     for(const auto& hit: rawData.GetHodoRawHC(n)){
       for(const auto& tdc: hit->GetArrayTdc()){
-	//hit->Print();
-	HF1("TPC_Clock_TDC", tdc);
+        //hit->Print();
+        HF1("TPC_Clock_TDC", tdc);
       }
     }
 
@@ -207,11 +207,11 @@ ProcessNormal()
       Bool_t good_for_analysis = false;
 
       for(Int_t i=0; i<nhit; ++i){
-	Double_t cde = hit->GetCDe(i);
-	Double_t de = hit->GetDe(i);
+        Double_t cde = hit->GetCDe(i);
+        Double_t de = hit->GetDe(i);
         Double_t time = hit->GetTime(i);
         Double_t chisqr = hit->GetChisqr(i);
-	Double_t ctime = hit->GetCTime(i);
+        Double_t ctime = hit->GetCTime(i);
         Double_t dl = hit->GetDriftLength(i);
         Double_t sigma = hit->GetSigma(i);
         layerTpc.push_back(layer);
@@ -219,34 +219,34 @@ ProcessNormal()
         padTpc.push_back(pad);
         pedTpc.push_back(ped);
         rmsTpc.push_back(rms);
-	rawrmsTpc.push_back(rawrms);
+        rawrmsTpc.push_back(rawrms);
         deTpc.push_back(de);
         tTpc.push_back(time);
         chisqrTpc.push_back(chisqr);
         cdeTpc.push_back(cde);
         ctTpc.push_back(ctime);
         dlTpc.push_back(dl);
-	sigmaTpc.push_back(sigma);
+        sigmaTpc.push_back(sigma);
 
-	HF1("TPC_DeltaE", de);
-	HF1("TPC_Time", time);
-	HF1("TPC_Chisqr", chisqr);
-	HF1("TPC_CDeltaE", cde);
-	HF1("TPC_CTime", ctime);
-	HF1("TPC_DriftLength", dl);
-	HF1("TPC_sigma", sigma);
-	HF2("TPC_sigma%%de", de, sigma);
-	HF2("TPC_time%%de", de, time);
+        HF1("TPC_DeltaE", de);
+        HF1("TPC_Time", time);
+        HF1("TPC_Chisqr", chisqr);
+        HF1("TPC_CDeltaE", cde);
+        HF1("TPC_CTime", ctime);
+        HF1("TPC_DriftLength", dl);
+        HF1("TPC_sigma", sigma);
+        HF2("TPC_sigma%%de", de, sigma);
+        HF2("TPC_time%%de", de, time);
 
-	good_for_analysis = true;
+        good_for_analysis = true;
         ++nhTpc;
       }
 
       if(good_for_analysis){
-	auto fadc = hit->GetRawHit()->Fadc();
-	for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
-	  HF2("TPC_FADC_Good", tb, fadc.at(tb));
-	}
+        auto fadc = hit->GetRawHit()->Fadc();
+        for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
+          HF2("TPC_FADC_Good", tb, fadc.at(tb));
+        }
       }
     }
   }
