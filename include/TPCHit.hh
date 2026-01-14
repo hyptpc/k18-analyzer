@@ -6,10 +6,10 @@
 #include "DCHit.hh"
 
 #include <cmath>
-#include <vector>
 #include <deque>
-#include <string>
 #include <numeric>
+#include <string>
+#include <vector>
 
 #include <std_ostream.hh>
 

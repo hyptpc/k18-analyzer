@@ -34,7 +34,6 @@ const auto& gUser         = UserParamMan::GetInstance();
 
 }
 
-#define DebugEvDisp    0
 
 
 //_____________________________________________________________________________

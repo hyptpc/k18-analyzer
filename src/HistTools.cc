@@ -4,11 +4,11 @@
 
 #include <TString.h>
 
+#include <DAQNode.hh>
 #include <Unpacker.hh>
 #include <UnpackerConfig.hh>
 #include <UnpackerManager.hh>
 #include <UnpackerXMLReadDigit.hh>
-#include <DAQNode.hh>
 
 #include "DetectorID.hh"
 #include "RootHelper.hh"
@@ -18,16 +18,11 @@ namespace
 {
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
-  //using root::HB1;
-  //using root::HB2;
-  using namespace root;
-  
+//using root::HB1;
+//using root::HB2;
+using namespace root; 
 }
 
-namespace root
-{
-  TH1   *h[MaxHist];
-}
 namespace hist
 {
 // Raw
@@ -36,15 +31,15 @@ const Double_t hrtdcbins2[3] = {20000,  200000,  600000}; // for FTOF
 const Double_t hrtdcbins3[3] = {20000, 1200000, 1600000}; // for BHT
 const Double_t hrtdcbins4[3] = {10000, 1500000, 1650000}; // for COBO
 const Double_t hrtdcbins5[3] = {10000,       0, 2000000}; // TriggerFlag
-const Double_t hrtotbins[3] = {5000, 0, 50000};
-const Double_t adcbins[3] = {4096, -0.5, 4095.5};
-const Double_t mhtdcbins[3] = {2000, 0, 2000};
-const Double_t mhtotbins[3] = {1000, 0, 1000};
+const Double_t hrtotbins[3]  = {5000, 0, 50000};
+const Double_t adcbins[3]    = {4096, -0.5, 4095.5};
+const Double_t mhtdcbins[3]  = {2000, 0, 2000};
+const Double_t mhtotbins[3]  = {1000, 0, 1000};
 // HodoHit
-const Double_t hrtimebins[3] = {5000, -50, 50};
-const Double_t mhtimebins[3] = {500, -50, 50};
+const Double_t hrtimebins[3]    = {5000, -50, 50};
+const Double_t mhtimebins[3]    = {500, -50, 50};
 const Double_t hrtottimebins[3] = {1000, 0, 200};
-const Double_t debins[3] = {1000, 0, 10};
+const Double_t debins[3]        = {1000, 0, 10};
 
 //_____________________________________________________________________________
 void
@@ -646,19 +641,10 @@ BuildTPCHit()
   tpc::InitializeHistograms("TPC_HitPat_noise");
   tpc::InitializeHistograms("TPC_HitPat_Baseline");
   
-  /*
-    HB2Poly(1001, "TPC HitPat");
-    for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    const Int_t NumOfRow = tpc::padParameter[layer][tpc::kNumOfPad];
-    for(Int_t r=0; r<NumOfRow; ++r){
-    HB1(10000 + layer*1000 + r, "TPC Time_padid%d%s", layer*1000 + r, b), (NTimeBucket+1)*30, 0, NTimeBucket+1);
-    HB1(20000 + layer*1000 + r, "TPC DeltaE_padid%d%s", layer*1000 + r, b), NbinDe, MinDe, MaxDe);
-    }
-    }
-  */
 }
 
 //_____________________________________________________________________________
+// TODO: clean up this code.
 void
 BuildTPCTracking()
 {

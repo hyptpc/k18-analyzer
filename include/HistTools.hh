@@ -3,18 +3,18 @@
 #ifndef HistTools_h
 #define HistTools_h
 
+#include <cmath>
+#include <iostream>
 #include <string>
 #include <vector>
-#include <iostream>
-#include <cmath>
 
-#include "TVector3.h"
+#include "TFile.h"
 #include "TH1F.h"
 #include "TH2F.h"
-#include "TFile.h"
 #include "TMacro.h"
-#include "TSystem.h"
 #include "TString.h"
+#include "TSystem.h"
+#include "TVector3.h"
 
 namespace hist
 {

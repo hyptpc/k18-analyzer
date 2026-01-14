@@ -4,9 +4,9 @@
 #define TPC_ANALYZER_HH
 
 #include <vector>
+
 #include <TString.h>
 #include <TVector3.h>
-//#include "SharedPlanePtr.h"
 
 #include "DetectorID.hh"
 

@@ -167,28 +167,27 @@ enum ETriggerFlag {
 }
 
 // for compatibility
-const Int_t LayerMinBcIn        =   1;
-const Int_t LayerMaxBcIn        =  16;
-const Int_t LayerMinBcOut       = 1001;
-const Int_t LayerMaxBcOut       = 1016;
-const Int_t LayerMinSdcIn       =   1;
-const Int_t LayerMaxSdcIn       =  10;
-const Int_t LayerMinSdcOut      =  31;
-const Int_t LayerMaxSdcOut      =  42;
-const Int_t LayerMinTOF         =  51; // need to change
-const Int_t LayerMaxTOF         =  54; // need to change
-const Int_t LayerMinVP          =  16;
-const Int_t LayerMaxVP          =  26;
-const Int_t PlOffsBc         = 100;
-const Int_t PlOffsBcOut      = 1000;
-const Int_t PlOffsSdcIn      =   0;
-const Int_t PlOffsSdcOut     =  30;
-const Int_t PlOffsTOF        =  50;
-const Int_t PlOffsVP         =  15;
-const Int_t PlOffsVPHS       = 207; //K1.8 Beam Tracking
-const Int_t PlOffsTPCHit     = 700; //K1.8 w/ TPC Tracking
+const Int_t LayerMinBcIn      =   1;
+const Int_t LayerMaxBcIn      =  16;
+const Int_t LayerMinBcOut     = 1001;
+const Int_t LayerMaxBcOut     = 1016;
+const Int_t LayerMinSdcIn     =   1;
+const Int_t LayerMaxSdcIn     =  10;
+const Int_t LayerMinSdcOut    =  31;
+const Int_t LayerMaxSdcOut    =  42;
+const Int_t LayerMinTOF       =  51; // need to change
+const Int_t LayerMaxTOF       =  54; // need to change
+const Int_t LayerMinVP        =  16;
+const Int_t LayerMaxVP        =  26;
+const Int_t PlOffsBc          = 100;
+const Int_t PlOffsBcOut       = 1000;
+const Int_t PlOffsSdcIn       =   0;
+const Int_t PlOffsSdcOut      =  30;
+const Int_t PlOffsTOF         =  50;
+const Int_t PlOffsVP          =  15;
+const Int_t PlOffsVPHS        = 207; //K1.8 Beam Tracking
+const Int_t PlOffsTPCHit      = 700; //K1.8 w/ TPC Tracking
 
-// const Int_t NumOfLayersBc     = 8;
 const Int_t NumOfLayersSDC1   = 6;
 const Int_t NumOfLayersSDC2   = 4;
 const Int_t NumOfLayersSDC3   = 4;
@@ -200,12 +199,12 @@ const Int_t NumOfLayersSdcIn  = LayerMaxSdcIn  - LayerMinSdcIn  + 1;
 const Int_t NumOfLayersSdcOut = LayerMaxSdcOut - LayerMinSdcOut + 1;
 const Int_t NumOfLayersTOF    = LayerMaxTOF    - LayerMinTOF    + 1;
 const Int_t NumOfLayersVP     = LayerMaxVP     - LayerMinVP     + 1;
-const Int_t NumOfLayersVPTPC  = 5;
-const Int_t NumOfLayersVPHS   = 4;
 
 // __ TPC ___________________________________________________________
 const Int_t NumOfLayersTPC    = 32;
 const Int_t NumOfPadTPC       = 5768;
 const Int_t NumOfAsadTPC      = 31;
+const Int_t NumOfLayersVPTPC  = 5;
+const Int_t NumOfLayersVPHS   = 4;
 
 #endif

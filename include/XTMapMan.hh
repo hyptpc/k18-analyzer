@@ -1,7 +1,7 @@
 // XTMapMan.h
 
 #ifndef XTMapMan_h
-#define XTMapMan_h 1
+#define XTMapMan_h
 
 #include <map>
 #include <string>

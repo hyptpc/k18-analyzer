@@ -10,36 +10,32 @@
 #include <stdexcept>
 #include <string>
 
-//#include "ConfMan.hh"
 #include "DCGeomMan.hh"
 #include "DCGeomRecord.hh"
+#include "DCHit.hh"
 #include "DebugCounter.hh"
 #include "DebugTimer.hh"
+#include "DeleteUtility.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
-#include "TPCRawData.hh"
-#include "UserParamMan.hh"
-#include "DeleteUtility.hh"
+#include "PrintHelper.hh"
 #include "RungeKuttaUtilities.hh"
-#include "TPCPadHelper.hh"
-#include "TPCParamMan.hh"
-#include "TPCRawHit.hh"
-#include "TPCHit.hh"
 #include "TPCCluster.hh"
+#include "TPCHit.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLocalTrackHelix.hh"
+#include "TPCPadHelper.hh"
+#include "TPCParamMan.hh"
+#include "TPCRKTrack.hh"
+#include "TPCRawData.hh"
+#include "TPCRawHit.hh"
 #include "TPCTrackSearch.hh"
 #include "TPCVertex.hh"
-#include "DCHit.hh"
-#include "TrackHit.hh"
-#include "TPCRKTrack.hh"
-#include "PrintHelper.hh"
 #include "TRandom3.h"
+#include "TrackHit.hh"
+#include "UserParamMan.hh"
 
-#include "TPCLocalTrackHelix.hh"
-//#include "DetPlane.h"
-
- /* TPCTracking */
+/* TPCTracking */
 #define UseTpcCluster 1 // 1 : Common clustering method, 0 : Cluster size=1 no clustering
 
 namespace
