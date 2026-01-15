@@ -134,7 +134,7 @@ $(bin_dir)/Ex%: $(ex_build_dir)/Example%.o $(lib_objs)
 	@ $(mkdir) $(bin_dir)
 	$(CXX) $(FLAGS) -o $@ $< $(libs)
 
-$(lib_objs): $(objs)
+$(lib_objs): $(objs) $(spdlog_lib)
 	@ $(echo) "$(yellow)=== Archiving $@ $(default_color)"
 	@ $(mkdir) $(lib_dir)
 	$(ar) $(lib_objs) $(objs)
