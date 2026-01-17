@@ -576,24 +576,30 @@ BuildTPCHit()
 
   // 1D histograms
   HB1("TPC_Multiplicity_Raw",   NumOfPadTPC+1, 0,  NumOfPadTPC+1);
+  HB1("TPC_Multiplicity_Cor",   NumOfPadTPC+1, 0,  NumOfPadTPC+1);
   HB1("TPC_FADC_Mean",          NbinAdc,       MinAdc,          MaxAdc);
   HB1("TPC_FADC_Max",           NbinAdc,       MinAdc,          MaxAdc);
   HB1("TPC_FADC_RMS",           NbinRms,       MinRms,          MaxRms);
   HB1("TPC_FADC_LocMax",        NTimeBucket+1, 0,   NTimeBucket+1);
   HB1("TPC_FADC_Min",           NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC_FADC_Mean_Cor",      NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC_FADC_Max_Cor",       NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC_FADC_RMS_Cor",       NbinRms,       MinRms,          MaxRms);
-  HB1("TPC_FADC_LocMax_Cor",    NTimeBucket+1, 0,   NTimeBucket+1);
-  HB1("TPC_FADC_Min_Cor",       NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Cor_Mean",      NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Cor_Max",       NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Cor_RMS",       NbinRms,       MinRms,          MaxRms);
+  HB1("TPC_FADC_Cor_LocMax",    NTimeBucket+1, 0,   NTimeBucket+1);
+  HB1("TPC_FADC_Cor_Min",       NbinAdc,       MinAdc,          MaxAdc);
   HB1("TPC_FADC_Baseline_p0",   NbinAdc,       MinAdc,          MaxAdc);
   HB1("TPC_FADC_Baseline_p1",   120,           -6,              6);
   HB1("TPC_FADC_Baseline_p2",   120,           -12,             12);
+  HB1("TPC_FADC_Baseline_Mean", NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Baseline_Max",  NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Baseline_RMS",  NbinRms,       MinRms,          MaxRms);
+  HB1("TPC_FADC_Baseline_LocMax",NTimeBucket+1, 0,   NTimeBucket+1);
+  HB1("TPC_FADC_Baseline_Min",  NbinAdc,       MinAdc,          MaxAdc);
 
   // 2D
   HB2("TPC_FADC_Baseline",
       NTimeBucket+1, 0, NTimeBucket+1,
-      NbinAdc, MinAdc, MaxAdc);
+      NbinAdc, MinAdc, 1000);
 
   // TPCHit
   HB1("TPC_Multiplicity_TPCHit",   NumOfPadTPC+1, 0,  NumOfPadTPC+1);
@@ -628,17 +634,22 @@ BuildTPCHit()
       NTimeBucket+1, 0, NTimeBucket+1,
       NbinAdc, MinAdc, MaxAdc);
 
-  HB2("TPC_FADC_noise",
+  HB2("TPC_FADC_Noise",
       NTimeBucket+1, 0, NTimeBucket+1,
-      NbinAdc, MinAdc, MaxAdc);
+      NbinAdc, MinAdc, 1000);
 
+  HB1("TPC_FADC_Noise_Max",           NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_FADC_Noise_RMSfront",      NbinRms,       MinRms,          MaxRms);
+  HB1("TPC_FADC_Noise_RMSmiddle",     NbinRms,       MinRms,          MaxRms);
+  HB1("TPC_FADC_Noise_Adcdiff",       1000,-100,900);
+  
   // Clock
   HB1("TPC_Clock_TDC",   100000, 0.,    1000000.);
   HB1("TPC_Clock_Time",  20000, -100.,  100.);
 
-  HB2Poly("TPC_HitPat_noise",-300.,300.,-300.,300.);
+  HB2Poly("TPC_HitPat_Noise",-300.,300.,-300.,300.);
   HB2Poly("TPC_HitPat_Baseline",-300.,300.,-300.,300.);
-  tpc::InitializeHistograms("TPC_HitPat_noise");
+  tpc::InitializeHistograms("TPC_HitPat_Noise");
   tpc::InitializeHistograms("TPC_HitPat_Baseline");
   
 }

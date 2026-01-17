@@ -254,7 +254,7 @@ TPCRawData::CorrectBaselineTPC()
     auto ref = hit->MaxAdc(MinTimeBucket, MaxTimeBucket)
       - hit->Mean(MinTimeBucket, MaxTimeBucket);
     double rms = hit -> RMS(MinTimeBucket, MaxTimeBucket);
-    if(ref < min_ref && rms > MinRms && !tpc::IsDead(tpc::GetPadId(hit->LayerId(),hit->RowId()))){
+    if(ref < min_ref && rms > MinRms && !tpc::IsDead(tpc::GetPadId(hit->LayerId(),hit->RowId())) && !tpc::Noise(hit->LayerId(),hit->RowId())){
       min_ref = ref;
       m_baseline = hit;
     }
