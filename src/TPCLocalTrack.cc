@@ -14,6 +14,7 @@
 
 #include "TPCLocalTrack.hh"
 
+#include <set>
 #include <string>
 #include <vector>
 #include <cmath>
@@ -492,16 +493,13 @@ TPCLocalTrack::IsGoodForTracking()
 Int_t
 TPCLocalTrack::GetNPad() const
 {
-
   const std::size_t n = m_hit_array.size();
-  std::vector<Int_t> pads;
+  std::set<Int_t> pads;
   for(std::size_t i=0; i<n; ++i){
     TPCLTrackHit *hit = m_hit_array[i];
-    pads.push_back(hit -> GetHit() -> GetPad());
+    pads.insert(hit -> GetHit() -> GetPad());
   }
-  std::sort(pads.begin(),pads.end());
-  pads.erase(std::unique(pads.begin(),pads.end()),pads.end());
-  return pads.size();
+  return static_cast<Int_t>(pads.size());
 }
 
 //______________________________________________________________________________
