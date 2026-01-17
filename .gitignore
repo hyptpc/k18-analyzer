@@ -18,6 +18,7 @@ lib
 .build
 build
 usr
+dst
 Makefile
 !Makefile.org
 __pycache__
