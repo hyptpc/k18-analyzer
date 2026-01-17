@@ -12,6 +12,8 @@
 #include <TTree.h>
 #include <TTreeReader.h>
 
+#include <spdlog/spdlog.h>
+
 #include <filesystem_util.hh>
 
 #include "DCAnalyzer.hh"
@@ -68,7 +70,7 @@ OpenFile(TFile*& file, const TString& name)
 {
   file = new TFile(name);
   if(!file || file->IsZombie()){
-    std::cerr << "#E failed to open TFile : " << name << std::endl;
+    spdlog::error("failed to open TFile : {}", name.Data());
     return false;
   }
   return true;
@@ -81,7 +83,7 @@ OpenTree(TFile* file, TTree*& tree, const TString& name)
   if(!file || !file->IsOpen()) return false;
   tree = (TTree*)file->Get(name);
   if(!tree){
-    std::cerr << "#E failed to open TTree : " << name << std::endl;
+    spdlog::error("failed to open TTree : {}", name.Data());
     return false;
   }
   return true;
@@ -103,14 +105,17 @@ CheckEntries(const std::vector<TTree*>& TTreeCont)
   }
   if(!status){
 #if CheckEventNumberMismatch
-    std::cerr << "#E Entries Mismatch" << std::endl;
+    spdlog::error("Entries Mismatch");
 #else
-    std::cerr << "#W Entries Mismatch" << std::endl;
+    spdlog::warn("Entries Mismatch");
 #endif
     for(Int_t i=0; i<n; ++i){
       if(!TTreeCont[i]) continue;
-      std::cerr << "   " << std::setw(8) << TTreeCont[i]->GetName()
-                << " " << entries[i] << std::endl;
+#if CheckEventNumberMismatch
+      spdlog::error("   {:8} {}", TTreeCont[i]->GetName(), entries[i]);
+#else
+      spdlog::warn("   {:8} {}", TTreeCont[i]->GetName(), entries[i]);
+#endif
     }
   }
 #if CheckEventNumberMismatch
