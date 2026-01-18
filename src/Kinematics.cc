@@ -2003,7 +2003,8 @@ HelixDirection(TVector3 vertex, TVector3 start, TVector3 end, Double_t &dist){
 
 //_____________________________________________________________________________
 TVector3
-MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0, Double_t *u0, Double_t *v0,
+MultitrackVertex(Int_t ntrack, const std::vector<Double_t>& x0, const std::vector<Double_t>& y0,
+		 const std::vector<Double_t>& u0, const std::vector<Double_t>& v0,
 		 std::vector<Double_t> Res_x0, std::vector<Double_t> Res_y0,
 		 std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0){
 
@@ -2101,7 +2102,8 @@ MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0, Double_t *u0, Double_
 
 //_____________________________________________________________________________
 TVector3
-MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0, Double_t *u0, Double_t *v0,
+MultitrackVertex(Int_t ntrack, const std::vector<Double_t>& x0, const std::vector<Double_t>& y0,
+		 const std::vector<Double_t>& u0, const std::vector<Double_t>& v0,
 		 std::vector<Double_t> Res_x0, std::vector<Double_t> Res_y0,
 		 std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0, Double_t &chisqr){
 
