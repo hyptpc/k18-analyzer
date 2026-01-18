@@ -5,6 +5,7 @@
 
 #include <escape_sequence.hh>
 #include <std_ostream.hh>
+#include <spdlog/spdlog.h>
 
 #include "DebugCounter.hh"
 #include "DeleteUtility.hh"
@@ -85,7 +86,10 @@ TPCCluster::CheckClusterOnTheFrame()
   }
 
   Bool_t status = false;
-  for(Int_t i=0; i<5; ++i){
+  // FrameHighEdge and FrameLowEdge are [NumOfLayersTPC][5] arrays
+  // The second dimension size is 5 (maximum number of frame edges per layer)
+  static const Int_t NumFrameEdges = 5;
+  for(Int_t i=0; i<NumFrameEdges; ++i){
     if(TMath::Abs(tpc::FrameHighEdge[m_layer][i] - low_row) <= tpc::MaxRowDifTPC) status = true;
     if(TMath::Abs(tpc::FrameLowEdge[m_layer][i] - high_row) <= tpc::MaxRowDifTPC) status = true;
   }
@@ -98,8 +102,7 @@ Bool_t
 TPCCluster::Calculate()
 {
   static const TVector2 target_center(0., tpc::ZTarget); // (X, Z)
-  //const Double_t R = tpc::GetRadius(m_layer);
-  //int max_row = tpc::padParameter[m_layer][1];
+  Int_t max_row = static_cast<Int_t>(tpc::padParameter[m_layer][tpc::kNumOfPad]);
   m_cluster_de = 0.;
   m_cluster_position.SetXYZ(0., 0., 0.);
 
@@ -135,17 +138,36 @@ TPCCluster::Calculate()
   TVector2 xz_vector = xz_vectorHS + target_center;
   m_cluster_position.SetXYZ(xz_vector.X(), mean_y, xz_vector.Y());
   m_mean_row = tpc::getMrow(m_layer, m_mean_theta*TMath::RadToDeg());
+    
+  // Clamp the rounded rowID to valid range before calling GetPadId
+  // This prevents TMath::Nint() from rounding to an out-of-bounds rowID
+  // (e.g., 167.5 -> 168 when max is 167)
+  Int_t row_id = TMath::Nint(m_mean_row);
+  if (row_id < 0) { // should not happen
+    spdlog::warn(
+      "[TPCCluster::Calculate] row_id < 0 (m_mean_row={}, row_id={}) for layer {}. Clamping to 0",
+      m_mean_row, row_id, m_layer);
+    row_id = 0;
+  } else if (row_id == max_row) {
+    // row_id == max_row is acceptable, but clamp to max_row - 1 for valid rowID
+    row_id = max_row - 1;
+  } else if (row_id > max_row) { // should not happen
+    spdlog::warn(
+      "[TPCCluster::Calculate] row_id > max_row (m_mean_row={}, row_id={} > {}) for layer {}. Clamping to {}",
+      m_mean_row, row_id, max_row, m_layer, max_row - 1);
+    row_id = max_row - 1;
+  }
+  m_mean_hit->SetPad(tpc::GetPadId(m_layer, row_id));
+
   m_mean_hit->AddHit(0., 0.);
   m_mean_hit->SetMRow(m_mean_row);
-  m_mean_hit->SetPad(tpc::GetPadId(m_layer, TMath::Nint(m_mean_row)));
-  m_mean_hit->SetPadLength(tpc::padParameter[m_layer][5]);
+  m_mean_hit->SetPadLength(tpc::padParameter[m_layer][tpc::kLength]);
   m_mean_hit->SetPadTheta(tpc::getTheta(m_layer, m_mean_row)*TMath::DegToRad());
   m_mean_hit->SetDe(m_cluster_de);
   m_mean_hit->SetPosition(m_cluster_position);
   m_mean_hit->SetParentCluster(this);
 
   // center hit determination
-  Int_t max_row = tpc::padParameter[m_layer][3];
   Double_t mean_phi0 = xz_vectorHS0.Phi();
   Double_t mean_row0 = tpc::getMrow(m_layer, mean_phi0*TMath::RadToDeg());
 
