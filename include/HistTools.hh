@@ -31,7 +31,9 @@ void BuildDCHit(const TString& dcname, Bool_t flag_beam_particle=false);
 void BuildDCTrack(const TString& dcname, Bool_t flag_beam_particle=false);
 
 void BuildTPCHit();
+void BuildTPCBasic();
 void BuildTPCTracking();
+void BuildTPCBcOutTracking();
 }
 
 #endif

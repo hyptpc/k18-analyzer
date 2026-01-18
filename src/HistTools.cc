@@ -655,17 +655,22 @@ BuildTPCHit()
 }
 
 //_____________________________________________________________________________
-// TODO: clean up this code.
+void
+BuildTPCBasic()
+{
+  HB1("Num_Track_TPC", 40, 0., 40.);
+  HB1("Num_Track_TPC_Hits", 50, 0., 50.);
+  HB1("Chisqr_TPC", 500, 0., 100.);
+  HB1("X0_TPC", 400, -100., 100.);
+  HB1("Y0_TPC", 400, -100., 100.);
+  HB1("U0_TPC", 200, -0.20, 0.20);
+  HB1("V0_TPC", 200, -0.20, 0.20);
+}
+
+//_____________________________________________________________________________
 void
 BuildTPCTracking()
 {
-
-  // HB1(const TString& name, const TString& title,
-  //     Int_t nbinx, Double_t xlow, Double_t xhigh)
-
-  // HB2(const TString& name, const TString& title,
-  //   Int_t nbinx, Double_t xlow, Double_t xhigh,
-  //   Int_t nbiny, Double_t ylow, Double_t yhigh)
 
   HB1("Hough_Dist", "Hough_Dist", 500, 0., 50.);
   HB1("Hough_Dist_Y", "Hough_Dist_Y", 500, 0., 50.);
@@ -675,25 +680,18 @@ BuildTPCTracking()
   HB1("Track_Fitting_Time", "Track_Fitting_Time;Time [ms];", 100, 0., 100.);
   HB1("Minuit_Output_Status", 5, 0., 5.);
 
-  HB1("Num_Track_TPC", 40, 0., 40.);
-  HB1("Num_Track_TPC_Hits", 50, 0., 50.);
-  HB1("Chisqr_TPC", 500, 0., 100.);
   HB1("Layer_Id_TPC", 35, 0., 35.);
-  HB1("X0_TPC", 400, -100., 100.);
-  HB1("Y0_TPC", 400, -100., 100.);
-  HB1("U0_TPC", 200, -0.20, 0.20);
-  HB1("V0_TPC", 200, -0.20, 0.20);
-  HB2("U0_X0_TPC", "U0_X0_TPC;X0;U0", 100, -100., 100., 100, -0.20, 0.20);
-  HB2("V0_Y0_TPC", "V0_Y0_TPC;Y0;V0", 100, -100., 100., 100, -0.20, 0.20);
-  HB2("X0_Y0_TPC", "X0_Y0_TPC;Y0;X0", 100, -100., 100., 100, -100., 100.);
+  HB2("U0_vs_X0_TPC", "U0_vs_X0_TPC;X0;U0", 100, -100., 100., 100, -0.20, 0.20);
+  HB2("V0_vs_Y0_TPC", "V0_vs_Y0_TPC;Y0;V0", 100, -100., 100., 100, -0.20, 0.20);
+  HB2("X0_vs_Y0_TPC", "X0_vs_Y0_TPC;Y0;X0", 100, -100., 100., 100, -100., 100.);
 
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     // Tracking Histgrams
     HB1(Form("HitPat_TPC_Layer%02d", layer), Form("HitPat_TPC_Layer%02d;[Track];", layer), 400, 0., 400.);
     HB1(Form("Position_TPC_Layer%02d", layer), Form("Position_TPC_Layer%02d", layer), 200, -250., 250.);
     HB1(Form("Residual_TPC_Layer%02d", layer), Form("Residual_TPC_Layer%02d", layer), 200, 0.0, 10.0);
-    HB2(Form("Resid_vs_Pos_TPC_Layer%02d", layer), Form("Resid_vs_Pos_TPC_Layer%02d", layer), 250, -250., 250., 100, -1.0, 1.0);
-    HB2(Form("Y_vs_Xcal_TPC_Layer%02d", layer), Form("Y_vs_Xcal_TPC_Layer%02d", layer), 100, -250., 250., 100, -250., 250.);
+    HB2(Form("Residual_vs_Position_TPC_Layer%02d", layer), Form("Residual_vs_Position_TPC_Layer%02d", layer), 250, -250., 250., 100, -1.0, 1.0);
+    HB2(Form("Yhit_vs_Xcal_TPC_Layer%02d", layer), Form("Yhit_vs_Xcal_TPC_Layer%02d", layer), 100, -250., 250., 100, -250., 250.);
     HB1(Form("ResidualX_TPC_Layer%02d", layer), Form("ResidualX_TPC_Layer%02d", layer), 200, -2.0, 2.0);
     HB1(Form("ResidualY_TPC_Layer%02d", layer), Form("ResidualY_TPC_Layer%02d", layer), 200, -2.0, 2.0);
     HB1(Form("ResidualZ_TPC_Layer%02d", layer), Form("ResidualZ_TPC_Layer%02d", layer), 200, -2.0, 2.0);
@@ -715,17 +713,86 @@ BuildTPCTracking()
 
   HB1("Cluster_size", "Cluster_size;Cluster size;Counts", NbinClSize, MinClSize, MaxClSize);
   HB1("Cluster_dE", "Cluster_dE;Cluster dE;Counts", NbinDe, MinDe, MaxDe);
-  HB2("Transverse_diffusion", "Transverse_diffusion;X_{cluster_center}-X_{pad};A/A_{sum}", 
+  HB2("Ratio_vs_Dist_Transverse_diffusion", "Ratio_vs_Dist_Transverse_diffusion;X_{cluster_center}-X_{pad};A/A_{sum}", 
       NbinDist, MinDist, MaxDist, NbinRatio, MinRatio, MaxRatio);
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     HB1(Form("Cluster_size_layer%2d",layer), Form("Cluster_size_layer%2d;Cluster size;Counts",layer), 
         NbinClSize, MinClSize, MaxClSize);
     HB1(Form("Cluster_dE_layer%2d",layer), Form("Cluster_dE_layer%2d;Cluster dE;Counts",layer), 
         NbinDe, MinDe, MaxDe);
-    HB2(Form("Transverse_diffusion_Layer%02d",layer), 
-        Form("Transverse_diffusion_Layer%02d;X_{cluster_center}-X_{pad};A/A_{sum}",layer),
+    HB2(Form("Ratio_vs_Dist_Transverse_diffusion_Layer%02d",layer), 
+        Form("Ratio_vs_Dist_Transverse_diffusion_Layer%02d;X_{cluster_center}-X_{pad};A/A_{sum}",layer),
         NbinDist, MinDist, MaxDist, NbinRatio, MinRatio, MaxRatio);
   }
+}
+
+//_____________________________________________________________________________
+void
+BuildTPCBcOutTracking()
+{
+ 
+  HB2("X0_vs_U0_TPC", "X0_vs_U0_TPC;X0;U0", 100, -100., 100., 100, -0.20, 0.20);
+  HB2("Y0_vs_V0_TPC", "Y0_vs_V0_TPC;Y0;V0", 100, -100., 100., 100, -0.20, 0.20);
+  HB2("X0_vs_Y0_TPC", "X0_vs_Y0_TPC;X0;Y0", 100, -100., 100., 100, -100., 100.);
+
+  HB2("X0_vs_atanU0_TPC", "X0_vs_atan(U0)_TPC;X0;atan(U0)", 300, -300., 300., 100, -20, 20);
+  HB2("Y0_vs_atanV0_TPC", "Y0_vs_atan(V0)_TPC;Y0;atan(V0)", 300, -300., 300., 100, -20, 20);
+
+  // BcOut Basic
+  HB1("Num_Track_BcOut", 40, 0., 40.);
+  HB1("Num_Track_BcOut_Hits", 50, 0., 50.);
+  HB1("Chisqr_BcOut", 500, 0., 500.);
+  HB1("X0_BcOut", 400, -100., 100.);
+  HB1("Y0_BcOut", 400, -100., 100.);
+  HB1("U0_BcOut", 200, -0.20, 0.20);
+  HB1("V0_BcOut", 200, -0.20, 0.20);
+  HB1("Xtgt_BcOut", 400, -100., 100.);
+  HB1("Ytgt_BcOut", 400, -100., 100.);
+  HB1("Utgt_BcOut", 200, -0.20, 0.20);
+  HB1("Vtgt_BcOut", 200, -0.20, 0.20);
+  HB2("Xtgt_vs_Utgt_BcOut", "Xtgt_vs_Utgt_BcOut;Xtgt;Utgt", 100, -100., 100., 100, -0.20, 0.20);
+  HB2("Ytgt_vs_Vtgt_BcOut", "Ytgt_vs_Vtgt_BcOut;Ytgt;Vtgt", 100, -100., 100., 100, -0.20, 0.20);
+  HB2("Xtgt_vs_Ytgt_BcOut", "Xtgt_vs_Ytgt_BcOut;Xtgt;Ytgt", 100, -100., 100., 100, -100, 100);
+
+  // Correlations
+  HB2("Xtgt_BcOut_vs_Tpc", "Xtgt_BcOut_vs_Tpc;Tpc Xtgt;BcOut Xtgt", 400, -200., 200., 400, -200., 200.);
+  HB2("Ytgt_BcOut_vs_Tpc", "Ytgt_BcOut_vs_Tpc;Tpc Ytgt;BcOut Ytgt", 400, -100., 100., 400, -100., 100.);
+  HB2("Utgt_BcOut_vs_Tpc", "Utgt_BcOut_vs_Tpc;Tpc Utgt;BcOut Utgt", 400, -0.15, 0.15, 400, -0.15, 0.15);
+  HB2("Vtgt_BcOut_vs_Tpc", "Vtgt_BcOut_vs_Tpc;Tpc Vtgt;BcOut Vtgt", 400, -0.05, 0.05, 400, -0.05, 0.05);
+  HB1("Xtgt_Diff", "Xtgt_Diff;BcOut-Tpc", 640, -16., 16.);
+  HB1("Ytgt_Diff", "Ytgt_Diff;BcOut-Tpc", 640, -16., 16.);
+  HB1("Utgt_Diff", "Utgt_Diff;BcOut-Tpc", 200, -0.05, 0.05);
+  HB1("Vtgt_Diff", "Vtgt_Diff;BcOut-Tpc", 200, -0.05, 0.05);
+
+  HB2("Xtgt_Diff_vs_Xtgt_BcOut", "Xtgt_Diff_vs_Xtgt_BcOut;BcOut Xtgt;BcOut-Tpc",
+       400, -150., 150., 400, -10., 10.);
+  HB2("Ytgt_Diff_vs_Ytgt_BcOut", "Ytgt_Diff_vs_Ytgt_BcOut;BcOut Ytgt;BcOut-Tpc",
+       400, -150., 150., 400, -15., 15.);
+  HB2("Utgt_Diff_vs_Utgt_BcOut", "Utgt_Diff_vs_Utgt_BcOut;BcOut Utgt;BcOut-Tpc",
+       400, -150., 150., 400, -0.03, 0.03);
+  HB2("Vtgt_Diff_vs_Vtgt_BcOut", "Vtgt_Diff_vs_Vtgt_BcOut;BcOut Vtgt;BcOut-Tpc",
+       400, -100., 100., 400, -0.03, 0.03);
+  
+  // Residuals
+  HB2("Layer_vs_ResY", "Layer_vs_ResY;Layer;Y Residual", 32, 0, 32, 400, -5, 5);
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    HB1(Form("TPC_Layer%02d_X_Pull", layer), 200, -5., 5.);
+    HB1(Form("TPC_Layer%02d_Y_Pull", layer), 200, -5., 5.);
+    HB1(Form("TPC_Layer%02d_Z_Pull", layer), 200, -5., 5.);
+    HB1(Form("TPC_Layer%02d_Local_X_Pull", layer), 200, -5., 5.);
+    HB1(Form("TPC_Layer%02d_Local_Y_Pull", layer), 200, -5., 5.);
+
+    HB1(Form("TPC_Layer%02d_X_Residual", layer), 200, -8., 8.);
+    HB1(Form("TPC_Layer%02d_Y_Residual", layer), 200, -8., 8.);
+    HB1(Form("TPC_Layer%02d_Z_Residual", layer), 200, -8., 8.);
+    HB1(Form("TPC_Layer%02d_Local_X_Residual", layer), 400, -16., 16.);
+    HB1(Form("TPC_Layer%02d_Local_Y_Residual", layer), 200, -8., 8.);
+    HB1(Form("TPC_Layer%02d_XZ_Residual", layer), 100, 0, 8.);
+
+    HB1(Form("TPC_Layer%02d_BcOut_X_Residual", layer), 200, -8., 8.);
+    HB1(Form("TPC_Layer%02d_BcOut_Y_Residual", layer), 200, -8., 8.);
+  }
+
 }
 
 }

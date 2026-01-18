@@ -10,7 +10,6 @@
 
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
-#include "DatabasePDG.hh"
 #include "DebugCounter.hh"
 #include "DetectorID.hh"
 #include "TPCAnalyzer.hh"
@@ -18,7 +17,6 @@
 #include "DCHit.hh"
 #include "DstHelper.hh"
 #include "HistTools.hh"
-#include "HodoPHCMan.hh"
 #include "Kinematics.hh"
 #include "MathTools.hh"
 #include "RootHelper.hh"
@@ -45,7 +43,6 @@ const auto& gUnpacker = GUnpacker::get_instance();
 auto&       gConf = ConfMan::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
-const auto& gPHC  = HodoPHCMan::GetInstance();
 const auto& gCounter = debug::ObjectCounter::GetInstance();
 const double truncatedMean = 0.8; //80%
 }
@@ -67,19 +64,6 @@ Bool_t SetupReader();
 }
 
 //_____________________________________________________________________________
-namespace evtutil {
-  template <class... Vecs>
-  inline void clear_all(Vecs&... vecs) {
-    (vecs.clear(), ...);
-  }
-
-  template <class SizeT, class... Vecs>
-  inline void resize_all(SizeT n, Vecs&... vecs) {
-    (vecs.resize(n), ...);
-  }
-}
-
-//_____________________________________________________________________________
 struct Event
 {
   Int_t status;
@@ -87,6 +71,7 @@ struct Event
   UInt_t evnum;
   std::vector<Double_t> trigpat;
   std::vector<std::vector<Double_t>> trigflag;
+  Int_t beamflag;
   std::vector<Double_t> clkTpc;
 
   Int_t nhTpc;
@@ -183,21 +168,22 @@ struct Event
   std::vector<std::vector<Double_t>> failed_calpos_z;
 
   void clearBasicInfo() {
-    runnum = 0;
-    evnum  = 0;
-    status = 0;
-    evtutil::clear_all(trigpat, trigflag, clkTpc);
+    runnum   = 0;
+    evnum    = 0;
+    status   = 0;
+    beamflag = beam::kUnknown;
+    dst::clear_all(trigpat, trigflag, clkTpc);
   }
 
   void clearRawHits() {
     nhTpc = 0;
-    evtutil::clear_all(raw_hitpos_x, raw_hitpos_y, raw_hitpos_z,
+    dst::clear_all(raw_hitpos_x, raw_hitpos_y, raw_hitpos_z,
                        raw_de, raw_padid, raw_layer, raw_row);
   }
 
   void clearClusters() {
     nclTpc = 0;
-    evtutil::clear_all(cluster_x, cluster_y, cluster_z, cluster_de,
+    dst::clear_all(cluster_x, cluster_y, cluster_z, cluster_de,
                        cluster_size, cluster_layer, cluster_mrow,
                        cluster_de_center, cluster_x_center, cluster_y_center,
                        cluster_z_center, cluster_row_center, cluster_houghflag);
@@ -205,7 +191,7 @@ struct Event
 
   void clearTracks() {
     ntTpc = 0;
-    evtutil::clear_all(
+    dst::clear_all(
       nhtrack, chisqrTpc, x0Tpc, y0Tpc, u0Tpc, v0Tpc, theta,
 
       hitlayer, hitpos_x, hitpos_y, hitpos_z,
@@ -226,7 +212,7 @@ struct Event
   }
 
   void clearExclusiveTracks() {
-    evtutil::clear_all(exresidual, exresidual_x, exresidual_y, exresidual_z,
+    dst::clear_all(exresidual, exresidual_x, exresidual_y, exresidual_z,
                        exresidual_horizontal, exresidual_vertical);
   }
 
@@ -239,7 +225,7 @@ struct Event
 
   void clearFailedTracks() {
     failed_ntTpc = 0;
-    evtutil::clear_all(
+    dst::clear_all(
       failed_nhtrack, failed_x0Tpc, failed_y0Tpc, failed_u0Tpc, failed_v0Tpc,
       failed_hitlayer, failed_hitpos_x, failed_hitpos_y, failed_hitpos_z,
       failed_calpos_x, failed_calpos_y, failed_calpos_z
@@ -258,7 +244,7 @@ struct Event
   }
 
   void resizeTracks(Int_t nTracks) {
-    evtutil::resize_all(nTracks,
+    dst::resize_all(nTracks,
       nhtrack, chisqrTpc, x0Tpc, y0Tpc, u0Tpc, v0Tpc, theta,
 
       hitlayer, hitpos_x, hitpos_y, hitpos_z,
@@ -282,7 +268,7 @@ struct Event
   }
 
   void resizeTrackHits(Int_t it, Int_t nh) {
-    evtutil::resize_all(nh,
+    dst::resize_all(nh,
       hitlayer[it],
 
       hitpos_x[it], hitpos_y[it], hitpos_z[it],
@@ -308,7 +294,7 @@ struct Event
   }
 
   void resizeFailedTracks(Int_t failed_ntTpc) {
-    evtutil::resize_all(failed_ntTpc,
+    dst::resize_all(failed_ntTpc,
       failed_nhtrack,
       failed_x0Tpc, failed_y0Tpc, failed_u0Tpc, failed_v0Tpc,
       failed_hitlayer,
@@ -319,7 +305,7 @@ struct Event
 
   void resizeFailedTrackHits(Int_t it, Int_t nh)
   {
-    evtutil::resize_all(nh,
+    dst::resize_all(nh,
       failed_hitlayer[it],
       failed_hitpos_x[it], failed_hitpos_y[it], failed_hitpos_z[it],
       failed_calpos_x[it], failed_calpos_y[it], failed_calpos_z[it]
@@ -335,6 +321,7 @@ struct Src
   TTreeReaderValue<UInt_t>* evnum;
   TTreeReaderValue<std::vector<Double_t>>* trigpat;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* trigflag;
+  TTreeReaderValue<Int_t>* beamflag;
   TTreeReaderValue<Int_t>* npadTpc;   // number of pads
   TTreeReaderValue<Int_t>* nhTpc;     // number of hits
   // vector (size=nhTpc)
@@ -358,7 +345,7 @@ namespace root
   Double_t
   TranseverseDistance(Double_t x_center, Double_t z_center, Double_t x, Double_t z)
   {
-    Double_t dummy = TMath::Sqrt((x-x_center)*(x-x_center) + (z-z_center)*(z-z_center));
+    Double_t dummy = std::hypot(x-x_center, z-z_center);
     Double_t dist;
     if(x_center-x<0) dist=-1.*dummy;
     else dist=dummy;
@@ -420,16 +407,23 @@ dst::InitializeEvent()
 Bool_t
 dst::DstOpen(std::vector<std::string> arg)
 {
+  Int_t n_input_files = 0;
+  for(const auto& name : TreeName) if(name != "") n_input_files++;
+
   Int_t open_file = 0;
   Int_t open_tree = 0;
   for(Int_t i=0; i<nArgc; ++i){
-    if(i==kProcess || i==kConfFile || i==kOutFile) continue;
+    if(TreeName[i] == "") continue;
     open_file += OpenFile(TFileCont[i], arg[i]);
     open_tree += OpenTree(TFileCont[i], TTreeCont[i], TreeName[i]);
   }
 
-  if(open_file!=open_tree || open_file!=nArgc-3)
+  if(open_file!=n_input_files || open_tree!=n_input_files){
+    spdlog::error("DstOpen Failed: opened files/trees mismatch based on TreeName definitions."
+                  " expected: {}, open_file: {}, open_tree: {}",
+                  n_input_files, open_file, open_tree);
     return false;
+  }
   if(!CheckEntries(TTreeCont))
     return false;
 
@@ -445,7 +439,7 @@ dst::DstRead(Int_t ievent)
   //if(ievent%1000==0){
   if(ievent%1==0){
     std::cout << "#D Event Number: "
-	      << std::setw(6) << ievent << std::endl;
+              << std::setw(6) << ievent << std::endl;
   }
   GetEntry(ievent);
 
@@ -453,8 +447,8 @@ dst::DstRead(Int_t ievent)
   event.evnum    = **src.evnum;
   event.trigpat  = **src.trigpat;
   event.trigflag = **src.trigflag;
+  event.beamflag = **src.beamflag;
   event.clkTpc   = **src.clkTpc;
-
   HF1("Status", event.status++);
 
   if(**src.nhTpc == 0)
@@ -463,17 +457,22 @@ dst::DstRead(Int_t ievent)
   HF1("Status", event.status++);
 
   if(event.clkTpc.size() != 8){
-    std::cerr << "something is wrong: event.clkTpc.size() != 8" << std::endl;
+    spdlog::warn("something is wrong: event.clkTpc.size() != 8");
     return true;
   }
 
+  HF1("Status", event.status++);
+
   TPCAnalyzer TPCAna;
   TPCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, **src.clkTpc);
+  HF1("Status", event.status++);
+
 #if Exclusive
   TPCAna.TrackSearchTPC(true);
 #else
   TPCAna.TrackSearchTPC();
 #endif
+  HF1("Status", event.status++);
 
 #if RawHit
   Int_t nhTpc = 0;
@@ -554,10 +553,14 @@ dst::DstRead(Int_t ievent)
   event.resizeTracks(ntTpc);
 
   Int_t ntrack_intarget = 0;
-  Double_t x0_vtx[100] = {0};
-  Double_t y0_vtx[100] = {0};
-  Double_t u0_vtx[100] = {0};
-  Double_t v0_vtx[100] = {0};
+  std::vector<Double_t> x0_vtx;
+  std::vector<Double_t> y0_vtx;
+  std::vector<Double_t> u0_vtx;
+  std::vector<Double_t> v0_vtx;
+  x0_vtx.reserve(100);
+  y0_vtx.reserve(100);
+  u0_vtx.reserve(100);
+  v0_vtx.reserve(100);
 
   for(Int_t it=0; it<ntTpc; ++it){
     auto track = TPCAna.GetTrackTPC(it);
@@ -569,10 +572,10 @@ dst::DstRead(Int_t ievent)
     Double_t theta = track->GetTheta();
 
     if(TMath::Abs(x0)<50. && TMath::Abs(y0)<50.){
-      x0_vtx[ntrack_intarget] = x0;
-      y0_vtx[ntrack_intarget] = y0;
-      u0_vtx[ntrack_intarget] = u0;
-      v0_vtx[ntrack_intarget] = v0;
+      x0_vtx.push_back(x0);
+      y0_vtx.push_back(y0);
+      u0_vtx.push_back(u0);
+      v0_vtx.push_back(v0);
       ntrack_intarget++;
     }
 
@@ -591,9 +594,9 @@ dst::DstRead(Int_t ievent)
     HF1("Y0_TPC", y0);
     HF1("U0_TPC", u0);
     HF1("V0_TPC", v0);
-    HF2("U0_X0_TPC", x0, u0);
-    HF2("V0_Y0_TPC", y0, v0);
-    HF2("X0_Y0_TPC", x0, y0);
+    HF2("U0_vs_X0_TPC", x0, u0);
+    HF2("V0_vs_Y0_TPC", y0, v0);
+    HF2("X0_vs_Y0_TPC", x0, y0);
 
     //Tracking information
     Int_t niter         = track->GetNIteration();
@@ -667,8 +670,8 @@ dst::DstRead(Int_t ievent)
       HF1(Form("HitPat_TPC_Layer%02d", layer), centerRow);
       HF1(Form("Position_TPC_Layer%02d", layer), hitpos.x());
       HF1(Form("Residual_TPC_Layer%02d", layer), residual);
-      HF2(Form("Resid_vs_Pos_TPC_Layer%02d", layer), hitpos.x(), residual);
-      HF2(Form("Y_vs_Xcal_TPC_Layer%02d", layer), calpos.x(), hitpos.y());
+      HF2(Form("Residual_vs_Position_TPC_Layer%02d", layer), hitpos.x(), residual);
+      HF2(Form("Yhit_vs_Xcal_TPC_Layer%02d", layer), calpos.x(), hitpos.y());
       HF1(Form("ResidualX_TPC_Layer%02d", layer), resi_vect.X());
       HF1(Form("ResidualY_TPC_Layer%02d", layer), resi_vect.Y());
       HF1(Form("ResidualZ_TPC_Layer%02d", layer), resi_vect.Z());
@@ -684,8 +687,8 @@ dst::DstRead(Int_t ievent)
         Double_t de = hits->GetCDe();
         Double_t transDist = TranseverseDistance(hitpos.x(), hitpos.z(), pos.x(), pos.z());
         Double_t ratio = de/clde;
-        HF2("Transverse_diffusion", transDist, ratio);
-        HF2(Form("Transverse_diffusion_Layer%02d",layer), transDist, ratio);
+        HF2("Ratio_vs_Dist_Transverse_diffusion", transDist, ratio);
+        HF2(Form("Ratio_vs_Dist_Transverse_diffusion_Layer%02d",layer), transDist, ratio);
       }
 
       total_clde += clde;
@@ -711,7 +714,7 @@ dst::DstRead(Int_t ievent)
     if (n_truncated < 1) {
       // In principle, n_truncated is more than 1.
       // for safety and debuging just add this cout
-      std::cout << "something is wrong: n_truncated = " << n_truncated << std::endl;
+      spdlog::warn("something is wrong: n_truncated = {}", n_truncated);
     }
     Double_t sum_truncated_de = 0.;
     for (Int_t i = 0; i < n_truncated; ++i) {
@@ -719,6 +722,7 @@ dst::DstRead(Int_t ievent)
     }
     event.dEdx[it] = sum_truncated_de / n_truncated;
   }
+  HF1("Status", event.status++);
 
   TVector3 vertex = Kinematics::MultitrackVertex(
     ntrack_intarget,
@@ -732,6 +736,7 @@ dst::DstRead(Int_t ievent)
   event.prodvtx_x = vertex.x();
   event.prodvtx_y = vertex.y();
   event.prodvtx_z = vertex.z();
+  HF1("Status", event.status++);
 
 #if TrackSearchFailed
   Int_t failed_ntTpc = TPCAna.GetNTracksTPCFailed();
@@ -770,7 +775,6 @@ dst::DstRead(Int_t ievent)
     }
   }
 #endif
-
   HF1("Status", event.status++);
 
   return true;
@@ -797,29 +801,26 @@ dst::DstClose()
 Bool_t
 dst::SetupReader()
 {
-  if (!TFileCont[kTpcHit] || TFileCont[kTpcHit]->IsZombie()) {
-    std::cerr << "Error: TPC Hit file is not open" << std::endl;
-    return false;
-  }
+  if (!dst::SetupReader(kTpcHit, "kTpcHit")) return false;
 
-  TTreeReaderCont[kTpcHit] = new TTreeReader("tpc", TFileCont[kTpcHit]);
   const auto& reader = TTreeReaderCont[kTpcHit];
 
-  src.runnum    = new TTreeReaderValue<UInt_t>(*reader, "run_number");
-  src.evnum     = new TTreeReaderValue<UInt_t>(*reader, "event_number");
-  src.trigpat   = new TTreeReaderValue<std::vector<Double_t>>(*reader, "trig_pat");
-  src.trigflag  = new TTreeReaderValue<std::vector<std::vector<Double_t>>>(*reader, "trig_flag");
-  src.npadTpc   = new TTreeReaderValue<Int_t>(*reader, "npadTpc");
-  src.nhTpc     = new TTreeReaderValue<Int_t>(*reader, "nhTpc");
-  src.layerTpc  = new TTreeReaderValue<std::vector<Int_t>>(*reader, "layerTpc");
-  src.rowTpc    = new TTreeReaderValue<std::vector<Int_t>>(*reader, "rowTpc");
-  src.padTpc    = new TTreeReaderValue<std::vector<Int_t>>(*reader, "padTpc");
-  src.pedTpc    = new TTreeReaderValue<std::vector<Double_t>>(*reader, "pedTpc");
-  src.rmsTpc    = new TTreeReaderValue<std::vector<Double_t>>(*reader, "rmsTpc");
-  src.deTpc     = new TTreeReaderValue<std::vector<Double_t>>(*reader, "deTpc");
-  src.tTpc      = new TTreeReaderValue<std::vector<Double_t>>(*reader, "tTpc");
-  src.chisqrTpc = new TTreeReaderValue<std::vector<Double_t>>(*reader, "chisqrTpc");
-  src.clkTpc    = new TTreeReaderValue<std::vector<Double_t>>(*reader, "clkTpc");
+  dst::SetBranch(reader, "run_number",   src.runnum);
+  dst::SetBranch(reader, "event_number", src.evnum);
+  dst::SetBranch(reader, "trig_pat",     src.trigpat);
+  dst::SetBranch(reader, "trig_flag",    src.trigflag);
+  dst::SetBranch(reader, "beam_flag",    src.beamflag);
+  dst::SetBranch(reader, "npadTpc",      src.npadTpc);
+  dst::SetBranch(reader, "nhTpc",        src.nhTpc);
+  dst::SetBranch(reader, "layerTpc",     src.layerTpc);
+  dst::SetBranch(reader, "rowTpc",       src.rowTpc);
+  dst::SetBranch(reader, "padTpc",       src.padTpc);
+  dst::SetBranch(reader, "pedTpc",       src.pedTpc);
+  dst::SetBranch(reader, "rmsTpc",       src.rmsTpc);
+  dst::SetBranch(reader, "deTpc",        src.deTpc);
+  dst::SetBranch(reader, "tTpc",         src.tTpc);
+  dst::SetBranch(reader, "chisqrTpc",    src.chisqrTpc);
+  dst::SetBranch(reader, "clkTpc",       src.clkTpc);
 
   return true;
 }
@@ -829,14 +830,16 @@ Bool_t
 ConfMan::InitializeHistograms()
 {
   hist::BuildStatus();
+  hist::BuildTPCBasic();
   hist::BuildTPCTracking();
 
   tree = new TTree("tpc", "tree of DstTPCTracking");
   tree->Branch("status", &event.status);
-  tree->Branch("runnum", &event.runnum);
-  tree->Branch("evnum", &event.evnum);
-  tree->Branch("trigpat", &event.trigpat);
-  tree->Branch("trigflag", &event.trigflag);
+  tree->Branch("run_number", &event.runnum);
+  tree->Branch("event_number", &event.evnum);
+  tree->Branch("trig_pat", &event.trigpat);
+  tree->Branch("trig_flag", &event.trigflag);
+  tree->Branch("beam_flag", &event.beamflag);
   tree->Branch("clkTpc", &event.clkTpc);
 
 #if RawHit
@@ -947,8 +950,7 @@ ConfMan::InitializeParameterFiles()
     (InitializeParameter<DCGeomMan>("DCGEO") &&
      InitializeParameter<TPCParamMan>("TPCPRM") &&
      InitializeParameter<TPCPositionCorrector>("TPCPOS") &&
-     InitializeParameter<UserParamMan>("USER") &&
-     InitializeParameter<HodoPHCMan>("HDPHC"));
+     InitializeParameter<UserParamMan>("USER"));
 }
 
 //_____________________________________________________________________________
