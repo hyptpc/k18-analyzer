@@ -73,25 +73,25 @@ TPCEventAnalyzer::TPCRawHit(const TPCRawData& TPCrawData)
       auto nmax_adc = rhit->MaxAdc(50, 140);
       auto nmin_adc = rhit->MinAdc(50, 140);
 
-      bool IsNoise = false;
+      Bool_t IsNoise = false;
       
       if(gate_open_max_adc > 600 && gate_open_max_adc < 800 && middle_rms <30 && middle_rms >10 && open_rms > 35 && open_rms < 60 && gate_open_max_adc > nmax_adc && gate_close_max_adc < 800){
-	IsNoise = true;
-	HF1("TPC_FADC_Noise_Max", gate_open_max_adc);
-	HF1("TPC_FADC_Noise_RMSfront", open_rms);
-	HF1("TPC_FADC_Noise_RMSmiddle", middle_rms);
-	HF1("TPC_FADC_Noise_Adcdiff", nmax_adc - nmin_adc);
+        IsNoise = true;
+        HF1("TPC_FADC_Noise_Max", gate_open_max_adc);
+        HF1("TPC_FADC_Noise_RMSfront", open_rms);
+        HF1("TPC_FADC_Noise_RMSmiddle", middle_rms);
+        HF1("TPC_FADC_Noise_Adcdiff", nmax_adc - nmin_adc);
       }
       auto fadc = rhit->Fadc();
       for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
         HF2("TPC_FADC_Before", tb, fadc.at(tb));
-	if(IsNoise){
-	  HF2("TPC_FADC_Noise",tb,fadc.at(tb));
-	}
+        if(IsNoise){
+          HF2("TPC_FADC_Noise",tb,fadc.at(tb));
+        }
       }
       if(IsNoise){
-	double bincont = HG2Poly("TPC_HitPat_Noise",padid+1);
-	HF2Poly("TPC_HitPat_Noise",padid+1,bincont+1.);
+        Double_t bincont = HG2Poly("TPC_HitPat_Noise",padid+1);
+        HF2Poly("TPC_HitPat_Noise",padid+1,bincont+1.);
       }
     } 
   }
@@ -129,8 +129,8 @@ TPCEventAnalyzer::TPCBaselineHit(const TPCRawData &TPCrawData){
     for(Int_t tb = 0, ntb = fadc.size(); tb < ntb; ++tb){
       HF2("TPC_FADC_Baseline", tb, fadc.at(tb));
     }
-    int bpadid = tpc::GetPadId(baseline->RowId(), baseline->LayerId());
-    double bincont = HG2Poly("TPC_HitPat_Baseline",bpadid+1);
+    Int_t bpadid = tpc::GetPadId(baseline->LayerId(), baseline->RowId());
+    Double_t bincont = HG2Poly("TPC_HitPat_Baseline",bpadid+1);
     HF2Poly("TPC_HitPat_Baseline",bpadid+1,bincont+1.);
   }
   
