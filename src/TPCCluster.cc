@@ -141,21 +141,38 @@ TPCCluster::Calculate()
     
   // Clamp the rounded rowID to valid range before calling GetPadId
   // This prevents TMath::Nint() from rounding to an out-of-bounds rowID
-  // (e.g., 167.5 -> 168 when max is 167)
+  // For inner layers (0-9): circular structure, so wrap around
+  // For outer layers (10+): sector structure, so clamp to max_row - 1
   Int_t row_id = TMath::Nint(m_mean_row);
+  const Bool_t isInnerLayer = (m_layer < 10);
+  
   if (row_id < 0) { // should not happen
     spdlog::warn(
       "[TPCCluster::Calculate] row_id < 0 (m_mean_row={}, row_id={}) for layer {}. Clamping to 0",
       m_mean_row, row_id, m_layer);
     row_id = 0;
   } else if (row_id == max_row) {
-    // row_id == max_row is acceptable, but clamp to max_row - 1 for valid rowID
-    row_id = max_row - 1;
+    if (isInnerLayer) {
+      // For inner layers (circular): wrap around to 0
+      row_id = 0;
+    } else {
+      // For outer layers (sector): clamp to max_row - 1
+      row_id = max_row - 1;
+    }
   } else if (row_id > max_row) { // should not happen
-    spdlog::warn(
-      "[TPCCluster::Calculate] row_id > max_row (m_mean_row={}, row_id={} > {}) for layer {}. Clamping to {}",
-      m_mean_row, row_id, max_row, m_layer, max_row - 1);
-    row_id = max_row - 1;
+    if (isInnerLayer) {
+      // For inner layers (circular): wrap around
+      row_id = row_id % max_row;
+      spdlog::warn(
+        "[TPCCluster::Calculate] row_id > max_row (m_mean_row={}, row_id={} > {}) for inner layer {}. Wrapping to {}",
+        m_mean_row, TMath::Nint(m_mean_row), max_row, m_layer, row_id);
+    } else {
+      // For outer layers (sector): clamp to max_row - 1
+      spdlog::warn(
+        "[TPCCluster::Calculate] row_id > max_row (m_mean_row={}, row_id={} > {}) for outer layer {}. Clamping to {}",
+        m_mean_row, row_id, max_row, m_layer, max_row - 1);
+      row_id = max_row - 1;
+    }
   }
   m_mean_hit->SetPad(tpc::GetPadId(m_layer, row_id));
 
