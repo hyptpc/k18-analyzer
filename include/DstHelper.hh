@@ -7,10 +7,12 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
+#include <type_traits>
 
 #include <TFile.h>
 #include <TTree.h>
 #include <TTreeReader.h>
+#include <TTreeReaderValue.h>
 
 #include <spdlog/spdlog.h>
 
@@ -45,19 +47,18 @@ CheckArg(const std::vector<std::string>& arg)
   Bool_t status = (n == ArgName.size() && n == TreeName.size());
 
   if(!status){
-    std::cout << "#D Usage : " << hddaq::basename(arg[0]);
+    std::string usage = "Usage : " + std::string(hddaq::basename(arg[0]));
     for(Int_t i=1; i<ArgName.size(); ++i){
-      std::cout << " " << ArgName[i];
+      usage += " " + std::string(ArgName[i]);
     }
-    std::cout << std::endl;
-    std::cout << " ArgName.size() = " << ArgName.size() << " "
-              << " TreeName.size() = " << TreeName.size() << std::endl;
+    spdlog::info(usage);
+    spdlog::error("Argument count mismatch: provided = {}, expected = {} (ArgName.size() = {}, TreeName.size() = {})",
+                  n, ArgName.size(), ArgName.size(), TreeName.size());
     return false;
   }
 
   for(Int_t i=0; i<n; ++i){
-    std::cout << " key = " << std::setw(18) << std::left << ArgName[i]
-              << " arg[" << i << "] = " << arg[i] << std::endl;
+    spdlog::info("key = {:<18} arg[{}] = {}", ArgName[i].Data(), i, arg[i]);
   }
 
   TFileCont.resize(n); TTreeCont.resize(n); TTreeReaderCont.resize(n);
@@ -160,6 +161,39 @@ GetEntry(Int_t ievent)
   }
   return true;
 }
+
+//______________________________________________________________________________
+template <class... Vecs>
+inline void clear_all(Vecs&... vecs) {
+  (vecs.clear(), ...);
 }
+
+//______________________________________________________________________________
+template <class SizeT, class... Vecs>
+inline void resize_all(SizeT n, Vecs&... vecs) {
+  (vecs.resize(n), ...);
+}
+
+//______________________________________________________________________________
+inline Bool_t
+SetupReader(Int_t index, const std::string& label)
+{
+  if (!TFileCont[index] || TFileCont[index]->IsZombie()) {
+    spdlog::error("Failed to open TFileCont[{}] (Null or Zombie).", label);
+    return false;
+  }
+  TTreeReaderCont[index] = new TTreeReader(TreeName[index], TFileCont[index]);
+  return true;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline void SetBranch(TTreeReader* reader, const Char_t* name, T*& ptr)
+{
+  using ValueType = typename std::decay<decltype(**ptr)>::type;
+  ptr = new TTreeReaderValue<ValueType>(*reader, name);
+}
+
+} // namespace dst
 
 #endif
