@@ -73,7 +73,7 @@ TPCAnalyzer::DecodeTPCHits(TPCRawData &TPCrawData,
 
   ClearTPCHits();
 
-  for(Int_t layer=0; layer<=NumOfLayersTPC; ++layer){
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     for(const auto& rhit: TPCrawData.GetTPCCorHitContainer(layer)){
       auto hit = new TPCHit(rhit);
       Int_t row  = hit -> GetRow();
