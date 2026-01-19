@@ -704,7 +704,7 @@ Bool_t
 ConfMan::InitializeHistograms()
 {
   hist::BuildStatus();
-  hist::BUildTPCBasic();
+  hist::BuildTPCBasic();
   hist::BuildTPCBcOutTracking();
 
   tree = new TTree("tpc", "tree of DstTPCBcOutTracking");
