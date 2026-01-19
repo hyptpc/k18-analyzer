@@ -32,8 +32,8 @@
 
 namespace tpc
 {
-const Double_t ZTarget = -143.; // Target from center
-const Double_t TargetVtxWindow = 30.;
+const Double_t Z_TARGET = -143.; // Target from center
+const Double_t TARGET_VTX_WINDOW = 30.;
 
 enum EPadParameter
 {
@@ -48,14 +48,14 @@ enum EPadParameter
 
 //for kinematic fitting
 //E42
-static const Double_t PositionScale = 1.;
+static const Double_t POSITION_SCALE = 1.;
 
 //for clustering
 //E42
-static const Int_t MaxRowDifTPC = 2;
+static const Int_t MAX_ROW_DIF_TPC = 2;
 
 //for helix tracking
-static const Double_t ConstC = 0.299792458; //=c/10^9
+static const Double_t CONST_C = 0.299792458; //=c/10^9
   
 //_____________________________________________________________________________
 //#OfPad #division #radius padLength
@@ -120,7 +120,7 @@ static const Int_t padOnSectionFrame[] =
 
 //Gem section 1 frame 1
 72 ,134 ,135 ,222 ,332 , 408,  467 ,626 ,809 ,1016, 59 ,110 ,185 ,284,555 ,726, 921 ,1140 ,1363, 1564 ,1565 ,1778,
-      
+
 //Gem section 2 frame 0, frame 1 + adjacent pads
 1628,1629,1630,1817,1818,1819,1820,1849,1850,1851,2035,2036,2037,2038,2067,2068,2069,2244,2245,2246,2247,2248,2276,2277,2278,2454,2455,2456,2457,2485,2486,2487,2488,2667,2668,2669,2670,2698,2699,2700,2701,2886,2887,2888,2917,2918,2919,3110,3111,3112,3113,3141,3142,3143,3341,3342,3343,3344,3373,3374,3375,3578,3579,3580,3581,3610,3611,3612,3813,3814,3815,3844,3845,3846,4034,4035,4036,4065,4066,4067,4276,4277,4278,4480,4481,4482,4680,4681,4682,4878,4879,4880,5072,5073,5074,
 
@@ -139,7 +139,7 @@ static const Int_t padOnSectionFrame[] =
 
 
 //_____________________________________________________________________________
-static const Int_t FrameLowEdge[NumOfLayersTPC][5] =
+static const Int_t frameLowEdge[NumOfLayersTPC][5] =
 {
   //dummy value : -100
   //Layer0~7 : no pad on the frame
@@ -180,7 +180,7 @@ static const Int_t FrameLowEdge[NumOfLayersTPC][5] =
 };
 
 //_____________________________________________________________________________
-static const Int_t FrameHighEdge[NumOfLayersTPC][5] =
+static const Int_t frameHighEdge[NumOfLayersTPC][5] =
 {
   //dummy value : -100
   //Layer0~7 : no pad on the frame
@@ -222,7 +222,7 @@ static const Int_t FrameHighEdge[NumOfLayersTPC][5] =
 
 //_____________________________________________________________________________
 //E42
-static const Double_t ClusterSizeInner[2][10] ={
+static const Double_t clusterSizeInner[2][10] ={
   {0.12912,0.12912,0.129121,0.164862,0.211372,0.256798,0.33125,0.315186,0.27439,0.303371},//proton
   {0.274143,0.550639,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333,0.683333}//pion
   //0.0 - 0.1 , 0.1 - 0.2, ... 0.9 - 1.0 GeV/c
@@ -230,7 +230,7 @@ static const Double_t ClusterSizeInner[2][10] ={
 
 //_____________________________________________________________________________
 //E42
-static const Double_t ClusterSizeOuter[2][10] ={
+static const Double_t clusterSizeOuter[2][10] ={
   {0.285714,0.285714,0.326683,0.280962,0.243775,0.234132,0.217313,0.256798,0.293478,0.285319},//proton
   {0.257669,0.348881,0.308642,0.308642,0.308642,0.308642,0.308642,0.308642,0.308642,0.308642}//pion
   //0.0 - 0.1 , 0.1 - 0.2, ... 0.9 - 1.0 GeV/c
@@ -238,35 +238,35 @@ static const Double_t ClusterSizeOuter[2][10] ={
 
 //_____________________________________________________________________________
 // Check validity of Layer ID
-inline void ValidateLayer(Int_t layer, const char* funcName)
+inline void ValidateLayer(Int_t layer, const char* func_name)
 {
   if (layer < 0 || NumOfLayersTPC <= layer) {
     throw Exception(Form("[tpc::%s] Invalid layerID %d (Max: %d)", 
-                         funcName, layer, NumOfLayersTPC - 1));
+                         func_name, layer, NumOfLayersTPC - 1));
   }
 }
 
 //_____________________________________________________________________________
 // Check validity of Row ID for a specific Layer
-inline void ValidateRow(Int_t layer, Int_t row, const char* funcName)
+inline void ValidateRow(Int_t layer, Int_t row, const char* func_name)
 {
   // Ensure layer is valid before accessing array to avoid segfault
-  ValidateLayer(layer, funcName);
+  ValidateLayer(layer, func_name);
 
   Int_t max_row = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
   if (row < 0 || max_row <= row) {
     throw Exception(Form("[tpc::%s] Invalid rowID %d for layer %d (Max: %d)", 
-                         funcName, row, layer, max_row - 1));
+                         func_name, row, layer, max_row - 1));
   }
 }
 
 //_____________________________________________________________________________
 // Check validity of Pad ID (Global ID)
-inline void ValidatePadID(Int_t padID, const char* funcName)
+inline void ValidatePadID(Int_t pad_id, const char* func_name)
 {
-  if (padID < 0 || NumOfPadTPC <= padID) {
+  if (pad_id < 0 || NumOfPadTPC <= pad_id) {
     throw Exception(Form("[tpc::%s] Invalid padID %d (Max: %d)", 
-                         funcName, padID, NumOfPadTPC - 1));
+                         func_name, pad_id, NumOfPadTPC - 1));
   }
 }
 
@@ -280,179 +280,179 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
   switch(asad){
   case 0:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==1 && row==22-ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==1 && row==22-ch*2)      flag=0;
     for(Int_t ch=13; ch<=21; ++ch) if(layer==3 && row==46-(ch-13)*2) flag=0;
     for(Int_t ch=23; ch<=37; ++ch) if(layer==3 && row==28-(ch-23)*2) flag=0;
     if(layer==1 && row==0) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==1 && row==23-ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==1 && row==23-ch*2)      flag=1;
     for(Int_t ch=13; ch<=21; ++ch) if(layer==3 && row==47-(ch-13)*2) flag=1;
     for(Int_t ch=23; ch<=37; ++ch) if(layer==3 && row==29-(ch-23)*2) flag=1;
     if(layer==1 && row==1) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==0 && row==22-ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==0 && row==22-ch*2)      flag=2;
     for(Int_t ch=13; ch<=21; ++ch) if(layer==2 && row==34-(ch-13)*2) flag=2;
     for(Int_t ch=23; ch<=31; ++ch) if(layer==2 && row==16-(ch-23)*2) flag=2;
     if(layer==0 && row==0) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==0 && row==23-ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==0 && row==23-ch*2)      flag=3;
     for(Int_t ch=13; ch<=21; ++ch) if(layer==2 && row==35-(ch-13)*2) flag=3;
     for(Int_t ch=23; ch<=31; ++ch) if(layer==2 && row==17-(ch-23)*2) flag=3;
     if(layer==0 && row==1) flag=3;
     return flag;
   case 1:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==1 && row==47-ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==1 && row==47-ch*2)      flag=0;
     for(Int_t ch=13; ch<=21; ++ch) if(layer==3 && row==95-(ch-13)*2) flag=0;
     for(Int_t ch=23; ch<=37; ++ch) if(layer==3 && row==77-(ch-23)*2) flag=0;
     if(layer==1 && row==25) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==1 && row==46-ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==1 && row==46-ch*2)      flag=1;
     for(Int_t ch=13; ch<=21; ++ch) if(layer==3 && row==94-(ch-13)*2) flag=1;
     for(Int_t ch=23; ch<=37; ++ch) if(layer==3 && row==76-(ch-23)*2) flag=1;
     if(layer==1 && row==24) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==0 && row==47-ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==0 && row==47-ch*2)      flag=2;
     for(Int_t ch=13; ch<=21; ++ch) if(layer==2 && row==71-(ch-13)*2) flag=2;
     for(Int_t ch=23; ch<=37; ++ch) if(layer==2 && row==53-(ch-23)*2) flag=2;
     if(layer==0 && row==25) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==0 && row==46-ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==0 && row==46-ch*2)      flag=3;
     for(Int_t ch=13; ch<=21; ++ch) if(layer==2 && row==70-(ch-13)*2) flag=3;
     for(Int_t ch=23; ch<=31; ++ch) if(layer==2 && row==52-(ch-23)*2) flag=3;
     if(layer==0 && row==24) flag=3;
     return flag;
   case 2:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==5 && row==22-ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==5 && row==22-ch*2)       flag=0;
     for(Int_t ch=13; ch<=21; ++ch) if(layer==5 && row==143-(ch-13)*2) flag=0;
     for(Int_t ch=23; ch<=25; ++ch) if(layer==5 && row==125-(ch-23)*2) flag=0;
     if(layer==5 && row==0) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==5 && row==23-ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==5 && row==23-ch*2)       flag=1;
     for(Int_t ch=13; ch<=21; ++ch) if(layer==5 && row==142-(ch-13)*2) flag=1;
     for(Int_t ch=23; ch<=25; ++ch) if(layer==5 && row==124-(ch-23)*2) flag=1;
     if(layer==5 && row==1) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=9; ++ch) if(layer==4 && row==18-ch*2) flag=2;
+    for(Int_t ch= 0; ch<= 9; ++ch) if(layer==4 && row==18-ch*2)       flag=2;
     for(Int_t ch=12; ch<=20; ++ch) if(layer==4 && row==117-(ch-12)*2) flag=2;
     if(layer==4 && row==119) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=9; ++ch) if(layer==4 && row==19-ch*2) flag=3;
+    for(Int_t ch= 0; ch<= 9; ++ch) if(layer==4 && row==19-ch*2)       flag=3;
     for(Int_t ch=12; ch<=20; ++ch) if(layer==4 && row==116-(ch-12)*2) flag=3;
     if(layer==4 && row==118) flag=3;
     return flag;
   case 3:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==5 && row==24+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==5 && row==24+ch*2)      flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==5 && row==46+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=25; ++ch) if(layer==5 && row==66+(ch-23)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==5 && row==25+ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==5 && row==25+ch*2)      flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==5 && row==47+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=25; ++ch) if(layer==5 && row==67+(ch-23)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==4 && row==20+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==4 && row==20+ch*2)      flag=2;
     for(Int_t ch=12; ch<=20; ++ch) if(layer==4 && row==42+(ch-12)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==4 && row==21+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==4 && row==21+ch*2)      flag=3;
     for(Int_t ch=12; ch<=20; ++ch) if(layer==4 && row==43+(ch-12)*2) flag=3;
     return flag;
   case 4:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==5 && row==73+ch*2) flag=0;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==5 && row==95+(ch-12)*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==5 && row==73+ch*2)       flag=0;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==5 && row==95+(ch-12)*2)  flag=0;
     for(Int_t ch=23; ch<=25; ++ch) if(layer==5 && row==115+(ch-23)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==5 && row==72+ch*2) flag=1;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==5 && row==94+(ch-12)*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==5 && row==72+ch*2)       flag=1;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==5 && row==94+(ch-12)*2)  flag=1;
     for(Int_t ch=23; ch<=25; ++ch) if(layer==5 && row==114+(ch-23)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==4 && row==61+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==4 && row==61+ch*2)      flag=2;
     for(Int_t ch=12; ch<=20; ++ch) if(layer==4 && row==83+(ch-12)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==4 && row==60+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==4 && row==60+ch*2)      flag=3;
     for(Int_t ch=12; ch<=20; ++ch) if(layer==4 && row==82+(ch-12)*2) flag=3;
     return flag;
   case 5:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==7 && row==30-ch*2) flag=0;
-    for(Int_t ch=12; ch<=16; ++ch) if(layer==7 && row==8-(ch-12)*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==7 && row==30-ch*2)       flag=0;
+    for(Int_t ch=12; ch<=16; ++ch) if(layer==7 && row==8-(ch-12)*2)   flag=0;
     for(Int_t ch=17; ch<=21; ++ch) if(layer==7 && row==191-(ch-17)*2) flag=0;
     for(Int_t ch=23; ch<=33; ++ch) if(layer==7 && row==181-(ch-23)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==7 && row==31-ch*2) flag=1;
-    for(Int_t ch=12; ch<=16; ++ch) if(layer==7 && row==9-(ch-12)*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==7 && row==31-ch*2)       flag=1;
+    for(Int_t ch=12; ch<=16; ++ch) if(layer==7 && row==9-(ch-12)*2)   flag=1;
     for(Int_t ch=17; ch<=21; ++ch) if(layer==7 && row==190-(ch-17)*2) flag=1;
     for(Int_t ch=23; ch<=33; ++ch) if(layer==7 && row==180-(ch-23)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==6 && row==26-ch*2) flag=2;
-    for(Int_t ch=12; ch<=14; ++ch) if(layer==6 && row==4-(ch-12)*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==6 && row==26-ch*2)       flag=2;
+    for(Int_t ch=12; ch<=14; ++ch) if(layer==6 && row==4-(ch-12)*2)   flag=2;
     for(Int_t ch=15; ch<=21; ++ch) if(layer==6 && row==167-(ch-15)*2) flag=2;
     for(Int_t ch=23; ch<=29; ++ch) if(layer==6 && row==153-(ch-23)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==6 && row==27-ch*2) flag=3;
-    for(Int_t ch=12; ch<=14; ++ch) if(layer==6 && row==5-(ch-12)*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==6 && row==27-ch*2)       flag=3;
+    for(Int_t ch=12; ch<=14; ++ch) if(layer==6 && row==5-(ch-12)*2)   flag=3;
     for(Int_t ch=15; ch<=21; ++ch) if(layer==6 && row==166-(ch-15)*2) flag=3;
     for(Int_t ch=23; ch<=29; ++ch) if(layer==6 && row==152-(ch-23)*2) flag=3;
     return flag;
   case 6:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==7 && row==32+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==7 && row==32+ch*2)      flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==7 && row==54+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=33; ++ch) if(layer==7 && row==74+(ch-23)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==7 && row==33+ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==7 && row==33+ch*2)      flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==7 && row==55+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=33; ++ch) if(layer==7 && row==75+(ch-23)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==6 && row==28+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==6 && row==28+ch*2)      flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==6 && row==50+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=29; ++ch) if(layer==6 && row==70+(ch-23)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==6 && row==29+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==6 && row==29+ch*2)      flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==6 && row==51+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=29; ++ch) if(layer==6 && row==71+(ch-23)*2) flag=3;
     return flag;
   case 7:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==7 && row==97+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==7 && row==97+ch*2)       flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==7 && row==119+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=33; ++ch) if(layer==7 && row==139+(ch-23)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==7 && row==96+ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==7 && row==96+ch*2)       flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==7 && row==118+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=33; ++ch) if(layer==7 && row==138+(ch-23)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==6 && row==85+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==6 && row==85+ch*2)       flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==6 && row==107+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=29; ++ch) if(layer==6 && row==127+(ch-23)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==6 && row==84+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==6 && row==84+ch*2)       flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==6 && row==106+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=29; ++ch) if(layer==6 && row==126+(ch-23)*2) flag=3;
     return flag;
   case 8:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==9 && row==ch*2) flag=0;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==9 && row==22+(ch-12)*2) flag=0;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==9 && row==42+(ch-23)*2) flag=0;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==9 && row==86+(ch-46)*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==9 && row==ch*2)          flag=0;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==9 && row==22+(ch-12)*2)  flag=0;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==9 && row==42+(ch-23)*2)  flag=0;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==9 && row==86+(ch-46)*2)  flag=0;
     for(Int_t ch=57; ch<=63; ++ch) if(layer==9 && row==106+(ch-57)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==9 && row==1+ch*2) flag=1;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==9 && row==23+(ch-12)*2) flag=1;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==9 && row==43+(ch-23)*2) flag=1;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==9 && row==87+(ch-46)*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==9 && row==1+ch*2)        flag=1;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==9 && row==23+(ch-12)*2)  flag=1;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==9 && row==43+(ch-23)*2)  flag=1;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==9 && row==87+(ch-46)*2)  flag=1;
     for(Int_t ch=57; ch<=63; ++ch) if(layer==9 && row==107+(ch-57)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==8 && row==ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==8 && row==ch*2)         flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==8 && row==22+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==8 && row==42+(ch-23)*2) flag=2;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==8 && row==86+(ch-46)*2) flag=2;
     if(layer==8 && row==106) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==8 && row==1+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==8 && row==1+ch*2)       flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==8 && row==23+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==8 && row==43+(ch-23)*2) flag=3;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==8 && row==87+(ch-46)*2) flag=3;
@@ -460,25 +460,25 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     return flag;
   case 9:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==9 && row==121+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==9 && row==121+ch*2)      flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==9 && row==143+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==9 && row==163+(ch-23)*2) flag=0;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==9 && row==207+(ch-46)*2) flag=0;
     for(Int_t ch=57; ch<=63; ++ch) if(layer==9 && row==227+(ch-57)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==9 && row==120+ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==9 && row==120+ch*2)      flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==9 && row==142+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==9 && row==162+(ch-23)*2) flag=1;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==9 && row==206+(ch-46)*2) flag=1;
     for(Int_t ch=57; ch<=63; ++ch) if(layer==9 && row==226+(ch-57)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==8 && row==109+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==8 && row==109+ch*2)      flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==8 && row==131+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==8 && row==151+(ch-23)*2) flag=2;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==8 && row==195+(ch-46)*2) flag=2;
     if(layer==8 && row==215) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==8 && row==108+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==8 && row==108+ch*2)      flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==8 && row==130+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==8 && row==150+(ch-23)*2) flag=3;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==8 && row==194+(ch-46)*2) flag=3;
@@ -486,27 +486,27 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     return flag;
   case 10:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==11 && row==1+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==11 && row==1+ch*2)       flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==11 && row==23+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==11 && row==43+(ch-23)*2) flag=0;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==11 && row==87+(ch-46)*2) flag=0;
     if(layer==11 && row==107) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==11 && row==ch*2) flag=1;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==11 && row==22+(ch-12)*2) flag=1;
-    for(Int_t ch=23; ch<=24; ++ch) if(layer==11 && row==42+(ch-23)*2) flag=1;
-    for(Int_t ch=28; ch<=44; ++ch) if(layer==11 && row==52+(ch-28)*2) flag=1;
-    for(Int_t ch=46; ch<=52; ++ch) if(layer==11 && row==86+(ch-46)*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==11 && row==ch*2)          flag=1;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==11 && row==22+(ch-12)*2)  flag=1;
+    for(Int_t ch=23; ch<=24; ++ch) if(layer==11 && row==42+(ch-23)*2)  flag=1;
+    for(Int_t ch=28; ch<=44; ++ch) if(layer==11 && row==52+(ch-28)*2)  flag=1;
+    for(Int_t ch=46; ch<=52; ++ch) if(layer==11 && row==86+(ch-46)*2)  flag=1;
     for(Int_t ch=57; ch<=58; ++ch) if(layer==11 && row==106+(ch-57)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==10 && row==ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==10 && row==ch*2)         flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==10 && row==22+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=30; ++ch) if(layer==10 && row==42+(ch-23)*2) flag=2;
     for(Int_t ch=32; ch<=44; ++ch) if(layer==10 && row==60+(ch-32)*2) flag=2;
     for(Int_t ch=49; ch<=54; ++ch) if(layer==10 && row==92+(ch-49)*2) flag=2;
     if(layer==10 && row==86) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==10 && row==1+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==10 && row==1+ch*2)       flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==10 && row==23+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=25; ++ch) if(layer==10 && row==43+(ch-23)*2) flag=3;
     for(Int_t ch=27; ch<=29; ++ch) if(layer==10 && row==51+(ch-27)*2) flag=3;
@@ -516,31 +516,31 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     return flag;
   case 11:
     //AGET-0
-    for(Int_t ch=0; ch<=1; ++ch) if(layer==11 && row==110+ch*2) flag=0;
-    for(Int_t ch=4; ch<=10; ++ch) if(layer==11 && row==118+(ch-4)*2) flag=0;
+    for(Int_t ch= 0; ch<= 1; ++ch) if(layer==11 && row==110+ch*2)      flag=0;
+    for(Int_t ch= 4; ch<=10; ++ch) if(layer==11 && row==118+(ch-4)*2)  flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==11 && row==132+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=30; ++ch) if(layer==11 && row==152+(ch-23)*2) flag=0;
     for(Int_t ch=33; ch<=44; ++ch) if(layer==11 && row==172+(ch-33)*2) flag=0;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==11 && row==196+(ch-46)*2) flag=0;
     if(layer==11 && row==216) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=1; ++ch) if(layer==11 && row==109+ch*2) flag=1;
-    for(Int_t ch=5; ch<=10; ++ch) if(layer==11 && row==119+(ch-5)*2) flag=1;
+    for(Int_t ch= 0; ch<= 1; ++ch) if(layer==11 && row==109+ch*2)      flag=1;
+    for(Int_t ch= 5; ch<=10; ++ch) if(layer==11 && row==119+(ch-5)*2)  flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==11 && row==131+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=30; ++ch) if(layer==11 && row==151+(ch-23)*2) flag=1;
     for(Int_t ch=34; ch<=44; ++ch) if(layer==11 && row==173+(ch-34)*2) flag=1;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==11 && row==195+(ch-46)*2) flag=1;
     for(Int_t ch=57; ch<=58; ++ch) if(layer==11 && row==215+(ch-57)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=5; ++ch) if(layer==10 && row==105+ch*2) flag=2;
-    for(Int_t ch=8; ch<=10; ++ch) if(layer==10 && row==121+(ch-8)*2) flag=2;
+    for(Int_t ch= 0; ch<= 5; ++ch) if(layer==10 && row==105+ch*2)      flag=2;
+    for(Int_t ch= 8; ch<=10; ++ch) if(layer==10 && row==121+(ch-8)*2)  flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==10 && row==127+(ch-12)*2) flag=2;
     for(Int_t ch=25; ch<=44; ++ch) if(layer==10 && row==151+(ch-25)*2) flag=2;
     for(Int_t ch=46; ch<=54; ++ch) if(layer==10 && row==191+(ch-46)*2) flag=2;
     if(layer==10 && row==147) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=6; ++ch) if(layer==10 && row==104+ch*2) flag=3;
-    for(Int_t ch=8; ch<=10; ++ch) if(layer==10 && row==120+(ch-8)*2) flag=3;
+    for(Int_t ch= 0; ch<= 6; ++ch) if(layer==10 && row==104+ch*2)      flag=3;
+    for(Int_t ch= 8; ch<=10; ++ch) if(layer==10 && row==120+(ch-8)*2)  flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==10 && row==126+(ch-12)*2) flag=3;
     for(Int_t ch=26; ch<=28; ++ch) if(layer==10 && row==152+(ch-26)*2) flag=3;
     for(Int_t ch=30; ch<=44; ++ch) if(layer==10 && row==160+(ch-30)*2) flag=3;
@@ -549,42 +549,42 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     return flag;
   case 12:
     //AGET-0
-    for(Int_t ch=0; ch<=9; ++ch) if(layer==13 && row==1+ch*2) flag=0;
+    for(Int_t ch= 0; ch<= 9; ++ch) if(layer==13 && row==1+ch*2)       flag=0;
     for(Int_t ch=13; ch<=21; ++ch) if(layer==13 && row==25+(ch-13)*2) flag=0;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==13 && row==43+(ch-23)*2) flag=0;
     for(Int_t ch=46; ch<=54; ++ch) if(layer==13 && row==87+(ch-46)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=9; ++ch) if(layer==13 && row==ch*2) flag=1;
+    for(Int_t ch= 0; ch<= 9; ++ch) if(layer==13 && row==ch*2)         flag=1;
     for(Int_t ch=13; ch<=21; ++ch) if(layer==13 && row==24+(ch-13)*2) flag=1;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==13 && row==42+(ch-23)*2) flag=1;
     for(Int_t ch=46; ch<=54; ++ch) if(layer==13 && row==86+(ch-46)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==12 && row==1+ch*2) flag=2;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==12 && row==23+(ch-12)*2) flag=2;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==12 && row==43+(ch-23)*2) flag=2;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==12 && row==87+(ch-46)*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==12 && row==1+ch*2)        flag=2;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==12 && row==23+(ch-12)*2)  flag=2;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==12 && row==43+(ch-23)*2)  flag=2;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==12 && row==87+(ch-46)*2)  flag=2;
     for(Int_t ch=58; ch<=59; ++ch) if(layer==12 && row==109+(ch-58)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==12 && row==ch*2) flag=3;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==12 && row==22+(ch-12)*2) flag=3;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==12 && row==42+(ch-23)*2) flag=3;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==12 && row==86+(ch-46)*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==12 && row==ch*2)          flag=3;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==12 && row==22+(ch-12)*2)  flag=3;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==12 && row==42+(ch-23)*2)  flag=3;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==12 && row==86+(ch-46)*2)  flag=3;
     for(Int_t ch=58; ch<=59; ++ch) if(layer==12 && row==108+(ch-58)*2) flag=3;
     return flag;
   case 13:
     //AGET-0
-    for(Int_t ch=1; ch<=10; ++ch) if(layer==13 && row==110+(ch-1)*2) flag=0;
+    for(Int_t ch= 1; ch<=10; ++ch) if(layer==13 && row==110+(ch-1)*2)  flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==13 && row==130+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=42; ++ch) if(layer==13 && row==150+(ch-23)*2) flag=0;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==13 && row==194+(ch-46)*2) flag=0;
     //AGET-1
-    for(Int_t ch=2; ch<=10; ++ch) if(layer==13 && row==111+(ch-2)*2) flag=1;
+    for(Int_t ch= 2; ch<=10; ++ch) if(layer==13 && row==111+(ch-2)*2)  flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==13 && row==129+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=43; ++ch) if(layer==13 && row==149+(ch-23)*2) flag=1;
     for(Int_t ch=47; ch<=55; ++ch) if(layer==13 && row==195+(ch-47)*2) flag=1;
     if(layer==13 && row==213) flag=1;
     //AGET-2
-    for(Int_t ch=4; ch<=10; ++ch) if(layer==12 && row==124+(ch-4)*2) flag=2;
+    for(Int_t ch= 4; ch<=10; ++ch) if(layer==12 && row==124+(ch-4)*2)  flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==12 && row==138+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==12 && row==158+(ch-23)*2) flag=2;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==12 && row==202+(ch-46)*2) flag=2;
@@ -592,7 +592,7 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     if(layer==12 && row==118) flag=2;
     if(layer==12 && row==120) flag=2;
     //AGET-3
-    for(Int_t ch=5; ch<=10; ++ch) if(layer==12 && row==125+(ch-5)*2) flag=3;
+    for(Int_t ch= 5; ch<=10; ++ch) if(layer==12 && row==125+(ch-5)*2)  flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==12 && row==137+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==12 && row==157+(ch-23)*2) flag=3;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==12 && row==201+(ch-46)*2) flag=3;
@@ -602,37 +602,37 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     return flag;
   case 14:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==15 && row==1+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==15 && row==1+ch*2)       flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==15 && row==23+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==15 && row==43+(ch-23)*2) flag=0;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==15 && row==87+(ch-46)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==15 && row==ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==15 && row==ch*2)         flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==15 && row==22+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==15 && row==42+(ch-23)*2) flag=1;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==15 && row==86+(ch-46)*2) flag=1;
     if(layer==15 && row==106) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==14 && row==ch*2) flag=2;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==14 && row==22+(ch-12)*2) flag=2;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==14 && row==42+(ch-23)*2) flag=2;
-    for(Int_t ch=46; ch<=51; ++ch) if(layer==14 && row==86+(ch-46)*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==14 && row==ch*2)          flag=2;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==14 && row==22+(ch-12)*2)  flag=2;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==14 && row==42+(ch-23)*2)  flag=2;
+    for(Int_t ch=46; ch<=51; ++ch) if(layer==14 && row==86+(ch-46)*2)  flag=2;
     for(Int_t ch=54; ch<=55; ++ch) if(layer==14 && row==102+(ch-54)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==14 && row==1+ch*2) flag=3;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==14 && row==23+(ch-12)*2) flag=3;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==14 && row==43+(ch-23)*2) flag=3;
-    for(Int_t ch=46; ch<=50; ++ch) if(layer==14 && row==87+(ch-46)*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==14 && row==1+ch*2)        flag=3;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==14 && row==23+(ch-12)*2)  flag=3;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==14 && row==43+(ch-23)*2)  flag=3;
+    for(Int_t ch=46; ch<=50; ++ch) if(layer==14 && row==87+(ch-46)*2)  flag=3;
     for(Int_t ch=54; ch<=55; ++ch) if(layer==14 && row==103+(ch-54)*2) flag=3;
     return flag;
   case 15:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==15 && row==108+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==15 && row==108+ch*2)      flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==15 && row==130+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==15 && row==150+(ch-23)*2) flag=0;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==15 && row==194+(ch-46)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==15 && row==107+ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==15 && row==107+ch*2)      flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==15 && row==129+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==15 && row==149+(ch-23)*2) flag=1;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==15 && row==193+(ch-46)*2) flag=1;
@@ -640,71 +640,71 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     //AGET-2
     if(layer==14 && row==107) flag=2;
     if(layer==14 && row==109) flag=2;
-    for(Int_t ch=4; ch<=10; ++ch) if(layer==14 && row==115+(ch-4)*2) flag=2;
+    for(Int_t ch= 4; ch<=10; ++ch) if(layer==14 && row==115+(ch-4)*2)  flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==14 && row==129+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==14 && row==149+(ch-23)*2) flag=2;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==14 && row==193+(ch-46)*2) flag=2;
     //AGET-3
     if(layer==14 && row==106) flag=3;
     if(layer==14 && row==108) flag=3;
-    for(Int_t ch=5; ch<=10; ++ch) if(layer==14 && row==116+(ch-5)*2) flag=3;
+    for(Int_t ch= 5; ch<=10; ++ch) if(layer==14 && row==116+(ch-5)*2)  flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==14 && row==128+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==14 && row==148+(ch-23)*2) flag=3;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==14 && row==192+(ch-46)*2) flag=3;
     return flag;
   case 16:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==17 && row==ch*2) flag=0;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==17 && row==22+(ch-12)*2) flag=0;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==17 && row==42+(ch-23)*2) flag=0;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==17 && row==86+(ch-46)*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==17 && row==ch*2)          flag=0;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==17 && row==22+(ch-12)*2)  flag=0;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==17 && row==42+(ch-23)*2)  flag=0;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==17 && row==86+(ch-46)*2)  flag=0;
     for(Int_t ch=57; ch<=59; ++ch) if(layer==17 && row==106+(ch-57)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==17 && row==1+ch*2) flag=1;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==17 && row==23+(ch-12)*2) flag=1;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==17 && row==43+(ch-23)*2) flag=1;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==17 && row==87+(ch-46)*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==17 && row==1+ch*2)        flag=1;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==17 && row==23+(ch-12)*2)  flag=1;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==17 && row==43+(ch-23)*2)  flag=1;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==17 && row==87+(ch-46)*2)  flag=1;
     for(Int_t ch=57; ch<=59; ++ch) if(layer==17 && row==107+(ch-57)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==16 && row==ch*2) flag=2;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==16 && row==22+(ch-12)*2) flag=2;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==16 && row==42+(ch-23)*2) flag=2;
-    for(Int_t ch=46; ch<=49; ++ch) if(layer==16 && row==86+(ch-46)*2) flag=2;
-    for(Int_t ch=52; ch<=55; ++ch) if(layer==16 && row==98+(ch-52)*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==16 && row==ch*2)          flag=2;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==16 && row==22+(ch-12)*2)  flag=2;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==16 && row==42+(ch-23)*2)  flag=2;
+    for(Int_t ch=46; ch<=49; ++ch) if(layer==16 && row==86+(ch-46)*2)  flag=2;
+    for(Int_t ch=52; ch<=55; ++ch) if(layer==16 && row==98+(ch-52)*2)  flag=2;
     for(Int_t ch=57; ch<=58; ++ch) if(layer==16 && row==106+(ch-57)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==16 && row==1+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==16 && row==1+ch*2)       flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==16 && row==23+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==16 && row==43+(ch-23)*2) flag=3;
     for(Int_t ch=46; ch<=48; ++ch) if(layer==16 && row==87+(ch-46)*2) flag=3;
     for(Int_t ch=52; ch<=55; ++ch) if(layer==16 && row==99+(ch-52)*2) flag=3;
-    if(layer==16 && row==10) flag=3;
+    if(layer==16 && row== 10) flag=3;
     if(layer==16 && row==109) flag=3;
     return flag;
   case 17:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==17 && row==113+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==17 && row==113+ch*2)      flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==17 && row==135+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==17 && row==155+(ch-23)*2) flag=0;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==17 && row==199+(ch-46)*2) flag=0;
     for(Int_t ch=57; ch<=59; ++ch) if(layer==17 && row==219+(ch-57)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==17 && row==112+ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==17 && row==112+ch*2)      flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==17 && row==134+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==17 && row==154+(ch-23)*2) flag=1;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==17 && row==198+(ch-46)*2) flag=1;
     for(Int_t ch=57; ch<=59; ++ch) if(layer==17 && row==218+(ch-57)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=5; ++ch) if(layer==16 && row==111+ch*2) flag=2;
-    for(Int_t ch=8; ch<=10; ++ch) if(layer==16 && row==127+(ch-8)*2) flag=2;
+    for(Int_t ch= 0; ch<= 5; ++ch) if(layer==16 && row==111+ch*2)      flag=2;
+    for(Int_t ch= 8; ch<=10; ++ch) if(layer==16 && row==127+(ch-8)*2)  flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==16 && row==133+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==16 && row==153+(ch-23)*2) flag=2;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==16 && row==197+(ch-46)*2) flag=2;
     if(layer==16 && row==217) flag=2;
     if(layer==16 && row==219) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=5; ++ch) if(layer==16 && row==110+ch*2) flag=3;
-    for(Int_t ch=9; ch<=10; ++ch) if(layer==16 && row==128+(ch-9)*2) flag=3;
+    for(Int_t ch= 0; ch<= 5; ++ch) if(layer==16 && row==110+ch*2)      flag=3;
+    for(Int_t ch= 9; ch<=10; ++ch) if(layer==16 && row==128+(ch-9)*2)  flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==16 && row==132+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==16 && row==152+(ch-23)*2) flag=3;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==16 && row==196+(ch-46)*2) flag=3;
@@ -712,51 +712,51 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     return flag;
   case 18:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==19 && row==1+ch*2) flag=0;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==19 && row==23+(ch-12)*2) flag=0;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==19 && row==43+(ch-23)*2) flag=0;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==19 && row==87+(ch-46)*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==19 && row==1+ch*2)        flag=0;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==19 && row==23+(ch-12)*2)  flag=0;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==19 && row==43+(ch-23)*2)  flag=0;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==19 && row==87+(ch-46)*2)  flag=0;
     for(Int_t ch=57; ch<=62; ++ch) if(layer==19 && row==107+(ch-57)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==19 && row==ch*2) flag=1;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==19 && row==22+(ch-12)*2) flag=1;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==19 && row==42+(ch-23)*2) flag=1;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==19 && row==86+(ch-46)*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==19 && row==ch*2)          flag=1;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==19 && row==22+(ch-12)*2)  flag=1;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==19 && row==42+(ch-23)*2)  flag=1;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==19 && row==86+(ch-46)*2)  flag=1;
     for(Int_t ch=57; ch<=63; ++ch) if(layer==19 && row==106+(ch-57)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==18 && row==ch*2) flag=2;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==18 && row==22+(ch-12)*2) flag=2;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==18 && row==42+(ch-23)*2) flag=2;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==18 && row==86+(ch-46)*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==18 && row==ch*2)          flag=2;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==18 && row==22+(ch-12)*2)  flag=2;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==18 && row==42+(ch-23)*2)  flag=2;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==18 && row==86+(ch-46)*2)  flag=2;
     for(Int_t ch=57; ch<=61; ++ch) if(layer==18 && row==106+(ch-57)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==18 && row==1+ch*2) flag=3;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==18 && row==23+(ch-12)*2) flag=3;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==18 && row==43+(ch-23)*2) flag=3;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==18 && row==87+(ch-46)*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==18 && row==1+ch*2)        flag=3;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==18 && row==23+(ch-12)*2)  flag=3;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==18 && row==43+(ch-23)*2)  flag=3;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==18 && row==87+(ch-46)*2)  flag=3;
     for(Int_t ch=57; ch<=61; ++ch) if(layer==18 && row==107+(ch-57)*2) flag=3;
     return flag;
   case 19:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==19 && row==120+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==19 && row==120+ch*2)      flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==19 && row==142+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==19 && row==162+(ch-23)*2) flag=0;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==19 && row==206+(ch-46)*2) flag=0;
     for(Int_t ch=57; ch<=62; ++ch) if(layer==19 && row==226+(ch-57)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==19 && row==119+ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==19 && row==119+ch*2)      flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==19 && row==141+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==19 && row==161+(ch-23)*2) flag=1;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==19 && row==205+(ch-46)*2) flag=1;
     for(Int_t ch=57; ch<=63; ++ch) if(layer==19 && row==225+(ch-57)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==18 && row==117+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==18 && row==117+ch*2)      flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==18 && row==139+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==18 && row==159+(ch-23)*2) flag=2;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==18 && row==203+(ch-46)*2) flag=2;
     for(Int_t ch=57; ch<=61; ++ch) if(layer==18 && row==223+(ch-57)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==18 && row==116+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==18 && row==116+ch*2)      flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==18 && row==138+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==18 && row==158+(ch-23)*2) flag=3;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==18 && row==202+(ch-46)*2) flag=3;
@@ -764,51 +764,51 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     return flag;
   case 20:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==21 && row==ch*2) flag=0;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==21 && row==22+(ch-12)*2) flag=0;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==21 && row==42+(ch-23)*2) flag=0;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==21 && row==86+(ch-46)*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==21 && row==ch*2)          flag=0;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==21 && row==22+(ch-12)*2)  flag=0;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==21 && row==42+(ch-23)*2)  flag=0;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==21 && row==86+(ch-46)*2)  flag=0;
     for(Int_t ch=57; ch<=61; ++ch) if(layer==21 && row==106+(ch-57)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==21 && row==1+ch*2) flag=1;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==21 && row==23+(ch-12)*2) flag=1;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==21 && row==43+(ch-23)*2) flag=1;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==21 && row==87+(ch-46)*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==21 && row==1+ch*2)        flag=1;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==21 && row==23+(ch-12)*2)  flag=1;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==21 && row==43+(ch-23)*2)  flag=1;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==21 && row==87+(ch-46)*2)  flag=1;
     for(Int_t ch=57; ch<=61; ++ch) if(layer==21 && row==107+(ch-57)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==20 && row==ch*2) flag=2;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==20 && row==22+(ch-12)*2) flag=2;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==20 && row==42+(ch-23)*2) flag=2;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==20 && row==86+(ch-46)*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==20 && row==ch*2)          flag=2;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==20 && row==22+(ch-12)*2)  flag=2;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==20 && row==42+(ch-23)*2)  flag=2;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==20 && row==86+(ch-46)*2)  flag=2;
     for(Int_t ch=57; ch<=64; ++ch) if(layer==20 && row==106+(ch-57)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==20 && row==1+ch*2) flag=3;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==20 && row==23+(ch-12)*2) flag=3;
-    for(Int_t ch=23; ch<=44; ++ch) if(layer==20 && row==43+(ch-23)*2) flag=3;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==20 && row==87+(ch-46)*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==20 && row==1+ch*2)        flag=3;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==20 && row==23+(ch-12)*2)  flag=3;
+    for(Int_t ch=23; ch<=44; ++ch) if(layer==20 && row==43+(ch-23)*2)  flag=3;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==20 && row==87+(ch-46)*2)  flag=3;
     for(Int_t ch=57; ch<=64; ++ch) if(layer==20 && row==107+(ch-57)*2) flag=3;
     return flag;
   case 21:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==21 && row==117+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==21 && row==117+ch*2)      flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==21 && row==139+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==21 && row==159+(ch-23)*2) flag=0;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==21 && row==203+(ch-46)*2) flag=0;
     for(Int_t ch=57; ch<=61; ++ch) if(layer==21 && row==223+(ch-57)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==21 && row==116+ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==21 && row==116+ch*2)      flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==21 && row==138+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==21 && row==158+(ch-23)*2) flag=1;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==21 && row==202+(ch-46)*2) flag=1;
     for(Int_t ch=57; ch<=61; ++ch) if(layer==21 && row==222+(ch-57)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==20 && row==123+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==20 && row==123+ch*2)      flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==20 && row==145+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==20 && row==165+(ch-23)*2) flag=2;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==20 && row==209+(ch-46)*2) flag=2;
     for(Int_t ch=57; ch<=64; ++ch) if(layer==20 && row==229+(ch-57)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==20 && row==122+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==20 && row==122+ch*2)      flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==20 && row==144+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==20 && row==164+(ch-23)*2) flag=3;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==20 && row==208+(ch-46)*2) flag=3;
@@ -816,50 +816,50 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     return flag;
   case 22:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==23 && row==1+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==23 && row==1+ch*2)       flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==23 && row==23+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==23 && row==43+(ch-23)*2) flag=0;
     for(Int_t ch=46; ch<=54; ++ch) if(layer==23 && row==87+(ch-46)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==23 && row==ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==23 && row==ch*2)         flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==23 && row==22+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==23 && row==42+(ch-23)*2) flag=1;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==23 && row==86+(ch-46)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==22 && row==1+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==22 && row==1+ch*2)       flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==22 && row==23+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=35; ++ch) if(layer==22 && row==43+(ch-23)*2) flag=2;
     for(Int_t ch=39; ch<=44; ++ch) if(layer==22 && row==75+(ch-39)*2) flag=2;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==22 && row==87+(ch-46)*2) flag=2;
     if(layer==22 && row==107) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==22 && row==ch*2) flag=3;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==22 && row==22+(ch-12)*2) flag=3;
-    for(Int_t ch=23; ch<=36; ++ch) if(layer==22 && row==42+(ch-23)*2) flag=3;
-    for(Int_t ch=39; ch<=44; ++ch) if(layer==22 && row==74+(ch-39)*2) flag=3;
-    for(Int_t ch=46; ch<=55; ++ch) if(layer==22 && row==86+(ch-46)*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==22 && row==ch*2)          flag=3;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==22 && row==22+(ch-12)*2)  flag=3;
+    for(Int_t ch=23; ch<=36; ++ch) if(layer==22 && row==42+(ch-23)*2)  flag=3;
+    for(Int_t ch=39; ch<=44; ++ch) if(layer==22 && row==74+(ch-39)*2)  flag=3;
+    for(Int_t ch=46; ch<=55; ++ch) if(layer==22 && row==86+(ch-46)*2)  flag=3;
     for(Int_t ch=57; ch<=58; ++ch) if(layer==22 && row==106+(ch-57)*2) flag=3;
     return flag;
   case 23:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==23 && row==106+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==23 && row==106+ch*2)      flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==23 && row==128+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==23 && row==148+(ch-23)*2) flag=0;
     for(Int_t ch=46; ch<=54; ++ch) if(layer==23 && row==192+(ch-46)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==23 && row==105+ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==23 && row==105+ch*2)      flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==23 && row==127+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==23 && row==147+(ch-23)*2) flag=1;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==23 && row==191+(ch-46)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==22 && row==110+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==22 && row==110+ch*2)      flag=2;
     for(Int_t ch=12; ch<=17; ++ch) if(layer==22 && row==132+(ch-12)*2) flag=2;
     if(layer==22 && row==150) flag=2;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==22 && row==152+(ch-23)*2) flag=2;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==22 && row==196+(ch-46)*2) flag=2;
     if(layer==22 && row==216) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==22 && row==109+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==22 && row==109+ch*2)      flag=3;
     for(Int_t ch=12; ch<=18; ++ch) if(layer==22 && row==131+(ch-12)*2) flag=3;
     if(layer==22 && row==149) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==22 && row==151+(ch-23)*2) flag=3;
@@ -868,23 +868,23 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     return flag;
   case 24:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==25 && row==1+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==25 && row==1+ch*2)       flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==25 && row==23+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==25 && row==43+(ch-23)*2) flag=0;
     for(Int_t ch=46; ch<=52; ++ch) if(layer==25 && row==87+(ch-46)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==25 && row==ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==25 && row==ch*2)         flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==25 && row==22+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==25 && row==42+(ch-23)*2) flag=1;
     for(Int_t ch=46; ch<=53; ++ch) if(layer==25 && row==86+(ch-46)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==24 && row==1+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==24 && row==1+ch*2)       flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==24 && row==23+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=28; ++ch) if(layer==24 && row==43+(ch-23)*2) flag=2;
     for(Int_t ch=32; ch<=44; ++ch) if(layer==24 && row==61+(ch-32)*2) flag=2;
     for(Int_t ch=46; ch<=53; ++ch) if(layer==24 && row==87+(ch-46)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==24 && row==ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==24 && row==ch*2)         flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==24 && row==22+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=29; ++ch) if(layer==24 && row==42+(ch-23)*2) flag=3;
     for(Int_t ch=33; ch<=44; ++ch) if(layer==24 && row==62+(ch-33)*2) flag=3;
@@ -892,90 +892,90 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     return flag;
   case 25:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==25 && row==102+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==25 && row==102+ch*2)      flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==25 && row==124+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==25 && row==144+(ch-23)*2) flag=0;
     for(Int_t ch=46; ch<=52; ++ch) if(layer==25 && row==188+(ch-46)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==25 && row==101+ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==25 && row==101+ch*2)      flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==25 && row==123+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==25 && row==143+(ch-23)*2) flag=1;
     for(Int_t ch=46; ch<=53; ++ch) if(layer==25 && row==187+(ch-46)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==24 && row==104+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==24 && row==104+ch*2)      flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==24 && row==126+(ch-12)*2) flag=2;
     for(Int_t ch=26; ch<=44; ++ch) if(layer==24 && row==152+(ch-26)*2) flag=2;
     for(Int_t ch=46; ch<=53; ++ch) if(layer==24 && row==190+(ch-46)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==24 && row==103+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==24 && row==103+ch*2)      flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==24 && row==125+(ch-12)*2) flag=3;
     for(Int_t ch=26; ch<=44; ++ch) if(layer==24 && row==151+(ch-26)*2) flag=3;
     for(Int_t ch=46; ch<=54; ++ch) if(layer==24 && row==189+(ch-46)*2) flag=3;
     return flag;
   case 26:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==27 && row==ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==27 && row==ch*2)         flag=0;
     for(Int_t ch=12; ch<=20; ++ch) if(layer==27 && row==22+(ch-12)*2) flag=0;
     for(Int_t ch=24; ch<=44; ++ch) if(layer==27 && row==44+(ch-24)*2) flag=0;
     for(Int_t ch=46; ch<=51; ++ch) if(layer==27 && row==86+(ch-46)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==27 && row==1+ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==27 && row==1+ch*2)       flag=1;
     for(Int_t ch=12; ch<=19; ++ch) if(layer==27 && row==23+(ch-12)*2) flag=1;
     if(layer==27 && row==41) flag=1;
     for(Int_t ch=24; ch<=44; ++ch) if(layer==27 && row==45+(ch-24)*2) flag=1;
     for(Int_t ch=46; ch<=51; ++ch) if(layer==27 && row==87+(ch-46)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==26 && row==ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==26 && row==ch*2)         flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==26 && row==22+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==26 && row==42+(ch-23)*2) flag=2;
     for(Int_t ch=46; ch<=52; ++ch) if(layer==26 && row==86+(ch-46)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==26 && row==1+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==26 && row==1+ch*2)       flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==26 && row==23+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==26 && row==43+(ch-23)*2) flag=3;
     for(Int_t ch=46; ch<=52; ++ch) if(layer==26 && row==87+(ch-46)*2) flag=3;
     return flag;
   case 27:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==27 && row==99+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==27 && row==99+ch*2)       flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==27 && row==121+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=28; ++ch) if(layer==27 && row==141+(ch-23)*2) flag=0;
     for(Int_t ch=31; ch<=44; ++ch) if(layer==27 && row==157+(ch-31)*2) flag=0;
     for(Int_t ch=46; ch<=51; ++ch) if(layer==27 && row==185+(ch-46)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==27 && row==98+ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==27 && row==98+ch*2)       flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==27 && row==120+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=28; ++ch) if(layer==27 && row==140+(ch-23)*2) flag=1;
     if(layer==27 && row==154) flag=1;
     for(Int_t ch=32; ch<=44; ++ch) if(layer==27 && row==158+(ch-32)*2) flag=1;
     for(Int_t ch=46; ch<=51; ++ch) if(layer==27 && row==184+(ch-46)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==26 && row==101+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==26 && row==101+ch*2)      flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==26 && row==123+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==26 && row==143+(ch-23)*2) flag=2;
     for(Int_t ch=46; ch<=52; ++ch) if(layer==26 && row==187+(ch-46)*2) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==26 && row==100+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==26 && row==100+ch*2)      flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==26 && row==122+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==26 && row==142+(ch-23)*2) flag=3;
     for(Int_t ch=46; ch<=52; ++ch) if(layer==26 && row==186+(ch-46)*2) flag=3;
     return flag;
   case 28:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==29 && row==1+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==29 && row==1+ch*2)       flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==29 && row==23+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=33; ++ch) if(layer==29 && row==43+(ch-23)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==29 && row==ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==29 && row==ch*2)         flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==29 && row==22+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=34; ++ch) if(layer==29 && row==42+(ch-23)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==28 && row==1+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==28 && row==1+ch*2)       flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==28 && row==23+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==28 && row==43+(ch-23)*2) flag=2;
     if(layer==28 && row==87) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==28 && row==ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==28 && row==ch*2)         flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==28 && row==22+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==28 && row==42+(ch-23)*2) flag=3;
     if(layer==28 && row==86) flag=3;
@@ -983,20 +983,20 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     return flag;
   case 29:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==29 && row==66+ch*2) flag=0;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==29 && row==88+(ch-12)*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==29 && row==66+ch*2)       flag=0;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==29 && row==88+(ch-12)*2)  flag=0;
     for(Int_t ch=23; ch<=33; ++ch) if(layer==29 && row==108+(ch-23)*2) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==29 && row==65+ch*2) flag=1;
-    for(Int_t ch=12; ch<=21; ++ch) if(layer==29 && row==87+(ch-12)*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==29 && row==65+ch*2)       flag=1;
+    for(Int_t ch=12; ch<=21; ++ch) if(layer==29 && row==87+(ch-12)*2)  flag=1;
     for(Int_t ch=23; ch<=34; ++ch) if(layer==29 && row==107+(ch-23)*2) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==28 && row==90+ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==28 && row==90+ch*2)       flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==28 && row==112+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==28 && row==132+(ch-23)*2) flag=2;
     if(layer==28 && row==176) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==28 && row==89+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==28 && row==89+ch*2)       flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==28 && row==111+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==28 && row==131+(ch-23)*2) flag=3;
     if(layer==28 && row==175) flag=3;
@@ -1004,25 +1004,25 @@ inline Int_t GetAGETId(Int_t asad, Int_t layer, Int_t row)
     return flag;
   case 30:
     //AGET-0
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==31 && row==1+ch*2) flag=0;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==31 && row==1+ch*2)       flag=0;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==31 && row==23+(ch-12)*2) flag=0;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==31 && row==43+(ch-23)*2) flag=0;
     if(layer==31 && row==87) flag=0;
     if(layer==31 && row==89) flag=0;
     //AGET-1
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==31 && row==ch*2) flag=1;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==31 && row==ch*2)         flag=1;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==31 && row==22+(ch-12)*2) flag=1;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==31 && row==42+(ch-23)*2) flag=1;
     if(layer==31 && row==86) flag=1;
     if(layer==31 && row==88) flag=1;
     //AGET-2
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==30 && row==ch*2) flag=2;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==30 && row==ch*2)         flag=2;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==30 && row==22+(ch-12)*2) flag=2;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==30 && row==42+(ch-23)*2) flag=2;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==30 && row==86+(ch-46)*2) flag=2;
     if(layer==30 && row==106) flag=2;
     //AGET-3
-    for(Int_t ch=0; ch<=10; ++ch) if(layer==30 && row==1+ch*2) flag=3;
+    for(Int_t ch= 0; ch<=10; ++ch) if(layer==30 && row==1+ch*2)       flag=3;
     for(Int_t ch=12; ch<=21; ++ch) if(layer==30 && row==23+(ch-12)*2) flag=3;
     for(Int_t ch=23; ch<=44; ++ch) if(layer==30 && row==43+(ch-23)*2) flag=3;
     for(Int_t ch=46; ch<=55; ++ch) if(layer==30 && row==87+(ch-46)*2) flag=3;
@@ -1039,16 +1039,16 @@ inline Int_t GetASADId(Int_t layer, Int_t row) //0~30
 #ifdef PAD_HELPER_DEBUG
   ValidateRow(layer, row, __func__);
 #endif
-  Int_t flag=layer/4;
+  Int_t flag = layer/4;
   Int_t section;
   if(flag==0) section=0; //layer 0~3
   else if(flag==1) section=1; //layer 4~7
   else if(layer==30||layer==31) section=3; //layer 30~31
   else section=2; //layer 8~29
 
-  Int_t half=padParameter[layer][1]/2;
-  Int_t division1=padParameter[layer][1]/6;
-  Int_t division2=padParameter[layer][1]*5/6;
+  Int_t half = padParameter[layer][1]/2;
+  Int_t division1 = padParameter[layer][1]/6;
+  Int_t division2 = padParameter[layer][1]*5/6;
 
   switch(section){
   case 0:
@@ -1099,90 +1099,90 @@ inline Int_t GetCoBoId(Int_t layer, Int_t row)
 }
 
 //_____________________________________________________________________________
-inline Int_t GetPadId(Int_t layerID, Int_t rowID)
+inline Int_t GetPadId(Int_t layer_id, Int_t row_id)
 {
-  // Return -1 (invalid) for negative rowID to prevent crashes.
+  // Return -1 (invalid) for negative row_id to prevent crashes.
   // This is primarily to handle the INT_MIN(-2147483648) value resulting from (Int_t)NaN
   // when initializing TPCHit with NaN in TPCCluster as below;
   //  m_mean_hit(new TPCHit(layer, TMath::QuietNaN())) <- this
-  if (rowID < 0) return -1;
+  if (row_id < 0) return -1;
 #ifdef PAD_HELPER_DEBUG
-  ValidateRow(layerID, rowID, __func__);
+  ValidateRow(layer_id, row_id, __func__);
 #endif
 
-  Int_t padID = 0;
-  for (Int_t layer = 0; layer < layerID; layer++)
-    padID += static_cast<Int_t>(padParameter[layer][kNumOfPad]);
-  padID += rowID;
-  return padID;
+  Int_t pad_id = 0;
+  for (Int_t layer = 0; layer < layer_id; layer++)
+    pad_id += static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+  pad_id += row_id;
+  return pad_id;
 }
 
 //_____________________________________________________________________________
-inline Int_t getLayerID(Int_t padID)
+inline Int_t getLayerID(Int_t pad_id)
 {
 #ifdef PAD_HELPER_DEBUG
-  ValidatePadID(padID, __func__);
+  ValidatePadID(pad_id, __func__);
 #endif
 
   Int_t sum = 0;
   for (Int_t layer = 0; layer < NumOfLayersTPC; layer++) {
     sum += static_cast<Int_t>(padParameter[layer][kNumOfPad]);
-    if (padID < sum) return layer;
+    if (pad_id < sum) return layer;
   }
   
   throw Exception(Form("[tpc::%s] Invalid padID %d (Max: %d)", 
-                       __func__, padID, NumOfPadTPC - 1));
+                       __func__, pad_id, NumOfPadTPC - 1));
 }
 
 //_____________________________________________________________________________
-inline Int_t getRowID(Int_t padID)
+inline Int_t getRowID(Int_t pad_id)
 {
 #ifdef PAD_HELPER_DEBUG
-  ValidatePadID(padID, __func__);
+  ValidatePadID(pad_id, __func__);
 #endif
 
   Int_t sum = 0;
   for (Int_t layer = 0; layer < NumOfLayersTPC; layer++) {
-    Int_t nPad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
-    if (padID < sum + nPad) return padID - sum;
-    sum += nPad;
+    Int_t n_pad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+    if (pad_id < sum + n_pad) return pad_id - sum;
+    sum += n_pad;
   }
 
   // Theoretically unreachable. Safeguard for parameter inconsistencies.
-  throw Exception(Form("[tpc::%s] Logic Error: padID %d not found in parameter table.", __func__, padID));
+  throw Exception(Form("[tpc::%s] Logic Error: padID %d not found in parameter table.", __func__, pad_id));
 }
 
 //_____________________________________________________________________________
-inline Double_t getTheta(Int_t padID)
+inline Double_t GetTheta(Int_t pad_id)
 {
 #ifdef PAD_HELPER_DEBUG
-  ValidatePadID(padID, __func__);
+  ValidatePadID(pad_id, __func__);
 #endif
 
   Int_t sum = 0;
   for (Int_t layer = 0; layer < NumOfLayersTPC; layer++) {
-    Int_t nPad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+    Int_t n_pad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
 
-    // Check if padID belongs to this layer
-    if (padID < sum + nPad) {
-      Int_t row = padID - sum;
-      Double_t nDiv = padParameter[layer][kNumOfDivision];
+    // Check if pad_id belongs to this layer
+    if (pad_id < sum + n_pad) {
+      Int_t row = pad_id - sum;
+      Double_t n_div = padParameter[layer][kNumOfDivision];
 
       // Calculate theta
-      Double_t sTheta = 180. - (360. / nDiv) * nPad / 2.;
-      Double_t theta  = sTheta + (row + 0.5) * 360. / nDiv - 180;
+      Double_t s_theta = 180. - (360. / n_div) * n_pad / 2.;
+      Double_t theta  = s_theta + (row + 0.5) * 360. / n_div - 180;
 
       return theta;
     }
-    sum += nPad;
+    sum += n_pad;
   }
 
   // Theoretically unreachable. Safeguard for parameter inconsistencies.
-  throw Exception(Form("[tpc::%s] Logic Error: padID %d not found.", __func__, padID));
+  throw Exception(Form("[tpc::%s] Logic Error: padID %d not found.", __func__, pad_id));
 }
 
 //_____________________________________________________________________________
-inline Double_t getTheta(Int_t layer, Double_t m_row)
+inline Double_t GetTheta(Int_t layer, Double_t m_row)
 {
 #ifdef PAD_HELPER_DEBUG
   ValidateLayer(layer, __func__);
@@ -1195,26 +1195,26 @@ inline Double_t getTheta(Int_t layer, Double_t m_row)
   }
 #endif
 
-  Int_t    nPad   = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
-  Double_t nDiv   = padParameter[layer][kNumOfDivision];
-  Double_t sTheta = 180. - (360. / nDiv) * nPad / 2.;
-  Double_t theta  = sTheta + (m_row + 0.5) * 360. / nDiv - 180;
+  Int_t    n_pad   = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+  Double_t n_div   = padParameter[layer][kNumOfDivision];
+  Double_t s_theta = 180. - (360. / n_div) * n_pad / 2.;
+  Double_t theta  = s_theta + (m_row + 0.5) * 360. / n_div - 180;
 
   return theta;
 }
 
 //_____________________________________________________________________________
-inline Double_t getMrow(Int_t layer, Double_t m_phi)
+inline Double_t GetMrow(Int_t layer, Double_t m_phi)
 {
 #ifdef PAD_HELPER_DEBUG
   ValidateLayer(layer, __func__);
 #endif
-  Double_t nPad = padParameter[layer][kNumOfPad];
-  Double_t nDiv = padParameter[layer][kNumOfDivision];
+  Double_t n_pad = padParameter[layer][kNumOfPad];
+  Double_t n_div = padParameter[layer][kNumOfDivision];
 
-  Double_t mrow = 0.5*(nPad-1.) + (90.-m_phi)*nDiv/360.;
+  Double_t mrow = 0.5*(n_pad-1.) + (90.-m_phi)*n_div/360.;
   if(mrow<-0.0001){
-    mrow = 0.5*(nPad-1.) + (450.-m_phi)*nDiv/360.;
+    mrow = 0.5*(n_pad-1.) + (450.-m_phi)*n_div/360.;
   }
   return mrow;
 }
@@ -1229,48 +1229,48 @@ inline Double_t GetRadius(Int_t layer)
 }
 
 //_____________________________________________________________________________
-inline Double_t getR(Int_t padID)
+inline Double_t GetR(Int_t pad_id)
 {
 #ifdef PAD_HELPER_DEBUG
-  ValidatePadID(padID, __func__);
+  ValidatePadID(pad_id, __func__);
 #endif
 
   Int_t sum = 0;
   for (Int_t layer = 0; layer < NumOfLayersTPC; layer++) {
-    Int_t nPad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+    Int_t n_pad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
 
-    // Check if padID belongs to this layer
-    if (padID < sum + nPad) {
+    // Check if pad_id belongs to this layer
+    if (pad_id < sum + n_pad) {
       return padParameter[layer][kRadius];
     }
-    sum += nPad;
+    sum += n_pad;
   }
 
   // Theoretically unreachable. Safeguard for parameter inconsistencies.
-  throw Exception(Form("[tpc::%s] Logic Error: padID %d not found.", __func__, padID));
+  throw Exception(Form("[tpc::%s] Logic Error: padID %d not found.", __func__, pad_id));
 }
 
 //_____________________________________________________________________________
-inline TVector3 getPosition(Int_t padID)
+inline TVector3 GetPosition(Int_t pad_id)
 {
 #ifdef PAD_HELPER_DEBUG
-  ValidatePadID(padID, __func__);
+  ValidatePadID(pad_id, __func__);
 #endif
 
   Int_t sum = 0;
   for (Int_t layer = 0; layer < NumOfLayersTPC; layer++) {
-    Int_t nPad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+    Int_t n_pad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
 
-    // Check if padID belongs to this layer
-    if (padID < sum + nPad) {
-      Int_t row = padID - sum;
-      Double_t theta  = getTheta(layer, static_cast<Double_t>(row))*TMath::DegToRad();
+    // Check if pad_id belongs to this layer
+    if (pad_id < sum + n_pad) {
+      Int_t row = pad_id - sum;
+      Double_t theta  = GetTheta(layer, static_cast<Double_t>(row))*TMath::DegToRad();
       Double_t radius = padParameter[layer][kRadius];
       Double_t x = radius * std::sin(theta);
-      Double_t z = radius * std::cos(theta) + ZTarget;
+      Double_t z = radius * std::cos(theta) + Z_TARGET;
       return TVector3(x, 0., z);
     }
-    sum += nPad;
+    sum += n_pad;
   }
 
   // return TVector3(0., -1., 0.);
@@ -1278,28 +1278,28 @@ inline TVector3 getPosition(Int_t padID)
 }
 
 //_____________________________________________________________________________
-inline TVector3 getPosition(Int_t layer, Double_t m_row)
+inline TVector3 GetPosition(Int_t layer, Double_t m_row)
 {
 #ifdef PAD_HELPER_DEBUG
   ValidateLayer(layer, __func__);
 #endif
 
-  Double_t nPad = padParameter[layer][kNumOfPad];
-  if (m_row < 0 || nPad < m_row) {
+  Double_t n_pad = padParameter[layer][kNumOfPad];
+  if (m_row < 0 || n_pad < m_row) {
     return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
   }
 
-  Double_t theta  = getTheta(layer, m_row) * TMath::DegToRad();
+  Double_t theta  = GetTheta(layer, m_row) * TMath::DegToRad();
   Double_t radius = padParameter[layer][kRadius];
   Double_t x = radius * std::sin(theta);
-  Double_t z = radius * std::cos(theta) + ZTarget;
+  Double_t z = radius * std::cos(theta) + Z_TARGET;
   return TVector3(x, 0., z);
 }
 
 //_____________________________________________________________________________
-inline Int_t getSection(Int_t padID)
+inline Int_t GetSection(Int_t pad_id)
 {
-  TVector3 pad_pos = getPosition(padID);
+  TVector3 pad_pos = GetPosition(pad_id);
   Double_t x = pad_pos.x();
   Double_t z = pad_pos.z();
 
@@ -1317,10 +1317,10 @@ inline Int_t getSection(Int_t padID)
 }
 
 //_____________________________________________________________________________
-inline Int_t getSection(Int_t layer, Double_t m_row)
+inline Int_t GetSection(Int_t layer, Double_t m_row)
 {
-  Int_t padid = GetPadId(layer, m_row);
-  return getSection(padid);
+  Int_t pad_id = GetPadId(layer, m_row);
+  return GetSection(pad_id);
 }
 
 //_____________________________________________________________________________
@@ -1329,11 +1329,11 @@ inline Int_t getSection(Int_t layer, Double_t m_row)
 //    0 or positive : Valid PadID
 //    -layer        : Hit inside the gap between layer and layer-1
 //    -1000         : Not found (outside detector volume)
-inline Int_t findPadID(Double_t z, Double_t x)
+inline Int_t FindPadID(Double_t z, Double_t x)
 {
   // 0 <= angle < 360
-  Double_t radius = std::hypot(x, z-ZTarget);
-  Double_t angle  = 180.0 + std::atan2(x, z-ZTarget) * TMath::RadToDeg();
+  Double_t radius = std::hypot(x, z-Z_TARGET);
+  Double_t angle  = 180.0 + std::atan2(x, z-Z_TARGET) * TMath::RadToDeg();
   if (angle >= 360.0) angle -= 360.0;
   if (angle <    0.0) angle += 360.0;
 
@@ -1359,15 +1359,15 @@ inline Int_t findPadID(Double_t z, Double_t x)
   if (hit_layer == -1) return -1000;
 
   // Calc row  
-  Double_t nPad = padParameter[hit_layer][kNumOfPad];
-  Double_t nDiv = padParameter[hit_layer][kNumOfDivision];
-  Double_t sTheta = 180. - (360. / nDiv) * nPad / 2.;
-  Double_t dTheta = 360. / nDiv;
+  Double_t n_pad = padParameter[hit_layer][kNumOfPad];
+  Double_t n_div = padParameter[hit_layer][kNumOfDivision];
+  Double_t s_theta = 180. - (360. / n_div) * n_pad / 2.;
+  Double_t d_theta = 360. / n_div;
 
-  Double_t diff = angle - sTheta;
+  Double_t diff = angle - s_theta;
   if (std::isnan(diff) || diff < 0) return -1000;
-  Int_t row = static_cast<Int_t>(diff / dTheta);
-  if (row < 0 || static_cast<Int_t>(nPad) <= row) return -1000;
+  Int_t row = static_cast<Int_t>(diff / d_theta);
+  if (row < 0 || static_cast<Int_t>(n_pad) <= row) return -1000;
 
   return GetPadId(hit_layer, row);
 }
@@ -1382,8 +1382,8 @@ inline Double_t ArcLength(Int_t layer, Double_t row1, Double_t row2)
   Double_t radius = padParameter[layer][kRadius];
 
   // Unit: Degree
-  Double_t theta1 = getTheta(layer, row1);
-  Double_t theta2 = getTheta(layer, row2);
+  Double_t theta1 = GetTheta(layer, row1);
+  Double_t theta2 = GetTheta(layer, row2);
   Double_t diff   = std::abs(theta1 - theta2);
 
   // diff >= 0, then std::fmod(diff, 360.0) >= 0
@@ -1410,25 +1410,25 @@ InitializeHistograms(const char* name)
   Double_t X[5];
   Double_t Y[5];
   for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {    
-    Int_t nPad      = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
-    Double_t nDiv   = padParameter[layer][kNumOfDivision];
+    Int_t n_pad      = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+    Double_t n_div   = padParameter[layer][kNumOfDivision];
     Double_t radius = padParameter[layer][kRadius];
     Double_t length = padParameter[layer][kLength];
     Double_t r_min  = radius - length / 2.0;
     Double_t r_max  = radius + length / 2.0;
-    Double_t dTheta = 360.0 / nDiv;
-    Double_t sTheta = - dTheta * nPad / 2.0;
+    Double_t d_theta = 360.0 / n_div;
+    Double_t s_theta = - d_theta * n_pad / 2.0;
 
-    for (Int_t j = 0; j < nPad; ++j) {      
-      Double_t theta1 = (sTheta + j*dTheta)     * TMath::DegToRad();
-      Double_t theta2 = (sTheta + (j+1)*dTheta) * TMath::DegToRad();
+    for (Int_t j = 0; j < n_pad; ++j) {      
+      Double_t theta1 = (s_theta + j*d_theta)     * TMath::DegToRad();
+      Double_t theta2 = (s_theta + (j+1)*d_theta) * TMath::DegToRad();
 
       X[0] = r_max * std::cos(theta1);
       X[1] = r_max * std::cos(theta2);
       X[2] = r_min * std::cos(theta2);
       X[3] = r_min * std::cos(theta1);
       X[4] = X[0];
-      for (Int_t k = 0; k < 5; ++k) X[k] += ZTarget; 
+      for (Int_t k = 0; k < 5; ++k) X[k] += Z_TARGET; 
             
       Y[0] = r_max * std::sin(theta1);
       Y[1] = r_max * std::sin(theta2);
@@ -1440,27 +1440,6 @@ InitializeHistograms(const char* name)
     }
   }
 }
-
-
-// //_____________________________________________________________________________
-// inline Bool_t
-// IsClusterable(Int_t layer, Int_t row_a, Int_t row_b)
-// {
-
-//   Int_t deadpads=0;
-//   for(Int_t row=TMath::Min(row_a, row_b)+1;row<TMath::Max(row_a, row_b);row++){
-//     Int_t padID = GetPadId(layer, row);
-//     if(std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel)) deadpads++;
-//   }
-
-//   if(layer < 10){
-//     const Int_t npad = padParameter[layer][kNumOfPad];
-//     return (TMath::Abs(row_a - row_b) <= MaxRowDifTPC + deadpads
-//             || TMath::Abs(row_a - row_b) >= npad - MaxRowDifTPC - deadpads);
-//   }else{
-//     return (TMath::Abs(row_a - row_b) <= MaxRowDifTPC + deadpads);
-//   }
-// }
 
 //_____________________________________________________________________________
 inline Bool_t IsClusterable(Int_t layer, Int_t row_a, Int_t row_b)
@@ -1481,19 +1460,19 @@ inline Bool_t IsClusterable(Int_t layer, Int_t row_a, Int_t row_b)
   if (layer >= 10) {
     Int_t dead_pads = 0;
     for (Int_t r = min_row + 1; r < max_row; ++r) {
-      Int_t padID = GetPadId(layer, r);
-      if (std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel)) {
+      Int_t pad_id = GetPadId(layer, r);
+      if (std::find(std::begin(deadChannel), std::end(deadChannel), pad_id) != std::end(deadChannel)) {
         dead_pads++;
       }
     }
-    return (dist_linear <= MaxRowDifTPC + dead_pads);
+    return (dist_linear <= MAX_ROW_DIF_TPC + dead_pads);
   }
 
   // ---------------------------------------------------------
   // Case B: Ring Layers (Layer 0-9) - Check Shortest Path
   // ---------------------------------------------------------
-  Int_t nPad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
-  Int_t dist_wrap = nPad - dist_linear; // Distance across the boundary (0)
+  Int_t n_pad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+  Int_t dist_wrap = n_pad - dist_linear; // Distance across the boundary (0)
 
   // Determine the shortest path
   // If Linear distance is shorter (or equal), check Linear path
@@ -1501,65 +1480,65 @@ inline Bool_t IsClusterable(Int_t layer, Int_t row_a, Int_t row_b)
     Int_t dead_pads = 0;
     // Count dead pads between min_row and max_row
     for (Int_t r = min_row + 1; r < max_row; ++r) {
-      Int_t padID = GetPadId(layer, r);
-      if (std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel)) {
+      Int_t pad_id = GetPadId(layer, r);
+      if (std::find(std::begin(deadChannel), std::end(deadChannel), pad_id) != std::end(deadChannel)) {
         dead_pads++;
       }
     }
-    return (dist_linear <= MaxRowDifTPC + dead_pads);
+    return (dist_linear <= MAX_ROW_DIF_TPC + dead_pads);
   }
   // If Wrap-around distance is shorter, check Wrap path
   else {
     Int_t dead_pads = 0;
     // Count dead pads in the wrap-around path:
-    // 1. [max_row+1, nPad-1] (End of array)
-    for (Int_t r = max_row + 1; r < nPad; ++r) {
-      Int_t padID = GetPadId(layer, r);
-      if (std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel)) {
+    // 1. [max_row+1, n_pad-1] (End of array)
+    for (Int_t r = max_row + 1; r < n_pad; ++r) {
+      Int_t pad_id = GetPadId(layer, r);
+      if (std::find(std::begin(deadChannel), std::end(deadChannel), pad_id) != std::end(deadChannel)) {
         dead_pads++;
       }
     }
     // 2. [0, min_row-1] (Start of array)
     for (Int_t r = 0; r < min_row; ++r) {
-      Int_t padID = GetPadId(layer, r);
-      if (std::find(std::begin(deadChannel), std::end(deadChannel), padID) != std::end(deadChannel)) {
+      Int_t pad_id = GetPadId(layer, r);
+      if (std::find(std::begin(deadChannel), std::end(deadChannel), pad_id) != std::end(deadChannel)) {
         dead_pads++;
       }
     }
-    return (dist_wrap <= MaxRowDifTPC + dead_pads);
+    return (dist_wrap <= MAX_ROW_DIF_TPC + dead_pads);
   }
 }
 
 //_____________________________________________________________________________
 // Check if the pad is considered "Dead" (broken channel or on the structural frame)
-inline Bool_t IsDead(Int_t padID)
+inline Bool_t IsDead(Int_t pad_id)
 {
 #ifdef PAD_HELPER_DEBUG
-  ValidatePadID(padID, __func__);
+  ValidatePadID(pad_id, __func__);
 #endif
 
-  Bool_t on_centerframe = std::find(std::begin(padOnCenterFrame), std::end(padOnCenterFrame), padID) 
+  Bool_t on_centerframe = std::find(std::begin(padOnCenterFrame), std::end(padOnCenterFrame), pad_id) 
                           != std::end(padOnCenterFrame);
   if (on_centerframe) return true;
 
-  Bool_t is_dead_channel = std::find(std::begin(deadChannel), std::end(deadChannel), padID) 
+  Bool_t is_dead_channel = std::find(std::begin(deadChannel), std::end(deadChannel), pad_id) 
                            != std::end(deadChannel);
   return is_dead_channel ? true : false;
 }
 
 //_____________________________________________________________________________
 inline Bool_t IsDead(Int_t layer, Int_t row){
-  Int_t padID = GetPadId(layer, row);
-  return IsDead(padID);
+  Int_t pad_id = GetPadId(layer, row);
+  return IsDead(pad_id);
 }
 
 //_____________________________________________________________________________
-inline Bool_t Noise(Int_t padID){
+inline Bool_t Noise(Int_t pad_id){
 #ifdef PAD_HELPER_DEBUG
-  ValidatePadID(padID, __func__);
+  ValidatePadID(pad_id, __func__);
 #endif
 
-  Bool_t noise = std::find(std::begin(padOnSectionFrame), std::end(padOnSectionFrame), padID) != std::end(padOnSectionFrame);
+  Bool_t noise = std::find(std::begin(padOnSectionFrame), std::end(padOnSectionFrame), pad_id) != std::end(padOnSectionFrame);
   if(noise) return true;
   else return false;
   
@@ -1568,8 +1547,8 @@ inline Bool_t Noise(Int_t padID){
 //_____________________________________________________________________________
 inline Bool_t Noise(Int_t layer, Int_t row){
 
-  Int_t padID = GetPadId(layer, row);
-  return Noise(padID);
+  Int_t pad_id = GetPadId(layer, row);
+  return Noise(pad_id);
 }
 
 
@@ -1579,27 +1558,27 @@ inline Bool_t Noise(Int_t layer, Int_t row){
 inline Double_t GetClSize1Prob(Double_t mom, Int_t pid, Int_t layer){
   Bool_t inner = false;
   if(layer < 10) inner = true;
-  Int_t pidflag = 0;
-  if(abs(pid)<300) pidflag = 0;
-  else pidflag = 1;
+  Int_t pid_flag = 0;
+  if(abs(pid)<300) pid_flag = 0;
+  else pid_flag = 1;
   Int_t mom_flag = (Int_t)(mom/0.1);
   Double_t prob = 0;
   if(mom_flag > 9){
     mom_flag = 9;
     if(inner){
-      prob = ClusterSizeInner[pidflag][mom_flag];
+      prob = clusterSizeInner[pid_flag][mom_flag];
     }
     else{
-      prob = ClusterSizeOuter[pidflag][mom_flag];
+      prob = clusterSizeOuter[pid_flag][mom_flag];
     }
   }
   else{
     Double_t resi = (mom )/0.1 - mom_flag;
     if(inner){
-      prob = ClusterSizeInner[pidflag][mom_flag]*(1-resi) + ClusterSizeInner[pidflag][mom_flag+1]*resi; 
+      prob = clusterSizeInner[pid_flag][mom_flag]*(1-resi) + clusterSizeInner[pid_flag][mom_flag+1]*resi; 
     }
     else{
-      prob = ClusterSizeOuter[pidflag][mom_flag]*(1-resi) + ClusterSizeOuter[pidflag][mom_flag+1]*resi; 
+      prob = clusterSizeOuter[pid_flag][mom_flag]*(1-resi) + clusterSizeOuter[pid_flag][mom_flag+1]*resi; 
     }
   }
   return prob; 
@@ -1608,40 +1587,40 @@ inline Double_t GetClSize1Prob(Double_t mom, Int_t pid, Int_t layer){
 //_____________________________________________________________________________
 //E42
 inline Double_t GetDetectionEfficiency(TVector3 pos, Int_t pid, TVector3 mom, Double_t de){
-  Int_t pad = findPadID(pos.z(), pos.x());
+  Int_t pad = FindPadID(pos.z(), pos.x());
   Int_t layer = getLayerID(pad);
-  bool Inner = false;
-  if(layer < 10)Inner = true;
-  int pidflag = 0;// 0 -> pion, 1 -> kaon, 2 -> proton or any other baryons.
-  if(abs(pid)== 211) pidflag = 0;
-  else if(abs(pid)== 321) pidflag = 1;
-  else if(abs(pid)== 2212 or abs(pid)> 3000) pidflag = 2;
+  bool inner = false;
+  if(layer < 10) inner = true;
+  int pid_flag = 0;// 0 -> pion, 1 -> kaon, 2 -> proton or any other baryons.
+  if(abs(pid)== 211) pid_flag = 0;
+  else if(abs(pid)== 321) pid_flag = 1;
+  else if(abs(pid)== 2212 or abs(pid)> 3000) pid_flag = 2;
   double eff = 0.;
-  if(Inner){
-    if(pidflag == 0 or pidflag == 1){
+  if(inner){
+    if(pid_flag == 0 or pid_flag == 1){
       eff = 1;
       if(layer>4){
-	eff = 1 - 0.02*(layer-4);
+        eff = 1 - 0.02*(layer-4);
       }
     }
-    else if (pidflag == 2){
+    else if (pid_flag == 2){
       eff = 1;
     }
   }
   else {
-    if(pidflag == 0 or pidflag == 1){
+    if(pid_flag == 0 or pid_flag == 1){
       eff = 1;
       if(layer > 15 and layer < 29){
-	eff = 1 - 0.1*(layer-15)/13;
+        eff = 1 - 0.1*(layer-15)/13;
       }
       else if (layer > 28 and layer < 31){
-	eff = 0.9 - 0.05*(layer-28);
+        eff = 0.9 - 0.05*(layer-28);
       }
       else if(layer > 30){
-	eff = 0.8 + 0.1 *(layer - 30);
+        eff = 0.8 + 0.1 *(layer - 30);
       }
     }
-    else if (pidflag == 2){
+    else if (pid_flag == 2){
       eff = 1;
     }
   }

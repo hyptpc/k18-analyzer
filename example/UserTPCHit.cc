@@ -201,7 +201,7 @@ ProcessNormal()
       HF1("TPC_Pedestal", ped);
       HF1("TPC_RMS", rms);
 
-      const auto& vec = tpc::getPosition(pad);
+      const auto& vec = tpc::GetPosition(pad);
       //HF2Poly(1001, vec.Z(), vec.X());
       Int_t nhit = hit->GetNHits();
       Bool_t good_for_analysis = false;

@@ -514,9 +514,9 @@ MakeLinearTrack(TPCLocalTrack *Track, Bool_t &VtxFlag,
       if(!hit) continue;
       if(hit->GetHoughFlag()>0) continue;
       TVector3 pos = cl->GetPosition();
-      Double_t distXZ = TMath::Abs(LinearPar[2]*(pos.Z() - tpc::ZTarget) - pos.X() + LinearPar[0])
+      Double_t distXZ = TMath::Abs(LinearPar[2]*(pos.Z() - tpc::Z_TARGET) - pos.X() + LinearPar[0])
                         / TMath::Sqrt(TMath::Sq(LinearPar[2])+1.);
-      Double_t distYZ = TMath::Abs(LinearPar[3]*(pos.Z() - tpc::ZTarget) - pos.Y() + LinearPar[1])
+      Double_t distYZ = TMath::Abs(LinearPar[3]*(pos.Z() - tpc::Z_TARGET) - pos.Y() + LinearPar[1])
                         / TMath::Sqrt(TMath::Sq(LinearPar[3])+1.);
       if(distXZ < MaxHoughWindowY && distYZ < MaxHoughWindowY){
         hit->SetHoughDist(distXZ);
@@ -564,7 +564,7 @@ MakeHelixTrack(TPCLocalTrackHelix *Track, Bool_t &VtxFlag,
       if(hit->GetHoughFlag()>0) continue;
       TVector3 pos = cl->GetPosition();
       Double_t tmpx = -pos.x();
-      Double_t tmpy = pos.z() - tpc::ZTarget;
+      Double_t tmpy = pos.z() - tpc::Z_TARGET;
       Double_t tmpz = pos.y();
       Double_t r_cal = TMath::Sqrt(pow(tmpx - HelixPar[0], 2) + pow(tmpy - HelixPar[1], 2));
       Double_t dist = TMath::Abs(r_cal - HelixPar[3]);
@@ -787,8 +787,8 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 	TPCHit* hit = cl->GetMeanHit();
 	if(hit->GetHoughFlag()>0) continue;
 	TVector3 pos = cl->GetPosition();
-	//if(pos.Z()>tpc::ZTarget) continue;
-	if(pos.Z()>tpc::ZTarget-10.) continue;
+	//if(pos.Z()>tpc::Z_TARGET) continue;
+	if(pos.Z()>tpc::Z_TARGET-10.) continue;
 	Double_t resi;
 	if(trackref->ResidualCheck(pos, K18XZWindow, K18YWindow, resi)){
 	  ClContK18[layer].push_back(cl);
@@ -1393,7 +1393,7 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     for(Int_t ihit=0;ihit<TrackCont[trackid1] -> GetNHit();ihit++){
       TPCHit *hit = TrackCont[trackid1] -> GetHitInOrder(ihit) -> GetHit();
       TVector3 pos = hit -> GetPosition();
-      if(pos.z() > tpc::ZTarget || TMath::Abs(pos.x()) > 15 || TMath::Abs(pos.y()) > 10.){
+      if(pos.z() > tpc::Z_TARGET || TMath::Abs(pos.x()) > 15 || TMath::Abs(pos.y()) > 10.){
 	isbeam1 = false;
 	break;
       }
@@ -1404,7 +1404,7 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     for(Int_t ihit=0;ihit<TrackCont[trackid2] -> GetNHit();ihit++){
       TPCHit *hit = TrackCont[trackid2] -> GetHitInOrder(ihit) -> GetHit();
       TVector3 pos = hit -> GetPosition();
-      if(pos.z() > tpc::ZTarget || TMath::Abs(pos.x()) > 15 || TMath::Abs(pos.y()) > 10.){
+      if(pos.z() > tpc::Z_TARGET || TMath::Abs(pos.x()) > 15 || TMath::Abs(pos.y()) > 10.){
 	isbeam2 = false;
 	break;
       }
@@ -1428,7 +1428,7 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     //without this, two scattered tracks with opposite direction frequently wrongly merged.
     if(TMath::Abs(vtx.x()) < 15. &&
        TMath::Abs(vtx.y()) < 10. &&
-       TMath::Abs(vtx.z() - tpc::ZTarget) < 10.) continue;
+       TMath::Abs(vtx.z() - tpc::Z_TARGET) < 10.) continue;
 
 #if DebugDisp
     vertex -> Print(FUNC_NAME+" Vertex candidate for merging tracks");
@@ -2006,7 +2006,7 @@ FindAccidentalCoincidenceTracks(std::vector<T*>& TrackCont,
   Double_t tgtXZ_cut = 30.; //mm
   Double_t target_section = 15; // abs(y)<target_section is not counted in this function
 
-  TVector3 tgt(0., 0., tpc::ZTarget);
+  TVector3 tgt(0., 0., tpc::Z_TARGET);
   std::vector<std::vector<TPCVertex*>> clustered_vertices; //Clustered tracks id
   std::vector<std::vector<Int_t>> clustered_tracks; //Clustered tracks id
   std::vector<TVector3> accidental_vertices;
@@ -2351,7 +2351,7 @@ RestoreFragmentedAccidentalTracks(const std::vector<TPCClusterContainer>& ClCont
       if(hit->GetHoughFlag()==GoodForTracking ||
 	 hit->GetHoughFlag()==K18Tracks) continue;
       TVector3 pos = cl->GetPosition();
-      if(pos.Z() > tpc::ZTarget) continue;
+      if(pos.Z() > tpc::Z_TARGET) continue;
       if(TMath::Abs(pos.x()) > 20) continue;
       CandidateClCont[layer].push_back(cl);
     } //ci

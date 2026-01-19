@@ -138,8 +138,8 @@ TVector3
 TPCLTrackHit::GetLocalCalPos() const
 {
   TVector3 pos = m_local_hit_pos;
-  TVector3 x0(m_x0, m_y0, tpc::ZTarget);
-  TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, tpc::ZTarget+1.);
+  TVector3 x0(m_x0, m_y0, tpc::Z_TARGET);
+  TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, tpc::Z_TARGET+1.);
   TVector3 u = (x1-x0).Unit();
   TVector3 AP = pos-x0;
   double dist_AX = u.Dot(AP);
@@ -154,8 +154,8 @@ TVector3
 TPCLTrackHit::GetLocalCalPosExclusive() const
 {
   TVector3 pos = m_local_hit_pos;
-  TVector3 x0(m_x0_exclusive, m_y0_exclusive, tpc::ZTarget);
-  TVector3 x1(m_x0_exclusive + m_u0_exclusive, m_y0_exclusive + m_v0_exclusive, tpc::ZTarget+1.);
+  TVector3 x0(m_x0_exclusive, m_y0_exclusive, tpc::Z_TARGET);
+  TVector3 x1(m_x0_exclusive + m_u0_exclusive, m_y0_exclusive + m_v0_exclusive, tpc::Z_TARGET+1.);
   TVector3 u = (x1-x0).Unit();
   TVector3 AP = pos-x0;
   double dist_AX = u.Dot(AP);
@@ -173,7 +173,7 @@ TPCLTrackHit::GetLocalCalPosHelix() const
   TVector3 fittmp = GetHelixPosition(par, m_t);
   TVector3 calpos(-fittmp.X(),
 		   fittmp.Z(),
-		   fittmp.Y()+tpc::ZTarget);
+		   fittmp.Y()+tpc::Z_TARGET);
   return calpos;
 }
 
@@ -185,7 +185,7 @@ TPCLTrackHit::GetLocalCalPosHelixExclusive() const
   TVector3 fittmp = GetHelixPosition(par, m_t_exclusive);
   TVector3 calpos(-fittmp.X(),
 		   fittmp.Z(),
-		   fittmp.Y()+tpc::ZTarget);
+		   fittmp.Y()+tpc::Z_TARGET);
   return calpos;
 }
 
@@ -194,7 +194,7 @@ TVector3
 TPCLTrackHit::GetMomentumHelix(Double_t charge) const
 {
   TVector3 pos(-m_cal_pos.X(),
-   	       m_cal_pos.Z() - tpc::ZTarget,
+   	       m_cal_pos.Z() - tpc::Z_TARGET,
    	       m_cal_pos.Y());
 
   const double Const = 0.299792458; // =c/10^9

@@ -10,7 +10,7 @@ Please see the discription in the TPCTrackSearch.cc
 The track coordinate origin is the target center, ***NOT TPC center***
 
 //Equation of helix
-x = -X, y = Z - tpc::ZTarget, z = Y;
+x = -X, y = Z - tpc::Z_TARGET, z = Y;
 x = p[0] + p[3]*cos(theta);
 y = p[1] + p[3]*sin(theta);
 z = p[2] + p[4]*p[3]*(theta);
@@ -157,7 +157,7 @@ namespace
   static std::string circ_cross="pow([2]*[2]+[2]*([0]*cos(x)+[1]*sin(x)) +[0]*[0]+[1]*[1]-[3]*[3] ,2)";
   static TF1 fcir_cross("fcir_cross", circ_cross.c_str(), -10.*TMath::Pi(), 10.*TMath::Pi());
 
-  const double ztgt = tpc::ZTarget;
+  const double ztgt = tpc::Z_TARGET;
 }
 
 //______________________________________________________________________________
@@ -172,12 +172,12 @@ static inline Bool_t CompareTheta(const Int_t a, const Int_t b){
 
 //______________________________________________________________________________
 static inline TVector3 GlobalToLocal(TVector3 pos){
-  return TVector3(-pos.X(), pos.Z() - tpc::ZTarget, pos.Y());
+  return TVector3(-pos.X(), pos.Z() - tpc::Z_TARGET, pos.Y());
 }
 
 //______________________________________________________________________________
 static inline TVector3 LocalToGlobal(TVector3 pos){
-  return TVector3(-pos.X(), pos.Z(), pos.Y() + tpc::ZTarget);
+  return TVector3(-pos.X(), pos.Z(), pos.Y() + tpc::Z_TARGET);
 }
 
 //______________________________________________________________________________
@@ -296,7 +296,7 @@ static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos
   Double_t tanPad = TMath::Tan(padTheta);
   Double_t padL = tpc::padParameter[layer][tpc::kLength];
   Double_t padRadius = tpc::padParameter[layer][tpc::kRadius];
-  TVector3 closestDist2TrackXZ = ResidualVectXZ(par, TVector3(0., 0., tpc::ZTarget));
+  TVector3 closestDist2TrackXZ = ResidualVectXZ(par, TVector3(0., 0., tpc::Z_TARGET));
 
   //check whether the track is crossing the layer or not
   if(vetoBadClusters && closestDist2TrackXZ.Mag() > padRadius - 0.5*padL &&
@@ -1342,7 +1342,7 @@ TPCLocalTrackHelix::CalcClosestDistTgt()
   }
 
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
-  TVector3 tgt(0., 0., tpc::ZTarget);
+  TVector3 tgt(0., 0., tpc::Z_TARGET);
   Double_t scantheta = 0.5*TMath::Pi();
   Double_t theta_tgt = EvalTheta(par, tgt, m_min_t - scantheta, m_max_t + scantheta);
   TVector3 closest_point = GlobalPosition(par, theta_tgt);
@@ -1459,7 +1459,7 @@ TPCLocalTrackHelix::CalcHelixMomCenter(const Double_t par[5]) const
 {
 
   Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t pt = fabs(par[3])*(tpc::ConstC*dMagneticField); // GeV/c
+  Double_t pt = fabs(par[3])*(tpc::CONST_C*dMagneticField); // GeV/c
   Double_t theta = -par[2]/(par[3]*par[4]); //at y = 0
 
   Double_t tmp_px = pt*(-1.*sin(theta));
@@ -1480,7 +1480,7 @@ TPCLocalTrackHelix::CalcHelixMom(const Double_t par[5], Double_t theta) const
 {
 
   Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t pt = fabs(par[3])*(tpc::ConstC*dMagneticField); // GeV/c
+  Double_t pt = fabs(par[3])*(tpc::CONST_C*dMagneticField); // GeV/c
 
   Double_t tmp_px = pt*(-1.*sin(theta));
   Double_t tmp_py = pt*(cos(theta));
@@ -2252,10 +2252,10 @@ TPCLocalTrackHelix::IsGoodHitToAdd(TPCHit *hit, Double_t &residual, Bool_t nolim
   Int_t upstream_tgt = -1;
   if(TMath::Abs(position.x()) < 25. &&
      TMath::Abs(position.y()) < 10. &&
-     position.z() < tpc::ZTarget) upstream_tgt = 0; //Beam section
+     position.z() < tpc::Z_TARGET) upstream_tgt = 0; //Beam section
   else if(TMath::Abs(position.x()) < 25. &&
 	  TMath::Abs(position.y()) > 10. &&
-	  position.z() < tpc::ZTarget) upstream_tgt = 1; //above or below the beam section
+	  position.z() < tpc::Z_TARGET) upstream_tgt = 1; //above or below the beam section
 
   Int_t section = -1;
   if((position.z() + position.x()) < 0 && (position.z() - position.x()) < 0) section = 1;
@@ -2273,7 +2273,7 @@ TPCLocalTrackHelix::IsGoodHitToAdd(TPCHit *hit, Double_t &residual, Bool_t nolim
     gSection.push_back(section);
 
     TVector3 pos = hitp -> GetLocalHitPos();
-    if(TMath::Abs(pos.x()) < 25. && pos.z() < tpc::ZTarget) nhit_upstream_tgt++;
+    if(TMath::Abs(pos.x()) < 25. && pos.z() < tpc::Z_TARGET) nhit_upstream_tgt++;
   }
 
   Double_t max_scanrange = 40.;
@@ -2386,7 +2386,7 @@ TPCLocalTrackHelix::Side(TVector3 hitpos)
 
   //TPC local coordinate
   Int_t flag = -1;
-  TVector3 Vect1(-hitpos.X() - m_cx, hitpos.Z() - tpc::ZTarget - m_cy, 0.); //Vect1(Hit - Helix center)
+  TVector3 Vect1(-hitpos.X() - m_cx, hitpos.Z() - tpc::Z_TARGET - m_cy, 0.); //Vect1(Hit - Helix center)
   TVector3 Vect2(-m_cx, -m_cy, 0.); //Vec2(Tgt - Helix center)
 
   TVector3 norm = Vect1.Cross(Vect2); //Vect1 X Vec2
@@ -2666,7 +2666,7 @@ TPCLocalTrackHelix::DoVPFit()
   for(std::size_t i=0; i<n; ++i){
     gHitPos[i] = m_vp[i];
     xp[i] = -m_vp[i].X();
-    yp[i] = m_vp[i].Z() - tpc::ZTarget;
+    yp[i] = m_vp[i].Z() - tpc::Z_TARGET;
     gRes[i] = TVector3(1., 1., 1.); //dummy values
   }
 
@@ -2684,7 +2684,7 @@ TPCLocalTrackHelix::DoVPFit()
   Double_t prev_theta = 0.; Double_t theta0 = 0;
   m_min_t = 9999; m_max_t = -9999;
   for(std::size_t i=0; i<n; ++i){
-    Double_t theta = TMath::ATan2(m_vp[i].Z() - tpc::ZTarget - gPar[1], -m_vp[i].X() - gPar[0]);
+    Double_t theta = TMath::ATan2(m_vp[i].Z() - tpc::Z_TARGET - gPar[1], -m_vp[i].X() - gPar[0]);
     //Check ATan2 function's theta flip (-pi ~ pi)
     if(i==0) theta0 = theta;
     if(TMath::Abs(prev_theta - theta) > TMath::Pi()) thetaflip = true;
@@ -2808,7 +2808,7 @@ TPCLocalTrackHelix::VertexAtTarget()
   }
 
   Bool_t status = false;
-  if(m_closedist.Mag() < tpc::TargetVtxWindow) status = true;
+  if(m_closedist.Mag() < tpc::TARGET_VTX_WINDOW) status = true;
   return status;
 }
 
@@ -2823,18 +2823,18 @@ TPCLocalTrackHelix::IsBackward()
   }
 
   //track is starting from the target
-  if(TMath::Abs(TMath::Hypot(m_cx, m_cy) - m_r) > tpc::TargetVtxWindow) return false;
+  if(TMath::Abs(TMath::Hypot(m_cx, m_cy) - m_r) > tpc::TARGET_VTX_WINDOW) return false;
 
   //Track exist before the target position
-  //if(m_edgepoint.z() > tpc::ZTarget) return false;
+  //if(m_edgepoint.z() > tpc::Z_TARGET) return false;
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 start_point = GlobalPosition(par, m_min_t);
   TVector3 end_point = GlobalPosition(par, m_max_t);
   TVector3 middle_point = 0.5*(start_point + end_point);
-  if(start_point.z() > tpc::ZTarget || end_point.z() > tpc::ZTarget) return false;
+  if(start_point.z() > tpc::Z_TARGET || end_point.z() > tpc::Z_TARGET) return false;
 
   //upstream end of the track is within window
-  Double_t temp = m_r*m_r - TMath::Power(m_cy + tpc::ZTarget + 250. , 2);
+  Double_t temp = m_r*m_r - TMath::Power(m_cy + tpc::Z_TARGET + 250. , 2);
   if(temp<0) return false;
   Double_t extrap_pointX = TMath::Min(TMath::Sqrt(temp) - m_cx, -TMath::Sqrt(temp) - m_cx); // Abs(X) of extrapolated point at Z=-250.
   if(extrap_pointX > 75.) return false; //Abs(X) < 75 at Z=-250.
@@ -3014,7 +3014,7 @@ TPCLocalTrackHelix::SeparateTracksAtTarget()
       TVector3 pos = hitp -> GetLocalHitPos();
       if(TMath::Abs(pos.x()) < 25. &&
 	 TMath::Abs(pos.y()) < 30. &&
-	 pos.z() < tpc::ZTarget) isBeamHit = true;
+	 pos.z() < tpc::Z_TARGET) isBeamHit = true;
       else isBeamHit = false;
 
       TVector3 gap = pos - prev_pos;
@@ -3355,9 +3355,9 @@ TPCLocalTrackHelix::CheckIsAccidental()
   for(Int_t i=0; i<n; ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp -> GetLocalHitPos();
-    if(TMath::Abs(pos.x()) < 25. && pos.z() < tpc::ZTarget) nhit_beamsection++;
-    if(pos.z() < tpc::ZTarget) nhit_upstream_tgt++;
-    if(pos.z() > tpc::ZTarget) nhit_downstream_tgt++;
+    if(TMath::Abs(pos.x()) < 25. && pos.z() < tpc::Z_TARGET) nhit_beamsection++;
+    if(pos.z() < tpc::Z_TARGET) nhit_upstream_tgt++;
+    if(pos.z() > tpc::Z_TARGET) nhit_downstream_tgt++;
   }
 
   //if(nhit_upstream_tgt>=2 && nhit_downstream_tgt>=5 && m_r>3000){ //accidental beam
@@ -3565,7 +3565,7 @@ TPCLocalTrackHelix::TestInvertCharge()
 TVector3
 TPCLocalTrackHelix::GetClosestPositionTgt()
 {
-  TVector3 tgt(0., 0., tpc::ZTarget);
+  TVector3 tgt(0., 0., tpc::Z_TARGET);
   TVector3 pos = m_closedist + tgt;
   return pos;
 }
@@ -3574,7 +3574,7 @@ TPCLocalTrackHelix::GetClosestPositionTgt()
 TVector3
 TPCLocalTrackHelix::GetClosestPositionTgtXZ()
 {
-  TVector3 tgt(0., 0., tpc::ZTarget);
+  TVector3 tgt(0., 0., tpc::Z_TARGET);
   TVector3 pos = m_closedistXZ + tgt;
   return pos;
 }
@@ -3592,7 +3592,7 @@ TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Do
   */
 
   Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t p_t = m_r*(tpc::ConstC*dMagneticField)*0.001;
+  Double_t p_t = m_r*(tpc::CONST_C*dMagneticField)*0.001;
   //Double_t pz = p_t*(cos(t));
   //Double_t py = p_t*m_dz;
   //Double_t px = p_t*(sin(t));
@@ -3699,7 +3699,7 @@ TPCLocalTrackHelix::GetTransverseMomentumAngularCovariance(Double_t t){
 double
 TPCLocalTrackHelix::GetMomentumPitchAngleCovariance(){
   Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t p_t = m_r*(tpc::ConstC*B)*0.001;
+  Double_t p_t = m_r*(tpc::CONST_C*B)*0.001;
   Double_t pitch = atan2(1,m_dz);//dYdZ angle, dZ= 0 -> should return pi/2
   Double_t res_pitch = GetThetaResolution();
   return p_t*cos(pitch)/sin(pitch)/sin(pitch)*res_pitch*res_pitch;
@@ -3715,7 +3715,7 @@ TPCLocalTrackHelix::GetMomentumCovarianceVectT(Double_t t, Double_t MomScale, Do
     We will calculate the momentum resolution from pt, theta, and dZ resolution.
   */
   Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t p_t = m_r*(tpc::ConstC*B)*0.001;
+  Double_t p_t = m_r*(tpc::CONST_C*B)*0.001;
   //Double_t pz = p_t*(cos(t));
   //Double_t py = p_t*m_dz;
   //Double_t px = p_t*(sin(t));
@@ -3813,7 +3813,7 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
     }
     res+=res_T*res_T;
   }
-  Double_t pt = m_r*(tpc::ConstC*B)*0.001;
+  Double_t pt = m_r*(tpc::CONST_C*B)*0.001;
   if(nh<4) return pt*0.1;
   res = sqrt(3./2) * sqrt(res / nh)* 0.001;//mm-> m
   Double_t dPOverP = pt / (0.3*L*L*B)*sqrt(720./(nh+4))*res;
@@ -3828,7 +3828,7 @@ Double_t
 TPCLocalTrackHelix::GetTransverseAngularResolution(Double_t t, Double_t sig0){
   //Transverse Angle Definition: atan2(pz,px);
   Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t pt = m_r*(tpc::ConstC*B)*0.001;
+  Double_t pt = m_r*(tpc::CONST_C*B)*0.001;
   Double_t dp = GetTransverseMomentumResolution();
   Double_t dr = m_r * dp/pt;
   Double_t t_avg = 0.5*(m_max_t + m_min_t);

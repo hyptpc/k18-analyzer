@@ -7,7 +7,7 @@
 //Please see the discription in the TPCTrackSearch.cc
 //The track coordinate origin is the target center, ***NOT TPC center***
 //Track parameters are x0, y0, u0, v0 and free parameters for minuit are x0, atan2_u0, y0, atan2_v0
-//x = m_x0 + m_u0*(z-tpc::ZTarget) y = m_y0 *(z-tpc::ZTarget)
+//x = m_x0 + m_u0*(z-tpc::Z_TARGET) y = m_y0 *(z-tpc::Z_TARGET)
 //Definitions of residual
 //1. ResidualVect() : Track <-> Closest point on the track (pos - calpos)
 //2. ResidualVectRow() : Perpendicular to the pad direction (along the row direction)
@@ -114,8 +114,8 @@ static inline Bool_t CompareDist(const Int_t a, const Int_t b){
 //______________________________________________________________________________
 static inline TVector3 ResidualVect(Double_t par[4], TVector3 pos){ //Closest distance
 
-  TVector3 x0(par[0], par[1], tpc::ZTarget);
-  TVector3 x1(par[0] + par[2], par[1] + par[3], tpc::ZTarget+1.);
+  TVector3 x0(par[0], par[1], tpc::Z_TARGET);
+  TVector3 x1(par[0] + par[2], par[1] + par[3], tpc::Z_TARGET+1.);
   TVector3 u = (x1-x0).Unit();
   TVector3 AP = pos - x0;
   Double_t dist_AX = u.Dot(AP);
@@ -129,8 +129,8 @@ static inline TVector3 ResidualVect(Double_t par[4], TVector3 pos){ //Closest di
 //______________________________________________________________________________
 static inline TVector3 ResidualVectXZ(Double_t par[4], TVector3 pos){ //Closest distance on the y=pos.y() plane
 
-  TVector3 x0(par[0], pos.y(), tpc::ZTarget);
-  TVector3 x1(par[0] + par[2], pos.y(), tpc::ZTarget+1.);
+  TVector3 x0(par[0], pos.y(), tpc::Z_TARGET);
+  TVector3 x1(par[0] + par[2], pos.y(), tpc::Z_TARGET+1.);
   TVector3 u = (x1-x0).Unit();
   TVector3 AP = pos - x0;
   Double_t dist_AX = u.Dot(AP);
@@ -144,11 +144,11 @@ static inline TVector3 ResidualVectXZ(Double_t par[4], TVector3 pos){ //Closest 
 //______________________________________________________________________________
 static inline TVector3 ResidualVectRow(Double_t par[4], TVector3 pos){ //pad horizontal residual vector
 
-  Double_t z = pos.x()*pos.x()+(pos.z()-tpc::ZTarget)*(pos.z()-tpc::ZTarget)-pos.x()*par[0];
-  z /= (pos.z()-tpc::ZTarget + pos.x()*par[2]);
+  Double_t z = pos.x()*pos.x()+(pos.z()-tpc::Z_TARGET)*(pos.z()-tpc::Z_TARGET)-pos.x()*par[0];
+  z /= (pos.z()-tpc::Z_TARGET + pos.x()*par[2]);
   TVector3 calpos(par[0] + par[2]*z,
                   par[1] + par[3]*z,
-                  z + tpc::ZTarget);
+                  z + tpc::Z_TARGET);
   TVector3 d = pos - calpos;
   return d;
 }
@@ -161,7 +161,7 @@ static inline TVector3 CalcResolution(Double_t par[4], Int_t layer, TVector3 pos
   Double_t tanPad = TMath::Tan(padTheta);
   Double_t padL = tpc::padParameter[layer][tpc::kLength];
   Double_t padRadius = tpc::padParameter[layer][tpc::kRadius];
-  TVector3 closestDist2TrackXZ = ResidualVectXZ(par, TVector3(0., 0., tpc::ZTarget));
+  TVector3 closestDist2TrackXZ = ResidualVectXZ(par, TVector3(0., 0., tpc::Z_TARGET));
 
   //check whether the track is crossing the layer or not
   if(vetoBadClusters && closestDist2TrackXZ.Mag() > padRadius - 0.5*padL) return TVector3(1.e+10, 1.e+10, 1.e+10);
@@ -185,7 +185,7 @@ static inline TVector3 CalcResolution(Double_t par[4], Int_t layer, TVector3 pos
   // 3. By using this distance, check whether the projected point and the cluster are in the same layer or not. If not, the cluster is duffused over the layers.
   TVector3 residual_xz = ResidualVectXZ(par, pos);
   TVector3 point_projected_onTheTrack = pos - residual_xz; // = pos - (pos - AI) = AI
-  Double_t radius_projected_point = TMath::Hypot(point_projected_onTheTrack.x(), point_projected_onTheTrack.z() - tpc::ZTarget);
+  Double_t radius_projected_point = TMath::Hypot(point_projected_onTheTrack.x(), point_projected_onTheTrack.z() - tpc::Z_TARGET);
   if(vetoBadClusters && std::abs(radius_projected_point - padRadius) > 0.5*padL) return TVector3(2.e+10, 2.e+10, 2.e+10);
 
   //Convert resolution along the row direction into x, y, z resolutions
@@ -515,7 +515,7 @@ TVector3
 TPCLocalTrack::GetPosition(Double_t z) const
 {
 
-  TVector3 pos(m_x0 + m_u0*(z-tpc::ZTarget), m_y0 + m_v0*(z-tpc::ZTarget), z);
+  TVector3 pos(m_x0 + m_u0*(z-tpc::Z_TARGET), m_y0 + m_v0*(z-tpc::Z_TARGET), z);
   return pos;
 }
 
@@ -524,9 +524,9 @@ void
 TPCLocalTrack::CalcClosestDistTgt()
 {
 
-  TVector3 x0(m_x0, m_y0, tpc::ZTarget);
-  TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, tpc::ZTarget+1.);
-  TVector3 tgt(0., 0., tpc::ZTarget);
+  TVector3 x0(m_x0, m_y0, tpc::Z_TARGET);
+  TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, tpc::Z_TARGET+1.);
+  TVector3 tgt(0., 0., tpc::Z_TARGET);
   TVector3 unit_v = (x1-x0).Unit();
   TVector3 diff_v = tgt - x0;
   TVector3 dist = diff_v.Cross(unit_v);
@@ -540,7 +540,7 @@ TPCLocalTrack::VertexAtTarget()
 {
 
   Bool_t status = false;
-  if(m_closedist.Mag() < tpc::TargetVtxWindow) status = true;
+  if(m_closedist.Mag() < tpc::TARGET_VTX_WINDOW) status = true;
   return status;
 }
 
@@ -550,7 +550,7 @@ TPCLocalTrack::IsBackward()
 {
 
   if(!VertexAtTarget()) return false;
-  if(m_edgepoint.z() > tpc::ZTarget) return false;
+  if(m_edgepoint.z() > tpc::Z_TARGET) return false;
   TVector3 pos = GetPosition(-250.); //At z=-250.
   //if(TMath::Abs(pos.X()) > 50.) return false;
   if(TMath::Abs(pos.X()) > 75.) return false;
@@ -658,7 +658,7 @@ TPCLocalTrack::DoStraightTrackFit()
   gPar[2] = m_u0;
   gPar[3] = m_v0;
 
-  TVector3 tgt = TVector3(0., 0., tpc::ZTarget);
+  TVector3 tgt = TVector3(0., 0., tpc::Z_TARGET);
   m_edgepoint = tgt;
   for(Int_t i=0; i<n; ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
@@ -993,7 +993,7 @@ TPCLocalTrack::Side(TVector3 pos)
 {
 
   Int_t flag = -1;
-  TVector3 tgt(0., 0., tpc::ZTarget);
+  TVector3 tgt(0., 0., tpc::Z_TARGET);
   TVector3 pos_ = pos - tgt;
   TVector3 division(1./m_u0, 0., -1.);
   TVector3 norm = pos_.Cross(division);
@@ -1168,7 +1168,7 @@ TPCLocalTrack::SeparateTracksAtTarget()
     for(std::size_t i=0; i<n; ++i){
       TPCLTrackHit *hitp = m_hit_array[i];
       TVector3 pos = hitp -> GetLocalHitPos();
-      TVector3 tgt(0., 0., tpc::ZTarget);
+      TVector3 tgt(0., 0., tpc::Z_TARGET);
       TVector3 pos_ = pos - tgt;
       TVector3 division(1./m_u0, 0., -1.);
       TVector3 norm = pos_.Cross(division);
@@ -1188,7 +1188,7 @@ TPCLocalTrack::SeparateTracksAtTarget()
       TVector3 pos = hitp -> GetLocalHitPos();
       if (TMath::Abs(pos.x()) < 25. &&
           TMath::Abs(pos.y()) < 30. &&
-          pos.z() < tpc::ZTarget) isBeamHit = true;
+          pos.z() < tpc::Z_TARGET) isBeamHit = true;
       else isBeamHit = false;
 
       TVector3 gap = pos - prev_pos;
@@ -1275,7 +1275,7 @@ TPCLocalTrack::SeparateClustersWithGap()
   for(std::size_t i=0; i<n; ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp -> GetLocalHitPos();
-    TVector3 tgt(0., 0., tpc::ZTarget);
+    TVector3 tgt(0., 0., tpc::Z_TARGET);
     TVector3 pos_ = pos - tgt;
     TVector3 division(1./m_u0, 0., -1.); // orthogonal vector to the x = x0 + u0*z
     TVector3 norm = pos_.Cross(division);
@@ -1389,8 +1389,8 @@ TPCLocalTrack::CheckIsAccidental()
   for(Int_t i=0; i<n; ++i){
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp -> GetLocalHitPos();
-    if(TMath::Abs(pos.x()) < 40. && pos.z() < tpc::ZTarget) nhit_upstream_tgt++;
-    if(TMath::Abs(pos.x()) < 40. && pos.z() > tpc::ZTarget) nhit_downstream_tgt++;
+    if(TMath::Abs(pos.x()) < 40. && pos.z() < tpc::Z_TARGET) nhit_upstream_tgt++;
+    if(TMath::Abs(pos.x()) < 40. && pos.z() > tpc::Z_TARGET) nhit_downstream_tgt++;
   }
   if(nhit_upstream_tgt>1 && nhit_downstream_tgt>=5) m_isAccidental=1;
 

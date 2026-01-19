@@ -335,7 +335,7 @@ VertexPointHelix(const Double_t par1[5], const Double_t par2[5],
   dist = dist2;
   Double_t vertx = -1.*vx;
   Double_t verty = vz;
-  Double_t vertz = vy + tpc::ZTarget;
+  Double_t vertz = vy + tpc::Z_TARGET;
   return TVector3(vertx, verty, vertz);
 }
 
@@ -360,7 +360,7 @@ CloseDist(const TVector3& Xin, const TVector3& Xout,
 Double_t CalcHelixCloseDist(TVector3 point, Double_t par[5], Double_t t1_start, Double_t t1_end){
 
   Double_t xi = -1.*point.x();
-  Double_t yi = point.z() - tpc::ZTarget;
+  Double_t yi = point.z() - tpc::Z_TARGET;
   Double_t zi = point.y();
 
   //helix function
@@ -1501,7 +1501,7 @@ void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg){
 TVector3
 CalcHelixMom(Double_t Bfield, Int_t charge, Double_t par[5], Double_t t){
 
-  Double_t pt = fabs(par[3])*tpc::ConstC*Bfield;
+  Double_t pt = fabs(par[3])*tpc::CONST_C*Bfield;
   Double_t tmp_px = pt*(-1.*sin(t));
   Double_t tmp_py = pt*(cos(t));
   Double_t tmp_pz = pt*(par[4]);
@@ -1523,10 +1523,10 @@ CalcHelixParam(Double_t Bfield, Int_t charge, TVector3 mom, TVector3 pos, Double
   Double_t tmp_py = q*1000.*mom.z();
   Double_t tmp_pz = q*1000.*mom.y();
   TVector3 pT(tmp_px, tmp_py, 0.);
-  par[3] = pT.Mag()/(tpc::ConstC*Bfield);
+  par[3] = pT.Mag()/(tpc::CONST_C*Bfield);
   par[4] = tmp_pz/pT.Mag();
 
-  TVector3 pos_(-pos.x(), pos.z() - tpc::ZTarget, pos.y());
+  TVector3 pos_(-pos.x(), pos.z() - tpc::Z_TARGET, pos.y());
   TVector3 norm(0., 0., 1.);
   TVector3 dummy = norm.Cross(pT);
   dummy.SetMag(par[3]);
@@ -1546,7 +1546,7 @@ CalcHelixPosition(double par[5], double t)
   double x = par[0] + par[3]*cos(t);
   double y = par[1] + par[3]*sin(t);
   double z = par[2] + (par[4]*par[3]*t);
-  TVector3 calpos(-x, z, y + tpc::ZTarget); //local to global coordinate
+  TVector3 calpos(-x, z, y + tpc::Z_TARGET); //local to global coordinate
 
   return calpos;
 }
@@ -1599,7 +1599,7 @@ VertexPointHelix(Double_t par1[5], Double_t par2[5], Double_t t1_start, Double_t
 	      +pow(zin-zout,2));
   Double_t vertx = -1.*vx;
   Double_t verty = vz;
-  Double_t vertz = vy + tpc::ZTarget;
+  Double_t vertz = vy + tpc::Z_TARGET;
   return TVector3(vertx, verty, vertz);
 }
 
@@ -1630,7 +1630,7 @@ TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
   Double_t lambdavtx_xivtx_cut = 0.;
 
   Double_t xi = -1.*Xlambda.x();
-  Double_t yi = Xlambda.z() - tpc::ZTarget;
+  Double_t yi = Xlambda.z() - tpc::Z_TARGET;
   Double_t zi = Xlambda.y();
   Double_t pxi = -1.*Plambda.x();
   Double_t pyi = Plambda.z();
@@ -1649,13 +1649,13 @@ TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
   //x = [5] + [6]*y;
   //z = [7] + [8]*y;
 
-  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::ZTarget, 250.-tpc::ZTarget);
+  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::Z_TARGET, 250.-tpc::Z_TARGET);
 
-  Double_t scan_range[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  Double_t scan_range[2] ={-250. - tpc::Z_TARGET, 250. - tpc::Z_TARGET};
   if(pyi>0) scan_range[1] = yi + lambdavtx_xivtx_cut/(p_unit.y());
   else scan_range[0] = yi - lambdavtx_xivtx_cut/(p_unit.y());
   TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, scan_range[0], scan_range[1]);
-  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::ZTarget, 250.-tpc::ZTarget);
+  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::Z_TARGET, 250.-tpc::Z_TARGET);
 
   fvertex_helix_linear.SetParameter(0, pi_par[0]);
   fvertex_helix_linear.SetParameter(1, pi_par[1]);
@@ -1686,7 +1686,7 @@ TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
 
   Double_t vertx = -1.*vx;
   Double_t verty = vz;
-  Double_t vertz = vy + tpc::ZTarget;
+  Double_t vertz = vy + tpc::Z_TARGET;
   return TVector3(vertx, verty, vertz);
 }
 
@@ -1701,7 +1701,7 @@ TVector3 LambdaPVertex(Double_t Bfield, Double_t p2_par[5],
   Double_t lambdavtx_xivtx_cut = 0.;
 
   Double_t xi = -1.*Xlambda.x();
-  Double_t yi = Xlambda.z() - tpc::ZTarget;
+  Double_t yi = Xlambda.z() - tpc::Z_TARGET;
   Double_t zi = Xlambda.y();
   Double_t pxi = -1.*Plambda.x();
   Double_t pyi = Plambda.z();
@@ -1720,13 +1720,13 @@ TVector3 LambdaPVertex(Double_t Bfield, Double_t p2_par[5],
   //x = [5] + [6]*y;
   //z = [7] + [8]*y;
 
-  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::ZTarget, 250.-tpc::ZTarget);
+  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::Z_TARGET, 250.-tpc::Z_TARGET);
 
-  Double_t scan_range[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  Double_t scan_range[2] ={-250. - tpc::Z_TARGET, 250. - tpc::Z_TARGET};
   if(pyi>0) scan_range[1] = yi + lambdavtx_xivtx_cut/(p_unit.y());
   else scan_range[0] = yi - lambdavtx_xivtx_cut/(p_unit.y());
   TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, scan_range[0], scan_range[1]);
-  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::ZTarget, 250.-tpc::ZTarget);
+  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::Z_TARGET, 250.-tpc::Z_TARGET);
 
   fvertex_helix_linear.SetParameter(0, p2_par[0]);
   fvertex_helix_linear.SetParameter(1, p2_par[1]);
@@ -1757,7 +1757,7 @@ TVector3 LambdaPVertex(Double_t Bfield, Double_t p2_par[5],
 
   Double_t vertx = -1.*vx;
   Double_t verty = vz;
-  Double_t vertz = vy + tpc::ZTarget;
+  Double_t vertz = vy + tpc::Z_TARGET;
   return TVector3(vertx, verty, vertz);
 }
 
@@ -1770,7 +1770,7 @@ TVector3 CalcCloseDistXi(TVector3 point, Double_t Bfield,
   CalcHelixParam(Bfield, -1, xi_mom_decayvtx, xi_decayvtx, xi_par);
 
   Double_t xi = -1.*point.x();
-  Double_t yi = point.z() - tpc::ZTarget;
+  Double_t yi = point.z() - tpc::Z_TARGET;
   Double_t zi = point.y();
 
   //helix function
@@ -1798,7 +1798,7 @@ TVector3 CalcCloseDistXi(TVector3 point, Double_t Bfield,
 
   Double_t vertx = -1.*vx;
   Double_t verty = vz;
-  Double_t vertz = vy + tpc::ZTarget;
+  Double_t vertz = vy + tpc::Z_TARGET;
 
   return TVector3(vertx, verty, vertz);
 }
@@ -1811,11 +1811,11 @@ CloseDistLambda(TVector3 point, TVector3 Xlambda,
   Double_t lambdavtx_xivtx_cut = 0.;
 
   Double_t local_xi = -1.*point.x();
-  Double_t local_yi = point.z() - tpc::ZTarget;
+  Double_t local_yi = point.z() - tpc::Z_TARGET;
   Double_t local_zi = point.y();
 
   Double_t xi = -1.*Xlambda.x();
-  Double_t yi = Xlambda.z() - tpc::ZTarget;
+  Double_t yi = Xlambda.z() - tpc::Z_TARGET;
   Double_t zi = Xlambda.y();
   Double_t pxi = -1.*Plambda.x();
   Double_t pyi = Plambda.z();
@@ -1825,7 +1825,7 @@ CloseDistLambda(TVector3 point, TVector3 Xlambda,
   TVector3 p_L = TVector3(pxi, pyi, pzi);
   TVector3 p_unit = p_L.Unit();
 
-  Double_t scan_range[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  Double_t scan_range[2] ={-250. - tpc::Z_TARGET, 250. - tpc::Z_TARGET};
   if(pyi>0) scan_range[1] = yi + lambdavtx_xivtx_cut/(p_unit.y());
   else scan_range[0] = yi - lambdavtx_xivtx_cut/(p_unit.y());
 
@@ -1850,7 +1850,7 @@ CloseDistLambda(TVector3 point, TVector3 Xlambda,
   Double_t zL = zi + vi*(close_y-yi);
   Double_t vertx = -xL;
   Double_t verty = zL;
-  Double_t vertz = yL + tpc::ZTarget;
+  Double_t vertz = yL + tpc::Z_TARGET;
   return TVector3(vertx, verty, vertz);
 }
 
@@ -1862,11 +1862,11 @@ CalcCloseDistLambda(TVector3 point, TVector3 Xlambda,
   Double_t lambdavtx_xivtx_cut = 0.;
 
   Double_t local_xi = -1.*point.x();
-  Double_t local_yi = point.z() - tpc::ZTarget;
+  Double_t local_yi = point.z() - tpc::Z_TARGET;
   Double_t local_zi = point.y();
 
   Double_t xi = -1.*Xlambda.x();
-  Double_t yi = Xlambda.z() - tpc::ZTarget;
+  Double_t yi = Xlambda.z() - tpc::Z_TARGET;
   Double_t zi = Xlambda.y();
   Double_t pxi = -1.*Plambda.x();
   Double_t pyi = Plambda.z();
@@ -1876,7 +1876,7 @@ CalcCloseDistLambda(TVector3 point, TVector3 Xlambda,
   TVector3 p_L = TVector3(pxi, pyi, pzi);
   TVector3 p_unit = p_L.Unit();
 
-  Double_t scan_range[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  Double_t scan_range[2] ={-250. - tpc::Z_TARGET, 250. - tpc::Z_TARGET};
   if(pyi>0) scan_range[1] = yi + lambdavtx_xivtx_cut/(p_unit.y());
   else scan_range[0] = yi - lambdavtx_xivtx_cut/(p_unit.y());
 
@@ -1901,7 +1901,7 @@ CalcCloseDistLambda(TVector3 point, TVector3 Xlambda,
   Double_t zL = zi + vi*(close_y-yi);
   Double_t vertx = -xL;
   Double_t verty = zL;
-  Double_t vertz = yL + tpc::ZTarget;
+  Double_t vertz = yL + tpc::Z_TARGET;
   return TVector3(vertx, verty, vertz);
 }
 
@@ -1912,10 +1912,10 @@ LambdaTargetCenter(TVector3 Xlambda, TVector3 Plambda,
 
   Double_t u = Plambda.x()/Plambda.z();
   Double_t v = Plambda.y()/Plambda.z();
-  Double_t zdiff = tpc::ZTarget - Xlambda.z();
+  Double_t zdiff = tpc::Z_TARGET - Xlambda.z();
   TVector3 track(u*zdiff, v*zdiff, zdiff);
   TVector3 lpos = track + Xlambda;
-  TVector3 diff(lpos.x(), lpos.y(), lpos.z() - tpc::ZTarget);
+  TVector3 diff(lpos.x(), lpos.y(), lpos.z() - tpc::Z_TARGET);
   dist = diff.Mag();
   return TVector3(lpos.x(), lpos.y(), lpos.z());
 }
@@ -1930,7 +1930,7 @@ LambdaLambdaVertex(TVector3 Xlambda1, TVector3 Plambda1,
   Double_t lambdavtx_xivtx_cut = 0.;
 
   Double_t xi1 = -1.*Xlambda1.x();
-  Double_t yi1 = Xlambda1.z() - tpc::ZTarget;
+  Double_t yi1 = Xlambda1.z() - tpc::Z_TARGET;
   Double_t zi1 = Xlambda1.y();
   Double_t pxi1 = -1.*Plambda1.x();
   Double_t pyi1 = Plambda1.z();
@@ -1940,12 +1940,12 @@ LambdaLambdaVertex(TVector3 Xlambda1, TVector3 Plambda1,
   TVector3 p_L1 = TVector3(pxi1, pyi1, pzi1);
   TVector3 p_unit1 = p_L1.Unit();
 
-  Double_t scan_range1[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  Double_t scan_range1[2] ={-250. - tpc::Z_TARGET, 250. - tpc::Z_TARGET};
   if(pyi1>0) scan_range1[1] = yi1 + lambdavtx_xivtx_cut/(p_unit1.y());
   else scan_range1[0] = yi1 - lambdavtx_xivtx_cut/(p_unit1.y());
 
   Double_t xi2 = -2.*Xlambda2.x();
-  Double_t yi2 = Xlambda2.z() - tpc::ZTarget;
+  Double_t yi2 = Xlambda2.z() - tpc::Z_TARGET;
   Double_t zi2 = Xlambda2.y();
   Double_t pxi2 = -2.*Plambda2.x();
   Double_t pyi2 = Plambda2.z();
@@ -1955,7 +1955,7 @@ LambdaLambdaVertex(TVector3 Xlambda1, TVector3 Plambda1,
   TVector3 p_L2 = TVector3(pxi2, pyi2, pzi2);
   TVector3 p_unit2 = p_L2.Unit();
 
-  Double_t scan_range2[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  Double_t scan_range2[2] ={-250. - tpc::Z_TARGET, 250. - tpc::Z_TARGET};
   if(pyi2>0) scan_range2[1] = yi2 + lambdavtx_xivtx_cut/(p_unit2.y());
   else scan_range2[0] = yi2 - lambdavtx_xivtx_cut/(p_unit2.y());
 
@@ -1976,16 +1976,16 @@ LambdaLambdaVertex(TVector3 Xlambda1, TVector3 Plambda1,
   Double_t xL1 = xi1 - ui1*(close_y1-yi1);
   Double_t yL1 = close_y1;
   Double_t zL1 = zi1 + vi1*(close_y1-yi1);
-  vtxlambda1 = TVector3(-xL1, zL1, yL1 + tpc::ZTarget);
+  vtxlambda1 = TVector3(-xL1, zL1, yL1 + tpc::Z_TARGET);
 
   Double_t xL2 = xi2 - ui2*(close_y2-yi2);
   Double_t yL2 = close_y2;
   Double_t zL2 = zi2 + vi2*(close_y2-yi2);
-  vtxlambda2 = TVector3(-xL2, zL2, yL2 + tpc::ZTarget);
+  vtxlambda2 = TVector3(-xL2, zL2, yL2 + tpc::Z_TARGET);
 
   Double_t vertx = -0.5*(xL1 + xL2);
   Double_t verty = 0.5*(zL1 + zL2);
-  Double_t vertz = 0.5*(yL1 + yL2) + tpc::ZTarget;
+  Double_t vertz = 0.5*(yL1 + yL2) + tpc::Z_TARGET;
   return TVector3(vertx, verty, vertz);
 }
 
@@ -2097,7 +2097,7 @@ MultitrackVertex(Int_t ntrack, const std::vector<Double_t>& x0, const std::vecto
   }
   delete minuit;
 
-  return TVector3(par[0], par[1], par[2] + tpc::ZTarget);
+  return TVector3(par[0], par[1], par[2] + tpc::Z_TARGET);
 }
 
 //_____________________________________________________________________________
@@ -2200,7 +2200,7 @@ MultitrackVertex(Int_t ntrack, const std::vector<Double_t>& x0, const std::vecto
 
   delete minuit;
 
-  return TVector3(par[0], par[1], par[2] + tpc::ZTarget);
+  return TVector3(par[0], par[1], par[2] + tpc::Z_TARGET);
 }
 
 }

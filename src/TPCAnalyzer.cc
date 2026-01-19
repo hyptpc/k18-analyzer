@@ -37,7 +37,7 @@ TRandom3 RandGen;
 const auto& gUser   = UserParamMan::GetInstance();
 const auto& gGeom   = DCGeomMan::GetInstance();
 
-const double ztgt = tpc::ZTarget;
+const double ztgt = tpc::Z_TARGET;
 }
 //_____________________________________________________________________________
 TPCAnalyzer::TPCAnalyzer()
@@ -119,7 +119,7 @@ TPCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
     CandCont.push_back(hit);
     joined[i]++;
     Double_t padlength = hit -> GetPadLength();
-    TVector3 dist2tgt = hit -> GetPosition() - TVector3(0., 0., tpc::ZTarget);
+    TVector3 dist2tgt = hit -> GetPosition() - TVector3(0., 0., tpc::Z_TARGET);
     Double_t verticalpathlength_forpad =
       padlength*dist2tgt.y()/TMath::Hypot(dist2tgt.x(), dist2tgt.z());
     maxdy = TMath::Max(maxdy, verticalpathlength_forpad);

@@ -71,7 +71,7 @@ TPCHit::TPCHit(TPCRawHit* rhit)
     m_rhit(rhit),
     m_layer(rhit->LayerId()),
     m_row(rhit->RowId()),
-    m_padtheta(tpc::getTheta(m_layer, m_row)*TMath::DegToRad()),
+    m_padtheta(tpc::GetTheta(m_layer, m_row)*TMath::DegToRad()),
     m_padlength(tpc::padParameter[m_layer][tpc::kLength]),
     m_mrow(TMath::Nint(m_row)),
     m_pad(tpc::GetPadId(m_layer, m_row)),
@@ -106,7 +106,7 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
     m_rhit(),
     m_layer(layer),
     m_row(TMath::Nint(mrow)),
-    m_padtheta(tpc::getTheta(m_layer, mrow)*TMath::DegToRad()),
+    m_padtheta(tpc::GetTheta(m_layer, mrow)*TMath::DegToRad()),
     m_padlength(tpc::padParameter[m_layer][tpc::kLength]),
     m_mrow(mrow),
     m_pad(tpc::GetPadId(layer, m_row)),
@@ -209,7 +209,7 @@ TPCHit::Calculate(Double_t clock)
     m_cde[i] = cde;
     m_ctime[i] = ctime;
     m_drift_length[i] = dl;
-    auto pos = tpc::getPosition(m_pad);
+    auto pos = tpc::GetPosition(m_pad);
     pos.SetY(dl);
     auto cpos = gTPCPos.Correct(pos, m_layer, m_row);
     m_position[i] = cpos;

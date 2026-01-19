@@ -90,8 +90,8 @@ TPCCluster::CheckClusterOnTheFrame()
   // The second dimension size is 5 (maximum number of frame edges per layer)
   static const Int_t NumFrameEdges = 5;
   for(Int_t i=0; i<NumFrameEdges; ++i){
-    if(TMath::Abs(tpc::FrameHighEdge[m_layer][i] - low_row) <= tpc::MaxRowDifTPC) status = true;
-    if(TMath::Abs(tpc::FrameLowEdge[m_layer][i] - high_row) <= tpc::MaxRowDifTPC) status = true;
+    if(TMath::Abs(tpc::frameHighEdge[m_layer][i] - low_row) <= tpc::MAX_ROW_DIF_TPC) status = true;
+    if(TMath::Abs(tpc::frameLowEdge[m_layer][i] - high_row) <= tpc::MAX_ROW_DIF_TPC) status = true;
   }
 
   m_is_onframe = status;
@@ -101,7 +101,7 @@ TPCCluster::CheckClusterOnTheFrame()
 Bool_t
 TPCCluster::Calculate()
 {
-  static const TVector2 target_center(0., tpc::ZTarget); // (X, Z)
+  static const TVector2 target_center(0., tpc::Z_TARGET); // (X, Z)
   Int_t max_row = static_cast<Int_t>(tpc::padParameter[m_layer][tpc::kNumOfPad]);
   m_cluster_de = 0.;
   m_cluster_position.SetXYZ(0., 0., 0.);
@@ -126,7 +126,7 @@ TPCCluster::Calculate()
 
     Int_t row = hit -> GetRow();
     Int_t padid = tpc::GetPadId(m_layer, row);
-    auto pos0 = tpc::getPosition(padid);
+    auto pos0 = tpc::GetPosition(padid);
     TVector2 xz_vector0(pos0.X(), pos0.Z());
     xz_vector0 -= target_center;
     xz_vectorHS0 += de*xz_vector0;
@@ -137,7 +137,7 @@ TPCCluster::Calculate()
   m_mean_theta = xz_vectorHS.Phi();
   TVector2 xz_vector = xz_vectorHS + target_center;
   m_cluster_position.SetXYZ(xz_vector.X(), mean_y, xz_vector.Y());
-  m_mean_row = tpc::getMrow(m_layer, m_mean_theta*TMath::RadToDeg());
+  m_mean_row = tpc::GetMrow(m_layer, m_mean_theta*TMath::RadToDeg());
     
   // Clamp the rounded rowID to valid range before calling GetPadId
   // This prevents TMath::Nint() from rounding to an out-of-bounds rowID
@@ -179,14 +179,14 @@ TPCCluster::Calculate()
   m_mean_hit->AddHit(0., 0.);
   m_mean_hit->SetMRow(m_mean_row);
   m_mean_hit->SetPadLength(tpc::padParameter[m_layer][tpc::kLength]);
-  m_mean_hit->SetPadTheta(tpc::getTheta(m_layer, m_mean_row)*TMath::DegToRad());
+  m_mean_hit->SetPadTheta(tpc::GetTheta(m_layer, m_mean_row)*TMath::DegToRad());
   m_mean_hit->SetDe(m_cluster_de);
   m_mean_hit->SetPosition(m_cluster_position);
   m_mean_hit->SetParentCluster(this);
 
   // center hit determination
   Double_t mean_phi0 = xz_vectorHS0.Phi();
-  Double_t mean_row0 = tpc::getMrow(m_layer, mean_phi0*TMath::RadToDeg());
+    Double_t mean_row0 = tpc::GetMrow(m_layer, mean_phi0*TMath::RadToDeg());
 
   Double_t rowdiff = 10; Int_t id = -1;
   for(Int_t i=0; i<m_hit_array.size(); ++i){
@@ -227,7 +227,7 @@ TPCCluster::Print(Option_t* opt) const
                 << ")" << " ";
     const auto& pos = hit->GetPosition();
     TVector2 xz_vector(pos.X(), pos.Z());
-    TVector2 target_position(0., tpc::ZTarget);
+    TVector2 target_position(0., tpc::Z_TARGET);
     auto phi = (xz_vector - target_position).Phi()*TMath::RadToDeg();
     auto residual = tpc::ArcLength(m_layer, hit->GetRow(), m_mean_row);
     hddaq::cout << " pos=" << pos << ", phi=" << phi << ", res=" << residual << std::endl;
