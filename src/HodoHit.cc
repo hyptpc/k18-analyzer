@@ -58,6 +58,15 @@ HodoHit::~HodoHit()
 }
 
 //_____________________________________________________________________________
+// Npe: DeltaE-like for Cherenkov. Scintillator returns NaN.
+Double_t
+HodoHit::Npe(Int_t j) const
+{
+  (void)j;
+  return TMath::QuietNaN();
+}
+
+//_____________________________________________________________________________
 Bool_t
 HodoHit::Calculate()
 {
@@ -155,17 +164,11 @@ HodoHit::Calculate()
     }
   }
 
-  // extra channel remains (for KVC)
-  if(id == DetIdKVC){
-    m_time_leading.at(E) = leading.at(HodoRawHit::kSUM);
-    m_ctime_leading.at(E) = cleading.at(HodoRawHit::kSUM);
-  }
   // extra channel remains (for HTOF)
   if(id == DetIdHTOF){
     m_time_leading.at(E) = leading.at(E);
     m_ctime_leading.at(E) = cleading.at(E);
   }
-
   
   for(Int_t ch=0; ch<m_n_ch; ++ch){
     m_time_trailing.at(ch) = trailing.at(ch);
@@ -178,10 +181,7 @@ HodoHit::Calculate()
   */
 
   m_is_calculated = true;
-  if (id != DetIdKVC)
-    return (m_ctime_leading.at(U).size() > 0);
-  else // KVC only has SUM TDC
-    return (m_ctime_leading.at(E).size() > 0);
+  return (m_ctime_leading.at(U).size() > 0);
 }
 
 //_____________________________________________________________________________

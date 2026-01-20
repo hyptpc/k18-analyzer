@@ -9,6 +9,7 @@
 #include <TString.h>
 
 #include "BH2Hit.hh"
+#include "CherenkovHit.hh"
 #include "ConfMan.hh"
 #include "DCGeomMan.hh"
 #include "DetectorID.hh"
@@ -58,6 +59,8 @@ std::map<TString, adc_t> de_u;
 std::map<TString, adc_t> de_d;
 std::map<TString, adc_t> de_s;
 std::map<TString, adc_t> de;
+std::map<TString, adc_t> npe_sum_online;
+std::map<TString, adc_t> npe_sum_offline;
 std::map<TString, tdc_t> time_u;
 std::map<TString, tdc_t> time_d;
 std::map<TString, tdc_t> time_s;
@@ -70,7 +73,7 @@ std::map<TString, cl_t> cl_time;
 std::map<TString, cl_t> cl_tdif;
 std::map<TString, cl_t> cl_size;
 
-///// KVC
+// KVC
 std::map<TString, adc_t> adc_a;
 std::map<TString, adc_t> adc_b;
 std::map<TString, adc_t> adc_c;
@@ -108,6 +111,8 @@ ProcessBegin()
   for(auto& p: de_d) p.second.clear();
   for(auto& p: de_s) p.second.clear();
   for(auto& p: de) p.second.clear();
+  for(auto& p: npe_sum_online) p.second.clear();
+  for(auto& p: npe_sum_offline) p.second.clear();
   for(auto& p: time_u) p.second.clear();
   for(auto& p: time_d) p.second.clear();
   for(auto& p: time_s) p.second.clear();
@@ -152,7 +157,11 @@ ProcessNormal()
   hodoAna.DecodeHits<BH2Hit>("BH2");
   for(Int_t ihodo=kBAC; ihodo<kNumHodo; ++ihodo){
     auto n = NameHodo[ihodo];
-    hodoAna.DecodeHits(n, !HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::NoCluster));
+    Bool_t do_not_cluster = !HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::NoCluster);
+    if (HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::Cherenkov))
+      hodoAna.DecodeHits<CherenkovHit>(n, do_not_cluster);
+    else
+      hodoAna.DecodeHits(n, do_not_cluster);
   }
 
   EventAnalyzer evAna;
@@ -226,7 +235,39 @@ ProcessNormal()
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
     auto n = NameHodo[ihodo];
+    // Offline (cached in HodoAnalyzer). BAC: 1; KVC: 8 per seg.
+    if (ihodo == kBAC || ihodo == kKVC)
+      for (auto x : hodoAna.GetOfflineNpe(ihodo == kBAC ? "BAC" : "KVC"))
+        npe_sum_offline[n].push_back(x);
+
+    // Hit loop: hit_seg[i], npe_*, mt, cmt share index i (= hit order). 
+    // KVC: offline for hit i = npe_sum_offline[n][ hit_seg[i] ].
     for(Int_t i=0, nh=hodoAna.GetNHits(n); i<nh; ++i){
+      // BAC: npe, npe_sum_online (seg4 only).
+      if (ihodo == kBAC) {
+        const auto* hit = hodoAna.GetHit<CherenkovHit>(n, i);
+        auto seg = hit->SegmentId();
+        hit_seg[n].push_back(seg);
+        de_u[n].push_back(hit->Npe());
+        Double_t onsum = hit->NpeSum(0);
+        if (!TMath::IsNaN(onsum)) npe_sum_online[n].push_back(onsum);
+        mt[n].push_back(hit->GetArrayCTime(HodoRawHit::kUp));
+        cmt[n].push_back(hit->GetArrayCTime(HodoRawHit::kUp));
+        continue;
+      }
+      // KVC: GetNpe(kA..kD), NpeSum(kSUM).
+      if (ihodo == kKVC) {
+        const auto* hit = hodoAna.GetHit<CherenkovHit>(n, i);
+        hit_seg[n].push_back(hit->SegmentId());
+        de_a[n].push_back(hit->GetNpe(HodoRawHit::EChannelKVC::kA, 0));
+        de_b[n].push_back(hit->GetNpe(HodoRawHit::EChannelKVC::kB, 0));
+        de_c[n].push_back(hit->GetNpe(HodoRawHit::EChannelKVC::kC, 0));
+        de_d[n].push_back(hit->GetNpe(HodoRawHit::EChannelKVC::kD, 0));
+        npe_sum_online[n].push_back(hit->NpeSum(0));
+        mt[n].push_back(hit->GetArrayCTime(HodoRawHit::kExtra));
+        cmt[n].push_back(hit->GetArrayCTime(HodoRawHit::kExtra));
+        continue;
+      }
       const auto& hit = hodoAna.GetHit(n, i);
       auto n_ch = hit->NumOfChannel();
       hit_seg[n].push_back(hit->SegmentId());
@@ -241,7 +282,7 @@ ProcessNormal()
         de_d[n].push_back(hit->GetADown());
         time_d[n].push_back(hit->GetArrayTime(1));
       }
-      if (ihodo == kHTOF || ihodo == kKVC) {
+      if (ihodo == kHTOF) {
         de_s[n].push_back(hit->GetAExtra());
         time_s[n].push_back(hit->GetArrayTime(2));
       }
@@ -343,7 +384,7 @@ ConfMan::InitializeHistograms()
         tree->Branch(Form("%s_tdc_s", n.Data()), &tdc_s[NameHodo[ihodo]]);
     }
   }
-  { ///// KVC
+  { ///// KVC (ch 0–3: indiv a,b,c,d; ch 4: SUM)
     const TString n("KVC");
     const Char_t* nn = "kvc";
     tree->Branch(Form("%s_raw_seg", nn), &raw_seg[n]);
@@ -356,19 +397,21 @@ ConfMan::InitializeHistograms()
   }
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
-    if (ihodo == kKVC) continue;
+    if (ihodo == kBAC || ihodo == kKVC) continue;
     auto n = NameHodo[ihodo];
     n.ToLower();
     const auto f = GetHodoFlags(ihodo);
+    Bool_t is_cherenkov = HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::Cherenkov);
+    const Char_t* dex = is_cherenkov ? "npe" : "de";
     tree->Branch(Form("%s_hit_seg", n.Data()), &hit_seg[NameHodo[ihodo]]);
     if (f.has_adc) {
-      tree->Branch(Form("%s_de_u", n.Data()), &de_u[NameHodo[ihodo]]);
+      tree->Branch(Form("%s_%s_u", n.Data(), dex), &de_u[NameHodo[ihodo]]);
       if (f.two_side) {
-        tree->Branch(Form("%s_de_d", n.Data()), &de_d[NameHodo[ihodo]]);
+        tree->Branch(Form("%s_%s_d", n.Data(), dex), &de_d[NameHodo[ihodo]]);
         if (f.has_sum) 
-          tree->Branch(Form("%s_de_s", n.Data()), &de_s[NameHodo[ihodo]]);
+          tree->Branch(Form("%s_%s_s", n.Data(), dex), &de_s[NameHodo[ihodo]]);
       }
-      tree->Branch(Form("%s_de", n.Data()), &de[NameHodo[ihodo]]);
+      tree->Branch(Form("%s_%s", n.Data(), dex), &de[NameHodo[ihodo]]);
     }
     tree->Branch(Form("%s_time_u", n.Data()), &time_u[NameHodo[ihodo]]);
     if (f.two_side) {
@@ -379,15 +422,26 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_mt", n.Data()), &mt[NameHodo[ihodo]]);
     tree->Branch(Form("%s_cmt", n.Data()), &cmt[NameHodo[ihodo]]);
   }
-  { ///// KVC
+  { ///// BAC: npe_u, npe_sum_online (seg4, per hit). npe_sum_offline: 1 (event, seg0–3 raw). hit_seg/mt/cmt: per hit, index i.
+    const TString n("BAC");
+    const Char_t* nn = "bac";
+    tree->Branch(Form("%s_hit_seg", nn), &hit_seg[n]);
+    tree->Branch(Form("%s_npe_u", nn), &de_u[n]);
+    tree->Branch(Form("%s_npe_sum_online", nn), &npe_sum_online[n]);
+    tree->Branch(Form("%s_npe_sum_offline", nn), &npe_sum_offline[n]);
+    tree->Branch(Form("%s_mt", nn), &mt[n]);
+    tree->Branch(Form("%s_cmt", nn), &cmt[n]);
+  }
+  { ///// KVC: npe_a..d, npe_sum_online (per hit). npe_sum_offline: 8, [seg]=seg id; for hit i use [hit_seg[i]]. hit_seg/mt/cmt: per hit.
     const TString n("KVC");
     const Char_t* nn = "kvc";
     tree->Branch(Form("%s_hit_seg", nn), &hit_seg[n]);
-    tree->Branch(Form("%s_de_a", nn), &de_a[n]);
-    tree->Branch(Form("%s_de_b", nn), &de_b[n]);
-    tree->Branch(Form("%s_de_c", nn), &de_c[n]);
-    tree->Branch(Form("%s_de_d", nn), &de_d[n]);
-    tree->Branch(Form("%s_de", nn), &de[n]);
+    tree->Branch(Form("%s_npe_a", nn), &de_a[n]);
+    tree->Branch(Form("%s_npe_b", nn), &de_b[n]);
+    tree->Branch(Form("%s_npe_c", nn), &de_c[n]);
+    tree->Branch(Form("%s_npe_d", nn), &de_d[n]);
+    tree->Branch(Form("%s_npe_sum_online", nn), &npe_sum_online[n]);
+    tree->Branch(Form("%s_npe_sum_offline", nn), &npe_sum_offline[n]);
     tree->Branch(Form("%s_mt", nn), &mt[n]);
     tree->Branch(Form("%s_cmt", nn), &cmt[n]);
   }
@@ -397,8 +451,9 @@ ConfMan::InitializeHistograms()
     if (f.no_cluster) continue;
     auto n = NameHodo[ihodo];
     n.ToLower();
+    const Char_t* cldex = HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::Cherenkov) ? "npe" : "de";
     tree->Branch(Form("%s_cl_seg", n.Data()), &cl_seg[NameHodo[ihodo]]);
-    tree->Branch(Form("%s_cl_de", n.Data()), &cl_de[NameHodo[ihodo]]);
+    tree->Branch(Form("%s_cl_%s", n.Data(), cldex), &cl_de[NameHodo[ihodo]]);
     tree->Branch(Form("%s_cl_time", n.Data()), &cl_time[NameHodo[ihodo]]);
     tree->Branch(Form("%s_cl_tdif", n.Data()), &cl_tdif[NameHodo[ihodo]]);
     tree->Branch(Form("%s_cl_size", n.Data()), &cl_size[NameHodo[ihodo]]);

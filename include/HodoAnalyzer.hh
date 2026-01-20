@@ -7,6 +7,7 @@
 
 #include <TString.h>
 
+#include "CherenkovHelper.hh"
 #include "DeleteUtility.hh"
 #include "DetectorID.hh"
 #include "FiberCluster.hh"
@@ -84,7 +85,12 @@ public:
   Double_t Btof0Seg() const;
   Double_t Ftof0Seg() const;
 
+  /// Offline Npe (cached). BAC: 1; KVC: NumOfSegKVC; other: empty.
+  std::vector<Double_t> GetOfflineNpe(const TString& name) const;
+
 private:
+  /// Key=detector name. Computed on first GetOfflineNpe(name).
+  mutable map_t<std::vector<Double_t>> m_offline_npe;
 
   template <typename T>
   void TimeCut(std::vector<T>& cont, Double_t min, Double_t max);

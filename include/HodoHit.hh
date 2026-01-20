@@ -70,7 +70,7 @@ public:
 
   Int_t GetEntries(Int_t i=0) const
     { return m_ctime_leading.at(i).size(); }
-  Double_t GetDeltaEHighGain(Int_t i, Int_t j=0) const
+  virtual Double_t GetDeltaEHighGain(Int_t i, Int_t j=0) const
     { return m_de_high.at(i).at(j); }
   Double_t GetDeltaELowGain(Int_t i, Int_t j=0) const
     { return m_de_low.at(i).at(j); }
@@ -95,7 +95,10 @@ public:
   Double_t CTime0(Int_t j=0) const { return CMeanTime(j) + m_time_offset; }
 
   // aliases
-  Double_t DeltaE(Int_t j=0) const { return DeltaEHighGain(j); }
+  virtual Double_t DeltaE(Int_t j=0) const { return DeltaEHighGain(j); }
+  // Npe: DeltaE-like interface for Cherenkov. Default NaN (scintillator).
+  virtual Double_t Npe(Int_t j=0) const;
+
   Double_t A(Int_t i, Int_t j=0) const { return GetDeltaEHighGain(i, j); }
   Double_t GetA(Int_t i, Int_t j=0) const { return A(i, j); }
   Double_t GetAUp(Int_t j=0) const { return A(HodoRawHit::kUp, j); }

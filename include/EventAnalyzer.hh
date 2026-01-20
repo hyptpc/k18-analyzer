@@ -3,6 +3,8 @@
 #ifndef EVENT_ANALYZER_HH
 #define EVENT_ANALYZER_HH
 
+#include <vector>
+
 #include "DetectorID.hh"
 #include "Event.hh"
 #include "HistTools.hh"
@@ -37,6 +39,8 @@ public:
 
   void TriggerFlag(const RawData& rawData);
   void DAQ(const RawData& rawData);
+
+private:
 };
 
 #endif

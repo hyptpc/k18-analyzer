@@ -17,6 +17,7 @@
 #include "FiberHit.hh"
 // #include "FLHit.hh"
 #include "FuncName.hh"
+#include "CherenkovHelper.hh"
 #include "HodoHit.hh"
 #include "HodoCluster.hh"
 #include "RawData.hh"
@@ -46,6 +47,16 @@ HodoAnalyzer::~HodoAnalyzer()
   for(auto& elem: m_hodo_cluster_collection)
     del::ClearContainer(elem.second);
   debug::ObjectCounter::decrease(ClassName());
+}
+
+//_____________________________________________________________________________
+std::vector<Double_t>
+HodoAnalyzer::GetOfflineNpe(const TString& name) const
+{
+  auto it = m_offline_npe.find(name);
+  if(it == m_offline_npe.end())
+    it = m_offline_npe.emplace(name, CherenkovHelper::Compute(*m_raw_data, name)).first;
+  return it->second;
 }
 
 //_____________________________________________________________________________

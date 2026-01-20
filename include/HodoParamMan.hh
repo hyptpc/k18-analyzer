@@ -139,6 +139,8 @@ public:
                          Int_t ud, Double_t adc, Double_t &de) const;
   Bool_t   GetDeLowGain(Int_t cid, Int_t plid, Int_t seg,
                         Int_t ud, Double_t adc, Double_t &de) const;
+  Bool_t   GetNpe(Int_t cid, Int_t plid, Int_t seg,
+                  Int_t ud, Double_t adc, Double_t &npe) const;
   Bool_t   GetTdc(Int_t cid, Int_t plid, Int_t seg,
                   Int_t ud, Double_t time, Int_t &tdc) const;
   Bool_t   GetAdc(Int_t cid, Int_t plid, Int_t seg,

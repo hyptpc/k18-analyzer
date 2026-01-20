@@ -9,6 +9,7 @@
 #include <DAQNode.hh>
 
 #include "BH2Hit.hh"
+#include "CherenkovHit.hh"
 #include "DCAnalyzer.hh"
 #include "DCHit.hh"
 #include "DCLocalTrack.hh"
@@ -18,6 +19,7 @@
 #include "FiberCluster.hh"
 #include "HodoAnalyzer.hh"
 #include "HodoCluster.hh"
+#include "HodoParamMan.hh"
 #include "HodoRawHit.hh"
 #include "RawData.hh"
 #include "RootHelper.hh"
@@ -28,6 +30,7 @@ namespace
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
+const auto& gHodo = HodoParamMan::GetInstance();
 using root::HF1;
 using root::HF2;
 }
@@ -89,7 +92,7 @@ EventAnalyzer::BeamFlag(const RawData& rawData)
   HF1("BeamFlag", flag);
   return flag;
 }
-//
+
 //_____________________________________________________________________________
 void
 EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
@@ -215,7 +218,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Multi_AND%s", name, b), multi_and);
   }
 
-  { ///// HTOF SUM
+  { // HTOF Sum (raw, kExtra)
     const Char_t* name = "HTOF";
     Int_t multi_ht = 0;
     for(const auto& hit: rawData.GetHodoRawHC(name)){
@@ -280,7 +283,7 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Multi_AND%s", name, b), multi_and);
   }
 
-  { ///// COBO
+  { // COBO
     const Char_t* name = "COBO";
     for(const auto& hit: rawData.GetHodoRawHC(name)){
       auto seg = hit->SegmentId();
@@ -299,6 +302,16 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
 {
   if(beam_flag == beam::kUnknown) return;
   const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
+
+  // Cherenkov: offline Npe (hodoAna.GetOfflineNpe).
+  {
+    auto bac = hodoAna.GetOfflineNpe("BAC");
+    if(!bac.empty()) HF1(Form("BAC_Hit_Npe_offline_sum%s", b), bac[0]);
+    auto kvc = hodoAna.GetOfflineNpe("KVC");
+    for(Int_t i = 0; i < (Int_t)kvc.size(); ++i)
+      HF1(Form("KVC_Hit_Npe_seg%dS_offline%s", i, b), kvc[i]);
+  }
+
   // BHT
   {
     static const Char_t* name = "BHT";
@@ -347,21 +360,24 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
 
   // Hodoscope
   for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
+    if(ihodo == kBAC || ihodo == kKVC) continue;
     const Char_t* name = NameHodo[ihodo];
     Int_t multi = 0;
+    Bool_t is_cherenkov = HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::Cherenkov);
     for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
       const auto& hit = hodoAna.GetHit(name, i);
       auto n_ch = hit->NumOfChannel();
       auto seg  = hit->SegmentId();
       if (!HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::NoADC)) {
-        auto de   = hit->DeltaE();
-        auto ude  = hit->UDeltaE();
-        HF1(Form("%s_Hit_DeltaE_seg%dU%s", name, seg, b), ude);
-        HF1(Form("%s_Hit_DeltaE_seg%d%s", name, seg, b), de);
-        HF2(Form("%s_Hit_DeltaE_vs_HitPat%s", name, b), seg, de);
+        auto val  = hit->DeltaE();   // Npe for CherenkovHit, dE otherwise
+        auto uval = hit->UDeltaE();
+        const Char_t* dex = is_cherenkov ? "Npe" : "DeltaE";
+        HF1(Form("%s_Hit_%s_seg%dU%s", name, dex, seg, b), uval);
+        HF1(Form("%s_Hit_%s_seg%d%s", name, dex, seg, b), val);
+        HF2(Form("%s_Hit_%s_vs_HitPat%s", name, dex, b), seg, val);
         if (n_ch > 1) {
-          auto dde  = hit->DDeltaE();
-          HF1(Form("%s_Hit_DeltaE_seg%dD%s", name, seg, b), dde);
+          auto dval = hit->DDeltaE();
+          HF1(Form("%s_Hit_%s_seg%dD%s", name, dex, seg, b), dval);
         }
       }
       Bool_t is_good = false;
@@ -393,21 +409,70 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
     HF1(Form("%s_Hit_Multi%s", name, b), multi);
   }
 
-  // HTOF, KVC Sum
-  for (const auto& ihodo: std::vector<Int_t>{kHTOF, kKVC}) {
-    const Char_t* name = NameHodo[ihodo];
+  // BAC Sum (seg4): NpeSum=online; offline filled above.
+  {
+    static const Char_t* name = "BAC";
     Int_t multi = 0;
     for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
-      const auto& hit = hodoAna.GetHit(name, i);
-      auto seg  = hit->SegmentId();
-      auto sde  = hit->ExDeltaE();
-      HF1(Form("%s_Hit_DeltaE_seg%dS%s", name, seg, b), sde);
+      const auto* hit = hodoAna.GetHit<CherenkovHit>(name, i);
+      if(!hit) continue;
+      auto seg = hit->SegmentId();
+      if(seg != 4) continue;  // online only for segment 4
+      Bool_t is_good = false;
+      for(Int_t j=0, m=hit->GetEntries(HodoRawHit::kUp); j<m; ++j){
+        HF1(Form("%s_Hit_Npe_seg%dS_online%s", name, seg, b), hit->NpeSum(j));
+        HF1(Form("%s_Hit_Time_seg%dS%s", name, seg, b), hit->GetTUp(j));
+        HF1(Form("%s_Hit_CTime_seg%dS%s", name, seg, b), hit->GetCTUp(j));
+        is_good = true;
+      }
+      if(is_good){
+        HF1(Form("%sSum_Hit_HitPat%s", name, b), seg);
+        ++multi;
+      }
+    }
+    HF1(Form("%sSum_Hit_Multi%s", name, b), multi);
+  }
+
+  // HTOF Sum (kExtra): ExDeltaE, Time/CTime, HitPat/Multi.
+  {
+    static const Char_t* name = "HTOF";
+    Int_t multi = 0;
+    for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
+      const auto* hit = hodoAna.GetHit(name, i);
+      if(!hit) continue;
+      auto seg = hit->SegmentId();
+      HF1(Form("%s_Hit_DeltaE_seg%dS%s", name, seg, b), hit->ExDeltaE());
       Bool_t is_good = false;
       for(Int_t j=0, m=hit->GetEntries(HodoRawHit::kExtra); j<m; ++j){
-        auto ts  = hit->GetTExtra(j);
-        auto cts = hit->GetCTExtra(j);
-        HF1(Form("%s_Hit_Time_seg%dS%s", name, seg, b), ts);
-        HF1(Form("%s_Hit_CTime_seg%dS%s", name, seg, b), cts);
+        HF1(Form("%s_Hit_Time_seg%dS%s", name, seg, b), hit->GetTExtra(j));
+        HF1(Form("%s_Hit_CTime_seg%dS%s", name, seg, b), hit->GetCTExtra(j));
+        is_good = true;
+      }
+      if(is_good){
+        HF1(Form("%sSum_Hit_HitPat%s", name, b), seg);
+        ++multi;
+      }
+    }
+    HF1(Form("%sSum_Hit_Multi%s", name, b), multi);
+  }
+
+  // KVC Sum: offline per seg above; online NpeSum(kSUM), GetNpe(kA..kD).
+  {
+    static const Char_t* name = "KVC";
+    Int_t multi = 0;
+    for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
+      const auto* hit = hodoAna.GetHit<CherenkovHit>(name, i);
+      if(!hit) continue;
+      auto seg = hit->SegmentId();
+      Bool_t is_good = false;
+      for(Int_t j=0, m=hit->GetEntries(HodoRawHit::kExtra); j<m; ++j){
+        HF1(Form("%s_Hit_Npe_seg%dS_online%s", name, seg, b), hit->NpeSum(j));
+        HF1(Form("%s_Hit_Npe_seg%da%s", name, seg, b), hit->GetNpe(0, j));
+        HF1(Form("%s_Hit_Npe_seg%db%s", name, seg, b), hit->GetNpe(1, j));
+        HF1(Form("%s_Hit_Npe_seg%dc%s", name, seg, b), hit->GetNpe(2, j));
+        HF1(Form("%s_Hit_Npe_seg%dd%s", name, seg, b), hit->GetNpe(3, j));
+        HF1(Form("%s_Hit_Time_seg%dS%s", name, seg, b), hit->GetTExtra(j));
+        HF1(Form("%s_Hit_CTime_seg%dS%s", name, seg, b), hit->GetCTExtra(j));
         is_good = true;
       }
       if(is_good){
@@ -520,7 +585,10 @@ EventAnalyzer::HodoCluster(const HodoAnalyzer& hodoAna,
       HF2(Form("%s_Cl_MeanTime_vs_HitPat%s", name, b), seg, cl->MeanTime());
       HF2(Form("%s_Cl_CMeanTime_vs_HitPat%s", name, b), seg, cl->CMeanTime());
       HF2(Form("%s_Cl_TimeDiff_vs_HitPat%s", name, b), seg, cl->TimeDiff());
-      HF2(Form("%s_Cl_DeltaE_vs_HitPat%s", name, b), seg, cl->DeltaE());
+      if(HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::Cherenkov))
+        HF2(Form("%s_Cl_Npe_vs_HitPat%s", name, b), seg, cl->DeltaE());
+      else
+        HF2(Form("%s_Cl_DeltaE_vs_HitPat%s", name, b), seg, cl->DeltaE());
       HF1(Form("%s_Cl_HitPat%s", name, b), seg);
       HF1(Form("%s_Cl_Size%s", name, b), cl->ClusterSize());
       ++multi;
