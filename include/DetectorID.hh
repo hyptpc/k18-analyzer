@@ -83,6 +83,7 @@ enum class HodoGroup : UInt_t {
   NoCluster      = 1u << 1,
   OneSideReadout = 1u << 2,
   Cherenkov      = 1u << 3,
+  Ftof           = 1u << 4,
 };
 
 constexpr Bool_t HasHodoGroup(UInt_t mask, HodoGroup g)
@@ -105,9 +106,9 @@ inline constexpr UInt_t HodoGroupMask[kNumHodo] = {
   0, // kHTOF
   MakeHodoMask({HodoGroup::Cherenkov}), // kKVC
   MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout}), // kT1
-  0, // kCVC
-  MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout, HodoGroup::Cherenkov}), // kSAC3
-  MakeHodoMask({HodoGroup::NoADC, HodoGroup::NoCluster, HodoGroup::OneSideReadout}), // kSFV
+  MakeHodoMask({HodoGroup::Ftof}), // kCVC
+  MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout, HodoGroup::Cherenkov, HodoGroup::Ftof}), // kSAC3
+  MakeHodoMask({HodoGroup::NoADC, HodoGroup::NoCluster, HodoGroup::OneSideReadout, HodoGroup::Ftof}), // kSFV
   MakeHodoMask({HodoGroup::NoADC, HodoGroup::NoCluster, HodoGroup::OneSideReadout}), // kCOBO
 };
 

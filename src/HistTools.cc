@@ -18,29 +18,27 @@ namespace
 {
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
-//using root::HB1;
-//using root::HB2;
 using namespace root; 
 }
 
 namespace hist
 {
-// Raw
-const Double_t hrtdcbins1[3] = {20000,  600000,  800000};
-const Double_t hrtdcbins2[3] = {20000,  200000,  600000}; // for FTOF
-const Double_t hrtdcbins3[3] = {20000, 1200000, 1600000}; // for BHT
-const Double_t hrtdcbins4[3] = {10000, 1500000, 1650000}; // for COBO
-const Double_t hrtdcbins5[3] = {10000,       0, 2000000}; // TriggerFlag
-const Double_t hrtotbins[3]  = {5000, 0, 50000};
-const Double_t adcbins[3]    = {4096, -0.5, 4095.5};
-const Double_t mhtdcbins[3]  = {2000, 0, 2000};
-const Double_t mhtotbins[3]  = {1000, 0, 1000};
+// Raw TDC: {n_bin, x_min, x_max}
+const Double_t hr_tdc_bins[3]       = {20000.,  600000.,  800000.};  // default
+const Double_t hr_tdc_bins_ftof[3]  = {20000.,  200000.,  600000.};
+const Double_t hr_tdc_bins_bht[3]   = {20000., 1200000., 1600000.};
+const Double_t hr_tdc_bins_cobo[3]  = {10000., 1500000., 1650000.};
+const Double_t hr_tdc_bins_trig[3]  = {10000.,       0., 2000000.};  // TriggerFlag
+const Double_t hr_tot_bins[3]       = {5000., 0., 50000.};
+const Double_t adc_bins[3]          = {4096., -0.5, 4095.5};
+const Double_t mh_tdc_bins[3]       = {2000., 0., 2000.};
+const Double_t mh_tot_bins[3]       = {1000., 0., 1000.};
 // HodoHit
-const Double_t hrtimebins[3]    = {5000, -50, 50};
-const Double_t mhtimebins[3]    = {500, -50, 50};
-const Double_t hrtottimebins[3] = {1000, 0, 200};
-const Double_t debins[3]        = {1000, 0, 10};
-const Double_t npebins[3]       = {700, -50.0, 300.};  // for Cherenkov (BAC, KVC, SAC3)
+const Double_t hr_time_bins[3]      = {5000., -50., 50.};
+const Double_t mh_time_bins[3]      = {500., -50., 50.};
+const Double_t hr_tot_time_bins[3]  = {1000., 0., 200.};
+const Double_t de_bins[3]           = {1000., 0., 10.};
+const Double_t npe_bins[3]          = {700., -50., 300.};  // for Cherenkov (BAC, KVC, SAC3)
 
 //_____________________________________________________________________________
 void
@@ -56,7 +54,7 @@ BuildTriggerFlag()
   const Char_t* name = "TriggerFlag";
   Double_t patbins[3] = {NumOfSegTrigFlag, -0.5, NumOfSegTrigFlag-0.5};
   for(Int_t i=0; i<NumOfSegTrigFlag; ++i){
-    HB1(Form("%s_TDC_seg%d", name, i), hrtdcbins5);
+    HB1(Form("%s_TDC_seg%d", name, i), hr_tdc_bins_trig);
   }
   HB1(Form("%s_HitPat; Segment; Counts", name), patbins);
   auto h1 = HB1("BeamFlag", beam::kBeamFlag, -0.5, beam::kBeamFlag - 0.5);
@@ -77,105 +75,115 @@ BuildHodoRaw(Bool_t flag_beam_particle)
     const Char_t* b = beam.Data();
     { // BHT
       const Char_t* name = "BHT";
-      Int_t nseg = NumOfSegBHT;
+      Double_t nseg = static_cast<Double_t>(NumOfSegBHT);
+      const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
+      const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
       for(Int_t i=0; i<nseg; ++i){
         for(const auto& uord : std::vector<TString>{"U", "D"} ){
           const Char_t* ud = uord.Data();
-          HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins3);
-          HB1(Form("%s_Trailing_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins3);
-          HB1(Form("%s_TOT_seg%d%s%s; channel; count", name, i, ud, b), hrtotbins);
+          HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b),      hr_tdc_bins_bht);
+          HB1(Form("%s_Trailing_seg%d%s%s; channel; count", name, i, ud, b), hr_tdc_bins_bht);
+          HB1(Form("%s_TOT_seg%d%s%s; channel; count", name, i, ud, b),      hr_tot_bins);
         }
       }
       for(const auto& uord: std::vector<TString>{"OR", "AND"} ){
         auto ud = uord.Data();
-        HB1(Form("%s_HitPat_%s%s; segment; count", name, ud, b), nseg, -0.5, nseg - 0.5);
-        HB1(Form("%s_Multi_%s%s; multiplicity; count", name, ud, b), nseg + 1, -0.5, nseg + 0.5);
+        HB1(Form("%s_HitPat_%s%s; segment; count", name, ud, b),     seg_bins);
+        HB1(Form("%s_Multi_%s%s; multiplicity; count", name, ud, b), mul_bins);
       }
     }
 
     { // BAC
       const Char_t* name = "BAC";
-      Int_t nseg = NumOfSegBAC;
+      Double_t nseg = static_cast<Double_t>(NumOfSegBAC);
+      const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
+      const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
       for(Int_t i=0; i<nseg; ++i){
-        HB1(Form("%s_ADC_seg%d%s; channel; count", name, i, b), adcbins);
-        HB1(Form("%s_AwT_seg%d%s; channel; count", name, i, b), adcbins);
-        HB1(Form("%s_AwoT_seg%d%s; channel; count", name, i, b), adcbins);
-        HB1(Form("%s_TDC_seg%d%s; channel; count", name, i, b), hrtdcbins1);
+        HB1(Form("%s_ADC_seg%d%s; channel; count", name, i, b),  adc_bins);
+        HB1(Form("%s_AwT_seg%d%s; channel; count", name, i, b),  adc_bins);
+        HB1(Form("%s_AwoT_seg%d%s; channel; count", name, i, b), adc_bins);
+        HB1(Form("%s_TDC_seg%d%s; channel; count", name, i, b),  hr_tdc_bins);
       }
-      HB1(Form("%s_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
-      HB1(Form("%s_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
+      HB1(Form("%s_HitPat%s; segment; count", name, b),     seg_bins);
+      HB1(Form("%s_Multi%s; multiplicity; count", name, b), mul_bins);
     }
     
-    ///// BHT-BAC
+    // BHT-BAC
     {
       HB2(Form("BAC_ADC_vs_BHT_TDC%s", b),
           200, 720000., 750000., 200, 0., 2000.);
     }
 
-    // Hodoscope (U/D or 1ch). KVC: a,b,c,d,S only. COBO: TDC(U) only → dedicated blocks below.
-    for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
+    // Hodoscope (U/D or 1ch). 
+    // KVC: a,b,c,d,S only. COBO: TDC(U) only → dedicated blocks below.
+    for(Int_t ihodo=kBH2; ihodo<kNumHodo; ++ihodo){
       if(ihodo == kKVC || ihodo == kCOBO) continue;
       auto name = NameHodo[ihodo].Data();
-      const Double_t* hrtdcbins = (ihodo == kCVC || ihodo == kSFV || ihodo == kSAC3) ? hrtdcbins2 : hrtdcbins1;
-      Int_t nseg = NumOfSegHodo[ihodo];
-      for(const auto& uord: std::vector<TString>{"U", "D"}){
+      const Double_t* tdc_bins;
+      if (HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::Ftof))
+        tdc_bins = hr_tdc_bins_ftof;
+      else
+        tdc_bins = hr_tdc_bins;
+      Double_t nseg = static_cast<Double_t>(NumOfSegHodo[ihodo]);
+      const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
+      const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
+      for (const auto& uord : std::vector<TString>{"U", "D"}) {
         auto ud = uord.Data();
-        for(Int_t i=0; i<nseg; ++i){
-          HB1(Form("%s_ADC_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
-          HB1(Form("%s_AwT_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
-          HB1(Form("%s_AwoT_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
-          HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins);
+        for (Int_t i = 0; i < nseg; ++i) {
+          HB1(Form("%s_ADC_seg%d%s%s; channel; count", name, i, ud, b),  adc_bins);
+          HB1(Form("%s_AwT_seg%d%s%s; channel; count", name, i, ud, b),  adc_bins);
+          HB1(Form("%s_AwoT_seg%d%s%s; channel; count", name, i, ud, b), adc_bins);
+          HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b),  tdc_bins);
         }
       }
       for(const auto& uord: std::vector<TString>{"OR", "AND"} ){
         auto ud = uord.Data();
-        HB1(Form("%s_HitPat_%s%s; segment; count", name, ud, b), nseg, -0.5, nseg - 0.5);
-        HB1(Form("%s_Multi_%s%s; multiplicity; count", name, ud, b), nseg + 1, -0.5, nseg + 0.5);
+        HB1(Form("%s_HitPat_%s%s; segment; count", name, ud, b),     seg_bins);
+        HB1(Form("%s_Multi_%s%s; multiplicity; count", name, ud, b), mul_bins);
       }
     }
 
     { // HTOF Sum (S): U/D is in the loop above
       auto name = "HTOF";
-      const Double_t* hrtdcbins = hrtdcbins1;
-      Int_t nseg = NumOfSegHTOF;
-      for(const auto& uord: std::vector<TString>{"S"}){
-        auto ud = uord.Data();
-        for(Int_t i=0; i<nseg; ++i){
-          HB1(Form("%s_ADC_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
-          HB1(Form("%s_AwT_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
-          HB1(Form("%s_AwoT_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
-          HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins);
-        }
+      Double_t nseg = static_cast<Double_t>(NumOfSegHTOF);
+      const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
+      const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
+      const Char_t* ud = "S";
+      for (Int_t i = 0; i < nseg; ++i) {
+        HB1(Form("%s_ADC_seg%d%s%s; channel; count", name, i, ud, b),  adc_bins);
+        HB1(Form("%s_AwT_seg%d%s%s; channel; count", name, i, ud, b),  adc_bins);
+        HB1(Form("%s_AwoT_seg%d%s%s; channel; count", name, i, ud, b), adc_bins);
+        HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b),  hr_tdc_bins);
       }
-      HB1(Form("%s_HitPat_HT%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
-      HB1(Form("%s_Multi_HT%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
+      HB1(Form("%s_HitPat_HT%s; segment; count", name, b),     seg_bins);
+      HB1(Form("%s_Multi_HT%s; multiplicity; count", name, b), mul_bins);
     }
 
     { // KVC: a,b,c,d,S (no U/D). HitPat/Multi from OR/AND.
       auto name = "KVC";
-      const Double_t* hrtdcbins = hrtdcbins1;
-      Int_t nseg = NumOfSegKVC;
-      for(const auto& uord: std::vector<TString>{"a", "b", "c", "d", "S"}){
+      Double_t nseg = static_cast<Double_t>(NumOfSegKVC);
+      const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
+      const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
+      for (const auto& uord : std::vector<TString>{"a", "b", "c", "d", "S"}) {
         auto ud = uord.Data();
-        for(Int_t i=0; i<nseg; ++i){
-          HB1(Form("%s_ADC_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
-          HB1(Form("%s_AwT_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
-          HB1(Form("%s_AwoT_seg%d%s%s; channel; count", name, i, ud, b), adcbins);
-          HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b), hrtdcbins);
+        for (Int_t i = 0; i < nseg; ++i) {
+          HB1(Form("%s_ADC_seg%d%s%s; channel; count", name, i, ud, b),  adc_bins);
+          HB1(Form("%s_AwT_seg%d%s%s; channel; count", name, i, ud, b),  adc_bins);
+          HB1(Form("%s_AwoT_seg%d%s%s; channel; count", name, i, ud, b), adc_bins);
+          HB1(Form("%s_TDC_seg%d%s%s; channel; count", name, i, ud, b),  hr_tdc_bins);
         }
       }
-      for(const auto& uord: std::vector<TString>{"OR", "AND"}){
+      for (const auto& uord : std::vector<TString>{"OR", "AND"}) {
         auto ud = uord.Data();
-        HB1(Form("%s_HitPat_%s%s; segment; count", name, ud, b), nseg, -0.5, nseg - 0.5);
-        HB1(Form("%s_Multi_%s%s; multiplicity; count", name, ud, b), nseg + 1, -0.5, nseg + 0.5);
+        HB1(Form("%s_HitPat_%s%s; segment; count", name, ud, b),     seg_bins);
+        HB1(Form("%s_Multi_%s%s; multiplicity; count", name, ud, b), mul_bins);
       }
     }
 
     { // COBO: TDC(U) only
       auto name = "COBO";
-      Int_t nseg = NumOfSegHodo[kCOBO];
-      for(Int_t i=0; i<nseg; ++i)
-        HB1(Form("%s_TDC_seg%dU%s; channel; count", name, i, b), hrtdcbins4);
+      for(Int_t i=0; i<NumOfSegHodo[kCOBO]; ++i)
+        HB1(Form("%s_TDC_seg%dU%s; channel; count", name, i, b), hr_tdc_bins_cobo);
     }
 
     if(!flag_beam_particle) break;
@@ -190,182 +198,190 @@ BuildHodoHit(Bool_t flag_beam_particle)
     const Char_t* b = beam.Data();
     { // BHT
       const Char_t* name = "BHT";
-      Double_t nseg = NumOfSegBHT;
+      Double_t nseg = static_cast<Double_t>(NumOfSegBHT);
+      const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
+      const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
       for(Int_t i=0; i<nseg; ++i){
         for(const auto& uord : std::vector<TString>{"U", "D"}){
           const Char_t* ud = uord.Data();
-          HB1(Form("%s_Hit_Time_seg%d%s%s; ns; count", name, i, ud, b), hrtimebins);
-          HB1(Form("%s_Hit_CTime_seg%d%s%s; ns; count", name, i, ud, b), hrtimebins);
-          HB1(Form("%s_Hit_TOT_seg%d%s%s; ns; count", name, i, ud, b), hrtottimebins);
-          HB1(Form("%s_Hit_DeltaE_seg%d%s%s; mip; count", name, i, ud, b), debins);
+          HB1(Form("%s_Hit_Time_seg%d%s%s; ns; count", name, i, ud, b),    hr_time_bins);
+          HB1(Form("%s_Hit_CTime_seg%d%s%s; ns; count", name, i, ud, b),   hr_time_bins);
+          HB1(Form("%s_Hit_TOT_seg%d%s%s; ns; count", name, i, ud, b),     hr_tot_time_bins);
+          HB1(Form("%s_Hit_DeltaE_seg%d%s%s; mip; count", name, i, ud, b), de_bins);
         }
-        HB1(Form("%s_Hit_MeanTime_seg%d%s; ns; count", name, i, b), hrtimebins);
-        HB1(Form("%s_Hit_CMeanTime_seg%d%s; ns; count", name, i, b), hrtimebins);
-        HB1(Form("%s_Hit_MeanTOT_seg%d%s; ns; count", name, i, b), hrtottimebins);
-        HB1(Form("%s_Hit_DeltaE_seg%d%s; mip; count", name, i, b), debins);
+        HB1(Form("%s_Hit_MeanTime_seg%d%s; ns; count", name, i, b),  hr_time_bins);
+        HB1(Form("%s_Hit_CMeanTime_seg%d%s; ns; count", name, i, b), hr_time_bins);
+        HB1(Form("%s_Hit_MeanTOT_seg%d%s; ns; count", name, i, b),   hr_tot_time_bins);
+        HB1(Form("%s_Hit_DeltaE_seg%d%s; mip; count", name, i, b),   de_bins);
       }
-      HB1(Form("%s_Hit_MeanTime%s; ns; count", name, b), hrtimebins);
-      HB1(Form("%s_Hit_CMeanTime%s; ns; count", name, b), hrtimebins);
-      HB1(Form("%s_Hit_MeanTOT%s; ns; count", name, b), hrtottimebins);
-      HB1(Form("%s_Hit_DeltaE%s; mip; count", name, b), debins);
-      const Double_t hrtimebins2d[6] = { nseg, -0.5, nseg - 0.5,
-        hrtimebins[0]/10, hrtimebins[1], hrtimebins[2] };
-      const Double_t hrtottimebins2d[6] = { nseg, -0.5, nseg - 0.5,
-        hrtottimebins[0]/5, hrtottimebins[1], hrtottimebins[2] };
-      const Double_t debins2d[6] = { nseg, -0.5, nseg - 0.5,
-        debins[0]/10, debins[1], debins[2] };
-      HB2(Form("%s_Hit_MeanTime_vs_HitPat%s; segment; ns", name, b), hrtimebins2d);
-      HB2(Form("%s_Hit_CMeanTime_vs_HitPat%s; segment; ns", name, b), hrtimebins2d);
-      HB2(Form("%s_Hit_MeanTOT_vs_HitPat%s; segment; ns", name, b), hrtottimebins2d);
-      HB2(Form("%s_Hit_DeltaE_vs_HitPat%s; segment; mip", name, b), debins2d);
-      HB1(Form("%s_Hit_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
-      HB1(Form("%s_Hit_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
+      HB1(Form("%s_Hit_MeanTime%s; ns; count", name, b),  hr_time_bins);
+      HB1(Form("%s_Hit_CMeanTime%s; ns; count", name, b), hr_time_bins);
+      HB1(Form("%s_Hit_MeanTOT%s; ns; count", name, b),   hr_tot_time_bins);
+      HB1(Form("%s_Hit_DeltaE%s; mip; count", name, b),   de_bins);
+      const Double_t hr_time_bins_2d[6] = { nseg, -0.5, nseg-0.5,
+        hr_time_bins[0]/10, hr_time_bins[1], hr_time_bins[2] };
+      const Double_t hr_tot_time_bins_2d[6] = { nseg, -0.5, nseg-0.5,
+        hr_tot_time_bins[0]/5, hr_tot_time_bins[1], hr_tot_time_bins[2] };
+      const Double_t de_bins_2d[6] = { nseg, -0.5, nseg-0.5,
+        de_bins[0]/10, de_bins[1], de_bins[2] };
+      HB2(Form("%s_Hit_MeanTime_vs_HitPat%s; segment; ns", name, b),  hr_time_bins_2d);
+      HB2(Form("%s_Hit_CMeanTime_vs_HitPat%s; segment; ns", name, b), hr_time_bins_2d);
+      HB2(Form("%s_Hit_MeanTOT_vs_HitPat%s; segment; ns", name, b),   hr_tot_time_bins_2d);
+      HB2(Form("%s_Hit_DeltaE_vs_HitPat%s; segment; mip", name, b),   de_bins_2d);
+      HB1(Form("%s_Hit_HitPat%s; segment; count", name, b),     seg_bins);
+      HB1(Form("%s_Hit_Multi%s; multiplicity; count", name, b), mul_bins);
     }
 
     // Hodoscope (U/D). BAC and KVC use only Sum (S) → "BAC, HTOF, KVC Sum" block below.
-    // Cherenkov (SAC3): Hit_Npe / npebins. Others: Hit_DeltaE / debins.
+    // Cherenkov (SAC3): Hit_Npe / npe_bins. Others: Hit_DeltaE / de_bins.
     for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
       if(ihodo == kBAC || ihodo == kKVC) continue;
       auto name = NameHodo[ihodo].Data();
-      Double_t nseg = NumOfSegHodo[ihodo];
+      Double_t nseg = static_cast<Double_t>(NumOfSegHodo[ihodo]);
+      const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
+      const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
       Bool_t is_cherenkov = HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::Cherenkov);
-      const Char_t* dex = is_cherenkov ? "Npe" : "DeltaE";
-      const Double_t* dex_bins = is_cherenkov ? npebins : debins;
-      const Char_t* dex_axis = is_cherenkov ? "Npe" : "mip";
+      const Char_t*   dex      = is_cherenkov ? "Npe"    : "DeltaE";
+      const Double_t* dex_bins = is_cherenkov ? npe_bins : de_bins;
+      const Char_t*   dex_axis = is_cherenkov ? "Npe"    : "mip";
       for(Int_t i=0; i<nseg; ++i){
         for(const auto& uord: std::vector<TString>{"U", "D"} ){
           auto ud = uord.Data();
           HB1(Form("%s_Hit_%s_seg%d%s%s; %s; count", name, dex, i, ud, b, dex_axis), dex_bins);
-          HB1(Form("%s_Hit_Time_seg%d%s%s; ns; count", name, i, ud, b), hrtimebins);
-          HB1(Form("%s_Hit_CTime_seg%d%s%s; ns; count", name, i, ud, b), hrtimebins);
+          HB1(Form("%s_Hit_Time_seg%d%s%s; ns; count", name, i, ud, b),  hr_time_bins);
+          HB1(Form("%s_Hit_CTime_seg%d%s%s; ns; count", name, i, ud, b), hr_time_bins);
         }
         HB1(Form("%s_Hit_%s_seg%d%s; %s; count", name, dex, i, b, dex_axis), dex_bins);
-        HB1(Form("%s_Hit_MeanTime_seg%d%s; ns; count", name, i, b), hrtimebins);
-        HB1(Form("%s_Hit_CMeanTime_seg%d%s; ns; count", name, i, b), hrtimebins);
+        HB1(Form("%s_Hit_MeanTime_seg%d%s; ns; count", name, i, b),  hr_time_bins);
+        HB1(Form("%s_Hit_CMeanTime_seg%d%s; ns; count", name, i, b), hr_time_bins);
       }
-      HB1(Form("%s_Hit_MeanTime%s; ns; count", name, b), hrtimebins);
-      HB1(Form("%s_Hit_CMeanTime%s; ns; count", name, b), hrtimebins);
-      HB1(Form("%s_Hit_%s%s; %s; count", name, dex, b, dex_axis), is_cherenkov ? npebins : hrtottimebins);
-      const Double_t hrtimebins2d[6] = { nseg, -0.5, nseg - 0.5,
-        hrtimebins[0]/10, hrtimebins[1], hrtimebins[2] };
-      const Double_t debins2d[6] = { nseg, -0.5, nseg - 0.5,
-        debins[0]/10, debins[1], debins[2] };
-      const Double_t npebins2d[6] = { nseg, -0.5, nseg - 0.5,
-        npebins[0]/10, npebins[1], npebins[2] };
-      HB2(Form("%s_Hit_MeanTime_vs_HitPat%s; segment; ns", name, b), hrtimebins2d);
-      HB2(Form("%s_Hit_CMeanTime_vs_HitPat%s; segment; ns", name, b), hrtimebins2d);
-      HB2(Form("%s_Hit_%s_vs_HitPat%s; segment; %s", name, dex, b, dex_axis), is_cherenkov ? npebins2d : debins2d);
-      HB1(Form("%s_Hit_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
-      HB1(Form("%s_Hit_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
+      HB1(Form("%s_Hit_MeanTime%s; ns; count", name, b), hr_time_bins);
+      HB1(Form("%s_Hit_CMeanTime%s; ns; count", name, b), hr_time_bins);
+      HB1(Form("%s_Hit_%s%s; %s; count", name, dex, b, dex_axis), dex_bins);
+      const Double_t hr_time_bins_2d[6] = { nseg, -0.5, nseg-0.5,
+        hr_time_bins[0]/10, hr_time_bins[1], hr_time_bins[2] };
+      const Double_t de_bins_2d[6] = { nseg, -0.5, nseg-0.5,
+        de_bins[0]/10, de_bins[1], de_bins[2] };
+      const Double_t npe_bins_2d[6] = { nseg, -0.5, nseg-0.5,
+        npe_bins[0]/10, npe_bins[1], npe_bins[2] };
+      HB2(Form("%s_Hit_MeanTime_vs_HitPat%s; segment; ns", name, b),  hr_time_bins_2d);
+      HB2(Form("%s_Hit_CMeanTime_vs_HitPat%s; segment; ns", name, b), hr_time_bins_2d);
+      HB2(Form("%s_Hit_%s_vs_HitPat%s; segment; %s", name, dex, b, dex_axis), is_cherenkov ? npe_bins_2d : de_bins_2d);
+      HB1(Form("%s_Hit_HitPat%s; segment; count", name, b),     seg_bins);
+      HB1(Form("%s_Hit_Multi%s; multiplicity; count", name, b), mul_bins);
     }
 
     // BAC Sum: S_online (seg4), offline_sum (event). Time/CTime_seg S. No a,b,c,d.
     {
       auto name = "BAC";
-      Double_t nseg = NumOfSegBAC;
-      HB1(Form("%s_Hit_Npe_offline_sum%s; Npe; count", name, b), npebins);
+      Double_t nseg = static_cast<Double_t>(NumOfSegBAC);
+      const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
+      const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
+      HB1(Form("%s_Hit_Npe_offline_sum%s; Npe; count", name, b), npe_bins);
       for(Int_t i=0; i<nseg; ++i){
-        HB1(Form("%s_Hit_Npe_seg%dS_online%s; Npe; count", name, i, b), npebins);
-        HB1(Form("%s_Hit_Time_seg%dS%s; ns; count", name, i, b), hrtimebins);
-        HB1(Form("%s_Hit_CTime_seg%dS%s; ns; count", name, i, b), hrtimebins);
+        HB1(Form("%s_Hit_Npe_seg%dS_online%s; Npe; count", name, i, b), npe_bins);
+        HB1(Form("%s_Hit_Time_seg%dS%s; ns; count", name, i, b),  hr_time_bins);
+        HB1(Form("%s_Hit_CTime_seg%dS%s; ns; count", name, i, b), hr_time_bins);
       }
-      HB1(Form("%sSum_Hit_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
-      HB1(Form("%sSum_Hit_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
+      HB1(Form("%sSum_Hit_HitPat%s; segment; count", name, b),     seg_bins);
+      HB1(Form("%sSum_Hit_Multi%s; multiplicity; count", name, b), mul_bins);
     }
 
     // HTOF Sum (S, kExtra): Hit_DeltaE, Time/CTime_seg S, Sum_Hit_HitPat/Multi
     {
       auto name = "HTOF";
-      Double_t nseg = NumOfSegHTOF;
+      Double_t nseg = static_cast<Double_t>(NumOfSegHTOF);
+      const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
+      const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
       for(Int_t i=0; i<nseg; ++i){
-        HB1(Form("%s_Hit_DeltaE_seg%dS%s; mip; count", name, i, b), debins);
-        HB1(Form("%s_Hit_Time_seg%dS%s; ns; count", name, i, b), hrtimebins);
-        HB1(Form("%s_Hit_CTime_seg%dS%s; ns; count", name, i, b), hrtimebins);
+        HB1(Form("%s_Hit_DeltaE_seg%dS%s; mip; count", name, i, b), de_bins);
+        HB1(Form("%s_Hit_Time_seg%dS%s; ns; count", name, i, b),    hr_time_bins);
+        HB1(Form("%s_Hit_CTime_seg%dS%s; ns; count", name, i, b),   hr_time_bins);
       }
-      HB1(Form("%sSum_Hit_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
-      HB1(Form("%sSum_Hit_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
+      HB1(Form("%sSum_Hit_HitPat%s; segment; count", name, b),     seg_bins);
+      HB1(Form("%sSum_Hit_Multi%s; multiplicity; count", name, b), mul_bins);
     }
 
-    // KVC Sum (kExtra): Hit_Npe_seg S_offline (raw-based per seg), S_online + a,b,c,d. Time/CTime_seg S, Sum_Hit_HitPat/Multi
+    // KVC Sum (kExtra): 
+    // Hit_Npe_seg S_offline (raw-based per seg), S_online+a,b,c,d. 
+    // Time/CTime_seg S, Sum_Hit_HitPat/Multi
     {
       auto name = "KVC";
-      Double_t nseg = NumOfSegKVC;
+      Double_t nseg = static_cast<Double_t>(NumOfSegKVC);
+      const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
+      const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
       const Char_t* abcd[4] = {"a", "b", "c", "d"};
       for(Int_t i=0; i<nseg; ++i){
-        HB1(Form("%s_Hit_Npe_seg%dS_offline%s; Npe; count", name, i, b), npebins);
-        HB1(Form("%s_Hit_Npe_seg%dS_online%s; Npe; count", name, i, b), npebins);
+        HB1(Form("%s_Hit_Npe_seg%dS_offline%s; Npe; count", name, i, b), npe_bins);
+        HB1(Form("%s_Hit_Npe_seg%dS_online%s; Npe; count", name, i, b),  npe_bins);
         for(Int_t c=0; c<4; ++c)
-          HB1(Form("%s_Hit_Npe_seg%d%s%s; Npe; count", name, i, abcd[c], b), npebins);
-        HB1(Form("%s_Hit_Time_seg%dS%s; ns; count", name, i, b), hrtimebins);
-        HB1(Form("%s_Hit_CTime_seg%dS%s; ns; count", name, i, b), hrtimebins);
+          HB1(Form("%s_Hit_Npe_seg%d%s%s; Npe; count", name, i, abcd[c], b), npe_bins);
+        HB1(Form("%s_Hit_Time_seg%dS%s; ns; count", name, i, b),  hr_time_bins);
+        HB1(Form("%s_Hit_CTime_seg%dS%s; ns; count", name, i, b), hr_time_bins);
       }
-      HB1(Form("%sSum_Hit_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
-      HB1(Form("%sSum_Hit_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
+      HB1(Form("%sSum_Hit_HitPat%s; segment; count", name, b),     seg_bins);
+      HB1(Form("%sSum_Hit_Multi%s; multiplicity; count", name, b), mul_bins);
     }
 
-    // TOF
-    {
-      const Double_t phcbins2d[6] = { 100, -0.5, 4.5, 100, -10., 10. };
+    // TOF / BTOF / FTOF
+    const Double_t phcbins2d[6] = {100, -0.5, 4.5, 100, -10., 10.};
+    { // TOF
       for(Int_t i=0; i<NumOfSegHTOF; ++i){
         for(const auto& uord : std::vector<TString>{"U", "D"}){
           const Char_t* ud = uord.Data();
-          HB2(Form("HTOF_seg%d%s_TOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
+          HB2(Form("HTOF_seg%d%s_TOF_vs_DeltaE%s; mip; ns", i, ud, b),  phcbins2d);
           HB2(Form("HTOF_seg%d%s_CTOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
         }
       }
-      HB2(Form("HTOF_TOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
+      HB2(Form("HTOF_TOF_vs_DeltaE%s; mip; ns", b),  phcbins2d);
       HB2(Form("HTOF_CTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
     }
 
-    // BTOF
-    {
+    { // BTOF
       for(Int_t i=0; i<NumOfSegHodo[kBH2]; ++i){
         HB1(Form("T0_seg%d_TimeOffset%s; ns; count", i, b), 2000, -10, 10);
       }
-      const Double_t phcbins2d[6] = { 100, -0.5, 4.5, 100, -10., 10. };
       for(Int_t i=0; i<NumOfSegBHT; ++i){
         for(const auto& uord : std::vector<TString>{"U", "D"}){
           const Char_t* ud = uord.Data();
-          HB2(Form("BHT_seg%d%s_BTOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
+          HB2(Form("BHT_seg%d%s_BTOF_vs_DeltaE%s; mip; ns", i, ud, b),  phcbins2d);
           HB2(Form("BHT_seg%d%s_CBTOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
         }
       }
-      HB2(Form("BHT_BTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
+      HB2(Form("BHT_BTOF_vs_DeltaE%s; mip; ns", b),  phcbins2d);
       HB2(Form("BHT_CBTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
       for(Int_t i=0; i<NumOfSegHodo[kBH2]; ++i){
         for(const auto& uord : std::vector<TString>{"U", "D"}){
           const Char_t* ud = uord.Data();
-          HB2(Form("T0_seg%d%s_BTOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
+          HB2(Form("T0_seg%d%s_BTOF_vs_DeltaE%s; mip; ns", i, ud, b),  phcbins2d);
           HB2(Form("T0_seg%d%s_CBTOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
         }
       }
-      HB2(Form("T0_BTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
+      HB2(Form("T0_BTOF_vs_DeltaE%s; mip; ns", b),  phcbins2d);
       HB2(Form("T0_CBTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
     }
 
-    // FTOF
-    {
-      const Double_t phcbins2d[6] = { 100, -0.5, 4.5, 100, -10., 10. };
+    { // FTOF
       for(const auto& id: std::vector<Int_t>{kCVC}){
         const Char_t* n = NameHodo[id];
         for(Int_t i=0; i<NumOfSegHodo[id]; ++i){
           for(const auto& uord : std::vector<TString>{"U", "D"}){
             const Char_t* ud = uord.Data();
-            HB2(Form("%s_seg%d%s_FTOF_vs_DeltaE%s; mip; ns", n, i, ud, b), phcbins2d);
+            HB2(Form("%s_seg%d%s_FTOF_vs_DeltaE%s; mip; ns", n, i, ud, b),  phcbins2d);
             HB2(Form("%s_seg%d%s_CFTOF_vs_DeltaE%s; mip; ns", n, i, ud, b), phcbins2d);
           }
         }
-        HB2(Form("%s_FTOF_vs_DeltaE%s; mip; ns", n, b), phcbins2d);
+        HB2(Form("%s_FTOF_vs_DeltaE%s; mip; ns", n, b),  phcbins2d);
         HB2(Form("%s_CFTOF_vs_DeltaE%s; mip; ns", n, b), phcbins2d);
       }
       for(Int_t i=0; i<NumOfSegHodo[kBH2]; ++i){
         for(const auto& uord : std::vector<TString>{"U", "D"}){
           const Char_t* ud = uord.Data();
-          HB2(Form("T0_seg%d%s_FTOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
+          HB2(Form("T0_seg%d%s_FTOF_vs_DeltaE%s; mip; ns", i, ud, b),  phcbins2d);
           HB2(Form("T0_seg%d%s_CFTOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
         }
       }
-      HB2(Form("T0_FTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
+      HB2(Form("T0_FTOF_vs_DeltaE%s; mip; ns", b),  phcbins2d);
       HB2(Form("T0_CFTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
     }
     if(!flag_beam_particle) break;
@@ -378,50 +394,62 @@ BuildHodoCluster(Bool_t flag_beam_particle)
 {
   for(const auto& beam: beam::BeamFlagList){
     const Char_t* b = beam.Data();
+    const Double_t size_bins[3] = {10+1, -0.5, 10+0.5};
     { // BHT
       const Char_t* name = "BHT";
-      Double_t nseg = NumOfSegBHT;
-      const Double_t hrtimebins2d[6] = { nseg, -0.5, nseg - 0.5,
-        hrtimebins[0]/10, hrtimebins[1], hrtimebins[2] };
-      const Double_t debins2d[6] = { nseg, -0.5, nseg - 0.5,
-        debins[0]/10, debins[1], debins[2] };
-      HB2(Form("%s_Cl_MeanTime_vs_HitPat%s; segment; ns", name, b), hrtimebins2d);
-      HB2(Form("%s_Cl_CMeanTime_vs_HitPat%s; segment; ns", name, b), hrtimebins2d);
-      HB2(Form("%s_Cl_TimeDiff_vs_HitPat%s; segment; ns", name, b), hrtimebins2d);
-      HB2(Form("%s_Cl_DeltaE_vs_HitPat%s; segment; mip", name, b), debins2d);
-      HB1(Form("%s_Cl_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
-      HB1(Form("%s_Cl_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
-      HB1(Form("%s_Cl_Size%s; size; count", name, b), 10 + 1, -0.5, 10 + 0.5);
+      Double_t nseg = static_cast<Double_t>(NumOfSegBHT);
+      const Double_t hr_time_bins_2d[6] = { nseg, -0.5, nseg-0.5,
+        hr_time_bins[0]/10, hr_time_bins[1], hr_time_bins[2] };
+      const Double_t de_bins_2d[6] = { nseg, -0.5, nseg-0.5,
+        de_bins[0]/10, de_bins[1], de_bins[2] };
+      const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
+      const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
+      HB2(Form("%s_Cl_MeanTime_vs_HitPat%s; segment; ns", name, b),  hr_time_bins_2d);
+      HB2(Form("%s_Cl_CMeanTime_vs_HitPat%s; segment; ns", name, b), hr_time_bins_2d);
+      HB2(Form("%s_Cl_TimeDiff_vs_HitPat%s; segment; ns", name, b),  hr_time_bins_2d);
+      HB2(Form("%s_Cl_DeltaE_vs_HitPat%s; segment; mip", name, b),   de_bins_2d);
+      HB1(Form("%s_Cl_HitPat%s; segment; count", name, b),     seg_bins);
+      HB1(Form("%s_Cl_Multi%s; multiplicity; count", name, b), mul_bins);
+      HB1(Form("%s_Cl_Size%s; size; count", name, b),          size_bins);
     }
+    
     // Hodoscope (exclude NoCluster: BAC, T1, SAC3, SFV, COBO). KVC: Cl_Npe_vs_HitPat.
     for(Int_t ihodo=kBH2; ihodo<kNumHodo;++ihodo){
       if(HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::NoCluster)) continue;
       auto name = NameHodo[ihodo].Data();
-      Double_t nseg = NumOfSegHodo[ihodo];
+      Double_t nseg = static_cast<Double_t>(NumOfSegHodo[ihodo]);
       Bool_t is_cherenkov = HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::Cherenkov);
-      const Double_t hrtimebins2d[6] = { nseg, -0.5, nseg - 0.5,
-        hrtimebins[0]/10, hrtimebins[1], hrtimebins[2] };
-      const Double_t debins2d[6] = { nseg, -0.5, nseg - 0.5,
-        debins[0]/10, debins[1], debins[2] };
-      const Double_t npebins2d[6] = { nseg, -0.5, nseg - 0.5,
-        npebins[0]/10, npebins[1], npebins[2] };
-      HB2(Form("%s_Cl_MeanTime_vs_HitPat%s; segment; ns", name, b), hrtimebins2d);
-      HB2(Form("%s_Cl_CMeanTime_vs_HitPat%s; segment; ns", name, b), hrtimebins2d);
-      HB2(Form("%s_Cl_TimeDiff_vs_HitPat%s; segment; ns", name, b), hrtimebins2d);
-      HB2(Form("%s_Cl_%s_vs_HitPat%s; segment; %s", name, is_cherenkov?"Npe":"DeltaE", b, is_cherenkov?"Npe":"mip"), is_cherenkov ? npebins2d : debins2d);
-      HB1(Form("%s_Cl_HitPat%s; segment; count", name, b), nseg, -0.5, nseg - 0.5);
-      HB1(Form("%s_Cl_Multi%s; multiplicity; count", name, b), nseg + 1, -0.5, nseg + 0.5);
-      HB1(Form("%s_Cl_Size%s; size; count", name, b), 10 + 1, -0.5, 10 + 0.5);
+      const Double_t hr_time_bins_2d[6] = { nseg, -0.5, nseg-0.5,
+        hr_time_bins[0]/10, hr_time_bins[1], hr_time_bins[2] };
+      const Double_t de_bins_2d[6] = { nseg, -0.5, nseg-0.5,
+        de_bins[0]/10, de_bins[1], de_bins[2] };
+      const Double_t npe_bins_2d[6] = { nseg, -0.5, nseg-0.5,
+        npe_bins[0]/10, npe_bins[1], npe_bins[2] };
+      const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
+      const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
+      HB2(Form("%s_Cl_MeanTime_vs_HitPat%s; segment; ns", name, b), hr_time_bins_2d);
+      HB2(Form("%s_Cl_CMeanTime_vs_HitPat%s; segment; ns", name, b), hr_time_bins_2d);
+      HB2(Form("%s_Cl_TimeDiff_vs_HitPat%s; segment; ns", name, b), hr_time_bins_2d);
+      HB2(Form("%s_Cl_%s_vs_HitPat%s; segment; %s", name, is_cherenkov?"Npe":"DeltaE", b, is_cherenkov?"Npe":"mip"), is_cherenkov ? npe_bins_2d : de_bins_2d);
+      HB1(Form("%s_Cl_HitPat%s; segment; count", name, b),     seg_bins);
+      HB1(Form("%s_Cl_Multi%s; multiplicity; count", name, b), mul_bins);
+      HB1(Form("%s_Cl_Size%s; size; count", name, b),          size_bins);
     }
+
     // BTOF
-    HB1(Form("CTime0%s; ns; count", b), 400, -4, 4);
-    HB1(Form("CBtof0%s; ns; count", b), 600, -20, 10);
-    HB2(Form("CBtof0_vs_deT0Seg%s; mip; ns", b), 200, 0, 4, 200, -4, 4);
-    HB2(Form("CBtof0_vs_deBtof0Seg%s; mip; ns", b), 200, 0, 4, 200, -4, 4);
+    const Double_t ctime0_bins[3] = {400, -4, 4};
+    const Double_t cbtof0_bins[3] = {600, -20, 10};
+    const Double_t tof_vs_de_bins[6] = {200, 0, 4, 200, -4, 4};
+    HB1(Form("CTime0%s; ns; count", b), ctime0_bins);
+    HB1(Form("CBtof0%s; ns; count", b), cbtof0_bins);
+    HB2(Form("CBtof0_vs_deT0Seg%s; mip; ns", b), tof_vs_de_bins);
+    HB2(Form("CBtof0_vs_deBtof0Seg%s; mip; ns", b), tof_vs_de_bins);
+    
     // FTOF
-    HB1(Form("CFtof0%s; ns; count", b), 600, -10, 30);
-    HB2(Form("CFtof0_vs_deT0Seg%s; mip; ns", b), 200, 0, 4, 200, -4, 4);
-    HB2(Form("CFtof0_vs_deFtof0Seg%s; mip; ns", b), 200, 0, 4, 200, -4, 4);
+    const Double_t cftof0_bins[3] = {600, -10, 30};
+    HB1(Form("CFtof0%s; ns; count", b), cftof0_bins);
+    HB2(Form("CFtof0_vs_deT0Seg%s; mip; ns", b), tof_vs_de_bins);
+    HB2(Form("CFtof0_vs_deFtof0Seg%s; mip; ns", b), tof_vs_de_bins);
     if(!flag_beam_particle) break;
   }
 }
@@ -441,36 +469,36 @@ BuildDCRaw(const TString& dcname, Bool_t flag_beam_particle)
     //   const Char_t* name = NameDC[idc].Data();
     for (const auto& name_str : DCNameList.at(dcname)) {
       const auto name = name_str.Data();
-      auto detector_id = digit_info.get_device_id(name);
-      Int_t nplane = digit_info.get_n_plane(detector_id);
-      Double_t nwire = digit_info.get_n_ch(detector_id);
-      const Double_t patbins[3] = {nwire, -0.5, nwire - 0.5};
-      const Double_t mulbins[3] = {nwire + 1, -0.5, nwire + 0.5};
-      const Double_t tdcbins2d[6] = {nwire, -0.5, nwire - 0.5,
-        mhtdcbins[0], mhtdcbins[1], mhtdcbins[2] };
-      const Double_t totbins2d[6] = {nwire, -0.5, nwire - 0.5,
-        mhtotbins[0], mhtotbins[1], mhtotbins[2] };
-      const Double_t tdctotbins2d[6] = {
-        mhtdcbins[0], mhtdcbins[1], mhtdcbins[2],
-        mhtotbins[0], mhtotbins[1], mhtotbins[2] };
-      for(Int_t plane=0; plane<nplane; ++plane){
-        for(const auto& totcut: std::vector<TString>{"", "C"}){
-          auto c = totcut.Data();
-          HB1(Form("%s_%sTDC_plane%d%s; channel; count", name, c, plane, b), mhtdcbins);
-          HB1(Form("%s_%sTDC1st_plane%d%s; channel; count", name, c, plane, b), mhtdcbins);
-          HB1(Form("%s_%sTrailing_plane%d%s; channel; count", name, c, plane, b), mhtdcbins);
-          HB1(Form("%s_%sTrailing1st_plane%d%s; channel; count", name, c, plane, b), mhtdcbins);
-          HB1(Form("%s_%sTOT_plane%d%s; channel; count", name, c, plane, b), mhtotbins);
-          HB1(Form("%s_%sTOT1st_plane%d%s; channel; count", name, c, plane, b), mhtotbins);
-          HB1(Form("%s_%sHitPat_plane%d%s; wire; count", name, c, plane, b), patbins);
-          HB1(Form("%s_%sMulti_plane%d%s; multiplicity; count", name, c, plane, b), mulbins);
-          HB2(Form("%s_%sTOT_vs_TDC_plane%d%s; segment; channel", name, c, plane, b), tdctotbins2d);
-          HB2(Form("%s_%sTDC_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
-          HB2(Form("%s_%sTDC1st_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
-          HB2(Form("%s_%sTrailing_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
-          HB2(Form("%s_%sTrailing1st_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), tdcbins2d);
-          HB2(Form("%s_%sTOT_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), totbins2d);
-          HB2(Form("%s_%sTOT1st_vs_HitPat_plane%d%s; segment; channel", name, c, plane, b), totbins2d);
+      const auto detector_id = digit_info.get_device_id(name);
+      const Int_t n_plane = digit_info.get_n_plane(detector_id);
+      const Double_t n_wire = digit_info.get_n_ch(detector_id);
+      const Double_t pat_bins[3]    = {n_wire,   -0.5, n_wire-0.5};
+      const Double_t mul_bins[3]    = {n_wire+1, -0.5, n_wire+0.5};
+      const Double_t tdc_bins_2d[6] = {n_wire,   -0.5, n_wire-0.5,
+        mh_tdc_bins[0], mh_tdc_bins[1], mh_tdc_bins[2]};
+      const Double_t tot_bins_2d[6] = {n_wire,   -0.5, n_wire-0.5,
+        mh_tot_bins[0], mh_tot_bins[1], mh_tot_bins[2]};
+      const Double_t tdc_tot_bins_2d[6] = {
+        mh_tdc_bins[0], mh_tdc_bins[1], mh_tdc_bins[2],
+        mh_tot_bins[0], mh_tot_bins[1], mh_tot_bins[2]};
+      for (Int_t plane = 0; plane < n_plane; ++plane) {
+        for (const auto& tot_cut : std::vector<TString>{"", "C"}) {
+          const Char_t* suffix = tot_cut.Data();
+          HB1(Form("%s_%sTDC_plane%d%s; channel; count", name, suffix, plane, b), mh_tdc_bins);
+          HB1(Form("%s_%sTDC1st_plane%d%s; channel; count", name, suffix, plane, b), mh_tdc_bins);
+          HB1(Form("%s_%sTrailing_plane%d%s; channel; count", name, suffix, plane, b), mh_tdc_bins);
+          HB1(Form("%s_%sTrailing1st_plane%d%s; channel; count", name, suffix, plane, b), mh_tdc_bins);
+          HB1(Form("%s_%sTOT_plane%d%s; channel; count", name, suffix, plane, b), mh_tot_bins);
+          HB1(Form("%s_%sTOT1st_plane%d%s; channel; count", name, suffix, plane, b), mh_tot_bins);
+          HB1(Form("%s_%sHitPat_plane%d%s; wire; count", name, suffix, plane, b), pat_bins);
+          HB1(Form("%s_%sMulti_plane%d%s; multiplicity; count", name, suffix, plane, b), mul_bins);
+          HB2(Form("%s_%sTOT_vs_TDC_plane%d%s; segment; channel", name, suffix, plane, b), tdc_tot_bins_2d);
+          HB2(Form("%s_%sTDC_vs_HitPat_plane%d%s; segment; channel", name, suffix, plane, b), tdc_bins_2d);
+          HB2(Form("%s_%sTDC1st_vs_HitPat_plane%d%s; segment; channel", name, suffix, plane, b), tdc_bins_2d);
+          HB2(Form("%s_%sTrailing_vs_HitPat_plane%d%s; segment; channel", name, suffix, plane, b), tdc_bins_2d);
+          HB2(Form("%s_%sTrailing1st_vs_HitPat_plane%d%s; segment; channel", name, suffix, plane, b), tdc_bins_2d);
+          HB2(Form("%s_%sTOT_vs_HitPat_plane%d%s; segment; channel", name, suffix, plane, b), tot_bins_2d);
+          HB2(Form("%s_%sTOT1st_vs_HitPat_plane%d%s; segment; channel", name, suffix, plane, b), tot_bins_2d);
         }
       }
     }
@@ -487,34 +515,30 @@ BuildDCHit(const TString& dcname, Bool_t flag_beam_particle)
     const Char_t* b = beam.Data();
     for (const auto& name_str : DCNameList.at(dcname)) {
       const auto name = name_str.Data();
-      auto detector_id = digit_info.get_device_id(name);
-      Int_t nplane = digit_info.get_n_plane(detector_id);
-      Double_t nwire = digit_info.get_n_ch(detector_id);
-      const Double_t patbins[3] = {nwire, -0.5, nwire - 0.5};
-      const Double_t patbins2d[6] = {nwire, -0.5, nwire - 0.5, nwire, -0.5, nwire - 0.5};
-      const Double_t dpatbins[3] = {nwire*2,-1*nwire-0.5,nwire-0.5};
-      const Double_t mulbins[3] = {nwire + 1, -0.5, nwire + 0.5};
-      const Double_t dtbins[3] = {600, -100., 400.};
-      const Double_t dlbins[3] = {120/2, -1.0, 5.0};
-      const Double_t dtbins2d[6] = {nwire, -0.5, nwire - 0.5,
-        dtbins[0], dtbins[1], dtbins[2] };
-      const Double_t dlbins2d[6] = {nwire, -0.5, nwire - 0.5,
-        dlbins[0], dlbins[1], dlbins[2] };
-      const Double_t dttotbins2d[6] = {
-        dtbins[0], dtbins[1], dtbins[2],
-        mhtotbins[0], mhtotbins[1], mhtotbins[2] };
-      for(Int_t plane=0; plane<nplane; ++plane){
-        HB1(Form("%s_Hit_DriftTime_plane%d%s; ns; count", name, plane, b), dtbins);
-        HB1(Form("%s_Hit_DriftLength_plane%d%s; mm; count", name, plane, b), dlbins);
-        HB2(Form("%s_Hit_TOT_vs_DriftTime_plane%d%s; segment; ns", name, plane, b), dttotbins2d);
-        HB2(Form("%s_Hit_DriftTime_vs_HitPat_plane%d%s; segment; ns", name, plane, b), dtbins2d);
-        HB2(Form("%s_Hit_DriftLength_vs_HitPat_plane%d%s; segment; mm", name, plane, b), dlbins2d);
-        HB1(Form("%s_Hit_HitPat_plane%d%s; wire; count", name, plane, b), patbins);
-	if(plane%2 == 0){
-	  HB2(Form("%s_Hit_HitPat_Pairplane%d%d%s; wire [plane %d]; wire [plane %d]", name, plane, plane + 1, b,plane,plane+1), patbins2d);
-	  HB1(Form("%s_Hit_HitPat_PP_Sub%d%d%s; wire of plane %d-wire of plane %d;count",name, plane, plane+1, b, plane, plane+1),dpatbins);
-	}
-        HB1(Form("%s_Hit_Multi_plane%d%s; multiplicity; count", name, plane, b), mulbins);
+      const auto detector_id = digit_info.get_device_id(name);
+      const Int_t n_plane = digit_info.get_n_plane(detector_id);
+      const Double_t n_wire = digit_info.get_n_ch(detector_id);
+      const Double_t pat_bins[3] = {n_wire, -0.5, n_wire-0.5};
+      const Double_t pat_bins_2d[6] = {n_wire, -0.5, n_wire-0.5, n_wire, -0.5, n_wire-0.5};
+      const Double_t d_pat_bins[3] = {n_wire * 2, -n_wire-0.5, n_wire-0.5};
+      const Double_t mul_bins[3] = {n_wire+1, -0.5, n_wire+0.5};
+      const Double_t dt_bins[3] = {600, -100., 400.};
+      const Double_t dl_bins[3] = {60, -1.0, 5.0};
+      const Double_t dt_bins_2d[6] = {n_wire, -0.5, n_wire-0.5, dt_bins[0], dt_bins[1], dt_bins[2]};
+      const Double_t dl_bins_2d[6] = {n_wire, -0.5, n_wire-0.5, dl_bins[0], dl_bins[1], dl_bins[2]};
+      const Double_t dt_tot_bins_2d[6] = {dt_bins[0], dt_bins[1], dt_bins[2], mh_tot_bins[0], mh_tot_bins[1], mh_tot_bins[2]};
+      for (Int_t plane = 0; plane < n_plane; ++plane) {
+        HB1(Form("%s_Hit_DriftTime_plane%d%s; ns; count", name, plane, b), dt_bins);
+        HB1(Form("%s_Hit_DriftLength_plane%d%s; mm; count", name, plane, b), dl_bins);
+        HB2(Form("%s_Hit_TOT_vs_DriftTime_plane%d%s; segment; ns", name, plane, b), dt_tot_bins_2d);
+        HB2(Form("%s_Hit_DriftTime_vs_HitPat_plane%d%s; segment; ns", name, plane, b), dt_bins_2d);
+        HB2(Form("%s_Hit_DriftLength_vs_HitPat_plane%d%s; segment; mm", name, plane, b), dl_bins_2d);
+        HB1(Form("%s_Hit_HitPat_plane%d%s; wire; count", name, plane, b), pat_bins);
+        if (plane % 2 == 0) {
+          HB2(Form("%s_Hit_HitPat_Pairplane%d%d%s; wire [plane %d]; wire [plane %d]", name, plane, plane+1, b, plane, plane+1), pat_bins_2d);
+          HB1(Form("%s_Hit_HitPat_PP_Sub%d%d%s; wire of plane %d-wire of plane %d;count", name, plane, plane+1, b, plane, plane+1), d_pat_bins);
+        }
+        HB1(Form("%s_Hit_Multi_plane%d%s; multiplicity; count", name, plane, b), mul_bins);
       }
     }
     if(!flag_beam_particle) break;
@@ -528,34 +552,36 @@ BuildDCTrack(const TString& dcname, Bool_t flag_beam_particle)
   const auto& digit_info = gUConf.get_digit_info();
   for(const auto& beam: beam::BeamFlagList){
     const Char_t* b = beam.Data();
-    HB1(Form("%sTrack_NHit%s; ; count", dcname.Data(), b), 20, -0.5, 19.5);
-    HB1(Form("%sTrack_ChiSquare%s; ; count", dcname.Data(), b), 200, 0, 40);
-    HB1(Form("%sTrack_X0%s; ; count", dcname.Data(), b), 200, -500, 500);
-    HB1(Form("%sTrack_Y0%s; ; count", dcname.Data(), b), 200, -500, 500);
-    HB1(Form("%sTrack_U0%s; ; count", dcname.Data(), b), 200, -.5, .5);
-    HB1(Form("%sTrack_V0%s; ; count", dcname.Data(), b), 200, -.5, .5);
+    const Double_t nhit_bins[3]  = {20, -0.5, 19.5};
+    const Double_t chisq_bins[3] = {200, 0.0, 40.0};
+    const Double_t xy0_bins[3]   = {200, -500.0, 500.0};
+    const Double_t uv0_bins[3]   = {200, -0.5, 0.5};
+    HB1(Form("%sTrack_NHit%s; ; count", dcname.Data(), b), nhit_bins);
+    HB1(Form("%sTrack_ChiSquare%s; ; count", dcname.Data(), b), chisq_bins);
+    HB1(Form("%sTrack_X0%s; ; count", dcname.Data(), b), xy0_bins);
+    HB1(Form("%sTrack_Y0%s; ; count", dcname.Data(), b), xy0_bins);
+    HB1(Form("%sTrack_U0%s; ; count", dcname.Data(), b), uv0_bins);
+    HB1(Form("%sTrack_V0%s; ; count", dcname.Data(), b), uv0_bins);
     for (const auto& name_str : DCNameList.at(dcname)) {
       const auto name = name_str.Data();
-      auto detector_id = digit_info.get_device_id(name);
-      Int_t nplane = digit_info.get_n_plane(detector_id);
-      Double_t nwire = digit_info.get_n_ch(detector_id);
-      const Double_t patbins[3] = {nwire, -0.5, nwire - 0.5};
-      const Double_t dtbins[3] = {600, -100., 400.};
-      const Double_t dlbins[3] = {120/2, -1.0, 5.0};
-      const Double_t dtbins2d[6] = {nwire, -0.5, nwire - 0.5,
-        dtbins[0], dtbins[1], dtbins[2] };
-      const Double_t dlbins2d[6] = {nwire, -0.5, nwire - 0.5,
-        dlbins[0], dlbins[1], dlbins[2] };
-      const Double_t resbins[3] = {400, -2.0, 2.0};
-      const Double_t resdlbins2d[6] = {200, -3., 3., 200, -2.0, 2.0};
-      for(Int_t plane=0; plane<nplane; ++plane){
-        HB1(Form("%s_Track_DriftTime_plane%d%s; ns; count", name, plane, b), dtbins);
-        HB1(Form("%s_Track_DriftLength_plane%d%s; mm; count", name, plane, b), dlbins);
-        HB2(Form("%s_Track_DriftTime_vs_HitPat_plane%d%s; segment; ns", name, plane, b), dtbins2d);
-        HB2(Form("%s_Track_DriftLength_vs_HitPat_plane%d%s; segment; mm", name, plane, b), dlbins2d);
-        HB1(Form("%s_Track_HitPat_plane%d%s; wire; count", name, plane, b), patbins);
-        HB1(Form("%s_Track_Residual_plane%d%s; mm; count", name, plane, b), resbins);
-        HB2(Form("%s_Track_Residual_vs_DriftLength_plane%d%s; mm; count", name, plane, b), resdlbins2d);
+      const auto detector_id = digit_info.get_device_id(name);
+      const Int_t n_plane = digit_info.get_n_plane(detector_id);
+      const Double_t n_wire = digit_info.get_n_ch(detector_id);
+      const Double_t pat_bins[3] = {n_wire, -0.5, n_wire-0.5};
+      const Double_t dt_bins[3] = {600, -100., 400.};
+      const Double_t dl_bins[3] = {60, -1.0, 5.0};
+      const Double_t dt_bins_2d[6] = {n_wire, -0.5, n_wire-0.5, dt_bins[0], dt_bins[1], dt_bins[2]};
+      const Double_t dl_bins_2d[6] = {n_wire, -0.5, n_wire-0.5, dl_bins[0], dl_bins[1], dl_bins[2]};
+      const Double_t res_bins[3] = {400, -2.0, 2.0};
+      const Double_t res_dl_bins_2d[6] = {200, -3., 3., 200, -2.0, 2.0};
+      for (Int_t plane = 0; plane < n_plane; ++plane) {
+        HB1(Form("%s_Track_DriftTime_plane%d%s; ns; count", name, plane, b), dt_bins);
+        HB1(Form("%s_Track_DriftLength_plane%d%s; mm; count", name, plane, b), dl_bins);
+        HB2(Form("%s_Track_DriftTime_vs_HitPat_plane%d%s; segment; ns", name, plane, b), dt_bins_2d);
+        HB2(Form("%s_Track_DriftLength_vs_HitPat_plane%d%s; segment; mm", name, plane, b), dl_bins_2d);
+        HB1(Form("%s_Track_HitPat_plane%d%s; wire; count", name, plane, b), pat_bins);
+        HB1(Form("%s_Track_Residual_plane%d%s; mm; count", name, plane, b), res_bins);
+        HB2(Form("%s_Track_Residual_vs_DriftLength_plane%d%s; mm; count", name, plane, b), res_dl_bins_2d);
       }
     }
     if(!flag_beam_particle) break;
@@ -605,178 +631,164 @@ BuildDAQ()
 void
 BuildTPCHit()
 {
-  const Int_t    NbinAdc     = 4096;
-  const Double_t MinAdc      =    0.;
-  const Double_t MaxAdc      = 4096.;
-  const Int_t    NbinRms     = 1000;
-  const Double_t MinRms      =    0.;
-  const Double_t MaxRms      = 1000.;
-  const Int_t    NbinDe      = 1000;
-  const Double_t MinDe       =    0.;
-  const Double_t MaxDe       = 1000.;
-  const Int_t    NbinChisqr  = 1000;
-  const Double_t MinChisqr   =    0.;
-  const Double_t MaxChisqr   = 1000.;
-  const Int_t    NbinTime    = 1000;
-  const Double_t MinTime     = -8000.;
-  const Double_t MaxTime     =  8000.;
-  const Int_t    NbinDL      = 800;
-  const Double_t MinDL       = -400.;
-  const Double_t MaxDL       =  400.;
-  const Int_t    NbinSigma   = 500;
-  const Double_t MinSigma    =    0.;
-  const Double_t MaxSigma    =   50.;
-  const Int_t    NTimeBucket = 170;
+  const Int_t    n_bin_adc     = 4096;
+  const Double_t min_adc       = 0.;
+  const Double_t max_adc       = 4096.;
+  const Int_t    n_bin_rms     = 1000;
+  const Double_t min_rms       = 0.;
+  const Double_t max_rms       = 1000.;
+  const Int_t    n_bin_de      = 1000;
+  const Double_t min_de        = 0.;
+  const Double_t max_de        = 1000.;
+  const Int_t    n_bin_chisqr  = 1000;
+  const Double_t min_chisqr    = 0.;
+  const Double_t max_chisqr    = 1000.;
+  const Int_t    n_bin_time    = 1000;
+  const Double_t min_time      = -8000.;
+  const Double_t max_time      = 8000.;
+  const Int_t    n_bin_dl      = 800;
+  const Double_t min_dl        = -400.;
+  const Double_t max_dl        = 400.;
+  const Int_t    n_bin_sigma   = 500;
+  const Double_t min_sigma     = 0.;
+  const Double_t max_sigma     = 50.;
+  const Int_t    n_time_bucket = 170;
 
-  // 1D histograms
-  HB1("TPC_Multiplicity_Raw",   NumOfPadTPC+1, 0,  NumOfPadTPC+1);
-  HB1("TPC_Multiplicity_Cor",   NumOfPadTPC+1, 0,  NumOfPadTPC+1);
-  HB1("TPC_FADC_Mean",          NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC_FADC_Max",           NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC_FADC_RMS",           NbinRms,       MinRms,          MaxRms);
-  HB1("TPC_FADC_LocMax",        NTimeBucket+1, 0,   NTimeBucket+1);
-  HB1("TPC_FADC_Min",           NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC_FADC_Cor_Mean",      NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC_FADC_Cor_Max",       NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC_FADC_Cor_RMS",       NbinRms,       MinRms,          MaxRms);
-  HB1("TPC_FADC_Cor_LocMax",    NTimeBucket+1, 0,   NTimeBucket+1);
-  HB1("TPC_FADC_Cor_Min",       NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC_FADC_Baseline_p0",   NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC_FADC_Baseline_p1",   120,           -6,              6);
-  HB1("TPC_FADC_Baseline_p2",   120,           -12,             12);
-  HB1("TPC_FADC_Baseline_Mean", NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC_FADC_Baseline_Max",  NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC_FADC_Baseline_RMS",  NbinRms,       MinRms,          MaxRms);
-  HB1("TPC_FADC_Baseline_LocMax",NTimeBucket+1, 0,   NTimeBucket+1);
-  HB1("TPC_FADC_Baseline_Min",  NbinAdc,       MinAdc,          MaxAdc);
+  HB1("TPC_Multiplicity_Raw",     NumOfPadTPC+1,   0.,      NumOfPadTPC+1.);
+  HB1("TPC_Multiplicity_Cor",     NumOfPadTPC+1,   0.,      NumOfPadTPC+1.);
+  HB1("TPC_FADC_Mean",            n_bin_adc,       min_adc, max_adc);
+  HB1("TPC_FADC_Max",             n_bin_adc,       min_adc, max_adc);
+  HB1("TPC_FADC_RMS",             n_bin_rms,       min_rms, max_rms);
+  HB1("TPC_FADC_LocMax",          n_time_bucket+1, 0,       n_time_bucket+1);
+  HB1("TPC_FADC_Min",             n_bin_adc,       min_adc, max_adc);
+  HB1("TPC_FADC_Cor_Mean",        n_bin_adc,       min_adc, max_adc);
+  HB1("TPC_FADC_Cor_Max",         n_bin_adc,       min_adc, max_adc);
+  HB1("TPC_FADC_Cor_RMS",         n_bin_rms,       min_rms, max_rms);
+  HB1("TPC_FADC_Cor_LocMax",      n_time_bucket+1, 0.,      n_time_bucket+1.);
+  HB1("TPC_FADC_Cor_Min",         n_bin_adc,       min_adc, max_adc);
+  HB1("TPC_FADC_Baseline_p0",     n_bin_adc,       min_adc, max_adc);
+  HB1("TPC_FADC_Baseline_p1",     120,             -6.,     6.);
+  HB1("TPC_FADC_Baseline_p2",     120,             -12.,    12.);
+  HB1("TPC_FADC_Baseline_Mean",   n_bin_adc,       min_adc, max_adc);
+  HB1("TPC_FADC_Baseline_Max",    n_bin_adc,       min_adc, max_adc);
+  HB1("TPC_FADC_Baseline_RMS",    n_bin_rms,       min_rms, max_rms);
+  HB1("TPC_FADC_Baseline_LocMax", n_time_bucket+1, 0.,      n_time_bucket+1.);
+  HB1("TPC_FADC_Baseline_Min",    n_bin_adc,       min_adc, max_adc);
+  HB2("TPC_FADC_Baseline",        n_time_bucket+1, 0,       n_time_bucket+1, 
+                                  n_bin_adc,       min_adc, max_adc);
 
-  // 2D
-  HB2("TPC_FADC_Baseline",
-      NTimeBucket+1, 0, NTimeBucket+1,
-      NbinAdc, MinAdc, 1000);
+  HB1("TPC_Multiplicity_TPCHit",   NumOfPadTPC+1,        0.,         NumOfPadTPC+1.);
+  HB1("TPC_Pedestal",              n_bin_adc,            min_adc,    max_adc);
+  HB1("TPC_DeltaE",                n_bin_de,             min_de,     max_de);
+  HB1("TPC_RMS",                   n_bin_rms,            min_rms,    max_rms);
+  HB1("TPC_Time",                  (n_time_bucket+1)*30, 0.,         n_time_bucket+1.);
+  HB1("TPC_Chisqr",                n_bin_chisqr,         min_chisqr, max_chisqr);
+  HB1("TPC_CDeltaE",               n_bin_de,             min_de,     max_de);
+  HB1("TPC_CTime",                 n_bin_time,           min_time,   max_time);
+  HB1("TPC_DriftLength",           n_bin_dl,             min_dl,     max_dl);
+  HB1("TPC_sigma",                 n_bin_sigma,          min_sigma,  max_sigma);
+  HB2("TPC_sigma%%de",             n_bin_de,             min_de,     max_de, 
+                                   n_bin_sigma,          min_sigma,  max_sigma);
+  HB2("TPC_time%%de",              n_bin_de,             min_de,     max_de,
+                                   n_bin_time,           min_time,   max_time);
 
-  // TPCHit
-  HB1("TPC_Multiplicity_TPCHit",   NumOfPadTPC+1, 0,  NumOfPadTPC+1);
-  HB1("TPC_Pedestal",              NbinAdc,      MinAdc,  MaxAdc);
-  HB1("TPC_DeltaE",                NbinDe,       MinDe,   MaxDe);
-  HB1("TPC_RMS",                   NbinRms,      MinRms,  MaxRms);
-  HB1("TPC_Time",                 (NTimeBucket+1)*30, 0, NTimeBucket+1);
-  HB1("TPC_Chisqr",                NbinChisqr,   MinChisqr, MaxChisqr);
-  HB1("TPC_CDeltaE",               NbinDe,       MinDe,   MaxDe);
-  HB1("TPC_CTime",                 NbinTime,     MinTime, MaxTime);
-  HB1("TPC_DriftLength",           NbinDL,       MinDL,   MaxDL);
-  HB1("TPC_sigma",                 NbinSigma,    MinSigma, MaxSigma);
+  HB2("TPC_FADC_Before", n_time_bucket+1, 0.,           n_time_bucket+1.,
+                         n_bin_adc,       min_adc,      max_adc);
+  HB2("TPC_FADC_After",  n_time_bucket+1, 0.,           n_time_bucket+1.,
+                         n_bin_adc,       min_adc-500., max_adc-500.);
+  HB2("TPC_FADC_Good",   n_time_bucket+1, 0.,           n_time_bucket+1., 
+                         n_bin_adc,       min_adc,      max_adc);
+  HB2("TPC_FADC_Noise",  n_time_bucket+1, 0.,           n_time_bucket+1., 
+                        n_bin_adc,        min_adc,      max_adc);
 
-  HB2("TPC_sigma%%de",
-      NbinDe, MinDe, MaxDe,
-      NbinSigma, MinSigma, MaxSigma);
+  HB1("TPC_FADC_Noise_Max",        n_bin_adc, min_adc, max_adc);
+  HB1("TPC_FADC_Noise_RMSfront",   n_bin_rms, min_rms, max_rms);
+  HB1("TPC_FADC_Noise_RMSmiddle",  n_bin_rms, min_rms, max_rms);
+  HB1("TPC_FADC_Noise_Adcdiff",    1000,      -100.,   900.);
 
-  HB2("TPC_time%%de",
-      NbinDe, MinDe, MaxDe,
-      NbinTime, MinTime, MaxTime);
+  HB1("TPC_Clock_TDC",  100000, 0.,    1000000.);
+  HB1("TPC_Clock_Time", 20000,  -100., 100.);
 
-  // FADC waveforms
-  HB2("TPC_FADC_Before",
-      NTimeBucket+1, 0, NTimeBucket+1,
-      NbinAdc, MinAdc, MaxAdc);
-
-  HB2("TPC_FADC_After",
-      NTimeBucket+1, 0, NTimeBucket+1,
-      NbinAdc, MinAdc-500., MaxAdc-500.);
-
-  HB2("TPC_FADC_Good",
-      NTimeBucket+1, 0, NTimeBucket+1,
-      NbinAdc, MinAdc, MaxAdc);
-
-  HB2("TPC_FADC_Noise",
-      NTimeBucket+1, 0, NTimeBucket+1,
-      NbinAdc, MinAdc, 1000);
-
-  HB1("TPC_FADC_Noise_Max",           NbinAdc,       MinAdc,          MaxAdc);
-  HB1("TPC_FADC_Noise_RMSfront",      NbinRms,       MinRms,          MaxRms);
-  HB1("TPC_FADC_Noise_RMSmiddle",     NbinRms,       MinRms,          MaxRms);
-  HB1("TPC_FADC_Noise_Adcdiff",       1000,-100,900);
-  
-  // Clock
-  HB1("TPC_Clock_TDC",   100000, 0.,    1000000.);
-  HB1("TPC_Clock_Time",  20000, -100.,  100.);
-
-  HB2Poly("TPC_HitPat_Noise",-300.,300.,-300.,300.);
-  HB2Poly("TPC_HitPat_Baseline",-300.,300.,-300.,300.);
+  HB2Poly("TPC_HitPat_Noise",    -300., 300., -300., 300.);
+  HB2Poly("TPC_HitPat_Baseline", -300., 300., -300., 300.);
   tpc::InitializeHistograms("TPC_HitPat_Noise");
   tpc::InitializeHistograms("TPC_HitPat_Baseline");
-  
 }
 
 //_____________________________________________________________________________
 void
 BuildTPCBasic()
 {
-  HB1("Num_Track_TPC", 40, 0., 40.);
-  HB1("Num_Track_TPC_Hits", 50, 0., 50.);
-  HB1("Chisqr_TPC", 500, 0., 100.);
-  HB1("X0_TPC", 400, -100., 100.);
-  HB1("Y0_TPC", 400, -100., 100.);
-  HB1("U0_TPC", 200, -0.20, 0.20);
-  HB1("V0_TPC", 200, -0.20, 0.20);
+  // {n_bin, x_min, x_max}
+  const Double_t tpc_bins_mult[3]   = {40.,    0.,   40.};   // N_track, N_hits
+  const Double_t tpc_bins_hits[3]   = {50.,    0.,   50.};
+  const Double_t tpc_bins_chisqr[3] = {500.,   0.,  100.};
+  const Double_t tpc_bins_pos[3]    = {400., -100., 100.};   // mm (X0, Y0)
+  const Double_t tpc_bins_slope[3]  = {200., -0.20, 0.20};   // dy/dx, dz/dx
+
+  HB1("Num_Track_TPC;N_{track};Counts", tpc_bins_mult);
+  HB1("Num_Track_TPC_Hits;N_{hits};Counts", tpc_bins_hits);
+  HB1("Chisqr_TPC;#chi^{2};Counts", tpc_bins_chisqr);
+  HB1("X0_TPC;X_{0} [mm];Counts", tpc_bins_pos);
+  HB1("Y0_TPC;Y_{0} [mm];Counts", tpc_bins_pos);
+  HB1("U0_TPC;dY/dX;Counts", tpc_bins_slope);
+  HB1("V0_TPC;dZ/dX;Counts", tpc_bins_slope);
 }
 
 //_____________________________________________________________________________
 void
 BuildTPCTracking()
 {
+  // 1D: {n_bin, x_min, x_max}
+  const Double_t trk_bins_hough[3]      = {500.,    0.,   50.};   // mm
+  const Double_t trk_bins_time[3]       = {100.,    0.,  100.};   // ms
+  const Double_t trk_bins_iter[3]       = {100.,    0.,  100.};
+  const Double_t trk_bins_flag[3]       = {10.,     0.,   10.};
+  const Double_t trk_bins_minuit[3]     = {5.,      0.,    5.};
+  const Double_t trk_bins_pos_wide[3]   = {200., -250.,  250.};   // mm
+  const Double_t trk_bins_res_abs[3]    = {200.,    0.,  10.};    // mm |Residual|
+  const Double_t trk_bins_res[3]        = {200.,  -2.0,  2.0};    // mm (X,Y,Z)
+  const Double_t trk_bins_cl_size[3]    = {25.,     0.,  25.};
+  const Double_t trk_bins_de[3]         = {1000.,   0., 2000.};   // keV or ADC
+  // 2D: {n_bin_x, x_min, x_max, n_bin_y, y_min, y_max}
+  const Double_t trk_bins_2d_pos_slope[6]  = {100., -100., 100., 100., -0.20, 0.20};  // mm, dy/dx
+  const Double_t trk_bins_2d_pos_pos[6]    = {100., -100., 100., 100., -100., 100.};  // mm
+  const Double_t trk_bins_2d_res_vs_pos[6] = {250., -250., 250., 100.,  -1.0,  1.0};  // mm
+  const Double_t trk_bins_2d_pos_wide[6]   = {100., -250., 250., 100., -250., 250.};  // mm
+  const Double_t trk_bins_2d_ratio[6]      = {60.,  -15.,  15., 100.,    0.,  1.};   // mm, A/A_sum
 
-  HB1("Hough_Dist", "Hough_Dist", 500, 0., 50.);
-  HB1("Hough_Dist_Y", "Hough_Dist_Y", 500, 0., 50.);
-  HB1("Num_Tracking_Iterations", 100, 0., 100.);
-  HB1("Fitting_Flag", 10, 0., 10.);
-  HB1("Track_Searching_Time", "Track_Searching_Time;Time [ms];", 100, 0., 100.);
-  HB1("Track_Fitting_Time", "Track_Fitting_Time;Time [ms];", 100, 0., 100.);
-  HB1("Minuit_Output_Status", 5, 0., 5.);
+  HB1("Hough_Dist;Hough distance [mm];Counts", trk_bins_hough);
+  HB1("Hough_Dist_Y;Hough distance Y [mm];Counts", trk_bins_hough);
+  HB1("Num_Tracking_Iterations;N_{iter};Counts", trk_bins_iter);
+  HB1("Fitting_Flag;Flag;Counts", trk_bins_flag);
+  HB1("Track_Searching_Time;Time [ms];Counts", trk_bins_time);
+  HB1("Track_Fitting_Time;Time [ms];Counts", trk_bins_time);
+  HB1("Minuit_Output_Status;Status;Counts", trk_bins_minuit);
 
-  HB1("Layer_Id_TPC", 35, 0., 35.);
-  HB2("U0_vs_X0_TPC", "U0_vs_X0_TPC;X0;U0", 100, -100., 100., 100, -0.20, 0.20);
-  HB2("V0_vs_Y0_TPC", "V0_vs_Y0_TPC;Y0;V0", 100, -100., 100., 100, -0.20, 0.20);
-  HB2("X0_vs_Y0_TPC", "X0_vs_Y0_TPC;Y0;X0", 100, -100., 100., 100, -100., 100.);
+  HB1("Layer_Id_TPC;Layer;Counts", NumOfLayersTPC, -0.5, NumOfLayersTPC - 0.5);
+  HB2("U0_vs_X0_TPC;X_{0} [mm];dY/dX", trk_bins_2d_pos_slope);
+  HB2("V0_vs_Y0_TPC;Y_{0} [mm];dZ/dX", trk_bins_2d_pos_slope);
+  HB2("X0_vs_Y0_TPC;Y_{0} [mm];X_{0} [mm]", trk_bins_2d_pos_pos);
 
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    // Tracking Histgrams
-    HB1(Form("HitPat_TPC_Layer%02d", layer), Form("HitPat_TPC_Layer%02d;[Track];", layer), 400, 0., 400.);
-    HB1(Form("Position_TPC_Layer%02d", layer), Form("Position_TPC_Layer%02d", layer), 200, -250., 250.);
-    HB1(Form("Residual_TPC_Layer%02d", layer), Form("Residual_TPC_Layer%02d", layer), 200, 0.0, 10.0);
-    HB2(Form("Residual_vs_Position_TPC_Layer%02d", layer), Form("Residual_vs_Position_TPC_Layer%02d", layer), 250, -250., 250., 100, -1.0, 1.0);
-    HB2(Form("Yhit_vs_Xcal_TPC_Layer%02d", layer), Form("Yhit_vs_Xcal_TPC_Layer%02d", layer), 100, -250., 250., 100, -250., 250.);
-    HB1(Form("ResidualX_TPC_Layer%02d", layer), Form("ResidualX_TPC_Layer%02d", layer), 200, -2.0, 2.0);
-    HB1(Form("ResidualY_TPC_Layer%02d", layer), Form("ResidualY_TPC_Layer%02d", layer), 200, -2.0, 2.0);
-    HB1(Form("ResidualZ_TPC_Layer%02d", layer), Form("ResidualZ_TPC_Layer%02d", layer), 200, -2.0, 2.0);
+  for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
+    const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
+    HB1(Form("HitPat_TPC_Layer%02d;Row;Counts", layer), n_pad, -0.5, n_pad - 0.5);
+    HB1(Form("Position_TPC_Layer%02d;Position [mm];Counts", layer), trk_bins_pos_wide);
+    HB1(Form("Residual_TPC_Layer%02d;|Residual| [mm];Counts", layer), trk_bins_res_abs);
+    HB2(Form("Residual_vs_Position_TPC_Layer%02d;Position [mm];Residual [mm]", layer), trk_bins_2d_res_vs_pos);
+    HB2(Form("Yhit_vs_Xcal_TPC_Layer%02d;X_{cal} [mm];Y_{hit} [mm]", layer), trk_bins_2d_pos_wide);
+    HB1(Form("ResidualX_TPC_Layer%02d;Residual X [mm];Counts", layer), trk_bins_res);
+    HB1(Form("ResidualY_TPC_Layer%02d;Residual Y [mm];Counts", layer), trk_bins_res);
+    HB1(Form("ResidualZ_TPC_Layer%02d;Residual Z [mm];Counts", layer), trk_bins_res);
   }
 
-  const Int_t    NbinDe = 1000;
-  const Double_t MinDe  =    0.;
-  const Double_t MaxDe  = 2000.;
-
-  const Int_t NbinClSize = 25;
-  const Double_t MinClSize = 0;
-  const Double_t MaxClSize = 25;
-  const Int_t NbinDist = 60;
-  const Double_t MinDist = -15.;
-  const Double_t MaxDist = 15.;
-  const Int_t NbinRatio = 100;
-  const Double_t MinRatio = 0.;
-  const Double_t MaxRatio = 1.;
-
-  HB1("Cluster_size", "Cluster_size;Cluster size;Counts", NbinClSize, MinClSize, MaxClSize);
-  HB1("Cluster_dE", "Cluster_dE;Cluster dE;Counts", NbinDe, MinDe, MaxDe);
-  HB2("Ratio_vs_Dist_Transverse_diffusion", "Ratio_vs_Dist_Transverse_diffusion;X_{cluster_center}-X_{pad};A/A_{sum}", 
-      NbinDist, MinDist, MaxDist, NbinRatio, MinRatio, MaxRatio);
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    HB1(Form("Cluster_size_layer%2d",layer), Form("Cluster_size_layer%2d;Cluster size;Counts",layer), 
-        NbinClSize, MinClSize, MaxClSize);
-    HB1(Form("Cluster_dE_layer%2d",layer), Form("Cluster_dE_layer%2d;Cluster dE;Counts",layer), 
-        NbinDe, MinDe, MaxDe);
-    HB2(Form("Ratio_vs_Dist_Transverse_diffusion_Layer%02d",layer), 
-        Form("Ratio_vs_Dist_Transverse_diffusion_Layer%02d;X_{cluster_center}-X_{pad};A/A_{sum}",layer),
-        NbinDist, MinDist, MaxDist, NbinRatio, MinRatio, MaxRatio);
+  HB1("Cluster_size;Cluster size;Counts", trk_bins_cl_size);
+  HB1("Cluster_dE;Cluster dE [keV];Counts", trk_bins_de);
+  HB2("Ratio_vs_Dist_Transverse_diffusion;X_{cluster}-X_{pad} [mm];A/A_{sum}", trk_bins_2d_ratio);
+  for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
+    HB1(Form("Cluster_size_layer%02d;Cluster size;Counts", layer), trk_bins_cl_size);
+    HB1(Form("Cluster_dE_layer%02d;Cluster dE [keV];Counts", layer), trk_bins_de);
+    HB2(Form("Ratio_vs_Dist_Transverse_diffusion_Layer%02d;X_{cluster}-X_{pad} [mm];A/A_{sum}", layer), trk_bins_2d_ratio);
   }
 }
 
@@ -784,69 +796,87 @@ BuildTPCTracking()
 void
 BuildTPCBcOutTracking()
 {
- 
-  HB2("X0_vs_U0_TPC", "X0_vs_U0_TPC;X0;U0", 100, -100., 100., 100, -0.20, 0.20);
-  HB2("Y0_vs_V0_TPC", "Y0_vs_V0_TPC;Y0;V0", 100, -100., 100., 100, -0.20, 0.20);
-  HB2("X0_vs_Y0_TPC", "X0_vs_Y0_TPC;X0;Y0", 100, -100., 100., 100, -100., 100.);
+  // 1D: {n_bin, x_min, x_max}
+  const Double_t bc_bins_mult[3]       = {40.,    0.,   40.};
+  const Double_t bc_bins_hits[3]      = {50.,    0.,   50.};
+  const Double_t bc_bins_chisqr[3]     = {500.,   0.,  500.};
+  const Double_t bc_bins_pos_1d[3]     = {400., -100., 100.};   // mm (X0,Y0,Xtgt,Ytgt)
+  const Double_t bc_bins_slope_1d[3]   = {200., -0.20, 0.20};   // dY/dX, dZ/dX
+  const Double_t bc_bins_diff_xy[3]    = {640.,  -16.,  16.};   // BcOut-Tpc [mm]
+  const Double_t bc_bins_diff_slope[3] = {200., -0.05, 0.05};   // BcOut-Tpc
+  const Double_t bc_bins_pull[3]       = {200.,  -5.,   5.};
+  const Double_t bc_bins_res[3]        = {200.,  -8.,   8.};    // mm
+  const Double_t bc_bins_res_local_x[3] = {400., -16.,  16.};   // mm
+  const Double_t bc_bins_xz[3]         = {100.,   0.,   8.};    // mm |Residual XZ|
+  const Double_t bc_bins_res_y_2d[3]   = {400.,  -5.,   5.};    // mm (Y of Layer_vs_ResY)
+  // 2D: {n_bin_x, x_min, x_max, n_bin_y, y_min, y_max}
+  const Double_t bc_bins_2d_pos_slope[6]  = {100., -100., 100., 100., -0.20, 0.20};  // mm, dY/dX
+  const Double_t bc_bins_2d_pos_pos[6]    = {100., -100., 100., 100., -100., 100.};  // mm
+  const Double_t bc_bins_2d_atan[6]       = {300., -300., 300., 100.,  -20.,  20.};  // mm, atan [deg]
+  const Double_t bc_bins_2d_xtgt[6]       = {400., -200., 200., 400., -200., 200.};  // Xtgt BcOut vs Tpc
+  const Double_t bc_bins_2d_ytgt[6]       = {400., -100., 100., 400., -100., 100.};  // Ytgt BcOut vs Tpc
+  const Double_t bc_bins_2d_utgt[6]       = {400., -0.15, 0.15, 400., -0.15, 0.15};
+  const Double_t bc_bins_2d_vtgt[6]       = {400., -0.05, 0.05, 400., -0.05, 0.05};
+  const Double_t bc_bins_2d_diff_xtgt[6]  = {400., -150., 150., 400.,  -10.,  10.};  // BcOut-Tpc [mm]
+  const Double_t bc_bins_2d_diff_ytgt[6]  = {400., -150., 150., 400.,  -15.,  15.};
+  const Double_t bc_bins_2d_diff_utgt[6]  = {400., -0.15, 0.15, 400., -0.03, 0.03};
+  const Double_t bc_bins_2d_diff_vtgt[6]  = {400., -0.05, 0.05, 400., -0.03, 0.03};
 
-  HB2("X0_vs_atanU0_TPC", "X0_vs_atan(U0)_TPC;X0;atan(U0)", 300, -300., 300., 100, -20, 20);
-  HB2("Y0_vs_atanV0_TPC", "Y0_vs_atan(V0)_TPC;Y0;atan(V0)", 300, -300., 300., 100, -20, 20);
+  HB2("X0_vs_U0_TPC;X_{0} [mm];dY/dX", bc_bins_2d_pos_slope);
+  HB2("Y0_vs_V0_TPC;Y_{0} [mm];dZ/dX", bc_bins_2d_pos_slope);
+  HB2("X0_vs_Y0_TPC;X_{0} [mm];Y_{0} [mm]", bc_bins_2d_pos_pos);
 
-  // BcOut Basic
-  HB1("Num_Track_BcOut", 40, 0., 40.);
-  HB1("Num_Track_BcOut_Hits", 50, 0., 50.);
-  HB1("Chisqr_BcOut", 500, 0., 500.);
-  HB1("X0_BcOut", 400, -100., 100.);
-  HB1("Y0_BcOut", 400, -100., 100.);
-  HB1("U0_BcOut", 200, -0.20, 0.20);
-  HB1("V0_BcOut", 200, -0.20, 0.20);
-  HB1("Xtgt_BcOut", 400, -100., 100.);
-  HB1("Ytgt_BcOut", 400, -100., 100.);
-  HB1("Utgt_BcOut", 200, -0.20, 0.20);
-  HB1("Vtgt_BcOut", 200, -0.20, 0.20);
-  HB2("Xtgt_vs_Utgt_BcOut", "Xtgt_vs_Utgt_BcOut;Xtgt;Utgt", 100, -100., 100., 100, -0.20, 0.20);
-  HB2("Ytgt_vs_Vtgt_BcOut", "Ytgt_vs_Vtgt_BcOut;Ytgt;Vtgt", 100, -100., 100., 100, -0.20, 0.20);
-  HB2("Xtgt_vs_Ytgt_BcOut", "Xtgt_vs_Ytgt_BcOut;Xtgt;Ytgt", 100, -100., 100., 100, -100, 100);
+  HB2("X0_vs_atanU0_TPC;X_{0} [mm];atan(dY/dX) [deg]", bc_bins_2d_atan);
+  HB2("Y0_vs_atanV0_TPC;Y_{0} [mm];atan(dZ/dX) [deg]", bc_bins_2d_atan);
 
-  // Correlations
-  HB2("Xtgt_BcOut_vs_Tpc", "Xtgt_BcOut_vs_Tpc;Tpc Xtgt;BcOut Xtgt", 400, -200., 200., 400, -200., 200.);
-  HB2("Ytgt_BcOut_vs_Tpc", "Ytgt_BcOut_vs_Tpc;Tpc Ytgt;BcOut Ytgt", 400, -100., 100., 400, -100., 100.);
-  HB2("Utgt_BcOut_vs_Tpc", "Utgt_BcOut_vs_Tpc;Tpc Utgt;BcOut Utgt", 400, -0.15, 0.15, 400, -0.15, 0.15);
-  HB2("Vtgt_BcOut_vs_Tpc", "Vtgt_BcOut_vs_Tpc;Tpc Vtgt;BcOut Vtgt", 400, -0.05, 0.05, 400, -0.05, 0.05);
-  HB1("Xtgt_Diff", "Xtgt_Diff;BcOut-Tpc", 640, -16., 16.);
-  HB1("Ytgt_Diff", "Ytgt_Diff;BcOut-Tpc", 640, -16., 16.);
-  HB1("Utgt_Diff", "Utgt_Diff;BcOut-Tpc", 200, -0.05, 0.05);
-  HB1("Vtgt_Diff", "Vtgt_Diff;BcOut-Tpc", 200, -0.05, 0.05);
+  HB1("Num_Track_BcOut;N_{track};Counts", bc_bins_mult);
+  HB1("Num_Track_BcOut_Hits;N_{hits};Counts", bc_bins_hits);
+  HB1("Chisqr_BcOut;#chi^{2};Counts", bc_bins_chisqr);
+  HB1("X0_BcOut;X_{0} [mm];Counts", bc_bins_pos_1d);
+  HB1("Y0_BcOut;Y_{0} [mm];Counts", bc_bins_pos_1d);
+  HB1("U0_BcOut;dY/dX;Counts", bc_bins_slope_1d);
+  HB1("V0_BcOut;dZ/dX;Counts", bc_bins_slope_1d);
+  HB1("Xtgt_BcOut;X_{tgt} [mm];Counts", bc_bins_pos_1d);
+  HB1("Ytgt_BcOut;Y_{tgt} [mm];Counts", bc_bins_pos_1d);
+  HB1("Utgt_BcOut;dY/dX;Counts", bc_bins_slope_1d);
+  HB1("Vtgt_BcOut;dZ/dX;Counts", bc_bins_slope_1d);
+  HB2("Xtgt_vs_Utgt_BcOut;X_{tgt} [mm];dY/dX", bc_bins_2d_pos_slope);
+  HB2("Ytgt_vs_Vtgt_BcOut;Y_{tgt} [mm];dZ/dX", bc_bins_2d_pos_slope);
+  HB2("Xtgt_vs_Ytgt_BcOut;X_{tgt} [mm];Y_{tgt} [mm]", bc_bins_2d_pos_pos);
 
-  HB2("Xtgt_Diff_vs_Xtgt_BcOut", "Xtgt_Diff_vs_Xtgt_BcOut;BcOut Xtgt;BcOut-Tpc",
-       400, -150., 150., 400, -10., 10.);
-  HB2("Ytgt_Diff_vs_Ytgt_BcOut", "Ytgt_Diff_vs_Ytgt_BcOut;BcOut Ytgt;BcOut-Tpc",
-       400, -150., 150., 400, -15., 15.);
-  HB2("Utgt_Diff_vs_Utgt_BcOut", "Utgt_Diff_vs_Utgt_BcOut;BcOut Utgt;BcOut-Tpc",
-       400, -150., 150., 400, -0.03, 0.03);
-  HB2("Vtgt_Diff_vs_Vtgt_BcOut", "Vtgt_Diff_vs_Vtgt_BcOut;BcOut Vtgt;BcOut-Tpc",
-       400, -100., 100., 400, -0.03, 0.03);
-  
-  // Residuals
-  HB2("Layer_vs_ResY", "Layer_vs_ResY;Layer;Y Residual", 32, 0, 32, 400, -5, 5);
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    HB1(Form("TPC_Layer%02d_X_Pull", layer), 200, -5., 5.);
-    HB1(Form("TPC_Layer%02d_Y_Pull", layer), 200, -5., 5.);
-    HB1(Form("TPC_Layer%02d_Z_Pull", layer), 200, -5., 5.);
-    HB1(Form("TPC_Layer%02d_Local_X_Pull", layer), 200, -5., 5.);
-    HB1(Form("TPC_Layer%02d_Local_Y_Pull", layer), 200, -5., 5.);
+  HB2("Xtgt_BcOut_vs_Tpc;Tpc X_{tgt} [mm];BcOut X_{tgt} [mm]", bc_bins_2d_xtgt);
+  HB2("Ytgt_BcOut_vs_Tpc;Tpc Y_{tgt} [mm];BcOut Y_{tgt} [mm]", bc_bins_2d_ytgt);
+  HB2("Utgt_BcOut_vs_Tpc;Tpc dY/dX;BcOut dY/dX", bc_bins_2d_utgt);
+  HB2("Vtgt_BcOut_vs_Tpc;Tpc dZ/dX;BcOut dZ/dX", bc_bins_2d_vtgt);
+  HB1("Xtgt_Diff;BcOut-Tpc [mm];Counts", bc_bins_diff_xy);
+  HB1("Ytgt_Diff;BcOut-Tpc [mm];Counts", bc_bins_diff_xy);
+  HB1("Utgt_Diff;BcOut-Tpc;Counts", bc_bins_diff_slope);
+  HB1("Vtgt_Diff;BcOut-Tpc;Counts", bc_bins_diff_slope);
 
-    HB1(Form("TPC_Layer%02d_X_Residual", layer), 200, -8., 8.);
-    HB1(Form("TPC_Layer%02d_Y_Residual", layer), 200, -8., 8.);
-    HB1(Form("TPC_Layer%02d_Z_Residual", layer), 200, -8., 8.);
-    HB1(Form("TPC_Layer%02d_Local_X_Residual", layer), 400, -16., 16.);
-    HB1(Form("TPC_Layer%02d_Local_Y_Residual", layer), 200, -8., 8.);
-    HB1(Form("TPC_Layer%02d_XZ_Residual", layer), 100, 0, 8.);
+  HB2("Xtgt_Diff_vs_Xtgt_BcOut;BcOut X_{tgt} [mm];BcOut-Tpc [mm]", bc_bins_2d_diff_xtgt);
+  HB2("Ytgt_Diff_vs_Ytgt_BcOut;BcOut Y_{tgt} [mm];BcOut-Tpc [mm]", bc_bins_2d_diff_ytgt);
+  HB2("Utgt_Diff_vs_Utgt_BcOut;BcOut dY/dX;BcOut-Tpc", bc_bins_2d_diff_utgt);
+  HB2("Vtgt_Diff_vs_Vtgt_BcOut;BcOut dZ/dX;BcOut-Tpc", bc_bins_2d_diff_vtgt);
 
-    HB1(Form("TPC_Layer%02d_BcOut_X_Residual", layer), 200, -8., 8.);
-    HB1(Form("TPC_Layer%02d_BcOut_Y_Residual", layer), 200, -8., 8.);
+  HB2("Layer_vs_ResY;Layer;Y Residual [mm]",
+      NumOfLayersTPC, -0.5, NumOfLayersTPC - 0.5, (Int_t)bc_bins_res_y_2d[0], bc_bins_res_y_2d[1], bc_bins_res_y_2d[2]);
+  for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
+    HB1(Form("TPC_Layer%02d_X_Pull;Pull;Counts", layer), bc_bins_pull);
+    HB1(Form("TPC_Layer%02d_Y_Pull;Pull;Counts", layer), bc_bins_pull);
+    HB1(Form("TPC_Layer%02d_Z_Pull;Pull;Counts", layer), bc_bins_pull);
+    HB1(Form("TPC_Layer%02d_Local_X_Pull;Pull;Counts", layer), bc_bins_pull);
+    HB1(Form("TPC_Layer%02d_Local_Y_Pull;Pull;Counts", layer), bc_bins_pull);
+
+    HB1(Form("TPC_Layer%02d_X_Residual;Residual X [mm];Counts", layer), bc_bins_res);
+    HB1(Form("TPC_Layer%02d_Y_Residual;Residual Y [mm];Counts", layer), bc_bins_res);
+    HB1(Form("TPC_Layer%02d_Z_Residual;Residual Z [mm];Counts", layer), bc_bins_res);
+    HB1(Form("TPC_Layer%02d_Local_X_Residual;Residual local X [mm];Counts", layer), bc_bins_res_local_x);
+    HB1(Form("TPC_Layer%02d_Local_Y_Residual;Residual local Y [mm];Counts", layer), bc_bins_res);
+    HB1(Form("TPC_Layer%02d_XZ_Residual;|Residual XZ| [mm];Counts", layer), bc_bins_xz);
+
+    HB1(Form("TPC_Layer%02d_BcOut_X_Residual;Residual X [mm];Counts", layer), bc_bins_res);
+    HB1(Form("TPC_Layer%02d_BcOut_Y_Residual;Residual Y [mm];Counts", layer), bc_bins_res);
   }
-
 }
 
 }
