@@ -677,9 +677,9 @@ dst::DstRead(Int_t ievent)
       HF1(Form("ResidualZ_TPC_Layer%02d", layer), resi_vect.Z());
 
       HF1("Cluster_size", clsize);
-      HF1(Form("Cluster_size_layer%2d",layer), clsize);
+      HF1(Form("Cluster_size_layer%02d", layer), clsize);
       HF1("Cluster_dE", clde);
-      HF1(Form("Cluster_dE_layer%2d",layer), clde);
+      HF1(Form("Cluster_dE_layer%02d", layer), clde);
       const TPCHitContainer& hc = cl->GetHitContainer();
       for(const auto& hits : hc){
         if(!hits || !hits->IsGood()) continue;
