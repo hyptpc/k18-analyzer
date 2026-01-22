@@ -52,7 +52,7 @@ def draw_one_data_noise(c1, name):
 #______________________________________________________________________________
 @mh.update_canvas(divisions=(3, 2))
 def draw_one_data2d(c1, name):
-  hist2d_list = ["Baseline", "Before", "After", "Good", "Noise"]
+  hist2d_list = ["Baseline", "Before", "After", "Good", "Noise", "Frame"]
   for ipad, hname in enumerate(hist2d_list, start=1):
     c1.cd(ipad)
     h1 = mh.get(f'{name}_FADC_{hname}')

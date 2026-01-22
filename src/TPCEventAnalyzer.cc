@@ -88,6 +88,7 @@ TPCEventAnalyzer::TPCRawHit(const TPCRawData& TPCrawData)
         if(IsNoise){
           HF2("TPC_FADC_Noise",tb,fadc.at(tb));
         }
+	if(tpc::Noise(padid))HF2("TPC_FADC_Frame",tb, fadc.at(tb));
       }
       if(IsNoise){
         Double_t bincont = HG2Poly("TPC_HitPat_Noise",padid+1);

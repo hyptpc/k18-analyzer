@@ -700,6 +700,8 @@ BuildTPCHit()
                          n_bin_adc,       min_adc,      max_adc);
   HB2("TPC_FADC_Noise",  n_time_bucket+1, 0.,           n_time_bucket+1., 
                         n_bin_adc,        min_adc,      max_adc);
+  HB2("TPC_FADC_Frame",  n_time_bucket+1, 0.,           n_time_bucket+1., 
+                        n_bin_adc,        min_adc,      max_adc);
 
   HB1("TPC_FADC_Noise_Max",        n_bin_adc, min_adc, max_adc);
   HB1("TPC_FADC_Noise_RMSfront",   n_bin_rms, min_rms, max_rms);
