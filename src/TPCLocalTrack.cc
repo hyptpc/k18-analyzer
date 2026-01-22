@@ -96,8 +96,8 @@ namespace
   //Add hits into the track within the window. (ResidualWindowPull > residual/resolution)
   const Double_t ResidualWindowPullXZ = 10.;
   //const Double_t ResidualWindowPullXZ = 6.;
-  const Double_t ResidualWindowPullY = 6.;
-  const Double_t ResidualWindowInXZ = 5; //[mm]
+  const Double_t ResidualWindowPullY = 10.;
+  const Double_t ResidualWindowInXZ = 10.; //[mm]
   //const Double_t ResidualWindowInXZ = 10; //[mm]
   //const Double_t ResidualWindowOutXZ = 7; //[mm]
   const Double_t ResidualWindowOutXZ = 10; //[mm]

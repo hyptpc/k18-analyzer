@@ -569,10 +569,13 @@ dst::DstRead(Int_t ievent)
         event.hitpos_x[it][ih], event.hitpos_y[it][ih], event.hitpos_z[it][ih]
       );
       ThreeVector globalposTpc = gGeom.Local2GlobalPos("HypTPC", localposTpc);
-      HF1(Form("TPC_Layer%02d_BcOut_X_Residual", layer), 
-          globalposTpc.x() - ((**src.u0BcOut)[it]*globalposTpc.z() + (**src.x0BcOut)[it]));
-      HF1(Form("TPC_Layer%02d_BcOut_Y_Residual", layer), 
-          globalposTpc.y() - ((**src.v0BcOut)[it]*globalposTpc.z() + (**src.y0BcOut)[it]));
+      Double_t resX_BcOut = globalposTpc.x() - ((**src.u0BcOut)[it]*globalposTpc.z() + (**src.x0BcOut)[it]);
+      Double_t resY_BcOut = globalposTpc.y() - ((**src.v0BcOut)[it]*globalposTpc.z() + (**src.y0BcOut)[it]);
+      HF1(Form("TPC_Layer%02d_BcOut_X_Residual", layer), resX_BcOut);
+      HF1(Form("TPC_Layer%02d_BcOut_Y_Residual", layer), resY_BcOut);
+      // Parameter tuning: Position correction (BcOut reference)
+      HF2(Form("TPC_ResidualX_vs_X_BcOut_Layer%02d", layer), globalposTpc.x(), resX_BcOut);
+      HF2(Form("TPC_ResidualY_vs_Y_BcOut_Layer%02d", layer), globalposTpc.y(), resY_BcOut);
     }
   }
   HF1("Status", event.status++);

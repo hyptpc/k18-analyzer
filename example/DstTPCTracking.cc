@@ -43,7 +43,8 @@ const auto& gUnpacker = GUnpacker::get_instance();
 auto&       gConf = ConfMan::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
-const auto& gCounter = debug::ObjectCounter::GetInstance();
+const auto& gTpcParam = TPCParamMan::GetInstance();
+const auto& gCounter  = debug::ObjectCounter::GetInstance();
 const double truncatedMean = 0.8; //80%
 }
 
@@ -436,8 +437,7 @@ dst::DstOpen(std::vector<std::string> arg)
 Bool_t
 dst::DstRead(Int_t ievent)
 {
-  //if(ievent%1000==0){
-  if(ievent%1==0){
+  if(ievent%100==0){
     std::cout << "#D Event Number: "
               << std::setw(6) << ievent << std::endl;
   }
@@ -672,9 +672,36 @@ dst::DstRead(Int_t ievent)
       HF1(Form("Residual_TPC_Layer%02d", layer), residual);
       HF2(Form("Residual_vs_Position_TPC_Layer%02d", layer), hitpos.x(), residual);
       HF2(Form("Yhit_vs_Xcal_TPC_Layer%02d", layer), calpos.x(), hitpos.y());
+      Int_t cobo = tpc::GetCoBoId(layer, centerRow);
+      // CoBo mapping validation: Fill CoBo ID mapping histograms
+      if(cobo >= 0 && cobo < NumOfSegCOBO){
+        HF2("TPC_CoBoId_vs_Layer_Row", layer, centerRow);
+        HF2("TPC_Layer_vs_CoBoId", cobo, layer);
+        HF2(Form("TPC_Row_vs_CoBoId_Layer%02d", layer), cobo, centerRow);
+      }
+      if(cobo < 0){
+        spdlog::warn("TPC Y vs PhaseShift: invalid CoBo id (cobo={}) for layer={} row={}", cobo, layer, centerRow);
+      } else if(cobo >= NumOfSegCOBO){
+        spdlog::warn("TPC Y vs PhaseShift: CoBo id out of range (cobo={}) for layer={} row={}", cobo, layer, centerRow);
+      } else if(!std::isfinite(event.clkTpc[cobo])){
+        spdlog::warn("TPC Y vs PhaseShift: non-finite clkTpc[{}]={} for layer={} row={}", cobo, event.clkTpc[cobo], layer, centerRow);
+      } else {
+        // Parameter tuning: Clock time (raw) vs Residual Y for ideal step pattern
+        HF2(Form("TPC_ResidualY_vs_ClockTime_CoBo%d", cobo), event.clkTpc[cobo], resi_vect.Y());
+      }
       HF1(Form("ResidualX_TPC_Layer%02d", layer), resi_vect.X());
       HF1(Form("ResidualY_TPC_Layer%02d", layer), resi_vect.Y());
       HF1(Form("ResidualZ_TPC_Layer%02d", layer), resi_vect.Z());
+      // Parameter tuning: Drift velocity and t0 recalibration
+      HF2(Form("TPC_ResidualY_vs_Y_Layer%02d", layer), hitpos.y(), resi_vect.Y());
+      HF2(Form("TPC_ResidualY_vs_Y_Layer%02d_Row%02d", layer, centerRow), hitpos.y(), resi_vect.Y());
+      // Parameter tuning: Position correction (alignment)
+      HF2(Form("TPC_ResidualX_vs_X_Layer%02d", layer), hitpos.x(), resi_vect.X());
+      HF2(Form("TPC_ResidualZ_vs_Z_Layer%02d", layer), hitpos.z(), resi_vect.Z());
+      // Parameter tuning: Layer-dependent residual distribution
+      HF2("TPC_ResidualX_vs_Layer", layer, resi_vect.X());
+      HF2("TPC_ResidualY_vs_Layer", layer, resi_vect.Y());
+      HF2("TPC_ResidualZ_vs_Layer", layer, resi_vect.Z());
 
       HF1("Cluster_size", clsize);
       HF1(Form("Cluster_size_layer%02d", layer), clsize);

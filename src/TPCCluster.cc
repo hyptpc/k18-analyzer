@@ -145,7 +145,6 @@ TPCCluster::Calculate()
   // For outer layers (10+): sector structure, so clamp to max_row - 1
   Int_t row_id = TMath::Nint(m_mean_row);
   const Bool_t isInnerLayer = (m_layer < 10);
-  
   if (row_id < 0) { // should not happen
     spdlog::warn(
       "[TPCCluster::Calculate] row_id < 0 (m_mean_row={}, row_id={}) for layer {}. Clamping to 0",
@@ -186,7 +185,7 @@ TPCCluster::Calculate()
 
   // center hit determination
   Double_t mean_phi0 = xz_vectorHS0.Phi();
-    Double_t mean_row0 = tpc::GetMrow(m_layer, mean_phi0*TMath::RadToDeg());
+  Double_t mean_row0 = tpc::GetMrow(m_layer, mean_phi0*TMath::RadToDeg());
 
   Double_t rowdiff = 10; Int_t id = -1;
   for(Int_t i=0; i<m_hit_array.size(); ++i){
