@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}/.."
+git checkout tpchit/v1
 
 # =================================================
 EXAMPLE_USER_CC="example/UserTPCHit.cc"  
@@ -25,7 +26,7 @@ BUFF="/ghi/fs02/orig_root_fs02/had/sks/Users/E72_TPCHit"
 BIN="./bin/TPCHit"
 CONF="param/conf/analyzer_e72_tpc_0.conf"
 DATA="/hsm/had/sks/E72/JPARC2025Nov/e72_2025nov"
-ROOT_BASE="/hsm/had/sks/E72/JPARC2025Nov/e72_2025nov_tpchit"
+ROOT_BASE="/hsm/had/sks/E72/JPARC2025Nov/rootfile/tpchit/v1"
 # =================================================
 
 usage () {
@@ -144,6 +145,16 @@ print(yml_path)
 PY
 
 echo "[OK] YML created: ${YML_PATH}"
+
+# ---------- Prepare output directory ----------
+ROOT_DIR="${ROOT_BASE}/${NAME}"
+FIG_DIR="${ROOT_DIR}/fig"
+
+mkdir -p "${ROOT_DIR}"
+mkdir -p "${FIG_DIR}"
+
+echo "[OK] Output directory prepared:"
+echo "     ${ROOT_DIR}"
 
 # ---------- run.py ----------
 if [[ "${DO_RUN}" -eq 0 ]]; then
