@@ -100,7 +100,7 @@ BUFF="/ghi/fs02/orig_root_fs02/had/sks/Users/E72_TPCHit"
 BIN="./bin/TPCHit"
 CONF="param/conf/analyzer_e72_tpc_0.conf"
 DATA="/hsm/had/sks/E72/JPARC2025Nov/e72_2025nov"
-ROOT_BASE="/hsm/had/sks/E72/JPARC2025Nov/e72_2025nov_tpchit"
+ROOT_BASE="/hsm/had/sks/E72/JPARC2025Nov/rootfile/tpchit/v1"
 
 runs = None
 with open(assign) as f:
