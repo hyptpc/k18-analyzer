@@ -163,6 +163,39 @@ GetEntry(Int_t ievent)
 }
 
 //______________________________________________________________________________
+// Check if multiple event numbers match across different ROOT files
+inline Bool_t
+CheckEventNumbers(const std::vector<UInt_t>& evnums, 
+                  Int_t ievent = -1,
+                  const std::vector<TString>& tree_names = {})
+{
+  if(evnums.size() < 2) return true;  // No need to check if less than 2
+  
+  const UInt_t ref_evnum = evnums[0];
+  for(size_t i = 1; i < evnums.size(); ++i){
+    if(evnums[i] != ref_evnum){
+      if(ievent >= 0){
+        std::string msg = "Event number mismatch";
+        if(!tree_names.empty() && tree_names.size() == evnums.size()){
+          msg += " at entry " + std::to_string(ievent) + ":";
+          for(size_t j = 0; j < evnums.size(); ++j){
+            msg += " " + std::string(tree_names[j].Data()) + "=" + std::to_string(evnums[j]);
+          }
+        } else {
+          msg += " at entry " + std::to_string(ievent) + ":";
+          for(size_t j = 0; j < evnums.size(); ++j){
+            msg += " [" + std::to_string(j) + "]=" + std::to_string(evnums[j]);
+          }
+        }
+        spdlog::warn(msg);
+      }
+      return false;
+    }
+  }
+  return true;
+}
+
+//______________________________________________________________________________
 template <class... Vecs>
 inline void clear_all(Vecs&... vecs) {
   (vecs.clear(), ...);

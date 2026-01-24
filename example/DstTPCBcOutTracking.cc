@@ -55,7 +55,7 @@ const auto& gGeom     = DCGeomMan::GetInstance();
 const auto& gUser     = UserParamMan::GetInstance();
 const auto& gCounter  = debug::ObjectCounter::GetInstance();
 const Double_t truncatedMean = 0.8; //80%
-const Double_t MaxChisqrTpc = 10.0;
+const Double_t MaxChisqrTpc = 50.0;
 const Double_t MaxChisqrBcOut = 5.0;
 }
 
@@ -72,6 +72,7 @@ std::vector<TString> TreeName = { "", "", "tpc", "bcout", "hodo", "" };
 std::vector<TFile*> TFileCont;
 std::vector<TTree*> TTreeCont;
 std::vector<TTreeReader*> TTreeReaderCont;
+std::vector<UInt_t> evnumPerFile;
 Bool_t SetupReader();
 }
 
@@ -194,7 +195,7 @@ struct Event
 struct Src
 {
   TTreeReaderValue<UInt_t>* runnum;
-  TTreeReaderValue<UInt_t>* evnum;
+  TTreeReaderValue<UInt_t>* evnum_tpc;
   TTreeReaderValue<std::vector<Double_t>>* trigpat;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* trigflag;
   TTreeReaderValue<Int_t>* beamflag;
@@ -253,6 +254,9 @@ struct Src
 
   TTreeReaderValue<Double_t>* btof;
   TTreeReaderValue<Double_t>* ftof;
+
+  TTreeReaderValue<UInt_t>* evnum_bcout;
+  TTreeReaderValue<UInt_t>* evnum_hodo;
 
   TTreeReaderValue<Int_t>* ntBcOut;
   // TTreeReaderValue<std::vector<Int_t>>* nhBcOut;
@@ -432,8 +436,16 @@ dst::DstRead(Int_t ievent)
   }
   GetEntry(ievent);
 
+  evnumPerFile[0] = **src.evnum_tpc;
+  evnumPerFile[1] = **src.evnum_bcout;
+  evnumPerFile[2] = **src.evnum_hodo;
+  if(!dst::CheckEventNumbers(evnumPerFile, ievent, 
+                              {TreeName[kTpcTracking], TreeName[kBcOut], TreeName[kHodo]})){
+    return false;
+  }
+
   event.runnum   = **src.runnum;
-  event.evnum    = **src.evnum;
+  event.evnum    = **src.evnum_tpc;
   event.trigpat  = **src.trigpat;
   event.trigflag = **src.trigflag;
   event.clkTpc   = **src.clkTpc;
@@ -452,10 +464,34 @@ dst::DstRead(Int_t ievent)
   event.ftof = **src.ftof;
   HF1("Status", event.status++);
 
-  if(event.ntTpc!=1 || event.ntBcOut!=1) return true;
+  // Select best tracks (minimum chisqr) for correlation analysis
+  Int_t bestTpcIdx = 0;
+  Int_t bestBcOutIdx = 0;
+  if(event.ntTpc > 1){
+    Double_t minChisqrTpc = event.chisqrTpc[0];
+    for(Int_t it=1; it<event.ntTpc; ++it){
+      if(event.chisqrTpc[it] < minChisqrTpc){
+        minChisqrTpc = event.chisqrTpc[it];
+        bestTpcIdx = it;
+      }
+    }
+  }
+  if(event.ntBcOut > 1){
+    Double_t minChisqrBcOut = event.chisqrBcOut[0];
+    for(Int_t it=1; it<event.ntBcOut; ++it){
+      if(event.chisqrBcOut[it] < minChisqrBcOut){
+        minChisqrBcOut = event.chisqrBcOut[it];
+        bestBcOutIdx = it;
+      }
+    }
+  }
+
+  // Require at least one track in each detector
+  if(event.ntTpc == 0 || event.ntBcOut == 0) return true;
   HF1("Status", event.status++);
 
-  if(event.chisqrTpc[0]>MaxChisqrTpc || event.chisqrBcOut[0]>MaxChisqrBcOut) return true;
+  // Check quality of selected tracks
+  if(event.chisqrTpc[bestTpcIdx] > MaxChisqrTpc || event.chisqrBcOut[bestBcOutIdx] > MaxChisqrBcOut) return true;
   HF1("Status", event.status++);
 
   // TPCTracking
@@ -504,8 +540,8 @@ dst::DstRead(Int_t ievent)
     static const Double_t tanRA2     = std::tan(RA2*TMath::DegToRad());
 
     ThreeVector globalpos(
-      (**src.u0BcOut)[0]*ztgtGlobal + (**src.x0BcOut)[0],
-      (**src.v0BcOut)[0]*ztgtGlobal + (**src.y0BcOut)[0],
+      (**src.u0BcOut)[bestBcOutIdx]*ztgtGlobal + (**src.x0BcOut)[bestBcOutIdx],
+      (**src.v0BcOut)[bestBcOutIdx]*ztgtGlobal + (**src.y0BcOut)[bestBcOutIdx],
       ztgtGlobal
     );
 
@@ -513,18 +549,18 @@ dst::DstRead(Int_t ievent)
     ThreeVector localpos = gGeom.Global2LocalPos("HypTPC", globalpos);
     xyuvBcOut_TPCcoor[0] = localpos.x();
     xyuvBcOut_TPCcoor[1] = localpos.y();
-    xyuvBcOut_TPCcoor[2] = ((**src.u0BcOut)[0] - tanRA2) / (1. + (**src.u0BcOut)[0]*tanRA2);
-    xyuvBcOut_TPCcoor[3] = ((**src.v0BcOut)[0] + tanRA1) / (1. - (**src.v0BcOut)[0]*tanRA1);
+    xyuvBcOut_TPCcoor[2] = ((**src.u0BcOut)[bestBcOutIdx] - tanRA2) / (1. + (**src.u0BcOut)[bestBcOutIdx]*tanRA2);
+    xyuvBcOut_TPCcoor[3] = ((**src.v0BcOut)[bestBcOutIdx] + tanRA1) / (1. - (**src.v0BcOut)[bestBcOutIdx]*tanRA1);
   }
-  const Double_t XtgtDiff = xyuvBcOut_TPCcoor[0]-event.x0Tpc[0];
-  const Double_t YtgtDiff = xyuvBcOut_TPCcoor[1]-event.y0Tpc[0];
-  const Double_t UtgtDiff = xyuvBcOut_TPCcoor[2]-event.u0Tpc[0];
-  const Double_t VtgtDiff = xyuvBcOut_TPCcoor[3]-event.v0Tpc[0];
+  const Double_t XtgtDiff = xyuvBcOut_TPCcoor[0]-event.x0Tpc[bestTpcIdx];
+  const Double_t YtgtDiff = xyuvBcOut_TPCcoor[1]-event.y0Tpc[bestTpcIdx];
+  const Double_t UtgtDiff = xyuvBcOut_TPCcoor[2]-event.u0Tpc[bestTpcIdx];
+  const Double_t VtgtDiff = xyuvBcOut_TPCcoor[3]-event.v0Tpc[bestTpcIdx];
 
-  HF2("Xtgt_BcOut_vs_Tpc", event.x0Tpc[0], xyuvBcOut_TPCcoor[0]);
-  HF2("Ytgt_BcOut_vs_Tpc", event.y0Tpc[0], xyuvBcOut_TPCcoor[1]);
-  HF2("Utgt_BcOut_vs_Tpc", event.u0Tpc[0], xyuvBcOut_TPCcoor[2]);
-  HF2("Vtgt_BcOut_vs_Tpc", event.v0Tpc[0], xyuvBcOut_TPCcoor[3]);
+  HF2("Xtgt_BcOut_vs_Tpc", event.x0Tpc[bestTpcIdx], xyuvBcOut_TPCcoor[0]);
+  HF2("Ytgt_BcOut_vs_Tpc", event.y0Tpc[bestTpcIdx], xyuvBcOut_TPCcoor[1]);
+  HF2("Utgt_BcOut_vs_Tpc", event.u0Tpc[bestTpcIdx], xyuvBcOut_TPCcoor[2]);
+  HF2("Vtgt_BcOut_vs_Tpc", event.v0Tpc[bestTpcIdx], xyuvBcOut_TPCcoor[3]);
   HF1("Xtgt_Diff", XtgtDiff);
   HF1("Ytgt_Diff", YtgtDiff);
   HF1("Utgt_Diff", UtgtDiff);
@@ -613,7 +649,7 @@ dst::SetupReader()
 
   // Explicitly using TTreeReaderCont[kTpcTracking]
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "run_number",   src.runnum);
-  dst::SetBranch(TTreeReaderCont[kTpcTracking], "event_number", src.evnum);
+  dst::SetBranch(TTreeReaderCont[kTpcTracking], "event_number", src.evnum_tpc);
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "trig_pat",     src.trigpat);
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "trig_flag",    src.trigflag);
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "beam_flag",    src.beamflag);
@@ -684,6 +720,7 @@ dst::SetupReader()
   // -------------------------------------------------------
   if (!dst::SetupReader(kHodo, "kHodo")) return false;
 
+  dst::SetBranch(TTreeReaderCont[kHodo], "event_number", src.evnum_hodo);
   dst::SetBranch(TTreeReaderCont[kHodo], "btof0", src.btof);
   dst::SetBranch(TTreeReaderCont[kHodo], "ftof0", src.ftof);
 
@@ -692,6 +729,7 @@ dst::SetupReader()
   // -------------------------------------------------------
   if (!dst::SetupReader(kBcOut, "kBcOut")) return false;
 
+  dst::SetBranch(TTreeReaderCont[kBcOut], "event_number", src.evnum_bcout);
   dst::SetBranch(TTreeReaderCont[kBcOut], "ntrack", src.ntBcOut);
   dst::SetBranch(TTreeReaderCont[kBcOut], "chisqr", src.chisqrBcOut);
   dst::SetBranch(TTreeReaderCont[kBcOut], "x0",     src.x0BcOut);
@@ -699,6 +737,7 @@ dst::SetupReader()
   dst::SetBranch(TTreeReaderCont[kBcOut], "u0",     src.u0BcOut);
   dst::SetBranch(TTreeReaderCont[kBcOut], "v0",     src.v0BcOut);
 
+  evnumPerFile.resize(3);  // [0]=TPC, [1]=BcOut, [2]=Hodo
   return true;
 }
 
