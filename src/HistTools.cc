@@ -314,6 +314,8 @@ BuildHodoHit(Bool_t flag_beam_particle)
       for(Int_t i=0; i<nseg; ++i){
         HB1(Form("%s_Hit_Npe_seg%dS_offline%s; Npe; count", name, i, b), npe_bins);
         HB1(Form("%s_Hit_Npe_seg%dS_online%s; Npe; count", name, i, b),  npe_bins);
+        HB1(Form("%s_Hit_Npe_seg%dS_offline_T1%s; Npe; count", name, i, b), npe_bins);
+        HB1(Form("%s_Hit_Npe_seg%dS_online_T1%s; Npe; count", name, i, b),  npe_bins);
         for(Int_t c=0; c<4; ++c)
           HB1(Form("%s_Hit_Npe_seg%d%s%s; Npe; count", name, i, abcd[c], b), npe_bins);
         HB1(Form("%s_Hit_Time_seg%dS%s; ns; count", name, i, b),  hr_time_bins);

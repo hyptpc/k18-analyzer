@@ -303,15 +303,6 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
   if(beam_flag == beam::kUnknown) return;
   const Char_t* b = beam::BeamFlagList.at(beam_flag).Data();
 
-  // Cherenkov: offline Npe (hodoAna.GetOfflineNpe).
-  {
-    auto bac = hodoAna.GetOfflineNpe("BAC");
-    if(!bac.empty()) HF1(Form("BAC_Hit_Npe_offline_sum%s", b), bac[0]);
-    auto kvc = hodoAna.GetOfflineNpe("KVC");
-    for(Int_t i = 0; i < (Int_t)kvc.size(); ++i)
-      HF1(Form("KVC_Hit_Npe_seg%dS_offline%s", i, b), kvc[i]);
-  }
-
   // BHT
   {
     static const Char_t* name = "BHT";
@@ -412,6 +403,8 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
   // BAC Sum (seg4): NpeSum=online; offline filled above.
   {
     static const Char_t* name = "BAC";
+    auto offsum_npe = hodoAna.GetOfflineNpe(name);
+    if(!offsum_npe.empty()) HF1(Form("BAC_Hit_Npe_offline_sum%s", b), offsum_npe[0]);
     Int_t multi = 0;
     for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
       const auto* hit = hodoAna.GetHit<CherenkovHit>(name, i);
@@ -459,6 +452,8 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
   // KVC Sum: offline per seg above; online NpeSum(kSUM), GetNpe(kA..kD).
   {
     static const Char_t* name = "KVC";
+    auto offsum_npe = hodoAna.GetOfflineNpe(name);
+    Bool_t t1_hit = (hodoAna.GetNHits("T1") > 0);
     Int_t multi = 0;
     for(Int_t i=0, n=hodoAna.GetNHits(name); i<n; ++i){
       const auto* hit = hodoAna.GetHit<CherenkovHit>(name, i);
@@ -467,12 +462,18 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
       Bool_t is_good = false;
       for(Int_t j=0, m=hit->GetEntries(HodoRawHit::kExtra); j<m; ++j){
         HF1(Form("%s_Hit_Npe_seg%dS_online%s", name, seg, b), hit->NpeSum(j));
+        HF1(Form("%s_Hit_Npe_seg%dS_offline%s", name, seg, b), offsum_npe[seg]);
         HF1(Form("%s_Hit_Npe_seg%da%s", name, seg, b), hit->GetNpe(0, j));
         HF1(Form("%s_Hit_Npe_seg%db%s", name, seg, b), hit->GetNpe(1, j));
         HF1(Form("%s_Hit_Npe_seg%dc%s", name, seg, b), hit->GetNpe(2, j));
         HF1(Form("%s_Hit_Npe_seg%dd%s", name, seg, b), hit->GetNpe(3, j));
         HF1(Form("%s_Hit_Time_seg%dS%s", name, seg, b), hit->GetTExtra(j));
         HF1(Form("%s_Hit_CTime_seg%dS%s", name, seg, b), hit->GetCTExtra(j));
+        // T1 counter hit exists: fill on/off sum.
+        if(t1_hit && seg >= 0 && seg < (Int_t)offsum_npe.size()){
+          HF1(Form("%s_Hit_Npe_seg%dS_online_T1%s", name, seg, b), hit->NpeSum(j));
+          HF1(Form("%s_Hit_Npe_seg%dS_offline_T1%s", name, seg, b), offsum_npe[seg]);
+        }
         is_good = true;
       }
       if(is_good){
