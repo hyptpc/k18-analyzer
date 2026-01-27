@@ -36,8 +36,12 @@ class BJob(object):
         self.__status == 'EXIT' or
         self.__status == 'TERMINATED'):
       return self.__status
-    status = bjobmanager.BJobManager().get_job_status(self.__job_id)
-    logger.debug(f'{self.__job_id} is {status}')
+    try:
+      status = bjobmanager.BJobManager().get_job_status(self.__job_id)
+      logger.debug(f'{self.__job_id} is {status}')
+    except KeyError as e:
+      logger.debug(e)
+      return self.__status
     # cmd = f'bjobs {self.__job_id}'
     # proc = None
     # try:
