@@ -14,10 +14,14 @@ class TPCRawData;
 class TPCHit;
 class TPCCluster;
 class TPCLocalTrack;
+class TPCLocalTrackHelix;
+class TPCVertex;
 
 typedef std::vector<TPCHit*>        TPCHitContainer;
 typedef std::vector<TPCCluster*>    TPCClusterContainer;
 typedef std::vector<TPCLocalTrack*> TPCLocalTrackContainer;
+typedef std::vector<TPCLocalTrackHelix*> TPCLocalTrackHelixContainer;
+typedef std::vector<TPCVertex*> TPCVertexContainer;
 
 //_____________________________________________________________________________
 class TPCAnalyzer
@@ -39,6 +43,12 @@ private:
   std::vector<TPCClusterContainer>   m_TPCClCont;
   TPCLocalTrackContainer             m_TPCTC;
   TPCLocalTrackContainer             m_TPCTCFailed;
+  TPCLocalTrackHelixContainer        m_TPCTCHelix;
+  TPCLocalTrackHelixContainer        m_TPCTCHelixInverted;
+  TPCLocalTrackHelixContainer        m_TPCTCHelixFailed;
+  TPCVertexContainer                 m_TPCVC; //vertex between two tracks
+  TPCVertexContainer                 m_TPCVCClustered; //clusted position of multi-tracks
+  
 
 public:
 
@@ -56,6 +66,11 @@ public:
   Int_t GetNTracksTPCFailed() const { return m_TPCTCFailed.size(); }
   TPCLocalTrack* GetTrackTPC(Int_t l) const { return m_TPCTC.at(l); }
   TPCLocalTrack* GetTrackTPCFailed(Int_t l) const { return m_TPCTCFailed.at(l); }
+
+  //HS-On
+  Bool_t TrackSearchTPCHelix(Bool_t exclusive=false);
+  Int_t GetNTracksTPCHelix() const { return m_TPCTCHelix.size(); }
+  TPCLocalTrackHelix* GetTrackTPCHelix(Int_t l) const { return m_TPCTCHelix.at(l); }
 
   const TPCHitContainer& GetTPCHC(Int_t l) const { return m_TPCHitCont.at(l); }
   const TPCClusterContainer& GetTPCClCont(Int_t l) const { return m_TPCClCont.at(l); }

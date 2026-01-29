@@ -710,7 +710,7 @@ BuildTPCHit()
   HB1("TPC_FADC_Noise_RMSmiddle",  n_bin_rms, min_rms, max_rms);
   HB1("TPC_FADC_Noise_Adcdiff",    1000,      -100.,   900.);
 
-  HB1("TPC_Clock_TDC",  100000, 0.,    1000000.);
+  HB1("TPC_Clock_TDC",  200000, 0.,    2000000.);
   HB1("TPC_Clock_Time", 20000,  -100., 100.);
 
   HB2Poly("TPC_HitPat_Noise",    -300., 300., -300., 300.);
@@ -773,7 +773,7 @@ BuildTPCTracking()
   HB1("Track_Searching_Time;Time [ms];Counts", trk_bins_time);
   HB1("Track_Fitting_Time;Time [ms];Counts", trk_bins_time);
   HB1("Minuit_Output_Status;Status;Counts", trk_bins_minuit);
-
+  
   HB1("Layer_Id_TPC;Layer;Counts", NumOfLayersTPC, -0.5, NumOfLayersTPC - 0.5);
   HB2("U0_vs_X0_TPC;X_{0} [mm];dY/dX", trk_bins_2d_pos_slope);
   HB2("V0_vs_Y0_TPC;Y_{0} [mm];dZ/dX", trk_bins_2d_pos_slope);
@@ -927,6 +927,41 @@ BuildTPCBcOutTracking()
     // Parameter tuning: Position correction (BcOut reference)
     HB2(Form("TPC_ResidualX_vs_X_BcOut_Layer%02d;X (global) [mm];Residual X (BcOut) [mm]", layer), bc_bins_2d_resx_vs_x);
     HB2(Form("TPC_ResidualY_vs_Y_BcOut_Layer%02d;Y (global) [mm];Residual Y (BcOut) [mm]", layer), bc_bins_2d_resy_vs_y);
+  }
+}
+
+void
+BuildTPCHelixTracking()
+{
+  HB1("HoughDist", 500, 0., 50.);
+  HB1("HoughDistY", 500, 0., 50.);
+  HB1("NTracks_TPC", 40, 0., 40. );
+  HB1("NHits_Track_TPC", 50, 0., 50.);
+  HB1("Chisqr_TPC", 500, 0., 500.);
+  HB1("LayerId_TPC", 35, 0., 35.);
+  HB1("mom0", 1000, 0., 2.5);
+
+  const Int_t    NbinDe = 1000;
+  const Double_t MinDe  =    0.;
+  const Double_t MaxDe  = 2000.;
+
+  const Int_t NbinClSize = 25;
+  const Double_t MinClSize = 0;
+  const Double_t MaxClSize = 25;
+  const Int_t NbinDist = 60;
+  const Double_t MinDist = -15.;
+  const Double_t MaxDist = 15.;
+  const Int_t NbinRatio = 100;
+  const Double_t MinRatio = 0.;
+  const Double_t MaxRatio = 1.;
+
+  HB1("Cluster_size;Cluster size;Counts", NbinClSize, MinClSize, MaxClSize);
+  HB1("Cluster_dE;Cluster dE;Counts", NbinDe, MinDe, MaxDe);
+  HB2("Transverse_diffusion;X_{cluster_center}-X_{pad};A/A_{sum}", NbinDist, MinDist, MaxDist, NbinRatio, MinRatio, MaxRatio);
+  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
+    HB1(Form("Cluster_size_layer%d;Cluster size;Counts",layer), NbinClSize, MinClSize, MaxClSize);
+    HB1(Form("Cluster_dE_layer%d;Cluster dE;Counts",layer), NbinDe, MinDe, MaxDe);
+    HB2(Form("Transverse_diffusion_layer%d;X_{cluster_center}-X_{pad};A/A_{sum}",layer), NbinDist, MinDist, MaxDist, NbinRatio, MinRatio, MaxRatio);
   }
 }
 

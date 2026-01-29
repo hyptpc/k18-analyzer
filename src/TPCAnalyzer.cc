@@ -227,6 +227,25 @@ TPCAnalyzer::TrackSearchTPC(Bool_t exclusive)
 }
 
 //_____________________________________________________________________________
+//HS-On: Track Searching
+Bool_t
+TPCAnalyzer::TrackSearchTPCHelix(Bool_t exclusive)
+{
+  if(m_is_decoded[kTPCTracking]){
+    hddaq::cout << FUNC_NAME << " "
+                << "already decoded" << std::endl;
+    return true;
+  }
+
+  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
+  
+  tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixInverted, m_TPCTCHelixFailed, m_TPCVC, m_TPCVCClustered, exclusive, MinLayer);
+
+  m_is_decoded[kTPCTracking] = true;
+  return true;
+}
+
+//_____________________________________________________________________________
 void
 TPCAnalyzer::ClearTPCHits()
 {
