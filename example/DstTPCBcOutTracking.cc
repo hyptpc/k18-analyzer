@@ -53,10 +53,12 @@ const auto& gUnpacker = GUnpacker::get_instance();
 auto&       gConf     = ConfMan::GetInstance();
 const auto& gGeom     = DCGeomMan::GetInstance();
 const auto& gUser     = UserParamMan::GetInstance();
+const auto& gTpcParam = TPCParamMan::GetInstance();
 const auto& gCounter  = debug::ObjectCounter::GetInstance();
 const Double_t truncatedMean = 0.8; //80%
 const Double_t MaxChisqrTpc = 50.0;
 const Double_t MaxChisqrBcOut = 5.0;
+const Double_t VdriftForResYCorr = 0.055;
 }
 
 namespace dst
@@ -86,6 +88,7 @@ struct Event
   std::vector<std::vector<Double_t>> trigflag;
   Int_t beamflag;
   std::vector<Double_t> clkTpc;
+  std::vector<Double_t> cobo_id;
 
   // TPC Tracking Info
   Int_t ntTpc;
@@ -131,7 +134,7 @@ struct Event
     evnum    = 0;
     status   = 0;
     beamflag = beam::kUnknown;
-    dst::clear_all(trigpat, trigflag, clkTpc);
+    dst::clear_all(trigpat, trigflag, clkTpc, cobo_id);
   }
   
   void clearTPCTracks() {
@@ -200,6 +203,7 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* trigflag;
   TTreeReaderValue<Int_t>* beamflag;
   TTreeReaderValue<std::vector<Double_t>>* clkTpc;
+  TTreeReaderValue<std::vector<Double_t>>* cobo_id;
   TTreeReaderValue<Int_t>* ntTpc;
   TTreeReaderValue<std::vector<Int_t>>* nhtrack;
   TTreeReaderValue<std::vector<Double_t>>* chisqrTpc;
@@ -449,6 +453,7 @@ dst::DstRead(Int_t ievent)
   event.trigpat  = **src.trigpat;
   event.trigflag = **src.trigflag;
   event.clkTpc   = **src.clkTpc;
+  event.cobo_id  = **src.cobo_id;
   HF1("Status", event.status++);
 
   if(**src.ntTpc == 0) return true;
@@ -606,12 +611,63 @@ dst::DstRead(Int_t ievent)
       );
       ThreeVector globalposTpc = gGeom.Local2GlobalPos("HypTPC", localposTpc);
       Double_t resX_BcOut = globalposTpc.x() - ((**src.u0BcOut)[it]*globalposTpc.z() + (**src.x0BcOut)[it]);
-      Double_t resY_BcOut = globalposTpc.y() - ((**src.v0BcOut)[it]*globalposTpc.z() + (**src.y0BcOut)[it]);
+      Double_t yBcOut = (**src.v0BcOut)[it]*globalposTpc.z() + (**src.y0BcOut)[it];
+      Double_t resY_BcOut = globalposTpc.y() - yBcOut;
       HF1(Form("TPC_Layer%02d_BcOut_X_Residual", layer), resX_BcOut);
       HF1(Form("TPC_Layer%02d_BcOut_Y_Residual", layer), resY_BcOut);
-      // Parameter tuning: Position correction (BcOut reference)
+      // Parameter tuning: Position correction (BcOut reference). X = Tpc hit or BcOut extrap, Y = Residual (BcOut).
       HF2(Form("TPC_ResidualX_vs_X_BcOut_Layer%02d", layer), globalposTpc.x(), resX_BcOut);
-      HF2(Form("TPC_ResidualY_vs_Y_BcOut_Layer%02d", layer), globalposTpc.y(), resY_BcOut);
+      HF2(Form("TPC_ResidualY_vs_Y_TPC_Layer%02d", layer), globalposTpc.y(), resY_BcOut);
+      HF2(Form("TPC_ResidualY_vs_Y_BcOut_Layer%02d", layer), yBcOut, resY_BcOut);
+      // Parameter tuning: Row-dependent residual (BcOut reference)
+      if(it < (Int_t)event.track_cluster_row_center.size() && ih < (Int_t)event.track_cluster_row_center[it].size()){
+        Int_t centerRow = static_cast<Int_t>(std::round(event.track_cluster_row_center[it][ih]));
+        HF2(Form("TPC_ResidualY_vs_Y_TPC_Layer%02d_Row%03d", layer, centerRow), globalposTpc.y(), resY_BcOut);
+        HF2(Form("TPC_ResidualY_vs_Y_BcOut_Layer%02d_Row%03d", layer, centerRow), yBcOut, resY_BcOut);
+      }
+
+      // Parameter tuning: Layer-dependent residual distribution (BcOut reference)
+      HF2("TPC_ResidualX_BcOut_vs_Layer", layer, resX_BcOut);
+      HF2("TPC_ResidualY_BcOut_vs_Layer", layer, resY_BcOut);
+
+      // Parameter tuning: Clock time vs BcOut Residual Y (CoBo and Asad)
+      if(it < (Int_t)event.track_cluster_row_center.size() && ih < (Int_t)event.track_cluster_row_center[it].size()){
+        Int_t centerRow = static_cast<Int_t>(std::round(event.track_cluster_row_center[it][ih]));
+        Int_t cobo = tpc::GetCoBoId(layer, centerRow);
+        Int_t asad = tpc::GetASADId(layer, centerRow);
+
+        // CoBo validation and warning
+        Bool_t cobo_valid = (cobo >= 0 && cobo < NumOfSegCOBO);
+        Double_t cclk = 0.0;
+        Bool_t have_cclk = (cobo_valid && std::isfinite(event.clkTpc[cobo]) &&
+                            gTpcParam.GetCClock(layer, centerRow, event.clkTpc[cobo], cclk));
+
+        if(!cobo_valid){
+          spdlog::warn("TPC BcOut ResY vs ClockTime: invalid CoBo id (cobo={}) for layer={} row={}", cobo, layer, centerRow);
+        } else if(!std::isfinite(event.clkTpc[cobo])){
+          spdlog::warn("TPC BcOut ResY vs ClockTime: non-finite clkTpc[{}]={} for layer={} row={}", cobo, event.clkTpc[cobo], layer, centerRow);
+        } else {
+          HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_CoBo%d", cobo), event.clkTpc[cobo], resY_BcOut);
+          if(have_cclk) {
+            Double_t dclk = cclk - event.clkTpc[cobo];
+            Double_t resY_corrected = resY_BcOut + VdriftForResYCorr * dclk;
+            HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Corrected_CoBo%d", cobo), event.clkTpc[cobo], resY_corrected);
+          }
+        }
+
+        // Asad validation and warning
+        Bool_t asad_valid = (asad >= 0 && asad < NumOfAsadTPC);
+        if(!asad_valid){
+          spdlog::warn("TPC BcOut ResY vs ClockTime: invalid Asad id (asad={}) for layer={} row={}", asad, layer, centerRow);
+        } else if(cobo_valid && std::isfinite(event.clkTpc[cobo])){
+          HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Asad%02d", asad), event.clkTpc[cobo], resY_BcOut);
+          if(have_cclk) {
+            Double_t dclk = cclk - event.clkTpc[cobo];
+            Double_t resY_corrected = resY_BcOut + VdriftForResYCorr * dclk;
+            HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Corrected_Asad%02d", asad), event.clkTpc[cobo], resY_corrected);
+          }
+        }
+      }
     }
   }
   HF1("Status", event.status++);
@@ -654,6 +710,7 @@ dst::SetupReader()
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "trig_flag",    src.trigflag);
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "beam_flag",    src.beamflag);
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "clkTpc",       src.clkTpc);
+  dst::SetBranch(TTreeReaderCont[kTpcTracking], "cobo_id",      src.cobo_id);
 
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "ntTpc",        src.ntTpc);
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "nhtrack",      src.nhtrack);
@@ -757,6 +814,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("trig_flag",    &event.trigflag);
   tree->Branch("beam_flag",    &event.beamflag);
   tree->Branch("clkTpc",       &event.clkTpc);
+  tree->Branch("cobo_id",      &event.cobo_id);
 
   tree->Branch("ntTpc", &event.ntTpc);
   tree->Branch("nhtrack", &event.nhtrack);
@@ -830,7 +888,7 @@ ConfMan::InitializeParameterFiles()
 {
   return
     (InitializeParameter<DCGeomMan>("DCGEO")   &&
-     InitializeParameter<TPCParamMan>("TPCPRM") &&
+     InitializeParameter<TPCParamMan>("TPCPRM", "TPCPHASE") &&
      InitializeParameter<UserParamMan>("USER"));
 }
 

@@ -312,7 +312,7 @@ ConfMan::InitializeParameterFiles()
     (InitializeParameter<DCGeomMan>("DCGEO") &&
      InitializeParameter<HodoParamMan>("HDPRM") &&
      InitializeParameter<HodoPHCMan>("HDPHC") &&
-     InitializeParameter<TPCParamMan>("TPCPRM") &&
+     InitializeParameter<TPCParamMan>("TPCPRM", "TPCPHASE") &&
      InitializeParameter<TPCPositionCorrector>("TPCPOS") &&
      InitializeParameter<UserParamMan>("USER"));
 }

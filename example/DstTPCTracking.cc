@@ -74,6 +74,7 @@ struct Event
   std::vector<std::vector<Double_t>> trigflag;
   Int_t beamflag;
   std::vector<Double_t> clkTpc;
+  std::vector<Double_t> cobo_id;
 
   Int_t nhTpc;
   std::vector<Double_t> raw_hitpos_x;
@@ -173,7 +174,7 @@ struct Event
     evnum    = 0;
     status   = 0;
     beamflag = beam::kUnknown;
-    dst::clear_all(trigpat, trigflag, clkTpc);
+    dst::clear_all(trigpat, trigflag, clkTpc, cobo_id);
   }
 
   void clearRawHits() {
@@ -335,6 +336,7 @@ struct Src
   TTreeReaderValue<std::vector<Double_t>>* tTpc;      // time
   TTreeReaderValue<std::vector<Double_t>>* chisqrTpc; // chi^2 of signal fitting
   TTreeReaderValue<std::vector<Double_t>>* clkTpc;    // clock time
+  TTreeReaderValue<std::vector<Double_t>>* cobo_id;   // CoBo ID
 };
 
 namespace root
@@ -449,6 +451,7 @@ dst::DstRead(Int_t ievent)
   event.trigflag = **src.trigflag;
   event.beamflag = **src.beamflag;
   event.clkTpc   = **src.clkTpc;
+  event.cobo_id  = **src.cobo_id;
   HF1("Status", event.status++);
 
   if(**src.nhTpc == 0)
@@ -668,40 +671,18 @@ dst::DstRead(Int_t ievent)
 
       HF1("Layer_Id_TPC", layer);
       HF1(Form("HitPat_TPC_Layer%02d", layer), centerRow);
+      Int_t pad_id = tpc::GetPadId(layer, centerRow);
+      if (pad_id >= 0) {
+        Double_t bin_cont = HG2Poly("TPC_TrackHitPat", pad_id + 1);
+        HF2Poly("TPC_TrackHitPat", pad_id + 1, bin_cont + 1.);
+      }
       HF1(Form("Position_TPC_Layer%02d", layer), hitpos.x());
       HF1(Form("Residual_TPC_Layer%02d", layer), residual);
       HF2(Form("Residual_vs_Position_TPC_Layer%02d", layer), hitpos.x(), residual);
       HF2(Form("Yhit_vs_Xcal_TPC_Layer%02d", layer), calpos.x(), hitpos.y());
-      Int_t cobo = tpc::GetCoBoId(layer, centerRow);
-      // CoBo mapping validation: Fill CoBo ID mapping histograms
-      if(cobo >= 0 && cobo < NumOfSegCOBO){
-        HF2("TPC_CoBoId_vs_Layer_Row", layer, centerRow);
-        HF2("TPC_Layer_vs_CoBoId", cobo, layer);
-        HF2(Form("TPC_Row_vs_CoBoId_Layer%02d", layer), cobo, centerRow);
-      }
-      if(cobo < 0){
-        spdlog::warn("TPC Y vs PhaseShift: invalid CoBo id (cobo={}) for layer={} row={}", cobo, layer, centerRow);
-      } else if(cobo >= NumOfSegCOBO){
-        spdlog::warn("TPC Y vs PhaseShift: CoBo id out of range (cobo={}) for layer={} row={}", cobo, layer, centerRow);
-      } else if(!std::isfinite(event.clkTpc[cobo])){
-        spdlog::warn("TPC Y vs PhaseShift: non-finite clkTpc[{}]={} for layer={} row={}", cobo, event.clkTpc[cobo], layer, centerRow);
-      } else {
-        // Parameter tuning: Clock time (raw) vs Residual Y for ideal step pattern
-        HF2(Form("TPC_ResidualY_vs_ClockTime_CoBo%d", cobo), event.clkTpc[cobo], resi_vect.Y());
-      }
       HF1(Form("ResidualX_TPC_Layer%02d", layer), resi_vect.X());
       HF1(Form("ResidualY_TPC_Layer%02d", layer), resi_vect.Y());
       HF1(Form("ResidualZ_TPC_Layer%02d", layer), resi_vect.Z());
-      // Parameter tuning: Drift velocity and t0 recalibration
-      HF2(Form("TPC_ResidualY_vs_Y_Layer%02d", layer), hitpos.y(), resi_vect.Y());
-      HF2(Form("TPC_ResidualY_vs_Y_Layer%02d_Row%02d", layer, centerRow), hitpos.y(), resi_vect.Y());
-      // Parameter tuning: Position correction (alignment)
-      HF2(Form("TPC_ResidualX_vs_X_Layer%02d", layer), hitpos.x(), resi_vect.X());
-      HF2(Form("TPC_ResidualZ_vs_Z_Layer%02d", layer), hitpos.z(), resi_vect.Z());
-      // Parameter tuning: Layer-dependent residual distribution
-      HF2("TPC_ResidualX_vs_Layer", layer, resi_vect.X());
-      HF2("TPC_ResidualY_vs_Layer", layer, resi_vect.Y());
-      HF2("TPC_ResidualZ_vs_Layer", layer, resi_vect.Z());
 
       HF1("Cluster_size", clsize);
       HF1(Form("Cluster_size_layer%02d", layer), clsize);
@@ -848,6 +829,7 @@ dst::SetupReader()
   dst::SetBranch(reader, "tTpc",         src.tTpc);
   dst::SetBranch(reader, "chisqrTpc",    src.chisqrTpc);
   dst::SetBranch(reader, "clkTpc",       src.clkTpc);
+  dst::SetBranch(reader, "cobo_id",      src.cobo_id);
 
   return true;
 }
@@ -868,6 +850,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("trig_flag", &event.trigflag);
   tree->Branch("beam_flag", &event.beamflag);
   tree->Branch("clkTpc", &event.clkTpc);
+  tree->Branch("cobo_id", &event.cobo_id);
 
 #if RawHit
   tree->Branch("nhTpc", &event.nhTpc);
@@ -975,7 +958,7 @@ ConfMan::InitializeParameterFiles()
 {
   return
     (InitializeParameter<DCGeomMan>("DCGEO") &&
-     InitializeParameter<TPCParamMan>("TPCPRM") &&
+     InitializeParameter<TPCParamMan>("TPCPRM", "TPCPHASE") &&
      InitializeParameter<TPCPositionCorrector>("TPCPOS") &&
      InitializeParameter<UserParamMan>("USER"));
 }
