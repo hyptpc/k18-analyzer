@@ -167,7 +167,8 @@ RawData::AddHodoRawHit(const TString& name, Int_t plane, Int_t seg,
   }else if(data == gUnpacker.get_data_id(name, "leading")){
     if (name != "COBO") {
       p->SetTdcLeading(ch, val);
-    } else if ( TMath::IsNaN(p->GetTdcLeading(ch, 0)) && gUser.IsInRange("COBO_TDC", val)) {
+    } else if (gUser.IsInRange("COBO_TDC", val)) {
+      // Store all TDCs in range; HodoHit sorts and GetArrayTime().at(0) gives the earliest
       p->SetTdcLeading(ch, val);
     }
   }else if(data == gUnpacker.get_data_id(name, "trailing")){

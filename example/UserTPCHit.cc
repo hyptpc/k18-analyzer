@@ -147,12 +147,17 @@ ProcessNormal()
       }
     }
 
+    clkTpc.resize(NumOfSegCOBO, TMath::QuietNaN());
     for(Int_t i=0, nh=hodoAna.GetNHits(n); i<nh; ++i){
       const auto& hit = hodoAna.GetHit(n, i);
-      cobo_id.push_back(hit->SegmentId());
-      auto clock_timing = hit->GetArrayTime().at(0);
-      clkTpc.push_back(clock_timing);
-      HF1("TPC_Clock_Time", clock_timing);
+      Int_t seg = hit->SegmentId();
+      if(seg >= 0 && seg < NumOfSegCOBO){
+        // Use earliest (min) of all clock edges in gate; HodoHit sorts so at(0)=min
+        Double_t clock_timing = hit->GetArrayTime().at(0);
+        clkTpc[seg] = clock_timing;
+        cobo_id.push_back(seg);
+        HF1("TPC_Clock_Time", clock_timing);
+      }
     }
   }
 
