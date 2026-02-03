@@ -58,7 +58,7 @@ const auto& gCounter  = debug::ObjectCounter::GetInstance();
 const Double_t truncatedMean = 0.8; //80%
 const Double_t MaxChisqrTpc = 50.0;
 const Double_t MaxChisqrBcOut = 5.0;
-const Double_t VdriftForResYCorr = 0.055;
+const Double_t MinAbsY_BcOut_ForResYvsY = 0.01;
 }
 
 namespace dst
@@ -111,6 +111,7 @@ struct Event
   std::vector<std::vector<Double_t>> track_cluster_y_center;
   std::vector<std::vector<Double_t>> track_cluster_z_center;
   std::vector<std::vector<Double_t>> track_cluster_row_center;
+  std::vector<std::vector<Double_t>> hit_ctime_noclk;
 
   std::vector<std::vector<Double_t>> exresidual, exresidual_x, exresidual_y, exresidual_z;
   std::vector<std::vector<Double_t>> exresidual_horizontal, exresidual_vertical;
@@ -159,6 +160,7 @@ struct Event
       track_cluster_mrow, track_cluster_de_center,
       track_cluster_x_center, track_cluster_y_center, track_cluster_z_center,
       track_cluster_row_center,
+      hit_ctime_noclk,
 
       exresidual, 
       exresidual_x, exresidual_y, exresidual_z, 
@@ -243,6 +245,7 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_y_center;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_z_center;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_row_center;
+  TTreeReaderValue<std::vector<std::vector<Double_t>>>* hit_ctime_noclk;
 
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* exresidual;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* exresidual_x;
@@ -319,6 +322,7 @@ void CopyTPCTrackingData(Event& event, const Src& src)
   event.track_cluster_y_center   = **src.track_cluster_y_center;
   event.track_cluster_z_center   = **src.track_cluster_z_center;
   event.track_cluster_row_center = **src.track_cluster_row_center;
+  event.hit_ctime_noclk = **src.hit_ctime_noclk;
 
 #if Exclusive
   event.exresidual   = **src.exresidual;
@@ -615,13 +619,17 @@ dst::DstRead(Int_t ievent)
       Double_t resY_BcOut = globalposTpc.y() - yBcOut;
       HF1(Form("TPC_Layer%02d_BcOut_X_Residual", layer), resX_BcOut);
       HF1(Form("TPC_Layer%02d_BcOut_Y_Residual", layer), resY_BcOut);
-      // Parameter tuning: Position correction (BcOut reference). X = Tpc hit or BcOut extrap, Y = Residual (BcOut).
+
+      // Parameter tuning: Position correction (BcOut reference).
       HF2(Form("TPC_ResidualX_vs_X_BcOut_Layer%02d", layer), globalposTpc.x(), resX_BcOut);
-      HF2(Form("TPC_ResidualY_vs_Y_TPC_Layer%02d", layer), globalposTpc.y(), resY_BcOut);
-      HF2(Form("TPC_ResidualY_vs_Y_BcOut_Layer%02d", layer), yBcOut, resY_BcOut);
+      if (TMath::Abs(yBcOut) >= MinAbsY_BcOut_ForResYvsY) {
+        HF2(Form("TPC_ResidualY_vs_Y_TPC_Layer%02d", layer), globalposTpc.y(), resY_BcOut);
+        HF2(Form("TPC_ResidualY_vs_Y_BcOut_Layer%02d", layer), yBcOut, resY_BcOut);
+      }
       // Parameter tuning: Row-dependent residual (BcOut reference)
-      if(it < (Int_t)event.track_cluster_row_center.size() && ih < (Int_t)event.track_cluster_row_center[it].size()){
-        Int_t centerRow = static_cast<Int_t>(std::round(event.track_cluster_row_center[it][ih]));
+      if (it < static_cast<Int_t>(event.track_cluster_row_center.size()) &&
+          ih < static_cast<Int_t>(event.track_cluster_row_center[it].size())) {
+        Int_t centerRow = static_cast<Int_t>(event.track_cluster_row_center[it][ih]);
         HF2(Form("TPC_ResidualY_vs_Y_TPC_Layer%02d_Row%03d", layer, centerRow), globalposTpc.y(), resY_BcOut);
         HF2(Form("TPC_ResidualY_vs_Y_BcOut_Layer%02d_Row%03d", layer, centerRow), yBcOut, resY_BcOut);
       }
@@ -631,45 +639,67 @@ dst::DstRead(Int_t ievent)
       HF2("TPC_ResidualY_BcOut_vs_Layer", layer, resY_BcOut);
 
       // Parameter tuning: Clock time vs BcOut Residual Y (CoBo and Asad)
-      if(it < (Int_t)event.track_cluster_row_center.size() && ih < (Int_t)event.track_cluster_row_center[it].size()){
-        Int_t centerRow = static_cast<Int_t>(std::round(event.track_cluster_row_center[it][ih]));
+      if(  it < (Int_t)event.track_cluster_row_center.size() 
+        && ih < (Int_t)event.track_cluster_row_center[it].size()){
+
+        Int_t centerRow = static_cast<Int_t>(event.track_cluster_row_center[it][ih]);
         Int_t cobo = tpc::GetCoBoId(layer, centerRow);
         Int_t asad = tpc::GetASADId(layer, centerRow);
-
-        // CoBo validation and warning
         Bool_t cobo_valid = (cobo >= 0 && cobo < NumOfSegCOBO);
-        Double_t cclk = 0.0;
-        Bool_t have_cclk = (cobo_valid && std::isfinite(event.clkTpc[cobo]) &&
-                            gTpcParam.GetCClock(layer, centerRow, event.clkTpc[cobo], cclk));
+
+        Bool_t have_ctime_noclk = (
+          it < (Int_t)event.hit_ctime_noclk.size()
+          && ih < (Int_t)event.hit_ctime_noclk[it].size()
+          && std::isfinite(event.hit_ctime_noclk[it][ih])
+        );
+        Double_t resY_noclk = TMath::QuietNaN(), resY_raw = TMath::QuietNaN();
+        if(have_ctime_noclk && cobo_valid && std::isfinite(event.clkTpc[cobo])) {
+          Double_t ctime_noclk = event.hit_ctime_noclk[it][ih];
+          Double_t clk = event.clkTpc[cobo];
+          Double_t Y_noclk = TMath::QuietNaN(), Y_raw = TMath::QuietNaN();
+          gTpcParam.GetDriftLength(layer, centerRow, ctime_noclk, Y_noclk);
+          gTpcParam.GetDriftLength(layer, centerRow, ctime_noclk + clk, Y_raw);
+          ThreeVector local_noclk(event.hitpos_x[it][ih], Y_noclk, event.hitpos_z[it][ih]);
+          ThreeVector local_raw(event.hitpos_x[it][ih], Y_raw, event.hitpos_z[it][ih]);
+          ThreeVector global_noclk = gGeom.Local2GlobalPos("HypTPC", local_noclk);
+          ThreeVector global_raw = gGeom.Local2GlobalPos("HypTPC", local_raw);
+          resY_noclk = global_noclk.y() - yBcOut;
+          resY_raw   = global_raw.y() - yBcOut;
+        }
 
         if(!cobo_valid){
           spdlog::warn("TPC BcOut ResY vs ClockTime: invalid CoBo id (cobo={}) for layer={} row={}", cobo, layer, centerRow);
         } else if(!std::isfinite(event.clkTpc[cobo])){
-          spdlog::warn("TPC BcOut ResY vs ClockTime: non-finite clkTpc[{}]={} for layer={} row={}", cobo, event.clkTpc[cobo], layer, centerRow);
+          Double_t clk = event.clkTpc[cobo];
+          spdlog::warn("TPC BcOut ResY vs ClockTime: non-finite clkTpc[{}]={} for layer={} row={}", cobo, clk, layer, centerRow);
         } else {
-          HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_CoBo%d", cobo), event.clkTpc[cobo], resY_BcOut);
-          if(have_cclk) {
-            Double_t dclk = cclk - event.clkTpc[cobo];
-            Double_t resY_corrected = resY_BcOut + VdriftForResYCorr * dclk;
-            HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Corrected_CoBo%d", cobo), event.clkTpc[cobo], resY_corrected);
+          Double_t clk = event.clkTpc[cobo];
+          HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_CoBo%d", cobo), clk, resY_BcOut);
+          if(have_ctime_noclk) {
+            HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_CoBo%d_RawClock", cobo), clk, resY_raw);
+#ifdef DEBUG_COBO_CLOCK
+            HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_CoBo%d_NoClock", cobo), clk, resY_noclk);
+#endif
           }
-        }
+        }  // else [CoBo: cobo_valid && std::isfinite(clkTpc)]
 
         // Asad validation and warning
         Bool_t asad_valid = (asad >= 0 && asad < NumOfAsadTPC);
         if(!asad_valid){
           spdlog::warn("TPC BcOut ResY vs ClockTime: invalid Asad id (asad={}) for layer={} row={}", asad, layer, centerRow);
         } else if(cobo_valid && std::isfinite(event.clkTpc[cobo])){
-          HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Asad%02d", asad), event.clkTpc[cobo], resY_BcOut);
-          if(have_cclk) {
-            Double_t dclk = cclk - event.clkTpc[cobo];
-            Double_t resY_corrected = resY_BcOut + VdriftForResYCorr * dclk;
-            HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Corrected_Asad%02d", asad), event.clkTpc[cobo], resY_corrected);
+          Double_t clk = event.clkTpc[cobo];
+          HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Asad%02d", asad), clk, resY_BcOut);
+          if(have_ctime_noclk) {
+            HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Asad%02d_RawClock", asad), clk, resY_raw);
+#ifdef DEBUG_COBO_CLOCK
+            HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Asad%02d_NoClock", asad), clk, resY_noclk);
+#endif
           }
-        }
-      }
-    }
-  }
+        }  // else if(cobo_valid && std::isfinite(clkTpc)) [Asad]
+      }  // if(track_cluster_row_center)
+    }  // for ih
+  }  // for it
   HF1("Status", event.status++);
 
   return true;
@@ -758,6 +788,7 @@ dst::SetupReader()
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "track_cluster_y_center",   src.track_cluster_y_center);
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "track_cluster_z_center",   src.track_cluster_z_center);
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "track_cluster_row_center", src.track_cluster_row_center);
+  dst::SetBranch(TTreeReaderCont[kTpcTracking], "hit_ctime_noclk", src.hit_ctime_noclk);
 
   // ExResiduals
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "exresidual",            src.exresidual);

@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 
 #include <filesystem_util.hh>
 #include <UnpackerManager.hh>
@@ -139,6 +140,7 @@ struct Event
   std::vector<std::vector<Double_t>> track_cluster_y_center;
   std::vector<std::vector<Double_t>> track_cluster_z_center;
   std::vector<std::vector<Double_t>> track_cluster_row_center;
+  std::vector<std::vector<Double_t>> hit_ctime_noclk;
 
   //exclusive
   std::vector<std::vector<Double_t>> exresidual;
@@ -209,7 +211,8 @@ struct Event
 
       track_cluster_de, track_cluster_size, track_cluster_mrow,
       track_cluster_de_center, track_cluster_x_center, track_cluster_y_center,
-      track_cluster_z_center, track_cluster_row_center
+      track_cluster_z_center, track_cluster_row_center,
+      hit_ctime_noclk
     );
   }
 
@@ -265,7 +268,8 @@ struct Event
 
       track_cluster_de, track_cluster_size, track_cluster_mrow,
       track_cluster_de_center, track_cluster_x_center, track_cluster_y_center,
-      track_cluster_z_center, track_cluster_row_center
+      track_cluster_z_center, track_cluster_row_center,
+      hit_ctime_noclk
     );
   }
 
@@ -291,7 +295,8 @@ struct Event
       track_cluster_de[it], track_cluster_size[it], track_cluster_mrow[it],
       track_cluster_de_center[it],
       track_cluster_x_center[it], track_cluster_y_center[it],
-      track_cluster_z_center[it], track_cluster_row_center[it]
+      track_cluster_z_center[it], track_cluster_row_center[it],
+      hit_ctime_noclk[it]
     );
   }
 
@@ -459,8 +464,18 @@ dst::DstRead(Int_t ievent)
 
   HF1("Status", event.status++);
 
-  if(event.clkTpc.size() != 8){
-    spdlog::warn("something is wrong: event.clkTpc.size() != 8");
+  if(event.clkTpc.size() != NumOfSegCOBO){
+    spdlog::warn("something is wrong: event.clkTpc.size() != {}", NumOfSegCOBO);
+    return true;
+  }
+  std::vector<Int_t> bad_cobo;
+  for(Int_t c = 0; c < NumOfSegCOBO; ++c){
+    if(!std::isfinite(event.clkTpc[c])) bad_cobo.push_back(c);
+  }
+  if(!bad_cobo.empty()){
+    std::ostringstream oss;
+    for(size_t i = 0; i < bad_cobo.size(); ++i){ oss << (i ? "," : "") << bad_cobo[i]; }
+    spdlog::warn("CoBo clock(s) missing (NaN/Inf): cobo={}, skip event", oss.str());
     return true;
   }
 
@@ -632,7 +647,7 @@ dst::DstRead(Int_t ievent)
       TPCCluster *cl     = clhit->GetParentCluster();
       Int_t clsize       = cl->GetClusterSize();
       Double_t clde      = cl->GetDe();
-      Double_t mrow      = cl->MeanRow(); // same
+      Double_t mrow      = cl->MeanRow();
       TPCHit* centerHit  = cl->GetCenterHit();
       const TVector3& centerPos = centerHit->GetPosition();
       Double_t centerDe  = centerHit->GetCDe();
@@ -668,6 +683,19 @@ dst::DstRead(Int_t ievent)
       event.resolution_vertical[it][ih]   = track->GetVerticalResolution(ih);
       event.theta_diff[it][ih] = track->GetAlpha(ih);
       event.pathhit[it][ih]    = hitLength;
+
+      Double_t ctime_noclk_val = TMath::QuietNaN();
+      if (centerHit->GetCTimeSize() > 0) {
+        Int_t cobo = tpc::GetCoBoId(layer, centerRow);
+        Double_t cclk = 0.0;
+        if (cobo >= 0 && cobo < NumOfSegCOBO &&
+            cobo < static_cast<Int_t>(event.clkTpc.size()) &&
+            std::isfinite(event.clkTpc[cobo]) &&
+            gTpcParam.GetCClock(layer, centerRow, event.clkTpc[cobo], cclk)) {
+          ctime_noclk_val = centerHit->GetCTime(0) - cclk;
+        }
+      }
+      event.hit_ctime_noclk[it][ih] = ctime_noclk_val;
 
       HF1("Layer_Id_TPC", layer);
       HF1(Form("HitPat_TPC_Layer%02d", layer), centerRow);
@@ -918,6 +946,7 @@ ConfMan::InitializeHistograms()
   tree->Branch("track_cluster_y_center", &event.track_cluster_y_center);
   tree->Branch("track_cluster_z_center", &event.track_cluster_z_center);
   tree->Branch("track_cluster_row_center", &event.track_cluster_row_center);
+  tree->Branch("hit_ctime_noclk", &event.hit_ctime_noclk);
 
   tree->Branch("ntTpc_target", &event.ntTpc_inside);
   tree->Branch("prodvtx_x", &event.prodvtx_x);

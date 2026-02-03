@@ -104,14 +104,14 @@ class TPCCoboParam
 public:
   TPCCoboParam(const std::vector<Double_t> params)
     : m_params(params),
-      m_graph(nullptr)
+      m_phase_graph(nullptr)
     {}
 
   ~TPCCoboParam()
   {
-    if (m_graph) {
-      delete m_graph;
-      m_graph = nullptr;
+    if (m_phase_graph) {
+      delete m_phase_graph;
+      m_phase_graph = nullptr;
     }
   }
 
@@ -122,15 +122,15 @@ private:
 
 private:
   std::vector<Double_t> m_params;
-  TGraph*               m_graph;   // clock correction graph (Δclock vs clock)
+  TGraph*               m_phase_graph;  // clock correction (Δclock vs clock)
 
-  public:
-  void SetPhaseGraph(TGraph* g) { m_graph = g; }
-  TGraph* PhaseGraph() const { return m_graph; }
+public:
+  void SetPhaseGraph(TGraph* g) { m_phase_graph = g; }
+  TGraph* PhaseGraph() const { return m_phase_graph; }
   Double_t PhaseShift(Double_t clk) const
   {
-    if (m_graph) { // use graph for correction
-      const Double_t dclk = m_graph->Eval(clk);
+    if (m_phase_graph) {
+      const Double_t dclk = m_phase_graph->Eval(clk);
       return clk + dclk;
     }
     // use original parametric function if graph is not available
