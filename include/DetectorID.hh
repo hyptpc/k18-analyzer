@@ -4,7 +4,6 @@
 #define DETECTOR_ID_HH
 
 #include <initializer_list>
-#include <iostream>
 #include <map>
 #include <set>
 
@@ -104,7 +103,7 @@ inline constexpr UInt_t HodoGroupMask[kNumHodo] = {
   0, // kBH2
   MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout, HodoGroup::Cherenkov}), // kBAC
   0, // kHTOF
-  MakeHodoMask({HodoGroup::Cherenkov}), // kKVC
+  MakeHodoMask({HodoGroup::NoCluster, HodoGroup::Cherenkov}), // kKVC
   MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout}), // kT1
   MakeHodoMask({HodoGroup::Ftof}), // kCVC
   MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout, HodoGroup::Cherenkov, HodoGroup::Ftof}), // kSAC3
