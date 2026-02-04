@@ -4,22 +4,16 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
-#include <iomanip>
-#include <iostream>
-#include <string>
 
-// #include "BH2Cluster.hh"
 #include "BH2Hit.hh"
+#include "CherenkovHelper.hh"
 #include "DebugCounter.hh"
 #include "DeleteUtility.hh"
 #include "FiberCluster.hh"
 #include "FiberHit.hh"
-// #include "FLHit.hh"
 #include "FuncName.hh"
-#include "CherenkovHelper.hh"
-#include "HodoHit.hh"
 #include "HodoCluster.hh"
+#include "HodoHit.hh"
 #include "RawData.hh"
 #include "UserParamMan.hh"
 
@@ -253,6 +247,7 @@ HodoAnalyzer::DeCut(std::vector<T>& cont,
   std::copy(ValidCand.begin(), ValidCand.end(), cont.begin());
   ValidCand.clear();
 }
+
 //_____________________________________________________________________________
 const HodoCluster*
 HodoAnalyzer::GetTime0Cluster() const
@@ -262,7 +257,7 @@ HodoAnalyzer::GetTime0Cluster() const
   for(const auto& cluster : GetClusterContainer("BH2")){
     // Double_t mt = cluster->MeanTime();
     for(Int_t j=0, m=cluster->ClusterSize(); j<m; ++j){
-      Double_t mt = cluster->GetHit(j)->MeanTime();
+      Double_t mt = cluster->GetHit(j)->CMeanTime();
       if(true
          && TMath::Abs(mt) < TMath::Abs(min_mt)
          && gUser.IsInRange("T0_Time", mt)
