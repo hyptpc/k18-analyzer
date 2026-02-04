@@ -2,12 +2,6 @@
 
 #include "EventAnalyzer.hh"
 
-#include <Unpacker.hh>
-#include <UnpackerConfig.hh>
-#include <UnpackerManager.hh>
-#include <UnpackerXMLReadDigit.hh>
-#include <DAQNode.hh>
-
 #include "BH2Hit.hh"
 #include "CherenkovHit.hh"
 #include "DCAnalyzer.hh"
@@ -15,8 +9,8 @@
 #include "DCLocalTrack.hh"
 #include "DCRawHit.hh"
 #include "DetectorID.hh"
-#include "FiberHit.hh"
 #include "FiberCluster.hh"
+#include "FiberHit.hh"
 #include "HodoAnalyzer.hh"
 #include "HodoCluster.hh"
 #include "HodoParamMan.hh"
@@ -24,6 +18,12 @@
 #include "RawData.hh"
 #include "RootHelper.hh"
 #include "UserParamMan.hh"
+
+#include <DAQNode.hh>
+#include <Unpacker.hh>
+#include <UnpackerConfig.hh>
+#include <UnpackerManager.hh>
+#include <UnpackerXMLReadDigit.hh>
 
 namespace
 {

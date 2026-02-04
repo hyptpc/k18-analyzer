@@ -14,9 +14,9 @@
 #include <TMath.h>
 #include <TNamed.h>
 
-#include <std_ostream.hh>
-
 #include "FuncName.hh"
+
+#include <std_ostream.hh>
 
 namespace
 {

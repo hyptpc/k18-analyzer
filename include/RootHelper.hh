@@ -18,21 +18,19 @@
 #include <TH1.h>
 #include <TH2.h>
 #include <TH2Poly.h>
-#include <TList.h>
 #include <TLatex.h>
+#include <TList.h>
 #include <TMath.h>
 #include <TMatrix.h>
 #include <TMinuit.h>
 #include <TObject.h>
 #include <TPDGCode.h>
-#include <TParticlePDG.h>
 #include <TPad.h>
+#include <TParticlePDG.h>
 #include <TProfile.h>
-#include <TRint.h>
 #include <TRandom.h>
-// #include <TRandom1.h>
-// #include <TRandom2.h>
 #include <TRandom3.h>
+#include <TRint.h>
 #include <TROOT.h>
 #include <TString.h>
 #include <TStyle.h>
@@ -42,9 +40,10 @@
 #include <TTreeReaderValue.h>
 #include <TVector3.h>
 
-#include <std_ostream.hh>
-#include "TPCPadHelper.hh"
 #include "Exception.hh"
+#include "TPCPadHelper.hh"
+
+#include <std_ostream.hh>
 
 #define ThrowError 1 // if h[i] already exist, throw error
 #define OverWrite  0 // if h[i] already exist, delete and renew.

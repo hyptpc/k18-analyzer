@@ -6,14 +6,10 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <TF1.h>
-#include <TCanvas.h>
-#include <TStyle.h>
 
-#include <std_ostream.hh>
-#include <UnpackerConfig.hh>
-#include <UnpackerManager.hh>
-#include <UnpackerXMLReadDigit.hh>
+#include <TCanvas.h>
+#include <TF1.h>
+#include <TStyle.h>
 
 #include "ConfMan.hh"
 #include "DCRawHit.hh"
@@ -25,6 +21,11 @@
 #include "HodoRawHit.hh"
 #include "MathTools.hh"
 #include "UserParamMan.hh"
+
+#include <std_ostream.hh>
+#include <UnpackerConfig.hh>
+#include <UnpackerManager.hh>
+#include <UnpackerXMLReadDigit.hh>
 
 namespace
 {
@@ -173,8 +174,6 @@ RawData::AddHodoRawHit(const TString& name, Int_t plane, Int_t seg,
     }
   }else if(data == gUnpacker.get_data_id(name, "trailing")){
     p->SetTdcTrailing(ch, val);
-  // }else if(data == gUnpacker.get_data_id(name, "cstop")){
-  //   ;
   }else if(data == gUnpacker.get_data_id(name, "overflow")){
     p->SetTdcOverflow(ch, val);
   }
@@ -262,10 +261,10 @@ RawData::AddDCRawHit(const TString& name, Int_t plane, Int_t seg,
   }else{
     hddaq::cerr << FUNC_NAME << " unknown data type " << std::endl
                 << " Detector = " << name  << std::endl
-		<< " PlaneId  = " << plane << std::endl
-		<< " WireId   = " << wire  << std::endl
-		<< " DataType = " << data  << std::endl
-		<< " Value    = " << val   << std::endl;
+                << " PlaneId  = " << plane << std::endl
+                << " WireId   = " << wire  << std::endl
+                << " DataType = " << data  << std::endl
+                << " Value    = " << val   << std::endl;
   }
   return true;
 }

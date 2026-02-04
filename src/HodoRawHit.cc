@@ -7,14 +7,13 @@
 
 #include <TMath.h>
 
-#include <spdlog/spdlog.h>
+#include "DebugCounter.hh"
+#include "FuncName.hh"
 
+#include <spdlog/spdlog.h>
 #include <UnpackerConfig.hh>
 #include <UnpackerManager.hh>
 #include <UnpackerXMLReadDigit.hh>
-
-#include "DebugCounter.hh"
-#include "FuncName.hh"
 
 namespace
 {

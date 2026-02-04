@@ -3,6 +3,8 @@
 #ifndef HODO_ANALYZER_HH
 #define HODO_ANALYZER_HH
 
+#include <algorithm>
+#include <map>
 #include <vector>
 
 #include <TString.h>
@@ -155,9 +157,7 @@ HodoAnalyzer::DecodeHits(const TString& name, Bool_t makeCluster)
   std::sort(CandCont.begin(), CandCont.end(), T::Compare);
 
   auto& cont = m_hodo_hit_collection[name];
-  for(auto& hit: cont)
-    delete hit;
-  cont.clear();
+  del::ClearContainer(cont);
   for(const auto& hit: CandCont)
     cont.push_back(hit);
 

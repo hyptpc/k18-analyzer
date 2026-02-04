@@ -3,6 +3,8 @@
 #ifndef CHERENKOV_HIT_HH
 #define CHERENKOV_HIT_HH
 
+#include <vector>
+
 #include <TString.h>
 
 #include "DebugCounter.hh"

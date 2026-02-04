@@ -3,23 +3,18 @@
 #include "BH2Hit.hh"
 
 #include <cmath>
-#include <iomanip>
-#include <iostream>
-#include <sstream>
-#include <stdexcept>
 #include <string>
-
-#include <std_ostream.hh>
 
 #include "FuncName.hh"
 #include "HodoParamMan.hh"
 #include "HodoPHCMan.hh"
 #include "RawData.hh"
 
+#include <std_ostream.hh>
+
 namespace
 {
 const auto& gHodo = HodoParamMan::GetInstance();
-// const auto& gPHC = HodoPHCMan::GetInstance();
 }
 
 //_____________________________________________________________________________

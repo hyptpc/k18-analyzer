@@ -2,28 +2,29 @@
 
 #include "VEvent.hh"
 
-#include <iostream>
-#include <sstream>
 #include <cmath>
+#include <iostream>
+#include <map>
+#include <vector>
 
 #include <TString.h>
 
 #include "BH2Hit.hh"
 #include "CherenkovHit.hh"
 #include "ConfMan.hh"
-#include "DCGeomMan.hh"
 #include "DetectorID.hh"
 #include "EventAnalyzer.hh"
-#include "RootHelper.hh"
+#include "FiberHit.hh"
+#include "HistTools.hh"
 #include "HodoAnalyzer.hh"
-#include "HodoRawHit.hh"
+#include "HodoHit.hh"
 #include "HodoParamMan.hh"
 #include "HodoPHCMan.hh"
-#include "UserParamMan.hh"
-#include "XTMapMan.hh"
-#include "BLDCWireMapMan.hh"
+#include "HodoRawHit.hh"
 #include "RawData.hh"
-#include "HistTools.hh"
+#include "RootHelper.hh"
+#include "UserParamMan.hh"
+
 #include "UnpackerManager.hh"
 
 #define DEBUG 0
@@ -217,7 +218,7 @@ ProcessNormal()
     }
   }
   
-  { ///// KVC
+  { // KVC
     static const TString n("KVC");
     for(const auto& hit: rawData.GetHodoRawHC(n)){
       raw_seg[n].push_back(hit->SegmentId());
@@ -234,40 +235,10 @@ ProcessNormal()
   HF1("Status", 5);
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
-    auto n = NameHodo[ihodo];
-    // Offline (cached in HodoAnalyzer). BAC: 1; KVC: 8 per seg.
-    if (ihodo == kBAC || ihodo == kKVC)
-      for (auto x : hodoAna.GetOfflineNpe(ihodo == kBAC ? "BAC" : "KVC"))
-        npe_sum_offline[n].push_back(x);
+    if (ihodo == kBAC || ihodo == kKVC) continue;
 
-    // Hit loop: hit_seg[i], npe_*, mt, cmt share index i (= hit order). 
-    // KVC: offline for hit i = npe_sum_offline[n][ hit_seg[i] ].
+    auto n = NameHodo[ihodo];
     for(Int_t i=0, nh=hodoAna.GetNHits(n); i<nh; ++i){
-      // BAC: npe, npe_sum_online (seg4 only).
-      if (ihodo == kBAC) {
-        const auto* hit = hodoAna.GetHit<CherenkovHit>(n, i);
-        auto seg = hit->SegmentId();
-        hit_seg[n].push_back(seg);
-        de_u[n].push_back(hit->Npe());
-        Double_t onsum = hit->NpeSum(0);
-        if (!TMath::IsNaN(onsum)) npe_sum_online[n].push_back(onsum);
-        mt[n].push_back(hit->GetArrayCTime(HodoRawHit::kUp));
-        cmt[n].push_back(hit->GetArrayCTime(HodoRawHit::kUp));
-        continue;
-      }
-      // KVC: GetNpe(kA..kD), NpeSum(kSUM).
-      if (ihodo == kKVC) {
-        const auto* hit = hodoAna.GetHit<CherenkovHit>(n, i);
-        hit_seg[n].push_back(hit->SegmentId());
-        de_a[n].push_back(hit->GetNpe(HodoRawHit::EChannelKVC::kA, 0));
-        de_b[n].push_back(hit->GetNpe(HodoRawHit::EChannelKVC::kB, 0));
-        de_c[n].push_back(hit->GetNpe(HodoRawHit::EChannelKVC::kC, 0));
-        de_d[n].push_back(hit->GetNpe(HodoRawHit::EChannelKVC::kD, 0));
-        npe_sum_online[n].push_back(hit->NpeSum(0));
-        mt[n].push_back(hit->GetArrayCTime(HodoRawHit::kExtra));
-        cmt[n].push_back(hit->GetArrayCTime(HodoRawHit::kExtra));
-        continue;
-      }
       const auto& hit = hodoAna.GetHit(n, i);
       auto n_ch = hit->NumOfChannel();
       hit_seg[n].push_back(hit->SegmentId());
@@ -286,6 +257,41 @@ ProcessNormal()
         de_s[n].push_back(hit->GetAExtra());
         time_s[n].push_back(hit->GetArrayTime(2));
       }
+    }
+  }
+
+  { // BAC
+    const TString n = "BAC";
+    for (auto x : hodoAna.GetOfflineNpe(n))
+      npe_sum_offline[n].push_back(x);
+
+    for(Int_t i=0, nh=hodoAna.GetNHits(n); i<nh; ++i){
+      const auto* hit = hodoAna.GetHit<CherenkovHit>(n, i);
+      auto seg = hit->SegmentId();
+      hit_seg[n].push_back(seg);
+      de_u[n].push_back(hit->Npe());
+      Double_t onsum = hit->NpeSum(0);
+      if (!TMath::IsNaN(onsum)) npe_sum_online[n].push_back(onsum);
+      mt[n].push_back(hit->GetArrayCTime(HodoRawHit::kUp));
+      cmt[n].push_back(hit->GetArrayCTime(HodoRawHit::kUp));
+    }
+  }
+
+  { // KVC
+    const TString n = "KVC";
+    for (auto x : hodoAna.GetOfflineNpe(n))
+      npe_sum_offline[n].push_back(x);
+
+    for(Int_t i=0, nh=hodoAna.GetNHits(n); i<nh; ++i){
+      const auto* hit = hodoAna.GetHit<CherenkovHit>(n, i);
+      hit_seg[n].push_back(hit->SegmentId());
+      de_a[n].push_back(hit->GetNpe(HodoRawHit::EChannelKVC::kA, 0));
+      de_b[n].push_back(hit->GetNpe(HodoRawHit::EChannelKVC::kB, 0));
+      de_c[n].push_back(hit->GetNpe(HodoRawHit::EChannelKVC::kC, 0));
+      de_d[n].push_back(hit->GetNpe(HodoRawHit::EChannelKVC::kD, 0));
+      npe_sum_online[n].push_back(hit->NpeSum(0));
+      mt[n].push_back(hit->GetArrayCTime(HodoRawHit::kExtra));
+      cmt[n].push_back(hit->GetArrayCTime(HodoRawHit::kExtra));
     }
   }
 
@@ -384,7 +390,7 @@ ConfMan::InitializeHistograms()
         tree->Branch(Form("%s_tdc_s", n.Data()), &tdc_s[NameHodo[ihodo]]);
     }
   }
-  { ///// KVC (ch 0–3: indiv a,b,c,d; ch 4: SUM)
+  { // KVC (ch 0–3: indiv a,b,c,d; ch 4: SUM)
     const TString n("KVC");
     const Char_t* nn = "kvc";
     tree->Branch(Form("%s_raw_seg", nn), &raw_seg[n]);
@@ -422,7 +428,7 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_mt", n.Data()), &mt[NameHodo[ihodo]]);
     tree->Branch(Form("%s_cmt", n.Data()), &cmt[NameHodo[ihodo]]);
   }
-  { ///// BAC: npe_u, npe_sum_online (seg4, per hit). npe_sum_offline: 1 (event, seg0–3 raw). hit_seg/mt/cmt: per hit, index i.
+  { // BAC: npe_u, npe_sum_online (seg4, per hit). npe_sum_offline: 1 (event, seg0–3 raw). hit_seg/mt/cmt: per hit, index i.
     const TString n("BAC");
     const Char_t* nn = "bac";
     tree->Branch(Form("%s_hit_seg", nn), &hit_seg[n]);
@@ -432,7 +438,7 @@ ConfMan::InitializeHistograms()
     tree->Branch(Form("%s_mt", nn), &mt[n]);
     tree->Branch(Form("%s_cmt", nn), &cmt[n]);
   }
-  { ///// KVC: npe_a..d, npe_sum_online (per hit). npe_sum_offline: 8, [seg]=seg id; for hit i use [hit_seg[i]]. hit_seg/mt/cmt: per hit.
+  { // KVC: npe_a..d, npe_sum_online (per hit). npe_sum_offline: 8, [seg]=seg id; for hit i use [hit_seg[i]]. hit_seg/mt/cmt: per hit.
     const TString n("KVC");
     const Char_t* nn = "kvc";
     tree->Branch(Form("%s_hit_seg", nn), &hit_seg[n]);
@@ -473,7 +479,6 @@ ConfMan::InitializeParameterFiles()
   return
     (InitializeParameter<HodoParamMan>("HDPRM")) &&
     (InitializeParameter<HodoPHCMan>("HDPHC")) &&
-    (InitializeParameter<DCGeomMan>("DCGEO")) &&
     (InitializeParameter<UserParamMan>("USER"));
 }
 

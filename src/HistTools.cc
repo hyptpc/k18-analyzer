@@ -4,15 +4,15 @@
 
 #include <TString.h>
 
+#include "DetectorID.hh"
+#include "RootHelper.hh"
+#include "TPCPadHelper.hh"
+
 #include <DAQNode.hh>
 #include <Unpacker.hh>
 #include <UnpackerConfig.hh>
 #include <UnpackerManager.hh>
 #include <UnpackerXMLReadDigit.hh>
-
-#include "DetectorID.hh"
-#include "RootHelper.hh"
-#include "TPCPadHelper.hh"
 
 namespace
 {
@@ -760,11 +760,7 @@ BuildTPCTracking()
   const Double_t trk_bins_2d_res_vs_pos[6] = {250., -250., 250., 100.,  -1.0,  1.0};  // mm
   const Double_t trk_bins_2d_pos_wide[6]   = {100., -250., 250., 100., -250., 250.};  // mm
   const Double_t trk_bins_2d_ratio[6]      = {60.,  -15.,  15., 100.,    0.,  1.};   // mm, A/A_sum
-  const Double_t trk_bins_2d_phaseshift_resy[6]= {200., -100., 100., 100.,  -2.0,  2.0};  // PhaseShift [ns], Residual Y [mm]
-  const Double_t trk_bins_2d_clocktime_resy[6] = {200.,  -60.,   50., 200., -50.,  50.};  // Clock Time [ns], Residual Y [mm]
-  const Double_t trk_bins_2d_resy_vs_y[6]  = {200., -100., 100., 100.,  -2.0,  2.0};  // Y (drift) [mm], Residual Y [mm]
-  const Double_t trk_bins_2d_resx_vs_x[6]  = {200., -100., 100., 100.,  -2.0,  2.0};  // X (hit) [mm], Residual X [mm]
-  const Double_t trk_bins_2d_resz_vs_z[6]  = {200., -100., 100., 100.,  -2.0,  2.0};  // Z (hit) [mm], Residual Z [mm]
+
 
   HB1("Hough_Dist;Hough distance [mm];Counts", trk_bins_hough);
   HB1("Hough_Dist_Y;Hough distance Y [mm];Counts", trk_bins_hough);
@@ -821,7 +817,7 @@ BuildTPCBcOutTracking()
   const Double_t bc_bins_res[3]        = {200.,  -8.,   8.};    // mm
   const Double_t bc_bins_res_local_x[3] = {400., -16.,  16.};   // mm
   const Double_t bc_bins_xz[3]         = {100.,   0.,   8.};    // mm |Residual XZ|
-  const Double_t bc_bins_res_y_2d[3]   = {400.,  -5.,   5.};    // mm (Y of Layer_vs_ResY)
+
   // 2D: {n_bin_x, x_min, x_max, n_bin_y, y_min, y_max}
   const Double_t bc_bins_2d_pos_slope[6]  = {100., -100., 100., 100., -0.20, 0.20};  // mm, dY/dX
   const Double_t bc_bins_2d_pos_pos[6]    = {100., -100., 100., 100., -100., 100.};  // mm

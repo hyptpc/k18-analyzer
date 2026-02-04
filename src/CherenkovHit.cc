@@ -3,8 +3,7 @@
 #include "CherenkovHit.hh"
 
 #include <cmath>
-#include <iostream>
-#include <stdexcept>
+#include <algorithm>
 
 #include <TMath.h>
 

@@ -2,11 +2,11 @@
 
 #include "HodoHit.hh"
 
+#include <algorithm>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <iterator>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -39,7 +39,7 @@ HodoHit::HodoHit(const HodoRawHit *rhit, Double_t max_time_diff)
     m_is_calculated(false),
     m_max_time_diff(max_time_diff),
     m_n_ch(gUnpackerConf.get_digit_info().get_n_ch(rhit->DetectorId())),
-    m_time_offset(),
+    m_time_offset(0.0),
     m_de_high(m_n_ch),
     m_de_low(m_n_ch),
     m_time_leading(m_n_ch),
@@ -321,10 +321,10 @@ HodoHit::Print(Option_t* arg) const
 {
   PrintHelper helper(3, std::ios::fixed);
   hddaq::cout << FUNC_NAME << " " << arg << std::endl
-	      << "detector_name = " << m_raw->DetectorName() << std::endl
-	      << "detector_id   = " << m_raw->DetectorId() << std::endl
-	      << "plane_id      = " << m_raw->PlaneId()    << std::endl
-	      << "segment_id    = " << m_raw->SegmentId()  << std::endl
+              << "detector_name = " << m_raw->DetectorName() << std::endl
+              << "detector_id   = " << m_raw->DetectorId() << std::endl
+              << "plane_id      = " << m_raw->PlaneId()    << std::endl
+              << "segment_id    = " << m_raw->SegmentId()  << std::endl
               << "n_ch          = " << m_n_ch              << std::endl
               << "de            = " << DeltaE() << std::endl
               << "time offset   = " << m_time_offset << std::endl

@@ -3,22 +3,20 @@
 #include "HodoPHCMan.hh"
 
 #include <cmath>
-#include <cstdlib>
-#include <cstdio>
 #include <fstream>
-#include <iostream>
-#include <iomanip>
 #include <limits>
 #include <sstream>
-#include <stdexcept>
 #include <vector>
 
-#include <std_ostream.hh>
+#include <TMath.h>
+#include <TString.h>
 
 #include "DeleteUtility.hh"
 #include "Exception.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
+
+#include <std_ostream.hh>
 
 namespace
 {

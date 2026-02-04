@@ -3,12 +3,11 @@
 #ifndef FIBER_HIT_HH
 #define FIBER_HIT_HH
 
-#include <string>
+#include <TString.h>
+
+#include "HodoHit.hh"
 
 #include <std_ostream.hh>
-
-// #include "DCHit.hh"
-#include "HodoHit.hh"
 
 //_____________________________________________________________________________
 class FiberHit : public HodoHit

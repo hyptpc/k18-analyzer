@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <vector>
 
 #include <TString.h>
 
@@ -12,9 +13,7 @@
 #include "ThreeVector.hh"
 
 class HodoHit;
-// class FiberHit;
 using HodoHC = std::vector<HodoHit*>;
-// using FiberHC = std::vector<FiberHit*>;
 
 //_____________________________________________________________________________
 class HodoHit

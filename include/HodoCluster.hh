@@ -3,6 +3,8 @@
 #ifndef HODO_CLUSTER_HH
 #define HODO_CLUSTER_HH
 
+#include <vector>
+
 #include <TString.h>
 
 #include "HodoHit.hh"

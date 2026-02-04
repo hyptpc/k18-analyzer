@@ -3,16 +3,16 @@
 #include "FiberCluster.hh"
 
 #include <cmath>
-#include <string>
 #include <limits>
+#include <string>
 
 #include <TMath.h>
-
-#include <std_ostream.hh>
 
 #include "DebugCounter.hh"
 #include "FiberHit.hh"
 #include "FuncName.hh"
+
+#include <std_ostream.hh>
 
 namespace
 {

@@ -3,7 +3,6 @@
 #ifndef CONF_MAN_HH
 #define CONF_MAN_HH
 
-#include <iomanip>
 #include <map>
 #include <string>
 #include <vector>
