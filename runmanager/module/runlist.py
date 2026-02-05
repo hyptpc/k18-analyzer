@@ -354,7 +354,13 @@ class RunlistManager(metaclass=classimpl.Singleton):
       run['root'] = self.__make_root_path(item[1]['root'], base)
       if 'Dst' in run['bin'] or 'Genfit' in run['bin']:
         if 'dstin' in item[1]:
-          base = run['root'].replace(os.path.basename(run['bin']), '')
+          if 'dstin_root' in item[1]:
+            droot = item[1]['dstin_root'].rstrip('/')
+            if os.path.splitext(droot)[1] != '':
+              droot = os.path.dirname(droot)
+            base = os.path.join(droot, 'dummy.root')
+          else:
+            base = run['root'].replace(os.path.basename(run['bin']), '')
           run['dstin'] = self.__make_dstin_path(base, item[1]['dstin'], is_geant4, runno)
           if is_geant4 and 'nevents' in item[1]:
             run['nevents'] = int(item[1]['nevents'])
