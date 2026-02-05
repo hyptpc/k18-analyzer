@@ -2787,8 +2787,8 @@ TPCLocalTrackHelix::DetermineCharge()
       maxlayer_t = m_hit_t[i];
     }
   }
-  if(minlayer_t<maxlayer_t) m_charge = 1;
-  else m_charge = -1;
+  if(minlayer_t<maxlayer_t) m_charge = -1;
+  else m_charge = 1;
 
   Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   m_edgepoint = GlobalPosition(par, maxlayer_t);

@@ -699,7 +699,7 @@ BuildTPCHit()
   HB2("TPC_FADC_After",  n_time_bucket+1, 0.,           n_time_bucket+1.,
                          n_bin_adc,       min_adc-500., max_adc-500.);
   HB2("TPC_FADC_Good",   n_time_bucket+1, 0.,           n_time_bucket+1., 
-                         n_bin_adc,       min_adc,      max_adc);
+                         n_bin_adc,       min_adc-500.,  max_adc-500.);
   HB2("TPC_FADC_Noise",  n_time_bucket+1, 0.,           n_time_bucket+1., 
                          n_bin_adc,       min_adc,      max_adc);
   HB2("TPC_FADC_Frame",  n_time_bucket+1, 0.,           n_time_bucket+1., 
