@@ -257,7 +257,7 @@ HodoAnalyzer::GetTime0Cluster() const
   for(const auto& cluster : GetClusterContainer("BH2")){
     // Double_t mt = cluster->MeanTime();
     for(Int_t j=0, m=cluster->ClusterSize(); j<m; ++j){
-      Double_t mt = cluster->GetHit(j)->CMeanTime();
+      Double_t mt = cluster->GetHit(j)->MeanTime();
       if(true
          && TMath::Abs(mt) < TMath::Abs(min_mt)
          && gUser.IsInRange("T0_Time", mt)
