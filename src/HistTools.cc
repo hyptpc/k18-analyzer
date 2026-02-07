@@ -39,6 +39,8 @@ const Double_t mh_time_bins[3]      = {500., -50., 50.};
 const Double_t hr_tot_time_bins[3]  = {1000., 0., 200.};
 const Double_t de_bins[3]           = {1000., 0., 10.};
 const Double_t npe_bins[3]          = {700., -50., 300.};  // for Cherenkov (BAC, KVC, SAC3)
+// TPC
+const Double_t tpc_event_display_bins[4] = { -300., 300., -300., 300. };
 
 //_____________________________________________________________________________
 void
@@ -713,8 +715,8 @@ BuildTPCHit()
   HB1("TPC_Clock_TDC",  200000, 0.,    2000000.);
   HB1("TPC_Clock_Time", 20000,  -100., 100.);
 
-  HB2Poly("TPC_HitPat_Noise",    -300., 300., -300., 300.);
-  HB2Poly("TPC_HitPat_Baseline", -300., 300., -300., 300.);
+  HB2Poly("TPC_HitPat_Noise",    tpc_event_display_bins);
+  HB2Poly("TPC_HitPat_Baseline", tpc_event_display_bins);
   tpc::InitializeHistograms("TPC_HitPat_Noise");
   tpc::InitializeHistograms("TPC_HitPat_Baseline");
 }
@@ -797,7 +799,7 @@ BuildTPCTracking()
   }
 
   // TH2Poly: track-hit pad occupancy for event-display
-  HB2Poly("TPC_TrackHitPat", -300., 300., -300., 300.);
+  HB2Poly("TPC_TrackHitPat", tpc_event_display_bins);
   tpc::InitializeHistograms("TPC_TrackHitPat");
 }
 
@@ -921,6 +923,84 @@ BuildTPCBcOutTracking()
     HB2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Asad%02d_RawClock;Clock Time [ns];Residual Y (BcOut) [mm]", a), bc_bins_2d_clocktime_resy);
 #ifdef DEBUG_COBO_CLOCK
     HB2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Asad%02d_NoClock;Clock Time [ns];Residual Y (BcOut) [mm]", a), bc_bins_2d_clocktime_resy);
+#endif
+  }
+}
+
+void
+BuildTPCHitBcOutTracking()
+{
+  const Double_t residual_bins[3]       = {200.,  -20.,  20.};    // mm
+  const Double_t residual_bins_2d[6]    = {200., -100., 100., 200., -20.0, 20.0};
+  const Double_t residual_layer_bins[6] = {
+    static_cast<Double_t>(NumOfLayersTPC), -0.5, static_cast<Double_t>(NumOfLayersTPC) - 0.5,
+    200., -20., 20.
+  };
+  const Double_t residual_clocktime_bins[6] = { 200., -50., 50., 200., -20., 20. };
+  const Double_t row_layer_bins[6] = {
+    static_cast<Double_t>(NumOfLayersTPC), -0.5, static_cast<Double_t>(NumOfLayersTPC) - 0.5,
+    244., -0.5, 243.5
+  };
+
+  for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
+    // TPC Hit Residuals
+    HB1(Form("TPCHit_ResX_Layer%02d;Residual X (TPC Hit - BcOut) [mm];", layer), residual_bins);
+    HB1(Form("TPCHit_ResY_Layer%02d;Residual Y (TPC Hit - BcOut) [mm];", layer), residual_bins);
+
+    HB2(Form("TPCHit_ResX_vs_X_Layer%02d;X_{BcOut} (global) [mm];Residual X (TPC Hit - BcOut) [mm];", layer), residual_bins_2d);
+    HB2(Form("TPCHit_ResY_vs_Y_Layer%02d;Y_{BcOut} (global) [mm];Residual Y (TPC Hit - BcOut) [mm];", layer), residual_bins_2d);
+
+    // TPC Cluster Residuals
+    HB1(Form("TPCCl_ResX_Layer%02d;Residual X (TPC Cluster - BcOut) [mm];", layer), residual_bins);
+    HB1(Form("TPCCl_ResY_Layer%02d;Residual Y (TPC Cluster - BcOut) [mm];", layer), residual_bins);
+
+    HB2(Form("TPCCl_ResX_vs_X_Layer%02d;X_{BcOut} (global) [mm];Residual X (TPC Cluster - BcOut) [mm];", layer), residual_bins_2d);
+    HB2(Form("TPCCl_ResY_vs_Y_Layer%02d;Y_{BcOut} (global) [mm];Residual Y (TPC Cluster - BcOut) [mm];", layer), residual_bins_2d);
+
+    const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
+    for (Int_t row = 0; row < n_pad; ++row) {
+      HB2(Form("TPCHit_ResY_vs_Y_Layer%02d_Row%03d;Y_{BcOut} (global) [mm];Residual Y (TPC Hit - BcOut) [mm];", layer, row), residual_bins_2d);
+      HB2(Form("TPCCl_ResY_vs_Y_Layer%02d_Row%03d;Y_{BcOut} (global) [mm];Residual Y (TPC Cluster - BcOut) [mm];", layer, row), residual_bins_2d);
+    }
+  }
+
+  HB2Poly("TPC_HitPat",         tpc_event_display_bins);
+  HB2Poly("TPC_Cluster_HitPat", tpc_event_display_bins);
+  tpc::InitializeHistograms("TPC_HitPat");
+  tpc::InitializeHistograms("TPC_Cluster_HitPat");
+
+  // Layer-dependent
+  HB2("TPCHit_ResX_vs_Layer;Layer;Residual X (TPC Hit - BcOut) [mm];", residual_layer_bins);
+  HB2("TPCHit_ResY_vs_Layer;Layer;Residual Y (TPC Hit - BcOut) [mm];", residual_layer_bins);
+  HB2("TPCCl_ResX_vs_Layer;Layer;Residual X (TPC Cluster - BcOut) [mm];", residual_layer_bins);
+  HB2("TPCCl_ResY_vs_Layer;Layer;Residual Y (TPC Cluster - BcOut) [mm];", residual_layer_bins);
+
+  HB2("TPCHit_Row_vs_Layer;Layer;Row;", row_layer_bins);
+  HB2("TPCCl_Row_vs_Layer;Layer;Row;", row_layer_bins);
+
+  // Clock-time dependent
+  for(Int_t cobo=0; cobo<NumOfSegCOBO; ++cobo){
+    HB2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm];", cobo), residual_clocktime_bins);
+    HB2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d_RawClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm];", cobo), residual_clocktime_bins);
+
+    HB2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm];", cobo), residual_clocktime_bins);
+    HB2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d_RawClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm];", cobo), residual_clocktime_bins);
+
+#ifdef DEBUG_COBO_CLOCK
+    HB2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d_NoClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm];", cobo), residual_clocktime_bins);
+    HB2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d_NoClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm];", cobo), residual_clocktime_bins);
+#endif
+  }
+  for(Int_t asad=0; asad<NumOfAsadTPC; ++asad){
+    HB2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm];", asad), residual_clocktime_bins);
+    HB2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d_RawClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm];", asad), residual_clocktime_bins);
+
+    HB2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm];", asad), residual_clocktime_bins);
+    HB2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d_RawClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm];", asad), residual_clocktime_bins);
+
+#ifdef DEBUG_COBO_CLOCK
+    HB2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d_NoClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm];", asad), residual_clocktime_bins);
+    HB2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d_NoClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm];", asad), residual_clocktime_bins);
 #endif
   }
 }

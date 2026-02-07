@@ -34,6 +34,7 @@ void BuildTPCHit();
 void BuildTPCBasic();
 void BuildTPCTracking();
 void BuildTPCBcOutTracking();
+void BuildTPCHitBcOutTracking();
 void BuildTPCHelixTracking();
 }
 

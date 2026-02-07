@@ -185,6 +185,13 @@ HB2Poly(const TString& name, Double_t xmin=-300., Double_t xmax=300., Double_t y
   return HB2Poly(name, name, xmin, xmax, ymin, ymax);
 }
 
+//_____________________________________________________________________________
+inline TH2Poly*
+HB2Poly(const TString& name, const Double_t* bins)
+{
+  return HB2Poly(name, name, bins[0], bins[1], bins[2], bins[3]);
+}
+
 
 //_____________________________________________________________________________
 inline void
