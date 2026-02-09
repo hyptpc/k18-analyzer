@@ -329,7 +329,7 @@ BuildHodoHit(Bool_t flag_beam_particle)
 
     // TOF / BTOF / FTOF
     const Double_t phcbins2d[6] = {100, -0.5, 4.5, 100, -10., 10.};
-    { // TOF
+    { // TOF-HTOF
       for(Int_t i=0; i<NumOfSegHTOF; ++i){
         for(const auto& uord : std::vector<TString>{"U", "D"}){
           const Char_t* ud = uord.Data();
@@ -339,6 +339,18 @@ BuildHodoHit(Bool_t flag_beam_particle)
       }
       HB2(Form("HTOF_TOF_vs_DeltaE%s; mip; ns", b),  phcbins2d);
       HB2(Form("HTOF_CTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
+    }
+
+    { // TOF-T1
+      for(Int_t i=0; i<NumOfSegT1; ++i){
+        for(const auto& uord : std::vector<TString>{"U"}){
+          const Char_t* ud = uord.Data();
+          HB2(Form("T1_seg%d%s_TOF_vs_DeltaE%s; mip; ns", i, ud, b),  phcbins2d);
+          HB2(Form("T1_seg%d%s_CTOF_vs_DeltaE%s; mip; ns", i, ud, b), phcbins2d);
+        }
+      }
+      HB2(Form("T1_TOF_vs_DeltaE%s; mip; ns", b),  phcbins2d);
+      HB2(Form("T1_CTOF_vs_DeltaE%s; mip; ns", b), phcbins2d);
     }
 
     { // BTOF

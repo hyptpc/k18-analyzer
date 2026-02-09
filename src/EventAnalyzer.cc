@@ -493,20 +493,32 @@ EventAnalyzer::HodoHit(const HodoAnalyzer& hodoAna, beam::EBeamFlag beam_flag)
         // auto t0 = hit2->Time0(j2);
         auto ct0 = hit2->CTime0(j2);
         // auto tofs = hit2->TimeOffset();
-        for(const auto& name: std::vector<TString>{"HTOF"}){
+        // name, isOneSide
+        for(const auto& det : std::vector<std::pair<TString, Bool_t>>{ {"HTOF", kFALSE}, {"T1", kTRUE} }){
+          TString name = det.first;
+          Bool_t isOneSide = det.second;
           const Char_t* n = name.Data();
+
           for(Int_t i1=0, n1=hodoAna.GetNHits(name); i1<n1; ++i1){
             const auto& hit1 = hodoAna.GetHit(name, i1);
             auto seg1 = hit1->SegmentId();
-            auto au1 = hit1->GetAUp(), ad1 = hit1->GetADown(), a1 = hit1->DeltaE();
+            auto au1 = hit1->GetAUp(), a1 = hit1->DeltaE();
+            
             for(Int_t j1=0, m1=hit1->GetEntries(); j1<m1; ++j1){
-              auto tu1 = hit1->GetTUp(j1), td1 = hit1->GetTDown(j1);
+              auto tu1 = hit1->GetTUp(j1);
               auto mt1 = hit1->MeanTime(j1), cmt1 = hit1->CMeanTime(j1);
               auto ctof = ct0-cmt1;
+
               HF2(Form("%s_seg%dU_TOF_vs_DeltaE%s", n, seg1, b), au1, ct0-tu1);
-              HF2(Form("%s_seg%dD_TOF_vs_DeltaE%s", n, seg1, b), ad1, ct0-td1);
               HF2(Form("%s_seg%dU_CTOF_vs_DeltaE%s", n, seg1, b), au1, ctof);
-              HF2(Form("%s_seg%dD_CTOF_vs_DeltaE%s", n, seg1, b), ad1, ctof);
+
+              if(!isOneSide){
+                auto ad1 = hit1->GetADown();
+                auto td1 = hit1->GetTDown(j1);
+                HF2(Form("%s_seg%dD_TOF_vs_DeltaE%s", n, seg1, b), ad1, ct0-td1);
+                HF2(Form("%s_seg%dD_CTOF_vs_DeltaE%s", n, seg1, b), ad1, ctof);
+              }
+
               HF2(Form("%s_TOF_vs_DeltaE%s", n, b), a1, ct0-mt1);
               HF2(Form("%s_CTOF_vs_DeltaE%s", n, b), a1, ctof);
             }
