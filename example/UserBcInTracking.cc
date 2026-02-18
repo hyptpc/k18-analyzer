@@ -8,12 +8,7 @@
 
 #include <TString.h>
 
-#include <UnpackerConfig.hh>
-#include <UnpackerManager.hh>
-#include <UnpackerXMLReadDigit.hh>
-
 #include "ConfMan.hh"
-#include "DetectorID.hh"
 #include "DCAnalyzer.hh"
 #include "DCDriftParamMan.hh"
 #include "DCGeomMan.hh"
@@ -21,15 +16,16 @@
 #include "DCLocalTrack.hh"
 #include "DCRawHit.hh"
 #include "DCTdcCalibMan.hh"
+#include "DetectorID.hh"
 #include "EventAnalyzer.hh"
 #include "HistTools.hh"
-#include "HodoAnalyzer.hh"
-#include "HodoRawHit.hh"
-#include "HodoParamMan.hh"
-#include "HodoPHCMan.hh"
 #include "RawData.hh"
 #include "RootHelper.hh"
 #include "UserParamMan.hh"
+
+#include <UnpackerConfig.hh>
+#include <UnpackerManager.hh>
+#include <UnpackerXMLReadDigit.hh>
 
 namespace
 {
@@ -89,14 +85,17 @@ ProcessNormal()
   using root::HF1;
 
   RawData rawData;
-  rawData.DecodeHits();
+  for (const auto& name : DCNameList.at("BcIn")) rawData.DecodeHits(name);
 
   EventAnalyzer evAna;
 
   HF1("Status", 0);
+  rawData.DecodeHits("TriggerFlag");
   evAna.TriggerFlag(rawData);
 
   HF1("Status", 1);
+  rawData.DecodeHits("BAC"); // for beam_flag
+  rawData.DecodeHits("BHT"); // for beam_flag
   event.beam_flag = evAna.BeamFlag(rawData);
 
   HF1("Status", 2);
@@ -127,16 +126,16 @@ ProcessNormal()
   evAna.BcInTracking(dcAna);
   evAna.BcInTracking(dcAna, event.beam_flag);
 
-  for(const auto& track : dcAna.GetBcInTrackContainer()){
-    track->Print();
-    event.ntrack++;
-    event.chisqr.push_back(track->GetChiSquare());
-    event.x0.push_back(track->GetX0());
-    event.y0.push_back(track->GetY0());
-    event.u0.push_back(track->GetU0());
-    event.v0.push_back(track->GetV0());
-  }
-  
+  // for(const auto& track : dcAna.GetBcInTrackContainer()){
+  //   track->Print();
+  //   event.ntrack++;
+  //   event.chisqr.push_back(track->GetChiSquare());
+  //   event.x0.push_back(track->GetX0());
+  //   event.y0.push_back(track->GetY0());
+  //   event.u0.push_back(track->GetU0());
+  //   event.v0.push_back(track->GetV0());
+  // }
+
   return true;
 }
 
@@ -193,8 +192,6 @@ Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return
-    (InitializeParameter<HodoParamMan>("HDPRM")) &&
-    (InitializeParameter<HodoPHCMan>("HDPHC")) &&
     (InitializeParameter<DCTdcCalibMan>("DCTDC")) &&
     (InitializeParameter<DCDriftParamMan>("DCDRFT")) &&
     (InitializeParameter<DCGeomMan>("DCGEO")) &&

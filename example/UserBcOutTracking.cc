@@ -8,12 +8,7 @@
 
 #include <TString.h>
 
-#include <UnpackerConfig.hh>
-#include <UnpackerManager.hh>
-#include <UnpackerXMLReadDigit.hh>
-
 #include "ConfMan.hh"
-#include "DetectorID.hh"
 #include "DCAnalyzer.hh"
 #include "DCDriftParamMan.hh"
 #include "DCGeomMan.hh"
@@ -21,15 +16,16 @@
 #include "DCLocalTrack.hh"
 #include "DCRawHit.hh"
 #include "DCTdcCalibMan.hh"
+#include "DetectorID.hh"
 #include "EventAnalyzer.hh"
 #include "HistTools.hh"
-#include "HodoAnalyzer.hh"
-#include "HodoRawHit.hh"
-#include "HodoParamMan.hh"
-#include "HodoPHCMan.hh"
 #include "RawData.hh"
 #include "RootHelper.hh"
 #include "UserParamMan.hh"
+
+#include <UnpackerConfig.hh>
+#include <UnpackerManager.hh>
+#include <UnpackerXMLReadDigit.hh>
 
 namespace
 {
@@ -89,14 +85,17 @@ ProcessNormal()
   using root::HF1;
 
   RawData rawData;
-  rawData.DecodeHits();
+  for (const auto& name : DCNameList.at("BcOut")) rawData.DecodeHits(name);
 
   EventAnalyzer evAna;
 
   HF1("Status", 0);
+  rawData.DecodeHits("TriggerFlag");
   evAna.TriggerFlag(rawData);
 
   HF1("Status", 1);
+  rawData.DecodeHits("BAC"); // for beam_flag
+  rawData.DecodeHits("BHT"); // for beam_flag
   event.beam_flag = evAna.BeamFlag(rawData);
 
   HF1("Status", 2);
@@ -104,7 +103,7 @@ ProcessNormal()
   evAna.DCRawHit("BcOut", rawData, event.beam_flag);
 
   DCAnalyzer dcAna(rawData);
-  dcAna.DecodeRawHits();
+  dcAna.DecodeBcOutHits();
 
   dcAna.TotCut("BLC2a");
   dcAna.TotCut("BLC2b");
@@ -193,8 +192,6 @@ Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return
-    (InitializeParameter<HodoParamMan>("HDPRM")) &&
-    (InitializeParameter<HodoPHCMan>("HDPHC")) &&
     (InitializeParameter<DCTdcCalibMan>("DCTDC")) &&
     (InitializeParameter<DCDriftParamMan>("DCDRFT")) &&
     (InitializeParameter<DCGeomMan>("DCGEO")) &&
