@@ -168,6 +168,7 @@ ProcessNormal()
   EventAnalyzer evAna;
 
   HF1("Status", 0);
+  rawData.DecodeHits("TriggerFlag");
   evAna.TriggerFlag(rawData);
 
   HF1("Status", 1);
