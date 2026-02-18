@@ -113,34 +113,40 @@ inline constexpr UInt_t HodoGroupMask[kNumHodo] = {
 
 
 // __ Chambers ___________________________________________________________
-const Int_t DetIdCDC    = 100;
 const Int_t DetIdBLC1a  = 101;
 const Int_t DetIdBLC1b  = 102;
 const Int_t DetIdBLC2a  = 103;
 const Int_t DetIdBLC2b  = 104;
-const Int_t DetIdBPC    = 105;
-const Int_t DetIdBPC2   = 105;
-const Int_t DetIdBPC1   = 106;
-const Int_t DetIdBPCmini= 106;
-const Int_t DetIdSDC    = 106;
-const Int_t DetIdFDC    = 107;
-const Int_t DetIdBLC1   = 111;
-const Int_t DetIdBLC2   = 112;
-const Int_t DetIdBPC0   = 113;
 
 enum EDC {
-  kBLC1a, kBLC1b, kBLC2a, kBLC2b,
-  kBPC1, kBPC2,
-  // kVFT,
-  kBLC1, kBLC2, kBPC0, kNumDC
+  kBLC1a, kBLC1b, kBLC2a, kBLC2b, kNumDC
 };
 
 const Int_t DetIdDC[kNumDC] = {
-  DetIdBLC1a, DetIdBLC1b, DetIdBLC2a, DetIdBLC2b,
-  DetIdBPC1, DetIdBPC2,
-  // DetIdVFT,
-  DetIdBLC1, DetIdBLC2, DetIdBPC0
+  DetIdBLC1a, DetIdBLC1b, DetIdBLC2a, DetIdBLC2b
 };
+
+// __ Compatibility (Legacy) _____________________________________________
+// Descriptions: These constants are kept to maintain compilation of 
+// core tracking and utility classes (e.g., RungeKuttaUtilities, LocalTrack).
+// They should NOT be used in E72-specific analysis logic.
+const Int_t DetIdCDC    = 100;
+const Int_t DetIdBLC1   = 111;
+const Int_t DetIdBLC2   = 112;
+const Int_t DetIdBPC    = 105;
+const Int_t DetIdBPC0   = 113;
+
+const Int_t LayerMinSdcIn     =   1;
+const Int_t LayerMaxSdcIn     =  10;
+const Int_t LayerMinSdcOut    =  31;
+const Int_t LayerMaxSdcOut    =  42;
+const Int_t LayerMinVP        =  16;
+const Int_t LayerMaxVP        =  26;
+
+const Int_t NumOfLayersSdcIn  = LayerMaxSdcIn  - LayerMinSdcIn  + 1;
+const Int_t NumOfLayersSdcOut = LayerMaxSdcOut - LayerMinSdcOut + 1;
+const Int_t NumOfLayersVP     = LayerMaxVP     - LayerMinVP     + 1;
+// _______________________________________________________________________
 
 const Int_t NumOfPlaneVmeRm=3;
 
@@ -171,34 +177,12 @@ const Int_t LayerMinBcIn      =   1;
 const Int_t LayerMaxBcIn      =  16;
 const Int_t LayerMinBcOut     = 1001;
 const Int_t LayerMaxBcOut     = 1016;
-const Int_t LayerMinSdcIn     =   1;
-const Int_t LayerMaxSdcIn     =  10;
-const Int_t LayerMinSdcOut    =  31;
-const Int_t LayerMaxSdcOut    =  42;
-const Int_t LayerMinTOF       =  51; // need to change
-const Int_t LayerMaxTOF       =  54; // need to change
-const Int_t LayerMinVP        =  16;
-const Int_t LayerMaxVP        =  26;
+
 const Int_t PlOffsBc          = 100;
 const Int_t PlOffsBcOut       = 1000;
-const Int_t PlOffsSdcIn       =   0;
-const Int_t PlOffsSdcOut      =  30;
-const Int_t PlOffsTOF         =  50;
-const Int_t PlOffsVP          =  15;
-const Int_t PlOffsVPHS        = 207; //K1.8 Beam Tracking
-const Int_t PlOffsTPCHit      = 700; //K1.8 w/ TPC Tracking
 
-const Int_t NumOfLayersSDC1   = 6;
-const Int_t NumOfLayersSDC2   = 4;
-const Int_t NumOfLayersSDC3   = 4;
-const Int_t NumOfLayersSDC4   = 4;
-const Int_t NumOfLayersSDC5   = 4;
 const Int_t NumOfLayersBcIn   = LayerMaxBcIn   - LayerMinBcIn   + 1;
 const Int_t NumOfLayersBcOut  = LayerMaxBcOut  - LayerMinBcOut  + 1;
-const Int_t NumOfLayersSdcIn  = LayerMaxSdcIn  - LayerMinSdcIn  + 1;
-const Int_t NumOfLayersSdcOut = LayerMaxSdcOut - LayerMinSdcOut + 1;
-const Int_t NumOfLayersTOF    = LayerMaxTOF    - LayerMinTOF    + 1;
-const Int_t NumOfLayersVP     = LayerMaxVP     - LayerMinVP     + 1;
 
 // __ TPC ___________________________________________________________
 const Int_t NumOfLayersTPC    = 32;

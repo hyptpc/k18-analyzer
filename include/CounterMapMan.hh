@@ -1,92 +1,103 @@
-// CounterMapMan.h
-#ifndef CounterMapMan_h
-#define CounterMapMan_h 1
+// -*- C++ -*-
 
+#ifndef COUNTER_MAP_MAN_HH
+#define COUNTER_MAP_MAN_HH
+
+#include <iostream>
 #include <map>
 #include <string>
-#include <iostream>
-#include <stdlib.h>
-#include "TString.h"
+#include <vector>
+
+#include <Rtypes.h>
+#include <TString.h>
+
 
 class CounterMapMan
 {
-private:
-  CounterMapMan( void );
 public:
-  static CounterMapMan& GetInstance(void);
-  static const std::string& ClassName( void );
-  ~CounterMapMan(void) {}
-  bool Initialize();
-  bool Initialize( const char *file_name );
-  bool Initialize( const std::string& file_name );
-  bool Initialize( const std::string& file_name,const std::string& file_name2 );
-  bool ReadFile(const TString filename);
-  
- private:
-  static const int MMAXSMP = 20;
-  static const int MAXSLOT = 23;
-  static const int NORMAL  = 1;
-  static const int DRT     = 0;
+  static CounterMapMan& GetInstance();
+  static const std::string& ClassName();
+  ~CounterMapMan();
+
+private:
+  CounterMapMan();
+  CounterMapMan(const CounterMapMan&);
+  CounterMapMan& operator=(const CounterMapMan&);
+
+public:
+  Bool_t Initialize();
+  Bool_t Initialize(const char* file_name);
+  Bool_t Initialize(const std::string& file_name);
+  Bool_t Initialize(const std::string& file_name1, const std::string& file_name2);
+  Bool_t ReadFile(const TString& filename);
+
+private:
+  static const Int_t MMAXSMP = 20;
+  static const Int_t MAXSLOT = 23;
+  static const Int_t NORMAL  = 1;
+  static const Int_t DRT     = 0;
 
   std::vector<TString> FileName;
-  int NSMP;
-  int NCH_SCA;
-  int CRATE_TYPE[MMAXSMP][MAXSLOT];
+  Int_t NSMP;
+  Int_t NCH_SCA;
+  Int_t CRATE_TYPE[MMAXSMP][MAXSLOT];
 
-  typedef std::map <unsigned int, unsigned int> fCounterMapContainer;
-  typedef std::map <unsigned int, unsigned int> bCounterMapContainer;
+  typedef std::map <UInt_t, UInt_t> fCounterMapContainer;
+  typedef std::map <UInt_t, UInt_t> bCounterMapContainer;
   fCounterMapContainer fContainer;
   bCounterMapContainer bContainer;
 
-  typedef std::map <unsigned int, unsigned int> fCrateDefContainer;
-  typedef std::map <unsigned int, unsigned int> bCrateDefContainer;
+  typedef std::map <UInt_t, UInt_t> fCrateDefContainer;
+  typedef std::map <UInt_t, UInt_t> bCrateDefContainer;
   fCrateDefContainer fCrateDef;
   bCrateDefContainer bCrateDef;
 
-  typedef std::map <unsigned int, std::string> nameCNAMapContainer;
-  typedef std::map <unsigned int, std::string> nameCounterMapContainer;
+  typedef std::map <UInt_t, TString> nameCNAMapContainer;
+  typedef std::map <UInt_t, TString> nameCounterMapContainer;
   nameCNAMapContainer nameCNAContainer;
   nameCounterMapContainer nameCounterContainer;
 
-  bool m_isready;
+  Bool_t m_isready;
 
- public:
-  bool IsReady( void ) const { return m_isready; }
-  int nFiles() { return FileName.size(); }
-  TString GetFileName( const int &i ) { return FileName.at(i); }
-  bool GetInfo( int c, int n, int a, int &cid, int &lay, int &seg, int &at, int &ud );
-  int GetCID( int c, int n, int a );
-  TString GetName( const int &c, const int &n, const int &a );
+public:
+  Bool_t  IsReady() const { return m_isready; }
+  Int_t   nFiles() const { return FileName.size(); }
+  TString GetFileName(Int_t i) const { return FileName.at(i); }
+  Bool_t  GetInfo(Int_t c, Int_t n, Int_t a, Int_t& cid, Int_t& lay, Int_t& seg, Int_t& at, Int_t& ud);
+  Int_t   GetCID(Int_t c, Int_t n, Int_t a);
+  TString GetName(Int_t c, Int_t n, Int_t a);
 
   // for Hodoscope or Cherenkov
-  bool GetCNA( int cid, int seg, int at, int ud, int &c, int &n, int &a );
-  TString GetName( const int &cid, const int &seg, const int &at, const int &ud);
+  Bool_t  GetCNA(Int_t cid, Int_t seg, Int_t at, Int_t ud, Int_t& c, Int_t& n, Int_t& a);
+  TString GetName(Int_t cid, Int_t seg, Int_t at, Int_t ud);
   // for DC
-  bool GetCNA( int cid, int layer, int wire, int at, int ud, int &c, int &n, int &a );
-  TString GetName( const int &cid, const int &lay, const int &wire, const int &at, const int &ud );
+  Bool_t  GetCNA(Int_t cid, Int_t layer, Int_t wire, Int_t at, Int_t ud, Int_t& c, Int_t& n, Int_t& a);
+  TString GetName(Int_t cid, Int_t lay, Int_t wire, Int_t at, Int_t ud);
 
-  int GetCrateNum( int address );
-
-  int GetSMPAddress( int c );
-  int GetNumSMP() { return NSMP; }
-  int GetNumScaler() { return NCH_SCA; }
-  int GetCrateType( const int &cr, const int &sl ) { return CRATE_TYPE[cr][sl-1]; } //sl 1 origin
-  void PrintSimpleMap( std::ostream &p_out = std::cout );
-  void PrintMap();
-
-  void Clear(); 
+  Int_t   GetCrateNum(Int_t address);
+  Int_t   GetSMPAddress(Int_t c);
+  Int_t   GetNumSMP() const { return NSMP; }
+  Int_t   GetNumScaler() const { return NCH_SCA; }
+  Int_t   GetCrateType(Int_t cr, Int_t sl) const { return CRATE_TYPE[cr][sl-1]; } //sl 1 origin
+  void    PrintSimpleMap(std::ostream& p_out = std::cout);
+  void    PrintMap();
+  void    Clear();
 };
+
 //______________________________________________________________________________
 inline CounterMapMan&
-CounterMapMan::GetInstance( void )
+CounterMapMan::GetInstance()
 {
   static CounterMapMan g_instance;
   return g_instance;
 }
+
+//______________________________________________________________________________
 inline const std::string&
-CounterMapMan::ClassName( void )
+CounterMapMan::ClassName()
 {
   static std::string g_name("CounterMapMan");
   return g_name;
 }
+
 #endif

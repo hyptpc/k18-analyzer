@@ -1,5 +1,4 @@
 // -*- C++ -*-
-
 #include "DCLTrackHit.hh"
 
 #include <cmath>
@@ -8,16 +7,18 @@
 #include <sstream>
 #include <stdexcept>
 
-#include <spdlog/spdlog.h>
-#include <std_ostream.hh>
-
 #include "DCAnalyzer.hh"
+#include "DCGeomMan.hh"
 #include "DebugCounter.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
+#include "std_ostream.hh"
+
+#include <spdlog/spdlog.h>
 
 namespace
 {
+const auto& gGeom = DCGeomMan::GetInstance();
 const Double_t qnan = TMath::QuietNaN();
 }
 
@@ -98,10 +99,6 @@ DCLTrackHit::ReCalc(Bool_t applyRecursively)
 {
   if(applyRecursively){
     if(!m_hit->ReCalcDC(applyRecursively)) return false;
-    // if(!m_hit->ReCalcDC(applyRecursively)   ||
-    // 	!m_hit->ReCalcMWPC(applyRecursively)){
-    //   return false;
-    // }
   }
 
   Double_t wp = GetWirePosition();

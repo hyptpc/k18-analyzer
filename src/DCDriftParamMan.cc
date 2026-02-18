@@ -1,13 +1,12 @@
 // -*- C++ -*-
-
 #include "DCDriftParamMan.hh"
 
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <iterator>
 #include <sstream>
 #include <string>
@@ -18,16 +17,15 @@
 #include <TMath.h>
 #include <TObjString.h>
 
-#include <std_ostream.hh>
-
 #include "DeleteUtility.hh"
 #include "DetectorID.hh"
 #include "Exception.hh"
 #include "FuncName.hh"
+#include "std_ostream.hh"
 
 namespace
 {
-const auto qnan = TMath::QuietNaN();
+const Double_t qnan = TMath::QuietNaN();
 }
 
 //_____________________________________________________________________________
@@ -114,7 +112,7 @@ DCDriftParamMan::CalcDrift(const TString& detector_name, Int_t plane_id,
                            Double_t wire_id, Double_t ctime,
                            Double_t& dt, Double_t& dl) const
 {
-  auto g1 = GetParameter(detector_name, plane_id, wire_id);
+  auto g1 = GetParameter(detector_name, plane_id, (Int_t)wire_id);
   if (!g1) return false;
   dt = ctime;
   dl = g1->Eval(dt, nullptr, "S");

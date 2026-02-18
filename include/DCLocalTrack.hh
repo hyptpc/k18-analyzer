@@ -3,14 +3,14 @@
 #ifndef DC_LOCAL_TRACK_HH
 #define DC_LOCAL_TRACK_HH
 
-#include <vector>
 #include <functional>
+#include <vector>
 
-#include <std_ostream.hh>
+#include <TString.h>
 
-#include "ThreeVector.hh"
 #include "DCLTrackHit.hh"
 #include "DetectorID.hh"
+#include "ThreeVector.hh"
 
 class DCLTrackHit;
 class DCAnalyzer;
@@ -28,9 +28,8 @@ private:
   DCLocalTrack & operator =(const DCLocalTrack &);
 
 private:
-  Bool_t  m_is_fitted;     // flag of DoFit()
-  Bool_t  m_is_calculated; // flag of Calculate()
-  Bool_t  m_is_bcsdc;
+  Bool_t   m_is_fitted;     // flag of DoFit()
+  Bool_t   m_is_calculated; // flag of Calculate()
   std::vector<DCLTrackHit*> m_hit_array;
   std::vector<DCLTrackHit*> m_hit_arrayUV;
   Double_t m_Ax;
@@ -64,9 +63,8 @@ public:
   Bool_t       DoFitBcSdc();
   Bool_t       FindLayer(Int_t layer) const;
   Int_t        GetNDF() const;
-  Int_t        GetNHit() const { return m_hit_array.size();  }
-  Int_t        GetNHitUV()const { return m_hit_arrayUV.size();}
-  Int_t        GetNHitSFT() const;
+  Int_t        GetNHit() const { return (Int_t)m_hit_array.size();  }
+  Int_t        GetNHitUV()const { return (Int_t)m_hit_arrayUV.size();}
   Int_t        GetNHitY() const;
   DCLTrackHit* GetHit(Int_t nth) const;
   const std::vector<DCLTrackHit*>& GetHitArray() const { return m_hit_array; }
@@ -104,7 +102,6 @@ public:
   Double_t GetAv() const { return m_Av; }
 
   Double_t GetDifVXU() const ;
-  Double_t GetDifVXUSDC34() const;
   Double_t GetChiSquare() const { return m_chisqr; }
   Double_t GetChiSquare1st() const { return m_chisqr1st; }
   Double_t GetChiX() const { return m_Chix; }
@@ -115,7 +112,7 @@ public:
   Double_t GetY(Double_t z) const { return m_y0+m_v0*z; }
   Double_t GetS(Double_t z, Double_t tilt) const
   { return GetX(z)*TMath::Cos(tilt)+GetY(z)*TMath::Sin(tilt); }
-  Int_t    GetNIteration() const { return m_n_iteration; }
+  Int_t    GetNIteration() const { return (Int_t)m_n_iteration; }
   Double_t GetPhi() const;
   Double_t GetTheta() const;
   Bool_t   GoodForTracking() const { return m_good_for_tracking; }
@@ -136,24 +133,13 @@ DCLocalTrack::ClassName()
 }
 
 //_____________________________________________________________________________
-// inline
-// std::ostream&
-// operator <<(std::ostream& ost,
-//             const DCLocalTrack& track)
-// {
-//   track.Print("", ost);
-//   return ost;
-// }
-
-//_____________________________________________________________________________
 struct DCLTrackComp
-  : public std::binary_function <DCLocalTrack *, DCLocalTrack *, Bool_t>
 {
   Bool_t operator()(const DCLocalTrack * const p1,
                     const DCLocalTrack * const p2) const
     {
-      Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
-      Double_t chi1=p1->GetChiSquare(), chi2=p2->GetChiSquare();
+      const Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
+      const Double_t chi1=p1->GetChiSquare(), chi2=p2->GetChiSquare();
       if(n1>n2+1)
         return true;
       if(n2>n1+1)
@@ -169,62 +155,55 @@ struct DCLTrackComp
 
 //_____________________________________________________________________________
 struct DCLTrackComp1
-  : public std::binary_function <DCLocalTrack *, DCLocalTrack *, Bool_t>
 {
   Bool_t operator()(const DCLocalTrack * const p1,
                     const DCLocalTrack * const p2) const
     {
-      Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
-      Double_t chi1=p1->GetChiSquare(),chi2=p2->GetChiSquare();
+      const Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
+      const Double_t chi1=p1->GetChiSquare(),chi2=p2->GetChiSquare();
       if(n1>n2) return true;
       if(n2>n1) return false;
       return (chi1<=chi2);
     }
-
 };
 
 //_____________________________________________________________________________
 struct DCLTrackComp2
-  : public std::binary_function <DCLocalTrack *, DCLocalTrack *, Bool_t>
 {
   Bool_t operator()(const DCLocalTrack * const p1,
                     const DCLocalTrack * const p2) const
     {
-      Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
-      Double_t chi1=p1->GetChiSquare(),chi2=p2->GetChiSquare();
+      const Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
+      const Double_t chi1=p1->GetChiSquare(),chi2=p2->GetChiSquare();
       if(n1<n2) return true;
       if(n2<n1) return false;
       return (chi1<=chi2);
     }
-
 };
 
 //_____________________________________________________________________________
 struct DCLTrackComp3
-  : public std::binary_function <DCLocalTrack *, DCLocalTrack *, Bool_t>
 {
   Bool_t operator()(const DCLocalTrack * const p1,
                     const DCLocalTrack * const p2) const
     {
-      Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
-      Double_t chi1=p1->GetChiSquare(),chi2=p2->GetChiSquare();
-      Double_t a1= std::abs(1.-chi1), a2=std::abs(1.-chi2);
+      const Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
+      const Double_t chi1=p1->GetChiSquare(),chi2=p2->GetChiSquare();
+      const Double_t a1= std::abs(1.-chi1), a2=std::abs(1.-chi2);
       if(a1<a2) return true;
       if(a2<a1) return false;
       return (n1<=n2);
     }
-
 };
 
 //_____________________________________________________________________________
 struct DCLTrackComp4
-  : public std::binary_function <DCLocalTrack *, DCLocalTrack *, Bool_t>
 {
   Bool_t operator()(const DCLocalTrack * const p1,
                     const DCLocalTrack * const p2) const
     {
-      Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
-      Double_t chi1=p1->GetChiSquare(),chi2=p2->GetChiSquare();
+      const Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
+      const Double_t chi1=p1->GetChiSquare(),chi2=p2->GetChiSquare();
       if((n1>n2+1) && (std::abs(chi1-chi2)<2.))
         return true;
       if((n2>n1+1) && (std::abs(chi1-chi2)<2.))
@@ -235,90 +214,23 @@ struct DCLTrackComp4
 };
 
 //_____________________________________________________________________________
-
 struct DCLTrackComp_Nhit
-  : public std::binary_function <DCLocalTrack *, DCLocalTrack *, Bool_t>
 {
   Bool_t operator()(const DCLocalTrack * const p1,
                     const DCLocalTrack * const p2) const
     {
-      Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
-
-      if(n1>=n2)
-        return true;
-      else
-        return false;
+      const Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
+      return (n1>=n2);
     }
 };
 
 //_____________________________________________________________________________
-
 struct DCLTrackComp_Chisqr
-  : public std::binary_function <DCLocalTrack *, DCLocalTrack *, Bool_t>
 {
   Bool_t operator()(const DCLocalTrack * const p1,
                     const DCLocalTrack * const p2) const
     {
-      Double_t chi1=p1->GetChiSquare(),chi2=p2->GetChiSquare();
-
-      if (chi1 <= chi2)
-        return true;
-      else
-        return false;
-    }
-};
-
-
-//_____________________________________________________________________________
-struct DCLTrackCompSdcInFiber
-  : public std::binary_function <DCLocalTrack *, DCLocalTrack *, Bool_t>
-{
-  Bool_t operator()(const DCLocalTrack * const p1,
-                    const DCLocalTrack * const p2) const
-    {
-      Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
-      Double_t chi1=p1->GetChiSquare(),chi2=p2->GetChiSquare();
-      Int_t NofFiberHit1 = 0;
-      Int_t NofFiberHit2 = 0;
-      for(Int_t ii=0;ii<n1;ii++){
-        Int_t layer = p1->GetHit(ii)->GetLayer();
-        if(layer > 6) NofFiberHit1++;
-      }
-      for(Int_t ii=0;ii<n2;ii++){
-        Int_t layer = p2->GetHit(ii)->GetLayer();
-        if(layer > 6) NofFiberHit2++;
-      }
-
-      if((n1>n2+1)){
-        return true;
-      }
-      else if((n2>n1+1) ){
-        return false;
-      }
-      else if(NofFiberHit1 > NofFiberHit2){
-        return true;
-      }
-      else if(NofFiberHit2 > NofFiberHit1){
-        return false;
-      }
-      else{
-        return (chi1<=chi2);
-      }
-
-    }
-};
-
-//_____________________________________________________________________________
-struct DCLTrackCompSdcOut
-  : public std::binary_function <DCLocalTrack *, DCLocalTrack *, Bool_t>
-{
-  Bool_t operator()(const DCLocalTrack * const p1,
-                    const DCLocalTrack * const p2) const
-    {
-      Int_t n1=p1->GetNHit(), n2=p2->GetNHit();
-      Double_t chi1=p1->GetChiSquare(), chi2=p2->GetChiSquare();
-      if(n1 > n2) return true;
-      if(n2 > n1) return false;
+      const Double_t chi1=p1->GetChiSquare(),chi2=p2->GetChiSquare();
       return (chi1 <= chi2);
     }
 };

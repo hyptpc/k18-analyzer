@@ -3,9 +3,10 @@
 #ifndef DC_LTRACK_HIT_HH
 #define DC_LTRACK_HIT_HH
 
-#include "DCHit.hh"
-
 #include <TString.h>
+
+#include "DCHit.hh"
+#include "DCGeomMan.hh"
 
 class DCAnalyzer;
 
@@ -38,17 +39,11 @@ public:
   Int_t    GetIndex() const { return m_nth_hit; }
   Int_t    GetLayer() const { return m_hit->GetLayer(); }
   Int_t    LayerId() const { return m_hit->LayerId(); }
-  // Int_t    GetMeanSeg() const { return m_hit->GetMeanSeg(); }
-  // Int_t    GetMaxSeg() const { return m_hit->GetMaxSeg(); }
   Double_t GetWire() const { return m_hit->GetWire(); }
   Int_t    GetTdcVal() const { return m_hit->GetTdcVal(m_nth_hit); }
   Int_t    GetTdcSize() const { return m_hit->GetTdcSize(); }
   Double_t GetDriftTime() const { return m_hit->DT(m_nth_hit); }
   Double_t GetDriftLength() const { return m_hit->DL(m_nth_hit); }
-  // void     SetDriftTime(Int_t ith, Double_t dt)
-  // { m_hit->SetDriftTime(ith, dt); }
-  // void     SetDriftLength(Int_t ith, Double_t dl)
-  // { m_hit->SetDriftLength(ith, dl); }
   Double_t GetTrailingTime() const
   { return m_hit->TrailingTime(m_nth_hit); }
   Double_t TimeOverThreshold() const { return m_hit->TOT(m_nth_hit); }
@@ -70,39 +65,16 @@ public:
   Double_t TOT() const { return TimeOverThreshold(); }
   Double_t GetTot() const { return TimeOverThreshold(); }
 
-
-
   ///// for XUV tracking
   void     SetLocalCalPosVXU(Double_t xcl) { m_cal_pos=xcl; }
   Double_t GetLocalCalPosVXU() const { return m_cal_pos; }
   Double_t GetResidualVXU() const { return m_local_hit_pos-m_cal_pos; }
 
-  ///// for TOF
   Double_t GetZ() const { return m_hit->GetZ(); }
-
-  ///// for CFT
-  // Double_t GetPositionR() const { return m_hit->GetPositionR(); }
-  // Double_t GetPositionPhi() const { return m_hit->GetPositionPhi(); }
-  // Double_t GetPosPhi() const { return m_hit->GetPosPhi(); }
-  // Double_t GetPosZ() const { return m_hit->GetPosZ(); }
-  // Double_t GetPosR() const { return m_hit->GetPosR(); }
-  // Double_t GetAdcLow() const { return m_hit->GetAdcLow(); }
-  // Double_t GetMIPLow() const { return m_hit->GetMIPLow(); }
-  // Double_t GetdELow() const { return m_hit->GetdELow(); }
-  // Double_t GetMaxAdcLow() const { return m_hit->GetMaxAdcLow(); }
-  // Double_t GetMaxMIPLow() const { return m_hit->GetMaxMIPLow(); }
-  // Double_t GetMaxdELow() const { return m_hit->GetMaxdELow(); }
-  // TVector3 GetVtx() const { return m_hit->GetVtx(); }
-  // Double_t GetTime() const { return m_hit->GetTime(); }
 
   void   JoinTrack() { m_hit->JoinTrack(m_nth_hit); }
   void   QuitTrack() { m_hit->QuitTrack(m_nth_hit); }
   Bool_t BelongToTrack() const { return m_hit->BelongToTrack(m_nth_hit); }
-
-  // void   JoinTrackCFT() { m_hit->JoinTrackCFT(m_nth_hit); }
-  // void   QuitTrackCFT() { m_hit->QuitTrackCFT(m_nth_hit); }
-  // Bool_t BelongToTrackCFT() const
-  // { return m_hit->BelongToTrackCFT(m_nth_hit); }
 
   void Print(const TString& arg="") const;
 

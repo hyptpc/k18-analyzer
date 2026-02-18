@@ -1,61 +1,76 @@
-// CounterMapMan.cc
-
-#include <string>
-#include <cstdio>
-#include <iostream>
-#include <iomanip>
-#include <new>
+// -*- C++ -*-
 
 #include "CounterMapMan.hh"
-#include "DetectorID.hh"
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-namespace{
-  const unsigned int KEYMASK  = 0x0007;
-  // |0000|0000|1111|0001|1111|0011|1111|0011|
-  const unsigned int AMASK    = 0x003F;      /* A Mask 6 Bits (0-63) */
-  const unsigned int NMASK    = 0x001F;      /* N Mask 5 Bits (0-31) */
-  const unsigned int CMASK    = 0x000F;      /* C Mask 4 Bits (0-15) */
-  const int          ASHIFT   =  4;
-  const int          NSHIFT   = 12;
-  const int          CSHIFT   = 20;
-  const unsigned int KEYFLAG  = 0x0003;
-  
-  // |1111|1110|1 111|0111|1111|0111|1111|1 100|
-  const unsigned int SEGMASK  = 0x00FF;    /* Segment  (0-255) */
-  const unsigned int CIDMASK  = 0x007F;    /* CId      (0-127) */
-  const unsigned int UDMASK   = 0x0007;    /* UD       (0-7)   */
-  const unsigned int ATMASK   = 0x0003;    /* AT       (0-1)   */
-  const unsigned int LAYMASK  = 0x007F;    /* Layer    (0-127)  */
-  const int          SEGSHIFT =  3;
-  const int          CIDSHIFT = 12;
-  const int          UDSHIFT  = 20;
-  const int          ATSHIFT  = 23;
-  const int          LAYSHIFT = 25;
-  const unsigned int RKEYFLAG = 0x0004;
-  
-  int KEY(const int &c, const int &n, const int &a)
-  {  return ((((c)&CMASK)<<CSHIFT) | 
-	     (((n)&NMASK)<<NSHIFT) | 
-	     (((a)&AMASK)<<ASHIFT)| KEYFLAG ); 
-  }
-  int RKEY(const int &at,const int &ud,const int &cid,const int &seg,const int &lay)
-  { return ((((at)&ATMASK)<<ATSHIFT) | 
-	    (((ud)&UDMASK)<<UDSHIFT) | 
-	    (((cid)&CIDMASK)<<CIDSHIFT) |
-	    (((seg)&SEGMASK)<<SEGSHIFT) | 
-	    (((lay)&LAYMASK)<<LAYSHIFT) | RKEYFLAG );
-  } 
-  const int MAXCHAR = 144;
-}
 
-CounterMapMan::CounterMapMan()
-  :m_isready(false)
+#include <cstdio>
+#include <iomanip>
+#include <iostream>
+#include <new>
+#include <string>
+
+#ifndef FUNC_NAME
+#define FUNC_NAME "[" << className << "::" << __func__ << "()]"
+#endif
+
+namespace
 {
-  FileName.clear();
+const TString className = "CounterMapMan";
+const UInt_t KEYMASK  = 0x0007;
+const UInt_t AMASK    = 0x003F;      /* A Mask 6 Bits (0-63) */
+const UInt_t NMASK    = 0x001F;      /* N Mask 5 Bits (0-31) */
+const UInt_t CMASK    = 0x000F;      /* C Mask 4 Bits (0-15) */
+const Int_t  ASHIFT   =  4;
+const Int_t  NSHIFT   = 12;
+const Int_t  CSHIFT   = 20;
+const UInt_t KEYFLAG  = 0x0003;
+
+const UInt_t SEGMASK  = 0x00FF;    /* Segment  (0-255) */
+const UInt_t CIDMASK  = 0x007F;    /* CId      (0-127) */
+const UInt_t UDMASK   = 0x0007;    /* UD       (0-7)   */
+const UInt_t ATMASK   = 0x0003;    /* AT       (0-1)   */
+const UInt_t LAYMASK  = 0x007F;    /* Layer    (0-127)  */
+const Int_t  SEGSHIFT =  3;
+const Int_t  CIDSHIFT = 12;
+const Int_t  UDSHIFT  = 20;
+const Int_t  ATSHIFT  = 23;
+const Int_t  LAYSHIFT = 25;
+const UInt_t RKEYFLAG = 0x0004;
+
+const Int_t MAXCHAR = 144;
+
+UInt_t KEY(Int_t c, Int_t n, Int_t a)
+{
+  return ((((c) & CMASK) << CSHIFT) |
+          (((n) & NMASK) << NSHIFT) |
+          (((a) & AMASK) << ASHIFT) | KEYFLAG);
 }
 
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-void CounterMapMan::Clear()
+UInt_t RKEY(Int_t at, Int_t ud, Int_t cid, Int_t seg, Int_t lay)
+{
+  return ((((at) & ATMASK) << ATSHIFT) |
+          (((ud) & UDMASK) << UDSHIFT) |
+          (((cid) & CIDMASK) << CIDSHIFT) |
+          (((seg) & SEGMASK) << SEGSHIFT) |
+          (((lay) & LAYMASK) << LAYSHIFT) | RKEYFLAG);
+}
+}
+
+//_____________________________________________________________________________
+CounterMapMan::CounterMapMan()
+  : NSMP(0),
+    NCH_SCA(0),
+    m_isready(false)
+{
+}
+
+//_____________________________________________________________________________
+CounterMapMan::~CounterMapMan()
+{
+}
+
+//_____________________________________________________________________________
+void
+CounterMapMan::Clear()
 {
   fContainer.clear();
   bContainer.clear();
@@ -64,371 +79,266 @@ void CounterMapMan::Clear()
   nameCNAContainer.clear();
   nameCounterContainer.clear();
   NSMP = NCH_SCA = 0;
-  for(int i=0;i<2;i++)
-    for(int j=0;j<23;j++)
-      CRATE_TYPE[i][j]=DRT;
-  for(int j=0;j<23;j++)
-    CRATE_TYPE[2][j]=NORMAL;
-  for(int i=3;i<6;i++)
-    for(int j=0;j<23;j++)
-      CRATE_TYPE[i][j]=DRT;
-  for(int i=6;i<10;i++)
-    for(int j=0;j<23;j++)
-      CRATE_TYPE[i][j]=NORMAL;
-  for(int i=10;i<20;i++)
-    for(int j=0;j<23;j++)
-      CRATE_TYPE[i][j]=DRT;
+  for(Int_t i=0; i<MMAXSMP; ++i) {
+    for(Int_t j=0; j<MAXSLOT; ++j) {
+      CRATE_TYPE[i][j] = DRT;
+    }
+  }
 }
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-bool CounterMapMan::Initialize( const char *file_name )
+
+//_____________________________________________________________________________
+Bool_t
+CounterMapMan::Initialize()
+{
+  Clear();
+  for(Int_t cr=0; cr<15; ++cr) {
+    for(Int_t sl=1; sl<24; ++sl) {
+      for(Int_t ch=0; ch<32; ++ch) {
+        fContainer[KEY(cr, sl, ch)] = RKEY(0, 0, 127, 0, 0);
+      }
+    }
+  }
+
+  for(const auto& file : FileName) {
+    if(!ReadFile(file)) return false;
+  }
+
+  m_isready = true;
+  return true;
+}
+
+//_____________________________________________________________________________
+Bool_t
+CounterMapMan::Initialize(const char* file_name)
 {
   FileName.clear();
   FileName.push_back(file_name);
   return Initialize();
 }
-bool CounterMapMan::Initialize( const std::string& file_name )
+
+//_____________________________________________________________________________
+Bool_t
+CounterMapMan::Initialize(const std::string& file_name)
 {
   FileName.clear();
   FileName.push_back(file_name);
   return Initialize();
 }
-bool CounterMapMan::Initialize( const std::string& file_name1, const std::string& file_name2 )
+
+//_____________________________________________________________________________
+Bool_t
+CounterMapMan::Initialize(const std::string& file_name1,
+                          const std::string& file_name2)
 {
   FileName.clear();
   FileName.push_back(file_name1);
   FileName.push_back(file_name2);
   return Initialize();
 }
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-bool CounterMapMan::Initialize()
-{
-  static const TString funcname = "CounterMapMan::Initialize";
-  //  std::cout << "[" << funcname << "] Initialization start ...";
-  Clear();
-  // at first, fill CID_TEMP
-  unsigned int key, rkey;
-  for( int cr=0; cr<15; cr++ ){
-    for( int sl=1; sl<24; sl++ ){
-      for( int ch=0; ch<32; ch++ ){
-	key = KEY(cr,sl,ch);
-	rkey = RKEY(0,0,127,0,0);
-	fContainer[key] = rkey;
-      }
-    }
-  }
-  for(int i=0;i<nFiles();i++){
-    ReadFile(FileName.at(i));
-  }
-#if 0
-  for(int i=0;i<NSMP;i++){
-    std::cout<<"CrateType"<<i<<"\t";
-    for(int j=0;j<23;j++) std::cout<<CRATE_TYPE[i][j]<<" ";
-    std::cout<<std::endl;
-  }
-#endif 
-  m_isready=true;
-  return true;
-}
 
-bool CounterMapMan::ReadFile( const TString filename )
+//_____________________________________________________________________________
+Bool_t
+CounterMapMan::ReadFile(const TString& filename)
 {
-  static const TString funcname = "CounterMapMan::ReadFile";
-  int c,n,a,at,ud,cid,seg;
-  int lay,wire;
-  int address;
-  int nd;
-  int drtmin,drtmax,normmin,normmax;
-  unsigned int key, rkey;
-  char name[MAXCHAR];
-  char str[MAXCHAR];
-  FILE *fp;
-  
-  if( (fp=fopen(filename.Data(), "r"))==0 ){
-    std::cerr << " File open fail. [" << filename << "]" << std::endl;
-    exit(-1);
+  FILE *fp = fopen(filename.Data(), "r");
+  if(!fp) {
+    std::cerr << FUNC_NAME << " file open fail: " << filename << std::endl;
+    return false;
   }
-  
-  while( fgets(str,MAXCHAR,fp)!=0 ){
-    if( str[0]=='#' ) continue;
-    c=n=a=at=ud=cid=seg=lay=wire=0;
-    
-    if( (nd=sscanf(str,"CrateDef: %d %x", &c, &address)) == 2 ) {
-#if 0
-      std::cout << std::hex << " address: 0x" << address
-		<< " crate: " << c << std::dec << std::endl;
-#endif
+
+  Char_t str[MAXCHAR];
+  while(fgets(str, MAXCHAR, fp)) {
+    if(str[0] == '#') continue;
+
+    Int_t c, n, a, cid, lay, wire, at, ud, seg, address;
+    Int_t drtmin, drtmax, normmin, normmax;
+    Char_t name[MAXCHAR];
+
+    if(sscanf(str, "CrateDef: %d %x", &c, &address) == 2) {
       fCrateDef[c] = address;
       bCrateDef[address] = c;
-    }
-    else if( (nd=sscanf(str,"CrateType: %d MIX DRT %d %d NORMAL %d %d", &n, &drtmin, &drtmax, &normmin, &normmax)) == 5 ) {
-      for(int i=drtmin;i<=drtmax;i++)
-	CRATE_TYPE[n][i-1]=DRT;
-      for(int i=normmin;i<=normmax;i++)
-	CRATE_TYPE[n][i-1]=NORMAL;
-    }
-    else if( (nd=sscanf(str,"CrateType: %d %s", &n, name)) == 2 ) {
-      if(strcmp(name,"DRT")==0)
-	for(int i=0;i<23;i++)
-	  CRATE_TYPE[n][i]=DRT;
-      else if(strcmp(name,"NORMAL")==0)
-	for(int i=0;i<23;i++)
-	  CRATE_TYPE[n][i]=NORMAL;
-    }
-    else if( (nd=sscanf(str,"NumSMP: %d", &n)) == 1 ) {
+    } else if(sscanf(str, "CrateType: %d MIX DRT %d %d NORMAL %d %d",
+                     &n, &drtmin, &drtmax, &normmin, &normmax) == 5) {
+      for(Int_t i=drtmin; i<=drtmax; ++i) CRATE_TYPE[n][i-1] = DRT;
+      for(Int_t i=normmin; i<=normmax; ++i) CRATE_TYPE[n][i-1] = NORMAL;
+    } else if(sscanf(str, "CrateType: %d %s", &n, name) == 2) {
+      Int_t type = (TString(name) == "DRT") ? DRT : NORMAL;
+      for(Int_t i=0; i<MAXSLOT; ++i) CRATE_TYPE[n][i] = type;
+    } else if(sscanf(str, "NumSMP: %d", &n) == 1) {
       NSMP = n;
-    }
-    else if( (nd=sscanf(str,"NumScaler: %d", &n)) == 1 ) {
+    } else if(sscanf(str, "NumScaler: %d", &n) == 1) {
       NCH_SCA = n;
-    }
-    else if( (nd=sscanf(str,"%d %d %d %d %d %d %d %d %s", &c, &n, &a, &cid, &lay, &wire, &at, &ud, name)) == 9 ) {
-      // drift chamber
-#if 0
-      if(c==10)
-      std::cout << c << "  " << n << "  " << a << "  " << cid << "  "
-		<< lay << "  " << wire << "  " << at << "  " << ud << "  " << name << std::endl;
-#endif
-      if( cid != DetIdCDC ){
-	key = KEY(c,n,a);
-	rkey = RKEY(at,ud,cid,wire,lay);
-	fContainer[key] = rkey;
-	bContainer[rkey] = key;
-	nameCNAContainer[key] = name;
-	nameCounterContainer[rkey] = name;
-      }else{
-	for(int ich=0;ich<16;ich++){
-	  key = KEY(c,n,a+ich);
-	  rkey = RKEY(at,ud,cid,ich,lay);
-	  fContainer[key] = rkey;
-	  bContainer[rkey] = key;
-	  nameCNAContainer[key] = name;
-	  nameCounterContainer[rkey] = name;	  
-	}
-      }
-    }
-    else if( (nd=sscanf(str,"%d %d %d %d %d %d %d %s", &c, &n, &a, &cid, &seg, &at, &ud, name)) == 8 ) {
-      // counter
-#if 0
-      if(c==2&&n==1)
-      std::cout << c << "  " << n << "  " << a << "  " << cid << "  "
-		<< seg << "  " << at << "  " << ud << "  " << name << std::endl;
-#endif
-      key = KEY(c,n,a);
-      rkey = RKEY(at,ud,cid,seg,0);
+    } else if(sscanf(str, "%d %d %d %d %d %d %d %d %s",
+                     &c, &n, &a, &cid, &lay, &wire, &at, &ud, name) == 9) {
+      UInt_t key = KEY(c, n, a);
+      UInt_t rkey = RKEY(at, ud, cid, wire, lay);
       fContainer[key] = rkey;
       bContainer[rkey] = key;
       nameCNAContainer[key] = name;
       nameCounterContainer[rkey] = name;
-    }
-    else if( (nd=sscanf(str,"%d %d %d %d %d %d %d", &c, &n, &a, &cid, &seg, &at, &ud)) == 7 ) {
-#if 0
-      std::cout << c << "  " << n << "  " << a << "  " << cid << "  "
-		<< seg << "  " << at << "  " << ud << std::endl;
-#endif
-      // counter without name
-      key = KEY(c,n,a);
-      rkey = RKEY(at,ud,cid,seg,0);
+    } else if(sscanf(str, "%d %d %d %d %d %d %d %s",
+                     &c, &n, &a, &cid, &seg, &at, &ud, name) == 8) {
+      UInt_t key = KEY(c, n, a);
+      UInt_t rkey = RKEY(at, ud, cid, seg, 0);
       fContainer[key] = rkey;
       bContainer[rkey] = key;
-      nameCNAContainer[key] = "";
-      nameCounterContainer[rkey] = "";
-    }
-    else{
-      std::cerr << "[" << funcname << "]: Invalid data format" << std::endl;
-      std::cerr << std::string(str) << std::endl;
+      nameCNAContainer[key] = name;
+      nameCounterContainer[rkey] = name;
+    } else if(sscanf(str, "%d %d %d %d %d %d %d",
+                     &c, &n, &a, &cid, &seg, &at, &ud) == 7) {
+      UInt_t key = KEY(c, n, a);
+      UInt_t rkey = RKEY(at, ud, cid, seg, 0);
+      fContainer[key] = rkey;
+      bContainer[rkey] = key;
     }
   }
-
-
   fclose(fp);
-
-  //PrintMap();
-  //std::cout <</* "[" << funcname << "] Initialization*/" finish." << std::endl;
-#if 0
-  for(int i=0;i<NSMP;i++){
-    std::cout<<"CrateType"<<i<<"\t";
-    for(int j=0;j<23;j++) std::cout<<CRATE_TYPE[i][j]<<" ";
-    std::cout<<std::endl;
-  }
-#endif 
-  m_isready=true;
   return true;
 }
 
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-TString CounterMapMan::GetName( const int &c, const int &n, const int &a )
+//_____________________________________________________________________________
+TString
+CounterMapMan::GetName(Int_t c, Int_t n, Int_t a)
 {
-  unsigned int key = KEY(c,n,a);
-  nameCNAMapContainer::const_iterator ic = nameCNAContainer.find(key);
-  if( ic != nameCNAContainer.end() ) return ic->second;
-  else                               return "";
+  auto it = nameCNAContainer.find(KEY(c, n, a));
+  return (it != nameCNAContainer.end()) ? it->second : "";
 }
 
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-TString CounterMapMan::GetName( const int &cid, const int &seg, const int &at, const int &ud )
+//_____________________________________________________________________________
+TString
+CounterMapMan::GetName(Int_t cid, Int_t seg, Int_t at, Int_t ud)
 {
-  unsigned int rkey = RKEY(at,ud,cid,seg,0);
-  nameCounterMapContainer::const_iterator ic = nameCounterContainer.find(rkey);
-  if( ic != nameCounterContainer.end() ) return ic->second;
-  else                                   return "";
+  auto it = nameCounterContainer.find(RKEY(at, ud, cid, seg, 0));
+  return (it != nameCounterContainer.end()) ? it->second : "";
 }
 
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-TString CounterMapMan::GetName( const int &cid, const int &lay, const int &wire, const int &at, const int &ud )
+//_____________________________________________________________________________
+TString
+CounterMapMan::GetName(Int_t cid, Int_t lay, Int_t wire, Int_t at, Int_t ud)
 {
-  unsigned int rkey = RKEY(at,ud,cid,wire,lay);
-  nameCounterMapContainer::const_iterator ic = nameCounterContainer.find(rkey);
-  if( ic != nameCounterContainer.end() ) return ic->second;
-  else                                   return "";
+  auto it = nameCounterContainer.find(RKEY(at, ud, cid, wire, lay));
+  return (it != nameCounterContainer.end()) ? it->second : "";
 }
 
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-int CounterMapMan::GetCrateNum( int address )
+//_____________________________________________________________________________
+Int_t
+CounterMapMan::GetCrateNum(Int_t address)
 {
-  return bCrateDef[address];
-}
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-int CounterMapMan::GetSMPAddress( int c )
-{
-  return fCrateDef[c];
+  auto it = bCrateDef.find(address);
+  return (it != bCrateDef.end()) ? it->second : -1;
 }
 
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-bool CounterMapMan::GetCNA( int cid, int seg, int at, int ud, int &c, int &n, int &a )
+//_____________________________________________________________________________
+Int_t
+CounterMapMan::GetSMPAddress(Int_t c)
 {
-  static const TString funcname = "CMapMan::GetCNA";
-  unsigned int key, rkey;
-
-  rkey = RKEY(at,ud,cid,seg,0);
-  key  = bContainer[rkey];
-  if ( (key&KEYMASK) == KEYFLAG ) {
-
-    c = (key>>CSHIFT)&CMASK;
-    n = (key>>NSHIFT)&NMASK;
-    a = (key>>ASHIFT)&AMASK;
-    return true;
-
-  } else {
-#if 0
-    std::cerr << "[" << funcname << "]: No address found ..."
-	      " CID=" << cid << " SEG=" << seg
-              << " AT=" << at << " UD=" << ud << std::endl;
-#endif
-    return false;
-  }
+  auto it = fCrateDef.find(c);
+  return (it != fCrateDef.end()) ? it->second : -1;
 }
 
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-bool CounterMapMan::GetInfo( int c, int n, int a, int &cid, int &lay, int &seg, int &at, int &ud )
+//_____________________________________________________________________________
+Bool_t
+CounterMapMan::GetCNA(Int_t cid, Int_t seg, Int_t at, Int_t ud,
+                      Int_t& c, Int_t& n, Int_t& a)
 {
-  static const TString funcname = "CounterMapMan::GetInfo";
-  unsigned int key, rkey;
-
-  key = KEY(c,n,a);
-  rkey = fContainer[key];
-  if( (rkey&KEYMASK)==RKEYFLAG ){
-    cid = (rkey>>CIDSHIFT)&CIDMASK;
-    seg = (rkey>>SEGSHIFT)&SEGMASK;
-    lay = (rkey>>LAYSHIFT)&LAYMASK;
-    at  = (rkey>>ATSHIFT )&ATMASK;
-    ud  = (rkey>>UDSHIFT )&UDMASK;
+  UInt_t rkey = RKEY(at, ud, cid, seg, 0);
+  auto it = bContainer.find(rkey);
+  if(it != bContainer.end() && (it->second & KEYMASK) == KEYFLAG) {
+    c = (it->second >> CSHIFT) & CMASK;
+    n = (it->second >> NSHIFT) & NMASK;
+    a = (it->second >> ASHIFT) & AMASK;
     return true;
   }
-  else{
-    std::cerr << "[" << funcname << "]: No address found ... C=" 
-	      << c << " N=" << n << " A=" << a << std::endl;
-    return false;
-  }
+  return false;
 }
 
-int CounterMapMan::GetCID( int c, int n, int a )
+//_____________________________________________________________________________
+Bool_t
+CounterMapMan::GetInfo(Int_t c, Int_t n, Int_t a,
+                       Int_t& cid, Int_t& lay, Int_t& seg, Int_t& at, Int_t& ud)
 {
-  static const TString funcname = "CounterMapMan::GetCID";
-  unsigned int key, rkey;
-
-  key = KEY(c,n,a);
-  rkey = fContainer[key];
-  if( (rkey&KEYMASK)==RKEYFLAG ){
-    return ((rkey>>CIDSHIFT)&CIDMASK);
-  }
-  else{
-    std::cerr << "[" << funcname << "]: No address found ... C=" 
-	      << c << " N=" << n << " A=" << a << std::endl;
-    return -1;
-  }
-}
-
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-bool CounterMapMan::GetCNA( int cid, int lay, int wire, int at, int ud, int &c, int &n, int &a )
-{
-  static const TString funcname = "CMapMan::GetCNA";
-  unsigned int key, rkey;
-
-  rkey = RKEY(at,ud,cid,wire,lay);
-  key  = bContainer[rkey];
-  if ( (key&KEYMASK) == KEYFLAG ) {
-
-    c = (key>>CSHIFT)&CMASK;
-    n = (key>>NSHIFT)&NMASK;
-    a = (key>>ASHIFT)&AMASK;
+  auto it = fContainer.find(KEY(c, n, a));
+  if(it != fContainer.end() && (it->second & KEYMASK) == RKEYFLAG) {
+    UInt_t rkey = it->second;
+    cid = (rkey >> CIDSHIFT) & CIDMASK;
+    seg = (rkey >> SEGSHIFT) & SEGMASK;
+    lay = (rkey >> LAYSHIFT) & LAYMASK;
+    at  = (rkey >> ATSHIFT ) & ATMASK;
+    ud  = (rkey >> UDSHIFT ) & UDMASK;
     return true;
-
-  } else {
-    std::cerr << "[" << funcname << "]: No address found ..."
-	      << " CID=" << cid << " LAYER=" << lay
-              << " WIRE=" << wire << " AT:" << at << " UD:" << ud << std::endl;
-    c = n = a = -1;
-    return false;
-
   }
+  return false;
 }
 
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-void CounterMapMan::PrintSimpleMap( std::ostream &p_out )
+//_____________________________________________________________________________
+Int_t
+CounterMapMan::GetCID(Int_t c, Int_t n, Int_t a)
 {
-  static const TString funcname = "CMapMan::PrintMap";
-  unsigned int key, rkey;
+  auto it = fContainer.find(KEY(c, n, a));
+  if(it != fContainer.end() && (it->second & KEYMASK) == RKEYFLAG) {
+    return (it->second >> CIDSHIFT) & CIDMASK;
+  }
+  return -1;
+}
 
-  std::cout << " ---- " << funcname << " ---- " << std::endl;
-  for( fCounterMapContainer::const_iterator i=fContainer.begin();
-       i!=fContainer.end(); i++ ){
-    key = i->first; rkey = i->second;
-    int cr = ((key>>CSHIFT)&CMASK);
-    if( cr==0 || cr==1 || cr==2 || cr==6 ){
-      p_out.setf(std::ios::showpoint);
-      p_out  << std::setw(5) << cr
-	     << std::setw(5) << ((key>>NSHIFT)&NMASK)
-	     << std::setw(5) << ((key>>ASHIFT)&AMASK)
-	     << std::setw(5) << ((rkey>>CIDSHIFT)&CIDMASK)
-	     << std::setw(5) << ((rkey>>LAYSHIFT)&LAYMASK)
-	     << std::setw(5) << ((rkey>>SEGSHIFT)&SEGMASK)
-	     << std::setw(5) << ((rkey>>ATSHIFT )&ATMASK)
-	     << std::setw(5) << ((rkey>>UDSHIFT )&UDMASK)
-	     << std::endl;
+//_____________________________________________________________________________
+Bool_t
+CounterMapMan::GetCNA(Int_t cid, Int_t lay, Int_t wire, Int_t at, Int_t ud,
+                      Int_t& c, Int_t& n, Int_t& a)
+{
+  UInt_t rkey = RKEY(at, ud, cid, wire, lay);
+  auto it = bContainer.find(rkey);
+  if(it != bContainer.end() && (it->second & KEYMASK) == KEYFLAG) {
+    c = (it->second >> CSHIFT) & CMASK;
+    n = (it->second >> NSHIFT) & NMASK;
+    a = (it->second >> ASHIFT) & AMASK;
+    return true;
+  }
+  c = n = a = -1;
+  return false;
+}
+
+//_____________________________________________________________________________
+void
+CounterMapMan::PrintSimpleMap(std::ostream& p_out)
+{
+  p_out << FUNC_NAME << std::endl;
+  for(const auto& it : fContainer) {
+    UInt_t key = it.first;
+    UInt_t rkey = it.second;
+    Int_t cr = (key >> CSHIFT) & CMASK;
+    if(cr == 0 || cr == 1 || cr == 2 || cr == 6) {
+      p_out << std::setw(5) << cr
+            << std::setw(5) << ((key >> NSHIFT) & NMASK)
+            << std::setw(5) << ((key >> ASHIFT) & AMASK)
+            << std::setw(5) << ((rkey >> CIDSHIFT) & CIDMASK)
+            << std::setw(5) << ((rkey >> LAYSHIFT) & LAYMASK)
+            << std::setw(5) << ((rkey >> SEGSHIFT) & SEGMASK)
+            << std::setw(5) << ((rkey >> ATSHIFT ) & ATMASK)
+            << std::setw(5) << ((rkey >> UDSHIFT ) & UDMASK)
+            << std::endl;
     }
   }
 }
 
-// + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-void CounterMapMan::PrintMap()
+//_____________________________________________________________________________
+void
+CounterMapMan::PrintMap()
 {
-  static const TString funcname = "CMapMan::PrintMap";
-  unsigned int key, rkey;
-
-  std::cout << " ---- " << funcname << " ---- " << std::endl;
-  for( fCounterMapContainer::const_iterator i=fContainer.begin();
-       i!=fContainer.end(); i++ ){
-    key = i->first; rkey = i->second;
-    std::cout << key  << "  "
-	      << ((key>>CSHIFT)&CMASK) << " "
-	      << ((key>>NSHIFT)&NMASK) << " "
-	      << ((key>>ASHIFT)&AMASK) << " "
-	      << rkey << "  "
-	      << ((rkey>>CIDSHIFT)&CIDMASK) << " "
-	      << ((rkey>>LAYSHIFT)&LAYMASK) << " "
-	      << ((rkey>>SEGSHIFT)&SEGMASK) << " "
-	      << ((rkey>>ATSHIFT )&ATMASK) << " "
-	      << ((rkey>>UDSHIFT )&UDMASK)
-	      << std::endl;
+  std::cout << FUNC_NAME << std::endl;
+  for(const auto& it : fContainer) {
+    UInt_t key = it.first;
+    UInt_t rkey = it.second;
+    std::cout << std::setw(10) << key << " ("
+              << std::setw(2) << ((key >> CSHIFT) & CMASK) << ","
+              << std::setw(2) << ((key >> NSHIFT) & NMASK) << ","
+              << std::setw(2) << ((key >> ASHIFT) & AMASK) << ") -> "
+              << std::setw(10) << rkey << " ("
+              << std::setw(3) << ((rkey >> CIDSHIFT) & CIDMASK) << ","
+              << std::setw(3) << ((rkey >> LAYSHIFT) & LAYMASK) << ","
+              << std::setw(3) << ((rkey >> SEGSHIFT) & SEGMASK) << ","
+              << std::setw(1) << ((rkey >> ATSHIFT ) & ATMASK) << ","
+              << std::setw(1) << ((rkey >> UDSHIFT ) & UDMASK) << ")"
+              << std::endl;
   }
 }
-

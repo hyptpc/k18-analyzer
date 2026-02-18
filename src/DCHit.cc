@@ -1,37 +1,43 @@
 // -*- C++ -*-
-
 #include "DCHit.hh"
 
 #include <algorithm>
+#include <cfloat>
 #include <cmath>
 #include <iomanip>
+
 #include <iostream>
 #include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 
-#include <std_ostream.hh>
+#include <TString.h>
 
 #include "DCDriftParamMan.hh"
 #include "DCGeomMan.hh"
+#include "DCLTrackHit.hh"
 #include "DCParameters.hh"
 #include "DCRawHit.hh"
 #include "DCTdcCalibMan.hh"
-#include "DCLTrackHit.hh"
-#include "UserParamMan.hh"
 #include "DebugCounter.hh"
+#include "DeleteUtility.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
+#include "PrintHelper.hh"
 #include "RootHelper.hh"
+#include "std_ostream.hh"
+#include "UserParamMan.hh"
+
+#include <spdlog/spdlog.h>
 
 namespace
 {
-const Double_t qnan = TMath::QuietNaN();
+const auto& gDrift = DCDriftParamMan::GetInstance();
 const auto& gGeom  = DCGeomMan::GetInstance();
 const auto& gTdc   = DCTdcCalibMan::GetInstance();
-const auto& gDrift = DCDriftParamMan::GetInstance();
 const auto& gUser  = UserParamMan::GetInstance();
+const Double_t qnan = TMath::QuietNaN();
 const Bool_t SelectTDC1st = false;
 }
 
@@ -51,8 +57,9 @@ DCHit::DCHit(const DCRawHit* rhit)
     m_is_good(),
     m_wpos(qnan),
     m_angle(0.),
-    m_cluster_size(0.),
-    m_mwpc_flag(false)
+    m_z(qnan),
+    m_register_container()
+
 {
   for(const auto& t: rhit->GetTdcArray())
     m_tdc.push_back(t);
@@ -65,42 +72,46 @@ DCHit::DCHit(const DCRawHit* rhit)
 
 //_____________________________________________________________________________
 DCHit::DCHit(Int_t layer)
-  : m_layer(layer),
+  : m_raw_hit(nullptr),
+    m_plane(-1),
+    m_layer(layer),
     m_wire(-1),
+    m_tdc(),
+    m_adc(),
+    m_trailing(),
+    m_drift_time(),
+    m_drift_length(),
+    m_tot(),
+    m_belong_to_track(),
+    m_is_good(),
     m_wpos(qnan),
     m_angle(0.),
-    m_cluster_size(0.),
-    m_mwpc_flag(false)
+    m_z(qnan),
+    m_register_container()
+
 {
   debug::ObjectCounter::increase(ClassName());
 }
 
 //_____________________________________________________________________________
 DCHit::DCHit(Int_t layer, Double_t wire)
-  : m_layer(layer),
-    m_wire(wire),
-    m_wpos(qnan),
-    m_angle(0.),
-    m_cluster_size(0.),
-    m_mwpc_flag(false)
-{
-  debug::ObjectCounter::increase(ClassName());
-}
-
-//_____________________________________________________________________________
-DCHit::DCHit(Int_t plane, Int_t layer, Int_t wire) // for Geant4
-  : m_plane(plane),
+  : m_raw_hit(nullptr),
+    m_plane(-1),
     m_layer(layer),
     m_wire(wire),
-    m_lpos(),
-    m_de(),
+    m_tdc(),
+    m_adc(),
+    m_trailing(),
+    m_drift_time(),
+    m_drift_length(),
     m_tot(),
     m_belong_to_track(),
     m_is_good(),
     m_wpos(qnan),
     m_angle(0.),
-    m_cluster_size(0.),
-    m_mwpc_flag(false)
+    m_z(qnan),
+    m_register_container()
+
 {
   debug::ObjectCounter::increase(ClassName());
 }
@@ -150,20 +161,9 @@ DCHit::SetDCData(Double_t dt, Double_t dl, Double_t tot,
 
 //_____________________________________________________________________________
 void
-DCHit::SetDCDataGeant4(TVector3 lpos, Double_t de)
-{
-  m_lpos.push_back(lpos);
-  m_de.push_back(de);
-}
-
-//_____________________________________________________________________________
-void
 DCHit::ClearRegisteredHits()
 {
-  Int_t n = m_register_container.size();
-  for(Int_t i=0; i<n; ++i){
-    delete m_register_container[i];
-  }
+  del::ClearContainer(m_register_container);
 }
 
 //_____________________________________________________________________________
@@ -181,8 +181,8 @@ DCHit::CalcDCObservables()
   m_angle = gGeom.GetTiltAngle(m_layer);
   m_z     = gGeom.GetLocalZ(m_layer);
 
-  std::sort(m_tdc.begin(), m_tdc.end(), std::greater<Int_t>());
-  std::sort(m_trailing.begin(), m_trailing.end(), std::greater<Int_t>());
+  std::sort(m_tdc.begin(), m_tdc.end(), std::greater<Double_t>());
+  std::sort(m_trailing.begin(), m_trailing.end(), std::greater<Double_t>());
 
   const auto detector_id = m_raw_hit->DetectorId();
 
@@ -190,7 +190,7 @@ DCHit::CalcDCObservables()
   for(Int_t il=0, nl=m_tdc.size(); il<nl; ++il){
     Double_t l = m_tdc[il];
     Double_t l_next = (il+1) != nl ? m_tdc[il+1] : DBL_MIN;
-    Double_t buf = INT_MAX; // TMath::QuietNaN();
+    Double_t buf = DBL_MAX; // TMath::QuietNaN();
     for(const auto& t: m_trailing){
       if(l_next<t && t<l){
         buf = t;
@@ -199,13 +199,13 @@ DCHit::CalcDCObservables()
     }
     leading.push_back(l);
     trailing.push_back(buf);
-    Double_t ctime = TMath::QuietNaN();
+    Double_t ctime = qnan;
     gTdc.GetTime(detector_id, m_plane, m_wire, l, ctime);
-    Double_t dt = ctime; // TMath::QuietNaN();
-    Double_t dl = TMath::QuietNaN();
+    Double_t dt = ctime;
+    Double_t dl = qnan;
     gDrift.CalcDrift(m_raw_hit->DetectorName(),
                      m_plane, m_wire, ctime, dt, dl);
-    Double_t ctime_trailing = TMath::QuietNaN();
+    Double_t ctime_trailing = qnan;
     gTdc.GetTime(detector_id, m_plane, m_wire, buf, ctime_trailing);
     // Double_t tot = ctime - ctime_trailing;
     Double_t tot = l - buf;
@@ -219,83 +219,6 @@ DCHit::CalcDCObservables()
   }
   m_tdc = leading;
   m_trailing = trailing;
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-DCHit::CalcDCObservablesGeant4()
-{
-
-  if(false
-     || !gGeom.IsReady()){
-    return false;
-  }
-
-  m_wpos  = gGeom.CalcWirePosition(m_layer, m_wire);
-  m_angle = gGeom.GetTiltAngle(m_layer);
-  m_z     = gGeom.GetLocalZ(m_layer);
-
-  // gRandom->SetSeed(TDatime().Convert());
-  // Double_t res = gUser.GetParameter(Form("ResolutionLayer%d", m_layer));
-  for(Int_t i=0, n=m_lpos.size(); i<n; ++i){
-    Double_t dt = TMath::QuietNaN();
-    Double_t a  = m_angle*TMath::DegToRad();
-    Double_t s  = m_lpos[i].x()*TMath::Cos(a) + m_lpos[i].y()*TMath::Sin(a);
-    Double_t dl = TMath::Abs(s-m_wpos);
-    // dl = gRandom->Gaus(dl, res);
-    Double_t tot = m_de[i];
-    Bool_t dl_is_good = false;
-    switch(m_layer){
-      // BC3,4
-    case 113: case 114: case 115: case 116: case 117: case 118:
-    case 119: case 120: case 121: case 122: case 123: case 124:
-      if(MinDLBc[m_layer-100] < dl && dl < MaxDLBc[m_layer-100]){
-	dl_is_good = true;
-      }
-      break;
-      // SDC1,2,3,4,5
-    case 1: case 2: case 3: case 4: case 5: case 6:
-    case 7: case 8: case 9: case 10:
-    case 31: case 32: case 33: case 34:
-    case 35: case 36: case 37: case 38:
-    case 39: case 40: case 41: case 42:
-      if(MinDLSdc[m_layer] < dl && dl < MaxDLSdc[m_layer]){
-	dl_is_good = true;
-      }
-      break;
-    default:
-      hddaq::cout << FUNC_NAME << " "
-		  << "invalid layer id : " << m_layer << std::endl;
-      return false;
-    }
-
-    if(!SelectTDC1st){
-      SetDCData(dt, dl, tot, false, dl_is_good);
-    }else if(dl_is_good){
-      SetDCData(dt, dl, tot, false, dl_is_good);
-      break;
-    }
-  }
-
-  return true;
-}
-
-//_____________________________________________________________________________
-Bool_t
-DCHit::CalcFiberObservables()
-{
-  if(!gGeom.IsReady())
-    return false;
-  m_angle = gGeom.GetTiltAngle(m_layer);
-  m_z     = gGeom.GetLocalZ(m_layer);
-  for(const auto& tdc: m_tdc){
-    m_drift_time.push_back(tdc);
-    m_drift_length.push_back(0.);
-    m_tot.push_back(qnan);
-    m_belong_to_track.push_back(false);
-    m_is_good.push_back(true);
-  }
   return true;
 }
 
@@ -349,35 +272,38 @@ DCHit::TotCut(Double_t min, Bool_t keep_nan)
 void
 DCHit::Print(Option_t* arg) const
 {
-  const Int_t w = 16;
-  hddaq::cout << FUNC_NAME << " " << arg << std::endl
-              << std::setw(w) << std::left << "detector"
-              << m_raw_hit->DetectorName() << std::endl
-              << std::setw(w) << std::left << "plane" << m_plane << std::endl
-              << std::setw(w) << std::left << "layer" << m_layer << std::endl
-              << std::setw(w) << std::left << "wire"  << m_wire  << std::endl
-              << std::setw(w) << std::left << "wpos"  << m_wpos  << std::endl
-              << std::setw(w) << std::left << "angle" << m_angle << std::endl
-              << std::setw(w) << std::left << "z"     << m_z     << std::endl;
+  PrintHelper helper(3, std::ios::fixed);
 
-  hddaq::cout << std::setw(w) << std::left << "tdc" << m_tdc.size() << " : ";
-  std::copy(m_tdc.begin(), m_tdc.end(),
-            std::ostream_iterator<Int_t>(hddaq::cout, " "));
+  const Int_t w = 16;
+  TString dname = m_raw_hit ? m_raw_hit->DetectorName() : "Unknown";
+  Double_t z = gGeom.GetLocalZ(m_layer);
+
+  hddaq::cout << FUNC_NAME << " " << arg << std::endl
+              << std::setw(w) << std::left << "detector" << dname << std::endl
+              << std::setw(w) << std::left << "plane"    << m_plane << std::endl
+              << std::setw(w) << std::left << "layer"    << m_layer << std::endl
+              << std::setw(w) << std::left << "wire"     << m_wire  << std::endl
+              << std::setw(w) << std::left << "wpos"     << m_wpos  << std::endl
+              << std::setw(w) << std::left << "angle"    << m_angle << std::endl
+              << std::setw(w) << std::left << "z"        << z       << std::endl;
+
+  hddaq::cout << std::setw(w) << std::left << "tdc" << (Int_t)m_tdc.size() << " : ";
+  for(const auto& t: m_tdc) hddaq::cout << t << " ";
   hddaq::cout << std::endl;
-  hddaq::cout << std::setw(w) << std::left << "trailing" << m_trailing.size() << " : ";
-  std::copy(m_trailing.begin(), m_trailing.end(),
-            std::ostream_iterator<Int_t>(hddaq::cout, " "));
+
+  hddaq::cout << std::setw(w) << std::left << "trailing" << (Int_t)m_trailing.size() << " : ";
+  for(const auto& t: m_trailing) hddaq::cout << t << " ";
   hddaq::cout << std::endl;
+
   for(const auto& data_map: std::map<TString, data_t>
         {{"dt", m_drift_time},
          {"dl", m_drift_length},
          {"tot", m_tot},
         }){
     const auto& cont = data_map.second;
-    hddaq::cout << std::setw(w) << std::left << data_map.first << cont.size()
+    hddaq::cout << std::setw(w) << std::left << data_map.first << (Int_t)cont.size()
                 << " : ";
-    std::copy(cont.begin(), cont.end(),
-              std::ostream_iterator<Double_t>(hddaq::cout, " "));
+    for(const auto& val: cont) hddaq::cout << val << " ";
     hddaq::cout << std::endl;
   }
   for(const auto& data_map: std::map<TString, flag_t>
@@ -385,17 +311,9 @@ DCHit::Print(Option_t* arg) const
          {"is_good", m_is_good},
         }){
     const auto& cont = data_map.second;
-    hddaq::cout << std::setw(w) << std::left << data_map.first << cont.size()
+    hddaq::cout << std::setw(w) << std::left << data_map.first << (Int_t)cont.size()
                 << " : ";
-    std::copy(cont.begin(), cont.end(),
-              std::ostream_iterator<Bool_t>(hddaq::cout, " "));
+    for(const auto& val: cont) hddaq::cout << val << " ";
     hddaq::cout << std::endl;
-  }
-
-  if(m_mwpc_flag){
-    hddaq::cout << std::endl
-                << std::setw(w) << std::left << "clsize" << m_cluster_size << std::endl
-                << std::setw(w) << std::left << "mean wire" << m_mwpc_wire << std::endl
-                << std::setw(w) << std::left << "mean pos"  << m_mwpc_wpos << std::endl;
   }
 }

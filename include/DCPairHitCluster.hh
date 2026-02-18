@@ -27,8 +27,8 @@ private:
 public:
   Int_t        NumberOfHits() const { return m_nhits; }
   DCLTrackHit* GetHit(Int_t i=0) const;
-  bool         IsHoneycomb() const;
-  void         SetHoneycomb(bool flag);
+  Bool_t       IsHoneycomb() const;
+  void         SetHoneycomb(Bool_t flag);
 };
 
 //_____________________________________________________________________________

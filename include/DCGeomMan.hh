@@ -3,12 +3,13 @@
 #ifndef DC_GEOM_MAN_HH
 #define DC_GEOM_MAN_HH
 
-#include "ThreeVector.hh"
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 
 #include <TString.h>
+
+#include "ThreeVector.hh"
 
 class DCGeomRecord;
 

@@ -1,5 +1,4 @@
 // -*- C++ -*-
-
 #ifndef DC_DRIFT_PARAM_MAN_HH
 #define DC_DRIFT_PARAM_MAN_HH
 

@@ -1,40 +1,52 @@
 // DCTimeCorrMan.cpp
 
-#include <string>
-#include <cstdio>
-#include <iostream>
-#include <iomanip>
-#include <new>
+// Debug flag: set to 1 to enable debug output, 0 to disable
+#define DC_TIME_CORR_DEBUG 0
+
 #include <cmath>
+#include <cstdio>
+#include <iomanip>
+#include <iostream>
+#include <new>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include <TFile.h>
+#include <TROOT.h>
 
 #include "DCTimeCorrMan.hh"
 #include "DetectorID.hh"
 
 namespace
 {
-const unsigned int KEYMASK  = 0x000F;
+const UInt_t KEYMASK  = 0x000F;
 // |0111|1111|0001|1111|0000|1111|1111|0011|
-const unsigned int WMASK    = 0x00FF;      /* Wire Mask 8 Bits (0-255) */
-const unsigned int LMASK    = 0x001F;      /* Layer Mask 5 Bits (0-31) */
-const unsigned int CMASK    = 0x007F;      /* CID Mask 7 Bits (0-127) */
-const int          WSHIFT   =  4;
-const int          LSHIFT   = 16;
-const int          CSHIFT   = 24;
-const unsigned int KEYFLAG  = 0x0003;
-inline int KEY( int cid, int layer, int wire){
+const UInt_t WMASK    = 0x00FF;      /* Wire Mask 8 Bits (0-255) */
+const UInt_t LMASK    = 0x001F;      /* Layer Mask 5 Bits (0-31) */
+const UInt_t CMASK    = 0x007F;      /* CID Mask 7 Bits (0-127) */
+const Int_t  WSHIFT   =  4;
+const Int_t  LSHIFT   = 16;
+const Int_t  CSHIFT   = 24;
+const UInt_t KEYFLAG  = 0x0003;
+inline Int_t KEY( Int_t cid, Int_t layer, Int_t wire){
   return ( ( (cid&CMASK)<<CSHIFT) |
            ( (layer&LMASK)<<LSHIFT) |
            ( (wire&WMASK)<<WSHIFT) |
            KEYFLAG );
 }
-const int MAXCHAR = 144;
-const int MaxParam = 4;
+const Int_t MAXCHAR = 144;
+const Int_t MaxParam = 4;
 
-const int nchamber=6;
-// TString chmname[nchamber]={"BLC1a","BLC1b","BLC2a","BLC2b","BPC1","BPC2"};
-// int chmid[nchamber]={DetIdBLC1a,DetIdBLC1b,DetIdBLC2a,DetIdBLC2b,DetIdBPC1,DetIdBPC2};
+const std::vector<std::pair<TString, Int_t>> DCChambers = {
+  {"BLC1a", DetIdBLC1a},
+  {"BLC1b", DetIdBLC1b},
+  {"BLC2a", DetIdBLC2a},
+  {"BLC2b", DetIdBLC2b}
+};
 TString DefaultFileName="default";
 }
+
 // + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
 DCTimeCorrMan::DCTimeCorrMan()
   :m_isready(false)
@@ -68,34 +80,34 @@ void DCTimeCorrMan::SetFileNames( const TString & filename1, const TString & fil
 }
 
 // + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-bool DCTimeCorrMan::Initialize( const char *filename1, const char *filename2 )
+Bool_t DCTimeCorrMan::Initialize( const char *filename1, const char *filename2 )
 {
   FileNameBLDC=filename1;
   FileNameCDC=filename2;
   return Initialize();
 }
-bool DCTimeCorrMan::Initialize( const std::string& filename1, const std::string& filename2 )
+Bool_t DCTimeCorrMan::Initialize( const TString& filename1, const TString& filename2 )
 {
   FileNameBLDC=filename1;
   FileNameCDC=filename2;
   return Initialize();
 }
-bool DCTimeCorrMan::Initialize( const char *filename1 )
+Bool_t DCTimeCorrMan::Initialize( const char *filename1 )
 {
   FileNameBLDC=filename1;
   return Initialize();
 }
-bool DCTimeCorrMan::Initialize( const std::string& filename1 )
+Bool_t DCTimeCorrMan::Initialize( const TString& filename1 )
 {
   FileNameBLDC=filename1;
   return Initialize();
 }
-bool DCTimeCorrMan::Initialize()
+Bool_t DCTimeCorrMan::Initialize()
 {
   static const TString funcname = "DCTimeCorrMan::Initialize";
   std::cout << "[" << funcname << "] Initialization start ...";
 
-  int key;
+
   dctimecorrContainer.clear();
   TFile *tmpfile=gFile;
   TFile *f=new TFile(FileNameBLDC.Data());
@@ -104,15 +116,18 @@ bool DCTimeCorrMan::Initialize()
     FileNameBLDC=DefaultFileName;
     return true;
   }
-  TGraph* gr;
-  for(int ic=0;ic<nchamber;ic++){
-    for(int lay=0;lay<8;lay++){
-      // gr=(TGraph*)f->Get(Form("DCTimeCorr_%s_%d",NameDC[ic].Data(),lay+1));
-      // if(!gr) continue;
-      // //      std::cout<<Form("DCTimeCorr_%s_%d",NameDC[ic].Data(),lay+1)<<std::endl;
-      // key = KEY(DetIdDC[ic],lay,0);
-      // dctimecorrContainer[key] = *gr;
-      // gROOT->Append(gr);
+  for(const auto& chamber : DCChambers){
+    (void)chamber;
+    for(Int_t lay=0;lay<8;lay++){
+#if DC_TIME_CORR_DEBUG
+      TGraph* gr = (TGraph*)f->Get(Form("DCTimeCorr_%s_%d",chamber.first.Data(),lay+1));
+      if(!gr) continue;
+      std::cout << "["<<funcname<<"] " 
+                << Form("DCTimeCorr_%s_%d",chamber.first.Data(),lay+1) << std::endl;
+      Int_t key = KEY(chamber.second,lay,0);
+      dctimecorrContainer[key] = *gr;
+      gROOT->Append(gr);
+#endif
     }
   }
   f->Close();
@@ -123,35 +138,35 @@ bool DCTimeCorrMan::Initialize()
   return true;
 }
 // + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-double DCTimeCorrMan::CalcCValue( const int &cid, const int &layer, const int &wire,
-				  const double &timemean, const double &timesub ) const
+Double_t DCTimeCorrMan::CalcCValue( const Int_t &cid, const Int_t &layer, const Int_t &wire,
+				  const Double_t &timemean, const Double_t &timesub ) const
 {
   static const TString funcname = "DCTimeCorrMan::CalcCValue";
-  double ctime = timemean;
-  int key;
+  Double_t ctime = timemean;
+  Int_t key;
   key = KEY(cid,layer,wire);
   DCTimeCorrHistContainer::const_iterator is;
   if( (is=(dctimecorrContainer.find(key))) != dctimecorrContainer.end() ){
     ctime = timemean - ((is->second).Eval(timesub));
-    // if(abs(timesub)>100){
-    //    std::cout<<cid<<"\t"<<(is->second).GetName()<<std::endl;
-    //    std::cout<<"sub,mean,corr,ctime\t"<<timesub<<"\t"<<timemean<<"\t"<<(is->second).Eval(timesub)<<"\t"<<ctime<<std::endl;
-    // }
-    // }else if(cid==DetIdFDC){
-    //   ctime=timemean;
+#if DC_TIME_CORR_DEBUG
+    if(abs(timesub)>100){
+       std::cout<<cid<<"\t"<<(is->second).GetName()<<std::endl;
+       std::cout<<"sub,mean,corr,ctime\t"<<timesub<<"\t"<<timemean<<"\t"<<(is->second).Eval(timesub)<<"\t"<<ctime<<std::endl;
+    }
+#endif
   }else{
     std::cout << " cannot find parameters "
-	      << " cid:" << cid << " layer:" << layer << " wire:"<< wire <<" timemean:" << timemean << " timesub:" << timesub
-	      << std::endl;
+              << " cid:" << cid << " layer:" << layer << " wire:"<< wire <<" timemean:" << timemean << " timesub:" << timesub
+              << std::endl;
   }
   return ctime;
 }
 
 // + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + -- + //
-double DCTimeCorrMan::CalcDATValue( const int &cid, const int &seg, const int &ud,
-				    const double &ctime, const double &de ) const
+Double_t DCTimeCorrMan::CalcDATValue( const Int_t &cid, const Int_t &seg, const Int_t &ud,
+				    const Double_t &ctime, const Double_t &de ) const
 {
   static const TString funcname = "DCTimeCorrMan::CalcDATValue";
-  double time = ctime;
+  Double_t time = ctime;
   return time;
 }

@@ -27,8 +27,8 @@ struct DCPairPlaneInfo
   }
 };
 
-extern const DCPairPlaneInfo PPInfoBcOut[], PPInfoSdcIn[], PPInfoSdcOut[];
-extern const Int_t NPPInfoBcOut, NPPInfoSdcIn, NPPInfoSdcOut;
+extern const DCPairPlaneInfo PPInfoBcIn[], PPInfoBcOut[];
+extern const Int_t NPPInfoBcIn, NPPInfoBcOut;
 
 #ifdef DefStatic
 const DCPairPlaneInfo PPInfoBcIn[] = {
@@ -47,28 +47,16 @@ const DCPairPlaneInfo PPInfoBcOut[] = {
   { true, false, false, 12, 13,  5.0 }, { true, false, false, 14, 15,  5.0 }
 };
 
-const DCPairPlaneInfo PPInfoSdcIn[] = {
-  // { pair_plane, honeycomb, fiber, id1, id2, CellSize }
-  { true, true, false, 0, 1,  6.0 }, { true, true, false, 2,  3,  6.0 },
-  { true, true, false, 4, 5,  6.0 },
-  { true, false, false, 6, 7, 5.0 }, { true, false, false, 8, 9, 5.0 }
-};
-
-const DCPairPlaneInfo PPInfoSdcOut[] = {
-  // { pair_plane, honeycomb, fiber, id1, id2, CellSize }
-  { true, true, false, 0, 1,  9.0 }, { true, true, false, 2, 3,  9.0 }, //SDC3
-  { true, true, false, 4, 5,  9.0 }, { true, true, false, 6, 7,  9.0 }, //SDC4
-  { true, true, false, 8, 9,  9.0 }, { true, true, false, 10, 11,  9.0 }, //SDC5
-};
-
 const Int_t NPPInfoBcIn   = sizeof(PPInfoBcIn)/sizeof(DCPairPlaneInfo);
 const Int_t NPPInfoBcOut  = sizeof(PPInfoBcOut)/sizeof(DCPairPlaneInfo);
-const Int_t NPPInfoSdcIn  = sizeof(PPInfoSdcIn)/sizeof(DCPairPlaneInfo);
-const Int_t NPPInfoSdcOut = sizeof(PPInfoSdcOut)/sizeof(DCPairPlaneInfo);
-
 #endif
 
-//DL Ranges (BC1&2 for Time range -5 ns <[Time gate]<75 ns)
+// __ Legacy DL Range Arrays (NOT USED IN E72 CODE) _____________________
+// Note: These arrays are defined but not currently used in E72 analysis.
+// They exist in legacy code (ref/src/DCHit.cc) but are not referenced
+// in the current implementation. Kept for reference only.
+//
+// DL Ranges (BC1&2 for Time range -5 ns <[Time gate]<75 ns)
 const Double_t MinDLBc[25] = {
    0.0,
    // BC1
@@ -92,42 +80,7 @@ const Double_t MaxDLBc[25] = {
   // BC4
   1.8, 1.8, 1.8, 1.8, 1.8, 1.8
 };
+// _______________________________________________________________________
 
-const Double_t MinDLSdc[] = {
-  0.0,
-  //SDC1
-  -0.5, -0.5, -0.5, -0.5, -0.5, -0.5,
-  //SDC2
-  -0.5, -0.5, -0.5, -0.5,
-  // Dummy Id 11-30
-  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-  // SDC3
-  -0.5, -0.5, -0.5, -0.5,
-  // SDC4
-  -0.5, -0.5, -0.5, -0.5,
-  // SDC5
-  -0.5, -0.5, -0.5, -0.5
-};
-
-const Double_t MaxDLSdc[] = {
-  0.0,
-  // SDC1
-  3.5, 3.5, 3.5, 3.5, 3.5, 3.5,
-  // SDC2
-  3.0, 3.0, 3.0, 3.0,
-  // Dummy Id 11-30
-  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-  // SDC3
-  //  12.0, 12.0, 12.0, 12.0,
-  5.0, 5.0, 5.0, 5.0,
-  // SDC4
-  //  25.0, 25.0, 25.0, 25.0
-  //13.00, 13.00, 13.00, 13.00
-  5.0, 5.0, 5.0, 5.0,
-  // SDC5
-  5.0, 5.0, 5.0, 5.0,
-};
 
 #endif

@@ -33,7 +33,7 @@ DCPairHitCluster::GetHit(Int_t i) const
 }
 
 //_____________________________________________________________________________
-bool
+Bool_t
 DCPairHitCluster::IsHoneycomb() const
 {
   if(m_hitA) return m_hitA->IsHoneycomb();
@@ -43,7 +43,7 @@ DCPairHitCluster::IsHoneycomb() const
 
 //_____________________________________________________________________________
 void
-DCPairHitCluster::SetHoneycomb(bool flag)
+DCPairHitCluster::SetHoneycomb(Bool_t flag)
 {
   if(m_hitA) m_hitA->SetHoneycomb(flag);
   if(m_hitB) m_hitB->SetHoneycomb(flag);

@@ -9,9 +9,9 @@
 #include "Event.hh"
 #include "HistTools.hh"
 
-class RawData;
-class HodoAnalyzer;
 class DCAnalyzer;
+class HodoAnalyzer;
+class RawData;
 
 //_____________________________________________________________________________
 class EventAnalyzer

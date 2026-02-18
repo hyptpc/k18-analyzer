@@ -1,19 +1,19 @@
 // -*- C++ -*-
 
 #include "DCGeomMan.hh"
-#include "DCGeomRecord.hh"
 
-#include <string>
-#include <stdexcept>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <sstream>
+#include <stdexcept>
+#include <string>
 
 #include <std_ostream.hh>
 
+#include "DCGeomRecord.hh"
 #include "DeleteUtility.hh"
 #include "Exception.hh"
 #include "FuncName.hh"
@@ -194,7 +194,7 @@ DCGeomMan::UnitVector(const TString& key) const
 const DCGeomRecord*
 DCGeomMan::GetRecord(Int_t lnum) const
 {
-  DCGeomIterator itr = m_container.find(lnum);
+  auto itr = m_container.find(lnum);
   if(itr != m_container.end())
     return itr->second;
   else{
@@ -274,7 +274,7 @@ DCGeomMan::Initialize()
        >> l >> res >> w0 >> dd >> ofs){
       DCGeomRecord *record =
 	new DCGeomRecord(id, name, gx, gy, gz, ta, ra1, ra2,
-                         l, res, w0, dd, ofs);
+                          l, res, w0, dd, ofs);
       if(m_container[id]){
 	hddaq::cerr << FUNC_NAME << " "
 		    << "duplicated key is deleted : " << id << std::endl;
@@ -301,9 +301,8 @@ DCGeomMan::GetDetectorIDList() const
 {
   std::vector<Int_t> vlist;
   vlist.reserve(m_container.size());
-  for(DCGeomIterator itr=m_container.begin(), end=m_container.end();
-      itr != end; ++itr){
-    vlist.push_back(itr->first);
+  for(auto& itr: m_container){
+    vlist.push_back(itr.first);
   }
   return vlist;
 }
@@ -444,10 +443,9 @@ DCGeomMan::SetResolution(const TString& key, Double_t res)
 Int_t
 DCGeomMan::GetDetectorId(const TString &key) const
 {
-  for(DCGeomIterator itr=m_container.begin(), end=m_container.end();
-      itr != end; ++itr){
-    if(itr->second->Name().EqualTo(key, TString::kIgnoreCase))
-      return itr->second->Id();
+  for(auto& itr: m_container){
+    if(itr.second->Name().EqualTo(key, TString::kIgnoreCase))
+      return itr.second->Id();
   }
 
   throw Exception(FUNC_NAME + " No such key = " + key);
