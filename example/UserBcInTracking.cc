@@ -126,15 +126,15 @@ ProcessNormal()
   evAna.BcInTracking(dcAna);
   evAna.BcInTracking(dcAna, event.beam_flag);
 
-  // for(const auto& track : dcAna.GetBcInTrackContainer()){
-  //   track->Print();
-  //   event.ntrack++;
-  //   event.chisqr.push_back(track->GetChiSquare());
-  //   event.x0.push_back(track->GetX0());
-  //   event.y0.push_back(track->GetY0());
-  //   event.u0.push_back(track->GetU0());
-  //   event.v0.push_back(track->GetV0());
-  // }
+  for(const auto& track : dcAna.GetBcInTrackContainer()){
+    track->Print();
+    event.ntrack++;
+    event.chisqr.push_back(track->GetChiSquare());
+    event.x0.push_back(track->GetX0());
+    event.y0.push_back(track->GetY0());
+    event.u0.push_back(track->GetU0());
+    event.v0.push_back(track->GetV0());
+  }
 
   return true;
 }
