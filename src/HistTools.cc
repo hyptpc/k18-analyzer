@@ -954,6 +954,12 @@ BuildTPCHitBcOutTracking()
     244., -0.5, 243.5
   };
 
+  // Global Residuals
+  HB1("TPCHit_ResX;Residual X (TPC Hit - BcOut) [mm];", residual_bins);
+  HB1("TPCHit_ResY;Residual Y (TPC Hit - BcOut) [mm];", residual_bins);
+  HB1("TPCCl_ResX;Residual X (TPC Cluster - BcOut) [mm];", residual_bins);
+  HB1("TPCCl_ResY;Residual Y (TPC Cluster - BcOut) [mm];", residual_bins);
+
   for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
     // TPC Hit Residuals
     HB1(Form("TPCHit_ResX_Layer%02d;Residual X (TPC Hit - BcOut) [mm];", layer), residual_bins);
@@ -971,7 +977,10 @@ BuildTPCHitBcOutTracking()
 
     const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
     for (Int_t row = 0; row < n_pad; ++row) {
+      HB1(Form("TPCHit_ResY_Layer%02d_Row%03d;Residual Y (TPC Hit - BcOut) [mm];", layer, row), residual_bins);
       HB2(Form("TPCHit_ResY_vs_Y_Layer%02d_Row%03d;Y_{BcOut} (global) [mm];Residual Y (TPC Hit - BcOut) [mm];", layer, row), residual_bins_2d);
+
+      HB1(Form("TPCCl_ResY_Layer%02d_Row%03d;Residual Y (TPC Cluster - BcOut) [mm];", layer, row), residual_bins);
       HB2(Form("TPCCl_ResY_vs_Y_Layer%02d_Row%03d;Y_{BcOut} (global) [mm];Residual Y (TPC Cluster - BcOut) [mm];", layer, row), residual_bins_2d);
     }
   }

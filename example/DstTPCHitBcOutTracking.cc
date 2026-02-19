@@ -386,9 +386,12 @@ dst::DstRead(Int_t ievent)
         res_y = globalPos.y() - y_bc;
 
         HF1(Form("TPCHit_ResX_Layer%02d", layer), res_x);
+        HF1("TPCHit_ResX", res_x);
         HF1(Form("TPCHit_ResY_Layer%02d", layer), res_y);
+        HF1("TPCHit_ResY", res_y);
         HF2(Form("TPCHit_ResX_vs_X_Layer%02d", layer), x_bc, res_x);
         if (TMath::Abs(res_y) >= MinResidualY) {
+          HF1(Form("TPCHit_ResY_Layer%02d_Row%03d", layer, row), res_y);
           HF2(Form("TPCHit_ResY_vs_Y_Layer%02d", layer), y_bc, res_y);
           HF2(Form("TPCHit_ResY_vs_Y_Layer%02d_Row%03d", layer, row), y_bc, res_y);
         }
@@ -490,9 +493,12 @@ dst::DstRead(Int_t ievent)
         res_y = globalPos.y() - y_bc;
 
         HF1(Form("TPCCl_ResX_Layer%02d", layer), res_x);
+        HF1("TPCCl_ResX", res_x);
         HF1(Form("TPCCl_ResY_Layer%02d", layer), res_y);
+        HF1("TPCCl_ResY", res_y);
         HF2(Form("TPCCl_ResX_vs_X_Layer%02d", layer), globalPos.x(), res_x);
         if (TMath::Abs(res_y) >= MinResidualY) {
+          HF1(Form("TPCCl_ResY_Layer%02d_Row%03d", layer, centerRow), res_y);
           HF2(Form("TPCCl_ResY_vs_Y_Layer%02d", layer), y_bc, res_y);
           HF2(Form("TPCCl_ResY_vs_Y_Layer%02d_Row%03d", layer, centerRow), y_bc, res_y);
         }
