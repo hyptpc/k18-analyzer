@@ -2303,7 +2303,7 @@ dst::DstRead( int ievent )
       auto helix = TPCAna->GetTrackTPCHelix(it);
       event.isG4Kurama[it]=1;
     }
-    event.path[it] = helix_r*(max_t - min_t);
+    //event.path[it] = helix_r*(max_t - min_t);
     event.G4tid[it] = G4tid;
     event.purity[it] = (double)nPureHits/nh;
     int nG4Hits = event.nhittpc_iti[G4tid];

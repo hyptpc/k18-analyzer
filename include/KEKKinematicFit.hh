@@ -11,7 +11,7 @@ class KEKKinematicFitter{
 		int nDoF = -1;
 		double Chi2 = -1;
 		double Pvalue = -1;
-		bool ScaleParams = 1;
+		bool ScaleParams = 0;
 		KinematicFitter* Fitter = nullptr;
 		vector<double> Pulls;
 	public:
@@ -33,7 +33,7 @@ class KEKKinematicFitter{
 			return nDoF;
 		}
 		TMatrixD GetVariance(int i = 0){
-			return Fitter->GetVariance(0);
+			return Fitter->GetVariance(i);
 		}
 		double GetChi2(){
 			return Chi2;
