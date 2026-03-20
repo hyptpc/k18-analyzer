@@ -388,6 +388,10 @@ class RunlistManager(metaclass=classimpl.Singleton):
       else:
         logger.warning(f'key "qmerge" is not found, set "s".')
         run['qmerge'] = 's'
+      if 'option' in item[1] and isinstance(item[1]['option'], str):
+        run['option'] = item[1]['option']
+      else:
+        run['option'] = ''
       if 'nproc' in item[1] and isinstance(item[1]['nproc'], int):
         run['nproc'] = item[1]['nproc']
       else:

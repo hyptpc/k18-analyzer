@@ -67,7 +67,7 @@ class SingleRun(object):
     self.__div_unit = runinfo['unit']
     self.__queue = runinfo['queue']
     self.__qmerge = runinfo['qmerge']
-    self.__option = ''
+    self.__option = runinfo.get('option', '')
     self.__start_time = time.time()
     self.__elapsed_time = 0
     self.__basename = (self.__tag + '_'  +
