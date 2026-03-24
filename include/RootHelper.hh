@@ -132,6 +132,22 @@ HB2(const TString& name, const Double_t* bins)
 }
 
 //_____________________________________________________________________________
+inline TH1*
+HB2(const TString& name, const TString& title,
+    const Double_t* xbins, const Double_t* ybins)
+{
+  return HB2(name, title, (Int_t)xbins[0], xbins[1], xbins[2],
+             (Int_t)ybins[0], ybins[1], ybins[2]);
+}
+
+//_____________________________________________________________________________
+inline TH1*
+HB2(const TString& name, const Double_t* xbins, const Double_t* ybins)
+{
+  return HB2(name, name, xbins, ybins);
+}
+
+//_____________________________________________________________________________
 inline void
 HBProf(Int_t i, const Char_t* title,
        Int_t nbinx, Double_t xlow, Double_t xhigh,

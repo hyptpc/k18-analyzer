@@ -1,46 +1,31 @@
 // -*- C++ -*-
 // To Do: consider BcOut nhit (not important)
 
-#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
-#include <vector>
 #include <string>
-#include <type_traits>
+#include <vector>
 
 #include "TVector3.h"
-#include "Math/Rotation3D.h"
-#include "Math/RotationX.h"
-#include "Math/RotationY.h"
-#include "Math/RotationZ.h"
-#include "Math/Vector3D.h"
-
-#include <filesystem_util.hh>
-#include <UnpackerManager.hh>
 
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
-#include "DatabasePDG.hh"
+#include "DCGeomMan.hh"
 #include "DebugCounter.hh"
 #include "DetectorID.hh"
-#include "TPCAnalyzer.hh"
-#include "DCGeomMan.hh"
-#include "DCHit.hh"
 #include "DstHelper.hh"
 #include "HistTools.hh"
-#include "HodoPHCMan.hh"
-#include "Kinematics.hh"
-#include "MathTools.hh"
 #include "RootHelper.hh"
 #include "TPCCluster.hh"
-#include "TPCPadHelper.hh"
+#include "TPCEventAnalyzer.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCParamMan.hh"
-#include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
+
+#include <UnpackerManager.hh>
 
 #define Exclusive 1
 
@@ -55,10 +40,9 @@ const auto& gGeom     = DCGeomMan::GetInstance();
 const auto& gUser     = UserParamMan::GetInstance();
 const auto& gTpcParam = TPCParamMan::GetInstance();
 const auto& gCounter  = debug::ObjectCounter::GetInstance();
-const Double_t truncatedMean = 0.8; //80%
-const Double_t MaxChisqrTpc = 50.0;
-const Double_t MaxChisqrBcOut = 5.0;
-const Double_t MinAbsY_BcOut_ForResYvsY = 0.01;
+const Double_t MAX_CHISQR_TPC = 50.0;
+const Double_t MAX_CHISQR_BCOUT = 5.0;
+const Double_t RESOLUTION_DUMMY_HIT_THRESHOLD = 0.9e5;
 }
 
 namespace dst
@@ -111,7 +95,6 @@ struct Event
   std::vector<std::vector<Double_t>> track_cluster_y_center;
   std::vector<std::vector<Double_t>> track_cluster_z_center;
   std::vector<std::vector<Double_t>> track_cluster_row_center;
-  std::vector<std::vector<Double_t>> hit_ctime_noclk;
 
   std::vector<std::vector<Double_t>> exresidual, exresidual_x, exresidual_y, exresidual_z;
   std::vector<std::vector<Double_t>> exresidual_horizontal, exresidual_vertical;
@@ -158,11 +141,10 @@ struct Event
       
       pathhit, theta_diff, track_cluster_de, track_cluster_size,
       track_cluster_mrow, track_cluster_de_center,
-      track_cluster_x_center, track_cluster_y_center, track_cluster_z_center,
+      track_cluster_x_center,       track_cluster_y_center, track_cluster_z_center,
       track_cluster_row_center,
-      hit_ctime_noclk,
 
-      exresidual, 
+      exresidual,
       exresidual_x, exresidual_y, exresidual_z, 
       exresidual_horizontal, exresidual_vertical
     );
@@ -245,7 +227,6 @@ struct Src
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_y_center;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_z_center;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* track_cluster_row_center;
-  TTreeReaderValue<std::vector<std::vector<Double_t>>>* hit_ctime_noclk;
 
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* exresidual;
   TTreeReaderValue<std::vector<std::vector<Double_t>>>* exresidual_x;
@@ -322,7 +303,6 @@ void CopyTPCTrackingData(Event& event, const Src& src)
   event.track_cluster_y_center   = **src.track_cluster_y_center;
   event.track_cluster_z_center   = **src.track_cluster_z_center;
   event.track_cluster_row_center = **src.track_cluster_row_center;
-  event.hit_ctime_noclk = **src.hit_ctime_noclk;
 
 #if Exclusive
   event.exresidual   = **src.exresidual;
@@ -365,6 +345,214 @@ void CopyBcOutData(Event& event, const Src& src)
 } // namespace root
 
 //_____________________________________________________________________________
+namespace
+{
+using namespace root;
+using namespace dst;
+
+void FillEventBasicFieldsFromSrc()
+{
+  event.runnum   = **src.runnum;
+  event.evnum    = **src.evnum_tpc;
+  event.trigpat  = **src.trigpat;
+  event.trigflag = **src.trigflag;
+  event.beamflag = **src.beamflag;
+  event.clkTpc   = **src.clkTpc;
+  event.cobo_id  = **src.cobo_id;
+  HF1("Status", event.status++);
+}
+
+void SelectBestTrackIndices(Int_t& best_tpc_idx, Int_t& best_bcout_idx)
+{
+  best_tpc_idx   = 0;
+  best_bcout_idx = 0;
+  if(event.ntTpc > 1){
+    Double_t min_chisqr_tpc = event.chisqrTpc[0];
+    for(Int_t it = 1; it < event.ntTpc; ++it){
+      if(event.chisqrTpc[it] < min_chisqr_tpc){
+        min_chisqr_tpc = event.chisqrTpc[it];
+        best_tpc_idx = it;
+      }
+    }
+  }
+  if(event.ntBcOut > 1){
+    Double_t min_chisqr_bcout = event.chisqrBcOut[0];
+    for(Int_t it = 1; it < event.ntBcOut; ++it){
+      if(event.chisqrBcOut[it] < min_chisqr_bcout){
+        min_chisqr_bcout = event.chisqrBcOut[it];
+        best_bcout_idx = it;
+      }
+    }
+  }
+}
+
+Bool_t PassesChisqrCuts(Int_t best_tpc_idx, Int_t best_bcout_idx)
+{
+  return !(event.chisqrTpc[best_tpc_idx] > MAX_CHISQR_TPC
+           || event.chisqrBcOut[best_bcout_idx] > MAX_CHISQR_BCOUT);
+}
+
+void FillTPCBcOutCorrelationAndResidualHistograms(
+  Int_t best_tpc_idx,
+  Int_t best_bcout_idx,
+  TPCEventAnalyzer& event_ana)
+{
+  // TPCTracking
+  HF1("TPCTrk_Num_Track", event.ntTpc);
+  for(Int_t it = 0; it < event.ntTpc; ++it){
+    HF1("TPCTrk_Num_TrackHits", event.nhtrack[it]);
+    HF1("TPCTrk_Chisqr",        event.chisqrTpc[it]);
+    HF1("TPCTrk_X0",            event.x0Tpc[it]);
+    HF1("TPCTrk_Y0",            event.y0Tpc[it]);
+    HF1("TPCTrk_U0",            event.u0Tpc[it]);
+    HF1("TPCTrk_V0",            event.v0Tpc[it]);
+    HF2("TPCTrk_U0_vs_X0", event.x0Tpc[it], event.u0Tpc[it]);
+    HF2("TPCTrk_V0_vs_Y0", event.y0Tpc[it], event.v0Tpc[it]);
+    HF2("TPCTrk_Y0_vs_X0", event.x0Tpc[it], event.y0Tpc[it]);
+    HF2("TPCTrk_atanU0_vs_X0", event.x0Tpc[it], std::atan(event.u0Tpc[it])*TMath::RadToDeg());
+    HF2("TPCTrk_atanV0_vs_Y0", event.y0Tpc[it], std::atan(event.v0Tpc[it])*TMath::RadToDeg());
+  }
+
+  // BcOut
+  const Int_t nt_bcout = **src.ntBcOut;
+  HF1("BcOut_Num_Track", nt_bcout);
+  for(Int_t it = 0; it < nt_bcout; ++it){
+    HF1("BcOut_Chisqr", event.chisqrBcOut[it]);
+    HF1("BcOut_X0", event.x0BcOut[it]);
+    HF1("BcOut_Y0", event.y0BcOut[it]);
+    HF1("BcOut_U0", event.u0BcOut[it]);
+    HF1("BcOut_V0", event.v0BcOut[it]);
+    HF1("BcOut_XTgt", event.xtgtBcOut[it]);
+    HF1("BcOut_YTgt", event.ytgtBcOut[it]);
+    HF1("BcOut_UTgt", event.utgtBcOut[it]);
+    HF1("BcOut_VTgt", event.vtgtBcOut[it]);
+    HF2("BcOut_UTgt_vs_XTgt", event.xtgtBcOut[it], event.utgtBcOut[it]);
+    HF2("BcOut_VTgt_vs_YTgt", event.ytgtBcOut[it], event.vtgtBcOut[it]);
+    HF2("BcOut_YTgt_vs_XTgt", event.xtgtBcOut[it], event.ytgtBcOut[it]);
+  }
+
+  // Correlations: BcOut conversion
+  std::vector<Double_t> xyuv_bcout_tpc_coor(4);
+  {
+    static const Double_t ztgt_global = gGeom.GetGlobalPosition("Target").z();
+    static const Double_t ra1         = gGeom.GetRotAngle1("HypTPC");
+    static const Double_t ra2         = gGeom.GetRotAngle2("HypTPC");
+    static const Double_t tan_ra1     = std::tan(ra1*TMath::DegToRad());
+    static const Double_t tan_ra2     = std::tan(ra2*TMath::DegToRad());
+
+    ThreeVector globalpos(
+      (**src.u0BcOut)[best_bcout_idx]*ztgt_global + (**src.x0BcOut)[best_bcout_idx],
+      (**src.v0BcOut)[best_bcout_idx]*ztgt_global + (**src.y0BcOut)[best_bcout_idx],
+      ztgt_global
+    );
+
+    ThreeVector localpos = gGeom.Global2LocalPos("HypTPC", globalpos);
+    xyuv_bcout_tpc_coor[0] = localpos.x();
+    xyuv_bcout_tpc_coor[1] = localpos.y();
+    xyuv_bcout_tpc_coor[2] = ((**src.u0BcOut)[best_bcout_idx] - tan_ra2)
+                             / (1. + (**src.u0BcOut)[best_bcout_idx]*tan_ra2);
+    xyuv_bcout_tpc_coor[3] = ((**src.v0BcOut)[best_bcout_idx] + tan_ra1)
+                             / (1. - (**src.v0BcOut)[best_bcout_idx]*tan_ra1);
+  }
+
+  const Double_t xtgt_diff = xyuv_bcout_tpc_coor[0] - event.x0Tpc[best_tpc_idx];
+  const Double_t ytgt_diff = xyuv_bcout_tpc_coor[1] - event.y0Tpc[best_tpc_idx];
+  const Double_t utgt_diff = xyuv_bcout_tpc_coor[2] - event.u0Tpc[best_tpc_idx];
+  const Double_t vtgt_diff = xyuv_bcout_tpc_coor[3] - event.v0Tpc[best_tpc_idx];
+
+  HF2("BcOut_vs_TPC_XTgt", event.x0Tpc[best_tpc_idx], xyuv_bcout_tpc_coor[0]);
+  HF2("BcOut_vs_TPC_YTgt", event.y0Tpc[best_tpc_idx], xyuv_bcout_tpc_coor[1]);
+  HF2("BcOut_vs_TPC_UTgt", event.u0Tpc[best_tpc_idx], xyuv_bcout_tpc_coor[2]);
+  HF2("BcOut_vs_TPC_VTgt", event.v0Tpc[best_tpc_idx], xyuv_bcout_tpc_coor[3]);
+  HF1("TPCTrk_ResX_Tgt", xtgt_diff);
+  HF1("TPCTrk_ResY_Tgt", ytgt_diff);
+  HF1("TPCTrk_ResU_Tgt", utgt_diff);
+  HF1("TPCTrk_ResV_Tgt", vtgt_diff);
+  HF2("TPCTrk_ResX_Tgt_vs_XTgt", xyuv_bcout_tpc_coor[0], xtgt_diff);
+  HF2("TPCTrk_ResY_Tgt_vs_YTgt", xyuv_bcout_tpc_coor[1], ytgt_diff);
+  HF2("TPCTrk_ResU_Tgt_vs_UTgt", xyuv_bcout_tpc_coor[2], utgt_diff);
+  HF2("TPCTrk_ResV_Tgt_vs_VTgt", xyuv_bcout_tpc_coor[3], vtgt_diff);
+
+  // Residuals
+  for(Int_t it = 0; it < event.ntTpc; ++it){
+    for(Int_t ih = 0; ih < event.nhtrack[it]; ++ih){
+      const Int_t layer = static_cast<Int_t>(event.hitlayer[it][ih]);
+
+      HF2("TPCTrk_ResY_vs_Layer", event.hitlayer[it][ih], event.residual_y[it][ih]);
+      if(event.resolution_x[it][ih] > RESOLUTION_DUMMY_HIT_THRESHOLD
+         && event.resolution_y[it][ih] > RESOLUTION_DUMMY_HIT_THRESHOLD
+         && event.resolution_z[it][ih] > RESOLUTION_DUMMY_HIT_THRESHOLD) continue;
+
+      HF1(Form("TPCTrk_ResX_Layer%02d", layer), event.residual_x[it][ih]);
+      HF1(Form("TPCTrk_ResY_Layer%02d", layer), event.residual_y[it][ih]);
+      HF1(Form("TPCTrk_ResZ_Layer%02d", layer), event.residual_z[it][ih]);
+      HF1(Form("TPCTrk_ResLocalX_Layer%02d", layer), event.residual_horizontal[it][ih]);
+      HF1(Form("TPCTrk_ResLocalY_Layer%02d", layer), event.residual_vertical[it][ih]);
+      HF1(Form("TPCTrk_ResXY_Layer%02d", layer),
+          std::hypot(event.residual_x[it][ih], event.residual_z[it][ih]));
+
+      HF1(Form("TPC_PullX_Layer%02d", layer),
+          event.residual_x[it][ih]/event.resolution_x[it][ih]);
+      HF1(Form("TPC_PullY_Layer%02d", layer),
+          event.residual_y[it][ih]/event.resolution_y[it][ih]);
+      HF1(Form("TPC_PullZ_Layer%02d", layer),
+          event.residual_z[it][ih]/event.resolution_z[it][ih]);
+      HF1(Form("TPC_PullLocalX_Layer%02d", layer),
+          event.residual_horizontal[it][ih]/event.resolution_horizontal[it][ih]);
+      HF1(Form("TPC_PullLocalY_Layer%02d", layer),
+          event.residual_vertical[it][ih]/event.resolution_vertical[it][ih]);
+
+      ThreeVector localpos_tpc(
+        event.hitpos_x[it][ih], event.hitpos_y[it][ih], event.hitpos_z[it][ih]
+      );
+      ThreeVector globalpos_tpc = gGeom.Local2GlobalPos("HypTPC", localpos_tpc);
+      const Double_t z_bcout   = globalpos_tpc.z();
+      const Double_t x_bcout   = (**src.u0BcOut)[best_bcout_idx] * z_bcout
+                                 + (**src.x0BcOut)[best_bcout_idx];
+      const Double_t y_bcout   = (**src.v0BcOut)[best_bcout_idx] * z_bcout
+                                 + (**src.y0BcOut)[best_bcout_idx];
+      const Double_t res_x_bcout = globalpos_tpc.x() - x_bcout;
+      const Double_t res_y_bcout = globalpos_tpc.y() - y_bcout;
+      HF1(Form("TPCCl_ResX_Layer%02d", layer), res_x_bcout);
+      HF1(Form("TPCCl_ResY_Layer%02d", layer), res_y_bcout);
+
+      HF2(Form("TPCCl_ResX_vs_X_Layer%02d", layer), globalpos_tpc.x(), res_x_bcout);
+      HF2(Form("TPCCl_ResY_vs_Y_TPC_Layer%02d", layer), globalpos_tpc.y(), res_y_bcout);
+      HF2(Form("TPCCl_ResY_vs_Y_BcOut_Layer%02d", layer), y_bcout, res_y_bcout);
+
+      if(it < static_cast<Int_t>(event.track_cluster_row_center.size())
+         && ih < static_cast<Int_t>(event.track_cluster_row_center[it].size())){
+        const Int_t center_row =
+          static_cast<Int_t>(event.track_cluster_row_center[it][ih]);
+        HF2(Form("TPCCl_ResY_vs_Y_TPC_Layer%02d_Row%03d", layer, center_row),
+             globalpos_tpc.y(), res_y_bcout);
+        HF2(Form("TPCCl_ResY_vs_Y_BcOut_Layer%02d_Row%03d", layer, center_row),
+             y_bcout, res_y_bcout);
+      }
+
+      HF2("TPCCl_ResX_vs_Layer", layer, res_x_bcout);
+      HF2("TPCCl_ResY_vs_Layer", layer, res_y_bcout);
+
+      Int_t row_trk = 0;
+      if(it < static_cast<Int_t>(event.track_cluster_row_center.size())
+         && ih < static_cast<Int_t>(event.track_cluster_row_center[it].size())){
+        row_trk = static_cast<Int_t>(event.track_cluster_row_center[it][ih]);
+      }
+      const Double_t ctime_trk = 0.0;
+      ThreeVector local_trk(event.calpos_x[it][ih], event.calpos_y[it][ih],
+                            event.calpos_z[it][ih]);
+      ThreeVector global_trk = gGeom.Local2GlobalPos("HypTPC", local_trk);
+      TVector3 local_pos_hit(event.hitpos_x[it][ih], event.hitpos_y[it][ih],
+                             event.hitpos_z[it][ih]);
+      event_ana.FillCoBoClockTime("TPCTrk", layer, row_trk, ctime_trk, local_pos_hit,
+                                  global_trk.y());
+    }
+  }
+}
+
+} // namespace
+
+//_____________________________________________________________________________
 int
 main(int argc, char **argv)
 {
@@ -399,7 +587,7 @@ main(int argc, char **argv)
   std::cout << "#D Event Number: " << std::setw(6) << ievent << std::endl;
   DstClose();
   return EXIT_SUCCESS;
-}
+}  // main
 
 //_____________________________________________________________________________
 Bool_t
@@ -452,18 +640,14 @@ dst::DstRead(Int_t ievent)
     return false;
   }
 
-  event.runnum   = **src.runnum;
-  event.evnum    = **src.evnum_tpc;
-  event.trigpat  = **src.trigpat;
-  event.trigflag = **src.trigflag;
-  event.clkTpc   = **src.clkTpc;
-  event.cobo_id  = **src.cobo_id;
-  HF1("Status", event.status++);
+  FillEventBasicFieldsFromSrc();
 
   if(**src.ntTpc == 0) return true;
   HF1("Status", event.status++);
 
   CopyTPCTrackingData(event, src);
+  static TPCEventAnalyzer event_ana;
+  event_ana.SetClock(event.clkTpc);
   HF1("Status", event.status++);
 
   CopyBcOutData(event, src);
@@ -473,237 +657,21 @@ dst::DstRead(Int_t ievent)
   event.ftof = **src.ftof;
   HF1("Status", event.status++);
 
-  // Select best tracks (minimum chisqr) for correlation analysis
-  Int_t bestTpcIdx = 0;
-  Int_t bestBcOutIdx = 0;
-  if(event.ntTpc > 1){
-    Double_t minChisqrTpc = event.chisqrTpc[0];
-    for(Int_t it=1; it<event.ntTpc; ++it){
-      if(event.chisqrTpc[it] < minChisqrTpc){
-        minChisqrTpc = event.chisqrTpc[it];
-        bestTpcIdx = it;
-      }
-    }
-  }
-  if(event.ntBcOut > 1){
-    Double_t minChisqrBcOut = event.chisqrBcOut[0];
-    for(Int_t it=1; it<event.ntBcOut; ++it){
-      if(event.chisqrBcOut[it] < minChisqrBcOut){
-        minChisqrBcOut = event.chisqrBcOut[it];
-        bestBcOutIdx = it;
-      }
-    }
-  }
+  Int_t best_tpc_idx = 0;
+  Int_t best_bcout_idx = 0;
+  SelectBestTrackIndices(best_tpc_idx, best_bcout_idx);
 
-  // Require at least one track in each detector
   if(event.ntTpc == 0 || event.ntBcOut == 0) return true;
   HF1("Status", event.status++);
 
-  // Check quality of selected tracks
-  if(event.chisqrTpc[bestTpcIdx] > MaxChisqrTpc || event.chisqrBcOut[bestBcOutIdx] > MaxChisqrBcOut) return true;
+  if(!PassesChisqrCuts(best_tpc_idx, best_bcout_idx)) return true;
   HF1("Status", event.status++);
 
-  // TPCTracking
-  HF1("Num_Track_TPC", event.ntTpc);
-  for(Int_t it=0; it<event.ntTpc; ++it){
-    HF1("Num_Track_TPC_Hits", event.nhtrack[it]);
-    HF1("Chisqr_TPC", event.chisqrTpc[it]);
-    HF1("X0_TPC", event.x0Tpc[it]);
-    HF1("Y0_TPC", event.y0Tpc[it]);
-    HF1("U0_TPC", event.u0Tpc[it]);
-    HF1("V0_TPC", event.v0Tpc[it]);
-    HF2("X0_vs_U0_TPC", event.x0Tpc[it], event.u0Tpc[it]);
-    HF2("Y0_vs_V0_TPC", event.y0Tpc[it], event.v0Tpc[it]);
-    HF2("X0_vs_Y0_TPC", event.x0Tpc[it], event.y0Tpc[it]);
-    HF2("X0_vs_atanU0_TPC", event.x0Tpc[it], std::atan(event.u0Tpc[it])*TMath::RadToDeg());
-    HF2("Y0_vs_atanV0_TPC", event.y0Tpc[it], std::atan(event.v0Tpc[it])*TMath::RadToDeg());
-  }
-  
-  // BcOut
-  const Int_t ntBcOut = **src.ntBcOut;
-  HF1("Num_Track_BcOut", ntBcOut);
-  for(Int_t it=0; it<ntBcOut; ++it){
-    // HF1("Num_Track_BcOut_Hits", event.nhBcOut[it]);
-    HF1("Chisqr_BcOut", event.chisqrBcOut[it]);
-    HF1("X0_BcOut", event.x0BcOut[it]);
-    HF1("Y0_BcOut", event.y0BcOut[it]);
-    HF1("U0_BcOut", event.u0BcOut[it]);
-    HF1("V0_BcOut", event.v0BcOut[it]);
-    HF1("Xtgt_BcOut", event.xtgtBcOut[it]);
-    HF1("Ytgt_BcOut", event.ytgtBcOut[it]);
-    HF1("Utgt_BcOut", event.utgtBcOut[it]);
-    HF1("Vtgt_BcOut", event.vtgtBcOut[it]);
-    HF2("Xtgt_vs_Utgt_BcOut", event.xtgtBcOut[it], event.utgtBcOut[it]);
-    HF2("Ytgt_vs_Vtgt_BcOut", event.ytgtBcOut[it], event.vtgtBcOut[it]);
-    HF2("Xtgt_vs_Ytgt_BcOut", event.xtgtBcOut[it], event.ytgtBcOut[it]);
-  }
-
-  // Correlations
-  // BcOut conversion
-  std::vector<Double_t> xyuvBcOut_TPCcoor(4);
-  {
-    static const Double_t ztgtGlobal = gGeom.GetGlobalPosition("Target").z();
-    static const Double_t RA1        = gGeom.GetRotAngle1("HypTPC");
-    static const Double_t RA2        = gGeom.GetRotAngle2("HypTPC");
-    static const Double_t tanRA1     = std::tan(RA1*TMath::DegToRad());
-    static const Double_t tanRA2     = std::tan(RA2*TMath::DegToRad());
-
-    ThreeVector globalpos(
-      (**src.u0BcOut)[bestBcOutIdx]*ztgtGlobal + (**src.x0BcOut)[bestBcOutIdx],
-      (**src.v0BcOut)[bestBcOutIdx]*ztgtGlobal + (**src.y0BcOut)[bestBcOutIdx],
-      ztgtGlobal
-    );
-
-    // On the TPC coordinate
-    ThreeVector localpos = gGeom.Global2LocalPos("HypTPC", globalpos);
-    xyuvBcOut_TPCcoor[0] = localpos.x();
-    xyuvBcOut_TPCcoor[1] = localpos.y();
-    xyuvBcOut_TPCcoor[2] = ((**src.u0BcOut)[bestBcOutIdx] - tanRA2) / (1. + (**src.u0BcOut)[bestBcOutIdx]*tanRA2);
-    xyuvBcOut_TPCcoor[3] = ((**src.v0BcOut)[bestBcOutIdx] + tanRA1) / (1. - (**src.v0BcOut)[bestBcOutIdx]*tanRA1);
-  }
-  const Double_t XtgtDiff = xyuvBcOut_TPCcoor[0]-event.x0Tpc[bestTpcIdx];
-  const Double_t YtgtDiff = xyuvBcOut_TPCcoor[1]-event.y0Tpc[bestTpcIdx];
-  const Double_t UtgtDiff = xyuvBcOut_TPCcoor[2]-event.u0Tpc[bestTpcIdx];
-  const Double_t VtgtDiff = xyuvBcOut_TPCcoor[3]-event.v0Tpc[bestTpcIdx];
-
-  HF2("Xtgt_BcOut_vs_Tpc", event.x0Tpc[bestTpcIdx], xyuvBcOut_TPCcoor[0]);
-  HF2("Ytgt_BcOut_vs_Tpc", event.y0Tpc[bestTpcIdx], xyuvBcOut_TPCcoor[1]);
-  HF2("Utgt_BcOut_vs_Tpc", event.u0Tpc[bestTpcIdx], xyuvBcOut_TPCcoor[2]);
-  HF2("Vtgt_BcOut_vs_Tpc", event.v0Tpc[bestTpcIdx], xyuvBcOut_TPCcoor[3]);
-  HF1("Xtgt_Diff", XtgtDiff);
-  HF1("Ytgt_Diff", YtgtDiff);
-  HF1("Utgt_Diff", UtgtDiff);
-  HF1("Vtgt_Diff", VtgtDiff);
-  HF2("Xtgt_Diff_vs_Xtgt_BcOut", xyuvBcOut_TPCcoor[0], XtgtDiff);
-  HF2("Ytgt_Diff_vs_Ytgt_BcOut", xyuvBcOut_TPCcoor[1], YtgtDiff);
-  HF2("Utgt_Diff_vs_Utgt_BcOut", xyuvBcOut_TPCcoor[2], UtgtDiff);
-  HF2("Vtgt_Diff_vs_Vtgt_BcOut", xyuvBcOut_TPCcoor[3], VtgtDiff);
-
-  // Residuals
-  for(Int_t it=0; it<event.ntTpc; ++it){
-    for(Int_t ih=0; ih<event.nhtrack[it]; ++ih){
-      Int_t layer = static_cast<Int_t>(event.hitlayer[it][ih]);
-      HF2("Layer_vs_ResY", event.hitlayer[it][ih], event.residual_y[it][ih]);
-      if (event.resolution_x[it][ih] > 0.9e5 
-          && event.resolution_y[it][ih] > 0.9e5 
-          && event.resolution_z[it][ih] > 0.9e5) continue; // exclude dummy hits
-
-      // TPC residual
-      HF1(Form("TPC_Layer%02d_X_Residual", layer), event.residual_x[it][ih]);
-      HF1(Form("TPC_Layer%02d_Y_Residual", layer), event.residual_y[it][ih]);
-      HF1(Form("TPC_Layer%02d_Z_Residual", layer), event.residual_z[it][ih]);
-      HF1(Form("TPC_Layer%02d_Local_X_Residual", layer), event.residual_horizontal[it][ih]);
-      HF1(Form("TPC_Layer%02d_Local_Y_Residual", layer), event.residual_vertical[it][ih]);
-      HF1(Form("TPC_Layer%02d_XZ_Residual", layer), 
-          std::hypot(event.residual_x[it][ih], event.residual_z[it][ih]));
-
-      // TPC pull
-      HF1(Form("TPC_Layer%02d_X_Pull", layer),
-          event.residual_x[it][ih]/event.resolution_x[it][ih]);
-      HF1(Form("TPC_Layer%02d_Y_Pull", layer),
-          event.residual_y[it][ih]/event.resolution_y[it][ih]);
-      HF1(Form("TPC_Layer%02d_Z_Pull", layer),
-          event.residual_z[it][ih]/event.resolution_z[it][ih]);
-      HF1(Form("TPC_Layer%02d_Local_X_Pull", layer), 
-          event.residual_horizontal[it][ih]/event.resolution_horizontal[it][ih]);
-      HF1(Form("TPC_Layer%02d_Local_Y_Pull", layer),
-          event.residual_vertical[it][ih]/event.resolution_vertical[it][ih]);
-
-      // TPC - BcOut residual
-      ThreeVector localposTpc(
-        event.hitpos_x[it][ih], event.hitpos_y[it][ih], event.hitpos_z[it][ih]
-      );
-      ThreeVector globalposTpc = gGeom.Local2GlobalPos("HypTPC", localposTpc);
-      Double_t resX_BcOut = globalposTpc.x() - ((**src.u0BcOut)[it]*globalposTpc.z() + (**src.x0BcOut)[it]);
-      Double_t yBcOut = (**src.v0BcOut)[it]*globalposTpc.z() + (**src.y0BcOut)[it];
-      Double_t resY_BcOut = globalposTpc.y() - yBcOut;
-      HF1(Form("TPC_Layer%02d_BcOut_X_Residual", layer), resX_BcOut);
-      HF1(Form("TPC_Layer%02d_BcOut_Y_Residual", layer), resY_BcOut);
-
-      // Parameter tuning: Position correction (BcOut reference).
-      HF2(Form("TPC_ResidualX_vs_X_BcOut_Layer%02d", layer), globalposTpc.x(), resX_BcOut);
-      if (TMath::Abs(yBcOut) >= MinAbsY_BcOut_ForResYvsY) {
-        HF2(Form("TPC_ResidualY_vs_Y_TPC_Layer%02d", layer), globalposTpc.y(), resY_BcOut);
-        HF2(Form("TPC_ResidualY_vs_Y_BcOut_Layer%02d", layer), yBcOut, resY_BcOut);
-      }
-      // Parameter tuning: Row-dependent residual (BcOut reference)
-      if (it < static_cast<Int_t>(event.track_cluster_row_center.size()) &&
-          ih < static_cast<Int_t>(event.track_cluster_row_center[it].size())) {
-        Int_t centerRow = static_cast<Int_t>(event.track_cluster_row_center[it][ih]);
-        HF2(Form("TPC_ResidualY_vs_Y_TPC_Layer%02d_Row%03d", layer, centerRow), globalposTpc.y(), resY_BcOut);
-        HF2(Form("TPC_ResidualY_vs_Y_BcOut_Layer%02d_Row%03d", layer, centerRow), yBcOut, resY_BcOut);
-      }
-
-      // Parameter tuning: Layer-dependent residual distribution (BcOut reference)
-      HF2("TPC_ResidualX_BcOut_vs_Layer", layer, resX_BcOut);
-      HF2("TPC_ResidualY_BcOut_vs_Layer", layer, resY_BcOut);
-
-      // Parameter tuning: Clock time vs BcOut Residual Y (CoBo and Asad)
-      if(  it < (Int_t)event.track_cluster_row_center.size() 
-        && ih < (Int_t)event.track_cluster_row_center[it].size()){
-
-        Int_t centerRow = static_cast<Int_t>(event.track_cluster_row_center[it][ih]);
-        Int_t cobo = tpc::GetCoBoId(layer, centerRow);
-        Int_t asad = tpc::GetASADId(layer, centerRow);
-        Bool_t cobo_valid = (cobo >= 0 && cobo < NumOfSegCOBO);
-
-        Bool_t have_ctime_noclk = (
-          it < (Int_t)event.hit_ctime_noclk.size()
-          && ih < (Int_t)event.hit_ctime_noclk[it].size()
-          && std::isfinite(event.hit_ctime_noclk[it][ih])
-        );
-        Double_t resY_noclk = TMath::QuietNaN(), resY_raw = TMath::QuietNaN();
-        if(have_ctime_noclk && cobo_valid && std::isfinite(event.clkTpc[cobo])) {
-          Double_t ctime_noclk = event.hit_ctime_noclk[it][ih];
-          Double_t clk = event.clkTpc[cobo];
-          Double_t Y_noclk = TMath::QuietNaN(), Y_raw = TMath::QuietNaN();
-          gTpcParam.GetDriftLength(layer, centerRow, ctime_noclk, Y_noclk);
-          gTpcParam.GetDriftLength(layer, centerRow, ctime_noclk + clk, Y_raw);
-          ThreeVector local_noclk(event.hitpos_x[it][ih], Y_noclk, event.hitpos_z[it][ih]);
-          ThreeVector local_raw(event.hitpos_x[it][ih], Y_raw, event.hitpos_z[it][ih]);
-          ThreeVector global_noclk = gGeom.Local2GlobalPos("HypTPC", local_noclk);
-          ThreeVector global_raw = gGeom.Local2GlobalPos("HypTPC", local_raw);
-          resY_noclk = global_noclk.y() - yBcOut;
-          resY_raw   = global_raw.y() - yBcOut;
-        }
-
-        if(!cobo_valid){
-          spdlog::warn("TPC BcOut ResY vs ClockTime: invalid CoBo id (cobo={}) for layer={} row={}", cobo, layer, centerRow);
-        } else if(!std::isfinite(event.clkTpc[cobo])){
-          Double_t clk = event.clkTpc[cobo];
-          spdlog::warn("TPC BcOut ResY vs ClockTime: non-finite clkTpc[{}]={} for layer={} row={}", cobo, clk, layer, centerRow);
-        } else {
-          Double_t clk = event.clkTpc[cobo];
-          HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_CoBo%d", cobo), clk, resY_BcOut);
-          if(have_ctime_noclk) {
-            HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_CoBo%d_RawClock", cobo), clk, resY_raw);
-#ifdef DEBUG_COBO_CLOCK
-            HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_CoBo%d_NoClock", cobo), clk, resY_noclk);
-#endif
-          }
-        }  // else [CoBo: cobo_valid && std::isfinite(clkTpc)]
-
-        // Asad validation and warning
-        Bool_t asad_valid = (asad >= 0 && asad < NumOfAsadTPC);
-        if(!asad_valid){
-          spdlog::warn("TPC BcOut ResY vs ClockTime: invalid Asad id (asad={}) for layer={} row={}", asad, layer, centerRow);
-        } else if(cobo_valid && std::isfinite(event.clkTpc[cobo])){
-          Double_t clk = event.clkTpc[cobo];
-          HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Asad%02d", asad), clk, resY_BcOut);
-          if(have_ctime_noclk) {
-            HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Asad%02d_RawClock", asad), clk, resY_raw);
-#ifdef DEBUG_COBO_CLOCK
-            HF2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Asad%02d_NoClock", asad), clk, resY_noclk);
-#endif
-          }
-        }  // else if(cobo_valid && std::isfinite(clkTpc)) [Asad]
-      }  // if(track_cluster_row_center)
-    }  // for ih
-  }  // for it
+  FillTPCBcOutCorrelationAndResidualHistograms(best_tpc_idx, best_bcout_idx, event_ana);
   HF1("Status", event.status++);
 
   return true;
-}
+}  // dst::DstRead
 
 
 //_____________________________________________________________________________
@@ -722,7 +690,6 @@ dst::DstClose()
   }
   return true;
 }
-
 
 //_____________________________________________________________________________
 Bool_t
@@ -788,7 +755,6 @@ dst::SetupReader()
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "track_cluster_y_center",   src.track_cluster_y_center);
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "track_cluster_z_center",   src.track_cluster_z_center);
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "track_cluster_row_center", src.track_cluster_row_center);
-  dst::SetBranch(TTreeReaderCont[kTpcTracking], "hit_ctime_noclk", src.hit_ctime_noclk);
 
   // ExResiduals
   dst::SetBranch(TTreeReaderCont[kTpcTracking], "exresidual",            src.exresidual);
@@ -827,7 +793,7 @@ dst::SetupReader()
 
   evnumPerFile.resize(3);  // [0]=TPC, [1]=BcOut, [2]=Hodo
   return true;
-}
+}  // dst::SetupReader
 
 //_____________________________________________________________________________
 Bool_t
@@ -918,7 +884,7 @@ Bool_t
 ConfMan::InitializeParameterFiles()
 {
   return
-    (InitializeParameter<DCGeomMan>("DCGEO")   &&
+    (InitializeParameter<DCGeomMan>("DCGEO") &&
      InitializeParameter<TPCParamMan>("TPCPRM", "TPCPHASE") &&
      InitializeParameter<UserParamMan>("USER"));
 }

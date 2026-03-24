@@ -13,16 +13,23 @@
 #include "TPCAnalyzer.hh"
 #include "TPCHit.hh"
 #include "TPCPadHelper.hh"
-// #include "TPCParamMan.hh"
+#include "DCGeomMan.hh"
+#include "TPCParamMan.hh"
+#include "TPCLTrackHit.hh"
+#include "ThreeVector.hh"
 #include "TPCRawData.hh"
 #include "TPCRawHit.hh"
 #include "UserParamMan.hh"
+
+#include <spdlog/spdlog.h>
 
 namespace
 {
 const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
 const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& gTpcParam = TPCParamMan::GetInstance();
 using root::HF1;
 using root::HF2;
 using root::HF2Poly;
@@ -181,4 +188,91 @@ TPCEventAnalyzer::TPCCorHit(const TPCRawData &TPCrawData){
 //_____________________________________________________________________________
 void
 TPCEventAnalyzer::TPCHit(const TPCAnalyzer& TPCAnalyzer){
+}
+
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillCoBoClockTime(const TString& prefix,
+                                    Int_t layer, Int_t row,
+                                    Double_t ctime,
+                                    const TVector3& localPos,
+                                    Double_t referenceY)
+{
+  if (m_clkTpc.size() != static_cast<size_t>(NumOfSegCOBO)) {
+    spdlog::warn("TPCEventAnalyzer::FillCoBoClockTime[{}]: clkTpc size ({}) != NumOfSegCOBO ({})",
+                 prefix.Data(), m_clkTpc.size(), NumOfSegCOBO);
+    return;
+  }
+
+  const Int_t cobo = tpc::GetCoBoId(layer, row);
+  const Int_t asad = tpc::GetASADId(layer, row);
+  const Bool_t cobo_valid = (0 <= cobo && cobo < NumOfSegCOBO);
+
+  const ThreeVector globalPos = gGeom.Local2GlobalPos("HypTPC", localPos);
+  const Double_t resY = globalPos.y() - referenceY;
+
+  Double_t resY_raw   = TMath::QuietNaN();
+  Double_t resY_noclk = TMath::QuietNaN();
+
+  if (!cobo_valid) {
+    spdlog::warn("TPCEventAnalyzer::FillCoBoClockTime[{}]: invalid CoBo id (cobo={}) for layer={} row={}",
+                 prefix.Data(), cobo, layer, row);
+  } else if (!std::isfinite(m_clkTpc.at(cobo))) {
+    spdlog::warn("TPCEventAnalyzer::FillCoBoClockTime[{}]: non-finite clkTpc[{}]={} for layer={} row={}",
+                 prefix.Data(), cobo, m_clkTpc.at(cobo), layer, row);
+  } else {
+    const Double_t clk = m_clkTpc.at(cobo);
+    Double_t cclk = 0.0;
+    if (!gTpcParam.GetCClock(layer, row, clk, cclk)) {
+      spdlog::warn("TPCEventAnalyzer::FillCoBoClockTime[{}]: GetCClock failed for layer={} row={} clk={}",
+                   prefix.Data(), layer, row, clk);
+    } else {
+      const Double_t ctime_noclk = ctime - cclk;
+      Double_t y_noclk = 0.0;
+      Double_t y_raw   = 0.0;
+      const Bool_t ok_noclk = gTpcParam.GetDriftLength(layer, row, ctime_noclk, y_noclk);
+      const Bool_t ok_raw   = gTpcParam.GetDriftLength(layer, row, ctime_noclk + clk, y_raw);
+      if (!ok_noclk || !ok_raw) {
+        spdlog::warn("TPCEventAnalyzer::FillCoBoClockTime[{}]: GetDriftLength failed (noclk={}, raw={}) for layer={} row={}",
+                     prefix.Data(), ok_noclk, ok_raw, layer, row);
+      } else {
+        const ThreeVector local_noclk(localPos.x(), y_noclk, localPos.z());
+        const ThreeVector local_raw  (localPos.x(), y_raw,   localPos.z());
+        const ThreeVector global_noclk = gGeom.Local2GlobalPos("HypTPC", local_noclk);
+        const ThreeVector global_raw   = gGeom.Local2GlobalPos("HypTPC", local_raw);
+        resY_noclk = global_noclk.y() - referenceY;
+        resY_raw   = global_raw.y()   - referenceY;
+      }
+    }
+
+    HF2(Form("%s_ResY_vs_ClockTime_CoBo%d", prefix.Data(), cobo),
+        m_clkTpc.at(cobo), resY);
+    if (std::isfinite(resY_raw)) {
+      HF2(Form("%s_ResY_vs_ClockTime_CoBo%d_RawClock", prefix.Data(), cobo),
+          m_clkTpc.at(cobo), resY_raw);
+    }
+#ifdef DEBUG_COBO_CLOCK
+    if (std::isfinite(resY_noclk)) {
+      HF2(Form("%s_ResY_vs_ClockTime_CoBo%d_NoClock", prefix.Data(), cobo),
+          m_clkTpc.at(cobo), resY_noclk);
+    }
+#endif
+  }
+
+  const Bool_t asad_valid = (0 <= asad && asad < NumOfAsadTPC);
+  if (asad_valid && cobo_valid && std::isfinite(m_clkTpc.at(cobo))) {
+    const Double_t clk = m_clkTpc.at(cobo);
+    HF2(Form("%s_ResY_vs_ClockTime_Asad%02d", prefix.Data(), asad),
+        clk, resY);
+    if (std::isfinite(resY_raw)) {
+      HF2(Form("%s_ResY_vs_ClockTime_Asad%02d_RawClock", prefix.Data(), asad),
+          clk, resY_raw);
+    }
+#ifdef DEBUG_COBO_CLOCK
+    if (std::isfinite(resY_noclk)) {
+      HF2(Form("%s_ResY_vs_ClockTime_Asad%02d_NoClock", prefix.Data(), asad),
+          clk, resY_noclk);
+    }
+#endif
+  }
 }

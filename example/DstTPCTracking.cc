@@ -6,64 +6,31 @@
 #include <iostream>
 #include <sstream>
 
-#include <filesystem_util.hh>
-#include <UnpackerManager.hh>
-
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
+#include "DCGeomMan.hh"
 #include "DebugCounter.hh"
 #include "DetectorID.hh"
-#include "TPCAnalyzer.hh"
-#include "DCGeomMan.hh"
-#include "DCHit.hh"
 #include "DstHelper.hh"
 #include "HistTools.hh"
 #include "Kinematics.hh"
-#include "MathTools.hh"
 #include "RootHelper.hh"
+#include "TPCAnalyzer.hh"
 #include "TPCCluster.hh"
-#include "TPCPadHelper.hh"
+#include "TPCEventAnalyzer.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
 
+#include <UnpackerManager.hh>
+
 #define Exclusive 1
 
 #define RawHit 0
 #define RawCluster 1
 #define TrackSearchFailed 1
-
-namespace
-{
-using namespace root;
-using namespace dst;
-using hddaq::unpacker::GUnpacker;
-const auto& gUnpacker = GUnpacker::get_instance();
-auto&       gConf = ConfMan::GetInstance();
-const auto& gGeom = DCGeomMan::GetInstance();
-const auto& gUser = UserParamMan::GetInstance();
-const auto& gTpcParam = TPCParamMan::GetInstance();
-const auto& gCounter  = debug::ObjectCounter::GetInstance();
-const double truncatedMean = 0.8; //80%
-}
-
-namespace dst
-{
-enum kArgc
-{
-  kProcess, kConfFile,
-  kTpcHit,  kOutFile, nArgc
-};
-std::vector<TString> ArgName =
-{ "[Process]", "[ConfFile]", "[TPCHit]",  "[OutFile]" };
-std::vector<TString> TreeName = { "", "", "tpc", "" };
-std::vector<TFile*> TFileCont;
-std::vector<TTree*> TTreeCont;
-std::vector<TTreeReader*> TTreeReaderCont;
-Bool_t SetupReader();
-}
 
 //_____________________________________________________________________________
 struct Event
@@ -140,7 +107,6 @@ struct Event
   std::vector<std::vector<Double_t>> track_cluster_y_center;
   std::vector<std::vector<Double_t>> track_cluster_z_center;
   std::vector<std::vector<Double_t>> track_cluster_row_center;
-  std::vector<std::vector<Double_t>> hit_ctime_noclk;
 
   //exclusive
   std::vector<std::vector<Double_t>> exresidual;
@@ -211,8 +177,7 @@ struct Event
 
       track_cluster_de, track_cluster_size, track_cluster_mrow,
       track_cluster_de_center, track_cluster_x_center, track_cluster_y_center,
-      track_cluster_z_center, track_cluster_row_center,
-      hit_ctime_noclk
+      track_cluster_z_center, track_cluster_row_center
     );
   }
 
@@ -268,8 +233,7 @@ struct Event
 
       track_cluster_de, track_cluster_size, track_cluster_mrow,
       track_cluster_de_center, track_cluster_x_center, track_cluster_y_center,
-      track_cluster_z_center, track_cluster_row_center,
-      hit_ctime_noclk
+      track_cluster_z_center, track_cluster_row_center
     );
   }
 
@@ -295,8 +259,7 @@ struct Event
       track_cluster_de[it], track_cluster_size[it], track_cluster_mrow[it],
       track_cluster_de_center[it],
       track_cluster_x_center[it], track_cluster_y_center[it],
-      track_cluster_z_center[it], track_cluster_row_center[it],
-      hit_ctime_noclk[it]
+      track_cluster_z_center[it], track_cluster_row_center[it]
     );
   }
 
@@ -359,6 +322,381 @@ namespace root
     else dist=dummy;
     return dist;
   }
+}
+
+namespace
+{
+using namespace root;
+using namespace dst;
+using hddaq::unpacker::GUnpacker;
+const auto& gUnpacker = GUnpacker::get_instance();
+auto&       gConf = ConfMan::GetInstance();
+const auto& gGeom = DCGeomMan::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
+const auto& gTpcParam = TPCParamMan::GetInstance();
+const auto& gCounter  = debug::ObjectCounter::GetInstance();
+const double TRUNCATED_MEAN = 0.8;  // 80%
+
+// Fill event with run/ev/trigger/CoBo clock; return false to skip (DstRead then returns true).
+Bool_t FillEventBasicInfo(Int_t ievent)
+{
+  // Copy run/event/trigger/CoBo from source to event; increment Status.
+  event.runnum   = **src.runnum;
+  event.evnum    = **src.evnum;
+  event.trigpat  = **src.trigpat;
+  event.trigflag = **src.trigflag;
+  event.beamflag = **src.beamflag;
+  event.clkTpc   = **src.clkTpc;
+  event.cobo_id  = **src.cobo_id;
+  HF1("Status", event.status++);
+
+  if (**src.nhTpc == 0)
+    return false;
+
+  HF1("Status", event.status++);
+
+  // Reject if CoBo clock vector size is wrong.
+  if (event.clkTpc.size() != NumOfSegCOBO) {
+    spdlog::warn("something is wrong: event.clkTpc.size() != {}", NumOfSegCOBO);
+    return false;
+  }
+  // Reject if any CoBo clock is NaN/Inf.
+  std::vector<Int_t> bad_cobo;
+  for (Int_t cobo = 0; cobo < NumOfSegCOBO; ++cobo) {
+    if (!std::isfinite(event.clkTpc[cobo])) bad_cobo.push_back(cobo);
+  }
+  if (!bad_cobo.empty()) {
+    std::ostringstream oss;
+    for (size_t i = 0; i < bad_cobo.size(); ++i) { oss << (i ? "," : "") << bad_cobo[i]; }
+    spdlog::warn("CoBo clock(s) missing (NaN/Inf): cobo={}, skip event", oss.str());
+    return false;
+  }
+
+  HF1("Status", event.status++);
+  return true;
+}
+
+#if RawHit
+// Fill event with raw TPC hits (position, dE, pad, layer, row).
+void FillRawHits(TPCAnalyzer& TPCAna)
+{
+  Int_t nh_tpc = 0;
+  // Loop layers and good hits; append position, dE, pad, layer, row to event.
+  for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
+    auto hit_cont = TPCAna.GetTPCHC(layer);
+    for (const auto& hit : hit_cont) {
+      if (!hit || !hit->IsGood()) continue;
+      const auto& pos = hit->GetPosition();
+      event.raw_hitpos_x.push_back(pos.X());
+      event.raw_hitpos_y.push_back(pos.Y());
+      event.raw_hitpos_z.push_back(pos.Z());
+      event.raw_de.push_back(hit->GetCDe());
+      event.raw_padid.push_back(hit->GetPad());
+      event.raw_layer.push_back(layer);
+      event.raw_row.push_back(hit->GetRow());
+      ++nh_tpc;
+    }
+  }
+  event.nhTpc = nh_tpc;
+  HF1("Status", event.status++);
+}
+#endif
+
+#if RawCluster
+// Fill event with TPC cluster info (position, dE, size, center hit, etc.).
+void FillClusters(TPCAnalyzer& TPCAna)
+{
+  Int_t ncl_tpc = 0;
+  // Loop layers and good clusters; append position, dE, size, center, Hough flag to event.
+  for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
+    auto cl_cont = TPCAna.GetTPCClCont(layer);
+    for (const auto& cl : cl_cont) {
+      if (!cl || !cl->IsGood()) continue;
+      TPCHit* center_hit = cl->GetCenterHit();
+      const TVector3& center_pos = center_hit->GetPosition();
+      event.cluster_x.push_back(cl->GetX());
+      event.cluster_y.push_back(cl->GetY());
+      event.cluster_z.push_back(cl->GetZ());
+      event.cluster_de.push_back(cl->GetDe());
+      event.cluster_size.push_back(cl->GetClusterSize());
+      event.cluster_layer.push_back(layer);
+      event.cluster_mrow.push_back(cl->MeanRow());
+      event.cluster_houghflag.push_back(cl->GetHoughFlag());
+      event.cluster_de_center.push_back(center_hit->GetCDe());
+      event.cluster_x_center.push_back(center_pos.X());
+      event.cluster_y_center.push_back(center_pos.Y());
+      event.cluster_z_center.push_back(center_pos.Z());
+      event.cluster_row_center.push_back(center_hit->GetRow());
+      ++ncl_tpc;
+    }
+  }
+  event.nclTpc = ncl_tpc;
+  HF1("Status", event.status++);
+}
+#endif
+
+// Fill event and histograms for one track hit (residuals, cluster, CoBo time).
+void ProcessOneTrackHit(Int_t it, Int_t ih, TPCLTrackHit* hit, TPCLocalTrack* track,
+                        TPCEventAnalyzer& event_ana)
+{
+  // Hough distance histos.
+  HF1("TPCTrk_Hough_Dist",  hit->GetHoughDist());
+  HF1("TPCTrk_Hough_DistY", hit->GetHoughDistY());
+
+  // Extract layer, positions, residuals, cluster/center, path length.
+  Int_t layer = hit->GetLayer();
+  const TVector3& hit_pos   = hit->GetLocalHitPos();
+  const TVector3& cal_pos   = hit->GetLocalCalPos();
+  const TVector3& resi_vect = hit->GetResidualVect();
+  const TVector3& res_vect  = hit->GetResolutionVect();
+
+  TPCHit* cl_hit     = hit->GetHit();
+  TPCCluster* cl     = cl_hit->GetParentCluster();
+  Int_t cl_size      = cl->GetClusterSize();
+  Double_t clde      = cl->GetDe();
+  Double_t mrow      = cl->MeanRow();
+  TPCHit* center_hit = cl->GetCenterHit();
+  const TVector3& center_pos = center_hit->GetPosition();
+  Double_t center_de = center_hit->GetCDe();
+  Int_t center_row   = center_hit->GetRow();
+  Double_t residual  = hit->GetResidual();
+  Double_t hit_length = track->GetHitLength(ih);
+
+  // Fill event: cluster, hit/cal positions, residuals, resolution, path.
+  event.track_cluster_de[it][ih]   = clde;
+  event.track_cluster_size[it][ih] = cl_size;
+  event.track_cluster_mrow[it][ih] = mrow;
+  event.track_cluster_de_center[it][ih]  = center_de;
+  event.track_cluster_x_center[it][ih]   = center_pos.X();
+  event.track_cluster_y_center[it][ih]   = center_pos.Y();
+  event.track_cluster_z_center[it][ih]   = center_pos.Z();
+  event.track_cluster_row_center[it][ih] = center_row;
+  event.hitlayer[it][ih] = layer;
+  event.hitpos_x[it][ih] = hit_pos.x();
+  event.hitpos_y[it][ih] = hit_pos.y();
+  event.hitpos_z[it][ih] = hit_pos.z();
+  event.calpos_x[it][ih] = cal_pos.x();
+  event.calpos_y[it][ih] = cal_pos.y();
+  event.calpos_z[it][ih] = cal_pos.z();
+  event.residual[it][ih]   = residual;
+  event.residual_x[it][ih] = resi_vect.x();
+  event.residual_y[it][ih] = resi_vect.y();
+  event.residual_z[it][ih] = resi_vect.z();
+  event.residual_horizontal[it][ih] = track->GetHorizontalResidual(ih);
+  event.residual_vertical[it][ih]   = track->GetVerticalResidual(ih);
+  event.resolution_x[it][ih] = res_vect.x();
+  event.resolution_y[it][ih] = res_vect.y();
+  event.resolution_z[it][ih] = res_vect.z();
+  event.resolution_horizontal[it][ih] = track->GetHorizontalResolution(ih);
+  event.resolution_vertical[it][ih]   = track->GetVerticalResolution(ih);
+  event.theta_diff[it][ih] = track->GetAlpha(ih);
+  event.pathhit[it][ih]    = hit_length;
+
+  // Track/hit pattern and residual histos (layer, row, pad, res, res vs x/y).
+  HF1("TPCTrk_Layer", layer);
+  HF2("TPCTrk_Row_vs_Layer", layer, center_row);
+  HF1(Form("TPCHit_HitPat_Layer%02d", layer), center_row);
+  Int_t pad_id = tpc::GetPadId(layer, center_row);
+  if (pad_id >= 0) {
+    Double_t bin_cont = HG2Poly("TPCTrk_HitPat", pad_id + 1);
+    HF2Poly("TPCTrk_HitPat", pad_id + 1, bin_cont + 1.);
+  }
+  HF1(Form("TPCHit_Xhit_Layer%02d", layer), hit_pos.x());
+  HF1(Form("TPCTrk_Res_Layer%02d", layer), residual);
+  HF2(Form("TPCTrk_Res_vs_Xhit_Layer%02d", layer), hit_pos.x(), residual);
+  HF2(Form("TPCHit_Yhit_vs_Xtrk_Layer%02d", layer), cal_pos.x(), hit_pos.y());
+  HF1(Form("TPCTrk_ResX_Layer%02d", layer), resi_vect.X());
+  HF1(Form("TPCTrk_ResY_Layer%02d", layer), resi_vect.Y());
+  HF1(Form("TPCTrk_ResZ_Layer%02d", layer), resi_vect.Z());
+  HF1(Form("TPCTrk_ResY_Layer%02d_Row%03d", layer, center_row), resi_vect.Y());
+  HF2(Form("TPCTrk_ResY_vs_Y_Layer%02d_Row%03d", layer, center_row), cal_pos.y(), resi_vect.Y());
+  HF2("TPCTrk_ResY_vs_Layer_Trk", layer, resi_vect.Y());
+
+  // Cluster size/dE histos; dE ratio vs transverse distance within cluster.
+  HF1("TPCCl_Size", cl_size);
+  HF1(Form("TPCCl_Size_Layer%02d", layer), cl_size);
+  HF1("TPCCl_dE", clde);
+  HF1(Form("TPCCl_dE_Layer%02d", layer), clde);
+  const TPCHitContainer& hit_cont = cl->GetHitContainer();
+  for (const auto& hits : hit_cont) {
+    if (!hits || !hits->IsGood()) continue;
+    const TVector3& pos = hits->GetPosition();
+    Double_t de = hits->GetCDe();
+    Double_t trans_dist = TranseverseDistance(hit_pos.x(), hit_pos.z(), pos.x(), pos.z());
+    Double_t ratio = de / clde;
+    HF2("TPCCl_Ratio_vs_Dist_Diff", trans_dist, ratio);
+    HF2(Form("TPCCl_Ratio_vs_Dist_Diff_Layer%02d", layer), trans_dist, ratio);
+  }
+
+  // CoBo clock time vs position (event_ana).
+  if (center_hit && center_hit->GetCTimeSize() > 0) {
+    TVector3 local_cal = hit->GetLocalCalPos();
+    ThreeVector local_trk(local_cal.X(), local_cal.Y(), local_cal.Z());
+    Double_t y_trk_global = gGeom.Local2GlobalPos("HypTPC", local_trk).y();
+    event_ana.FillCoBoClockTime("TPCTrk", layer, center_row,
+                                center_hit->GetCTime(0), center_hit->GetPosition(), y_trk_global);
+  }
+
+#if Exclusive
+  // Exclusive residuals: fill event.exresidual*.
+  const TVector3& exres_vect = hit->GetResidualVectExclusive();
+  event.exresidual[it][ih]   = hit->GetResidualExclusive();
+  event.exresidual_x[it][ih] = exres_vect.x();
+  event.exresidual_y[it][ih] = exres_vect.y();
+  event.exresidual_z[it][ih] = exres_vect.z();
+  event.exresidual_horizontal[it][ih] = track->GetHorizontalResidualExclusive(ih);
+  event.exresidual_vertical[it][ih]   = track->GetVerticalResidualExclusive(ih);
+#endif
+}
+
+// Fill event and histograms for one track (params, vertex candidates, hits, dE/dx).
+void ProcessOneTrack(Int_t it, TPCLocalTrack* track,
+                     Int_t& ntrack_intarget,
+                     std::vector<Double_t>& x0_vtx, std::vector<Double_t>& y0_vtx,
+                     std::vector<Double_t>& u0_vtx, std::vector<Double_t>& v0_vtx,
+                     TPCEventAnalyzer& event_ana)
+{
+  // Track parameters and vertex candidate (in-target x0,y0,u0,v0).
+  Int_t nhits = track->GetNHit();
+  Double_t chisqr = track->GetChiSquare();
+  Double_t x0 = track->GetX0(), y0 = track->GetY0();
+  Double_t u0 = track->GetU0(), v0 = track->GetV0();
+  Double_t theta = track->GetTheta();
+
+  if (TMath::Abs(x0) < 50. && TMath::Abs(y0) < 50.) {
+    x0_vtx.push_back(x0);
+    y0_vtx.push_back(y0);
+    u0_vtx.push_back(u0);
+    v0_vtx.push_back(v0);
+    ++ntrack_intarget;
+  }
+
+  event.nhtrack[it]   = nhits;
+  event.chisqrTpc[it] = chisqr;
+  event.x0Tpc[it]     = x0;
+  event.y0Tpc[it]     = y0;
+  event.u0Tpc[it]     = u0;
+  event.v0Tpc[it]     = v0;
+  event.theta[it]     = theta;
+  event.resizeTrackHits(it, nhits);
+
+  // Track-parameter histos.
+  HF1("TPCTrk_Num_TrackHits", nhits);
+  HF1("TPCTrk_Chisqr", chisqr);
+  HF1("TPCTrk_X0", x0);
+  HF1("TPCTrk_Y0", y0);
+  HF1("TPCTrk_U0", u0);
+  HF1("TPCTrk_V0", v0);
+  HF2("TPCTrk_U0_vs_X0", x0, u0);
+  HF2("TPCTrk_V0_vs_Y0", y0, v0);
+  HF2("TPCTrk_Y0_vs_X0", x0, y0);
+
+  // Fit/search metadata histos (iterations, flags, times, Minuit status).
+  Int_t niter          = track->GetNIteration();
+  Int_t fit_flag       = track->GetFitFlag();
+  Int_t search_time    = track->GetSearchTime();
+  Int_t fit_time       = track->GetFitTime();
+  Int_t minuit_status  = track->GetMinuitStatus();
+  HF1("TPCTrk_Num_Iter",     niter);
+  HF1("TPCTrk_Fitting_Flag", fit_flag);
+  HF1("TPCTrk_Searching_Time", search_time);
+  HF1("TPCTrk_Fitting_Time",   fit_time);
+  HF1("TPCTrk_Minuit_Status",  minuit_status);
+
+  // Per-hit processing, total dE, and dE/dx per hit for truncated mean.
+  Double_t total_clde = 0.;
+  std::vector<Double_t> dedx_vect;
+  for (Int_t ih = 0; ih < nhits; ++ih) {
+    auto trk_hit = track->GetHit(ih);
+    if (!trk_hit) continue;
+    ProcessOneTrackHit(it, ih, trk_hit, track, event_ana);
+    TPCCluster* cl = trk_hit->GetHit()->GetParentCluster();
+    total_clde += cl->GetDe();
+    dedx_vect.push_back(cl->GetDe() / track->GetHitLength(ih));
+  }
+
+  // Truncated-mean dE/dx -> event.dEdx.
+  event.dE[it] = total_clde;
+  std::sort(dedx_vect.begin(), dedx_vect.end());
+  Int_t n_truncated = static_cast<Int_t>(std::floor(dedx_vect.size() * TRUNCATED_MEAN));
+  if (n_truncated < 1) {
+    spdlog::warn("something is wrong: n_truncated = {}", n_truncated);
+  }
+  Double_t sum_truncated_de = 0.;
+  for (Int_t i = 0; i < n_truncated; ++i) {
+    sum_truncated_de += dedx_vect[i];
+  }
+  event.dEdx[it] = sum_truncated_de / n_truncated;
+}
+
+// Compute multi-track vertex from in-target tracks and fill event.
+void FillVertex(Int_t ntrack_intarget,
+                const std::vector<Double_t>& x0_vtx, const std::vector<Double_t>& y0_vtx,
+                const std::vector<Double_t>& u0_vtx, const std::vector<Double_t>& v0_vtx)
+{
+  // Multitrack vertex; fill ntTpc_inside, prodvtx_*, Status.
+  TVector3 vertex = Kinematics::MultitrackVertex(
+    ntrack_intarget, x0_vtx, y0_vtx, u0_vtx, v0_vtx);
+  event.ntTpc_inside = ntrack_intarget;
+  event.prodvtx_x = vertex.x();
+  event.prodvtx_y = vertex.y();
+  event.prodvtx_z = vertex.z();
+  HF1("Status", event.status++);
+}
+
+#if TrackSearchFailed
+// Fill event with failed track-search candidates (count and params).
+void FillFailedTracks(TPCAnalyzer& TPCAna)
+{
+  Int_t failed_nt_tpc = TPCAna.GetNTracksTPCFailed();
+  event.failed_ntTpc = failed_nt_tpc;
+  event.resizeFailedTracks(failed_nt_tpc);
+
+  // Per failed track: params and hit positions.
+  for (Int_t it = 0; it < failed_nt_tpc; ++it) {
+    auto track = TPCAna.GetTrackTPCFailed(it);
+    if (!track) continue;
+    Int_t nhits = track->GetNHit();
+    event.failed_nhtrack[it] = nhits;
+    event.failed_x0Tpc[it] = track->GetX0();
+    event.failed_y0Tpc[it] = track->GetY0();
+    event.failed_u0Tpc[it] = track->GetU0();
+    event.failed_v0Tpc[it] = track->GetV0();
+    event.resizeFailedTrackHits(it, nhits);
+
+    for (Int_t ih = 0; ih < nhits; ++ih) {
+      auto hit = track->GetHit(ih);
+      if (!hit) continue;
+      event.failed_hitlayer[it][ih] = hit->GetLayer();
+      const TVector3& hit_pos = hit->GetLocalHitPos();
+      const TVector3& cal_pos = hit->GetLocalCalPos();
+      event.failed_hitpos_x[it][ih] = hit_pos.x();
+      event.failed_hitpos_y[it][ih] = hit_pos.y();
+      event.failed_hitpos_z[it][ih] = hit_pos.z();
+      event.failed_calpos_x[it][ih] = cal_pos.x();
+      event.failed_calpos_y[it][ih] = cal_pos.y();
+      event.failed_calpos_z[it][ih] = cal_pos.z();
+    }
+  }
+  HF1("Status", event.status++);
+}
+#endif
+}
+
+namespace dst
+{
+enum kArgc
+{
+  kProcess, kConfFile,
+  kTpcHit,  kOutFile, nArgc
+};
+std::vector<TString> ArgName =
+{ "[Process]", "[ConfFile]", "[TPCHit]",  "[OutFile]" };
+std::vector<TString> TreeName = { "", "", "tpc", "" };
+std::vector<TFile*> TFileCont;
+std::vector<TTree*> TTreeCont;
+std::vector<TTreeReader*> TTreeReaderCont;
+Bool_t SetupReader();
 }
 
 //_____________________________________________________________________________
@@ -444,374 +782,71 @@ dst::DstOpen(std::vector<std::string> arg)
 Bool_t
 dst::DstRead(Int_t ievent)
 {
-  if(ievent%100==0){
-    std::cout << "#D Event Number: "
-              << std::setw(6) << ievent << std::endl;
+  if (ievent % 100 == 0) {
+    std::cout << "#D Event Number: " << std::setw(6) << ievent << std::endl;
   }
   GetEntry(ievent);
 
-  event.runnum   = **src.runnum;
-  event.evnum    = **src.evnum;
-  event.trigpat  = **src.trigpat;
-  event.trigflag = **src.trigflag;
-  event.beamflag = **src.beamflag;
-  event.clkTpc   = **src.clkTpc;
-  event.cobo_id  = **src.cobo_id;
-  HF1("Status", event.status++);
-
-  if(**src.nhTpc == 0)
+  // Fill basic info and validate CoBo clocks; skip further processing when validation fails.
+  if (!FillEventBasicInfo(ievent))
     return true;
 
+  // Recalc TPC hits and set up event analyzer clock.
+  TPCAnalyzer tpc_ana;
+  tpc_ana.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, **src.clkTpc);
   HF1("Status", event.status++);
 
-  if(event.clkTpc.size() != NumOfSegCOBO){
-    spdlog::warn("something is wrong: event.clkTpc.size() != {}", NumOfSegCOBO);
-    return true;
-  }
-  std::vector<Int_t> bad_cobo;
-  for(Int_t c = 0; c < NumOfSegCOBO; ++c){
-    if(!std::isfinite(event.clkTpc[c])) bad_cobo.push_back(c);
-  }
-  if(!bad_cobo.empty()){
-    std::ostringstream oss;
-    for(size_t i = 0; i < bad_cobo.size(); ++i){ oss << (i ? "," : "") << bad_cobo[i]; }
-    spdlog::warn("CoBo clock(s) missing (NaN/Inf): cobo={}, skip event", oss.str());
-    return true;
-  }
+  static TPCEventAnalyzer event_ana;
+  event_ana.SetClock(**src.clkTpc);
 
-  HF1("Status", event.status++);
-
-  TPCAnalyzer TPCAna;
-  TPCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, **src.clkTpc);
-  HF1("Status", event.status++);
-
+  // Track search (exclusive or standard).
 #if Exclusive
-  TPCAna.TrackSearchTPC(true);
+  tpc_ana.TrackSearchTPC(true);
 #else
-  TPCAna.TrackSearchTPC();
+  tpc_ana.TrackSearchTPC();
 #endif
   HF1("Status", event.status++);
 
+  // Optional: raw hits and/or clusters into event.
 #if RawHit
-  Int_t nhTpc = 0;
-  for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    auto hc = TPCAna.GetTPCHC(layer);
-    for(const auto& hit : hc){
-      if(!hit || !hit->IsGood())
-        continue;
-      const auto& pos = hit->GetPosition();
-      Double_t x   = pos.X();
-      Double_t y   = pos.Y();
-      Double_t z   = pos.Z();
-      Double_t de  = hit->GetCDe();
-      Int_t    pad = hit->GetPad();
-      Int_t    row = hit->GetRow();
-      event.raw_hitpos_x.push_back(x);
-      event.raw_hitpos_y.push_back(y);
-      event.raw_hitpos_z.push_back(z);
-      event.raw_de.push_back(de);
-      event.raw_padid.push_back(pad);
-      event.raw_layer.push_back(layer);
-      event.raw_row.push_back(row);
-      ++nhTpc;
-    }
-  }
-  event.nhTpc = nhTpc;
-  HF1("Status", event.status++);
+  FillRawHits(tpc_ana);
 #endif
 
 #if RawCluster
-  Int_t nclTpc = 0;
-  for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
-    auto hc = TPCAna.GetTPCClCont( layer );
-    for( const auto& cl : hc ){
-      if( !cl || !cl->IsGood() )
-        continue;
-      Double_t x  = cl->GetX();
-      Double_t y  = cl->GetY();
-      Double_t z  = cl->GetZ();
-      Double_t de = cl->GetDe();
-      Int_t cl_size = cl->GetClusterSize();
-      Double_t mrow = cl->MeanRow();
-      Int_t houghFlag = cl->GetHoughFlag();
-      TPCHit* centerHit = cl->GetCenterHit();
-      const TVector3& centerPos = centerHit->GetPosition();
-      Double_t centerDe = centerHit->GetCDe();
-      Int_t centerRow = centerHit->GetRow();
-
-      event.cluster_x.push_back(x);
-      event.cluster_y.push_back(y);
-      event.cluster_z.push_back(z);
-      event.cluster_de.push_back(de);
-      event.cluster_size.push_back(cl_size);
-      event.cluster_layer.push_back(layer);
-      event.cluster_mrow.push_back(mrow);
-      event.cluster_houghflag.push_back(houghFlag);
-      event.cluster_de_center.push_back(centerDe);
-      event.cluster_x_center.push_back(centerPos.X());
-      event.cluster_y_center.push_back(centerPos.Y());
-      event.cluster_z_center.push_back(centerPos.Z());
-      event.cluster_row_center.push_back(centerRow);
-
-      ++nclTpc;
-    }
-  }
-  event.nclTpc = nclTpc;
-  HF1("Status", event.status++);
+  FillClusters(tpc_ana);
 #endif
 
-  Int_t ntTpc = TPCAna.GetNTracksTPC();
-  event.ntTpc = ntTpc;
-
-  HF1("Num_Track_TPC", ntTpc);
-  if(event.ntTpc == 0)
-     return true;
+  // Track count; skip if no tracks.
+  Int_t nt_tpc = tpc_ana.GetNTracksTPC();
+  event.ntTpc = nt_tpc;
+  HF1("TPCTrk_Num_Track", nt_tpc);
+  if (event.ntTpc == 0)
+    return true;
 
   HF1("Status", event.status++);
-  event.resizeTracks(ntTpc);
+  event.resizeTracks(nt_tpc);
 
+  // Per-track fill (params, vertex candidates, hits, dE/dx).
   Int_t ntrack_intarget = 0;
-  std::vector<Double_t> x0_vtx;
-  std::vector<Double_t> y0_vtx;
-  std::vector<Double_t> u0_vtx;
-  std::vector<Double_t> v0_vtx;
+  std::vector<Double_t> x0_vtx, y0_vtx, u0_vtx, v0_vtx;
   x0_vtx.reserve(100);
   y0_vtx.reserve(100);
   u0_vtx.reserve(100);
   v0_vtx.reserve(100);
 
-  for(Int_t it=0; it<ntTpc; ++it){
-    auto track = TPCAna.GetTrackTPC(it);
-    if(!track) continue;
-    Int_t nh = track->GetNHit();
-    Double_t chisqr = track->GetChiSquare();
-    Double_t x0=track->GetX0(), y0=track->GetY0();
-    Double_t u0=track->GetU0(), v0=track->GetV0();
-    Double_t theta = track->GetTheta();
-
-    if(TMath::Abs(x0)<50. && TMath::Abs(y0)<50.){
-      x0_vtx.push_back(x0);
-      y0_vtx.push_back(y0);
-      u0_vtx.push_back(u0);
-      v0_vtx.push_back(v0);
-      ntrack_intarget++;
-    }
-
-    event.nhtrack[it]   = nh;
-    event.chisqrTpc[it] = chisqr;
-    event.x0Tpc[it]     = x0;
-    event.y0Tpc[it]     = y0;
-    event.u0Tpc[it]     = u0;
-    event.v0Tpc[it]     = v0;
-    event.theta[it]     = theta;
-    event.resizeTrackHits(it, nh);
-
-    HF1("Num_Track_TPC_Hits", nh);
-    HF1("Chisqr_TPC", chisqr);
-    HF1("X0_TPC", x0);
-    HF1("Y0_TPC", y0);
-    HF1("U0_TPC", u0);
-    HF1("V0_TPC", v0);
-    HF2("U0_vs_X0_TPC", x0, u0);
-    HF2("V0_vs_Y0_TPC", y0, v0);
-    HF2("X0_vs_Y0_TPC", x0, y0);
-
-    //Tracking information
-    Int_t niter         = track->GetNIteration();
-    Int_t fitflag       = track->GetFitFlag();
-    Int_t searchtime    = track->GetSearchTime();
-    Int_t fittime       = track->GetFitTime();
-    Int_t minuit_status = track->GetMinuitStatus();
-
-    HF1("Num_Tracking_Iterations", niter);
-    HF1("Fitting_Flag",            fitflag);
-    HF1("Track_Searching_Time",    searchtime);
-    HF1("Track_Fitting_Time",      fittime);
-    HF1("Minuit_Output_Status",    minuit_status);
-
-    Double_t total_clde=0.;
-    std::vector<Double_t> dEdx_vect;
-    for(Int_t ih=0; ih<nh; ++ih){
-      auto hit = track->GetHit(ih);
-      if(!hit) continue;
-      HF1("Hough_Dist", hit->GetHoughDist());
-      HF1("Hough_Dist_Y", hit->GetHoughDistY());
-
-      Int_t layer = hit->GetLayer();
-      const TVector3& hitpos    = hit->GetLocalHitPos();
-      const TVector3& calpos    = hit->GetLocalCalPos();
-      const TVector3& resi_vect = hit->GetResidualVect();
-      const TVector3& res_vect  = hit->GetResolutionVect();
-
-      TPCHit *clhit      = hit->GetHit();
-      TPCCluster *cl     = clhit->GetParentCluster();
-      Int_t clsize       = cl->GetClusterSize();
-      Double_t clde      = cl->GetDe();
-      Double_t mrow      = cl->MeanRow();
-      TPCHit* centerHit  = cl->GetCenterHit();
-      const TVector3& centerPos = centerHit->GetPosition();
-      Double_t centerDe  = centerHit->GetCDe();
-      Int_t centerRow    = centerHit->GetRow();
-      Double_t residual  = hit->GetResidual();
-      Double_t hitLength = track->GetHitLength(ih);
-
-      event.track_cluster_de[it][ih]   = clde;
-      event.track_cluster_size[it][ih] = clsize;
-      event.track_cluster_mrow[it][ih] = mrow;
-      event.track_cluster_de_center[it][ih]  = centerDe;
-      event.track_cluster_x_center[it][ih]   = centerPos.X();
-      event.track_cluster_y_center[it][ih]   = centerPos.Y();
-      event.track_cluster_z_center[it][ih]   = centerPos.Z();
-      event.track_cluster_row_center[it][ih] = centerRow;
-      event.hitlayer[it][ih] = layer;
-      event.hitpos_x[it][ih] = hitpos.x();
-      event.hitpos_y[it][ih] = hitpos.y();
-      event.hitpos_z[it][ih] = hitpos.z();
-      event.calpos_x[it][ih] = calpos.x();
-      event.calpos_y[it][ih] = calpos.y();
-      event.calpos_z[it][ih] = calpos.z();
-      event.residual[it][ih]   = residual;
-      event.residual_x[it][ih] = resi_vect.x();
-      event.residual_y[it][ih] = resi_vect.y();
-      event.residual_z[it][ih] = resi_vect.z();
-      event.residual_horizontal[it][ih] = track->GetHorizontalResidual(ih);
-      event.residual_vertical[it][ih]   = track->GetVerticalResidual(ih);
-      event.resolution_x[it][ih] = res_vect.x();
-      event.resolution_y[it][ih] = res_vect.y();
-      event.resolution_z[it][ih] = res_vect.z();
-      event.resolution_horizontal[it][ih] = track->GetHorizontalResolution(ih);
-      event.resolution_vertical[it][ih]   = track->GetVerticalResolution(ih);
-      event.theta_diff[it][ih] = track->GetAlpha(ih);
-      event.pathhit[it][ih]    = hitLength;
-
-      Double_t ctime_noclk_val = TMath::QuietNaN();
-      if (centerHit->GetCTimeSize() > 0) {
-        Int_t cobo = tpc::GetCoBoId(layer, centerRow);
-        Double_t cclk = 0.0;
-        if (cobo >= 0 && cobo < NumOfSegCOBO &&
-            cobo < static_cast<Int_t>(event.clkTpc.size()) &&
-            std::isfinite(event.clkTpc[cobo]) &&
-            gTpcParam.GetCClock(layer, centerRow, event.clkTpc[cobo], cclk)) {
-          ctime_noclk_val = centerHit->GetCTime(0) - cclk;
-        }
-      }
-      event.hit_ctime_noclk[it][ih] = ctime_noclk_val;
-
-      HF1("Layer_Id_TPC", layer);
-      HF1(Form("HitPat_TPC_Layer%02d", layer), centerRow);
-      Int_t pad_id = tpc::GetPadId(layer, centerRow);
-      if (pad_id >= 0) {
-        Double_t bin_cont = HG2Poly("TPC_TrackHitPat", pad_id + 1);
-        HF2Poly("TPC_TrackHitPat", pad_id + 1, bin_cont + 1.);
-      }
-      HF1(Form("Position_TPC_Layer%02d", layer), hitpos.x());
-      HF1(Form("Residual_TPC_Layer%02d", layer), residual);
-      HF2(Form("Residual_vs_Position_TPC_Layer%02d", layer), hitpos.x(), residual);
-      HF2(Form("Yhit_vs_Xcal_TPC_Layer%02d", layer), calpos.x(), hitpos.y());
-      HF1(Form("ResidualX_TPC_Layer%02d", layer), resi_vect.X());
-      HF1(Form("ResidualY_TPC_Layer%02d", layer), resi_vect.Y());
-      HF1(Form("ResidualZ_TPC_Layer%02d", layer), resi_vect.Z());
-
-      HF1("Cluster_size", clsize);
-      HF1(Form("Cluster_size_layer%02d", layer), clsize);
-      HF1("Cluster_dE", clde);
-      HF1(Form("Cluster_dE_layer%02d", layer), clde);
-      const TPCHitContainer& hc = cl->GetHitContainer();
-      for(const auto& hits : hc){
-        if(!hits || !hits->IsGood()) continue;
-        const TVector3& pos = hits->GetPosition();
-        Double_t de = hits->GetCDe();
-        Double_t transDist = TranseverseDistance(hitpos.x(), hitpos.z(), pos.x(), pos.z());
-        Double_t ratio = de/clde;
-        HF2("Ratio_vs_Dist_Transverse_diffusion", transDist, ratio);
-        HF2(Form("Ratio_vs_Dist_Transverse_diffusion_Layer%02d",layer), transDist, ratio);
-      }
-
-      total_clde += clde;
-      Double_t dEdx = clde/hitLength;
-      dEdx_vect.push_back(dEdx);
-
-#if Exclusive
-      const TVector3& exres_vect = hit->GetResidualVectExclusive();
-      Double_t exresidual = hit->GetResidualExclusive();
-      event.exresidual[it][ih]   = exresidual;
-      event.exresidual_x[it][ih] = exres_vect.x();
-      event.exresidual_y[it][ih] = exres_vect.y();
-      event.exresidual_z[it][ih] = exres_vect.z();
-      event.exresidual_horizontal[it][ih] = track->GetHorizontalResidualExclusive(ih);
-      event.exresidual_vertical[it][ih]   = track->GetVerticalResidualExclusive(ih);
-#endif
-    } // nh
-
-    event.dE[it] = total_clde;
-
-    std::sort(dEdx_vect.begin(), dEdx_vect.end());
-    Int_t n_truncated = static_cast<Int_t>(std::floor(dEdx_vect.size()*truncatedMean));
-    if (n_truncated < 1) {
-      // In principle, n_truncated is more than 1.
-      // for safety and debuging just add this cout
-      spdlog::warn("something is wrong: n_truncated = {}", n_truncated);
-    }
-    Double_t sum_truncated_de = 0.;
-    for (Int_t i = 0; i < n_truncated; ++i) {
-      sum_truncated_de += dEdx_vect[i];
-    }
-    event.dEdx[it] = sum_truncated_de / n_truncated;
+  for (Int_t it = 0; it < nt_tpc; ++it) {
+    auto track = tpc_ana.GetTrackTPC(it);
+    if (!track) continue;
+    ProcessOneTrack(it, track, ntrack_intarget, x0_vtx, y0_vtx, u0_vtx, v0_vtx, event_ana);
   }
   HF1("Status", event.status++);
 
-  TVector3 vertex = Kinematics::MultitrackVertex(
-    ntrack_intarget,
-    x0_vtx,
-    y0_vtx,
-    u0_vtx,
-    v0_vtx
-  );
-
-  event.ntTpc_inside = ntrack_intarget;
-  event.prodvtx_x = vertex.x();
-  event.prodvtx_y = vertex.y();
-  event.prodvtx_z = vertex.z();
-  HF1("Status", event.status++);
+  // Multi-track vertex; optional failed-track info.
+  FillVertex(ntrack_intarget, x0_vtx, y0_vtx, u0_vtx, v0_vtx);
 
 #if TrackSearchFailed
-  Int_t failed_ntTpc = TPCAna.GetNTracksTPCFailed();
-  event.failed_ntTpc = failed_ntTpc;
-  event.resizeFailedTracks(failed_ntTpc);
-
-  for(Int_t it=0; it<failed_ntTpc; ++it){
-    auto track = TPCAna.GetTrackTPCFailed(it);
-    if(!track) continue;
-    Int_t nh = track->GetNHit();
-    Double_t x0 = track->GetX0(), y0 = track->GetY0();
-    Double_t u0 = track->GetU0(), v0 = track->GetV0();
-    //Int_t fitflag = track->GetFitFlag();
-
-    event.failed_nhtrack[it] = nh;
-    event.failed_x0Tpc[it] = x0;
-    event.failed_y0Tpc[it] = y0;
-    event.failed_u0Tpc[it] = u0;
-    event.failed_v0Tpc[it] = v0;
-    event.resizeFailedTrackHits(it, nh);
-
-    for(Int_t ih=0; ih<nh; ++ih){
-      auto hit = track->GetHit(ih);
-      if(!hit) continue;
-      Int_t layer = hit->GetLayer();
-      const TVector3& hitpos = hit->GetLocalHitPos();
-      const TVector3& calpos = hit->GetLocalCalPos();
-
-      event.failed_hitlayer[it][ih] = layer;
-      event.failed_hitpos_x[it][ih] = hitpos.x();
-      event.failed_hitpos_y[it][ih] = hitpos.y();
-      event.failed_hitpos_z[it][ih] = hitpos.z();
-      event.failed_calpos_x[it][ih] = calpos.x();
-      event.failed_calpos_y[it][ih] = calpos.y();
-      event.failed_calpos_z[it][ih] = calpos.z();
-    }
-  }
+  FillFailedTracks(tpc_ana);
 #endif
-  HF1("Status", event.status++);
 
   return true;
 }
@@ -821,7 +856,7 @@ Bool_t
 dst::DstClose()
 {
   TFileCont[kOutFile]->Write();
-  std::cout << "#D Close : " << TFileCont[kOutFile]->GetName() << std::endl;
+  spdlog::info(" Close : {}", TFileCont[kOutFile]->GetName());
   TFileCont[kOutFile]->Close();
 
   const Int_t n = TFileCont.size();
@@ -934,8 +969,8 @@ ConfMan::InitializeHistograms()
   tree->Branch("resolution_z", &event.resolution_z);
   tree->Branch("resolution_horizontal", &event.resolution_horizontal);
   tree->Branch("resolution_vertical", &event.resolution_vertical);
-  tree->Branch("dE", &event.dE );
-  tree->Branch("dEdx", &event.dEdx );
+  tree->Branch("dE", &event.dE);
+  tree->Branch("dEdx", &event.dEdx);
   tree->Branch("pathhit", &event.pathhit);
   tree->Branch("theta_diff", &event.theta_diff);
   tree->Branch("track_cluster_de", &event.track_cluster_de);
@@ -946,8 +981,6 @@ ConfMan::InitializeHistograms()
   tree->Branch("track_cluster_y_center", &event.track_cluster_y_center);
   tree->Branch("track_cluster_z_center", &event.track_cluster_z_center);
   tree->Branch("track_cluster_row_center", &event.track_cluster_row_center);
-  tree->Branch("hit_ctime_noclk", &event.hit_ctime_noclk);
-
   tree->Branch("ntTpc_target", &event.ntTpc_inside);
   tree->Branch("prodvtx_x", &event.prodvtx_x);
   tree->Branch("prodvtx_y", &event.prodvtx_y);

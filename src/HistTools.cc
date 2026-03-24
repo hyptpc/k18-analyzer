@@ -39,8 +39,64 @@ const Double_t mh_time_bins[3]      = {500., -50., 50.};
 const Double_t hr_tot_time_bins[3]  = {1000., 0., 200.};
 const Double_t de_bins[3]           = {1000., 0., 10.};
 const Double_t npe_bins[3]          = {700., -50., 300.};  // for Cherenkov (BAC, KVC, SAC3)
-// TPC
-const Double_t tpc_event_display_bins[4] = { -300., 300., -300., 300. };
+
+
+// HB2Poly bounds: {xmin, xmax, ymin, ymax}
+const Double_t TPC_EVENT_DISPLAY_BINS[4] = { -300., 300., -300., 300. };
+
+// --- Track / vertex common (axes shared with TPC–external reference plots) ---
+const Double_t TPC_BINS_LAYER[3] = { static_cast<Double_t>(NumOfLayersTPC),
+                                     -0.5,
+                                     static_cast<Double_t>(NumOfLayersTPC) - 0.5 };
+const Double_t TPC_BINS_ROW_VS_LAYER[6] = {
+  static_cast<Double_t>(NumOfLayersTPC), -0.5, static_cast<Double_t>(NumOfLayersTPC) - 0.5,
+  244., -0.5, 243.5
+};
+const Double_t TPC_BINS_MULT[3]       = {40.,    0.,   40.};
+const Double_t TPC_BINS_HITS[3]       = {50.,    0.,   50.};
+const Double_t TPC_BINS_CHISQR[3]     = {500.,   0.,  100.};
+const Double_t TPC_BINS_POS_X[3]      = {500., -250., 250.};
+const Double_t TPC_BINS_POS_Y[3]      = {400., -100., 100.};
+const Double_t TPC_BINS_SLOPE[3]      = {200., -0.20, 0.20};
+const Double_t TPC_BINS_ATAN_DEG[3]   = {100., -20.0,  20.0};
+
+// --- Residuals & pulls (TPC fit / hit / cluster) ---
+const Double_t TPC_BINS_RES_TRACK[3]  = {200.,  -2.0,  2.0};
+const Double_t TPC_BINS_RES_MED[3]    = {200.,  -8.0,  8.0};
+const Double_t TPC_BINS_RES_HIT[3]    = {100., -20.0, 20.0};
+const Double_t TPC_BINS_RES_ABS[3]    = {200.,   0.0, 10.0};
+const Double_t TPC_BINS_PULL[3]       = {200.,  -5.0,  5.0};
+const Double_t TPC_BINS_RES_TGT[3]    = {640., -16.0,  16.0};
+const Double_t TPC_BINS_RES_TGT_SLOPE[3]  = {200., -0.05, 0.05};
+
+// --- External reference track (BcOut) axes in TPC analysis context ---
+const Double_t TPC_BINS_EXT_MULT[3]        = {20.,    0.,   20.};
+const Double_t TPC_BINS_EXT_CHISQR[3]      = {500.,   0.,  500.};
+const Double_t TPC_BINS_EXT_TGT_POS[3]     = {400., -200., 200.};
+const Double_t TPC_BINS_EXT_TGT_SLOPE_U[3] = {400., -0.15, 0.15};
+const Double_t TPC_BINS_EXT_TGT_SLOPE_V[3] = {400., -0.05, 0.05};
+
+// --- Clock time (CoBo / AsAd) ---
+const Double_t TPC_BINS_CLOCK[3]       = {480., -60.0, 60.0};
+
+// --- BuildTPCTracking: cluster & fitter diagnostics (promoted from function-local) ---
+const Double_t TPC_BINS_DE[3]          = {1000.,  0., 2000.};
+const Double_t TPC_BINS_CL_SIZE[3]     = {25.,    0.,   25.};
+const Double_t TPC_BINS_DIFF_PAD[3]    = {60.,  -15.0,  15.0};
+const Double_t TPC_BINS_HOUGH[3]       = {500.,   0.,   50.};
+const Double_t TPC_BINS_TIME_MS[3]     = {100.,   0.,  100.};
+const Double_t TPC_BINS_ITER[3]        = {100.,   0.,  100.};
+const Double_t TPC_BINS_FLAG[3]        = {10.,    0.,   10.};
+const Double_t TPC_BINS_MINUIT[3]      = {5.,     0.,    5.};
+const Double_t TPC_BINS_CLUSTER_RATIO[3] = {100., 0., 1.};
+
+// --- BuildTPCBcOutTracking: 2D residual vs external target (promoted from function-local) ---
+const Double_t TPC_BINS_RES_TGT_2D_POS[3] = {400., -150., 150.};
+const Double_t TPC_BINS_RES_TGT_2D_X[3]   = {400., -10., 10.};
+const Double_t TPC_BINS_RES_TGT_2D_Y[3]   = {400., -15., 15.};
+const Double_t TPC_BINS_RES_TGT_2D_UV[3]  = {400., -0.03, 0.03};
+const Double_t TPC_BINS_RES_LOCAL_X[3]    = {400., -16.,  16.};
+const Double_t TPC_BINS_RES_XY_NORM[3]    = {100.,   0.,   8.};
 
 //_____________________________________________________________________________
 void
@@ -727,8 +783,8 @@ BuildTPCHit()
   HB1("TPC_Clock_TDC",  200000, 0.,    2000000.);
   HB1("TPC_Clock_Time", 20000,  -100., 100.);
 
-  HB2Poly("TPC_HitPat_Noise",    tpc_event_display_bins);
-  HB2Poly("TPC_HitPat_Baseline", tpc_event_display_bins);
+  HB2Poly("TPC_HitPat_Noise",    TPC_EVENT_DISPLAY_BINS);
+  HB2Poly("TPC_HitPat_Baseline", TPC_EVENT_DISPLAY_BINS);
   tpc::InitializeHistograms("TPC_HitPat_Noise");
   tpc::InitializeHistograms("TPC_HitPat_Baseline");
 }
@@ -737,295 +793,240 @@ BuildTPCHit()
 void
 BuildTPCBasic()
 {
-  // {n_bin, x_min, x_max}
-  const Double_t tpc_bins_mult[3]   = {40.,    0.,   40.};   // N_track, N_hits
-  const Double_t tpc_bins_hits[3]   = {50.,    0.,   50.};
-  const Double_t tpc_bins_chisqr[3] = {500.,   0.,  100.};
-  const Double_t tpc_bins_pos[3]    = {400., -100., 100.};   // mm (X0, Y0)
-  const Double_t tpc_bins_slope[3]  = {200., -0.20, 0.20};   // dy/dx, dz/dx
+  HB1("TPCTrk_Num_Track;N_{track} (TPC Track);Counts", TPC_BINS_MULT);
+  HB1("TPCTrk_Num_TrackHits;N_{hits} (TPC Track);Counts", TPC_BINS_HITS);
+  HB1("TPCTrk_Chisqr;#chi^{2} (TPC Track);Counts", TPC_BINS_CHISQR);
+  HB1("TPCTrk_X0;X_{0} (TPC Track) [mm];Counts", TPC_BINS_POS_X);
+  HB1("TPCTrk_Y0;Y_{0} (TPC Track) [mm];Counts", TPC_BINS_POS_Y);
+  HB1("TPCTrk_U0;U_{0} (TPC Track) (dY/dX);Counts", TPC_BINS_SLOPE);
+  HB1("TPCTrk_V0;V_{0} (TPC Track) (dZ/dX);Counts", TPC_BINS_SLOPE);
 
-  HB1("Num_Track_TPC;N_{track};Counts", tpc_bins_mult);
-  HB1("Num_Track_TPC_Hits;N_{hits};Counts", tpc_bins_hits);
-  HB1("Chisqr_TPC;#chi^{2};Counts", tpc_bins_chisqr);
-  HB1("X0_TPC;X_{0} [mm];Counts", tpc_bins_pos);
-  HB1("Y0_TPC;Y_{0} [mm];Counts", tpc_bins_pos);
-  HB1("U0_TPC;dY/dX;Counts", tpc_bins_slope);
-  HB1("V0_TPC;dZ/dX;Counts", tpc_bins_slope);
+  HB2("TPCTrk_U0_vs_X0;X_{0} [mm];U_{0} (dY/dX)", TPC_BINS_POS_X, TPC_BINS_SLOPE);
+  HB2("TPCTrk_V0_vs_Y0;Y_{0} [mm];V_{0} (dZ/dX)", TPC_BINS_POS_Y, TPC_BINS_SLOPE);
+  HB2("TPCTrk_Y0_vs_X0;X_{0} [mm];Y_{0} [mm]", TPC_BINS_POS_X, TPC_BINS_POS_Y);
+  HB2("TPCTrk_atanU0_vs_X0;X_{0} [mm];atan(U_{0}) [deg]", TPC_BINS_POS_X, TPC_BINS_ATAN_DEG);
+  HB2("TPCTrk_atanV0_vs_Y0;Y_{0} [mm];atan(V_{0}) [deg]", TPC_BINS_POS_Y, TPC_BINS_ATAN_DEG);
 }
 
 //_____________________________________________________________________________
 void
 BuildTPCTracking()
 {
-  // 1D: {n_bin, x_min, x_max}
-  const Double_t trk_bins_hough[3]      = {500.,    0.,   50.};   // mm
-  const Double_t trk_bins_time[3]       = {100.,    0.,  100.};   // ms
-  const Double_t trk_bins_iter[3]       = {100.,    0.,  100.};
-  const Double_t trk_bins_flag[3]       = {10.,     0.,   10.};
-  const Double_t trk_bins_minuit[3]     = {5.,      0.,    5.};
-  const Double_t trk_bins_pos_wide[3]   = {200., -250.,  250.};   // mm
-  const Double_t trk_bins_res_abs[3]    = {200.,    0.,  10.};    // mm |Residual|
-  const Double_t trk_bins_res[3]        = {200.,  -2.0,  2.0};    // mm (X,Y,Z)
-  const Double_t trk_bins_cl_size[3]    = {25.,     0.,  25.};
-  const Double_t trk_bins_de[3]         = {1000.,   0., 2000.};   // keV or ADC
-  // 2D: {n_bin_x, x_min, x_max, n_bin_y, y_min, y_max}
-  const Double_t trk_bins_2d_pos_slope[6]  = {100., -100., 100., 100., -0.20, 0.20};  // mm, dy/dx
-  const Double_t trk_bins_2d_pos_pos[6]    = {100., -100., 100., 100., -100., 100.};  // mm
-  const Double_t trk_bins_2d_res_vs_pos[6] = {250., -250., 250., 100.,  -1.0,  1.0};  // mm
-  const Double_t trk_bins_2d_pos_wide[6]   = {100., -250., 250., 100., -250., 250.};  // mm
-  const Double_t trk_bins_2d_ratio[6]      = {60.,  -15.,  15., 100.,    0.,  1.};   // mm, A/A_sum
+  HB1("TPCTrk_Hough_Dist;Hough distance [mm];Counts", TPC_BINS_HOUGH);
+  HB1("TPCTrk_Hough_DistY;Hough distance Y [mm];Counts", TPC_BINS_HOUGH);
+  HB1("TPCTrk_Num_Iter;N_{iter};Counts", TPC_BINS_ITER);
+  HB1("TPCTrk_Fitting_Flag;Flag;Counts", TPC_BINS_FLAG);
+  HB1("TPCTrk_Searching_Time;Time [ms];Counts", TPC_BINS_TIME_MS);
+  HB1("TPCTrk_Fitting_Time;Time [ms];Counts", TPC_BINS_TIME_MS);
+  HB1("TPCTrk_Minuit_Status;Status;Counts", TPC_BINS_MINUIT);
 
-
-  HB1("Hough_Dist;Hough distance [mm];Counts", trk_bins_hough);
-  HB1("Hough_Dist_Y;Hough distance Y [mm];Counts", trk_bins_hough);
-  HB1("Num_Tracking_Iterations;N_{iter};Counts", trk_bins_iter);
-  HB1("Fitting_Flag;Flag;Counts", trk_bins_flag);
-  HB1("Track_Searching_Time;Time [ms];Counts", trk_bins_time);
-  HB1("Track_Fitting_Time;Time [ms];Counts", trk_bins_time);
-  HB1("Minuit_Output_Status;Status;Counts", trk_bins_minuit);
-
-  HB1("Layer_Id_TPC;Layer;Counts", NumOfLayersTPC, -0.5, NumOfLayersTPC - 0.5);
-  HB2("U0_vs_X0_TPC;X_{0} [mm];dY/dX", trk_bins_2d_pos_slope);
-  HB2("V0_vs_Y0_TPC;Y_{0} [mm];dZ/dX", trk_bins_2d_pos_slope);
-  HB2("X0_vs_Y0_TPC;Y_{0} [mm];X_{0} [mm]", trk_bins_2d_pos_pos);
-
+  HB1("TPCTrk_Layer;Layer;Counts", TPC_BINS_LAYER);
   for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
     const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
-    HB1(Form("HitPat_TPC_Layer%02d;Row;Counts", layer), n_pad, -0.5, n_pad - 0.5);
-    HB1(Form("Position_TPC_Layer%02d;Position [mm];Counts", layer), trk_bins_pos_wide);
-    HB1(Form("Residual_TPC_Layer%02d;|Residual| [mm];Counts", layer), trk_bins_res_abs);
-    HB2(Form("Residual_vs_Position_TPC_Layer%02d;Position [mm];Residual [mm]", layer), trk_bins_2d_res_vs_pos);
-    HB2(Form("Yhit_vs_Xcal_TPC_Layer%02d;X_{cal} [mm];Y_{hit} [mm]", layer), trk_bins_2d_pos_wide);
-    HB1(Form("ResidualX_TPC_Layer%02d;Residual X [mm];Counts", layer), trk_bins_res);
-    HB1(Form("ResidualY_TPC_Layer%02d;Residual Y [mm];Counts", layer), trk_bins_res);
-    HB1(Form("ResidualZ_TPC_Layer%02d;Residual Z [mm];Counts", layer), trk_bins_res);
+    HB1(Form("TPCHit_HitPat_Layer%02d;Row;Counts", layer), n_pad, -0.5, n_pad - 0.5);
+    HB1(Form("TPCHit_Xhit_Layer%02d;X (TPC Hit) [mm];Counts", layer), TPC_BINS_POS_X);
+    HB1(Form("TPCTrk_Res_Layer%02d;Residual (TPC Hit - TPC Track) [mm];Counts", layer), TPC_BINS_RES_ABS);
+    HB2(Form("TPCTrk_Res_vs_Xhit_Layer%02d;X (TPC Hit) [mm];Residual (TPC Hit - TPC Track) [mm]", layer), TPC_BINS_POS_X, TPC_BINS_RES_TRACK);
+    HB2(Form("TPCHit_Yhit_vs_Xtrk_Layer%02d;X (TPC Track) [mm];Y (TPC Hit) [mm]", layer), TPC_BINS_POS_X, TPC_BINS_POS_Y);
+    HB1(Form("TPCTrk_ResX_Layer%02d;Residual X (TPC Hit - TPC Track) [mm];Counts", layer), TPC_BINS_RES_TRACK);
+    HB1(Form("TPCTrk_ResY_Layer%02d;Residual Y (TPC Hit - TPC Track) [mm];Counts", layer), TPC_BINS_RES_TRACK);
+    HB1(Form("TPCTrk_ResZ_Layer%02d;Residual Z (TPC Hit - TPC Track) [mm];Counts", layer), TPC_BINS_RES_TRACK);
   }
 
-  HB1("Cluster_size;Cluster size;Counts", trk_bins_cl_size);
-  HB1("Cluster_dE;Cluster dE [keV];Counts", trk_bins_de);
-  HB2("Ratio_vs_Dist_Transverse_diffusion;X_{cluster}-X_{pad} [mm];A/A_{sum}", trk_bins_2d_ratio);
+  HB1("TPCCl_Size;Cluster size;Counts", TPC_BINS_CL_SIZE);
+  HB1("TPCCl_dE;Cluster dE;Counts", TPC_BINS_DE);
+  HB2("TPCCl_Ratio_vs_Dist_Diff;X_{cluster}-X_{pad} [mm];A/A_{sum}", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
   for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
-    HB1(Form("Cluster_size_layer%02d;Cluster size;Counts", layer), trk_bins_cl_size);
-    HB1(Form("Cluster_dE_layer%02d;Cluster dE [keV];Counts", layer), trk_bins_de);
-    HB2(Form("Ratio_vs_Dist_Transverse_diffusion_Layer%02d;X_{cluster}-X_{pad} [mm];A/A_{sum}", layer), trk_bins_2d_ratio);
+    HB1(Form("TPCCl_Size_Layer%02d;Cluster size;Counts", layer), TPC_BINS_CL_SIZE);
+    HB1(Form("TPCCl_dE_Layer%02d;Cluster dE;Counts", layer), TPC_BINS_DE);
+    HB2(Form("TPCCl_Ratio_vs_Dist_Diff_Layer%02d;X_{cluster}-X_{pad} [mm];A/A_{sum}", layer), TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
   }
 
-  // TH2Poly: track-hit pad occupancy for event-display
-  HB2Poly("TPC_TrackHitPat", tpc_event_display_bins);
-  tpc::InitializeHistograms("TPC_TrackHitPat");
+  HB2Poly("TPCTrk_HitPat", TPC_EVENT_DISPLAY_BINS);
+  tpc::InitializeHistograms("TPCTrk_HitPat");
+
+  HB2("TPCTrk_Row_vs_Layer;Layer;Row", TPC_BINS_ROW_VS_LAYER);
+
+  HB2("TPCTrk_ResY_vs_Layer_Trk;Layer;Residual Y (TPC Cluster - TPC Track) [mm]", TPC_BINS_LAYER, TPC_BINS_RES_HIT);
+  for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
+    const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
+    for (Int_t row = 0; row < n_pad; ++row) {
+      HB1(Form("TPCTrk_ResY_Layer%02d_Row%03d;Residual Y (TPC Cluster - TPC Track) [mm];Counts", layer, row), TPC_BINS_RES_HIT);
+      HB2(Form("TPCTrk_ResY_vs_Y_Layer%02d_Row%03d;Y_{TPC Track} (local) [mm];Residual Y (TPC Cluster - TPC Track) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+    }
+  }
+
+  BuildCoBoClockTime(hist::kCoBoClockTime_Track);
 }
 
 //_____________________________________________________________________________
 void
 BuildTPCBcOutTracking()
 {
-  // 1D: {n_bin, x_min, x_max}
-  const Double_t bc_bins_mult[3]       = {40.,    0.,   40.};
-  const Double_t bc_bins_hits[3]       = {50.,    0.,   50.};
-  const Double_t bc_bins_chisqr[3]     = {500.,   0.,  500.};
-  const Double_t bc_bins_pos_1d[3]     = {400., -100., 100.};   // mm (X0,Y0,Xtgt,Ytgt)
-  const Double_t bc_bins_slope_1d[3]   = {200., -0.20, 0.20};   // dY/dX, dZ/dX
-  const Double_t bc_bins_diff_xy[3]    = {640.,  -16.,  16.};   // BcOut-Tpc [mm]
-  const Double_t bc_bins_diff_slope[3] = {200., -0.05, 0.05};   // BcOut-Tpc
-  const Double_t bc_bins_pull[3]       = {200.,  -5.,   5.};
-  const Double_t bc_bins_res[3]        = {200.,  -8.,   8.};    // mm
-  const Double_t bc_bins_res_local_x[3] = {400., -16.,  16.};   // mm
-  const Double_t bc_bins_xz[3]         = {100.,   0.,   8.};    // mm |Residual XZ|
+  HB1("BcOut_Num_Track;N_{track};Counts", TPC_BINS_EXT_MULT);
+  HB1("BcOut_Num_TrackHits;N_{hits};Counts", TPC_BINS_HITS);
+  HB1("BcOut_Chisqr;#chi^{2};Counts", TPC_BINS_EXT_CHISQR);
+  HB1("BcOut_X0;X_{0} [mm];Counts", TPC_BINS_POS_X);
+  HB1("BcOut_Y0;Y_{0} [mm];Counts", TPC_BINS_POS_Y);
+  HB1("BcOut_U0;U_{0} (dY/dX);Counts", TPC_BINS_SLOPE);
+  HB1("BcOut_V0;V_{0} (dZ/dX);Counts", TPC_BINS_SLOPE);
+  HB1("BcOut_XTgt;X_{tgt} [mm];Counts", TPC_BINS_POS_X);
+  HB1("BcOut_YTgt;Y_{tgt} [mm];Counts", TPC_BINS_POS_Y);
+  HB1("BcOut_UTgt;U_{tgt} (dY/dX);Counts", TPC_BINS_SLOPE);
+  HB1("BcOut_VTgt;V_{tgt} (dZ/dX);Counts", TPC_BINS_SLOPE);
+  HB2("BcOut_UTgt_vs_XTgt;X_{tgt} [mm];U_{tgt} (dY/dX)", TPC_BINS_POS_X, TPC_BINS_SLOPE);
+  HB2("BcOut_VTgt_vs_YTgt;Y_{tgt} [mm];V_{tgt} (dZ/dX)", TPC_BINS_POS_Y, TPC_BINS_SLOPE);
+  HB2("BcOut_YTgt_vs_XTgt;X_{tgt} [mm];Y_{tgt} [mm]", TPC_BINS_POS_X, TPC_BINS_POS_Y);
 
-  // 2D: {n_bin_x, x_min, x_max, n_bin_y, y_min, y_max}
-  const Double_t bc_bins_2d_pos_slope[6]  = {100., -100., 100., 100., -0.20, 0.20};  // mm, dY/dX
-  const Double_t bc_bins_2d_pos_pos[6]    = {100., -100., 100., 100., -100., 100.};  // mm
-  const Double_t bc_bins_2d_atan[6]       = {300., -300., 300., 100.,  -20.,  20.};  // mm, atan [deg]
-  const Double_t bc_bins_2d_xtgt[6]       = {400., -200., 200., 400., -200., 200.};  // Xtgt BcOut vs Tpc
-  const Double_t bc_bins_2d_ytgt[6]       = {400., -100., 100., 400., -100., 100.};  // Ytgt BcOut vs Tpc
-  const Double_t bc_bins_2d_utgt[6]       = {400., -0.15, 0.15, 400., -0.15, 0.15};
-  const Double_t bc_bins_2d_vtgt[6]       = {400., -0.05, 0.05, 400., -0.05, 0.05};
-  const Double_t bc_bins_2d_diff_xtgt[6]  = {400., -150., 150., 400.,  -10.,  10.};  // BcOut-Tpc [mm]
-  const Double_t bc_bins_2d_diff_ytgt[6]  = {400., -150., 150., 400.,  -15.,  15.};
-  const Double_t bc_bins_2d_diff_utgt[6]  = {400., -0.15, 0.15, 400., -0.03, 0.03};
-  const Double_t bc_bins_2d_diff_vtgt[6]  = {400., -0.05, 0.05, 400., -0.03, 0.03};
-  // Parameter tuning: Position correction (BcOut reference)
-  const Double_t bc_bins_2d_resx_vs_x[6]   = {200., -100., 100., 100., -20.0, 20.0};  // X (global) [mm], Residual X [mm]
-  const Double_t bc_bins_2d_resy_vs_y[6]   = {200., -100., 100., 100., -20.0, 20.0};  // Y (TPC/BcOut Tracking) [mm], Residual Y (BcOut) [mm]
-  const Double_t bc_bins_2d_layer_res_y[6] = {
-    static_cast<Double_t>(NumOfLayersTPC), -0.5, static_cast<Double_t>(NumOfLayersTPC) - 0.5,
-    400., -5., 5.
-  };  // Layer, Residual Y [mm] (Layer_vs_ResY, TPC_Residual*_BcOut_vs_Layer)
-  const Double_t bc_bins_2d_clocktime_resy[6] = { 200., -60., 50., 200., -20., 20. }; // Clock Time [ns], Residual Y (BcOut) [mm]
+  HB2("BcOut_vs_TPC_XTgt;TPC X_{tgt} [mm];BcOut X_{tgt} [mm]", TPC_BINS_EXT_TGT_POS, TPC_BINS_EXT_TGT_POS);
+  HB2("BcOut_vs_TPC_YTgt;TPC Y_{tgt} [mm];BcOut Y_{tgt} [mm]", TPC_BINS_POS_Y, TPC_BINS_POS_Y);
+  HB2("BcOut_vs_TPC_UTgt;TPC U_{tgt} (dY/dX);BcOut U_{tgt} (dY/dX)", TPC_BINS_EXT_TGT_SLOPE_U, TPC_BINS_EXT_TGT_SLOPE_U);
+  HB2("BcOut_vs_TPC_VTgt;TPC V_{tgt} (dZ/dX);BcOut V_{tgt} (dZ/dX)", TPC_BINS_EXT_TGT_SLOPE_V, TPC_BINS_EXT_TGT_SLOPE_V);
+  HB1("TPCTrk_ResX_Tgt;Residual X (TPC Track - BcOut) [mm];Counts", TPC_BINS_RES_TGT);
+  HB1("TPCTrk_ResY_Tgt;Residual Y (TPC Track - BcOut) [mm];Counts", TPC_BINS_RES_TGT);
+  HB1("TPCTrk_ResU_Tgt;Residual U (TPC Track - BcOut);Counts", TPC_BINS_RES_TGT_SLOPE);
+  HB1("TPCTrk_ResV_Tgt;Residual V (TPC Track - BcOut);Counts", TPC_BINS_RES_TGT_SLOPE);
 
-  HB2("X0_vs_U0_TPC;X_{0} [mm];dY/dX", bc_bins_2d_pos_slope);
-  HB2("Y0_vs_V0_TPC;Y_{0} [mm];dZ/dX", bc_bins_2d_pos_slope);
-  HB2("X0_vs_Y0_TPC;X_{0} [mm];Y_{0} [mm]", bc_bins_2d_pos_pos);
+  HB2("TPCTrk_ResX_Tgt_vs_XTgt;BcOut X_{tgt} [mm];TPC Track - BcOut [mm]", TPC_BINS_RES_TGT_2D_POS, TPC_BINS_RES_TGT_2D_X);
+  HB2("TPCTrk_ResY_Tgt_vs_YTgt;BcOut Y_{tgt} [mm];TPC Track - BcOut [mm]", TPC_BINS_RES_TGT_2D_POS, TPC_BINS_RES_TGT_2D_Y);
+  HB2("TPCTrk_ResU_Tgt_vs_UTgt;BcOut U_{tgt} (dY/dX);TPC Track - BcOut", TPC_BINS_EXT_TGT_SLOPE_U, TPC_BINS_RES_TGT_2D_UV);
+  HB2("TPCTrk_ResV_Tgt_vs_VTgt;BcOut V_{tgt} (dZ/dX);TPC Track - BcOut", TPC_BINS_EXT_TGT_SLOPE_V, TPC_BINS_RES_TGT_2D_UV);
 
-  HB2("X0_vs_atanU0_TPC;X_{0} [mm];atan(dY/dX) [deg]", bc_bins_2d_atan);
-  HB2("Y0_vs_atanV0_TPC;Y_{0} [mm];atan(dZ/dX) [deg]", bc_bins_2d_atan);
-
-  HB1("Num_Track_BcOut;N_{track};Counts", bc_bins_mult);
-  HB1("Num_Track_BcOut_Hits;N_{hits};Counts", bc_bins_hits);
-  HB1("Chisqr_BcOut;#chi^{2};Counts", bc_bins_chisqr);
-  HB1("X0_BcOut;X_{0} [mm];Counts", bc_bins_pos_1d);
-  HB1("Y0_BcOut;Y_{0} [mm];Counts", bc_bins_pos_1d);
-  HB1("U0_BcOut;dY/dX;Counts", bc_bins_slope_1d);
-  HB1("V0_BcOut;dZ/dX;Counts", bc_bins_slope_1d);
-  HB1("Xtgt_BcOut;X_{tgt} [mm];Counts", bc_bins_pos_1d);
-  HB1("Ytgt_BcOut;Y_{tgt} [mm];Counts", bc_bins_pos_1d);
-  HB1("Utgt_BcOut;dY/dX;Counts", bc_bins_slope_1d);
-  HB1("Vtgt_BcOut;dZ/dX;Counts", bc_bins_slope_1d);
-  HB2("Xtgt_vs_Utgt_BcOut;X_{tgt} [mm];dY/dX", bc_bins_2d_pos_slope);
-  HB2("Ytgt_vs_Vtgt_BcOut;Y_{tgt} [mm];dZ/dX", bc_bins_2d_pos_slope);
-  HB2("Xtgt_vs_Ytgt_BcOut;X_{tgt} [mm];Y_{tgt} [mm]", bc_bins_2d_pos_pos);
-
-  HB2("Xtgt_BcOut_vs_Tpc;Tpc X_{tgt} [mm];BcOut X_{tgt} [mm]", bc_bins_2d_xtgt);
-  HB2("Ytgt_BcOut_vs_Tpc;Tpc Y_{tgt} [mm];BcOut Y_{tgt} [mm]", bc_bins_2d_ytgt);
-  HB2("Utgt_BcOut_vs_Tpc;Tpc dY/dX;BcOut dY/dX", bc_bins_2d_utgt);
-  HB2("Vtgt_BcOut_vs_Tpc;Tpc dZ/dX;BcOut dZ/dX", bc_bins_2d_vtgt);
-  HB1("Xtgt_Diff;BcOut-Tpc [mm];Counts", bc_bins_diff_xy);
-  HB1("Ytgt_Diff;BcOut-Tpc [mm];Counts", bc_bins_diff_xy);
-  HB1("Utgt_Diff;BcOut-Tpc;Counts", bc_bins_diff_slope);
-  HB1("Vtgt_Diff;BcOut-Tpc;Counts", bc_bins_diff_slope);
-
-  HB2("Xtgt_Diff_vs_Xtgt_BcOut;BcOut X_{tgt} [mm];BcOut-Tpc [mm]", bc_bins_2d_diff_xtgt);
-  HB2("Ytgt_Diff_vs_Ytgt_BcOut;BcOut Y_{tgt} [mm];BcOut-Tpc [mm]", bc_bins_2d_diff_ytgt);
-  HB2("Utgt_Diff_vs_Utgt_BcOut;BcOut dY/dX;BcOut-Tpc", bc_bins_2d_diff_utgt);
-  HB2("Vtgt_Diff_vs_Vtgt_BcOut;BcOut dZ/dX;BcOut-Tpc", bc_bins_2d_diff_vtgt);
-
-  HB2("Layer_vs_ResY;Layer;Y Residual [mm]", bc_bins_2d_layer_res_y);
+  HB2("TPCTrk_ResY_vs_Layer;Layer;Residual Y (TPC Hit - TPC Track) [mm]", TPC_BINS_LAYER, TPC_BINS_RES_MED);
   for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
-    HB1(Form("TPC_Layer%02d_X_Pull;Pull;Counts", layer), bc_bins_pull);
-    HB1(Form("TPC_Layer%02d_Y_Pull;Pull;Counts", layer), bc_bins_pull);
-    HB1(Form("TPC_Layer%02d_Z_Pull;Pull;Counts", layer), bc_bins_pull);
-    HB1(Form("TPC_Layer%02d_Local_X_Pull;Pull;Counts", layer), bc_bins_pull);
-    HB1(Form("TPC_Layer%02d_Local_Y_Pull;Pull;Counts", layer), bc_bins_pull);
+    HB1(Form("TPC_PullX_Layer%02d;Pull;Counts", layer), TPC_BINS_PULL);
+    HB1(Form("TPC_PullY_Layer%02d;Pull;Counts", layer), TPC_BINS_PULL);
+    HB1(Form("TPC_PullZ_Layer%02d;Pull;Counts", layer), TPC_BINS_PULL);
+    HB1(Form("TPC_PullLocalX_Layer%02d;Pull;Counts", layer), TPC_BINS_PULL);
+    HB1(Form("TPC_PullLocalY_Layer%02d;Pull;Counts", layer), TPC_BINS_PULL);
 
-    HB1(Form("TPC_Layer%02d_X_Residual;Residual X [mm];Counts", layer), bc_bins_res);
-    HB1(Form("TPC_Layer%02d_Y_Residual;Residual Y [mm];Counts", layer), bc_bins_res);
-    HB1(Form("TPC_Layer%02d_Z_Residual;Residual Z [mm];Counts", layer), bc_bins_res);
-    HB1(Form("TPC_Layer%02d_Local_X_Residual;Residual local X [mm];Counts", layer), bc_bins_res_local_x);
-    HB1(Form("TPC_Layer%02d_Local_Y_Residual;Residual local Y [mm];Counts", layer), bc_bins_res);
-    HB1(Form("TPC_Layer%02d_XZ_Residual;|Residual XZ| [mm];Counts", layer), bc_bins_xz);
+    HB1(Form("TPCTrk_ResX_Layer%02d;Residual X (TPC Hit - TPC Track) [mm];Counts", layer), TPC_BINS_RES_MED);
+    HB1(Form("TPCTrk_ResY_Layer%02d;Residual Y (TPC Hit - TPC Track) [mm];Counts", layer), TPC_BINS_RES_MED);
+    HB1(Form("TPCTrk_ResZ_Layer%02d;Residual Z (TPC Hit - TPC Track) [mm];Counts", layer), TPC_BINS_RES_MED);
+    HB1(Form("TPCTrk_ResLocalX_Layer%02d;Residual local X (TPC Hit - TPC Track) [mm];Counts", layer), TPC_BINS_RES_LOCAL_X);
+    HB1(Form("TPCTrk_ResLocalY_Layer%02d;Residual local Y (TPC Hit - TPC Track) [mm];Counts", layer), TPC_BINS_RES_MED);
+    HB1(Form("TPCTrk_ResXY_Layer%02d;|TPC Hit - TPC Track (XY)| [mm];Counts", layer), TPC_BINS_RES_XY_NORM);
 
-    HB1(Form("TPC_Layer%02d_BcOut_X_Residual;Residual X [mm];Counts", layer), bc_bins_res);
-    HB1(Form("TPC_Layer%02d_BcOut_Y_Residual;Residual Y [mm];Counts", layer), bc_bins_res);
-    // Parameter tuning: Position correction (BcOut reference)
-    HB2(Form("TPC_ResidualX_vs_X_BcOut_Layer%02d;X (global) [mm];Residual X (BcOut) [mm]", layer), bc_bins_2d_resx_vs_x);
-    HB2(Form("TPC_ResidualY_vs_Y_TPC_Layer%02d;Y (TPC Tracking) [mm];Residual Y (BcOut) [mm]", layer), bc_bins_2d_resy_vs_y);
-    HB2(Form("TPC_ResidualY_vs_Y_BcOut_Layer%02d;Y (BcOut Tracking) [mm];Residual Y (BcOut) [mm]", layer), bc_bins_2d_resy_vs_y);
-    // Parameter tuning: Row-dependent residual (BcOut reference)
+    HB1(Form("TPCCl_ResX_Layer%02d;Residual X (TPC Cluster - BcOut) [mm];Counts", layer), TPC_BINS_RES_MED);
+    HB1(Form("TPCCl_ResY_Layer%02d;Residual Y (TPC Cluster - BcOut) [mm];Counts", layer), TPC_BINS_RES_MED);
+    HB2(Form("TPCCl_ResX_vs_X_Layer%02d;X_{global} [mm];Residual X (TPC Cluster - BcOut) [mm]", layer), TPC_BINS_POS_X, TPC_BINS_RES_HIT);
+    HB2(Form("TPCCl_ResY_vs_Y_TPC_Layer%02d;Y (TPC Track) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+    HB2(Form("TPCCl_ResY_vs_Y_BcOut_Layer%02d;Y (BcOut Track) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
     const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
     for (Int_t row = 0; row < n_pad; ++row) {
-      HB2(Form("TPC_ResidualY_vs_Y_TPC_Layer%02d_Row%03d;Y (TPC Tracking) [mm];Residual Y (BcOut) [mm]", layer, row), bc_bins_2d_resy_vs_y);
-      HB2(Form("TPC_ResidualY_vs_Y_BcOut_Layer%02d_Row%03d;Y (BcOut Tracking) [mm];Residual Y (BcOut) [mm]", layer, row), bc_bins_2d_resy_vs_y);
+      HB2(Form("TPCCl_ResY_vs_Y_TPC_Layer%02d_Row%03d;Y (TPC Track) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+      HB2(Form("TPCCl_ResY_vs_Y_BcOut_Layer%02d_Row%03d;Y (BcOut Track) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
     }
   }
-  
-  // Parameter tuning: Layer-dependent residual distribution (BcOut reference)
-  HB2("TPC_ResidualX_BcOut_vs_Layer;Layer;Residual X (BcOut) [mm]", bc_bins_2d_layer_res_y);
-  HB2("TPC_ResidualY_BcOut_vs_Layer;Layer;Residual Y (BcOut) [mm]", bc_bins_2d_layer_res_y);
+  HB2("TPCCl_ResX_vs_Layer;Layer;Residual X (TPC Cluster - BcOut) [mm]", TPC_BINS_LAYER, TPC_BINS_RES_MED);
+  HB2("TPCCl_ResY_vs_Layer;Layer;Residual Y (TPC Cluster - BcOut) [mm]", TPC_BINS_LAYER, TPC_BINS_RES_MED);
 
-  // Parameter tuning: Clock time vs BcOut Residual Y (CoBo and Asad)
-  for(Int_t c=0; c<NumOfSegCOBO; ++c){
-    HB2(Form("TPC_ResidualY_BcOut_vs_ClockTime_CoBo%d;Clock Time [ns];Residual Y (BcOut) [mm]", c), bc_bins_2d_clocktime_resy);
-    HB2(Form("TPC_ResidualY_BcOut_vs_ClockTime_CoBo%d_RawClock;Clock Time [ns];Residual Y (BcOut) [mm]", c), bc_bins_2d_clocktime_resy);
-#ifdef DEBUG_COBO_CLOCK
-    HB2(Form("TPC_ResidualY_BcOut_vs_ClockTime_CoBo%d_NoClock;Clock Time [ns];Residual Y (BcOut) [mm]", c), bc_bins_2d_clocktime_resy);
-#endif
-  }
-  for(Int_t a=0; a<NumOfAsadTPC; ++a){
-    HB2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Asad%02d;Clock Time [ns];Residual Y (BcOut) [mm]", a), bc_bins_2d_clocktime_resy);
-    HB2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Asad%02d_RawClock;Clock Time [ns];Residual Y (BcOut) [mm]", a), bc_bins_2d_clocktime_resy);
-#ifdef DEBUG_COBO_CLOCK
-    HB2(Form("TPC_ResidualY_BcOut_vs_ClockTime_Asad%02d_NoClock;Clock Time [ns];Residual Y (BcOut) [mm]", a), bc_bins_2d_clocktime_resy);
-#endif
-  }
+  BuildCoBoClockTime(hist::kCoBoClockTime_Track);
 }
 
 void
 BuildTPCHitBcOutTracking()
 {
-  const Double_t residual_bins[3]       = {200.,  -20.,  20.};    // mm
-  const Double_t residual_bins_2d[6]    = {200., -100., 100., 200., -20.0, 20.0};
-  const Double_t residual_layer_bins[6] = {
-    static_cast<Double_t>(NumOfLayersTPC), -0.5, static_cast<Double_t>(NumOfLayersTPC) - 0.5,
-    200., -20., 20.
-  };
-  const Double_t residual_clocktime_bins[6] = { 200., -50., 50., 200., -20., 20. };
-  const Double_t row_layer_bins[6] = {
-    static_cast<Double_t>(NumOfLayersTPC), -0.5, static_cast<Double_t>(NumOfLayersTPC) - 0.5,
-    244., -0.5, 243.5
-  };
-
-  // Global Residuals
-  HB1("TPCHit_ResX;Residual X (TPC Hit - BcOut) [mm];", residual_bins);
-  HB1("TPCHit_ResY;Residual Y (TPC Hit - BcOut) [mm];", residual_bins);
-  HB1("TPCCl_ResX;Residual X (TPC Cluster - BcOut) [mm];", residual_bins);
-  HB1("TPCCl_ResY;Residual Y (TPC Cluster - BcOut) [mm];", residual_bins);
+  HB1("TPCHit_ResX;Residual X (TPC Hit - BcOut) [mm];Counts", TPC_BINS_RES_HIT);
+  HB1("TPCHit_ResY;Residual Y (TPC Hit - BcOut) [mm];Counts", TPC_BINS_RES_HIT);
+  HB1("TPCCl_ResX;Residual X (TPC Cluster - BcOut) [mm];Counts", TPC_BINS_RES_HIT);
+  HB1("TPCCl_ResY;Residual Y (TPC Cluster - BcOut) [mm];Counts", TPC_BINS_RES_HIT);
 
   for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
-    // TPC Hit Residuals
-    HB1(Form("TPCHit_ResX_Layer%02d;Residual X (TPC Hit - BcOut) [mm];", layer), residual_bins);
-    HB1(Form("TPCHit_ResY_Layer%02d;Residual Y (TPC Hit - BcOut) [mm];", layer), residual_bins);
+    HB1(Form("TPCHit_ResX_Layer%02d;Residual X (TPC Hit - BcOut) [mm];Counts", layer), TPC_BINS_RES_HIT);
+    HB1(Form("TPCHit_ResY_Layer%02d;Residual Y (TPC Hit - BcOut) [mm];Counts", layer), TPC_BINS_RES_HIT);
 
-    HB2(Form("TPCHit_ResX_vs_X_Layer%02d;X_{BcOut} (global) [mm];Residual X (TPC Hit - BcOut) [mm];", layer), residual_bins_2d);
-    HB2(Form("TPCHit_ResY_vs_Y_Layer%02d;Y_{BcOut} (global) [mm];Residual Y (TPC Hit - BcOut) [mm];", layer), residual_bins_2d);
+    HB2(Form("TPCHit_ResX_vs_X_Layer%02d;X_{BcOut} (global) [mm];Residual X (TPC Hit - BcOut) [mm]", layer), TPC_BINS_POS_X, TPC_BINS_RES_HIT);
+    HB2(Form("TPCHit_ResY_vs_Y_Layer%02d;Y_{BcOut} (global) [mm];Residual Y (TPC Hit - BcOut) [mm]", layer), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
 
-    // TPC Cluster Residuals
-    HB1(Form("TPCCl_ResX_Layer%02d;Residual X (TPC Cluster - BcOut) [mm];", layer), residual_bins);
-    HB1(Form("TPCCl_ResY_Layer%02d;Residual Y (TPC Cluster - BcOut) [mm];", layer), residual_bins);
+    HB1(Form("TPCCl_ResX_Layer%02d;Residual X (TPC Cluster - BcOut) [mm];Counts", layer), TPC_BINS_RES_HIT);
+    HB1(Form("TPCCl_ResY_Layer%02d;Residual Y (TPC Cluster - BcOut) [mm];Counts", layer), TPC_BINS_RES_HIT);
 
-    HB2(Form("TPCCl_ResX_vs_X_Layer%02d;X_{BcOut} (global) [mm];Residual X (TPC Cluster - BcOut) [mm];", layer), residual_bins_2d);
-    HB2(Form("TPCCl_ResY_vs_Y_Layer%02d;Y_{BcOut} (global) [mm];Residual Y (TPC Cluster - BcOut) [mm];", layer), residual_bins_2d);
+    HB2(Form("TPCCl_ResX_vs_X_Layer%02d;X_{BcOut} (global) [mm];Residual X (TPC Cluster - BcOut) [mm]", layer), TPC_BINS_POS_X, TPC_BINS_RES_HIT);
+    HB2(Form("TPCCl_ResY_vs_Y_Layer%02d;Y_{BcOut} (global) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
 
     const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
     for (Int_t row = 0; row < n_pad; ++row) {
-      HB1(Form("TPCHit_ResY_Layer%02d_Row%03d;Residual Y (TPC Hit - BcOut) [mm];", layer, row), residual_bins);
-      HB2(Form("TPCHit_ResY_vs_Y_Layer%02d_Row%03d;Y_{BcOut} (global) [mm];Residual Y (TPC Hit - BcOut) [mm];", layer, row), residual_bins_2d);
+      HB1(Form("TPCHit_ResY_Layer%02d_Row%03d;Residual Y (TPC Hit - BcOut) [mm];Counts", layer, row), TPC_BINS_RES_HIT);
+      HB2(Form("TPCHit_ResY_vs_Y_Layer%02d_Row%03d;Y_{BcOut} (global) [mm];Residual Y (TPC Hit - BcOut) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
 
-      HB1(Form("TPCCl_ResY_Layer%02d_Row%03d;Residual Y (TPC Cluster - BcOut) [mm];", layer, row), residual_bins);
-      HB2(Form("TPCCl_ResY_vs_Y_Layer%02d_Row%03d;Y_{BcOut} (global) [mm];Residual Y (TPC Cluster - BcOut) [mm];", layer, row), residual_bins_2d);
+      HB1(Form("TPCCl_ResY_Layer%02d_Row%03d;Residual Y (TPC Cluster - BcOut) [mm];Counts", layer, row), TPC_BINS_RES_HIT);
+      HB2(Form("TPCCl_ResY_vs_Y_Layer%02d_Row%03d;Y_{BcOut} (global) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
     }
   }
 
-  HB2Poly("TPC_HitPat",         tpc_event_display_bins);
-  HB2Poly("TPC_Cluster_HitPat", tpc_event_display_bins);
-  tpc::InitializeHistograms("TPC_HitPat");
-  tpc::InitializeHistograms("TPC_Cluster_HitPat");
+  HB2Poly("TPCHit_HitPat", TPC_EVENT_DISPLAY_BINS);
+  HB2Poly("TPCCl_HitPat", TPC_EVENT_DISPLAY_BINS);
+  tpc::InitializeHistograms("TPCHit_HitPat");
+  tpc::InitializeHistograms("TPCCl_HitPat");
 
   // Layer-dependent
-  HB2("TPCHit_ResX_vs_Layer;Layer;Residual X (TPC Hit - BcOut) [mm];", residual_layer_bins);
-  HB2("TPCHit_ResY_vs_Layer;Layer;Residual Y (TPC Hit - BcOut) [mm];", residual_layer_bins);
-  HB2("TPCCl_ResX_vs_Layer;Layer;Residual X (TPC Cluster - BcOut) [mm];", residual_layer_bins);
-  HB2("TPCCl_ResY_vs_Layer;Layer;Residual Y (TPC Cluster - BcOut) [mm];", residual_layer_bins);
+  HB2("TPCHit_ResX_vs_Layer;Layer;Residual X (TPC Hit - BcOut) [mm];", TPC_BINS_LAYER, TPC_BINS_RES_HIT);
+  HB2("TPCHit_ResY_vs_Layer;Layer;Residual Y (TPC Hit - BcOut) [mm];", TPC_BINS_LAYER, TPC_BINS_RES_HIT);
+  HB2("TPCCl_ResX_vs_Layer;Layer;Residual X (TPC Cluster - BcOut) [mm];", TPC_BINS_LAYER, TPC_BINS_RES_HIT);
+  HB2("TPCCl_ResY_vs_Layer;Layer;Residual Y (TPC Cluster - BcOut) [mm];", TPC_BINS_LAYER, TPC_BINS_RES_HIT);
 
-  HB2("TPCHit_Row_vs_Layer;Layer;Row;", row_layer_bins);
-  HB2("TPCCl_Row_vs_Layer;Layer;Row;", row_layer_bins);
+  HB2("TPCHit_Row_vs_Layer;Layer;Row;", TPC_BINS_ROW_VS_LAYER);
+  HB2("TPCCl_Row_vs_Layer;Layer;Row;", TPC_BINS_ROW_VS_LAYER);
 
   // Clock-time dependent
+  BuildCoBoClockTime(hist::kCoBoClockTime_Hit | hist::kCoBoClockTime_Cluster);
+}
+
+//_____________________________________________________________________________
+void
+BuildCoBoClockTime(UInt_t flags)
+{
   for(Int_t cobo=0; cobo<NumOfSegCOBO; ++cobo){
-    HB2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm];", cobo), residual_clocktime_bins);
-    HB2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d_RawClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm];", cobo), residual_clocktime_bins);
-
-    HB2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm];", cobo), residual_clocktime_bins);
-    HB2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d_RawClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm];", cobo), residual_clocktime_bins);
-
+    if (flags & hist::kCoBoClockTime_Hit) {
+      HB2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+      HB2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d_RawClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #ifdef DEBUG_COBO_CLOCK
-    HB2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d_NoClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm];", cobo), residual_clocktime_bins);
-    HB2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d_NoClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm];", cobo), residual_clocktime_bins);
+      HB2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d_NoClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #endif
+    }
+    if (flags & hist::kCoBoClockTime_Cluster) {
+      HB2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+      HB2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d_RawClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+#ifdef DEBUG_COBO_CLOCK
+      HB2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d_NoClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+#endif
+    }
+    if (flags & hist::kCoBoClockTime_Track) {
+      HB2(Form("TPCTrk_ResY_vs_ClockTime_CoBo%d;Clock Time [ns];Residual Y (TPCCl - TPC Track) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+      HB2(Form("TPCTrk_ResY_vs_ClockTime_CoBo%d_RawClock;Clock Time [ns];Residual Y (TPCCl - TPC Track) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+#ifdef DEBUG_COBO_CLOCK
+      HB2(Form("TPCTrk_ResY_vs_ClockTime_CoBo%d_NoClock;Clock Time [ns];Residual Y (TPCCl - TPC Track) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+#endif
+    }
   }
+
   for(Int_t asad=0; asad<NumOfAsadTPC; ++asad){
-    HB2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm];", asad), residual_clocktime_bins);
-    HB2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d_RawClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm];", asad), residual_clocktime_bins);
-
-    HB2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm];", asad), residual_clocktime_bins);
-    HB2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d_RawClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm];", asad), residual_clocktime_bins);
-
+    if (flags & hist::kCoBoClockTime_Hit) {
+      HB2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+      HB2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d_RawClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #ifdef DEBUG_COBO_CLOCK
-    HB2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d_NoClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm];", asad), residual_clocktime_bins);
-    HB2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d_NoClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm];", asad), residual_clocktime_bins);
+      HB2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d_NoClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #endif
+    }
+    if (flags & hist::kCoBoClockTime_Cluster) {
+      HB2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+      HB2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d_RawClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+#ifdef DEBUG_COBO_CLOCK
+      HB2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d_NoClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+#endif
+    }
+    if (flags & hist::kCoBoClockTime_Track) {
+      HB2(Form("TPCTrk_ResY_vs_ClockTime_Asad%02d;Clock Time [ns];Residual Y (TPCCl - TPC Track) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+      HB2(Form("TPCTrk_ResY_vs_ClockTime_Asad%02d_RawClock;Clock Time [ns];Residual Y (TPCCl - TPC Track) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+#ifdef DEBUG_COBO_CLOCK
+      HB2(Form("TPCTrk_ResY_vs_ClockTime_Asad%02d_NoClock;Clock Time [ns];Residual Y (TPCCl - TPC Track) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
+#endif
+    }
   }
 }
 
+//_____________________________________________________________________________
 void
 BuildTPCHelixTracking()
 {

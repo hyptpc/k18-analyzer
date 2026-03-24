@@ -6,24 +6,22 @@
 #include <iostream>
 #include <sstream>
 
-#include <filesystem_util.hh>
-#include <UnpackerManager.hh>
-
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
+#include "DCGeomMan.hh"
 #include "DebugCounter.hh"
 #include "DetectorID.hh"
-#include "TPCAnalyzer.hh"
-#include "DCGeomMan.hh"
-#include "DCHit.hh"
 #include "DstHelper.hh"
 #include "HistTools.hh"
-#include "MathTools.hh"
 #include "RootHelper.hh"
+#include "TPCAnalyzer.hh"
 #include "TPCCluster.hh"
+#include "TPCEventAnalyzer.hh"
 #include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
+
+#include <UnpackerManager.hh>
 
 #define RawHit 0
 #define RawCluster 1
@@ -39,9 +37,7 @@ const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& gTpcParam = TPCParamMan::GetInstance();
 const auto& gCounter  = debug::ObjectCounter::GetInstance();
-const Double_t MaxChisqrBcOut = 5.0;
-const Double_t MinResidualY = 0.0;
-const Double_t MaxResidual = 20.0;
+const Double_t MAX_RESIDUAL = 20.0;
 }
 
 namespace dst
@@ -187,6 +183,255 @@ namespace root
 }
 
 //_____________________________________________________________________________
+namespace
+{
+  using namespace root;
+  using namespace dst;
+
+  // Copy basic event info, validate CoBo clocks, and decide whether to continue.
+  // Return value:
+  // - true: continue processing
+  // - false: skip further processing for this event (but keep DstRead returning true)
+  Bool_t FillEventBasicInfoAndValidateCobo()
+  {
+    event.runnum   = **src.runnum;
+    event.evnum    = **src.evnum;
+    event.trigpat  = **src.trigpat;
+    event.trigflag = **src.trigflag;
+    event.beamflag = **src.beamflag;
+    event.clkTpc   = **src.clkTpc;
+    event.cobo_id  = **src.cobo_id;
+    HF1("Status", event.status++);
+
+    if(**src.nhTpc == 0) return false;
+
+    HF1("Status", event.status++);
+
+    // Check CoBo clock size
+    if(event.clkTpc.size() != NumOfSegCOBO){
+      spdlog::warn("something is wrong: event.clkTpc.size() != {}", NumOfSegCOBO);
+      return false;
+    }
+
+    // Reject if any CoBo clock is NaN/Inf.
+    std::vector<Int_t> bad_cobo;
+    for(Int_t c = 0; c < NumOfSegCOBO; ++c){
+      if(!std::isfinite(event.clkTpc[c])) bad_cobo.push_back(c);
+    }
+    if(!bad_cobo.empty()){
+      std::ostringstream oss;
+      for(size_t i = 0; i < bad_cobo.size(); ++i){
+        oss << (i ? "," : "") << bad_cobo[i];
+      }
+      spdlog::warn("CoBo clock(s) missing (NaN/Inf): cobo={}, skip event", oss.str());
+      return false;
+    }
+
+    HF1("Status", event.status++);
+    return true;
+  }
+
+  // Pick the best BcOut (minimum chisqr) and extract (u0,v0,x0,y0) tracking parameters.
+  // Returns:
+  // - true: BcOut exists and parameters are extracted
+  // - false: no BcOut (caller should skip further processing)
+  Bool_t SelectBestBcOutAndExtractTracking(
+    Int_t& best_bcout_idx,
+    Double_t& u0, Double_t& v0,
+    Double_t& x0, Double_t& y0)
+  {
+    if(**src.ntBcOut <= 0) return false;
+
+    Double_t min_chi2 = 1.0e9;
+    best_bcout_idx = -1;
+    for(Int_t i_bcout = 0; i_bcout < **src.ntBcOut; ++i_bcout){
+      const Double_t chi2 = (**src.chisqrBcOut)[i_bcout];
+      if(chi2 < min_chi2){
+        min_chi2 = chi2;
+        best_bcout_idx = i_bcout;
+      }
+    }
+
+    event.best_bcout_id = best_bcout_idx;
+    event.ntBcOut       = **src.ntBcOut;
+    event.chisqrBcOut   = **src.chisqrBcOut;
+    event.x0BcOut       = **src.x0BcOut;
+    event.y0BcOut       = **src.y0BcOut;
+    event.u0BcOut       = **src.u0BcOut;
+    event.v0BcOut       = **src.v0BcOut;
+
+    u0 = TMath::QuietNaN();
+    v0 = TMath::QuietNaN();
+    x0 = TMath::QuietNaN();
+    y0 = TMath::QuietNaN();
+    if(best_bcout_idx >= 0){
+      u0 = (**src.u0BcOut)[best_bcout_idx];
+      v0 = (**src.v0BcOut)[best_bcout_idx];
+      x0 = (**src.x0BcOut)[best_bcout_idx];
+      y0 = (**src.y0BcOut)[best_bcout_idx];
+    }
+
+    return true;
+  }
+
+  void FillTpcHitsAndResiduals(
+    TPCAnalyzer& tpc_ana,
+    Int_t best_bcout_idx,
+    Double_t u0, Double_t v0,
+    Double_t x0, Double_t y0,
+    TPCEventAnalyzer& event_ana)
+  {
+    Int_t nh_tpc = 0;
+    for(Int_t layer = 0; layer < NumOfLayersTPC; ++layer){
+      const auto& hc_hit = tpc_ana.GetTPCHC(layer);
+      for(const auto& hit : hc_hit){
+        if(!hit || !hit->IsGood()) continue;
+
+        const Int_t row = hit->GetRow();
+        const auto& pos = hit->GetPosition();
+        ThreeVector local_pos(pos.X(), pos.Y(), pos.Z());
+        const ThreeVector global_pos = gGeom.Local2GlobalPos("HypTPC", local_pos);
+
+        // Raw Hit Info
+#if RawHit
+        event.raw_hitpos_x.push_back(pos.X());
+        event.raw_hitpos_y.push_back(pos.Y());
+        event.raw_hitpos_z.push_back(pos.Z());
+        event.raw_de.push_back(hit->GetCDe());
+        event.raw_padid.push_back(hit->GetPad());
+        event.raw_layer.push_back(layer);
+        event.raw_row.push_back(row);
+#endif
+
+        ++nh_tpc;
+
+        // Residual calculation
+        Double_t res_x = TMath::QuietNaN();
+        Double_t res_y = TMath::QuietNaN();
+
+        if(best_bcout_idx >= 0){
+          const Double_t z_g = global_pos.z();
+          const Double_t x_bc = u0 * z_g + x0;
+          const Double_t y_bc = v0 * z_g + y0;
+          res_x = global_pos.x() - x_bc;
+          res_y = global_pos.y() - y_bc;
+
+          HF1("TPCHit_ResX", res_x);
+          HF1(Form("TPCHit_ResX_Layer%02d", layer), res_x);
+          HF2("TPCHit_ResX_vs_Layer", layer, res_x);
+          HF2(Form("TPCHit_ResX_vs_X_Layer%02d", layer), x_bc, res_x);
+
+          HF1("TPCHit_ResY", res_y);
+          HF1(Form("TPCHit_ResY_Layer%02d", layer), res_y);
+          HF1(Form("TPCHit_ResY_Layer%02d_Row%03d", layer, row), res_y);
+          HF2("TPCHit_ResY_vs_Layer", layer, res_y);
+          HF2(Form("TPCHit_ResY_vs_Y_Layer%02d", layer), y_bc, res_y);
+          HF2(Form("TPCHit_ResY_vs_Y_Layer%02d_Row%03d", layer, row), y_bc, res_y);
+
+          if(TMath::Abs(res_x) <= MAX_RESIDUAL && TMath::Abs(res_y) <= MAX_RESIDUAL){
+            const Double_t c = HG2Poly("TPCHit_HitPat", hit->GetPad() + 1);
+            HF2Poly("TPCHit_HitPat", hit->GetPad() + 1, c + 1.);
+            HF2("TPCHit_Row_vs_Layer", layer, row);
+          }
+
+          event_ana.FillCoBoClockTime(
+            "TPCHit", layer, row,
+            hit->GetCTime(), local_pos, v0 * z_g + y0 /* y_bc */);
+        }
+
+        event.residual_x_hit.push_back(res_x);
+        event.residual_y_hit.push_back(res_y);
+      } // for(hit)
+    } // for(layer)
+
+    event.nhTpc = nh_tpc;
+  }
+
+  void FillTpcClustersAndResiduals(
+    TPCAnalyzer& tpc_ana,
+    Int_t best_bcout_idx,
+    Double_t u0, Double_t v0,
+    Double_t x0, Double_t y0,
+    TPCEventAnalyzer& event_ana)
+  {
+    Int_t ncl_tpc = 0;
+    for(Int_t layer = 0; layer < NumOfLayersTPC; ++layer){
+      const auto& hc_cl = tpc_ana.GetTPCClCont(layer);
+      for(const auto& cl : hc_cl){
+        if(!cl || !cl->IsGood()) continue;
+
+        const Int_t center_row = cl->GetCenterHit()->GetRow();
+        const ThreeVector local_pos(cl->GetX(), cl->GetY(), cl->GetZ());
+        const ThreeVector global_pos = gGeom.Local2GlobalPos("HypTPC", local_pos);
+
+        // Raw Cluster Info
+#if RawCluster
+        event.cluster_x.push_back(local_pos.X());
+        event.cluster_y.push_back(local_pos.Y());
+        event.cluster_z.push_back(local_pos.Z());
+        event.cluster_de.push_back(cl->GetDe());
+        event.cluster_size.push_back(cl->GetClusterSize());
+        event.cluster_layer.push_back(layer);
+        event.cluster_mrow.push_back(cl->MeanRow());
+        event.cluster_row_center.push_back(center_row);
+
+        TPCHit* center_hit = cl->GetCenterHit();
+        const TVector3& center_pos = center_hit->GetPosition();
+        event.cluster_de_center.push_back(center_hit->GetCDe());
+        event.cluster_x_center.push_back(center_pos.X());
+        event.cluster_y_center.push_back(center_pos.Y());
+        event.cluster_z_center.push_back(center_pos.Z());
+#endif
+
+        ++ncl_tpc;
+
+        // Residual calculation
+        Double_t res_x = TMath::QuietNaN();
+        Double_t res_y = TMath::QuietNaN();
+
+        if(best_bcout_idx >= 0){
+          const Double_t z_g = global_pos.z();
+          const Double_t x_bc = u0 * z_g + x0;
+          const Double_t y_bc = v0 * z_g + y0;
+          res_x = global_pos.x() - x_bc;
+          res_y = global_pos.y() - y_bc;
+
+          HF1("TPCCl_ResX", res_x);
+          HF1(Form("TPCCl_ResX_Layer%02d", layer), res_x);
+          HF2("TPCCl_ResX_vs_Layer", layer, res_x);
+          HF2(Form("TPCCl_ResX_vs_X_Layer%02d", layer), global_pos.x(), res_x);
+
+          HF1("TPCCl_ResY", res_y);
+          HF1(Form("TPCCl_ResY_Layer%02d", layer), res_y);
+          HF1(Form("TPCCl_ResY_Layer%02d_Row%03d", layer, center_row), res_y);
+          HF2("TPCCl_ResY_vs_Layer", layer, res_y);
+          HF2(Form("TPCCl_ResY_vs_Y_Layer%02d", layer), y_bc, res_y);
+          HF2(Form("TPCCl_ResY_vs_Y_Layer%02d_Row%03d", layer, center_row), y_bc, res_y);
+
+          if(TMath::Abs(res_x) <= MAX_RESIDUAL && TMath::Abs(res_y) <= MAX_RESIDUAL){
+            const Double_t c = HG2Poly("TPCCl_HitPat", cl->GetCenterHit()->GetPad() + 1);
+            HF2Poly("TPCCl_HitPat", cl->GetCenterHit()->GetPad() + 1, c + 1.);
+            HF2("TPCCl_Row_vs_Layer", layer, center_row);
+          }
+
+          TPCHit* center_hit = cl->GetCenterHit();
+          if(center_hit){
+            event_ana.FillCoBoClockTime(
+              "TPCCl", layer, center_row,
+              center_hit->GetCTime(), local_pos, y_bc);
+          }
+        }
+
+        event.residual_x_cluster.push_back(res_x);
+        event.residual_y_cluster.push_back(res_y);
+      } // for(cl)
+    } // for(layer)
+
+    event.nclTpc = ncl_tpc;
+  }
+}
+
+//_____________________________________________________________________________
 int
 main(int argc, char **argv)
 {
@@ -281,282 +526,29 @@ dst::DstRead(Int_t ievent)
     return false;
   }
 
-  event.runnum   = **src.runnum;
-  event.evnum    = **src.evnum;
-  event.trigpat  = **src.trigpat;
-  event.trigflag = **src.trigflag;
-  event.beamflag = **src.beamflag;
-  event.clkTpc   = **src.clkTpc;
-  event.cobo_id  = **src.cobo_id;
-  HF1("Status", event.status++);
-
-  if(**src.nhTpc == 0)
+  if(!FillEventBasicInfoAndValidateCobo())
     return true;
-  HF1("Status", event.status++);
-
-  // Check CoBo clock size
-  if(event.clkTpc.size() != NumOfSegCOBO){
-    spdlog::warn("something is wrong: event.clkTpc.size() != {}", NumOfSegCOBO);
-    return true;
-  }
-  std::vector<Int_t> bad_cobo;
-  for(Int_t c = 0; c < NumOfSegCOBO; ++c){
-    if(!std::isfinite(event.clkTpc[c])) bad_cobo.push_back(c);
-  }
-  if(!bad_cobo.empty()){
-    std::ostringstream oss;
-    for(size_t i = 0; i < bad_cobo.size(); ++i){ oss << (i ? "," : "") << bad_cobo[i]; }
-    spdlog::warn("CoBo clock(s) missing (NaN/Inf): cobo={}, skip event", oss.str());
-    return true;
-  }
-  HF1("Status", event.status++);
 
   // Re-calculate TPC hits
-  TPCAnalyzer TPCAna;
-  TPCAna.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, **src.clkTpc);
+  TPCAnalyzer tpc_ana;
+  tpc_ana.ReCalcTPCHits(**src.nhTpc, **src.padTpc, **src.tTpc, **src.deTpc, **src.clkTpc);
   HF1("Status", event.status++);
 
+  static TPCEventAnalyzer event_ana;
+  event_ana.SetClock(**src.clkTpc);
+
   // check and select best BcOut
-  if (**src.ntBcOut <= 0) return true;
-
-  Double_t min_chi2 = 1.0e9;
-  Int_t best_itr = -1;
-
-  for (Int_t i_bcout = 0; i_bcout < **src.ntBcOut; ++i_bcout) {
-    Double_t chi2 = (**src.chisqrBcOut)[i_bcout];
-    if (chi2 < min_chi2) {
-      min_chi2 = chi2;
-      best_itr = i_bcout;
-    }
-  }
-  event.best_bcout_id = best_itr;
-  
-  event.ntBcOut     = **src.ntBcOut;
-  event.chisqrBcOut = **src.chisqrBcOut;
-  event.x0BcOut     = **src.x0BcOut;
-  event.y0BcOut     = **src.y0BcOut;
-  event.u0BcOut     = **src.u0BcOut;
-  event.v0BcOut     = **src.v0BcOut;
-
-  // Tracking parameter
+  Int_t best_bcout_idx = -1;
   Double_t u0 = TMath::QuietNaN();
   Double_t v0 = TMath::QuietNaN();
   Double_t x0 = TMath::QuietNaN();
   Double_t y0 = TMath::QuietNaN();
+  if(!SelectBestBcOutAndExtractTracking(best_bcout_idx, u0, v0, x0, y0))
+    return true;
 
-  if(event.best_bcout_id >= 0){
-    u0 = (**src.u0BcOut)[event.best_bcout_id];
-    v0 = (**src.v0BcOut)[event.best_bcout_id];
-    x0 = (**src.x0BcOut)[event.best_bcout_id];
-    y0 = (**src.y0BcOut)[event.best_bcout_id];
-  }
+  FillTpcHitsAndResiduals(tpc_ana, best_bcout_idx, u0, v0, x0, y0, event_ana);
+  FillTpcClustersAndResiduals(tpc_ana, best_bcout_idx, u0, v0, x0, y0, event_ana);
 
-  // TPC Hit Loop & Residuals
-  Int_t nhTpc = 0;
-  for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
-    const auto& hc_hit = TPCAna.GetTPCHC(layer);
-    for (const auto& hit : hc_hit) {
-      if (!hit || !hit->IsGood()) continue;
-      Int_t row = hit->GetRow();
-      const auto& pos = hit->GetPosition();
-      ThreeVector localPos(pos.X(), pos.Y(), pos.Z());
-      ThreeVector globalPos = gGeom.Local2GlobalPos("HypTPC", localPos);
-
-      // Raw Hit Info
-#if RawHit
-      event.raw_hitpos_x.push_back(pos.X());
-      event.raw_hitpos_y.push_back(pos.Y());
-      event.raw_hitpos_z.push_back(pos.Z());
-      event.raw_de.push_back(hit->GetCDe());
-      event.raw_padid.push_back(hit->GetPad());
-      event.raw_layer.push_back(layer);
-      event.raw_row.push_back(row);
-#endif
-      ++nhTpc;
-
-      // Residual Calculation
-      Double_t res_x = TMath::QuietNaN();
-      Double_t res_y = TMath::QuietNaN();
-
-      if(event.best_bcout_id >= 0){
-        Double_t z_g = globalPos.z();
-        Double_t x_bc = u0 * z_g + x0;
-        Double_t y_bc = v0 * z_g + y0;
-        res_x = globalPos.x() - x_bc;
-        res_y = globalPos.y() - y_bc;
-
-        HF1(Form("TPCHit_ResX_Layer%02d", layer), res_x);
-        HF1("TPCHit_ResX", res_x);
-        HF1(Form("TPCHit_ResY_Layer%02d", layer), res_y);
-        HF1("TPCHit_ResY", res_y);
-        HF2(Form("TPCHit_ResX_vs_X_Layer%02d", layer), x_bc, res_x);
-        if (TMath::Abs(res_y) >= MinResidualY) {
-          HF1(Form("TPCHit_ResY_Layer%02d_Row%03d", layer, row), res_y);
-          HF2(Form("TPCHit_ResY_vs_Y_Layer%02d", layer), y_bc, res_y);
-          HF2(Form("TPCHit_ResY_vs_Y_Layer%02d_Row%03d", layer, row), y_bc, res_y);
-        }
-        HF2("TPCHit_ResX_vs_Layer", layer, res_x);
-        HF2("TPCHit_ResY_vs_Layer", layer, res_y);
-        if (TMath::Abs(res_x) <= MaxResidual && TMath::Abs(res_y) <= MaxResidual) {
-          HF2Poly("TPC_HitPat", hit->GetPad() + 1, 1.);
-          HF2("TPCHit_Row_vs_Layer", layer, row);
-        }
-
-        Int_t cobo = tpc::GetCoBoId(layer, row);
-        Int_t asad = tpc::GetASADId(layer, row);
-        Bool_t cobo_valid = (cobo >= 0 && cobo < NumOfSegCOBO);
-        Double_t res_y_noclk = TMath::QuietNaN(), res_y_raw = TMath::QuietNaN();
-        if (!cobo_valid) {
-          spdlog::warn("TPC Hit BcOut ResY vs ClockTime: invalid CoBo id (cobo={}) for layer={} row={}", cobo, layer, row);
-        } else if (!std::isfinite((**src.clkTpc)[cobo])) {
-          spdlog::warn("TPC Hit BcOut ResY vs ClockTime: non-finite clkTpc[{}]={} for layer={} row={}", cobo, (**src.clkTpc)[cobo], layer, row);
-        } else {
-          Double_t clk = (**src.clkTpc)[cobo];
-          Double_t cclk = 0;
-          gTpcParam.GetCClock(layer, row, clk, cclk);
-          Double_t ctime_noclk = hit->GetCTime() - cclk;
-          Double_t y_noclk = 0, y_raw = 0;
-          gTpcParam.GetDriftLength(layer, row, ctime_noclk, y_noclk);
-          gTpcParam.GetDriftLength(layer, row, ctime_noclk + clk, y_raw);
-          ThreeVector local_noclk(localPos.X(), y_noclk, localPos.Z());
-          ThreeVector local_raw(localPos.X(), y_raw, localPos.Z());
-          ThreeVector global_noclk = gGeom.Local2GlobalPos("HypTPC", local_noclk);
-          ThreeVector global_raw = gGeom.Local2GlobalPos("HypTPC", local_raw);
-          res_y_noclk = global_noclk.y() - (v0 * global_noclk.z() + y0);
-          res_y_raw   = global_raw.y()  - (v0 * global_raw.z() + y0);
-
-          HF2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d", cobo), clk, res_y);
-          HF2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d_RawClock", cobo), clk, res_y_raw);
-#ifdef DEBUG_COBO_CLOCK
-          HF2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d_NoClock", cobo), clk, res_y_noclk);
-#endif
-        } // else (cobo_valid)
-
-        Bool_t asad_valid = (asad >= 0 && asad < NumOfAsadTPC);
-        if (!asad_valid) {
-          spdlog::warn("TPC Hit BcOut ResY vs ClockTime: invalid Asad id (asad={}) for layer={} row={}", asad, layer, row);
-        } else if (cobo_valid && std::isfinite((**src.clkTpc)[cobo])) {
-          Double_t clk = (**src.clkTpc)[cobo];
-          HF2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d", asad), clk, res_y);
-          HF2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d_RawClock", asad), clk, res_y_raw);
-#ifdef DEBUG_COBO_CLOCK
-          HF2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d_NoClock", asad), clk, res_y_noclk);
-#endif
-        } // else if (cobo_valid && asad_valid)
-      } // if(best_bcout_id >= 0)
-
-      event.residual_x_hit.push_back(res_x);
-      event.residual_y_hit.push_back(res_y);
-    } // for(hit)
-  } // for(layer)
-  event.nhTpc = nhTpc;
-
-  // TPC Cluster Loop & Residuals
-  Int_t nclTpc = 0;
-  for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
-    const auto& hc_cl = TPCAna.GetTPCClCont(layer);
-    for (const auto& cl : hc_cl) {
-      if (!cl || !cl->IsGood()) continue;
-      Int_t centerRow = cl->GetCenterHit()->GetRow();
-      ThreeVector localPos(cl->GetX(), cl->GetY(), cl->GetZ());
-      ThreeVector globalPos = gGeom.Local2GlobalPos("HypTPC", localPos);
-
-      // Raw Cluster Info
-#if RawCluster
-      event.cluster_x.push_back(localPos.X());
-      event.cluster_y.push_back(localPos.Y());
-      event.cluster_z.push_back(localPos.Z());
-      event.cluster_de.push_back(cl->GetDe());
-      event.cluster_size.push_back(cl->GetClusterSize());
-      event.cluster_layer.push_back(layer);
-      event.cluster_mrow.push_back(cl->MeanRow()); // Assuming MeanRow() is correct
-      event.cluster_row_center.push_back(centerRow);
-      
-      TPCHit* centerHit = cl->GetCenterHit();
-      const TVector3& centerPos = centerHit->GetPosition();
-      event.cluster_de_center.push_back(centerHit->GetCDe());
-      event.cluster_x_center.push_back(centerPos.X());
-      event.cluster_y_center.push_back(centerPos.Y());
-      event.cluster_z_center.push_back(centerPos.Z());
-#endif
-      ++nclTpc;
-
-      // Residual Calculation
-      Double_t res_x = TMath::QuietNaN();
-      Double_t res_y = TMath::QuietNaN();
-
-      if(event.best_bcout_id >= 0){
-        Double_t z_g = globalPos.z();
-        Double_t x_bc = u0 * z_g + x0;
-        Double_t y_bc = v0 * z_g + y0;
-        res_x = globalPos.x() - x_bc;
-        res_y = globalPos.y() - y_bc;
-
-        HF1(Form("TPCCl_ResX_Layer%02d", layer), res_x);
-        HF1("TPCCl_ResX", res_x);
-        HF1(Form("TPCCl_ResY_Layer%02d", layer), res_y);
-        HF1("TPCCl_ResY", res_y);
-        HF2(Form("TPCCl_ResX_vs_X_Layer%02d", layer), globalPos.x(), res_x);
-        if (TMath::Abs(res_y) >= MinResidualY) {
-          HF1(Form("TPCCl_ResY_Layer%02d_Row%03d", layer, centerRow), res_y);
-          HF2(Form("TPCCl_ResY_vs_Y_Layer%02d", layer), y_bc, res_y);
-          HF2(Form("TPCCl_ResY_vs_Y_Layer%02d_Row%03d", layer, centerRow), y_bc, res_y);
-        }
-        HF2("TPCCl_ResX_vs_Layer", layer, res_x);
-        HF2("TPCCl_ResY_vs_Layer", layer, res_y);
-        if (TMath::Abs(res_x) <= MaxResidual && TMath::Abs(res_y) <= MaxResidual) { 
-          HF2Poly("TPC_Cluster_HitPat", cl->GetCenterHit()->GetPad() + 1, 1.);
-          HF2("TPCCl_Row_vs_Layer", layer, centerRow);
-        }
-
-        Int_t cobo = tpc::GetCoBoId(layer, centerRow);
-        Int_t asad = tpc::GetASADId(layer, centerRow);
-        Bool_t cobo_valid = (cobo >= 0 && cobo < NumOfSegCOBO);
-        Double_t res_y_noclk = TMath::QuietNaN(), res_y_raw = TMath::QuietNaN();
-        if (!cobo_valid) {
-          spdlog::warn("TPC Cluster BcOut ResY vs ClockTime: invalid CoBo id (cobo={}) for layer={} row={}", cobo, layer, centerRow);
-        } else if (!std::isfinite((**src.clkTpc)[cobo])) {
-          spdlog::warn("TPC Cluster BcOut ResY vs ClockTime: non-finite clkTpc[{}]={} for layer={} row={}", cobo, (**src.clkTpc)[cobo], layer, centerRow);
-        } else {
-          Double_t clk = (**src.clkTpc)[cobo];
-          Double_t cclk = 0;
-          gTpcParam.GetCClock(layer, centerRow, clk, cclk);
-          Double_t ctime_noclk = cl->GetCenterHit()->GetCTime() - cclk;
-          Double_t y_noclk = 0, y_raw = 0;
-          gTpcParam.GetDriftLength(layer, centerRow, ctime_noclk, y_noclk);
-          gTpcParam.GetDriftLength(layer, centerRow, ctime_noclk + clk, y_raw);
-          ThreeVector local_noclk(localPos.X(), y_noclk, localPos.Z());
-          ThreeVector local_raw(localPos.X(), y_raw, localPos.Z());
-          ThreeVector global_noclk = gGeom.Local2GlobalPos("HypTPC", local_noclk);
-          ThreeVector global_raw = gGeom.Local2GlobalPos("HypTPC", local_raw);
-          res_y_noclk = global_noclk.y() - (v0 * global_noclk.z() + y0);
-          res_y_raw   = global_raw.y()  - (v0 * global_raw.z() + y0);
-
-          HF2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d", cobo), clk, res_y);
-          HF2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d_RawClock", cobo), clk, res_y_raw);
-#ifdef DEBUG_COBO_CLOCK
-          HF2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d_NoClock", cobo), clk, res_y_noclk);
-#endif
-        } // else (cobo_valid)
-
-        Bool_t asad_valid = (asad >= 0 && asad < NumOfAsadTPC);
-        if (!asad_valid) {
-          spdlog::warn("TPC Cluster BcOut ResY vs ClockTime: invalid Asad id (asad={}) for layer={} row={}", asad, layer, centerRow);
-        } else if (cobo_valid && std::isfinite((**src.clkTpc)[cobo])) {
-          Double_t clk = (**src.clkTpc)[cobo];
-          HF2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d", asad), clk, res_y);
-          HF2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d_RawClock", asad), clk, res_y_raw);
-#ifdef DEBUG_COBO_CLOCK
-          HF2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d_NoClock", asad), clk, res_y_noclk);
-#endif
-        } // else if (cobo_valid && asad_valid)
-      } // if(best_bcout_id >= 0)
-
-      event.residual_x_cluster.push_back(res_x);
-      event.residual_y_cluster.push_back(res_y);
-    } // for(cl)
-  } // for(layer)
-  event.nclTpc = nclTpc;
   HF1("Status", event.status++);
 
   return true;
@@ -567,7 +559,7 @@ Bool_t
 dst::DstClose()
 {
   TFileCont[kOutFile]->Write();
-  std::cout << "#D Close : " << TFileCont[kOutFile]->GetName() << std::endl;
+  spdlog::info(" Close : {}", TFileCont[kOutFile]->GetName());
   TFileCont[kOutFile]->Close();
 
   const Int_t n = TFileCont.size();

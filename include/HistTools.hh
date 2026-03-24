@@ -36,6 +36,13 @@ void BuildTPCTracking();
 void BuildTPCBcOutTracking();
 void BuildTPCHitBcOutTracking();
 void BuildTPCHelixTracking();
+
+enum CoBoClockTimeFlags : UInt_t {
+  kCoBoClockTime_Hit     = 1u << 0,
+  kCoBoClockTime_Cluster = 1u << 1,
+  kCoBoClockTime_Track   = 1u << 2,
+};
+void BuildCoBoClockTime(UInt_t flags = 0);
 }
 
 #endif
