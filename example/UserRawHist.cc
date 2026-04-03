@@ -16,6 +16,8 @@
 #include "VEvent.hh"
 #include "UserParamMan.hh"
 
+#define JPARC2025Nov 0 // 1: Old runs (Skip T2+), 0: 2026Apr (T2+)
+
 //_____________________________________________________________________________
 Bool_t
 ProcessBegin()
@@ -28,7 +30,20 @@ Bool_t
 ProcessNormal()
 {
   RawData rawData;
+#if JPARC2025Nov
+  // Skip new detectors to avoid unpacker errors in old runs
+  rawData.DecodeHits("TriggerFlag");
+  for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
+    if (ihodo >= kT2) continue;
+    rawData.DecodeHits(NameHodo[ihodo]);
+  }
+  rawData.DecodeHits("BLC1a");
+  rawData.DecodeHits("BLC1b");
+  rawData.DecodeHits("BLC2a");
+  rawData.DecodeHits("BLC2b");
+#else
   rawData.DecodeHits();
+#endif
 
   EventAnalyzer evAna;
 
@@ -39,6 +54,7 @@ ProcessNormal()
   evAna.HodoRawHit(rawData);
 
   root::HF1("Status", 2);
+  evAna.DCRawHit("BcIn", rawData);
   evAna.DCRawHit("BcOut", rawData);
 
   root::HF1("Status", 3);
@@ -64,6 +80,7 @@ ConfMan::InitializeHistograms()
   hist::BuildTriggerFlag();
   hist::BuildDAQ();
   hist::BuildHodoRaw();
+  hist::BuildDCRaw("BcIn");
   hist::BuildDCRaw("BcOut");
   return true;
 }

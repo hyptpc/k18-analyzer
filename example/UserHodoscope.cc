@@ -28,6 +28,7 @@
 #include "UnpackerManager.hh"
 
 #define DEBUG 0
+#define JPARC2025Nov 0 // 1: Old runs (Skip T2+), 0: 2026Apr (T2+)
 
 namespace
 {
@@ -148,6 +149,9 @@ ProcessNormal()
 
   RawData rawData;
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
+#if JPARC2025Nov
+    if (ihodo >= kT2) continue;
+#endif
     auto n = NameHodo[ihodo];
     rawData.DecodeHits(n);
   }
@@ -157,6 +161,9 @@ ProcessNormal()
   hodoAna.DecodeHits<FiberHit>("BHT");
   hodoAna.DecodeHits<BH2Hit>("BH2");
   for(Int_t ihodo=kBAC; ihodo<kNumHodo; ++ihodo){
+#if JPARC2025Nov
+    if (ihodo >= kT2) continue;
+#endif
     auto n = NameHodo[ihodo];
     Bool_t do_not_cluster = !HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::NoCluster);
     if (HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::Cherenkov))
@@ -205,6 +212,9 @@ ProcessNormal()
   }
   
   for(Int_t ihodo=kBH2; ihodo<kNumHodo; ++ihodo){
+#if JPARC2025Nov
+    if (ihodo >= kT2) continue;
+#endif
     if (ihodo == kKVC) continue;
     auto n = NameHodo[ihodo];
     for(const auto& hit: rawData.GetHodoRawHC(n)){      
@@ -236,6 +246,9 @@ ProcessNormal()
   HF1("Status", 5);
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
+#if JPARC2025Nov
+    if (ihodo >= kT2) continue;
+#endif
     if (ihodo == kBAC || ihodo == kKVC) continue;
 
     auto n = NameHodo[ihodo];
@@ -299,6 +312,9 @@ ProcessNormal()
   HF1("Status", 6);
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
+#if JPARC2025Nov
+    if (ihodo >= kT2) continue;
+#endif
     if (HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::NoCluster)) continue;
     auto n = NameHodo[ihodo];
     for(Int_t i=0, nh=hodoAna.GetNClusters(n); i<nh; ++i){
@@ -371,6 +387,9 @@ ConfMan::InitializeHistograms()
   tree->Branch("bht_trailing_d", &trailing_d["BHT"]);
 
   for(Int_t ihodo=kBH2; ihodo<kNumHodo; ++ihodo){
+#if JPARC2025Nov
+    if (ihodo >= kT2) continue;
+#endif
     if (ihodo == kKVC) continue;
     auto n = NameHodo[ihodo];
     n.ToLower();
@@ -404,6 +423,9 @@ ConfMan::InitializeHistograms()
   }
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
+#if JPARC2025Nov
+    if (ihodo >= kT2) continue;
+#endif
     if (ihodo == kBAC || ihodo == kKVC) continue;
     auto n = NameHodo[ihodo];
     n.ToLower();
@@ -454,6 +476,9 @@ ConfMan::InitializeHistograms()
   }
 
   for(Int_t ihodo=kBHT; ihodo<kNumHodo; ++ihodo){
+#if !JPARC2026Apr
+    if (ihodo >= kT2) continue;
+#endif
     const auto f = GetHodoFlags(ihodo);
     if (f.no_cluster) continue;
     auto n = NameHodo[ihodo];

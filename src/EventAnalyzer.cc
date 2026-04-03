@@ -192,10 +192,12 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
     const Char_t* name = NameHodo[ihodo];
     Int_t multi_or = 0;
     Int_t multi_and = 0;
+    Bool_t is_one_side = HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::OneSideReadout);
     for(const auto& hit: rawData.GetHodoRawHC(name)){
       auto seg = hit->SegmentId();
       Int_t ud_good = 0;
       for(Int_t ud=0; ud<2; ++ud){
+        if (is_one_side && ud == 1) continue;
         Bool_t is_good = false;
         const auto ud_str = UorD[ud];
         for(const auto& t: hit->GetArrayTdc(ud)){
@@ -216,13 +218,14 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
         HF1(Form("%s_HitPat_OR%s", name, b), seg);
         ++multi_or;
       }
-      if(ud_good == 2){
+      if(!is_one_side && ud_good == 2){
         HF1(Form("%s_HitPat_AND%s", name, b), seg);
         ++multi_and;
       }
     }
     HF1(Form("%s_Multi_OR%s", name, b), multi_or);
-    HF1(Form("%s_Multi_AND%s", name, b), multi_and);
+    if (!is_one_side)
+      HF1(Form("%s_Multi_AND%s", name, b), multi_and);
   }
 
   { // HTOF Sum (raw, kExtra)

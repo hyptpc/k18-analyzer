@@ -30,6 +30,9 @@ const Int_t DetIdCVC  =  8;
 const Int_t DetIdSAC3 =  9;
 const Int_t DetIdSFV  = 10;
 const Int_t DetIdCOBO = 11;
+const Int_t DetIdT2   = 12;
+const Int_t DetIdSCH  = 13;
+const Int_t DetIdT3   = 14;
 
 const Int_t NumOfSegBHT  = 63;
 const Int_t NumOfSegT0   =  5;
@@ -42,6 +45,9 @@ const Int_t NumOfSegCVC  =  8;
 const Int_t NumOfSegSAC3 =  1;
 const Int_t NumOfSegSFV  =  1;
 const Int_t NumOfSegCOBO =  8;
+const Int_t NumOfSegT2   =  1;
+const Int_t NumOfSegSCH  = 64;
+const Int_t NumOfSegT3   =  1;
 
 const Int_t DetIdVmeRm     =  81;
 const Int_t DetIdScaler    =  91;
@@ -52,28 +58,32 @@ enum EHodoscope {
   kBHT, kBH2, kBAC,
   kHTOF, kKVC, kT1,
   kCVC, kSAC3, kSFV,
-  kCOBO, kNumHodo
+  kCOBO, kT2, kSCH,
+  kT3, kNumHodo
 };
 
 const Int_t DetIdHodo[kNumHodo] = {
   DetIdBHT, DetIdBH2, DetIdBAC,
   DetIdHTOF, DetIdKVC, DetIdT1,
   DetIdCVC, DetIdSAC3, DetIdSFV,
-  DetIdCOBO,
+  DetIdCOBO, DetIdT2, DetIdSCH,
+  DetIdT3
 };
 
 inline const std::vector<TString> NameHodo = {
   "BHT", "BH2", "BAC",
   "HTOF", "KVC", "T1",
   "CVC", "SAC3", "SFV",
-  "COBO"
+  "COBO", "T2", "SCH",
+  "T3"
 };
 
 const Double_t NumOfSegHodo[kNumHodo] = {
   NumOfSegBHT, NumOfSegBH2, NumOfSegBAC,
   NumOfSegHTOF, NumOfSegKVC, NumOfSegT1,
   NumOfSegCVC, NumOfSegSAC3, NumOfSegSFV,
-  NumOfSegCOBO
+  NumOfSegCOBO, NumOfSegT2, NumOfSegSCH,
+  NumOfSegT3
 };
 
 enum class HodoGroup : UInt_t { 
@@ -109,6 +119,9 @@ inline constexpr UInt_t HodoGroupMask[kNumHodo] = {
   MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout, HodoGroup::Cherenkov, HodoGroup::Ftof}), // kSAC3
   MakeHodoMask({HodoGroup::NoADC, HodoGroup::NoCluster, HodoGroup::OneSideReadout, HodoGroup::Ftof}), // kSFV
   MakeHodoMask({HodoGroup::NoADC, HodoGroup::NoCluster, HodoGroup::OneSideReadout}), // kCOBO
+  MakeHodoMask({HodoGroup::NoCluster, HodoGroup::OneSideReadout}), // kT2
+  MakeHodoMask({HodoGroup::OneSideReadout}), // kSCH
+  MakeHodoMask({HodoGroup::NoADC, HodoGroup::NoCluster, HodoGroup::OneSideReadout, HodoGroup::Ftof}) // kT3
 };
 
 

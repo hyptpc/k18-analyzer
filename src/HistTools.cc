@@ -185,7 +185,9 @@ BuildHodoRaw(Bool_t flag_beam_particle)
       Double_t nseg = static_cast<Double_t>(NumOfSegHodo[ihodo]);
       const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
       const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
+      Bool_t is_one_side = HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::OneSideReadout);
       for (const auto& uord : std::vector<TString>{"U", "D"}) {
+        if (is_one_side && uord == "D") continue;
         auto ud = uord.Data();
         for (Int_t i = 0; i < nseg; ++i) {
           HB1(Form("%s_ADC_seg%d%s%s; channel; count", name, i, ud, b),  adc_bins);
@@ -195,6 +197,7 @@ BuildHodoRaw(Bool_t flag_beam_particle)
         }
       }
       for(const auto& uord: std::vector<TString>{"OR", "AND"} ){
+        if (is_one_side && uord == "AND") continue;
         auto ud = uord.Data();
         HB1(Form("%s_HitPat_%s%s; segment; count", name, ud, b),     seg_bins);
         HB1(Form("%s_Multi_%s%s; multiplicity; count", name, ud, b), mul_bins);
@@ -299,11 +302,13 @@ BuildHodoHit(Bool_t flag_beam_particle)
       const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
       const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
       Bool_t is_cherenkov = HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::Cherenkov);
+      Bool_t is_one_side = HasHodoGroup(HodoGroupMask[ihodo], HodoGroup::OneSideReadout);
       const Char_t*   dex      = is_cherenkov ? "Npe"    : "DeltaE";
       const Double_t* dex_bins = is_cherenkov ? npe_bins : de_bins;
       const Char_t*   dex_axis = is_cherenkov ? "Npe"    : "mip";
       for(Int_t i=0; i<nseg; ++i){
         for(const auto& uord: std::vector<TString>{"U", "D"} ){
+          if (is_one_side && uord == "D") continue;
           auto ud = uord.Data();
           HB1(Form("%s_Hit_%s_seg%d%s%s; %s; count", name, dex, i, ud, b, dex_axis), dex_bins);
           HB1(Form("%s_Hit_Time_seg%d%s%s; ns; count", name, i, ud, b),  hr_time_bins);
