@@ -302,9 +302,40 @@ EventAnalyzer::HodoRawHit(const RawData& rawData, beam::EBeamFlag beam_flag)
       for(const auto& t: hit->GetArrayTdc(ud)){
       	HF1(Form("%s_TDC_seg%d%s%s", name, seg, ud_str, b), t);
       }
+    }      
+      { //SCH: MHTDC, one-side (U only)
+	const Char_t* name = "SCH";
+	Int_t multi_or = 0;
+	for(const auto& hit: rawData.GetHodoRawHC(name)){
+	  auto seg = hit->SegmentId();
+	  Bool_t is_good = false;
+	  //leading (TDC)
+	  for(Int_t i=0, n=hit->GetSizeTdcLeading(0); i<n; ++i){
+	    auto l = hit->GetTdc(0, i);
+	    if(gUser.IsInRange(Form("%s_TDC", name), l))
+	      is_good = true;
+	    HF1(Form("%s_TDC_seg%dU%s", name, seg, b), l);
+	  }
+	  // trailing + TOT
+	  for(Int_t i=0, n=hit->GetSizeTdcTrailing(0); i<n; ++i){
+	    auto t = hit->GetTdcTrailing(0, i);
+	    HF1(Form("%s_Trailing_seg%dU%s", name, seg, b), t);
+	    if(n == hit->GetSizeTdcLeading(0)){
+	      auto l =hit->GetTdc(0, i);
+	      if(gUser.IsInRange(Form("%s_TDC", name), l))
+		HF1(Form("%s_TOT_seg%dU%s", name, seg, b), l - t);
+	    }
+	  }
+	  if(is_good){
+	    HF1(Form("%s_HitPat_OR%s", name, b), seg);
+	    ++multi_or;
+	  }
+	}
+	HF1(Form("%s_Multi_OR%s", name, b), multi_or);
+      }
     }
   }
-}
+
 
 //_____________________________________________________________________________
 void

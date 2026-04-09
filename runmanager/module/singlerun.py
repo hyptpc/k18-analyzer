@@ -433,13 +433,13 @@ class SingleRun(object):
       self.__status = 'UNKNOWN'
     if self.__bjob_status is None: # initial
       pass
-    elif self.__bjob_status == 0: # running
-      self.__status = 'BJOB-RUNNING'
     elif self.__bjob_status is True: # complete
       self.__status = 'BJOB-DONE'
     elif self.__bjob_status is False: # failure
       self.__status = 'FAILED'
       return
+    elif self.__bjob_status == 0: # running
+      self.__status = 'BJOB-RUNNING'
     elif self.__bjob_status == 1: # killed
       self.__status = 'TERMINATED'
       return
