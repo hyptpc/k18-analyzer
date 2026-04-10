@@ -685,6 +685,11 @@ EventAnalyzer::DCRawHit(const TString& dcname, const RawData& rawData,
     Int_t detector_id = digit_info.get_device_id(name);
     Int_t nplane = digit_info.get_n_plane(detector_id);
     for(Int_t plane=0; plane<nplane; ++plane){
+      Int_t wire1,wire2;
+      if(plane%2 == 0){
+	wire1 = -99;
+	wire2 = -99;
+      }
       const auto& cont = rawData.GetDCRawHC(detector_id, plane);
       // hist::H1(Form("%s_Mul_plane%d",name,plane),nh,mulbins);
       Int_t multi = 0;
@@ -693,6 +698,8 @@ EventAnalyzer::DCRawHit(const TString& dcname, const RawData& rawData,
         auto hit = cont[i];
         if(!hit) continue;
         auto wire = hit->WireId();
+	if(plane%2==0)wire1 = wire;
+	else {wire2 = wire;}
         Bool_t is_good = false;
         for(Int_t j=0, m=hit->GetTdcSize(); j<m; ++j){
           if(m != hit->GetTrailingSize()) break;
@@ -731,6 +738,9 @@ EventAnalyzer::DCRawHit(const TString& dcname, const RawData& rawData,
           HF1(Form("%s_CHitPat_plane%d%s", name, plane, b), wire);
           ++cmulti;
         }
+	if(plane % 2 == 1 && wire1 != -99 && wire2 != -99){
+	  HF2(Form("%s_Raw_HitPat_Pairplane%d%d%s",name,plane-1,plane,b), wire1, wire2);
+	}
       }
       HF1(Form("%s_Multi_plane%d%s", name, plane, b), multi);
       HF1(Form("%s_CMulti_plane%d%s", name, plane, b), cmulti);

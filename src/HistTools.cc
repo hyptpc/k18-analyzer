@@ -627,6 +627,7 @@ BuildDCHit(const TString& dcname, Bool_t flag_beam_particle)
         HB2(Form("%s_Hit_DriftLength_vs_HitPat_plane%d%s; segment; mm", name, plane, b), dl_bins_2d);
         HB1(Form("%s_Hit_HitPat_plane%d%s; wire; count", name, plane, b), pat_bins);
         if (plane % 2 == 0) {
+	  HB2(Form("%s_Raw_HitPat_Pairplane%d%d%s; wire [plane %d]; wire [plane %d]", name, plane, plane+1, b, plane, plane+1), pat_bins_2d);
           HB2(Form("%s_Hit_HitPat_Pairplane%d%d%s; wire [plane %d]; wire [plane %d]", name, plane, plane+1, b, plane, plane+1), pat_bins_2d);
           HB1(Form("%s_Hit_HitPat_PP_Sub%d%d%s; wire of plane %d-wire of plane %d;count", name, plane, plane+1, b, plane, plane+1), d_pat_bins);
         }

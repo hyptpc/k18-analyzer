@@ -33,6 +33,7 @@
 #include "UserParamMan.hh"
 
 #define RawHit 0
+#define RawCluster 0
 #define TrackSearch 1
 #define TrackCluster 1
 #define TruncatedMean 0
@@ -161,7 +162,7 @@ struct Event
   std::vector<std::vector<Double_t>> track_cluster_y_center;
   std::vector<std::vector<Double_t>> track_cluster_z_center;
   std::vector<std::vector<Double_t>> track_cluster_row_center;
-
+  
   void clearBasicInfo() {
     runnum   = 0;
     evnum    = 0;
@@ -227,7 +228,7 @@ struct Event
     dst::resize_all(nh,
       hitlayer[it], hitpos_x[it], hitpos_y[it], hitpos_z[it], calpos_x[it], calpos_y[it], calpos_z[it], residual[it], residual_x[it], residual_y[it], residual_z[it], helix_t[it],
 
-      pathhit[it], pathhit_cor[it], theta_diff[it], track_cluster_de[it], track_cluster_size[it], track_cluster_mrow[it], track_cluster_de_center[it], track_cluster_x_center[it], track_cluster_y_center[it], track_cluster_z_center[it], track_cluster_row_center
+      pathhit[it], pathhit_cor[it], theta_diff[it], track_cluster_de[it], track_cluster_size[it], track_cluster_mrow[it], track_cluster_de_center[it], track_cluster_x_center[it], track_cluster_y_center[it], track_cluster_z_center[it], track_cluster_row_center[it]
     );
   }
 
@@ -351,7 +352,7 @@ dst::DstOpen( std::vector<std::string> arg )
 Bool_t
 dst::DstRead( int ievent )
 {
-  if( ievent%100==0 ){
+  if( ievent%1==0 ){
     std::cout << "#D Event Number: "
 	      << std::setw(6) << ievent << std::endl;
   }
@@ -365,6 +366,7 @@ dst::DstRead( int ievent )
   event.clkTpc   = **src.clkTpc;
   HF1("Status", event.status++);
 
+  
   if( **src.nhTpc == 0 )
     return true;
 
@@ -384,7 +386,7 @@ dst::DstRead( int ievent )
   const Double_t VertexScanRange = gUser.GetParameter("VertexScanRange"); //mm
 
   HF1("Status", event.status++);
-
+  
 #if RawHit
   Int_t nhTpc = 0;
   for( Int_t layer=0; layer<NumOfLayersTPC; ++layer ){
@@ -452,7 +454,7 @@ dst::DstRead( int ievent )
   event.nclTpc = nclTpc;
   HF1("Status", event.status++);
 #endif
-  
+
 #if TrackSearch
   TPCAna.TrackSearchTPCHelix();
 #endif
@@ -462,13 +464,14 @@ dst::DstRead( int ievent )
   HF1("NTracks_TPC", ntTpc);
   if( event.ntTpc == 0 )
     return true;
-  
+
   HF1("Status", event.status++);
   event.resizeTracks(ntTpc);
 
   for( Int_t it=0; it<ntTpc; ++it ){
     TPCLocalTrackHelix *tp = TPCAna.GetTrackTPCHelix( it );
     if( !tp ) continue;
+    
     Int_t nh = tp->GetNHit();
     Double_t chisqr = tp->GetChiSquare();
     Double_t helix_cx = tp->Getcx(), helix_cy = tp->Getcy();
@@ -552,7 +555,7 @@ dst::DstRead( int ievent )
       const TVector3& centerPos = centerHit->GetPosition();
       Double_t centerDe = centerHit->GetCDe();
       Int_t centerRow = centerHit->GetRow();
-
+      
 #if TrackCluster
       if(ntTpc==1&&nh>=20){
 	HF1("Cluster_size", clsize);
@@ -586,6 +589,7 @@ dst::DstRead( int ievent )
       event.theta_diff[it][ih] = thetaDiff;
       Double_t pathHit = tpc::padParameter[layer][5];
       event.pathhit[it][ih] = pathHit;
+      
 
       //Approximation of pathHit correction
       Double_t pathHit_cor = (pathHit/fabs(cos(thetaDiff)))*sqrt(1.+(pow(helix_dz,2)));
