@@ -1,0 +1,6 @@
+#Runnumber Mom Particle V_GEM V_GATE gateon/off threshold Trig
+
+#E45Physics 933 1
+2851 # -933 pion 297 +70/-69.7 on 2201-1.5-noise Beam
+2853 # -933 pion 297 +70/-69.7 on 2201-1.5-noise BeamxHTOF-Mp2
+2854 # -933 pion 297 +70/-69.7 on 2201-1.5-noise BeamxHTOF-Mp2x/KVCxPi-tight

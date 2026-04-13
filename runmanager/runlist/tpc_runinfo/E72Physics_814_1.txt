@@ -1,0 +1,22 @@
+#Runnumber Mom V_GEM V_GATE gateon/off threshold Trig
+
+#E72Physics 814 1
+2912 # 814 297 +70/-69.7 on 2201-1.5-noise KBeam
+2913 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2914 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2916 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2917 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2918 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2921 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2922 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2923 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2924 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2926 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2927 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2928 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2930 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2931 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2932 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2933 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2934 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2935 # 814 297 +70/-69.7 on 2201-1.5-noise E72Physics

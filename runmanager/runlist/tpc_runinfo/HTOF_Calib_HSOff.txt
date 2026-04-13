@@ -1,0 +1,6 @@
+#Runnumber Mom Particle V_GEM V_GATE gateon/off threshold Trig
+
+#HTOF_Calib_HSOff
+2594 # -1000 pion 297 +70/-70 on 2201-1.5-noise BeamxHTOF-Mp3
+2595 # -1000 pion 297 +70/-70 on 2201-1.5-noise BeamxHTOF-Mp3
+2596 # -1000 pion 297 +70/-70 on 2201-1.5-noise BeamxHTOF-Mp3

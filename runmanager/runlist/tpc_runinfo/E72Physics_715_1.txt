@@ -1,0 +1,26 @@
+#Runnumber Mom V_GEM V_GATE gateon/off threshold Trig
+
+#E72Physics 715 1
+2609 # 715 297 +70/-69.25 on 2201-1.5-noise KBeam
+2610 # 715 297 +70/-69.25 on 2201-1.5-noise Beam
+2611 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2612 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2615 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2616 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2618 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2619 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2622 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2623 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2624 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2625 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2626 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2627 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2628 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2629 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2630 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2631 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2632 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2633 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2634 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2635 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics
+2636 # 715 297 +70/-69.25 on 2201-1.5-noise E72Physics

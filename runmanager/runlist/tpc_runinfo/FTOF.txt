@@ -1,0 +1,10 @@
+#Runnumber Mom Particle V_GEM V_GATE gateon/off threshold Trig
+
+#FTOF
+2570 # -735 pion 297 +70/-70 on 2201-1.5-noise Beam
+2581 # -735 pbar 297 +70/-70 on 2201-1.5-noise Beam
+2585 # -933 pbar 297 +70/-70 on 2201-1.5-noise Beam
+2587 # -755 pbar 297 +70/-70 on 2201-1.5-noise Beam
+2589 # -715 pbar 297 +70/-70 on 2201-1.5-noise Beam
+2590 # -715 pbar 297 +70/-70 on 2201-1.5-noise Beam
+2592 # -645 pbar 297 +70/-70 on 2201-1.5-noise Beam

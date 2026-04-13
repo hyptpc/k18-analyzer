@@ -1,0 +1,5 @@
+#Runnumber Mom V_GEM V_GATE gateon/off threshold Trig
+
+#Beam 600 1
+2847 # 600 297 +70/-69.7 on 2201-1.5-noise Beam
+2848 # 600 297 +70/-69.7 on 2201-1.5-noise KBeam

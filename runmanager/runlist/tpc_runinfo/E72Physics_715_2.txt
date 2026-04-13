@@ -1,0 +1,10 @@
+#Runnumber Mom V_GEM V_GATE gateon/off threshold Trig
+
+#E72Physics 715 2
+2647 # 715 297 +70/-69.7 on 2201-1.5-noise Beam
+2648 # 715 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2650 # 715 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2651 # 715 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2652 # 715 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2653 # 715 297 +70/-69.7 on 2201-1.5-noise E72Physics
+2655 # 715 297 +70/-69.7 on 2201-1.5-noise E72Physics

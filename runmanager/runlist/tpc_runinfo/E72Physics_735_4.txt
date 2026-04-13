@@ -1,0 +1,15 @@
+#Runnumber Mom V_GEM V_GATE gateon/off threshold Trig
+
+#E72Physics 735 4
+2377 # 735 297 +70/-70 on 2201-1.5 E72Physics
+2378 # 735 297 +70/-70 on 2201-1.5 E72Physics
+2379 # 735 297 +70/-70 on 2201-1.5 E72Physics
+2380 # 735 297 +70/-70 on 2201-1.5 E72Physics
+2381 # Pedestal
+2382 # 735 297 +70/-70 on 2201-1.5 E72Physics
+2383 # 735 297 +70/-70 on 2201-1.5 E72Physics
+2384 # 735 297 +70/-70 on 2201-1.5 E72Physics
+2385 # 735 297 +70/-70 on 2201-1.5 E72Physics
+2386 # 735 297 +70/-70 on 2201-1.5 E72Physics
+2387 # 735 297 +70/-70 on 2201-1.5 E72Physics
+2388 # 735 297 +70/-70 on 2201-1.5 E72Physics

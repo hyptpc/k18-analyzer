@@ -1,0 +1,9 @@
+#Runnumber Mom V_GEM V_GATE gateon/off threshold Trig
+
+#Ramp up 2 735 MeV/c
+2208 # 735 290 +70/-69 on 2201-1.5 E72Physics
+2209 # 735 290 +70/-69 on 2201-1.5 E72Physics
+2210 # 735 292 +70/-69 on 2201-1.5 E72Physics
+2211 # 735 294 +70/-69 on 2201-1.5 E72Physics
+2212 # 735 296 +70/-69 on 2201-1.5 E72Physics
+2213 # 735 297 +70/-69 on 2201-1.5 E72Physics

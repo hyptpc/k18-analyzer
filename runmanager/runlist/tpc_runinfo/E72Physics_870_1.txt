@@ -1,0 +1,10 @@
+#Runnumber Mom V_GEM V_GATE gateon/off threshold Trig
+
+#E72Physics 870 1
+2992 # 870 297 +70/-69.3 on 2201-1.5-noise KBeam
+2993 # 870 297 +70/-69.3 on 2201-1.5-noise Beam
+2995 # 870 297 +70/-69.3 on 2201-1.5-noise E72Physics
+2996 # 870 297 +70/-69.3 on 2201-1.5-noise E72Physics
+2997 # 870 297 +70/-69.3 on 2201-1.5-noise E72Physics
+2999 # 870 297 +70/-69.3 on 2201-1.5-noise E72Physics
+3000 # 870 297 +70/-69.3 on 2201-1.5-noise E72Physics
