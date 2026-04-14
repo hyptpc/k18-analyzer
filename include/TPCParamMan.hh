@@ -6,7 +6,6 @@
 #include <map>
 #include <TMath.h>
 #include <TString.h>
-#include <TGraph.h>
 
 //_____________________________________________________________________________
 class TPCAParam
@@ -103,17 +102,10 @@ class TPCCoboParam
 {
 public:
   TPCCoboParam(const std::vector<Double_t> params)
-    : m_params(params),
-      m_phase_graph(nullptr)
+    : m_params(params)
     {}
-
   ~TPCCoboParam()
-  {
-    if (m_phase_graph) {
-      delete m_phase_graph;
-      m_phase_graph = nullptr;
-    }
-  }
+    {}
 
 private:
   TPCCoboParam();
@@ -122,18 +114,10 @@ private:
 
 private:
   std::vector<Double_t> m_params;
-  TGraph*               m_phase_graph;  // clock correction (Δclock vs clock)
 
 public:
-  void SetPhaseGraph(TGraph* g) { m_phase_graph = g; }
-  TGraph* PhaseGraph() const { return m_phase_graph; }
   Double_t PhaseShift(Double_t clk) const
   {
-    if (m_phase_graph) {
-      const Double_t dclk = m_phase_graph->Eval(clk);
-      return clk + dclk;
-    }
-    // use original parametric function if graph is not available
     return clk + m_params[0]*TMath::Freq((clk-m_params[1])/m_params[2]);
   }
   const std::vector<Double_t>& Params() const { return m_params; }
@@ -189,7 +173,6 @@ private:
   typedef ResContainer::const_iterator ResIterator;
   Bool_t        m_is_ready;
   TString       m_file_name;
-  TString       m_phase_file_name;
   AContainer    m_APContainer;
   TContainer    m_TPContainer;
   YContainer    m_YPContainer;
@@ -212,10 +195,8 @@ public:
   Bool_t GetY(Int_t layer, Int_t row, Double_t time, Double_t& y) const;
   Bool_t Initialize();
   Bool_t Initialize(const TString& file_name);
-  Bool_t Initialize(const TString& file_name, const TString& phase_file_name);
   Bool_t IsReady() const { return m_is_ready; }
   void   SetFileName(const TString& file_name) { m_file_name = file_name; }
-  void   SetPhaseFileName(const TString& file_name) { m_phase_file_name = file_name; }
 
 private:
   void          ClearACont();

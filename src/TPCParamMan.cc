@@ -9,13 +9,7 @@
 #include <fstream>
 #include <sstream>
 
-#include <TFile.h>
-#include <TKey.h>
-#include <TGraph.h>
-#include <TROOT.h>
-
 #include <std_ostream.hh>
-#include <spdlog/spdlog.h>
 
 #include "DeleteUtility.hh"
 #include "FuncName.hh"
@@ -40,8 +34,7 @@ MakeKey(Int_t layer, Int_t row)
 //_____________________________________________________________________________
 TPCParamMan::TPCParamMan()
   : m_is_ready(false),
-    m_file_name(),
-    m_phase_file_name()
+    m_file_name()
 {
 }
 
@@ -228,43 +221,6 @@ TPCParamMan::Initialize()
     }
   } // while
 
-  // load clock-correction graphs for CoBo
-  if (!m_phase_file_name.IsNull() && !m_phase_file_name.IsWhitespace()) {
-    auto prev_file = gFile;
-    TFile* f = TFile::Open(m_phase_file_name);
-    if (!f || !f->IsOpen()) {
-      hddaq::cerr << FUNC_NAME << " phase graph file open fail : "
-                  << m_phase_file_name << std::endl;
-      return false;
-    }
-
-    // Expect TGraph named like "TpcPhase_Cobo%d"
-    for (auto& kv : m_CoboContainer) {
-      const Int_t cobo = kv.first;
-      TPCCoboParam* param = kv.second;
-      if (!param) continue;
-
-      const TString key_name = Form("TpcPhase_Cobo%d", cobo);
-      if (TKey* key = f->GetKey(key_name)) {
-        TObject* obj = key->ReadObj();
-        if (TGraph* g = dynamic_cast<TGraph*>(obj)) {
-          // Clone to take ownership and avoid file dependency
-          TGraph* g_clone = static_cast<TGraph*>(g->Clone(Form("TpcPhase_Cobo%d_Graph", cobo)));
-          delete obj;  // delete the original from file
-          param->SetPhaseGraph(g_clone);
-        } else if (obj) {
-          hddaq::cerr << FUNC_NAME << " Warning: " << key_name 
-                      << " is not a TGraph, skipped" << std::endl;
-          delete obj;
-        }
-      }
-    }
-
-    f->Close();
-    if (prev_file) prev_file->cd();
-    spdlog::info(" [TPCPHASE] -> initialized");
-  }
-
   m_is_ready = true;
   return true;
 }
@@ -274,16 +230,6 @@ Bool_t
 TPCParamMan::Initialize(const TString& file_name)
 {
   m_file_name = file_name;
-  return Initialize();
-}
-
-//_____________________________________________________________________________
-Bool_t
-TPCParamMan::Initialize(const TString& file_name,
-                        const TString& phase_file_name)
-{
-  m_file_name       = file_name;
-  m_phase_file_name = phase_file_name;
   return Initialize();
 }
 
