@@ -1020,7 +1020,7 @@ ConfMan::InitializeParameterFiles()
 {
   return
     (InitializeParameter<DCGeomMan>("DCGEO") &&
-     InitializeParameter<TPCParamMan>("TPCPRM", "TPCPHASE") &&
+     InitializeParameter<TPCParamMan>("TPCPRM") &&
      InitializeParameter<TPCPositionCorrector>("TPCPOS") &&
      InitializeParameter<UserParamMan>("USER"));
 }
