@@ -48,7 +48,8 @@ private:
   TPCLocalTrackHelixContainer        m_TPCTCHelixFailed;
   TPCVertexContainer                 m_TPCVC; //vertex between two tracks
   TPCVertexContainer                 m_TPCVCClustered; //clusted position of multi-tracks
-  
+  TPCLocalTrackContainer             m_TPCK18TC;
+
 
 public:
 
@@ -82,6 +83,8 @@ protected:
   void ClearTPCHits();
   void ClearTPCClusters();
   void ClearTPCTracks();
+  void ClearTPCVertices();
+  void ClearTPCK18Tracks();
   static Bool_t MakeUpTPCClusters(const TPCHitContainer& HitCont,
                                   TPCClusterContainer& ClCont,
                                   Double_t maxdy);

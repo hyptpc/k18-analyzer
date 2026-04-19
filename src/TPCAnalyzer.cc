@@ -26,6 +26,8 @@
 #include "TPCCluster.hh"
 #include "TPCTrackSearch.hh"
 #include "TPCLocalTrack.hh"
+#include "TPCLocalTrackHelix.hh"
+#include "TPCVertex.hh"
 
 /* TPCTracking */
 #define UseTpcCluster 1 // 1 : Common clustering method, 0 : Cluster size=1 no clustering
@@ -57,6 +59,8 @@ TPCAnalyzer::~TPCAnalyzer()
   ClearTPCHits();
   ClearTPCClusters();
   ClearTPCTracks();
+  ClearTPCVertices();
+  ClearTPCK18Tracks();
   debug::ObjectCounter::decrease(ClassName());
 }
 
@@ -265,4 +269,22 @@ TPCAnalyzer::ClearTPCTracks()
 {
   del::ClearContainer(m_TPCTC);
   del::ClearContainer(m_TPCTCFailed);
+  del::ClearContainer(m_TPCTCHelix);
+  del::ClearContainer(m_TPCTCHelixInverted);
+  del::ClearContainer(m_TPCTCHelixFailed);
+}
+
+//_____________________________________________________________________________
+void
+TPCAnalyzer::ClearTPCVertices()
+{
+  del::ClearContainer(m_TPCVC);
+  del::ClearContainer(m_TPCVCClustered);
+}
+
+//_____________________________________________________________________________
+void
+TPCAnalyzer::ClearTPCK18Tracks()
+{
+  del::ClearContainer(m_TPCK18TC);
 }
