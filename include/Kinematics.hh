@@ -112,7 +112,7 @@ namespace Kinematics
   void CalcHelixParam(Double_t Bfield, Int_t charge,
 		      TVector3 mom, TVector3 pos, Double_t *par);
   TVector3 CalcHelixPosition(double par[5], double t);
-  TVector3 VertexPointHelix(Double_t par1[5], Double_t par2[5],
+  TVector3 VertexPointHelix(const Double_t par1[5], const Double_t par2[5],
 			    Double_t t1_start, Double_t t1_end,
 			    Double_t t2_start, Double_t t2_end,
 			    Double_t& t1, Double_t& t2,

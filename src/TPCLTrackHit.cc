@@ -123,12 +123,12 @@ TPCLTrackHit::~TPCLTrackHit()
 // For Helix fit
 //______________________________________________________________________________
 TVector3
-TPCLTrackHit::GetHelixPosition(double par[5], double t) const
+TPCLTrackHit::GetHelixPosition(const Double_t par[5], Double_t t) const
 {
   //This is the eqation of Helix
-  double x = par[0] + par[3]*cos(t);
-  double y = par[1] + par[3]*sin(t);
-  double z = par[2] + (par[4]*par[3]*t);
+  Double_t x = par[0] + par[3]*TMath::Cos(t);
+  Double_t y = par[1] + par[3]*TMath::Sin(t);
+  Double_t z = par[2] + (par[4]*par[3]*t);
 
   return TVector3(x, y, z);
 }
@@ -142,7 +142,7 @@ TPCLTrackHit::GetLocalCalPos() const
   TVector3 x1(m_x0 + m_u0, m_y0 + m_v0, tpc::Z_TARGET+1.);
   TVector3 u = (x1-x0).Unit();
   TVector3 AP = pos-x0;
-  double dist_AX = u.Dot(AP);
+  Double_t dist_AX = u.Dot(AP);
   TVector3 AI(x0.x()+(u.x()*dist_AX),
 	      x0.y()+(u.y()*dist_AX),
 	      x0.z()+(u.z()*dist_AX));
@@ -158,7 +158,7 @@ TPCLTrackHit::GetLocalCalPosExclusive() const
   TVector3 x1(m_x0_exclusive + m_u0_exclusive, m_y0_exclusive + m_v0_exclusive, tpc::Z_TARGET+1.);
   TVector3 u = (x1-x0).Unit();
   TVector3 AP = pos-x0;
-  double dist_AX = u.Dot(AP);
+  Double_t dist_AX = u.Dot(AP);
   TVector3 AI(x0.x()+(u.x()*dist_AX),
               x0.y()+(u.y()*dist_AX),
               x0.z()+(u.z()*dist_AX));
@@ -169,7 +169,7 @@ TPCLTrackHit::GetLocalCalPosExclusive() const
 TVector3
 TPCLTrackHit::GetLocalCalPosHelix() const
 {
-  double par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
+  Double_t par[5] = {m_cx, m_cy, m_z0, m_r, m_dz};
   TVector3 fittmp = GetHelixPosition(par, m_t);
   TVector3 calpos(-fittmp.X(),
 		   fittmp.Z(),
@@ -181,7 +181,7 @@ TPCLTrackHit::GetLocalCalPosHelix() const
 TVector3
 TPCLTrackHit::GetLocalCalPosHelixExclusive() const
 {
-  double par[5] = {m_cx_exclusive, m_cy_exclusive, m_z0_exclusive, m_r_exclusive, m_dz_exclusive};
+  Double_t par[5] = {m_cx_exclusive, m_cy_exclusive, m_z0_exclusive, m_r_exclusive, m_dz_exclusive};
   TVector3 fittmp = GetHelixPosition(par, m_t_exclusive);
   TVector3 calpos(-fittmp.X(),
 		   fittmp.Z(),
@@ -197,18 +197,18 @@ TPCLTrackHit::GetMomentumHelix(Double_t charge) const
    	       m_cal_pos.Z() - tpc::Z_TARGET,
    	       m_cal_pos.Y());
 
-  const double Const = 0.299792458; // =c/10^9
-  const double dMagneticField = HSfield_Calib*(HSfield_Hall/HSfield_Calc);
+  const Double_t Const = 0.299792458; // =c/10^9
+  const Double_t dMagneticField = HSfield_Calib*(HSfield_Hall/HSfield_Calc);
 
-  double t = (pos.Z()-m_z0)/(m_r*m_dz);
-  double pt = fabs(m_r)*(Const*dMagneticField); // MeV/c
+  Double_t t = (pos.Z()-m_z0)/(m_r*m_dz);
+  Double_t pt = TMath::Abs(m_r)*(Const*dMagneticField); // MeV/c
   //From here!!!!
-  double tmp_px = pt*(-1.*sin(t));
-  double tmp_py = pt*(cos(t));
-  double tmp_pz = pt*(m_dz);
-  double px = -tmp_px*0.001;
-  double py = tmp_pz*0.001;
-  double pz = tmp_py*0.001;
+  Double_t tmp_px = pt*(-1.*TMath::Sin(t));
+  Double_t tmp_py = pt*(TMath::Cos(t));
+  Double_t tmp_pz = pt*(m_dz);
+  Double_t px = -tmp_px*0.001;
+  Double_t py = tmp_pz*0.001;
+  Double_t pz = tmp_py*0.001;
 
   TVector3 p = TVector3(px,py,pz);
   if(charge<0.) p *= -1.;
@@ -230,7 +230,7 @@ TPCLTrackHit::GetResidualVectExclusive() const
 }
 
 //______________________________________________________________________________
-double
+Double_t
 TPCLTrackHit::GetResidual() const
 {
   TVector3 Res = m_local_hit_pos - m_cal_pos;
@@ -238,7 +238,7 @@ TPCLTrackHit::GetResidual() const
 }
 
 //______________________________________________________________________________
-double
+Double_t
 TPCLTrackHit::GetResidualExclusive() const
 {
   TVector3 Res = m_local_hit_pos - m_cal_pos_exclusive;
@@ -259,8 +259,8 @@ TPCLTrackHit::GetPathHelix() const
 {
   //Approximation of pathlength
   Double_t thetaDiff = GetPadTrackAngleHelix();
-  Double_t path_xz = m_padlength/TMath::Abs(cos(thetaDiff));
-  Double_t factor = TMath::Sqrt(1.+(TMath::Power(m_dz,2)));
+  Double_t path_xz = m_padlength/TMath::Abs(TMath::Cos(thetaDiff));
+  Double_t factor = TMath::Sqrt(1.+TMath::Power(m_dz,2));
   return path_xz*factor;
 }
 
@@ -269,7 +269,7 @@ Bool_t
 TPCLTrackHit::IsGoodForTracking() const
 {
   Bool_t isgood = true;
-  if(m_res.x() > 0.9e+10 && m_res.y() > 0.9e+10 && m_res.z() > 0.9e+10) isgood = false;
+  if (tpc::IsDummyResolutionVec(m_res)) isgood = false;
   return isgood;
 }
 
@@ -277,7 +277,7 @@ TPCLTrackHit::IsGoodForTracking() const
 void
 TPCLTrackHit::Print(const TString& arg) const
 {
-  const int w = 2;
+  const Int_t w = 2;
   std::cout << arg.Data() << " Hough flag" << m_hit->GetHoughFlag()
 	    << " L" << m_hit->GetLayer() << " R" << m_hit->GetMRow()
 	    << std::setw(w) << std::right << " pos"

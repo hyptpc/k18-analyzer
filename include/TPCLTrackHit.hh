@@ -13,6 +13,17 @@
 
 class TPCAnalyzer;
 
+namespace tpc
+{
+// Sentinel [mm]: SetResolution dummy / invalid hits use values above this on all axes.
+const Double_t kResolutionDummyThreshold = 0.9e+10;
+inline Bool_t IsDummyResolutionVec(const TVector3& res)
+{
+  return res.x() > kResolutionDummyThreshold && res.y() > kResolutionDummyThreshold &&
+         res.z() > kResolutionDummyThreshold;
+}
+} // namespace tpc
+
 //_____________________________________________________________________________
 class TPCLTrackHit
 {
@@ -76,7 +87,7 @@ public:
 
   const TVector3& GetLocalHitPos()  const { return m_local_hit_pos; }
   Int_t  GetLayer()       const { return m_layer; }
-  Int_t  GetSection()       const { return m_section; }
+  Int_t  GetSection()     const { return m_section; }
   Double_t GetMRow()      const { return m_mrow; }
   Double_t GetPadTheta()  const { return m_padtheta; }
   Double_t GetPadLength() const { return m_padlength; }
@@ -97,7 +108,7 @@ public:
 
   TVector3 GetLocalCalPos() const;
   TVector3 GetLocalCalPosHelix() const;
-  TVector3 GetHelixPosition(Double_t par[5], Double_t t) const;
+  TVector3 GetHelixPosition(const Double_t par[5], Double_t t) const;
   TVector3 GetMomentumHelix(Double_t charge)  const;
   Double_t GetPadTrackAngleHelix() const;
   Double_t GetPathHelix() const;

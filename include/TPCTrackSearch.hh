@@ -73,9 +73,9 @@ void FitTrack(T *Track, Int_t Houghflag,
 //HS-OFF data
 //Make a track after Hough-transform
 Bool_t MakeLinearTrack(TPCLocalTrack *Track, Bool_t &VtxFlag,
-		       const std::vector<TPCClusterContainer>& ClCont,
-		       Double_t *LinearPar,
-		       Double_t MaxHoughWindowY);
+					   const std::vector<TPCClusterContainer>& ClCont,
+					   Double_t *LinearPar,
+					   Double_t MaxHoughWindow);
 
 //HS-ON data
 //Make a track after Hough-transform

@@ -1297,12 +1297,10 @@ inline TVector3 GetPosition(Int_t layer, Double_t m_row)
 }
 
 //_____________________________________________________________________________
-inline Int_t GetSection(Int_t pad_id)
+// TPC GEM section (1-4) in the xz plane, split by the z = +/- x diagonals.
+// Returns -1 on the sector boundary where |x| == |z|.
+inline Int_t GetSection(Double_t x, Double_t z)
 {
-  TVector3 pad_pos = GetPosition(pad_id);
-  Double_t x = pad_pos.x();
-  Double_t z = pad_pos.z();
-
   Int_t section = -1;
   if (std::abs(x) == std::abs(z)) return section;
   if (std::abs(x) <  std::abs(z)) {
@@ -1312,15 +1310,21 @@ inline Int_t GetSection(Int_t pad_id)
     if (x < 0) section = 2;
     else       section = 4;
   }
-
   return section;
+}
+
+//_____________________________________________________________________________
+inline Int_t GetSection(Int_t pad_id)
+{
+  TVector3 pad_pos = GetPosition(pad_id);
+  return GetSection(pad_pos.x(), pad_pos.z());
 }
 
 //_____________________________________________________________________________
 inline Int_t GetSection(Int_t layer, Double_t m_row)
 {
-  Int_t pad_id = GetPadId(layer, m_row);
-  return GetSection(pad_id);
+  const TVector3 pad_pos = GetPosition(layer, m_row);
+  return GetSection(pad_pos.x(), pad_pos.z());
 }
 
 //_____________________________________________________________________________

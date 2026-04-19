@@ -76,6 +76,7 @@ const Double_t sigma_tof_t[5] = {0.492751, -0.305449, 0.10159, 0, 0};
 const Double_t sigma_tof_ep = 0.129776;
 const Double_t sigma_tof_em = 0.14181;
 const Double_t offset_tof_ep = -0.237853;
+
 }
 
 static Int_t gNumOfTracks;
@@ -100,6 +101,13 @@ static void fcn_vertex(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, I
 //_____________________________________________________________________________
 namespace Kinematics
 {
+Double_t CalcTPCdEdxSigma(const Double_t sigma_par[5], Double_t poq)
+{
+  const Double_t abspoq = TMath::Abs(poq);
+  return sigma_par[0] + sigma_par[1]*abspoq + sigma_par[2]*poq*poq
+         + sigma_par[3]*TMath::Exp(sigma_par[4]*abspoq);
+}
+
 //_____________________________________________________________________________
 Double_t
 MassSquare(Double_t p, Double_t path, Double_t time)
@@ -294,31 +302,27 @@ VertexPointHelix(const Double_t par1[5], const Double_t par2[5],
   //z = [7] + [8]*[9]*t;
 
   static TF2 fvert_helix("fvert_helix",
-                         "pow(([0]+[3]*cos(x))-([5]+[8]*cos(y)),2)+pow(([1]+[3]*sin(x))-([6]+[8]*sin(y)),2)+pow(([2]+[3]*[4]*x)-([7]+[8]*[9]*y),2)",
+                         "pow(([0]+[3]*cos(x))-([5]+[8]*cos(y)),2)"  // x
+                         "+pow(([1]+[3]*sin(x))-([6]+[8]*sin(y)),2)" // y
+                         "+pow(([2]+[3]*[4]*x)-([7]+[8]*[9]*y),2)",  // z
                          -5.,5.,-5.,5.);
 
-  fvert_helix.SetParameter(0, par1[0]);
-  fvert_helix.SetParameter(1, par1[1]);
-  fvert_helix.SetParameter(2, par1[2]);
-  fvert_helix.SetParameter(3, par1[3]);
-  fvert_helix.SetParameter(4, par1[4]);
-  fvert_helix.SetParameter(5, par2[0]);
-  fvert_helix.SetParameter(6, par2[1]);
-  fvert_helix.SetParameter(7, par2[2]);
-  fvert_helix.SetParameter(8, par2[3]);
-  fvert_helix.SetParameter(9, par2[4]);
+  for(Int_t i=0; i<5; ++i){
+    fvert_helix.SetParameter(i,   par1[i]);
+    fvert_helix.SetParameter(i+5, par2[i]);
+  }
 
   Double_t close_zin, close_zout;
   fvert_helix.GetMinimumXY(close_zin, close_zout);
   t1 = close_zin;
   t2 = close_zout;
 
-  Double_t xin = par1[0]+par1[3]*cos(close_zin);
-  Double_t xout = par2[0]+par2[3]*cos(close_zout);
-  Double_t yin =  par1[1]+par1[3]*sin(close_zin);
-  Double_t yout = par2[1]+par2[3]*sin(close_zout);
-  Double_t zin = par1[2]+par1[3]*par1[4]*close_zin;
-  Double_t zout =  par2[2]+par2[3]*par2[4]*close_zout;
+  Double_t xin  = par1[0]+par1[3]*TMath::Cos(close_zin);
+  Double_t xout = par2[0]+par2[3]*TMath::Cos(close_zout);
+  Double_t yin  = par1[1]+par1[3]*TMath::Sin(close_zin);
+  Double_t yout = par2[1]+par2[3]*TMath::Sin(close_zout);
+  Double_t zin  = par1[2]+par1[3]*par1[4]*close_zin;
+  Double_t zout = par2[2]+par2[3]*par2[4]*close_zout;
 
   // Double_t vx = (par1[0]+par1[3]*cos(close_zin) + par2[0]+par2[3]*cos(close_zout))/2.;
   // Double_t vy = (par1[1]+par1[3]*sin(close_zin) + par2[1]+par2[3]*sin(close_zout))/2.;
@@ -327,9 +331,10 @@ VertexPointHelix(const Double_t par1[5], const Double_t par2[5],
   Double_t vy = (yin+yout)/2.;
   Double_t vz = (zin+zout)/2.;
 
-  Double_t dist2 = sqrt(pow(xin-xout,2)
-			+pow(yin-yout,2)
-			+pow(zin-zout,2));
+  Double_t dist2 = TMath::Sqrt(
+                     TMath::Power(xin-xout,2.)
+                    +TMath::Power(yin-yout,2.)
+                    +TMath::Power(zin-zout,2.));
   // std::cout<<"dist ="<<dist<<", dist2="<<dist2<<std::endl;
   // std::cout<<"close_zin="<<close_zin<<", close_zout="<<close_zout<<std::endl;
   dist = dist2;
@@ -771,7 +776,7 @@ CalcDedx(Double_t beta)
   Double_t M=5.6249;
 
   gamma = Gamma(beta);
-  X = log10(beta*gamma);
+  X = TMath::Log10(beta*gamma);
   if (X<=X0)
     delta=0.0;
   else if (X0<X&& X<X1)
@@ -816,15 +821,14 @@ Double_t DensityEffectCorrection(Double_t betagamma, Double_t *par){
 
   //Sternheimer's parameterization from the PDG
   //notation : par[0] : a, par[1] : k, par[2] : x0, par[3] : x1, par[4] : _C, par[5] : delta0
-    Double_t constant = 2*TMath::Log(10);
+    Double_t constant = 2.*TMath::Log(10.);
     Double_t delta = 0.;
-    Double_t X = log10(betagamma);
-    if(X<=par[2]) delta = par[5]*TMath::Power(10., 2*(X - par[2]));
-    else if(par[2]<X && X<par[3]) delta = constant*X - par[4] + par[0]*pow((par[3] - X), par[1]);
+    Double_t X = TMath::Log10(betagamma);
+    if(X<=par[2]) delta = par[5]*TMath::Power(10., 2.*(X - par[2]));
+    else if(par[2]<X && X<par[3]) delta = constant*X - par[4] + par[0]*TMath::Power((par[3] - X), par[1]);
     else if(X>=par[3]) delta = constant*X - par[4];
 
   return delta;
-
 }
 
 //_____________________________________________________________________________
@@ -920,9 +924,9 @@ Double_t HypTPCdEdx(Int_t materialid, Double_t mass/*MeV/c2*/, Double_t beta){
   Double_t beta2 = beta*beta;
   Double_t gamma2 = 1./(1.-beta2);
   Double_t MeVToeV = TMath::Power(10.,6);
-  Double_t Wmax = 2*me*beta2*gamma2/((me/mass+1.)*(me/mass+1.)+2*(me/mass)*(TMath::Sqrt(gamma2)-1));
+  Double_t Wmax = 2.*me*beta2*gamma2/(TMath::Sq(me/mass+1.)+2.*(me/mass)*(TMath::Sqrt(gamma2)-1.));
   Double_t delta = DensityEffectCorrection(TMath::Sqrt(beta2*gamma2), density_effect_par);
-  Double_t dedx = constant*Z*Z/beta2*(0.5*TMath::Log(2*me*beta2*gamma2*Wmax*MeVToeV*MeVToeV/I2) - beta2 - 0.5*delta);
+  Double_t dedx = constant*Z*Z/beta2*(0.5*TMath::Log(2.*me*beta2*gamma2*Wmax*MeVToeV*MeVToeV/I2) - beta2 - 0.5*delta);
   return dedx;
 
 }
@@ -1074,7 +1078,7 @@ Double_t HypTPCBethe(Double_t *x, Double_t *p){
   //p[0] : converting factor
   //p[1] : mass [MeV/c2]
   Double_t momentum = 1000.*TMath::Abs(x[0]); /*MeV/c2*/
-  Double_t beta = Beta(TMath::Sqrt(p[1]*p[1] + momentum*momentum), momentum);
+  Double_t beta = Beta(TMath::Hypot(p[1], momentum), momentum);
   Double_t dedx = p[0]*HypTPCdEdx(0, p[1], beta); //P10
 
   return dedx;
@@ -1128,8 +1132,7 @@ Double_t HypTPCdEdxNsigmaProton(Double_t dedx, Double_t poq){
   Double_t par_p[2] = {conversion_factor, mp};
   Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
   // 1 sigma of <dE/dx>_p
-  Double_t sigma_p = (sigma_dedx_p[0] + sigma_dedx_p[1]*TMath::Abs(poq) +
-		      sigma_dedx_p[2]*poq*poq + sigma_dedx_p[3]*TMath::Exp(sigma_dedx_p[4]*TMath::Abs(poq)));
+  Double_t sigma_p = CalcTPCdEdxSigma(sigma_dedx_p, poq);
 
   Double_t nsigma = (dedx-dedx_p)/sigma_p;
   return nsigma;
@@ -1142,8 +1145,7 @@ Double_t HypTPCdEdxNsigmaDeutron(Double_t dedx, Double_t poq){
   Double_t par_d[2] = {conversion_factor, md};
   Double_t dedx_d = HypTPCBethe(&poq, par_d) + offset_dedx_d; //P10's <dE/dx>_d
   // 1 sigma of <dE/dx>_d
-  Double_t sigma_d = (sigma_dedx_d[0] + sigma_dedx_d[1]*TMath::Abs(poq) +
-		      sigma_dedx_d[2]*poq*poq + sigma_dedx_d[3]*TMath::Exp(sigma_dedx_d[4]*TMath::Abs(poq)));
+  Double_t sigma_d = CalcTPCdEdxSigma(sigma_dedx_d, poq);
 
   Double_t nsigma = (dedx-dedx_d)/sigma_d;
   return nsigma;
@@ -1156,8 +1158,7 @@ Double_t HypTPCdEdxNsigmaTriton(Double_t dedx, Double_t poq){
   Double_t par_t[2] = {conversion_factor, mt};
   Double_t dedx_t = HypTPCBethe(&poq, par_t) + offset_dedx_t; //P10's <dE/dx>_t
   // 1 sigma of <dE/dx>_t
-  Double_t sigma_t = (sigma_dedx_t[0] + sigma_dedx_t[1]*TMath::Abs(poq) +
-		      sigma_dedx_t[2]*poq*poq + sigma_dedx_t[3]*TMath::Exp(sigma_dedx_t[4]*TMath::Abs(poq)));
+  Double_t sigma_t = CalcTPCdEdxSigma(sigma_dedx_t, poq);
 
   Double_t nsigma = (dedx-dedx_t)/sigma_t;
   return nsigma;
@@ -1170,8 +1171,7 @@ Double_t HypTPCdEdxNsigmaKaon(Double_t dedx, Double_t poq){
   Double_t par_k[2] = {conversion_factor, mk};
   Double_t dedx_k = HypTPCBethe(&poq, par_k); //P10's <dE/dx>_k
   // 1 sigma of <dE/dx>_k
-  Double_t sigma_k = (sigma_dedx_k[0] + sigma_dedx_k[1]*TMath::Abs(poq) +
-		      sigma_dedx_k[2]*poq*poq + sigma_dedx_k[3]*TMath::Exp(sigma_dedx_k[4]*TMath::Abs(poq)));
+  Double_t sigma_k = CalcTPCdEdxSigma(sigma_dedx_k, poq);
 
   Double_t nsigma = (dedx-dedx_k)/sigma_k;
   return nsigma;
@@ -1184,8 +1184,7 @@ Double_t HypTPCdEdxNsigmaPion(Double_t dedx, Double_t poq){
   Double_t par_pi[2] = {conversion_factor, mpi};
   Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
   // 1 sigma of <dE/dx>_pi
-  Double_t sigma_pi = (sigma_dedx_pi[0] + sigma_dedx_pi[1]*TMath::Abs(poq) +
-		       sigma_dedx_pi[2]*poq*poq + sigma_dedx_pi[3]*TMath::Exp(sigma_dedx_pi[4]*TMath::Abs(poq)));
+  Double_t sigma_pi = CalcTPCdEdxSigma(sigma_dedx_pi, poq);
 
   Double_t nsigma = (dedx-dedx_pi)/sigma_pi;
   return nsigma;
@@ -1414,14 +1413,9 @@ Bool_t HypTPCdEdxElectron(Double_t dedx, Double_t poq){
   Double_t nsigma_pi = HypTPCdEdxNsigmaPion(dedx, poq);
   Double_t nsigma_e = HypTPCdEdxNsigmaElectron(dedx, poq);
 
-  // not used, then just comment out for safety. later reconsider
-  // Double_t me = 0.5109989461; //[MeV]
-  // Double_t par_e[2] = {conversion_factor, me};
-  // Double_t dedx_e = HypTPCBethe(&poq, par_e); //P10's <dE/dx>_e
-
   Bool_t flag = (nsigma_pi < -3.5 &&
-		 TMath::Abs(nsigma_e) < 3.5 &&
-		 TMath::Abs(poq) < 0.1);
+                 TMath::Abs(nsigma_e) < 3.5 &&
+                 TMath::Abs(poq) < 0.1);
   return flag;
 }
 
@@ -1446,14 +1440,14 @@ Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
   // 1 sigma of <dE/dx>_pi
   Double_t par_pi[2] = {conversion_factor, mpi};
   Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
-  Double_t sigma_pi = (sigma_dedx_pi[0] + sigma_dedx_pi[1]*TMath::Abs(poq) + sigma_dedx_pi[2]*poq*poq + sigma_dedx_pi[3]*TMath::Exp(sigma_dedx_pi[4]*TMath::Abs(poq)));
+  Double_t sigma_pi = CalcTPCdEdxSigma(sigma_dedx_pi, poq);
   Double_t nsigma_pi = HypTPCdEdxNsigmaPion(dedx, poq);
   Double_t window_pi[2] = {-3., 3.};
 
   // 1 sigma of <dE/dx>_p
   Double_t par_p[2] = {conversion_factor, mp};
   Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
-  Double_t sigma_p = (sigma_dedx_p[0] + sigma_dedx_p[1]*TMath::Abs(poq) + sigma_dedx_p[2]*poq*poq + sigma_dedx_p[3]*TMath::Exp(sigma_dedx_p[4]*TMath::Abs(poq)));
+  Double_t sigma_p = CalcTPCdEdxSigma(sigma_dedx_p, poq);
   Double_t nsigma_p = HypTPCdEdxNsigmaProton(dedx, poq);
   Double_t window_p[2] = {-4., 6.};
 
@@ -1553,7 +1547,10 @@ CalcHelixPosition(double par[5], double t)
 
 //_____________________________________________________________________________
 TVector3
-VertexPointHelix(Double_t par1[5], Double_t par2[5], Double_t t1_start, Double_t t1_end, Double_t t2_start, Double_t t2_end, Double_t& t1, Double_t& t2, Double_t& dist){
+VertexPointHelix(const Double_t par1[5], const Double_t par2[5], 
+                 const Double_t t1_start, const Double_t t1_end,
+                 const Double_t t2_start, const Double_t t2_end,
+                 Double_t& t1, Double_t& t2, Double_t& dist){
 
   //helix function 1
   //x = [0] + [3]*cos(t);
@@ -1565,38 +1562,36 @@ VertexPointHelix(Double_t par1[5], Double_t par2[5], Double_t t1_start, Double_t
   //y = [6] + [8]*sin(t);
   //z = [7] + [8]*[9]*t;
 
-  TF2 fvertex_helix("fvertex_helix", "pow(([0]+[3]*cos(x))-([5]+[8]*cos(y)),2)+pow(([1]+[3]*sin(x))-([6]+[8]*sin(y)),2)+pow(([2]+[3]*[4]*x)-([7]+[8]*[9]*y),2)", t1_start, t1_end, t2_start, t2_end);
+  TF2 fvertex_helix("fvertex_helix",
+                    "pow(([0]+[3]*cos(x))-([5]+[8]*cos(y)),2)"  // x
+                    "+pow(([1]+[3]*sin(x))-([6]+[8]*sin(y)),2)" // y
+                    "+pow(([2]+[3]*[4]*x)-([7]+[8]*[9]*y),2)",  // z
+                    t1_start, t1_end, t2_start, t2_end);
 
-  fvertex_helix.SetParameter(0, par1[0]);
-  fvertex_helix.SetParameter(1, par1[1]);
-  fvertex_helix.SetParameter(2, par1[2]);
-  fvertex_helix.SetParameter(3, par1[3]);
-  fvertex_helix.SetParameter(4, par1[4]);
-  fvertex_helix.SetParameter(5, par2[0]);
-  fvertex_helix.SetParameter(6, par2[1]);
-  fvertex_helix.SetParameter(7, par2[2]);
-  fvertex_helix.SetParameter(8, par2[3]);
-  fvertex_helix.SetParameter(9, par2[4]);
+  for(Int_t i=0; i<5; ++i){
+    fvertex_helix.SetParameter(i,   par1[i]);
+    fvertex_helix.SetParameter(i+5, par2[i]);
+  }
 
   Double_t close_zin, close_zout;
   fvertex_helix.GetMinimumXY(close_zin, close_zout);
   t1 = close_zin;
   t2 = close_zout;
 
-  Double_t xin = par1[0]+par1[3]*cos(close_zin);
+  Double_t xin  = par1[0]+par1[3]*cos(close_zin);
   Double_t xout = par2[0]+par2[3]*cos(close_zout);
-  Double_t yin =  par1[1]+par1[3]*sin(close_zin);
+  Double_t yin  = par1[1]+par1[3]*sin(close_zin);
   Double_t yout = par2[1]+par2[3]*sin(close_zout);
-  Double_t zin = par1[2]+par1[3]*par1[4]*close_zin;
+  Double_t zin  = par1[2]+par1[3]*par1[4]*close_zin;
   Double_t zout = par2[2]+par2[3]*par2[4]*close_zout;
 
   Double_t vx = (xin+xout)/2.;
   Double_t vy = (yin+yout)/2.;
   Double_t vz = (zin+zout)/2.;
 
-  dist = sqrt(pow(xin-xout,2)
-	      +pow(yin-yout,2)
-	      +pow(zin-zout,2));
+  dist = TMath::Sqrt(TMath::Power(xin-xout,2)
+	      +TMath::Power(yin-yout,2)
+	      +TMath::Power(zin-zout,2));
   Double_t vertx = -1.*vx;
   Double_t verty = vz;
   Double_t vertz = vy + tpc::Z_TARGET;

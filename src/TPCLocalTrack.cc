@@ -213,7 +213,7 @@ static inline Double_t CalcChi2(Double_t *par, Int_t &ndf, Bool_t vetoBadCluster
     TVector3 d   = ResidualVectRow(par, gHitPos[i]);
     TVector3 res = CalcResolution(par, gLayer[i], gHitPos[i], gPadTheta[i], gResParam[i], vetoBadClusters);
 
-    if(res.x() > 0.9e+10 && res.y() > 0.9e+10 && res.z() > 0.9e+10) continue; // exclude bad clusters
+    if (tpc::IsDummyResolutionVec(res)) continue; // exclude bad clusters
     chisqr += TMath::Power(d.x()/res.x(), 2.) + TMath::Power(d.y()/res.y(), 2.) + TMath::Power(d.z()/res.z(), 2.);
     ndf++;
   }
@@ -229,7 +229,7 @@ static void fcn(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t if
     TVector3 res = gRes[i];
     Double_t param[4] = {par[0], par[2], TMath::Tan(par[1]), TMath::Tan(par[3])};
     TVector3 d = ResidualVectRow(param, gHitPos[i]);
-    if(res.x() > 0.9e+10 && res.y() > 0.9e+10 && res.z() > 0.9e+10) continue; // exclude dummy hits
+    if (tpc::IsDummyResolutionVec(res)) continue; // exclude dummy hits
     chisqr += TVector3(d.x()/res.x(), d.y()/res.y(), d.z()/res.z()).Mag2();
     dof++;
   }

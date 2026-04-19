@@ -89,18 +89,20 @@ TPCVertex::Calculate(TPCLocalTrackHelix* track1, TPCLocalTrackHelix* track2)
   track1 -> GetParam(helix_par1);
   Double_t scantheta1 = VertexScanRange/helix_par1[3]; //mm -> rad.
   Double_t range_theta1[2] = {track1 -> GetMint() - scantheta1,
-			      track1 -> GetMaxt() + scantheta1};
+			                        track1 -> GetMaxt() + scantheta1};
   Double_t helix_par2[5];
   track2 -> GetParam(helix_par2);
   Double_t scantheta2 = VertexScanRange/helix_par2[3]; //mm -> rad.
   Double_t range_theta2[2] = {track2 -> GetMint() - scantheta2,
-			      track2 -> GetMaxt() + scantheta2};
+			                        track2 -> GetMaxt() + scantheta2};
 
   Double_t theta1, theta2, dist;
-  TVector3 vertex = Kinematics::VertexPointHelix(helix_par1, helix_par2,
-						 range_theta1[0], range_theta1[1],
-						 range_theta2[0], range_theta2[1],
-						 theta1, theta2, dist);
+  TVector3 vertex = Kinematics::VertexPointHelix(
+    helix_par1, helix_par2,
+    range_theta1[0], range_theta1[1],
+    range_theta2[0], range_theta2[1],
+    theta1, theta2, dist
+  );
   if(!TMath::IsNaN(dist) &&
      TMath::Abs(vertex.x()) < 250. &&
      TMath::Abs(vertex.z()) < 250. &&
@@ -124,7 +126,7 @@ TPCVertex::Calculate(TPCLocalTrackHelix* track1, TPCLocalTrackHelix* track2)
     m_angle = m_track_mom[0].Angle(m_track_mom[1]);
     m_distance = dist;
 
-    if(track1 -> GetIsK18()==0 && track2 -> GetIsK18()==0 &&
+    if(track1 -> GetIsK18()==0 && track2 -> GetIsK18()==0 && // maybe not needed for E72 todo: refine
        track1 -> GetIsBeam()==0 && track2 -> GetIsBeam()==0 &&
        track1 -> GetIsAccidental()==0 && track2 -> GetIsAccidental()==0)
       ReconstructLambda(vertex, mom1, mom2, dist); //Check wheter it is L decay vertex or not
@@ -159,18 +161,14 @@ TPCVertex::ReconstructLambda(TVector3 vertex, TVector3 mom1, TVector3 mom2, Doub
   m_proton_id.clear();
   m_pion_id.clear();
   for(Int_t i=0;i<2;i++){ //p, pi- or pi- p combination
-    Int_t p_id = m_track_id[i];
-    Int_t pi_id = m_track_id[1-i];
-    Int_t p_pid = m_track_pid[i];
-    Int_t pi_pid = m_track_pid[1-i];
-    Int_t p_charge = m_track_charge[i];
+    Int_t p_id      = m_track_id[i];
+    Int_t pi_id     = m_track_id[1-i];
+    Int_t p_pid     = m_track_pid[i];
+    Int_t pi_pid    = m_track_pid[1-i];
+    Int_t p_charge  = m_track_charge[i];
     Int_t pi_charge = m_track_charge[1-i];
-    TVector3 p_mom = mom1;
-    TVector3 pi_mom = mom2;
-    if(i!=0){
-      p_mom = mom2;
-      pi_mom = mom1;
-    }
+    TVector3 p_mom  = (i==0) ? mom1 : mom2;
+    TVector3 pi_mom = (i==0) ? mom2 : mom1;
     if((p_pid&4)!=4 || p_charge!=1) continue;
     if((pi_pid&1)!=1 || pi_charge!=-1) continue;
 
@@ -207,7 +205,7 @@ TPCVertex::ReconstructLambdaWithVertex(TPCLocalTrackHelix* track1, TPCLocalTrack
   if(!m_is_lambda) return;
 
   static const Double_t VertexScanRange = gUser.GetParameter("VertexScanRange"); //mm
-  TVector3 vertex_res(0.6, 0.6, 1.0);
+  TVector3 vertex_res(0.6, 0.6, 1.0); // maybe need to reconsider (is just magic number fine?)
   TPCLocalTrackHelix *Track1 = new TPCLocalTrackHelix(track1);
   if(!Track1 -> DoFitTrackwVertex(m_lambda_vertex, vertex_res)){
     delete Track1;
@@ -223,18 +221,21 @@ TPCVertex::ReconstructLambdaWithVertex(TPCLocalTrackHelix* track1, TPCLocalTrack
   Track1 -> GetParam(helix_par1);
   Double_t scantheta1 = VertexScanRange/helix_par1[3]; //mm -> rad.
   Double_t range_theta1[2] = {Track1 -> GetMint() - scantheta1,
-			      Track1 -> GetMaxt() + scantheta1};
+                              Track1 -> GetMaxt() + scantheta1};
   Double_t helix_par2[5];
   track2 -> GetParam(helix_par2);
   Double_t scantheta2 = VertexScanRange/helix_par2[3]; //mm -> rad.
   Double_t range_theta2[2] = {Track2 -> GetMint() - scantheta2,
-			      Track2 -> GetMaxt() + scantheta2};
+                              Track2 -> GetMaxt() + scantheta2};
 
   Double_t theta1, theta2, dist;
-  TVector3 vertex = Kinematics::VertexPointHelix(helix_par1, helix_par2,
-						 range_theta1[0], range_theta1[1],
-						 range_theta2[0], range_theta2[1],
-						 theta1, theta2, dist);
+  TVector3 vertex = Kinematics::VertexPointHelix(
+    helix_par1, helix_par2,
+    range_theta1[0], range_theta1[1],
+    range_theta2[0], range_theta2[1],
+    theta1, theta2, dist
+  );
+
   if(dist > ppi_distcut){
     delete Track1;
     delete Track2;
