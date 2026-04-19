@@ -1443,8 +1443,8 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     //Add two tracks.
     Bool_t order = TrackCont[trackid1] -> GetNHit() >= TrackCont[trackid2] -> GetNHit() ?  true : false;
     if(!order){
-      trackid1 = vertex -> GetTrackId(0);
-      trackid2 = vertex -> GetTrackId(1);
+      trackid1 = vertex -> GetTrackId(1);
+      trackid2 = vertex -> GetTrackId(0);
     }
 
     T *track1 = TrackCont[trackid1];
@@ -1514,8 +1514,8 @@ RestoreFragmentedTracks(const std::vector<TPCClusterContainer>& ClCont,
     //Add two tracks.
     Bool_t order = TrackCont[trackid1] -> GetNHit() >= TrackCont[trackid2] -> GetNHit() ?  true : false;
     if(!order){
-      trackid1 = vertex -> GetTrackId(0);
-      trackid2 = vertex -> GetTrackId(1);
+      trackid1 = vertex -> GetTrackId(1);
+      trackid2 = vertex -> GetTrackId(0);
     }
 
     T *track1 = TrackCont[trackid1];
