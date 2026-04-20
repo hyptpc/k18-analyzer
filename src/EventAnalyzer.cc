@@ -772,7 +772,7 @@ EventAnalyzer::DCHit(const TString& dcname, const DCAnalyzer& dcAna,
         for(const auto &hit1: hc1){
           wire1 = hit1->GetWire();
           auto hc2 = dcname == "BcIn" ?
-                     dcAna.GetBcInHC(plane_idx) : dcAna.GetBcOutHC(plane_idx);
+                     dcAna.GetBcInHC(plane_idx+1) : dcAna.GetBcOutHC(plane_idx+1);
           for(const auto &hit2: hc2){
             wire2 = hit2->GetWire();
             HF2(Form("%s_Hit_HitPat_Pairplane%d%d%s", name, plane, plane+1, b), wire1, wire2);

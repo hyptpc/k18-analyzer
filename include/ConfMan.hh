@@ -149,15 +149,4 @@ ConfMan::InitializeParameter(const TString& key)
                T::ClassName());
 }
 
-//_____________________________________________________________________________
-template <typename T>
-inline Bool_t
-ConfMan::InitializeParameter(const TString& key1,
-                             const TString& key2)
-{
-  return
-    ShowResult(T::GetInstance().Initialize(m_file[key1], m_file[key2]),
-               T::ClassName());
-}
-
 #endif
