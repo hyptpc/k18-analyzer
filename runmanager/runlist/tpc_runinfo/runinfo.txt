@@ -1,3 +1,4 @@
+2025Nov
 -----Initialization-------
 Rampup_1.txt
 -----Initialization-------
@@ -15,7 +16,7 @@ E72Physics_735_6.txt
 E72Physics_735_7.txt
 BeamThrough.txt
 -----Initialization-------
-FTOF.txt
+FTOF.txt ->done
 HTOF_Calib_HSOff.txt
 HTOF_Calib_HSOn.txt
 E72Physics_715_1.txt
@@ -34,7 +35,7 @@ E72Physics_790_3.txt
 -----Initialization-------
 E72Physics_790_4.txt
 Beam_600_1.txt
-E45Physics_933_1.txt
+E45Physics_m933_1.txt
 E72Physics_933_1.txt
 -----Initialization-------
 E72Physics_685_1.txt
@@ -46,3 +47,14 @@ E72Physics_645_1.txt
 E72Physics_870_1.txt
 E72Physics_665_1.txt
 E72Physics_842_2.txt
+
+
+2025Apr
+-----Initialization-------
+E45TrigStudy_p964_1.txt
+-----Initialization-------
+E45TrigStudy_p964_2.txt
+E45TrigStudy_p1144_1.txt
+E72TrigStudy_735_1.txt
+E72Physics_735_8.txt
+-----Initialization-------

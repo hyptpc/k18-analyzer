@@ -1,0 +1,7 @@
+#Runnumber Mom Particle V_GEM V_GATE gateon/off threshold Trig
+
+#E45TrigStudy +964 2
+3739 # +964 pion 296 +70/-70 on 2201-1.5_20260404 Beam
+3740 # +964 pion 296 +70/-70 on 2201-1.5_20260404 BeamxHTOF-Mp2
+3741 # +964 pion 296 +70/-70 on 2201-1.5_20260404 BeamxBH2-Mp1xHTOF-Mp2x/HTOF-Up6x/SCHx/T2x/HTOF-JJ
+3742 # +964 pion 296 +70/-70 on 2201-1.5_20260404 BeamxBH2-Mp1xHTOF-Mp2x/HTOF-Up6x/SCHx/T2x/HTOF-JJ
