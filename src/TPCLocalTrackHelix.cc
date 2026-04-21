@@ -2658,17 +2658,18 @@ TPCLocalTrackHelix::GetdEdx(Double_t truncatedMean)
 
   Double_t dEdx = 0.;
   std::sort(dEdx_vect.begin(), dEdx_vect.end());
-  Int_t n_truncated = (Int_t)(dEdx_vect.size()*truncatedMean);
-  if(n_truncated<=0){
+  Int_t n_truncated = static_cast<Int_t>(dEdx_vect.size()*truncatedMean);
+  if(n_truncated<=0 || n_truncated>static_cast<Int_t>(dEdx_vect.size())){
     hddaq::cerr << "#W " << FUNC_NAME << " "
-                << "n_truncated<=0 (nhit=" << dEdx_vect.size()
+                << "invalid n_truncated (n_truncated=" << n_truncated
+                << ", nhit=" << dEdx_vect.size()
                 << ", truncatedMean=" << truncatedMean << ")" << std::endl;
     return dEdx;
   }
   for( Int_t ih=0; ih<n_truncated; ++ih ){
     dEdx += dEdx_vect[ih];
   }
-  dEdx /= (Double_t)n_truncated;
+  dEdx /= static_cast<Double_t>(n_truncated);
 
   return dEdx;
 }

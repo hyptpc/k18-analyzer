@@ -33,7 +33,7 @@ const Double_t hr_tot_bins[3]       = {5000., 0., 50000.};
 const Double_t adc_bins[3]          = {4096., -0.5, 4095.5};
 const Double_t mh_tdc_bins[3]       = {2000., 0., 2000.};
 const Double_t mh_tot_bins[3]       = {1000., 0., 1000.};
-const Double_t mh_tdc_bins_sch[3] = {1000., 0., 1000}; //SCH MHTDC
+const Double_t mh_tdc_bins_sch[3]   = {1000., 0., 1000.}; //SCH MHTDC
 // HodoHit
 const Double_t hr_time_bins[3]      = {5000., -50., 50.};
 const Double_t mh_time_bins[3]      = {500., -50., 50.};
@@ -254,9 +254,9 @@ BuildHodoRaw(Bool_t flag_beam_particle)
       const Double_t seg_bins[3] = {nseg, -0.5, nseg-0.5};
       const Double_t mul_bins[3] = {nseg+1, -0.5, nseg+0.5};
       for(Int_t i=0; i<NumOfSegSCH; ++i){
-	HB1(Form("%s_TDC_seg%dU%s; channel; count", name, i, b), mh_tdc_bins_sch);
-	HB1(Form("%s_Trailing_seg%dU%s; channel; count", name, i, b), mh_tdc_bins_sch);
-	HB1(Form("%s_TOT_seg%dU%s; channel; count", name, i, b), mh_tot_bins);
+        HB1(Form("%s_TDC_seg%dU%s; channel; count", name, i, b), mh_tdc_bins_sch);
+        HB1(Form("%s_Trailing_seg%dU%s; channel; count", name, i, b), mh_tdc_bins_sch);
+        HB1(Form("%s_TOT_seg%dU%s; channel; count", name, i, b), mh_tot_bins);
       }
       HB1(Form("%s_HitPat_OR%s; segment; count", name,  b), seg_bins);
       HB1(Form("%s_Multi_OR%s; multiplicity; count", name, b), mul_bins);
@@ -831,7 +831,7 @@ BuildTPCBasic()
 
 //_____________________________________________________________________________
 void
-BuildTPCTracking()
+BuildTPCTracking(Bool_t calib_flag)
 {
   HB1("TPCTrk_Hough_Dist;Hough distance [mm];Counts", TPC_BINS_HOUGH);
   HB1("TPCTrk_Hough_DistY;Hough distance Y [mm];Counts", TPC_BINS_HOUGH);
@@ -857,27 +857,34 @@ BuildTPCTracking()
   HB1("TPCCl_Size;Cluster size;Counts", TPC_BINS_CL_SIZE);
   HB1("TPCCl_dE;Cluster dE;Counts", TPC_BINS_DE);
   HB2("TPCCl_Ratio_vs_Dist_Diff;X_{cluster}-X_{pad} [mm];A/A_{sum}", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
-  for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
-    HB1(Form("TPCCl_Size_Layer%02d;Cluster size;Counts", layer), TPC_BINS_CL_SIZE);
-    HB1(Form("TPCCl_dE_Layer%02d;Cluster dE;Counts", layer), TPC_BINS_DE);
-    HB2(Form("TPCCl_Ratio_vs_Dist_Diff_Layer%02d;X_{cluster}-X_{pad} [mm];A/A_{sum}", layer), TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
-  }
 
   HB2Poly("TPCTrk_HitPat", TPC_EVENT_DISPLAY_BINS);
   tpc::InitializeHistograms("TPCTrk_HitPat");
 
   HB2("TPCTrk_Row_vs_Layer;Layer;Row", TPC_BINS_ROW_VS_LAYER);
 
+  HB2("TPCTrk_ResX_vs_Layer_Trk;Layer;Residual X (TPC Cluster - TPC Track) [mm]", TPC_BINS_LAYER, TPC_BINS_RES_HIT);
   HB2("TPCTrk_ResY_vs_Layer_Trk;Layer;Residual Y (TPC Cluster - TPC Track) [mm]", TPC_BINS_LAYER, TPC_BINS_RES_HIT);
+  HB2("TPCTrk_ResZ_vs_Layer_Trk;Layer;Residual Z (TPC Cluster - TPC Track) [mm]", TPC_BINS_LAYER, TPC_BINS_RES_HIT);
+  HB2("TPCCl_dE_vs_Layer;Layer;Cluster dE", TPC_BINS_LAYER, TPC_BINS_DE);
   for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
-    const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
-    for (Int_t row = 0; row < n_pad; ++row) {
-      HB1(Form("TPCTrk_ResY_Layer%02d_Row%03d;Residual Y (TPC Cluster - TPC Track) [mm];Counts", layer, row), TPC_BINS_RES_HIT);
-      HB2(Form("TPCTrk_ResY_vs_Y_Layer%02d_Row%03d;Y_{TPC Track} (local) [mm];Residual Y (TPC Cluster - TPC Track) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+    HB1(Form("TPCCl_Size_Layer%02d;Cluster size;Counts", layer), TPC_BINS_CL_SIZE);
+    HB1(Form("TPCCl_dE_Layer%02d;Cluster dE;Counts", layer), TPC_BINS_DE);
+    HB2(Form("TPCCl_Ratio_vs_Dist_Diff_Layer%02d;X_{cluster}-X_{pad} [mm];A/A_{sum}", layer), TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+    HB2(Form("TPCTrk_ResY_vs_Y_Layer%02d;Y_{TPC Track} (local) [mm];Residual Y (TPC Cluster - TPC Track) [mm]", layer), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+  }
+  if (calib_flag) {
+    for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
+      const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
+      for (Int_t row = 0; row < n_pad; ++row) {
+        HB1(Form("TPCTrk_ResY_Layer%02d_Row%03d;Residual Y (TPC Cluster - TPC Track) [mm];Counts", layer, row), TPC_BINS_RES_HIT);
+        HB2(Form("TPCTrk_ResY_vs_Y_Layer%02d_Row%03d;Y_{TPC Track} (local) [mm];Residual Y (TPC Cluster - TPC Track) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+        HB1(Form("TPCCl_dE_Layer%02d_Row%03d;Cluster dE;Counts", layer, row), TPC_BINS_DE);
+      }
     }
   }
 
-  BuildCoBoClockTime(hist::kCoBoClockTime_Track);
+  BuildCoBoClockTime(kCoBoClockTime_Track);
 }
 
 //_____________________________________________________________________________
@@ -942,7 +949,7 @@ BuildTPCBcOutTracking()
   HB2("TPCCl_ResX_vs_Layer;Layer;Residual X (TPC Cluster - BcOut) [mm]", TPC_BINS_LAYER, TPC_BINS_RES_MED);
   HB2("TPCCl_ResY_vs_Layer;Layer;Residual Y (TPC Cluster - BcOut) [mm]", TPC_BINS_LAYER, TPC_BINS_RES_MED);
 
-  BuildCoBoClockTime(hist::kCoBoClockTime_Track);
+  BuildCoBoClockTime(kCoBoClockTime_Track);
 }
 
 void
@@ -991,7 +998,7 @@ BuildTPCHitBcOutTracking()
   HB2("TPCCl_Row_vs_Layer;Layer;Row;", TPC_BINS_ROW_VS_LAYER);
 
   // Clock-time dependent
-  BuildCoBoClockTime(hist::kCoBoClockTime_Hit | hist::kCoBoClockTime_Cluster);
+  BuildCoBoClockTime(kCoBoClockTime_Hit | kCoBoClockTime_Cluster);
 }
 
 //_____________________________________________________________________________
@@ -999,21 +1006,21 @@ void
 BuildCoBoClockTime(UInt_t flags)
 {
   for(Int_t cobo=0; cobo<NumOfSegCOBO; ++cobo){
-    if (flags & hist::kCoBoClockTime_Hit) {
+    if (flags & kCoBoClockTime_Hit) {
       HB2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
       HB2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d_RawClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #ifdef DEBUG_COBO_CLOCK
       HB2(Form("TPCHit_ResY_vs_ClockTime_CoBo%d_NoClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #endif
     }
-    if (flags & hist::kCoBoClockTime_Cluster) {
+    if (flags & kCoBoClockTime_Cluster) {
       HB2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
       HB2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d_RawClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #ifdef DEBUG_COBO_CLOCK
       HB2(Form("TPCCl_ResY_vs_ClockTime_CoBo%d_NoClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #endif
     }
-    if (flags & hist::kCoBoClockTime_Track) {
+    if (flags & kCoBoClockTime_Track) {
       HB2(Form("TPCTrk_ResY_vs_ClockTime_CoBo%d;Clock Time [ns];Residual Y (TPCCl - TPC Track) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
       HB2(Form("TPCTrk_ResY_vs_ClockTime_CoBo%d_RawClock;Clock Time [ns];Residual Y (TPCCl - TPC Track) [mm]", cobo), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #ifdef DEBUG_COBO_CLOCK
@@ -1023,21 +1030,21 @@ BuildCoBoClockTime(UInt_t flags)
   }
 
   for(Int_t asad=0; asad<NumOfAsadTPC; ++asad){
-    if (flags & hist::kCoBoClockTime_Hit) {
+    if (flags & kCoBoClockTime_Hit) {
       HB2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
       HB2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d_RawClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #ifdef DEBUG_COBO_CLOCK
       HB2(Form("TPCHit_ResY_vs_ClockTime_Asad%02d_NoClock;Clock Time [ns];Residual Y (TPC Hit - BcOut) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #endif
     }
-    if (flags & hist::kCoBoClockTime_Cluster) {
+    if (flags & kCoBoClockTime_Cluster) {
       HB2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
       HB2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d_RawClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #ifdef DEBUG_COBO_CLOCK
       HB2(Form("TPCCl_ResY_vs_ClockTime_Asad%02d_NoClock;Clock Time [ns];Residual Y (TPC Cluster - BcOut) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #endif
     }
-    if (flags & hist::kCoBoClockTime_Track) {
+    if (flags & kCoBoClockTime_Track) {
       HB2(Form("TPCTrk_ResY_vs_ClockTime_Asad%02d;Clock Time [ns];Residual Y (TPCCl - TPC Track) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
       HB2(Form("TPCTrk_ResY_vs_ClockTime_Asad%02d_RawClock;Clock Time [ns];Residual Y (TPCCl - TPC Track) [mm]", asad), TPC_BINS_CLOCK, TPC_BINS_RES_HIT);
 #ifdef DEBUG_COBO_CLOCK
@@ -1058,6 +1065,11 @@ BuildTPCHelixTracking()
   HB1("Chisqr_TPC", 500, 0., 500.);
   HB1("LayerId_TPC", 35, 0., 35.);
   HB1("mom0", 1000, 0., 2.5);
+  HB1("LambdaMass_vtx;M(p#pi^{-}) [GeV/c^{2}];Counts", 500, 1.05, 1.25);
+  HB2("PID_p_dEdx;p [GeV/c];dE/dx (a.u.)", 500, 0., 2.5, 600, 0., 1200.);
+  HB2("PID_signedP_dEdx;q#timesp [GeV/c];dE/dx (a.u.)", 600, -3.0, 3.0, 600, 0., 1200.);
+  HB2("PID_p_dEdx_pos;p [GeV/c];dE/dx (a.u.)", 500, 0., 2.5, 600, 0., 1200.);
+  HB2("PID_p_dEdx_neg;p [GeV/c];dE/dx (a.u.)", 500, 0., 2.5, 600, 0., 1200.);
 
   const Int_t    NbinDe = 1000;
   const Double_t MinDe  =    0.;

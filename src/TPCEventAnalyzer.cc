@@ -2,21 +2,18 @@
 
 #include "TPCEventAnalyzer.hh"
 
-#include <DAQNode.hh>
-#include <Unpacker.hh>
-#include <UnpackerConfig.hh>
-#include <UnpackerManager.hh>
-#include <UnpackerXMLReadDigit.hh>
+#include <cmath>
+#include <sstream>
 
-#include "DetectorID.hh"
-#include "RootHelper.hh"
-#include "TPCAnalyzer.hh"
-#include "TPCHit.hh"
-#include "TPCPadHelper.hh"
 #include "DCGeomMan.hh"
-#include "TPCParamMan.hh"
-#include "TPCLTrackHit.hh"
+#include "RootHelper.hh"
 #include "ThreeVector.hh"
+#include "TPCCluster.hh"
+#include "TPCHit.hh"
+#include "TPCLTrackHit.hh"
+#include "TPCLocalTrack.hh"
+#include "TPCPadHelper.hh"
+#include "TPCParamMan.hh"
 #include "TPCRawData.hh"
 #include "TPCRawHit.hh"
 #include "UserParamMan.hh"
@@ -25,8 +22,6 @@
 
 namespace
 {
-const auto& gUnpacker = hddaq::unpacker::GUnpacker::get_instance();
-const auto& gUConf = hddaq::unpacker::GConfig::get_instance();
 const auto& gUser = UserParamMan::GetInstance();
 const auto& gGeom = DCGeomMan::GetInstance();
 const auto& gTpcParam = TPCParamMan::GetInstance();
@@ -186,8 +181,166 @@ TPCEventAnalyzer::TPCCorHit(const TPCRawData &TPCrawData){
 }
 
 //_____________________________________________________________________________
+// NOTE: Disabled; TPCHit method name collides with TPCHit type name and harms readability.
+// void
+// TPCEventAnalyzer::TPCHit(const TPCAnalyzer& TPCAna)
+// {
+// }
+
+//_____________________________________________________________________________
+Bool_t
+TPCEventAnalyzer::ValidateCoboClocks(const std::vector<Double_t>& clk_tpc)
+{
+  if (static_cast<Int_t>(clk_tpc.size()) != NumOfSegCOBO) {
+    spdlog::warn("something is wrong: clkTpc.size() != {}", NumOfSegCOBO);
+    return false;
+  }
+  std::vector<Int_t> bad_cobo;
+  for (Int_t cobo = 0; cobo < NumOfSegCOBO; ++cobo) {
+    if (!std::isfinite(clk_tpc.at(static_cast<size_t>(cobo))))
+      bad_cobo.push_back(cobo);
+  }
+  if (!bad_cobo.empty()) {
+    std::ostringstream oss;
+    for (size_t i = 0; i < bad_cobo.size(); ++i) {
+      oss << (i ? "," : "") << bad_cobo[i];
+    }
+    spdlog::warn("CoBo clock(s) missing (NaN/Inf): cobo={}, skip event", oss.str());
+    return false;
+  }
+  return true;
+}
+
+//_____________________________________________________________________________
+Double_t
+TPCEventAnalyzer::CalcTruncatedMean(const std::vector<Double_t>& cumulative_vec, Double_t fraction)
+{
+  if (cumulative_vec.empty()) {
+    spdlog::warn("CalcTruncatedMean: empty cumulative");
+    return 0.;
+  }
+  const std::size_t size = cumulative_vec.size() - 1;
+  const Int_t n_trunc = static_cast<Int_t>(static_cast<Double_t>(size) * fraction);
+  if (n_trunc <= 0 || n_trunc > static_cast<Int_t>(size)) {
+    spdlog::warn("CalcTruncatedMean: invalid fraction={}, n_trunc={}, size={}", fraction, n_trunc,
+                 size);
+    return 0.;
+  }
+  return cumulative_vec[static_cast<std::size_t>(n_trunc)] / static_cast<Double_t>(n_trunc);
+}
+
+//_____________________________________________________________________________
 void
-TPCEventAnalyzer::TPCHit(const TPCAnalyzer& TPCAnalyzer){
+TPCEventAnalyzer::FillTrkHist(const TPCLocalTrack* track)
+{
+  if (!track)
+    return;
+
+  const Int_t nhits = track->GetNHit();
+  const Double_t chisqr = track->GetChiSquare();
+  const Double_t x0 = track->GetX0();
+  const Double_t y0 = track->GetY0();
+  const Double_t u0 = track->GetU0();
+  const Double_t v0 = track->GetV0();
+
+  HF1("TPCTrk_Num_TrackHits", nhits);
+  HF1("TPCTrk_Chisqr", chisqr);
+  HF1("TPCTrk_X0", x0);
+  HF1("TPCTrk_Y0", y0);
+  HF1("TPCTrk_U0", u0);
+  HF1("TPCTrk_V0", v0);
+  HF2("TPCTrk_U0_vs_X0", x0, u0);
+  HF2("TPCTrk_V0_vs_Y0", y0, v0);
+  HF2("TPCTrk_Y0_vs_X0", x0, y0);
+
+  HF1("TPCTrk_Num_Iter", track->GetNIteration());
+  HF1("TPCTrk_Fitting_Flag", track->GetFitFlag());
+  HF1("TPCTrk_Searching_Time", track->GetSearchTime());
+  HF1("TPCTrk_Fitting_Time", track->GetFitTime());
+  HF1("TPCTrk_Minuit_Status", track->GetMinuitStatus());
+}
+
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillTrkHitHist(TPCLTrackHit* hit, const TPCLocalTrack* track)
+{
+  if (!hit || !track)
+    return;
+
+  HF1("TPCTrk_Hough_Dist", hit->GetHoughDist());
+  HF1("TPCTrk_Hough_DistY", hit->GetHoughDistY());
+
+  const Int_t layer = hit->GetLayer();
+  const TVector3& hit_pos = hit->GetLocalHitPos();
+  const TVector3& cal_pos = hit->GetLocalCalPos();
+  const TVector3& resi_vect = hit->GetResidualVect();
+
+  TPCHit* cl_hit = hit->GetHit();
+  if (!cl_hit)
+    return;
+  TPCCluster* cl = cl_hit->GetParentCluster();
+  if (!cl)
+    return;
+
+  const Int_t cl_size = cl->GetClusterSize();
+  const Double_t clde = cl->GetDe();
+  TPCHit* center_hit = cl->GetCenterHit();
+  if (!center_hit)
+    return;
+
+  const Int_t center_row = center_hit->GetRow();
+  const Double_t residual = hit->GetResidual();
+
+  HF1("TPCTrk_Layer", layer);
+  HF2("TPCTrk_Row_vs_Layer", layer, center_row);
+  HF1(Form("TPCHit_HitPat_Layer%02d", layer), center_row);
+  const Int_t pad_id = tpc::GetPadId(layer, center_row);
+  if (pad_id >= 0) {
+    const Double_t bin_cont = HG2Poly("TPCTrk_HitPat", pad_id + 1);
+    HF2Poly("TPCTrk_HitPat", pad_id + 1, bin_cont + 1.);
+  }
+  HF1(Form("TPCHit_Xhit_Layer%02d", layer), hit_pos.x());
+  HF1(Form("TPCTrk_Res_Layer%02d", layer), residual);
+  HF2(Form("TPCTrk_Res_vs_Xhit_Layer%02d", layer), hit_pos.x(), residual);
+  HF2(Form("TPCHit_Yhit_vs_Xtrk_Layer%02d", layer), cal_pos.x(), hit_pos.y());
+  HF1(Form("TPCTrk_ResX_Layer%02d", layer), resi_vect.X());
+  HF1(Form("TPCTrk_ResY_Layer%02d", layer), resi_vect.Y());
+  HF1(Form("TPCTrk_ResZ_Layer%02d", layer), resi_vect.Z());
+  HF2(Form("TPCTrk_ResY_vs_Y_Layer%02d", layer), cal_pos.y(), resi_vect.Y());
+  if (GetDstCalibFlag()) {
+    HF1(Form("TPCTrk_ResY_Layer%02d_Row%03d", layer, center_row), resi_vect.Y());
+    HF2(Form("TPCTrk_ResY_vs_Y_Layer%02d_Row%03d", layer, center_row), cal_pos.y(), resi_vect.Y());
+    HF1(Form("TPCCl_dE_Layer%02d_Row%03d", layer, center_row), clde);
+  }
+  HF2("TPCTrk_ResX_vs_Layer_Trk", layer, resi_vect.X());
+  HF2("TPCTrk_ResY_vs_Layer_Trk", layer, resi_vect.Y());
+  HF2("TPCTrk_ResZ_vs_Layer_Trk", layer, resi_vect.Z());
+  HF2("TPCCl_dE_vs_Layer", layer, clde);
+
+  HF1("TPCCl_Size", cl_size);
+  HF1(Form("TPCCl_Size_Layer%02d", layer), cl_size);
+  HF1("TPCCl_dE", clde);
+  HF1(Form("TPCCl_dE_Layer%02d", layer), clde);
+  const TPCHitContainer& hit_cont = cl->GetHitContainer();
+  for (const auto& hits : hit_cont) {
+    if (!hits || !hits->IsGood())
+      continue;
+    const TVector3& pos = hits->GetPosition();
+    const Double_t de = hits->GetCDe();
+    const Double_t dummy = std::hypot(pos.x() - hit_pos.x(), pos.z() - hit_pos.z());
+    const Double_t trans_dist = (hit_pos.x() - pos.x() < 0.) ? -dummy : dummy;
+    const Double_t ratio = de / clde;
+    HF2("TPCCl_Ratio_vs_Dist_Diff", trans_dist, ratio);
+    HF2(Form("TPCCl_Ratio_vs_Dist_Diff_Layer%02d", layer), trans_dist, ratio);
+  }
+
+  if (center_hit->GetCTimeSize() > 0) {
+    const TVector3 local_cal = hit->GetLocalCalPos();
+    const ThreeVector local_trk(local_cal.X(), local_cal.Y(), local_cal.Z());
+    const Double_t y_trk_global = gGeom.Local2GlobalPos("HypTPC", local_trk).y();
+    FillCoBoClockTime("TPCTrk", layer, center_row, center_hit->GetCTime(0), center_hit->GetPosition(),
+                      y_trk_global);
+  }
 }
 
 //_____________________________________________________________________________
