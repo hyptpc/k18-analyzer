@@ -889,7 +889,7 @@ BuildTPCTracking(Bool_t calib_flag)
 
 //_____________________________________________________________________________
 void
-BuildTPCBcOutTracking()
+BuildTPCBcOutTracking(Bool_t calib_flag)
 {
   HB1("BcOut_Num_Track;N_{track};Counts", TPC_BINS_EXT_MULT);
   HB1("BcOut_Num_TrackHits;N_{hits};Counts", TPC_BINS_HITS);
@@ -940,10 +940,12 @@ BuildTPCBcOutTracking()
     HB2(Form("TPCCl_ResX_vs_X_Layer%02d;X_{global} [mm];Residual X (TPC Cluster - BcOut) [mm]", layer), TPC_BINS_POS_X, TPC_BINS_RES_HIT);
     HB2(Form("TPCCl_ResY_vs_Y_TPC_Layer%02d;Y (TPC Track) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
     HB2(Form("TPCCl_ResY_vs_Y_BcOut_Layer%02d;Y (BcOut Track) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
-    const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
-    for (Int_t row = 0; row < n_pad; ++row) {
-      HB2(Form("TPCCl_ResY_vs_Y_TPC_Layer%02d_Row%03d;Y (TPC Track) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
-      HB2(Form("TPCCl_ResY_vs_Y_BcOut_Layer%02d_Row%03d;Y (BcOut Track) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+    if (calib_flag) {
+      const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
+      for (Int_t row = 0; row < n_pad; ++row) {
+        HB2(Form("TPCCl_ResY_vs_Y_TPC_Layer%02d_Row%03d;Y (TPC Track) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+        HB2(Form("TPCCl_ResY_vs_Y_BcOut_Layer%02d_Row%03d;Y (BcOut Track) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+      }
     }
   }
   HB2("TPCCl_ResX_vs_Layer;Layer;Residual X (TPC Cluster - BcOut) [mm]", TPC_BINS_LAYER, TPC_BINS_RES_MED);

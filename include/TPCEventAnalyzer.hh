@@ -53,6 +53,21 @@ public:
 
   void FillTrkHist(const TPCLocalTrack* track);
   void FillTrkHitHist(TPCLTrackHit* hit, const TPCLocalTrack* track);
+  void FillTrkParamHist(
+    Int_t nhits, Double_t chisqr,
+    Double_t x0, Double_t y0, Double_t u0, Double_t v0
+  );
+  void FillBcOutTrackHist(
+    Double_t chisqr_bcout,
+    Double_t x0_bcout, Double_t y0_bcout,
+    Double_t u0_bcout, Double_t v0_bcout,
+    Double_t xtgt_bcout, Double_t ytgt_bcout,
+    Double_t utgt_bcout, Double_t vtgt_bcout
+  );
+  void FillTPCBcOutTgtResidualHist(
+    Double_t tpc_xtgt, Double_t tpc_ytgt, Double_t tpc_utgt, Double_t tpc_vtgt,
+    Double_t bcout_xtgt, Double_t bcout_ytgt, Double_t bcout_utgt, Double_t bcout_vtgt
+  );
   void FillResidualHist(
     const TString& prefix,
     Int_t layer, Int_t row, Int_t pad,
@@ -60,6 +75,15 @@ public:
     Double_t ref_x, Double_t ref_y,
     Bool_t in_window,
     Double_t ctime, const TVector3& local_pos
+  );
+  void FillTPCBcOutTrackingResidualPullHist(
+    Int_t layer, Int_t center_row, Bool_t valid_tpc_resolution,
+    const TVector3& trk_res_global,
+    const TVector3& trk_res_local,
+    const TVector3& trk_pull_global,
+    const TVector3& trk_pull_local,
+    Double_t cl_ref_x, Double_t cl_ref_y_tpc, Double_t cl_ref_y_bcout,
+    const TVector3& cl_res
   );
 
 private:

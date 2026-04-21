@@ -243,6 +243,21 @@ TPCEventAnalyzer::FillTrkHist(const TPCLocalTrack* track)
   const Double_t u0 = track->GetU0();
   const Double_t v0 = track->GetV0();
 
+  FillTrkParamHist(nhits, chisqr, x0, y0, u0, v0);
+
+  HF1("TPCTrk_Num_Iter", track->GetNIteration());
+  HF1("TPCTrk_Fitting_Flag", track->GetFitFlag());
+  HF1("TPCTrk_Searching_Time", track->GetSearchTime());
+  HF1("TPCTrk_Fitting_Time", track->GetFitTime());
+  HF1("TPCTrk_Minuit_Status", track->GetMinuitStatus());
+}
+
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillTrkParamHist(
+  Int_t nhits, Double_t chisqr,
+  Double_t x0, Double_t y0, Double_t u0, Double_t v0)
+{
   HF1("TPCTrk_Num_TrackHits", nhits);
   HF1("TPCTrk_Chisqr", chisqr);
   HF1("TPCTrk_X0", x0);
@@ -252,12 +267,8 @@ TPCEventAnalyzer::FillTrkHist(const TPCLocalTrack* track)
   HF2("TPCTrk_U0_vs_X0", x0, u0);
   HF2("TPCTrk_V0_vs_Y0", y0, v0);
   HF2("TPCTrk_Y0_vs_X0", x0, y0);
-
-  HF1("TPCTrk_Num_Iter", track->GetNIteration());
-  HF1("TPCTrk_Fitting_Flag", track->GetFitFlag());
-  HF1("TPCTrk_Searching_Time", track->GetSearchTime());
-  HF1("TPCTrk_Fitting_Time", track->GetFitTime());
-  HF1("TPCTrk_Minuit_Status", track->GetMinuitStatus());
+  HF2("TPCTrk_atanU0_vs_X0", x0, TMath::ATan(u0) * TMath::RadToDeg());
+  HF2("TPCTrk_atanV0_vs_Y0", y0, TMath::ATan(v0) * TMath::RadToDeg());
 }
 
 //_____________________________________________________________________________
@@ -343,6 +354,53 @@ TPCEventAnalyzer::FillTrkHitHist(TPCLTrackHit* hit, const TPCLocalTrack* track)
   }
 }
 
+void
+TPCEventAnalyzer::FillBcOutTrackHist(
+  Double_t chisqr_bcout,
+  Double_t x0_bcout, Double_t y0_bcout,
+  Double_t u0_bcout, Double_t v0_bcout,
+  Double_t xtgt_bcout, Double_t ytgt_bcout,
+  Double_t utgt_bcout, Double_t vtgt_bcout)
+{
+  HF1("BcOut_Chisqr", chisqr_bcout);
+  HF1("BcOut_X0", x0_bcout);
+  HF1("BcOut_Y0", y0_bcout);
+  HF1("BcOut_U0", u0_bcout);
+  HF1("BcOut_V0", v0_bcout);
+  HF1("BcOut_XTgt", xtgt_bcout);
+  HF1("BcOut_YTgt", ytgt_bcout);
+  HF1("BcOut_UTgt", utgt_bcout);
+  HF1("BcOut_VTgt", vtgt_bcout);
+  HF2("BcOut_UTgt_vs_XTgt", xtgt_bcout, utgt_bcout);
+  HF2("BcOut_VTgt_vs_YTgt", ytgt_bcout, vtgt_bcout);
+  HF2("BcOut_YTgt_vs_XTgt", xtgt_bcout, ytgt_bcout);
+}
+
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillTPCBcOutTgtResidualHist(
+  Double_t tpc_xtgt, Double_t tpc_ytgt, Double_t tpc_utgt, Double_t tpc_vtgt,
+  Double_t bcout_xtgt, Double_t bcout_ytgt, Double_t bcout_utgt, Double_t bcout_vtgt)
+{
+  const Double_t xtgt_diff = bcout_xtgt - tpc_xtgt;
+  const Double_t ytgt_diff = bcout_ytgt - tpc_ytgt;
+  const Double_t utgt_diff = bcout_utgt - tpc_utgt;
+  const Double_t vtgt_diff = bcout_vtgt - tpc_vtgt;
+
+  HF2("BcOut_vs_TPC_XTgt", tpc_xtgt, bcout_xtgt);
+  HF2("BcOut_vs_TPC_YTgt", tpc_ytgt, bcout_ytgt);
+  HF2("BcOut_vs_TPC_UTgt", tpc_utgt, bcout_utgt);
+  HF2("BcOut_vs_TPC_VTgt", tpc_vtgt, bcout_vtgt);
+  HF1("TPCTrk_ResX_Tgt", xtgt_diff);
+  HF1("TPCTrk_ResY_Tgt", ytgt_diff);
+  HF1("TPCTrk_ResU_Tgt", utgt_diff);
+  HF1("TPCTrk_ResV_Tgt", vtgt_diff);
+  HF2("TPCTrk_ResX_Tgt_vs_XTgt", bcout_xtgt, xtgt_diff);
+  HF2("TPCTrk_ResY_Tgt_vs_YTgt", bcout_ytgt, ytgt_diff);
+  HF2("TPCTrk_ResU_Tgt_vs_UTgt", bcout_utgt, utgt_diff);
+  HF2("TPCTrk_ResV_Tgt_vs_VTgt", bcout_vtgt, vtgt_diff);
+}
+
 //_____________________________________________________________________________
 void
 TPCEventAnalyzer::FillResidualHist(const TString& prefix,
@@ -373,6 +431,46 @@ TPCEventAnalyzer::FillResidualHist(const TString& prefix,
   }
 
   FillCoBoClockTime(prefix, layer, row, ctime, local_pos, ref_y);
+}
+
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillTPCBcOutTrackingResidualPullHist(
+  Int_t layer, Int_t center_row, Bool_t valid_tpc_resolution,
+  const TVector3& trk_res_global,
+  const TVector3& trk_res_local,
+  const TVector3& trk_pull_global,
+  const TVector3& trk_pull_local,
+  Double_t cl_ref_x, Double_t cl_ref_y_tpc, Double_t cl_ref_y_bcout,
+  const TVector3& cl_res)
+{
+  HF2("TPCTrk_ResY_vs_Layer", layer, trk_res_global.y());
+  if (valid_tpc_resolution) {
+    HF1(Form("TPCTrk_ResX_Layer%02d", layer), trk_res_global.x());
+    HF1(Form("TPCTrk_ResY_Layer%02d", layer), trk_res_global.y());
+    HF1(Form("TPCTrk_ResZ_Layer%02d", layer), trk_res_global.z());
+    HF1(Form("TPCTrk_ResLocalX_Layer%02d", layer), trk_res_local.x());
+    HF1(Form("TPCTrk_ResLocalY_Layer%02d", layer), trk_res_local.y());
+    HF1(Form("TPCTrk_ResXY_Layer%02d", layer), std::hypot(trk_res_global.x(), trk_res_global.z()));
+
+    HF1(Form("TPC_PullX_Layer%02d", layer), trk_pull_global.x());
+    HF1(Form("TPC_PullY_Layer%02d", layer), trk_pull_global.y());
+    HF1(Form("TPC_PullZ_Layer%02d", layer), trk_pull_global.z());
+    HF1(Form("TPC_PullLocalX_Layer%02d", layer), trk_pull_local.x());
+    HF1(Form("TPC_PullLocalY_Layer%02d", layer), trk_pull_local.y());
+  }
+
+  HF1(Form("TPCCl_ResX_Layer%02d", layer), cl_res.x());
+  HF1(Form("TPCCl_ResY_Layer%02d", layer), cl_res.y());
+  HF2(Form("TPCCl_ResX_vs_X_Layer%02d", layer), cl_ref_x, cl_res.x());
+  HF2(Form("TPCCl_ResY_vs_Y_TPC_Layer%02d", layer), cl_ref_y_tpc, cl_res.y());
+  HF2(Form("TPCCl_ResY_vs_Y_BcOut_Layer%02d", layer), cl_ref_y_bcout, cl_res.y());
+  HF2("TPCCl_ResX_vs_Layer", layer, cl_res.x());
+  HF2("TPCCl_ResY_vs_Layer", layer, cl_res.y());
+  if (GetDstCalibFlag() && center_row >= 0) {
+    HF2(Form("TPCCl_ResY_vs_Y_TPC_Layer%02d_Row%03d", layer, center_row), cl_ref_y_tpc, cl_res.y());
+    HF2(Form("TPCCl_ResY_vs_Y_BcOut_Layer%02d_Row%03d", layer, center_row), cl_ref_y_bcout, cl_res.y());
+  }
 }
 
 //_____________________________________________________________________________
