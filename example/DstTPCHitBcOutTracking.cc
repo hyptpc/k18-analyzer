@@ -558,7 +558,6 @@ dst::SetupReaders()
   dst::SetBranch(TTreeReaderCont[kBcOut], "u0",     src.u0BcOut);
   dst::SetBranch(TTreeReaderCont[kBcOut], "v0",     src.v0BcOut);
 
-  evnumPerFile.resize(2);
   return true;
 }
 
