@@ -953,7 +953,7 @@ BuildTPCBcOutTracking()
 }
 
 void
-BuildTPCHitBcOutTracking()
+BuildTPCHitBcOutTracking(Bool_t calib_flag)
 {
   HB1("TPCHit_ResX;Residual X (TPC Hit - BcOut) [mm];Counts", TPC_BINS_RES_HIT);
   HB1("TPCHit_ResY;Residual Y (TPC Hit - BcOut) [mm];Counts", TPC_BINS_RES_HIT);
@@ -973,13 +973,15 @@ BuildTPCHitBcOutTracking()
     HB2(Form("TPCCl_ResX_vs_X_Layer%02d;X_{BcOut} (global) [mm];Residual X (TPC Cluster - BcOut) [mm]", layer), TPC_BINS_POS_X, TPC_BINS_RES_HIT);
     HB2(Form("TPCCl_ResY_vs_Y_Layer%02d;Y_{BcOut} (global) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
 
-    const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
-    for (Int_t row = 0; row < n_pad; ++row) {
-      HB1(Form("TPCHit_ResY_Layer%02d_Row%03d;Residual Y (TPC Hit - BcOut) [mm];Counts", layer, row), TPC_BINS_RES_HIT);
-      HB2(Form("TPCHit_ResY_vs_Y_Layer%02d_Row%03d;Y_{BcOut} (global) [mm];Residual Y (TPC Hit - BcOut) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+    if (calib_flag) {
+      const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
+      for (Int_t row = 0; row < n_pad; ++row) {
+        HB1(Form("TPCHit_ResY_Layer%02d_Row%03d;Residual Y (TPC Hit - BcOut) [mm];Counts", layer, row), TPC_BINS_RES_HIT);
+        HB2(Form("TPCHit_ResY_vs_Y_Layer%02d_Row%03d;Y_{BcOut} (global) [mm];Residual Y (TPC Hit - BcOut) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
 
-      HB1(Form("TPCCl_ResY_Layer%02d_Row%03d;Residual Y (TPC Cluster - BcOut) [mm];Counts", layer, row), TPC_BINS_RES_HIT);
-      HB2(Form("TPCCl_ResY_vs_Y_Layer%02d_Row%03d;Y_{BcOut} (global) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+        HB1(Form("TPCCl_ResY_Layer%02d_Row%03d;Residual Y (TPC Cluster - BcOut) [mm];Counts", layer, row), TPC_BINS_RES_HIT);
+        HB2(Form("TPCCl_ResY_vs_Y_Layer%02d_Row%03d;Y_{BcOut} (global) [mm];Residual Y (TPC Cluster - BcOut) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+      }
     }
   }
 

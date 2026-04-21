@@ -35,7 +35,7 @@ void BuildTPCBasic();
 void BuildTPCTracking(Bool_t calib_flag = false);
 
 void BuildTPCBcOutTracking();
-void BuildTPCHitBcOutTracking();
+void BuildTPCHitBcOutTracking(Bool_t calib_flag = false);
 void BuildTPCHelixTracking();
 
 enum CoBoClockTimeFlags : UInt_t {

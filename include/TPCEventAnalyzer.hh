@@ -45,7 +45,7 @@ public:
 
   void SetClock(const std::vector<Double_t>& clkTpc) { m_clkTpc = clkTpc; }
   void FillCoBoClockTime(const TString& prefix, Int_t layer, Int_t row,
-                         Double_t ctime, const TVector3& localPos, Double_t referenceY);
+                         Double_t ctime, const TVector3& local_pos, Double_t ref_y);
 
   static Bool_t ValidateCoboClocks(const std::vector<Double_t>& clk_tpc);
 
@@ -53,6 +53,14 @@ public:
 
   void FillTrkHist(const TPCLocalTrack* track);
   void FillTrkHitHist(TPCLTrackHit* hit, const TPCLocalTrack* track);
+  void FillResidualHist(
+    const TString& prefix,
+    Int_t layer, Int_t row, Int_t pad,
+    Double_t res_x, Double_t res_y,
+    Double_t ref_x, Double_t ref_y,
+    Bool_t in_window,
+    Double_t ctime, const TVector3& local_pos
+  );
 
 private:
   inline static Bool_t m_dst_calib_flag = false;

@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
 
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
@@ -25,36 +24,37 @@
 
 #define RawHit 0
 #define RawCluster 1
+#define CalibHist 0 // enable/disable per-pad calibration histograms
 
 namespace
 {
-using namespace root;
-using namespace dst;
-using hddaq::unpacker::GUnpacker;
-const auto& gUnpacker = GUnpacker::get_instance();
-auto&       gConf = ConfMan::GetInstance();
-const auto& gGeom = DCGeomMan::GetInstance();
-const auto& gUser = UserParamMan::GetInstance();
-const auto& gTpcParam = TPCParamMan::GetInstance();
-const auto& gCounter  = debug::ObjectCounter::GetInstance();
-const Double_t MAX_RESIDUAL = 20.0;
+  using namespace root;
+  using namespace dst;
+  using hddaq::unpacker::GUnpacker;
+  const auto& gUnpacker = GUnpacker::get_instance();
+  auto&       gConf = ConfMan::GetInstance();
+  const auto& gGeom = DCGeomMan::GetInstance();
+  const auto& gUser = UserParamMan::GetInstance();
+  const auto& gTpcParam = TPCParamMan::GetInstance();
+  const auto& gCounter  = debug::ObjectCounter::GetInstance();
+  const Double_t MAX_RESIDUAL = 20.0; // Residual gate [mm] to accept hits/clusters close to the reference track.
 }
 
 namespace dst
 {
-enum kArgc
-{
-  kProcess, kConfFile,
-  kTpcHit, kBcOut, kOutFile, nArgc
-};
-std::vector<TString> ArgName =
-{ "[Process]", "[ConfFile]", "[TPCHit]", "[BcOut]", "[OutFile]" };
-std::vector<TString> TreeName = { "", "", "tpc", "bcout", "" };
-std::vector<TFile*> TFileCont;
-std::vector<TTree*> TTreeCont;
-std::vector<TTreeReader*> TTreeReaderCont;
-std::vector<UInt_t> evnumPerFile;
-Bool_t SetupReader();
+  enum kArgc
+  {
+    kProcess, kConfFile,
+    kTpcHit, kBcOut, kOutFile, nArgc
+  };
+  std::vector<TString> ArgName =
+    { "[Process]", "[ConfFile]", "[TPCHit]", "[BcOut]", "[OutFile]" };
+  std::vector<TString> TreeName = { "", "", "tpc", "bcout", "" };
+  std::vector<TFile*> TFileCont;
+  std::vector<TTree*> TTreeCont;
+  std::vector<TTreeReader*> TTreeReaderCont;
+  std::vector<UInt_t> evnumPerFile;
+  Bool_t SetupReaders();
 }
 
 //_____________________________________________________________________________
@@ -115,16 +115,20 @@ struct Event
 
   void clearRawHits() {
     nhTpc = 0;
-    dst::clear_all(raw_hitpos_x, raw_hitpos_y, raw_hitpos_z,
-                       raw_de, raw_padid, raw_layer, raw_row);
+    dst::clear_all(
+      raw_hitpos_x, raw_hitpos_y, raw_hitpos_z,
+      raw_de, raw_padid, raw_layer, raw_row
+    );
   }
 
   void clearClusters() {
     nclTpc = 0;
-    dst::clear_all(cluster_x, cluster_y, cluster_z, cluster_de,
-                       cluster_size, cluster_layer, cluster_mrow,
-                       cluster_de_center, cluster_x_center, cluster_y_center,
-                       cluster_z_center, cluster_row_center);
+    dst::clear_all(
+      cluster_x, cluster_y, cluster_z, cluster_de,
+      cluster_size, cluster_layer, cluster_mrow,
+      cluster_de_center, cluster_x_center, cluster_y_center,
+      cluster_z_center, cluster_row_center
+    );
   }
 
   void clearBcOut() {
@@ -188,66 +192,28 @@ namespace
   using namespace root;
   using namespace dst;
 
-  // Copy basic event info, validate CoBo clocks, and decide whether to continue.
-  // Return value:
-  // - true: continue processing
-  // - false: skip further processing for this event (but keep DstRead returning true)
-  Bool_t FillEventBasicInfoAndValidateCobo()
-  {
-    event.runnum   = **src.runnum;
-    event.evnum    = **src.evnum;
-    event.trigpat  = **src.trigpat;
-    event.trigflag = **src.trigflag;
-    event.beamflag = **src.beamflag;
-    event.clkTpc   = **src.clkTpc;
-    event.cobo_id  = **src.cobo_id;
-    HF1("Status", event.status++);
 
-    if(**src.nhTpc == 0) return false;
-
-    HF1("Status", event.status++);
-
-    // Check CoBo clock size
-    if(event.clkTpc.size() != NumOfSegCOBO){
-      spdlog::warn("something is wrong: event.clkTpc.size() != {}", NumOfSegCOBO);
-      return false;
-    }
-
-    // Reject if any CoBo clock is NaN/Inf.
-    std::vector<Int_t> bad_cobo;
-    for(Int_t c = 0; c < NumOfSegCOBO; ++c){
-      if(!std::isfinite(event.clkTpc[c])) bad_cobo.push_back(c);
-    }
-    if(!bad_cobo.empty()){
-      std::ostringstream oss;
-      for(size_t i = 0; i < bad_cobo.size(); ++i){
-        oss << (i ? "," : "") << bad_cobo[i];
-      }
-      spdlog::warn("CoBo clock(s) missing (NaN/Inf): cobo={}, skip event", oss.str());
-      return false;
-    }
-
-    HF1("Status", event.status++);
-    return true;
-  }
-
-  // Pick the best BcOut (minimum chisqr) and extract (u0,v0,x0,y0) tracking parameters.
-  // Returns:
-  // - true: BcOut exists and parameters are extracted
-  // - false: no BcOut (caller should skip further processing)
-  Bool_t SelectBestBcOutAndExtractTracking(
+  //_____________________________________________________________________________
+  // Pick the best BcOut and extract (u0,v0,x0,y0) tracking parameters.
+  // NOTE: "chisqr" in this tree is actually reduced-chi2-like value (chi2/ndf),
+  // so we select the candidate whose value is closest to 1.0.
+  Bool_t SelectBcOutTracking(
     Int_t& best_bcout_idx,
     Double_t& u0, Double_t& v0,
     Double_t& x0, Double_t& y0)
   {
     if(**src.ntBcOut <= 0) return false;
 
-    Double_t min_chi2 = 1.0e9;
+    Double_t best_score = 1.0e+10;
+    Double_t best_chi2 = 1.0e+10;
     best_bcout_idx = -1;
     for(Int_t i_bcout = 0; i_bcout < **src.ntBcOut; ++i_bcout){
       const Double_t chi2 = (**src.chisqrBcOut)[i_bcout];
-      if(chi2 < min_chi2){
-        min_chi2 = chi2;
+      if(!std::isfinite(chi2) || chi2 <= 0.) continue;
+      const Double_t score = TMath::Abs(chi2 - 1.0);
+      if(score < best_score || (score == best_score && chi2 < best_chi2)){
+        best_score = score;
+        best_chi2 = chi2;
         best_bcout_idx = i_bcout;
       }
     }
@@ -274,6 +240,7 @@ namespace
     return true;
   }
 
+  //_____________________________________________________________________________
   void FillTpcHitsAndResiduals(
     TPCAnalyzer& tpc_ana,
     Int_t best_bcout_idx,
@@ -303,12 +270,9 @@ namespace
         event.raw_row.push_back(row);
 #endif
 
-        ++nh_tpc;
-
         // Residual calculation
         Double_t res_x = TMath::QuietNaN();
         Double_t res_y = TMath::QuietNaN();
-
         if(best_bcout_idx >= 0){
           const Double_t z_g = global_pos.z();
           const Double_t x_bc = u0 * z_g + x0;
@@ -316,37 +280,25 @@ namespace
           res_x = global_pos.x() - x_bc;
           res_y = global_pos.y() - y_bc;
 
-          HF1("TPCHit_ResX", res_x);
-          HF1(Form("TPCHit_ResX_Layer%02d", layer), res_x);
-          HF2("TPCHit_ResX_vs_Layer", layer, res_x);
-          HF2(Form("TPCHit_ResX_vs_X_Layer%02d", layer), x_bc, res_x);
-
-          HF1("TPCHit_ResY", res_y);
-          HF1(Form("TPCHit_ResY_Layer%02d", layer), res_y);
-          HF1(Form("TPCHit_ResY_Layer%02d_Row%03d", layer, row), res_y);
-          HF2("TPCHit_ResY_vs_Layer", layer, res_y);
-          HF2(Form("TPCHit_ResY_vs_Y_Layer%02d", layer), y_bc, res_y);
-          HF2(Form("TPCHit_ResY_vs_Y_Layer%02d_Row%03d", layer, row), y_bc, res_y);
-
-          if(TMath::Abs(res_x) <= MAX_RESIDUAL && TMath::Abs(res_y) <= MAX_RESIDUAL){
-            const Double_t c = HG2Poly("TPCHit_HitPat", hit->GetPad() + 1);
-            HF2Poly("TPCHit_HitPat", hit->GetPad() + 1, c + 1.);
-            HF2("TPCHit_Row_vs_Layer", layer, row);
-          }
-
-          event_ana.FillCoBoClockTime(
-            "TPCHit", layer, row,
-            hit->GetCTime(), local_pos, v0 * z_g + y0 /* y_bc */);
+          const Bool_t in_window = (TMath::Abs(res_x) <= MAX_RESIDUAL &&
+                                    TMath::Abs(res_y) <= MAX_RESIDUAL);
+          event_ana.FillResidualHist(
+            "TPCHit", layer, row, hit->GetPad(),
+            res_x, res_y, x_bc, y_bc, in_window,
+            hit->GetCTime(),
+            TVector3(local_pos.x(), local_pos.y(), local_pos.z()));
         }
-
         event.residual_x_hit.push_back(res_x);
         event.residual_y_hit.push_back(res_y);
+        
+        ++nh_tpc;
       } // for(hit)
     } // for(layer)
 
     event.nhTpc = nh_tpc;
   }
 
+  //_____________________________________________________________________________
   void FillTpcClustersAndResiduals(
     TPCAnalyzer& tpc_ana,
     Int_t best_bcout_idx,
@@ -383,12 +335,9 @@ namespace
         event.cluster_z_center.push_back(center_pos.Z());
 #endif
 
-        ++ncl_tpc;
-
         // Residual calculation
         Double_t res_x = TMath::QuietNaN();
         Double_t res_y = TMath::QuietNaN();
-
         if(best_bcout_idx >= 0){
           const Double_t z_g = global_pos.z();
           const Double_t x_bc = u0 * z_g + x0;
@@ -396,34 +345,21 @@ namespace
           res_x = global_pos.x() - x_bc;
           res_y = global_pos.y() - y_bc;
 
-          HF1("TPCCl_ResX", res_x);
-          HF1(Form("TPCCl_ResX_Layer%02d", layer), res_x);
-          HF2("TPCCl_ResX_vs_Layer", layer, res_x);
-          HF2(Form("TPCCl_ResX_vs_X_Layer%02d", layer), global_pos.x(), res_x);
-
-          HF1("TPCCl_ResY", res_y);
-          HF1(Form("TPCCl_ResY_Layer%02d", layer), res_y);
-          HF1(Form("TPCCl_ResY_Layer%02d_Row%03d", layer, center_row), res_y);
-          HF2("TPCCl_ResY_vs_Layer", layer, res_y);
-          HF2(Form("TPCCl_ResY_vs_Y_Layer%02d", layer), y_bc, res_y);
-          HF2(Form("TPCCl_ResY_vs_Y_Layer%02d_Row%03d", layer, center_row), y_bc, res_y);
-
-          if(TMath::Abs(res_x) <= MAX_RESIDUAL && TMath::Abs(res_y) <= MAX_RESIDUAL){
-            const Double_t c = HG2Poly("TPCCl_HitPat", cl->GetCenterHit()->GetPad() + 1);
-            HF2Poly("TPCCl_HitPat", cl->GetCenterHit()->GetPad() + 1, c + 1.);
-            HF2("TPCCl_Row_vs_Layer", layer, center_row);
-          }
-
           TPCHit* center_hit = cl->GetCenterHit();
           if(center_hit){
-            event_ana.FillCoBoClockTime(
-              "TPCCl", layer, center_row,
-              center_hit->GetCTime(), local_pos, y_bc);
+            const Bool_t in_window = (TMath::Abs(res_x) <= MAX_RESIDUAL &&
+                                      TMath::Abs(res_y) <= MAX_RESIDUAL);
+            event_ana.FillResidualHist(
+              "TPCCl", layer, center_row, center_hit->GetPad(),
+              res_x, res_y, global_pos.x(), y_bc, in_window,
+              center_hit->GetCTime(),
+              TVector3(local_pos.x(), local_pos.y(), local_pos.z()));
           }
         }
-
         event.residual_x_cluster.push_back(res_x);
         event.residual_y_cluster.push_back(res_y);
+
+        ++ncl_tpc;
       } // for(cl)
     } // for(layer)
 
@@ -447,7 +383,7 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
   if(!gConf.InitializeUnpacker())
     return EXIT_FAILURE;
-  if(!dst::SetupReader())
+  if(!dst::SetupReaders())
     return EXIT_FAILURE;
 
   Int_t skip = gUnpacker.get_skip();
@@ -526,8 +462,22 @@ dst::DstRead(Int_t ievent)
     return false;
   }
 
-  if(!FillEventBasicInfoAndValidateCobo())
+  event.runnum   = **src.runnum;
+  event.evnum    = **src.evnum;
+  event.trigpat  = **src.trigpat;
+  event.trigflag = **src.trigflag;
+  event.beamflag = **src.beamflag;
+  event.clkTpc   = **src.clkTpc;
+  event.cobo_id  = **src.cobo_id;
+  HF1("Status", event.status++);
+
+  if(**src.nhTpc == 0)
     return true;
+  HF1("Status", event.status++);
+
+  if(!TPCEventAnalyzer::ValidateCoboClocks(event.clkTpc))
+    return true;
+  HF1("Status", event.status++);
 
   // Re-calculate TPC hits
   TPCAnalyzer tpc_ana;
@@ -543,12 +493,12 @@ dst::DstRead(Int_t ievent)
   Double_t v0 = TMath::QuietNaN();
   Double_t x0 = TMath::QuietNaN();
   Double_t y0 = TMath::QuietNaN();
-  if(!SelectBestBcOutAndExtractTracking(best_bcout_idx, u0, v0, x0, y0))
+  if(!SelectBcOutTracking(best_bcout_idx, u0, v0, x0, y0))
     return true;
+  HF1("Status", event.status++);
 
   FillTpcHitsAndResiduals(tpc_ana, best_bcout_idx, u0, v0, x0, y0, event_ana);
   FillTpcClustersAndResiduals(tpc_ana, best_bcout_idx, u0, v0, x0, y0, event_ana);
-
   HF1("Status", event.status++);
 
   return true;
@@ -573,7 +523,7 @@ dst::DstClose()
 
 //_____________________________________________________________________________
 Bool_t
-dst::SetupReader()
+dst::SetupReaders()
 {
   // -------------------------------------------------------
   // TPC Hit
@@ -616,8 +566,16 @@ dst::SetupReader()
 Bool_t
 ConfMan::InitializeHistograms()
 {
+  TPCEventAnalyzer::SetDstCalibFlag(
+#if CalibHist
+    true
+#else
+    false
+#endif
+  );
+
   hist::BuildStatus();
-  hist::BuildTPCHitBcOutTracking();
+  hist::BuildTPCHitBcOutTracking(TPCEventAnalyzer::GetDstCalibFlag());
 
   tree = new TTree("tpc", "tree of DstTPCTracking");
   tree->Branch("status", &event.status);
