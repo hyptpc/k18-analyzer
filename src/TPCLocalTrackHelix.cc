@@ -787,6 +787,8 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters, Bool_t Exclu
 
 //______________________________________________________________________________
 static inline Bool_t HelixFitInvertCharge(){
+  // Fail fast on pathological fit states to avoid MIGRAD hanging.
+  constexpr Double_t max_allowed_chi2 = 1.e6;
 
   if(gHitPos.size()!=gNumOfHits || gHelixTheta.size()!=gNumOfHits || gLayer.size()!=gNumOfHits || gPadTheta.size()!=gNumOfHits || gResParam.size()!=gNumOfHits || gRes.size()!=gNumOfHits){
     hddaq::cerr << " TPCLocalTrackHelix HelixFit() "
@@ -852,6 +854,12 @@ static inline Bool_t HelixFitInvertCharge(){
   gPar[3] = par[3];
   gPar[4] = par[4];
   gChisqr = CalcChi2(gPar, ndf, false);
+  if(!TMath::Finite(gChisqr) || gChisqr > max_allowed_chi2){
+    hddaq::cerr << " TPCLocalTrackHelix HelixFitInvertCharge() "
+                << "abnormal initial chi2: " << gChisqr << std::endl;
+    delete minuit;
+    return false;
+  }
 
   Int_t itry=0;
   Double_t good_chisqr = 1.5;
@@ -875,6 +883,13 @@ static inline Bool_t HelixFitInvertCharge(){
     //Double_t grad[5];
     //minuit -> Eval(5, grad, Chisqr, par, 0);
     Double_t Chisqr = CalcChi2(par, ndf, false);
+    if(!TMath::Finite(Chisqr) || Chisqr > max_allowed_chi2){
+      hddaq::cerr << " TPCLocalTrackHelix HelixFitInvertCharge() "
+                  << "abnormal iter chi2: " << Chisqr
+                  << " (itry=" << itry << ")" << std::endl;
+      delete minuit;
+      return false;
+    }
     if(gChisqr>=Chisqr || TMath::Abs(gChisqr-Chisqr) < 0.01){
       gChisqr = Chisqr;
       gPar[0] = par[0];
