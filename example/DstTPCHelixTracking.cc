@@ -569,14 +569,14 @@ namespace
     HF1("TPCTrk_Chisqr", chi_sqr);
     HF1("Mom0", event.mom0[it]);
     HF1("dEdx_PID", event.pid[it]);
-    HF2("PID_p_dEdx", event.mom0[it], event.dEdx[it]);
+    HF2("PID_dEdx_vs_Mom", event.mom0[it], event.dEdx[it]);
     const Double_t signed_p = static_cast<Double_t>(event.charge[it])*event.mom0[it];
-    HF2("PID_signedP_dEdx", signed_p, event.dEdx[it]);
-    if (event.charge[it] > 0) HF2("PID_p_dEdx_pos", event.mom0[it], event.dEdx[it]);
-    else HF2("PID_p_dEdx_neg", event.mom0[it], event.dEdx[it]);
-    if (event.pid[it] & 0x1) HF2("PID_p_dEdx_Pi", event.mom0[it], event.dEdx[it]);
-    if (event.pid[it] & 0x2) HF2("PID_p_dEdx_K",  event.mom0[it], event.dEdx[it]);
-    if (event.pid[it] & 0x4) HF2("PID_p_dEdx_Proton", event.mom0[it], event.dEdx[it]);
+    HF2("PID_dEdx_vs_SignedMom", signed_p, event.dEdx[it]);
+    if (event.charge[it] > 0) HF2("PID_dEdx_vs_Mom_pos", event.mom0[it], event.dEdx[it]);
+    else HF2("PID_dEdx_vs_Mom_neg", event.mom0[it], event.dEdx[it]);
+    if (event.pid[it] & 0x1) HF2("PID_dEdx_vs_Mom_Pi", event.mom0[it], event.dEdx[it]);
+    if (event.pid[it] & 0x2) HF2("PID_dEdx_vs_Mom_K",  event.mom0[it], event.dEdx[it]);
+    if (event.pid[it] & 0x4) HF2("PID_dEdx_vs_Mom_Proton", event.mom0[it], event.dEdx[it]);
   }
 
 } // namespace

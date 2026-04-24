@@ -1079,13 +1079,13 @@ BuildTPCHelixTracking(Bool_t calib_flag)
   HB1("TPCTrk_Layer;Layer;Counts", TPC_BINS_LAYER);
   HB1("Mom0;p [GeV/c];Counts", TPC_BINS_MOM0);
   HB1("dEdx_PID;dE/dx PID code;Counts", TPC_BINS_PID_CODE);
-  HB2("PID_p_dEdx;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
-  HB2("PID_signedP_dEdx;q#timesp [GeV/c];dE/dx (a.u.)", TPC_BINS_SIGNED_P, TPC_BINS_DE);
-  HB2("PID_p_dEdx_pos;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
-  HB2("PID_p_dEdx_neg;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
-  HB2("PID_p_dEdx_Pi;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
-  HB2("PID_p_dEdx_K;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
-  HB2("PID_p_dEdx_Proton;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
+  HB2("PID_dEdx_vs_Mom;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
+  HB2("PID_dEdx_vs_SignedMom;q#timesp [GeV/c];dE/dx (a.u.)", TPC_BINS_SIGNED_P, TPC_BINS_DE);
+  HB2("PID_dEdx_vs_Mom_pos;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
+  HB2("PID_dEdx_vs_Mom_neg;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
+  HB2("PID_dEdx_vs_Mom_Pi;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
+  HB2("PID_dEdx_vs_Mom_K;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
+  HB2("PID_dEdx_vs_Mom_Proton;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
 
   HB2Poly("TPCTrk_HitPat", TPC_EVENT_DISPLAY_BINS);
   tpc::InitializeHistograms("TPCTrk_HitPat");
