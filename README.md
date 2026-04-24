@@ -97,6 +97,9 @@ Note that the indentation determines the nest depth in yaml.
 #
 # The allowed keys are
 #   queue  <- bsub queue (eg. s, l, etc...)
+#   qmerge <- bsub queue for merge job
+#   option <- bsub option for divided run jobs
+#   moption <- bsub option only for merge job
 #   unit   <- dividing event unit
 #   nporc  <- number of process for merging
 #             (must be less than 20)

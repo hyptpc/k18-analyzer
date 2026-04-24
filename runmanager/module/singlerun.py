@@ -68,6 +68,7 @@ class SingleRun(object):
     self.__queue = runinfo['queue']
     self.__qmerge = runinfo['qmerge']
     self.__option = runinfo.get('option', '')
+    self.__moption = runinfo.get('moption', '')
     self.__start_time = time.time()
     self.__elapsed_time = 0
     self.__basename = (self.__tag + '_'  +
@@ -230,6 +231,7 @@ class SingleRun(object):
     info = dict()
     info['queue'] = self.__queue
     info['qmerge'] = self.__qmerge
+    info['moption'] = self.__moption
     info['nproc'] = self.__nproc
     info['unit'] = self.__div_unit
     info['nev'] = self.__nevents
@@ -386,9 +388,10 @@ class SingleRun(object):
     #   qOpt = '-q s'
     # qOpt = '-q sx' if size > 3.8*(10**9) else '-q s'
     qOpt = f'-q {self.__qmerge}'
+    mOpt = self.__moption
     pOpt = f'-j {self.__nproc}' if self.__nproc > 1 else ''
     bOpt = f'-d {self.__buff_path}' if self.__buff_path is not None else ''
-    cmd = shlex.split(f'bsub {qOpt} -o {self.__merge_log_path} '+
+    cmd = shlex.split(f'bsub {qOpt} {mOpt} -o {self.__merge_log_path} '+
                       f'hadd -ff {pOpt} {bOpt}')
     cmd.append(self.__root_path)
     cmd.extend(self.__root_list)
@@ -478,6 +481,7 @@ class SingleRun(object):
     self.__dump_log('buff_path', self.__buff_path)
     self.__dump_log('queue', self.__queue)
     self.__dump_log('qmerge', self.__qmerge)
+    self.__dump_log('moption', self.__moption)
     # self.__dump_log('prefetch', self.__prefetch_path)
     self.__dump_log('dirdummy', self.__dummy_dir.name)
     self.__dump_log(None, '_'*80)

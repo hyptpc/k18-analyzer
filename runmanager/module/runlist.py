@@ -392,6 +392,10 @@ class RunlistManager(metaclass=classimpl.Singleton):
         run['option'] = item[1]['option']
       else:
         run['option'] = ''
+      if 'moption' in item[1] and isinstance(item[1]['moption'], str):
+        run['moption'] = item[1]['moption']
+      else:
+        run['moption'] = ''
       if 'nproc' in item[1] and isinstance(item[1]['nproc'], int):
         run['nproc'] = item[1]['nproc']
       else:
