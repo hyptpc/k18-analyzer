@@ -788,7 +788,8 @@ ConfMan::InitializeHistograms()
   );
 
   hist::BuildStatus();
-  hist::BuildTPCBasic();
+  hist::BuildTPCTrackingCommon();
+  hist::BuildTPCLineTrackParam();
   hist::BuildTPCBcOutTracking(TPCEventAnalyzer::GetDstCalibFlag());
 
   tree = new TTree("tpc", "tree of DstTPCBcOutTracking");
