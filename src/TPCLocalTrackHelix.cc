@@ -71,6 +71,7 @@ z = p[2] + p[4]*p[3]*(theta);
 
 #define DebugDisp 0
 #define IterativeResolution 1
+#define CircCross 0
 
 namespace
 {
@@ -86,8 +87,6 @@ namespace
   const Int_t MaxIteration = 100;
   //const Int_t MaxIteration = 500; //ref
   const Double_t TruncatedMean = 0.8; //80%
-
-  //for minimization
   static Int_t gNumOfHits;
   static std::vector<TVector3> gHitPos;
   static std::vector<TVector3> gRes;
@@ -158,7 +157,7 @@ namespace
 
   // --- TF1: scan helix parameter theta (x) to minimize distance to a point ---
   // Default theta range (overridden by SetRange in EvalTheta*)
-  const Double_t kHelixThetaScanHalfWidth = 10. * TMath::Pi();
+  const Double_t HELIX_THETA_HALF_W = 10. * TMath::Pi();
 
   // 3D squared distance (target - point on helix). 
   // [0]–[4] helix, [5][6][7] target (x,y,z)
@@ -167,7 +166,7 @@ namespace
       "TMath::Power([5] - ([0] + [3]*TMath::Cos(x)), 2.) + "
       "TMath::Power([6] - ([1] + [3]*TMath::Sin(x)), 2.) + "
       "TMath::Power([7] - ([2] + [3]*[4]*x), 2.)",
-      -kHelixThetaScanHalfWidth, kHelixThetaScanHalfWidth);
+      -HELIX_THETA_HALF_W, HELIX_THETA_HALF_W);
 
   // XY projection: squared circle–point distance. 
   // [0] cx, [1] cy, [2] target x, [3] R, [4] target y
@@ -175,34 +174,49 @@ namespace
       "fintXZ",
       "TMath::Power([2] - ([0] + [3]*TMath::Cos(x)), 2.) + "
       "TMath::Power([4] - ([1] + [3]*TMath::Sin(x)), 2.)",
-      -kHelixThetaScanHalfWidth, kHelixThetaScanHalfWidth);
+      -HELIX_THETA_HALF_W, HELIX_THETA_HALF_W);
 
   // Squared concentric-circle crossing term (theta refinement). 
   // [0] cx, [1] cy, [2] R, [3] target radius hypot(x,y)
-  // Inner: cx^2 + cy^2 + R^2 + R*(cx*cos(x)+cy*sin(x)) - rho^2
+  // Inner: cx^2 + cy^2 + R^2 + 2*R*(cx*cos(x)+cy*sin(x)) - rho^2
   static TF1 fcir_cross(
       "fcir_cross",
       "TMath::Power("
       "[0]*[0] + [1]*[1] + [2]*[2] + "
-      "[2]*([0]*TMath::Cos(x) + [1]*TMath::Sin(x)) - [3]*[3], 2.)",
-      -kHelixThetaScanHalfWidth, kHelixThetaScanHalfWidth);
+      "2.0*[2]*([0]*TMath::Cos(x) + [1]*TMath::Sin(x)) - [3]*[3], 2.)",
+      -HELIX_THETA_HALF_W, HELIX_THETA_HALF_W);
 
   // TF1::SetNpx: same sampling density per rad as legacy 1440 on default [-10pi, 10pi]
-  const Double_t kHelixThetaScanRefNpx = 1440.;
-  // ROOT 6.32: TF1::SetNpx requires 4 <= n <= 10000000 (otherwise warning + clamp)
-  static constexpr Int_t kHelixThetaScanNpxMax = 10000000;
+  const Double_t HELIX_THETA_REF_NPX = 1440.;
+  static constexpr Int_t HELIX_THETA_NPX_MIN = 64;
+  static constexpr Int_t HELIX_THETA_NPX_MAX = 4096;
   static inline Int_t HelixThetaScanNpx(Double_t window_low, Double_t window_up)
   {
-    const Double_t refSpan = 2. * kHelixThetaScanHalfWidth;
+    const Double_t refSpan = 2. * HELIX_THETA_HALF_W;
     Double_t span = window_up - window_low;
     if (span <= 0. || !TMath::Finite(span)) span = refSpan;
-    Double_t nFloat = kHelixThetaScanRefNpx * span / refSpan + 0.5;
-    if (nFloat > static_cast<Double_t>(kHelixThetaScanNpxMax))
-      nFloat = static_cast<Double_t>(kHelixThetaScanNpxMax);
+    Double_t nFloat = HELIX_THETA_REF_NPX * span / refSpan + 0.5;
+    if (nFloat > static_cast<Double_t>(HELIX_THETA_NPX_MAX))
+      nFloat = static_cast<Double_t>(HELIX_THETA_NPX_MAX);
     Int_t n = static_cast<Int_t>(nFloat);
-    if (n < 8) n = 8;
-    if (n > kHelixThetaScanNpxMax) n = kHelixThetaScanNpxMax;
+    if (n < HELIX_THETA_NPX_MIN) n = HELIX_THETA_NPX_MIN;
+    if (n > HELIX_THETA_NPX_MAX) n = HELIX_THETA_NPX_MAX;
     return n;
+  }
+
+  static inline void NormalizeThetaWindow(Double_t& window_low, Double_t& window_up)
+  {
+    if (!TMath::Finite(window_low) || !TMath::Finite(window_up)) {
+      window_low = -HELIX_THETA_HALF_W;
+      window_up = +HELIX_THETA_HALF_W;
+      return;
+    }
+    if (window_low > window_up) std::swap(window_low, window_up);
+    if (MathTools::Equal(window_low, window_up)) {
+      const Double_t center = 0.5 * (window_low + window_up);
+      window_low = center - 1.e-3;
+      window_up  = center + 1.e-3;
+    }
   }
 
   const Double_t ztgt = tpc::Z_TARGET;
@@ -249,6 +263,8 @@ static inline TVector3 GlobalPosition(const Double_t par[5], Double_t t){
 //______________________________________________________________________________
 static inline Double_t EvalTheta(Double_t par[5], TVector3 pos, Double_t window_low, Double_t window_up)
 {
+  NormalizeThetaWindow(window_low, window_up);
+
   fint.SetRange(window_low, window_up);
   Double_t fpar[8];
   TVector3 localpos = GlobalToLocal(pos);
@@ -264,6 +280,7 @@ static inline Double_t EvalTheta(Double_t par[5], TVector3 pos, Double_t window_
   fint.SetNpx(steps);
   const Double_t theta_fint = fint.GetMinimumX();
 
+#if CircCross
   fcir_cross.SetRange(window_low,window_up);
   Double_t cpar[4];
   cpar[0] = par[0];
@@ -278,10 +295,14 @@ static inline Double_t EvalTheta(Double_t par[5], TVector3 pos, Double_t window_
     return theta_fint;
   }
   return theta_fcir;
+#else
+  return theta_fint;
+#endif
 }
 
 //______________________________________________________________________________
 static inline Double_t EvalThetaXZ(Double_t par[5], TVector3 pos, Double_t window_low, Double_t window_up){
+  NormalizeThetaWindow(window_low, window_up);
 
   Double_t fpar[8];
   TVector3 localpos = GlobalToLocal(pos);
@@ -676,6 +697,8 @@ static inline Bool_t StraightLineFit()
 
 //______________________________________________________________________________
 static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters, Bool_t ExclusiveFlag = false){
+  // Loose fail-safe: reject only pathological fit states.
+  constexpr Double_t max_allowed_chi2_helix = 1.e8;
 
   if(gHitPos.size()!=gNumOfHits || gHelixTheta.size()!=gNumOfHits || gLayer.size()!=gNumOfHits || gPadTheta.size()!=gNumOfHits || gResParam.size()!=gNumOfHits){
     hddaq::cerr << " TPCLocalTrackHelix HelixFit() "
@@ -759,6 +782,13 @@ static inline Bool_t HelixFit(Int_t IsBeam, Bool_t vetoBadClusters, Bool_t Exclu
     //Double_t grad[5];
     //minuit -> Eval(5, grad, Chisqr, par, 0);
     Double_t Chisqr = CalcChi2(par, ndf, vetoBadClusters);
+    if(!TMath::Finite(Chisqr) || Chisqr > max_allowed_chi2_helix){
+      hddaq::cerr << " TPCLocalTrackHelix HelixFit() "
+                  << "abnormal iter chi2: " << Chisqr
+                  << " (itry=" << itry << ")" << std::endl;
+      status = false;
+      break;
+    }
     if(gChisqr>=Chisqr || TMath::Abs(gChisqr-Chisqr) < 0.01){
       gChisqr = Chisqr;
       gPar[0] = par[0];
@@ -911,7 +941,7 @@ static inline Bool_t HelixFitInvertCharge(){
   std::cout<<"HelixFitInvertCharge() status="<<status<<" gChisqr "<<gChisqr<<std::endl;
   if(gMinuitStatus==0) std::cout<<"HelixFit() icstat==0"<<std::endl;
 #endif
-  return true;
+  return status;
 }
 
 //______________________________________________________________________________
@@ -3646,7 +3676,7 @@ TPCLocalTrackHelix::TestInvertCharge()
 #endif
 #endif
 
-  return true;
+  return status;
 }
 
 //______________________________________________________________________________

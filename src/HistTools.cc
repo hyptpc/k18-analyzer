@@ -90,6 +90,9 @@ const Double_t TPC_BINS_ITER[3]        = {100.,   0.,  100.};
 const Double_t TPC_BINS_FLAG[3]        = {10.,    0.,   10.};
 const Double_t TPC_BINS_MINUIT[3]      = {5.,     0.,    5.};
 const Double_t TPC_BINS_CLUSTER_RATIO[3] = {100., 0., 1.};
+const Double_t TPC_BINS_MOM0[3]        = {1000.,  0.,  1.5};
+const Double_t TPC_BINS_PID_CODE[3]    = {16.,   -0.5, 15.5};
+const Double_t TPC_BINS_SIGNED_P[3]    = {600.,  -3.0,  3.0};
 
 // --- BuildTPCBcOutTracking: 2D residual vs external target (promoted from function-local) ---
 const Double_t TPC_BINS_RES_TGT_2D_POS[3] = {400., -150., 150.};
@@ -812,11 +815,17 @@ BuildTPCHit()
 
 //_____________________________________________________________________________
 void
-BuildTPCBasic()
+BuildTPCTrackingCommon()
 {
   HB1("TPCTrk_Num_Track;N_{track} (TPC Track);Counts", TPC_BINS_MULT);
   HB1("TPCTrk_Num_TrackHits;N_{hits} (TPC Track);Counts", TPC_BINS_HITS);
   HB1("TPCTrk_Chisqr;#chi^{2} (TPC Track);Counts", TPC_BINS_CHISQR);
+}
+
+//_____________________________________________________________________________
+void
+BuildTPCLineTrackParam()
+{
   HB1("TPCTrk_X0;X_{0} (TPC Track) [mm];Counts", TPC_BINS_POS_X);
   HB1("TPCTrk_Y0;Y_{0} (TPC Track) [mm];Counts", TPC_BINS_POS_Y);
   HB1("TPCTrk_U0;U_{0} (TPC Track) (dY/dX);Counts", TPC_BINS_SLOPE);
@@ -856,7 +865,7 @@ BuildTPCTracking(Bool_t calib_flag)
 
   HB1("TPCCl_Size;Cluster size;Counts", TPC_BINS_CL_SIZE);
   HB1("TPCCl_dE;Cluster dE;Counts", TPC_BINS_DE);
-  HB2("TPCCl_Ratio_vs_Dist_Diff;X_{cluster}-X_{pad} [mm];A/A_{sum}", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+  HB2("Transverse_Diffusion;X_{cluster}-X_{pad} [mm];A/A_{sum}", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
 
   HB2Poly("TPCTrk_HitPat", TPC_EVENT_DISPLAY_BINS);
   tpc::InitializeHistograms("TPCTrk_HitPat");
@@ -870,7 +879,7 @@ BuildTPCTracking(Bool_t calib_flag)
   for (Int_t layer = 0; layer < NumOfLayersTPC; ++layer) {
     HB1(Form("TPCCl_Size_Layer%02d;Cluster size;Counts", layer), TPC_BINS_CL_SIZE);
     HB1(Form("TPCCl_dE_Layer%02d;Cluster dE;Counts", layer), TPC_BINS_DE);
-    HB2(Form("TPCCl_Ratio_vs_Dist_Diff_Layer%02d;X_{cluster}-X_{pad} [mm];A/A_{sum}", layer), TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+    HB2(Form("Transverse_Diffusion_Layer%02d;X_{cluster}-X_{pad} [mm];A/A_{sum}", layer), TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
     HB2(Form("TPCTrk_ResY_vs_Y_Layer%02d;Y_{TPC Track} (local) [mm];Residual Y (TPC Cluster - TPC Track) [mm]", layer), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
   }
   if (calib_flag) {
@@ -1060,43 +1069,73 @@ BuildCoBoClockTime(UInt_t flags)
 
 //_____________________________________________________________________________
 void
-BuildTPCHelixTracking()
+BuildTPCHelixTracking(Bool_t calib_flag)
 {
-  HB1("HoughDist", 500, 0., 50.);
-  HB1("HoughDistY", 500, 0., 50.);
-  HB1("NTracks_TPC", 40, 0., 40. );
-  HB1("NHits_Track_TPC", 50, 0., 50.);
-  HB1("Chisqr_TPC", 500, 0., 500.);
-  HB1("LayerId_TPC", 35, 0., 35.);
-  HB1("mom0", 1000, 0., 2.5);
-  HB1("LambdaMass_vtx;M(p#pi^{-}) [GeV/c^{2}];Counts", 500, 1.05, 1.25);
-  HB2("PID_p_dEdx;p [GeV/c];dE/dx (a.u.)", 500, 0., 2.5, 600, 0., 1200.);
-  HB2("PID_signedP_dEdx;q#timesp [GeV/c];dE/dx (a.u.)", 600, -3.0, 3.0, 600, 0., 1200.);
-  HB2("PID_p_dEdx_pos;p [GeV/c];dE/dx (a.u.)", 500, 0., 2.5, 600, 0., 1200.);
-  HB2("PID_p_dEdx_neg;p [GeV/c];dE/dx (a.u.)", 500, 0., 2.5, 600, 0., 1200.);
+  HB1("HoughDist;Hough distance [mm];Counts", TPC_BINS_HOUGH);
+  HB1("HoughDistY;Hough distance Y [mm];Counts", TPC_BINS_HOUGH);
+  HB1("NTracks_TPC;N_{track};Counts", TPC_BINS_MULT);
+  HB1("TPCTrk_Num_TrackHits;N_{hits} (TPC Track);Counts", TPC_BINS_HITS);
+  HB1("TPCTrk_Chisqr;#chi^{2} (TPC Track);Counts", TPC_BINS_CHISQR);
+  HB1("TPCTrk_Layer;Layer;Counts", TPC_BINS_LAYER);
+  HB1("Mom0;p [GeV/c];Counts", TPC_BINS_MOM0);
+  HB1("dEdx_PID;dE/dx PID code;Counts", TPC_BINS_PID_CODE);
+  HB2("PID_p_dEdx;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
+  HB2("PID_signedP_dEdx;q#timesp [GeV/c];dE/dx (a.u.)", TPC_BINS_SIGNED_P, TPC_BINS_DE);
+  HB2("PID_p_dEdx_pos;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
+  HB2("PID_p_dEdx_neg;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
+  HB2("PID_p_dEdx_Pi;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
+  HB2("PID_p_dEdx_K;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
+  HB2("PID_p_dEdx_Proton;p [GeV/c];dE/dx (a.u.)", TPC_BINS_MOM0, TPC_BINS_DE);
 
-  const Int_t    NbinDe = 1000;
-  const Double_t MinDe  =    0.;
-  const Double_t MaxDe  = 2000.;
+  HB2Poly("TPCTrk_HitPat", TPC_EVENT_DISPLAY_BINS);
+  tpc::InitializeHistograms("TPCTrk_HitPat");
+  HB2("TPCTrk_Row_vs_Layer;Layer;Row", TPC_BINS_ROW_VS_LAYER);
+  HB2("TPCTrk_ResY_vs_Layer_Trk;Layer;Residual Y (TPC Cluster - TPC Track) [mm]", TPC_BINS_LAYER, TPC_BINS_RES_HIT);
 
-  const Int_t NbinClSize = 25;
-  const Double_t MinClSize = 0;
-  const Double_t MaxClSize = 25;
-  const Int_t NbinDist = 60;
-  const Double_t MinDist = -15.;
-  const Double_t MaxDist = 15.;
-  const Int_t NbinRatio = 100;
-  const Double_t MinRatio = 0.;
-  const Double_t MaxRatio = 1.;
-
-  HB1("Cluster_size;Cluster size;Counts", NbinClSize, MinClSize, MaxClSize);
-  HB1("Cluster_dE;Cluster dE;Counts", NbinDe, MinDe, MaxDe);
-  HB2("Transverse_diffusion;X_{cluster_center}-X_{pad};A/A_{sum}", NbinDist, MinDist, MaxDist, NbinRatio, MinRatio, MaxRatio);
+  HB1("TPCCl_Size;Cluster size;Counts", TPC_BINS_CL_SIZE);
+  HB1("TPCCl_dE;Cluster dE;Counts", TPC_BINS_DE);
+  HB1("TPCCl_dE_Pion;Cluster dE (pion PID);Counts", TPC_BINS_DE);
+  HB2("TPCCl_dE_vs_Layer;Layer;Cluster dE", TPC_BINS_LAYER, TPC_BINS_DE);
+  HB2("Transverse_Diffusion;X_{cluster_center}-X_{pad};A/A_{sum}", TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    HB1(Form("Cluster_size_layer%d;Cluster size;Counts",layer), NbinClSize, MinClSize, MaxClSize);
-    HB1(Form("Cluster_dE_layer%d;Cluster dE;Counts",layer), NbinDe, MinDe, MaxDe);
-    HB2(Form("Transverse_diffusion_layer%d;X_{cluster_center}-X_{pad};A/A_{sum}",layer), NbinDist, MinDist, MaxDist, NbinRatio, MinRatio, MaxRatio);
+    const Int_t n_pad = static_cast<Int_t>(tpc::padParameter[layer][tpc::kNumOfPad]);
+    HB1(Form("TPCHit_HitPat_Layer%02d;Row;Counts", layer), n_pad, -0.5, n_pad - 0.5);
+    HB1(Form("TPCCl_Size_Layer%02d;Cluster size;Counts", layer), TPC_BINS_CL_SIZE);
+    HB1(Form("TPCCl_dE_Layer%02d;Cluster dE;Counts", layer), TPC_BINS_DE);
+    HB1(Form("TPCCl_dE_Pion_Layer%02d;Cluster dE (pion PID);Counts", layer), TPC_BINS_DE);
+    HB2(Form("TPCTrk_ResY_vs_Y_Layer%02d;Y_{TPC Track} (local) [mm];Residual Y (TPC Cluster - TPC Track) [mm]", layer), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+    HB2(Form("Transverse_Diffusion_Layer%02d;X_{cluster_center}-X_{pad};A/A_{sum}", layer), TPC_BINS_DIFF_PAD, TPC_BINS_CLUSTER_RATIO);
+    if (calib_flag) {
+      for (Int_t row = 0; row < n_pad; ++row) {
+        HB1(Form("TPCTrk_ResY_Layer%02d_Row%03d;Residual Y (TPC Cluster - TPC Track) [mm];Counts", layer, row), TPC_BINS_RES_HIT);
+        HB2(Form("TPCTrk_ResY_vs_Y_Layer%02d_Row%03d;Y_{TPC Track} (local) [mm];Residual Y (TPC Cluster - TPC Track) [mm]", layer, row), TPC_BINS_POS_Y, TPC_BINS_RES_HIT);
+        HB1(Form("TPCCl_dE_Layer%02d_Row%03d;Cluster dE;Counts", layer, row), TPC_BINS_DE);
+        HB1(Form("TPCCl_dE_Pion_Layer%02d_Row%03d;Cluster dE (pion PID);Counts", layer, row), TPC_BINS_DE);
+      }
+    }
   }
+
+  if (calib_flag) {
+    BuildCoBoClockTime(kCoBoClockTime_Track);
+  }
+}
+
+//_____________________________________________________________________________
+void
+BuildTPCHelixLambda()
+{
+  HB1("Lambda_Mass;M(p#pi^{-}) [GeV/c^{2}];Counts", 500, 1.05, 1.25);
+  HB1("Lambda_CloseDist;Closest distance [mm];Counts", 500, 0.0, 50.0);
+  HB1("Lambda_VtxX;Vertex X [mm];Counts", TPC_BINS_POS_X);
+  HB1("Lambda_VtxY;Vertex Y [mm];Counts", TPC_BINS_POS_Y);
+  HB1("Lambda_VtxZ;Vertex Z [mm];Counts", TPC_BINS_POS_X);
+  HB1("Lambda_MomX;Momentum X [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("Lambda_MomY;Momentum Y [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("Lambda_MomZ;Momentum Z [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("Lambda_TargetToVtxX;TargetCenter#rightarrowVertex X [mm];Counts", TPC_BINS_POS_X);
+  HB1("Lambda_TargetToVtxY;TargetCenter#rightarrowVertex Y [mm];Counts", TPC_BINS_POS_Y);
+  HB1("Lambda_TargetToVtxZ;TargetCenter#rightarrowVertex Z [mm];Counts", TPC_BINS_POS_X);
+  HB1("Lambda_TargetToVtxDotMom;cos#theta((TargetCenter#rightarrowVertex),P_{#Lambda});Counts", 200, -1.0, 1.0);
 }
 
 }

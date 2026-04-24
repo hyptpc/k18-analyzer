@@ -31,12 +31,14 @@ void BuildDCHit(const TString& dcname, Bool_t flag_beam_particle=false);
 void BuildDCTrack(const TString& dcname, Bool_t flag_beam_particle=false);
 
 void BuildTPCHit();
-void BuildTPCBasic();
+void BuildTPCTrackingCommon();
+void BuildTPCLineTrackParam();
 void BuildTPCTracking(Bool_t calib_flag = false);
 
 void BuildTPCBcOutTracking(Bool_t calib_flag = false);
 void BuildTPCHitBcOutTracking(Bool_t calib_flag = false);
-void BuildTPCHelixTracking();
+void BuildTPCHelixTracking(Bool_t calib_flag = false);
+void BuildTPCHelixLambda();
 
 enum CoBoClockTimeFlags : UInt_t {
   kCoBoClockTime_Hit     = 1u << 0,

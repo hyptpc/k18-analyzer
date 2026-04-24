@@ -3,6 +3,7 @@
 #ifndef TPC_EVENT_ANALYZER_HH
 #define TPC_EVENT_ANALYZER_HH
 
+#include <string>
 #include <vector>
 
 #include <TVector3.h>
@@ -15,6 +16,7 @@ class TPCRawData;
 class TPCAnalyzer;
 class TPCLTrackHit;
 class TPCLocalTrack;
+class TPCLocalTrackHelix;
 
 struct TPCBaselineInfo {
   Int_t row = -1;
@@ -48,6 +50,7 @@ public:
                          Double_t ctime, const TVector3& local_pos, Double_t ref_y);
 
   static Bool_t ValidateCoboClocks(const std::vector<Double_t>& clk_tpc);
+  static std::string DecodePidCandidates(Int_t pid_code);
 
   static Double_t CalcTruncatedMean(const std::vector<Double_t>& cumulative_vec, Double_t fraction);
 
@@ -84,6 +87,30 @@ public:
     const TVector3& trk_pull_local,
     Double_t cl_ref_x, Double_t cl_ref_y_tpc, Double_t cl_ref_y_bcout,
     const TVector3& cl_res
+  );
+  void FillHelixHitHist(TPCLTrackHit* hit, Bool_t fill_cluster_detail, Int_t track_pid);
+  void FillHelixLambdaMassHist(
+    Int_t nt_tpc,
+    const std::vector<Int_t>& charge,
+    const std::vector<std::vector<Double_t>>& mom_vtx,
+    const std::vector<std::vector<Double_t>>& mom_vty,
+    const std::vector<std::vector<Double_t>>& mom_vtz,
+    const std::vector<std::vector<Double_t>>& vtx_tpc_x,
+    const std::vector<std::vector<Double_t>>& vtx_tpc_y,
+    const std::vector<std::vector<Double_t>>& vtx_tpc_z,
+    const std::vector<std::vector<Double_t>>& close_dist_tpc,
+    std::vector<Double_t>& lambda_mass,
+    std::vector<Double_t>& lambda_close_dist,
+    std::vector<Double_t>& lambda_vtx_x,
+    std::vector<Double_t>& lambda_vtx_y,
+    std::vector<Double_t>& lambda_vtx_z,
+    std::vector<Double_t>& lambda_mom_x,
+    std::vector<Double_t>& lambda_mom_y,
+    std::vector<Double_t>& lambda_mom_z,
+    std::vector<Double_t>& lambda_target_to_vtx_x,
+    std::vector<Double_t>& lambda_target_to_vtx_y,
+    std::vector<Double_t>& lambda_target_to_vtx_z,
+    std::vector<Double_t>& lambda_target_to_vtx_dot_mom
   );
 
 private:

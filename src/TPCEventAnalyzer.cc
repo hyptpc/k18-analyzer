@@ -3,8 +3,12 @@
 #include "TPCEventAnalyzer.hh"
 
 #include <cmath>
+#include <iomanip>
 #include <sstream>
 
+#include <TLorentzVector.h>
+
+#include "DatabasePDG.hh"
 #include "DCGeomMan.hh"
 #include "RootHelper.hh"
 #include "ThreeVector.hh"
@@ -212,6 +216,28 @@ TPCEventAnalyzer::ValidateCoboClocks(const std::vector<Double_t>& clk_tpc)
 }
 
 //_____________________________________________________________________________
+std::string
+TPCEventAnalyzer::DecodePidCandidates(Int_t pid_code)
+{
+  if (pid_code == 0)
+    return "e";
+
+  std::string names;
+  if (pid_code & 0x1) names += "pi";
+  if (pid_code & 0x2) {
+    if (!names.empty()) names += "+";
+    names += "K";
+  }
+  if (pid_code & 0x4) {
+    if (!names.empty()) names += "+";
+    names += "p";
+  }
+  if (names.empty())
+    names = "none";
+  return names;
+}
+
+//_____________________________________________________________________________
 Double_t
 TPCEventAnalyzer::CalcTruncatedMean(const std::vector<Double_t>& cumulative_vec, Double_t fraction)
 {
@@ -341,8 +367,8 @@ TPCEventAnalyzer::FillTrkHitHist(TPCLTrackHit* hit, const TPCLocalTrack* track)
     const Double_t dummy = std::hypot(pos.x() - hit_pos.x(), pos.z() - hit_pos.z());
     const Double_t trans_dist = (hit_pos.x() - pos.x() < 0.) ? -dummy : dummy;
     const Double_t ratio = de / clde;
-    HF2("TPCCl_Ratio_vs_Dist_Diff", trans_dist, ratio);
-    HF2(Form("TPCCl_Ratio_vs_Dist_Diff_Layer%02d", layer), trans_dist, ratio);
+    HF2("Transverse_Diffusion", trans_dist, ratio);
+    HF2(Form("Transverse_Diffusion_Layer%02d", layer), trans_dist, ratio);
   }
 
   if (center_hit->GetCTimeSize() > 0) {
@@ -470,6 +496,194 @@ TPCEventAnalyzer::FillTPCBcOutTrackingResidualPullHist(
   if (GetDstCalibFlag() && center_row >= 0) {
     HF2(Form("TPCCl_ResY_vs_Y_TPC_Layer%02d_Row%03d", layer, center_row), cl_ref_y_tpc, cl_res.y());
     HF2(Form("TPCCl_ResY_vs_Y_BcOut_Layer%02d_Row%03d", layer, center_row), cl_ref_y_bcout, cl_res.y());
+  }
+}
+
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillHelixHitHist(TPCLTrackHit* hit, Bool_t fill_cluster_detail, Int_t track_pid)
+{
+  if (!hit)
+    return;
+
+  HF1("HoughDist", hit->GetHoughDist());
+  HF1("HoughDistY", hit->GetHoughDistY());
+
+  const Int_t layer = hit->GetLayer();
+  HF1("TPCTrk_Layer", layer);
+
+  if (!fill_cluster_detail)
+    return;
+
+  TPCHit* cl_hit = hit->GetHit();
+  if (!cl_hit)
+    return;
+  
+  TPCCluster* cl = cl_hit->GetParentCluster();
+  if (!cl)
+    return;
+
+  const Int_t cl_size = cl->GetClusterSize();
+  const Double_t cl_de = cl->GetDe();
+  const TVector3& hit_pos = hit->GetLocalHitPos();
+  const TVector3& cal_pos = hit->GetLocalCalPosHelix();
+  const TVector3& res_vec = hit->GetResidualVect();
+  TPCHit* center_hit = cl->GetCenterHit();
+  const Int_t center_row = center_hit ? center_hit->GetRow() : -1;
+
+  HF1("TPCCl_Size", cl_size);
+  HF1(Form("TPCCl_Size_Layer%02d", layer), cl_size);
+  HF1("TPCCl_dE", cl_de);
+  HF1(Form("TPCCl_dE_Layer%02d", layer), cl_de);
+  HF2("TPCCl_dE_vs_Layer", layer, cl_de);
+  if (track_pid & 0x1) {
+    HF1("TPCCl_dE_Pion", cl_de);
+    HF1(Form("TPCCl_dE_Pion_Layer%02d", layer), cl_de);
+  }
+  HF2(Form("TPCTrk_ResY_vs_Y_Layer%02d", layer), cal_pos.y(), res_vec.y());
+  HF2("TPCTrk_ResY_vs_Layer_Trk", layer, res_vec.y());
+
+  if (GetDstCalibFlag() && center_row >= 0) {
+    HF1(Form("TPCTrk_ResY_Layer%02d_Row%03d", layer, center_row), res_vec.y());
+    HF2(Form("TPCTrk_ResY_vs_Y_Layer%02d_Row%03d", layer, center_row), cal_pos.y(), res_vec.y());
+    HF1(Form("TPCCl_dE_Layer%02d_Row%03d", layer, center_row), cl_de);
+    if (track_pid & 0x1) {
+      HF1(Form("TPCCl_dE_Pion_Layer%02d_Row%03d", layer, center_row), cl_de);
+    }
+  }
+
+  const TPCHitContainer& hit_cont = cl->GetHitContainer();
+  for (const auto& hits : hit_cont) {
+    if (!hits || !hits->IsGood() || !hit->IsGoodForTracking())
+      continue;
+    const TVector3& pos = hits->GetPosition();
+    const Double_t pad_de = hits->GetCDe();
+    Double_t trans_dist = std::hypot(hit_pos.x() - pos.x(), hit_pos.z() - pos.z());
+    if (hit_pos.x() < pos.x()) trans_dist = -1.*trans_dist;
+    const Double_t ratio = pad_de/cl_de;
+    HF2("Transverse_Diffusion", trans_dist, ratio);
+    HF2(Form("Transverse_Diffusion_Layer%02d", layer), trans_dist, ratio);
+  }
+
+  if (GetDstCalibFlag() && center_hit) {
+    const ThreeVector global_ref = gGeom.Local2GlobalPos("HypTPC", cal_pos);
+    FillCoBoClockTime("TPCTrk", layer, center_row, center_hit->GetCTime(0),
+                      center_hit->GetPosition(), global_ref.y());
+  }
+}
+
+//_____________________________________________________________________________
+void
+// TODO: Refactor this signature; current argument list is too long
+// and should be replaced by a smarter input/output interface.
+TPCEventAnalyzer::FillHelixLambdaMassHist(
+  Int_t nt_tpc,
+  const std::vector<Int_t>& charge,
+  const std::vector<std::vector<Double_t>>& mom_vtx,
+  const std::vector<std::vector<Double_t>>& mom_vty,
+  const std::vector<std::vector<Double_t>>& mom_vtz,
+  const std::vector<std::vector<Double_t>>& vtx_tpc_x,
+  const std::vector<std::vector<Double_t>>& vtx_tpc_y,
+  const std::vector<std::vector<Double_t>>& vtx_tpc_z,
+  const std::vector<std::vector<Double_t>>& close_dist_tpc,
+  std::vector<Double_t>& lambda_mass,
+  std::vector<Double_t>& lambda_close_dist,
+  std::vector<Double_t>& lambda_vtx_x,
+  std::vector<Double_t>& lambda_vtx_y,
+  std::vector<Double_t>& lambda_vtx_z,
+  std::vector<Double_t>& lambda_mom_x,
+  std::vector<Double_t>& lambda_mom_y,
+  std::vector<Double_t>& lambda_mom_z,
+  std::vector<Double_t>& lambda_target_to_vtx_x,
+  std::vector<Double_t>& lambda_target_to_vtx_y,
+  std::vector<Double_t>& lambda_target_to_vtx_z,
+  std::vector<Double_t>& lambda_target_to_vtx_dot_mom)
+{
+  static const Double_t proton_mass = pdg::ProtonMass();
+  static const Double_t pion_mass   = pdg::PionMass();
+  static const Double_t lambda_mass_nominal = pdg::LambdaMass();
+  // VertexPointHelix/CalcHelixMom outputs are treated as global coordinates here.
+  static const ThreeVector target_center(0., 0., -tpc::Z_TARGET);
+
+  for (Int_t it = 0; it < nt_tpc; ++it) {
+    for (Int_t jt = it + 1; jt < nt_tpc; ++jt) {
+      const Int_t q1 = charge[it];
+      const Int_t q2 = charge[jt];
+      if (q1*q2 >= 0) continue;
+
+      const TVector3 p1(mom_vtx[it][jt], mom_vty[it][jt], mom_vtz[it][jt]);
+      const TVector3 p2(mom_vtx[jt][it], mom_vty[jt][it], mom_vtz[jt][it]);
+      if (!std::isfinite(p1.x()) || !std::isfinite(p1.y()) || !std::isfinite(p1.z()) ||
+          !std::isfinite(p2.x()) || !std::isfinite(p2.y()) || !std::isfinite(p2.z()))
+        continue;
+
+      TLorentzVector lv_p, lv_pi;
+      if (q1 > 0) {
+        lv_p.SetVectM(p1, proton_mass);
+        lv_pi.SetVectM(p2, pion_mass);
+      } else {
+        lv_p.SetVectM(p2, proton_mass);
+        lv_pi.SetVectM(p1, pion_mass);
+      }
+
+      const TLorentzVector lv_lambda = lv_p + lv_pi;
+      const Double_t lambda_mass_value = lv_lambda.M();
+      HF1("Lambda_Mass", lambda_mass_value);
+
+      const Double_t close_dist = close_dist_tpc[it][jt];
+      const ThreeVector lambda_vtx(vtx_tpc_x[it][jt], vtx_tpc_y[it][jt], vtx_tpc_z[it][jt]);
+      const ThreeVector lambda_mom = lv_lambda.Vect();
+      const ThreeVector target_to_vtx = lambda_vtx - target_center;
+      const Double_t target_to_vtx_mag = target_to_vtx.Mag();
+      const Double_t lambda_mom_mag = lambda_mom.Mag();
+      const Double_t target_to_vtx_dot_mom =
+        (target_to_vtx_mag > 0.0 && lambda_mom_mag > 0.0)
+          ? target_to_vtx.Dot(lambda_mom)/(target_to_vtx_mag*lambda_mom_mag)
+          : TMath::QuietNaN();
+
+      lambda_mass.push_back(lambda_mass_value);
+      lambda_close_dist.push_back(close_dist);
+      lambda_vtx_x.push_back(lambda_vtx.x());
+      lambda_vtx_y.push_back(lambda_vtx.y());
+      lambda_vtx_z.push_back(lambda_vtx.z());
+      lambda_mom_x.push_back(lambda_mom.x());
+      lambda_mom_y.push_back(lambda_mom.y());
+      lambda_mom_z.push_back(lambda_mom.z());
+      lambda_target_to_vtx_x.push_back(target_to_vtx.x());
+      lambda_target_to_vtx_y.push_back(target_to_vtx.y());
+      lambda_target_to_vtx_z.push_back(target_to_vtx.z());
+      lambda_target_to_vtx_dot_mom.push_back(target_to_vtx_dot_mom);
+
+      HF1("Lambda_CloseDist", close_dist);
+      HF1("Lambda_VtxX", lambda_vtx.x());
+      HF1("Lambda_VtxY", lambda_vtx.y());
+      HF1("Lambda_VtxZ", lambda_vtx.z());
+      HF1("Lambda_MomX", lambda_mom.x());
+      HF1("Lambda_MomY", lambda_mom.y());
+      HF1("Lambda_MomZ", lambda_mom.z());
+      HF1("Lambda_TargetToVtxX", target_to_vtx.x());
+      HF1("Lambda_TargetToVtxY", target_to_vtx.y());
+      HF1("Lambda_TargetToVtxZ", target_to_vtx.z());
+      HF1("Lambda_TargetToVtxDotMom", target_to_vtx_dot_mom);
+
+      if (TMath::Abs(lambda_mass_value - lambda_mass_nominal) < 0.03) {
+        std::cout << std::fixed << std::setprecision(4)
+                  << "#D LambdaCandidate"
+                  << " pair=(" << it << "," << jt << ")"
+                  << " M=" << lambda_mass_value
+                  << " q=(" << q1 << "," << q2 << ")"
+                  << " closeDist=" << close_dist
+                  << " vtx=(" << lambda_vtx.x()
+                  << "," << lambda_vtx.y()
+                  << "," << lambda_vtx.z() << ")"
+                  << " mom=(" << lambda_mom.x()
+                  << "," << lambda_mom.y()
+                  << "," << lambda_mom.z() << ")"
+                  << " cos=" << target_to_vtx_dot_mom
+                  << std::defaultfloat
+                  << std::endl;
+      }
+    }
   }
 }
 
