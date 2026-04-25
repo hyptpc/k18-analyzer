@@ -13,11 +13,17 @@
 #include "RootHelper.hh"
 #include "ThreeVector.hh"
 #include "TPCCluster.hh"
+#include "TPCAnalyzer.hh"
+#include "TPCReconstructor.hh"
 #include "TPCHit.hh"
 #include "TPCLTrackHit.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCPadHelper.hh"
 #include "TPCParamMan.hh"
+#include "TPCLocalTrackHelix.hh"
+#include "TPCVertex.hh"
+
+#include <TPDGCode.h>
 #include "TPCRawData.hh"
 #include "TPCRawHit.hh"
 #include "UserParamMan.hh"
@@ -574,116 +580,38 @@ TPCEventAnalyzer::FillHelixHitHist(TPCLTrackHit* hit, Bool_t fill_cluster_detail
 
 //_____________________________________________________________________________
 void
-// TODO: Refactor this signature; current argument list is too long
-// and should be replaced by a smarter input/output interface.
-TPCEventAnalyzer::FillHelixLambdaMassHist(
-  Int_t nt_tpc,
-  const std::vector<Int_t>& charge,
-  const std::vector<std::vector<Double_t>>& mom_vtx,
-  const std::vector<std::vector<Double_t>>& mom_vty,
-  const std::vector<std::vector<Double_t>>& mom_vtz,
-  const std::vector<std::vector<Double_t>>& vtx_tpc_x,
-  const std::vector<std::vector<Double_t>>& vtx_tpc_y,
-  const std::vector<std::vector<Double_t>>& vtx_tpc_z,
-  const std::vector<std::vector<Double_t>>& close_dist_tpc,
-  std::vector<Double_t>& lambda_mass,
-  std::vector<Double_t>& lambda_close_dist,
-  std::vector<Double_t>& lambda_vtx_x,
-  std::vector<Double_t>& lambda_vtx_y,
-  std::vector<Double_t>& lambda_vtx_z,
-  std::vector<Double_t>& lambda_mom_x,
-  std::vector<Double_t>& lambda_mom_y,
-  std::vector<Double_t>& lambda_mom_z,
-  std::vector<Double_t>& lambda_target_to_vtx_x,
-  std::vector<Double_t>& lambda_target_to_vtx_y,
-  std::vector<Double_t>& lambda_target_to_vtx_z,
-  std::vector<Double_t>& lambda_target_to_vtx_dot_mom)
+TPCEventAnalyzer::FillHelixLambdaMassHist(const TPCVertex* vertex)
 {
-  static const Double_t proton_mass = pdg::ProtonMass();
-  static const Double_t pion_mass   = pdg::PionMass();
-  static const Double_t lambda_mass_nominal = pdg::LambdaMass();
-  // VertexPointHelix/CalcHelixMom outputs are treated as global coordinates here.
-  static const ThreeVector target_center(0., 0., -tpc::Z_TARGET);
+  if (!vertex)
+    return;
+  const Int_t n_cand = vertex->GetNRecoCandidates();
+  for (Int_t ic = 0; ic < n_cand; ++ic) {
+    const TPCRecoCandidate& cand = vertex->GetRecoCandidate(ic);
+    if (cand.GetMotherPdg() != kLambda0)
+      continue;
+    const Double_t lambda_mass_value = cand.GetMass();
+    const Double_t closest_dist = cand.GetClosestDist();
+    const ThreeVector lambda_vtx(cand.GetVertex().X(), cand.GetVertex().Y(), cand.GetVertex().Z());
+    const ThreeVector lambda_mom(cand.GetMomentum().X(), cand.GetMomentum().Y(), cand.GetMomentum().Z());
+    const ThreeVector target_to_vtx = lambda_vtx - ThreeVector(0., 0., -tpc::Z_TARGET);
+    const Double_t target_to_vtx_dot_mom =
+      (target_to_vtx.Mag() > 0.0 && lambda_mom.Mag() > 0.0)
+        ? target_to_vtx.Dot(lambda_mom)/(target_to_vtx.Mag()*lambda_mom.Mag())
+        : TMath::QuietNaN();
+    HF1("Lambda_Mass", lambda_mass_value);
 
-  for (Int_t it = 0; it < nt_tpc; ++it) {
-    for (Int_t jt = it + 1; jt < nt_tpc; ++jt) {
-      const Int_t q1 = charge[it];
-      const Int_t q2 = charge[jt];
-      if (q1*q2 >= 0) continue;
+    HF1("Lambda_CloseDist", closest_dist);
+    HF1("Lambda_VtxX", lambda_vtx.x());
+    HF1("Lambda_VtxY", lambda_vtx.y());
+    HF1("Lambda_VtxZ", lambda_vtx.z());
+    HF1("Lambda_MomX", lambda_mom.x());
+    HF1("Lambda_MomY", lambda_mom.y());
+    HF1("Lambda_MomZ", lambda_mom.z());
+    HF1("Lambda_TargetToVtxX", target_to_vtx.x());
+    HF1("Lambda_TargetToVtxY", target_to_vtx.y());
+    HF1("Lambda_TargetToVtxZ", target_to_vtx.z());
+    HF1("Lambda_TargetToVtxDotMom", target_to_vtx_dot_mom);
 
-      const TVector3 p1(mom_vtx[it][jt], mom_vty[it][jt], mom_vtz[it][jt]);
-      const TVector3 p2(mom_vtx[jt][it], mom_vty[jt][it], mom_vtz[jt][it]);
-      if (!std::isfinite(p1.x()) || !std::isfinite(p1.y()) || !std::isfinite(p1.z()) ||
-          !std::isfinite(p2.x()) || !std::isfinite(p2.y()) || !std::isfinite(p2.z()))
-        continue;
-
-      TLorentzVector lv_p, lv_pi;
-      if (q1 > 0) {
-        lv_p.SetVectM(p1, proton_mass);
-        lv_pi.SetVectM(p2, pion_mass);
-      } else {
-        lv_p.SetVectM(p2, proton_mass);
-        lv_pi.SetVectM(p1, pion_mass);
-      }
-
-      const TLorentzVector lv_lambda = lv_p + lv_pi;
-      const Double_t lambda_mass_value = lv_lambda.M();
-      HF1("Lambda_Mass", lambda_mass_value);
-
-      const Double_t close_dist = close_dist_tpc[it][jt];
-      const ThreeVector lambda_vtx(vtx_tpc_x[it][jt], vtx_tpc_y[it][jt], vtx_tpc_z[it][jt]);
-      const ThreeVector lambda_mom = lv_lambda.Vect();
-      const ThreeVector target_to_vtx = lambda_vtx - target_center;
-      const Double_t target_to_vtx_mag = target_to_vtx.Mag();
-      const Double_t lambda_mom_mag = lambda_mom.Mag();
-      const Double_t target_to_vtx_dot_mom =
-        (target_to_vtx_mag > 0.0 && lambda_mom_mag > 0.0)
-          ? target_to_vtx.Dot(lambda_mom)/(target_to_vtx_mag*lambda_mom_mag)
-          : TMath::QuietNaN();
-
-      lambda_mass.push_back(lambda_mass_value);
-      lambda_close_dist.push_back(close_dist);
-      lambda_vtx_x.push_back(lambda_vtx.x());
-      lambda_vtx_y.push_back(lambda_vtx.y());
-      lambda_vtx_z.push_back(lambda_vtx.z());
-      lambda_mom_x.push_back(lambda_mom.x());
-      lambda_mom_y.push_back(lambda_mom.y());
-      lambda_mom_z.push_back(lambda_mom.z());
-      lambda_target_to_vtx_x.push_back(target_to_vtx.x());
-      lambda_target_to_vtx_y.push_back(target_to_vtx.y());
-      lambda_target_to_vtx_z.push_back(target_to_vtx.z());
-      lambda_target_to_vtx_dot_mom.push_back(target_to_vtx_dot_mom);
-
-      HF1("Lambda_CloseDist", close_dist);
-      HF1("Lambda_VtxX", lambda_vtx.x());
-      HF1("Lambda_VtxY", lambda_vtx.y());
-      HF1("Lambda_VtxZ", lambda_vtx.z());
-      HF1("Lambda_MomX", lambda_mom.x());
-      HF1("Lambda_MomY", lambda_mom.y());
-      HF1("Lambda_MomZ", lambda_mom.z());
-      HF1("Lambda_TargetToVtxX", target_to_vtx.x());
-      HF1("Lambda_TargetToVtxY", target_to_vtx.y());
-      HF1("Lambda_TargetToVtxZ", target_to_vtx.z());
-      HF1("Lambda_TargetToVtxDotMom", target_to_vtx_dot_mom);
-
-      if (TMath::Abs(lambda_mass_value - lambda_mass_nominal) < 0.03) {
-        std::cout << std::fixed << std::setprecision(4)
-                  << "#D LambdaCandidate"
-                  << " pair=(" << it << "," << jt << ")"
-                  << " M=" << lambda_mass_value
-                  << " q=(" << q1 << "," << q2 << ")"
-                  << " closeDist=" << close_dist
-                  << " vtx=(" << lambda_vtx.x()
-                  << "," << lambda_vtx.y()
-                  << "," << lambda_vtx.z() << ")"
-                  << " mom=(" << lambda_mom.x()
-                  << "," << lambda_mom.y()
-                  << "," << lambda_mom.z() << ")"
-                  << " cos=" << target_to_vtx_dot_mom
-                  << std::defaultfloat
-                  << std::endl;
-      }
-    }
   }
 }
 

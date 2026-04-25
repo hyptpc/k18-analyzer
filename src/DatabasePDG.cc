@@ -8,12 +8,11 @@
 
 #include "DatabasePDG.hh"
 
+#include <iostream>
 #include <string>
 
 #include <TDatabasePDG.h>
 #include <TParticlePDG.h>
-
-#include <iostream>
 
 namespace
 {
@@ -24,8 +23,8 @@ namespace
 namespace pdg
 {
   //______________________________________________________________________________
-  double
-  Mass( int pdg_code )
+  Double_t
+  Mass(Int_t pdg_code)
   {
     if( pdg_code==kDeuteron ) return 1.875613;
     if( pdg_code==kTriton   ) return 2.808921;
@@ -36,64 +35,64 @@ namespace pdg
   }
 
   //______________________________________________________________________________
-  double
-  KaonMass( void )
+  Double_t
+  KaonMass()
   {
     return Mass(kKMinus);
   }
 
   //______________________________________________________________________________
-  double
-  PionMass( void )
+  Double_t
+  PionMass()
   {
     return Mass(kPiMinus);
   }
 
   //______________________________________________________________________________
-  double
-  ProtonMass( void )
+  Double_t
+  ProtonMass()
   {
     return Mass(kProton);
   }
 
   //______________________________________________________________________________
-  double
-  NeutronMass( void )
+  Double_t
+  NeutronMass()
   {
     return Mass(kNeutron);
   }
 
   //______________________________________________________________________________
-  double
-  LambdaMass( void )
+  Double_t
+  LambdaMass()
   {
     return Mass(kLambda0);
   }
 
   //______________________________________________________________________________
-  double
-  SigmaNMass( void )
+  Double_t
+  SigmaNMass()
   {
     return Mass(kSigmaMinus);
   }
 
   //______________________________________________________________________________
-  double
-  SigmaPMass( void )
+  Double_t
+  SigmaPMass()
   {
     return Mass(kSigmaPlus);
   }
 
   //______________________________________________________________________________
-  double
-  XiMass( void )
+  Double_t
+  XiMass()
   {
     return Mass(kXiMinus);
   }
 
   //______________________________________________________________________________
   void
-  Print( int pdg_code )
+  Print(Int_t pdg_code)
   {
     TParticlePDG *particle = TDatabasePDG::Instance()->GetParticle(pdg_code);
     if( particle ) particle->Print();
@@ -101,7 +100,7 @@ namespace pdg
 
   //______________________________________________________________________________
   void
-  Print( void )
+  Print()
   {
     TDatabasePDG::Instance()->Print();
   }

@@ -9,6 +9,7 @@
 #include <TVector3.h>
 
 #include "DetectorID.hh"
+#include "TPCReconstructor.hh"
 
 class TPCRawData;
 class TPCHit;
@@ -69,9 +70,14 @@ public:
   TPCLocalTrack* GetTrackTPCFailed(Int_t l) const { return m_TPCTCFailed.at(l); }
 
   //HS-On
-  Bool_t TrackSearchTPCHelix(Bool_t exclusive=false);
+  Bool_t TrackSearchTPCHelix(Bool_t exclusive=false,
+                             UInt_t reco_mode=TPCReconstructor::kRecoAll);
   Int_t GetNTracksTPCHelix() const { return m_TPCTCHelix.size(); }
   TPCLocalTrackHelix* GetTrackTPCHelix(Int_t l) const { return m_TPCTCHelix.at(l); }
+  
+  Int_t GetNVerticesTPC() const { return m_TPCVC.size(); }
+  TPCVertex* GetVertexTPC(Int_t i) const { return m_TPCVC.at(i); }
+  TPCVertex* FindVertexTPC(Int_t id1, Int_t id2) const;
 
   const TPCHitContainer& GetTPCHC(Int_t l) const { return m_TPCHitCont.at(l); }
   const TPCClusterContainer& GetTPCClCont(Int_t l) const { return m_TPCClCont.at(l); }

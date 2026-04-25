@@ -14,6 +14,8 @@
 
 class TPCRawData;
 class TPCAnalyzer;
+class TPCReconstructor;
+class TPCVertex;
 class TPCLTrackHit;
 class TPCLocalTrack;
 class TPCLocalTrackHelix;
@@ -89,29 +91,7 @@ public:
     const TVector3& cl_res
   );
   void FillHelixHitHist(TPCLTrackHit* hit, Bool_t fill_cluster_detail, Int_t track_pid);
-  void FillHelixLambdaMassHist(
-    Int_t nt_tpc,
-    const std::vector<Int_t>& charge,
-    const std::vector<std::vector<Double_t>>& mom_vtx,
-    const std::vector<std::vector<Double_t>>& mom_vty,
-    const std::vector<std::vector<Double_t>>& mom_vtz,
-    const std::vector<std::vector<Double_t>>& vtx_tpc_x,
-    const std::vector<std::vector<Double_t>>& vtx_tpc_y,
-    const std::vector<std::vector<Double_t>>& vtx_tpc_z,
-    const std::vector<std::vector<Double_t>>& close_dist_tpc,
-    std::vector<Double_t>& lambda_mass,
-    std::vector<Double_t>& lambda_close_dist,
-    std::vector<Double_t>& lambda_vtx_x,
-    std::vector<Double_t>& lambda_vtx_y,
-    std::vector<Double_t>& lambda_vtx_z,
-    std::vector<Double_t>& lambda_mom_x,
-    std::vector<Double_t>& lambda_mom_y,
-    std::vector<Double_t>& lambda_mom_z,
-    std::vector<Double_t>& lambda_target_to_vtx_x,
-    std::vector<Double_t>& lambda_target_to_vtx_y,
-    std::vector<Double_t>& lambda_target_to_vtx_z,
-    std::vector<Double_t>& lambda_target_to_vtx_dot_mom
-  );
+  void FillHelixLambdaMassHist(const TPCVertex* vertex);
 
 private:
   inline static Bool_t m_dst_calib_flag = false;

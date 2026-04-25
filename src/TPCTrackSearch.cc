@@ -57,6 +57,7 @@ Detailed fitting procedures are explained in the TPCLocalTrack/Helix.
 #include "TPCLTrackHit.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLocalTrackHelix.hh"
+#include "TPCReconstructor.hh"
 #include "TPCVertex.hh"
 #include "TPCCluster.hh"
 #include "RootHelper.hh"
@@ -2200,7 +2201,7 @@ TestingCharge(std::vector<T*>& TrackCont,
 
           TPCVertex *newvertex = new TPCVertex(trackid1, trackid2);
           newvertex -> Calculate(track1, track2);
-          if(newvertex -> GetIsLambda()) invert = true;
+          if(TPCReconstructor::HasLambdaCandidate(newvertex)) invert = true;
           delete newvertex;
         }
       }

@@ -233,7 +233,7 @@ TPCAnalyzer::TrackSearchTPC(Bool_t exclusive)
 //_____________________________________________________________________________
 //HS-On: Track Searching
 Bool_t
-TPCAnalyzer::TrackSearchTPCHelix(Bool_t exclusive)
+TPCAnalyzer::TrackSearchTPCHelix(Bool_t exclusive, UInt_t reco_mode)
 {
   if(m_is_decoded[kTPCTracking]){
     hddaq::cout << FUNC_NAME << " "
@@ -245,8 +245,40 @@ TPCAnalyzer::TrackSearchTPCHelix(Bool_t exclusive)
   
   tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixInverted, m_TPCTCHelixFailed, m_TPCVC, m_TPCVCClustered, exclusive, MinLayer);
 
+  if (reco_mode != TPCReconstructor::kRecoNone) {
+    TPCReconstructor reconstructor;
+    reconstructor.Calculate(m_TPCVC, &m_TPCTCHelix, reco_mode);
+  }
+
   m_is_decoded[kTPCTracking] = true;
   return true;
+}
+
+//_____________________________________________________________________________
+TPCVertex*
+TPCAnalyzer::FindVertexTPC(Int_t id1, Int_t id2) const
+{
+  TPCVertex* found_vertex = nullptr;
+  Int_t n_matches = 0;
+  for (const auto& vertex : m_TPCVC) {
+    if (!vertex || vertex->GetNTracks() < 2)
+      continue;
+    const Int_t track_id1 = vertex->GetTrackId(0);
+    const Int_t track_id2 = vertex->GetTrackId(1);
+    if ((track_id1 == id1 && track_id2 == id2) ||
+        (track_id1 == id2 && track_id2 == id1)) {
+      if (!found_vertex)
+        found_vertex = vertex;
+      ++n_matches;
+    }
+  }
+  if (n_matches > 1) {
+    std::cerr << "#W " << FUNC_NAME
+              << " duplicate vertices for pair=(" << id1 << "," << id2 << ")"
+              << " n_matches=" << n_matches
+              << " (return first match)" << std::endl;
+  }
+  return found_vertex;
 }
 
 //_____________________________________________________________________________
@@ -288,3 +320,4 @@ TPCAnalyzer::ClearTPCK18Tracks()
 {
   del::ClearContainer(m_TPCK18TC);
 }
+

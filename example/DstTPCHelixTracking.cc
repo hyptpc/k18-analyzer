@@ -5,6 +5,8 @@
 #include <iomanip>
 #include <iostream>
 
+#include <TPDGCode.h>
+
 #include "CatchSignal.hh"
 #include "ConfMan.hh"
 #include "DebugCounter.hh"
@@ -199,18 +201,22 @@ struct Event
 #if RawHit
   void clearRawHits() {
     nhTpc = 0;
-    dst::clear_all(raw_hitpos_x, raw_hitpos_y, raw_hitpos_z,
-                       raw_de, raw_padid, raw_layer, raw_row);
+    dst::clear_all(
+      raw_hitpos_x, raw_hitpos_y, raw_hitpos_z,
+      raw_de, raw_padid, raw_layer, raw_row
+    );
   }
 #endif
 
 #if RawCluster
   void clearClusters() {
     nclTpc = 0;
-    dst::clear_all(cluster_x, cluster_y, cluster_z, cluster_de,
-                       cluster_size, cluster_layer, cluster_mrow,
-                       cluster_de_center, cluster_x_center, cluster_y_center,
-                       cluster_z_center, cluster_row_center, cluster_houghflag);
+    dst::clear_all(
+      cluster_x, cluster_y, cluster_z, cluster_de,
+      cluster_size, cluster_layer, cluster_mrow,
+      cluster_de_center, cluster_x_center, cluster_y_center,
+      cluster_z_center, cluster_row_center, cluster_houghflag
+    );
   }
 #endif
 
@@ -230,8 +236,10 @@ struct Event
 
       pathhit, pathhit_cor, theta_diff, track_cluster_de, track_cluster_size, track_cluster_mrow, track_cluster_de_center, track_cluster_x_center, track_cluster_y_center, track_cluster_z_center, track_cluster_row_center
     );
+  }
 
-#if EnableReconstructLambda
+  #if EnableReconstructLambda
+  void clearReconstructLambda() {
     dst::clear_all(
       lambda_mass, lambda_close_dist,
       lambda_vtx_x, lambda_vtx_y, lambda_vtx_z,
@@ -239,8 +247,8 @@ struct Event
       lambda_target_to_vtx_x, lambda_target_to_vtx_y, lambda_target_to_vtx_z,
       lambda_target_to_vtx_dot_mom
     );
-#endif
   }
+  #endif
   
   void clear()
   {
@@ -252,6 +260,9 @@ struct Event
     clearClusters();
 #endif
     clearHelixTracks();
+#if EnableReconstructLambda
+    clearReconstructLambda();
+#endif
   }
 
   void resizeTracks(Int_t nTracks) {
@@ -270,6 +281,7 @@ struct Event
       pathhit, pathhit_cor, theta_diff, track_cluster_de, track_cluster_size, track_cluster_mrow, track_cluster_de_center, track_cluster_x_center, track_cluster_y_center, track_cluster_z_center, track_cluster_row_center
     );
   }
+
   void resizeTrackHits(Int_t it, Int_t nh) {
     dst::resize_all(nh,
       hitlayer[it], hitpos_x[it], hitpos_y[it], hitpos_z[it], calpos_x[it], calpos_y[it], calpos_z[it], residual[it], residual_x[it], residual_y[it], residual_z[it], helix_t[it],
@@ -277,9 +289,12 @@ struct Event
       pathhit[it], pathhit_cor[it], theta_diff[it], track_cluster_de[it], track_cluster_size[it], track_cluster_mrow[it], track_cluster_de_center[it], track_cluster_x_center[it], track_cluster_y_center[it], track_cluster_z_center[it], track_cluster_row_center[it]
     );
   }
+
   void resizeTrackCombi(Int_t it, Int_t n) {
     dst::resize_all(n,
-      combi_id[it], closeDistTpc[it], vtxTpc[it], vtyTpc[it], vtzTpc[it], mom_vtx[it], mom_vty[it], mom_vtz[it]
+      combi_id[it], closeDistTpc[it], 
+      vtxTpc[it], vtyTpc[it], vtzTpc[it], 
+      mom_vtx[it], mom_vty[it], mom_vtz[it]
     );
   }
 
@@ -380,49 +395,42 @@ namespace
 #endif
 
   //_____________________________________________________________________________  
-  void FillHelixPairKinematics(Int_t it, Int_t nt_tpc, TPCLocalTrackHelix* helix_track,
-                               Double_t vertex_scan_range, TPCAnalyzer& tpc_ana)
+  void FillHelixPairKinematics(Int_t it, Int_t nt_tpc, TPCAnalyzer& tpc_ana)
   {
-    Double_t helix_par_base[5] = {
-      helix_track->Getcx(), helix_track->Getcy(),
-      helix_track->Getz0(), helix_track->Getr(), helix_track->Getdz()
-    };
-    Double_t scan_theta_base = vertex_scan_range / helix_par_base[3];
-    Double_t range_theta_base[2] = {
-      helix_track->GetMint() - scan_theta_base,
-      helix_track->GetMaxt() + scan_theta_base
-    };
+    const Double_t qnan = TMath::QuietNaN();
+    for (Int_t it_pair = 0; it_pair < nt_tpc; ++it_pair) {
+      event.combi_id[it][it_pair] = static_cast<Double_t>(it_pair);
+      event.closeDistTpc[it][it_pair] = qnan;
+      event.vtxTpc[it][it_pair] = qnan;
+      event.vtyTpc[it][it_pair] = qnan;
+      event.vtzTpc[it][it_pair] = qnan;
+      event.mom_vtx[it][it_pair] = qnan;
+      event.mom_vty[it][it_pair] = qnan;
+      event.mom_vtz[it][it_pair] = qnan;
+    }
 
     for (Int_t it_pair=0; it_pair<nt_tpc; ++it_pair) {
       if (it_pair==it) continue;
-      TPCLocalTrackHelix* track_pair = tpc_ana.GetTrackTPCHelix(it_pair);
-      if (!track_pair) continue;
+      TPCVertex* vertex = tpc_ana.FindVertexTPC(it, it_pair);
+      if (!vertex || !vertex->IsCalculated())
+        continue;
 
-      Double_t helix_par_pair[5] = {
-        track_pair->Getcx(), track_pair->Getcy(),
-        track_pair->Getz0(), track_pair->Getr(), track_pair->Getdz()
-      };
-      Double_t scan_theta_pair = vertex_scan_range / helix_par_pair[3];
-      Double_t range_theta_pair[2] = {
-        track_pair->GetMint() - scan_theta_pair,
-        track_pair->GetMaxt() + scan_theta_pair
-      };
+      Int_t track_index = -1;
+      for (Int_t i = 0; i < vertex->GetNTracks(); ++i) {
+        if (vertex->GetTrackId(i) == it) {
+          track_index = i;
+          break;
+        }
+      }
+      if (track_index < 0)
+        continue;
 
-      Double_t close_dist_tpc = 0.0, t1 = 0.0, t2 = 0.0;
-      TVector3 vertex = Kinematics::VertexPointHelix(
-        helix_par_base, helix_par_pair,
-        range_theta_base[0], range_theta_base[1],
-        range_theta_pair[0], range_theta_pair[1],
-        t1, t2, close_dist_tpc
-      );
-
-      event.combi_id[it][it_pair] = static_cast<Double_t>(it_pair);
-      event.closeDistTpc[it][it_pair] = close_dist_tpc;
-      event.vtxTpc[it][it_pair] = vertex.x();
-      event.vtyTpc[it][it_pair] = vertex.y();
-      event.vtzTpc[it][it_pair] = vertex.z();
-
-      TVector3 mom_vtx_vec = helix_track->CalcHelixMom(helix_par_base, t1);
+      const TVector3 vertex_pos = vertex->GetVertex();
+      const TVector3 mom_vtx_vec = vertex->GetTrackMom(track_index);
+      event.closeDistTpc[it][it_pair] = vertex->GetClosestDist();
+      event.vtxTpc[it][it_pair] = vertex_pos.x();
+      event.vtyTpc[it][it_pair] = vertex_pos.y();
+      event.vtzTpc[it][it_pair] = vertex_pos.z();
       event.mom_vtx[it][it_pair] = mom_vtx_vec.x();
       event.mom_vty[it][it_pair] = mom_vtx_vec.y();
       event.mom_vtz[it][it_pair] = mom_vtx_vec.z();
@@ -431,7 +439,7 @@ namespace
 
   //_____________________________________________________________________________  
   void ProcessOneHelixTrack(Int_t it, Int_t nt_tpc, TPCLocalTrackHelix* helix_track,
-                            TPCAnalyzer& tpc_ana, Double_t vertex_scan_range,
+                            TPCAnalyzer& tpc_ana,
                             TPCEventAnalyzer& event_ana)
   {
     if (!helix_track) return;
@@ -464,7 +472,7 @@ namespace
     event.resizeTrackCombi(it, nt_tpc);
 
     // Pair-wise helix kinematics (closest approach / vertex / momentum at vertex).
-    FillHelixPairKinematics(it, nt_tpc, helix_track, vertex_scan_range, tpc_ana);
+    FillHelixPairKinematics(it, nt_tpc, tpc_ana);
 
     // Per-hit observables and cluster-linked quantities.
 #if TruncatedMean
@@ -577,6 +585,43 @@ namespace
     if (event.pid[it] & 0x1) HF2("PID_dEdx_vs_Mom_Pi", event.mom0[it], event.dEdx[it]);
     if (event.pid[it] & 0x2) HF2("PID_dEdx_vs_Mom_K",  event.mom0[it], event.dEdx[it]);
     if (event.pid[it] & 0x4) HF2("PID_dEdx_vs_Mom_Proton", event.mom0[it], event.dEdx[it]);
+  }
+
+  //_____________________________________________________________________________
+  void CopyLambdaFromVertices(const TPCAnalyzer& tpc_ana)
+  {
+    const Int_t n_vertices = tpc_ana.GetNVerticesTPC();
+    for (Int_t iv = 0; iv < n_vertices; ++iv) {
+      const TPCVertex* vertex = tpc_ana.GetVertexTPC(iv);
+      if (!vertex)
+        continue;
+      const Int_t n_cand = vertex->GetNRecoCandidates();
+      for (Int_t ic = 0; ic < n_cand; ++ic) {
+        const TPCRecoCandidate& cand = vertex->GetRecoCandidate(ic);
+        if (cand.GetMotherPdg() != kLambda0)
+          continue;
+        const TVector3 vtx = cand.GetVertex();
+        const TVector3 mom = cand.GetMomentum();
+        const TVector3 target_to_vtx = vtx - TVector3(0., 0., -tpc::Z_TARGET);
+        const Double_t target_to_vtx_dot_mom =
+          (target_to_vtx.Mag() > 0.0 && mom.Mag() > 0.0)
+            ? target_to_vtx.Dot(mom)/(target_to_vtx.Mag()*mom.Mag())
+            : TMath::QuietNaN();
+
+        event.lambda_mass.push_back(cand.GetMass());
+        event.lambda_close_dist.push_back(cand.GetClosestDist());
+        event.lambda_vtx_x.push_back(vtx.X());
+        event.lambda_vtx_y.push_back(vtx.Y());
+        event.lambda_vtx_z.push_back(vtx.Z());
+        event.lambda_mom_x.push_back(mom.X());
+        event.lambda_mom_y.push_back(mom.Y());
+        event.lambda_mom_z.push_back(mom.Z());
+        event.lambda_target_to_vtx_x.push_back(target_to_vtx.X());
+        event.lambda_target_to_vtx_y.push_back(target_to_vtx.Y());
+        event.lambda_target_to_vtx_z.push_back(target_to_vtx.Z());
+        event.lambda_target_to_vtx_dot_mom.push_back(target_to_vtx_dot_mom);
+      }
+    }
   }
 
 } // namespace
@@ -705,7 +750,6 @@ dst::DstRead(Int_t ievent)
   HF1("Status", event.status++);
 #endif
 
-  static const Double_t vertex_scan_range = gUser.GetParameter("VertexScanRange"); // mm
   event.ntTpc = tpc_ana.GetNTracksTPCHelix();
   HF1("NTracks_TPC", event.ntTpc);
   if (event.ntTpc == 0)
@@ -714,24 +758,15 @@ dst::DstRead(Int_t ievent)
 
   for (Int_t it = 0; it < event.ntTpc; ++it) {
     TPCLocalTrackHelix* helix_track = tpc_ana.GetTrackTPCHelix(it);
-    ProcessOneHelixTrack(it, event.ntTpc, helix_track, tpc_ana, vertex_scan_range, event_ana);
+    ProcessOneHelixTrack(it, event.ntTpc, helix_track, tpc_ana, event_ana);
   }
   HF1("Status", event.status++);
 
 #if EnableReconstructLambda
- // TODO: Refactor this signature; current argument list is too long
-  event_ana.FillHelixLambdaMassHist(
-    event.ntTpc,
-    event.charge,
-    event.mom_vtx, event.mom_vty, event.mom_vtz,
-    event.vtxTpc, event.vtyTpc, event.vtzTpc,
-    event.closeDistTpc,
-    event.lambda_mass, event.lambda_close_dist,
-    event.lambda_vtx_x, event.lambda_vtx_y, event.lambda_vtx_z,
-    event.lambda_mom_x, event.lambda_mom_y, event.lambda_mom_z,
-    event.lambda_target_to_vtx_x, event.lambda_target_to_vtx_y, event.lambda_target_to_vtx_z,
-    event.lambda_target_to_vtx_dot_mom
-  );
+  CopyLambdaFromVertices(tpc_ana);
+  for (Int_t iv = 0; iv < tpc_ana.GetNVerticesTPC(); ++iv) {
+    event_ana.FillHelixLambdaMassHist(tpc_ana.GetVertexTPC(iv));
+  }
   HF1("Status", event.status++);
 #endif
   
