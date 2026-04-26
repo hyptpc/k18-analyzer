@@ -863,7 +863,8 @@ static inline Bool_t HelixFitInvertCharge(){
 
   Int_t Err;
   Double_t bnd1, bnd2;
-  Int_t ndf; Int_t gMinuitStatus = 0;
+  Int_t ndf;
+  gMinuitStatus = 0;
 
   minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
   minuit->mnimpr();
@@ -893,6 +894,7 @@ static inline Bool_t HelixFitInvertCharge(){
 
   Int_t itry=0;
   Double_t good_chisqr = 1.5;
+  (void)good_chisqr;
   Bool_t status = false;
   while(!status){
     if(itry>MaxTryMinuit) break;
@@ -1056,6 +1058,7 @@ static inline Bool_t HelixFitwVertex(){
       gPar[4] = par[4];
       gMinuitStatus = icstat;
       gBadHits = NBadFromNdf(gNumOfHits, ndf, 2);
+      status = true;
     }
     arglist[0] = arglist[0]*5.;
     arglist[1] = arglist[1]*0.1;
@@ -1068,7 +1071,7 @@ static inline Bool_t HelixFitwVertex(){
   if(gMinuitStatus==0) std::cout<<"HelixFit() icstat==0"<<std::endl;
 #endif
 
-  return true;
+  return status;
 }
 
 //Only for momentum constraint fitting

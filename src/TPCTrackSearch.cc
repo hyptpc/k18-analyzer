@@ -1030,7 +1030,7 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
 		   std::vector<TPCLocalTrack*>& TrackCont,
 		   Int_t MinNumOfHits /*=8*/)
 {
-  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+  // static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
   static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
 
   XZhough_x.clear();
@@ -1127,7 +1127,7 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
 			std::vector<TPCLocalTrackHelix*>& TrackCont,
 			Int_t MinNumOfHits /*=8*/)
 {
-  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+  // static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
 
   // HoughTransform binning
   static const auto MaxHoughWindow = gUser.GetParameter("MaxHoughWindow");
@@ -1813,6 +1813,7 @@ ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
   static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
 
   Int_t ntracks = TrackCont.size();
+  (void)ntracks; // reserved for future loop/consistency checks
 
   std::vector<std::pair<Int_t, Int_t>> candidate_pairs;
   Double_t window = 20.; //selection cut : cluster <-> track dist < window
@@ -1844,7 +1845,7 @@ ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
          (theta2 < track2 -> GetMint() - 10./track2 -> Getr() ||
           theta2 > track2 -> GetMaxt() + 10./track2 -> Getr())) continue;
 
-      Int_t closeid1;
+      Int_t closeid1 = 0;
       Double_t minresi1 = 9999.;
       std::vector<Int_t> close_ids1;
       TVector3 vtx1 = vertex -> GetTrackPos(0);
@@ -1859,7 +1860,7 @@ ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
         }
       }
 
-      Int_t closeid2;
+      Int_t closeid2 = 0;
       Double_t minresi2 = 9999.;
       std::vector<Int_t> close_ids2;
       TVector3 vtx2 = vertex -> GetTrackPos(1);
@@ -2178,10 +2179,6 @@ TestingCharge(std::vector<T*>& TrackCont,
       InvertedTrack -> DoFitExclusive();
       InvertedTrack -> CalculateExclusive();
     }
-
-    Int_t pid = track -> GetPid();
-    Bool_t proton = ((pid&4)==4 && (pid&1)!=1);
-    Bool_t pion   = ((pid&4)!=4 && (pid&1)==1);
 
     Bool_t invert = false;
     if(!invert && track -> GetChiSquare() > InvertedTrack -> GetChiSquare()) invert = true;

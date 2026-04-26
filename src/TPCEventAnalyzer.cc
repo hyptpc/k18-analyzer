@@ -58,6 +58,8 @@ TPCEventAnalyzer::TPCRawHit(const TPCRawData& TPCrawData)
   static const Int_t NumOfTimeBucket = gUser.GetParameter("NumOfTimeBucket");
   static const Int_t MinTimeBucket = gUser.GetParameter("TimeBucketTPC", 0);
   static const Int_t MaxTimeBucket = gUser.GetParameter("TimeBucketTPC", 1);
+  (void)MinTimeBucket;
+  (void)MaxTimeBucket;
   Int_t npadTpc_raw = 0;
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
     auto hc = TPCrawData.GetTPCRawHits(layer);
