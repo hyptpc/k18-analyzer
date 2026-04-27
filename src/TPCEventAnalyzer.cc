@@ -79,6 +79,19 @@ TPCEventAnalyzer::TPCRawHit(const TPCRawData& TPCrawData)
       HF1("TPC_FADC_RMS", rms);
       HF1("TPC_FADC_LocMax", loc_max);
       HF1("TPC_FADC_Min", min_adc);
+
+      //Check Threshold
+      double min_max = HG2Poly("TPC_Raw_Max_Poly",padid+1);
+      if(min_max > max_adc && max_adc < 2000){
+	HF2Poly("TPC_Raw_Max_Poly",padid+1,max_adc);
+	std::cout<<max_adc<<std::endl;
+      }
+      double fmin_adc = HG2Poly("TPC_Raw_ADC_Poly",padid+1);
+      if(fmin_adc > (max_adc - mean) && (max_adc - mean) < 2000)
+	HF2Poly("TPC_Raw_ADC_Poly",padid+1,max_adc - mean);
+      double min_mean = HG2Poly("TPC_Raw_Mean_Poly",padid+1);
+      if(min_mean > mean && mean < 2000)
+	HF2Poly("TPC_Raw_Mean_Poly",padid+1,mean);
       
       auto gate_open_max_adc = rhit->MaxAdc(0,50);
       auto gate_close_max_adc = rhit->MaxAdc(50,140);
@@ -170,6 +183,8 @@ TPCEventAnalyzer::TPCCorHit(const TPCRawData &TPCrawData){
       auto rms     = rhit->RMS(0, NumOfTimeBucket);
       auto loc_max = rhit->LocMax(0, NumOfTimeBucket);
       auto pars    = rhit->GetParameters();
+      auto row     = rhit->RowId();
+      auto padid   = tpc::GetPadId(layer,row);
 
       HF1("TPC_FADC_Cor_Mean", mean);
       HF1("TPC_FADC_Cor_Max", max_adc);
@@ -179,6 +194,17 @@ TPCEventAnalyzer::TPCCorHit(const TPCRawData &TPCrawData){
       HF1("TPC_FADC_Baseline_p0", pars.at(0));
       HF1("TPC_FADC_Baseline_p1", pars.at(1));
       HF1("TPC_FADC_Baseline_p2", pars.at(2));
+
+      //Check Threshold
+      double min_max = HG2Poly("TPC_Cor_Max_Poly",padid+1); 
+      if(min_max > max_adc && max_adc < 2000)
+	HF2Poly("TPC_Cor_Max_Poly",padid+1,max_adc);
+      double fmin_adc = HG2Poly("TPC_Cor_ADC_Poly",padid+1);
+      if(fmin_adc > (max_adc - mean) && (max_adc - mean) <2000)
+	HF2Poly("TPC_Cor_ADC_Poly",padid+1,max_adc - mean);
+      double min_mean = HG2Poly("TPC_Cor_Mean_Poly",padid+1);
+      if(min_mean > mean && mean < 2000)
+	HF2Poly("TPC_Cor_Mean_Poly",padid+1,mean);
 
       // 2D FADC waveform after correction
       auto fadc = rhit->Fadc();

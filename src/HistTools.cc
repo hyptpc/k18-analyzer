@@ -807,6 +807,12 @@ BuildTPCHit()
   HB1("TPC_Clock_TDC",  200000, 0.,    2000000.);
   HB1("TPC_Clock_Time", 20000,  -100., 100.);
 
+  HB2Poly("TPC_Raw_Max_Poly", TPC_EVENT_DISPLAY_BINS);
+  HB2Poly("TPC_Raw_ADC_Poly", TPC_EVENT_DISPLAY_BINS);
+  HB2Poly("TPC_Raw_Mean_Poly",TPC_EVENT_DISPLAY_BINS);
+  HB2Poly("TPC_Cor_Max_Poly", TPC_EVENT_DISPLAY_BINS);
+  HB2Poly("TPC_Cor_ADC_Poly", TPC_EVENT_DISPLAY_BINS);
+  HB2Poly("TPC_Cor_Mean_Poly",TPC_EVENT_DISPLAY_BINS);
   HB2Poly("TPC_HitPat_Noise",    TPC_EVENT_DISPLAY_BINS);
   HB2Poly("TPC_HitPat_Baseline", TPC_EVENT_DISPLAY_BINS);
   tpc::InitializeHistograms("TPC_HitPat_Noise");
