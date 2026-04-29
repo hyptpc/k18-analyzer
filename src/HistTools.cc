@@ -81,7 +81,7 @@ const Double_t TPC_BINS_EXT_TGT_SLOPE_V[3] = {400., -0.05, 0.05};
 const Double_t TPC_BINS_CLOCK[3]       = {480., -60.0, 60.0};
 
 // --- BuildTPCTracking: cluster & fitter diagnostics (promoted from function-local) ---
-const Double_t TPC_BINS_DE[3]          = {1000.,  0., 2000.};
+const Double_t TPC_BINS_DE[3]          = {400.,   0.,  800.};
 const Double_t TPC_BINS_CL_SIZE[3]     = {25.,    0.,   25.};
 const Double_t TPC_BINS_DIFF_PAD[3]    = {60.,  -15.0,  15.0};
 const Double_t TPC_BINS_HOUGH[3]       = {500.,   0.,   50.};

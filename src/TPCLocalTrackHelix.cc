@@ -186,21 +186,18 @@ namespace
       "2.0*[2]*([0]*TMath::Cos(x) + [1]*TMath::Sin(x)) - [3]*[3], 2.)",
       -HELIX_THETA_HALF_W, HELIX_THETA_HALF_W);
 
-  // TF1::SetNpx: same sampling density per rad as legacy 1440 on default [-10pi, 10pi]
-  const Double_t HELIX_THETA_REF_NPX = 1440.;
+  // SetNpx scales with |Δθ|; HELIX_THETA_SCAN_STEP is the θ step in radians.
+  static constexpr Double_t HELIX_THETA_SCAN_STEP = 1. * TMath::DegToRad();
   static constexpr Int_t HELIX_THETA_NPX_MIN = 64;
   static constexpr Int_t HELIX_THETA_NPX_MAX = 4096;
   static inline Int_t HelixThetaScanNpx(Double_t window_low, Double_t window_up)
   {
-    const Double_t refSpan = 2. * HELIX_THETA_HALF_W;
+    const Double_t ref_span = 2. * HELIX_THETA_HALF_W;
     Double_t span = window_up - window_low;
-    if (span <= 0. || !TMath::Finite(span)) span = refSpan;
-    Double_t nFloat = HELIX_THETA_REF_NPX * span / refSpan + 0.5;
-    if (nFloat > static_cast<Double_t>(HELIX_THETA_NPX_MAX))
-      nFloat = static_cast<Double_t>(HELIX_THETA_NPX_MAX);
-    Int_t n = static_cast<Int_t>(nFloat);
-    if (n < HELIX_THETA_NPX_MIN) n = HELIX_THETA_NPX_MIN;
+    if (span <= 0. || !TMath::Finite(span)) span = ref_span;
+    Int_t n = TMath::Nint(span / HELIX_THETA_SCAN_STEP);
     if (n > HELIX_THETA_NPX_MAX) n = HELIX_THETA_NPX_MAX;
+    if (n < HELIX_THETA_NPX_MIN) n = HELIX_THETA_NPX_MIN;
     return n;
   }
 

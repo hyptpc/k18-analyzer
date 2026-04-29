@@ -565,6 +565,16 @@ TPCEventAnalyzer::FillHelixHitHist(TPCLTrackHit* hit, Bool_t fill_cluster_detail
   TPCHit* center_hit = cl->GetCenterHit();
   const Int_t center_row = center_hit ? center_hit->GetRow() : -1;
 
+  if (center_row >= 0) {
+    HF2("TPCTrk_Row_vs_Layer", layer, center_row);
+    HF1(Form("TPCHit_HitPat_Layer%02d", layer), center_row);
+    const Int_t pad_id = tpc::GetPadId(layer, center_row);
+    if (pad_id >= 0) {
+      const Double_t bin_cont = HG2Poly("TPCTrk_HitPat", pad_id + 1);
+      HF2Poly("TPCTrk_HitPat", pad_id + 1, bin_cont + 1.);
+    }
+  }
+
   HF1("TPCCl_Size", cl_size);
   HF1(Form("TPCCl_Size_Layer%02d", layer), cl_size);
   HF1("TPCCl_dE", cl_de);
