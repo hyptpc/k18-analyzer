@@ -1144,4 +1144,22 @@ BuildTPCHelixLambda()
   HB1("Lambda_TargetToVtxDotMom;cos#theta((TargetCenter#rightarrowVertex),P_{#Lambda});Counts", 200, -1.0, 1.0);
 }
 
+//_____________________________________________________________________________
+void
+BuildTPCHelixK0Short()
+{
+  HB1("K0_Mass;M(#pi^{+}#pi^{-}) [GeV/c^{2}];Counts", 500, 0.35, 0.65);
+  HB1("K0_CloseDist;Closest distance [mm];Counts", 500, 0.0, 50.0);
+  HB1("K0_VtxX;Vertex X [mm];Counts", TPC_BINS_POS_X);
+  HB1("K0_VtxY;Vertex Y [mm];Counts", TPC_BINS_POS_Y);
+  HB1("K0_VtxZ;Vertex Z [mm];Counts", TPC_BINS_POS_X);
+  HB1("K0_MomX;Momentum X [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("K0_MomY;Momentum Y [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("K0_MomZ;Momentum Z [GeV/c];Counts", TPC_BINS_SIGNED_P);
+  HB1("K0_TargetToVtxX;TargetCenter#rightarrowVertex X [mm];Counts", TPC_BINS_POS_X);
+  HB1("K0_TargetToVtxY;TargetCenter#rightarrowVertex Y [mm];Counts", TPC_BINS_POS_Y);
+  HB1("K0_TargetToVtxZ;TargetCenter#rightarrowVertex Z [mm];Counts", TPC_BINS_POS_X);
+  HB1("K0_TargetToVtxDotMom;cos#theta((TargetCenter#rightarrowVertex),P_{K0});Counts", 200, -1.0, 1.0);
+}
+
 }

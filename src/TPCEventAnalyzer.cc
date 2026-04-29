@@ -649,7 +649,42 @@ TPCEventAnalyzer::FillHelixLambdaMassHist(const TPCVertex* vertex)
     HF1("Lambda_TargetToVtxY", target_to_vtx.y());
     HF1("Lambda_TargetToVtxZ", target_to_vtx.z());
     HF1("Lambda_TargetToVtxDotMom", target_to_vtx_dot_mom);
+  }
+}
 
+//_____________________________________________________________________________
+void
+TPCEventAnalyzer::FillHelixK0ShortMassHist(const TPCVertex* vertex)
+{
+  if (!vertex)
+    return;
+  const Int_t n_cand = vertex->GetNRecoCandidates();
+  for (Int_t ic = 0; ic < n_cand; ++ic) {
+    const TPCRecoCandidate& cand = vertex->GetRecoCandidate(ic);
+    if (cand.GetMotherPdg() != kK0Short)
+      continue;
+    const Double_t k0_mass_value = cand.GetMass();
+    const Double_t closest_dist = cand.GetClosestDist();
+    const ThreeVector k0_vtx(cand.GetVertex().X(), cand.GetVertex().Y(), cand.GetVertex().Z());
+    const ThreeVector k0_mom(cand.GetMomentum().X(), cand.GetMomentum().Y(), cand.GetMomentum().Z());
+    const ThreeVector target_to_vtx = k0_vtx - ThreeVector(0., 0., -tpc::Z_TARGET);
+    const Double_t target_to_vtx_dot_mom =
+      (target_to_vtx.Mag() > 0.0 && k0_mom.Mag() > 0.0)
+        ? target_to_vtx.Dot(k0_mom)/(target_to_vtx.Mag()*k0_mom.Mag())
+        : TMath::QuietNaN();
+    HF1("K0_Mass", k0_mass_value);
+
+    HF1("K0_CloseDist", closest_dist);
+    HF1("K0_VtxX", k0_vtx.x());
+    HF1("K0_VtxY", k0_vtx.y());
+    HF1("K0_VtxZ", k0_vtx.z());
+    HF1("K0_MomX", k0_mom.x());
+    HF1("K0_MomY", k0_mom.y());
+    HF1("K0_MomZ", k0_mom.z());
+    HF1("K0_TargetToVtxX", target_to_vtx.x());
+    HF1("K0_TargetToVtxY", target_to_vtx.y());
+    HF1("K0_TargetToVtxZ", target_to_vtx.z());
+    HF1("K0_TargetToVtxDotMom", target_to_vtx_dot_mom);
   }
 }
 

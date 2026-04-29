@@ -92,6 +92,7 @@ public:
   );
   void FillHelixHitHist(TPCLTrackHit* hit, Bool_t fill_cluster_detail, Int_t track_pid);
   void FillHelixLambdaMassHist(const TPCVertex* vertex);
+  void FillHelixK0ShortMassHist(const TPCVertex* vertex);
 
 private:
   inline static Bool_t m_dst_calib_flag = false;

@@ -37,6 +37,7 @@
 #define TruncatedMean 0
 #define CalibHist 0 // enable/disable per-pad calibration histograms
 #define EnableReconstructLambda 1
+#define EnableReconstructK0 1
 
 namespace
 {
@@ -189,6 +190,21 @@ struct Event
   std::vector<Double_t> lambda_target_to_vtx_z;
   std::vector<Double_t> lambda_target_to_vtx_dot_mom;
 #endif
+
+#if EnableReconstructK0
+  std::vector<Double_t> k0_mass;
+  std::vector<Double_t> k0_close_dist;
+  std::vector<Double_t> k0_vtx_x;
+  std::vector<Double_t> k0_vtx_y;
+  std::vector<Double_t> k0_vtx_z;
+  std::vector<Double_t> k0_mom_x;
+  std::vector<Double_t> k0_mom_y;
+  std::vector<Double_t> k0_mom_z;
+  std::vector<Double_t> k0_target_to_vtx_x;
+  std::vector<Double_t> k0_target_to_vtx_y;
+  std::vector<Double_t> k0_target_to_vtx_z;
+  std::vector<Double_t> k0_target_to_vtx_dot_mom;
+#endif
   
   void clearBasicInfo() {
     runnum   = 0;
@@ -249,6 +265,18 @@ struct Event
     );
   }
   #endif
+
+  #if EnableReconstructK0
+  void clearReconstructK0() {
+    dst::clear_all(
+      k0_mass, k0_close_dist,
+      k0_vtx_x, k0_vtx_y, k0_vtx_z,
+      k0_mom_x, k0_mom_y, k0_mom_z,
+      k0_target_to_vtx_x, k0_target_to_vtx_y, k0_target_to_vtx_z,
+      k0_target_to_vtx_dot_mom
+    );
+  }
+  #endif
   
   void clear()
   {
@@ -262,6 +290,9 @@ struct Event
     clearHelixTracks();
 #if EnableReconstructLambda
     clearReconstructLambda();
+#endif
+#if EnableReconstructK0
+    clearReconstructK0();
 #endif
   }
 
@@ -624,6 +655,43 @@ namespace
     }
   }
 
+  //_____________________________________________________________________________
+  void CopyK0FromVertices(const TPCAnalyzer& tpc_ana)
+  {
+    const Int_t n_vertices = tpc_ana.GetNVerticesTPC();
+    for (Int_t iv = 0; iv < n_vertices; ++iv) {
+      const TPCVertex* vertex = tpc_ana.GetVertexTPC(iv);
+      if (!vertex)
+        continue;
+      const Int_t n_cand = vertex->GetNRecoCandidates();
+      for (Int_t ic = 0; ic < n_cand; ++ic) {
+        const TPCRecoCandidate& cand = vertex->GetRecoCandidate(ic);
+        if (cand.GetMotherPdg() != kK0Short)
+          continue;
+        const TVector3 vtx = cand.GetVertex();
+        const TVector3 mom = cand.GetMomentum();
+        const TVector3 target_to_vtx = vtx - TVector3(0., 0., -tpc::Z_TARGET);
+        const Double_t target_to_vtx_dot_mom =
+          (target_to_vtx.Mag() > 0.0 && mom.Mag() > 0.0)
+            ? target_to_vtx.Dot(mom)/(target_to_vtx.Mag()*mom.Mag())
+            : TMath::QuietNaN();
+
+        event.k0_mass.push_back(cand.GetMass());
+        event.k0_close_dist.push_back(cand.GetClosestDist());
+        event.k0_vtx_x.push_back(vtx.X());
+        event.k0_vtx_y.push_back(vtx.Y());
+        event.k0_vtx_z.push_back(vtx.Z());
+        event.k0_mom_x.push_back(mom.X());
+        event.k0_mom_y.push_back(mom.Y());
+        event.k0_mom_z.push_back(mom.Z());
+        event.k0_target_to_vtx_x.push_back(target_to_vtx.X());
+        event.k0_target_to_vtx_y.push_back(target_to_vtx.Y());
+        event.k0_target_to_vtx_z.push_back(target_to_vtx.Z());
+        event.k0_target_to_vtx_dot_mom.push_back(target_to_vtx_dot_mom);
+      }
+    }
+  }
+
 } // namespace
 
 //_____________________________________________________________________________
@@ -762,10 +830,20 @@ dst::DstRead(Int_t ievent)
   }
   HF1("Status", event.status++);
 
+#if EnableReconstructLambda || EnableReconstructK0
 #if EnableReconstructLambda
   CopyLambdaFromVertices(tpc_ana);
+#endif
+#if EnableReconstructK0
+  CopyK0FromVertices(tpc_ana);
+#endif
   for (Int_t iv = 0; iv < tpc_ana.GetNVerticesTPC(); ++iv) {
+#if EnableReconstructLambda
     event_ana.FillHelixLambdaMassHist(tpc_ana.GetVertexTPC(iv));
+#endif
+#if EnableReconstructK0
+    event_ana.FillHelixK0ShortMassHist(tpc_ana.GetVertexTPC(iv));
+#endif
   }
   HF1("Status", event.status++);
 #endif
@@ -834,6 +912,9 @@ ConfMan::InitializeHistograms()
   hist::BuildTPCHelixTracking(TPCEventAnalyzer::GetDstCalibFlag());
 #if EnableReconstructLambda
   hist::BuildTPCHelixLambda();
+#endif
+#if EnableReconstructK0
+  hist::BuildTPCHelixK0Short();
 #endif
 
   tree = new TTree("tpc", "tree of DstTPCHelixTracking");
@@ -958,6 +1039,21 @@ ConfMan::InitializeHistograms()
   tree->Branch("lambda_target_to_vtx_y", &event.lambda_target_to_vtx_y);
   tree->Branch("lambda_target_to_vtx_z", &event.lambda_target_to_vtx_z);
   tree->Branch("lambda_target_to_vtx_dot_mom", &event.lambda_target_to_vtx_dot_mom);
+#endif
+
+#if EnableReconstructK0
+  tree->Branch("k0_mass", &event.k0_mass);
+  tree->Branch("k0_close_dist", &event.k0_close_dist);
+  tree->Branch("k0_vtx_x", &event.k0_vtx_x);
+  tree->Branch("k0_vtx_y", &event.k0_vtx_y);
+  tree->Branch("k0_vtx_z", &event.k0_vtx_z);
+  tree->Branch("k0_mom_x", &event.k0_mom_x);
+  tree->Branch("k0_mom_y", &event.k0_mom_y);
+  tree->Branch("k0_mom_z", &event.k0_mom_z);
+  tree->Branch("k0_target_to_vtx_x", &event.k0_target_to_vtx_x);
+  tree->Branch("k0_target_to_vtx_y", &event.k0_target_to_vtx_y);
+  tree->Branch("k0_target_to_vtx_z", &event.k0_target_to_vtx_z);
+  tree->Branch("k0_target_to_vtx_dot_mom", &event.k0_target_to_vtx_dot_mom);
 #endif
 
   return true;
