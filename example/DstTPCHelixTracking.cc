@@ -618,6 +618,7 @@ namespace
     if (event.pid[it] & 0x4) HF2("PID_dEdx_vs_Mom_Proton", event.mom0[it], event.dEdx[it]);
   }
 
+#if EnableReconstructLambda
   //_____________________________________________________________________________
   void CopyLambdaFromVertices(const TPCAnalyzer& tpc_ana)
   {
@@ -654,7 +655,8 @@ namespace
       }
     }
   }
-
+#endif
+#if EnableReconstructK0
   //_____________________________________________________________________________
   void CopyK0FromVertices(const TPCAnalyzer& tpc_ana)
   {
@@ -691,6 +693,7 @@ namespace
       }
     }
   }
+#endif
 
 } // namespace
 
