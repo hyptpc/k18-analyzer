@@ -13,6 +13,7 @@
 
 #include <TMath.h>
 #include <TSpectrum.h>
+#include <spdlog/spdlog.h>
 
 #include <std_ostream.hh>
 
@@ -105,11 +106,11 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
   : DCHit(layer, mrow),
     m_rhit(),
     m_layer(layer),
-    m_row(TMath::Nint(mrow)),
-    m_padtheta(tpc::GetTheta(m_layer, mrow)*TMath::DegToRad()),
+    m_row(-1),
+    m_padtheta(TMath::QuietNaN()),
     m_padlength(tpc::padParameter[m_layer][tpc::kLength]),
-    m_mrow(mrow),
-    m_pad(tpc::GetPadId(layer, m_row)),
+    m_mrow(TMath::QuietNaN()),
+    m_pad(-1),
     m_pedestal(TMath::QuietNaN()),
     m_rms(TMath::QuietNaN()),
     m_de(),
@@ -118,7 +119,7 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
     m_cde(),
     m_ctime(), // [ns]
     m_drift_length(),
-    m_is_good(true),
+    m_is_good(false),
     m_is_calculated(false),
     m_hough_flag(0),
     m_houghY_num(),
@@ -128,6 +129,24 @@ TPCHit::TPCHit(Int_t layer, Double_t mrow)
 {
 
   debug::ObjectCounter::increase(ClassName());
+
+  Double_t resolved_mrow = TMath::QuietNaN();
+  Int_t resolved_row = -1;
+  if (tpc::TryResolveMRow(m_layer, mrow, resolved_mrow) &&
+      tpc::TryResolveRow(m_layer, mrow, resolved_row)) {
+    m_mrow     = resolved_mrow;
+    m_row      = resolved_row;
+    m_padtheta = tpc::GetTheta(m_layer, resolved_mrow)*TMath::DegToRad();
+    m_pad      = tpc::GetPadId(layer, resolved_row);
+    m_is_good  = true;
+  } else {
+    // Keep unresolved state here.
+    // TPCCluster intentionally creates mean-hit with NaN mrow and finalizes it in Calculate().
+    if (!std::isnan(mrow)) {
+      spdlog::warn("[TPCHit::TPCHit] invalid mrow={} for layer {}. Keeping NaN hit geometry.",
+                   mrow, m_layer);
+    }
+  }
 
   if(HSfield_Hall<0.1&&m_layer<10) m_res_param = ResParamInnerLayerHSOff;
   else if(HSfield_Hall<0.1&&m_layer>=10) m_res_param = ResParamOuterLayerHSOff;

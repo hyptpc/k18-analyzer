@@ -492,12 +492,14 @@ namespace
           global_pos_tpc.x(), global_pos_tpc.y(), y_bcout, cl_res
         );
 
-        const Int_t row_trk = (center_row >= 0) ? center_row : 0;
+        if (center_row < 0) {
+          continue;
+        }
         const Double_t ctime_trk = 0.0;
         ThreeVector local_trk(event.calpos_x[it][ih], event.calpos_y[it][ih], event.calpos_z[it][ih]);
         ThreeVector global_trk = gGeom.Local2GlobalPos("HypTPC", local_trk);
         const TVector3 local_pos_hit(event.hitpos_x[it][ih], event.hitpos_y[it][ih], event.hitpos_z[it][ih]);
-        event_ana.FillCoBoClockTime("TPCTrk", layer, row_trk, ctime_trk, local_pos_hit, global_trk.y());
+        event_ana.FillCoBoClockTime("TPCTrk", layer, center_row, ctime_trk, local_pos_hit, global_trk.y());
       }
     }
   }

@@ -17,6 +17,8 @@
 #include "TPCPositionCorrector.hh"
 #include "ThreeVector.hh"
 
+#define TPC_CLUSTER_WRAP_DEBUG 0
+
 namespace
 {
 const auto& gTPCPos = TPCPositionCorrector::GetInstance();
@@ -138,41 +140,57 @@ TPCCluster::Calculate()
   TVector2 xz_vector = xz_vectorHS + target_center;
   m_cluster_position.SetXYZ(xz_vector.X(), mean_y, xz_vector.Y());
   m_mean_row = tpc::GetMrow(m_layer, m_mean_theta*TMath::RadToDeg());
-    
-  // Clamp the rounded rowID to valid range before calling GetPadId
-  // This prevents TMath::Nint() from rounding to an out-of-bounds rowID
-  // For inner layers (0-9): circular structure, so wrap around
-  // For outer layers (10+): sector structure, so clamp to max_row - 1
-  Int_t row_id = TMath::Nint(m_mean_row);
-  const Bool_t isInnerLayer = (m_layer < 10);
-  if (row_id < 0) { // should not happen
+
+  const Double_t raw_mean_row = m_mean_row;
+  const Bool_t is_inner_layer = tpc::IsCircularLayer(m_layer);
+  Double_t resolved_mean_row = TMath::QuietNaN();
+  if (!tpc::TryResolveMRow(m_layer, raw_mean_row, resolved_mean_row)) {
+#if TPC_CLUSTER_WRAP_DEBUG
+    const Double_t n_div = tpc::padParameter[m_layer][tpc::kNumOfDivision];
+    std::cout << "\n"
+              << "[TPCCluster::WrapDebug][reject m_mean_row]\n"
+              << "   layer       = " << m_layer << "\n"
+              << "   n_pad       = " << max_row << "\n"
+              << "   n_div       = " << n_div << "\n"
+              << "   phi_deg     = " << m_mean_theta*TMath::RadToDeg() << "\n"
+              << "   m_row_raw   = " << raw_mean_row << "\n"
+              << "   weighted_xz = (" << xz_vectorHS.X() << ", " << xz_vectorHS.Y() << ")\n"
+              << "   cluster_de  = " << m_cluster_de << "\n"
+              << "   size        = " << m_hit_array.size()
+              << std::endl;
+    Int_t printed = 0;
+    for (const auto& hit : m_hit_array) {
+      if (!hit) continue;
+      const auto& pos = hit->GetPosition();
+      const Int_t hit_padid = tpc::GetPadId(m_layer, hit->GetRow());
+      const TVector3 nominal_pos = tpc::GetPosition(hit_padid);
+      const Double_t hit_phi = (TVector2(pos.X(), pos.Z()) - target_center).Phi()*TMath::RadToDeg();
+      const Double_t nominal_phi = (TVector2(nominal_pos.X(), nominal_pos.Z()) - target_center).Phi()*TMath::RadToDeg();
+      std::cout << "   hit[" << printed << "]\n"
+                << "      row             = " << hit->GetRow() << "\n"
+                << "      cde             = " << hit->GetCDe() << "\n"
+                << "      pos             = (" << pos.X() << ", " << pos.Y() << ", " << pos.Z() << ")\n"
+                << "      phi_deg_corr    = " << hit_phi << "\n"
+                << "      phi_deg_nominal = " << nominal_phi
+                << std::endl;
+      ++printed;
+    }
+#endif
     spdlog::warn(
-      "[TPCCluster::Calculate] row_id < 0 (m_mean_row={}, row_id={}) for layer {}. Clamping to 0",
-      m_mean_row, row_id, m_layer);
-    row_id = 0;
-  } else if (row_id == max_row) {
-    if (isInnerLayer) {
-      // For inner layers (circular): wrap around to 0
-      row_id = 0;
-    } else {
-      // For outer layers (sector): clamp to max_row - 1
-      row_id = max_row - 1;
-    }
-  } else if (row_id > max_row) { // should not happen
-    if (isInnerLayer) {
-      // For inner layers (circular): wrap around
-      row_id = row_id % max_row;
-      spdlog::warn(
-        "[TPCCluster::Calculate] row_id > max_row (m_mean_row={}, row_id={} > {}) for inner layer {}. Wrapping to {}",
-        m_mean_row, TMath::Nint(m_mean_row), max_row, m_layer, row_id);
-    } else {
-      // For outer layers (sector): clamp to max_row - 1
-      spdlog::warn(
-        "[TPCCluster::Calculate] row_id > max_row (m_mean_row={}, row_id={} > {}) for outer layer {}. Clamping to {}",
-        m_mean_row, row_id, max_row, m_layer, max_row - 1);
-      row_id = max_row - 1;
-    }
+      "[TPCCluster::Calculate] invalid m_mean_row={} for layer {}. Rejecting cluster.",
+      raw_mean_row, m_layer);
+    return false;
   }
+
+  Int_t row_id = -1;
+  if (!tpc::TryResolveRow(m_layer, raw_mean_row, row_id)) {
+    spdlog::warn(
+      "[TPCCluster::Calculate] failed to resolve row from m_mean_row={} for layer {}. Rejecting cluster.",
+      raw_mean_row, m_layer);
+    return false;
+  }
+
+  m_mean_row = resolved_mean_row;
   m_mean_hit->SetPad(tpc::GetPadId(m_layer, row_id));
 
   m_mean_hit->AddHit(0., 0.);
@@ -182,18 +200,38 @@ TPCCluster::Calculate()
   m_mean_hit->SetDe(m_cluster_de);
   m_mean_hit->SetPosition(m_cluster_position);
   m_mean_hit->SetParentCluster(this);
+  m_mean_hit->SetIsGood(true);
 
   // center hit determination
   Double_t mean_phi0 = xz_vectorHS0.Phi();
   Double_t mean_row0 = tpc::GetMrow(m_layer, mean_phi0*TMath::RadToDeg());
+  if (!tpc::TryResolveMRow(m_layer, mean_row0, mean_row0)) {
+#if TPC_CLUSTER_WRAP_DEBUG
+    std::cout << "\n"
+              << "[TPCCluster::WrapDebug][reject center mean_row]\n"
+              << "   layer         = " << m_layer << "\n"
+              << "   n_pad         = " << max_row << "\n"
+              << "   mean_phi0_deg = " << mean_phi0*TMath::RadToDeg() << "\n"
+              << "   mean_row0_raw = " << tpc::GetMrow(m_layer, mean_phi0*TMath::RadToDeg()) << "\n"
+              << "   size          = " << m_hit_array.size()
+              << std::endl;
+#endif
+    spdlog::warn(
+      "[TPCCluster::Calculate] invalid center mean_row={} for layer {}. Rejecting cluster.",
+      mean_row0, m_layer);
+    return false;
+  }
 
-  Double_t rowdiff = 10; Int_t id = -1;
+  Double_t best_row_diff = 10; Int_t id = -1;
   for(Int_t i=0; i<m_hit_array.size(); ++i){
     if(!m_hit_array[i]) continue;
     Double_t row = static_cast<Double_t>(m_hit_array[i]->GetRow());
-    Double_t dif_row = std::min(std::abs(mean_row0-row), max_row-std::abs(mean_row0-row));
-    if(dif_row<rowdiff){
-      rowdiff = dif_row;
+    Double_t candidate_row_diff = std::abs(mean_row0-row);
+    if (is_inner_layer) {
+      candidate_row_diff = std::min(candidate_row_diff, max_row-candidate_row_diff);
+    }
+    if(candidate_row_diff<best_row_diff){
+      best_row_diff = candidate_row_diff;
       id = i;
     }
   }

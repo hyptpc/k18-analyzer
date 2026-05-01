@@ -260,6 +260,73 @@ inline void ValidateRow(Int_t layer, Int_t row, const char* func_name)
 }
 
 //_____________________________________________________________________________
+inline Bool_t IsCircularLayer(Int_t layer)
+{
+#ifdef PAD_HELPER_DEBUG
+  ValidateLayer(layer, __func__);
+#endif
+  // 0-origin layer index: 0-9 are full-ring layers.
+  return (layer < 10);
+}
+
+//_____________________________________________________________________________
+inline Bool_t TryResolveMRow(Int_t layer, Double_t m_row, Double_t& resolved_m_row)
+{
+#ifdef PAD_HELPER_DEBUG
+  ValidateLayer(layer, __func__);
+#endif
+  if (!std::isfinite(m_row)) return false;
+
+  const Double_t n_pad = padParameter[layer][kNumOfPad];
+  const Double_t n_div = padParameter[layer][kNumOfDivision];
+  constexpr Double_t kRoundHalfWidth = 0.5;
+  constexpr Double_t kMRowTolerance = 1.e-9;
+
+  if (IsCircularLayer(layer)) {
+    Double_t wrapped = std::fmod(m_row, n_pad);
+    if (wrapped < 0.) wrapped += n_pad;
+    resolved_m_row = wrapped;
+    return true;
+  }
+
+  // Sector layers: try equivalent one-turn-shifted representations, then
+  // accept only values that can round to a physical row index.
+  const Double_t min_m_row = -kRoundHalfWidth - kMRowTolerance;
+  const Double_t max_m_row = n_pad - kRoundHalfWidth + kMRowTolerance;
+  const Double_t candidates[3] = {m_row, m_row + n_div, m_row - n_div};
+  for (Double_t candidate : candidates) {
+    if (candidate < min_m_row || max_m_row <= candidate) continue;
+    if (candidate < 0.) {
+      resolved_m_row = 0.;
+    } else if (candidate > n_pad - 1.) {
+      resolved_m_row = n_pad - 1.;
+    } else {
+      resolved_m_row = candidate;
+    }
+    return true;
+  }
+  return false;
+}
+
+//_____________________________________________________________________________
+inline Bool_t TryResolveRow(Int_t layer, Double_t m_row, Int_t& resolved_row)
+{
+  Double_t resolved_m_row = TMath::QuietNaN();
+  if (!TryResolveMRow(layer, m_row, resolved_m_row)) return false;
+
+  const Int_t n_pad = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
+  Int_t row = TMath::Nint(resolved_m_row);
+  if (row < 0 || n_pad <= row) {
+    if (!IsCircularLayer(layer)) return false;
+    row %= n_pad;
+    if (row < 0) row += n_pad;
+  }
+
+  resolved_row = row;
+  return true;
+}
+
+//_____________________________________________________________________________
 // Check validity of Pad ID (Global ID)
 inline void ValidatePadID(Int_t pad_id, const char* func_name)
 {
@@ -1183,21 +1250,17 @@ inline Double_t GetTheta(Int_t pad_id)
 //_____________________________________________________________________________
 inline Double_t GetTheta(Int_t layer, Double_t m_row)
 {
-#ifdef PAD_HELPER_DEBUG
-  ValidateLayer(layer, __func__);
-  // Check m_row range explicitly here since ValidateRow is for Int_t
-  Double_t max_row = padParameter[layer][kNumOfPad];
-  Double_t epsilon = -1.e-3; // Allow small epsilon tolerance instead of strict < 0.
-  if (m_row < epsilon || max_row < m_row) {
+  Double_t resolved_m_row = TMath::QuietNaN();
+  if (!TryResolveMRow(layer, m_row, resolved_m_row)) {
+    Double_t max_row = padParameter[layer][kNumOfPad];
     throw Exception(Form("[tpc::%s] Invalid m_row %f for layer %d (Limit: < %f)", 
                          __func__, m_row, layer, max_row));
   }
-#endif
 
   Int_t    n_pad   = static_cast<Int_t>(padParameter[layer][kNumOfPad]);
   Double_t n_div   = padParameter[layer][kNumOfDivision];
   Double_t s_theta = 180. - (360. / n_div) * n_pad / 2.;
-  Double_t theta  = s_theta + (m_row + 0.5) * 360. / n_div - 180;
+  Double_t theta  = s_theta + (resolved_m_row + 0.5) * 360. / n_div - 180;
 
   return theta;
 }
@@ -1208,11 +1271,11 @@ inline Double_t GetMrow(Int_t layer, Double_t m_phi)
 #ifdef PAD_HELPER_DEBUG
   ValidateLayer(layer, __func__);
 #endif
+  constexpr Double_t wrap_epsilon = 1.e-4;
   Double_t n_pad = padParameter[layer][kNumOfPad];
   Double_t n_div = padParameter[layer][kNumOfDivision];
-
   Double_t mrow = 0.5*(n_pad-1.) + (90.-m_phi)*n_div/360.;
-  if(mrow<-0.0001){
+  if (mrow < -wrap_epsilon) {
     mrow = 0.5*(n_pad-1.) + (450.-m_phi)*n_div/360.;
   }
   return mrow;
@@ -1283,12 +1346,12 @@ inline TVector3 GetPosition(Int_t layer, Double_t m_row)
   ValidateLayer(layer, __func__);
 #endif
 
-  Double_t n_pad = padParameter[layer][kNumOfPad];
-  if (m_row < 0 || n_pad < m_row) {
+  Double_t resolved_m_row = TMath::QuietNaN();
+  if (!TryResolveMRow(layer, m_row, resolved_m_row)) {
     return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
   }
 
-  Double_t theta  = GetTheta(layer, m_row) * TMath::DegToRad();
+  Double_t theta  = GetTheta(layer, resolved_m_row) * TMath::DegToRad();
   Double_t radius = padParameter[layer][kRadius];
   Double_t x = radius * std::sin(theta);
   Double_t z = radius * std::cos(theta) + Z_TARGET;
