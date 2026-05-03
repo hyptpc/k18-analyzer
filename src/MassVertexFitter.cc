@@ -306,8 +306,8 @@ void MassVertexFitter::SetConstraints(){
                   + (base_P - base_Q)* dir_P.Cross(ddir_Qdph_Q);
   double df5dr_P = dbase_Pdr_P*(dir_P.Cross(dir_Q));
   double df5dz_P = dbase_Pdz_P*(dir_P.Cross(dir_Q));
-  double df5dr_Q = dbase_Qdr_Q*(dir_P.Cross(dir_Q));
-  double df5dz_Q = dbase_Qdz_Q*(dir_P.Cross(dir_Q));
+  double df5dr_Q = -dbase_Qdr_Q*(dir_P.Cross(dir_Q));
+  double df5dz_Q = -dbase_Qdz_Q*(dir_P.Cross(dir_Q));
 
 
 
