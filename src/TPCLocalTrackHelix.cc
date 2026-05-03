@@ -81,6 +81,7 @@ namespace
   const Double_t& HS_field_0 = ConfMan::Get<Double_t>("HSFLDCALIB");
   const Double_t& HS_field_Hall_calc = ConfMan::Get<Double_t>("HSFLDCALC");
   const Double_t& HS_field_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
+  Double_t PullWindow = 0;
   Int_t nStaticParams;
 
   const Int_t ReservedNumOfHits = 32*10;
@@ -130,7 +131,6 @@ namespace
   const Double_t ResidualWindowOutXZ = 10; //[mm]
 
   //for good hit selection, hypot(pull_t,pull_y) < PullWindow
-  const Double_t PullWindow = 3;
   //For theta calculation
   const Double_t ThetaWindow = 10; //[mm]
   const Double_t ThetaNSigma = 5;
@@ -448,6 +448,9 @@ static inline TVector3 CalcResolution(Double_t par[5], Int_t layer, TVector3 pos
     Double_t resolution_horizontal = TMath::Hypot(res.x(), res.z());
     Double_t pull_t = residual_horizontal/resolution_horizontal;
     Double_t pull_y = residual_vertical/resolution_vertical;
+    if(PullWindow == 0){
+      PullWindow = gUser.GetParameter("HitPullWindow") ;
+    }
     if(TMath::Hypot(pull_t, pull_y) > PullWindow) return TVector3(2.e+10, 2.e+10, 2.e+10);
   }
 //  std::cout<<Form("Resolution = (%.2g, %.2g, %.2g)", res.x(), res.y(), res.z())<<std::endl;
@@ -3980,7 +3983,7 @@ TPCLocalTrackHelix::GetMomentumPitchAngleCovariance(){
   Double_t p_t = m_r*(tpc::ConstC*B)*0.001;
   Double_t pitch = atan2(1,m_dz);//dYdZ angle, dZ= 0 -> should return pi/2
   Double_t res_pitch = GetThetaResolution();
-  return p_t*cos(pitch)/sin(pitch)/sin(pitch)*res_pitch*res_pitch;
+  return -p_t*cos(pitch)/sin(pitch)/sin(pitch)*res_pitch*res_pitch;
 
 }
 
@@ -4204,7 +4207,9 @@ TPCLocalTrackHelix::GetThetaResolution(){
 Double_t
 TPCLocalTrackHelix::GetMomentumResolution(){
   Double_t d_slope = GetdZResolution();
-  return GetTransverseMomentumResolution()*hypot(1,d_slope);
+  Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
+  Double_t p_t = m_r*(tpc::ConstC*B)*0.001;
+  return hypot(GetTransverseMomentumResolution()*hypot(1,m_dz), p_t*m_dz/hypot(1,m_dz)*d_slope);
 }
 Double_t
 TPCLocalTrackHelix::GetMomentumResolutionScat(int pid){
