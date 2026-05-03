@@ -31,6 +31,10 @@ MassVertexFitter::GetRZparameters(TVector3 Vert, TVector3 Dir, double& R, double
   //close_point = Vert - t0 * Dir = Vert - (Vert * Dir) * Dir;
   double phi = Dir.Phi();
   R = close_point.x()*cos(phi + M_PI/2) + close_point.y()*sin(phi + M_PI/2);
+  /* R is a signed distance. Direction should be rotated by 90 degrees, 
+  and R will be positive if the vertex is on the positive side of the track.
+  With this definition, we can make consistent definition without considering left/right ambiguity.
+  */
   Z = close_point.Z();
 #if Debug
   cout<<Form("Step %d, Vertex (%g,%g,%g)",step,Vert.X(),Vert.Y(),Vert.Z())<<endl;
@@ -241,7 +245,7 @@ void MassVertexFitter::SetConstraints(){
   double df3dth_R = p_R*sin(th_R);
   double df3dph_R = 0;
   double df3dp_P = cos(th_P);
-  double df3dth_P = -p_Q*sin(th_P);
+  double df3dth_P = -p_P*sin(th_P);
   double df3dph_P = 0;
   double df3dp_Q = cos(th_Q);
   double df3dth_Q = -p_Q*sin(th_Q);
@@ -293,7 +297,7 @@ void MassVertexFitter::SetConstraints(){
 	double df5dth_R = 0;
 	double df5dph_R = 0;
   double df5dp_P = 0;
-	double df5dp_Q = 0; // 
+	double df5dp_Q = 0; //No explicit momentum dependencies. 
   double df5dth_P = (base_P - base_Q)* (ddir_Pdth_P.Cross(dir_Q));
   double df5dph_P = dbase_Pdph_P*(dir_P.Cross(dir_Q))
                   + (base_P - base_Q)* ddir_Pdph_P.Cross(dir_Q);
