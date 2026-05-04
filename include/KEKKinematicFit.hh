@@ -110,4 +110,37 @@ class KEKCascadeFitter: virtual public KEKKinematicFitter{
 		~KEKCascadeFitter(){
 		}
 };
+class KEKMassVertexFitter: virtual public KEKKinematicFitter{
+	private:
+		TLorentzVector LV1Cor;
+		TLorentzVector LV2Cor;
+		TLorentzVector LV3Cor;
+	public:
+		KEKMassVertexFitter(){}
+		MassVertexFitter* ThisFitter(){//Necessary to call functions in FourVectorFitter. ex: SetInvMass.
+			return dynamic_cast<MassVertexFitter*>(Fitter);
+		}
+		KEKMassVertexFitter(
+		TLorentzVector LV1, TVector3 Vtx1, TMatrixD Cov1,
+		TLorentzVector LV2, TVector3 Vtx2, TMatrixD Cov2, double Mass);
+		std::vector<TLorentzVector> GetFittedLV(){
+			auto HLVs = ThisFitter()->GetFittedLV();
+			auto HLV1Cor = HLVs.at(0);
+			auto HLV2Cor = HLVs.at(1);
+			auto HLV3Cor = HLVs.at(2);
+			LV1Cor = TLorentzVector(HLV1Cor.Px(), HLV1Cor.Pz(), HLV1Cor.Py(), HLV1Cor.E());
+			LV2Cor = TLorentzVector(HLVs.at(1).Px(), HLVs.at(1).Pz(), HLVs.at(1).Py(), HLVs.at(1).E());
+			LV3Cor = TLorentzVector(HLVs.at(2).Px(), HLVs.at(2).Pz(), HLVs.at(2).Py(), HLVs.at(2).E());
+			return std::vector<TLorentzVector>{LV1Cor, LV2Cor, LV3Cor};
+		}
+		std::vector<TVector3> GetFittedVerticies(){
+			auto Verts = ThisFitter()->GetFittedVerticies();
+			auto VPCor = Verts.at(0);
+			auto VQCor = Verts.at(1);
+			auto VRCor = Verts.at(2);
+			return std::vector<TVector3>{VPCor, VQCor, VRCor};
+		}
+		~KEKMassVertexFitter(){
+		}
+};
 #endif
