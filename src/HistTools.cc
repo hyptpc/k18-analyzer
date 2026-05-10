@@ -78,7 +78,7 @@ const Double_t TPC_BINS_EXT_TGT_SLOPE_U[3] = {400., -0.15, 0.15};
 const Double_t TPC_BINS_EXT_TGT_SLOPE_V[3] = {400., -0.05, 0.05};
 
 // --- Clock time (CoBo / AsAd) ---
-const Double_t TPC_BINS_CLOCK[3]       = {480., -60.0, 60.0};
+const Double_t TPC_BINS_CLOCK[3]       = {960., -60.0, 60.0};
 
 // --- BuildTPCTracking: cluster & fitter diagnostics (promoted from function-local) ---
 const Double_t TPC_BINS_DE[3]          = {400.,   0.,  800.};
@@ -1148,7 +1148,7 @@ BuildTPCHelixLambda()
 void
 BuildTPCHelixK0Short()
 {
-  HB1("K0_Mass;M(#pi^{+}#pi^{-}) [GeV/c^{2}];Counts", 500, 0.35, 0.65);
+  HB1("K0_Mass;M(#pi^{+}#pi^{-}) [GeV/c^{2}];Counts", 700, 0.15, 0.85);
   HB1("K0_CloseDist;Closest distance [mm];Counts", 500, 0.0, 50.0);
   HB1("K0_VtxX;Vertex X [mm];Counts", TPC_BINS_POS_X);
   HB1("K0_VtxY;Vertex Y [mm];Counts", TPC_BINS_POS_Y);

@@ -19,9 +19,10 @@
 
 namespace
 {
-  const Double_t PPI_CLOSE_MM = 10.; // mm, same scale as TPCVertex / TPCTrackSearch
-  const Double_t LAMBDA_MASS_WINDOW = 0.1; // GeV/c^2
-  const Double_t K0_MASS_WINDOW = 0.05; // GeV/c^2
+  const Double_t MIN_CLOSE_DIST_LAMBDA = 10.; // mm, same scale as TPCVertex / TPCTrackSearch
+  const Double_t MIN_CLOSE_DIST_K0 = 10.; // mm, same scale as TPCVertex / TPCTrackSearch
+  const Double_t LAMBDA_MASS_WINDOW = 0.3; // GeV/c^2
+  const Double_t K0_MASS_WINDOW = 0.3; // GeV/c^2
   const TVector3 VERTEX_RES(0.6, 0.6, 1.0); // just follow e42 code
 
   // Common preselection for any 2-track decay reconstruction.
@@ -46,7 +47,7 @@ namespace
       return false;
     if (!PassScatterTrackFlags(vertex))
       return false;
-    if (vertex->GetClosestDist() > PPI_CLOSE_MM)
+    if (vertex->GetClosestDist() > MIN_CLOSE_DIST_LAMBDA)
       return false;
     return true;
   }
@@ -273,7 +274,7 @@ TPCReconstructor::RefitLambdaWithVertex(const TPCVertex* vertex,
     range_theta_2[0], range_theta_2[1],
     theta_1, theta_2, dist
   );
-  if (!std::isfinite(dist) || dist > PPI_CLOSE_MM) {
+  if (!std::isfinite(dist) || dist > MIN_CLOSE_DIST_LAMBDA) {
     delete track_1;
     delete track_2;
     return false;
@@ -311,7 +312,7 @@ TPCReconstructor::ReconstructK0Short(TPCVertex* vertex)
   if (!PassScatterTrackFlags(vertex))
     return;
   const Double_t dist = vertex->GetClosestDist();
-  if (dist > PPI_CLOSE_MM)
+  if (dist > MIN_CLOSE_DIST_K0)
     return;
 
   const Int_t q0 = vertex->GetTrackCharge(0);
@@ -364,7 +365,7 @@ TPCReconstructor::HasK0ShortCandidate(const TPCVertex* vertex)
     return false;
 
   const Double_t dist = vertex->GetClosestDist();
-  if (dist > PPI_CLOSE_MM)
+  if (dist > MIN_CLOSE_DIST_K0)
     return false;
 
   const Int_t q0 = vertex->GetTrackCharge(0);

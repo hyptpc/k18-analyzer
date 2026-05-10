@@ -109,13 +109,16 @@ struct Event
 
   Int_t ntTpc; // Number of Tracks
   std::vector<Int_t> nhtrack; // Number of Hits (in 1 tracks)
-  std::vector<Int_t> isBeam; // isBeam: 1 = Beam, 0 = Scat
+  std::vector<Int_t> is_beam; // 1 = Beam, 0 = Scat
   std::vector<Double_t> chisqr;
   std::vector<Double_t> helix_cx;
   std::vector<Double_t> helix_cy;
   std::vector<Double_t> helix_z0;
   std::vector<Double_t> helix_r;
   std::vector<Double_t> helix_dz;
+  // Track-wise helix theta range (TPCLocalTrackHelix::GetMint / GetMaxt); per-hit angles stay in helix_t.
+  std::vector<Double_t> helix_theta_min;
+  std::vector<Double_t> helix_theta_max;
   std::vector<Double_t> dE;
   std::vector<Double_t> dEdx; //reference dedx
 
@@ -239,7 +242,8 @@ struct Event
   void clearHelixTracks() {
     ntTpc = 0;
     dst::clear_all(
-      nhtrack, isBeam, chisqr, helix_cx, helix_cy, helix_z0, helix_r, helix_dz, dE, dEdx,
+      nhtrack, is_beam, chisqr, helix_cx, helix_cy, helix_z0, helix_r, helix_dz,
+      helix_theta_min, helix_theta_max, dE, dEdx,
       
 #if TruncatedMean
       dEdx_0, dEdx_10, dEdx_20, dEdx_30, dEdx_40, dEdx_50, dEdx_60, 
@@ -298,7 +302,8 @@ struct Event
 
   void resizeTracks(Int_t nTracks) {
     dst::resize_all(nTracks,
-      nhtrack, isBeam, chisqr, helix_cx, helix_cy, helix_z0, helix_r, helix_dz, dE, dEdx,
+      nhtrack, is_beam, chisqr, helix_cx, helix_cy, helix_z0, helix_r, helix_dz,
+      helix_theta_min, helix_theta_max, dE, dEdx,
 
 #if TruncatedMean
       dEdx_0, dEdx_10, dEdx_20, dEdx_30, dEdx_40, dEdx_50, dEdx_60, 
@@ -485,7 +490,7 @@ namespace
     Int_t is_beam = helix_track->GetIsBeam();
 
     event.nhtrack[it] = n_hits;
-    event.isBeam[it] = is_beam;
+    event.is_beam[it] = is_beam;
     event.chisqr[it] = chi_sqr;
     event.helix_cx[it] = helix_cx;
     event.helix_cy[it] = helix_cy;
@@ -493,6 +498,14 @@ namespace
     event.helix_r[it] = helix_r;
     event.helix_dz[it] = helix_dz;
     event.dz_factor[it] = TMath::Hypot(1., helix_dz);
+    if (helix_track->IsThetaCalculated()) {
+      event.helix_theta_min[it] = helix_track->GetMint();
+      event.helix_theta_max[it] = helix_track->GetMaxt();
+    } else {
+      const Double_t qnan = TMath::QuietNaN();
+      event.helix_theta_min[it] = qnan;
+      event.helix_theta_max[it] = qnan;
+    }
     event.mom0_x[it] = mom0_vec.x();
     event.mom0_y[it] = mom0_vec.y();
     event.mom0_z[it] = mom0_vec.z();
@@ -958,13 +971,15 @@ ConfMan::InitializeHistograms()
 
   tree->Branch( "ntTpc", &event.ntTpc );
   tree->Branch( "nhtrack", &event.nhtrack );
-  tree->Branch( "isBeam", &event.isBeam );
+  tree->Branch( "is_beam", &event.is_beam );
   tree->Branch( "chisqr", &event.chisqr );
   tree->Branch( "helix_cx", &event.helix_cx );
   tree->Branch( "helix_cy", &event.helix_cy );
   tree->Branch( "helix_z0", &event.helix_z0 );
   tree->Branch( "helix_r", &event.helix_r );
   tree->Branch( "helix_dz", &event.helix_dz );
+  tree->Branch( "helix_theta_min", &event.helix_theta_min );
+  tree->Branch( "helix_theta_max", &event.helix_theta_max );
   tree->Branch( "mom0_x", &event.mom0_x );
   tree->Branch( "mom0_y", &event.mom0_y );
   tree->Branch( "mom0_z", &event.mom0_z );
