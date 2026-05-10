@@ -94,6 +94,8 @@ namespace
   const Int_t BadHoughTransform = 300;
   const Int_t BadForTracking = 400;
   const Int_t Candidate = 1000;
+  // Minimum #hits for Calculate()/GetdEdx() on failed tracks.
+  const Int_t MIN_HITS_FOR_FAILED_CALC = 2;
 
   // Tracks in the Hough-Space
   std::vector<Double_t> XZhough_x;
@@ -115,6 +117,18 @@ namespace
   {
     for(auto& track: TrackCont){
       track->Calculate();
+    }
+  }
+
+  template <typename T> void
+  DropFailedTracksBelowMinHits(std::vector<T*>& track_cont, Int_t min_hits)
+  {
+    for(Int_t i = static_cast<Int_t>(track_cont.size()) - 1; i >= 0; --i){
+      T* track = track_cont[i];
+      if(!track || track->GetNHit() < min_hits){
+        delete track;
+        track_cont.erase(track_cont.begin() + i);
+      }
     }
   }
 
@@ -953,6 +967,7 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
   std::cout<<FUNC_NAME+" #failed track : "<<TrackContFailed.size()<<std::endl;
 #endif
 
+  DropFailedTracksBelowMinHits(TrackContFailed, MIN_HITS_FOR_FAILED_CALC);
   CalcTracks(TrackContFailed);
   if(Exclusive) ExclusiveTracking(TrackCont);
   return TrackCont.size();
@@ -1018,6 +1033,7 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
   TestingCharge(TrackCont, TrackContInvertedCharge, VertexCont, Exclusive);
 
   CalcTracks(TrackContVP);
+  DropFailedTracksBelowMinHits(TrackContFailed, MIN_HITS_FOR_FAILED_CALC);
   CalcTracks(TrackContFailed); //Tracking failed cases
   if(Exclusive) ExclusiveTracking(TrackCont);
   return TrackCont.size();
