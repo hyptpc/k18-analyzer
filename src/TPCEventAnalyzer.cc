@@ -83,15 +83,15 @@ TPCEventAnalyzer::TPCRawHit(const TPCRawData& TPCrawData)
       //Check Threshold
       double min_max = HG2Poly("TPC_Raw_Max_Poly",padid+1);
       if(min_max > max_adc && max_adc < 2000){
-	HF2Poly("TPC_Raw_Max_Poly",padid+1,max_adc);
-	std::cout<<max_adc<<std::endl;
+        HF2Poly("TPC_Raw_Max_Poly",padid+1,max_adc);
+        std::cout<<max_adc<<std::endl;
       }
       double fmin_adc = HG2Poly("TPC_Raw_ADC_Poly",padid+1);
       if(fmin_adc > (max_adc - mean) && (max_adc - mean) < 2000)
-	HF2Poly("TPC_Raw_ADC_Poly",padid+1,max_adc - mean);
+        HF2Poly("TPC_Raw_ADC_Poly",padid+1,max_adc - mean);
       double min_mean = HG2Poly("TPC_Raw_Mean_Poly",padid+1);
       if(min_mean > mean && mean < 2000)
-	HF2Poly("TPC_Raw_Mean_Poly",padid+1,mean);
+      	HF2Poly("TPC_Raw_Mean_Poly",padid+1,mean);
       
       auto gate_open_max_adc = rhit->MaxAdc(0,50);
       auto gate_close_max_adc = rhit->MaxAdc(50,140);
@@ -115,7 +115,7 @@ TPCEventAnalyzer::TPCRawHit(const TPCRawData& TPCrawData)
         if(IsNoise){
           HF2("TPC_FADC_Noise",tb,fadc.at(tb));
         }
-	if(tpc::Noise(padid))HF2("TPC_FADC_Frame",tb, fadc.at(tb));
+      	if(tpc::Noise(padid)) HF2("TPC_FADC_Frame",tb, fadc.at(tb));
       }
       if(IsNoise){
         Double_t bincont = HG2Poly("TPC_HitPat_Noise",padid+1);

@@ -815,6 +815,12 @@ BuildTPCHit()
   HB2Poly("TPC_Cor_Mean_Poly",TPC_EVENT_DISPLAY_BINS);
   HB2Poly("TPC_HitPat_Noise",    TPC_EVENT_DISPLAY_BINS);
   HB2Poly("TPC_HitPat_Baseline", TPC_EVENT_DISPLAY_BINS);
+  tpc::InitializeHistograms("TPC_Raw_Max_Poly");
+  tpc::InitializeHistograms("TPC_Raw_ADC_Poly");
+  tpc::InitializeHistograms("TPC_Raw_Mean_Poly");
+  tpc::InitializeHistograms("TPC_Cor_Max_Poly");
+  tpc::InitializeHistograms("TPC_Cor_ADC_Poly");
+  tpc::InitializeHistograms("TPC_Cor_Mean_Poly");
   tpc::InitializeHistograms("TPC_HitPat_Noise");
   tpc::InitializeHistograms("TPC_HitPat_Baseline");
 }
