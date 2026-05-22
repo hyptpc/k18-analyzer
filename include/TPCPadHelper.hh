@@ -112,7 +112,7 @@ static const Int_t deadChannel[] =
   72,134,135,222,332,408,467,626,809,59,110,185,284,555,726,921,1140,1363,1564,1565,1778,1818,1819,2036,2037,2245,2246,2247,2455,2456,2668,2669,2887,3111,3112,3342,3343,3579,3580,3814,4035,1629,1850,2068,2277,2486,2487,2699,2700,2918,3142,3374,3611,3845,4066,4277,4481,4681,4879,5073
 };
 
-//Noise pads selected based on the Tohoku 2024Jan Cosmic Test (Used for 2026April beamtime's LSB threshold)
+//Noise pads information taken from E42 (Used for 2026April beamtime's LSB threshold)
 //_____________________________________________________________________________
 static const Int_t padOnSectionFrame_E42[] =
 {
