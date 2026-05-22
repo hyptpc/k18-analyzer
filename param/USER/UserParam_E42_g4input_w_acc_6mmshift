@@ -161,7 +161,7 @@ MaxClusterYPosTPC 300
 MinClusterYPosTPC -250
 VertexScanRange 100
 RejectAccidentals 0
-Geant4PosShift 0
+Geant4PosShift 1
 
 # Good hit definition in sigma
 HitPullWindow 5
