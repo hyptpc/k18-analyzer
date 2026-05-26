@@ -112,7 +112,11 @@ static const Int_t deadChannel[] =
   72,134,135,222,332,408,467,626,809,59,110,185,284,555,726,921,1140,1363,1564,1565,1778,1818,1819,2036,2037,2245,2246,2247,2455,2456,2668,2669,2887,3111,3112,3342,3343,3579,3580,3814,4035,1629,1850,2068,2277,2486,2487,2699,2700,2918,3142,3374,3611,3845,4066,4277,4481,4681,4879,5073
 };
 
-//Noise pads information taken from E42 (Used for 2026April beamtime's LSB threshold)
+//============================================================
+// Pads affected by section-frame-related noise
+// Noise pad information taken from E42 data
+// Used for the 2026 April beamtime LSB threshold setup
+//============================================================
 //_____________________________________________________________________________
 static const Int_t padOnSectionFrame_E42[] =
 {
@@ -138,7 +142,11 @@ static const Int_t padOnSectionFrame_E42[] =
 2794 ,2795 ,2796 ,2797 ,2798 ,2799 ,2800 ,2801 ,2802 ,2803 ,2804 ,2805 ,2806 ,2807 ,2808 ,2809 ,3001 ,3002 ,3003 ,3004 ,3005 ,3006 ,3007 ,3008 ,3009 ,3010 ,3011 ,3012 ,3013 ,3014 ,3015 ,3016 ,3017, 3018, 3037, 3038, 3039 ,3040 ,3041 ,3042 ,3043 ,3044 ,3045 ,3046 ,3047 ,3048 ,3049 ,3050 ,3051 ,3052 ,3053 ,3054 ,3227 ,3228 ,3229 ,3230 ,3231 ,3289 ,3290 ,3291 ,3292 ,3293 ,3294 ,3295 ,3296 ,3297 ,3540 ,3541 ,3542 ,3543 ,3544 ,3545 ,3546
 };
 
-//Noise pads selected based on the JPARC 2025Nov E72 Beamtime
+//=======================================================
+// Pads affected by section-frame-related noise
+// Selected based on hit-pattern studies using unbiased data
+// run03396 (HS On, clk trigger, Threshold = 0)
+//=======================================================
 //_____________________________________________________________________________
 static const Int_t padOnSectionFrame_E72[] =
 {
@@ -259,7 +267,98 @@ static const Int_t padOnSectionFrame_E72[] =
 4661,4662,4663
 };
 
-//Noise pads selected based on the Tohoku 2024Jan Cosmic Test (Used for 2025Nov beamtime's LSB threshold run2556 - 3044)
+//=======================================================
+// Pads showing abnormal waveform shapes
+// Identified from waveform inspection
+// run2278 (HS On, K- 735 MeV/c, physics trigger)
+//=======================================================
+//_____________________________________________________________________________
+
+static const Int_t padAbnormalWaveform_E72[] =
+{
+//section1 left -> No
+
+
+//section1 right
+812,
+629,
+470,
+335,
+224,
+137,
+74,
+57,58,
+108,109,
+183,184,
+283,
+406,
+553,
+724,
+919,
+1138,
+1361,
+1562,1563,
+1776,
+
+//section1 right edge
+1450,1451,1452,1453,
+
+//section2 left
+1818,
+2034,2035,2036,
+2244,2245,2246,
+2453,2454,2455,
+2667,2668,
+2885,2886,2887,
+3110,3111,
+3341,3342,
+3578,3579,
+3813,
+4034,4035,
+
+//section2 right
+1630,
+1850,1851,
+2069,
+2278,
+2487,
+2700,2701,
+2919,
+3143,
+3374,
+3612,
+3846,
+4067,
+4277,4278,
+4482,
+4682,
+4879,
+5073,5074,
+
+//section3 left -> No
+
+//section3 right -> No
+
+//section3 bottom edge
+4105,4106,
+5112,5113,
+
+//section3 top edge
+4171,4172,
+5214,5215
+
+//section4 left -> No
+
+//section4 right -> No
+};
+
+
+//=======================================================
+// Pads affected by section-frame-related noise
+// Selected from Tohoku 2024 Jan cosmic test data
+// Used for the 2025 Nov beamtime LSB threshold setup
+// (run2556 - run3044)
+//=======================================================
 //_____________________________________________________________________________
 static const Int_t padOnSectionFrame_Tohoku[] =
 {
