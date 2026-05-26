@@ -197,11 +197,10 @@ TPCLTrackHit::GetMomentumHelix(Double_t charge) const
    	       m_cal_pos.Z() - tpc::Z_TARGET,
    	       m_cal_pos.Y());
 
-  const Double_t Const = 0.299792458; // =c/10^9
   const Double_t dMagneticField = HSfield_Calib*(HSfield_Hall/HSfield_Calc);
 
   Double_t t = (pos.Z()-m_z0)/(m_r*m_dz);
-  Double_t pt = TMath::Abs(m_r)*(Const*dMagneticField); // MeV/c
+  Double_t pt = TMath::Abs(m_r)*(tpc::C_LIGHT*dMagneticField); // MeV/c
   //From here!!!!
   Double_t tmp_px = pt*(-1.*TMath::Sin(t));
   Double_t tmp_py = pt*(TMath::Cos(t));

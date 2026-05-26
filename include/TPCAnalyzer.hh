@@ -91,9 +91,9 @@ protected:
   void ClearTPCTracks();
   void ClearTPCVertices();
   void ClearTPCK18Tracks();
-  static Bool_t MakeUpTPCClusters(const TPCHitContainer& HitCont,
-                                  TPCClusterContainer& ClCont,
-                                  Double_t maxdy);
+  static Bool_t MakeUpTPCClusters(const TPCHitContainer& hit_cont,
+                                  TPCClusterContainer& cl_cont,
+                                  Double_t max_dy);
 
 };
 

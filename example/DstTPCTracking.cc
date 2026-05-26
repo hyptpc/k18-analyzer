@@ -19,6 +19,7 @@
 #include "TPCEventAnalyzer.hh"
 #include "TPCLocalTrack.hh"
 #include "TPCLTrackHit.hh"
+#include "TPCPadHelper.hh"
 #include "TPCParamMan.hh"
 #include "TPCPositionCorrector.hh"
 #include "UserParamMan.hh"
@@ -324,7 +325,20 @@ namespace
   const auto& gUser = UserParamMan::GetInstance();
   const auto& gTpcParam = TPCParamMan::GetInstance();
   const auto& gCounter  = debug::ObjectCounter::GetInstance();
-  const double TRUNCATED_MEAN = 0.8;  // 80%
+  const Double_t TRUNCATED_MEAN_RATIO = 0.8;  // keep the lowest 80% of per-hit dE/dx
+
+  const std::vector<TString> kUserParamKeys = {
+    // Cluster building (ReCalcTPCHits / MakeUpTPCClusters)
+    "MinCDeTPC", "MaxYDifClusterTPC",
+    "MinClusterDeTPC", "MinClusterSizeTPC",
+    "MinClusterYPosTPC", "MaxClusterYPosTPC",
+    
+    // Linear tracking
+    "MinLayerTPC", "MaxHoughWindowY", "BeamThroughTPC",
+
+    // Optional parameter (default value is provided in the code)
+    // "MaxCenterRowDiffTPC",
+  };
 
 #if RawHit
   //_____________________________________________________________________________
@@ -364,7 +378,6 @@ namespace
       for (const auto& cl : cl_cont) {
         if (!cl || !cl->IsGood()) continue;
         TPCHit* center_hit = cl->GetCenterHit();
-        const TVector3& center_pos = center_hit->GetPosition();
         event.cluster_x.push_back(cl->GetX());
         event.cluster_y.push_back(cl->GetY());
         event.cluster_z.push_back(cl->GetZ());
@@ -373,11 +386,20 @@ namespace
         event.cluster_layer.push_back(layer);
         event.cluster_mrow.push_back(cl->MeanRow());
         event.cluster_houghflag.push_back(cl->GetHoughFlag());
-        event.cluster_de_center.push_back(center_hit->GetCDe());
-        event.cluster_x_center.push_back(center_pos.X());
-        event.cluster_y_center.push_back(center_pos.Y());
-        event.cluster_z_center.push_back(center_pos.Z());
-        event.cluster_row_center.push_back(center_hit->GetRow());
+        if (center_hit) {
+          const TVector3& center_pos = center_hit->GetPosition();
+          event.cluster_de_center.push_back(center_hit->GetCDe());
+          event.cluster_x_center.push_back(center_pos.X());
+          event.cluster_y_center.push_back(center_pos.Y());
+          event.cluster_z_center.push_back(center_pos.Z());
+          event.cluster_row_center.push_back(center_hit->GetRow());
+        } else {
+          event.cluster_de_center.push_back(TMath::QuietNaN());
+          event.cluster_x_center.push_back(TMath::QuietNaN());
+          event.cluster_y_center.push_back(TMath::QuietNaN());
+          event.cluster_z_center.push_back(TMath::QuietNaN());
+          event.cluster_row_center.push_back(-1);
+        }
         ++ncl_tpc;
       }
     }
@@ -400,15 +422,16 @@ namespace
     TPCHit* cl_hit = hit->GetHit();
     TPCCluster* cl = cl_hit->GetParentCluster();
     TPCHit* center_hit = cl->GetCenterHit();
-    const TVector3& center_pos = center_hit->GetPosition();
+    const TVector3 center_pos =
+      center_hit ? center_hit->GetPosition() : cl->GetPosition();
 
     Double_t residual   = hit->GetResidual();
     Double_t clde       = cl->GetDe();
     Double_t mrow       = cl->MeanRow();
-    Double_t center_de  = center_hit->GetCDe();
+    Double_t center_de  = center_hit ? center_hit->GetCDe() : TMath::QuietNaN();
     Double_t hit_length = track->GetHitLength(ih);
     Int_t cl_size       = cl->GetClusterSize();
-    Int_t center_row    = center_hit->GetRow();
+    Int_t center_row    = center_hit ? center_hit->GetRow() : -1;
 
     // Fill event: cluster, hit/cal positions, residuals, resolution, path.
     event.track_cluster_de[it][ih]   = clde;
@@ -455,27 +478,15 @@ namespace
   }
 
   //_____________________________________________________________________________
-  // Fill event and histograms for one track (params, vertex candidates, hits, dE/dx).
+  // Fill event and histograms for one track (params, hits, dE/dx).
   void ProcessOneTrack(Int_t it, TPCLocalTrack* track,
-                       Int_t& ntrack_intarget,
-                       std::vector<Double_t>& x0_vtx, std::vector<Double_t>& y0_vtx,
-                       std::vector<Double_t>& u0_vtx, std::vector<Double_t>& v0_vtx,
                        TPCEventAnalyzer& event_ana)
   {
-    // Track parameters and vertex candidate (in-target x0,y0,u0,v0).
     Int_t nhits = track->GetNHit();
     Double_t chisqr = track->GetChiSquare();
     Double_t x0 = track->GetX0(), y0 = track->GetY0();
     Double_t u0 = track->GetU0(), v0 = track->GetV0();
     Double_t theta = track->GetTheta();
-
-    if (TMath::Abs(x0) < 50. && TMath::Abs(y0) < 50.) {
-      x0_vtx.push_back(x0);
-      y0_vtx.push_back(y0);
-      u0_vtx.push_back(u0);
-      v0_vtx.push_back(v0);
-      ++ntrack_intarget;
-    }
 
     event.nhtrack[it]   = nhits;
     event.chisqrTpc[it] = chisqr;
@@ -507,18 +518,31 @@ namespace
     for (std::size_t i = 0; i < dedx_vect.size(); ++i) {
       dedx_cumulative[i + 1] = dedx_cumulative[i] + dedx_vect[i];
     }
-    event.dEdx[it] = TPCEventAnalyzer::CalcTruncatedMean(dedx_cumulative, TRUNCATED_MEAN);
+    event.dEdx[it] = TPCEventAnalyzer::CalcTruncatedMean(dedx_cumulative, TRUNCATED_MEAN_RATIO);
   }
 
   //_____________________________________________________________________________
-  // Compute multi-track vertex from in-target tracks and fill event.
-  void FillVertex(Int_t ntrack_intarget,
-                  const std::vector<Double_t>& x0_vtx, const std::vector<Double_t>& y0_vtx,
-                  const std::vector<Double_t>& u0_vtx, const std::vector<Double_t>& v0_vtx)
+  // Select in-target tracks, compute multi-track vertex, and fill event.
+  void FillVertex(TPCAnalyzer& tpc_ana)
   {
-    // Multitrack vertex; fill ntTpc_inside, prodvtx_*.
+    std::vector<Double_t> x0_for_vtx, y0_for_vtx, u0_for_vtx, v0_for_vtx;
+    Int_t ntrack_intarget = 0;
+    for (Int_t it = 0, n = tpc_ana.GetNTracksTPC(); it < n; ++it) {
+      const auto* track = tpc_ana.GetTrackTPC(it);
+      if (!track) continue;
+      const Double_t x0 = track->GetX0(), y0 = track->GetY0();
+      if (TMath::Abs(x0) >= tpc::TARGET_HALF_X ||
+          TMath::Abs(y0) >= tpc::TARGET_HALF_Y) continue;
+      x0_for_vtx.push_back(x0);
+      y0_for_vtx.push_back(y0);
+      u0_for_vtx.push_back(track->GetU0());
+      v0_for_vtx.push_back(track->GetV0());
+      ++ntrack_intarget;
+    }
+
     TVector3 vertex = Kinematics::MultitrackVertex(
-      ntrack_intarget, x0_vtx, y0_vtx, u0_vtx, v0_vtx);
+      ntrack_intarget, x0_for_vtx, y0_for_vtx, u0_for_vtx, v0_for_vtx
+    );
     event.ntTpc_inside = ntrack_intarget;
     event.prodvtx_x = vertex.x();
     event.prodvtx_y = vertex.y();
@@ -591,6 +615,8 @@ main(int argc, char **argv)
   if(!DstOpen(arg))
     return EXIT_FAILURE;
   if(!gConf.Initialize(arg[kConfFile]))
+    return EXIT_FAILURE;
+  if(!dst::ValidateUserParams(gUser, kUserParamKeys))
     return EXIT_FAILURE;
   if(!gConf.InitializeHistograms())
     return EXIT_FAILURE;
@@ -722,23 +748,15 @@ dst::DstRead(Int_t ievent)
   HF1("Status", event.status++);
   event.resizeTracks(nt_tpc);
 
-  // Per-track fill (params, vertex candidates, hits, dE/dx).
-  Int_t ntrack_intarget = 0;
-  std::vector<Double_t> x0_vtx, y0_vtx, u0_vtx, v0_vtx;
-  x0_vtx.reserve(100);
-  y0_vtx.reserve(100);
-  u0_vtx.reserve(100);
-  v0_vtx.reserve(100);
-
+  // Per-track fill (params, hits, dE/dx).
   for (Int_t it = 0; it < nt_tpc; ++it) {
     auto track = tpc_ana.GetTrackTPC(it);
     if (!track) continue;
-    ProcessOneTrack(it, track, ntrack_intarget, x0_vtx, y0_vtx, u0_vtx, v0_vtx, event_ana);
+    ProcessOneTrack(it, track, event_ana);
   }
   HF1("Status", event.status++);
 
-  // Multi-track vertex; optional failed-track info.
-  FillVertex(ntrack_intarget, x0_vtx, y0_vtx, u0_vtx, v0_vtx);
+  FillVertex(tpc_ana);
   HF1("Status", event.status++);
 
 #if TrackSearchFailed

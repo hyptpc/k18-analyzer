@@ -15,9 +15,11 @@ Material lookup table for HypTPC dEdx calculation
 #include <TF2.h>
 #include <TMath.h>
 #include <TMinuit.h>
+#include <TPDGCode.h>
 
 #include <std_ostream.hh>
 
+#include "DatabasePDG.hh"
 #include "FuncName.hh"
 #include "MathTools.hh"
 #include "TPCPadHelper.hh"
@@ -1075,14 +1077,15 @@ HypTPCCorrElossIn(Int_t materialid, const TVector3& Pin, Double_t length, Double
 Double_t HypTPCBethe(Double_t *x, Double_t *p){
 
   //x[0] : poq [GeV/c]
-  //p[0] : converting factor
-  //p[1] : mass [MeV/c2]
-  Double_t momentum = 1000.*TMath::Abs(x[0]); /*MeV/c2*/
+  //p[0] : converting factor (ADC to dE/dx a.u.)
+  //p[1] : mass [MeV/c^2]
+  Double_t momentum = 1000.*TMath::Abs(x[0]); // MeV/c
   Double_t beta = Beta(TMath::Hypot(p[1], momentum), momentum);
   Double_t dedx = p[0]*HypTPCdEdx(0, p[1], beta); //P10
 
   return dedx;
 }
+
 /* Legacy
 //_____________________________________________________________________________
 Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
@@ -1128,7 +1131,7 @@ Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
 //_____________________________________________________________________________
 Double_t HypTPCdEdxNsigmaProton(Double_t dedx, Double_t poq){
 
-  Double_t mp = 938.2720813;
+  const Double_t mp = 1000.0 * pdg::ProtonMass(); // [MeV/c^2]
   Double_t par_p[2] = {conversion_factor, mp};
   Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
   // 1 sigma of <dE/dx>_p
@@ -1141,7 +1144,7 @@ Double_t HypTPCdEdxNsigmaProton(Double_t dedx, Double_t poq){
 //_____________________________________________________________________________
 Double_t HypTPCdEdxNsigmaDeutron(Double_t dedx, Double_t poq){
 
-  Double_t md = 1875.612762;
+  const Double_t md = 1000.0 * pdg::DeuteronMass(); // [MeV/c^2]
   Double_t par_d[2] = {conversion_factor, md};
   Double_t dedx_d = HypTPCBethe(&poq, par_d) + offset_dedx_d; //P10's <dE/dx>_d
   // 1 sigma of <dE/dx>_d
@@ -1154,7 +1157,7 @@ Double_t HypTPCdEdxNsigmaDeutron(Double_t dedx, Double_t poq){
 //_____________________________________________________________________________
 Double_t HypTPCdEdxNsigmaTriton(Double_t dedx, Double_t poq){
 
-  Double_t mt = 2808.921112;
+  const Double_t mt = 1000.0 * pdg::TritonMass(); // [MeV/c^2]
   Double_t par_t[2] = {conversion_factor, mt};
   Double_t dedx_t = HypTPCBethe(&poq, par_t) + offset_dedx_t; //P10's <dE/dx>_t
   // 1 sigma of <dE/dx>_t
@@ -1167,7 +1170,7 @@ Double_t HypTPCdEdxNsigmaTriton(Double_t dedx, Double_t poq){
 //_____________________________________________________________________________
 Double_t HypTPCdEdxNsigmaKaon(Double_t dedx, Double_t poq){
 
-  Double_t mk = 493.677;
+  const Double_t mk = 1000.0 * pdg::KaonMass(); // [MeV/c^2]
   Double_t par_k[2] = {conversion_factor, mk};
   Double_t dedx_k = HypTPCBethe(&poq, par_k); //P10's <dE/dx>_k
   // 1 sigma of <dE/dx>_k
@@ -1180,7 +1183,7 @@ Double_t HypTPCdEdxNsigmaKaon(Double_t dedx, Double_t poq){
 //_____________________________________________________________________________
 Double_t HypTPCdEdxNsigmaPion(Double_t dedx, Double_t poq){
 
-  Double_t mpi = 139.57039;
+  const Double_t mpi = 1000.0 * pdg::PionMass(); // [MeV/c^2]
   Double_t par_pi[2] = {conversion_factor, mpi};
   Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
   // 1 sigma of <dE/dx>_pi
@@ -1193,7 +1196,7 @@ Double_t HypTPCdEdxNsigmaPion(Double_t dedx, Double_t poq){
 //_____________________________________________________________________________
 Double_t HypTPCdEdxNsigmaElectron(Double_t dedx, Double_t poq){
 
-  Double_t me = 0.5109989461; //[MeV]
+  const Double_t me = 1000.0 * pdg::ElectronMass(); // [MeV/c^2]
   Double_t par_e[2] = {conversion_factor, me};
   Double_t dedx_e = HypTPCBethe(&poq, par_e); //P10's <dE/dx>_e
   // 1 sigma of <dE/dx>_e
@@ -1205,7 +1208,7 @@ Double_t HypTPCdEdxNsigmaElectron(Double_t dedx, Double_t poq){
 //_____________________________________________________________________________
 Double_t HypTPCdEdxPion(Double_t poq){
 
-  Double_t mpi = 139.57039;
+  const Double_t mpi = 1000.0 * pdg::PionMass(); // [MeV/c^2]
   Double_t par_pi[2] = {conversion_factor, mpi};
   Double_t dedx_pi = HypTPCBethe(&poq, par_pi); //P10's <dE/dx>_pi
   return dedx_pi;
@@ -1213,7 +1216,7 @@ Double_t HypTPCdEdxPion(Double_t poq){
 //_____________________________________________________________________________
 Double_t HypTPCdEdxKaon(Double_t poq){
 
-  Double_t mk = 493.677;
+  const Double_t mk = 1000.0 * pdg::KaonMass(); // [MeV/c^2]
   Double_t par_k[2] = {conversion_factor, mk};
   Double_t dedx_k = HypTPCBethe(&poq, par_k); //P10's <dE/dx>_k
   return dedx_k;
@@ -1222,7 +1225,7 @@ Double_t HypTPCdEdxKaon(Double_t poq){
 //_____________________________________________________________________________
 Double_t HypTPCdEdxProton(Double_t poq){
 
-  Double_t mp = 938.2720813;
+  const Double_t mp = 1000.0 * pdg::ProtonMass(); // [MeV/c^2]
   Double_t par_p[2] = {conversion_factor, mp};
   Double_t dedx_p = HypTPCBethe(&poq, par_p); //P10's <dE/dx>_p
   return dedx_p;
@@ -1231,15 +1234,15 @@ Double_t HypTPCdEdxProton(Double_t poq){
 //_____________________________________________________________________________
 Double_t HypTPCdEdxDeutron(Double_t poq){
 
-  Double_t md = 0.001*1875.612762;
+  const Double_t md = 1000.0 * pdg::DeuteronMass(); // [MeV/c^2]
   Double_t par_d[2] = {conversion_factor, md};
-  Double_t dedx_p = HypTPCBethe(&poq, par_d); //P10's <dE/dx>_d
-  return dedx_p;
+  Double_t dedx_d = HypTPCBethe(&poq, par_d); //P10's <dE/dx>_d
+  return dedx_d;
 }
 
 //_____________________________________________________________________________
 Double_t HypTPCdEdxElectron(Double_t poq){
-  Double_t me = 0.5109989461; //[MeV]
+  const Double_t me = 1000.0 * pdg::ElectronMass(); // [MeV/c^2]
   Double_t par_e[2] = {conversion_factor, me};
   Double_t dedx_e = HypTPCBethe(&poq, par_e); //P10's <dE/dx>_e
   return dedx_e;
@@ -1249,7 +1252,7 @@ Double_t HypTPCdEdxElectron(Double_t poq){
 Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t tracklength, Double_t tof){
 
   Double_t mom = TMath::Abs(poq);
-  Double_t mp = 0.001*938.2720813;
+  const Double_t mp = pdg::ProtonMass(); // [GeV/c^2]
   Double_t inverse_beta = tof*MathTools::C()/tracklength;
   Double_t inverse_beta_p = TMath::Sqrt(mp*mp + mom*mom)/mom;
   Double_t sigma_p = (sigma_tof_p[0] + sigma_tof_p[1]*TMath::Abs(mom) +
@@ -1263,7 +1266,7 @@ Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t tracklength, Double_t tof
 Double_t HypTPCHTOFNsigmaDeutron(Double_t poq, Double_t tracklength, Double_t tof){
 
   Double_t mom = TMath::Abs(poq);
-  Double_t md = 0.001*1875.612762;
+  const Double_t md = pdg::DeuteronMass(); // [GeV/c^2]
   Double_t inverse_beta = tof*MathTools::C()/tracklength;
   Double_t inverse_beta_d = TMath::Sqrt(md*md + mom*mom)/mom;
   Double_t sigma_d = (sigma_tof_d[0] + sigma_tof_d[1]*TMath::Abs(mom) +
@@ -1277,7 +1280,7 @@ Double_t HypTPCHTOFNsigmaDeutron(Double_t poq, Double_t tracklength, Double_t to
 Double_t HypTPCHTOFNsigmaTriton(Double_t poq, Double_t tracklength, Double_t tof){
 
   Double_t mom = TMath::Abs(poq);
-  Double_t mt = 0.001*2808.921112;
+  const Double_t mt = pdg::TritonMass(); // [GeV/c^2]
   Double_t inverse_beta = tof*MathTools::C()/tracklength;
   Double_t inverse_beta_t = TMath::Sqrt(mt*mt + mom*mom)/mom;
   Double_t sigma_t = (sigma_tof_t[0] + sigma_tof_t[1]*TMath::Abs(mom) +
@@ -1291,7 +1294,7 @@ Double_t HypTPCHTOFNsigmaTriton(Double_t poq, Double_t tracklength, Double_t tof
 Double_t HypTPCHTOFNsigmaKaon(Double_t poq, Double_t tracklength, Double_t tof){
 
   Double_t mom = TMath::Abs(poq);
-  Double_t mk = 0.001*493.677;
+  const Double_t mk = pdg::KaonMass(); // [GeV/c^2]
   Double_t inverse_beta = tof*MathTools::C()/tracklength;
   Double_t inverse_beta_k = TMath::Sqrt(mk*mk + mom*mom)/mom;
   Double_t sigma_k = (sigma_tof_k[0] + sigma_tof_k[1]*TMath::Abs(mom) +
@@ -1305,7 +1308,7 @@ Double_t HypTPCHTOFNsigmaKaon(Double_t poq, Double_t tracklength, Double_t tof){
 Double_t HypTPCHTOFNsigmaPion(Double_t poq, Double_t tracklength, Double_t tof){
 
   Double_t mom = TMath::Abs(poq);
-  Double_t mpi = 0.001*139.57039;
+  const Double_t mpi = pdg::PionMass(); // [GeV/c^2]
   Double_t inverse_beta = tof*MathTools::C()/tracklength;
   Double_t inverse_beta_pi = TMath::Sqrt(mpi*mpi + mom*mom)/mom;
   Double_t sigma_pi = (sigma_tof_pi[0] + sigma_tof_pi[1]*TMath::Abs(mom) +
@@ -1319,7 +1322,7 @@ Double_t HypTPCHTOFNsigmaPion(Double_t poq, Double_t tracklength, Double_t tof){
 Double_t HypTPCHTOFNsigmaElectron(Double_t poq, Double_t tracklength, Double_t tof){
 
   Double_t mom = TMath::Abs(poq);
-  Double_t me = 0.001*0.5109989461; //[MeV]
+  const Double_t me = pdg::ElectronMass(); // [GeV/c^2]
   Double_t inverse_beta = tof*MathTools::C()/tracklength;
   Double_t inverse_beta_e = TMath::Sqrt(me*me + mom*mom)/mom;
   Double_t sigma_e = poq>0 ? sigma_tof_ep : sigma_tof_em;
@@ -1333,7 +1336,7 @@ Double_t HypTPCHTOFNsigmaElectron(Double_t poq, Double_t tracklength, Double_t t
 Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t inverse_beta){
 
   Double_t mom = TMath::Abs(poq);
-  Double_t mp = 0.001*938.2720813;
+  const Double_t mp = pdg::ProtonMass(); // [GeV/c^2]
   Double_t inverse_beta_p = TMath::Sqrt(mp*mp + mom*mom)/mom;
   Double_t sigma_p = (sigma_tof_p[0] + sigma_tof_p[1]*TMath::Abs(mom) +
 		      sigma_tof_p[2]*mom*mom + sigma_tof_p[3]*TMath::Exp(sigma_tof_p[4]*TMath::Abs(mom)));
@@ -1346,7 +1349,7 @@ Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t inverse_beta){
 Double_t HypTPCHTOFNsigmaDeutron(Double_t poq, Double_t inverse_beta){
 
   Double_t mom = TMath::Abs(poq);
-  Double_t md = 0.001*1875.612762;
+  const Double_t md = pdg::DeuteronMass(); // [GeV/c^2]
   Double_t inverse_beta_d = TMath::Sqrt(md*md + mom*mom)/mom;
   Double_t sigma_d = (sigma_tof_d[0] + sigma_tof_d[1]*TMath::Abs(mom) +
 		      sigma_tof_d[2]*mom*mom + sigma_tof_d[3]*TMath::Exp(sigma_tof_d[4]*TMath::Abs(mom)));
@@ -1359,7 +1362,7 @@ Double_t HypTPCHTOFNsigmaDeutron(Double_t poq, Double_t inverse_beta){
 Double_t HypTPCHTOFNsigmaTriton(Double_t poq, Double_t inverse_beta){
 
   Double_t mom = TMath::Abs(poq);
-  Double_t mt = 0.001*2808.921112;
+  const Double_t mt = pdg::TritonMass(); // [GeV/c^2]
   Double_t inverse_beta_t = TMath::Sqrt(mt*mt + mom*mom)/mom;
   Double_t sigma_t = (sigma_tof_t[0] + sigma_tof_t[1]*TMath::Abs(mom) +
 		      sigma_tof_t[2]*mom*mom + sigma_tof_t[3]*TMath::Exp(sigma_tof_t[4]*TMath::Abs(mom)));
@@ -1372,7 +1375,7 @@ Double_t HypTPCHTOFNsigmaTriton(Double_t poq, Double_t inverse_beta){
 Double_t HypTPCHTOFNsigmaKaon(Double_t poq, Double_t inverse_beta){
 
   Double_t mom = TMath::Abs(poq);
-  Double_t mk = 0.001*493.677;
+  const Double_t mk = pdg::KaonMass(); // [GeV/c^2]
   Double_t inverse_beta_k = TMath::Sqrt(mk*mk + mom*mom)/mom;
   Double_t sigma_k = (sigma_tof_k[0] + sigma_tof_k[1]*TMath::Abs(mom) +
 		      sigma_tof_k[2]*mom*mom + sigma_tof_k[3]*TMath::Exp(sigma_tof_k[4]*TMath::Abs(mom)));
@@ -1385,7 +1388,7 @@ Double_t HypTPCHTOFNsigmaKaon(Double_t poq, Double_t inverse_beta){
 Double_t HypTPCHTOFNsigmaPion(Double_t poq, Double_t inverse_beta){
 
   Double_t mom = TMath::Abs(poq);
-  Double_t mpi = 0.001*139.57039;
+  const Double_t mpi = pdg::PionMass(); // [GeV/c^2]
   Double_t inverse_beta_pi = TMath::Sqrt(mpi*mpi + mom*mom)/mom;
   Double_t sigma_pi = (sigma_tof_pi[0] + sigma_tof_pi[1]*TMath::Abs(mom) +
 		       sigma_tof_pi[2]*mom*mom + sigma_tof_pi[3]*TMath::Exp(sigma_tof_pi[4]*TMath::Abs(mom)));
@@ -1398,7 +1401,7 @@ Double_t HypTPCHTOFNsigmaPion(Double_t poq, Double_t inverse_beta){
 Double_t HypTPCHTOFNsigmaElectron(Double_t poq, Double_t inverse_beta){
 
   Double_t mom = TMath::Abs(poq);
-  Double_t me = 0.001*0.5109989461; //[MeV]
+  const Double_t me = pdg::ElectronMass(); // [GeV/c^2]
   Double_t inverse_beta_e = TMath::Sqrt(me*me + mom*mom)/mom;
   Double_t sigma_e = poq>0 ? sigma_tof_ep : sigma_tof_em;
 
@@ -1431,10 +1434,8 @@ Bool_t HypTPCdEdxElectron(Double_t dedx, Double_t poq){
 //_____________________________________________________________________________
 Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
 
-  Double_t mpi = 139.57039;
-  //Double_t mk  = 493.677;
-  Double_t mp  = 938.2720813;
-  //Double_t md  = 1875.612762;
+  const Double_t mpi = 1000.0 * pdg::PionMass(); // [MeV/c^2]
+  const Double_t mp = 1000.0 * pdg::ProtonMass(); // [MeV/c^2]
   if(HypTPCdEdxElectron(dedx, poq)) return 0; //electron
 
   // 1 sigma of <dE/dx>_pi
@@ -1458,7 +1459,7 @@ Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq){
   Double_t ppi_separation_cut = dedx_pi < dedx_p ? dedx_pi + 0.5*separation_power*sigma_pi : dedx_p + 0.5*separation_power*sigma_p;
 
   Int_t pid[3] = {0};
-  if(separation_power < 6.){ //3 sigma separation limit
+  if(separation_power < 6.){ // low pi-p separation: use nsigma windows (threshold 6 in code)
     if(nsigma_pi > window_pi[0] && nsigma_pi < window_pi[1]) pid[0]=1;
     if(nsigma_p > window_p[0]) pid[2]=1;
   }
@@ -1495,7 +1496,7 @@ void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg){
 TVector3
 CalcHelixMom(Double_t Bfield, Int_t charge, Double_t par[5], Double_t t){
 
-  Double_t pt = fabs(par[3])*tpc::CONST_C*Bfield;
+  Double_t pt = fabs(par[3])*tpc::C_LIGHT*Bfield;
   Double_t tmp_px = pt*(-1.*sin(t));
   Double_t tmp_py = pt*(cos(t));
   Double_t tmp_pz = pt*(par[4]);
@@ -1517,7 +1518,7 @@ CalcHelixParam(Double_t Bfield, Int_t charge, TVector3 mom, TVector3 pos, Double
   Double_t tmp_py = q*1000.*mom.z();
   Double_t tmp_pz = q*1000.*mom.y();
   TVector3 pT(tmp_px, tmp_py, 0.);
-  par[3] = pT.Mag()/(tpc::CONST_C*Bfield);
+  par[3] = pT.Mag()/(tpc::C_LIGHT*Bfield);
   par[4] = tmp_pz/pT.Mag();
 
   TVector3 pos_(-pos.x(), pos.z() - tpc::Z_TARGET, pos.y());
@@ -2001,7 +2002,16 @@ TVector3
 MultitrackVertex(Int_t ntrack, const std::vector<Double_t>& x0, const std::vector<Double_t>& y0,
 		 const std::vector<Double_t>& u0, const std::vector<Double_t>& v0,
 		 std::vector<Double_t> Res_x0, std::vector<Double_t> Res_y0,
-		 std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0){
+		 std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0,
+		 Double_t* chisqr){
+
+  // Vertex is underdetermined for ntrack < 2 
+  // (chi^2 is identically zero or degenerate along the single track)
+  // so skip the Minuit fit and return NaN to signal "no vertex".
+  if(ntrack < 2){
+    if(chisqr) *chisqr = TMath::QuietNaN();
+    return TVector3(TMath::QuietNaN(), TMath::QuietNaN(), TMath::QuietNaN());
+  }
 
   gNumOfTracks = ntrack;
   gX0.clear();
@@ -2064,9 +2074,9 @@ MultitrackVertex(Int_t ntrack, const std::vector<Double_t>& x0, const std::vecto
   minuit->mnexcm("SET NOW", arglist, 1, ierflg);
 
   TString name[3] = {"x", "y" ,"z"};
-  const Double_t FitStep[3] = {0.001, 0.001, 0.001};
-  const Double_t LowLimit[3] = {-50., -50., -100};
-  const Double_t UpLimit[3] = {50., 50., 100};
+  const Double_t FitStep[3]  = {0.001, 0.001, 0.001};
+  const Double_t LowLimit[3] = {-tpc::TARGET_HALF_X, -tpc::TARGET_HALF_Y, -2.*tpc::TARGET_HALF_Z};
+  const Double_t UpLimit[3]  = { tpc::TARGET_HALF_X,  tpc::TARGET_HALF_Y,  2.*tpc::TARGET_HALF_Z};
   for(Int_t i=0; i<3; i++){
     minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
   }
@@ -2090,109 +2100,11 @@ MultitrackVertex(Int_t ntrack, const std::vector<Double_t>& x0, const std::vecto
   for(Int_t i=0; i<3; i++){
     minuit->mnpout(i, name[i], par[i], err[i], bnd1, bnd2, Err);
   }
-  delete minuit;
-
-  return TVector3(par[0], par[1], par[2] + tpc::Z_TARGET);
-}
-
-//_____________________________________________________________________________
-TVector3
-MultitrackVertex(Int_t ntrack, const std::vector<Double_t>& x0, const std::vector<Double_t>& y0,
-		 const std::vector<Double_t>& u0, const std::vector<Double_t>& v0,
-		 std::vector<Double_t> Res_x0, std::vector<Double_t> Res_y0,
-		 std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0, Double_t &chisqr){
-
-  gNumOfTracks = ntrack;
-  gX0.clear();
-  gY0.clear();
-  gU0.clear();
-  gV0.clear();
-  gSX0.clear();
-  gSY0.clear();
-  gSU0.clear();
-  gSV0.clear();
-  for(Int_t i=0; i<gNumOfTracks; ++i){
-    gX0.push_back(x0[i]);
-    gY0.push_back(y0[i]);
-    gU0.push_back(u0[i]);
-    gV0.push_back(v0[i]);
+  if(chisqr){
+    Double_t grad[3]; Double_t chi;
+    minuit->Eval(3, grad, chi, par, 0);
+    *chisqr = chi;
   }
-  bool ResFlag = true;
-  if(Res_x0.size() == 0){
-    ResFlag = false;
-  }
-  else if(Res_x0.size() != ntrack || Res_y0.size() != ntrack
-	  || Res_u0.size() != ntrack || Res_v0.size() != ntrack){
-    std::cout<<"MultitrackVertex:: Resolution not set"<<std::endl;
-    std::cout<<"ntracks = "<<ntrack<<std::endl;
-    std::cout<<"Res_x0.size() = "<<Res_x0.size()<<std::endl;
-    std::cout<<"Res_y0.size() = "<<Res_y0.size()<<std::endl;
-    std::cout<<"Res_u0.size() = "<<Res_u0.size()<<std::endl;
-    std::cout<<"Res_v0.size() = "<<Res_v0.size()<<std::endl;
-    ResFlag = false;
-  }
-  if(ResFlag){
-    for(Int_t i=0; i<gNumOfTracks; ++i){
-      gSX0.push_back(Res_x0[i]);
-      gSY0.push_back(Res_y0[i]);
-      gSU0.push_back(Res_u0[i]);
-      gSV0.push_back(Res_v0[i]);
-    }
-  }
-  else{
-    for(Int_t i=0;i<gNumOfTracks;++i){
-      gSX0.push_back(1.);
-      gSY0.push_back(1.);
-      gSU0.push_back(0.);
-      gSV0.push_back(0.);
-    }
-  }
-
-  Double_t par[3] = {0, 0, 0};
-  Double_t err[3] = {999., 999., 999.};
-
-  TMinuit *minuit = new TMinuit(3);
-  minuit->SetPrintLevel(-1);
-  minuit->SetFCN(fcn_vertex);
-
-  Double_t arglist[10];
-  Int_t ierflg = 0;
-
-  arglist[0] = 1; //error level for ch2 minimization
-  minuit->mnexcm("SET ERR", arglist, 1, ierflg);
-  minuit->mnexcm("SET NOW", arglist, 1, ierflg);
-
-  TString name[3] = {"x", "y" ,"z"};
-  const Double_t FitStep[3] = {0.001, 0.001, 0.001};
-  const Double_t LowLimit[3] = {-50., -50., -100};
-  const Double_t UpLimit[3] = {50., 50., 100};
-  for(Int_t i=0; i<3; i++){
-    minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
-  }
-  minuit->Command("SET STRategy 0");
-
-  //arglist[0] = 500.;
-  //arglist[1] = 1;
-  arglist[0] = 1000.;
-  arglist[1] = 0.1;
-
-  Int_t Err;
-  Double_t bnd1, bnd2;
-  minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
-  //minuit->mnimpr();
-  //minuit->mnexcm("MINOS", arglist, 0, ierflg);
-  //minuit->mnexcm("SET ERR", arglist, 2, ierflg);
-
-  Double_t amin, edm, errdef;
-  Int_t nvpar, nparx, icstat;
-  minuit->mnstat(amin, edm, errdef, nvpar, nparx, icstat);
-  for(Int_t i=0; i<3; i++){
-    minuit->mnpout(i, name[i], par[i], err[i], bnd1, bnd2, Err);
-  }
-  Double_t grad[3]; Double_t chi;
-  minuit -> Eval(3, grad, chi, par, 0);
-  chisqr = chi;
-
   delete minuit;
 
   return TVector3(par[0], par[1], par[2] + tpc::Z_TARGET);

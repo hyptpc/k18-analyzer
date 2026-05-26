@@ -1191,9 +1191,9 @@ TPCLocalTrackHelix::TPCLocalTrackHelix()
     m_vp()
 {
 
-  static const Double_t MomResScale = gUser.GetParameter("MomResScale") ;
-  static const Double_t dZResScale = gUser.GetParameter("dZResScale") ;
-  static const Double_t PhiResScale = gUser.GetParameter("PhiResScale") ;
+  static const Double_t MomResScale = gUser.GetParameter("MomResScale");
+  static const Double_t dZResScale = gUser.GetParameter("dZResScale");
+  static const Double_t PhiResScale = gUser.GetParameter("PhiResScale");
   m_MomResScale = MomResScale;
   m_dZResScale = dZResScale;
   m_PhResScale = PhiResScale;
@@ -1287,9 +1287,9 @@ TPCLocalTrackHelix::TPCLocalTrackHelix(TPCLocalTrackHelix *init){
     this -> m_hit_array[i] -> SetResolution(init -> m_hit_array[i] -> GetResolutionVect());
   }
 
-  static const Double_t MomResScale = gUser.GetParameter("MomResScale") ;
-  static const Double_t dZResScale = gUser.GetParameter("dZResScale") ;
-  static const Double_t PhiResScale = gUser.GetParameter("PhiResScale") ;
+  static const Double_t MomResScale = gUser.GetParameter("MomResScale");
+  static const Double_t dZResScale = gUser.GetParameter("dZResScale");
+  static const Double_t PhiResScale = gUser.GetParameter("PhiResScale");
   m_MomResScale = MomResScale;
   m_dZResScale = dZResScale;
   m_PhResScale = PhiResScale;
@@ -1562,7 +1562,7 @@ TPCLocalTrackHelix::CalcHelixMomCenter(const Double_t par[5]) const
 {
 
   Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t pt = fabs(par[3])*(tpc::CONST_C*dMagneticField); // GeV/c
+  Double_t pt = fabs(par[3])*(tpc::C_LIGHT*dMagneticField); // GeV/c
   Double_t theta = -par[2]/(par[3]*par[4]); //at y = 0
 
   Double_t tmp_px = pt*(-1.*sin(theta));
@@ -1583,7 +1583,7 @@ TPCLocalTrackHelix::CalcHelixMom(const Double_t par[5], Double_t theta) const
 {
 
   Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t pt = TMath::Abs(par[3])*(tpc::CONST_C*dMagneticField); // GeV/c
+  Double_t pt = TMath::Abs(par[3])*(tpc::C_LIGHT*dMagneticField); // GeV/c
 
   Double_t tmp_px = pt*(-1.*TMath::Sin(theta));
   Double_t tmp_py = pt*(TMath::Cos(theta));
@@ -1692,9 +1692,9 @@ TPCLocalTrackHelix::DoFit(Int_t MinHits)
   if(!m_is_fitted) return DoFit(MinHits); //Do chisqr minimization again after separation
 
   //Minimum # of clusters
+  Int_t nhit = GetNHit();
 #if 1
   if(IsBackward() && GetIsBeam()==1) MinHits = 3;
-  Int_t nhit = GetNHit();
   if(nhit<MinHits) return false;
 #else
   Int_t nbadhit = gBadHits;
@@ -1854,9 +1854,9 @@ TPCLocalTrackHelix::DoFit(Double_t RKpar[5], Int_t MinHits)
   //SeparateTracksAtTarget();
 
   //Minimum # of clusters
+  Int_t nhit = GetNHit();
 #if 1
   if(IsBackward() && GetIsBeam()==1) MinHits = 3;
-  Int_t nhit = GetNHit();
   if(nhit<MinHits) return false;
 #else
   Int_t nbadhit = gBadHits;
@@ -2374,6 +2374,7 @@ TPCLocalTrackHelix::IsGoodHitToAdd(TPCHit *hit, Double_t &residual, Bool_t nolim
 
     TVector3 pos = hitp -> GetLocalHitPos();
     // to do: it might be better to optimize for E72 target geometry
+    // TODO(E72): add TPCLocalTrackHelix::IsBeamLikeHit(pos) (mirror TPCLocalTrack)
     if(TMath::Abs(pos.x()) < 25. && pos.z() < tpc::Z_TARGET) nhit_upstream_tgt++;
   }
 
@@ -2914,7 +2915,7 @@ TPCLocalTrackHelix::VertexAtTarget()
   }
 
   Bool_t status = false;
-  if(m_closedist.Mag() < tpc::TARGET_VTX_WINDOW) status = true;
+  if(m_closedist.Mag() < tpc::TARGET_RADIUS) status = true;
   return status;
 }
 
@@ -2932,7 +2933,7 @@ TPCLocalTrackHelix::IsBackward()
   return false;
 
   // track is starting from the target
-  if(TMath::Abs(TMath::Hypot(m_cx, m_cy) - m_r) > tpc::TARGET_VTX_WINDOW) return false;
+  if(TMath::Abs(TMath::Hypot(m_cx, m_cy) - m_r) > tpc::TARGET_RADIUS) return false;
 
   // Track exist before the target position
   // if(m_edgepoint.z() > tpc::Z_TARGET) return false;
@@ -3095,7 +3096,7 @@ TPCLocalTrackHelix::SeparateTracksAtTarget()
   //If the target is at the middle of the inintial track, that track is separated with different side flag. (Two tracks are reconized as a single track)
   //Please see the Side() function.
 
-  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1.);
   if(BeamThroughTPC || m_isAccidental==1){
     return status;
   }
@@ -3123,25 +3124,27 @@ TPCLocalTrackHelix::SeparateTracksAtTarget()
     //Exclude the beam hit from the scattered track.
     Bool_t flag = false;
     TVector3 prev_pos;
-    Bool_t prev_isBeamHit = false; Bool_t isBeamHit;
+    Bool_t prev_is_beam_hit = false;
+    Bool_t is_beam_hit = false;
     const std::size_t n = m_hit_array.size();
     for(Int_t i=0; i<n; ++i){
       Int_t id = m_hit_order[i];
       TPCLTrackHit *hitp = m_hit_array[id];
       TVector3 pos = hitp -> GetLocalHitPos();
       // to do: update the beam hit criteria for E72 condition
+      // TODO(E72): add TPCLocalTrackHelix::IsBeamLikeHit(pos) (mirror TPCLocalTrack)
       if (TMath::Abs(pos.x()) < 25. &&
           TMath::Abs(pos.y()) < 30. &&
-          pos.z() < tpc::Z_TARGET) isBeamHit = true;
-      else isBeamHit = false;
+          pos.z() < tpc::Z_TARGET) is_beam_hit = true;
+      else is_beam_hit = false;
 
       TVector3 gap = pos - prev_pos;
       //std::cout<<i<<" gap "<<gap.Mag()<<" pos "<<pos<<std::endl;
-      if((m_dz > 0.01 || m_r < 3300.) && i!=0 && gap.Mag() > 30. && prev_isBeamHit!=isBeamHit) flag = true;
+      if((m_dz > 0.01 || m_r < 3300.) && i!=0 && gap.Mag() > 30. && prev_is_beam_hit != is_beam_hit) flag = true;
       if(!flag) side1_hits.push_back(id);
       else side2_hits.push_back(id);
       prev_pos = pos;
-      prev_isBeamHit = isBeamHit;
+      prev_is_beam_hit = is_beam_hit;
     }
   }
 
@@ -3452,7 +3455,7 @@ TPCLocalTrackHelix::CheckIsAccidental()
   //if(!m_is_fitted) return;
   if(m_is_multiloop) return; //A multiloop track is obviously not accidental beam
 
-  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1.);
   //if(BeamThroughTPC || m_isAccidental==1) return;
   if(BeamThroughTPC) return;
   m_isAccidental=0;
@@ -3474,6 +3477,7 @@ TPCLocalTrackHelix::CheckIsAccidental()
     TPCLTrackHit *hitp = m_hit_array[i];
     TVector3 pos = hitp -> GetLocalHitPos();
     // TODO: refine for E72 target geometry
+    // TODO(E72): add TPCLocalTrackHelix::IsBeamLikeHit(pos) (mirror TPCLocalTrack)
     if(TMath::Abs(pos.x()) < 25. && pos.z() < tpc::Z_TARGET) nhit_beamsection++;
     if(pos.z() < tpc::Z_TARGET) nhit_upstream_tgt++;
     if(pos.z() > tpc::Z_TARGET) nhit_downstream_tgt++;
@@ -3710,7 +3714,7 @@ TPCLocalTrackHelix::GetMomentumResolutionVectT(Double_t t, Double_t MomScale, Do
   */
 
   Double_t dMagneticField = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t p_t = m_r*(tpc::CONST_C*dMagneticField)*0.001;
+  Double_t p_t = m_r*(tpc::C_LIGHT*dMagneticField)*0.001;
   //Double_t pz = p_t*(cos(t));
   //Double_t py = p_t*m_dz;
   //Double_t px = p_t*(sin(t));
@@ -3817,7 +3821,7 @@ TPCLocalTrackHelix::GetTransverseMomentumAngularCovariance(Double_t t){
 double
 TPCLocalTrackHelix::GetMomentumPitchAngleCovariance(){
   Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t p_t = m_r*(tpc::CONST_C*B)*0.001;
+  Double_t p_t = m_r*(tpc::C_LIGHT*B)*0.001;
   Double_t pitch = atan2(1,m_dz);//dYdZ angle, dZ= 0 -> should return pi/2
   Double_t res_pitch = GetThetaResolution();
   return p_t*cos(pitch)/sin(pitch)/sin(pitch)*res_pitch*res_pitch;
@@ -3833,7 +3837,7 @@ TPCLocalTrackHelix::GetMomentumCovarianceVectT(Double_t t, Double_t MomScale, Do
     We will calculate the momentum resolution from pt, theta, and dZ resolution.
   */
   Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t p_t = m_r*(tpc::CONST_C*B)*0.001;
+  Double_t p_t = m_r*(tpc::C_LIGHT*B)*0.001;
   //Double_t pz = p_t*(cos(t));
   //Double_t py = p_t*m_dz;
   //Double_t px = p_t*(sin(t));
@@ -3931,7 +3935,7 @@ TPCLocalTrackHelix::GetTransverseMomentumResolution(){
     }
     res+=res_T*res_T;
   }
-  Double_t pt = m_r*(tpc::CONST_C*B)*0.001;
+  Double_t pt = m_r*(tpc::C_LIGHT*B)*0.001;
   if(nh<4) return pt*0.1;
   res = sqrt(3./2) * sqrt(res / nh)* 0.001;//mm-> m
   Double_t dPOverP = pt / (0.3*L*L*B)*sqrt(720./(nh+4))*res;
@@ -3946,7 +3950,7 @@ Double_t
 TPCLocalTrackHelix::GetTransverseAngularResolution(Double_t t, Double_t sig0){
   //Transverse Angle Definition: atan2(pz,px);
   Double_t B = HS_field_0*(HS_field_Hall/HS_field_Hall_calc);
-  Double_t pt = m_r*(tpc::CONST_C*B)*0.001;
+  Double_t pt = m_r*(tpc::C_LIGHT*B)*0.001;
   Double_t dp = GetTransverseMomentumResolution();
   Double_t dr = m_r * dp/pt;
   Double_t t_avg = 0.5*(m_max_t + m_min_t);

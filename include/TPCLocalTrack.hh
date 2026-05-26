@@ -64,6 +64,8 @@ private:
   std::vector<Double_t> m_v0_exclusive;
   std::vector<Double_t> m_chisqr_exclusive;
 
+  Bool_t IsBeamLikeHit(const TVector3& pos) const;
+
 public:
 
   void          AddTPCHit(TPCLTrackHit *hit);

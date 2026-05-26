@@ -35,21 +35,19 @@
 namespace { TApplication app("DebugApp", nullptr, nullptr); }
 static Int_t cannum = 0;
 #endif
+
 namespace
 {
   const auto qnan = TMath::QuietNaN();
   const Double_t& HSfield_Calib = ConfMan::Get<Double_t>("HSFLDCALIB");
   const Double_t& HSfield_Calc = ConfMan::Get<Double_t>("HSFLDCALC");
   const Double_t& HSfield_Hall = ConfMan::Get<Double_t>("HSFLDHALL");
-  const Double_t Const = 0.299792458;
   const Double_t MIN_HOUGH_THRESHOLD_SCALE = 0.5;
 
   // HoughXZ binning
-  //static const Int_t    Li_theta_ndiv = 180;
   static const Int_t    Li_theta_ndiv = 360;
   static const Double_t Li_theta_min  =   0.;
   static const Double_t Li_theta_max  = 180.;
-  //static const Int_t    Li_rho_ndiv =  180;
   static const Int_t    Li_rho_ndiv =  720;
   static const Double_t Li_rho_min  = -720.;
   static const Double_t Li_rho_max  =  720.;
@@ -65,7 +63,6 @@ namespace
   const Double_t theta_min = -1.*TMath::Pi();
   const Double_t theta_max = TMath::Pi();
   const Int_t    nBin_p = 900;
-  //const Double_t pmin = 50.;
   const Double_t pmin = 20.;
   const Double_t pmax = 1550.; //MeV/c
 
@@ -100,8 +97,8 @@ namespace
 
 //_____________________________________________________________________________
 static inline void
-HoughFlagCheck(const std::vector<TPCClusterContainer>& ClCont, std::vector<TVector3>& gHitPos){
-
+HoughFlagCheck(const std::vector<TPCClusterContainer>& ClCont, std::vector<TVector3>& gHitPos)
+{
   for(Int_t layer=0; layer<NumOfLayersTPC; layer++){
     for(Int_t ci=0, n=ClCont[layer].size(); ci<n; ci++){
       auto cl = ClCont[layer][ci];
@@ -431,7 +428,7 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
 
   // Equation
   // (x - (r + rd)*cos(theta))^2 + (y - (r + rd)*sin(theta))^2 = r^2
-  // p = r * Const * dMagneticField;
+  // p = r * tpc::C_LIGHT * dMagneticField;
   Double_t dMagneticField = HSfield_Calib*(HSfield_Hall/HSfield_Calc);
   Bool_t status = true;
 
@@ -453,7 +450,7 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
       Double_t rd = histCircle->GetXaxis()->GetBinCenter(ird+1);
       for(Int_t ip=0; ip<histCircle -> GetNbinsZ(); ++ip){
         Double_t p = histCircle->GetZaxis()->GetBinCenter(ip+1);
-        Double_t r = p/(Const*dMagneticField);
+        Double_t r = p/(tpc::C_LIGHT*dMagneticField);
 
         // a*sin(theta) + b*cos(theta) + c = 0
         // sin(theta + alpha) = -c/sqrt(a^2+b^2) = -c/r0
@@ -524,7 +521,7 @@ HoughTransformCircleXZ(std::vector<TVector3> gHitPos,
   Double_t hough_rd    = histCircle->GetXaxis()->GetBinCenter(mx);
   Double_t hough_theta = histCircle->GetYaxis()->GetBinCenter(my);
   Double_t hough_p     = histCircle->GetZaxis()->GetBinCenter(mz);
-  HelixPar[3] = hough_p/(Const*dMagneticField); //helix r
+  HelixPar[3] = hough_p/(tpc::C_LIGHT*dMagneticField); //helix r
   HelixPar[0] = (HelixPar[3] + hough_rd)*TMath::Cos(hough_theta); //helix cx
   HelixPar[1] = (HelixPar[3] + hough_rd)*TMath::Sin(hough_theta); //helix cy
 

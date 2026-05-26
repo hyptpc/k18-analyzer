@@ -33,7 +33,16 @@
 namespace tpc
 {
 const Double_t Z_TARGET = -143.; // Target from center
-const Double_t TARGET_VTX_WINDOW = 30.;
+
+// E72 cylindrical target (axis along y) with a surrounding holder.
+//   xz plane: raw target radius = 40 mm, +10 mm holder shell, +10 mm clearance
+//   y  axis : raw half-length   = 50 mm, +10 mm clearance
+// Use TARGET_RADIUS for radial (cylindrical) cuts in the xz plane, and
+// TARGET_HALF_X/Y/Z for axis-aligned (box) cuts.
+const Double_t TARGET_RADIUS = 40. + 10. + 10.;  // = 60 mm  (raw + holder + clearance)
+const Double_t TARGET_HALF_X = TARGET_RADIUS;    // xz plane is the cylindrical cross section
+const Double_t TARGET_HALF_Y = 50. + 10.;        // = 60 mm  (raw + clearance)
+const Double_t TARGET_HALF_Z = TARGET_RADIUS;    // xz plane is the cylindrical cross section
 
 enum EPadParameter
 {
@@ -54,8 +63,8 @@ static const Double_t POSITION_SCALE = 1.;
 //E42
 static const Int_t MAX_ROW_DIF_TPC = 2;
 
-//for helix tracking
-static const Double_t CONST_C = 0.299792458; //=c/10^9
+// unit is [m/ns], used for p = q B r in the helix momentum formula and so on
+static const Double_t C_LIGHT = TMath::C() * 1.e-9;
   
 //_____________________________________________________________________________
 //#OfPad #division #radius padLength

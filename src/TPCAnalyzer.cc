@@ -101,43 +101,43 @@ TPCAnalyzer::DecodeTPCHits(TPCRawData &TPCrawData,
 
 //_____________________________________________________________________________
 Bool_t
-TPCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
-			       TPCClusterContainer& ClCont,
-			       Double_t maxdy)
+TPCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& hit_cont,
+			       TPCClusterContainer& cl_cont,
+			       Double_t max_dy)
 {
-  static const Double_t MinClusterDe   = gUser.GetParameter("MinClusterDeTPC");
-  static const Int_t    MinClusterSize = gUser.GetParameter("MinClusterSizeTPC");
-  static const Double_t MinClusterYPos = gUser.GetParameter("MinClusterYPosTPC");
-  static const Double_t MaxClusterYPos = gUser.GetParameter("MaxClusterYPosTPC");
+  static const Double_t min_cluster_de   = gUser.GetParameter("MinClusterDeTPC");
+  static const Int_t    min_cluster_size = gUser.GetParameter("MinClusterSizeTPC");
+  static const Double_t min_cluster_ypos = gUser.GetParameter("MinClusterYPosTPC");
+  static const Double_t max_cluster_ypos = gUser.GetParameter("MaxClusterYPosTPC");
 
-  const auto nh = HitCont.size();
+  const auto nh = hit_cont.size();
   if(nh==0) return false;
 
   std::vector<Int_t> joined(nh, 0);
   for(Int_t i=0; i<nh; ++i){
     if(joined[i] > 0) continue;
-    TPCHitContainer CandCont;
-    TPCHit* hit = HitCont[i];
+    TPCHitContainer cand_cont;
+    TPCHit* hit = hit_cont[i];
     if(!hit || !hit->IsGood()) continue;
     Int_t layer = hit->GetLayer();
-    CandCont.push_back(hit);
+    cand_cont.push_back(hit);
     joined[i]++;
-    Double_t padlength = hit -> GetPadLength();
-    TVector3 dist2tgt = hit -> GetPosition() - TVector3(0., 0., tpc::Z_TARGET);
-    Double_t verticalpathlength_forpad =
+    Double_t padlength = hit->GetPadLength();
+    TVector3 dist2tgt = hit->GetPosition() - TVector3(0., 0., tpc::Z_TARGET);
+    Double_t vertical_pathlength =
       padlength*dist2tgt.y()/TMath::Hypot(dist2tgt.x(), dist2tgt.z());
-    maxdy = TMath::Max(maxdy, verticalpathlength_forpad);
+    max_dy = TMath::Max(max_dy, vertical_pathlength);
 #if UseTpcCluster
     for(Int_t j=0; j<nh; ++j){
       if(i==j || joined[j]>0) continue;
-      TPCHit* thit = HitCont[j];
+      TPCHit* thit = hit_cont[j];
       if(!thit || !thit->IsGood()) continue;
-      Int_t rowID = thit->GetRow();
-      for(const auto& c_hit: CandCont){
-        Int_t c_rowID = c_hit->GetRow();
-        if(tpc::IsClusterable(layer, rowID, c_rowID)
-           && TMath::Abs(thit->GetY() - c_hit->GetY()) < maxdy){
-          CandCont.push_back(thit);
+      Int_t row_id = thit->GetRow();
+      for(const auto& c_hit: cand_cont){
+        Int_t c_row_id = c_hit->GetRow();
+        if(tpc::IsClusterable(layer, row_id, c_row_id)
+           && TMath::Abs(thit->GetY() - c_hit->GetY()) < max_dy){
+          cand_cont.push_back(thit);
           joined[j]++;
           break;
         }
@@ -145,12 +145,15 @@ TPCAnalyzer::MakeUpTPCClusters(const TPCHitContainer& HitCont,
     }
 #endif
 
-    TPCCluster* cluster = new TPCCluster(layer, CandCont);
+    TPCCluster* cluster = new TPCCluster(layer, cand_cont);
     if(!cluster) continue;
     if(cluster->Calculate()
-       && cluster->GetDe()>=MinClusterDe && cluster->GetClusterSize()>=MinClusterSize
-       && cluster->GetY()>=MinClusterYPos && cluster->GetY()<=MaxClusterYPos){
-      ClCont.push_back(cluster);
+       && cluster->GetDe()>=min_cluster_de 
+       && cluster->GetClusterSize()>=min_cluster_size
+       && cluster->GetY()>=min_cluster_ypos 
+       && cluster->GetY()<=max_cluster_ypos)
+    {
+      cl_cont.push_back(cluster);
     }else{
       delete cluster;
     }
@@ -172,7 +175,8 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
     return false;
   }
 
-  static const Double_t MinCDe = gUser.GetParameter("MinCDeTPC");
+  // MinCDeTPC: minimum corrected dE for a hit before clustering
+  static const Double_t min_cde = gUser.GetParameter("MinCDeTPC");
 
   ClearTPCHits();
   ClearTPCClusters();
@@ -183,7 +187,7 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
   }
 
   for(Int_t ih=0; ih<nhits; ih++){
-    const Int_t layer = tpc::getLayerID(pad[ih]);
+    const Int_t layer  = tpc::getLayerID(pad[ih]);
     const Double_t row = tpc::getRowID(pad[ih]);
     auto hit = new TPCHit(layer, row);
     hit->AddHit(de[ih], time[ih]);
@@ -193,7 +197,7 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
       return false; //No cobo input
     }
 
-    if(hit->Calculate(clock[cobo_id]) && hit->GetCDe()>=MinCDe && hit->IsGood()){
+    if(hit->Calculate(clock[cobo_id]) && hit->GetCDe()>=min_cde && hit->IsGood()){
       m_TPCHitCont[layer].push_back(hit);
     }else{
       delete hit;
@@ -201,9 +205,10 @@ TPCAnalyzer::ReCalcTPCHits(const Int_t nhits,
   }
 
 #if 1
-  static const Double_t MaxYDif = gUser.GetParameter("MaxYDifClusterTPC");
+  // MaxYDifClusterTPC: max |dY| between hits merged into one cluster (per layer)
+  static const Double_t max_y_dif = gUser.GetParameter("MaxYDifClusterTPC");
   for(Int_t layer=0; layer<NumOfLayersTPC; ++layer){
-    MakeUpTPCClusters(m_TPCHitCont[layer], m_TPCClCont[layer], MaxYDif);
+    MakeUpTPCClusters(m_TPCHitCont[layer], m_TPCClCont[layer], max_y_dif);
   }
 #endif
 
@@ -222,9 +227,10 @@ TPCAnalyzer::TrackSearchTPC(Bool_t exclusive)
     return true;
   }
 
-  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
+  // MinLayerTPC: min cluster count for Hough/fit (not number of TPC layers)
+  static const Int_t min_num_of_hits = gUser.GetParameter("MinLayerTPC");
 
-  tpc::LocalTrackSearch(m_TPCClCont, m_TPCTC, m_TPCTCFailed, exclusive, MinLayer);
+  tpc::LocalTrackSearch(m_TPCClCont, m_TPCTC, m_TPCTCFailed, exclusive, min_num_of_hits);
 
   m_is_decoded[kTPCTracking] = true;
   return true;
@@ -241,9 +247,10 @@ TPCAnalyzer::TrackSearchTPCHelix(Bool_t exclusive, UInt_t reco_mode)
     return true;
   }
 
-  static const Int_t MinLayer = gUser.GetParameter("MinLayerTPC");
-  
-  tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixInverted, m_TPCTCHelixFailed, m_TPCVC, m_TPCVCClustered, exclusive, MinLayer);
+  // MinLayerTPC: min cluster count for Hough/fit (not number of TPC layers)
+  static const Int_t min_num_of_hits = gUser.GetParameter("MinLayerTPC");
+
+  tpc::LocalTrackSearchHelix(m_TPCClCont, m_TPCTCHelix, m_TPCTCHelixInverted, m_TPCTCHelixFailed, m_TPCVC, m_TPCVCClustered, exclusive, min_num_of_hits);
 
   if (reco_mode != TPCReconstructor::kRecoNone) {
     TPCReconstructor reconstructor;

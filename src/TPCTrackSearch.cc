@@ -73,7 +73,7 @@ namespace
   const auto qnan = TMath::QuietNaN();
   const auto& gUser = UserParamMan::GetInstance();
   const auto& gCounter = debug::ObjectCounter::GetInstance();
-  const Int_t    MaxNumOfTrackTPC = 30;
+  const Int_t MaxNumOfTrackTPC = 30;
 
   const Double_t K18XZWindow = 10.5;
   //const Double_t K18YWindow = 10.;
@@ -84,7 +84,6 @@ namespace
   const Double_t ppi_distcut = 10.; //Closest distance for p, pi at the vertex point
 
   // Maximum number of fitting steps
-  //const Int_t MaxFitSteps = 5;
   const Int_t MaxFitSteps = 10;
 
   // Houghflags
@@ -94,6 +93,7 @@ namespace
   const Int_t BadHoughTransform = 300;
   const Int_t BadForTracking = 400;
   const Int_t Candidate = 1000;
+
   // Minimum #hits for Calculate()/GetdEdx() on failed tracks.
   const Int_t MIN_HITS_FOR_FAILED_CALC = 2;
 
@@ -239,9 +239,9 @@ namespace
         if(hit->GetHoughFlag()!=HoughFlag) continue;
         Double_t resi=0.;
         if(Track->IsGoodHitToAdd(hit, resi)){
-          Int_t vtxflag = Track -> GetVtxFlag();
-          TVector3 pos = hit -> GetPosition();
-          Int_t side = Track -> Side(pos);
+          Int_t vtxflag = Track->GetVtxFlag();
+          TVector3 pos  = hit->GetPosition();
+          Int_t side    = Track->Side(pos);
           //Vertex inside the target : vtxflag = -1 or 1 / outside vtxflag = 0
           //if track and new cluster are on the same side and vertex in the target : vtxflag*side = 1
           //if vertex is outside of the target : vtxflag*side = 0
@@ -267,7 +267,7 @@ FitStep(T* Track,
 {
 
   Bool_t status = true;
-  if(Track->DoFit(MinNumOfHits)){ // MinNumOfHits cut is not applied in inital tracking
+  if(Track->DoFit(MinNumOfHits)){
     Track->SetClustersHoughFlag(Candidate);
 
 #if DebugDisp
@@ -290,6 +290,29 @@ FitStep(T* Track,
 }
 
 //_____________________________________________________________________________
+// FitTrack: Iteratively extend a seed Track by adding clusters and re-fitting.
+//
+// while(true){
+//   ExtendedTrack = copy(Track)            // work on a copy; promote on success
+//
+//   if(nstep > MaxFitSteps)                // safety stop
+//     -> finalize(Track); break
+//   else if(nstep > 0 && !AddClusters)     // no good clusters left
+//     -> try BadHough / BadTracking pools (last-chance);
+//        if still none -> finalize(Track); break
+//
+//   if(FitStep(ExtendedTrack))             // fit improved -> adopt
+//     -> Track = ExtendedTrack
+//   else                                   // fit degraded -> stop
+//     -> finalize(Track); break
+//
+//   nstep++
+// }
+//
+// finalize(track):
+//   IsGood(track) ? TrackCont (Houghflag) : TrackContFailed (BadForTracking)
+//   - hits in TrackContFailed may be reused as seeds by other tracks.
+//_____________________________________________________________________________
 template <typename T> void
 FitTrack(T* Track, Int_t Houghflag,
          const std::vector<TPCClusterContainer>& ClCont,
@@ -309,10 +332,12 @@ FitTrack(T* Track, Int_t Houghflag,
   Int_t nstep = 0;
   while(true){
     T *ExtendedTrack = new T(Track);
-    //Int_t thr_ncl = 0.5*MinNumOfHits;
-    Int_t thr_ncl = 0;
-    if(nstep==0) thr_ncl = 0; //The initial track can be short.
-    else if(nstep > MaxFitSteps){ //Tracking is over
+    Int_t thr_ncl = 0; // hit-count check is deferred to IsGood() at the end.
+
+    // nstep == 0 is the initial iteration: fit the seed track as-is.
+    // MaxFitSteps check is harmless at nstep == 0 (always false),
+    // and AddClusters is explicitly guarded by 'nstep > 0' below.
+    if(nstep > MaxFitSteps){ //Tracking is over
       delete ExtendedTrack;
       if(IsGood(Track, MinNumOfHits)){
 #if DebugDisp
@@ -333,9 +358,9 @@ FitTrack(T* Track, Int_t Houghflag,
       }
       break;
     }
-    else if(!AddClusters(ExtendedTrack, ClCont)){
-      //No more clusters for addding, then check for clusters of bad tracks.
-      Bool_t add_badhough = AddClusters(ExtendedTrack, ClCont, BadHoughTransform);
+    else if(nstep > 0 && !AddClusters(ExtendedTrack, ClCont)){
+      // No more clusters for addding, then check for clusters of bad tracks.
+      Bool_t add_badhough    = AddClusters(ExtendedTrack, ClCont, BadHoughTransform);
       Bool_t add_badtracking = AddClusters(ExtendedTrack, ClCont, BadForTracking);
       if(!add_badhough && !add_badtracking){
         delete ExtendedTrack;
@@ -397,8 +422,8 @@ FitTrack(T* Track, Int_t Houghflag,
 
   auto fittingtime = std::chrono::high_resolution_clock::now();
   sec = std::chrono::duration_cast<std::chrono::milliseconds>(fittingtime - fit_start);
-  if(Track) Track -> SetFitTime(sec.count());
-  if(Track) Track -> SetFitFlag(nstep);
+  if(Track) Track->SetFitTime(sec.count());
+  if(Track) Track->SetFitFlag(nstep);
 
 }
 
@@ -407,11 +432,12 @@ Int_t
 LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 		 std::vector<TPCLocalTrack*>& TrackCont,
 		 std::vector<TPCLocalTrack*>& TrackContFailed,
-		 Bool_t Exclusive,
+		 Bool_t exclusive,
 		 Int_t MinNumOfHits)
 {
 
-  static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
+  // MaxHoughWindowY: max perp. dist [mm] to XZ line (2nd Hough gate) and to XZ/YZ lines (MakeLinearTrack)
+  static const Double_t max_hough_window_y = gUser.GetParameter("MaxHoughWindowY");
 
   XZhough_x.clear();
   XZhough_y.clear();
@@ -424,15 +450,15 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
     prev_add = false;
 
 #if DebugDisp
-    std::cout<<FUNC_NAME+" tracki : "<<tracki<<std::endl;
+    std::cout << FUNC_NAME + " tracki : " << tracki << std::endl;
 #endif
 
     std::chrono::milliseconds sec;
     auto before_hough = std::chrono::high_resolution_clock::now();
 
     //Line Hough-transform on the XZ plane
-    Double_t LinearPar[4]; Int_t MaxBinXZ[2];
-    if(!tpc::HoughTransformLineXZ(ClCont, MaxBinXZ, LinearPar, MinNumOfHits)){
+    Double_t linear_par[4]; Int_t max_bin_xz[2];
+    if(!tpc::HoughTransformLineXZ(ClCont, max_bin_xz, linear_par, MinNumOfHits)){
 #if DebugDisp
       std::cout<<FUNC_NAME+" No more track candiate! tracki : "<<tracki<<std::endl;
 #endif
@@ -440,20 +466,20 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
     }
 
     //Line Hough-transform on the YZ or YX plane
-    Int_t MaxBinY[2];
-    if(TMath::Abs(LinearPar[2]) < 1) tpc::HoughTransformLineYZ(ClCont, MaxBinY, LinearPar, MaxHoughWindowY);
-    else tpc::HoughTransformLineYX(ClCont, MaxBinY, LinearPar, MaxHoughWindowY);
+    Int_t max_bin_y[2];
+    if(TMath::Abs(linear_par[2]) < 1.) tpc::HoughTransformLineYZ(ClCont, max_bin_y, linear_par, max_hough_window_y);
+    else tpc::HoughTransformLineYX(ClCont, max_bin_y, linear_par, max_hough_window_y);
 
     //Make a track(HoughDistCheck)
     //The origin at the target center
     TPCLocalTrack *track = new TPCLocalTrack;
-    track->SetParam(LinearPar);
+    track->SetParam(linear_par);
 
     //If two tracks are merged at the target, separate them and recalculate params.
-    Bool_t vtx_flag;
-    prev_add = MakeLinearTrack(track, vtx_flag, ClCont, LinearPar, MaxHoughWindowY);
-    if(!prev_add) continue;
-    if(!track -> IsGoodForTracking() || !vtx_flag){
+    Bool_t is_valid_after_sep;
+    prev_add = MakeLinearTrack(track, is_valid_after_sep, ClCont, linear_par, max_hough_window_y);
+    if(!prev_add) break;  // memo: replaced 'continue' with 'break' since they behave the same here.
+    if(!track->IsGoodForTracking() || !is_valid_after_sep){
       track->SetClustersHoughFlag(BadHoughTransform);
       TrackContFailed.push_back(track);
       continue;
@@ -462,24 +488,24 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
     //Check for duplicates
     Bool_t hough_flag = true;
     for(Int_t i=0; i<XZhough_x.size(); ++i){
-      Int_t bindiffXZ = TMath::Abs(MaxBinXZ[0] - XZhough_x[i]) + TMath::Abs(MaxBinXZ[1] - XZhough_y[i]);
-      Int_t bindiffY = TMath::Abs(MaxBinY[0] - Yhough_x[i]) + TMath::Abs(MaxBinY[1] - Yhough_y[i]);
-      if(bindiffXZ<=1 && bindiffY<=1){
+      Int_t bindiff_xz = TMath::Abs(max_bin_xz[0] - XZhough_x[i]) + TMath::Abs(max_bin_xz[1] - XZhough_y[i]);
+      Int_t bindiff_y = TMath::Abs(max_bin_y[0] - Yhough_x[i]) + TMath::Abs(max_bin_y[1] - Yhough_y[i]);
+      if(bindiff_xz<=1 && bindiff_y<=1){
         hough_flag = false;
 #if DebugDisp
         std::cout<<"Previous hough bin on the XZ plane "<<i<<"th x: "
             <<XZhough_x[i]<<", y: "<<XZhough_y[i]<<" on the vertical plane x: "
             <<Yhough_x[i]<<", y: "<<Yhough_y[i]<<std::endl;
         std::cout<<"Current hough bin on the XZ plane "<<i<<"th x: "
-            <<MaxBinXZ[0]<<", y: "<<MaxBinXZ[1]<<" on the vertical plane x: "
-            <<MaxBinY[0]<<", y: "<<MaxBinY[1]<<std::endl;
+            <<max_bin_xz[0]<<", y: "<<max_bin_xz[1]<<" on the vertical plane x: "
+            <<max_bin_y[0]<<", y: "<<max_bin_y[1]<<std::endl;
 #endif
       }
     }
-    XZhough_x.push_back(MaxBinXZ[0]);
-    XZhough_y.push_back(MaxBinXZ[1]);
-    Yhough_x.push_back(MaxBinY[0]);
-    Yhough_y.push_back(MaxBinY[1]);
+    XZhough_x.push_back(max_bin_xz[0]);
+    XZhough_y.push_back(max_bin_xz[1]);
+    Yhough_x.push_back(max_bin_y[0]);
+    Yhough_y.push_back(max_bin_y[1]);
 
     if(!hough_flag){
 #if DebugDisp
@@ -508,17 +534,17 @@ LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 
   CalcTracks(TrackCont);
   CalcTracks(TrackContFailed);
-  //MarkingAccidentalTracks(TrackCont);
-  if(Exclusive) ExclusiveTracking(TrackCont);
+  // MarkingAccidentalTracks(TrackCont); // memo: no-op for DstTPCTracking (IsAccidental is not consumed)
+  if(exclusive) ExclusiveTracking(TrackCont);
   return TrackCont.size();
 }
 
 //_____________________________________________________________________________
 Bool_t
-MakeLinearTrack(TPCLocalTrack *Track, Bool_t &VtxFlag,
+MakeLinearTrack(TPCLocalTrack *track, Bool_t &is_valid_after_sep,
                 const std::vector<TPCClusterContainer>& ClCont,
-                Double_t *LinearPar, Double_t MaxHoughWindow){
-
+                Double_t *linear_par, Double_t max_hough_window)
+{
   Bool_t status = false;
 
   //Check Hough-distance and add hits
@@ -529,32 +555,32 @@ MakeLinearTrack(TPCLocalTrack *Track, Bool_t &VtxFlag,
       if(!hit) continue;
       if(hit->GetHoughFlag()>0) continue;
       TVector3 pos = cl->GetPosition();
-      Double_t distXZ = TMath::Abs(LinearPar[2]*(pos.Z() - tpc::Z_TARGET) - pos.X() + LinearPar[0])
-                        / TMath::Sqrt(TMath::Sq(LinearPar[2])+1.);
-      Double_t distYZ = TMath::Abs(LinearPar[3]*(pos.Z() - tpc::Z_TARGET) - pos.Y() + LinearPar[1])
-                        / TMath::Sqrt(TMath::Sq(LinearPar[3])+1.);
-      if(distXZ < MaxHoughWindow && distYZ < MaxHoughWindow){
-        hit->SetHoughDist(distXZ);
-        hit->SetHoughDistY(distYZ);
-        Track->AddTPCHit(new TPCLTrackHit(hit));
+      pos -= TVector3(0., 0., tpc::Z_TARGET);
+      Double_t dist_xz = TMath::Abs(linear_par[2]*pos.Z() - pos.X() + linear_par[0])
+                         / TMath::Hypot(linear_par[2], 1.);
+      Double_t dist_yz = TMath::Abs(linear_par[3]*pos.Z() - pos.Y() + linear_par[1])
+                         / TMath::Hypot(linear_par[3], 1.);
+      if(dist_xz < max_hough_window && dist_yz < max_hough_window){
+        hit->SetHoughDist(dist_xz);
+        hit->SetHoughDistY(dist_yz);
+        track->AddTPCHit(new TPCLTrackHit(hit));
         status = true;
       }
     } //ci
   } //layer
 
   if(status){
-    //Vtx in the target, need to check whether two tracks are merged or not
-    Track -> SetClustersHoughFlag(Candidate);
-    VtxFlag = (Track -> SeparateClustersWithGap() || Track -> SeparateTracksAtTarget());
-    //VtxFlag = Track -> SeparateTracksAtTarget();
-    if(VtxFlag && AddClusters(Track, ClCont)) Track -> SetClustersHoughFlag(Candidate);
+    // Vtx in the target, need to check whether two tracks are merged or not
+    track->SetClustersHoughFlag(Candidate);
+    is_valid_after_sep = (track->SeparateClustersWithGap() || track->SeparateTracksAtTarget());
+    if(is_valid_after_sep && AddClusters(track, ClCont)) track->SetClustersHoughFlag(Candidate);
   }
 
 #if DebugDisp
-  if(status) Track->Print(FUNC_NAME+" Initial track after track finding");
+  if(status) track->Print(FUNC_NAME+" Initial track after track finding");
 #endif
 
-  if(!status) delete Track;
+  if(!status) delete track;
   return status;
 }
 
@@ -656,9 +682,10 @@ HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
 		 Int_t MinNumOfHits)
 {
 
-  // HoughTransform binning
-  static const auto MaxHoughWindow  = gUser.GetParameter("MaxHoughWindow");
-  static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
+  // MaxHoughWindow: max |r_hit - R_helix| [mm] for Y-theta Hough gate and helix cluster assignment
+  static const Double_t MaxHoughWindow  = gUser.GetParameter("MaxHoughWindow");
+  // MaxHoughWindowY: max perp. dist [mm] from helix to Y line (MakeHelixTrack distY cut)
+  static const Double_t MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
 
   Bool_t prev_add = true;
   for(Int_t tracki=0; tracki<MaxNumOfTrackTPC; tracki++){
@@ -692,10 +719,10 @@ HelixTrackSearch(Int_t Trackflag, Int_t Houghflag,
     track->SetFlag(Trackflag);
 
     //If two tracks are merged at the target, separate them and recalculate params.
-    Bool_t vtx_flag;
-    prev_add = MakeHelixTrack(track, vtx_flag, ClCont, HelixPar, MaxHoughWindow, MaxHoughWindowY);
+    Bool_t is_valid_after_sep;
+    prev_add = MakeHelixTrack(track, is_valid_after_sep, ClCont, HelixPar, MaxHoughWindow, MaxHoughWindowY);
     if(!prev_add) continue;
-    if(!track -> IsGoodForTracking() || !vtx_flag){
+    if(!track -> IsGoodForTracking() || !is_valid_after_sep){
       track->SetClustersHoughFlag(BadHoughTransform);
       TrackContFailed.push_back(track);
       continue;
@@ -783,7 +810,7 @@ K18TrackSearch(std::vector<std::vector<TVector3>> VPs,
 
 #if DebugDisp
     std::cout<<FUNC_NAME+" K18 VP Helix cx : "<<trackref->Getcx()<<" cy : "<<trackref->Getcy()<<" z0 : "<<trackref->Getz0()<<" r : "<<trackref->Getr()<<" dz : "<<trackref->Getdz()<<std::endl;
-    std::cout<<FUNC_NAME+" K18 VP Helix p : "<<trackref->Getr()*0.299792458<<std::endl;
+    std::cout<<FUNC_NAME+" K18 VP Helix p : "<<trackref->Getr()*tpc::C_LIGHT<<std::endl;
 #endif
 
     Int_t BeforeTGTHits = 0;
@@ -926,7 +953,8 @@ LocalTrackSearchHelix(const std::vector<TPCClusterContainer>& ClCont,
 		      Bool_t Exclusive,
 		      Int_t MinNumOfHits)
 {
-  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+  // BeamThroughTPC==1: skip accidental-track marking (beam-through mode)
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1.);
 
   //Scattered helix track searching
   HighMomHelixTrackSearch(ClCont, TrackCont, TrackContFailed, MinNumOfHits);
@@ -987,7 +1015,8 @@ LocalTrackSearchHelix(std::vector<std::vector<TVector3>> K18VPs,
 		      Bool_t Exclusive,
 		      Int_t MinNumOfHits)
 {
-  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+  // BeamThroughTPC==1: skip K18 track search and accidental-track marking
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1.);
 
   XZhough_x.clear();
   XZhough_y.clear();
@@ -1047,7 +1076,8 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
 		   Int_t MinNumOfHits /*=8*/)
 {
   // static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
-  static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
+  // MaxHoughWindowY: max perp. dist [mm] to XZ line (2nd Hough gate) and to XZ/YZ lines (MakeLinearTrack)
+  static const Double_t max_hough_window_y = gUser.GetParameter("MaxHoughWindowY");
 
   XZhough_x.clear();
   XZhough_y.clear();
@@ -1077,8 +1107,8 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
 
     Int_t MaxBinY[2];
     //Line Hough-transform on the YZ or YX plane
-    if(TMath::Abs(LinearPar[2]) < 1) tpc::HoughTransformLineYZ(ClCont, MaxBinY, LinearPar, MaxHoughWindowY);
-    else tpc::HoughTransformLineYX(ClCont, MaxBinY, LinearPar, MaxHoughWindowY);
+    if(TMath::Abs(LinearPar[2]) < 1) tpc::HoughTransformLineYZ(ClCont, MaxBinY, LinearPar, max_hough_window_y);
+    else tpc::HoughTransformLineYX(ClCont, MaxBinY, LinearPar, max_hough_window_y);
 
     //Make a track(HoughDistCheck)
     //The origin at the target center
@@ -1086,10 +1116,10 @@ HoughTransformTest(const std::vector<TPCClusterContainer>& ClCont,
     track->SetParam(LinearPar);
 
     //If two tracks are merged at the target, separate them and recalculate params.
-    Bool_t vtx_flag;
-    prev_add = MakeLinearTrack(track, vtx_flag, ClCont, LinearPar, MaxHoughWindowY);
-    if(!prev_add) continue;
-    if(!track -> IsGoodForTracking() || !vtx_flag){
+    Bool_t is_valid_after_sep;
+    prev_add = MakeLinearTrack(track, is_valid_after_sep, ClCont, LinearPar, max_hough_window_y);
+    if(!prev_add) break;  // memo: replaced 'continue' with 'break' since they behave the same here.
+    if(!track -> IsGoodForTracking() || !is_valid_after_sep){
       track->SetClustersHoughFlag(BadHoughTransform);
       delete track;
       continue;
@@ -1145,9 +1175,10 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
 {
   // static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
 
-  // HoughTransform binning
-  static const auto MaxHoughWindow = gUser.GetParameter("MaxHoughWindow");
-  static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
+  // MaxHoughWindow: max |r_hit - R_helix| [mm] for Y-theta Hough gate and helix cluster assignment
+  static const Double_t MaxHoughWindow = gUser.GetParameter("MaxHoughWindow");
+  // MaxHoughWindowY: max perp. dist [mm] from helix to Y line (MakeHelixTrack distY cut)
+  static const Double_t MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
 
   XZhough_x.clear();
   XZhough_y.clear();
@@ -1185,10 +1216,10 @@ HoughTransformTestHelix(const std::vector<TPCClusterContainer>& ClCont,
     track->SetParam(HelixPar);
 
     //If two tracks are merged at the target, separate them and recalculate params.
-    Bool_t vtx_flag;
-    prev_add = MakeHelixTrack(track, vtx_flag, ClCont, HelixPar, MaxHoughWindow, MaxHoughWindowY);
+    Bool_t is_valid_after_sep;
+    prev_add = MakeHelixTrack(track, is_valid_after_sep, ClCont, HelixPar, MaxHoughWindow, MaxHoughWindowY);
     if(!prev_add) continue;
-    if(!track -> IsGoodForTracking() || !vtx_flag){
+    if(!track -> IsGoodForTracking() || !is_valid_after_sep){
       track->SetClustersHoughFlag(BadHoughTransform);
       delete track;
       continue;
@@ -1246,7 +1277,8 @@ HighMomHelixTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 			Int_t MinNumOfHits)
 {
 
-  static const auto MaxHoughWindowY = gUser.GetParameter("MaxHoughWindowY");
+  // MaxHoughWindowY: max perp. dist [mm] to XZ line (2nd Hough gate) and to XZ/YZ lines (MakeLinearTrack)
+  static const Double_t max_hough_window_y = gUser.GetParameter("MaxHoughWindowY");
 
   std::vector<Double_t> tempXZhough_x;
   std::vector<Double_t> tempXZhough_y;
@@ -1276,18 +1308,18 @@ HighMomHelixTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 
     //Line Hough-transform on the YZ or YX plane
     Int_t MaxBinY[2];
-    if(TMath::Abs(LinearPar[2]) < 1) tpc::HoughTransformLineYZ(ClCont, MaxBinY, LinearPar, MaxHoughWindowY);
-    else tpc::HoughTransformLineYX(ClCont, MaxBinY, LinearPar, MaxHoughWindowY);
+    if(TMath::Abs(LinearPar[2]) < 1) tpc::HoughTransformLineYZ(ClCont, MaxBinY, LinearPar, max_hough_window_y);
+    else tpc::HoughTransformLineYX(ClCont, MaxBinY, LinearPar, max_hough_window_y);
 
     //Make a track(HoughDistCheck)
     //The origin at the target center
     TPCLocalTrack *trackTemp = new TPCLocalTrack;
     trackTemp->SetParam(LinearPar);
 
-    Bool_t vtx_flag;
-    prev_add = MakeLinearTrack(trackTemp, vtx_flag, ClCont, LinearPar, MaxHoughWindowY);
-    if(!prev_add) continue;
-    if(!trackTemp -> IsGoodForTracking() || !vtx_flag){
+    Bool_t is_valid_after_sep;
+    prev_add = MakeLinearTrack(trackTemp, is_valid_after_sep, ClCont, LinearPar, max_hough_window_y);
+    if(!prev_add) break;  // memo: replaced 'continue' with 'break' since they behave the same here.
+    if(!trackTemp -> IsGoodForTracking() || !is_valid_after_sep){
       trackTemp->SetClustersHoughFlag(BadHoughTransform);
       delete trackTemp;
       continue;
@@ -1610,7 +1642,8 @@ ReassignClustersNearTheTarget(const std::vector<TPCClusterContainer>& ClCont,
 			      Int_t MinNumOfHits)
 {
 
-  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+  // BeamThroughTPC==1: skip accidental-track marking after cluster reassignment
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1.);
   const Int_t MostInnerlayer_Track   = 6; //testing layers from 0 to "MostInnerlayer_Cluster".
   const Int_t MostInnerlayer_Cluster = 4; //testing layers from 0 to "MostInnerlayer_Cluster".
 
@@ -1826,7 +1859,8 @@ ReassignClustersVertex(const std::vector<TPCClusterContainer>& ClCont,
 		       Int_t MinNumOfHits)
 {
 
-  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1);
+  // BeamThroughTPC==1: skip accidental-track marking after vertex reassignment
+  static const Bool_t BeamThroughTPC = (gUser.GetParameter("BeamThroughTPC") == 1.);
 
   Int_t ntracks = TrackCont.size();
   (void)ntracks; // reserved for future loop/consistency checks

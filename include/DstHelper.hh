@@ -19,6 +19,7 @@
 #include <filesystem_util.hh>
 
 #include "DCAnalyzer.hh"
+#include "UserParamMan.hh"
 
 // if event number mismatch is found, exit process.
 #define CheckEventNumberMismatch 1
@@ -225,6 +226,70 @@ inline void SetBranch(TTreeReader* reader, const Char_t* name, T*& ptr)
 {
   using ValueType = typename std::decay<decltype(**ptr)>::type;
   ptr = new TTreeReaderValue<ValueType>(*reader, name);
+}
+
+// USER param: "Key" (presence only) or "Key-N" (at least N values in USER file).
+inline void
+ParseUserParam(const TString& param, TString& key, Int_t& min_size)
+{
+  key = param;
+  min_size = 0;
+  const Ssiz_t pos = param.Last('-');
+  if (pos <= 0 || pos >= param.Length() - 1)
+    return;
+
+  const TString suffix = param(pos + 1, param.Length() - pos - 1);
+  if (suffix.IsNull())
+    return;
+
+  for (Ssiz_t i = 0; i < suffix.Length(); ++i) {
+    const Char_t c = suffix[i];
+    if (c < '0' || c > '9')
+      return;
+  }
+
+  min_size = suffix.Atoi();
+  if (min_size <= 0)
+    return;
+
+  key = param(0, pos);
+}
+
+//______________________________________________________________________________
+inline Bool_t
+ValidateUserParams(const UserParamMan& user,
+                   const std::vector<TString>& params)
+{
+  Bool_t status = true;
+
+  for (const auto& param : params) {
+    TString key;
+    Int_t min_size = 0;
+    ParseUserParam(param, key, min_size);
+
+    if (!user.Has(key)) {
+      if (param == key) {
+        spdlog::error("missing USER key: {}", key.Data());
+      } else {
+        spdlog::error("missing USER key: {} (param: {})",
+                      key.Data(), param.Data());
+      }
+      status = false;
+      continue;
+    }
+    if (min_size > 0 && user.GetSize(key) < min_size) {
+      if (param == key) {
+        spdlog::error("USER key {} needs at least {} values (got {})",
+                      key.Data(), min_size, user.GetSize(key));
+      } else {
+        spdlog::error("USER key {} needs at least {} values (got {}) (param: {})",
+                      key.Data(), min_size, user.GetSize(key), param.Data());
+      }
+      status = false;
+    }
+  }
+
+  return status;
 }
 
 } // namespace dst

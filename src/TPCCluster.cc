@@ -16,12 +16,14 @@
 #include "TPCPadHelper.hh"
 #include "TPCPositionCorrector.hh"
 #include "ThreeVector.hh"
+#include "UserParamMan.hh"
 
 #define TPC_CLUSTER_WRAP_DEBUG 0
 
 namespace
 {
 const auto& gTPCPos = TPCPositionCorrector::GetInstance();
+const auto& gUser = UserParamMan::GetInstance();
 }
 
 //_____________________________________________________________________________
@@ -34,7 +36,7 @@ TPCCluster::TPCCluster(Int_t layer, const TPCHitContainer& HitCont)
     m_hit_array(HitCont), // shallow copy
     m_mean_row(),
     m_mean_theta(),
-    m_center_hitid(),
+    m_center_hitid(-1),
     m_mean_hit(new TPCHit(layer, TMath::QuietNaN()))
 {
   auto itr = m_hit_array.begin();
@@ -108,36 +110,36 @@ TPCCluster::Calculate()
   m_cluster_de = 0.;
   m_cluster_position.SetXYZ(0., 0., 0.);
 
-  //w/o position correction
-  TVector2 xz_vectorHS0(0., 0.);
+  // w/o position correction
+  TVector2 xz_vector_hs0(0., 0.);
 
-  //w/ position correction
+  // w/ position correction
   m_mean_row = 0.;
   m_mean_theta = 0.;
   Double_t mean_y = 0.;
-  TVector2 xz_vectorHS(0., 0.);
+  TVector2 xz_vector_hs(0., 0.);
   for(const auto& hit: m_hit_array){
     const auto& pos = hit->GetPosition();
     TVector2 xz_vector(pos.X(), pos.Z());
     xz_vector -= target_center;
 
-    const Double_t de = hit->GetCDe();
-    mean_y += pos.Y() * de;
-    m_cluster_de += de;
-    xz_vectorHS += de*xz_vector;
+    const Double_t cde = hit->GetCDe();
+    mean_y += pos.Y() * cde;
+    m_cluster_de += cde;
+    xz_vector_hs += cde * xz_vector;
 
-    Int_t row = hit -> GetRow();
-    Int_t padid = tpc::GetPadId(m_layer, row);
-    auto pos0 = tpc::GetPosition(padid);
+    Int_t row = hit->GetRow();
+    Int_t pad_id = tpc::GetPadId(m_layer, row);
+    auto pos0 = tpc::GetPosition(pad_id);
     TVector2 xz_vector0(pos0.X(), pos0.Z());
     xz_vector0 -= target_center;
-    xz_vectorHS0 += de*xz_vector0;
+    xz_vector_hs0 += cde * xz_vector0;
   }
 
-  mean_y *= 1./m_cluster_de;
-  xz_vectorHS *= 1./m_cluster_de;
-  m_mean_theta = xz_vectorHS.Phi();
-  TVector2 xz_vector = xz_vectorHS + target_center;
+  mean_y /= m_cluster_de;
+  xz_vector_hs /= m_cluster_de;
+  m_mean_theta = xz_vector_hs.Phi();
+  TVector2 xz_vector = xz_vector_hs + target_center;
   m_cluster_position.SetXYZ(xz_vector.X(), mean_y, xz_vector.Y());
   m_mean_row = tpc::GetMrow(m_layer, m_mean_theta*TMath::RadToDeg());
 
@@ -154,7 +156,8 @@ TPCCluster::Calculate()
               << "   n_div       = " << n_div << "\n"
               << "   phi_deg     = " << m_mean_theta*TMath::RadToDeg() << "\n"
               << "   m_row_raw   = " << raw_mean_row << "\n"
-              << "   weighted_xz = (" << xz_vectorHS.X() << ", " << xz_vectorHS.Y() << ")\n"
+              << "   weighted_xz = (" << xz_vector_hs.X() << ", " << xz_vector_hs.Y()
+              << ")\n"
               << "   cluster_de  = " << m_cluster_de << "\n"
               << "   size        = " << m_hit_array.size()
               << std::endl;
@@ -192,7 +195,6 @@ TPCCluster::Calculate()
 
   m_mean_row = resolved_mean_row;
   m_mean_hit->SetPad(tpc::GetPadId(m_layer, row_id));
-
   m_mean_hit->AddHit(0., 0.);
   m_mean_hit->SetMRow(m_mean_row);
   m_mean_hit->SetPadLength(tpc::padParameter[m_layer][tpc::kLength]);
@@ -202,8 +204,9 @@ TPCCluster::Calculate()
   m_mean_hit->SetParentCluster(this);
   m_mean_hit->SetIsGood(true);
 
-  // center hit determination
-  Double_t mean_phi0 = xz_vectorHS0.Phi();
+  // Nearest cluster hit to mean_row0 (nominal-weighted phi). 
+  // If none within MaxCenterRowDiffTPC, m_center_hitid stays -1; GetCenterHit() then uses m_mean_hit.
+  Double_t mean_phi0 = xz_vector_hs0.Phi();
   Double_t mean_row0 = tpc::GetMrow(m_layer, mean_phi0*TMath::RadToDeg());
   if (!tpc::TryResolveMRow(m_layer, mean_row0, mean_row0)) {
 #if TPC_CLUSTER_WRAP_DEBUG
@@ -222,23 +225,50 @@ TPCCluster::Calculate()
     return false;
   }
 
-  Double_t best_row_diff = 10; Int_t id = -1;
-  for(Int_t i=0; i<m_hit_array.size(); ++i){
-    if(!m_hit_array[i]) continue;
-    Double_t row = static_cast<Double_t>(m_hit_array[i]->GetRow());
-    Double_t candidate_row_diff = std::abs(mean_row0-row);
+  // MaxCenterRowDiffTPC: max |row - mean_row| to select center hit (default 10 if absent)
+  static const Double_t max_center_row_diff =
+    gUser.Has("MaxCenterRowDiffTPC")
+      ? gUser.GetParameter("MaxCenterRowDiffTPC")
+      : 10.;
+  Int_t center_hit_id = -1;
+  Double_t best_row_diff = max_center_row_diff;
+  for (Int_t i = 0; i < static_cast<Int_t>(m_hit_array.size()); ++i) {
+    if (!m_hit_array[i]) continue;
+    const Double_t row = static_cast<Double_t>(m_hit_array[i]->GetRow());
+    Double_t candidate_row_diff = std::abs(mean_row0 - row);
     if (is_inner_layer) {
-      candidate_row_diff = std::min(candidate_row_diff, max_row-candidate_row_diff);
+      candidate_row_diff = std::min(candidate_row_diff, max_row - candidate_row_diff);
     }
-    if(candidate_row_diff<best_row_diff){
+    if (candidate_row_diff < best_row_diff) {
       best_row_diff = candidate_row_diff;
-      id = i;
+      center_hit_id = i;
     }
   }
-  m_center_hitid = id;
+  m_center_hitid = center_hit_id;
   CheckClusterOnTheFrame(); //check whether the cluster on the frame or not
   m_is_good = true;
   return true;
+}
+
+//_____________________________________________________________________________
+// True if a real cluster hit was chosen as the nominal center pad; 
+// false when m_center_hitid is -1 (too far from mean_row0).
+Bool_t
+TPCCluster::HasCenterHit() const
+{
+  return m_center_hitid >= 0
+         && m_center_hitid < static_cast<Int_t>(m_hit_array.size())
+         && m_hit_array[m_center_hitid];
+}
+
+//_____________________________________________________________________________
+// Center pad hit for Dst. If none was selected, returns m_mean_hit so callers still get a valid TPCHit*.
+TPCHit*
+TPCCluster::GetCenterHit() const
+{
+  if (HasCenterHit())
+    return m_hit_array[m_center_hitid];
+  return m_mean_hit;
 }
 
 //_____________________________________________________________________________

@@ -39,7 +39,8 @@ using root::HF1;
 using root::HF2;
 using root::HF2Poly;
 using root::HG2Poly;
-}
+
+} // namespace
 
 //_____________________________________________________________________________
 TPCEventAnalyzer::TPCEventAnalyzer()
@@ -631,7 +632,7 @@ TPCEventAnalyzer::FillHelixLambdaMassHist(const TPCVertex* vertex)
     const Double_t closest_dist = cand.GetClosestDist();
     const ThreeVector lambda_vtx(cand.GetVertex().X(), cand.GetVertex().Y(), cand.GetVertex().Z());
     const ThreeVector lambda_mom(cand.GetMomentum().X(), cand.GetMomentum().Y(), cand.GetMomentum().Z());
-    const ThreeVector target_to_vtx = lambda_vtx - ThreeVector(0., 0., -tpc::Z_TARGET);
+    const ThreeVector target_to_vtx = lambda_vtx - ThreeVector(0., 0., tpc::Z_TARGET);
     const Double_t target_to_vtx_dot_mom =
       (target_to_vtx.Mag() > 0.0 && lambda_mom.Mag() > 0.0)
         ? target_to_vtx.Dot(lambda_mom)/(target_to_vtx.Mag()*lambda_mom.Mag())
@@ -667,7 +668,7 @@ TPCEventAnalyzer::FillHelixK0ShortMassHist(const TPCVertex* vertex)
     const Double_t closest_dist = cand.GetClosestDist();
     const ThreeVector k0_vtx(cand.GetVertex().X(), cand.GetVertex().Y(), cand.GetVertex().Z());
     const ThreeVector k0_mom(cand.GetMomentum().X(), cand.GetMomentum().Y(), cand.GetMomentum().Z());
-    const ThreeVector target_to_vtx = k0_vtx - ThreeVector(0., 0., -tpc::Z_TARGET);
+    const ThreeVector target_to_vtx = k0_vtx - ThreeVector(0., 0., tpc::Z_TARGET);
     const Double_t target_to_vtx_dot_mom =
       (target_to_vtx.Mag() > 0.0 && k0_mom.Mag() > 0.0)
         ? target_to_vtx.Dot(k0_mom)/(target_to_vtx.Mag()*k0_mom.Mag())

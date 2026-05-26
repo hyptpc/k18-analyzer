@@ -74,13 +74,15 @@ namespace Kinematics
   TVector3 HypTPCCorrElossIn(Int_t target_material, const TVector3& Pin,
 			     Double_t length, Double_t mass);
 
-  //For HypTPC dE/dx pid
+  // HypTPC dE/dx PID
   Double_t HypTPCBethe(Double_t *x, Double_t *p);
+  // Expected dE/dx per hypothesis (not measured); poq [GeV/c], return [a.u.]
   Double_t HypTPCdEdxPion(Double_t poq);
   Double_t HypTPCdEdxKaon(Double_t poq);
   Double_t HypTPCdEdxProton(Double_t poq);
   Double_t HypTPCdEdxDeutron(Double_t poq);
   Double_t HypTPCdEdxElectron(Double_t poq);
+  // (dedx_meas - dedx_hyp) / sigma; dedx [a.u.], poq [GeV/c]
   Double_t HypTPCdEdxNsigmaProton(Double_t dedx, Double_t poq);
   Double_t HypTPCdEdxNsigmaDeutron(Double_t dedx, Double_t poq);
   Double_t HypTPCdEdxNsigmaTriton(Double_t dedx, Double_t poq);
@@ -88,10 +90,11 @@ namespace Kinematics
   Double_t HypTPCdEdxNsigmaPion(Double_t dedx, Double_t poq);
   Double_t HypTPCdEdxNsigmaElectron(Double_t dedx, Double_t poq);
   Bool_t HypTPCdEdxElectron(Double_t dedx, Double_t poq);
+  // PID bits: 0=e; bit0=pi, bit1=K, bit2=p. dedx [a.u.], poq [GeV/c]
   Int_t HypTPCdEdxPID(Double_t dedx, Double_t poq);
   void HypTPCPID_PDGCode(Int_t charge, Int_t pid, std::vector<Int_t>& pdg);
 
-  //For HTOF pid
+  // HTOF PID; poq [GeV/c]
   Double_t HypTPCHTOFNsigmaProton(Double_t poq, Double_t tracklength, Double_t tof);
   Double_t HypTPCHTOFNsigmaDeutron(Double_t poq, Double_t tracklength, Double_t tof);
   Double_t HypTPCHTOFNsigmaTriton(Double_t poq, Double_t tracklength, Double_t tof);
@@ -142,17 +145,14 @@ namespace Kinematics
 			       TVector3 Plambda, Double_t &dist); //Extrapolate to the target
   TVector3 LambdaTargetCenter(TVector3 Xlambda,
 			      TVector3 Plambda, Double_t &dist);  //Extrapolate to z=z_target
-  Bool_t HelixDirection(TVector3 vertex, TVector3 start, TVector3 end,
-			Double_t &dist);
-  TVector3 MultitrackVertex(Int_t ntrack, const std::vector<Double_t>& x0, const std::vector<Double_t>& y0,
-			    const std::vector<Double_t>& u0, const std::vector<Double_t>& v0,
-			    std::vector<Double_t> Res_x0 = {}, std::vector<Double_t> Res_y0 = {},
-			    std::vector<Double_t> Res_u0 = {}, std::vector<Double_t> Res_v0 = {});
-  TVector3 MultitrackVertex(Int_t ntrack, const std::vector<Double_t>& x0, const std::vector<Double_t>& y0,
-			    const std::vector<Double_t>& u0, const std::vector<Double_t>& v0,
-			    std::vector<Double_t> Res_x0, std::vector<Double_t> Res_y0,
-			    std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0,
-			    Double_t &chisqr);
+  Bool_t HelixDirection(TVector3 vertex, TVector3 start, TVector3 end, Double_t &dist);
+  TVector3 MultitrackVertex(
+    Int_t ntrack, const std::vector<Double_t>& x0, const std::vector<Double_t>& y0,
+    const std::vector<Double_t>& u0, const std::vector<Double_t>& v0,
+    std::vector<Double_t> Res_x0 = {}, std::vector<Double_t> Res_y0 = {},
+    std::vector<Double_t> Res_u0 = {}, std::vector<Double_t> Res_v0 = {},
+    Double_t* chisqr = nullptr
+  );
 
 }
 

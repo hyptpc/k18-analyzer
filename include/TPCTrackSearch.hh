@@ -30,7 +30,7 @@ inline const TString& ClassName()
 Int_t LocalTrackSearch(const std::vector<TPCClusterContainer>& ClCont,
 		       std::vector<TPCLocalTrack*>& TrackCont,
 		       std::vector<TPCLocalTrack*>& TrackContFailed,
-		       Bool_t Exclusive,
+		       Bool_t exclusive,
 		       Int_t MinNumOfHits);
 
 //HS-ON data
@@ -72,10 +72,10 @@ void FitTrack(T *Track, Int_t Houghflag,
 
 //HS-OFF data
 //Make a track after Hough-transform
-Bool_t MakeLinearTrack(TPCLocalTrack *Track, Bool_t &VtxFlag,
+Bool_t MakeLinearTrack(TPCLocalTrack *track, Bool_t &is_valid_after_sep,
 					   const std::vector<TPCClusterContainer>& ClCont,
-					   Double_t *LinearPar,
-					   Double_t MaxHoughWindow);
+					   Double_t *linear_par,
+					   Double_t max_hough_window);
 
 //HS-ON data
 //Make a track after Hough-transform
