@@ -711,7 +711,9 @@ TPCEventAnalyzer::FillCoBoClockTime(const TString& prefix,
   const Double_t res_y = global_pos.y() - ref_y;
 
   Double_t res_y_raw   = TMath::QuietNaN();
+#ifdef DEBUG_COBO_CLOCK
   Double_t res_y_noclk = TMath::QuietNaN();
+#endif
 
   if (!cobo_valid) {
     spdlog::warn("TPCEventAnalyzer::FillCoBoClockTime[{}]: invalid CoBo id (cobo={}) for layer={} row={}",
@@ -735,12 +737,14 @@ TPCEventAnalyzer::FillCoBoClockTime(const TString& prefix,
         spdlog::warn("TPCEventAnalyzer::FillCoBoClockTime[{}]: GetDriftLength failed (noclk={}, raw={}) for layer={} row={}",
                      prefix.Data(), ok_noclk, ok_raw, layer, row);
       } else {
-        const ThreeVector local_noclk(local_pos.x(), y_noclk, local_pos.z());
         const ThreeVector local_raw  (local_pos.x(), y_raw,   local_pos.z());
+        const ThreeVector global_raw = gGeom.Local2GlobalPos("HypTPC", local_raw);
+        res_y_raw = global_raw.y() - ref_y;
+#ifdef DEBUG_COBO_CLOCK
+        const ThreeVector local_noclk(local_pos.x(), y_noclk, local_pos.z());
         const ThreeVector global_noclk = gGeom.Local2GlobalPos("HypTPC", local_noclk);
-        const ThreeVector global_raw   = gGeom.Local2GlobalPos("HypTPC", local_raw);
         res_y_noclk = global_noclk.y() - ref_y;
-        res_y_raw   = global_raw.y()   - ref_y;
+#endif
       }
     }
 
