@@ -17,8 +17,8 @@ KinematicFitter::SetVariance(double* var){
 #if Debug
 	cout<<"KinematicFitter::SetVariance"<<endl;
 #endif
-	double variance[200];
-	double varianceInv[200];
+	double variance[400];
+	double varianceInv[400];
 	TMatrixD ScaleUp(nMeas,nMeas);
 	TMatrixD ScaleDn(nMeas,nMeas);
 	for(int i = 0;i<nMeas*nMeas;++i){
@@ -27,6 +27,9 @@ KinematicFitter::SetVariance(double* var){
 	}
 //	ScaleParams = 0;
 	for(int i = 0;i<nMeas;++i){
+#if Debug
+		std::cout<<"Variance["<<i<<"] = "<<var[i]<<std::endl;
+#endif
 		variance[i+i*nMeas] = var[i];
 		varianceInv[i+i*nMeas] = 1./var[i];
 		if(ScaleParams){
