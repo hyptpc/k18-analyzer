@@ -38,6 +38,16 @@ namespace
   const auto& gTpcParam = TPCParamMan::GetInstance();
   const auto& gCounter  = debug::ObjectCounter::GetInstance();
   const Double_t MAX_RESIDUAL = 20.0; // Residual gate [mm] to accept hits/clusters close to the reference track.
+
+  const std::vector<TString> kUserParamKeys = {
+    // Cluster building (ReCalcTPCHits / MakeUpTPCClusters)
+    "MinCDeTPC", "MaxYDifClusterTPC",
+    "MinClusterDeTPC", "MinClusterSizeTPC",
+    "MinClusterYPosTPC", "MaxClusterYPosTPC",
+
+    // Optional parameter (default value is provided in the code)
+    // "MaxCenterRowDiffTPC",
+  };
 }
 
 namespace dst
@@ -312,7 +322,8 @@ namespace
       for(const auto& cl : hc_cl){
         if(!cl || !cl->IsGood()) continue;
 
-        const Int_t center_row = cl->GetCenterHit()->GetRow();
+        TPCHit* center_hit = cl->GetCenterHit();
+        const Int_t center_row = center_hit ? center_hit->GetRow() : -1;
         const ThreeVector local_pos(cl->GetX(), cl->GetY(), cl->GetZ());
         const ThreeVector global_pos = gGeom.Local2GlobalPos("HypTPC", local_pos);
 
@@ -327,12 +338,18 @@ namespace
         event.cluster_mrow.push_back(cl->MeanRow());
         event.cluster_row_center.push_back(center_row);
 
-        TPCHit* center_hit = cl->GetCenterHit();
-        const TVector3& center_pos = center_hit->GetPosition();
-        event.cluster_de_center.push_back(center_hit->GetCDe());
-        event.cluster_x_center.push_back(center_pos.X());
-        event.cluster_y_center.push_back(center_pos.Y());
-        event.cluster_z_center.push_back(center_pos.Z());
+        if (center_hit) {
+          const TVector3& center_pos = center_hit->GetPosition();
+          event.cluster_de_center.push_back(center_hit->GetCDe());
+          event.cluster_x_center.push_back(center_pos.X());
+          event.cluster_y_center.push_back(center_pos.Y());
+          event.cluster_z_center.push_back(center_pos.Z());
+        } else {
+          event.cluster_de_center.push_back(TMath::QuietNaN());
+          event.cluster_x_center.push_back(TMath::QuietNaN());
+          event.cluster_y_center.push_back(TMath::QuietNaN());
+          event.cluster_z_center.push_back(TMath::QuietNaN());
+        }
 #endif
 
         // Residual calculation
@@ -378,6 +395,8 @@ main(int argc, char **argv)
   if(!DstOpen(arg))
     return EXIT_FAILURE;
   if(!gConf.Initialize(arg[kConfFile]))
+    return EXIT_FAILURE;
+  if(!dst::ValidateUserParams(gUser, kUserParamKeys))
     return EXIT_FAILURE;
   if(!gConf.InitializeHistograms())
     return EXIT_FAILURE;

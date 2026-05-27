@@ -44,6 +44,10 @@ namespace
   const auto& gCounter  = debug::ObjectCounter::GetInstance();
   const Double_t MAX_CHISQR_TPC = 50.0;
   const Double_t MAX_CHISQR_BCOUT = 5.0;
+
+  // No TPC-specific UserParam keys are required for DstTPCBcOutTracking,
+  // but keep an explicit (empty) manifest for consistency with other Dst modules.
+  const std::vector<TString> kUserParamKeys = {};
 }
 
 namespace dst
@@ -536,6 +540,8 @@ main(int argc, char **argv)
   if (!DstOpen(arg))
     return EXIT_FAILURE;
   if (!gConf.Initialize(arg[kConfFile]))
+    return EXIT_FAILURE;
+  if (!dst::ValidateUserParams(gUser, kUserParamKeys))
     return EXIT_FAILURE;
   if (!gConf.InitializeHistograms())
     return EXIT_FAILURE;
