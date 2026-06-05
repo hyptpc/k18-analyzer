@@ -230,6 +230,11 @@ void CascadeVertexFitter::SetConstraints(){
 	std::vector<double> UV = {
 		px_X,py_X,pz_X,
 		vx_X,vy_X,vz_X};
+	/*
+	 Reconstructed Laambda should propagate back to the Xi decay vertex.
+	 Note that this extrapolation parameter t_cor is also a function of the kinematic parameters,
+	 so its derivatives should be considered in the calculation of the Jacobian matrix.
+	*/
 	t_cor = CalcLambdaExtrapolationParameter(MV,UV);
 	TVector3 V_LX = CalcV_LX(MV);
 	double f9 = -vx_X + 0.5 *(vx_R + V_LX.x()); 
@@ -237,12 +242,12 @@ void CascadeVertexFitter::SetConstraints(){
 	double f11= -vz_X + 0.5 *(vz_R + V_LX.z());
 	TVector3 V_R(vx_R,vy_R,vz_R);
 	/*
-		Note! This kind of vertex constraint is impropper.
+		Note! Vertex constraint for Extrapolated Lambda and Pi2 should be 2-dimensional.
 		From the definition of t_cor, (V_LX - V_R)*(D_L) = 0 is already constrained.
-		The vertex constraint should only have two degree of freedom, while
-		cartesian representation has three degree of freedom. 
+		The vertex constraint should only have two degree of freedom, so following
+		cartesian representation, which has three degree of freedom, is invalid. 
 		|f12 = vx_R - 0.5*(vx_P + vx_Q) - t_cor*u_L|
-		|f13 = vy_R - 0.5*(vy_P + vy_Q) - t_cor*v_L| -> Invalid.
+		|f13 = vy_R - 0.5*(vy_P + vy_Q) - t_cor*v_L|
 		|f14 = vz_R - 0.5*(vz_P + vz_Q) - t_cor*w_L|
 
 		Instead, two unit vectors, normal to D_L, should be defined.
@@ -251,6 +256,11 @@ void CascadeVertexFitter::SetConstraints(){
 		Then, the constraint should be defined as:
 		f12 := (V_R - V_LX)*E_1 = 0;
 		f13 := (V_R - V_LX)*E_2 = 0;
+
+		Here, the Z axis (0,0,1) is Y axis in E42 frame.
+		No Lambda goes close to this direction, so this definition is numerically stable.
+		Keep in mind that, two unit vectors, E_1 and E_2, are also functions of the kinematic parameters.
+		Their derivatives should also be considered in the Jacobian matrix calculation.
 	*/
 	TVector3 E_1 = CalcLambdaE1Vector(MV); //(0,0,1) X (u,v,w)
 	TVector3 E_2 = CalcLambdaE2Vector(MV); //E2 = (u,v,w) X E1
