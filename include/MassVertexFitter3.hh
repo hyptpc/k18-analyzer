@@ -1,5 +1,5 @@
-#ifndef MassVertexFitter2_h
-#define MassVertexFitter2_h
+#ifndef MassVertexFitter3_h
+#define MassVertexFitter3_h
 // Author: Kang Byungmin, kangbmw2@naver.com
 // For the mathematics of the fitting, please refer to:
 // https://github.com/kangbm94/Notes-on-Kinematic-Fit
@@ -8,24 +8,28 @@
 #include "KinFit.hh"
 #include <TVector3.h>
 #include <TLorentzVector.h>
-class MassVertexFitter2: virtual public KinematicFitter{
+class MassVertexFitter3: virtual public KinematicFitter{
 	//R -> P + Q;
 	protected:	
+		/*
+		Note that, the relationship between the kinematic parameter 
+		and vertex position should be defined in the off-diagonal term
+		in the covariance matrix. These off-diagonal terms should 'drag'
+		the vertex position according to the change of the kinematic parameters.
+		Without these terms, the fitter will simply return the 1-C fit result,
+		with P Q vertices just moved to the averaged vertex.
+		*/
 		TLorentzVector P;
 		TVector3 VP;//put vertex here.
-		//Note that, the 'position covariance'
-		//is defined for helix parameters, cx,cy,z0.
 		TLorentzVector PCor;
 		TVector3 VPCor;
 		double mP;
-		double lP;
 
 		TLorentzVector Q;
 		TVector3 VQ;
 		TLorentzVector QCor;
 		TVector3 VQCor;
 		double mQ;
-		double lQ;
 
 		TLorentzVector R;
 		TVector3 VR;
@@ -33,7 +37,6 @@ class MassVertexFitter2: virtual public KinematicFitter{
 		TVector3 VRCor;
 		vector<double> MassDiffs;
 		double mR;
-		double lR;
 
 		bool MeasDir = false;
 		double RadToMom = 0;
@@ -42,8 +45,8 @@ class MassVertexFitter2: virtual public KinematicFitter{
 		TMatrixD VtxCov;//Since the resulting vertex, i.e. V_Lambda, is not a direct parameter of the fit, its covariance is not directly calculated. We need an explicit calculation using error propagation. This matrix is for that purpose. It is a 3x3 matrix for the x,y,z coordinates of the vertex.
 		vector<TMatrixD> StepVtxCov;//Since the resulting vertex, i.e. V_Lambda, is not a direct parameter of the fit, its covariance is not directly calculated. We need an explicit calculation using error propagation. This matrix is for that purpose. It is a 3x3 matrix for the x,y,z coordinates of the vertex.
 	public:
-		MassVertexFitter2(){}
-		MassVertexFitter2(TLorentzVector P_,TLorentzVector Q_,TLorentzVector R_
+		MassVertexFitter3(){}
+		MassVertexFitter3(TLorentzVector P_,TLorentzVector Q_,TLorentzVector R_
 			,TVector3 V_P, TVector3 V_Q);
 		void SetInvMass(double IM){
 			mR = IM;
@@ -53,7 +56,7 @@ class MassVertexFitter2: virtual public KinematicFitter{
 			return ret;
 		}
 		vector<TVector3> GetFittedVerticies(){
-			vector<TVector3> ret = {VPCor,VQCor,0.5*(VPCor+VQCor)};
+			vector<TVector3> ret = {VPCor,VQCor,VRCor};
 			return ret;
 		}
 		void ToDecayPlane();
@@ -61,11 +64,6 @@ class MassVertexFitter2: virtual public KinematicFitter{
 			Double_t ConstC = 0.299792458; //=c/10^9
 			RadToMom = ConstC * B * 1e-3; //1e-3: mm -> m
 		}
-		double CalcHelixDistance2(std::vector<double> pars);
-		double DerivativeHelixDistance2(int index, std::vector<double> pars);
-		void GetHelixParameters(double p, double th, double ph, TVector3 center, int sign, double* pars);
-		TVector3 CalcHelixPosition(double p, double th, double ph, TVector3 center, int sign);
-		TVector3 DerivativeHelixPosition(int index, double p, double th, double ph, TVector3 center, int sign);
 	protected:
 		virtual void Initialize();
 		virtual void SampleStepPoint(int steps);

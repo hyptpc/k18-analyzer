@@ -290,6 +290,7 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
   static const Double_t MinCDe = gUser.GetParameter("MinCDeTPC");
 
   static bool RejectKaonHits = gUser.GetParameter("RejectAccidentals");
+  static bool Geant4PosShift = gUser.GetParameter("Geant4PosShift");
   ClearTPCHits();
   ClearTPCClusters();
   if(nhits != Mom.size()){
@@ -298,14 +299,22 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     Mom = std::vector<TVector3>(nhits, TVector3(0., 0., 0.));
   }
   for(Int_t i=0; i<nhits; i++){
-    Int_t pad = tpc::findPadID(z[i], x[i]);
+    double z_shift = 0;
+    if(Geant4PosShift){
+      z_shift = (6./250.) * (y[i] + 250);
+    }
+    Int_t pad = tpc::findPadID(z[i]-z_shift, x[i]);
     if(pad<0) continue;
     Int_t layer = tpc::getLayerID(pad);
     Int_t row = tpc::getRowID(pad);
     if(RejectKaonHits && pid[i]==-321) continue;
     double CheckPad;
     gTPC.GetCDe(layer, row, 1,CheckPad);
-    if(CheckPad==0) continue;
+    if(CheckPad==0){
+      hddaq::cerr << FUNC_NAME << " "
+                  << "Hit position (" << x[i] << ", " << y[i] << ", " << z[i] << ")  dT = "<< hypot(x[i], z[i] - z_shift + 143) <<std::endl; 
+      continue;
+    }
     TVector3 hitpos = TVector3(x[i], y[i], z[i]);
 //    double Eff = GetDetectionEfficiency(hitpos, pid[i], Mom[i], de[i]);
     double Eff;
@@ -339,6 +348,7 @@ TPCAnalyzer::DecodeTPCHitsGeant4(const Int_t nhits,
     if (cl_size == 1){
       auto PadPos = tpc::getPosition(pad);
       PadPos.SetY(y[i]);
+      PadPos.SetZ(PadPos.Z() + z_shift);
       hit->SetPosition(PadPos);
 //      hit->SetPosition(TVector3(x[i], y[i], z[i]));
     }

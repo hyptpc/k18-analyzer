@@ -45,7 +45,7 @@ namespace trigger
 {
   enum ETriggerFlag
   {
-    kL1SpillOn,
+    kL1SpillOn,//0
     kL1SpillOff,
     kSpillEnd,
     kSpillOnEnd,
@@ -55,7 +55,7 @@ namespace trigger
     kMatrix3D,
     kBeamA,
     kBeamB,
-    kBeamC,
+    kBeamC,//10
     kBeamD,
     kBeamE,
     kBeamF,
@@ -65,7 +65,7 @@ namespace trigger
     kTrigD,
     kTrigE,
     kTrigF,
-    kTrigAPS,
+    kTrigAPS,//20
     kTrigBPS,
     kTrigCPS,
     kTrigDPS,

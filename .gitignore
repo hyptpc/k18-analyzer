@@ -1,5 +1,4 @@
 #gitignore
-
 *.[doa]
 *~
 *.root
@@ -35,3 +34,5 @@ usr/back
 tmp
 tools*
 *.vscode
+src/leg/*
+include/leg/*

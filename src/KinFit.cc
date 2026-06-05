@@ -57,17 +57,9 @@ KinematicFitter::SetVariance(double* var){
 //	CalcVariance(0);
 	ScalingMats.push_back(ScaleUp);
 	ScalingMats.push_back(ScaleDn);
-#if Debug
-	cout<<"Variance, det ="<<Variance.Determinant();
-	Variance.Print();
-#endif
 };
 void
 KinematicFitter::AddOffdiagonals(TMatrixD Cov){
-#if Debug
-	cout<<"Covariance";
-	Cov.Print();
-#endif
 	if(ScaleParams){
 		auto ScaleUp = ScalingMats.at(0);
 		Cov = Cov * ScaleUp;
@@ -76,11 +68,11 @@ KinematicFitter::AddOffdiagonals(TMatrixD Cov){
 	Variancies.at(0)+= Cov;
 #if Debug
 	if(ScaleParams){
-		cout<<"Variance Matrix After scaling";
+		cout<<"Covariance Matrix After scaling";
 		Variancies.at(0).Print();
 	}
 	else{
-		cout<<"Variance Matrix";
+		cout<<"Covariance Matrix";
 		Variancies.at(0).Print();
 	}
 #endif
@@ -106,16 +98,11 @@ KinematicFitter::AddOffdiagonals(TMatrixD Cov){
 					Variancies.at(0)(irow,icol) *=0.9;
 				}
 			}
-			#if Debug
-			cout<<"Det ="<<Variancies.at(0).Determinant();
-			Variancies.at(0).Print();	
-			#endif
 		}
 		nitr++;
 	}
-//	cout<<"CovarianceMat : ";
 #if Debug
-	cout<<"Variance, det ="<<Variancies.at(0).Determinant();
+	cout<<"Covariance, det ="<<Variancies.at(0).Determinant();
 	Variancies.at(0).Print();
 #endif
 }
@@ -147,6 +134,9 @@ void KinematicFitter::ProcessStep(){
 	std::cout<<"Inverting VMat"<<std::endl;
 #endif
 	VInv.SetTol(1e-26);
+	if(VInv.Determinant() == 0){
+		cout<<"Warning: Variance Matrix is singular!"<<endl;
+	}
 	VInv.Invert();
 #if Debug
 	std::cout<<"Setting Constraints"<<std::endl;
@@ -158,7 +148,7 @@ void KinematicFitter::ProcessStep(){
 	TMatrixD dFdMS = dFdM*ScaleDn;
 #if Debug
 	if(step == 0){
-		cout<<"Variance, det ="<<VMat.Determinant();
+		cout<<"Covariance, det ="<<VMat.Determinant();
 		VMat.Print();
 	}
 #endif
@@ -177,14 +167,14 @@ void KinematicFitter::ProcessStep(){
 	auto rMat = FMat + dFdMS*(MS0-MS);
 	auto sMat =dFdMS*VMat*dFdMT;
 	auto sInv = sMat;
-#if Debug
-	std::cout<<"Inverting SMat"<<std::endl;
-#endif
+	if(sInv.Determinant() == 0){
+		cout<<"Warning: S Matrix is singular!"<<endl;
+	}
 	sInv.Invert();
 	auto FuSIFu =	dFdUT*sInv*dFdU;
-#if Debug
-	std::cout<<"Inverting FuS-1Fu"<<std::endl;
-#endif
+	if(FuSIFu.Determinant() == 0){
+		cout<<"Warning: FuSIFu Matrix is singular!"<<endl;
+	}
 	FuSIFu.Invert();
 	auto dU = (FuSIFu) * (dFdUT* (sInv) * rMat) ;
 	dU = dU -dU - dU;
@@ -192,7 +182,6 @@ void KinematicFitter::ProcessStep(){
 
 	auto Lambda = (sInv* (rMat+ dFdU*dU));
 	auto LambdaT = TransposeMatrix(Lambda);
-		
 	auto dM =  VMat*dFdMT*Lambda;
 	auto Meas_next = MS0 - dM; 
 	
@@ -213,9 +202,9 @@ void KinematicFitter::ProcessStep(){
 	auto GMat = dFdMT*sInv*dFdMS;
 	auto HMat = dFdMT*sInv*dFdU;
 	auto UMat = dFdUT*sInv*dFdU;
-#if Debug
-	std::cout<<"Inverting UMat"<<std::endl;
-#endif
+	if(UMat.Determinant() == 0){
+		cout<<"Warning: UMat is singular!"<<endl;
+	}
 	UMat.Invert();
 	UHessians.push_back(UHessian);
 	auto HMatT = TransposeMatrix(HMat);
@@ -224,14 +213,8 @@ void KinematicFitter::ProcessStep(){
 	dVMats.push_back(dV);
 	auto VMat_next = VMat- VMat * (GMat - HUH)*VMat - VMat * (GMat - HUH)*VMat + dV;
 	auto VInv_next = VMat_next;
-#if Debug
-	std::cout<<"Inverting Next VMat"<<std::endl;
-#endif
 	VInv_next.SetTol(1e-26);
-	VInv_next.Invert();
-#if Debug
-	std::cout<<"Calculating Chi2"<<std::endl;
-#endif
+	//VInv_next.Invert();
 	
 	double Chi2 = (dMT* (VInv)*dM)(0,0) + 2 * (LambdaT * FMat )(0,0);
 	Chi2s.push_back(Chi2);
@@ -247,9 +230,48 @@ void KinematicFitter::ProcessStep(){
 	UVMat.Invert();
 	UVMat=UVMat*CHI2_U;
 #endif
-
-#if Debug>1
+#if Debug
 	TString StepIndi = Form("[Step::%d]",step);
+	cout<<StepIndi<<"##########Constraint Matrix##########"<<endl;
+	cout<<"F Mat";
+	FMat.Print();
+	cout<<"dFdM Mat";
+	dFdMS.Print();
+	cout<<"dFdU Mat";
+	dFdU.Print();
+
+	std::cout<<"s Mat, Det = "<<sMat.Determinant();
+	sMat.Print();
+	std::cout<<"S-1 Mat :";
+	sInv.Print();
+	std::cout<<"FuS-1Fu-1 :";
+	FuSIFu.Print();
+	std::cout<<"FuS-1Fu-1 dFdU S-1 Mat :";
+	(FuSIFu * dFdUT * sInv).Print();
+	std::cout<<"r Mat :";
+	rMat.Print();
+	std::cout<<"Unkn Mat :";
+	Unkn.Print();
+	std::cout<<"dU Mat :";
+	dU.Print();
+	std::cout<<"Unkn_next :";
+	Unkn_next.Print();
+
+	std::cout<<"dFdMT Mat :";
+	dFdMT.Print();
+	std::cout<<"Lambda Mat :";
+	Lambda.Print();
+	std::cout<<"VMat :";
+	VMat.Print();
+	std::cout<<"Meas Mat :";
+	Meas.Print();
+	std::cout<<"dM Mat :";
+	dM.Print();
+	std::cout<<"Meas_next :";
+	Meas_next.Print();
+
+#endif 
+#if Debug>1
 	cout<<StepIndi<<"##########Variance Matrix##########"<<endl;
 	cout<<"V Mat : Determinant = "<<VMat.Determinant();
 	VMat.Print();
@@ -281,40 +303,6 @@ void KinematicFitter::ProcessStep(){
 	cout<<endl;
 		
 
-	cout<<StepIndi<<"##########Constraint Matrix##########"<<endl;
-	cout<<"F Mat";
-	FMat.Print();
-	cout<<"dFdM Mat";
-	dFdMS.Print();
-	cout<<"dFdU Mat";
-	dFdU.Print();
-	cout<<"r Mat";
-	rMat.Print();
-	cout<<"s Mat, Det = "<<sMat.Determinant();
-	sMat.Print();
-	cout<<"s Inv";
-	sInv.Print();
-	
-
-	cout<<StepIndi<<"##########Updated Matrix##########"<<endl;
-	cout<<"dU Mat";
-	dU.Print();
-	cout<<"UnknNext Mat";
-	Unkn_next.Print();
-	cout<<"dM Mat";
-	dM.Print();
-	cout<<"MeasNext Mat";
-	Meas_next.Print();
-	cout<<"Lambda Mat";
-	Lambda.Print();
-	cout<<"GMat ";
-	GMat.Print();
-	cout<<"HMat";
-	HMat.Print();
-	cout<<"UMat";
-	UMat.Print();
-	cout<<"HUHTMat";
-	(HMat*UMat*HMatT).Print();
 	
 	HdV->Draw("colz");
 	gPad->SetMargin(0.1,0.2,0.1,0.1);

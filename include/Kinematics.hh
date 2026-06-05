@@ -122,6 +122,18 @@ namespace Kinematics
 			Double_t t2_start, Double_t t2_end,
 			TVector3 &p_mom, TVector3 &pi_mom,
 			TVector3 &lambda_mom, Double_t& dist);
+  TVector3 LambdaVertex(Double_t Bfield, Double_t p_par[5], Double_t pi_par[5],
+			Double_t t1_start, Double_t t1_end,
+			Double_t t2_start, Double_t t2_end,
+			TVector3 &p_mom, TVector3 &pi_mom,TVector3 &lambda_mom,
+			TVector3 &p_vtx, TVector3 &pi_vtx, Double_t& p_t, Double_t& pi_t,
+      Double_t& dist);
+  TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
+		    Double_t t_start, Double_t t_end,
+		    TVector3 Xlambda, TVector3 Plambda,
+		    TVector3 &Ppi,
+        TVector3 &L_vtx, TVector3 &pi_vtx, Double_t& L_y, Double_t& pi_t,
+        Double_t &lambdapi_dist);
   TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
 		    Double_t t_start, Double_t t_end,
 		    TVector3 Xlambda, TVector3 Plambda,
@@ -152,6 +164,11 @@ namespace Kinematics
 			    std::vector<Double_t> Res_x0, std::vector<Double_t> Res_y0,
 			    std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0,
 			    Double_t &chisqr);
+  TVector3 SmearedVertex(double z0, double dz, double dist_x, double dist_y,
+          Double_t *x0, Double_t *y0,Double_t *u0, Double_t *v0,
+			    std::vector<Double_t> Res_x0, std::vector<Double_t> Res_y0,
+			    std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0,
+          double &dist_x_rec, double& dist_y_rec);
 
 }
 

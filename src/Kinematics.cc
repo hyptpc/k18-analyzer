@@ -65,6 +65,12 @@ static std::vector<Double_t> gSX0;
 static std::vector<Double_t> gSY0;
 static std::vector<Double_t> gSU0;
 static std::vector<Double_t> gSV0;
+
+static std::vector<Double_t> gdr; 
+static std::vector<Double_t> gdw; 
+static std::vector<Double_t> gsigr;
+static std::vector<Double_t> gconst0;
+static Int_t fixed_index;
 static void fcn_vertex(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t iflag){
 
   Double_t chisqr=0.;
@@ -74,7 +80,53 @@ static void fcn_vertex(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, I
   };
   f = chisqr;
 };
-
+static void fcn_smearZvertex(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t iflag){
+  /*A function to estimate x0 and y0 of the beam and scattered particles when z is smeared.
+   We take distance and chi2 as an input constraints. -> X(Prvious)
+   We take |distance_x| and |distance_y| as an input constraints. -> O(Current)
+   Note:
+    dist_x^2 = (Vtx_x - Beam_x)^2 + (Vtx_x - Scat_x)^2
+    dist_y^2 = (Vtx_y - Beam_y)^2 + (Vtx_y - Scat_y)^2
+   Since chi2 should be minimized, we have another constraint,
+    dchi2 = 0.
+   In total, we have three constraints,
+    (dist_x^2 - dx2)^2 = 0, (dist_y^2 - dy2)^2 = 0, dchi2^2 = 0.
+   u and v are fixed, and one among spatial component will be
+    treated as a constant since there are only 3 constraints 
+    (dist_x, dist_y, dchi2) while 4 variables, x0s and y0s remain free.
+  In is natural to chose best-resolution parameter as a fixed one, but 
+  the fixing job will not be don by this fitter.
+  Notation:
+  dr = X - x - u*z or Y - y - v*z
+  dsig^2 = sigma_x^2 + sigma_u^2 dz^2 or sigma_y^2 + sigma_v^2 dz^2.
+  dw = u or v
+  */
+  Double_t distx2 = 0;
+  Double_t disty2 = 0;
+  Double_t const_distx2 = gconst0[1]*gconst0[1];//Generated from MC param man, which is taken from real data distribution.
+  Double_t const_disty2 = gconst0[2]*gconst0[2];
+  Double_t dchi2 = 0;
+  double val = 0;
+  for(Int_t i = 0; i < gdr.size(); ++i){
+    double dsig = gsigr[i];
+    double dr = par[i];
+    double dw = gdw[i];
+    if(i == fixed_index){
+      double dr = gdr[i];
+    }
+    if(i%2== 0){
+      distx2 += dr*dr;
+    }
+    else{
+      disty2 += dr*dr;
+    }
+    dchi2 += dw*dr / (dsig*dsig); 
+  }
+  val += pow(distx2 - const_distx2,2);
+  val += pow(disty2 - const_disty2,2);
+  val += dchi2*dchi2;
+  f = val;
+};
 //_____________________________________________________________________________
 namespace Kinematics
 {
@@ -1594,8 +1646,112 @@ LambdaVertex(Double_t Bfield, Double_t p_par[5], Double_t pi_par[5],
 
   return vertex;
 }
+TVector3
+LambdaVertex(Double_t Bfield, Double_t p_par[5], Double_t pi_par[5],
+	     Double_t p_theta_min, Double_t p_theta_max,
+	     Double_t pi_theta_min, Double_t pi_theta_max,
+	     TVector3 &p_mom, TVector3 &pi_mom, TVector3 &lambda_mom,
+       TVector3 &p_vtx, TVector3 &pi_vtx, 
+	     Double_t& dist){
+
+  Double_t t1, t2;
+  TVector3 vertex = VertexPointHelix(p_par, pi_par, p_theta_min, p_theta_max, pi_theta_min, pi_theta_max, t1, t2, dist);
+  p_mom = CalcHelixMom(Bfield, 1, p_par, t1);
+  pi_mom = CalcHelixMom(Bfield, -1, pi_par, t2);
+  p_vtx = CalcHelixPosition(p_par, t1);
+  pi_vtx = CalcHelixPosition(pi_par, t2);
+  lambda_mom = p_mom + pi_mom;
+
+  return vertex;
+}
+TVector3
+LambdaVertex(Double_t Bfield, Double_t p_par[5], Double_t pi_par[5],
+	     Double_t p_theta_min, Double_t p_theta_max,
+	     Double_t pi_theta_min, Double_t pi_theta_max,
+	     TVector3 &p_mom, TVector3 &pi_mom, TVector3 &lambda_mom,
+       TVector3 &p_vtx, TVector3 &pi_vtx, Double_t& p_t, Double_t& pi_t, 
+	     Double_t& dist){
+
+  TVector3 vertex = VertexPointHelix(p_par, pi_par, p_theta_min, p_theta_max, pi_theta_min, pi_theta_max, p_t, pi_t, dist);
+  p_mom = CalcHelixMom(Bfield, 1, p_par, p_t);
+  pi_mom = CalcHelixMom(Bfield, -1, pi_par, pi_t);
+  p_vtx = CalcHelixPosition(p_par, p_t);
+  pi_vtx = CalcHelixPosition(pi_par, pi_t);
+  lambda_mom = p_mom + pi_mom;
+
+  return vertex;
+}
 
 //_____________________________________________________________________________
+TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
+		  Double_t theta_min, Double_t theta_max,
+		  TVector3 Xlambda, TVector3 Plambda,
+		  TVector3 &Ppi, TVector3 &L_vtx, TVector3 &pi_vtx, Double_t& L_y, Double_t& pi_t,
+      Double_t &lambdapi_dist){
+
+  Double_t lambdavtx_xivtx_cut = 0.;
+
+  Double_t xi = -1.*Xlambda.x();
+  Double_t yi = Xlambda.z() - tpc::ZTarget;
+  Double_t zi = Xlambda.y();
+  Double_t pxi = -1.*Plambda.x();
+  Double_t pyi = Plambda.z();
+  Double_t pzi = Plambda.y();
+  Double_t ui = -pxi/pyi, vi = pzi/pyi;
+
+  TVector3 p_L = TVector3(pxi, pyi, pzi);
+  TVector3 p_unit = p_L.Unit();
+
+  //helix function
+  //x = [0] + [3]*cos(t);
+  //y = [1] + [3]*sin(t);
+  //z = [2] + [3]*[4]*t;
+
+  //straight function
+  //x = [5] + [6]*y;
+  //z = [7] + [8]*y;
+
+  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::ZTarget, 250.-tpc::ZTarget);
+
+  Double_t scan_range[2] ={-250. - tpc::ZTarget, 250. - tpc::ZTarget};
+  if(pyi>0) scan_range[1] = yi + lambdavtx_xivtx_cut/(p_unit.y());
+  else scan_range[0] = yi - lambdavtx_xivtx_cut/(p_unit.y());
+  TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, scan_range[0], scan_range[1]);
+  //TF2 fvertex_helix_linear("fvertex_helix_linear", "pow(([0]+[3]*cos(x))-([5]+[6]*y), 2)+pow(([1]+[3]*sin(x))-y, 2)+pow(([2]+[3]*[4]*x)-([7]+[8]*y), 2)", theta_min, theta_max, -250.-tpc::ZTarget, 250.-tpc::ZTarget);
+
+  fvertex_helix_linear.SetParameter(0, pi_par[0]);
+  fvertex_helix_linear.SetParameter(1, pi_par[1]);
+  fvertex_helix_linear.SetParameter(2, pi_par[2]);
+  fvertex_helix_linear.SetParameter(3, pi_par[3]);
+  fvertex_helix_linear.SetParameter(4, pi_par[4]);
+  fvertex_helix_linear.SetParameter(5, xi + ui*yi);
+  fvertex_helix_linear.SetParameter(6, -ui);
+  fvertex_helix_linear.SetParameter(7, zi - vi*yi);
+  fvertex_helix_linear.SetParameter(8, vi);
+
+  fvertex_helix_linear.GetMinimumXY(pi_t, L_y);
+  //lambdapi_dist = TMath::Sqrt(fvertex_helix_linear.GetMinimum());
+  lambdapi_dist = TMath::Sqrt(fvertex_helix_linear.Eval(pi_t, L_y));
+
+  Ppi = CalcHelixMom(Bfield, -1, pi_par, pi_t);
+  pi_vtx = CalcHelixPosition(pi_par, pi_t);
+  L_vtx = TVector3(xi - ui*(L_y-yi), L_y, zi + vi*(L_y-yi));
+
+  Double_t xPi = pi_par[0]+pi_par[3]*cos(pi_t);
+  Double_t yPi = pi_par[1]+pi_par[3]*sin(pi_t);
+  Double_t zPi = pi_par[2]+pi_par[3]*pi_par[4]*pi_t;
+  Double_t xL = xi - ui*(L_y-yi);
+  Double_t yL = L_y;
+  Double_t zL = zi + vi*(L_y-yi);
+  Double_t vx = 0.5*(xPi+xL);
+  Double_t vy = 0.5*(yPi+yL);
+  Double_t vz = 0.5*(zPi+zL);
+
+  Double_t vertx = -1.*vx;
+  Double_t verty = vz;
+  Double_t vertz = vy + tpc::ZTarget;
+  return TVector3(vertx, verty, vertz);
+}
 TVector3 XiVertex(Double_t Bfield, Double_t pi_par[5],
 		  Double_t theta_min, Double_t theta_max,
 		  TVector3 Xlambda, TVector3 Plambda,
@@ -2173,5 +2329,122 @@ MultitrackVertex(Int_t ntrack, Double_t *x0, Double_t *y0, Double_t *u0, Double_
 
   return TVector3(par[0], par[1], par[2] + tpc::ZTarget);
 }
+TVector3 SmearedVertex(double z0, double dz, double dist_x, double dist_y,
+        Double_t *x0, Double_t *y0,Double_t *u0, Double_t *v0, 
+        std::vector<Double_t> Res_x0, std::vector<Double_t> Res_y0,
+        std::vector<Double_t> Res_u0, std::vector<Double_t> Res_v0,
+        double &dist_x_rec, double& dist_y_rec
+  ){
 
+  double min_res = Res_x0[0]+1;
+  std::vector<Double_t> pos_res;
+  pos_res.push_back(Res_x0[0]);
+  pos_res.push_back(Res_x0[1]);
+  pos_res.push_back(Res_y0[0]);
+  pos_res.push_back(Res_y0[1]);
+  int min_index = 0;
+  for(size_t i=0; i<pos_res.size(); ++i){
+    if(pos_res[i] < min_res){
+      min_res = pos_res[i];
+      min_index = i;
+    }
+  }
+  fixed_index = min_index;
+
+  //Set input parameters generated from MC param man.
+  gconst0.push_back(dz);
+  gconst0.push_back(dist_x);
+  gconst0.push_back(dist_y);
+
+  //Directions
+  gdw.push_back(u0[0]);
+  gdw.push_back(v0[0]);
+  gdw.push_back(u0[1]);
+  gdw.push_back(v0[1]);
+
+  //Resolutions at dz plane.
+  double res_x0 = hypot(Res_x0[0], Res_u0[0]*dz);
+  double res_y0 = hypot(Res_y0[0], Res_v0[0]*dz);
+  double res_x1 = hypot(Res_x0[1], Res_u0[1]*dz);
+  double res_y1 = hypot(Res_y0[1], Res_v0[1]*dz);
+
+  gsigr.push_back(res_x0);
+  gsigr.push_back(res_y0);
+  gsigr.push_back(res_x1);
+  gsigr.push_back(res_y1);
+
+  TVector3 vtx_try(x0[0], y0[0], z0);
+  TVector3 true_vtx_dz_from_target(0, 0, z0 - tpc::ZTarget);
+  {//Maybe iteration would be needed?
+    double dx0 = vtx_try.x() - x0[1] - u0[1]*dz;
+    double dy0 = vtx_try.y() - y0[1] - v0[1]*dz;
+    double dx1 = vtx_try.x() - x0[0] - u0[0]*dz;
+    double dy1 = vtx_try.y() - y0[0] - v0[0]*dz;
+    gdr.push_back(dx0);
+    gdr.push_back(dy0);
+    gdr.push_back(dx1);
+    gdr.push_back(dy1);
+    Double_t par[3] = {0,0,0};
+    Double_t err[3] = {999., 999., 999.};
+
+    TMinuit *minuit = new TMinuit(3);
+    minuit->SetPrintLevel(-1);
+    minuit->SetFCN(fcn_smearZvertex);
+    Double_t arglist[10];
+    Int_t ierflg = 0;
+    arglist[0] = 1; //error level for ch2 minimization
+    minuit->mnexcm("SET ERR", arglist, 1, ierflg);
+    minuit->mnexcm("SET NOW", arglist, 1, ierflg);
+    
+    TString name[3] = {"dr1", "dr2" ,"dr3"};
+    const Double_t FitStep[3] = {0.001, 0.001, 0.001};
+    const Double_t LowLimit[3] = {-100., -100., -100};
+    const Double_t UpLimit[3] = {100., 100., 100};
+    for(Int_t i=0; i<3; i++){
+      minuit->mnparm(i, name[i], par[i], FitStep[i], LowLimit[i], UpLimit[i], ierflg);
+    }
+    minuit->Command("SET STRategy 0");
+    arglist[0] = 1000.;
+    arglist[1] = 0.1;
+
+    Int_t Err;
+    Double_t bnd1, bnd2;
+    minuit->mnexcm("MIGRAD", arglist, 2, ierflg);
+    Double_t amin, edm, errdef;
+    Int_t nvpar, nparx, icstat;
+    minuit->mnstat(amin, edm, errdef, nvpar, nparx, icstat);
+    for(Int_t i=0; i<3; i++){
+      minuit->mnpout(i, name[i], par[i], err[i], bnd1, bnd2, Err);
+    }
+    Double_t grad[3]; Double_t chi;
+    minuit -> Eval(3, grad, chi, par, 0);
+    std::vector<Double_t> dr_fitted;
+    for(int i = 0; i < 4; ++i){
+      if(i == fixed_index) dr_fitted.push_back(gdr[i]);
+      else dr_fitted.push_back(par[i]);
+    }
+
+    std::vector<Double_t> pos;
+    for(int i = 0; i < 4; ++i){
+      double X = i%2==0? vtx_try.x() : vtx_try.y();
+      double xf = X -dr_fitted[i] - gdw[i]*dz;
+      //dx0_fit = X - x0_fit - u0*dz
+      //x0_fit = X - dx0_fit - u0*dz
+      i%2==0? x0[i/2] = xf : y0[i/2] = xf; 
+      pos.push_back(xf);
+    }
+    delete minuit;
+    gdr.clear();
+    vtx_try = MultitrackVertex(2, x0,y0,u0,v0, Res_x0, Res_y0, Res_u0, Res_v0);
+    vtx_try += true_vtx_dz_from_target;//In case of G4, x,y are defined at z0 plane, not target center.
+    TVector3 vtx_b(x0[0]+u0[0]*(vtx_try.z()-tpc::ZTarget), y0[0]+v0[0]*(vtx_try.z()-tpc::ZTarget), vtx_try.z());
+    TVector3 vtx_s(x0[1]+u0[1]*(vtx_try.z()-tpc::ZTarget), y0[1]+v0[1]*(vtx_try.z()-tpc::ZTarget), vtx_try.z());
+    dist_x_rec = hypot((vtx_b-vtx_try).X(), (vtx_s-vtx_try).X());
+    dist_y_rec = hypot((vtx_b-vtx_try).Y(), (vtx_s-vtx_try).Y());
+  }
+  gsigr.clear();
+  gconst0.clear();
+  gdw.clear();
+  return vtx_try;
+}
 }

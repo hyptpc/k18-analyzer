@@ -803,6 +803,31 @@ TMatrixD MergeOffdiagonals(TMatrixD A, TMatrixD B)
   }
   return TMatrixD(rowC,colC,elem);
 }
+#if 0
+TMatrixD MergeOffdiagonals(TMatrixDSym A, TMatrixDSym B)
+{
+  int rowA = A.GetNrows();
+  int colA = A.GetNcols();
+  int rowB = B.GetNrows();
+  int colB = B.GetNcols();
+  double elem[500]={0};
+  int rowC = rowA+rowB;
+  int colC = colA+colB;
+  for(int r=0;r<rowA;++r){
+    for(int c=0;c<colA;++c){
+      if(r == c) continue;
+      elem[c+colC*r] = A(r,c);
+    }
+  }
+  for(int r=0;r<rowB;++r){
+    for(int c=0;c<colB;++c){
+      if(r == c) continue;
+      elem[colA+c+colC*(r+rowA)] = B(r,c);
+    }
+  }
+  return TMatrixD(rowC,colC,elem);
+}
+#endif
 TMatrixD VertexCovarianceLinear(TMatrixD V, TVector3 P, double sig_R0, double sig_Z0, double extrap){ 
 /*
 Variables

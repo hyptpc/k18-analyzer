@@ -14,7 +14,6 @@
 //ROOT
 #include <TMath.h>
 #include <TVectorD.h>
-#include <TMatrixDSym.h>
 
 //k18-analyzer
 #include <TPCPadHelper.hh>
@@ -34,6 +33,24 @@ namespace{
   const double htof_l = 34.86; //center to HTOF downstream
   const double ztgt = tpc::ZTarget;
   const TVector3 tgtcenter(0,0,0.1*tpc::ZTarget); //cm
+
+  TMatrixD ReorderCovXYZPToPXYZmm(const TMatrixDSym &cov_xyzp){
+
+    //The coordinate should transform from (x,y,z,px,py,pz) to (-px,pz,py,-x,z,y).
+    //
+    TMatrixD cov_pxyz(6,6);
+    const int map[6] = {3, 5, 4, 0, 2, 1};
+    const double scale[6] = {-1., 1., 1., -10., 10., 10.};
+    for(int i=0; i<6; ++i){
+      for(int j=0; j<=i; ++j){
+        double elem = scale[i] * scale[j] * cov_xyzp(map[i],map[j]);
+        cov_pxyz(i, j) = elem;
+        cov_pxyz(j, i) = elem;
+      }
+    }
+
+    return cov_pxyz;
+  }
 }
 
 //GenFit Units : GeV/c, ns, cm, kGauss
@@ -296,6 +313,12 @@ double HypTPCTask::GetTrackTOF(int trackid, int start, int end, int repid) const
 
 bool HypTPCTask::ExtrapolateTrack(int trackid, double distance, TVector3 &pos, TVector3 &mom, int repid) const{
 
+  TMatrixD cov;
+  return ExtrapolateTrack(trackid, distance, pos, mom, cov, repid);
+}
+
+bool HypTPCTask::ExtrapolateTrack(int trackid, double distance, TVector3 &pos, TVector3 &mom, TMatrixD &cov, int repid) const{
+
   double tracklength = GetTrackLength(trackid, 0, -1, repid);
   if(TMath::IsNaN(tracklength)) return false;
   Double_t d = 0.1*distance; //mm -> cm
@@ -310,8 +333,21 @@ bool HypTPCTask::ExtrapolateTrack(int trackid, double distance, TVector3 &pos, T
     return false;
   }
 
+  TMatrixDSym cov_xyzp;
+  /* Important notes!
+    Each point in the track has 6 informations, (x,y,z, px, py, pz).
+    However, if we 'select' a point, we lose one degree of freedom. 
+    Hence the covariance matrix of the selected point has a rank of 5,
+    leading to a singularity in (x,y,z,px,py,pz) representation.
+    In the covariance at the Vertex point, there is another degree of freedom
+    in the 'selection' of the point: We do not 'know' the exact position of the vertex.
+    It might be possible to properly define the joint-covariance of the two tracks sharing the same vertex.
+  */
+  fitState.getPosMomCov(pos, mom, cov_xyzp);
   pos = 10.*fitState.getPos(); //cm -> mm
   mom = fitState.getMom();
+  cov.ResizeTo(6,6);
+  cov = ReorderCovXYZPToPXYZmm(cov_xyzp);
   return true;
 }
 
@@ -410,7 +446,7 @@ bool HypTPCTask::IsInsideTarget(int trackid, int repid, bool Beamthrough) const{
      TMath::Abs(pos.z()-ztgt) < 50. &&
      TMath::Sqrt(pos.x()*pos.x()+pos.y()*pos.y()+(pos.z()-ztgt)*(pos.z()-ztgt)) < 50. &&
      ((-100. < tracklen && tracklen < 10.) or Beamthrough)){ 
-      std::cout<<"Track ID "<<trackid<<" len "<< tracklen<<" pos "<<pos<<std::endl;
+//      std::cout<<"Track ID "<<trackid<<" len "<< tracklen<<" pos "<<pos<<std::endl;
       return true;
     }
   else return false;
@@ -474,93 +510,30 @@ bool HypTPCTask::ExtrapolateToHTOF(int trackid, int &candidates, int *ID, TVecto
   return flag;
 }
 
-bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2, double &extrap_dist1, double &extrap_dist2, TVector3 &mom_vertex1, TVector3 &mom_vertex2, double &distance, TVector3 &vertex, double scan_range) const{
+bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2,
+  double &extrap_dist1, double &extrap_dist2, TVector3 &mom_vertex1, TVector3 &mom_vertex2,
+  double &distance, TVector3 &vertex, double scan_range) const{
 
-  distance = 10000.;
-  int MaxStep  = 80000;
-  double StepSize = 1.; // mm (1st naive scanning)
-  double fineStepSize = StepSize*0.01; // (2nd fine scanning)
-  int iStep1 = 0; int iStep2 = 0;
-  double dist1 = 0.; double dist2 = 0.;
-  if(!TrackCheck(trackid1) || !TrackCheck(trackid2)) return false;
-  while(iStep2 < MaxStep){
-    iStep1 = 0;
-    while(iStep1 < MaxStep){
-  //    std::cout<<"istep "<<iStep1<<" "<<iStep2<<std::endl;
-      TVector3 pos1; TVector3 mom1; TVector3 pos2; TVector3 mom2;
-      bool extrapol1 = ExtrapolateTrack(trackid1, -iStep1*StepSize, pos1, mom1, repid1);
-   //   if(extrapol1) std::cout<<"extrapolate id "<<trackid1<<", step size "<<-iStep1*StepSize<<" mm, mom "<<mom1.Mag()<<" GeV/c, pos "<<pos1<<std::endl;
-      bool extrapol2 = ExtrapolateTrack(trackid2, -iStep2*StepSize, pos2, mom2, repid2);
-    //  if(extrapol2) std::cout<<"extrapolate id "<<trackid2<<", step size "<<-iStep2*StepSize<<" mm, mom "<<mom2.Mag()<<" GeV/c, pos "<<pos2<<std::endl;
-      if(!extrapol1 || !extrapol2){
-	std::cout<<"extrapolation failed"<<std::endl;
-	return false;
-      }
-
-      //Search the closest point(Vertex)
-      TVector3 diff = pos1 - pos2;
-      if(distance > diff.Mag()){
-	distance = diff.Mag();
-	dist1 = -iStep1*StepSize;
-	dist2 = -iStep2*StepSize;
-	vertex = pos1 + pos2;
-	vertex *= 0.5;
-	mom_vertex1 = mom1;
-	mom_vertex2 = mom2;
-      }
-
-      //std::cout<<" dist "<<iStep1*StepSize<<" < scan range "<<scan_range<<std::endl;
-      if(iStep1*StepSize >= scan_range) break;
-      iStep1++;
-    } //while(++iStep1 < MaxStep)
-    if(iStep2*StepSize >= scan_range) break;
-    iStep2++;
-  } //while(++iStep2 < MaxStep){
-  iStep1 = 0; iStep2 = 0;
-  while(iStep2 < MaxStep){
-    iStep1 = 0;
-    while(iStep1 < MaxStep){
-      //std::cout<<"istep "<<iStep1<<" "<<iStep2<<std::endl;
-      double finedist1 = dist1 - StepSize + iStep1*fineStepSize;
-      double finedist2 = dist2 - StepSize + iStep2*fineStepSize;
-
-      TVector3 pos1; TVector3 mom1; TVector3 pos2; TVector3 mom2;
-      bool extrapol1 = ExtrapolateTrack(trackid1, finedist1, pos1, mom1, repid1);
-      //if(extrapol1) std::cout<<"extrapolate id "<<trackid1<<", step size "<<fineStepSize<<" mm, mom "<<mom1.Mag()<<" GeV/c, pos "<<pos1<<std::endl;
-      bool extrapol2 = ExtrapolateTrack(trackid2, finedist2, pos2, mom2, repid2);
-      //if(extrapol2) std::cout<<"extrapolate id "<<trackid2<<", step size "<<fineStepSize<<" mm, mom "<<mom2.Mag()<<" GeV/c, pos "<<pos2<<std::endl;
-
-      if(!extrapol1 || !extrapol2){
-	std::cout<<"extrapolation failed"<<std::endl;
-	return false;
-      }
-
-      //Search the closest point(Vertex)
-      TVector3 diff = pos1 - pos2;
-      if(distance > diff.Mag()){
-	distance = diff.Mag();
-	vertex = pos1 + pos2;
-	vertex *= 0.5;
-	mom_vertex1 = mom1;
-	mom_vertex2 = mom2;
-	extrap_dist1 = finedist1;
-	extrap_dist2 = finedist2;
-      }
-      //std::cout<<" dist "<<iStep1*fineStepSize<<" <= scan range "<<2.*StepSize<<std::endl;
-      if(iStep1*fineStepSize >= 2.*StepSize) break;
-      iStep1++;
-    }
-    if(iStep2*fineStepSize >= 2.*StepSize) break;
-    iStep2++;
-  }
-  //std::cout<<"find vertex end "<<std::endl;
-  //std::cout<<std::endl;
-
-  return true;
+  TVector3 track1_vertex; TVector3 track2_vertex;
+  TMatrixD cov_vertex1; TMatrixD cov_vertex2;
+  return FindVertex(trackid1, trackid2, repid1, repid2,
+                    extrap_dist1, extrap_dist2, mom_vertex1, mom_vertex2,
+                    distance, vertex,
+                    cov_vertex1, cov_vertex2,
+                    track1_vertex, track2_vertex, scan_range);
 }
-bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2, double &extrap_dist1, double &extrap_dist2, TVector3 &mom_vertex1, TVector3 &mom_vertex2, double &distance, TVector3 &vertex, double scan_range, TVector3 &track1_vertex, TVector3 &track2_vertex) const{
+
+bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2,
+  double &extrap_dist1, double &extrap_dist2,TVector3 &mom_vertex1, TVector3 &mom_vertex2,
+  double &distance, TVector3 &vertex,
+  TMatrixD &cov_vertex1, TMatrixD &cov_vertex2,
+  TVector3 &track1_vertex, TVector3 &track2_vertex, double scan_range) const{
 
   distance = 10000.;
+  cov_vertex1.ResizeTo(6, 6);
+  cov_vertex1.Zero();
+  cov_vertex2.ResizeTo(6, 6);
+  cov_vertex2.Zero();
   int MaxStep  = 80000;
   double StepSize = 1.; // mm (1st naive scanning)
   double fineStepSize = StepSize*0.01; // (2nd fine scanning)
@@ -572,9 +545,10 @@ bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2, 
     while(iStep1 < MaxStep){
       //std::cout<<"istep "<<iStep1<<" "<<iStep2<<std::endl;
       TVector3 pos1; TVector3 mom1; TVector3 pos2; TVector3 mom2;
-      bool extrapol1 = ExtrapolateTrack(trackid1, -iStep1*StepSize, pos1, mom1, repid1);
+      TMatrixD cov1(6,6); TMatrixD cov2(6,6);
+      bool extrapol1 = ExtrapolateTrack(trackid1, -iStep1*StepSize, pos1, mom1, cov1, repid1);
       //if(extrapol1) std::cout<<"extrapolate id "<<trackid1<<", step size "<<-iStep1*StepSize<<" mm, mom "<<mom1.Mag()<<" GeV/c, pos "<<pos1<<std::endl;
-      bool extrapol2 = ExtrapolateTrack(trackid2, -iStep2*StepSize, pos2, mom2, repid2);
+      bool extrapol2 = ExtrapolateTrack(trackid2, -iStep2*StepSize, pos2, mom2, cov2, repid2);
       //if(extrapol2) std::cout<<"extrapolate id "<<trackid2<<", step size "<<-iStep2*StepSize<<" mm, mom "<<mom2.Mag()<<" GeV/c, pos "<<pos2<<std::endl;
       if(!extrapol1 || !extrapol2){
 	std::cout<<"extrapolation failed"<<std::endl;
@@ -591,6 +565,8 @@ bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2, 
 	vertex *= 0.5;
 	mom_vertex1 = mom1;
 	mom_vertex2 = mom2;
+  cov_vertex1 = cov1;
+  cov_vertex2 = cov2;
       }
 
       //std::cout<<" dist "<<iStep1*StepSize<<" < scan range "<<scan_range<<std::endl;
@@ -599,8 +575,7 @@ bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2, 
     } //while(++iStep1 < MaxStep)
     if(iStep2*StepSize >= scan_range) break;
     iStep2++;
-  } //while(++iStep2 < MaxStep){
-
+  } 
   iStep1 = 0; iStep2 = 0;
   while(iStep2 < MaxStep){
     iStep1 = 0;
@@ -610,9 +585,10 @@ bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2, 
       double finedist2 = dist2 - StepSize + iStep2*fineStepSize;
 
       TVector3 pos1; TVector3 mom1; TVector3 pos2; TVector3 mom2;
-      bool extrapol1 = ExtrapolateTrack(trackid1, finedist1, pos1, mom1, repid1);
+      TMatrixD cov1(6,6); TMatrixD cov2(6,6);
+      bool extrapol1 = ExtrapolateTrack(trackid1, finedist1, pos1, mom1, cov1, repid1);
       //if(extrapol1) std::cout<<"extrapolate id "<<trackid1<<", step size "<<fineStepSize<<" mm, mom "<<mom1.Mag()<<" GeV/c, pos "<<pos1<<std::endl;
-      bool extrapol2 = ExtrapolateTrack(trackid2, finedist2, pos2, mom2, repid2);
+      bool extrapol2 = ExtrapolateTrack(trackid2, finedist2, pos2, mom2, cov2, repid2);
       //if(extrapol2) std::cout<<"extrapolate id "<<trackid2<<", step size "<<fineStepSize<<" mm, mom "<<mom2.Mag()<<" GeV/c, pos "<<pos2<<std::endl;
 
       if(!extrapol1 || !extrapol2){
@@ -628,6 +604,8 @@ bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2, 
 	vertex *= 0.5;
 	mom_vertex1 = mom1;
 	mom_vertex2 = mom2;
+  cov_vertex1 = cov1;
+  cov_vertex2 = cov2;
 	extrap_dist1 = finedist1;
 	extrap_dist2 = finedist2;
   track1_vertex = pos1;
@@ -646,100 +624,22 @@ bool HypTPCTask::FindVertex(int trackid1, int trackid2, int repid1, int repid2, 
   return true;
 }
 
-bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, TVector3 mom_lambda, double &tracklen_lambda, double &extrap_dist_pi, TVector3 &mom_pi_vertex, double &distance, TVector3 &vertex, double scan_range, double res1, double res2, double phi) const{ //trackid & repid : pi-
-
-  bool status = false;
-
-  distance = 10000.;
-  int MaxStep  = 80000;
-  double StepSize = 1.; // mm (1st naive scanning)
-  double fineStepSize = StepSize*0.01; // (2nd fine scanning)
-  int iStep = 0; double dist = 0.;
-  if(!TrackCheck(trackid)) return false;
-  iStep = 0;
-  while(iStep < MaxStep){
-    TVector3 pos; TVector3 mom;
-    bool extrapol = ExtrapolateTrack(trackid, -iStep*StepSize, pos, mom, repid);
-    if(!extrapol){
-      std::cout<<"extrapolation failed"<<std::endl;
-      return false;
-    }
-
-    //Search the closest point(Vertex)
-    TVector3 AP = pos - decayvtx_lambda;
-    TVector3 u = mom_lambda.Unit();
-    Double_t dist_AX = u.Dot(AP);
-    TVector3 AI = dist_AX*u;
-    AI += decayvtx_lambda;
-    Double_t lambdavtx_xivtx = (AI - decayvtx_lambda)*u;
-    TVector3 diff = pos - AI;
-    double r1 = sqrt(2)*res1 / hypot(res1,res2);
-    double r2 = sqrt(2)*res2 / hypot(res1,res2);
-    TVector3 e1(cos(phi), 0, sin(phi));
-    TVector3 e2(-sin(phi), 0, cos(phi));
-
-    double dy = diff.y();
-    double dx = diff * e1 / r1;
-    double dz = diff * e2 / r2;
-    diff = TVector3(dx,dy,dz);
-    if(distance > diff.Mag() && lambdavtx_xivtx < 0){
-      distance = diff.Mag();
-      dist = -iStep*StepSize;
-      vertex = pos + AI;
-      vertex *= 0.5;
-      mom_pi_vertex = mom;
-      status = true;
-    }
-
-    if(iStep*StepSize >= scan_range) break;
-    iStep++;
-  } //while(++iStep < MaxStep)
-  if(!status) return false;
-
-  iStep = 0;
-  while(iStep < MaxStep){
-    double finedist = dist - StepSize + iStep*fineStepSize;
-
-    TVector3 pos; TVector3 mom;
-    bool extrapol = ExtrapolateTrack(trackid, finedist, pos, mom, repid);
-    if(!extrapol){
-      std::cout<<"extrapolation failed"<<std::endl;
-      return false;
-    }
-
-    //Search the closest point(Vertex)
-    TVector3 AP = pos - decayvtx_lambda;
-    TVector3 u = mom_lambda.Unit();
-    Double_t dist_AX = u.Dot(AP);
-    TVector3 AI = dist_AX*u;
-    AI += decayvtx_lambda;
-    Double_t lambdavtx_xivtx = (AI - decayvtx_lambda)*u;
-    TVector3 diff = pos - AI;
-    double r1 = sqrt(2)*res1 / hypot(res1,res2);
-    double r2 = sqrt(2)*res2 / hypot(res1,res2);
-    TVector3 e1(cos(phi), 0, sin(phi));
-    TVector3 e2(-sin(phi), 0, cos(phi));
-
-    double dy = diff.y();
-    double dx = diff * e1 / r1;
-    double dz = diff * e2 / r2;
-    diff = TVector3(dx,dy,dz);
-    if(distance > diff.Mag() && lambdavtx_xivtx < 0){
-      distance = diff.Mag();
-      vertex = pos + AI;
-      vertex *= 0.5;
-      mom_pi_vertex = mom;
-      tracklen_lambda = TMath::Abs(lambdavtx_xivtx);
-      extrap_dist_pi = finedist;
-      status = true;
-    }
-    if(iStep*fineStepSize >= 2.*StepSize) break;
-    iStep++;
-  }
-
-  return status;
+bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, TVector3 mom_lambda,
+  double &tracklen_lambda, double &extrap_dist_pi, TVector3 &mom_pi_vertex,
+  double &distance, TVector3 &vertex,
+  double scan_range, double res1, double res2, double phi) const{ //trackid & repid : pi-
+  TVector3 track1_vertex; TVector3 track2_vertex;
+  TMatrixD cov2_vertex;
+  return FindVertexXi(trackid, repid, decayvtx_lambda, mom_lambda,
+    tracklen_lambda, extrap_dist_pi, mom_pi_vertex,
+    distance, vertex,
+    cov2_vertex, track1_vertex, track2_vertex,
+    scan_range, res1, res2, phi);
 }
-bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, TVector3 mom_lambda, double &tracklen_lambda, double &extrap_dist_pi, TVector3 &mom_pi_vertex, double &distance, TVector3 &vertex, double scan_range, double res1, double res2, double phi, TVector3& track1_vertex, TVector3& track2_vertex) const{ //trackid & repid : pi-
+bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, TVector3 mom_lambda, 
+  double &tracklen_lambda, double &extrap_dist_pi, TVector3 &mom_pi_vertex, double &distance, TVector3 &vertex, 
+  TMatrixD &cov2_vertex, TVector3& track1_vertex, TVector3& track2_vertex,
+  double scan_range, double res1, double res2, double phi) const{ //trackid & repid : pi-
 
   bool status = false;
 
@@ -748,11 +648,13 @@ bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, 
   double StepSize = 1.; // mm (1st naive scanning)
   double fineStepSize = StepSize*0.01; // (2nd fine scanning)
   int iStep = 0; double dist = 0.;
+  cov2_vertex.ResizeTo(6, 6);
   if(!TrackCheck(trackid)) return false;
   iStep = 0;
   while(iStep < MaxStep){
     TVector3 pos; TVector3 mom;
-    bool extrapol = ExtrapolateTrack(trackid, -iStep*StepSize, pos, mom, repid);
+    TMatrixD cov(6,6);
+    bool extrapol = ExtrapolateTrack(trackid, -iStep*StepSize, pos, mom, cov, repid);
     if(!extrapol){
       std::cout<<"extrapolation failed"<<std::endl;
       return false;
@@ -782,6 +684,7 @@ bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, 
       vertex = pos + AI;
       vertex *= 0.5;
       mom_pi_vertex = mom;
+      cov2_vertex = cov;
       status = true;
     }
 
@@ -795,7 +698,8 @@ bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, 
     double finedist = dist - StepSize + iStep*fineStepSize;
 
     TVector3 pos; TVector3 mom;
-    bool extrapol = ExtrapolateTrack(trackid, finedist, pos, mom, repid);
+    TMatrixD cov(6,6);
+    bool extrapol = ExtrapolateTrack(trackid, finedist, pos, mom, cov, repid);
     if(!extrapol){
       std::cout<<"extrapolation failed"<<std::endl;
       return false;
@@ -827,6 +731,7 @@ bool HypTPCTask::FindVertexXi(int trackid, int repid, TVector3 decayvtx_lambda, 
       mom_pi_vertex = mom;
       tracklen_lambda = TMath::Abs(lambdavtx_xivtx);
       extrap_dist_pi = finedist;
+      cov2_vertex = cov;
       status = true;
     }
     if(iStep*fineStepSize >= 2.*StepSize) break;

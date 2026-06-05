@@ -40,7 +40,9 @@ MassVertexFitter2::CalcHelixDistance2(std::vector<double> pars){
   double pt2 = p2*sin(th2);
   double r2 = pt2/RadToMom;
   double dz2 = -1./tan(th2)*sign;
+ 
   
+  //
   double d_cx = cx1 - cx2;
   double d_cy = cy1 - cy2;
   double d_cz = z01 - z02;
@@ -264,7 +266,7 @@ void MassVertexFitter2::Initialize(){
   // p, th, ph, cx, cy, z0 for both particles.
   nUnkn = 3;// p, th, ph
   nConst = 5;// px, py, pz conservations, E conservation(Mass constraint), Vertex 
-  //ndf = nMeas - nUnkn - nConst;
+  //ndf = nConst - nUnkn;
   mP = P.Mag();
   TVector3 TV_P = P.Vect();
   double p_P = TV_P.Mag();  
