@@ -3970,7 +3970,7 @@ TPCLocalTrackHelix::GetTransverseMomentumAngularCovariance(Double_t t){
   }
 
 	Double_t mean_t = 0.5*(m_min_t + m_max_t);
-  Double_t sign = t < mean_t ? 1 : 0;//If t is behind, sign should be positive.
+  Double_t sign = t < mean_t ? 1 : -1;//If t is behind, sign should be positive.
   Double_t dp_t =  GetTransverseMomentumResolution();
   Double_t dt = GetTransverseAngularResolution(t);
   return sign * dp_t * dt;
