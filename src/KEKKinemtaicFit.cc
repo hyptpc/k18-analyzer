@@ -129,15 +129,26 @@ KEKCascadeVertexFitter::KEKCascadeVertexFitter(
 	#else
 	static const Double_t MomResScale   = 2.4;
 	static const Double_t dZResScale    = 1;
-	static const Double_t ResXScaleP    = 1;
-	static const Double_t ResYScaleP    = 1.1;
-	static const Double_t ResZScaleP    = 0.5;
+	/*
+	static const Double_t ResXScaleP    = 1.5;
+	static const Double_t ResYScaleP    = 1.5;
+	static const Double_t ResZScaleP    = 0.3;
 	static const Double_t ResXScalePi1  = 1.1;
 	static const Double_t ResYScalePi1  = 1.2;
-	static const Double_t ResZScalePi1  = 0.6;
+	static const Double_t ResZScalePi1  = 0.4;
 	static const Double_t ResXScalePi2  = 2.1;
 	static const Double_t ResYScalePi2  = 2.2;
 	static const Double_t ResZScalePi2  = 2;
+	*/
+	static const Double_t ResXScaleP    = 1;
+	static const Double_t ResYScaleP    = 1;
+	static const Double_t ResZScaleP    = 1;
+	static const Double_t ResXScalePi1  = 1;
+	static const Double_t ResYScalePi1  = 1;
+	static const Double_t ResZScalePi1  = 1;
+	static const Double_t ResXScalePi2  = 1;
+	static const Double_t ResYScalePi2  = 1;
+	static const Double_t ResZScalePi2  = 1;
 	#endif
 	/*
 	Each point in the track has 6 informations, (x,y,z, px, py, pz).
@@ -156,13 +167,25 @@ KEKCascadeVertexFitter::KEKCascadeVertexFitter(
 	The scale parameter, dt, can be estimated from the vertex counterpart, since the vertex resolution
 	is dominated by the extrapolation uncertainty. If the position part of the counterpart tarck is V,
 	dt can be defined as:
-	dt^2 = U * V * U^T
+	dt^2 = U * V * U^T 
+	* 20260607 Modification:
+	dt^2 = U * V * U^T * 1./sin(opening angle)^2.
+	A variance in U will induce a variance proportional tu U* 1/sin(opening angle) in the counterpart plane.
+	
 	For pi2, it has no counterpart.
 	We take the average of p pi position covariance.
 	*/
 	TVector3 U1 = HLV1.Vect().Unit();
 	TVector3 U2 = HLV2.Vect().Unit();
 	TVector3 U3 = HLV3.Vect().Unit();
+
+	double cth_opening_12 = U1.Dot(U2);
+	double sth_opening_12 = sqrt(1 - cth_opening_12*cth_opening_12);
+	//The sign does not matter. We will take the squared value.
+	//Maybe a numerical cap may be required?
+	double cth_opening_3 = U3.Dot((U1+U2).Unit());
+	double sth_opening_3 = sqrt(1 - cth_opening_3*cth_opening_3);
+
 	TMatrixD UMat1(3,1); TMatrixD UMatT1(1,3);
 	TMatrixD UMat2(3,1); TMatrixD UMatT2(1,3);
 	TMatrixD UMat3(3,1); TMatrixD UMatT3(1,3);
@@ -180,9 +203,9 @@ KEKCascadeVertexFitter::KEKCascadeVertexFitter(
 			V3(i,j) = 0.5 * (Cov1(i+3,j+3) + Cov2(i+3,j+3));
 		}
 	}
-	double dt1 = sqrt((UMatT1*V2*UMat1)(0,0));
-	double dt2 = sqrt((UMatT2*V1*UMat2)(0,0));
-	double dt3 = sqrt((UMatT3*V3*UMat3)(0,0));
+	double dt1 = sqrt((UMatT1*V2*UMat1)(0,0))*sth_opening_12;
+	double dt2 = sqrt((UMatT2*V1*UMat2)(0,0))*sth_opening_12;
+	double dt3 = sqrt((UMatT3*V3*UMat3)(0,0))*sth_opening_3;
 	for(int i=0;i<3;++i){
 		for(int j=0;j<3;++j){
 			Cov1(i+3,j+3) += dt1*dt1*U1(i)*U1(j);
