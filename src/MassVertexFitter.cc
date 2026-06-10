@@ -1,620 +1,910 @@
-//#include "KinFit.cc"
 #include "MassVertexFitter.hh"
-#include "TString.h"
 #ifndef MassVertexFitter_cc
 #define MassVertexFitter_cc
-#define Debug 0
+#define DebugCKF 0
 // Author: Kang Byungmin, kangbmw2@naver.com
 // For the mathematics of the fitting, please refer to:
 // https://github.com/kangbm94/Notes-on-Kinematic-Fit
 
-
-MassVertexFitter::MassVertexFitter(TLorentzVector P_,TLorentzVector Q_, TLorentzVector R_
-                                  ,TVector3 V_P, TVector3 V_Q){ 
-  //Kinematic fitting for R -> P+Q decay, with vertex constraint
-  P=P_;
-  Q=Q_;
-  R=R_;
-  TVector3 norm = P.Vect().Cross(Q.Vect());
-  TVector3 perp = P.Vect().Cross(norm);//Shift the position reference, to avoid crossing-problem at cylindrical coordinate.
-  V0 = 0.5*(V_P + V_Q) + 20 * perp;// Position reference of every verticies are from this point. 
-  VP = V_P - V0;
-  VQ = V_Q - V0;
-  Initialize();
+void MassVertexFitter::UseVertex(bool status,TVector3 Vert1,TVector3 Vert2){
+	UseVertexFlag = status;
+	Clear();
+	Initialize();
+}
+MassVertexFitter::MassVertexFitter(TLorentzVector P_,TVector3 VP_,
+	TLorentzVector Q_, TVector3 VQ_){
+	P=P_;
+	Q=Q_;
+	VP=VP_;
+	VQ=VQ_;
+	L=P_+Q_;
+	VL=0.5*(VP_+VQ_);
+	ScaleParams = 0;
+	Initialize();
 };
-void
-MassVertexFitter::GetRZparameters(TVector3 Vert, TVector3 Dir, double& R, double& Z){
-  TVector3 close_point = Vert - (Vert * Dir) * Dir ;
-  //track = close_point + t * Dir;. Vert = close_point + t0 * Dir;
-  //close_point* Dir = 0, because close point should be perpendicular to the direction of the track.
-  //t0 = Vert * Dir;
-  //close_point = Vert - t0 * Dir = Vert - (Vert * Dir) * Dir;
-  double phi = Dir.Phi();
-  R = close_point.x()*cos(phi + M_PI/2) + close_point.y()*sin(phi + M_PI/2);
-  /* R is a signed distance. Direction should be rotated by 90 degrees, 
-  and R will be positive if the vertex is on the positive side of the track.
-  With this definition, we can make consistent definition without considering left/right ambiguity.
-  */
-  Z = close_point.Z();
-#if Debug
-  cout<<Form("Step %d, Vertex (%g,%g,%g)",step,Vert.X(),Vert.Y(),Vert.Z())<<endl;
-  cout<<Form("Direction (%g,%g,%g)",Dir.X(),Dir.Y(),Dir.Z())<<endl;
-  cout<<Form("RZ (%g,%g)",R,Z)<<endl;
-#endif
-
-}
-double
-MassVertexFitter::CalcVertexDistance(double th1, double ph1, double r1, double z1,
-			double th2, double ph2, double r2, double z2){
-  TVector3 dir1(
-    sin(th1) * cos(ph1),
-    sin(th1) * sin(ph1),
-    cos(th1)
-  );// Direction of the particle 1 trajectory
-  TVector3 dir2(
-    sin(th2) * cos(ph2),
-    sin(th2) * sin(ph2),
-    cos(th2)
-  );
-  double dph_1 = 0.5 * M_PI;
-  double dph_2 = 0.5 * M_PI;
-
-  TVector3 base1(
-    r1 * cos(ph1+dph_1),
-    r1 * sin(ph1+dph_1),
-    z1
-  );// Closest point of the particle 1 trajectory, to the origin(V0) with linear assumption.
-  TVector3 base2(
-    r2 * cos(ph2+dph_2),
-    r2 * sin(ph2+dph_2),
-    z2
-  );// Closest point of the trajectory 2 from the vertex should be at the opposite side of the trajectory 1. 
-  TVector3 diff = base1 - base2;
-  TVector3 norm = dir1.Cross(dir2);
-  double d = norm * diff;
-#if Debug
-  cout<<Form("Step %d, VertexDistance = %g",step,d)<<endl;
-#endif
-  return d;
-}
-void
-MassVertexFitter::CalcClosePoint(double th1, double ph1, double r1, double z1,
-			double th2, double ph2, double r2, double z2,
-      TVector3& vert1, TVector3& vert2){
-  double dph_1 = 0.5 * M_PI;
-  double dph_2 = 0.5 * M_PI;
-  TVector3 base1(
-    r1 * cos(ph1+dph_1),
-    r1 * sin(ph1+dph_1),
-    z1
-  );// Closest point of the particle 1 trajectory, to the origin(V0) with linear assumption.
-  TVector3 base2(
-    r2 * cos(ph2+dph_2),
-    r2 * sin(ph2+dph_2),
-    z2
-  );// Closest point of the trajectory 2 from the vertex should be at the opposite side of the trajectory 1. 
-  TVector3 dir1(
-    sin(th1) * cos(ph1),
-    sin(th1) * sin(ph1),
-    cos(th1)
-  );// Direction of the particle 1 trajectory
-  TVector3 dir2(
-    sin(th2) * cos(ph2),
-    sin(th2) * sin(ph2),
-    cos(th2)
-  );
-
-  TVector3 diff = base2 - base1;
-  
-  double dir_cos  = dir1 * dir2;
-  double dir_sin2 = 1 - dir_cos * dir_cos;
-  double proj_1 = dir1 * diff;
-  double proj_2 = dir2 * diff;
-  double t1 = (dir1 * diff - dir2 * diff *dir_cos)/ dir_sin2;
-  vert1 = base1 + t1 * dir1;
-  double t2 = (-dir2 * diff + dir1*diff*dir_cos)/dir_sin2;
-  vert2 = base2 + t2 * dir2;
-#if Debug
-  cout<<Form("Direction1 (%g,%g,%g)",dir1.X(),dir1.Y(),dir1.Z())<<endl;
-  cout<<Form("Vertex1 (%g,%g,%g)",base1.X(),base1.Y(),base1.Z())<<endl;
-#endif
-
-}	
-
-
 void MassVertexFitter::Initialize(){
-  nMeas = 10;
-  nUnkn = 3;
-  nConst = 5;// px, py, pz conservations, E conservation(Mass constraint), Vertex distance  
-  //ndf = nMeas - nUnkn - nConst;
-  mP = P.Mag();
-  TVector3 TV_P = P.Vect();
-  double p_P = TV_P.Mag();  
-  double th_P = TV_P.Theta();
-  double ph_P = TV_P.Phi();
-  double r_P,z_P;
-  GetRZparameters(VP,TV_P.Unit(),r_P,z_P);
-  
+	Initialized = 1;
+#if DebugCKF
+	cout<<"Initializing..."<<endl;
+#endif
+	Clear();
+	if(UseVertexFlag){
+		nMeas = 11;nUnkn = 2; nConst = 9; 
+	}
+	else{
+		nMeas = 12;nUnkn = 6; nConst = 10;
+		//Meas : px,py,pz,vx,vy,vz for P,Q
+		//Unkn : px,py,pz,vx,vy,vz for L
+		//Const: px,py,pz conservation(3), E conservation(Mass constraint) for L
+		// vertex constraints for P - Q = 0
+		// vertex constraints for L - 0.5(P + Q) = 0
+		//ndf = nConst - nUnkn = 4
+	}
+	mP = P.Mag();
+	TVector3 TV_P = P.Vect();
+	double px_P = TV_P.x();	
+	double py_P = TV_P.y();
+	double pz_P = TV_P.z();
+	double vx_P = VP.x();
+	double vy_P = VP.y();
+	double vz_P = VP.z();
+	
+	mQ = Q.Mag();
+	TVector3 TV_Q = Q.Vect(); 
+	double px_Q = TV_Q.x();
+	double py_Q = TV_Q.y();
+	double pz_Q = TV_Q.z();
+	double vx_Q = VQ.x();
+	double vy_Q = VQ.y();
+	double vz_Q = VQ.z();
 
-  mQ = Q.Mag();
-  TVector3 TV_Q = Q.Vect(); 
-  double p_Q = TV_Q.Mag();  
-  double th_Q = TV_Q.Theta();
-  double ph_Q = TV_Q.Phi(); 
-  double r_Q,z_Q;
-  GetRZparameters(VQ,TV_Q.Unit(),r_Q,z_Q);
 
+	TVector3 TV_L = L.Vect();
+	VL = (VP + VQ)*0.5;//Initial value of Lambda vertex is set to the averaged vertex of P and Q. This is not a constraint, but just an initial value. The fitter will move the vertex according to the constraints and the covariance matrix.
+	double px_L = TV_L.x();
+	double py_L = TV_L.y();
+	double pz_L = TV_L.z();
+	double vx_L = VL.x();
+	double vy_L = VL.y();
+	double vz_L = VL.z();
+	TVector3 D_L = TV_L.Unit();
 
-  TVector3 TV_R = R.Vect(); 
-  double p_R = TV_R.Mag();  
-  double th_R = TV_R.Theta();
-  double ph_R = TV_R.Phi();
+	std::vector<double> MV = {
+	px_P,py_P,pz_P,vx_P,vy_P,vz_P,
+	px_Q,py_Q,pz_Q,vx_Q,vy_Q,vz_Q
+	};
+	std::vector<double> UV = {
+	px_L,py_L,pz_L,
+	vx_L,vy_L,vz_L
+	};
 
-  double meas[10];
-  double unkn[3];
-  double temp[] = {p_P,th_P,ph_P,r_P,z_P,p_Q,th_Q,ph_Q,r_Q,z_Q};
-  for(int i=0;i<nMeas;++i)meas[i]=temp[i];
-  double temp2[] = {p_R,th_R,ph_R};
-  for(int i=0;i<nUnkn;++i)unkn[i]=temp2[i];
-  TMatrixD Meas0(nMeas,1,meas);  
-  TMatrixD Unkn0(nUnkn,1,unkn);
-  vector<double>Pull;
-  Pull.resize(nMeas);
-  vector<double>UPull;
-  UPull.resize(nUnkn);
-  Measurements.push_back(Meas0);
-  Unknowns.push_back(Unkn0);
-  Pulls.push_back(Pull);
-  UPulls.push_back(UPull);
-  Chi2s.push_back(-1);
-  MassDiffs.push_back(1e9);
+	double meas[20];
+	double unkn[20];
+	if(UseVertexFlag){
+	}
+	else{
+		double temp[] = {
+			px_P,py_P,pz_P,vx_P,vy_P,vz_P,
+			px_Q,py_Q,pz_Q,vx_Q,vy_Q,vz_Q};
+		for(int i=0;i<nMeas;++i)meas[i]=temp[i];
+		double temp2[] = {px_L,py_L,pz_L,vx_L,vy_L,vz_L};
+		for(int i=0;i<nUnkn;++i)unkn[i]=temp2[i];
+	}
+	TMatrixD Meas0(nMeas,1,meas);	
+	TMatrixD Unkn0(nUnkn,1,unkn);
+#if DebugCKF
+	cout<<"Meas0 : ";
+	Meas0.Print();
+	cout<<"Unkn0 : ";
+	Unkn0.Print();
+#endif
+	vector<double>Pull;
+	Pull.resize(nMeas);
+	vector<double>UPull;
+	UPull.resize(nUnkn);
+	Measurements.push_back(Meas0);
+	Unknowns.push_back(Unkn0);
+	Pulls.push_back(Pull);
+	UPulls.push_back(UPull);
+	Chi2s.push_back(-1);
+	MassDiffsL.push_back(1e9);
+	std::cout<<"MassVertexFitter::Initialize() done"<<std::endl;
 }
 void MassVertexFitter::SetConstraints(){
-// Loading Variables...
-  auto Meas = Measurements.at(step); 
-  auto Unkn = Unknowns.at(step);
-  double p_R=  Unkn(0,0); 
-  double th_R= Unkn(1,0); 
-  double ph_R= Unkn(2,0); 
-  double p_P=  Meas(0,0); 
-  double th_P= Meas(1,0); 
-  double ph_P= Meas(2,0);
-  double r_P=  Meas(3,0);
-  double z_P=  Meas(4,0);
-  double p_Q=  Meas(5,0); 
-  double th_Q= Meas(6,0); 
-  double ph_Q= Meas(7,0); 
-  double r_Q=  Meas(8,0);
-  double z_Q=  Meas(9,0);
+	auto Meas = Measurements.at(step); 
+	auto Unkn = Unknowns.at(step);
+	double px_P,py_P,pz_P,px_Q,py_Q,pz_Q,px_L,py_L,pz_L;
+	double vx_P,vy_P,vz_P,vx_Q,vy_Q,vz_Q,vx_L,vy_L,vz_L;
+	if(UseVertexFlag){
+	}
+	else{
+		px_P= Meas(0,0); 
+		py_P= Meas(1,0); 
+		pz_P= Meas(2,0);
+		vx_P= Meas(3,0);
+		vy_P= Meas(4,0);
+		vz_P= Meas(5,0);
 
-  // Constraints
-  double f1 = 
-    -p_R*sin(th_R)*cos(ph_R) 
-    +p_P*sin(th_P)*cos(ph_P) 
-    +p_Q*sin(th_Q)*cos(ph_Q) ;//Constraint on x momentum
-  double f2 = 
-    -p_R*sin(th_R)*sin(ph_R) 
-    +p_P*sin(th_P)*sin(ph_P) 
-    +p_Q*sin(th_Q)*sin(ph_Q) ;//Constraint on y momentum
-  double f3 =  
-    -p_R*cos(th_R) 
-    +p_P*cos(th_P)
-    +p_Q*cos(th_Q);//Constraint on z momentum 
-  double f4  =
-    - sqrt(p_R*p_R+mR*mR)
-    + sqrt(p_P*p_P+mP*mP)
-    + sqrt(p_Q*p_Q+mQ*mQ);//Constraint on Energy
-  double f5 = CalcVertexDistance(th_P,ph_P,r_P,z_P,
-    th_Q,ph_Q,r_Q,z_Q);//Vertex constraint
+		px_Q= Meas(6,0); 
+		py_Q= Meas(7,0); 
+		pz_Q= Meas(8,0);
+		vx_Q= Meas(9,0);
+		vy_Q= Meas(10,0);
+		vz_Q= Meas(11,0);
 
+		px_L= Unkn(0,0);
+		py_L= Unkn(1,0);
+		pz_L= Unkn(2,0);
+		vx_L= Unkn(3,0);
+		vy_L= Unkn(4,0);
+		vz_L= Unkn(5,0);
+	}
 
-  // Jacobians
-  double df1dp_R = -sin(th_R)*cos(ph_R);//df1 / d(P_R)
-  double df1dth_R = -p_R*cos(th_R)*cos(ph_R);//It could be df1/dm1 in case of 3-C fit.However, I didnt want to change the token... Mathematically it should be df1 / d (Th_R)
-  double df1dph_R = p_R*sin(th_R)*sin(ph_R);//df1 / d(Ph_R)
-  double df1dp_P = sin(th_P)*cos(ph_P);//...
-  double df1dth_P = p_P*cos(th_P)*cos(ph_P);// d/ dth_P
-  double df1dph_P = -p_P*sin(th_P)*sin(ph_P);
-  double df1dp_Q = sin(th_Q)*cos(ph_Q);
-  double df1dth_Q = p_Q*cos(th_Q)*cos(ph_Q);// d/ dth_Q
-  double df1dph_Q = -p_Q*sin(th_Q)*sin(ph_Q);
-	// Vertex distance is not explictly related to kinematics
-	double df1dr_P = 0;
-	double df1dz_P = 0;
-	double df1dr_Q = 0;
-	double df1dz_Q = 0;
-	//
-  
+	TVector3 TV_P(px_P,py_P,pz_P);
+	double p_P = TV_P.Mag();
+	double E_P = hypot(p_P,mP);
+	double dE_Pdpx_P = px_P/E_P;
+	double dE_Pdpy_P = py_P/E_P;
+	double dE_Pdpz_P = pz_P/E_P;
 
-  double df2dp_R = -sin(th_R)*sin(ph_R);
-  double df2dth_R = -p_R*cos(th_R)*sin(ph_R);// d/ dth_R
-  double df2dph_R = -p_R*sin(th_R)*cos(ph_R);
-  double df2dp_P = sin(th_P)*sin(ph_P);
-  double df2dth_P = p_P*cos(th_P)*sin(ph_P);// d/ dth_P
-  double df2dph_P = p_P*sin(th_P)*cos(ph_P);
-  double df2dp_Q = sin(th_Q)*sin(ph_Q);
-  double df2dth_Q = p_Q*cos(th_Q)*sin(ph_Q);// d/ dth_Q
-  double df2dph_Q = p_Q*sin(th_Q)*cos(ph_Q);
-  double df2dr_P = 0;
-	double df2dz_P = 0;
-	double df2dr_Q = 0;
-	double df2dz_Q = 0;
+	TVector3 TV_Q(px_Q,py_Q,pz_Q);
+	double p_Q = TV_Q.Mag();
+	double E_Q = hypot(p_Q,mQ);
+	double dE_Qdpx_Q = px_Q/E_Q;
+	double dE_Qdpy_Q = py_Q/E_Q;
+	double dE_Qdpz_Q = pz_Q/E_Q;
 
+	TVector3 TV_L(px_L,py_L,pz_L);
+	double p_L = TV_L.Mag();
+	double E_L = hypot(p_L,mL);
+	double dE_Ldpx_L = px_L/E_L;
+	double dE_Ldpy_L = py_L/E_L;
+	double dE_Ldpz_L = pz_L/E_L;
+	
+	
+	double f1 = -px_L + px_P + px_Q;
+	double f2 = -py_L + py_P + py_Q;
+	double f3 = -pz_L + pz_P + pz_Q;
+	double f4 = -E_L + E_P + E_Q;//Constraint on Lambda Energy
+	double f5 = vx_P - vx_Q;
+	double f6 = vy_P - vy_Q;
+	double f7 = vz_P - vz_Q;
+	double f8 = vx_L - 0.5*(vx_P + vx_Q);
+	double f9 = vy_L - 0.5*(vy_P + vy_Q);
+	double f10= vz_L - 0.5*(vz_P + vz_Q);
+	
+	std::vector<double> MV = {
+		px_P,py_P,pz_P,vx_P,vy_P,vz_P,
+		px_Q,py_Q,pz_Q,vx_Q,vy_Q,vz_Q};
+	std::vector<double> UV = {
+		px_L,py_L,pz_L,
+		vx_L,vy_L,vz_L};
+	//f1 - f5: Kinematic Constraints//
+	//f1: -px_L + px_P + px_Q = 0
+	double df1du1 =-1, df1du2 = 0, df1du3 = 0;
+	double df1du4 = 0, df1du5 = 0, df1du6 = 0;
+	double df1dm1 = 1, df1dm2 = 0, df1dm3 = 0;
+	double df1dm4 = 0, df1dm5 = 0, df1dm6 = 0;
+	double df1dm7 = 1, df1dm8 = 0, df1dm9 = 0;
+	double df1dm10= 0, df1dm11= 0, df1dm12= 0;
+	//f2: -py_L + py_P + py_Q = 0
+	double df2du1 = 0, df2du2 =-1, df2du3 = 0;
+	double df2du4 = 0, df2du5 = 0, df2du6 = 0;
+	double df2dm1 = 0, df2dm2 = 1, df2dm3 = 0;
+	double df2dm4 = 0, df2dm5 = 0, df2dm6 = 0;
+	double df2dm7 = 0, df2dm8 = 1, df2dm9 = 0;
+	double df2dm10= 0, df2dm11= 0, df2dm12= 0;
+	//f3: -pz_L + pz_P + pz_Q = 0
+	double df3du1 = 0, df3du2 = 0, df3du3 =-1;
+	double df3du4 = 0, df3du5 = 0, df3du6 = 0;
+	double df3dm1 = 0, df3dm2 = 0, df3dm3 = 1;
+	double df3dm4 = 0, df3dm5 = 0, df3dm6 = 0;
+	double df3dm7 = 0, df3dm8 = 0, df3dm9 = 1;
+	double df3dm10= 0, df3dm11= 0, df3dm12= 0;
+	//f4: -E_L + E_P + E_Q = 0
+	double df4du1 = -dE_Ldpx_L;
+	double df4du2 = -dE_Ldpy_L;
+	double df4du3 = -dE_Ldpz_L;
+	double df4du4 = 0, df4du5 = 0, df4du6 = 0;
+	double df4dm1 = dE_Pdpx_P;
+	double df4dm2 = dE_Pdpy_P;
+	double df4dm3 = dE_Pdpz_P;
+	double df4dm4 = 0, df4dm5 = 0, df4dm6 = 0;
+	double df4dm7 = dE_Qdpx_Q;
+	double df4dm8 = dE_Qdpy_Q;
+	double df4dm9 = dE_Qdpz_Q;
+	double df4dm10 = 0, df4dm11 = 0, df4dm12 = 0;
+	//f5 - f7: Vertex Constraints for P Q//
+	//f5: vx_P - vx_Q = 0
+	double df5du1 = 0, df5du2 = 0, df5du3 = 0;
+	double df5du4 = 1, df5du5 = 0, df5du6 = 0;
+	double df5dm1 = 0, df5dm2 = 0, df5dm3 = 0;
+	double df5dm4 = 1, df5dm5 = 0, df5dm6 = 0;
+	double df5dm7 = 0, df5dm8 = 0, df5dm9 = 0;
+	double df5dm10=-1, df5dm11 = 0, df5dm12 = 0;
+	//f6: vy_P - vy_Q = 0
+	double df6du1 = 0, df6du2 = 0, df6du3 = 0;
+	double df6du4 = 0, df6du5 = 0, df6du6 = 0;
+	double df6dm1 = 0, df6dm2 = 0, df6dm3 = 0;
+	double df6dm4 = 0, df6dm5 = 1, df6dm6 = 0;
+	double df6dm7 = 0, df6dm8 = 0, df6dm9 = 0;
+	double df6dm10= 0, df6dm11=-1, df6dm12= 0;
+	//f7: vz_P - vz_Q = 0
+	double df7du1 = 0, df7du2 = 0, df7du3 = 0;
+	double df7du4 = 0, df7du5 = 0, df7du6 = 0;
+	double df7dm1 = 0, df7dm2 = 0, df7dm3 = 0;
+	double df7dm4 = 0, df7dm5 = 0, df7dm6 = 1;
+	double df7dm7 = 0, df7dm8 = 0, df7dm9 = 0;
+	double df7dm10= 0, df7dm11= 0, df7dm12=-1;
+	//f8 -f10: L vertex determination.//
+	//f8: -vx_L + 0.5 *(vx_P + vx_Q) = 0
+	double df8du1 = 0, df8du2 = 0, df8du3 = 0;
+	double df8du4 =-1, df8du5 = 0, df8du6 = 0;
+	double df8dm1 = 0, df8dm2 = 0, df8dm3 = 0;
+	double df8dm4 =0.5,df8dm5 = 0, df8dm6 = 0;
+	double df8dm7 = 0, df8dm8 = 0, df8dm9 = 0;
+	double df8dm10=0.5,df8dm11= 0, df8dm12= 0;
+	//f9: -vy_L + 0.5 *(vy_P + vy_Q) = 0
+	double df9du1 = 0, df9du2 = 0, df9du3 = 0;
+	double df9du4 = 0, df9du5 =-1, df9du6 = 0;
+	double df9dm1 = 0, df9dm2 = 0, df9dm3 = 0;
+	double df9dm4 = 0, df9dm5 =0.5,df9dm6 = 0;
+	double df9dm7 = 0, df9dm8 = 0, df9dm9 = 0;
+	double df9dm10= 0, df9dm11=0.5,df9dm12= 0;
+	//f10:-vz_L + 0.5 *(vz_P + vz_Q) = 0
+	double df10du1 = 0, df10du2 = 0, df10du3 = 0;
+	double df10du4 = 0, df10du5 = 0, df10du6 =-1;
+	double df10dm1 = 0, df10dm2 = 0, df10dm3 = 0;
+	double df10dm4 = 0, df10dm5 = 0, df10dm6 =0.5;
+	double df10dm7 = 0, df10dm8 = 0, df10dm9 = 0;
+	double df10dm10= 0, df10dm11= 0, df10dm12=0.5;
 
-  double df3dp_R = -cos(th_R);
-  double df3dth_R = p_R*sin(th_R);
-  double df3dph_R = 0;
-  double df3dp_P = cos(th_P);
-  double df3dth_P = -p_P*sin(th_P);
-  double df3dph_P = 0;
-  double df3dp_Q = cos(th_Q);
-  double df3dth_Q = -p_Q*sin(th_Q);
-  double df3dph_Q = 0;
-  double df3dr_P = 0;
-	double df3dz_P = 0;
-	double df3dr_Q = 0;
-	double df3dz_Q = 0;
+	double fs[10] = {f1,f2,f3,f4,f5,f6,f7,f8,f9,f10};
+	double dfdms[400] ;
+	double dfdus[400] ;
+	if(UseVertexFlag){
+	}
+	else{
+		double temp[] = {// 10 constraints, 12 measurement params. =  120 elements
+			df1dm1, df1dm2, df1dm3, df1dm4	,df1dm5, df1dm6, df1dm7, df1dm8, df1dm9, df1dm10, df1dm11, df1dm12, 
+			df2dm1, df2dm2, df2dm3, df2dm4	,df2dm5, df2dm6, df2dm7, df2dm8, df2dm9, df2dm10, df2dm11, df2dm12, 
+			df3dm1, df3dm2, df3dm3, df3dm4	,df3dm5, df3dm6, df3dm7, df3dm8, df3dm9, df3dm10, df3dm11, df3dm12, 
+			df4dm1, df4dm2, df4dm3, df4dm4	,df4dm5, df4dm6, df4dm7, df4dm8, df4dm9, df4dm10, df4dm11, df4dm12, 
+			df5dm1, df5dm2, df5dm3, df5dm4	,df5dm5, df5dm6, df5dm7, df5dm8, df5dm9, df5dm10, df5dm11, df5dm12, 
+			df6dm1, df6dm2, df6dm3, df6dm4	,df6dm5, df6dm6, df6dm7, df6dm8, df6dm9, df6dm10, df6dm11, df6dm12, 
+			df7dm1, df7dm2, df7dm3, df7dm4	,df7dm5, df7dm6, df7dm7, df7dm8, df7dm9, df7dm10, df7dm11, df7dm12, 
+			df8dm1, df8dm2, df8dm3, df8dm4	,df8dm5, df8dm6, df8dm7, df8dm8, df8dm9, df8dm10, df8dm11, df8dm12, 
+			df9dm1, df9dm2, df9dm3, df9dm4	,df9dm5, df9dm6, df9dm7, df9dm8, df9dm9, df9dm10, df9dm11, df9dm12, 
+			df10dm1,df10dm2,df10dm3,df10dm4	,df10dm5,df10dm6,df10dm7,df10dm8,df10dm9,df10dm10,df10dm11,df10dm12
+		};
+		for(int i=0;i<nMeas*nConst;++i){
+			dfdms[i]=temp[i];
+		};
+		double tempu[] = { // 10 constraints, 6 unknown params. = 60 elements
+			df1du1, df1du2, df1du3, df1du4, df1du5, df1du6,
+			df2du1, df2du2, df2du3, df2du4, df2du5, df2du6,
+			df3du1, df3du2, df3du3, df3du4, df3du5, df3du6,
+			df4du1, df4du2, df4du3, df4du4, df4du5, df4du6,
+			df5du1, df5du2, df5du3, df5du4, df5du5, df5du6,
+			df6du1, df6du2, df6du3, df6du4, df6du5, df6du6,
+			df7du1, df7du2, df7du3, df7du4, df7du5, df7du6,
+			df8du1, df8du2, df8du3, df8du4, df8du5, df8du6,
+			df9du1, df9du2, df9du3, df9du4, df9du5, df9du6,
+			df10du1,df10du2,df10du3,df10du4,df10du5,df10du6
+		};
+		for(int i=0;i<nUnkn*nConst;++i){
+			dfdus[i]=tempu[i];
+		};
+	}
 
-
-  double ER = sqrt(p_R*p_R+mR*mR);
-  double df4dp_R = -p_R/ER;
-  double df4dth_R = 0;
-  double df4dph_R = 0;
-  double df4dp_P = p_P/sqrt(p_P*p_P+mP*mP);
-  double df4dth_P = 0;
-  double df4dph_P = 0;
-  double df4dp_Q = p_Q/sqrt(p_Q*p_Q+mQ*mQ);
-  double df4dth_Q = 0;
-  double df4dph_Q = 0;
-  double df4dr_P = 0;
-	double df4dz_P = 0;
-	double df4dr_Q = 0;
-	double df4dz_Q = 0;
-
-
-  TVector3 base_P(-r_P * sin(ph_P),r_P * cos(ph_P),z_P);
-  TVector3 base_Q(-r_Q * sin(ph_Q),r_Q * cos(ph_Q),z_Q);
-
-  TVector3 dbase_Pdph_P(-r_P * cos(ph_P),-r_P * sin(ph_P),0);
-  TVector3 dbase_Pdr_P(-sin(ph_P),cos(ph_P),0);
-  TVector3 dbase_Pdz_P(0,0,1);
-  TVector3 dbase_Qdph_Q(-r_Q * cos(ph_Q),-r_Q * sin(ph_Q),0);
-  TVector3 dbase_Qdr_Q(-sin(ph_Q),cos(ph_Q),0);
-  TVector3 dbase_Qdz_Q(0,0,1);
-
-  TVector3 dir_P(sin(th_P) * cos(ph_P),sin(th_P) * sin(ph_P),cos(th_P));
-  TVector3 dir_Q(sin(th_Q) * cos(ph_Q),sin(th_Q) * sin(ph_Q),cos(th_Q));
-
-  TVector3 ddir_Pdth_P(cos(th_P) * cos(ph_P),cos(th_P) * sin(ph_P),-sin(th_P));
-  TVector3 ddir_Pdph_P(-sin(th_P) * sin(ph_P),sin(th_P) * cos(ph_P),0);
-  TVector3 ddir_Qdth_Q(cos(th_Q) * cos(ph_Q),cos(th_Q) * sin(ph_Q),-sin(th_Q));
-  TVector3 ddir_Qdph_Q(-sin(th_Q) * sin(ph_Q),sin(th_Q) * cos(ph_Q),0);
-
-
-  TVector3 norm_PQ = dir_P.Cross(dir_Q);
-  //reminder: f5 = (base_P - base_Q) * (dir_P.Cross(dir_Q))
-  double df5dp_R  = 0;
-	double df5dth_R = 0;
-	double df5dph_R = 0;
-  double df5dp_P = 0;
-	double df5dp_Q = 0; //No explicit momentum dependencies. 
-  double df5dth_P = (base_P - base_Q)* (ddir_Pdth_P.Cross(dir_Q));
-  double df5dph_P = dbase_Pdph_P*(dir_P.Cross(dir_Q))
-                  + (base_P - base_Q)* ddir_Pdph_P.Cross(dir_Q);
-  double df5dth_Q = (base_P - base_Q)* (dir_P.Cross(ddir_Qdth_Q));
-  double df5dph_Q = -dbase_Qdph_Q*(dir_P.Cross(dir_Q))
-                  + (base_P - base_Q)* dir_P.Cross(ddir_Qdph_Q);
-  double df5dr_P = dbase_Pdr_P*(dir_P.Cross(dir_Q));
-  double df5dz_P = dbase_Pdz_P*(dir_P.Cross(dir_Q));
-  double df5dr_Q = -dbase_Qdr_Q*(dir_P.Cross(dir_Q));
-  double df5dz_Q = -dbase_Qdz_Q*(dir_P.Cross(dir_Q));
-
-
-
-  double df1du1du1 = 0;
-  double df1du1du2 = -cos(th_R)*cos(ph_R);
-  double df1du1du3 = sin(th_R)*sin(ph_R);
-  
-  double df1du2du1 = df1du1du2;
-  double df1du2du2 = p_R*sin(th_R)*cos(ph_R);
-  double df1du2du3 = p_R*cos(th_R)*sin(ph_R);
-  
-  double df1du3du1 = df1du1du3;
-  double df1du3du2 = df1du2du3;
-  double df1du3du3 = p_R*sin(th_R)*cos(ph_R);
-
-  double df2du1du1 = 0;
-  double df2du1du2 = -cos(th_R)*sin(ph_R);
-  double df2du1du3 = -sin(th_R)*cos(ph_R);
-
-  double df2du2du1 = df2du1du2;
-  double df2du2du2 = p_R*sin(th_R)*sin(ph_R);
-  double df2du2du3 = -p_R*cos(th_R)*cos(ph_R);
-  
-  double df2du3du1 = df2du1du3;
-  double df2du3du2 = df2du2du3;
-  double df2du3du3 = p_R*sin(th_R)*sin(ph_R);
-  double df3du1du1 = 0;
-  double df3du1du2 = sin(th_R);
-  double df3du1du3 = 0;
-  
-  double df3du2du1 = df3du1du2;
-  double df3du2du2 = p_R*cos(th_R);
-  double df3du2du3 = 0;
-
-  double df3du3du1 = 0;
-  double df3du3du2 = 0;
-  double df3du3du3 = 0;
-  
-  double df4du1du1 = -mR*mR/ER/ER/ER;
-  double df4du1du2 = 0;
-  double df4du1du3 = 0;
-  
-  double df4du2du1 = 0;
-  double df4du2du2 = 0;
-  double df4du2du3 = 0;
-
-  double df4du3du1 = 0;
-  double df4du3du2 = 0;
-  double df4du3du3 = 0;
-
-
-
-  double fs[]={f1,f2,f3,f4,f5};
-  double dfdms[200] ;
-  double dfdus[200] ;
-  double temp[] = {
-    df1dp_P , df1dth_P , df1dph_P , df1dr_P , df1dz_P , df1dp_Q , df1dth_Q , df1dph_Q , df1dr_Q , df1dz_Q,
-    df2dp_P , df2dth_P , df2dph_P , df2dr_P , df2dz_P , df2dp_Q , df2dth_Q , df2dph_Q , df2dr_Q , df2dz_Q,
-    df3dp_P , df3dth_P , df3dph_P , df3dr_P , df3dz_P , df3dp_Q , df3dth_Q , df3dph_Q , df3dr_Q , df3dz_Q,
-    df4dp_P , df4dth_P , df4dph_P , df4dr_P , df4dz_P , df4dp_Q , df4dth_Q , df4dph_Q , df4dr_Q , df4dz_Q,
-    df5dp_P , df5dth_P , df5dph_P , df5dr_P , df5dz_P , df5dp_Q , df5dth_Q , df5dph_Q , df5dr_Q , df5dz_Q
-  };
-  for(int i=0;i<nMeas*nConst;++i){
-    dfdms[i]=temp[i];
-  };
-  double tempu[] = {
-    df1dp_R,df1dth_R,df1dph_R,
-    df2dp_R,df2dth_R,df2dph_R,
-    df3dp_R,df3dth_R,df3dph_R,
-    df4dp_R,df4dth_R,df4dph_R,
-    df5dp_R,df5dth_R,df5dph_R,
-  };
-  for(int i=0;i<nUnkn*nConst;++i){
-    dfdus[i]=tempu[i];
-  };
-
-  //Hessian : Not supported yet
-  double temp1[] = {
-    df1du1du1,df1du1du2,df1du1du3,
-    df1du2du1,df1du2du2,df1du2du3,
-    df1du3du1,df1du3du2,df1du3du3
-  };
-  double temp2[] = {
-    df2du1du1,df2du1du2,df2du1du3,
-    df2du2du1,df2du2du2,df2du2du3,
-    df2du3du1,df2du3du2,df2du3du3
-  };
-  double temp3[] = {
-    df3du1du1,df3du1du2,df3du1du3,
-    df3du2du1,df3du2du2,df3du2du3,
-    df3du3du1,df3du3du2,df3du3du3
-  };
-  double temp4[] = {
-    df4du1du1,df4du1du2,df4du1du3,
-    df4du2du1,df4du2du2,df4du2du3,
-    df4du3du1,df4du3du2,df4du3du3
-  };
-  TMatrixD d2F1dU(nUnkn,nUnkn,temp1);
-  TMatrixD d2F2dU(nUnkn,nUnkn,temp2);
-  TMatrixD d2F3dU(nUnkn,nUnkn,temp3);
-  TMatrixD d2F4dU(nUnkn,nUnkn,temp4);
-  TMatrixD d2F5dU(nUnkn,nUnkn,temp4);
-  vector<TMatrixD> d2FdU = {
-    d2F1dU,
-    d2F2dU,
-    d2F3dU,
-    d2F4dU,
-    d2F5dU
-  };
-  d2Fd2Us.push_back(d2FdU);
-  // Hessian //
-
-
-  
-
-
-
-  TMatrixD FMat(nConst,1,fs);
-#if Debug
-  cout<<"Constraint";
-  FMat.Print();
-#endif
-  TMatrixD dFdM(nConst,nMeas,dfdms);
-  TMatrixD dFdU(nConst,nUnkn,dfdus);
-  FMats.push_back(FMat);//Constraint Matrices for Each step
-  dFdMs.push_back(dFdM);//Constraint matrix differentiated by measurement params.
-  dFdUs.push_back(dFdU);// same, but for unmeasured params.
+	TMatrixD FMat(nConst,1,fs);
+	TMatrixD dFdM(nConst,nMeas,dfdms);
+	TMatrixD dFdU(nConst,nUnkn,dfdus);
+	FMats.push_back(FMat);//Constraint Matrices for Each step
+	dFdMs.push_back(dFdM);//Constraint matrix differentiated by measurement params.
+	dFdUs.push_back(dFdU);// same, but for unmeasured params.
 }
 void MassVertexFitter::SampleStepPoint(int steps){
-  auto Meas = Measurements.at(steps); 
-  auto Unkn = Unknowns.at(steps); 
-  double p_R= Unkn(0,0); 
-  double th_R= Unkn(1,0); 
-  double ph_R= Unkn(2,0); 
-  double p_P=  Meas(0,0); 
-  double th_P= Meas(1,0); 
-  double ph_P= Meas(2,0);
-  double r_P=  Meas(3,0);
-  double z_P=  Meas(4,0);
-  double p_Q=  Meas(5,0); 
-  double th_Q= Meas(6,0); 
-  double ph_Q= Meas(7,0);
-  double r_Q=  Meas(8,0);
-  double z_Q=  Meas(9,0);
+#if DebugCKF
+	std::cout<<"MassVertexFitter::SampleStepPoint() step = "<<steps<<std::endl;
+#endif
+	auto Meas = Measurements.at(steps); 
+	auto Unkn = Unknowns.at(steps); 
+	double px_P,py_P,pz_P,px_Q,py_Q,pz_Q,px_L,py_L,pz_L;
+	double vx_P,vy_P,vz_P,vx_Q,vy_Q,vz_Q,vx_L,vy_L,vz_L;
+	if(UseVertexFlag){
+	}
+	else{
+		px_P = Meas(0,0); 
+		py_P = Meas(1,0); 
+		pz_P = Meas(2,0);
+		vx_P = Meas(3,0);
+		vy_P = Meas(4,0);
+		vz_P = Meas(5,0);
 
-  double Ppx = p_P*sin(th_P)*cos(ph_P);
-  double Ppy = p_P*sin(th_P)*sin(ph_P);
-  double Ppz = p_P*cos(th_P);
-  double Qpx = p_Q*sin(th_Q)*cos(ph_Q);
-  double Qpy = p_Q*sin(th_Q)*sin(ph_Q);
-  double Qpz = p_Q*cos(th_Q);
-  double Rpx = p_R*sin(th_R)*cos(ph_R);
-  double Rpy = p_R*sin(th_R)*sin(ph_R);
-  double Rpz = p_R*cos(th_R);
-  TLorentzVector PP(Ppx,Ppy,Ppz,hypot(mP,p_P));
-  TLorentzVector QQ(Qpx,Qpy,Qpz,hypot(mQ,p_Q));
-  TLorentzVector RR(Rpx,Rpy,Rpz,hypot(mR,p_R));
-  auto V = PP + QQ;
-  double MassDiff = V.Mag()-mR;
-  PCor = PP;
-  QCor = QQ;
-  RCor = RR;
-  TVector3 VPCor,VQCor;
-  CalcClosePoint(th_P,ph_P,r_P,z_P,
-    th_Q,ph_Q,r_Q,z_Q,
-    VPCor,VQCor);
-  MassDiffs.push_back(MassDiff);
+		px_Q = Meas(6,0); 
+		py_Q = Meas(7,0); 
+		pz_Q = Meas(8,0); 
+		vx_Q = Meas(9,0);
+		vy_Q = Meas(10,0);
+		vz_Q = Meas(11,0);
+
+		px_L = Unkn(0,0);
+		py_L = Unkn(1,0);
+		pz_L = Unkn(2,0);
+		vx_L = Unkn(3,0);
+		vy_L = Unkn(4,0);
+		vz_L = Unkn(5,0);
+	}
+	TVector3 TV_P(px_P,py_P,pz_P);
+	TVector3 TV_Q(px_Q,py_Q,pz_Q);
+	TVector3 TV_L(px_L,py_L,pz_L);
+	double p_P = TV_P.Mag();double p_Q = TV_Q.Mag();double p_L = TV_L.Mag();
+
+	VPCor = TVector3(vx_P,vy_P,vz_P);
+	VQCor = TVector3(vx_Q,vy_Q,vz_Q);
+	VLCor = TVector3(vx_L,vy_L,vz_L);
+	vector<double> MV = {
+	px_P,py_P,pz_P,vx_P,vy_P,vz_P,
+	px_Q,py_Q,pz_Q,vx_Q,vy_Q,vz_Q
+	};
+	vector<double> UV = {
+	px_L,py_L,pz_L,
+	vx_L,vy_L,vz_L
+	};
+
+	TLorentzVector PP(px_P,py_P,pz_P,hypot(mP,p_P));
+	TLorentzVector QQ(px_Q,py_Q,pz_Q,hypot(mQ,p_Q));
+	TLorentzVector LL(px_L,py_L,pz_L,hypot(mL,p_L));
+	auto L_PQ = PP+QQ;
+
+	double MassDiffL = L_PQ.Mag()-mL;
+	PCor = PP;
+	QCor = QQ;
+	LCor = LL;
+	MassDiffsL.push_back(MassDiffL);
 }
 TMatrixD
-MassVertexFitter::JacobianSphToCart(double p, double th, double ph){
-  // x = p sin(th) cos(ph)
-  // y = p sin(th) sin(ph)
-  // z = p cos(th)
-  //V_c = J^T V J|->
-  //    dxdp, dxdth,dxdph
-  //J  =  dydp, dydth,dydph
-  //    dzdp, dzdth,dzdph
+MassVertexFitter::JacobianSphToCart(double p, double th, double ph){//Legacy
+	// x = p sin(th) cos(ph)
+	// y = p sin(th) sin(ph)
+	// z = p cos(th)
+	//V_c = J^T V J|->
+	//		dxdp, dxdth,dxdph
+	//J	=	dydp, dydth,dydph
+	//		dzdp, dzdth,dzdph
 
-  double dxdp = sin(th)*cos(ph);
-  double dydp = sin(th)*sin(ph);
-  double dzdp = cos(th);
+	double dxdp = sin(th)*cos(ph);
+	double dydp = sin(th)*sin(ph);
+	double dzdp = cos(th);
 
-  double dxdth = p*cos(th)*cos(ph);
-  double dydth = p*cos(th)*sin(ph);
-  double dzdth = -p*sin(th);
+	double dxdth = p*cos(th)*cos(ph);
+	double dydth = p*cos(th)*sin(ph);
+	double dzdth = -p*sin(th);
 
-  double dxdph = -p*sin(th)*sin(ph);
-  double dydph = p*sin(th)*cos(ph);
-  double dzdph = 0;
-  double mat[9] = 
-  { dxdp, dxdth, dxdph,
-    dydp, dydth, dydph,
-    dzdp, dzdth, dzdph
-  };
-  /*
-  double mat[9] = 
-  { dxdp, dydp, dzdp,
-    dxdth, dydth, dzdth,
-    dxdph, dydph, dzdph
-  };
-  */
-  return TMatrixD(3,3,mat);
-
-}
-void
-MassVertexFitter::CalcVariance(int istep){
-  //Not supproted yet
-  /*
-  auto Meas = Measurements.at(istep); 
-  auto Unkn = Unknowns.at(istep);
-  double p_R,th_R,ph_R,p_P,th_P,ph_P,p_Q,th_Q,ph_Q;
-  p_R= Unkn(0,0); 
-  th_R= Unkn(1,0); 
-  ph_R= Unkn(2,0); 
-  p_P= Meas(0,0); 
-  th_P= Meas(1,0); 
-  ph_P= Meas(2,0);
-  p_Q= Meas(3,0); 
-  th_Q= Meas(4,0); 
-  ph_Q= Meas(5,0); 
-  TMatrixD Jsc_P = JacobianSphToCart(p_P,th_P,ph_P);
-  TMatrixD Jsc_Q = JacobianSphToCart(p_Q,th_Q,ph_Q);
-  
-  double El_Jsc_PQ[6*6]= {0};
-  for(int ic =0;ic<3;++ic){
-  for(int ir =0;ir<3;++ir){
-    int col_P = ic, row_P = ir;
-    int col_Q = ic+3, row_Q = ir+3;
-    El_Jsc_PQ[row_P+6*col_P] = Jsc_P(ic,ir);
-    El_Jsc_PQ[row_Q+6*col_Q] = Jsc_Q(ic,ir);
-  }
-  }
-  TMatrixD Jsc_PQ = TMatrixD(6,6,El_Jsc_PQ);
-#if Debug > 1
-  Jsc_P.Print();
-  Jsc_Q.Print();
-  Jsc_PQ.Print();
-  cin.ignore();
-#endif
-  TMatrixD Jsc_PQ_T = TransposeMatrix(Jsc_PQ);
-  TMatrixD VMat = Variancies.at(istep);
-  TMatrixD dV = dVMats.at(istep);
-  TMatrixD VMat_C = Jsc_PQ_T*(VMat-dV)*Jsc_PQ;
-//  TMatrixD VMat_C = Jsc_PQ_T*(VMat)*Jsc_PQ;
-  double El_contract[18]={//reduce matrix dimension
-    1,0,0,1,0,0,
-    0,1,0,0,1,0,
-    0,0,1,0,0,1
-  };
-  TMatrixD ContT(3,6,El_contract);
-  TMatrixD Cont = TransposeMatrix(ContT);
-  TMatrixD UVMat_C = ContT*VMat_C*Cont;
-  TMatrixD Jcs_R = JacobianSphToCart(p_R,th_R,ph_R);
-  Jcs_R.Invert();
-  auto Jcs_RT = TransposeMatrix(Jcs_R);
-  TMatrixD UVMat = Jcs_RT*UVMat_C*Jcs_R;
-//  VarianciesU.push_back(UVMat);
-  */
-}
-
-void
-MassVertexFitter::Rotate(){
-  auto VMat = Variancies.at(0);
-  Initialize();
-  Variancies.push_back(VMat);
-  TMatrixD J;
-  RotateVariance(J);
-}
-void
-MassVertexFitter::ToDecayPlane(){
-  auto Zaxis =(P + Q).Vect();
-  auto vP = P.Vect();
-  auto vQ = Q.Vect();
-  auto Yaxis = vP.Cross(vQ);
-//  double YNorm = 1./(Yaxis.Mag());
-//  Yaxis = YNorm * Yaxis;
-  double Th_F = Zaxis.Theta();
-  double Ph_F = Zaxis.Phi();
-  double RotZ[9] ={
-    cos(-Ph_F),  -sin(-Ph_F),  0,  
-    sin(-Ph_F),  cos(-Ph_F),    0,
-    0,          0,            1
-  };
-  double RotY[9] ={
-    cos(Th_F),  0,          -sin(Th_F),
-    0,          -1,          0,
-    sin(Th_F),  0,          cos(Th_F)
-  };
-  TMatrixD RZ(3,3,RotZ);
-  TMatrixD RY(3,3,RotY);
-  TMatrixD R_F = RY * RZ;
-  Yaxis = R_F * Yaxis;
-  double Th_Y = Yaxis.Theta();
-  double Ph_Y = Yaxis.Phi();
-  double RotX[9] ={
-    1,        0,          0,
-    0,        cos(-Ph_Y),  -sin(-Ph_Y),
-    0,        sin(-Ph_Y),  cos(-Ph_Y)
-  };
-  TMatrixD RX(3,3,RotX);
-  Yaxis = RX * Yaxis;
+	double dxdph = -p*sin(th)*sin(ph);
+	double dydph = p*sin(th)*cos(ph);
+	double dzdph = 0;
+	double mat[9] = 
+	{ dxdp, dxdth, dxdph,
+		dydp, dydth, dydph,
+		dzdp, dzdth, dzdph
+	};
+	/*
+	double mat[9] = 
+	{ dxdp, dydp, dzdp,
+		dxdth, dydth, dzdth,
+		dxdph, dydph, dzdph
+	};
+	*/
+	return TMatrixD(3,3,mat);
 
 }
 void
-MassVertexFitter::GetVertexResolution(double& dr, double& dz ){
-  auto VMat = Variancies.at(0);
-  dr = sqrt(VMat(3,3) + VMat(8,8)) /2;
-  dz = sqrt(VMat(4,4) + VMat(9,9)) /2;
+MassVertexFitter::CalcVariance(int istep){//Legacy
+	return;
+}
+
+
+
+
+
+
+
+
+void
+MassVertexFitter::Rotate(){//Legacy
+	auto VMat = Variancies.at(0);
+	Initialize();
+	Variancies.push_back(VMat);
+	TMatrixD J;
+	RotateVariance(J);
+}
+void
+MassVertexFitter::ToDecayPlane(){//Legacy
+	auto Zaxis =(P + Q).Vect();
+	auto vP = P.Vect();
+	auto vQ = Q.Vect();
+	auto Yaxis = vP.Cross(vQ);
+//	double YNorm = 1./(Yaxis.Mag());
+//	Yaxis = YNorm * Yaxis;
+	double Th_F = Zaxis.Theta();
+	double Ph_F = Zaxis.Phi();
+	double RotZ[9] ={
+		cos(-Ph_F),	-sin(-Ph_F),	0,	
+		sin(-Ph_F),	cos(-Ph_F),		0,
+		0,					0,						1
+	};
+	double RotY[9] ={
+		cos(Th_F),	0,					-sin(Th_F),
+		0,					-1,					0,
+		sin(Th_F),	0,					cos(Th_F)
+	};
+	TMatrixD RZ(3,3,RotZ);
+	TMatrixD RY(3,3,RotY);
+	TMatrixD R_F = RY * RZ;
+	Yaxis = R_F * Yaxis;
+	double Th_Y = Yaxis.Theta();
+	double Ph_Y = Yaxis.Phi();
+	double RotX[9] ={
+		1,				0,					0,
+		0,				cos(-Ph_Y),	-sin(-Ph_Y),
+		0,				sin(-Ph_Y),	cos(-Ph_Y)
+	};
+	TMatrixD RX(3,3,RotX);
+	Yaxis = RX * Yaxis;
+
+}
+
+double
+MassVertexFitter::CalcLambdaExtrapolationParameter(vector<double> Meas_,vector<double> Unkn_){
+	/*
+	We need to back-propagate Lambda, and evaluate the Xi decay vertex
+	 as the midpoint of the Lambda and pi2(R, in this code).
+	 The Lambda passes through the Lambda decay vertex VL, and the direction is cos(th_L), phi_L.
+	 The Lambda trajectory is expresses as:
+	 L = VL + t*DL
+	 where DL = (sin(th_L)*cos(phi_L), sin(th_L)*sin(phi_L), cos(th_L)) the direction of Lambda.
+	 For the closest point of L to VR, the following condition should be satisfied:
+	 (VR - VL - t*DL) . DL = 0
+	 since the direction from VR to the closest point should be vertical to the Lambda trajectory. 
+	 Hence, t = (VR - VL) . DL / (DL . DL) = (VR - VL) . DL, since DL is a unit vector
+	*/
+	double px_P  = Meas_[0];
+	double py_P = Meas_[1];
+	double pz_P = Meas_[2];
+	double vx_P = Meas_[3];
+	double vy_P = Meas_[4];
+	double vz_P = Meas_[5];
+	double px_Q  = Meas_[6];
+	double py_Q = Meas_[7];
+	double pz_Q = Meas_[8];
+	double vx_Q = Meas_[9];
+	double vy_Q = Meas_[10];
+	double vz_Q = Meas_[11];
+	double vx_R_= Meas_[15];
+	double vy_R_= Meas_[16];
+	double vz_R_= Meas_[17];
+
+	TVector3 TV_P(px_P, py_P, pz_P);
+	TVector3 TV_Q(px_Q, py_Q, pz_Q);
+	TVector3 TV_L = TV_P + TV_Q;
+	double u_L = TV_L.x()/TV_L.Mag();
+	double v_L = TV_L.y()/TV_L.Mag();
+	double w_L = TV_L.z()/TV_L.Mag();
+	TVector3 D_L(u_L, v_L, w_L);
+
+	TVector3 V_P(vx_P,vy_P,vz_P);
+	TVector3 V_Q(vx_Q,vy_Q,vz_Q);
+	TVector3 V_L = 0.5*(V_P + V_Q);
+	
+	TVector3 VR(vx_R_,vy_R_,vz_R_);
+	return (VR - V_L).Dot(D_L);
+}
+TVector3
+MassVertexFitter::CalcLambdaDirectionalDerivativesM(int idx, vector<double> Meas_){
+	double px_P = Meas_[0];
+	double py_P = Meas_[1];
+	double pz_P = Meas_[2];
+	double px_Q = Meas_[6];
+	double py_Q = Meas_[7];
+	double pz_Q = Meas_[8];
+	TVector3 TV_P(px_P, py_P, pz_P);
+	TVector3 TV_Q(px_Q, py_Q, pz_Q);
+	TVector3 TV_L = TV_P + TV_Q;
+	double p_L = TV_L.Mag();
+	double u_L = TV_L.x()/p_L;
+	double v_L = TV_L.y()/p_L;
+	double w_L = TV_L.z()/p_L;
+	TVector3 D_L(u_L, v_L, w_L);
+	
+	double du_Ldpx_P = (1 - u_L*u_L)/p_L;
+	double dv_Ldpx_P = -v_L*u_L/p_L;
+	double dw_Ldpx_P = -w_L*u_L/p_L;
+	
+	double du_Ldpy_P = -u_L*v_L/p_L;
+	double dv_Ldpy_P = (1 - v_L*v_L)/p_L;
+	double dw_Ldpy_P = -w_L*v_L/p_L;
+	
+	double du_Ldpz_P = -u_L*w_L/p_L;
+	double dv_Ldpz_P = -v_L*w_L/p_L;
+	double dw_Ldpz_P = (1 - w_L*w_L)/p_L;
+	
+	double du_Ldpx_Q = (1 - u_L*u_L)/p_L;
+	double dv_Ldpx_Q = -v_L*u_L/p_L;
+	double dw_Ldpx_Q = -w_L*u_L/p_L;
+	
+	double du_Ldpy_Q = -u_L*v_L/p_L;
+	double dv_Ldpy_Q = (1 - v_L*v_L)/p_L;
+	double dw_Ldpy_Q = -w_L*v_L/p_L;
+	
+	double du_Ldpz_Q = -u_L*w_L/p_L;
+	double dv_Ldpz_Q = -v_L*w_L/p_L;
+	double dw_Ldpz_Q = (1 - w_L*w_L)/p_L;
+
+	TVector3 dD_Ldpx_P(du_Ldpx_P, dv_Ldpx_P, dw_Ldpx_P);
+	TVector3 dD_Ldpy_P(du_Ldpy_P, dv_Ldpy_P, dw_Ldpy_P);
+	TVector3 dD_Ldpz_P(du_Ldpz_P, dv_Ldpz_P, dw_Ldpz_P);
+	TVector3 dD_Ldpx_Q(du_Ldpx_Q, dv_Ldpx_Q, dw_Ldpx_Q);
+	TVector3 dD_Ldpy_Q(du_Ldpy_Q, dv_Ldpy_Q, dw_Ldpy_Q);
+	TVector3 dD_Ldpz_Q(du_Ldpz_Q, dv_Ldpz_Q, dw_Ldpz_Q);
+
+	switch(idx){
+		case 0:
+			return dD_Ldpx_P;
+		case 1:
+			return dD_Ldpy_P;
+		case 2:
+			return dD_Ldpz_P;
+		case 6:
+			return dD_Ldpx_Q;
+		case 7:
+			return dD_Ldpy_Q;
+		case 8:
+			return dD_Ldpz_Q;
+		default:
+			return TVector3(0,0,0);
+	}
+}
+double 
+MassVertexFitter::CalcLambdaExtrapolationParameterDerivativesM(int idx, vector<double> Meas_, vector<double> Unkn_){
+	//A function to calculate the derivatives of the Lambda extrapolation parameter t by the measurement parameters. 
+	double px_P = Meas_[0];
+	double py_P = Meas_[1];
+	double pz_P = Meas_[2];
+	double vx_P = Meas_[3];
+	double vy_P = Meas_[4];
+	double vz_P = Meas_[5];
+	double px_Q = Meas_[6];
+	double py_Q = Meas_[7];
+	double pz_Q = Meas_[8];
+	double vx_Q = Meas_[9];
+	double vy_Q = Meas_[10];
+	double vz_Q = Meas_[11];
+	double vx_R = Meas_[15];
+	double vy_R = Meas_[16];
+	double vz_R = Meas_[17];
+
+	TVector3 TV_P(px_P, py_P, pz_P);
+	TVector3 TV_Q(px_Q, py_Q, pz_Q);
+	TVector3 TV_L = TV_P + TV_Q;
+	double u_L = TV_L.x()/TV_L.Mag();
+	double v_L = TV_L.y()/TV_L.Mag();
+	double w_L = TV_L.z()/TV_L.Mag();
+	double p_L = TV_L.Mag();
+	TVector3 D_L(u_L, v_L, w_L);
+	
+
+	TVector3 V_P(vx_P,vy_P,vz_P);
+	TVector3 V_Q(vx_Q,vy_Q,vz_Q);
+	TVector3 V_L = 0.5*(V_P + V_Q);
+	TVector3 V_R(vx_R,vy_R,vz_R);
+
+	double extrap = (V_R - V_L).Dot(D_L);
+
+	double derivative = 0;
+	switch(idx){
+		case 0:
+			derivative = (V_R -V_L).Dot(Calc_dDdM(0,Meas_));
+			break;
+		case 1:
+			derivative = (V_R - V_L).Dot(Calc_dDdM(1,Meas_));
+			break;
+		case 2:
+			derivative = (V_R -V_L).Dot(Calc_dDdM(2,Meas_));
+			break;
+		case 3:
+			derivative = -0.5*D_L.x();
+			break;
+		case 4:
+			derivative = -0.5*D_L.y();
+			break;
+		case 5:
+			derivative = -0.5*D_L.z();
+			break;
+		case 6:
+			derivative = (V_R - V_L).Dot(Calc_dDdM(6,Meas_));
+			break;
+		case 7:
+			derivative = (V_R - V_L).Dot(Calc_dDdM(7,Meas_));
+			break;
+		case 8:
+			derivative = (V_R - V_L).Dot(Calc_dDdM(8,Meas_));
+			break;
+		case 9:
+			derivative = -0.5*D_L.x();
+			break;
+		case 10:
+			derivative = -0.5*D_L.y();
+			break;
+		case 11:
+			derivative = -0.5*D_L.z();
+			break;
+		case 15:
+			derivative = D_L.x();
+			break;
+		case 16:
+			derivative = D_L.y();
+			break;
+		case 17:
+			derivative = D_L.z();
+			break;
+		default:
+			derivative = 0;
+			break;
+	}
+	return derivative;
+}
+double
+MassVertexFitter::CalcLambdaExtrapolationParameterDerivativesU(int idx, vector<double> Meas_, vector<double> Unkn_){
+	//A function to calculate the derivatives of the Lambda extrapolation parameter t by the Unkn parameters.
+	//Not used here, since L vtx are not unkn parameters in this code. 
+	return 0;
+}
+TVector3
+MassVertexFitter::CalcV_LX(vector<double> Meas_){
+	double px_P  = Meas_[0];
+	double py_P = Meas_[1];
+	double pz_P = Meas_[2];
+	double px_Q  = Meas_[6];
+	double py_Q = Meas_[7];
+	double pz_Q = Meas_[8];
+	double vx_P = Meas_[3];
+	double vy_P = Meas_[4];
+	double vz_P = Meas_[5];
+	double vx_Q = Meas_[9];
+	double vy_Q = Meas_[10];
+	double vz_Q = Meas_[11];
+	
+	TVector3 TV_P(px_P, py_P, pz_P);
+	TVector3 TV_Q(px_Q, py_Q, pz_Q);
+	TVector3 TV_L = TV_P + TV_Q;
+	double u_L = TV_L.x()/TV_L.Mag();
+	double v_L = TV_L.y()/TV_L.Mag();
+	double w_L = TV_L.z()/TV_L.Mag();
+
+	double t_cor_ = CalcLambdaExtrapolationParameter(Meas_, {});//Unmeas are left blank.
+	double vx_LX = 0.5*(vx_P + vx_Q) + t_cor_ * u_L; 
+	double vy_LX = 0.5*(vy_P + vy_Q) + t_cor_ * v_L; 
+	double vz_LX = 0.5*(vz_P + vz_Q) + t_cor_ * w_L; 
+
+	return TVector3(vx_LX, vy_LX, vz_LX);
+}
+TVector3
+MassVertexFitter::CalcV_LXDerivativesM(int idx, vector<double> Meas_){
+	double px_P  = Meas_[0];
+	double py_P = Meas_[1];
+	double pz_P = Meas_[2];
+	double px_Q  = Meas_[6];
+	double py_Q = Meas_[7];
+	double pz_Q = Meas_[8];
+	double vx_P = Meas_[3];
+	double vy_P = Meas_[4];
+	double vz_P = Meas_[5];
+	double vx_Q = Meas_[9];
+	double vy_Q = Meas_[10];
+	double vz_Q = Meas_[11];
+
+	TVector3 TV_P(px_P, py_P, pz_P);
+	TVector3 TV_Q(px_Q, py_Q, pz_Q);
+	TVector3 TV_L = TV_P + TV_Q;
+	double u_L = TV_L.x()/TV_L.Mag();
+	double v_L = TV_L.y()/TV_L.Mag();
+	double w_L = TV_L.z()/TV_L.Mag();
+	double t_cor_ = CalcLambdaExtrapolationParameter(Meas_, {});//Unmeas are left blank.
+	TVector3 D_L(u_L, v_L, w_L);
+	double vx_LX = 0.5*(vx_P + vx_Q) + t_cor_ * u_L; 
+	double vy_LX = 0.5*(vy_P + vy_Q) + t_cor_ * v_L; 
+	double vz_LX = 0.5*(vz_P + vz_Q) + t_cor_ * w_L; 
+
+	double dvx_LXdM, dvy_LXdM, dvz_LXdM;
+	switch(idx){
+		case 0:
+			dvx_LXdM = u_L * (Calc_dtdM(0,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(0,Meas_).x();
+			dvy_LXdM = v_L * (Calc_dtdM(0,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(0,Meas_).y();
+			dvz_LXdM = w_L * (Calc_dtdM(0,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(0,Meas_).z();
+			break;
+		case 1:
+			dvx_LXdM = u_L * (Calc_dtdM(1,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(1,Meas_).x();
+			dvy_LXdM = v_L * (Calc_dtdM(1,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(1,Meas_).y();
+			dvz_LXdM = w_L * (Calc_dtdM(1,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(1,Meas_).z();
+			break;
+		case 2:
+			dvx_LXdM = u_L * (Calc_dtdM(2,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(2,Meas_).x();
+			dvy_LXdM = v_L * (Calc_dtdM(2,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(2,Meas_).y();
+			dvz_LXdM = w_L * (Calc_dtdM(2,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(2,Meas_).z();
+			break;
+		case 3:
+			dvx_LXdM = 0.5 + u_L * (Calc_dtdM(3,Meas_,{}));
+			dvy_LXdM = v_L * (Calc_dtdM(3,Meas_,{}));
+			dvz_LXdM = w_L * (Calc_dtdM(3,Meas_,{}));
+			break;
+		case 4:
+			dvx_LXdM = u_L * (Calc_dtdM(4,Meas_,{}));
+			dvy_LXdM = 0.5 + v_L * (Calc_dtdM(4,Meas_,{}));
+			dvz_LXdM = w_L * (Calc_dtdM(4,Meas_,{}));
+			break;
+		case 5:
+			dvx_LXdM = u_L * (Calc_dtdM(5,Meas_,{}));
+			dvy_LXdM = v_L * (Calc_dtdM(5,Meas_,{}));
+			dvz_LXdM = 0.5 + w_L * (Calc_dtdM(5,Meas_,{}));
+			break;
+		case 6:
+			dvx_LXdM = u_L * (Calc_dtdM(6,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(6,Meas_).x();
+			dvy_LXdM = v_L * (Calc_dtdM(6,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(6,Meas_).y();
+			dvz_LXdM = w_L * (Calc_dtdM(6,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(6,Meas_).z();
+			break;
+		case 7:
+			dvx_LXdM = u_L * (Calc_dtdM(7,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(7,Meas_).x();
+			dvy_LXdM = v_L * (Calc_dtdM(7,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(7,Meas_).y();
+			dvz_LXdM = w_L * (Calc_dtdM(7,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(7,Meas_).z();
+			break;
+		case 8:
+			dvx_LXdM = u_L * (Calc_dtdM(8,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(8,Meas_).x();
+			dvy_LXdM = v_L * (Calc_dtdM(8,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(8,Meas_).y();
+			dvz_LXdM = w_L * (Calc_dtdM(8,Meas_,{}))
+			 + t_cor_ * Calc_dDdM(8,Meas_).z();
+			break;
+		case 9:
+			dvx_LXdM = 0.5 + u_L * (Calc_dtdM(9,Meas_,{}));
+			dvy_LXdM = v_L * (Calc_dtdM(9,Meas_,{}));
+			dvz_LXdM = w_L * (Calc_dtdM(9,Meas_,{}));
+			break;
+		case 10:
+			dvx_LXdM = u_L * (Calc_dtdM(10,Meas_,{}));
+			dvy_LXdM = 0.5 + v_L * (Calc_dtdM(10,Meas_,{}));
+			dvz_LXdM = w_L * (Calc_dtdM(10,Meas_,{}));
+			break;
+		case 11:
+			dvx_LXdM = u_L * (Calc_dtdM(11,Meas_,{}));
+			dvy_LXdM = v_L * (Calc_dtdM(11,Meas_,{}));
+			dvz_LXdM = 0.5 + w_L * (Calc_dtdM(11,Meas_,{}));
+			break;
+		case 15:
+			dvx_LXdM = u_L * (Calc_dtdM(15,Meas_,{}));
+			dvy_LXdM = v_L * (Calc_dtdM(15,Meas_,{}));
+			dvz_LXdM = w_L * (Calc_dtdM(15,Meas_,{}));
+			break;
+		case 16:
+			dvx_LXdM = u_L * (Calc_dtdM(16,Meas_,{}));
+			dvy_LXdM = v_L * (Calc_dtdM(16,Meas_,{}));
+			dvz_LXdM = w_L * (Calc_dtdM(16,Meas_,{}));
+			break;
+		case 17:
+			dvx_LXdM = u_L * (Calc_dtdM(17,Meas_,{}));
+			dvy_LXdM = v_L * (Calc_dtdM(17,Meas_,{}));
+			dvz_LXdM = w_L * (Calc_dtdM(17,Meas_,{}));
+			break;
+		default:
+			dvx_LXdM = 0;
+			dvy_LXdM = 0;
+			dvz_LXdM = 0;
+			break;
+	}
+	return TVector3(dvx_LXdM, dvy_LXdM, dvz_LXdM);
+}
+
+TVector3
+MassVertexFitter::CalcLambdaE1Vector(vector<double> Meas_){
+	double px_P  = Meas_[0];
+	double py_P = Meas_[1];
+	double pz_P = Meas_[2];
+	double px_Q  = Meas_[6];
+	double py_Q = Meas_[7];
+	double pz_Q = Meas_[8];
+
+	TVector3 TV_P(px_P, py_P, pz_P);
+	TVector3 TV_Q(px_Q, py_Q, pz_Q);
+	TVector3 TV_L = TV_P + TV_Q;
+	double u_L = TV_L.x()/TV_L.Mag();
+	double v_L = TV_L.y()/TV_L.Mag();
+	double w_L = TV_L.z()/TV_L.Mag();
+	double norm = hypot(v_L,u_L);
+	TVector3 E1(-v_L/norm, u_L/norm, 0);
+	return E1;
+}
+TVector3
+MassVertexFitter::CalcLambdaE1VectorDerivativesM(int idx, vector<double> Meas_){
+	double px_P  = Meas_[0];
+	double py_P = Meas_[1];
+	double pz_P = Meas_[2];
+	double px_Q  = Meas_[6];
+	double py_Q = Meas_[7];
+	double pz_Q = Meas_[8];
+
+	TVector3 TV_P(px_P, py_P, pz_P);
+	TVector3 TV_Q(px_Q, py_Q, pz_Q);
+	TVector3 TV_L = TV_P + TV_Q;
+	double u_L = TV_L.x()/TV_L.Mag();
+	double v_L = TV_L.y()/TV_L.Mag();
+	double w_L = TV_L.z()/TV_L.Mag();
+	//E1 = z X D_L / |z X D_L|, where z = (0,0,1)
+	// norm = 1./|z X D_L| = 1./hypot(v_L,u_L)
+	double norm = 1./hypot(v_L,u_L);
+	TVector3 E1_dir = TVector3(-v_L, u_L, 0);
+	TVector3 E1 = norm * TVector3(-v_L, u_L, 0);
+	double dnormdM = -(v_L*(Calc_dDdM(idx,Meas_).y()) + u_L*(Calc_dDdM(idx,Meas_).x()))*pow(norm,3);
+	TVector3 Derivatives = dnormdM * E1_dir
+	 + norm * TVector3(0,0,1).Cross(Calc_dDdM(idx,Meas_));
+	return Derivatives;
+}
+TVector3
+MassVertexFitter::CalcLambdaE2Vector(vector<double> Meas_){
+	double px_P  = Meas_[0];
+	double py_P = Meas_[1];
+	double pz_P = Meas_[2];
+	double px_Q  = Meas_[6];
+	double py_Q = Meas_[7];
+	double pz_Q = Meas_[8];
+	TVector3 TV_P(px_P, py_P, pz_P);
+	TVector3 TV_Q(px_Q, py_Q, pz_Q);
+	TVector3 TV_L = TV_P + TV_Q;
+	double u_L = TV_L.x()/TV_L.Mag();
+	double v_L = TV_L.y()/TV_L.Mag();
+	double w_L = TV_L.z()/TV_L.Mag();
+	TVector3 D_L(u_L, v_L, w_L);
+
+	TVector3 E1 = CalcLambdaE1Vector(Meas_);
+	TVector3 E2 = D_L.Cross(E1);
+	return E2;
+}
+TVector3
+MassVertexFitter::CalcLambdaE2VectorDerivativesM(int idx, vector<double> Meas_){
+	double px_P  = Meas_[0];
+	double py_P = Meas_[1];
+	double pz_P = Meas_[2];
+	double px_Q  = Meas_[6];
+	double py_Q = Meas_[7];
+	double pz_Q = Meas_[8];
+	TVector3 TV_P(px_P, py_P, pz_P);
+	TVector3 TV_Q(px_Q, py_Q, pz_Q);
+	TVector3 TV_L = TV_P + TV_Q;
+	double u_L = TV_L.x()/TV_L.Mag();
+	double v_L = TV_L.y()/TV_L.Mag();
+	double w_L = TV_L.z()/TV_L.Mag();
+	TVector3 D_L(u_L, v_L, w_L);
+	TVector3 E1 = CalcLambdaE1Vector(Meas_);
+
+	TVector3 dD_LdM = Calc_dDdM(idx,Meas_);
+	TVector3 dE1dM = CalcLambdaE1VectorDerivativesM(idx,Meas_);
+	TVector3 Derivatives = dD_LdM.Cross(E1) + D_L.Cross(dE1dM);
+	return Derivatives;
 }
 #endif

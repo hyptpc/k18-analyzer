@@ -22,6 +22,7 @@ CascadeVertexFitter::CascadeVertexFitter(TLorentzVector P_,TVector3 VP_,
 	VP=VP_;
 	VQ=VQ_;
 	VR=VR_;
+	ScaleParams = 0;
 	Initialize();
 };
 void CascadeVertexFitter::Initialize(){

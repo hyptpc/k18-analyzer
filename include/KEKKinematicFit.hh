@@ -5,7 +5,6 @@
 #include "CascadeFitter.hh"
 #include "CascadeFitter2.hh"
 #include "CascadeVertexFitter.hh"
-#include "MassVertexFitter3.hh"
 #include "TPCLocalTrackHelix.hh"
 #include "MathTools.hh"
 class KEKKinematicFitter{
@@ -211,55 +210,19 @@ class KEKMassVertexFitter: virtual public KEKKinematicFitter{
 		TLorentzVector LV2, TVector3 Vtx2, TMatrixD Cov2, double Mass);
 		std::vector<TLorentzVector> GetFittedLV(){
 			auto HLVs = ThisFitter()->GetFittedLV();
-			auto HLV1Cor = HLVs.at(0);
-			auto HLV2Cor = HLVs.at(1);
-			auto HLV3Cor = HLVs.at(2);
-			LV1Cor = TLorentzVector(-HLV1Cor.Px(), HLV1Cor.Pz(), HLV1Cor.Py(), HLV1Cor.E());
+			LV1Cor = TLorentzVector(-HLVs.at(0).Px(), HLVs.at(0).Pz(), HLVs.at(0).Py(), HLVs.at(0).E());
 			LV2Cor = TLorentzVector(-HLVs.at(1).Px(), HLVs.at(1).Pz(), HLVs.at(1).Py(), HLVs.at(1).E());
 			LV3Cor = TLorentzVector(-HLVs.at(2).Px(), HLVs.at(2).Pz(), HLVs.at(2).Py(), HLVs.at(2).E());
 			return std::vector<TLorentzVector>{LV1Cor, LV2Cor, LV3Cor};
 		}
 		std::vector<TVector3> GetFittedVerticies(){
 			auto Verts = ThisFitter()->GetFittedVerticies();
-			auto VPCor = Verts.at(0);
-			auto VQCor = Verts.at(1);
-			auto VRCor = Verts.at(2);
-			return std::vector<TVector3>{VPCor, VQCor, VRCor};
+			TVector3 Vtx1Cor = TVector3(-Verts.at(0).X(), Verts.at(0).Z(), Verts.at(0).Y());
+			TVector3 Vtx2Cor = TVector3(-Verts.at(1).X(), Verts.at(1).Z(), Verts.at(1).Y());
+			TVector3 Vtx3Cor = TVector3(-Verts.at(2).X(), Verts.at(2).Z(), Verts.at(2).Y());
+			return std::vector<TVector3>{Vtx1Cor,Vtx2Cor,Vtx3Cor};
 		}
 		~KEKMassVertexFitter(){
-		}
-};
-class KEKMassVertexFitter3: virtual public KEKKinematicFitter{
-	private:
-		TLorentzVector LV1Cor;
-		TLorentzVector LV2Cor;
-		TLorentzVector LV3Cor;
-	public:
-		KEKMassVertexFitter3(){}
-		MassVertexFitter3* ThisFitter(){//Necessary to call functions in FourVectorFitter. ex: SetInvMass.
-			return dynamic_cast<MassVertexFitter3*>(Fitter);
-		}
-		KEKMassVertexFitter3(
-		TLorentzVector LV1, TVector3 Vtx1, TMatrixD Cov1,
-		TLorentzVector LV2, TVector3 Vtx2, TMatrixD Cov2, double Mass);
-		std::vector<TLorentzVector> GetFittedLV(){
-			auto HLVs = ThisFitter()->GetFittedLV();
-			auto HLV1Cor = HLVs.at(0);
-			auto HLV2Cor = HLVs.at(1);
-			auto HLV3Cor = HLVs.at(2);
-			LV1Cor = TLorentzVector(-HLV1Cor.Px(), HLV1Cor.Pz(), HLV1Cor.Py(), HLV1Cor.E());
-			LV2Cor = TLorentzVector(-HLVs.at(1).Px(), HLVs.at(1).Pz(), HLVs.at(1).Py(), HLVs.at(1).E());
-			LV3Cor = TLorentzVector(-HLVs.at(2).Px(), HLVs.at(2).Pz(), HLVs.at(2).Py(), HLVs.at(2).E());
-			return std::vector<TLorentzVector>{LV1Cor, LV2Cor, LV3Cor};
-		}
-		std::vector<TVector3> GetFittedVerticies(){
-			auto Verts = ThisFitter()->GetFittedVerticies();
-			auto VPCor = Verts.at(0);
-			auto VQCor = Verts.at(1);
-			auto VRCor = Verts.at(2);
-			return std::vector<TVector3>{VPCor, VQCor, VRCor};
-		}
-		~KEKMassVertexFitter3(){
 		}
 };
 #endif

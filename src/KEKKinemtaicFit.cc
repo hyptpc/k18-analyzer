@@ -60,7 +60,9 @@ KEKCascadeFitter2::KEKCascadeFitter2(
 	static const Double_t MomResScale = gUser.GetParameter("MomResScale") ;
 	static const Double_t dZResScale = gUser.GetParameter("dZResScale") ;
 	#else
-	static const Double_t MomResScale  = 2.4;
+	static const Double_t MomResScale_p  = 3.50;
+	static const Double_t MomResScale_pi1  = 3.28;
+	static const Double_t MomResScale_pi2  = 3.15;
 	static const Double_t dZResScale   = 1;
 	#endif
 	TMatrixD MomCov1(3,3);
@@ -73,14 +75,24 @@ KEKCascadeFitter2::KEKCascadeFitter2(
 			MomCov3(i,j) = Cov3(i,j);
 		}
 	}
-	TMatrixD MomScaleMat(3,3);
-	MomScaleMat.Zero();
-	MomScaleMat(0,0) = MomResScale;//px
-	MomScaleMat(1,1) = MomResScale*dZResScale;//py
-	MomScaleMat(2,2) = MomResScale;//pz
-	MomCov1 = MomScaleMat*MomCov1*MomScaleMat;
-	MomCov2 = MomScaleMat*MomCov2*MomScaleMat;
-	MomCov3 = MomScaleMat*MomCov3*MomScaleMat;
+	TMatrixD MomScaleMat_p(3,3);
+	MomScaleMat_p.Zero();
+	MomScaleMat_p(0,0) = MomResScale_p;//px
+	MomScaleMat_p(1,1) = MomResScale_p*dZResScale;//py
+	MomScaleMat_p(2,2) = MomResScale_p;//pz
+	TMatrixD MomScaleMat_pi1(3,3);
+	MomScaleMat_pi1.Zero();
+	MomScaleMat_pi1(0,0) = MomResScale_pi1;//px
+	MomScaleMat_pi1(1,1) = MomResScale_pi1*dZResScale;//py
+	MomScaleMat_pi1(2,2) = MomResScale_pi1;//pz
+	TMatrixD MomScaleMat_pi2(3,3);
+	MomScaleMat_pi2.Zero();
+	MomScaleMat_pi2(0,0) = MomResScale_pi2;//px
+	MomScaleMat_pi2(1,1) = MomResScale_pi2*dZResScale;//py
+	MomScaleMat_pi2(2,2) = MomResScale_pi2;//pz
+	MomCov1 = MomScaleMat_p*MomCov1*MomScaleMat_p;
+	MomCov2 = MomScaleMat_pi1*MomCov2*MomScaleMat_pi1;
+	MomCov3 = MomScaleMat_pi2*MomCov3*MomScaleMat_pi2;
 	double Diagonals[9] = {
 		MomCov1[0][0],MomCov1[1][1],MomCov1[2][2],
 		MomCov2[0][0],MomCov2[1][1],MomCov2[2][2],
@@ -91,7 +103,7 @@ KEKCascadeFitter2::KEKCascadeFitter2(
 	double scale_offdiagonals = 0.9;//To avoid singular matrix, the off-diagonal elements are scaled down by this factor.
 	for(int i=0;i<Offdiagonals.GetNrows();++i){
 		for(int j=0;j<Offdiagonals.GetNcols();++j){
-			Offdiagonals(i,j) *= scale_offdiagonals;
+//			Offdiagonals(i,j) *= scale_offdiagonals;
 		}
 	}
 
@@ -127,28 +139,30 @@ KEKCascadeVertexFitter::KEKCascadeVertexFitter(
 	static const Double_t TransResScale = gUser.GetParameter("TransResScale") ;
 	static const Double_t VertResScale = gUser.GetParameter("VertResScale") ;
 	#else
-	static const Double_t MomResScale   = 2.4;
+	static const Double_t MomResScale_p  = 3.50;
+	static const Double_t MomResScale_pi1  = 3.28;
+	static const Double_t MomResScale_pi2  = 3.15;
 	static const Double_t dZResScale    = 1;
 	/*
-	static const Double_t ResXScaleP    = 1.5;
-	static const Double_t ResYScaleP    = 1.5;
-	static const Double_t ResZScaleP    = 0.3;
-	static const Double_t ResXScalePi1  = 1.1;
+	static const Double_t ResXScale_p    = 1.5;
+	static const Double_t ResYScale_p    = 1.5;
+	static const Double_t ResZScale_p    = 0.3;
+	static const Double_t ResXScale_pi1  = 1.1;
 	static const Double_t ResYScalePi1  = 1.2;
 	static const Double_t ResZScalePi1  = 0.4;
 	static const Double_t ResXScalePi2  = 2.1;
 	static const Double_t ResYScalePi2  = 2.2;
 	static const Double_t ResZScalePi2  = 2;
 	*/
-	static const Double_t ResXScaleP    = 1;
-	static const Double_t ResYScaleP    = 1;
-	static const Double_t ResZScaleP    = 1;
-	static const Double_t ResXScalePi1  = 1;
-	static const Double_t ResYScalePi1  = 1;
-	static const Double_t ResZScalePi1  = 1;
-	static const Double_t ResXScalePi2  = 1;
-	static const Double_t ResYScalePi2  = 1;
-	static const Double_t ResZScalePi2  = 1;
+	static const Double_t ResXScale_p    = 1.;
+	static const Double_t ResYScale_p    = 1.;
+	static const Double_t ResZScale_p    = 1.;
+	static const Double_t ResXScale_pi1  = 1.;
+	static const Double_t ResYScale_pi1  = 1.;
+	static const Double_t ResZScale_pi1  = 1.;
+	static const Double_t ResXScale_pi2  = 1.;
+	static const Double_t ResYScale_pi2  = 1.;
+	static const Double_t ResZScale_pi2  = 1.;
 	#endif
 	/*
 	Each point in the track has 6 informations, (x,y,z, px, py, pz).
@@ -203,9 +217,9 @@ KEKCascadeVertexFitter::KEKCascadeVertexFitter(
 			V3(i,j) = 0.5 * (Cov1(i+3,j+3) + Cov2(i+3,j+3));
 		}
 	}
-	double dt1 = sqrt((UMatT1*V2*UMat1)(0,0))*sth_opening_12;
-	double dt2 = sqrt((UMatT2*V1*UMat2)(0,0))*sth_opening_12;
-	double dt3 = sqrt((UMatT3*V3*UMat3)(0,0))*sth_opening_3;
+	double dt1 = sqrt((UMatT1*V2*UMat1)(0,0))/sth_opening_12;
+	double dt2 = sqrt((UMatT2*V1*UMat2)(0,0))/sth_opening_12;
+	double dt3 = sqrt((UMatT3*V3*UMat3)(0,0))/sth_opening_3;
 	for(int i=0;i<3;++i){
 		for(int j=0;j<3;++j){
 			Cov1(i+3,j+3) += dt1*dt1*U1(i)*U1(j);
@@ -214,34 +228,34 @@ KEKCascadeVertexFitter::KEKCascadeVertexFitter(
 		}
 	}
 
-	TMatrixD MomPosScaleMatP(6,6);
-	MomPosScaleMatP.Zero();
-	MomPosScaleMatP(0,0) = MomResScale;//px
-	MomPosScaleMatP(1,1) = MomResScale;//pz = py in helix coordinate
-	MomPosScaleMatP(2,2) = MomResScale*dZResScale;//
-	MomPosScaleMatP(3,3) = ResXScaleP;//x
-	MomPosScaleMatP(4,4) = ResZScaleP;//z
-	MomPosScaleMatP(5,5) = ResYScaleP;//y
-	TMatrixD MomPosScaleMatPi1(6,6);
-	MomPosScaleMatPi1.Zero();
-	MomPosScaleMatPi1(0,0) = MomResScale;//px
-	MomPosScaleMatPi1(1,1) = MomResScale;//pz
-	MomPosScaleMatPi1(2,2) = MomResScale*dZResScale;//py
-	MomPosScaleMatPi1(3,3) = ResXScalePi1;
-	MomPosScaleMatPi1(4,4) = ResZScalePi1;//z
-	MomPosScaleMatPi1(5,5) = ResYScalePi1;//y
-	TMatrixD MomPosScaleMatPi2(6,6);
-	MomPosScaleMatPi2.Zero();
-	MomPosScaleMatPi2(0,0) = MomResScale;//px
-	MomPosScaleMatPi2(1,1) = MomResScale;//pz
-	MomPosScaleMatPi2(2,2) = MomResScale*dZResScale;//py
-	MomPosScaleMatPi2(3,3) = ResXScalePi2;//x
-	MomPosScaleMatPi2(4,4) = ResZScalePi2;//z
-	MomPosScaleMatPi2(5,5) = ResYScalePi2;//y
+	TMatrixD MomPosScaleMat_p(6,6);
+	MomPosScaleMat_p.Zero();
+	MomPosScaleMat_p(0,0) = MomResScale_p;//px
+	MomPosScaleMat_p(1,1) = MomResScale_p;//pz = py in helix coordinate
+	MomPosScaleMat_p(2,2) = MomResScale_p*dZResScale;//
+	MomPosScaleMat_p(3,3) = ResXScale_p;//x
+	MomPosScaleMat_p(4,4) = ResZScale_p;//z
+	MomPosScaleMat_p(5,5) = ResYScale_p;//y
+	TMatrixD MomPosScaleMat_pi1(6,6);
+	MomPosScaleMat_pi1.Zero();
+	MomPosScaleMat_pi1(0,0) = MomResScale_pi1;//px
+	MomPosScaleMat_pi1(1,1) = MomResScale_pi1;//pz
+	MomPosScaleMat_pi1(2,2) = MomResScale_pi1*dZResScale;//py
+	MomPosScaleMat_pi1(3,3) = ResXScale_pi1;
+	MomPosScaleMat_pi1(4,4) = ResZScale_pi1;//z
+	MomPosScaleMat_pi1(5,5) = ResYScale_pi1;//y
+	TMatrixD MomPosScaleMat_pi2(6,6);
+	MomPosScaleMat_pi2.Zero();
+	MomPosScaleMat_pi2(0,0) = MomResScale_pi2;//px
+	MomPosScaleMat_pi2(1,1) = MomResScale_pi2;//pz
+	MomPosScaleMat_pi2(2,2) = MomResScale_pi2*dZResScale;//py
+	MomPosScaleMat_pi2(3,3) = ResXScale_pi2;//x
+	MomPosScaleMat_pi2(4,4) = ResZScale_pi2;//z
+	MomPosScaleMat_pi2(5,5) = ResYScale_pi2;//y
 
-	Cov1 = MomPosScaleMatP*Cov1*MomPosScaleMatP;
-	Cov2 = MomPosScaleMatPi1*Cov2*MomPosScaleMatPi1;
-	Cov3 = MomPosScaleMatPi2*Cov3*MomPosScaleMatPi2;
+	Cov1 = MomPosScaleMat_p*Cov1*MomPosScaleMat_p;
+	Cov2 = MomPosScaleMat_pi1*Cov2*MomPosScaleMat_pi1;
+	Cov3 = MomPosScaleMat_pi2*Cov3*MomPosScaleMat_pi2;
 	double Diagonals[18] = {
 		Cov1[0][0],Cov1[1][1],Cov1[2][2],Cov1[3][3],Cov1[4][4],Cov1[5][5],
 		Cov2[0][0],Cov2[1][1],Cov2[2][2],Cov2[3][3],Cov2[4][4],Cov2[5][5],
@@ -267,37 +281,77 @@ KEKMassVertexFitter::KEKMassVertexFitter(
 	TLorentzVector LV1, TVector3 Vtx1, TMatrixD Cov1,
 	TLorentzVector LV2, TVector3 Vtx2, TMatrixD Cov2,double Mass
 ){
-	double Diagonals[10] = {
-		Cov1[0][0],Cov1[1][1],Cov1[2][2],Cov1[3][3],Cov1[4][4],
-		Cov2[0][0],Cov2[1][1],Cov2[2][2],Cov2[3][3],Cov2[4][4]
+	auto HLV1 = TLorentzVector(-LV1.Px(), LV1.Pz(), LV1.Py(), LV1.E());
+	auto HLV2 = TLorentzVector(-LV2.Px(), LV2.Pz(), LV2.Py(), LV2.E());
+	auto HVtx1= TVector3(-Vtx1.X(), Vtx1.Z(), Vtx1.Y());
+	auto HVtx2= TVector3(-Vtx2.X(), Vtx2.Z(), Vtx2.Y());
+	
+	static const Double_t MomResScale_p  = 3.50;
+	static const Double_t MomResScale_pi1  = 3.28;
+	static const Double_t MomResScale_pi2  = 3.15;
+	static const Double_t dZResScale    = 1;
+	static const Double_t ResXScale_p    = 1.;
+	static const Double_t ResYScale_p    = 1.;
+	static const Double_t ResZScale_p    = 1.;
+	static const Double_t ResXScale_pi1  = 1.;
+	static const Double_t ResYScale_pi1  = 1.;
+	static const Double_t ResZScale_pi1  = 1.;
+	
+	
+	TVector3 U1 = HLV1.Vect().Unit();
+	TVector3 U2 = HLV2.Vect().Unit();
+	double cth_opening_12 = U1.Dot(U2);
+	double sth_opening_12 = sqrt(1 - cth_opening_12*cth_opening_12);
+	TMatrixD UMat1(3,1); TMatrixD UMatT1(1,3);
+	TMatrixD UMat2(3,1); TMatrixD UMatT2(1,3);
+	for(int i=0;i<3;++i){
+		UMat1(i,0) = U1(i);UMatT1(0,i) = U1(i);
+		UMat2(i,0) = U2(i);UMatT2(0,i) = U2(i);
+	}
+	TMatrixD V1(3,3);TMatrixD V2(3,3);
+	for(int i=0;i<3;++i){
+		for(int j=0;j<3;++j){
+			V1(i,j) = Cov1(i+3,j+3);
+			V2(i,j) = Cov2(i+3,j+3);
+		}
+	}
+	double dt1 = sqrt((UMatT1*V2*UMat1)(0,0))/sth_opening_12;
+	double dt2 = sqrt((UMatT2*V1*UMat2)(0,0))/sth_opening_12;
+	for(int i=0;i<3;++i){
+		for(int j=0;j<3;++j){
+			Cov1(i+3,j+3) += dt1*dt1*U1(i)*U1(j);
+			Cov2(i+3,j+3) += dt2*dt2*U2(i)*U2(j);
+		}
+	}
+	TMatrixD MomPosScaleMat_p(6,6);
+	MomPosScaleMat_p.Zero();
+	MomPosScaleMat_p(0,0) = MomResScale_p;//px
+	MomPosScaleMat_p(1,1) = MomResScale_p;//pz = py in helix coordinate
+	MomPosScaleMat_p(2,2) = MomResScale_p*dZResScale;//
+	MomPosScaleMat_p(3,3) = ResXScale_p;//x
+	MomPosScaleMat_p(4,4) = ResZScale_p;//z
+	MomPosScaleMat_p(5,5) = ResYScale_p;//y
+	TMatrixD MomPosScaleMat_pi1(6,6);
+	MomPosScaleMat_pi1.Zero();
+	MomPosScaleMat_pi1(0,0) = MomResScale_pi1;//px
+	MomPosScaleMat_pi1(1,1) = MomResScale_pi1;//pz
+	MomPosScaleMat_pi1(2,2) = MomResScale_pi1*dZResScale;//py
+	MomPosScaleMat_pi1(3,3) = ResXScale_pi1;
+	MomPosScaleMat_pi1(4,4) = ResZScale_pi1;//z
+	MomPosScaleMat_pi1(5,5) = ResYScale_pi1;//y
+	
+	Cov1 = MomPosScaleMat_p*Cov1*MomPosScaleMat_p;
+	Cov2 = MomPosScaleMat_pi1*Cov2*MomPosScaleMat_pi1;
+	
+	double Diagonals[12] = {
+		Cov1[0][0],Cov1[1][1],Cov1[2][2],Cov1[3][3],Cov1[4][4],Cov1[5][5],
+		Cov2[0][0],Cov2[1][1],Cov2[2][2],Cov2[3][3],Cov2[4][4],Cov2[5][5]
 	};
 	auto Offdiagonals = MathTools::MergeOffdiagonals(Cov1,Cov2);
 	//In KF framework, Y and Z should be swapped
-	auto HLV1 = TLorentzVector(-LV1.Px(), LV1.Pz(), LV1.Py(), LV1.E());
-	auto HLV2 = TLorentzVector(-LV2.Px(), LV2.Pz(), LV2.Py(), LV2.E());
-	auto HLV3 = HLV1 + HLV2;
-	Fitter = new MassVertexFitter(HLV1,HLV2,HLV3,Vtx1,Vtx2);
-	Fitter->ScaleParameters(ScaleParams);
-	ThisFitter()->SetInvMass(Mass);
-	Fitter->SetMaximumStep(5);
-	Fitter->SetVariance(Diagonals);
-	Fitter->AddOffdiagonals(Offdiagonals);
-}
-KEKMassVertexFitter3::KEKMassVertexFitter3(
-	TLorentzVector LV1, TVector3 Vtx1, TMatrixD Cov1,
-	TLorentzVector LV2, TVector3 Vtx2, TMatrixD Cov2,
-	double Mass
-){
-	double Diagonals[15] = {
-		Cov1[0][0],Cov1[1][1],Cov1[2][2],Cov1[3][3],Cov1[4][4],
-		Cov2[0][0],Cov2[1][1],Cov2[2][2],Cov2[3][3],Cov2[4][4]
-	};
-	auto Offdiagonals = MathTools::MergeOffdiagonals(Cov1,Cov2);
-	auto HLV1 = TLorentzVector(-LV1.Px(), LV1.Pz(), LV1.Py(), LV1.E());
-	auto HLV2 = TLorentzVector(-LV2.Px(), LV2.Pz(), LV2.Py(), LV2.E());
-	auto HLV3 = HLV1 + HLV2; 
-	Fitter = new MassVertexFitter3(HLV1,HLV2,HLV3,Vtx1,Vtx2);
-	Fitter->ScaleParameters(ScaleParams);
+	Fitter = new MassVertexFitter(HLV1,Vtx1,HLV2,Vtx2);
+	//Fitter->ScaleParameters(ScaleParams);
+	Fitter->ScaleParameters(0);
 	ThisFitter()->SetInvMass(Mass);
 	Fitter->SetMaximumStep(5);
 	Fitter->SetVariance(Diagonals);
